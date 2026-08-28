@@ -57,6 +57,10 @@ binding = "STATICCLOCK"
 service = "staticclock-download-tracker"
 
 [[services]]
+binding = "CHRONOLOCK"
+service = "chronolock-download-tracker"
+
+[[services]]
 binding = "POSTKING"
 service = "postking-download-tracker"
 

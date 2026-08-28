@@ -29,14 +29,14 @@ OpenAPI file — not fifteen separate Workers.
 1. Create a GPT (or open GPT Actions).
 2. **Import from URL** → `https://aziel-runtime.vibelock.workers.dev/openapi.json`
 3. No authentication. CORS `*`.
-4. Ask the GPT to call `decisiongate_check`, `glossafilter_render`, `azclce_score`, etc.
+4. Ask the GPT to call `decisiongate_check`, `glossafilter_render`, `azclce_score`, `chronolock_advisory`, etc.
 
 ## Add to Grok
 
 - **Custom tool / OpenAPI:** import `https://aziel-runtime.vibelock.workers.dev/openapi.json`
 - **MCP remote:** `POST https://aziel-runtime.vibelock.workers.dev/mcp`  
   Methods: `initialize`, `tools/list`, `tools/call`. Tools are named `{product}_{op}`
-  (example: `decisiongate_check`, `glossafilter_render`, `azclce_gate`).
+  (example: `decisiongate_check`, `glossafilter_render`, `azclce_gate`, `chronolock_advisory`, `chronolock_anchors`).
   Returns text JSON. Public, no OAuth.
 
 ## Add to Venice
@@ -52,6 +52,7 @@ Each action is `POST /p/{slug}/{op}` with a JSON object.
 - **ZionPattern Solver** never claims more than 75% confidence. It does not solve cases.
 - **VeilLock** does not inject into FaceTime or any calling app. YOUR camera/screen only.
 - **AZ-CLCE** detects inconsistency, not intent. Type D is a label, not a finding of malice.
+- **ChronoLock** is advisory only — not a scheduler, not targeting, not virality. 08:30–10:30 local. Distinct from TemporalLock.
 
 ## Product slugs → Workers
 
@@ -70,6 +71,7 @@ Each action is `POST /p/{slug}/{op}` with a JSON object.
 | glossafilter | glossafilter-download-tracker | render |
 | miragegrid | miragegrid-download-tracker | assign |
 | staticclock | staticclock-download-tracker | advise |
+| chronolock | chronolock-download-tracker | advisory, anchors |
 | postking | postking-download-tracker | new, move, status |
 | azclce | azclce-download-tracker | score, classify, gate |
 

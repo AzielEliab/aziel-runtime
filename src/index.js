@@ -150,6 +150,18 @@ export const PRODUCTS = [
     banner: "StaticClock is not a scheduler and not a clock you set. Advisory fields only.",
   },
   {
+    slug: "chronolock",
+    name: "ChronoLock",
+    worker: "chronolock-download-tracker",
+    github: "https://github.com/AzielEliab/chronolock",
+    ops: [
+      { op: "advisory", method: "POST", summary: "One advisory for a last-known geo. Not a scheduler." },
+      { op: "anchors", method: "GET", summary: "List Top-30 geographic anchors." },
+    ],
+    example: { geo: "Indiana" },
+    banner: "ChronoLock is advisory only — not a scheduler, not targeting, not virality. Temporal Neutral Window 08:30–10:30 local. Distinct from TemporalLock.",
+  },
+  {
     slug: "postking",
     name: "Post-King Chess",
     worker: "postking-download-tracker",
@@ -265,6 +277,7 @@ function catalogHtml(origin) {
       <li>ZionPattern Solver never claims more than 75% confidence. It does not solve cases.</li>
       <li>VeilLock does <em>not</em> inject into FaceTime or any calling app.</li>
       <li>AZ-CLCE detects inconsistency, not intent. Type D is a label only.</li>
+      <li>ChronoLock is advisory only — not a scheduler, not targeting, not virality. 08:30–10:30 local. Distinct from TemporalLock.</li>
     </ul>
   </div>
   <p class="links">
@@ -396,6 +409,7 @@ async function combinedOpenApi(request, env) {
         "GodLock/MirageGrid are not VPNs. ForgeReceipts is not legal advice. " +
         "ZionPattern Solver caps confidence at 75% and does not solve cases. " +
         "VeilLock does not inject into FaceTime. AZ-CLCE detects inconsistency, not intent. " +
+        "ChronoLock is advisory only (not a scheduler, not targeting, not virality; 08:30–10:30 local; distinct from TemporalLock). " +
         "Forks welcome. Apache-2.0. Author: Aziel Eliab.",
       license: { name: "Apache-2.0", identifier: "Apache-2.0" },
       contact: { name: "Aziel Eliab", url: "https://github.com/AzielEliab/aziel-runtime" },
