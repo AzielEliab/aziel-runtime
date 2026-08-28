@@ -36,7 +36,7 @@ OpenAPI file — not fifteen separate Workers.
 - **Custom tool / OpenAPI:** import `https://aziel-runtime.vibelock.workers.dev/openapi.json`
 - **MCP remote:** `POST https://aziel-runtime.vibelock.workers.dev/mcp`  
   Methods: `initialize`, `tools/list`, `tools/call`. Tools are named `{product}_{op}`
-  (example: `decisiongate_check`, `glossafilter_render`, `azclce_gate`, `chronolock_advisory`, `chronolock_anchors`).
+  (example: `decisiongate_check`, `glossafilter_render`, `azclce_gate`, `chronolock_advisory`, `chronolock_anchors`, `ark_sweep`, `ark_levels`).
   Returns text JSON. Public, no OAuth.
 
 ## Add to Venice
@@ -53,6 +53,7 @@ Each action is `POST /p/{slug}/{op}` with a JSON object.
 - **VeilLock** does not inject into FaceTime or any calling app. YOUR camera/screen only.
 - **AZ-CLCE** detects inconsistency, not intent. Type D is a label, not a finding of malice.
 - **ChronoLock** is advisory only — not a scheduler, not targeting, not virality. 08:30–10:30 local. Distinct from TemporalLock.
+- **The ARK** is not a kernel. Hosted API never unlocks or encrypts with a passphrase and never stores vaults. Sweep is Mode E heuristics only.
 
 ## Product slugs → Workers
 
@@ -74,6 +75,7 @@ Each action is `POST /p/{slug}/{op}` with a JSON object.
 | chronolock | chronolock-download-tracker | advisory, anchors |
 | postking | postking-download-tracker | new, move, status |
 | azclce | azclce-download-tracker | score, classify, gate |
+| ark | ark-download-tracker | sweep, levels |
 
 If a sibling `/v1` API is not live yet, the proxy returns that Worker's response
 (often 404 JSON) and the combined OpenAPI still lists the expected path.

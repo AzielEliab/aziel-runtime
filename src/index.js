@@ -187,6 +187,18 @@ export const PRODUCTS = [
     example: { r: "login button blue", d: "login form submits", p: "login button submits" },
     banner: "CLCE detects inconsistency, not intent. Type D is a label, not a finding of malice. Threshold 0.7 is advisory.",
   },
+  {
+    slug: "ark",
+    name: "The ARK",
+    worker: "ark-download-tracker",
+    github: "https://github.com/AzielEliab/ark",
+    ops: [
+      { op: "sweep", method: "POST", summary: "Mode E heuristics only (PE/ELF/Mach-O, powershell -enc, curl|sh). No clamscan. Payload is not stored." },
+      { op: "levels", method: "GET", summary: "Auto-lock seconds and decoy counts. Behavior, not cryptography." },
+    ],
+    example: { text: "hello world" },
+    banner: "The ARK is not a kernel. Hosted API never unlocks or encrypts with a passphrase and never stores vaults. Sweep is Mode E heuristics only.",
+  },
 ];
 
 const BY_SLUG = Object.fromEntries(PRODUCTS.map((p) => [p.slug, p]));
@@ -278,6 +290,7 @@ function catalogHtml(origin) {
       <li>VeilLock does <em>not</em> inject into FaceTime or any calling app.</li>
       <li>AZ-CLCE detects inconsistency, not intent. Type D is a label only.</li>
       <li>ChronoLock is advisory only — not a scheduler, not targeting, not virality. 08:30–10:30 local. Distinct from TemporalLock.</li>
+      <li>The ARK is <em>not</em> a kernel. Hosted API never unlocks or encrypts with a passphrase and never stores vaults. Sweep is Mode E heuristics only.</li>
     </ul>
   </div>
   <p class="links">
@@ -410,6 +423,7 @@ async function combinedOpenApi(request, env) {
         "ZionPattern Solver caps confidence at 75% and does not solve cases. " +
         "VeilLock does not inject into FaceTime. AZ-CLCE detects inconsistency, not intent. " +
         "ChronoLock is advisory only (not a scheduler, not targeting, not virality; 08:30–10:30 local; distinct from TemporalLock). " +
+        "The ARK is not a kernel. Hosted API never unlocks or encrypts with a passphrase and never stores vaults. Sweep is Mode E heuristics only. " +
         "Forks welcome. Apache-2.0. Author: Aziel Eliab.",
       license: { name: "Apache-2.0", identifier: "Apache-2.0" },
       contact: { name: "Aziel Eliab", url: "https://github.com/AzielEliab/aziel-runtime" },

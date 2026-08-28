@@ -67,3 +67,7 @@ service = "postking-download-tracker"
 [[services]]
 binding = "AZCLCE"
 service = "azclce-download-tracker"
+
+[[services]]
+binding = "ARK"
+service = "ark-download-tracker"
