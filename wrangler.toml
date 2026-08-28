@@ -1,0 +1,65 @@
+name = "aziel-runtime"
+main = "src/index.js"
+compatibility_date = "2026-07-01"
+workers_dev = true
+account_id = "ac575a9b822bea2bed97d0ab73aed238"
+
+[[services]]
+binding = "VIBELOCK"
+service = "vibelock-download-tracker"
+
+[[services]]
+binding = "VEILLOCK"
+service = "veillock-download-tracker"
+
+[[services]]
+binding = "CODELOCK"
+service = "codelock-download-tracker"
+
+[[services]]
+binding = "GODLOCK"
+service = "godlock-download-tracker"
+
+[[services]]
+binding = "SHADOWLOCK"
+service = "shadowlock-download-tracker"
+
+[[services]]
+binding = "TEMPORALLOCK"
+service = "temporallock-download-tracker"
+
+[[services]]
+binding = "FORGERECEIPTS"
+service = "forgereceipts-download-tracker"
+
+[[services]]
+binding = "DECISIONGATE"
+service = "decisiongate-download-tracker"
+
+[[services]]
+binding = "ZSOLVER"
+service = "zsolver-download-tracker"
+
+[[services]]
+binding = "AZOS"
+service = "azos-download-tracker"
+
+[[services]]
+binding = "GLOSSAFILTER"
+service = "glossafilter-download-tracker"
+
+[[services]]
+binding = "MIRAGEGRID"
+service = "miragegrid-download-tracker"
+
+[[services]]
+binding = "STATICCLOCK"
+service = "staticclock-download-tracker"
+
+[[services]]
+binding = "POSTKING"
+service = "postking-download-tracker"
+
+[[services]]
+binding = "AZCLCE"
+service = "azclce-download-tracker"
