@@ -212,6 +212,19 @@ export const PRODUCTS = [
     example: { text: "hello" },
     banner: "AZAI is a local OpenAI-compatible runtime, not a new foundation model. Hosted /v1 is a protocol mirror + Lamb check, NOT a proxy that spends the author's paid keys. Jeeves is not sovereign. Live blend is local azai serve.",
   },
+  {
+    slug: "spectrallock",
+    name: "SpectralLock",
+    worker: "spectrallock-download-tracker",
+    github: "https://github.com/AzielEliab/spectrallock",
+    ops: [
+      { op: "health", method: "GET", summary: "Liveness. Does not increment download KV." },
+      { op: "modes", method: "GET", summary: "List live overlay modes (zero, tazel, vyrn, uv, rosetta, zen, chaos, balance)." },
+      { op: "overlay", method: "POST", summary: "Simplified overlay preview. PNG b64 in, longest side capped at 256 px. Not the full Python pipeline." },
+    ],
+    example: { mode: "rosetta", b64: "<png-base64>" },
+    banner: "Hosted overlay is a 256px preview, not a spectrometer, not forensic.",
+  },
 ];
 
 const BY_SLUG = Object.fromEntries(PRODUCTS.map((p) => [p.slug, p]));
@@ -305,6 +318,7 @@ function catalogHtml(origin) {
       <li>ChronoLock is advisory only — not a scheduler, not targeting, not virality. 08:30–10:30 local. Distinct from TemporalLock.</li>
       <li>The ARK is <em>not</em> a kernel. Hosted API never unlocks or encrypts with a passphrase and never stores vaults. Sweep is Mode E heuristics only.</li>
       <li>AZAI is a local OpenAI-compatible runtime, not a new foundation model. Hosted /v1 is a protocol mirror + Lamb check, not a provider proxy. Jeeves is not sovereign.</li>
+      <li>SpectralLock hosted overlay is a 256px preview, not a spectrometer, not forensic.</li>
     </ul>
   </div>
   <p class="links">
@@ -439,6 +453,7 @@ async function combinedOpenApi(request, env) {
         "ChronoLock is advisory only (not a scheduler, not targeting, not virality; 08:30–10:30 local; distinct from TemporalLock). " +
         "The ARK is not a kernel. Hosted API never unlocks or encrypts with a passphrase and never stores vaults. Sweep is Mode E heuristics only. " +
         "AZAI is a local OpenAI-compatible runtime, not a new foundation model. Hosted /v1 is a protocol mirror + Lamb check, not a provider proxy. Jeeves is not sovereign. " +
+        "SpectralLock hosted overlay is a 256px preview, not a spectrometer, not forensic. " +
         "Forks welcome. Apache-2.0. Author: Aziel Eliab.",
       license: { name: "Apache-2.0", identifier: "Apache-2.0" },
       contact: { name: "Aziel Eliab", url: "https://github.com/AzielEliab/aziel-runtime" },

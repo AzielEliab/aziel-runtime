@@ -76,3 +76,6 @@ service = "ark-download-tracker"
 binding = "AZAI"
 service = "azai-download-tracker"
 
+[[services]]
+binding = "SPECTRALLOCK"
+service = "spectrallock-download-tracker"
