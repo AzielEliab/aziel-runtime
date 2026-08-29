@@ -71,3 +71,8 @@ service = "azclce-download-tracker"
 [[services]]
 binding = "ARK"
 service = "ark-download-tracker"
+
+[[services]]
+binding = "AZAI"
+service = "azai-download-tracker"
+

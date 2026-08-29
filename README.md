@@ -36,7 +36,7 @@ OpenAPI file — not fifteen separate Workers.
 - **Custom tool / OpenAPI:** import `https://aziel-runtime.vibelock.workers.dev/openapi.json`
 - **MCP remote:** `POST https://aziel-runtime.vibelock.workers.dev/mcp`  
   Methods: `initialize`, `tools/list`, `tools/call`. Tools are named `{product}_{op}`
-  (example: `decisiongate_check`, `glossafilter_render`, `azclce_gate`, `chronolock_advisory`, `chronolock_anchors`, `ark_sweep`, `ark_levels`).
+  (example: `decisiongate_check`, `glossafilter_render`, `azclce_gate`, `chronolock_advisory`, `chronolock_anchors`, `ark_sweep`, `ark_levels`, `azai_lamb_check`, `azai_health`).
   Returns text JSON. Public, no OAuth.
 
 ## Add to Venice
@@ -54,6 +54,7 @@ Each action is `POST /p/{slug}/{op}` with a JSON object.
 - **AZ-CLCE** detects inconsistency, not intent. Type D is a label, not a finding of malice.
 - **ChronoLock** is advisory only — not a scheduler, not targeting, not virality. 08:30–10:30 local. Distinct from TemporalLock.
 - **The ARK** is not a kernel. Hosted API never unlocks or encrypts with a passphrase and never stores vaults. Sweep is Mode E heuristics only.
+- **AZAI** is a local OpenAI-compatible runtime, not a new foundation model. Hosted /v1 is a protocol mirror + Lamb check, not a provider proxy. Jeeves is not sovereign. Live blend is local `azai serve`.
 
 ## Product slugs → Workers
 
@@ -76,6 +77,7 @@ Each action is `POST /p/{slug}/{op}` with a JSON object.
 | postking | postking-download-tracker | new, move, status |
 | azclce | azclce-download-tracker | score, classify, gate |
 | ark | ark-download-tracker | sweep, levels |
+| azai | azai-download-tracker | health, lamb-check, lamb_check |
 
 If a sibling `/v1` API is not live yet, the proxy returns that Worker's response
 (often 404 JSON) and the combined OpenAPI still lists the expected path.

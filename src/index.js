@@ -199,6 +199,19 @@ export const PRODUCTS = [
     example: { text: "hello world" },
     banner: "The ARK is not a kernel. Hosted API never unlocks or encrypts with a passphrase and never stores vaults. Sweep is Mode E heuristics only.",
   },
+  {
+    slug: "azai",
+    name: "AZAI",
+    worker: "azai-download-tracker",
+    github: "https://github.com/AzielEliab/azai",
+    ops: [
+      { op: "health", method: "GET", summary: "Liveness. Protocol mirror. Not a provider proxy." },
+      { op: "lamb-check", method: "POST", summary: "Run Lamb Lens (peace/clarity/service) on {text}. No provider call." },
+      { op: "lamb_check", method: "POST", summary: "Alias of lamb-check for MCP azai_lamb_check." },
+    ],
+    example: { text: "hello" },
+    banner: "AZAI is a local OpenAI-compatible runtime, not a new foundation model. Hosted /v1 is a protocol mirror + Lamb check, NOT a proxy that spends the author's paid keys. Jeeves is not sovereign. Live blend is local azai serve.",
+  },
 ];
 
 const BY_SLUG = Object.fromEntries(PRODUCTS.map((p) => [p.slug, p]));
@@ -291,6 +304,7 @@ function catalogHtml(origin) {
       <li>AZ-CLCE detects inconsistency, not intent. Type D is a label only.</li>
       <li>ChronoLock is advisory only — not a scheduler, not targeting, not virality. 08:30–10:30 local. Distinct from TemporalLock.</li>
       <li>The ARK is <em>not</em> a kernel. Hosted API never unlocks or encrypts with a passphrase and never stores vaults. Sweep is Mode E heuristics only.</li>
+      <li>AZAI is a local OpenAI-compatible runtime, not a new foundation model. Hosted /v1 is a protocol mirror + Lamb check, not a provider proxy. Jeeves is not sovereign.</li>
     </ul>
   </div>
   <p class="links">
@@ -424,6 +438,7 @@ async function combinedOpenApi(request, env) {
         "VeilLock does not inject into FaceTime. AZ-CLCE detects inconsistency, not intent. " +
         "ChronoLock is advisory only (not a scheduler, not targeting, not virality; 08:30–10:30 local; distinct from TemporalLock). " +
         "The ARK is not a kernel. Hosted API never unlocks or encrypts with a passphrase and never stores vaults. Sweep is Mode E heuristics only. " +
+        "AZAI is a local OpenAI-compatible runtime, not a new foundation model. Hosted /v1 is a protocol mirror + Lamb check, not a provider proxy. Jeeves is not sovereign. " +
         "Forks welcome. Apache-2.0. Author: Aziel Eliab.",
       license: { name: "Apache-2.0", identifier: "Apache-2.0" },
       contact: { name: "Aziel Eliab", url: "https://github.com/AzielEliab/aziel-runtime" },
