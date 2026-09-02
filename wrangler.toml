@@ -83,3 +83,8 @@ service = "spectrallock-download-tracker"
 [[services]]
 binding = "AZBOT"
 service = "azbot-download-tracker"
+
+[[services]]
+binding = "EMPLOYEELOCK"
+service = "employeelock-download-tracker"
+

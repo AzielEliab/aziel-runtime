@@ -56,6 +56,7 @@ Each action is `POST /p/{slug}/{op}` with a JSON object.
 - **The ARK** is not a kernel. Hosted API never unlocks or encrypts with a passphrase and never stores vaults. Sweep is Mode E heuristics only.
 - **AZAI** is a local OpenAI-compatible runtime, not a new foundation model. Hosted /v1 is a protocol mirror + Lamb check, not a provider proxy. Jeeves is not sovereign. Live blend is local `azai serve`.
 - **SpectralLock** hosted overlay is a 256px preview, not a spectrometer, not forensic. Full pipeline is the Python package.
+- **EmployeeLock** is not a court, not UL, not a truth score. Hosted never stores xlsx. Demo rows are format proof, not case facts.
 
 ## Product slugs → Workers
 
@@ -80,6 +81,8 @@ Each action is `POST /p/{slug}/{op}` with a JSON object.
 | ark | ark-download-tracker | sweep, levels |
 | azai | azai-download-tracker | health, lamb-check, lamb_check |
 | spectrallock | spectrallock-download-tracker | health, modes, overlay |
+| azbot | azbot-download-tracker | health, skill |
+| employeelock | employeelock-download-tracker | health, append-preview, verify-canonical |
 
 If a sibling `/v1` API is not live yet, the proxy returns that Worker's response
 (often 404 JSON) and the combined OpenAPI still lists the expected path.
