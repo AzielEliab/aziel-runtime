@@ -1,19 +1,31 @@
 /**
- * aziel-runtime — one URL for every AzielEliab product runtime.
+ * aziel-runtime — one URL for every Aziel Eliab product runtime.
  *
- * GET  /              HTML catalog
- * GET  /openapi.json  combined OpenAPI 3.1 (paths /p/{product}/{op})
- * POST /p/{product}/{op}  proxy → https://{worker}.vibelock.workers.dev/v1/{op}
- * GET  /p/{product}/{op}  proxy GET
+ * GET  /                 HTML catalog (indexable)
+ * GET  /robots.txt       Allow /, sitemap URL
+ * GET  /sitemap.xml      catalog, OpenAPI, product cards/health, GitHub
+ * GET  /llms.txt         plain-text catalog for LLM crawlers
+ * GET  /ai.txt           same as /llms.txt
+ * GET  /cite.json        How-to-cite: Aziel Eliab, Apache-2.0, GitHub + DOI
+ * GET  /v1/catalog.json  machine-readable full product list
+ * GET  /openapi.json     combined OpenAPI 3.1 (paths /p/{product}/{op})
+ * GET  /p/{product}      indexable product card
+ * GET  /p/{product}/{op} proxy GET
+ * POST /p/{product}/{op} proxy → https://{worker}.vibelock.workers.dev/v1/{op}
  * GET  /v1/health
- * POST /mcp           JSON-RPC MCP-over-HTTP (initialize, tools/list, tools/call)
+ * POST /mcp              JSON-RPC MCP-over-HTTP (initialize, tools/list, tools/call)
  *
- * No download-KV increment. CORS *. Apache-2.0. Forks welcome.
+ * No download-KV increment on catalog routes. CORS *. Apache-2.0. Forks welcome.
+ * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
 const CATALOG_HOST = "https://aziel-runtime.vibelock.workers.dev";
 const PROTOCOL = "2025-03-26";
+const CATALOG_TITLE = "Aziel Eliab product runtime catalog";
+const CATALOG_DESCRIPTION =
+  "One URL for every Aziel Eliab product runtime. OpenAPI, MCP tools, counted downloads, install.sh, skill markdown, GitHub, and DOI citations. Apache-2.0. Author: Aziel Eliab.";
+const LASTMOD = "2026-09-02";
 
-export const PRODUCTS = [
+const PRODUCTS_RAW = [
   {
     slug: "vibelock",
     name: "VibeLock",
@@ -300,6 +312,82 @@ export const PRODUCTS = [
   },
 ];
 
+
+const ONE_LINE = {
+  vibelock: "Physical-consistency evaluation of speech audio. Risk assessment, not a liveness proof.",
+  veillock: "Local camera/screen steps for YOUR device only. Not a call interceptor.",
+  codelock: "Canonical or Rosetta HTML view of source. Alters perception, not meaning.",
+  godlock: "Offline ABAD / hardening score. Not a VPN and not an anonymity network.",
+  shadowlock: "Zero-retention observation of a job list you already have. No OS hook.",
+  temporallock: "Hash-chained receipts anyone can verify. Explicit genesis, append, verify.",
+  forgereceipts: "Local receipt / checklist helper. Not legal advice. Does not contact courts.",
+  decisiongate: "Five sequential gates on a proposal. Freedom without clarity is chaos.",
+  zsolver: "Nine ontology nodes (Zioncheck seed). Hard 75% cap. Does not solve cases.",
+  azos: "Read-only status / principles. Does not grant remote shell.",
+  glossafilter: "Render an intent across bundled peer ids. Human opinion remains human.",
+  miragegrid: "Ephemeral session node assignment. Not a VPN and not an anonymity network.",
+  staticclock: "Five advisory fields for a geo. Not a scheduler.",
+  chronolock: "Advisory temporal window 08:30–10:30 local. Distinct from TemporalLock.",
+  postking: "Continuity chess. The goal is not to win. The goal is to remain.",
+  azclce: "Jaccard triple / pairwise / CLCE+. Detects inconsistency, not intent.",
+  ark: "Mode E heuristics sweep. Not a kernel. Hosted never unlocks or stores vaults.",
+  azai: "Local OpenAI-compatible runtime. Not a new foundation model. Jeeves is not sovereign.",
+  spectrallock: "Overlay preview modes. 256px hosted preview, not a spectrometer.",
+  azbot: "Skill, not a foundation model. Hosted /v1/skill returns markdown.",
+  employeelock: "Hash-chained accountability workbook. Not a court, not UL, not a truth score.",
+  foldlock: "Algorithmic tether-word suppression on UTF-8 text. Not zip.",
+  whistlelock: "Local drop ledger + dead-man copy. Not a mailer.",
+  trajectorylock: "Auditable geometric test. Research prototype, not a certified forensic instrument.",
+};
+
+/** Known Zenodo DOIs only. Do not invent. Cite even if the record currently 410s. */
+const DOI_BY_SLUG = {
+  vibelock: "10.5281/zenodo.21431610",
+  veillock: "10.5281/zenodo.21431659",
+  codelock: "10.5281/zenodo.21431561",
+  shadowlock: "10.5281/zenodo.21435707",
+  temporallock: "10.5281/zenodo.21431405",
+  forgereceipts: "10.5281/zenodo.21436074",
+  decisiongate: "10.5281/zenodo.21435730",
+  zsolver: "10.5281/zenodo.21436155",
+  azos: "10.5281/zenodo.21431711",
+  postking: "10.5281/zenodo.21897338",
+  ark: "10.5281/zenodo.21435810",
+  employeelock: "10.5281/zenodo.22257493",
+  foldlock: "10.5281/zenodo.22257762",
+  whistlelock: "10.5281/zenodo.22257762",
+  trajectorylock: "10.5281/zenodo.22258015",
+};
+
+function ensureCatalogOps(p) {
+  const have = new Set((p.ops || []).map((o) => o.op));
+  const ops = [];
+  if (!have.has("health")) {
+    ops.push({
+      op: "health",
+      method: "GET",
+      summary: "Liveness. Does not increment download KV.",
+    });
+  }
+  ops.push(...(p.ops || []));
+  if (!have.has("skill")) {
+    ops.push({
+      op: "skill",
+      method: "GET",
+      summary: `Return ${p.name} skill markdown. Does not increment download KV.`,
+    });
+  }
+  return ops;
+}
+
+export const PRODUCTS = PRODUCTS_RAW.map((p) => ({
+  ...p,
+  oneLine: ONE_LINE[p.slug] || p.name,
+  doi: DOI_BY_SLUG[p.slug] || null,
+  banner: p.banner || ONE_LINE[p.slug] || p.name,
+  ops: ensureCatalogOps(p),
+}));
+
 const BY_SLUG = Object.fromEntries(PRODUCTS.map((p) => [p.slug, p]));
 
 function corsHeaders() {
@@ -310,16 +398,59 @@ function corsHeaders() {
   };
 }
 
-function json(body, status = 200) {
+function linkHeaders(origin, canonicalPath = "/") {
+  const base = origin.replace(/\/$/, "") || CATALOG_HOST;
+  const canonical = base + (canonicalPath.startsWith("/") ? canonicalPath : "/" + canonicalPath);
+  return {
+    "X-Robots-Tag": "index, follow, max-snippet:-1, max-image-preview:large",
+    Link: `<${canonical}>; rel="canonical", <${base}/openapi.json>; rel="service-doc", <${base}/sitemap.xml>; rel="describedby"`,
+  };
+}
+
+function json(body, status = 200, extra = {}) {
   return new Response(JSON.stringify(body, null, 2), {
     status,
-    headers: { "Content-Type": "application/json; charset=utf-8", ...corsHeaders() },
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      ...corsHeaders(),
+      "X-Robots-Tag": "index, follow, max-snippet:-1, max-image-preview:large",
+      ...extra,
+    },
   });
 }
 
-function html(body) {
+function html(body, extra = {}) {
   return new Response(body, {
-    headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders() },
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      ...corsHeaders(),
+      "X-Robots-Tag": "index, follow, max-snippet:-1, max-image-preview:large",
+      ...extra,
+    },
+  });
+}
+
+function text(body, extra = {}) {
+  return new Response(body, {
+    status: 200,
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+      ...corsHeaders(),
+      "X-Robots-Tag": "index, follow, max-snippet:-1, max-image-preview:large",
+      ...extra,
+    },
+  });
+}
+
+function xml(body, extra = {}) {
+  return new Response(body, {
+    status: 200,
+    headers: {
+      "Content-Type": "application/xml; charset=utf-8",
+      ...corsHeaders(),
+      "X-Robots-Tag": "index, follow, max-snippet:-1, max-image-preview:large",
+      ...extra,
+    },
   });
 }
 
@@ -331,37 +462,262 @@ function originOf(request) {
   }
 }
 
-function workerUrl(product, op) {
-  return `https://${product.worker}.vibelock.workers.dev/v1/${op}`;
+function workerHost(product) {
+  return `https://${product.worker}.vibelock.workers.dev`;
 }
 
-function catalogHtml(origin) {
-  const cards = PRODUCTS.map((p) => {
-    const ops = p.ops
-      .map((o) => `<code>${o.method} /p/${p.slug}/${o.op}</code> — ${escapeHtml(o.summary)}`)
-      .join("<br>");
-    const banner = p.banner ? `<p class="banner">${escapeHtml(p.banner)}</p>` : "";
-    const example = JSON.stringify(p.example, null, 2);
-    const firstPost = p.ops.find((o) => o.method === "POST") || p.ops[0];
-    return `<article class="card">
-  <h2>${escapeHtml(p.name)} <span class="slug">${escapeHtml(p.slug)}</span></h2>
-  ${banner}
-  <p>Worker: <a href="https://${p.worker}.vibelock.workers.dev/">${p.worker}.vibelock.workers.dev</a>
-     · <a href="https://${p.worker}.vibelock.workers.dev/openapi.json">product OpenAPI</a>
-     · <a href="${p.github}">GitHub</a></p>
-  <p>${ops}</p>
-  <pre>curl -X ${firstPost.method} ${origin}/p/${p.slug}/${firstPost.op} \\
-  -H 'content-type: application/json' \\
-  -d '${example.replace(/'/g, "’")}'</pre>
-</article>`;
-  }).join("\n");
+function workerUrl(product, op) {
+  return `${workerHost(product)}/v1/${op}`;
+}
 
-  return `<!doctype html>
-<html lang="en">
-<meta charset="utf-8">
+function productUrls(product, origin) {
+  const host = workerHost(product);
+  const base = (origin || CATALOG_HOST).replace(/\/$/, "");
+  return {
+    github: product.github,
+    worker: product.worker,
+    worker_home: host + "/",
+    download: host + "/download",
+    install: host + "/install.sh",
+    skill: host + "/v1/skill",
+    openapi: host + "/openapi.json",
+    stats: host + "/stats",
+    catalog_card: `${base}/p/${product.slug}`,
+    catalog_health: `${base}/p/${product.slug}/health`,
+    catalog_skill: `${base}/p/${product.slug}/skill`,
+    catalog_openapi: `${base}/openapi.json`,
+    doi: product.doi || null,
+    doi_url: product.doi ? `https://doi.org/${product.doi}` : null,
+  };
+}
+
+function catalogRecord(product, origin) {
+  const urls = productUrls(product, origin);
+  return {
+    slug: product.slug,
+    name: product.name,
+    one_line: product.oneLine,
+    github: urls.github,
+    worker: urls.worker,
+    download: urls.download,
+    install: urls.install,
+    skill: urls.skill,
+    openapi: urls.openapi,
+    doi: urls.doi,
+    doi_url: urls.doi_url,
+    banner: product.banner,
+    ops: product.ops,
+    catalog_card: urls.catalog_card,
+    catalog_health: urls.catalog_health,
+    catalog_skill: urls.catalog_skill,
+  };
+}
+
+function robotsTxt(origin) {
+  const base = origin.replace(/\/$/, "");
+  return [
+    "User-agent: *",
+    "Allow: /",
+    "",
+    "User-agent: GPTBot",
+    "Allow: /",
+    "User-agent: ChatGPT-User",
+    "Allow: /",
+    "User-agent: Google-Extended",
+    "Allow: /",
+    "User-agent: anthropic-ai",
+    "Allow: /",
+    "User-agent: ClaudeBot",
+    "Allow: /",
+    "User-agent: PerplexityBot",
+    "Allow: /",
+    "User-agent: Bytespider",
+    "Allow: /",
+    "User-agent: CCBot",
+    "Allow: /",
+    "",
+    `Sitemap: ${base}/sitemap.xml`,
+    "",
+  ].join("\n");
+}
+
+function sitemapXml(origin) {
+  const base = origin.replace(/\/$/, "");
+  const urls = [
+    { loc: base + "/", priority: "1.0", changefreq: "daily" },
+    { loc: base + "/openapi.json", priority: "0.9", changefreq: "daily" },
+    { loc: base + "/v1/catalog.json", priority: "0.9", changefreq: "daily" },
+    { loc: base + "/cite.json", priority: "0.8", changefreq: "weekly" },
+    { loc: base + "/llms.txt", priority: "0.8", changefreq: "weekly" },
+    { loc: base + "/ai.txt", priority: "0.8", changefreq: "weekly" },
+    { loc: base + "/v1/health", priority: "0.5", changefreq: "daily" },
+    { loc: base + "/mcp", priority: "0.6", changefreq: "weekly" },
+  ];
+  for (const p of PRODUCTS) {
+    urls.push({ loc: `${base}/#${p.slug}`, priority: "0.8", changefreq: "weekly" });
+    urls.push({ loc: `${base}/p/${p.slug}`, priority: "0.8", changefreq: "weekly" });
+    urls.push({ loc: `${base}/p/${p.slug}/health`, priority: "0.7", changefreq: "daily" });
+    urls.push({ loc: p.github, priority: "0.5", changefreq: "weekly", lastmod: null });
+  }
+  const body = urls
+    .map((u) => {
+      const last = u.lastmod === null ? "" : `    <lastmod>${u.lastmod || LASTMOD}</lastmod>\n`;
+      return `  <url>\n    <loc>${escapeXml(u.loc)}</loc>\n${last}    <changefreq>${u.changefreq}</changefreq>\n    <priority>${u.priority}</priority>\n  </url>`;
+    })
+    .join("\n");
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${body}
+</urlset>
+`;
+}
+
+function escapeXml(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function llmsTxt(origin) {
+  const base = origin.replace(/\/$/, "");
+  const lines = [
+    `# ${CATALOG_TITLE}`,
+    "",
+    `> ${CATALOG_DESCRIPTION}`,
+    "",
+    `Author: Aziel Eliab`,
+    `Catalog: ${base}/`,
+    `OpenAPI: ${base}/openapi.json`,
+    `MCP: POST ${base}/mcp`,
+    `Machine catalog: ${base}/v1/catalog.json`,
+    `Cite: ${base}/cite.json`,
+    `License: Apache-2.0`,
+    "",
+    "## Products",
+    "",
+  ];
+  for (const p of PRODUCTS) {
+    const u = productUrls(p, origin);
+    lines.push(`### ${p.name} (${p.slug})`);
+    lines.push(p.oneLine);
+    if (p.banner) lines.push(`Banner: ${p.banner}`);
+    lines.push(`GitHub: ${u.github}`);
+    lines.push(`Worker: ${u.worker_home}`);
+    lines.push(`Download (counted, gzip 200): ${u.download}`);
+    lines.push(`Install: curl -fsSL ${u.install} | bash`);
+    lines.push(`Skill: ${u.skill}`);
+    lines.push(`Catalog health: ${u.catalog_health}`);
+    lines.push(`Catalog skill: GET ${base}/p/${p.slug}/skill`);
+    lines.push(`Ops: ${p.ops.map((o) => `${o.method} /p/${p.slug}/${o.op}`).join(", ")}`);
+    if (u.doi_url) lines.push(`DOI: ${u.doi}  ${u.doi_url}`);
+    lines.push("");
+  }
+  lines.push("## How to cite");
+  lines.push("Eliab, Aziel. (2026). Aziel Eliab product runtime catalog [Software]. Apache-2.0. " + base + "/");
+  lines.push("");
+  return lines.join("\n");
+}
+
+function citeJson(origin) {
+  const base = origin.replace(/\/$/, "");
+  return {
+    author: "Aziel Eliab",
+    author_github: "https://github.com/AzielEliab",
+    catalog: base + "/",
+    license: "Apache-2.0",
+    license_url: "https://www.apache.org/licenses/LICENSE-2.0",
+    how_to_cite:
+      "Eliab, Aziel. (2026). Aziel Eliab product runtime catalog [Software]. Apache-2.0. " +
+      base +
+      "/",
+    bibtex: `@software{eliab_aziel_runtime_2026,
+  author = {Eliab, Aziel},
+  title = {Aziel Eliab product runtime catalog},
+  year = {2026},
+  url = {${base}/},
+  license = {Apache-2.0}
+}`,
+    apa: `Eliab, A. (2026). Aziel Eliab product runtime catalog [Computer software]. ${base}/`,
+    products: PRODUCTS.map((p) => ({
+      name: p.name,
+      slug: p.slug,
+      github: p.github,
+      doi: p.doi || null,
+      doi_url: p.doi ? `https://doi.org/${p.doi}` : null,
+    })),
+  };
+}
+
+function jsonLd(origin) {
+  const base = origin.replace(/\/$/, "");
+  const software = {
+    "@type": "SoftwareApplication",
+    name: CATALOG_TITLE,
+    url: base + "/",
+    description: CATALOG_DESCRIPTION,
+    applicationCategory: "DeveloperApplication",
+    operatingSystem: "Cloudflare Workers",
+    license: "https://www.apache.org/licenses/LICENSE-2.0",
+    author: {
+      "@type": "Person",
+      name: "Aziel Eliab",
+      url: "https://github.com/AzielEliab",
+    },
+    codeRepository: "https://github.com/AzielEliab/aziel-runtime",
+    sameAs: ["https://github.com/AzielEliab/aziel-runtime", "https://github.com/AzielEliab"],
+  };
+  const itemList = {
+    "@type": "ItemList",
+    name: "Aziel Eliab products",
+    numberOfItems: PRODUCTS.length,
+    itemListElement: PRODUCTS.map((p, i) => {
+      const u = productUrls(p, origin);
+      const item = {
+        "@type": "SoftwareApplication",
+        name: p.name,
+        description: p.oneLine,
+        url: u.catalog_card,
+        codeRepository: p.github,
+        author: { "@type": "Person", name: "Aziel Eliab" },
+        license: "https://www.apache.org/licenses/LICENSE-2.0",
+      };
+      if (u.doi_url) item.identifier = u.doi_url;
+      return {
+        "@type": "ListItem",
+        position: i + 1,
+        name: p.name,
+        url: u.catalog_card,
+        item,
+      };
+    }),
+  };
+  return { "@context": "https://schema.org", "@graph": [software, itemList] };
+}
+
+function headMeta(origin, title, description, canonicalPath) {
+  const base = origin.replace(/\/$/, "");
+  const canonical = base + canonicalPath;
+  return `<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Aziel runtime catalog</title>
-<style>
+<title>${escapeHtml(title)}</title>
+<meta name="description" content="${escapeHtml(description)}">
+<meta name="author" content="Aziel Eliab">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="${escapeHtml(canonical)}">
+<link rel="sitemap" type="application/xml" href="${base}/sitemap.xml">
+<meta property="og:type" content="website">
+<meta property="og:title" content="${escapeHtml(title)}">
+<meta property="og:description" content="${escapeHtml(description)}">
+<meta property="og:url" content="${escapeHtml(canonical)}">
+<meta property="og:site_name" content="Aziel Eliab">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="${escapeHtml(title)}">
+<meta name="twitter:description" content="${escapeHtml(description)}">`;
+}
+
+const PAGE_CSS = `
   :root { color-scheme: dark; }
   body { font: 16px/1.45 system-ui, sans-serif; max-width: 52rem; margin: 2.5rem auto; padding: 0 1.25rem 4rem; background: #0e1014; color: #e8eaef; }
   h1 { font-size: 1.85rem; margin: 0 0 .35rem; }
@@ -373,13 +729,66 @@ function catalogHtml(origin) {
   .honesty ul { margin: .4rem 0 0; padding-left: 1.2rem; }
   .card { border: 1px solid #2a3140; border-radius: 12px; padding: 1.1rem 1.2rem; background: #151922; margin: 0 0 1rem; }
   .banner { border: 1px solid #3d3420; background: #1b160c; color: #e6d19a; padding: .55rem .7rem; border-radius: 8px; font-size: .92rem; }
+  .oneline { margin: .2rem 0 .6rem; }
+  .meta a { margin-right: .85rem; }
   pre { background: #0e1014; padding: .75rem .9rem; overflow: auto; border-radius: 8px; font-size: .82rem; }
   code { font-size: .88rem; }
   .links a { margin-right: 1rem; }
-</style>
+  .cite { border: 1px solid #2a3140; border-radius: 12px; padding: 1rem 1.15rem; background: #12151c; margin: 0 0 1.4rem; }
+`;
+
+function productCardHtml(p, origin, stats) {
+  const u = productUrls(p, origin);
+  const ops = p.ops
+    .map((o) => `<code>${o.method} /p/${p.slug}/${o.op}</code> — ${escapeHtml(o.summary)}`)
+    .join("<br>");
+  const banner = p.banner ? `<p class="banner">${escapeHtml(p.banner)}</p>` : "";
+  const example = JSON.stringify(p.example, null, 2);
+  const firstPost = p.ops.find((o) => o.method === "POST") || p.ops[0];
+  const count =
+    stats && typeof stats.downloads === "number"
+      ? ` <span class="count">(${stats.downloads} counted)</span>`
+      : "";
+  const doi = u.doi_url
+    ? ` · <a href="${u.doi_url}">DOI ${escapeHtml(u.doi)}</a>`
+    : "";
+  return `<article class="card" id="${escapeHtml(p.slug)}">
+  <h2><a href="${origin}/p/${p.slug}">${escapeHtml(p.name)}</a> <span class="slug">${escapeHtml(p.slug)}</span></h2>
+  <p class="oneline">${escapeHtml(p.oneLine)}</p>
+  ${banner}
+  <p class="meta">
+    <a href="${p.github}">GitHub</a>
+    <a href="${u.download}">counted /download</a>${count}
+    <a href="${u.install}">install.sh</a>
+    <a href="${u.skill}">/v1/skill</a>
+    <a href="${origin}/p/${p.slug}/health">catalog proxy health</a>${doi}
+  </p>
+  <p>Worker: <a href="${u.worker_home}">${p.worker}.vibelock.workers.dev</a>
+     · <a href="${u.openapi}">product OpenAPI</a></p>
+  <p>${ops}</p>
+  <pre>curl -X ${firstPost.method} ${origin}/p/${p.slug}/${firstPost.op} \\
+  -H 'content-type: application/json' \\
+  -d '${example.replace(/'/g, "’")}'</pre>
+</article>`;
+}
+
+function catalogHtml(origin, statsMap) {
+  const cards = PRODUCTS.map((p) => productCardHtml(p, origin, statsMap && statsMap[p.slug])).join("\n");
+  const ld = JSON.stringify(jsonLd(origin));
+  const citeProducts = PRODUCTS.map((p) => {
+    const doi = p.doi ? ` — DOI <a href="https://doi.org/${p.doi}">${p.doi}</a>` : "";
+    return `<li><a href="${p.github}">${escapeHtml(p.name)}</a>${doi}</li>`;
+  }).join("");
+  return `<!doctype html>
+<html lang="en">
+<head>
+${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
+<script type="application/ld+json">${ld}</script>
+<style>${PAGE_CSS}</style>
+</head>
 <body>
-  <h1>Aziel runtime catalog</h1>
-  <p class="lead">One URL for Grok, ChatGPT GPT Actions, and Venice. Forks welcome. Apache-2.0. Author: Aziel Eliab.</p>
+  <h1>Aziel Eliab product runtime catalog</h1>
+  <p class="lead">One URL for Grok, ChatGPT GPT Actions, and Venice. ${PRODUCTS.length} products. Forks welcome. Apache-2.0. Author: Aziel Eliab.</p>
   <div class="honesty">
     <strong>Honesty banners</strong>
     <ul>
@@ -398,8 +807,19 @@ function catalogHtml(origin) {
       <li>TrajectoryLock is a research prototype / auditable geometric test. <em>Not</em> a certified forensic instrument. Hosted never stores media. Synthetic examples are not real-case findings.</li>
     </ul>
   </div>
+  <section class="cite" id="cite">
+    <h2>How to cite</h2>
+    <p>Author: <strong>Aziel Eliab</strong> · Catalog: <a href="${origin}/">${origin}/</a> · License: Apache-2.0 · Machine-readable: <a href="${origin}/cite.json">/cite.json</a></p>
+    <p>Eliab, Aziel. (2026). Aziel Eliab product runtime catalog [Software]. Apache-2.0. ${origin}/</p>
+    <ul>${citeProducts}</ul>
+  </section>
   <p class="links">
     <a href="${origin}/openapi.json">Combined OpenAPI 3.1</a>
+    <a href="${origin}/v1/catalog.json">/v1/catalog.json</a>
+    <a href="${origin}/llms.txt">/llms.txt</a>
+    <a href="${origin}/ai.txt">/ai.txt</a>
+    <a href="${origin}/sitemap.xml">/sitemap.xml</a>
+    <a href="${origin}/robots.txt">/robots.txt</a>
     <a href="${origin}/mcp">MCP (POST JSON-RPC)</a>
     <a href="${origin}/v1/health">/v1/health</a>
     <a href="https://github.com/AzielEliab/aziel-runtime">GitHub</a>
@@ -415,6 +835,65 @@ function catalogHtml(origin) {
 </html>`;
 }
 
+function productPageHtml(p, origin, stats) {
+  const u = productUrls(p, origin);
+  const title = `${p.name} — ${CATALOG_TITLE}`;
+  const description = `${p.name}: ${p.oneLine} Author Aziel Eliab. Apache-2.0.`;
+  const ld = JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: p.name,
+    description: p.oneLine,
+    url: u.catalog_card,
+    codeRepository: p.github,
+    author: { "@type": "Person", name: "Aziel Eliab" },
+    license: "https://www.apache.org/licenses/LICENSE-2.0",
+    identifier: u.doi_url || undefined,
+  });
+  return `<!doctype html>
+<html lang="en">
+<head>
+${headMeta(origin, title, description, `/p/${p.slug}`)}
+<script type="application/ld+json">${ld}</script>
+<style>${PAGE_CSS}</style>
+</head>
+<body>
+  <p><a href="${origin}/">← Aziel Eliab product runtime catalog</a></p>
+  ${productCardHtml(p, origin, stats)}
+</body>
+</html>`;
+}
+
+async function loadStatsMap(env, only) {
+  const list = only ? [only] : PRODUCTS;
+  const entries = await Promise.all(
+    list.map(async (p) => {
+      try {
+        const { res } = await upstreamFetch(env, p, "/stats", {
+          method: "GET",
+          headers: { accept: "application/json" },
+          signal: AbortSignal.timeout(2000),
+        });
+        if (!res || !res.ok) return [p.slug, null];
+        const data = await res.json();
+        const downloads = Number(data.downloads ?? data.total);
+        const views = Number(data.views);
+        return [
+          p.slug,
+          {
+            downloads: Number.isFinite(downloads) ? downloads : null,
+            views: Number.isFinite(views) ? views : null,
+          },
+        ];
+      } catch {
+        return [p.slug, null];
+      }
+    }),
+  );
+  return Object.fromEntries(entries);
+}
+
+
 function escapeHtml(s) {
   return String(s)
     .replace(/&/g, "&amp;")
@@ -429,7 +908,56 @@ function staticPaths(origin) {
       get: {
         operationId: "catalog_health",
         summary: "Catalog liveness.",
+        tags: ["catalog"],
         responses: { "200": { description: "ok" } },
+      },
+    },
+    "/v1/catalog.json": {
+      get: {
+        operationId: "catalog_list",
+        summary: "Machine-readable full product list (slug, github, worker, download, install, skill, openapi, doi, banner, ops).",
+        tags: ["catalog"],
+        responses: { "200": { description: "Product catalog JSON" } },
+      },
+    },
+    "/cite.json": {
+      get: {
+        operationId: "catalog_cite",
+        summary: "How to cite: author Aziel Eliab, Apache-2.0, GitHub + DOI.",
+        tags: ["catalog"],
+        responses: { "200": { description: "Citation JSON" } },
+      },
+    },
+    "/llms.txt": {
+      get: {
+        operationId: "catalog_llms",
+        summary: "Plain-text catalog for LLM crawlers.",
+        tags: ["catalog"],
+        responses: { "200": { description: "text/plain catalog" } },
+      },
+    },
+    "/ai.txt": {
+      get: {
+        operationId: "catalog_ai_txt",
+        summary: "Alias of /llms.txt.",
+        tags: ["catalog"],
+        responses: { "200": { description: "text/plain catalog" } },
+      },
+    },
+    "/robots.txt": {
+      get: {
+        operationId: "catalog_robots",
+        summary: "Allow / and sitemap URL.",
+        tags: ["catalog"],
+        responses: { "200": { description: "robots.txt" } },
+      },
+    },
+    "/sitemap.xml": {
+      get: {
+        operationId: "catalog_sitemap",
+        summary: "Indexable sitemap of catalog, OpenAPI, product cards, health, GitHub.",
+        tags: ["catalog"],
+        responses: { "200": { description: "sitemap.xml" } },
       },
     },
   };
@@ -703,35 +1231,94 @@ async function handleMcp(request, env) {
   return rpcError(id, -32601, `Method not found: ${method}`);
 }
 
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    const origin = originOf(request);
+    const extra = (path) => linkHeaders(origin, path);
 
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: corsHeaders() });
     }
 
     if (url.pathname === "/" && request.method === "GET") {
-      return html(catalogHtml(originOf(request)));
+      const statsMap = await loadStatsMap(env);
+      return html(catalogHtml(origin, statsMap), extra("/"));
+    }
+
+    if (url.pathname === "/robots.txt" && request.method === "GET") {
+      return text(robotsTxt(origin), extra("/robots.txt"));
+    }
+
+    if (url.pathname === "/sitemap.xml" && request.method === "GET") {
+      return xml(sitemapXml(origin), extra("/sitemap.xml"));
+    }
+
+    if ((url.pathname === "/llms.txt" || url.pathname === "/ai.txt") && request.method === "GET") {
+      return text(llmsTxt(origin), extra(url.pathname));
+    }
+
+    if (url.pathname === "/cite.json" && request.method === "GET") {
+      return json(citeJson(origin), 200, extra("/cite.json"));
+    }
+
+    if (url.pathname === "/v1/catalog.json" && request.method === "GET") {
+      return json(
+        {
+          ok: true,
+          author: "Aziel Eliab",
+          title: CATALOG_TITLE,
+          catalog: origin + "/",
+          license: "Apache-2.0",
+          count: PRODUCTS.length,
+          products: PRODUCTS.map((p) => catalogRecord(p, origin)),
+        },
+        200,
+        extra("/v1/catalog.json"),
+      );
     }
 
     if (url.pathname === "/openapi.json" && request.method === "GET") {
-      return json(await combinedOpenApi(request, env));
+      return json(await combinedOpenApi(request, env), 200, extra("/openapi.json"));
     }
 
     if (url.pathname === "/v1/health" && request.method === "GET") {
-      return json({
-        ok: true,
-        product: "aziel-runtime",
-        products: PRODUCTS.map((p) => p.slug),
-        openapi: "/openapi.json",
-        mcp: "/mcp",
-        kv_increment: false,
-      });
+      return json(
+        {
+          ok: true,
+          product: "aziel-runtime",
+          author: "Aziel Eliab",
+          title: CATALOG_TITLE,
+          products: PRODUCTS.map((p) => p.slug),
+          count: PRODUCTS.length,
+          openapi: "/openapi.json",
+          catalog: "/v1/catalog.json",
+          cite: "/cite.json",
+          sitemap: "/sitemap.xml",
+          robots: "/robots.txt",
+          llms: "/llms.txt",
+          ai: "/ai.txt",
+          mcp: "/mcp",
+          kv_increment: false,
+        },
+        200,
+        extra("/v1/health"),
+      );
     }
 
     if (url.pathname === "/mcp" || url.pathname === "/mcp/") {
       return handleMcp(request, env);
+    }
+
+    const card = url.pathname.match(/^\/p\/([a-z0-9-]+)\/?$/i);
+    if (card && request.method === "GET") {
+      const product = BY_SLUG[card[1].toLowerCase()];
+      if (!product) {
+        return json({ error: "unknown product", slug: card[1], known: PRODUCTS.map((p) => p.slug) }, 404);
+      }
+      const statsMap = await loadStatsMap(env, product);
+      return html(productPageHtml(product, origin, statsMap[product.slug]), extra(`/p/${product.slug}`));
     }
 
     const m = url.pathname.match(/^\/p\/([a-z0-9-]+)\/([a-z0-9_-]+)$/i);
@@ -743,6 +1330,12 @@ export default {
       return proxy(product, m[2], request, env);
     }
 
-    return json({ error: "not found", hint: "GET /  GET /openapi.json  POST /p/{product}/{op}  POST /mcp" }, 404);
+    return json(
+      {
+        error: "not found",
+        hint: "GET /  GET /openapi.json  GET /v1/catalog.json  GET /sitemap.xml  GET /robots.txt  GET /llms.txt  GET /cite.json  POST /p/{product}/{op}  POST /mcp",
+      },
+      404,
+    );
   },
 };

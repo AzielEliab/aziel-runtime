@@ -17,12 +17,21 @@ OpenAPI file — not fifteen separate Workers.
 |------|-----|
 | Catalog (HTML) | https://aziel-runtime.vibelock.workers.dev/ |
 | Combined OpenAPI 3.1 | https://aziel-runtime.vibelock.workers.dev/openapi.json |
+| Machine catalog | https://aziel-runtime.vibelock.workers.dev/v1/catalog.json |
+| How to cite | https://aziel-runtime.vibelock.workers.dev/cite.json |
+| LLM crawler catalog | https://aziel-runtime.vibelock.workers.dev/llms.txt (also `/ai.txt`) |
+| robots.txt | https://aziel-runtime.vibelock.workers.dev/robots.txt |
+| sitemap.xml | https://aziel-runtime.vibelock.workers.dev/sitemap.xml |
 | MCP (JSON-RPC over HTTP, public, no OAuth) | `POST` https://aziel-runtime.vibelock.workers.dev/mcp |
 | Health | https://aziel-runtime.vibelock.workers.dev/v1/health |
 
 `POST /p/{product}/{op}` proxies to
 `https://{productWorker}.vibelock.workers.dev/v1/{op}` with the JSON body.
 `GET /p/{product}/{op}` proxies GET. Download counters are **not** incremented.
+
+Crawl/index endpoints return **HTTP 200** (not 302): `/robots.txt` allows `/` and points at `/sitemap.xml`; `/llms.txt` and `/ai.txt` list every product name, one-line, GitHub, worker, `/v1/skill`, and counted `/download`; `/cite.json` and the homepage How-to-cite block name **Aziel Eliab**, Apache-2.0, the catalog URL, GitHub, and DOI when present. Homepage includes JSON-LD `SoftwareApplication` + `ItemList`, canonical/OG/Twitter meta, and one card per product.
+
+**How to cite:** Eliab, Aziel. (2026). Aziel Eliab product runtime catalog [Software]. Apache-2.0. https://aziel-runtime.vibelock.workers.dev/
 
 ## Add to ChatGPT (GPT Actions)
 
