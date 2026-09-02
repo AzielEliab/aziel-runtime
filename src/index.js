@@ -27,21 +27,6 @@ const LASTMOD = "2026-09-02";
 
 const PRODUCTS_RAW = [
   {
-    slug: "aziel-corpus",
-    name: "Aziel Corpus Library",
-    worker: "aziel-corpus-download-tracker",
-    github: "https://github.com/AzielEliab/aziel-corpus",
-    ops: [
-      { op: "health", method: "GET", summary: "Liveness. Does not increment download KV." },
-      { op: "works", method: "GET", summary: "JSON list of indexed works." },
-      { op: "search", method: "GET", summary: "Search works by q=." },
-      { op: "example", method: "GET", summary: "Sample search payload. Does not increment download KV." },
-      { op: "skill", method: "GET", summary: "Return Aziel Corpus Library skill markdown. Does not increment download KV." },
-    ],
-    example: { q: "lock" },
-    banner: "Library index + counted corpus download. Not a search engine of private files. Not Zenodo. Not a new Lock engine. Author Aziel Eliab only.",
-  },
-  {
     slug: "vibelock",
     name: "VibeLock",
     worker: "vibelock-download-tracker",
@@ -329,7 +314,6 @@ const PRODUCTS_RAW = [
 
 
 const ONE_LINE = {
-  "aziel-corpus": "Public library of Aziel Eliab software. Counted PDF and package download. Not Zenodo. Not a new Lock engine.",
   vibelock: "Physical-consistency evaluation of speech audio. Risk assessment, not a liveness proof.",
   veillock: "Local camera/screen steps for YOUR device only. Not a call interceptor.",
   codelock: "Canonical or Rosetta HTML view of source. Alters perception, not meaning.",
@@ -1093,7 +1077,6 @@ async function combinedOpenApi(request, env) {
 
 function bindingName(product) {
   const slug = String(product.slug || "");
-  if (slug === "aziel-corpus") return "AZIELCORPUS";
   return slug.toUpperCase().replace(/-/g, "_");
 }
 

@@ -99,7 +99,6 @@ Each action is `POST /p/{slug}/{op}` with a JSON object.
 | foldlock | foldlock-download-tracker | health, fold-preview, unfold-preview, skill |
 | whistlelock | whistlelock-download-tracker | health, hash-preview, canon-preview, skill |
 | trajectorylock | trajectorylock-download-tracker | health, example, analyze, skill |
-| aziel-corpus | aziel-corpus-download-tracker | health, works, search, skill |
 
 If a sibling `/v1` API is not live yet, the proxy returns that Worker's response
 (often 404 JSON) and the combined OpenAPI still lists the expected path.
