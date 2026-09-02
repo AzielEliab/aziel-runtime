@@ -225,6 +225,18 @@ export const PRODUCTS = [
     example: { mode: "rosetta", b64: "<png-base64>" },
     banner: "Hosted overlay is a 256px preview, not a spectrometer, not forensic.",
   },
+  {
+    slug: "azbot",
+    name: "AZBot",
+    worker: "azbot-download-tracker",
+    github: "https://github.com/AzielEliab/azbot",
+    ops: [
+      { op: "health", method: "GET", summary: "Liveness. Skill, not a model." },
+      { op: "skill", method: "GET", summary: "Return AZBot skill markdown. Does not increment download KV." },
+    ],
+    example: {},
+    banner: "AZBot is a skill, not a foundation model. Hosted /v1/skill returns markdown. Call aziel-runtime for the engines. Jeeves is not sovereign.",
+  },
 ];
 
 const BY_SLUG = Object.fromEntries(PRODUCTS.map((p) => [p.slug, p]));

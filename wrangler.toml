@@ -79,3 +79,7 @@ service = "azai-download-tracker"
 [[services]]
 binding = "SPECTRALLOCK"
 service = "spectrallock-download-tracker"
+
+[[services]]
+binding = "AZBOT"
+service = "azbot-download-tracker"
