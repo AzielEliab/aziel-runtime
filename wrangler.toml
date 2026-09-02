@@ -101,3 +101,7 @@ binding = "TRAJECTORYLOCK"
 service = "trajectorylock-download-tracker"
 
 
+
+[[services]]
+binding = "AZIEL_CORPUS"
+service = "aziel-corpus-download-tracker"

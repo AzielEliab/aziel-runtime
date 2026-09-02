@@ -310,6 +310,20 @@ const PRODUCTS_RAW = [
     },
     banner: "TrajectoryLock is a research prototype / auditable geometric test. Not a certified forensic instrument. Hosted never stores media. Match probability is P(match | declared model), not P(official account is true). Synthetic example results must never be represented as real-case findings.",
   },
+  {
+    slug: "aziel-corpus",
+    name: "Aziel Digital Library",
+    worker: "aziel-corpus-download-tracker",
+    github: "https://github.com/AzielEliab/aziel-corpus",
+    ops: [
+      { op: "health", method: "GET", summary: "Liveness. Does not increment download KV. Public MASTER." },
+      { op: "search", method: "GET", summary: "Search published corpus records. Anonymous GET." },
+      { op: "example", method: "GET", summary: "Sample search payload. Does not increment download KV." },
+      { op: "skill", method: "GET", summary: "Return Aziel Digital Library skill markdown. Does not increment download KV." },
+    ],
+    example: { q: "Florence" },
+    banner: "Aziel Digital Library v2.6.2. Public MASTER. Anonymous GET is read-only. Signed-in accounts may ingest. Not a 26-card software index. Author Aziel Eliab only.",
+  },
 ];
 
 
@@ -338,6 +352,7 @@ const ONE_LINE = {
   foldlock: "Algorithmic tether-word suppression on UTF-8 text. Not zip.",
   whistlelock: "Local drop ledger + dead-man copy. Not a mailer.",
   trajectorylock: "Auditable geometric test. Research prototype, not a certified forensic instrument.",
+  "aziel-corpus": "Self-contained immutable digital library. Public MASTER. Not a 26-card index.",
 };
 
 /** Known Zenodo DOIs only. Do not invent. Cite even if the record currently 410s. */
@@ -463,6 +478,7 @@ function originOf(request) {
 }
 
 function workerHost(product) {
+  if (product.slug === "aziel-corpus") return "https://www.azielcorpuslibrary.net";
   return `https://${product.worker}.vibelock.workers.dev`;
 }
 
