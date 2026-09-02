@@ -69,6 +69,7 @@ Each action is `POST /p/{slug}/{op}` with a JSON object.
 - **FoldLock** is not zip. Hosted preview is tether-suppression on small UTF-8 text. Ratios are receipts, not trophies. Short strings can grow.
 - **WhistleLock** is a local vault + dead-man copy. Not a mailer. Hosted never holds whistle files.
 - **TrajectoryLock** is a research prototype / auditable geometric test. Not a certified forensic instrument. Hosted never stores media. Match probability is P(match | declared model), not P(official account is true). Synthetic examples are not real-case findings.
+- **Aziel Corpus Library** is a public library index + counted PDF/package download. Not a private-file search engine, not Zenodo, not a new Lock engine.
 
 ## Product slugs → Workers
 
@@ -98,6 +99,7 @@ Each action is `POST /p/{slug}/{op}` with a JSON object.
 | foldlock | foldlock-download-tracker | health, fold-preview, unfold-preview, skill |
 | whistlelock | whistlelock-download-tracker | health, hash-preview, canon-preview, skill |
 | trajectorylock | trajectorylock-download-tracker | health, example, analyze, skill |
+| aziel-corpus | aziel-corpus-download-tracker | health, works, search, skill |
 
 If a sibling `/v1` API is not live yet, the proxy returns that Worker's response
 (often 404 JSON) and the combined OpenAPI still lists the expected path.
