@@ -82,7 +82,7 @@ Each action is `POST /p/{slug}/{op}` with a JSON object.
 | azai | azai-download-tracker | health, lamb-check, lamb_check |
 | spectrallock | spectrallock-download-tracker | health, modes, overlay |
 | azbot | azbot-download-tracker | health, skill |
-| employeelock | employeelock-download-tracker | health, append-preview, verify-canonical |
+| employeelock | employeelock-download-tracker | health, append-preview, verify-canonical, skill |
 
 If a sibling `/v1` API is not live yet, the proxy returns that Worker's response
 (often 404 JSON) and the combined OpenAPI still lists the expected path.

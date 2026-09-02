@@ -246,6 +246,7 @@ export const PRODUCTS = [
       { op: "health", method: "GET", summary: "Liveness. Does not increment download KV. Hosted never stores xlsx." },
       { op: "append-preview", method: "POST", summary: "Hash a proposed LOG row without writing a file. Hosted never stores xlsx." },
       { op: "verify-canonical", method: "POST", summary: "Recompute SHA-256 of posted canonical JSON. Not a truth score." },
+      { op: "skill", method: "GET", summary: "Return EmployeeLock skill markdown. Does not increment download KV." },
     ],
     example: { event: "process outcome recorded with no named owner", result: "row logged as format proof", owner_named: "", confidence: 0.7 },
     banner: "EmployeeLock is a hash-chained accountability workbook. Not a court, not UL, not a truth score. Hosted never stores xlsx. Demo rows are format proof, not case facts.",
