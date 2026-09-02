@@ -279,6 +279,25 @@ export const PRODUCTS = [
     example: { summary: "sample drop", kind: "drop" },
     banner: "WhistleLock is a local drop ledger + dead-man copy. Not a mailer. Hosted never holds whistle files. The operator moves released packets.",
   },
+  {
+    slug: "trajectorylock",
+    name: "TrajectoryLock",
+    worker: "trajectorylock-download-tracker",
+    github: "https://github.com/AzielEliab/trajectorylock",
+    ops: [
+      { op: "health", method: "GET", summary: "Liveness. Does not increment download KV. Hosted never stores media. Not a certified instrument." },
+      { op: "example", method: "GET", summary: "Synthetic small JSON case. Not a real case. Does not increment download KV." },
+      { op: "analyze", method: "POST", summary: "Small JSON case in, geometric result out. Cap size. NEVER store media. Not a certified forensic instrument." },
+      { op: "skill", method: "GET", summary: "Return TrajectoryLock skill markdown. Does not increment download KV." },
+    ],
+    example: {
+      case_id: "MINIMAL-DIRECT-LINE",
+      sources: [{ id: "survey-a", quality: 0.95, calibrated: true, independence_group: "survey-a" }],
+      observations: [{ type: "direct_line", source_id: "survey-a", point: [0, 0, 1.2], direction: [1, 0.1, 0.02], angular_sigma_deg: 0.5, offset_sigma_m: 0.02 }],
+      official_hypothesis: { point: [0.01, 0.01, 1.19], direction: [1, 0.11, 0.02], angular_sigma_deg: 0.7, offset_sigma_m: 0.04, angle_tolerance_deg: 3.0, offset_tolerance_m: 0.25 },
+    },
+    banner: "TrajectoryLock is a research prototype / auditable geometric test. Not a certified forensic instrument. Hosted never stores media. Match probability is P(match | declared model), not P(official account is true). Synthetic example results must never be represented as real-case findings.",
+  },
 ];
 
 const BY_SLUG = Object.fromEntries(PRODUCTS.map((p) => [p.slug, p]));
@@ -376,6 +395,7 @@ function catalogHtml(origin) {
       <li>EmployeeLock is <em>not</em> a court, not UL, not a truth score. Hosted never stores xlsx. Demo rows are format proof, not case facts.</li>
       <li>FoldLock is <em>not</em> zip. Hosted preview is tether-suppression on small UTF-8 text. Ratios are receipts, not trophies.</li>
       <li>WhistleLock is a local vault + dead-man copy. It is <em>not</em> a mailer. Hosted never holds whistle files.</li>
+      <li>TrajectoryLock is a research prototype / auditable geometric test. <em>Not</em> a certified forensic instrument. Hosted never stores media. Synthetic examples are not real-case findings.</li>
     </ul>
   </div>
   <p class="links">
@@ -513,6 +533,8 @@ async function combinedOpenApi(request, env) {
         "SpectralLock hosted overlay is a 256px preview, not a spectrometer, not forensic. " +
         "EmployeeLock is not a court, not UL, not a truth score. Hosted never stores xlsx. " +
         "FoldLock is not zip. Hosted preview is tether-suppression on small UTF-8 text. " +
+        "WhistleLock is not a mailer. Hosted never holds whistle files. " +
+        "TrajectoryLock is a research prototype / auditable geometric test. Not a certified forensic instrument. Hosted never stores media. " +
         "Forks welcome. Apache-2.0. Author: Aziel Eliab.",
       license: { name: "Apache-2.0", identifier: "Apache-2.0" },
       contact: { name: "Aziel Eliab", url: "https://github.com/AzielEliab/aziel-runtime" },

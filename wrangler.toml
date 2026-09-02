@@ -96,3 +96,7 @@ service = "foldlock-download-tracker"
 binding = "WHISTLELOCK"
 service = "whistlelock-download-tracker"
 
+[[services]]
+binding = "TRAJECTORYLOCK"
+service = "trajectorylock-download-tracker"
+
