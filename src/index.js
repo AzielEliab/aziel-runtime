@@ -251,6 +251,34 @@ export const PRODUCTS = [
     example: { event: "process outcome recorded with no named owner", result: "row logged as format proof", owner_named: "", confidence: 0.7 },
     banner: "EmployeeLock is a hash-chained accountability workbook. Not a court, not UL, not a truth score. Hosted never stores xlsx. Demo rows are format proof, not case facts.",
   },
+  {
+    slug: "foldlock",
+    name: "FoldLock",
+    worker: "foldlock-download-tracker",
+    github: "https://github.com/AzielEliab/foldlock",
+    ops: [
+      { op: "health", method: "GET", summary: "Liveness. Does not increment download KV. Not zip." },
+      { op: "fold-preview", method: "POST", summary: "Small UTF-8 text in, receipt + FLD3 base64 out. Cap ~8KB. Not zip." },
+      { op: "unfold-preview", method: "POST", summary: "FLD3 base64 in, verified restore or error. Not zip." },
+      { op: "skill", method: "GET", summary: "Return FoldLock skill markdown. Does not increment download KV." },
+    ],
+    example: { text: "the cat and the dog" },
+    banner: "FoldLock is algorithmic tether-word suppression on UTF-8 text. Not zip. Hosted preview is not a general compressor. Ratios are receipts, not trophies. Short strings can grow.",
+  },
+  {
+    slug: "whistlelock",
+    name: "WhistleLock",
+    worker: "whistlelock-download-tracker",
+    github: "https://github.com/AzielEliab/whistlelock",
+    ops: [
+      { op: "health", method: "GET", summary: "Liveness. Does not increment download KV. Hosted never holds whistle files." },
+      { op: "hash-preview", method: "POST", summary: "SHA-256 of posted bytes. Not stored. Hosted never holds whistle files." },
+      { op: "canon-preview", method: "POST", summary: "Hash a proposed ledger row. Not stored. Not a mailer." },
+      { op: "skill", method: "GET", summary: "Return WhistleLock skill markdown. Does not increment download KV." },
+    ],
+    example: { summary: "sample drop", kind: "drop" },
+    banner: "WhistleLock is a local drop ledger + dead-man copy. Not a mailer. Hosted never holds whistle files. The operator moves released packets.",
+  },
 ];
 
 const BY_SLUG = Object.fromEntries(PRODUCTS.map((p) => [p.slug, p]));
@@ -346,6 +374,8 @@ function catalogHtml(origin) {
       <li>AZAI is a local OpenAI-compatible runtime, not a new foundation model. Hosted /v1 is a protocol mirror + Lamb check, not a provider proxy. Jeeves is not sovereign.</li>
       <li>SpectralLock hosted overlay is a 256px preview, not a spectrometer, not forensic.</li>
       <li>EmployeeLock is <em>not</em> a court, not UL, not a truth score. Hosted never stores xlsx. Demo rows are format proof, not case facts.</li>
+      <li>FoldLock is <em>not</em> zip. Hosted preview is tether-suppression on small UTF-8 text. Ratios are receipts, not trophies.</li>
+      <li>WhistleLock is a local vault + dead-man copy. It is <em>not</em> a mailer. Hosted never holds whistle files.</li>
     </ul>
   </div>
   <p class="links">
@@ -482,6 +512,7 @@ async function combinedOpenApi(request, env) {
         "AZAI is a local OpenAI-compatible runtime, not a new foundation model. Hosted /v1 is a protocol mirror + Lamb check, not a provider proxy. Jeeves is not sovereign. " +
         "SpectralLock hosted overlay is a 256px preview, not a spectrometer, not forensic. " +
         "EmployeeLock is not a court, not UL, not a truth score. Hosted never stores xlsx. " +
+        "FoldLock is not zip. Hosted preview is tether-suppression on small UTF-8 text. " +
         "Forks welcome. Apache-2.0. Author: Aziel Eliab.",
       license: { name: "Apache-2.0", identifier: "Apache-2.0" },
       contact: { name: "Aziel Eliab", url: "https://github.com/AzielEliab/aziel-runtime" },

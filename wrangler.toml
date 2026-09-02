@@ -88,3 +88,11 @@ service = "azbot-download-tracker"
 binding = "EMPLOYEELOCK"
 service = "employeelock-download-tracker"
 
+[[services]]
+binding = "FOLDLOCK"
+service = "foldlock-download-tracker"
+
+[[services]]
+binding = "WHISTLELOCK"
+service = "whistlelock-download-tracker"
+
