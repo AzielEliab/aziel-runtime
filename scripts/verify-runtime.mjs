@@ -1,5 +1,5 @@
 /**
- * Guardrails for true-runtime pull + invoke + cite routes.
+ * Guardrails for catalog + pull + proxy + session-runtime routes.
  */
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
@@ -47,7 +47,8 @@ assert.equal(skill.status, 200);
 assert.match(skill.headers.get("content-type") || "", /markdown|text\/plain/);
 const skillText = await skill.text();
 assert.match(skillText, /Aziel Eliab Runtime/);
-assert.match(skillText, /pull \+ invoke \+ cite/);
+assert.match(skillText, /catalog \+ pull \+ proxy/);
+assert.match(skillText, /open → policy → exec/);
 assert.match(skillText, /\/v1\/runtime\.json/);
 assert.match(skillText, /\/v1\/bundle/);
 assert.match(skillText, /\/v1\/pull\/\{slug\}/);
@@ -60,7 +61,8 @@ const manifestRes = await get("/v1/runtime.json");
 assert.equal(manifestRes.status, 200);
 const manifest = await manifestRes.json();
 assert.equal(manifest.ok, true);
-assert.equal(manifest.role, "runtime");
+assert.equal(manifest.role, "session-runtime");
+assert.equal(manifest.proxy_is_not_exec, true);
 assert.equal(manifest.author, "Aziel Eliab");
 assert.equal(manifest.identity, "Aziel Eliab");
 assert.equal(manifest.version, RUNTIME_VERSION);
@@ -73,7 +75,7 @@ assert.equal(manifest.doi, null);
 const bundleRes = await get("/v1/bundle");
 assert.equal(bundleRes.status, 200);
 const bundle = await bundleRes.json();
-assert.equal(bundle.role, "runtime");
+assert.equal(bundle.role, "session-runtime");
 assert.equal(bundle.products.length, PRODUCTS.length);
 const fold = bundle.products.find((p) => p.slug === "foldlock");
 assert.ok(fold.skill_url.endsWith("/v1/pull/foldlock/skill"));
@@ -112,7 +114,8 @@ const pullSkillText = await pullSkill.text();
 assert.match(pullSkillText, /FoldLock|# FoldLock|fold/);
 
 const health = await (await get("/v1/health")).json();
-assert.equal(health.role, "runtime");
+assert.equal(health.role, "session-runtime");
+assert.equal(health.session, "/v1/session/open");
 assert.equal(health.skill, "/v1/skill");
 assert.equal(health.bundle, "/v1/bundle");
 assert.ok(health.products.includes("mialock"));
@@ -135,7 +138,8 @@ assert.match(sigil.headers.get("content-type") || "", /png/);
 assert.equal(sigil.headers.get("X-Aziel-Sigil"), "Everblooming");
 
 const llms = await (await get("/llms.txt")).text();
-assert.match(llms, /Role: runtime/);
+assert.match(llms, /Role: session-runtime/);
+assert.match(llms, /1\.1\.0 was catalog\+proxy/);
 assert.match(llms, /\/v1\/bundle/);
 assert.match(llms, /Aziel Eliab Runtime/);
 
@@ -144,6 +148,8 @@ assert.equal(openapi.info.title, "Aziel Eliab Runtime");
 assert.equal(openapi.info.version, RUNTIME_VERSION);
 assert.ok(openapi.paths["/v1/skill"]);
 assert.ok(openapi.paths["/v1/runtime.json"]);
+assert.ok(openapi.paths["/v1/session/open"]);
+assert.ok(openapi.paths["/v1/session/{id}/exec"]);
 assert.ok(openapi.paths["/v1/bundle"]);
 assert.ok(openapi.paths["/v1/pull/{slug}"]);
 assert.ok(openapi.paths["/p/foldlock/fold-preview"]);
@@ -157,7 +163,8 @@ const mcpInit = await handler(
   env,
 );
 const mcpBody = await mcpInit.json();
-assert.match(mcpBody.result.instructions, /runtime/);
+assert.match(mcpBody.result.instructions, /session object/);
+assert.match(mcpBody.result.instructions, /not exec/);
 assert.equal(mcpBody.result.serverInfo.version, RUNTIME_VERSION);
 
 const mcpList = await handler(
@@ -173,6 +180,8 @@ assert.ok(tools.includes("runtime_skill"));
 assert.ok(tools.includes("runtime_manifest"));
 assert.ok(tools.includes("runtime_bundle"));
 assert.ok(tools.includes("runtime_pull"));
+assert.ok(tools.includes("runtime_session_open"));
+assert.ok(tools.includes("runtime_session_exec"));
 
 const sitemap = await (await get("/sitemap.xml")).text();
 assert.match(sitemap, /\/v1\/skill/);

@@ -1,28 +1,37 @@
 /**
- * aziel-runtime — true runtime (pull + invoke + cite) for every Aziel Eliab product.
+ * aziel-runtime 1.2.0 — catalog + pull + proxy + one session object.
  *
- * GET  /                      HTML runtime (indexable) + Everblooming sigil
+ * 1.1.0 was catalog+proxy that called itself a runtime. Useful front doors.
+ * 1.2.0 owns open → policy → exec → receipt → close. Proxy is not exec.
+ * No engine is loaded, jailed, or scheduled. Cloudflare isolate only.
+ *
+ * GET  /                      HTML (indexable) + Everblooming sigil
  * GET  /sigil.png             Everblooming sigil stamp
  * GET  /robots.txt            Allow /, sitemap URL
- * GET  /sitemap.xml           runtime, pull, OpenAPI, product cards/health, GitHub
- * GET  /llms.txt              plain-text runtime for LLM crawlers
+ * GET  /sitemap.xml           session, pull, OpenAPI, product cards/health, GitHub
+ * GET  /llms.txt              plain-text catalog + session for LLM crawlers
  * GET  /ai.txt                same as /llms.txt
  * GET  /cite.json             How-to-cite: Aziel Eliab, Apache-2.0, GitHub + DOI + related_identifiers
- * GET  /v1/skill              runtime skill markdown (how Grok/ChatGPT/Venice pull + call)
- * GET  /v1/runtime.json       machine manifest: role=runtime
+ * GET  /v1/skill              skill markdown (session + front doors)
+ * GET  /v1/runtime.json       machine manifest: role=session-runtime
  * GET  /v1/bundle             compact bootstrap (skill URL + invoke prefix per product)
  * GET  /v1/pull?all=1         alias of /v1/bundle
  * GET  /v1/pull/{slug}        pull record (skill, download, install, ops, aliases)
  * GET  /v1/pull/{slug}/skill  product skill markdown (proxy/cache)
  * GET  /v1/catalog.json       machine-readable full product list
- * GET  /openapi.json          combined OpenAPI 3.1 (paths /p/{product}/{op} + pull APIs)
+ * GET  /openapi.json          combined OpenAPI 3.1 (session + /p/{product}/{op} + pull)
+ * POST /v1/session/open       create session + genesis receipt
+ * POST /v1/session/{id}/policy
+ * POST /v1/session/{id}/exec  runtime-owned exec + hash-chained receipt
+ * GET  /v1/session/{id}/receipt  /  .../receipts
+ * POST /v1/session/{id}/close
  * GET  /p/{product}           indexable product card
- * GET  /p/{product}/{op}      proxy GET
- * POST /p/{product}/{op}      proxy → product Worker /v1/{op} (service binding preferred)
+ * GET  /p/{product}/{op}      proxy GET (not exec)
+ * POST /p/{product}/{op}      proxy → product Worker /v1/{op} (not exec)
  * GET  /v1/health
  * POST /mcp                   JSON-RPC MCP-over-HTTP (initialize, tools/list, tools/call)
  *
- * No download-KV increment on runtime routes. CORS *. Apache-2.0. Forks welcome.
+ * No download-KV increment. CORS *. Apache-2.0. Forks welcome.
  * Author: Aziel Eliab. Identity is Aziel Eliab only. Do not invent DOIs.
  */
 import {
@@ -34,6 +43,8 @@ import {
 } from "./catalog-meta.js";
 import {
   RUNTIME_VERSION,
+  RUNTIME_ROLE,
+  RUNTIME_LAYER,
   DEFAULT_UA,
   resolveSlug,
   runtimeSkillMarkdown,
@@ -45,12 +56,16 @@ import {
   markdownResponse,
   runtimeStaticPaths,
 } from "./runtime-api.js";
+import { RuntimeSession } from "./session-do.js";
+import { callSessionTool, handleSessionRequest, sessionMcpTools } from "./session-http.js";
+
+export { RuntimeSession };
 
 const CATALOG_HOST = "https://aziel-runtime.vibelock.workers.dev";
 const PROTOCOL = "2025-03-26";
 const CATALOG_TITLE = "Aziel Eliab Runtime";
 const CATALOG_DESCRIPTION =
-  "Root source for AI to pull, invoke, and cite every Aziel Eliab product. Skill markdown, install recipes, OpenAPI, counted downloads, and /p/{slug}/{op} invoke. Apache-2.0. Author: Aziel Eliab.";
+  "1.2.0 catalog + pull + proxy plus one session object (open → policy → exec → receipt → close). 1.1.0 was catalog+proxy that called itself a runtime. Proxy is not exec. No engine jail. Hosted AZAI is not the local blend. Apache-2.0. Author: Aziel Eliab.";
 const LASTMOD = "2026-09-04";
 
 const PRODUCTS_RAW = [
@@ -624,6 +639,7 @@ function sitemapXml(origin) {
     { loc: base + "/v1/catalog.json", priority: "0.9", changefreq: "daily" },
     { loc: base + "/v1/skill", priority: "0.95", changefreq: "daily" },
     { loc: base + "/v1/runtime.json", priority: "0.95", changefreq: "daily" },
+    { loc: base + "/v1/session/open", priority: "0.95", changefreq: "daily" },
     { loc: base + "/v1/bundle", priority: "0.95", changefreq: "daily" },
     { loc: base + "/cite.json", priority: "0.8", changefreq: "weekly" },
     { loc: base + "/llms.txt", priority: "0.8", changefreq: "weekly" },
@@ -669,10 +685,15 @@ function llmsTxt(origin) {
     `> ${CATALOG_DESCRIPTION}`,
     "",
     `Author: Aziel Eliab`,
-    `Role: runtime (pull + invoke + cite)`,
-    `Runtime: ${base}/`,
+    `Role: session-runtime (catalog + pull + proxy + session)`,
+    `Honesty: 1.1.0 was catalog+proxy that called itself a runtime. 1.2.0 owns open→policy→exec→receipt→close.`,
+    `Proxy /p/{slug}/{op} is not exec. Hosted AZAI is not the local blend.`,
+    `Local blends: azai serve · forgereceipts ui · azos ui`,
+    `Counted tarball: none (Worker session + in-repo CLI)`,
+    `Host: ${base}/`,
     `Skill: ${base}/v1/skill`,
     `Manifest: ${base}/v1/runtime.json`,
+    `Session open: POST ${base}/v1/session/open`,
     `Bundle: ${base}/v1/bundle`,
     `OpenAPI: ${base}/openapi.json`,
     `MCP: POST ${base}/mcp`,
@@ -682,13 +703,21 @@ function llmsTxt(origin) {
     `License: Apache-2.0`,
     `User-Agent: Mozilla/5.0`,
     "",
-    "## How to pull + call",
+    "## Session (the actual runtime cut)",
     "",
-    `1. GET ${base}/v1/skill  (this runtime)`,
+    `1. POST ${base}/v1/session/open`,
+    `2. POST ${base}/v1/session/{id}/policy`,
+    `3. POST ${base}/v1/session/{id}/exec  {slug, op, payload}`,
+    `4. GET ${base}/v1/session/{id}/receipt`,
+    `5. POST ${base}/v1/session/{id}/close`,
+    "",
+    "## How to pull + proxy (front doors, not exec)",
+    "",
+    `1. GET ${base}/v1/skill`,
     `2. GET ${base}/v1/runtime.json`,
     `3. GET ${base}/v1/bundle  (or ${base}/v1/pull?all=1)`,
     `4. GET ${base}/v1/pull/{slug}  then GET ${base}/v1/pull/{slug}/skill`,
-    `5. GET or POST ${base}/p/{slug}/{op}`,
+    `5. GET or POST ${base}/p/{slug}/{op}  (proxy only)`,
     "",
     "## Products",
     "",
@@ -732,8 +761,11 @@ function citeJson(origin) {
     author_github: "https://github.com/AzielEliab",
     catalog: base + "/",
     runtime: base + "/",
-    role: "runtime",
+    role: RUNTIME_ROLE,
+    layer: RUNTIME_LAYER,
     version: RUNTIME_VERSION,
+    counted_tarball: false,
+    proxy_is_not_exec: true,
     license: "Apache-2.0",
     license_url: "https://www.apache.org/licenses/LICENSE-2.0",
     how_to_cite:
@@ -934,9 +966,19 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
     <p class="stamp">Everblooming sigil · Aziel Eliab</p>
   </div>
   <h1>Aziel Eliab Runtime</h1>
-  <p class="lead">Root source for AI to <strong>pull</strong>, <strong>invoke</strong>, and <strong>cite</strong> every Aziel Eliab product — not only a catalog. ${PRODUCTS.length} products. Forks welcome. Apache-2.0. Author: Aziel Eliab.</p>
+  <p class="lead"><strong>1.2.0</strong> is catalog + pull + proxy plus <strong>one session object</strong> (<code>open → policy → exec → receipt → close</code>). ${PRODUCTS.length} products. Forks welcome. Apache-2.0. Author: Aziel Eliab.</p>
   <div class="honesty">
-    <strong>Honesty banners</strong>
+    <strong>What this Worker is</strong>
+    <ul>
+      <li><strong>1.1.0</strong> was catalog + pull + proxy that started calling itself a runtime. Those front doors stay. They are not exec.</li>
+      <li><strong>1.2.0</strong> adds a session Durable Object that emits <em>runtime-owned</em> hash-chained receipts.</li>
+      <li><code>POST /p/{slug}/{op}</code> is a <em>proxy</em>. Proxy without a session receipt is not exec.</li>
+      <li>This process does not load an engine, jail it, or schedule it. Isolation is Cloudflare's Worker / Durable Object isolate only.</li>
+      <li>Closest true local runtimes remain <code>azai serve</code>, <code>forgereceipts ui</code>, <code>azos ui</code>.</li>
+      <li>Hosted AZAI is a protocol mirror + Lamb check, <em>not</em> the local blend.</li>
+      <li>No counted runtime tarball. CLI is in-repo: <code>node cli/aziel-runtime.mjs</code>.</li>
+    </ul>
+    <strong>Product honesty banners</strong>
     <ul>
       <li>GodLock and MirageGrid are <em>not</em> VPNs and not anonymity networks.</li>
       <li>ForgeReceipts is <em>not</em> legal advice and does not contact courts.</li>
@@ -966,6 +1008,7 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
   <p class="links">
     <a href="${origin}/v1/skill">/v1/skill</a>
     <a href="${origin}/v1/runtime.json">/v1/runtime.json</a>
+    <a href="${origin}/v1/session/open">/v1/session/open</a>
     <a href="${origin}/v1/bundle">/v1/bundle</a>
     <a href="${origin}/openapi.json">Combined OpenAPI 3.1</a>
     <a href="${origin}/v1/catalog.json">/v1/catalog.json</a>
@@ -978,13 +1021,21 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
     <a href="https://www.azielcorpuslibrary.net/runtime">Library /runtime</a>
     <a href="https://github.com/AzielEliab/aziel-runtime">GitHub</a>
   </p>
-  <h2>Pull + invoke (start here)</h2>
+  <h2>Session (the actual cut)</h2>
   <ol>
-    <li><code>GET ${origin}/v1/skill</code> — how Grok / ChatGPT / Venice pull + call</li>
-    <li><code>GET ${origin}/v1/runtime.json</code> — machine manifest (<code>role=runtime</code>)</li>
+    <li><code>POST ${origin}/v1/session/open</code></li>
+    <li><code>POST ${origin}/v1/session/{id}/policy</code></li>
+    <li><code>POST ${origin}/v1/session/{id}/exec</code> body <code>{slug, op, payload}</code></li>
+    <li><code>GET ${origin}/v1/session/{id}/receipt</code></li>
+    <li><code>POST ${origin}/v1/session/{id}/close</code></li>
+  </ol>
+  <h2>Pull + proxy (front doors — not exec)</h2>
+  <ol>
+    <li><code>GET ${origin}/v1/skill</code></li>
+    <li><code>GET ${origin}/v1/runtime.json</code> — machine manifest (<code>role=session-runtime</code>)</li>
     <li><code>GET ${origin}/v1/bundle</code> — every product skill URL + invoke prefix</li>
     <li><code>GET ${origin}/v1/pull/{slug}</code> then <code>GET ${origin}/v1/pull/{slug}/skill</code></li>
-    <li><code>GET</code> or <code>POST ${origin}/p/{slug}/{op}</code> — invoke (service bindings preferred)</li>
+    <li><code>GET</code> or <code>POST ${origin}/p/{slug}/{op}</code> — <em>proxy only</em></li>
   </ol>
   <h2>Add this URL</h2>
   <ul>
@@ -1075,7 +1126,7 @@ function staticPaths(origin) {
     "/v1/health": {
       get: {
         operationId: "catalog_health",
-        summary: "Runtime liveness. Lists pull, invoke, and cite endpoints.",
+        summary: "Liveness. Lists session, pull, proxy, and cite endpoints.",
         tags: ["runtime"],
         responses: { "200": { description: "ok" } },
       },
@@ -1216,12 +1267,15 @@ async function combinedOpenApi(request, env) {
     info: {
       title: "Aziel Eliab Runtime",
       version: RUNTIME_VERSION,
-      summary: "Pull + invoke + cite every Aziel Eliab product from one URL.",
+      summary: "Catalog + pull + proxy plus one session object (open → policy → exec → receipt → close).",
       description:
-        "This is a runtime, not only a catalog. Start at GET /v1/skill or GET /v1/runtime.json. " +
+        "1.2.0 is catalog + pull + proxy + a session Durable Object. 1.1.0 was catalog+proxy that called itself a runtime. " +
+        "True exec is POST /v1/session/{id}/exec, which records intent and appends a hash-chained receipt owned by this session. " +
+        "POST /p/{product}/{op} is a proxy, not exec. This Worker does not load, jail, or schedule an engine. " +
+        "Hosted AZAI is a protocol mirror + Lamb check, not the local blend. " +
+        "Start at GET /v1/skill or GET /v1/runtime.json. " +
         "GET /v1/bundle lists every product skill URL + invoke prefix. " +
         "GET /v1/pull/{slug} and GET /v1/pull/{slug}/skill pull a product without visiting its Worker. " +
-        "Paths /p/{product}/{op} proxy to each product Worker /v1/{op} (service bindings preferred). " +
         "Import this file in ChatGPT GPT Actions, Grok custom tools, or Venice HTTP tools. " +
         "GodLock/MirageGrid are not VPNs. ForgeReceipts is not legal advice. " +
         "ZionPattern Solver caps confidence at 75% and does not solve cases. " +
@@ -1327,12 +1381,14 @@ function runtimeMcpTools() {
   return [
     {
       name: "runtime_skill",
-      description: "Return Aziel Eliab Runtime skill markdown: how to pull + invoke + cite. Does not increment downloads.",
+      description:
+        "Return Aziel Eliab Runtime skill markdown: session lifecycle plus catalog/pull/proxy. 1.1.0 was catalog+proxy. Proxy is not exec. Does not increment downloads.",
       inputSchema: { type: "object", additionalProperties: true },
     },
     {
       name: "runtime_manifest",
-      description: "Return GET /v1/runtime.json (role=runtime, pull/invoke/cite endpoints, product count, identity Aziel Eliab).",
+      description:
+        "Return GET /v1/runtime.json (role=session-runtime, session/pull/proxy endpoints, product count, identity Aziel Eliab).",
       inputSchema: { type: "object", additionalProperties: true },
     },
     {
@@ -1350,6 +1406,7 @@ function runtimeMcpTools() {
         required: ["slug"],
       },
     },
+    ...sessionMcpTools(),
   ];
 }
 
@@ -1394,7 +1451,13 @@ async function callRuntimeTool(env, name, args, origin) {
       target: `${base}/v1/pull/${key}`,
     };
   }
+  const session = await callSessionTool(env, name, args, origin, sessionDeps(env, origin));
+  if (session) return session;
   return null;
+}
+
+function sessionDeps(_env, _origin) {
+  return { json, PRODUCTS, BY_SLUG, upstreamFetch };
 }
 
 async function callTool(env, name, args, origin) {
@@ -1438,6 +1501,7 @@ async function handleMcp(request, env, origin) {
       skill: "/v1/skill",
       runtime: "/v1/runtime.json",
       bundle: "/v1/bundle",
+      session: "/v1/session/open",
     });
   }
   if (request.method !== "POST") {
@@ -1458,9 +1522,10 @@ async function handleMcp(request, env, origin) {
       capabilities: { tools: { listChanged: false } },
       serverInfo: { name: "aziel-runtime", version: RUNTIME_VERSION },
       instructions:
-        "This is a runtime (pull + invoke + cite), not only a catalog. " +
-        "Start with runtime_skill or runtime_manifest, then runtime_bundle or runtime_pull. " +
-        "Engine tools are named {product}_{op} and proxy to each AzielEliab Worker /v1/{op}. " +
+        "1.2.0 is catalog + pull + proxy plus one session object. 1.1.0 was catalog+proxy that called itself a runtime. " +
+        "True exec is runtime_session_open → runtime_session_policy → runtime_session_exec → runtime_session_receipt → runtime_session_close. " +
+        "Engine tools named {product}_{op} proxy to each AzielEliab Worker /v1/{op} and are not exec. " +
+        "This Worker does not load, jail, or schedule an engine. Hosted AZAI is protocol mirror + Lamb check, not the blend. " +
         "Always send User-Agent Mozilla/5.0. Public, no OAuth. Author: Aziel Eliab only.",
     });
   }
@@ -1597,6 +1662,10 @@ export default {
       return json(bundleJson(origin, PRODUCTS), 200, extra("/v1/bundle"));
     }
 
+    if (url.pathname === "/v1/session/open" || url.pathname.startsWith("/v1/session/")) {
+      return handleSessionRequest(request, env, { json, extra, PRODUCTS, BY_SLUG, upstreamFetch });
+    }
+
     if (url.pathname === "/v1/pull" && request.method === "GET") {
       const all = url.searchParams.get("all");
       if (all === "1" || all === "true") {
@@ -1635,7 +1704,8 @@ export default {
       return json(
         {
           ok: true,
-          role: "runtime",
+          role: RUNTIME_ROLE,
+          layer: RUNTIME_LAYER,
           author: "Aziel Eliab",
           identity: "Aziel Eliab",
           title: CATALOG_TITLE,
@@ -1643,7 +1713,9 @@ export default {
           catalog: origin + "/",
           skill: origin + "/v1/skill",
           runtime: origin + "/v1/runtime.json",
+          session: origin + "/v1/session/open",
           bundle: origin + "/v1/bundle",
+          proxy_is_not_exec: true,
           license: "Apache-2.0",
           count: PRODUCTS.length,
           products: PRODUCTS.map((p) => catalogRecord(p, origin)),
@@ -1663,7 +1735,8 @@ export default {
           ok: true,
           product: "aziel-runtime",
           author: "Aziel Eliab",
-          role: "runtime",
+          role: RUNTIME_ROLE,
+          layer: RUNTIME_LAYER,
           version: RUNTIME_VERSION,
           title: CATALOG_TITLE,
           identity: "Aziel Eliab",
@@ -1671,9 +1744,13 @@ export default {
           count: PRODUCTS.length,
           skill: "/v1/skill",
           runtime: "/v1/runtime.json",
+          session: "/v1/session/open",
           bundle: "/v1/bundle",
           pull: "/v1/pull/{slug}",
           invoke: "/p/{slug}/{op}",
+          invoke_note: "proxy only — not exec",
+          proxy_is_not_exec: true,
+          counted_tarball: false,
           openapi: "/openapi.json",
           catalog: "/v1/catalog.json",
           cite: "/cite.json",
@@ -1735,7 +1812,7 @@ export default {
     return json(
       {
         error: "not found",
-        hint: "GET /v1/skill  GET /v1/runtime.json  GET /v1/bundle  GET /v1/pull/{slug}  GET /v1/pull/{slug}/skill  GET /v1/catalog.json  GET /openapi.json  POST /p/{product}/{op}  POST /mcp",
+        hint: "POST /v1/session/open  POST /v1/session/{id}/exec  GET /v1/skill  GET /v1/runtime.json  GET /v1/bundle  GET /v1/pull/{slug}  GET /v1/catalog.json  GET /openapi.json  POST /p/{product}/{op} (proxy, not exec)  POST /mcp",
       },
       404,
     );
