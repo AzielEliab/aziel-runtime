@@ -29,6 +29,7 @@ export const VERSIONS = {
   foldlock: "0.8.0",
   whistlelock: "0.1.0",
   trajectorylock: "0.1.0",
+  mialock: "0.1.1",
   azieltether: "0.1.0",
   "aziel-corpus": "2.6.2",
 };
@@ -94,6 +95,7 @@ export const FIRST_TIME_DEPOSIT_SLUGS = [
   "azai",
   "spectrallock",
   "azbot",
+  "mialock",
   "azieltether",
   "aziel-corpus",
 ];
