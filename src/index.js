@@ -1,22 +1,29 @@
 /**
- * aziel-runtime — one URL for every Aziel Eliab product runtime.
+ * aziel-runtime — true runtime (pull + invoke + cite) for every Aziel Eliab product.
  *
- * GET  /                 HTML catalog (indexable)
- * GET  /robots.txt       Allow /, sitemap URL
- * GET  /sitemap.xml      catalog, OpenAPI, product cards/health, GitHub
- * GET  /llms.txt         plain-text catalog for LLM crawlers
- * GET  /ai.txt           same as /llms.txt
- * GET  /cite.json        How-to-cite: Aziel Eliab, Apache-2.0, GitHub + DOI + related_identifiers
- * GET  /v1/catalog.json  machine-readable full product list
- * GET  /openapi.json     combined OpenAPI 3.1 (paths /p/{product}/{op})
- * GET  /p/{product}      indexable product card
- * GET  /p/{product}/{op} proxy GET
- * POST /p/{product}/{op} proxy → https://{worker}.vibelock.workers.dev/v1/{op}
+ * GET  /                      HTML runtime (indexable) + Everblooming sigil
+ * GET  /sigil.png             Everblooming sigil stamp
+ * GET  /robots.txt            Allow /, sitemap URL
+ * GET  /sitemap.xml           runtime, pull, OpenAPI, product cards/health, GitHub
+ * GET  /llms.txt              plain-text runtime for LLM crawlers
+ * GET  /ai.txt                same as /llms.txt
+ * GET  /cite.json             How-to-cite: Aziel Eliab, Apache-2.0, GitHub + DOI + related_identifiers
+ * GET  /v1/skill              runtime skill markdown (how Grok/ChatGPT/Venice pull + call)
+ * GET  /v1/runtime.json       machine manifest: role=runtime
+ * GET  /v1/bundle             compact bootstrap (skill URL + invoke prefix per product)
+ * GET  /v1/pull?all=1         alias of /v1/bundle
+ * GET  /v1/pull/{slug}        pull record (skill, download, install, ops, aliases)
+ * GET  /v1/pull/{slug}/skill  product skill markdown (proxy/cache)
+ * GET  /v1/catalog.json       machine-readable full product list
+ * GET  /openapi.json          combined OpenAPI 3.1 (paths /p/{product}/{op} + pull APIs)
+ * GET  /p/{product}           indexable product card
+ * GET  /p/{product}/{op}      proxy GET
+ * POST /p/{product}/{op}      proxy → product Worker /v1/{op} (service binding preferred)
  * GET  /v1/health
- * POST /mcp              JSON-RPC MCP-over-HTTP (initialize, tools/list, tools/call)
+ * POST /mcp                   JSON-RPC MCP-over-HTTP (initialize, tools/list, tools/call)
  *
- * No download-KV increment on catalog routes. CORS *. Apache-2.0. Forks welcome.
- * Author: Aziel Eliab. Identity is Aziel Eliab only.
+ * No download-KV increment on runtime routes. CORS *. Apache-2.0. Forks welcome.
+ * Author: Aziel Eliab. Identity is Aziel Eliab only. Do not invent DOIs.
  */
 import {
   VERSIONS,
@@ -25,12 +32,25 @@ import {
   productHowToCite,
   citeZenodoBlock,
 } from "./catalog-meta.js";
+import {
+  RUNTIME_VERSION,
+  DEFAULT_UA,
+  resolveSlug,
+  runtimeSkillMarkdown,
+  runtimeManifest,
+  bundleJson,
+  pullRecord,
+  fallbackSkillMarkdown,
+  fetchProductSkill,
+  markdownResponse,
+  runtimeStaticPaths,
+} from "./runtime-api.js";
 
 const CATALOG_HOST = "https://aziel-runtime.vibelock.workers.dev";
 const PROTOCOL = "2025-03-26";
-const CATALOG_TITLE = "Aziel Eliab product runtime catalog";
+const CATALOG_TITLE = "Aziel Eliab Runtime";
 const CATALOG_DESCRIPTION =
-  "One URL for every Aziel Eliab product runtime. OpenAPI, MCP tools, counted downloads, install.sh, skill markdown, GitHub, and DOI citations. Apache-2.0. Author: Aziel Eliab.";
+  "Root source for AI to pull, invoke, and cite every Aziel Eliab product. Skill markdown, install recipes, OpenAPI, counted downloads, and /p/{slug}/{op} invoke. Apache-2.0. Author: Aziel Eliab.";
 const LASTMOD = "2026-09-04";
 
 const PRODUCTS_RAW = [
@@ -319,6 +339,24 @@ const PRODUCTS_RAW = [
     banner: "TrajectoryLock is a research prototype / auditable geometric test. Not a certified forensic instrument. Hosted never stores media. Match probability is P(match | declared model), not P(official account is true). Synthetic example results must never be represented as real-case findings.",
   },
   {
+    slug: "mialock",
+    name: "M.I.A.Lock",
+    worker: "mialock-download-tracker",
+    github: "https://github.com/AzielEliab/mialock",
+    ops: [
+      { op: "skill", method: "GET", summary: "Return M.I.A.Lock skill markdown. Does not increment download KV. Live Leaflet map is local CLI." },
+      { op: "map", method: "GET", summary: "Sample casebook index stub. Live Leaflet map is local CLI mialock map. Not live tracking." },
+      { op: "search-options", method: "GET", summary: "List archive / Doe / cold-case search modes. Search plans only." },
+      { op: "queries", method: "POST", summary: "Render query families for a search mode. Search plans only. Doe leads ≠ ID." },
+      { op: "doe-match", method: "POST", summary: "Rank Doe / unidentified notices vs a named-subject descriptor. Compatibility leads only. Never an ID." },
+      { op: "coverage", method: "GET", summary: "Adapter coverage report + heat cells. Heat = search intensity / negative evidence — not presence." },
+      { op: "example", method: "GET", summary: "Sample search / map payload shapes. Does not increment download KV." },
+    ],
+    example: { mode: "doe_cold", name: "Christina Green", jurisdiction: "Illinois", age_band: "20-30", sex: "female" },
+    banner:
+      "M.I.A.Lock 0.1.1: per-person event map, archive/Doe cold-case search, Doe descriptor matching, uncertainty ellipses, coverage heat. Purpose-bound missing-person / authorized investigative use. Doe hits are compatibility leads only — never auto-ID. Coverage heat ≠ presence. No live tracking. Author Aziel Eliab.",
+  },
+  {
     slug: "azieltether",
     name: "AzielTether",
     worker: "azieltether-download-tracker",
@@ -373,6 +411,7 @@ const ONE_LINE = {
   foldlock: "Algorithmic tether-word suppression on UTF-8 text. Not zip.",
   whistlelock: "Local drop ledger + dead-man copy. Not a mailer.",
   trajectorylock: "Auditable geometric test. Research prototype, not a certified forensic instrument.",
+  mialock: "M.I.A.Lock 0.1.1: event map + Doe matching + uncertainty ellipses + coverage heat. Doe leads ≠ ID. Heat ≠ presence. Author Aziel Eliab.",
   azieltether: "AzielTether 0.1.0: central × decentral survival mesh for downloaded Aziel software. Prefer-central; peer sync when down; public HTTPS stays mesh-free. Not a VPN. Author Aziel Eliab.",
   "aziel-corpus": "Self-contained immutable digital library. Public MASTER. Not a 26-card index.",
 };
@@ -507,6 +546,9 @@ function productUrls(product, origin) {
     catalog_health: `${base}/p/${product.slug}/health`,
     catalog_skill: `${base}/p/${product.slug}/skill`,
     catalog_openapi: `${base}/openapi.json`,
+    pull: `${base}/v1/pull/${product.slug}`,
+    pull_skill: `${base}/v1/pull/${product.slug}/skill`,
+    invoke_prefix: `${base}/p/${product.slug}`,
     doi: product.doi || null,
     doi_url: product.doi ? `https://doi.org/${product.doi}` : null,
   };
@@ -540,6 +582,9 @@ function catalogRecord(product, origin) {
     catalog_card: urls.catalog_card,
     catalog_health: urls.catalog_health,
     catalog_skill: urls.catalog_skill,
+    pull: urls.pull,
+    pull_skill: urls.pull_skill,
+    invoke_prefix: urls.invoke_prefix,
   };
 }
 
@@ -577,16 +622,22 @@ function sitemapXml(origin) {
     { loc: base + "/", priority: "1.0", changefreq: "daily" },
     { loc: base + "/openapi.json", priority: "0.9", changefreq: "daily" },
     { loc: base + "/v1/catalog.json", priority: "0.9", changefreq: "daily" },
+    { loc: base + "/v1/skill", priority: "0.95", changefreq: "daily" },
+    { loc: base + "/v1/runtime.json", priority: "0.95", changefreq: "daily" },
+    { loc: base + "/v1/bundle", priority: "0.95", changefreq: "daily" },
     { loc: base + "/cite.json", priority: "0.8", changefreq: "weekly" },
     { loc: base + "/llms.txt", priority: "0.8", changefreq: "weekly" },
     { loc: base + "/ai.txt", priority: "0.8", changefreq: "weekly" },
     { loc: base + "/v1/health", priority: "0.5", changefreq: "daily" },
     { loc: base + "/mcp", priority: "0.6", changefreq: "weekly" },
+    { loc: base + "/sigil.png", priority: "0.3", changefreq: "monthly" },
   ];
   for (const p of PRODUCTS) {
     urls.push({ loc: `${base}/#${p.slug}`, priority: "0.8", changefreq: "weekly" });
     urls.push({ loc: `${base}/p/${p.slug}`, priority: "0.8", changefreq: "weekly" });
     urls.push({ loc: `${base}/p/${p.slug}/health`, priority: "0.7", changefreq: "daily" });
+    urls.push({ loc: `${base}/v1/pull/${p.slug}`, priority: "0.85", changefreq: "daily" });
+    urls.push({ loc: `${base}/v1/pull/${p.slug}/skill`, priority: "0.85", changefreq: "daily" });
     urls.push({ loc: p.github, priority: "0.5", changefreq: "weekly", lastmod: null });
   }
   const body = urls
@@ -618,12 +669,26 @@ function llmsTxt(origin) {
     `> ${CATALOG_DESCRIPTION}`,
     "",
     `Author: Aziel Eliab`,
-    `Catalog: ${base}/`,
+    `Role: runtime (pull + invoke + cite)`,
+    `Runtime: ${base}/`,
+    `Skill: ${base}/v1/skill`,
+    `Manifest: ${base}/v1/runtime.json`,
+    `Bundle: ${base}/v1/bundle`,
     `OpenAPI: ${base}/openapi.json`,
     `MCP: POST ${base}/mcp`,
     `Machine catalog: ${base}/v1/catalog.json`,
     `Cite: ${base}/cite.json`,
+    `Library front door: https://www.azielcorpuslibrary.net/runtime`,
     `License: Apache-2.0`,
+    `User-Agent: Mozilla/5.0`,
+    "",
+    "## How to pull + call",
+    "",
+    `1. GET ${base}/v1/skill  (this runtime)`,
+    `2. GET ${base}/v1/runtime.json`,
+    `3. GET ${base}/v1/bundle  (or ${base}/v1/pull?all=1)`,
+    `4. GET ${base}/v1/pull/{slug}  then GET ${base}/v1/pull/{slug}/skill`,
+    `5. GET or POST ${base}/p/{slug}/{op}`,
     "",
     "## Products",
     "",
@@ -639,6 +704,9 @@ function llmsTxt(origin) {
     if (p.version) lines.push(`Version: ${p.version}`);
     lines.push(`Install: curl -fsSL ${u.install} | bash`);
     lines.push(`Skill: ${u.skill}`);
+    lines.push(`Pull: ${u.pull}`);
+    lines.push(`Pull skill: ${u.pull_skill}`);
+    lines.push(`Invoke prefix: ${u.invoke_prefix}`);
     lines.push(`Catalog health: ${u.catalog_health}`);
     lines.push(`Catalog skill: GET ${base}/p/${p.slug}/skill`);
     lines.push(`Ops: ${p.ops.map((o) => `${o.method} /p/${p.slug}/${o.op}`).join(", ")}`);
@@ -652,7 +720,7 @@ function llmsTxt(origin) {
     lines.push("");
   }
   lines.push("## How to cite");
-  lines.push("Eliab, Aziel. (2026). Aziel Eliab product runtime catalog [Software]. Apache-2.0. " + base + "/");
+  lines.push("Eliab, Aziel. (2026). Aziel Eliab Runtime [Software]. Apache-2.0. " + base + "/");
   lines.push("");
   return lines.join("\n");
 }
@@ -663,20 +731,24 @@ function citeJson(origin) {
     author: "Aziel Eliab",
     author_github: "https://github.com/AzielEliab",
     catalog: base + "/",
+    runtime: base + "/",
+    role: "runtime",
+    version: RUNTIME_VERSION,
     license: "Apache-2.0",
     license_url: "https://www.apache.org/licenses/LICENSE-2.0",
     how_to_cite:
-      "Eliab, Aziel. (2026). Aziel Eliab product runtime catalog [Software]. Apache-2.0. " +
+      "Eliab, Aziel. (2026). Aziel Eliab Runtime [Software]. Apache-2.0. " +
       base +
       "/",
     bibtex: `@software{eliab_aziel_runtime_2026,
   author = {Eliab, Aziel},
-  title = {Aziel Eliab product runtime catalog},
+  title = {Aziel Eliab Runtime},
   year = {2026},
   url = {${base}/},
+  version = {${RUNTIME_VERSION}},
   license = {Apache-2.0}
 }`,
-    apa: `Eliab, A. (2026). Aziel Eliab product runtime catalog [Computer software]. ${base}/`,
+    apa: `Eliab, A. (2026). Aziel Eliab Runtime [Computer software]. ${base}/`,
     zenodo: citeZenodoBlock(),
     products: PRODUCTS.map((p) => {
       const u = productUrls(p, origin);
@@ -709,6 +781,7 @@ function jsonLd(origin) {
     name: CATALOG_TITLE,
     url: base + "/",
     description: CATALOG_DESCRIPTION,
+    softwareVersion: RUNTIME_VERSION,
     applicationCategory: "DeveloperApplication",
     operatingSystem: "Cloudflare Workers",
     license: "https://www.apache.org/licenses/LICENSE-2.0",
@@ -773,6 +846,9 @@ function headMeta(origin, title, description, canonicalPath) {
 
 const PAGE_CSS = `
   :root { color-scheme: dark; }
+  .brandrow{display:flex;align-items:center;gap:12px;margin:0 0 10px}
+  .brandmark{width:40px;height:40px;border-radius:10px;object-fit:cover;flex:0 0 auto;box-shadow:0 0 0 1px #d4af3733}
+  .stamp{margin:0;color:#d4af37;font-size:.88rem;letter-spacing:.02em}
   body { font: 16px/1.45 system-ui, sans-serif; max-width: 52rem; margin: 2.5rem auto; padding: 0 1.25rem 4rem; background: #0e1014; color: #e8eaef; }
   h1 { font-size: 1.85rem; margin: 0 0 .35rem; }
   h2 { font-size: 1.2rem; margin: 0 0 .4rem; }
@@ -820,6 +896,8 @@ function productCardHtml(p, origin, stats) {
     <a href="${u.download}">counted /download</a>${count}
     <a href="${u.install}">install.sh</a>
     <a href="${u.skill}">/v1/skill</a>
+    <a href="${u.pull}">pull</a>
+    <a href="${u.pull_skill}">pull skill</a>
     <a href="${origin}/p/${p.slug}/health">catalog proxy health</a>${doi}${tarball}
   </p>
   <p>Worker: <a href="${u.worker_home}">${p.worker}.vibelock.workers.dev</a>
@@ -851,8 +929,12 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
 <style>${PAGE_CSS}</style>
 </head>
 <body>
-  <h1>Aziel Eliab product runtime catalog</h1>
-  <p class="lead">One URL for Grok, ChatGPT GPT Actions, and Venice. ${PRODUCTS.length} products. Forks welcome. Apache-2.0. Author: Aziel Eliab.</p>
+  <div class="brandrow">
+    <img class="brandmark" src="/sigil.png" width="40" height="40" alt="Everblooming sigil — Aziel Eliab" decoding="async">
+    <p class="stamp">Everblooming sigil · Aziel Eliab</p>
+  </div>
+  <h1>Aziel Eliab Runtime</h1>
+  <p class="lead">Root source for AI to <strong>pull</strong>, <strong>invoke</strong>, and <strong>cite</strong> every Aziel Eliab product — not only a catalog. ${PRODUCTS.length} products. Forks welcome. Apache-2.0. Author: Aziel Eliab.</p>
   <div class="honesty">
     <strong>Honesty banners</strong>
     <ul>
@@ -871,16 +953,20 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
       <li>TrajectoryLock is a research prototype / auditable geometric test. <em>Not</em> a certified forensic instrument. Hosted never stores media. Synthetic examples are not real-case findings.</li>
       <li>Aziel Corpus Library is a public library index + counted PDF/package download. It is <em>not</em> a search engine of private files, not Zenodo, and not a new Lock engine.</li>
       <li>AzielTether is <em>not</em> a VPN. Prefer-central mesh for downloaded Aziel Eliab software; public HTTPS stays mesh-free.</li>
+      <li>M.I.A.Lock Doe hits are compatibility leads only — never an ID. Coverage heat is not presence. No live tracking.</li>
     </ul>
   </div>
   <section class="cite" id="cite">
     <h2>How to cite</h2>
-    <p>Author: <strong>Aziel Eliab</strong> · Catalog: <a href="${origin}/">${origin}/</a> · License: Apache-2.0 · Machine-readable: <a href="${origin}/cite.json">/cite.json</a></p>
-    <p>Eliab, Aziel. (2026). Aziel Eliab product runtime catalog [Software]. Apache-2.0. ${origin}/</p>
+    <p>Author: <strong>Aziel Eliab</strong> · Runtime: <a href="${origin}/">${origin}/</a> · License: Apache-2.0 · Machine-readable: <a href="${origin}/cite.json">/cite.json</a></p>
+    <p>Eliab, Aziel. (2026). Aziel Eliab Runtime [Software]. Apache-2.0. ${origin}/</p>
     <p class="lead">Known DOIs are historical. Zenodo currently returns HTTP 410 (user blocked) for every wired record. FoldLock and WhistleLock share method-paper DOI 10.5281/zenodo.22257762 on purpose — WhistleLock still needs its own software deposit. No DOIs are invented here.</p>
     <ul>${citeProducts}</ul>
   </section>
   <p class="links">
+    <a href="${origin}/v1/skill">/v1/skill</a>
+    <a href="${origin}/v1/runtime.json">/v1/runtime.json</a>
+    <a href="${origin}/v1/bundle">/v1/bundle</a>
     <a href="${origin}/openapi.json">Combined OpenAPI 3.1</a>
     <a href="${origin}/v1/catalog.json">/v1/catalog.json</a>
     <a href="${origin}/llms.txt">/llms.txt</a>
@@ -889,13 +975,23 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
     <a href="${origin}/robots.txt">/robots.txt</a>
     <a href="${origin}/mcp">MCP (POST JSON-RPC)</a>
     <a href="${origin}/v1/health">/v1/health</a>
+    <a href="https://www.azielcorpuslibrary.net/runtime">Library /runtime</a>
     <a href="https://github.com/AzielEliab/aziel-runtime">GitHub</a>
   </p>
+  <h2>Pull + invoke (start here)</h2>
+  <ol>
+    <li><code>GET ${origin}/v1/skill</code> — how Grok / ChatGPT / Venice pull + call</li>
+    <li><code>GET ${origin}/v1/runtime.json</code> — machine manifest (<code>role=runtime</code>)</li>
+    <li><code>GET ${origin}/v1/bundle</code> — every product skill URL + invoke prefix</li>
+    <li><code>GET ${origin}/v1/pull/{slug}</code> then <code>GET ${origin}/v1/pull/{slug}/skill</code></li>
+    <li><code>GET</code> or <code>POST ${origin}/p/{slug}/{op}</code> — invoke (service bindings preferred)</li>
+  </ol>
   <h2>Add this URL</h2>
   <ul>
     <li><strong>ChatGPT</strong> — GPT Actions → Import from URL → <code>${origin}/openapi.json</code></li>
     <li><strong>Grok</strong> — custom tool / OpenAPI / MCP remote → <code>${origin}/openapi.json</code> or <code>${origin}/mcp</code></li>
     <li><strong>Venice</strong> — custom HTTP tools / OpenAPI → same OpenAPI URL</li>
+    <li><strong>Any installer / agent</strong> — start at <code>${origin}/v1/skill</code> or <code>${origin}/v1/runtime.json</code></li>
   </ul>
   ${cards}
 </body>
@@ -925,7 +1021,11 @@ ${headMeta(origin, title, description, `/p/${p.slug}`)}
 <style>${PAGE_CSS}</style>
 </head>
 <body>
-  <p><a href="${origin}/">← Aziel Eliab product runtime catalog</a></p>
+  <div class="brandrow">
+    <img class="brandmark" src="/sigil.png" width="40" height="40" alt="Everblooming sigil — Aziel Eliab" decoding="async">
+    <p class="stamp">Everblooming sigil · Aziel Eliab</p>
+  </div>
+  <p><a href="${origin}/">← Aziel Eliab Runtime</a></p>
   ${productCardHtml(p, origin, stats)}
 </body>
 </html>`;
@@ -971,19 +1071,20 @@ function escapeHtml(s) {
 
 function staticPaths(origin) {
   const paths = {
+    ...runtimeStaticPaths(),
     "/v1/health": {
       get: {
         operationId: "catalog_health",
-        summary: "Catalog liveness.",
-        tags: ["catalog"],
+        summary: "Runtime liveness. Lists pull, invoke, and cite endpoints.",
+        tags: ["runtime"],
         responses: { "200": { description: "ok" } },
       },
     },
     "/v1/catalog.json": {
       get: {
         operationId: "catalog_list",
-        summary: "Machine-readable full product list (slug, version, github, worker, download, related_identifiers, software_tarball, doi, zenodo_status, banner, ops).",
-        tags: ["catalog"],
+        summary: "Machine-readable full product list (slug, version, github, worker, download, pull, invoke_prefix, related_identifiers, software_tarball, doi, zenodo_status, banner, ops).",
+        tags: ["runtime"],
         responses: { "200": { description: "Product catalog JSON" } },
       },
     },
@@ -1113,12 +1214,15 @@ async function combinedOpenApi(request, env) {
   return {
     openapi: "3.1.0",
     info: {
-      title: "Aziel Eliab product runtime catalog",
-      version: "1.0.0",
-      summary: "One OpenAPI file for every AzielEliab runtime Worker.",
+      title: "Aziel Eliab Runtime",
+      version: RUNTIME_VERSION,
+      summary: "Pull + invoke + cite every Aziel Eliab product from one URL.",
       description:
+        "This is a runtime, not only a catalog. Start at GET /v1/skill or GET /v1/runtime.json. " +
+        "GET /v1/bundle lists every product skill URL + invoke prefix. " +
+        "GET /v1/pull/{slug} and GET /v1/pull/{slug}/skill pull a product without visiting its Worker. " +
+        "Paths /p/{product}/{op} proxy to each product Worker /v1/{op} (service bindings preferred). " +
         "Import this file in ChatGPT GPT Actions, Grok custom tools, or Venice HTTP tools. " +
-        "Paths /p/{product}/{op} proxy to each product Worker /v1/{op}. " +
         "GodLock/MirageGrid are not VPNs. ForgeReceipts is not legal advice. " +
         "ZionPattern Solver caps confidence at 75% and does not solve cases. " +
         "VeilLock does not inject into FaceTime. AZ-CLCE detects inconsistency, not intent. " +
@@ -1146,14 +1250,43 @@ function bindingName(product) {
   return slug.toUpperCase().replace(/-/g, "_");
 }
 
+function withUpstreamHeaders(init) {
+  const headers = new Headers((init && init.headers) || {});
+  if (!headers.has("user-agent") && !headers.has("User-Agent")) {
+    headers.set("User-Agent", DEFAULT_UA);
+  }
+  if (!headers.has("accept") && !headers.has("Accept")) {
+    headers.set("Accept", "application/json, text/markdown, text/plain, */*");
+  }
+  return { ...init, headers };
+}
+
 async function upstreamFetch(env, product, path, init) {
   const bind = env && env[bindingName(product)];
-  const target = `https://${product.worker}.vibelock.workers.dev${path}`;
+  const publicHost =
+    product.slug === "aziel-corpus"
+      ? "https://www.azielcorpuslibrary.net"
+      : `https://${product.worker}.vibelock.workers.dev`;
+  const target = `${publicHost}${path}`;
+  const next = withUpstreamHeaders(init);
+  const signal = next.signal || AbortSignal.timeout(4000);
   if (bind && typeof bind.fetch === "function") {
-    const req = new Request("https://internal" + path, init);
-    return { res: await bind.fetch(req), target: target + " (service binding)" };
+    try {
+      const req = new Request("https://internal" + path, { ...next, signal });
+      return { res: await bind.fetch(req), target: target + " (service binding)" };
+    } catch (err) {
+      /* fall through to public URL */
+      console.log(
+        JSON.stringify({
+          msg: "service_binding_fallback",
+          product: product.slug,
+          path,
+          detail: String(err && err.message ? err.message : err),
+        }),
+      );
+    }
   }
-  return { res: await fetch(target, init), target };
+  return { res: await fetch(target, { ...next, signal }), target };
 }
 
 async function proxy(product, op, request, env) {
@@ -1190,8 +1323,38 @@ async function proxy(product, op, request, env) {
   }
 }
 
+function runtimeMcpTools() {
+  return [
+    {
+      name: "runtime_skill",
+      description: "Return Aziel Eliab Runtime skill markdown: how to pull + invoke + cite. Does not increment downloads.",
+      inputSchema: { type: "object", additionalProperties: true },
+    },
+    {
+      name: "runtime_manifest",
+      description: "Return GET /v1/runtime.json (role=runtime, pull/invoke/cite endpoints, product count, identity Aziel Eliab).",
+      inputSchema: { type: "object", additionalProperties: true },
+    },
+    {
+      name: "runtime_bundle",
+      description: "Compact bootstrap: every product skill URL + invoke prefix. Same as GET /v1/bundle.",
+      inputSchema: { type: "object", additionalProperties: true },
+    },
+    {
+      name: "runtime_pull",
+      description: "Pull one product by slug (name, version, skill, download, install.sh, ops, aliases). Argument: slug.",
+      inputSchema: {
+        type: "object",
+        additionalProperties: true,
+        properties: { slug: { type: "string" } },
+        required: ["slug"],
+      },
+    },
+  ];
+}
+
 function toolList() {
-  const tools = [];
+  const tools = runtimeMcpTools();
   for (const p of PRODUCTS) {
     for (const o of p.ops) {
       tools.push({
@@ -1208,7 +1371,35 @@ function toolList() {
   return tools;
 }
 
-async function callTool(env, name, args) {
+async function callRuntimeTool(env, name, args, origin) {
+  const base = (origin || CATALOG_HOST).replace(/\/$/, "");
+  if (name === "runtime_skill") {
+    return { status: 200, text: runtimeSkillMarkdown(base, PRODUCTS), target: base + "/v1/skill" };
+  }
+  if (name === "runtime_manifest") {
+    return { status: 200, text: JSON.stringify(runtimeManifest(base, PRODUCTS), null, 2), target: base + "/v1/runtime.json" };
+  }
+  if (name === "runtime_bundle") {
+    return { status: 200, text: JSON.stringify(bundleJson(base, PRODUCTS), null, 2), target: base + "/v1/bundle" };
+  }
+  if (name === "runtime_pull") {
+    const key = resolveSlug((args && (args.slug || args.product)) || "", BY_SLUG);
+    if (!key) throw new Error(`unknown product: ${(args && args.slug) || ""}`);
+    const product = BY_SLUG[key];
+    const fetched = await fetchProductSkill(env, product, upstreamFetch);
+    const skillText = fetched.text || fallbackSkillMarkdown(product, base);
+    return {
+      status: 200,
+      text: JSON.stringify(pullRecord(product, base, skillText, { skill_source: fetched.source || "fallback" }), null, 2),
+      target: `${base}/v1/pull/${key}`,
+    };
+  }
+  return null;
+}
+
+async function callTool(env, name, args, origin) {
+  const local = await callRuntimeTool(env, name, args, origin);
+  if (local) return local;
   const idx = name.indexOf("_");
   if (idx < 1) throw new Error(`unknown tool: ${name}`);
   const slug = name.slice(0, idx);
@@ -1235,7 +1426,7 @@ function rpcError(id, code, message) {
   return json({ jsonrpc: "2.0", id: id ?? null, error: { code, message } });
 }
 
-async function handleMcp(request, env) {
+async function handleMcp(request, env, origin) {
   if (request.method === "GET") {
     return json({
       ok: true,
@@ -1244,6 +1435,9 @@ async function handleMcp(request, env) {
       methods: ["initialize", "tools/list", "tools/call", "ping"],
       auth: "none (public)",
       note: "Durable Objects / agents McpAgent not used. Minimal HTTP JSON-RPC.",
+      skill: "/v1/skill",
+      runtime: "/v1/runtime.json",
+      bundle: "/v1/bundle",
     });
   }
   if (request.method !== "POST") {
@@ -1262,9 +1456,12 @@ async function handleMcp(request, env) {
     return rpcResult(id, {
       protocolVersion: PROTOCOL,
       capabilities: { tools: { listChanged: false } },
-      serverInfo: { name: "aziel-runtime", version: "1.0.0" },
+      serverInfo: { name: "aziel-runtime", version: RUNTIME_VERSION },
       instructions:
-        "Tools are named {product}_{op} and proxy to each AzielEliab Worker /v1/{op}. Public, no OAuth.",
+        "This is a runtime (pull + invoke + cite), not only a catalog. " +
+        "Start with runtime_skill or runtime_manifest, then runtime_bundle or runtime_pull. " +
+        "Engine tools are named {product}_{op} and proxy to each AzielEliab Worker /v1/{op}. " +
+        "Always send User-Agent Mozilla/5.0. Public, no OAuth. Author: Aziel Eliab only.",
     });
   }
   if (method === "notifications/initialized" || method === "initialized") {
@@ -1280,7 +1477,7 @@ async function handleMcp(request, env) {
     const name = params.name;
     const args = params.arguments || params.input || {};
     try {
-      const out = await callTool(env, name, args);
+      const out = await callTool(env, name, args, origin);
       return rpcResult(id, {
         content: [
           {
@@ -1300,6 +1497,62 @@ async function handleMcp(request, env) {
   return rpcError(id, -32601, `Method not found: ${method}`);
 }
 
+
+async function handlePull(env, product, origin, extra) {
+  const fetched = await fetchProductSkill(env, product, upstreamFetch);
+  const skillText = fetched.text || fallbackSkillMarkdown(product, origin);
+  return json(
+    pullRecord(product, origin, skillText, { skill_source: fetched.source || "fallback" }),
+    200,
+    extra,
+  );
+}
+
+async function handlePullSkill(env, product, origin, extra) {
+  const fetched = await fetchProductSkill(env, product, upstreamFetch);
+  const text = fetched.text || fallbackSkillMarkdown(product, origin);
+  const headers = {
+    ...(extra || {}),
+    "X-Aziel-Skill-Source": fetched.source || "fallback",
+  };
+  return markdownResponse(text, headers);
+}
+
+async function serveSigil(request, env) {
+  const headers = {
+    "Content-Type": "image/png",
+    "Cache-Control": "public, max-age=86400",
+    "X-Aziel-Sigil": "Everblooming",
+    ...corsHeaders(),
+  };
+  if (env && env.ASSETS && typeof env.ASSETS.fetch === "function") {
+    try {
+      const res = await env.ASSETS.fetch(new Request(new URL("/sigil.png", request.url)));
+      if (res && res.ok) {
+        const buf = await res.arrayBuffer();
+        return new Response(buf, { status: 200, headers });
+      }
+    } catch {
+      /* fall through */
+    }
+  }
+  const fallbacks = [
+    "https://www.azielcorpuslibrary.net/sigil.png",
+    "https://foldlock-download-tracker.vibelock.workers.dev/sigil.png",
+  ];
+  for (const src of fallbacks) {
+    try {
+      const res = await fetch(src, { headers: { "User-Agent": DEFAULT_UA }, signal: AbortSignal.timeout(2500) });
+      if (res.ok) {
+        const buf = await res.arrayBuffer();
+        return new Response(buf, { status: 200, headers });
+      }
+    } catch {
+      /* next */
+    }
+  }
+  return json({ error: "sigil unavailable" }, 502);
+}
 
 export default {
   async fetch(request, env) {
@@ -1332,13 +1585,65 @@ export default {
       return json(citeJson(origin), 200, extra("/cite.json"));
     }
 
+    if (url.pathname === "/v1/skill" && request.method === "GET") {
+      return markdownResponse(runtimeSkillMarkdown(origin, PRODUCTS), extra("/v1/skill"));
+    }
+
+    if (url.pathname === "/v1/runtime.json" && request.method === "GET") {
+      return json(runtimeManifest(origin, PRODUCTS), 200, extra("/v1/runtime.json"));
+    }
+
+    if (url.pathname === "/v1/bundle" && request.method === "GET") {
+      return json(bundleJson(origin, PRODUCTS), 200, extra("/v1/bundle"));
+    }
+
+    if (url.pathname === "/v1/pull" && request.method === "GET") {
+      const all = url.searchParams.get("all");
+      if (all === "1" || all === "true") {
+        return json(bundleJson(origin, PRODUCTS), 200, extra("/v1/pull"));
+      }
+      const raw = url.searchParams.get("slug") || url.searchParams.get("product");
+      const key = resolveSlug(raw, BY_SLUG);
+      if (!key) {
+        return json(
+          { error: "unknown product", slug: raw, hint: "GET /v1/pull?all=1 or /v1/pull/{slug}", known: PRODUCTS.map((p) => p.slug) },
+          404,
+        );
+      }
+      return handlePull(env, BY_SLUG[key], origin, extra(`/v1/pull/${key}`));
+    }
+
+    const pullSkill = url.pathname.match(/^\/v1\/pull\/([a-z0-9.-]+)\/skill$/i);
+    if (pullSkill && request.method === "GET") {
+      const key = resolveSlug(pullSkill[1], BY_SLUG);
+      if (!key) {
+        return json({ error: "unknown product", slug: pullSkill[1], known: PRODUCTS.map((p) => p.slug) }, 404);
+      }
+      return handlePullSkill(env, BY_SLUG[key], origin, extra(`/v1/pull/${key}/skill`));
+    }
+
+    const pullOne = url.pathname.match(/^\/v1\/pull\/([a-z0-9.-]+)$/i);
+    if (pullOne && request.method === "GET") {
+      const key = resolveSlug(pullOne[1], BY_SLUG);
+      if (!key) {
+        return json({ error: "unknown product", slug: pullOne[1], known: PRODUCTS.map((p) => p.slug) }, 404);
+      }
+      return handlePull(env, BY_SLUG[key], origin, extra(`/v1/pull/${key}`));
+    }
+
     if (url.pathname === "/v1/catalog.json" && request.method === "GET") {
       return json(
         {
           ok: true,
+          role: "runtime",
           author: "Aziel Eliab",
+          identity: "Aziel Eliab",
           title: CATALOG_TITLE,
+          version: RUNTIME_VERSION,
           catalog: origin + "/",
+          skill: origin + "/v1/skill",
+          runtime: origin + "/v1/runtime.json",
+          bundle: origin + "/v1/bundle",
           license: "Apache-2.0",
           count: PRODUCTS.length,
           products: PRODUCTS.map((p) => catalogRecord(p, origin)),
@@ -1358,9 +1663,17 @@ export default {
           ok: true,
           product: "aziel-runtime",
           author: "Aziel Eliab",
+          role: "runtime",
+          version: RUNTIME_VERSION,
           title: CATALOG_TITLE,
+          identity: "Aziel Eliab",
           products: PRODUCTS.map((p) => p.slug),
           count: PRODUCTS.length,
+          skill: "/v1/skill",
+          runtime: "/v1/runtime.json",
+          bundle: "/v1/bundle",
+          pull: "/v1/pull/{slug}",
+          invoke: "/p/{slug}/{op}",
           openapi: "/openapi.json",
           catalog: "/v1/catalog.json",
           cite: "/cite.json",
@@ -1369,6 +1682,8 @@ export default {
           llms: "/llms.txt",
           ai: "/ai.txt",
           mcp: "/mcp",
+          sigil: "/sigil.png",
+          library_front_door: "https://www.azielcorpuslibrary.net/runtime",
           kv_increment: false,
         },
         200,
@@ -1376,8 +1691,12 @@ export default {
       );
     }
 
+    if (url.pathname === "/sigil.png" && request.method === "GET") {
+      return serveSigil(request, env);
+    }
+
     if (url.pathname === "/mcp" || url.pathname === "/mcp/") {
-      return handleMcp(request, env);
+      return handleMcp(request, env, origin);
     }
 
     const card = url.pathname.match(/^\/p\/([a-z0-9-]+)\/?$/i);
@@ -1399,10 +1718,24 @@ export default {
       return proxy(product, m[2], request, env);
     }
 
+    if (
+      /\.(png|jpe?g|gif|webp|svg|ico)$/i.test(url.pathname) &&
+      env &&
+      env.ASSETS &&
+      typeof env.ASSETS.fetch === "function"
+    ) {
+      const asset = await env.ASSETS.fetch(request);
+      if (asset && asset.status !== 404) {
+        const headers = new Headers(asset.headers);
+        headers.set("Access-Control-Allow-Origin", "*");
+        return new Response(asset.body, { status: asset.status, headers });
+      }
+    }
+
     return json(
       {
         error: "not found",
-        hint: "GET /  GET /openapi.json  GET /v1/catalog.json  GET /sitemap.xml  GET /robots.txt  GET /llms.txt  GET /cite.json  POST /p/{product}/{op}  POST /mcp",
+        hint: "GET /v1/skill  GET /v1/runtime.json  GET /v1/bundle  GET /v1/pull/{slug}  GET /v1/pull/{slug}/skill  GET /v1/catalog.json  GET /openapi.json  POST /p/{product}/{op}  POST /mcp",
       },
       404,
     );

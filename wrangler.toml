@@ -4,6 +4,15 @@ compatibility_date = "2026-07-01"
 workers_dev = true
 account_id = "ac575a9b822bea2bed97d0ab73aed238"
 
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = true
+
 [[services]]
 binding = "VIBELOCK"
 service = "vibelock-download-tracker"
@@ -99,6 +108,10 @@ service = "whistlelock-download-tracker"
 [[services]]
 binding = "TRAJECTORYLOCK"
 service = "trajectorylock-download-tracker"
+
+[[services]]
+binding = "MIALOCK"
+service = "mialock-download-tracker"
 
 [[services]]
 binding = "AZIELTETHER"
