@@ -1,0 +1,249 @@
+From 901a5a139e9d0734da6a4b4fe9223bb12e0c7692 Mon Sep 17 00:00:00 2001
+From: Cursor Agent <cursoragent@cursor.com>
+Date: Fri, 4 Sep 2026 21:12:30 +0000
+Subject: [PATCH] Align library /runtime proxies with aziel-runtime pull APIs.
+
+Proxy and fall back GET /runtime/v1/bundle (compact listing) and
+GET /runtime/v1/pull/{slug}/skill so an AI can start from
+azielcorpuslibrary.net/runtime and match the Worker pull+invoke root.
+---
+ workers/download-tracker/src/crawl.js         |  2 +
+ workers/download-tracker/src/runtime-root.js  | 73 ++++++++++++++++++-
+ .../download-tracker/src/runtime-root.test.js |  9 +++
+ workers/download-tracker/src/ui.js            |  8 +-
+ 4 files changed, 86 insertions(+), 6 deletions(-)
+
+diff --git a/workers/download-tracker/src/crawl.js b/workers/download-tracker/src/crawl.js
+index f5bff67..ddeacbd 100644
+--- a/workers/download-tracker/src/crawl.js
++++ b/workers/download-tracker/src/crawl.js
+@@ -133,6 +133,8 @@ export function llmsDoc(limitation) {
+     + "- Runtime manifest: " + HOST + "/runtime/v1/runtime.json\n"
+     + "- Runtime skill: " + HOST + "/runtime/v1/skill\n"
+     + "- Runtime pull: " + HOST + "/runtime/v1/pull/{slug}\n"
++    + "- Runtime pull skill: " + HOST + "/runtime/v1/pull/{slug}/skill\n"
++    + "- Runtime bundle: " + HOST + "/runtime/v1/bundle\n"
+     + "- Runtime OpenAPI: " + HOST + "/runtime/openapi.json\n"
+     + "- Runtime MCP: POST " + HOST + "/runtime/mcp\n"
+     + "- About Aziel: " + HOST + "/about\n"
+diff --git a/workers/download-tracker/src/runtime-root.js b/workers/download-tracker/src/runtime-root.js
+index 1b3e529..6243ac9 100644
+--- a/workers/download-tracker/src/runtime-root.js
++++ b/workers/download-tracker/src/runtime-root.js
+@@ -23,7 +23,7 @@ description: Use when an assistant should pull or invoke Aziel Eliab product run
+ 
+ **Runtime root** for Aziel Eliab product pull and invoke. Hosted on the Digital Library at ${HOST}/runtime. Origin Worker: ${RUNTIME_ORIGIN}/.
+ 
+-**THIS IS:** the AI root — catalog, OpenAPI, MCP, \`/v1/skill\`, \`/v1/runtime.json\`, \`/v1/pull/{slug}\`, counted downloads.
++**THIS IS:** the AI root — catalog, OpenAPI, MCP, \`/v1/skill\`, \`/v1/runtime.json\`, \`/v1/bundle\`, \`/v1/pull/{slug}\`, \`/v1/pull/{slug}/skill\`, counted downloads.
+ 
+ **THIS IS NOT:** a second software index. Downloadable product cards live at ${HOST}/software. The library MASTER search/OCR/map APIs stay on ${HOST}/v1/*. Author **Aziel Eliab** only.
+ 
+@@ -34,8 +34,10 @@ Always send \`User-Agent: Mozilla/5.0\`.
+ - Page: ${HOST}/runtime
+ - Manifest: \`GET ${HOST}/runtime/v1/runtime.json\`
+ - Skill: \`GET ${HOST}/runtime/v1/skill\`
++- Bundle (every product): \`GET ${HOST}/runtime/v1/bundle\`
+ - Pull: \`GET ${HOST}/runtime/v1/pull/{slug}\`
+-- Bundle: \`GET ${HOST}/runtime/v1/bundle/{slug}\`
++- Pull skill: \`GET ${HOST}/runtime/v1/pull/{slug}/skill\`
++- Bundle alias of one pull: \`GET ${HOST}/runtime/v1/bundle/{slug}\`
+ - Catalog: \`GET ${HOST}/runtime/v1/catalog.json\`
+ - OpenAPI: \`GET ${HOST}/runtime/openapi.json\`
+ - MCP: \`POST ${HOST}/runtime/mcp\`
+@@ -49,7 +51,9 @@ Always send \`User-Agent: Mozilla/5.0\`.
+ - \`POST ${RUNTIME_ORIGIN}/mcp\`
+ - ${RUNTIME_ORIGIN}/v1/skill
+ - ${RUNTIME_ORIGIN}/v1/runtime.json
++- ${RUNTIME_ORIGIN}/v1/bundle
+ - ${RUNTIME_ORIGIN}/v1/pull/{slug}
++- ${RUNTIME_ORIGIN}/v1/pull/{slug}/skill
+ 
+ ## Example
+ 
+@@ -57,7 +61,9 @@ Always send \`User-Agent: Mozilla/5.0\`.
+ curl -sI -A 'Mozilla/5.0' ${HOST}/runtime
+ curl -s -A 'Mozilla/5.0' ${HOST}/runtime/v1/runtime.json
+ curl -s -A 'Mozilla/5.0' ${HOST}/runtime/v1/skill
++curl -s -A 'Mozilla/5.0' ${HOST}/runtime/v1/bundle
+ curl -s -A 'Mozilla/5.0' ${HOST}/runtime/v1/pull/aziel-corpus
++curl -s -A 'Mozilla/5.0' ${HOST}/runtime/v1/pull/aziel-corpus/skill
+ \`\`\`
+ 
+ Apache-2.0. Forks welcome.
+@@ -85,7 +91,10 @@ export function runtimeManifest(via = "library") {
+     skill_origin: RUNTIME_ORIGIN + "/v1/skill",
+     runtime_json: HOST + "/runtime/v1/runtime.json",
+     pull: HOST + "/runtime/v1/pull/{slug}",
+-    bundle: HOST + "/runtime/v1/bundle/{slug}",
++    pull_skill: HOST + "/runtime/v1/pull/{slug}/skill",
++    bundle: HOST + "/runtime/v1/bundle",
++    bundle_slug: HOST + "/runtime/v1/bundle/{slug}",
++    invoke: RUNTIME_ORIGIN + "/p/{slug}/{op}",
+     llms: HOST + "/llms.txt",
+     github: "https://github.com/AzielEliab/aziel-runtime",
+     license: "Apache-2.0",
+@@ -104,6 +113,9 @@ export function fallbackKind(destPath) {
+   const path = String(destPath || "").split("?")[0].replace(/\/+$/, "") || "/";
+   if (path === "/v1/runtime.json") return "runtime.json";
+   if (path === "/v1/skill") return "skill";
++  if (path === "/v1/bundle") return "bundle-all";
++  const pullSkill = path.match(/^\/v1\/pull\/([^/]+)\/skill$/);
++  if (pullSkill) return { kind: "pull-skill", slug: decodeURIComponent(pullSkill[1]) };
+   const pull = path.match(/^\/v1\/pull\/([^/]+)$/);
+   if (pull) return { kind: "pull", slug: decodeURIComponent(pull[1]) };
+   const bundle = path.match(/^\/v1\/bundle\/([^/]+)$/);
+@@ -132,6 +144,8 @@ export function pullDescriptor(product, { kind = "pull" } = {}) {
+     catalog_skill: product.catalog_skill || RUNTIME_ORIGIN + "/p/" + encodeURIComponent(slug) + "/skill",
+     ops: Array.isArray(product.ops) ? product.ops : [],
+     software_tarball: product.software_tarball || null,
++    skill_url: HOST + "/runtime/v1/pull/" + encodeURIComponent(slug) + "/skill",
++    invoke_prefix: RUNTIME_ORIGIN + "/p/" + encodeURIComponent(slug),
+     pull: HOST + "/runtime/v1/pull/" + encodeURIComponent(slug),
+     bundle: HOST + "/runtime/v1/bundle/" + encodeURIComponent(slug),
+     runtime_root: HOST + "/runtime",
+@@ -140,6 +154,46 @@ export function pullDescriptor(product, { kind = "pull" } = {}) {
+   };
+ }
+ 
++export function bundleListing(catalog) {
++  const products = catalog && Array.isArray(catalog.products) ? catalog.products : [];
++  return {
++    ok: true,
++    role: "runtime",
++    author: "Aziel Eliab",
++    identity: "Aziel Eliab",
++    product_count: products.length,
++    skill: HOST + "/runtime/v1/skill",
++    runtime: HOST + "/runtime/v1/runtime.json",
++    invoke: RUNTIME_ORIGIN + "/p/{slug}/{op}",
++    products: products.map((p) => ({
++      slug: p.slug,
++      name: p.name || p.slug,
++      version: p.version || null,
++      skill_url: HOST + "/runtime/v1/pull/" + encodeURIComponent(p.slug) + "/skill",
++      invoke_prefix: RUNTIME_ORIGIN + "/p/" + encodeURIComponent(p.slug),
++    })),
++    limitation: RUNTIME_LIMITATION,
++  };
++}
++
++export function fallbackSkillMd(product) {
++  const slug = product && product.slug ? String(product.slug) : "";
++  const name = (product && product.name) || slug;
++  return `# ${name}
++
++${(product && (product.one_line || product.banner)) || ""}
++
++Author: **Aziel Eliab**.
++
++Pull: ${HOST}/runtime/v1/pull/${encodeURIComponent(slug)}
++Skill: ${HOST}/runtime/v1/pull/${encodeURIComponent(slug)}/skill
++Invoke: ${RUNTIME_ORIGIN}/p/${encodeURIComponent(slug)}/{op}
++Download: ${(product && product.download) || ""}
++
++Always send \`User-Agent: Mozilla/5.0\`.
++`;
++}
++
+ export function findProduct(catalog, slug) {
+   const want = String(slug || "").toLowerCase();
+   const products = catalog && Array.isArray(catalog.products) ? catalog.products : [];
+@@ -207,6 +261,19 @@ async function fallbackResponse(request, kind) {
+       headers: { "Content-Type": "text/markdown; charset=utf-8", ...corsHeaders(), "X-Aziel-Runtime-Via": "library-fallback" },
+     }));
+   }
++  if (kind === "bundle-all") {
++    const catalog = await loadCatalog();
++    return respondMaybeHead(request, json(bundleListing(catalog)));
++  }
++  if (kind && kind.kind === "pull-skill") {
++    const catalog = await loadCatalog();
++    const product = findProduct(catalog, kind.slug);
++    if (!product) return json({ error: "not found", slug: kind.slug, hint: "GET /runtime/v1/catalog.json", limitation: RUNTIME_LIMITATION }, 404);
++    return respondMaybeHead(request, new Response(fallbackSkillMd(product), {
++      status: 200,
++      headers: { "Content-Type": "text/markdown; charset=utf-8", ...corsHeaders(), "X-Aziel-Runtime-Via": "library-fallback" },
++    }));
++  }
+   if (kind && (kind.kind === "pull" || kind.kind === "bundle")) {
+     const catalog = await loadCatalog();
+     const product = findProduct(catalog, kind.slug);
+diff --git a/workers/download-tracker/src/runtime-root.test.js b/workers/download-tracker/src/runtime-root.test.js
+index 820cef3..dfb0ee5 100644
+--- a/workers/download-tracker/src/runtime-root.test.js
++++ b/workers/download-tracker/src/runtime-root.test.js
+@@ -13,7 +13,9 @@ import { llmsDoc } from "./crawl.js";
+ 
+ test("destFromRuntimePath strips the /runtime prefix", () => {
+   assert.equal(destFromRuntimePath("/runtime/v1/skill", ""), "/v1/skill");
++  assert.equal(destFromRuntimePath("/runtime/v1/bundle", ""), "/v1/bundle");
+   assert.equal(destFromRuntimePath("/runtime/v1/pull/aziel-corpus", "?x=1"), "/v1/pull/aziel-corpus?x=1");
++  assert.equal(destFromRuntimePath("/runtime/v1/pull/foldlock/skill", ""), "/v1/pull/foldlock/skill");
+   assert.equal(destFromRuntimePath("/runtime/openapi.json", ""), "/openapi.json");
+   assert.equal(destFromRuntimePath("/runtime", ""), null);
+   assert.equal(destFromRuntimePath("/software", ""), null);
+@@ -23,6 +25,8 @@ test("fallbackKind recognizes pull/skill/bundle/runtime.json", () => {
+   assert.equal(fallbackKind("/v1/runtime.json"), "runtime.json");
+   assert.equal(fallbackKind("/v1/skill"), "skill");
+   assert.deepEqual(fallbackKind("/v1/pull/aziel-corpus"), { kind: "pull", slug: "aziel-corpus" });
++  assert.deepEqual(fallbackKind("/v1/pull/foldlock/skill"), { kind: "pull-skill", slug: "foldlock" });
++  assert.equal(fallbackKind("/v1/bundle"), "bundle-all");
+   assert.deepEqual(fallbackKind("/v1/bundle/foldlock"), { kind: "bundle", slug: "foldlock" });
+   assert.equal(fallbackKind("/openapi.json"), null);
+ });
+@@ -34,9 +38,13 @@ test("runtime manifest and skill cite the library /runtime root", () => {
+   assert.match(man.host, /\/runtime$/);
+   assert.match(man.skill, /\/runtime\/v1\/skill$/);
+   assert.match(man.pull, /\/runtime\/v1\/pull\/\{slug\}$/);
++  assert.match(man.bundle, /\/runtime\/v1\/bundle$/);
++  assert.match(man.pull_skill, /\/runtime\/v1\/pull\/\{slug\}\/skill$/);
+   const skill = runtimeSkillMd();
+   assert.match(skill, /name: aziel-runtime/);
+   assert.match(skill, /\/runtime\/v1\/runtime\.json/);
++  assert.match(skill, /\/runtime\/v1\/bundle/);
++  assert.match(skill, /\/runtime\/v1\/pull\/\{slug\}\/skill/);
+   assert.match(skill, /Author \*\*Aziel Eliab\*\*/);
+   assert.doesNotMatch(skill, /Ever Blooming/i);
+ });
+@@ -112,4 +120,5 @@ test("llms.txt cites the runtime root and pull APIs", () => {
+   assert.match(txt, /\/runtime\/v1\/runtime\.json/);
+   assert.match(txt, /\/runtime\/v1\/skill/);
+   assert.match(txt, /\/runtime\/v1\/pull\/\{slug\}/);
++  assert.match(txt, /\/runtime\/v1\/bundle/);
+ });
+diff --git a/workers/download-tracker/src/ui.js b/workers/download-tracker/src/ui.js
+index 6729e38..afdf454 100644
+--- a/workers/download-tracker/src/ui.js
++++ b/workers/download-tracker/src/ui.js
+@@ -523,14 +523,16 @@ export function runtimeBody() {
+ <ul>
+ <li><a href="/runtime/v1/runtime.json"><code>/runtime/v1/runtime.json</code></a> — runtime manifest</li>
+ <li><a href="/runtime/v1/skill"><code>/runtime/v1/skill</code></a> — runtime skill markdown</li>
++<li><a href="/runtime/v1/bundle"><code>/runtime/v1/bundle</code></a> — compact bootstrap (every skill URL + invoke prefix)</li>
+ <li><code>GET /runtime/v1/pull/{slug}</code> — pull descriptor (example <a href="/runtime/v1/pull/aziel-corpus"><code>/runtime/v1/pull/aziel-corpus</code></a>)</li>
+-<li><code>GET /runtime/v1/bundle/{slug}</code> — bundle alias of pull</li>
++<li><code>GET /runtime/v1/pull/{slug}/skill</code> — product skill markdown</li>
++<li><code>GET /runtime/v1/bundle/{slug}</code> — one-slug alias of pull</li>
+ <li><a href="/runtime/v1/catalog.json"><code>/runtime/v1/catalog.json</code></a> — machine catalog</li>
+ <li><a href="/runtime/openapi.json"><code>/runtime/openapi.json</code></a> — combined OpenAPI</li>
+ <li><code>POST /runtime/mcp</code> — MCP JSON-RPC (<code>tools/list</code>, <code>tools/call</code>)</li>
+ <li>Library alias: <a href="/v1/runtime.json"><code>/v1/runtime.json</code></a> (distinct from library version <a href="/v1/runtime"><code>/v1/runtime</code></a>)</li>
+ </ul>
+-<p class="soft-links"><a class="button" href="/runtime/v1/runtime.json">runtime.json</a> <a class="button ghost" href="/runtime/v1/skill">skill</a> <a class="button ghost" href="/runtime/v1/catalog.json">catalog.json</a> <a class="button ghost" href="/runtime/openapi.json">OpenAPI</a></p>
++<p class="soft-links"><a class="button" href="/runtime/v1/runtime.json">runtime.json</a> <a class="button ghost" href="/runtime/v1/skill">skill</a> <a class="button ghost" href="/runtime/v1/bundle">bundle</a> <a class="button ghost" href="/runtime/v1/catalog.json">catalog.json</a> <a class="button ghost" href="/runtime/openapi.json">OpenAPI</a></p>
+ </div>
+ <div class="card">
+ <h2>Origin Worker</h2>
+@@ -540,7 +542,7 @@ export function runtimeBody() {
+ <li><a href="https://aziel-runtime.vibelock.workers.dev/v1/catalog.json"><code>/v1/catalog.json</code></a></li>
+ <li><a href="https://aziel-runtime.vibelock.workers.dev/openapi.json"><code>/openapi.json</code></a></li>
+ <li><code>POST https://aziel-runtime.vibelock.workers.dev/mcp</code></li>
+-<li><a href="https://aziel-runtime.vibelock.workers.dev/v1/skill"><code>/v1/skill</code></a> · <a href="https://aziel-runtime.vibelock.workers.dev/v1/runtime.json"><code>/v1/runtime.json</code></a> · <code>/v1/pull/{slug}</code></li>
++<li><a href="https://aziel-runtime.vibelock.workers.dev/v1/skill"><code>/v1/skill</code></a> · <a href="https://aziel-runtime.vibelock.workers.dev/v1/runtime.json"><code>/v1/runtime.json</code></a> · <a href="https://aziel-runtime.vibelock.workers.dev/v1/bundle"><code>/v1/bundle</code></a> · <code>/v1/pull/{slug}</code></li>
+ <li><a href="https://aziel-runtime.vibelock.workers.dev/llms.txt">llms.txt</a> · <a href="https://aziel-runtime.vibelock.workers.dev/cite.json">cite.json</a> · <a href="https://github.com/AzielEliab/aziel-runtime">GitHub</a></li>
+ </ul>
+ <p class="muted">Counted downloads stay on each product Worker <code>/download</code> + <code>/count</code>. The Software tab lists those cards. AzielTether is the survival mesh for downloaded nodes; this HTTPS site is not a mesh.</p>
+-- 
+2.43.0
+
