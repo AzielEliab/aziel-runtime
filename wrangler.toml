@@ -100,7 +100,9 @@ service = "whistlelock-download-tracker"
 binding = "TRAJECTORYLOCK"
 service = "trajectorylock-download-tracker"
 
-
+[[services]]
+binding = "AZIELTETHER"
+service = "azieltether-download-tracker"
 
 [[services]]
 binding = "AZIEL_CORPUS"
