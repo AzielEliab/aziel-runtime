@@ -29,7 +29,7 @@ OpenAPI file — not fifteen separate Workers.
 `https://{productWorker}.vibelock.workers.dev/v1/{op}` with the JSON body.
 `GET /p/{product}/{op}` proxies GET. Download counters are **not** incremented.
 
-Crawl/index endpoints return **HTTP 200** (not 302): `/robots.txt` allows `/` and points at `/sitemap.xml`; `/llms.txt` and `/ai.txt` list every product name, one-line, GitHub, worker, `/v1/skill`, and counted `/download`; `/cite.json` and the homepage How-to-cite block name **Aziel Eliab**, Apache-2.0, the catalog URL, GitHub, and DOI when present. Homepage includes JSON-LD `SoftwareApplication` + `ItemList`, canonical/OG/Twitter meta, and one card per product.
+Crawl/index endpoints return **HTTP 200** (not 302): `/robots.txt` allows `/` and points at `/sitemap.xml`; `/llms.txt` and `/ai.txt` list every product name, one-line, GitHub, worker, `/v1/skill`, and counted `/download`; `/cite.json` and the homepage How-to-cite block name **Aziel Eliab**, Apache-2.0, the catalog URL, GitHub, version, counted tarball, Zenodo `related_identifiers`, and DOI when a real one is known (never invented). Homepage includes JSON-LD `SoftwareApplication` + `ItemList`, canonical/OG/Twitter meta, and one card per product.
 
 **How to cite:** Eliab, Aziel. (2026). Aziel Eliab product runtime catalog [Software]. Apache-2.0. https://aziel-runtime.vibelock.workers.dev/
 
@@ -70,6 +70,7 @@ Each action is `POST /p/{slug}/{op}` with a JSON object.
 - **WhistleLock** is a local vault + dead-man copy. Not a mailer. Hosted never holds whistle files.
 - **TrajectoryLock** is a research prototype / auditable geometric test. Not a certified forensic instrument. Hosted never stores media. Match probability is P(match | declared model), not P(official account is true). Synthetic examples are not real-case findings.
 - **Aziel Corpus Library** is a public library index + counted PDF/package download. Not a private-file search engine, not Zenodo, not a new Lock engine.
+- **AzielTether** is not a VPN. Prefer-central mesh for downloaded Aziel Eliab software; public HTTPS stays mesh-free.
 
 ## Product slugs → Workers
 
@@ -99,6 +100,8 @@ Each action is `POST /p/{slug}/{op}` with a JSON object.
 | foldlock | foldlock-download-tracker | health, fold-preview, unfold-preview, skill |
 | whistlelock | whistlelock-download-tracker | health, hash-preview, canon-preview, skill |
 | trajectorylock | trajectorylock-download-tracker | health, example, analyze, skill |
+| azieltether | azieltether-download-tracker | health, skill |
+| aziel-corpus | aziel-corpus-download-tracker (www.azielcorpuslibrary.net) | health, search, example, skill |
 
 If a sibling `/v1` API is not live yet, the proxy returns that Worker's response
 (often 404 JSON) and the combined OpenAPI still lists the expected path.
