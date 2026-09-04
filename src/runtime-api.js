@@ -1,10 +1,13 @@
 /**
- * Aziel Eliab Runtime — pull + invoke + cite.
+ * Aziel Eliab Runtime — catalog + pull + proxy, plus one session object.
+ * 1.1.0 was catalog+proxy that called itself a runtime. 1.2.0 owns
+ * open → policy → exec → receipt → close. Proxy without a session is not exec.
  * Public identity: Aziel Eliab only. Forks welcome. Do not invent DOIs.
  */
 
-export const RUNTIME_VERSION = "1.1.0";
-export const RUNTIME_ROLE = "runtime";
+export const RUNTIME_VERSION = "1.2.0";
+export const RUNTIME_ROLE = "session-runtime";
+export const RUNTIME_LAYER = "catalog+pull+proxy+session";
 export const SKILL_INLINE_MAX = 24_000;
 export const SKILL_TTL_MS = 10 * 60 * 1000;
 export const DEFAULT_UA = "Mozilla/5.0";
@@ -50,33 +53,66 @@ export function runtimeSkillMarkdown(origin, products) {
   return `---
 name: Aziel Eliab Runtime
 description: >-
-  Root source for Grok, ChatGPT, Venice, and any installer to discover, pull,
-  invoke, and cite every Aziel Eliab product without visiting each Worker first.
+  Catalog + pull + proxy front door for every Aziel Eliab product, plus one
+  session object: open → policy → exec → receipt → close. 1.1.0 was
+  catalog+proxy that called itself a runtime. 1.2.0 owns hash-chained receipts.
 ---
 
 # Aziel Eliab Runtime
 
-This Worker is a **runtime** — **pull + invoke + cite** — not only a catalog.
+**1.2.0 = catalog + pull + proxy + one session object.**
+**1.1.0 = catalog + pull + proxy** that started calling itself a runtime. Useful front doors. Not the session.
+
+True runtime on *this* Worker is the session lifecycle:
+
+\`open → policy → exec(slug, op, payload) → receipt → close\`
+
+\`GET/POST /p/{slug}/{op}\` is still a **proxy**. Proxy without a session receipt is **not** exec.
+
+This process does **not** load an engine, jail it, schedule it, or emit a receipt of some other product's process. Isolation is Cloudflare's Worker / Durable Object isolate only. No extra sandbox is claimed.
+
+Closest true *local* runtimes in the mesh remain: \`azai serve\`, \`forgereceipts ui\`, \`azos ui\`.
+Hosted AZAI is still protocol mirror + Lamb check, **not** the blend.
 
 Author: **Aziel Eliab**. Identity is Aziel Eliab only.
 License: Apache-2.0. Forks are welcome and always allowed.
 Version: ${RUNTIME_VERSION}
+Role: session-runtime (layer: catalog+pull+proxy+session)
 Host: ${base}/
 Everblooming sigil: ${base}/sigil.png
 Products: ${n} (${slugs})
+Packaging: Worker session + in-repo CLI (\`node cli/aziel-runtime.mjs\`). **No counted runtime tarball.**
 
 Always send \`User-Agent: Mozilla/5.0\`. Cloudflare Workers may 403 an empty agent.
-Do **not** invent Zenodo DOIs. Cite \`/cite.json\`. Download counters are **not** incremented on pull, skill, health, or invoke-proxy routes.
+Do **not** invent Zenodo DOIs. Cite \`/cite.json\`. Download counters are **not** incremented on pull, skill, health, proxy, or session exec.
 
-## Bootstrap (start here)
+## Session (the actual cut)
 
-1. \`GET ${base}/v1/skill\` — this markdown (how to pull + call).
-2. \`GET ${base}/v1/runtime.json\` — machine manifest (\`role=runtime\`).
-3. \`GET ${base}/v1/bundle\` — compact listing: every product skill URL + invoke prefix.
+1. \`POST ${base}/v1/session/open\` — session id, start time, policy defaults, empty receipt chain.
+2. \`POST ${base}/v1/session/{id}/policy\` — allow slugs/ops, payload size cap, no download-counter side effects unless explicitly requested (this Worker still has no download KV).
+3. \`POST ${base}/v1/session/{id}/exec\` body \`{slug, op, payload}\` — record intent, invoke via service binding (preferred) or public Worker URL, append a **hash-chained execution receipt owned by this session**.
+4. \`GET ${base}/v1/session/{id}/receipt\` or \`.../receipts\` — last receipt / full chain (verifiable locally).
+5. \`POST ${base}/v1/session/{id}/close\` — seal. Further exec is 409.
+
+CLI (talks to this Worker, or \`--local\` filesystem session):
+
+\`\`\`bash
+node cli/aziel-runtime.mjs session open
+node cli/aziel-runtime.mjs session policy --allow-slugs azclce
+node cli/aziel-runtime.mjs session exec azclce score '{"r":"login button blue","d":"login form submits","p":"login button submits"}'
+node cli/aziel-runtime.mjs session receipt
+node cli/aziel-runtime.mjs session close
+\`\`\`
+
+## Bootstrap (front doors — still useful)
+
+1. \`GET ${base}/v1/skill\` — this markdown.
+2. \`GET ${base}/v1/runtime.json\` — machine manifest (\`role=session-runtime\`).
+3. \`GET ${base}/v1/bundle\` — every product skill URL + invoke prefix.
    Alias: \`GET ${base}/v1/pull?all=1\`.
-4. \`GET ${base}/v1/pull/{slug}\` — name, version, skill URL (and inline skill when small), counted download, install.sh, ops, OpenAPI, banners, catalog aliases.
-5. \`GET ${base}/v1/pull/{slug}/skill\` — that product's skill markdown (proxied / cached from the product Worker).
-6. Invoke: \`GET\` or \`POST ${base}/p/{slug}/{op}\` (service-binding proxy to the product \`/v1/{op}\`).
+4. \`GET ${base}/v1/pull/{slug}\` — name, version, skill URL, counted download, install.sh, ops.
+5. \`GET ${base}/v1/pull/{slug}/skill\` — product skill markdown (proxied / cached).
+6. Proxy (not exec): \`GET\` or \`POST ${base}/p/{slug}/{op}\`.
 
 You do **not** need to open each product homepage.
 
@@ -85,26 +121,32 @@ You do **not** need to open each product homepage.
 - **ChatGPT** — GPT Actions → Import from URL → \`${base}/openapi.json\`
 - **Grok** — custom tool / OpenAPI / MCP remote → \`${base}/openapi.json\` or \`POST ${base}/mcp\`
 - **Venice** — custom HTTP tools / OpenAPI → same OpenAPI URL
-- **Any installer / agent** — \`GET ${base}/v1/runtime.json\` then \`GET ${base}/v1/bundle\`, then pull one slug and call \`/p/{slug}/{op}\`
+- **Any installer / agent** — \`GET ${base}/v1/runtime.json\` then open a session, or pull one slug and call \`/p/{slug}/{op}\` (proxy only).
 
-MCP tools are named \`{slug}_{op}\` (example: \`decisiongate_check\`, \`foldlock_fold-preview\`). Runtime helpers: \`runtime_skill\`, \`runtime_manifest\`, \`runtime_bundle\`, \`runtime_pull\`. Public, no OAuth.
+MCP tools are named \`{slug}_{op}\` (example: \`decisiongate_check\`, \`foldlock_fold-preview\`). Helpers: \`runtime_skill\`, \`runtime_manifest\`, \`runtime_bundle\`, \`runtime_pull\`, \`runtime_session_open\`, \`runtime_session_policy\`, \`runtime_session_exec\`, \`runtime_session_receipt\`, \`runtime_session_receipts\`, \`runtime_session_close\`. Public, no OAuth.
 
-## Runtime endpoints (this Worker)
+## Endpoints (this Worker)
 
 | Method | Path | What |
 |--------|------|------|
+| POST | \`/v1/session/open\` | Create session + genesis receipt. |
+| POST | \`/v1/session/{id}/policy\` | Attach allow rules. |
+| POST | \`/v1/session/{id}/exec\` | Runtime-owned exec + hash-chained receipt. |
+| GET | \`/v1/session/{id}/receipt\` | Last receipt (verifiable). |
+| GET | \`/v1/session/{id}/receipts\` | Full receipt chain. |
+| POST | \`/v1/session/{id}/close\` | Seal session. |
 | GET | \`/v1/skill\` | This markdown. Does not increment downloads. |
-| GET | \`/v1/runtime.json\` | Machine manifest. role=runtime. |
+| GET | \`/v1/runtime.json\` | Machine manifest. role=session-runtime. |
 | GET | \`/v1/bundle\` | Compact bootstrap of every product. |
 | GET | \`/v1/pull?all=1\` | Alias of \`/v1/bundle\`. |
 | GET | \`/v1/pull/{slug}\` | Pull record for one product. |
 | GET | \`/v1/pull/{slug}/skill\` | Product skill markdown. |
 | GET | \`/v1/catalog.json\` | Full catalog (discover). |
-| GET/POST | \`/p/{slug}/{op}\` | Invoke via service binding (fallback: public Worker URL). |
+| GET/POST | \`/p/{slug}/{op}\` | **Proxy only** — not exec. Service binding preferred. |
 | GET | \`/openapi.json\` | Combined OpenAPI 3.1. |
 | POST | \`/mcp\` | JSON-RPC MCP-over-HTTP. |
 | GET | \`/cite.json\` | How to cite. Aziel Eliab only. No invented DOIs. |
-| GET | \`/llms.txt\` | Plain-text runtime for crawlers. |
+| GET | \`/llms.txt\` | Plain-text catalog + session for crawlers. |
 | GET | \`/v1/health\` | Liveness. |
 
 Library front door: https://www.azielcorpuslibrary.net/runtime  
@@ -115,9 +157,20 @@ Library JSON alias: https://www.azielcorpuslibrary.net/v1/runtime
 \`\`\`bash
 curl -s -A 'Mozilla/5.0' ${base}/v1/skill
 curl -s -A 'Mozilla/5.0' ${base}/v1/runtime.json
-curl -s -A 'Mozilla/5.0' ${base}/v1/bundle
-curl -s -A 'Mozilla/5.0' ${base}/v1/pull/foldlock
-curl -s -A 'Mozilla/5.0' ${base}/v1/pull/foldlock/skill
+SID=$(curl -s -A 'Mozilla/5.0' -X POST ${base}/v1/session/open -H 'content-type: application/json' -d '{}' | jq -r .session.id)
+curl -s -A 'Mozilla/5.0' -X POST ${base}/v1/session/$SID/policy \\
+  -H 'content-type: application/json' \\
+  -d '{"allow_slugs":["azclce"],"max_payload_bytes":8192}'
+curl -s -A 'Mozilla/5.0' -X POST ${base}/v1/session/$SID/exec \\
+  -H 'content-type: application/json' \\
+  -d '{"slug":"azclce","op":"score","payload":{"r":"login button blue","d":"login form submits","p":"login button submits"}}'
+curl -s -A 'Mozilla/5.0' ${base}/v1/session/$SID/receipt
+curl -s -A 'Mozilla/5.0' -X POST ${base}/v1/session/$SID/close
+\`\`\`
+
+Proxy (not exec — no runtime-owned receipt):
+
+\`\`\`bash
 curl -s -A 'Mozilla/5.0' -X POST ${base}/p/azclce/score \\
   -H 'content-type: application/json' \\
   -d '{"r":"login button blue","d":"login form submits","p":"login button submits"}'
@@ -125,7 +178,7 @@ curl -s -A 'Mozilla/5.0' -X POST ${base}/p/azclce/score \\
 
 ## Honesty
 
-GodLock and MirageGrid are not VPNs. ForgeReceipts is not legal advice. ZionPattern Solver caps confidence at 75% and does not solve cases. VeilLock does not inject into FaceTime. AZ-CLCE detects inconsistency, not intent. ChronoLock is advisory only. The ARK is not a kernel. AZAI hosted /v1 is not a paid-key proxy. Jeeves is not sovereign. SpectralLock hosted overlay is a 256px preview. EmployeeLock is not a court. FoldLock is not zip. WhistleLock is not a mailer. TrajectoryLock is not a certified forensic instrument. M.I.A.Lock Doe hits are leads, not IDs. Aziel Digital Library is not a 26-card index. AzielTether is not a VPN.
+GodLock and MirageGrid are not VPNs. ForgeReceipts is not legal advice. ZionPattern Solver caps confidence at 75% and does not solve cases. VeilLock does not inject into FaceTime. AZ-CLCE detects inconsistency, not intent. ChronoLock is advisory only. The ARK is not a kernel. AZAI hosted /v1 is a protocol mirror + Lamb check, not a paid-key proxy and **not** the local blend. Jeeves is not sovereign. SpectralLock hosted overlay is a 256px preview. EmployeeLock is not a court. FoldLock is not zip. WhistleLock is not a mailer. TrajectoryLock is not a certified forensic instrument. M.I.A.Lock Doe hits are leads, not IDs. Aziel Digital Library is not a 26-card index. AzielTether is not a VPN.
 
 ## Cite
 
@@ -141,6 +194,7 @@ export function runtimeManifest(origin, products) {
   return {
     ok: true,
     role: RUNTIME_ROLE,
+    layer: RUNTIME_LAYER,
     product: "aziel-runtime",
     name: "Aziel Eliab Runtime",
     version: RUNTIME_VERSION,
@@ -159,7 +213,22 @@ export function runtimeManifest(origin, products) {
     sigil_stamp: "Everblooming",
     user_agent: DEFAULT_UA,
     kv_increment: false,
+    counted_tarball: false,
+    proxy_is_not_exec: true,
+    hosted_azai_is_not_the_blend: true,
+    no_engine_jail: true,
+    local_blends: ["azai serve", "forgereceipts ui", "azos ui"],
+    honest: {
+      "1.1.0": "catalog + pull + proxy that called itself a runtime",
+      "1.2.0": "same front doors plus one session object: open → policy → exec → receipt → close",
+    },
     endpoints: {
+      session_open: base + "/v1/session/open",
+      session_policy: base + "/v1/session/{id}/policy",
+      session_exec: base + "/v1/session/{id}/exec",
+      session_receipt: base + "/v1/session/{id}/receipt",
+      session_receipts: base + "/v1/session/{id}/receipts",
+      session_close: base + "/v1/session/{id}/close",
       skill: base + "/v1/skill",
       runtime: base + "/v1/runtime.json",
       discover: base + "/v1/catalog.json",
@@ -168,6 +237,7 @@ export function runtimeManifest(origin, products) {
       bundle: base + "/v1/bundle",
       pull_all: base + "/v1/pull?all=1",
       invoke: base + "/p/{slug}/{op}",
+      invoke_note: "proxy only — not exec",
       cite: base + "/cite.json",
       openapi: base + "/openapi.json",
       mcp: base + "/mcp",
@@ -199,13 +269,16 @@ export function bundleJson(origin, products) {
   return {
     ok: true,
     role: RUNTIME_ROLE,
+    layer: RUNTIME_LAYER,
     author: "Aziel Eliab",
     identity: "Aziel Eliab",
     version: RUNTIME_VERSION,
     product_count: products.length,
     skill: base + "/v1/skill",
     runtime: base + "/v1/runtime.json",
+    session: base + "/v1/session/open",
     invoke: base + "/p/{slug}/{op}",
+    invoke_note: "proxy only — not exec",
     cite: base + "/cite.json",
     user_agent: DEFAULT_UA,
     products: products.map((p) => bundleRecord(p, origin)),
@@ -384,10 +457,91 @@ export function markdownResponse(body, extra = {}) {
 
 export function runtimeStaticPaths() {
   return {
+    "/v1/session/open": {
+      post: {
+        operationId: "runtime_session_open",
+        summary: "Open a session (id, policy defaults, empty hash-chained receipt list).",
+        tags: ["session"],
+        requestBody: {
+          required: false,
+          content: { "application/json": { schema: { type: "object" } } },
+        },
+        responses: { "200": { description: "Session + genesis receipt" } },
+      },
+    },
+    "/v1/session/{id}/policy": {
+      post: {
+        operationId: "runtime_session_policy",
+        summary: "Attach allow rules (slugs, ops, payload cap). Identity remains Aziel Eliab.",
+        tags: ["session"],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { type: "object" } } },
+        },
+        responses: { "200": { description: "Updated policy + receipt" }, "409": { description: "Session closed" } },
+      },
+    },
+    "/v1/session/{id}/exec": {
+      post: {
+        operationId: "runtime_session_exec",
+        summary: "Runtime-owned exec: intent, invoke, hash-chained receipt. Not the same as proxy /p/{slug}/{op}.",
+        tags: ["session"],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["slug", "op"],
+                properties: {
+                  slug: { type: "string" },
+                  op: { type: "string" },
+                  payload: { type: "object" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "200": { description: "Exec receipt" },
+          "403": { description: "Policy denied" },
+          "409": { description: "Session closed" },
+        },
+      },
+    },
+    "/v1/session/{id}/receipt": {
+      get: {
+        operationId: "runtime_session_receipt",
+        summary: "Last runtime-owned receipt. Hash chain is verifiable locally.",
+        tags: ["session"],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+        responses: { "200": { description: "Last receipt + verified" } },
+      },
+    },
+    "/v1/session/{id}/receipts": {
+      get: {
+        operationId: "runtime_session_receipts",
+        summary: "Full hash-chained receipt list for a session.",
+        tags: ["session"],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+        responses: { "200": { description: "Receipt chain + verified" } },
+      },
+    },
+    "/v1/session/{id}/close": {
+      post: {
+        operationId: "runtime_session_close",
+        summary: "Seal the session. Further exec is rejected.",
+        tags: ["session"],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+        responses: { "200": { description: "Final receipt" }, "409": { description: "Already closed" } },
+      },
+    },
     "/v1/skill": {
       get: {
         operationId: "runtime_skill",
-        summary: "Runtime skill markdown: how Grok/ChatGPT/Venice pull + call.",
+        summary: "Skill markdown: session lifecycle plus catalog/pull/proxy front doors. Honest about 1.1.0 vs 1.2.0.",
         tags: ["runtime"],
         responses: { "200": { description: "text/markdown skill" } },
       },
@@ -395,7 +549,7 @@ export function runtimeStaticPaths() {
     "/v1/runtime.json": {
       get: {
         operationId: "runtime_manifest",
-        summary: "Machine manifest. role=runtime. Pull, invoke, cite endpoints, product count, identity Aziel Eliab.",
+        summary: "Machine manifest. role=session-runtime. Session + pull + proxy endpoints. Identity Aziel Eliab.",
         tags: ["runtime"],
         responses: { "200": { description: "Runtime manifest JSON" } },
       },

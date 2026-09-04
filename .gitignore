@@ -3,3 +3,5 @@ node_modules/
 .venv
 .env
 *.log
+.aziel-runtime/
+.aziel-runtime-demo/
