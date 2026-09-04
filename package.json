@@ -1,11 +1,12 @@
 {
   "name": "aziel-runtime",
+  "version": "1.1.0",
   "private": true,
-  "description": "One OpenAPI + MCP URL for every AzielEliab product runtime",
+  "description": "Aziel Eliab Runtime — pull + invoke + cite for every Aziel Eliab product",
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {
-    "test": "node scripts/verify-cite.mjs"
+    "test": "node scripts/verify-cite.mjs && node scripts/verify-runtime.mjs"
   },
   "dependencies": {
     "wrangler": "^4.127.1"
