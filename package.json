@@ -1,12 +1,16 @@
 {
   "name": "aziel-runtime",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
-  "description": "Aziel Eliab Runtime — pull + invoke + cite for every Aziel Eliab product",
+  "description": "Aziel Eliab Runtime 1.2.0 — catalog + pull + proxy plus one session object (open → policy → exec → receipt → close). Author: Aziel Eliab.",
   "license": "Apache-2.0",
   "type": "module",
+  "bin": {
+    "aziel-runtime": "./cli/aziel-runtime.mjs"
+  },
   "scripts": {
-    "test": "node scripts/verify-cite.mjs && node scripts/verify-runtime.mjs"
+    "test": "node scripts/verify-cite.mjs && node scripts/verify-runtime.mjs && node scripts/verify-session.mjs",
+    "demo:session": "bash scripts/demo-session.sh"
   },
   "dependencies": {
     "wrangler": "^4.127.1"
