@@ -23,7 +23,12 @@ const PROTOCOL = "2025-03-26";
 const CATALOG_TITLE = "Aziel Eliab product runtime catalog";
 const CATALOG_DESCRIPTION =
   "One URL for every Aziel Eliab product runtime. OpenAPI, MCP tools, counted downloads, install.sh, skill markdown, GitHub, and DOI citations. Apache-2.0. Author: Aziel Eliab.";
-const LASTMOD = "2026-09-02";
+const LASTMOD = "2026-09-04";
+
+/** Product package versions published in the catalog. Only set entries that are known. */
+const VERSIONS = {
+  forgereceipts: "0.3.0",
+};
 
 const PRODUCTS_RAW = [
   {
@@ -94,7 +99,7 @@ const PRODUCTS_RAW = [
     github: "https://github.com/AzielEliab/forgereceipts",
     ops: [{ op: "receipt", method: "POST", summary: "Local receipt / checklist helper. No court connection." }],
     example: { summary: "filed locally", evidence: "sha256:…" },
-    banner: "ForgeReceipts is not legal advice. It does not contact courts, Odyssey, email, or any cloud filing service.",
+    banner: "ForgeReceipts 0.3.0: Local receipt / checklist helper with jurisdiction-aware state picker (all 50 states + federal baseline) customizing UI/legal framing. Not legal advice. Does not contact courts. Author Aziel Eliab.",
   },
   {
     slug: "decisiongate",
@@ -334,7 +339,7 @@ const ONE_LINE = {
   godlock: "Offline ABAD / hardening score. Not a VPN and not an anonymity network.",
   shadowlock: "Zero-retention observation of a job list you already have. No OS hook.",
   temporallock: "Hash-chained receipts anyone can verify. Explicit genesis, append, verify.",
-  forgereceipts: "Local receipt / checklist helper. Not legal advice. Does not contact courts.",
+  forgereceipts: "ForgeReceipts 0.3.0: Local receipt / checklist helper with jurisdiction-aware state picker (all 50 states + federal baseline) customizing UI/legal framing. Not legal advice. Does not contact courts. Author Aziel Eliab.",
   decisiongate: "Five sequential gates on a proposal. Freedom without clarity is chaos.",
   zsolver: "Nine ontology nodes (Zioncheck seed). Hard 75% cap. Does not solve cases.",
   azos: "Read-only status / principles. Does not grant remote shell.",
@@ -397,6 +402,7 @@ function ensureCatalogOps(p) {
 
 export const PRODUCTS = PRODUCTS_RAW.map((p) => ({
   ...p,
+  version: VERSIONS[p.slug] || p.version || null,
   oneLine: ONE_LINE[p.slug] || p.name,
   doi: DOI_BY_SLUG[p.slug] || null,
   banner: p.banner || ONE_LINE[p.slug] || p.name,
@@ -512,6 +518,7 @@ function catalogRecord(product, origin) {
   return {
     slug: product.slug,
     name: product.name,
+    ...(product.version ? { version: product.version } : {}),
     one_line: product.oneLine,
     github: urls.github,
     worker: urls.worker,
