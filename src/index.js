@@ -6,7 +6,7 @@
  * GET  /sitemap.xml      catalog, OpenAPI, product cards/health, GitHub
  * GET  /llms.txt         plain-text catalog for LLM crawlers
  * GET  /ai.txt           same as /llms.txt
- * GET  /cite.json        How-to-cite: Aziel Eliab, Apache-2.0, GitHub + DOI
+ * GET  /cite.json        How-to-cite: Aziel Eliab, Apache-2.0, GitHub + DOI + related_identifiers
  * GET  /v1/catalog.json  machine-readable full product list
  * GET  /openapi.json     combined OpenAPI 3.1 (paths /p/{product}/{op})
  * GET  /p/{product}      indexable product card
@@ -18,17 +18,20 @@
  * No download-KV increment on catalog routes. CORS *. Apache-2.0. Forks welcome.
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
+import {
+  VERSIONS,
+  DOI_BY_SLUG,
+  citationFields,
+  productHowToCite,
+  citeZenodoBlock,
+} from "./catalog-meta.js";
+
 const CATALOG_HOST = "https://aziel-runtime.vibelock.workers.dev";
 const PROTOCOL = "2025-03-26";
 const CATALOG_TITLE = "Aziel Eliab product runtime catalog";
 const CATALOG_DESCRIPTION =
   "One URL for every Aziel Eliab product runtime. OpenAPI, MCP tools, counted downloads, install.sh, skill markdown, GitHub, and DOI citations. Apache-2.0. Author: Aziel Eliab.";
 const LASTMOD = "2026-09-04";
-
-/** Product package versions published in the catalog. Only set entries that are known. */
-const VERSIONS = {
-  forgereceipts: "0.3.0",
-};
 
 const PRODUCTS_RAW = [
   {
@@ -316,6 +319,19 @@ const PRODUCTS_RAW = [
     banner: "TrajectoryLock is a research prototype / auditable geometric test. Not a certified forensic instrument. Hosted never stores media. Match probability is P(match | declared model), not P(official account is true). Synthetic example results must never be represented as real-case findings.",
   },
   {
+    slug: "azieltether",
+    name: "AzielTether",
+    worker: "azieltether-download-tracker",
+    github: "https://github.com/AzielEliab/azieltether",
+    ops: [
+      { op: "health", method: "GET", summary: "Liveness when the counted Worker is live. Does not increment download KV." },
+      { op: "skill", method: "GET", summary: "Return AzielTether skill markdown when hosted. Does not increment download KV." },
+    ],
+    example: {},
+    banner:
+      "AzielTether 0.1.0: central × decentral survival mesh for downloaded Aziel Eliab software. Prefer central Worker when up; peer hash-chain sync when down; reconcile on restore. Public HTTPS boards stay mesh-free. Not a VPN. Counted Worker live. Author Aziel Eliab.",
+  },
+  {
     slug: "aziel-corpus",
     name: "Aziel Digital Library",
     worker: "aziel-corpus-download-tracker",
@@ -357,26 +373,8 @@ const ONE_LINE = {
   foldlock: "Algorithmic tether-word suppression on UTF-8 text. Not zip.",
   whistlelock: "Local drop ledger + dead-man copy. Not a mailer.",
   trajectorylock: "Auditable geometric test. Research prototype, not a certified forensic instrument.",
+  azieltether: "AzielTether 0.1.0: central × decentral survival mesh for downloaded Aziel software. Prefer-central; peer sync when down; public HTTPS stays mesh-free. Not a VPN. Author Aziel Eliab.",
   "aziel-corpus": "Self-contained immutable digital library. Public MASTER. Not a 26-card index.",
-};
-
-/** Known Zenodo DOIs only. Do not invent. Cite even if the record currently 410s. */
-const DOI_BY_SLUG = {
-  vibelock: "10.5281/zenodo.21431610",
-  veillock: "10.5281/zenodo.21431659",
-  codelock: "10.5281/zenodo.21431561",
-  shadowlock: "10.5281/zenodo.21435707",
-  temporallock: "10.5281/zenodo.21431405",
-  forgereceipts: "10.5281/zenodo.21436074",
-  decisiongate: "10.5281/zenodo.21435730",
-  zsolver: "10.5281/zenodo.21436155",
-  azos: "10.5281/zenodo.21431711",
-  postking: "10.5281/zenodo.21897338",
-  ark: "10.5281/zenodo.21435810",
-  employeelock: "10.5281/zenodo.22257493",
-  foldlock: "10.5281/zenodo.22257762",
-  whistlelock: "10.5281/zenodo.22257762",
-  trajectorylock: "10.5281/zenodo.22258015",
 };
 
 function ensureCatalogOps(p) {
@@ -500,6 +498,7 @@ function productUrls(product, origin) {
     worker: product.worker,
     worker_home: host + "/",
     download: host + "/download",
+    count: host + "/count",
     install: host + "/install.sh",
     skill: host + "/v1/skill",
     openapi: host + "/openapi.json",
@@ -515,6 +514,7 @@ function productUrls(product, origin) {
 
 function catalogRecord(product, origin) {
   const urls = productUrls(product, origin);
+  const cite = citationFields(product, urls);
   return {
     slug: product.slug,
     name: product.name,
@@ -523,11 +523,18 @@ function catalogRecord(product, origin) {
     github: urls.github,
     worker: urls.worker,
     download: urls.download,
+    count: urls.count,
     install: urls.install,
     skill: urls.skill,
     openapi: urls.openapi,
-    doi: urls.doi,
-    doi_url: urls.doi_url,
+    doi: cite.doi,
+    doi_url: cite.doi_url,
+    doi_kind: cite.doi_kind,
+    ...(cite.doi_note ? { doi_note: cite.doi_note } : {}),
+    zenodo_status: cite.zenodo_status,
+    software_deposit_needed: cite.software_deposit_needed,
+    related_identifiers: cite.related_identifiers,
+    software_tarball: cite.software_tarball,
     banner: product.banner,
     ops: product.ops,
     catalog_card: urls.catalog_card,
@@ -629,12 +636,19 @@ function llmsTxt(origin) {
     lines.push(`GitHub: ${u.github}`);
     lines.push(`Worker: ${u.worker_home}`);
     lines.push(`Download (counted, gzip 200): ${u.download}`);
+    if (p.version) lines.push(`Version: ${p.version}`);
     lines.push(`Install: curl -fsSL ${u.install} | bash`);
     lines.push(`Skill: ${u.skill}`);
     lines.push(`Catalog health: ${u.catalog_health}`);
     lines.push(`Catalog skill: GET ${base}/p/${p.slug}/skill`);
     lines.push(`Ops: ${p.ops.map((o) => `${o.method} /p/${p.slug}/${o.op}`).join(", ")}`);
-    if (u.doi_url) lines.push(`DOI: ${u.doi}  ${u.doi_url}`);
+    const cite = citationFields(p, u);
+    if (u.doi_url) lines.push(`DOI: ${u.doi}  ${u.doi_url}  (${cite.zenodo_status})`);
+    else lines.push("DOI: none — Zenodo software deposit needed (do not invent a DOI)");
+    lines.push(`Related: GitHub ${u.github} · counted tarball ${u.download}`);
+    if (cite.software_tarball && cite.software_tarball.filename) {
+      lines.push(`Software package: ${cite.software_tarball.filename}`);
+    }
     lines.push("");
   }
   lines.push("## How to cite");
@@ -663,13 +677,28 @@ function citeJson(origin) {
   license = {Apache-2.0}
 }`,
     apa: `Eliab, A. (2026). Aziel Eliab product runtime catalog [Computer software]. ${base}/`,
-    products: PRODUCTS.map((p) => ({
-      name: p.name,
-      slug: p.slug,
-      github: p.github,
-      doi: p.doi || null,
-      doi_url: p.doi ? `https://doi.org/${p.doi}` : null,
-    })),
+    zenodo: citeZenodoBlock(),
+    products: PRODUCTS.map((p) => {
+      const u = productUrls(p, origin);
+      const cite = citationFields(p, u);
+      return {
+        name: p.name,
+        slug: p.slug,
+        github: p.github,
+        download: u.download,
+        version: cite.version,
+        doi: cite.doi,
+        doi_url: cite.doi_url,
+        doi_kind: cite.doi_kind,
+        ...(cite.doi_note ? { doi_note: cite.doi_note } : {}),
+        zenodo_status: cite.zenodo_status,
+        software_deposit_needed: cite.software_deposit_needed,
+        related_identifiers: cite.related_identifiers,
+        software_tarball: cite.software_tarball,
+        zenodo_deposit: cite.zenodo_deposit,
+        how_to_cite: productHowToCite(p),
+      };
+    }),
   };
 }
 
@@ -703,9 +732,11 @@ function jsonLd(origin) {
         description: p.oneLine,
         url: u.catalog_card,
         codeRepository: p.github,
+        downloadUrl: u.download,
         author: { "@type": "Person", name: "Aziel Eliab" },
         license: "https://www.apache.org/licenses/LICENSE-2.0",
       };
+      if (p.version) item.softwareVersion = p.version;
       if (u.doi_url) item.identifier = u.doi_url;
       return {
         "@type": "ListItem",
@@ -772,11 +803,16 @@ function productCardHtml(p, origin, stats) {
     stats && typeof stats.downloads === "number"
       ? ` <span class="count">(${stats.downloads} counted)</span>`
       : "";
+  const cite = citationFields(p, u);
   const doi = u.doi_url
-    ? ` · <a href="${u.doi_url}">DOI ${escapeHtml(u.doi)}</a>`
+    ? ` · <a href="${u.doi_url}">DOI ${escapeHtml(u.doi)}</a> <span class="slug">(${escapeHtml(cite.zenodo_status)})</span>`
+    : ` · <span class="slug">Zenodo deposit needed</span>`;
+  const ver = p.version ? ` <span class="slug">v${escapeHtml(p.version)}</span>` : "";
+  const tarball = cite.software_tarball
+    ? ` · package <code>${escapeHtml(cite.software_tarball.filename)}</code>`
     : "";
   return `<article class="card" id="${escapeHtml(p.slug)}">
-  <h2><a href="${origin}/p/${p.slug}">${escapeHtml(p.name)}</a> <span class="slug">${escapeHtml(p.slug)}</span></h2>
+  <h2><a href="${origin}/p/${p.slug}">${escapeHtml(p.name)}</a> <span class="slug">${escapeHtml(p.slug)}</span>${ver}</h2>
   <p class="oneline">${escapeHtml(p.oneLine)}</p>
   ${banner}
   <p class="meta">
@@ -784,7 +820,7 @@ function productCardHtml(p, origin, stats) {
     <a href="${u.download}">counted /download</a>${count}
     <a href="${u.install}">install.sh</a>
     <a href="${u.skill}">/v1/skill</a>
-    <a href="${origin}/p/${p.slug}/health">catalog proxy health</a>${doi}
+    <a href="${origin}/p/${p.slug}/health">catalog proxy health</a>${doi}${tarball}
   </p>
   <p>Worker: <a href="${u.worker_home}">${p.worker}.vibelock.workers.dev</a>
      · <a href="${u.openapi}">product OpenAPI</a></p>
@@ -799,8 +835,13 @@ function catalogHtml(origin, statsMap) {
   const cards = PRODUCTS.map((p) => productCardHtml(p, origin, statsMap && statsMap[p.slug])).join("\n");
   const ld = JSON.stringify(jsonLd(origin));
   const citeProducts = PRODUCTS.map((p) => {
-    const doi = p.doi ? ` — DOI <a href="https://doi.org/${p.doi}">${p.doi}</a>` : "";
-    return `<li><a href="${p.github}">${escapeHtml(p.name)}</a>${doi}</li>`;
+    const u = productUrls(p, origin);
+    const cite = citationFields(p, u);
+    const doi = p.doi
+      ? ` — DOI <a href="https://doi.org/${p.doi}">${p.doi}</a> (${escapeHtml(cite.zenodo_status)})`
+      : " — Zenodo software deposit needed (no DOI invented)";
+    const ver = p.version ? ` ${escapeHtml(p.version)}` : "";
+    return `<li><a href="${p.github}">${escapeHtml(p.name)}</a>${ver}${doi} · <a href="${u.download}">counted tarball</a></li>`;
   }).join("");
   return `<!doctype html>
 <html lang="en">
@@ -829,12 +870,14 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
       <li>WhistleLock is a local vault + dead-man copy. It is <em>not</em> a mailer. Hosted never holds whistle files.</li>
       <li>TrajectoryLock is a research prototype / auditable geometric test. <em>Not</em> a certified forensic instrument. Hosted never stores media. Synthetic examples are not real-case findings.</li>
       <li>Aziel Corpus Library is a public library index + counted PDF/package download. It is <em>not</em> a search engine of private files, not Zenodo, and not a new Lock engine.</li>
+      <li>AzielTether is <em>not</em> a VPN. Prefer-central mesh for downloaded Aziel Eliab software; public HTTPS stays mesh-free.</li>
     </ul>
   </div>
   <section class="cite" id="cite">
     <h2>How to cite</h2>
     <p>Author: <strong>Aziel Eliab</strong> · Catalog: <a href="${origin}/">${origin}/</a> · License: Apache-2.0 · Machine-readable: <a href="${origin}/cite.json">/cite.json</a></p>
     <p>Eliab, Aziel. (2026). Aziel Eliab product runtime catalog [Software]. Apache-2.0. ${origin}/</p>
+    <p class="lead">Known DOIs are historical. Zenodo currently returns HTTP 410 (user blocked) for every wired record. FoldLock and WhistleLock share method-paper DOI 10.5281/zenodo.22257762 on purpose — WhistleLock still needs its own software deposit. No DOIs are invented here.</p>
     <ul>${citeProducts}</ul>
   </section>
   <p class="links">
@@ -939,7 +982,7 @@ function staticPaths(origin) {
     "/v1/catalog.json": {
       get: {
         operationId: "catalog_list",
-        summary: "Machine-readable full product list (slug, github, worker, download, install, skill, openapi, doi, banner, ops).",
+        summary: "Machine-readable full product list (slug, version, github, worker, download, related_identifiers, software_tarball, doi, zenodo_status, banner, ops).",
         tags: ["catalog"],
         responses: { "200": { description: "Product catalog JSON" } },
       },
