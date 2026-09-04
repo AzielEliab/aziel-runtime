@@ -120,3 +120,12 @@ service = "azieltether-download-tracker"
 [[services]]
 binding = "AZIEL_CORPUS"
 service = "aziel-corpus-download-tracker"
+
+# One Durable Object per session (open → policy → exec → receipt → close).
+[[durable_objects.bindings]]
+name = "SESSION"
+class_name = "RuntimeSession"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["RuntimeSession"]
