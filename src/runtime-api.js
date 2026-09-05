@@ -246,20 +246,24 @@ Library front door: https://www.azielcorpuslibrary.net/runtime
 Library engine manifest (same as this Worker): https://www.azielcorpuslibrary.net/runtime/v1/runtime.json  
 **Not** the engine manifest: https://www.azielcorpuslibrary.net/v1/runtime is Digital Library package discovery (aziel-corpus), not aziel-runtime.
 
+## Operator token (session mutate)
+
+When \`REQUIRE_TOKEN=1\`, Grok/ChatGPT/Venice Actions that **exec** must send \`Authorization: Bearer $RUNTIME_TOKEN\` (Wrangler secret — one operator token, not per-user). Catalog, skill, OpenAPI, health, pull, MCP \`tools/list\`, and proxy \`/p/{slug}/{op}\` stay public. Proxy is not exec.
+
 ## Example (Mozilla/5.0)
 
 \`\`\`bash
 curl -s -A 'Mozilla/5.0' ${base}/v1/skill
 curl -s -A 'Mozilla/5.0' ${base}/v1/runtime.json
-SID=$(curl -s -A 'Mozilla/5.0' -X POST ${base}/v1/session/open -H 'content-type: application/json' -d '{}' | jq -r .session.id)
+SID=$(curl -s -A 'Mozilla/5.0' -X POST ${base}/v1/session/open -H 'content-type: application/json' -H "Authorization: Bearer $RUNTIME_TOKEN" -d '{}' | jq -r .session.id)
 curl -s -A 'Mozilla/5.0' -X POST ${base}/v1/session/$SID/policy \\
-  -H 'content-type: application/json' \\
+  -H 'content-type: application/json' -H "Authorization: Bearer $RUNTIME_TOKEN" \\
   -d '{"allow_slugs":["azclce"],"max_payload_bytes":8192}'
 curl -s -A 'Mozilla/5.0' -X POST ${base}/v1/session/$SID/exec \\
-  -H 'content-type: application/json' \\
+  -H 'content-type: application/json' -H "Authorization: Bearer $RUNTIME_TOKEN" \\
   -d '{"slug":"azclce","op":"score","payload":{"r":"login button blue","d":"login form submits","p":"login button submits"}}'
 curl -s -A 'Mozilla/5.0' ${base}/v1/session/$SID/receipt
-curl -s -A 'Mozilla/5.0' -X POST ${base}/v1/session/$SID/close
+curl -s -A 'Mozilla/5.0' -X POST ${base}/v1/session/$SID/close -H "Authorization: Bearer $RUNTIME_TOKEN"
 \`\`\`
 
 Proxy (not exec — no runtime-owned receipt):
@@ -274,7 +278,7 @@ curl -s -A 'Mozilla/5.0' -X POST ${base}/p/azclce/score \\
 
 Every catalog Software slug is a true engine (\`true_engine_runtime: true\`). \`engine_slugs\` equals \`true_engine_slugs\`: ${local}. Some ops remain per-op \`proxy_fallback\` when they need product-Worker bindings (AZ-OS session/exec/lattice; Aziel Digital Library live D1 / Whisper / OCR). Cloudflare isolate is the jail; \`engine_digest\` is still required for local exec.
 
-**1.4.1 production gates (unchanged in 1.5.0):** \`GET /v1/ready\` is 200 only if the SESSION Durable Object binding is up; **503** if \`REQUIRE_TOKEN=1\` and the \`RUNTIME_TOKEN\` secret is missing. Authority JSON (\`/v1/health\`, \`/v1/ready\`, \`/v1/runtime.json\`, \`/v1/catalog.json\`) is \`Cache-Control: no-store\`. Session mutate (open/policy/exec/close) may require \`Authorization: Bearer …\` or \`X-Aziel-Runtime-Token\` when the secret is set. Catalog / health / runtime / skill / pull stay public. Receipt cap 64. Session TTL 6h. Per-IP: 20 opens / minute, 60 execs / minute (429 JSON).
+**1.4.1 production gates (unchanged in 1.5.0):** \`GET /v1/ready\` is 200 only if the SESSION Durable Object binding is up; **503** if \`REQUIRE_TOKEN=1\` and the \`RUNTIME_TOKEN\` secret is missing (fail closed). Authority JSON is \`Cache-Control: no-store\`. When \`REQUIRE_TOKEN=1\`, session mutate (open/policy/exec/close) and MCP session tools / \`runtime_run\` require \`Authorization: Bearer …\` or \`X-Aziel-Runtime-Token\` (one operator token). Catalog / health / runtime / skill / pull / OpenAPI / MCP \`tools/list\` stay public. Proxy \`/p/{slug}/{op}\` stays public and is **not** exec. Receipt cap 64. Session TTL 6h. Per-IP rate limits apply.
 
 GodLock and MirageGrid are not VPNs. ForgeReceipts is not legal advice. ZionPattern Solver caps confidence at 75% and does not solve cases. VeilLock does not inject into FaceTime. AZ-CLCE detects inconsistency, not intent. ChronoLock is advisory only. The ARK is not a kernel. AZAI hosted /v1 is a protocol mirror + Lamb check, not a paid-key proxy and **not** the local blend. Jeeves is not sovereign. SpectralLock hosted overlay is a 256px preview. EmployeeLock is not a court. FoldLock is not zip. WhistleLock is not a mailer. TrajectoryLock is not a certified forensic instrument. M.I.A.Lock Doe hits are leads, not IDs. Aziel Digital Library is not a 26-card index. AzielTether is not a VPN.
 
@@ -562,6 +566,7 @@ export function runtimeStaticPaths() {
     "/v1/session/open": {
       post: {
         operationId: "runtime_session_open",
+        security: [{ RuntimeToken: [] }],
         summary: "Open a session (id, policy defaults, empty hash-chained receipt list).",
         tags: ["session"],
         requestBody: {
@@ -574,6 +579,7 @@ export function runtimeStaticPaths() {
     "/v1/session/{id}/policy": {
       post: {
         operationId: "runtime_session_policy",
+        security: [{ RuntimeToken: [] }],
         summary: "Attach allow rules (slugs, ops, payload cap). Identity remains Aziel Eliab.",
         tags: ["session"],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
@@ -587,6 +593,7 @@ export function runtimeStaticPaths() {
     "/v1/session/{id}/exec": {
       post: {
         operationId: "runtime_session_exec",
+        security: [{ RuntimeToken: [] }],
         summary: "Runtime-owned exec: local engine when vendored (engine_digest + ran_in), else explicit proxy_fallback. Not the same as proxy /p/{slug}/{op}.",
         tags: ["session"],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
@@ -634,6 +641,7 @@ export function runtimeStaticPaths() {
     "/v1/session/{id}/close": {
       post: {
         operationId: "runtime_session_close",
+        security: [{ RuntimeToken: [] }],
         summary: "Seal the session. Further exec is rejected.",
         tags: ["session"],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],

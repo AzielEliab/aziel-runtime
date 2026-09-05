@@ -86,7 +86,8 @@ assert.equal(devGate.mutate_requires_token, false);
 assert.equal(devGate.ready_blocked, false);
 assert.equal(tokenGateState({ REQUIRE_TOKEN: "1" }).ready_blocked, true);
 assert.equal(tokenGateState({ REQUIRE_TOKEN: "1", RUNTIME_TOKEN: "x" }).ready_blocked, false);
-assert.equal(tokenGateState({ RUNTIME_TOKEN: "x" }).mutate_requires_token, true);
+assert.equal(tokenGateState({ RUNTIME_TOKEN: "x" }).mutate_requires_token, false);
+assert.equal(tokenGateState({ REQUIRE_TOKEN: "1", RUNTIME_TOKEN: "x" }).mutate_requires_token, true);
 
 const noBind = evaluateReady({});
 assert.equal(noBind.status, 503);
@@ -97,18 +98,18 @@ assert.equal(missingSecret.code, "token_not_configured");
 const readyOk = evaluateReady({ SESSION: { idFromName() {} } });
 assert.equal(readyOk.status, 200);
 
-const denied = sessionMutateAuth(new Request(origin + "/v1/session/open", { method: "POST" }), { RUNTIME_TOKEN: "s3cret" });
+const denied = sessionMutateAuth(new Request(origin + "/v1/session/open", { method: "POST" }), { REQUIRE_TOKEN: "1", RUNTIME_TOKEN: "s3cret" });
 assert.equal(denied.status, 401);
 assert.equal(denied.body.code, "token_required");
 const mismatch = sessionMutateAuth(
   new Request(origin + "/v1/session/open", { method: "POST", headers: { Authorization: "Bearer nope" } }),
-  { RUNTIME_TOKEN: "s3cret" },
+  { REQUIRE_TOKEN: "1", RUNTIME_TOKEN: "s3cret" },
 );
 assert.equal(mismatch.status, 401);
 assert.equal(mismatch.body.code, "token_mismatch");
 const allowed = sessionMutateAuth(
   new Request(origin + "/v1/session/open", { method: "POST", headers: { "X-Aziel-Runtime-Token": "s3cret" } }),
-  { RUNTIME_TOKEN: "s3cret" },
+  { REQUIRE_TOKEN: "1", RUNTIME_TOKEN: "s3cret" },
 );
 assert.equal(allowed.ok, true);
 
@@ -154,23 +155,26 @@ const readyTokOk = await jsonReq(envRequireSet, "/v1/ready", "GET");
 assert.equal(readyTokOk.status, 200);
 assert.equal(readyTokOk.data.token_configured, true);
 
-// public surfaces stay open
+// public surfaces stay open (secret alone does NOT lock session mutate)
 const publicEnv = baseEnv({ RUNTIME_TOKEN: "prod-token" });
 for (const path of ["/v1/health", "/v1/runtime.json", "/v1/catalog.json", "/v1/skill", "/v1/bundle"]) {
   const res = await req(publicEnv, path);
   assert.equal(res.status, 200, path);
 }
+const openWhileFlagOff = await jsonReq(publicEnv, "/v1/session/open", "POST", {});
+assert.equal(openWhileFlagOff.status, 200, "REQUIRE_TOKEN=0 keeps session open even with secret set");
 
-// --- token on mutate only ---
-const noTok = await jsonReq(publicEnv, "/v1/session/open", "POST", {});
+// --- token on mutate only when REQUIRE_TOKEN=1 ---
+const gatedEnv = baseEnv({ REQUIRE_TOKEN: "1", RUNTIME_TOKEN: "prod-token" });
+const noTok = await jsonReq(gatedEnv, "/v1/session/open", "POST", {});
 assert.equal(noTok.status, 401);
 assert.equal(noTok.data.code, "token_required");
 
-const badTok = await jsonReq(publicEnv, "/v1/session/open", "POST", {}, { Authorization: "Bearer wrong" });
+const badTok = await jsonReq(gatedEnv, "/v1/session/open", "POST", {}, { Authorization: "Bearer wrong" });
 assert.equal(badTok.status, 401);
 assert.equal(badTok.data.code, "token_mismatch");
 
-const opened = await jsonReq(publicEnv, "/v1/session/open", "POST", {}, { Authorization: "Bearer prod-token" });
+const opened = await jsonReq(gatedEnv, "/v1/session/open", "POST", {}, { Authorization: "Bearer prod-token" });
 assert.equal(opened.status, 200);
 assert.equal(opened.data.ok, true);
 const sid = opened.data.session.id;
@@ -178,7 +182,7 @@ assert.equal(opened.data.session.receipt_cap, RECEIPT_CAP);
 assert.ok(opened.data.session.expires_at);
 
 const namedTok = await jsonReq(
-  publicEnv,
+  gatedEnv,
   `/v1/session/${sid}/policy`,
   "POST",
   { allow_slugs: ["azclce"] },
@@ -187,7 +191,7 @@ const namedTok = await jsonReq(
 assert.equal(namedTok.status, 200);
 
 const execDenied = await jsonReq(
-  publicEnv,
+  gatedEnv,
   `/v1/session/${sid}/exec`,
   "POST",
   { slug: "azclce", op: "score", payload: { r: "a", d: "b", p: "c" } },
@@ -195,7 +199,7 @@ const execDenied = await jsonReq(
 assert.equal(execDenied.status, 401);
 
 const execOk = await jsonReq(
-  publicEnv,
+  gatedEnv,
   `/v1/session/${sid}/exec`,
   "POST",
   { slug: "azclce", op: "score", payload: { r: "login button blue", d: "login form submits", p: "login button submits" } },
@@ -207,9 +211,9 @@ assert.equal(execOk.data.exec.true_engine_runtime, true);
 assert.match(execOk.data.exec.engine_digest, /^[a-f0-9]{64}$/);
 assert.equal(execOk.data.exec.ran_in, "aziel-runtime");
 
-const closeNoTok = await jsonReq(publicEnv, `/v1/session/${sid}/close`, "POST", {});
+const closeNoTok = await jsonReq(gatedEnv, `/v1/session/${sid}/close`, "POST", {});
 assert.equal(closeNoTok.status, 401);
-const closed = await jsonReq(publicEnv, `/v1/session/${sid}/close`, "POST", {}, { Authorization: "Bearer prod-token" });
+const closed = await jsonReq(gatedEnv, `/v1/session/${sid}/close`, "POST", {}, { Authorization: "Bearer prod-token" });
 assert.equal(closed.status, 200);
 
 // REQUIRE_TOKEN=1 without secret blocks mutate

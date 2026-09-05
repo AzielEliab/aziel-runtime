@@ -1354,6 +1354,18 @@ async function combinedOpenApi(request, env) {
     },
     servers: [{ url: origin }],
     tags: PRODUCTS.map((p) => ({ name: p.slug, description: p.name })),
+    components: {
+      securitySchemes: {
+        RuntimeToken: {
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "RUNTIME_TOKEN",
+          description:
+            "Operator bearer for session mutate (open/policy/exec/close) and MCP session tools when REQUIRE_TOKEN=1. " +
+            "Set in Grok/ChatGPT/Venice Actions as Authorization: Bearer … Catalog, skill, OpenAPI, health, pull, and proxy /p stay public. One operator token — not per-user accounts.",
+        },
+      },
+    },
     paths,
   };
 }
