@@ -216,6 +216,7 @@ const skill = await (await req("/v1/skill")).text();
 assert.match(skill, /1\.1\.0 = catalog \+ pull \+ proxy/);
 assert.match(skill, /1\.2\.0 = session-runtime/);
 assert.match(skill, /1\.3\.0/);
+assert.match(skill, /1\.4\.0/);
 assert.match(skill, /open → policy → exec/);
 assert.match(skill, /Proxy without a session receipt is \*\*not\*\* exec/);
 assert.match(skill, /engine_digest/);

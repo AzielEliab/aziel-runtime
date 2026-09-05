@@ -27,7 +27,7 @@ export async function writeDigests(digests) {
   const path = join(enginesDir, "digest.js");
   let src = await readFile(path, "utf8");
   const block = Object.entries(digests)
-    .map(([slug, hex]) => `  ${slug}: "${hex}",`)
+    .map(([slug, hex]) => `  ${JSON.stringify(slug)}: "${hex}",`)
     .join("\n");
   const next = src.replace(
     /export const ENGINE_DIGESTS = \{[\s\S]*?\};/,
