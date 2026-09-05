@@ -270,7 +270,7 @@ export function runtimeManifest(origin, products) {
   const authority = authoritySnapshot(slugs);
   return {
     ...authority,
-    // Explicit aliases so scrapers that only look for these keys still see 1.4.0
+    // Explicit aliases so scrapers that only look for these keys still see current version
     runtime_version: RUNTIME_VERSION,
     manifest: "aziel-runtime.manifest.v1.4",
     author: "Aziel Eliab",
@@ -291,6 +291,7 @@ export function runtimeManifest(origin, products) {
     counted_tarball: false,
     ...honesty,
     local_blends: ["azai serve", "forgereceipts ui", "azos ui"],
+    authoritySnapshot: authority,
     version_history: VERSION_HISTORY,
     endpoints: {
       session_open: base + "/v1/session/open",
