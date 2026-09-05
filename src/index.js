@@ -57,6 +57,7 @@ import {
   fetchProductSkill,
   markdownResponse,
   runtimeStaticPaths,
+  authoritySnapshot,
 } from "./runtime-api.js";
 import { honestyFields } from "./engines/registry.js";
 import { RuntimeSession } from "./session-do.js";
@@ -482,6 +483,16 @@ function linkHeaders(origin, canonicalPath = "/") {
   return {
     "X-Robots-Tag": "index, follow, max-snippet:-1, max-image-preview:large",
     Link: `<${canonical}>; rel="canonical", <${base}/openapi.json>; rel="service-doc", <${base}/sitemap.xml>; rel="describedby"`,
+  };
+}
+
+function noStoreHeaders() {
+  return {
+    "Cache-Control": "no-store, max-age=0, must-revalidate",
+    "CDN-Cache-Control": "no-store",
+    "Cloudflare-CDN-Cache-Control": "no-store",
+    "X-Aziel-Runtime-Version": RUNTIME_VERSION,
+    "X-Aziel-Runtime-Role": RUNTIME_ROLE,
   };
 }
 
@@ -1662,13 +1673,36 @@ export default {
       return json(citeJson(origin), 200, extra("/cite.json"));
     }
 
-    if (url.pathname === "/v1/skill" && request.method === "GET") {
-      return markdownResponse(runtimeSkillMarkdown(origin, PRODUCTS), extra("/v1/skill"));
+    if (url.pathname === "/v1/skill" && (request.method === "GET" || request.method === "HEAD")) {
+      const md = runtimeSkillMarkdown(origin, PRODUCTS);
+      if (request.method === "HEAD") {
+        return new Response(null, {
+          status: 200,
+          headers: {
+            "Content-Type": "text/markdown; charset=utf-8",
+            ...corsHeaders(),
+            ...noStoreHeaders(),
+            ...extra("/v1/skill"),
+          },
+        });
+      }
+      return markdownResponse(md, { ...extra("/v1/skill"), ...noStoreHeaders() });
     }
 
-    if ((url.pathname === "/v1/runtime.json" || url.pathname === "/v1/runtime") && request.method === "GET") {
+    if ((url.pathname === "/v1/runtime.json" || url.pathname === "/v1/runtime") && (request.method === "GET" || request.method === "HEAD")) {
       const canon = "/v1/runtime.json";
-      return json(runtimeManifest(origin, PRODUCTS), 200, extra(canon));
+      if (request.method === "HEAD") {
+        return new Response(null, {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+            ...corsHeaders(),
+            ...noStoreHeaders(),
+            ...extra(canon),
+          },
+        });
+      }
+      return json(runtimeManifest(origin, PRODUCTS), 200, { ...extra(canon), ...noStoreHeaders() });
     }
 
     if (url.pathname === "/v1/bundle" && request.method === "GET") {
@@ -1742,43 +1776,45 @@ export default {
       return json(await combinedOpenApi(request, env), 200, extra("/openapi.json"));
     }
 
-    if (url.pathname === "/v1/health" && request.method === "GET") {
-      return json(
-        {
-          ok: true,
-          product: "aziel-runtime",
-          author: "Aziel Eliab",
-          role: RUNTIME_ROLE,
-          layer: RUNTIME_LAYER,
-          version: RUNTIME_VERSION,
-          title: CATALOG_TITLE,
-          identity: "Aziel Eliab",
-          products: PRODUCTS.map((p) => p.slug),
-          count: PRODUCTS.length,
-          skill: "/v1/skill",
-          runtime: "/v1/runtime.json",
-          session: "/v1/session/open",
-          bundle: "/v1/bundle",
-          pull: "/v1/pull/{slug}",
-          invoke: "/p/{slug}/{op}",
-          invoke_note: "proxy only — not exec",
-          ...honestyFields(PRODUCTS.map((p) => p.slug)),
-          counted_tarball: false,
-          openapi: "/openapi.json",
-          catalog: "/v1/catalog.json",
-          cite: "/cite.json",
-          sitemap: "/sitemap.xml",
-          robots: "/robots.txt",
-          llms: "/llms.txt",
-          ai: "/ai.txt",
-          mcp: "/mcp",
-          sigil: "/sigil.png",
-          library_front_door: "https://www.azielcorpuslibrary.net/runtime",
-          kv_increment: false,
-        },
-        200,
-        extra("/v1/health"),
-      );
+    if ((url.pathname === "/v1/health") && (request.method === "GET" || request.method === "HEAD")) {
+      const snap = authoritySnapshot(PRODUCTS.map((p) => p.slug));
+      const body = {
+        ...snap,
+        products: PRODUCTS.map((p) => p.slug),
+        count: PRODUCTS.length,
+        skill: "/v1/skill",
+        runtime: "/v1/runtime.json",
+        session: "/v1/session/open",
+        bundle: "/v1/bundle",
+        pull: "/v1/pull/{slug}",
+        invoke: "/p/{slug}/{op}",
+        invoke_note: "proxy only — not exec",
+        ...honestyFields(PRODUCTS.map((p) => p.slug)),
+        counted_tarball: false,
+        openapi: "/openapi.json",
+        catalog: "/v1/catalog.json",
+        cite: "/cite.json",
+        sitemap: "/sitemap.xml",
+        robots: "/robots.txt",
+        llms: "/llms.txt",
+        ai: "/ai.txt",
+        mcp: "/mcp",
+        sigil: "/sigil.png",
+        library_front_door: "https://www.azielcorpuslibrary.net/runtime",
+        kv_increment: false,
+      };
+      if (request.method === "HEAD") {
+        return new Response(null, {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+            ...corsHeaders(),
+            ...noStoreHeaders(),
+            ...extra("/v1/health"),
+          },
+        });
+      }
+      return json(body, 200, { ...extra("/v1/health"), ...noStoreHeaders() });
     }
 
     if (url.pathname === "/sigil.png" && request.method === "GET") {

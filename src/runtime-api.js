@@ -11,6 +11,35 @@ import { honestyFields, trueEngineSlugs } from "./engines/registry.js";
 export const RUNTIME_VERSION = "1.4.0";
 export const RUNTIME_ROLE = "engine-runtime";
 export const RUNTIME_LAYER = "catalog+pull+proxy+session+in-process-engines";
+
+/** Single source of truth for health + runtime.json — never diverge. */
+export function authoritySnapshot(productSlugs) {
+  const honesty = honestyFields(productSlugs || []);
+  return {
+    ok: true,
+    product: "aziel-runtime",
+    name: "Aziel Eliab Runtime",
+    title: "Aziel Eliab Runtime",
+    author: "Aziel Eliab",
+    identity: "Aziel Eliab",
+    version: RUNTIME_VERSION,
+    role: RUNTIME_ROLE,
+    layer: RUNTIME_LAYER,
+    true_engine_runtime: honesty.true_engine_runtime,
+    true_engine_slugs: honesty.true_engine_slugs,
+    engine_slugs: honesty.engine_slugs,
+    proxy_fallback_slugs: honesty.proxy_fallback_slugs,
+    proxy_fallback_ops: honesty.proxy_fallback_ops,
+    proxy_is_not_exec: true,
+    isolate_is_the_jail: honesty.isolate_is_the_jail,
+    authority: {
+      health: "GET /v1/health",
+      runtime_json: "GET /v1/runtime.json",
+      note: "version/role/engine_slugs on health and runtime.json are the same snapshot. Historical notes live under version_history only — never read those keys as the current version.",
+    },
+  };
+}
+
 export const SKILL_INLINE_MAX = 24_000;
 export const SKILL_TTL_MS = 10 * 60 * 1000;
 export const DEFAULT_UA = "Mozilla/5.0";
@@ -211,13 +240,12 @@ export function runtimeManifest(origin, products) {
   const base = origin.replace(/\/$/, "");
   const slugs = products.map((p) => p.slug);
   const honesty = honestyFields(slugs);
+  const authority = authoritySnapshot(slugs);
   return {
-    ok: true,
-    role: RUNTIME_ROLE,
-    layer: RUNTIME_LAYER,
-    product: "aziel-runtime",
-    name: "Aziel Eliab Runtime",
-    version: RUNTIME_VERSION,
+    ...authority,
+    // Explicit aliases so scrapers that only look for these keys still see 1.4.0
+    runtime_version: RUNTIME_VERSION,
+    manifest: "aziel-runtime.manifest.v1.4",
     author: "Aziel Eliab",
     identity: "Aziel Eliab",
     license: "Apache-2.0",
@@ -236,12 +264,13 @@ export function runtimeManifest(origin, products) {
     counted_tarball: false,
     ...honesty,
     local_blends: ["azai serve", "forgereceipts ui", "azos ui"],
-    honest: {
-      "1.1.0": "catalog + pull + proxy that called itself a runtime",
-      "1.2.0": "session-runtime: open → policy → exec → receipt → close; exec still proxied",
-      "1.3.0": "true engine runtime for listed slugs (in-process) + session + pull/proxy front doors",
-      "1.4.0": "every catalog Software slug is a true in-process engine; binding-only ops stay per-op proxy_fallback",
-    },
+    // Historical only — NOT current version. Agents must use top-level `version`.
+    version_history: [
+      { version: "1.4.0", status: "current", note: "every catalog Software slug is a true in-process engine; binding-only ops stay per-op proxy_fallback" },
+      { version: "1.3.0", status: "superseded", note: "true engine runtime for listed portable slugs only" },
+      { version: "1.2.0", status: "superseded", note: "session-runtime: open → policy → exec → receipt → close; exec still proxied" },
+      { version: "1.1.0", status: "superseded", note: "catalog + pull + proxy that called itself a runtime" },
+    ],
     endpoints: {
       session_open: base + "/v1/session/open",
       session_policy: base + "/v1/session/{id}/policy",
