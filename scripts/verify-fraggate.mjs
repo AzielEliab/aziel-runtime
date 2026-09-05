@@ -39,10 +39,13 @@ async function mcp(method, params = {}, id = 1) {
 
 const registry = buildRegistry(PRODUCTS);
 assert.equal(registry.live_count, Object.keys(LIVE_OPS).length);
-assert.ok(registry.local_only_count > 10);
+assert.ok(registry.live_count > 5, `live_count ${registry.live_count} should be much higher than the old 5-only cut`);
+assert.equal(registry.bySlug.veillock.status, "local_only");
+assert.equal(registry.local_only_count, 1);
+assert.ok(!LIVE_OPS.veillock);
 assert.equal(registry.stub_count, registry.entries.filter((e) => e.status === "stub").length);
 assert.equal(registry.stub_op_count, Object.values(STUB_OPS).reduce((n, ops) => n + ops.length, 0));
-assert.ok(registry.stub_op_count >= 4);
+assert.ok(registry.stub_op_count >= 12);
 assert.equal(registry.stub_ops.length, registry.stub_op_count);
 assert.equal(registry.live_count + registry.local_only_count + registry.stub_count, registry.entries.length);
 assert.equal(registry.bySlug.foldlock.status, "live");
@@ -50,14 +53,42 @@ assert.equal(registry.bySlug.godlock.status, "live");
 assert.equal(registry.bySlug.decisiongate.status, "live");
 assert.equal(registry.bySlug["aziel-corpus"].status, "live");
 assert.equal(registry.bySlug.azclce.status, "live");
-assert.equal(registry.bySlug.ark.status, "local_only");
-assert.equal(registry.bySlug.whistlelock.status, "local_only");
-assert.equal(registry.bySlug.miragegrid.status, "local_only");
+assert.equal(registry.bySlug.ark.status, "live");
+assert.equal(registry.bySlug.whistlelock.status, "live");
+assert.equal(registry.bySlug.miragegrid.status, "live");
+assert.equal(registry.bySlug.vibelock.status, "live");
+assert.ok(registry.bySlug.ark.ops.includes("sweep"));
+assert.ok(registry.bySlug.ark.ops.includes("levels"));
+assert.ok(!registry.bySlug.ark.ops.includes("scorch"));
+assert.ok(registry.bySlug.whistlelock.ops.includes("hash-preview"));
+assert.ok(!registry.bySlug.whistlelock.ops.includes("send"));
+assert.ok(registry.bySlug.miragegrid.ops.includes("assign"));
+assert.ok(!registry.bySlug.miragegrid.ops.includes("tunnel"));
+assert.ok(registry.bySlug.azieltether.ops.includes("verify"));
+assert.ok(!registry.bySlug.azieltether.ops.includes("mesh-join"));
+assert.ok(registry.bySlug.employeelock.ops.includes("append-preview"));
+assert.ok(registry.bySlug.mialock.ops.includes("doe-match"));
 assert.ok(registry.bySlug.ark.stub_ops.includes("scorch"));
 assert.equal(classifyCall(registry.bySlug.ark, "scorch").kind, "stub");
 assert.equal(classifyCall(null, "x").kind, "halluc");
 assert.equal(parseTarget({ name: "godlock_submit" }, registry).slug, "godlock");
 assert.equal(parseTarget({ name: "godlock_submit" }, registry).op, "submit");
+
+for (const [slug, ops] of Object.entries(LIVE_OPS)) {
+  const product = PRODUCTS.find((p) => p.slug === slug);
+  assert.ok(product, `LIVE_OPS slug ${slug} must be a catalog product`);
+  const catalogOps = new Set((product.ops || []).map((o) => o.op));
+  for (const op of ops) {
+    if (slug === "decisiongate" && op === "evaluate") continue;
+    assert.ok(catalogOps.has(op), `${slug}/${op} is not a catalog op`);
+  }
+}
+for (const [slug, ops] of Object.entries(STUB_OPS)) {
+  const live = new Set(LIVE_OPS[slug] || []);
+  for (const op of ops) {
+    assert.ok(!live.has(op), `STUB_OPS ${slug}/${op} must not also be live`);
+  }
+}
 
 const door = await (await get("/v1/fraggate")).json();
 assert.equal(door.ok, true);
@@ -78,7 +109,9 @@ assert.equal(listed.stub_op_count, registry.stub_op_count);
 assert.equal(listed.live_count + listed.local_only_count + listed.stub_count, listed.product_count);
 assert.equal(listed.entries.length, listed.product_count);
 assert.ok(listed.entries.some((e) => e.slug === "foldlock" && e.status === "live"));
-assert.ok(listed.entries.some((e) => e.slug === "vibelock" && e.status === "local_only"));
+assert.ok(listed.entries.some((e) => e.slug === "vibelock" && e.status === "live"));
+assert.ok(listed.entries.some((e) => e.slug === "veillock" && e.status === "local_only"));
+assert.ok(listed.entries.some((e) => e.slug === "ark" && e.status === "live" && e.ops.includes("sweep")));
 
 const described = await (await get("/v1/fraggate/describe?name=FoldLock")).json();
 assert.equal(described.ok, true);
@@ -102,12 +135,34 @@ assert.equal(stubHttp.ok, false);
 assert.equal(stubHttp.code, "FG-STUB");
 assert.equal(stubHttp.ledger_tip.refused, true);
 
-const localOnly = await (await post("/v1/fraggate/call", { slug: "vibelock", op: "analyze" })).json();
+const localOnly = await (await post("/v1/fraggate/call", { slug: "veillock", op: "apps" })).json();
 assert.equal(localOnly.ok, false);
 assert.equal(localOnly.code, "FG-LOCAL-ONLY");
 
+const veilInject = await (await post("/v1/fraggate/call", { slug: "veillock", op: "inject" })).json();
+assert.equal(veilInject.code, "FG-STUB");
+
 const whistleSend = await (await post("/v1/fraggate/call", { slug: "whistlelock", op: "send" })).json();
 assert.equal(whistleSend.code, "FG-STUB");
+
+const liveVibe = await (await post("/v1/fraggate/call", { slug: "vibelock", op: "health" })).json();
+assert.equal(liveVibe.ok, true, JSON.stringify(liveVibe));
+assert.equal(liveVibe.code, "FG-OK");
+
+const liveArk = await (await post("/v1/fraggate/call", { slug: "ark", op: "levels" })).json();
+assert.equal(liveArk.ok, true, JSON.stringify(liveArk));
+assert.equal(liveArk.code, "FG-OK");
+assert.ok(liveArk.result);
+
+const liveZ = await (
+  await post("/v1/fraggate/call", {
+    slug: "zsolver",
+    op: "score",
+    payload: { answers: [{ pattern_id: "P1", value: "yes" }, { pattern_id: "P2", value: "unknown" }] },
+  })
+).json();
+assert.equal(liveZ.ok, true, JSON.stringify(liveZ));
+assert.equal(liveZ.code, "FG-OK");
 
 const gateRefuse = await (
   await post("/v1/fraggate/call", {

@@ -1,7 +1,11 @@
 /**
  * Hashed FragGate registry over the aziel-runtime catalog.
- * Live on the public mesh is a small allowlist. Everything else is
- * named (local_only) or stub — never executed on the public door.
+ * Live on the public mesh is every catalog Software product that makes
+ * sense on a public agent door: advisory / score / classify / gate /
+ * search / preview / render / verify / hash / receipt / game / overlay /
+ * route / status. Device-local (VeilLock) stays local_only. Stub verbs
+ * (scorch / wipe / send / vpn / mesh / inject / blend / exec) refuse
+ * forever. Not the old 5-only cut, and not a dump of destructive fantasies.
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
 
@@ -12,7 +16,8 @@ import { FRAGGATE_DOOR, FRAGGATE_KERNEL, FRAGGATE_KERNEL_VERSION } from "./codes
 
 /**
  * Ops callable via FragGate on the public runtime.
- * Documented allowlist — not the full catalog.
+ * Catalog ops only (plus DecisionGATE evaluate, already hosted). Always
+ * include health+skill when the product is live. Do not invent ops.
  */
 export const LIVE_OPS = {
   decisiongate: ["check", "evaluate", "health", "skill"],
@@ -20,17 +25,43 @@ export const LIVE_OPS = {
   "aziel-corpus": ["search", "example", "skill", "health"],
   foldlock: ["fold-preview", "unfold-preview", "health", "skill"],
   azclce: ["score", "classify", "gate", "health", "skill"],
+  zsolver: ["patterns", "score", "session", "health", "skill"],
+  forgereceipts: ["receipt", "health", "skill"],
+  codelock: ["render", "health", "skill"],
+  glossafilter: ["render", "health", "skill"],
+  staticclock: ["advise", "health", "skill"],
+  chronolock: ["advisory", "anchors", "health", "skill"],
+  azos: ["status", "health", "skill"],
+  azai: ["lamb-check", "lamb_check", "health", "skill"],
+  postking: ["new", "move", "status", "health", "skill"],
+  shadowlock: ["observe", "health", "skill"],
+  temporallock: ["genesis", "append", "verify", "health", "skill"],
+  employeelock: ["append-preview", "verify-canonical", "health", "skill"],
+  whistlelock: ["hash-preview", "canon-preview", "health", "skill"],
+  trajectorylock: ["example", "analyze", "health", "skill"],
+  spectrallock: ["modes", "overlay", "health", "skill"],
+  azbot: ["route", "health", "skill"],
+  azieltether: ["verify", "health", "skill"],
+  vibelock: ["analyze", "health", "skill"],
+  ark: ["sweep", "levels", "health", "skill"],
+  miragegrid: ["assign", "health", "skill"],
+  mialock: ["map", "search-options", "queries", "doe-match", "coverage", "example", "health", "skill"],
 };
 
 /**
  * Named but never hosted. Asking these is a stub refuse, not exec.
- * Destructive / send / mesh-hop fantasies — even if the engine has no such op.
+ * Destructive / send / mesh-hop / device-inject / blend fantasies —
+ * even if the engine has no such op.
  */
 export const STUB_OPS = {
   ark: ["scorch", "wipe", "unlock", "encrypt"],
   whistlelock: ["send", "mail", "release"],
-  miragegrid: ["vpn-hop", "hop", "tunnel"],
-  azieltether: ["mesh-join", "vpn"],
+  miragegrid: ["vpn-hop", "hop", "tunnel", "mesh"],
+  azieltether: ["mesh-join", "vpn", "arm"],
+  veillock: ["inject", "intercept", "facetime"],
+  azos: ["exec", "shell", "lattice"],
+  azai: ["blend", "complete", "chat"],
+  employeelock: ["court", "judge"],
 };
 
 const LIVE_SLUGS = new Set(Object.keys(LIVE_OPS));
@@ -86,7 +117,7 @@ export function buildRegistry(products) {
   const live = entries.filter((e) => e.status === "live");
   const local_only = entries.filter((e) => e.status === "local_only");
   const stub = entries.filter((e) => e.status === "stub");
-  // stub_ops are named refuse verbs on catalog products (today all local_only).
+  // stub_ops are named refuse verbs (may sit on live or local_only products).
   // stub_count is products whose status is "stub" — not the op-list length.
   const stub_ops = Object.entries(STUB_OPS).flatMap(([slug, ops]) => ops.map((op) => ({ slug, op, status: "stub" })));
   return {

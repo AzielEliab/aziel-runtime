@@ -1,8 +1,8 @@
 {
   "name": "aziel-runtime",
-  "version": "1.6.1",
+  "version": "1.6.2",
   "private": true,
-  "description": "Aziel Eliab Runtime 1.6.1 — FragGate door over the catalog. Discover, route, refuse. Author: Aziel Eliab.",
+  "description": "Aziel Eliab Runtime 1.6.2 — FragGate door over sensible advisory engines. Discover, route, refuse. Author: Aziel Eliab.",
   "license": "Apache-2.0",
   "type": "module",
   "bin": {
