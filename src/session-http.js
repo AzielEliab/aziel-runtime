@@ -290,7 +290,7 @@ export function sessionMcpTools() {
     {
       name: "runtime_session_exec",
       description:
-        "Runtime-owned exec: record intent, run a vendored engine in this isolate when the slug is a true engine, else mark proxy_fallback. Body: session_id, slug, op, payload. Receipt includes engine_digest + ran_in when local. Not the same as proxy /p/{slug}/{op}.",
+        "Runtime-owned exec: record intent, run a vendored engine in this isolate for every catalog Software slug (engine_digest + ran_in). Binding-only ops stay per-op proxy_fallback. Body: session_id, slug, op, payload. Not the same as proxy /p/{slug}/{op}.",
       inputSchema: {
         type: "object",
         additionalProperties: true,

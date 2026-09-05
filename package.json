@@ -1,8 +1,8 @@
 {
   "name": "aziel-runtime",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "private": true,
-  "description": "Aziel Eliab Runtime 1.3.0 — catalog + pull + proxy + session + in-process engines for listed slugs. Author: Aziel Eliab.",
+  "description": "Aziel Eliab Runtime 1.4.0 — catalog + pull + proxy + session + in-process engines for every catalog Software slug. Author: Aziel Eliab.",
   "license": "Apache-2.0",
   "type": "module",
   "bin": {
