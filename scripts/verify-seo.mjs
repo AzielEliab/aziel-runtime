@@ -21,10 +21,31 @@ async function get(path) {
   return handler(new Request(origin + path), {});
 }
 
-function mime(res, expect) {
-  const ct = res.headers.get("content-type") || "";
-  assert.match(ct, expect, `${res.url || "response"} content-type ${ct}`);
+async function head(path) {
+  return handler(new Request(origin + path, { method: "HEAD" }), {});
 }
+
+function mime(res, expect, label = "response") {
+  const ct = res.headers.get("content-type") || "";
+  assert.match(ct, expect, `${label} content-type ${ct}`);
+}
+
+async function assertSeoMime(path, expect) {
+  const getRes = await get(path);
+  assert.equal(getRes.status, 200, `GET ${path} status`);
+  mime(getRes, expect, `GET ${path}`);
+  const headRes = await head(path);
+  assert.equal(headRes.status, 200, `HEAD ${path} status`);
+  mime(headRes, expect, `HEAD ${path}`);
+  assert.equal(await headRes.text(), "", `HEAD ${path} must have an empty body`);
+}
+
+await assertSeoMime("/robots.txt", /^text\/plain; charset=utf-8$/);
+await assertSeoMime("/llms.txt", /^text\/plain; charset=utf-8$/);
+await assertSeoMime("/ai.txt", /^text\/plain; charset=utf-8$/);
+await assertSeoMime("/sitemap.xml", /^application\/xml; charset=utf-8$/);
+await assertSeoMime("/sitemap-index.xml", /^application\/xml; charset=utf-8$/);
+await assertSeoMime("/cite.json", /^application\/json; charset=utf-8$/);
 
 const robotsRes = await get("/robots.txt");
 assert.equal(robotsRes.status, 200);
