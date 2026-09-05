@@ -148,6 +148,13 @@ assert.equal(exec.status, 200);
 assert.equal(exec.data.receipt.event, "exec");
 assert.equal(exec.data.receipt.owner, "aziel-runtime");
 assert.equal(exec.data.exec.status, 200);
+assert.equal(exec.data.exec.mode, "local");
+assert.equal(exec.data.exec.true_engine_runtime, true);
+assert.equal(exec.data.exec.ran_in, "aziel-runtime");
+assert.match(exec.data.exec.engine_digest, /^[a-f0-9]{64}$/);
+assert.equal(exec.data.receipt.payload.result.engine_digest, exec.data.exec.engine_digest);
+assert.equal(exec.data.receipt.payload.result.true_engine_runtime, true);
+assert.equal(exec.data.receipt.payload.result.ran_in, "aziel-runtime");
 assert.ok(exec.data.receipt.payload.intent.payload_digest);
 assert.ok(exec.data.receipt.payload.result.response_digest);
 assert.match(exec.data.receipt.hash, /^[a-f0-9]{64}$/);
@@ -207,13 +214,16 @@ assert.ok(openapi.paths["/v1/session/{id}/close"]);
 
 const skill = await (await req("/v1/skill")).text();
 assert.match(skill, /1\.1\.0 = catalog \+ pull \+ proxy/);
+assert.match(skill, /1\.2\.0 = session-runtime/);
+assert.match(skill, /1\.3\.0/);
 assert.match(skill, /open → policy → exec/);
 assert.match(skill, /Proxy without a session receipt is \*\*not\*\* exec/);
-assert.doesNotMatch(skill, /true runtime/);
+assert.match(skill, /engine_digest/);
 
 const manifest = await (await req("/v1/runtime.json")).json();
-assert.equal(manifest.role, "session-runtime");
+assert.equal(manifest.role, "engine-runtime");
 assert.equal(manifest.proxy_is_not_exec, true);
+assert.ok(manifest.true_engine_slugs.includes("azclce"));
 assert.ok(manifest.endpoints.session_exec.includes("/v1/session/{id}/exec"));
 
 // CLI local open/policy/close (no network)
@@ -243,6 +253,19 @@ assert.equal(cliOpen.mode, "local");
 assert.ok(cliOpen.session.id);
 const cliPol = await runCli(["session", "policy", "--allow-slugs", "azclce"]);
 assert.deepEqual(cliPol.session.policy.allow_slugs, ["azclce"]);
+const cliExec = await runCli([
+  "session",
+  "exec",
+  "azclce",
+  "score",
+  '{"r":"login button blue","d":"login form submits","p":"login button submits"}',
+]);
+assert.equal(cliExec.exec.mode, "local");
+assert.equal(cliExec.exec.true_engine_runtime, true);
+assert.equal(cliExec.exec.ran_in, "local-jail");
+assert.match(cliExec.exec.engine_digest, /^[a-f0-9]{64}$/);
+assert.equal(cliExec.receipt.payload.result.true_engine_runtime, true);
+assert.equal(cliExec.receipt.payload.result.ran_in, "local-jail");
 const cliClose = await runCli(["session", "close"]);
 assert.equal(cliClose.session.closed, true);
 assert.equal(cliClose.verified.ok, true);

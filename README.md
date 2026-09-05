@@ -1,20 +1,26 @@
 # aziel-runtime
 
-**Aziel Eliab Runtime 1.2.0** — catalog + pull + proxy, plus **one session object**:
+**Aziel Eliab Runtime 1.3.0** — catalog + pull + proxy, one session object, and **in-process engines** for listed slugs:
 
 `open → policy → exec(slug, op, payload) → receipt → close`
 
+**1.2.0** was a session/receipt runtime: exec still `upstreamFetch`ed product Workers. Those receipts were not “this process ran FoldLock.”
+
 **1.1.0** was catalog + pull + proxy that started calling itself a runtime. Those front doors stay. They are not exec.
 
-This Worker does **not** load an engine, jail it, schedule it, or emit a receipt of some other product's process. Isolation is Cloudflare's Worker / Durable Object isolate only. Closest true *local* runtimes remain `azai serve`, `forgereceipts ui`, `azos ui`. Hosted AZAI is still protocol mirror + Lamb check, **not** the blend.
+For **true-engine slugs** (`ark`, `azai` Lamb check only, `azclce`, `decisiongate`, `foldlock`, `zsolver`) `session exec` loads a vendored module, computes `engine_digest` = SHA-256 of that artifact’s bytes, runs the op **inside this Worker isolate** (the jail) or a local CLI jail, wipes scratch buffers, and the receipt includes `engine_digest`, `engine_slug`, `engine_op`, `ran_in`. Other slugs are explicit `mode: "proxy_fallback"` — no pretending.
+
+Cloudflare’s Worker / Durable Object isolate **is** the jail. No extra guest isolate is claimed. `engine_digest` is still required.
+
+Hosted / in-process AZAI is still protocol mirror + Lamb check, **not** the local blend (`azai serve`).
 
 ChatGPT GPT Actions, Grok custom tools, and Venice HTTP tools import **this** OpenAPI file — then pull a product skill, open a session, or call `/p/{slug}/{op}` (proxy only).
 
 **Author:** Aziel Eliab  
 **Identity:** Aziel Eliab only  
 **License:** [Apache-2.0](LICENSE)  
-**Version:** 1.2.0  
-**Role:** `session-runtime` (layer: `catalog+pull+proxy+session`)  
+**Version:** 1.3.0  
+**Role:** `engine-runtime` (layer: `catalog+pull+proxy+session+in-process-engines`)  
 **Worker:** `aziel-runtime` → https://aziel-runtime.vibelock.workers.dev/  
 **Library front door:** https://www.azielcorpuslibrary.net/runtime  
 **Everblooming sigil:** https://aziel-runtime.vibelock.workers.dev/sigil.png  
@@ -30,7 +36,7 @@ SID=$(curl -s -A 'Mozilla/5.0' -X POST https://aziel-runtime.vibelock.workers.de
 
 curl -s -A 'Mozilla/5.0' -X POST https://aziel-runtime.vibelock.workers.dev/v1/session/$SID/policy \
   -H 'content-type: application/json' \
-  -d '{"allow_slugs":["azclce"],"max_payload_bytes":8192}'
+  -d '{"allow_slugs":["azclce","foldlock"],"max_payload_bytes":8192}'
 
 curl -s -A 'Mozilla/5.0' -X POST https://aziel-runtime.vibelock.workers.dev/v1/session/$SID/exec \
   -H 'content-type: application/json' \
@@ -41,15 +47,16 @@ curl -s -A 'Mozilla/5.0' https://aziel-runtime.vibelock.workers.dev/v1/session/$
 curl -s -A 'Mozilla/5.0' -X POST https://aziel-runtime.vibelock.workers.dev/v1/session/$SID/close
 ```
 
-Each `exec` records intent **before** the product call, then appends a **hash-chained receipt owned by this session** (status, latency, request/response digests — not huge bodies). `close` seals the chain; further exec is HTTP 409.
+A local exec receipt includes `engine_digest`, `engine_slug`, `engine_op`, `ran_in: "aziel-runtime"`, result digests, and latency — not only an upstream HTTP status. `close` seals the chain; further exec is HTTP 409.
 
-Local CLI (Worker client by default; `--local` writes an equivalent session file):
+Local CLI (Worker client by default; `--local` writes a session file and prefers vendored engines; `--jail` runs the engine in a child Node process):
 
 ```bash
-node cli/aziel-runtime.mjs session open
-node cli/aziel-runtime.mjs session policy --allow-slugs azclce
+node cli/aziel-runtime.mjs session open --local
+node cli/aziel-runtime.mjs session policy --allow-slugs azclce,foldlock
 node cli/aziel-runtime.mjs session exec azclce score \
   '{"r":"login button blue","d":"login form submits","p":"login button submits"}'
+node cli/aziel-runtime.mjs session exec foldlock fold-preview '{"text":"the cat and the dog"}'
 node cli/aziel-runtime.mjs session receipt
 node cli/aziel-runtime.mjs session close
 ```
@@ -82,7 +89,7 @@ Always send `User-Agent: Mozilla/5.0`.
 |------|-----|
 | Homepage (HTML) | https://aziel-runtime.vibelock.workers.dev/ |
 | Skill | https://aziel-runtime.vibelock.workers.dev/v1/skill |
-| Machine manifest (`role=session-runtime`) | https://aziel-runtime.vibelock.workers.dev/v1/runtime.json |
+| Machine manifest (`role=engine-runtime`) | https://aziel-runtime.vibelock.workers.dev/v1/runtime.json |
 | Session open | `POST` https://aziel-runtime.vibelock.workers.dev/v1/session/open |
 | Session exec | `POST` https://aziel-runtime.vibelock.workers.dev/v1/session/{id}/exec |
 | Session receipt(s) | https://aziel-runtime.vibelock.workers.dev/v1/session/{id}/receipt |
@@ -138,6 +145,7 @@ Pull via `GET /v1/bundle` / `GET /v1/pull/{slug}`. Session exec is
 
 ## Honesty banners
 
+- **Not every product is in-process.** True-engine slugs are listed on `/v1/health` and `/v1/runtime.json`. Other slugs are `proxy_fallback` on session exec.
 - **GodLock** and **MirageGrid** are not VPNs and not anonymity networks.
 - **ForgeReceipts** is not legal advice and does not contact courts.
 - **ZionPattern Solver** never claims more than 75% confidence. It does not solve cases.
@@ -145,10 +153,10 @@ Pull via `GET /v1/bundle` / `GET /v1/pull/{slug}`. Session exec is
 - **AZ-CLCE** detects inconsistency, not intent. Type D is a label, not a finding of malice.
 - **ChronoLock** is advisory only — not a scheduler, not targeting, not virality. 08:30–10:30 local. Distinct from TemporalLock.
 - **The ARK** is not a kernel. Hosted API never unlocks or encrypts with a passphrase and never stores vaults. Sweep is Mode E heuristics only.
-- **AZAI** is a local OpenAI-compatible runtime, not a new foundation model. Hosted /v1 is a protocol mirror + Lamb check, not a provider proxy. Jeeves is not sovereign. Live blend is local `azai serve`.
+- **AZAI** is a local OpenAI-compatible runtime, not a new foundation model. Hosted / in-process `/v1` is a protocol mirror + Lamb check, not a provider proxy. Jeeves is not sovereign. Live blend is local `azai serve`.
 - **SpectralLock** hosted overlay is a 256px preview, not a spectrometer, not forensic. Full pipeline is the Python package.
 - **EmployeeLock** is not a court, not UL, not a truth score. Hosted never stores xlsx. Demo rows are format proof, not case facts.
-- **FoldLock** is not zip. Hosted preview is tether-suppression on small UTF-8 text. Ratios are receipts, not trophies. Short strings can grow.
+- **FoldLock** is not zip. Hosted / in-process preview is tether-suppression on small UTF-8 text. Ratios are receipts, not trophies. Short strings can grow.
 - **WhistleLock** is a local vault + dead-man copy. Not a mailer. Hosted never holds whistle files.
 - **TrajectoryLock** is a research prototype / auditable geometric test. Not a certified forensic instrument. Hosted never stores media. Match probability is P(match | declared model), not P(official account is true). Synthetic examples are not real-case findings.
 - **M.I.A.Lock** Doe hits are compatibility leads only — never an ID. Coverage heat is not presence. No live tracking.
@@ -157,35 +165,35 @@ Pull via `GET /v1/bundle` / `GET /v1/pull/{slug}`. Session exec is
 
 ## Product slugs → Workers
 
-| slug | Worker hostname | example ops |
-|------|-----------------|-------------|
-| vibelock | vibelock-download-tracker | analyze |
-| veillock | veillock-download-tracker | apps |
-| codelock | codelock-download-tracker | render |
-| godlock | godlock-download-tracker | score, submit |
-| shadowlock | shadowlock-download-tracker | observe |
-| temporallock | temporallock-download-tracker | genesis, append, verify |
-| forgereceipts | forgereceipts-download-tracker | receipt |
-| decisiongate | decisiongate-download-tracker | check |
-| zsolver | zsolver-download-tracker | patterns, score, session |
-| azos | azos-download-tracker | status |
-| glossafilter | glossafilter-download-tracker | render |
-| miragegrid | miragegrid-download-tracker | assign |
-| staticclock | staticclock-download-tracker | advise |
-| chronolock | chronolock-download-tracker | advisory, anchors |
-| postking | postking-download-tracker | new, move, status |
-| azclce | azclce-download-tracker | score, classify, gate |
-| ark | ark-download-tracker | sweep, levels |
-| azai | azai-download-tracker | health, lamb-check, lamb_check |
-| spectrallock | spectrallock-download-tracker | health, modes, overlay |
-| azbot | azbot-download-tracker | health, skill |
-| employeelock | employeelock-download-tracker | health, append-preview, verify-canonical, skill |
-| foldlock | foldlock-download-tracker | health, fold-preview, unfold-preview, skill |
-| whistlelock | whistlelock-download-tracker | health, hash-preview, canon-preview, skill |
-| trajectorylock | trajectorylock-download-tracker | health, example, analyze, skill |
-| mialock | mialock-download-tracker | map, search-options, queries, doe-match, coverage |
-| azieltether | azieltether-download-tracker | health, skill |
-| aziel-corpus | aziel-corpus-download-tracker (www.azielcorpuslibrary.net) | health, search, example, skill |
+| slug | Worker hostname | example ops | session exec |
+|------|-----------------|-------------|--------------|
+| vibelock | vibelock-download-tracker | analyze | proxy_fallback |
+| veillock | veillock-download-tracker | apps | proxy_fallback |
+| codelock | codelock-download-tracker | render | proxy_fallback |
+| godlock | godlock-download-tracker | score, submit | proxy_fallback |
+| shadowlock | shadowlock-download-tracker | observe | proxy_fallback |
+| temporallock | temporallock-download-tracker | genesis, append, verify | proxy_fallback |
+| forgereceipts | forgereceipts-download-tracker | receipt | proxy_fallback |
+| decisiongate | decisiongate-download-tracker | check | **in-process** |
+| zsolver | zsolver-download-tracker | patterns, score, session | **in-process** |
+| azos | azos-download-tracker | status | proxy_fallback |
+| glossafilter | glossafilter-download-tracker | render | proxy_fallback |
+| miragegrid | miragegrid-download-tracker | assign | proxy_fallback |
+| staticclock | staticclock-download-tracker | advise | proxy_fallback |
+| chronolock | chronolock-download-tracker | advisory, anchors | proxy_fallback |
+| postking | postking-download-tracker | new, move, status | proxy_fallback |
+| azclce | azclce-download-tracker | score, classify, gate | **in-process** |
+| ark | ark-download-tracker | sweep, levels | **in-process** |
+| azai | azai-download-tracker | health, lamb-check | **in-process (Lamb only; not the blend)** |
+| spectrallock | spectrallock-download-tracker | health, modes, overlay | proxy_fallback |
+| azbot | azbot-download-tracker | health, skill | proxy_fallback |
+| employeelock | employeelock-download-tracker | health, append-preview, verify-canonical, skill | proxy_fallback |
+| foldlock | foldlock-download-tracker | health, fold-preview, unfold-preview, skill | **in-process** |
+| whistlelock | whistlelock-download-tracker | health, hash-preview, canon-preview, skill | proxy_fallback |
+| trajectorylock | trajectorylock-download-tracker | health, example, analyze, skill | proxy_fallback |
+| mialock | mialock-download-tracker | map, search-options, queries, doe-match, coverage | proxy_fallback |
+| azieltether | azieltether-download-tracker | health, skill | proxy_fallback |
+| aziel-corpus | aziel-corpus-download-tracker (www.azielcorpuslibrary.net) | health, search, example, skill | proxy_fallback |
 
 Catalog aliases (also accepted on `/v1/pull/{slug}`): `az-clce` → azclce,
 `zion-pattern-solver` → zsolver, `postking-chess` → postking,
@@ -196,6 +204,10 @@ If a sibling `/v1` API is not live yet, the proxy returns that Worker's response
 `GET /v1/pull/{slug}/skill` falls back to a catalog-built skill so an AI can
 still invoke.
 
+Vendored engine artifacts live under `src/engines/`. `engine_digest` is SHA-256
+of those file bytes (sorted path order). Recompute with
+`node scripts/hash-engines.mjs --write`.
+
 ## Deploy
 
 ```bash
@@ -205,13 +217,16 @@ npx wrangler deploy
 Account `ac575a9b822bea2bed97d0ab73aed238`. workers.dev
 `aziel-runtime.vibelock.workers.dev`. No download KV.
 
-**1.2.0 requires Durable Object migration tag `v1`** (`RuntimeSession`, SQLite).
-The first deploy after this cut creates the `SESSION` binding. If this checkout
-has no wrangler credentials, deploy from the author's machine:
+**1.2.0+ requires Durable Object migration tag `v1`** (`RuntimeSession`, SQLite).
+The first deploy after the session cut creates the `SESSION` binding. **1.3.0
+does not need a new DO migration** — engines run in the same isolate.
+
+If this checkout has no wrangler credentials, deploy from the author's machine:
 
 ```bash
 npx wrangler deploy
-# confirm POST /v1/session/open returns a sess_* id
+# confirm GET /v1/health version=1.3.0 role=engine-runtime
+# confirm POST /v1/session/open → policy → exec foldlock|azclce → receipt has engine_digest + ran_in
 ```
 
 ## Library `/runtime`
