@@ -4,7 +4,8 @@
  * open → policy → exec → receipt → close
  *
  * Receipts are hash-chained and owned by this runtime process/session.
- * Isolation is Cloudflare's Worker/DO isolate only — no extra jail is claimed.
+ * Local exec receipts include engine_digest of the artifact that ran here.
+ * Isolation is Cloudflare's Worker/DO isolate (the jail). No extra sandbox is claimed.
  * Author: Aziel Eliab. Identity is Aziel Eliab only. Do not invent DOIs.
  */
 
@@ -174,10 +175,12 @@ export function openSession({ id, now, version, source }) {
     pending_intent: null,
     head_hash: ZERO_HASH,
     honesty: {
-      layer: "catalog+pull+proxy+session",
+      layer: "catalog+pull+proxy+session+in-process-engines",
       proxy_is_not_exec: true,
+      true_engine_runtime: true,
+      isolate_is_the_jail: true,
       hosted_azai_is_not_the_blend: true,
-      no_engine_jail: true,
+      no_extra_sandbox_claimed: true,
       local_blends: ["azai serve", "forgereceipts ui", "azos ui"],
     },
   };
@@ -308,11 +311,14 @@ export async function recordIntent(session, { slug, op, payload, payloadText, kn
   return { intent, payload };
 }
 
-export async function commitExec(session, { intent, status, latencyMs, requestDigest, responseDigest, error, upstream, responseBytes, contentType }, nowIso) {
+export async function commitExec(session, { intent, status, latencyMs, requestDigest, responseDigest, error, upstream, responseBytes, contentType, engine }, nowIso) {
   requireOpen(session);
   if (!session.pending_intent || session.pending_intent.intent_id !== intent.intent_id) {
     throw sessionError(409, "intent_mismatch", "pending intent does not match commit");
   }
+  const eng = engine && typeof engine === "object" ? engine : {};
+  const mode = eng.mode || (upstream ? "proxy_fallback" : "local");
+  const isLocal = mode === "local" && eng.true_engine_runtime === true && Boolean(eng.engine_digest);
   const receipt = await appendReceipt(session, "exec", {
     intent,
     result: {
@@ -323,7 +329,13 @@ export async function commitExec(session, { intent, status, latencyMs, requestDi
       response_bytes: responseBytes,
       content_type: contentType || null,
       error: error || null,
-      upstream: upstream || null,
+      upstream: isLocal ? null : (upstream || null),
+      mode,
+      true_engine_runtime: isLocal,
+      engine_digest: isLocal ? eng.engine_digest : null,
+      engine_slug: eng.engine_slug || intent.slug,
+      engine_op: eng.engine_op || intent.op,
+      ran_in: isLocal ? (eng.ran_in || "aziel-runtime") : null,
     },
   }, nowIso);
   session.pending_intent = null;

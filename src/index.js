@@ -1,9 +1,9 @@
 /**
- * aziel-runtime 1.2.0 — catalog + pull + proxy + one session object.
+ * aziel-runtime 1.3.0 — catalog + pull + proxy + session + in-process engines.
  *
  * 1.1.0 was catalog+proxy that called itself a runtime. Useful front doors.
- * 1.2.0 owns open → policy → exec → receipt → close. Proxy is not exec.
- * No engine is loaded, jailed, or scheduled. Cloudflare isolate only.
+ * 1.2.0 owned open → policy → exec → receipt → close but exec still proxied.
+ * 1.3.0 runs vendored engines inside this Worker isolate for listed slugs.
  *
  * GET  /                      HTML (indexable) + Everblooming sigil
  * GET  /sigil.png             Everblooming sigil stamp
@@ -56,6 +56,7 @@ import {
   markdownResponse,
   runtimeStaticPaths,
 } from "./runtime-api.js";
+import { honestyFields } from "./engines/registry.js";
 import { RuntimeSession } from "./session-do.js";
 import { callSessionTool, handleSessionRequest, sessionMcpTools } from "./session-http.js";
 
@@ -65,8 +66,8 @@ const CATALOG_HOST = "https://aziel-runtime.vibelock.workers.dev";
 const PROTOCOL = "2025-03-26";
 const CATALOG_TITLE = "Aziel Eliab Runtime";
 const CATALOG_DESCRIPTION =
-  "1.2.0 catalog + pull + proxy plus one session object (open → policy → exec → receipt → close). 1.1.0 was catalog+proxy that called itself a runtime. Proxy is not exec. No engine jail. Hosted AZAI is not the local blend. Apache-2.0. Author: Aziel Eliab.";
-const LASTMOD = "2026-09-04";
+  "1.3.0 catalog + pull + proxy + session + in-process engines for listed slugs. 1.2.0 was a session/receipt runtime (exec still proxied). 1.1.0 was catalog+proxy. Proxy is not exec. Cloudflare isolate is the jail. Hosted AZAI is not the local blend. Apache-2.0. Author: Aziel Eliab.";
+const LASTMOD = "2026-09-05";
 
 const PRODUCTS_RAW = [
   {
@@ -685,8 +686,9 @@ function llmsTxt(origin) {
     `> ${CATALOG_DESCRIPTION}`,
     "",
     `Author: Aziel Eliab`,
-    `Role: session-runtime (catalog + pull + proxy + session)`,
-    `Honesty: 1.1.0 was catalog+proxy that called itself a runtime. 1.2.0 owns open→policy→exec→receipt→close.`,
+    `Role: engine-runtime (catalog + pull + proxy + session + in-process engines)`,
+    `Honesty: 1.1.0 was catalog+proxy. 1.2.0 was session/receipt (exec still proxied). 1.3.0 runs vendored engines in this isolate for listed slugs.`,
+    `True-engine slugs: ${honestyFields(PRODUCTS.map((p) => p.slug)).true_engine_slugs.join(", ")}`,
     `Proxy /p/{slug}/{op} is not exec. Hosted AZAI is not the local blend.`,
     `Local blends: azai serve · forgereceipts ui · azos ui`,
     `Counted tarball: none (Worker session + in-repo CLI)`,
@@ -766,6 +768,7 @@ function citeJson(origin) {
     version: RUNTIME_VERSION,
     counted_tarball: false,
     proxy_is_not_exec: true,
+    ...honestyFields(PRODUCTS.map((p) => p.slug)),
     license: "Apache-2.0",
     license_url: "https://www.apache.org/licenses/LICENSE-2.0",
     how_to_cite:
@@ -966,15 +969,17 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
     <p class="stamp">Everblooming sigil · Aziel Eliab</p>
   </div>
   <h1>Aziel Eliab Runtime</h1>
-  <p class="lead"><strong>1.2.0</strong> is catalog + pull + proxy plus <strong>one session object</strong> (<code>open → policy → exec → receipt → close</code>). ${PRODUCTS.length} products. Forks welcome. Apache-2.0. Author: Aziel Eliab.</p>
+  <p class="lead"><strong>1.3.0</strong> is catalog + pull + proxy + session + <strong>in-process engines</strong> for listed slugs. ${PRODUCTS.length} products. Forks welcome. Apache-2.0. Author: Aziel Eliab.</p>
   <div class="honesty">
     <strong>What this Worker is</strong>
     <ul>
       <li><strong>1.1.0</strong> was catalog + pull + proxy that started calling itself a runtime. Those front doors stay. They are not exec.</li>
-      <li><strong>1.2.0</strong> adds a session Durable Object that emits <em>runtime-owned</em> hash-chained receipts.</li>
+      <li><strong>1.2.0</strong> added a session Durable Object and hash-chained receipts. Exec still proxied to product Workers.</li>
+      <li><strong>1.3.0</strong> vendors portable engines and runs them <em>inside this Worker isolate</em> for listed slugs. Receipts include <code>engine_digest</code> and <code>ran_in</code>.</li>
+      <li>True-engine slugs: ark, azai (Lamb check only — not the blend), azclce, decisiongate, foldlock, zsolver. Other slugs are <code>proxy_fallback</code> on session exec.</li>
       <li><code>POST /p/{slug}/{op}</code> is a <em>proxy</em>. Proxy without a session receipt is not exec.</li>
-      <li>This process does not load an engine, jail it, or schedule it. Isolation is Cloudflare's Worker / Durable Object isolate only.</li>
-      <li>Closest true local runtimes remain <code>azai serve</code>, <code>forgereceipts ui</code>, <code>azos ui</code>.</li>
+      <li>Cloudflare's Worker / Durable Object isolate <em>is</em> the jail. No extra guest isolate is claimed. <code>engine_digest</code> is still required.</li>
+      <li>Closest true local blends remain <code>azai serve</code>, <code>forgereceipts ui</code>, <code>azos ui</code>.</li>
       <li>Hosted AZAI is a protocol mirror + Lamb check, <em>not</em> the local blend.</li>
       <li>No counted runtime tarball. CLI is in-repo: <code>node cli/aziel-runtime.mjs</code>.</li>
     </ul>
@@ -1032,7 +1037,7 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
   <h2>Pull + proxy (front doors — not exec)</h2>
   <ol>
     <li><code>GET ${origin}/v1/skill</code></li>
-    <li><code>GET ${origin}/v1/runtime.json</code> — machine manifest (<code>role=session-runtime</code>)</li>
+    <li><code>GET ${origin}/v1/runtime.json</code> — machine manifest (<code>role=engine-runtime</code>)</li>
     <li><code>GET ${origin}/v1/bundle</code> — every product skill URL + invoke prefix</li>
     <li><code>GET ${origin}/v1/pull/{slug}</code> then <code>GET ${origin}/v1/pull/{slug}/skill</code></li>
     <li><code>GET</code> or <code>POST ${origin}/p/{slug}/{op}</code> — <em>proxy only</em></li>
@@ -1267,12 +1272,13 @@ async function combinedOpenApi(request, env) {
     info: {
       title: "Aziel Eliab Runtime",
       version: RUNTIME_VERSION,
-      summary: "Catalog + pull + proxy plus one session object (open → policy → exec → receipt → close).",
+      summary: "Catalog + pull + proxy + session + in-process engines for listed slugs.",
       description:
-        "1.2.0 is catalog + pull + proxy + a session Durable Object. 1.1.0 was catalog+proxy that called itself a runtime. " +
-        "True exec is POST /v1/session/{id}/exec, which records intent and appends a hash-chained receipt owned by this session. " +
-        "POST /p/{product}/{op} is a proxy, not exec. This Worker does not load, jail, or schedule an engine. " +
-        "Hosted AZAI is a protocol mirror + Lamb check, not the local blend. " +
+        "1.3.0 is catalog + pull + proxy + a session Durable Object + vendored in-process engines. " +
+        "1.2.0 was session/receipt (exec still proxied). 1.1.0 was catalog+proxy that called itself a runtime. " +
+        "True exec is POST /v1/session/{id}/exec for slugs with a local engine (receipt includes engine_digest and ran_in). " +
+        "Other slugs are explicit proxy_fallback. POST /p/{product}/{op} is a proxy, not exec. " +
+        "Cloudflare isolate is the jail. Hosted AZAI is a protocol mirror + Lamb check, not the local blend. " +
         "Start at GET /v1/skill or GET /v1/runtime.json. " +
         "GET /v1/bundle lists every product skill URL + invoke prefix. " +
         "GET /v1/pull/{slug} and GET /v1/pull/{slug}/skill pull a product without visiting its Worker. " +
@@ -1382,13 +1388,13 @@ function runtimeMcpTools() {
     {
       name: "runtime_skill",
       description:
-        "Return Aziel Eliab Runtime skill markdown: session lifecycle plus catalog/pull/proxy. 1.1.0 was catalog+proxy. Proxy is not exec. Does not increment downloads.",
+        "Return Aziel Eliab Runtime skill markdown: 1.3.0 in-process engines plus session and catalog/pull/proxy. 1.2.0 was session-only. Proxy is not exec. Does not increment downloads.",
       inputSchema: { type: "object", additionalProperties: true },
     },
     {
       name: "runtime_manifest",
       description:
-        "Return GET /v1/runtime.json (role=session-runtime, session/pull/proxy endpoints, product count, identity Aziel Eliab).",
+        "Return GET /v1/runtime.json (role=engine-runtime, true-engine slugs vs proxy_fallback, session/pull/proxy endpoints, identity Aziel Eliab).",
       inputSchema: { type: "object", additionalProperties: true },
     },
     {
@@ -1522,10 +1528,11 @@ async function handleMcp(request, env, origin) {
       capabilities: { tools: { listChanged: false } },
       serverInfo: { name: "aziel-runtime", version: RUNTIME_VERSION },
       instructions:
-        "1.2.0 is catalog + pull + proxy plus one session object. 1.1.0 was catalog+proxy that called itself a runtime. " +
+        "1.3.0 is catalog + pull + proxy + session + in-process engines for listed slugs. 1.2.0 was session/receipt (exec still proxied). 1.1.0 was catalog+proxy. " +
         "True exec is runtime_session_open → runtime_session_policy → runtime_session_exec → runtime_session_receipt → runtime_session_close. " +
-        "Engine tools named {product}_{op} proxy to each AzielEliab Worker /v1/{op} and are not exec. " +
-        "This Worker does not load, jail, or schedule an engine. Hosted AZAI is protocol mirror + Lamb check, not the blend. " +
+        "For foldlock, azclce, decisiongate, ark, azai (Lamb only), zsolver the exec runs inside this isolate and the receipt includes engine_digest + ran_in. " +
+        "Other slugs are explicit proxy_fallback. Engine tools named {product}_{op} still proxy and are not exec. " +
+        "Cloudflare isolate is the jail. Hosted AZAI is protocol mirror + Lamb check, not the blend. " +
         "Always send User-Agent Mozilla/5.0. Public, no OAuth. Author: Aziel Eliab only.",
     });
   }
@@ -1715,7 +1722,7 @@ export default {
           runtime: origin + "/v1/runtime.json",
           session: origin + "/v1/session/open",
           bundle: origin + "/v1/bundle",
-          proxy_is_not_exec: true,
+          ...honestyFields(PRODUCTS.map((p) => p.slug)),
           license: "Apache-2.0",
           count: PRODUCTS.length,
           products: PRODUCTS.map((p) => catalogRecord(p, origin)),
@@ -1749,7 +1756,7 @@ export default {
           pull: "/v1/pull/{slug}",
           invoke: "/p/{slug}/{op}",
           invoke_note: "proxy only — not exec",
-          proxy_is_not_exec: true,
+          ...honestyFields(PRODUCTS.map((p) => p.slug)),
           counted_tarball: false,
           openapi: "/openapi.json",
           catalog: "/v1/catalog.json",

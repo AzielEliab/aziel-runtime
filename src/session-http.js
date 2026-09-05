@@ -1,11 +1,12 @@
 /**
  * HTTP + MCP adapter for the session object.
- * Records intent, invokes via the Worker proxy path, then appends a runtime-owned receipt.
+ * Records intent, runs a local engine when vendored, else explicit proxy_fallback.
  * Author: Aziel Eliab.
  */
 
 import { digestText, newSessionId, SESSION_ID_RE } from "./session-core.js";
 import { RUNTIME_VERSION } from "./runtime-api.js";
+import { executeLocal, proxyFallbackMeta } from "./engines/runner.js";
 
 function sessionStub(env, id) {
   if (!env || !env.SESSION) return null;
@@ -157,29 +158,61 @@ async function handleExec(request, env, id, { json, PRODUCTS, BY_SLUG, upstreamF
 
   const spec = product && product.ops ? product.ops.find((o) => o.op === op) : null;
   const method = spec && spec.method === "GET" ? "GET" : "POST";
-  const started = Date.now();
+  const reqDig = await digestText(payloadText);
+
   let status = 502;
   let responseText = "";
   let upstream = null;
   let error = null;
-  let contentType = null;
-  try {
-    const init = {
-      method,
-      headers: { "content-type": "application/json", accept: "application/json" },
+  let contentType = "application/json; charset=utf-8";
+  let latencyMs = 0;
+  let engine = null;
+  let parsedBody = null;
+
+  const local = await executeLocal({ slug, op, payload, ranIn: "aziel-runtime" });
+  if (local && !local.unsupported) {
+    status = local.status;
+    responseText = local.responseText;
+    error = local.error;
+    contentType = local.content_type;
+    latencyMs = local.latency_ms;
+    engine = {
+      mode: "local",
+      true_engine_runtime: true,
+      engine_digest: local.engine_digest,
+      engine_slug: local.engine_slug,
+      engine_op: local.engine_op,
+      ran_in: local.ran_in,
     };
-    if (method !== "GET") init.body = payloadText;
-    const out = await upstreamFetch(env, product, `/v1/${op}`, init);
-    upstream = out.target;
-    status = out.res.status;
-    contentType = out.res.headers.get("content-type");
-    responseText = await out.res.text();
-  } catch (err) {
-    error = String(err && err.message ? err.message : err);
-    status = 502;
+    try {
+      parsedBody = JSON.parse(responseText);
+    } catch {
+      parsedBody = null;
+    }
+  } else {
+    const started = Date.now();
+    try {
+      if (!product) {
+        throw Object.assign(new Error(`no local engine and unknown product: ${slug}`), { status: 404 });
+      }
+      const init = {
+        method,
+        headers: { "content-type": "application/json", accept: "application/json" },
+      };
+      if (method !== "GET") init.body = payloadText;
+      const out = await upstreamFetch(env, product, `/v1/${op}`, init);
+      upstream = out.target;
+      status = out.res.status;
+      contentType = out.res.headers.get("content-type") || contentType;
+      responseText = await out.res.text();
+    } catch (err) {
+      error = String(err && err.message ? err.message : err);
+      status = err && err.status ? err.status : 502;
+    }
+    latencyMs = Date.now() - started;
+    engine = proxyFallbackMeta({ slug, op, upstream, status, error });
   }
-  const latencyMs = Date.now() - started;
-  const reqDig = await digestText(payloadText);
+
   const resDig = await digestText(responseText);
 
   const commitRes = await stubFetch(env, id, "commit", {
@@ -194,10 +227,15 @@ async function handleExec(request, env, id, { json, PRODUCTS, BY_SLUG, upstreamF
       response_bytes: resDig.bytes,
       content_type: contentType,
       error,
-      upstream,
+      upstream: engine && engine.mode === "local" ? null : upstream,
+      engine,
     }),
   });
   const commitBody = await commitRes.json();
+  const localNote =
+    engine && engine.mode === "local"
+      ? "Ran inside this Worker isolate. Receipt includes engine_digest of the loaded artifact."
+      : "mode=proxy_fallback. Proxy without a session receipt is not exec. This receipt is owned by aziel-runtime.";
   return json(
     {
       ...commitBody,
@@ -206,11 +244,18 @@ async function handleExec(request, env, id, { json, PRODUCTS, BY_SLUG, upstreamF
         op,
         status,
         latency_ms: latencyMs,
-        upstream,
+        mode: engine && engine.mode,
+        true_engine_runtime: engine && engine.true_engine_runtime === true,
+        engine_digest: engine && engine.engine_digest,
+        engine_slug: engine && engine.engine_slug,
+        engine_op: engine && engine.engine_op,
+        ran_in: engine && engine.ran_in,
+        upstream: engine && engine.mode === "local" ? null : upstream,
         error,
         response_digest: resDig.sha256,
         response_bytes: resDig.bytes,
-        note: "Proxy without this session receipt is not exec. This receipt is owned by aziel-runtime.",
+        result: parsedBody,
+        note: localNote,
       },
     },
     commitRes.status,
@@ -245,7 +290,7 @@ export function sessionMcpTools() {
     {
       name: "runtime_session_exec",
       description:
-        "Runtime-owned exec: record intent, invoke product via service binding/public URL, append a hash-chained receipt. Body: session_id, slug, op, payload. Not the same as proxy /p/{slug}/{op}.",
+        "Runtime-owned exec: record intent, run a vendored engine in this isolate when the slug is a true engine, else mark proxy_fallback. Body: session_id, slug, op, payload. Receipt includes engine_digest + ran_in when local. Not the same as proxy /p/{slug}/{op}.",
       inputSchema: {
         type: "object",
         additionalProperties: true,
