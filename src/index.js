@@ -14,7 +14,8 @@
  * GET  /ai.txt                same as /llms.txt
  * GET  /cite.json             How-to-cite: Aziel Eliab, Apache-2.0, GitHub + DOI + related_identifiers
  * GET  /v1/skill              skill markdown (session + front doors)
- * GET  /v1/runtime.json       machine manifest: role=session-runtime
+ * GET  /v1/runtime.json       machine manifest: role=engine-runtime (1.4.0)
+ * GET  /v1/runtime            alias of /v1/runtime.json
  * GET  /v1/bundle             compact bootstrap (skill URL + invoke prefix per product)
  * GET  /v1/pull?all=1         alias of /v1/bundle
  * GET  /v1/pull/{slug}        pull record (skill, download, install, ops, aliases)
@@ -1665,8 +1666,9 @@ export default {
       return markdownResponse(runtimeSkillMarkdown(origin, PRODUCTS), extra("/v1/skill"));
     }
 
-    if (url.pathname === "/v1/runtime.json" && request.method === "GET") {
-      return json(runtimeManifest(origin, PRODUCTS), 200, extra("/v1/runtime.json"));
+    if ((url.pathname === "/v1/runtime.json" || url.pathname === "/v1/runtime") && request.method === "GET") {
+      const canon = "/v1/runtime.json";
+      return json(runtimeManifest(origin, PRODUCTS), 200, extra(canon));
     }
 
     if (url.pathname === "/v1/bundle" && request.method === "GET") {
