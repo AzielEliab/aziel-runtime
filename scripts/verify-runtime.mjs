@@ -54,6 +54,7 @@ assert.match(skill.headers.get("content-type") || "", /markdown|text\/plain/);
 const skillText = await skill.text();
 assert.match(skillText, /Aziel Eliab Runtime/);
 assert.match(skillText, /catalog \+ pull \+ proxy/);
+assert.match(skillText, /1\.6\.2/);
 assert.match(skillText, /1\.6\.1/);
 assert.match(skillText, /1\.6\.0/);
 assert.match(skillText, /1\.5\.0/);
