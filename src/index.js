@@ -569,10 +569,10 @@ function text(body, extra = {}) {
   return new Response(body, {
     status: 200,
     headers: {
-      "Content-Type": "text/plain; charset=utf-8",
       ...corsHeaders(),
       "X-Robots-Tag": "index, follow, max-snippet:-1, max-image-preview:large",
       ...extra,
+      "Content-Type": "text/plain; charset=utf-8",
     },
   });
 }
@@ -581,10 +581,10 @@ function xml(body, extra = {}) {
   return new Response(body, {
     status: 200,
     headers: {
-      "Content-Type": "application/xml; charset=utf-8",
       ...corsHeaders(),
       "X-Robots-Tag": "index, follow, max-snippet:-1, max-image-preview:large",
       ...extra,
+      "Content-Type": "application/xml; charset=utf-8",
     },
   });
 }
@@ -1770,24 +1770,24 @@ export default {
       return html(catalogHtml(origin, statsMap), extra("/"));
     }
 
-    if (url.pathname === "/robots.txt" && request.method === "GET") {
-      return text(robotsTxt(origin), extra("/robots.txt"));
+    if (url.pathname === "/robots.txt" && (request.method === "GET" || request.method === "HEAD")) {
+      return asHead(request, text(robotsTxt(origin), extra("/robots.txt")));
     }
 
-    if (url.pathname === "/sitemap.xml" && request.method === "GET") {
-      return xml(sitemapXml(origin), extra("/sitemap.xml"));
+    if (url.pathname === "/sitemap.xml" && (request.method === "GET" || request.method === "HEAD")) {
+      return asHead(request, xml(sitemapXml(origin), extra("/sitemap.xml")));
     }
 
-    if (url.pathname === "/sitemap-index.xml" && request.method === "GET") {
-      return xml(sitemapIndexXml(origin, PRODUCTS, LASTMOD), extra("/sitemap-index.xml"));
+    if (url.pathname === "/sitemap-index.xml" && (request.method === "GET" || request.method === "HEAD")) {
+      return asHead(request, xml(sitemapIndexXml(origin, PRODUCTS, LASTMOD), extra("/sitemap-index.xml")));
     }
 
-    if ((url.pathname === "/llms.txt" || url.pathname === "/ai.txt") && request.method === "GET") {
-      return text(llmsTxt(origin), extra(url.pathname));
+    if ((url.pathname === "/llms.txt" || url.pathname === "/ai.txt") && (request.method === "GET" || request.method === "HEAD")) {
+      return asHead(request, text(llmsTxt(origin), extra(url.pathname)));
     }
 
-    if (url.pathname === "/cite.json" && request.method === "GET") {
-      return json(citeJson(origin), 200, extra("/cite.json"));
+    if (url.pathname === "/cite.json" && (request.method === "GET" || request.method === "HEAD")) {
+      return asHead(request, json(citeJson(origin), 200, extra("/cite.json")));
     }
 
     if (url.pathname === "/v1/skill" && (request.method === "GET" || request.method === "HEAD")) {
