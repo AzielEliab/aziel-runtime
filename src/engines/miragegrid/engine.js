@@ -29,7 +29,6 @@ export function makePool(endpoints) {
   const byId = Object.fromEntries(nodes.map((n) => [n.id, n]));
   return {
     nodes,
-    byId,
     contains(id) { return Boolean(byId[id]); },
     containsNumber(n) { return Number.isInteger(n) && n >= 1 && n <= POOL_SIZE; },
     byIndex(i) {
