@@ -32,6 +32,25 @@ ChatGPT GPT Actions, Grok custom tools, and Venice HTTP tools import **this** Op
 
 **Forks are welcome and always allowed.** Do not invent Zenodo DOIs.
 
+## Websites / Live sites
+
+This Worker homepage stays the **API / MCP / OpenAPI** surface. Human site access is the two public sites — **Aziel Corpus Library** and **GodLock.uk** — which cross-tether each other and this runtime.
+
+| Surface | URL |
+|---------|-----|
+| Runtime Worker / MCP / OpenAPI | https://aziel-runtime.vibelock.workers.dev/ |
+| Library Runtime front door | https://www.azielcorpuslibrary.net/runtime |
+| Aziel Corpus Library | https://www.azielcorpuslibrary.net/ |
+| Aziel Eliab (library) | https://www.azielcorpuslibrary.net/AzielEliab |
+| Software page | https://www.azielcorpuslibrary.net/software |
+| GodLock.uk | https://godlock.uk — https://godlock.uk/AzielEliab — https://godlock.uk/software |
+| Repos | https://github.com/AzielEliab/aziel-corpus · https://github.com/AzielEliab/godlock |
+| Glama MCP listing | https://glama.ai/mcp/servers/AzielEliab/aziel-runtime |
+
+Glama **Install Server** is stdio via [`glama.json`](glama.json) + [`Dockerfile`](Dockerfile) on `main`. See [docs/GLAMA.md](docs/GLAMA.md).
+
+Public identity: **Aziel Eliab** only. Do not invent Zenodo DOIs.
+
 ## Dual surface (product law)
 
 1. **Agent / MCP** — Software runs through the agent. Show `display.title` / `display.summary` / `display.fields`, then take the next input. Session, OpenAPI, and HTTP plumbing stay invisible unless asked for.
