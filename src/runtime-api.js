@@ -4,15 +4,30 @@
  * 1.2.0 was a session/receipt runtime (exec still proxied).
  * 1.3.0 ran vendored engines inside this isolate for listed slugs.
  * 1.4.0 vendors a true engine for every catalog Software slug.
+ * 1.4.1 adds production gates (ready, HEAD, no-store, receipt cap, TTL, rate limits, optional token).
  * Public identity: Aziel Eliab only. Forks welcome. Do not invent DOIs.
  */
 import { honestyFields, trueEngineSlugs } from "./engines/registry.js";
+import {
+  RATE_EXEC_PER_MIN,
+  RATE_OPEN_PER_MIN,
+  RECEIPT_CAP,
+  SESSION_TTL_MS,
+} from "./production.js";
 
-export const RUNTIME_VERSION = "1.4.0";
+export const RUNTIME_VERSION = "1.4.1";
 export const RUNTIME_ROLE = "engine-runtime";
 export const RUNTIME_LAYER = "catalog+pull+proxy+session+in-process-engines";
 
-/** Single source of truth for health + runtime.json — never diverge. */
+export const VERSION_HISTORY = [
+  { version: "1.4.1", status: "current", note: "production gates: GET /v1/ready, HEAD + version/role headers, no-store authority JSON, receipt cap 64, session TTL 6h, per-IP rate limits, optional RUNTIME_TOKEN on session mutate" },
+  { version: "1.4.0", status: "superseded", note: "every catalog Software slug is a true in-process engine; binding-only ops stay per-op proxy_fallback" },
+  { version: "1.3.0", status: "superseded", note: "true engine runtime for listed portable slugs only" },
+  { version: "1.2.0", status: "superseded", note: "session-runtime: open → policy → exec → receipt → close; exec still proxied" },
+  { version: "1.1.0", status: "superseded", note: "catalog + pull + proxy that called itself a runtime" },
+];
+
+/** Single source of truth for health + runtime.json + ready — never diverge. */
 export function authoritySnapshot(productSlugs) {
   const honesty = honestyFields(productSlugs || []);
   return {
@@ -32,14 +47,19 @@ export function authoritySnapshot(productSlugs) {
     proxy_fallback_ops: honesty.proxy_fallback_ops,
     proxy_is_not_exec: true,
     isolate_is_the_jail: honesty.isolate_is_the_jail,
+    receipt_cap: RECEIPT_CAP,
+    session_ttl_ms: SESSION_TTL_MS,
+    rate_open_per_minute: RATE_OPEN_PER_MIN,
+    rate_exec_per_minute: RATE_EXEC_PER_MIN,
+    token: "optional-on-session-mutate",
     authority: {
       health: "GET /v1/health",
+      ready: "GET /v1/ready",
       runtime_json: "GET /v1/runtime.json",
-      note: "version/role/engine_slugs on health and runtime.json are the same snapshot. Historical notes live under version_history only — never read those keys as the current version.",
+      note: "version/role/engine_slugs on health, ready, and runtime.json are the same snapshot. Historical notes live under version_history only — never read those keys as the current version.",
     },
   };
 }
-
 export const SKILL_INLINE_MAX = 24_000;
 export const SKILL_TTL_MS = 10 * 60 * 1000;
 export const DEFAULT_UA = "Mozilla/5.0";
@@ -90,10 +110,12 @@ description: >-
   session object and in-process engines for every catalog Software slug.
   1.1.0 was catalog+proxy. 1.2.0 was a session/receipt runtime (exec still
   proxied). 1.3.0 ran listed slugs in-process. 1.4.0 vendors every slug.
+  1.4.1 adds production gates (ready, HEAD, no-store, receipt cap, TTL, rate limits, optional token).
 ---
 
 # Aziel Eliab Runtime
 
+**1.4.1 = 1.4.0 engine-runtime + production gates** (\`GET /v1/ready\`, HEAD, no-store authority JSON, receipt cap 64, session TTL 6h, per-IP rate limits, optional \`RUNTIME_TOKEN\` on session mutate).
 **1.4.0 = catalog + pull + proxy + session + in-process engines** for **every** catalog Software slug.
 **1.3.0 = true engine runtime** for listed portable slugs (in-process) + session + pull/proxy.
 **1.2.0 = session-runtime** (receipt chain; exec still \`upstreamFetch\`ed product Workers).
@@ -150,7 +172,8 @@ node cli/aziel-runtime.mjs session close
 ## Bootstrap (front doors — still useful)
 
 1. \`GET ${base}/v1/skill\` — this markdown.
-2. \`GET ${base}/v1/runtime.json\` — machine manifest (\`version=1.4.0\`, \`role=engine-runtime\`, every catalog slug in \`engine_slugs\` / \`true_engine_slugs\`). Same JSON: \`GET ${base}/v1/runtime\`.
+2. \`GET ${base}/v1/runtime.json\` — machine manifest (\`version=1.4.1\`, \`role=engine-runtime\`, every catalog slug in \`engine_slugs\` / \`true_engine_slugs\`, \`authoritySnapshot\` + \`version_history\`). Same JSON: \`GET ${base}/v1/runtime\`.
+   Also \`GET ${base}/v1/ready\` (200 only if SESSION binding is up; 503 if \`REQUIRE_TOKEN=1\` and \`RUNTIME_TOKEN\` is missing).
 3. \`GET ${base}/v1/bundle\` — every product skill URL + invoke prefix.
    Alias: \`GET ${base}/v1/pull?all=1\`.
 4. \`GET ${base}/v1/pull/{slug}\` — name, version, skill URL, counted download, install.sh, ops.
@@ -179,8 +202,10 @@ MCP tools are named \`{slug}_{op}\` (example: \`decisiongate_check\`, \`foldlock
 | GET | \`/v1/session/{id}/receipts\` | Full receipt chain. |
 | POST | \`/v1/session/{id}/close\` | Seal session. |
 | GET | \`/v1/skill\` | This markdown. Does not increment downloads. |
-| GET | \`/v1/runtime.json\` | Machine manifest. Authority with health: version=1.4.0, role=engine-runtime, all catalog slugs are true engines. |
+| GET | \`/v1/runtime.json\` | Machine manifest. Authority with health: version=1.4.1, role=engine-runtime, all catalog slugs are true engines. |
 | GET | \`/v1/runtime\` | Alias of \`/v1/runtime.json\` (same machine manifest). |
+| GET | \`/v1/ready\` | Readiness. 200 if SESSION binding is up. 503 if \`REQUIRE_TOKEN=1\` and \`RUNTIME_TOKEN\` missing. |
+| HEAD | \`/v1/health\`, \`/v1/ready\`, \`/v1/runtime.json\`, \`/v1/skill\` | 200 + \`X-Aziel-Runtime-Version\` / \`X-Aziel-Runtime-Role\`. |
 | GET | \`/v1/bundle\` | Compact bootstrap of every product. |
 | GET | \`/v1/pull?all=1\` | Alias of \`/v1/bundle\`. |
 | GET | \`/v1/pull/{slug}\` | Pull record for one product. |
@@ -225,6 +250,8 @@ curl -s -A 'Mozilla/5.0' -X POST ${base}/p/azclce/score \\
 
 Every catalog Software slug is a true engine (\`true_engine_runtime: true\`). \`engine_slugs\` equals \`true_engine_slugs\`: ${local}. Some ops remain per-op \`proxy_fallback\` when they need product-Worker bindings (AZ-OS session/exec/lattice; Aziel Digital Library live D1 / Whisper / OCR). Cloudflare isolate is the jail; \`engine_digest\` is still required for local exec.
 
+**1.4.1 production gates:** \`GET /v1/ready\` is 200 only if the SESSION Durable Object binding is up; **503** if \`REQUIRE_TOKEN=1\` and the \`RUNTIME_TOKEN\` secret is missing. Authority JSON (\`/v1/health\`, \`/v1/ready\`, \`/v1/runtime.json\`, \`/v1/catalog.json\`) is \`Cache-Control: no-store\`. Session mutate (open/policy/exec/close) may require \`Authorization: Bearer …\` or \`X-Aziel-Runtime-Token\` when the secret is set. Catalog / health / runtime / skill / pull stay public. Receipt cap 64. Session TTL 6h. Per-IP: 20 opens / minute, 60 execs / minute (429 JSON).
+
 GodLock and MirageGrid are not VPNs. ForgeReceipts is not legal advice. ZionPattern Solver caps confidence at 75% and does not solve cases. VeilLock does not inject into FaceTime. AZ-CLCE detects inconsistency, not intent. ChronoLock is advisory only. The ARK is not a kernel. AZAI hosted /v1 is a protocol mirror + Lamb check, not a paid-key proxy and **not** the local blend. Jeeves is not sovereign. SpectralLock hosted overlay is a 256px preview. EmployeeLock is not a court. FoldLock is not zip. WhistleLock is not a mailer. TrajectoryLock is not a certified forensic instrument. M.I.A.Lock Doe hits are leads, not IDs. Aziel Digital Library is not a 26-card index. AzielTether is not a VPN.
 
 ## Cite
@@ -243,7 +270,7 @@ export function runtimeManifest(origin, products) {
   const authority = authoritySnapshot(slugs);
   return {
     ...authority,
-    // Explicit aliases so scrapers that only look for these keys still see 1.4.0
+    // Explicit aliases so scrapers that only look for these keys still see current version
     runtime_version: RUNTIME_VERSION,
     manifest: "aziel-runtime.manifest.v1.4",
     author: "Aziel Eliab",
@@ -264,15 +291,11 @@ export function runtimeManifest(origin, products) {
     counted_tarball: false,
     ...honesty,
     local_blends: ["azai serve", "forgereceipts ui", "azos ui"],
-    // Historical only — NOT current version. Agents must use top-level `version`.
-    version_history: [
-      { version: "1.4.0", status: "current", note: "every catalog Software slug is a true in-process engine; binding-only ops stay per-op proxy_fallback" },
-      { version: "1.3.0", status: "superseded", note: "true engine runtime for listed portable slugs only" },
-      { version: "1.2.0", status: "superseded", note: "session-runtime: open → policy → exec → receipt → close; exec still proxied" },
-      { version: "1.1.0", status: "superseded", note: "catalog + pull + proxy that called itself a runtime" },
-    ],
+    authoritySnapshot: authority,
+    version_history: VERSION_HISTORY,
     endpoints: {
       session_open: base + "/v1/session/open",
+      ready: base + "/v1/ready",
       session_policy: base + "/v1/session/{id}/policy",
       session_exec: base + "/v1/session/{id}/exec",
       session_receipt: base + "/v1/session/{id}/receipt",
@@ -500,8 +523,10 @@ export function markdownResponse(body, extra = {}) {
     headers: {
       "Content-Type": "text/markdown; charset=utf-8",
       "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Accept, MCP-Protocol-Version, mcp-session-id",
+      "Access-Control-Allow-Methods": "GET, HEAD, POST, OPTIONS",
+      "Access-Control-Allow-Headers":
+        "Content-Type, Accept, Authorization, X-Aziel-Runtime-Token, MCP-Protocol-Version, mcp-session-id",
+      "Access-Control-Expose-Headers": "X-Aziel-Runtime-Version, X-Aziel-Runtime-Role",
       "X-Robots-Tag": "index, follow, max-snippet:-1, max-image-preview:large",
       ...extra,
     },
@@ -594,9 +619,15 @@ export function runtimeStaticPaths() {
     "/v1/skill": {
       get: {
         operationId: "runtime_skill",
-        summary: "Skill markdown: 1.4.0 in-process engines for every catalog slug plus session and catalog/pull/proxy. Honest about 1.1.0 / 1.2.0 / 1.3.0 / 1.4.0.",
+        summary: "Skill markdown: 1.4.1 production gates on 1.4.0 in-process engines. Honest about 1.1.0 / 1.2.0 / 1.3.0 / 1.4.0 / 1.4.1.",
         tags: ["runtime"],
         responses: { "200": { description: "text/markdown skill" } },
+      },
+      head: {
+        operationId: "runtime_skill_head",
+        summary: "HEAD of /v1/skill. X-Aziel-Runtime-Version / Role.",
+        tags: ["runtime"],
+        responses: { "200": { description: "headers only" } },
       },
     },
     "/v1/runtime.json": {
@@ -605,6 +636,29 @@ export function runtimeStaticPaths() {
         summary: "Machine manifest. role=engine-runtime. Every catalog slug is a true engine; binding-only ops stay per-op proxy_fallback. Identity Aziel Eliab.",
         tags: ["runtime"],
         responses: { "200": { description: "Runtime manifest JSON" } },
+      },
+      head: {
+        operationId: "runtime_manifest_head",
+        summary: "HEAD of /v1/runtime.json. X-Aziel-Runtime-Version / Role.",
+        tags: ["runtime"],
+        responses: { "200": { description: "headers only" } },
+      },
+    },
+    "/v1/ready": {
+      get: {
+        operationId: "runtime_ready",
+        summary: "Readiness. 200 if SESSION Durable Object binding is up. 503 if REQUIRE_TOKEN=1 and RUNTIME_TOKEN secret is missing.",
+        tags: ["runtime"],
+        responses: {
+          "200": { description: "Ready" },
+          "503": { description: "SESSION missing or REQUIRE_TOKEN=1 without RUNTIME_TOKEN" },
+        },
+      },
+      head: {
+        operationId: "runtime_ready_head",
+        summary: "HEAD of /v1/ready. X-Aziel-Runtime-Version / Role.",
+        tags: ["runtime"],
+        responses: { "200": { description: "headers only" }, "503": { description: "not ready" } },
       },
     },
     "/v1/bundle": {

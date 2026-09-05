@@ -43,7 +43,7 @@ function usage() {
   return `aziel-runtime ${RUNTIME_VERSION} — session client (Aziel Eliab)
 
 Usage:
-  aziel-runtime session open [--local] [--url URL]
+  aziel-runtime session open [--local] [--url URL] [--token TOKEN]
   aziel-runtime session policy [--id ID] [--allow-slugs a,b] [--allow-ops x,y] [--max-payload N]
   aziel-runtime session exec <slug> <op> [payload-json]
   aziel-runtime session receipt [--id ID] [--all]
@@ -54,7 +54,7 @@ Usage:
 Default: Worker session at ${DEFAULT_URL}
 --local: filesystem session under ${HOME}; prefers vendored engines (in-process)
 --jail: run the local engine in a child Node process (ran_in=local-jail)
-1.4.0 is true engine runtime for every catalog Software slug + session + pull/proxy. Binding-only ops stay per-op proxy_fallback. No counted runtime tarball.
+1.4.1 is 1.4.0 engine-runtime plus production gates (ready, HEAD, no-store, receipt cap 64, TTL 6h, rate limits, optional token). Binding-only ops stay per-op proxy_fallback. No counted runtime tarball.
 Proxy /p/{slug}/{op} is not exec. Hosted AZAI is not the local blend.
 `;
 }
@@ -69,6 +69,7 @@ function parseArgs(argv) {
     else if (a === "--all") out.flags.all = true;
     else if (a === "--help" || a === "-h") out.flags.help = true;
     else if (a === "--url") out.flags.url = argv[++i];
+    else if (a === "--token") out.flags.token = argv[++i];
     else if (a === "--id") out.flags.id = argv[++i];
     else if (a === "--allow-slugs") out.flags.allow_slugs = argv[++i];
     else if (a === "--allow-ops") out.flags.allow_ops = argv[++i];
@@ -116,8 +117,14 @@ async function saveLocal(session) {
   await writeCurrent(session.id);
 }
 
-async function remote(url, path, init = {}) {
-  const headers = { "User-Agent": UA, Accept: "application/json", ...(init.headers || {}) };
+function tokenHeaders(flags) {
+  const token = (flags && flags.token) || process.env.AZIEL_RUNTIME_TOKEN || process.env.RUNTIME_TOKEN;
+  if (!token) return {};
+  return { "X-Aziel-Runtime-Token": String(token) };
+}
+
+async function remote(url, path, init = {}, flags = {}) {
+  const headers = { "User-Agent": UA, Accept: "application/json", ...tokenHeaders(flags), ...(init.headers || {}) };
   const res = await fetch(url.replace(/\/$/, "") + path, { ...init, headers });
   const text = await res.text();
   let body;
@@ -168,7 +175,7 @@ async function cmdOpen(flags) {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: "{}",
-  });
+  }, flags);
   if (body.session && body.session.id) await writeCurrent(body.session.id);
   return { ok: true, mode: "worker", ...body };
 }
@@ -194,7 +201,7 @@ async function cmdPolicy(flags) {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(policy),
-    })),
+    }, flags)),
   };
 }
 
@@ -325,7 +332,7 @@ async function cmdExec(flags, slug, op, payloadArg) {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ slug, op, payload }),
-    })),
+    }, flags)),
   };
 }
 
@@ -346,7 +353,7 @@ async function cmdReceipt(flags, all) {
   const id = await resolveId(flags);
   const url = flags.url || DEFAULT_URL;
   const path = all || flags.all ? `/v1/session/${id}/receipts` : `/v1/session/${id}/receipt`;
-  return { ok: true, mode: "worker", ...(await remote(url, path)) };
+  return { ok: true, mode: "worker", ...(await remote(url, path, {}, flags)) };
 }
 
 async function cmdClose(flags) {
@@ -360,7 +367,7 @@ async function cmdClose(flags) {
   }
   const id = await resolveId(flags);
   const url = flags.url || DEFAULT_URL;
-  return { ok: true, mode: "worker", ...(await remote(url, `/v1/session/${id}/close`, { method: "POST" })) };
+  return { ok: true, mode: "worker", ...(await remote(url, `/v1/session/${id}/close`, { method: "POST" }, flags)) };
 }
 
 async function cmdStatus(flags) {
@@ -371,7 +378,7 @@ async function cmdStatus(flags) {
   }
   const id = await resolveId(flags);
   const url = flags.url || DEFAULT_URL;
-  return { ok: true, mode: "worker", ...(await remote(url, `/v1/session/${id}`)) };
+  return { ok: true, mode: "worker", ...(await remote(url, `/v1/session/${id}`, {}, flags)) };
 }
 
 async function main() {

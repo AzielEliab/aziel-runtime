@@ -16,6 +16,7 @@ import {
   SESSION_ID_RE,
   verifyChainStrict,
 } from "./session-core.js";
+import { SESSION_TTL_MS, isSessionExpired } from "./production.js";
 
 function json(body, status = 200) {
   return new Response(JSON.stringify(body, null, 2), {
@@ -61,6 +62,33 @@ export class RuntimeSession {
 
   async save(session) {
     await this.ctx.storage.put("session", session);
+  }
+
+  async scheduleExpiry() {
+    if (this.ctx.storage && typeof this.ctx.storage.setAlarm === "function") {
+      await this.ctx.storage.setAlarm(Date.now() + SESSION_TTL_MS);
+    }
+  }
+
+  async expireIfNeeded(session) {
+    if (!session || session.closed) return session;
+    const now = new Date().toISOString();
+    if (!isSessionExpired(session, now)) return session;
+    const out = await applyClose(session, now, { force: true });
+    await this.save(out.session);
+    const err = new Error("session exceeded 6h TTL");
+    err.status = 410;
+    err.code = "session_expired";
+    err.extra = { session_id: session.id, opened_at: session.opened_at, session_ttl_ms: SESSION_TTL_MS };
+    throw err;
+  }
+
+  async alarm() {
+    const session = await this.load();
+    if (!session || session.closed) return;
+    const now = new Date().toISOString();
+    const out = await applyClose(session, now, { force: true });
+    await this.save(out.session);
   }
 
   async fetch(request) {
@@ -115,11 +143,12 @@ export class RuntimeSession {
     });
     await applyOpen(session, now);
     await this.save(session);
+    await this.scheduleExpiry();
     return json({ ok: true, session: publicSession(session), receipt: session.receipts[0] });
   }
 
   async policy(body) {
-    const session = await this.load();
+    const session = await this.expireIfNeeded(await this.load());
     const now = new Date().toISOString();
     const out = await applyPolicy(session, body && body.policy != null ? body.policy : body, now);
     await this.save(out.session);
@@ -127,7 +156,7 @@ export class RuntimeSession {
   }
 
   async intent(body) {
-    const session = await this.load();
+    const session = await this.expireIfNeeded(await this.load());
     const now = new Date().toISOString();
     const known = body.known_slugs ? new Set(body.known_slugs) : null;
     const out = await recordIntent(
@@ -147,7 +176,7 @@ export class RuntimeSession {
   }
 
   async commit(body) {
-    const session = await this.load();
+    const session = await this.expireIfNeeded(await this.load());
     const now = new Date().toISOString();
     const receipt = await commitExec(
       session,
@@ -185,7 +214,7 @@ export class RuntimeSession {
   }
 
   async close() {
-    const session = await this.load();
+    const session = await this.expireIfNeeded(await this.load());
     const now = new Date().toISOString();
     const out = await applyClose(session, now);
     await this.save(out.session);
@@ -216,6 +245,8 @@ export function memorySessionNamespace(env) {
         put: async (k, v) => {
           store.set(k, v);
         },
+        setAlarm: async () => {},
+        deleteAlarm: async () => {},
       };
       objects.set(key, new RuntimeSession({ storage }, env));
     }

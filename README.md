@@ -1,6 +1,6 @@
 # aziel-runtime
 
-**Aziel Eliab Runtime 1.4.0** — catalog + pull + proxy, one session object, and **in-process engines** for every catalog Software slug:
+**Aziel Eliab Runtime 1.4.1** — catalog + pull + proxy, one session object, **in-process engines** for every catalog Software slug, and production gates (`/v1/ready`, HEAD, no-store, receipt cap 64, session TTL 6h, per-IP rate limits, optional `RUNTIME_TOKEN` on session mutate):
 
 `open → policy → exec(slug, op, payload) → receipt → close`
 
@@ -21,7 +21,7 @@ ChatGPT GPT Actions, Grok custom tools, and Venice HTTP tools import **this** Op
 **Author:** Aziel Eliab  
 **Identity:** Aziel Eliab only  
 **License:** [Apache-2.0](LICENSE)  
-**Version:** 1.4.0  
+**Version:** 1.4.1  
 **Role:** `engine-runtime` (layer: `catalog+pull+proxy+session+in-process-engines`)  
 **Worker:** `aziel-runtime` → https://aziel-runtime.vibelock.workers.dev/  
 **Library front door:** https://www.azielcorpuslibrary.net/runtime  
@@ -49,7 +49,7 @@ curl -s -A 'Mozilla/5.0' https://aziel-runtime.vibelock.workers.dev/v1/session/$
 curl -s -A 'Mozilla/5.0' -X POST https://aziel-runtime.vibelock.workers.dev/v1/session/$SID/close
 ```
 
-A local exec receipt includes `engine_digest`, `engine_slug`, `engine_op`, `ran_in: "aziel-runtime"`, result digests, and latency — not only an upstream HTTP status. `close` seals the chain; further exec is HTTP 409.
+A local exec receipt includes `engine_digest`, `engine_slug`, `engine_op`, `ran_in: "aziel-runtime"`, result digests, and latency — not only an upstream HTTP status. `close` seals the chain; further exec is HTTP 409. Sessions expire after 6h (410/auto-close). Receipt cap is 64. Session mutate may require `Authorization: Bearer …` or `X-Aziel-Runtime-Token` when `RUNTIME_TOKEN` is set.
 
 Local CLI (Worker client by default; `--local` writes a session file and prefers vendored engines; `--jail` runs the engine in a child Node process):
 
@@ -106,6 +106,7 @@ Always send `User-Agent: Mozilla/5.0`.
 | sitemap.xml | https://aziel-runtime.vibelock.workers.dev/sitemap.xml |
 | MCP (JSON-RPC over HTTP, public, no OAuth) | `POST` https://aziel-runtime.vibelock.workers.dev/mcp |
 | Health | https://aziel-runtime.vibelock.workers.dev/v1/health |
+| Ready | https://aziel-runtime.vibelock.workers.dev/v1/ready |
 | Everblooming sigil | https://aziel-runtime.vibelock.workers.dev/sigil.png |
 
 `GET /v1/pull?all=1` is an alias of `/v1/bundle`.
@@ -221,13 +222,40 @@ Account `ac575a9b822bea2bed97d0ab73aed238`. workers.dev
 
 **1.2.0+ requires Durable Object migration tag `v1`** (`RuntimeSession`, SQLite).
 The first deploy after the session cut creates the `SESSION` binding. **1.4.0
-does not need a new DO migration** — engines run in the same isolate.
+does not need a new DO migration** — engines run in the same isolate. **1.4.1
+reuses that SESSION class.**
+
+Optional production token (session mutate only — catalog / health / runtime /
+skill / pull stay public):
+
+```toml
+# wrangler.toml
+# [vars]
+# REQUIRE_TOKEN = "1"
+```
+
+```bash
+npx wrangler secret put RUNTIME_TOKEN
+npx wrangler deploy
+node scripts/probe-live.mjs
+```
+
+If `RUNTIME_TOKEN` is unset and `REQUIRE_TOKEN` is not `1`, sessions stay open
+(dev). If the secret is set, `POST /v1/session/open|policy|exec|close` requires
+`Authorization: Bearer …` or `X-Aziel-Runtime-Token`. `GET /v1/ready` is **200**
+only when the SESSION Durable Object binding is up, and **503** when
+`REQUIRE_TOKEN=1` and the secret is missing. Authority JSON (`/v1/health`,
+`/v1/ready`, `/v1/runtime.json`, `/v1/catalog.json`) is `Cache-Control: no-store`.
+Receipts cap at 64. Sessions expire after 6h. Per-IP: 20 opens / minute, 60
+execs / minute (HTTP 429 JSON).
 
 If this checkout has no wrangler credentials, deploy from the author's machine:
 
 ```bash
+npx wrangler secret put RUNTIME_TOKEN
 npx wrangler deploy
-# confirm GET /v1/health version=1.4.0 role=engine-runtime
+node scripts/probe-live.mjs
+# confirm GET /v1/health and /v1/ready and /v1/runtime.json version=1.4.1 role=engine-runtime
 # confirm engine_slugs == true_engine_slugs == all 27 catalog slugs
 # confirm POST /v1/session/open → policy → exec each primary op → receipt has engine_digest + ran_in
 ```

@@ -8,6 +8,9 @@ import { dirname, join } from "node:path";
 import { PRODUCTS } from "../src/index.js";
 import {
   RUNTIME_VERSION,
+  RUNTIME_ROLE,
+  VERSION_HISTORY,
+  authoritySnapshot,
   resolveSlug,
   runtimeSkillMarkdown,
   runtimeManifest,
@@ -15,6 +18,8 @@ import {
   pullRecord,
   fallbackSkillMarkdown,
 } from "../src/runtime-api.js";
+import { memorySessionNamespace } from "../src/session-do.js";
+import { VERSION_HEADER, ROLE_HEADER } from "../src/production.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const handler = (await import("../src/index.js")).default.fetch;
@@ -22,6 +27,7 @@ const origin = "https://aziel-runtime.example";
 const png = await readFile(join(root, "public/sigil.png"));
 
 const env = {
+  SESSION: memorySessionNamespace({}),
   ASSETS: {
     fetch: async (request) => {
       const path = new URL(request.url).pathname;
@@ -48,8 +54,10 @@ assert.match(skill.headers.get("content-type") || "", /markdown|text\/plain/);
 const skillText = await skill.text();
 assert.match(skillText, /Aziel Eliab Runtime/);
 assert.match(skillText, /catalog \+ pull \+ proxy/);
+assert.match(skillText, /1\.4\.1/);
 assert.match(skillText, /1\.4\.0/);
 assert.match(skillText, /1\.3\.0/);
+assert.match(skillText, /\/v1\/ready/);
 assert.match(skillText, /engine_digest/);
 assert.match(skillText, /open → policy → exec/);
 assert.match(skillText, /\/v1\/runtime\.json/);
@@ -92,6 +100,18 @@ assert.ok(manifest.endpoints.pull.includes("/v1/pull/{slug}"));
 assert.ok(manifest.endpoints.invoke.includes("/p/{slug}/{op}"));
 assert.ok(manifest.endpoints.cite.includes("/cite.json"));
 assert.equal(manifest.doi, null);
+assert.ok(manifest.authoritySnapshot);
+assert.equal(manifest.authoritySnapshot.version, RUNTIME_VERSION);
+assert.equal(manifest.authoritySnapshot.role, RUNTIME_ROLE);
+assert.deepEqual(manifest.authoritySnapshot, authoritySnapshot());
+assert.ok(Array.isArray(manifest.version_history));
+assert.deepEqual(manifest.version_history, VERSION_HISTORY);
+assert.equal(manifest.honest, undefined);
+assert.ok(!Object.prototype.hasOwnProperty.call(manifest, "honest"));
+assert.equal(manifestRes.headers.get(VERSION_HEADER), RUNTIME_VERSION);
+assert.equal(manifestRes.headers.get(ROLE_HEADER), RUNTIME_ROLE);
+assert.match(manifestRes.headers.get("Cache-Control") || "", /no-store/);
+assert.match(manifestRes.headers.get("CDN-Cache-Control") || "", /no-store/);
 
 const bundleRes = await get("/v1/bundle");
 assert.equal(bundleRes.status, 200);
@@ -134,9 +154,35 @@ assert.equal(pullSkill.status, 200);
 const pullSkillText = await pullSkill.text();
 assert.match(pullSkillText, /FoldLock|# FoldLock|fold/);
 
-const health = await (await get("/v1/health")).json();
+const healthRes = await get("/v1/health");
+assert.equal(healthRes.status, 200);
+assert.equal(healthRes.headers.get(VERSION_HEADER), RUNTIME_VERSION);
+assert.equal(healthRes.headers.get(ROLE_HEADER), RUNTIME_ROLE);
+assert.match(healthRes.headers.get("Cache-Control") || "", /no-store/);
+const health = await healthRes.json();
 assert.equal(health.role, "engine-runtime");
 assert.equal(health.version, RUNTIME_VERSION);
+assert.equal(health.ready, "/v1/ready");
+assert.ok(health.authoritySnapshot);
+assert.equal(health.authoritySnapshot.version, RUNTIME_VERSION);
+assert.ok(!Object.prototype.hasOwnProperty.call(health, "honest"));
+
+const readyRes = await get("/v1/ready");
+assert.equal(readyRes.status, 200);
+const ready = await readyRes.json();
+assert.equal(ready.ok, true);
+assert.equal(ready.version, health.version);
+assert.equal(ready.role, health.role);
+assert.equal(ready.session_binding, true);
+
+for (const path of ["/v1/health", "/v1/ready", "/v1/runtime.json", "/v1/runtime", "/v1/skill"]) {
+  const head = await handler(new Request(origin + path, { method: "HEAD" }), env);
+  assert.equal(head.status, 200, `HEAD ${path}`);
+  assert.equal(head.headers.get(VERSION_HEADER), RUNTIME_VERSION, `HEAD ${path} version`);
+  assert.equal(head.headers.get(ROLE_HEADER), RUNTIME_ROLE, `HEAD ${path} role`);
+  const text = await head.text();
+  assert.equal(text, "");
+}
 assert.deepEqual(health.true_engine_slugs, manifest.true_engine_slugs);
 assert.deepEqual(health.engine_slugs, health.true_engine_slugs);
 assert.deepEqual(manifest.engine_slugs, manifest.true_engine_slugs);
@@ -167,6 +213,7 @@ assert.equal(sigil.headers.get("X-Aziel-Sigil"), "Everblooming");
 const llms = await (await get("/llms.txt")).text();
 assert.match(llms, /Role: engine-runtime/);
 assert.match(llms, /1\.1\.0 was catalog\+proxy/);
+assert.match(llms, /1\.4\.1/);
 assert.match(llms, /1\.4\.0/);
 assert.match(llms, /1\.3\.0/);
 assert.match(llms, /\/v1\/bundle/);
@@ -177,6 +224,7 @@ assert.equal(openapi.info.title, "Aziel Eliab Runtime");
 assert.equal(openapi.info.version, RUNTIME_VERSION);
 assert.ok(openapi.paths["/v1/skill"]);
 assert.ok(openapi.paths["/v1/runtime.json"]);
+assert.ok(openapi.paths["/v1/ready"]);
 assert.ok(openapi.paths["/v1/session/open"]);
 assert.ok(openapi.paths["/v1/session/{id}/exec"]);
 assert.ok(openapi.paths["/v1/bundle"]);
@@ -216,6 +264,7 @@ assert.ok(tools.includes("runtime_session_exec"));
 const sitemap = await (await get("/sitemap.xml")).text();
 assert.match(sitemap, /\/v1\/skill/);
 assert.match(sitemap, /\/v1\/runtime\.json/);
+assert.match(sitemap, /\/v1\/ready/);
 assert.match(sitemap, /\/v1\/bundle/);
 assert.match(sitemap, /\/v1\/pull\/foldlock\/skill/);
 

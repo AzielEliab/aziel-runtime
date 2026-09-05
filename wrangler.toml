@@ -121,8 +121,16 @@ service = "azieltether-download-tracker"
 binding = "AZIEL_CORPUS"
 service = "aziel-corpus-download-tracker"
 
+# Optional production gate (1.4.1). When REQUIRE_TOKEN=1, GET /v1/ready is 503
+# unless secret RUNTIME_TOKEN is set (`npx wrangler secret put RUNTIME_TOKEN`).
+# Catalog / health / runtime / skill / pull stay public. Session mutate
+# (open/policy/exec/close) requires Authorization: Bearer … or X-Aziel-Runtime-Token
+# when the secret is set. If the secret is unset and REQUIRE_TOKEN≠1, sessions stay open (dev).
+# [vars]
+# REQUIRE_TOKEN = "1"
+
 # One Durable Object per session (open → policy → exec → receipt → close).
-# 1.4.0 engines run in this Worker isolate; no new DO class.
+# 1.4.0 engines run in this Worker isolate; no new DO class. 1.4.1 reuses SESSION.
 [[durable_objects.bindings]]
 name = "SESSION"
 class_name = "RuntimeSession"
