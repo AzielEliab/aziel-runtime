@@ -75,7 +75,9 @@ export function tokenGateState(env) {
     require_token,
     token_configured,
     ready_blocked: require_token && !token_configured,
-    mutate_requires_token: token_configured,
+    // Session mutate requires bearer only when REQUIRE_TOKEN=1 and secret exists.
+    // Secret alone (flag off) keeps open/policy/exec public for catalog-first deploy.
+    mutate_requires_token: require_token && token_configured,
     mutate_blocked: require_token && !token_configured,
   };
 }
