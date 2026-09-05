@@ -30,6 +30,9 @@ assert.equal(Object.keys(glama).sort().join(","), "$schema,maintainers");
 const dockerfile = await readFile(join(root, "Dockerfile"), "utf8");
 assert.match(dockerfile, /cli\/mcp-stdio\.mjs/);
 assert.match(dockerfile, /AZIEL_RUNTIME_URL/);
+assert.match(dockerfile, /CMD \["node", "cli\/mcp-stdio\.mjs"\]/);
+assert.doesNotMatch(dockerfile, /ENTRYPOINT/);
+assert.doesNotMatch(dockerfile, /mcp-proxy/);
 
 const dockerignore = await readFile(join(root, ".dockerignore"), "utf8");
 assert.match(dockerignore, /\.git/);

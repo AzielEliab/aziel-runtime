@@ -1,5 +1,5 @@
 /**
- * aziel-runtime 1.6.0 — FragGate door over the catalog.
+ * aziel-runtime 1.6.1 — FragGate door over the catalog; full AI client list.
  *
  * 1.1.0 was catalog+proxy that called itself a runtime. Useful front doors.
  * 1.2.0 owned open → policy → exec → receipt → close but exec still proxied.
@@ -19,7 +19,7 @@
  * GET  /ai.txt                same as /llms.txt
  * GET  /cite.json             How-to-cite: Aziel Eliab (aka Aziel Elroi Eliab), Apache-2.0, no invented DOIs
  * GET  /v1/skill              skill markdown (session + front doors)
- * GET  /v1/runtime.json       machine manifest: role=engine-runtime (1.6.0), door=fraggate
+ * GET  /v1/runtime.json       machine manifest: role=engine-runtime (1.6.1), door=fraggate
  * GET  /v1/fraggate           FragGate door summary
  * GET  /v1/fraggate/list      hashed registry
  * GET  /v1/fraggate/describe  one name
@@ -114,6 +114,15 @@ import {
   robotsTxt as buildRobotsTxt,
   sitemapIndexXml,
 } from "./seo.js";
+import {
+  HOMEPAGE_KEYWORDS,
+  citeCompatibleFields,
+  crawlerAllowSentence,
+  homepageAddUrlHtml,
+  llmsCompatibleBlock,
+  openApiImportSentence,
+  tokenAuthSentence,
+} from "./ai-clients.js";
 
 export { RuntimeSession };
 
@@ -121,7 +130,7 @@ const CATALOG_HOST = "https://aziel-runtime.vibelock.workers.dev";
 const PROTOCOL = "2025-03-26";
 const CATALOG_TITLE = "Aziel Eliab Runtime";
 const CATALOG_DESCRIPTION =
-  "Aziel Eliab software catalog and engine-runtime: 27 products plus the Aziel Digital Library (www.azielcorpuslibrary.net). 1.6.0 FragGate door over the catalog — discover, route, refuse. Hashed registry, thin MCP, DecisionGATE before exec. 1.5.0 was agent-native flat product tools. Proxy is not exec. Dual surface: agent chat has no technical UI chrome; Worker / Flutter / local install / counted download stay complete human software. Apache-2.0. Author: Aziel Eliab (also known as Aziel Elroi Eliab).";
+  "Aziel Eliab software catalog and engine-runtime: 27 products plus the Aziel Digital Library (www.azielcorpuslibrary.net). 1.6.1 lists every major OpenAPI/MCP/HTTP client — ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants. 1.6.0 FragGate door — discover, route, refuse. Hashed registry, thin MCP, DecisionGATE before exec. 1.5.0 was agent-native flat product tools. Proxy is not exec. Dual surface: agent chat has no technical UI chrome; Worker / Flutter / local install / counted download stay complete human software. Apache-2.0. Author: Aziel Eliab (also known as Aziel Elroi Eliab). Open crawl Allow: / for GPTBot/ChatGPT, Venice, Grok, Google-Extended, GoogleOther, Google-CloudVertexBot, Claude(+Search/User), anthropic-ai, Perplexity(+User), bingbot, Meta-External*, Applebot(+Extended), Amazonbot, DuckDuck/DuckAssist, MistralAI-User, YouBot, CCBot, cohere-ai, Diffbot, AI2Bot(+Dolma), and the rest of robots.txt."
 const LASTMOD = "2026-09-05";
 
 const PRODUCTS_RAW = [
@@ -751,7 +760,7 @@ function llmsTxt(origin) {
     "",
     ...llmsIdentityHeader(),
     `Role: engine-runtime (catalog + pull + proxy + session + in-process engines)`,
-    `Honesty: 1.1.0 was catalog+proxy. 1.2.0 was session/receipt (exec still proxied). 1.3.0 ran listed slugs in-process. 1.4.0 vendors every catalog Software slug. 1.4.1 adds production gates (ready, HEAD, no-store, receipt cap 64, TTL 6h, rate limits, optional token). 1.5.0 was the agent-native cut (flat product-verb MCP). 1.6.0 is the FragGate door (discover, route, refuse).`,
+    `Honesty: 1.1.0 was catalog+proxy. 1.2.0 was session/receipt (exec still proxied). 1.3.0 ran listed slugs in-process. 1.4.0 vendors every catalog Software slug. 1.4.1 adds production gates (ready, HEAD, no-store, receipt cap 64, TTL 6h, rate limits, optional token). 1.5.0 was the agent-native cut (flat product-verb MCP). 1.6.0 is the FragGate door (discover, route, refuse). 1.6.1 lists every major OpenAPI/MCP/HTTP client.`,
     `True-engine slugs: ${honestyFields(PRODUCTS.map((p) => p.slug)).true_engine_slugs.join(", ")}`,
     `Proxy /p/{slug}/{op} is not exec. Hosted AZAI is not the local blend.`,
     `Local blends: azai serve · forgereceipts ui · azos ui`,
@@ -776,6 +785,8 @@ function llmsTxt(origin) {
     `Library front door: https://www.azielcorpuslibrary.net/runtime`,
     `License: Apache-2.0`,
     `User-Agent: Mozilla/5.0`,
+    "",
+    llmsCompatibleBlock().trimEnd(),
     "",
     "## Session (the actual runtime cut)",
     "",
@@ -832,7 +843,7 @@ function llmsTxt(origin) {
     "Expected on every product Worker: GET /  GET /cite.json  GET /llms.txt  GET /download  GET /robots.txt (Allow: /)  GET /sitemap.xml.",
   );
   lines.push(
-    "See docs/PRODUCT_SEO.md. Open crawl: Allow: / for GPTBot and other AI bots. Do not leave a conflicting Disallow. Do not ship Cloudflare content-signal blocks.",
+    `See docs/PRODUCT_SEO.md. Open crawl: ${crawlerAllowSentence()} Do not leave a conflicting Disallow. Do not ship Cloudflare content-signal blocks.`,
   );
   lines.push(
     "VibeLock counted Worker (vibelock-download-tracker.vibelock.workers.dev) already Allows /. The host vibelock.vibelock.workers.dev is a different Worker and previously served Cloudflare content-signal text — that repo should match the template.",
@@ -864,6 +875,7 @@ function citeJson(origin) {
     version: RUNTIME_VERSION,
     counted_tarball: false,
     proxy_is_not_exec: true,
+    ...citeCompatibleFields(),
     ...honestyFields(PRODUCTS.map((p) => p.slug)),
     license: "Apache-2.0",
     license_url: "https://www.apache.org/licenses/LICENSE-2.0",
@@ -974,7 +986,7 @@ function headMeta(origin, title, description, canonicalPath) {
 <meta name="description" content="${escapeHtml(description)}">
 <meta name="author" content="${escapeHtml(AUTHOR_NAME)}">
 <meta name="citation_author" content="${escapeHtml(AUTHOR_NAME)}">
-<meta name="keywords" content="Aziel Eliab, Aziel Elroi Eliab, Aziel Digital Library, aziel-runtime, Aziel Eliab software">
+<meta name="keywords" content="${escapeHtml(HOMEPAGE_KEYWORDS)}">
 <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1">
 <link rel="canonical" href="${escapeHtml(canonical)}">
 <link rel="sitemap" type="application/xml" href="${base}/sitemap.xml">
@@ -1088,7 +1100,7 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
     <p class="stamp">Everblooming sigil · Aziel Eliab</p>
   </div>
   <h1>Aziel Eliab Runtime</h1>
-  <p class="lead"><strong>1.6.0</strong> is the <strong>FragGate door</strong> over the catalog — one door: discover, route, refuse. <strong>1.5.0</strong> was the agent-native flat product-tool pile. Human software — this Worker UI, Flutter <code>mobile/</code>, local install, counted <code>/download</code> — stays complete. Catalog + pull + proxy + session + <strong>in-process engines</strong> for every catalog Software slug. ${PRODUCTS.length} products including the <a href="${LIBRARY_ORIGIN}/">Aziel Digital Library</a>. Kernel: <a href="https://github.com/AzielEliab/fraggate">fraggate</a>. Forks welcome. Apache-2.0. Author: <strong>Aziel Eliab</strong> (also known as Aziel Elroi Eliab).</p>
+  <p class="lead"><strong>1.6.1</strong> lists every major OpenAPI / MCP / HTTP client (not only ChatGPT, Grok, and Venice). <strong>1.6.0</strong> is the <strong>FragGate door</strong> over the catalog — one door: discover, route, refuse. <strong>1.5.0</strong> was the agent-native flat product-tool pile. Human software — this Worker UI, Flutter <code>mobile/</code>, local install, counted <code>/download</code> — stays complete. Catalog + pull + proxy + session + <strong>in-process engines</strong> for every catalog Software slug. ${PRODUCTS.length} products including the <a href="${LIBRARY_ORIGIN}/">Aziel Digital Library</a>. Kernel: <a href="https://github.com/AzielEliab/fraggate">fraggate</a>. Forks welcome. Apache-2.0. Author: <strong>Aziel Eliab</strong> (also known as Aziel Elroi Eliab).</p>
   <div class="honesty">
     <strong>What this Worker is</strong>
     <ul>
@@ -1099,6 +1111,7 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
       <li><strong>1.4.1</strong> production gates: <code>GET /v1/ready</code> (SESSION binding; 503 if <code>REQUIRE_TOKEN=1</code> and <code>RUNTIME_TOKEN</code> missing). HEAD on health/ready/runtime/skill. Authority JSON is <code>Cache-Control: no-store</code>. Receipt cap 64. Session TTL 6h. 20 opens / 60 execs per IP per minute. Optional token on session mutate only.</li>
       <li><strong>1.5.0</strong> agent-native MCP: product verbs return a <code>display</code> envelope; <code>runtime_run</code> auto-opens a session; session/health/manifest tools are advanced/internal. Dual surface: no technical UI chrome for agents; human UIs unchanged.</li>
       <li><strong>1.6.0</strong> FragGate door: hashed registry, thin MCP <code>tools/list</code>, <code>fraggate_call</code> is the default exec path, DecisionGATE before exec, ask/refuse ledger. Flat <code>{slug}_{op}</code> names are not listed. Kernel: <a href="https://github.com/AzielEliab/fraggate">github.com/AzielEliab/fraggate</a>.</li>
+      <li><strong>1.6.1</strong> lists every major OpenAPI / MCP / HTTP client: ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants. Crawl copy names the robots.txt Allow set (${crawlerAllowSentence()}).</li>
       <li>AZAI in-process is Lamb check only — not the local blend. AZBot is a skill router, not a model. Aziel Digital Library in-process searches a bundled sample MASTER; live D1 stays per-op proxy.</li>
       <li><code>POST /p/{slug}/{op}</code> is a <em>proxy</em>. Proxy without a session receipt is not exec.</li>
       <li>Cloudflare's Worker / Durable Object isolate <em>is</em> the jail. No extra guest isolate is claimed. <code>engine_digest</code> is still required.</li>
@@ -1169,13 +1182,7 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
     <li><code>GET ${origin}/v1/pull/{slug}</code> then <code>GET ${origin}/v1/pull/{slug}/skill</code></li>
     <li><code>GET</code> or <code>POST ${origin}/p/{slug}/{op}</code> — <em>proxy only</em></li>
   </ol>
-  <h2>Add this URL</h2>
-  <ul>
-    <li><strong>ChatGPT</strong> — GPT Actions → Import from URL → <code>${origin}/openapi.json</code></li>
-    <li><strong>Grok</strong> — custom tool / OpenAPI / MCP remote → <code>${origin}/openapi.json</code> or <code>${origin}/mcp</code></li>
-    <li><strong>Venice</strong> — custom HTTP tools / OpenAPI → same OpenAPI URL</li>
-    <li><strong>Any installer / agent</strong> — start at <code>${origin}/v1/skill</code>. Prefer <code>fraggate_list</code> / <code>fraggate_call</code>. Session tools and <code>runtime_run</code> are advanced/internal.</li>
-  </ul>
+${homepageAddUrlHtml(origin)}
   ${cards}
 </body>
 </html>`;
@@ -1376,6 +1383,7 @@ async function combinedOpenApi(request, env) {
       version: RUNTIME_VERSION,
       summary: "FragGate door over the Aziel Eliab catalog: discover, route, refuse.",
       description:
+        "1.6.1 lists every major OpenAPI / MCP / HTTP client. " +
         "1.6.0 is the FragGate door: hashed registry, thin MCP tools/list, DecisionGATE before exec, ask/refuse ledger. " +
         "1.5.0 was the agent-native cut (flat product-verb MCP + runtime_run). " +
         "1.4.1 adds production gates on the 1.4.0 engine-runtime. " +
@@ -1387,7 +1395,8 @@ async function combinedOpenApi(request, env) {
         "Start at GET /v1/skill. Agents use fraggate_list / fraggate_call. " +
         "GET /v1/bundle lists every product skill URL + invoke prefix. " +
         "GET /v1/pull/{slug} and GET /v1/pull/{slug}/skill pull a product without visiting its Worker. " +
-        "Import this file in ChatGPT GPT Actions, Grok custom tools, or Venice HTTP tools. " +
+        openApiImportSentence() +
+        " " +
         "GodLock/MirageGrid are not VPNs. ForgeReceipts is not legal advice. " +
         "ZionPattern Solver caps confidence at 75% and does not solve cases. " +
         "VeilLock does not inject into FaceTime. AZ-CLCE detects inconsistency, not intent. " +
@@ -1416,7 +1425,7 @@ async function combinedOpenApi(request, env) {
           bearerFormat: "RUNTIME_TOKEN",
           description:
             "Operator bearer for session mutate (open/policy/exec/close) and MCP session tools when REQUIRE_TOKEN=1. " +
-            "Set in Grok/ChatGPT/Venice Actions as Authorization: Bearer … Catalog, skill, OpenAPI, health, pull, and proxy /p stay public. One operator token — not per-user accounts.",
+            tokenAuthSentence(),
         },
       },
     },

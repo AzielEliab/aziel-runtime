@@ -191,6 +191,13 @@ assert.match(llms, /How to cite Aziel Eliab software/);
 assert.match(llms, /www\.azielcorpuslibrary\.net\/cite\.json/);
 assert.match(llms, /PRODUCT_SEO\.md/);
 assert.match(llms, /Worker cite: /);
+assert.match(llms, /Compatible AI clients/);
+assert.match(llms, /Claude \(Anthropic Desktop \/ custom tools\)/);
+assert.match(llms, /Cursor \(MCP\)/);
+assert.match(llms, /plus other MCP\/OpenAPI-capable assistants/);
+assert.match(llms, /GPTBot\/ChatGPT/);
+assert.match(llms, /Google-CloudVertexBot/);
+assert.match(llms, /Baiduspider\*/);
 assert.doesNotMatch(llms, /10\.5281\/zenodo\.XXXX/);
 
 const aiRes = await get("/ai.txt");
@@ -210,6 +217,10 @@ assert.match(cite.how_to_cite, /Eliab, Aziel/);
 assert.match(cite.library_how_to_cite, /Aziel Digital Library/);
 assert.equal(cite.library, "https://www.azielcorpuslibrary.net/");
 assert.ok(cite.products.length === PRODUCTS.length);
+assert.ok(cite.compatible_ai_clients.includes("Claude (Anthropic Desktop / custom tools)"));
+assert.ok(cite.compatible_ai_clients.includes("plus other MCP/OpenAPI-capable assistants"));
+assert.match(cite.crawler_allow, /GPTBot\/ChatGPT/);
+assert.match(cite.crawler_allow, /Yandex/);
 
 const catalogRes = await get("/v1/catalog.json");
 assert.equal(catalogRes.status, 200);
@@ -253,6 +264,14 @@ assert.match(home, /href="https:\/\/foldlock-download-tracker\.vibelock\.workers
 assert.match(home, /href="https:\/\/foldlock-download-tracker\.vibelock\.workers\.dev\/download"/);
 assert.match(home, /sitemap-index\.xml/);
 assert.doesNotMatch(home, /Yahweh|Messiah|Jesus Christ/);
+assert.match(home, /Compatible AI clients/);
+assert.match(home, /Claude \(Anthropic Desktop \/ custom tools\)/);
+assert.match(home, /Cursor \(MCP\)/);
+assert.match(home, /Glama \(Install Server \/ MCP\)/);
+assert.match(home, /Microsoft Copilot \/ Bing/);
+assert.match(home, /Google Gemini \/ Vertex AI/);
+assert.match(home, /plus other MCP\/OpenAPI-capable assistants/);
+assert.doesNotMatch(home, /Import this file in ChatGPT GPT Actions, Grok custom tools, or Venice HTTP tools/);
 
 const card = await (await get("/p/foldlock")).text();
 assert.match(card, /"@type":"Person"/);
@@ -266,5 +285,9 @@ assert.equal(productCrawlUrls({ slug: "vibelock", worker: "vibelock-download-tra
 const openapi = await (await get("/openapi.json")).json();
 assert.ok(openapi.paths["/sitemap-index.xml"]);
 assert.ok(openapi.paths["/robots.txt"]);
+assert.match(openapi.info.description, /Claude \(Anthropic Desktop \/ custom tools\)/);
+assert.match(openapi.info.description, /plus other MCP\/OpenAPI-capable assistants/);
+assert.doesNotMatch(openapi.info.description, /Import this file in ChatGPT GPT Actions, Grok custom tools, or Venice HTTP tools/);
+assert.match(openapi.components.securitySchemes.RuntimeToken.description, /Claude, Cursor, Glama/);
 
 console.log("ok seo hub: robots, sitemap-index, llms/cite MIME, Person JSON-LD, catalog crawl links");

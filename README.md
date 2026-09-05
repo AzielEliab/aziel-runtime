@@ -1,6 +1,6 @@
 # aziel-runtime
 
-**Aziel Eliab Runtime 1.6.0** — **FragGate door** over the catalog. One door: **discover, route, refuse**. Hashed registry, thin MCP `tools/list`, DecisionGATE before exec, ask/refuse ledger. **1.5.0** was the agent-native flat `{slug}_{op}` pile. Human software — Worker UI, Flutter `mobile/`, local install, counted `/download` — stays complete. Catalog + pull + proxy, one session object, **in-process engines** for every catalog Software slug, plus production gates (`/v1/ready`, HEAD, no-store, receipt cap 64, session TTL 6h, per-IP rate limits, optional `RUNTIME_TOKEN` on session mutate).
+**Aziel Eliab Runtime 1.6.1** — **FragGate door** over the catalog. One door: **discover, route, refuse**. Hashed registry, thin MCP `tools/list`, DecisionGATE before exec, ask/refuse ledger. **1.6.1** lists every major OpenAPI / MCP / HTTP client (not only ChatGPT, Grok, and Venice). **1.5.0** was the agent-native flat `{slug}_{op}` pile. Human software — Worker UI, Flutter `mobile/`, local install, counted `/download` — stays complete. Catalog + pull + proxy, one session object, **in-process engines** for every catalog Software slug, plus production gates (`/v1/ready`, HEAD, no-store, receipt cap 64, session TTL 6h, per-IP rate limits, optional `RUNTIME_TOKEN` on session mutate).
 
 Kernel: [AzielEliab/fraggate](https://github.com/AzielEliab/fraggate) (FG-0.1)
 
@@ -20,12 +20,12 @@ Cloudflare’s Worker / Durable Object isolate **is** the jail. No extra guest i
 
 Hosted / in-process AZAI is still protocol mirror + Lamb check, **not** the local blend (`azai serve`).
 
-ChatGPT GPT Actions, Grok custom tools, and Venice HTTP tools import **this** OpenAPI file — then use `fraggate_call`. Session tools and `runtime_run` are advanced/internal. `/p/{slug}/{op}` is proxy only and is not the agent default path.
+Any OpenAPI-, MCP-, or HTTP-tool-capable assistant imports **this** OpenAPI file — then use `fraggate_call`. Session tools and `runtime_run` are advanced/internal. `/p/{slug}/{op}` is proxy only and is not the agent default path.
 
 **Author:** Aziel Eliab  
 **Identity:** Aziel Eliab (primary). Also known as Aziel Elroi Eliab (`alternateName` / aka only).  
 **License:** [Apache-2.0](LICENSE)  
-**Version:** 1.6.0  
+**Version:** 1.6.1  
 **Role:** `engine-runtime` (layer: `catalog+pull+proxy+session+in-process-engines+fraggate`)  
 **Door:** `fraggate`  
 **Worker:** `aziel-runtime` → https://aziel-runtime.vibelock.workers.dev/  
@@ -34,6 +34,32 @@ ChatGPT GPT Actions, Grok custom tools, and Venice HTTP tools import **this** Op
 **Packaging:** Worker session + in-repo CLI (`node cli/aziel-runtime.mjs`) + stdio MCP (`node cli/mcp-stdio.mjs` / `npm run mcp`). **No counted runtime tarball.**
 
 **Forks are welcome and always allowed.** Do not invent Zenodo DOIs.
+
+## Compatible AI clients
+
+Assistants / clients that can call OpenAPI, MCP, or HTTP tools:
+
+- ChatGPT (GPT Actions / OpenAI)
+- Grok (xAI)
+- Venice
+- Claude (Anthropic Desktop / custom tools)
+- Cursor (MCP)
+- Glama (Install Server / MCP)
+- Perplexity
+- Microsoft Copilot / Bing
+- Google Gemini / Vertex AI
+- Mistral
+- Meta AI
+- Apple Intelligence / Applebot surfaces
+- Amazon Q / Amazonbot tooling
+- DuckAssist / DuckDuckGo AI
+- You.com
+- Cohere
+- plus other MCP/OpenAPI-capable assistants
+
+Practical Add-to steps below cover ChatGPT, Grok, Venice, Claude Desktop, and Glama / Cursor MCP. Do not invent step-by-step for every crawler.
+
+Crawl / SEO Allow set on `robots.txt`: GPTBot/ChatGPT, Venice, Grok, Google-Extended, GoogleOther, Google-CloudVertexBot, Claude(+Search/User), anthropic-ai, Perplexity(+User), bingbot, Meta-External*, Applebot(+Extended), Amazonbot, DuckDuck/DuckAssist, MistralAI-User, YouBot, CCBot, cohere-ai, cohere-training-data-crawler, Diffbot, AI2Bot(+Dolma), Timpibot, Petalbot, Bytespider, Omgili(+bot), FirecrawlAgent, ImagesiftBot, FacebookBot, TikTokSpider, Baiduspider*, Yandex.
 
 ## Websites / Live sites
 
@@ -200,7 +226,28 @@ Product Worker crawl template: [docs/PRODUCT_SEO.md](docs/PRODUCT_SEO.md).
   Flat `{product}_{op}` names are **not** listed. HTTP `/p/{product}/{op}` is still a **proxy** (not exec). Public, no OAuth.  
   Tool results are `{ display, result, ledger_tip? }` — show `display` to the user.
 
-## Add to Glama (Install Server)
+## Add to Claude Desktop
+
+Claude Desktop `claude_desktop_config.json` (same shape as Cursor `mcp.json`):
+
+```json
+{
+  "mcpServers": {
+    "aziel-runtime": {
+      "command": "node",
+      "args": ["cli/mcp-stdio.mjs"],
+      "cwd": "/path/to/aziel-runtime",
+      "env": {
+        "AZIEL_RUNTIME_URL": "https://aziel-runtime.vibelock.workers.dev"
+      }
+    }
+  }
+}
+```
+
+Restart Claude Desktop after updating. Remote alternative: `POST https://aziel-runtime.vibelock.workers.dev/mcp`. Full stdio notes: [docs/GLAMA.md](docs/GLAMA.md).
+
+## Add to Glama / Cursor MCP (Install Server)
 
 Glama hosts a **stdio** MCP process. HTTP `POST /mcp` on the Worker is not enough — without [`glama.json`](glama.json), [`cli/mcp-stdio.mjs`](cli/mcp-stdio.mjs), and a [`Dockerfile`](Dockerfile), the listing says **This server cannot be installed**.
 
@@ -302,7 +349,7 @@ Account `ac575a9b822bea2bed97d0ab73aed238`. workers.dev
 **1.2.0+ requires Durable Object migration tag `v1`** (`RuntimeSession`, SQLite).
 The first deploy after the session cut creates the `SESSION` binding. **1.4.0
 does not need a new DO migration** — engines run in the same isolate. **1.4.1
-reuses that SESSION class. 1.5.0 and 1.6.0 do not need a new DO migration.**
+reuses that SESSION class. 1.5.0, 1.6.0, and 1.6.1 do not need a new DO migration.**
 
 Optional production token (session mutate only — catalog / health / runtime /
 skill / pull stay public):
@@ -334,7 +381,7 @@ If this checkout has no wrangler credentials, deploy from the author's machine:
 npx wrangler secret put RUNTIME_TOKEN
 npx wrangler deploy
 node scripts/probe-live.mjs
-# confirm GET /v1/health and /v1/ready and /v1/runtime.json version=1.6.0 role=engine-runtime door=fraggate
+# confirm GET /v1/health and /v1/ready and /v1/runtime.json version=1.6.1 role=engine-runtime door=fraggate
 # confirm engine_slugs == true_engine_slugs == all 27 catalog slugs
 # confirm POST /v1/session/open → policy → exec each primary op → receipt has engine_digest + ran_in
 ```

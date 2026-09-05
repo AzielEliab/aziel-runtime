@@ -5,4 +5,4 @@ COPY . .
 RUN npm install --omit=dev
 ENV NODE_ENV=production
 ENV AZIEL_RUNTIME_URL=https://aziel-runtime.vibelock.workers.dev
-ENTRYPOINT ["node", "cli/mcp-stdio.mjs"]
+CMD ["node", "cli/mcp-stdio.mjs"]

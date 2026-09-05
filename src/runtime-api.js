@@ -7,6 +7,7 @@
  * 1.4.1 adds production gates (ready, HEAD, no-store, receipt cap, TTL, rate limits, optional token).
  * 1.5.0 was the agent-native cut: display envelopes, flat product-verb MCP, runtime_run façade.
  * 1.6.0 is the FragGate door: hashed registry, thin tools/list, DecisionGATE before exec.
+ * 1.6.1 lists every major OpenAPI / MCP / HTTP client (not only ChatGPT / Grok / Venice).
  * Public identity: Aziel Eliab only. Forks welcome. Do not invent DOIs.
  */
 import { CATALOG_ALIASES } from "./catalog-meta.js";
@@ -19,13 +20,15 @@ import {
   RECEIPT_CAP,
   SESSION_TTL_MS,
 } from "./production.js";
+import { citeCompatibleFields, skillCompatibleSection } from "./ai-clients.js";
 
-export const RUNTIME_VERSION = "1.6.0";
+export const RUNTIME_VERSION = "1.6.1";
 export const RUNTIME_ROLE = "engine-runtime";
 export const RUNTIME_LAYER = "catalog+pull+proxy+session+in-process-engines+fraggate";
 
 export const VERSION_HISTORY = [
-  { version: "1.6.0", status: "current", note: "FragGate door cut: hashed registry, thin MCP tools/list (discover / route / refuse), DecisionGATE before exec, ask/refuse ledger. 1.5.0 was agent-native flat {slug}_{op} tools." },
+  { version: "1.6.1", status: "current", note: "Full compatible AI client list in skill, Worker UI, OpenAPI, llms.txt, and cite.json (ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants). 1.6.0 remains the FragGate door cut." },
+  { version: "1.6.0", status: "superseded", note: "FragGate door cut: hashed registry, thin MCP tools/list (discover / route / refuse), DecisionGATE before exec, ask/refuse ledger. 1.5.0 was agent-native flat {slug}_{op} tools." },
   { version: "1.5.0", status: "superseded", note: "agent-native cut: display-ready MCP envelopes, product-verb tool descriptions, session/health/manifest marked advanced/internal, runtime_run auto-session façade (true in-process exec)" },
   { version: "1.4.1", status: "superseded", note: "production gates: GET /v1/ready, HEAD + version/role headers, no-store authority JSON, receipt cap 64, session TTL 6h, per-IP rate limits, optional RUNTIME_TOKEN on session mutate" },
   { version: "1.4.0", status: "superseded", note: "every catalog Software slug is a true in-process engine; binding-only ops stay per-op proxy_fallback" },
@@ -104,8 +107,9 @@ description: >-
   One door — discover, route, refuse. FragGate over the catalog: hashed
   registry, DecisionGATE before exec, ask/refuse ledger. Dual surface —
   agent/MCP has no technical UI chrome; Worker UI, Flutter mobile/, local
-  install, and counted /download stay complete human software. 1.6.0 FragGate
-  door cut. Kernel: https://github.com/AzielEliab/fraggate
+  install, and counted /download stay complete human software. 1.6.1 lists
+  every major OpenAPI/MCP/HTTP client. 1.6.0 FragGate door cut. Kernel:
+  https://github.com/AzielEliab/fraggate
 ---
 
 # Aziel Eliab Runtime
@@ -200,7 +204,7 @@ node cli/aziel-runtime.mjs session close
 ## Bootstrap (front doors — still useful)
 
 1. \`GET ${base}/v1/skill\` — this markdown.
-2. \`GET ${base}/v1/runtime.json\` — machine manifest (\`version=1.6.0\`, \`role=engine-runtime\`, \`door=fraggate\`, every catalog slug in \`engine_slugs\` / \`true_engine_slugs\`, \`authoritySnapshot\` + \`version_history\`). Same JSON: \`GET ${base}/v1/runtime\`.
+2. \`GET ${base}/v1/runtime.json\` — machine manifest (\`version=${RUNTIME_VERSION}\`, \`role=engine-runtime\`, \`door=fraggate\`, every catalog slug in \`engine_slugs\` / \`true_engine_slugs\`, \`authoritySnapshot\` + \`version_history\`). Same JSON: \`GET ${base}/v1/runtime\`.
    FragGate: \`GET ${base}/v1/fraggate\` · \`GET ${base}/v1/fraggate/list\` · \`POST ${base}/v1/fraggate/call\`.
    Also \`GET ${base}/v1/ready\` (200 only if SESSION binding is up; 503 if \`REQUIRE_TOKEN=1\` and \`RUNTIME_TOKEN\` is missing).
 3. \`GET ${base}/v1/bundle\` — every product skill URL + invoke prefix.
@@ -211,14 +215,7 @@ node cli/aziel-runtime.mjs session close
 
 You do **not** need to open each product homepage.
 
-## How Grok / ChatGPT / Venice pull + call
-
-- **ChatGPT** — GPT Actions → Import from URL → \`${base}/openapi.json\`
-- **Grok** — custom tool / OpenAPI / MCP remote → \`${base}/openapi.json\` or \`POST ${base}/mcp\`
-- **Venice** — custom HTTP tools / OpenAPI → same OpenAPI URL
-- **Any installer / agent** — \`GET ${base}/v1/skill\` then \`fraggate_list\` / \`fraggate_call\`. Session tools and \`runtime_run\` are advanced/internal. \`/p/{slug}/{op}\` is proxy only.
-
-MCP is a **thin FragGate door** (≤ 20 tools): \`runtime_skill\`, \`fraggate_list\`, \`fraggate_describe\`, \`fraggate_verify\`, \`fraggate_call\`, \`decisiongate_check\`, \`library_lookup\`, plus catalog helpers \`runtime_bundle\` / \`runtime_pull\`. Advanced/internal: \`runtime_run\`, \`runtime_manifest\`, \`runtime_session_*\`. Flat \`{slug}_{op}\` names are **not** listed. Public, no OAuth.
+${skillCompatibleSection(base)}
 
 ## Endpoints (this Worker)
 
@@ -231,7 +228,7 @@ MCP is a **thin FragGate door** (≤ 20 tools): \`runtime_skill\`, \`fraggate_li
 | GET | \`/v1/session/{id}/receipts\` | Full receipt chain. |
 | POST | \`/v1/session/{id}/close\` | Seal session. |
 | GET | \`/v1/skill\` | This markdown. Does not increment downloads. |
-| GET | \`/v1/runtime.json\` | Machine manifest. Authority with health: version=1.6.0, role=engine-runtime, door=fraggate, top-level registry_digest, all catalog slugs are true engines. |
+| GET | \`/v1/runtime.json\` | Machine manifest. Authority with health: version=${RUNTIME_VERSION}, role=engine-runtime, door=fraggate, top-level registry_digest, all catalog slugs are true engines. |
 | GET | \`/v1/fraggate\` | FragGate door summary (registry_digest; live / stub / local_only product counts; stub_op_count). |
 | GET | \`/v1/fraggate/list\` | Hashed registry entries. |
 | GET | \`/v1/fraggate/describe\` | Describe one name (\`?name=\` / \`?slug=\`). |
@@ -262,7 +259,7 @@ Library engine manifest (same as this Worker): https://www.azielcorpuslibrary.ne
 
 ## Operator token (session mutate)
 
-When \`REQUIRE_TOKEN=1\`, Grok/ChatGPT/Venice Actions that **exec** must send \`Authorization: Bearer $RUNTIME_TOKEN\` (Wrangler secret — one operator token, not per-user). Catalog, skill, OpenAPI, health, pull, FragGate list/describe/verify, MCP \`tools/list\`, and proxy \`/p/{slug}/{op}\` stay public. Proxy is not exec.
+When \`REQUIRE_TOKEN=1\`, OpenAPI / MCP / HTTP Actions that **exec** (ChatGPT, Grok, Venice, Claude, Cursor, Glama, and other listed clients) must send \`Authorization: Bearer $RUNTIME_TOKEN\` (Wrangler secret — one operator token, not per-user). Catalog, skill, OpenAPI, health, pull, FragGate list/describe/verify, MCP \`tools/list\`, and proxy \`/p/{slug}/{op}\` stay public. Proxy is not exec.
 
 ## Example (Mozilla/5.0)
 
@@ -292,7 +289,7 @@ curl -s -A 'Mozilla/5.0' -X POST ${base}/p/azclce/score \\
 
 Every catalog Software slug is a true engine (\`true_engine_runtime: true\`). \`engine_slugs\` equals \`true_engine_slugs\`: ${local}. Some ops remain per-op \`proxy_fallback\` when they need product-Worker bindings (AZ-OS session/exec/lattice; Aziel Digital Library live D1 / Whisper / OCR). Cloudflare isolate is the jail; \`engine_digest\` is still required for local exec.
 
-**1.4.1 production gates (unchanged in 1.6.0):** \`GET /v1/ready\` is 200 only if the SESSION Durable Object binding is up; **503** if \`REQUIRE_TOKEN=1\` and the \`RUNTIME_TOKEN\` secret is missing (fail closed). Authority JSON is \`Cache-Control: no-store\`. When \`REQUIRE_TOKEN=1\`, session mutate (open/policy/exec/close) and MCP session tools / \`runtime_run\` / \`fraggate_call\` require \`Authorization: Bearer …\` or \`X-Aziel-Runtime-Token\` (one operator token). Catalog / health / runtime / skill / pull / FragGate list / OpenAPI / MCP \`tools/list\` stay public. Proxy \`/p/{slug}/{op}\` stays public and is **not** exec. Receipt cap 64. Session TTL 6h. Per-IP rate limits apply.
+**1.4.1 production gates (unchanged in 1.6.1):** \`GET /v1/ready\` is 200 only if the SESSION Durable Object binding is up; **503** if \`REQUIRE_TOKEN=1\` and the \`RUNTIME_TOKEN\` secret is missing (fail closed). Authority JSON is \`Cache-Control: no-store\`. When \`REQUIRE_TOKEN=1\`, session mutate (open/policy/exec/close) and MCP session tools / \`runtime_run\` / \`fraggate_call\` require \`Authorization: Bearer …\` or \`X-Aziel-Runtime-Token\` (one operator token). Catalog / health / runtime / skill / pull / FragGate list / OpenAPI / MCP \`tools/list\` stay public. Proxy \`/p/{slug}/{op}\` stays public and is **not** exec. Receipt cap 64. Session TTL 6h. Per-IP rate limits apply.
 
 GodLock and MirageGrid are not VPNs. ForgeReceipts is not legal advice. ZionPattern Solver caps confidence at 75% and does not solve cases. VeilLock does not inject into FaceTime. AZ-CLCE detects inconsistency, not intent. ChronoLock is advisory only. The ARK is not a kernel. AZAI hosted /v1 is a protocol mirror + Lamb check, not a paid-key proxy and **not** the local blend. Jeeves is not sovereign. SpectralLock hosted overlay is a 256px preview. EmployeeLock is not a court. FoldLock is not zip. WhistleLock is not a mailer. TrajectoryLock is not a certified forensic instrument. M.I.A.Lock Doe hits are leads, not IDs. Aziel Digital Library is not a 26-card index. AzielTether is not a VPN.
 
@@ -349,6 +346,7 @@ export function runtimeManifest(origin, products, extra = {}) {
     products: slugs,
     host: base + "/",
     github: "https://github.com/AzielEliab/aziel-runtime",
+    ...citeCompatibleFields(),
     library_front_door: "https://www.azielcorpuslibrary.net/runtime",
     sigil: base + "/sigil.png",
     sigil_stamp: "Everblooming",
@@ -700,7 +698,7 @@ export function runtimeStaticPaths() {
     "/v1/skill": {
       get: {
         operationId: "runtime_skill",
-        summary: "Skill markdown: 1.6.0 FragGate door. Honest about 1.1.0 / 1.2.0 / 1.3.0 / 1.4.0 / 1.4.1 / 1.5.0 / 1.6.0.",
+        summary: "Skill markdown: 1.6.1 full AI client list. Honest about 1.1.0 / 1.2.0 / 1.3.0 / 1.4.0 / 1.4.1 / 1.5.0 / 1.6.0 / 1.6.1.",
         tags: ["runtime"],
         responses: { "200": { description: "text/markdown skill" } },
       },
