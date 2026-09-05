@@ -56,6 +56,7 @@ export function mcpInitializeInstructions() {
     "Kernel: https://github.com/AzielEliab/fraggate (FG-0.1). " +
     "Every catalog slug is a true engine. Cloudflare isolate is the jail. engine_digest is required. " +
     "Hosted AZAI is protocol mirror + Lamb check, not the blend. Mesh is not claimed on this public surface. " +
+    "Compatible clients: ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants. " +
     "Always send User-Agent Mozilla/5.0. Public, no OAuth. Author: Aziel Eliab only."
   );
 }
