@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import { PRODUCTS } from "../src/index.js";
 import { RUNTIME_VERSION } from "../src/runtime-api.js";
 import { PUBLIC_MCP_TOOL_MAX } from "../src/fraggate/codes.js";
-import { LIVE_OPS, buildRegistry, classifyCall, parseTarget } from "../src/fraggate/registry.js";
+import { LIVE_OPS, STUB_OPS, buildRegistry, classifyCall, parseTarget } from "../src/fraggate/registry.js";
 import { resetLedger } from "../src/fraggate/ledger.js";
 import { memorySessionNamespace } from "../src/session-do.js";
 
@@ -40,7 +40,11 @@ async function mcp(method, params = {}, id = 1) {
 const registry = buildRegistry(PRODUCTS);
 assert.equal(registry.live_count, Object.keys(LIVE_OPS).length);
 assert.ok(registry.local_only_count > 10);
-assert.ok(registry.stub_count >= 4);
+assert.equal(registry.stub_count, registry.entries.filter((e) => e.status === "stub").length);
+assert.equal(registry.stub_op_count, Object.values(STUB_OPS).reduce((n, ops) => n + ops.length, 0));
+assert.ok(registry.stub_op_count >= 4);
+assert.equal(registry.stub_ops.length, registry.stub_op_count);
+assert.equal(registry.live_count + registry.local_only_count + registry.stub_count, registry.entries.length);
 assert.equal(registry.bySlug.foldlock.status, "live");
 assert.equal(registry.bySlug.godlock.status, "live");
 assert.equal(registry.bySlug.decisiongate.status, "live");
@@ -60,10 +64,19 @@ assert.equal(door.ok, true);
 assert.equal(door.door, "fraggate");
 assert.match(door.registry_digest, /^[a-f0-9]{64}$/);
 assert.equal(door.live_count, registry.live_count);
+assert.equal(door.stub_count, registry.stub_count);
+assert.equal(door.stub_op_count, registry.stub_op_count);
+assert.equal(door.local_only_count, registry.local_only_count);
+assert.equal(door.live_count + door.local_only_count + door.stub_count, door.product_count);
+assert.equal(door.stub_ops.length, door.stub_op_count);
 assert.ok(door.kernel.includes("fraggate"));
 
 const listed = await (await get("/v1/fraggate/list")).json();
 assert.equal(listed.ok, true);
+assert.equal(listed.stub_count, registry.stub_count);
+assert.equal(listed.stub_op_count, registry.stub_op_count);
+assert.equal(listed.live_count + listed.local_only_count + listed.stub_count, listed.product_count);
+assert.equal(listed.entries.length, listed.product_count);
 assert.ok(listed.entries.some((e) => e.slug === "foldlock" && e.status === "live"));
 assert.ok(listed.entries.some((e) => e.slug === "vibelock" && e.status === "local_only"));
 
@@ -161,8 +174,22 @@ assert.equal(ready.ok, true);
 
 const manifest = await (await get("/v1/runtime.json")).json();
 assert.equal(manifest.door, "fraggate");
+assert.match(manifest.registry_digest, /^[a-f0-9]{64}$/);
 assert.match(manifest.fraggate.registry_digest, /^[a-f0-9]{64}$/);
+assert.equal(manifest.registry_digest, manifest.fraggate.registry_digest);
 assert.equal(manifest.fraggate.live_count, registry.live_count);
+assert.equal(manifest.fraggate.stub_count, registry.stub_count);
+assert.equal(manifest.fraggate.stub_op_count, registry.stub_op_count);
+assert.equal(
+  manifest.fraggate.live_count + manifest.fraggate.local_only_count + manifest.fraggate.stub_count,
+  manifest.product_count,
+);
+
+const mcpManifest = await mcp("tools/call", { name: "runtime_manifest", arguments: {} }, 3);
+assert.equal(mcpManifest.result.isError, false);
+const mcpManifestBody = mcpManifest.result.structuredContent.result;
+assert.match(mcpManifestBody.registry_digest, /^[a-f0-9]{64}$/);
+assert.equal(mcpManifestBody.registry_digest, mcpManifestBody.fraggate.registry_digest);
 
 const mcpInit = await mcp("initialize");
 assert.match(mcpInit.result.instructions, /One door/);
