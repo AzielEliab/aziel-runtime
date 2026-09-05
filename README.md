@@ -28,7 +28,7 @@ ChatGPT GPT Actions, Grok custom tools, and Venice HTTP tools import **this** Op
 **Worker:** `aziel-runtime` → https://aziel-runtime.vibelock.workers.dev/  
 **Library front door:** https://www.azielcorpuslibrary.net/runtime  
 **Everblooming sigil:** https://aziel-runtime.vibelock.workers.dev/sigil.png  
-**Packaging:** Worker session + in-repo CLI (`node cli/aziel-runtime.mjs`). **No counted runtime tarball.**
+**Packaging:** Worker session + in-repo CLI (`node cli/aziel-runtime.mjs`) + stdio MCP (`node cli/mcp-stdio.mjs` / `npm run mcp`). **No counted runtime tarball.**
 
 **Forks are welcome and always allowed.** Do not invent Zenodo DOIs.
 
@@ -113,6 +113,8 @@ Always send `User-Agent: Mozilla/5.0`.
 | sitemap.xml | https://aziel-runtime.vibelock.workers.dev/sitemap.xml |
 | sitemap-index.xml | https://aziel-runtime.vibelock.workers.dev/sitemap-index.xml |
 | MCP (JSON-RPC over HTTP, public, no OAuth) | `POST` https://aziel-runtime.vibelock.workers.dev/mcp |
+| MCP stdio (Glama / Claude Desktop) | `node cli/mcp-stdio.mjs` — [docs/GLAMA.md](docs/GLAMA.md) |
+| Glama listing | https://glama.ai/mcp/servers/AzielEliab/aziel-runtime |
 | Health | https://aziel-runtime.vibelock.workers.dev/v1/health |
 | Ready | https://aziel-runtime.vibelock.workers.dev/v1/ready |
 | Everblooming sigil | https://aziel-runtime.vibelock.workers.dev/sigil.png |
@@ -151,6 +153,24 @@ Product Worker crawl template: [docs/PRODUCT_SEO.md](docs/PRODUCT_SEO.md).
   Advanced/internal: `runtime_manifest`, `runtime_session_*`, raw `*_health`.  
   HTTP `/p/{product}/{op}` is still a **proxy** (not exec). Public, no OAuth.  
   Tool results are `{ display, result, receipt? }` — show `display` to the user.
+
+## Add to Glama (Install Server)
+
+Glama hosts a **stdio** MCP process. HTTP `POST /mcp` on the Worker is not enough — without [`glama.json`](glama.json), [`cli/mcp-stdio.mjs`](cli/mcp-stdio.mjs), and a [`Dockerfile`](Dockerfile), the listing says **This server cannot be installed**.
+
+```bash
+node cli/mcp-stdio.mjs
+npm run mcp
+```
+
+Default mode **bridges** to `POST https://aziel-runtime.vibelock.workers.dev/mcp` (`User-Agent: Mozilla/5.0`). Optional `RUNTIME_TOKEN` / `AZIEL_RUNTIME_TOKEN`. `--local` or `AZIEL_RUNTIME_MCP=local` runs the same `/mcp` handler in-process.
+
+```bash
+docker build -t aziel-runtime-mcp .
+docker run --rm -i aziel-runtime-mcp
+```
+
+After merge: claim on the Glama Score tab (`glama.json` maintainers = `AzielEliab`), then admin Dockerfile → **Deploy** → **Make Release** so **Install Server** works. Build steps: `npm install --omit=dev`. CMD: `["node", "cli/mcp-stdio.mjs"]`. Full steps: [docs/GLAMA.md](docs/GLAMA.md). Public identity: **Aziel Eliab** only.
 
 ## Add to Venice
 
