@@ -1,10 +1,12 @@
 /**
- * aziel-runtime 1.4.0 — catalog + pull + proxy + session + in-process engines.
+ * aziel-runtime 1.4.1 — catalog + pull + proxy + session + in-process engines + production gates.
  *
  * 1.1.0 was catalog+proxy that called itself a runtime. Useful front doors.
  * 1.2.0 owned open → policy → exec → receipt → close but exec still proxied.
  * 1.3.0 ran vendored engines inside this Worker isolate for listed slugs.
  * 1.4.0 vendors a true engine for every catalog Software slug.
+ * 1.4.1 adds /v1/ready, HEAD, no-store authority JSON, receipt cap 64, session TTL 6h,
+ *       per-IP rate limits, optional RUNTIME_TOKEN on session mutate.
  *
  * GET  /                      HTML (indexable) + Everblooming sigil
  * GET  /sigil.png             Everblooming sigil stamp
@@ -14,8 +16,10 @@
  * GET  /ai.txt                same as /llms.txt
  * GET  /cite.json             How-to-cite: Aziel Eliab, Apache-2.0, GitHub + DOI + related_identifiers
  * GET  /v1/skill              skill markdown (session + front doors)
- * GET  /v1/runtime.json       machine manifest: role=engine-runtime (1.4.0)
+ * GET  /v1/runtime.json       machine manifest: role=engine-runtime (1.4.1)
  * GET  /v1/runtime            alias of /v1/runtime.json
+ * GET  /v1/ready              200 if SESSION binding up; 503 if REQUIRE_TOKEN=1 and token missing
+ * GET  /v1/health             liveness (version/role match ready)
  * GET  /v1/bundle             compact bootstrap (skill URL + invoke prefix per product)
  * GET  /v1/pull?all=1         alias of /v1/bundle
  * GET  /v1/pull/{slug}        pull record (skill, download, install, ops, aliases)
@@ -49,6 +53,8 @@ import {
   RUNTIME_LAYER,
   DEFAULT_UA,
   resolveSlug,
+  authoritySnapshot,
+  VERSION_HISTORY,
   runtimeSkillMarkdown,
   runtimeManifest,
   bundleJson,
@@ -57,11 +63,17 @@ import {
   fetchProductSkill,
   markdownResponse,
   runtimeStaticPaths,
-  authoritySnapshot,
 } from "./runtime-api.js";
 import { honestyFields } from "./engines/registry.js";
 import { RuntimeSession } from "./session-do.js";
 import { callSessionTool, handleSessionRequest, sessionMcpTools } from "./session-http.js";
+import {
+  VERSION_HEADER,
+  ROLE_HEADER,
+  authorityHeaders,
+  evaluateReady,
+  noStoreHeaders,
+} from "./production.js";
 
 export { RuntimeSession };
 
@@ -69,7 +81,7 @@ const CATALOG_HOST = "https://aziel-runtime.vibelock.workers.dev";
 const PROTOCOL = "2025-03-26";
 const CATALOG_TITLE = "Aziel Eliab Runtime";
 const CATALOG_DESCRIPTION =
-  "1.4.0 catalog + pull + proxy + session + in-process engines for every catalog Software slug. 1.3.0 listed portable slugs. 1.2.0 was a session/receipt runtime (exec still proxied). 1.1.0 was catalog+proxy. Proxy is not exec. Binding-only ops stay per-op proxy_fallback. Cloudflare isolate is the jail. Hosted AZAI is not the local blend. Apache-2.0. Author: Aziel Eliab.";
+  "1.4.1 catalog + pull + proxy + session + in-process engines + production gates. 1.4.0 vendors every catalog Software slug. 1.3.0 listed portable slugs. 1.2.0 was a session/receipt runtime (exec still proxied). 1.1.0 was catalog+proxy. Proxy is not exec. Binding-only ops stay per-op proxy_fallback. Cloudflare isolate is the jail. Hosted AZAI is not the local blend. Apache-2.0. Author: Aziel Eliab.";
 const LASTMOD = "2026-09-05";
 
 const PRODUCTS_RAW = [
@@ -472,8 +484,23 @@ const BY_SLUG = Object.fromEntries(PRODUCTS.map((p) => [p.slug, p]));
 function corsHeaders() {
   return {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Accept, MCP-Protocol-Version, mcp-session-id",
+    "Access-Control-Allow-Methods": "GET, HEAD, POST, OPTIONS",
+    "Access-Control-Allow-Headers":
+      "Content-Type, Accept, Authorization, X-Aziel-Runtime-Token, MCP-Protocol-Version, mcp-session-id",
+    "Access-Control-Expose-Headers": `${VERSION_HEADER}, ${ROLE_HEADER}`,
+  };
+}
+
+function asHead(request, response) {
+  if (request.method !== "HEAD") return response;
+  return new Response(null, { status: response.status, headers: response.headers });
+}
+
+function authorityLinkHeaders(origin, path) {
+  return {
+    ...authorityHeaders(RUNTIME_VERSION, RUNTIME_ROLE),
+    ...noStoreHeaders(),
+    ...linkHeaders(origin, path),
   };
 }
 
@@ -483,16 +510,6 @@ function linkHeaders(origin, canonicalPath = "/") {
   return {
     "X-Robots-Tag": "index, follow, max-snippet:-1, max-image-preview:large",
     Link: `<${canonical}>; rel="canonical", <${base}/openapi.json>; rel="service-doc", <${base}/sitemap.xml>; rel="describedby"`,
-  };
-}
-
-function noStoreHeaders() {
-  return {
-    "Cache-Control": "no-store, max-age=0, must-revalidate",
-    "CDN-Cache-Control": "no-store",
-    "Cloudflare-CDN-Cache-Control": "no-store",
-    "X-Aziel-Runtime-Version": RUNTIME_VERSION,
-    "X-Aziel-Runtime-Role": RUNTIME_ROLE,
   };
 }
 
@@ -661,6 +678,7 @@ function sitemapXml(origin) {
     { loc: base + "/llms.txt", priority: "0.8", changefreq: "weekly" },
     { loc: base + "/ai.txt", priority: "0.8", changefreq: "weekly" },
     { loc: base + "/v1/health", priority: "0.5", changefreq: "daily" },
+    { loc: base + "/v1/ready", priority: "0.7", changefreq: "daily" },
     { loc: base + "/mcp", priority: "0.6", changefreq: "weekly" },
     { loc: base + "/sigil.png", priority: "0.3", changefreq: "monthly" },
   ];
@@ -702,7 +720,7 @@ function llmsTxt(origin) {
     "",
     `Author: Aziel Eliab`,
     `Role: engine-runtime (catalog + pull + proxy + session + in-process engines)`,
-    `Honesty: 1.1.0 was catalog+proxy. 1.2.0 was session/receipt (exec still proxied). 1.3.0 ran listed slugs in-process. 1.4.0 vendors every catalog Software slug.`,
+    `Honesty: 1.1.0 was catalog+proxy. 1.2.0 was session/receipt (exec still proxied). 1.3.0 ran listed slugs in-process. 1.4.0 vendors every catalog Software slug. 1.4.1 adds production gates (ready, HEAD, no-store, receipt cap 64, TTL 6h, rate limits, optional token).`,
     `True-engine slugs: ${honestyFields(PRODUCTS.map((p) => p.slug)).true_engine_slugs.join(", ")}`,
     `Proxy /p/{slug}/{op} is not exec. Hosted AZAI is not the local blend.`,
     `Local blends: azai serve · forgereceipts ui · azos ui`,
@@ -984,7 +1002,7 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
     <p class="stamp">Everblooming sigil · Aziel Eliab</p>
   </div>
   <h1>Aziel Eliab Runtime</h1>
-  <p class="lead"><strong>1.4.0</strong> is catalog + pull + proxy + session + <strong>in-process engines</strong> for every catalog Software slug. ${PRODUCTS.length} products. Forks welcome. Apache-2.0. Author: Aziel Eliab.</p>
+  <p class="lead"><strong>1.4.1</strong> is <strong>1.4.0</strong> engine-runtime plus production gates (<code>/v1/ready</code>, HEAD, no-store, receipt cap 64, session TTL 6h, per-IP rate limits, optional token on session mutate). Catalog + pull + proxy + session + <strong>in-process engines</strong> for every catalog Software slug. ${PRODUCTS.length} products. Forks welcome. Apache-2.0. Author: Aziel Eliab.</p>
   <div class="honesty">
     <strong>What this Worker is</strong>
     <ul>
@@ -992,6 +1010,7 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
       <li><strong>1.2.0</strong> added a session Durable Object and hash-chained receipts. Exec still proxied to product Workers.</li>
       <li><strong>1.3.0</strong> vendored portable engines and ran them <em>inside this Worker isolate</em> for listed slugs. Receipts include <code>engine_digest</code> and <code>ran_in</code>.</li>
       <li><strong>1.4.0</strong> vendors a true engine for <em>every</em> catalog Software slug. <code>engine_slugs</code> equals <code>true_engine_slugs</code>. Binding-only ops (KV / D1 / AI / live media) stay per-op <code>proxy_fallback</code>.</li>
+      <li><strong>1.4.1</strong> production gates: <code>GET /v1/ready</code> (SESSION binding; 503 if <code>REQUIRE_TOKEN=1</code> and <code>RUNTIME_TOKEN</code> missing). HEAD on health/ready/runtime/skill. Authority JSON is <code>Cache-Control: no-store</code>. Receipt cap 64. Session TTL 6h. 20 opens / 60 execs per IP per minute. Optional token on session mutate only.</li>
       <li>AZAI in-process is Lamb check only — not the local blend. AZBot is a skill router, not a model. Aziel Digital Library in-process searches a bundled sample MASTER; live D1 stays per-op proxy.</li>
       <li><code>POST /p/{slug}/{op}</code> is a <em>proxy</em>. Proxy without a session receipt is not exec.</li>
       <li>Cloudflare's Worker / Durable Object isolate <em>is</em> the jail. No extra guest isolate is claimed. <code>engine_digest</code> is still required.</li>
@@ -1039,6 +1058,7 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
     <a href="${origin}/robots.txt">/robots.txt</a>
     <a href="${origin}/mcp">MCP (POST JSON-RPC)</a>
     <a href="${origin}/v1/health">/v1/health</a>
+    <a href="${origin}/v1/ready">/v1/ready</a>
     <a href="https://www.azielcorpuslibrary.net/runtime">Library /runtime</a>
     <a href="https://github.com/AzielEliab/aziel-runtime">GitHub</a>
   </p>
@@ -1147,9 +1167,15 @@ function staticPaths(origin) {
     "/v1/health": {
       get: {
         operationId: "catalog_health",
-        summary: "Liveness. Lists session, pull, proxy, and cite endpoints.",
+        summary: "Liveness. Lists session, pull, proxy, and cite endpoints. Version/role match /v1/ready.",
         tags: ["runtime"],
         responses: { "200": { description: "ok" } },
+      },
+      head: {
+        operationId: "catalog_health_head",
+        summary: "HEAD of /v1/health. X-Aziel-Runtime-Version / Role.",
+        tags: ["runtime"],
+        responses: { "200": { description: "headers only" } },
       },
     },
     "/v1/catalog.json": {
@@ -1290,6 +1316,7 @@ async function combinedOpenApi(request, env) {
       version: RUNTIME_VERSION,
       summary: "Catalog + pull + proxy + session + in-process engines for listed slugs.",
       description:
+        "1.4.1 adds production gates on the 1.4.0 engine-runtime. " +
         "1.4.0 is catalog + pull + proxy + a session Durable Object + vendored in-process engines for every catalog Software slug. " +
         "1.3.0 listed portable slugs. 1.2.0 was session/receipt (exec still proxied). 1.1.0 was catalog+proxy that called itself a runtime. " +
         "True exec is POST /v1/session/{id}/exec (receipt includes engine_digest and ran_in). " +
@@ -1404,7 +1431,7 @@ function runtimeMcpTools() {
     {
       name: "runtime_skill",
       description:
-        "Return Aziel Eliab Runtime skill markdown: 1.4.0 in-process engines for every catalog slug plus session and catalog/pull/proxy. 1.3.0 listed portable slugs. Proxy is not exec. Does not increment downloads.",
+        "Return Aziel Eliab Runtime skill markdown: 1.4.1 production gates on 1.4.0 in-process engines plus session and catalog/pull/proxy. 1.3.0 listed portable slugs. Proxy is not exec. Does not increment downloads.",
       inputSchema: { type: "object", additionalProperties: true },
     },
     {
@@ -1450,7 +1477,7 @@ function toolList() {
   return tools;
 }
 
-async function callRuntimeTool(env, name, args, origin) {
+async function callRuntimeTool(env, name, args, origin, request) {
   const base = (origin || CATALOG_HOST).replace(/\/$/, "");
   if (name === "runtime_skill") {
     return { status: 200, text: runtimeSkillMarkdown(base, PRODUCTS), target: base + "/v1/skill" };
@@ -1473,17 +1500,56 @@ async function callRuntimeTool(env, name, args, origin) {
       target: `${base}/v1/pull/${key}`,
     };
   }
-  const session = await callSessionTool(env, name, args, origin, sessionDeps(env, origin));
+  const session = await callSessionTool(env, name, args, origin, sessionDeps(env, origin, request));
   if (session) return session;
   return null;
 }
 
-function sessionDeps(_env, _origin) {
-  return { json, PRODUCTS, BY_SLUG, upstreamFetch };
+function healthBody(origin) {
+  return {
+    ok: true,
+    product: "aziel-runtime",
+    author: "Aziel Eliab",
+    role: RUNTIME_ROLE,
+    layer: RUNTIME_LAYER,
+    version: RUNTIME_VERSION,
+    title: CATALOG_TITLE,
+    identity: "Aziel Eliab",
+    products: PRODUCTS.map((p) => p.slug),
+    count: PRODUCTS.length,
+    skill: "/v1/skill",
+    runtime: "/v1/runtime.json",
+    ready: "/v1/ready",
+    session: "/v1/session/open",
+    bundle: "/v1/bundle",
+    pull: "/v1/pull/{slug}",
+    invoke: "/p/{slug}/{op}",
+    invoke_note: "proxy only — not exec",
+    ...honestyFields(PRODUCTS.map((p) => p.slug)),
+    authoritySnapshot: authoritySnapshot(PRODUCTS.map((p) => p.slug)),
+    version_history: VERSION_HISTORY,
+    counted_tarball: false,
+    openapi: "/openapi.json",
+    catalog: "/v1/catalog.json",
+    cite: "/cite.json",
+    sitemap: "/sitemap.xml",
+    robots: "/robots.txt",
+    llms: "/llms.txt",
+    ai: "/ai.txt",
+    mcp: "/mcp",
+    sigil: "/sigil.png",
+    library_front_door: "https://www.azielcorpuslibrary.net/runtime",
+    kv_increment: false,
+    host: (origin || CATALOG_HOST).replace(/\/$/, "") + "/",
+  };
 }
 
-async function callTool(env, name, args, origin) {
-  const local = await callRuntimeTool(env, name, args, origin);
+function sessionDeps(_env, _origin, request) {
+  return { json, PRODUCTS, BY_SLUG, upstreamFetch, request };
+}
+
+async function callTool(env, name, args, origin, request) {
+  const local = await callRuntimeTool(env, name, args, origin, request);
   if (local) return local;
   const idx = name.indexOf("_");
   if (idx < 1) throw new Error(`unknown tool: ${name}`);
@@ -1544,6 +1610,7 @@ async function handleMcp(request, env, origin) {
       capabilities: { tools: { listChanged: false } },
       serverInfo: { name: "aziel-runtime", version: RUNTIME_VERSION },
       instructions:
+        "1.4.1 adds production gates (ready, HEAD, no-store, receipt cap, TTL, rate limits, optional token on session mutate). " +
         "1.4.0 is catalog + pull + proxy + session + in-process engines for every catalog Software slug. 1.3.0 listed portable slugs. 1.2.0 was session/receipt (exec still proxied). 1.1.0 was catalog+proxy. " +
         "True exec is runtime_session_open → runtime_session_policy → runtime_session_exec → runtime_session_receipt → runtime_session_close. " +
         "Every catalog slug runs inside this isolate for its primary compute ops; the receipt includes engine_digest + ran_in. " +
@@ -1565,7 +1632,7 @@ async function handleMcp(request, env, origin) {
     const name = params.name;
     const args = params.arguments || params.input || {};
     try {
-      const out = await callTool(env, name, args, origin);
+      const out = await callTool(env, name, args, origin, request);
       return rpcResult(id, {
         content: [
           {
@@ -1674,35 +1741,20 @@ export default {
     }
 
     if (url.pathname === "/v1/skill" && (request.method === "GET" || request.method === "HEAD")) {
-      const md = runtimeSkillMarkdown(origin, PRODUCTS);
-      if (request.method === "HEAD") {
-        return new Response(null, {
-          status: 200,
-          headers: {
-            "Content-Type": "text/markdown; charset=utf-8",
-            ...corsHeaders(),
-            ...noStoreHeaders(),
-            ...extra("/v1/skill"),
-          },
-        });
-      }
-      return markdownResponse(md, { ...extra("/v1/skill"), ...noStoreHeaders() });
+      return asHead(
+        request,
+        markdownResponse(runtimeSkillMarkdown(origin, PRODUCTS), {
+          ...authorityLinkHeaders(origin, "/v1/skill"),
+        }),
+      );
     }
 
-    if ((url.pathname === "/v1/runtime.json" || url.pathname === "/v1/runtime") && (request.method === "GET" || request.method === "HEAD")) {
+    if (
+      (url.pathname === "/v1/runtime.json" || url.pathname === "/v1/runtime") &&
+      (request.method === "GET" || request.method === "HEAD")
+    ) {
       const canon = "/v1/runtime.json";
-      if (request.method === "HEAD") {
-        return new Response(null, {
-          status: 200,
-          headers: {
-            "Content-Type": "application/json; charset=utf-8",
-            ...corsHeaders(),
-            ...noStoreHeaders(),
-            ...extra(canon),
-          },
-        });
-      }
-      return json(runtimeManifest(origin, PRODUCTS), 200, { ...extra(canon), ...noStoreHeaders() });
+      return asHead(request, json(runtimeManifest(origin, PRODUCTS), 200, authorityLinkHeaders(origin, canon)));
     }
 
     if (url.pathname === "/v1/bundle" && request.method === "GET") {
@@ -1760,15 +1812,18 @@ export default {
           catalog: origin + "/",
           skill: origin + "/v1/skill",
           runtime: origin + "/v1/runtime.json",
+          ready: origin + "/v1/ready",
           session: origin + "/v1/session/open",
           bundle: origin + "/v1/bundle",
           ...honestyFields(PRODUCTS.map((p) => p.slug)),
+          authoritySnapshot: authoritySnapshot(PRODUCTS.map((p) => p.slug)),
+          version_history: VERSION_HISTORY,
           license: "Apache-2.0",
           count: PRODUCTS.length,
           products: PRODUCTS.map((p) => catalogRecord(p, origin)),
         },
         200,
-        extra("/v1/catalog.json"),
+        authorityLinkHeaders(origin, "/v1/catalog.json"),
       );
     }
 
@@ -1776,45 +1831,31 @@ export default {
       return json(await combinedOpenApi(request, env), 200, extra("/openapi.json"));
     }
 
-    if ((url.pathname === "/v1/health") && (request.method === "GET" || request.method === "HEAD")) {
-      const snap = authoritySnapshot(PRODUCTS.map((p) => p.slug));
+    if (url.pathname === "/v1/health" && (request.method === "GET" || request.method === "HEAD")) {
+      return asHead(
+        request,
+        json(
+          healthBody(origin),
+          200,
+          authorityLinkHeaders(origin, "/v1/health"),
+        ),
+      );
+    }
+
+    if (url.pathname === "/v1/ready" && (request.method === "GET" || request.method === "HEAD")) {
+      const gate = evaluateReady(env);
       const body = {
-        ...snap,
-        products: PRODUCTS.map((p) => p.slug),
-        count: PRODUCTS.length,
-        skill: "/v1/skill",
-        runtime: "/v1/runtime.json",
-        session: "/v1/session/open",
-        bundle: "/v1/bundle",
-        pull: "/v1/pull/{slug}",
-        invoke: "/p/{slug}/{op}",
-        invoke_note: "proxy only — not exec",
-        ...honestyFields(PRODUCTS.map((p) => p.slug)),
-        counted_tarball: false,
-        openapi: "/openapi.json",
-        catalog: "/v1/catalog.json",
-        cite: "/cite.json",
-        sitemap: "/sitemap.xml",
-        robots: "/robots.txt",
-        llms: "/llms.txt",
-        ai: "/ai.txt",
-        mcp: "/mcp",
-        sigil: "/sigil.png",
-        library_front_door: "https://www.azielcorpuslibrary.net/runtime",
-        kv_increment: false,
+        ...healthBody(origin),
+        ok: gate.ok,
+        ready: gate.ok,
+        session_binding: gate.session_binding,
+        require_token: gate.require_token,
+        token_configured: gate.token_configured,
+        ...(gate.error
+          ? { error: gate.error, code: gate.code, hint: gate.hint }
+          : {}),
       };
-      if (request.method === "HEAD") {
-        return new Response(null, {
-          status: 200,
-          headers: {
-            "Content-Type": "application/json; charset=utf-8",
-            ...corsHeaders(),
-            ...noStoreHeaders(),
-            ...extra("/v1/health"),
-          },
-        });
-      }
-      return json(body, 200, { ...extra("/v1/health"), ...noStoreHeaders() });
+      return asHead(request, json(body, gate.status, authorityLinkHeaders(origin, "/v1/ready")));
     }
 
     if (url.pathname === "/sigil.png" && request.method === "GET") {
@@ -1861,7 +1902,7 @@ export default {
     return json(
       {
         error: "not found",
-        hint: "POST /v1/session/open  POST /v1/session/{id}/exec  GET /v1/skill  GET /v1/runtime.json  GET /v1/bundle  GET /v1/pull/{slug}  GET /v1/catalog.json  GET /openapi.json  POST /p/{product}/{op} (proxy, not exec)  POST /mcp",
+        hint: "POST /v1/session/open  POST /v1/session/{id}/exec  GET /v1/ready  GET /v1/skill  GET /v1/runtime.json  GET /v1/bundle  GET /v1/pull/{slug}  GET /v1/catalog.json  GET /openapi.json  POST /p/{product}/{op} (proxy, not exec)  POST /mcp",
       },
       404,
     );
