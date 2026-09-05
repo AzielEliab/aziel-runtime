@@ -21,7 +21,7 @@ Hosted / in-process AZAI is still protocol mirror + Lamb check, **not** the loca
 ChatGPT GPT Actions, Grok custom tools, and Venice HTTP tools import **this** OpenAPI file — then use product tools or `runtime_run`. Session tools are advanced/internal. `/p/{slug}/{op}` is proxy only.
 
 **Author:** Aziel Eliab  
-**Identity:** Aziel Eliab only  
+**Identity:** Aziel Eliab (primary). Also known as Aziel Elroi Eliab (`alternateName` / aka only).  
 **License:** [Apache-2.0](LICENSE)  
 **Version:** 1.5.0  
 **Role:** `engine-runtime` (layer: `catalog+pull+proxy+session+in-process-engines`)  
@@ -111,6 +111,7 @@ Always send `User-Agent: Mozilla/5.0`.
 | LLM crawler | https://aziel-runtime.vibelock.workers.dev/llms.txt (also `/ai.txt`) |
 | robots.txt | https://aziel-runtime.vibelock.workers.dev/robots.txt |
 | sitemap.xml | https://aziel-runtime.vibelock.workers.dev/sitemap.xml |
+| sitemap-index.xml | https://aziel-runtime.vibelock.workers.dev/sitemap-index.xml |
 | MCP (JSON-RPC over HTTP, public, no OAuth) | `POST` https://aziel-runtime.vibelock.workers.dev/mcp |
 | Health | https://aziel-runtime.vibelock.workers.dev/v1/health |
 | Ready | https://aziel-runtime.vibelock.workers.dev/v1/ready |
@@ -128,6 +129,10 @@ in-repo and is not a GitBaby `/download` package. Each product still has its
 own counted `/download`.
 
 **How to cite:** Eliab, Aziel. (2026). Aziel Eliab Runtime [Software]. Apache-2.0. https://aziel-runtime.vibelock.workers.dev/
+
+**Digital Library:** Eliab, Aziel. (2026). Aziel Digital Library [Software]. Apache-2.0. https://www.azielcorpuslibrary.net/
+
+Product Worker crawl template: [docs/PRODUCT_SEO.md](docs/PRODUCT_SEO.md).
 
 ## Add to ChatGPT (GPT Actions)
 
