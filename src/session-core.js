@@ -9,6 +9,8 @@
  * Author: Aziel Eliab. Identity is Aziel Eliab only. Do not invent DOIs.
  */
 
+import { RECEIPT_CAP, SESSION_TTL_MS, isSessionExpired, receiptCapReached, sessionExpiresAt } from "./production.js";
+
 export const ZERO_HASH = "0".repeat(64);
 export const SESSION_ID_RE = /^sess_[a-f0-9]{32}$/;
 export const DEFAULT_MAX_PAYLOAD_BYTES = 65_536;
@@ -229,7 +231,7 @@ export function mergePolicy(current, incoming) {
   return next;
 }
 
-function requireOpen(session) {
+function requireOpen(session, nowIso) {
   if (!session) throw sessionError(404, "session_not_found", "session not found");
   if (session.closed) {
     throw sessionError(409, "session_closed", "session is sealed; no further exec or policy", {
@@ -237,10 +239,26 @@ function requireOpen(session) {
       closed_at: session.closed_at,
     });
   }
+  if (isSessionExpired(session, nowIso || new Date())) {
+    throw sessionError(410, "session_expired", "session exceeded 6h TTL", {
+      session_id: session.id,
+      opened_at: session.opened_at,
+      session_ttl_ms: SESSION_TTL_MS,
+    });
+  }
 }
 
-export function assertExecAllowed(session, { slug, op, payloadBytes, knownSlugs }) {
-  requireOpen(session);
+function requireReceiptRoom(session) {
+  if (receiptCapReached(session)) {
+    throw sessionError(409, "receipt_cap", `session receipt cap ${RECEIPT_CAP} reached`, {
+      receipt_count: (session.receipts || []).length,
+      receipt_cap: RECEIPT_CAP,
+    });
+  }
+}
+
+export function assertExecAllowed(session, { slug, op, payloadBytes, knownSlugs, nowIso }) {
+  requireOpen(session, nowIso);
   const s = String(slug || "").trim().toLowerCase();
   const o = String(op || "").trim();
   if (!s || !o) {
@@ -276,7 +294,8 @@ export async function applyOpen(session, nowIso) {
 }
 
 export async function applyPolicy(session, incoming, nowIso) {
-  requireOpen(session);
+  requireOpen(session, nowIso);
+  requireReceiptRoom(session);
   const before = session.policy;
   session.policy = mergePolicy(before, incoming);
   const receipt = await appendReceipt(session, "policy", {
@@ -287,8 +306,10 @@ export async function applyPolicy(session, incoming, nowIso) {
 }
 
 export async function recordIntent(session, { slug, op, payload, payloadText, knownSlugs, banner }, nowIso) {
+  requireOpen(session, nowIso);
+  requireReceiptRoom(session);
   const bytes = new TextEncoder().encode(payloadText).length;
-  const allowed = assertExecAllowed(session, { slug, op, payloadBytes: bytes, knownSlugs });
+  const allowed = assertExecAllowed(session, { slug, op, payloadBytes: bytes, knownSlugs, nowIso });
   const digest = await digestText(payloadText);
   const intent = {
     intent_id: `${session.id}:${(session.receipts || []).length + 1}`,
@@ -312,7 +333,8 @@ export async function recordIntent(session, { slug, op, payload, payloadText, kn
 }
 
 export async function commitExec(session, { intent, status, latencyMs, requestDigest, responseDigest, error, upstream, responseBytes, contentType, engine }, nowIso) {
-  requireOpen(session);
+  requireOpen(session, nowIso);
+  requireReceiptRoom(session);
   if (!session.pending_intent || session.pending_intent.intent_id !== intent.intent_id) {
     throw sessionError(409, "intent_mismatch", "pending intent does not match commit");
   }
@@ -342,8 +364,15 @@ export async function commitExec(session, { intent, status, latencyMs, requestDi
   return receipt;
 }
 
-export async function applyClose(session, nowIso) {
-  requireOpen(session);
+export async function applyClose(session, nowIso, { force = false } = {}) {
+  if (!session) throw sessionError(404, "session_not_found", "session not found");
+  if (session.closed) {
+    throw sessionError(409, "session_closed", "session is sealed; no further exec or policy", {
+      session_id: session.id,
+      closed_at: session.closed_at,
+    });
+  }
+  if (!force) requireOpen(session, nowIso);
   session.closed = true;
   session.closed_at = nowIso;
   session.pending_intent = null;
@@ -368,6 +397,8 @@ export function publicSession(session) {
     identity: session.identity,
     policy: session.policy,
     receipt_count: (session.receipts || []).length,
+    receipt_cap: RECEIPT_CAP,
+    expires_at: sessionExpiresAt(session),
     head_hash: session.head_hash,
     pending_intent: session.pending_intent,
     honesty: session.honesty,

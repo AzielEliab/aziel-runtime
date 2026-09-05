@@ -7,6 +7,14 @@
 import { digestText, newSessionId, SESSION_ID_RE } from "./session-core.js";
 import { RUNTIME_VERSION } from "./runtime-api.js";
 import { executeLocal, proxyFallbackMeta } from "./engines/runner.js";
+import {
+  copyTokenHeaders,
+  isSessionMutatePath,
+  rateLimitDecision,
+  rateLimitFailBody,
+  rateLimitFailHeaders,
+  sessionMutateAuth,
+} from "./production.js";
 
 function sessionStub(env, id) {
   if (!env || !env.SESSION) return null;
@@ -48,10 +56,28 @@ function payloadTextOf(payload) {
   return JSON.stringify(payload);
 }
 
+function gateSessionMutate(request, env, json) {
+  const url = new URL(request.url);
+  if (!isSessionMutatePath(url.pathname, request.method)) return null;
+  const auth = sessionMutateAuth(request, env);
+  if (!auth.ok) return json(auth.body, auth.status);
+  const kind = url.pathname === "/v1/session/open" ? "open" : url.pathname.endsWith("/exec") ? "exec" : null;
+  if (kind) {
+    const decision = rateLimitDecision(env, request, kind);
+    if (!decision.ok) {
+      return json(rateLimitFailBody(decision), 429, rateLimitFailHeaders(decision));
+    }
+  }
+  return null;
+}
+
 export async function handleSessionRequest(request, env, deps) {
   const { json, PRODUCTS, BY_SLUG, upstreamFetch, extra } = deps;
   const url = new URL(request.url);
   const path = url.pathname;
+
+  const gated = gateSessionMutate(request, env, json);
+  if (gated) return gated;
 
   if (path === "/v1/session/open" && request.method === "POST") {
     let body = {};
@@ -339,10 +365,12 @@ export function sessionMcpTools() {
 export async function callSessionTool(env, name, args, origin, deps) {
   const base = (origin || "https://aziel-runtime.vibelock.workers.dev").replace(/\/$/, "");
   const sid = args && (args.session_id || args.id);
+  const tokenHeaders = copyTokenHeaders(deps && deps.request, {});
+  if (args && args.runtime_token) tokenHeaders["X-Aziel-Runtime-Token"] = String(args.runtime_token);
   if (name === "runtime_session_open") {
     const req = new Request(base + "/v1/session/open", {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", ...tokenHeaders },
       body: JSON.stringify(args && typeof args === "object" ? args : {}),
     });
     const res = await handleSessionRequest(req, env, deps);
@@ -361,7 +389,7 @@ export async function callSessionTool(env, name, args, origin, deps) {
   const body = { ...(args || {}) };
   delete body.session_id;
   delete body.id;
-  const init = { method: spec.method, headers: { "content-type": "application/json" } };
+  const init = { method: spec.method, headers: { "content-type": "application/json", ...tokenHeaders } };
   if (spec.method === "POST") init.body = JSON.stringify(body);
   const req = new Request(base + spec.path, init);
   const res = await handleSessionRequest(req, env, deps);
