@@ -258,7 +258,11 @@ assert.ok(localHs.replies[0].result, `local initialize failed: ${JSON.stringify(
 assert.equal(localHs.replies[0].result.serverInfo.name, "aziel-runtime");
 const localTools = localHs.replies[1].result.tools.map((t) => t.name);
 assert.ok(localTools.includes("runtime_skill"));
+assert.ok(localTools.includes("fraggate_call"));
 assert.ok(localTools.includes("runtime_run"));
+assert.ok(localTools.length <= 20, `stdio tools/list ${localTools.length}`);
+assert.ok(!localTools.includes("godlock_submit"));
+assert.ok(!localTools.includes("foldlock_fold-preview"));
 
 if (process.env.AZIEL_RUNTIME_MCP_SKIP_LIVE === "1") {
   console.log("verify-mcp-stdio: skip live smoke (AZIEL_RUNTIME_MCP_SKIP_LIVE=1)");

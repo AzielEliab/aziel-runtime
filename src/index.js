@@ -1,5 +1,5 @@
 /**
- * aziel-runtime 1.5.0 — agent-native cut on 1.4.1 production gates.
+ * aziel-runtime 1.6.0 — FragGate door over the catalog.
  *
  * 1.1.0 was catalog+proxy that called itself a runtime. Useful front doors.
  * 1.2.0 owned open → policy → exec → receipt → close but exec still proxied.
@@ -7,7 +7,8 @@
  * 1.4.0 vendors a true engine for every catalog Software slug.
  * 1.4.1 adds /v1/ready, HEAD, no-store authority JSON, receipt cap 64, session TTL 6h,
  *       per-IP rate limits, optional RUNTIME_TOKEN on session mutate.
- * 1.5.0 agent-native MCP: display envelopes, product-verb tools, runtime_run façade.
+ * 1.5.0 agent-native MCP: display envelopes, flat product-verb tools, runtime_run façade.
+ * 1.6.0 FragGate door: hashed registry, thin tools/list, DecisionGATE before exec, ask/refuse ledger.
  *
  * GET  /                      HTML (indexable) + Everblooming sigil
  * GET  /sigil.png             Everblooming sigil stamp
@@ -18,7 +19,12 @@
  * GET  /ai.txt                same as /llms.txt
  * GET  /cite.json             How-to-cite: Aziel Eliab (aka Aziel Elroi Eliab), Apache-2.0, no invented DOIs
  * GET  /v1/skill              skill markdown (session + front doors)
- * GET  /v1/runtime.json       machine manifest: role=engine-runtime (1.5.0)
+ * GET  /v1/runtime.json       machine manifest: role=engine-runtime (1.6.0), door=fraggate
+ * GET  /v1/fraggate           FragGate door summary
+ * GET  /v1/fraggate/list      hashed registry
+ * GET  /v1/fraggate/describe  one name
+ * POST /v1/fraggate/verify    name or digest
+ * POST /v1/fraggate/call      CallEnvelope → DecisionGATE → ResultEnvelope
  * GET  /v1/runtime            alias of /v1/runtime.json
  * GET  /v1/ready              200 if SESSION binding up; 503 if REQUIRE_TOKEN=1 and token missing
  * GET  /v1/health             liveness (version/role match ready)
@@ -78,11 +84,16 @@ import {
 } from "./production.js";
 import {
   buildMcpToolList,
+  callFraggateTool,
   callRuntimeRun,
+  hallucRefuse,
   mcpCallPayload,
   mcpInitializeInstructions,
-  runProductMcpOp,
+  registryFor,
+  wrapFraggateEnvelope,
 } from "./mcp-surface.js";
+import { admitCall, describeRegistry, fraggateCall, listRegistry, verifyRegistry } from "./fraggate/door.js";
+import { registryDigest, registrySummary } from "./fraggate/registry.js";
 import {
   AUTHOR_ALTERNATE_NAME,
   AUTHOR_GITHUB,
@@ -110,7 +121,7 @@ const CATALOG_HOST = "https://aziel-runtime.vibelock.workers.dev";
 const PROTOCOL = "2025-03-26";
 const CATALOG_TITLE = "Aziel Eliab Runtime";
 const CATALOG_DESCRIPTION =
-  "Aziel Eliab software catalog and engine-runtime: 27 products plus the Aziel Digital Library (www.azielcorpuslibrary.net). 1.5.0 agent-native cut on 1.4.1 production gates: display-ready MCP results, product-verb tools, runtime_run auto-session. Proxy is not exec. Dual surface: agent chat has no technical UI chrome; Worker / Flutter / local install / counted download stay complete human software. Apache-2.0. Author: Aziel Eliab (also known as Aziel Elroi Eliab).";
+  "Aziel Eliab software catalog and engine-runtime: 27 products plus the Aziel Digital Library (www.azielcorpuslibrary.net). 1.6.0 FragGate door over the catalog — discover, route, refuse. Hashed registry, thin MCP, DecisionGATE before exec. 1.5.0 was agent-native flat product tools. Proxy is not exec. Dual surface: agent chat has no technical UI chrome; Worker / Flutter / local install / counted download stay complete human software. Apache-2.0. Author: Aziel Eliab (also known as Aziel Elroi Eliab).";
 const LASTMOD = "2026-09-05";
 
 const PRODUCTS_RAW = [
@@ -689,6 +700,8 @@ function sitemapXml(origin) {
     { loc: base + "/v1/catalog.json", priority: "0.9", changefreq: "daily" },
     { loc: base + "/v1/skill", priority: "0.95", changefreq: "daily" },
     { loc: base + "/v1/runtime.json", priority: "0.95", changefreq: "daily" },
+    { loc: base + "/v1/fraggate", priority: "0.95", changefreq: "daily" },
+    { loc: base + "/v1/fraggate/list", priority: "0.9", changefreq: "daily" },
     { loc: base + "/v1/session/open", priority: "0.95", changefreq: "daily" },
     { loc: base + "/v1/bundle", priority: "0.95", changefreq: "daily" },
     { loc: base + "/cite.json", priority: "0.8", changefreq: "weekly" },
@@ -738,7 +751,7 @@ function llmsTxt(origin) {
     "",
     ...llmsIdentityHeader(),
     `Role: engine-runtime (catalog + pull + proxy + session + in-process engines)`,
-    `Honesty: 1.1.0 was catalog+proxy. 1.2.0 was session/receipt (exec still proxied). 1.3.0 ran listed slugs in-process. 1.4.0 vendors every catalog Software slug. 1.4.1 adds production gates (ready, HEAD, no-store, receipt cap 64, TTL 6h, rate limits, optional token). 1.5.0 is the agent-native cut (display envelopes, product-verb MCP, runtime_run).`,
+    `Honesty: 1.1.0 was catalog+proxy. 1.2.0 was session/receipt (exec still proxied). 1.3.0 ran listed slugs in-process. 1.4.0 vendors every catalog Software slug. 1.4.1 adds production gates (ready, HEAD, no-store, receipt cap 64, TTL 6h, rate limits, optional token). 1.5.0 was the agent-native cut (flat product-verb MCP). 1.6.0 is the FragGate door (discover, route, refuse).`,
     `True-engine slugs: ${honestyFields(PRODUCTS.map((p) => p.slug)).true_engine_slugs.join(", ")}`,
     `Proxy /p/{slug}/{op} is not exec. Hosted AZAI is not the local blend.`,
     `Local blends: azai serve · forgereceipts ui · azos ui`,
@@ -749,6 +762,9 @@ function llmsTxt(origin) {
     `Session open: POST ${base}/v1/session/open`,
     `Bundle: ${base}/v1/bundle`,
     `OpenAPI: ${base}/openapi.json`,
+    `Door: fraggate`,
+    `FragGate: ${base}/v1/fraggate`,
+    `Kernel: https://github.com/AzielEliab/fraggate`,
     `MCP: POST ${base}/mcp`,
     `Machine catalog: ${base}/v1/catalog.json`,
     `Cite: ${base}/cite.json`,
@@ -1072,7 +1088,7 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
     <p class="stamp">Everblooming sigil · Aziel Eliab</p>
   </div>
   <h1>Aziel Eliab Runtime</h1>
-  <p class="lead"><strong>1.5.0</strong> is the agent-native cut on <strong>1.4.1</strong> production gates: agents use product tools like software (display-ready output, then the next input). Human software — this Worker UI, Flutter <code>mobile/</code>, local install, counted <code>/download</code> — stays complete. Catalog + pull + proxy + session + <strong>in-process engines</strong> for every catalog Software slug. ${PRODUCTS.length} products including the <a href="${LIBRARY_ORIGIN}/">Aziel Digital Library</a>. Forks welcome. Apache-2.0. Author: <strong>Aziel Eliab</strong> (also known as Aziel Elroi Eliab).</p>
+  <p class="lead"><strong>1.6.0</strong> is the <strong>FragGate door</strong> over the catalog — one door: discover, route, refuse. <strong>1.5.0</strong> was the agent-native flat product-tool pile. Human software — this Worker UI, Flutter <code>mobile/</code>, local install, counted <code>/download</code> — stays complete. Catalog + pull + proxy + session + <strong>in-process engines</strong> for every catalog Software slug. ${PRODUCTS.length} products including the <a href="${LIBRARY_ORIGIN}/">Aziel Digital Library</a>. Kernel: <a href="https://github.com/AzielEliab/fraggate">fraggate</a>. Forks welcome. Apache-2.0. Author: <strong>Aziel Eliab</strong> (also known as Aziel Elroi Eliab).</p>
   <div class="honesty">
     <strong>What this Worker is</strong>
     <ul>
@@ -1081,7 +1097,8 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
       <li><strong>1.3.0</strong> vendored portable engines and ran them <em>inside this Worker isolate</em> for listed slugs. Receipts include <code>engine_digest</code> and <code>ran_in</code>.</li>
       <li><strong>1.4.0</strong> vendors a true engine for <em>every</em> catalog Software slug. <code>engine_slugs</code> equals <code>true_engine_slugs</code>. Binding-only ops (KV / D1 / AI / live media) stay per-op <code>proxy_fallback</code>.</li>
       <li><strong>1.4.1</strong> production gates: <code>GET /v1/ready</code> (SESSION binding; 503 if <code>REQUIRE_TOKEN=1</code> and <code>RUNTIME_TOKEN</code> missing). HEAD on health/ready/runtime/skill. Authority JSON is <code>Cache-Control: no-store</code>. Receipt cap 64. Session TTL 6h. 20 opens / 60 execs per IP per minute. Optional token on session mutate only.</li>
-      <li><strong>1.5.0</strong> agent-native MCP: product verbs return a <code>display</code> envelope; <code>runtime_run</code> auto-opens a session and runs true in-process exec; session/health/manifest tools are advanced/internal. Dual surface: no technical UI chrome for agents; human UIs unchanged.</li>
+      <li><strong>1.5.0</strong> agent-native MCP: product verbs return a <code>display</code> envelope; <code>runtime_run</code> auto-opens a session; session/health/manifest tools are advanced/internal. Dual surface: no technical UI chrome for agents; human UIs unchanged.</li>
+      <li><strong>1.6.0</strong> FragGate door: hashed registry, thin MCP <code>tools/list</code>, <code>fraggate_call</code> is the default exec path, DecisionGATE before exec, ask/refuse ledger. Flat <code>{slug}_{op}</code> names are not listed. Kernel: <a href="https://github.com/AzielEliab/fraggate">github.com/AzielEliab/fraggate</a>.</li>
       <li>AZAI in-process is Lamb check only — not the local blend. AZBot is a skill router, not a model. Aziel Digital Library in-process searches a bundled sample MASTER; live D1 stays per-op proxy.</li>
       <li><code>POST /p/{slug}/{op}</code> is a <em>proxy</em>. Proxy without a session receipt is not exec.</li>
       <li>Cloudflare's Worker / Durable Object isolate <em>is</em> the jail. No extra guest isolate is claimed. <code>engine_digest</code> is still required.</li>
@@ -1119,6 +1136,7 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
   </section>
   <p class="links">
     <a href="${origin}/v1/skill">/v1/skill</a>
+    <a href="${origin}/v1/fraggate">/v1/fraggate</a>
     <a href="${origin}/v1/runtime.json">/v1/runtime.json</a>
     <a href="${origin}/v1/session/open">/v1/session/open</a>
     <a href="${origin}/v1/bundle">/v1/bundle</a>
@@ -1156,7 +1174,7 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
     <li><strong>ChatGPT</strong> — GPT Actions → Import from URL → <code>${origin}/openapi.json</code></li>
     <li><strong>Grok</strong> — custom tool / OpenAPI / MCP remote → <code>${origin}/openapi.json</code> or <code>${origin}/mcp</code></li>
     <li><strong>Venice</strong> — custom HTTP tools / OpenAPI → same OpenAPI URL</li>
-    <li><strong>Any installer / agent</strong> — start at <code>${origin}/v1/skill</code>. Prefer product tools or <code>runtime_run</code>. Session tools are advanced/internal.</li>
+    <li><strong>Any installer / agent</strong> — start at <code>${origin}/v1/skill</code>. Prefer <code>fraggate_list</code> / <code>fraggate_call</code>. Session tools and <code>runtime_run</code> are advanced/internal.</li>
   </ul>
   ${cards}
 </body>
@@ -1318,34 +1336,6 @@ function staticPaths(origin) {
       },
     },
   };
-  for (const p of PRODUCTS) {
-    for (const o of p.ops) {
-      const path = `/p/${p.slug}/${o.op}`;
-      const method = o.method.toLowerCase();
-      const item = {
-        operationId: `${p.slug}_${o.op}`,
-        summary: `${p.name}: ${o.summary}`,
-        description: [p.banner, `Proxies to ${workerUrl(p, o.op)}`].filter(Boolean).join("\n\n"),
-        tags: [p.slug],
-        responses: {
-          "200": { description: "Upstream JSON" },
-          "4XX": { description: "Upstream or catalog error" },
-        },
-      };
-      if (method === "post") {
-        item.requestBody = {
-          required: true,
-          content: {
-            "application/json": {
-              schema: { type: "object" },
-              example: p.example,
-            },
-          },
-        };
-      }
-      paths[path] = { [method]: item };
-    }
-  }
   return paths;
 }
 
@@ -1379,42 +1369,22 @@ function rewriteLivePaths(spec, product) {
 async function combinedOpenApi(request, env) {
   const origin = originOf(request);
   const paths = staticPaths(origin);
-  await Promise.all(
-    PRODUCTS.map(async (p) => {
-      try {
-        const bind = env && env[bindingName(p)];
-        let res;
-        if (bind && typeof bind.fetch === "function") {
-          res = await bind.fetch(new Request("https://internal/openapi.json", { headers: { accept: "application/json" } }));
-        } else {
-          res = await fetch(`https://${p.worker}.vibelock.workers.dev/openapi.json`, {
-            headers: { accept: "application/json" },
-            signal: AbortSignal.timeout(2500),
-          });
-        }
-        if (!res.ok) return;
-        const spec = await res.json();
-        Object.assign(paths, rewriteLivePaths(spec, p));
-      } catch {
-        /* static fallback */
-      }
-    }),
-  );
   return {
     openapi: "3.1.0",
     info: {
       title: "Aziel Eliab Runtime",
       version: RUNTIME_VERSION,
-      summary: "Agent-native runtime: use Aziel Eliab software in chat, plus catalog + pull + proxy + session + in-process engines.",
+      summary: "FragGate door over the Aziel Eliab catalog: discover, route, refuse.",
       description:
-        "1.5.0 is the agent-native cut: MCP product tools and session exec return a display envelope; runtime_run auto-opens a session. " +
+        "1.6.0 is the FragGate door: hashed registry, thin MCP tools/list, DecisionGATE before exec, ask/refuse ledger. " +
+        "1.5.0 was the agent-native cut (flat product-verb MCP + runtime_run). " +
         "1.4.1 adds production gates on the 1.4.0 engine-runtime. " +
         "1.4.0 is catalog + pull + proxy + a session Durable Object + vendored in-process engines for every catalog Software slug. " +
         "1.3.0 listed portable slugs. 1.2.0 was session/receipt (exec still proxied). 1.1.0 was catalog+proxy that called itself a runtime. " +
-        "True exec is POST /v1/session/{id}/exec or MCP runtime_run (receipt includes engine_digest and ran_in). " +
-        "Binding-only ops stay per-op proxy_fallback. POST /p/{product}/{op} is a proxy, not exec. " +
-        "Cloudflare isolate is the jail. Hosted AZAI is a protocol mirror + Lamb check, not the local blend. " +
-        "Start at GET /v1/skill. Agents prefer product tools or runtime_run. " +
+        "Agent default exec is POST /v1/fraggate/call or MCP fraggate_call (CallEnvelope → DecisionGATE → ResultEnvelope). " +
+        "Binding-only ops stay per-op proxy_fallback. POST /p/{product}/{op} is a proxy, not exec, and is not the agent default path. " +
+        "Cloudflare isolate is the jail. Hosted AZAI is a protocol mirror + Lamb check, not the local blend. Mesh is not claimed on this public surface. " +
+        "Start at GET /v1/skill. Agents use fraggate_list / fraggate_call. " +
         "GET /v1/bundle lists every product skill URL + invoke prefix. " +
         "GET /v1/pull/{slug} and GET /v1/pull/{slug}/skill pull a product without visiting its Worker. " +
         "Import this file in ChatGPT GPT Actions, Grok custom tools, or Venice HTTP tools. " +
@@ -1435,7 +1405,9 @@ async function combinedOpenApi(request, env) {
       contact: { name: "Aziel Eliab", url: "https://github.com/AzielEliab/aziel-runtime" },
     },
     servers: [{ url: origin }],
-    tags: PRODUCTS.map((p) => ({ name: p.slug, description: p.name })),
+    tags: [{ name: "fraggate", description: "FragGate door — discover, route, refuse" }, { name: "runtime", description: "Runtime" }, { name: "session", description: "Session (advanced)" }].concat(
+      PRODUCTS.map((p) => ({ name: p.slug, description: p.name })),
+    ),
     components: {
       securitySchemes: {
         RuntimeToken: {
@@ -1531,11 +1503,13 @@ async function proxy(product, op, request, env) {
 }
 
 function toolList() {
-  return buildMcpToolList({ products: PRODUCTS, sessionTools: sessionMcpTools() });
+  return buildMcpToolList({ sessionTools: sessionMcpTools() });
 }
 
 async function callRuntimeTool(env, name, args, origin, request) {
   const base = (origin || CATALOG_HOST).replace(/\/$/, "");
+  const fraggate = await callFraggateTool(name, args, PRODUCTS, BY_SLUG);
+  if (fraggate) return fraggate;
   if (name === "runtime_run" || name === "use_software") {
     return callRuntimeRun(env, args, origin, sessionDeps(env, origin, request));
   }
@@ -1579,6 +1553,8 @@ function healthBody(origin) {
     count: PRODUCTS.length,
     skill: "/v1/skill",
     runtime: "/v1/runtime.json",
+    door: "fraggate",
+    fraggate: "/v1/fraggate",
     ready: "/v1/ready",
     session: "/v1/session/open",
     bundle: "/v1/bundle",
@@ -1620,15 +1596,16 @@ function splitProductToolName(name) {
 }
 
 async function callTool(env, name, args, origin, request) {
+  if (name === "runtime_session_exec") {
+    const registry = registryFor(PRODUCTS);
+    const admission = await admitCall(args, registry, BY_SLUG);
+    if (!admission.admitted) {
+      return wrapFraggateEnvelope(name, admission.envelope, null, (args && args.op) || null);
+    }
+  }
   const local = await callRuntimeTool(env, name, args, origin, request);
   if (local) return local;
-  const { slug, op } = splitProductToolName(name);
-  const product = slug ? BY_SLUG[slug] : null;
-  if (!product || !op) throw new Error(`unknown tool: ${name}`);
-  const spec = product.ops.find((o) => o.op === op);
-  if (!spec) throw new Error(`unknown tool: ${name}`);
-  const out = await runProductMcpOp({ env, product, op, args, upstreamFetch });
-  return { ...out, product, op };
+  return wrapFraggateEnvelope(name, hallucRefuse(name), null, null);
 }
 
 function rpcResult(id, result) {
@@ -1647,9 +1624,11 @@ async function handleMcp(request, env, origin) {
       endpoint: "POST /mcp",
       methods: ["initialize", "tools/list", "tools/call", "ping"],
       auth: "none (public)",
-      note: "Durable Objects / agents McpAgent not used. Minimal HTTP JSON-RPC.",
+      note: "Durable Objects / agents McpAgent not used. Minimal HTTP JSON-RPC. tools/list is the thin FragGate door.",
+      door: "fraggate",
       skill: "/v1/skill",
       runtime: "/v1/runtime.json",
+      fraggate: "/v1/fraggate",
       bundle: "/v1/bundle",
       session: "/v1/session/open",
     });
@@ -1698,6 +1677,61 @@ async function handleMcp(request, env, origin) {
   return rpcError(id, -32601, `Method not found: ${method}`);
 }
 
+
+async function handleFraggateHttp(request, url, origin) {
+  const registry = registryFor(PRODUCTS);
+  const extra = authorityLinkHeaders(origin, url.pathname);
+  if (url.pathname === "/v1/fraggate" && (request.method === "GET" || request.method === "HEAD")) {
+    const digest = await registryDigest(registry);
+    const body = {
+      ok: true,
+      door: "fraggate",
+      ...registrySummary(registry, digest),
+      skill: origin.replace(/\/$/, "") + "/v1/skill",
+      mcp: origin.replace(/\/$/, "") + "/mcp",
+      kernel: "https://github.com/AzielEliab/fraggate",
+    };
+    return asHead(request, json(body, 200, extra));
+  }
+  if (url.pathname === "/v1/fraggate/list" && (request.method === "GET" || request.method === "HEAD")) {
+    return asHead(request, json(await listRegistry(registry), 200, extra));
+  }
+  if (url.pathname === "/v1/fraggate/describe" && (request.method === "GET" || request.method === "HEAD")) {
+    const args = {
+      name: url.searchParams.get("name") || url.searchParams.get("slug") || "",
+      slug: url.searchParams.get("slug") || "",
+    };
+    const body = await describeRegistry(args, registry, BY_SLUG);
+    return asHead(request, json(body, body.ok === false ? 400 : 200, extra));
+  }
+  if (url.pathname === "/v1/fraggate/verify" && request.method === "POST") {
+    let args = {};
+    try {
+      args = await request.json();
+    } catch {
+      args = {};
+    }
+    const body = await verifyRegistry(args, registry, BY_SLUG);
+    return json(body, body.ok === false ? 400 : 200, extra);
+  }
+  if (url.pathname === "/v1/fraggate/call" && request.method === "POST") {
+    let args = {};
+    try {
+      args = await request.json();
+    } catch {
+      args = {};
+    }
+    const body = await fraggateCall(args, registry, BY_SLUG);
+    return json(body, body.ok === false ? 400 : 200, extra);
+  }
+  return json(
+    {
+      error: "not found",
+      hint: "GET /v1/fraggate  GET /v1/fraggate/list  GET /v1/fraggate/describe?name=  POST /v1/fraggate/verify  POST /v1/fraggate/call",
+    },
+    404,
+  );
+}
 
 async function handlePull(env, product, origin, extra) {
   const fetched = await fetchProductSkill(env, product, upstreamFetch);
@@ -1804,7 +1838,20 @@ export default {
       (request.method === "GET" || request.method === "HEAD")
     ) {
       const canon = "/v1/runtime.json";
-      return asHead(request, json(runtimeManifest(origin, PRODUCTS), 200, authorityLinkHeaders(origin, canon)));
+      const registry = registryFor(PRODUCTS);
+      const digest = await registryDigest(registry);
+      return asHead(
+        request,
+        json(
+          runtimeManifest(origin, PRODUCTS, { registry_digest: digest, fraggate: registrySummary(registry, digest) }),
+          200,
+          authorityLinkHeaders(origin, canon),
+        ),
+      );
+    }
+
+    if (url.pathname === "/v1/fraggate" || url.pathname.startsWith("/v1/fraggate/")) {
+      return handleFraggateHttp(request, url, origin);
     }
 
     if (url.pathname === "/v1/bundle" && request.method === "GET") {
@@ -1951,7 +1998,7 @@ export default {
     return json(
       {
         error: "not found",
-        hint: "POST /v1/session/open  POST /v1/session/{id}/exec  GET /v1/ready  GET /v1/skill  GET /v1/runtime.json  GET /v1/bundle  GET /v1/pull/{slug}  GET /v1/catalog.json  GET /openapi.json  POST /p/{product}/{op} (proxy, not exec)  POST /mcp",
+        hint: "POST /v1/fraggate/call  GET /v1/fraggate  GET /v1/skill  POST /v1/session/open  POST /v1/session/{id}/exec  GET /v1/ready  GET /v1/runtime.json  GET /v1/bundle  GET /v1/pull/{slug}  GET /v1/catalog.json  GET /openapi.json  POST /p/{product}/{op} (proxy, not exec)  POST /mcp",
       },
       404,
     );

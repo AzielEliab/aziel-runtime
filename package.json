@@ -1,8 +1,8 @@
 {
   "name": "aziel-runtime",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "private": true,
-  "description": "Aziel Eliab Runtime 1.5.0 — agent-native cut on 1.4.1 production gates. Display-ready MCP, product-verb tools, runtime_run. Author: Aziel Eliab.",
+  "description": "Aziel Eliab Runtime 1.6.0 — FragGate door over the catalog. Discover, route, refuse. Author: Aziel Eliab.",
   "license": "Apache-2.0",
   "type": "module",
   "bin": {
@@ -11,7 +11,7 @@
   },
   "scripts": {
     "mcp": "node cli/mcp-stdio.mjs",
-    "test": "node scripts/hash-engines.mjs && node scripts/verify-cite.mjs && node scripts/verify-seo.mjs && node scripts/verify-runtime.mjs && node scripts/verify-session.mjs && node scripts/verify-engines.mjs && node scripts/verify-production.mjs && node scripts/verify-mcp-stdio.mjs",
+    "test": "node scripts/hash-engines.mjs && node scripts/verify-cite.mjs && node scripts/verify-seo.mjs && node scripts/verify-runtime.mjs && node scripts/verify-session.mjs && node scripts/verify-engines.mjs && node scripts/verify-production.mjs && node scripts/verify-mcp-stdio.mjs && node scripts/verify-fraggate.mjs",
     "probe:live": "node scripts/probe-live.mjs",
     "demo:session": "bash scripts/demo-session.sh"
   },

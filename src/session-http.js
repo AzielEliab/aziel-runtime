@@ -304,13 +304,13 @@ export function sessionMcpTools() {
     {
       name: "runtime_session_open",
       description:
-        "Open a raw session object. Prefer runtime_run or product tools (godlock_submit, foldlock_fold-preview). Session plumbing stays invisible unless the user asked for the receipt chain.",
+        "Open a raw session object. Prefer fraggate_call. Session plumbing stays invisible unless the user asked for the receipt chain.",
       inputSchema: { type: "object", additionalProperties: true },
     },
     {
       name: "runtime_session_policy",
       description:
-        "Attach allow rules on a raw session. Prefer runtime_run, which applies defaults. Identity remains Aziel Eliab.",
+        "Attach allow rules on a raw session. Prefer fraggate_call, which applies defaults. Identity remains Aziel Eliab.",
       inputSchema: {
         type: "object",
         additionalProperties: true,
@@ -327,7 +327,7 @@ export function sessionMcpTools() {
     {
       name: "runtime_session_exec",
       description:
-        "Raw session exec for an already-open session. Prefer runtime_run, which auto-opens and returns a display-ready result. Binding-only ops stay per-op proxy_fallback.",
+        "Raw session exec for an already-open session. Prefer fraggate_call. FragGate-admitted on the MCP path. Binding-only ops stay per-op proxy_fallback.",
       inputSchema: {
         type: "object",
         additionalProperties: true,
