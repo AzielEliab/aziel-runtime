@@ -40,21 +40,49 @@ User-agent: OAI-SearchBot
 Allow: /
 User-agent: Google-Extended
 Allow: /
+User-agent: Googlebot
+Allow: /
 User-agent: ClaudeBot
+Allow: /
+User-agent: Claude-SearchBot
+Allow: /
+User-agent: Claude-User
+Allow: /
+User-agent: anthropic-ai
 Allow: /
 User-agent: PerplexityBot
 Allow: /
+User-agent: Perplexity-User
+Allow: /
+User-agent: bingbot
+Allow: /
+User-agent: Meta-ExternalAgent
+Allow: /
+User-agent: Meta-ExternalFetcher
+Allow: /
+User-agent: Meta-WebIndexer
+Allow: /
+User-agent: Applebot
+Allow: /
 User-agent: Applebot-Extended
 Allow: /
-User-agent: meta-externalagent
-Allow: /
 User-agent: Amazonbot
+Allow: /
+User-agent: DuckDuckBot
+Allow: /
+User-agent: DuckAssistBot
+Allow: /
+User-agent: MistralAI-User
+Allow: /
+User-agent: YouBot
 Allow: /
 User-agent: CCBot
 Allow: /
 
 Sitemap: https://{this-host}/sitemap.xml
 ```
+
+Use the canonical User-agent names above (for example `Meta-ExternalAgent`, not `meta-externalagent`). Do not list case-only duplicates. Do not `Disallow: /v1` or `/openapi` — catalog and OpenAPI stay public. Only `Disallow: /api/` or `/admin/` if those paths exist as private on that Worker.
 
 `vibelock.vibelock.workers.dev` previously served Cloudflare content-signal legal text (no `Allow: /`). That host is **not** the counted download Worker. The live catalog Worker is `vibelock-download-tracker.vibelock.workers.dev`, which already Allows `/`. Replace any leftover content-signal-only robots on product hosts with the template above.
 
