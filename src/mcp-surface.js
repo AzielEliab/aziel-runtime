@@ -17,7 +17,7 @@ import {
 } from "./display.js";
 import { resolveSlug } from "./runtime-api.js";
 import { callSessionTool } from "./session-http.js";
-import { FG_HALLUC_TOOL, FRAGGATE_KERNEL, PUBLIC_MCP_TOOL_MAX } from "./fraggate/codes.js";
+import { FG_HALLUC_TOOL, FRAGGATE_KERNEL, PUBLIC_DOOR_TOOLS, PUBLIC_MCP_TOOL_MAX } from "./fraggate/codes.js";
 import {
   admitCall,
   describeRegistry,
@@ -52,9 +52,9 @@ export function mcpInitializeInstructions() {
     "runtime_run, runtime_session_*, raw *_health, and runtime_manifest are advanced/internal. " +
     "Do not call flat {slug}_{op} names — they are not in tools/list. Unknown names refuse FG-HALLUC-TOOL. " +
     "HTTP /p/{slug}/{op} is a proxy and is not exec. " +
-    "1.6.0 is the FragGate door cut. 1.5.0 was agent-native flat product tools. " +
+    "1.6.0 is the FragGate door cut on in-process engines. 1.5.0 was agent-native flat product tools. " +
     "Kernel: https://github.com/AzielEliab/fraggate (FG-0.1). " +
-    "Every catalog slug is a true engine. Cloudflare isolate is the jail. " +
+    "Every catalog slug is a true engine. Cloudflare isolate is the jail. engine_digest is required. " +
     "Hosted AZAI is protocol mirror + Lamb check, not the blend. Mesh is not claimed on this public surface. " +
     "Always send User-Agent Mozilla/5.0. Public, no OAuth. Author: Aziel Eliab only."
   );
