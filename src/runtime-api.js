@@ -104,7 +104,7 @@ Do **not** invent Zenodo DOIs. Cite \`/cite.json\`. Download counters are **not*
 
 1. \`POST ${base}/v1/session/open\` — session id, start time, policy defaults, empty receipt chain.
 2. \`POST ${base}/v1/session/{id}/policy\` — allow slugs/ops, payload size cap, no download-counter side effects unless explicitly requested (this Worker still has no download KV).
-3. \`POST ${base}/v1/session/{id}/exec\` body \`{slug, op, payload}\` — record intent, run a local engine when vendored (else explicit proxy_fallback), append a **hash-chained execution receipt owned by this session**.
+3. \`POST ${base}/v1/session/{id}/exec\` body \`{slug, op, payload}\` — record intent, run the **local in-process engine** for that slug (\`engine_digest\` + \`ran_in: aziel-runtime\`); only binding-only ops are per-op \`proxy_fallback\`. Append a **hash-chained execution receipt owned by this session**.
 4. \`GET ${base}/v1/session/{id}/receipt\` or \`.../receipts\` — last receipt / full chain (verifiable locally).
 5. \`POST ${base}/v1/session/{id}/close\` — seal. Further exec is 409.
 
@@ -121,7 +121,7 @@ node cli/aziel-runtime.mjs session close
 ## Bootstrap (front doors — still useful)
 
 1. \`GET ${base}/v1/skill\` — this markdown.
-2. \`GET ${base}/v1/runtime.json\` — machine manifest (\`role=session-runtime\`).
+2. \`GET ${base}/v1/runtime.json\` — machine manifest (\`version=1.4.0\`, \`role=engine-runtime\`, every catalog slug in \`engine_slugs\` / \`true_engine_slugs\`). Same JSON: \`GET ${base}/v1/runtime\`.
 3. \`GET ${base}/v1/bundle\` — every product skill URL + invoke prefix.
    Alias: \`GET ${base}/v1/pull?all=1\`.
 4. \`GET ${base}/v1/pull/{slug}\` — name, version, skill URL, counted download, install.sh, ops.
@@ -145,12 +145,13 @@ MCP tools are named \`{slug}_{op}\` (example: \`decisiongate_check\`, \`foldlock
 |--------|------|------|
 | POST | \`/v1/session/open\` | Create session + genesis receipt. |
 | POST | \`/v1/session/{id}/policy\` | Attach allow rules. |
-| POST | \`/v1/session/{id}/exec\` | Local engine when vendored; else explicit proxy_fallback. Hash-chained receipt. |
+| POST | \`/v1/session/{id}/exec\` | In-process engine for every catalog slug (\`engine_digest\`). Binding-only ops may be per-op proxy_fallback. Hash-chained receipt. |
 | GET | \`/v1/session/{id}/receipt\` | Last receipt (verifiable). Includes engine_digest when local. |
 | GET | \`/v1/session/{id}/receipts\` | Full receipt chain. |
 | POST | \`/v1/session/{id}/close\` | Seal session. |
 | GET | \`/v1/skill\` | This markdown. Does not increment downloads. |
-| GET | \`/v1/runtime.json\` | Machine manifest. role=engine-runtime. |
+| GET | \`/v1/runtime.json\` | Machine manifest. Authority with health: version=1.4.0, role=engine-runtime, all catalog slugs are true engines. |
+| GET | \`/v1/runtime\` | Alias of \`/v1/runtime.json\` (same machine manifest). |
 | GET | \`/v1/bundle\` | Compact bootstrap of every product. |
 | GET | \`/v1/pull?all=1\` | Alias of \`/v1/bundle\`. |
 | GET | \`/v1/pull/{slug}\` | Pull record for one product. |
@@ -164,7 +165,8 @@ MCP tools are named \`{slug}_{op}\` (example: \`decisiongate_check\`, \`foldlock
 | GET | \`/v1/health\` | Liveness. |
 
 Library front door: https://www.azielcorpuslibrary.net/runtime  
-Library JSON alias: https://www.azielcorpuslibrary.net/v1/runtime
+Library engine manifest (same as this Worker): https://www.azielcorpuslibrary.net/runtime/v1/runtime.json  
+**Not** the engine manifest: https://www.azielcorpuslibrary.net/v1/runtime is Digital Library package discovery (aziel-corpus), not aziel-runtime.
 
 ## Example (Mozilla/5.0)
 
@@ -249,6 +251,7 @@ export function runtimeManifest(origin, products) {
       session_close: base + "/v1/session/{id}/close",
       skill: base + "/v1/skill",
       runtime: base + "/v1/runtime.json",
+      runtime_alias: base + "/v1/runtime",
       discover: base + "/v1/catalog.json",
       pull: base + "/v1/pull/{slug}",
       pull_skill: base + "/v1/pull/{slug}/skill",
