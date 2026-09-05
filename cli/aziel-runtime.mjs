@@ -54,7 +54,7 @@ Usage:
 Default: Worker session at ${DEFAULT_URL}
 --local: filesystem session under ${HOME}; prefers vendored engines (in-process)
 --jail: run the local engine in a child Node process (ran_in=local-jail)
-1.4.1 is 1.4.0 engine-runtime plus production gates (ready, HEAD, no-store, receipt cap 64, TTL 6h, rate limits, optional token). Binding-only ops stay per-op proxy_fallback. No counted runtime tarball.
+1.5.0 is the agent-native cut on 1.4.1 production gates (ready, HEAD, no-store, receipt cap 64, TTL 6h, rate limits, optional token). Binding-only ops stay per-op proxy_fallback. No counted runtime tarball.
 Proxy /p/{slug}/{op} is not exec. Hosted AZAI is not the local blend.
 `;
 }

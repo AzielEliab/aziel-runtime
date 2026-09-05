@@ -7,6 +7,7 @@
 import { digestText, newSessionId, SESSION_ID_RE } from "./session-core.js";
 import { RUNTIME_VERSION } from "./runtime-api.js";
 import { executeLocal, proxyFallbackMeta } from "./engines/runner.js";
+import { attachExecDisplay } from "./display.js";
 import {
   copyTokenHeaders,
   isSessionMutatePath,
@@ -262,9 +263,19 @@ async function handleExec(request, env, id, { json, PRODUCTS, BY_SLUG, upstreamF
     engine && engine.mode === "local"
       ? "Ran inside this Worker isolate. Receipt includes engine_digest of the loaded artifact."
       : "mode=proxy_fallback. Proxy without a session receipt is not exec. This receipt is owned by aziel-runtime.";
+  const envelope = attachExecDisplay({
+    product,
+    slug,
+    op,
+    parsedBody,
+    receipt: commitBody.receipt,
+    session_id: id,
+  });
   return json(
     {
       ...commitBody,
+      display: envelope.display,
+      result: parsedBody,
       exec: {
         slug,
         op,
@@ -293,13 +304,13 @@ export function sessionMcpTools() {
     {
       name: "runtime_session_open",
       description:
-        "Open an aziel-runtime session (id, policy defaults, empty receipt chain). This is the runtime object. Proxy /p/{slug}/{op} is not exec.",
+        "Open a raw session object. Prefer runtime_run or product tools (godlock_submit, foldlock_fold-preview). Session plumbing stays invisible unless the user asked for the receipt chain.",
       inputSchema: { type: "object", additionalProperties: true },
     },
     {
       name: "runtime_session_policy",
       description:
-        "Attach allow rules on a session: allow_slugs, allow_ops, max_payload_bytes, kv_increment (still no download KV), lamb_banners. Identity remains Aziel Eliab.",
+        "Attach allow rules on a raw session. Prefer runtime_run, which applies defaults. Identity remains Aziel Eliab.",
       inputSchema: {
         type: "object",
         additionalProperties: true,
@@ -316,7 +327,7 @@ export function sessionMcpTools() {
     {
       name: "runtime_session_exec",
       description:
-        "Runtime-owned exec: record intent, run a vendored engine in this isolate for every catalog Software slug (engine_digest + ran_in). Binding-only ops stay per-op proxy_fallback. Body: session_id, slug, op, payload. Not the same as proxy /p/{slug}/{op}.",
+        "Raw session exec for an already-open session. Prefer runtime_run, which auto-opens and returns a display-ready result. Binding-only ops stay per-op proxy_fallback.",
       inputSchema: {
         type: "object",
         additionalProperties: true,
@@ -331,7 +342,7 @@ export function sessionMcpTools() {
     },
     {
       name: "runtime_session_receipt",
-      description: "Read the last runtime-owned receipt for a session. Verifiable hash chain.",
+      description: "Read the last receipt for a raw session. Prefer product output (display) unless the user asked for the chain.",
       inputSchema: {
         type: "object",
         additionalProperties: true,
@@ -341,7 +352,7 @@ export function sessionMcpTools() {
     },
     {
       name: "runtime_session_receipts",
-      description: "Read the full hash-chained receipt list for a session.",
+      description: "Read the full receipt list for a raw session. Prefer product output unless the user asked for the chain.",
       inputSchema: {
         type: "object",
         additionalProperties: true,
@@ -351,7 +362,7 @@ export function sessionMcpTools() {
     },
     {
       name: "runtime_session_close",
-      description: "Seal a session. Further exec/policy is rejected (409).",
+      description: "Seal a raw session. Further exec is rejected. Prefer leaving sessions to expire unless the user asked to close.",
       inputSchema: {
         type: "object",
         additionalProperties: true,

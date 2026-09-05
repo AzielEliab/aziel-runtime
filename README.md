@@ -1,8 +1,10 @@
 # aziel-runtime
 
-**Aziel Eliab Runtime 1.4.1** — catalog + pull + proxy, one session object, **in-process engines** for every catalog Software slug, and production gates (`/v1/ready`, HEAD, no-store, receipt cap 64, session TTL 6h, per-IP rate limits, optional `RUNTIME_TOKEN` on session mutate):
+**Aziel Eliab Runtime 1.5.0** — agent-native cut on **1.4.1** production gates. Agents use product tools like software (display-ready output, then the next input). Human software — Worker UI, Flutter `mobile/`, local install, counted `/download` — stays complete. Catalog + pull + proxy, one session object, **in-process engines** for every catalog Software slug, plus production gates (`/v1/ready`, HEAD, no-store, receipt cap 64, session TTL 6h, per-IP rate limits, optional `RUNTIME_TOKEN` on session mutate):
 
 `open → policy → exec(slug, op, payload) → receipt → close`
+
+Agents should not narrate that chain. Prefer `godlock_submit` / `foldlock_fold-preview` or `runtime_run { slug, op, payload }`.
 
 **1.3.0** vendored portable engines (ark, azai Lamb check, azclce, decisiongate, foldlock, zsolver) and ran them in this isolate.
 
@@ -16,12 +18,12 @@ Cloudflare’s Worker / Durable Object isolate **is** the jail. No extra guest i
 
 Hosted / in-process AZAI is still protocol mirror + Lamb check, **not** the local blend (`azai serve`).
 
-ChatGPT GPT Actions, Grok custom tools, and Venice HTTP tools import **this** OpenAPI file — then pull a product skill, open a session, or call `/p/{slug}/{op}` (proxy only).
+ChatGPT GPT Actions, Grok custom tools, and Venice HTTP tools import **this** OpenAPI file — then use product tools or `runtime_run`. Session tools are advanced/internal. `/p/{slug}/{op}` is proxy only.
 
 **Author:** Aziel Eliab  
 **Identity:** Aziel Eliab only  
 **License:** [Apache-2.0](LICENSE)  
-**Version:** 1.4.1  
+**Version:** 1.5.0  
 **Role:** `engine-runtime` (layer: `catalog+pull+proxy+session+in-process-engines`)  
 **Worker:** `aziel-runtime` → https://aziel-runtime.vibelock.workers.dev/  
 **Library front door:** https://www.azielcorpuslibrary.net/runtime  
@@ -29,6 +31,11 @@ ChatGPT GPT Actions, Grok custom tools, and Venice HTTP tools import **this** Op
 **Packaging:** Worker session + in-repo CLI (`node cli/aziel-runtime.mjs`). **No counted runtime tarball.**
 
 **Forks are welcome and always allowed.** Do not invent Zenodo DOIs.
+
+## Dual surface (product law)
+
+1. **Agent / MCP** — Software runs through the agent. Show `display.title` / `display.summary` / `display.fields`, then take the next input. Session, OpenAPI, and HTTP plumbing stay invisible unless asked for.
+2. **Human software** — This Worker UI, Flutter `mobile/`, local install, and counted `/download` remain complete developed software.
 
 ## Session (the actual cut)
 
@@ -127,17 +134,18 @@ own counted `/download`.
 1. Create a GPT (or open GPT Actions).
 2. **Import from URL** → `https://aziel-runtime.vibelock.workers.dev/openapi.json`
 3. No authentication. CORS `*`.
-4. Ask the GPT to call `runtime_session_open`, then `runtime_session_exec`, or the older front doors `runtime_bundle`, `decisiongate_check`, `foldlock_fold-preview`.
+4. Ask the GPT to call `foldlock_fold-preview`, `godlock_submit`, `decisiongate_check`, or `runtime_run`. Session tools (`runtime_session_*`) are advanced/internal.
 
 ## Add to Grok
 
 - **Custom tool / OpenAPI:** import `https://aziel-runtime.vibelock.workers.dev/openapi.json`
 - **MCP remote:** `POST https://aziel-runtime.vibelock.workers.dev/mcp`  
   Methods: `initialize`, `tools/list`, `tools/call`.  
-  Helpers: `runtime_skill`, `runtime_manifest`, `runtime_bundle`, `runtime_pull`,
-  `runtime_session_open`, `runtime_session_policy`, `runtime_session_exec`,
-  `runtime_session_receipt`, `runtime_session_receipts`, `runtime_session_close`.  
-  Engine tools are named `{product}_{op}` and **proxy** (not exec). Public, no OAuth.
+  Default: product tools `{product}_{op}` (in-process when the op is implemented here) and `runtime_run`.  
+  Catalog/pull: `runtime_skill`, `runtime_bundle`, `runtime_pull`.  
+  Advanced/internal: `runtime_manifest`, `runtime_session_*`, raw `*_health`.  
+  HTTP `/p/{product}/{op}` is still a **proxy** (not exec). Public, no OAuth.  
+  Tool results are `{ display, result, receipt? }` — show `display` to the user.
 
 ## Add to Venice
 
@@ -223,7 +231,7 @@ Account `ac575a9b822bea2bed97d0ab73aed238`. workers.dev
 **1.2.0+ requires Durable Object migration tag `v1`** (`RuntimeSession`, SQLite).
 The first deploy after the session cut creates the `SESSION` binding. **1.4.0
 does not need a new DO migration** — engines run in the same isolate. **1.4.1
-reuses that SESSION class.**
+reuses that SESSION class. 1.5.0 does not need a new DO migration.**
 
 Optional production token (session mutate only — catalog / health / runtime /
 skill / pull stay public):
@@ -255,7 +263,7 @@ If this checkout has no wrangler credentials, deploy from the author's machine:
 npx wrangler secret put RUNTIME_TOKEN
 npx wrangler deploy
 node scripts/probe-live.mjs
-# confirm GET /v1/health and /v1/ready and /v1/runtime.json version=1.4.1 role=engine-runtime
+# confirm GET /v1/health and /v1/ready and /v1/runtime.json version=1.5.0 role=engine-runtime
 # confirm engine_slugs == true_engine_slugs == all 27 catalog slugs
 # confirm POST /v1/session/open → policy → exec each primary op → receipt has engine_digest + ran_in
 ```

@@ -1,5 +1,5 @@
 /**
- * aziel-runtime 1.4.1 — catalog + pull + proxy + session + in-process engines + production gates.
+ * aziel-runtime 1.5.0 — agent-native cut on 1.4.1 production gates.
  *
  * 1.1.0 was catalog+proxy that called itself a runtime. Useful front doors.
  * 1.2.0 owned open → policy → exec → receipt → close but exec still proxied.
@@ -7,6 +7,7 @@
  * 1.4.0 vendors a true engine for every catalog Software slug.
  * 1.4.1 adds /v1/ready, HEAD, no-store authority JSON, receipt cap 64, session TTL 6h,
  *       per-IP rate limits, optional RUNTIME_TOKEN on session mutate.
+ * 1.5.0 agent-native MCP: display envelopes, product-verb tools, runtime_run façade.
  *
  * GET  /                      HTML (indexable) + Everblooming sigil
  * GET  /sigil.png             Everblooming sigil stamp
@@ -16,7 +17,7 @@
  * GET  /ai.txt                same as /llms.txt
  * GET  /cite.json             How-to-cite: Aziel Eliab, Apache-2.0, GitHub + DOI + related_identifiers
  * GET  /v1/skill              skill markdown (session + front doors)
- * GET  /v1/runtime.json       machine manifest: role=engine-runtime (1.4.1)
+ * GET  /v1/runtime.json       machine manifest: role=engine-runtime (1.5.0)
  * GET  /v1/runtime            alias of /v1/runtime.json
  * GET  /v1/ready              200 if SESSION binding up; 503 if REQUIRE_TOKEN=1 and token missing
  * GET  /v1/health             liveness (version/role match ready)
@@ -74,6 +75,13 @@ import {
   evaluateReady,
   noStoreHeaders,
 } from "./production.js";
+import {
+  buildMcpToolList,
+  callRuntimeRun,
+  mcpCallPayload,
+  mcpInitializeInstructions,
+  runProductMcpOp,
+} from "./mcp-surface.js";
 
 export { RuntimeSession };
 
@@ -81,7 +89,7 @@ const CATALOG_HOST = "https://aziel-runtime.vibelock.workers.dev";
 const PROTOCOL = "2025-03-26";
 const CATALOG_TITLE = "Aziel Eliab Runtime";
 const CATALOG_DESCRIPTION =
-  "1.4.1 catalog + pull + proxy + session + in-process engines + production gates. 1.4.0 vendors every catalog Software slug. 1.3.0 listed portable slugs. 1.2.0 was a session/receipt runtime (exec still proxied). 1.1.0 was catalog+proxy. Proxy is not exec. Binding-only ops stay per-op proxy_fallback. Cloudflare isolate is the jail. Hosted AZAI is not the local blend. Apache-2.0. Author: Aziel Eliab.";
+  "1.5.0 agent-native cut on 1.4.1 production gates: display-ready MCP results, product-verb tools, runtime_run auto-session. 1.4.1 added ready/HEAD/no-store/receipt cap/TTL/rate limits/optional token. 1.4.0 vendors every catalog Software slug. Proxy is not exec. Binding-only ops stay per-op proxy_fallback. Dual surface: agent chat has no technical UI chrome; Worker / Flutter / local install / counted download stay complete human software. Apache-2.0. Author: Aziel Eliab.";
 const LASTMOD = "2026-09-05";
 
 const PRODUCTS_RAW = [
@@ -720,7 +728,7 @@ function llmsTxt(origin) {
     "",
     `Author: Aziel Eliab`,
     `Role: engine-runtime (catalog + pull + proxy + session + in-process engines)`,
-    `Honesty: 1.1.0 was catalog+proxy. 1.2.0 was session/receipt (exec still proxied). 1.3.0 ran listed slugs in-process. 1.4.0 vendors every catalog Software slug. 1.4.1 adds production gates (ready, HEAD, no-store, receipt cap 64, TTL 6h, rate limits, optional token).`,
+    `Honesty: 1.1.0 was catalog+proxy. 1.2.0 was session/receipt (exec still proxied). 1.3.0 ran listed slugs in-process. 1.4.0 vendors every catalog Software slug. 1.4.1 adds production gates (ready, HEAD, no-store, receipt cap 64, TTL 6h, rate limits, optional token). 1.5.0 is the agent-native cut (display envelopes, product-verb MCP, runtime_run).`,
     `True-engine slugs: ${honestyFields(PRODUCTS.map((p) => p.slug)).true_engine_slugs.join(", ")}`,
     `Proxy /p/{slug}/{op} is not exec. Hosted AZAI is not the local blend.`,
     `Local blends: azai serve · forgereceipts ui · azos ui`,
@@ -1002,7 +1010,7 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
     <p class="stamp">Everblooming sigil · Aziel Eliab</p>
   </div>
   <h1>Aziel Eliab Runtime</h1>
-  <p class="lead"><strong>1.4.1</strong> is <strong>1.4.0</strong> engine-runtime plus production gates (<code>/v1/ready</code>, HEAD, no-store, receipt cap 64, session TTL 6h, per-IP rate limits, optional token on session mutate). Catalog + pull + proxy + session + <strong>in-process engines</strong> for every catalog Software slug. ${PRODUCTS.length} products. Forks welcome. Apache-2.0. Author: Aziel Eliab.</p>
+  <p class="lead"><strong>1.5.0</strong> is the agent-native cut on <strong>1.4.1</strong> production gates: agents use product tools like software (display-ready output, then the next input). Human software — this Worker UI, Flutter <code>mobile/</code>, local install, counted <code>/download</code> — stays complete. Catalog + pull + proxy + session + <strong>in-process engines</strong> for every catalog Software slug. ${PRODUCTS.length} products. Forks welcome. Apache-2.0. Author: Aziel Eliab.</p>
   <div class="honesty">
     <strong>What this Worker is</strong>
     <ul>
@@ -1011,6 +1019,7 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
       <li><strong>1.3.0</strong> vendored portable engines and ran them <em>inside this Worker isolate</em> for listed slugs. Receipts include <code>engine_digest</code> and <code>ran_in</code>.</li>
       <li><strong>1.4.0</strong> vendors a true engine for <em>every</em> catalog Software slug. <code>engine_slugs</code> equals <code>true_engine_slugs</code>. Binding-only ops (KV / D1 / AI / live media) stay per-op <code>proxy_fallback</code>.</li>
       <li><strong>1.4.1</strong> production gates: <code>GET /v1/ready</code> (SESSION binding; 503 if <code>REQUIRE_TOKEN=1</code> and <code>RUNTIME_TOKEN</code> missing). HEAD on health/ready/runtime/skill. Authority JSON is <code>Cache-Control: no-store</code>. Receipt cap 64. Session TTL 6h. 20 opens / 60 execs per IP per minute. Optional token on session mutate only.</li>
+      <li><strong>1.5.0</strong> agent-native MCP: product verbs return a <code>display</code> envelope; <code>runtime_run</code> auto-opens a session and runs true in-process exec; session/health/manifest tools are advanced/internal. Dual surface: no technical UI chrome for agents; human UIs unchanged.</li>
       <li>AZAI in-process is Lamb check only — not the local blend. AZBot is a skill router, not a model. Aziel Digital Library in-process searches a bundled sample MASTER; live D1 stays per-op proxy.</li>
       <li><code>POST /p/{slug}/{op}</code> is a <em>proxy</em>. Proxy without a session receipt is not exec.</li>
       <li>Cloudflare's Worker / Durable Object isolate <em>is</em> the jail. No extra guest isolate is claimed. <code>engine_digest</code> is still required.</li>
@@ -1083,7 +1092,7 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
     <li><strong>ChatGPT</strong> — GPT Actions → Import from URL → <code>${origin}/openapi.json</code></li>
     <li><strong>Grok</strong> — custom tool / OpenAPI / MCP remote → <code>${origin}/openapi.json</code> or <code>${origin}/mcp</code></li>
     <li><strong>Venice</strong> — custom HTTP tools / OpenAPI → same OpenAPI URL</li>
-    <li><strong>Any installer / agent</strong> — start at <code>${origin}/v1/skill</code> or <code>${origin}/v1/runtime.json</code></li>
+    <li><strong>Any installer / agent</strong> — start at <code>${origin}/v1/skill</code>. Prefer product tools or <code>runtime_run</code>. Session tools are advanced/internal.</li>
   </ul>
   ${cards}
 </body>
@@ -1314,15 +1323,16 @@ async function combinedOpenApi(request, env) {
     info: {
       title: "Aziel Eliab Runtime",
       version: RUNTIME_VERSION,
-      summary: "Catalog + pull + proxy + session + in-process engines for listed slugs.",
+      summary: "Agent-native runtime: use Aziel Eliab software in chat, plus catalog + pull + proxy + session + in-process engines.",
       description:
+        "1.5.0 is the agent-native cut: MCP product tools and session exec return a display envelope; runtime_run auto-opens a session. " +
         "1.4.1 adds production gates on the 1.4.0 engine-runtime. " +
         "1.4.0 is catalog + pull + proxy + a session Durable Object + vendored in-process engines for every catalog Software slug. " +
         "1.3.0 listed portable slugs. 1.2.0 was session/receipt (exec still proxied). 1.1.0 was catalog+proxy that called itself a runtime. " +
-        "True exec is POST /v1/session/{id}/exec (receipt includes engine_digest and ran_in). " +
+        "True exec is POST /v1/session/{id}/exec or MCP runtime_run (receipt includes engine_digest and ran_in). " +
         "Binding-only ops stay per-op proxy_fallback. POST /p/{product}/{op} is a proxy, not exec. " +
         "Cloudflare isolate is the jail. Hosted AZAI is a protocol mirror + Lamb check, not the local blend. " +
-        "Start at GET /v1/skill or GET /v1/runtime.json. " +
+        "Start at GET /v1/skill. Agents prefer product tools or runtime_run. " +
         "GET /v1/bundle lists every product skill URL + invoke prefix. " +
         "GET /v1/pull/{slug} and GET /v1/pull/{slug}/skill pull a product without visiting its Worker. " +
         "Import this file in ChatGPT GPT Actions, Grok custom tools, or Venice HTTP tools. " +
@@ -1426,59 +1436,15 @@ async function proxy(product, op, request, env) {
   }
 }
 
-function runtimeMcpTools() {
-  return [
-    {
-      name: "runtime_skill",
-      description:
-        "Return Aziel Eliab Runtime skill markdown: 1.4.1 production gates on 1.4.0 in-process engines plus session and catalog/pull/proxy. 1.3.0 listed portable slugs. Proxy is not exec. Does not increment downloads.",
-      inputSchema: { type: "object", additionalProperties: true },
-    },
-    {
-      name: "runtime_manifest",
-      description:
-        "Return GET /v1/runtime.json (role=engine-runtime, every catalog slug is a true engine, binding-only ops stay per-op proxy_fallback, session/pull/proxy endpoints, identity Aziel Eliab).",
-      inputSchema: { type: "object", additionalProperties: true },
-    },
-    {
-      name: "runtime_bundle",
-      description: "Compact bootstrap: every product skill URL + invoke prefix. Same as GET /v1/bundle.",
-      inputSchema: { type: "object", additionalProperties: true },
-    },
-    {
-      name: "runtime_pull",
-      description: "Pull one product by slug (name, version, skill, download, install.sh, ops, aliases). Argument: slug.",
-      inputSchema: {
-        type: "object",
-        additionalProperties: true,
-        properties: { slug: { type: "string" } },
-        required: ["slug"],
-      },
-    },
-    ...sessionMcpTools(),
-  ];
-}
-
 function toolList() {
-  const tools = runtimeMcpTools();
-  for (const p of PRODUCTS) {
-    for (const o of p.ops) {
-      tools.push({
-        name: `${p.slug}_${o.op}`,
-        description: `${p.name}: ${o.summary}${p.banner ? " " + p.banner : ""}`,
-        inputSchema: {
-          type: "object",
-          additionalProperties: true,
-          description: `JSON body posted to /v1/${o.op} on ${p.worker}.`,
-        },
-      });
-    }
-  }
-  return tools;
+  return buildMcpToolList({ products: PRODUCTS, sessionTools: sessionMcpTools() });
 }
 
 async function callRuntimeTool(env, name, args, origin, request) {
   const base = (origin || CATALOG_HOST).replace(/\/$/, "");
+  if (name === "runtime_run" || name === "use_software") {
+    return callRuntimeRun(env, args, origin, sessionDeps(env, origin, request));
+  }
   if (name === "runtime_skill") {
     return { status: 200, text: runtimeSkillMarkdown(base, PRODUCTS), target: base + "/v1/skill" };
   }
@@ -1548,25 +1514,26 @@ function sessionDeps(_env, _origin, request) {
   return { json, PRODUCTS, BY_SLUG, upstreamFetch, request };
 }
 
+function splitProductToolName(name) {
+  const n = String(name || "");
+  const known = BY_SLUG[n.split("_")[0]] ? n.split("_")[0] : null;
+  if (known) return { slug: known, op: n.slice(known.length + 1) };
+  // slugs that contain a hyphen still split on the first underscore (aziel-corpus_search)
+  const idx = n.indexOf("_");
+  if (idx < 1) return { slug: null, op: null };
+  return { slug: n.slice(0, idx), op: n.slice(idx + 1) };
+}
+
 async function callTool(env, name, args, origin, request) {
   const local = await callRuntimeTool(env, name, args, origin, request);
   if (local) return local;
-  const idx = name.indexOf("_");
-  if (idx < 1) throw new Error(`unknown tool: ${name}`);
-  const slug = name.slice(0, idx);
-  const op = name.slice(idx + 1);
-  const product = BY_SLUG[slug];
-  if (!product) throw new Error(`unknown product: ${slug}`);
+  const { slug, op } = splitProductToolName(name);
+  const product = slug ? BY_SLUG[slug] : null;
+  if (!product || !op) throw new Error(`unknown tool: ${name}`);
   const spec = product.ops.find((o) => o.op === op);
-  const method = spec && spec.method === "GET" ? "GET" : "POST";
-  const init = {
-    method,
-    headers: { "content-type": "application/json", accept: "application/json" },
-  };
-  if (method !== "GET") init.body = JSON.stringify(args && typeof args === "object" ? args : {});
-  const { res, target } = await upstreamFetch(env, product, `/v1/${op}`, init);
-  const text = await res.text();
-  return { status: res.status, text, target };
+  if (!spec) throw new Error(`unknown tool: ${name}`);
+  const out = await runProductMcpOp({ env, product, op, args, upstreamFetch });
+  return { ...out, product, op };
 }
 
 function rpcResult(id, result) {
@@ -1609,14 +1576,7 @@ async function handleMcp(request, env, origin) {
       protocolVersion: PROTOCOL,
       capabilities: { tools: { listChanged: false } },
       serverInfo: { name: "aziel-runtime", version: RUNTIME_VERSION },
-      instructions:
-        "1.4.1 adds production gates (ready, HEAD, no-store, receipt cap, TTL, rate limits, optional token on session mutate). " +
-        "1.4.0 is catalog + pull + proxy + session + in-process engines for every catalog Software slug. 1.3.0 listed portable slugs. 1.2.0 was session/receipt (exec still proxied). 1.1.0 was catalog+proxy. " +
-        "True exec is runtime_session_open → runtime_session_policy → runtime_session_exec → runtime_session_receipt → runtime_session_close. " +
-        "Every catalog slug runs inside this isolate for its primary compute ops; the receipt includes engine_digest + ran_in. " +
-        "Binding-only ops stay per-op proxy_fallback. Engine tools named {product}_{op} still proxy and are not exec. " +
-        "Cloudflare isolate is the jail. Hosted AZAI is protocol mirror + Lamb check, not the blend. " +
-        "Always send User-Agent Mozilla/5.0. Public, no OAuth. Author: Aziel Eliab only.",
+      instructions: mcpInitializeInstructions(),
     });
   }
   if (method === "notifications/initialized" || method === "initialized") {
@@ -1633,15 +1593,8 @@ async function handleMcp(request, env, origin) {
     const args = params.arguments || params.input || {};
     try {
       const out = await callTool(env, name, args, origin, request);
-      return rpcResult(id, {
-        content: [
-          {
-            type: "text",
-            text: out.text,
-          },
-        ],
-        isError: out.status >= 400,
-      });
+      const { slug, op } = splitProductToolName(name);
+      return rpcResult(id, mcpCallPayload(name, out, out.product || BY_SLUG[slug], out.op || op));
     } catch (err) {
       return rpcResult(id, {
         content: [{ type: "text", text: JSON.stringify({ error: String(err.message || err) }) }],

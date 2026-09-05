@@ -130,7 +130,7 @@ service = "aziel-corpus-download-tracker"
 # REQUIRE_TOKEN = "1"
 
 # One Durable Object per session (open → policy → exec → receipt → close).
-# 1.4.0 engines run in this Worker isolate; no new DO class. 1.4.1 reuses SESSION.
+# 1.4.0 engines run in this Worker isolate; no new DO class. 1.4.1 / 1.5.0 reuse SESSION.
 [[durable_objects.bindings]]
 name = "SESSION"
 class_name = "RuntimeSession"

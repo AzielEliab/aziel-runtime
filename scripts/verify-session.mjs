@@ -151,6 +151,10 @@ assert.equal(exec.data.exec.status, 200);
 assert.equal(exec.data.exec.mode, "local");
 assert.equal(exec.data.exec.true_engine_runtime, true);
 assert.equal(exec.data.exec.ran_in, "aziel-runtime");
+assert.ok(exec.data.display);
+assert.match(exec.data.display.title, /AZ-CLCE|Score/);
+assert.ok(exec.data.display.summary);
+assert.ok(Object.prototype.hasOwnProperty.call(exec.data, "result"));
 assert.match(exec.data.exec.engine_digest, /^[a-f0-9]{64}$/);
 assert.equal(exec.data.receipt.payload.result.engine_digest, exec.data.exec.engine_digest);
 assert.equal(exec.data.receipt.payload.result.true_engine_runtime, true);
@@ -195,7 +199,8 @@ const mcpList = await handler(
   }),
   env,
 );
-const tools = (await mcpList.json()).result.tools.map((t) => t.name);
+const mcpTools = (await mcpList.json()).result.tools;
+const tools = mcpTools.map((t) => t.name);
 for (const name of [
   "runtime_session_open",
   "runtime_session_policy",
@@ -206,6 +211,9 @@ for (const name of [
 ]) {
   assert.ok(tools.includes(name), name);
 }
+assert.ok(tools.includes("runtime_run"), "runtime_run");
+const sessionTool = mcpTools.find((t) => t.name === "runtime_session_open");
+assert.match(sessionTool.description, /\[advanced\/internal\]/);
 
 const openapi = await (await req("/openapi.json")).json();
 assert.ok(openapi.paths["/v1/session/open"]);
@@ -218,6 +226,8 @@ assert.match(skill, /1\.2\.0 = session-runtime/);
 assert.match(skill, /1\.3\.0/);
 assert.match(skill, /1\.4\.0/);
 assert.match(skill, /1\.4\.1/);
+assert.match(skill, /1\.5\.0/);
+assert.match(skill, /How an agent uses this like software/);
 assert.match(skill, /open → policy → exec/);
 assert.match(skill, /Proxy without a session receipt is \*\*not\*\* exec/);
 assert.match(skill, /engine_digest/);
