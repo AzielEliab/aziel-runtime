@@ -5,10 +5,14 @@
  * 1.3.0 ran vendored engines inside this isolate for listed slugs.
  * 1.4.0 vendors a true engine for every catalog Software slug.
  * 1.4.1 adds production gates (ready, HEAD, no-store, receipt cap, TTL, rate limits, optional token).
- * 1.5.0 is the agent-native cut: display envelopes, product-verb MCP, runtime_run façade.
+ * 1.5.0 was the agent-native cut: display envelopes, flat product-verb MCP, runtime_run façade.
+ * 1.6.0 is the FragGate door: hashed registry, thin tools/list, DecisionGATE before exec.
  * Public identity: Aziel Eliab only. Forks welcome. Do not invent DOIs.
  */
+import { CATALOG_ALIASES } from "./catalog-meta.js";
 import { honestyFields, trueEngineSlugs } from "./engines/registry.js";
+import { FRAGGATE_KERNEL, FRAGGATE_KERNEL_VERSION } from "./fraggate/codes.js";
+import { LIVE_OPS, buildRegistry } from "./fraggate/registry.js";
 import {
   RATE_EXEC_PER_MIN,
   RATE_OPEN_PER_MIN,
@@ -16,12 +20,13 @@ import {
   SESSION_TTL_MS,
 } from "./production.js";
 
-export const RUNTIME_VERSION = "1.5.0";
+export const RUNTIME_VERSION = "1.6.0";
 export const RUNTIME_ROLE = "engine-runtime";
-export const RUNTIME_LAYER = "catalog+pull+proxy+session+in-process-engines";
+export const RUNTIME_LAYER = "catalog+pull+proxy+session+in-process-engines+fraggate";
 
 export const VERSION_HISTORY = [
-  { version: "1.5.0", status: "current", note: "agent-native cut: display-ready MCP envelopes, product-verb tool descriptions, session/health/manifest marked advanced/internal, runtime_run auto-session façade (true in-process exec)" },
+  { version: "1.6.0", status: "current", note: "FragGate door cut: hashed registry, thin MCP tools/list (discover / route / refuse), DecisionGATE before exec, ask/refuse ledger. 1.5.0 was agent-native flat {slug}_{op} tools." },
+  { version: "1.5.0", status: "superseded", note: "agent-native cut: display-ready MCP envelopes, product-verb tool descriptions, session/health/manifest marked advanced/internal, runtime_run auto-session façade (true in-process exec)" },
   { version: "1.4.1", status: "superseded", note: "production gates: GET /v1/ready, HEAD + version/role headers, no-store authority JSON, receipt cap 64, session TTL 6h, per-IP rate limits, optional RUNTIME_TOKEN on session mutate" },
   { version: "1.4.0", status: "superseded", note: "every catalog Software slug is a true in-process engine; binding-only ops stay per-op proxy_fallback" },
   { version: "1.3.0", status: "superseded", note: "true engine runtime for listed portable slugs only" },
@@ -54,6 +59,7 @@ export function authoritySnapshot(productSlugs) {
     rate_open_per_minute: RATE_OPEN_PER_MIN,
     rate_exec_per_minute: RATE_EXEC_PER_MIN,
     token: "optional-on-session-mutate",
+    door: "fraggate",
     authority: {
       health: "GET /v1/health",
       ready: "GET /v1/ready",
@@ -66,20 +72,7 @@ export const SKILL_INLINE_MAX = 24_000;
 export const SKILL_TTL_MS = 10 * 60 * 1000;
 export const DEFAULT_UA = "Mozilla/5.0";
 
-/** Extra slugs an installer or AI may type. Values are catalog slugs. */
-export const CATALOG_ALIASES = {
-  "zion-pattern-solver": "zsolver",
-  zionpatternsolver: "zsolver",
-  "postking-chess": "postking",
-  "az-clce": "azclce",
-  "aziel-digital-library": "aziel-corpus",
-  "aziel-digital-library-v2": "aziel-corpus",
-  azielcorpus: "aziel-corpus",
-  corpus: "aziel-corpus",
-  "mia-lock": "mialock",
-  "mia.lock": "mialock",
-  "m.i.a.lock": "mialock",
-};
+export { CATALOG_ALIASES };
 
 const skillCache = new Map();
 
@@ -108,16 +101,18 @@ export function runtimeSkillMarkdown(origin, products) {
   return `---
 name: Aziel Eliab Runtime
 description: >-
-  Use Aziel Eliab software in chat: open a product, show the output, take the
-  next input. Dual surface — agent/MCP has no technical UI chrome; Worker UI,
-  Flutter mobile/, local install, and counted /download stay complete human
-  software. 1.5.0 agent-native cut on 1.4.1 production gates. Catalog + pull +
-  proxy + session + in-process engines for every catalog Software slug.
+  One door — discover, route, refuse. FragGate over the catalog: hashed
+  registry, DecisionGATE before exec, ask/refuse ledger. Dual surface —
+  agent/MCP has no technical UI chrome; Worker UI, Flutter mobile/, local
+  install, and counted /download stay complete human software. 1.6.0 FragGate
+  door cut. Kernel: https://github.com/AzielEliab/fraggate
 ---
 
 # Aziel Eliab Runtime
 
-This is software you use in chat. There is no extra technical UI for the agent surface. Show the user the software output, then take the next input.
+This is software you use in chat. **One door — discover, route, refuse.** There is no extra technical UI for the agent surface. Show the user the software output, then take the next input.
+
+FragGate kernel: https://github.com/AzielEliab/fraggate (FG-0.1)
 
 ## Dual surface (product law)
 
@@ -126,17 +121,24 @@ This is software you use in chat. There is no extra technical UI for the agent s
 
 ## How an agent uses this like software
 
-1. **Open a product.** Prefer product tools: \`godlock_submit\`, \`foldlock_fold-preview\`, \`decisiongate_check\`, \`azclce_score\`. Or call \`runtime_run\` with \`{ slug, op, payload }\` (optional \`session_id\` to reuse).
-2. **Show the output.** Every product tool and \`runtime_run\` returns \`{ display, result, receipt? }\`. Show \`display\` to the user. Keep \`result\` for machines.
-3. **Take the next input.** Ask for or collect the next field, then call the same product again.
+1. **Discover.** \`runtime_skill\` or \`fraggate_list\` (hashed registry: live / stub / local_only). \`fraggate_describe\` one name. \`fraggate_verify\` a name or digest.
+2. **Route.** \`fraggate_call\` with a CallEnvelope \`{ name|slug, op, payload, claim? }\`. DecisionGATE runs before any exec side effect. Live allowlist: DecisionGATE check, GodLock score/submit, FoldLock fold-preview, AZ-CLCE score, Aziel Digital Library read ops.
+3. **Refuse.** Unknown names return \`FG-HALLUC-TOOL\`. Stubs and \`local_only\` do not execute on the public mesh. Gate BLOCK/REVISE is ledgered; no handler.
+4. **Show the output.** Results are \`{ display, result, ledger_tip? }\`. Show \`display\` to the user.
+5. **Take the next input.**
 
-Do **not** walk the user through \`runtime_session_open\` → policy → exec → receipt → close. Those tools, raw \`*_health\`, and \`runtime_manifest\` are **advanced/internal**.
+Named live modules still on the thin tools/list: \`decisiongate_check\`, \`library_lookup\` (read-only corpus).
 
-\`runtime_run\` auto-opens a session and runs the **true in-process engine** (not the HTTP proxy). Product MCP tools named \`{slug}_{op}\` also run the in-process engine when that op is implemented here; binding-only ops stay per-op \`proxy_fallback\`. HTTP \`POST /p/{slug}/{op}\` is still a **proxy**. Proxy without a session receipt is **not** exec.
+Do **not** walk the user through \`runtime_session_open\` → policy → exec → receipt → close. Those tools, \`runtime_run\`, raw \`*_health\`, and \`runtime_manifest\` are **advanced/internal**.
+
+Do **not** call flat \`{slug}_{op}\` names (1.5.0 pile). They are not in \`tools/list\`. That is hallucination with a receipt.
+
+HTTP \`POST /p/{slug}/{op}\` is still a **proxy**. Proxy without a session receipt is **not** exec. Mesh is **not** claimed on this public surface.
 
 Every catalog slug is a true engine. Cloudflare isolate is the jail. Hosted AZAI is protocol mirror + Lamb check, **not** the blend. Identity is **Aziel Eliab** only.
 
-**1.5.0 = agent-native cut** on 1.4.1 production gates (display envelopes, product-verb MCP, \`runtime_run\`).
+**1.6.0 = FragGate door** over the catalog (hashed registry, thin MCP, DecisionGATE before exec, ask/refuse ledger). Kernel: https://github.com/AzielEliab/fraggate
+**1.5.0 = agent-native cut** on 1.4.1 production gates (display envelopes, flat product-verb MCP, \`runtime_run\`).
 **1.4.1 = 1.4.0 engine-runtime + production gates** (\`GET /v1/ready\`, HEAD, no-store authority JSON, receipt cap 64, session TTL 6h, per-IP rate limits, optional \`RUNTIME_TOKEN\` on session mutate).
 **1.4.0 = catalog + pull + proxy + session + in-process engines** for **every** catalog Software slug.
 **1.3.0 = true engine runtime** for listed portable slugs (in-process) + session + pull/proxy.
@@ -147,7 +149,7 @@ True engine exec on *this* Worker is still:
 
 \`open → policy → exec(slug, op, payload) → receipt → close\`
 
-Agents should not narrate that chain. \`runtime_run\` does it. For **true-engine slugs** (\`${local}\`) \`exec\` resolves the slug to a vendored module, computes \`engine_digest\` = SHA-256 of that artifact's bytes, runs the op **inside this Worker isolate** (the jail), wipes scratch buffers, and the receipt includes \`engine_digest\`, \`engine_slug\`, \`engine_op\`, \`ran_in: "aziel-runtime"\`. \`GET /v1/health\` \`engine_slugs\` equals \`true_engine_slugs\` equals the catalog.
+Agents should not narrate that chain. \`fraggate_call\` is the default exec path. For **true-engine slugs** (\`${local}\`) \`exec\` resolves the slug to a vendored module, computes \`engine_digest\` = SHA-256 of that artifact's bytes, runs the op **inside this Worker isolate** (the jail), wipes scratch buffers, and the receipt includes \`engine_digest\`, \`engine_slug\`, \`engine_op\`, \`ran_in: "aziel-runtime"\`. \`GET /v1/health\` \`engine_slugs\` equals \`true_engine_slugs\` equals the catalog.
 
 If an op **cannot** run without external bindings (KV / D1 / AI / live media), that **op** is marked \`mode: "proxy_fallback"\` while the slug stays a true engine. It does **not** pretend the binding ran here.
 
@@ -161,7 +163,9 @@ Hosted / in-process AZAI is still protocol mirror + Lamb check, **not** the blen
 Author: **Aziel Eliab**. Identity is Aziel Eliab only.
 License: Apache-2.0. Forks are welcome and always allowed.
 Version: ${RUNTIME_VERSION}
-Role: engine-runtime (layer: catalog+pull+proxy+session+in-process-engines)
+Role: engine-runtime (layer: catalog+pull+proxy+session+in-process-engines+fraggate)
+Door: fraggate
+Kernel: https://github.com/AzielEliab/fraggate
 Host: ${base}/
 Everblooming sigil: ${base}/sigil.png
 Products: ${n} (${slugs})
@@ -175,7 +179,7 @@ Do **not** invent Zenodo DOIs. Cite \`/cite.json\`. Download counters are **not*
 
 ## Session (advanced / internal)
 
-Prefer \`runtime_run\` or product tools. This chain is the raw object:
+Prefer \`fraggate_call\`. This chain is the raw object:
 
 1. \`POST ${base}/v1/session/open\` — session id, start time, policy defaults, empty receipt chain.
 2. \`POST ${base}/v1/session/{id}/policy\` — allow slugs/ops, payload size cap, no download-counter side effects unless explicitly requested (this Worker still has no download KV).
@@ -196,7 +200,8 @@ node cli/aziel-runtime.mjs session close
 ## Bootstrap (front doors — still useful)
 
 1. \`GET ${base}/v1/skill\` — this markdown.
-2. \`GET ${base}/v1/runtime.json\` — machine manifest (\`version=1.5.0\`, \`role=engine-runtime\`, every catalog slug in \`engine_slugs\` / \`true_engine_slugs\`, \`authoritySnapshot\` + \`version_history\`). Same JSON: \`GET ${base}/v1/runtime\`.
+2. \`GET ${base}/v1/runtime.json\` — machine manifest (\`version=1.6.0\`, \`role=engine-runtime\`, \`door=fraggate\`, every catalog slug in \`engine_slugs\` / \`true_engine_slugs\`, \`authoritySnapshot\` + \`version_history\`). Same JSON: \`GET ${base}/v1/runtime\`.
+   FragGate: \`GET ${base}/v1/fraggate\` · \`GET ${base}/v1/fraggate/list\` · \`POST ${base}/v1/fraggate/call\`.
    Also \`GET ${base}/v1/ready\` (200 only if SESSION binding is up; 503 if \`REQUIRE_TOKEN=1\` and \`RUNTIME_TOKEN\` is missing).
 3. \`GET ${base}/v1/bundle\` — every product skill URL + invoke prefix.
    Alias: \`GET ${base}/v1/pull?all=1\`.
@@ -211,9 +216,9 @@ You do **not** need to open each product homepage.
 - **ChatGPT** — GPT Actions → Import from URL → \`${base}/openapi.json\`
 - **Grok** — custom tool / OpenAPI / MCP remote → \`${base}/openapi.json\` or \`POST ${base}/mcp\`
 - **Venice** — custom HTTP tools / OpenAPI → same OpenAPI URL
-- **Any installer / agent** — \`GET ${base}/v1/skill\` then use product tools or \`runtime_run\`. Session tools are advanced/internal. \`/p/{slug}/{op}\` is proxy only.
+- **Any installer / agent** — \`GET ${base}/v1/skill\` then \`fraggate_list\` / \`fraggate_call\`. Session tools and \`runtime_run\` are advanced/internal. \`/p/{slug}/{op}\` is proxy only.
 
-MCP product tools are named \`{slug}_{op}\` (example: \`decisiongate_check\`, \`foldlock_fold-preview\`). Default helper: \`runtime_run\`. Catalog/pull: \`runtime_skill\`, \`runtime_bundle\`, \`runtime_pull\`. Advanced/internal: \`runtime_manifest\`, \`runtime_session_open\`, \`runtime_session_policy\`, \`runtime_session_exec\`, \`runtime_session_receipt\`, \`runtime_session_receipts\`, \`runtime_session_close\`, raw \`*_health\`. Public, no OAuth.
+MCP is a **thin FragGate door** (≤ 20 tools): \`runtime_skill\`, \`fraggate_list\`, \`fraggate_describe\`, \`fraggate_verify\`, \`fraggate_call\`, \`decisiongate_check\`, \`library_lookup\`, plus catalog helpers \`runtime_bundle\` / \`runtime_pull\`. Advanced/internal: \`runtime_run\`, \`runtime_manifest\`, \`runtime_session_*\`. Flat \`{slug}_{op}\` names are **not** listed. Public, no OAuth.
 
 ## Endpoints (this Worker)
 
@@ -226,7 +231,12 @@ MCP product tools are named \`{slug}_{op}\` (example: \`decisiongate_check\`, \`
 | GET | \`/v1/session/{id}/receipts\` | Full receipt chain. |
 | POST | \`/v1/session/{id}/close\` | Seal session. |
 | GET | \`/v1/skill\` | This markdown. Does not increment downloads. |
-| GET | \`/v1/runtime.json\` | Machine manifest. Authority with health: version=1.5.0, role=engine-runtime, all catalog slugs are true engines. |
+| GET | \`/v1/runtime.json\` | Machine manifest. Authority with health: version=1.6.0, role=engine-runtime, door=fraggate, all catalog slugs are true engines. |
+| GET | \`/v1/fraggate\` | FragGate door summary (registry_digest, live vs stub vs local_only counts). |
+| GET | \`/v1/fraggate/list\` | Hashed registry entries. |
+| GET | \`/v1/fraggate/describe\` | Describe one name (\`?name=\` / \`?slug=\`). |
+| POST | \`/v1/fraggate/verify\` | Verify a name or digest. |
+| POST | \`/v1/fraggate/call\` | CallEnvelope → DecisionGATE → handler or refuse. |
 | GET | \`/v1/runtime\` | Alias of \`/v1/runtime.json\` (same machine manifest). |
 | GET | \`/v1/ready\` | Readiness. 200 if SESSION binding is up. 503 if \`REQUIRE_TOKEN=1\` and \`RUNTIME_TOKEN\` missing. |
 | HEAD | \`/v1/health\`, \`/v1/ready\`, \`/v1/runtime.json\`, \`/v1/skill\` | 200 + \`X-Aziel-Runtime-Version\` / \`X-Aziel-Runtime-Role\`. |
@@ -252,7 +262,7 @@ Library engine manifest (same as this Worker): https://www.azielcorpuslibrary.ne
 
 ## Operator token (session mutate)
 
-When \`REQUIRE_TOKEN=1\`, Grok/ChatGPT/Venice Actions that **exec** must send \`Authorization: Bearer $RUNTIME_TOKEN\` (Wrangler secret — one operator token, not per-user). Catalog, skill, OpenAPI, health, pull, MCP \`tools/list\`, and proxy \`/p/{slug}/{op}\` stay public. Proxy is not exec.
+When \`REQUIRE_TOKEN=1\`, Grok/ChatGPT/Venice Actions that **exec** must send \`Authorization: Bearer $RUNTIME_TOKEN\` (Wrangler secret — one operator token, not per-user). Catalog, skill, OpenAPI, health, pull, FragGate list/describe/verify, MCP \`tools/list\`, and proxy \`/p/{slug}/{op}\` stay public. Proxy is not exec.
 
 ## Example (Mozilla/5.0)
 
@@ -282,7 +292,7 @@ curl -s -A 'Mozilla/5.0' -X POST ${base}/p/azclce/score \\
 
 Every catalog Software slug is a true engine (\`true_engine_runtime: true\`). \`engine_slugs\` equals \`true_engine_slugs\`: ${local}. Some ops remain per-op \`proxy_fallback\` when they need product-Worker bindings (AZ-OS session/exec/lattice; Aziel Digital Library live D1 / Whisper / OCR). Cloudflare isolate is the jail; \`engine_digest\` is still required for local exec.
 
-**1.4.1 production gates (unchanged in 1.5.0):** \`GET /v1/ready\` is 200 only if the SESSION Durable Object binding is up; **503** if \`REQUIRE_TOKEN=1\` and the \`RUNTIME_TOKEN\` secret is missing (fail closed). Authority JSON is \`Cache-Control: no-store\`. When \`REQUIRE_TOKEN=1\`, session mutate (open/policy/exec/close) and MCP session tools / \`runtime_run\` require \`Authorization: Bearer …\` or \`X-Aziel-Runtime-Token\` (one operator token). Catalog / health / runtime / skill / pull / OpenAPI / MCP \`tools/list\` stay public. Proxy \`/p/{slug}/{op}\` stays public and is **not** exec. Receipt cap 64. Session TTL 6h. Per-IP rate limits apply.
+**1.4.1 production gates (unchanged in 1.6.0):** \`GET /v1/ready\` is 200 only if the SESSION Durable Object binding is up; **503** if \`REQUIRE_TOKEN=1\` and the \`RUNTIME_TOKEN\` secret is missing (fail closed). Authority JSON is \`Cache-Control: no-store\`. When \`REQUIRE_TOKEN=1\`, session mutate (open/policy/exec/close) and MCP session tools / \`runtime_run\` / \`fraggate_call\` require \`Authorization: Bearer …\` or \`X-Aziel-Runtime-Token\` (one operator token). Catalog / health / runtime / skill / pull / FragGate list / OpenAPI / MCP \`tools/list\` stay public. Proxy \`/p/{slug}/{op}\` stays public and is **not** exec. Receipt cap 64. Session TTL 6h. Per-IP rate limits apply.
 
 GodLock and MirageGrid are not VPNs. ForgeReceipts is not legal advice. ZionPattern Solver caps confidence at 75% and does not solve cases. VeilLock does not inject into FaceTime. AZ-CLCE detects inconsistency, not intent. ChronoLock is advisory only. The ARK is not a kernel. AZAI hosted /v1 is a protocol mirror + Lamb check, not a paid-key proxy and **not** the local blend. Jeeves is not sovereign. SpectralLock hosted overlay is a 256px preview. EmployeeLock is not a court. FoldLock is not zip. WhistleLock is not a mailer. TrajectoryLock is not a certified forensic instrument. M.I.A.Lock Doe hits are leads, not IDs. Aziel Digital Library is not a 26-card index. AzielTether is not a VPN.
 
@@ -297,7 +307,21 @@ GitHub: https://github.com/AzielEliab/aziel-runtime
 `;
 }
 
-export function runtimeManifest(origin, products) {
+function extraFraggate(products, extra = {}) {
+  const registry = buildRegistry(products);
+  return {
+    kernel: FRAGGATE_KERNEL,
+    kernel_version: FRAGGATE_KERNEL_VERSION,
+    registry_digest: extra.registry_digest || null,
+    live_count: registry.live_count,
+    stub_count: registry.stub_count,
+    local_only_count: registry.local_only_count,
+    allowlist: LIVE_OPS,
+    ...(extra.fraggate || {}),
+  };
+}
+
+export function runtimeManifest(origin, products, extra = {}) {
   const base = origin.replace(/\/$/, "");
   const slugs = products.map((p) => p.slug);
   const honesty = honestyFields(slugs);
@@ -306,7 +330,9 @@ export function runtimeManifest(origin, products) {
     ...authority,
     // Explicit aliases so scrapers that only look for these keys still see current version
     runtime_version: RUNTIME_VERSION,
-    manifest: "aziel-runtime.manifest.v1.4",
+    manifest: "aziel-runtime.manifest.v1.6",
+    door: "fraggate",
+    fraggate: extraFraggate(products, extra),
     author: "Aziel Eliab",
     identity: "Aziel Eliab",
     aka: "Aziel Elroi Eliab",
@@ -345,6 +371,11 @@ export function runtimeManifest(origin, products) {
       pull_skill: base + "/v1/pull/{slug}/skill",
       bundle: base + "/v1/bundle",
       pull_all: base + "/v1/pull?all=1",
+      fraggate: base + "/v1/fraggate",
+      fraggate_list: base + "/v1/fraggate/list",
+      fraggate_describe: base + "/v1/fraggate/describe",
+      fraggate_verify: base + "/v1/fraggate/verify",
+      fraggate_call: base + "/v1/fraggate/call",
       invoke: base + "/p/{slug}/{op}",
       invoke_note: "proxy only — not exec",
       cite: base + "/cite.json",
@@ -665,7 +696,7 @@ export function runtimeStaticPaths() {
     "/v1/skill": {
       get: {
         operationId: "runtime_skill",
-        summary: "Skill markdown: 1.5.0 agent-native cut on 1.4.1 production gates. Honest about 1.1.0 / 1.2.0 / 1.3.0 / 1.4.0 / 1.4.1 / 1.5.0.",
+        summary: "Skill markdown: 1.6.0 FragGate door. Honest about 1.1.0 / 1.2.0 / 1.3.0 / 1.4.0 / 1.4.1 / 1.5.0 / 1.6.0.",
         tags: ["runtime"],
         responses: { "200": { description: "text/markdown skill" } },
       },
@@ -743,6 +774,74 @@ export function runtimeStaticPaths() {
         tags: ["runtime"],
         parameters: [{ name: "slug", in: "path", required: true, schema: { type: "string" } }],
         responses: { "200": { description: "text/markdown skill" }, "404": { description: "Unknown slug" } },
+      },
+    },
+    "/v1/fraggate": {
+      get: {
+        operationId: "fraggate_door",
+        summary: "FragGate door summary: registry_digest, live vs stub vs local_only counts. Kernel FG-0.1.",
+        tags: ["fraggate"],
+        responses: { "200": { description: "Door JSON" } },
+      },
+    },
+    "/v1/fraggate/list": {
+      get: {
+        operationId: "fraggate_list",
+        summary: "Hashed registry entries (name, slug, digest, status, public ops).",
+        tags: ["fraggate"],
+        responses: { "200": { description: "Registry list" } },
+      },
+    },
+    "/v1/fraggate/describe": {
+      get: {
+        operationId: "fraggate_describe",
+        summary: "Describe one registry name (live vs stub vs local_only).",
+        tags: ["fraggate"],
+        parameters: [
+          { name: "name", in: "query", schema: { type: "string" } },
+          { name: "slug", in: "query", schema: { type: "string" } },
+        ],
+        responses: { "200": { description: "Entry JSON" } },
+      },
+    },
+    "/v1/fraggate/verify": {
+      post: {
+        operationId: "fraggate_verify",
+        summary: "Verify a registry name or digest.",
+        tags: ["fraggate"],
+        requestBody: {
+          required: false,
+          content: { "application/json": { schema: { type: "object" } } },
+        },
+        responses: { "200": { description: "Verify JSON" } },
+      },
+    },
+    "/v1/fraggate/call": {
+      post: {
+        operationId: "fraggate_call",
+        summary: "CallEnvelope in → DecisionGATE → handler or refuse → ResultEnvelope + ledger tip.",
+        tags: ["fraggate"],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  name: { type: "string" },
+                  slug: { type: "string" },
+                  op: { type: "string" },
+                  payload: { type: "object" },
+                  claim: { type: "object" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "200": { description: "ResultEnvelope" },
+          "400": { description: "Refuse (HALLUC / stub / local_only / gate)" },
+        },
       },
     },
   };

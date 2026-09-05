@@ -54,14 +54,18 @@ assert.match(skill.headers.get("content-type") || "", /markdown|text\/plain/);
 const skillText = await skill.text();
 assert.match(skillText, /Aziel Eliab Runtime/);
 assert.match(skillText, /catalog \+ pull \+ proxy/);
+assert.match(skillText, /1\.6\.0/);
 assert.match(skillText, /1\.5\.0/);
 assert.match(skillText, /1\.4\.1/);
 assert.match(skillText, /1\.4\.0/);
 assert.match(skillText, /1\.3\.0/);
 assert.match(skillText, /Dual surface/);
 assert.match(skillText, /How an agent uses this like software/);
+assert.match(skillText, /fraggate_call/);
 assert.match(skillText, /runtime_run/);
 assert.match(skillText, /advanced\/internal/);
+assert.match(skillText, /One door/);
+assert.match(skillText, /fraggate/);
 assert.match(skillText, /\/v1\/ready/);
 assert.match(skillText, /engine_digest/);
 assert.match(skillText, /open → policy → exec/);
@@ -221,6 +225,7 @@ assert.equal(sigil.headers.get("X-Aziel-Sigil"), "Everblooming");
 const llms = await (await get("/llms.txt")).text();
 assert.match(llms, /Role: engine-runtime/);
 assert.match(llms, /1\.1\.0 was catalog\+proxy/);
+assert.match(llms, /1\.6\.0/);
 assert.match(llms, /1\.5\.0/);
 assert.match(llms, /1\.4\.1/);
 assert.match(llms, /1\.4\.0/);
@@ -240,7 +245,9 @@ assert.ok(openapi.paths["/v1/session/open"]);
 assert.ok(openapi.paths["/v1/session/{id}/exec"]);
 assert.ok(openapi.paths["/v1/bundle"]);
 assert.ok(openapi.paths["/v1/pull/{slug}"]);
-assert.ok(openapi.paths["/p/foldlock/fold-preview"]);
+assert.ok(openapi.paths["/v1/fraggate"]);
+assert.ok(openapi.paths["/v1/fraggate/call"]);
+assert.equal(openapi.paths["/p/foldlock/fold-preview"], undefined);
 
 const mcpInit = await handler(
   new Request(origin + "/mcp", {
@@ -254,9 +261,11 @@ const mcpBody = await mcpInit.json();
 assert.match(mcpBody.result.instructions, /in-process engines/);
 assert.match(mcpBody.result.instructions, /not exec/);
 assert.match(mcpBody.result.instructions, /engine_digest/);
+assert.match(mcpBody.result.instructions, /fraggate_call/);
 assert.match(mcpBody.result.instructions, /runtime_run/);
 assert.match(mcpBody.result.instructions, /display\.title/);
 assert.match(mcpBody.result.instructions, /advanced\/internal/);
+assert.match(mcpBody.result.instructions, /1\.6\.0/);
 assert.equal(mcpBody.result.serverInfo.version, RUNTIME_VERSION);
 
 const mcpList = await handler(
@@ -278,19 +287,19 @@ assert.ok(tools.includes("runtime_bundle"));
 assert.ok(tools.includes("runtime_pull"));
 assert.ok(tools.includes("runtime_session_open"));
 assert.ok(tools.includes("runtime_session_exec"));
-assert.ok(tools.includes("godlock_submit"));
-assert.ok(tools.includes("foldlock_fold-preview"));
-assert.match(byName.runtime_run.description, /in-process engine|Use Aziel Eliab software/);
-assert.match(byName.godlock_submit.description, /GodLock/);
-assert.doesNotMatch(byName.godlock_submit.description, /JSON body posted/);
-assert.doesNotMatch(byName["foldlock_fold-preview"].inputSchema.description || "", /JSON body posted/);
-assert.match(byName["foldlock_fold-preview"].description, /FoldLock/);
-assert.doesNotMatch(byName["foldlock_fold-preview"].description, /\[advanced\/internal\]/);
+assert.ok(tools.includes("fraggate_list"));
+assert.ok(tools.includes("fraggate_call"));
+assert.ok(tools.includes("decisiongate_check"));
+assert.ok(tools.includes("library_lookup"));
+assert.ok(!tools.includes("godlock_submit"));
+assert.ok(!tools.includes("foldlock_fold-preview"));
+assert.ok(tools.length <= 20, `tools/list ${tools.length} > 20`);
+assert.match(byName.runtime_run.description, /\[advanced\/internal\]/);
+assert.match(byName.fraggate_call.description, /CallEnvelope|DecisionGATE|fraggate/i);
 assert.match(byName.runtime_session_open.description, /\[advanced\/internal\]/);
 assert.match(byName.runtime_session_exec.description, /\[advanced\/internal\]/);
 assert.match(byName.runtime_manifest.description, /\[advanced\/internal\]/);
-assert.match(byName.foldlock_health.description, /\[advanced\/internal\]/);
-assert.match(byName.runtime_skill.description, /open a product|like software|next input/i);
+assert.match(byName.runtime_skill.description, /one door|discover|refuse|like software/i);
 
 async function mcpCall(name, args) {
   const res = await handler(
@@ -304,13 +313,16 @@ async function mcpCall(name, args) {
   return res.json();
 }
 
-const foldCall = await mcpCall("foldlock_fold-preview", { text: "the cat and the dog" });
+const foldCall = await mcpCall("fraggate_call", {
+  slug: "foldlock",
+  op: "fold-preview",
+  payload: { text: "the cat and the dog" },
+});
 assert.equal(foldCall.result.isError, false);
 assert.ok(foldCall.result.structuredContent);
 assert.ok(foldCall.result.structuredContent.display);
-assert.match(foldCall.result.structuredContent.display.title, /FoldLock/);
 assert.ok(foldCall.result.structuredContent.result);
-assert.match(foldCall.result.content[0].text, /FoldLock|the cat/);
+assert.match(foldCall.result.content[0].text, /FoldLock|the cat|FragGate/i);
 
 const runCall = await mcpCall("runtime_run", {
   slug: "azclce",

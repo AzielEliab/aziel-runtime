@@ -3,6 +3,21 @@
  * Public identity: Aziel Eliab only. Do not invent DOIs.
  */
 
+/** Extra slugs an installer or AI may type. Values are catalog slugs. */
+export const CATALOG_ALIASES = {
+  "zion-pattern-solver": "zsolver",
+  zionpatternsolver: "zsolver",
+  "postking-chess": "postking",
+  "az-clce": "azclce",
+  "aziel-digital-library": "aziel-corpus",
+  "aziel-digital-library-v2": "aziel-corpus",
+  azielcorpus: "aziel-corpus",
+  corpus: "aziel-corpus",
+  "mia-lock": "mialock",
+  "mia.lock": "mialock",
+  "m.i.a.lock": "mialock",
+};
+
 /** Package versions from live product Workers / counted /download filenames. */
 export const VERSIONS = {
   vibelock: "0.3.0",

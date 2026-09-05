@@ -226,6 +226,7 @@ assert.match(skill, /1\.2\.0 = session-runtime/);
 assert.match(skill, /1\.3\.0/);
 assert.match(skill, /1\.4\.0/);
 assert.match(skill, /1\.4\.1/);
+assert.match(skill, /1\.6\.0/);
 assert.match(skill, /1\.5\.0/);
 assert.match(skill, /How an agent uses this like software/);
 assert.match(skill, /open → policy → exec/);

@@ -1,10 +1,12 @@
 # aziel-runtime
 
-**Aziel Eliab Runtime 1.5.0** — agent-native cut on **1.4.1** production gates. Agents use product tools like software (display-ready output, then the next input). Human software — Worker UI, Flutter `mobile/`, local install, counted `/download` — stays complete. Catalog + pull + proxy, one session object, **in-process engines** for every catalog Software slug, plus production gates (`/v1/ready`, HEAD, no-store, receipt cap 64, session TTL 6h, per-IP rate limits, optional `RUNTIME_TOKEN` on session mutate):
+**Aziel Eliab Runtime 1.6.0** — **FragGate door** over the catalog. One door: **discover, route, refuse**. Hashed registry, thin MCP `tools/list`, DecisionGATE before exec, ask/refuse ledger. **1.5.0** was the agent-native flat `{slug}_{op}` pile. Human software — Worker UI, Flutter `mobile/`, local install, counted `/download` — stays complete. Catalog + pull + proxy, one session object, **in-process engines** for every catalog Software slug, plus production gates (`/v1/ready`, HEAD, no-store, receipt cap 64, session TTL 6h, per-IP rate limits, optional `RUNTIME_TOKEN` on session mutate).
+
+Kernel: [AzielEliab/fraggate](https://github.com/AzielEliab/fraggate) (FG-0.1)
 
 `open → policy → exec(slug, op, payload) → receipt → close`
 
-Agents should not narrate that chain. Prefer `godlock_submit` / `foldlock_fold-preview` or `runtime_run { slug, op, payload }`.
+Agents should not narrate that chain. Prefer `fraggate_list` then `fraggate_call { name, op, payload }`.
 
 **1.3.0** vendored portable engines (ark, azai Lamb check, azclce, decisiongate, foldlock, zsolver) and ran them in this isolate.
 
@@ -18,13 +20,14 @@ Cloudflare’s Worker / Durable Object isolate **is** the jail. No extra guest i
 
 Hosted / in-process AZAI is still protocol mirror + Lamb check, **not** the local blend (`azai serve`).
 
-ChatGPT GPT Actions, Grok custom tools, and Venice HTTP tools import **this** OpenAPI file — then use product tools or `runtime_run`. Session tools are advanced/internal. `/p/{slug}/{op}` is proxy only.
+ChatGPT GPT Actions, Grok custom tools, and Venice HTTP tools import **this** OpenAPI file — then use `fraggate_call`. Session tools and `runtime_run` are advanced/internal. `/p/{slug}/{op}` is proxy only and is not the agent default path.
 
 **Author:** Aziel Eliab  
 **Identity:** Aziel Eliab (primary). Also known as Aziel Elroi Eliab (`alternateName` / aka only).  
 **License:** [Apache-2.0](LICENSE)  
-**Version:** 1.5.0  
-**Role:** `engine-runtime` (layer: `catalog+pull+proxy+session+in-process-engines`)  
+**Version:** 1.6.0  
+**Role:** `engine-runtime` (layer: `catalog+pull+proxy+session+in-process-engines+fraggate`)  
+**Door:** `fraggate`  
 **Worker:** `aziel-runtime` → https://aziel-runtime.vibelock.workers.dev/  
 **Library front door:** https://www.azielcorpuslibrary.net/runtime  
 **Everblooming sigil:** https://aziel-runtime.vibelock.workers.dev/sigil.png  
@@ -53,8 +56,28 @@ Public identity: **Aziel Eliab** only. Do not invent Zenodo DOIs.
 
 ## Dual surface (product law)
 
-1. **Agent / MCP** — Software runs through the agent. Show `display.title` / `display.summary` / `display.fields`, then take the next input. Session, OpenAPI, and HTTP plumbing stay invisible unless asked for.
+1. **Agent / MCP** — Software runs through the agent. Show `display.title` / `display.summary` / `display.fields`, then take the next input. Session, OpenAPI, and HTTP plumbing stay invisible unless asked for. **One door — discover, route, refuse.**
 2. **Human software** — This Worker UI, Flutter `mobile/`, local install, and counted `/download` remain complete developed software.
+
+## FragGate door
+
+Public MCP `tools/list` is a **thin** set (≤ 20): `runtime_skill`, `fraggate_list`, `fraggate_describe`, `fraggate_verify`, `fraggate_call`, `decisiongate_check`, `library_lookup`, plus catalog helpers. `runtime_run` is advanced/internal.
+
+Every catalog product is a **hashed registry** entry (`name`, `slug`, `digest`, `status`, public `ops`). Status is `live` | `stub` | `local_only`.
+
+**Live on the public mesh** (via `fraggate_call`): DecisionGATE `check`, GodLock `score`/`submit`, FoldLock `fold-preview`/`unfold-preview`, AZ-CLCE `score`/`classify`/`gate`, Aziel Digital Library read ops (`search`/`example`/`skill`).
+
+**Stub** (named, never execute): ARK scorch/wipe/unlock, WhistleLock send, MirageGrid VPN-hop fantasies, AzielTether mesh-join. Most other Locks are **local_only** — named in the registry, not live as flat MCP tools.
+
+Unknown names refuse `FG-HALLUC-TOOL` and list the tools that *do* exist. DecisionGATE runs before any exec side effect; refuse is a typed ResultEnvelope + ledger tip (TemporalLock-shaped hash chain). Mesh is not claimed on this public surface.
+
+```bash
+curl -s -A 'Mozilla/5.0' https://aziel-runtime.vibelock.workers.dev/v1/fraggate
+curl -s -A 'Mozilla/5.0' https://aziel-runtime.vibelock.workers.dev/v1/fraggate/list
+curl -s -A 'Mozilla/5.0' -X POST https://aziel-runtime.vibelock.workers.dev/v1/fraggate/call \
+  -H 'content-type: application/json' \
+  -d '{"slug":"foldlock","op":"fold-preview","payload":{"text":"the cat and the dog"}}'
+```
 
 ## Session (the actual cut)
 
@@ -117,6 +140,8 @@ Always send `User-Agent: Mozilla/5.0`.
 |------|-----|
 | Homepage (HTML) | https://aziel-runtime.vibelock.workers.dev/ |
 | Skill | https://aziel-runtime.vibelock.workers.dev/v1/skill |
+| FragGate door | https://aziel-runtime.vibelock.workers.dev/v1/fraggate |
+| FragGate kernel | https://github.com/AzielEliab/fraggate |
 | Machine manifest (`role=engine-runtime`) | https://aziel-runtime.vibelock.workers.dev/v1/runtime.json |
 | Session open | `POST` https://aziel-runtime.vibelock.workers.dev/v1/session/open |
 | Session exec | `POST` https://aziel-runtime.vibelock.workers.dev/v1/session/{id}/exec |
@@ -160,18 +185,18 @@ Product Worker crawl template: [docs/PRODUCT_SEO.md](docs/PRODUCT_SEO.md).
 1. Create a GPT (or open GPT Actions).
 2. **Import from URL** → `https://aziel-runtime.vibelock.workers.dev/openapi.json`
 3. No authentication. CORS `*`.
-4. Ask the GPT to call `foldlock_fold-preview`, `godlock_submit`, `decisiongate_check`, or `runtime_run`. Session tools (`runtime_session_*`) are advanced/internal.
+4. Ask the GPT to call `fraggate_list`, then `fraggate_call`. Named live modules: `decisiongate_check`, `library_lookup`. Session tools and `runtime_run` are advanced/internal.
 
 ## Add to Grok
 
 - **Custom tool / OpenAPI:** import `https://aziel-runtime.vibelock.workers.dev/openapi.json`
 - **MCP remote:** `POST https://aziel-runtime.vibelock.workers.dev/mcp`  
   Methods: `initialize`, `tools/list`, `tools/call`.  
-  Default: product tools `{product}_{op}` (in-process when the op is implemented here) and `runtime_run`.  
-  Catalog/pull: `runtime_skill`, `runtime_bundle`, `runtime_pull`.  
-  Advanced/internal: `runtime_manifest`, `runtime_session_*`, raw `*_health`.  
-  HTTP `/p/{product}/{op}` is still a **proxy** (not exec). Public, no OAuth.  
-  Tool results are `{ display, result, receipt? }` — show `display` to the user.
+  Default: thin FragGate door (`fraggate_list`, `fraggate_describe`, `fraggate_verify`, `fraggate_call`).  
+  Named live: `decisiongate_check`, `library_lookup`. Catalog/pull: `runtime_skill`, `runtime_bundle`, `runtime_pull`.  
+  Advanced/internal: `runtime_run`, `runtime_manifest`, `runtime_session_*`.  
+  Flat `{product}_{op}` names are **not** listed. HTTP `/p/{product}/{op}` is still a **proxy** (not exec). Public, no OAuth.  
+  Tool results are `{ display, result, ledger_tip? }` — show `display` to the user.
 
 ## Add to Glama (Install Server)
 
@@ -275,7 +300,7 @@ Account `ac575a9b822bea2bed97d0ab73aed238`. workers.dev
 **1.2.0+ requires Durable Object migration tag `v1`** (`RuntimeSession`, SQLite).
 The first deploy after the session cut creates the `SESSION` binding. **1.4.0
 does not need a new DO migration** — engines run in the same isolate. **1.4.1
-reuses that SESSION class. 1.5.0 does not need a new DO migration.**
+reuses that SESSION class. 1.5.0 and 1.6.0 do not need a new DO migration.**
 
 Optional production token (session mutate only — catalog / health / runtime /
 skill / pull stay public):
@@ -307,7 +332,7 @@ If this checkout has no wrangler credentials, deploy from the author's machine:
 npx wrangler secret put RUNTIME_TOKEN
 npx wrangler deploy
 node scripts/probe-live.mjs
-# confirm GET /v1/health and /v1/ready and /v1/runtime.json version=1.5.0 role=engine-runtime
+# confirm GET /v1/health and /v1/ready and /v1/runtime.json version=1.6.0 role=engine-runtime door=fraggate
 # confirm engine_slugs == true_engine_slugs == all 27 catalog slugs
 # confirm POST /v1/session/open → policy → exec each primary op → receipt has engine_digest + ran_in
 ```
