@@ -373,7 +373,17 @@ export function sessionMcpTools() {
   ];
 }
 
+const SESSION_TOOL_NAMES = new Set([
+  "runtime_session_open",
+  "runtime_session_policy",
+  "runtime_session_exec",
+  "runtime_session_receipt",
+  "runtime_session_receipts",
+  "runtime_session_close",
+]);
+
 export async function callSessionTool(env, name, args, origin, deps) {
+  if (!SESSION_TOOL_NAMES.has(name)) return null;
   const base = (origin || "https://aziel-runtime.vibelock.workers.dev").replace(/\/$/, "");
   const sid = args && (args.session_id || args.id);
   const tokenHeaders = copyTokenHeaders(deps && deps.request, {});

@@ -1596,10 +1596,8 @@ async function handleMcp(request, env, origin) {
       const { slug, op } = splitProductToolName(name);
       return rpcResult(id, mcpCallPayload(name, out, out.product || BY_SLUG[slug], out.op || op));
     } catch (err) {
-      return rpcResult(id, {
-        content: [{ type: "text", text: JSON.stringify({ error: String(err.message || err) }) }],
-        isError: true,
-      });
+      const text = JSON.stringify({ error: String(err.message || err) });
+      return rpcResult(id, mcpCallPayload(name, { status: 400, text }, null, null));
     }
   }
   return rpcError(id, -32601, `Method not found: ${method}`);
