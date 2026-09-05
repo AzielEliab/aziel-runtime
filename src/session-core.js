@@ -257,8 +257,8 @@ function requireReceiptRoom(session) {
   }
 }
 
-export function assertExecAllowed(session, { slug, op, payloadBytes, knownSlugs }) {
-  requireOpen(session);
+export function assertExecAllowed(session, { slug, op, payloadBytes, knownSlugs, nowIso }) {
+  requireOpen(session, nowIso);
   const s = String(slug || "").trim().toLowerCase();
   const o = String(op || "").trim();
   if (!s || !o) {
@@ -309,7 +309,7 @@ export async function recordIntent(session, { slug, op, payload, payloadText, kn
   requireOpen(session, nowIso);
   requireReceiptRoom(session);
   const bytes = new TextEncoder().encode(payloadText).length;
-  const allowed = assertExecAllowed(session, { slug, op, payloadBytes: bytes, knownSlugs });
+  const allowed = assertExecAllowed(session, { slug, op, payloadBytes: bytes, knownSlugs, nowIso });
   const digest = await digestText(payloadText);
   const intent = {
     intent_id: `${session.id}:${(session.receipts || []).length + 1}`,
