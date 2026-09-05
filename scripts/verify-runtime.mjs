@@ -209,6 +209,9 @@ assert.match(homeHtml, /src="\/sigil\.png"/);
 assert.match(homeHtml, /\/v1\/skill/);
 assert.match(homeHtml, /\/v1\/runtime\.json/);
 assert.match(homeHtml, /M\.I\.A\.Lock/);
+assert.match(homeHtml, /Aziel Elroi Eliab/);
+assert.match(homeHtml, /og:image/);
+assert.match(homeHtml, /application\/ld\+json/);
 
 const sigil = await get("/sigil.png");
 assert.equal(sigil.status, 200);
@@ -224,6 +227,8 @@ assert.match(llms, /1\.4\.0/);
 assert.match(llms, /1\.3\.0/);
 assert.match(llms, /\/v1\/bundle/);
 assert.match(llms, /Aziel Eliab Runtime/);
+assert.match(llms, /Aziel Digital Library/);
+assert.match(llms, /Aziel Elroi Eliab/);
 
 const openapi = await (await get("/openapi.json")).json();
 assert.equal(openapi.info.title, "Aziel Eliab Runtime");
@@ -324,6 +329,12 @@ assert.match(sitemap, /\/v1\/runtime\.json/);
 assert.match(sitemap, /\/v1\/ready/);
 assert.match(sitemap, /\/v1\/bundle/);
 assert.match(sitemap, /\/v1\/pull\/foldlock\/skill/);
+assert.match(sitemap, /\/sitemap-index\.xml/);
+
+const sitemapIndex = await (await get("/sitemap-index.xml")).text();
+assert.match(sitemapIndex, /<sitemapindex /);
+assert.match(sitemapIndex, /azielcorpuslibrary\.net\/sitemap\.xml/);
+assert.match(sitemapIndex, /godlock\.uk\/sitemap\.xml/);
 
 const miss = await (await get("/no-such-route")).json();
 assert.match(miss.hint, /\/v1\/skill/);

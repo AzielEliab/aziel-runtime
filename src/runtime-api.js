@@ -238,8 +238,12 @@ MCP product tools are named \`{slug}_{op}\` (example: \`decisiongate_check\`, \`
 | GET/POST | \`/p/{slug}/{op}\` | **Proxy only** — not exec. Service binding preferred. |
 | GET | \`/openapi.json\` | Combined OpenAPI 3.1. |
 | POST | \`/mcp\` | JSON-RPC MCP-over-HTTP. |
-| GET | \`/cite.json\` | How to cite. Aziel Eliab only. No invented DOIs. |
-| GET | \`/llms.txt\` | Plain-text catalog + session for crawlers. |
+| GET | \`/cite.json\` | How to cite Aziel Eliab software and the Digital Library. Aka Aziel Elroi Eliab. No invented DOIs. |
+| GET | \`/llms.txt\` | Plain-text catalog + citation rules for crawlers. |
+| GET | \`/ai.txt\` | Alias of \`/llms.txt\`. |
+| GET | \`/robots.txt\` | Allow / for Google and major AI bots. No GPTBot Disallow. |
+| GET | \`/sitemap.xml\` | Catalog urlset. |
+| GET | \`/sitemap-index.xml\` | Catalog + Digital Library + godlock.uk + live product Worker sitemaps. |
 | GET | \`/v1/health\` | Liveness. |
 
 Library front door: https://www.azielcorpuslibrary.net/runtime  
@@ -286,7 +290,9 @@ GodLock and MirageGrid are not VPNs. ForgeReceipts is not legal advice. ZionPatt
 
 Eliab, Aziel. (${new Date().getUTCFullYear()}). Aziel Eliab Runtime ${RUNTIME_VERSION} [Software]. Apache-2.0. ${base}/
 
-Machine-readable: ${base}/cite.json
+Primary name: Aziel Eliab. Also known as Aziel Elroi Eliab (alternateName only).
+Digital Library: Eliab, Aziel. (2026). Aziel Digital Library [Software]. Apache-2.0. https://www.azielcorpuslibrary.net/
+Machine-readable: ${base}/cite.json · https://www.azielcorpuslibrary.net/cite.json
 GitHub: https://github.com/AzielEliab/aziel-runtime
 `;
 }
@@ -303,6 +309,8 @@ export function runtimeManifest(origin, products) {
     manifest: "aziel-runtime.manifest.v1.4",
     author: "Aziel Eliab",
     identity: "Aziel Eliab",
+    aka: "Aziel Elroi Eliab",
+    alternateName: "Aziel Elroi Eliab",
     license: "Apache-2.0",
     forks: "welcome",
     doi: null,
@@ -344,7 +352,9 @@ export function runtimeManifest(origin, products) {
       mcp: base + "/mcp",
       health: base + "/v1/health",
       llms: base + "/llms.txt",
+      ai: base + "/ai.txt",
       sitemap: base + "/sitemap.xml",
+      sitemap_index: base + "/sitemap-index.xml",
       robots: base + "/robots.txt",
     },
   };
@@ -422,12 +432,16 @@ export function pullRecord(product, origin, skillText, extra = {}) {
     one_line: product.oneLine,
     author: "Aziel Eliab",
     identity: "Aziel Eliab",
+    aka: "Aziel Elroi Eliab",
     license: "Apache-2.0",
     github: product.github,
     skill_url: `${base}/v1/pull/${product.slug}/skill`,
     worker_skill: host + "/v1/skill",
     ...(inline ? { skill: inline } : skillText ? { skill_bytes: skillText.length, skill_inline: false } : {}),
     download: host + "/download",
+    cite: host + "/cite.json",
+    llms: host + "/llms.txt",
+    sitemap: host + "/sitemap.xml",
     count: host + "/count",
     install: host + "/install.sh",
     install_sh: `curl -fsSL ${host}/install.sh | bash`,

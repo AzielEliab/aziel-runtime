@@ -11,11 +11,12 @@
  *
  * GET  /                      HTML (indexable) + Everblooming sigil
  * GET  /sigil.png             Everblooming sigil stamp
- * GET  /robots.txt            Allow /, sitemap URL
+ * GET  /robots.txt            Allow / for Google + major AI bots; sitemap-index + hub sitemaps
  * GET  /sitemap.xml           session, pull, OpenAPI, product cards/health, GitHub
- * GET  /llms.txt              plain-text catalog + session for LLM crawlers
+ * GET  /sitemap-index.xml     catalog sitemap + corpus + godlock.uk + live product Worker sitemaps
+ * GET  /llms.txt              plain-text catalog + how to cite Aziel Eliab + Digital Library
  * GET  /ai.txt                same as /llms.txt
- * GET  /cite.json             How-to-cite: Aziel Eliab, Apache-2.0, GitHub + DOI + related_identifiers
+ * GET  /cite.json             How-to-cite: Aziel Eliab (aka Aziel Elroi Eliab), Apache-2.0, no invented DOIs
  * GET  /v1/skill              skill markdown (session + front doors)
  * GET  /v1/runtime.json       machine manifest: role=engine-runtime (1.5.0)
  * GET  /v1/runtime            alias of /v1/runtime.json
@@ -82,6 +83,26 @@ import {
   mcpInitializeInstructions,
   runProductMcpOp,
 } from "./mcp-surface.js";
+import {
+  AUTHOR_ALTERNATE_NAME,
+  AUTHOR_GITHUB,
+  AUTHOR_NAME,
+  LIBRARY_CITE,
+  LIBRARY_FRONT_DOOR,
+  LIBRARY_LLMS,
+  LIBRARY_NAME,
+  LIBRARY_ORIGIN,
+  catalogHubFields,
+  citeHowToLibrary,
+  citeHowToRuntime,
+  libraryJsonLd,
+  llmsCiteBlock,
+  llmsIdentityHeader,
+  personJsonLd,
+  productCrawlUrls,
+  robotsTxt as buildRobotsTxt,
+  sitemapIndexXml,
+} from "./seo.js";
 
 export { RuntimeSession };
 
@@ -89,7 +110,7 @@ const CATALOG_HOST = "https://aziel-runtime.vibelock.workers.dev";
 const PROTOCOL = "2025-03-26";
 const CATALOG_TITLE = "Aziel Eliab Runtime";
 const CATALOG_DESCRIPTION =
-  "1.5.0 agent-native cut on 1.4.1 production gates: display-ready MCP results, product-verb tools, runtime_run auto-session. 1.4.1 added ready/HEAD/no-store/receipt cap/TTL/rate limits/optional token. 1.4.0 vendors every catalog Software slug. Proxy is not exec. Binding-only ops stay per-op proxy_fallback. Dual surface: agent chat has no technical UI chrome; Worker / Flutter / local install / counted download stay complete human software. Apache-2.0. Author: Aziel Eliab.";
+  "Aziel Eliab software catalog and engine-runtime: 27 products plus the Aziel Digital Library (www.azielcorpuslibrary.net). 1.5.0 agent-native cut on 1.4.1 production gates: display-ready MCP results, product-verb tools, runtime_run auto-session. Proxy is not exec. Dual surface: agent chat has no technical UI chrome; Worker / Flutter / local install / counted download stay complete human software. Apache-2.0. Author: Aziel Eliab (also known as Aziel Elroi Eliab).";
 const LASTMOD = "2026-09-05";
 
 const PRODUCTS_RAW = [
@@ -607,6 +628,7 @@ function productUrls(product, origin) {
     invoke_prefix: `${base}/p/${product.slug}`,
     doi: product.doi || null,
     doi_url: product.doi ? `https://doi.org/${product.doi}` : null,
+    ...productCrawlUrls(product),
   };
 }
 
@@ -641,35 +663,22 @@ function catalogRecord(product, origin) {
     pull: urls.pull,
     pull_skill: urls.pull_skill,
     invoke_prefix: urls.invoke_prefix,
+    worker_home: urls.worker_home,
+    cite: urls.cite,
+    llms: urls.llms,
+    sitemap: urls.has_sitemap ? urls.sitemap : null,
+    crawl: {
+      home: urls.worker_home,
+      cite: urls.cite,
+      llms: urls.has_llms ? urls.llms : null,
+      download: urls.download,
+      sitemap: urls.has_sitemap ? urls.sitemap : null,
+    },
   };
 }
 
 function robotsTxt(origin) {
-  const base = origin.replace(/\/$/, "");
-  return [
-    "User-agent: *",
-    "Allow: /",
-    "",
-    "User-agent: GPTBot",
-    "Allow: /",
-    "User-agent: ChatGPT-User",
-    "Allow: /",
-    "User-agent: Google-Extended",
-    "Allow: /",
-    "User-agent: anthropic-ai",
-    "Allow: /",
-    "User-agent: ClaudeBot",
-    "Allow: /",
-    "User-agent: PerplexityBot",
-    "Allow: /",
-    "User-agent: Bytespider",
-    "Allow: /",
-    "User-agent: CCBot",
-    "Allow: /",
-    "",
-    `Sitemap: ${base}/sitemap.xml`,
-    "",
-  ].join("\n");
+  return buildRobotsTxt(origin, PRODUCTS);
 }
 
 function sitemapXml(origin) {
@@ -685,6 +694,7 @@ function sitemapXml(origin) {
     { loc: base + "/cite.json", priority: "0.8", changefreq: "weekly" },
     { loc: base + "/llms.txt", priority: "0.8", changefreq: "weekly" },
     { loc: base + "/ai.txt", priority: "0.8", changefreq: "weekly" },
+    { loc: base + "/sitemap-index.xml", priority: "0.85", changefreq: "weekly" },
     { loc: base + "/v1/health", priority: "0.5", changefreq: "daily" },
     { loc: base + "/v1/ready", priority: "0.7", changefreq: "daily" },
     { loc: base + "/mcp", priority: "0.6", changefreq: "weekly" },
@@ -726,7 +736,7 @@ function llmsTxt(origin) {
     "",
     `> ${CATALOG_DESCRIPTION}`,
     "",
-    `Author: Aziel Eliab`,
+    ...llmsIdentityHeader(),
     `Role: engine-runtime (catalog + pull + proxy + session + in-process engines)`,
     `Honesty: 1.1.0 was catalog+proxy. 1.2.0 was session/receipt (exec still proxied). 1.3.0 ran listed slugs in-process. 1.4.0 vendors every catalog Software slug. 1.4.1 adds production gates (ready, HEAD, no-store, receipt cap 64, TTL 6h, rate limits, optional token). 1.5.0 is the agent-native cut (display envelopes, product-verb MCP, runtime_run).`,
     `True-engine slugs: ${honestyFields(PRODUCTS.map((p) => p.slug)).true_engine_slugs.join(", ")}`,
@@ -742,6 +752,11 @@ function llmsTxt(origin) {
     `MCP: POST ${base}/mcp`,
     `Machine catalog: ${base}/v1/catalog.json`,
     `Cite: ${base}/cite.json`,
+    `Sitemap: ${base}/sitemap.xml`,
+    `Sitemap index: ${base}/sitemap-index.xml`,
+    `Library: ${LIBRARY_NAME} ${LIBRARY_ORIGIN}/`,
+    `Library cite: ${LIBRARY_CITE}`,
+    `Library llms: ${LIBRARY_LLMS}`,
     `Library front door: https://www.azielcorpuslibrary.net/runtime`,
     `License: Apache-2.0`,
     `User-Agent: Mozilla/5.0`,
@@ -772,6 +787,9 @@ function llmsTxt(origin) {
     if (p.banner) lines.push(`Banner: ${p.banner}`);
     lines.push(`GitHub: ${u.github}`);
     lines.push(`Worker: ${u.worker_home}`);
+    lines.push(`Worker cite: ${u.cite}`);
+    if (u.has_llms) lines.push(`Worker llms: ${u.llms}`);
+    if (u.has_sitemap) lines.push(`Worker sitemap: ${u.sitemap}`);
     lines.push(`Download (counted, gzip 200): ${u.download}`);
     if (p.version) lines.push(`Version: ${p.version}`);
     lines.push(`Install: curl -fsSL ${u.install} | bash`);
@@ -791,8 +809,21 @@ function llmsTxt(origin) {
     }
     lines.push("");
   }
-  lines.push("## How to cite");
-  lines.push("Eliab, Aziel. (2026). Aziel Eliab Runtime [Software]. Apache-2.0. " + base + "/");
+  lines.push(llmsCiteBlock(origin));
+  lines.push("## Crawl (GitBaby product Workers)");
+  lines.push("");
+  lines.push(
+    "Expected on every product Worker: GET /  GET /cite.json  GET /llms.txt  GET /download  GET /robots.txt (Allow: /)  GET /sitemap.xml.",
+  );
+  lines.push(
+    "See docs/PRODUCT_SEO.md. Open crawl: Allow: / for GPTBot and other AI bots. Do not leave a conflicting Disallow. Do not ship Cloudflare content-signal blocks.",
+  );
+  lines.push(
+    "VibeLock counted Worker (vibelock-download-tracker.vibelock.workers.dev) already Allows /. The host vibelock.vibelock.workers.dev is a different Worker and previously served Cloudflare content-signal text — that repo should match the template.",
+  );
+  lines.push(
+    `Sitemap index (corpus + godlock.uk + live product sitemaps): ${base}/sitemap-index.xml`,
+  );
   lines.push("");
   return lines.join("\n");
 }
@@ -800,10 +831,18 @@ function llmsTxt(origin) {
 function citeJson(origin) {
   const base = origin.replace(/\/$/, "");
   return {
-    author: "Aziel Eliab",
-    author_github: "https://github.com/AzielEliab",
+    author: AUTHOR_NAME,
+    aka: AUTHOR_ALTERNATE_NAME,
+    alternateName: AUTHOR_ALTERNATE_NAME,
+    identity: AUTHOR_NAME,
+    author_github: AUTHOR_GITHUB,
     catalog: base + "/",
     runtime: base + "/",
+    library: LIBRARY_ORIGIN + "/",
+    library_name: LIBRARY_NAME,
+    library_how_to_cite: citeHowToLibrary(),
+    library_cite: LIBRARY_CITE,
+    library_llms: LIBRARY_LLMS,
     role: RUNTIME_ROLE,
     layer: RUNTIME_LAYER,
     version: RUNTIME_VERSION,
@@ -812,10 +851,7 @@ function citeJson(origin) {
     ...honestyFields(PRODUCTS.map((p) => p.slug)),
     license: "Apache-2.0",
     license_url: "https://www.apache.org/licenses/LICENSE-2.0",
-    how_to_cite:
-      "Eliab, Aziel. (2026). Aziel Eliab Runtime [Software]. Apache-2.0. " +
-      base +
-      "/",
+    how_to_cite: citeHowToRuntime(origin),
     bibtex: `@software{eliab_aziel_runtime_2026,
   author = {Eliab, Aziel},
   title = {Aziel Eliab Runtime},
@@ -852,8 +888,10 @@ function citeJson(origin) {
 
 function jsonLd(origin) {
   const base = origin.replace(/\/$/, "");
+  const person = personJsonLd();
   const software = {
     "@type": "SoftwareApplication",
+    "@id": base + "/#runtime",
     name: CATALOG_TITLE,
     url: base + "/",
     description: CATALOG_DESCRIPTION,
@@ -861,13 +899,20 @@ function jsonLd(origin) {
     applicationCategory: "DeveloperApplication",
     operatingSystem: "Cloudflare Workers",
     license: "https://www.apache.org/licenses/LICENSE-2.0",
-    author: {
-      "@type": "Person",
-      name: "Aziel Eliab",
-      url: "https://github.com/AzielEliab",
-    },
+    author: { "@id": person["@id"] },
+    creator: { "@id": person["@id"] },
     codeRepository: "https://github.com/AzielEliab/aziel-runtime",
-    sameAs: ["https://github.com/AzielEliab/aziel-runtime", "https://github.com/AzielEliab"],
+    sameAs: ["https://github.com/AzielEliab/aziel-runtime", AUTHOR_GITHUB, LIBRARY_FRONT_DOOR],
+    screenshot: base + "/sigil.png",
+  };
+  const website = {
+    "@type": "WebSite",
+    "@id": base + "/#website",
+    name: CATALOG_TITLE,
+    url: base + "/",
+    description: CATALOG_DESCRIPTION,
+    publisher: { "@id": person["@id"] },
+    inLanguage: "en",
   };
   const itemList = {
     "@type": "ItemList",
@@ -882,8 +927,9 @@ function jsonLd(origin) {
         url: u.catalog_card,
         codeRepository: p.github,
         downloadUrl: u.download,
-        author: { "@type": "Person", name: "Aziel Eliab" },
+        author: { "@id": person["@id"] },
         license: "https://www.apache.org/licenses/LICENSE-2.0",
+        sameAs: [u.worker_home, u.cite, u.download].concat(u.has_llms ? [u.llms] : []),
       };
       if (p.version) item.softwareVersion = p.version;
       if (u.doi_url) item.identifier = u.doi_url;
@@ -896,28 +942,40 @@ function jsonLd(origin) {
       };
     }),
   };
-  return { "@context": "https://schema.org", "@graph": [software, itemList] };
+  return {
+    "@context": "https://schema.org",
+    "@graph": [person, software, website, libraryJsonLd(), itemList],
+  };
 }
 
 function headMeta(origin, title, description, canonicalPath) {
   const base = origin.replace(/\/$/, "");
   const canonical = base + canonicalPath;
+  const image = base + "/sigil.png";
   return `<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(title)}</title>
 <meta name="description" content="${escapeHtml(description)}">
-<meta name="author" content="Aziel Eliab">
-<meta name="robots" content="index,follow">
+<meta name="author" content="${escapeHtml(AUTHOR_NAME)}">
+<meta name="citation_author" content="${escapeHtml(AUTHOR_NAME)}">
+<meta name="keywords" content="Aziel Eliab, Aziel Elroi Eliab, Aziel Digital Library, aziel-runtime, Aziel Eliab software">
+<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1">
 <link rel="canonical" href="${escapeHtml(canonical)}">
 <link rel="sitemap" type="application/xml" href="${base}/sitemap.xml">
+<link rel="sitemap" type="application/xml" href="${base}/sitemap-index.xml">
+<link rel="alternate" type="text/plain" href="${base}/llms.txt" title="llms.txt">
+<link rel="alternate" type="application/json" href="${base}/cite.json" title="cite.json">
 <meta property="og:type" content="website">
 <meta property="og:title" content="${escapeHtml(title)}">
 <meta property="og:description" content="${escapeHtml(description)}">
 <meta property="og:url" content="${escapeHtml(canonical)}">
-<meta property="og:site_name" content="Aziel Eliab">
+<meta property="og:site_name" content="${escapeHtml(AUTHOR_NAME)}">
+<meta property="og:image" content="${escapeHtml(image)}">
+<meta property="og:image:alt" content="Everblooming sigil — Aziel Eliab">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="${escapeHtml(title)}">
-<meta name="twitter:description" content="${escapeHtml(description)}">`;
+<meta name="twitter:description" content="${escapeHtml(description)}">
+<meta name="twitter:image" content="${escapeHtml(image)}">`;
 }
 
 const PAGE_CSS = `
@@ -969,6 +1027,9 @@ function productCardHtml(p, origin, stats) {
   ${banner}
   <p class="meta">
     <a href="${p.github}">GitHub</a>
+    <a href="${u.worker_home}">Worker /</a>
+    <a href="${u.cite}">/cite.json</a>
+    ${u.has_llms ? `<a href="${u.llms}">/llms.txt</a>` : ""}
     <a href="${u.download}">counted /download</a>${count}
     <a href="${u.install}">install.sh</a>
     <a href="${u.skill}">/v1/skill</a>
@@ -976,8 +1037,9 @@ function productCardHtml(p, origin, stats) {
     <a href="${u.pull_skill}">pull skill</a>
     <a href="${origin}/p/${p.slug}/health">catalog proxy health</a>${doi}${tarball}
   </p>
-  <p>Worker: <a href="${u.worker_home}">${p.worker}.vibelock.workers.dev</a>
-     · <a href="${u.openapi}">product OpenAPI</a></p>
+  <p>Worker: <a href="${u.worker_home}">${escapeHtml(u.worker_home)}</a>
+     · <a href="${u.openapi}">product OpenAPI</a>
+     ${u.has_sitemap ? `· <a href="${u.sitemap}">Worker sitemap</a>` : ""}</p>
   <p>${ops}</p>
   <pre>curl -X ${firstPost.method} ${origin}/p/${p.slug}/${firstPost.op} \\
   -H 'content-type: application/json' \\
@@ -1010,7 +1072,7 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
     <p class="stamp">Everblooming sigil · Aziel Eliab</p>
   </div>
   <h1>Aziel Eliab Runtime</h1>
-  <p class="lead"><strong>1.5.0</strong> is the agent-native cut on <strong>1.4.1</strong> production gates: agents use product tools like software (display-ready output, then the next input). Human software — this Worker UI, Flutter <code>mobile/</code>, local install, counted <code>/download</code> — stays complete. Catalog + pull + proxy + session + <strong>in-process engines</strong> for every catalog Software slug. ${PRODUCTS.length} products. Forks welcome. Apache-2.0. Author: Aziel Eliab.</p>
+  <p class="lead"><strong>1.5.0</strong> is the agent-native cut on <strong>1.4.1</strong> production gates: agents use product tools like software (display-ready output, then the next input). Human software — this Worker UI, Flutter <code>mobile/</code>, local install, counted <code>/download</code> — stays complete. Catalog + pull + proxy + session + <strong>in-process engines</strong> for every catalog Software slug. ${PRODUCTS.length} products including the <a href="${LIBRARY_ORIGIN}/">Aziel Digital Library</a>. Forks welcome. Apache-2.0. Author: <strong>Aziel Eliab</strong> (also known as Aziel Elroi Eliab).</p>
   <div class="honesty">
     <strong>What this Worker is</strong>
     <ul>
@@ -1049,8 +1111,9 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
   </div>
   <section class="cite" id="cite">
     <h2>How to cite</h2>
-    <p>Author: <strong>Aziel Eliab</strong> · Runtime: <a href="${origin}/">${origin}/</a> · License: Apache-2.0 · Machine-readable: <a href="${origin}/cite.json">/cite.json</a></p>
-    <p>Eliab, Aziel. (2026). Aziel Eliab Runtime [Software]. Apache-2.0. ${origin}/</p>
+    <p>Author: <strong>${escapeHtml(AUTHOR_NAME)}</strong> (also known as ${escapeHtml(AUTHOR_ALTERNATE_NAME)}) · Runtime: <a href="${origin}/">${origin}/</a> · License: Apache-2.0 · Machine-readable: <a href="${origin}/cite.json">/cite.json</a></p>
+    <p>${escapeHtml(citeHowToRuntime(origin))}</p>
+    <p>${escapeHtml(citeHowToLibrary())} · <a href="${LIBRARY_CITE}">Digital Library /cite.json</a> · <a href="${LIBRARY_LLMS}">/llms.txt</a></p>
     <p class="lead">Known DOIs are historical. Zenodo currently returns HTTP 410 (user blocked) for every wired record. FoldLock and WhistleLock share method-paper DOI 10.5281/zenodo.22257762 on purpose — WhistleLock still needs its own software deposit. No DOIs are invented here.</p>
     <ul>${citeProducts}</ul>
   </section>
@@ -1064,6 +1127,7 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
     <a href="${origin}/llms.txt">/llms.txt</a>
     <a href="${origin}/ai.txt">/ai.txt</a>
     <a href="${origin}/sitemap.xml">/sitemap.xml</a>
+    <a href="${origin}/sitemap-index.xml">/sitemap-index.xml</a>
     <a href="${origin}/robots.txt">/robots.txt</a>
     <a href="${origin}/mcp">MCP (POST JSON-RPC)</a>
     <a href="${origin}/v1/health">/v1/health</a>
@@ -1103,16 +1167,24 @@ function productPageHtml(p, origin, stats) {
   const u = productUrls(p, origin);
   const title = `${p.name} — ${CATALOG_TITLE}`;
   const description = `${p.name}: ${p.oneLine} Author Aziel Eliab. Apache-2.0.`;
+  const person = personJsonLd();
   const ld = JSON.stringify({
     "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    name: p.name,
-    description: p.oneLine,
-    url: u.catalog_card,
-    codeRepository: p.github,
-    author: { "@type": "Person", name: "Aziel Eliab" },
-    license: "https://www.apache.org/licenses/LICENSE-2.0",
-    identifier: u.doi_url || undefined,
+    "@graph": [
+      person,
+      {
+        "@type": "SoftwareApplication",
+        name: p.name,
+        description: p.oneLine,
+        url: u.catalog_card,
+        codeRepository: p.github,
+        downloadUrl: u.download,
+        author: { "@id": person["@id"] },
+        license: "https://www.apache.org/licenses/LICENSE-2.0",
+        identifier: u.doi_url || undefined,
+        sameAs: [u.worker_home, u.cite, u.download].concat(u.has_llms ? [u.llms] : []),
+      },
+    ],
   });
   return `<!doctype html>
 <html lang="en">
@@ -1198,7 +1270,8 @@ function staticPaths(origin) {
     "/cite.json": {
       get: {
         operationId: "catalog_cite",
-        summary: "How to cite: author Aziel Eliab, Apache-2.0, GitHub + DOI.",
+        summary:
+          "How to cite Aziel Eliab software and the Digital Library. Aka Aziel Elroi Eliab. No invented DOIs.",
         tags: ["catalog"],
         responses: { "200": { description: "Citation JSON" } },
       },
@@ -1206,7 +1279,7 @@ function staticPaths(origin) {
     "/llms.txt": {
       get: {
         operationId: "catalog_llms",
-        summary: "Plain-text catalog for LLM crawlers.",
+        summary: "Plain-text catalog + citation rules for Aziel Eliab and the Digital Library.",
         tags: ["catalog"],
         responses: { "200": { description: "text/plain catalog" } },
       },
@@ -1222,7 +1295,7 @@ function staticPaths(origin) {
     "/robots.txt": {
       get: {
         operationId: "catalog_robots",
-        summary: "Allow / and sitemap URL.",
+        summary: "Allow / for Google and major AI bots. Sitemap index + hub/product sitemaps. No GPTBot Disallow.",
         tags: ["catalog"],
         responses: { "200": { description: "robots.txt" } },
       },
@@ -1233,6 +1306,15 @@ function staticPaths(origin) {
         summary: "Indexable sitemap of catalog, OpenAPI, product cards, health, GitHub.",
         tags: ["catalog"],
         responses: { "200": { description: "sitemap.xml" } },
+      },
+    },
+    "/sitemap-index.xml": {
+      get: {
+        operationId: "catalog_sitemap_index",
+        summary:
+          "Sitemap index: this catalog sitemap plus live Aziel Digital Library, godlock.uk, and product Worker sitemaps.",
+        tags: ["catalog"],
+        responses: { "200": { description: "sitemapindex.xml" } },
       },
     },
   };
@@ -1511,6 +1593,7 @@ function healthBody(origin) {
     catalog: "/v1/catalog.json",
     cite: "/cite.json",
     sitemap: "/sitemap.xml",
+    sitemap_index: "/sitemap-index.xml",
     robots: "/robots.txt",
     llms: "/llms.txt",
     ai: "/ai.txt",
@@ -1695,6 +1778,10 @@ export default {
       return xml(sitemapXml(origin), extra("/sitemap.xml"));
     }
 
+    if (url.pathname === "/sitemap-index.xml" && request.method === "GET") {
+      return xml(sitemapIndexXml(origin, PRODUCTS, LASTMOD), extra("/sitemap-index.xml"));
+    }
+
     if ((url.pathname === "/llms.txt" || url.pathname === "/ai.txt") && request.method === "GET") {
       return text(llmsTxt(origin), extra(url.pathname));
     }
@@ -1768,8 +1855,7 @@ export default {
           ok: true,
           role: RUNTIME_ROLE,
           layer: RUNTIME_LAYER,
-          author: "Aziel Eliab",
-          identity: "Aziel Eliab",
+          ...catalogHubFields(origin),
           title: CATALOG_TITLE,
           version: RUNTIME_VERSION,
           catalog: origin + "/",
