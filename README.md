@@ -1,14 +1,16 @@
 # aziel-runtime
 
-**Aziel Eliab Runtime 1.3.0** — catalog + pull + proxy, one session object, and **in-process engines** for listed slugs:
+**Aziel Eliab Runtime 1.4.0** — catalog + pull + proxy, one session object, and **in-process engines** for every catalog Software slug:
 
 `open → policy → exec(slug, op, payload) → receipt → close`
+
+**1.3.0** vendored portable engines (ark, azai Lamb check, azclce, decisiongate, foldlock, zsolver) and ran them in this isolate.
 
 **1.2.0** was a session/receipt runtime: exec still `upstreamFetch`ed product Workers. Those receipts were not “this process ran FoldLock.”
 
 **1.1.0** was catalog + pull + proxy that started calling itself a runtime. Those front doors stay. They are not exec.
 
-For **true-engine slugs** (`ark`, `azai` Lamb check only, `azclce`, `decisiongate`, `foldlock`, `zsolver`) `session exec` loads a vendored module, computes `engine_digest` = SHA-256 of that artifact’s bytes, runs the op **inside this Worker isolate** (the jail) or a local CLI jail, wipes scratch buffers, and the receipt includes `engine_digest`, `engine_slug`, `engine_op`, `ran_in`. Other slugs are explicit `mode: "proxy_fallback"` — no pretending.
+For **every catalog slug** `session exec` loads a vendored module, computes `engine_digest` = SHA-256 of that artifact’s bytes, runs the primary compute op **inside this Worker isolate** (the jail) or a local CLI jail, wipes scratch buffers, and the receipt includes `engine_digest`, `engine_slug`, `engine_op`, `ran_in`. `GET /v1/health` `engine_slugs` equals `true_engine_slugs`. Ops that literally cannot run without product-Worker bindings (KV / D1 / AI / live media) stay honest per-op `proxy_fallback` — the slug itself remains a true engine.
 
 Cloudflare’s Worker / Durable Object isolate **is** the jail. No extra guest isolate is claimed. `engine_digest` is still required.
 
@@ -19,7 +21,7 @@ ChatGPT GPT Actions, Grok custom tools, and Venice HTTP tools import **this** Op
 **Author:** Aziel Eliab  
 **Identity:** Aziel Eliab only  
 **License:** [Apache-2.0](LICENSE)  
-**Version:** 1.3.0  
+**Version:** 1.4.0  
 **Role:** `engine-runtime` (layer: `catalog+pull+proxy+session+in-process-engines`)  
 **Worker:** `aziel-runtime` → https://aziel-runtime.vibelock.workers.dev/  
 **Library front door:** https://www.azielcorpuslibrary.net/runtime  
@@ -145,7 +147,7 @@ Pull via `GET /v1/bundle` / `GET /v1/pull/{slug}`. Session exec is
 
 ## Honesty banners
 
-- **Not every product is in-process.** True-engine slugs are listed on `/v1/health` and `/v1/runtime.json`. Other slugs are `proxy_fallback` on session exec.
+- **Every catalog Software slug is in-process.** `engine_slugs` equals `true_engine_slugs` on `/v1/health` and `/v1/runtime.json`. Binding-only ops stay per-op `proxy_fallback`.
 - **GodLock** and **MirageGrid** are not VPNs and not anonymity networks.
 - **ForgeReceipts** is not legal advice and does not contact courts.
 - **ZionPattern Solver** never claims more than 75% confidence. It does not solve cases.
@@ -167,33 +169,33 @@ Pull via `GET /v1/bundle` / `GET /v1/pull/{slug}`. Session exec is
 
 | slug | Worker hostname | example ops | session exec |
 |------|-----------------|-------------|--------------|
-| vibelock | vibelock-download-tracker | analyze | proxy_fallback |
-| veillock | veillock-download-tracker | apps | proxy_fallback |
-| codelock | codelock-download-tracker | render | proxy_fallback |
-| godlock | godlock-download-tracker | score, submit | proxy_fallback |
-| shadowlock | shadowlock-download-tracker | observe | proxy_fallback |
-| temporallock | temporallock-download-tracker | genesis, append, verify | proxy_fallback |
-| forgereceipts | forgereceipts-download-tracker | receipt | proxy_fallback |
+| vibelock | vibelock-download-tracker | analyze | **in-process** (features/PCM; no live mic) |
+| veillock | veillock-download-tracker | apps | **in-process** (no camera inject) |
+| codelock | codelock-download-tracker | render | **in-process** |
+| godlock | godlock-download-tracker | score, submit | **in-process** (not a VPN) |
+| shadowlock | shadowlock-download-tracker | observe | **in-process** (no OS hook) |
+| temporallock | temporallock-download-tracker | genesis, append, verify | **in-process** |
+| forgereceipts | forgereceipts-download-tracker | receipt | **in-process** (not legal advice) |
 | decisiongate | decisiongate-download-tracker | check | **in-process** |
 | zsolver | zsolver-download-tracker | patterns, score, session | **in-process** |
-| azos | azos-download-tracker | status | proxy_fallback |
-| glossafilter | glossafilter-download-tracker | render | proxy_fallback |
-| miragegrid | miragegrid-download-tracker | assign | proxy_fallback |
-| staticclock | staticclock-download-tracker | advise | proxy_fallback |
-| chronolock | chronolock-download-tracker | advisory, anchors | proxy_fallback |
-| postking | postking-download-tracker | new, move, status | proxy_fallback |
+| azos | azos-download-tracker | status | **in-process** (session/exec/lattice per-op proxy) |
+| glossafilter | glossafilter-download-tracker | render | **in-process** |
+| miragegrid | miragegrid-download-tracker | assign | **in-process** (control-plane; not a hosted VPN hop) |
+| staticclock | staticclock-download-tracker | advise | **in-process** |
+| chronolock | chronolock-download-tracker | advisory, anchors | **in-process** |
+| postking | postking-download-tracker | new, move, status | **in-process** |
 | azclce | azclce-download-tracker | score, classify, gate | **in-process** |
 | ark | ark-download-tracker | sweep, levels | **in-process** |
 | azai | azai-download-tracker | health, lamb-check | **in-process (Lamb only; not the blend)** |
-| spectrallock | spectrallock-download-tracker | health, modes, overlay | proxy_fallback |
-| azbot | azbot-download-tracker | health, skill | proxy_fallback |
-| employeelock | employeelock-download-tracker | health, append-preview, verify-canonical, skill | proxy_fallback |
+| spectrallock | spectrallock-download-tracker | health, modes, overlay | **in-process** (256px PNG preview) |
+| azbot | azbot-download-tracker | health, skill, route | **in-process** (skill router, not a model) |
+| employeelock | employeelock-download-tracker | health, append-preview, verify-canonical, skill | **in-process** (no xlsx store) |
 | foldlock | foldlock-download-tracker | health, fold-preview, unfold-preview, skill | **in-process** |
-| whistlelock | whistlelock-download-tracker | health, hash-preview, canon-preview, skill | proxy_fallback |
-| trajectorylock | trajectorylock-download-tracker | health, example, analyze, skill | proxy_fallback |
-| mialock | mialock-download-tracker | map, search-options, queries, doe-match, coverage | proxy_fallback |
-| azieltether | azieltether-download-tracker | health, skill | proxy_fallback |
-| aziel-corpus | aziel-corpus-download-tracker (www.azielcorpuslibrary.net) | health, search, example, skill | proxy_fallback |
+| whistlelock | whistlelock-download-tracker | health, hash-preview, canon-preview, skill | **in-process** (no file store) |
+| trajectorylock | trajectorylock-download-tracker | health, example, analyze, skill | **in-process** (geometry; no media store) |
+| mialock | mialock-download-tracker | map, search-options, queries, doe-match, coverage | **in-process** (leads ≠ ID) |
+| azieltether | azieltether-download-tracker | health, skill, verify | **in-process** (not a VPN) |
+| aziel-corpus | aziel-corpus-download-tracker (www.azielcorpuslibrary.net) | health, search, example, skill | **in-process** (sample MASTER; live D1/Whisper/OCR per-op proxy) |
 
 Catalog aliases (also accepted on `/v1/pull/{slug}`): `az-clce` → azclce,
 `zion-pattern-solver` → zsolver, `postking-chess` → postking,
@@ -218,15 +220,16 @@ Account `ac575a9b822bea2bed97d0ab73aed238`. workers.dev
 `aziel-runtime.vibelock.workers.dev`. No download KV.
 
 **1.2.0+ requires Durable Object migration tag `v1`** (`RuntimeSession`, SQLite).
-The first deploy after the session cut creates the `SESSION` binding. **1.3.0
+The first deploy after the session cut creates the `SESSION` binding. **1.4.0
 does not need a new DO migration** — engines run in the same isolate.
 
 If this checkout has no wrangler credentials, deploy from the author's machine:
 
 ```bash
 npx wrangler deploy
-# confirm GET /v1/health version=1.3.0 role=engine-runtime
-# confirm POST /v1/session/open → policy → exec foldlock|azclce → receipt has engine_digest + ran_in
+# confirm GET /v1/health version=1.4.0 role=engine-runtime
+# confirm engine_slugs == true_engine_slugs == all 27 catalog slugs
+# confirm POST /v1/session/open → policy → exec each primary op → receipt has engine_digest + ran_in
 ```
 
 ## Library `/runtime`
