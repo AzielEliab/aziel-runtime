@@ -344,11 +344,17 @@ export function mcpContentText(name, envelope, rawText) {
 
 function titleFromToolName(name) {
   const n = String(name || "Result");
-  if (n === "runtime_run") return "Use Aziel Eliab software";
+  if (n === "runtime_run") return "Advanced: raw runtime_run";
   if (n === "runtime_skill") return "Aziel Eliab Runtime";
   if (n === "runtime_bundle") return "Product list";
   if (n === "runtime_pull") return "Opened product";
   if (n === "runtime_manifest") return "Runtime manifest";
+  if (n === "fraggate_list") return "FragGate registry";
+  if (n === "fraggate_describe") return "FragGate describe";
+  if (n === "fraggate_verify") return "FragGate verify";
+  if (n === "fraggate_call") return "FragGate call";
+  if (n === "decisiongate_check") return "Run DecisionGATE on a proposal";
+  if (n === "library_lookup") return "Search the Aziel Digital Library";
   return n.replace(/_/g, " ");
 }
 

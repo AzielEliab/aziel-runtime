@@ -1,9 +1,8 @@
 /**
- * Agent-default MCP surface.
+ * Agent-default MCP surface — FragGate door over the catalog.
  *
- * Product verbs first. Session / raw health / machine manifest are advanced.
- * Product tools run the in-process engine when the op is implemented here.
- * runtime_run is the auto-session façade (true exec + receipt).
+ * tools/list is a thin front door (discover, route, refuse). The flat
+ * {slug}_{op} pile is gone. runtime_run is advanced/internal.
  * HTTP /p/{slug}/{op} stays a proxy and is not exec.
  *
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
@@ -14,26 +13,49 @@ import {
   isAdvancedToolName,
   markAdvanced,
   mcpContentText,
-  productInputHint,
-  productToolDescription,
-  productVerbTitle,
   wrapToolOutput,
 } from "./display.js";
 import { resolveSlug } from "./runtime-api.js";
-import { executeLocal } from "./engines/runner.js";
 import { callSessionTool } from "./session-http.js";
+import { FG_HALLUC_TOOL, FRAGGATE_KERNEL, PUBLIC_DOOR_TOOLS, PUBLIC_MCP_TOOL_MAX } from "./fraggate/codes.js";
+import {
+  admitCall,
+  describeRegistry,
+  fraggateCall,
+  libraryLookup,
+  listRegistry,
+  namedDecisiongateCheck,
+  verifyRegistry,
+} from "./fraggate/door.js";
+import { buildRegistry } from "./fraggate/registry.js";
 
-export { ADVANCED_PREFIX, isAdvancedToolName };
+export { ADVANCED_PREFIX, isAdvancedToolName, PUBLIC_MCP_TOOL_MAX };
+
+const registryCache = new WeakMap();
+
+export function registryFor(products) {
+  const list = products || [];
+  const hit = registryCache.get(list);
+  if (hit) return hit;
+  const registry = buildRegistry(list);
+  registryCache.set(list, registry);
+  return registry;
+}
 
 export function mcpInitializeInstructions() {
   return (
-    "Use Aziel Eliab software in this chat. Prefer product tools (godlock_submit, foldlock_fold-preview, decisiongate_check, azclce_score) or runtime_run {slug, op, payload}. " +
+    "Use Aziel Eliab software in this chat. One door — discover, route, refuse. " +
+    "Start with runtime_skill or fraggate_list. Describe a name with fraggate_describe. " +
+    "Execute only through fraggate_call (CallEnvelope → DecisionGATE → handler or refuse). " +
+    "decisiongate_check is the named live gate. library_lookup is read-only corpus search. " +
     "Show the user display.title and display.summary, then take the next input. " +
-    "runtime_session_*, raw *_health, and runtime_manifest are advanced/internal — do not walk the user through session/OpenAPI/HTTP plumbing. " +
-    "Product MCP tools run the in-process engines when that op is implemented here; binding-only ops stay per-op proxy_fallback. " +
-    "HTTP /p/{slug}/{op} is a proxy and is not exec. runtime_run auto-opens a session and runs true in-process exec (receipt includes engine_digest + ran_in). " +
-    "1.5.0 is the agent-native cut on 1.4.1 production gates (ready, HEAD, no-store, receipt cap 64, TTL 6h, rate limits, optional token). " +
-    "Every catalog slug is a true engine. Cloudflare isolate is the jail. Hosted AZAI is protocol mirror + Lamb check, not the blend. " +
+    "runtime_run, runtime_session_*, raw *_health, and runtime_manifest are advanced/internal. " +
+    "Do not call flat {slug}_{op} names — they are not in tools/list. Unknown names refuse FG-HALLUC-TOOL. " +
+    "HTTP /p/{slug}/{op} is a proxy and is not exec. " +
+    "1.6.0 is the FragGate door cut on in-process engines. 1.5.0 was agent-native flat product tools. " +
+    "Kernel: https://github.com/AzielEliab/fraggate (FG-0.1). " +
+    "Every catalog slug is a true engine. Cloudflare isolate is the jail. engine_digest is required. " +
+    "Hosted AZAI is protocol mirror + Lamb check, not the blend. Mesh is not claimed on this public surface. " +
     "Always send User-Agent Mozilla/5.0. Public, no OAuth. Author: Aziel Eliab only."
   );
 }
@@ -44,32 +66,104 @@ export function runtimeHelperTools() {
       name: "runtime_skill",
       title: "How to use this software",
       description:
-        "Read how an agent uses Aziel Eliab software in this chat: open a product, show the output, take the next input. Dual surface: agent chat has no technical UI chrome; Worker / Flutter / local install / counted download stay complete human software.",
+        "Read how an agent uses Aziel Eliab software: one door — discover, route, refuse. Dual surface: agent chat has no technical UI chrome; Worker / Flutter / local install / counted download stay complete human software.",
       annotations: { title: "How to use this software", readOnlyHint: true, openWorldHint: false },
       inputSchema: { type: "object", additionalProperties: true },
     },
     {
-      name: "runtime_run",
-      title: "Use Aziel Eliab software",
+      name: "fraggate_list",
+      title: "List the FragGate registry",
       description:
-        "Use Aziel Eliab software. Pass slug, op, and payload. Opens a session automatically (or reuse session_id), runs the true in-process engine — not the HTTP proxy — and returns a display-ready result. Prefer named product tools when you already know the product (godlock_submit, foldlock_fold-preview).",
-      annotations: { title: "Use Aziel Eliab software", readOnlyHint: false, openWorldHint: false },
+        "List hashed registry entries (live / stub / local_only). Discover names. Do not invent tools. Kernel: https://github.com/AzielEliab/fraggate",
+      annotations: { title: "List the FragGate registry", readOnlyHint: true, openWorldHint: false },
+      inputSchema: { type: "object", additionalProperties: true },
+    },
+    {
+      name: "fraggate_describe",
+      title: "Describe one registry name",
+      description:
+        "Describe one catalog name: live vs stub vs local_only, public ops, digest. Argument: name or slug.",
+      annotations: { title: "Describe one registry name", readOnlyHint: true, openWorldHint: false },
+      inputSchema: {
+        type: "object",
+        additionalProperties: true,
+        properties: { name: { type: "string" }, slug: { type: "string" } },
+      },
+    },
+    {
+      name: "fraggate_verify",
+      title: "Verify a registry name or digest",
+      description:
+        "registry.verify — confirm a name or digest against the hashed FragGate registry.",
+      annotations: { title: "Verify a registry name or digest", readOnlyHint: true, openWorldHint: false },
       inputSchema: {
         type: "object",
         additionalProperties: true,
         properties: {
-          slug: { type: "string", description: "Product slug, e.g. foldlock, godlock, azclce" },
-          op: { type: "string", description: "Product verb, e.g. fold-preview, submit, score" },
-          payload: { type: "object", description: "What the software needs as input" },
-          session_id: { type: "string", description: "Optional. Reuse an open session." },
+          name: { type: "string" },
+          slug: { type: "string" },
+          digest: { type: "string" },
         },
-        required: ["slug", "op"],
+      },
+    },
+    {
+      name: "fraggate_call",
+      title: "Call through FragGate",
+      description:
+        "CallEnvelope in → DecisionGATE → handler or refuse → ResultEnvelope + ledger tip. Pass name/slug, op, payload. Optional claim (DecisionGATE proposal). Default exec path. Unknown names refuse FG-HALLUC-TOOL.",
+      annotations: { title: "Call through FragGate", readOnlyHint: false, openWorldHint: false },
+      inputSchema: {
+        type: "object",
+        additionalProperties: true,
+        properties: {
+          name: { type: "string", description: "Registry name or slug" },
+          slug: { type: "string" },
+          op: { type: "string", description: "Public allowlisted op" },
+          payload: { type: "object" },
+          claim: { type: "object", description: "Optional DecisionGATE proposal (statement, evidence, impacts, values, accountable)" },
+        },
+        required: ["op"],
+      },
+    },
+    {
+      name: "decisiongate_check",
+      title: "Run DecisionGATE on a proposal",
+      description:
+        "Named live module. Five sequential gates on a proposal. Freedom without clarity is chaos. Also runs automatically inside fraggate_call before exec.",
+      annotations: { title: "Run DecisionGATE on a proposal", readOnlyHint: false, openWorldHint: false },
+      inputSchema: {
+        type: "object",
+        additionalProperties: true,
+        properties: {
+          statement: { type: "string" },
+          evidence: { type: "array", items: { type: "string" } },
+          impact_pos: { type: "array", items: { type: "string" } },
+          impact_neg: { type: "array", items: { type: "string" } },
+          values: { type: "array", items: { type: "string" } },
+          accountable: { type: "string" },
+        },
+      },
+    },
+    {
+      name: "library_lookup",
+      title: "Search the Aziel Digital Library",
+      description:
+        "Read-only library lookup (aziel-corpus search / example / skill). Not a private-file search engine.",
+      annotations: { title: "Search the Aziel Digital Library", readOnlyHint: true, openWorldHint: false },
+      inputSchema: {
+        type: "object",
+        additionalProperties: true,
+        properties: {
+          q: { type: "string" },
+          op: { type: "string", description: "search (default), example, or skill" },
+        },
       },
     },
     {
       name: "runtime_bundle",
       title: "List every product",
-      description: "List every Aziel Eliab product and how to open it. Then pick a product tool or runtime_run.",
+      description:
+        "List every Aziel Eliab product (human/catalog helper). Prefer fraggate_list for the agent door.",
       annotations: { title: "List every product", readOnlyHint: true, openWorldHint: false },
       inputSchema: { type: "object", additionalProperties: true },
     },
@@ -86,10 +180,29 @@ export function runtimeHelperTools() {
       },
     },
     {
+      name: "runtime_run",
+      title: "Advanced: raw runtime_run",
+      description: markAdvanced(
+        "Advanced exec façade. Prefer fraggate_call. Still DecisionGATE-admitted; not a backdoor past the door.",
+      ),
+      annotations: { title: "Advanced: raw runtime_run", readOnlyHint: false, openWorldHint: false },
+      inputSchema: {
+        type: "object",
+        additionalProperties: true,
+        properties: {
+          slug: { type: "string" },
+          op: { type: "string" },
+          payload: { type: "object" },
+          session_id: { type: "string" },
+        },
+        required: ["slug", "op"],
+      },
+    },
+    {
       name: "runtime_manifest",
       title: "Advanced: runtime manifest",
       description: markAdvanced(
-        "Machine manifest (version, role, engine slugs). Prefer runtime_skill or product tools. Not the default agent path.",
+        "Machine manifest (version, role, door=fraggate, engine slugs). Prefer runtime_skill or fraggate_list. Not the default agent path.",
       ),
       annotations: { title: "Advanced: runtime manifest", readOnlyHint: true, openWorldHint: false },
       inputSchema: { type: "object", additionalProperties: true },
@@ -97,35 +210,8 @@ export function runtimeHelperTools() {
   ];
 }
 
-export function productMcpTool(product, opSpec) {
-  const title = productVerbTitle(product, opSpec.op);
-  const advanced = isAdvancedToolName(`${product.slug}_${opSpec.op}`, opSpec.op);
-  return {
-    name: `${product.slug}_${opSpec.op}`,
-    title,
-    description: productToolDescription(product, opSpec),
-    annotations: {
-      title: advanced ? `Advanced: ${title}` : title,
-      readOnlyHint: opSpec.method === "GET",
-      openWorldHint: false,
-    },
-    inputSchema: {
-      type: "object",
-      additionalProperties: true,
-      description: productInputHint(product, opSpec),
-    },
-  };
-}
-
-export function buildMcpToolList({ products, sessionTools }) {
+export function buildMcpToolList({ sessionTools }) {
   const tools = [...runtimeHelperTools()];
-  for (const product of products || []) {
-    const ops = product.ops || [];
-    const primary = ops.filter((o) => o.op !== "health");
-    const health = ops.filter((o) => o.op === "health");
-    for (const spec of primary) tools.push(productMcpTool(product, spec));
-    for (const spec of health) tools.push(productMcpTool(product, spec));
-  }
   for (const tool of sessionTools || []) {
     tools.push(annotateSessionTool(tool));
   }
@@ -164,34 +250,40 @@ export function mcpCallPayload(name, out, product, op) {
   };
 }
 
-export async function runProductMcpOp({ env, product, op, args, upstreamFetch }) {
-  const payload = args && typeof args === "object" ? args : {};
-  const local = await executeLocal({ slug: product.slug, op, payload, ranIn: "aziel-runtime" });
-  if (local && !local.unsupported) {
-    return {
-      status: local.status,
-      text: local.responseText,
-      target: "in-process",
-      mode: "local",
-    };
-  }
-  const spec = product.ops.find((o) => o.op === op);
-  const method = spec && spec.method === "GET" ? "GET" : "POST";
-  const init = {
-    method,
-    headers: { "content-type": "application/json", accept: "application/json" },
+export function wrapFraggateEnvelope(name, body, product, op) {
+  const status = body && body.ok === false ? 400 : 200;
+  const envelope = wrapToolOutput({
+    name,
+    text: JSON.stringify(body),
+    status,
+    product,
+    op,
+    extra: body && body.ledger_tip ? { receipt: { ledger_tip: body.ledger_tip } } : {},
+  });
+  if (body && body.ledger_tip && !envelope.ledger_tip) envelope.ledger_tip = body.ledger_tip;
+  if (body && body.code) envelope.code = body.code;
+  if (body && body.door) envelope.door = body.door;
+  return {
+    status,
+    text: JSON.stringify(envelope, null, 2),
+    envelope,
+    product,
+    op,
+    target: "fraggate",
   };
-  if (method !== "GET") init.body = JSON.stringify(payload);
-  const { res, target } = await upstreamFetch(env, product, `/v1/${op}`, init);
-  const text = await res.text();
-  return { status: res.status, text, target, mode: "proxy_fallback" };
 }
 
 export async function callRuntimeRun(env, args, origin, deps) {
-  const rawSlug = (args && (args.slug || args.product)) || "";
-  const key = resolveSlug(rawSlug, deps.BY_SLUG);
+  const registry = registryFor(deps.PRODUCTS);
+  const admission = await admitCall(args, registry, deps.BY_SLUG);
+  if (!admission.admitted) {
+    return wrapFraggateEnvelope("runtime_run", admission.envelope, null, (args && args.op) || null);
+  }
+
+  const rawSlug = (args && (args.slug || args.product || args.name)) || "";
+  const key = resolveSlug(rawSlug, deps.BY_SLUG) || admission.target.entry.slug;
   if (!key) throw new Error(`unknown product: ${rawSlug}`);
-  const op = String((args && args.op) || "").trim();
+  const op = String((args && args.op) || admission.target.op || "").trim();
   if (!op) throw new Error("op required");
   const payload = args && args.payload !== undefined ? args.payload : {};
   let sessionId = args && (args.session_id || args.id);
@@ -243,6 +335,35 @@ export async function callRuntimeRun(env, args, origin, deps) {
   };
 }
 
+export async function callFraggateTool(name, args, products, bySlug) {
+  const registry = registryFor(products);
+  if (name === "fraggate_list") {
+    return wrapFraggateEnvelope(name, await listRegistry(registry), null, "list");
+  }
+  if (name === "fraggate_describe") {
+    return wrapFraggateEnvelope(name, await describeRegistry(args, registry, bySlug), null, "describe");
+  }
+  if (name === "fraggate_verify") {
+    return wrapFraggateEnvelope(name, await verifyRegistry(args, registry, bySlug), null, "verify");
+  }
+  if (name === "fraggate_call") {
+    const body = await fraggateCall(args, registry, bySlug);
+    const product = body.slug && bySlug ? bySlug[body.slug] : null;
+    return wrapFraggateEnvelope(name, body, product, body.op);
+  }
+  if (name === "library_lookup") {
+    const body = await libraryLookup(args);
+    const product = bySlug && bySlug["aziel-corpus"];
+    return wrapFraggateEnvelope(name, body, product, body.op || "search");
+  }
+  if (name === "decisiongate_check") {
+    const body = await namedDecisiongateCheck(args);
+    const product = bySlug && bySlug.decisiongate;
+    return wrapFraggateEnvelope(name, body, product, "check");
+  }
+  return null;
+}
+
 function sessionToolTitle(name) {
   const map = {
     runtime_session_open: "Advanced: open a raw session",
@@ -258,4 +379,16 @@ function sessionToolTitle(name) {
 function stripAdvanced(text) {
   const raw = String(text || "");
   return raw.startsWith(ADVANCED_PREFIX) ? raw.slice(ADVANCED_PREFIX.length).trim() : raw;
+}
+
+export function hallucRefuse(name) {
+  return {
+    ok: false,
+    code: FG_HALLUC_TOOL,
+    door: "fraggate",
+    kernel: FRAGGATE_KERNEL,
+    name,
+    message: `FG-HALLUC-TOOL: ${JSON.stringify(name || "")} is not a public MCP tool. Use fraggate_list / fraggate_call.`,
+    exist: { mcp: PUBLIC_DOOR_TOOLS.slice() },
+  };
 }
