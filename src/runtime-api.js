@@ -8,6 +8,7 @@
  * 1.5.0 was the agent-native cut: display envelopes, flat product-verb MCP, runtime_run façade.
  * 1.6.0 is the FragGate door: hashed registry, thin tools/list, DecisionGATE before exec.
  * 1.6.1 lists every major OpenAPI / MCP / HTTP client (not only ChatGPT / Grok / Venice).
+ * 1.6.2 widens the public FragGate LIVE_OPS door to sensible advisory engines.
  * Public identity: Aziel Eliab only. Forks welcome. Do not invent DOIs.
  */
 import { CATALOG_ALIASES } from "./catalog-meta.js";
@@ -22,12 +23,13 @@ import {
 } from "./production.js";
 import { citeCompatibleFields, skillCompatibleSection } from "./ai-clients.js";
 
-export const RUNTIME_VERSION = "1.6.1";
+export const RUNTIME_VERSION = "1.6.2";
 export const RUNTIME_ROLE = "engine-runtime";
 export const RUNTIME_LAYER = "catalog+pull+proxy+session+in-process-engines+fraggate";
 
 export const VERSION_HISTORY = [
-  { version: "1.6.1", status: "current", note: "Full compatible AI client list in skill, Worker UI, OpenAPI, llms.txt, and cite.json (ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants). 1.6.0 remains the FragGate door cut." },
+  { version: "1.6.2", status: "current", note: "Widen FragGate public LIVE_OPS to every catalog Software product that makes sense on a public agent door (advisory / score / classify / gate / search / preview / render / verify / hash / receipt / game / overlay / route / status). VeilLock stays local_only. Stub verbs still refuse. MCP tools/list stays the thin FragGate surface. 1.6.1 remains the full AI client list." },
+  { version: "1.6.1", status: "superseded", note: "Full compatible AI client list in skill, Worker UI, OpenAPI, llms.txt, and cite.json (ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants). 1.6.0 remains the FragGate door cut." },
   { version: "1.6.0", status: "superseded", note: "FragGate door cut: hashed registry, thin MCP tools/list (discover / route / refuse), DecisionGATE before exec, ask/refuse ledger. 1.5.0 was agent-native flat {slug}_{op} tools." },
   { version: "1.5.0", status: "superseded", note: "agent-native cut: display-ready MCP envelopes, product-verb tool descriptions, session/health/manifest marked advanced/internal, runtime_run auto-session façade (true in-process exec)" },
   { version: "1.4.1", status: "superseded", note: "production gates: GET /v1/ready, HEAD + version/role headers, no-store authority JSON, receipt cap 64, session TTL 6h, per-IP rate limits, optional RUNTIME_TOKEN on session mutate" },
@@ -107,8 +109,9 @@ description: >-
   One door — discover, route, refuse. FragGate over the catalog: hashed
   registry, DecisionGATE before exec, ask/refuse ledger. Dual surface —
   agent/MCP has no technical UI chrome; Worker UI, Flutter mobile/, local
-  install, and counted /download stay complete human software. 1.6.1 lists
-  every major OpenAPI/MCP/HTTP client. 1.6.0 FragGate door cut. Kernel:
+  install, and counted /download stay complete human software. 1.6.2 widens
+  the public door to sensible advisory engines; stubs still refuse. 1.6.1
+  lists every major OpenAPI/MCP/HTTP client. 1.6.0 FragGate door cut. Kernel:
   https://github.com/AzielEliab/fraggate
 ---
 
@@ -126,7 +129,7 @@ FragGate kernel: https://github.com/AzielEliab/fraggate (FG-0.1)
 ## How an agent uses this like software
 
 1. **Discover.** \`runtime_skill\` or \`fraggate_list\` (hashed registry: live / stub / local_only). \`fraggate_describe\` one name. \`fraggate_verify\` a name or digest.
-2. **Route.** \`fraggate_call\` with a CallEnvelope \`{ name|slug, op, payload, claim? }\`. DecisionGATE runs before any exec side effect. Live allowlist: DecisionGATE check, GodLock score/submit, FoldLock fold-preview, AZ-CLCE score, Aziel Digital Library read ops.
+2. **Route.** \`fraggate_call\` with a CallEnvelope \`{ name|slug, op, payload, claim? }\`. DecisionGATE runs before any exec side effect. Live allowlist: every sensible advisory / score / classify / gate / search / preview / render / verify / hash / receipt / game / overlay / route / status engine already hosted in-process. VeilLock stays local_only. Stub verbs still refuse.
 3. **Refuse.** Unknown names return \`FG-HALLUC-TOOL\`. Stubs and \`local_only\` do not execute on the public mesh. Gate BLOCK/REVISE is ledgered; no handler.
 4. **Show the output.** Results are \`{ display, result, ledger_tip? }\`. Show \`display\` to the user.
 5. **Take the next input.**
@@ -141,6 +144,8 @@ HTTP \`POST /p/{slug}/{op}\` is still a **proxy**. Proxy without a session recei
 
 Every catalog slug is a true engine. Cloudflare isolate is the jail. Hosted AZAI is protocol mirror + Lamb check, **not** the blend. Identity is **Aziel Eliab** only.
 
+**1.6.2 = public door covers sensible advisory engines**; stub verbs still refuse. VeilLock stays local_only. MCP tools/list stays the thin FragGate surface.
+**1.6.1 = full compatible AI client list** (not only ChatGPT / Grok / Venice).
 **1.6.0 = FragGate door** over the catalog (hashed registry, thin MCP, DecisionGATE before exec, ask/refuse ledger). Kernel: https://github.com/AzielEliab/fraggate
 **1.5.0 = agent-native cut** on 1.4.1 production gates (display envelopes, flat product-verb MCP, \`runtime_run\`).
 **1.4.1 = 1.4.0 engine-runtime + production gates** (\`GET /v1/ready\`, HEAD, no-store authority JSON, receipt cap 64, session TTL 6h, per-IP rate limits, optional \`RUNTIME_TOKEN\` on session mutate).
@@ -289,7 +294,7 @@ curl -s -A 'Mozilla/5.0' -X POST ${base}/p/azclce/score \\
 
 Every catalog Software slug is a true engine (\`true_engine_runtime: true\`). \`engine_slugs\` equals \`true_engine_slugs\`: ${local}. Some ops remain per-op \`proxy_fallback\` when they need product-Worker bindings (AZ-OS session/exec/lattice; Aziel Digital Library live D1 / Whisper / OCR). Cloudflare isolate is the jail; \`engine_digest\` is still required for local exec.
 
-**1.4.1 production gates (unchanged in 1.6.1):** \`GET /v1/ready\` is 200 only if the SESSION Durable Object binding is up; **503** if \`REQUIRE_TOKEN=1\` and the \`RUNTIME_TOKEN\` secret is missing (fail closed). Authority JSON is \`Cache-Control: no-store\`. When \`REQUIRE_TOKEN=1\`, session mutate (open/policy/exec/close) and MCP session tools / \`runtime_run\` / \`fraggate_call\` require \`Authorization: Bearer …\` or \`X-Aziel-Runtime-Token\` (one operator token). Catalog / health / runtime / skill / pull / FragGate list / OpenAPI / MCP \`tools/list\` stay public. Proxy \`/p/{slug}/{op}\` stays public and is **not** exec. Receipt cap 64. Session TTL 6h. Per-IP rate limits apply.
+**1.4.1 production gates (unchanged in 1.6.2):** \`GET /v1/ready\` is 200 only if the SESSION Durable Object binding is up; **503** if \`REQUIRE_TOKEN=1\` and the \`RUNTIME_TOKEN\` secret is missing (fail closed). Authority JSON is \`Cache-Control: no-store\`. When \`REQUIRE_TOKEN=1\`, session mutate (open/policy/exec/close) and MCP session tools / \`runtime_run\` / \`fraggate_call\` require \`Authorization: Bearer …\` or \`X-Aziel-Runtime-Token\` (one operator token). Catalog / health / runtime / skill / pull / FragGate list / OpenAPI / MCP \`tools/list\` stay public. Proxy \`/p/{slug}/{op}\` stays public and is **not** exec. Receipt cap 64. Session TTL 6h. Per-IP rate limits apply.
 
 GodLock and MirageGrid are not VPNs. ForgeReceipts is not legal advice. ZionPattern Solver caps confidence at 75% and does not solve cases. VeilLock does not inject into FaceTime. AZ-CLCE detects inconsistency, not intent. ChronoLock is advisory only. The ARK is not a kernel. AZAI hosted /v1 is a protocol mirror + Lamb check, not a paid-key proxy and **not** the local blend. Jeeves is not sovereign. SpectralLock hosted overlay is a 256px preview. EmployeeLock is not a court. FoldLock is not zip. WhistleLock is not a mailer. TrajectoryLock is not a certified forensic instrument. M.I.A.Lock Doe hits are leads, not IDs. Aziel Digital Library is not a 26-card index. AzielTether is not a VPN.
 
@@ -698,7 +703,7 @@ export function runtimeStaticPaths() {
     "/v1/skill": {
       get: {
         operationId: "runtime_skill",
-        summary: "Skill markdown: 1.6.1 full AI client list. Honest about 1.1.0 / 1.2.0 / 1.3.0 / 1.4.0 / 1.4.1 / 1.5.0 / 1.6.0 / 1.6.1.",
+        summary: "Skill markdown: 1.6.2 widened FragGate door. Honest about 1.1.0 / 1.2.0 / 1.3.0 / 1.4.0 / 1.4.1 / 1.5.0 / 1.6.0 / 1.6.1 / 1.6.2.",
         tags: ["runtime"],
         responses: { "200": { description: "text/markdown skill" } },
       },
