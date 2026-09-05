@@ -91,6 +91,8 @@ Host: ${base}/
 Everblooming sigil: ${base}/sigil.png
 Products: ${n} (${slugs})
 True-engine slugs: ${local}
+engine_slugs: ${local}
+Modules: \`src/engines/{slug}.js\` (azclce, foldlock, decisiongate, ark, azai, zsolver)
 Packaging: Worker session + in-repo CLI (\`node cli/aziel-runtime.mjs\`). **No counted runtime tarball.**
 
 Always send \`User-Agent: Mozilla/5.0\`. Cloudflare Workers may 403 an empty agent.
