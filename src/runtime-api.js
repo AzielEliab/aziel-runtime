@@ -2,12 +2,13 @@
  * Aziel Eliab Runtime — catalog + pull + proxy + session + in-process engines.
  * 1.1.0 was catalog+proxy that called itself a runtime.
  * 1.2.0 was a session/receipt runtime (exec still proxied).
- * 1.3.0 runs vendored engines inside this isolate for listed slugs.
+ * 1.3.0 ran vendored engines inside this isolate for listed slugs.
+ * 1.4.0 vendors a true engine for every catalog Software slug.
  * Public identity: Aziel Eliab only. Forks welcome. Do not invent DOIs.
  */
 import { honestyFields, trueEngineSlugs } from "./engines/registry.js";
 
-export const RUNTIME_VERSION = "1.3.0";
+export const RUNTIME_VERSION = "1.4.0";
 export const RUNTIME_ROLE = "engine-runtime";
 export const RUNTIME_LAYER = "catalog+pull+proxy+session+in-process-engines";
 export const SKILL_INLINE_MAX = 24_000;
@@ -57,14 +58,15 @@ export function runtimeSkillMarkdown(origin, products) {
 name: Aziel Eliab Runtime
 description: >-
   Catalog + pull + proxy front door for every Aziel Eliab product, plus one
-  session object and in-process engines for listed slugs. 1.1.0 was
-  catalog+proxy. 1.2.0 was a session/receipt runtime (exec still proxied).
-  1.3.0 runs vendored engines inside this isolate.
+  session object and in-process engines for every catalog Software slug.
+  1.1.0 was catalog+proxy. 1.2.0 was a session/receipt runtime (exec still
+  proxied). 1.3.0 ran listed slugs in-process. 1.4.0 vendors every slug.
 ---
 
 # Aziel Eliab Runtime
 
-**1.3.0 = catalog + pull + proxy + session + in-process engines** for listed slugs.
+**1.4.0 = catalog + pull + proxy + session + in-process engines** for **every** catalog Software slug.
+**1.3.0 = true engine runtime** for listed portable slugs (in-process) + session + pull/proxy.
 **1.2.0 = session-runtime** (receipt chain; exec still \`upstreamFetch\`ed product Workers).
 **1.1.0 = catalog + pull + proxy** that started calling itself a runtime. Useful front doors. Not exec.
 
@@ -72,9 +74,9 @@ True engine exec on *this* Worker is:
 
 \`open → policy → exec(slug, op, payload) → receipt → close\`
 
-For **true-engine slugs** (\`${local}\`) \`exec\` resolves the slug to a vendored module, computes \`engine_digest\` = SHA-256 of that artifact's bytes, runs the op **inside this Worker isolate** (the jail), wipes scratch buffers, and the receipt includes \`engine_digest\`, \`engine_slug\`, \`engine_op\`, \`ran_in: "aziel-runtime"\`.
+For **true-engine slugs** (\`${local}\`) \`exec\` resolves the slug to a vendored module, computes \`engine_digest\` = SHA-256 of that artifact's bytes, runs the op **inside this Worker isolate** (the jail), wipes scratch buffers, and the receipt includes \`engine_digest\`, \`engine_slug\`, \`engine_op\`, \`ran_in: "aziel-runtime"\`. \`GET /v1/health\` \`engine_slugs\` equals \`true_engine_slugs\` equals the catalog.
 
-If a slug has **no** local engine, \`exec\` marks \`mode: "proxy_fallback"\` and \`true_engine_runtime: false\`. It does **not** pretend.
+If an op **cannot** run without external bindings (KV / D1 / AI / live media), that **op** is marked \`mode: "proxy_fallback"\` while the slug stays a true engine. It does **not** pretend the binding ran here.
 
 \`GET/POST /p/{slug}/{op}\` is still a **proxy**. Proxy without a session receipt is **not** exec.
 
@@ -92,7 +94,7 @@ Everblooming sigil: ${base}/sigil.png
 Products: ${n} (${slugs})
 True-engine slugs: ${local}
 engine_slugs: ${local}
-Modules: \`src/engines/{slug}.js\` (azclce, foldlock, decisiongate, ark, azai, zsolver)
+Modules: \`src/engines/{slug}.js\` for every catalog slug (${local})
 Packaging: Worker session + in-repo CLI (\`node cli/aziel-runtime.mjs\`). **No counted runtime tarball.**
 
 Always send \`User-Agent: Mozilla/5.0\`. Cloudflare Workers may 403 an empty agent.
@@ -190,7 +192,7 @@ curl -s -A 'Mozilla/5.0' -X POST ${base}/p/azclce/score \\
 
 ## Honesty
 
-Not every product is in-process on day one. Advertised true-engine slugs: ${local}. Other slugs are \`proxy_fallback\` on session exec. Cloudflare isolate is the jail; \`engine_digest\` is still required for local exec.
+Every catalog Software slug is a true engine (\`true_engine_runtime: true\`). \`engine_slugs\` equals \`true_engine_slugs\`: ${local}. Some ops remain per-op \`proxy_fallback\` when they need product-Worker bindings (AZ-OS session/exec/lattice; Aziel Digital Library live D1 / Whisper / OCR). Cloudflare isolate is the jail; \`engine_digest\` is still required for local exec.
 
 GodLock and MirageGrid are not VPNs. ForgeReceipts is not legal advice. ZionPattern Solver caps confidence at 75% and does not solve cases. VeilLock does not inject into FaceTime. AZ-CLCE detects inconsistency, not intent. ChronoLock is advisory only. The ARK is not a kernel. AZAI hosted /v1 is a protocol mirror + Lamb check, not a paid-key proxy and **not** the local blend. Jeeves is not sovereign. SpectralLock hosted overlay is a 256px preview. EmployeeLock is not a court. FoldLock is not zip. WhistleLock is not a mailer. TrajectoryLock is not a certified forensic instrument. M.I.A.Lock Doe hits are leads, not IDs. Aziel Digital Library is not a 26-card index. AzielTether is not a VPN.
 
@@ -236,6 +238,7 @@ export function runtimeManifest(origin, products) {
       "1.1.0": "catalog + pull + proxy that called itself a runtime",
       "1.2.0": "session-runtime: open → policy → exec → receipt → close; exec still proxied",
       "1.3.0": "true engine runtime for listed slugs (in-process) + session + pull/proxy front doors",
+      "1.4.0": "every catalog Software slug is a true in-process engine; binding-only ops stay per-op proxy_fallback",
     },
     endpoints: {
       session_open: base + "/v1/session/open",
@@ -559,7 +562,7 @@ export function runtimeStaticPaths() {
     "/v1/skill": {
       get: {
         operationId: "runtime_skill",
-        summary: "Skill markdown: 1.3.0 in-process engines plus session and catalog/pull/proxy. Honest about 1.1.0 / 1.2.0 / 1.3.0.",
+        summary: "Skill markdown: 1.4.0 in-process engines for every catalog slug plus session and catalog/pull/proxy. Honest about 1.1.0 / 1.2.0 / 1.3.0 / 1.4.0.",
         tags: ["runtime"],
         responses: { "200": { description: "text/markdown skill" } },
       },
@@ -567,7 +570,7 @@ export function runtimeStaticPaths() {
     "/v1/runtime.json": {
       get: {
         operationId: "runtime_manifest",
-        summary: "Machine manifest. role=engine-runtime. True-engine slugs vs proxy_fallback. Identity Aziel Eliab.",
+        summary: "Machine manifest. role=engine-runtime. Every catalog slug is a true engine; binding-only ops stay per-op proxy_fallback. Identity Aziel Eliab.",
         tags: ["runtime"],
         responses: { "200": { description: "Runtime manifest JSON" } },
       },

@@ -54,7 +54,7 @@ Usage:
 Default: Worker session at ${DEFAULT_URL}
 --local: filesystem session under ${HOME}; prefers vendored engines (in-process)
 --jail: run the local engine in a child Node process (ran_in=local-jail)
-1.3.0 is true engine runtime for listed slugs + session + pull/proxy. No counted runtime tarball.
+1.4.0 is true engine runtime for every catalog Software slug + session + pull/proxy. Binding-only ops stay per-op proxy_fallback. No counted runtime tarball.
 Proxy /p/{slug}/{op} is not exec. Hosted AZAI is not the local blend.
 `;
 }
