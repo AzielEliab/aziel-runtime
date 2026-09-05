@@ -70,6 +70,8 @@ const requiredAllowAgents = [
   "OAI-SearchBot",
   "Googlebot",
   "Google-Extended",
+  "GoogleOther",
+  "Google-CloudVertexBot",
   "ClaudeBot",
   "Claude-SearchBot",
   "Claude-User",
@@ -88,6 +90,18 @@ const requiredAllowAgents = [
   "MistralAI-User",
   "YouBot",
   "CCBot",
+  "cohere-ai",
+  "cohere-training-data-crawler",
+  "Diffbot",
+  "AI2Bot",
+  "AI2Bot-Dolma",
+  "Timpibot",
+  "Petalbot",
+  "Bytespider",
+  "Omgili",
+  "Omgilibot",
+  "FirecrawlAgent",
+  "ImagesiftBot",
 ];
 for (const agent of requiredAllowAgents) {
   const escaped = agent.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
