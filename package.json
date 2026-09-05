@@ -6,14 +6,16 @@
   "license": "Apache-2.0",
   "type": "module",
   "bin": {
-    "aziel-runtime": "./cli/aziel-runtime.mjs"
+    "aziel-runtime": "./cli/aziel-runtime.mjs",
+    "aziel-runtime-mcp": "./cli/mcp-stdio.mjs"
   },
   "scripts": {
-    "test": "node scripts/hash-engines.mjs && node scripts/verify-cite.mjs && node scripts/verify-seo.mjs && node scripts/verify-runtime.mjs && node scripts/verify-session.mjs && node scripts/verify-engines.mjs && node scripts/verify-production.mjs",
+    "mcp": "node cli/mcp-stdio.mjs",
+    "test": "node scripts/hash-engines.mjs && node scripts/verify-cite.mjs && node scripts/verify-seo.mjs && node scripts/verify-runtime.mjs && node scripts/verify-session.mjs && node scripts/verify-engines.mjs && node scripts/verify-production.mjs && node scripts/verify-mcp-stdio.mjs",
     "probe:live": "node scripts/probe-live.mjs",
     "demo:session": "bash scripts/demo-session.sh"
   },
-  "dependencies": {
+  "devDependencies": {
     "wrangler": "^4.127.1"
   }
 }
