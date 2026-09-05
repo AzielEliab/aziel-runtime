@@ -85,6 +85,9 @@ export function buildRegistry(products) {
   const byName = Object.fromEntries(entries.map((e) => [String(e.name).toLowerCase(), e]));
   const live = entries.filter((e) => e.status === "live");
   const local_only = entries.filter((e) => e.status === "local_only");
+  const stub = entries.filter((e) => e.status === "stub");
+  // stub_ops are named refuse verbs on catalog products (today all local_only).
+  // stub_count is products whose status is "stub" — not the op-list length.
   const stub_ops = Object.entries(STUB_OPS).flatMap(([slug, ops]) => ops.map((op) => ({ slug, op, status: "stub" })));
   return {
     door: FRAGGATE_DOOR,
@@ -94,7 +97,8 @@ export function buildRegistry(products) {
     bySlug,
     byName,
     live_count: live.length,
-    stub_count: stub_ops.length,
+    stub_count: stub.length,
+    stub_op_count: stub_ops.length,
     local_only_count: local_only.length,
     stub_ops,
   };
@@ -202,9 +206,11 @@ export function registrySummary(registry, digest) {
     registry_digest: digest,
     live_count: registry.live_count,
     stub_count: registry.stub_count,
+    stub_op_count: registry.stub_op_count,
     local_only_count: registry.local_only_count,
     product_count: (registry.entries || []).length,
     allowlist: LIVE_OPS,
     live_ops: liveOpList(),
+    stub_ops: registry.stub_ops || [],
   };
 }

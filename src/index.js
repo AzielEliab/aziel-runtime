@@ -1517,7 +1517,17 @@ async function callRuntimeTool(env, name, args, origin, request) {
     return { status: 200, text: runtimeSkillMarkdown(base, PRODUCTS), target: base + "/v1/skill" };
   }
   if (name === "runtime_manifest") {
-    return { status: 200, text: JSON.stringify(runtimeManifest(base, PRODUCTS), null, 2), target: base + "/v1/runtime.json" };
+    const registry = registryFor(PRODUCTS);
+    const digest = await registryDigest(registry);
+    return {
+      status: 200,
+      text: JSON.stringify(
+        runtimeManifest(base, PRODUCTS, { registry_digest: digest, fraggate: registrySummary(registry, digest) }),
+        null,
+        2,
+      ),
+      target: base + "/v1/runtime.json",
+    };
   }
   if (name === "runtime_bundle") {
     return { status: 200, text: JSON.stringify(bundleJson(base, PRODUCTS), null, 2), target: base + "/v1/bundle" };

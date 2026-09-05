@@ -231,8 +231,8 @@ MCP is a **thin FragGate door** (≤ 20 tools): \`runtime_skill\`, \`fraggate_li
 | GET | \`/v1/session/{id}/receipts\` | Full receipt chain. |
 | POST | \`/v1/session/{id}/close\` | Seal session. |
 | GET | \`/v1/skill\` | This markdown. Does not increment downloads. |
-| GET | \`/v1/runtime.json\` | Machine manifest. Authority with health: version=1.6.0, role=engine-runtime, door=fraggate, all catalog slugs are true engines. |
-| GET | \`/v1/fraggate\` | FragGate door summary (registry_digest, live vs stub vs local_only counts). |
+| GET | \`/v1/runtime.json\` | Machine manifest. Authority with health: version=1.6.0, role=engine-runtime, door=fraggate, top-level registry_digest, all catalog slugs are true engines. |
+| GET | \`/v1/fraggate\` | FragGate door summary (registry_digest; live / stub / local_only product counts; stub_op_count). |
 | GET | \`/v1/fraggate/list\` | Hashed registry entries. |
 | GET | \`/v1/fraggate/describe\` | Describe one name (\`?name=\` / \`?slug=\`). |
 | POST | \`/v1/fraggate/verify\` | Verify a name or digest. |
@@ -315,8 +315,10 @@ function extraFraggate(products, extra = {}) {
     registry_digest: extra.registry_digest || null,
     live_count: registry.live_count,
     stub_count: registry.stub_count,
+    stub_op_count: registry.stub_op_count,
     local_only_count: registry.local_only_count,
     allowlist: LIVE_OPS,
+    stub_ops: registry.stub_ops,
     ...(extra.fraggate || {}),
   };
 }
@@ -326,13 +328,15 @@ export function runtimeManifest(origin, products, extra = {}) {
   const slugs = products.map((p) => p.slug);
   const honesty = honestyFields(slugs);
   const authority = authoritySnapshot(slugs);
+  const fraggate = extraFraggate(products, extra);
   return {
     ...authority,
     // Explicit aliases so scrapers that only look for these keys still see current version
     runtime_version: RUNTIME_VERSION,
     manifest: "aziel-runtime.manifest.v1.6",
     door: "fraggate",
-    fraggate: extraFraggate(products, extra),
+    registry_digest: extra.registry_digest || fraggate.registry_digest || null,
+    fraggate,
     author: "Aziel Eliab",
     identity: "Aziel Eliab",
     aka: "Aziel Elroi Eliab",
@@ -779,7 +783,7 @@ export function runtimeStaticPaths() {
     "/v1/fraggate": {
       get: {
         operationId: "fraggate_door",
-        summary: "FragGate door summary: registry_digest, live vs stub vs local_only counts. Kernel FG-0.1.",
+        summary: "FragGate door summary: registry_digest; live / stub / local_only product counts; stub_op_count. Kernel FG-0.1.",
         tags: ["fraggate"],
         responses: { "200": { description: "Door JSON" } },
       },

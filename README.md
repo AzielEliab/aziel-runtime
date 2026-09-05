@@ -65,9 +65,11 @@ Public MCP `tools/list` is a **thin** set (≤ 20): `runtime_skill`, `fraggate_l
 
 Every catalog product is a **hashed registry** entry (`name`, `slug`, `digest`, `status`, public `ops`). Status is `live` | `stub` | `local_only`.
 
+`stub_ops` / `stub_op_count` are named refuse verbs (never hosted), not extra products. `stub_count` is products whose status is `stub` (currently 0). `live_count + local_only_count + stub_count === product_count`.
+
 **Live on the public mesh** (via `fraggate_call`): DecisionGATE `check`, GodLock `score`/`submit`, FoldLock `fold-preview`/`unfold-preview`, AZ-CLCE `score`/`classify`/`gate`, Aziel Digital Library read ops (`search`/`example`/`skill`).
 
-**Stub** (named, never execute): ARK scorch/wipe/unlock, WhistleLock send, MirageGrid VPN-hop fantasies, AzielTether mesh-join. Most other Locks are **local_only** — named in the registry, not live as flat MCP tools.
+**Stub ops** (named refuse verbs, never execute): ARK scorch/wipe/unlock, WhistleLock send, MirageGrid VPN-hop fantasies, AzielTether mesh-join. Those products stay **local_only**. Most other Locks are also **local_only** — named in the registry, not live as flat MCP tools.
 
 Unknown names refuse `FG-HALLUC-TOOL` and list the tools that *do* exist. DecisionGATE runs before any exec side effect; refuse is a typed ResultEnvelope + ledger tip (TemporalLock-shaped hash chain). Mesh is not claimed on this public surface.
 
