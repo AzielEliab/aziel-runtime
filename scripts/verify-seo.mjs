@@ -82,6 +82,9 @@ const requiredAllowAgents = [
   "Meta-ExternalAgent",
   "Meta-ExternalFetcher",
   "Meta-WebIndexer",
+  "FacebookBot",
+  "facebookexternalhit",
+  "Meta-ExternalAds",
   "Applebot",
   "Applebot-Extended",
   "Amazonbot",
@@ -102,8 +105,36 @@ const requiredAllowAgents = [
   "Omgilibot",
   "FirecrawlAgent",
   "ImagesiftBot",
+  "Cloudflare-AI-Search",
+  "TikTokSpider",
+  "Baiduspider",
+  "Baiduspider-render",
+  "Baiduspider-ai",
+  "YandexBot",
+  "PanguBot",
+  "Kangaroo Bot",
+  "Cotoyogi",
+  "aiHitBot",
+  "webzio-extended",
+  "ICC-Crawler",
+  "DataForSeoBot",
+  "AwarioBot",
+  "AwarioSmartBot",
+  "AwarioRssBot",
+  "Sentibot",
+  "peer39_crawler",
+  "Seekr",
+  "Meltwater",
+  "TurnitinBot",
+  "Factset_spyderbot",
+  "NeevaBot",
 ];
 for (const agent of requiredAllowAgents) {
+  const escaped = agent.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  assert.match(robots, new RegExp(`User-agent: ${escaped}\\nAllow: /`), `${agent} Allow: /`);
+  assert.doesNotMatch(robots, new RegExp(`User-agent: ${escaped}\\nDisallow:`), `${agent} must not Disallow`);
+}
+for (const agent of uniqueUserAgents(AI_CRAWLER_AGENTS)) {
   const escaped = agent.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   assert.match(robots, new RegExp(`User-agent: ${escaped}\\nAllow: /`), `${agent} Allow: /`);
   assert.doesNotMatch(robots, new RegExp(`User-agent: ${escaped}\\nDisallow:`), `${agent} must not Disallow`);
