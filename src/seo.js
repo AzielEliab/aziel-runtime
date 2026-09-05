@@ -38,7 +38,12 @@ export const MISSING_PRODUCT_LLMS_SLUGS = Object.freeze([
 
 /**
  * Major search + AI crawlers. Each gets Allow: / with no matching Disallow.
+ * Names are canonical (Meta-ExternalAgent, not meta-externalagent).
+ * uniqueUserAgents() drops case-only duplicates; first listing wins.
  * Cloudflare content-signal blocks must not appear on GitBaby Workers.
+ *
+ * User-agent * stays open (Allow: / + Content-Signal). Do not Disallow /v1
+ * or /openapi. This Worker has no private /api/ or /admin/ routes.
  */
 export const AI_CRAWLER_AGENTS = Object.freeze([
   "GPTBot",
@@ -46,27 +51,54 @@ export const AI_CRAWLER_AGENTS = Object.freeze([
   "OAI-SearchBot",
   "Google-Extended",
   "Googlebot",
+  "GoogleOther",
   "Google-CloudVertexBot",
-  "anthropic-ai",
   "ClaudeBot",
+  "Claude-SearchBot",
   "Claude-User",
+  "anthropic-ai",
   "PerplexityBot",
   "Perplexity-User",
-  "Bytespider",
-  "CCBot",
+  "bingbot",
+  "Meta-ExternalAgent",
+  "Meta-ExternalFetcher",
+  "Meta-WebIndexer",
+  "FacebookBot",
   "Applebot",
   "Applebot-Extended",
   "Amazonbot",
-  "meta-externalagent",
-  "FacebookBot",
-  "cohere-ai",
-  "Diffbot",
-  "Omgilibot",
-  "YouBot",
-  "AI2Bot",
-  "Cloudflare-AI-Search",
+  "DuckDuckBot",
   "DuckAssistBot",
+  "MistralAI-User",
+  "YouBot",
+  "CCBot",
+  "cohere-ai",
+  "cohere-training-data-crawler",
+  "Diffbot",
+  "AI2Bot",
+  "AI2Bot-Dolma",
+  "Timpibot",
+  "Petalbot",
+  "Bytespider",
+  "Omgili",
+  "Omgilibot",
+  "FirecrawlAgent",
+  "ImagesiftBot",
+  "Cloudflare-AI-Search",
 ]);
+
+/** First listing wins; later case-only variants (meta-externalagent) are dropped. */
+export function uniqueUserAgents(agents) {
+  const seen = new Set();
+  const out = [];
+  for (const agent of agents) {
+    const key = String(agent).toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(agent);
+  }
+  return out;
+}
 
 export function productWorkerOrigin(product) {
   if (product.slug === "aziel-corpus") return LIBRARY_ORIGIN;
@@ -133,7 +165,7 @@ export function robotsTxt(origin, products) {
     "Content-Signal: search=yes, ai-input=yes, ai-train=yes",
     "",
   ];
-  for (const agent of AI_CRAWLER_AGENTS) {
+  for (const agent of uniqueUserAgents(AI_CRAWLER_AGENTS)) {
     lines.push(`User-agent: ${agent}`);
     lines.push("Allow: /");
   }

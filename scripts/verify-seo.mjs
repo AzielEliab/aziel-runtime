@@ -4,6 +4,7 @@
 import assert from "node:assert/strict";
 import { PRODUCTS } from "../src/index.js";
 import {
+  AI_CRAWLER_AGENTS,
   AUTHOR_ALTERNATE_NAME,
   AUTHOR_NAME,
   GODLOCK_UK_SITEMAP,
@@ -12,6 +13,7 @@ import {
   hubSitemapList,
   productCrawlUrls,
   productWorkerOrigin,
+  uniqueUserAgents,
 } from "../src/seo.js";
 
 const handler = (await import("../src/index.js")).default.fetch;
@@ -51,13 +53,71 @@ const robotsRes = await get("/robots.txt");
 assert.equal(robotsRes.status, 200);
 mime(robotsRes, /^text\/plain; charset=utf-8/);
 const robots = await robotsRes.text();
-assert.match(robots, /User-agent: \*/);
+assert.match(robots, /User-agent: \*\nAllow: \//);
 assert.match(robots, /Allow: \//);
 assert.match(robots, /User-agent: GPTBot\nAllow: \//);
 assert.doesNotMatch(robots, /User-agent: GPTBot\nDisallow:/);
 assert.doesNotMatch(robots, /Disallow: \//);
 assert.match(robots, /Content-Signal: search=yes, ai-input=yes, ai-train=yes/);
-assert.match(robots, /OAI-SearchBot/);
+assert.doesNotMatch(robots, /Disallow:\s*\/v1/);
+assert.doesNotMatch(robots, /Disallow:\s*\/openapi/);
+assert.doesNotMatch(robots, /Disallow:\s*\/api\//);
+assert.doesNotMatch(robots, /Disallow:\s*\/admin\//);
+
+const requiredAllowAgents = [
+  "GPTBot",
+  "ChatGPT-User",
+  "OAI-SearchBot",
+  "Googlebot",
+  "Google-Extended",
+  "GoogleOther",
+  "Google-CloudVertexBot",
+  "ClaudeBot",
+  "Claude-SearchBot",
+  "Claude-User",
+  "anthropic-ai",
+  "PerplexityBot",
+  "Perplexity-User",
+  "bingbot",
+  "Meta-ExternalAgent",
+  "Meta-ExternalFetcher",
+  "Meta-WebIndexer",
+  "Applebot",
+  "Applebot-Extended",
+  "Amazonbot",
+  "DuckDuckBot",
+  "DuckAssistBot",
+  "MistralAI-User",
+  "YouBot",
+  "CCBot",
+  "cohere-ai",
+  "cohere-training-data-crawler",
+  "Diffbot",
+  "AI2Bot",
+  "AI2Bot-Dolma",
+  "Timpibot",
+  "Petalbot",
+  "Bytespider",
+  "Omgili",
+  "Omgilibot",
+  "FirecrawlAgent",
+  "ImagesiftBot",
+];
+for (const agent of requiredAllowAgents) {
+  const escaped = agent.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  assert.match(robots, new RegExp(`User-agent: ${escaped}\\nAllow: /`), `${agent} Allow: /`);
+  assert.doesNotMatch(robots, new RegExp(`User-agent: ${escaped}\\nDisallow:`), `${agent} must not Disallow`);
+}
+assert.doesNotMatch(robots, /User-agent: meta-externalagent/);
+assert.deepEqual(uniqueUserAgents(["Meta-ExternalAgent", "meta-externalagent", "META-EXTERNALAGENT"]), [
+  "Meta-ExternalAgent",
+]);
+assert.equal(uniqueUserAgents(AI_CRAWLER_AGENTS).length, AI_CRAWLER_AGENTS.length);
+assert.equal(
+  new Set(AI_CRAWLER_AGENTS.map((a) => a.toLowerCase())).size,
+  AI_CRAWLER_AGENTS.length,
+  "AI crawler agents must be unique ignoring case",
+);
 assert.match(robots, /Cloudflare-AI-Search/);
 assert.match(robots, /sitemap-index\.xml/);
 assert.match(robots, /azielcorpuslibrary\.net\/sitemap\.xml/);
