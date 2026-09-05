@@ -1,8 +1,8 @@
 {
   "name": "aziel-runtime",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "private": true,
-  "description": "Aziel Eliab Runtime 1.4.1 — catalog + pull + proxy + session + in-process engines plus production gates. Author: Aziel Eliab.",
+  "description": "Aziel Eliab Runtime 1.5.0 — agent-native cut on 1.4.1 production gates. Display-ready MCP, product-verb tools, runtime_run. Author: Aziel Eliab.",
   "license": "Apache-2.0",
   "type": "module",
   "bin": {
