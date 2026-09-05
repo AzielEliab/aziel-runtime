@@ -9,7 +9,7 @@
  *   node cli/aziel-runtime.mjs session close
  *
  * Default talks to the Worker. --local writes an equivalent session file
- * (receipts still first-class; exec may forward to the proxy).
+ * and prefers vendored engine modules (optional --jail child process).
  *
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
@@ -32,6 +32,8 @@ import {
   verifyChainStrict,
 } from "../src/session-core.js";
 import { RUNTIME_VERSION } from "../src/runtime-api.js";
+import { executeLocal, proxyFallbackMeta } from "../src/engines/runner.js";
+import { spawn } from "node:child_process";
 
 const DEFAULT_URL = process.env.AZIEL_RUNTIME_URL || "https://aziel-runtime.vibelock.workers.dev";
 const UA = "Mozilla/5.0";
@@ -50,8 +52,9 @@ Usage:
   aziel-runtime session status
 
 Default: Worker session at ${DEFAULT_URL}
---local: filesystem session under ${HOME} (optional exec forward to Worker /p/{slug}/{op})
-1.2.0 is Worker session + in-repo CLI. No counted runtime tarball.
+--local: filesystem session under ${HOME}; prefers vendored engines (in-process)
+--jail: run the local engine in a child Node process (ran_in=local-jail)
+1.3.0 is true engine runtime for listed slugs + session + pull/proxy. No counted runtime tarball.
 Proxy /p/{slug}/{op} is not exec. Hosted AZAI is not the local blend.
 `;
 }
@@ -61,6 +64,7 @@ function parseArgs(argv) {
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--local") out.flags.local = true;
+    else if (a === "--jail") out.flags.jail = true;
     else if (a === "--remote") out.flags.local = false;
     else if (a === "--all") out.flags.all = true;
     else if (a === "--help" || a === "-h") out.flags.help = true;
@@ -194,6 +198,34 @@ async function cmdPolicy(flags) {
   };
 }
 
+async function runJail(slug, op, payload) {
+  const jail = fileURLToPath(new URL("../src/engines/jail.mjs", import.meta.url));
+  return new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [jail], { stdio: ["pipe", "pipe", "pipe"] });
+    let out = "";
+    let err = "";
+    child.stdout.on("data", (d) => {
+      out += d;
+    });
+    child.stderr.on("data", (d) => {
+      err += d;
+    });
+    child.on("close", (code) => {
+      if (code !== 0 && !out.trim()) {
+        reject(new Error(err || `jail exit ${code}`));
+        return;
+      }
+      try {
+        resolve(JSON.parse(out));
+      } catch (e) {
+        reject(new Error(err || out || String(e)));
+      }
+    });
+    child.stdin.write(JSON.stringify({ slug, op, payload }));
+    child.stdin.end();
+  });
+}
+
 async function cmdExec(flags, slug, op, payloadArg) {
   let payload = {};
   const raw = flags.payload != null ? flags.payload : payloadArg;
@@ -208,21 +240,44 @@ async function cmdExec(flags, slug, op, payloadArg) {
     const { intent } = await recordIntent(session, { slug, op, payload, payloadText, knownSlugs: null }, now);
     await saveLocal(session);
     const url = flags.url || DEFAULT_URL;
-    const started = Date.now();
     let status = 502;
     let responseText = "";
     let error = null;
-    let upstream = `${url}/p/${slug}/${op}`;
-    try {
-      const res = await fetch(upstream, {
-        method: "POST",
-        headers: { "content-type": "application/json", accept: "application/json", "User-Agent": UA },
-        body: payloadText,
-      });
-      status = res.status;
-      responseText = await res.text();
-    } catch (err) {
-      error = String(err && err.message ? err.message : err);
+    let upstream = null;
+    let engine = null;
+    let latencyMs = 0;
+    const local = flags.jail
+      ? await runJail(slug, op, payload)
+      : await executeLocal({ slug, op, payload, ranIn: "local-jail" });
+    if (local && !local.unsupported && local.mode === "local") {
+      status = local.status;
+      responseText = local.responseText;
+      error = local.error;
+      latencyMs = local.latency_ms;
+      engine = {
+        mode: "local",
+        true_engine_runtime: true,
+        engine_digest: local.engine_digest,
+        engine_slug: local.engine_slug,
+        engine_op: local.engine_op,
+        ran_in: local.ran_in || "local-jail",
+      };
+    } else {
+      const started = Date.now();
+      upstream = `${url}/p/${slug}/${op}`;
+      try {
+        const res = await fetch(upstream, {
+          method: "POST",
+          headers: { "content-type": "application/json", accept: "application/json", "User-Agent": UA },
+          body: payloadText,
+        });
+        status = res.status;
+        responseText = await res.text();
+      } catch (err) {
+        error = String(err && err.message ? err.message : err);
+      }
+      latencyMs = Date.now() - started;
+      engine = proxyFallbackMeta({ slug, op, upstream, status, error });
     }
     const reqDig = await digestText(payloadText);
     const resDig = await digestText(responseText);
@@ -231,18 +286,35 @@ async function cmdExec(flags, slug, op, payloadArg) {
       {
         intent,
         status,
-        latencyMs: Date.now() - started,
+        latencyMs,
         requestDigest: reqDig.sha256,
         responseDigest: resDig.sha256,
         error,
-        upstream,
+        upstream: engine && engine.mode === "local" ? null : upstream,
         responseBytes: resDig.bytes,
         contentType: "application/json",
+        engine,
       },
       new Date().toISOString(),
     );
     await saveLocal(session);
-    return { ok: true, mode: "local", session: publicSession(session), receipt, exec: { slug, op, status, upstream, error } };
+    return {
+      ok: true,
+      mode: "local",
+      session: publicSession(session),
+      receipt,
+      exec: {
+        slug,
+        op,
+        status,
+        mode: engine && engine.mode,
+        true_engine_runtime: engine && engine.true_engine_runtime === true,
+        engine_digest: engine && engine.engine_digest,
+        ran_in: engine && engine.ran_in,
+        upstream: engine && engine.mode === "local" ? null : upstream,
+        error,
+      },
+    };
   }
   const id = await resolveId(flags);
   const url = flags.url || DEFAULT_URL;

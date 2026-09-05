@@ -1,6 +1,7 @@
 /**
  * One Durable Object per aziel-runtime session.
- * Storage is the session JSON + receipt chain. No product engine is loaded here.
+ * Storage is the session JSON + receipt chain. Local engine exec runs in this
+ * Worker isolate (the jail) and the receipt carries that engine's digest.
  * Author: Aziel Eliab.
  */
 
@@ -160,6 +161,7 @@ export class RuntimeSession {
         upstream: body.upstream || null,
         responseBytes: body.response_bytes,
         contentType: body.content_type,
+        engine: body.engine || null,
       },
       now,
     );

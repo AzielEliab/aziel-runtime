@@ -48,6 +48,8 @@ assert.match(skill.headers.get("content-type") || "", /markdown|text\/plain/);
 const skillText = await skill.text();
 assert.match(skillText, /Aziel Eliab Runtime/);
 assert.match(skillText, /catalog \+ pull \+ proxy/);
+assert.match(skillText, /1\.3\.0/);
+assert.match(skillText, /engine_digest/);
 assert.match(skillText, /open → policy → exec/);
 assert.match(skillText, /\/v1\/runtime\.json/);
 assert.match(skillText, /\/v1\/bundle/);
@@ -61,8 +63,12 @@ const manifestRes = await get("/v1/runtime.json");
 assert.equal(manifestRes.status, 200);
 const manifest = await manifestRes.json();
 assert.equal(manifest.ok, true);
-assert.equal(manifest.role, "session-runtime");
+assert.equal(manifest.role, "engine-runtime");
 assert.equal(manifest.proxy_is_not_exec, true);
+assert.ok(Array.isArray(manifest.true_engine_slugs));
+assert.ok(manifest.true_engine_slugs.includes("foldlock"));
+assert.equal(manifest.engines.foldlock.true_engine_runtime, true);
+assert.equal(manifest.engines.vibelock.true_engine_runtime, false);
 assert.equal(manifest.author, "Aziel Eliab");
 assert.equal(manifest.identity, "Aziel Eliab");
 assert.equal(manifest.version, RUNTIME_VERSION);
@@ -75,7 +81,7 @@ assert.equal(manifest.doi, null);
 const bundleRes = await get("/v1/bundle");
 assert.equal(bundleRes.status, 200);
 const bundle = await bundleRes.json();
-assert.equal(bundle.role, "session-runtime");
+assert.equal(bundle.role, "engine-runtime");
 assert.equal(bundle.products.length, PRODUCTS.length);
 const fold = bundle.products.find((p) => p.slug === "foldlock");
 assert.ok(fold.skill_url.endsWith("/v1/pull/foldlock/skill"));
@@ -114,7 +120,13 @@ const pullSkillText = await pullSkill.text();
 assert.match(pullSkillText, /FoldLock|# FoldLock|fold/);
 
 const health = await (await get("/v1/health")).json();
-assert.equal(health.role, "session-runtime");
+assert.equal(health.role, "engine-runtime");
+assert.equal(health.version, RUNTIME_VERSION);
+assert.deepEqual(health.true_engine_slugs, manifest.true_engine_slugs);
+assert.deepEqual(health.engine_slugs, health.true_engine_slugs);
+assert.deepEqual(manifest.engine_slugs, manifest.true_engine_slugs);
+assert.ok(health.true_engine_runtime === true);
+assert.ok(manifest.true_engine_runtime === true);
 assert.equal(health.session, "/v1/session/open");
 assert.equal(health.skill, "/v1/skill");
 assert.equal(health.bundle, "/v1/bundle");
@@ -138,8 +150,9 @@ assert.match(sigil.headers.get("content-type") || "", /png/);
 assert.equal(sigil.headers.get("X-Aziel-Sigil"), "Everblooming");
 
 const llms = await (await get("/llms.txt")).text();
-assert.match(llms, /Role: session-runtime/);
+assert.match(llms, /Role: engine-runtime/);
 assert.match(llms, /1\.1\.0 was catalog\+proxy/);
+assert.match(llms, /1\.3\.0/);
 assert.match(llms, /\/v1\/bundle/);
 assert.match(llms, /Aziel Eliab Runtime/);
 
@@ -163,8 +176,9 @@ const mcpInit = await handler(
   env,
 );
 const mcpBody = await mcpInit.json();
-assert.match(mcpBody.result.instructions, /session object/);
+assert.match(mcpBody.result.instructions, /in-process engines/);
 assert.match(mcpBody.result.instructions, /not exec/);
+assert.match(mcpBody.result.instructions, /engine_digest/);
 assert.equal(mcpBody.result.serverInfo.version, RUNTIME_VERSION);
 
 const mcpList = await handler(
