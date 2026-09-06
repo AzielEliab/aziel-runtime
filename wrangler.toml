@@ -130,10 +130,17 @@ service = "aziel-corpus-download-tracker"
 REQUIRE_TOKEN = "1"
 
 # One Durable Object per session (open → policy → exec → receipt → close).
-# 1.4.0 engines run in this Worker isolate; no new DO class. 1.4.1 / 1.5.0 / 1.6.0 / 1.6.1 / 1.6.2 reuse SESSION.
+# 1.4.0 engines run in this Worker isolate; no new DO class. 1.4.1 / 1.5.0 / 1.6.0 / 1.6.1 / 1.6.2 / 1.6.3 reuse SESSION.
 [[durable_objects.bindings]]
 name = "SESSION"
 class_name = "RuntimeSession"
+
+# API use counters + ring log (1.6.3). Distinct from product download-trackers.
+# Parent creates the namespace on deploy and replaces the placeholder id:
+#   npx wrangler kv namespace create USES
+[[kv_namespaces]]
+binding = "USES"
+id = "00000000000000000000000000000000"
 
 [[migrations]]
 tag = "v1"

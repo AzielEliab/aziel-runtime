@@ -8,6 +8,9 @@ This runtime adds two routes the library proxy should advertise and fall back:
 |-------------|--------|
 | `GET /runtime/v1/bundle` | `GET https://aziel-runtime.vibelock.workers.dev/v1/bundle` |
 | `GET /runtime/v1/pull/{slug}/skill` | `GET https://aziel-runtime.vibelock.workers.dev/v1/pull/{slug}/skill` |
+| `GET /runtime/v1/uses` | `GET https://aziel-runtime.vibelock.workers.dev/v1/uses` |
+
+When proxying API traffic, set `X-Aziel-Runtime-Via: azielcorpuslibrary.net` (or `X-Aziel-Runtime-Host`) so origin `USES` counters keep this door distinct from workers.dev / godlock.uk / azieleliab.com.
 
 `destFromRuntimePath` already strips `/runtime`, so those paths proxy once origin is live. Add `fallbackKind` entries so a 404/5xx origin still returns a library-built bundle / skill:
 

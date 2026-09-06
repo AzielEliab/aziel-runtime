@@ -9,6 +9,7 @@
  * 1.6.0 is the FragGate door: hashed registry, thin tools/list, DecisionGATE before exec.
  * 1.6.1 lists every major OpenAPI / MCP / HTTP client (not only ChatGPT / Grok / Venice).
  * 1.6.2 widens the public FragGate LIVE_OPS door to sensible advisory engines.
+ * 1.6.3 adds KV-backed API use trackers (GET /v1/uses). Distinct from download KV.
  * Public identity: Aziel Eliab only. Forks welcome. Do not invent DOIs.
  */
 import { CATALOG_ALIASES } from "./catalog-meta.js";
@@ -23,12 +24,13 @@ import {
 } from "./production.js";
 import { citeCompatibleFields, skillCompatibleSection } from "./ai-clients.js";
 
-export const RUNTIME_VERSION = "1.6.2";
+export const RUNTIME_VERSION = "1.6.3";
 export const RUNTIME_ROLE = "engine-runtime";
 export const RUNTIME_LAYER = "catalog+pull+proxy+session+in-process-engines+fraggate";
 
 export const VERSION_HISTORY = [
-  { version: "1.6.2", status: "current", note: "Widen FragGate public LIVE_OPS to every catalog Software product that makes sense on a public agent door (advisory / score / classify / gate / search / preview / render / verify / hash / receipt / game / overlay / route / status). VeilLock stays local_only. Stub verbs still refuse. MCP tools/list stays the thin FragGate surface. 1.6.1 remains the full AI client list." },
+  { version: "1.6.3", status: "current", note: "KV-backed API use trackers and ring log (GET /v1/uses, alias GET /v1/stats). Binding USES. Counts host/method/path/op/day for API traffic across origin and same-origin /runtime doors. Skips health/ready/uses and static SEO. No Authorization, tokens, bodies, or PII. FragGate ledger and session receipts unchanged. Distinct from product download-trackers." },
+  { version: "1.6.2", status: "superseded", note: "Widen FragGate public LIVE_OPS to every catalog Software product that makes sense on a public agent door (advisory / score / classify / gate / search / preview / render / verify / hash / receipt / game / overlay / route / status). VeilLock stays local_only. Stub verbs still refuse. MCP tools/list stays the thin FragGate surface. 1.6.1 remains the full AI client list." },
   { version: "1.6.1", status: "superseded", note: "Full compatible AI client list in skill, Worker UI, OpenAPI, llms.txt, and cite.json (ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants). 1.6.0 remains the FragGate door cut." },
   { version: "1.6.0", status: "superseded", note: "FragGate door cut: hashed registry, thin MCP tools/list (discover / route / refuse), DecisionGATE before exec, ask/refuse ledger. 1.5.0 was agent-native flat {slug}_{op} tools." },
   { version: "1.5.0", status: "superseded", note: "agent-native cut: display-ready MCP envelopes, product-verb tool descriptions, session/health/manifest marked advanced/internal, runtime_run auto-session façade (true in-process exec)" },
@@ -109,9 +111,10 @@ description: >-
   One door — discover, route, refuse. FragGate over the catalog: hashed
   registry, DecisionGATE before exec, ask/refuse ledger. Dual surface —
   agent/MCP has no technical UI chrome; Worker UI, Flutter mobile/, local
-  install, and counted /download stay complete human software. 1.6.2 widens
-  the public door to sensible advisory engines; stubs still refuse. 1.6.1
-  lists every major OpenAPI/MCP/HTTP client. 1.6.0 FragGate door cut. Kernel:
+  install, and counted /download stay complete human software. 1.6.3 adds
+  KV-backed API use trackers (GET /v1/uses). 1.6.2 widens the public door
+  to sensible advisory engines; stubs still refuse. 1.6.1 lists every major
+  OpenAPI/MCP/HTTP client. 1.6.0 FragGate door cut. Kernel:
   https://github.com/AzielEliab/fraggate
 ---
 
@@ -144,6 +147,7 @@ HTTP \`POST /p/{slug}/{op}\` is still a **proxy**. Proxy without a session recei
 
 Every catalog slug is a true engine. Cloudflare isolate is the jail. Hosted AZAI is protocol mirror + Lamb check, **not** the blend. Identity is **Aziel Eliab** only.
 
+**1.6.3 = KV-backed API use trackers** (\`GET /v1/uses\`). Distinct from product download counters. No tokens, bodies, or PII.
 **1.6.2 = public door covers sensible advisory engines**; stub verbs still refuse. VeilLock stays local_only. MCP tools/list stays the thin FragGate surface.
 **1.6.1 = full compatible AI client list** (not only ChatGPT / Grok / Venice).
 **1.6.0 = FragGate door** over the catalog (hashed registry, thin MCP, DecisionGATE before exec, ask/refuse ledger). Kernel: https://github.com/AzielEliab/fraggate
@@ -184,14 +188,14 @@ Modules: \`src/engines/{slug}.js\` for every catalog slug (${local})
 Packaging: Worker session + in-repo CLI (\`node cli/aziel-runtime.mjs\`). **No counted runtime tarball.**
 
 Always send \`User-Agent: Mozilla/5.0\`. Cloudflare Workers may 403 an empty agent.
-Do **not** invent Zenodo DOIs. Cite \`/cite.json\`. Download counters are **not** incremented on pull, skill, health, proxy, or session exec.
+Do **not** invent Zenodo DOIs. Cite \`/cite.json\`. Product download counters are **not** incremented on pull, skill, health, proxy, or session exec. API uses are counted separately on \`GET /v1/uses\` (no PII).
 
 ## Session (advanced / internal)
 
 Prefer \`fraggate_call\`. This chain is the raw object:
 
 1. \`POST ${base}/v1/session/open\` — session id, start time, policy defaults, empty receipt chain.
-2. \`POST ${base}/v1/session/{id}/policy\` — allow slugs/ops, payload size cap, no download-counter side effects unless explicitly requested (this Worker still has no download KV).
+2. \`POST ${base}/v1/session/{id}/policy\` — allow slugs/ops, payload size cap, no product-download-counter side effects unless explicitly requested. API uses still increment on \`/v1/uses\` (no PII).
 3. \`POST ${base}/v1/session/{id}/exec\` body \`{slug, op, payload}\` — record intent, run the **local in-process engine** for that slug (\`engine_digest\` + \`ran_in: aziel-runtime\`); only binding-only ops are per-op \`proxy_fallback\`. Append a **hash-chained execution receipt owned by this session**. Returns \`display\` + \`result\` + \`receipt\`.
 4. \`GET ${base}/v1/session/{id}/receipt\` or \`.../receipts\` — last receipt / full chain (verifiable locally).
 5. \`POST ${base}/v1/session/{id}/close\` — seal. Further exec is 409.
@@ -212,6 +216,7 @@ node cli/aziel-runtime.mjs session close
 2. \`GET ${base}/v1/runtime.json\` — machine manifest (\`version=${RUNTIME_VERSION}\`, \`role=engine-runtime\`, \`door=fraggate\`, every catalog slug in \`engine_slugs\` / \`true_engine_slugs\`, \`authoritySnapshot\` + \`version_history\`). Same JSON: \`GET ${base}/v1/runtime\`.
    FragGate: \`GET ${base}/v1/fraggate\` · \`GET ${base}/v1/fraggate/list\` · \`POST ${base}/v1/fraggate/call\`.
    Also \`GET ${base}/v1/ready\` (200 only if SESSION binding is up; 503 if \`REQUIRE_TOKEN=1\` and \`RUNTIME_TOKEN\` is missing).
+   API uses: \`GET ${base}/v1/uses\` (no increment).
 3. \`GET ${base}/v1/bundle\` — every product skill URL + invoke prefix.
    Alias: \`GET ${base}/v1/pull?all=1\`.
 4. \`GET ${base}/v1/pull/{slug}\` — name, version, skill URL, counted download, install.sh, ops.
@@ -256,7 +261,9 @@ ${skillCompatibleSection(base)}
 | GET | \`/robots.txt\` | Allow / for Google and major AI bots. No GPTBot Disallow. |
 | GET | \`/sitemap.xml\` | Catalog urlset. |
 | GET | \`/sitemap-index.xml\` | Catalog + Digital Library + godlock.uk + live product Worker sitemaps. |
-| GET | \`/v1/health\` | Liveness. |
+| GET | \`/v1/health\` | Liveness. Optional \`uses_total\` when USES KV is bound. Does not increment. |
+| GET | \`/v1/uses\` | API use counters + recent ring log. Does not increment. No PII. |
+| GET | \`/v1/stats\` | Alias of \`/v1/uses\`. |
 
 Library front door: https://www.azielcorpuslibrary.net/runtime  
 Library engine manifest (same as this Worker): https://www.azielcorpuslibrary.net/runtime/v1/runtime.json  
@@ -294,7 +301,7 @@ curl -s -A 'Mozilla/5.0' -X POST ${base}/p/azclce/score \\
 
 Every catalog Software slug is a true engine (\`true_engine_runtime: true\`). \`engine_slugs\` equals \`true_engine_slugs\`: ${local}. Some ops remain per-op \`proxy_fallback\` when they need product-Worker bindings (AZ-OS session/exec/lattice; Aziel Digital Library live D1 / Whisper / OCR). Cloudflare isolate is the jail; \`engine_digest\` is still required for local exec.
 
-**1.4.1 production gates (unchanged in 1.6.2):** \`GET /v1/ready\` is 200 only if the SESSION Durable Object binding is up; **503** if \`REQUIRE_TOKEN=1\` and the \`RUNTIME_TOKEN\` secret is missing (fail closed). Authority JSON is \`Cache-Control: no-store\`. When \`REQUIRE_TOKEN=1\`, session mutate (open/policy/exec/close) and MCP session tools / \`runtime_run\` / \`fraggate_call\` require \`Authorization: Bearer …\` or \`X-Aziel-Runtime-Token\` (one operator token). Catalog / health / runtime / skill / pull / FragGate list / OpenAPI / MCP \`tools/list\` stay public. Proxy \`/p/{slug}/{op}\` stays public and is **not** exec. Receipt cap 64. Session TTL 6h. Per-IP rate limits apply.
+**1.4.1 production gates (unchanged in 1.6.3):** \`GET /v1/ready\` is 200 only if the SESSION Durable Object binding is up; **503** if \`REQUIRE_TOKEN=1\` and the \`RUNTIME_TOKEN\` secret is missing (fail closed). Authority JSON is \`Cache-Control: no-store\`. When \`REQUIRE_TOKEN=1\`, session mutate (open/policy/exec/close) and MCP session tools / \`runtime_run\` / \`fraggate_call\` require \`Authorization: Bearer …\` or \`X-Aziel-Runtime-Token\` (one operator token). Catalog / health / runtime / skill / pull / FragGate list / OpenAPI / MCP \`tools/list\` / \`GET /v1/uses\` stay public. Proxy \`/p/{slug}/{op}\` stays public and is **not** exec. Receipt cap 64. Session TTL 6h. Per-IP rate limits apply.
 
 GodLock and MirageGrid are not VPNs. ForgeReceipts is not legal advice. ZionPattern Solver caps confidence at 75% and does not solve cases. VeilLock does not inject into FaceTime. AZ-CLCE detects inconsistency, not intent. ChronoLock is advisory only. The ARK is not a kernel. AZAI hosted /v1 is a protocol mirror + Lamb check, not a paid-key proxy and **not** the local blend. Jeeves is not sovereign. SpectralLock hosted overlay is a 256px preview. EmployeeLock is not a court. FoldLock is not zip. WhistleLock is not a mailer. TrajectoryLock is not a certified forensic instrument. M.I.A.Lock Doe hits are leads, not IDs. Aziel Digital Library is not a 26-card index. AzielTether is not a VPN.
 
@@ -357,6 +364,7 @@ export function runtimeManifest(origin, products, extra = {}) {
     sigil_stamp: "Everblooming",
     user_agent: DEFAULT_UA,
     kv_increment: false,
+    uses: base + "/v1/uses",
     counted_tarball: false,
     ...honesty,
     local_blends: ["azai serve", "forgereceipts ui", "azos ui"],
@@ -389,6 +397,8 @@ export function runtimeManifest(origin, products, extra = {}) {
       openapi: base + "/openapi.json",
       mcp: base + "/mcp",
       health: base + "/v1/health",
+      uses: base + "/v1/uses",
+      stats: base + "/v1/stats",
       llms: base + "/llms.txt",
       ai: base + "/ai.txt",
       sitemap: base + "/sitemap.xml",
@@ -605,7 +615,7 @@ export function markdownResponse(body, extra = {}) {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, HEAD, POST, OPTIONS",
       "Access-Control-Allow-Headers":
-        "Content-Type, Accept, Authorization, X-Aziel-Runtime-Token, MCP-Protocol-Version, mcp-session-id",
+        "Content-Type, Accept, Authorization, X-Aziel-Runtime-Token, X-Aziel-Runtime-Via, X-Aziel-Runtime-Host, MCP-Protocol-Version, mcp-session-id",
       "Access-Control-Expose-Headers": "X-Aziel-Runtime-Version, X-Aziel-Runtime-Role",
       "X-Robots-Tag": "index, follow, max-snippet:-1, max-image-preview:large",
       ...extra,
@@ -703,7 +713,7 @@ export function runtimeStaticPaths() {
     "/v1/skill": {
       get: {
         operationId: "runtime_skill",
-        summary: "Skill markdown: 1.6.2 widened FragGate door. Honest about 1.1.0 / 1.2.0 / 1.3.0 / 1.4.0 / 1.4.1 / 1.5.0 / 1.6.0 / 1.6.1 / 1.6.2.",
+        summary: "Skill markdown: 1.6.3 API use trackers. Honest about 1.1.0 / 1.2.0 / 1.3.0 / 1.4.0 / 1.4.1 / 1.5.0 / 1.6.0 / 1.6.1 / 1.6.2 / 1.6.3.",
         tags: ["runtime"],
         responses: { "200": { description: "text/markdown skill" } },
       },
@@ -849,6 +859,35 @@ export function runtimeStaticPaths() {
           "200": { description: "ResultEnvelope" },
           "400": { description: "Refuse (HALLUC / stub / local_only / gate)" },
         },
+      },
+    },
+    "/v1/uses": {
+      get: {
+        operationId: "runtime_uses",
+        summary:
+          "API use counters + recent ring log (no PII). Does not increment. Distinct from product download-trackers and the FragGate ledger.",
+        tags: ["runtime"],
+        responses: { "200": { description: "Uses JSON: uses, by_host, by_path, by_day, recent" } },
+      },
+      head: {
+        operationId: "runtime_uses_head",
+        summary: "HEAD of /v1/uses. Does not increment.",
+        tags: ["runtime"],
+        responses: { "200": { description: "headers only" } },
+      },
+      post: {
+        operationId: "runtime_uses_post",
+        summary: "Forbidden. Increments are automatic on API traffic. Read with GET /v1/uses.",
+        tags: ["runtime"],
+        responses: { "405": { description: "method not allowed" } },
+      },
+    },
+    "/v1/stats": {
+      get: {
+        operationId: "runtime_stats",
+        summary: "Alias of GET /v1/uses (API use counters). Does not increment.",
+        tags: ["runtime"],
+        responses: { "200": { description: "Uses JSON plus alias_of" } },
       },
     },
   };
