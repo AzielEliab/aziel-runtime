@@ -35,6 +35,7 @@ assert.equal(DOI_KIND_BY_SLUG.whistlelock, "shared_method_paper");
 const slugs = Object.keys(VERSIONS);
 assert.ok(slugs.includes("azieltether"));
 assert.ok(slugs.includes("peacelock"));
+assert.ok(slugs.includes("azmail"));
 assert.ok(slugs.includes("aziel-corpus"));
 
 for (const slug of slugs) {

@@ -79,6 +79,25 @@ assert.ok(registry.bySlug.peacelock.stub_ops.includes("counterfactual"));
 assert.ok(registry.bySlug.peacelock.stub_ops.includes("waive-duty"));
 assert.equal(classifyCall(registry.bySlug.peacelock, "transcript").kind, "stub");
 assert.equal(classifyCall(registry.bySlug.peacelock, "open").kind, "live");
+assert.equal(registry.bySlug.azmail.status, "live");
+assert.ok(registry.bySlug.azmail.status !== "local_only");
+assert.ok(registry.bySlug.azmail.ops.includes("airlock_classify"));
+assert.ok(registry.bySlug.azmail.ops.includes("scrub"));
+assert.ok(registry.bySlug.azmail.ops.includes("trust_score"));
+assert.ok(registry.bySlug.azmail.ops.includes("mesh_post"));
+assert.ok(registry.bySlug.azmail.ops.includes("mesh_poll"));
+assert.ok(registry.bySlug.azmail.ops.includes("mesh_listen"));
+assert.ok(registry.bySlug.azmail.ops.includes("mesh_enable"));
+assert.ok(registry.bySlug.azmail.ops.includes("mesh_disable"));
+assert.ok(registry.bySlug.azmail.ops.includes("keyword_alert_set"));
+assert.ok(registry.bySlug.azmail.ops.includes("keyword_alert_list"));
+assert.ok(registry.bySlug.azmail.ops.includes("keyword_alert_check"));
+assert.ok(!registry.bySlug.azmail.ops.includes("smtp"));
+assert.ok(registry.bySlug.azmail.stub_ops.includes("smtp"));
+assert.ok(registry.bySlug.azmail.stub_ops.includes("deanonymize"));
+assert.ok(registry.bySlug.azmail.stub_ops.includes("harvest"));
+assert.equal(classifyCall(registry.bySlug.azmail, "smtp").kind, "stub");
+assert.equal(classifyCall(registry.bySlug.azmail, "mesh_post").kind, "live");
 assert.ok(registry.bySlug.employeelock.ops.includes("append-preview"));
 assert.ok(registry.bySlug.mialock.ops.includes("doe-match"));
 assert.ok(registry.bySlug.ark.stub_ops.includes("scorch"));
@@ -247,6 +266,26 @@ assert.equal(livePeace.slug, "peacelock");
 assert.ok(livePeace.result && livePeace.result.ok);
 assert.equal(livePeace.result.receipt.transcript, "ABSENT");
 assert.ok(livePeace.engine && livePeace.engine.engine_digest);
+
+const azmailSmtp = await (await post("/v1/fraggate/call", { slug: "azmail", op: "smtp" })).json();
+assert.equal(azmailSmtp.ok, false);
+assert.equal(azmailSmtp.code, "FG-STUB");
+
+const azmailDeanonymize = await (await post("/v1/fraggate/call", { slug: "azmail", op: "deanonymize" })).json();
+assert.equal(azmailDeanonymize.code, "FG-STUB");
+
+const liveAzmail = await (
+  await post("/v1/fraggate/call", {
+    slug: "azmail",
+    op: "airlock_classify",
+    payload: { text: "hello from the anonymous ring" },
+  })
+).json();
+assert.equal(liveAzmail.ok, true, JSON.stringify(liveAzmail));
+assert.equal(liveAzmail.code, "FG-OK");
+assert.equal(liveAzmail.slug, "azmail");
+assert.ok(liveAzmail.ledger_tip);
+assert.ok(liveAzmail.engine && liveAzmail.engine.engine_digest);
 
 const verify = await (await post("/v1/fraggate/verify", { name: "decisiongate" })).json();
 assert.equal(verify.ok, true);

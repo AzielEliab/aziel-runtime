@@ -23,7 +23,7 @@ export function wipeScratch(scratch) {
   scratch.length = 0;
 }
 
-export async function executeLocal({ slug, op, payload, ranIn }) {
+export async function executeLocal({ slug, op, payload, ranIn, env }) {
   const key = String(slug || "").trim().toLowerCase();
   const action = String(op || "").trim();
   const entry = ENGINE_RUNNERS[key];
@@ -36,7 +36,7 @@ export async function executeLocal({ slug, op, payload, ranIn }) {
   let status = 200;
   let error = null;
   try {
-    body = await entry.run(action, payload && typeof payload === "object" ? payload : {}, scratch);
+    body = await entry.run(action, payload && typeof payload === "object" ? payload : {}, scratch, env);
     if (body && body.unsupported) {
       wipeScratch(scratch);
       return { unsupported: true, slug: key, op: action, engine_digest: digest };
