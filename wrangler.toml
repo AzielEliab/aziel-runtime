@@ -118,6 +118,10 @@ binding = "AZIELTETHER"
 service = "azieltether-download-tracker"
 
 [[services]]
+binding = "PEACELOCK"
+service = "peacelock-download-tracker"
+
+[[services]]
 binding = "AZIEL_CORPUS"
 service = "aziel-corpus-download-tracker"
 
@@ -130,7 +134,7 @@ service = "aziel-corpus-download-tracker"
 REQUIRE_TOKEN = "1"
 
 # One Durable Object per session (open → policy → exec → receipt → close).
-# 1.4.0 engines run in this Worker isolate; no new DO class. 1.4.1 / 1.5.0 / 1.6.0 / 1.6.1 / 1.6.2 / 1.6.3 reuse SESSION.
+# 1.4.0 engines run in this Worker isolate; no new DO class. 1.4.1 / 1.5.0 / 1.6.0 / 1.6.1 / 1.6.2 / 1.6.3 / 1.6.4 reuse SESSION.
 [[durable_objects.bindings]]
 name = "SESSION"
 class_name = "RuntimeSession"

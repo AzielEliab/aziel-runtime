@@ -16,6 +16,9 @@ export const CATALOG_ALIASES = {
   "mia-lock": "mialock",
   "mia.lock": "mialock",
   "m.i.a.lock": "mialock",
+  "peace-lock": "peacelock",
+  "pl-wp": "peacelock",
+  "pl-wp-0.1": "peacelock",
 };
 
 /** Package versions from live product Workers / counted /download filenames. */
@@ -46,6 +49,7 @@ export const VERSIONS = {
   trajectorylock: "0.1.0",
   mialock: "0.1.1",
   azieltether: "0.1.0",
+  peacelock: "0.1.0",
   "aziel-corpus": "2.6.2",
 };
 
@@ -112,6 +116,7 @@ export const FIRST_TIME_DEPOSIT_SLUGS = [
   "azbot",
   "mialock",
   "azieltether",
+  "peacelock",
   "aziel-corpus",
 ];
 
