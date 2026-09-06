@@ -126,7 +126,7 @@ assert.ok(folded.b64);
 
 const catalogSlugs = PRODUCTS.map((p) => p.slug).sort();
 assert.deepEqual(trueEngineSlugs(), catalogSlugs);
-assert.equal(catalogSlugs.length, 30);
+assert.equal(catalogSlugs.length, 31);
 for (const slug of catalogSlugs) {
   assert.ok(PRIMARY[slug], `${slug} has a primary-op fixture`);
   const local = await executeLocal({ slug, op: PRIMARY[slug].op, payload: PRIMARY[slug].payload, ranIn: "aziel-runtime" });
