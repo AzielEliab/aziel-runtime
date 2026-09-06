@@ -1,8 +1,8 @@
 {
   "name": "aziel-runtime",
-  "version": "1.6.7",
+  "version": "1.6.8",
   "private": true,
-  "description": "Aziel Eliab Runtime 1.6.7 — FragGate door plus AZBrowser (AZB-1.0, Lamb Lens ethical research browser), AZNet (AZN-WP-0.1), AZMail (APP 1.0), PeaceLock (PL-WP-0.1), and KV-backed API use trackers. Discover, route, refuse. Author: Aziel Eliab.",
+  "description": "Aziel Eliab Runtime 1.6.8 — FragGate door plus AZHub and AZInterface (AIH-WP-1.0, separate engines), AZNet (AZN-WP-0.1), AZBrowser (AZB-1.0, Lamb Lens ethical research browser), AZMail (APP 1.0), PeaceLock (PL-WP-0.1), and KV-backed API use trackers. Discover, route, refuse. Author: Aziel Eliab.",
   "license": "Apache-2.0",
   "type": "module",
   "bin": {
@@ -11,7 +11,7 @@
   },
   "scripts": {
     "mcp": "node cli/mcp-stdio.mjs",
-    "test": "node scripts/hash-engines.mjs && node scripts/verify-cite.mjs && node scripts/verify-seo.mjs && node scripts/verify-runtime.mjs && node scripts/verify-session.mjs && node scripts/verify-engines.mjs && node scripts/verify-production.mjs && node scripts/verify-mcp-stdio.mjs && node scripts/verify-fraggate.mjs && node scripts/verify-uses.mjs && node scripts/verify-peacelock.mjs && node scripts/verify-azmail.mjs && node scripts/verify-azbrowser.mjs && node scripts/verify-aznet.mjs",
+    "test": "node scripts/hash-engines.mjs && node scripts/verify-cite.mjs && node scripts/verify-seo.mjs && node scripts/verify-runtime.mjs && node scripts/verify-session.mjs && node scripts/verify-engines.mjs && node scripts/verify-production.mjs && node scripts/verify-mcp-stdio.mjs && node scripts/verify-fraggate.mjs && node scripts/verify-uses.mjs && node scripts/verify-peacelock.mjs && node scripts/verify-azmail.mjs && node scripts/verify-azbrowser.mjs && node scripts/verify-aznet.mjs && node scripts/verify-azhub.mjs && node scripts/verify-azinterface.mjs",
     "probe:live": "node scripts/probe-live.mjs",
     "demo:session": "bash scripts/demo-session.sh"
   },

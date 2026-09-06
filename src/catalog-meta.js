@@ -29,6 +29,13 @@ export const CATALOG_ALIASES = {
   "az.net": "aznet",
   "azn-wp": "aznet",
   "azn-wp-0.1": "aznet",
+  "az-hub": "azhub",
+  "blank-key": "azhub",
+  blank_key: "azhub",
+  "aih-hub": "azhub",
+  "az-interface": "azinterface",
+  "aih-interface": "azinterface",
+  "page-cycle": "azinterface",
 };
 
 /**
@@ -36,7 +43,7 @@ export const CATALOG_ALIASES = {
  * Software hubs (corpus / godlock.uk / azieleliab) already show its GitHub.
  * catalog.extras[] + catalog.fraggate card the live FragGate Worker app
  * (human UI + counted download) without adding a PRODUCTS true-engine slug.
- * That Worker is not nested in AZBrowser.
+ * That Worker is not nested in AZBrowser / AZHub / AZInterface.
  */
 export const FRAGGATE_GITHUB = "https://github.com/AzielEliab/fraggate";
 export const FRAGGATE_SPEC = "FG-0.1";
@@ -112,6 +119,8 @@ export const VERSIONS = {
   azmail: "0.1.0",
   azbrowser: "0.1.0",
   aznet: "0.1.0",
+  azhub: "0.1.0",
+  azinterface: "0.1.0",
   "aziel-corpus": "2.6.2",
 };
 
@@ -182,6 +191,8 @@ export const FIRST_TIME_DEPOSIT_SLUGS = [
   "azmail",
   "azbrowser",
   "aznet",
+  "azhub",
+  "azinterface",
   "aziel-corpus",
 ];
 
