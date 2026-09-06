@@ -15,8 +15,80 @@ import { canonicalize, sha256Hex } from "../session-core.js";
 import { FRAGGATE_DOOR, FRAGGATE_KERNEL, FRAGGATE_KERNEL_VERSION } from "./codes.js";
 
 /**
+ * Worker UI button names that agents copy into FragGate.
+ * Values are catalog LIVE_OPS. FragGate forwards to the real engine method.
+ * Do not invent unlock / completeness / fake 200s.
+ * Author: Aziel Eliab. Identity is Aziel Eliab only.
+ */
+export const OP_ALIASES = {
+  azhub: {
+    list_modules: "region_list",
+    place: "place_module",
+  },
+  azbrowser: {
+    airlock: "airlock_ingest",
+    home: "health",
+  },
+  azmail: {
+    classify: "airlock_classify",
+  },
+  aznet: {
+    doctor: "health",
+    pair: "pair_status",
+  },
+  peacelock: {
+    doctor: "health",
+  },
+  azinterface: {
+    genesis_boot: "genesis_status",
+    hold: "page_cycle_status",
+  },
+};
+
+export function resolveOpAlias(slug, op) {
+  const requested = String(op || "").trim();
+  const mapped = (OP_ALIASES[slug] || {})[requested];
+  if (mapped) return { requested, op: mapped, aliased: true };
+  return { requested, op: requested, aliased: false };
+}
+
+/**
+ * Name-only stub products. Not catalog Software engines. Not hosted Workers.
+ * Hubs link describe?slug=… instead of inventing a Worker. Separate software;
+ * never a separate FragGate engine.
+ */
+export const NAMED_STUBS = [
+  {
+    name: "EmbryoLock",
+    slug: "embryolock",
+    digest: null,
+    description:
+      "EmbryoLock is stub / local-not-hosted. Name only. Not a hosted Worker. Not a FragGate engine. Author: Aziel Eliab.",
+    note: "stub / local-not-hosted. Hubs may link describe?slug=embryolock. Separate software under the same FragGate door; never a separate FragGate engine. Author: Aziel Eliab only.",
+  },
+];
+
+function namedStubEntry(spec) {
+  return {
+    name: spec.name,
+    slug: spec.slug,
+    digest: spec.digest == null ? null : spec.digest,
+    status: "stub",
+    ops: [],
+    catalog_ops: [],
+    stub_ops: [],
+    description: spec.description,
+    note: spec.note,
+    local_not_hosted: true,
+    engine: false,
+    true_engine_runtime: false,
+  };
+}
+
+/**
  * Ops callable via FragGate on the public runtime.
- * Catalog ops only (plus DecisionGATE evaluate, already hosted). Always
+ * Catalog ops only (plus DecisionGATE evaluate, already hosted), plus
+ * durable UI-name aliases that forward to those catalog ops. Always
  * include health+skill when the product is live. Do not invent ops.
  */
 export const LIVE_OPS = {
@@ -42,7 +114,7 @@ export const LIVE_OPS = {
   spectrallock: ["modes", "overlay", "health", "skill"],
   azbot: ["route", "health", "skill"],
   azieltether: ["verify", "health", "skill"],
-  peacelock: ["open", "seal", "break", "show", "verify", "stamp", "upload_envelope", "health", "skill"],
+  peacelock: ["open", "seal", "break", "show", "verify", "stamp", "upload_envelope", "health", "skill", "doctor"],
   azmail: [
     "airlock_classify",
     "scrub",
@@ -57,6 +129,7 @@ export const LIVE_OPS = {
     "keyword_alert_check",
     "health",
     "skill",
+    "classify",
   ],
   azbrowser: [
     "ethical_search",
@@ -70,6 +143,8 @@ export const LIVE_OPS = {
     "receipt_verify",
     "health",
     "skill",
+    "airlock",
+    "home",
   ],
   aznet: [
     "health",
@@ -81,6 +156,8 @@ export const LIVE_OPS = {
     "memorial_append",
     "receipt_verify",
     "skill",
+    "doctor",
+    "pair",
   ],
   azhub: [
     "health",
@@ -92,6 +169,8 @@ export const LIVE_OPS = {
     "tether_cut",
     "tether_list",
     "blank_key_status",
+    "list_modules",
+    "place",
   ],
   azinterface: [
     "health",
@@ -102,6 +181,8 @@ export const LIVE_OPS = {
     "integrity_check",
     "witness_list",
     "page_cycle_status",
+    "genesis_boot",
+    "hold",
   ],
   vibelock: ["analyze", "health", "skill"],
   ark: ["sweep", "levels", "health", "skill"],
@@ -230,7 +311,15 @@ function statusFor(slug) {
 function publicOps(slug, productOps) {
   if (!LIVE_SLUGS.has(slug)) return [];
   const allow = new Set(LIVE_OPS[slug] || []);
-  return productOps.filter((op) => allow.has(op));
+  const out = productOps.filter((op) => allow.has(op));
+  const seen = new Set(out);
+  for (const alias of Object.keys(OP_ALIASES[slug] || {})) {
+    if (allow.has(alias) && !seen.has(alias)) {
+      out.push(alias);
+      seen.add(alias);
+    }
+  }
+  return out;
 }
 
 export function registryEntry(product) {
@@ -246,6 +335,7 @@ export function registryEntry(product) {
     ops: public_ops,
     catalog_ops: ops,
     stub_ops: (STUB_OPS[slug] || []).slice(),
+    op_aliases: { ...(OP_ALIASES[slug] || {}) },
     description: product.oneLine || product.name,
     note:
       status === "live"
@@ -255,7 +345,7 @@ export function registryEntry(product) {
 }
 
 export function buildRegistry(products) {
-  const entries = (products || []).map((p) => registryEntry(p));
+  const entries = (products || []).map((p) => registryEntry(p)).concat(NAMED_STUBS.map(namedStubEntry));
   const bySlug = Object.fromEntries(entries.map((e) => [e.slug, e]));
   const byName = Object.fromEntries(entries.map((e) => [String(e.name).toLowerCase(), e]));
   const live = entries.filter((e) => e.status === "live");
@@ -299,6 +389,7 @@ export function compactEntries(registry) {
     status: e.status,
     ops: e.ops,
     description: e.description,
+    local_not_hosted: e.local_not_hosted || false,
   }));
 }
 
@@ -311,6 +402,8 @@ export function resolveRegistryName(raw, registry, bySlug) {
   if (registry.byName[key]) return registry.byName[key];
   const aliased = CATALOG_ALIASES[key];
   if (aliased && registry.bySlug[aliased]) return registry.bySlug[aliased];
+  const stubAliased = NAMED_STUBS.find((s) => s.slug === key || String(s.name).toLowerCase() === key);
+  if (stubAliased && registry.bySlug[stubAliased.slug]) return registry.bySlug[stubAliased.slug];
   if (bySlug && bySlug[key] && registry.bySlug[key]) return registry.bySlug[key];
   return null;
 }
@@ -382,12 +475,17 @@ export function classifyCall(entry, op) {
   if (!entry) {
     return { kind: "halluc", status: null };
   }
+  if (entry.status === "stub") {
+    return { kind: "stub", status: "stub" };
+  }
   const stubs = STUB_OPS[entry.slug] || [];
   if (action && stubs.includes(action)) {
     return { kind: "stub", status: "stub" };
   }
-  if (entry.status === "live" && action && (LIVE_OPS[entry.slug] || []).includes(action)) {
-    return { kind: "live", status: "live" };
+  const resolved = resolveOpAlias(entry.slug, action);
+  const live = LIVE_OPS[entry.slug] || [];
+  if (entry.status === "live" && action && (live.includes(action) || live.includes(resolved.op))) {
+    return { kind: "live", status: "live", op: resolved.op, requested: resolved.requested, aliased: resolved.aliased };
   }
   if (entry.status === "live" && action) {
     return { kind: "unknown_op", status: "live" };
@@ -411,6 +509,7 @@ export function registrySummary(registry, digest) {
     product_count: (registry.entries || []).length,
     allowlist: LIVE_OPS,
     live_ops: liveOpList(),
+    op_aliases: OP_ALIASES,
     stub_ops: registry.stub_ops || [],
   };
 }
