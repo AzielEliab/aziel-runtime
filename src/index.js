@@ -1,5 +1,5 @@
 /**
- * aziel-runtime 1.6.2 — FragGate door over sensible advisory engines.
+ * aziel-runtime 1.6.3 — FragGate door + KV-backed API use trackers.
  *
  * 1.1.0 was catalog+proxy that called itself a runtime. Useful front doors.
  * 1.2.0 owned open → policy → exec → receipt → close but exec still proxied.
@@ -19,7 +19,7 @@
  * GET  /ai.txt                same as /llms.txt
  * GET  /cite.json             How-to-cite: Aziel Eliab (aka Aziel Elroi Eliab), Apache-2.0, no invented DOIs
  * GET  /v1/skill              skill markdown (session + front doors)
- * GET  /v1/runtime.json       machine manifest: role=engine-runtime (1.6.2), door=fraggate
+ * GET  /v1/runtime.json       machine manifest: role=engine-runtime (1.6.3), door=fraggate
  * GET  /v1/fraggate           FragGate door summary
  * GET  /v1/fraggate/list      hashed registry
  * GET  /v1/fraggate/describe  one name
@@ -27,7 +27,9 @@
  * POST /v1/fraggate/call      CallEnvelope → DecisionGATE → ResultEnvelope
  * GET  /v1/runtime            alias of /v1/runtime.json
  * GET  /v1/ready              200 if SESSION binding up; 503 if REQUIRE_TOKEN=1 and token missing
- * GET  /v1/health             liveness (version/role match ready)
+ * GET  /v1/health             liveness (version/role match ready); optional uses_total
+ * GET  /v1/uses               API use counters + recent log (no increment, no PII)
+ * GET  /v1/stats              alias of /v1/uses
  * GET  /v1/bundle             compact bootstrap (skill URL + invoke prefix per product)
  * GET  /v1/pull?all=1         alias of /v1/bundle
  * GET  /v1/pull/{slug}        pull record (skill, download, install, ops, aliases)
@@ -45,7 +47,8 @@
  * GET  /v1/health
  * POST /mcp                   JSON-RPC MCP-over-HTTP (initialize, tools/list, tools/call)
  *
- * No download-KV increment. CORS *. Apache-2.0. Forks welcome.
+ * Product download-KV is not incremented here. API uses go to binding USES.
+ * CORS *. Apache-2.0. Forks welcome.
  * Author: Aziel Eliab. Identity is Aziel Eliab only. Do not invent DOIs.
  */
 import {
@@ -123,6 +126,7 @@ import {
   openApiImportSentence,
   tokenAuthSentence,
 } from "./ai-clients.js";
+import { finishWithUse, peekUsesTotal, readUses } from "./uses.js";
 
 export { RuntimeSession };
 
@@ -130,7 +134,7 @@ const CATALOG_HOST = "https://aziel-runtime.vibelock.workers.dev";
 const PROTOCOL = "2025-03-26";
 const CATALOG_TITLE = "Aziel Eliab Runtime";
 const CATALOG_DESCRIPTION =
-  "Aziel Eliab software catalog and engine-runtime: 27 products plus the Aziel Digital Library (www.azielcorpuslibrary.net). 1.6.2 widens the public FragGate door to sensible advisory engines; stub verbs still refuse. 1.6.1 lists every major OpenAPI/MCP/HTTP client — ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants. 1.6.0 FragGate door — discover, route, refuse. Hashed registry, thin MCP, DecisionGATE before exec. 1.5.0 was agent-native flat product tools. Proxy is not exec. Dual surface: agent chat has no technical UI chrome; Worker / Flutter / local install / counted download stay complete human software. Apache-2.0. Author: Aziel Eliab (also known as Aziel Elroi Eliab). Open crawl Allow: / for GPTBot/ChatGPT, Venice, Grok, Google-Extended, GoogleOther, Google-CloudVertexBot, Claude(+Search/User), anthropic-ai, Perplexity(+User), bingbot, Meta-External*, Applebot(+Extended), Amazonbot, DuckDuck/DuckAssist, MistralAI-User, YouBot, CCBot, cohere-ai, Diffbot, AI2Bot(+Dolma), and the rest of robots.txt."
+  "Aziel Eliab software catalog and engine-runtime: 27 products plus the Aziel Digital Library (www.azielcorpuslibrary.net). 1.6.3 adds KV-backed API use trackers (GET /v1/uses) across origin and same-origin /runtime doors. 1.6.2 widens the public FragGate door to sensible advisory engines; stub verbs still refuse. 1.6.1 lists every major OpenAPI/MCP/HTTP client — ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants. 1.6.0 FragGate door — discover, route, refuse. Hashed registry, thin MCP, DecisionGATE before exec. 1.5.0 was agent-native flat product tools. Proxy is not exec. Dual surface: agent chat has no technical UI chrome; Worker / Flutter / local install / counted download stay complete human software. Apache-2.0. Author: Aziel Eliab (also known as Aziel Elroi Eliab). Open crawl Allow: / for GPTBot/ChatGPT, Venice, Grok, Google-Extended, GoogleOther, Google-CloudVertexBot, Claude(+Search/User), anthropic-ai, Perplexity(+User), bingbot, Meta-External*, Applebot(+Extended), Amazonbot, DuckDuck/DuckAssist, MistralAI-User, YouBot, CCBot, cohere-ai, Diffbot, AI2Bot(+Dolma), and the rest of robots.txt."
 const LASTMOD = "2026-09-05";
 
 const PRODUCTS_RAW = [
@@ -535,7 +539,7 @@ function corsHeaders() {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, HEAD, POST, OPTIONS",
     "Access-Control-Allow-Headers":
-      "Content-Type, Accept, Authorization, X-Aziel-Runtime-Token, MCP-Protocol-Version, mcp-session-id",
+      "Content-Type, Accept, Authorization, X-Aziel-Runtime-Token, X-Aziel-Runtime-Via, X-Aziel-Runtime-Host, MCP-Protocol-Version, mcp-session-id",
     "Access-Control-Expose-Headers": `${VERSION_HEADER}, ${ROLE_HEADER}`,
   };
 }
@@ -718,6 +722,7 @@ function sitemapXml(origin) {
     { loc: base + "/ai.txt", priority: "0.8", changefreq: "weekly" },
     { loc: base + "/sitemap-index.xml", priority: "0.85", changefreq: "weekly" },
     { loc: base + "/v1/health", priority: "0.5", changefreq: "daily" },
+    { loc: base + "/v1/uses", priority: "0.6", changefreq: "daily" },
     { loc: base + "/v1/ready", priority: "0.7", changefreq: "daily" },
     { loc: base + "/mcp", priority: "0.6", changefreq: "weekly" },
     { loc: base + "/sigil.png", priority: "0.3", changefreq: "monthly" },
@@ -760,7 +765,7 @@ function llmsTxt(origin) {
     "",
     ...llmsIdentityHeader(),
     `Role: engine-runtime (catalog + pull + proxy + session + in-process engines)`,
-    `Honesty: 1.1.0 was catalog+proxy. 1.2.0 was session/receipt (exec still proxied). 1.3.0 ran listed slugs in-process. 1.4.0 vendors every catalog Software slug. 1.4.1 adds production gates (ready, HEAD, no-store, receipt cap 64, TTL 6h, rate limits, optional token). 1.5.0 was the agent-native cut (flat product-verb MCP). 1.6.0 is the FragGate door (discover, route, refuse). 1.6.1 lists every major OpenAPI/MCP/HTTP client. 1.6.2 widens the public door to sensible advisory engines; stubs still refuse.`,
+    `Honesty: 1.1.0 was catalog+proxy. 1.2.0 was session/receipt (exec still proxied). 1.3.0 ran listed slugs in-process. 1.4.0 vendors every catalog Software slug. 1.4.1 adds production gates (ready, HEAD, no-store, receipt cap 64, TTL 6h, rate limits, optional token). 1.5.0 was the agent-native cut (flat product-verb MCP). 1.6.0 is the FragGate door (discover, route, refuse). 1.6.1 lists every major OpenAPI/MCP/HTTP client. 1.6.2 widens the public door to sensible advisory engines; stubs still refuse. 1.6.3 adds KV-backed API use trackers (GET /v1/uses; no PII).`,
     `True-engine slugs: ${honestyFields(PRODUCTS.map((p) => p.slug)).true_engine_slugs.join(", ")}`,
     `Proxy /p/{slug}/{op} is not exec. Hosted AZAI is not the local blend.`,
     `Local blends: azai serve · forgereceipts ui · azos ui`,
@@ -775,6 +780,7 @@ function llmsTxt(origin) {
     `FragGate: ${base}/v1/fraggate`,
     `Kernel: https://github.com/AzielEliab/fraggate`,
     `MCP: POST ${base}/mcp`,
+    `Uses: ${base}/v1/uses`,
     `Machine catalog: ${base}/v1/catalog.json`,
     `Cite: ${base}/cite.json`,
     `Sitemap: ${base}/sitemap.xml`,
@@ -873,6 +879,7 @@ function citeJson(origin) {
     role: RUNTIME_ROLE,
     layer: RUNTIME_LAYER,
     version: RUNTIME_VERSION,
+    uses: base + "/v1/uses",
     counted_tarball: false,
     proxy_is_not_exec: true,
     ...citeCompatibleFields(),
@@ -1100,7 +1107,7 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
     <p class="stamp">Everblooming sigil · Aziel Eliab</p>
   </div>
   <h1>Aziel Eliab Runtime</h1>
-  <p class="lead"><strong>1.6.2</strong> widens the public FragGate door to sensible advisory engines; stub verbs still refuse. <strong>1.6.1</strong> lists every major OpenAPI / MCP / HTTP client (not only ChatGPT, Grok, and Venice). <strong>1.6.0</strong> is the <strong>FragGate door</strong> over the catalog — one door: discover, route, refuse. <strong>1.5.0</strong> was the agent-native flat product-tool pile. Human software — this Worker UI, Flutter <code>mobile/</code>, local install, counted <code>/download</code> — stays complete. Catalog + pull + proxy + session + <strong>in-process engines</strong> for every catalog Software slug. ${PRODUCTS.length} products including the <a href="${LIBRARY_ORIGIN}/">Aziel Digital Library</a>. Kernel: <a href="https://github.com/AzielEliab/fraggate">fraggate</a>. Forks welcome. Apache-2.0. Author: <strong>Aziel Eliab</strong> (also known as Aziel Elroi Eliab).</p>
+  <p class="lead"><strong>1.6.3</strong> adds KV-backed API use trackers (<a href="${origin}/v1/uses">/v1/uses</a>) so every public host point can keep usage logs. <strong>1.6.2</strong> widens the public FragGate door to sensible advisory engines; stub verbs still refuse. <strong>1.6.1</strong> lists every major OpenAPI / MCP / HTTP client (not only ChatGPT, Grok, and Venice). <strong>1.6.0</strong> is the <strong>FragGate door</strong> over the catalog — one door: discover, route, refuse. <strong>1.5.0</strong> was the agent-native flat product-tool pile. Human software — this Worker UI, Flutter <code>mobile/</code>, local install, counted <code>/download</code> — stays complete. Catalog + pull + proxy + session + <strong>in-process engines</strong> for every catalog Software slug. ${PRODUCTS.length} products including the <a href="${LIBRARY_ORIGIN}/">Aziel Digital Library</a>. Kernel: <a href="https://github.com/AzielEliab/fraggate">fraggate</a>. Forks welcome. Apache-2.0. Author: <strong>Aziel Eliab</strong> (also known as Aziel Elroi Eliab).</p>
   <div class="honesty">
     <strong>What this Worker is</strong>
     <ul>
@@ -1113,6 +1120,7 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
       <li><strong>1.6.0</strong> FragGate door: hashed registry, thin MCP <code>tools/list</code>, <code>fraggate_call</code> is the default exec path, DecisionGATE before exec, ask/refuse ledger. Flat <code>{slug}_{op}</code> names are not listed. Kernel: <a href="https://github.com/AzielEliab/fraggate">github.com/AzielEliab/fraggate</a>.</li>
       <li><strong>1.6.1</strong> lists every major OpenAPI / MCP / HTTP client: ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants. Crawl copy names the robots.txt Allow set (${crawlerAllowSentence()}).</li>
       <li><strong>1.6.2</strong> widens the public FragGate <code>LIVE_OPS</code> door to every catalog Software product that makes sense on a public agent door (advisory / score / classify / gate / search / preview / render / verify / hash / receipt / game / overlay / route / status). VeilLock stays <code>local_only</code>. Stub verbs still refuse. MCP <code>tools/list</code> stays the thin FragGate surface.</li>
+      <li><strong>1.6.3</strong> KV-backed API use trackers: <code>GET /v1/uses</code> (alias <code>/v1/stats</code>). Counts host / method / path / op / day. Ring log (~100) has no Authorization, tokens, bodies, or PII. Distinct from product download-trackers and the FragGate ledger. Proxies may set <code>X-Aziel-Runtime-Via</code> or <code>X-Aziel-Runtime-Host</code> (<code>origin</code>, <code>azieleliab.com</code>, <code>godlock.uk</code>, <code>azielcorpuslibrary.net</code>).</li>
       <li>AZAI in-process is Lamb check only — not the local blend. AZBot is a skill router, not a model. Aziel Digital Library in-process searches a bundled sample MASTER; live D1 stays per-op proxy.</li>
       <li><code>POST /p/{slug}/{op}</code> is a <em>proxy</em>. Proxy without a session receipt is not exec.</li>
       <li>Cloudflare's Worker / Durable Object isolate <em>is</em> the jail. No extra guest isolate is claimed. <code>engine_digest</code> is still required.</li>
@@ -1163,6 +1171,7 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
     <a href="${origin}/robots.txt">/robots.txt</a>
     <a href="${origin}/mcp">MCP (POST JSON-RPC)</a>
     <a href="${origin}/v1/health">/v1/health</a>
+    <a href="${origin}/v1/uses">/v1/uses</a>
     <a href="${origin}/v1/ready">/v1/ready</a>
     <a href="https://www.azielcorpuslibrary.net/runtime">Library /runtime</a>
     <a href="https://github.com/AzielEliab/aziel-runtime">GitHub</a>
@@ -1384,6 +1393,7 @@ async function combinedOpenApi(request, env) {
       version: RUNTIME_VERSION,
       summary: "FragGate door over the Aziel Eliab catalog: discover, route, refuse.",
       description:
+        "1.6.3 adds GET /v1/uses (KV-backed API use counters + ring log; no PII). " +
         "1.6.2 widens the public FragGate door to sensible advisory engines; stub verbs still refuse. " +
         "1.6.1 lists every major OpenAPI / MCP / HTTP client. " +
         "1.6.0 is the FragGate door: hashed registry, thin MCP tools/list, DecisionGATE before exec, ask/refuse ledger. " +
@@ -1588,6 +1598,8 @@ function healthBody(origin) {
     counted_tarball: false,
     openapi: "/openapi.json",
     catalog: "/v1/catalog.json",
+    uses: "/v1/uses",
+    stats: "/v1/stats",
     cite: "/cite.json",
     sitemap: "/sitemap.xml",
     sitemap_index: "/sitemap-index.xml",
@@ -1810,8 +1822,7 @@ async function serveSigil(request, env) {
   return json({ error: "sigil unavailable" }, 502);
 }
 
-export default {
-  async fetch(request, env) {
+async function handleRequest(request, env) {
     const url = new URL(request.url);
     const origin = originOf(request);
     const extra = (path) => linkHeaders(origin, path);
@@ -1930,6 +1941,7 @@ export default {
           skill: origin + "/v1/skill",
           runtime: origin + "/v1/runtime.json",
           ready: origin + "/v1/ready",
+          uses: origin + "/v1/uses",
           session: origin + "/v1/session/open",
           bundle: origin + "/v1/bundle",
           ...honestyFields(PRODUCTS.map((p) => p.slug)),
@@ -1948,11 +1960,32 @@ export default {
       return json(await combinedOpenApi(request, env), 200, extra("/openapi.json"));
     }
 
+    if (url.pathname === "/v1/uses" && request.method === "POST") {
+      return json(
+        { ok: false, error: "method not allowed", hint: "GET /v1/uses — increments are automatic" },
+        405,
+        authorityLinkHeaders(origin, "/v1/uses"),
+      );
+    }
+
+    if (
+      (url.pathname === "/v1/uses" || url.pathname === "/v1/stats") &&
+      (request.method === "GET" || request.method === "HEAD")
+    ) {
+      const uses = await readUses(env);
+      const body =
+        url.pathname === "/v1/stats" ? { ...uses, stats: "uses", alias_of: "/v1/uses" } : uses;
+      return asHead(request, json(body, 200, authorityLinkHeaders(origin, url.pathname)));
+    }
+
     if (url.pathname === "/v1/health" && (request.method === "GET" || request.method === "HEAD")) {
+      const body = healthBody(origin);
+      const usesTotal = await peekUsesTotal(env);
+      if (usesTotal != null) body.uses_total = usesTotal;
       return asHead(
         request,
         json(
-          healthBody(origin),
+          body,
           200,
           authorityLinkHeaders(origin, "/v1/health"),
         ),
@@ -2019,9 +2052,15 @@ export default {
     return json(
       {
         error: "not found",
-        hint: "POST /v1/fraggate/call  GET /v1/fraggate  GET /v1/skill  POST /v1/session/open  POST /v1/session/{id}/exec  GET /v1/ready  GET /v1/runtime.json  GET /v1/bundle  GET /v1/pull/{slug}  GET /v1/catalog.json  GET /openapi.json  POST /p/{product}/{op} (proxy, not exec)  POST /mcp",
+        hint: "POST /v1/fraggate/call  GET /v1/fraggate  GET /v1/skill  POST /v1/session/open  POST /v1/session/{id}/exec  GET /v1/ready  GET /v1/uses  GET /v1/runtime.json  GET /v1/bundle  GET /v1/pull/{slug}  GET /v1/catalog.json  GET /openapi.json  POST /p/{product}/{op} (proxy, not exec)  POST /mcp",
       },
       404,
     );
+}
+
+export default {
+  async fetch(request, env, ctx) {
+    const response = await handleRequest(request, env);
+    return finishWithUse(request, env, ctx, response);
   },
 };

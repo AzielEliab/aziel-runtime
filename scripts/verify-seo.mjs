@@ -198,6 +198,7 @@ assert.match(llms, /plus other MCP\/OpenAPI-capable assistants/);
 assert.match(llms, /GPTBot\/ChatGPT/);
 assert.match(llms, /Google-CloudVertexBot/);
 assert.match(llms, /Baiduspider\*/);
+assert.match(llms, /\/v1\/uses/);
 assert.doesNotMatch(llms, /10\.5281\/zenodo\.XXXX/);
 
 const aiRes = await get("/ai.txt");
@@ -214,6 +215,7 @@ assert.equal(cite.identity, AUTHOR_NAME);
 assert.equal(cite.aka, AUTHOR_ALTERNATE_NAME);
 assert.equal(cite.alternateName, AUTHOR_ALTERNATE_NAME);
 assert.match(cite.how_to_cite, /Eliab, Aziel/);
+assert.match(cite.uses, /\/v1\/uses/);
 assert.match(cite.library_how_to_cite, /Aziel Digital Library/);
 assert.equal(cite.library, "https://www.azielcorpuslibrary.net/");
 assert.ok(cite.products.length === PRODUCTS.length);

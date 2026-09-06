@@ -44,10 +44,18 @@ const health = await fetchJson("/v1/health");
 const runtime = await fetchJson("/v1/runtime.json");
 const catalog = await fetchJson("/v1/catalog.json");
 const ready = await fetchJson("/v1/ready");
+const uses = await fetchJson("/v1/uses");
 
 if (health.res.status !== 200) fail(`/v1/health HTTP ${health.res.status}`);
 if (runtime.res.status !== 200) fail(`/v1/runtime.json HTTP ${runtime.res.status}`);
 if (catalog.res.status !== 200) fail(`/v1/catalog.json HTTP ${catalog.res.status}`);
+if (uses.res.status !== 200) fail(`/v1/uses HTTP ${uses.res.status}`);
+if (!uses.body || uses.body.ok !== true || uses.body.product !== "aziel-runtime" || uses.body.author !== "Aziel Eliab") {
+  fail("/v1/uses missing ok/product/author");
+}
+if (typeof uses.body.uses !== "number" || !uses.body.by_host || !uses.body.by_path || !Array.isArray(uses.body.recent)) {
+  fail("/v1/uses shape: expected uses, by_host, by_path, recent");
+}
 
 const hv = health.body && health.body.version;
 const rv = runtime.body && runtime.body.version;
@@ -74,7 +82,7 @@ if (expectReady != null) {
   if (expectReady === 200 && ready.body && ready.body.ok !== true) fail("/v1/ready 200 but ok !== true");
 }
 
-for (const path of ["/v1/health", "/v1/ready", "/v1/runtime.json", "/v1/runtime", "/v1/skill"]) {
+for (const path of ["/v1/health", "/v1/ready", "/v1/runtime.json", "/v1/runtime", "/v1/skill", "/v1/uses"]) {
   const { res } = await fetchHead(path);
   if (path === "/v1/ready" && expectReady != null && res.status !== expectReady) {
     fail(`HEAD ${path} HTTP ${res.status} (expected ${expectReady})`);
