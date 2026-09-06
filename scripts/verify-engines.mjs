@@ -81,6 +81,7 @@ const PRIMARY = {
   mialock: { op: "doe-match", payload: { mode: "doe_cold", name: "Christina Green", jurisdiction: "Illinois", age_band: "20-30", sex: "female" } },
   azieltether: { op: "verify", payload: {} },
   peacelock: { op: "open", payload: { scope: "silence", subject: "chamber-1" } },
+  azmail: { op: "airlock_classify", payload: { text: "hello from the anonymous ring" } },
   "aziel-corpus": { op: "search", payload: { q: "Florence" } },
 };
 
@@ -123,7 +124,7 @@ assert.ok(folded.b64);
 
 const catalogSlugs = PRODUCTS.map((p) => p.slug).sort();
 assert.deepEqual(trueEngineSlugs(), catalogSlugs);
-assert.equal(catalogSlugs.length, 28);
+assert.equal(catalogSlugs.length, 29);
 for (const slug of catalogSlugs) {
   assert.ok(PRIMARY[slug], `${slug} has a primary-op fixture`);
   const local = await executeLocal({ slug, op: PRIMARY[slug].op, payload: PRIMARY[slug].payload, ranIn: "aziel-runtime" });

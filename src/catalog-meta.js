@@ -19,6 +19,9 @@ export const CATALOG_ALIASES = {
   "peace-lock": "peacelock",
   "pl-wp": "peacelock",
   "pl-wp-0.1": "peacelock",
+  "az-mail": "azmail",
+  "app-1.0": "azmail",
+  "app-1": "azmail",
 };
 
 /** Package versions from live product Workers / counted /download filenames. */
@@ -50,6 +53,7 @@ export const VERSIONS = {
   mialock: "0.1.1",
   azieltether: "0.1.0",
   peacelock: "0.1.0",
+  azmail: "0.1.0",
   "aziel-corpus": "2.6.2",
 };
 
@@ -117,6 +121,7 @@ export const FIRST_TIME_DEPOSIT_SLUGS = [
   "mialock",
   "azieltether",
   "peacelock",
+  "azmail",
   "aziel-corpus",
 ];
 

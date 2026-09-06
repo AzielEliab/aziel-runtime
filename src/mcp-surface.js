@@ -52,13 +52,15 @@ export function mcpInitializeInstructions() {
     "runtime_run, runtime_session_*, raw *_health, and runtime_manifest are advanced/internal. " +
     "Do not call flat {slug}_{op} names — they are not in tools/list. Unknown names refuse FG-HALLUC-TOOL. " +
     "HTTP /p/{slug}/{op} is a proxy and is not exec. " +
+    "1.6.5 adds AZMail (APP 1.0) as a FragGate-live engine — anonymous mesh default off, advisory airlock; SMTP/deanonymize stay stub. " +
+    "AZMail is reached only via fraggate_call / POST /v1/fraggate/call (flat leftover names still map through FragGate; not a side door). " +
     "1.6.4 adds PeaceLock (PL-WP-0.1) as a true in-process engine. " +
     "1.6.3 adds KV-backed API use trackers (GET /v1/uses). " +
     "1.6.2 widens the public door to sensible advisory engines; stubs still refuse. " +
     "1.6.0 is the FragGate door cut on in-process engines. 1.5.0 was agent-native flat product tools. " +
     "Kernel: https://github.com/AzielEliab/fraggate (FG-0.1). " +
     "Every catalog slug is a true engine. Cloudflare isolate is the jail. engine_digest is required. " +
-    "Hosted AZAI is protocol mirror + Lamb check, not the blend. Mesh is not claimed on this public surface. " +
+    "Hosted AZAI is protocol mirror + Lamb check, not the blend. VPN/hop mesh is not claimed on this public surface. AZMail anonymous ring is FragGate LIVE_OPS only (default off; not SMTP). " +
     "Compatible clients: ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants. " +
     "Always send User-Agent Mozilla/5.0. Public, no OAuth. Author: Aziel Eliab only."
   );
@@ -339,7 +341,7 @@ export async function callRuntimeRun(env, args, origin, deps) {
   };
 }
 
-export async function callFraggateTool(name, args, products, bySlug) {
+export async function callFraggateTool(name, args, products, bySlug, env) {
   const registry = registryFor(products);
   if (name === "fraggate_list") {
     return wrapFraggateEnvelope(name, await listRegistry(registry), null, "list");
@@ -351,17 +353,17 @@ export async function callFraggateTool(name, args, products, bySlug) {
     return wrapFraggateEnvelope(name, await verifyRegistry(args, registry, bySlug), null, "verify");
   }
   if (name === "fraggate_call") {
-    const body = await fraggateCall(args, registry, bySlug);
+    const body = await fraggateCall(args, registry, bySlug, env);
     const product = body.slug && bySlug ? bySlug[body.slug] : null;
     return wrapFraggateEnvelope(name, body, product, body.op);
   }
   if (name === "library_lookup") {
-    const body = await libraryLookup(args);
+    const body = await libraryLookup(args, env);
     const product = bySlug && bySlug["aziel-corpus"];
     return wrapFraggateEnvelope(name, body, product, body.op || "search");
   }
   if (name === "decisiongate_check") {
-    const body = await namedDecisiongateCheck(args);
+    const body = await namedDecisiongateCheck(args, env);
     const product = bySlug && bySlug.decisiongate;
     return wrapFraggateEnvelope(name, body, product, "check");
   }
