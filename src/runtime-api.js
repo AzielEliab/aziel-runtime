@@ -11,7 +11,7 @@
  * 1.6.2 widens the public FragGate LIVE_OPS door to sensible advisory engines.
  * 1.6.3 adds KV-backed API use trackers (GET /v1/uses). Distinct from download KV.
  * 1.6.4 adds PeaceLock (PL-WP-0.1) as a true in-process engine.
- * 1.6.10 sets AZBrowser / AZNet catalog one_line to separate software (not engine).
+ * 1.6.10 sets AZBrowser and AZNet catalog one_line to separate software (not engine).
  * 1.6.9 frames AZHub and AZInterface as sibling softwares under the same FragGate door.
  * 1.6.8 adds AZHub and AZInterface as two separate softwares under the same FragGate door (AIH-WP-1.0).
  * 1.6.7 adds AZNet (AZN-WP-0.1) as a FragGate-live engine (silent verification side-net).
@@ -126,7 +126,7 @@ description: >-
   registry, DecisionGATE before exec, ask/refuse ledger. Dual surface —
   agent/MCP has no technical UI chrome; Worker UI, Flutter mobile/, local
   install, and counted /download stay complete human software. 1.6.10 sets
-  AZBrowser / AZNet catalog one_line to separate software (not engine). 1.6.9 frames
+  AZBrowser and AZNet catalog one_line to separate software (not engine). 1.6.9 frames
   AZHub, AZInterface, AZBrowser, and AZNet as separate softwares under the same FragGate door. 1.6.8 adds
   AZHub and AZInterface as two separate softwares under the same FragGate door (AIH-WP-1.0). 1.6.7 adds
   AZNet (AZN-WP-0.1) as a FragGate-live engine (silent verification side-net).
