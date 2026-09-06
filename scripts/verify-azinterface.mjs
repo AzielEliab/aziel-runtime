@@ -353,6 +353,8 @@ assert.doesNotMatch(home, /AZHub \/ AZInterface/);
 assert.match(home, /pre-locked/);
 assert.match(home, /data-op="page_cycle_status"/);
 assert.match(home, /data-op="genesis_status"/);
+assert.match(home, /data-op="genesis_boot"/);
+assert.match(home, /data-op="hold"/);
 assert.match(home, /data-slug="azhub"/);
 
 const uses = await (await handler(new Request(origin + "/v1/uses"), env)).json();

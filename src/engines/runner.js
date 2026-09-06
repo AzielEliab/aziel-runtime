@@ -4,6 +4,7 @@
  * Author: Aziel Eliab.
  */
 import { digestText } from "../session-core.js";
+import { resolveOpAlias } from "../fraggate/registry.js";
 import { embeddedDigest, ENGINE_RUNNERS, isTrueEngineSlug } from "./registry.js";
 
 export function wipeScratch(scratch) {
@@ -25,7 +26,7 @@ export function wipeScratch(scratch) {
 
 export async function executeLocal({ slug, op, payload, ranIn, env }) {
   const key = String(slug || "").trim().toLowerCase();
-  const action = String(op || "").trim();
+  const action = resolveOpAlias(key, String(op || "").trim()).op;
   const entry = ENGINE_RUNNERS[key];
   if (!entry) return null;
 

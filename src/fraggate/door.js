@@ -31,6 +31,7 @@ import {
   parseTarget,
   registryDigest,
   registrySummary,
+  resolveOpAlias,
 } from "./registry.js";
 
 export function defaultClaim(slug, op) {
@@ -39,7 +40,7 @@ export function defaultClaim(slug, op) {
   return {
     statement: `Execute the public FragGate allowlisted ${name} ${verb} operation inside the aziel-runtime Worker isolate without incrementing download counters or claiming a mesh hop.`,
     evidence: [
-      `${name} ${verb} is on the aziel-runtime 1.6.10 FragGate public allowlist.`,
+      `${name} ${verb} is on the aziel-runtime 1.6.11 FragGate public allowlist.`,
       "Cloudflare Worker isolate is the jail. engine_digest is required.",
     ],
     impact_pos: ["The agent receives a typed ResultEnvelope and display-ready output."],
@@ -154,7 +155,9 @@ export async function describeRegistry(args, registry, bySlug) {
     note: e.note,
     live: e.status === "live",
     local_only: e.status === "local_only",
-    stub: false,
+    stub: e.status === "stub",
+    local_not_hosted: Boolean(e.local_not_hosted) || e.status === "stub",
+    op_aliases: e.op_aliases || {},
   };
 }
 
@@ -309,9 +312,10 @@ export async function fraggateCall(args, registry, bySlug, env) {
   const { target, gate } = admission;
   const src = args && typeof args === "object" ? args : {};
   const payload = src.payload !== undefined ? src.payload : payloadWithoutMeta(src);
+  const resolved = resolveOpAlias(target.entry.slug, target.op);
   const local = await executeLocal({
     slug: target.entry.slug,
-    op: target.op,
+    op: resolved.op,
     payload,
     ranIn: "aziel-runtime",
     env,
@@ -336,7 +340,7 @@ export async function fraggateCall(args, registry, bySlug, env) {
     parsed = { text: local.responseText };
   }
 
-  return accept({
+  const accepted = await accept({
     name: target.entry.name,
     slug: target.entry.slug,
     op: target.op,
@@ -350,6 +354,11 @@ export async function fraggateCall(args, registry, bySlug, env) {
       status: local.status,
     },
   });
+  if (resolved.aliased) {
+    accepted.canonical_op = resolved.op;
+    accepted.aliased = true;
+  }
+  return accepted;
 }
 
 function payloadWithoutMeta(src) {

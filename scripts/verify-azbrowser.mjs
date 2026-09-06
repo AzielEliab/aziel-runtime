@@ -468,6 +468,8 @@ assert.doesNotMatch(home, /AZBrowser \/ AZNet/);
 assert.match(home, /Lamb Lens ethical research browser/);
 assert.match(home, /data-op="ethical_search"/);
 assert.match(home, /data-op="navigate"/);
+assert.match(home, /data-op="airlock"/);
+assert.match(home, /data-op="home"/);
 assert.match(home, /\/v1\/fraggate\/call/);
 assert.match(home, /catalog extras/);
 assert.match(home, /github.com\/AzielEliab\/fraggate/);

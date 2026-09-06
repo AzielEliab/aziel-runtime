@@ -326,6 +326,8 @@ assert.doesNotMatch(home, /AZHub \/ AZInterface/);
 assert.match(home, /Blank Key/);
 assert.match(home, /data-op="blank_key_status"/);
 assert.match(home, /data-op="region_list"/);
+assert.match(home, /data-op="list_modules"/);
+assert.match(home, /data-op="place"/);
 assert.match(home, /data-slug="azinterface"/);
 
 const uses = await (await handler(new Request(origin + "/v1/uses"), env)).json();
