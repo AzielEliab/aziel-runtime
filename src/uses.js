@@ -26,7 +26,15 @@ const SKIP_SEO = new Set([
   "/favicon.ico",
 ]);
 
-const SKIP_GET_READS = new Set(["/v1/health", "/v1/ready", "/v1/uses", "/v1/stats"]);
+const SKIP_GET_READS = new Set([
+  "/v1/health",
+  "/v1/ready",
+  "/v1/uses",
+  "/v1/stats",
+  "/v1/mesh",
+  "/v1/mesh/status",
+  "/v1/mesh/nodes",
+]);
 
 const HOST_ALIASES = {
   origin: "origin",
@@ -111,6 +119,14 @@ export function inferProductOp(pathname) {
   }
   if (path === "/v1/update/check") return { op: "runtime.update_check" };
   if (path === "/v1/update/manifest") return { op: "runtime.update_manifest" };
+  if (path === "/v1/mesh" || path === "/v1/mesh/status") return { op: "mesh.status" };
+  if (path === "/v1/mesh/nodes") return { op: "mesh.nodes" };
+  if (path === "/v1/mesh/enable") return { op: "mesh.enable" };
+  if (path === "/v1/mesh/disable") return { op: "mesh.disable" };
+  if (path === "/v1/mesh/join") return { op: "mesh.join" };
+  if (path === "/v1/mesh/heartbeat") return { op: "mesh.heartbeat" };
+  if (path === "/v1/mesh/leave") return { op: "mesh.leave" };
+  if (path === "/v1/mesh/broadcast") return { op: "mesh.broadcast" };
   if (path === "/mcp") return { op: "mcp" };
   return {};
 }

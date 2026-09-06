@@ -15,7 +15,7 @@ export const FRAGGATE_KERNEL = "https://github.com/AzielEliab/fraggate";
 export const FRAGGATE_KERNEL_VERSION = "FG-0.1";
 export const FRAGGATE_DOOR = "fraggate";
 
-export const PUBLIC_MCP_TOOL_MAX = 20;
+export const PUBLIC_MCP_TOOL_MAX = 28;
 
 export const PUBLIC_DOOR_TOOLS = [
   "runtime_skill",

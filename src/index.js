@@ -1,5 +1,5 @@
 /**
- * aziel-runtime 1.6.12 — live software catalog + client update check + GitHub auto-deploy + FragGate door + UI-op aliases + EmbryoLock name-only stub + AZHub + AZInterface + AZNet + AZBrowser + AZMail + PeaceLock + KV-backed API use trackers.
+ * aziel-runtime 1.6.13 — suite node mesh kernel (default OFF) + live software catalog + client update check + GitHub auto-deploy + FragGate door + UI-op aliases + EmbryoLock name-only stub + AZHub + AZInterface + AZNet + AZBrowser + AZMail + PeaceLock + KV-backed API use trackers.
  *
  * 1.1.0 was catalog+proxy that called itself a runtime. Useful front doors.
  * 1.2.0 owned open → policy → exec → receipt → close but exec still proxied.
@@ -19,7 +19,7 @@
  * GET  /ai.txt                same as /llms.txt
  * GET  /cite.json             How-to-cite: Aziel Eliab (aka Aziel Elroi Eliab), Apache-2.0, no invented DOIs
  * GET  /v1/skill              skill markdown (session + front doors)
- * GET  /v1/runtime.json       machine manifest: role=engine-runtime (1.6.12), door=fraggate
+ * GET  /v1/runtime.json       machine manifest: role=engine-runtime (1.6.13), door=fraggate
  * GET  /v1/fraggate           FragGate door summary
  * GET  /v1/fraggate/list      hashed registry
  * GET  /v1/fraggate/describe  one name
@@ -30,6 +30,12 @@
  * GET  /v1/health             liveness (version/role match ready); optional uses_total
  * GET  /v1/uses               API use counters + recent log (no increment, no PII)
  * GET  /v1/stats              alias of /v1/uses
+ * GET  /v1/mesh               suite node mesh status (default OFF)
+ * GET  /v1/mesh/status        alias of /v1/mesh
+ * POST /v1/mesh/enable|disable  global kill switch
+ * POST /v1/mesh/join|heartbeat|leave
+ * GET  /v1/mesh/nodes         live nodes (5-minute presence)
+ * POST /v1/mesh/broadcast     SHA-256 hash receipt only (no video bytes)
  * GET  /v1/bundle             compact bootstrap (skill URL + invoke prefix per product)
  * GET  /v1/pull?all=1         alias of /v1/bundle
  * GET  /v1/pull/{slug}        pull record (skill, download, install, ops, aliases)
@@ -85,6 +91,7 @@ import {
   runtimeStaticPaths,
 } from "./runtime-api.js";
 import { honestyFields } from "./engines/registry.js";
+import { dispatchMeshHttp } from "./mesh.js";
 import { RuntimeSession } from "./session-do.js";
 import { callSessionTool, handleSessionRequest, sessionMcpTools } from "./session-http.js";
 import {
@@ -150,7 +157,7 @@ const CATALOG_HOST = "https://aziel-runtime.vibelock.workers.dev";
 const PROTOCOL = "2025-03-26";
 const CATALOG_TITLE = "Aziel Eliab Runtime";
 const CATALOG_DESCRIPTION =
-  "Aziel Eliab software catalog and engine-runtime: 33 products including AZHub (AIH-WP-1.0), AZInterface (AIH-WP-1.0), AZNet (AZN-WP-0.1), AZBrowser (AZB-1.0), AZMail (APP 1.0), PeaceLock (PL-WP-0.1) and the Aziel Digital Library (www.azielcorpuslibrary.net). 1.6.12 adds GET /v1/software (hub Software-tab catalog; Plain→Gate→Lock + EmbryoLock stub) and GET /v1/update/check for install.sh / local UIs / mobile. 1.6.11 adds a durable FragGate UI-op alias map (Worker button names resolve to catalog ops) and names EmbryoLock as stub / local-not-hosted (not a FragGate engine). 1.6.8 adds AZHub and AZInterface as two separate softwares under the same FragGate door (Blank Key + custodial page cycles; never one combined product; not nested in AZBrowser, AZNet, or each other). 1.6.9 frames them as sibling products on that same door. 1.6.10 sets AZBrowser and AZNet catalog one_line to separate software (not engine). 1.6.7 adds AZNet as a separate FragGate-live product (own Worker aznet-download-tracker, own UI; silent verification side-net; hash garden + memorial; never hosts payloads; AZBrowser pair_token + pair_flag required for garden/stamp/memorial — functional order only, do not merge UIs). 1.6.6 adds AZBrowser as a FragGate-live engine (Lamb Lens ethical search + advisory navigate; cite; refuse harmful harvest; never invent visit results; not Chromium; tor_exit/phoenix_wipe stub). MCP fraggate_list / fraggate_call and Worker UI buttons share that same LIVE_OPS.azbrowser backend. 1.6.5 adds AZMail as a FragGate-live engine (anonymous MCP mesh default off + advisory airlock; not a full internet MTA; SMTP/deanonymize stub). 1.6.4 adds PeaceLock as a true in-process engine (chosen silence / chosen inaction receipts; HARD_DUTY refuse; ABSENT transcript/counterfactual/motive). 1.6.3 adds KV-backed API use trackers (GET /v1/uses) across origin and same-origin /runtime doors. 1.6.2 widens the public FragGate door to sensible advisory engines; stub verbs still refuse. 1.6.1 lists every major OpenAPI/MCP/HTTP client — ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants. 1.6.0 FragGate door — discover, route, refuse. Hashed registry, thin MCP, DecisionGATE before exec. 1.5.0 was agent-native flat product tools. Proxy is not exec. Dual surface: agent chat has no technical UI chrome; Worker / Flutter / local install / counted download stay complete human software. Apache-2.0. Author: Aziel Eliab (also known as Aziel Elroi Eliab). Open crawl Allow: / for GPTBot/ChatGPT, Venice, Grok, Google-Extended, GoogleOther, Google-CloudVertexBot, Claude(+Search/User), anthropic-ai, Perplexity(+User), bingbot, Meta-External*, Applebot(+Extended), Amazonbot, DuckDuck/DuckAssist, MistralAI-User, YouBot, CCBot, cohere-ai, Diffbot, AI2Bot(+Dolma), and the rest of robots.txt."
+  "Aziel Eliab software catalog and engine-runtime: 33 products including AZHub (AIH-WP-1.0), AZInterface (AIH-WP-1.0), AZNet (AZN-WP-0.1), AZBrowser (AZB-1.0), AZMail (APP 1.0), PeaceLock (PL-WP-0.1) and the Aziel Digital Library (www.azielcorpuslibrary.net). 1.6.13 adds the suite node mesh kernel (GET /v1/mesh; MCP mesh_*; FragGate slug=mesh; default OFF; not AnonBroadcast as a Softwares-tab product). 1.6.12 adds GET /v1/software (hub Software-tab catalog; Plain→Gate→Lock + EmbryoLock stub) and GET /v1/update/check for install.sh / local UIs / mobile. 1.6.11 adds a durable FragGate UI-op alias map (Worker button names resolve to catalog ops) and names EmbryoLock as stub / local-not-hosted (not a FragGate engine). 1.6.8 adds AZHub and AZInterface as two separate softwares under the same FragGate door (Blank Key + custodial page cycles; never one combined product; not nested in AZBrowser, AZNet, or each other). 1.6.9 frames them as sibling products on that same door. 1.6.10 sets AZBrowser and AZNet catalog one_line to separate software (not engine). 1.6.7 adds AZNet as a separate FragGate-live product (own Worker aznet-download-tracker, own UI; silent verification side-net; hash garden + memorial; never hosts payloads; AZBrowser pair_token + pair_flag required for garden/stamp/memorial — functional order only, do not merge UIs). 1.6.6 adds AZBrowser as a FragGate-live engine (Lamb Lens ethical search + advisory navigate; cite; refuse harmful harvest; never invent visit results; not Chromium; tor_exit/phoenix_wipe stub). MCP fraggate_list / fraggate_call and Worker UI buttons share that same LIVE_OPS.azbrowser backend. 1.6.5 adds AZMail as a FragGate-live engine (anonymous MCP mesh default off + advisory airlock; not a full internet MTA; SMTP/deanonymize stub). 1.6.4 adds PeaceLock as a true in-process engine (chosen silence / chosen inaction receipts; HARD_DUTY refuse; ABSENT transcript/counterfactual/motive). 1.6.3 adds KV-backed API use trackers (GET /v1/uses) across origin and same-origin /runtime doors. 1.6.2 widens the public FragGate door to sensible advisory engines; stub verbs still refuse. 1.6.1 lists every major OpenAPI/MCP/HTTP client — ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants. 1.6.0 FragGate door — discover, route, refuse. Hashed registry, thin MCP, DecisionGATE before exec. 1.5.0 was agent-native flat product tools. Proxy is not exec. Dual surface: agent chat has no technical UI chrome; Worker / Flutter / local install / counted download stay complete human software. Apache-2.0. Author: Aziel Eliab (also known as Aziel Elroi Eliab). Open crawl Allow: / for GPTBot/ChatGPT, Venice, Grok, Google-Extended, GoogleOther, Google-CloudVertexBot, Claude(+Search/User), anthropic-ai, Perplexity(+User), bingbot, Meta-External*, Applebot(+Extended), Amazonbot, DuckDuck/DuckAssist, MistralAI-User, YouBot, CCBot, cohere-ai, Diffbot, AI2Bot(+Dolma), and the rest of robots.txt."
 const LASTMOD = "2026-09-06";
 
 const PRODUCTS_RAW = [
@@ -897,6 +904,9 @@ function sitemapXml(origin) {
     { loc: base + "/sitemap-index.xml", priority: "0.85", changefreq: "weekly" },
     { loc: base + "/v1/health", priority: "0.5", changefreq: "daily" },
     { loc: base + "/v1/uses", priority: "0.6", changefreq: "daily" },
+    { loc: base + "/v1/mesh", priority: "0.7", changefreq: "daily" },
+    { loc: base + "/v1/mesh/status", priority: "0.65", changefreq: "daily" },
+    { loc: base + "/v1/mesh/nodes", priority: "0.65", changefreq: "daily" },
     { loc: base + "/v1/ready", priority: "0.7", changefreq: "daily" },
     { loc: base + "/mcp", priority: "0.6", changefreq: "weekly" },
     { loc: base + "/sigil.png", priority: "0.3", changefreq: "monthly" },
@@ -1412,7 +1422,7 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
     <p class="stamp">Everblooming sigil · Aziel Eliab</p>
   </div>
   <h1>Aziel Eliab Runtime</h1>
-  <p class="lead"><strong>1.6.12</strong> publishes the authoritative hub catalog at <code>GET /v1/software</code> (mirror <code>/v1/fraggate/software</code>) — every product plus EmbryoLock stub, sorted Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock) — plus <code>GET /v1/update/check</code> for install.sh / local UIs / mobile. <strong>1.6.11</strong> adds a durable FragGate <strong>UI-op alias map</strong> so Worker button names agents copy resolve to catalog LIVE_OPS (forward to the real engine method). EmbryoLock is named <strong>stub / local-not-hosted</strong> (describe?slug=embryolock; not a Worker; not a FragGate engine). <strong>1.6.10</strong> sets AZBrowser and AZNet catalog one_line to <strong>separate software</strong> (not engine). <strong>1.6.9</strong> frames <strong>AZHub</strong> and <strong>AZInterface</strong> as sibling softwares under the same FragGate door. <strong>1.6.8</strong> added <strong>AZHub</strong> (AIH-WP-1.0, Blank Key) and <strong>AZInterface</strong> (AIH-WP-1.0, custodial page cycles) as two separate softwares under the same FragGate door — never one combined product, never nested in AZBrowser or AZNet. Reached only via <code>POST /v1/fraggate/call</code> with <code>{ slug: "azhub", op }</code> or <code>{ slug: "azinterface", op }</code>. <strong>1.6.7</strong> adds <strong>AZNet</strong> (AZN-WP-0.1) as a separate FragGate-live product — own Worker <code>aznet-download-tracker</code>, own UI. Silent verification side-net: hash stamps, custodian garden of hash refs, memorial ledger, integrity refuse/isolate. Never hosts payloads. Garden / stamp / memorial ops require AZBrowser <code>pair_token</code> AND <code>pair_flag</code> (functional order only — do not nest inside AZBrowser chrome). Reached only via <code>POST /v1/fraggate/call</code> with <code>{ slug: "aznet", op }</code>. <strong>1.6.6</strong> adds <strong>AZBrowser</strong> (AZB-1.0) as a FragGate-live engine — Lamb Lens ethical research browser. Cite; refuse harmful harvest; never invent visit results. Not Chromium. Reached only via <code>POST /v1/fraggate/call</code> with <code>{ slug: "azbrowser", op }</code>. MCP <code>fraggate_list</code> / <code>fraggate_call</code> and the Worker UI buttons on this page share that same <code>LIVE_OPS.azbrowser</code> backend. <strong>1.6.5</strong> adds <strong>AZMail</strong> (APP 1.0) as a FragGate-live engine — anonymous MCP mesh (default off) + advisory airlock. Not a full internet MTA. Reached only via <code>POST /v1/fraggate/call</code> with <code>{ slug: "azmail", op }</code> (host <code>/runtime</code> proxies that same door). <strong>1.6.4</strong> adds <strong>PeaceLock</strong> (PL-WP-0.1) as a true in-process engine — chosen silence / chosen inaction receipts, HARD_DUTY refuse, ABSENT transcript/counterfactual/motive. <strong>1.6.3</strong> adds KV-backed API use trackers (<a href="${origin}/v1/uses">/v1/uses</a>) so every public host point can keep usage logs. <strong>1.6.2</strong> widens the public FragGate door to sensible advisory engines; stub verbs still refuse. <strong>1.6.1</strong> lists every major OpenAPI / MCP / HTTP client (not only ChatGPT, Grok, and Venice). <strong>1.6.0</strong> is the <strong>FragGate door</strong> over the catalog — one door: discover, route, refuse. <strong>1.5.0</strong> was the agent-native flat product-tool pile. Human software — this Worker UI, Flutter <code>mobile/</code>, local install, counted <code>/download</code> — stays complete. Catalog + pull + proxy + session + <strong>in-process engines</strong> for every catalog Software slug. ${PRODUCTS.length} products including the <a href="${LIBRARY_ORIGIN}/">Aziel Digital Library</a>. Kernel: <a href="https://github.com/AzielEliab/fraggate">fraggate</a>. Forks welcome. Apache-2.0. Author: <strong>Aziel Eliab</strong> (also known as Aziel Elroi Eliab).</p>
+  <p class="lead"><strong>1.6.13</strong> wires the suite-wide <strong>node mesh</strong> kernel — <code>GET /v1/mesh</code>, MCP <code>mesh_*</code>, FragGate <code>slug=mesh</code>. Default <strong>OFF</strong>. Presence is 5-minute Live Nodes. Broadcast is a SHA-256 receipt only (no video bytes). Anon-broadcast stays a local communique renderer, not a Softwares-tab product. AZMail <code>mesh_*</code> stays product-local. <strong>1.6.12</strong> publishes the authoritative hub catalog at <code>GET /v1/software</code> (mirror <code>/v1/fraggate/software</code>) — every product plus EmbryoLock stub, sorted Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock) — plus <code>GET /v1/update/check</code> for install.sh / local UIs / mobile. <strong>1.6.11</strong> adds a durable FragGate <strong>UI-op alias map</strong> so Worker button names agents copy resolve to catalog LIVE_OPS (forward to the real engine method). EmbryoLock is named <strong>stub / local-not-hosted</strong> (describe?slug=embryolock; not a Worker; not a FragGate engine). <strong>1.6.10</strong> sets AZBrowser and AZNet catalog one_line to <strong>separate software</strong> (not engine). <strong>1.6.9</strong> frames <strong>AZHub</strong> and <strong>AZInterface</strong> as sibling softwares under the same FragGate door. <strong>1.6.8</strong> added <strong>AZHub</strong> (AIH-WP-1.0, Blank Key) and <strong>AZInterface</strong> (AIH-WP-1.0, custodial page cycles) as two separate softwares under the same FragGate door — never one combined product, never nested in AZBrowser or AZNet. Reached only via <code>POST /v1/fraggate/call</code> with <code>{ slug: "azhub", op }</code> or <code>{ slug: "azinterface", op }</code>. <strong>1.6.7</strong> adds <strong>AZNet</strong> (AZN-WP-0.1) as a separate FragGate-live product — own Worker <code>aznet-download-tracker</code>, own UI. Silent verification side-net: hash stamps, custodian garden of hash refs, memorial ledger, integrity refuse/isolate. Never hosts payloads. Garden / stamp / memorial ops require AZBrowser <code>pair_token</code> AND <code>pair_flag</code> (functional order only — do not nest inside AZBrowser chrome). Reached only via <code>POST /v1/fraggate/call</code> with <code>{ slug: "aznet", op }</code>. <strong>1.6.6</strong> adds <strong>AZBrowser</strong> (AZB-1.0) as a FragGate-live engine — Lamb Lens ethical research browser. Cite; refuse harmful harvest; never invent visit results. Not Chromium. Reached only via <code>POST /v1/fraggate/call</code> with <code>{ slug: "azbrowser", op }</code>. MCP <code>fraggate_list</code> / <code>fraggate_call</code> and the Worker UI buttons on this page share that same <code>LIVE_OPS.azbrowser</code> backend. <strong>1.6.5</strong> adds <strong>AZMail</strong> (APP 1.0) as a FragGate-live engine — anonymous MCP mesh (default off) + advisory airlock. Not a full internet MTA. Reached only via <code>POST /v1/fraggate/call</code> with <code>{ slug: "azmail", op }</code> (host <code>/runtime</code> proxies that same door). <strong>1.6.4</strong> adds <strong>PeaceLock</strong> (PL-WP-0.1) as a true in-process engine — chosen silence / chosen inaction receipts, HARD_DUTY refuse, ABSENT transcript/counterfactual/motive. <strong>1.6.3</strong> adds KV-backed API use trackers (<a href="${origin}/v1/uses">/v1/uses</a>) so every public host point can keep usage logs. <strong>1.6.2</strong> widens the public FragGate door to sensible advisory engines; stub verbs still refuse. <strong>1.6.1</strong> lists every major OpenAPI / MCP / HTTP client (not only ChatGPT, Grok, and Venice). <strong>1.6.0</strong> is the <strong>FragGate door</strong> over the catalog — one door: discover, route, refuse. <strong>1.5.0</strong> was the agent-native flat product-tool pile. Human software — this Worker UI, Flutter <code>mobile/</code>, local install, counted <code>/download</code> — stays complete. Catalog + pull + proxy + session + <strong>in-process engines</strong> for every catalog Software slug. ${PRODUCTS.length} products including the <a href="${LIBRARY_ORIGIN}/">Aziel Digital Library</a>. Kernel: <a href="https://github.com/AzielEliab/fraggate">fraggate</a>. Forks welcome. Apache-2.0. Author: <strong>Aziel Eliab</strong> (also known as Aziel Elroi Eliab).</p>
   <div class="honesty">
     <strong>What this Worker is</strong>
     <ul>
@@ -1435,6 +1445,7 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
       <li><strong>1.6.10</strong> sets AZBrowser one_line to “AZNet is a separate software” and AZNet one_line to “Separate software; functional-order pair”. Same FragGate door. Two catalog slugs stay.</li>
       <li><strong>1.6.11</strong> adds a durable FragGate UI-op alias map: azhub list_modules→region_list, place→place_module; azinterface genesis_boot→genesis_status, hold→page_cycle_status; azbrowser airlock→airlock_ingest, home→health; azmail classify→airlock_classify; aznet doctor→health, pair→pair_status; peacelock doctor→health. Aliases appear in list/describe live_ops and forward to the real engine method. EmbryoLock is a named stub / local-not-hosted registry entry (name only; not a hosted Worker; not a FragGate engine). 33 catalog slugs stay.</li>
       <li><strong>1.6.12</strong> adds <code>GET /v1/software</code> (also <code>GET /v1/fraggate/software</code>) so hubs fetch one sorted catalog on each Software-tab request — Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock), every product plus EmbryoLock stub. Client update check: <code>GET /v1/update/check?slug=&amp;version=</code> and <code>GET /v1/update/manifest</code> for install.sh / local UIs / mobile. GitHub Action deploys on push to main. MCP pipeline stays list → describe → call. Sibling software under one FragGate door — never separate FragGate engines.</li>
+      <li><strong>1.6.13</strong> adds the suite node mesh kernel (default OFF): <code>GET /v1/mesh</code> / <code>/status</code>, <code>POST /v1/mesh/enable|disable|join|heartbeat|leave</code>, <code>GET /v1/mesh/nodes</code>, optional <code>POST /v1/mesh/broadcast</code> (SHA-256 receipt only). MCP <code>mesh_*</code> tools and FragGate <code>slug=mesh</code> share that kernel. Each <code>/v1/software</code> card carries <code>mesh: { path: "/v1/mesh", enabled_default: false }</code>. Anon-broadcast is local-only communique tooling — not a catalog product. AZMail mesh stays the product-local mail ring. No arming / wipe internals. Docs: <code>docs/NODE_MESH.md</code>.</li>
       <li>AZAI in-process is Lamb check only — not the local blend. AZBot is a skill router, not a model. Aziel Digital Library in-process searches a bundled sample MASTER; live D1 stays per-op proxy.</li>
       <li><code>POST /p/{slug}/{op}</code> is a <em>proxy</em>. Proxy without a session receipt is not exec.</li>
       <li>Cloudflare's Worker / Durable Object isolate <em>is</em> the jail. No extra guest isolate is claimed. <code>engine_digest</code> is still required.</li>
@@ -1460,7 +1471,8 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
       <li>Aziel Corpus Library is a public library index + counted PDF/package download. It is <em>not</em> a search engine of private files, not Zenodo, and not a new Lock engine.</li>
       <li>AzielTether is <em>not</em> a VPN. Prefer-central mesh for downloaded Aziel Eliab software; public HTTPS stays mesh-free.</li>
       <li>PeaceLock is chosen silence / chosen inaction as a receipt (PL-WP-0.1). It is <em>not</em> a transcript, not a counterfactual, not a motive score, and not a HARD_DUTY waiver. Hosted never invents speech or stores files.</li>
-      <li>AZMail is an anonymous MCP mesh + advisory airlock (APP 1.0). It is <em>not</em> a full internet MTA, not SMTP, not identity. Mesh default off. Reached only via FragGate. VPN/hop mesh is still not claimed on this public surface.</li>
+      <li>AZMail is an anonymous MCP mesh + advisory airlock (APP 1.0). It is <em>not</em> a full internet MTA, not SMTP, not identity. Mesh default off. Reached only via FragGate. VPN/hop mesh is still not claimed on this public surface. AZMail <code>mesh_*</code> stays product-local; the suite node mesh is the shared presence layer.</li>
+      <li>The suite node mesh is presence + hash receipts. It is <em>not</em> AnonBroadcast as a Softwares-tab product, not an upload proxy, not origin-hiding. Default OFF. Operator keeps communique files local.</li>
       <li>AZBrowser is the Lamb Lens ethical research browser (AZB-1.0). It is <em>not</em> Chromium, not a Tor exit, not an unrestricted proxy, and not surveillance. Lamb Lens cites; refuses harmful harvest; never invents visit results. Reached only via FragGate. AZNet is separate software (same FragGate door) — pairing is order/token only, not a shared Phase-1 UI.</li>
       <li>AZNet is a silent verification side-net (AZN-WP-0.1). It is <em>not</em> a payload host, not a CDN, not analytics, not an integrity-repair bypass. Own Worker / own UI. Garden / stamp / memorial ops require AZBrowser pairing token AND flag (functional order only). Hosted never stores payloads.</li>
       <li>AZHub is a Blank Key / neutral spatial container (AIH-WP-1.0). It does <em>not</em> interpret meaning, does <em>not</em> auto-unlock, and does <em>not</em> fire completeness events. AZInterface is a <em>separate</em> product.</li>
@@ -1494,6 +1506,7 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
     <a href="${origin}/mcp">MCP (POST JSON-RPC)</a>
     <a href="${origin}/v1/health">/v1/health</a>
     <a href="${origin}/v1/uses">/v1/uses</a>
+    <a href="${origin}/v1/mesh">/v1/mesh</a>
     <a href="${origin}/v1/ready">/v1/ready</a>
     <a href="https://www.azielcorpuslibrary.net/runtime">Library /runtime</a>
     <a href="https://github.com/AzielEliab/aziel-runtime">GitHub</a>
@@ -1770,6 +1783,7 @@ async function combinedOpenApi(request, env) {
       version: RUNTIME_VERSION,
       summary: "FragGate door over the Aziel Eliab catalog: discover, route, refuse.",
       description:
+        "1.6.13 adds the suite node mesh kernel (GET /v1/mesh, MCP mesh_*, FragGate slug=mesh; default OFF). " +
         "1.6.12 adds GET /v1/software (authoritative hub catalog: Plain A–Z → Gate A–Z → Lock A–Z, Clock ≠ Lock, EmbryoLock stub) plus GET /v1/update/check and GET /v1/update/manifest. " +
         "1.6.11 adds a durable FragGate UI-op alias map (Worker button names resolve to catalog ops) and names EmbryoLock as stub / local-not-hosted (not a FragGate engine). " +
         "1.6.10 sets AZBrowser and AZNet catalog one_line to separate software (not engine). Same FragGate door. Two catalog slugs stay. " +
@@ -1819,6 +1833,7 @@ async function combinedOpenApi(request, env) {
     tags: [
       { name: "fraggate", description: "FragGate door — discover, route, refuse. One door for sibling software." },
       { name: "software", description: "Authoritative software catalog + client update check. Hubs fetch /v1/software." },
+      { name: "mesh", description: "Suite node mesh kernel. Default OFF. Presence + hash receipts. Not a Softwares-tab product." },
       { name: "runtime", description: "Runtime" },
       { name: "session", description: "Session (advanced)" },
     ].concat(
@@ -1924,7 +1939,7 @@ function toolList() {
 
 async function callRuntimeTool(env, name, args, origin, request) {
   const base = (origin || CATALOG_HOST).replace(/\/$/, "");
-  const fraggate = await callFraggateTool(name, args, PRODUCTS, BY_SLUG);
+  const fraggate = await callFraggateTool(name, args, PRODUCTS, BY_SLUG, env);
   if (fraggate) return fraggate;
   if (name === "runtime_run" || name === "use_software") {
     return callRuntimeRun(env, args, origin, sessionDeps(env, origin, request));
@@ -2005,6 +2020,9 @@ function healthBody(origin) {
     update_manifest: "/v1/update/manifest",
     uses: "/v1/uses",
     stats: "/v1/stats",
+    mesh: "/v1/mesh",
+    mesh_status: "/v1/mesh/status",
+    mesh_nodes: "/v1/mesh/nodes",
     cite: "/cite.json",
     sitemap: "/sitemap.xml",
     sitemap_index: "/sitemap-index.xml",
@@ -2405,7 +2423,7 @@ async function handleRequest(request, env) {
           fraggate: fraggateHubCard(origin),
           extras: catalogExtraCards(origin),
           extras_note:
-            "Kernel / door cards for Software hubs. extras[] is not PRODUCTS — FragGate is not a true-engine slug. Human UI + counted download is the separate FragGate Worker app (fraggate-download-tracker; not nested in AZBrowser).",
+            "Kernel / door cards for Software hubs. extras[] is not PRODUCTS — FragGate is the door; Node Mesh is the suite presence kernel (not a Softwares-tab product). Human UI + counted download is the separate FragGate Worker app (fraggate-download-tracker; not nested in AZBrowser).",
           software: origin.replace(/\/$/, "") + "/v1/software",
           fraggate_software: origin.replace(/\/$/, "") + "/v1/fraggate/software",
           update_check: origin.replace(/\/$/, "") + "/v1/update/check",
@@ -2420,6 +2438,22 @@ async function handleRequest(request, env) {
 
     if (url.pathname === "/openapi.json" && request.method === "GET") {
       return json(await combinedOpenApi(request, env), 200, extra("/openapi.json"));
+    }
+
+    if (url.pathname === "/v1/mesh" || url.pathname.startsWith("/v1/mesh/")) {
+      let payload = {};
+      if (request.method === "POST") {
+        try {
+          payload = await request.json();
+        } catch {
+          payload = {};
+        }
+      }
+      const out = await dispatchMeshHttp(request.method, url.pathname, payload, env);
+      return asHead(
+        request,
+        json(out.body, out.status, authorityLinkHeaders(origin, url.pathname)),
+      );
     }
 
     if (url.pathname === "/v1/uses" && request.method === "POST") {
@@ -2514,7 +2548,7 @@ async function handleRequest(request, env) {
     return json(
       {
         error: "not found",
-        hint: "POST /v1/fraggate/call  GET /v1/fraggate  GET /v1/software  GET /v1/update/check  GET /v1/skill  POST /v1/session/open  POST /v1/session/{id}/exec  GET /v1/ready  GET /v1/uses  GET /v1/runtime.json  GET /v1/bundle  GET /v1/pull/{slug}  GET /v1/catalog.json  GET /openapi.json  POST /p/{product}/{op} (proxy, not exec)  POST /mcp",
+        hint: "POST /v1/fraggate/call  GET /v1/fraggate  GET /v1/software  GET /v1/mesh  GET /v1/update/check  GET /v1/skill  POST /v1/session/open  POST /v1/session/{id}/exec  GET /v1/ready  GET /v1/uses  GET /v1/runtime.json  GET /v1/bundle  GET /v1/pull/{slug}  GET /v1/catalog.json  GET /openapi.json  POST /p/{product}/{op} (proxy, not exec)  POST /mcp",
       },
       404,
     );

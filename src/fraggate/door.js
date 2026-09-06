@@ -11,6 +11,7 @@
 
 import { check as decisiongateCheck } from "../engines/decisiongate/engine.js";
 import { executeLocal } from "../engines/runner.js";
+import { MESH_SLUG, runMeshOp } from "../mesh.js";
 import {
   FG_GATE_REFUSE,
   FG_HALLUC_TOOL,
@@ -40,7 +41,7 @@ export function defaultClaim(slug, op) {
   return {
     statement: `Execute the public FragGate allowlisted ${name} ${verb} operation inside the aziel-runtime Worker isolate without incrementing download counters or claiming a mesh hop.`,
     evidence: [
-      `${name} ${verb} is on the aziel-runtime 1.6.12 FragGate public allowlist.`,
+      `${name} ${verb} is on the aziel-runtime 1.6.13 FragGate public allowlist.`,
       "Cloudflare Worker isolate is the jail. engine_digest is required.",
     ],
     impact_pos: ["The agent receives a typed ResultEnvelope and display-ready output."],
@@ -313,6 +314,28 @@ export async function fraggateCall(args, registry, bySlug, env) {
   const src = args && typeof args === "object" ? args : {};
   const payload = src.payload !== undefined ? src.payload : payloadWithoutMeta(src);
   const resolved = resolveOpAlias(target.entry.slug, target.op);
+  if (target.entry.slug === MESH_SLUG) {
+    const result = await runMeshOp(resolved.op, payload, env);
+    const accepted = await accept({
+      name: target.entry.name,
+      slug: target.entry.slug,
+      op: target.op,
+      result,
+      gate,
+      engine: {
+        engine_digest: null,
+        ran_in: "aziel-runtime",
+        true_engine_runtime: false,
+        mode: "suite-mesh",
+        status: result && result.ok === false ? 400 : 200,
+      },
+    });
+    if (resolved.aliased) {
+      accepted.canonical_op = resolved.op;
+      accepted.aliased = true;
+    }
+    return accepted;
+  }
   const local = await executeLocal({
     slug: target.entry.slug,
     op: resolved.op,

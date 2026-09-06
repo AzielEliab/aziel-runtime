@@ -3,6 +3,8 @@
  * Public identity: Aziel Eliab only. Do not invent DOIs.
  */
 
+import { nodeMeshHubCard } from "./mesh.js";
+
 /** Extra slugs an installer or AI may type. Values are catalog slugs. */
 export const CATALOG_ALIASES = {
   "zion-pattern-solver": "zsolver",
@@ -86,7 +88,7 @@ export function fraggateHubCard(origin) {
 }
 
 export function catalogExtraCards(origin) {
-  return [fraggateHubCard(origin)];
+  return [fraggateHubCard(origin), nodeMeshHubCard(origin)];
 }
 
 /** Package versions from live product Workers / counted /download filenames. */
