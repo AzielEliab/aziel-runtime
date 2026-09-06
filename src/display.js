@@ -64,7 +64,7 @@ const TITLE_OVERRIDES = {
   "azbrowser:receipt_list": "List AZBrowser receipts",
   "azbrowser:verify": "Verify an AZBrowser receipt",
   "azbrowser:receipt_verify": "Verify an AZBrowser receipt",
-  "aznet:pair_status": "Check AZNet AZBrowser pairing",
+  "aznet:pair_status": "Check AZNet pairing with AZBrowser",
   "aznet:garden_list": "List the AZNet garden of hash refs",
   "aznet:stamp": "Stamp an AZNet hash ref",
   "aznet:verify_hash": "Verify an AZNet hash ref",

@@ -293,6 +293,8 @@ Pull via `GET /v1/bundle` / `GET /v1/pull/{slug}`. Session exec is
 - **Aziel Corpus Library** is a public library index + counted PDF/package download. Not a private-file search engine, not Zenodo, not a new Lock engine.
 - **AzielTether** is not a VPN. Prefer-central mesh for downloaded Aziel Eliab software; public HTTPS stays mesh-free.
 - **PeaceLock** is chosen silence / chosen inaction as a first-class receipt (PL-WP-0.1). Not a transcript, not a counterfactual, not a motive score, not a HARD_DUTY waiver. Hosted never invents speech or stores files.
+- **AZBrowser** is the Lamb Lens ethical research browser (AZB-1.0). Not Chromium, not a Tor exit, not an unrestricted proxy. Lamb Lens cites; refuses harmful harvest; never invents visit results. FragGate only. AZNet is a separate product/engine — pairing is order/token only, not a shared Phase-1 UI.
+- **AZNet** is a silent verification side-net (AZN-WP-0.1). Separate product (own Worker `aznet-download-tracker`, own UI). Not a payload host. Garden / stamp / memorial ops require AZBrowser `pair_token` AND `pair_flag` (functional order only). Hosted never stores payloads.
 
 ## Product slugs → Workers
 
