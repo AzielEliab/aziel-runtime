@@ -82,9 +82,9 @@ Practical pull + call (do not invent steps for every crawler):
 - **Claude Desktop** — MCP stdio \`node cli/mcp-stdio.mjs\` (see docs/GLAMA.md) or remote \`POST ${host}/mcp\`
 - **Cursor (MCP)** — same stdio config or remote \`POST ${host}/mcp\`
 - **Glama** — Install Server via glama.json + Dockerfile CMD \`["node", "cli/mcp-stdio.mjs"]\`
-- **Any installer / agent** — \`GET ${host}/v1/skill\` then \`fraggate_list\` / \`fraggate_call\`. Session tools and \`runtime_run\` are advanced/internal. \`/p/{slug}/{op}\` is proxy only.
+- **Any installer / agent** — \`GET ${host}/v1/skill\` or \`GET ${host}/v1/software\`, then \`fraggate_list\` → \`fraggate_describe\` → \`fraggate_call\`. Session tools and \`runtime_run\` are advanced/internal. \`/p/{slug}/{op}\` is proxy only.
 
-MCP is a **thin FragGate door** (≤ 20 tools): \`runtime_skill\`, \`fraggate_list\`, \`fraggate_describe\`, \`fraggate_verify\`, \`fraggate_call\`, \`decisiongate_check\`, \`library_lookup\`, plus catalog helpers \`runtime_bundle\` / \`runtime_pull\`. Advanced/internal: \`runtime_run\`, \`runtime_manifest\`, \`runtime_session_*\`. Flat \`{slug}_{op}\` names are **not** listed. Public, no OAuth.
+MCP is a **thin FragGate door** (≤ 20 tools): pipeline \`fraggate_list\` → \`fraggate_describe\` → \`fraggate_call\`, plus \`runtime_skill\`, \`fraggate_verify\`, \`decisiongate_check\`, \`library_lookup\`, and catalog helpers \`runtime_software\` (\`GET /v1/software\`) / \`runtime_bundle\` / \`runtime_pull\`. Advanced/internal: \`runtime_run\`, \`runtime_manifest\`, \`runtime_session_*\`. Flat \`{slug}_{op}\` names are **not** listed. Prefer FragGate, \`GET /v1/software\`, and \`POST /mcp\`. Public, no OAuth.
 `;
 }
 
@@ -103,7 +103,7 @@ ${compatibleClientsHtmlItems()}
     <li><strong>Claude Desktop</strong> — MCP stdio <code>node cli/mcp-stdio.mjs</code> or remote <code>POST ${host}/mcp</code></li>
     <li><strong>Cursor (MCP)</strong> — same stdio / remote MCP</li>
     <li><strong>Glama</strong> — Install Server; Dockerfile CMD <code>["node", "cli/mcp-stdio.mjs"]</code></li>
-    <li><strong>Any installer / agent</strong> — start at <code>${host}/v1/skill</code>. Prefer <code>fraggate_list</code> / <code>fraggate_call</code>. Session tools and <code>runtime_run</code> are advanced/internal.</li>
+    <li><strong>Any installer / agent</strong> — start at <code>${host}/v1/skill</code> or <code>${host}/v1/software</code>. Pipeline <code>fraggate_list</code> → <code>fraggate_describe</code> → <code>fraggate_call</code>. Session tools and <code>runtime_run</code> are advanced/internal.</li>
   </ul>`;
 }
 

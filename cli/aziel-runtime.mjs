@@ -54,6 +54,7 @@ Usage:
 Default: Worker session at ${DEFAULT_URL}
 --local: filesystem session under ${HOME}; prefers vendored engines (in-process)
 --jail: run the local engine in a child Node process (ran_in=local-jail)
+1.6.12 adds GET /v1/software (hub catalog) and GET /v1/update/check (install.sh / local UI / mobile).
 1.6.11 adds a durable FragGate UI-op alias map and names EmbryoLock as stub / local-not-hosted (not an engine).
 1.6.10 sets AZBrowser and AZNet catalog one_line to separate software (not engine).
 1.6.9 frames AZHub and AZInterface as sibling softwares under the same FragGate door.
