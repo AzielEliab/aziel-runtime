@@ -116,6 +116,7 @@ export function shouldIncrementUse(method, pathname) {
   const path = normalizePath(pathname);
   if (SKIP_SEO.has(path)) return false;
   if (ASSET_EXT.test(path)) return false;
+  if (path === "/v1/uses" || path === "/v1/stats") return false;
   if (m === "GET" && SKIP_GET_READS.has(path)) return false;
   if (m === "GET" && path === "/mcp") return false;
   if (m === "GET" && /^\/p\/[a-z0-9-]+$/.test(path)) return false;

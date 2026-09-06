@@ -59,7 +59,9 @@ assert.doesNotMatch(normalizePath("/v1/session/s1a2b3c4d5e6/exec"), /s1a2b3c4d5e
 assert.equal(shouldIncrementUse("GET", "/v1/health"), false);
 assert.equal(shouldIncrementUse("GET", "/v1/ready"), false);
 assert.equal(shouldIncrementUse("GET", "/v1/uses"), false);
+assert.equal(shouldIncrementUse("POST", "/v1/uses"), false);
 assert.equal(shouldIncrementUse("GET", "/v1/stats"), false);
+assert.equal(shouldIncrementUse("POST", "/v1/stats"), false);
 assert.equal(shouldIncrementUse("HEAD", "/v1/fraggate/list"), false);
 assert.equal(shouldIncrementUse("OPTIONS", "/v1/fraggate/call"), false);
 assert.equal(shouldIncrementUse("GET", "/openapi.json"), false);
