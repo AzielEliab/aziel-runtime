@@ -197,7 +197,7 @@ export function softwareCatalog(origin, products, extra = {}) {
       ...meshHint("/v1/mesh"),
       status: `${base}/v1/mesh/status`,
       nodes: `${base}/v1/mesh/nodes`,
-      note: "Suite node mesh kernel. Default OFF. Not a Softwares-tab product. Anon-broadcast stays local-only.",
+      note: "QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1). Default OFF. Operator bearer enable. Not a login mesh. Not a Softwares-tab product. Full node is local qnm-node/. Anon-broadcast is that process's sibling loopback only.",
     },
   };
 }

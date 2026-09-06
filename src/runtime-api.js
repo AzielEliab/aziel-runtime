@@ -37,7 +37,7 @@ export const RUNTIME_ROLE = "engine-runtime";
 export const RUNTIME_LAYER = "catalog+pull+proxy+session+in-process-engines+fraggate";
 
 export const VERSION_HISTORY = [
-  { version: "1.6.13", status: "current", note: "Suite-wide decentralized node mesh kernel: GET /v1/mesh + /status, POST enable/disable/join/heartbeat/leave, GET /nodes, optional POST /broadcast (SHA-256 receipt only; no video bytes). Default OFF. FragGate slug=mesh + MCP mesh_* tools. Each /v1/software card carries mesh: { path, enabled_default: false }. Anon-broadcast stays local-only communique tooling — not a Softwares-tab product. AZMail mesh_* stays product-local. Stored in USES under mesh| keys (or MESH if bound). docs/NODE_MESH.md. 1.6.12 remains the live catalog + client update foundation." },
+  { version: "1.6.13", status: "current", note: "QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1): GET /v1/mesh + /status expose live/locked/isolated counts only (no QNM-S, no leaderboard). POST enable requires a declared bearer (empty {} refused; GET never enables). POST disable drops tethers clean (no implicit heal / resurrection). Keep join/heartbeat/leave/nodes + optional hash-only broadcast (never a publish path). Default radios/bearers OFF. Not a login mesh; not Node Gate/IP panel; not login-recovery; not upload proxy. Full node process is local qnm-node/ (boot/chain/apg/bearers/outbox/phoenix/score/memorial/tethers); anon-broadcast is that process's sibling loopback module only. FragGate slug=mesh + MCP mesh_*. Each /v1/software card carries mesh: { path, enabled_default: false, spec, companion, rollup_only, qnm_s: false }. AZMail mesh_* stays product-local. docs/NODE_MESH.md. 1.6.12 remains the live catalog + client update foundation." },
   { version: "1.6.12", status: "superseded", note: "Authoritative GET /v1/software (also GET /v1/fraggate/software) for hubs/clients: every product plus EmbryoLock stub, sorted Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock). Client update check GET /v1/update/check?slug=&version= and GET /v1/update/manifest. GitHub Action auto-deploy on main. SEO/MCP point agents at FragGate → /v1/software → /mcp (list→describe→call). Sibling software under one FragGate door — never separate FragGate engines. 33 catalog slugs + EmbryoLock stub. 1.6.11 remains UI-op aliases." },
   { version: "1.6.11", status: "superseded", note: "Durable FragGate op alias map so Worker UI button names agents copy (azhub list_modules/place, azinterface genesis_boot/hold, azbrowser airlock/home, azmail classify, aznet doctor/pair, peacelock doctor) resolve to catalog LIVE_OPS and forward to the real engine method. Aliases appear in list/describe live_ops. EmbryoLock is a named stub / local-not-hosted registry entry (name only; not a hosted Worker; not a FragGate engine). 33 catalog slugs. 1.6.10 remains AZBrowser/AZNet one_line framing." },
   { version: "1.6.10", status: "superseded", note: "AZBrowser one_line: AZNet is a separate software (not engine). AZNet one_line: Separate software; functional-order pair. Same FragGate door. Two catalog slugs stay. 33 catalog slugs. 1.6.9 remains the broader separate-software framing." },
@@ -130,7 +130,7 @@ description: >-
   registry, DecisionGATE before exec, ask/refuse ledger. Dual surface —
   agent/MCP has no technical UI chrome; Worker UI, Flutter mobile/, local
   install, and counted /download stay complete human software. 1.6.13 adds
-  the suite node mesh kernel (GET /v1/mesh; MCP mesh_*; FragGate slug=mesh; default OFF).
+  the QNM-BUILD-1.0 suite rollup (GET /v1/mesh live/locked/isolated; operator bearer enable; default OFF; not a login mesh; full node is local qnm-node/).
   1.6.12 adds GET /v1/software (hub Software-tab catalog) plus GET /v1/update/check for install.sh /
   local UIs / mobile. 1.6.11 adds a durable
   FragGate UI-op alias map and names EmbryoLock as stub / local-not-hosted (not an engine). 1.6.10 sets
@@ -166,17 +166,17 @@ FragGate kernel: https://github.com/AzielEliab/fraggate (FG-0.1)
 4. **Show the output.** Results are \`{ display, result, ledger_tip? }\`. Show \`display\` to the user.
 5. **Take the next input.**
 
-Named live modules still on the thin tools/list: \`decisiongate_check\`, \`library_lookup\` (read-only corpus), plus suite \`mesh_*\` (node mesh kernel; default OFF).
+Named live modules still on the thin tools/list: \`decisiongate_check\`, \`library_lookup\` (read-only corpus), plus suite \`mesh_*\` (QNM-BUILD-1.0 rollup; default OFF; not a login mesh).
 
 Do **not** walk the user through \`runtime_session_open\` → policy → exec → receipt → close. Those tools, \`runtime_run\`, raw \`*_health\`, and \`runtime_manifest\` are **advanced/internal**.
 
 Do **not** call flat \`{slug}_{op}\` names (1.5.0 pile). They are not in \`tools/list\`. That is hallucination with a receipt.
 
-HTTP \`POST /p/{slug}/{op}\` is still a **proxy**. Proxy without a session receipt is **not** exec. VPN/hop mesh is **not** claimed on this public surface. AZMail anonymous ring is FragGate LIVE_OPS only (default off; not SMTP). The suite node mesh (\`GET /v1/mesh\`, MCP \`mesh_*\`, FragGate \`slug=mesh\`) is a separate presence layer (default OFF).
+HTTP \`POST /p/{slug}/{op}\` is still a **proxy**. Proxy without a session receipt is **not** exec. VPN/hop mesh is **not** claimed on this public surface. AZMail anonymous ring is FragGate LIVE_OPS only (default off; not SMTP). The suite QNM rollup (\`GET /v1/mesh\`, MCP \`mesh_*\`, FragGate \`slug=mesh\`) is live/locked/isolated counts + operator bearer enable (default OFF). Not a login mesh. Views/MCP/downloads do not enter QNM-S. Full node process is local \`qnm-node/\`.
 
 Every catalog slug is a true engine. Cloudflare isolate is the jail. Hosted AZAI is protocol mirror + Lamb check, **not** the blend. Identity is **Aziel Eliab** only.
 
-**1.6.13 = suite node mesh:** \`GET /v1/mesh\` / \`/status\`, \`POST /v1/mesh/enable|disable|join|heartbeat|leave\`, \`GET /v1/mesh/nodes\`, optional \`POST /v1/mesh/broadcast\` (SHA-256 receipt only). Default OFF. MCP \`mesh_*\` + FragGate \`slug=mesh\`. Each software card has \`mesh: { path, enabled_default: false }\`. Anon-broadcast is local-only communique tooling — not a Softwares-tab product. AZMail mesh stays product-local. See \`docs/NODE_MESH.md\`.
+**1.6.13 = QNM-BUILD-1.0 suite rollup** (companion to AIH-WP-1.1): \`GET /v1/mesh\` / \`/status\` (live/locked/isolated; never enables), \`POST /v1/mesh/enable\` requires \`{ bearer }\`, \`POST /v1/mesh/disable\` drops tethers clean, plus join/heartbeat/leave/nodes and optional hash-only broadcast (never a publish path). Default radios OFF. Not a login mesh. Full node process is local \`qnm-node/\`. Anon-broadcast is that process's sibling loopback module only. MCP \`mesh_*\` + FragGate \`slug=mesh\`. Each software card has \`mesh: { path, enabled_default: false, spec, companion, rollup_only, qnm_s: false }\`. AZMail mesh stays product-local. See \`docs/NODE_MESH.md\`.
 **1.6.12 = live software catalog + client updates:** \`GET /v1/software\` (mirror \`GET /v1/fraggate/software\`) is the authoritative hub catalog — every product plus EmbryoLock stub, sorted Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock). \`GET /v1/update/check?slug=&version=\` and \`GET /v1/update/manifest\` for install.sh / local UIs / mobile. GitHub Action deploys on push to main. Agents prefer FragGate / \`/v1/software\` / \`/mcp\` (list → describe → call). Sibling software under one FragGate door — never separate FragGate engines.
 **1.6.11 = dual-surface op aliases:** Worker UI button names resolve to catalog LIVE_OPS (forward to the real engine method). EmbryoLock is named stub / local-not-hosted (describe?slug=embryolock; not a Worker; not a FragGate engine).
 **1.6.10 = framing: AZBrowser and AZNet catalog one_line say separate software, not separate engine.** Same FragGate door. Two catalog slugs stay.
@@ -309,15 +309,15 @@ ${skillCompatibleSection(base)}
 | GET | \`/v1/health\` | Liveness. Optional \`uses_total\` when USES KV is bound. Does not increment. |
 | GET | \`/v1/uses\` | API use counters + recent ring log. Does not increment. No PII. |
 | GET | \`/v1/stats\` | Alias of \`/v1/uses\`. |
-| GET | \`/v1/mesh\` | Suite node mesh status (enabled?, live_nodes, products present). Default OFF. |
+| GET | \`/v1/mesh\` | QNM rollup: enabled?, bearers, live/locked/isolated. Default OFF. Never enables. |
 | GET | \`/v1/mesh/status\` | Alias of \`/v1/mesh\`. |
-| POST | \`/v1/mesh/enable\` | Global kill switch ON (rate-limited). |
-| POST | \`/v1/mesh/disable\` | Global kill switch OFF (always allowed). |
-| POST | \`/v1/mesh/join\` | Join as a product node. Body \`{product, node_id?, label?}\`. |
-| POST | \`/v1/mesh/heartbeat\` | Refresh 5-minute presence. Body \`{node_id}\`. |
-| POST | \`/v1/mesh/leave\` | Leave. Body \`{node_id}\`. |
-| GET | \`/v1/mesh/nodes\` | Live nodes (5-minute presence). |
-| POST | \`/v1/mesh/broadcast\` | SHA-256 hash receipt only. No video bytes. |
+| POST | \`/v1/mesh/enable\` | Operator enable. Body \`{bearer}\` required (rate-limited). |
+| POST | \`/v1/mesh/disable\` | Radios/bearers OFF. Tethers drop clean. Always allowed. |
+| POST | \`/v1/mesh/join\` | Register rollup presence. Body \`{product, node_id?, label?, presence?}\`. |
+| POST | \`/v1/mesh/heartbeat\` | Refresh 5-minute presence. Body \`{node_id, presence?}\`. |
+| POST | \`/v1/mesh/leave\` | Drop presence. Body \`{node_id}\`. No implicit heal. |
+| GET | \`/v1/mesh/nodes\` | Rollup roster (no scores / leaderboard). |
+| POST | \`/v1/mesh/broadcast\` | SHA-256 hash receipt only. Never a publish path. |
 
 Library front door: https://www.azielcorpuslibrary.net/runtime  
 Library engine manifest (same as this Worker): https://www.azielcorpuslibrary.net/runtime/v1/runtime.json  
@@ -357,7 +357,7 @@ Every catalog Software slug is a true engine (\`true_engine_runtime: true\`). \`
 
 **1.4.1 production gates (unchanged in 1.6.13):** \`GET /v1/ready\` is 200 only if the SESSION Durable Object binding is up; **503** if \`REQUIRE_TOKEN=1\` and the \`RUNTIME_TOKEN\` secret is missing (fail closed). Authority JSON is \`Cache-Control: no-store\`. When \`REQUIRE_TOKEN=1\`, session mutate (open/policy/exec/close) and MCP session tools / \`runtime_run\` / \`fraggate_call\` require \`Authorization: Bearer …\` or \`X-Aziel-Runtime-Token\` (one operator token). Catalog / health / runtime / skill / pull / FragGate list / OpenAPI / MCP \`tools/list\` / \`GET /v1/uses\` stay public. Proxy \`/p/{slug}/{op}\` stays public and is **not** exec. Receipt cap 64. Session TTL 6h. Per-IP rate limits apply.
 
-GodLock and MirageGrid are not VPNs. ForgeReceipts is not legal advice. ZionPattern Solver caps confidence at 75% and does not solve cases. VeilLock does not inject into FaceTime. AZ-CLCE detects inconsistency, not intent. ChronoLock is advisory only. The ARK is not a kernel. AZAI hosted /v1 is a protocol mirror + Lamb check, not a paid-key proxy and **not** the local blend. Jeeves is not sovereign. SpectralLock hosted overlay is a 256px preview. EmployeeLock is not a court. FoldLock is not zip. WhistleLock is not a mailer. TrajectoryLock is not a certified forensic instrument. M.I.A.Lock Doe hits are leads, not IDs. Aziel Digital Library is not a 26-card index. AzielTether is not a VPN. PeaceLock is not a transcript, not a counterfactual, not a motive score, and not a HARD_DUTY waiver. AZMail (APP 1.0) is not a full internet MTA — FragGate only; mesh default off; SMTP / deanonymize stub. AZBrowser (AZB-1.0) is not Chromium — FragGate only; Lamb Lens ethical research browser; cites; refuses harmful harvest; never invents visit results; tor_exit / phoenix_wipe stub. AZNet (AZN-WP-0.1) is a separate product — not a payload host; FragGate only; garden / stamp / memorial ops require AZBrowser pair_token AND pair_flag (functional order only). payload_host / serve_content_for_peer stub. AZHub (AIH-WP-1.0) is a Blank Key — not AZInterface, not an interpreter, not auto-unlock. AZInterface (AIH-WP-1.0) is a custodial operating environment — pre-locked page cycles; not AZHub. VPN/hop mesh is not claimed on this public surface. The suite node mesh is presence + hash receipts (default OFF) — not AnonBroadcast as a catalog product, not an upload proxy, not origin-hiding. AZMail mesh_* stays product-local.
+GodLock and MirageGrid are not VPNs. ForgeReceipts is not legal advice. ZionPattern Solver caps confidence at 75% and does not solve cases. VeilLock does not inject into FaceTime. AZ-CLCE detects inconsistency, not intent. ChronoLock is advisory only. The ARK is not a kernel. AZAI hosted /v1 is a protocol mirror + Lamb check, not a paid-key proxy and **not** the local blend. Jeeves is not sovereign. SpectralLock hosted overlay is a 256px preview. EmployeeLock is not a court. FoldLock is not zip. WhistleLock is not a mailer. TrajectoryLock is not a certified forensic instrument. M.I.A.Lock Doe hits are leads, not IDs. Aziel Digital Library is not a 26-card index. AzielTether is not a VPN. PeaceLock is not a transcript, not a counterfactual, not a motive score, and not a HARD_DUTY waiver. AZMail (APP 1.0) is not a full internet MTA — FragGate only; mesh default off; SMTP / deanonymize stub. AZBrowser (AZB-1.0) is not Chromium — FragGate only; Lamb Lens ethical research browser; cites; refuses harmful harvest; never invents visit results; tor_exit / phoenix_wipe stub. AZNet (AZN-WP-0.1) is a separate product — not a payload host; FragGate only; garden / stamp / memorial ops require AZBrowser pair_token AND pair_flag (functional order only). payload_host / serve_content_for_peer stub. AZHub (AIH-WP-1.0) is a Blank Key — not AZInterface, not an interpreter, not auto-unlock. AZInterface (AIH-WP-1.0) is a custodial operating environment — pre-locked page cycles; not AZHub. VPN/hop mesh is not claimed on this public surface. The suite QNM surface is QNM-BUILD-1.0 rollup (live/locked/isolated; default radios OFF; operator bearer enable) — not a login mesh, not login-recovery, not Node Gate/IP panel, not AnonBroadcast as a catalog product or publish path, not an upload proxy, not origin-hiding, not QNM-S. Full node process is local qnm-node/. AZMail mesh_* stays product-local.
 
 ## Cite
 
@@ -402,7 +402,7 @@ export function runtimeManifest(origin, products, extra = {}) {
     kernel: FRAGGATE_GITHUB,
     extras: catalogExtraCards(base),
     extras_note:
-      "Kernel / door cards for Software hubs. extras[] is not PRODUCTS — FragGate is the door; Node Mesh is the suite presence kernel (not a Softwares-tab product). Human UI + counted download is the separate FragGate Worker app (fraggate-download-tracker; not nested in AZBrowser).",
+      "Kernel / door cards for Software hubs. extras[] is not PRODUCTS — FragGate is the door; Quantum Node Mesh (QNM-BUILD-1.0) is the suite rollup (not a login mesh; not a Softwares-tab product). Human UI + counted download is the separate FragGate Worker app (fraggate-download-tracker; not nested in AZBrowser).",
     registry_digest: extra.registry_digest || fraggate.registry_digest || null,
     fraggate: { ...fraggateHubCard(base), ...fraggate },
     author: "Aziel Eliab",
@@ -786,7 +786,7 @@ export function runtimeStaticPaths() {
     "/v1/skill": {
       get: {
         operationId: "runtime_skill",
-        summary: "Skill markdown: 1.6.13 adds the suite node mesh. 1.6.12 adds GET /v1/software + client update check. Honest about 1.1.0 / 1.2.0 / 1.3.0 / 1.4.0 / 1.4.1 / 1.5.0 / 1.6.0 / 1.6.1 / 1.6.2 / 1.6.3 / 1.6.4 / 1.6.5 / 1.6.6 / 1.6.7 / 1.6.8 / 1.6.9 / 1.6.10 / 1.6.11 / 1.6.12 / 1.6.13.",
+        summary: "Skill markdown: 1.6.13 aligns the QNM-BUILD-1.0 suite rollup. 1.6.12 adds GET /v1/software + client update check. Honest about 1.1.0 / 1.2.0 / 1.3.0 / 1.4.0 / 1.4.1 / 1.5.0 / 1.6.0 / 1.6.1 / 1.6.2 / 1.6.3 / 1.6.4 / 1.6.5 / 1.6.6 / 1.6.7 / 1.6.8 / 1.6.9 / 1.6.10 / 1.6.11 / 1.6.12 / 1.6.13.",
         tags: ["runtime"],
         responses: { "200": { description: "text/markdown skill" } },
       },
@@ -1191,9 +1191,9 @@ export function runtimeStaticPaths() {
       get: {
         operationId: "mesh_status",
         summary:
-          "Suite node mesh status (enabled?, live_nodes, products present). Default OFF. Not AnonBroadcast. Not AZMail's product-local ring.",
+          "QNM-BUILD-1.0 suite rollup (enabled?, bearers, live/locked/isolated). Default OFF. GET never enables. Not a login mesh. Views/MCP/downloads do not enter QNM-S.",
         tags: ["mesh"],
-        responses: { "200": { description: "Mesh status JSON" } },
+        responses: { "200": { description: "QNM rollup JSON" } },
       },
       head: {
         operationId: "mesh_status_head",
@@ -1205,41 +1205,52 @@ export function runtimeStaticPaths() {
     "/v1/mesh/status": {
       get: {
         operationId: "mesh_status_alias",
-        summary: "Alias of GET /v1/mesh.",
+        summary: "Alias of GET /v1/mesh. Never enables radios.",
         tags: ["mesh"],
-        responses: { "200": { description: "Mesh status JSON" } },
+        responses: { "200": { description: "QNM rollup JSON" } },
       },
     },
     "/v1/mesh/nodes": {
       get: {
         operationId: "mesh_nodes",
-        summary: "Live suite mesh nodes (5-minute presence, GodLock Live Nodes style).",
+        summary: "QNM rollup roster (live/locked/isolated). No scores. No leaderboard.",
         tags: ["mesh"],
-        responses: { "200": { description: "Live nodes JSON" } },
+        responses: { "200": { description: "Rollup nodes JSON" } },
       },
     },
     "/v1/mesh/enable": {
       post: {
         operationId: "mesh_enable",
-        summary: "Turn the suite node mesh ON. Rate-limited. Default is OFF.",
+        summary: "Operator enable. LIVE only after ≥1 declared bearer. Empty {} refused. Rate-limited. Not a login mesh.",
         tags: ["mesh"],
-        requestBody: { required: false, content: { "application/json": { schema: { type: "object" } } } },
-        responses: { "200": { description: "Mesh enabled" }, "400": { description: "Rate limited" } },
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["bearer"],
+                properties: { bearer: { type: "string", description: "Declared bearer (example: suite-presence)" } },
+              },
+            },
+          },
+        },
+        responses: { "200": { description: "Radios LIVE" }, "400": { description: "Need bearer, bad bearer, or rate limited" } },
       },
     },
     "/v1/mesh/disable": {
       post: {
         operationId: "mesh_disable",
-        summary: "Turn the suite node mesh OFF. Always allowed. No wipe internals.",
+        summary: "Radios/bearers OFF. Tethers drop clean. No wipe / heal / resurrection.",
         tags: ["mesh"],
         requestBody: { required: false, content: { "application/json": { schema: { type: "object" } } } },
-        responses: { "200": { description: "Mesh disabled" } },
+        responses: { "200": { description: "Radios OFF" } },
       },
     },
     "/v1/mesh/join": {
       post: {
         operationId: "mesh_join",
-        summary: "Join as a product node. Body { product, node_id?, label? }. Refused while mesh is OFF.",
+        summary: "Register rollup presence. Body { product, node_id?, label?, presence? }. Refused while radios are OFF.",
         tags: ["mesh"],
         requestBody: {
           required: true,
@@ -1252,30 +1263,39 @@ export function runtimeStaticPaths() {
                   product: { type: "string" },
                   node_id: { type: "string" },
                   label: { type: "string" },
+                  presence: { type: "string", description: "live | locked | isolated" },
                 },
               },
             },
           },
         },
-        responses: { "200": { description: "Session + node" }, "400": { description: "Mesh off or bad input" } },
+        responses: { "200": { description: "Session + node" }, "400": { description: "Radios off or bad input" } },
       },
     },
     "/v1/mesh/heartbeat": {
       post: {
         operationId: "mesh_heartbeat",
-        summary: "Refresh 5-minute presence. Body { node_id }.",
+        summary: "Refresh 5-minute presence. Body { node_id, presence? }.",
         tags: ["mesh"],
         requestBody: {
           required: true,
-          content: { "application/json": { schema: { type: "object", required: ["node_id"], properties: { node_id: { type: "string" } } } } },
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["node_id"],
+                properties: { node_id: { type: "string" }, presence: { type: "string" } },
+              },
+            },
+          },
         },
-        responses: { "200": { description: "Presence refreshed" }, "400": { description: "Unknown node or mesh off" } },
+        responses: { "200": { description: "Presence refreshed" }, "400": { description: "Unknown node or radios off" } },
       },
     },
     "/v1/mesh/leave": {
       post: {
         operationId: "mesh_leave",
-        summary: "Leave the suite mesh. Body { node_id }.",
+        summary: "Drop rollup presence. Body { node_id }. No implicit heal.",
         tags: ["mesh"],
         requestBody: {
           required: true,
@@ -1288,7 +1308,7 @@ export function runtimeStaticPaths() {
       post: {
         operationId: "mesh_broadcast",
         summary:
-          "Register a SHA-256 hash receipt of a local communique. Does not accept video bytes. Operator keeps the file. Render with local anon-broadcast.",
+          "Register a SHA-256 hash receipt of a local communique. Never a publish path. Does not accept video bytes. Anon-broadcast is a sibling loopback of local qnm-node/ only.",
         tags: ["mesh"],
         requestBody: {
           required: true,
@@ -1305,7 +1325,7 @@ export function runtimeStaticPaths() {
             },
           },
         },
-        responses: { "200": { description: "Receipt registered" }, "400": { description: "Mesh off, bytes refused, or bad hash" } },
+        responses: { "200": { description: "Local hash receipt" }, "400": { description: "Radios off, bytes refused, publish refused, or bad hash" } },
       },
     },
   };
