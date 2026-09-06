@@ -36,6 +36,8 @@ export const CATALOG_ALIASES = {
   "az-interface": "azinterface",
   "aih-interface": "azinterface",
   "page-cycle": "azinterface",
+  "embryo-lock": "embryolock",
+  embryo: "embryolock",
 };
 
 /**

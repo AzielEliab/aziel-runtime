@@ -183,6 +183,7 @@ export function robotsTxt(origin, products) {
     "# Aziel Eliab Runtime — open crawl for Google and AI search.",
     "# Author: Aziel Eliab. Also known as Aziel Elroi Eliab (alternateName only).",
     "# Content-Signal opens search + AI input + AI train. No Disallow for GPTBot.",
+    "# Allow /v1/software /v1/update /mcp /openapi — hubs and agents fetch these.",
     "",
     "User-agent: *",
     "Allow: /",
@@ -269,6 +270,11 @@ export function catalogHubFields(origin) {
       ai: base + "/ai.txt",
       cite: base + "/cite.json",
       catalog: base + "/v1/catalog.json",
+      software: base + "/v1/software",
+      fraggate_software: base + "/v1/fraggate/software",
+      update_check: base + "/v1/update/check",
+      update_manifest: base + "/v1/update/manifest",
+      mcp: base + "/mcp",
     },
   };
 }

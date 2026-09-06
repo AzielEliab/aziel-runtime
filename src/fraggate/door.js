@@ -40,7 +40,7 @@ export function defaultClaim(slug, op) {
   return {
     statement: `Execute the public FragGate allowlisted ${name} ${verb} operation inside the aziel-runtime Worker isolate without incrementing download counters or claiming a mesh hop.`,
     evidence: [
-      `${name} ${verb} is on the aziel-runtime 1.6.11 FragGate public allowlist.`,
+      `${name} ${verb} is on the aziel-runtime 1.6.12 FragGate public allowlist.`,
       "Cloudflare Worker isolate is the jail. engine_digest is required.",
     ],
     impact_pos: ["The agent receives a typed ResultEnvelope and display-ready output."],
