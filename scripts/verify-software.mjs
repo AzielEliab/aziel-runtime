@@ -104,6 +104,10 @@ assert.ok(!catalog.software.some((s) => s.slug === "mesh"), "suite mesh is not a
 assert.ok(!catalog.software.some((s) => s.slug === "anon-broadcast"), "anon-broadcast is not a Softwares-tab product");
 assert.equal(catalog.mesh.enabled_default, false);
 assert.equal(catalog.mesh.path, "/v1/mesh");
+assert.equal(catalog.mesh.spec, "QNM-BUILD-1.0");
+assert.equal(catalog.mesh.companion, "AIH-WP-1.1");
+assert.equal(catalog.mesh.rollup_only, true);
+assert.equal(catalog.mesh.qnm_s, false);
 
 assert.equal(compareVersions("0.7.0", "0.8.0") < 0, true);
 assert.equal(compareVersions("0.8.0", "0.8.0"), 0);

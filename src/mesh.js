@@ -1,22 +1,40 @@
 /**
- * Aziel Eliab Runtime — suite-wide decentralized node mesh kernel.
+ * Aziel Eliab Runtime — Quantum Node Mesh suite rollup (QNM-BUILD-1.0).
  *
- * Presence + hash-receipt layer shared by every product Worker.
- * Default OFF (GodLock law: mesh off until Aziel adds it — this is the add).
- * Not a Softwares-tab product. Not AnonBroadcast. Not AZMail's product-local ring.
+ * Companion to AIH-WP-1.1. Public surface is rollup + operator enable only.
+ * Parent will roll the full local `qnm-node/` package next.
+ * This Worker must not invent a login mesh, Node Gate / IP panel,
+ * login-recovery, upload proxy, or account resurrection.
  *
- * Broadcast accepts a SHA-256 receipt only — never video bytes.
- * Anon-broadcast stays a local communique renderer (text→TTS→desk MP4→
- * metadata-culled file + SHA-256). Style tool; not an upload proxy;
- * not origin-hiding. Operator moves the file.
+ * Law (must not violate):
+ * - Bulletproof: local modules run radios off; receipts to disk; poison
+ *   refused not interpreted; tamper isolates; PHOENIX-LOCK waits locally
+ *   (no controller hunt); tethers drop clean (no implicit heal); no
+ *   account resurrection; anon-broadcast is never a publish path.
+ * - azieleliab.com hosts published software/runtime — NOT login-recovery,
+ *   NOT Node Gate/IP panel, NOT upload proxy.
+ * - Suite public surface may expose mesh rollup only: live / locked /
+ *   isolated counts (no average-of-nodes leaderboard). Views / MCP /
+ *   downloads do not enter QNM-S.
+ * - Default: radios/bearers off. LIVE only after the operator enables
+ *   ≥1 declared bearer (never because a site pinged GET /v1/mesh).
  *
+ * Keep /v1/mesh status/nodes/enable/disable for suite presence.
+ * Frame as QNM rollup + operator enable — not account mesh.
+ *
+ * Full node process is local `qnm-node/` (boot/chain/apg/bearers/outbox/
+ * phoenix/score/memorial/tethers). Anon-broadcast is a sibling loopback
+ * module of that local process only.
+ *
+ * Not a Softwares-tab product. Not AZMail's product-local ring.
  * Do not invent arming / wipe / VPN-hop internals.
  * Public identity: Aziel Eliab only.
  */
 
 export const MESH_SLUG = "mesh";
-export const MESH_NAME = "Node Mesh";
-export const MESH_SPEC = "NM-0.1";
+export const MESH_NAME = "Quantum Node Mesh";
+export const MESH_SPEC = "QNM-BUILD-1.0";
+export const MESH_COMPANION = "AIH-WP-1.1";
 export const MESH_AUTHOR = "Aziel Eliab";
 export const MESH_DEFAULT = "off";
 export const MESH_DEFAULT_ENABLED = false;
@@ -26,12 +44,22 @@ export const RECEIPT_CAP = 32;
 export const NODE_CAP = 256;
 export const LABEL_CAP = 80;
 export const TITLE_CAP = 160;
+export const PRESENCE_STATES = Object.freeze(["live", "locked", "isolated"]);
+export const EXAMPLE_BEARER = "suite-presence";
+
+export const QNM_HOST_NOTE =
+  "azieleliab.com hosts published software/runtime — not login-recovery, not Node Gate/IP panel, not upload proxy.";
+
+export const QNM_LOCAL_NODE =
+  "Full node process is local qnm-node/ (boot/chain/apg/bearers/outbox/phoenix/score/memorial/tethers). Parent will roll that package. This runtime is suite rollup + operator enable only.";
+
+export const QNM_S_NOTE = "Views, MCP, and downloads do not enter QNM-S.";
 
 export const ANON_BROADCAST_NOTE =
-  "Anon-broadcast is a local communique renderer (text→TTS→desk MP4→metadata-culled file + SHA-256). Style tool only. Not an upload proxy. Not origin-hiding. Operator moves the file. Not a Softwares-tab product. Mesh networking is this suite kernel.";
+  "Anon-broadcast is a sibling loopback module of local qnm-node/ only (text→TTS→desk MP4→metadata-culled file + SHA-256). Style tool. Never a publish path. Not an upload proxy. Not origin-hiding. Operator keeps the file. Not a Softwares-tab product. Not a QNM publish channel.";
 
 export const MESH_LIMITATION =
-  "THIS IS: the aziel-runtime suite node mesh — optional presence (5-minute live nodes) plus hash receipts of local communiques. Default OFF. Product Workers proxy /v1/mesh/* via the AZIEL_RUNTIME binding. THIS IS NOT: AnonBroadcast as a catalog product; an upload proxy; origin-hiding; a VPN; MirageGrid hop; AZMail's product-local anonymous ring; arming; wipe. Author: Aziel Eliab only.";
+  "THIS IS: QNM-BUILD-1.0 suite rollup on aziel-runtime — companion to AIH-WP-1.1. Public surface is live/locked/isolated counts plus operator enable of a declared bearer. Default radios/bearers OFF. GET /v1/mesh never turns LIVE. Product Workers may proxy /v1/mesh/* via AZIEL_RUNTIME. THIS IS NOT: a login mesh; login-recovery; Node Gate/IP panel; upload proxy; account resurrection; average-of-nodes leaderboard; QNM-S; the local qnm-node process (boot/chain/apg/bearers/outbox/phoenix/score/memorial/tethers); AnonBroadcast as a catalog product or publish path; AZMail's product-local ring; arming; wipe; controller hunt; implicit heal. Author: Aziel Eliab only.";
 
 export const MESH_CANONICAL_OPS = Object.freeze([
   "status",
@@ -59,7 +87,28 @@ export const MESH_OP_ALIASES = Object.freeze({
 
 export const MESH_LIVE_OPS = Object.freeze([...MESH_CANONICAL_OPS, ...Object.keys(MESH_OP_ALIASES)]);
 
-export const MESH_STUB_OPS = Object.freeze(["arm", "wipe", "vpn", "hop", "tunnel", "scorch"]);
+export const MESH_STUB_OPS = Object.freeze([
+  "arm",
+  "wipe",
+  "vpn",
+  "hop",
+  "tunnel",
+  "scorch",
+  "login",
+  "recover",
+  "recovery",
+  "resurrection",
+  "resurrect",
+  "account",
+  "gate",
+  "ip-panel",
+  "ippanel",
+  "publish",
+  "phoenix-hunt",
+  "phoenix_hunt",
+  "heal",
+  "controller",
+]);
 
 export const MESH_MCP_TOOLS = Object.freeze([
   "mesh_status",
@@ -75,6 +124,26 @@ export const MESH_MCP_TOOLS = Object.freeze([
 const SHA256_RE = /^[a-f0-9]{64}$/;
 const PRODUCT_RE = /^[a-z0-9][a-z0-9-]{0,39}$/;
 const NODE_RE = /^[a-z0-9][a-z0-9._-]{7,79}$/i;
+const BEARER_RE = /^[a-z][a-z0-9-]{1,39}$/;
+const FORBIDDEN_BEARER_TOKENS = Object.freeze([
+  "login",
+  "recover",
+  "recovery",
+  "account",
+  "resurrection",
+  "resurrect",
+  "gate",
+  "ip",
+  "ip-panel",
+  "ippanel",
+  "publish",
+  "phoenix",
+  "heal",
+  "controller",
+  "password",
+  "session",
+  "restore",
+]);
 const FORBIDDEN_BROADCAST_KEYS = Object.freeze([
   "video",
   "bytes",
@@ -88,11 +157,17 @@ const FORBIDDEN_BROADCAST_KEYS = Object.freeze([
   "data",
   "payload_b64",
   "file_b64",
+  "publish",
+  "public",
+  "announce",
+  "stream",
 ]);
+const POISON_KEY_RE = /poison/i;
 
 const memory = {
   enabled: MESH_DEFAULT_ENABLED,
   last_enable_ms: 0,
+  bearers: [],
   nodes: {},
   receipts: [],
   seq: 0,
@@ -101,6 +176,7 @@ const memory = {
 export function resetMeshStore() {
   memory.enabled = MESH_DEFAULT_ENABLED;
   memory.last_enable_ms = 0;
+  memory.bearers = [];
   memory.nodes = {};
   memory.receipts = [];
   memory.seq = 0;
@@ -123,6 +199,10 @@ export function meshHint(path = "/v1/mesh") {
   return {
     path: String(path || "/v1/mesh"),
     enabled_default: false,
+    spec: MESH_SPEC,
+    companion: MESH_COMPANION,
+    rollup_only: true,
+    qnm_s: false,
   };
 }
 
@@ -137,12 +217,14 @@ export function meshKernelEntry() {
     stub_ops: MESH_STUB_OPS.slice(),
     op_aliases: { ...MESH_OP_ALIASES },
     description:
-      "Suite-wide decentralized node mesh. Presence + hash receipts. Default OFF. Not a Softwares-tab product.",
+      "QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1). live/locked/isolated counts + operator-declared bearer. Default OFF. Not a login mesh. Not a Softwares-tab product.",
     note: MESH_LIMITATION,
     kind: "kernel",
     engine: false,
     true_engine_runtime: false,
     local_not_hosted: false,
+    companion: MESH_COMPANION,
+    spec: MESH_SPEC,
   };
 }
 
@@ -153,14 +235,17 @@ export function nodeMeshHubCard(origin) {
     name: MESH_NAME,
     kind: "kernel",
     spec: MESH_SPEC,
+    companion: MESH_COMPANION,
     engine: false,
     true_engine_runtime: false,
     version: MESH_SPEC,
     door: "fraggate",
     one_line:
-      "Suite-wide node mesh (presence + hash receipts). Default OFF. Not a Softwares-tab product. Anon-broadcast stays local-only.",
+      "QNM-BUILD-1.0 suite rollup (live/locked/isolated). Operator enable via a declared bearer. Default OFF. Not a login mesh. Full node is local qnm-node/.",
     path: "/v1/mesh",
     enabled_default: false,
+    rollup_only: true,
+    qnm_s: false,
     status: `${base}/v1/mesh/status`,
     nodes: `${base}/v1/mesh/nodes`,
     enable: `${base}/v1/mesh/enable`,
@@ -168,6 +253,7 @@ export function nodeMeshHubCard(origin) {
     fraggate_describe: `${base}/v1/fraggate/describe?slug=mesh`,
     fraggate_call: `${base}/v1/fraggate/call`,
     docs: "docs/NODE_MESH.md",
+    local_node: "qnm-node/",
     note: MESH_LIMITATION,
     author: MESH_AUTHOR,
   };
@@ -206,6 +292,25 @@ export function sanitizeLabel(raw) {
 
 export function isSha256Hex(raw) {
   return SHA256_RE.test(String(raw || "").trim().toLowerCase());
+}
+
+export function sanitizeBearer(raw) {
+  const s = String(raw || "")
+    .trim()
+    .toLowerCase();
+  if (!BEARER_RE.test(s)) return "";
+  const parts = s.split("-").filter(Boolean);
+  for (const tok of FORBIDDEN_BEARER_TOKENS) {
+    if (s === tok || parts.includes(tok)) return "";
+  }
+  return s;
+}
+
+export function sanitizePresence(raw, fallback = "live") {
+  if (raw == null || raw === "") return fallback;
+  const s = String(raw).trim().toLowerCase();
+  if (PRESENCE_STATES.includes(s)) return s;
+  return "";
 }
 
 function newNodeId(ms = nowMs()) {
@@ -263,31 +368,59 @@ function productsPresent(nodes) {
   return [...set].sort();
 }
 
+function rollupCounts(nodes) {
+  const rollup = { live: 0, locked: 0, isolated: 0 };
+  for (const node of liveList(nodes)) {
+    const p = node && PRESENCE_STATES.includes(node.presence) ? node.presence : "live";
+    rollup[p] += 1;
+  }
+  return rollup;
+}
+
+function normalizeBearers(raw) {
+  if (!Array.isArray(raw)) return [];
+  const out = [];
+  for (const item of raw) {
+    const b = sanitizeBearer(item);
+    if (b && !out.includes(b)) out.push(b);
+  }
+  return out;
+}
+
 function storeHonesty(binding) {
   if (binding === "MESH") return "Dedicated MESH KV.";
   if (binding === "USES") return "USES KV under mesh| keys (no placeholder namespace ids).";
   return "In-process memory (tests / unbound).";
 }
 
+function radiosOn(bearers) {
+  return Array.isArray(bearers) && bearers.length >= 1;
+}
+
 async function loadState(env) {
   const bound = meshKv(env);
   if (!bound) {
     memory.nodes = pruneNodes(memory.nodes);
+    const bearers = normalizeBearers(memory.bearers);
+    memory.enabled = radiosOn(bearers);
+    memory.bearers = bearers;
     return {
       enabled: memory.enabled === true,
       last_enable_ms: memory.last_enable_ms || 0,
+      bearers,
       nodes: { ...memory.nodes },
       receipts: Array.isArray(memory.receipts) ? memory.receipts.slice() : [],
       store: "memory",
     };
   }
-  const enabledRaw = await bound.kv.get(`${bound.prefix}enabled`);
   const lastRaw = await bound.kv.get(`${bound.prefix}last_enable_ms`);
+  const bearers = normalizeBearers(await kvGetJson(bound.kv, `${bound.prefix}bearers`, []));
   const nodes = pruneNodes(await kvGetJson(bound.kv, `${bound.prefix}nodes`, {}));
   const receipts = await kvGetJson(bound.kv, `${bound.prefix}receipts`, []);
   return {
-    enabled: enabledRaw === "1" || enabledRaw === "true",
+    enabled: radiosOn(bearers),
     last_enable_ms: Number(lastRaw) || 0,
+    bearers,
     nodes: nodes && typeof nodes === "object" && !Array.isArray(nodes) ? nodes : {},
     receipts: Array.isArray(receipts) ? receipts : [],
     store: bound.binding,
@@ -296,20 +429,40 @@ async function loadState(env) {
 
 async function saveState(env, state) {
   const bound = meshKv(env);
+  const bearers = normalizeBearers(state.bearers);
+  const enabled = radiosOn(bearers);
   const nodes = pruneNodes(state.nodes);
   const receipts = Array.isArray(state.receipts) ? state.receipts.slice(0, RECEIPT_CAP) : [];
   if (!bound) {
-    memory.enabled = state.enabled === true;
+    memory.enabled = enabled;
     memory.last_enable_ms = state.last_enable_ms || 0;
+    memory.bearers = bearers;
     memory.nodes = nodes;
     memory.receipts = receipts;
     return "memory";
   }
-  await bound.kv.put(`${bound.prefix}enabled`, state.enabled ? "1" : "0");
+  await bound.kv.put(`${bound.prefix}enabled`, enabled ? "1" : "0");
   await bound.kv.put(`${bound.prefix}last_enable_ms`, String(state.last_enable_ms || 0));
+  await bound.kv.put(`${bound.prefix}bearers`, JSON.stringify(bearers));
   await bound.kv.put(`${bound.prefix}nodes`, JSON.stringify(nodes));
   await bound.kv.put(`${bound.prefix}receipts`, JSON.stringify(receipts));
   return bound.binding;
+}
+
+function qnmFrame() {
+  return {
+    spec: MESH_SPEC,
+    companion: MESH_COMPANION,
+    name: MESH_NAME,
+    qnm_s: false,
+    qnm_s_note: QNM_S_NOTE,
+    scores: false,
+    leaderboard: false,
+    phoenix_lock: "local wait — no controller hunt",
+    local_node: "qnm-node/",
+    local_node_note: QNM_LOCAL_NODE,
+    host_note: QNM_HOST_NOTE,
+  };
 }
 
 function baseResult(extra) {
@@ -319,9 +472,9 @@ function baseResult(extra) {
     author: MESH_AUTHOR,
     identity: "Aziel Eliab",
     kernel: MESH_SLUG,
-    spec: MESH_SPEC,
     mesh_default: MESH_DEFAULT,
     presence_ttl_ms: PRESENCE_TTL_MS,
+    ...qnmFrame(),
     ...extra,
   };
 }
@@ -333,9 +486,9 @@ function refuse(code, message, extra = {}) {
     author: MESH_AUTHOR,
     identity: "Aziel Eliab",
     kernel: MESH_SLUG,
-    spec: MESH_SPEC,
     mesh_default: MESH_DEFAULT,
     message,
+    ...qnmFrame(),
     ...extra,
   };
 }
@@ -344,16 +497,24 @@ function statusFields(state) {
   const nodes = pruneNodes(state.nodes);
   const list = liveList(nodes);
   const products = productsPresent(nodes);
+  const rollup = rollupCounts(nodes);
+  const bearers = normalizeBearers(state.bearers);
+  const enabled = radiosOn(bearers);
   return {
-    enabled: state.enabled === true,
-    live_nodes: list.length,
+    enabled,
+    radios: enabled ? "operator" : "off",
+    bearers,
+    rollup,
+    live_nodes: rollup.live,
+    locked_nodes: rollup.locked,
+    isolated_nodes: rollup.isolated,
     products_present: products,
-    products: products,
+    products,
     store: state.store,
     store_note: storeHonesty(state.store),
     anon_broadcast: ANON_BROADCAST_NOTE,
     azmail_note:
-      "AZMail mesh_* stays product-local (anonymous mail ring). This suite mesh is the shared presence layer.",
+      "AZMail mesh_* stays product-local (anonymous mail ring). This surface is QNM rollup + operator enable, not that ring and not an account mesh.",
   };
 }
 
@@ -363,8 +524,8 @@ export async function meshStatus(payload, env) {
     op: "status",
     ...statusFields(state),
     note: state.enabled
-      ? "Suite mesh is on. Nodes join / heartbeat / leave. Broadcast is a hash receipt only."
-      : "Suite mesh is OFF (default). Enable before join / heartbeat / broadcast.",
+      ? "QNM suite rollup is LIVE because an operator declared ≥1 bearer. Counts only — no QNM-S, no leaderboard."
+      : "QNM radios/bearers are OFF (default). GET /v1/mesh never enables. Declare a bearer with POST /v1/mesh/enable.",
   });
 }
 
@@ -379,17 +540,25 @@ export async function meshHealth(payload, env) {
 }
 
 export function meshSkillText() {
-  return `# Node Mesh (suite kernel)
+  return `# Quantum Node Mesh (QNM-BUILD-1.0)
+
+Companion to **AIH-WP-1.1**. Suite public surface is **rollup + operator enable** only.
 
 ${MESH_LIMITATION}
 
-Default **OFF**. Presence TTL is 5 minutes (GodLock Live Nodes style).
+Default **OFF**. LIVE only after the operator enables ≥1 declared bearer (example: \`suite-presence\`). A site ping of \`GET /v1/mesh\` never turns radios on.
 
-HTTP: \`GET /v1/mesh\` · \`GET /v1/mesh/status\` · \`POST /v1/mesh/enable|disable|join|heartbeat|leave\` · \`GET /v1/mesh/nodes\` · \`POST /v1/mesh/broadcast\`
+Rollup counts: **live / locked / isolated**. No average-of-nodes leaderboard. Views / MCP / downloads do not enter QNM-S.
+
+Full node process is local \`qnm-node/\` (boot / chain / apg / bearers / outbox / phoenix / score / memorial / tethers). Parent will roll that package. Anon-broadcast is a sibling loopback module of that local process only — never a publish path.
+
+HTTP: \`GET /v1/mesh\` · \`GET /v1/mesh/status\` · \`POST /v1/mesh/enable\` (body \`{ bearer }\`) · \`POST /v1/mesh/disable\` · \`POST /v1/mesh/join|heartbeat|leave\` · \`GET /v1/mesh/nodes\` · \`POST /v1/mesh/broadcast\` (hash receipt only; not a publish path)
 
 FragGate: \`fraggate_list\` → \`fraggate_describe\` slug=mesh → \`fraggate_call { slug: "mesh", op }\`
 
 MCP tools: ${MESH_MCP_TOOLS.join(", ")}
+
+${QNM_HOST_NOTE}
 
 ${ANON_BROADCAST_NOTE}
 
@@ -401,12 +570,55 @@ export async function meshSkill() {
   return baseResult({
     op: "skill",
     text: meshSkillText(),
-    note: "Suite mesh skill. Not a catalog Software engine.",
+    note: "QNM suite rollup skill. Not a catalog Software engine. Not a login mesh.",
   });
 }
 
+function collectDeclaredBearers(src) {
+  const raw = [];
+  if (src && src.bearer != null && src.bearer !== "") raw.push(src.bearer);
+  if (src && Array.isArray(src.bearers)) raw.push(...src.bearers);
+  const accepted = [];
+  const rejected = [];
+  for (const item of raw) {
+    const clean = sanitizeBearer(item);
+    if (clean) {
+      if (!accepted.includes(clean)) accepted.push(clean);
+    } else {
+      rejected.push(String(item == null ? "" : item).trim());
+    }
+  }
+  return { accepted, rejected, raw };
+}
+
 export async function meshEnable(payload, env) {
+  const src = payload && typeof payload === "object" && !Array.isArray(payload) ? payload : {};
   const state = await loadState(env);
+  const { accepted, rejected, raw } = collectDeclaredBearers(src);
+  if (!raw.length) {
+    return refuse(
+      "MESH-NEED-BEARER",
+      "LIVE only after the operator declares ≥1 bearer. Pass { bearer: \"suite-presence\" }. Empty enable is refused. GET /v1/mesh never enables.",
+      {
+        op: "enable",
+        mesh_enabled: state.enabled === true,
+        ...statusFields(state),
+        example_bearer: EXAMPLE_BEARER,
+      },
+    );
+  }
+  if (rejected.length) {
+    return refuse(
+      "MESH-BAD-BEARER",
+      "Bearer refused. Login / account / recover / gate / IP / publish / phoenix / heal names are not suite bearers. This is not a login mesh.",
+      {
+        op: "enable",
+        mesh_enabled: state.enabled === true,
+        refused_bearers: rejected.slice(0, 8),
+        example_bearer: EXAMPLE_BEARER,
+      },
+    );
+  }
   const now = nowMs();
   if (state.last_enable_ms && now - state.last_enable_ms < ENABLE_COOLDOWN_MS) {
     const retry_ms = ENABLE_COOLDOWN_MS - (now - state.last_enable_ms);
@@ -416,29 +628,37 @@ export async function meshEnable(payload, env) {
       retry_ms,
     });
   }
-  state.enabled = true;
+  const bearers = [...state.bearers];
+  for (const b of accepted) {
+    if (!bearers.includes(b)) bearers.push(b);
+  }
+  state.bearers = bearers;
+  state.enabled = radiosOn(bearers);
   state.last_enable_ms = now;
   const store = await saveState(env, state);
   return baseResult({
     op: "enable",
     ...statusFields({ ...state, store }),
-    note: "Suite mesh enabled. Default remains off on a fresh isolate / empty KV.",
+    note: "Operator declared a bearer. Radios LIVE for suite rollup only. Default remains off on a fresh isolate / empty KV. Not a login mesh.",
   });
 }
 
 export async function meshDisable(payload, env) {
   const state = await loadState(env);
+  state.bearers = [];
   state.enabled = false;
+  state.nodes = {};
+  state.receipts = [];
   const store = await saveState(env, state);
   return baseResult({
     op: "disable",
     ...statusFields({ ...state, store }),
-    note: "Suite mesh disabled. Live nodes expire in 5 minutes. No wipe / arming.",
+    note: "Radios/bearers OFF. Tethers drop clean — no implicit heal, no account resurrection, no wipe internals.",
   });
 }
 
 function offRefuse(op, state) {
-  return refuse("MESH-OFF", "Suite mesh is off. Default OFF. Call enable first.", {
+  return refuse("MESH-OFF", "QNM radios are off. Default OFF. Declare ≥1 bearer with enable first. Site pings do not enable.", {
     op,
     mesh_enabled: false,
     ...statusFields(state),
@@ -452,6 +672,15 @@ export async function meshJoin(payload, env) {
   const product = sanitizeProduct(src.product);
   if (!product) {
     return refuse("MESH-BAD-INPUT", "Pass { product } as a catalog slug (a-z0-9-). AnonBroadcast is not a product.", {
+      op: "join",
+      mesh_enabled: true,
+    });
+  }
+  const presence = Object.prototype.hasOwnProperty.call(src, "presence")
+    ? sanitizePresence(src.presence, "")
+    : "live";
+  if (!presence) {
+    return refuse("MESH-BAD-INPUT", "presence must be live, locked, or isolated (rollup only; no scores).", {
       op: "join",
       mesh_enabled: true,
     });
@@ -470,6 +699,7 @@ export async function meshJoin(payload, env) {
     node_id,
     product,
     label,
+    presence,
     session_id,
     joined_at: (existing && existing.joined_at) || ts,
     last_seen: ts,
@@ -489,11 +719,12 @@ export async function meshJoin(payload, env) {
       node_id,
       product,
       label,
+      presence,
       joined_at: node.joined_at,
       presence_ttl_ms: PRESENCE_TTL_MS,
     },
     node,
-    note: "Node joined the suite mesh. Heartbeat within 5 minutes or presence drops.",
+    note: "Presence registered for QNM rollup only. Heartbeat within 5 minutes or the count drops. Not an account session.",
   });
 }
 
@@ -507,11 +738,21 @@ export async function meshHeartbeat(payload, env) {
   }
   const node = state.nodes[node_id];
   if (!node) {
-    return refuse("MESH-UNKNOWN-NODE", "Unknown or expired node. Join again.", {
+    return refuse("MESH-UNKNOWN-NODE", "Unknown or expired node. Join again. No account resurrection.", {
       op: "heartbeat",
       mesh_enabled: true,
       node_id,
     });
+  }
+  if (Object.prototype.hasOwnProperty.call(src, "presence")) {
+    const presence = sanitizePresence(src.presence, "");
+    if (!presence) {
+      return refuse("MESH-BAD-INPUT", "presence must be live, locked, or isolated.", {
+        op: "heartbeat",
+        mesh_enabled: true,
+      });
+    }
+    node.presence = presence;
   }
   node.last_seen = nowIso();
   state.nodes[node_id] = node;
@@ -520,7 +761,7 @@ export async function meshHeartbeat(payload, env) {
     op: "heartbeat",
     ...statusFields({ ...state, store }),
     node,
-    note: "Presence refreshed. 5-minute TTL.",
+    note: "Presence refreshed for rollup counts. 5-minute TTL. No implicit heal.",
   });
 }
 
@@ -539,18 +780,25 @@ export async function meshLeave(payload, env) {
     ...statusFields({ ...state, store }),
     node_id,
     left: existed,
-    note: existed ? "Node left the suite mesh." : "Node was not live; leave is idempotent.",
+    note: existed ? "Presence dropped clean. No implicit heal." : "Node was not in the rollup; leave is idempotent.",
   });
 }
 
 export async function meshNodes(payload, env) {
   const state = await loadState(env);
-  const nodes = liveList(pruneNodes(state.nodes));
+  const nodes = liveList(pruneNodes(state.nodes)).map((n) => ({
+    node_id: n.node_id,
+    product: n.product,
+    label: n.label,
+    presence: PRESENCE_STATES.includes(n.presence) ? n.presence : "live",
+    last_seen: n.last_seen,
+    joined_at: n.joined_at,
+  }));
   return baseResult({
     op: "nodes",
     ...statusFields(state),
     nodes,
-    note: "Live nodes with last_seen within 5 minutes. Same presence window as GodLock Live Nodes.",
+    note: "QNM rollup roster (live/locked/isolated). No scores. No leaderboard. Views/MCP/downloads do not enter QNM-S.",
   });
 }
 
@@ -559,15 +807,27 @@ function forbiddenBroadcastKeys(obj) {
   return Object.keys(obj).filter((k) => FORBIDDEN_BROADCAST_KEYS.includes(String(k).toLowerCase()));
 }
 
+function poisonKeys(obj) {
+  if (!obj || typeof obj !== "object" || Array.isArray(obj)) return [];
+  return Object.keys(obj).filter((k) => POISON_KEY_RE.test(String(k)));
+}
+
 export async function meshBroadcast(payload, env) {
   const src = payload && typeof payload === "object" && !Array.isArray(payload) ? payload : {};
   const state = await loadState(env);
   if (!state.enabled) return offRefuse("broadcast", state);
+  if (src.publish === true || String(src.mode || "").toLowerCase() === "publish") {
+    return refuse("MESH-NO-PUBLISH", "Anon-broadcast is never a publish path. Local qnm-node/ loopback only.", {
+      op: "broadcast",
+      mesh_enabled: true,
+      anon_broadcast: ANON_BROADCAST_NOTE,
+    });
+  }
   const banned = forbiddenBroadcastKeys(src);
   if (banned.length) {
     return refuse(
       "MESH-NO-BYTES",
-      "Broadcast is a hash receipt only. Do not send video / file / bytes. Operator keeps the file local. Use local anon-broadcast to render.",
+      "Never a publish path. Do not send video / file / bytes / publish fields. Operator keeps the file on disk. Use local qnm-node/ anon-broadcast loopback to render.",
       {
         op: "broadcast",
         mesh_enabled: true,
@@ -580,7 +840,7 @@ export async function meshBroadcast(payload, env) {
     .trim()
     .toLowerCase();
   if (!isSha256Hex(sha)) {
-    return refuse("MESH-BAD-INPUT", "Pass { sha256 } as 64 hex chars. No video bytes.", {
+    return refuse("MESH-BAD-INPUT", "Pass { sha256 } as 64 hex chars. Hash receipt only — not a publish path.", {
       op: "broadcast",
       mesh_enabled: true,
       anon_broadcast: ANON_BROADCAST_NOTE,
@@ -592,6 +852,7 @@ export async function meshBroadcast(payload, env) {
     title: title || undefined,
     at: nowIso(),
     product: sanitizeProduct(src.product) || undefined,
+    publish: false,
   };
   state.receipts.unshift(receipt);
   if (state.receipts.length > RECEIPT_CAP) state.receipts.length = RECEIPT_CAP;
@@ -601,18 +862,29 @@ export async function meshBroadcast(payload, env) {
     ...statusFields({ ...state, store }),
     receipt,
     receipts: state.receipts.slice(0, 8),
-    render: "local-anon-broadcast",
+    render: "local-qnm-node-loopback",
+    publish: false,
     anon_broadcast: ANON_BROADCAST_NOTE,
-    note: "Hash receipt registered. File stays with the operator. Not an upload.",
+    note: "Local hash receipt only. Never a publish path. File stays on the operator disk.",
   });
 }
 
 export async function runMeshOp(op, payload, env) {
   const resolved = resolveMeshOp(op);
-  if (MESH_STUB_OPS.includes(resolved)) {
-    return refuse("MESH-STUB", `${resolved} is stub on the suite mesh. No arming / wipe / hop internals.`, {
-      op: resolved,
+  const src = payload && typeof payload === "object" && !Array.isArray(payload) ? payload : {};
+  const poisoned = poisonKeys(src);
+  if (poisoned.length) {
+    return refuse("MESH-POISON", "Poison refused, not interpreted.", {
+      op: resolved || op || null,
+      refused_keys: poisoned,
     });
+  }
+  if (MESH_STUB_OPS.includes(resolved)) {
+    return refuse(
+      "MESH-STUB",
+      `${resolved} is stub on the suite QNM rollup. No login mesh, recovery, resurrection, Node Gate, publish, controller hunt, heal, arming, wipe, or hop internals.`,
+      { op: resolved },
+    );
   }
   if (resolved === "status") return meshStatus(payload, env);
   if (resolved === "health") return meshHealth(payload, env);
@@ -643,7 +915,9 @@ export async function dispatchMeshHttp(method, pathname, payload, env) {
     }
     return {
       status: 405,
-      body: refuse("MESH-METHOD", "GET /v1/mesh or GET /v1/mesh/status.", { hint: "GET /v1/mesh/status" }),
+      body: refuse("MESH-METHOD", "GET /v1/mesh or GET /v1/mesh/status. GET never enables radios.", {
+        hint: "GET /v1/mesh/status",
+      }),
     };
   }
   if (path === "/v1/mesh/nodes") {

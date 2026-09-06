@@ -55,7 +55,7 @@ export function mcpInitializeInstructions() {
     "runtime_run, runtime_session_*, raw *_health, and runtime_manifest are advanced/internal. " +
     "Do not call flat {slug}_{op} names — they are not in tools/list. Unknown names refuse FG-HALLUC-TOOL. " +
     "HTTP /p/{slug}/{op} is a proxy and is not exec. " +
-    "1.6.13 adds the suite node mesh kernel (GET /v1/mesh, MCP mesh_*, FragGate slug=mesh). Default OFF. Not AnonBroadcast as a Softwares-tab product. " +
+    "1.6.13 aligns the suite QNM rollup (QNM-BUILD-1.0, companion to AIH-WP-1.1): GET /v1/mesh live/locked/isolated counts; operator enable requires a declared bearer; default radios off; not a login mesh; full node process is local qnm-node/. " +
     "1.6.12 adds GET /v1/software (hub Software-tab catalog; Plain→Gate→Lock + EmbryoLock stub) and GET /v1/update/check. " +
     "1.6.11 adds a durable FragGate op alias map so Worker UI button names (azhub list_modules/place, azinterface genesis_boot/hold, azbrowser airlock/home, azmail classify, aznet doctor/pair, peacelock doctor) resolve to catalog LIVE_OPS. EmbryoLock is stub / local-not-hosted (name only; describe?slug=embryolock; not a FragGate engine). " +
     "1.6.10 sets AZBrowser and AZNet catalog one_line to separate software (not engine). Same FragGate door. " +
@@ -187,34 +187,44 @@ export function runtimeHelperTools() {
     },
     {
       name: "mesh_status",
-      title: "Suite mesh status",
+      title: "QNM suite rollup",
       description:
-        "Suite-wide node mesh status: enabled?, live_nodes count, products present. Default OFF. Not AnonBroadcast. Not AZMail's product-local ring. Pipeline: fraggate_list → fraggate_describe slug=mesh → fraggate_call, or this named tool.",
-      annotations: { title: "Suite mesh status", readOnlyHint: true, openWorldHint: false },
+        "QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1): enabled?, declared bearers, live/locked/isolated counts. Default radios OFF. GET/this tool never enables. Not a login mesh. Views/MCP/downloads do not enter QNM-S. Full node process is local qnm-node/. Pipeline: fraggate_list → fraggate_describe slug=mesh → fraggate_call, or this named tool.",
+      annotations: { title: "QNM suite rollup", readOnlyHint: true, openWorldHint: false },
       inputSchema: { type: "object", additionalProperties: false, properties: {} },
     },
     {
       name: "mesh_enable",
-      title: "Enable the suite mesh",
+      title: "Enable QNM radios (declared bearer)",
       description:
-        "Global kill-switch ON for the suite node mesh. Default is OFF. Rate-limited. Does not arm or wipe. Same as POST /v1/mesh/enable and fraggate_call { slug: \"mesh\", op: \"enable\" }.",
-      annotations: { title: "Enable the suite mesh", readOnlyHint: false, openWorldHint: false },
-      inputSchema: { type: "object", additionalProperties: false, properties: {} },
+        "Operator enable for the QNM suite rollup. LIVE only after ≥1 declared bearer (example: suite-presence). Empty {} is refused. Default OFF. Rate-limited. Not a login mesh. Does not arm, wipe, heal, or resurrect accounts. Same as POST /v1/mesh/enable.",
+      annotations: { title: "Enable QNM radios (declared bearer)", readOnlyHint: false, openWorldHint: false },
+      inputSchema: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          bearer: {
+            type: "string",
+            description: "Declared bearer name (example: suite-presence). Login/account/recover/gate names refuse.",
+          },
+        },
+        required: ["bearer"],
+      },
     },
     {
       name: "mesh_disable",
-      title: "Disable the suite mesh",
+      title: "Disable QNM radios",
       description:
-        "Global kill-switch OFF. Always allowed. Live nodes expire in 5 minutes. No wipe internals.",
-      annotations: { title: "Disable the suite mesh", readOnlyHint: false, openWorldHint: false },
+        "Radios/bearers OFF. Tethers drop clean — no implicit heal, no account resurrection, no wipe internals. Always allowed.",
+      annotations: { title: "Disable QNM radios", readOnlyHint: false, openWorldHint: false },
       inputSchema: { type: "object", additionalProperties: false, properties: {} },
     },
     {
       name: "mesh_join",
-      title: "Join the suite mesh",
+      title: "Register QNM rollup presence",
       description:
-        "Join as a product node. Body: { product, node_id?, label? }. Returns a session. Refused while mesh is OFF. Same as POST /v1/mesh/join.",
-      annotations: { title: "Join the suite mesh", readOnlyHint: false, openWorldHint: false },
+        "Register a product node for rollup counts. Body: { product, node_id?, label?, presence? }. presence is live|locked|isolated. Refused while radios are OFF. Not an account session. Same as POST /v1/mesh/join.",
+      annotations: { title: "Register QNM rollup presence", readOnlyHint: false, openWorldHint: false },
       inputSchema: {
         type: "object",
         additionalProperties: false,
@@ -222,27 +232,31 @@ export function runtimeHelperTools() {
           product: { type: "string", description: "Catalog product slug (e.g. godlock, azmail)" },
           node_id: { type: "string", description: "Optional stable node id" },
           label: { type: "string", description: "Optional short label" },
+          presence: { type: "string", description: "live (default), locked, or isolated — rollup only, no scores" },
         },
         required: ["product"],
       },
     },
     {
       name: "mesh_heartbeat",
-      title: "Suite mesh heartbeat",
-      description: "Refresh 5-minute presence. Body: { node_id }. Same as POST /v1/mesh/heartbeat.",
-      annotations: { title: "Suite mesh heartbeat", readOnlyHint: false, openWorldHint: false },
+      title: "Refresh QNM rollup presence",
+      description: "Refresh 5-minute presence. Body: { node_id, presence? }. Same as POST /v1/mesh/heartbeat.",
+      annotations: { title: "Refresh QNM rollup presence", readOnlyHint: false, openWorldHint: false },
       inputSchema: {
         type: "object",
         additionalProperties: false,
-        properties: { node_id: { type: "string", description: "Node id from mesh_join" } },
+        properties: {
+          node_id: { type: "string", description: "Node id from mesh_join" },
+          presence: { type: "string", description: "Optional live|locked|isolated" },
+        },
         required: ["node_id"],
       },
     },
     {
       name: "mesh_leave",
-      title: "Leave the suite mesh",
-      description: "Drop a node from live presence. Body: { node_id }. Always allowed. Same as POST /v1/mesh/leave.",
-      annotations: { title: "Leave the suite mesh", readOnlyHint: false, openWorldHint: false },
+      title: "Drop QNM rollup presence",
+      description: "Drop a node from the rollup. Body: { node_id }. Always allowed. No implicit heal. Same as POST /v1/mesh/leave.",
+      annotations: { title: "Drop QNM rollup presence", readOnlyHint: false, openWorldHint: false },
       inputSchema: {
         type: "object",
         additionalProperties: false,
@@ -252,18 +266,18 @@ export function runtimeHelperTools() {
     },
     {
       name: "mesh_nodes",
-      title: "List live suite mesh nodes",
+      title: "List QNM rollup nodes",
       description:
-        "Live nodes with last_seen within 5 minutes (GodLock Live Nodes style). Same as GET /v1/mesh/nodes.",
-      annotations: { title: "List live suite mesh nodes", readOnlyHint: true, openWorldHint: false },
+        "Roster with live/locked/isolated presence (5-minute TTL). No scores. No leaderboard. Views/MCP/downloads do not enter QNM-S. Same as GET /v1/mesh/nodes.",
+      annotations: { title: "List QNM rollup nodes", readOnlyHint: true, openWorldHint: false },
       inputSchema: { type: "object", additionalProperties: false, properties: {} },
     },
     {
       name: "mesh_broadcast",
-      title: "Register a communique hash receipt",
+      title: "Register a local hash receipt",
       description:
-        "Register SHA-256 of a local communique. Does NOT accept video bytes. Operator keeps the file. Render locally with anon-broadcast (style tool only). Body: { sha256, title? }.",
-      annotations: { title: "Register a communique hash receipt", readOnlyHint: false, openWorldHint: false },
+        "Register SHA-256 of a local communique. NEVER a publish path. Does NOT accept video bytes. Anon-broadcast is a sibling loopback module of local qnm-node/ only. Operator keeps the file. Body: { sha256, title? }.",
+      annotations: { title: "Register a local hash receipt", readOnlyHint: false, openWorldHint: false },
       inputSchema: {
         type: "object",
         additionalProperties: false,
@@ -488,7 +502,7 @@ export async function callFraggateTool(name, args, products, bySlug, env) {
   }
   if (isMeshMcpTool(name)) {
     const body = await runMeshOp(name, args, env);
-    return wrapFraggateEnvelope(name, body, { name: "Node Mesh", slug: "mesh" }, name);
+    return wrapFraggateEnvelope(name, body, { name: "Quantum Node Mesh", slug: "mesh" }, name);
   }
   return null;
 }
