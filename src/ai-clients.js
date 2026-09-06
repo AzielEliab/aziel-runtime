@@ -84,7 +84,7 @@ Practical pull + call (do not invent steps for every crawler):
 - **Glama** — Install Server via glama.json + Dockerfile CMD \`["node", "cli/mcp-stdio.mjs"]\`
 - **Any installer / agent** — \`GET ${host}/v1/skill\` or \`GET ${host}/v1/software\`, then \`fraggate_list\` → \`fraggate_describe\` → \`fraggate_call\`. Session tools and \`runtime_run\` are advanced/internal. \`/p/{slug}/{op}\` is proxy only.
 
-MCP is a **thin FragGate door** (≤ 20 tools): pipeline \`fraggate_list\` → \`fraggate_describe\` → \`fraggate_call\`, plus \`runtime_skill\`, \`fraggate_verify\`, \`decisiongate_check\`, \`library_lookup\`, and catalog helpers \`runtime_software\` (\`GET /v1/software\`) / \`runtime_bundle\` / \`runtime_pull\`. Advanced/internal: \`runtime_run\`, \`runtime_manifest\`, \`runtime_session_*\`. Flat \`{slug}_{op}\` names are **not** listed. Prefer FragGate, \`GET /v1/software\`, and \`POST /mcp\`. Public, no OAuth.
+MCP is a **thin FragGate door**: pipeline \`fraggate_list\` → \`fraggate_describe\` → \`fraggate_call\`, plus \`runtime_skill\`, \`fraggate_verify\`, \`decisiongate_check\`, \`library_lookup\`, suite \`mesh_*\`, and catalog helpers \`runtime_software\` (\`GET /v1/software\`) / \`runtime_bundle\` / \`runtime_pull\`. Advanced/internal: \`runtime_run\`, \`runtime_manifest\`, \`runtime_session_*\`. Flat \`{slug}_{op}\` names are **not** listed. Prefer FragGate, \`GET /v1/software\`, and \`POST /mcp\`. Public, no OAuth.
 `;
 }
 

@@ -281,6 +281,7 @@ assert.ok(!catalog.products.some((p) => p.slug === "fraggate"));
 assert.equal(catalog.fraggate.slug, "fraggate");
 assert.equal(catalog.fraggate.github, "https://github.com/AzielEliab/fraggate");
 assert.ok(catalog.extras.some((e) => e.slug === "fraggate" && e.kind === "kernel"));
+assert.ok(catalog.extras.some((e) => e.slug === "mesh" && e.kind === "kernel" && e.enabled_default === false));
 assert.equal(catalog.fraggate.worker, "fraggate-download-tracker");
 assert.equal(catalog.fraggate.engine, false);
 assert.equal(catalog.fraggate.worker_home, "https://fraggate-download-tracker.vibelock.workers.dev/");

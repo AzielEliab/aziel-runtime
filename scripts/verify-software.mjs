@@ -98,6 +98,12 @@ assert.ok(fold.download_url.endsWith("/download"));
 assert.ok(fold.worker_home.includes("foldlock-download-tracker"));
 assert.ok(fold.agent.pipeline.includes("fraggate_list"));
 assert.ok(fold.mcp.endsWith("/mcp"));
+assert.equal(fold.mesh.path, "/v1/mesh");
+assert.equal(fold.mesh.enabled_default, false);
+assert.ok(!catalog.software.some((s) => s.slug === "mesh"), "suite mesh is not a Softwares-tab product");
+assert.ok(!catalog.software.some((s) => s.slug === "anon-broadcast"), "anon-broadcast is not a Softwares-tab product");
+assert.equal(catalog.mesh.enabled_default, false);
+assert.equal(catalog.mesh.path, "/v1/mesh");
 
 assert.equal(compareVersions("0.7.0", "0.8.0") < 0, true);
 assert.equal(compareVersions("0.8.0", "0.8.0"), 0);
@@ -220,7 +226,7 @@ assert.match(byName.fraggate_list.title, /Step 1/);
 assert.match(byName.fraggate_describe.title, /Step 2/);
 assert.match(byName.fraggate_call.title, /Step 3/);
 assert.match(byName.fraggate_list.description, /\/v1\/software/);
-assert.ok(tools.length <= 20);
+assert.ok(tools.length <= 28);
 
 const sitemap = await (await get("/sitemap.xml")).text();
 assert.match(sitemap, /\/v1\/software/);
