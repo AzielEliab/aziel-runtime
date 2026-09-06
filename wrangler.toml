@@ -130,6 +130,10 @@ binding = "AZBROWSER"
 service = "azbrowser-download-tracker"
 
 [[services]]
+binding = "AZNET"
+service = "aznet-download-tracker"
+
+[[services]]
 binding = "AZIEL_CORPUS"
 service = "aziel-corpus-download-tracker"
 
@@ -142,7 +146,7 @@ service = "aziel-corpus-download-tracker"
 REQUIRE_TOKEN = "1"
 
 # One Durable Object per session (open → policy → exec → receipt → close).
-# 1.4.0 engines run in this Worker isolate; no new DO class. 1.4.1 / 1.5.0 / 1.6.0 / 1.6.1 / 1.6.2 / 1.6.3 / 1.6.4 / 1.6.5 / 1.6.6 reuse SESSION.
+# 1.4.0 engines run in this Worker isolate; no new DO class. 1.4.1 / 1.5.0 / 1.6.0 / 1.6.1 / 1.6.2 / 1.6.3 / 1.6.4 / 1.6.5 / 1.6.6 / 1.6.7 reuse SESSION.
 [[durable_objects.bindings]]
 name = "SESSION"
 class_name = "RuntimeSession"

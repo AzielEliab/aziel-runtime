@@ -117,6 +117,26 @@ assert.ok(registry.bySlug.azbrowser.stub_ops.includes("unrestricted_proxy"));
 assert.ok(registry.bySlug.azbrowser.stub_ops.includes("harvest"));
 assert.equal(classifyCall(registry.bySlug.azbrowser, "tor_exit").kind, "stub");
 assert.equal(classifyCall(registry.bySlug.azbrowser, "ethical_search").kind, "live");
+assert.equal(registry.bySlug.aznet.status, "live");
+assert.ok(registry.bySlug.aznet.status !== "local_only");
+assert.ok(registry.bySlug.aznet.ops.includes("pair_status"));
+assert.ok(registry.bySlug.aznet.ops.includes("garden_list"));
+assert.ok(registry.bySlug.aznet.ops.includes("stamp"));
+assert.ok(registry.bySlug.aznet.ops.includes("verify_hash"));
+assert.ok(registry.bySlug.aznet.ops.includes("memorial_list"));
+assert.ok(registry.bySlug.aznet.ops.includes("memorial_append"));
+assert.ok(registry.bySlug.aznet.ops.includes("receipt_verify"));
+assert.ok(!registry.bySlug.aznet.ops.includes("payload_host"));
+assert.ok(registry.bySlug.aznet.stub_ops.includes("payload_host"));
+assert.ok(registry.bySlug.aznet.stub_ops.includes("serve_content_for_peer"));
+assert.ok(registry.bySlug.aznet.stub_ops.includes("analytics"));
+assert.ok(registry.bySlug.aznet.stub_ops.includes("ranking"));
+assert.ok(registry.bySlug.aznet.stub_ops.includes("repair_integrity_bypass"));
+assert.ok(registry.bySlug.aznet.stub_ops.includes("interface"));
+assert.ok(registry.bySlug.aznet.stub_ops.includes("lumen"));
+assert.ok(registry.bySlug.aznet.stub_ops.includes("hub"));
+assert.equal(classifyCall(registry.bySlug.aznet, "payload_host").kind, "stub");
+assert.equal(classifyCall(registry.bySlug.aznet, "stamp").kind, "live");
 assert.ok(registry.bySlug.employeelock.ops.includes("append-preview"));
 assert.ok(registry.bySlug.mialock.ops.includes("doe-match"));
 assert.ok(registry.bySlug.ark.stub_ops.includes("scorch"));
@@ -326,6 +346,23 @@ assert.equal(liveAzbrowser.slug, "azbrowser");
 assert.ok(liveAzbrowser.ledger_tip);
 assert.ok(liveAzbrowser.engine && liveAzbrowser.engine.engine_digest);
 assert.ok(liveAzbrowser.result && liveAzbrowser.result.receipt);
+
+const aznetHost = await (await post("/v1/fraggate/call", { slug: "aznet", op: "payload_host" })).json();
+assert.equal(aznetHost.ok, false);
+assert.equal(aznetHost.code, "FG-STUB");
+
+const liveAznet = await (
+  await post("/v1/fraggate/call", {
+    slug: "aznet",
+    op: "pair_status",
+    payload: {},
+  })
+).json();
+assert.equal(liveAznet.ok, true, JSON.stringify(liveAznet));
+assert.equal(liveAznet.code, "FG-OK");
+assert.equal(liveAznet.slug, "aznet");
+assert.ok(liveAznet.ledger_tip);
+assert.ok(liveAznet.engine && liveAznet.engine.engine_digest);
 
 const verify = await (await post("/v1/fraggate/verify", { name: "decisiongate" })).json();
 assert.equal(verify.ok, true);
