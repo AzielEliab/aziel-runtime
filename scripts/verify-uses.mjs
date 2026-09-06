@@ -59,6 +59,11 @@ assert.doesNotMatch(normalizePath("/v1/session/s1a2b3c4d5e6/exec"), /s1a2b3c4d5e
 assert.equal(shouldIncrementUse("GET", "/v1/health"), false);
 assert.equal(shouldIncrementUse("GET", "/v1/ready"), false);
 assert.equal(shouldIncrementUse("GET", "/v1/uses"), false);
+assert.equal(shouldIncrementUse("GET", "/v1/mesh"), false);
+assert.equal(shouldIncrementUse("GET", "/v1/mesh/status"), false);
+assert.equal(shouldIncrementUse("GET", "/v1/mesh/nodes"), false);
+assert.equal(shouldIncrementUse("POST", "/v1/mesh/enable"), true);
+assert.equal(shouldIncrementUse("POST", "/v1/mesh/join"), true);
 assert.equal(shouldIncrementUse("POST", "/v1/uses"), false);
 assert.equal(shouldIncrementUse("GET", "/v1/stats"), false);
 assert.equal(shouldIncrementUse("POST", "/v1/stats"), false);
