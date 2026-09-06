@@ -76,7 +76,7 @@ export const ENGINE_RUNNERS = {
   azieltether: { ops: AZIELTETHER_OPS, run: runAzieltether, source: "ported AzielTether Worker hash-chain (not a VPN)", module: "src/engines/azieltether.js" },
   peacelock: { ops: PEACELOCK_OPS, run: runPeacelock, source: "PeaceLock PL-WP-0.1 chosen silence / chosen inaction lattice (HARD_DUTY refuse; ABSENT invariants)", module: "src/engines/peacelock.js" },
   azmail: { ops: AZMAIL_OPS, run: runAzmail, source: "AZMail APP 1.0 airlock + anonymous mesh (not an MTA; FragGate only)", module: "src/engines/azmail.js" },
-  azbrowser: { ops: AZBROWSER_OPS, run: runAzbrowser, source: "AZBrowser AZB-1.0 Lamb Lens ethical research browser (not Chromium; FragGate only; AZNet is a separate engine)", module: "src/engines/azbrowser.js" },
+  azbrowser: { ops: AZBROWSER_OPS, run: runAzbrowser, source: "AZBrowser AZB-1.0 Lamb Lens ethical research browser (not Chromium; FragGate only; AZNet is separate software, same FragGate door)", module: "src/engines/azbrowser.js" },
   aznet: { ops: AZNET_OPS, run: runAznet, source: "AZNet AZN-WP-0.1 silent verification side-net (hash garden + memorial; never hosts payloads; AZBrowser pair required)", module: "src/engines/aznet.js" },
   azhub: { ops: AZHUB_OPS, run: runAzhub, source: "AZHub AIH-WP-1.0 Blank Key / neutral spatial container (not AZInterface; FragGate only; no auto-unlock)", module: "src/engines/azhub.js" },
   azinterface: { ops: AZINTERFACE_OPS, run: runAzinterface, source: "AZInterface AIH-WP-1.0 custodial operating environment (pre-locked page cycles; not AZHub; FragGate only)", module: "src/engines/azinterface.js" },
