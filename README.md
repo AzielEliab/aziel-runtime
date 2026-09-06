@@ -377,12 +377,6 @@ of those file bytes (sorted path order). Recompute with
 ## Deploy
 
 ```bash
-npx wrangler kv namespace create USES
-# paste the returned id into wrangler.toml [[kv_namespaces]] binding = "USES"
-npx wrangler kv namespace create AZMAIL_MESH
-# paste the returned id into wrangler.toml [[kv_namespaces]] binding = "AZMAIL_MESH"
-npx wrangler kv namespace create AZBROWSER_TABS
-# paste the returned id into wrangler.toml [[kv_namespaces]] binding = "AZBROWSER_TABS"
 npx wrangler deploy
 ```
 
@@ -390,7 +384,9 @@ Account `ac575a9b822bea2bed97d0ab73aed238`. workers.dev
 `aziel-runtime.vibelock.workers.dev`. Product download KV stays on each
 product Worker. This runtime's `USES` namespace is the **API use** counter
 and ring log (`GET /v1/uses`) — no Authorization, tokens, bodies, or PII.
-Placeholder id in `wrangler.toml` is replaced on deploy.
+Production KV ids in `wrangler.toml`: `USES` `c1f89ba6f1db47328d36379cdd69b7ab`,
+`AZMAIL_MESH` `ce81cecf8b75412fb7b56e1119e017da`, `AZBROWSER_TABS`
+`7487aba1bbb5417fb668de86d8b48f37`. Do not create replacement namespaces.
 
 Same-origin doors (`/runtime` on azielcorpuslibrary.net, godlock.uk,
 www.azieleliab.com) should set `X-Aziel-Runtime-Via` or
