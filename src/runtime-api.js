@@ -11,6 +11,7 @@
  * 1.6.2 widens the public FragGate LIVE_OPS door to sensible advisory engines.
  * 1.6.3 adds KV-backed API use trackers (GET /v1/uses). Distinct from download KV.
  * 1.6.4 adds PeaceLock (PL-WP-0.1) as a true in-process engine.
+ * 1.6.8 adds AZHub and AZInterface as two separate FragGate-live engines (AIH-WP-1.0).
  * 1.6.7 adds AZNet (AZN-WP-0.1) as a FragGate-live engine (silent verification side-net).
  * 1.6.6 adds AZBrowser (AZB-1.0) as a FragGate-live engine (Lamb Lens ethical research browser). AZNet is a separate product.
  * 1.6.5 adds AZMail (APP 1.0) as a FragGate-live engine (mesh default off).
@@ -28,12 +29,13 @@ import {
 } from "./production.js";
 import { citeCompatibleFields, skillCompatibleSection } from "./ai-clients.js";
 
-export const RUNTIME_VERSION = "1.6.7";
+export const RUNTIME_VERSION = "1.6.8";
 export const RUNTIME_ROLE = "engine-runtime";
 export const RUNTIME_LAYER = "catalog+pull+proxy+session+in-process-engines+fraggate";
 
 export const VERSION_HISTORY = [
-  { version: "1.6.7", status: "current", note: "Add AZNet (AZN-WP-0.1) as a separate FragGate-live product (own Worker aznet-download-tracker, own UI): silent verification side-net (hash stamps, custodian garden of hash refs, memorial ledger, integrity refuse/isolate). Never hosts payloads. Pairing with AZBrowser is functional order only — pair_token AND pair_flag required for garden/stamp/memorial ops. Do not merge UIs. LIVE_OPS health/pair_status/garden_list/stamp/verify_hash/memorial_list/memorial_append/receipt_verify/skill. payload_host/serve_content_for_peer/analytics/ranking/repair_integrity_bypass/interface/lumen/hub stay STUB_OPS. StaticClock stamps + TemporalLock-style receipt fields. 31 catalog slugs. 1.6.6 remains AZBrowser." },
+  { version: "1.6.8", status: "current", note: "Add AZHub and AZInterface as two separate FragGate-live engines (AIH-WP-1.0). AZHub is a Blank Key / neutral spatial container (LIVE_OPS region_list/place_module/remove_module/tether_*/blank_key_status). AZInterface is a custodial operating environment (LIVE_OPS genesis_status/site_state_*/integrity_check/witness_list/page_cycle_status). Page cycles are pre-locked: OFF/integrity/ON/FULL SHUTDOWN/MEMORIAL. Hub refuses auto-unlock and completeness events. Never one combined engine. Not nested in AZBrowser or AZNet. scorch_remote/auto_unlock/ranking/completeness_detect stay STUB_OPS. Reached only via POST /v1/fraggate/call { slug: \"azhub\", op } or { slug: \"azinterface\", op }. DecisionGATE / FragGate ledger still apply. 33 catalog slugs. 1.6.7 remains AZNet." },
+  { version: "1.6.7", status: "superseded", note: "Add AZNet (AZN-WP-0.1) as a separate FragGate-live product (own Worker aznet-download-tracker, own UI): silent verification side-net (hash stamps, custodian garden of hash refs, memorial ledger, integrity refuse/isolate). Never hosts payloads. Pairing with AZBrowser is functional order only — pair_token AND pair_flag required for garden/stamp/memorial ops. Do not merge UIs. LIVE_OPS health/pair_status/garden_list/stamp/verify_hash/memorial_list/memorial_append/receipt_verify/skill. payload_host/serve_content_for_peer/analytics/ranking/repair_integrity_bypass/interface/lumen/hub stay STUB_OPS. StaticClock stamps + TemporalLock-style receipt fields. 31 catalog slugs. 1.6.6 remains AZBrowser." },
   { version: "1.6.6", status: "superseded", note: "Add AZBrowser (AZB-1.0) as a FragGate-live engine: Lamb Lens ethical research browser (ethical search + advisory navigate). Cite; refuse harmful harvest; never invent visit results. Not Chromium. LIVE_OPS ethical_search/lamb_lens_search/navigate/airlock_ingest/tab_open/tab_list/receipt_list/verify/receipt_verify. tor_exit/phoenix_wipe/chromium/unrestricted proxy stay STUB_OPS. MCP fraggate_list/fraggate_call and Worker UI buttons share LIVE_OPS.azbrowser. Reached only via POST /v1/fraggate/call { slug: \"azbrowser\", op }. AZNet is a separate product/engine (1.6.7) — pairing is order/token only, not a shared Phase-1 UI. DecisionGATE / FragGate ledger still apply. 30 catalog slugs. 1.6.5 remains AZMail." },
   { version: "1.6.5", status: "superseded", note: "Add AZMail (APP 1.0) as a FragGate-live engine: anonymous MCP mesh (default off) + advisory airlock. Not a full internet MTA. LIVE_OPS airlock_classify/scrub/trust_score/mesh_*/keyword_alert_*. SMTP/deanonymize/harvest stay STUB_OPS. Reached only via POST /v1/fraggate/call { slug: \"azmail\", op } (host /runtime proxies that door). DecisionGATE / FragGate ledger still apply. 29 catalog slugs. 1.6.4 remains PeaceLock." },
   { version: "1.6.4", status: "superseded", note: "Add PeaceLock (PL-WP-0.1) as a true in-process engine: chosen silence / chosen inaction receipts, hash-chained lattice, HARD_DUTY refuse, ABSENT transcript/counterfactual/motive. FragGate LIVE_OPS open/seal/break/show/verify/stamp/upload_envelope. 28 catalog slugs. 1.6.3 remains KV-backed API use trackers (GET /v1/uses)." },
@@ -119,7 +121,8 @@ description: >-
   One door — discover, route, refuse. FragGate over the catalog: hashed
   registry, DecisionGATE before exec, ask/refuse ledger. Dual surface —
   agent/MCP has no technical UI chrome; Worker UI, Flutter mobile/, local
-  install, and counted /download stay complete human software. 1.6.7 adds
+  install, and counted /download stay complete human software. 1.6.8 adds
+  AZHub and AZInterface as two separate FragGate-live engines (AIH-WP-1.0). 1.6.7 adds
   AZNet (AZN-WP-0.1) as a FragGate-live engine (silent verification side-net).
   1.6.6 adds AZBrowser (AZB-1.0) as a FragGate-live engine (Lamb Lens ethical research browser). AZNet is a separate engine (order/token pairing only). 1.6.5 adds
   AZMail (APP 1.0) as a FragGate-live engine (mesh default off). 1.6.4 adds
@@ -159,6 +162,7 @@ HTTP \`POST /p/{slug}/{op}\` is still a **proxy**. Proxy without a session recei
 
 Every catalog slug is a true engine. Cloudflare isolate is the jail. Hosted AZAI is protocol mirror + Lamb check, **not** the blend. Identity is **Aziel Eliab** only.
 
+**1.6.8 = AZHub (AIH-WP-1.0) + AZInterface (AIH-WP-1.0)** as two separate FragGate-live engines. Call only via \`fraggate_call\` / \`POST /v1/fraggate/call\` with \`{ slug: "azhub", op: "..." }\` or \`{ slug: "azinterface", op: "..." }\`. Hub is a Blank Key (does not interpret; refuses auto-unlock / completeness). Interface page cycles are pre-locked: OFF / integrity / ON / FULL SHUTDOWN / MEMORIAL. Never one combined engine. DecisionGATE / FragGate ledger still apply before exec.
 **1.6.7 = AZNet (AZN-WP-0.1)** as a separate FragGate-live product (own Worker / own UI; silent verification side-net; hash stamps / garden / memorial; never hosts payloads). Call only via \`fraggate_call\` / \`POST /v1/fraggate/call\` with \`{ slug: "aznet", op: "..." }\`. Garden / stamp / memorial ops require AZBrowser pair_token AND pair_flag (functional order only — do not merge UIs). payload_host / serve_content_for_peer stay stub. DecisionGATE / FragGate ledger still apply before exec.
 **1.6.6 = AZBrowser (AZB-1.0)** as a FragGate-live engine (Lamb Lens ethical research browser: ethical search + advisory navigate). Call only via \`fraggate_call\` / \`POST /v1/fraggate/call\` with \`{ slug: "azbrowser", op: "..." }\`. MCP \`fraggate_list\` includes LIVE_OPS.azbrowser. Worker UI buttons call that same door. Cite; refuse harmful harvest; never invent visit results. Not Chromium. tor_exit / phoenix_wipe stay stub. AZNet is a separate product/engine — pairing is order/token only, not a shared Phase-1 UI. DecisionGATE / FragGate ledger still apply before exec.
 **1.6.5 = AZMail (APP 1.0)** as a FragGate-live engine (anonymous MCP mesh default off + advisory airlock; not a full internet MTA). Call only via \`fraggate_call\` / \`POST /v1/fraggate/call\` with \`{ slug: "azmail", op: "..." }\`. Host \`/runtime\` proxies that same FragGate door. SMTP / deanonymize stay stub. DecisionGATE / FragGate ledger still apply before exec.
@@ -317,9 +321,9 @@ curl -s -A 'Mozilla/5.0' -X POST ${base}/p/azclce/score \\
 
 Every catalog Software slug is a true engine (\`true_engine_runtime: true\`). \`engine_slugs\` equals \`true_engine_slugs\`: ${local}. Some ops remain per-op \`proxy_fallback\` when they need product-Worker bindings (AZ-OS session/exec/lattice; Aziel Digital Library live D1 / Whisper / OCR). Cloudflare isolate is the jail; \`engine_digest\` is still required for local exec.
 
-**1.4.1 production gates (unchanged in 1.6.7):** \`GET /v1/ready\` is 200 only if the SESSION Durable Object binding is up; **503** if \`REQUIRE_TOKEN=1\` and the \`RUNTIME_TOKEN\` secret is missing (fail closed). Authority JSON is \`Cache-Control: no-store\`. When \`REQUIRE_TOKEN=1\`, session mutate (open/policy/exec/close) and MCP session tools / \`runtime_run\` / \`fraggate_call\` require \`Authorization: Bearer …\` or \`X-Aziel-Runtime-Token\` (one operator token). Catalog / health / runtime / skill / pull / FragGate list / OpenAPI / MCP \`tools/list\` / \`GET /v1/uses\` stay public. Proxy \`/p/{slug}/{op}\` stays public and is **not** exec. Receipt cap 64. Session TTL 6h. Per-IP rate limits apply.
+**1.4.1 production gates (unchanged in 1.6.8):** \`GET /v1/ready\` is 200 only if the SESSION Durable Object binding is up; **503** if \`REQUIRE_TOKEN=1\` and the \`RUNTIME_TOKEN\` secret is missing (fail closed). Authority JSON is \`Cache-Control: no-store\`. When \`REQUIRE_TOKEN=1\`, session mutate (open/policy/exec/close) and MCP session tools / \`runtime_run\` / \`fraggate_call\` require \`Authorization: Bearer …\` or \`X-Aziel-Runtime-Token\` (one operator token). Catalog / health / runtime / skill / pull / FragGate list / OpenAPI / MCP \`tools/list\` / \`GET /v1/uses\` stay public. Proxy \`/p/{slug}/{op}\` stays public and is **not** exec. Receipt cap 64. Session TTL 6h. Per-IP rate limits apply.
 
-GodLock and MirageGrid are not VPNs. ForgeReceipts is not legal advice. ZionPattern Solver caps confidence at 75% and does not solve cases. VeilLock does not inject into FaceTime. AZ-CLCE detects inconsistency, not intent. ChronoLock is advisory only. The ARK is not a kernel. AZAI hosted /v1 is a protocol mirror + Lamb check, not a paid-key proxy and **not** the local blend. Jeeves is not sovereign. SpectralLock hosted overlay is a 256px preview. EmployeeLock is not a court. FoldLock is not zip. WhistleLock is not a mailer. TrajectoryLock is not a certified forensic instrument. M.I.A.Lock Doe hits are leads, not IDs. Aziel Digital Library is not a 26-card index. AzielTether is not a VPN. PeaceLock is not a transcript, not a counterfactual, not a motive score, and not a HARD_DUTY waiver. AZMail (APP 1.0) is not a full internet MTA — FragGate only; mesh default off; SMTP / deanonymize stub. AZBrowser (AZB-1.0) is not Chromium — FragGate only; Lamb Lens ethical research browser; cites; refuses harmful harvest; never invents visit results; tor_exit / phoenix_wipe stub. AZNet (AZN-WP-0.1) is a separate product — not a payload host; FragGate only; garden / stamp / memorial ops require AZBrowser pair_token AND pair_flag (functional order only). payload_host / serve_content_for_peer stub. VPN/hop mesh is not claimed on this public surface.
+GodLock and MirageGrid are not VPNs. ForgeReceipts is not legal advice. ZionPattern Solver caps confidence at 75% and does not solve cases. VeilLock does not inject into FaceTime. AZ-CLCE detects inconsistency, not intent. ChronoLock is advisory only. The ARK is not a kernel. AZAI hosted /v1 is a protocol mirror + Lamb check, not a paid-key proxy and **not** the local blend. Jeeves is not sovereign. SpectralLock hosted overlay is a 256px preview. EmployeeLock is not a court. FoldLock is not zip. WhistleLock is not a mailer. TrajectoryLock is not a certified forensic instrument. M.I.A.Lock Doe hits are leads, not IDs. Aziel Digital Library is not a 26-card index. AzielTether is not a VPN. PeaceLock is not a transcript, not a counterfactual, not a motive score, and not a HARD_DUTY waiver. AZMail (APP 1.0) is not a full internet MTA — FragGate only; mesh default off; SMTP / deanonymize stub. AZBrowser (AZB-1.0) is not Chromium — FragGate only; Lamb Lens ethical research browser; cites; refuses harmful harvest; never invents visit results; tor_exit / phoenix_wipe stub. AZNet (AZN-WP-0.1) is a separate product — not a payload host; FragGate only; garden / stamp / memorial ops require AZBrowser pair_token AND pair_flag (functional order only). payload_host / serve_content_for_peer stub. AZHub (AIH-WP-1.0) is a Blank Key — not AZInterface, not an interpreter, not auto-unlock. AZInterface (AIH-WP-1.0) is a custodial operating environment — pre-locked page cycles; not AZHub. VPN/hop mesh is not claimed on this public surface.
 
 ## Cite
 
@@ -733,7 +737,7 @@ export function runtimeStaticPaths() {
     "/v1/skill": {
       get: {
         operationId: "runtime_skill",
-        summary: "Skill markdown: 1.6.7 adds AZNet (AZN-WP-0.1) via FragGate only. Honest about 1.1.0 / 1.2.0 / 1.3.0 / 1.4.0 / 1.4.1 / 1.5.0 / 1.6.0 / 1.6.1 / 1.6.2 / 1.6.3 / 1.6.4 / 1.6.5 / 1.6.6 / 1.6.7.",
+        summary: "Skill markdown: 1.6.8 adds AZHub (AIH-WP-1.0) + AZInterface (AIH-WP-1.0) via FragGate only. Honest about 1.1.0 / 1.2.0 / 1.3.0 / 1.4.0 / 1.4.1 / 1.5.0 / 1.6.0 / 1.6.1 / 1.6.2 / 1.6.3 / 1.6.4 / 1.6.5 / 1.6.6 / 1.6.7 / 1.6.8.",
         tags: ["runtime"],
         responses: { "200": { description: "text/markdown skill" } },
       },
@@ -857,7 +861,7 @@ export function runtimeStaticPaths() {
       post: {
         operationId: "fraggate_call",
         summary:
-          "CallEnvelope in → DecisionGATE → handler or refuse → ResultEnvelope + ledger tip. AZBrowser LIVE_OPS (ethical_search, lamb_lens_search, navigate, airlock_ingest, tab_open, tab_list, receipt_list, verify, receipt_verify, health, skill) and AZNet LIVE_OPS (health, pair_status, garden_list, stamp, verify_hash, memorial_list, memorial_append, receipt_verify, skill) are reached only through this door — same ops as MCP fraggate_call and the Worker UI buttons. AZNet is a separate product (own Worker / own UI); pairing is functional order only.",
+          "CallEnvelope in → DecisionGATE → handler or refuse → ResultEnvelope + ledger tip. AZHub LIVE_OPS, AZInterface LIVE_OPS, AZBrowser LIVE_OPS (ethical_search, lamb_lens_search, navigate, airlock_ingest, tab_open, tab_list, receipt_list, verify, receipt_verify, health, skill) and AZNet LIVE_OPS (health, pair_status, garden_list, stamp, verify_hash, memorial_list, memorial_append, receipt_verify, skill) are reached only through this door — same ops as MCP fraggate_call and the Worker UI buttons. AZHub, AZInterface, AZNet, and AZBrowser are separate products.",
         tags: ["fraggate"],
         requestBody: {
           required: true,
@@ -867,11 +871,11 @@ export function runtimeStaticPaths() {
                 type: "object",
                 properties: {
                   name: { type: "string" },
-                  slug: { type: "string", description: "Catalog slug. Use azbrowser for AZBrowser / Lamb Lens. Use aznet for AZNet (separate product)." },
+                  slug: { type: "string", description: "Catalog slug. Use azhub or azinterface for AIH-WP-1.0 (separate engines). Use azbrowser for AZBrowser / Lamb Lens. Use aznet for AZNet (separate product)." },
                   op: {
                     type: "string",
                     description:
-                      "Public allowlisted op. AZBrowser: ethical_search | lamb_lens_search | navigate | airlock_ingest | tab_open | tab_list | receipt_list | verify | receipt_verify | health | skill. AZNet: health | pair_status | garden_list | stamp | verify_hash | memorial_list | memorial_append | receipt_verify | skill.",
+                      "Public allowlisted op. AZHub: region_list | place_module | remove_module | tether_declare | tether_cut | tether_list | blank_key_status | health | skill. AZInterface: genesis_status | site_state_get | site_state_set | integrity_check | witness_list | page_cycle_status | health | skill. AZBrowser: ethical_search | lamb_lens_search | navigate | airlock_ingest | tab_open | tab_list | receipt_list | verify | receipt_verify | health | skill. AZNet: health | pair_status | garden_list | stamp | verify_hash | memorial_list | memorial_append | receipt_verify | skill.",
                   },
                   payload: { type: "object" },
                   claim: { type: "object" },
@@ -957,6 +961,74 @@ export function runtimeStaticPaths() {
                 aznet_skill: {
                   summary: "AZNet skill",
                   value: { slug: "aznet", op: "skill", payload: {} },
+                },
+                azhub_blank_key: {
+                  summary: "AZHub Blank Key status",
+                  value: { slug: "azhub", op: "blank_key_status", payload: {} },
+                },
+                azhub_region_list: {
+                  summary: "AZHub region_list",
+                  value: { slug: "azhub", op: "region_list", payload: {} },
+                },
+                azhub_place_module: {
+                  summary: "AZHub place_module",
+                  value: { slug: "azhub", op: "place_module", payload: { region: "core", module_id: "foldlock" } },
+                },
+                azhub_remove_module: {
+                  summary: "AZHub remove_module",
+                  value: { slug: "azhub", op: "remove_module", payload: { module_id: "foldlock" } },
+                },
+                azhub_tether_declare: {
+                  summary: "AZHub tether_declare",
+                  value: { slug: "azhub", op: "tether_declare", payload: { from: "foldlock", to: "peacelock" } },
+                },
+                azhub_tether_cut: {
+                  summary: "AZHub tether_cut",
+                  value: { slug: "azhub", op: "tether_cut", payload: { from: "foldlock", to: "peacelock" } },
+                },
+                azhub_tether_list: {
+                  summary: "AZHub tether_list",
+                  value: { slug: "azhub", op: "tether_list", payload: {} },
+                },
+                azhub_health: {
+                  summary: "AZHub health",
+                  value: { slug: "azhub", op: "health", payload: {} },
+                },
+                azhub_skill: {
+                  summary: "AZHub skill",
+                  value: { slug: "azhub", op: "skill", payload: {} },
+                },
+                azinterface_page_cycle: {
+                  summary: "AZInterface pre-locked page cycles",
+                  value: { slug: "azinterface", op: "page_cycle_status", payload: {} },
+                },
+                azinterface_genesis: {
+                  summary: "AZInterface genesis_status",
+                  value: { slug: "azinterface", op: "genesis_status", payload: {} },
+                },
+                azinterface_state_get: {
+                  summary: "AZInterface site_state_get",
+                  value: { slug: "azinterface", op: "site_state_get", payload: {} },
+                },
+                azinterface_state_set: {
+                  summary: "AZInterface site_state_set",
+                  value: { slug: "azinterface", op: "site_state_set", payload: { cycle: "integrity" } },
+                },
+                azinterface_integrity: {
+                  summary: "AZInterface integrity_check",
+                  value: { slug: "azinterface", op: "integrity_check", payload: { witness: "custodian-1" } },
+                },
+                azinterface_witnesses: {
+                  summary: "AZInterface witness_list",
+                  value: { slug: "azinterface", op: "witness_list", payload: {} },
+                },
+                azinterface_health: {
+                  summary: "AZInterface health",
+                  value: { slug: "azinterface", op: "health", payload: {} },
+                },
+                azinterface_skill: {
+                  summary: "AZInterface skill",
+                  value: { slug: "azinterface", op: "skill", payload: {} },
                 },
               },
             },

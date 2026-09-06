@@ -84,6 +84,8 @@ const PRIMARY = {
   azmail: { op: "airlock_classify", payload: { text: "hello from the anonymous ring" } },
   azbrowser: { op: "ethical_search", payload: { q: "ethical web principles" } },
   aznet: { op: "pair_status", payload: {} },
+  azhub: { op: "blank_key_status", payload: {} },
+  azinterface: { op: "page_cycle_status", payload: {} },
   "aziel-corpus": { op: "search", payload: { q: "Florence" } },
 };
 
@@ -126,7 +128,7 @@ assert.ok(folded.b64);
 
 const catalogSlugs = PRODUCTS.map((p) => p.slug).sort();
 assert.deepEqual(trueEngineSlugs(), catalogSlugs);
-assert.equal(catalogSlugs.length, 31);
+assert.equal(catalogSlugs.length, 33);
 for (const slug of catalogSlugs) {
   assert.ok(PRIMARY[slug], `${slug} has a primary-op fixture`);
   const local = await executeLocal({ slug, op: PRIMARY[slug].op, payload: PRIMARY[slug].payload, ranIn: "aziel-runtime" });

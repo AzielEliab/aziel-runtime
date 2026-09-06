@@ -137,6 +137,20 @@ assert.ok(registry.bySlug.aznet.stub_ops.includes("lumen"));
 assert.ok(registry.bySlug.aznet.stub_ops.includes("hub"));
 assert.equal(classifyCall(registry.bySlug.aznet, "payload_host").kind, "stub");
 assert.equal(classifyCall(registry.bySlug.aznet, "stamp").kind, "live");
+assert.equal(registry.bySlug.azhub.status, "live");
+assert.ok(registry.bySlug.azhub.ops.includes("blank_key_status"));
+assert.ok(registry.bySlug.azhub.ops.includes("region_list"));
+assert.ok(registry.bySlug.azhub.stub_ops.includes("auto_unlock"));
+assert.ok(registry.bySlug.azhub.stub_ops.includes("completeness_detect"));
+assert.equal(classifyCall(registry.bySlug.azhub, "auto_unlock").kind, "stub");
+assert.equal(classifyCall(registry.bySlug.azhub, "blank_key_status").kind, "live");
+assert.equal(registry.bySlug.azinterface.status, "live");
+assert.ok(registry.bySlug.azinterface.ops.includes("page_cycle_status"));
+assert.ok(registry.bySlug.azinterface.ops.includes("genesis_status"));
+assert.ok(registry.bySlug.azinterface.stub_ops.includes("auto_unlock"));
+assert.ok(registry.bySlug.azinterface.stub_ops.includes("ranking"));
+assert.equal(classifyCall(registry.bySlug.azinterface, "completeness_detect").kind, "stub");
+assert.equal(classifyCall(registry.bySlug.azinterface, "page_cycle_status").kind, "live");
 assert.ok(registry.bySlug.employeelock.ops.includes("append-preview"));
 assert.ok(registry.bySlug.mialock.ops.includes("doe-match"));
 assert.ok(registry.bySlug.ark.stub_ops.includes("scorch"));
@@ -363,6 +377,26 @@ assert.equal(liveAznet.code, "FG-OK");
 assert.equal(liveAznet.slug, "aznet");
 assert.ok(liveAznet.ledger_tip);
 assert.ok(liveAznet.engine && liveAznet.engine.engine_digest);
+
+const azhubUnlock = await (await post("/v1/fraggate/call", { slug: "azhub", op: "auto_unlock" })).json();
+assert.equal(azhubUnlock.ok, false);
+assert.equal(azhubUnlock.code, "FG-STUB");
+const liveAzhub = await (await post("/v1/fraggate/call", { slug: "azhub", op: "blank_key_status", payload: {} })).json();
+assert.equal(liveAzhub.ok, true, JSON.stringify(liveAzhub));
+assert.equal(liveAzhub.code, "FG-OK");
+assert.equal(liveAzhub.slug, "azhub");
+assert.equal(liveAzhub.result.interprets, false);
+assert.equal(liveAzhub.result.auto_unlock, false);
+
+const azinterfaceUnlock = await (await post("/v1/fraggate/call", { slug: "azinterface", op: "auto_unlock" })).json();
+assert.equal(azinterfaceUnlock.code, "FG-STUB");
+const liveAzinterface = await (
+  await post("/v1/fraggate/call", { slug: "azinterface", op: "page_cycle_status", payload: {} })
+).json();
+assert.equal(liveAzinterface.ok, true, JSON.stringify(liveAzinterface));
+assert.equal(liveAzinterface.code, "FG-OK");
+assert.equal(liveAzinterface.slug, "azinterface");
+assert.deepEqual(liveAzinterface.result.cycles, ["OFF", "integrity", "ON", "FULL SHUTDOWN", "MEMORIAL"]);
 
 const verify = await (await post("/v1/fraggate/verify", { name: "decisiongate" })).json();
 assert.equal(verify.ok, true);
