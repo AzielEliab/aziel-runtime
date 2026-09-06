@@ -22,7 +22,7 @@ export const ID_CAP = 80;
 export const PAGE_CYCLES = Object.freeze(["OFF", "integrity", "ON", "FULL SHUTDOWN", "MEMORIAL"]);
 
 export const LIMITATION =
-  "THIS IS: AZInterface AIH-WP-1.0 — a custodial operating environment. Genesis seals five pre-locked page cycles (OFF / integrity / ON / FULL SHUTDOWN / MEMORIAL). FragGate LIVE only. THIS IS NOT: AZHub; a combined hub+interface engine; an auto-unlock; a completeness detector; ranking; remote scorch; a kernel; AZ-OS / Lumen. Cycles cannot be invented, reordered, or skipped. Author: Aziel Eliab only.";
+  "THIS IS: AZInterface AIH-WP-1.0 — a custodial operating environment. Genesis seals five pre-locked page cycles (OFF / integrity / ON / FULL SHUTDOWN / MEMORIAL). FragGate LIVE only. THIS IS NOT: AZHub; a combined hub+interface product; an auto-unlock; a completeness detector; ranking; remote scorch; a kernel; AZ-OS / Lumen. Cycles cannot be invented, reordered, or skipped. Author: Aziel Eliab only.";
 
 export const FORBIDDEN_EVENT_KEYS = Object.freeze([
   "auto_unlock",
@@ -218,7 +218,7 @@ LIVE_OPS: health, skill, genesis_status, site_state_get, site_state_set, integri
 
 Stubs (refuse): scorch_remote, auto_unlock, ranking, completeness_detect.
 
-AZHub is a **separate** product/engine (Blank Key / spatial container). Do not combine them.
+AZHub is **sibling software** under the same FragGate door (Blank Key / spatial container). Do not combine them.
 
 Author: Aziel Eliab only.
 `,

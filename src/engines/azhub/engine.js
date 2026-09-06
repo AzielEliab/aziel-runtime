@@ -21,7 +21,7 @@ export const LABEL_CAP = 160;
 export const ID_CAP = 80;
 
 export const LIMITATION =
-  "THIS IS: AZHub AIH-WP-1.0 — a neutral spatial container / Blank Key. Regions hold modules without interpreting them. Tethers are declared links, not meaning. FragGate LIVE only. THIS IS NOT: AZInterface; a combined hub+interface engine; an auto-unlock; a completeness detector; ranking; remote scorch; a kernel; AZ-OS / Lumen. Hub never interprets meaning and never fires completeness events. Author: Aziel Eliab only.";
+  "THIS IS: AZHub AIH-WP-1.0 — a neutral spatial container / Blank Key. Regions hold modules without interpreting them. Tethers are declared links, not meaning. FragGate LIVE only. THIS IS NOT: AZInterface; a combined hub+interface product; an auto-unlock; a completeness detector; ranking; remote scorch; a kernel; AZ-OS / Lumen. Hub never interprets meaning and never fires completeness events. Author: Aziel Eliab only.";
 
 export const DEFAULT_REGIONS = Object.freeze(["core", "north", "south", "east", "west"]);
 
@@ -198,7 +198,7 @@ LIVE_OPS: health, skill, region_list, place_module, remove_module, tether_declar
 
 Stubs (refuse): scorch_remote, auto_unlock, ranking, completeness_detect.
 
-AZInterface is a **separate** product/engine (custodial operating environment). Do not combine them.
+AZInterface is **sibling software** under the same FragGate door (custodial operating environment). Do not combine them.
 
 Author: Aziel Eliab only.
 `,

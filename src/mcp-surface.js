@@ -52,7 +52,7 @@ export function mcpInitializeInstructions() {
     "runtime_run, runtime_session_*, raw *_health, and runtime_manifest are advanced/internal. " +
     "Do not call flat {slug}_{op} names — they are not in tools/list. Unknown names refuse FG-HALLUC-TOOL. " +
     "HTTP /p/{slug}/{op} is a proxy and is not exec. " +
-    "1.6.8 adds AZHub and AZInterface as two separate FragGate-live engines (AIH-WP-1.0) — Blank Key spatial container + custodial page cycles. Never one combined engine. Hub refuses auto-unlock / completeness. Interface page_cycle_status reports OFF / integrity / ON / FULL SHUTDOWN / MEMORIAL. " +
+    "1.6.9 frames AZHub and AZInterface as two separate softwares under the same FragGate door (AIH-WP-1.0) — Blank Key spatial container + custodial page cycles. Never one combined product. Hub refuses auto-unlock / completeness. Interface page_cycle_status reports OFF / integrity / ON / FULL SHUTDOWN / MEMORIAL. " +
     "AZHub LIVE_OPS (health, skill, region_list, place_module, remove_module, tether_declare, tether_cut, tether_list, blank_key_status) and AZInterface LIVE_OPS (health, skill, genesis_status, site_state_get, site_state_set, integrity_check, witness_list, page_cycle_status) are listed by fraggate_list and executed only via fraggate_call / POST /v1/fraggate/call. " +
     "1.6.7 adds AZNet (AZN-WP-0.1) as a FragGate-live engine — silent verification side-net; never hosts payloads; AZBrowser pair required (functional order only; own Worker UI). " +
     "AZNet is reached only via fraggate_call / POST /v1/fraggate/call (flat leftover names still map through FragGate; not a side door). " +
