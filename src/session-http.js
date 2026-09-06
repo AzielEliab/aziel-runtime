@@ -196,7 +196,7 @@ async function handleExec(request, env, id, { json, PRODUCTS, BY_SLUG, upstreamF
   let engine = null;
   let parsedBody = null;
 
-  const local = await executeLocal({ slug, op, payload, ranIn: "aziel-runtime" });
+  const local = await executeLocal({ slug, op, payload, ranIn: "aziel-runtime", env });
   if (local && !local.unsupported) {
     status = local.status;
     responseText = local.responseText;

@@ -1,6 +1,6 @@
 # aziel-runtime
 
-**Aziel Eliab Runtime 1.6.4** — **FragGate door** over the catalog plus **PeaceLock** (PL-WP-0.1) and **KV-backed API use trackers** (`GET /v1/uses`). One door: **discover, route, refuse**. **1.6.4** adds PeaceLock as a true in-process engine (chosen silence / chosen inaction receipts; HARD_DUTY refuse; ABSENT transcript/counterfactual/motive). **1.6.3** added use trackers. Public door covers sensible advisory engines; stubs still refuse. Hashed registry, thin MCP `tools/list`, DecisionGATE before exec, ask/refuse ledger. **1.6.1** lists every major OpenAPI / MCP / HTTP client (not only ChatGPT, Grok, and Venice). **1.5.0** was the agent-native flat `{slug}_{op}` pile. Human software — Worker UI, Flutter `mobile/`, local install, counted `/download` — stays complete. Catalog + pull + proxy, one session object, **in-process engines** for every catalog Software slug, plus production gates (`/v1/ready`, HEAD, no-store, receipt cap 64, session TTL 6h, per-IP rate limits, optional `RUNTIME_TOKEN` on session mutate).
+**Aziel Eliab Runtime 1.6.5** — **FragGate door** over the catalog plus **AZMail** (APP 1.0), **PeaceLock** (PL-WP-0.1) and **KV-backed API use trackers** (`GET /v1/uses`). One door: **discover, route, refuse**. **1.6.5** adds AZMail as a FragGate-live engine (anonymous MCP mesh default off + advisory airlock; not a full internet MTA; SMTP/deanonymize stub). Reached only via `POST /v1/fraggate/call` with `{ slug: "azmail", op }` (host `/runtime` proxies that same door). **1.6.4** adds PeaceLock as a true in-process engine (chosen silence / chosen inaction receipts; HARD_DUTY refuse; ABSENT transcript/counterfactual/motive). **1.6.3** added use trackers. Public door covers sensible advisory engines; stubs still refuse. Hashed registry, thin MCP `tools/list`, DecisionGATE before exec, ask/refuse ledger. **1.6.1** lists every major OpenAPI / MCP / HTTP client (not only ChatGPT, Grok, and Venice). **1.5.0** was the agent-native flat `{slug}_{op}` pile. Human software — Worker UI, Flutter `mobile/`, local install, counted `/download` — stays complete. Catalog + pull + proxy, one session object, **in-process engines** for every catalog Software slug, plus production gates (`/v1/ready`, HEAD, no-store, receipt cap 64, session TTL 6h, per-IP rate limits, optional `RUNTIME_TOKEN` on session mutate).
 
 Kernel: [AzielEliab/fraggate](https://github.com/AzielEliab/fraggate) (FG-0.1)
 
@@ -25,7 +25,7 @@ Any OpenAPI-, MCP-, or HTTP-tool-capable assistant imports **this** OpenAPI file
 **Author:** Aziel Eliab  
 **Identity:** Aziel Eliab (primary). Also known as Aziel Elroi Eliab (`alternateName` / aka only).  
 **License:** [Apache-2.0](LICENSE)  
-**Version:** 1.6.4  
+**Version:** 1.6.5  
 **Role:** `engine-runtime` (layer: `catalog+pull+proxy+session+in-process-engines+fraggate`)  
 **Door:** `fraggate`  
 **Worker:** `aziel-runtime` → https://aziel-runtime.vibelock.workers.dev/  
@@ -325,12 +325,13 @@ Pull via `GET /v1/bundle` / `GET /v1/pull/{slug}`. Session exec is
 | mialock | mialock-download-tracker | map, search-options, queries, doe-match, coverage | **in-process** (leads ≠ ID) |
 | azieltether | azieltether-download-tracker | health, skill, verify | **in-process** (not a VPN) |
 | peacelock | peacelock-download-tracker | open, seal, break, show, verify, stamp | **in-process** (HARD_DUTY refuse; ABSENT invariants) |
+| azmail | azmail-download-tracker | airlock_classify, scrub, trust_score, mesh_*, keyword_alert_* | **in-process** (FragGate only; mesh default off; not an MTA) |
 | aziel-corpus | aziel-corpus-download-tracker (www.azielcorpuslibrary.net) | health, search, example, skill | **in-process** (sample MASTER; live D1/Whisper/OCR per-op proxy) |
 
 Catalog aliases (also accepted on `/v1/pull/{slug}`): `az-clce` → azclce,
 `zion-pattern-solver` → zsolver, `postking-chess` → postking,
 `aziel-digital-library` → aziel-corpus, `mia-lock` → mialock,
-`peace-lock` → peacelock.
+`peace-lock` → peacelock, `az-mail` / `app-1.0` → azmail.
 
 If a sibling `/v1` API is not live yet, the proxy returns that Worker's response
 (often 404 JSON) and the combined OpenAPI still lists the expected path.
@@ -346,6 +347,8 @@ of those file bytes (sorted path order). Recompute with
 ```bash
 npx wrangler kv namespace create USES
 # paste the returned id into wrangler.toml [[kv_namespaces]] binding = "USES"
+npx wrangler kv namespace create AZMAIL_MESH
+# paste the returned id into wrangler.toml [[kv_namespaces]] binding = "AZMAIL_MESH"
 npx wrangler deploy
 ```
 
@@ -363,7 +366,7 @@ www.azieleliab.com) should set `X-Aziel-Runtime-Via` or
 **1.2.0+ requires Durable Object migration tag `v1`** (`RuntimeSession`, SQLite).
 The first deploy after the session cut creates the `SESSION` binding. **1.4.0
 does not need a new DO migration** — engines run in the same isolate. **1.4.1
-reuses that SESSION class. 1.5.0, 1.6.0, 1.6.1, 1.6.2, 1.6.3, and 1.6.4 do not need a new DO migration.**
+reuses that SESSION class. 1.5.0, 1.6.0, 1.6.1, 1.6.2, 1.6.3, 1.6.4, and 1.6.5 do not need a new DO migration.**
 
 Optional production token (session mutate only — catalog / health / runtime /
 skill / pull stay public):
@@ -395,9 +398,9 @@ If this checkout has no wrangler credentials, deploy from the author's machine:
 npx wrangler secret put RUNTIME_TOKEN
 npx wrangler deploy
 node scripts/probe-live.mjs
-# confirm GET /v1/health and /v1/ready and /v1/runtime.json version=1.6.4 role=engine-runtime door=fraggate
+# confirm GET /v1/health and /v1/ready and /v1/runtime.json version=1.6.5 role=engine-runtime door=fraggate
 # confirm GET /v1/uses returns uses / by_host / by_path / by_day / recent (no increment)
-# confirm engine_slugs == true_engine_slugs == all 28 catalog slugs
+# confirm engine_slugs == true_engine_slugs == all 29 catalog slugs
 # confirm POST /v1/session/open → policy → exec each primary op → receipt has engine_digest + ran_in
 ```
 
@@ -414,6 +417,7 @@ should advertise and reverse-proxy:
 - `GET https://www.azielcorpuslibrary.net/runtime/v1/pull/{slug}` → this `/v1/pull/{slug}`
 - `POST https://www.azielcorpuslibrary.net/runtime/v1/session/open` → this session object
 - `GET https://www.azielcorpuslibrary.net/runtime/v1/uses` → this `/v1/uses` (set `X-Aziel-Runtime-Via: azielcorpuslibrary.net`)
+- `POST https://www.azielcorpuslibrary.net/runtime/v1/fraggate/call` → this FragGate door (AZMail and every live slug; no side door)
 
 See the companion PR on [AzielEliab/aziel-corpus](https://github.com/AzielEliab/aziel-corpus).
 

@@ -39,7 +39,7 @@ export function defaultClaim(slug, op) {
   return {
     statement: `Execute the public FragGate allowlisted ${name} ${verb} operation inside the aziel-runtime Worker isolate without incrementing download counters or claiming a mesh hop.`,
     evidence: [
-      `${name} ${verb} is on the aziel-runtime 1.6.4 FragGate public allowlist.`,
+      `${name} ${verb} is on the aziel-runtime 1.6.5 FragGate public allowlist.`,
       "Cloudflare Worker isolate is the jail. engine_digest is required.",
     ],
     impact_pos: ["The agent receives a typed ResultEnvelope and display-ready output."],
@@ -302,7 +302,7 @@ export async function admitCall(args, registry, bySlug) {
   return { admitted: true, target, gate, claim };
 }
 
-export async function fraggateCall(args, registry, bySlug) {
+export async function fraggateCall(args, registry, bySlug, env) {
   const admission = await admitCall(args, registry, bySlug);
   if (!admission.admitted) return admission.envelope;
 
@@ -314,6 +314,7 @@ export async function fraggateCall(args, registry, bySlug) {
     op: target.op,
     payload,
     ranIn: "aziel-runtime",
+    env,
   });
 
   if (!local || local.unsupported) {
@@ -374,13 +375,14 @@ function payloadWithoutMeta(src) {
   return out;
 }
 
-export async function namedDecisiongateCheck(args) {
+export async function namedDecisiongateCheck(args, env) {
   const payload = args && typeof args === "object" ? args : {};
   const local = await executeLocal({
     slug: "decisiongate",
     op: "check",
     payload,
     ranIn: "aziel-runtime",
+    env,
   });
   let parsed = null;
   try {
@@ -412,7 +414,7 @@ export async function namedDecisiongateCheck(args) {
   };
 }
 
-export async function libraryLookup(args) {
+export async function libraryLookup(args, env) {
   const src = args && typeof args === "object" ? args : {};
   const op = String(src.op || "search").trim() || "search";
   const allowed = new Set(["search", "example", "skill", "health"]);
@@ -431,6 +433,7 @@ export async function libraryLookup(args) {
     op,
     payload,
     ranIn: "aziel-runtime",
+    env,
   });
   let parsed = null;
   try {
