@@ -28,6 +28,7 @@ import {
   verifyRegistry,
 } from "./fraggate/door.js";
 import { buildRegistry } from "./fraggate/registry.js";
+import { isMeshMcpTool, runMeshOp } from "./mesh.js";
 
 export { ADVANCED_PREFIX, isAdvancedToolName, PUBLIC_MCP_TOOL_MAX };
 
@@ -54,6 +55,7 @@ export function mcpInitializeInstructions() {
     "runtime_run, runtime_session_*, raw *_health, and runtime_manifest are advanced/internal. " +
     "Do not call flat {slug}_{op} names — they are not in tools/list. Unknown names refuse FG-HALLUC-TOOL. " +
     "HTTP /p/{slug}/{op} is a proxy and is not exec. " +
+    "1.6.13 adds the suite node mesh kernel (GET /v1/mesh, MCP mesh_*, FragGate slug=mesh). Default OFF. Not AnonBroadcast as a Softwares-tab product. " +
     "1.6.12 adds GET /v1/software (hub Software-tab catalog; Plain→Gate→Lock + EmbryoLock stub) and GET /v1/update/check. " +
     "1.6.11 adds a durable FragGate op alias map so Worker UI button names (azhub list_modules/place, azinterface genesis_boot/hold, azbrowser airlock/home, azmail classify, aznet doctor/pair, peacelock doctor) resolve to catalog LIVE_OPS. EmbryoLock is stub / local-not-hosted (name only; describe?slug=embryolock; not a FragGate engine). " +
     "1.6.10 sets AZBrowser and AZNet catalog one_line to separate software (not engine). Same FragGate door. " +
@@ -181,6 +183,96 @@ export function runtimeHelperTools() {
           q: { type: "string" },
           op: { type: "string", description: "search (default), example, or skill" },
         },
+      },
+    },
+    {
+      name: "mesh_status",
+      title: "Suite mesh status",
+      description:
+        "Suite-wide node mesh status: enabled?, live_nodes count, products present. Default OFF. Not AnonBroadcast. Not AZMail's product-local ring. Pipeline: fraggate_list → fraggate_describe slug=mesh → fraggate_call, or this named tool.",
+      annotations: { title: "Suite mesh status", readOnlyHint: true, openWorldHint: false },
+      inputSchema: { type: "object", additionalProperties: false, properties: {} },
+    },
+    {
+      name: "mesh_enable",
+      title: "Enable the suite mesh",
+      description:
+        "Global kill-switch ON for the suite node mesh. Default is OFF. Rate-limited. Does not arm or wipe. Same as POST /v1/mesh/enable and fraggate_call { slug: \"mesh\", op: \"enable\" }.",
+      annotations: { title: "Enable the suite mesh", readOnlyHint: false, openWorldHint: false },
+      inputSchema: { type: "object", additionalProperties: false, properties: {} },
+    },
+    {
+      name: "mesh_disable",
+      title: "Disable the suite mesh",
+      description:
+        "Global kill-switch OFF. Always allowed. Live nodes expire in 5 minutes. No wipe internals.",
+      annotations: { title: "Disable the suite mesh", readOnlyHint: false, openWorldHint: false },
+      inputSchema: { type: "object", additionalProperties: false, properties: {} },
+    },
+    {
+      name: "mesh_join",
+      title: "Join the suite mesh",
+      description:
+        "Join as a product node. Body: { product, node_id?, label? }. Returns a session. Refused while mesh is OFF. Same as POST /v1/mesh/join.",
+      annotations: { title: "Join the suite mesh", readOnlyHint: false, openWorldHint: false },
+      inputSchema: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          product: { type: "string", description: "Catalog product slug (e.g. godlock, azmail)" },
+          node_id: { type: "string", description: "Optional stable node id" },
+          label: { type: "string", description: "Optional short label" },
+        },
+        required: ["product"],
+      },
+    },
+    {
+      name: "mesh_heartbeat",
+      title: "Suite mesh heartbeat",
+      description: "Refresh 5-minute presence. Body: { node_id }. Same as POST /v1/mesh/heartbeat.",
+      annotations: { title: "Suite mesh heartbeat", readOnlyHint: false, openWorldHint: false },
+      inputSchema: {
+        type: "object",
+        additionalProperties: false,
+        properties: { node_id: { type: "string", description: "Node id from mesh_join" } },
+        required: ["node_id"],
+      },
+    },
+    {
+      name: "mesh_leave",
+      title: "Leave the suite mesh",
+      description: "Drop a node from live presence. Body: { node_id }. Always allowed. Same as POST /v1/mesh/leave.",
+      annotations: { title: "Leave the suite mesh", readOnlyHint: false, openWorldHint: false },
+      inputSchema: {
+        type: "object",
+        additionalProperties: false,
+        properties: { node_id: { type: "string" } },
+        required: ["node_id"],
+      },
+    },
+    {
+      name: "mesh_nodes",
+      title: "List live suite mesh nodes",
+      description:
+        "Live nodes with last_seen within 5 minutes (GodLock Live Nodes style). Same as GET /v1/mesh/nodes.",
+      annotations: { title: "List live suite mesh nodes", readOnlyHint: true, openWorldHint: false },
+      inputSchema: { type: "object", additionalProperties: false, properties: {} },
+    },
+    {
+      name: "mesh_broadcast",
+      title: "Register a communique hash receipt",
+      description:
+        "Register SHA-256 of a local communique. Does NOT accept video bytes. Operator keeps the file. Render locally with anon-broadcast (style tool only). Body: { sha256, title? }.",
+      annotations: { title: "Register a communique hash receipt", readOnlyHint: false, openWorldHint: false },
+      inputSchema: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          sha256: { type: "string", description: "64-char hex SHA-256 of the local file" },
+          title: { type: "string", description: "Optional short title" },
+          product: { type: "string", description: "Optional product slug" },
+        },
+        required: ["sha256"],
       },
     },
     {
@@ -393,6 +485,10 @@ export async function callFraggateTool(name, args, products, bySlug, env) {
     const body = await namedDecisiongateCheck(args, env);
     const product = bySlug && bySlug.decisiongate;
     return wrapFraggateEnvelope(name, body, product, "check");
+  }
+  if (isMeshMcpTool(name)) {
+    const body = await runMeshOp(name, args, env);
+    return wrapFraggateEnvelope(name, body, { name: "Node Mesh", slug: "mesh" }, name);
   }
   return null;
 }

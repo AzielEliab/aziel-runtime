@@ -160,6 +160,11 @@ assert.equal(parseTarget({ name: "godlock_submit" }, registry).slug, "godlock");
 assert.equal(parseTarget({ name: "godlock_submit" }, registry).op, "submit");
 
 for (const [slug, ops] of Object.entries(LIVE_OPS)) {
+  if (slug === "mesh") {
+    assert.ok(registry.bySlug.mesh && registry.bySlug.mesh.kind === "kernel");
+    assert.ok(!PRODUCTS.some((p) => p.slug === "mesh"), "mesh is not a catalog Software product");
+    continue;
+  }
   const product = PRODUCTS.find((p) => p.slug === slug);
   assert.ok(product, `LIVE_OPS slug ${slug} must be a catalog product`);
   const catalogOps = new Set((product.ops || []).map((o) => o.op));
@@ -198,6 +203,7 @@ assert.ok(listed.entries.some((e) => e.slug === "vibelock" && e.status === "live
 assert.ok(listed.entries.some((e) => e.slug === "veillock" && e.status === "local_only"));
 assert.ok(listed.entries.some((e) => e.slug === "ark" && e.status === "live" && e.ops.includes("sweep")));
 assert.ok(listed.entries.some((e) => e.slug === "embryolock" && e.status === "stub" && e.local_not_hosted));
+assert.ok(listed.entries.some((e) => e.slug === "mesh" && e.status === "live" && e.ops.includes("join")));
 assert.ok(listed.op_aliases && listed.op_aliases.azhub.list_modules === "region_list");
 assert.ok(listed.entries.some((e) => e.slug === "azhub" && e.ops.includes("list_modules") && e.ops.includes("place")));
 assert.ok(listed.entries.some((e) => e.slug === "azinterface" && e.ops.includes("genesis_boot") && e.ops.includes("hold")));

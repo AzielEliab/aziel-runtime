@@ -11,6 +11,7 @@
 
 import { CATALOG_ALIASES } from "../catalog-meta.js";
 import { embeddedDigest } from "../engines/digest.js";
+import { MESH_LIVE_OPS, MESH_OP_ALIASES, MESH_SLUG, MESH_STUB_OPS, meshKernelEntry } from "../mesh.js";
 import { canonicalize, sha256Hex } from "../session-core.js";
 import { FRAGGATE_DOOR, FRAGGATE_KERNEL, FRAGGATE_KERNEL_VERSION } from "./codes.js";
 
@@ -43,6 +44,7 @@ export const OP_ALIASES = {
     genesis_boot: "genesis_status",
     hold: "page_cycle_status",
   },
+  mesh: { ...MESH_OP_ALIASES },
 };
 
 export function resolveOpAlias(slug, op) {
@@ -184,6 +186,7 @@ export const LIVE_OPS = {
     "genesis_boot",
     "hold",
   ],
+  mesh: MESH_LIVE_OPS.slice(),
   vibelock: ["analyze", "health", "skill"],
   ark: ["sweep", "levels", "health", "skill"],
   miragegrid: ["assign", "health", "skill"],
@@ -287,6 +290,7 @@ export const STUB_OPS = {
     "skip_cycle",
     "invent_cycle",
   ],
+  mesh: MESH_STUB_OPS.slice(),
 };
 
 const LIVE_SLUGS = new Set(Object.keys(LIVE_OPS));
@@ -345,7 +349,10 @@ export function registryEntry(product) {
 }
 
 export function buildRegistry(products) {
-  const entries = (products || []).map((p) => registryEntry(p)).concat(NAMED_STUBS.map(namedStubEntry));
+  const entries = (products || [])
+    .map((p) => registryEntry(p))
+    .concat(NAMED_STUBS.map(namedStubEntry))
+    .concat([meshKernelEntry()]);
   const bySlug = Object.fromEntries(entries.map((e) => [e.slug, e]));
   const byName = Object.fromEntries(entries.map((e) => [String(e.name).toLowerCase(), e]));
   const live = entries.filter((e) => e.status === "live");
@@ -405,6 +412,9 @@ export function resolveRegistryName(raw, registry, bySlug) {
   const stubAliased = NAMED_STUBS.find((s) => s.slug === key || String(s.name).toLowerCase() === key);
   if (stubAliased && registry.bySlug[stubAliased.slug]) return registry.bySlug[stubAliased.slug];
   if (bySlug && bySlug[key] && registry.bySlug[key]) return registry.bySlug[key];
+  if (key === MESH_SLUG || key === "node-mesh" || key === "nodemesh" || key === "node mesh") {
+    return registry.bySlug[MESH_SLUG] || null;
+  }
   return null;
 }
 

@@ -14,6 +14,7 @@
 
 import { CATALOG_ALIASES } from "./catalog-meta.js";
 import { NAMED_STUBS } from "./fraggate/registry.js";
+import { meshHint } from "./mesh.js";
 import { LIBRARY_ORIGIN } from "./seo.js";
 
 export const SOFTWARE_SORT_LAW = "plain A–Z → gate A–Z → lock A–Z (Clock ≠ Lock)";
@@ -124,6 +125,7 @@ export function liveSoftwareCard(product, origin, meta = {}) {
     git_sha: meta.git_sha || null,
     door: "fraggate",
     kind: "software",
+    mesh: meshHint("/v1/mesh"),
   };
 }
 
@@ -149,6 +151,7 @@ export function stubSoftwareCard(spec, origin, meta = {}) {
     local_not_hosted: true,
     engine: false,
     note: spec.note || "stub / local-not-hosted. Name only. Not a FragGate engine.",
+    mesh: meshHint("/v1/mesh"),
   };
 }
 
@@ -190,6 +193,12 @@ export function softwareCatalog(origin, products, extra = {}) {
     hubs_note:
       "Hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) fetch GET /v1/software on each Software-tab request. A GitHub drop that updates this runtime refreshes those tabs without hand-editing hub copy.",
     note: SOFTWARE_FRAMING,
+    mesh: {
+      ...meshHint("/v1/mesh"),
+      status: `${base}/v1/mesh/status`,
+      nodes: `${base}/v1/mesh/nodes`,
+      note: "Suite node mesh kernel. Default OFF. Not a Softwares-tab product. Anon-broadcast stays local-only.",
+    },
   };
 }
 
