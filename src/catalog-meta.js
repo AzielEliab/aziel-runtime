@@ -43,7 +43,7 @@ export const CATALOG_ALIASES = {
  * Software hubs (corpus / godlock.uk / azieleliab) already show its GitHub.
  * catalog.extras[] + catalog.fraggate card the live FragGate Worker app
  * (human UI + counted download) without adding a PRODUCTS true-engine slug.
- * That Worker is not nested in AZBrowser / AZHub / AZInterface.
+ * That Worker is not nested in AZBrowser, AZHub, or AZInterface.
  */
 export const FRAGGATE_GITHUB = "https://github.com/AzielEliab/fraggate";
 export const FRAGGATE_SPEC = "FG-0.1";
