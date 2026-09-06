@@ -42,6 +42,7 @@ export const LIVE_OPS = {
   spectrallock: ["modes", "overlay", "health", "skill"],
   azbot: ["route", "health", "skill"],
   azieltether: ["verify", "health", "skill"],
+  peacelock: ["open", "seal", "break", "show", "verify", "stamp", "upload_envelope", "health", "skill"],
   vibelock: ["analyze", "health", "skill"],
   ark: ["sweep", "levels", "health", "skill"],
   miragegrid: ["assign", "health", "skill"],
@@ -62,6 +63,7 @@ export const STUB_OPS = {
   azos: ["exec", "shell", "lattice"],
   azai: ["blend", "complete", "chat"],
   employeelock: ["court", "judge"],
+  peacelock: ["transcript", "transcribe", "motive", "counterfactual", "invent", "waive-duty", "bypass-duty"],
 };
 
 const LIVE_SLUGS = new Set(Object.keys(LIVE_OPS));

@@ -66,6 +66,19 @@ assert.ok(registry.bySlug.miragegrid.ops.includes("assign"));
 assert.ok(!registry.bySlug.miragegrid.ops.includes("tunnel"));
 assert.ok(registry.bySlug.azieltether.ops.includes("verify"));
 assert.ok(!registry.bySlug.azieltether.ops.includes("mesh-join"));
+assert.equal(registry.bySlug.peacelock.status, "live");
+assert.ok(registry.bySlug.peacelock.ops.includes("open"));
+assert.ok(registry.bySlug.peacelock.ops.includes("seal"));
+assert.ok(registry.bySlug.peacelock.ops.includes("break"));
+assert.ok(registry.bySlug.peacelock.ops.includes("show"));
+assert.ok(registry.bySlug.peacelock.ops.includes("verify"));
+assert.ok(!registry.bySlug.peacelock.ops.includes("transcript"));
+assert.ok(registry.bySlug.peacelock.stub_ops.includes("transcript"));
+assert.ok(registry.bySlug.peacelock.stub_ops.includes("motive"));
+assert.ok(registry.bySlug.peacelock.stub_ops.includes("counterfactual"));
+assert.ok(registry.bySlug.peacelock.stub_ops.includes("waive-duty"));
+assert.equal(classifyCall(registry.bySlug.peacelock, "transcript").kind, "stub");
+assert.equal(classifyCall(registry.bySlug.peacelock, "open").kind, "live");
 assert.ok(registry.bySlug.employeelock.ops.includes("append-preview"));
 assert.ok(registry.bySlug.mialock.ops.includes("doe-match"));
 assert.ok(registry.bySlug.ark.stub_ops.includes("scorch"));
@@ -213,6 +226,27 @@ const liveAz = await (
   })
 ).json();
 assert.equal(liveAz.ok, true);
+
+const peaceTranscript = await (await post("/v1/fraggate/call", { slug: "peacelock", op: "transcript" })).json();
+assert.equal(peaceTranscript.ok, false);
+assert.equal(peaceTranscript.code, "FG-STUB");
+
+const peaceMotive = await (await post("/v1/fraggate/call", { slug: "peacelock", op: "motive" })).json();
+assert.equal(peaceMotive.code, "FG-STUB");
+
+const livePeace = await (
+  await post("/v1/fraggate/call", {
+    slug: "peacelock",
+    op: "open",
+    payload: { scope: "silence", subject: "chamber-1" },
+  })
+).json();
+assert.equal(livePeace.ok, true, JSON.stringify(livePeace));
+assert.equal(livePeace.code, "FG-OK");
+assert.equal(livePeace.slug, "peacelock");
+assert.ok(livePeace.result && livePeace.result.ok);
+assert.equal(livePeace.result.receipt.transcript, "ABSENT");
+assert.ok(livePeace.engine && livePeace.engine.engine_digest);
 
 const verify = await (await post("/v1/fraggate/verify", { name: "decisiongate" })).json();
 assert.equal(verify.ok, true);
