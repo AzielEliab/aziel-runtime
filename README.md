@@ -1,6 +1,6 @@
 # aziel-runtime
 
-**Aziel Eliab Runtime 1.6.3** — **FragGate door** over the catalog plus **KV-backed API use trackers** (`GET /v1/uses`). One door: **discover, route, refuse**. Public door now covers sensible advisory engines; stubs still refuse. Hashed registry, thin MCP `tools/list`, DecisionGATE before exec, ask/refuse ledger. **1.6.2** widened the public door. **1.6.1** lists every major OpenAPI / MCP / HTTP client (not only ChatGPT, Grok, and Venice). **1.5.0** was the agent-native flat `{slug}_{op}` pile. Human software — Worker UI, Flutter `mobile/`, local install, counted `/download` — stays complete. Catalog + pull + proxy, one session object, **in-process engines** for every catalog Software slug, plus production gates (`/v1/ready`, HEAD, no-store, receipt cap 64, session TTL 6h, per-IP rate limits, optional `RUNTIME_TOKEN` on session mutate).
+**Aziel Eliab Runtime 1.6.4** — **FragGate door** over the catalog plus **PeaceLock** (PL-WP-0.1) and **KV-backed API use trackers** (`GET /v1/uses`). One door: **discover, route, refuse**. **1.6.4** adds PeaceLock as a true in-process engine (chosen silence / chosen inaction receipts; HARD_DUTY refuse; ABSENT transcript/counterfactual/motive). **1.6.3** added use trackers. Public door covers sensible advisory engines; stubs still refuse. Hashed registry, thin MCP `tools/list`, DecisionGATE before exec, ask/refuse ledger. **1.6.1** lists every major OpenAPI / MCP / HTTP client (not only ChatGPT, Grok, and Venice). **1.5.0** was the agent-native flat `{slug}_{op}` pile. Human software — Worker UI, Flutter `mobile/`, local install, counted `/download` — stays complete. Catalog + pull + proxy, one session object, **in-process engines** for every catalog Software slug, plus production gates (`/v1/ready`, HEAD, no-store, receipt cap 64, session TTL 6h, per-IP rate limits, optional `RUNTIME_TOKEN` on session mutate).
 
 Kernel: [AzielEliab/fraggate](https://github.com/AzielEliab/fraggate) (FG-0.1)
 
@@ -25,7 +25,7 @@ Any OpenAPI-, MCP-, or HTTP-tool-capable assistant imports **this** OpenAPI file
 **Author:** Aziel Eliab  
 **Identity:** Aziel Eliab (primary). Also known as Aziel Elroi Eliab (`alternateName` / aka only).  
 **License:** [Apache-2.0](LICENSE)  
-**Version:** 1.6.3  
+**Version:** 1.6.4  
 **Role:** `engine-runtime` (layer: `catalog+pull+proxy+session+in-process-engines+fraggate`)  
 **Door:** `fraggate`  
 **Worker:** `aziel-runtime` → https://aziel-runtime.vibelock.workers.dev/  
@@ -95,7 +95,7 @@ Every catalog product is a **hashed registry** entry (`name`, `slug`, `digest`, 
 
 **Live on the public mesh** (via `fraggate_call`): every catalog Software product that makes sense on a public agent door — advisory / score / classify / gate / search / preview / render / verify / hash / receipt / game / overlay / route / status, plus the original five (DecisionGATE, GodLock, FoldLock, AZ-CLCE, Aziel Digital Library). VeilLock stays **local_only** (device-local camera/screen). MCP `tools/list` stays the thin FragGate surface.
 
-**Stub ops** (named refuse verbs, never execute): ARK scorch/wipe/unlock/encrypt, WhistleLock send/mail/release, MirageGrid VPN-hop/hop/tunnel/mesh, AzielTether mesh-join/vpn/arm, VeilLock inject/intercept/facetime, AZ-OS exec/shell/lattice, AZAI blend/complete/chat, EmployeeLock court/judge. Safe hosted ops on those products can still be live; the stub verbs refuse forever.
+**Stub ops** (named refuse verbs, never execute): ARK scorch/wipe/unlock/encrypt, WhistleLock send/mail/release, MirageGrid VPN-hop/hop/tunnel/mesh, AzielTether mesh-join/vpn/arm, VeilLock inject/intercept/facetime, AZ-OS exec/shell/lattice, AZAI blend/complete/chat, EmployeeLock court/judge, PeaceLock transcript/transcribe/motive/counterfactual/invent/waive-duty/bypass-duty. Safe hosted ops on those products can still be live; the stub verbs refuse forever.
 
 Unknown names refuse `FG-HALLUC-TOOL` and list the tools that *do* exist. DecisionGATE runs before any exec side effect; refuse is a typed ResultEnvelope + ledger tip (TemporalLock-shaped hash chain). Mesh is not claimed on this public surface.
 
@@ -292,6 +292,7 @@ Pull via `GET /v1/bundle` / `GET /v1/pull/{slug}`. Session exec is
 - **M.I.A.Lock** Doe hits are compatibility leads only — never an ID. Coverage heat is not presence. No live tracking.
 - **Aziel Corpus Library** is a public library index + counted PDF/package download. Not a private-file search engine, not Zenodo, not a new Lock engine.
 - **AzielTether** is not a VPN. Prefer-central mesh for downloaded Aziel Eliab software; public HTTPS stays mesh-free.
+- **PeaceLock** is chosen silence / chosen inaction as a first-class receipt (PL-WP-0.1). Not a transcript, not a counterfactual, not a motive score, not a HARD_DUTY waiver. Hosted never invents speech or stores files.
 
 ## Product slugs → Workers
 
@@ -323,11 +324,13 @@ Pull via `GET /v1/bundle` / `GET /v1/pull/{slug}`. Session exec is
 | trajectorylock | trajectorylock-download-tracker | health, example, analyze, skill | **in-process** (geometry; no media store) |
 | mialock | mialock-download-tracker | map, search-options, queries, doe-match, coverage | **in-process** (leads ≠ ID) |
 | azieltether | azieltether-download-tracker | health, skill, verify | **in-process** (not a VPN) |
+| peacelock | peacelock-download-tracker | open, seal, break, show, verify, stamp | **in-process** (HARD_DUTY refuse; ABSENT invariants) |
 | aziel-corpus | aziel-corpus-download-tracker (www.azielcorpuslibrary.net) | health, search, example, skill | **in-process** (sample MASTER; live D1/Whisper/OCR per-op proxy) |
 
 Catalog aliases (also accepted on `/v1/pull/{slug}`): `az-clce` → azclce,
 `zion-pattern-solver` → zsolver, `postking-chess` → postking,
-`aziel-digital-library` → aziel-corpus, `mia-lock` → mialock.
+`aziel-digital-library` → aziel-corpus, `mia-lock` → mialock,
+`peace-lock` → peacelock.
 
 If a sibling `/v1` API is not live yet, the proxy returns that Worker's response
 (often 404 JSON) and the combined OpenAPI still lists the expected path.
@@ -360,7 +363,7 @@ www.azieleliab.com) should set `X-Aziel-Runtime-Via` or
 **1.2.0+ requires Durable Object migration tag `v1`** (`RuntimeSession`, SQLite).
 The first deploy after the session cut creates the `SESSION` binding. **1.4.0
 does not need a new DO migration** — engines run in the same isolate. **1.4.1
-reuses that SESSION class. 1.5.0, 1.6.0, 1.6.1, 1.6.2, and 1.6.3 do not need a new DO migration.**
+reuses that SESSION class. 1.5.0, 1.6.0, 1.6.1, 1.6.2, 1.6.3, and 1.6.4 do not need a new DO migration.**
 
 Optional production token (session mutate only — catalog / health / runtime /
 skill / pull stay public):
@@ -392,9 +395,9 @@ If this checkout has no wrangler credentials, deploy from the author's machine:
 npx wrangler secret put RUNTIME_TOKEN
 npx wrangler deploy
 node scripts/probe-live.mjs
-# confirm GET /v1/health and /v1/ready and /v1/runtime.json version=1.6.3 role=engine-runtime door=fraggate
+# confirm GET /v1/health and /v1/ready and /v1/runtime.json version=1.6.4 role=engine-runtime door=fraggate
 # confirm GET /v1/uses returns uses / by_host / by_path / by_day / recent (no increment)
-# confirm engine_slugs == true_engine_slugs == all 27 catalog slugs
+# confirm engine_slugs == true_engine_slugs == all 28 catalog slugs
 # confirm POST /v1/session/open → policy → exec each primary op → receipt has engine_digest + ran_in
 ```
 

@@ -38,6 +38,7 @@ export const ENGINE_ARTIFACTS = {
   trajectorylock: ["trajectorylock/engine.js"],
   mialock: ["mialock/doe-match.js", "mialock/doe-notices.js", "mialock/queries.js", "mialock/search-modes.js"],
   azieltether: ["azieltether/engine.js"],
+  peacelock: ["peacelock/engine.js"],
   "aziel-corpus": ["aziel-corpus/engine.js"],
 };
 
@@ -65,13 +66,14 @@ export const ENGINE_DIGESTS = {
   "ark": "69d29bd079754df6450b8882b6f86c445ac7f1f490e2c150ff4716d00bf6d3b6",
   "azai": "96bd3281c17db65645accde17d1f0ab19be72c58a1ca45a4abd75d28839dc61e",
   "spectrallock": "8d8ff93b6e312e790bffd5cfe47afa09056e7ac5839d89f8df5ea010ba27c9c6",
-  "azbot": "7963fd4ca7c94e117ae8456e04e21950f390bf68b07ecffd85aca7d717c9d1db",
+  "azbot": "1e7ecdc101c11b418c8e9e3b1f0d95f5592423e96a0f97bde6cec1e5897faaef",
   "employeelock": "886e90395752e7dcb5458a6ee501c34858a18574623b2e542513b4faa96e1d90",
   "foldlock": "1034d5924b88878918986abe260338b0aff0117bc6f9c4d4a01a41d843cfa0a8",
   "whistlelock": "f585b20e1dfc0321e432ba04299d91d1708ae3b6f2ac78c85db5c61a63a4a6f8",
   "trajectorylock": "318ec9bf93b699376caca613c77447b113f1c741b14b102357433f0024afc119",
   "mialock": "d65c53dbc46d500f6d02c8975e42bf95a22000c15db4776d5fdef58904d32a5c",
   "azieltether": "adb57573ee23e7c97567fc05f916f1fd65f2265128bd9ec3d1dca08e47c2d791",
+  "peacelock": "291437f64ba15338d6358e6d2e657870619b19133430be3574d458b8db469a66",
   "aziel-corpus": "a33ad0018f479f954bfd0e5881f871af04bf9b39f2565db2e0cdb591f6fc8085",
 };
 

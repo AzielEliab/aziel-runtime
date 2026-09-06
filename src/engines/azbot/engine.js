@@ -35,6 +35,7 @@ const CATALOG = [
   { slug: "trajectorylock", keys: ["trajectory", "forensic", "ray", "geometry"], op: "analyze", banner: "not a certified instrument" },
   { slug: "mialock", keys: ["doe", "missing", "mia", "cold case"], op: "doe-match", banner: "leads ≠ ID" },
   { slug: "azieltether", keys: ["tether", "mesh", "reconcile", "dual-chain"], op: "verify", banner: "not a VPN" },
+  { slug: "peacelock", keys: ["silence", "inaction", "peacelock", "hard_duty", "absent", "chosen silence"], op: "open", banner: "not a transcript; HARD_DUTY refuses" },
   { slug: "aziel-corpus", keys: ["library", "corpus", "florence", "search"], op: "search", banner: "not a 26-card index; live D1 MASTER is separate" },
 ];
 
