@@ -52,6 +52,8 @@ export function mcpInitializeInstructions() {
     "runtime_run, runtime_session_*, raw *_health, and runtime_manifest are advanced/internal. " +
     "Do not call flat {slug}_{op} names — they are not in tools/list. Unknown names refuse FG-HALLUC-TOOL. " +
     "HTTP /p/{slug}/{op} is a proxy and is not exec. " +
+    "1.6.8 adds AZHub and AZInterface as two separate FragGate-live engines (AIH-WP-1.0) — Blank Key spatial container + custodial page cycles. Never one combined engine. Hub refuses auto-unlock / completeness. Interface page_cycle_status reports OFF / integrity / ON / FULL SHUTDOWN / MEMORIAL. " +
+    "AZHub LIVE_OPS (health, skill, region_list, place_module, remove_module, tether_declare, tether_cut, tether_list, blank_key_status) and AZInterface LIVE_OPS (health, skill, genesis_status, site_state_get, site_state_set, integrity_check, witness_list, page_cycle_status) are listed by fraggate_list and executed only via fraggate_call / POST /v1/fraggate/call. " +
     "1.6.7 adds AZNet (AZN-WP-0.1) as a FragGate-live engine — silent verification side-net; never hosts payloads; AZBrowser pair required (functional order only; own Worker UI). " +
     "AZNet is reached only via fraggate_call / POST /v1/fraggate/call (flat leftover names still map through FragGate; not a side door). " +
     "1.6.6 adds AZBrowser (AZB-1.0) as a FragGate-live engine — Lamb Lens ethical research browser: ethical search + advisory navigate; cite; refuse harmful harvest; never invent visit results; not Chromium. AZNet is a separate product/engine (order/token pairing only, not a shared Phase-1 UI). " +
@@ -84,7 +86,7 @@ export function runtimeHelperTools() {
       name: "fraggate_list",
       title: "List the FragGate registry",
       description:
-        "List hashed registry entries (live / stub / local_only). Discover names. Do not invent tools. allowlist.azbrowser LIVE_OPS: ethical_search, lamb_lens_search, navigate, airlock_ingest, tab_open, tab_list, receipt_list, verify, receipt_verify, health, skill. allowlist.aznet LIVE_OPS: health, pair_status, garden_list, stamp, verify_hash, memorial_list, memorial_append, receipt_verify, skill — same ops MCP fraggate_call and the Worker UI buttons execute. AZNet is a separate product. Kernel: https://github.com/AzielEliab/fraggate",
+        "List hashed registry entries (live / stub / local_only). Discover names. Do not invent tools. allowlist.azhub LIVE_OPS: health, skill, region_list, place_module, remove_module, tether_declare, tether_cut, tether_list, blank_key_status. allowlist.azinterface LIVE_OPS: health, skill, genesis_status, site_state_get, site_state_set, integrity_check, witness_list, page_cycle_status. allowlist.azbrowser LIVE_OPS: ethical_search, lamb_lens_search, navigate, airlock_ingest, tab_open, tab_list, receipt_list, verify, receipt_verify, health, skill. allowlist.aznet LIVE_OPS: health, pair_status, garden_list, stamp, verify_hash, memorial_list, memorial_append, receipt_verify, skill — same ops MCP fraggate_call and the Worker UI buttons execute. AZHub, AZInterface, AZNet, and AZBrowser are separate products. Kernel: https://github.com/AzielEliab/fraggate",
       annotations: { title: "List the FragGate registry", readOnlyHint: true, openWorldHint: false },
       inputSchema: { type: "object", additionalProperties: true },
     },
@@ -120,7 +122,7 @@ export function runtimeHelperTools() {
       name: "fraggate_call",
       title: "Call through FragGate",
       description:
-        "CallEnvelope in → DecisionGATE → handler or refuse → ResultEnvelope + ledger tip. Pass name/slug, op, payload. Optional claim (DecisionGATE proposal). Default exec path. Unknown names refuse FG-HALLUC-TOOL. AZBrowser LIVE_OPS (ethical_search, lamb_lens_search, navigate, airlock_ingest, tab_open, tab_list, receipt_list, verify, receipt_verify, health, skill) map here — same backend as the Worker UI buttons.",
+        "CallEnvelope in → DecisionGATE → handler or refuse → ResultEnvelope + ledger tip. Pass name/slug, op, payload. Optional claim (DecisionGATE proposal). Default exec path. Unknown names refuse FG-HALLUC-TOOL. AZHub LIVE_OPS (region_list, place_module, remove_module, tether_declare, tether_cut, tether_list, blank_key_status, health, skill) and AZInterface LIVE_OPS (genesis_status, site_state_get, site_state_set, integrity_check, witness_list, page_cycle_status, health, skill) and AZBrowser LIVE_OPS (ethical_search, lamb_lens_search, navigate, airlock_ingest, tab_open, tab_list, receipt_list, verify, receipt_verify, health, skill) map here — same backend as the Worker UI buttons.",
       annotations: { title: "Call through FragGate", readOnlyHint: false, openWorldHint: false },
       inputSchema: {
         type: "object",

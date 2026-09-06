@@ -38,6 +38,8 @@ assert.ok(slugs.includes("peacelock"));
 assert.ok(slugs.includes("azmail"));
 assert.ok(slugs.includes("azbrowser"));
 assert.ok(slugs.includes("aznet"));
+assert.ok(slugs.includes("azhub"));
+assert.ok(slugs.includes("azinterface"));
 assert.ok(slugs.includes("aziel-corpus"));
 
 for (const slug of slugs) {

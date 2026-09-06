@@ -39,6 +39,8 @@ const CATALOG = [
   { slug: "azmail", keys: ["azmail", "airlock", "phishing", "keyword alert", "mesh_post", "anonymous mail"], op: "airlock_classify", banner: "not an MTA; FragGate only; mesh default off" },
   { slug: "azbrowser", keys: ["azbrowser", "browser", "ethical search", "lamb lens", "navigate", "tab"], op: "ethical_search", banner: "not Chromium; FragGate only; no invented visit results" },
   { slug: "aznet", keys: ["aznet", "garden", "memorial", "hash stamp", "hash continuity", "azbrowser pair", "verify_hash"], op: "pair_status", banner: "not a payload host; AZBrowser pair required" },
+  { slug: "azhub", keys: ["azhub", "blank key", "region", "place module", "tether"], op: "blank_key_status", banner: "not AZInterface; no auto-unlock; Blank Key does not interpret" },
+  { slug: "azinterface", keys: ["azinterface", "page cycle", "genesis", "site state", "full shutdown"], op: "page_cycle_status", banner: "not AZHub; pre-locked page cycles; no auto-unlock" },
   { slug: "aziel-corpus", keys: ["library", "corpus", "florence", "search"], op: "search", banner: "not a 26-card index; live D1 MASTER is separate" },
 ];
 

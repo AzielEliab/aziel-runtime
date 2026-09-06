@@ -42,6 +42,8 @@ export const ENGINE_ARTIFACTS = {
   azmail: ["azmail/engine.js"],
   azbrowser: ["azbrowser/engine.js"],
   aznet: ["aznet/engine.js"],
+  azhub: ["azhub/engine.js"],
+  azinterface: ["azinterface/engine.js"],
   "aziel-corpus": ["aziel-corpus/engine.js"],
 };
 
@@ -69,7 +71,7 @@ export const ENGINE_DIGESTS = {
   "ark": "69d29bd079754df6450b8882b6f86c445ac7f1f490e2c150ff4716d00bf6d3b6",
   "azai": "96bd3281c17db65645accde17d1f0ab19be72c58a1ca45a4abd75d28839dc61e",
   "spectrallock": "8d8ff93b6e312e790bffd5cfe47afa09056e7ac5839d89f8df5ea010ba27c9c6",
-  "azbot": "6e0adcbbfa778970b513f47a7430bda54021552a354ded95ddef98f9d4ec4242",
+  "azbot": "2176fef657bbdb7736b12abcee7f5b2d7c82ec5042eeb5064273f702cf78f4fb",
   "employeelock": "886e90395752e7dcb5458a6ee501c34858a18574623b2e542513b4faa96e1d90",
   "foldlock": "1034d5924b88878918986abe260338b0aff0117bc6f9c4d4a01a41d843cfa0a8",
   "whistlelock": "f585b20e1dfc0321e432ba04299d91d1708ae3b6f2ac78c85db5c61a63a4a6f8",
@@ -80,6 +82,8 @@ export const ENGINE_DIGESTS = {
   "azmail": "7041aae1f9cad90dca74ab911b25b27c46350c3f7c1c203110d57886003a30b3",
   "azbrowser": "0b2deb0e6bd841486e21af11356e5c26981a77de4503f25b18cf6590f13081ef",
   "aznet": "eb02566041f2fa48f9b49be359732737860382052666de7df1062baf808e7d88",
+  "azhub": "0aed467fa598ed9ad32530c1b065dad441f7bee6ce7cccad79d8f1cd69446d7e",
+  "azinterface": "caf6af444996041c97948fdd024e57295bc84d4934e4129f74c47e5a15f2b89b",
   "aziel-corpus": "a33ad0018f479f954bfd0e5881f871af04bf9b39f2565db2e0cdb591f6fc8085",
 };
 
