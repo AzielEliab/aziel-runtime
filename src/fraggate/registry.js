@@ -58,6 +58,19 @@ export const LIVE_OPS = {
     "health",
     "skill",
   ],
+  azbrowser: [
+    "ethical_search",
+    "lamb_lens_search",
+    "navigate",
+    "airlock_ingest",
+    "tab_open",
+    "tab_list",
+    "receipt_list",
+    "verify",
+    "receipt_verify",
+    "health",
+    "skill",
+  ],
   vibelock: ["analyze", "health", "skill"],
   ark: ["sweep", "levels", "health", "skill"],
   miragegrid: ["assign", "health", "skill"],
@@ -96,6 +109,34 @@ export const STUB_OPS = {
   azai: ["blend", "complete", "chat"],
   employeelock: ["court", "judge"],
   peacelock: ["transcript", "transcribe", "motive", "counterfactual", "invent", "waive-duty", "bypass-duty"],
+  azbrowser: [
+    "tor_exit",
+    "tor",
+    "onion",
+    "phoenix_wipe",
+    "wipe",
+    "scorch",
+    "chromium",
+    "chromium_exec",
+    "chrome",
+    "exec",
+    "playwright",
+    "puppeteer",
+    "proxy",
+    "unrestricted_proxy",
+    "socks",
+    "vpn",
+    "keylog",
+    "keylogger",
+    "clipboard",
+    "harvest",
+    "spy",
+    "surveillance",
+    "wiretap",
+    "intercept",
+    "inject",
+    "track",
+  ],
 };
 
 const LIVE_SLUGS = new Set(Object.keys(LIVE_OPS));
@@ -208,6 +249,8 @@ export function resolveRegistryName(raw, registry, bySlug) {
 /**
  * Parse a CallEnvelope / describe target.
  * Accepts { name, slug, op } or a leftover {slug}_{op} string.
+ * Known slugs win as prefixes so azbrowser_ethical_search maps
+ * to slug=azbrowser op=ethical_search (not last-underscore split).
  */
 export function parseTarget(args, registry, bySlug) {
   const src = args && typeof args === "object" ? args : {};
@@ -216,7 +259,36 @@ export function parseTarget(args, registry, bySlug) {
   rawName = String(rawName || "").trim();
   op = String(op || "").trim();
 
-  if (!op && rawName.includes("_")) {
+  if (!op && rawName.includes("/")) {
+    const [a, b] = rawName.split("/");
+    rawName = a;
+    op = b || "";
+  }
+
+  if (!op && rawName.includes("_") && registry && registry.bySlug) {
+    const slugs = Object.keys(registry.bySlug).sort((a, b) => b.length - a.length);
+    let prefixed = false;
+    for (const slug of slugs) {
+      const prefix = `${slug}_`;
+      if (rawName === slug) continue;
+      if (rawName.startsWith(prefix)) {
+        op = rawName.slice(prefix.length);
+        rawName = slug;
+        prefixed = true;
+        break;
+      }
+    }
+    if (!prefixed) {
+      const idx = rawName.lastIndexOf("_");
+      const maybeSlug = rawName.slice(0, idx);
+      const maybeOp = rawName.slice(idx + 1).replace(/_/g, "-");
+      const entry = resolveRegistryName(maybeSlug, registry, bySlug);
+      if (entry) {
+        rawName = entry.slug;
+        op = maybeOp;
+      }
+    }
+  } else if (!op && rawName.includes("_")) {
     const idx = rawName.lastIndexOf("_");
     const maybeSlug = rawName.slice(0, idx);
     const maybeOp = rawName.slice(idx + 1).replace(/_/g, "-");
@@ -225,12 +297,6 @@ export function parseTarget(args, registry, bySlug) {
       rawName = entry.slug;
       op = maybeOp;
     }
-  }
-
-  if (!op && rawName.includes("/")) {
-    const [a, b] = rawName.split("/");
-    rawName = a;
-    op = b || "";
   }
 
   const entry = resolveRegistryName(rawName, registry, bySlug);

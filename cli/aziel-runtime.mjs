@@ -54,7 +54,7 @@ Usage:
 Default: Worker session at ${DEFAULT_URL}
 --local: filesystem session under ${HOME}; prefers vendored engines (in-process)
 --jail: run the local engine in a child Node process (ran_in=local-jail)
-1.6.5 adds AZMail (APP 1.0) as a FragGate-live engine (mesh default off). 1.6.4 adds PeaceLock (PL-WP-0.1). 1.6.3 adds GET /v1/uses (KV API use trackers). 1.6.2 widens the public door to sensible advisory engines; stubs still refuse. 1.6.0 is the FragGate door cut (discover, route, refuse) on 1.4.1 production gates. Binding-only ops stay per-op proxy_fallback. No counted runtime tarball.
+1.6.6 adds AZBrowser / AZNet (AZB-1.0) as a FragGate-live engine (Lamb Lens). 1.6.5 adds AZMail (APP 1.0) as a FragGate-live engine (mesh default off). 1.6.4 adds PeaceLock (PL-WP-0.1). 1.6.3 adds GET /v1/uses (KV API use trackers). 1.6.2 widens the public door to sensible advisory engines; stubs still refuse. 1.6.0 is the FragGate door cut (discover, route, refuse) on 1.4.1 production gates. Binding-only ops stay per-op proxy_fallback. No counted runtime tarball.
 Proxy /p/{slug}/{op} is not exec. Hosted AZAI is not the local blend.
 `;
 }

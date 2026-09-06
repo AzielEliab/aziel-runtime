@@ -126,6 +126,10 @@ binding = "AZMAIL"
 service = "azmail-download-tracker"
 
 [[services]]
+binding = "AZBROWSER"
+service = "azbrowser-download-tracker"
+
+[[services]]
 binding = "AZIEL_CORPUS"
 service = "aziel-corpus-download-tracker"
 
@@ -138,7 +142,7 @@ service = "aziel-corpus-download-tracker"
 REQUIRE_TOKEN = "1"
 
 # One Durable Object per session (open → policy → exec → receipt → close).
-# 1.4.0 engines run in this Worker isolate; no new DO class. 1.4.1 / 1.5.0 / 1.6.0 / 1.6.1 / 1.6.2 / 1.6.3 / 1.6.4 / 1.6.5 reuse SESSION.
+# 1.4.0 engines run in this Worker isolate; no new DO class. 1.4.1 / 1.5.0 / 1.6.0 / 1.6.1 / 1.6.2 / 1.6.3 / 1.6.4 / 1.6.5 / 1.6.6 reuse SESSION.
 [[durable_objects.bindings]]
 name = "SESSION"
 class_name = "RuntimeSession"
@@ -155,6 +159,13 @@ id = "00000000000000000000000000000000"
 #   npx wrangler kv namespace create AZMAIL_MESH
 [[kv_namespaces]]
 binding = "AZMAIL_MESH"
+id = "00000000000000000000000000000000"
+
+# AZBrowser tabs + receipts (1.6.6). Distinct from USES / AZMAIL_MESH.
+# Parent creates the namespace on deploy and replaces the placeholder id:
+#   npx wrangler kv namespace create AZBROWSER_TABS
+[[kv_namespaces]]
+binding = "AZBROWSER_TABS"
 id = "00000000000000000000000000000000"
 
 [[migrations]]

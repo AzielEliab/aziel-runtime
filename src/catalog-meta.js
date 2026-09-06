@@ -22,7 +22,56 @@ export const CATALOG_ALIASES = {
   "az-mail": "azmail",
   "app-1.0": "azmail",
   "app-1": "azmail",
+  "az-browser": "azbrowser",
+  aznet: "azbrowser",
+  "az-net": "azbrowser",
+  "lamb-lens": "azbrowser",
+  lamb_lens: "azbrowser",
 };
+
+/**
+ * FragGate is the door / kernel, not a catalog Software engine.
+ * Software hubs (corpus / godlock.uk / azieleliab) already show its GitHub.
+ * catalog.extras[] + catalog.fraggate give them a card without inventing
+ * a fraggate-download-tracker Worker or a 31st true-engine slug.
+ */
+export const FRAGGATE_GITHUB = "https://github.com/AzielEliab/fraggate";
+export const FRAGGATE_SPEC = "FG-0.1";
+export const FRAGGATE_HUB = {
+  slug: "fraggate",
+  name: "FragGate",
+  kind: "kernel",
+  spec: FRAGGATE_SPEC,
+  github: FRAGGATE_GITHUB,
+  worker: null,
+  engine: false,
+  true_engine_runtime: false,
+  one_line:
+    "Hashed registry door over the catalog: discover, route, refuse. DecisionGATE before exec. Not a Software engine and not a download-tracker.",
+};
+
+export function fraggateHubCard(origin) {
+  const base = String(origin || "https://aziel-runtime.vibelock.workers.dev").replace(/\/$/, "");
+  return {
+    ...FRAGGATE_HUB,
+    version: FRAGGATE_SPEC,
+    door: "fraggate",
+    catalog_card: `${base}/v1/fraggate`,
+    list: `${base}/v1/fraggate/list`,
+    describe: `${base}/v1/fraggate/describe`,
+    verify: `${base}/v1/fraggate/verify`,
+    call: `${base}/v1/fraggate/call`,
+    mcp: `${base}/mcp`,
+    skill: `${base}/v1/skill`,
+    note:
+      "Kernel / door. Software hubs may card this from catalog.extras[] or catalog.fraggate. Do not invent a fraggate-download-tracker Worker. Author Aziel Eliab.",
+    author: "Aziel Eliab",
+  };
+}
+
+export function catalogExtraCards(origin) {
+  return [fraggateHubCard(origin)];
+}
 
 /** Package versions from live product Workers / counted /download filenames. */
 export const VERSIONS = {
@@ -54,6 +103,7 @@ export const VERSIONS = {
   azieltether: "0.1.0",
   peacelock: "0.1.0",
   azmail: "0.1.0",
+  azbrowser: "0.1.0",
   "aziel-corpus": "2.6.2",
 };
 
@@ -122,6 +172,7 @@ export const FIRST_TIME_DEPOSIT_SLUGS = [
   "azieltether",
   "peacelock",
   "azmail",
+  "azbrowser",
   "aziel-corpus",
 ];
 
