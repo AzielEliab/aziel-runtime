@@ -412,7 +412,16 @@ export function resolveRegistryName(raw, registry, bySlug) {
   const stubAliased = NAMED_STUBS.find((s) => s.slug === key || String(s.name).toLowerCase() === key);
   if (stubAliased && registry.bySlug[stubAliased.slug]) return registry.bySlug[stubAliased.slug];
   if (bySlug && bySlug[key] && registry.bySlug[key]) return registry.bySlug[key];
-  if (key === MESH_SLUG || key === "node-mesh" || key === "nodemesh" || key === "node mesh") {
+  if (
+    key === MESH_SLUG ||
+    key === "node-mesh" ||
+    key === "nodemesh" ||
+    key === "node mesh" ||
+    key === "qnm" ||
+    key === "qnm-build" ||
+    key === "quantum-node-mesh" ||
+    key === "quantum node mesh"
+  ) {
     return registry.bySlug[MESH_SLUG] || null;
   }
   return null;
