@@ -38,7 +38,13 @@ assert.match(product.oneLine, /page cycles/i);
 assert.doesNotMatch(product.oneLine, /AZHub \/ AZInterface/);
 assert.doesNotMatch(product.banner, /AZHub \/ AZInterface/);
 assert.match(product.banner, /FragGate/);
-assert.match(product.banner, /AZHub is a separate/);
+assert.match(product.banner, /AZHub is sibling software/);
+assert.match(product.banner, /same FragGate door/);
+assert.match(product.oneLine, /sibling software/);
+assert.doesNotMatch(product.oneLine, /separate engine/i);
+assert.doesNotMatch(product.banner, /separate engine/i);
+assert.doesNotMatch(product.oneLine, /separate FragGate engine/i);
+assert.doesNotMatch(product.banner, /separate FragGate engine/i);
 assert.equal(CATALOG_ALIASES["az-interface"], "azinterface");
 assert.equal(CATALOG_ALIASES["page-cycle"], "azinterface");
 assert.equal(CATALOG_ALIASES["az-hub"], "azhub");
@@ -171,6 +177,13 @@ assert.deepEqual(localBody.cycles, PAGE_CYCLES);
 
 const localStub = await executeLocal({ slug: "azinterface", op: "auto_unlock", payload: {}, ranIn: "aziel-runtime" });
 assert.equal(localStub.unsupported, true);
+
+const productSkill = await executeLocal({ slug: "azinterface", op: "skill", payload: {}, ranIn: "aziel-runtime" });
+const productSkillText = JSON.parse(productSkill.responseText).skill;
+assert.match(productSkillText, /sibling software/);
+assert.match(productSkillText, /same FragGate door/);
+assert.doesNotMatch(productSkillText, /separate engine/i);
+assert.doesNotMatch(productSkillText, /product\/engine/);
 
 resetAzinterfaceStore();
 
@@ -351,7 +364,12 @@ const skill = await (await handler(new Request(origin + "/v1/skill"), env)).text
 assert.match(skill, /AZInterface \(AIH-WP-1\.0\)/);
 assert.match(skill, /slug: "azinterface"/);
 assert.match(skill, /FULL SHUTDOWN/);
+assert.match(skill, /sibling softwares under the same FragGate door/);
 assert.doesNotMatch(skill, /AZHub \/ AZInterface/);
+assert.doesNotMatch(skill, /AZHub is a separate engine/);
+assert.doesNotMatch(skill, /AZInterface is a separate engine/);
+assert.doesNotMatch(skill, /two separate FragGate-live engines/);
+assert.doesNotMatch(skill, /separate FragGate-live engines/);
 
 console.log(
   `ok azinterface ${product.version}: LIVE_OPS=${live.join(",")} stub=${STUB_OPS.azinterface.join(",")} cycles=${PAGE_CYCLES.join("/")}`,

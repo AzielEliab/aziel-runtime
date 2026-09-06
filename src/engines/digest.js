@@ -82,8 +82,8 @@ export const ENGINE_DIGESTS = {
   "azmail": "7041aae1f9cad90dca74ab911b25b27c46350c3f7c1c203110d57886003a30b3",
   "azbrowser": "0b2deb0e6bd841486e21af11356e5c26981a77de4503f25b18cf6590f13081ef",
   "aznet": "eb02566041f2fa48f9b49be359732737860382052666de7df1062baf808e7d88",
-  "azhub": "0aed467fa598ed9ad32530c1b065dad441f7bee6ce7cccad79d8f1cd69446d7e",
-  "azinterface": "caf6af444996041c97948fdd024e57295bc84d4934e4129f74c47e5a15f2b89b",
+  "azhub": "35683fb4735ed57bda3c4f2d5d312fe9c68fd7fb853b0b99fd1cbabcc22cba66",
+  "azinterface": "0deb713c76dcb437a6b91983595f6abc47a401799c7ffa9ccda9fdf1332db2bd",
   "aziel-corpus": "a33ad0018f479f954bfd0e5881f871af04bf9b39f2565db2e0cdb591f6fc8085",
 };
 
