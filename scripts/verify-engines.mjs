@@ -83,6 +83,7 @@ const PRIMARY = {
   peacelock: { op: "open", payload: { scope: "silence", subject: "chamber-1" } },
   azmail: { op: "airlock_classify", payload: { text: "hello from the anonymous ring" } },
   azbrowser: { op: "ethical_search", payload: { q: "ethical web principles" } },
+  aznet: { op: "pair_status", payload: {} },
   "aziel-corpus": { op: "search", payload: { q: "Florence" } },
 };
 

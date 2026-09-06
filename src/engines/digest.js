@@ -41,6 +41,7 @@ export const ENGINE_ARTIFACTS = {
   peacelock: ["peacelock/engine.js"],
   azmail: ["azmail/engine.js"],
   azbrowser: ["azbrowser/engine.js"],
+  aznet: ["aznet/engine.js"],
   "aziel-corpus": ["aziel-corpus/engine.js"],
 };
 
@@ -78,6 +79,7 @@ export const ENGINE_DIGESTS = {
   "peacelock": "291437f64ba15338d6358e6d2e657870619b19133430be3574d458b8db469a66",
   "azmail": "7041aae1f9cad90dca74ab911b25b27c46350c3f7c1c203110d57886003a30b3",
   "azbrowser": "0b2deb0e6bd841486e21af11356e5c26981a77de4503f25b18cf6590f13081ef",
+  "aznet": "eb02566041f2fa48f9b49be359732737860382052666de7df1062baf808e7d88",
   "aziel-corpus": "a33ad0018f479f954bfd0e5881f871af04bf9b39f2565db2e0cdb591f6fc8085",
 };
 

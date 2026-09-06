@@ -38,6 +38,7 @@ const CATALOG = [
   { slug: "peacelock", keys: ["silence", "inaction", "peacelock", "hard_duty", "absent", "chosen silence"], op: "open", banner: "not a transcript; HARD_DUTY refuses" },
   { slug: "azmail", keys: ["azmail", "airlock", "phishing", "keyword alert", "mesh_post", "anonymous mail"], op: "airlock_classify", banner: "not an MTA; FragGate only; mesh default off" },
   { slug: "azbrowser", keys: ["azbrowser", "browser", "ethical search", "lamb lens", "navigate", "tab"], op: "ethical_search", banner: "not Chromium; FragGate only; no invented visit results" },
+  { slug: "aznet", keys: ["aznet", "garden", "memorial", "hash stamp", "hash continuity", "azbrowser pair", "verify_hash"], op: "pair_status", banner: "not a payload host; AZBrowser pair required" },
   { slug: "aziel-corpus", keys: ["library", "corpus", "florence", "search"], op: "search", banner: "not a 26-card index; live D1 MASTER is separate" },
 ];
 
