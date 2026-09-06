@@ -1,8 +1,8 @@
 {
   "name": "aziel-runtime",
-  "version": "1.6.11",
+  "version": "1.6.12",
   "private": true,
-  "description": "Aziel Eliab Runtime 1.6.11 — FragGate door plus durable UI-op aliases, EmbryoLock name-only stub, AZHub and AZInterface (AIH-WP-1.0, sibling softwares, same FragGate door), AZNet (AZN-WP-0.1) and AZBrowser (AZB-1.0) catalog one_line as separate software, AZMail (APP 1.0), PeaceLock (PL-WP-0.1), and KV-backed API use trackers. Discover, route, refuse. Author: Aziel Eliab.",
+  "description": "Aziel Eliab Runtime 1.6.12 — FragGate door plus GET /v1/software hub catalog, GET /v1/update/check, GitHub auto-deploy, durable UI-op aliases, EmbryoLock name-only stub, AZHub and AZInterface (AIH-WP-1.0, sibling softwares, same FragGate door), AZNet (AZN-WP-0.1) and AZBrowser (AZB-1.0) catalog one_line as separate software, AZMail (APP 1.0), PeaceLock (PL-WP-0.1), and KV-backed API use trackers. Discover, route, refuse. Author: Aziel Eliab.",
   "license": "Apache-2.0",
   "type": "module",
   "bin": {
@@ -11,7 +11,7 @@
   },
   "scripts": {
     "mcp": "node cli/mcp-stdio.mjs",
-    "test": "node scripts/hash-engines.mjs && node scripts/verify-cite.mjs && node scripts/verify-seo.mjs && node scripts/verify-runtime.mjs && node scripts/verify-session.mjs && node scripts/verify-engines.mjs && node scripts/verify-production.mjs && node scripts/verify-mcp-stdio.mjs && node scripts/verify-fraggate.mjs && node scripts/verify-uses.mjs && node scripts/verify-peacelock.mjs && node scripts/verify-azmail.mjs && node scripts/verify-azbrowser.mjs && node scripts/verify-aznet.mjs && node scripts/verify-azhub.mjs && node scripts/verify-azinterface.mjs",
+    "test": "node scripts/hash-engines.mjs && node scripts/verify-cite.mjs && node scripts/verify-seo.mjs && node scripts/verify-runtime.mjs && node scripts/verify-session.mjs && node scripts/verify-engines.mjs && node scripts/verify-production.mjs && node scripts/verify-mcp-stdio.mjs && node scripts/verify-fraggate.mjs && node scripts/verify-uses.mjs && node scripts/verify-peacelock.mjs && node scripts/verify-azmail.mjs && node scripts/verify-azbrowser.mjs && node scripts/verify-aznet.mjs && node scripts/verify-azhub.mjs && node scripts/verify-azinterface.mjs && node scripts/verify-software.mjs",
     "probe:live": "node scripts/probe-live.mjs",
     "demo:session": "bash scripts/demo-session.sh"
   },

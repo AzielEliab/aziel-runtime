@@ -45,6 +45,8 @@ export function registryFor(products) {
 export function mcpInitializeInstructions() {
   return (
     "Use Aziel Eliab software in this chat. One door — discover, route, refuse. " +
+    "Pipeline: (1) fraggate_list or GET /v1/software (2) fraggate_describe one name (3) fraggate_call. " +
+    "Prefer FragGate, GET /v1/software, and POST /mcp. Hubs refresh Software tabs from /v1/software. " +
     "Start with runtime_skill or fraggate_list. Describe a name with fraggate_describe. " +
     "Execute only through fraggate_call (CallEnvelope → DecisionGATE → handler or refuse). " +
     "decisiongate_check is the named live gate. library_lookup is read-only corpus search. " +
@@ -52,6 +54,7 @@ export function mcpInitializeInstructions() {
     "runtime_run, runtime_session_*, raw *_health, and runtime_manifest are advanced/internal. " +
     "Do not call flat {slug}_{op} names — they are not in tools/list. Unknown names refuse FG-HALLUC-TOOL. " +
     "HTTP /p/{slug}/{op} is a proxy and is not exec. " +
+    "1.6.12 adds GET /v1/software (hub Software-tab catalog; Plain→Gate→Lock + EmbryoLock stub) and GET /v1/update/check. " +
     "1.6.11 adds a durable FragGate op alias map so Worker UI button names (azhub list_modules/place, azinterface genesis_boot/hold, azbrowser airlock/home, azmail classify, aznet doctor/pair, peacelock doctor) resolve to catalog LIVE_OPS. EmbryoLock is stub / local-not-hosted (name only; describe?slug=embryolock; not a FragGate engine). " +
     "1.6.10 sets AZBrowser and AZNet catalog one_line to separate software (not engine). Same FragGate door. " +
     "1.6.9 frames AZHub and AZInterface as two separate softwares under the same FragGate door (AIH-WP-1.0) — Blank Key spatial container + custodial page cycles. Never one combined product. Hub refuses auto-unlock / completeness. Interface page_cycle_status reports OFF / integrity / ON / FULL SHUTDOWN / MEMORIAL. " +
@@ -80,61 +83,68 @@ export function runtimeHelperTools() {
       name: "runtime_skill",
       title: "How to use this software",
       description:
-        "Read how an agent uses Aziel Eliab software: one door — discover, route, refuse. Dual surface: agent chat has no technical UI chrome; Worker / Flutter / local install / counted download stay complete human software.",
+        "Read how an agent uses Aziel Eliab software: one door — discover, route, refuse. Pipeline: fraggate_list → fraggate_describe → fraggate_call. Hubs/clients: GET /v1/software. Dual surface: agent chat has no technical UI chrome; Worker / Flutter / local install / counted download stay complete human software.",
       annotations: { title: "How to use this software", readOnlyHint: true, openWorldHint: false },
-      inputSchema: { type: "object", additionalProperties: true },
+      inputSchema: { type: "object", additionalProperties: false, properties: {} },
     },
     {
       name: "fraggate_list",
-      title: "List the FragGate registry",
+      title: "Step 1 — List the FragGate registry",
       description:
-        "List hashed registry entries (live / stub / local_only). Discover names. Do not invent tools. allowlist.azhub LIVE_OPS: health, skill, region_list, place_module, remove_module, tether_declare, tether_cut, tether_list, blank_key_status, list_modules, place. allowlist.azinterface LIVE_OPS: health, skill, genesis_status, site_state_get, site_state_set, integrity_check, witness_list, page_cycle_status, genesis_boot, hold. allowlist.azbrowser LIVE_OPS: ethical_search, lamb_lens_search, navigate, airlock_ingest, airlock, home, tab_open, tab_list, receipt_list, verify, receipt_verify, health, skill. allowlist.aznet LIVE_OPS: health, doctor, pair_status, pair, garden_list, stamp, verify_hash, memorial_list, memorial_append, receipt_verify, skill — same ops MCP fraggate_call and the Worker UI buttons execute. UI aliases forward to catalog ops. EmbryoLock is stub / local-not-hosted (name only). AZHub, AZInterface, AZNet, and AZBrowser are separate products. Kernel: https://github.com/AzielEliab/fraggate",
-      annotations: { title: "List the FragGate registry", readOnlyHint: true, openWorldHint: false },
-      inputSchema: { type: "object", additionalProperties: true },
+        "Step 1 of the agent pipeline (list → describe → call). List hashed registry entries (live / stub / local_only). Discover names. Do not invent tools. For hub Software tabs prefer GET /v1/software (Plain→Gate→Lock + EmbryoLock stub). Sibling software under one FragGate door — never separate FragGate engines. allowlist.azhub LIVE_OPS: health, skill, region_list, place_module, remove_module, tether_declare, tether_cut, tether_list, blank_key_status, list_modules, place. allowlist.azinterface LIVE_OPS: health, skill, genesis_status, site_state_get, site_state_set, integrity_check, witness_list, page_cycle_status, genesis_boot, hold. allowlist.azbrowser LIVE_OPS: ethical_search, lamb_lens_search, navigate, airlock_ingest, airlock, home, tab_open, tab_list, receipt_list, verify, receipt_verify, health, skill. allowlist.aznet LIVE_OPS: health, doctor, pair_status, pair, garden_list, stamp, verify_hash, memorial_list, memorial_append, receipt_verify, skill — same ops MCP fraggate_call and the Worker UI buttons execute. UI aliases forward to catalog ops. EmbryoLock is stub / local-not-hosted (name only). AZHub, AZInterface, AZNet, and AZBrowser are separate products. Kernel: https://github.com/AzielEliab/fraggate",
+      annotations: { title: "Step 1 — List the FragGate registry", readOnlyHint: true, openWorldHint: false },
+      inputSchema: { type: "object", additionalProperties: false, properties: {} },
     },
     {
       name: "fraggate_describe",
-      title: "Describe one registry name",
+      title: "Step 2 — Describe one registry name",
       description:
-        "Describe one catalog name: live vs stub vs local_only, public ops, digest. Argument: name or slug.",
-      annotations: { title: "Describe one registry name", readOnlyHint: true, openWorldHint: false },
+        "Step 2 of the agent pipeline. After fraggate_list, describe one catalog name: live vs stub vs local_only, public ops, digest. Pass name or slug (not both required). EmbryoLock: slug=embryolock (stub / local-not-hosted; not a FragGate engine).",
+      annotations: { title: "Step 2 — Describe one registry name", readOnlyHint: true, openWorldHint: false },
       inputSchema: {
         type: "object",
-        additionalProperties: true,
-        properties: { name: { type: "string" }, slug: { type: "string" } },
+        additionalProperties: false,
+        properties: {
+          name: { type: "string", description: "Registry display name (e.g. FoldLock, EmbryoLock)" },
+          slug: { type: "string", description: "Catalog slug (e.g. foldlock, embryolock, azhub)" },
+        },
       },
     },
     {
       name: "fraggate_verify",
       title: "Verify a registry name or digest",
       description:
-        "registry.verify — confirm a name or digest against the hashed FragGate registry.",
+        "Confirm a name, slug, or digest against the hashed FragGate registry. Not an exec path. Prefer after fraggate_describe when the agent must prove a name exists.",
       annotations: { title: "Verify a registry name or digest", readOnlyHint: true, openWorldHint: false },
       inputSchema: {
         type: "object",
-        additionalProperties: true,
+        additionalProperties: false,
         properties: {
-          name: { type: "string" },
-          slug: { type: "string" },
-          digest: { type: "string" },
+          name: { type: "string", description: "Registry display name" },
+          slug: { type: "string", description: "Catalog slug" },
+          digest: { type: "string", description: "engine_digest hex to verify" },
         },
       },
     },
     {
       name: "fraggate_call",
-      title: "Call through FragGate",
+      title: "Step 3 — Call through FragGate",
       description:
-        "CallEnvelope in → DecisionGATE → handler or refuse → ResultEnvelope + ledger tip. Pass name/slug, op, payload. Optional claim (DecisionGATE proposal). Default exec path. Unknown names refuse FG-HALLUC-TOOL. UI aliases (list_modules, place, genesis_boot, hold, airlock, home, classify, doctor, pair) forward to catalog ops. AZHub LIVE_OPS (region_list, place_module, remove_module, tether_declare, tether_cut, tether_list, blank_key_status, list_modules, place, health, skill) and AZInterface LIVE_OPS (genesis_status, site_state_get, site_state_set, integrity_check, witness_list, page_cycle_status, genesis_boot, hold, health, skill) and AZBrowser LIVE_OPS (ethical_search, lamb_lens_search, navigate, airlock_ingest, airlock, home, tab_open, tab_list, receipt_list, verify, receipt_verify, health, skill) map here — same backend as the Worker UI buttons.",
-      annotations: { title: "Call through FragGate", readOnlyHint: false, openWorldHint: false },
+        "Step 3 of the agent pipeline (after list + describe). CallEnvelope in → DecisionGATE → handler or refuse → ResultEnvelope + ledger tip. Pass slug (or name) plus a public allowlisted op. Optional claim (DecisionGATE proposal). Default exec path. Unknown names refuse FG-HALLUC-TOOL. UI aliases (list_modules, place, genesis_boot, hold, airlock, home, classify, doctor, pair) forward to catalog ops. AZHub LIVE_OPS (region_list, place_module, remove_module, tether_declare, tether_cut, tether_list, blank_key_status, list_modules, place, health, skill) and AZInterface LIVE_OPS (genesis_status, site_state_get, site_state_set, integrity_check, witness_list, page_cycle_status, genesis_boot, hold, health, skill) and AZBrowser LIVE_OPS (ethical_search, lamb_lens_search, navigate, airlock_ingest, airlock, home, tab_open, tab_list, receipt_list, verify, receipt_verify, health, skill) map here — same backend as the Worker UI buttons. Sibling software under one FragGate door.",
+      annotations: { title: "Step 3 — Call through FragGate", readOnlyHint: false, openWorldHint: false },
       inputSchema: {
         type: "object",
         additionalProperties: true,
         properties: {
-          name: { type: "string", description: "Registry name or slug" },
-          slug: { type: "string" },
-          op: { type: "string", description: "Public allowlisted op" },
-          payload: { type: "object" },
-          claim: { type: "object", description: "Optional DecisionGATE proposal (statement, evidence, impacts, values, accountable)" },
+          name: { type: "string", description: "Registry display name (alternative to slug)" },
+          slug: { type: "string", description: "Catalog slug from fraggate_list / GET /v1/software" },
+          op: { type: "string", description: "Public allowlisted op from fraggate_describe" },
+          payload: { type: "object", additionalProperties: true, description: "Op payload object" },
+          claim: {
+            type: "object",
+            additionalProperties: true,
+            description: "Optional DecisionGATE proposal (statement, evidence, impacts, values, accountable)",
+          },
         },
         required: ["op"],
       },
@@ -174,17 +184,26 @@ export function runtimeHelperTools() {
       },
     },
     {
-      name: "runtime_bundle",
-      title: "List every product",
+      name: "runtime_software",
+      title: "Authoritative software catalog",
       description:
-        "List every Aziel Eliab product (human/catalog helper). Prefer fraggate_list for the agent door.",
-      annotations: { title: "List every product", readOnlyHint: true, openWorldHint: false },
-      inputSchema: { type: "object", additionalProperties: true },
+        "Hub/client helper: GET /v1/software. Every product plus EmbryoLock stub, sorted Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock). Prefer this for Software-tab refresh. Agent exec still uses fraggate_list → fraggate_describe → fraggate_call.",
+      annotations: { title: "Authoritative software catalog", readOnlyHint: true, openWorldHint: false },
+      inputSchema: { type: "object", additionalProperties: false, properties: {} },
+    },
+    {
+      name: "runtime_bundle",
+      title: "List every product (bundle helper)",
+      description:
+        "Compact bootstrap of every product skill URL + invoke prefix. Prefer GET /v1/software for hub Software tabs and fraggate_list for the agent door.",
+      annotations: { title: "List every product (bundle helper)", readOnlyHint: true, openWorldHint: false },
+      inputSchema: { type: "object", additionalProperties: false, properties: {} },
     },
     {
       name: "runtime_pull",
       title: "Open one product",
-      description: "Open one product by slug: name, version, skill, download, and ops. Argument: slug.",
+      description:
+        "Open one product by slug: name, version, skill, download, and ops. Argument: slug from GET /v1/software or fraggate_list. Not exec — then use fraggate_call.",
       annotations: { title: "Open one product", readOnlyHint: true, openWorldHint: false },
       inputSchema: {
         type: "object",

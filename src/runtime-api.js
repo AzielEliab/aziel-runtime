@@ -32,12 +32,13 @@ import {
 } from "./production.js";
 import { citeCompatibleFields, skillCompatibleSection } from "./ai-clients.js";
 
-export const RUNTIME_VERSION = "1.6.11";
+export const RUNTIME_VERSION = "1.6.12";
 export const RUNTIME_ROLE = "engine-runtime";
 export const RUNTIME_LAYER = "catalog+pull+proxy+session+in-process-engines+fraggate";
 
 export const VERSION_HISTORY = [
-  { version: "1.6.11", status: "current", note: "Durable FragGate op alias map so Worker UI button names agents copy (azhub list_modules/place, azinterface genesis_boot/hold, azbrowser airlock/home, azmail classify, aznet doctor/pair, peacelock doctor) resolve to catalog LIVE_OPS and forward to the real engine method. Aliases appear in list/describe live_ops. EmbryoLock is a named stub / local-not-hosted registry entry (name only; not a hosted Worker; not a FragGate engine). 33 catalog slugs. 1.6.10 remains AZBrowser/AZNet one_line framing." },
+  { version: "1.6.12", status: "current", note: "Authoritative GET /v1/software (also GET /v1/fraggate/software) for hubs/clients: every product plus EmbryoLock stub, sorted Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock). Client update check GET /v1/update/check?slug=&version= and GET /v1/update/manifest. GitHub Action auto-deploy on main. SEO/MCP point agents at FragGate → /v1/software → /mcp (list→describe→call). Sibling software under one FragGate door — never separate FragGate engines. 33 catalog slugs + EmbryoLock stub. 1.6.11 remains UI-op aliases." },
+  { version: "1.6.11", status: "superseded", note: "Durable FragGate op alias map so Worker UI button names agents copy (azhub list_modules/place, azinterface genesis_boot/hold, azbrowser airlock/home, azmail classify, aznet doctor/pair, peacelock doctor) resolve to catalog LIVE_OPS and forward to the real engine method. Aliases appear in list/describe live_ops. EmbryoLock is a named stub / local-not-hosted registry entry (name only; not a hosted Worker; not a FragGate engine). 33 catalog slugs. 1.6.10 remains AZBrowser/AZNet one_line framing." },
   { version: "1.6.10", status: "superseded", note: "AZBrowser one_line: AZNet is a separate software (not engine). AZNet one_line: Separate software; functional-order pair. Same FragGate door. Two catalog slugs stay. 33 catalog slugs. 1.6.9 remains the broader separate-software framing." },
   { version: "1.6.9", status: "superseded", note: "Frame AZHub, AZInterface, AZBrowser, and AZNet as separate softwares under the same FragGate door. Catalog one_line / description / skill / README corrected. Four catalog slugs stay. 33 catalog slugs. 1.6.8 remains the Hub/Interface product add." },
   { version: "1.6.8", status: "superseded", note: "Add AZHub and AZInterface as two separate softwares under the same FragGate door (AIH-WP-1.0). AZHub is a Blank Key / neutral spatial container (LIVE_OPS region_list/place_module/remove_module/tether_*/blank_key_status). AZInterface is a custodial operating environment (LIVE_OPS genesis_status/site_state_*/integrity_check/witness_list/page_cycle_status). Page cycles are pre-locked: OFF/integrity/ON/FULL SHUTDOWN/MEMORIAL. Hub refuses auto-unlock and completeness events. Never one combined product. Not nested in AZBrowser or AZNet. scorch_remote/auto_unlock/ranking/completeness_detect stay STUB_OPS. Reached only via POST /v1/fraggate/call { slug: \"azhub\", op } or { slug: \"azinterface\", op }. DecisionGATE / FragGate ledger still apply. 33 catalog slugs. 1.6.7 remains AZNet." },
@@ -127,7 +128,9 @@ description: >-
   One door — discover, route, refuse. FragGate over the catalog: hashed
   registry, DecisionGATE before exec, ask/refuse ledger. Dual surface —
   agent/MCP has no technical UI chrome; Worker UI, Flutter mobile/, local
-  install, and counted /download stay complete human software. 1.6.11 adds a durable
+  install, and counted /download stay complete human software. 1.6.12 adds
+  GET /v1/software (hub Software-tab catalog) plus GET /v1/update/check for install.sh /
+  local UIs / mobile. 1.6.11 adds a durable
   FragGate UI-op alias map and names EmbryoLock as stub / local-not-hosted (not an engine). 1.6.10 sets
   AZBrowser and AZNet catalog one_line to separate software (not engine). 1.6.9 frames
   AZHub, AZInterface, AZBrowser, and AZNet as separate softwares under the same FragGate door. 1.6.8 adds
@@ -171,6 +174,7 @@ HTTP \`POST /p/{slug}/{op}\` is still a **proxy**. Proxy without a session recei
 
 Every catalog slug is a true engine. Cloudflare isolate is the jail. Hosted AZAI is protocol mirror + Lamb check, **not** the blend. Identity is **Aziel Eliab** only.
 
+**1.6.12 = live software catalog + client updates:** \`GET /v1/software\` (mirror \`GET /v1/fraggate/software\`) is the authoritative hub catalog — every product plus EmbryoLock stub, sorted Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock). \`GET /v1/update/check?slug=&version=\` and \`GET /v1/update/manifest\` for install.sh / local UIs / mobile. GitHub Action deploys on push to main. Agents prefer FragGate / \`/v1/software\` / \`/mcp\` (list → describe → call). Sibling software under one FragGate door — never separate FragGate engines.
 **1.6.11 = dual-surface op aliases:** Worker UI button names resolve to catalog LIVE_OPS (forward to the real engine method). EmbryoLock is named stub / local-not-hosted (describe?slug=embryolock; not a Worker; not a FragGate engine).
 **1.6.10 = framing: AZBrowser and AZNet catalog one_line say separate software, not separate engine.** Same FragGate door. Two catalog slugs stay.
 **1.6.9 = framing: AZHub, AZInterface, AZBrowser, and AZNet are separate softwares under the same FragGate door.** Catalog slugs stay.
@@ -249,11 +253,13 @@ node cli/aziel-runtime.mjs session close
    FragGate: \`GET ${base}/v1/fraggate\` · \`GET ${base}/v1/fraggate/list\` · \`POST ${base}/v1/fraggate/call\`.
    Also \`GET ${base}/v1/ready\` (200 only if SESSION binding is up; 503 if \`REQUIRE_TOKEN=1\` and \`RUNTIME_TOKEN\` is missing).
    API uses: \`GET ${base}/v1/uses\` (no increment).
-3. \`GET ${base}/v1/bundle\` — every product skill URL + invoke prefix.
+3. \`GET ${base}/v1/software\` — authoritative hub catalog (Plain → Gate → Lock + EmbryoLock stub). Mirror: \`GET ${base}/v1/fraggate/software\`.
+   Client updates: \`GET ${base}/v1/update/check?slug={slug}&version={installed}\` · \`GET ${base}/v1/update/manifest\`.
+4. \`GET ${base}/v1/bundle\` — every product skill URL + invoke prefix.
    Alias: \`GET ${base}/v1/pull?all=1\`.
-4. \`GET ${base}/v1/pull/{slug}\` — name, version, skill URL, counted download, install.sh, ops.
-5. \`GET ${base}/v1/pull/{slug}/skill\` — product skill markdown (proxied / cached).
-6. Proxy (not exec): \`GET\` or \`POST ${base}/p/{slug}/{op}\`.
+5. \`GET ${base}/v1/pull/{slug}\` — name, version, skill URL, counted download, install.sh, ops.
+6. \`GET ${base}/v1/pull/{slug}/skill\` — product skill markdown (proxied / cached).
+7. Proxy (not exec): \`GET\` or \`POST ${base}/p/{slug}/{op}\`.
 
 You do **not** need to open each product homepage.
 
@@ -284,6 +290,10 @@ ${skillCompatibleSection(base)}
 | GET | \`/v1/pull/{slug}\` | Pull record for one product. |
 | GET | \`/v1/pull/{slug}/skill\` | Product skill markdown. |
 | GET | \`/v1/catalog.json\` | Full catalog (discover). |
+| GET | \`/v1/software\` | Authoritative hub software catalog (Plain→Gate→Lock + EmbryoLock stub). |
+| GET | \`/v1/fraggate/software\` | FragGate-path mirror of \`/v1/software\`. |
+| GET | \`/v1/update/check\` | Client update check (\`?slug=&version=\`). For install.sh / local UI / mobile. |
+| GET | \`/v1/update/manifest\` | Latest versions for every product + runtime. |
 | GET/POST | \`/p/{slug}/{op}\` | **Proxy only** — not exec. Service binding preferred. |
 | GET | \`/openapi.json\` | Combined OpenAPI 3.1. |
 | POST | \`/mcp\` | JSON-RPC MCP-over-HTTP. |
@@ -333,7 +343,7 @@ curl -s -A 'Mozilla/5.0' -X POST ${base}/p/azclce/score \\
 
 Every catalog Software slug is a true engine (\`true_engine_runtime: true\`). \`engine_slugs\` equals \`true_engine_slugs\`: ${local}. Some ops remain per-op \`proxy_fallback\` when they need product-Worker bindings (AZ-OS session/exec/lattice; Aziel Digital Library live D1 / Whisper / OCR). Cloudflare isolate is the jail; \`engine_digest\` is still required for local exec.
 
-**1.4.1 production gates (unchanged in 1.6.11):** \`GET /v1/ready\` is 200 only if the SESSION Durable Object binding is up; **503** if \`REQUIRE_TOKEN=1\` and the \`RUNTIME_TOKEN\` secret is missing (fail closed). Authority JSON is \`Cache-Control: no-store\`. When \`REQUIRE_TOKEN=1\`, session mutate (open/policy/exec/close) and MCP session tools / \`runtime_run\` / \`fraggate_call\` require \`Authorization: Bearer …\` or \`X-Aziel-Runtime-Token\` (one operator token). Catalog / health / runtime / skill / pull / FragGate list / OpenAPI / MCP \`tools/list\` / \`GET /v1/uses\` stay public. Proxy \`/p/{slug}/{op}\` stays public and is **not** exec. Receipt cap 64. Session TTL 6h. Per-IP rate limits apply.
+**1.4.1 production gates (unchanged in 1.6.12):** \`GET /v1/ready\` is 200 only if the SESSION Durable Object binding is up; **503** if \`REQUIRE_TOKEN=1\` and the \`RUNTIME_TOKEN\` secret is missing (fail closed). Authority JSON is \`Cache-Control: no-store\`. When \`REQUIRE_TOKEN=1\`, session mutate (open/policy/exec/close) and MCP session tools / \`runtime_run\` / \`fraggate_call\` require \`Authorization: Bearer …\` or \`X-Aziel-Runtime-Token\` (one operator token). Catalog / health / runtime / skill / pull / FragGate list / OpenAPI / MCP \`tools/list\` / \`GET /v1/uses\` stay public. Proxy \`/p/{slug}/{op}\` stays public and is **not** exec. Receipt cap 64. Session TTL 6h. Per-IP rate limits apply.
 
 GodLock and MirageGrid are not VPNs. ForgeReceipts is not legal advice. ZionPattern Solver caps confidence at 75% and does not solve cases. VeilLock does not inject into FaceTime. AZ-CLCE detects inconsistency, not intent. ChronoLock is advisory only. The ARK is not a kernel. AZAI hosted /v1 is a protocol mirror + Lamb check, not a paid-key proxy and **not** the local blend. Jeeves is not sovereign. SpectralLock hosted overlay is a 256px preview. EmployeeLock is not a court. FoldLock is not zip. WhistleLock is not a mailer. TrajectoryLock is not a certified forensic instrument. M.I.A.Lock Doe hits are leads, not IDs. Aziel Digital Library is not a 26-card index. AzielTether is not a VPN. PeaceLock is not a transcript, not a counterfactual, not a motive score, and not a HARD_DUTY waiver. AZMail (APP 1.0) is not a full internet MTA — FragGate only; mesh default off; SMTP / deanonymize stub. AZBrowser (AZB-1.0) is not Chromium — FragGate only; Lamb Lens ethical research browser; cites; refuses harmful harvest; never invents visit results; tor_exit / phoenix_wipe stub. AZNet (AZN-WP-0.1) is a separate product — not a payload host; FragGate only; garden / stamp / memorial ops require AZBrowser pair_token AND pair_flag (functional order only). payload_host / serve_content_for_peer stub. AZHub (AIH-WP-1.0) is a Blank Key — not AZInterface, not an interpreter, not auto-unlock. AZInterface (AIH-WP-1.0) is a custodial operating environment — pre-locked page cycles; not AZHub. VPN/hop mesh is not claimed on this public surface.
 
@@ -419,6 +429,10 @@ export function runtimeManifest(origin, products, extra = {}) {
       runtime: base + "/v1/runtime.json",
       runtime_alias: base + "/v1/runtime",
       discover: base + "/v1/catalog.json",
+      software: base + "/v1/software",
+      fraggate_software: base + "/v1/fraggate/software",
+      update_check: base + "/v1/update/check",
+      update_manifest: base + "/v1/update/manifest",
       pull: base + "/v1/pull/{slug}",
       pull_skill: base + "/v1/pull/{slug}/skill",
       bundle: base + "/v1/bundle",
@@ -530,6 +544,8 @@ export function pullRecord(product, origin, skillText, extra = {}) {
     count: host + "/count",
     install: host + "/install.sh",
     install_sh: `curl -fsSL ${host}/install.sh | bash`,
+    update_check: `${base}/v1/update/check?slug=${encodeURIComponent(product.slug)}${product.version ? `&version=${encodeURIComponent(product.version)}` : ""}`,
+    software: `${base}/v1/software`,
     openapi: host + "/openapi.json",
     runtime_openapi: base + "/openapi.json",
     ops: product.ops,
@@ -539,8 +555,10 @@ export function pullRecord(product, origin, skillText, extra = {}) {
       catalog_card: `${base}/p/${product.slug}`,
       catalog_skill: `${base}/p/${product.slug}/skill`,
       catalog_health: `${base}/p/${product.slug}/health`,
-      invoke_prefix: `${base}/p/${product.slug}`,
-      worker_home: host + "/",
+    invoke_prefix: `${base}/p/${product.slug}`,
+    update_check: `${base}/v1/update/check?slug=${encodeURIComponent(product.slug)}${product.version ? `&version=${encodeURIComponent(product.version)}` : ""}`,
+    software: `${base}/v1/software`,
+    worker_home: host + "/",
       slugs: [product.slug, ...aliasesForSlug(product.slug)],
     },
     doi: product.doi || null,
@@ -750,7 +768,7 @@ export function runtimeStaticPaths() {
     "/v1/skill": {
       get: {
         operationId: "runtime_skill",
-        summary: "Skill markdown: 1.6.11 adds FragGate UI-op aliases + EmbryoLock name-only stub. Honest about 1.1.0 / 1.2.0 / 1.3.0 / 1.4.0 / 1.4.1 / 1.5.0 / 1.6.0 / 1.6.1 / 1.6.2 / 1.6.3 / 1.6.4 / 1.6.5 / 1.6.6 / 1.6.7 / 1.6.8 / 1.6.9 / 1.6.10 / 1.6.11.",
+        summary: "Skill markdown: 1.6.12 adds GET /v1/software + client update check. Honest about 1.1.0 / 1.2.0 / 1.3.0 / 1.4.0 / 1.4.1 / 1.5.0 / 1.6.0 / 1.6.1 / 1.6.2 / 1.6.3 / 1.6.4 / 1.6.5 / 1.6.6 / 1.6.7 / 1.6.8 / 1.6.9 / 1.6.10 / 1.6.11 / 1.6.12.",
         tags: ["runtime"],
         responses: { "200": { description: "text/markdown skill" } },
       },
@@ -792,10 +810,39 @@ export function runtimeStaticPaths() {
         responses: { "200": { description: "headers only" }, "503": { description: "not ready" } },
       },
     },
+    "/v1/software": {
+      get: {
+        operationId: "runtime_software",
+        summary:
+          "Authoritative software catalog for hubs/clients. Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock). Includes EmbryoLock stub. Mirror: GET /v1/fraggate/software.",
+        tags: ["software"],
+        responses: { "200": { description: "Software catalog JSON" } },
+      },
+    },
+    "/v1/update/check": {
+      get: {
+        operationId: "runtime_update_check",
+        summary: "Client update check for install.sh / local UI / mobile. Query slug + version.",
+        tags: ["software"],
+        parameters: [
+          { name: "slug", in: "query", required: true, schema: { type: "string" } },
+          { name: "version", in: "query", schema: { type: "string" } },
+        ],
+        responses: { "200": { description: "Update check JSON" }, "404": { description: "Unknown slug" } },
+      },
+    },
+    "/v1/update/manifest": {
+      get: {
+        operationId: "runtime_update_manifest",
+        summary: "Latest versions for every product plus aziel-runtime.",
+        tags: ["software"],
+        responses: { "200": { description: "Update manifest JSON" } },
+      },
+    },
     "/v1/bundle": {
       get: {
         operationId: "runtime_bundle",
-        summary: "Compact bootstrap: every product skill URL + invoke prefix.",
+        summary: "Compact bootstrap: every product skill URL + invoke prefix. Prefer GET /v1/software for hub tabs.",
         tags: ["runtime"],
         responses: { "200": { description: "Bundle JSON" } },
       },

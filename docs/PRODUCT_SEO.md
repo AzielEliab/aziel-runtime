@@ -192,4 +192,9 @@ Name the full compatible AI client list (ChatGPT, Grok, Venice, Claude, Cursor, 
 
 Runtime advertises live product sitemaps from the catalog (probe 2026-09-05). VibeLock’s download-tracker `/sitemap.xml` was 404 — add one. Several Workers were missing `/llms.txt` (`godlock`, `miragegrid`, `staticclock`, `azclce`, `azai`, `azbot`) — add those so the hub can link them.
 
+Hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) should fetch
+`GET https://aziel-runtime.vibelock.workers.dev/v1/software` on each Software-tab
+request instead of hand-editing product copy. Client installers use
+`GET /v1/update/check?slug=&version=`. See [CLIENT_UPDATE.md](CLIENT_UPDATE.md).
+
 See also: https://aziel-runtime.vibelock.workers.dev/sitemap-index.xml

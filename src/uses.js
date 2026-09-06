@@ -106,6 +106,11 @@ export function inferProductOp(pathname) {
   if (path === "/v1/skill") return { op: "runtime.skill" };
   if (path === "/v1/runtime.json" || path === "/v1/runtime") return { op: "runtime.manifest" };
   if (path === "/v1/catalog.json") return { op: "runtime.catalog" };
+  if (path === "/v1/software" || path === "/v1/software.json" || path === "/v1/fraggate/software") {
+    return { op: "runtime.software" };
+  }
+  if (path === "/v1/update/check") return { op: "runtime.update_check" };
+  if (path === "/v1/update/manifest") return { op: "runtime.update_manifest" };
   if (path === "/mcp") return { op: "mcp" };
   return {};
 }
