@@ -4,6 +4,7 @@
  */
 import assert from "node:assert/strict";
 import { PRODUCTS } from "../src/index.js";
+import { CATALOG_ALIASES } from "../src/catalog-meta.js";
 import { LIVE_OPS, STUB_OPS, buildRegistry, classifyCall, parseTarget } from "../src/fraggate/registry.js";
 import { embeddedDigest } from "../src/engines/digest.js";
 import { executeLocal } from "../src/engines/runner.js";
@@ -43,6 +44,10 @@ assert.equal(product.doi, null);
 assert.equal(PAIR_PEER, "azbrowser");
 assert.equal(PAIR_FLAG, "azbrowser");
 assert.equal(SPEC, "AZN-WP-0.1");
+assert.equal(CATALOG_ALIASES.aznet, undefined);
+assert.equal(CATALOG_ALIASES["az-net"], "aznet");
+assert.equal(CATALOG_ALIASES["azn-wp-0.1"], "aznet");
+assert.notEqual(CATALOG_ALIASES["az-net"], "azbrowser");
 
 const catalogOps = new Set(product.ops.map((o) => o.op));
 const live = LIVE_OPS.aznet;
