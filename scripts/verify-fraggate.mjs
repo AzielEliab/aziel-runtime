@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import { PRODUCTS } from "../src/index.js";
 import { RUNTIME_VERSION } from "../src/runtime-api.js";
 import { PUBLIC_MCP_TOOL_MAX } from "../src/fraggate/codes.js";
-import { LIVE_OPS, STUB_OPS, buildRegistry, classifyCall, parseTarget } from "../src/fraggate/registry.js";
+import { LIVE_OPS, NAMED_STUBS, OP_ALIASES, STUB_OPS, buildRegistry, classifyCall, parseTarget, resolveOpAlias } from "../src/fraggate/registry.js";
 import { resetLedger } from "../src/fraggate/ledger.js";
 import { memorySessionNamespace } from "../src/session-do.js";
 
@@ -197,12 +197,62 @@ assert.ok(listed.entries.some((e) => e.slug === "foldlock" && e.status === "live
 assert.ok(listed.entries.some((e) => e.slug === "vibelock" && e.status === "live"));
 assert.ok(listed.entries.some((e) => e.slug === "veillock" && e.status === "local_only"));
 assert.ok(listed.entries.some((e) => e.slug === "ark" && e.status === "live" && e.ops.includes("sweep")));
+assert.ok(listed.entries.some((e) => e.slug === "embryolock" && e.status === "stub" && e.local_not_hosted));
+assert.ok(listed.op_aliases && listed.op_aliases.azhub.list_modules === "region_list");
+assert.ok(listed.entries.some((e) => e.slug === "azhub" && e.ops.includes("list_modules") && e.ops.includes("place")));
+assert.ok(listed.entries.some((e) => e.slug === "azinterface" && e.ops.includes("genesis_boot") && e.ops.includes("hold")));
+assert.ok(listed.entries.some((e) => e.slug === "azbrowser" && e.ops.includes("airlock") && e.ops.includes("home")));
+assert.ok(listed.entries.some((e) => e.slug === "azmail" && e.ops.includes("classify")));
+assert.ok(listed.entries.some((e) => e.slug === "aznet" && e.ops.includes("doctor") && e.ops.includes("pair")));
+assert.ok(listed.entries.some((e) => e.slug === "peacelock" && e.ops.includes("doctor")));
 
 const described = await (await get("/v1/fraggate/describe?name=FoldLock")).json();
 assert.equal(described.ok, true);
 assert.equal(described.slug, "foldlock");
 assert.equal(described.status, "live");
 assert.ok(described.ops.includes("fold-preview"));
+
+const embryoDesc = await (await get("/v1/fraggate/describe?slug=embryolock")).json();
+assert.equal(embryoDesc.ok, true);
+assert.equal(embryoDesc.slug, "embryolock");
+assert.equal(embryoDesc.status, "stub");
+assert.equal(embryoDesc.stub, true);
+assert.equal(embryoDesc.local_not_hosted, true);
+assert.equal(embryoDesc.live, false);
+assert.match(String(embryoDesc.note || embryoDesc.description || ""), /local-not-hosted|name only/i);
+
+const embryoCall = await (await post("/v1/fraggate/call", { slug: "embryolock", op: "arm" })).json();
+assert.equal(embryoCall.ok, false);
+assert.equal(embryoCall.code, "FG-STUB");
+
+assert.equal(resolveOpAlias("azhub", "list_modules").op, "region_list");
+assert.equal(resolveOpAlias("azhub", "place").op, "place_module");
+assert.equal(resolveOpAlias("azinterface", "genesis_boot").op, "genesis_status");
+assert.equal(resolveOpAlias("azinterface", "hold").op, "page_cycle_status");
+assert.equal(resolveOpAlias("azbrowser", "airlock").op, "airlock_ingest");
+assert.equal(resolveOpAlias("azbrowser", "home").op, "health");
+assert.equal(resolveOpAlias("azmail", "classify").op, "airlock_classify");
+assert.equal(resolveOpAlias("aznet", "doctor").op, "health");
+assert.equal(resolveOpAlias("aznet", "pair").op, "pair_status");
+assert.equal(resolveOpAlias("peacelock", "doctor").op, "health");
+assert.equal(resolveOpAlias("azhub", "region_list").aliased, false);
+
+assert.ok(registry.bySlug.embryolock);
+assert.equal(registry.bySlug.embryolock.status, "stub");
+assert.equal(registry.bySlug.embryolock.local_not_hosted, true);
+assert.equal(registry.bySlug.embryolock.engine, false);
+assert.equal(registry.stub_count, NAMED_STUBS.length);
+assert.equal(classifyCall(registry.bySlug.embryolock, "arm").kind, "stub");
+assert.ok(!PRODUCTS.some((p) => p.slug === "embryolock"), "embryolock is not a catalog Software engine");
+
+for (const [slug, aliases] of Object.entries(OP_ALIASES)) {
+  for (const [uiOp, canon] of Object.entries(aliases)) {
+    assert.ok((LIVE_OPS[slug] || []).includes(uiOp), `LIVE_OPS.${slug} lists UI alias ${uiOp}`);
+    assert.ok((LIVE_OPS[slug] || []).includes(canon), `LIVE_OPS.${slug} lists canonical ${canon}`);
+    assert.ok(registry.bySlug[slug].ops.includes(uiOp), `describe/list ops include ${slug}/${uiOp}`);
+    assert.equal(classifyCall(registry.bySlug[slug], uiOp).kind, "live", `${slug}/${uiOp} is live`);
+  }
+}
 
 const hallucHttp = await post("/v1/fraggate/call", { name: "embrylock", op: "arm" });
 assert.equal(hallucHttp.status, 400);
@@ -388,6 +438,33 @@ assert.equal(liveAzhub.slug, "azhub");
 assert.equal(liveAzhub.result.interprets, false);
 assert.equal(liveAzhub.result.auto_unlock, false);
 
+const uiAliasCases = [
+  { slug: "azhub", op: "list_modules", payload: {}, canon: "region_list" },
+  { slug: "azhub", op: "place", payload: { region: "west", module_id: "azmail" }, canon: "place_module" },
+  { slug: "azinterface", op: "genesis_boot", payload: {}, canon: "genesis_status" },
+  { slug: "azinterface", op: "hold", payload: {}, canon: "page_cycle_status" },
+  { slug: "azbrowser", op: "airlock", payload: { url: "https://github.com/AzielEliab/azbrowser" }, canon: "airlock_ingest" },
+  { slug: "azbrowser", op: "home", payload: {}, canon: "health" },
+  { slug: "azmail", op: "classify", payload: { text: "hello from the anonymous ring" }, canon: "airlock_classify" },
+  { slug: "aznet", op: "doctor", payload: {}, canon: "health" },
+  { slug: "aznet", op: "pair", payload: {}, canon: "pair_status" },
+  { slug: "peacelock", op: "doctor", payload: {}, canon: "health" },
+];
+for (const row of uiAliasCases) {
+  const body = await (await post("/v1/fraggate/call", { slug: row.slug, op: row.op, payload: row.payload })).json();
+  assert.equal(body.ok, true, `${row.slug}/${row.op} ${JSON.stringify(body)}`);
+  assert.equal(body.code, "FG-OK", `${row.slug}/${row.op} code`);
+  assert.equal(body.slug, row.slug);
+  assert.equal(body.op, row.op);
+  assert.equal(body.canonical_op, row.canon);
+  assert.equal(body.aliased, true);
+  assert.notEqual(body.code, "FG-UNKNOWN-OP");
+}
+
+const interfaceScorch = await (await post("/v1/fraggate/call", { slug: "azinterface", op: "scorch_remote" })).json();
+assert.equal(interfaceScorch.ok, false);
+assert.equal(interfaceScorch.code, "FG-STUB");
+
 const azinterfaceUnlock = await (await post("/v1/fraggate/call", { slug: "azinterface", op: "auto_unlock" })).json();
 assert.equal(azinterfaceUnlock.code, "FG-STUB");
 const liveAzinterface = await (
@@ -421,8 +498,11 @@ assert.equal(manifest.fraggate.stub_count, registry.stub_count);
 assert.equal(manifest.fraggate.stub_op_count, registry.stub_op_count);
 assert.equal(
   manifest.fraggate.live_count + manifest.fraggate.local_only_count + manifest.fraggate.stub_count,
-  manifest.product_count,
+  manifest.fraggate.product_count,
 );
+assert.equal(manifest.product_count, PRODUCTS.length);
+assert.equal(manifest.fraggate.product_count, registry.entries.length);
+assert.ok(manifest.fraggate.product_count > manifest.product_count, "named stubs sit on the FragGate registry, not the catalog");
 
 const mcpManifest = await mcp("tools/call", { name: "runtime_manifest", arguments: {} }, 3);
 assert.equal(mcpManifest.result.isError, false);
