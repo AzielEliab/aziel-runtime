@@ -36,6 +36,7 @@ const slugs = Object.keys(VERSIONS);
 assert.ok(slugs.includes("azieltether"));
 assert.ok(slugs.includes("peacelock"));
 assert.ok(slugs.includes("azmail"));
+assert.ok(slugs.includes("azbrowser"));
 assert.ok(slugs.includes("aziel-corpus"));
 
 for (const slug of slugs) {

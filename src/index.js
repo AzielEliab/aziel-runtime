@@ -1,5 +1,5 @@
 /**
- * aziel-runtime 1.6.5 — FragGate door + AZMail + PeaceLock + KV-backed API use trackers.
+ * aziel-runtime 1.6.6 — FragGate door + AZBrowser + AZMail + PeaceLock + KV-backed API use trackers.
  *
  * 1.1.0 was catalog+proxy that called itself a runtime. Useful front doors.
  * 1.2.0 owned open → policy → exec → receipt → close but exec still proxied.
@@ -19,7 +19,7 @@
  * GET  /ai.txt                same as /llms.txt
  * GET  /cite.json             How-to-cite: Aziel Eliab (aka Aziel Elroi Eliab), Apache-2.0, no invented DOIs
  * GET  /v1/skill              skill markdown (session + front doors)
- * GET  /v1/runtime.json       machine manifest: role=engine-runtime (1.6.5), door=fraggate
+ * GET  /v1/runtime.json       machine manifest: role=engine-runtime (1.6.6), door=fraggate
  * GET  /v1/fraggate           FragGate door summary
  * GET  /v1/fraggate/list      hashed registry
  * GET  /v1/fraggate/describe  one name
@@ -134,7 +134,7 @@ const CATALOG_HOST = "https://aziel-runtime.vibelock.workers.dev";
 const PROTOCOL = "2025-03-26";
 const CATALOG_TITLE = "Aziel Eliab Runtime";
 const CATALOG_DESCRIPTION =
-  "Aziel Eliab software catalog and engine-runtime: 29 products including AZMail (APP 1.0), PeaceLock (PL-WP-0.1) and the Aziel Digital Library (www.azielcorpuslibrary.net). 1.6.5 adds AZMail as a FragGate-live engine (anonymous MCP mesh default off + advisory airlock; not a full internet MTA; SMTP/deanonymize stub). 1.6.4 adds PeaceLock as a true in-process engine (chosen silence / chosen inaction receipts; HARD_DUTY refuse; ABSENT transcript/counterfactual/motive). 1.6.3 adds KV-backed API use trackers (GET /v1/uses) across origin and same-origin /runtime doors. 1.6.2 widens the public FragGate door to sensible advisory engines; stub verbs still refuse. 1.6.1 lists every major OpenAPI/MCP/HTTP client — ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants. 1.6.0 FragGate door — discover, route, refuse. Hashed registry, thin MCP, DecisionGATE before exec. 1.5.0 was agent-native flat product tools. Proxy is not exec. Dual surface: agent chat has no technical UI chrome; Worker / Flutter / local install / counted download stay complete human software. Apache-2.0. Author: Aziel Eliab (also known as Aziel Elroi Eliab). Open crawl Allow: / for GPTBot/ChatGPT, Venice, Grok, Google-Extended, GoogleOther, Google-CloudVertexBot, Claude(+Search/User), anthropic-ai, Perplexity(+User), bingbot, Meta-External*, Applebot(+Extended), Amazonbot, DuckDuck/DuckAssist, MistralAI-User, YouBot, CCBot, cohere-ai, Diffbot, AI2Bot(+Dolma), and the rest of robots.txt."
+  "Aziel Eliab software catalog and engine-runtime: 30 products including AZBrowser / AZNet (AZB-1.0), AZMail (APP 1.0), PeaceLock (PL-WP-0.1) and the Aziel Digital Library (www.azielcorpuslibrary.net). 1.6.6 adds AZBrowser as a FragGate-live engine (Lamb Lens ethical search + advisory navigate; cite; refuse harmful harvest; never invent visit results; not Chromium; tor_exit/phoenix_wipe stub). MCP fraggate_list / fraggate_call and Worker UI buttons share that same LIVE_OPS.azbrowser backend. 1.6.5 adds AZMail as a FragGate-live engine (anonymous MCP mesh default off + advisory airlock; not a full internet MTA; SMTP/deanonymize stub). 1.6.4 adds PeaceLock as a true in-process engine (chosen silence / chosen inaction receipts; HARD_DUTY refuse; ABSENT transcript/counterfactual/motive). 1.6.3 adds KV-backed API use trackers (GET /v1/uses) across origin and same-origin /runtime doors. 1.6.2 widens the public FragGate door to sensible advisory engines; stub verbs still refuse. 1.6.1 lists every major OpenAPI/MCP/HTTP client — ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants. 1.6.0 FragGate door — discover, route, refuse. Hashed registry, thin MCP, DecisionGATE before exec. 1.5.0 was agent-native flat product tools. Proxy is not exec. Dual surface: agent chat has no technical UI chrome; Worker / Flutter / local install / counted download stay complete human software. Apache-2.0. Author: Aziel Eliab (also known as Aziel Elroi Eliab). Open crawl Allow: / for GPTBot/ChatGPT, Venice, Grok, Google-Extended, GoogleOther, Google-CloudVertexBot, Claude(+Search/User), anthropic-ai, Perplexity(+User), bingbot, Meta-External*, Applebot(+Extended), Amazonbot, DuckDuck/DuckAssist, MistralAI-User, YouBot, CCBot, cohere-ai, Diffbot, AI2Bot(+Dolma), and the rest of robots.txt."
 const LASTMOD = "2026-09-06";
 
 const PRODUCTS_RAW = [
@@ -496,6 +496,26 @@ const PRODUCTS_RAW = [
       "AZMail (APP 1.0): anonymous MCP mesh + advisory airlock. Reached only via FragGate (POST /v1/fraggate/call { slug: \"azmail\", op }). Not a full internet MTA. Mesh default off. Independent of AZ-OS / Lumen. SMTP / deanonymize / harvest stay stub. Author Aziel Eliab.",
   },
   {
+    slug: "azbrowser",
+    name: "AZBrowser",
+    worker: "azbrowser-download-tracker",
+    github: "https://github.com/AzielEliab/azbrowser",
+    ops: [
+      { op: "ethical_search", method: "POST", summary: "Lamb Lens ethical search. Cite. Refuse harmful harvest. Never invent visit results." },
+      { op: "lamb_lens_search", method: "POST", summary: "Alias of ethical_search. Same FragGate backend as the Worker UI button." },
+      { op: "navigate", method: "POST", summary: "Sandboxed advisory fetch/metadata. No raw HTML. No Chromium exec." },
+      { op: "airlock_ingest", method: "POST", summary: "Classify a URL or text before ingest. Refuses malware / harvest payloads." },
+      { op: "tab_open", method: "POST", summary: "Open a session tab (in-memory or KV). Title is host metadata, not a claimed visit." },
+      { op: "tab_list", method: "POST", summary: "List session tabs." },
+      { op: "receipt_list", method: "POST", summary: "List hash-chained AZBrowser receipts." },
+      { op: "verify", method: "POST", summary: "Verify an AZBrowser receipt hash." },
+      { op: "receipt_verify", method: "POST", summary: "Alias of verify." },
+    ],
+    example: { q: "ethical web principles" },
+    banner:
+      "AZBrowser / AZNet Phase 1: secure research browser + Lamb Lens ethical search. Reached only via FragGate (POST /v1/fraggate/call { slug: \"azbrowser\", op }). Cite; refuse harmful harvest; never invent visit results. Not Chromium. tor_exit / phoenix_wipe / unrestricted proxy stay stub. Author Aziel Eliab.",
+  },
+  {
     slug: "aziel-corpus",
     name: "Aziel Digital Library",
     worker: "aziel-corpus-download-tracker",
@@ -541,6 +561,7 @@ const ONE_LINE = {
   azieltether: "AzielTether 0.1.0: central × decentral survival mesh for downloaded Aziel software. Prefer-central; peer sync when down; public HTTPS stays mesh-free. Not a VPN. Author Aziel Eliab.",
   peacelock: "Chosen silence / chosen inaction as a first-class receipt (PL-WP-0.1).",
   azmail: "AZMail (APP 1.0): anonymous MCP mesh + advisory airlock. Not a full internet MTA. Mesh default off. FragGate only.",
+  azbrowser: "AZBrowser / AZNet Phase 1: secure research browser + Lamb Lens ethical search. Cite; refuse harvest; no invented visits. FragGate only.",
   "aziel-corpus": "Self-contained immutable digital library. Public MASTER. Not a 26-card index.",
 };
 
@@ -807,8 +828,9 @@ function llmsTxt(origin) {
     "",
     ...llmsIdentityHeader(),
     `Role: engine-runtime (catalog + pull + proxy + session + in-process engines)`,
-    `Honesty: 1.1.0 was catalog+proxy. 1.2.0 was session/receipt (exec still proxied). 1.3.0 ran listed slugs in-process. 1.4.0 vendors every catalog Software slug. 1.4.1 adds production gates (ready, HEAD, no-store, receipt cap 64, TTL 6h, rate limits, optional token). 1.5.0 was the agent-native cut (flat product-verb MCP). 1.6.0 is the FragGate door (discover, route, refuse). 1.6.1 lists every major OpenAPI/MCP/HTTP client. 1.6.2 widens the public door to sensible advisory engines; stubs still refuse. 1.6.3 adds KV-backed API use trackers (GET /v1/uses; no PII). 1.6.4 adds PeaceLock (PL-WP-0.1) as a true in-process engine. 1.6.5 adds AZMail (APP 1.0) as a FragGate-live engine.`,
+    `Honesty: 1.1.0 was catalog+proxy. 1.2.0 was session/receipt (exec still proxied). 1.3.0 ran listed slugs in-process. 1.4.0 vendors every catalog Software slug. 1.4.1 adds production gates (ready, HEAD, no-store, receipt cap 64, TTL 6h, rate limits, optional token). 1.5.0 was the agent-native cut (flat product-verb MCP). 1.6.0 is the FragGate door (discover, route, refuse). 1.6.1 lists every major OpenAPI/MCP/HTTP client. 1.6.2 widens the public door to sensible advisory engines; stubs still refuse. 1.6.3 adds KV-backed API use trackers (GET /v1/uses; no PII). 1.6.4 adds PeaceLock (PL-WP-0.1) as a true in-process engine. 1.6.5 adds AZMail (APP 1.0) as a FragGate-live engine. 1.6.6 adds AZBrowser / AZNet (AZB-1.0) as a FragGate-live engine.`,
     `AZMail: FragGate only. POST /v1/fraggate/call { slug: "azmail", op }. Host /runtime proxies that same FragGate door. Not a full internet MTA. Mesh default off. SMTP / deanonymize / harvest stay stub. DecisionGATE / FragGate ledger still apply before exec.`,
+    `AZBrowser: FragGate only. POST /v1/fraggate/call { slug: "azbrowser", op }. MCP fraggate_list / fraggate_call and Worker UI buttons share LIVE_OPS.azbrowser (ethical_search, lamb_lens_search, navigate, airlock_ingest, tab_open, tab_list, receipt_list, verify, receipt_verify, health, skill). Lamb Lens cites; refuses harmful harvest; never invents visit results. Not Chromium. tor_exit / phoenix_wipe / unrestricted proxy stay stub.`,
     `True-engine slugs: ${honestyFields(PRODUCTS.map((p) => p.slug)).true_engine_slugs.join(", ")}`,
     `Proxy /p/{slug}/{op} is not exec. Hosted AZAI is not the local blend. VPN/hop mesh is not claimed on this public surface.`,
     `Local blends: azai serve · forgereceipts ui · azos ui`,
@@ -1077,16 +1099,92 @@ const PAGE_CSS = `
   code { font-size: .88rem; }
   .links a { margin-right: 1rem; }
   .cite { border: 1px solid #2a3140; border-radius: 12px; padding: 1rem 1.15rem; background: #12151c; margin: 0 0 1.4rem; }
+  .fg-door { border: 1px solid #3d3420; background: #16120a; border-radius: 10px; padding: .75rem .85rem; margin: .75rem 0 0; }
+  .fg-door p { margin: 0 0 .55rem; color: #e6d19a; font-size: .92rem; }
+  .fg-ops { display: flex; flex-wrap: wrap; gap: .4rem; margin: 0 0 .55rem; }
+  .fg-ops button { background: #241c0d; color: #f0d78c; border: 1px solid #5c4a1a; border-radius: 8px; padding: .35rem .65rem; cursor: pointer; font: inherit; font-size: .82rem; }
+  .fg-ops button:hover { background: #33280f; }
+  .fg-door textarea { width: 100%; min-height: 4.2rem; background: #0e1014; color: #e8eaef; border: 1px solid #2a3140; border-radius: 8px; padding: .5rem .6rem; font: .82rem/1.4 ui-monospace, monospace; box-sizing: border-box; }
+  .fg-out { margin: .55rem 0 0; max-height: 16rem; }
 `;
+
+function doorOnly(p) {
+  return p && (p.slug === "azbrowser" || p.slug === "azmail");
+}
+
+function fragGateDoorHtml(p, origin) {
+  if (!doorOnly(p)) return "";
+  const live = (p.ops || [])
+    .map((o) => o.op)
+    .filter((op) => op !== "health" && op !== "skill");
+  const buttons = ["health", ...live, "skill"]
+    .map((op) => `<button type="button" data-op="${escapeHtml(op)}">${escapeHtml(op)}</button>`)
+    .join("");
+  const example = JSON.stringify(p.example || {}, null, 2);
+  return `<div class="fg-door" data-slug="${escapeHtml(p.slug)}" data-origin="${escapeHtml(origin)}">
+  <p>FragGate only — same LIVE_OPS as MCP <code>fraggate_call</code> / <code>POST /v1/fraggate/call</code>. One backend, two surfaces.</p>
+  <div class="fg-ops">${buttons}</div>
+  <textarea class="fg-payload">${escapeHtml(example)}</textarea>
+  <pre class="fg-out">POST ${escapeHtml(origin)}/v1/fraggate/call
+{ "slug": "${escapeHtml(p.slug)}", "op": "${escapeHtml(live[0] || "health")}", "payload": ${example} }</pre>
+</div>`;
+}
+
+function fragGateDoorScript() {
+  return `<script>
+(function () {
+  function parsePayload(raw) {
+    var text = String(raw || "").trim();
+    if (!text) return {};
+    try { return JSON.parse(text); } catch (e) { return { q: text, text: text }; }
+  }
+  document.querySelectorAll(".fg-door").forEach(function (box) {
+    var slug = box.getAttribute("data-slug");
+    var origin = box.getAttribute("data-origin") || "";
+    var out = box.querySelector(".fg-out");
+    var area = box.querySelector(".fg-payload");
+    box.querySelectorAll("[data-op]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var op = btn.getAttribute("data-op");
+        var payload = parsePayload(area && area.value);
+        out.textContent = "calling " + slug + "/" + op + " …";
+        fetch(origin + "/v1/fraggate/call", {
+          method: "POST",
+          headers: { "content-type": "application/json", accept: "application/json" },
+          body: JSON.stringify({ slug: slug, op: op, payload: payload })
+        }).then(function (res) { return res.json(); }).then(function (body) {
+          var title = body && body.display && body.display.title ? body.display.title : (slug + "/" + op);
+          var summary = body && body.display && body.display.summary ? body.display.summary : "";
+          out.textContent = title + (summary ? "\\n" + summary : "") + "\\n\\n" + JSON.stringify(body, null, 2);
+        }).catch(function (err) {
+          out.textContent = String(err && err.message ? err.message : err);
+        });
+      });
+    });
+  });
+})();
+</script>`;
+}
 
 function productCardHtml(p, origin, stats) {
   const u = productUrls(p, origin);
-  const ops = p.ops
-    .map((o) => `<code>${o.method} /p/${p.slug}/${o.op}</code> — ${escapeHtml(o.summary)}`)
-    .join("<br>");
+  const ops = doorOnly(p)
+    ? p.ops
+        .map((o) => `<code>POST /v1/fraggate/call { slug: "${p.slug}", op: "${o.op}" }</code> — ${escapeHtml(o.summary)}`)
+        .join("<br>")
+    : p.ops
+        .map((o) => `<code>${o.method} /p/${p.slug}/${o.op}</code> — ${escapeHtml(o.summary)}`)
+        .join("<br>");
   const banner = p.banner ? `<p class="banner">${escapeHtml(p.banner)}</p>` : "";
   const example = JSON.stringify(p.example, null, 2);
   const firstPost = p.ops.find((o) => o.method === "POST") || p.ops[0];
+  const invokePre = doorOnly(p)
+    ? `<pre>curl -s -A 'Mozilla/5.0' -X POST ${origin}/v1/fraggate/call \\
+  -H 'content-type: application/json' \\
+  -d '${JSON.stringify({ slug: p.slug, op: firstPost.op, payload: p.example || {} }).replace(/'/g, "’")}'</pre>`
+    : `<pre>curl -X ${firstPost.method} ${origin}/p/${p.slug}/${firstPost.op} \\
+  -H 'content-type: application/json' \\
+  -d '${example.replace(/'/g, "’")}'</pre>`;
   const count =
     stats && typeof stats.downloads === "number"
       ? ` <span class="count">(${stats.downloads} counted)</span>`
@@ -1119,9 +1217,8 @@ function productCardHtml(p, origin, stats) {
      · <a href="${u.openapi}">product OpenAPI</a>
      ${u.has_sitemap ? `· <a href="${u.sitemap}">Worker sitemap</a>` : ""}</p>
   <p>${ops}</p>
-  <pre>curl -X ${firstPost.method} ${origin}/p/${p.slug}/${firstPost.op} \\
-  -H 'content-type: application/json' \\
-  -d '${example.replace(/'/g, "’")}'</pre>
+  ${invokePre}
+  ${fragGateDoorHtml(p, origin)}
 </article>`;
 }
 
@@ -1150,7 +1247,7 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
     <p class="stamp">Everblooming sigil · Aziel Eliab</p>
   </div>
   <h1>Aziel Eliab Runtime</h1>
-  <p class="lead"><strong>1.6.5</strong> adds <strong>AZMail</strong> (APP 1.0) as a FragGate-live engine — anonymous MCP mesh (default off) + advisory airlock. Not a full internet MTA. Reached only via <code>POST /v1/fraggate/call</code> with <code>{ slug: "azmail", op }</code> (host <code>/runtime</code> proxies that same door). <strong>1.6.4</strong> adds <strong>PeaceLock</strong> (PL-WP-0.1) as a true in-process engine — chosen silence / chosen inaction receipts, HARD_DUTY refuse, ABSENT transcript/counterfactual/motive. <strong>1.6.3</strong> adds KV-backed API use trackers (<a href="${origin}/v1/uses">/v1/uses</a>) so every public host point can keep usage logs. <strong>1.6.2</strong> widens the public FragGate door to sensible advisory engines; stub verbs still refuse. <strong>1.6.1</strong> lists every major OpenAPI / MCP / HTTP client (not only ChatGPT, Grok, and Venice). <strong>1.6.0</strong> is the <strong>FragGate door</strong> over the catalog — one door: discover, route, refuse. <strong>1.5.0</strong> was the agent-native flat product-tool pile. Human software — this Worker UI, Flutter <code>mobile/</code>, local install, counted <code>/download</code> — stays complete. Catalog + pull + proxy + session + <strong>in-process engines</strong> for every catalog Software slug. ${PRODUCTS.length} products including the <a href="${LIBRARY_ORIGIN}/">Aziel Digital Library</a>. Kernel: <a href="https://github.com/AzielEliab/fraggate">fraggate</a>. Forks welcome. Apache-2.0. Author: <strong>Aziel Eliab</strong> (also known as Aziel Elroi Eliab).</p>
+  <p class="lead"><strong>1.6.6</strong> adds <strong>AZBrowser</strong> / AZNet (AZB-1.0) as a FragGate-live engine — Lamb Lens ethical search + advisory navigate. Cite; refuse harmful harvest; never invent visit results. Not Chromium. Reached only via <code>POST /v1/fraggate/call</code> with <code>{ slug: "azbrowser", op }</code>. MCP <code>fraggate_list</code> / <code>fraggate_call</code> and the Worker UI buttons on this page share that same <code>LIVE_OPS.azbrowser</code> backend. <strong>1.6.5</strong> adds <strong>AZMail</strong> (APP 1.0) as a FragGate-live engine — anonymous MCP mesh (default off) + advisory airlock. Not a full internet MTA. Reached only via <code>POST /v1/fraggate/call</code> with <code>{ slug: "azmail", op }</code> (host <code>/runtime</code> proxies that same door). <strong>1.6.4</strong> adds <strong>PeaceLock</strong> (PL-WP-0.1) as a true in-process engine — chosen silence / chosen inaction receipts, HARD_DUTY refuse, ABSENT transcript/counterfactual/motive. <strong>1.6.3</strong> adds KV-backed API use trackers (<a href="${origin}/v1/uses">/v1/uses</a>) so every public host point can keep usage logs. <strong>1.6.2</strong> widens the public FragGate door to sensible advisory engines; stub verbs still refuse. <strong>1.6.1</strong> lists every major OpenAPI / MCP / HTTP client (not only ChatGPT, Grok, and Venice). <strong>1.6.0</strong> is the <strong>FragGate door</strong> over the catalog — one door: discover, route, refuse. <strong>1.5.0</strong> was the agent-native flat product-tool pile. Human software — this Worker UI, Flutter <code>mobile/</code>, local install, counted <code>/download</code> — stays complete. Catalog + pull + proxy + session + <strong>in-process engines</strong> for every catalog Software slug. ${PRODUCTS.length} products including the <a href="${LIBRARY_ORIGIN}/">Aziel Digital Library</a>. Kernel: <a href="https://github.com/AzielEliab/fraggate">fraggate</a>. Forks welcome. Apache-2.0. Author: <strong>Aziel Eliab</strong> (also known as Aziel Elroi Eliab).</p>
   <div class="honesty">
     <strong>What this Worker is</strong>
     <ul>
@@ -1166,6 +1263,7 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
       <li><strong>1.6.3</strong> KV-backed API use trackers: <code>GET /v1/uses</code> (alias <code>/v1/stats</code>). Counts host / method / path / op / day. Ring log (~100) has no Authorization, tokens, bodies, or PII. Distinct from product download-trackers and the FragGate ledger. Proxies may set <code>X-Aziel-Runtime-Via</code> or <code>X-Aziel-Runtime-Host</code> (<code>origin</code>, <code>azieleliab.com</code>, <code>godlock.uk</code>, <code>azielcorpuslibrary.net</code>).</li>
       <li><strong>1.6.4</strong> adds PeaceLock (PL-WP-0.1) as a true in-process engine with <code>engine_digest</code>. Public FragGate ops: open, seal, break, show, verify, stamp, upload_envelope. Transcript / motive / counterfactual / waive-duty stay stub. HARD_DUTY refuses a silence/inaction receipt.</li>
       <li><strong>1.6.5</strong> adds AZMail (APP 1.0) as a FragGate-live engine with <code>engine_digest</code>. Public FragGate ops: airlock_classify, scrub, trust_score, mesh_post, mesh_poll, mesh_listen, mesh_enable, mesh_disable, keyword_alert_*. SMTP / deanonymize / harvest stay stub. Mesh default off. <code>mesh_disable</code> is always allowed. Reached only via FragGate — not a side door. Host <code>/runtime</code> proxies the same door.</li>
+      <li><strong>1.6.6</strong> adds AZBrowser / AZNet (AZB-1.0) as a FragGate-live engine with <code>engine_digest</code>. Public FragGate ops: ethical_search, lamb_lens_search, navigate, airlock_ingest, tab_open, tab_list, receipt_list, verify, receipt_verify. Lamb Lens cites; refuses harmful harvest; never invents visit results. <code>navigate</code> is advisory metadata only — no raw HTML. tor_exit / phoenix_wipe / chromium / unrestricted proxy stay stub. MCP <code>tools/list</code> stays the thin FragGate door; <code>fraggate_list</code> / <code>fraggate_call</code> and the Worker UI buttons call the same LIVE_OPS.</li>
       <li>AZAI in-process is Lamb check only — not the local blend. AZBot is a skill router, not a model. Aziel Digital Library in-process searches a bundled sample MASTER; live D1 stays per-op proxy.</li>
       <li><code>POST /p/{slug}/{op}</code> is a <em>proxy</em>. Proxy without a session receipt is not exec.</li>
       <li>Cloudflare's Worker / Durable Object isolate <em>is</em> the jail. No extra guest isolate is claimed. <code>engine_digest</code> is still required.</li>
@@ -1192,6 +1290,7 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
       <li>AzielTether is <em>not</em> a VPN. Prefer-central mesh for downloaded Aziel Eliab software; public HTTPS stays mesh-free.</li>
       <li>PeaceLock is chosen silence / chosen inaction as a receipt (PL-WP-0.1). It is <em>not</em> a transcript, not a counterfactual, not a motive score, and not a HARD_DUTY waiver. Hosted never invents speech or stores files.</li>
       <li>AZMail is an anonymous MCP mesh + advisory airlock (APP 1.0). It is <em>not</em> a full internet MTA, not SMTP, not identity. Mesh default off. Reached only via FragGate. VPN/hop mesh is still not claimed on this public surface.</li>
+      <li>AZBrowser / AZNet is a Phase 1 research browser + Lamb Lens ethical search. It is <em>not</em> Chromium, not a Tor exit, not an unrestricted proxy, and not surveillance. Lamb Lens cites; refuses harmful harvest; never invents visit results. Reached only via FragGate.</li>
       <li>M.I.A.Lock Doe hits are compatibility leads only — never an ID. Coverage heat is not presence. No live tracking.</li>
     </ul>
   </div>
@@ -1241,6 +1340,7 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
   </ol>
 ${homepageAddUrlHtml(origin)}
   ${cards}
+${fragGateDoorScript()}
 </body>
 </html>`;
 }
@@ -1282,6 +1382,7 @@ ${headMeta(origin, title, description, `/p/${p.slug}`)}
   </div>
   <p><a href="${origin}/">← Aziel Eliab Runtime</a></p>
   ${productCardHtml(p, origin, stats)}
+${fragGateDoorScript()}
 </body>
 </html>`;
 }
@@ -1440,6 +1541,7 @@ async function combinedOpenApi(request, env) {
       version: RUNTIME_VERSION,
       summary: "FragGate door over the Aziel Eliab catalog: discover, route, refuse.",
       description:
+        "1.6.6 adds AZBrowser / AZNet (AZB-1.0) as a FragGate-live engine: Lamb Lens ethical search + advisory navigate. Cite; refuse harmful harvest; never invent visit results. Not Chromium. LIVE_OPS.azbrowser: ethical_search, lamb_lens_search, navigate, airlock_ingest, tab_open, tab_list, receipt_list, verify, receipt_verify, health, skill. Call only via POST /v1/fraggate/call (or MCP fraggate_call) with { slug: \"azbrowser\", op }. Worker UI buttons on this host call that same door — one backend, two surfaces. tor_exit / phoenix_wipe / chromium / unrestricted proxy stay stub. " +
         "1.6.5 adds AZMail (APP 1.0) as a FragGate-live engine: anonymous MCP mesh (default off) + advisory airlock. Not a full internet MTA. SMTP / deanonymize / harvest stay stub. AZMail is reached only via POST /v1/fraggate/call (or MCP fraggate_call) with { slug: \"azmail\", op }. Host /runtime proxies that same FragGate door. DecisionGATE / FragGate ledger still apply before exec. " +
         "1.6.4 adds PeaceLock (PL-WP-0.1) as a true in-process engine: chosen silence / chosen inaction receipts, HARD_DUTY refuse, ABSENT transcript/counterfactual/motive. " +
         "1.6.3 adds GET /v1/uses (KV-backed API use counters + ring log; no PII). " +
@@ -1452,7 +1554,7 @@ async function combinedOpenApi(request, env) {
         "1.3.0 listed portable slugs. 1.2.0 was session/receipt (exec still proxied). 1.1.0 was catalog+proxy that called itself a runtime. " +
         "Agent default exec is POST /v1/fraggate/call or MCP fraggate_call (CallEnvelope → DecisionGATE → ResultEnvelope). " +
         "Binding-only ops stay per-op proxy_fallback. POST /p/{product}/{op} is a proxy, not exec, and is not the agent default path. " +
-        "Cloudflare isolate is the jail. Hosted AZAI is a protocol mirror + Lamb check, not the local blend. VPN/hop mesh is not claimed on this public surface. AZMail anonymous ring is FragGate LIVE_OPS only (default off; not SMTP, not identity). " +
+        "Cloudflare isolate is the jail. Hosted AZAI is a protocol mirror + Lamb check, not the local blend. VPN/hop mesh is not claimed on this public surface. AZMail anonymous ring is FragGate LIVE_OPS only (default off; not SMTP, not identity). AZBrowser Lamb Lens is FragGate LIVE_OPS only (not Chromium; no invented visits). " +
         "Start at GET /v1/skill. Agents use fraggate_list / fraggate_call. " +
         "GET /v1/bundle lists every product skill URL + invoke prefix. " +
         "GET /v1/pull/{slug} and GET /v1/pull/{slug}/skill pull a product without visiting its Worker. " +
@@ -1469,6 +1571,7 @@ async function combinedOpenApi(request, env) {
         "FoldLock is not zip. Hosted preview is tether-suppression on small UTF-8 text. " +
         "WhistleLock is not a mailer. Hosted never holds whistle files. " +
         "AZMail is not a full internet MTA and is reached only via FragGate on aziel-runtime (host /runtime proxies that door). " +
+        "AZBrowser is not Chromium and is reached only via FragGate on aziel-runtime (MCP fraggate_call and Worker UI buttons share LIVE_OPS.azbrowser). " +
         "TrajectoryLock is a research prototype / auditable geometric test. Not a certified forensic instrument. Hosted never stores media. " +
         "Aziel Corpus Library is not a private-file search engine, not Zenodo, and not a new Lock engine. " +
         "Forks welcome. Apache-2.0. Author: Aziel Eliab.",

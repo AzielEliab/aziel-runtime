@@ -22,6 +22,11 @@ export const CATALOG_ALIASES = {
   "az-mail": "azmail",
   "app-1.0": "azmail",
   "app-1": "azmail",
+  "az-browser": "azbrowser",
+  aznet: "azbrowser",
+  "az-net": "azbrowser",
+  "lamb-lens": "azbrowser",
+  lamb_lens: "azbrowser",
 };
 
 /** Package versions from live product Workers / counted /download filenames. */
@@ -54,6 +59,7 @@ export const VERSIONS = {
   azieltether: "0.1.0",
   peacelock: "0.1.0",
   azmail: "0.1.0",
+  azbrowser: "0.1.0",
   "aziel-corpus": "2.6.2",
 };
 
@@ -122,6 +128,7 @@ export const FIRST_TIME_DEPOSIT_SLUGS = [
   "azieltether",
   "peacelock",
   "azmail",
+  "azbrowser",
   "aziel-corpus",
 ];
 
