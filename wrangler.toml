@@ -160,7 +160,7 @@ name = "SESSION"
 class_name = "RuntimeSession"
 
 # API use counters + ring log (1.6.3). Distinct from product download-trackers.
-# 1.6.13 suite node mesh also stores here under mesh| keys when MESH is unbound
+# 1.6.13 QNM suite rollup also stores here under mesh| keys when MESH is unbound
 # (never invent placeholder 0000… KV ids).
 # Production namespace on account ac575a9b822bea2bed97d0ab73aed238.
 [[kv_namespaces]]

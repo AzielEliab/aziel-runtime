@@ -326,7 +326,7 @@ export async function fraggateCall(args, registry, bySlug, env) {
         engine_digest: null,
         ran_in: "aziel-runtime",
         true_engine_runtime: false,
-        mode: "suite-mesh",
+        mode: "qnm-rollup",
         status: result && result.ok === false ? 400 : 200,
       },
     });
