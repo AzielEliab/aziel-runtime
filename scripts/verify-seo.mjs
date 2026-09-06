@@ -249,6 +249,15 @@ assert.ok(god.llms.endsWith("/llms.txt"));
 const lib = catalog.products.find((p) => p.slug === "aziel-corpus");
 assert.equal(lib.worker_home, "https://www.azielcorpuslibrary.net/");
 assert.equal(lib.cite, "https://www.azielcorpuslibrary.net/cite.json");
+const azb = catalog.products.find((p) => p.slug === "azbrowser");
+assert.equal(azb.slug, "azbrowser");
+assert.equal(azb.worker, "azbrowser-download-tracker");
+assert.equal(azb.github, "https://github.com/AzielEliab/azbrowser");
+assert.equal(azb.fraggate_live, true);
+assert.ok(!catalog.products.some((p) => p.slug === "fraggate"));
+assert.equal(catalog.fraggate.slug, "fraggate");
+assert.equal(catalog.fraggate.github, "https://github.com/AzielEliab/fraggate");
+assert.ok(catalog.extras.some((e) => e.slug === "fraggate" && e.kind === "kernel"));
 
 const homeRes = await get("/");
 assert.equal(homeRes.status, 200);

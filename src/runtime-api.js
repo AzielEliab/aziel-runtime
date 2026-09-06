@@ -15,7 +15,7 @@
  * 1.6.5 adds AZMail (APP 1.0) as a FragGate-live engine (mesh default off).
  * Public identity: Aziel Eliab only. Forks welcome. Do not invent DOIs.
  */
-import { CATALOG_ALIASES } from "./catalog-meta.js";
+import { CATALOG_ALIASES, catalogExtraCards, FRAGGATE_GITHUB, fraggateHubCard } from "./catalog-meta.js";
 import { honestyFields, trueEngineSlugs } from "./engines/registry.js";
 import { FRAGGATE_KERNEL, FRAGGATE_KERNEL_VERSION } from "./fraggate/codes.js";
 import { LIVE_OPS, buildRegistry } from "./fraggate/registry.js";
@@ -356,8 +356,12 @@ export function runtimeManifest(origin, products, extra = {}) {
     runtime_version: RUNTIME_VERSION,
     manifest: "aziel-runtime.manifest.v1.6",
     door: "fraggate",
+    kernel: FRAGGATE_GITHUB,
+    extras: catalogExtraCards(base),
+    extras_note:
+      "Kernel / door cards for Software hubs. extras[] is not PRODUCTS — FragGate is not a true-engine slug and has no download-tracker.",
     registry_digest: extra.registry_digest || fraggate.registry_digest || null,
-    fraggate,
+    fraggate: { ...fraggateHubCard(base), ...fraggate },
     author: "Aziel Eliab",
     identity: "Aziel Eliab",
     aka: "Aziel Elroi Eliab",

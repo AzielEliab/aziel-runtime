@@ -335,6 +335,14 @@ Catalog aliases (also accepted on `/v1/pull/{slug}`): `az-clce` → azclce,
 `peace-lock` → peacelock, `az-mail` / `app-1.0` → azmail,
 `az-browser` / `aznet` / `lamb-lens` → azbrowser.
 
+Software hubs (corpus / godlock.uk / azieleliab) list catalog `products[]` after
+merge: slug `azbrowser`, worker `azbrowser-download-tracker`, github
+`https://github.com/AzielEliab/azbrowser`. FragGate itself is **not** a
+31st true-engine product. Hubs already show its GitHub; this runtime also
+publishes a catalog-friendly kernel card at `catalog.json` `extras[]` /
+`fraggate` (`slug: "fraggate"`, `kind: "kernel"`,
+`github: "https://github.com/AzielEliab/fraggate"`, `worker: null`).
+
 If a sibling `/v1` API is not live yet, the proxy returns that Worker's response
 (often 404 JSON) and the combined OpenAPI still lists the expected path.
 `GET /v1/pull/{slug}/skill` falls back to a catalog-built skill so an AI can

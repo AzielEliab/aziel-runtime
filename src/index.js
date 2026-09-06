@@ -57,6 +57,9 @@ import {
   citationFields,
   productHowToCite,
   citeZenodoBlock,
+  catalogExtraCards,
+  fraggateHubCard,
+  FRAGGATE_GITHUB,
 } from "./catalog-meta.js";
 import {
   RUNTIME_VERSION,
@@ -96,7 +99,7 @@ import {
   wrapFraggateEnvelope,
 } from "./mcp-surface.js";
 import { admitCall, describeRegistry, fraggateCall, listRegistry, verifyRegistry } from "./fraggate/door.js";
-import { registryDigest, registrySummary } from "./fraggate/registry.js";
+import { LIVE_OPS, registryDigest, registrySummary } from "./fraggate/registry.js";
 import {
   AUTHOR_ALTERNATE_NAME,
   AUTHOR_GITHUB,
@@ -722,13 +725,20 @@ function productUrls(product, origin) {
 function catalogRecord(product, origin) {
   const urls = productUrls(product, origin);
   const cite = citationFields(product, urls);
+  const base = (origin || CATALOG_HOST).replace(/\/$/, "");
+  const fraggateLive = Array.isArray(LIVE_OPS[product.slug]);
   return {
     slug: product.slug,
     name: product.name,
+    kind: "software",
     ...(product.version ? { version: product.version } : {}),
     one_line: product.oneLine,
     github: urls.github,
     worker: urls.worker,
+    door: "fraggate",
+    fraggate_live: fraggateLive,
+    fraggate_ops: fraggateLive ? LIVE_OPS[product.slug].slice() : [],
+    fraggate_call: `${base}/v1/fraggate/call`,
     download: urls.download,
     count: urls.count,
     install: urls.install,
@@ -843,7 +853,8 @@ function llmsTxt(origin) {
     `OpenAPI: ${base}/openapi.json`,
     `Door: fraggate`,
     `FragGate: ${base}/v1/fraggate`,
-    `Kernel: https://github.com/AzielEliab/fraggate`,
+    `Kernel: ${FRAGGATE_GITHUB}`,
+    `Catalog extras (hub kernel card, not a Software engine): slug=fraggate github=${FRAGGATE_GITHUB} — read catalog.json extras[] / fraggate. Do not invent a fraggate-download-tracker.`,
     `MCP: POST ${base}/mcp`,
     `Uses: ${base}/v1/uses`,
     `Machine catalog: ${base}/v1/catalog.json`,
@@ -962,6 +973,10 @@ function citeJson(origin) {
 }`,
     apa: `Eliab, A. (2026). Aziel Eliab Runtime [Computer software]. ${base}/`,
     zenodo: citeZenodoBlock(),
+    door: "fraggate",
+    kernel: FRAGGATE_GITHUB,
+    fraggate: fraggateHubCard(origin),
+    extras: catalogExtraCards(origin),
     products: PRODUCTS.map((p) => {
       const u = productUrls(p, origin);
       const cite = citationFields(p, u);
@@ -1339,6 +1354,11 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
     <li><code>GET</code> or <code>POST ${origin}/p/{slug}/{op}</code> — <em>proxy only</em></li>
   </ol>
 ${homepageAddUrlHtml(origin)}
+  <section class="cite" id="fraggate">
+    <h2>FragGate (kernel / door — not a Software engine)</h2>
+    <p>Hubs already show <a href="${FRAGGATE_GITHUB}">${FRAGGATE_GITHUB}</a>. This runtime also publishes a catalog-friendly card at <code>GET /v1/catalog.json</code> <code>extras[]</code> / <code>fraggate</code> so corpus / godlock.uk / azieleliab Software indexes can list it without inventing a <code>fraggate-download-tracker</code> Worker. Slug <code>fraggate</code> is <em>not</em> a PRODUCTS true-engine entry.</p>
+    <p><a href="${origin}/v1/fraggate">/v1/fraggate</a> · <a href="${origin}/v1/fraggate/list">/v1/fraggate/list</a> · <a href="${origin}/v1/catalog.json">catalog extras</a> · <a href="${FRAGGATE_GITHUB}">GitHub</a></p>
+  </section>
   ${cards}
 ${fragGateDoorScript()}
 </body>
@@ -1445,7 +1465,8 @@ function staticPaths(origin) {
     "/v1/catalog.json": {
       get: {
         operationId: "catalog_list",
-        summary: "Machine-readable full product list (slug, version, github, worker, download, pull, invoke_prefix, related_identifiers, software_tarball, doi, zenodo_status, banner, ops).",
+        summary:
+          "Machine-readable catalog. products[] are Software engines (slug, worker, github — hubs fetch these). extras[] / fraggate is the FragGate kernel card (github.com/AzielEliab/fraggate; not a download-tracker). Each product includes door, fraggate_live, fraggate_ops, fraggate_call.",
         tags: ["runtime"],
         responses: { "200": { description: "Product catalog JSON" } },
       },
@@ -2101,6 +2122,12 @@ async function handleRequest(request, env) {
           authoritySnapshot: authoritySnapshot(PRODUCTS.map((p) => p.slug)),
           version_history: VERSION_HISTORY,
           license: "Apache-2.0",
+          door: "fraggate",
+          kernel: FRAGGATE_GITHUB,
+          fraggate: fraggateHubCard(origin),
+          extras: catalogExtraCards(origin),
+          extras_note:
+            "Kernel / door cards for Software hubs. extras[] is not PRODUCTS — FragGate is not a true-engine slug and has no download-tracker.",
           count: PRODUCTS.length,
           products: PRODUCTS.map((p) => catalogRecord(p, origin)),
         },

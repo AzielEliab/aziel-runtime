@@ -390,6 +390,8 @@ const llms = await (await handler(new Request(origin + "/llms.txt"), env)).text(
 assert.match(llms, /AZBrowser/);
 assert.match(llms, /Lamb Lens/);
 assert.match(llms, /FragGate/);
+assert.match(llms, /slug=fraggate/);
+assert.match(llms, /catalog.json extras/);
 
 const openapi = await (await handler(new Request(origin + "/openapi.json"), env)).json();
 assert.match(openapi.info.description, /AZBrowser/);
@@ -404,11 +406,38 @@ for (const op of expectedLive) {
   assert.ok(hit, `OpenAPI documents azbrowser/${op}`);
 }
 
+const catalog = await (await handler(new Request(origin + "/v1/catalog.json"), env)).json();
+const azbCard = catalog.products.find((p) => p.slug === "azbrowser");
+assert.ok(azbCard, "hub catalog fetch includes azbrowser");
+assert.equal(azbCard.slug, "azbrowser");
+assert.equal(azbCard.worker, "azbrowser-download-tracker");
+assert.equal(azbCard.github, "https://github.com/AzielEliab/azbrowser");
+assert.equal(azbCard.kind, "software");
+assert.equal(azbCard.door, "fraggate");
+assert.equal(azbCard.fraggate_live, true);
+assert.ok(azbCard.fraggate_call.endsWith("/v1/fraggate/call"));
+for (const op of expectedLive) {
+  assert.ok(azbCard.fraggate_ops.includes(op), `catalog azbrowser.fraggate_ops has ${op}`);
+}
+assert.ok(!catalog.products.some((p) => p.slug === "fraggate"), "fraggate is extras, not PRODUCTS");
+assert.equal(catalog.door, "fraggate");
+assert.equal(catalog.kernel, "https://github.com/AzielEliab/fraggate");
+assert.equal(catalog.fraggate.slug, "fraggate");
+assert.equal(catalog.fraggate.kind, "kernel");
+assert.equal(catalog.fraggate.github, "https://github.com/AzielEliab/fraggate");
+assert.equal(catalog.fraggate.worker, null);
+assert.equal(catalog.fraggate.engine, false);
+const extraFg = catalog.extras.find((e) => e.slug === "fraggate");
+assert.ok(extraFg, "catalog.extras includes FragGate hub card");
+assert.equal(extraFg.github, "https://github.com/AzielEliab/fraggate");
+
 const home = await (await handler(new Request(origin + "/"), env)).text();
 assert.match(home, /data-slug="azbrowser"/);
 assert.match(home, /data-op="ethical_search"/);
 assert.match(home, /data-op="navigate"/);
 assert.match(home, /\/v1\/fraggate\/call/);
+assert.match(home, /catalog extras/);
+assert.match(home, /github.com\/AzielEliab\/fraggate/);
 
 const uses = await (await handler(new Request(origin + "/v1/uses"), env)).json();
 assert.equal(uses.ok, true);
