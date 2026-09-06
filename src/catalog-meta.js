@@ -34,22 +34,25 @@ export const CATALOG_ALIASES = {
 /**
  * FragGate is the door / kernel, not a catalog Software engine.
  * Software hubs (corpus / godlock.uk / azieleliab) already show its GitHub.
- * catalog.extras[] + catalog.fraggate give them a card without inventing
- * a fraggate-download-tracker Worker or a 31st true-engine slug.
+ * catalog.extras[] + catalog.fraggate card the live FragGate Worker app
+ * (human UI + counted download) without adding a PRODUCTS true-engine slug.
+ * That Worker is not nested in AZBrowser.
  */
 export const FRAGGATE_GITHUB = "https://github.com/AzielEliab/fraggate";
 export const FRAGGATE_SPEC = "FG-0.1";
+export const FRAGGATE_WORKER = "fraggate-download-tracker";
+export const FRAGGATE_WORKER_ORIGIN = `https://${FRAGGATE_WORKER}.vibelock.workers.dev`;
 export const FRAGGATE_HUB = {
   slug: "fraggate",
   name: "FragGate",
   kind: "kernel",
   spec: FRAGGATE_SPEC,
   github: FRAGGATE_GITHUB,
-  worker: null,
+  worker: FRAGGATE_WORKER,
   engine: false,
   true_engine_runtime: false,
   one_line:
-    "Hashed registry door over the catalog: discover, route, refuse. DecisionGATE before exec. Not a Software engine and not a download-tracker.",
+    "FragGate is the kernel door; human UI + counted download is the separate FragGate Worker app (not nested in AZBrowser).",
 };
 
 export function fraggateHubCard(origin) {
@@ -58,6 +61,8 @@ export function fraggateHubCard(origin) {
     ...FRAGGATE_HUB,
     version: FRAGGATE_SPEC,
     door: "fraggate",
+    worker_home: `${FRAGGATE_WORKER_ORIGIN}/`,
+    download: `${FRAGGATE_WORKER_ORIGIN}/download`,
     catalog_card: `${base}/v1/fraggate`,
     list: `${base}/v1/fraggate/list`,
     describe: `${base}/v1/fraggate/describe`,
@@ -66,7 +71,7 @@ export function fraggateHubCard(origin) {
     mcp: `${base}/mcp`,
     skill: `${base}/v1/skill`,
     note:
-      "Kernel / door. Software hubs may card this from catalog.extras[] or catalog.fraggate. Do not invent a fraggate-download-tracker Worker. Author Aziel Eliab.",
+      "FragGate is the kernel door; human UI + counted download is the separate FragGate Worker app (not nested in AZBrowser). Software hubs may card this from catalog.extras[] or catalog.fraggate. Author Aziel Eliab.",
     author: "Aziel Eliab",
   };
 }

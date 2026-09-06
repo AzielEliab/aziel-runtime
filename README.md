@@ -169,6 +169,7 @@ Always send `User-Agent: Mozilla/5.0`.
 | Homepage (HTML) | https://aziel-runtime.vibelock.workers.dev/ |
 | Skill | https://aziel-runtime.vibelock.workers.dev/v1/skill |
 | FragGate door | https://aziel-runtime.vibelock.workers.dev/v1/fraggate |
+| FragGate Worker UI + counted download | https://fraggate-download-tracker.vibelock.workers.dev/ |
 | FragGate kernel | https://github.com/AzielEliab/fraggate |
 | Machine manifest (`role=engine-runtime`) | https://aziel-runtime.vibelock.workers.dev/v1/runtime.json |
 | Session open | `POST` https://aziel-runtime.vibelock.workers.dev/v1/session/open |
@@ -348,7 +349,11 @@ is functional order only. FragGate itself is **not** a 32nd true-engine
 product. Hubs already show its GitHub; this runtime also publishes a
 catalog-friendly kernel card at `catalog.json` `extras[]` / `fraggate`
 (`slug: "fraggate"`, `kind: "kernel"`,
-`github: "https://github.com/AzielEliab/fraggate"`, `worker: null`).
+`github: "https://github.com/AzielEliab/fraggate"`,
+`worker: "fraggate-download-tracker"`, `engine: false`).
+FragGate is the kernel door; human UI + counted download is the separate
+FragGate Worker app (not nested in AZBrowser):
+https://fraggate-download-tracker.vibelock.workers.dev/
 
 If a sibling `/v1` API is not live yet, the proxy returns that Worker's response
 (often 404 JSON) and the combined OpenAPI still lists the expected path.
