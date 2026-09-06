@@ -36,6 +36,7 @@ const slugs = Object.keys(VERSIONS);
 assert.ok(slugs.includes("azieltether"));
 assert.ok(slugs.includes("peacelock"));
 assert.ok(slugs.includes("azmail"));
+assert.ok(slugs.includes("azbrowser"));
 assert.ok(slugs.includes("aziel-corpus"));
 
 for (const slug of slugs) {
@@ -118,6 +119,12 @@ assert.equal(citeBody.identity, "Aziel Eliab");
 assert.match(citeBody.library_how_to_cite, /Aziel Digital Library/);
 assert.equal(citeBody.products.length, slugs.length);
 assert.equal(catalogBody.count, slugs.length);
+assert.ok(!catalogBody.products.some((p) => p.slug === "fraggate"));
+assert.equal(catalogBody.door, "fraggate");
+assert.equal(catalogBody.fraggate.slug, "fraggate");
+assert.equal(catalogBody.fraggate.github, "https://github.com/AzielEliab/fraggate");
+assert.ok(catalogBody.extras.some((e) => e.slug === "fraggate"));
+assert.ok(citeBody.extras.some((e) => e.slug === "fraggate"));
 const wl = citeBody.products.find((p) => p.slug === "whistlelock");
 assert.equal(wl.doi, SHARED_METHOD_PAPER_DOI);
 assert.equal(wl.doi_kind, "shared_method_paper");

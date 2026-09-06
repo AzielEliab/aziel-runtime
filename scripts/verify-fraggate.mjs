@@ -98,6 +98,25 @@ assert.ok(registry.bySlug.azmail.stub_ops.includes("deanonymize"));
 assert.ok(registry.bySlug.azmail.stub_ops.includes("harvest"));
 assert.equal(classifyCall(registry.bySlug.azmail, "smtp").kind, "stub");
 assert.equal(classifyCall(registry.bySlug.azmail, "mesh_post").kind, "live");
+assert.equal(registry.bySlug.azbrowser.status, "live");
+assert.ok(registry.bySlug.azbrowser.status !== "local_only");
+assert.ok(registry.bySlug.azbrowser.ops.includes("ethical_search"));
+assert.ok(registry.bySlug.azbrowser.ops.includes("lamb_lens_search"));
+assert.ok(registry.bySlug.azbrowser.ops.includes("navigate"));
+assert.ok(registry.bySlug.azbrowser.ops.includes("airlock_ingest"));
+assert.ok(registry.bySlug.azbrowser.ops.includes("tab_open"));
+assert.ok(registry.bySlug.azbrowser.ops.includes("tab_list"));
+assert.ok(registry.bySlug.azbrowser.ops.includes("receipt_list"));
+assert.ok(registry.bySlug.azbrowser.ops.includes("verify"));
+assert.ok(registry.bySlug.azbrowser.ops.includes("receipt_verify"));
+assert.ok(!registry.bySlug.azbrowser.ops.includes("tor_exit"));
+assert.ok(registry.bySlug.azbrowser.stub_ops.includes("tor_exit"));
+assert.ok(registry.bySlug.azbrowser.stub_ops.includes("phoenix_wipe"));
+assert.ok(registry.bySlug.azbrowser.stub_ops.includes("chromium"));
+assert.ok(registry.bySlug.azbrowser.stub_ops.includes("unrestricted_proxy"));
+assert.ok(registry.bySlug.azbrowser.stub_ops.includes("harvest"));
+assert.equal(classifyCall(registry.bySlug.azbrowser, "tor_exit").kind, "stub");
+assert.equal(classifyCall(registry.bySlug.azbrowser, "ethical_search").kind, "live");
 assert.ok(registry.bySlug.employeelock.ops.includes("append-preview"));
 assert.ok(registry.bySlug.mialock.ops.includes("doe-match"));
 assert.ok(registry.bySlug.ark.stub_ops.includes("scorch"));
@@ -286,6 +305,27 @@ assert.equal(liveAzmail.code, "FG-OK");
 assert.equal(liveAzmail.slug, "azmail");
 assert.ok(liveAzmail.ledger_tip);
 assert.ok(liveAzmail.engine && liveAzmail.engine.engine_digest);
+
+const azbrowserTor = await (await post("/v1/fraggate/call", { slug: "azbrowser", op: "tor_exit" })).json();
+assert.equal(azbrowserTor.ok, false);
+assert.equal(azbrowserTor.code, "FG-STUB");
+
+const azbrowserChromium = await (await post("/v1/fraggate/call", { slug: "azbrowser", op: "chromium" })).json();
+assert.equal(azbrowserChromium.code, "FG-STUB");
+
+const liveAzbrowser = await (
+  await post("/v1/fraggate/call", {
+    slug: "azbrowser",
+    op: "ethical_search",
+    payload: { q: "ethical web principles" },
+  })
+).json();
+assert.equal(liveAzbrowser.ok, true, JSON.stringify(liveAzbrowser));
+assert.equal(liveAzbrowser.code, "FG-OK");
+assert.equal(liveAzbrowser.slug, "azbrowser");
+assert.ok(liveAzbrowser.ledger_tip);
+assert.ok(liveAzbrowser.engine && liveAzbrowser.engine.engine_digest);
+assert.ok(liveAzbrowser.result && liveAzbrowser.result.receipt);
 
 const verify = await (await post("/v1/fraggate/verify", { name: "decisiongate" })).json();
 assert.equal(verify.ok, true);
