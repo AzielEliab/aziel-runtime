@@ -54,6 +54,7 @@ Usage:
 Default: Worker session at ${DEFAULT_URL}
 --local: filesystem session under ${HOME}; prefers vendored engines (in-process)
 --jail: run the local engine in a child Node process (ran_in=local-jail)
+1.6.10 sets AZBrowser / AZNet catalog one_line to separate software (not engine).
 1.6.9 frames AZHub and AZInterface as sibling softwares under the same FragGate door.
 1.6.8 adds AZHub and AZInterface as two separate softwares under the same FragGate door (AIH-WP-1.0).
 1.6.7 adds AZNet (AZN-WP-0.1) as a FragGate-live engine (silent verification side-net; never hosts payloads; AZBrowser pair is functional order only).

@@ -11,6 +11,7 @@
  * 1.6.2 widens the public FragGate LIVE_OPS door to sensible advisory engines.
  * 1.6.3 adds KV-backed API use trackers (GET /v1/uses). Distinct from download KV.
  * 1.6.4 adds PeaceLock (PL-WP-0.1) as a true in-process engine.
+ * 1.6.10 sets AZBrowser / AZNet catalog one_line to separate software (not engine).
  * 1.6.9 frames AZHub and AZInterface as sibling softwares under the same FragGate door.
  * 1.6.8 adds AZHub and AZInterface as two separate softwares under the same FragGate door (AIH-WP-1.0).
  * 1.6.7 adds AZNet (AZN-WP-0.1) as a FragGate-live engine (silent verification side-net).
@@ -30,12 +31,13 @@ import {
 } from "./production.js";
 import { citeCompatibleFields, skillCompatibleSection } from "./ai-clients.js";
 
-export const RUNTIME_VERSION = "1.6.9";
+export const RUNTIME_VERSION = "1.6.10";
 export const RUNTIME_ROLE = "engine-runtime";
 export const RUNTIME_LAYER = "catalog+pull+proxy+session+in-process-engines+fraggate";
 
 export const VERSION_HISTORY = [
-  { version: "1.6.9", status: "current", note: "Frame AZHub, AZInterface, AZBrowser, and AZNet as separate softwares under the same FragGate door. Catalog one_line / description / skill / README corrected. Four catalog slugs stay. 33 catalog slugs. 1.6.8 remains the Hub/Interface product add." },
+  { version: "1.6.10", status: "current", note: "AZBrowser one_line: AZNet is a separate software (not engine). AZNet one_line: Separate software; functional-order pair. Same FragGate door. Two catalog slugs stay. 33 catalog slugs. 1.6.9 remains the broader separate-software framing." },
+  { version: "1.6.9", status: "superseded", note: "Frame AZHub, AZInterface, AZBrowser, and AZNet as separate softwares under the same FragGate door. Catalog one_line / description / skill / README corrected. Four catalog slugs stay. 33 catalog slugs. 1.6.8 remains the Hub/Interface product add." },
   { version: "1.6.8", status: "superseded", note: "Add AZHub and AZInterface as two separate softwares under the same FragGate door (AIH-WP-1.0). AZHub is a Blank Key / neutral spatial container (LIVE_OPS region_list/place_module/remove_module/tether_*/blank_key_status). AZInterface is a custodial operating environment (LIVE_OPS genesis_status/site_state_*/integrity_check/witness_list/page_cycle_status). Page cycles are pre-locked: OFF/integrity/ON/FULL SHUTDOWN/MEMORIAL. Hub refuses auto-unlock and completeness events. Never one combined product. Not nested in AZBrowser or AZNet. scorch_remote/auto_unlock/ranking/completeness_detect stay STUB_OPS. Reached only via POST /v1/fraggate/call { slug: \"azhub\", op } or { slug: \"azinterface\", op }. DecisionGATE / FragGate ledger still apply. 33 catalog slugs. 1.6.7 remains AZNet." },
   { version: "1.6.7", status: "superseded", note: "Add AZNet (AZN-WP-0.1) as a separate FragGate-live product (own Worker aznet-download-tracker, own UI): silent verification side-net (hash stamps, custodian garden of hash refs, memorial ledger, integrity refuse/isolate). Never hosts payloads. Pairing with AZBrowser is functional order only — pair_token AND pair_flag required for garden/stamp/memorial ops. Do not merge UIs. LIVE_OPS health/pair_status/garden_list/stamp/verify_hash/memorial_list/memorial_append/receipt_verify/skill. payload_host/serve_content_for_peer/analytics/ranking/repair_integrity_bypass/interface/lumen/hub stay STUB_OPS. StaticClock stamps + TemporalLock-style receipt fields. 31 catalog slugs. 1.6.6 remains AZBrowser." },
   { version: "1.6.6", status: "superseded", note: "Add AZBrowser (AZB-1.0) as a FragGate-live engine: Lamb Lens ethical research browser (ethical search + advisory navigate). Cite; refuse harmful harvest; never invent visit results. Not Chromium. LIVE_OPS ethical_search/lamb_lens_search/navigate/airlock_ingest/tab_open/tab_list/receipt_list/verify/receipt_verify. tor_exit/phoenix_wipe/chromium/unrestricted proxy stay STUB_OPS. MCP fraggate_list/fraggate_call and Worker UI buttons share LIVE_OPS.azbrowser. Reached only via POST /v1/fraggate/call { slug: \"azbrowser\", op }. AZNet is separate software (same FragGate door; 1.6.7) — pairing is order/token only, not a shared Phase-1 UI. DecisionGATE / FragGate ledger still apply. 30 catalog slugs. 1.6.5 remains AZMail." },
@@ -123,7 +125,8 @@ description: >-
   One door — discover, route, refuse. FragGate over the catalog: hashed
   registry, DecisionGATE before exec, ask/refuse ledger. Dual surface —
   agent/MCP has no technical UI chrome; Worker UI, Flutter mobile/, local
-  install, and counted /download stay complete human software. 1.6.9 frames
+  install, and counted /download stay complete human software. 1.6.10 sets
+  AZBrowser / AZNet catalog one_line to separate software (not engine). 1.6.9 frames
   AZHub, AZInterface, AZBrowser, and AZNet as separate softwares under the same FragGate door. 1.6.8 adds
   AZHub and AZInterface as two separate softwares under the same FragGate door (AIH-WP-1.0). 1.6.7 adds
   AZNet (AZN-WP-0.1) as a FragGate-live engine (silent verification side-net).
@@ -165,6 +168,7 @@ HTTP \`POST /p/{slug}/{op}\` is still a **proxy**. Proxy without a session recei
 
 Every catalog slug is a true engine. Cloudflare isolate is the jail. Hosted AZAI is protocol mirror + Lamb check, **not** the blend. Identity is **Aziel Eliab** only.
 
+**1.6.10 = framing: AZBrowser and AZNet catalog one_line say separate software, not separate engine.** Same FragGate door. Two catalog slugs stay.
 **1.6.9 = framing: AZHub, AZInterface, AZBrowser, and AZNet are separate softwares under the same FragGate door.** Catalog slugs stay.
 **1.6.8 = AZHub (AIH-WP-1.0) + AZInterface (AIH-WP-1.0)** as two separate softwares under the same FragGate door. Call only via \`fraggate_call\` / \`POST /v1/fraggate/call\` with \`{ slug: "azhub", op: "..." }\` or \`{ slug: "azinterface", op: "..." }\`. Hub is a Blank Key (does not interpret; refuses auto-unlock / completeness). Interface page cycles are pre-locked: OFF / integrity / ON / FULL SHUTDOWN / MEMORIAL. Never one combined product. DecisionGATE / FragGate ledger still apply before exec.
 **1.6.7 = AZNet (AZN-WP-0.1)** as a separate FragGate-live product (own Worker / own UI; silent verification side-net; hash stamps / garden / memorial; never hosts payloads). Call only via \`fraggate_call\` / \`POST /v1/fraggate/call\` with \`{ slug: "aznet", op: "..." }\`. Garden / stamp / memorial ops require AZBrowser pair_token AND pair_flag (functional order only — do not merge UIs). payload_host / serve_content_for_peer stay stub. DecisionGATE / FragGate ledger still apply before exec.
@@ -325,7 +329,7 @@ curl -s -A 'Mozilla/5.0' -X POST ${base}/p/azclce/score \\
 
 Every catalog Software slug is a true engine (\`true_engine_runtime: true\`). \`engine_slugs\` equals \`true_engine_slugs\`: ${local}. Some ops remain per-op \`proxy_fallback\` when they need product-Worker bindings (AZ-OS session/exec/lattice; Aziel Digital Library live D1 / Whisper / OCR). Cloudflare isolate is the jail; \`engine_digest\` is still required for local exec.
 
-**1.4.1 production gates (unchanged in 1.6.9):** \`GET /v1/ready\` is 200 only if the SESSION Durable Object binding is up; **503** if \`REQUIRE_TOKEN=1\` and the \`RUNTIME_TOKEN\` secret is missing (fail closed). Authority JSON is \`Cache-Control: no-store\`. When \`REQUIRE_TOKEN=1\`, session mutate (open/policy/exec/close) and MCP session tools / \`runtime_run\` / \`fraggate_call\` require \`Authorization: Bearer …\` or \`X-Aziel-Runtime-Token\` (one operator token). Catalog / health / runtime / skill / pull / FragGate list / OpenAPI / MCP \`tools/list\` / \`GET /v1/uses\` stay public. Proxy \`/p/{slug}/{op}\` stays public and is **not** exec. Receipt cap 64. Session TTL 6h. Per-IP rate limits apply.
+**1.4.1 production gates (unchanged in 1.6.10):** \`GET /v1/ready\` is 200 only if the SESSION Durable Object binding is up; **503** if \`REQUIRE_TOKEN=1\` and the \`RUNTIME_TOKEN\` secret is missing (fail closed). Authority JSON is \`Cache-Control: no-store\`. When \`REQUIRE_TOKEN=1\`, session mutate (open/policy/exec/close) and MCP session tools / \`runtime_run\` / \`fraggate_call\` require \`Authorization: Bearer …\` or \`X-Aziel-Runtime-Token\` (one operator token). Catalog / health / runtime / skill / pull / FragGate list / OpenAPI / MCP \`tools/list\` / \`GET /v1/uses\` stay public. Proxy \`/p/{slug}/{op}\` stays public and is **not** exec. Receipt cap 64. Session TTL 6h. Per-IP rate limits apply.
 
 GodLock and MirageGrid are not VPNs. ForgeReceipts is not legal advice. ZionPattern Solver caps confidence at 75% and does not solve cases. VeilLock does not inject into FaceTime. AZ-CLCE detects inconsistency, not intent. ChronoLock is advisory only. The ARK is not a kernel. AZAI hosted /v1 is a protocol mirror + Lamb check, not a paid-key proxy and **not** the local blend. Jeeves is not sovereign. SpectralLock hosted overlay is a 256px preview. EmployeeLock is not a court. FoldLock is not zip. WhistleLock is not a mailer. TrajectoryLock is not a certified forensic instrument. M.I.A.Lock Doe hits are leads, not IDs. Aziel Digital Library is not a 26-card index. AzielTether is not a VPN. PeaceLock is not a transcript, not a counterfactual, not a motive score, and not a HARD_DUTY waiver. AZMail (APP 1.0) is not a full internet MTA — FragGate only; mesh default off; SMTP / deanonymize stub. AZBrowser (AZB-1.0) is not Chromium — FragGate only; Lamb Lens ethical research browser; cites; refuses harmful harvest; never invents visit results; tor_exit / phoenix_wipe stub. AZNet (AZN-WP-0.1) is a separate product — not a payload host; FragGate only; garden / stamp / memorial ops require AZBrowser pair_token AND pair_flag (functional order only). payload_host / serve_content_for_peer stub. AZHub (AIH-WP-1.0) is a Blank Key — not AZInterface, not an interpreter, not auto-unlock. AZInterface (AIH-WP-1.0) is a custodial operating environment — pre-locked page cycles; not AZHub. VPN/hop mesh is not claimed on this public surface.
 
@@ -741,7 +745,7 @@ export function runtimeStaticPaths() {
     "/v1/skill": {
       get: {
         operationId: "runtime_skill",
-        summary: "Skill markdown: 1.6.9 frames AZHub + AZInterface as sibling softwares on the same FragGate door. Honest about 1.1.0 / 1.2.0 / 1.3.0 / 1.4.0 / 1.4.1 / 1.5.0 / 1.6.0 / 1.6.1 / 1.6.2 / 1.6.3 / 1.6.4 / 1.6.5 / 1.6.6 / 1.6.7 / 1.6.8 / 1.6.9.",
+        summary: "Skill markdown: 1.6.10 sets AZBrowser + AZNet one_line to separate software. Honest about 1.1.0 / 1.2.0 / 1.3.0 / 1.4.0 / 1.4.1 / 1.5.0 / 1.6.0 / 1.6.1 / 1.6.2 / 1.6.3 / 1.6.4 / 1.6.5 / 1.6.6 / 1.6.7 / 1.6.8 / 1.6.9 / 1.6.10.",
         tags: ["runtime"],
         responses: { "200": { description: "text/markdown skill" } },
       },
