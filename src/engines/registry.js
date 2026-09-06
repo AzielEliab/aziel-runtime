@@ -73,7 +73,7 @@ export const ENGINE_RUNNERS = {
   azieltether: { ops: AZIELTETHER_OPS, run: runAzieltether, source: "ported AzielTether Worker hash-chain (not a VPN)", module: "src/engines/azieltether.js" },
   peacelock: { ops: PEACELOCK_OPS, run: runPeacelock, source: "PeaceLock PL-WP-0.1 chosen silence / chosen inaction lattice (HARD_DUTY refuse; ABSENT invariants)", module: "src/engines/peacelock.js" },
   azmail: { ops: AZMAIL_OPS, run: runAzmail, source: "AZMail APP 1.0 airlock + anonymous mesh (not an MTA; FragGate only)", module: "src/engines/azmail.js" },
-  azbrowser: { ops: AZBROWSER_OPS, run: runAzbrowser, source: "AZBrowser AZB-1.0 Phase 1 research browser + Lamb Lens (not Chromium; FragGate only)", module: "src/engines/azbrowser.js" },
+  azbrowser: { ops: AZBROWSER_OPS, run: runAzbrowser, source: "AZBrowser AZB-1.0 Lamb Lens ethical research browser (not Chromium; FragGate only; AZNet is a separate engine)", module: "src/engines/azbrowser.js" },
   "aziel-corpus": { ops: AZIEL_CORPUS_OPS, run: runAzielCorpus, source: "portable sample-MASTER search (live D1 ingest/review stay per-op proxy)", module: "src/engines/aziel-corpus.js" },
 };
 

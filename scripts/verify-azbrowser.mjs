@@ -4,6 +4,7 @@
  */
 import assert from "node:assert/strict";
 import { PRODUCTS } from "../src/index.js";
+import { CATALOG_ALIASES } from "../src/catalog-meta.js";
 import { LIVE_OPS, STUB_OPS, buildRegistry, classifyCall, parseTarget } from "../src/fraggate/registry.js";
 import { embeddedDigest } from "../src/engines/digest.js";
 import { executeLocal } from "../src/engines/runner.js";
@@ -36,8 +37,14 @@ assert.equal(product.name, "AZBrowser");
 assert.equal(product.worker, "azbrowser-download-tracker");
 assert.equal(product.github, "https://github.com/AzielEliab/azbrowser");
 assert.equal(product.version, VERSION);
-assert.match(product.oneLine, /Lamb Lens|ethical/i);
+assert.match(product.oneLine, /Lamb Lens ethical research browser/i);
+assert.doesNotMatch(product.oneLine, /AZBrowser \/ AZNet/);
+assert.doesNotMatch(product.banner, /AZBrowser \/ AZNet/);
 assert.match(product.banner, /FragGate/);
+assert.match(product.banner, /AZNet is a separate/);
+assert.equal(CATALOG_ALIASES.aznet, undefined);
+assert.equal(CATALOG_ALIASES["az-net"], undefined);
+assert.equal(CATALOG_ALIASES["az-browser"], "azbrowser");
 assert.equal(product.doi, null);
 assert.equal(SPEC, "AZB-1.0");
 assert.equal(LENS, "Lamb Lens");
@@ -433,6 +440,8 @@ assert.equal(extraFg.github, "https://github.com/AzielEliab/fraggate");
 
 const home = await (await handler(new Request(origin + "/"), env)).text();
 assert.match(home, /data-slug="azbrowser"/);
+assert.doesNotMatch(home, /AZBrowser \/ AZNet/);
+assert.match(home, /Lamb Lens ethical research browser/);
 assert.match(home, /data-op="ethical_search"/);
 assert.match(home, /data-op="navigate"/);
 assert.match(home, /\/v1\/fraggate\/call/);
@@ -445,7 +454,8 @@ assert.equal(uses.uses_kv, true);
 assert.ok(uses.uses >= 1);
 
 const skill = await (await handler(new Request(origin + "/v1/skill"), env)).text();
-assert.match(skill, /AZBrowser \/ AZNet \(AZB-1\.0\)/);
+assert.match(skill, /AZBrowser \(AZB-1\.0\)/);
+assert.doesNotMatch(skill, /AZBrowser \/ AZNet/);
 assert.match(skill, /slug: "azbrowser"/);
 
 console.log(

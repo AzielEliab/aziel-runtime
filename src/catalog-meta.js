@@ -23,8 +23,6 @@ export const CATALOG_ALIASES = {
   "app-1.0": "azmail",
   "app-1": "azmail",
   "az-browser": "azbrowser",
-  aznet: "azbrowser",
-  "az-net": "azbrowser",
   "lamb-lens": "azbrowser",
   lamb_lens: "azbrowser",
 };

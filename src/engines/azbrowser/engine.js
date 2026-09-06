@@ -1,6 +1,6 @@
 /**
- * AZBrowser / AZNet engine (AZB-1.0, Phase 1).
- * Secure research browser + Lamb Lens ethical search.
+ * AZBrowser engine (AZB-1.0).
+ * Lamb Lens ethical research browser.
  * Cite. Refuse harmful harvest. Never invent visit results.
  * Reached only via FragGate LIVE_OPS.
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
@@ -12,7 +12,7 @@ export const VERSION = "0.1.0";
 export const SPEC = "AZB-1.0";
 export const LENS = "Lamb Lens";
 export const AUTHOR = "Aziel Eliab";
-export const ROLE = "secure research browser + ethical search";
+export const ROLE = "Lamb Lens ethical research browser";
 export const RING_CAP = 64;
 export const TAB_CAP = 16;
 export const TEXT_CAP = 2000;
@@ -22,7 +22,7 @@ export const KV_KEY = "azbrowser";
 export const GENESIS_PREV = "0".repeat(64);
 
 export const LIMITATION =
-  "THIS IS: AZBrowser / AZNet Phase 1 — sandboxed advisory navigate (metadata only; no raw HTML), Lamb Lens ethical search (cite; refuse harmful harvest; never invent visit results), airlock ingest, in-memory/KV tabs, hash-chained receipts. Reached only through the aziel-runtime FragGate door (POST /v1/fraggate/call or MCP fraggate_call). THIS IS NOT: Chromium; a real browser exec; Tor exit control; phoenix wipe; an unrestricted proxy; a keylogger; clipboard harvest; surveillance. tor_exit / phoenix_wipe / chromium / proxy / harvest stay stub. Hosted never claims a visit it did not fetch, and never returns raw HTML. Author: Aziel Eliab only.";
+  "THIS IS: AZBrowser (AZB-1.0) — Lamb Lens ethical research browser: sandboxed advisory navigate (metadata only; no raw HTML), Lamb Lens ethical search (cite; refuse harmful harvest; never invent visit results), airlock ingest, in-memory/KV tabs, hash-chained receipts. Reached only through the aziel-runtime FragGate door (POST /v1/fraggate/call or MCP fraggate_call). AZNet is a separate product/engine; pairing is order/token only, not a shared app. THIS IS NOT: Chromium; a real browser exec; Tor exit control; phoenix wipe; an unrestricted proxy; a keylogger; clipboard harvest; surveillance. tor_exit / phoenix_wipe / chromium / proxy / harvest stay stub. Hosted never claims a visit it did not fetch, and never returns raw HTML. Author: Aziel Eliab only.";
 
 const HARVEST =
   /\b(harvest|scrape (all )?(emails?|contacts?|phones?)|dump (passwords?|credentials?|cookies?)|steal (cookies?|sessions?|tokens?)|keylog(ger)?|clipboard (monitor|steal|harvest)|doxx|ssn|social security|credit card dump|mass scrape|email list|phone dump|credential (dump|harvest)|wiretap|stalk|track (this )?(person|user|phone)|surveillance kit|malware kit|exploit kit|0-?day)\b/i;
@@ -80,8 +80,8 @@ export const LAMB_LENS_CORPUS = Object.freeze([
   {
     title: "AZBrowser",
     url: "https://github.com/AzielEliab/azbrowser",
-    snippet: "AZBrowser / AZNet — secure research browser + ethical search (Phase 1). Author Aziel Eliab.",
-    topics: ["azbrowser", "aznet", "browser", "research", "ethical", "search", "lamb", "lens"],
+    snippet: "AZBrowser — Lamb Lens ethical research browser. Author Aziel Eliab.",
+    topics: ["azbrowser", "browser", "research", "ethical", "search", "lamb", "lens"],
   },
   {
     title: "FragGate",
@@ -678,7 +678,7 @@ export function azbrowserSkill() {
   return {
     markdown: `# AZBrowser (in-process)
 
-AZBrowser / AZNet Phase 1 is the secure research browser + Lamb Lens ethical search.
+AZBrowser (AZB-1.0) is the Lamb Lens ethical research browser. AZNet is a separate product/engine — pairing is order/token only, not a shared Phase-1 UI.
 
 **Reached only via FragGate** on aziel-runtime (and host \`/runtime\` proxies of that door):
 
