@@ -11,7 +11,7 @@
  * 1.6.2 widens the public FragGate LIVE_OPS door to sensible advisory engines.
  * 1.6.3 adds KV-backed API use trackers (GET /v1/uses). Distinct from download KV.
  * 1.6.4 adds PeaceLock (PL-WP-0.1) as a true in-process engine.
- * 1.6.6 adds AZBrowser / AZNet (AZB-1.0) as a FragGate-live engine (Lamb Lens).
+ * 1.6.6 adds AZBrowser (AZB-1.0) as a FragGate-live engine (Lamb Lens ethical research browser). AZNet is a separate product.
  * 1.6.5 adds AZMail (APP 1.0) as a FragGate-live engine (mesh default off).
  * Public identity: Aziel Eliab only. Forks welcome. Do not invent DOIs.
  */
@@ -32,7 +32,7 @@ export const RUNTIME_ROLE = "engine-runtime";
 export const RUNTIME_LAYER = "catalog+pull+proxy+session+in-process-engines+fraggate";
 
 export const VERSION_HISTORY = [
-  { version: "1.6.6", status: "current", note: "Add AZBrowser / AZNet (AZB-1.0) as a FragGate-live engine: Lamb Lens ethical search + advisory navigate. Cite; refuse harmful harvest; never invent visit results. Not Chromium. LIVE_OPS ethical_search/lamb_lens_search/navigate/airlock_ingest/tab_open/tab_list/receipt_list/verify/receipt_verify. tor_exit/phoenix_wipe/chromium/unrestricted proxy stay STUB_OPS. MCP fraggate_list/fraggate_call and Worker UI buttons share LIVE_OPS.azbrowser. Reached only via POST /v1/fraggate/call { slug: \"azbrowser\", op }. DecisionGATE / FragGate ledger still apply. 30 catalog slugs. 1.6.5 remains AZMail." },
+  { version: "1.6.6", status: "current", note: "Add AZBrowser (AZB-1.0) as a FragGate-live engine: Lamb Lens ethical research browser (ethical search + advisory navigate). Cite; refuse harmful harvest; never invent visit results. Not Chromium. LIVE_OPS ethical_search/lamb_lens_search/navigate/airlock_ingest/tab_open/tab_list/receipt_list/verify/receipt_verify. tor_exit/phoenix_wipe/chromium/unrestricted proxy stay STUB_OPS. MCP fraggate_list/fraggate_call and Worker UI buttons share LIVE_OPS.azbrowser. Reached only via POST /v1/fraggate/call { slug: \"azbrowser\", op }. AZNet is a separate product/engine — pairing is order/token only, not a shared Phase-1 UI. DecisionGATE / FragGate ledger still apply. 30 catalog slugs. 1.6.5 remains AZMail." },
   { version: "1.6.5", status: "superseded", note: "Add AZMail (APP 1.0) as a FragGate-live engine: anonymous MCP mesh (default off) + advisory airlock. Not a full internet MTA. LIVE_OPS airlock_classify/scrub/trust_score/mesh_*/keyword_alert_*. SMTP/deanonymize/harvest stay STUB_OPS. Reached only via POST /v1/fraggate/call { slug: \"azmail\", op } (host /runtime proxies that door). DecisionGATE / FragGate ledger still apply. 29 catalog slugs. 1.6.4 remains PeaceLock." },
   { version: "1.6.4", status: "superseded", note: "Add PeaceLock (PL-WP-0.1) as a true in-process engine: chosen silence / chosen inaction receipts, hash-chained lattice, HARD_DUTY refuse, ABSENT transcript/counterfactual/motive. FragGate LIVE_OPS open/seal/break/show/verify/stamp/upload_envelope. 28 catalog slugs. 1.6.3 remains KV-backed API use trackers (GET /v1/uses)." },
   { version: "1.6.3", status: "superseded", note: "KV-backed API use trackers and ring log (GET /v1/uses, alias GET /v1/stats). Binding USES. Counts host/method/path/op/day for API traffic across origin and same-origin /runtime doors. Skips health/ready/uses and static SEO. No Authorization, tokens, bodies, or PII. FragGate ledger and session receipts unchanged. Distinct from product download-trackers." },
@@ -118,7 +118,7 @@ description: >-
   registry, DecisionGATE before exec, ask/refuse ledger. Dual surface —
   agent/MCP has no technical UI chrome; Worker UI, Flutter mobile/, local
   install, and counted /download stay complete human software. 1.6.6 adds
-  AZBrowser / AZNet (AZB-1.0) as a FragGate-live engine (Lamb Lens). 1.6.5 adds
+  AZBrowser (AZB-1.0) as a FragGate-live engine (Lamb Lens ethical research browser). AZNet is a separate engine (order/token pairing only). 1.6.5 adds
   AZMail (APP 1.0) as a FragGate-live engine (mesh default off). 1.6.4 adds
   PeaceLock (PL-WP-0.1) as a true in-process engine. 1.6.3 adds
   KV-backed API use trackers (GET /v1/uses). 1.6.2 widens the public door
@@ -156,7 +156,7 @@ HTTP \`POST /p/{slug}/{op}\` is still a **proxy**. Proxy without a session recei
 
 Every catalog slug is a true engine. Cloudflare isolate is the jail. Hosted AZAI is protocol mirror + Lamb check, **not** the blend. Identity is **Aziel Eliab** only.
 
-**1.6.6 = AZBrowser / AZNet (AZB-1.0)** as a FragGate-live engine (Lamb Lens ethical search + advisory navigate). Call only via \`fraggate_call\` / \`POST /v1/fraggate/call\` with \`{ slug: "azbrowser", op: "..." }\`. MCP \`fraggate_list\` includes LIVE_OPS.azbrowser. Worker UI buttons call that same door. Cite; refuse harmful harvest; never invent visit results. Not Chromium. tor_exit / phoenix_wipe stay stub. DecisionGATE / FragGate ledger still apply before exec.
+**1.6.6 = AZBrowser (AZB-1.0)** as a FragGate-live engine (Lamb Lens ethical research browser: ethical search + advisory navigate). Call only via \`fraggate_call\` / \`POST /v1/fraggate/call\` with \`{ slug: "azbrowser", op: "..." }\`. MCP \`fraggate_list\` includes LIVE_OPS.azbrowser. Worker UI buttons call that same door. Cite; refuse harmful harvest; never invent visit results. Not Chromium. tor_exit / phoenix_wipe stay stub. AZNet is a separate product/engine — pairing is order/token only, not a shared Phase-1 UI. DecisionGATE / FragGate ledger still apply before exec.
 **1.6.5 = AZMail (APP 1.0)** as a FragGate-live engine (anonymous MCP mesh default off + advisory airlock; not a full internet MTA). Call only via \`fraggate_call\` / \`POST /v1/fraggate/call\` with \`{ slug: "azmail", op: "..." }\`. Host \`/runtime\` proxies that same FragGate door. SMTP / deanonymize stay stub. DecisionGATE / FragGate ledger still apply before exec.
 **1.6.4 = PeaceLock (PL-WP-0.1)** as a true in-process engine (chosen silence / chosen inaction receipts; HARD_DUTY refuse; ABSENT transcript/counterfactual/motive).
 **1.6.3 = KV-backed API use trackers** (\`GET /v1/uses\`). Distinct from product download counters. No tokens, bodies, or PII.
@@ -315,7 +315,7 @@ Every catalog Software slug is a true engine (\`true_engine_runtime: true\`). \`
 
 **1.4.1 production gates (unchanged in 1.6.6):** \`GET /v1/ready\` is 200 only if the SESSION Durable Object binding is up; **503** if \`REQUIRE_TOKEN=1\` and the \`RUNTIME_TOKEN\` secret is missing (fail closed). Authority JSON is \`Cache-Control: no-store\`. When \`REQUIRE_TOKEN=1\`, session mutate (open/policy/exec/close) and MCP session tools / \`runtime_run\` / \`fraggate_call\` require \`Authorization: Bearer …\` or \`X-Aziel-Runtime-Token\` (one operator token). Catalog / health / runtime / skill / pull / FragGate list / OpenAPI / MCP \`tools/list\` / \`GET /v1/uses\` stay public. Proxy \`/p/{slug}/{op}\` stays public and is **not** exec. Receipt cap 64. Session TTL 6h. Per-IP rate limits apply.
 
-GodLock and MirageGrid are not VPNs. ForgeReceipts is not legal advice. ZionPattern Solver caps confidence at 75% and does not solve cases. VeilLock does not inject into FaceTime. AZ-CLCE detects inconsistency, not intent. ChronoLock is advisory only. The ARK is not a kernel. AZAI hosted /v1 is a protocol mirror + Lamb check, not a paid-key proxy and **not** the local blend. Jeeves is not sovereign. SpectralLock hosted overlay is a 256px preview. EmployeeLock is not a court. FoldLock is not zip. WhistleLock is not a mailer. TrajectoryLock is not a certified forensic instrument. M.I.A.Lock Doe hits are leads, not IDs. Aziel Digital Library is not a 26-card index. AzielTether is not a VPN. PeaceLock is not a transcript, not a counterfactual, not a motive score, and not a HARD_DUTY waiver. AZMail (APP 1.0) is not a full internet MTA — FragGate only; mesh default off; SMTP / deanonymize stub. AZBrowser / AZNet (AZB-1.0) is not Chromium — FragGate only; Lamb Lens cites; refuses harmful harvest; never invents visit results; tor_exit / phoenix_wipe stub. VPN/hop mesh is not claimed on this public surface.
+GodLock and MirageGrid are not VPNs. ForgeReceipts is not legal advice. ZionPattern Solver caps confidence at 75% and does not solve cases. VeilLock does not inject into FaceTime. AZ-CLCE detects inconsistency, not intent. ChronoLock is advisory only. The ARK is not a kernel. AZAI hosted /v1 is a protocol mirror + Lamb check, not a paid-key proxy and **not** the local blend. Jeeves is not sovereign. SpectralLock hosted overlay is a 256px preview. EmployeeLock is not a court. FoldLock is not zip. WhistleLock is not a mailer. TrajectoryLock is not a certified forensic instrument. M.I.A.Lock Doe hits are leads, not IDs. Aziel Digital Library is not a 26-card index. AzielTether is not a VPN. PeaceLock is not a transcript, not a counterfactual, not a motive score, and not a HARD_DUTY waiver. AZMail (APP 1.0) is not a full internet MTA — FragGate only; mesh default off; SMTP / deanonymize stub. AZBrowser (AZB-1.0) is not Chromium — FragGate only; Lamb Lens ethical research browser; cites; refuses harmful harvest; never invents visit results; tor_exit / phoenix_wipe stub. AZNet is a separate engine (order/token pairing only). VPN/hop mesh is not claimed on this public surface.
 
 ## Cite
 
@@ -729,7 +729,7 @@ export function runtimeStaticPaths() {
     "/v1/skill": {
       get: {
         operationId: "runtime_skill",
-        summary: "Skill markdown: 1.6.6 adds AZBrowser / AZNet (AZB-1.0) via FragGate only. Honest about 1.1.0 / 1.2.0 / 1.3.0 / 1.4.0 / 1.4.1 / 1.5.0 / 1.6.0 / 1.6.1 / 1.6.2 / 1.6.3 / 1.6.4 / 1.6.5 / 1.6.6.",
+        summary: "Skill markdown: 1.6.6 adds AZBrowser (AZB-1.0) via FragGate only. Honest about 1.1.0 / 1.2.0 / 1.3.0 / 1.4.0 / 1.4.1 / 1.5.0 / 1.6.0 / 1.6.1 / 1.6.2 / 1.6.3 / 1.6.4 / 1.6.5 / 1.6.6.",
         tags: ["runtime"],
         responses: { "200": { description: "text/markdown skill" } },
       },
@@ -863,7 +863,7 @@ export function runtimeStaticPaths() {
                 type: "object",
                 properties: {
                   name: { type: "string" },
-                  slug: { type: "string", description: "Catalog slug. Use azbrowser for AZBrowser / AZNet / Lamb Lens." },
+                  slug: { type: "string", description: "Catalog slug. Use azbrowser for AZBrowser / Lamb Lens. AZNet is a separate engine." },
                   op: {
                     type: "string",
                     description:

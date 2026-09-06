@@ -2,7 +2,7 @@
   "name": "aziel-runtime",
   "version": "1.6.6",
   "private": true,
-  "description": "Aziel Eliab Runtime 1.6.6 — FragGate door plus AZBrowser / AZNet (AZB-1.0), AZMail (APP 1.0), PeaceLock (PL-WP-0.1), and KV-backed API use trackers. Discover, route, refuse. Author: Aziel Eliab.",
+  "description": "Aziel Eliab Runtime 1.6.6 — FragGate door plus AZBrowser (AZB-1.0, Lamb Lens ethical research browser), AZMail (APP 1.0), PeaceLock (PL-WP-0.1), and KV-backed API use trackers. Discover, route, refuse. Author: Aziel Eliab.",
   "license": "Apache-2.0",
   "type": "module",
   "bin": {
