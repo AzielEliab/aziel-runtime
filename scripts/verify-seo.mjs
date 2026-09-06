@@ -263,6 +263,13 @@ assert.ok(!catalog.products.some((p) => p.slug === "fraggate"));
 assert.equal(catalog.fraggate.slug, "fraggate");
 assert.equal(catalog.fraggate.github, "https://github.com/AzielEliab/fraggate");
 assert.ok(catalog.extras.some((e) => e.slug === "fraggate" && e.kind === "kernel"));
+assert.equal(catalog.fraggate.worker, "fraggate-download-tracker");
+assert.equal(catalog.fraggate.engine, false);
+assert.equal(catalog.fraggate.worker_home, "https://fraggate-download-tracker.vibelock.workers.dev/");
+assert.equal(catalog.fraggate.download, "https://fraggate-download-tracker.vibelock.workers.dev/download");
+assert.ok(!catalog.products.some((p) => p.worker === "fraggate-download-tracker"));
+assert.match(catalog.extras_note, /fraggate-download-tracker/);
+assert.match(catalog.extras_note, /not nested in AZBrowser/);
 
 const homeRes = await get("/");
 assert.equal(homeRes.status, 200);

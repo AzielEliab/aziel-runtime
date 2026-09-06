@@ -60,6 +60,8 @@ import {
   catalogExtraCards,
   fraggateHubCard,
   FRAGGATE_GITHUB,
+  FRAGGATE_WORKER,
+  FRAGGATE_WORKER_ORIGIN,
 } from "./catalog-meta.js";
 import {
   RUNTIME_VERSION,
@@ -874,7 +876,7 @@ function llmsTxt(origin) {
     `Door: fraggate`,
     `FragGate: ${base}/v1/fraggate`,
     `Kernel: ${FRAGGATE_GITHUB}`,
-    `Catalog extras (hub kernel card, not a Software engine): slug=fraggate github=${FRAGGATE_GITHUB} — read catalog.json extras[] / fraggate. Do not invent a fraggate-download-tracker.`,
+    `Catalog extras (hub kernel card, not a Software engine): slug=fraggate worker=${FRAGGATE_WORKER} github=${FRAGGATE_GITHUB} worker_home=${FRAGGATE_WORKER_ORIGIN}/ download=${FRAGGATE_WORKER_ORIGIN}/download — read catalog.json extras[] / fraggate. FragGate is the kernel door; human UI + counted download is the separate FragGate Worker app (not nested in AZBrowser).`,
     `MCP: POST ${base}/mcp`,
     `Uses: ${base}/v1/uses`,
     `Machine catalog: ${base}/v1/catalog.json`,
@@ -1378,8 +1380,8 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
 ${homepageAddUrlHtml(origin)}
   <section class="cite" id="fraggate">
     <h2>FragGate (kernel / door — not a Software engine)</h2>
-    <p>Hubs already show <a href="${FRAGGATE_GITHUB}">${FRAGGATE_GITHUB}</a>. This runtime also publishes a catalog-friendly card at <code>GET /v1/catalog.json</code> <code>extras[]</code> / <code>fraggate</code> so corpus / godlock.uk / azieleliab Software indexes can list it without inventing a <code>fraggate-download-tracker</code> Worker. Slug <code>fraggate</code> is <em>not</em> a PRODUCTS true-engine entry.</p>
-    <p><a href="${origin}/v1/fraggate">/v1/fraggate</a> · <a href="${origin}/v1/fraggate/list">/v1/fraggate/list</a> · <a href="${origin}/v1/catalog.json">catalog extras</a> · <a href="${FRAGGATE_GITHUB}">GitHub</a></p>
+    <p>FragGate is the kernel door. Human UI + counted download is the separate FragGate Worker app (not nested in AZBrowser). Hubs already show <a href="${FRAGGATE_GITHUB}">${FRAGGATE_GITHUB}</a>. This runtime publishes a catalog-friendly card at <code>GET /v1/catalog.json</code> <code>extras[]</code> / <code>fraggate</code> so corpus / godlock.uk / azieleliab Software indexes can list Worker <code>${FRAGGATE_WORKER}</code> without adding a PRODUCTS true-engine slug.</p>
+    <p><a href="${origin}/v1/fraggate">/v1/fraggate</a> · <a href="${origin}/v1/fraggate/list">/v1/fraggate/list</a> · <a href="${origin}/v1/catalog.json">catalog extras</a> · <a href="${FRAGGATE_WORKER_ORIGIN}/">Worker UI</a> · <a href="${FRAGGATE_WORKER_ORIGIN}/download">counted download</a> · <a href="${FRAGGATE_GITHUB}">GitHub</a></p>
   </section>
   ${cards}
 ${fragGateDoorScript()}
@@ -1488,7 +1490,7 @@ function staticPaths(origin) {
       get: {
         operationId: "catalog_list",
         summary:
-          "Machine-readable catalog. products[] are Software engines (slug, worker, github — hubs fetch these). extras[] / fraggate is the FragGate kernel card (github.com/AzielEliab/fraggate; not a download-tracker). Each product includes door, fraggate_live, fraggate_ops, fraggate_call.",
+          "Machine-readable catalog. products[] are Software engines (slug, worker, github — hubs fetch these). extras[] / fraggate is the FragGate kernel card (github.com/AzielEliab/fraggate; worker fraggate-download-tracker is the separate human UI + counted download, not nested in AZBrowser; engine:false). Each product includes door, fraggate_live, fraggate_ops, fraggate_call.",
         tags: ["runtime"],
         responses: { "200": { description: "Product catalog JSON" } },
       },
@@ -2151,7 +2153,7 @@ async function handleRequest(request, env) {
           fraggate: fraggateHubCard(origin),
           extras: catalogExtraCards(origin),
           extras_note:
-            "Kernel / door cards for Software hubs. extras[] is not PRODUCTS — FragGate is not a true-engine slug and has no download-tracker.",
+            "Kernel / door cards for Software hubs. extras[] is not PRODUCTS — FragGate is not a true-engine slug. Human UI + counted download is the separate FragGate Worker app (fraggate-download-tracker; not nested in AZBrowser).",
           count: PRODUCTS.length,
           products: PRODUCTS.map((p) => catalogRecord(p, origin)),
         },

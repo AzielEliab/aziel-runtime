@@ -363,7 +363,7 @@ export function runtimeManifest(origin, products, extra = {}) {
     kernel: FRAGGATE_GITHUB,
     extras: catalogExtraCards(base),
     extras_note:
-      "Kernel / door cards for Software hubs. extras[] is not PRODUCTS — FragGate is not a true-engine slug and has no download-tracker.",
+      "Kernel / door cards for Software hubs. extras[] is not PRODUCTS — FragGate is not a true-engine slug. Human UI + counted download is the separate FragGate Worker app (fraggate-download-tracker; not nested in AZBrowser).",
     registry_digest: extra.registry_digest || fraggate.registry_digest || null,
     fraggate: { ...fraggateHubCard(base), ...fraggate },
     author: "Aziel Eliab",
