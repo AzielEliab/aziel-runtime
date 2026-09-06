@@ -442,6 +442,7 @@ function titleFromToolName(name) {
   const n = String(name || "Result");
   if (n === "runtime_run") return "Advanced: raw runtime_run";
   if (n === "runtime_skill") return "Aziel Eliab Runtime";
+  if (n === "runtime_software") return "Software catalog";
   if (n === "runtime_bundle") return "Product list";
   if (n === "runtime_pull") return "Opened product";
   if (n === "runtime_manifest") return "Runtime manifest";
