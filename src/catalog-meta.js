@@ -25,6 +25,10 @@ export const CATALOG_ALIASES = {
   "az-browser": "azbrowser",
   "lamb-lens": "azbrowser",
   lamb_lens: "azbrowser",
+  "az-net": "aznet",
+  "az.net": "aznet",
+  "azn-wp": "aznet",
+  "azn-wp-0.1": "aznet",
 };
 
 /**
@@ -102,6 +106,7 @@ export const VERSIONS = {
   peacelock: "0.1.0",
   azmail: "0.1.0",
   azbrowser: "0.1.0",
+  aznet: "0.1.0",
   "aziel-corpus": "2.6.2",
 };
 
@@ -171,6 +176,7 @@ export const FIRST_TIME_DEPOSIT_SLUGS = [
   "peacelock",
   "azmail",
   "azbrowser",
+  "aznet",
   "aziel-corpus",
 ];
 

@@ -52,6 +52,8 @@ export function mcpInitializeInstructions() {
     "runtime_run, runtime_session_*, raw *_health, and runtime_manifest are advanced/internal. " +
     "Do not call flat {slug}_{op} names — they are not in tools/list. Unknown names refuse FG-HALLUC-TOOL. " +
     "HTTP /p/{slug}/{op} is a proxy and is not exec. " +
+    "1.6.7 adds AZNet (AZN-WP-0.1) as a FragGate-live engine — silent verification side-net; never hosts payloads; AZBrowser pair required (functional order only; own Worker UI). " +
+    "AZNet is reached only via fraggate_call / POST /v1/fraggate/call (flat leftover names still map through FragGate; not a side door). " +
     "1.6.6 adds AZBrowser (AZB-1.0) as a FragGate-live engine — Lamb Lens ethical research browser: ethical search + advisory navigate; cite; refuse harmful harvest; never invent visit results; not Chromium. AZNet is a separate product/engine (order/token pairing only, not a shared Phase-1 UI). " +
     "AZBrowser LIVE_OPS (ethical_search, lamb_lens_search, navigate, airlock_ingest, tab_open, tab_list, receipt_list, verify, receipt_verify, health, skill) are listed by fraggate_list and executed only via fraggate_call / POST /v1/fraggate/call — the same ops Worker UI buttons call. " +
     "1.6.5 adds AZMail (APP 1.0) as a FragGate-live engine — anonymous mesh default off, advisory airlock; SMTP/deanonymize stay stub. " +
@@ -82,7 +84,7 @@ export function runtimeHelperTools() {
       name: "fraggate_list",
       title: "List the FragGate registry",
       description:
-        "List hashed registry entries (live / stub / local_only). Discover names. Do not invent tools. allowlist.azbrowser LIVE_OPS: ethical_search, lamb_lens_search, navigate, airlock_ingest, tab_open, tab_list, receipt_list, verify, receipt_verify, health, skill — same ops MCP fraggate_call and the Worker UI buttons execute. Kernel: https://github.com/AzielEliab/fraggate",
+        "List hashed registry entries (live / stub / local_only). Discover names. Do not invent tools. allowlist.azbrowser LIVE_OPS: ethical_search, lamb_lens_search, navigate, airlock_ingest, tab_open, tab_list, receipt_list, verify, receipt_verify, health, skill. allowlist.aznet LIVE_OPS: health, pair_status, garden_list, stamp, verify_hash, memorial_list, memorial_append, receipt_verify, skill — same ops MCP fraggate_call and the Worker UI buttons execute. AZNet is a separate product. Kernel: https://github.com/AzielEliab/fraggate",
       annotations: { title: "List the FragGate registry", readOnlyHint: true, openWorldHint: false },
       inputSchema: { type: "object", additionalProperties: true },
     },

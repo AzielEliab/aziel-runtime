@@ -33,6 +33,7 @@ import { AZIELTETHER_OPS, run as runAzieltether } from "./azieltether.js";
 import { PEACELOCK_OPS, run as runPeacelock } from "./peacelock.js";
 import { AZMAIL_OPS, run as runAzmail } from "./azmail.js";
 import { AZBROWSER_OPS, run as runAzbrowser } from "./azbrowser.js";
+import { AZNET_OPS, run as runAznet } from "./aznet.js";
 import { AZIEL_CORPUS_OPS, run as runAzielCorpus } from "./aziel-corpus.js";
 
 /** Ops that cannot run as pure JS here (bindings / media / live store). Per-op proxy_fallback. */
@@ -74,6 +75,7 @@ export const ENGINE_RUNNERS = {
   peacelock: { ops: PEACELOCK_OPS, run: runPeacelock, source: "PeaceLock PL-WP-0.1 chosen silence / chosen inaction lattice (HARD_DUTY refuse; ABSENT invariants)", module: "src/engines/peacelock.js" },
   azmail: { ops: AZMAIL_OPS, run: runAzmail, source: "AZMail APP 1.0 airlock + anonymous mesh (not an MTA; FragGate only)", module: "src/engines/azmail.js" },
   azbrowser: { ops: AZBROWSER_OPS, run: runAzbrowser, source: "AZBrowser AZB-1.0 Lamb Lens ethical research browser (not Chromium; FragGate only; AZNet is a separate engine)", module: "src/engines/azbrowser.js" },
+  aznet: { ops: AZNET_OPS, run: runAznet, source: "AZNet AZN-WP-0.1 silent verification side-net (hash garden + memorial; never hosts payloads; AZBrowser pair required)", module: "src/engines/aznet.js" },
   "aziel-corpus": { ops: AZIEL_CORPUS_OPS, run: runAzielCorpus, source: "portable sample-MASTER search (live D1 ingest/review stay per-op proxy)", module: "src/engines/aziel-corpus.js" },
 };
 
