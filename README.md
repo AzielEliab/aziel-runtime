@@ -1,6 +1,6 @@
 # aziel-runtime
 
-**Aziel Eliab Runtime 1.6.2** — **FragGate door** over the catalog. One door: **discover, route, refuse**. Public door now covers sensible advisory engines; stubs still refuse. Hashed registry, thin MCP `tools/list`, DecisionGATE before exec, ask/refuse ledger. **1.6.1** lists every major OpenAPI / MCP / HTTP client (not only ChatGPT, Grok, and Venice). **1.5.0** was the agent-native flat `{slug}_{op}` pile. Human software — Worker UI, Flutter `mobile/`, local install, counted `/download` — stays complete. Catalog + pull + proxy, one session object, **in-process engines** for every catalog Software slug, plus production gates (`/v1/ready`, HEAD, no-store, receipt cap 64, session TTL 6h, per-IP rate limits, optional `RUNTIME_TOKEN` on session mutate).
+**Aziel Eliab Runtime 1.6.3** — **FragGate door** over the catalog plus **KV-backed API use trackers** (`GET /v1/uses`). One door: **discover, route, refuse**. Public door now covers sensible advisory engines; stubs still refuse. Hashed registry, thin MCP `tools/list`, DecisionGATE before exec, ask/refuse ledger. **1.6.2** widened the public door. **1.6.1** lists every major OpenAPI / MCP / HTTP client (not only ChatGPT, Grok, and Venice). **1.5.0** was the agent-native flat `{slug}_{op}` pile. Human software — Worker UI, Flutter `mobile/`, local install, counted `/download` — stays complete. Catalog + pull + proxy, one session object, **in-process engines** for every catalog Software slug, plus production gates (`/v1/ready`, HEAD, no-store, receipt cap 64, session TTL 6h, per-IP rate limits, optional `RUNTIME_TOKEN` on session mutate).
 
 Kernel: [AzielEliab/fraggate](https://github.com/AzielEliab/fraggate) (FG-0.1)
 
@@ -25,7 +25,7 @@ Any OpenAPI-, MCP-, or HTTP-tool-capable assistant imports **this** OpenAPI file
 **Author:** Aziel Eliab  
 **Identity:** Aziel Eliab (primary). Also known as Aziel Elroi Eliab (`alternateName` / aka only).  
 **License:** [Apache-2.0](LICENSE)  
-**Version:** 1.6.2  
+**Version:** 1.6.3  
 **Role:** `engine-runtime` (layer: `catalog+pull+proxy+session+in-process-engines+fraggate`)  
 **Door:** `fraggate`  
 **Worker:** `aziel-runtime` → https://aziel-runtime.vibelock.workers.dev/  
@@ -188,6 +188,7 @@ Always send `User-Agent: Mozilla/5.0`.
 | MCP stdio (Glama / Claude Desktop) | `node cli/mcp-stdio.mjs` — [docs/GLAMA.md](docs/GLAMA.md) |
 | Glama listing | https://glama.ai/mcp/servers/AzielEliab/aziel-runtime |
 | Health | https://aziel-runtime.vibelock.workers.dev/v1/health |
+| API uses (no increment, no PII) | https://aziel-runtime.vibelock.workers.dev/v1/uses |
 | Ready | https://aziel-runtime.vibelock.workers.dev/v1/ready |
 | Everblooming sigil | https://aziel-runtime.vibelock.workers.dev/sigil.png |
 
@@ -340,16 +341,26 @@ of those file bytes (sorted path order). Recompute with
 ## Deploy
 
 ```bash
+npx wrangler kv namespace create USES
+# paste the returned id into wrangler.toml [[kv_namespaces]] binding = "USES"
 npx wrangler deploy
 ```
 
 Account `ac575a9b822bea2bed97d0ab73aed238`. workers.dev
-`aziel-runtime.vibelock.workers.dev`. No download KV.
+`aziel-runtime.vibelock.workers.dev`. Product download KV stays on each
+product Worker. This runtime's `USES` namespace is the **API use** counter
+and ring log (`GET /v1/uses`) — no Authorization, tokens, bodies, or PII.
+Placeholder id in `wrangler.toml` is replaced on deploy.
+
+Same-origin doors (`/runtime` on azielcorpuslibrary.net, godlock.uk,
+www.azieleliab.com) should set `X-Aziel-Runtime-Via` or
+`X-Aziel-Runtime-Host` (`origin`, `azieleliab.com`, `godlock.uk`,
+`azielcorpuslibrary.net`) so host counters stay distinct.
 
 **1.2.0+ requires Durable Object migration tag `v1`** (`RuntimeSession`, SQLite).
 The first deploy after the session cut creates the `SESSION` binding. **1.4.0
 does not need a new DO migration** — engines run in the same isolate. **1.4.1
-reuses that SESSION class. 1.5.0, 1.6.0, 1.6.1, and 1.6.2 do not need a new DO migration.**
+reuses that SESSION class. 1.5.0, 1.6.0, 1.6.1, 1.6.2, and 1.6.3 do not need a new DO migration.**
 
 Optional production token (session mutate only — catalog / health / runtime /
 skill / pull stay public):
@@ -381,7 +392,8 @@ If this checkout has no wrangler credentials, deploy from the author's machine:
 npx wrangler secret put RUNTIME_TOKEN
 npx wrangler deploy
 node scripts/probe-live.mjs
-# confirm GET /v1/health and /v1/ready and /v1/runtime.json version=1.6.2 role=engine-runtime door=fraggate
+# confirm GET /v1/health and /v1/ready and /v1/runtime.json version=1.6.3 role=engine-runtime door=fraggate
+# confirm GET /v1/uses returns uses / by_host / by_path / by_day / recent (no increment)
 # confirm engine_slugs == true_engine_slugs == all 27 catalog slugs
 # confirm POST /v1/session/open → policy → exec each primary op → receipt has engine_digest + ran_in
 ```
@@ -398,6 +410,7 @@ should advertise and reverse-proxy:
 - `GET https://www.azielcorpuslibrary.net/runtime/v1/bundle` → this `/v1/bundle`
 - `GET https://www.azielcorpuslibrary.net/runtime/v1/pull/{slug}` → this `/v1/pull/{slug}`
 - `POST https://www.azielcorpuslibrary.net/runtime/v1/session/open` → this session object
+- `GET https://www.azielcorpuslibrary.net/runtime/v1/uses` → this `/v1/uses` (set `X-Aziel-Runtime-Via: azielcorpuslibrary.net`)
 
 See the companion PR on [AzielEliab/aziel-corpus](https://github.com/AzielEliab/aziel-corpus).
 
