@@ -43,7 +43,7 @@ assert.doesNotMatch(product.banner, /AZBrowser \/ AZNet/);
 assert.match(product.banner, /FragGate/);
 assert.match(product.banner, /AZNet is separate software/);
 assert.match(product.banner, /same FragGate door/);
-assert.match(product.oneLine, /separate software/);
+assert.match(product.oneLine, /AZNet is a separate software/);
 assert.doesNotMatch(product.oneLine, /separate engine/i);
 assert.doesNotMatch(product.banner, /separate engine/i);
 assert.doesNotMatch(product.oneLine, /product\/engine/);
