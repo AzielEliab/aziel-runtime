@@ -336,7 +336,7 @@ assert.ok(uses.uses >= 1);
 const skill = await (await handler(new Request(origin + "/v1/skill"), env)).text();
 assert.match(skill, /AZHub \(AIH-WP-1\.0\)/);
 assert.match(skill, /slug: "azhub"/);
-assert.match(skill, /sibling softwares under the same FragGate door/);
+assert.match(skill, /separate softwares under the same FragGate door/);
 assert.doesNotMatch(skill, /AZHub \/ AZInterface/);
 assert.doesNotMatch(skill, /AZInterface is a separate engine/);
 assert.doesNotMatch(skill, /AZHub is a separate engine/);

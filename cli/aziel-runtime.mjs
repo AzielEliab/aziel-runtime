@@ -57,7 +57,7 @@ Default: Worker session at ${DEFAULT_URL}
 1.6.9 frames AZHub and AZInterface as sibling softwares under the same FragGate door.
 1.6.8 adds AZHub and AZInterface as two separate softwares under the same FragGate door (AIH-WP-1.0).
 1.6.7 adds AZNet (AZN-WP-0.1) as a FragGate-live engine (silent verification side-net; never hosts payloads; AZBrowser pair is functional order only).
-1.6.6 adds AZBrowser (AZB-1.0) as a FragGate-live engine (Lamb Lens ethical research browser). AZNet is a separate engine (order/token pairing only).
+1.6.6 adds AZBrowser (AZB-1.0) as a FragGate-live engine (Lamb Lens ethical research browser). AZNet is separate software (same FragGate door; order/token pairing only).
 1.6.5 adds AZMail (APP 1.0) as a FragGate-live engine (mesh default off). 1.6.4 adds PeaceLock (PL-WP-0.1). 1.6.3 adds GET /v1/uses (KV API use trackers). 1.6.2 widens the public door to sensible advisory engines; stubs still refuse. 1.6.0 is the FragGate door cut (discover, route, refuse) on 1.4.1 production gates. Binding-only ops stay per-op proxy_fallback. No counted runtime tarball.
 Proxy /p/{slug}/{op} is not exec. Hosted AZAI is not the local blend.
 `;

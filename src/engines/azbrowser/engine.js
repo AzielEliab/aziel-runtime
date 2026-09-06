@@ -22,7 +22,7 @@ export const KV_KEY = "azbrowser";
 export const GENESIS_PREV = "0".repeat(64);
 
 export const LIMITATION =
-  "THIS IS: AZBrowser (AZB-1.0) — Lamb Lens ethical research browser: sandboxed advisory navigate (metadata only; no raw HTML), Lamb Lens ethical search (cite; refuse harmful harvest; never invent visit results), airlock ingest, in-memory/KV tabs, hash-chained receipts. Reached only through the aziel-runtime FragGate door (POST /v1/fraggate/call or MCP fraggate_call). AZNet is a separate product/engine; pairing is order/token only, not a shared app. THIS IS NOT: Chromium; a real browser exec; Tor exit control; phoenix wipe; an unrestricted proxy; a keylogger; clipboard harvest; surveillance. tor_exit / phoenix_wipe / chromium / proxy / harvest stay stub. Hosted never claims a visit it did not fetch, and never returns raw HTML. Author: Aziel Eliab only.";
+  "THIS IS: AZBrowser (AZB-1.0) — Lamb Lens ethical research browser: sandboxed advisory navigate (metadata only; no raw HTML), Lamb Lens ethical search (cite; refuse harmful harvest; never invent visit results), airlock ingest, in-memory/KV tabs, hash-chained receipts. Reached only through the aziel-runtime FragGate door (POST /v1/fraggate/call or MCP fraggate_call). AZNet is separate software (same FragGate door); pairing is order/token only, not a shared app. THIS IS NOT: Chromium; a real browser exec; Tor exit control; phoenix wipe; an unrestricted proxy; a keylogger; clipboard harvest; surveillance. tor_exit / phoenix_wipe / chromium / proxy / harvest stay stub. Hosted never claims a visit it did not fetch, and never returns raw HTML. Author: Aziel Eliab only.";
 
 const HARVEST =
   /\b(harvest|scrape (all )?(emails?|contacts?|phones?)|dump (passwords?|credentials?|cookies?)|steal (cookies?|sessions?|tokens?)|keylog(ger)?|clipboard (monitor|steal|harvest)|doxx|ssn|social security|credit card dump|mass scrape|email list|phone dump|credential (dump|harvest)|wiretap|stalk|track (this )?(person|user|phone)|surveillance kit|malware kit|exploit kit|0-?day)\b/i;
@@ -678,7 +678,7 @@ export function azbrowserSkill() {
   return {
     markdown: `# AZBrowser (in-process)
 
-AZBrowser (AZB-1.0) is the Lamb Lens ethical research browser. AZNet is a separate product/engine — pairing is order/token only, not a shared Phase-1 UI.
+AZBrowser (AZB-1.0) is the Lamb Lens ethical research browser. AZNet is separate software (same FragGate door) — pairing is order/token only, not a shared Phase-1 UI.
 
 **Reached only via FragGate** on aziel-runtime (and host \`/runtime\` proxies of that door):
 

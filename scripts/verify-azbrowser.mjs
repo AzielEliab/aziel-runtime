@@ -41,7 +41,13 @@ assert.match(product.oneLine, /Lamb Lens ethical research browser/i);
 assert.doesNotMatch(product.oneLine, /AZBrowser \/ AZNet/);
 assert.doesNotMatch(product.banner, /AZBrowser \/ AZNet/);
 assert.match(product.banner, /FragGate/);
-assert.match(product.banner, /AZNet is a separate/);
+assert.match(product.banner, /AZNet is separate software/);
+assert.match(product.banner, /same FragGate door/);
+assert.match(product.oneLine, /separate software/);
+assert.doesNotMatch(product.oneLine, /separate engine/i);
+assert.doesNotMatch(product.banner, /separate engine/i);
+assert.doesNotMatch(product.oneLine, /product\/engine/);
+assert.doesNotMatch(product.banner, /product\/engine/);
 assert.equal(CATALOG_ALIASES.aznet, undefined);
 assert.equal(CATALOG_ALIASES["az-net"], "aznet");
 assert.notEqual(CATALOG_ALIASES["az-net"], "azbrowser");
@@ -217,6 +223,13 @@ assert.ok(localBody.receipt);
 
 const localStub = await executeLocal({ slug: "azbrowser", op: "tor_exit", payload: {}, ranIn: "aziel-runtime" });
 assert.equal(localStub.unsupported, true);
+
+const productSkill = await executeLocal({ slug: "azbrowser", op: "skill", payload: {}, ranIn: "aziel-runtime" });
+const productSkillText = JSON.parse(productSkill.responseText).markdown || JSON.parse(productSkill.responseText).skill || "";
+assert.match(productSkillText, /separate software/);
+assert.match(productSkillText, /same FragGate door/);
+assert.doesNotMatch(productSkillText, /separate engine/i);
+assert.doesNotMatch(productSkillText, /product\/engine/);
 
 const handler = (await import("../src/index.js")).default.fetch;
 const origin = "https://aziel-runtime.example";
@@ -471,6 +484,8 @@ const skill = await (await handler(new Request(origin + "/v1/skill"), env)).text
 assert.match(skill, /AZBrowser \(AZB-1\.0\)/);
 assert.doesNotMatch(skill, /AZBrowser \/ AZNet/);
 assert.match(skill, /slug: "azbrowser"/);
+assert.doesNotMatch(skill, /AZNet is a separate engine/);
+assert.doesNotMatch(skill, /AZNet is a separate product\/engine/);
 
 console.log(
   `ok azbrowser ${product.version}: LIVE_OPS=${live.join(",")} stub=${STUB_OPS.azbrowser.join(",")}`,
