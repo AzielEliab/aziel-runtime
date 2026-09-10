@@ -86,7 +86,7 @@ export const ENGINE_DIGESTS = {
   "azhub": "35683fb4735ed57bda3c4f2d5d312fe9c68fd7fb853b0b99fd1cbabcc22cba66",
   "azinterface": "0deb713c76dcb437a6b91983595f6abc47a401799c7ffa9ccda9fdf1332db2bd",
   "aziel-corpus": "a33ad0018f479f954bfd0e5881f871af04bf9b39f2565db2e0cdb591f6fc8085",
-  "4dmap": "896cf578117f27200a8761d6194ec07402c27435afe1718671768ff7b59b28e1",
+  "4dmap": "c6e22605d54c9819dd683c9332c607fa64ba819b50c8cca2faa01153819a4315",
 };
 
 export function trueEngineSlugs() {

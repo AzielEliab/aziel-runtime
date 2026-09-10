@@ -38,7 +38,7 @@ AZIEL_RUNTIME_URL=https://aziel-runtime.vibelock.workers.dev node cli/mcp-stdio.
 node cli/mcp-stdio.mjs --local
 AZIEL_RUNTIME_MCP=local node cli/mcp-stdio.mjs
 
-# when REQUIRE_TOKEN=1 on the Worker
+# when REQUIRE_TOKEN=1 on the Worker (session mutate only; public FragGate call stays open)
 RUNTIME_TOKEN=… node cli/mcp-stdio.mjs
 ```
 

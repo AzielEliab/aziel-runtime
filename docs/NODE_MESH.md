@@ -146,6 +146,7 @@ if (url.pathname === "/v1/mesh" || url.pathname.startsWith("/v1/mesh/")) {
 
 - Default **OFF**. Radios stay off until an operator declares a bearer.
 - `GET /v1/mesh` is a rollup read. It does not enable.
+- Library host `www.azielcorpuslibrary.net/runtime/v1/mesh/enable` may return **409** `{ source: "library-default-off", enabled: false }` instead of this Worker's `MESH-NEED-BEARER` / `MESH-BAD-BEARER`. Radios stay OFF. GET still never enables. That overlay is **host-side** (aziel-corpus), not a runtime enable. Do not "fix" it by enabling mesh here.
 - Presence is ephemeral (5 minutes).
 - Broadcast never accepts `video` / `bytes` / `file` / `mp4` / `publish` fields.
 - Public identity is Aziel Eliab only.

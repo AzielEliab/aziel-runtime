@@ -13,7 +13,7 @@
  */
 
 import { CATALOG_ALIASES } from "./catalog-meta.js";
-import { domainFields, domainMapView } from "./domain-map.js";
+import { CATALOG_COUNT_NOTE, MASTER_33_SLUGS, TAB_PLACEMENT_SLUGS, domainFields, domainMapView } from "./domain-map.js";
 import { NAMED_STUBS } from "./fraggate/registry.js";
 import { meshHint } from "./mesh.js";
 import { qnsHint } from "./qns.js";
@@ -194,6 +194,9 @@ export function softwareCatalog(origin, products, extra = {}) {
     count: software.length,
     live_count: software.filter((s) => s.status === "live").length,
     stub_count: software.filter((s) => s.status === "stub").length,
+    isolation_software_count: MASTER_33_SLUGS.length,
+    tab_placement_slugs: TAB_PLACEMENT_SLUGS.slice(),
+    count_note: CATALOG_COUNT_NOTE,
     software,
     domains: domainMapView(),
     mcp: `${base}/mcp`,

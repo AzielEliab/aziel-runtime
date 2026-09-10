@@ -145,6 +145,12 @@ const BY_SLUG = (() => {
 
 export const MASTER_33_SLUGS = Object.freeze(DOMAINS.flatMap((d) => d.softwares.slice()));
 
+/** Softwares-tab live cards that are not in the 33-software isolation set. Not extra doors. */
+export const TAB_PLACEMENT_SLUGS = Object.freeze(["azinterface", "decisiongate", "forgereceipts"]);
+
+export const CATALOG_COUNT_NOTE =
+  "Softwares-tab count includes placements (azinterface / decisiongate / forgereceipts). Isolation domain software_count is 33 (domains_are_doors:false). Do not equate the two. FragGate remains THE single door.";
+
 export function domainForSlug(slug) {
   const key = String(slug || "")
     .trim()
@@ -182,6 +188,7 @@ export function domainMapView() {
     software_tab: true,
     domain_count: DOMAINS.length,
     software_count: MASTER_33_SLUGS.length,
+    tab_placement_slugs: TAB_PLACEMENT_SLUGS.slice(),
     domains: DOMAINS.map((d) => ({
       id: d.id,
       slug: d.slug,
@@ -189,6 +196,7 @@ export function domainMapView() {
       softwares: d.softwares.slice(),
     })),
     placements: { ...PLACEMENTS },
-    note: "11 domains / 33 softwares are isolation labels. Internal Domain Layer executes isolated softwares after AZPIPE. Not additional doors.",
+    note:
+      "11 domains / 33 softwares are isolation labels. Softwares-tab count is larger because it includes placements (azinterface / decisiongate / forgereceipts). Internal Domain Layer executes isolated softwares after AZPIPE. Not additional doors. domains_are_doors:false.",
   };
 }
