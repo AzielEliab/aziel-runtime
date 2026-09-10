@@ -67,6 +67,20 @@ Reached only via `fraggate_call` / `POST /v1/fraggate/call` with `{ slug: "4dmap
 | --- | --- |
 | health | Liveness. Does not increment download KV. |
 | skill | Product skill markdown. |
+| pin | Pin a declared mark. Opens a card when `card_id` is omitted. |
+| span | Span two axes on one card, or two existing cards (Δ). |
+| stack | Stack declared cards onto Γ. |
+| gap | Record a declared Δ gap. |
+| fork | Keep a sibling fork. No winner. |
+| walk | Walk `card_ids` or a tip `prev_hash` chain. Not a sequential gate. |
+| lens | Silent lens. Empty hit is Π-EMPTY. |
+| class | Pin a declared Π class. Empty label is Π-EMPTY. |
+| cohort | Pin a declared Π cohort. |
+| absence | Absence lens. Silent miss is Π-EMPTY. |
+| cap | ZionPattern confidence cap 75%. Not P(the world is true). |
+| join | Join two existing cards. Π→T backdate refuses. |
+| list | List cards, walks, and kept forks. |
+| example | Synthetic T pin. Never a real-case finding. |
 | card_new | Open an inspection card with empty T/Δ/Γ/Π slots. |
 | card_pin | Pin a **declared** mark onto one axis. |
 | card_span | Span two axes that already have pins. |
@@ -84,7 +98,7 @@ Reached only via `fraggate_call` / `POST /v1/fraggate/call` with `{ slug: "4dmap
 
 Stub refuse (never hosted): `truth_score`, `lumen_panel`, `invent_mark`, `backdate_class`.
 
-Runtime 1.7.4 hosts the enhanced ops in-process. Product repo https://github.com/AzielEliab/4dmap is still 0.1.0 on main. After product 0.2.0 deploys, recompute and sync `engine_digest` / catalog version. Do not invent a product digest before that deploy.
+Runtime 1.7.4 hosts product 0.2.0 LIVE_OPS in-process on the runtime multi-axis card store (not a rewrite to product 4DM-CARD receipts). Catalog version is 0.2.0. `engine_digest` is the runtime isolate artifact. GitBaby merges and deploys the product Worker — do not invent a product Worker digest here.
 
 ## 5. Catalog
 
@@ -101,4 +115,4 @@ Runtime 1.7.4 hosts the enhanced ops in-process. Product repo https://github.com
 
 Eliab, Aziel. (2026). 4DM-WP-1.0 [Design]. https://github.com/AzielEliab/aziel-runtime/blob/main/docs/designs/4DM-WP-1.0.md
 
-Eliab, Aziel. (2026). 4DMap 0.1.0 [Software]. Apache-2.0. https://github.com/AzielEliab/4dmap
+Eliab, Aziel. (2026). 4DMap 0.2.0 [Software]. Apache-2.0. https://github.com/AzielEliab/4dmap
