@@ -40,6 +40,8 @@ export const CATALOG_ALIASES = {
   "page-cycle": "azinterface",
   "embryo-lock": "embryolock",
   embryo: "embryolock",
+  "az-chat": "azchat",
+  az_chat: "azchat",
   fourdmap: "4dmap",
   "four-d-map": "4dmap",
   "4-d-map": "4dmap",

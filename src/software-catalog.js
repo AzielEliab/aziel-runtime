@@ -13,6 +13,7 @@
  */
 
 import { CATALOG_ALIASES } from "./catalog-meta.js";
+import { domainFields, domainMapView } from "./domain-map.js";
 import { NAMED_STUBS } from "./fraggate/registry.js";
 import { meshHint } from "./mesh.js";
 import { qnsHint } from "./qns.js";
@@ -110,10 +111,14 @@ export function liveSoftwareCard(product, origin, meta = {}) {
   const base = String(origin || "").replace(/\/$/, "");
   const host = workerHostOf(product);
   const bucket = softwareBucket(product.name, product.slug);
+  const domain = domainFields(product.slug);
   return {
     slug: product.slug,
     name: product.name,
     bucket,
+    domain: domain.domain,
+    domain_id: domain.domain_id,
+    placement: domain.placement,
     status: "live",
     version: product.version || null,
     one_line: product.oneLine || product.one_line || product.name,
@@ -134,10 +139,14 @@ export function liveSoftwareCard(product, origin, meta = {}) {
 export function stubSoftwareCard(spec, origin, meta = {}) {
   const base = String(origin || "").replace(/\/$/, "");
   const bucket = softwareBucket(spec.name, spec.slug);
+  const domain = domainFields(spec.slug);
   return {
     slug: spec.slug,
     name: spec.name,
     bucket,
+    domain: domain.domain,
+    domain_id: domain.domain_id,
+    placement: domain.placement,
     status: "stub",
     version: spec.version || null,
     one_line: spec.description || spec.one_line || spec.note || spec.name,
@@ -186,6 +195,7 @@ export function softwareCatalog(origin, products, extra = {}) {
     live_count: software.filter((s) => s.status === "live").length,
     stub_count: software.filter((s) => s.status === "stub").length,
     software,
+    domains: domainMapView(),
     mcp: `${base}/mcp`,
     fraggate: `${base}/v1/fraggate`,
     fraggate_software: `${base}/v1/fraggate/software`,

@@ -2,7 +2,7 @@
 
 Author: Aziel Eliab only.
 
-Status: live runtime note (2026-09-10). Not a Softwares-tab product. Not a FragGate slug. Not LambGate.
+Status: historical runtime note (1.6.15). Public hop list superseded by **MASTER-33** / runtime **1.7.0** (FragGate-first; Lamb Lens after FragGate). Not rolled back — extended. Not a Softwares-tab product. Not a FragGate slug. Not LambGate.
 
 ---
 
