@@ -6,7 +6,7 @@
 import assert from "node:assert/strict";
 import { PRODUCTS } from "../src/index.js";
 import { RUNTIME_VERSION } from "../src/runtime-api.js";
-import { PUBLIC_MCP_TOOL_MAX } from "../src/fraggate/codes.js";
+import { existMcpHint, PUBLIC_MCP_TOOLS, PUBLIC_MCP_TOOL_MAX } from "../src/fraggate/codes.js";
 import { LIVE_OPS, NAMED_STUBS, OP_ALIASES, STUB_OPS, buildRegistry, classifyCall, parseTarget, resolveOpAlias } from "../src/fraggate/registry.js";
 import { resetLedger } from "../src/fraggate/ledger.js";
 import { memorySessionNamespace } from "../src/session-do.js";
@@ -284,11 +284,20 @@ assert.equal(hallucBody.ledger_tip.asked, true);
 assert.equal(hallucBody.ledger_tip.refused, true);
 assert.match(hallucBody.ledger_tip.hash, /^[a-f0-9]{64}$/);
 assert.ok(hallucBody.exist.mcp.includes("fraggate_call"));
+assert.ok(hallucBody.exist.mcp.includes("memory_observe"));
+assert.ok(hallucBody.exist.mcp.includes("mesh_status"));
+assert.ok(hallucBody.exist.mcp.includes("chainlock_append"));
+assert.equal(hallucBody.exist.see, "tools/list");
+assert.equal(hallucBody.exist.pointer, "POST /mcp tools/list");
+assert.ok(!hallucBody.exist.mcp.includes("foldlock_fold-preview"));
+assert.deepEqual(hallucBody.exist.mcp.slice().sort(), PUBLIC_MCP_TOOLS.slice().sort());
 
 const stubHttp = await (await post("/v1/fraggate/call", { slug: "ark", op: "scorch" })).json();
 assert.equal(stubHttp.ok, false);
 assert.equal(stubHttp.code, "FG-STUB");
 assert.equal(stubHttp.ledger_tip.refused, true);
+assert.ok(stubHttp.exist.mcp.includes("fraggate_call"));
+assert.equal(stubHttp.exist.see, "tools/list");
 
 const localOnly = await (await post("/v1/fraggate/call", { slug: "veillock", op: "apps" })).json();
 assert.equal(localOnly.ok, false);
@@ -539,6 +548,8 @@ assert.equal(mcpInit.result.serverInfo.version, RUNTIME_VERSION);
 const mcpList = await mcp("tools/list", {}, 2);
 const tools = mcpList.result.tools.map((t) => t.name);
 assert.ok(tools.length <= PUBLIC_MCP_TOOL_MAX, `tools/list length ${tools.length}`);
+assert.deepEqual(tools.slice().sort(), PUBLIC_MCP_TOOLS.slice().sort(), "exist.mcp / PUBLIC_MCP_TOOLS tracks tools/list");
+assert.equal(existMcpHint().see, "tools/list");
 assert.ok(tools.includes("runtime_skill"));
 assert.ok(tools.includes("fraggate_list"));
 assert.ok(tools.includes("fraggate_describe"));
@@ -581,6 +592,7 @@ assert.equal(lib.result.isError, false);
 const openapi = await (await get("/openapi.json")).json();
 assert.ok(openapi.paths["/v1/fraggate"]);
 assert.ok(openapi.paths["/v1/fraggate/call"]);
+assert.ok(openapi.paths["/mcp"]);
 assert.equal(openapi.paths["/p/foldlock/fold-preview"], undefined);
 assert.match(openapi.info.description, /FragGate/);
 

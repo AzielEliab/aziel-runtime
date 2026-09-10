@@ -26,6 +26,10 @@ Sort law: **Plain A–Z → Gate A–Z → Lock A–Z**. Clock ≠ Lock (StaticC
 plain). Sibling software under **one FragGate door** — never “separate FragGate
 engines”. EmbryoLock is included as `status: "stub"` (name only; no Worker).
 
+Softwares-tab `count` includes placements (`azinterface`, `decisiongate`,
+`forgereceipts`). Isolation `domains.software_count` is **33**
+(`domains_are_doors: false`). See `count_note`. Do not equate the two.
+
 ## Update check
 
 ```bash

@@ -61,13 +61,14 @@ async function jsonReq(env, path, method, body, headers = {}) {
 }
 
 // --- helpers ---
-assert.equal(RUNTIME_VERSION, "1.7.2");
+assert.equal(RUNTIME_VERSION, "1.7.3");
 assert.equal(RECEIPT_CAP, 64);
 assert.equal(SESSION_TTL_MS, 6 * 60 * 60 * 1000);
 assert.equal(RATE_OPEN_PER_MIN, 20);
 assert.equal(RATE_EXEC_PER_MIN, 60);
-assert.equal(authoritySnapshot().version, "1.7.2");
-assert.ok(VERSION_HISTORY.some((row) => row.version === "1.7.2" && row.status === "current"));
+assert.equal(authoritySnapshot().version, "1.7.3");
+assert.ok(VERSION_HISTORY.some((row) => row.version === "1.7.3" && row.status === "current"));
+assert.ok(VERSION_HISTORY.some((row) => row.version === "1.7.2" && row.status === "superseded"));
 assert.ok(VERSION_HISTORY.some((row) => row.version === "1.7.1" && row.status === "superseded"));
 assert.ok(VERSION_HISTORY.some((row) => row.version === "1.7.0" && row.status === "superseded"));
 assert.ok(VERSION_HISTORY.some((row) => row.version === "1.6.15" && row.status === "superseded"));
@@ -171,6 +172,9 @@ const envRequireSet = baseEnv({ REQUIRE_TOKEN: "1", RUNTIME_TOKEN: "prod-token" 
 const readyTokOk = await jsonReq(envRequireSet, "/v1/ready", "GET");
 assert.equal(readyTokOk.status, 200);
 assert.equal(readyTokOk.data.token_configured, true);
+assert.equal(readyTokOk.data.fraggate_call_public, true);
+assert.equal(readyTokOk.data.mutate_requires_token, true);
+assert.match(readyTokOk.data.token_note, /Public FragGate call stays open/);
 
 // public surfaces stay open (secret alone does NOT lock session mutate)
 const publicEnv = baseEnv({ RUNTIME_TOKEN: "prod-token" });
@@ -186,6 +190,10 @@ const gatedEnv = baseEnv({ REQUIRE_TOKEN: "1", RUNTIME_TOKEN: "prod-token" });
 const noTok = await jsonReq(gatedEnv, "/v1/session/open", "POST", {});
 assert.equal(noTok.status, 401);
 assert.equal(noTok.data.code, "token_required");
+
+const fgPublic = await jsonReq(gatedEnv, "/v1/fraggate/call", "POST", { slug: "vibelock", op: "health" });
+assert.equal(fgPublic.status, 200, "public FragGate call stays open when REQUIRE_TOKEN=1");
+assert.equal(fgPublic.data.code, "FG-OK");
 
 const badTok = await jsonReq(gatedEnv, "/v1/session/open", "POST", {}, { Authorization: "Bearer wrong" });
 assert.equal(badTok.status, 401);

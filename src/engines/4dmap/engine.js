@@ -1,7 +1,7 @@
 /**
  * 4DMap engine (4DM-WP-1.0).
  * Four-axis inspection frame T / Δ / Γ / Π.
- * Domain Door / inspection layer after AZPIPE routes to isolated engines.
+ * Inspection frame after AZPIPE — not an extra door (domains_are_doors:false).
  * NOT a sequential gate. Neighbors: TemporalLock, StaticClock, ChronoLock,
  * TrajectoryLock, SpectralLock. ChainLock may stamp walks.
  * FragGate claims cite join types.
@@ -94,7 +94,7 @@ export const STUB_REFUSE = Object.freeze([
 ]);
 
 export const LIMITATION =
-  "THIS IS: 4DMap 4DM-WP-1.0 — a four-axis inspection frame T/Δ/Γ/Π. Domain Door / inspection layer after AZPIPE routes to isolated engines. Cards pin, span, join, and walk declared marks. FragGate claims cite join types. ChainLock may stamp walks. THIS IS NOT: a sequential gate (DecisionGATE is); a truth score; a Lumen panel; an invented mark; a backdated class; TemporalLock; StaticClock; ChronoLock; TrajectoryLock; SpectralLock; AZ-OS / Lumen. Mesh default off. GET /v1/mesh never enables. EmbryoLock stays stub. Author: Aziel Eliab only.";
+  "THIS IS: 4DMap 4DM-WP-1.0 — a four-axis inspection frame T/Δ/Γ/Π. Inspection frame after AZPIPE routes to isolated engines (not an extra door; domains_are_doors:false). Cards pin, span, join, and walk declared marks. FragGate claims cite join types. ChainLock may stamp walks. THIS IS NOT: a sequential gate (DecisionGATE is); a truth score; a Lumen panel; an invented mark; a backdated class; TemporalLock; StaticClock; ChronoLock; TrajectoryLock; SpectralLock; AZ-OS / Lumen. Mesh default off. GET /v1/mesh never enables. EmbryoLock stays stub. Author: Aziel Eliab only.";
 
 const FORBIDDEN_KEYS = Object.freeze({
   truth_score: { kind: "truth_score", code: "4DM-TRUTH-REFUSE" },
@@ -309,7 +309,7 @@ export function fourdmapSkill() {
     op: "skill",
     markdown: `# 4DMap (4DM-WP-1.0)
 
-Four-axis inspection frame **T / Δ / Γ / Π**. Domain Door / inspection layer after AZPIPE routes to isolated engines. **Not a sequential gate.**
+Four-axis inspection frame **T / Δ / Γ / Π**. Inspection frame after AZPIPE (not an extra door; \`domains_are_doors:false\`). **Not a sequential gate.**
 
 - MCP: \`fraggate_call\` with \`{ slug: "4dmap", op: "..." }\`
 - HTTP: \`POST /v1/fraggate/call\` with the same envelope
@@ -327,7 +327,7 @@ Limitation: ${LIMITATION}
 `,
     skill: `# 4DMap (4DM-WP-1.0)
 
-Four-axis inspection frame T/Δ/Γ/Π. Domain Door / inspection layer. Not a sequential gate.
+Four-axis inspection frame T/Δ/Γ/Π. Inspection frame after AZPIPE, not an extra door. Not a sequential gate.
 
 LIVE_OPS: health, skill, card_new, card_pin, card_span, card_join, card_walk, card_list, verify_hash.
 Stubs: truth_score, lumen_panel, invent_mark, backdate_class.

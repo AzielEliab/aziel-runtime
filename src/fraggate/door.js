@@ -28,7 +28,7 @@ import {
   FG_UNKNOWN_OP,
   FRAGGATE_DOOR,
   FRAGGATE_KERNEL,
-  PUBLIC_DOOR_TOOLS,
+  existMcpHint,
 } from "./codes.js";
 import { appendLedger, currentLedger, ledgerTipView } from "./ledger.js";
 import {
@@ -67,7 +67,7 @@ export function defaultClaim(slug, op, extra = {}) {
 
 function existingTools() {
   return {
-    mcp: PUBLIC_DOOR_TOOLS.slice(),
+    ...existMcpHint(),
     live_ops: liveOpList(),
     allowlist: LIVE_OPS,
   };
