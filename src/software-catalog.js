@@ -18,7 +18,7 @@ import { CATALOG_COUNT_NOTE, MASTER_33_SLUGS, TAB_PLACEMENT_SLUGS, domainFields,
 import { NAMED_STUBS } from "./fraggate/registry.js";
 import { meshHint } from "./mesh.js";
 import { qnsHint } from "./qns.js";
-import { LIBRARY_ORIGIN } from "./seo.js";
+import { azcoherenceCiteField, hubsCiteField, LIBRARY_ORIGIN } from "./seo.js";
 
 export const SOFTWARE_SORT_LAW = "plain A–Z → gate A–Z → lock A–Z (Clock ≠ Lock)";
 export const SOFTWARE_FRAMING =
@@ -212,6 +212,9 @@ export function softwareCatalog(origin, products, extra = {}) {
     update_check: `${base}/v1/update/check`,
     update_manifest: `${base}/v1/update/manifest`,
     hubs: SOFTWARE_HUBS.slice(),
+    hubs_crawl: hubsCiteField(),
+    azcoherence: azcoherenceCiteField(base),
+    mesh_get_never_enables: true,
     hubs_note:
       "Hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) fetch GET /v1/software on each Software-tab request. A GitHub drop that updates this runtime refreshes those tabs without hand-editing hub copy.",
     note: SOFTWARE_FRAMING,
