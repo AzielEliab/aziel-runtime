@@ -5,14 +5,28 @@
  */
 
 export const PRODUCT = "decisiongate";
+export const NAME = "DecisionGATE";
 export const VERSION = "0.1.0";
+export const SPEC = "DG-0.1";
+export const AUTHOR = "Aziel Eliab";
 export const MOTTO = "Freedom without clarity is chaos. Clarity without force is wisdom.";
+export const ROLE = "five sequential gates PASS / REVISE / BLOCK";
 export const PASS = "PASS";
 export const REVISE = "REVISE";
 export const BLOCK = "BLOCK";
 export const GATE_ORDER = ["Definition", "Evidence", "Impact", "Integrity", "Responsibility"];
+export const AXES = GATE_ORDER;
+export const NEIGHBORS = Object.freeze(["4dmap", "forgereceipts", "temporallock"]);
+export const STUB_REFUSE = Object.freeze(["wrap", "execute", "remote", "truth_score", "court"]);
 export const LIMITATION =
   "THIS IS: a lightweight ethical pre-execution filter (PASS / REVISE / BLOCK). THIS IS NOT: a predictor, a court, a truth score, advice, or a hosted command runner. wrap is not hosted.";
+export const GATE_BLURBS = Object.freeze({
+  Definition: "Concrete statement with verb + object (at least 12 words).",
+  Evidence: "At least one named fact, datum, or observation.",
+  Impact: "Named positive and negative effects.",
+  Integrity: "Stated values; no contradiction of a provided constraint.",
+  Responsibility: "One named accountable owner.",
+});
 
 const HEDGES = new Set(["maybe", "somehow", "stuff", "things"]);
 const COMMON_VERBS = new Set([
@@ -250,4 +264,79 @@ export function runGates(proposal, overrides) {
 export function check(body) {
   const src = body && typeof body === "object" ? body : {};
   return runGates(src, src.overrides);
+}
+
+export function listGates() {
+  return {
+    ok: true,
+    product: PRODUCT,
+    name: NAME,
+    version: VERSION,
+    spec: SPEC,
+    sequential_gate: true,
+    axes: GATE_ORDER.slice(),
+    gates: GATE_ORDER.map((name, i) => ({
+      index: i + 1,
+      name,
+      states: [PASS, REVISE, BLOCK],
+      blurb: GATE_BLURBS[name],
+    })),
+    wrap_hosted: false,
+    neighbors: NEIGHBORS.slice(),
+    limitation: LIMITATION,
+    author: AUTHOR,
+  };
+}
+
+export function verifyLineage(body) {
+  const src = body && typeof body === "object" ? body : {};
+  const lineage = Array.isArray(src.lineage) ? src.lineage : [];
+  const errors = [];
+  if (!lineage.length) {
+    return {
+      ok: false,
+      product: PRODUCT,
+      match: false,
+      errors: ["lineage is empty. Pass the lineage array from check/evaluate."],
+      limitation: LIMITATION,
+    };
+  }
+  const names = lineage.map((row) => (row && row.name ? String(row.name) : ""));
+  for (let i = 0; i < names.length; i++) {
+    if (names[i] !== GATE_ORDER[i]) {
+      errors.push(`index ${i}: expected ${GATE_ORDER[i]}, got ${names[i] || "(blank)"}`);
+    }
+  }
+  if (names.length > GATE_ORDER.length) {
+    errors.push(`lineage longer than GATE_ORDER (${GATE_ORDER.length})`);
+  }
+  const states = lineage.map((row) => String((row && row.state) || "").toUpperCase());
+  const known = new Set([PASS, REVISE, BLOCK]);
+  for (let i = 0; i < states.length; i++) {
+    if (!known.has(states[i])) errors.push(`index ${i}: unknown state ${states[i]}`);
+  }
+  const firstFail = states.findIndex((s) => s !== PASS);
+  if (firstFail >= 0 && firstFail < states.length - 1) {
+    errors.push(`lineage continues after ${states[firstFail]} at ${names[firstFail]}`);
+  }
+  const claimed = src.final_state ? String(src.final_state).toUpperCase() : null;
+  const derived = firstFail < 0 ? PASS : states[firstFail];
+  if (claimed && claimed !== derived) {
+    errors.push(`final_state ${claimed} != derived ${derived}`);
+  }
+  return {
+    ok: errors.length === 0,
+    match: errors.length === 0,
+    product: PRODUCT,
+    version: VERSION,
+    sequential_gate: true,
+    axes: GATE_ORDER.slice(),
+    length: lineage.length,
+    derived_final_state: derived,
+    claimed_final_state: claimed,
+    errors,
+    wrap_hosted: false,
+    limitation: LIMITATION,
+    author: AUTHOR,
+  };
 }

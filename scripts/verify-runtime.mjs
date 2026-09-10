@@ -78,6 +78,7 @@ assert.match(skillText, /Dual surface/);
 assert.match(skillText, /How an agent uses this like software/);
 assert.match(skillText, /fraggate_call/);
 assert.match(skillText, /Public FragGate call stays open/);
+assert.match(skillText, /1\.7\.4/);
 assert.match(skillText, /1\.7\.3/);
 assert.match(skillText, /count_note/);
 assert.match(skillText, /domains\.software_count/);

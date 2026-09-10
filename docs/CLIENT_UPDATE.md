@@ -17,6 +17,12 @@ Mirror (FragGate path):
 curl -s -A 'Mozilla/5.0' https://aziel-runtime.vibelock.workers.dev/v1/fraggate/software
 ```
 
+`one_line` is capability-forward (live act + refuse). Do not mash
+`runtime X.Y` with `FragGate`. Softwares capability checklist:
+`docs/audit/SUITE-CAPABILITY-CHECKLIST.md` (1.7.5 wave 1).
+AKM-TRIAD-1.0 is LIVE fabric (`/v1/memory/*`, MCP `memory_*`), not a
+Softwares-tab card — do not invent an `akm` product on hubs.
+
 Each entry: `slug`, `name`, `bucket` (`plain` | `gate` | `lock`), `status`
 (`live` | `stub`), `version`, `one_line`, `worker_home`, `download_url`,
 `github`, `mcp` / `agent` path hints, `updated_at`, `git_sha` when the deploy

@@ -4,10 +4,16 @@
  */
 import INDEX from "./data.js";
 export const PRODUCT = "chronolock";
+export const NAME = "ChronoLock";
 export const VERSION = "0.1.0";
+export const SPEC = "CL-0.1";
 export const MOTTO = "Meaning is not only shaped by language, but by when language arrives.";
+export const ROLE = "Temporal Neutral Window advisory";
 export const LIMITATION = "THIS IS: timezone-aware linguistic alignment / Temporal Neutral Window (08:30–10:30 local). THIS IS NOT: a scheduler, analytics, user-profiling, influence engineering, virality, a cron that posts. Distinct from TemporalLock.";
 export const AUTHOR = "Aziel Eliab";
+export const AXES = Object.freeze(["geo", "window", "language", "dialect"]);
+export const NEIGHBORS = Object.freeze(["staticclock", "temporallock", "4dmap"]);
+export const STUB_REFUSE = Object.freeze(["scheduler", "targeting", "virality", "cron"]);
 const OUTPUT_FIELDS = ["geo_location_chosen", "optimal_time", "optimal_date", "primary_language", "dialect_section"];
 const DEFAULT_ANCHOR = "United States";
 const DEFAULT_WINDOW = ["08:30", "10:30"];
@@ -259,5 +265,26 @@ export function listAnchors() {
       iana: INDEX.anchors[name].iana,
       language: INDEX.anchors[name].language,
     })),
+  };
+}
+
+export function advisoryWindow(geo) {
+  const region = resolveGeo(geo);
+  const window = windowFor(region);
+  return {
+    ok: true,
+    product: PRODUCT,
+    version: VERSION,
+    motto: MOTTO,
+    geo_resolved: region,
+    window,
+    default_window: DEFAULT_WINDOW.slice(),
+    override: Boolean(OVERRIDES[region]),
+    scheduler: false,
+    targeting: false,
+    virality: false,
+    distinct_from: "temporallock",
+    note: "Temporal Neutral Window only. ChronoLock does not post, cron, or target.",
+    author: AUTHOR,
   };
 }

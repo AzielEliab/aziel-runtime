@@ -5,11 +5,18 @@
  */
 
 export const PRODUCT = "forgereceipts";
+export const NAME = "ForgeReceipts";
 export const VERSION = "0.3.0";
+export const SPEC = "FR-0.3";
+export const AUTHOR = "Aziel Eliab";
+export const ROLE = "local receipt mint + verify";
 export const BANNER = "Not legal advice. No court filing.";
 export const MOTTO = "Child's Best Interests First. Integrity Over Narrative. Local Control. Always.";
 export const GENESIS_PREV_HASH = "0".repeat(64);
 export const MAX_NOTE = 16384;
+export const AXES = Object.freeze(["kind", "child_impact", "evidence", "confidence", "hash"]);
+export const NEIGHBORS = Object.freeze(["temporallock", "decisiongate"]);
+export const STUB_REFUSE = Object.freeze(["court", "legal_advice", "odyssey", "file_store"]);
 export const LIMITATION =
   "THIS IS: a local-first evidence integrity helper that packages receipts. THIS IS NOT: legal advice, a court filing, counsel, Odyssey/email/cloud contact, or a guarantee of any court outcome. Hosted / in-process never stores files.";
 
@@ -106,5 +113,91 @@ export async function receipt(body) {
     stored: false,
     true_engine_runtime: true,
     note_to_caller: "Local-style receipt JSON. Corrections are new receipts. Not legal advice. No court filing. Does not call Odyssey.",
+  });
+}
+
+function receiptFields(src) {
+  const rec = src && src.receipt && typeof src.receipt === "object" ? src.receipt : src;
+  return rec && typeof rec === "object" ? rec : {};
+}
+
+export async function verifyReceipt(body) {
+  const rec = receiptFields(body);
+  const timestamp = rec.timestamp;
+  const summary = rec.summary;
+  const evidence = rec.evidence;
+  const prev = rec.prev_hash || GENESIS_PREV_HASH;
+  const stored = rec.hash ? String(rec.hash) : "";
+  if (!timestamp || !summary || !evidence || !stored) {
+    return withBanner({
+      ok: false,
+      product: PRODUCT,
+      match: false,
+      error: "verify needs receipt.timestamp, summary, evidence, hash",
+      status: 400,
+    });
+  }
+  const confidence = rec.confidence == null ? 1.0 : Number(rec.confidence);
+  if (!Number.isFinite(confidence) || confidence < 0 || confidence > 1) {
+    return withBanner({ ok: false, product: PRODUCT, match: false, error: "confidence must be a float in [0.0, 1.0]", status: 400 });
+  }
+  const bytes = canonicalBytes(timestamp, summary, evidence, confidence, prev);
+  const recomputed = await sha256Hex(bytes);
+  const match = recomputed === stored;
+  return withBanner({
+    ok: match,
+    product: PRODUCT,
+    version: VERSION,
+    match,
+    hash: stored,
+    recomputed,
+    prev_hash: prev,
+    durable: false,
+    stored: false,
+    true_engine_runtime: true,
+    limitation: LIMITATION,
+    author: AUTHOR,
+  });
+}
+
+export async function importExport(body) {
+  const src = body && typeof body === "object" ? body : {};
+  const mode = String(src.mode || src.action || "export").toLowerCase();
+  if (mode === "import" || mode === "verify") {
+    return { action: "import", ...(await verifyReceipt(src)) };
+  }
+  let rec = src.receipt && typeof src.receipt === "object" ? src.receipt : null;
+  if (!rec && (src.note || src.summary)) {
+    const minted = await receipt(src);
+    if (!minted.ok) return { action: "export", ...minted };
+    rec = minted.receipt;
+  }
+  if (!rec) {
+    return withBanner({
+      ok: false,
+      product: PRODUCT,
+      error: "import_export export needs a receipt object or note/summary to mint",
+      status: 400,
+    });
+  }
+  return withBanner({
+    ok: true,
+    product: PRODUCT,
+    version: VERSION,
+    action: "export",
+    envelope: {
+      product: PRODUCT,
+      version: VERSION,
+      schema: "forgereceipts-receipt-v1",
+      receipt: rec,
+      stored: false,
+      durable: false,
+    },
+    stored: false,
+    durable: false,
+    true_engine_runtime: true,
+    limitation: LIMITATION,
+    author: AUTHOR,
+    note: "Client-held JSON. Hosted / in-process never stores files.",
   });
 }

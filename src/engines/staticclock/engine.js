@@ -4,9 +4,16 @@
  */
 import INDEX from "./data.js";
 export const PRODUCT = "staticclock";
+export const NAME = "StaticClock";
 export const VERSION = "0.2.0";
+export const SPEC = "SC-0.2";
 export const AUTHOR = "Aziel Eliab";
 export const MOTTO = "Every action is a gear click. Time only locks forward.";
+export const ROLE = "forward-only gear-click timeline";
+export const GENESIS_PREV_HASH = "0".repeat(64);
+export const AXES = Object.freeze(["click", "second", "action", "timeslate"]);
+export const NEIGHBORS = Object.freeze(["temporallock", "chronolock", "4dmap"]);
+export const STUB_REFUSE = Object.freeze(["rollback", "remote_shell", "scheduler"]);
 export const LIMITATION = "THIS IS: an action-based immutable timeline plus companion advisory. THIS IS NOT: a rollback clock, a remote shell, or ChronoLock. Hosted / in-process does not store a chain.";
 const OUTPUT_FIELDS = ["geo_location_chosen", "optimal_time", "optimal_date", "primary_language", "dialect_section"];
 const DEFAULT_ANCHOR = "United States";
@@ -359,6 +366,43 @@ export async function timeslateOf(tick) {
       timestamp: tick.second,
     },
     note: "TemporalLock hash-chains this timeslate into its lattice. StaticClock does not store TemporalLock receipts.",
+  };
+}
+
+export async function importExport(body) {
+  const src = body && typeof body === "object" ? body : {};
+  const mode = String(src.mode || src.action || "export").toLowerCase();
+  const clicks = asClicks(src.clicks || src.chain || []);
+  if (mode === "import" || mode === "verify") {
+    const rec = await verifyClicks(clicks);
+    return {
+      action: "import",
+      product: PRODUCT,
+      version: VERSION,
+      stored: false,
+      ...rec,
+      limitation: LIMITATION,
+      author: AUTHOR,
+    };
+  }
+  return {
+    ok: true,
+    action: "export",
+    product: PRODUCT,
+    version: VERSION,
+    schema: "staticclock-clicks-v1",
+    envelope: {
+      product: PRODUCT,
+      schema: "staticclock-clicks-v1",
+      clicks,
+      stored: false,
+    },
+    length: clicks.length,
+    stored: false,
+    rollbacks: false,
+    limitation: LIMITATION,
+    author: AUTHOR,
+    note: "Client-held click chain. StaticClock does not store TemporalLock receipts.",
   };
 }
 
