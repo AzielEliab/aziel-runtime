@@ -229,5 +229,10 @@ const llms = await (await handler(new Request(origin + "/llms.txt"), env)).text(
 assert.match(llms, /4DMap/);
 assert.match(llms, /4DM-WP-1\.0/);
 
+const home = await (await handler(new Request(origin + "/"), env)).text();
+assert.match(home, /data-slug="4dmap"/);
+assert.match(home, /4DM-WP-1\.0/);
+assert.match(home, /not a sequential gate/i);
+
 void claimJoin;
 console.log(`ok 4dmap ${product.version}: LIVE_OPS=${live.join(",")} stub=${STUB_OPS["4dmap"].join(",")} axes=${AXES.join("/")}`);
