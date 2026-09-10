@@ -40,6 +40,12 @@ export const CATALOG_ALIASES = {
   "page-cycle": "azinterface",
   "embryo-lock": "embryolock",
   embryo: "embryolock",
+  fourdmap: "4dmap",
+  "four-d-map": "4dmap",
+  "4-d-map": "4dmap",
+  "4d-map": "4dmap",
+  "4dm-wp": "4dmap",
+  "4dm-wp-1.0": "4dmap",
 };
 
 /**
@@ -126,6 +132,7 @@ export const VERSIONS = {
   azhub: "0.1.0",
   azinterface: "0.1.0",
   "aziel-corpus": "2.6.2",
+  "4dmap": "0.1.0",
 };
 
 /**
@@ -198,6 +205,7 @@ export const FIRST_TIME_DEPOSIT_SLUGS = [
   "azhub",
   "azinterface",
   "aziel-corpus",
+  "4dmap",
 ];
 
 export const ZENODO_AUDIT = {

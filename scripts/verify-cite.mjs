@@ -41,6 +41,7 @@ assert.ok(slugs.includes("aznet"));
 assert.ok(slugs.includes("azhub"));
 assert.ok(slugs.includes("azinterface"));
 assert.ok(slugs.includes("aziel-corpus"));
+assert.ok(slugs.includes("4dmap"));
 
 for (const slug of slugs) {
   const version = VERSIONS[slug];
@@ -135,6 +136,7 @@ assert.equal(citeBody.designs.folder, "docs/designs/");
 assert.match(citeBody.designs.how_to_cite, /Eliab, Aziel/);
 assert.equal(citeBody.designs.papers.length, 12);
 assert.ok(citeBody.designs.papers.some((p) => p.id === "QNS-CD-1.0" && p.path === "docs/designs/QNS-CD-1.0.md" && p.kind === "fabric"));
+assert.ok(citeBody.designs.papers.some((p) => p.id === "4DM-WP-1.0" && p.path === "docs/designs/4DM-WP-1.0.md" && p.kind === "software"));
 assert.ok(citeBody.designs.papers.some((p) => p.id === "CL-WP-0.4" && p.kind === "fabric"));
 assert.ok(citeBody.designs.papers.some((p) => p.id === "SG-WP-0.1"));
 assert.ok(citeBody.designs.papers.some((p) => p.id === "RL-WP-0.1" && p.path === "docs/designs/RL-WP-0.1-runtime.md"));
