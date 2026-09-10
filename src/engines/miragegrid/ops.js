@@ -1,39 +1,51 @@
 /**
  * miragegrid in-process ops. Author: Aziel Eliab.
  */
-import { LIMITATION, VERSION, assign, listNodes, meshView, routeView, buildCircuit, verifyReceipt, makePool } from "./engine.js";
+import { capabilityDoctor, capabilityHealth, capabilitySkill } from "../capability.js";
+import { LIMITATION, MOTTO, VERSION, assign, listNodes, meshView, routeView, buildCircuit, verifyReceipt, makePool } from "./engine.js";
 
-export const MIRAGEGRID_OPS = ["health", "skill", "assign", "route", "circuit", "verify-receipt", "nodes", "mesh"];
+const LIVE = ["health", "skill", "assign", "verify-receipt", "nodes", "doctor"];
+const STUB = ["vpn-hop", "hop", "tunnel", "mesh"];
+export const MIRAGEGRID_OPS = ["health", "skill", "assign", "route", "circuit", "verify-receipt", "nodes", "mesh", "doctor"];
 
-export function miragegridHealth() {
+function envelope() {
   return {
-    ok: true,
     product: "miragegrid",
+    name: "MirageGrid",
     version: VERSION,
-    true_engine_runtime: true,
-    kv_increment: false,
+    role: "ephemeral control-plane assignment",
+    motto: MOTTO,
+    axes: ["assign", "receipt", "nodes"],
+    neighbors: ["azieltether", "aznet"],
+    live_ops: LIVE,
+    stub_ops: STUB,
     limitation: LIMITATION,
-    author: "Aziel Eliab",
+    extra: { vpn: false, hop: false },
   };
 }
 
+export function miragegridHealth() {
+  return capabilityHealth(envelope());
+}
+
 export function miragegridSkill() {
-  return {
-    markdown: `# miragegrid (in-process)
+  return capabilitySkill({
+    ...envelope(),
+    lead: "Ephemeral session node assignment. Not a VPN and not an anonymity network. mesh/hop stay refuse on the public door.",
+  });
+}
 
-This op ran inside aziel-runtime's Worker isolate (or a local CLI jail).
-
-Author: **Aziel Eliab**.
-Limitation: ${LIMITATION}
-`,
-    kv_increment: false,
-    limitation: LIMITATION,
-  };
+export function miragegridDoctor() {
+  return capabilityDoctor({
+    ...envelope(),
+    doctor_note: "MirageGrid doctor: assign / verify-receipt / nodes. vpn-hop stays refuse.",
+  });
 }
 
 export async function runMiragegrid(op, payload, scratch) {
   if (op === "health") return miragegridHealth();
   if (op === "skill") return miragegridSkill();
+  if (op === "doctor") return miragegridDoctor();
   if (op === "assign") return { ...(await assign(payload || {})), true_engine_runtime: true, limitation: LIMITATION };
   if (op === "nodes") return { ...listNodes(), true_engine_runtime: true };
   if (op === "mesh") return { ...meshView(), true_engine_runtime: true };

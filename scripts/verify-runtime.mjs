@@ -136,6 +136,7 @@ for (const slug of catalogSlugs) {
 }
 assert.ok(manifest.proxy_fallback_ops.azos.includes("session"));
 assert.ok(manifest.proxy_fallback_ops["aziel-corpus"].includes("transcribe"));
+assert.ok(!manifest.proxy_fallback_ops["aziel-corpus"].includes("review"));
 assert.equal(manifest.author, "Aziel Eliab");
 assert.equal(manifest.identity, "Aziel Eliab");
 assert.equal(manifest.version, RUNTIME_VERSION);

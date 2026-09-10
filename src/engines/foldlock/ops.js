@@ -2,6 +2,7 @@
  * FoldLock in-process ops. Codec artifact is ./codec.js (vendored Worker engine).
  * Author: Aziel Eliab.
  */
+import { capabilityDoctor, capabilityHealth, capabilitySkill } from "../capability.js";
 import {
   LIMITATION,
   PAPER,
@@ -16,42 +17,43 @@ import {
 } from "./codec.js";
 
 const PRODUCT = "foldlock";
+const LIVE = ["health", "skill", "fold-preview", "unfold-preview", "doctor"];
+const STUB = ["zip", "hosted_store"];
+export const FOLDLOCK_OPS = LIVE.slice();
 
-export const FOLDLOCK_OPS = ["health", "skill", "fold-preview", "unfold-preview"];
-
-export function foldlockHealth() {
+function envelope() {
   return {
-    ok: true,
     product: PRODUCT,
+    name: "FoldLock",
     version: VERSION,
     spec: SPEC,
-    runtime: true,
-    true_engine_runtime: true,
-    kv_increment: false,
-    zip: false,
-    method: "adaptive",
-    paper: PAPER,
-    banner: "SOTA adaptive UNI1 compression engine",
+    role: "algorithmic tether-word suppression",
+    motto: "Not zip.",
+    axes: ["fold", "unfold", "receipt"],
+    neighbors: ["codelock", "azpipe"],
+    live_ops: LIVE,
+    stub_ops: STUB,
     limitation: LIMITATION,
-    author: "Aziel Eliab",
-    tether_words: TETHERS.length,
+    extra: { zip: false, paper: PAPER, tether_words: TETHERS.length, method: "adaptive" },
   };
 }
 
+export function foldlockHealth() {
+  return capabilityHealth(envelope());
+}
+
 export function foldlockSkill() {
-  return {
-    markdown: `# FoldLock (in-process)
+  return capabilitySkill({
+    ...envelope(),
+    lead: "Algorithmic tether-word suppression on UTF-8 text. Preview cap ~8KB. Not zip.",
+  });
+}
 
-FoldLock is algorithmic tether-word suppression on UTF-8 text. **Not zip.**
-This op ran inside aziel-runtime's Worker isolate (or a local CLI jail), not via an upstream product Worker.
-
-Author: **Aziel Eliab**. Version: ${VERSION}. Spec: ${SPEC}.
-Limitation: ${LIMITATION}
-`,
-    kv_increment: false,
-    zip: false,
-    limitation: LIMITATION,
-  };
+export function foldlockDoctor() {
+  return capabilityDoctor({
+    ...envelope(),
+    doctor_note: "FoldLock doctor: fold-preview / unfold-preview. Not zip. No hosted store.",
+  });
 }
 
 export async function foldPreview(body, scratch) {
@@ -134,6 +136,7 @@ export async function unfoldPreview(body, scratch) {
 export async function runFoldlock(op, payload, scratch) {
   if (op === "health") return foldlockHealth();
   if (op === "skill") return foldlockSkill();
+  if (op === "doctor") return foldlockDoctor();
   if (op === "fold-preview") return foldPreview(payload, scratch);
   if (op === "unfold-preview") return unfoldPreview(payload, scratch);
   return { unsupported: true };

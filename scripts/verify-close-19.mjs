@@ -11,7 +11,7 @@ import { resetHashStore } from "../src/engines/hash-store.js";
 import { resetAzmailStore } from "../src/engines/azmail/engine.js";
 import { RUNTIME_VERSION } from "../src/runtime-api.js";
 
-assert.equal(RUNTIME_VERSION, "1.9.0");
+assert.equal(RUNTIME_VERSION, "1.9.1");
 assert.equal(NAMED_STUBS.length, 0);
 
 const aliasesOf = (slug) => new Set(Object.keys(OP_ALIASES[slug] || {}));
@@ -146,15 +146,19 @@ const corpus = JSON.parse(
   (await executeLocal({ slug: "aziel-corpus", op: "health", payload: {}, ranIn: "aziel-runtime" })).responseText,
 );
 assert.ok(corpus.native_ops.includes("search"));
-assert.ok(corpus.proxy_ops.includes("ocr"));
+assert.ok(corpus.native_ops.includes("review"));
+assert.ok(corpus.native_ops.includes("document-chain"));
+assert.ok(corpus.proxy_ops.includes("jeeves"));
+assert.ok(corpus.binding_gated.transcribe);
+assert.ok(corpus.binding_gated.ocr);
 
 const handler = (await import("../src/index.js")).default.fetch;
 const openapi = await (
   await handler(new Request("https://aziel-runtime.example/openapi.json", { headers: { "user-agent": "Mozilla/5.0" } }), {})
 ).json();
 assert.ok(openapi.info.description.startsWith("Aziel Runtime is not merely an API orchestrator"));
-assert.match(openapi.info.description, /1\.9\.0/);
-assert.ok(openapi.info.description.indexOf("Aziel Runtime is not merely") < openapi.info.description.indexOf("1.9.0"));
+assert.match(openapi.info.description, /1\.9\.1/);
+assert.ok(openapi.info.description.indexOf("Aziel Runtime is not merely") < openapi.info.description.indexOf("1.9.1"));
 const pathKeys = Object.keys(openapi.paths).join(" ");
 assert.doesNotMatch(pathKeys, /smtp_send|deanonymize/);
 assert.ok(openapi.paths["/p/azchat/handle_new"]);
@@ -165,7 +169,7 @@ const home = await (
 ).text();
 assert.match(home, /not merely an API orchestrator or software aggregator/);
 assert.match(home, /node-meshed orchestration suite of MCP-connected software/);
-assert.match(home, /1\.9\.0/);
+assert.match(home, /1\.9\.1/);
 assert.ok(home.indexOf("not merely an API orchestrator") < home.indexOf("id=\"version-history\""));
 assert.doesNotMatch(home, /Flutter <code>mobile\/<\/code>, local install/);
 

@@ -67,6 +67,7 @@ const expectedLive = [
   "ack",
   "verify_receipt",
   "import_export",
+  "transport_status",
   "health",
   "skill",
 ];

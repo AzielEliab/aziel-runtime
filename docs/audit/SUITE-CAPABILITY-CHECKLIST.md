@@ -1,7 +1,7 @@
 # Suite Softwares capability checklist
 
 **Repo:** [AzielEliab/aziel-runtime](https://github.com/AzielEliab/aziel-runtime)  
-**Runtime:** **1.9.0** (AZRT-1.9-CLOSE-1.0) on MASTER-33 / 1.7.5 wave-1 heritage  
+**Runtime:** **1.9.1** (AZRT-1.9-GAPS-CLOSE) on 1.9.0 / MASTER-33 / 1.7.5 wave-1 heritage  
 **Author / identity:** **Aziel Eliab** only  
 **Status:** living checklist. 4DMap inspection-frame ops shipped in runtime **1.7.4** (`4DM-WP-1.0`). This file covers the rest of the Softwares-tab live engines.
 
@@ -44,8 +44,8 @@ Where missing or thin, add or strengthen. Do not invent fantasy ops.
 | Wave | Slugs | This PR |
 | --- | --- | --- |
 | **1** | `decisiongate`, `forgereceipts`, `temporallock`, `staticclock`, `chronolock`, `trajectorylock`, `spectrallock` | **yes** |
-| 2 | Remaining Locks: `peacelock`, `employeelock`, `whistlelock`, `shadowlock`, `foldlock`, `godlock`, `vibelock`, `codelock`, `veillock` (local_only — public mesh does not exec) | checklist only |
-| 3 | Remaining Gates / Plain live: `azclce`, `azos`, `glossafilter`, `miragegrid`, `postking`, `ark`, `azai`, `azbot`, `zsolver`, `mialock`, `azieltether`, `azmail`, `azbrowser`, `aznet`, `azhub`, `azinterface`, `aziel-corpus` | checklist only |
+| 2 | Remaining Locks: `peacelock`, `employeelock`, `whistlelock`, `shadowlock`, `foldlock`, `godlock`, `vibelock`, `codelock`, `veillock` (local_only — public mesh does not exec) | **yes** (1.9.1 health/skill/doctor; VeilLock stays local_only) |
+| 3 | Remaining Gates / Plain live: `azclce`, `azos`, `glossafilter`, `miragegrid`, `postking`, `ark`, `azai`, `azbot`, `zsolver`, `mialock`, `azieltether`, `azmail`, `azbrowser`, `aznet`, `azhub`, `azinterface`, `aziel-corpus` | **yes** (1.9.1 health/skill/doctor + corpus isolate-safe verify) |
 | — | `4dmap` | shipped in runtime **1.7.4** (keep those ops; do not invent an extra door) |
 | — | `embryolock` | shipped 1.7.8 (wipe/scorch stay FG-STUB) |
 | **1.8–1.9** | `codelock`, `vibelock`, `glossafilter`, `azbot`, `azos`, `azai`, `shadowlock`, `miragegrid`, `azieltether`, `azmail`, `azchat` | **yes** (AZRT-1.9-CLOSE-1.0) |
@@ -101,7 +101,7 @@ Do not treat this table as a license to invent verbs. Close only what the produc
 | aznet | pair_status … receipt_verify | same + doctor/pair aliases | Already above baseline; never host payloads |
 | azhub | region_list … blank_key_status | same + list_modules/place aliases | Already above baseline |
 | azinterface | genesis_status … page_cycle_status | same + genesis_boot/hold aliases | Already above baseline |
-| aziel-corpus | search, example | same + doctor alias | 1.9.0 native-vs-proxy labels. OCR/D1 stay proxy |
+| aziel-corpus | search, example, review, score, verify-*, document-chain, import_export | same + doctor | 1.9.1 isolate-safe verify. OCR/D1/Whisper binding-gated |
 | azchat | handle_new, handle_rotate, room_*, bus_*, verify_receipt, import_export, doctor | same | 1.8.4 LIVE+bound. Mesh default off. Not AZMail |
 | 4dmap | card_*, verify_hash | same | Parallel wave — already at baseline |
 

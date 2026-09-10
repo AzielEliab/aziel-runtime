@@ -20,6 +20,29 @@ const WAVE = [
   "spectrallock",
 ];
 
+const WAVE23 = [
+  "peacelock",
+  "employeelock",
+  "whistlelock",
+  "shadowlock",
+  "foldlock",
+  "godlock",
+  "vibelock",
+  "codelock",
+  "azclce",
+  "azos",
+  "glossafilter",
+  "miragegrid",
+  "postking",
+  "ark",
+  "azai",
+  "azbot",
+  "zsolver",
+  "mialock",
+  "azieltether",
+  "aziel-corpus",
+];
+
 const REQUIRED_NEW = {
   decisiongate: ["gates", "verify", "doctor"],
   forgereceipts: ["verify", "import_export", "doctor"],
@@ -235,4 +258,37 @@ assert.equal(classifyCall(registry.bySlug.chronolock, "cron").kind, "stub");
 assert.equal(classifyCall(registry.bySlug.trajectorylock, "store_media").kind, "stub");
 assert.equal(classifyCall(registry.bySlug.spectrallock, "forensic").kind, "stub");
 
-console.log(`ok capability wave 1: ${WAVE.join(", ")}`);
+for (const slug of WAVE23) {
+  const p = product(slug);
+  assert.ok(p, `${slug} is a catalog product`);
+  const live = LIVE_OPS[slug];
+  assert.ok(live.includes("doctor"), `${slug} LIVE_OPS has doctor`);
+  assert.ok(p.ops.some((o) => o.op === "doctor"), `${slug} catalog has doctor`);
+  const health = await executeLocal({ slug, op: "health", payload: {}, ranIn: "aziel-runtime" });
+  assert.equal(health.status, 200, `${slug} health`);
+  const body = JSON.parse(health.responseText);
+  assert.equal(body.ok, true, `${slug} health ok`);
+  assert.equal(body.door, "fraggate", `${slug} door`);
+  assert.equal(body.mesh_enabled_default, false, `${slug} mesh default off`);
+  assert.ok(Array.isArray(body.axes) && body.axes.length, `${slug} health axes`);
+  assert.ok(Array.isArray(body.neighbors) && body.neighbors.length, `${slug} health neighbors`);
+  assert.ok(Array.isArray(body.live_ops) && body.live_ops.includes("health"), `${slug} health live_ops`);
+  assert.ok(body.limitation && String(body.limitation).includes("THIS IS"), `${slug} limitation`);
+  assert.equal(body.author, "Aziel Eliab");
+  const doctor = await executeLocal({ slug, op: "doctor", payload: {}, ranIn: "aziel-runtime" });
+  assert.equal(doctor.status, 200, `${slug} doctor`);
+  assert.equal(JSON.parse(doctor.responseText).doctor, true, `${slug} doctor flag`);
+}
+
+const review = JSON.parse(
+  (await executeLocal({ slug: "aziel-corpus", op: "review", payload: { record_id: "AZDOC-FLORENCE-SAMPLE" }, ranIn: "aziel-runtime" }))
+    .responseText,
+);
+assert.equal(review.ok, true);
+assert.equal(review.live_ingest, false);
+const geo = JSON.parse(
+  (await executeLocal({ slug: "aziel-corpus", op: "verify-geo", payload: { place: "Florence" }, ranIn: "aziel-runtime" })).responseText,
+);
+assert.equal(geo.match, true);
+
+console.log(`ok capability wave 1 + wave 2–3: ${WAVE.concat(WAVE23).join(", ")}`);

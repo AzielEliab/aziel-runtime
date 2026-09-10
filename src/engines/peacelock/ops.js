@@ -1,11 +1,14 @@
 /**
  * peacelock in-process ops. Author: Aziel Eliab.
  */
+import { capabilityDoctor, capabilityHealth, capabilitySkill } from "../capability.js";
 import {
   LIMITATION,
   VERSION,
   SPEC,
   AUTHOR,
+  MOTTO,
+  ROLE,
   openLattice,
   sealLattice,
   breakLattice,
@@ -15,58 +18,49 @@ import {
   uploadEnvelope,
 } from "./engine.js";
 
-export const PEACELOCK_OPS = [
-  "health",
-  "skill",
-  "open",
-  "seal",
-  "break",
-  "show",
-  "verify",
-  "stamp",
-  "upload_envelope",
-];
+const LIVE = ["health", "skill", "open", "seal", "break", "show", "verify", "stamp", "upload_envelope", "doctor"];
+const STUB = ["transcript", "transcribe", "motive", "counterfactual", "invent", "waive-duty", "bypass-duty"];
+export const PEACELOCK_OPS = LIVE.slice();
 
-export function peacelockHealth() {
+function envelope() {
   return {
-    ok: true,
     product: "peacelock",
+    name: "PeaceLock",
     version: VERSION,
     spec: SPEC,
-    true_engine_runtime: true,
-    kv_increment: false,
+    role: ROLE,
+    motto: MOTTO,
+    axes: ["open", "seal", "break", "verify"],
+    neighbors: ["temporallock", "whistlelock", "azchat"],
+    live_ops: LIVE,
+    stub_ops: STUB,
     limitation: LIMITATION,
-    author: AUTHOR,
+    extra: { author: AUTHOR, transcript: false },
   };
 }
 
+export function peacelockHealth() {
+  return capabilityHealth(envelope());
+}
+
 export function peacelockSkill() {
-  return {
-    markdown: `# peacelock (in-process)
+  return capabilitySkill({
+    ...envelope(),
+    lead: "Chosen silence / chosen inaction as a hash-chained receipt. Transcript, counterfactual, and motive stay ABSENT. HARD_DUTY refuses a silence/inaction receipt.",
+  });
+}
 
-PeaceLock (PL-WP-0.1) records **chosen silence** or **chosen inaction** as a hash-chained receipt.
-
-- \`open\` — start a lattice.
-- \`seal\` — append chosen_silence or chosen_inaction.
-- \`break\` — end the sealed period. Still no transcript.
-- \`show\` / \`verify\` — read the lattice. Missing fields stay ABSENT.
-- \`stamp\` / \`upload_envelope\` — timestamped file-hash only.
-
-HARD_DUTY refuses a silence/inaction receipt. Transcript, counterfactual, and motive are ABSENT — this isolate will not invent them.
-
-This op ran inside aziel-runtime's Worker isolate (or a local CLI jail).
-
-Author: **Aziel Eliab**.
-Limitation: ${LIMITATION}
-`,
-    kv_increment: false,
-    limitation: LIMITATION,
-  };
+export function peacelockDoctor() {
+  return capabilityDoctor({
+    ...envelope(),
+    doctor_note: "PeaceLock doctor: lattice open/seal/break/verify. No transcript. No motive.",
+  });
 }
 
 export async function runPeacelock(op, payload, scratch) {
   if (op === "health") return peacelockHealth();
   if (op === "skill") return peacelockSkill();
+  if (op === "doctor") return peacelockDoctor();
   if (op === "open") return openLattice(payload);
   if (op === "seal") return sealLattice(payload);
   if (op === "break") return breakLattice(payload);
