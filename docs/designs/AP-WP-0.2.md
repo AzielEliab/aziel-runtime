@@ -41,10 +41,25 @@ Aziel Eliab · local specification · not a fleet-completeness claim
 •         Not a substitute for host AV, sandboxing, or EmbryoLock wipe.
 
     3. Hops
-    Inbound:
+    Public hop list is LOCKED as of runtime 1.6.15 (SUITE-PIPE-1.6.15). The fold-centric
+    list below is INTERNAL fld3-wire only — not the public arch() / UI strip / skill cite.
+
+    Locked inbound (public):
+     PUBLIC/UI/Agents → FragGate → SweepGate → ChainLock-IN → DecisionGATE → AZPIPE
+     → Domain Doors (4DMap inspection) → TemporalLock → StaticClock → ChainLock-OUT
+     → Response/Receipt
+
+    Locked outbound (sensible reverse):
+     Response/Receipt → ChainLock-OUT → StaticClock → TemporalLock → Domain Doors
+     → AZPIPE → DecisionGATE → SweepGate → FragGate → PUBLIC/UI/Agents
+
+    Internal fld3-wire (not the public hop list):
+     fold → static → fold
+
+    Historical fold-centric list (superseded on the public surface):
      frag → sweep → fold → static → fold → entry → frag → toolkits
 
-    Outbound:
+    Historical outbound (superseded on the public surface):
      toolkits → frag → fold → static → fold → sweep → frag
 
     frag (first). DecisionGATE flags D/E/I/G/R. Empty or ungrounded inbound refuses before SweepGate spends work.
@@ -151,7 +166,13 @@ Aziel Eliab · local specification · not a fleet-completeness claim
  8. Cap
  fld3-wire is not TETH-1. Drop foldlock.py next to azpipe.py to switch lexicons without changing hops.
 
- Companion papers: CL-WP-0.4, SG-WP-0.1, LS-WP-0.1.
+ Companion papers: CL-WP-0.4, SG-WP-0.1, LS-WP-0.1, SUITE-PIPE-1.6.15, 4DM-WP-1.0.
+
+ 9. Runtime 1.6.15 — locked public list
+ The Worker public arch() / UI strip / skill / OpenAPI / llms / cite show the locked
+ suite order. Illegal reorder is refused. LambGate is not a hop. 4DMap (`4dmap`) is
+ cited at Domain Doors as a read-side inspection frame, not a sequential gate.
+ SweepGate / ChainLock / AZPIPE remain fabric (not Softwares-tab). Identity Aziel Eliab only.
 
 
 

@@ -376,7 +376,8 @@ export const SUITE_DESIGNS = Object.freeze([
   {
     id: "AP-WP-0.2",
     file: "AP-WP-0.2.md",
-    one_line: "LIVE fabric — AZPIPE FLD3 hop list around fraggate_call (not Softwares-tab)",
+    one_line:
+      "LIVE fabric — AZPIPE FLD3; public hop list locked (SUITE-PIPE-1.6.15); fld3-wire internal (not Softwares-tab)",
     status: "live",
     kind: "fabric",
   },
@@ -417,6 +418,14 @@ export const SUITE_DESIGNS = Object.freeze([
       "4DMap four-axis inspection frame T/Δ/Γ/Π — Domain Door / inspection layer after AZPIPE; not a sequential gate",
     status: "live",
     kind: "software",
+  },
+  {
+    id: "SUITE-PIPE-1.6.15",
+    file: "SUITE-PIPE-1.6.15.md",
+    one_line:
+      "Locked suite hop order — FragGate → SweepGate → ChainLock-IN → DecisionGATE → AZPIPE → Domain Doors (4DMap) → TemporalLock → StaticClock → ChainLock-OUT; not LambGate",
+    status: "live",
+    kind: "fabric",
   },
 ]);
 
@@ -460,7 +469,7 @@ export function designsSkillMarkdown() {
   const lines = [
     "## Designs",
     "",
-    "Suite software-design papers (law / fabric are not Softwares-tab products, not a FragGate slug). 4DM-WP-1.0 is the 4DMap product spec (Softwares-tab slug `4dmap`; the paper is not a FragGate slug). LIVE fabric modules: ChainLock, AZPIPE, SweepGate, LOCKSET, packed catalog (RL), QNS-CD-1.0 (photon QNS1 1.3; local qnsd; Worker cites only). `GET /v1/mesh` never enables. Git-hosted — the Worker does not serve the PDFs. Public identity Aziel Eliab only.",
+    "Suite software-design papers (law / fabric are not Softwares-tab products, not a FragGate slug). 4DM-WP-1.0 is the 4DMap product spec (Softwares-tab slug `4dmap`; the paper is not a FragGate slug). LIVE fabric modules: ChainLock, AZPIPE, SweepGate, LOCKSET, packed catalog (RL), QNS-CD-1.0 (photon QNS1 1.3; local qnsd; Worker cites only), SUITE-PIPE-1.6.15 (locked hop order; LambGate is not a hop). `GET /v1/mesh` never enables. Git-hosted — the Worker does not serve the PDFs. Public identity Aziel Eliab only.",
     "",
   ];
   for (const d of SUITE_DESIGNS) {
@@ -476,7 +485,7 @@ export function designsLlmsBlock() {
   const lines = [
     "## Designs",
     "",
-    "Suite software-design papers (law / fabric are not Softwares-tab products, not a FragGate slug). 4DM-WP-1.0 is the 4DMap product spec (slug `4dmap`). LIVE fabric: CL-WP-0.4, AP-WP-0.2, SG-WP-0.1, LS-WP-0.1, RL-WP-0.1 (runtime), QNS-CD-1.0 (local qnsd). GET /v1/mesh never enables. Git-hosted — the Worker does not serve the PDFs. Author: Aziel Eliab only.",
+    "Suite software-design papers (law / fabric are not Softwares-tab products, not a FragGate slug). 4DM-WP-1.0 is the 4DMap product spec (slug `4dmap`). LIVE fabric: CL-WP-0.4, AP-WP-0.2, SG-WP-0.1, LS-WP-0.1, RL-WP-0.1 (runtime), QNS-CD-1.0 (local qnsd), SUITE-PIPE-1.6.15 (locked hop order). GET /v1/mesh never enables. Git-hosted — the Worker does not serve the PDFs. Author: Aziel Eliab only.",
     `Index: ${DESIGNS_GITHUB_TREE}`,
     "",
   ];

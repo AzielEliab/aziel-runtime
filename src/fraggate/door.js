@@ -1,18 +1,20 @@
 /**
  * FragGate door — discover, route, refuse.
  *
- * CallEnvelope in → registry classify → DecisionGATE → handler or refuse
- * → ResultEnvelope + ledger tip.
+ * Locked call path (1.6.15):
+ * PUBLIC/UI/Agents → FragGate (classify) → SweepGate → ChainLock-IN
+ * → DecisionGATE → AZPIPE → Domain Doors (4DMap inspection)
+ * → TemporalLock → StaticClock → ChainLock-OUT → Response/Receipt
  *
- * One door over the catalog. Not tool #31 beside a flat pile.
+ * DecisionGATE sits AFTER ChainLock-IN and BEFORE domain/tool exec.
+ * LambGate is not a hop. Author: Aziel Eliab. Identity is Aziel Eliab only.
  * Kernel: https://github.com/AzielEliab/fraggate (FG-0.1)
- * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
 
 import { check as decisiongateCheck } from "../engines/decisiongate/engine.js";
 import { joinTypeForOp, normalizeJoinType } from "../engines/4dmap/engine.js";
 import { executeLocal } from "../engines/runner.js";
-import { pipeInbound, pipeOutbound, thinPipe } from "../azpipe.js";
+import { arch, LOCKED_STRIP, pipeInbound, pipeOutbound, thinPipe } from "../azpipe.js";
 import { MESH_SLUG, runMeshOp } from "../mesh.js";
 import {
   FG_GATE_REFUSE,
@@ -41,7 +43,7 @@ export function defaultClaim(slug, op, extra = {}) {
   const name = slug || "software";
   const verb = op || "op";
   const evidence = [
-    `${name} ${verb} is on the aziel-runtime 1.6.14 FragGate public allowlist.`,
+    `${name} ${verb} is on the aziel-runtime 1.6.15 FragGate public allowlist.`,
     "Cloudflare Worker isolate is the jail. engine_digest is required.",
   ];
   let join_type = extra.join_type || extra.join || null;
@@ -136,6 +138,8 @@ export async function listRegistry(registry) {
     door: FRAGGATE_DOOR,
     kernel: FRAGGATE_KERNEL,
     ...registrySummary(registry, digest),
+    pipeline: arch(),
+    pipeline_strip: LOCKED_STRIP,
     entries: compactEntries(registry),
   };
 }
@@ -168,6 +172,18 @@ export async function describeRegistry(args, registry, bySlug) {
     stub: e.status === "stub",
     local_not_hosted: Boolean(e.local_not_hosted) || e.status === "stub",
     op_aliases: e.op_aliases || {},
+    pipeline: arch(),
+    pipeline_strip: LOCKED_STRIP,
+    domain_doors:
+      e.slug === "4dmap"
+        ? {
+            inspection: true,
+            slug: "4dmap",
+            spec: "4DM-WP-1.0",
+            sequential_gate: false,
+            note: "4DMap is the Domain Door inspection frame T/Δ/Γ/Π after AZPIPE. Not a sequential gate.",
+          }
+        : { inspection: "4dmap", sequential_gate: false },
   };
 }
 
@@ -237,10 +253,14 @@ function claimFromArgs(args, slug, op) {
 
 /**
  * Admit or refuse a call. No handler on refuse.
+ * Classify (halluc / stub / local_only) always runs at FragGate.
+ * DecisionGATE is deferred on the FragGate call path (gate:false) so it
+ * sits AFTER ChainLock-IN inside AZPIPE. Session exec still gates here.
  */
-export async function admitCall(args, registry, bySlug) {
+export async function admitCall(args, registry, bySlug, opts = {}) {
   const target = parseTarget(args, registry, bySlug);
   const classified = classifyCall(target.entry, target.op);
+  const deferGate = opts && opts.gate === false;
 
   if (classified.kind === "halluc") {
     return {
@@ -304,6 +324,9 @@ export async function admitCall(args, registry, bySlug) {
   }
 
   const claim = claimFromArgs(args, target.entry.slug, target.op);
+  if (deferGate) {
+    return { admitted: true, target, gate: null, claim, deferred_gate: true };
+  }
   const gate = decisiongateCheck(claim);
   if (!gate || gate.final_state !== "PASS") {
     return {
@@ -326,10 +349,10 @@ export async function admitCall(args, registry, bySlug) {
 }
 
 export async function fraggateCall(args, registry, bySlug, env) {
-  const admission = await admitCall(args, registry, bySlug);
+  const admission = await admitCall(args, registry, bySlug, { gate: false });
   if (!admission.admitted) return admission.envelope;
 
-  const { target, gate, claim } = admission;
+  const { target, claim } = admission;
   const src = args && typeof args === "object" ? args : {};
   const rawPayload = src.payload !== undefined ? src.payload : payloadWithoutMeta(src);
   const inbound = await pipeInbound({
@@ -341,17 +364,21 @@ export async function fraggateCall(args, registry, bySlug, env) {
     subject: `${target.entry.slug} ${target.op}`,
     untrusted: false,
   });
+  const gate = inbound.gate_check || inbound.gates;
   if (!inbound.ok) {
+    const sweep = inbound.refuse === "sweep-isolate" || inbound.closed_at === "sweepgate";
+    const atGate = inbound.closed_at === "decisiongate";
     return refuse({
-      code: inbound.refuse === "sweep-isolate" ? "FG-SWEEP-ISOLATE" : FG_GATE_REFUSE,
+      code: sweep ? "FG-SWEEP-ISOLATE" : FG_GATE_REFUSE,
       name: target.entry.name,
       slug: target.entry.slug,
       op: target.op,
-      gate,
-      extra: { pipe: thinPipe(inbound), sweep: inbound.sweep, status: "live" },
-      message:
-        inbound.refuse === "sweep-isolate"
-          ? "SweepGate isolate — airlock closed. Do not merge."
+      gate: atGate ? gate : null,
+      extra: { pipe: thinPipe(inbound), sweep: inbound.sweep, status: "live", closed_at: inbound.closed_at },
+      message: sweep
+        ? "SweepGate isolate — airlock closed. Do not merge."
+        : atGate
+          ? `DecisionGATE ${gate && gate.final_state ? gate.final_state : "REFUSE"} — no handler.`
           : `AZPIPE ${inbound.refuse || "refuse"} — no handler.`,
     });
   }
@@ -364,7 +391,7 @@ export async function fraggateCall(args, registry, bySlug, env) {
       slug: target.entry.slug,
       op: target.op,
       result,
-      gate,
+      gate: inbound.gate_check || gate,
       engine: {
         engine_digest: null,
         ran_in: "aziel-runtime",
@@ -411,7 +438,7 @@ export async function fraggateCall(args, registry, bySlug, env) {
     slug: target.entry.slug,
     op: target.op,
     result: parsed,
-    gate,
+    gate: inbound.gate_check || gate,
     engine: {
       engine_digest: local.engine_digest,
       ran_in: local.ran_in,
@@ -428,9 +455,17 @@ export async function fraggateCall(args, registry, bySlug, env) {
 }
 
 async function decoratePipe(accepted, inbound, parsed, env, claim) {
-  const outbound = await pipeOutbound({ result: parsed, env, claim });
+  const outbound = await pipeOutbound({
+    result: parsed,
+    env,
+    claim,
+    slug: accepted && accepted.slug,
+    subject: accepted ? `${accepted.slug} ${accepted.op}` : "azpipe",
+  });
   accepted.pipe = thinPipe(outbound.ok ? outbound : inbound);
-  if (!outbound.ok && outbound.refuse === "sweep-isolate") {
+  accepted.pipeline_strip = LOCKED_STRIP;
+  accepted.domain_doors = (inbound && inbound.domain_doors) || null;
+  if (!outbound.ok && (outbound.refuse === "sweep-isolate" || outbound.closed_at === "sweepgate")) {
     accepted.ok = false;
     accepted.result = null;
     accepted.message = "SweepGate isolate on outbound. Do not merge.";
@@ -438,6 +473,9 @@ async function decoratePipe(accepted, inbound, parsed, env, claim) {
     return accepted;
   }
   if (inbound && inbound.inner && inbound.inner.entry) accepted.entry = inbound.inner.entry;
+  if (outbound && outbound.inner && outbound.inner.exit) accepted.receipt = outbound.inner.exit;
+  if (outbound && outbound.inner && outbound.inner.temporal) accepted.temporal = outbound.inner.temporal;
+  if (outbound && outbound.inner && outbound.inner.staticclock) accepted.staticclock = outbound.inner.staticclock;
   return accepted;
 }
 

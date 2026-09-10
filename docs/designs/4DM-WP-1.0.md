@@ -46,18 +46,18 @@ Identity is Aziel Eliab only. UI=MCP. EmbryoLock stays stub. `GET /v1/mesh` neve
 
 ## 3. Pipeline placement
 
-AZPIPE inbound hop list (AP-WP-0.2) stays:
+Public locked hop list (runtime 1.6.15 / SUITE-PIPE-1.6.15):
 
-`frag → sweep → fold → static → fold → entry → frag → toolkits`
+`PUBLIC/UI/Agents → FragGate → SweepGate → ChainLock-IN → DecisionGATE → AZPIPE → Domain Doors (4DMap inspection) → TemporalLock → StaticClock → ChainLock-OUT → Response/Receipt`
 
-4DMap is **not** a hop on that list. Placement:
+4DMap is **not** a sequential hop and **not** LIVE fabric. Placement:
 
-1. AZPIPE admits or refuses the envelope (FoldLock / StaticClock freeze / SweepGate / ChainLock entry).
-2. FragGate / DecisionGATE classifies the CallEnvelope (live / stub / halluc).
-3. Isolated engine exec runs inside the Worker isolate.
+1. FragGate classifies the CallEnvelope (live / stub / halluc).
+2. SweepGate airlocks. ChainLock-IN stamps inbound. DecisionGATE runs after that stamp.
+3. AZPIPE admits (fld3-wire fold/static is internal). Isolated engine exec runs inside the Worker isolate.
 4. **4DMap sits here** — Domain Door / inspection layer — framing T/Δ/Γ/Π on declared cards for that isolated engine result. Neighbors may be cited. ChainLock may stamp a walk.
 
-Changing product names does not move 4DMap onto the sequential-gate line.
+Changing product names does not move 4DMap onto the sequential-gate line. The old fold-centric AZPIPE list is internal fld3-wire only.
 
 ## 4. LIVE ops
 
