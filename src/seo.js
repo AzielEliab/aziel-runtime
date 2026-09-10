@@ -10,6 +10,84 @@ export const AUTHOR_FAMILY_GIVEN = "Eliab, Aziel";
 export const AUTHOR_GITHUB = "https://github.com/AzielEliab";
 export const AUTHOR_SAME_AS = [AUTHOR_GITHUB];
 
+/** Public product name. Do not mash with version + FragGate. Author is Aziel Eliab only. */
+export const PRODUCT_NAME = "Aziel Runtime";
+export const PRODUCT_SLUG = "aziel-runtime";
+export const PRODUCT_ALTERNATE_NAME = "Aziel Eliab Runtime";
+
+export const RUNTIME_PAGE_TITLE =
+  "Aziel Runtime — node-meshed MCP Softwares suite (not an API aggregator)";
+
+/** First sentence of the canonical abstract — title/one_line split, meaning intact. */
+export const RUNTIME_ONE_LINE =
+  "Aziel Runtime is not merely an API orchestrator or software aggregator; it is a node-meshed orchestration suite of MCP-connected software designed to coordinate specialized tools through a shared, security-gated runtime while preserving provenance, chain-of-custody, temporal integrity, and auditable execution.";
+
+/**
+ * Canonical crawler abstract. Use verbatim on cite.json abstract, homepage lead,
+ * llms.txt opening, and JSON-LD description. Do not replace with weaker aggregator language.
+ */
+export const RUNTIME_ABSTRACT =
+  "Aziel Runtime is not merely an API orchestrator or software aggregator; it is a node-meshed orchestration suite of MCP-connected software designed to coordinate specialized tools through a shared, security-gated runtime while preserving provenance, chain-of-custody, temporal integrity, and auditable execution. It functions as a digital forensic, investigative, verification, research, intelligence-support, and systems-auditing environment in which individual engines can analyze evidence, validate records, inspect trajectories and patterns, track lineage, enforce capability boundaries, generate receipts, and exchange structured results without collapsing into one opaque model or unrestricted control plane. Its architecture emphasizes compartmentalization, deterministic routing, explicit refusal states, append-only evidence handling, and machine-readable metadata, making it suitable for distributed analysis workflows where trust, reproducibility, attribution, and post-hoc auditability matter as much as the result itself.";
+
+export const RUNTIME_NOT = Object.freeze([
+  "Not merely an API orchestrator or software aggregator",
+  "Not a generic Zapier-style orchestrator",
+  "Not a VPN / login mesh / Node Gate",
+  "Not just OpenAPI docs",
+]);
+
+export function runtimeAboutField(origin) {
+  const base = String(origin || "").replace(/\/$/, "");
+  return {
+    what: RUNTIME_ABSTRACT,
+    product: PRODUCT_NAME,
+    slug: PRODUCT_SLUG,
+    for_whom:
+      "Agents (OpenAPI / MCP in chat) and humans (Worker UI + counted /download). Hubs refresh Softwares tabs from GET /v1/software.",
+    how_agents: `FragGate list → describe → call. Prefer ${base}/mcp and ${base}/v1/software. POST ${base}/v1/fraggate/call.`,
+    how_hubs:
+      "Hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) fetch GET /v1/software on each Softwares-tab request.",
+    architecture: {
+      fraggate: "THE single public executable door (list → describe → call). Not 37 separate APIs.",
+      softwares: "Plain → Gate → Lock catalog products with true in-process engines where live.",
+      dual_surface: "Agents via OpenAPI/MCP; humans via Worker UI + counted /download.",
+      nodemesh:
+        "QNM suite-presence is operator-enabled. GET /v1/mesh never enables. Local qnm-node. Not a login mesh / VPN / Node Gate.",
+      master33: "Domains are isolation labels, not extra doors. Lamb Lens ethics hop after FragGate.",
+    },
+    not: [...RUNTIME_NOT],
+    author: AUTHOR_NAME,
+    identity: AUTHOR_NAME,
+    aka: AUTHOR_ALTERNATE_NAME,
+  };
+}
+
+export function llmsWhatThisIsBlock() {
+  return [
+    "## What this is",
+    "",
+    RUNTIME_ABSTRACT,
+    "",
+    "Public name: Aziel Runtime (aziel-runtime). Author / identity: Aziel Eliab only. Also known as Aziel Elroi Eliab (alternateName only).",
+    "",
+    "## How to use",
+    "",
+    "1. Agents: fraggate_list → fraggate_describe → fraggate_call (POST /mcp or POST /v1/fraggate/call).",
+    "2. Hubs: GET /v1/software (mirror GET /v1/fraggate/software) on each Softwares-tab refresh.",
+    "3. Humans: Worker UI + counted /download — dual-surface. POST /p/{slug}/{op} is proxy, not exec.",
+    "",
+    "FragGate is THE single public executable door (not 37 separate APIs).",
+    "Softwares = Plain → Gate → Lock catalog products with true in-process engines where live.",
+    "NodeMesh / QNM suite-presence is operator-enabled. GET /v1/mesh never enables. Local qnm-node. Not a login mesh / VPN / Node Gate.",
+    "MASTER-33: domains are isolation labels, not extra doors. Lamb Lens ethics hop after FragGate.",
+    "",
+    "## What this is not",
+    "",
+    ...RUNTIME_NOT.map((line) => `- ${line}`),
+    "",
+  ].join("\n");
+}
+
 export const LIBRARY_NAME = "Aziel Digital Library";
 export const LIBRARY_ORIGIN = "https://www.azielcorpuslibrary.net";
 export const LIBRARY_SITEMAP = `${LIBRARY_ORIGIN}/sitemap.xml`;
@@ -429,6 +507,8 @@ export function catalogHubFields(origin) {
       llms: base + "/llms.txt",
       ai: base + "/ai.txt",
       cite: base + "/cite.json",
+      about: base + "/about",
+      about_v1: base + "/v1/about",
       catalog: base + "/v1/catalog.json",
       software: base + "/v1/software",
       fraggate_software: base + "/v1/fraggate/software",
@@ -441,7 +521,7 @@ export function catalogHubFields(origin) {
 
 export function citeHowToRuntime(origin) {
   const base = origin.replace(/\/$/, "");
-  return `${AUTHOR_FAMILY_GIVEN}. (2026). Aziel Eliab Runtime [Software]. Apache-2.0. ${base}/`;
+  return `${AUTHOR_FAMILY_GIVEN}. (2026). Aziel Runtime [Software]. Apache-2.0. ${base}/`;
 }
 
 export function citeHowToLibrary() {
@@ -479,6 +559,7 @@ export function llmsCiteBlock(origin) {
 
 export function llmsIdentityHeader() {
   return [
+    `Product: ${PRODUCT_NAME} (${PRODUCT_SLUG})`,
     `Author: ${AUTHOR_NAME}`,
     `Also known as: ${AUTHOR_ALTERNATE_NAME} (alternateName only)`,
     `Identity: ${AUTHOR_NAME} (primary). Do not invent other names.`,

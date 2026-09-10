@@ -140,6 +140,13 @@ import {
   LIBRARY_LLMS,
   LIBRARY_NAME,
   LIBRARY_ORIGIN,
+  PRODUCT_ALTERNATE_NAME,
+  PRODUCT_NAME,
+  RUNTIME_ABSTRACT,
+  RUNTIME_ONE_LINE,
+  RUNTIME_PAGE_TITLE,
+  llmsWhatThisIsBlock,
+  runtimeAboutField,
   azcoherenceCiteField,
   catalogHubFields,
   citeHowToLibrary,
@@ -174,9 +181,11 @@ import {
   SUITE_DESIGNS,
 } from "./seo.js";
 import {
+  aboutPageHtml,
   describeDocsHtml,
   describeIndexHtml,
   describeUnknownHtml,
+  homepageLeadHtml,
   prefersHtml,
   softwareCatalogHtml,
 } from "./seo-html.js";
@@ -204,9 +213,8 @@ export { RuntimeSession };
 
 const CATALOG_HOST = "https://aziel-runtime.vibelock.workers.dev";
 const PROTOCOL = "2025-03-26";
-const CATALOG_TITLE = "Aziel Eliab Runtime";
-const CATALOG_DESCRIPTION =
-  "Aziel Eliab software catalog and engine-runtime: 37 products including EmbryoLock (live-with-local-destructive-boundary), AZCoherence (AZC-0.1), 4DMap (4DM-WP-1.0), AZHub (AIH-WP-1.0), AZInterface (AIH-WP-1.0), AZNet (AZN-WP-0.1), AZBrowser (AZB-1.0), AZMail (APP 1.0), PeaceLock (PL-WP-0.1) and the Aziel Digital Library (www.azielcorpuslibrary.net). 1.7.10 makes QNM Live Nodes durable (suite-presence is operator-enabled; GET /v1/mesh never enables; cron or request-path fans out live Softwares product Workers while enabled; TTL 5 min). 1.7.9 cross-maps AZCoherence (peers azclce / AZInterface / AKM-TRIAD fabric neighbor; hubs + Worker URL; domain stays null). 1.7.8 lands EmbryoLock as a true in-process engine (wipe/unlock stay FG-STUB on the public mesh; worker_home embryolock-download-tracker). 1.7.7 lands AZCoherence as a true in-process FragGate Softwares engine (second-pass triad coherence; cite https://github.com/AzielEliab/AZCoherence; not AKM-TRIAD). 1.7.6 syncs 4DMap LIVE_OPS with product 0.2.0 (pin/span/stack/gap/fork/walk/lens/class/cohort/absence/cap/join/list/example plus frame_status/axis_describe/walk_trace/card_export/card_import/verify_chain/neighbor_cite; inspection frame, not an extra door). 1.7.5 is Softwares capability wave 1 (decisiongate / forgereceipts / temporallock / staticclock / chronolock / trajectorylock / spectrallock; docs/audit/SUITE-CAPABILITY-CHECKLIST.md). 1.7.4 enhances 4DMap LIVE_OPS (frame_status/axis_describe/walk_trace/card_export/card_import/verify_chain/neighbor_cite; inspection frame, not an extra door). 1.7.3 aligns audit WARN copy (exist.mcp → tools/list; public FragGate call; catalog count_note; 4DMap not an extra door). 1.7.2 adds GET /v1/azpipe/arch (MASTER-33 cite/read; same FragGate pipeline payload; not a Softwares door). 1.7.1 adds AKM-TRIAD-1.0 (adaptive recollection, Bayesian calibration, 3-of-4 triad; not Softwares-tab; behind FragGate). 1.7.0 locks MASTER-33 (FragGate single door; Lamb Lens after FragGate; RoseClock forward-only; 11 domains / 33 softwares). 1.6.15 locked the suite hop order (SUITE-PIPE-1.6.15). LambGate is not a hop. 1.6.14 adds 4DMap as a four-axis inspection frame (not a sequential gate; not an extra door). 1.6.13 aligns the suite QNM rollup (QNM-BUILD-1.0, companion to AIH-WP-1.1; GET /v1/mesh live/locked/isolated; operator bearer enable; default radios off; not a login mesh; not AnonBroadcast as a Softwares-tab product; full node process is local qnm-node/). Packet-transfer coding design is QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; GET /v1/qns cites only). 1.6.12 adds GET /v1/software (hub Software-tab catalog; Plain→Gate→Lock + EmbryoLock stub) and GET /v1/update/check for install.sh / local UIs / mobile. 1.6.11 adds a durable FragGate UI-op alias map (Worker button names resolve to catalog ops) and names EmbryoLock as stub / local-not-hosted (not a FragGate engine). 1.6.8 adds AZHub and AZInterface as two separate softwares under the same FragGate door (Blank Key + custodial page cycles; never one combined product; not nested in AZBrowser, AZNet, or each other). 1.6.9 frames them as sibling products on that same door. 1.6.10 sets AZBrowser and AZNet catalog one_line to separate software (not engine). 1.6.7 adds AZNet as a separate FragGate-live product (own Worker aznet-download-tracker, own UI; silent verification side-net; hash garden + memorial; never hosts payloads; AZBrowser pair_token + pair_flag required for garden/stamp/memorial — functional order only, do not merge UIs). 1.6.6 adds AZBrowser as a FragGate-live engine (Lamb Lens ethical search + advisory navigate; cite; refuse harmful harvest; never invent visit results; not Chromium; tor_exit/phoenix_wipe stub). MCP fraggate_list / fraggate_call and Worker UI buttons share that same LIVE_OPS.azbrowser backend. 1.6.5 adds AZMail as a FragGate-live engine (anonymous MCP mesh default off + advisory airlock; not a full internet MTA; SMTP/deanonymize stub). 1.6.4 adds PeaceLock as a true in-process engine (chosen silence / chosen inaction receipts; HARD_DUTY refuse; ABSENT transcript/counterfactual/motive). 1.6.3 adds KV-backed API use trackers (GET /v1/uses) across origin and same-origin /runtime doors. 1.6.2 widens the public FragGate door to sensible advisory engines; stub verbs still refuse. 1.6.1 lists every major OpenAPI/MCP/HTTP client — ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants. 1.6.0 FragGate door — discover, route, refuse. Hashed registry, thin MCP, DecisionGATE before exec. 1.5.0 was agent-native flat product tools. Proxy is not exec. Dual surface: agent chat has no technical UI chrome; Worker / Flutter / local install / counted download stay complete human software. Apache-2.0. Author: Aziel Eliab (also known as Aziel Elroi Eliab). Open crawl Allow: / for GPTBot/ChatGPT, Venice, Grok, Google-Extended, GoogleOther, Google-CloudVertexBot, Claude(+Search/User), anthropic-ai, Perplexity(+User), bingbot, Meta-External*, Applebot(+Extended), Amazonbot, DuckDuck/DuckAssist, MistralAI-User, YouBot, CCBot, cohere-ai, Diffbot, AI2Bot(+Dolma), and the rest of robots.txt."
+const CATALOG_TITLE = PRODUCT_NAME;
+const CATALOG_DESCRIPTION = RUNTIME_ABSTRACT;
 const LASTMOD = "2026-09-10";
 
 const PRODUCTS_RAW = [
@@ -1087,6 +1095,8 @@ function sitemapXml(origin) {
   const base = origin.replace(/\/$/, "");
   const urls = [
     { loc: base + "/", priority: "1.0", changefreq: "daily" },
+    { loc: base + "/about", priority: "0.95", changefreq: "weekly" },
+    { loc: base + "/v1/about", priority: "0.9", changefreq: "weekly" },
     { loc: base + "/openapi.json", priority: "0.9", changefreq: "daily" },
     { loc: base + "/v1/catalog.json", priority: "0.9", changefreq: "daily" },
     { loc: base + "/v1/software", priority: "0.95", changefreq: "daily" },
@@ -1099,9 +1109,9 @@ function sitemapXml(origin) {
     { loc: base + "/v1/fraggate/list", priority: "0.9", changefreq: "daily" },
     { loc: base + "/v1/session/open", priority: "0.95", changefreq: "daily" },
     { loc: base + "/v1/bundle", priority: "0.95", changefreq: "daily" },
-    { loc: base + "/cite.json", priority: "0.8", changefreq: "weekly" },
-    { loc: base + "/llms.txt", priority: "0.8", changefreq: "weekly" },
-    { loc: base + "/ai.txt", priority: "0.8", changefreq: "weekly" },
+    { loc: base + "/cite.json", priority: "0.9", changefreq: "weekly" },
+    { loc: base + "/llms.txt", priority: "0.9", changefreq: "weekly" },
+    { loc: base + "/ai.txt", priority: "0.9", changefreq: "weekly" },
     { loc: base + "/sitemap-index.xml", priority: "0.85", changefreq: "weekly" },
     { loc: base + "/v1/health", priority: "0.5", changefreq: "daily" },
     { loc: base + "/v1/uses", priority: "0.6", changefreq: "daily" },
@@ -1162,7 +1172,7 @@ function llmsTxt(origin) {
   const lines = [
     `# ${CATALOG_TITLE}`,
     "",
-    `> ${CATALOG_DESCRIPTION}`,
+    llmsWhatThisIsBlock().trimEnd(),
     "",
     ...llmsIdentityHeader(),
     `Role: engine-runtime (catalog + pull + proxy + session + in-process engines)`,
@@ -1205,6 +1215,7 @@ function llmsTxt(origin) {
     `Mesh status: ${base}/v1/mesh/status  (alias; never enables)`,
     `Mesh nodes: ${base}/v1/mesh/nodes  (roster; 5-minute TTL; no scores)`,
     `Agent pipeline: fraggate_list → fraggate_describe → fraggate_call. Prefer ${base}/mcp and ${base}/v1/software.`,
+    `About: ${base}/about`,
     `Cite: ${base}/cite.json`,
     `Sitemap: ${base}/sitemap.xml`,
     `Sitemap index: ${base}/sitemap-index.xml`,
@@ -1303,6 +1314,11 @@ function llmsTxt(origin) {
 function citeJson(origin) {
   const base = origin.replace(/\/$/, "");
   return {
+    product: PRODUCT_NAME,
+    slug: "aziel-runtime",
+    one_line: RUNTIME_ONE_LINE,
+    abstract: RUNTIME_ABSTRACT,
+    about: runtimeAboutField(origin),
     author: AUTHOR_NAME,
     aka: AUTHOR_ALTERNATE_NAME,
     alternateName: AUTHOR_ALTERNATE_NAME,
@@ -1328,13 +1344,13 @@ function citeJson(origin) {
     how_to_cite: citeHowToRuntime(origin),
     bibtex: `@software{eliab_aziel_runtime_2026,
   author = {Eliab, Aziel},
-  title = {Aziel Eliab Runtime},
+  title = {Aziel Runtime},
   year = {2026},
   url = {${base}/},
   version = {${RUNTIME_VERSION}},
   license = {Apache-2.0}
 }`,
-    apa: `Eliab, A. (2026). Aziel Eliab Runtime [Computer software]. ${base}/`,
+    apa: `Eliab, A. (2026). Aziel Runtime [Computer software]. ${base}/`,
     zenodo: citeZenodoBlock(),
     door: "fraggate",
     kernel: FRAGGATE_GITHUB,
@@ -1389,9 +1405,10 @@ function jsonLd(origin) {
   const software = {
     "@type": "SoftwareApplication",
     "@id": base + "/#runtime",
-    name: CATALOG_TITLE,
+    name: PRODUCT_NAME,
+    alternateName: [PRODUCT_ALTERNATE_NAME],
     url: base + "/",
-    description: CATALOG_DESCRIPTION,
+    description: RUNTIME_ABSTRACT,
     softwareVersion: RUNTIME_VERSION,
     applicationCategory: "DeveloperApplication",
     operatingSystem: "Cloudflare Workers",
@@ -1420,11 +1437,21 @@ function jsonLd(origin) {
   const website = {
     "@type": "WebSite",
     "@id": base + "/#website",
-    name: CATALOG_TITLE,
+    name: PRODUCT_NAME,
     url: base + "/",
-    description: CATALOG_DESCRIPTION,
+    description: RUNTIME_ABSTRACT,
     publisher: { "@id": person["@id"] },
     inLanguage: "en",
+  };
+  const webApi = {
+    "@type": "WebAPI",
+    "@id": base + "/#fraggate",
+    name: "FragGate",
+    description:
+      "THE single public executable door for Aziel Runtime Softwares. Discover, route, refuse: fraggate_list → fraggate_describe → fraggate_call. Not 37 separate APIs. Not an API aggregator.",
+    url: base + "/v1/fraggate",
+    documentation: base + "/v1/fraggate/describe",
+    provider: { "@id": person["@id"] },
   };
   const itemList = {
     "@type": "ItemList",
@@ -1482,7 +1509,7 @@ function jsonLd(origin) {
   };
   return {
     "@context": "https://schema.org",
-    "@graph": [person, software, website, libraryJsonLd(), itemList, softwareList],
+    "@graph": [person, software, website, webApi, libraryJsonLd(), itemList, softwareList],
   };
 }
 
@@ -1681,7 +1708,7 @@ function catalogHtml(origin, statsMap) {
   return `<!doctype html>
 <html lang="en">
 <head>
-${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
+${headMeta(origin, RUNTIME_PAGE_TITLE, RUNTIME_ABSTRACT, "/")}
 <script type="application/ld+json">${ld}</script>
 <style>${PAGE_CSS}</style>
 </head>
@@ -1690,11 +1717,79 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
     <img class="brandmark" src="/sigil.png" width="40" height="40" alt="Everblooming sigil — Aziel Eliab" decoding="async">
     <p class="stamp">Everblooming sigil · Aziel Eliab</p>
   </div>
-  <h1>Aziel Eliab Runtime</h1>
-  <p class="lead"><strong>1.7.10</strong> makes QNM <strong>Live Nodes</strong> durable — suite-presence is operator-enabled; <code>GET /v1/mesh</code> never enables; cron or request-path fans out live Softwares product Workers while enabled (TTL 5 min). <strong>1.7.9</strong> cross-maps <strong>AZCoherence</strong> (peers AZ-CLCE / AZInterface / AKM-TRIAD fabric neighbor; hubs + Worker URL; domain stays null). <strong>1.7.8</strong> lands <strong>EmbryoLock</strong> as a true in-process engine — live-with-local-destructive-boundary (health/skill/doctor/verify-hash/policy cite; wipe/unlock stay FG-STUB on the public mesh; worker_home <code>embryolock-download-tracker</code>). <strong>1.7.7</strong> lands <strong>AZCoherence</strong> (AZC-0.1) as a true in-process FragGate Softwares engine — second-pass triad coherence (primary vs alternate → PASS / FLAG / NEUTRALIZE / REFUSE). Cite <a href="https://github.com/AzielEliab/AZCoherence">github.com/AzielEliab/AZCoherence</a>. Never invents evidence. Confidence ≠ truth. Not AKM-TRIAD fabric. Softwares-tab Plain A–Z. <strong>1.7.6</strong> syncs 4DMap LIVE_OPS with product <code>0.2.0</code> — <code>pin</code>, <code>span</code>, <code>stack</code>, <code>gap</code>, <code>fork</code>, <code>walk</code>, <code>lens</code>, <code>class</code>, <code>cohort</code>, <code>absence</code>, <code>cap</code>, <code>join</code>, <code>list</code>, <code>example</code>, plus <code>frame_status</code>, <code>axis_describe</code>, <code>walk_trace</code>, <code>card_export</code>, <code>card_import</code>, <code>verify_chain</code>, <code>neighbor_cite</code>. Inspection frame after AZPIPE, not an extra door. <strong>1.7.5</strong> is Softwares capability wave 1 — richer health/skill plus doctor/verify/import_export (or window/gates/schema/targets) on DecisionGATE, ForgeReceipts, TemporalLock, StaticClock, ChronoLock, TrajectoryLock, SpectralLock. Checklist: <code>docs/audit/SUITE-CAPABILITY-CHECKLIST.md</code>. <strong>1.7.4</strong> enhances 4DMap LIVE_OPS — <code>frame_status</code>, <code>axis_describe</code>, <code>walk_trace</code>, <code>card_export</code>, <code>card_import</code>, <code>verify_chain</code>, <code>neighbor_cite</code>. Inspection frame after AZPIPE, not an extra door. <strong>1.7.3</strong> aligns audit WARN copy — refuse <code>exist.mcp</code> points at live <code>tools/list</code>; public FragGate call stays open; Softwares-tab count includes placements vs isolation 33; 4DMap is an inspection frame, not an extra door. <strong>1.7.2</strong> adds <code>GET /v1/azpipe/arch</code> — MASTER-33 AZPIPE cite/read (same payload as <code>GET /v1/fraggate</code> <code>pipeline</code>; not a Softwares-tab door). <strong>1.7.1</strong> adds AKM-TRIAD-1.0 (adaptive recollection, Bayesian calibration, 3-of-4 triad; not Softwares-tab; behind FragGate). <strong>1.7.0</strong> locks MASTER-33: <code>${LOCKED_STRIP}</code>. DecisionGATE sits after ChainLock-IN and before domain exec. 4DMap is the inspection frame after AZPIPE — not an extra door. LambGate is not a hop. FoldLock fld3-wire stays internal to AZPIPE. <strong>1.6.14</strong> adds <strong>4DMap</strong> (4DM-WP-1.0) as a true in-process engine — four-axis inspection frame T/Δ/Γ/Π at the Domain Door / inspection layer after AZPIPE routes to isolated engines. Not a sequential gate. FragGate claims cite join types. ChainLock may stamp walks. <strong>1.6.13</strong> aligns the suite <strong>QNM-BUILD-1.0</strong> rollup (companion to AIH-WP-1.1) — <code>GET /v1/mesh</code> live/locked/isolated counts, MCP <code>mesh_*</code>, FragGate <code>slug=mesh</code>. Default radios <strong>OFF</strong>. LIVE only after the operator declares a bearer. Not a login mesh. Full node process is local <code>qnm-node/</code>. Anon-broadcast is that process's sibling loopback module only — never a publish path. AZMail <code>mesh_*</code> stays product-local. <strong>1.6.12</strong> publishes the authoritative hub catalog at <code>GET /v1/software</code> (mirror <code>/v1/fraggate/software</code>) — every product plus EmbryoLock stub, sorted Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock) — plus <code>GET /v1/update/check</code> for install.sh / local UIs / mobile. <strong>1.6.11</strong> adds a durable FragGate <strong>UI-op alias map</strong> so Worker button names agents copy resolve to catalog LIVE_OPS (forward to the real engine method). EmbryoLock is named <strong>stub / local-not-hosted</strong> (describe?slug=embryolock; not a Worker; not a FragGate engine). <strong>1.6.10</strong> sets AZBrowser and AZNet catalog one_line to <strong>separate software</strong> (not engine). <strong>1.6.9</strong> frames <strong>AZHub</strong> and <strong>AZInterface</strong> as sibling softwares under the same FragGate door. <strong>1.6.8</strong> added <strong>AZHub</strong> (AIH-WP-1.0, Blank Key) and <strong>AZInterface</strong> (AIH-WP-1.0, custodial page cycles) as two separate softwares under the same FragGate door — never one combined product, never nested in AZBrowser or AZNet. Reached only via <code>POST /v1/fraggate/call</code> with <code>{ slug: "azhub", op }</code> or <code>{ slug: "azinterface", op }</code>. <strong>1.6.7</strong> adds <strong>AZNet</strong> (AZN-WP-0.1) as a separate FragGate-live product — own Worker <code>aznet-download-tracker</code>, own UI. Silent verification side-net: hash stamps, custodian garden of hash refs, memorial ledger, integrity refuse/isolate. Never hosts payloads. Garden / stamp / memorial ops require AZBrowser <code>pair_token</code> AND <code>pair_flag</code> (functional order only — do not nest inside AZBrowser chrome). Reached only via <code>POST /v1/fraggate/call</code> with <code>{ slug: "aznet", op }</code>. <strong>1.6.6</strong> adds <strong>AZBrowser</strong> (AZB-1.0) as a FragGate-live engine — Lamb Lens ethical research browser. Cite; refuse harmful harvest; never invent visit results. Not Chromium. Reached only via <code>POST /v1/fraggate/call</code> with <code>{ slug: "azbrowser", op }</code>. MCP <code>fraggate_list</code> / <code>fraggate_call</code> and the Worker UI buttons on this page share that same <code>LIVE_OPS.azbrowser</code> backend. <strong>1.6.5</strong> adds <strong>AZMail</strong> (APP 1.0) as a FragGate-live engine — anonymous MCP mesh (default off) + advisory airlock. Not a full internet MTA. Reached only via <code>POST /v1/fraggate/call</code> with <code>{ slug: "azmail", op }</code> (host <code>/runtime</code> proxies that same door). <strong>1.6.4</strong> adds <strong>PeaceLock</strong> (PL-WP-0.1) as a true in-process engine — chosen silence / chosen inaction receipts, HARD_DUTY refuse, ABSENT transcript/counterfactual/motive. <strong>1.6.3</strong> adds KV-backed API use trackers (<a href="${origin}/v1/uses">/v1/uses</a>) so every public host point can keep usage logs. <strong>1.6.2</strong> widens the public FragGate door to sensible advisory engines; stub verbs still refuse. <strong>1.6.1</strong> lists every major OpenAPI / MCP / HTTP client (not only ChatGPT, Grok, and Venice). <strong>1.6.0</strong> is the <strong>FragGate door</strong> over the catalog — one door: discover, route, refuse. <strong>1.5.0</strong> was the agent-native flat product-tool pile. Human software — this Worker UI, Flutter <code>mobile/</code>, local install, counted <code>/download</code> — stays complete. Catalog + pull + proxy + session + <strong>in-process engines</strong> for every catalog Software slug. ${PRODUCTS.length} products including the <a href="${LIBRARY_ORIGIN}/">Aziel Digital Library</a>. Kernel: <a href="https://github.com/AzielEliab/fraggate">fraggate</a>. Forks welcome. Apache-2.0. Author: <strong>Aziel Eliab</strong> (also known as Aziel Elroi Eliab).</p>
+${homepageLeadHtml()}
+
+  <section class="cite" id="cite">
+    <h2>How to cite</h2>
+    <p>Author: <strong>${escapeHtml(AUTHOR_NAME)}</strong> (also known as ${escapeHtml(AUTHOR_ALTERNATE_NAME)}) · Runtime: <a href="${origin}/">${origin}/</a> · License: Apache-2.0 · Machine-readable: <a href="${origin}/cite.json">/cite.json</a></p>
+    <p>${escapeHtml(citeHowToRuntime(origin))}</p>
+    <p>${escapeHtml(citeHowToLibrary())} · <a href="${LIBRARY_CITE}">Digital Library /cite.json</a> · <a href="${LIBRARY_LLMS}">/llms.txt</a></p>
+    <p class="lead">Known DOIs are historical. Zenodo currently returns HTTP 410 (user blocked) for every wired record. FoldLock and WhistleLock share method-paper DOI 10.5281/zenodo.22257762 on purpose — WhistleLock still needs its own software deposit. No DOIs are invented here.</p>
+    <ul>${citeProducts}</ul>
+  </section>
+  <p class="links">
+    <a href="${origin}/v1/skill">/v1/skill</a>
+    <a href="${origin}/v1/fraggate">/v1/fraggate</a>
+    <a href="${origin}/v1/runtime.json">/v1/runtime.json</a>
+    <a href="${origin}/v1/session/open">/v1/session/open</a>
+    <a href="${origin}/v1/bundle">/v1/bundle</a>
+    <a href="${origin}/openapi.json">Combined OpenAPI 3.1</a>
+    <a href="${origin}/v1/catalog.json">/v1/catalog.json</a>
+    <a href="${origin}/about">/about</a>
+    <a href="${origin}/v1/about">/v1/about</a>
+    <a href="${origin}/v1/software">/v1/software</a>
+    <a href="${origin}/v1/update/check">/v1/update/check</a>
+    <a href="${origin}/llms.txt">/llms.txt</a>
+    <a href="${origin}/ai.txt">/ai.txt</a>
+    <a href="${origin}/sitemap.xml">/sitemap.xml</a>
+    <a href="${origin}/sitemap-index.xml">/sitemap-index.xml</a>
+    <a href="${origin}/robots.txt">/robots.txt</a>
+    <a href="${origin}/mcp">MCP (POST JSON-RPC)</a>
+    <a href="${origin}/v1/health">/v1/health</a>
+    <a href="${origin}/v1/uses">/v1/uses</a>
+    <a href="${origin}/v1/mesh">/v1/mesh</a>
+    <a href="${origin}/v1/qns">/v1/qns</a>
+    <a href="${origin}/v1/azpipe/arch">/v1/azpipe/arch</a>
+    <a href="${origin}/v1/memory">/v1/memory</a>
+    <a href="${origin}/v1/ready">/v1/ready</a>
+    <a href="https://www.azielcorpuslibrary.net/runtime">Library /runtime</a>
+    <a href="https://github.com/AzielEliab/aziel-runtime">GitHub</a>
+  </p>
+  <p id="pipeline"><strong>Locked MASTER-33 pipeline</strong> (1.7.0 — FragGate is THE single door; not LambGate): <code>${LOCKED_STRIP}</code>. Lamb Lens is fabric after FragGate. Internal Domain Layer holds isolated softwares — domains are labels, not doors. RoseClock is forward-only. FoldLock fld3-wire stays internal to AZPIPE. SweepGate / ChainLock / AZPIPE / Lamb Lens / Sentinel / RoseClock are fabric, not Softwares-tab. 4DMap is cited inside the domain layer. Illegal reorder is refused.</p>
+  <p>LIVE fabric (not Softwares-tab): AZPIPE, SweepGate, ChainLock, LOCKSET, packed catalog, Lamb Lens, Sentinel, RoseClock, <strong>QNS-CD-1.0</strong> (photon QNS1 1.3; local <code>qnsd</code>; Worker cites only), MASTER-33 (SUITE-PIPE-1.6.15 historical), <strong>AKM-TRIAD-1.0</strong> (adaptive recollection; Bayesian posterior ≠ truth; behind FragGate). MCP <code>chainlock_*</code> and <code>memory_*</code>. <code>GET /v1/mesh</code> never enables. <code>GET /v1/qns</code> cites the packet-transfer coding design — it does not proxy local via emit. <code>GET /v1/azpipe/arch</code> cites the locked MASTER-33 strip (same payload as <code>GET /v1/fraggate</code> <code>pipeline</code>; not a Softwares-tab door). UI=MCP. No Node Gate.</p>
+  <p>Donation is a static hub tab (<a href="${DONATE_CANONICAL}">${escapeHtml(DONATE_CANONICAL)}</a>) — AZL-DONATE-1.0. Canonical rails live on hubs; this runtime only links. Hub Donate pages include five QRs that encode payment URIs (BTC / ETH / LTC / XRP / DOGE). No KV, no invented wallets, no five QRs on this Worker.</p>
+  <p>Designs (git-hosted papers — not Softwares-tab products, not a FragGate slug; <code>GET /v1/mesh</code> never enables): <a href="${DESIGNS_GITHUB_TREE}">docs/designs/</a>${SUITE_DESIGNS.map((d) => ` · <a href="${designGithubUrl(d.file)}">${escapeHtml(d.id)}</a>`).join("")}. Author: Aziel Eliab only. PDFs sit beside each paper on GitHub.</p>
+  <p>Feature-state audit (authoritative intentional-OFF vs gaps for 1.7.3+; not a Softwares-tab product, not a FragGate slug): <a href="${auditGithubUrl(FEATURE_STATE_AUDIT.file)}">${escapeHtml(FEATURE_STATE_AUDIT.id)}</a> · <a href="${auditGithubUrl(FEATURE_STATE_AUDIT.pdf)}">PDF</a> · <a href="${AUDIT_GITHUB_TREE}">docs/audit/</a>. Constitutional OFF set (33 items; correctly OFF/REFUSED/GATED is not a gap): <a href="${designGithubUrl(REMAIN_OFF_BY_DESIGN.file)}">${escapeHtml(REMAIN_OFF_BY_DESIGN.id)}</a> · <a href="${designGithubUrl(REMAIN_OFF_BY_DESIGN.pdf)}">PDF</a>. Do not enable mesh or safety stubs. Author: Aziel Eliab only.</p>
+  <h2>Session (the actual cut)</h2>
+  <ol>
+    <li><code>POST ${origin}/v1/session/open</code></li>
+    <li><code>POST ${origin}/v1/session/{id}/policy</code></li>
+    <li><code>POST ${origin}/v1/session/{id}/exec</code> body <code>{slug, op, payload}</code></li>
+    <li><code>GET ${origin}/v1/session/{id}/receipt</code></li>
+    <li><code>POST ${origin}/v1/session/{id}/close</code></li>
+  </ol>
+  <h2>Pull + proxy (front doors — not exec)</h2>
+  <ol>
+    <li><code>GET ${origin}/v1/skill</code></li>
+    <li><code>GET ${origin}/v1/runtime.json</code> — machine manifest (<code>role=engine-runtime</code>)</li>
+    <li><code>GET ${origin}/v1/bundle</code> — every product skill URL + invoke prefix</li>
+    <li><code>GET ${origin}/v1/pull/{slug}</code> then <code>GET ${origin}/v1/pull/{slug}/skill</code></li>
+    <li><code>GET</code> or <code>POST ${origin}/p/{slug}/{op}</code> — <em>proxy only</em></li>
+  </ol>
+${homepageAddUrlHtml(origin)}
+  <section class="cite" id="fraggate">
+    <h2>FragGate (kernel / door — not a Software engine)</h2>
+    <p>FragGate is the kernel door. Human UI + counted download is the separate FragGate Worker app (not nested in AZBrowser). Hubs already show <a href="${FRAGGATE_GITHUB}">${FRAGGATE_GITHUB}</a>. This runtime publishes a catalog-friendly card at <code>GET /v1/catalog.json</code> <code>extras[]</code> / <code>fraggate</code> so corpus / godlock.uk / azieleliab Software indexes can list Worker <code>${FRAGGATE_WORKER}</code> without adding a PRODUCTS true-engine slug.</p>
+    <p><a href="${origin}/v1/fraggate">/v1/fraggate</a> · <a href="${origin}/v1/fraggate/list">/v1/fraggate/list</a> · <a href="${origin}/v1/catalog.json">catalog extras</a> · <a href="${FRAGGATE_WORKER_ORIGIN}/">Worker UI</a> · <a href="${FRAGGATE_WORKER_ORIGIN}/download">counted download</a> · <a href="${FRAGGATE_GITHUB}">GitHub</a></p>
+  </section>
+  <h2>Softwares</h2>
+  ${cards}
+  <section id="version-history">
   <div class="honesty">
+    <h2>Version history</h2>
     <strong>What this Worker is</strong>
     <ul>
+      <li><strong>1.7.11</strong> leads crawler surfaces (homepage meta / JSON-LD, <code>/llms.txt</code>, <code>/cite.json</code>, <code>/about</code>) with the Aziel Runtime definition — node-meshed MCP Softwares suite for digital forensics and auditing; not an API aggregator. Changelog stays below the abstract. Architecture facts (FragGate single door, Softwares catalog, dual-surface, NodeMesh) stay secondary. Identity Aziel Eliab only.</li>
       <li><strong>1.1.0</strong> was catalog + pull + proxy that started calling itself a runtime. Those front doors stay. They are not exec.</li>
       <li><strong>1.2.0</strong> added a session Durable Object and hash-chained receipts. Exec still proxied to product Workers.</li>
       <li><strong>1.3.0</strong> vendored portable engines and ran them <em>inside this Worker isolate</em> for listed slugs. Receipts include <code>engine_digest</code> and <code>ran_in</code>.</li>
@@ -1763,68 +1858,7 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
       <li>4DMap is a four-axis inspection frame T/Δ/Γ/Π (4DM-WP-1.0). It is <em>not</em> a sequential gate, not a truth score, not a Lumen panel, and not an extra door (<code>domains_are_doors:false</code>). It does not invent marks or backdate class. Inspection frame after AZPIPE. Neighbors TemporalLock / StaticClock / ChronoLock / TrajectoryLock / SpectralLock. FragGate claims cite join types. ChainLock may stamp walks.</li>
     </ul>
   </div>
-  <section class="cite" id="cite">
-    <h2>How to cite</h2>
-    <p>Author: <strong>${escapeHtml(AUTHOR_NAME)}</strong> (also known as ${escapeHtml(AUTHOR_ALTERNATE_NAME)}) · Runtime: <a href="${origin}/">${origin}/</a> · License: Apache-2.0 · Machine-readable: <a href="${origin}/cite.json">/cite.json</a></p>
-    <p>${escapeHtml(citeHowToRuntime(origin))}</p>
-    <p>${escapeHtml(citeHowToLibrary())} · <a href="${LIBRARY_CITE}">Digital Library /cite.json</a> · <a href="${LIBRARY_LLMS}">/llms.txt</a></p>
-    <p class="lead">Known DOIs are historical. Zenodo currently returns HTTP 410 (user blocked) for every wired record. FoldLock and WhistleLock share method-paper DOI 10.5281/zenodo.22257762 on purpose — WhistleLock still needs its own software deposit. No DOIs are invented here.</p>
-    <ul>${citeProducts}</ul>
   </section>
-  <p class="links">
-    <a href="${origin}/v1/skill">/v1/skill</a>
-    <a href="${origin}/v1/fraggate">/v1/fraggate</a>
-    <a href="${origin}/v1/runtime.json">/v1/runtime.json</a>
-    <a href="${origin}/v1/session/open">/v1/session/open</a>
-    <a href="${origin}/v1/bundle">/v1/bundle</a>
-    <a href="${origin}/openapi.json">Combined OpenAPI 3.1</a>
-    <a href="${origin}/v1/catalog.json">/v1/catalog.json</a>
-    <a href="${origin}/v1/software">/v1/software</a>
-    <a href="${origin}/v1/update/check">/v1/update/check</a>
-    <a href="${origin}/llms.txt">/llms.txt</a>
-    <a href="${origin}/ai.txt">/ai.txt</a>
-    <a href="${origin}/sitemap.xml">/sitemap.xml</a>
-    <a href="${origin}/sitemap-index.xml">/sitemap-index.xml</a>
-    <a href="${origin}/robots.txt">/robots.txt</a>
-    <a href="${origin}/mcp">MCP (POST JSON-RPC)</a>
-    <a href="${origin}/v1/health">/v1/health</a>
-    <a href="${origin}/v1/uses">/v1/uses</a>
-    <a href="${origin}/v1/mesh">/v1/mesh</a>
-    <a href="${origin}/v1/qns">/v1/qns</a>
-    <a href="${origin}/v1/azpipe/arch">/v1/azpipe/arch</a>
-    <a href="${origin}/v1/memory">/v1/memory</a>
-    <a href="${origin}/v1/ready">/v1/ready</a>
-    <a href="https://www.azielcorpuslibrary.net/runtime">Library /runtime</a>
-    <a href="https://github.com/AzielEliab/aziel-runtime">GitHub</a>
-  </p>
-  <p id="pipeline"><strong>Locked MASTER-33 pipeline</strong> (1.7.0 — FragGate is THE single door; not LambGate): <code>${LOCKED_STRIP}</code>. Lamb Lens is fabric after FragGate. Internal Domain Layer holds isolated softwares — domains are labels, not doors. RoseClock is forward-only. FoldLock fld3-wire stays internal to AZPIPE. SweepGate / ChainLock / AZPIPE / Lamb Lens / Sentinel / RoseClock are fabric, not Softwares-tab. 4DMap is cited inside the domain layer. Illegal reorder is refused.</p>
-  <p>LIVE fabric (not Softwares-tab): AZPIPE, SweepGate, ChainLock, LOCKSET, packed catalog, Lamb Lens, Sentinel, RoseClock, <strong>QNS-CD-1.0</strong> (photon QNS1 1.3; local <code>qnsd</code>; Worker cites only), MASTER-33 (SUITE-PIPE-1.6.15 historical), <strong>AKM-TRIAD-1.0</strong> (adaptive recollection; Bayesian posterior ≠ truth; behind FragGate). MCP <code>chainlock_*</code> and <code>memory_*</code>. <code>GET /v1/mesh</code> never enables. <code>GET /v1/qns</code> cites the packet-transfer coding design — it does not proxy local via emit. <code>GET /v1/azpipe/arch</code> cites the locked MASTER-33 strip (same payload as <code>GET /v1/fraggate</code> <code>pipeline</code>; not a Softwares-tab door). UI=MCP. No Node Gate.</p>
-  <p>Donation is a static hub tab (<a href="${DONATE_CANONICAL}">${escapeHtml(DONATE_CANONICAL)}</a>) — AZL-DONATE-1.0. Canonical rails live on hubs; this runtime only links. Hub Donate pages include five QRs that encode payment URIs (BTC / ETH / LTC / XRP / DOGE). No KV, no invented wallets, no five QRs on this Worker.</p>
-  <p>Designs (git-hosted papers — not Softwares-tab products, not a FragGate slug; <code>GET /v1/mesh</code> never enables): <a href="${DESIGNS_GITHUB_TREE}">docs/designs/</a>${SUITE_DESIGNS.map((d) => ` · <a href="${designGithubUrl(d.file)}">${escapeHtml(d.id)}</a>`).join("")}. Author: Aziel Eliab only. PDFs sit beside each paper on GitHub.</p>
-  <p>Feature-state audit (authoritative intentional-OFF vs gaps for 1.7.3+; not a Softwares-tab product, not a FragGate slug): <a href="${auditGithubUrl(FEATURE_STATE_AUDIT.file)}">${escapeHtml(FEATURE_STATE_AUDIT.id)}</a> · <a href="${auditGithubUrl(FEATURE_STATE_AUDIT.pdf)}">PDF</a> · <a href="${AUDIT_GITHUB_TREE}">docs/audit/</a>. Constitutional OFF set (33 items; correctly OFF/REFUSED/GATED is not a gap): <a href="${designGithubUrl(REMAIN_OFF_BY_DESIGN.file)}">${escapeHtml(REMAIN_OFF_BY_DESIGN.id)}</a> · <a href="${designGithubUrl(REMAIN_OFF_BY_DESIGN.pdf)}">PDF</a>. Do not enable mesh or safety stubs. Author: Aziel Eliab only.</p>
-  <h2>Session (the actual cut)</h2>
-  <ol>
-    <li><code>POST ${origin}/v1/session/open</code></li>
-    <li><code>POST ${origin}/v1/session/{id}/policy</code></li>
-    <li><code>POST ${origin}/v1/session/{id}/exec</code> body <code>{slug, op, payload}</code></li>
-    <li><code>GET ${origin}/v1/session/{id}/receipt</code></li>
-    <li><code>POST ${origin}/v1/session/{id}/close</code></li>
-  </ol>
-  <h2>Pull + proxy (front doors — not exec)</h2>
-  <ol>
-    <li><code>GET ${origin}/v1/skill</code></li>
-    <li><code>GET ${origin}/v1/runtime.json</code> — machine manifest (<code>role=engine-runtime</code>)</li>
-    <li><code>GET ${origin}/v1/bundle</code> — every product skill URL + invoke prefix</li>
-    <li><code>GET ${origin}/v1/pull/{slug}</code> then <code>GET ${origin}/v1/pull/{slug}/skill</code></li>
-    <li><code>GET</code> or <code>POST ${origin}/p/{slug}/{op}</code> — <em>proxy only</em></li>
-  </ol>
-${homepageAddUrlHtml(origin)}
-  <section class="cite" id="fraggate">
-    <h2>FragGate (kernel / door — not a Software engine)</h2>
-    <p>FragGate is the kernel door. Human UI + counted download is the separate FragGate Worker app (not nested in AZBrowser). Hubs already show <a href="${FRAGGATE_GITHUB}">${FRAGGATE_GITHUB}</a>. This runtime publishes a catalog-friendly card at <code>GET /v1/catalog.json</code> <code>extras[]</code> / <code>fraggate</code> so corpus / godlock.uk / azieleliab Software indexes can list Worker <code>${FRAGGATE_WORKER}</code> without adding a PRODUCTS true-engine slug.</p>
-    <p><a href="${origin}/v1/fraggate">/v1/fraggate</a> · <a href="${origin}/v1/fraggate/list">/v1/fraggate/list</a> · <a href="${origin}/v1/catalog.json">catalog extras</a> · <a href="${FRAGGATE_WORKER_ORIGIN}/">Worker UI</a> · <a href="${FRAGGATE_WORKER_ORIGIN}/download">counted download</a> · <a href="${FRAGGATE_GITHUB}">GitHub</a></p>
-  </section>
-  ${cards}
 ${fragGateDoorScript()}
 ${donateFooterHtml()}
 </body>
@@ -1866,7 +1900,7 @@ ${headMeta(origin, title, description, `/p/${p.slug}`)}
     <img class="brandmark" src="/sigil.png" width="40" height="40" alt="Everblooming sigil — Aziel Eliab" decoding="async">
     <p class="stamp">Everblooming sigil · Aziel Eliab</p>
   </div>
-  <p><a href="${origin}/">← Aziel Eliab Runtime</a></p>
+  <p><a href="${origin}/">← ${escapeHtml(PRODUCT_NAME)}</a></p>
   ${productCardHtml(p, origin, stats)}
 ${fragGateDoorScript()}
 ${donateFooterHtml()}
@@ -1985,6 +2019,22 @@ function staticPaths(origin) {
         responses: { "200": { description: "Latest versions JSON" } },
       },
     },
+    "/about": {
+      get: {
+        operationId: "catalog_about",
+        summary: "What Aziel Runtime is — node-meshed MCP Softwares suite, not an API aggregator.",
+        tags: ["catalog"],
+        responses: { "200": { description: "About HTML" } },
+      },
+    },
+    "/v1/about": {
+      get: {
+        operationId: "catalog_about_v1",
+        summary: "Alias of /about.",
+        tags: ["catalog"],
+        responses: { "200": { description: "About HTML" } },
+      },
+    },
     "/cite.json": {
       get: {
         operationId: "catalog_cite",
@@ -2072,10 +2122,13 @@ async function combinedOpenApi(request, env) {
   return {
     openapi: "3.1.0",
     info: {
-      title: "Aziel Eliab Runtime",
+      title: PRODUCT_NAME,
       version: RUNTIME_VERSION,
-      summary: "FragGate door over the Aziel Eliab catalog: discover, route, refuse.",
+      summary: RUNTIME_ONE_LINE,
       description:
+        RUNTIME_ABSTRACT +
+        " FragGate is THE single public executable door (list → describe → call). Softwares catalog Plain→Gate→Lock; hubs refresh from GET /v1/software. Dual-surface: agents MCP/OpenAPI; humans Worker UI + counted /download. NodeMesh/QNM suite-presence is operator-enabled; GET /v1/mesh never enables; not a login mesh/VPN/Node Gate. Author Aziel Eliab only. " +
+        "1.7.11 leads crawler copy with that definition (changelog stays below). " +
         "1.7.10 makes QNM Live Nodes durable (suite-presence is operator-enabled; GET /v1/mesh never enables; cron or request-path fans out live Softwares product Workers while enabled; TTL 5 min). " +
         "1.7.9 cross-maps AZCoherence (peers azclce / AZInterface / AKM-TRIAD fabric neighbor; hubs + Worker URL; domain stays null). " +
         "1.7.8 lands EmbryoLock as a true in-process engine (live-with-local-destructive-boundary; wipe/unlock stay FG-STUB; worker_home embryolock-download-tracker). " +
@@ -2339,6 +2392,7 @@ function healthBody(origin) {
     qns: "/v1/qns",
     azpipe_arch: "/v1/azpipe/arch",
     memory: "/v1/memory",
+    about: "/about",
     cite: "/cite.json",
     sitemap: "/sitemap.xml",
     sitemap_index: "/sitemap-index.xml",
@@ -2597,6 +2651,13 @@ async function handleRequest(request, env, ctx) {
 
     if (url.pathname === "/" && request.method === "GET") {
       return html(catalogHtml(origin, {}), { ...extra("/"), ...catalogCacheHeaders() });
+    }
+
+    if ((url.pathname === "/about" || url.pathname === "/v1/about") && (request.method === "GET" || request.method === "HEAD")) {
+      return asHead(
+        request,
+        html(aboutPageHtml(origin, PAGE_CSS), { ...extra("/about"), ...catalogCacheHeaders() }),
+      );
     }
 
     if (url.pathname === "/robots.txt" && (request.method === "GET" || request.method === "HEAD")) {

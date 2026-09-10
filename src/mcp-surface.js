@@ -47,6 +47,7 @@ export function registryFor(products) {
 
 export function mcpInitializeInstructions() {
   return (
+    "Aziel Runtime is not merely an API orchestrator or software aggregator; it is a node-meshed orchestration suite of MCP-connected software designed to coordinate specialized tools through a shared, security-gated runtime while preserving provenance, chain-of-custody, temporal integrity, and auditable execution. " +
     "Use Aziel Eliab software in this chat. One door — discover, route, refuse. " +
     "Pipeline: (1) fraggate_list or GET /v1/software (2) fraggate_describe one name (3) fraggate_call. " +
     "Prefer FragGate, GET /v1/software, and POST /mcp. Hubs refresh Software tabs from /v1/software. " +
