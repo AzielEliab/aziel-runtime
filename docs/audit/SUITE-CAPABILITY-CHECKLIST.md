@@ -22,6 +22,26 @@ Not a Softwares-tab product. Not a FragGate slug. Not a mesh enable.
 
 ---
 
+## Remain-Off-by-Design (constitutional)
+
+Paper: [`docs/audit/FEATURE-STATE-2026-09-10.md`](FEATURE-STATE-2026-09-10.md) (+ `.pdf`). Authoritative intentional-OFF vs gaps inventory for 1.7.3+. Not a Softwares-tab product. Not a FragGate slug.
+
+This Softwares wave **must not** flip security/architecture OFF into live. Capability upgrades are health/skill richness and domain-true doctor/verify/import_export only.
+
+| Stay OFF / STUB | FEATURE-STATE item | Wave must not |
+| --- | --- | --- |
+| Suite QNM / Node Mesh radios | 1, 3 | Enable mesh. `GET /v1/mesh` never enables. |
+| QNS public proxy | 2 | Proxy local `qnsd` / via emit. |
+| EmbryoLock / AZChat | 4, 5 | Promote to engines. EmbryoLock landing is a separate PR. |
+| VeilLock public exec / inject | 6, 7 | Remote inject, intercept, facetime. VeilLock stays `local_only`. |
+| ARK scorch / wipe / unlock / encrypt | 8 | Host a wipe or unlock. |
+| AZ-OS exec / shell | 12 | Public shell. |
+| 4DMap truth_score / lumen / invent_mark / backdate | 16 | Open those stubs. 1.7.4 inspection-frame ops stay; these stay refuse. |
+| Public / RoseClock rollback | 31–32 | Add `POST /v1/rollback` or a rewind API. TemporalLock / StaticClock / memory `rollback` stay stub. |
+| AKM Softwares-tab | 38 | Invent an `akm` catalog card. |
+
+---
+
 ## Capability baseline (every live in-process catalog engine)
 
 Where missing or thin, add or strengthen. Do not invent fantasy ops.
@@ -125,6 +145,7 @@ These are the human surface. Do not pretend the runtime catalog is the product W
 
 - Do not deploy from this document.
 - Do not enable mesh from GET or from a library overlay.
+- Do not enable ARK wipe, VeilLock remote inject, AZ-OS shell, 4DMap `truth_score` / `invent_mark` / `backdate_class`, or a public rollback API.
 - Do not add ZD30, a public rollback API, or EmbryoLock / AZChat as engines.
 - Do not invent a Softwares-tab AKM product. AKM-TRIAD-1.0 is already LIVE fabric (`/v1/memory/*`, MCP `memory_*`). Softwares may observe into memory via FragGate; they are not an AKM card.
 - Do not put QNS, SweepGate, AZPIPE, or Lamb Lens on the Softwares-tab.

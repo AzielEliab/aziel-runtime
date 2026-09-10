@@ -9,6 +9,8 @@ import { LIVE_OPS, STUB_OPS, buildRegistry, classifyCall } from "../src/fraggate
 import { engineOps } from "../src/engines/registry.js";
 import { executeLocal } from "../src/engines/runner.js";
 import { productVerbTitle } from "../src/display.js";
+import { MESH_DEFAULT_ENABLED } from "../src/mesh.js";
+import { FEATURE_STATE_AUDIT } from "../src/seo.js";
 
 const WAVE = [
   "decisiongate",
@@ -234,5 +236,54 @@ assert.equal(classifyCall(registry.bySlug.staticclock, "rollback").kind, "stub")
 assert.equal(classifyCall(registry.bySlug.chronolock, "cron").kind, "stub");
 assert.equal(classifyCall(registry.bySlug.trajectorylock, "store_media").kind, "stub");
 assert.equal(classifyCall(registry.bySlug.spectrallock, "forensic").kind, "stub");
+
+assert.equal(FEATURE_STATE_AUDIT.remain_off_by_design, true);
+assert.equal(MESH_DEFAULT_ENABLED, false);
+
+const REMAIN_OFF = [
+  { slug: "ark", op: "wipe" },
+  { slug: "ark", op: "scorch" },
+  { slug: "ark", op: "unlock" },
+  { slug: "ark", op: "encrypt" },
+  { slug: "veillock", op: "inject" },
+  { slug: "azos", op: "exec" },
+  { slug: "azos", op: "shell" },
+  { slug: "4dmap", op: "truth_score" },
+  { slug: "4dmap", op: "invent_mark" },
+  { slug: "4dmap", op: "backdate_class" },
+  { slug: "4dmap", op: "lumen_panel" },
+  { slug: "memory", op: "rollback" },
+  { slug: "temporallock", op: "rollback" },
+  { slug: "staticclock", op: "rollback" },
+  { slug: "mesh", op: "wipe" },
+  { slug: "mesh", op: "arm" },
+];
+for (const { slug, op } of REMAIN_OFF) {
+  const entry = registry.bySlug[slug];
+  assert.ok(entry, `${slug} is in the FragGate registry`);
+  assert.equal(classifyCall(entry, op).kind, "stub", `${slug}/${op} Remain-Off-by-Design`);
+  assert.ok((STUB_OPS[slug] || []).includes(op), `${slug} STUB_OPS lists ${op}`);
+  assert.ok(!(LIVE_OPS[slug] || []).includes(op), `${slug} LIVE_OPS does not include ${op}`);
+}
+assert.equal(registry.bySlug.veillock.status, "local_only");
+
+const handler = (await import("../src/index.js")).default.fetch;
+const origin = "https://aziel-runtime.example";
+const meshGet = await handler(new Request(origin + "/v1/mesh", { headers: { "user-agent": "Mozilla/5.0" } }), {});
+assert.equal(meshGet.status, 200);
+const meshBody = await meshGet.json();
+assert.equal(meshBody.enabled, false, "GET /v1/mesh never enables");
+assert.notEqual(meshBody.enabled, true);
+
+const rollback = await handler(
+  new Request(origin + "/v1/rollback", { method: "POST", headers: { "user-agent": "Mozilla/5.0" } }),
+  {},
+);
+assert.equal(rollback.status, 404, "no public rollback API");
+const roseRollback = await handler(
+  new Request(origin + "/v1/roseclock/rollback", { method: "POST", headers: { "user-agent": "Mozilla/5.0" } }),
+  {},
+);
+assert.equal(roseRollback.status, 404, "no RoseClock rewind API");
 
 console.log(`ok capability wave 1: ${WAVE.join(", ")}`);
