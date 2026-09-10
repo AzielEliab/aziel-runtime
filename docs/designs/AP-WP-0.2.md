@@ -43,7 +43,9 @@ Aziel Eliab · local specification · not a fleet-completeness claim
     3. Hops
     Public hop list is LOCKED as of runtime 1.7.0 (MASTER-33). SUITE-PIPE-1.6.15 is
     historical. The fold-centric list below is INTERNAL fld3-wire only — not the
-    public arch() / UI strip / skill cite.
+    public arch() / UI strip / skill cite. Runtime 1.7.2 cites that same public
+    arch() at GET /v1/azpipe/arch (POST allowed as the same read). Not a
+    Softwares-tab door. Not a FragGate slug.
 
     Locked inbound (public, FragGate-first):
      Human → AZInterface → PUBLIC/UI/AGENT/API → FragGate → Lamb Lens → SweepGate
