@@ -171,6 +171,8 @@ assert.match(sitemap, /\/sitemap-index\.xml/);
 assert.match(sitemap, /github\.com\/AzielEliab\/aziel-runtime\/tree\/main\/docs\/designs/);
 assert.match(sitemap, /SEC-FEAT-1\.0\.md/);
 assert.match(sitemap, /QNS-CD-1\.0\.md/);
+assert.match(sitemap, /FEATURE-STATE-2026-09-10\.md/);
+assert.match(sitemap, /docs\/audit/);
 assert.match(sitemap, /\/v1\/qns/);
 
 const indexRes = await get("/sitemap-index.xml");
@@ -213,6 +215,8 @@ assert.match(llms, /QNS-CD-1\.0/);
 assert.match(llms, /AZL-WP-1\.1/);
 assert.match(llms, /QNM-WP-1\.0/);
 assert.match(llms, /not Softwares-tab products/);
+assert.match(llms, /FEATURE-STATE-2026-09-10/);
+assert.match(llms, /intentional-OFF vs gaps/);
 assert.doesNotMatch(llms, /10\.5281\/zenodo\.XXXX/);
 
 const aiRes = await get("/ai.txt");
@@ -246,6 +250,10 @@ assert.match(cite.designs.how_to_cite, /Eliab, Aziel/);
 assert.ok(cite.designs.papers.some((p) => p.id === "SEC-FEAT-1.0"));
 assert.ok(cite.designs.papers.some((p) => p.id === "4DM-WP-1.0" && p.kind === "software"));
 assert.ok(cite.designs.papers.every((p) => /docs\/designs\//.test(p.path) && /github\.com\/AzielEliab\/aziel-runtime\/blob\/main/.test(p.github)));
+assert.ok(cite.audits);
+assert.equal(cite.audits.feature_state.id, "FEATURE-STATE-2026-09-10");
+assert.equal(cite.audits.not_fraggate_slug, true);
+assert.equal(cite.audits.mesh_get_never_enables, true);
 
 const catalogRes = await get("/v1/catalog.json");
 assert.equal(catalogRes.status, 200);
@@ -338,6 +346,8 @@ assert.match(home, /SEC-FEAT-1\.0/);
 assert.match(home, /4DM-WP-1\.0/);
 assert.match(home, /data-slug="4dmap"/);
 assert.match(home, /github\.com\/AzielEliab\/aziel-runtime\/(?:tree|blob)\/main\/docs\/designs/);
+assert.match(home, /FEATURE-STATE-2026-09-10/);
+assert.match(home, /docs\/audit/);
 
 const card = await (await get("/p/foldlock")).text();
 assert.match(card, /"@type":"Person"/);

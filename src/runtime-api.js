@@ -31,7 +31,7 @@ import {
   SESSION_TTL_MS,
 } from "./production.js";
 import { citeCompatibleFields, skillCompatibleSection } from "./ai-clients.js";
-import { designsSkillMarkdown } from "./seo.js";
+import { auditsSkillMarkdown, designsSkillMarkdown } from "./seo.js";
 import { LOCKED_STRIP } from "./azpipe.js";
 
 export const RUNTIME_VERSION = "1.7.4";
@@ -409,6 +409,8 @@ Machine-readable: ${base}/cite.json · https://www.azielcorpuslibrary.net/cite.j
 GitHub: https://github.com/AzielEliab/aziel-runtime
 
 ${designsSkillMarkdown().trimEnd()}
+
+${auditsSkillMarkdown().trimEnd()}
 `;
 }
 

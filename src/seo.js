@@ -531,3 +531,90 @@ export function designsSitemapUrls() {
     ...SUITE_DESIGNS.map((d) => designGithubUrl(d.file)),
   ];
 }
+
+/** Git-hosted feature-state audit. Not a design paper. Not a Softwares-tab product. Not a FragGate slug. */
+export const AUDIT_FOLDER = "docs/audit/";
+export const AUDIT_GITHUB_TREE = "https://github.com/AzielEliab/aziel-runtime/tree/main/docs/audit";
+export const AUDIT_GITHUB_BLOB = "https://github.com/AzielEliab/aziel-runtime/blob/main/docs/audit";
+
+export const FEATURE_STATE_AUDIT = Object.freeze({
+  id: "FEATURE-STATE-2026-09-10",
+  file: "FEATURE-STATE-2026-09-10.md",
+  pdf: "FEATURE-STATE-2026-09-10.pdf",
+  one_line:
+    "Authoritative intentional-OFF vs gaps inventory for 1.7.3+ (50 items: OFF/STUB/LOCAL/NOT IMPLEMENTED/PARTIAL). Do not enable mesh or safety stubs.",
+  baseline: "1.7.3",
+  kind: "audit",
+  status: "live",
+});
+
+export function auditGithubUrl(file) {
+  return `${AUDIT_GITHUB_BLOB}/${file}`;
+}
+
+export function auditsCiteField() {
+  const d = FEATURE_STATE_AUDIT;
+  const github = auditGithubUrl(d.file);
+  return {
+    hosted: "git",
+    folder: AUDIT_FOLDER,
+    folder_github: AUDIT_GITHUB_TREE,
+    author: AUTHOR_NAME,
+    identity: AUTHOR_NAME,
+    not_software_tab: true,
+    not_fraggate_slug: true,
+    mesh_get_never_enables: true,
+    worker_serves_pdfs: false,
+    how_to_cite: `${AUTHOR_FAMILY_GIVEN}. (2026). {id} [Audit]. ${AUDIT_GITHUB_BLOB}/{FILE}`,
+    feature_state: {
+      id: d.id,
+      path: `${AUDIT_FOLDER}${d.file}`,
+      github,
+      pdf: auditGithubUrl(d.pdf),
+      one_line: d.one_line,
+      baseline: d.baseline,
+      status: d.status,
+      kind: d.kind,
+      software_tab: false,
+      fraggate_slug: false,
+      authoritative_for: "1.7.3+",
+      how_to_cite: `${AUTHOR_FAMILY_GIVEN}. (2026). ${d.id} [Audit]. ${github}`,
+    },
+  };
+}
+
+export function auditsSkillMarkdown() {
+  const d = FEATURE_STATE_AUDIT;
+  return [
+    "## Feature state (intentional OFF vs gaps)",
+    "",
+    `**${d.id}** is the authoritative intentional-OFF vs gaps inventory for **1.7.3+** (50 items: OFF / STUB / LOCAL / NOT IMPLEMENTED / PARTIAL). Security and architecture OFF must stay. Do not enable mesh or safety stubs from this cite. Not a Softwares-tab product. Not a FragGate slug. EmbryoLock is STUB at ingest; a parallel land is live-with-local-destructive-boundary. Git-hosted — the Worker does not serve the PDF. Identity Aziel Eliab only.`,
+    "",
+    `- **${d.id}** — ${d.one_line} ${auditGithubUrl(d.file)}`,
+    `- PDF: ${auditGithubUrl(d.pdf)}`,
+    "",
+    `Index: ${AUDIT_GITHUB_TREE}`,
+    "",
+  ].join("\n");
+}
+
+export function auditsLlmsBlock() {
+  const d = FEATURE_STATE_AUDIT;
+  return [
+    "## Feature state",
+    "",
+    `${d.id} is the authoritative intentional-OFF vs gaps inventory for 1.7.3+ (50 items). Do not enable mesh or safety stubs. Not a Softwares-tab product, not a FragGate slug. Author: Aziel Eliab only.`,
+    `Markdown: ${auditGithubUrl(d.file)}`,
+    `PDF: ${auditGithubUrl(d.pdf)}`,
+    "",
+  ].join("\n");
+}
+
+export function auditsLlmsHeaderLine() {
+  const d = FEATURE_STATE_AUDIT;
+  return `Feature-state audit: ${AUDIT_FOLDER}${d.file} (${d.id}) authoritative intentional-OFF vs gaps for 1.7.3+ — not a Softwares-tab product, not a FragGate slug. GET /v1/mesh never enables. ${AUDIT_GITHUB_TREE}`;
+}
+
+export function auditsSitemapUrls() {
+  return [AUDIT_GITHUB_TREE, auditGithubUrl(FEATURE_STATE_AUDIT.file), auditGithubUrl(FEATURE_STATE_AUDIT.pdf)];
+}
