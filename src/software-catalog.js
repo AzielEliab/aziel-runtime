@@ -12,9 +12,11 @@
  * Public identity: Aziel Eliab only.
  */
 
+import { BUILD_GIT_SHA } from "./build-meta.js";
 import { CATALOG_ALIASES } from "./catalog-meta.js";
 import { SOFTWARE_HUBS as CROSS_MAP_HUBS, crossMapFields } from "./cross-map.js";
 import { CATALOG_COUNT_NOTE, MASTER_33_SLUGS, TAB_PLACEMENT_SLUGS, domainFields, domainMapView } from "./domain-map.js";
+import { embeddedDigest } from "./engines/digest.js";
 import { NAMED_STUBS } from "./fraggate/registry.js";
 import { meshHint } from "./mesh.js";
 import { qnsHint } from "./qns.js";
@@ -80,13 +82,20 @@ function sanitizeGitSha(raw) {
   return s.toLowerCase();
 }
 
-export function softwareMeta(env) {
+export function softwareMeta(env, extras = {}) {
+  const meta = env && env.CF_VERSION_METADATA && typeof env.CF_VERSION_METADATA === "object" ? env.CF_VERSION_METADATA : {};
   const sha =
     sanitizeGitSha(env && env.GIT_SHA) ||
-    sanitizeGitSha(env && env.CF_VERSION_METADATA && env.CF_VERSION_METADATA.id) ||
+    sanitizeGitSha(extras.git_sha) ||
+    sanitizeGitSha(meta.tag) ||
+    sanitizeGitSha(meta.id) ||
+    sanitizeGitSha(BUILD_GIT_SHA) ||
     null;
   const updated =
-    (env && env.UPDATED_AT && String(env.UPDATED_AT).trim()) || null;
+    (env && env.UPDATED_AT && String(env.UPDATED_AT).trim()) ||
+    extras.updated_at ||
+    (meta.timestamp && String(meta.timestamp).trim()) ||
+    null;
   return { git_sha: sha, updated_at: updated };
 }
 
@@ -124,6 +133,7 @@ export function liveSoftwareCard(product, origin, meta = {}) {
     github: product.github || null,
     mcp: `${base}/mcp`,
     agent: agentHints(base, product.slug, "live"),
+    engine_digest: embeddedDigest(product.slug) || null,
     updated_at: meta.updated_at || null,
     git_sha: meta.git_sha || null,
     door: "fraggate",

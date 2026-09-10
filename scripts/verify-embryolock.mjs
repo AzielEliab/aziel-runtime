@@ -36,7 +36,7 @@ const product = PRODUCTS.find((p) => p.slug === "embryolock");
 assert.ok(product, "embryolock is a catalog product");
 assert.equal(product.name, "EmbryoLock");
 assert.equal(product.github, "https://github.com/AzielEliab/EmbryoLock");
-assert.equal(product.version, "1.1.0");
+assert.equal(product.version, "1.2.0");
 assert.equal(product.worker, "embryolock-download-tracker");
 assert.equal(product.local_destructive_boundary, true);
 assert.match(product.oneLine, /destructive-over-recovery|local-only/i);
@@ -201,6 +201,8 @@ assert.equal(card.local_destructive_boundary, true);
 assert.equal(card.surface, SURFACE);
 assert.equal(card.worker_home, "https://embryolock-download-tracker.vibelock.workers.dev/");
 assert.equal(card.download_url, "https://embryolock-download-tracker.vibelock.workers.dev/download");
+assert.equal(card.version, "1.2.0");
+assert.equal(card.engine_digest, embeddedDigest("embryolock"));
 assert.equal(card.domain_id, "01");
 assert.ok(software.software.some((s) => s.slug === "azchat" && s.status === "live"));
 
