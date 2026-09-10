@@ -6,7 +6,7 @@ Identity: Aziel Eliab.
 
 PDF: binary was provided as `FEATURE-STATE-2026-09-10.pdf`. Path for GitBaby: `docs/audit/FEATURE-STATE-2026-09-10.pdf`. If the original binary cannot be embedded, this markdown is the full inventory; keep that PDF path.
 
-This file is the authoritative intentional-OFF vs gaps inventory for 1.7.3+. Not a Softwares-tab product. Not a FragGate slug. Do not enable mesh or safety stubs. Runtime **1.7.8** lands EmbryoLock as live-with-local-destructive-boundary (wipe/scorch/unlock stay FG-STUB). Runtime **1.7.7** lands AZCoherence as a Softwares-tab placement. Neither land enables any remain-off item or puts AKM-TRIAD on the Softwares-tab.
+This file is the authoritative intentional-OFF vs gaps inventory for 1.7.3+. Not a Softwares-tab product. Not a FragGate slug. Do not enable mesh or safety stubs. Runtime **1.7.9** cross-maps AZCoherence (peers / `cross_map`; domain stays null). Runtime **1.7.8** lands EmbryoLock as live-with-local-destructive-boundary (wipe/scorch/unlock stay FG-STUB). Runtime **1.7.7** lands AZCoherence as a Softwares-tab placement. Neither land enables any remain-off item or puts AKM-TRIAD on the Softwares-tab.
 
 Companion constitutional OFF set (33 items that do NOT count as missing when correctly off/refused/gated): [REMAIN-OFF-BY-DESIGN-2026-09-10](../designs/REMAIN-OFF-BY-DESIGN-2026-09-10.md). FEATURE-STATE lists gaps vs intentional OFF; that paper is the must-stay-off set. Do not enable remain-off items from either cite.
 

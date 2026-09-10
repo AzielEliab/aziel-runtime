@@ -217,6 +217,14 @@ assert.match(fourdLine, /inspection frame/i);
 assert.match(fourdLine, /not an extra door/i);
 assert.doesNotMatch(fourdLine, /Domain Door/);
 
+const azc = body.software.find((s) => s.slug === "azcoherence");
+assert.ok(azc.cross_map);
+assert.equal(azc.domain, null);
+assert.ok(azc.peers.some((p) => p.slug === "azclce"));
+const clce = body.software.find((s) => s.slug === "azclce");
+assert.ok(clce.peers.some((p) => p.slug === "azcoherence"));
+assert.match(clce.one_line, /AZCoherence is a separate peer reviewer/);
+
 const mirror = await get("/v1/fraggate/software");
 assert.equal(mirror.status, 200);
 const mirrored = await mirror.json();

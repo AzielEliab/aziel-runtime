@@ -38,7 +38,10 @@ Softwares-tab `count` includes placements (`azinterface`, `decisiongate`,
 
 `azcoherence` is Softwares-tab Plain (AZCoherence, AZC-0.1). Scoring-review
 placement adjacent to AZ-CLCE. Not AKM-TRIAD fabric. Not a 34th MASTER-33
-isolation software.
+isolation software. Domain stays null (same pattern as `decisiongate` /
+`forgereceipts`). Catalog + engine `cross_map` / `peers`: azclce (peer
+scorer), AZInterface (human UI), AKM-TRIAD (fabric neighbor — not merged),
+Softwares hubs, product Worker URL. `azclce` reciprocates.
 
 ## Update check
 

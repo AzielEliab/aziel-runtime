@@ -49,7 +49,7 @@ Where missing or thin, add or strengthen. Do not invent fantasy ops.
 | — | `4dmap` | shipped in runtime **1.7.4** (keep those ops; do not invent an extra door) |
 | — | `embryolock`, `azchat` | **skip** (name-only stubs; EmbryoLock landing is a separate PR) |
 | — | `akm` / `akm-triad` / `memory` | **not a wave** — already LIVE fabric (1.7.1+). Not Softwares-tab. |
-| — | `azcoherence` | shipped in runtime **1.7.7** (scoring-review placement; not a 34th isolation software; not AKM-TRIAD) |
+| — | `azcoherence` | shipped in runtime **1.7.7** (scoring-review placement; not a 34th isolation software; not AKM-TRIAD). **1.7.9** catalog + engine `cross_map` / peers; azclce reciprocates; domain stays null |
 
 ---
 

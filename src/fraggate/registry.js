@@ -10,6 +10,7 @@
  */
 
 import { CATALOG_ALIASES } from "../catalog-meta.js";
+import { crossMapFields } from "../cross-map.js";
 import { domainFields } from "../domain-map.js";
 import { embeddedDigest } from "../engines/digest.js";
 import { MEMORY_CANONICAL_OPS, MEMORY_SLUG, MEMORY_STUB_OPS, memoryKernelEntry } from "../memory.js";
@@ -470,6 +471,7 @@ export function registryEntry(product) {
     domain: domain.domain,
     domain_id: domain.domain_id,
     placement: domain.placement,
+    ...crossMapFields(slug),
     note:
       slug === "embryolock"
         ? "Live-with-local-destructive-boundary. Health/skill/doctor/verify-hash/policy cite on the public FragGate door. Wipe/scorch/unlock-after-fail stay local-only — Never execute on the public mesh. Vault/Custody isolation label (with ARK). Author: Aziel Eliab only."
@@ -532,6 +534,8 @@ export function compactEntries(registry) {
     domain: e.domain || null,
     domain_id: e.domain_id || null,
     placement: e.placement || null,
+    peers: e.peers || undefined,
+    cross_map: e.cross_map || undefined,
     local_not_hosted: e.local_not_hosted || false,
   }));
 }
