@@ -22,7 +22,7 @@ export const ENABLE_COOLDOWN_MS = 60_000;
 export const KV_KEY = "ring";
 
 export const LIMITATION =
-  "THIS IS: AZMail APP 1.0 — advisory anti-phishing airlock (classify / scrub / trust_score) plus an anonymous in-process MCP mesh ring (default OFF). Independent of AZ-OS / Lumen / interface. Reached only through the aziel-runtime FragGate door (POST /v1/fraggate/call or MCP fraggate_call). THIS IS NOT: a full internet MTA; SMTP / IMAP / POP3; a side door past FragGate; identity; deanonymization; credential harvest; a VPN; WhistleLock. SMTP / send / mail / deliver / identify / deanonymize / harvest stay stub. Hosted never claims a real mailbox. Author: Aziel Eliab only.";
+  "THIS IS: AZMail APP 1.0 — advisory anti-phishing airlock (classify / scrub / trust_score), a local isolate mailbox (notice_post / mail_post / inbox_pull), plus an anonymous in-process MCP mesh ring (default OFF). Independent of AZ-OS / Lumen / interface / AZChat. Reached only through the aziel-runtime FragGate door (POST /v1/fraggate/call or MCP fraggate_call). THIS IS NOT: a full internet MTA; SMTP / IMAP / POP3; a side door past FragGate; identity; deanonymization; credential harvest; a VPN; WhistleLock; AZChat. SMTP / send / smtp_send / deliver / identify / deanonymize / harvest stay stub. No public MTA. Author: Aziel Eliab only.";
 
 export const IDENTITY_KEYS = Object.freeze([
   "from",
@@ -67,12 +67,16 @@ const PHONE_RE = /\b(?:\+?1[-.\s]?)?(?:\(?\d{3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}\b/g
 const SECRET_RE = /\b(?:sk|pk|api|token|bearer|secret|passwd|password)[-_:= ]+[A-Za-z0-9./+=_-]{8,}\b/gi;
 const PAN_RE = /\b(?:\d[ -]*?){13,19}\b/g;
 
+const NOTICE_CLASSES = new Set(["error", "update", "health", "receipt"]);
+const MAILBOX_CAP = 64;
+
 const memory = {
   enabled: MESH_DEFAULT_ENABLED,
   last_enable_ms: 0,
   posts: [],
   alerts: [],
   seq: 0,
+  boxes: {},
 };
 
 export function resetAzmailStore() {
@@ -81,6 +85,7 @@ export function resetAzmailStore() {
   memory.posts = [];
   memory.alerts = [];
   memory.seq = 0;
+  memory.boxes = {};
 }
 
 function nowMs() {
@@ -561,13 +566,189 @@ export async function keywordAlertCheck(payload, env) {
   });
 }
 
+function callerId(payload) {
+  const src = payload && typeof payload === "object" ? payload : {};
+  const raw = src.caller || src.mailbox_id || src.mailbox || src.id || "";
+  const id = String(raw)
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, "")
+    .slice(0, 48);
+  return id || "worker";
+}
+
+function boxOf(id) {
+  if (!memory.boxes[id]) memory.boxes[id] = { id, items: [], opened: nowIso() };
+  return memory.boxes[id];
+}
+
+async function mailboxReceipt(fields) {
+  const { sha256Hex } = await import("../../session-core.js");
+  const hash = await sha256Hex(JSON.stringify(fields));
+  return { ...fields, receipt_sha256: hash, author: AUTHOR };
+}
+
+export async function mailboxOpen(payload) {
+  const id = callerId(payload);
+  const box = boxOf(id);
+  const receipt = await mailboxReceipt({ op: "mailbox_open", mailbox_id: id, ts: box.opened });
+  return baseResult({
+    op: "mailbox_open",
+    mailbox_id: id,
+    opened: box.opened,
+    count: box.items.length,
+    mta: false,
+    smtp: false,
+    mesh_enabled_default: false,
+    receipt,
+    note: "Local isolate mailbox. Not SMTP. Not a public MTA.",
+  });
+}
+
+export async function noticePost(payload) {
+  const src = payload && typeof payload === "object" ? payload : {};
+  const klass = String(src.class || src.kind || "").toLowerCase();
+  if (!NOTICE_CLASSES.has(klass)) {
+    return refuse("AZM-BAD-INPUT", "notice_post class must be error|update|health|receipt.", {
+      op: "notice_post",
+      allowed: [...NOTICE_CLASSES],
+    });
+  }
+  const to = callerId({ mailbox_id: src.to || src.mailbox_id || "worker" });
+  const box = boxOf(to);
+  memory.seq += 1;
+  const item = {
+    id: `n_${memory.seq.toString(36)}`,
+    kind: "notice",
+    class: klass,
+    text: clipText(src.text != null ? src.text : src.body),
+    ts: nowIso(),
+    acked: false,
+  };
+  box.items.unshift(item);
+  if (box.items.length > MAILBOX_CAP) box.items.length = MAILBOX_CAP;
+  const receipt = await mailboxReceipt({ op: "notice_post", mailbox_id: to, item_id: item.id, class: klass });
+  return baseResult({
+    op: "notice_post",
+    mailbox_id: to,
+    item,
+    receipt,
+    mta: false,
+    smtp: false,
+    note: "Agent→user notice on the Worker inbox. Not SMTP.",
+  });
+}
+
+export async function mailPost(payload) {
+  const src = payload && typeof payload === "object" ? payload : {};
+  const from = callerId({ mailbox_id: src.from || src.caller });
+  const to = String(src.to || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, "")
+    .slice(0, 48);
+  if (!to) {
+    return refuse("AZM-BAD-INPUT", "mail_post needs { from, to } local mailbox ids. Not email.", { op: "mail_post" });
+  }
+  const box = boxOf(to);
+  memory.seq += 1;
+  const item = {
+    id: `m_${memory.seq.toString(36)}`,
+    kind: "mail",
+    from,
+    to,
+    text: clipText(src.text != null ? src.text : src.body),
+    ts: nowIso(),
+    acked: false,
+  };
+  box.items.unshift(item);
+  if (box.items.length > MAILBOX_CAP) box.items.length = MAILBOX_CAP;
+  const receipt = await mailboxReceipt({ op: "mail_post", from, to, item_id: item.id });
+  return baseResult({
+    op: "mail_post",
+    from,
+    to,
+    item,
+    receipt,
+    mta: false,
+    smtp: false,
+    note: "User→user local isolate mail. Not SMTP. Not deanonymize.",
+  });
+}
+
+export function inboxPull(payload) {
+  const id = callerId(payload);
+  const box = boxOf(id);
+  const limit = Math.min(32, Math.max(1, Number(payload && payload.limit) || 16));
+  return baseResult({
+    op: "inbox_pull",
+    mailbox_id: id,
+    count: Math.min(limit, box.items.length),
+    items: box.items.slice(0, limit),
+    mta: false,
+    smtp: false,
+    note: "Caller inbox only. Not a public MTA.",
+  });
+}
+
+export async function mailboxAck(payload) {
+  const src = payload && typeof payload === "object" ? payload : {};
+  const id = callerId(src);
+  const box = boxOf(id);
+  const itemId = String(src.item_id || src.id || "");
+  const item = box.items.find((row) => row.id === itemId);
+  if (!item) {
+    return refuse("AZM-NOT-FOUND", "ack needs a caller-owned item_id.", { op: "ack", status: 404, mailbox_id: id });
+  }
+  item.acked = true;
+  const receipt = await mailboxReceipt({ op: "ack", mailbox_id: id, item_id: item.id });
+  return baseResult({ op: "ack", mailbox_id: id, item, receipt, mta: false, smtp: false });
+}
+
+export async function mailboxVerifyReceipt(payload) {
+  const src = payload && typeof payload === "object" ? payload : {};
+  const receipt = src.receipt && typeof src.receipt === "object" ? src.receipt : src;
+  const { receipt_sha256, ...rest } = receipt;
+  const { sha256Hex } = await import("../../session-core.js");
+  const expect = await sha256Hex(JSON.stringify(rest));
+  return baseResult({
+    op: "verify_receipt",
+    match: Boolean(receipt_sha256) && receipt_sha256 === expect,
+    receipt_sha256: expect,
+    posted: receipt_sha256 || null,
+    mta: false,
+    smtp: false,
+  });
+}
+
+export function mailboxImportExport(payload) {
+  const src = payload && typeof payload === "object" ? payload : {};
+  const mode = String(src.mode || "export").toLowerCase();
+  const id = callerId(src);
+  const box = boxOf(id);
+  return baseResult({
+    op: "import_export",
+    mode: mode === "import" ? "import" : "export",
+    mailbox_id: id,
+    items: mode === "import" ? [] : box.items.slice(),
+    stored: false,
+    mta: false,
+    smtp: false,
+    note: "Client-held JSON. Hosted mailbox is isolate-local, not an MTA.",
+  });
+}
+
 export function azmailHealth() {
   return baseResult({
     ok: true,
     mesh_enabled: memory.enabled === true,
     mesh_default: MESH_DEFAULT,
+    mesh_enabled_default: false,
     mta: false,
     smtp: false,
+    r2: { bound: false, bucket: null, cdn: false },
+    isolate_hash_store: true,
+    object_store: "isolate-hash",
+    mailbox: true,
+    azchat_bridge: false,
   });
 }
 

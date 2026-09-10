@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Aziel Runtime — consumer skeleton</title>
+  <meta name="description" content="Minimal public consumer skeleton for Aziel Eliab Runtime. Not an adoption claim.">
+</head>
+<body>
+  <h1>Aziel Eliab Runtime — consumer skeleton</h1>
+  <p>Reads <code>GET /v1/software</code>. Does not enable mesh. Not SMTP. Not an independent validation.</p>
+  <label>Origin <input id="origin" size="64" value="https://aziel-runtime.vibelock.workers.dev"></label>
+  <button id="load" type="button">Load catalog</button>
+  <pre id="out">Idle.</pre>
+  <script>
+    document.getElementById("load").onclick = async () => {
+      const origin = document.getElementById("origin").value.replace(/\/$/, "");
+      const out = document.getElementById("out");
+      out.textContent = "Loading…";
+      try {
+        const res = await fetch(origin + "/v1/software", { headers: { "user-agent": "Mozilla/5.0" } });
+        const body = await res.json();
+        const rows = (body.software || []).map((s) => s.slug + " " + s.status + " " + (s.one_line || ""));
+        out.textContent = "count=" + (body.count || rows.length) + "\nmesh_get_never_enables\n\n" + rows.join("\n");
+      } catch (err) {
+        out.textContent = String(err);
+      }
+    };
+  </script>
+</body>
+</html>

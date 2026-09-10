@@ -599,7 +599,9 @@ const openapi = await (await get("/openapi.json")).json();
 assert.ok(openapi.paths["/v1/fraggate"]);
 assert.ok(openapi.paths["/v1/fraggate/call"]);
 assert.ok(openapi.paths["/mcp"]);
-assert.equal(openapi.paths["/p/foldlock/fold-preview"], undefined);
+assert.ok(openapi.paths["/p/foldlock/fold-preview"], "OpenAPI documents catalog proxy paths");
+assert.equal(openapi.paths["/p/azmail/smtp_send"], undefined);
+assert.equal(openapi.paths["/p/azmail/deanonymize"], undefined);
 assert.match(openapi.info.description, /FragGate/);
 
 console.log(`ok fraggate ${RUNTIME_VERSION}: door, registry, HALLUC/stub/local_only, gate ledger, live allowlist, thin MCP`);

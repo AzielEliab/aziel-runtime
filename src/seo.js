@@ -717,6 +717,14 @@ export const SUITE_DESIGNS = Object.freeze([
     kind: "law",
   },
   {
+    id: "AZRT-1.9-CLOSE-1.0",
+    file: "AZRT-1.9-CLOSE-1.0.md",
+    one_line:
+      "Close brief for runtime 1.9.0 — public-safe LIVE_OPS, AZMail mailbox, AZChat LIVE+bound, isolate hash store; remain-OFF untouched",
+    status: "live",
+    kind: "law",
+  },
+  {
     id: "AZL-DONATE-1.0",
     file: "AZL-DONATE-1.0.md",
     one_line:
