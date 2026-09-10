@@ -123,9 +123,15 @@ export function donationStatic() {
     kv: false,
     link_only: true,
     qrs: false,
+    hub_qrs: {
+      encode: "payment_uri",
+      assets: ["btc", "eth", "ltc", "xrp", "doge"],
+      hosted_on: "hubs",
+      runtime: false,
+    },
     canonical: DONATE_CANONICAL,
     spec: "AZL-DONATE-1.0",
-    note: `AZL-DONATE-1.0. Canonical rails live on hubs (${DONATE_CANONICAL}). Runtime and download-trackers only link. Do not duplicate five QRs here. Addresses are an operator paste at publish time on the hub. Do not invent wallets. Do not route donations through KV, D1, or Durable Objects. Not a Softwares-tab product.`,
+    note: `AZL-DONATE-1.0. Canonical rails live on hubs (${DONATE_CANONICAL}). Hub Donate pages include five QRs that encode payment URIs (BTC / ETH / LTC / XRP / DOGE). Runtime and download-trackers only link. Do not duplicate those QRs here. Addresses and payment URIs are an operator paste at publish time on the hub. Do not invent wallets. Do not route donations through KV, D1, or Durable Objects. Not a Softwares-tab product.`,
     networks: ["bitcoin", "lightning", "ethereum", "solana"],
     addresses: null,
   };

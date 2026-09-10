@@ -217,7 +217,7 @@ Product Worker crawl template: [docs/PRODUCT_SEO.md](docs/PRODUCT_SEO.md). QNM s
 
 ## Donate (runtime + product Worker footer)
 
-Canonical rails live on hubs: **https://www.azieleliab.com/donate**. This runtime only links. Do not invent wallet addresses or tokens. Do not duplicate five QRs on runtime or download-trackers.
+Canonical rails live on hubs: **https://www.azieleliab.com/donate**. Hub Donate pages include five QRs that encode payment URIs (BTC / ETH / LTC / XRP / DOGE). This runtime only links. Do not invent wallet addresses or tokens. Do not duplicate those five QRs on runtime or download-trackers.
 
 - **Runtime Worker UI footer** — one line: `Donate` → `https://www.azieleliab.com/donate`
 - **Product download-tracker Workers** — same footer pattern: `Support the work` → `https://www.azieleliab.com/donate`
