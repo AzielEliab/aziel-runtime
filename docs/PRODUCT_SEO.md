@@ -201,7 +201,7 @@ See also: https://aziel-runtime.vibelock.workers.dev/sitemap-index.xml
 
 ## Footer (donate — download-tracker pattern)
 
-Canonical rails live on hubs. Product Workers only link. Do not invent wallets. Do not copy five QRs onto the download-tracker.
+Canonical rails live on hubs. Hub Donate pages include five QRs that encode payment URIs (BTC / ETH / LTC / XRP / DOGE). Product Workers only link. Do not invent wallets. Do not copy those QRs onto the download-tracker.
 
 One footer line on every product Worker homepage:
 

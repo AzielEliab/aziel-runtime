@@ -26,7 +26,9 @@ https://www.azieleliab.com/donate
 
 That is the only public donate target this runtime may name.
 
-Hubs may also show a Donate strip (library, godlock.uk) that **links the same URL**. Library already has a static tab. Addresses, copy buttons, optional receipt notes, and network QRs — if shown — live on the hub page after operator paste. This paper does not invent them.
+Hubs may also show a Donate strip (library, godlock.uk) that **links the same URL**. Library already has a static tab. Addresses, copy buttons, optional receipt notes, and network QRs live on the hub page after operator paste. This paper does not invent addresses or payment-URI payloads.
+
+**Hub QRs encode payment URIs.** Donate pages on hubs include five QR codes for **BTC / ETH / LTC / XRP / DOGE**. Each QR encodes that network’s payment URI (not a decorative image, not a naked address string). Operator paste at publish time fills the URI. This paper does not invent the URIs.
 
 ## 3. Runtime Worker (this repo)
 
@@ -36,15 +38,15 @@ One footer line only:
 
 Rules:
 
-- Do **not** duplicate five QRs on runtime.
-- Do **not** paste wallet addresses into this Worker.
+- Do **not** duplicate the five hub QRs (BTC / ETH / LTC / XRP / DOGE payment URIs) on runtime.
+- Do **not** paste wallet addresses or payment URIs into this Worker.
 - Do **not** route donations through Workers KV, D1, or Durable Objects.
 - `donation.addresses` stays `null` until the operator pastes on the hub.
 - `donation.kv` stays `false`. `donation.link_only` is `true`. `donation.qrs` is `false`.
 - No legal name. No home. No “support my custody case” copy.
 - No Node Gate. No invented `CLOUDFLARE_API_TOKEN` or other tokens.
 
-The existing static donation JSON (networks the operator already controls: Bitcoin, Lightning, Ethereum, Solana) remains a cite of RL law. It is not a hosted wallet list.
+RL-WP-0.1 named Bitcoin / Lightning / Ethereum / Solana as operator-controlled networks. **AZL-DONATE-1.0** hub rails use five QR codes that encode **BTC / ETH / LTC / XRP / DOGE** payment URIs. Runtime JSON may cite that fact. It is not a hosted wallet list and it does not embed the URIs or QR images.
 
 ## 4. Product download-trackers (pattern)
 
@@ -54,7 +56,7 @@ One footer line:
 
 **Support the work** → `https://www.azieleliab.com/donate`
 
-Same rails rule: link only. Do not copy hub QRs, addresses, or receipt forms onto `*-download-tracker` Workers.
+Same rails rule: link only. Do not copy hub QRs (payment-URI encodings), addresses, or receipt forms onto `*-download-tracker` Workers.
 
 ## 5. What stays off
 

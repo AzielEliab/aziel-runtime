@@ -361,7 +361,9 @@ assert.match(home, /REMAIN-OFF-BY-DESIGN-2026-09-10/);
 assert.match(home, /AZL-DONATE-1\.0/);
 assert.match(home, /<footer class="donate">/);
 assert.match(home, /href="https:\/\/www\.azieleliab\.com\/donate">Donate<\/a>/);
+assert.match(home, /encode payment URIs \(BTC \/ ETH \/ LTC \/ XRP \/ DOGE\)/);
 assert.doesNotMatch(home, /<img[^>]*(qr|QR)/);
+assert.doesNotMatch(home, /bitcoin:|ethereum:|litecoin:|ripple:|dogecoin:/i);
 assert.match(home, /docs\/audit/);
 
 const card = await (await get("/p/foldlock")).text();
