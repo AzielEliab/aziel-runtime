@@ -72,7 +72,7 @@ export const ENGINE_DIGESTS = {
   "ark": "69d29bd079754df6450b8882b6f86c445ac7f1f490e2c150ff4716d00bf6d3b6",
   "azai": "96bd3281c17db65645accde17d1f0ab19be72c58a1ca45a4abd75d28839dc61e",
   "spectrallock": "8d8ff93b6e312e790bffd5cfe47afa09056e7ac5839d89f8df5ea010ba27c9c6",
-  "azbot": "c2407f0c3e82fe2b44b1ef3b7ed4fc97b92043477ccecb7e128770a6db434d70",
+  "azbot": "00575b6d187429fec22cca2b05c607d79df91a842ecf55188531d2b5f1c66355",
   "employeelock": "886e90395752e7dcb5458a6ee501c34858a18574623b2e542513b4faa96e1d90",
   "foldlock": "1034d5924b88878918986abe260338b0aff0117bc6f9c4d4a01a41d843cfa0a8",
   "whistlelock": "f585b20e1dfc0321e432ba04299d91d1708ae3b6f2ac78c85db5c61a63a4a6f8",
@@ -86,7 +86,7 @@ export const ENGINE_DIGESTS = {
   "azhub": "35683fb4735ed57bda3c4f2d5d312fe9c68fd7fb853b0b99fd1cbabcc22cba66",
   "azinterface": "0deb713c76dcb437a6b91983595f6abc47a401799c7ffa9ccda9fdf1332db2bd",
   "aziel-corpus": "a33ad0018f479f954bfd0e5881f871af04bf9b39f2565db2e0cdb591f6fc8085",
-  "4dmap": "c6e22605d54c9819dd683c9332c607fa64ba819b50c8cca2faa01153819a4315",
+  "4dmap": "9a1308e180da11d0be2895def9a4a537ebefea1d35954862cdb3b014b0da2169",
 };
 
 export function trueEngineSlugs() {

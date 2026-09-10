@@ -19,7 +19,7 @@ Inspect a declared object on four axes at once. Do not invent a mark. Do not sco
 
 ## 1. Claim
 
-4DMap is a Domain Door / inspection layer. After AZPIPE admits a payload and FragGate routes to an isolated engine, 4DMap frames what may be pinned, spanned, joined, and walked. The four axes are simultaneous, not a hop list.
+4DMap is an inspection frame. After AZPIPE admits a payload and FragGate routes to an isolated engine, 4DMap frames what may be pinned, spanned, joined, and walked. The four axes are simultaneous, not a hop list. Not an extra door (`domains_are_doors:false`).
 
 - **T** — time / temporal class. Neighbors: TemporalLock, StaticClock, ChronoLock.
 - **Δ** — change / difference. Neighbors: TemporalLock, TrajectoryLock.
@@ -55,7 +55,7 @@ Public locked hop list (runtime 1.6.15 / SUITE-PIPE-1.6.15):
 1. FragGate classifies the CallEnvelope (live / stub / halluc).
 2. SweepGate airlocks. ChainLock-IN stamps inbound. DecisionGATE runs after that stamp.
 3. AZPIPE admits (fld3-wire fold/static is internal). Isolated engine exec runs inside the Worker isolate.
-4. **4DMap sits here** — Domain Door / inspection layer — framing T/Δ/Γ/Π on declared cards for that isolated engine result. Neighbors may be cited. ChainLock may stamp a walk.
+4. **4DMap sits here** — inspection frame — framing T/Δ/Γ/Π on declared cards for that isolated engine result. Neighbors may be cited. ChainLock may stamp a walk. Not an extra door.
 
 Changing product names does not move 4DMap onto the sequential-gate line. The old fold-centric AZPIPE list is internal fld3-wire only.
 
@@ -74,8 +74,17 @@ Reached only via `fraggate_call` / `POST /v1/fraggate/call` with `{ slug: "4dmap
 | card_walk | Walk an ordered list of existing cards. Returns `walk_hash`. ChainLock may stamp. |
 | card_list | List cards and walks in this isolate. |
 | verify_hash | Recompute a card or walk hash. |
+| frame_status | Read the inspection frame (axes, neighbors, join types, not-a-door law). |
+| axis_describe | Describe one axis and its neighbors. |
+| walk_trace | Trace a declared walk. Not a sequential gate. |
+| card_export | Export a declared card or isolate snapshot. Hash-closed. |
+| card_import | Import a previously exported card. Hash mismatch refuses. |
+| verify_chain | Verify card prev_hash or walk card-hash chain. |
+| neighbor_cite | Cite a neighbor engine on a declared card (`neighbor` or `cite`). |
 
 Stub refuse (never hosted): `truth_score`, `lumen_panel`, `invent_mark`, `backdate_class`.
+
+Runtime 1.7.4 hosts the enhanced ops in-process. Product repo https://github.com/AzielEliab/4dmap is still 0.1.0 on main. After product 0.2.0 deploys, recompute and sync `engine_digest` / catalog version. Do not invent a product digest before that deploy.
 
 ## 5. Catalog
 
