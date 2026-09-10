@@ -204,6 +204,7 @@ import {
   SOFTWARE_FRAMING,
   listSoftwareEntries,
   softwareCatalog,
+  softwareMeta,
   updateCheck,
   updateManifest,
 } from "./software-catalog.js";
@@ -217,7 +218,7 @@ const CATALOG_TITLE = PRODUCT_NAME;
 /** Bound to the canonical abstract. Version rolls (1.9+) go in #version-history, not here. */
 const CATALOG_DESCRIPTION = RUNTIME_ABSTRACT;
 const CATALOG_CHANGELOG_19 =
-  "1.9.1 closes AZRT-1.9-GAPS-CLOSE: isolate-safe corpus review/score/verify/document-chain; Whisper/OCR Workers-AI-gated; AZBrowser sandbox_status (Chromium DEFERRED unbound); AZMail transport_status (no public MTA); wave 2–3 doctor/health richness; adversarial self-check + Actions npm test. Remain-OFF untouched. 1.9.0 closed AZRT-1.9-CLOSE-1.0: public-safe LIVE_OPS promotions, AZMail isolate mailbox, AZChat spendable handles/rooms/bus (mesh default off; not AZMail), isolate hash object store (no CDN), OpenAPI /p/{slug}/{op} proxy-path parity, corpus native-vs-proxy labels, named fallback inventory. Chromium stays NOT IMPLEMENTED. Remain-OFF untouched.";
+  "1.9.1 closes AZRT-1.9-GAPS-CLOSE: isolate-safe corpus review/score/verify/document-chain; Whisper/OCR Workers-AI-gated; AZBrowser sandbox_status (Chromium DEFERRED unbound); AZMail transport_status (no public MTA); wave 2–3 doctor/health richness; adversarial self-check + Actions npm test; software cards carry engine_digest; Live Nodes live_nodes is Softwares workers only; catalog EmbryoLock 1.2.0; catalog git_sha from deploy/build-meta. Remain-OFF untouched. 1.9.0 closed AZRT-1.9-CLOSE-1.0: public-safe LIVE_OPS promotions, AZMail isolate mailbox, AZChat spendable handles/rooms/bus (mesh default off; not AZMail), isolate hash object store (no CDN), OpenAPI /p/{slug}/{op} proxy-path parity, corpus native-vs-proxy labels, named fallback inventory. Chromium stays NOT IMPLEMENTED. Remain-OFF untouched.";
 const LASTMOD = "2026-09-10";
 
 const PRODUCTS_RAW = [
@@ -1114,16 +1115,12 @@ function productUrls(product, origin) {
 }
 
 function softwareExtra(env) {
-  const sha =
-    (env && env.GIT_SHA && String(env.GIT_SHA).trim()) ||
-    (env && env.CF_VERSION_METADATA && env.CF_VERSION_METADATA.id) ||
-    null;
-  const updated = (env && env.UPDATED_AT && String(env.UPDATED_AT).trim()) || LASTMOD;
+  const meta = softwareMeta(env, { updated_at: LASTMOD });
   return {
     runtimeVersion: RUNTIME_VERSION,
     version: RUNTIME_VERSION,
-    updated_at: updated,
-    git_sha: sha && /^[0-9a-f]{7,40}$/i.test(String(sha)) ? String(sha).toLowerCase() : null,
+    updated_at: meta.updated_at || LASTMOD,
+    git_sha: meta.git_sha,
   };
 }
 
@@ -1893,7 +1890,7 @@ ${homepageAddUrlHtml(origin)}
     <h2>Version history</h2>
     <strong>What this Worker is</strong>
     <ul>
-      <li><strong>1.9.1</strong> closes AZRT-1.9-GAPS-CLOSE. Isolate-safe corpus review / score / verify-backfill / verify-geo / document-chain / import_export run in-process. Whisper / OCR stay Workers-AI-gated (not a fake native OCR). AZBrowser <code>sandbox_status</code> / <code>sandbox_render</code> report Workers Browser Rendering honestly — Chromium stays DEFERRED unless bound; Tor / phoenix refuse. AZMail <code>transport_status</code>: public MTA stays NOT IMPLEMENTED; no public send. Wave 2–3 health / skill / doctor richness. Adversarial repo self-check + GitHub Actions <code>npm test</code> on pull requests and main. Consumer MCP / OpenAPI examples. Flutter <code>mobile/</code> is not vendored here. Remain-OFF untouched. Crawler abstract stays lead copy. Identity Aziel Eliab only.</li>
+      <li><strong>1.9.1</strong> closes AZRT-1.9-GAPS-CLOSE. Isolate-safe corpus review / score / verify-backfill / verify-geo / document-chain / import_export run in-process. Whisper / OCR stay Workers-AI-gated (not a fake native OCR). AZBrowser <code>sandbox_status</code> / <code>sandbox_render</code> report Workers Browser Rendering honestly — Chromium stays DEFERRED unless bound; Tor / phoenix refuse. AZMail <code>transport_status</code>: public MTA stays NOT IMPLEMENTED; no public send. Wave 2–3 health / skill / doctor richness. Adversarial repo self-check + GitHub Actions <code>npm test</code> on pull requests and main. Consumer MCP / OpenAPI examples. <code>/v1/software</code> cards carry <code>engine_digest</code>. Live Nodes <code>live_nodes</code> counts Softwares <code>{slug}-worker</code> only (<code>mesh_*</code> is ephemeral). Catalog EmbryoLock is 1.2.0. Catalog <code>git_sha</code> from deploy var or stamped build-meta. Flutter <code>mobile/</code> is not vendored here. Remain-OFF untouched. Crawler abstract stays lead copy. Identity Aziel Eliab only.</li>
       <li><strong>1.9.0</strong> closes AZRT-1.9-CLOSE-1.0. Promotes public-safe engine ops (CodeLock gate-status, VibeLock detect, GlossaFilter peers, AZBot example, AZ-OS invite/principles, AZAI models metadata). ShadowLock hook (not OS hook). MirageGrid verify-receipt/nodes (no hop). AzielTether tip/dual-chain/reconcile/pulse/peer-preview (no VPN). AZMail isolate mailbox (notice_post / mail_post / inbox_pull; no SMTP). AZChat LIVE+bound (handles/rooms/bus; mesh default off; not AZMail). Isolate hash object store for TrajectoryLock media + WhistleLock files (no CDN; send/mail/release refuse). OpenAPI documents <code>/p/{slug}/{op}</code> as proxy paths. Corpus native-vs-proxy labels. Named fallback inventory. Flutter <code>mobile/</code> is not vendored here. Chromium stays NOT IMPLEMENTED. Remain-OFF untouched. Crawler abstract stays lead copy. Identity Aziel Eliab only.</li>
       <li><strong>1.7.11</strong> leads crawler surfaces (homepage meta / JSON-LD, <code>/llms.txt</code>, <code>/cite.json</code>, <code>/about</code>) with the Aziel Runtime definition — node-meshed MCP Softwares suite for digital forensics and auditing; not an API aggregator. Changelog stays below the abstract. Architecture facts (FragGate single door, Softwares catalog, dual-surface, NodeMesh) stay secondary. Identity Aziel Eliab only.</li>
       <li><strong>1.1.0</strong> was catalog + pull + proxy that started calling itself a runtime. Those front doors stay. They are not exec.</li>
