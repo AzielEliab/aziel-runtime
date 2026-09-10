@@ -260,7 +260,8 @@ assert.equal(resolveOpAlias("azbrowser", "home").op, "health");
 assert.equal(resolveOpAlias("azmail", "classify").op, "airlock_classify");
 assert.equal(resolveOpAlias("aznet", "doctor").op, "health");
 assert.equal(resolveOpAlias("aznet", "pair").op, "pair_status");
-assert.equal(resolveOpAlias("peacelock", "doctor").op, "health");
+assert.equal(resolveOpAlias("peacelock", "doctor").op, "doctor");
+assert.equal(resolveOpAlias("peacelock", "doctor").aliased, false);
 assert.equal(resolveOpAlias("azhub", "region_list").aliased, false);
 
 assert.ok(registry.bySlug.embryolock);
@@ -483,7 +484,6 @@ const uiAliasCases = [
   { slug: "azmail", op: "classify", payload: { text: "hello from the anonymous ring" }, canon: "airlock_classify" },
   { slug: "aznet", op: "doctor", payload: {}, canon: "health" },
   { slug: "aznet", op: "pair", payload: {}, canon: "pair_status" },
-  { slug: "peacelock", op: "doctor", payload: {}, canon: "health" },
 ];
 for (const row of uiAliasCases) {
   const body = await (await post("/v1/fraggate/call", { slug: row.slug, op: row.op, payload: row.payload })).json();
@@ -495,6 +495,13 @@ for (const row of uiAliasCases) {
   assert.equal(body.aliased, true);
   assert.notEqual(body.code, "FG-UNKNOWN-OP");
 }
+
+const peaceDoctor = await (await post("/v1/fraggate/call", { slug: "peacelock", op: "doctor", payload: {} })).json();
+assert.equal(peaceDoctor.ok, true, JSON.stringify(peaceDoctor));
+assert.equal(peaceDoctor.code, "FG-OK");
+assert.equal(peaceDoctor.op, "doctor");
+assert.notEqual(peaceDoctor.aliased, true);
+assert.equal(peaceDoctor.result.doctor, true);
 
 const interfaceScorch = await (await post("/v1/fraggate/call", { slug: "azinterface", op: "scorch_remote" })).json();
 assert.equal(interfaceScorch.ok, false);
