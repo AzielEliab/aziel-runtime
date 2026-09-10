@@ -2,115 +2,88 @@
 
 Author: Aziel Eliab only.
 
-Status: local specification (2026-09-09). Not a Softwares-tab product.
+Status: LIVE fabric module on aziel-runtime (2026-09-09 / wired). Not a Softwares-tab product. Not a commercial antivirus. Not a fleet-completeness claim.
+
+Runtime: `src/sweepgate.js` · Version: SG-0.1
 
 ---
 
-Aziel Eliab · local specification · not a fleet-completeness claim
+## 0. Sentence
 
+A node mesh cannot treat inbound bytes as memory until they pass an airlock. SweepGate is that airlock. Isolate. Do not merge.
 
+## 1. Claim
 
+Public surfaces attract scrapers, prompt-injection, and drive-by payloads. GodLock already refuses poison on a 777-second class interval and cites instead of reanswering. SweepGate generalizes that refuse onto the AZPIPE hop list so every Worker, library call, and MCP envelope hits the same sieve before ChainLock entry.
 
-    SweepGate
-    Airlock, anti-poison, structural malware-class sweep
+The sieve is structural. It looks at the bytes. It does not claim vendor detection names, heuristic completeness, or host protection.
 
-    SG-WP-0.1 9 September 2026 Author: Aziel Eliab / GodLock.AZ Status: local specification. Not a commercial
-    antivirus product. Runtime: sweepgate.py · Version: SG-0.1
+## 2. What it is not
 
+- Not Windows Defender, ClamAV, or a Cloudflare WAF product.
+- Not FoldLock. FoldLock suppresses tethers. SweepGate decides whether the envelope is admitted.
+- Not FragGate. FragGate is the grounded-claim kernel. SweepGate is the airlock in front of memory.
+- Not a public Node Gate panel and not an IP allow/block UI. Hits are server-side.
+- Not a promise that malware cannot run on the operator's laptop.
 
-    0. Sentence
-    A node mesh cannot treat inbound bytes as memory until they pass an airlock. SweepGate is that airlock. Isolate. Do
-    not merge.
+## 3. Classes
 
-    1. Claim
-    Public surfaces attract scrapers, prompt-injection, and drive-by payloads. GodLock already refuses poison on a
-    777-second class interval and cites instead of reanswering. SweepGate generalizes that refuse onto the AZPIPE hop
-    list so every Worker, library call, and MCP envelope hits the same sieve before ChainLock entry.
+**Poison.** Marks such as inject-payload, jailbreak-ignore, exfiltrate, and explicit poison tokens. A hit isolates. The mesh records rel=quarantine. STM does not ingest the body.
 
-    The sieve is structural. It looks at the bytes. It does not claim vendor detection names, heuristic completeness, or host
-    protection.
+**Airlock-block.** Keys named password, private_key, secret, ssn, legal_name, home_address. Closed airlock. Those strings do not belong in cards or Worker logs.
 
-    2. What it is not
-•         Not Windows Defender, ClamAV, or a Cloudflare WAF product.
-•         Not FoldLock. FoldLock suppresses tethers. SweepGate decides whether the envelope is admitted.
-•         Not FragGate. FragGate is the grounded-claim kernel. SweepGate is the airlock in front of it.
-•         Not a public Node Gate panel and not an IP allow/block UI. Hits are server-side. Gate config stays in
-          gate_config.json.
+**Off-origin.** http(s) URLs that do not start with the allowlist. FoldLock later marks them `[FLD3:url]`. SweepGate isolates first when the envelope is inbound.
 
-•         Not a promise that malware cannot run on the operator's laptop.
+Allowlist origins:
 
-    3. Classes
-    Poison. Marks such as inject-payload, jailbreak-ignore, exfiltrate, and explicit poison tokens. These are APG
-    cousins. A hit isolates. The mesh records rel=quarantine. STM does not ingest the body.
+- https://www.azielcorpuslibrary.net
+- https://godlock.uk
+- https://www.azieleliab.com
+- https://aziel-runtime.vibelock.workers.dev
 
-    Airlock-block. Keys and leftovers named password, private_key, secret, legal_name, home_address. Closed airlock.
-    The runtime does not want those strings in cards or in a Worker log.
+**Malware-class.** Structural marks only:
 
-    Off-origin. http(s) URLs that do not start with the allowlist (azielcorpuslibrary.net, godlock.uk, azieleliab.com,
-    aziel-runtime). FoldLock will later mark them [FLD3:url]. SweepGate can isolate first when the envelope is
-    inbound and untrusted.
+- script tags
+- `eval(`
+- PowerShell `-enc`
+- `cmd.exe`
+- MZ / base64 MZ headers
+- `/bin/sh` and `rm -rf /`
+- dropper / meterpreter tokens
 
-    Malware-class. Structural marks only:
+A hit is `hits: ["malware-class"]`, `airlock: closed`, `refuse: sweep-isolate`. It is not a CVE name.
 
-•         script tags
-•         eval(
+## 4. Wire
 
-•         PowerShell -enc
-•         cmd.exe
+```json
+{
+  "v": "SG-0.1",
+  "ok": true,
+  "airlock": "open",
+  "hits": [],
+  "isolate": false,
+  "pull": false,
+  "qnm": "sweep-before-ingest",
+  "h": "sha256(raw)[:32]"
+}
+```
 
+Export: `inspect(envelope)` → `{ v:'SG-0.1', airlock, hits, isolate, refuse? }`.
 
+AZPIPE inbound calls SweepGate after first frag. If isolate is true the envelope returns immediately. No fold. No static. No entry. No toolkit.
 
-SG-WP-0.1 SweepGate                                                                                                             1
+AZPIPE outbound calls SweepGate after the toolkit result is folded and frozen, so a dirty tool cannot ride a bridge.
 
+## 5. Mesh
 
-Aziel Eliab · local specification · not a fleet-completeness claim
+Sweep runs before QNM cell ingest. Cite the hash. Drop the tether. Quarantine stays on the mesh chain. Two rotating bridges, when live, only forward envelopes with `airlock: open` and `pull: false`.
 
+`GET /v1/mesh` never enables. Operator bypass, if any, is a server-side token. No Node Gate panel.
 
+## 6. Cap
 
+This is a structural sieve on the pipe. It does not replace host AV, sandboxing, Cloudflare WAF, or EmbryoLock wipe policy. Expanding the mark list is an operator act and must be stamped on learn.
 
-•          MZ / base64 MZ headers
-•          /bin/sh and rm -rf /
+Companion papers: CL-WP-0.4, AP-WP-0.2, LS-WP-0.1.
 
-•          dropper / meterpreter tokens
-
-    A hit is hits: ["malware-class"], airlock: closed, refuse: sweep-isolate. It is not a CVE name.
-
-    4. Wire
-     {
-         v: "SG-0.1",
-         ok: true | false,
-         airlock: "open" | "closed",
-         hits: [...],
-         isolate: bool,
-         pull: false,
-         qnm: "sweep-before-ingest",
-         h: sha256(raw)[:32]
-     }
-
-    AZPIPE inbound calls SweepGate after first frag. If isolate is true the envelope returns immediately. No fold. No
-    static. No entry. No toolkit.
-
-    AZPIPE outbound calls SweepGate after the toolkit result is folded and frozen, so a dirty tool cannot ride a bridge.
-
-    5. Mesh
-    Sweep runs before QNM cell ingest. Cite the hash. Drop the tether. Quarantine stays on the mesh chain. Two rotating
-    bridges, when live, only forward envelopes with airlock: open and pull: false.
-
-    Operator traffic is not a special public button. Operator bypass, if any, is a server-side token in gate config. Same rule
-    as cost control on the Worker: no Node Gate panel.
-
-    6. Relation to cost and poison
-    The Cloudflare bill that motivated rate limits is a cousin problem. Scrapers that walk every software tab also walk
-    KV. SweepGate does not replace per-visitor request caps. It stops the class of payload that should never become a
-    card even if the visitor is under quota.
-
-    7. Cap
-    This is a structural sieve on the pipe. It does not replace host AV, sandboxing, Cloudflare WAF, or EmbryoLock
-    wipe policy. Expanding the mark list is an operator act and must be stamped on learn.
-
-    Companion papers: CL-WP-0.4, AP-WP-0.2, LS-WP-0.1.
-
-
-
-
-SG-WP-0.1 SweepGate                                                                                                              2
+Public identity: Aziel Eliab only.
