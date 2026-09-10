@@ -106,6 +106,9 @@ assert.equal(cite.audits.remain_off_by_design.do_not_enable, true);
 assert.equal(cite.audits.remain_off_by_design.software_tab, false);
 assert.equal(cite.audits.remain_off_by_design.fraggate_slug, false);
 assert.equal(cite.audits.mesh_get_never_enables, true);
+assert.equal(cite.mesh_get_never_enables, true);
+assert.equal(cite.suite_presence, "operator-enabled");
+assert.equal(cite.mesh.get_never_enables, true);
 
 const software = await (await get("/v1/software")).json();
 assert.ok(!software.software.some((s) => s.slug === "azpipe"), "AZPIPE is not a Softwares-tab slug");

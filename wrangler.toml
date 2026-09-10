@@ -8,6 +8,11 @@ account_id = "ac575a9b822bea2bed97d0ab73aed238"
 enabled = true
 head_sampling_rate = 1
 
+# QNM suite-presence fan-out while operator-enabled. GET /v1/mesh never enables.
+# Refresh is well under the 5-minute presence TTL. Radios stay OFF until a bearer.
+[triggers]
+crons = ["*/2 * * * *"]
+
 [assets]
 directory = "./public"
 binding = "ASSETS"
