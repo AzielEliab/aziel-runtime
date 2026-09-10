@@ -1,0 +1,189 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 5 0 R /Resources << /Font << /F1 7 0 R >> >> >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 6 0 R /Resources << /Font << /F1 7 0 R >> >> >>
+endobj
+5 0 obj
+<< /Length 2747 >>
+stream
+BT
+/F1 9 Tf
+13 TL
+36 756 Td
+(AZIEL RUNTIME -- Disabled, Off, Stubbed, Gated & Not-Yet-Implemented Feature Audit) Tj
+T*
+(Baseline aziel-runtime 1.7.3 | 2026-09-10.) Tj
+T*
+(Identity: Aziel Eliab.) Tj
+T*
+() Tj
+T*
+(PDF PLACEHOLDER: binary was provided as FEATURE-STATE-2026-09-10.pdf.) Tj
+T*
+(GitBaby path: docs/audit/FEATURE-STATE-2026-09-10.pdf) Tj
+T*
+(Original binary was not in the repo; markdown is the full verbatim inventory.) Tj
+T*
+() Tj
+T*
+(States: OFF/disabled, STUB, LOCAL ONLY/gated, NOT IMPLEMENTED, PARTIAL/fallback.) Tj
+T*
+() Tj
+T*
+(Inventory 1-50:) Tj
+T*
+(1 QNM/Node Mesh radios OFF default) Tj
+T*
+(2 QNS proxying OFF \(QNS-NO-PROXY\)) Tj
+T*
+(3 Public mesh auto-enable DISABLED) Tj
+T*
+(4 EmbryoLock STUB \(being landed live+local-destructive-boundary in parallel\)) Tj
+T*
+(5 AZChat STUB) Tj
+T*
+(6 VeilLock public execution LOCAL ONLY) Tj
+T*
+(7 VeilLock inject/intercept/facetime STUB) Tj
+T*
+(8 ARK scorch/wipe/unlock/encrypt STUB) Tj
+T*
+(9 WhistleLock send/mail/release STUB) Tj
+T*
+(10 MirageGrid VPN-hop STUB) Tj
+T*
+(11 AzielTether mesh-join/vpn/arm STUB) Tj
+T*
+(12 AZ-OS exec/shell STUB) Tj
+T*
+(13 AZAI blend/complete/chat STUB \(protocol mirror\)) Tj
+T*
+(14 EmployeeLock court/judge STUB) Tj
+T*
+(15 PeaceLock transcript/motive/etc STUB) Tj
+T*
+(16 4DMap truth_score/lumen/invent_mark/backdate STUB) Tj
+T*
+(17-18 AZBrowser tor_exit/phoenix_wipe STUB) Tj
+T*
+(19 AZBrowser Chromium NOT IMPLEMENTED) Tj
+T*
+(20 AZMail SMTP NOT IMPLEMENTED) Tj
+T*
+(21 AZMail deanonymization STUB) Tj
+T*
+(22 AZMail anonymous mesh OFF default) Tj
+T*
+(23 TrajectoryLock media store NOT IMPLEMENTED) Tj
+T*
+(24 WhistleLock file store NOT IMPLEMENTED) Tj
+T*
+(25 AZNet payload hosting DISABLED BY DESIGN) Tj
+T*
+(26 AZNet unpaired privileged CONDITIONALLY OFF) Tj
+T*
+(27 AZHub auto-unlock OFF) Tj
+T*
+(28 AZInterface page cycles PRE-LOCKED) Tj
+T*
+(29 Corpus D1/Whisper/OCR PARTIAL/PROXY) Tj
+T*
+(30 Universal local execution NOT COMPLETE) Tj
+T*
+(31-32 Public/RoseClock rollback OFF) Tj
+T*
+(33 LambGate OFF not a hop) Tj
+T*
+(34 ASE OPTIONAL) Tj
+T*
+(35 ZD30 ABSENT) Tj
+T*
+(36-37 AZPIPE public engine/mutation DISABLED/OFF) Tj
+T*
+(38 AKM Softwares-tab DISABLED BY DESIGN \(live fabric\)) Tj
+T*
+(39 AKM rebuild-index OPERATOR-GATED) Tj
+T*
+(40 Memory posterior auth OFF) Tj
+T*
+(41 Unauth session mutate OFF in prod) Tj
+T*
+(42 Unknown tools REFUSE) Tj
+T*
+(43 Destructive/fantasy REFUSE) Tj
+T*
+(44 Full internal MCP LIMITED) Tj
+T*
+(45 Complete OpenAPI INCOMPLETE) Tj
+T*
+(46 /p default agent path OFF BY DESIGN) Tj
+T*
+(47 FragGate not catalog engine) Tj
+T*
+(48 Node Mesh not normal catalog engine) Tj
+T*
+(49 Per-domain public doors OFF) Tj
+T*
+(50 Zenodo live publication INACTIVE) Tj
+ET
+BT
+/F1 8 Tf
+36 28 Td
+(Page 1/2  |  FEATURE-STATE-2026-09-10.pdf  |  Aziel Eliab) Tj
+ET
+endstream
+endobj
+6 0 obj
+<< /Length 487 >>
+stream
+BT
+/F1 9 Tf
+13 TL
+36 756 Td
+() Tj
+T*
+(Bottom line: most catalog wired in-process; unfinished concentrated in) Tj
+T*
+(networking, external action, stubs, distribution.) Tj
+T*
+(Security/architecture intentional OFF must stay. Identity Aziel Eliab.) Tj
+T*
+() Tj
+T*
+(EmbryoLock at PR time: still STUB. Parallel land is) Tj
+T*
+(live+local-destructive-boundary. This ingest does not flip that land.) Tj
+ET
+BT
+/F1 8 Tf
+36 28 Td
+(Page 2/2  |  FEATURE-STATE-2026-09-10.pdf  |  Aziel Eliab) Tj
+ET
+endstream
+endobj
+7 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000121 00000 n 
+0000000247 00000 n 
+0000000373 00000 n 
+0000003171 00000 n 
+0000003708 00000 n 
+trailer
+<< /Size 8 /Root 1 0 R >>
+startxref
+3776
+%%EOF

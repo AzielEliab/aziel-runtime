@@ -143,6 +143,13 @@ import {
   designsLlmsHeaderLine,
   designsSitemapUrls,
   designGithubUrl,
+  AUDIT_GITHUB_TREE,
+  auditsCiteField,
+  auditsLlmsBlock,
+  auditsLlmsHeaderLine,
+  auditsSitemapUrls,
+  auditGithubUrl,
+  FEATURE_STATE_AUDIT,
   libraryJsonLd,
   llmsCiteBlock,
   llmsIdentityHeader,
@@ -992,6 +999,9 @@ function sitemapXml(origin) {
   for (const loc of designsSitemapUrls()) {
     urls.push({ loc, priority: "0.5", changefreq: "weekly", lastmod: null });
   }
+  for (const loc of auditsSitemapUrls()) {
+    urls.push({ loc, priority: "0.45", changefreq: "weekly", lastmod: null });
+  }
   const body = urls
     .map((u) => {
       const last = u.lastmod === null ? "" : `    <lastmod>${u.lastmod || LASTMOD}</lastmod>\n`;
@@ -1063,6 +1073,7 @@ function llmsTxt(origin) {
     `License: Apache-2.0`,
     `User-Agent: Mozilla/5.0`,
     designsLlmsHeaderLine(),
+    auditsLlmsHeaderLine(),
     "",
     llmsCompatibleBlock().trimEnd(),
     "",
@@ -1118,6 +1129,7 @@ function llmsTxt(origin) {
     lines.push("");
   }
   lines.push(designsLlmsBlock());
+  lines.push(auditsLlmsBlock());
   lines.push(llmsCiteBlock(origin));
   lines.push("## Crawl (GitBaby product Workers)");
   lines.push("");
@@ -1183,6 +1195,7 @@ function citeJson(origin) {
     mcp: base + "/mcp",
     azpipe_arch: base + "/v1/azpipe/arch",
     designs: designsCiteField(),
+    audits: auditsCiteField(),
     products: PRODUCTS.map((p) => {
       const u = productUrls(p, origin);
       const cite = citationFields(p, u);
@@ -1607,6 +1620,7 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
   <p>LIVE fabric (not Softwares-tab): AZPIPE, SweepGate, ChainLock, LOCKSET, packed catalog, Lamb Lens, Sentinel, RoseClock, <strong>QNS-CD-1.0</strong> (photon QNS1 1.3; local <code>qnsd</code>; Worker cites only), MASTER-33 (SUITE-PIPE-1.6.15 historical), <strong>AKM-TRIAD-1.0</strong> (adaptive recollection; Bayesian posterior ≠ truth; behind FragGate). MCP <code>chainlock_*</code> and <code>memory_*</code>. <code>GET /v1/mesh</code> never enables. <code>GET /v1/qns</code> cites the packet-transfer coding design — it does not proxy local via emit. <code>GET /v1/azpipe/arch</code> cites the locked MASTER-33 strip (same payload as <code>GET /v1/fraggate</code> <code>pipeline</code>; not a Softwares-tab door). UI=MCP. No Node Gate.</p>
   <p>Donation is a static tab — no KV, no invented wallets. Networks the operator already controls (Bitcoin, Lightning, Ethereum, Solana); paste addresses at publish time.</p>
   <p>Designs (git-hosted papers — not Softwares-tab products, not a FragGate slug; <code>GET /v1/mesh</code> never enables): <a href="${DESIGNS_GITHUB_TREE}">docs/designs/</a>${SUITE_DESIGNS.map((d) => ` · <a href="${designGithubUrl(d.file)}">${escapeHtml(d.id)}</a>`).join("")}. Author: Aziel Eliab only. PDFs sit beside each paper on GitHub.</p>
+  <p>Feature-state audit (authoritative intentional-OFF vs gaps for 1.7.3+; not a Softwares-tab product, not a FragGate slug): <a href="${auditGithubUrl(FEATURE_STATE_AUDIT.file)}">${escapeHtml(FEATURE_STATE_AUDIT.id)}</a> · <a href="${auditGithubUrl(FEATURE_STATE_AUDIT.pdf)}">PDF</a> · <a href="${AUDIT_GITHUB_TREE}">docs/audit/</a>. Do not enable mesh or safety stubs. Author: Aziel Eliab only.</p>
   <h2>Session (the actual cut)</h2>
   <ol>
     <li><code>POST ${origin}/v1/session/open</code></li>
