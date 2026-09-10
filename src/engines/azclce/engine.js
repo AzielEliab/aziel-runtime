@@ -27,6 +27,8 @@ export const TYPE_NOTES = {
 
 export const MAX_FIELD_CHARS = 64 * 1024;
 export const ENGINE_VERSION = "0.3.0";
+export const NEIGHBORS = Object.freeze(["azcoherence"]);
+export { AZCLCE_CROSS_MAP as CROSS_MAP } from "../../cross-map.js";
 
 export const KID_PLAIN_BAND = {
   perfect: "These three stories match. What it looks like, what they wrote, and what it actually does use the same words.",
@@ -65,7 +67,7 @@ function kidPlainText(bandName, types) {
 }
 
 export const LIMITATION =
-  "CLCE detects inconsistency, not intent. Type D is a label, not a finding of malice. Human validation required. Not a cybersecurity exploit, not a scanner of other people's systems, not a lie detector. Advisory scores only. Threshold 0.7 is the paper's acceptable line, not a pass/fail of truth.";
+  "CLCE detects inconsistency, not intent. Type D is a label, not a finding of malice. Human validation required. Not a cybersecurity exploit, not a scanner of other people's systems, not a lie detector. Advisory scores only. Threshold 0.7 is the paper's acceptable line, not a pass/fail of truth. AZCoherence (AZC-0.1) is a separate peer product (second-pass triad coherence). Not a replacement. Not AKM-TRIAD.";
 
 export function tokenize(text) {
   if (text == null) return new Set();

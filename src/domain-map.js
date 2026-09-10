@@ -126,7 +126,7 @@ export const PLACEMENTS = Object.freeze({
     placement: "scoring-review",
     domain: null,
     domain_id: null,
-    note: "AZCoherence is the second-pass coherence reviewer for triad scores. Scoring-adjacent to AZ-CLCE (Language isolation). Catalog software. Not an extra door. Not AKM-TRIAD fabric.",
+    note: "AZCoherence is the second-pass coherence reviewer for triad scores. Scoring-adjacent to AZ-CLCE (Language isolation). Catalog software. Not an extra door. Not AKM-TRIAD fabric. Domain stays null — same pattern as decisiongate/forgereceipts: scoring-review is a placement, not a 34th isolation software. Domains are isolation labels, not doors. Cross-map peers: azclce (peer scorer), azinterface (human-UI), AKM-TRIAD (fabric neighbor, not merged).",
   },
 });
 
