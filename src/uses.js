@@ -15,6 +15,8 @@ export const USES_TOTAL_KEY = "total";
 
 const SKIP_SEO = new Set([
   "/",
+  "/about",
+  "/v1/about",
   "/robots.txt",
   "/sitemap.xml",
   "/sitemap-index.xml",

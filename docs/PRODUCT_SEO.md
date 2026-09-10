@@ -15,7 +15,8 @@ This repo does **not** own VibeLock or other product Workers. Copy this pattern 
 
 | Path | MIME | Purpose |
 |------|------|---------|
-| `GET /` | `text/html; charset=utf-8` | Indexable homepage |
+| `GET /` | `text/html; charset=utf-8` | Indexable homepage. Lead with the Aziel Runtime abstract (not a changelog). |
+| `GET /about` | `text/html; charset=utf-8` | What / for whom / how agents / how hubs / what it is not |
 | `GET /robots.txt` | `text/plain; charset=utf-8` | Open crawl |
 | `GET /sitemap.xml` | `application/xml; charset=utf-8` | This host only |
 | `GET /llms.txt` | `text/plain; charset=utf-8` | LLM / AI crawlers |
@@ -224,10 +225,11 @@ Runtime HTML shells (content negotiation — hubs still get JSON by default):
 
 | Path | Unique title |
 |------|----------------|
-| `GET /` | Aziel Eliab Runtime |
-| `GET /v1/software` (`Accept: text/html`) | Softwares — Aziel Eliab Runtime |
-| `GET /v1/fraggate/describe` (`Accept: text/html`) | FragGate describe — Aziel Eliab Runtime |
-| `GET /v1/fraggate/describe?slug=` (`Accept: text/html`) | `{Name} — FragGate describe — Aziel Eliab Runtime` |
+| `GET /` | Aziel Runtime — node-meshed MCP Softwares suite (not an API aggregator) |
+| `GET /about` | About — Aziel Runtime |
+| `GET /v1/software` (`Accept: text/html`) | Softwares — Aziel Runtime |
+| `GET /v1/fraggate/describe` (`Accept: text/html`) | FragGate describe — Aziel Runtime |
+| `GET /v1/fraggate/describe?slug=` (`Accept: text/html`) | `{Name} — FragGate describe — Aziel Runtime` |
 
 JSON-LD Person + SoftwareApplication / ItemList on those shells. Homepage Worker UI CSS is unchanged.
 

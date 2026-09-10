@@ -79,6 +79,8 @@ assert.equal(shouldIncrementUse("GET", "/llms.txt"), false);
 assert.equal(shouldIncrementUse("GET", "/ai.txt"), false);
 assert.equal(shouldIncrementUse("GET", "/cite.json"), false);
 assert.equal(shouldIncrementUse("GET", "/"), false);
+assert.equal(shouldIncrementUse("GET", "/about"), false);
+assert.equal(shouldIncrementUse("GET", "/v1/about"), false);
 assert.equal(shouldIncrementUse("GET", "/sigil.png"), false);
 assert.equal(shouldIncrementUse("GET", "/p/foldlock"), false);
 assert.equal(shouldIncrementUse("GET", "/mcp"), false);
