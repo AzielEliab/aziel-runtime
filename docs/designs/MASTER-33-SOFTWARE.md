@@ -85,7 +85,7 @@ Domains are **isolation labels**, not doors. Softwares stay on the Softwares-tab
 | FragGate Worker app | Fabric/hub. THE door + counted human UI. |
 | DecisionGATE product | Fabric product. Policy hop on the strip. |
 | ForgeReceipts | Fabric product. Return packaging via the existing engine. |
-| AZCoherence | Scoring-review placement (Language / AZ-CLCE adjacent). Catalog software. Not an extra door. Not AKM-TRIAD fabric. |
+| AZCoherence | Scoring-review placement (Language / AZ-CLCE adjacent). Catalog software. Not an extra door. Not AKM-TRIAD fabric. Domain stays **null** — same pattern as DecisionGATE / ForgeReceipts (placement, not a 34th isolation software). Cross-map peers: azclce (peer scorer), AZInterface (human UI), AKM-TRIAD (fabric neighbor — not merged). Hubs: azieleliab.com, azielcorpuslibrary.net, godlock.uk. Worker: https://azcoherence-download-tracker.vibelock.workers.dev/. |
 | mesh (QNM) | Fabric/hub. Default OFF. Not Softwares-tab. |
 
 ## 6. FragGate call path

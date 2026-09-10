@@ -2,6 +2,7 @@
  * AZCoherence in-process ops. Engine artifact is ./engine.js.
  * Author: Aziel Eliab.
  */
+import { AZCOHERENCE_CROSS_MAP } from "../../cross-map.js";
 import { capabilityDoctor, capabilityHealth, capabilitySkill } from "../capability.js";
 import {
   AUTHOR,
@@ -45,6 +46,15 @@ function envelope() {
       confidence_is_not_truth: true,
       invents_evidence: false,
       akm_triad: false,
+      peers: AZCOHERENCE_CROSS_MAP.peers,
+      fabric_neighbors: AZCOHERENCE_CROSS_MAP.fabric_neighbors,
+      hubs: AZCOHERENCE_CROSS_MAP.hubs,
+      worker_url: AZCOHERENCE_CROSS_MAP.worker_url,
+      cross_map: AZCOHERENCE_CROSS_MAP,
+      domain: null,
+      domain_id: null,
+      placement: "scoring-review",
+      domain_note: AZCOHERENCE_CROSS_MAP.domain_note,
     },
   };
 }
@@ -56,7 +66,7 @@ export function azcoherenceHealth() {
 export function azcoherenceSkill() {
   return capabilitySkill({
     ...envelope(),
-    lead: `Second-pass coherence reviewer for alternative triad scores. Peer AZ-CLCE detects R/D/P inconsistency; AZCoherence reviews primary vs alternate → PASS / FLAG / NEUTRALIZE / REFUSE. ${MOTTO} Not AKM-TRIAD fabric. Product cite: ${PRODUCT_GITHUB}.`,
+    lead: `Second-pass coherence reviewer for alternative triad scores. Peer AZ-CLCE detects R/D/P inconsistency; AZCoherence reviews primary vs alternate → PASS / FLAG / NEUTRALIZE / REFUSE. ${MOTTO} Not AKM-TRIAD fabric. Peer AZInterface is the human UI before FragGate (separate software). Softwares hubs: azieleliab.com, azielcorpuslibrary.net, godlock.uk. Worker: ${AZCOHERENCE_CROSS_MAP.worker_url} Product cite: ${PRODUCT_GITHUB}. Domain stays null (scoring-review placement; same pattern as decisiongate/forgereceipts).`,
   });
 }
 
@@ -64,7 +74,7 @@ export function azcoherenceDoctor() {
   return capabilityDoctor({
     ...envelope(),
     doctor_note:
-      "AZCoherence doctor: cite/health + coherence receipt. Never invents evidence. Confidence ≠ truth. FragGate only. Not a mesh enable. Not AKM-TRIAD.",
+      "AZCoherence doctor: cite/health + coherence receipt. Never invents evidence. Confidence ≠ truth. FragGate only. Not a mesh enable. Not AKM-TRIAD. Peer AZ-CLCE (separate scorer). Fabric neighbor AKM-TRIAD (not merged). AZInterface is sibling human-UI software. Domain null — scoring-review placement.",
   });
 }
 
