@@ -1,39 +1,51 @@
 /**
  * godlock in-process ops. Author: Aziel Eliab.
  */
-import { LIMITATION, VERSION, score, submit } from "./engine.js";
+import { capabilityDoctor, capabilityHealth, capabilitySkill } from "../capability.js";
+import { LIMITATION, MOTTO, VERSION, score, submit } from "./engine.js";
 
-export const GODLOCK_OPS = ["health", "skill", "score", "submit"];
+const LIVE = ["health", "skill", "score", "submit", "doctor"];
+const STUB = ["vpn", "tor", "proxy", "anonymity"];
+export const GODLOCK_OPS = LIVE.slice();
 
-export function godlockHealth() {
+function envelope() {
   return {
-    ok: true,
     product: "godlock",
+    name: "GodLock",
     version: VERSION,
-    true_engine_runtime: true,
-    kv_increment: false,
+    role: "offline ABAD / hardening score",
+    motto: MOTTO,
+    axes: ["abad", "hardening", "receipt"],
+    neighbors: ["azcoherence", "decisiongate", "zsolver"],
+    live_ops: LIVE,
+    stub_ops: STUB,
     limitation: LIMITATION,
-    author: "Aziel Eliab",
+    extra: { vpn: false, tor: false, court: false },
   };
 }
 
+export function godlockHealth() {
+  return capabilityHealth(envelope());
+}
+
 export function godlockSkill() {
-  return {
-    markdown: `# godlock (in-process)
+  return capabilitySkill({
+    ...envelope(),
+    lead: "Offline ABAD / hardening score and ephemeral logical receipt. Not a VPN. Not a court.",
+  });
+}
 
-This op ran inside aziel-runtime's Worker isolate (or a local CLI jail).
-
-Author: **Aziel Eliab**.
-Limitation: ${LIMITATION}
-`,
-    kv_increment: false,
-    limitation: LIMITATION,
-  };
+export function godlockDoctor() {
+  return capabilityDoctor({
+    ...envelope(),
+    doctor_note: "GodLock doctor: score + submit. No VPN, no Tor hop, no court.",
+  });
 }
 
 export async function runGodlock(op, payload, scratch) {
   if (op === "health") return godlockHealth();
   if (op === "skill") return godlockSkill();
+  if (op === "doctor") return godlockDoctor();
   if (op === "score") return score(payload);
   if (op === "submit") return submit(payload);
   return { unsupported: true };

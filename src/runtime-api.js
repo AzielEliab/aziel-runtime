@@ -34,12 +34,13 @@ import { citeCompatibleFields, skillCompatibleSection } from "./ai-clients.js";
 import { auditsSkillMarkdown, designsSkillMarkdown } from "./seo.js";
 import { LOCKED_STRIP } from "./azpipe.js";
 
-export const RUNTIME_VERSION = "1.9.0";
+export const RUNTIME_VERSION = "1.9.1";
 export const RUNTIME_ROLE = "engine-runtime";
 export const RUNTIME_LAYER = "catalog+pull+proxy+session+in-process-engines+fraggate";
 
 export const VERSION_HISTORY = [
-  { version: "1.9.0", status: "current", note: "AZRT-1.9-CLOSE-1.0: public-safe LIVE_OPS promotions (CodeLock gate-status, VibeLock detect, GlossaFilter peers, AZBot example, AZ-OS invite/principles, AZAI models metadata). ShadowLock hook (not OS hook). MirageGrid verify-receipt/nodes (no hop). AzielTether tip/dual-chain/reconcile/pulse/peer-preview (no VPN). AZMail isolate mailbox (notice_post/mail_post/inbox_pull; no SMTP). AZChat LIVE+bound (handles/rooms/bus; mesh default off; not AZMail). Isolate hash object store for TrajectoryLock media + WhistleLock files (no CDN; send/mail/release refuse). OpenAPI /p/{slug}/{op} proxy-path parity. Corpus native-vs-proxy labels. Named fallback inventory. Chromium stays NOT IMPLEMENTED. Remain-Off-by-Design items stay off. Crawler abstract stays lead copy (1.7.11). Identity Aziel Eliab only." },
+  { version: "1.9.1", status: "current", note: "AZRT-1.9-GAPS-CLOSE: convert isolate-safe corpus review/score/verify-backfill/verify-geo/document-chain/import_export to in-process; Whisper/OCR stay Workers-AI-gated (native only when AI is bound). Named proxy inventory shrinks (jeeves/transcribe/ocr/media-run remain). AZBrowser sandbox_status/sandbox_render report Workers Browser Rendering honestly — Chromium stays DEFERRED unless bound; Tor/phoenix refuse. AZMail transport_status: public MTA stays NOT IMPLEMENTED; no public send. Wave 2–3 health/skill/doctor richness. Adversarial repo self-check + GitHub Actions npm test on PR/main. Consumer MCP/OpenAPI examples. Project health engine_digest onto each /v1/software card. Live Nodes live_nodes counts Softwares *-worker only (mesh_* ephemeral split). Catalog EmbryoLock 1.2.0 matches product Worker health. Catalog git_sha from deploy --var or stamped build-meta. Flutter mobile/ remains not vendored. Remain-Off-by-Design items stay off. Crawler abstract stays lead copy. Identity Aziel Eliab only." },
+  { version: "1.9.0", status: "superseded", note: "AZRT-1.9-CLOSE-1.0: public-safe LIVE_OPS promotions (CodeLock gate-status, VibeLock detect, GlossaFilter peers, AZBot example, AZ-OS invite/principles, AZAI models metadata). ShadowLock hook (not OS hook). MirageGrid verify-receipt/nodes (no hop). AzielTether tip/dual-chain/reconcile/pulse/peer-preview (no VPN). AZMail isolate mailbox (notice_post/mail_post/inbox_pull; no SMTP). AZChat LIVE+bound (handles/rooms/bus; mesh default off; not AZMail). Isolate hash object store for TrajectoryLock media + WhistleLock files (no CDN; send/mail/release refuse). OpenAPI /p/{slug}/{op} proxy-path parity. Corpus native-vs-proxy labels. Named fallback inventory. Chromium stays NOT IMPLEMENTED. Remain-Off-by-Design items stay off. Crawler abstract stays lead copy (1.7.11). Identity Aziel Eliab only." },
   { version: "1.7.11", status: "superseded", note: "SEO clarity: crawler surfaces (homepage meta/JSON-LD, /llms.txt, /cite.json, /about) lead with the Aziel Runtime definition — node-meshed MCP Softwares suite for digital forensics and auditing; not an API aggregator. Changelog stays below the abstract. FragGate remains THE single door. GET /v1/mesh never enables. Identity Aziel Eliab only." },
   { version: "1.7.10", status: "superseded", note: "QNM Live Nodes durable fan-out: suite-presence is operator-enabled. GET /v1/mesh never enables. While enabled, cron (*/2 * * * *) or request-path joins/heartbeats every live Softwares product Worker (node_id {slug}-worker, no '|'; TTL 5 min). Product Workers proxy /v1/mesh/* via AZIEL_RUNTIME. Not a login mesh. Not Node Gate. Not QNM-S. Remain-Off-by-Design items stay off. Identity Aziel Eliab only." },
   { version: "1.7.9", status: "superseded", note: "AZCoherence catalog + engine cross_map / peers: azclce (peer scorer), AKM-TRIAD (fabric neighbor — not merged), AZInterface (human UI), Softwares hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk), product Worker URL. azclce reciprocates. Domain stays null (scoring-review placement; same pattern as decisiongate/forgereceipts). LIVE_OPS health/skill/doctor/verify and azbot toolkit cite azcoherence. Mesh stays default-off. Remain-Off-by-Design items stay off. Identity Aziel Eliab only." },
@@ -150,7 +151,7 @@ description: >-
   One door — discover, route, refuse. FragGate over the catalog: hashed
   registry, DecisionGATE after ChainLock-IN, ask/refuse ledger. Dual surface —
   agent/MCP has no technical UI chrome; Worker UI, Flutter mobile/, local
-  install, and counted /download stay complete human software. Flutter mobile/ is not vendored in this repo. 1.9.0 closes AZRT-1.9-CLOSE-1.0. 1.7.10 makes QNM Live Nodes durable
+  install, and counted /download stay complete human software. Flutter mobile/ is not vendored in this repo. 1.9.1 closes AZRT-1.9-GAPS-CLOSE. 1.9.0 closed AZRT-1.9-CLOSE-1.0. 1.7.10 makes QNM Live Nodes durable
   (suite-presence is operator-enabled; GET /v1/mesh never enables; cron or request-path fans out live Softwares product Workers while enabled; TTL 5 min). 1.7.9 cross-maps
   AZCoherence (peers azclce / AZInterface / AKM-TRIAD fabric neighbor; hubs + Worker URL; domain stays null). 1.7.8 lands
   EmbryoLock as a true in-process engine (live-with-local-destructive-boundary; wipe/unlock stay FG-STUB; worker_home embryolock-download-tracker). 1.7.7 lands
@@ -1080,7 +1081,7 @@ export function runtimeStaticPaths() {
                   op: {
                     type: "string",
                     description:
-                      "Public allowlisted op. UI aliases forward to catalog ops: azhub list_modules→region_list, place→place_module; azinterface genesis_boot→genesis_status, hold→page_cycle_status; azbrowser airlock→airlock_ingest, home→health; azmail classify→airlock_classify; aznet doctor→health, pair→pair_status; peacelock doctor→health. AZHub: region_list | place_module | remove_module | tether_declare | tether_cut | tether_list | blank_key_status | list_modules | place | health | skill. AZInterface: genesis_status | site_state_get | site_state_set | integrity_check | witness_list | page_cycle_status | genesis_boot | hold | health | skill. AZBrowser: ethical_search | lamb_lens_search | navigate | airlock_ingest | airlock | home | tab_open | tab_list | receipt_list | verify | receipt_verify | health | skill. AZNet: health | doctor | pair_status | pair | garden_list | stamp | verify_hash | memorial_list | memorial_append | receipt_verify | skill.",
+                      "Public allowlisted op. UI aliases forward to catalog ops: azhub list_modules→region_list, place→place_module; azinterface genesis_boot→genesis_status, hold→page_cycle_status; azbrowser airlock→airlock_ingest, home→health; azmail classify→airlock_classify; aznet doctor→health, pair→pair_status; peacelock doctor→health. AZHub: region_list | place_module | remove_module | tether_declare | tether_cut | tether_list | blank_key_status | list_modules | place | health | skill. AZInterface: genesis_status | site_state_get | site_state_set | integrity_check | witness_list | page_cycle_status | genesis_boot | hold | health | skill. AZBrowser: ethical_search | lamb_lens_search | navigate | airlock_ingest | airlock | home | tab_open | tab_list | receipt_list | verify | receipt_verify | sandbox_status | sandbox_render | health | skill. AZNet: health | doctor | pair_status | pair | garden_list | stamp | verify_hash | memorial_list | memorial_append | receipt_verify | skill.",
                   },
                   payload: { type: "object" },
                   claim: { type: "object" },
@@ -1130,6 +1131,14 @@ export function runtimeStaticPaths() {
                 azbrowser_skill: {
                   summary: "AZBrowser skill",
                   value: { slug: "azbrowser", op: "skill", payload: {} },
+                },
+                azbrowser_sandbox_status: {
+                  summary: "AZBrowser sandbox / Browser Rendering status (Chromium DEFERRED unbound)",
+                  value: { slug: "azbrowser", op: "sandbox_status", payload: {} },
+                },
+                azbrowser_sandbox_render: {
+                  summary: "AZBrowser binding-gated sandbox render (refuses private/onion)",
+                  value: { slug: "azbrowser", op: "sandbox_render", payload: { url: "https://github.com/AzielEliab/aziel-runtime" } },
                 },
                 aznet_pair_status: {
                   summary: "AZNet pair_status",

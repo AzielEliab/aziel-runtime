@@ -736,6 +736,21 @@ export function mailboxImportExport(payload) {
   });
 }
 
+export function transportStatus() {
+  return {
+    public_mta: false,
+    smtp: false,
+    imap: false,
+    pop3: false,
+    mx: false,
+    gated: true,
+    public_send: false,
+    local_mailbox: true,
+    next_step:
+      "Public mesh MTA stays NOT IMPLEMENTED. A local operator transport, if ever added, must stay gated off this public mesh and refuse smtp_send here. Do not open public send.",
+  };
+}
+
 export function azmailHealth() {
   return baseResult({
     ok: true,
@@ -749,6 +764,7 @@ export function azmailHealth() {
     object_store: "isolate-hash",
     mailbox: true,
     azchat_bridge: false,
+    transport: transportStatus(),
   });
 }
 
@@ -764,7 +780,7 @@ AZMail (APP 1.0) is the anonymous MCP mesh mailer + advisory anti-phishing airlo
 - HTTP: \`POST /v1/fraggate/call\` with the same CallEnvelope
 - Leftover flat names such as \`azmail_mesh_post\` still go through FragGate (\`parseTarget\`) — they are not a side door and are not listed on \`tools/list\`
 
-Live ops: \`airlock_classify\`, \`scrub\`, \`trust_score\`, \`mesh_post\`, \`mesh_poll\`, \`mesh_listen\`, \`mesh_enable\`, \`mesh_disable\`, \`keyword_alert_set\`, \`keyword_alert_list\`, \`keyword_alert_check\`, \`health\`, \`skill\`.
+Live ops: \`airlock_classify\`, \`scrub\`, \`trust_score\`, \`mesh_post\`, \`mesh_poll\`, \`mesh_listen\`, \`mesh_enable\`, \`mesh_disable\`, \`keyword_alert_set\`, \`keyword_alert_list\`, \`keyword_alert_check\`, \`mailbox_open\`, \`notice_post\`, \`mail_post\`, \`inbox_pull\`, \`ack\`, \`verify_receipt\`, \`import_export\`, \`transport_status\`, \`health\`, \`skill\`.
 
 Mesh default: **off**. \`mesh_disable\` is always allowed. \`mesh_enable\` is rate-limited. Posts store no identity fields.
 

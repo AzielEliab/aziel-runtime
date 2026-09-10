@@ -2,39 +2,54 @@
  * The ARK in-process ops. Mode E heuristics only. Never unlocks a vault.
  * Author: Aziel Eliab.
  */
+import { capabilityDoctor, capabilityHealth, capabilitySkill, ensureThisIs } from "../capability.js";
 import { LIMITATION, levels, sweep } from "./engine.js";
 
-export const ARK_OPS = ["health", "skill", "sweep", "levels"];
+const LIVE = ["health", "skill", "sweep", "levels", "doctor"];
+const STUB = ["scorch", "wipe", "unlock", "encrypt"];
+export const ARK_OPS = LIVE.slice();
 
-export function arkHealth() {
+function envelope() {
   return {
-    ok: true,
     product: "ark",
-    true_engine_runtime: true,
-    kv_increment: false,
-    limitation: LIMITATION,
-    author: "Aziel Eliab",
-    note: "Mode E heuristics only. Hosted/in-process never unlocks or stores vaults.",
+    name: "The ARK",
+    version: "0.1.0",
+    role: "Mode E heuristics sweep",
+    motto: "Not a kernel. Hosted never unlocks.",
+    axes: ["sweep", "levels", "decoy"],
+    neighbors: ["embryolock", "whistlelock"],
+    live_ops: LIVE,
+    stub_ops: STUB,
+    limitation: ensureThisIs(
+      LIMITATION,
+      "THIS IS: Mode E heuristics sweep. THIS IS NOT: a kernel, hosted unlock, or stored vault.",
+    ),
+    extra: { stored: false, unlock: false },
   };
 }
 
+export function arkHealth() {
+  return capabilityHealth(envelope());
+}
+
 export function arkSkill() {
-  return {
-    markdown: `# The ARK (in-process)
+  return capabilitySkill({
+    ...envelope(),
+    lead: "Mode E heuristics only. Hosted/in-process never unlocks or stores vaults.",
+  });
+}
 
-Mode E heuristics sweep. **Not a kernel.** This process never unlocks or encrypts with a passphrase and never stores vaults.
-
-Author: **Aziel Eliab**.
-Limitation: ${LIMITATION}
-`,
-    kv_increment: false,
-    limitation: LIMITATION,
-  };
+export function arkDoctor() {
+  return capabilityDoctor({
+    ...envelope(),
+    doctor_note: "ARK doctor: sweep + levels. scorch/wipe/unlock/encrypt stay refuse.",
+  });
 }
 
 export async function runArk(op, payload, scratch) {
   if (op === "health") return arkHealth();
   if (op === "skill") return arkSkill();
+  if (op === "doctor") return arkDoctor();
   if (op === "levels") return levels();
   if (op === "sweep") {
     const out = sweep(payload && typeof payload === "object" ? payload : {});

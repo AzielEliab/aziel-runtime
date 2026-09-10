@@ -366,6 +366,17 @@ export function sanitizeNodeId(raw) {
   return s;
 }
 
+/** Auto-minted join ids (`mesh_${seq}_…`). Not Softwares product Workers. */
+export function isEphemeralMeshNodeId(nodeId) {
+  return /^mesh_/.test(String(nodeId || ""));
+}
+
+/** Suite-presence fan-out ids (`{slug}-worker`). Hubs count these as Softwares live nodes. */
+export function isSoftwareWorkerNodeId(nodeId) {
+  const id = String(nodeId || "");
+  return id.endsWith(FANOUT_NODE_SUFFIX) && !isEphemeralMeshNodeId(id);
+}
+
 export function sanitizeLabel(raw) {
   return clip(raw, LABEL_CAP);
 }
@@ -448,13 +459,32 @@ function productsPresent(nodes) {
   return [...set].sort();
 }
 
+function emptyPresence() {
+  return { live: 0, locked: 0, isolated: 0 };
+}
+
 function rollupCounts(nodes) {
-  const rollup = { live: 0, locked: 0, isolated: 0 };
+  const software = emptyPresence();
+  const ephemeral = emptyPresence();
+  const named = emptyPresence();
+  const all = emptyPresence();
   for (const node of liveList(nodes)) {
     const p = node && PRESENCE_STATES.includes(node.presence) ? node.presence : "live";
-    rollup[p] += 1;
+    all[p] += 1;
+    const id = node && node.node_id;
+    if (isEphemeralMeshNodeId(id)) ephemeral[p] += 1;
+    else if (isSoftwareWorkerNodeId(id)) software[p] += 1;
+    else named[p] += 1;
   }
-  return rollup;
+  return {
+    live: software.live,
+    locked: software.locked,
+    isolated: software.isolated,
+    software,
+    ephemeral,
+    named,
+    all,
+  };
 }
 
 function normalizeBearers(raw) {
@@ -589,6 +619,9 @@ function statusFields(state) {
     live_nodes: rollup.live,
     locked_nodes: rollup.locked,
     isolated_nodes: rollup.isolated,
+    ephemeral_nodes: rollup.ephemeral.live + rollup.ephemeral.locked + rollup.ephemeral.isolated,
+    ephemeral_live_nodes: rollup.ephemeral.live,
+    software_nodes: rollup.software.live + rollup.software.locked + rollup.software.isolated,
     products_present: products,
     products,
     store: state.store,

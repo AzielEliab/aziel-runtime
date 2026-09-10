@@ -140,7 +140,7 @@ export const VERSIONS = {
   "aziel-corpus": "2.6.2",
   "4dmap": "0.2.0",
   azcoherence: "0.1.0",
-  embryolock: "1.1.0",
+  embryolock: "1.2.0",
   azchat: "0.1.0",
 };
 

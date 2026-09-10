@@ -1,5 +1,5 @@
 /**
- * aziel-runtime 1.9.0 — AZRT-1.9-CLOSE-1.0 (AZMail isolate mailbox; AZChat LIVE+bound; isolate hash store; OpenAPI proxy-path parity) on 1.7.10 QNM Live Nodes + 1.7.9 AZCoherence cross_map + 1.7.8 EmbryoLock live-with-local-destructive-boundary + MASTER-33 FragGate single door. Remain-OFF untouched. Author: Aziel Eliab.
+ * aziel-runtime 1.9.1 — AZRT-1.9-GAPS-CLOSE on 1.9.0 AZRT-1.9-CLOSE-1.0 heritage. Remain-OFF untouched. Author: Aziel Eliab.
  *
  * 1.1.0 was catalog+proxy that called itself a runtime. Useful front doors.
  * 1.2.0 owned open → policy → exec → receipt → close but exec still proxied.
@@ -204,6 +204,7 @@ import {
   SOFTWARE_FRAMING,
   listSoftwareEntries,
   softwareCatalog,
+  softwareMeta,
   updateCheck,
   updateManifest,
 } from "./software-catalog.js";
@@ -217,7 +218,7 @@ const CATALOG_TITLE = PRODUCT_NAME;
 /** Bound to the canonical abstract. Version rolls (1.9+) go in #version-history, not here. */
 const CATALOG_DESCRIPTION = RUNTIME_ABSTRACT;
 const CATALOG_CHANGELOG_19 =
-  "1.9.0 closes AZRT-1.9-CLOSE-1.0: public-safe LIVE_OPS promotions, AZMail isolate mailbox, AZChat spendable handles/rooms/bus (mesh default off; not AZMail), isolate hash object store (no CDN), OpenAPI /p/{slug}/{op} proxy-path parity, corpus native-vs-proxy labels, named fallback inventory. Chromium stays NOT IMPLEMENTED. Remain-OFF untouched.";
+  "1.9.1 closes AZRT-1.9-GAPS-CLOSE: isolate-safe corpus review/score/verify/document-chain; Whisper/OCR Workers-AI-gated; AZBrowser sandbox_status (Chromium DEFERRED unbound); AZMail transport_status (no public MTA); wave 2–3 doctor/health richness; adversarial self-check + Actions npm test; software cards carry engine_digest; Live Nodes live_nodes is Softwares workers only; catalog EmbryoLock 1.2.0; catalog git_sha from deploy/build-meta. Remain-OFF untouched. 1.9.0 closed AZRT-1.9-CLOSE-1.0: public-safe LIVE_OPS promotions, AZMail isolate mailbox, AZChat spendable handles/rooms/bus (mesh default off; not AZMail), isolate hash object store (no CDN), OpenAPI /p/{slug}/{op} proxy-path parity, corpus native-vs-proxy labels, named fallback inventory. Chromium stays NOT IMPLEMENTED. Remain-OFF untouched.";
 const LASTMOD = "2026-09-10";
 
 const PRODUCTS_RAW = [
@@ -229,6 +230,7 @@ const PRODUCTS_RAW = [
     ops: [
       { op: "analyze", method: "POST", summary: "Audio forensic risk assessment (JSON metrics)." },
       { op: "detect", method: "POST", summary: "Alias of analyze on the existing feature path. Not a liveness proof." },
+      { op: "doctor", method: "GET", summary: "UI alias of health. Same FragGate backend as the Worker UI button." },
     ],
     example: { summary: "synthetic dual-channel notes; local WAV scoring is in the Python package" },
     banner: null,
@@ -250,6 +252,7 @@ const PRODUCTS_RAW = [
     ops: [
       { op: "render", method: "POST", summary: "Canonical or CodeLock/Rosetta HTML view of source." },
       { op: "gate-status", method: "POST", summary: "Read CodeLock gate open/closed. Alters perception, not meaning." },
+      { op: "doctor", method: "GET", summary: "UI alias of health. Same FragGate backend as the Worker UI button." },
     ],
     example: { source: "print('hello')", mode: "normalize" },
     banner: "This tool alters perception, not meaning.",
@@ -262,6 +265,7 @@ const PRODUCTS_RAW = [
     ops: [
       { op: "score", method: "POST", summary: "Offline ABAD / hardening score for a text." },
       { op: "submit", method: "POST", summary: "Submit text; returns a receipt id (no VPN)." },
+      { op: "doctor", method: "GET", summary: "UI alias of health. Same FragGate backend as the Worker UI button." },
     ],
     example: { text: "ABAD does not layer on phi." },
     banner: "GodLock is not a VPN and not an anonymity network.",
@@ -341,6 +345,7 @@ const PRODUCTS_RAW = [
       { op: "patterns", method: "GET", summary: "Nine ontology nodes (Zioncheck seed). Not a verdict." },
       { op: "score", method: "POST", summary: "Score answers. Hard 75% cap, 25% floor." },
       { op: "session", method: "POST", summary: "Stateless session snapshot from answers." },
+      { op: "doctor", method: "GET", summary: "UI alias of health. Same FragGate backend as the Worker UI button." },
     ],
     example: { answers: [{ pattern_id: "P1", value: "yes" }, { pattern_id: "P2", value: "unknown" }] },
     banner: "Hard 75% confidence cap / 25% uncertainty floor. Provisional and assistive. Does not solve Zioncheck or any case.",
@@ -367,6 +372,7 @@ const PRODUCTS_RAW = [
     ops: [
       { op: "render", method: "POST", summary: "Render an intent across bundled peer ids." },
       { op: "peers", method: "GET", summary: "List bundled Glossa Filter peer ids. Human opinion remains human." },
+      { op: "doctor", method: "GET", summary: "UI alias of health. Same FragGate backend as the Worker UI button." },
     ],
     example: { subject: "package", rel: "release", object: "filter", channel: "tooling" },
     banner: "Human opinion remains human, and tools remain tools.",
@@ -380,6 +386,7 @@ const PRODUCTS_RAW = [
       { op: "assign", method: "POST", summary: "Assign a session node id. Mapping is ephemeral." },
       { op: "verify-receipt", method: "POST", summary: "Verify a MirageGrid control-plane receipt. Not a VPN hop." },
       { op: "nodes", method: "GET", summary: "List ephemeral control-plane node ids. Not a hop mesh." },
+      { op: "doctor", method: "GET", summary: "UI alias of health. Same FragGate backend as the Worker UI button." },
     ],
     example: {},
     banner: "MirageGrid is not a VPN and not an anonymity network. It does not guarantee anonymity against global surveillance.",
@@ -426,6 +433,7 @@ const PRODUCTS_RAW = [
       { op: "new", method: "POST", summary: "Start a game {difficulty, seed}." },
       { op: "move", method: "POST", summary: "Human UCI move + AI 1-ply continuity reply." },
       { op: "status", method: "POST", summary: "Continuity status for a FEN/state." },
+      { op: "doctor", method: "GET", summary: "UI alias of health. Same FragGate backend as the Worker UI button." },
     ],
     example: { difficulty: "steward", seed: 1 },
     banner: "The goal is not to win. The goal is to remain. Human is king-bound; AI has a Node, not a king.",
@@ -439,6 +447,7 @@ const PRODUCTS_RAW = [
       { op: "score", method: "POST", summary: "Jaccard triple / pairwise / CLCE+." },
       { op: "classify", method: "POST", summary: "Mismatch types. Type D is a label only." },
       { op: "gate", method: "POST", summary: "Pass iff triple ≥ min (default 0.7). Advisory." },
+      { op: "doctor", method: "GET", summary: "UI alias of health. Same FragGate backend as the Worker UI button." },
     ],
     example: { r: "login button blue", d: "login form submits", p: "login button submits" },
     banner: "CLCE detects inconsistency, not intent. Type D is a label, not a finding of malice. Threshold 0.7 is advisory. AZCoherence (AZC-0.1) is a separate peer product (second-pass coherence). Not a replacement.",
@@ -451,6 +460,7 @@ const PRODUCTS_RAW = [
     ops: [
       { op: "sweep", method: "POST", summary: "Mode E heuristics only (PE/ELF/Mach-O, powershell -enc, curl|sh). No clamscan. Payload is not stored." },
       { op: "levels", method: "GET", summary: "Auto-lock seconds and decoy counts. Behavior, not cryptography." },
+      { op: "doctor", method: "GET", summary: "UI alias of health. Same FragGate backend as the Worker UI button." },
     ],
     example: { text: "hello world" },
     banner: "The ARK is not a kernel. Hosted API never unlocks or encrypts with a passphrase and never stores vaults. Sweep is Mode E heuristics only.",
@@ -510,6 +520,7 @@ const PRODUCTS_RAW = [
       { op: "health", method: "GET", summary: "Liveness. Does not increment download KV. Hosted never stores xlsx." },
       { op: "append-preview", method: "POST", summary: "Hash a proposed LOG row without writing a file. Hosted never stores xlsx." },
       { op: "verify-canonical", method: "POST", summary: "Recompute SHA-256 of posted canonical JSON. Not a truth score." },
+      { op: "doctor", method: "GET", summary: "UI alias of health. Same FragGate backend as the Worker UI button." },
       { op: "skill", method: "GET", summary: "Return EmployeeLock skill markdown. Does not increment download KV." },
     ],
     example: { event: "process outcome recorded with no named owner", result: "row logged as format proof", owner_named: "", confidence: 0.7 },
@@ -524,6 +535,7 @@ const PRODUCTS_RAW = [
       { op: "health", method: "GET", summary: "Liveness. Does not increment download KV. Not zip." },
       { op: "fold-preview", method: "POST", summary: "Small UTF-8 text in, receipt + FLD3 base64 out. Cap ~8KB. Not zip." },
       { op: "unfold-preview", method: "POST", summary: "FLD3 base64 in, verified restore or error. Not zip." },
+      { op: "doctor", method: "GET", summary: "UI alias of health. Same FragGate backend as the Worker UI button." },
       { op: "skill", method: "GET", summary: "Return FoldLock skill markdown. Does not increment download KV." },
     ],
     example: { text: "the cat and the dog" },
@@ -586,6 +598,7 @@ const PRODUCTS_RAW = [
       { op: "doe-match", method: "POST", summary: "Rank Doe / unidentified notices vs a named-subject descriptor. Compatibility leads only. Never an ID." },
       { op: "coverage", method: "GET", summary: "Adapter coverage report + heat cells. Heat = search intensity / negative evidence — not presence." },
       { op: "example", method: "GET", summary: "Sample search / map payload shapes. Does not increment download KV." },
+      { op: "doctor", method: "GET", summary: "UI alias of health. Same FragGate backend as the Worker UI button." },
     ],
     example: { mode: "doe_cold", name: "Christina Green", jurisdiction: "Illinois", age_band: "20-30", sex: "female" },
     banner:
@@ -605,6 +618,7 @@ const PRODUCTS_RAW = [
       { op: "reconcile", method: "POST", summary: "Reconcile a posted hash-chain. Not arm. Not mesh-join." },
       { op: "pulse", method: "POST", summary: "Liveness pulse over posted receipts. Not a VPN." },
       { op: "peer-preview", method: "POST", summary: "Preview peer receipt hashes. Not mesh-join." },
+      { op: "doctor", method: "GET", summary: "UI alias of health. Same FragGate backend as the Worker UI button." },
     ],
     example: {},
     banner:
@@ -654,6 +668,8 @@ const PRODUCTS_RAW = [
       { op: "ack", method: "POST", summary: "Acknowledge a local mailbox item. Not a release valve." },
       { op: "verify_receipt", method: "POST", summary: "Recompute a mailbox receipt hash. Not SMTP." },
       { op: "import_export", method: "POST", summary: "Client-held mailbox JSON. Hosted does not become an MTA." },
+      { op: "transport_status", method: "POST", summary: "Public MTA stays NOT IMPLEMENTED. Transport is gated; no public send." },
+      { op: "doctor", method: "GET", summary: "Richer liveness: transport refuse, mailbox ops, mesh default off. Does not increment download KV." },
       { op: "mailbox", method: "POST", summary: "UI alias of mailbox_open." },
       { op: "notice", method: "POST", summary: "UI alias of notice_post." },
       { op: "inbox", method: "POST", summary: "UI alias of inbox_pull." },
@@ -677,6 +693,9 @@ const PRODUCTS_RAW = [
       { op: "receipt_list", method: "POST", summary: "List hash-chained AZBrowser receipts." },
       { op: "verify", method: "POST", summary: "Verify an AZBrowser receipt hash." },
       { op: "receipt_verify", method: "POST", summary: "Alias of verify." },
+      { op: "sandbox_status", method: "POST", summary: "Honest Workers Browser Rendering status. Chromium stays DEFERRED unless bound." },
+      { op: "sandbox_render", method: "POST", summary: "Binding-gated Browser Rendering. Refuses private/onion/Tor. Does not fake Chromium." },
+      { op: "doctor", method: "GET", summary: "Richer liveness: sandbox/Browser Rendering status. Chromium stays DEFERRED unbound." },
       { op: "airlock", method: "POST", summary: "UI alias of airlock_ingest. Same FragGate backend as the Worker UI button." },
       { op: "home", method: "POST", summary: "UI alias of health. Same FragGate backend as the Worker UI button." },
     ],
@@ -753,7 +772,13 @@ const PRODUCTS_RAW = [
       { op: "search", method: "GET", summary: "Search published corpus records. Anonymous GET." },
       { op: "example", method: "GET", summary: "Sample search payload. Does not increment download KV." },
       { op: "skill", method: "GET", summary: "Return Aziel Digital Library skill markdown. Does not increment download KV." },
-      { op: "doctor", method: "GET", summary: "UI alias of health. Native search vs proxy OCR/D1 labels." },
+      { op: "review", method: "POST", summary: "Rules review over posted or sample MASTER JSON. Not live D1 ingest." },
+      { op: "score", method: "POST", summary: "Deterministic field completeness + sample overlap. Not a court score." },
+      { op: "verify-backfill", method: "POST", summary: "Recompute canonical hashes against the bundled sample MASTER." },
+      { op: "verify-geo", method: "POST", summary: "Sample gazetteer check (Florence / Indiana). Not a live geocoder." },
+      { op: "document-chain", method: "POST", summary: "Client-held document hash chain. Hosted does not store the library." },
+      { op: "import_export", method: "POST", summary: "Client-held library JSON. Hosted does not persist MASTER." },
+      { op: "doctor", method: "GET", summary: "Richer liveness: native-vs-proxy labels, binding-gated Whisper/OCR. Does not increment download KV." },
     ],
     example: { q: "Florence" },
     banner: "Aziel Digital Library v2.6.2. Public MASTER. Anonymous GET is read-only. Signed-in accounts may ingest. Not a 26-card software index. Author Aziel Eliab only.",
@@ -1090,16 +1115,12 @@ function productUrls(product, origin) {
 }
 
 function softwareExtra(env) {
-  const sha =
-    (env && env.GIT_SHA && String(env.GIT_SHA).trim()) ||
-    (env && env.CF_VERSION_METADATA && env.CF_VERSION_METADATA.id) ||
-    null;
-  const updated = (env && env.UPDATED_AT && String(env.UPDATED_AT).trim()) || LASTMOD;
+  const meta = softwareMeta(env, { updated_at: LASTMOD });
   return {
     runtimeVersion: RUNTIME_VERSION,
     version: RUNTIME_VERSION,
-    updated_at: updated,
-    git_sha: sha && /^[0-9a-f]{7,40}$/i.test(String(sha)) ? String(sha).toLowerCase() : null,
+    updated_at: meta.updated_at || LASTMOD,
+    git_sha: meta.git_sha,
   };
 }
 
@@ -1259,7 +1280,7 @@ function llmsTxt(origin) {
     `Honesty: 1.1.0 was catalog+proxy. 1.2.0 was session/receipt (exec still proxied). 1.3.0 ran listed slugs in-process. 1.4.0 vendors every catalog Software slug. 1.4.1 adds production gates (ready, HEAD, no-store, receipt cap 64, TTL 6h, rate limits, optional token). 1.5.0 was the agent-native cut (flat product-verb MCP). 1.6.0 is the FragGate door (discover, route, refuse). 1.6.1 lists every major OpenAPI/MCP/HTTP client. 1.6.2 widens the public door to sensible advisory engines; stubs still refuse. 1.6.3 adds KV-backed API use trackers (GET /v1/uses; no PII). 1.6.4 adds PeaceLock (PL-WP-0.1) as a true in-process engine. 1.6.5 adds AZMail (APP 1.0) as a FragGate-live engine. 1.6.6 adds AZBrowser (AZB-1.0) as a FragGate-live engine. 1.6.7 adds AZNet (AZN-WP-0.1) as a separate FragGate-live product. 1.6.8 adds AZHub and AZInterface as two separate softwares under the same FragGate door (AIH-WP-1.0). 1.6.9 frames them as sibling products on that same door. 1.6.10 sets AZBrowser and AZNet one_line to separate software. 1.6.11 adds FragGate UI-op aliases and names EmbryoLock as stub / local-not-hosted. 1.6.12 adds GET /v1/software (hub catalog; Plain→Gate→Lock) and GET /v1/update/check. 1.6.13 aligns the QNM-BUILD-1.0 suite rollup. 1.6.14 adds 4DMap (4DM-WP-1.0). 1.6.15 locks the suite hop order (SUITE-PIPE-1.6.15). 1.7.0 locks MASTER-33 (FragGate single door; Lamb Lens after FragGate; RoseClock forward-only). 1.7.1 adds AKM-TRIAD-1.0 (adaptive recollection; Bayesian posterior ≠ truth; 3-of-4 triad; behind FragGate; not Softwares-tab). 1.7.2 adds GET /v1/azpipe/arch (MASTER-33 cite/read; same FragGate pipeline payload; not a Softwares door). 1.7.3 aligns audit WARN copy. 1.7.4 enhances 4DMap LIVE_OPS (frame_status/axis_describe/walk_trace/card_export/card_import/verify_chain/neighbor_cite; inspection frame, not an extra door). 1.7.5 is Softwares capability wave 1 (decisiongate / forgereceipts / temporallock / staticclock / chronolock / trajectorylock / spectrallock; docs/audit/SUITE-CAPABILITY-CHECKLIST.md). 1.7.6 syncs 4DMap LIVE_OPS with product 0.2.0 (pin/span/stack/gap/fork/walk/lens/class/cohort/absence/cap/join/list/example plus frame_status/axis_describe/walk_trace/card_export/card_import/verify_chain/neighbor_cite; inspection frame, not an extra door). 1.7.7 lands AZCoherence (AZC-0.1) as a true in-process FragGate Softwares engine (second-pass triad coherence; cite https://github.com/AzielEliab/AZCoherence; not AKM-TRIAD). 1.7.8 lands EmbryoLock as a true in-process engine (live-with-local-destructive-boundary; wipe/unlock stay FG-STUB on the public mesh). 1.7.9 cross-maps AZCoherence (peers azclce / AZInterface / AKM-TRIAD fabric neighbor; hubs + Worker URL; domain stays null). 1.7.10 makes QNM Live Nodes durable: suite-presence is operator-enabled; GET /v1/mesh never enables; cron or request-path fans out live Softwares product Workers while enabled (TTL 5 min). AKM-TRIAD-1.0 stays LIVE fabric, not Softwares-tab.`,
     `AZNet: FragGate only. POST /v1/fraggate/call { slug: "aznet", op }. Separate product (own Worker aznet-download-tracker, own UI). Silent verification side-net. Never hosts payloads. Garden / stamp / memorial ops require AZBrowser pair_token AND pair_flag (functional order only). payload_host / serve_content_for_peer / analytics / ranking / repair_integrity_bypass stay stub.`,
     `AZMail: FragGate only. POST /v1/fraggate/call { slug: "azmail", op }. Host /runtime proxies that same FragGate door. Not a full internet MTA. Mesh default off. SMTP / deanonymize / harvest stay stub. DecisionGATE / FragGate ledger still apply before exec.`,
-    `AZBrowser: FragGate only. POST /v1/fraggate/call { slug: "azbrowser", op }. MCP fraggate_list / fraggate_call and Worker UI buttons share LIVE_OPS.azbrowser (ethical_search, lamb_lens_search, navigate, airlock_ingest, tab_open, tab_list, receipt_list, verify, receipt_verify, health, skill). Lamb Lens cites; refuses harmful harvest; never invents visit results. Not Chromium. tor_exit / phoenix_wipe / unrestricted proxy stay stub.`,
+    `AZBrowser: FragGate only. POST /v1/fraggate/call { slug: "azbrowser", op }. MCP fraggate_list / fraggate_call and Worker UI buttons share LIVE_OPS.azbrowser (ethical_search, lamb_lens_search, navigate, airlock_ingest, tab_open, tab_list, receipt_list, verify, receipt_verify, sandbox_status, sandbox_render, health, skill). Lamb Lens cites; refuses harmful harvest; never invents visit results. Chromium stays DEFERRED unless Browser Rendering is bound. tor_exit / phoenix_wipe / unrestricted proxy stay stub.`,
     `AZHub: FragGate only. POST /v1/fraggate/call { slug: "azhub", op }. Blank Key / neutral spatial container (AIH-WP-1.0). Does not interpret meaning. Refuses auto-unlock and completeness events. AZInterface is sibling software under the same FragGate door.`,
     `AZInterface: FragGate only. POST /v1/fraggate/call { slug: "azinterface", op }. Custodial operating environment (AIH-WP-1.0). Pre-locked page cycles OFF / integrity / ON / FULL SHUTDOWN / MEMORIAL. AZHub is sibling software under the same FragGate door.`,
     `4DMap: FragGate only. POST /v1/fraggate/call { slug: "4dmap", op }. Four-axis inspection frame T/Δ/Γ/Π (4DM-WP-1.0 / product 0.2.0). Research-domain inspection frame inside Internal Domain Layer after AZPIPE — not a sequential gate and not an extra door. LIVE_OPS match product 0.2 (pin/span/stack/gap/fork/walk/lens/class/cohort/absence/cap/join/list/example plus card_* / frame_status / axis_describe / walk_trace / card_export / card_import / verify_chain / neighbor_cite). Cited on the locked MASTER-33 pipeline. truth_score / lumen_panel / invent_mark / backdate_class stay stub. FragGate claims cite join types.`,
@@ -1869,6 +1890,7 @@ ${homepageAddUrlHtml(origin)}
     <h2>Version history</h2>
     <strong>What this Worker is</strong>
     <ul>
+      <li><strong>1.9.1</strong> closes AZRT-1.9-GAPS-CLOSE. Isolate-safe corpus review / score / verify-backfill / verify-geo / document-chain / import_export run in-process. Whisper / OCR stay Workers-AI-gated (not a fake native OCR). AZBrowser <code>sandbox_status</code> / <code>sandbox_render</code> report Workers Browser Rendering honestly — Chromium stays DEFERRED unless bound; Tor / phoenix refuse. AZMail <code>transport_status</code>: public MTA stays NOT IMPLEMENTED; no public send. Wave 2–3 health / skill / doctor richness. Adversarial repo self-check + GitHub Actions <code>npm test</code> on pull requests and main. Consumer MCP / OpenAPI examples. <code>/v1/software</code> cards carry <code>engine_digest</code>. Live Nodes <code>live_nodes</code> counts Softwares <code>{slug}-worker</code> only (<code>mesh_*</code> is ephemeral). Catalog EmbryoLock is 1.2.0. Catalog <code>git_sha</code> from deploy var or stamped build-meta. Flutter <code>mobile/</code> is not vendored here. Remain-OFF untouched. Crawler abstract stays lead copy. Identity Aziel Eliab only.</li>
       <li><strong>1.9.0</strong> closes AZRT-1.9-CLOSE-1.0. Promotes public-safe engine ops (CodeLock gate-status, VibeLock detect, GlossaFilter peers, AZBot example, AZ-OS invite/principles, AZAI models metadata). ShadowLock hook (not OS hook). MirageGrid verify-receipt/nodes (no hop). AzielTether tip/dual-chain/reconcile/pulse/peer-preview (no VPN). AZMail isolate mailbox (notice_post / mail_post / inbox_pull; no SMTP). AZChat LIVE+bound (handles/rooms/bus; mesh default off; not AZMail). Isolate hash object store for TrajectoryLock media + WhistleLock files (no CDN; send/mail/release refuse). OpenAPI documents <code>/p/{slug}/{op}</code> as proxy paths. Corpus native-vs-proxy labels. Named fallback inventory. Flutter <code>mobile/</code> is not vendored here. Chromium stays NOT IMPLEMENTED. Remain-OFF untouched. Crawler abstract stays lead copy. Identity Aziel Eliab only.</li>
       <li><strong>1.7.11</strong> leads crawler surfaces (homepage meta / JSON-LD, <code>/llms.txt</code>, <code>/cite.json</code>, <code>/about</code>) with the Aziel Runtime definition — node-meshed MCP Softwares suite for digital forensics and auditing; not an API aggregator. Changelog stays below the abstract. Architecture facts (FragGate single door, Softwares catalog, dual-surface, NodeMesh) stay secondary. Identity Aziel Eliab only.</li>
       <li><strong>1.1.0</strong> was catalog + pull + proxy that started calling itself a runtime. Those front doors stay. They are not exec.</li>

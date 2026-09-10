@@ -1,39 +1,50 @@
 /**
  * glossafilter in-process ops. Author: Aziel Eliab.
  */
-import { LIMITATION, VERSION, parseIntent, render, listPeers } from "./engine.js";
+import { capabilityDoctor, capabilityHealth, capabilitySkill } from "../capability.js";
+import { LIMITATION, MOTTO, VERSION, parseIntent, render, listPeers } from "./engine.js";
 
-export const GLOSSAFILTER_OPS = ["health", "skill", "render", "peers"];
+const LIVE = ["health", "skill", "render", "peers", "doctor"];
+const STUB = ["conceal", "live_translator"];
+export const GLOSSAFILTER_OPS = LIVE.slice();
 
-export function glossafilterHealth() {
+function envelope() {
   return {
-    ok: true,
     product: "glossafilter",
+    name: "Glossa Filter",
     version: VERSION,
-    true_engine_runtime: true,
-    kv_increment: false,
+    role: "deterministic linguistic mediation",
+    motto: MOTTO,
+    axes: ["intent", "peer", "channel"],
+    neighbors: ["codelock", "chronolock"],
+    live_ops: LIVE,
+    stub_ops: STUB,
     limitation: LIMITATION,
-    author: "Aziel Eliab",
   };
 }
 
+export function glossafilterHealth() {
+  return capabilityHealth(envelope());
+}
+
 export function glossafilterSkill() {
-  return {
-    markdown: `# glossafilter (in-process)
+  return capabilitySkill({
+    ...envelope(),
+    lead: "Render an intent across bundled peer ids. Human opinion remains human.",
+  });
+}
 
-This op ran inside aziel-runtime's Worker isolate (or a local CLI jail).
-
-Author: **Aziel Eliab**.
-Limitation: ${LIMITATION}
-`,
-    kv_increment: false,
-    limitation: LIMITATION,
-  };
+export function glossafilterDoctor() {
+  return capabilityDoctor({
+    ...envelope(),
+    doctor_note: "Glossa Filter doctor: render + peers. Not a live translator API.",
+  });
 }
 
 export async function runGlossafilter(op, payload, scratch) {
   if (op === "health") return glossafilterHealth();
   if (op === "skill") return glossafilterSkill();
+  if (op === "doctor") return glossafilterDoctor();
   if (op === "peers") return { ...listPeers(), true_engine_runtime: true, limitation: LIMITATION };
   if (op === "render") {
     try {

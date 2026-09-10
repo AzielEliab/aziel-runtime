@@ -138,7 +138,7 @@ assert.ok(citeBody.extras.some((e) => e.slug === "mesh"));
 assert.ok(citeBody.designs);
 assert.equal(citeBody.designs.folder, "docs/designs/");
 assert.match(citeBody.designs.how_to_cite, /Eliab, Aziel/);
-assert.equal(citeBody.designs.papers.length, 20);
+assert.equal(citeBody.designs.papers.length, 21);
 assert.ok(citeBody.designs.papers.some((p) => p.id === "AKM-TRIAD-1.0" && p.path === "docs/designs/AKM-TRIAD-1.0.md" && p.kind === "fabric"));
 assert.ok(citeBody.designs.papers.some((p) => p.id === "QNS-CD-1.0" && p.path === "docs/designs/QNS-CD-1.0.md" && p.kind === "fabric"));
 assert.ok(citeBody.designs.papers.some((p) => p.id === "4DM-WP-1.0" && p.path === "docs/designs/4DM-WP-1.0.md" && p.kind === "software"));
@@ -151,6 +151,7 @@ assert.ok(citeBody.designs.papers.some((p) => p.id === "RL-WP-0.1" && p.path ===
 assert.ok(citeBody.designs.papers.some((p) => p.id === "SEC-FEAT-1.0" && p.path === "docs/designs/SEC-FEAT-1.0.md"));
 assert.ok(citeBody.designs.papers.some((p) => p.id === "REMAIN-OFF-BY-DESIGN-2026-09-10" && p.path === "docs/designs/REMAIN-OFF-BY-DESIGN-2026-09-10.md" && p.kind === "law"));
 assert.ok(citeBody.designs.papers.some((p) => p.id === "AZRT-1.9-CLOSE-1.0" && p.path === "docs/designs/AZRT-1.9-CLOSE-1.0.md" && p.kind === "law"));
+assert.ok(citeBody.designs.papers.some((p) => p.id === "AZRT-1.9-GAPS-CLOSE" && p.path === "docs/designs/AZRT-1.9-GAPS-CLOSE.md" && p.kind === "law"));
 assert.ok(citeBody.designs.papers.some((p) => p.id === "AZL-DONATE-1.0" && p.path === "docs/designs/AZL-DONATE-1.0.md" && p.kind === "law" && p.software_tab === false));
 assert.ok(citeBody.designs.papers.every((p) => p.github.includes("/blob/main/docs/designs/")));
 assert.ok(citeBody.audits);
