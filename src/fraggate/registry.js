@@ -12,6 +12,7 @@
 import { CATALOG_ALIASES } from "../catalog-meta.js";
 import { domainFields } from "../domain-map.js";
 import { embeddedDigest } from "../engines/digest.js";
+import { MEMORY_CANONICAL_OPS, MEMORY_SLUG, MEMORY_STUB_OPS, memoryKernelEntry } from "../memory.js";
 import { MESH_LIVE_OPS, MESH_OP_ALIASES, MESH_SLUG, MESH_STUB_OPS, meshKernelEntry } from "../mesh.js";
 import { canonicalize, sha256Hex } from "../session-core.js";
 import { FRAGGATE_DOOR, FRAGGATE_KERNEL, FRAGGATE_KERNEL_VERSION } from "./codes.js";
@@ -200,6 +201,7 @@ export const LIVE_OPS = {
     "hold",
   ],
   mesh: MESH_LIVE_OPS.slice(),
+  memory: MEMORY_CANONICAL_OPS.slice(),
   vibelock: ["analyze", "health", "skill"],
   ark: ["sweep", "levels", "health", "skill"],
   miragegrid: ["assign", "health", "skill"],
@@ -315,6 +317,7 @@ export const STUB_OPS = {
     "invent_cycle",
   ],
   mesh: MESH_STUB_OPS.slice(),
+  memory: MEMORY_STUB_OPS.slice(),
   "4dmap": ["truth_score", "lumen_panel", "invent_mark", "backdate_class"],
 };
 
@@ -381,7 +384,7 @@ export function buildRegistry(products) {
   const entries = (products || [])
     .map((p) => registryEntry(p))
     .concat(NAMED_STUBS.map(namedStubEntry))
-    .concat([meshKernelEntry()]);
+    .concat([meshKernelEntry(), memoryKernelEntry()]);
   const bySlug = Object.fromEntries(entries.map((e) => [e.slug, e]));
   const byName = Object.fromEntries(entries.map((e) => [String(e.name).toLowerCase(), e]));
   const live = entries.filter((e) => e.status === "live");
@@ -455,6 +458,9 @@ export function resolveRegistryName(raw, registry, bySlug) {
     key === "quantum node mesh"
   ) {
     return registry.bySlug[MESH_SLUG] || null;
+  }
+  if (key === MEMORY_SLUG || key === "akm" || key === "akm-triad" || key === "adaptive-memory") {
+    return registry.bySlug[MEMORY_SLUG] || null;
   }
   return null;
 }

@@ -26,6 +26,7 @@ export const ACTION_CLASSES = Object.freeze([
   "RESTORE_FORWARD",
   "QUARANTINE",
   "REPAIR",
+  "LEARN",
 ]);
 
 const ROLLBACK_RE = /\b(rollback|roll[_-]?back|rewind|undo|revert|backdate|time[_-]?travel)\b/i;
@@ -147,6 +148,16 @@ export async function advance(input = {}) {
       ok: false,
       refuse: "conflict",
       message: "Expected parent sequence does not match tip. Re-read and construct a new forward transition.",
+      v: ROSE_VERSION,
+    };
+  }
+  if (src.expected_parent && src.expected_parent !== current.state_hash) {
+    return {
+      ok: false,
+      refuse: "conflict",
+      message: "Expected RoseClock tip does not match. Two writes against the same tip cannot both silently commit.",
+      expected: src.expected_parent,
+      tip: current.state_hash,
       v: ROSE_VERSION,
     };
   }

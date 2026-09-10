@@ -29,6 +29,7 @@ import {
 } from "./fraggate/door.js";
 import { buildRegistry } from "./fraggate/registry.js";
 import { chainlockMcpTools, isChainlockTool, runChainlockOp } from "./chainlock.js";
+import { isMemoryMcpTool, memoryMcpTools, runMemoryMcp, wrapMemoryDisplay } from "./memory.js";
 import { isMeshMcpTool, runMeshOp } from "./mesh.js";
 
 export { ADVANCED_PREFIX, isAdvancedToolName, PUBLIC_MCP_TOOL_MAX };
@@ -56,8 +57,8 @@ export function mcpInitializeInstructions() {
     "runtime_run, runtime_session_*, raw *_health, and runtime_manifest are advanced/internal. " +
     "Do not call flat {slug}_{op} names — they are not in tools/list. Unknown names refuse FG-HALLUC-TOOL. " +
     "HTTP /p/{slug}/{op} is a proxy and is not exec. " +
-    "LIVE fabric (not Softwares-tab): AZPIPE AP-WP-0.2, SweepGate SG-WP-0.1, ChainLock CL-WP-0.4, LOCKSET LS-WP-0.1, packed catalog RL-WP-0.1-runtime, QNS-CD-1.0 (photon QNS1 1.3; local qnsd in AzielEliab/qnm-node; GET /v1/qns cites only — never a public via proxy). MCP chainlock_*. GET /v1/mesh never enables. " +
-    "1.7.0 locks MASTER-33: Human → AZInterface → PUBLIC/UI/AGENT/API → FragGate → Lamb Lens → SweepGate → Sentinel → Provenance/Input Packet → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → optional ASE → RoseClock → TemporalLock → ChainLock-OUT → ForgeReceipts → Return. FragGate is THE single door. Lamb Lens is fabric after FragGate. LambGate is not a hop. " +
+    "LIVE fabric (not Softwares-tab): AZPIPE AP-WP-0.2, SweepGate SG-WP-0.1, ChainLock CL-WP-0.4, LOCKSET LS-WP-0.1, packed catalog RL-WP-0.1-runtime, QNS-CD-1.0 (photon QNS1 1.3; local qnsd in AzielEliab/qnm-node; GET /v1/qns cites only — never a public via proxy), AKM-TRIAD-1.0 adaptive memory (MCP memory_*; POST /v1/memory/* behind FragGate). MCP chainlock_*. GET /v1/mesh never enables. " +
+    "1.7.1 adds AKM-TRIAD-1.0 (Adaptive Knowledge Recollection, Bayesian Calibration & 3-of-4 Triad Selection). 1.7.0 locks MASTER-33: Human → AZInterface → PUBLIC/UI/AGENT/API → FragGate → Lamb Lens → SweepGate → Sentinel → Provenance/Input Packet → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → optional ASE → RoseClock → TemporalLock → ChainLock-OUT → ForgeReceipts → Return. FragGate is THE single door. Lamb Lens is fabric after FragGate. LambGate is not a hop. " +
     "1.6.15 locked the suite hop order (SUITE-PIPE-1.6.15; historical). " +
     "1.6.14 adds 4DMap (4DM-WP-1.0) as a FragGate-live engine — four-axis inspection frame T/Δ/Γ/Π; Domain Door / inspection layer after AZPIPE; not a sequential gate. LIVE_OPS health/skill/card_new/card_pin/card_span/card_join/card_walk/card_list/verify_hash. truth_score/lumen_panel/invent_mark/backdate_class stay stub. FragGate claims cite join types. " +
     "1.6.13 aligns the suite QNM rollup (QNM-BUILD-1.0, companion to AIH-WP-1.1): GET /v1/mesh live/locked/isolated counts; operator enable requires a declared bearer; default radios off; not a login mesh; full node process is local qnm-node/. " +
@@ -295,6 +296,7 @@ export function runtimeHelperTools() {
       },
     },
     ...chainlockMcpTools(),
+    ...memoryMcpTools(),
     {
       name: "runtime_software",
       title: "Authoritative software catalog",
@@ -513,6 +515,10 @@ export async function callFraggateTool(name, args, products, bySlug, env) {
   if (isChainlockTool(name)) {
     const body = await runChainlockOp(name, args, env);
     return wrapFraggateEnvelope(name, body, { name: "ChainLock", slug: "chainlock" }, name);
+  }
+  if (isMemoryMcpTool(name)) {
+    const body = await runMemoryMcp(name, args, env);
+    return wrapMemoryDisplay(name, body);
   }
   return null;
 }
