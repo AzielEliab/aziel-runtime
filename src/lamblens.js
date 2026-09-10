@@ -181,6 +181,22 @@ export function lambLensCheck(input = {}) {
   }
 
   if (!served) {
+    if (!slug && !op) {
+      return {
+        decision: "PASS",
+        peace,
+        clarity,
+        service,
+        prohibition_hits: [],
+        policy_version: LAMB_LENS_POLICY,
+        reasons: ["Pipe admission without a named op. SweepGate / Sentinel own structure. Not a second door."],
+        software_tab: false,
+        door: false,
+        after: "fraggate",
+        v: LAMB_LENS_VERSION,
+        author: LAMB_LENS_AUTHOR,
+      };
+    }
     return {
       decision: "HOLD-UNCERTAIN",
       peace: peace || "unknown",
