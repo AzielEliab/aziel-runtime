@@ -167,7 +167,9 @@ FragGate kernel: https://github.com/AzielEliab/fraggate (FG-0.1)
 4. **Show the output.** Results are \`{ display, result, ledger_tip? }\`. Show \`display\` to the user.
 5. **Take the next input.**
 
-Named live modules still on the thin tools/list: \`decisiongate_check\`, \`library_lookup\` (read-only corpus), plus suite \`mesh_*\` (QNM-BUILD-1.0 rollup; default OFF; not a login mesh).
+Named live modules still on the thin tools/list: \`decisiongate_check\`, \`library_lookup\` (read-only corpus), suite \`mesh_*\` (QNM-BUILD-1.0 rollup; default OFF; not a login mesh), plus fabric \`chainlock_*\` (CL-WP-0.4 / LS-WP-0.1 — not Softwares-tab).
+
+**LIVE fabric** (runtime, not Softwares-tab products): AZPIPE (\`AP-WP-0.2\`, magic FLD3) wraps \`fraggate_call\` so admitted payloads never present raw inbound bytes; SweepGate (\`SG-WP-0.1\`) airlocks poison / malware-class / block-keys, and isolates off-origin only when inbound and untrusted; ChainLock (\`CL-WP-0.4\`) append-only stamps (vault \`vault/chains/<name>.jsonl\` on CLI; Worker KV/memory); LOCKSET (\`LS-WP-0.1\`) fail-closed seal citing \`https://godlock.uk\` (runtime does not write the public ledger); packed catalog (\`RL-WP-0.1-runtime\`) is a single-key read with edge Cache-Control. Catalog GET / HTML stay full (200) for humans and SEO; soft caps apply only to expensive fan-out. Donation stays static (no KV). \`GET /v1/mesh\` never enables.
 
 Do **not** walk the user through \`runtime_session_open\` → policy → exec → receipt → close. Those tools, \`runtime_run\`, raw \`*_health\`, and \`runtime_manifest\` are **advanced/internal**.
 
@@ -177,7 +179,7 @@ HTTP \`POST /p/{slug}/{op}\` is still a **proxy**. Proxy without a session recei
 
 Every catalog slug is a true engine. Cloudflare isolate is the jail. Hosted AZAI is protocol mirror + Lamb check, **not** the blend. Identity is **Aziel Eliab** only.
 
-**1.6.13 = QNM-BUILD-1.0 suite rollup** (companion to AIH-WP-1.1): \`GET /v1/mesh\` / \`/status\` (live/locked/isolated; never enables), \`POST /v1/mesh/enable\` requires \`{ bearer }\`, \`POST /v1/mesh/disable\` drops tethers clean, plus join/heartbeat/leave/nodes and optional hash-only broadcast (never a publish path). Default radios OFF. Not a login mesh. Full node process is local \`qnm-node/\`. Anon-broadcast is that process's sibling loopback module only. MCP \`mesh_*\` + FragGate \`slug=mesh\`. Each software card has \`mesh: { path, enabled_default: false, spec, companion, rollup_only, qnm_s: false }\`. AZMail mesh stays product-local. See \`docs/NODE_MESH.md\`. Designs: \`docs/designs/\` (AZL / SEC-FEAT / QNM-WP / NODE-OPS).
+**1.6.13 = QNM-BUILD-1.0 suite rollup** (companion to AIH-WP-1.1): \`GET /v1/mesh\` / \`/status\` (live/locked/isolated; never enables), \`POST /v1/mesh/enable\` requires \`{ bearer }\`, \`POST /v1/mesh/disable\` drops tethers clean, plus join/heartbeat/leave/nodes and optional hash-only broadcast (never a publish path). Default radios OFF. Not a login mesh. Full node process is local \`qnm-node/\`. Anon-broadcast is that process's sibling loopback module only. MCP \`mesh_*\` + FragGate \`slug=mesh\`. Each software card has \`mesh: { path, enabled_default: false, spec, companion, rollup_only, qnm_s: false }\`. AZMail mesh stays product-local. See \`docs/NODE_MESH.md\`. Designs: \`docs/designs/\` (AZL / SEC-FEAT / QNM-WP / NODE-OPS plus LIVE fabric CL-WP-0.4 / AP-WP-0.2 / SG-WP-0.1 / LS-WP-0.1 / RL-WP-0.1-runtime).
 **1.6.12 = live software catalog + client updates:** \`GET /v1/software\` (mirror \`GET /v1/fraggate/software\`) is the authoritative hub catalog — every product plus EmbryoLock stub, sorted Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock). \`GET /v1/update/check?slug=&version=\` and \`GET /v1/update/manifest\` for install.sh / local UIs / mobile. GitHub Action deploys on push to main. Agents prefer FragGate / \`/v1/software\` / \`/mcp\` (list → describe → call). Sibling software under one FragGate door — never separate FragGate engines.
 **1.6.11 = dual-surface op aliases:** Worker UI button names resolve to catalog LIVE_OPS (forward to the real engine method). EmbryoLock is named stub / local-not-hosted (describe?slug=embryolock; not a Worker; not a FragGate engine).
 **1.6.10 = framing: AZBrowser and AZNet catalog one_line say separate software, not separate engine.** Same FragGate door. Two catalog slugs stay.
@@ -405,7 +407,18 @@ export function runtimeManifest(origin, products, extra = {}) {
     kernel: FRAGGATE_GITHUB,
     extras: catalogExtraCards(base),
     extras_note:
-      "Kernel / door cards for Software hubs. extras[] is not PRODUCTS — FragGate is the door; Quantum Node Mesh (QNM-BUILD-1.0) is the suite rollup (not a login mesh; not a Softwares-tab product). Human UI + counted download is the separate FragGate Worker app (fraggate-download-tracker; not nested in AZBrowser).",
+      "Kernel / door cards for Software hubs. extras[] is not PRODUCTS — FragGate is the door; Quantum Node Mesh (QNM-BUILD-1.0) is the suite rollup (not a login mesh; not a Softwares-tab product). Human UI + counted download is the separate FragGate Worker app (fraggate-download-tracker; not nested in AZBrowser). AZPIPE / SweepGate / ChainLock / LOCKSET / packed catalog are LIVE fabric modules, not Softwares-tab products.",
+    fabric: {
+      azpipe: "AZPIPE-0.2",
+      sweepgate: "SG-0.1",
+      chainlock: "CL-0.4",
+      lockset: "LS-0.1",
+      packed_catalog: "RL-WP-0.1-runtime",
+      software_tab: false,
+      mesh_get_never_enables: true,
+      node_gate: false,
+      author: "Aziel Eliab",
+    },
     registry_digest: extra.registry_digest || fraggate.registry_digest || null,
     fraggate: { ...fraggateHubCard(base), ...fraggate },
     author: "Aziel Eliab",

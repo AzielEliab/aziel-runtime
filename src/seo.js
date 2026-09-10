@@ -328,31 +328,79 @@ export const SUITE_DESIGNS = Object.freeze([
     id: "SEC-FEAT-1.0",
     file: "SEC-FEAT-1.0.md",
     one_line: "Security feature inventory — door, stubs, vault, fabric; what is not a security feature",
+    status: "live",
+    kind: "law",
   },
   {
     id: "AZL-VOL-1.0",
     file: "AZL-VOL-1.0.md",
     one_line: "Software catalog + Q×act lattice ledger",
+    status: "live",
+    kind: "law",
   },
   {
     id: "AZL-ARCH-1.0",
     file: "AZL-ARCH-1.0.md",
     one_line: "azieleliab.com architecture (39 named)",
+    status: "live",
+    kind: "law",
   },
   {
     id: "AZL-WP-1.1",
     file: "AZL-WP-1.1.md",
     one_line: "Master lattice concept — exec pipe, ledger, UI=MCP",
+    status: "live",
+    kind: "law",
   },
   {
     id: "QNM-WP-1.0",
     file: "QNM-WP-1.0.md",
     one_line: "Quantum Node Mesh fabric — local ON / public rollup OFF",
+    status: "live",
+    kind: "law",
   },
   {
     id: "NODE-OPS-1.0",
     file: "NODE-OPS-1.0.md",
     one_line: "Node operations + surface law + phoenix loop",
+    status: "live",
+    kind: "law",
+  },
+  {
+    id: "CL-WP-0.4",
+    file: "CL-WP-0.4.md",
+    one_line: "LIVE fabric — ChainLock append-only stamp chains (MCP chainlock_*; not Softwares-tab)",
+    status: "live",
+    kind: "fabric",
+  },
+  {
+    id: "AP-WP-0.2",
+    file: "AP-WP-0.2.md",
+    one_line: "LIVE fabric — AZPIPE FLD3 hop list around fraggate_call (not Softwares-tab)",
+    status: "live",
+    kind: "fabric",
+  },
+  {
+    id: "SG-WP-0.1",
+    file: "SG-WP-0.1.md",
+    one_line: "LIVE fabric — SweepGate airlock before memory/entry (not Softwares-tab)",
+    status: "live",
+    kind: "fabric",
+  },
+  {
+    id: "LS-WP-0.1",
+    file: "LS-WP-0.1.md",
+    one_line: "LIVE fabric — LOCKSET fail-closed seal (cite GodLock; do not write godlock.uk)",
+    status: "live",
+    kind: "fabric",
+  },
+  {
+    id: "RL-WP-0.1",
+    file: "RL-WP-0.1-runtime.md",
+    one_line:
+      "LIVE fabric — runtime-scope packed catalog (RL-WP-0.1-runtime): single-key read + Cache-Control; catalog GET always full; soft caps only on expensive fan-out; no Node Gate",
+    status: "live",
+    kind: "fabric",
   },
 ]);
 
@@ -369,6 +417,9 @@ function designPaperRecord(d) {
     github,
     pdf: designGithubUrl(pdf_file),
     one_line: d.one_line,
+    status: d.status || "live",
+    kind: d.kind || "law",
+    software_tab: false,
     how_to_cite: `${AUTHOR_FAMILY_GIVEN}. (2026). ${d.id} [Design]. ${github}`,
   };
 }
@@ -393,11 +444,11 @@ export function designsSkillMarkdown() {
   const lines = [
     "## Designs",
     "",
-    "Suite software-design papers (not Softwares-tab products, not a FragGate slug). `GET /v1/mesh` never enables. Git-hosted — the Worker does not serve the PDFs. Public identity Aziel Eliab only.",
+    "Suite software-design papers (not Softwares-tab products, not a FragGate slug). LIVE fabric modules: ChainLock, AZPIPE, SweepGate, LOCKSET, packed catalog (RL). `GET /v1/mesh` never enables. Git-hosted — the Worker does not serve the PDFs. Public identity Aziel Eliab only.",
     "",
   ];
   for (const d of SUITE_DESIGNS) {
-    lines.push(`- **${d.id}** — ${d.one_line}. ${designGithubUrl(d.file)}`);
+    lines.push(`- **${d.id}** — ${d.status === "live" ? "LIVE. " : ""}${d.one_line}. ${designGithubUrl(d.file)}`);
   }
   lines.push("");
   lines.push(`Index: ${DESIGNS_GITHUB_TREE}`);
@@ -409,12 +460,12 @@ export function designsLlmsBlock() {
   const lines = [
     "## Designs",
     "",
-    "Suite software-design papers (not Softwares-tab products, not a FragGate slug). GET /v1/mesh never enables. Git-hosted — the Worker does not serve the PDFs. Author: Aziel Eliab only.",
+    "Suite software-design papers (not Softwares-tab products, not a FragGate slug). LIVE fabric: CL-WP-0.4, AP-WP-0.2, SG-WP-0.1, LS-WP-0.1, RL-WP-0.1 (runtime). GET /v1/mesh never enables. Git-hosted — the Worker does not serve the PDFs. Author: Aziel Eliab only.",
     `Index: ${DESIGNS_GITHUB_TREE}`,
     "",
   ];
   for (const d of SUITE_DESIGNS) {
-    lines.push(`- ${d.id} — ${d.one_line}. ${designGithubUrl(d.file)}`);
+    lines.push(`- ${d.id} — ${d.status === "live" ? "LIVE. " : ""}${d.one_line}. ${designGithubUrl(d.file)}`);
   }
   lines.push("");
   return lines.join("\n");
@@ -422,7 +473,7 @@ export function designsLlmsBlock() {
 
 export function designsLlmsHeaderLine() {
   const ids = SUITE_DESIGNS.map((d) => d.id).join(", ");
-  return `Designs: ${DESIGNS_FOLDER} (${ids}) git-hosted — not Softwares-tab products, not a FragGate slug. GET /v1/mesh never enables. ${DESIGNS_GITHUB_TREE}`;
+  return `Designs: ${DESIGNS_FOLDER} (${ids}) git-hosted LIVE modules — not Softwares-tab products, not a FragGate slug. GET /v1/mesh never enables. ${DESIGNS_GITHUB_TREE}`;
 }
 
 export function designsSitemapUrls() {

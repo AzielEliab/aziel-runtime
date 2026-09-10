@@ -80,6 +80,12 @@ assert.equal(shouldIncrementUse("GET", "/"), false);
 assert.equal(shouldIncrementUse("GET", "/sigil.png"), false);
 assert.equal(shouldIncrementUse("GET", "/p/foldlock"), false);
 assert.equal(shouldIncrementUse("GET", "/mcp"), false);
+assert.equal(shouldIncrementUse("GET", "/v1/software"), false);
+assert.equal(shouldIncrementUse("GET", "/v1/software.json"), false);
+assert.equal(shouldIncrementUse("GET", "/v1/fraggate/software"), false);
+assert.equal(shouldIncrementUse("GET", "/v1/catalog.json"), false);
+assert.equal(shouldIncrementUse("GET", "/v1/update/check"), false);
+assert.equal(shouldIncrementUse("GET", "/v1/update/manifest"), false);
 
 assert.equal(shouldIncrementUse("GET", "/v1/fraggate"), true);
 assert.equal(shouldIncrementUse("GET", "/v1/fraggate/list"), true);
