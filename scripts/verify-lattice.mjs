@@ -3,6 +3,7 @@
  * Not Softwares-tab products. Author: Aziel Eliab only.
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { PRODUCTS } from "../src/index.js";
 import { inspect } from "../src/sweepgate.js";
 import { INBOUND_HOPS, OUTBOUND_HOPS, arch, pipeInbound, thinPipe } from "../src/azpipe.js";
@@ -11,10 +12,20 @@ import { ROSTER, append, recall, tip, verify } from "../src/chainlock/ops.js";
 import { seal, verify as verifyLockset } from "../src/lockset.js";
 import {
   PACKED_CATALOG_KEY,
+  VISITOR_PER_MINUTE,
   countingKv,
   readPackedCatalog,
+  visitorBucket,
 } from "../src/packed-catalog.js";
 import { PUBLIC_MCP_TOOL_MAX } from "../src/fraggate/codes.js";
+
+const sgPaper = readFileSync(new URL("../docs/designs/SG-WP-0.1.md", import.meta.url), "utf8");
+assert.match(sgPaper, /^# SG-WP-0\.1 — SweepGate/m);
+assert.match(sgPaper, /Airlock, anti-poison, structural malware-class sweep/);
+assert.match(sgPaper, /inject-payload/);
+assert.match(sgPaper, /password, private_key, secret, legal_name, home_address/);
+assert.doesNotMatch(sgPaper, /vault\/chains/);
+assert.doesNotMatch(sgPaper, /^# CL-WP/m);
 
 const handler = (await import("../src/index.js")).default.fetch;
 const origin = "https://aziel-runtime.example";
@@ -257,6 +268,28 @@ const mem = await readPackedCatalog({}, origin, PRODUCTS, {});
 assert.equal(mem.kv_ops, 0);
 assert.equal(mem.source, "memory");
 assert.ok(mem.catalog.software.length >= PRODUCTS.length);
+
+const capEnv = { RUNTIME_TOKEN: "op-secret-token" };
+const t0 = 1_700_000_000_000;
+const visitorReq = (extra = {}) =>
+  new Request(origin + "/expensive", {
+    headers: { "CF-Connecting-IP": "203.0.113.88", ...extra },
+  });
+for (let i = 0; i < VISITOR_PER_MINUTE; i += 1) {
+  const b = await visitorBucket(visitorReq(), capEnv, t0 + i);
+  assert.equal(b.ok, true);
+}
+const softCap = await visitorBucket(visitorReq(), capEnv, t0 + VISITOR_PER_MINUTE);
+assert.equal(softCap.ok, false);
+assert.equal(softCap.refuse, "rate-soft");
+const bypass = await visitorBucket(
+  visitorReq({ "X-Aziel-Runtime-Token": "op-secret-token" }),
+  capEnv,
+  t0 + VISITOR_PER_MINUTE,
+);
+assert.equal(bypass.ok, true);
+assert.equal(bypass.bypass, true);
+assert.equal(bypass.operator, true);
 
 const burstEnv = {};
 for (let i = 0; i < 70; i += 1) {
