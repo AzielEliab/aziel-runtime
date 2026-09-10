@@ -222,7 +222,7 @@ export function softwareCatalog(origin, products, extra = {}) {
       ...meshHint("/v1/mesh"),
       status: `${base}/v1/mesh/status`,
       nodes: `${base}/v1/mesh/nodes`,
-      note: "QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1). Default OFF. Operator bearer enable. Not a login mesh. Not a Softwares-tab product. Full node is local qnm-node/. Anon-broadcast is that process's sibling loopback only. Packet-transfer coding design is QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; Worker cites only).",
+      note: "QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1). Default OFF. suite-presence is operator-enabled. GET /v1/mesh never enables. Not a login mesh. Not a Softwares-tab product. Full node is local qnm-node/. Anon-broadcast is that process's sibling loopback only. Packet-transfer coding design is QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; Worker cites only). While enabled, cron or request-path fans out live Softwares product Workers (TTL 5 min).",
       qns_cd: qnsHint(),
     },
     qns: `${base}/v1/qns`,

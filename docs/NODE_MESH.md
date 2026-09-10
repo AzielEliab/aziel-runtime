@@ -22,7 +22,8 @@ This page remains the live **QNM-BUILD-1.0** rollup law. Do not rewrite that law
 - **Bulletproof:** local modules run radios off; receipts to disk; poison refused not interpreted; tamper isolates; **PHOENIX-LOCK waits locally** (no controller hunt); tethers drop clean (**no implicit heal**); **no account resurrection**; **anon-broadcast is never a publish path**.
 - **azieleliab.com** hosts published software/runtime — **not** login-recovery, **not** Node Gate/IP panel, **not** upload proxy.
 - Suite public surface may expose mesh **rollup only**: **live / locked / isolated** counts. No average-of-nodes leaderboard. **Views / MCP / downloads do not enter QNM-S.**
-- **Default:** radios/bearers **off**. **LIVE** only after the operator enables **≥1 declared bearer**. A site ping of `GET /v1/mesh` never turns radios on.
+- **Default:** radios/bearers **off**. **LIVE** only after the operator enables **≥1 declared bearer**. **suite-presence is operator-enabled** (`POST /v1/mesh/enable` `{ bearer: "suite-presence" }`). A site ping of `GET /v1/mesh` never turns radios on.
+- **Durable Live Nodes:** while suite-presence is LIVE, this Worker fans out `join` / `heartbeat` for every live Softwares product Worker (`node_id` `{slug}-worker`, no `|`) on cron (`*/2 * * * *`) or request-path. Presence TTL is **5 minutes**. GET still never enables.
 
 ## What this Worker is
 
@@ -49,7 +50,7 @@ Parent rolls that package. This runtime does **not** host those engines.
 
 ## Runtime APIs
 
-All paths are on `aziel-runtime` (this Worker). Product Workers **proxy** them via the `AZIEL_RUNTIME` service binding. Do not invent a second mesh or a login mesh.
+All paths are on `aziel-runtime` (this Worker). Product Workers **proxy** them via the `AZIEL_RUNTIME` service binding. Do not invent a second mesh or a login mesh. GodLock download-tracker (`godlock-download-tracker`) must proxy `GET /v1/mesh/status` (and `/v1/mesh/*`) the same way — a 404 there is a missing proxy, not a second mesh.
 
 | Method | Path | Body | Notes |
 | --- | --- | --- | --- |
@@ -126,8 +127,9 @@ Hubs must **not** add AnonBroadcast as a Software-tab product from this hint. Th
    - Poll `GET /v1/mesh/status` (or `/v1/mesh/nodes`) on a gentle interval.
    - If `enabled` is false, show **QNM OFF** (default). Do not treat the poll as enable.
    - If on, show `rollup.live` / `rollup.locked` / `rollup.isolated`. No averages. No leaderboard.
-   - After an operator has enabled a bearer, heartbeat the Worker’s own `node_id` about once a minute after `POST /v1/mesh/join` with `{ "product": "<slug>", "presence": "live" }`.
+   - After an operator has enabled a bearer, heartbeat the Worker’s own `node_id` about once a minute after `POST /v1/mesh/join` with `{ "product": "<slug>", "node_id": "<slug>-worker", "presence": "live" }`. Avoid `|` in `node_id`.
    - Leave on shutdown if you can; otherwise the count expires in five minutes.
+   - The runtime also fans out `{slug}-worker` presence while suite-presence is enabled (cron or request-path). Product Workers still proxy status so hubs that show **Live Nodes** do not 404.
 4. Do **not** add login, recovery, Node Gate, IP panel, AnonBroadcast chrome, upload buttons, or origin-hiding claims.
 5. Do **not** implement arm / wipe / hop / heal / resurrection / phoenix-hunt verbs. Those refuse as stub on this kernel.
 
@@ -144,7 +146,7 @@ if (url.pathname === "/v1/mesh" || url.pathname.startsWith("/v1/mesh/")) {
 
 ## Honesty
 
-- Default **OFF**. Radios stay off until an operator declares a bearer.
+- Default **OFF**. Radios stay off until an operator declares a bearer. **suite-presence is operator-enabled.**
 - `GET /v1/mesh` is a rollup read. It does not enable.
 - Library host `www.azielcorpuslibrary.net/runtime/v1/mesh/enable` may return **409** `{ source: "library-default-off", enabled: false }` instead of this Worker's `MESH-NEED-BEARER` / `MESH-BAD-BEARER`. Radios stay OFF. GET still never enables. That overlay is **host-side** (aziel-corpus), not a runtime enable. Do not "fix" it by enabling mesh here.
 - Presence is ephemeral (5 minutes).
