@@ -104,7 +104,7 @@ export function runtimeHelperTools() {
       name: "fraggate_list",
       title: "Step 1 — List the FragGate registry",
       description:
-        "Step 1 of the agent pipeline (list → describe → call). List hashed registry entries (live / stub / local_only). Discover names. Do not invent tools. For hub Software tabs prefer GET /v1/software (Plain→Gate→Lock + EmbryoLock stub). Sibling software under one FragGate door — never separate FragGate engines. allowlist.azhub LIVE_OPS: health, skill, region_list, place_module, remove_module, tether_declare, tether_cut, tether_list, blank_key_status, list_modules, place. allowlist.azinterface LIVE_OPS: health, skill, genesis_status, site_state_get, site_state_set, integrity_check, witness_list, page_cycle_status, genesis_boot, hold. allowlist.azbrowser LIVE_OPS: ethical_search, lamb_lens_search, navigate, airlock_ingest, airlock, home, tab_open, tab_list, receipt_list, verify, receipt_verify, health, skill. allowlist.aznet LIVE_OPS: health, doctor, pair_status, pair, garden_list, stamp, verify_hash, memorial_list, memorial_append, receipt_verify, skill — same ops MCP fraggate_call and the Worker UI buttons execute. UI aliases forward to catalog ops. EmbryoLock is stub / local-not-hosted (name only). AZHub, AZInterface, AZNet, and AZBrowser are separate products. Kernel: https://github.com/AzielEliab/fraggate",
+        "Step 1 of the agent pipeline (list → describe → call). List hashed registry entries (live / stub / local_only). Discover names. Do not invent tools. For hub Software tabs prefer GET /v1/software (Plain→Gate→Lock; EmbryoLock live-with-local-destructive-boundary; AZChat name-only stub). Sibling software under one FragGate door — never separate FragGate engines. allowlist.azhub LIVE_OPS: health, skill, region_list, place_module, remove_module, tether_declare, tether_cut, tether_list, blank_key_status, list_modules, place. allowlist.azinterface LIVE_OPS: health, skill, genesis_status, site_state_get, site_state_set, integrity_check, witness_list, page_cycle_status, genesis_boot, hold. allowlist.azbrowser LIVE_OPS: ethical_search, lamb_lens_search, navigate, airlock_ingest, airlock, home, tab_open, tab_list, receipt_list, verify, receipt_verify, health, skill. allowlist.aznet LIVE_OPS: health, doctor, pair_status, pair, garden_list, stamp, verify_hash, memorial_list, memorial_append, receipt_verify, skill — same ops MCP fraggate_call and the Worker UI buttons execute. UI aliases forward to catalog ops. EmbryoLock LIVE_OPS health/skill/doctor/verify-hash/policy/limitation; wipe/scorch/unlock stay FG-STUB on the public mesh. AZChat is stub / local-not-hosted (name only). AZHub, AZInterface, AZNet, and AZBrowser are separate products. Kernel: https://github.com/AzielEliab/fraggate",
       annotations: { title: "Step 1 — List the FragGate registry", readOnlyHint: true, openWorldHint: false },
       inputSchema: { type: "object", additionalProperties: false, properties: {} },
     },
@@ -112,7 +112,7 @@ export function runtimeHelperTools() {
       name: "fraggate_describe",
       title: "Step 2 — Describe one registry name",
       description:
-        "Step 2 of the agent pipeline. After fraggate_list, describe one catalog name: live vs stub vs local_only, public ops, digest. Pass name or slug (not both required). EmbryoLock: slug=embryolock (stub / local-not-hosted; not a FragGate engine).",
+        "Step 2 of the agent pipeline. After fraggate_list, describe one catalog name: live vs stub vs local_only, public ops, digest. Pass name or slug (not both required). EmbryoLock: slug=embryolock (live-with-local-destructive-boundary; wipe/unlock stay FG-STUB). AZChat: slug=azchat (stub / local-not-hosted; not a FragGate engine).",
       annotations: { title: "Step 2 — Describe one registry name", readOnlyHint: true, openWorldHint: false },
       inputSchema: {
         type: "object",
@@ -306,7 +306,7 @@ export function runtimeHelperTools() {
       name: "runtime_software",
       title: "Authoritative software catalog",
       description:
-        "Hub/client helper: GET /v1/software. Every product plus EmbryoLock stub, sorted Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock). Prefer this for Software-tab refresh. Agent exec still uses fraggate_list → fraggate_describe → fraggate_call.",
+        "Hub/client helper: GET /v1/software. Every product plus AZChat name-only stub, sorted Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock). EmbryoLock is live-with-local-destructive-boundary (worker_home embryolock-download-tracker). Prefer this for Software-tab refresh. Agent exec still uses fraggate_list → fraggate_describe → fraggate_call.",
       annotations: { title: "Authoritative software catalog", readOnlyHint: true, openWorldHint: false },
       inputSchema: { type: "object", additionalProperties: false, properties: {} },
     },

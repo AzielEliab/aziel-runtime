@@ -299,7 +299,7 @@ node cli/aziel-runtime.mjs session close
    MASTER-33 cite: \`GET ${base}/v1/azpipe/arch\` (same \`pipeline\` payload; not a Softwares door).
    Also \`GET ${base}/v1/ready\` (200 only if SESSION binding is up; 503 if \`REQUIRE_TOKEN=1\` and \`RUNTIME_TOKEN\` is missing).
    API uses: \`GET ${base}/v1/uses\` (no increment).
-3. \`GET ${base}/v1/software\` — authoritative hub catalog (Plain → Gate → Lock + EmbryoLock stub). Mirror: \`GET ${base}/v1/fraggate/software\`.
+3. \`GET ${base}/v1/software\` — authoritative hub catalog (Plain → Gate → Lock; EmbryoLock live-with-local-destructive-boundary; AZChat name-only stub). Mirror: \`GET ${base}/v1/fraggate/software\`.
    Softwares-tab \`count\` includes placements (\`azinterface\` / \`decisiongate\` / \`forgereceipts\`). Isolation \`domains.software_count\` is **33** (\`domains_are_doors:false\`). See \`count_note\`. Do not equate the two.
    Client updates: \`GET ${base}/v1/update/check?slug={slug}&version={installed}\` · \`GET ${base}/v1/update/manifest\`.
 4. \`GET ${base}/v1/bundle\` — every product skill URL + invoke prefix.
@@ -337,7 +337,7 @@ ${skillCompatibleSection(base)}
 | GET | \`/v1/pull/{slug}\` | Pull record for one product. |
 | GET | \`/v1/pull/{slug}/skill\` | Product skill markdown. |
 | GET | \`/v1/catalog.json\` | Full catalog (discover). |
-| GET | \`/v1/software\` | Authoritative hub software catalog (Plain→Gate→Lock + EmbryoLock stub). |
+| GET | \`/v1/software\` | Authoritative hub software catalog (Plain→Gate→Lock; EmbryoLock live-with-local-destructive-boundary; AZChat name-only stub). |
 | GET | \`/v1/fraggate/software\` | FragGate-path mirror of \`/v1/software\`. |
 | GET | \`/v1/update/check\` | Client update check (\`?slug=&version=\`). For install.sh / local UI / mobile. |
 | GET | \`/v1/update/manifest\` | Latest versions for every product + runtime. |
@@ -947,7 +947,7 @@ export function runtimeStaticPaths() {
       get: {
         operationId: "runtime_software",
         summary:
-          "Authoritative software catalog for hubs/clients. Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock). Includes EmbryoLock stub. Mirror: GET /v1/fraggate/software.",
+          "Authoritative software catalog for hubs/clients. Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock). EmbryoLock is live-with-local-destructive-boundary. AZChat stays the name-only stub. Mirror: GET /v1/fraggate/software.",
         tags: ["software"],
         responses: { "200": { description: "Software catalog JSON" } },
       },

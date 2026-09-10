@@ -92,11 +92,11 @@ Public MCP `tools/list` is a **thin FragGate door**: `runtime_skill`, `fraggate_
 
 Every catalog product is a **hashed registry** entry (`name`, `slug`, `digest`, `status`, public `ops`). Status is `live` | `stub` | `local_only`.
 
-`stub_ops` / `stub_op_count` are named refuse verbs (never hosted), not extra catalog Software engines. `stub_count` is registry entries whose status is `stub` (currently 1: **EmbryoLock**, name-only / local-not-hosted — hubs link `describe?slug=embryolock` instead of a fake Worker). FragGate `live_count + local_only_count + stub_count ===` FragGate `product_count` (catalog Software slugs are 34).
+`stub_ops` / `stub_op_count` are named refuse verbs (never hosted), not extra catalog Software engines. `stub_count` is registry entries whose status is `stub` (currently 1: **AZChat**, name-only / local-not-hosted — hubs link `describe?slug=azchat` instead of a fake Worker). EmbryoLock is a live catalog engine (`live-with-local-destructive-boundary`); wipe / scorch / unlock stay `FG-STUB` on the public mesh. FragGate `live_count + local_only_count + stub_count ===` FragGate `product_count` (catalog Software slugs are 36).
 
 **Live on the public mesh** (via `fraggate_call`): every catalog Software product that makes sense on a public agent door — advisory / score / classify / gate / search / preview / render / verify / hash / receipt / game / overlay / route / status, plus the original five (DecisionGATE, GodLock, FoldLock, AZ-CLCE, Aziel Digital Library). VeilLock stays **local_only** (device-local camera/screen). MCP `tools/list` stays the thin FragGate surface.
 
-**Stub ops** (named refuse verbs, never execute): ARK scorch/wipe/unlock/encrypt, WhistleLock send/mail/release, MirageGrid VPN-hop/hop/tunnel/mesh, AzielTether mesh-join/vpn/arm, VeilLock inject/intercept/facetime, AZ-OS exec/shell/lattice, AZAI blend/complete/chat, EmployeeLock court/judge, PeaceLock transcript/transcribe/motive/counterfactual/invent/waive-duty/bypass-duty, 4DMap truth_score/lumen_panel/invent_mark/backdate_class. Safe hosted ops on those products can still be live; the stub verbs refuse forever.
+**Stub ops** (named refuse verbs, never execute): EmbryoLock wipe/scorch/unlock/encrypt/decrypt/initialize/login, ARK scorch/wipe/unlock/encrypt, WhistleLock send/mail/release, MirageGrid VPN-hop/hop/tunnel/mesh, AzielTether mesh-join/vpn/arm, VeilLock inject/intercept/facetime, AZ-OS exec/shell/lattice, AZAI blend/complete/chat, EmployeeLock court/judge, PeaceLock transcript/transcribe/motive/counterfactual/invent/waive-duty/bypass-duty, 4DMap truth_score/lumen_panel/invent_mark/backdate_class. Safe hosted ops on those products can still be live; the stub verbs refuse forever.
 
 Unknown names refuse `FG-HALLUC-TOOL` and list the tools that *do* exist. DecisionGATE runs before any exec side effect; refuse is a typed ResultEnvelope + ledger tip (TemporalLock-shaped hash chain). Mesh is not claimed on this public surface.
 
@@ -458,7 +458,7 @@ npx wrangler deploy
 node scripts/probe-live.mjs
 # confirm GET /v1/health and /v1/ready and /v1/runtime.json version=1.7.0 role=engine-runtime door=fraggate
 # confirm GET /v1/uses returns uses / by_host / by_path / by_day / recent (no increment)
-# confirm engine_slugs == true_engine_slugs == all 35 catalog slugs
+# confirm engine_slugs == true_engine_slugs == all 36 catalog slugs
 # confirm POST /v1/session/open → policy → exec each primary op → receipt has engine_digest + ran_in
 ```
 

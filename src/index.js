@@ -1860,7 +1860,7 @@ function staticPaths(origin) {
       get: {
         operationId: "catalog_list",
         summary:
-          "Machine-readable catalog. products[] are Software engines (slug, worker, github — hubs fetch these). extras[] / fraggate is the FragGate kernel card (github.com/AzielEliab/fraggate; worker fraggate-download-tracker is the separate human UI + counted download, not nested in AZBrowser; engine:false). Each product includes door, fraggate_live, fraggate_ops, fraggate_call. Authoritative hub tab list is GET /v1/software (Plain→Gate→Lock + EmbryoLock stub).",
+          "Machine-readable catalog. products[] are Software engines (slug, worker, github — hubs fetch these). extras[] / fraggate is the FragGate kernel card (github.com/AzielEliab/fraggate; worker fraggate-download-tracker is the separate human UI + counted download, not nested in AZBrowser; engine:false). Each product includes door, fraggate_live, fraggate_ops, fraggate_call. Authoritative hub tab list is GET /v1/software (Plain→Gate→Lock; EmbryoLock live-with-local-destructive-boundary; AZChat name-only stub).",
         tags: ["runtime"],
         responses: { "200": { description: "Product catalog JSON" } },
       },
@@ -1869,7 +1869,7 @@ function staticPaths(origin) {
       get: {
         operationId: "software_catalog",
         summary:
-          "Authoritative live software catalog for hubs and clients. Every product plus EmbryoLock stub. Sort: Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock). Sibling software under one FragGate door — never separate FragGate engines. Softwares-tab count includes placements (azinterface / decisiongate / forgereceipts); isolation domain software_count is 33 (domains_are_doors:false). Hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) fetch this on each Software-tab request.",
+          "Authoritative live software catalog for hubs and clients. Every product plus AZChat name-only stub. EmbryoLock is live-with-local-destructive-boundary (worker_home embryolock-download-tracker). Sort: Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock). Sibling software under one FragGate door — never separate FragGate engines. Softwares-tab count includes placements (azinterface / decisiongate / forgereceipts / azcoherence); isolation domain software_count is 33 (domains_are_doors:false). Hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) fetch this on each Software-tab request.",
         tags: ["software"],
         responses: { "200": { description: "Sorted software[] plus count_note, isolation_software_count, tab_placement_slugs, domains (domains_are_doors:false)" } },
       },
@@ -1907,7 +1907,7 @@ function staticPaths(origin) {
     "/v1/update/manifest": {
       get: {
         operationId: "update_manifest",
-        summary: "Latest version list for every product plus EmbryoLock stub and aziel-runtime. For install.sh / local UI / mobile.",
+        summary: "Latest version list for every product plus AZChat name-only stub and aziel-runtime. For install.sh / local UI / mobile.",
         tags: ["software"],
         responses: { "200": { description: "Latest versions JSON" } },
       },
