@@ -34,12 +34,13 @@ import { citeCompatibleFields, skillCompatibleSection } from "./ai-clients.js";
 import { designsSkillMarkdown } from "./seo.js";
 import { LOCKED_STRIP } from "./azpipe.js";
 
-export const RUNTIME_VERSION = "1.7.1";
+export const RUNTIME_VERSION = "1.7.2";
 export const RUNTIME_ROLE = "engine-runtime";
 export const RUNTIME_LAYER = "catalog+pull+proxy+session+in-process-engines+fraggate";
 
 export const VERSION_HISTORY = [
-  { version: "1.7.1", status: "current", note: "AKM-TRIAD-1.0: Adaptive Knowledge Recollection, Bayesian Calibration & 3-of-4 Triad Selection. ChainLock remains the immutable learn/recall ledger; the adaptive index is derived and rebuildable. Memory APIs behind FragGate (POST /v1/memory/observe|resolve|calibrate|recall, GET /v1/memory/{id}[+history|+calibration], POST /v1/memory/rebuild-index operator/local only). MCP memory_*. Not a Softwares-tab product. Posterior ≠ truth. No rollback. Identity Aziel Eliab only." },
+  { version: "1.7.2", status: "current", note: "GET /v1/azpipe/arch (and POST) cites the locked MASTER-33 AZPIPE arch/strip — same payload FragGate already exposes as pipeline / pipeline_strip (v, magic, locked, master, lambgate, fraggate_single_door, roseclock, hop list, 11 domains / 33 softwares). Cite/read surface only. Not a Softwares-tab door. Not a FragGate slug. Mesh stays default-off. Identity Aziel Eliab only." },
+  { version: "1.7.1", status: "superseded", note: "AKM-TRIAD-1.0: Adaptive Knowledge Recollection, Bayesian Calibration & 3-of-4 Triad Selection. ChainLock remains the immutable learn/recall ledger; the adaptive index is derived and rebuildable. Memory APIs behind FragGate (POST /v1/memory/observe|resolve|calibrate|recall, GET /v1/memory/{id}[+history|+calibration], POST /v1/memory/rebuild-index operator/local only). MCP memory_*. Not a Softwares-tab product. Posterior ≠ truth. No rollback. Identity Aziel Eliab only." },
   { version: "1.7.0", status: "superseded", note: "MASTER-33: FragGate is THE single door. Locked strip Human → AZInterface → PUBLIC/UI/AGENT/API → FragGate → Lamb Lens → SweepGate → Sentinel → Provenance/Input Packet → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → optional ASE → RoseClock (forward-only; StaticClock/VECTOR as needed) → TemporalLock → ChainLock-OUT → ForgeReceipts → Return. Lamb Lens is fabric ethics after FragGate (not Softwares-tab, not a second door). 11 domains / 33 softwares are isolation labels. AZChat name-only stub. ASE/VECTOR cite+refuse until armed. Overrides MASTER-ARCHITECTURE-2.0 §4.2. Keeps all 1.6.15 live fabric. No ZD30. No rollback. Identity Aziel Eliab only." },
   { version: "1.6.15", status: "superseded", note: "Lock the suite pipeline hop order (SUITE-PIPE-1.6.15): PUBLIC/UI/Agents → FragGate → SweepGate → ChainLock-IN → DecisionGATE → AZPIPE → Domain Doors (4DMap inspection) → TemporalLock → StaticClock → ChainLock-OUT → Response/Receipt. Outbound reverses sensibly. FragGate call runs DecisionGATE AFTER ChainLock-IN and BEFORE domain exec. ChainLock-IN stamps inbound; ChainLock-OUT stamps outbound receipts. TemporalLock + StaticClock are advisory envelope stamps (existing engines). 4DMap remains the Domain Door inspection frame — not a sequential gate. FoldLock fld3-wire stays internal to AZPIPE. LambGate is not a hop. Illegal reorder is refused. Identity Aziel Eliab only. 34 catalog slugs. 1.6.14 remains the 4DMap engine add." },
   { version: "1.6.14", status: "superseded", note: "Add 4DMap (4DM-WP-1.0) as a true in-process engine: four-axis inspection frame T/Δ/Γ/Π. Domain Door / inspection layer after AZPIPE routes to isolated engines — not a sequential gate. LIVE_OPS health/skill/card_new/card_pin/card_span/card_join/card_walk/card_list/verify_hash. truth_score/lumen_panel/invent_mark/backdate_class stay STUB_OPS. Plain A–Z. worker_home https://4dmap-download-tracker.vibelock.workers.dev/. mesh.enabled_default false; qns_cd pointer like peers. FragGate claims cite join types. ChainLock may stamp walks. Neighbors TemporalLock/StaticClock/ChronoLock/TrajectoryLock/SpectralLock. 34 catalog slugs. EmbryoLock stays stub. GET /v1/mesh never enables. RL packed catalog stays 0-KV hot path. 1.6.13 remains the QNM suite rollup." },
@@ -135,7 +136,8 @@ description: >-
   One door — discover, route, refuse. FragGate over the catalog: hashed
   registry, DecisionGATE after ChainLock-IN, ask/refuse ledger. Dual surface —
   agent/MCP has no technical UI chrome; Worker UI, Flutter mobile/, local
-  install, and counted /download stay complete human software. 1.7.1 adds
+  install, and counted /download stay complete human software. 1.7.2 adds
+  GET /v1/azpipe/arch (MASTER-33 cite/read; same FragGate pipeline payload; not a Softwares door). 1.7.1 adds
   AKM-TRIAD-1.0 (adaptive recollection, Bayesian calibration, 3-of-4 triad; not Softwares-tab). 1.7.0 locks
   MASTER-33 (FragGate single door; Lamb Lens after FragGate; RoseClock forward-only). 1.6.15 locked
   the suite hop order (SUITE-PIPE-1.6.15; LambGate is not a hop). 1.6.14 adds
@@ -143,6 +145,7 @@ description: >-
   1.6.13 adds
   the QNM-BUILD-1.0 suite rollup (GET /v1/mesh live/locked/isolated; operator bearer enable; default OFF; not a login mesh; full node is local qnm-node/).
   Packet-transfer coding design is QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; GET /v1/qns cites only).
+  GET /v1/azpipe/arch cites the locked MASTER-33 AZPIPE strip (same FragGate pipeline payload; not a Softwares door).
   1.6.12 adds GET /v1/software (hub Software-tab catalog) plus GET /v1/update/check for install.sh /
   local UIs / mobile. 1.6.11 adds a durable
   FragGate UI-op alias map and names EmbryoLock as stub / local-not-hosted (not an engine). 1.6.10 sets
@@ -190,6 +193,7 @@ HTTP \`POST /p/{slug}/{op}\` is still a **proxy**. Proxy without a session recei
 
 Every catalog slug is a true engine. Cloudflare isolate is the jail. Hosted AZAI is protocol mirror + Lamb check, **not** the blend. Identity is **Aziel Eliab** only.
 
+**1.7.2 = GET /v1/azpipe/arch.** Cite/read surface for the locked MASTER-33 AZPIPE strip (same payload as \`GET /v1/fraggate\` \`pipeline\` / \`pipeline_strip\`). Not a Softwares-tab door. Not a FragGate slug. Mesh stays default-off.
 **1.7.1 = AKM-TRIAD-1.0.** Adaptive knowledge recollection over ChainLock learn: Bayesian calibration, deterministic 3-of-4 triad (E/C/P/B), derived rebuildable index. Memory APIs behind FragGate. Not a Softwares-tab product. Posterior ≠ truth. No history rewrite.
 **1.7.0 = MASTER-33.** FragGate is THE single door. Public hop list: Human → AZInterface → PUBLIC/UI/AGENT/API → FragGate → Lamb Lens → SweepGate → Sentinel → Provenance/Input Packet → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → optional ASE → RoseClock (forward-only; StaticClock/VECTOR as needed) → TemporalLock → ChainLock-OUT → ForgeReceipts → Return. Lamb Lens is fabric ethics after FragGate (not Softwares-tab, not a second door). 11 domains / 33 softwares are isolation labels. AZChat is a name-only stub. ASE/VECTOR cite + refuse until armed. RoseClock sequence never decreases. Overrides MASTER-ARCHITECTURE-2.0 §4.2. No ZD30. No rollback. Identity Aziel Eliab only.
 **1.6.15 = locked suite pipeline (SUITE-PIPE-1.6.15).** Historical public hop list: PUBLIC/UI/Agents → FragGate → SweepGate → ChainLock-IN → DecisionGATE → AZPIPE → Domain Doors (4DMap inspection) → TemporalLock → StaticClock → ChainLock-OUT → Response/Receipt. Kept live; 1.7.0 extends it. FragGate \`fraggate_call\` aligns. DecisionGATE after ChainLock-IN, before domain exec. 4DMap stays the inspection frame — not a sequential gate. TemporalLock + StaticClock are advisory stamps on the envelope (existing engines). LambGate is not a hop. FoldLock fld3-wire stays internal. Illegal reorder is refused. Identity Aziel Eliab only.
@@ -272,6 +276,7 @@ node cli/aziel-runtime.mjs session close
 1. \`GET ${base}/v1/skill\` — this markdown.
 2. \`GET ${base}/v1/runtime.json\` — machine manifest (\`version=${RUNTIME_VERSION}\`, \`role=engine-runtime\`, \`door=fraggate\`, every catalog slug in \`engine_slugs\` / \`true_engine_slugs\`, \`authoritySnapshot\` + \`version_history\`). Same JSON: \`GET ${base}/v1/runtime\`.
    FragGate: \`GET ${base}/v1/fraggate\` · \`GET ${base}/v1/fraggate/list\` · \`POST ${base}/v1/fraggate/call\`.
+   MASTER-33 cite: \`GET ${base}/v1/azpipe/arch\` (same \`pipeline\` payload; not a Softwares door).
    Also \`GET ${base}/v1/ready\` (200 only if SESSION binding is up; 503 if \`REQUIRE_TOKEN=1\` and \`RUNTIME_TOKEN\` is missing).
    API uses: \`GET ${base}/v1/uses\` (no increment).
 3. \`GET ${base}/v1/software\` — authoritative hub catalog (Plain → Gate → Lock + EmbryoLock stub). Mirror: \`GET ${base}/v1/fraggate/software\`.
@@ -337,6 +342,7 @@ ${skillCompatibleSection(base)}
 | GET | \`/v1/mesh/nodes\` | Rollup roster (no scores / leaderboard). |
 | POST | \`/v1/mesh/broadcast\` | SHA-256 hash receipt only. Never a publish path. |
 | GET | \`/v1/qns\` | QNS-CD-1.0 cite (photon QNS1 1.3). Local \`qnsd\` in qnm-node. Never a public via proxy. |
+| GET/POST | \`/v1/azpipe/arch\` | MASTER-33 AZPIPE cite (same \`arch()\` payload as FragGate \`pipeline\`). Not a Softwares-tab door. |
 | POST | \`/v1/memory/observe\` | AKM-TRIAD-1.0 observe (behind FragGate). |
 | POST | \`/v1/memory/resolve\` | Append a graded/UNKNOWN resolution. |
 | POST | \`/v1/memory/calibrate\` | 3-of-4 triad + Bayesian posterior. No auto MODEL_UPDATE. |
@@ -446,6 +452,7 @@ export function runtimeManifest(origin, products, extra = {}) {
       akm_triad: "AKM-TRIAD-1.0",
       pipeline: "MASTER-33",
       pipeline_strip: LOCKED_STRIP,
+      azpipe_arch: "/v1/azpipe/arch",
       lamb_lens: true,
       roseclock: true,
       lambgate: false,
@@ -521,6 +528,7 @@ export function runtimeManifest(origin, products, extra = {}) {
       mesh_join: base + "/v1/mesh/join",
       mesh_broadcast: base + "/v1/mesh/broadcast",
       qns: base + "/v1/qns",
+      azpipe_arch: base + "/v1/azpipe/arch",
       memory_observe: base + "/v1/memory/observe",
       memory_resolve: base + "/v1/memory/resolve",
       memory_calibrate: base + "/v1/memory/calibrate",
@@ -844,7 +852,7 @@ export function runtimeStaticPaths() {
     "/v1/skill": {
       get: {
         operationId: "runtime_skill",
-        summary: "Skill markdown: 1.7.1 adds AKM-TRIAD-1.0. 1.7.0 locks MASTER-33 (FragGate single door). 1.6.15 locked SUITE-PIPE. 1.6.14 adds 4DMap (4DM-WP-1.0). 1.6.13 aligns the QNM-BUILD-1.0 suite rollup. 1.6.12 adds GET /v1/software + client update check. Honest about 1.1.0 through 1.7.1.",
+        summary: "Skill markdown: 1.7.2 adds GET /v1/azpipe/arch (MASTER-33 cite). 1.7.1 adds AKM-TRIAD-1.0. 1.7.0 locks MASTER-33 (FragGate single door). 1.6.15 locked SUITE-PIPE. 1.6.14 adds 4DMap (4DM-WP-1.0). 1.6.13 aligns the QNM-BUILD-1.0 suite rollup. 1.6.12 adds GET /v1/software + client update check. Honest about 1.1.0 through 1.7.2.",
         tags: ["runtime"],
         responses: { "200": { description: "text/markdown skill" } },
       },
@@ -1382,6 +1390,28 @@ export function runtimeStaticPaths() {
           "Refused. GET /v1/qns cites only. Public Worker must not proxy local via emit.",
         tags: ["mesh"],
         responses: { "405": { description: "QNS-CITE-ONLY" } },
+      },
+    },
+    "/v1/azpipe/arch": {
+      get: {
+        operationId: "azpipe_arch",
+        summary:
+          "MASTER-33 AZPIPE cite/read. Same arch() payload FragGate already exposes as pipeline / pipeline_strip (v, magic, locked, master, lambgate, fraggate_single_door, roseclock, hop list, 11 domains / 33 softwares). Not a Softwares-tab door. Not a FragGate slug. Mesh stays default-off.",
+        tags: ["runtime"],
+        responses: { "200": { description: "MASTER-33 AZPIPE arch/strip JSON" } },
+      },
+      head: {
+        operationId: "azpipe_arch_head",
+        summary: "HEAD of /v1/azpipe/arch.",
+        tags: ["runtime"],
+        responses: { "200": { description: "headers only" } },
+      },
+      post: {
+        operationId: "azpipe_arch_post",
+        summary:
+          "Same MASTER-33 cite as GET /v1/azpipe/arch. Cite/read only — no mutate, no mesh enable, no Softwares door.",
+        tags: ["runtime"],
+        responses: { "200": { description: "MASTER-33 AZPIPE arch/strip JSON" } },
       },
     },
     "/v1/memory/observe": {

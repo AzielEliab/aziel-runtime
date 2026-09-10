@@ -215,6 +215,7 @@ export function softwareCatalog(origin, products, extra = {}) {
     },
     qns: `${base}/v1/qns`,
     qns_cd: qnsHint(),
+    azpipe_arch: `${base}/v1/azpipe/arch`,
   };
 }
 
