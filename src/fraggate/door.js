@@ -10,6 +10,7 @@
  */
 
 import { check as decisiongateCheck } from "../engines/decisiongate/engine.js";
+import { joinTypeForOp, normalizeJoinType } from "../engines/4dmap/engine.js";
 import { executeLocal } from "../engines/runner.js";
 import { pipeInbound, pipeOutbound, thinPipe } from "../azpipe.js";
 import { MESH_SLUG, runMeshOp } from "../mesh.js";
@@ -36,19 +37,26 @@ import {
   resolveOpAlias,
 } from "./registry.js";
 
-export function defaultClaim(slug, op) {
+export function defaultClaim(slug, op, extra = {}) {
   const name = slug || "software";
   const verb = op || "op";
+  const evidence = [
+    `${name} ${verb} is on the aziel-runtime 1.6.14 FragGate public allowlist.`,
+    "Cloudflare Worker isolate is the jail. engine_digest is required.",
+  ];
+  let join_type = extra.join_type || extra.join || null;
+  if (slug === "4dmap") {
+    join_type = normalizeJoinType(join_type) || joinTypeForOp(verb);
+    evidence.push(`4DMap FragGate claim cites join type ${join_type} (4DM-WP-1.0). Not a sequential gate.`);
+  }
   return {
     statement: `Execute the public FragGate allowlisted ${name} ${verb} operation inside the aziel-runtime Worker isolate without incrementing download counters or claiming a mesh hop.`,
-    evidence: [
-      `${name} ${verb} is on the aziel-runtime 1.6.13 FragGate public allowlist.`,
-      "Cloudflare Worker isolate is the jail. engine_digest is required.",
-    ],
+    evidence,
     impact_pos: ["The agent receives a typed ResultEnvelope and display-ready output."],
     impact_neg: ["A refused or malformed call still writes an ask/refuse ledger tip."],
     values: ["Clarity without force"],
     accountable: "Aziel Eliab",
+    ...(join_type ? { join_type } : {}),
   };
 }
 
@@ -212,9 +220,19 @@ export async function verifyRegistry(args, registry, bySlug) {
 
 function claimFromArgs(args, slug, op) {
   const src = args && typeof args === "object" ? args : {};
+  const payload = src.payload && typeof src.payload === "object" ? src.payload : {};
   const claim = src.claim || src.proposal || src.ground || null;
-  if (claim && typeof claim === "object") return claim;
-  return defaultClaim(slug, op);
+  const cited = payload.join_type || payload.join || (claim && claim.join_type) || null;
+  if (claim && typeof claim === "object") {
+    if (slug !== "4dmap") return claim;
+    const join_type = normalizeJoinType(cited) || joinTypeForOp(op);
+    const evidence = Array.isArray(claim.evidence) ? claim.evidence.slice() : [];
+    if (!evidence.some((row) => /join type/i.test(String(row)))) {
+      evidence.push(`4DMap FragGate claim cites join type ${join_type} (4DM-WP-1.0). Not a sequential gate.`);
+    }
+    return { ...claim, join_type, evidence };
+  }
+  return defaultClaim(slug, op, { join_type: cited });
 }
 
 /**

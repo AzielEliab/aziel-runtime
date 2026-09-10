@@ -191,6 +191,17 @@ export const LIVE_OPS = {
   ark: ["sweep", "levels", "health", "skill"],
   miragegrid: ["assign", "health", "skill"],
   mialock: ["map", "search-options", "queries", "doe-match", "coverage", "example", "health", "skill"],
+  "4dmap": [
+    "health",
+    "skill",
+    "card_new",
+    "card_pin",
+    "card_span",
+    "card_join",
+    "card_walk",
+    "card_list",
+    "verify_hash",
+  ],
 };
 
 /**
@@ -291,6 +302,7 @@ export const STUB_OPS = {
     "invent_cycle",
   ],
   mesh: MESH_STUB_OPS.slice(),
+  "4dmap": ["truth_score", "lumen_panel", "invent_mark", "backdate_class"],
 };
 
 const LIVE_SLUGS = new Set(Object.keys(LIVE_OPS));
