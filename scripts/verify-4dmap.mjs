@@ -14,10 +14,15 @@ import { resetLedger } from "../src/fraggate/ledger.js";
 import { memorySessionNamespace } from "../src/session-do.js";
 import {
   AXES,
+  DOMAINS_ARE_DOORS,
   JOIN_TYPES,
+  LAYER,
   NEIGHBORS,
   SEQUENTIAL_GATE,
   SPEC,
+  axisDescribe,
+  cardExport,
+  cardImport,
   cardJoin,
   cardList,
   cardNew,
@@ -25,11 +30,16 @@ import {
   cardSpan,
   cardWalk,
   detectForbidden,
+  fourdmapSkill,
+  frameStatus,
   joinTypeForOp,
+  neighborCite,
   normalizeAxis,
   normalizeJoinType,
   resetFourdmapStore,
+  verifyChain,
   verifyHash,
+  walkTrace,
 } from "../src/engines/4dmap/engine.js";
 
 resetLedger();
@@ -49,12 +59,15 @@ assert.equal(product.doi, null);
 assert.equal(softwareBucket(product.name, product.slug), "plain");
 
 const catalogOps = new Set(product.ops.map((o) => o.op));
-for (const op of ["card_new", "card_pin", "card_span", "card_join", "card_walk", "card_list", "verify_hash", "health", "skill"]) {
+const ENHANCED = ["frame_status", "axis_describe", "walk_trace", "card_export", "card_import", "verify_chain", "neighbor_cite"];
+for (const op of ["card_new", "card_pin", "card_span", "card_join", "card_walk", "card_list", "verify_hash", "health", "skill", ...ENHANCED]) {
   assert.ok(catalogOps.has(op), `catalog has ${op}`);
 }
 
 assert.equal(SPEC, "4DM-WP-1.0");
 assert.equal(SEQUENTIAL_GATE, false);
+assert.equal(DOMAINS_ARE_DOORS, false);
+assert.equal(LAYER, "inspection_frame");
 assert.deepEqual(AXES, ["T", "Δ", "Γ", "Π"]);
 assert.ok(NEIGHBORS.includes("temporallock"));
 assert.ok(NEIGHBORS.includes("staticclock"));
@@ -76,8 +89,11 @@ assert.equal(CATALOG_ALIASES["4d-map"], "4dmap");
 assert.equal(CATALOG_ALIASES["4dm-wp-1.0"], "4dmap");
 
 const live = LIVE_OPS["4dmap"];
-for (const op of ["health", "skill", "card_new", "card_pin", "card_span", "card_join", "card_walk", "card_list", "verify_hash"]) {
+for (const op of ["health", "skill", "card_new", "card_pin", "card_span", "card_join", "card_walk", "card_list", "verify_hash", ...ENHANCED]) {
   assert.ok(live.includes(op), `LIVE_OPS.4dmap has ${op}`);
+}
+for (const alias of ["frame", "axis", "trace", "export", "import", "neighbor"]) {
+  assert.ok(live.includes(alias), `LIVE_OPS.4dmap has alias ${alias}`);
 }
 for (const op of STUB_OPS["4dmap"]) {
   assert.ok(!live.includes(op), `stub ${op} is not live`);
@@ -90,6 +106,8 @@ assert.ok(registry.bySlug["4dmap"].status !== "local_only");
 for (const op of live) {
   assert.equal(classifyCall(registry.bySlug["4dmap"], op).kind, "live", `${op} is live`);
 }
+assert.equal(classifyCall(registry.bySlug["4dmap"], "frame_status").kind, "live");
+assert.equal(classifyCall(registry.bySlug["4dmap"], "neighbor_cite").kind, "live");
 assert.equal(classifyCall(registry.bySlug["4dmap"], "truth_score").kind, "stub");
 assert.equal(classifyCall(registry.bySlug["4dmap"], "lumen_panel").kind, "stub");
 assert.equal(classifyCall(registry.bySlug["4dmap"], "invent_mark").kind, "stub");
@@ -106,10 +124,14 @@ const opened = await cardNew({ label: "inspect-1" });
 assert.equal(opened.ok, true);
 assert.equal(opened.true_engine_runtime, true);
 assert.equal(opened.sequential_gate, false);
-assert.equal(opened.layer, "domain_door");
+assert.equal(opened.domains_are_doors, false);
+assert.equal(opened.not_a_door, true);
+assert.equal(opened.layer, "inspection_frame");
+assert.equal(opened.door, "fraggate");
 assert.equal(opened.join_type, "inspect");
 assert.ok(opened.card.card_hash);
 assert.equal(opened.card.axes.T, null);
+assert.deepEqual(opened.card.cites, []);
 
 const pinT = await cardPin({ card_id: opened.card.card_id, axis: "T", mark: "declared-time" });
 assert.equal(pinT.ok, true);
@@ -223,18 +245,97 @@ const cite = await (await handler(new Request(origin + "/cite.json"), env)).json
 assert.ok(cite.designs.papers.some((p) => p.id === "4DM-WP-1.0" && p.kind === "software"));
 assert.ok(cite.products.some((p) => p.slug === "4dmap"));
 
+const frame = frameStatus({});
+assert.equal(frame.ok, true);
+assert.equal(frame.domains_are_doors, false);
+assert.equal(frame.not_a_door, true);
+assert.equal(frame.extra_door, false);
+assert.equal(frame.sequential_gate, false);
+assert.equal(frame.layer, "inspection_frame");
+assert.equal(frame.door, "fraggate");
+assert.deepEqual(frame.axes, AXES);
+assert.match(frame.note, /inspection frame/i);
+assert.doesNotMatch(JSON.stringify(frame), /Domain Door/);
+
+const axisT = axisDescribe({ axis: "temporal" });
+assert.equal(axisT.ok, true);
+assert.equal(axisT.axis, "T");
+assert.ok(axisT.neighbors.includes("temporallock"));
+assert.equal(axisT.pinned_count, 1);
+const badAxis = axisDescribe({ axis: "zeta" });
+assert.equal(badAxis.ok, false);
+assert.equal(badAxis.code, "4DM-AXIS");
+
+const traced = walkTrace({ walk_id: walk.walk.walk_id });
+assert.equal(traced.ok, true);
+assert.equal(traced.sequential_gate, false);
+assert.equal(traced.steps.length, 2);
+assert.equal(traced.steps[0].still_matches, true);
+
+const citeT = await neighborCite({ card_id: opened.card.card_id, axis: "T", neighbor: "temporallock", join_type: "cite" });
+assert.equal(citeT.ok, true);
+assert.equal(citeT.join_type, "cite");
+assert.equal(citeT.cite.neighbor, "temporallock");
+assert.equal(citeT.card.cites.length, 1);
+const badNeighbor = await neighborCite({ card_id: opened.card.card_id, axis: "Γ", neighbor: "temporallock" });
+assert.equal(badNeighbor.ok, false);
+assert.equal(badNeighbor.code, "4DM-NEIGHBOR");
+const inventNeighbor = await neighborCite({ card_id: opened.card.card_id, neighbor: "zd30" });
+assert.equal(inventNeighbor.ok, false);
+assert.equal(inventNeighbor.code, "4DM-NEIGHBOR");
+
+const exported = await cardExport({ card_id: opened.card.card_id });
+assert.equal(exported.ok, true);
+assert.equal(exported.envelope.schema, "4DM-EXPORT-0.1");
+assert.match(exported.envelope.export_hash, /^[a-f0-9]{64}$/);
+const importedDup = await cardImport({ envelope: exported.envelope });
+assert.equal(importedDup.ok, true);
+assert.equal(importedDup.imported, 1);
+
+resetFourdmapStore();
+const restored = await cardImport({ envelope: exported.envelope });
+assert.equal(restored.ok, true);
+assert.equal(restored.cards[0].card_id, opened.card.card_id);
+assert.equal(restored.cards[0].card_hash, exported.envelope.card.card_hash);
+const broken = JSON.parse(JSON.stringify(exported.envelope));
+broken.card.label = "tampered";
+const refuseTamper = await cardImport({ envelope: broken });
+assert.equal(refuseTamper.ok, false);
+assert.equal(refuseTamper.code, "4DM-HASH");
+
+const chainCard = await verifyChain({ card_id: restored.cards[0].card_id });
+assert.equal(chainCard.match, true);
+assert.equal(chainCard.kind, "card");
+
+const doorFrame = await (await post("/v1/fraggate/call", { slug: "4dmap", op: "frame" })).json();
+assert.equal(doorFrame.ok, true);
+assert.equal(doorFrame.result.domains_are_doors, false);
+assert.equal(doorFrame.result.not_a_door, true);
+assert.equal(doorFrame.result.layer, "inspection_frame");
+
 const skill = await (await handler(new Request(origin + "/v1/skill"), env)).text();
 assert.match(skill, /4DMap \(4DM-WP-1\.0\)/);
 assert.match(skill, /1\.6\.14/);
+assert.match(skill, /1\.7\.4/);
+assert.match(skill, /frame_status/);
+const engineSkill = fourdmapSkill();
+assert.match(engineSkill.skill, /inspection frame/i);
+assert.doesNotMatch(engineSkill.markdown, /Domain Door/);
+assert.match(engineSkill.markdown, /frame_status/);
 
 const llms = await (await handler(new Request(origin + "/llms.txt"), env)).text();
 assert.match(llms, /4DMap/);
 assert.match(llms, /4DM-WP-1\.0/);
+assert.match(llms, /frame_status/);
+assert.match(llms, /1\.7\.4/);
 
 const home = await (await handler(new Request(origin + "/"), env)).text();
 assert.match(home, /data-slug="4dmap"/);
 assert.match(home, /4DM-WP-1\.0/);
 assert.match(home, /not a sequential gate/i);
+assert.match(home, /1\.7\.4/);
+assert.match(home, /frame_status/);
+assert.doesNotMatch(product.banner, /Domain Door/);
 
 void claimJoin;
 console.log(`ok 4dmap ${product.version}: LIVE_OPS=${live.join(",")} stub=${STUB_OPS["4dmap"].join(",")} axes=${AXES.join("/")}`);
