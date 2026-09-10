@@ -155,7 +155,7 @@ export const MASTER_33_SLUGS = Object.freeze(DOMAINS.flatMap((d) => d.softwares.
 export const TAB_PLACEMENT_SLUGS = Object.freeze(["azinterface", "decisiongate", "forgereceipts", "azcoherence"]);
 
 export const CATALOG_COUNT_NOTE =
-  "Softwares-tab count includes placements (azinterface / decisiongate / forgereceipts / azcoherence). Isolation domain software_count is 33 (domains_are_doors:false). Do not equate the two. FragGate remains THE single door.";
+  "Softwares-tab count includes placements (azinterface / decisiongate / forgereceipts / azcoherence). Isolation domain software_count is 33 (domains_are_doors:false). Do not equate the two. EmbryoLock is live-with-local-destructive-boundary (Vault/Custody with ARK); wipe/unlock stay FG-STUB on the public mesh. AZChat remains the name-only stub. FragGate remains THE single door.";
 
 export function domainForSlug(slug) {
   const key = String(slug || "")

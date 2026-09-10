@@ -57,6 +57,11 @@ export const OP_ALIASES = {
   chronolock: {
     advise: "advisory",
   },
+  embryolock: {
+    cite: "policy",
+    limitations: "limitation",
+    "verify-hash": "verify_hash",
+  },
   mesh: { ...MESH_OP_ALIASES },
 };
 
@@ -73,14 +78,6 @@ export function resolveOpAlias(slug, op) {
  * never a separate FragGate engine.
  */
 export const NAMED_STUBS = [
-  {
-    name: "EmbryoLock",
-    slug: "embryolock",
-    digest: null,
-    description:
-      "EmbryoLock is stub / local-not-hosted. Name only. Not a hosted Worker. Not a FragGate engine. Author: Aziel Eliab.",
-    note: "stub / local-not-hosted. Hubs may link describe?slug=embryolock. Separate software under the same FragGate door; never a separate FragGate engine. Vault/Custody domain isolation label. Author: Aziel Eliab only.",
-  },
   {
     name: "AZChat",
     slug: "azchat",
@@ -265,6 +262,17 @@ export const LIVE_OPS = {
     "coherence_check",
     "neutralize_hallucination",
   ],
+  embryolock: [
+    "health",
+    "skill",
+    "doctor",
+    "verify_hash",
+    "verify-hash",
+    "policy",
+    "limitation",
+    "cite",
+    "limitations",
+  ],
 };
 
 /**
@@ -273,6 +281,28 @@ export const LIVE_OPS = {
  * even if the engine has no such op.
  */
 export const STUB_OPS = {
+  embryolock: [
+    "wipe",
+    "scorch",
+    "unlock",
+    "unlock_after_fail",
+    "unlock-after-fail",
+    "encrypt",
+    "decrypt",
+    "initialize",
+    "login",
+    "arm",
+    "add_files",
+    "open_file",
+    "export",
+    "purge",
+    "purge_temp",
+    "hard_wipe",
+    "destroy",
+    "recover",
+    "reset",
+    "backup",
+  ],
   ark: ["scorch", "wipe", "unlock", "encrypt"],
   whistlelock: ["send", "mail", "release"],
   miragegrid: ["vpn-hop", "hop", "tunnel", "mesh"],
@@ -441,9 +471,13 @@ export function registryEntry(product) {
     domain_id: domain.domain_id,
     placement: domain.placement,
     note:
-      status === "live"
-        ? "Live on the public FragGate door."
-        : "Named in the registry. Local / in-process engine exists; not live on the public mesh.",
+      slug === "embryolock"
+        ? "Live-with-local-destructive-boundary. Health/skill/doctor/verify-hash/policy cite on the public FragGate door. Wipe/scorch/unlock-after-fail stay local-only — Never execute on the public mesh. Vault/Custody isolation label (with ARK). Author: Aziel Eliab only."
+        : status === "live"
+          ? "Live on the public FragGate door."
+          : "Named in the registry. Local / in-process engine exists; not live on the public mesh.",
+    local_destructive_boundary: slug === "embryolock",
+    public_mesh_destructive: slug === "embryolock" ? false : undefined,
   };
 }
 

@@ -176,7 +176,8 @@ assert.equal(domainFields("azcoherence").domain, null);
 
 const cards = listSoftwareEntries(PRODUCTS, origin);
 assert.ok(cards.some((c) => c.slug === "azchat" && c.status === "stub" && c.domain_id === "07"));
-assert.ok(cards.some((c) => c.slug === "embryolock" && c.domain_id === "01"));
+assert.ok(cards.some((c) => c.slug === "embryolock" && c.domain_id === "01" && c.status === "live"));
+assert.ok(PRODUCTS.some((p) => p.slug === "embryolock"));
 assert.ok(cards.some((c) => c.slug === "foldlock" && c.domain === "Language"));
 assert.ok(NAMED_STUBS.some((s) => s.slug === "azchat"));
 assert.ok(!PRODUCTS.some((p) => p.slug === "azchat"), "do not invent a fake AZChat engine");
