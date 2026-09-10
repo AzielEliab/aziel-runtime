@@ -214,6 +214,10 @@ own counted `/download`.
 
 Product Worker crawl template: [docs/PRODUCT_SEO.md](docs/PRODUCT_SEO.md). QNM suite rollup: [docs/NODE_MESH.md](docs/NODE_MESH.md).
 
+## Designs
+
+Current suite software designs (AZL / SEC-FEAT / QNM-WP / NODE-OPS): [docs/designs/](docs/designs/). Author: **Aziel Eliab** only.
+
 ## Add to ChatGPT (GPT Actions)
 
 1. Create a GPT (or open GPT Actions).

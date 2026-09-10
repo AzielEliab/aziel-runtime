@@ -6,6 +6,16 @@ This is the public companion surface to **AIH-WP-1.1**. Parent will roll the ful
 
 Public identity: **Aziel Eliab** only.
 
+## Design papers (cross-link only)
+
+Current software designs live in [docs/designs/](designs/). Author: **Aziel Eliab** only.
+
+- [QNM-WP-1.0](designs/QNM-WP-1.0.md) — Quantum Node Mesh fabric (local process ON / public rollup OFF)
+- [NODE-OPS-1.0](designs/NODE-OPS-1.0.md) — Node operations + surface law + phoenix loop
+- [SEC-FEAT-1.0](designs/SEC-FEAT-1.0.md) — Security feature inventory (door, stubs, vault, fabric)
+
+This page remains the live **QNM-BUILD-1.0** rollup law. Do not rewrite that law from the papers.
+
 ## Law (must not violate)
 
 - **Bulletproof:** local modules run radios off; receipts to disk; poison refused not interpreted; tamper isolates; **PHOENIX-LOCK waits locally** (no controller hunt); tethers drop clean (**no implicit heal**); **no account resurrection**; **anon-broadcast is never a publish path**.
