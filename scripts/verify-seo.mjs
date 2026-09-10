@@ -244,6 +244,7 @@ assert.equal(cite.designs.not_fraggate_slug, true);
 assert.equal(cite.designs.mesh_get_never_enables, true);
 assert.match(cite.designs.how_to_cite, /Eliab, Aziel/);
 assert.ok(cite.designs.papers.some((p) => p.id === "SEC-FEAT-1.0"));
+assert.ok(cite.designs.papers.some((p) => p.id === "4DM-WP-1.0" && p.kind === "software"));
 assert.ok(cite.designs.papers.every((p) => /docs\/designs\//.test(p.path) && /github\.com\/AzielEliab\/aziel-runtime\/blob\/main/.test(p.github)));
 
 const catalogRes = await get("/v1/catalog.json");
@@ -334,6 +335,8 @@ assert.match(home, /plus other MCP\/OpenAPI-capable assistants/);
 assert.doesNotMatch(home, /Import this file in ChatGPT GPT Actions, Grok custom tools, or Venice HTTP tools/);
 assert.match(home, /docs\/designs/);
 assert.match(home, /SEC-FEAT-1\.0/);
+assert.match(home, /4DM-WP-1\.0/);
+assert.match(home, /data-slug="4dmap"/);
 assert.match(home, /github\.com\/AzielEliab\/aziel-runtime\/(?:tree|blob)\/main\/docs\/designs/);
 
 const card = await (await get("/p/foldlock")).text();

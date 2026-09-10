@@ -33,6 +33,7 @@ assert.equal(softwareBucket("AZHub", "azhub"), "plain");
 assert.equal(softwareBucket("EmbryoLock", "embryolock"), "lock");
 assert.equal(softwareBucket("ForgeReceipts", "forgereceipts"), "plain");
 assert.equal(softwareBucket("Glossa Filter", "glossafilter"), "plain");
+assert.equal(softwareBucket("4DMap", "4dmap"), "plain");
 
 const mixed = sortSoftwareEntries([
   { name: "VibeLock", bucket: "lock" },
@@ -97,6 +98,13 @@ assert.equal(fold.status, "live");
 assert.ok(fold.download_url.endsWith("/download"));
 assert.ok(fold.worker_home.includes("foldlock-download-tracker"));
 assert.ok(fold.agent.pipeline.includes("fraggate_list"));
+const fourd = catalog.software.find((s) => s.slug === "4dmap");
+assert.ok(fourd);
+assert.equal(fourd.bucket, "plain");
+assert.equal(fourd.status, "live");
+assert.equal(fourd.worker_home, "https://4dmap-download-tracker.vibelock.workers.dev/");
+assert.equal(fourd.mesh.enabled_default, false);
+assert.equal(fourd.qns_cd.spec, "QNS-CD-1.0");
 assert.ok(fold.mcp.endsWith("/mcp"));
 assert.equal(fold.mesh.path, "/v1/mesh");
 assert.equal(fold.mesh.enabled_default, false);
