@@ -453,7 +453,7 @@ GitHub. https://github.com/AzielEliab/codelock
 
 
 EmbryoLock · embryolock · 1.1.0 · live-with-local-destructive-boundary
-True in-process engine. Health / skill / doctor / verify-hash / policy / limitation cite on the public FragGate door. Wipe / scorch / unlock-after-fail stay local-only — Never execute on the public mesh. Author: Aziel Eliab.
+True in-process engine. Health / skill / doctor / verify-hash / policy / limitation cite on the public FragGate door. Wipe / scorch / unlock-after-fail stay local-only — Never execute on the public mesh. Softwares worker_home https://embryolock-download-tracker.vibelock.workers.dev/. Author: Aziel Eliab.
 
 How. Cite the Stealth+ v1.1 local-vault contract (Argon2id + AES-GCM as declared in Open Source Code). This isolate does not run the KDF or AEAD. Forgotten password = permanent loss.
 Destructive-by-design local vault stays local.
