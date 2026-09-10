@@ -1,0 +1,215 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 5 0 R /Resources << /Font << /F1 7 0 R >> >> >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 6 0 R /Resources << /Font << /F1 7 0 R >> >> >>
+endobj
+5 0 obj
+<< /Length 4362 >>
+stream
+BT
+/F1 9 Tf
+14 TL
+36 756 Td
+(AZIEL RUNTIME) Tj
+T*
+(Disabled, Off, Stubbed, Gated & Not-Yet-Implemented Feature Audit) Tj
+T*
+() Tj
+T*
+(Baseline: aziel-runtime 1.7.3 \(authoritative for 1.7.3+\)) Tj
+T*
+(Date: 2026-09-10   Identity: Aziel Eliab only   Items: 50) Tj
+T*
+(Markdown: docs/audit/FEATURE-STATE-2026-09-10.md) Tj
+T*
+(This file: docs/audit/FEATURE-STATE-2026-09-10.pdf \(GitBaby binary path\)) Tj
+T*
+(Not a Softwares-tab product. Not a FragGate slug. GET /v1/mesh never enables.) Tj
+T*
+() Tj
+T*
+(BOTTOM LINE) Tj
+T*
+(Most catalog Software is wired in-process. Unfinished work concentrates in) Tj
+T*
+(networking, external action, named stubs, and distribution.) Tj
+T*
+(Security and architecture intentional OFF must stay.) Tj
+T*
+() Tj
+T*
+(EMBRYOLOCK TRANSITION) Tj
+T*
+(At PR time EmbryoLock is still STUB / local-not-hosted \(FG-STUB\).) Tj
+T*
+(Parallel land: live-with-local-destructive-boundary \(Vault/Custody;) Tj
+T*
+(destructive ops stay local-only\). This audit does not flip that land.) Tj
+T*
+() Tj
+T*
+(INVENTORY 1-50) Tj
+T*
+(1  QNM / Node Mesh radios                    OFF \(default\)     intentional OFF) Tj
+T*
+(2  QNS proxying                              OFF              intentional OFF) Tj
+T*
+(3  Public mesh auto-enable                   DISABLED         intentional OFF) Tj
+T*
+(4  EmbryoLock                                STUB \(transition\)  transition) Tj
+T*
+(5  AZChat                                    STUB             intentional OFF) Tj
+T*
+(6  VeilLock public execution                 LOCAL ONLY       intentional OFF) Tj
+T*
+(7  VeilLock inject / intercept / facetime    STUB             intentional OFF) Tj
+T*
+(8  ARK scorch / wipe / unlock / encrypt      STUB             intentional OFF) Tj
+T*
+(9  WhistleLock send / mail / release         STUB             intentional OFF) Tj
+T*
+(10 MirageGrid VPN-hop / hop / tunnel / mesh  STUB             intentional OFF) Tj
+T*
+(11 AzielTether mesh-join / vpn / arm         STUB             intentional OFF) Tj
+T*
+(12 AZ-OS exec / shell                        STUB             intentional OFF) Tj
+T*
+(13 AZAI blend / complete / chat              STUB             intentional OFF) Tj
+T*
+(14 EmployeeLock court / judge                STUB             intentional OFF) Tj
+T*
+(15 PeaceLock transcript / motive / etc.      STUB             intentional OFF) Tj
+T*
+(16 4DMap truth_score / lumen / invent / back STUB             intentional OFF) Tj
+T*
+(17 AZBrowser tor_exit                        STUB             intentional OFF) Tj
+T*
+(18 AZBrowser phoenix_wipe                    STUB             intentional OFF) Tj
+T*
+(19 AZBrowser Chromium                        NOT IMPLEMENTED  gap \(stay absent\)) Tj
+T*
+(20 AZMail SMTP                               NOT IMPLEMENTED  intentional OFF) Tj
+T*
+(21 AZMail deanonymization                    STUB             intentional OFF) Tj
+T*
+(22 AZMail anonymous mesh                     OFF \(default\)    intentional OFF) Tj
+T*
+(23 TrajectoryLock media store                NOT IMPLEMENTED  intentional OFF) Tj
+T*
+(24 WhistleLock file store                    NOT IMPLEMENTED  intentional OFF) Tj
+T*
+(25 AZNet payload hosting                     DISABLED BY DESIGN  intentional OFF) Tj
+T*
+(26 AZNet unpaired privileged ops             CONDITIONALLY OFF   gated) Tj
+T*
+(27 AZHub auto-unlock                         OFF              intentional OFF) Tj
+T*
+(28 AZInterface page cycles                   PRE-LOCKED       intentional OFF) Tj
+T*
+(29 Corpus D1 / Whisper / OCR                 PARTIAL / PROXY  gap) Tj
+T*
+(30 Universal local execution                 NOT COMPLETE     gap) Tj
+T*
+(31 Public rollback                           OFF              intentional OFF) Tj
+T*
+(32 RoseClock rollback                        OFF              intentional OFF) Tj
+T*
+(33 LambGate                                  OFF \(not a hop\)  intentional OFF) Tj
+T*
+(34 ASE                                       OPTIONAL         gated) Tj
+T*
+(35 ZD30                                      ABSENT           intentional OFF) Tj
+T*
+(36 AZPIPE public engine                      DISABLED         intentional OFF) Tj
+T*
+(37 AZPIPE mutation                           OFF              intentional OFF) Tj
+T*
+(38 AKM Softwares-tab                         DISABLED BY DESIGN  intentional OFF) Tj
+ET
+BT
+/F1 8 Tf
+36 28 Td
+(Page 1/2  |  FEATURE-STATE-2026-09-10  |  Aziel Eliab) Tj
+ET
+endstream
+endobj
+6 0 obj
+<< /Length 1575 >>
+stream
+BT
+/F1 9 Tf
+14 TL
+36 756 Td
+(39 AKM rebuild-index                         OPERATOR-GATED   gated) Tj
+T*
+(40 Memory posterior authorizes action        OFF              intentional OFF) Tj
+T*
+(41 Unauth session mutate                     OFF in prod      gated) Tj
+T*
+(42 Unknown tools                             REFUSE           intentional OFF) Tj
+T*
+(43 Destructive / fantasy ops                 REFUSE           intentional OFF) Tj
+T*
+(44 Full internal MCP                         LIMITED          partial) Tj
+T*
+(45 Complete OpenAPI                          INCOMPLETE       gap) Tj
+T*
+(46 /p default agent path                     OFF BY DESIGN    intentional OFF) Tj
+T*
+(47 FragGate as catalog engine                OFF              intentional OFF) Tj
+T*
+(48 Node Mesh as normal catalog engine        OFF              intentional OFF) Tj
+T*
+(49 Per-domain public doors                   OFF              intentional OFF) Tj
+T*
+(50 Zenodo live publication                   INACTIVE         gap) Tj
+T*
+() Tj
+T*
+(INTENTIONAL OFF MUST STAY: mesh GET, QNS via, rollback, ZD30, AZChat engine,) Tj
+T*
+(hosted vault unlock/wipe, VPN/hop/Tor/SMTP/payload host, Node Gate, per-domain) Tj
+T*
+(doors, posterior-as-truth. Do not enable mesh or safety stubs from this audit.) Tj
+T*
+() Tj
+T*
+(Cite: Eliab, Aziel. \(2026\). FEATURE-STATE-2026-09-10 [Audit].) Tj
+T*
+(https://github.com/AzielEliab/aziel-runtime/blob/main/docs/audit/FEATURE-STATE-2026-09-10.md) Tj
+T*
+(Author: Aziel Eliab only.) Tj
+ET
+BT
+/F1 8 Tf
+36 28 Td
+(Page 2/2  |  FEATURE-STATE-2026-09-10  |  Aziel Eliab) Tj
+ET
+endstream
+endobj
+7 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000121 00000 n 
+0000000247 00000 n 
+0000000373 00000 n 
+0000004786 00000 n 
+0000006412 00000 n 
+trailer
+<< /Size 8 /Root 1 0 R >>
+startxref
+6480
+%%EOF
