@@ -126,12 +126,13 @@ export function donationStatic() {
 }
 
 /**
- * Single-key packed catalog read. Never KV.list on the hot path.
- * Memory build is 0 KV ops (best case). Packed get is 1.
+ * Packed catalog for hub Software-tab / SEO doors.
+ * Production hot path is the Worker bundle (0 KV). Never list() or multi-get.
+ * Optional single-key get only when extra.kv_probe is passed (tests / overlay).
+ * Do not read env.USES on catalog GET — that binding is for use counters.
  */
 export async function readPackedCatalog(env, origin, products, extra = {}) {
-  const built = softwareCatalog(origin, products, extra);
-  const probe = extra.kv_probe || (env && env.USES);
+  const probe = extra.kv_probe;
   let kv_ops = 0;
   let packed = false;
   let source = "memory";
@@ -139,6 +140,7 @@ export async function readPackedCatalog(env, origin, products, extra = {}) {
   if (probe && typeof probe.get === "function") {
     kv_ops += 1;
     if (kv_ops > KV_OPS_CAP) {
+      const built = softwareCatalog(origin, products, extra);
       return {
         ok: true,
         truncated: true,
@@ -173,6 +175,7 @@ export async function readPackedCatalog(env, origin, products, extra = {}) {
     }
   }
 
+  const built = softwareCatalog(origin, products, extra);
   return {
     ok: true,
     truncated: false,

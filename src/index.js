@@ -2306,8 +2306,7 @@ async function handleRequest(request, env) {
     }
 
     if (url.pathname === "/" && request.method === "GET") {
-      const statsMap = await loadStatsMap(env);
-      return html(catalogHtml(origin, statsMap), extra("/"));
+      return html(catalogHtml(origin, {}), { ...extra("/"), ...catalogCacheHeaders() });
     }
 
     if (url.pathname === "/robots.txt" && (request.method === "GET" || request.method === "HEAD")) {
@@ -2415,7 +2414,7 @@ async function handleRequest(request, env) {
         json(
           updateManifest(origin, PRODUCTS, softwareExtra(env)),
           200,
-          authorityLinkHeaders(origin, "/v1/update/manifest"),
+          catalogLinkHeaders(origin, "/v1/update/manifest"),
         ),
       );
     }
@@ -2432,7 +2431,7 @@ async function handleRequest(request, env) {
       );
       const status = body.status || (body.ok === false ? 404 : 200);
       const { status: _drop, ...payload } = body;
-      return asHead(request, json(payload, status, authorityLinkHeaders(origin, "/v1/update/check")));
+      return asHead(request, json(payload, status, catalogLinkHeaders(origin, "/v1/update/check")));
     }
 
     if (url.pathname === "/v1/catalog.json" && request.method === "GET") {

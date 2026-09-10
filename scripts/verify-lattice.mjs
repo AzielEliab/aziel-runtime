@@ -269,6 +269,14 @@ assert.equal(mem.kv_ops, 0);
 assert.equal(mem.source, "memory");
 assert.ok(mem.catalog.software.length >= PRODUCTS.length);
 
+const usesOnly = countingKv({ other: "1" });
+const hot = await readPackedCatalog({ USES: usesOnly }, origin, PRODUCTS, {});
+assert.equal(hot.kv_ops, 0, "catalog GET must not read env.USES");
+assert.equal(usesOnly.stats.gets, 0);
+assert.equal(usesOnly.stats.lists, 0);
+assert.equal(hot.source, "memory");
+assert.ok(hot.catalog.software.length >= PRODUCTS.length);
+
 const capEnv = { RUNTIME_TOKEN: "op-secret-token" };
 const t0 = 1_700_000_000_000;
 const visitorReq = (extra = {}) =>
@@ -291,6 +299,16 @@ assert.equal(bypass.ok, true);
 assert.equal(bypass.bypass, true);
 assert.equal(bypass.operator, true);
 
+const usesHot = countingKv();
+const billed = { USES: usesHot };
+const hubHit = await get("/v1/software", billed);
+assert.equal(hubHit.status, 200);
+const hubBody = await hubHit.json();
+assert.ok(hubBody.software.length >= PRODUCTS.length);
+assert.equal(usesHot.stats.gets, 0, "hub /v1/software must not touch USES");
+assert.equal(usesHot.stats.puts, 0);
+assert.equal(usesHot.stats.lists, 0);
+
 const burstEnv = {};
 for (let i = 0; i < 70; i += 1) {
   const burst = await get("/v1/software", burstEnv);
@@ -301,6 +319,16 @@ for (let i = 0; i < 70; i += 1) {
 const soft = await get("/v1/software");
 assert.equal(soft.status, 200);
 assert.match(soft.headers.get("Cache-Control") || "", /s-maxage=300/);
+const home = await get("/");
+assert.equal(home.status, 200);
+assert.match(home.headers.get("Cache-Control") || "", /s-maxage=300/);
+const homeHtml = await home.text();
+assert.match(homeHtml, /FoldLock/);
+assert.match(homeHtml, /\/v1\/software/);
+const updateMan = await get("/v1/update/manifest");
+assert.equal(updateMan.status, 200);
+assert.match(updateMan.headers.get("Cache-Control") || "", /s-maxage=300/);
+await updateMan.text();
 const softBody = await soft.json();
 assert.equal(softBody.rl.list, false);
 assert.equal(softBody.rl.spec, "RL-WP-0.1-runtime");
