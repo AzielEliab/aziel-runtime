@@ -92,7 +92,7 @@ export const ENGINE_DIGESTS = {
   "4dmap": "0e780ef2db7c1aa9487d1d341f603fe66ab439688d2ba1ab28fa0063f1d26bb0",
   "azcoherence": "f04dfa4af332a1c04bd7319a8f48cee3e9adec3877d198ea703ee6187790cfc5",
   "embryolock": "bc7f6119a4bf6910b5be50cabe19bf4a2e35ac60408b5713e94878bd4e0074f3",
-  "azchat": "810d370485f4d459dd1481fb54b7682b7b6f3d98af8ef8f1dcc34ccb7659ed9e",
+  "azchat": "9b63fc0adcbb65318fbad7fd6aaf39b6f44edc5ff41696571457a5bd765ec5c5",
 };
 
 export function trueEngineSlugs() {

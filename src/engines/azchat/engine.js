@@ -229,7 +229,7 @@ export async function roomOpen(payload) {
   if (a.id === b.id) {
     return { ok: false, status: 400, error: "need-two-handles", op: "room_open" };
   }
-  const ttl = Math.min(ROOM_TTL_MAX_MS, Math.max(1000, Number(src.ttl_ms) || ROOM_TTL_DEFAULT_MS));
+  const ttl = Math.min(ROOM_TTL_MAX_MS, Math.max(1, Number(src.ttl_ms) || ROOM_TTL_DEFAULT_MS));
   const opened = nowMs();
   const id = nextId("r");
   const room = {
