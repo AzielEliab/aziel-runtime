@@ -22,6 +22,9 @@ curl -s -A 'Mozilla/5.0' https://aziel-runtime.vibelock.workers.dev/v1/fraggate/
 `docs/audit/SUITE-CAPABILITY-CHECKLIST.md` (1.7.5 wave 1).
 AKM-TRIAD-1.0 is LIVE fabric (`/v1/memory/*`, MCP `memory_*`), not a
 Softwares-tab card — do not invent an `akm` product on hubs.
+Remain-Off-by-Design (`docs/audit/FEATURE-STATE-2026-09-10.md`): do not
+enable mesh, ARK wipe, VeilLock inject, AZ-OS shell, 4DMap truth_score /
+invent_mark / backdate, or a public rollback API.
 
 Each entry: `slug`, `name`, `bucket` (`plain` | `gate` | `lock`), `status`
 (`live` | `stub`), `version`, `one_line`, `worker_home`, `download_url`,

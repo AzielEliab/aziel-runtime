@@ -153,6 +153,8 @@ assert.equal(citeBody.audits.identity, "Aziel Eliab");
 assert.equal(citeBody.audits.not_software_tab, true);
 assert.equal(citeBody.audits.not_fraggate_slug, true);
 assert.equal(citeBody.audits.mesh_get_never_enables, true);
+assert.equal(citeBody.audits.remain_off_by_design, true);
+assert.equal(citeBody.audits.feature_state.remain_off_by_design, true);
 assert.equal(citeBody.audits.feature_state.id, "FEATURE-STATE-2026-09-10");
 assert.equal(citeBody.audits.feature_state.path, "docs/audit/FEATURE-STATE-2026-09-10.md");
 assert.equal(citeBody.audits.feature_state.kind, "audit");
