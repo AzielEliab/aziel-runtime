@@ -240,10 +240,49 @@ assert.equal(card.worker_home, "https://4dmap-download-tracker.vibelock.workers.
 assert.equal(card.mesh.enabled_default, false);
 assert.equal(card.qns_cd.spec, "QNS-CD-1.0");
 assert.equal(card.qns_cd.local, "https://github.com/AzielEliab/qnm-node");
+assert.ok(!software.software.some((s) => s.slug === "memory"), "AKM-TRIAD is not Softwares-tab");
+assert.ok(!PRODUCTS.some((p) => p.slug === "memory"), "memory is LIVE fabric, not a catalog Software");
+assert.ok(LIVE_OPS.memory.includes("observe"));
+assert.ok(LIVE_OPS.memory.includes("calibrate"));
+assert.ok(LIVE_OPS.memory.includes("recall"));
+assert.ok(STUB_OPS.memory.includes("rollback"));
+assert.equal(registry.bySlug.memory.software_tab, false);
+assert.equal(registry.bySlug.memory.kind, "kernel");
+assert.equal(classifyCall(registry.bySlug.memory, "observe").kind, "live");
+assert.equal(classifyCall(registry.bySlug.memory, "rollback").kind, "stub");
 
 const cite = await (await handler(new Request(origin + "/cite.json"), env)).json();
 assert.ok(cite.designs.papers.some((p) => p.id === "4DM-WP-1.0" && p.kind === "software"));
+assert.ok(cite.designs.papers.some((p) => p.id === "AKM-TRIAD-1.0"));
 assert.ok(cite.products.some((p) => p.slug === "4dmap"));
+assert.ok(!cite.products.some((p) => p.slug === "memory"));
+
+const memHealth = await (await handler(new Request(origin + "/v1/memory"), env)).json();
+assert.equal(memHealth.spec, "AKM-TRIAD-1.0");
+assert.equal(memHealth.software_tab, false);
+const memObserve = await (await post("/v1/memory/observe", { subject: "4dm-akm-guard", fact: "akm stays fabric" })).json();
+assert.equal(memObserve.ok, true);
+assert.ok(memObserve.memory_id);
+const memGet = await (await handler(new Request(origin + `/v1/memory/${memObserve.memory_id}`), env)).json();
+assert.equal(memGet.memory_id, memObserve.memory_id);
+const memDoor = await (await post("/v1/fraggate/call", { slug: "memory", op: "observe", payload: { subject: "4dm-akm-fg", fact: "behind FragGate" } })).json();
+assert.equal(memDoor.ok, true);
+assert.equal(memDoor.slug, "memory");
+
+const mcpList = await (
+  await handler(
+    new Request(origin + "/mcp", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} }),
+    }),
+    env,
+  )
+).json();
+const toolNames = (mcpList.result.tools || []).map((t) => t.name);
+for (const name of ["memory_observe", "memory_resolve", "memory_calibrate", "memory_recall", "memory_get"]) {
+  assert.ok(toolNames.includes(name), `MCP still lists ${name}`);
+}
 
 const frame = frameStatus({});
 assert.equal(frame.ok, true);
