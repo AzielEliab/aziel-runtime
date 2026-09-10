@@ -20,7 +20,11 @@ import {
   NEIGHBORS,
   SEQUENTIAL_GATE,
   SPEC,
+  VERSION,
+  ZION_CAP,
+  absence,
   axisDescribe,
+  cap,
   cardExport,
   cardImport,
   cardJoin,
@@ -29,16 +33,28 @@ import {
   cardPin,
   cardSpan,
   cardWalk,
+  classMark,
+  cohort,
   detectForbidden,
+  example,
+  fork,
   fourdmapSkill,
   frameStatus,
+  gap,
+  join,
   joinTypeForOp,
+  lens,
+  list,
   neighborCite,
   normalizeAxis,
   normalizeJoinType,
+  pin,
   resetFourdmapStore,
+  span,
+  stack,
   verifyChain,
   verifyHash,
+  walk,
   walkTrace,
 } from "../src/engines/4dmap/engine.js";
 
@@ -50,7 +66,8 @@ assert.ok(product, "4dmap is a catalog product");
 assert.equal(product.name, "4DMap");
 assert.equal(product.worker, "4dmap-download-tracker");
 assert.equal(product.github, "https://github.com/AzielEliab/4dmap");
-assert.equal(product.version, "0.1.0");
+assert.equal(product.version, "0.2.0");
+assert.equal(VERSION, "0.2.0");
 assert.match(product.oneLine, /4DM-WP-1\.0/);
 assert.match(product.oneLine, /not a sequential gate|not an extra door/i);
 assert.match(product.oneLine, /inspection frame/i);
@@ -60,7 +77,8 @@ assert.equal(softwareBucket(product.name, product.slug), "plain");
 
 const catalogOps = new Set(product.ops.map((o) => o.op));
 const ENHANCED = ["frame_status", "axis_describe", "walk_trace", "card_export", "card_import", "verify_chain", "neighbor_cite"];
-for (const op of ["card_new", "card_pin", "card_span", "card_join", "card_walk", "card_list", "verify_hash", "health", "skill", ...ENHANCED]) {
+const PRODUCT_02 = ["pin", "span", "stack", "gap", "fork", "walk", "lens", "class", "cohort", "absence", "cap", "join", "list", "example"];
+for (const op of ["card_new", "card_pin", "card_span", "card_join", "card_walk", "card_list", "verify_hash", "health", "skill", ...ENHANCED, ...PRODUCT_02]) {
   assert.ok(catalogOps.has(op), `catalog has ${op}`);
 }
 
@@ -77,7 +95,10 @@ assert.ok(NEIGHBORS.includes("spectrallock"));
 assert.equal(normalizeAxis("delta"), "Δ");
 assert.equal(normalizeJoinType("citation"), "cite");
 assert.equal(joinTypeForOp("card_pin"), "pin");
+assert.equal(joinTypeForOp("pin"), "pin");
 assert.equal(joinTypeForOp("card_walk"), "walk");
+assert.equal(joinTypeForOp("walk"), "walk");
+assert.equal(joinTypeForOp("join"), "join");
 assert.equal(detectForbidden({ truth_score: true }).kind, "truth_score");
 assert.equal(detectForbidden({ invent_mark: true }).kind, "invent_mark");
 assert.equal(detectForbidden({ backdate_class: 1 }).kind, "backdate_class");
@@ -89,7 +110,7 @@ assert.equal(CATALOG_ALIASES["4d-map"], "4dmap");
 assert.equal(CATALOG_ALIASES["4dm-wp-1.0"], "4dmap");
 
 const live = LIVE_OPS["4dmap"];
-for (const op of ["health", "skill", "card_new", "card_pin", "card_span", "card_join", "card_walk", "card_list", "verify_hash", ...ENHANCED]) {
+for (const op of ["health", "skill", "card_new", "card_pin", "card_span", "card_join", "card_walk", "card_list", "verify_hash", ...ENHANCED, ...PRODUCT_02]) {
   assert.ok(live.includes(op), `LIVE_OPS.4dmap has ${op}`);
 }
 for (const alias of ["frame", "axis", "trace", "export", "import", "neighbor"]) {
@@ -145,9 +166,9 @@ assert.equal(invent.code, "4DM-INVENT-REFUSE");
 
 const pinD = await cardPin({ card_id: opened.card.card_id, axis: "delta", mark: "declared-delta" });
 assert.equal(pinD.ok, true);
-const span = await cardSpan({ card_id: opened.card.card_id, from: "T", to: "Δ" });
-assert.equal(span.ok, true);
-assert.equal(span.join_type, "span");
+const spanned = await cardSpan({ card_id: opened.card.card_id, from: "T", to: "Δ" });
+assert.equal(spanned.ok, true);
+assert.equal(spanned.join_type, "span");
 
 const other = await cardNew({ label: "inspect-2" });
 const joined = await cardJoin({ card_id: opened.card.card_id, other_id: other.card.card_id, join_type: "cite" });
@@ -155,11 +176,11 @@ assert.equal(joined.ok, true);
 assert.equal(joined.join_type, "cite");
 assert.ok(JOIN_TYPES.includes(joined.join_type));
 
-const walk = await cardWalk({ card_ids: [opened.card.card_id, other.card.card_id] });
-assert.equal(walk.ok, true);
-assert.equal(walk.join_type, "walk");
-assert.equal(walk.walk.chainlock_may_stamp, true);
-assert.match(walk.walk.walk_hash, /^[a-f0-9]{64}$/);
+const walked = await cardWalk({ card_ids: [opened.card.card_id, other.card.card_id] });
+assert.equal(walked.ok, true);
+assert.equal(walked.join_type, "walk");
+assert.equal(walked.walk.chainlock_may_stamp, true);
+assert.match(walked.walk.walk_hash, /^[a-f0-9]{64}$/);
 
 const listed = cardList({});
 assert.equal(listed.count, 2);
@@ -167,7 +188,7 @@ assert.equal(listed.walks.length, 1);
 
 const verified = await verifyHash({ card_id: opened.card.card_id });
 assert.equal(verified.match, true);
-const walkOk = await verifyHash({ walk_id: walk.walk.walk_id });
+const walkOk = await verifyHash({ walk_id: walked.walk.walk_id });
 assert.equal(walkOk.match, true);
 
 const backdate = await cardPin({
@@ -305,7 +326,7 @@ const badAxis = axisDescribe({ axis: "zeta" });
 assert.equal(badAxis.ok, false);
 assert.equal(badAxis.code, "4DM-AXIS");
 
-const traced = walkTrace({ walk_id: walk.walk.walk_id });
+const traced = walkTrace({ walk_id: walked.walk.walk_id });
 assert.equal(traced.ok, true);
 assert.equal(traced.sequential_gate, false);
 assert.equal(traced.steps.length, 2);
@@ -346,6 +367,79 @@ const chainCard = await verifyChain({ card_id: restored.cards[0].card_id });
 assert.equal(chainCard.match, true);
 assert.equal(chainCard.kind, "card");
 
+resetFourdmapStore();
+const productPin = await pin({ axis: "T", t: "2026-09-10T00:00:00Z", note: "product pin" });
+assert.equal(productPin.ok, true);
+assert.equal(productPin.op, "pin");
+assert.equal(productPin.axis, "T");
+assert.equal(productPin.pin.mark, "2026-09-10T00:00:00Z");
+const productPin2 = await pin({ axis: "delta", value: "declared-delta" });
+assert.equal(productPin2.ok, true);
+const productSpan = await span({ from_id: productPin.card.card_id, to_id: productPin2.card.card_id });
+assert.equal(productSpan.ok, true);
+assert.equal(productSpan.op, "span");
+assert.equal(productSpan.axis, "Δ");
+const productStack = await stack({ ids: [productPin.card.card_id, productPin2.card.card_id] });
+assert.equal(productStack.ok, true);
+assert.equal(productStack.axis, "Γ");
+const productGap = await gap({ from_id: productPin.card.card_id, to_id: productPin2.card.card_id });
+assert.equal(productGap.ok, true);
+const productFork = await fork({ id: productPin.card.card_id });
+assert.equal(productFork.ok, true);
+assert.equal(productFork.forks_kept, true);
+assert.equal(productFork.winner, null);
+const productWalk = await walk({ card_ids: [productPin.card.card_id, productPin2.card.card_id] });
+assert.equal(productWalk.ok, true);
+assert.equal(productWalk.op, "walk");
+const tipWalk = await walk({ tip: productSpan.card.card_id });
+assert.equal(tipWalk.ok, true);
+assert.ok(tipWalk.n >= 1);
+const silentLens = lens({});
+assert.equal(silentLens.ok, true);
+assert.equal(silentLens.silent, true);
+assert.equal(silentLens.pi, "Π-EMPTY");
+const hitLens = lens({ query: "product pin" });
+assert.equal(hitLens.silent, false);
+assert.ok(hitLens.hits.includes(productPin.card.card_id));
+const silentClass = await classMark({});
+assert.equal(silentClass.silent, true);
+const namedClass = await classMark({ label: "declared-class" });
+assert.equal(namedClass.ok, true);
+assert.deepEqual(namedClass.pi, { class: "declared-class" });
+const silentCohort = await cohort({});
+assert.equal(silentCohort.silent, true);
+const namedCohort = await cohort({ ids: [productPin.card.card_id] });
+assert.equal(namedCohort.ok, true);
+const silentAbsence = absence({ query: "no-such-mark-zzz" });
+assert.equal(silentAbsence.silent, true);
+const capped = cap({ score: 0.99 });
+assert.equal(capped.ok, true);
+assert.equal(capped.score, ZION_CAP);
+assert.equal(capped.capped, true);
+const productJoin = await join({ left: productPin.card.card_id, right: productPin2.card.card_id, join_type: "T-DELTA" });
+assert.equal(productJoin.ok, true);
+assert.equal(productJoin.axis_join, "T-Δ");
+const backJoin = await join({ left: productPin.card.card_id, right: productPin2.card.card_id, join_type: "PI-T" });
+assert.equal(backJoin.ok, false);
+assert.equal(backJoin.code, "4DM-BACKDATE-REFUSE");
+const listed02 = list({});
+assert.equal(listed02.ok, true);
+assert.ok(listed02.count >= 2);
+const demo = await example({});
+assert.equal(demo.ok, true);
+assert.equal(demo.synthetic, true);
+assert.equal(demo.card.card_id, "4dm-example-pin");
+
+const doorPin = await (await post("/v1/fraggate/call", { slug: "4dmap", op: "pin", payload: { axis: "T", t: "declared-door-pin" } })).json();
+assert.equal(doorPin.ok, true);
+assert.equal(doorPin.result.op, "pin");
+const doorCap = await (await post("/v1/fraggate/call", { slug: "4dmap", op: "cap", payload: { score: 0.9 } })).json();
+assert.equal(doorCap.ok, true);
+assert.equal(doorCap.result.score, ZION_CAP);
+const doorExample = await (await post("/v1/fraggate/call", { slug: "4dmap", op: "example" })).json();
+assert.equal(doorExample.ok, true);
+assert.equal(doorExample.result.synthetic, true);
+
 const doorFrame = await (await post("/v1/fraggate/call", { slug: "4dmap", op: "frame" })).json();
 assert.equal(doorFrame.ok, true);
 assert.equal(doorFrame.result.domains_are_doors, false);
@@ -355,6 +449,7 @@ assert.equal(doorFrame.result.layer, "inspection_frame");
 const skill = await (await handler(new Request(origin + "/v1/skill"), env)).text();
 assert.match(skill, /4DMap \(4DM-WP-1\.0\)/);
 assert.match(skill, /1\.6\.14/);
+assert.match(skill, /1\.7\.6/);
 assert.match(skill, /1\.7\.4/);
 assert.match(skill, /frame_status/);
 const engineSkill = fourdmapSkill();
@@ -366,12 +461,14 @@ const llms = await (await handler(new Request(origin + "/llms.txt"), env)).text(
 assert.match(llms, /4DMap/);
 assert.match(llms, /4DM-WP-1\.0/);
 assert.match(llms, /frame_status/);
+assert.match(llms, /1\.7\.6/);
 assert.match(llms, /1\.7\.4/);
 
 const home = await (await handler(new Request(origin + "/"), env)).text();
 assert.match(home, /data-slug="4dmap"/);
 assert.match(home, /4DM-WP-1\.0/);
 assert.match(home, /not a sequential gate/i);
+assert.match(home, /1\.7\.6/);
 assert.match(home, /1\.7\.4/);
 assert.match(home, /frame_status/);
 assert.doesNotMatch(product.banner, /Domain Door/);
