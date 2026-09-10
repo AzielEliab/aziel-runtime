@@ -13,6 +13,7 @@
  */
 
 import { CATALOG_ALIASES } from "./catalog-meta.js";
+import { SOFTWARE_HUBS as CROSS_MAP_HUBS, crossMapFields } from "./cross-map.js";
 import { CATALOG_COUNT_NOTE, MASTER_33_SLUGS, TAB_PLACEMENT_SLUGS, domainFields, domainMapView } from "./domain-map.js";
 import { NAMED_STUBS } from "./fraggate/registry.js";
 import { meshHint } from "./mesh.js";
@@ -22,11 +23,7 @@ import { LIBRARY_ORIGIN } from "./seo.js";
 export const SOFTWARE_SORT_LAW = "plain A–Z → gate A–Z → lock A–Z (Clock ≠ Lock)";
 export const SOFTWARE_FRAMING =
   "Separate software / sibling software under one FragGate door. Never separate FragGate engines. Clock is not Lock.";
-export const SOFTWARE_HUBS = Object.freeze([
-  "https://azieleliab.com",
-  "https://www.azielcorpuslibrary.net",
-  "https://godlock.uk",
-]);
+export const SOFTWARE_HUBS = CROSS_MAP_HUBS;
 export const BUCKET_RANK = Object.freeze({ plain: 0, gate: 1, lock: 2 });
 export const RUNTIME_SOFTWARE_SLUG = "aziel-runtime";
 
@@ -133,6 +130,7 @@ export function liveSoftwareCard(product, origin, meta = {}) {
     kind: "software",
     mesh: meshHint("/v1/mesh"),
     qns_cd: qnsHint(),
+    ...crossMapFields(product.slug),
     ...(product.local_destructive_boundary
       ? {
           local_destructive_boundary: true,
@@ -171,6 +169,7 @@ export function stubSoftwareCard(spec, origin, meta = {}) {
     note: spec.note || "stub / local-not-hosted. Name only. Not a FragGate engine.",
     mesh: meshHint("/v1/mesh"),
     qns_cd: qnsHint(),
+    ...crossMapFields(spec.slug),
   };
 }
 

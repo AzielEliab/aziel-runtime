@@ -9,6 +9,8 @@
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
 
+import { AZCOHERENCE_CROSS_MAP as CROSS_MAP } from "../../cross-map.js";
+
 export const PRODUCT = "azcoherence";
 export const NAME = "AZCoherence";
 export const VERSION = "0.1.0";
@@ -25,7 +27,8 @@ export const NEUTRALIZE_DELTA = 0.35;
 export const MAX_FIELD_CHARS = 64 * 1024;
 
 export const AXES = Object.freeze(["primary", "alternate", "evidence", "confidence"]);
-export const NEIGHBORS = Object.freeze(["azclce", "decisiongate", "godlock", "zsolver"]);
+export const NEIGHBORS = Object.freeze(["azclce", "azinterface", "decisiongate", "godlock", "zsolver"]);
+export { CROSS_MAP };
 export const VERDICTS = Object.freeze(["PASS", "FLAG", "NEUTRALIZE", "REFUSE"]);
 export const STUB_REFUSE = Object.freeze([
   "invent_evidence",
@@ -440,6 +443,12 @@ export async function verifyReceipt(payload) {
     posted_sha256: posted || null,
     receipt_sha256: recomputed.receipt_sha256,
     verdict: recomputed.verdict,
+    neighbors: NEIGHBORS.slice(),
+    peers: CROSS_MAP.peers,
+    fabric_neighbors: CROSS_MAP.fabric_neighbors,
+    hubs: CROSS_MAP.hubs,
+    worker_url: CROSS_MAP.worker_url,
+    cross_map: CROSS_MAP,
     note: posted
       ? match
         ? "Posted receipt hash matches the recomputed coherence receipt."

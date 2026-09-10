@@ -9,6 +9,7 @@ import { LIVE_OPS, STUB_OPS, buildRegistry, classifyCall } from "../src/fraggate
 import { embeddedDigest } from "../src/engines/digest.js";
 import { executeLocal } from "../src/engines/runner.js";
 import { domainFields, MASTER_33_SLUGS } from "../src/domain-map.js";
+import { AZCOHERENCE_CROSS_MAP, AZCLCE_CROSS_MAP } from "../src/cross-map.js";
 import { softwareBucket, listSoftwareEntries } from "../src/software-catalog.js";
 import { resetLedger } from "../src/fraggate/ledger.js";
 import {
@@ -154,6 +155,40 @@ assert.equal(healthBody.mesh_enabled_default, false);
 assert.equal(healthBody.author, "Aziel Eliab");
 assert.ok(healthBody.live_ops.includes("coherence_check"));
 assert.ok(healthBody.neighbors.includes("azclce"));
+assert.ok(healthBody.neighbors.includes("azinterface"));
+assert.ok(healthBody.cross_map);
+assert.equal(healthBody.cross_map.domain, null);
+assert.equal(healthBody.cross_map.placement, "scoring-review");
+assert.equal(healthBody.worker_url, AZCOHERENCE_CROSS_MAP.worker_url);
+assert.ok(healthBody.peers.some((p) => p.slug === "azclce" && p.role === "peer-scorer"));
+assert.ok(healthBody.peers.some((p) => p.slug === "azinterface"));
+assert.ok(healthBody.fabric_neighbors.some((p) => p.name === "AKM-TRIAD" && p.kind === "fabric"));
+assert.ok(healthBody.hubs.includes("https://azieleliab.com"));
+assert.match(healthBody.domain_note, /decisiongate\/forgereceipts/);
+
+const localSkill = await executeLocal({ slug: "azcoherence", op: "skill", payload: {}, ranIn: "aziel-runtime" });
+const skillBody = JSON.parse(localSkill.responseText);
+assert.match(skillBody.markdown, /azclce|AZ-CLCE/);
+assert.match(skillBody.markdown, /AZInterface|azinterface/);
+assert.match(skillBody.markdown, /AKM-TRIAD/);
+assert.match(skillBody.markdown, /LIVE_OPS/);
+
+const localDoctor = await executeLocal({ slug: "azcoherence", op: "doctor", payload: {}, ranIn: "aziel-runtime" });
+const doctorBody = JSON.parse(localDoctor.responseText);
+assert.equal(doctorBody.doctor, true);
+assert.ok(doctorBody.cross_map);
+assert.match(doctorBody.note, /Peer AZ-CLCE|azclce/i);
+
+const localVerify = await executeLocal({
+  slug: "azcoherence",
+  op: "verify",
+  payload: agree,
+  ranIn: "aziel-runtime",
+});
+const verifyBody = JSON.parse(localVerify.responseText);
+assert.equal(verifyBody.op, "verify");
+assert.ok(verifyBody.cross_map);
+assert.ok(verifyBody.peers.some((p) => p.slug === "azclce"));
 
 const localCheck = await executeLocal({
   slug: "azcoherence",
@@ -211,7 +246,47 @@ assert.equal(card.status, "live");
 assert.equal(card.bucket, "plain");
 assert.equal(card.name, "AZCoherence");
 assert.equal(card.placement, "scoring-review");
+assert.equal(card.domain, null);
+assert.ok(card.cross_map);
+assert.equal(card.cross_map.domain, null);
+assert.equal(card.worker_url, AZCOHERENCE_CROSS_MAP.worker_url);
+assert.ok(card.peers.some((p) => p.slug === "azclce" && p.role === "peer-scorer"));
+assert.ok(card.peers.some((p) => p.slug === "azinterface"));
+assert.ok(card.fabric_neighbors.some((p) => p.name === "AKM-TRIAD"));
+assert.ok(card.hubs.includes("https://godlock.uk"));
 assert.ok(software.tab_placement_slugs.includes("azcoherence"));
+
+const clceCard = software.software.find((s) => s.slug === "azclce");
+assert.ok(clceCard, "GET /v1/software lists AZ-CLCE");
+assert.equal(clceCard.domain, "Language");
+assert.equal(clceCard.domain_id, "04");
+assert.ok(clceCard.cross_map);
+assert.ok(clceCard.peers.some((p) => p.slug === "azcoherence" && p.role === "peer-reviewer"));
+assert.equal(clceCard.worker_url, AZCLCE_CROSS_MAP.worker_url);
+assert.equal(clceCard.cross_map.merged, false);
+
+const catalog = await (await get("/v1/catalog.json")).json();
+const catalogAzc = (catalog.products || []).find((p) => p.slug === "azcoherence");
+const catalogClce = (catalog.products || []).find((p) => p.slug === "azclce");
+assert.ok(catalogAzc && catalogAzc.cross_map);
+assert.ok(catalogClce && catalogClce.peers.some((p) => p.slug === "azcoherence"));
+
+const described = await (await get("/v1/fraggate/describe?slug=azcoherence")).json();
+assert.equal(described.ok, true);
+assert.ok(described.cross_map);
+assert.equal(described.placement, "scoring-review");
+assert.ok(described.peers.some((p) => p.slug === "azclce"));
+
+const clceHealth = await executeLocal({ slug: "azclce", op: "health", payload: {}, ranIn: "aziel-runtime" });
+const clceHealthBody = JSON.parse(clceHealth.responseText);
+assert.ok(clceHealthBody.neighbors.includes("azcoherence"));
+assert.ok(clceHealthBody.peers.some((p) => p.slug === "azcoherence"));
+
+const azbotSkill = await executeLocal({ slug: "azbot", op: "skill", payload: {}, ranIn: "aziel-runtime" });
+const azbotSkillBody = JSON.parse(azbotSkill.responseText);
+assert.match(azbotSkillBody.markdown, /azcoherence/);
+assert.match(azbotSkillBody.markdown, /LIVE_OPS/);
+assert.match(azbotSkillBody.markdown, /coherence_check/);
 
 const plains = software.software.filter((s) => s.bucket === "plain").map((s) => s.name);
 const plainsSorted = plains.slice().sort((a, b) => a.localeCompare(b, "en", { sensitivity: "base" }));
