@@ -92,6 +92,12 @@ import {
 } from "./runtime-api.js";
 import { honestyFields } from "./engines/registry.js";
 import { dispatchMeshHttp } from "./mesh.js";
+import {
+  catalogCacheHeaders,
+  donationStatic,
+  readPackedCatalog,
+  visitorBucket,
+} from "./packed-catalog.js";
 import { RuntimeSession } from "./session-do.js";
 import { callSessionTool, handleSessionRequest, sessionMcpTools } from "./session-http.js";
 import {
@@ -714,6 +720,31 @@ function authorityLinkHeaders(origin, path) {
     ...noStoreHeaders(),
     ...linkHeaders(origin, path),
   };
+}
+
+function catalogLinkHeaders(origin, path) {
+  return {
+    ...authorityHeaders(RUNTIME_VERSION, RUNTIME_ROLE),
+    ...catalogCacheHeaders(),
+    ...linkHeaders(origin, path),
+  };
+}
+
+async function servePackedSoftware(request, env, origin, extra = {}) {
+  const bucket = await visitorBucket(request, env);
+  const packed = await readPackedCatalog(env, origin, PRODUCTS, softwareExtra(env));
+  const body = { ...packed.catalog, rl: packed.rl, donation: donationStatic(), ...extra };
+  if (!bucket.ok) {
+    return json(
+      { ...body, ok: false, refuse: bucket.refuse || "rate-soft" },
+      429,
+      {
+        ...catalogLinkHeaders(origin, extra.mirror_of || "/v1/software"),
+        "Retry-After": String(bucket.retryAfter || 30),
+      },
+    );
+  }
+  return json(body, 200, catalogLinkHeaders(origin, extra.mirror_of || "/v1/software"));
 }
 
 function linkHeaders(origin, canonicalPath = "/") {
@@ -1524,6 +1555,8 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
     <a href="https://www.azielcorpuslibrary.net/runtime">Library /runtime</a>
     <a href="https://github.com/AzielEliab/aziel-runtime">GitHub</a>
   </p>
+  <p>LIVE fabric (not Softwares-tab): AZPIPE, SweepGate, ChainLock, LOCKSET, packed catalog. MCP <code>chainlock_*</code>. <code>GET /v1/mesh</code> never enables. UI=MCP. No Node Gate.</p>
+  <p>Donation is a static tab — no KV, no invented wallets. Networks the operator already controls (Bitcoin, Lightning, Ethereum, Solana); paste addresses at publish time.</p>
   <p>Designs (git-hosted papers — not Softwares-tab products, not a FragGate slug; <code>GET /v1/mesh</code> never enables): <a href="${DESIGNS_GITHUB_TREE}">docs/designs/</a>${SUITE_DESIGNS.map((d) => ` · <a href="${designGithubUrl(d.file)}">${escapeHtml(d.id)}</a>`).join("")}. Author: Aziel Eliab only. PDFs sit beside each paper on GitHub.</p>
   <h2>Session (the actual cut)</h2>
   <ol>
@@ -1982,7 +2015,7 @@ async function callRuntimeTool(env, name, args, origin, request) {
   if (name === "runtime_software") {
     return {
       status: 200,
-      text: JSON.stringify(softwareCatalogBody(base, env), null, 2),
+      text: JSON.stringify((await readPackedCatalog(env, base, PRODUCTS, softwareExtra(env))).catalog, null, 2),
       target: base + "/v1/software",
     };
   }
@@ -2164,7 +2197,7 @@ async function handleFraggateHttp(request, url, origin, env) {
   ) {
     return asHead(
       request,
-      json({ ...softwareCatalogBody(origin, env), mirror_of: "/v1/software" }, 200, extra),
+      await servePackedSoftware(request, env, origin, { mirror_of: "/v1/software" }),
     );
   }
   if (url.pathname === "/v1/fraggate" && (request.method === "GET" || request.method === "HEAD")) {
@@ -2385,10 +2418,7 @@ async function handleRequest(request, env) {
       (url.pathname === "/v1/software" || url.pathname === "/v1/software.json") &&
       (request.method === "GET" || request.method === "HEAD")
     ) {
-      return asHead(
-        request,
-        json(softwareCatalogBody(origin, env), 200, authorityLinkHeaders(origin, "/v1/software")),
-      );
+      return asHead(request, await servePackedSoftware(request, env, origin));
     }
 
     if (url.pathname === "/v1/update/manifest" && (request.method === "GET" || request.method === "HEAD")) {

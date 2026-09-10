@@ -11,6 +11,7 @@
 
 import { check as decisiongateCheck } from "../engines/decisiongate/engine.js";
 import { executeLocal } from "../engines/runner.js";
+import { pipeInbound, pipeOutbound, thinPipe } from "../azpipe.js";
 import { MESH_SLUG, runMeshOp } from "../mesh.js";
 import {
   FG_GATE_REFUSE,
@@ -310,9 +311,32 @@ export async function fraggateCall(args, registry, bySlug, env) {
   const admission = await admitCall(args, registry, bySlug);
   if (!admission.admitted) return admission.envelope;
 
-  const { target, gate } = admission;
+  const { target, gate, claim } = admission;
   const src = args && typeof args === "object" ? args : {};
-  const payload = src.payload !== undefined ? src.payload : payloadWithoutMeta(src);
+  const rawPayload = src.payload !== undefined ? src.payload : payloadWithoutMeta(src);
+  const inbound = await pipeInbound({
+    payload: rawPayload,
+    claim,
+    env,
+    slug: target.entry.slug,
+    op: target.op,
+    subject: `${target.entry.slug} ${target.op}`,
+  });
+  if (!inbound.ok) {
+    return refuse({
+      code: inbound.refuse === "sweep-isolate" ? "FG-SWEEP-ISOLATE" : FG_GATE_REFUSE,
+      name: target.entry.name,
+      slug: target.entry.slug,
+      op: target.op,
+      gate,
+      extra: { pipe: thinPipe(inbound), sweep: inbound.sweep, status: "live" },
+      message:
+        inbound.refuse === "sweep-isolate"
+          ? "SweepGate isolate — airlock closed. Do not merge."
+          : `AZPIPE ${inbound.refuse || "refuse"} — no handler.`,
+    });
+  }
+  const payload = inbound.admitted !== undefined ? inbound.admitted : rawPayload;
   const resolved = resolveOpAlias(target.entry.slug, target.op);
   if (target.entry.slug === MESH_SLUG) {
     const result = await runMeshOp(resolved.op, payload, env);
@@ -334,7 +358,7 @@ export async function fraggateCall(args, registry, bySlug, env) {
       accepted.canonical_op = resolved.op;
       accepted.aliased = true;
     }
-    return accepted;
+    return decoratePipe(accepted, inbound, result, env, claim);
   }
   const local = await executeLocal({
     slug: target.entry.slug,
@@ -381,6 +405,20 @@ export async function fraggateCall(args, registry, bySlug, env) {
     accepted.canonical_op = resolved.op;
     accepted.aliased = true;
   }
+  return decoratePipe(accepted, inbound, parsed, env, claim);
+}
+
+async function decoratePipe(accepted, inbound, parsed, env, claim) {
+  const outbound = await pipeOutbound({ result: parsed, env, claim });
+  accepted.pipe = thinPipe(outbound.ok ? outbound : inbound);
+  if (!outbound.ok && outbound.refuse === "sweep-isolate") {
+    accepted.ok = false;
+    accepted.result = null;
+    accepted.message = "SweepGate isolate on outbound. Do not merge.";
+    accepted.sweep = outbound.sweep;
+    return accepted;
+  }
+  if (inbound && inbound.inner && inbound.inner.entry) accepted.entry = inbound.inner.entry;
   return accepted;
 }
 
