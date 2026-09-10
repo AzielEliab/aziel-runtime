@@ -25,6 +25,9 @@ export const RUNTIME_ONE_LINE =
 /**
  * Canonical crawler abstract. Use verbatim on cite.json abstract, homepage lead,
  * llms.txt opening, and JSON-LD description. Do not replace with weaker aggregator language.
+ *
+ * AZRT-1.9-CLOSE-1.0 / later version rolls: put version notes BELOW this abstract.
+ * Never replace the abstract with a changelog. Never mash "runtime 1.9 FragGate".
  */
 export const RUNTIME_ABSTRACT =
   "Aziel Runtime is not merely an API orchestrator or software aggregator; it is a node-meshed orchestration suite of MCP-connected software designed to coordinate specialized tools through a shared, security-gated runtime while preserving provenance, chain-of-custody, temporal integrity, and auditable execution. It functions as a digital forensic, investigative, verification, research, intelligence-support, and systems-auditing environment in which individual engines can analyze evidence, validate records, inspect trajectories and patterns, track lineage, enforce capability boundaries, generate receipts, and exchange structured results without collapsing into one opaque model or unrestricted control plane. Its architecture emphasizes compartmentalization, deterministic routing, explicit refusal states, append-only evidence handling, and machine-readable metadata, making it suitable for distributed analysis workflows where trust, reproducibility, attribution, and post-hoc auditability matter as much as the result itself.";
@@ -56,11 +59,16 @@ export function runtimeAboutField(origin) {
       master33: "Domains are isolation labels, not extra doors. Lamb Lens ethics hop after FragGate.",
     },
     not: [...RUNTIME_NOT],
+    changelog_below_abstract: true,
+    version_notes: "Below the abstract only. AZRT-1.9-CLOSE-1.0 and later rolls must not replace crawler lead copy.",
     author: AUTHOR_NAME,
     identity: AUTHOR_NAME,
     aka: AUTHOR_ALTERNATE_NAME,
   };
 }
+
+/** Fail if crawler-lead text is a version mash (1.7.x / 1.9 / AZRT-…). */
+export const CRAWLER_LEAD_VERSION_RE = /\b(?:1\.\d+\.\d+|AZRT-1\.9)\b/;
 
 export function llmsWhatThisIsBlock() {
   return [

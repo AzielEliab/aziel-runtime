@@ -6,10 +6,12 @@ This repo does **not** own VibeLock or other product Workers. Copy this pattern 
 
 ## Identity
 
-- Primary name: **Aziel Eliab**
+- Public product name: **Aziel Runtime** (`aziel-runtime`)
+- Primary author: **Aziel Eliab**
 - `alternateName` / aka only: **Aziel Elroi Eliab**
 - Do not invent other identities.
 - Do not invent Zenodo DOIs. Cite `/cite.json`.
+- Crawler lead is the canonical abstract. Version notes (1.7.x, **1.9 / AZRT-1.9-CLOSE-1.0**, later) stay **below** the abstract.
 
 ## Required routes
 
@@ -185,7 +187,7 @@ No invented DOIs. Historical tombstones may be listed with `zenodo_status`.
 
 ## llms.txt
 
-Plain text. Lead with Aziel Eliab, the product one-liner, Worker `/`, `/cite.json`, counted `/download`, and a pointer to the Digital Library + runtime catalog.
+Plain text. Lead with **What this is** — the canonical Aziel Runtime abstract (not a version mash). Then How to use (FragGate list→describe→call; `/v1/software`; `/mcp`). Version history (including **1.9 / AZRT-1.9-CLOSE-1.0**) goes **below** that abstract. Never replace the abstract with a changelog.
 
 Name the full compatible AI client list (ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants) and the robots.txt Allow set above. Do not claim support is only Grok / ChatGPT / Venice.
 

@@ -23,6 +23,7 @@ import {
   prefersHtml,
 } from "../src/seo-html.js";
 import {
+  CRAWLER_LEAD_VERSION_RE,
   PRODUCT_NAME,
   RUNTIME_ABSTRACT,
   RUNTIME_ONE_LINE,
@@ -517,7 +518,7 @@ function firstVisibleText(html, n = 500) {
 const homeLead = firstVisibleText(home, 500);
 assert.match(homeLead, /not merely an API orchestrator or software aggregator/);
 assert.match(homeLead, /node-meshed orchestration suite of MCP-connected software/);
-assert.doesNotMatch(homeLead, /1\.7\.\d+/);
+assert.doesNotMatch(homeLead, CRAWLER_LEAD_VERSION_RE);
 assert.match(home, new RegExp(`<title>${RUNTIME_PAGE_TITLE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}</title>`));
 assert.match(home, new RegExp(`<meta name="description" content="${RUNTIME_ABSTRACT.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`));
 assert.match(home, /<h2>Softwares<\/h2>\s*[\s\S]*?class="card"/);
@@ -530,7 +531,9 @@ const llmsHead = llms.split("\n").slice(0, 30).join("\n");
 assert.match(llmsHead, /## What this is/);
 assert.match(llmsHead, /## How to use/);
 assert.match(llmsHead, /not merely an API orchestrator or software aggregator/);
-assert.doesNotMatch(llmsHead, /1\.7\.\d+/);
+assert.doesNotMatch(llmsHead, CRAWLER_LEAD_VERSION_RE);
+assert.match(llms, /## Version history/);
+assert.ok(llms.indexOf("## What this is") < llms.indexOf("## Version history"));
 assert.equal(llms.includes(RUNTIME_ABSTRACT), true);
 
 assert.equal(cite.one_line, RUNTIME_ONE_LINE);
@@ -551,7 +554,8 @@ mime(aboutRes, /text\/html; charset=utf-8/);
 const aboutHtml = await aboutRes.text();
 assert.match(aboutHtml, new RegExp(`<title>${ABOUT_PAGE_TITLE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}</title>`));
 assert.match(aboutHtml, /not merely an API orchestrator or software aggregator/);
-assert.doesNotMatch(firstVisibleText(aboutHtml, 500), /1\.7\.\d+/);
+assert.doesNotMatch(firstVisibleText(aboutHtml, 500), CRAWLER_LEAD_VERSION_RE);
+assert.equal(cite.about.changelog_below_abstract, true);
 assert.match(aboutHtml, /How agents call it/);
 assert.match(aboutHtml, /How hubs use it/);
 assert.match(aboutHtml, /What it is not/);
