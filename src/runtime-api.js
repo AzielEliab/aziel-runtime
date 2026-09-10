@@ -34,12 +34,13 @@ import { citeCompatibleFields, skillCompatibleSection } from "./ai-clients.js";
 import { auditsSkillMarkdown, designsSkillMarkdown } from "./seo.js";
 import { LOCKED_STRIP } from "./azpipe.js";
 
-export const RUNTIME_VERSION = "1.7.11";
+export const RUNTIME_VERSION = "1.9.0";
 export const RUNTIME_ROLE = "engine-runtime";
 export const RUNTIME_LAYER = "catalog+pull+proxy+session+in-process-engines+fraggate";
 
 export const VERSION_HISTORY = [
-  { version: "1.7.11", status: "current", note: "SEO clarity: crawler surfaces (homepage meta/JSON-LD, /llms.txt, /cite.json, /about) lead with the Aziel Runtime definition — node-meshed MCP Softwares suite for digital forensics and auditing; not an API aggregator. Changelog stays below the abstract. FragGate remains THE single door. GET /v1/mesh never enables. Identity Aziel Eliab only." },
+  { version: "1.9.0", status: "current", note: "AZRT-1.9-CLOSE-1.0: public-safe LIVE_OPS promotions (CodeLock gate-status, VibeLock detect, GlossaFilter peers, AZBot example, AZ-OS invite/principles, AZAI models metadata). ShadowLock hook (not OS hook). MirageGrid verify-receipt/nodes (no hop). AzielTether tip/dual-chain/reconcile/pulse/peer-preview (no VPN). AZMail isolate mailbox (notice_post/mail_post/inbox_pull; no SMTP). AZChat LIVE+bound (handles/rooms/bus; mesh default off; not AZMail). Isolate hash object store for TrajectoryLock media + WhistleLock files (no CDN; send/mail/release refuse). OpenAPI /p/{slug}/{op} proxy-path parity. Corpus native-vs-proxy labels. Named fallback inventory. Chromium stays NOT IMPLEMENTED. Remain-Off-by-Design items stay off. Crawler abstract stays lead copy (1.7.11). Identity Aziel Eliab only." },
+  { version: "1.7.11", status: "superseded", note: "SEO clarity: crawler surfaces (homepage meta/JSON-LD, /llms.txt, /cite.json, /about) lead with the Aziel Runtime definition — node-meshed MCP Softwares suite for digital forensics and auditing; not an API aggregator. Changelog stays below the abstract. FragGate remains THE single door. GET /v1/mesh never enables. Identity Aziel Eliab only." },
   { version: "1.7.10", status: "superseded", note: "QNM Live Nodes durable fan-out: suite-presence is operator-enabled. GET /v1/mesh never enables. While enabled, cron (*/2 * * * *) or request-path joins/heartbeats every live Softwares product Worker (node_id {slug}-worker, no '|'; TTL 5 min). Product Workers proxy /v1/mesh/* via AZIEL_RUNTIME. Not a login mesh. Not Node Gate. Not QNM-S. Remain-Off-by-Design items stay off. Identity Aziel Eliab only." },
   { version: "1.7.9", status: "superseded", note: "AZCoherence catalog + engine cross_map / peers: azclce (peer scorer), AKM-TRIAD (fabric neighbor — not merged), AZInterface (human UI), Softwares hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk), product Worker URL. azclce reciprocates. Domain stays null (scoring-review placement; same pattern as decisiongate/forgereceipts). LIVE_OPS health/skill/doctor/verify and azbot toolkit cite azcoherence. Mesh stays default-off. Remain-Off-by-Design items stay off. Identity Aziel Eliab only." },
   { version: "1.7.8", status: "superseded", note: "EmbryoLock is a true in-process engine (engine_digest) in Vault/Custody with ARK. LIVE_OPS health/skill/doctor/verify-hash/policy/limitation cite the AzielEliab/EmbryoLock Stealth+ v1.1 contract. Wipe/scorch/unlock-after-fail stay FG-STUB on the public mesh (Never execute on the public mesh). Catalog status live-with-local-destructive-boundary. Softwares worker_home https://embryolock-download-tracker.vibelock.workers.dev/. AZChat stays name-only stub. 1.7.7 AZCoherence remains. Mesh stays default-off. Remain-Off-by-Design items stay off. Identity Aziel Eliab only." },
@@ -149,7 +150,7 @@ description: >-
   One door — discover, route, refuse. FragGate over the catalog: hashed
   registry, DecisionGATE after ChainLock-IN, ask/refuse ledger. Dual surface —
   agent/MCP has no technical UI chrome; Worker UI, Flutter mobile/, local
-  install, and counted /download stay complete human software. 1.7.10 makes QNM Live Nodes durable
+  install, and counted /download stay complete human software. Flutter mobile/ is not vendored in this repo. 1.9.0 closes AZRT-1.9-CLOSE-1.0. 1.7.10 makes QNM Live Nodes durable
   (suite-presence is operator-enabled; GET /v1/mesh never enables; cron or request-path fans out live Softwares product Workers while enabled; TTL 5 min). 1.7.9 cross-maps
   AZCoherence (peers azclce / AZInterface / AKM-TRIAD fabric neighbor; hubs + Worker URL; domain stays null). 1.7.8 lands
   EmbryoLock as a true in-process engine (live-with-local-destructive-boundary; wipe/unlock stay FG-STUB; worker_home embryolock-download-tracker). 1.7.7 lands
@@ -310,7 +311,7 @@ node cli/aziel-runtime.mjs session close
    MASTER-33 cite: \`GET ${base}/v1/azpipe/arch\` (same \`pipeline\` payload; not a Softwares door).
    Also \`GET ${base}/v1/ready\` (200 only if SESSION binding is up; 503 if \`REQUIRE_TOKEN=1\` and \`RUNTIME_TOKEN\` is missing).
    API uses: \`GET ${base}/v1/uses\` (no increment).
-3. \`GET ${base}/v1/software\` — authoritative hub catalog (Plain → Gate → Lock; EmbryoLock live-with-local-destructive-boundary; AZChat name-only stub). Mirror: \`GET ${base}/v1/fraggate/software\`.
+3. \`GET ${base}/v1/software\` — authoritative hub catalog (Plain → Gate → Lock; EmbryoLock live-with-local-destructive-boundary; AZChat LIVE+bound). Mirror: \`GET ${base}/v1/fraggate/software\`.
    Softwares-tab \`count\` includes placements (\`azinterface\` / \`decisiongate\` / \`forgereceipts\`). Isolation \`domains.software_count\` is **33** (\`domains_are_doors:false\`). See \`count_note\`. Do not equate the two.
    Client updates: \`GET ${base}/v1/update/check?slug={slug}&version={installed}\` · \`GET ${base}/v1/update/manifest\`.
 4. \`GET ${base}/v1/bundle\` — every product skill URL + invoke prefix.
@@ -348,7 +349,7 @@ ${skillCompatibleSection(base)}
 | GET | \`/v1/pull/{slug}\` | Pull record for one product. |
 | GET | \`/v1/pull/{slug}/skill\` | Product skill markdown. |
 | GET | \`/v1/catalog.json\` | Full catalog (discover). |
-| GET | \`/v1/software\` | Authoritative hub software catalog (Plain→Gate→Lock; EmbryoLock live-with-local-destructive-boundary; AZChat name-only stub). JSON default; HTML shell when Accept prefers text/html. |
+| GET | \`/v1/software\` | Authoritative hub software catalog (Plain→Gate→Lock; EmbryoLock live-with-local-destructive-boundary; AZChat LIVE+bound). JSON default; HTML shell when Accept prefers text/html. |
 | GET | \`/v1/fraggate/software\` | FragGate-path mirror of \`/v1/software\`. |
 | GET | \`/v1/update/check\` | Client update check (\`?slug=&version=\`). For install.sh / local UI / mobile. |
 | GET | \`/v1/update/manifest\` | Latest versions for every product + runtime. |
@@ -958,7 +959,7 @@ export function runtimeStaticPaths() {
       get: {
         operationId: "runtime_software",
         summary:
-          "Authoritative software catalog for hubs/clients. Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock). EmbryoLock is live-with-local-destructive-boundary. AZChat stays the name-only stub. Mirror: GET /v1/fraggate/software.",
+          "Authoritative software catalog for hubs/clients. Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock). EmbryoLock is live-with-local-destructive-boundary. AZChat is LIVE+bound (mesh default off). Mirror: GET /v1/fraggate/software.",
         tags: ["software"],
         responses: { "200": { description: "Software catalog JSON" } },
       },

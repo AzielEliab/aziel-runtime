@@ -141,6 +141,7 @@ export const VERSIONS = {
   "4dmap": "0.2.0",
   azcoherence: "0.1.0",
   embryolock: "1.1.0",
+  azchat: "0.1.0",
 };
 
 /**
@@ -216,6 +217,7 @@ export const FIRST_TIME_DEPOSIT_SLUGS = [
   "4dmap",
   "azcoherence",
   "embryolock",
+  "azchat",
 ];
 
 export const ZENODO_AUDIT = {

@@ -195,7 +195,7 @@ const res = await get("/v1/software");
 assert.equal(res.status, 200);
 const body = await res.json();
 assert.equal(body.software.length, PRODUCTS.length + NAMED_STUBS.length);
-assert.ok(body.software.some((s) => s.slug === "azchat" && s.status === "stub" && s.domain_id === "07"));
+assert.ok(body.software.some((s) => s.slug === "azchat" && s.status === "live" && s.domain_id === "07"));
 assert.deepEqual(
   body.software.map((s) => s.slug),
   entries.map((s) => s.slug),

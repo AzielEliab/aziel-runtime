@@ -19,6 +19,13 @@ import {
   keywordAlertCheck,
   azmailHealth,
   azmailSkill,
+  mailboxOpen,
+  noticePost,
+  mailPost,
+  inboxPull,
+  mailboxAck,
+  mailboxVerifyReceipt,
+  mailboxImportExport,
 } from "./engine.js";
 
 export const AZMAIL_OPS = [
@@ -35,6 +42,13 @@ export const AZMAIL_OPS = [
   "keyword_alert_set",
   "keyword_alert_list",
   "keyword_alert_check",
+  "mailbox_open",
+  "notice_post",
+  "mail_post",
+  "inbox_pull",
+  "ack",
+  "verify_receipt",
+  "import_export",
 ];
 
 export function azmailHealthOp() {
@@ -59,6 +73,13 @@ export async function runAzmail(op, payload, scratch, env) {
   if (op === "keyword_alert_set") return keywordAlertSet(payload, env);
   if (op === "keyword_alert_list") return keywordAlertList(payload, env);
   if (op === "keyword_alert_check") return keywordAlertCheck(payload, env);
+  if (op === "mailbox_open") return mailboxOpen(payload);
+  if (op === "notice_post") return noticePost(payload);
+  if (op === "mail_post") return mailPost(payload);
+  if (op === "inbox_pull") return inboxPull(payload);
+  if (op === "ack") return mailboxAck(payload);
+  if (op === "verify_receipt") return mailboxVerifyReceipt(payload);
+  if (op === "import_export") return mailboxImportExport(payload);
   return { unsupported: true };
 }
 

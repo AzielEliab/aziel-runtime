@@ -103,6 +103,7 @@ const PRIMARY = {
     op: "policy",
     payload: { digest: "fa2e7203bd3924170e94c62357e29764b925a82c2cf708807128bd096333250d" },
   },
+  azchat: { op: "health", payload: {} },
 };
 
 async function jsonReq(path, method, body) {
@@ -144,7 +145,7 @@ assert.ok(folded.b64);
 
 const catalogSlugs = PRODUCTS.map((p) => p.slug).sort();
 assert.deepEqual(trueEngineSlugs(), catalogSlugs);
-assert.equal(catalogSlugs.length, 36);
+assert.equal(catalogSlugs.length, 37);
 for (const slug of catalogSlugs) {
   assert.ok(PRIMARY[slug], `${slug} has a primary-op fixture`);
   const local = await executeLocal({ slug, op: PRIMARY[slug].op, payload: PRIMARY[slug].payload, ranIn: "aziel-runtime" });

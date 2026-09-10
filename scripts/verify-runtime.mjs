@@ -298,7 +298,10 @@ assert.ok(openapi.paths["/mcp"], "OpenAPI lists POST /mcp");
 assert.ok(openapi.paths["/mcp"].post);
 assert.ok(openapi.paths["/v1/uses"]);
 assert.ok(openapi.paths["/v1/stats"]);
-assert.equal(openapi.paths["/p/foldlock/fold-preview"], undefined);
+assert.ok(openapi.paths["/p/foldlock/fold-preview"], "OpenAPI documents catalog proxy paths");
+assert.match(openapi.paths["/p/foldlock/fold-preview"].post.description, /PROXY path only/);
+assert.equal(openapi.paths["/p/azmail/smtp_send"], undefined);
+assert.equal(openapi.paths["/p/azmail/deanonymize"], undefined);
 
 const mcpInit = await handler(
   new Request(origin + "/mcp", {

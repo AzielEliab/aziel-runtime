@@ -75,9 +75,8 @@ assert.equal(classifyCall(registry.bySlug.embryolock, "health").kind, "live");
 assert.equal(classifyCall(registry.bySlug.embryolock, "skill").kind, "live");
 assert.equal(classifyCall(registry.bySlug.embryolock, "doctor").kind, "live");
 assert.equal(classifyCall(registry.bySlug.embryolock, "policy").kind, "live");
-assert.equal(NAMED_STUBS.length, 1);
-assert.equal(NAMED_STUBS[0].slug, "azchat");
-assert.equal(registry.bySlug.azchat.status, "stub");
+assert.equal(NAMED_STUBS.length, 0);
+assert.equal(registry.bySlug.azchat.status, "live");
 
 const handler = (await import("../src/index.js")).default.fetch;
 const origin = "https://aziel-runtime.example";
@@ -114,7 +113,7 @@ const software = await (await get("/v1/software")).json();
 assert.ok(!software.software.some((s) => s.slug === "azpipe"), "AZPIPE is not a Softwares-tab slug");
 assert.ok(!software.software.some((s) => s.slug === "master-33"));
 assert.ok(software.software.some((s) => s.slug === "embryolock" && s.status === "live"));
-assert.ok(software.software.some((s) => s.slug === "azchat" && s.status === "stub"));
+assert.ok(software.software.some((s) => s.slug === "azchat" && s.status === "live"));
 assert.ok(software.software.every((s) => !s.mesh || s.mesh.enabled_default === false));
 
 const mesh = await (await get("/v1/mesh")).json();

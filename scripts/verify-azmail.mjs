@@ -60,6 +60,13 @@ const expectedLive = [
   "keyword_alert_set",
   "keyword_alert_list",
   "keyword_alert_check",
+  "mailbox_open",
+  "notice_post",
+  "mail_post",
+  "inbox_pull",
+  "ack",
+  "verify_receipt",
+  "import_export",
   "health",
   "skill",
 ];

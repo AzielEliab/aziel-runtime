@@ -86,7 +86,7 @@ assert.equal(registry.bySlug.embryolock.status, "live");
 assert.equal(registry.bySlug.embryolock.local_destructive_boundary, true);
 assert.equal(registry.bySlug.embryolock.domain, "Vault/Custody");
 assert.equal(registry.bySlug.embryolock.domain_id, "01");
-assert.equal(registry.bySlug.azchat.status, "stub");
+assert.equal(registry.bySlug.azchat.status, "live");
 for (const op of ["health", "skill", "doctor", "verify_hash", "policy", "limitation"]) {
   assert.equal(classifyCall(registry.bySlug.embryolock, op).kind, "live", `${op} is live`);
 }
@@ -202,7 +202,7 @@ assert.equal(card.surface, SURFACE);
 assert.equal(card.worker_home, "https://embryolock-download-tracker.vibelock.workers.dev/");
 assert.equal(card.download_url, "https://embryolock-download-tracker.vibelock.workers.dev/download");
 assert.equal(card.domain_id, "01");
-assert.ok(software.software.some((s) => s.slug === "azchat" && s.status === "stub"));
+assert.ok(software.software.some((s) => s.slug === "azchat" && s.status === "live"));
 
 const healthBody = await (await get("/v1/health")).json();
 assert.ok(healthBody.true_engine_slugs.includes("embryolock"));
