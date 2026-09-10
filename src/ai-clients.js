@@ -61,7 +61,8 @@ export function openApiImportSentence() {
 
 export function tokenAuthSentence() {
   return (
-    "Session mutate (open/policy/exec/close) and MCP session tools require Authorization: Bearer … when REQUIRE_TOKEN=1 and RUNTIME_TOKEN is set. " +
+    "Set in OpenAPI / MCP / HTTP Actions (ChatGPT, Grok, Venice, Claude, Cursor, Glama, and other listed clients) as Authorization: Bearer … " +
+    "when REQUIRE_TOKEN=1 and RUNTIME_TOKEN is set — session mutate (open/policy/exec/close) and MCP session tools only. " +
     "Public FragGate call (POST /v1/fraggate/call, MCP fraggate_call) stays open. " +
     "Catalog, skill, OpenAPI, health, pull, tools/list, and proxy /p stay public. One operator token — not per-user accounts."
   );
