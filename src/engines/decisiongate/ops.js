@@ -2,42 +2,72 @@
  * DecisionGATE in-process ops. Engine artifact is ./engine.js.
  * Author: Aziel Eliab.
  */
-import { LIMITATION, MOTTO, VERSION, check } from "./engine.js";
+import { capabilityDoctor, capabilityHealth, capabilitySkill } from "../capability.js";
+import {
+  AUTHOR,
+  AXES,
+  GATE_ORDER,
+  LIMITATION,
+  MOTTO,
+  NAME,
+  NEIGHBORS,
+  PRODUCT,
+  ROLE,
+  SPEC,
+  STUB_REFUSE,
+  VERSION,
+  check,
+  listGates,
+  verifyLineage,
+} from "./engine.js";
 
-export const DECISIONGATE_OPS = ["health", "skill", "check", "evaluate"];
+const LIVE = ["health", "skill", "check", "evaluate", "gates", "verify", "doctor"];
 
-export function decisiongateHealth() {
+export const DECISIONGATE_OPS = LIVE.slice();
+
+function envelope() {
   return {
-    ok: true,
-    product: "decisiongate",
+    product: PRODUCT,
+    name: NAME,
     version: VERSION,
-    true_engine_runtime: true,
-    kv_increment: false,
+    spec: SPEC,
+    role: ROLE,
     motto: MOTTO,
+    axes: AXES,
+    neighbors: NEIGHBORS,
+    live_ops: LIVE,
+    stub_ops: STUB_REFUSE,
     limitation: LIMITATION,
-    author: "Aziel Eliab",
-    wrap_hosted: false,
+    extra: { sequential_gate: true, wrap_hosted: false },
   };
 }
 
+export function decisiongateHealth() {
+  return capabilityHealth(envelope());
+}
+
 export function decisiongateSkill() {
-  return {
-    markdown: `# DecisionGATE (in-process)
+  return capabilitySkill({
+    ...envelope(),
+    lead: `Five sequential gates on a proposal: ${GATE_ORDER.join(" → ")}. ${MOTTO} wrap is **not** hosted. 4DMap is an inspection frame, not a sequential gate.`,
+  });
+}
 
-Five sequential gates on a proposal. ${MOTTO}
-wrap is **not** hosted. This op ran inside aziel-runtime.
-
-Author: **Aziel Eliab**. Version: ${VERSION}.
-Limitation: ${LIMITATION}
-`,
-    kv_increment: false,
-    limitation: LIMITATION,
-  };
+export function decisiongateDoctor() {
+  return capabilityDoctor({
+    ...envelope(),
+    doctor_note: "DecisionGATE doctor: five-gate order, wrap unhosted, no truth score. FragGate only.",
+  });
 }
 
 export async function runDecisiongate(op, payload) {
   if (op === "health") return decisiongateHealth();
   if (op === "skill") return decisiongateSkill();
+  if (op === "doctor") return decisiongateDoctor();
+  if (op === "gates") return listGates();
+  if (op === "verify") return verifyLineage(payload);
   if (op === "check" || op === "evaluate") return check(payload);
   return { unsupported: true };
 }
+
+export { LIMITATION, VERSION, AUTHOR };

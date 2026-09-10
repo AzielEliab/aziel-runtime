@@ -3,9 +3,16 @@
  * Research prototype. Not a certified forensic instrument. Author Aziel Eliab.
  */
 export const PRODUCT = "trajectorylock";
+export const NAME = "TrajectoryLock";
 export const VERSION = "0.1.0";
 export const SPEC = "trajectorylock-v0.1";
 export const AUTHOR = "Aziel Eliab";
+export const ROLE = "auditable geometric compatibility test";
+export const MOTTO = "P(match | declared model), not P(the official account is true).";
+export const AXES = Object.freeze(["point", "direction", "angle", "offset"]);
+export const NEIGHBORS = Object.freeze(["4dmap", "spectrallock"]);
+export const STUB_REFUSE = Object.freeze(["certified", "shooter", "intent", "guilt", "store_media", "face"]);
+export const OBSERVATION_TYPES = Object.freeze(["direct_line", "visual_ray", "survey_point", "witness_bearing"]);
 export const DOI = "https://doi.org/10.5281/zenodo.22258015";
 export const ZENODO = "https://zenodo.org/records/22258015";
 export const HOST = "https://trajectorylock-download-tracker.vibelock.workers.dev";
@@ -500,4 +507,89 @@ export async function analyzeCase(caseObj, opts = {}) {
   };
   result.result_sha256 = await sha256Hex(canonicalJson(result));
   return result;
+}
+
+export function caseSchema() {
+  return {
+    ok: true,
+    product: PRODUCT,
+    name: NAME,
+    version: VERSION,
+    spec: SPEC,
+    observation_types: OBSERVATION_TYPES.slice(),
+    required_fields: ["case_id", "sources", "observations", "official_hypothesis"],
+    json_cap: JSON_CAP,
+    hosted_mc_cap: HOSTED_MC_CAP,
+    media_stored: false,
+    certified_instrument: false,
+    neighbors: NEIGHBORS.slice(),
+    limitation: LIMITATION,
+    guardrail: GUARDRAIL,
+    author: AUTHOR,
+  };
+}
+
+export async function verifyResult(body) {
+  const src = body && typeof body === "object" ? body : {};
+  const result = src.result && typeof src.result === "object" ? src.result : src;
+  const stored = String(result.result_sha256 || src.hash || "");
+  if (!result.case_id || !stored) {
+    return {
+      ok: false,
+      product: PRODUCT,
+      match: false,
+      error: "verify needs a result object with case_id and result_sha256",
+      status: 400,
+      limitation: LIMITATION,
+    };
+  }
+  const copy = { ...result };
+  delete copy.result_sha256;
+  const recomputed = await sha256Hex(canonicalJson(copy));
+  return {
+    ok: recomputed === stored,
+    match: recomputed === stored,
+    product: PRODUCT,
+    version: VERSION,
+    case_id: result.case_id,
+    result_sha256: stored,
+    recomputed,
+    certified_instrument: false,
+    media_stored: false,
+    limitation: LIMITATION,
+    author: AUTHOR,
+  };
+}
+
+export async function importExport(body) {
+  const src = body && typeof body === "object" ? body : {};
+  const mode = String(src.mode || src.action || "export").toLowerCase();
+  if (mode === "import" || mode === "analyze") {
+    const caseObj = src.case || src.envelope || src;
+    return { action: "import", ...(await analyzeCase(caseObj.case_id ? caseObj : caseObj.case || caseObj)) };
+  }
+  const caseObj = src.case && typeof src.case === "object" ? src.case : EXAMPLE_CASE;
+  if (looksLikeMedia(caseObj)) {
+    return { ok: false, error: "hosted import_export never stores media", status: 400, limitation: LIMITATION };
+  }
+  return {
+    ok: true,
+    action: "export",
+    product: PRODUCT,
+    version: VERSION,
+    schema: "trajectorylock-case-0.1",
+    envelope: {
+      product: PRODUCT,
+      schema: "trajectorylock-case-0.1",
+      case: caseObj,
+      synthetic: caseObj === EXAMPLE_CASE || caseObj.case_id === EXAMPLE_CASE.case_id,
+      stored: false,
+      media_stored: false,
+    },
+    stored: false,
+    media_stored: false,
+    limitation: LIMITATION,
+    author: AUTHOR,
+    note: "Small JSON only. Synthetic example must never be represented as a real-case finding.",
+  };
 }

@@ -119,6 +119,10 @@ assert.equal(catalog.mesh.qnm_s, false);
 assert.ok(catalog.software.every((s) => s.qns_cd && s.qns_cd.spec === "QNS-CD-1.0"));
 assert.ok(catalog.software.every((s) => s.qns_cd.local === "https://github.com/AzielEliab/qnm-node"));
 assert.ok(!catalog.software.some((s) => s.slug === "qns" || s.slug === "qnsd"));
+assert.ok(
+  !catalog.software.some((s) => ["akm", "akm-triad", "adaptive-memory", "memory"].includes(s.slug)),
+  "AKM-TRIAD-1.0 is LIVE fabric, not a Softwares-tab product",
+);
 assert.equal(catalog.qns_cd.spec, "QNS-CD-1.0");
 assert.equal(catalog.mesh.qns_cd.spec, "QNS-CD-1.0");
 
