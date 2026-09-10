@@ -7,6 +7,7 @@ import {
   AI_CRAWLER_AGENTS,
   AUTHOR_ALTERNATE_NAME,
   AUTHOR_NAME,
+  AUTHOR_SITE_SITEMAP,
   GODLOCK_UK_SITEMAP,
   LIBRARY_SITEMAP,
   MISSING_PRODUCT_SITEMAP_SLUGS,
@@ -15,6 +16,11 @@ import {
   productWorkerOrigin,
   uniqueUserAgents,
 } from "../src/seo.js";
+import {
+  DESCRIBE_INDEX_TITLE,
+  SOFTWARE_PAGE_TITLE,
+  prefersHtml,
+} from "../src/seo-html.js";
 
 const handler = (await import("../src/index.js")).default.fetch;
 const origin = "https://aziel-runtime.example";
@@ -151,6 +157,7 @@ assert.equal(
 );
 assert.match(robots, /Cloudflare-AI-Search/);
 assert.match(robots, /sitemap-index\.xml/);
+assert.match(robots, /azieleliab\.com\/sitemap\.xml/);
 assert.match(robots, /azielcorpuslibrary\.net\/sitemap\.xml/);
 assert.match(robots, /godlock\.uk\/sitemap\.xml/);
 assert.doesNotMatch(robots, /vibelock-download-tracker\.vibelock\.workers\.dev\/sitemap\.xml/);
@@ -165,6 +172,10 @@ assert.match(sitemap, /\/v1\/software/);
 assert.match(sitemap, /\/v1\/update\/check/);
 assert.match(sitemap, /\/v1\/update\/manifest/);
 assert.match(sitemap, /\/v1\/fraggate\/software/);
+assert.match(sitemap, /\/v1\/fraggate\/describe\?slug=azcoherence/);
+assert.match(sitemap, /www\.azieleliab\.com\/software/);
+assert.match(sitemap, /www\.azielcorpuslibrary\.net\/software/);
+assert.match(sitemap, /godlock\.uk\/software/);
 assert.match(sitemap, /\/cite\.json/);
 assert.match(sitemap, /\/llms\.txt/);
 assert.match(sitemap, /\/sitemap-index\.xml/);
@@ -183,6 +194,7 @@ mime(indexRes, /application\/xml; charset=utf-8/);
 const indexXml = await indexRes.text();
 assert.match(indexXml, /<sitemapindex /);
 assert.match(indexXml, /aziel-runtime\.example\/sitemap\.xml/);
+assert.match(indexXml, new RegExp(AUTHOR_SITE_SITEMAP.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 assert.match(indexXml, new RegExp(LIBRARY_SITEMAP.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 assert.match(indexXml, new RegExp(GODLOCK_UK_SITEMAP.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 assert.match(indexXml, /foldlock-download-tracker\.vibelock\.workers\.dev\/sitemap\.xml/);
@@ -223,6 +235,13 @@ assert.match(llms, /REMAIN-OFF-BY-DESIGN-2026-09-10/);
 assert.match(llms, /constitutional OFF set/);
 assert.match(llms, /AZL-DONATE-1\.0/);
 assert.match(llms, /www\.azieleliab\.com\/donate/);
+assert.match(llms, /## Softwares hubs/);
+assert.match(llms, /www\.azieleliab\.com\/software/);
+assert.match(llms, /www\.azielcorpuslibrary\.net\/software/);
+assert.match(llms, /godlock\.uk\/software/);
+assert.match(llms, /AZCoherence/);
+assert.match(llms, /describe\?slug=azcoherence/);
+assert.match(llms, /GET \/v1\/mesh never enables/);
 assert.doesNotMatch(llms, /10\.5281\/zenodo\.XXXX/);
 
 const aiRes = await get("/ai.txt");
@@ -264,6 +283,17 @@ assert.equal(cite.audits.not_fraggate_slug, true);
 assert.equal(cite.audits.mesh_get_never_enables, true);
 assert.ok(cite.designs.papers.some((p) => p.id === "REMAIN-OFF-BY-DESIGN-2026-09-10" && p.kind === "law"));
 assert.ok(cite.designs.papers.some((p) => p.id === "AZL-DONATE-1.0" && p.kind === "law" && p.software_tab === false));
+assert.equal(cite.identity, AUTHOR_NAME);
+assert.equal(cite.mesh_get_never_enables, true);
+assert.ok(cite.hubs);
+assert.equal(cite.hubs.mesh_get_never_enables, true);
+assert.ok(cite.hubs.hubs.some((h) => h.id === "azieleliab" && /azieleliab\.com\/software/.test(h.software_tab)));
+assert.ok(cite.hubs.hubs.some((h) => h.id === "library" && /azielcorpuslibrary\.net\/software/.test(h.software_tab)));
+assert.ok(cite.hubs.hubs.some((h) => h.id === "godlock.uk" && /godlock\.uk\/software/.test(h.software_tab)));
+assert.equal(cite.azcoherence.slug, "azcoherence");
+assert.equal(cite.azcoherence.identity, AUTHOR_NAME);
+assert.match(cite.azcoherence.github, /AZCoherence/);
+assert.ok(cite.products.some((p) => p.slug === "azcoherence" && /describe\?slug=azcoherence/.test(p.fraggate_describe)));
 
 const catalogRes = await get("/v1/catalog.json");
 assert.equal(catalogRes.status, 200);
@@ -374,6 +404,79 @@ assert.match(card, /<footer class="donate">/);
 assert.match(card, /href="https:\/\/www\.azieleliab\.com\/donate">Donate<\/a>/);
 assert.doesNotMatch(card, /<img[^>]*(qr|QR)/);
 
+assert.equal(prefersHtml(new Request(origin + "/v1/software")), false);
+assert.equal(
+  prefersHtml(new Request(origin + "/v1/software", { headers: { accept: "application/json" } })),
+  false,
+);
+assert.equal(
+  prefersHtml(
+    new Request(origin + "/v1/software", {
+      headers: { accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" },
+    }),
+  ),
+  true,
+);
+assert.equal(prefersHtml(new Request(origin + "/v1/software?format=html")), true);
+assert.equal(
+  prefersHtml(new Request(origin + "/v1/software?format=json", { headers: { accept: "text/html" } })),
+  false,
+);
+
+const softwareHtmlRes = await handler(
+  new Request(origin + "/v1/software", { headers: { accept: "text/html" } }),
+  {},
+);
+assert.equal(softwareHtmlRes.status, 200);
+mime(softwareHtmlRes, /text\/html; charset=utf-8/);
+const softwareHtml = await softwareHtmlRes.text();
+assert.match(softwareHtml, new RegExp(`<title>${SOFTWARE_PAGE_TITLE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}</title>`));
+assert.match(softwareHtml, /<meta name="description"/);
+assert.match(softwareHtml, /application\/ld\+json/);
+assert.match(softwareHtml, /"@type":"Person"/);
+assert.match(softwareHtml, /"name":"Aziel Eliab"/);
+assert.match(softwareHtml, /data-slug="azcoherence"/);
+assert.match(softwareHtml, /www\.azieleliab\.com\/software/);
+assert.match(softwareHtml, /godlock\.uk\/software/);
+assert.match(softwareHtml, /GET \/v1\/mesh never enables/);
+assert.doesNotMatch(softwareHtml, /Yahweh|Messiah|Jesus Christ/);
+
+const softwareJsonStill = await get("/v1/software");
+assert.match(softwareJsonStill.headers.get("content-type") || "", /application\/json/);
+const softwareJsonBody = await softwareJsonStill.json();
+assert.equal(softwareJsonBody.identity, AUTHOR_NAME);
+assert.equal(softwareJsonBody.mesh_get_never_enables, true);
+assert.ok(softwareJsonBody.hubs_crawl);
+assert.equal(softwareJsonBody.azcoherence.slug, "azcoherence");
+
+const describeHtmlRes = await handler(
+  new Request(origin + "/v1/fraggate/describe?slug=azcoherence", { headers: { accept: "text/html" } }),
+  {},
+);
+assert.equal(describeHtmlRes.status, 200);
+mime(describeHtmlRes, /text\/html; charset=utf-8/);
+const describeHtml = await describeHtmlRes.text();
+assert.match(describeHtml, /<title>AZCoherence — FragGate describe — Aziel Eliab Runtime<\/title>/);
+assert.match(describeHtml, /application\/ld\+json/);
+assert.match(describeHtml, /"@type":"Person"/);
+assert.match(describeHtml, /www\.azieleliab\.com\/software/);
+assert.match(describeHtml, /GET \/v1\/mesh never enables/);
+
+const describeIndexRes = await handler(
+  new Request(origin + "/v1/fraggate/describe", { headers: { accept: "text/html" } }),
+  {},
+);
+assert.equal(describeIndexRes.status, 200);
+const describeIndex = await describeIndexRes.text();
+assert.match(describeIndex, new RegExp(`<title>${DESCRIBE_INDEX_TITLE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}</title>`));
+assert.match(describeIndex, /data-slug="azcoherence"/);
+
+const describeJsonStill = await get("/v1/fraggate/describe?slug=azcoherence");
+assert.match(describeJsonStill.headers.get("content-type") || "", /application\/json/);
+const described = await describeJsonStill.json();
+assert.equal(described.ok, true);
+assert.equal(described.slug, "azcoherence");
+
 assert.ok(MISSING_PRODUCT_SITEMAP_SLUGS.includes("vibelock"));
 assert.equal(productWorkerOrigin({ slug: "aziel-corpus" }), "https://www.azielcorpuslibrary.net");
 assert.equal(productCrawlUrls({ slug: "vibelock", worker: "vibelock-download-tracker" }).has_sitemap, false);
@@ -388,4 +491,4 @@ assert.equal(openapi.info.externalDocs.url, "https://github.com/AzielEliab/aziel
 assert.doesNotMatch(openapi.info.description, /Import this file in ChatGPT GPT Actions, Grok custom tools, or Venice HTTP tools/);
 assert.match(openapi.components.securitySchemes.RuntimeToken.description, /Claude, Cursor, Glama/);
 
-console.log("ok seo hub: robots, sitemap-index, llms/cite MIME, Person JSON-LD, catalog crawl links");
+console.log("ok seo hub: robots, sitemap-index, llms/cite MIME, Person JSON-LD, catalog crawl links, HTML shells");

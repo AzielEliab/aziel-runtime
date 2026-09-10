@@ -197,6 +197,21 @@ Hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) should fetch
 request instead of hand-editing product copy. Client installers use
 `GET /v1/update/check?slug=&version=`. See [CLIENT_UPDATE.md](CLIENT_UPDATE.md).
 
+Runtime hub sitemaps in `robots.txt` / `sitemap-index.xml`: this host, `https://www.azieleliab.com/sitemap.xml`, Digital Library, godlock.uk, and live product Worker sitemaps. Do not invent mesh-enable URLs.
+
+Runtime HTML shells (content negotiation — hubs still get JSON by default):
+
+| Path | Unique title |
+|------|----------------|
+| `GET /` | Aziel Eliab Runtime |
+| `GET /v1/software` (`Accept: text/html`) | Softwares — Aziel Eliab Runtime |
+| `GET /v1/fraggate/describe` (`Accept: text/html`) | FragGate describe — Aziel Eliab Runtime |
+| `GET /v1/fraggate/describe?slug=` (`Accept: text/html`) | `{Name} — FragGate describe — Aziel Eliab Runtime` |
+
+JSON-LD Person + SoftwareApplication / ItemList on those shells. Homepage Worker UI CSS is unchanged.
+
+`/cite.json` and `/llms.txt` cross-link Softwares hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) plus AZCoherence. Identity Aziel Eliab only.
+
 See also: https://aziel-runtime.vibelock.workers.dev/sitemap-index.xml
 
 ## Footer (donate — download-tracker pattern)
