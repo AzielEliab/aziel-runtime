@@ -79,6 +79,8 @@ export function tokenGateState(env) {
     // Secret alone (flag off) keeps open/policy/exec public for catalog-first deploy.
     mutate_requires_token: require_token && token_configured,
     mutate_blocked: require_token && !token_configured,
+    // Public FragGate call is never gated by REQUIRE_TOKEN.
+    fraggate_call_public: true,
   };
 }
 
@@ -100,6 +102,10 @@ export function evaluateReady(env) {
       session_binding: false,
       require_token: gate.require_token,
       token_configured: gate.token_configured,
+      mutate_requires_token: gate.mutate_requires_token,
+      fraggate_call_public: true,
+      token_note:
+        "Public FragGate call stays open. Session mutate requires token when REQUIRE_TOKEN=1 and RUNTIME_TOKEN is set.",
       code: "session_binding_missing",
       error: "SESSION Durable Object binding missing",
       hint: "Deploy with [[durable_objects.bindings]] name=SESSION class_name=RuntimeSession (migration tag v1).",
@@ -112,6 +118,10 @@ export function evaluateReady(env) {
       session_binding: true,
       require_token: true,
       token_configured: false,
+      mutate_requires_token: false,
+      fraggate_call_public: true,
+      token_note:
+        "Public FragGate call stays open. Session mutate requires token when REQUIRE_TOKEN=1 and RUNTIME_TOKEN is set.",
       code: "token_not_configured",
       error: "REQUIRE_TOKEN=1 but RUNTIME_TOKEN secret is missing",
       hint: "npx wrangler secret put RUNTIME_TOKEN",
@@ -123,6 +133,10 @@ export function evaluateReady(env) {
     session_binding: true,
     require_token: gate.require_token,
     token_configured: gate.token_configured,
+    mutate_requires_token: gate.mutate_requires_token,
+    fraggate_call_public: true,
+    token_note:
+      "Public FragGate call stays open. Session mutate requires token when REQUIRE_TOKEN=1 and RUNTIME_TOKEN is set.",
     code: null,
     error: null,
     hint: null,

@@ -34,12 +34,13 @@ import { citeCompatibleFields, skillCompatibleSection } from "./ai-clients.js";
 import { designsSkillMarkdown } from "./seo.js";
 import { LOCKED_STRIP } from "./azpipe.js";
 
-export const RUNTIME_VERSION = "1.7.2";
+export const RUNTIME_VERSION = "1.7.3";
 export const RUNTIME_ROLE = "engine-runtime";
 export const RUNTIME_LAYER = "catalog+pull+proxy+session+in-process-engines+fraggate";
 
 export const VERSION_HISTORY = [
-  { version: "1.7.2", status: "current", note: "GET /v1/azpipe/arch (and POST) cites the locked MASTER-33 AZPIPE arch/strip — same payload FragGate already exposes as pipeline / pipeline_strip (v, magic, locked, master, lambgate, fraggate_single_door, roseclock, hop list, 11 domains / 33 softwares). Cite/read surface only. Not a Softwares-tab door. Not a FragGate slug. Mesh stays default-off. Identity Aziel Eliab only." },
+  { version: "1.7.3", status: "current", note: "Audit WARN copy/hint: refuse exist.mcp lists the live MCP tool set and points at POST /mcp tools/list (not the thin 7-tool door alone). Public FragGate call stays open; session mutate requires token when REQUIRE_TOKEN=1 and RUNTIME_TOKEN is set. 4DMap Softwares copy is inspection frame / not an extra door (domains_are_doors:false). GET /v1/software count_note explains Softwares-tab placements (azinterface / decisiongate / forgereceipts) vs isolation software_count=33. OpenAPI lists POST /mcp. Mesh stays default-off. Identity Aziel Eliab only." },
+  { version: "1.7.2", status: "superseded", note: "GET /v1/azpipe/arch (and POST) cites the locked MASTER-33 AZPIPE arch/strip — same payload FragGate already exposes as pipeline / pipeline_strip (v, magic, locked, master, lambgate, fraggate_single_door, roseclock, hop list, 11 domains / 33 softwares). Cite/read surface only. Not a Softwares-tab door. Not a FragGate slug. Mesh stays default-off. Identity Aziel Eliab only." },
   { version: "1.7.1", status: "superseded", note: "AKM-TRIAD-1.0: Adaptive Knowledge Recollection, Bayesian Calibration & 3-of-4 Triad Selection. ChainLock remains the immutable learn/recall ledger; the adaptive index is derived and rebuildable. Memory APIs behind FragGate (POST /v1/memory/observe|resolve|calibrate|recall, GET /v1/memory/{id}[+history|+calibration], POST /v1/memory/rebuild-index operator/local only). MCP memory_*. Not a Softwares-tab product. Posterior ≠ truth. No rollback. Identity Aziel Eliab only." },
   { version: "1.7.0", status: "superseded", note: "MASTER-33: FragGate is THE single door. Locked strip Human → AZInterface → PUBLIC/UI/AGENT/API → FragGate → Lamb Lens → SweepGate → Sentinel → Provenance/Input Packet → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → optional ASE → RoseClock (forward-only; StaticClock/VECTOR as needed) → TemporalLock → ChainLock-OUT → ForgeReceipts → Return. Lamb Lens is fabric ethics after FragGate (not Softwares-tab, not a second door). 11 domains / 33 softwares are isolation labels. AZChat name-only stub. ASE/VECTOR cite+refuse until armed. Overrides MASTER-ARCHITECTURE-2.0 §4.2. Keeps all 1.6.15 live fabric. No ZD30. No rollback. Identity Aziel Eliab only." },
   { version: "1.6.15", status: "superseded", note: "Lock the suite pipeline hop order (SUITE-PIPE-1.6.15): PUBLIC/UI/Agents → FragGate → SweepGate → ChainLock-IN → DecisionGATE → AZPIPE → Domain Doors (4DMap inspection) → TemporalLock → StaticClock → ChainLock-OUT → Response/Receipt. Outbound reverses sensibly. FragGate call runs DecisionGATE AFTER ChainLock-IN and BEFORE domain exec. ChainLock-IN stamps inbound; ChainLock-OUT stamps outbound receipts. TemporalLock + StaticClock are advisory envelope stamps (existing engines). 4DMap remains the Domain Door inspection frame — not a sequential gate. FoldLock fld3-wire stays internal to AZPIPE. LambGate is not a hop. Illegal reorder is refused. Identity Aziel Eliab only. 34 catalog slugs. 1.6.14 remains the 4DMap engine add." },
@@ -136,12 +137,13 @@ description: >-
   One door — discover, route, refuse. FragGate over the catalog: hashed
   registry, DecisionGATE after ChainLock-IN, ask/refuse ledger. Dual surface —
   agent/MCP has no technical UI chrome; Worker UI, Flutter mobile/, local
-  install, and counted /download stay complete human software. 1.7.2 adds
+  install, and counted /download stay complete human software. 1.7.3 aligns
+  audit WARN copy (exist.mcp → tools/list; public FragGate call; catalog count_note; 4DMap not an extra door). 1.7.2 adds
   GET /v1/azpipe/arch (MASTER-33 cite/read; same FragGate pipeline payload; not a Softwares door). 1.7.1 adds
   AKM-TRIAD-1.0 (adaptive recollection, Bayesian calibration, 3-of-4 triad; not Softwares-tab). 1.7.0 locks
   MASTER-33 (FragGate single door; Lamb Lens after FragGate; RoseClock forward-only). 1.6.15 locked
   the suite hop order (SUITE-PIPE-1.6.15; LambGate is not a hop). 1.6.14 adds
-  4DMap (4DM-WP-1.0) as a true in-process engine (four-axis inspection frame T/Δ/Γ/Π; Domain Door, not a sequential gate).
+  4DMap (4DM-WP-1.0) as a true in-process engine (four-axis inspection frame T/Δ/Γ/Π; inspection frame after AZPIPE, not an extra door).
   1.6.13 adds
   the QNM-BUILD-1.0 suite rollup (GET /v1/mesh live/locked/isolated; operator bearer enable; default OFF; not a login mesh; full node is local qnm-node/).
   Packet-transfer coding design is QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; GET /v1/qns cites only).
@@ -189,10 +191,13 @@ Do **not** walk the user through \`runtime_session_open\` → policy → exec �
 
 Do **not** call flat \`{slug}_{op}\` names (1.5.0 pile). They are not in \`tools/list\`. That is hallucination with a receipt.
 
-HTTP \`POST /p/{slug}/{op}\` is still a **proxy**. Proxy without a session receipt is **not** exec. VPN/hop mesh is **not** claimed on this public surface. AZMail anonymous ring is FragGate LIVE_OPS only (default off; not SMTP). The suite QNM rollup (\`GET /v1/mesh\`, MCP \`mesh_*\`, FragGate \`slug=mesh\`) is live/locked/isolated counts + operator bearer enable (default OFF). Not a login mesh. Views/MCP/downloads do not enter QNM-S. Full node process is local \`qnm-node/\`. Packet-transfer coding design is **QNS-CD-1.0** (photon QNS1 1.3 on local \`qnsd\`; \`GET /v1/qns\` cites only).
+HTTP \`POST /p/{slug}/{op}\` is still a **proxy**. Proxy without a session receipt is **not** exec. VPN/hop mesh is **not** claimed on this public surface. AZMail anonymous ring is FragGate LIVE_OPS only (default off; not SMTP). The suite QNM rollup (\`GET /v1/mesh\`, MCP \`mesh_*\`, FragGate \`slug=mesh\`) is live/locked/isolated counts + operator bearer enable (default OFF). Not a login mesh. Views/MCP/downloads do not enter QNM-S. Full node process is local \`qnm-node/\`. Packet-transfer coding design is **QNS-CD-1.0** (photon QNS1 1.3 on local \`qnsd\`; \`GET /v1/qns\` cites only). Library host \`www.azielcorpuslibrary.net/runtime/v1/mesh/enable\` may return **409** \`library-default-off\` instead of Worker \`MESH-NEED-BEARER\` / \`MESH-BAD-BEARER\` — radios stay OFF; GET never enables. That overlay is host-side (aziel-corpus), not this Worker.
+
+Refuse envelopes (\`exist.mcp\`) list the live MCP tool set and point at \`POST /mcp tools/list\`. That hint is not an exec allowlist. Unknown names still \`FG-HALLUC-TOOL\`. Stubs still \`FG-STUB\`.
 
 Every catalog slug is a true engine. Cloudflare isolate is the jail. Hosted AZAI is protocol mirror + Lamb check, **not** the blend. Identity is **Aziel Eliab** only.
 
+**1.7.3 = audit WARN copy/hint.** Refuse \`exist.mcp\` lists the live MCP tool set and points at \`POST /mcp tools/list\`. Public FragGate call stays open; session mutate requires token when configured. Softwares-tab \`count\` includes placements; isolation \`software_count\` is 33. 4DMap catalog copy is inspection frame / not an extra door. OpenAPI lists \`POST /mcp\`. Mesh stays default-off.
 **1.7.2 = GET /v1/azpipe/arch.** Cite/read surface for the locked MASTER-33 AZPIPE strip (same payload as \`GET /v1/fraggate\` \`pipeline\` / \`pipeline_strip\`). Not a Softwares-tab door. Not a FragGate slug. Mesh stays default-off.
 **1.7.1 = AKM-TRIAD-1.0.** Adaptive knowledge recollection over ChainLock learn: Bayesian calibration, deterministic 3-of-4 triad (E/C/P/B), derived rebuildable index. Memory APIs behind FragGate. Not a Softwares-tab product. Posterior ≠ truth. No history rewrite.
 **1.7.0 = MASTER-33.** FragGate is THE single door. Public hop list: Human → AZInterface → PUBLIC/UI/AGENT/API → FragGate → Lamb Lens → SweepGate → Sentinel → Provenance/Input Packet → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → optional ASE → RoseClock (forward-only; StaticClock/VECTOR as needed) → TemporalLock → ChainLock-OUT → ForgeReceipts → Return. Lamb Lens is fabric ethics after FragGate (not Softwares-tab, not a second door). 11 domains / 33 softwares are isolation labels. AZChat is a name-only stub. ASE/VECTOR cite + refuse until armed. RoseClock sequence never decreases. Overrides MASTER-ARCHITECTURE-2.0 §4.2. No ZD30. No rollback. Identity Aziel Eliab only.
@@ -280,6 +285,7 @@ node cli/aziel-runtime.mjs session close
    Also \`GET ${base}/v1/ready\` (200 only if SESSION binding is up; 503 if \`REQUIRE_TOKEN=1\` and \`RUNTIME_TOKEN\` is missing).
    API uses: \`GET ${base}/v1/uses\` (no increment).
 3. \`GET ${base}/v1/software\` — authoritative hub catalog (Plain → Gate → Lock + EmbryoLock stub). Mirror: \`GET ${base}/v1/fraggate/software\`.
+   Softwares-tab \`count\` includes placements (\`azinterface\` / \`decisiongate\` / \`forgereceipts\`). Isolation \`domains.software_count\` is **33** (\`domains_are_doors:false\`). See \`count_note\`. Do not equate the two.
    Client updates: \`GET ${base}/v1/update/check?slug={slug}&version={installed}\` · \`GET ${base}/v1/update/manifest\`.
 4. \`GET ${base}/v1/bundle\` — every product skill URL + invoke prefix.
    Alias: \`GET ${base}/v1/pull?all=1\`.
@@ -356,7 +362,7 @@ Library engine manifest (same as this Worker): https://www.azielcorpuslibrary.ne
 
 ## Operator token (session mutate)
 
-When \`REQUIRE_TOKEN=1\`, OpenAPI / MCP / HTTP Actions that **exec** (ChatGPT, Grok, Venice, Claude, Cursor, Glama, and other listed clients) must send \`Authorization: Bearer $RUNTIME_TOKEN\` (Wrangler secret — one operator token, not per-user). Catalog, skill, OpenAPI, health, pull, FragGate list/describe/verify, MCP \`tools/list\`, and proxy \`/p/{slug}/{op}\` stay public. Proxy is not exec.
+When \`REQUIRE_TOKEN=1\` and \`RUNTIME_TOKEN\` is set, **session mutate** (open/policy/exec/close) and MCP session tools require \`Authorization: Bearer $RUNTIME_TOKEN\` (Wrangler secret — one operator token, not per-user). **Public FragGate call stays open** (\`POST /v1/fraggate/call\`, MCP \`fraggate_call\`). Catalog, skill, OpenAPI, health, pull, FragGate list/describe/verify, MCP \`tools/list\`, and proxy \`/p/{slug}/{op}\` stay public. Proxy is not exec. \`runtime_run\` opens a session internally, so it inherits session-mutate auth.
 
 ## Example (Mozilla/5.0)
 
@@ -386,9 +392,9 @@ curl -s -A 'Mozilla/5.0' -X POST ${base}/p/azclce/score \\
 
 Every catalog Software slug is a true engine (\`true_engine_runtime: true\`). \`engine_slugs\` equals \`true_engine_slugs\`: ${local}. Some ops remain per-op \`proxy_fallback\` when they need product-Worker bindings (AZ-OS session/exec/lattice; Aziel Digital Library live D1 / Whisper / OCR). Cloudflare isolate is the jail; \`engine_digest\` is still required for local exec.
 
-**1.4.1 production gates (unchanged in 1.7.0):** \`GET /v1/ready\` is 200 only if the SESSION Durable Object binding is up; **503** if \`REQUIRE_TOKEN=1\` and the \`RUNTIME_TOKEN\` secret is missing (fail closed). Authority JSON is \`Cache-Control: no-store\`. When \`REQUIRE_TOKEN=1\`, session mutate (open/policy/exec/close) and MCP session tools / \`runtime_run\` / \`fraggate_call\` require \`Authorization: Bearer …\` or \`X-Aziel-Runtime-Token\` (one operator token). Catalog / health / runtime / skill / pull / FragGate list / OpenAPI / MCP \`tools/list\` / \`GET /v1/uses\` stay public. Proxy \`/p/{slug}/{op}\` stays public and is **not** exec. Receipt cap 64. Session TTL 6h. Per-IP rate limits apply.
+**1.4.1 production gates (unchanged in 1.7.3):** \`GET /v1/ready\` is 200 only if the SESSION Durable Object binding is up; **503** if \`REQUIRE_TOKEN=1\` and the \`RUNTIME_TOKEN\` secret is missing (fail closed). Authority JSON is \`Cache-Control: no-store\`. When \`REQUIRE_TOKEN=1\` and the secret is set, **session mutate** (open/policy/exec/close) and MCP session tools require \`Authorization: Bearer …\` or \`X-Aziel-Runtime-Token\` (one operator token). **Public FragGate call stays open.** Catalog / health / runtime / skill / pull / FragGate list / OpenAPI / MCP \`tools/list\` / \`GET /v1/uses\` stay public. Proxy \`/p/{slug}/{op}\` stays public and is **not** exec. Receipt cap 64. Session TTL 6h. Per-IP rate limits apply.
 
-GodLock and MirageGrid are not VPNs. ForgeReceipts is not legal advice. ZionPattern Solver caps confidence at 75% and does not solve cases. VeilLock does not inject into FaceTime. AZ-CLCE detects inconsistency, not intent. ChronoLock is advisory only. The ARK is not a kernel. AZAI hosted /v1 is a protocol mirror + Lamb check, not a paid-key proxy and **not** the local blend. Jeeves is not sovereign. SpectralLock hosted overlay is a 256px preview. EmployeeLock is not a court. FoldLock is not zip. WhistleLock is not a mailer. TrajectoryLock is not a certified forensic instrument. M.I.A.Lock Doe hits are leads, not IDs. Aziel Digital Library is not a 26-card index. AzielTether is not a VPN. PeaceLock is not a transcript, not a counterfactual, not a motive score, and not a HARD_DUTY waiver. 4DMap (4DM-WP-1.0) is a four-axis inspection frame T/Δ/Γ/Π — not a sequential gate, not a truth score, not a Lumen panel, and does not invent marks or backdate class. AZMail (APP 1.0) is not a full internet MTA — FragGate only; mesh default off; SMTP / deanonymize stub. AZBrowser (AZB-1.0) is not Chromium — FragGate only; Lamb Lens ethical research browser; cites; refuses harmful harvest; never invents visit results; tor_exit / phoenix_wipe stub. AZNet (AZN-WP-0.1) is a separate product — not a payload host; FragGate only; garden / stamp / memorial ops require AZBrowser pair_token AND pair_flag (functional order only). payload_host / serve_content_for_peer stub. AZHub (AIH-WP-1.0) is a Blank Key — not AZInterface, not an interpreter, not auto-unlock. AZInterface (AIH-WP-1.0) is a custodial operating environment — pre-locked page cycles; not AZHub. VPN/hop mesh is not claimed on this public surface. The suite QNM surface is QNM-BUILD-1.0 rollup (live/locked/isolated; default radios OFF; operator bearer enable) — not a login mesh, not login-recovery, not Node Gate/IP panel, not AnonBroadcast as a catalog product or publish path, not an upload proxy, not origin-hiding, not QNM-S. Full node process is local qnm-node/. AZMail mesh_* stays product-local.
+GodLock and MirageGrid are not VPNs. ForgeReceipts is not legal advice. ZionPattern Solver caps confidence at 75% and does not solve cases. VeilLock does not inject into FaceTime. AZ-CLCE detects inconsistency, not intent. ChronoLock is advisory only. The ARK is not a kernel. AZAI hosted /v1 is a protocol mirror + Lamb check, not a paid-key proxy and **not** the local blend. Jeeves is not sovereign. SpectralLock hosted overlay is a 256px preview. EmployeeLock is not a court. FoldLock is not zip. WhistleLock is not a mailer. TrajectoryLock is not a certified forensic instrument. M.I.A.Lock Doe hits are leads, not IDs. Aziel Digital Library is not a 26-card index. AzielTether is not a VPN. PeaceLock is not a transcript, not a counterfactual, not a motive score, and not a HARD_DUTY waiver. 4DMap (4DM-WP-1.0) is a four-axis inspection frame T/Δ/Γ/Π — not a sequential gate, not a truth score, not a Lumen panel, not an extra door (\`domains_are_doors:false\`), and does not invent marks or backdate class. AZMail (APP 1.0) is not a full internet MTA — FragGate only; mesh default off; SMTP / deanonymize stub. AZBrowser (AZB-1.0) is not Chromium — FragGate only; Lamb Lens ethical research browser; cites; refuses harmful harvest; never invents visit results; tor_exit / phoenix_wipe stub. AZNet (AZN-WP-0.1) is a separate product — not a payload host; FragGate only; garden / stamp / memorial ops require AZBrowser pair_token AND pair_flag (functional order only). payload_host / serve_content_for_peer stub. AZHub (AIH-WP-1.0) is a Blank Key — not AZInterface, not an interpreter, not auto-unlock. AZInterface (AIH-WP-1.0) is a custodial operating environment — pre-locked page cycles; not AZHub. VPN/hop mesh is not claimed on this public surface. The suite QNM surface is QNM-BUILD-1.0 rollup (live/locked/isolated; default radios OFF; operator bearer enable) — not a login mesh, not login-recovery, not Node Gate/IP panel, not AnonBroadcast as a catalog product or publish path, not an upload proxy, not origin-hiding, not QNM-S. Full node process is local qnm-node/. AZMail mesh_* stays product-local.
 
 ## Cite
 
@@ -852,7 +858,7 @@ export function runtimeStaticPaths() {
     "/v1/skill": {
       get: {
         operationId: "runtime_skill",
-        summary: "Skill markdown: 1.7.2 adds GET /v1/azpipe/arch (MASTER-33 cite). 1.7.1 adds AKM-TRIAD-1.0. 1.7.0 locks MASTER-33 (FragGate single door). 1.6.15 locked SUITE-PIPE. 1.6.14 adds 4DMap (4DM-WP-1.0). 1.6.13 aligns the QNM-BUILD-1.0 suite rollup. 1.6.12 adds GET /v1/software + client update check. Honest about 1.1.0 through 1.7.2.",
+        summary: "Skill markdown: 1.7.3 aligns audit WARN copy (exist.mcp → tools/list; public FragGate call; catalog count_note). 1.7.2 adds GET /v1/azpipe/arch (MASTER-33 cite). 1.7.1 adds AKM-TRIAD-1.0. 1.7.0 locks MASTER-33 (FragGate single door). 1.6.15 locked SUITE-PIPE. 1.6.14 adds 4DMap (4DM-WP-1.0). 1.6.13 aligns the QNM-BUILD-1.0 suite rollup. 1.6.12 adds GET /v1/software + client update check. Honest about 1.1.0 through 1.7.3.",
         tags: ["runtime"],
         responses: { "200": { description: "text/markdown skill" } },
       },
@@ -880,10 +886,11 @@ export function runtimeStaticPaths() {
     "/v1/ready": {
       get: {
         operationId: "runtime_ready",
-        summary: "Readiness. 200 if SESSION Durable Object binding is up. 503 if REQUIRE_TOKEN=1 and RUNTIME_TOKEN secret is missing.",
+        summary:
+          "Readiness. 200 if SESSION Durable Object binding is up. 503 if REQUIRE_TOKEN=1 and RUNTIME_TOKEN secret is missing. Public FragGate call stays open; session mutate requires token when configured.",
         tags: ["runtime"],
         responses: {
-          "200": { description: "Ready" },
+          "200": { description: "Ready. fraggate_call_public=true. mutate_requires_token when REQUIRE_TOKEN=1 and secret is set." },
           "503": { description: "SESSION missing or REQUIRE_TOKEN=1 without RUNTIME_TOKEN" },
         },
       },
@@ -892,6 +899,31 @@ export function runtimeStaticPaths() {
         summary: "HEAD of /v1/ready. X-Aziel-Runtime-Version / Role.",
         tags: ["runtime"],
         responses: { "200": { description: "headers only" }, "503": { description: "not ready" } },
+      },
+    },
+    "/mcp": {
+      post: {
+        operationId: "mcp_jsonrpc",
+        summary:
+          "JSON-RPC MCP-over-HTTP. tools/list is the live tool set (~36). Pipeline: fraggate_list → fraggate_describe → fraggate_call. Refuse exist.mcp points here. Proxy /p/{slug}/{op} is not exec. FragGate remains THE single door.",
+        tags: ["fraggate"],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  jsonrpc: { type: "string", example: "2.0" },
+                  id: {},
+                  method: { type: "string", description: "initialize | tools/list | tools/call | ping" },
+                  params: { type: "object" },
+                },
+              },
+            },
+          },
+        },
+        responses: { "200": { description: "JSON-RPC result. tools/list names match refuse exist.mcp." } },
       },
     },
     "/v1/software": {

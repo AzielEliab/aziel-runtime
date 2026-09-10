@@ -191,6 +191,17 @@ assert.equal(body.software[body.software.length - 1].bucket, "lock");
 assert.ok(body.software.some((s) => s.slug === "embryolock"));
 assert.match(body.framing, /Never separate FragGate engines/);
 assert.ok(body.software.every((s) => !/are separate FragGate engines/i.test(s.one_line || "")));
+assert.equal(body.isolation_software_count, 33);
+assert.deepEqual(body.tab_placement_slugs, ["azinterface", "decisiongate", "forgereceipts"]);
+assert.match(body.count_note, /placements/);
+assert.match(body.count_note, /software_count is 33/);
+assert.equal(body.domains.software_count, 33);
+assert.equal(body.domains.domains_are_doors, false);
+assert.ok(body.count !== body.isolation_software_count, "Softwares-tab count is not the isolation 33");
+const fourdLine = body.software.find((s) => s.slug === "4dmap").one_line;
+assert.match(fourdLine, /inspection frame/i);
+assert.match(fourdLine, /not an extra door/i);
+assert.doesNotMatch(fourdLine, /Domain Door/);
 
 const mirror = await get("/v1/fraggate/software");
 assert.equal(mirror.status, 200);
