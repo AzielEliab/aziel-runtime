@@ -1,0 +1,18 @@
+export {
+  ACTION_CLASSES,
+  GENESIS_PARENT,
+  ROSE_AUTHOR,
+  ROSE_SOFTWARE_TAB,
+  ROSE_VERSION,
+  advance,
+  ensureTip,
+  genesisState,
+  isRollbackVerb,
+  refuseRollback,
+  resetRoseClockForTests,
+  revert,
+  rewind,
+  rollback,
+  tipOf,
+  undo,
+} from "./engine.js";

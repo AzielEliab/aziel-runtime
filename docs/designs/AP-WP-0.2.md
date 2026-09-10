@@ -41,17 +41,21 @@ Aziel Eliab · local specification · not a fleet-completeness claim
 •         Not a substitute for host AV, sandboxing, or EmbryoLock wipe.
 
     3. Hops
-    Public hop list is LOCKED as of runtime 1.6.15 (SUITE-PIPE-1.6.15). The fold-centric
-    list below is INTERNAL fld3-wire only — not the public arch() / UI strip / skill cite.
+    Public hop list is LOCKED as of runtime 1.7.0 (MASTER-33). SUITE-PIPE-1.6.15 is
+    historical. The fold-centric list below is INTERNAL fld3-wire only — not the
+    public arch() / UI strip / skill cite.
 
-    Locked inbound (public):
-     PUBLIC/UI/Agents → FragGate → SweepGate → ChainLock-IN → DecisionGATE → AZPIPE
-     → Domain Doors (4DMap inspection) → TemporalLock → StaticClock → ChainLock-OUT
-     → Response/Receipt
+    Locked inbound (public, FragGate-first):
+     Human → AZInterface → PUBLIC/UI/AGENT/API → FragGate → Lamb Lens → SweepGate
+     → Sentinel → Provenance/Input Packet → ChainLock-IN → DecisionGATE → AZPIPE
+     → Internal Domain Layer → optional ASE → RoseClock → TemporalLock
+     → ChainLock-OUT → ForgeReceipts → Return
 
     Locked outbound (sensible reverse):
-     Response/Receipt → ChainLock-OUT → StaticClock → TemporalLock → Domain Doors
-     → AZPIPE → DecisionGATE → SweepGate → FragGate → PUBLIC/UI/Agents
+     Return → ForgeReceipts → ChainLock-OUT → TemporalLock → StaticClock → RoseClock
+     → optional ASE → Internal Domain Layer → AZPIPE → DecisionGATE → Provenance
+     → Sentinel → SweepGate → Lamb Lens → FragGate → PUBLIC/UI/AGENT/API
+     → AZInterface → Human
 
     Internal fld3-wire (not the public hop list):
      fold → static → fold

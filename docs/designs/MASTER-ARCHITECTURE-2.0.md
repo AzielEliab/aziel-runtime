@@ -1272,4 +1272,18 @@ Appendix C - Implementation Acceptance Checklist
 
 
                                     Target architecture v2.0 | Forward-only RoseClock law | 2026
-
+
+---
+
+## Addendum — FragGate-first correction (runtime 1.7.0 / MASTER-33)
+
+Author: Aziel Eliab only.
+
+**§4.2 hop order is overridden.** The user-locked strip places FragGate as THE SINGLE DOOR. Lamb Lens is fabric ethics AFTER FragGate — not before it, not a Softwares-tab product, and not a second door.
+
+Locked strip:
+
+Human → AZInterface → PUBLIC/UI/AGENT/API → **FragGate** → Lamb Lens → SweepGate → Sentinel → Provenance/Input Packet → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer (isolated softwares, NOT additional doors) → optional ASE → **RoseClock** (forward-only; StaticClock/VECTOR as needed) → TemporalLock → ChainLock-OUT → ForgeReceipts → Return.
+
+See `docs/designs/MASTER-33-SOFTWARE.md`. SUITE-PIPE-1.6.15 remains the historical 1.6.15 lock; 1.7.0 does not roll it back — it extends the strip. No ZD30. No rollback.
+

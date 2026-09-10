@@ -54,8 +54,9 @@ Usage:
 Default: Worker session at ${DEFAULT_URL}
 --local: filesystem session under ${HOME}; prefers vendored engines (in-process)
 --jail: run the local engine in a child Node process (ran_in=local-jail)
-1.6.15 locks the suite hop order (SUITE-PIPE-1.6.15; LambGate is not a hop).
-1.6.14 adds 4DMap (4DM-WP-1.0) as a Domain Door inspection frame.
+1.7.0 locks MASTER-33 (FragGate single door; Lamb Lens after FragGate; RoseClock forward-only).
+1.6.15 locked the suite hop order (SUITE-PIPE-1.6.15; LambGate is not a hop).
+1.6.14 adds 4DMap (4DM-WP-1.0) as a Research-domain inspection frame.
 1.6.12 adds GET /v1/software (hub catalog) and GET /v1/update/check (install.sh / local UI / mobile).
 1.6.11 adds a durable FragGate UI-op alias map and names EmbryoLock as stub / local-not-hosted (not an engine).
 1.6.10 sets AZBrowser and AZNet catalog one_line to separate software (not engine).

@@ -129,6 +129,9 @@ export async function append(storeOrEnv, input = {}) {
     author: CL_AUTHOR,
   };
   if (src.r) unsigned.r = String(src.r);
+  if (src.rose_transition_hash) unsigned.rose_transition_hash = String(src.rose_transition_hash);
+  if (src.temporal_hash) unsigned.temporal_hash = String(src.temporal_hash);
+  if (src.provenance_hash) unsigned.provenance_hash = String(src.provenance_hash);
   unsigned.fh = await factHash(fact);
   unsigned.stamp_sha256 = await stampSha256(unsigned);
   const card = toCard(unsigned, { pipe: src.pipe });
@@ -273,6 +276,11 @@ export async function verify(storeOrEnv, input = {}) {
 export async function interact(storeOrEnv, input = {}) {
   const src = input && typeof input === "object" ? input : {};
   const kind = src.k || src.kind || "interact";
+  const extra = {
+    rose_transition_hash: src.rose_transition_hash || null,
+    temporal_hash: src.temporal_hash || null,
+    provenance_hash: src.provenance_hash || null,
+  };
   const session = await append(storeOrEnv, {
     c: "session",
     k: kind,
@@ -280,6 +288,7 @@ export async function interact(storeOrEnv, input = {}) {
     fact: src.fact || src.f || kind,
     r: src.r,
     pipe: src.pipe,
+    ...extra,
   });
   if (kind === "choose" || kind === "refuse" || kind === "learn" || src.learn) {
     await append(storeOrEnv, {
@@ -289,6 +298,7 @@ export async function interact(storeOrEnv, input = {}) {
       fact: src.fact || src.f || kind,
       r: src.r,
       pipe: src.pipe,
+      ...extra,
     });
   }
   return session;

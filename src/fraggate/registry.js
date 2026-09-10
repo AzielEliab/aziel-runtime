@@ -10,6 +10,7 @@
  */
 
 import { CATALOG_ALIASES } from "../catalog-meta.js";
+import { domainFields } from "../domain-map.js";
 import { embeddedDigest } from "../engines/digest.js";
 import { MESH_LIVE_OPS, MESH_OP_ALIASES, MESH_SLUG, MESH_STUB_OPS, meshKernelEntry } from "../mesh.js";
 import { canonicalize, sha256Hex } from "../session-core.js";
@@ -66,11 +67,20 @@ export const NAMED_STUBS = [
     digest: null,
     description:
       "EmbryoLock is stub / local-not-hosted. Name only. Not a hosted Worker. Not a FragGate engine. Author: Aziel Eliab.",
-    note: "stub / local-not-hosted. Hubs may link describe?slug=embryolock. Separate software under the same FragGate door; never a separate FragGate engine. Author: Aziel Eliab only.",
+    note: "stub / local-not-hosted. Hubs may link describe?slug=embryolock. Separate software under the same FragGate door; never a separate FragGate engine. Vault/Custody domain isolation label. Author: Aziel Eliab only.",
+  },
+  {
+    name: "AZChat",
+    slug: "azchat",
+    digest: null,
+    description:
+      "AZChat is stub / local-not-hosted. Name only. Product does not exist yet. Not a hosted Worker. Not a FragGate engine. Do not invent a fake engine. Author: Aziel Eliab.",
+    note: "stub / local-not-hosted. Name-only refuse until a product exists. Hubs may link describe?slug=azchat. Comms domain isolation label. Same FragGate door; never a separate FragGate engine. Author: Aziel Eliab only.",
   },
 ];
 
 function namedStubEntry(spec) {
+  const domain = domainFields(spec.slug);
   return {
     name: spec.name,
     slug: spec.slug,
@@ -84,6 +94,9 @@ function namedStubEntry(spec) {
     local_not_hosted: true,
     engine: false,
     true_engine_runtime: false,
+    domain: domain.domain,
+    domain_id: domain.domain_id,
+    placement: domain.placement,
   };
 }
 
@@ -343,6 +356,7 @@ export function registryEntry(product) {
   const ops = catalogOps(product);
   const status = statusFor(slug);
   const public_ops = publicOps(slug, ops);
+  const domain = domainFields(slug);
   return {
     name: product.name,
     slug,
@@ -353,6 +367,9 @@ export function registryEntry(product) {
     stub_ops: (STUB_OPS[slug] || []).slice(),
     op_aliases: { ...(OP_ALIASES[slug] || {}) },
     description: product.oneLine || product.name,
+    domain: domain.domain,
+    domain_id: domain.domain_id,
+    placement: domain.placement,
     note:
       status === "live"
         ? "Live on the public FragGate door."
@@ -408,6 +425,9 @@ export function compactEntries(registry) {
     status: e.status,
     ops: e.ops,
     description: e.description,
+    domain: e.domain || null,
+    domain_id: e.domain_id || null,
+    placement: e.placement || null,
     local_not_hosted: e.local_not_hosted || false,
   }));
 }

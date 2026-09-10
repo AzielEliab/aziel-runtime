@@ -377,7 +377,7 @@ export const SUITE_DESIGNS = Object.freeze([
     id: "AP-WP-0.2",
     file: "AP-WP-0.2.md",
     one_line:
-      "LIVE fabric — AZPIPE FLD3; public hop list locked (SUITE-PIPE-1.6.15); fld3-wire internal (not Softwares-tab)",
+      "LIVE fabric — AZPIPE FLD3; public hop list locked (MASTER-33 / 1.7.0 FragGate-first); fld3-wire internal (not Softwares-tab)",
     status: "live",
     kind: "fabric",
   },
@@ -415,7 +415,7 @@ export const SUITE_DESIGNS = Object.freeze([
     id: "4DM-WP-1.0",
     file: "4DM-WP-1.0.md",
     one_line:
-      "4DMap four-axis inspection frame T/Δ/Γ/Π — Domain Door / inspection layer after AZPIPE; not a sequential gate",
+      "4DMap four-axis inspection frame T/Δ/Γ/Π — Research-domain inspection inside Internal Domain Layer after AZPIPE; not a sequential gate; not an extra door",
     status: "live",
     kind: "software",
   },
@@ -423,7 +423,23 @@ export const SUITE_DESIGNS = Object.freeze([
     id: "SUITE-PIPE-1.6.15",
     file: "SUITE-PIPE-1.6.15.md",
     one_line:
-      "Locked suite hop order — FragGate → SweepGate → ChainLock-IN → DecisionGATE → AZPIPE → Domain Doors (4DMap) → TemporalLock → StaticClock → ChainLock-OUT; not LambGate",
+      "Historical 1.6.15 locked hop order (superseded on the public surface by MASTER-33; kept, not rolled back)",
+    status: "live",
+    kind: "fabric",
+  },
+  {
+    id: "MASTER-33",
+    file: "MASTER-33-SOFTWARE.md",
+    one_line:
+      "LIVE fabric — MASTER-33 locked strip: FragGate single door; Lamb Lens after FragGate; 11 domains / 33 softwares as isolation labels; RoseClock forward-only",
+    status: "live",
+    kind: "fabric",
+  },
+  {
+    id: "MASTER-ARCHITECTURE-2.0",
+    file: "MASTER-ARCHITECTURE-2.0.md",
+    one_line:
+      "Master architecture spec — RoseClock forward-only; FragGate-first addendum overrides §4.2; no ZD30; no rollback",
     status: "live",
     kind: "fabric",
   },
@@ -469,7 +485,7 @@ export function designsSkillMarkdown() {
   const lines = [
     "## Designs",
     "",
-    "Suite software-design papers (law / fabric are not Softwares-tab products, not a FragGate slug). 4DM-WP-1.0 is the 4DMap product spec (Softwares-tab slug `4dmap`; the paper is not a FragGate slug). LIVE fabric modules: ChainLock, AZPIPE, SweepGate, LOCKSET, packed catalog (RL), QNS-CD-1.0 (photon QNS1 1.3; local qnsd; Worker cites only), SUITE-PIPE-1.6.15 (locked hop order; LambGate is not a hop). `GET /v1/mesh` never enables. Git-hosted — the Worker does not serve the PDFs. Public identity Aziel Eliab only.",
+    "Suite software-design papers (law / fabric are not Softwares-tab products, not a FragGate slug). 4DM-WP-1.0 is the 4DMap product spec (Softwares-tab slug `4dmap`; the paper is not a FragGate slug). LIVE fabric modules: ChainLock, AZPIPE, SweepGate, LOCKSET, packed catalog (RL), QNS-CD-1.0 (photon QNS1 1.3; local qnsd; Worker cites only), MASTER-33 (locked hop order; FragGate single door; Lamb Lens after FragGate; LambGate is not a hop). SUITE-PIPE-1.6.15 is historical. `GET /v1/mesh` never enables. Git-hosted — the Worker does not serve the PDFs. Public identity Aziel Eliab only.",
     "",
   ];
   for (const d of SUITE_DESIGNS) {
@@ -485,7 +501,7 @@ export function designsLlmsBlock() {
   const lines = [
     "## Designs",
     "",
-    "Suite software-design papers (law / fabric are not Softwares-tab products, not a FragGate slug). 4DM-WP-1.0 is the 4DMap product spec (slug `4dmap`). LIVE fabric: CL-WP-0.4, AP-WP-0.2, SG-WP-0.1, LS-WP-0.1, RL-WP-0.1 (runtime), QNS-CD-1.0 (local qnsd), SUITE-PIPE-1.6.15 (locked hop order). GET /v1/mesh never enables. Git-hosted — the Worker does not serve the PDFs. Author: Aziel Eliab only.",
+    "Suite software-design papers (law / fabric are not Softwares-tab products, not a FragGate slug). 4DM-WP-1.0 is the 4DMap product spec (slug `4dmap`). LIVE fabric: CL-WP-0.4, AP-WP-0.2, SG-WP-0.1, LS-WP-0.1, RL-WP-0.1 (runtime), QNS-CD-1.0 (local qnsd), MASTER-33 (locked hop order; FragGate single door). SUITE-PIPE-1.6.15 is historical. GET /v1/mesh never enables. Git-hosted — the Worker does not serve the PDFs. Author: Aziel Eliab only.",
     `Index: ${DESIGNS_GITHUB_TREE}`,
     "",
   ];

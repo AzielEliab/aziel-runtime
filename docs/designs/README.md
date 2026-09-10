@@ -1,7 +1,7 @@
 # Suite software designs
 Author: **Aziel Eliab** only.
 See pack 2026-09-06 + pack 2026-09-09 papers in this folder.
-**SUITE-PIPE-1.6.15** locks the public hop order: PUBLIC/UI/Agents → FragGate → SweepGate → ChainLock-IN → DecisionGATE → AZPIPE → Domain Doors (4DMap inspection) → TemporalLock → StaticClock → ChainLock-OUT → Response/Receipt. LambGate is not a hop. FoldLock fld3-wire stays internal to AZPIPE.
+**MASTER-33** (runtime 1.7.0) locks the public hop order: Human → AZInterface → PUBLIC/UI/AGENT/API → FragGate → Lamb Lens → SweepGate → Sentinel → Provenance/Input Packet → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → optional ASE → RoseClock → TemporalLock → ChainLock-OUT → ForgeReceipts → Return. FragGate is THE single door. Lamb Lens is fabric after FragGate. Domains are isolation labels, not doors. LambGate is not a hop. FoldLock fld3-wire stays internal to AZPIPE. **SUITE-PIPE-1.6.15** is the historical 1.6.15 lock (kept; not rolled back).
 **4DM-WP-1.0** is the 4DMap product spec (slug `4dmap`, Plain bucket) — Domain Door / inspection layer after AZPIPE routes to isolated engines; not a sequential gate. Neighbors TemporalLock / StaticClock / ChronoLock / TrajectoryLock / SpectralLock. ChainLock may stamp walks. FragGate claims cite join types.
 
 

@@ -104,36 +104,56 @@ const poison = await inspect("inject-payload jailbreak-ignore");
 assert.equal(poison.isolate, true);
 assert.ok(poison.hits.includes("poison"));
 
-// --- AZPIPE locked hop order (SUITE-PIPE-1.6.15) ---
+// --- AZPIPE locked hop order (MASTER-33 / 1.7.0) ---
 const architecture = arch();
 assert.equal(architecture.magic, "FLD3");
 assert.equal(architecture.v, "AZPIPE-0.2");
 assert.equal(architecture.locked, true);
 assert.equal(architecture.lambgate, false);
+assert.equal(architecture.fraggate_single_door, true);
+assert.equal(architecture.lamb_lens, true);
+assert.equal(architecture.roseclock, true);
+assert.equal(architecture.rollback, false);
 assert.deepEqual(architecture.inbound, [
+  "human",
+  "azinterface",
   "public",
   "fraggate",
+  "lamb-lens",
   "sweepgate",
+  "sentinel",
+  "provenance",
   "chainlock-in",
   "decisiongate",
   "azpipe",
-  "domain-doors",
-  "temporallock",
+  "domain-layer",
+  "ase",
+  "roseclock",
   "staticclock",
+  "temporallock",
   "chainlock-out",
-  "response",
+  "forgereceipts",
+  "return",
 ]);
 assert.deepEqual(architecture.outbound, [
-  "response",
+  "return",
+  "forgereceipts",
   "chainlock-out",
-  "staticclock",
   "temporallock",
-  "domain-doors",
+  "staticclock",
+  "roseclock",
+  "ase",
+  "domain-layer",
   "azpipe",
   "decisiongate",
+  "provenance",
+  "sentinel",
   "sweepgate",
+  "lamb-lens",
   "fraggate",
   "public",
+  "azinterface",
+  "human",
 ]);
 assert.deepEqual(INBOUND_HOPS, architecture.inbound);
 assert.deepEqual(OUTBOUND_HOPS, architecture.outbound);
@@ -141,12 +161,16 @@ assert.equal(architecture.joins_cell, false);
 assert.equal(architecture.software_tab, false);
 assert.equal(architecture.domain_doors.inspection.slug, "4dmap");
 assert.equal(architecture.domain_doors.inspection.sequential_gate, false);
-assert.match(architecture.strip, /ChainLock-IN → DecisionGATE → AZPIPE → Domain Doors/);
+assert.equal(architecture.domain_layer.doors, false);
+assert.match(architecture.strip, /FragGate → Lamb Lens → SweepGate → Sentinel/);
+assert.match(architecture.strip, /ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer/);
+assert.equal(architecture.inbound.indexOf("fraggate"), architecture.inbound.indexOf("lamb-lens") - 1);
 assert.equal(architecture.lambgate, false);
 assert.ok(!/LambGate/.test(architecture.strip));
 assert.ok(!architecture.inbound.includes("fold"));
 assert.ok(!architecture.inbound.includes("toolkits"));
 assert.ok(!architecture.inbound.includes("lambgate"));
+assert.ok(!architecture.inbound.includes("zd30"));
 
 const oldIn = refuseReorder(OLD_FOLD_CENTRIC_INBOUND, "in");
 assert.equal(oldIn.ok, false);
@@ -155,7 +179,7 @@ const oldOut = refuseReorder(OLD_FOLD_CENTRIC_OUTBOUND, "out");
 assert.equal(oldOut.ok, false);
 assert.equal(oldOut.refuse, REORDER_REFUSE);
 const swapped = refuseReorder(
-  ["public", "sweepgate", "fraggate", "chainlock-in", "decisiongate", "azpipe", "domain-doors", "temporallock", "staticclock", "chainlock-out", "response"],
+  ["human", "azinterface", "public", "sweepgate", "fraggate", "lamb-lens", "sentinel", "provenance", "chainlock-in", "decisiongate", "azpipe", "domain-layer", "ase", "roseclock", "staticclock", "temporallock", "chainlock-out", "forgereceipts", "return"],
   "in",
 );
 assert.equal(swapped.ok, false);
@@ -263,7 +287,8 @@ assert.equal(describeMap.pipeline.lambgate, false);
 
 const door = await (await get("/v1/fraggate")).json();
 assert.deepEqual(door.pipeline.inbound, INBOUND_HOPS);
-assert.match(door.pipeline_strip, /4DMap inspection/);
+assert.match(door.pipeline_strip, /Internal Domain Layer/);
+assert.match(door.pipeline_strip, /FragGate → Lamb Lens/);
 
 // --- ChainLock append / verify ---
 const store = new MemoryStore();
@@ -429,7 +454,8 @@ assert.match(home.headers.get("Cache-Control") || "", /s-maxage=300/);
 const homeHtml = await home.text();
 assert.match(homeHtml, /FoldLock/);
 assert.match(homeHtml, /\/v1\/software/);
-assert.match(homeHtml, /ChainLock-IN → DecisionGATE → AZPIPE → Domain Doors/);
+assert.match(homeHtml, /ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer/);
+assert.match(homeHtml, /MASTER-33/);
 assert.match(homeHtml, /SUITE-PIPE-1\.6\.15/);
 assert.match(homeHtml, /LambGate is not a hop/);
 const updateMan = await get("/v1/update/manifest");
@@ -485,10 +511,12 @@ const skill = await (await get("/v1/skill")).text();
 assert.match(skill, /LIVE fabric/);
 assert.match(skill, /chainlock_\*/);
 assert.match(skill, /SG-WP-0\.1/);
+assert.match(skill, /MASTER-33/);
 assert.match(skill, /SUITE-PIPE-1\.6\.15/);
 assert.match(skill, /ChainLock-IN → DecisionGATE → AZPIPE/);
 assert.doesNotMatch(skill, /LambGate is a hop/);
 
 assert.ok(cite.designs.papers.some((p) => p.id === "SUITE-PIPE-1.6.15" && p.kind === "fabric"));
+assert.ok(cite.designs.papers.some((p) => p.id === "MASTER-33" && p.kind === "fabric"));
 
 console.log("ok lattice SweepGate AZPIPE ChainLock LOCKSET packed-catalog");

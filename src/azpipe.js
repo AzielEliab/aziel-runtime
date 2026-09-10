@@ -1,18 +1,18 @@
 /**
- * AZPIPE AP-0.2 — locked suite admission path (runtime 1.6.15).
+ * AZPIPE AP-0.2 — locked MASTER-33 admission path (runtime 1.7.0).
  *
- * Public hop list (LOCKED — illegal reorder is refused; LambGate is not a hop):
- *   PUBLIC/UI/Agents → FragGate → SweepGate → ChainLock-IN → DecisionGATE
- *   → AZPIPE → Domain Doors (4DMap inspection) → TemporalLock → StaticClock
- *   → ChainLock-OUT → Response/Receipt
+ * HARD LAW — FragGate is THE SINGLE DOOR. User-locked strip overrides
+ * MASTER-ARCHITECTURE-2.0 §4.2 (Lamb Lens after FragGate, not before):
  *
- * Outbound reverses sensibly:
- *   Response/Receipt → ChainLock-OUT → StaticClock → TemporalLock
- *   → Domain Doors → AZPIPE → DecisionGATE → SweepGate → FragGate → PUBLIC/UI/Agents
+ *   Human → AZInterface → PUBLIC/UI/AGENT/API → FragGate → Lamb Lens
+ *   → SweepGate → Sentinel → Provenance/Input Packet → ChainLock-IN
+ *   → DecisionGATE → AZPIPE → Internal Domain Layer (isolated softwares,
+ *   NOT additional doors) → optional ASE → RoseClock (forward-only;
+ *   StaticClock/VECTOR as needed) → TemporalLock → ChainLock-OUT
+ *   → ForgeReceipts → Return
  *
- * FoldLock fld3-wire (fold → static → fold) stays an INTERNAL AZPIPE mechanism.
- * SweepGate / ChainLock / AZPIPE are fabric — not Softwares-tab products.
- * 4DMap (`4dmap`) is cited at Domain Doors as a read-side inspection frame, not a sequential gate.
+ * FoldLock fld3-wire stays INTERNAL. Lamb Lens is fabric ethics AFTER FragGate.
+ * Domains are isolation labels, not doors. No ZD30. No rollback.
  *
  * Magic FLD3. qnm fields reserved. Pipe does NOT join a cell.
  * Not a Softwares-tab product. Author: Aziel Eliab only.
@@ -21,10 +21,18 @@
 import { check as decisiongateCheck } from "./engines/decisiongate/engine.js";
 import { genesis as temporalGenesis } from "./engines/temporallock/engine.js";
 import { appendClick as staticClick } from "./engines/staticclock/engine.js";
+import { receipt as forgeReceipt } from "./engines/forgereceipts/engine.js";
 import { canonicalize, sha256Hex } from "./session-core.js";
 import { interact } from "./chainlock/ops.js";
 import { storeFor } from "./chainlock/store.js";
 import { ALLOWLIST_ORIGINS, BLOCK_KEYS, inspect as sweepInspect, originAllowed, sweepView } from "./sweepgate.js";
+import { lambLensCheck, lambLensView } from "./lamblens.js";
+import { sentinelInspect, sentinelView } from "./sentinel.js";
+import { buildInputPacket, provenanceView } from "./provenance.js";
+import { advance as roseAdvance } from "./roseclock/engine.js";
+import { aseCite, aseCall } from "./ase.js";
+import { vectorCite, vectorCall } from "./vector.js";
+import { domainFields, domainMapView } from "./domain-map.js";
 
 export const AZPIPE_MAGIC = "FLD3";
 export const AZPIPE_VERSION = "AZPIPE-0.2";
@@ -55,21 +63,80 @@ export const OLD_FOLD_CENTRIC_OUTBOUND = Object.freeze([
 ]);
 
 export const HOP_LABELS = Object.freeze({
-  public: "PUBLIC/UI/Agents",
+  human: "Human",
+  azinterface: "AZInterface",
+  public: "PUBLIC/UI/AGENT/API",
   fraggate: "FragGate",
+  "lamb-lens": "Lamb Lens",
   sweepgate: "SweepGate",
+  sentinel: "Sentinel",
+  provenance: "Provenance/Input Packet",
   "chainlock-in": "ChainLock-IN",
   decisiongate: "DecisionGATE",
   azpipe: "AZPIPE",
-  "domain-doors": "Domain Doors",
-  temporallock: "TemporalLock",
+  "domain-layer": "Internal Domain Layer",
+  ase: "optional ASE",
+  roseclock: "RoseClock",
   staticclock: "StaticClock",
+  temporallock: "TemporalLock",
   "chainlock-out": "ChainLock-OUT",
-  response: "Response/Receipt",
+  forgereceipts: "ForgeReceipts",
+  return: "Return",
 });
 
-/** Locked public inbound (admission through receipt). */
+/** Locked public inbound (admission through Return). MASTER-33. */
 export const INBOUND_HOPS = Object.freeze([
+  "human",
+  "azinterface",
+  "public",
+  "fraggate",
+  "lamb-lens",
+  "sweepgate",
+  "sentinel",
+  "provenance",
+  "chainlock-in",
+  "decisiongate",
+  "azpipe",
+  "domain-layer",
+  "ase",
+  "roseclock",
+  "staticclock",
+  "temporallock",
+  "chainlock-out",
+  "forgereceipts",
+  "return",
+]);
+
+/** Sensible reverse. ChainLock-IN is inbound-only. */
+export const OUTBOUND_HOPS = Object.freeze([
+  "return",
+  "forgereceipts",
+  "chainlock-out",
+  "temporallock",
+  "staticclock",
+  "roseclock",
+  "ase",
+  "domain-layer",
+  "azpipe",
+  "decisiongate",
+  "provenance",
+  "sentinel",
+  "sweepgate",
+  "lamb-lens",
+  "fraggate",
+  "public",
+  "azinterface",
+  "human",
+]);
+
+export const LOCKED_STRIP =
+  "Human → AZInterface → PUBLIC/UI/AGENT/API → FragGate → Lamb Lens → SweepGate → Sentinel → Provenance/Input Packet → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → optional ASE → RoseClock (forward-only; StaticClock/VECTOR as needed) → TemporalLock → ChainLock-OUT → ForgeReceipts → Return";
+
+export const LOCKED_STRIP_OUT =
+  "Return → ForgeReceipts → ChainLock-OUT → TemporalLock → StaticClock → RoseClock → optional ASE → Internal Domain Layer → AZPIPE → DecisionGATE → Provenance/Input Packet → Sentinel → SweepGate → Lamb Lens → FragGate → PUBLIC/UI/AGENT/API → AZInterface → Human";
+
+/** 1.6.15 public list — refused on the 1.7.0 surface. */
+export const OLD_SUITE_PIPE_INBOUND = Object.freeze([
   "public",
   "fraggate",
   "sweepgate",
@@ -83,26 +150,7 @@ export const INBOUND_HOPS = Object.freeze([
   "response",
 ]);
 
-/** Sensible reverse. ChainLock-IN becomes ChainLock-OUT on the way out. */
-export const OUTBOUND_HOPS = Object.freeze([
-  "response",
-  "chainlock-out",
-  "staticclock",
-  "temporallock",
-  "domain-doors",
-  "azpipe",
-  "decisiongate",
-  "sweepgate",
-  "fraggate",
-  "public",
-]);
-
-export const LOCKED_STRIP =
-  "PUBLIC/UI/Agents → FragGate → SweepGate → ChainLock-IN → DecisionGATE → AZPIPE → Domain Doors (4DMap inspection) → TemporalLock → StaticClock → ChainLock-OUT → Response/Receipt";
-
-export const LOCKED_STRIP_OUT =
-  "Response/Receipt → ChainLock-OUT → StaticClock → TemporalLock → Domain Doors → AZPIPE → DecisionGATE → SweepGate → FragGate → PUBLIC/UI/Agents";
-
+/** 4DMap stays a Research-domain inspection frame inside Internal Domain Layer — not a door. */
 export const DOMAIN_DOORS_INSPECTION = Object.freeze({
   slug: "4dmap",
   spec: "4DM-WP-1.0",
@@ -111,7 +159,17 @@ export const DOMAIN_DOORS_INSPECTION = Object.freeze({
   sequential_gate: false,
   software_tab: true,
   fabric: false,
-  note: "4DMap is a Domain Door / inspection layer after AZPIPE. Live catalog engines execute here. Not a sequential Softwares-tab gate. Not LIVE fabric.",
+  domain: "Research",
+  domain_id: "06",
+  note: "4DMap is a Research-domain inspection frame T/Δ/Γ/Π inside Internal Domain Layer after AZPIPE. Isolated software, not an additional door. Not a sequential gate. Not LIVE fabric.",
+});
+
+export const DOMAIN_LAYER = Object.freeze({
+  name: "Internal Domain Layer",
+  doors: false,
+  isolated_softwares: true,
+  inspection: { ...DOMAIN_DOORS_INSPECTION },
+  note: "Isolated softwares execute here after AZPIPE. Domains are isolation labels, not doors. FragGate is THE single door.",
 });
 
 const URL_RE = /https?:\/\/[^\s"'<>\\]+/gi;
@@ -193,7 +251,7 @@ export function refuseReorder(candidate, dir = "in") {
     ok: false,
     refuse: REORDER_REFUSE,
     message:
-      "Locked suite hop order. Changing product names does not change the list. LambGate is not a hop. FoldLock fld3-wire is internal to AZPIPE.",
+      "Locked MASTER-33 hop order. FragGate is THE single door. Changing product names does not change the list. Lamb Lens is fabric after FragGate — not a second door. LambGate is not a hop. FoldLock fld3-wire is internal to AZPIPE. No rollback.",
     locked: locked.slice(),
     got: list.slice(),
     old_fold_centric: false,
@@ -205,6 +263,21 @@ export function refuseReorder(candidate, dir = "in") {
 export function domainDoorsCite() {
   return {
     engines: "live-catalog",
+    doors: false,
+    layer: "Internal Domain Layer",
+    inspection: { ...DOMAIN_DOORS_INSPECTION },
+  };
+}
+
+export function domainLayerCite(slug) {
+  const fields = domainFields(slug);
+  return {
+    ...DOMAIN_LAYER,
+    slug: slug || null,
+    domain: fields.domain,
+    domain_id: fields.domain_id,
+    placement: fields.placement,
+    map: domainMapView(),
     inspection: { ...DOMAIN_DOORS_INSPECTION },
   };
 }
@@ -242,8 +315,11 @@ function envelopeBase(dir, path) {
     qnm: qnmSlot(),
     inner: null,
     domain_doors: domainDoorsCite(),
+    domain_layer: { ...DOMAIN_LAYER },
     locked: true,
     lambgate: false,
+    fraggate_single_door: true,
+    rollback: false,
     author: AZPIPE_AUTHOR,
   };
 }
@@ -268,6 +344,7 @@ export function thinPipe(env) {
     qnm: env.qnm || qnmSlot(),
     locked: true,
     lambgate: false,
+    fraggate_single_door: true,
   };
 }
 
@@ -276,7 +353,12 @@ export function arch() {
     v: AZPIPE_VERSION,
     magic: AZPIPE_MAGIC,
     locked: true,
+    master: "MASTER-33",
     lambgate: false,
+    lamb_lens: true,
+    fraggate_single_door: true,
+    roseclock: true,
+    rollback: false,
     inbound: INBOUND_HOPS.slice(),
     outbound: OUTBOUND_HOPS.slice(),
     labels: { ...HOP_LABELS },
@@ -286,6 +368,10 @@ export function arch() {
     foldlock_internal: true,
     internal_fld3: INTERNAL_FLD3_HOPS.slice(),
     domain_doors: domainDoorsCite(),
+    domain_layer: { ...DOMAIN_LAYER },
+    domains: domainMapView(),
+    ase: aseCite(),
+    vector: vectorCite(),
     allowlist: ALLOWLIST_ORIGINS.slice(),
     qnm: qnmSlot(),
     joins_cell: false,
@@ -331,20 +417,24 @@ async function fld3Admit(payload, fact) {
   return { folded: folded2, frozen: frozen2 };
 }
 
-async function stampChain(store, kind, subject, fact, pipe) {
+async function stampChain(store, kind, subject, fact, pipe, extra = {}) {
   return interact(store, {
     k: kind,
     subject,
     fact,
     pipe,
+    rose_transition_hash: extra.rose_transition_hash || null,
+    temporal_hash: extra.temporal_hash || null,
+    provenance_hash: extra.provenance_hash || null,
   });
 }
 
-async function advisoryTemporal(summary, evidence) {
+async function advisoryTemporal(summary, evidence, roseHash) {
   try {
+    const stamped = roseHash ? `${evidence}\nrose_transition_hash=${roseHash}` : evidence;
     const out = await temporalGenesis({
       summary,
-      evidence,
+      evidence: stamped,
       confidence: 1.0,
     });
     const rec = out && out.receipt ? out.receipt : null;
@@ -353,11 +443,21 @@ async function advisoryTemporal(summary, evidence) {
       slug: "temporallock",
       advisory: true,
       software_tab: true,
+      domain: "Core Time",
+      domain_id: "11",
       hash: rec && rec.hash ? rec.hash : null,
       timestamp: rec && rec.timestamp ? rec.timestamp : null,
+      rose_transition_hash: roseHash || null,
     };
   } catch {
-    return { kind: "TemporalLock", slug: "temporallock", advisory: true, hash: null, refuse: "advisory-skip" };
+    return {
+      kind: "TemporalLock",
+      slug: "temporallock",
+      advisory: true,
+      hash: null,
+      rose_transition_hash: roseHash || null,
+      refuse: "advisory-skip",
+    };
   }
 }
 
@@ -379,9 +479,11 @@ async function advisoryStatic(action) {
 }
 
 /**
- * Inbound admission. Public path is the locked suite list.
- * Executed hops: public → fraggate → sweepgate → chainlock-in → decisiongate → azpipe (fld3) → domain-doors.
- * TemporalLock / StaticClock / ChainLock-OUT / Response run on outbound.
+ * Inbound admission. Public path is the locked MASTER-33 list.
+ * Executed hops: human/AZInterface/public → FragGate → Lamb Lens → SweepGate
+ * → Sentinel → Provenance → ChainLock-IN → DecisionGATE → AZPIPE (fld3)
+ * → Internal Domain Layer (cite).
+ * ASE / RoseClock / StaticClock / TemporalLock / ChainLock-OUT / ForgeReceipts / Return run on outbound.
  * Refuse envelopes stop at the hop that closed.
  */
 export async function pipeInbound(input = {}) {
@@ -391,17 +493,30 @@ export async function pipeInbound(input = {}) {
     const check = refuseReorder(order, "in");
     if (!check.ok) {
       const env = envelopeBase("in", INBOUND_HOPS);
-      return stopAt(Object.assign(env, { reorder: check }), "public", REORDER_REFUSE);
+      return stopAt(Object.assign(env, { reorder: check }), "human", REORDER_REFUSE);
     }
   }
   const env = envelopeBase("in", INBOUND_HOPS);
-  env.public = "ui/agents";
+  env.human = true;
+  env.azinterface = "human-ui";
+  env.public = "ui/agent/api";
   const claim = src.claim || null;
   let payload = src.payload !== undefined ? src.payload : src.inner;
 
   const door = fraggateSurfaceHop(payload, claim);
   env.gates = door.gates;
   if (!door.ok) return stopAt(env, "fraggate", door.refuse || "ungrounded");
+
+  const lamb = lambLensCheck({
+    payload,
+    claim,
+    slug: src.slug,
+    op: src.op,
+    statement: claim && claim.statement,
+  });
+  env.lamb_lens = lambLensView(lamb);
+  if (lamb.decision === "REFUSE") return stopAt(env, "lamb-lens", "lamb-refuse");
+  if (lamb.decision === "HOLD-UNCERTAIN") return stopAt(env, "lamb-lens", "lamb-hold");
 
   const sweep = await sweepInspect(payload, {
     dir: "in",
@@ -413,6 +528,19 @@ export async function pipeInbound(input = {}) {
     return stopAt(env, "sweepgate", sweep.refuse || "sweep-isolate");
   }
 
+  const sentinel = sentinelInspect({ payload, slug: src.slug, op: src.op });
+  env.sentinel = sentinelView(sentinel);
+  if (sentinel.stop) return stopAt(env, "sentinel", sentinel.refuse || "sentinel-reject");
+
+  const packet = await buildInputPacket({
+    payload,
+    slug: src.slug,
+    op: src.op,
+    untrusted: src.untrusted,
+    source_type: src.source_type || "fraggate-call",
+  });
+  env.provenance = provenanceView(packet);
+
   const preFact = clipFact(src.fact != null ? src.fact : payload);
   let entry = null;
   if (src.entry !== false) {
@@ -423,6 +551,7 @@ export async function pipeInbound(input = {}) {
       src.subject || src.slug || "azpipe",
       preFact || "inbound admitted",
       thinPipe({ ...env, path: INBOUND_HOPS }),
+      { provenance_hash: packet.content_hash },
     );
     if (!entry.ok) return stopAt(env, "chainlock-in", entry.refuse || "no-stamp");
   }
@@ -445,12 +574,16 @@ export async function pipeInbound(input = {}) {
   }
 
   env.domain_doors = domainDoorsCite();
+  env.domain_layer = domainLayerCite(src.slug);
   env.ok = true;
   env.inner = {
     entry: card || null,
     toolkit: null,
     static: { h: admitted.frozen.h, fh: admitted.frozen.fh, ts: admitted.frozen.ts, body: admitted.folded },
     inspection: env.domain_doors.inspection,
+    provenance: packet,
+    lamb_lens: env.lamb_lens,
+    sentinel: env.sentinel,
   };
   env.admitted = admitted.folded;
   return env;
@@ -463,12 +596,25 @@ export async function pipeOutbound(input = {}) {
     const check = refuseReorder(order, "out");
     if (!check.ok) {
       const env = envelopeBase("out", OUTBOUND_HOPS);
-      return stopAt(Object.assign(env, { reorder: check }), "response", REORDER_REFUSE);
+      return stopAt(Object.assign(env, { reorder: check }), "return", REORDER_REFUSE);
     }
   }
   const env = envelopeBase("out", OUTBOUND_HOPS);
-  env.public = "ui/agents";
+  env.human = true;
+  env.azinterface = "human-ui";
+  env.public = "ui/agent/api";
   let result = src.result !== undefined ? src.result : src.payload;
+
+  if (src.ase === true || src.arm_ase === true) {
+    env.ase = aseCall();
+    return stopAt(env, "ase", "ase-unarmed");
+  }
+  if (src.vector === true || src.arm_vector === true) {
+    env.vector = vectorCall();
+    return stopAt(env, "roseclock", "vector-unarmed");
+  }
+  env.ase = aseCite();
+  env.vector = vectorCite();
 
   const door = fraggateSurfaceHop(result, src.claim || { statement: "outbound" });
   env.gates = door.gates;
@@ -491,8 +637,24 @@ export async function pipeOutbound(input = {}) {
     return stopAt(env, "sweepgate", sweep.refuse || "sweep-isolate");
   }
 
+  const rose = await roseAdvance({
+    rose_id: src.rose_id || "aziel-runtime",
+    action: src.op || src.slug || "pipe-out",
+    action_class: src.action_class || "EXECUTE",
+    result_hash: env.fh,
+    actor_id: "aziel-runtime",
+  });
+  if (!rose.ok) return stopAt(env, "roseclock", rose.refuse || "rose-refuse");
+  env.roseclock = {
+    sequence: rose.after && rose.after.sequence,
+    transition_hash: rose.transition && rose.transition.transition_hash,
+    action_class: rose.transition && rose.transition.action_class,
+    rollback: false,
+  };
+  const roseHash = env.roseclock.transition_hash;
+
   const evidence = env.fh || admitted.frozen.fact || "outbound receipt";
-  const temporal = await advisoryTemporal("azpipe outbound receipt", String(evidence));
+  const temporal = await advisoryTemporal("azpipe outbound receipt", String(evidence), roseHash);
   const staticclock = await advisoryStatic("pipe-out");
 
   let exit = null;
@@ -504,13 +666,38 @@ export async function pipeOutbound(input = {}) {
       src.subject || src.slug || "azpipe",
       clipFact(src.fact != null ? src.fact : admitted.frozen.fact) || "outbound receipt",
       thinPipe({ ...env, path: OUTBOUND_HOPS }),
+      {
+        rose_transition_hash: roseHash,
+        temporal_hash: temporal && temporal.hash,
+        provenance_hash: src.provenance_hash || null,
+      },
     );
     if (!exit.ok) return stopAt(env, "chainlock-out", exit.refuse || "no-stamp");
   }
 
+  let forged = null;
+  try {
+    forged = await forgeReceipt({
+      note: clipFact(src.fact != null ? src.fact : admitted.frozen.fact) || `${src.slug || "azpipe"} return`,
+      kind: "runtime-return",
+      summary: `FragGate return ${src.slug || "azpipe"} ${src.op || ""}`.trim(),
+      context: {
+        kind: "runtime-return",
+        rose_transition_hash: roseHash,
+        temporallock_hash: temporal && temporal.hash,
+        chainlock_out: exit && exit.card ? exit.card.h : null,
+      },
+    });
+  } catch {
+    forged = { ok: false, refuse: "forge-skip" };
+  }
+  env.forgereceipts = forged && forged.ok ? { hash: forged.receipt && forged.receipt.hash, ok: true } : { ok: false };
+
   env.domain_doors = domainDoorsCite();
+  env.domain_layer = domainLayerCite(src.slug);
   env.ok = true;
   env.response = true;
+  env.return = true;
   env.inner = {
     entry: null,
     exit: exit && exit.card ? exit.card : null,
@@ -518,6 +705,10 @@ export async function pipeOutbound(input = {}) {
     static: { h: admitted.frozen.h, fh: admitted.frozen.fh, ts: admitted.frozen.ts, body: admitted.folded },
     temporal,
     staticclock,
+    roseclock: env.roseclock,
+    forgereceipts: env.forgereceipts,
+    ase: env.ase,
+    vector: env.vector,
     inspection: env.domain_doors.inspection,
   };
   env.admitted = admitted.folded;
