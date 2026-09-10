@@ -369,7 +369,7 @@ export function updateManifest(origin, products, extra = {}) {
   }));
   items.push({
     slug: RUNTIME_SOFTWARE_SLUG,
-    name: "Aziel Eliab Runtime",
+    name: "Aziel Runtime",
     bucket: "plain",
     status: "live",
     latest: extra.runtimeVersion || extra.version || null,

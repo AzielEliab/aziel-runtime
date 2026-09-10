@@ -30,7 +30,7 @@ export const CRAWLER_ALLOW_MENTION =
   "GPTBot/ChatGPT, Venice, Grok, Google-Extended, GoogleOther, Google-CloudVertexBot, Claude(+Search/User), anthropic-ai, Perplexity(+User), bingbot, Meta-External*, Applebot(+Extended), Amazonbot, DuckDuck/DuckAssist, MistralAI-User, YouBot, CCBot, cohere-ai, cohere-training-data-crawler, Diffbot, AI2Bot(+Dolma), Timpibot, Petalbot, Bytespider, Omgili(+bot), FirecrawlAgent, ImagesiftBot, FacebookBot, TikTokSpider, Baiduspider*, Yandex";
 
 export const HOMEPAGE_KEYWORDS =
-  "Aziel Eliab, Aziel Elroi Eliab, Aziel Digital Library, aziel-runtime, Aziel Eliab software, ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere";
+  "Aziel Runtime, aziel-runtime, Aziel Eliab, Aziel Elroi Eliab, node-meshed MCP Softwares, digital forensics, systems auditing, FragGate, not an API aggregator, Aziel Digital Library, ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere";
 
 export function compatibleClientsProse() {
   return `${COMPATIBLE_AI_CLIENTS.join(", ")}, ${COMPATIBLE_AI_CLIENTS_PLUS}`;

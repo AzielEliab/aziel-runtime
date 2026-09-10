@@ -6,16 +6,19 @@ This repo does **not** own VibeLock or other product Workers. Copy this pattern 
 
 ## Identity
 
-- Primary name: **Aziel Eliab**
+- Public product name: **Aziel Runtime** (`aziel-runtime`)
+- Primary author: **Aziel Eliab**
 - `alternateName` / aka only: **Aziel Elroi Eliab**
 - Do not invent other identities.
 - Do not invent Zenodo DOIs. Cite `/cite.json`.
+- Crawler lead is the canonical abstract. Version notes (1.7.x, **1.9 / AZRT-1.9-CLOSE-1.0**, later) stay **below** the abstract.
 
 ## Required routes
 
 | Path | MIME | Purpose |
 |------|------|---------|
-| `GET /` | `text/html; charset=utf-8` | Indexable homepage |
+| `GET /` | `text/html; charset=utf-8` | Indexable homepage. Lead with the Aziel Runtime abstract (not a changelog). |
+| `GET /about` | `text/html; charset=utf-8` | What / for whom / how agents / how hubs / what it is not |
 | `GET /robots.txt` | `text/plain; charset=utf-8` | Open crawl |
 | `GET /sitemap.xml` | `application/xml; charset=utf-8` | This host only |
 | `GET /llms.txt` | `text/plain; charset=utf-8` | LLM / AI crawlers |
@@ -184,7 +187,7 @@ No invented DOIs. Historical tombstones may be listed with `zenodo_status`.
 
 ## llms.txt
 
-Plain text. Lead with Aziel Eliab, the product one-liner, Worker `/`, `/cite.json`, counted `/download`, and a pointer to the Digital Library + runtime catalog.
+Plain text. Lead with **What this is** — the canonical Aziel Runtime abstract (not a version mash). Then How to use (FragGate list→describe→call; `/v1/software`; `/mcp`). Version history (including **1.9 / AZRT-1.9-CLOSE-1.0**) goes **below** that abstract. Never replace the abstract with a changelog.
 
 Name the full compatible AI client list (ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants) and the robots.txt Allow set above. Do not claim support is only Grok / ChatGPT / Venice.
 
@@ -224,10 +227,11 @@ Runtime HTML shells (content negotiation — hubs still get JSON by default):
 
 | Path | Unique title |
 |------|----------------|
-| `GET /` | Aziel Eliab Runtime |
-| `GET /v1/software` (`Accept: text/html`) | Softwares — Aziel Eliab Runtime |
-| `GET /v1/fraggate/describe` (`Accept: text/html`) | FragGate describe — Aziel Eliab Runtime |
-| `GET /v1/fraggate/describe?slug=` (`Accept: text/html`) | `{Name} — FragGate describe — Aziel Eliab Runtime` |
+| `GET /` | Aziel Runtime — node-meshed MCP Softwares suite (not an API aggregator) |
+| `GET /about` | About — Aziel Runtime |
+| `GET /v1/software` (`Accept: text/html`) | Softwares — Aziel Runtime |
+| `GET /v1/fraggate/describe` (`Accept: text/html`) | FragGate describe — Aziel Runtime |
+| `GET /v1/fraggate/describe?slug=` (`Accept: text/html`) | `{Name} — FragGate describe — Aziel Runtime` |
 
 JSON-LD Person + SoftwareApplication / ItemList on those shells. Homepage Worker UI CSS is unchanged.
 

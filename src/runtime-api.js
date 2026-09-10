@@ -34,12 +34,13 @@ import { citeCompatibleFields, skillCompatibleSection } from "./ai-clients.js";
 import { auditsSkillMarkdown, designsSkillMarkdown } from "./seo.js";
 import { LOCKED_STRIP } from "./azpipe.js";
 
-export const RUNTIME_VERSION = "1.7.10";
+export const RUNTIME_VERSION = "1.7.11";
 export const RUNTIME_ROLE = "engine-runtime";
 export const RUNTIME_LAYER = "catalog+pull+proxy+session+in-process-engines+fraggate";
 
 export const VERSION_HISTORY = [
-  { version: "1.7.10", status: "current", note: "QNM Live Nodes durable fan-out: suite-presence is operator-enabled. GET /v1/mesh never enables. While enabled, cron (*/2 * * * *) or request-path joins/heartbeats every live Softwares product Worker (node_id {slug}-worker, no '|'; TTL 5 min). Product Workers proxy /v1/mesh/* via AZIEL_RUNTIME. Not a login mesh. Not Node Gate. Not QNM-S. Remain-Off-by-Design items stay off. Identity Aziel Eliab only." },
+  { version: "1.7.11", status: "current", note: "SEO clarity: crawler surfaces (homepage meta/JSON-LD, /llms.txt, /cite.json, /about) lead with the Aziel Runtime definition — node-meshed MCP Softwares suite for digital forensics and auditing; not an API aggregator. Changelog stays below the abstract. FragGate remains THE single door. GET /v1/mesh never enables. Identity Aziel Eliab only." },
+  { version: "1.7.10", status: "superseded", note: "QNM Live Nodes durable fan-out: suite-presence is operator-enabled. GET /v1/mesh never enables. While enabled, cron (*/2 * * * *) or request-path joins/heartbeats every live Softwares product Worker (node_id {slug}-worker, no '|'; TTL 5 min). Product Workers proxy /v1/mesh/* via AZIEL_RUNTIME. Not a login mesh. Not Node Gate. Not QNM-S. Remain-Off-by-Design items stay off. Identity Aziel Eliab only." },
   { version: "1.7.9", status: "superseded", note: "AZCoherence catalog + engine cross_map / peers: azclce (peer scorer), AKM-TRIAD (fabric neighbor — not merged), AZInterface (human UI), Softwares hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk), product Worker URL. azclce reciprocates. Domain stays null (scoring-review placement; same pattern as decisiongate/forgereceipts). LIVE_OPS health/skill/doctor/verify and azbot toolkit cite azcoherence. Mesh stays default-off. Remain-Off-by-Design items stay off. Identity Aziel Eliab only." },
   { version: "1.7.8", status: "superseded", note: "EmbryoLock is a true in-process engine (engine_digest) in Vault/Custody with ARK. LIVE_OPS health/skill/doctor/verify-hash/policy/limitation cite the AzielEliab/EmbryoLock Stealth+ v1.1 contract. Wipe/scorch/unlock-after-fail stay FG-STUB on the public mesh (Never execute on the public mesh). Catalog status live-with-local-destructive-boundary. Softwares worker_home https://embryolock-download-tracker.vibelock.workers.dev/. AZChat stays name-only stub. 1.7.7 AZCoherence remains. Mesh stays default-off. Remain-Off-by-Design items stay off. Identity Aziel Eliab only." },
   { version: "1.7.7", status: "superseded", note: "AZCoherence (AZC-0.1) lands as a true in-process FragGate Softwares engine and Softwares-tab Plain card (slug azcoherence). Second-pass triad coherence reviewer: primary vs alternate → PASS/FLAG/NEUTRALIZE/REFUSE. LIVE_OPS health/skill/doctor/verify/review_triad/alternate_score/coherence_check/neutralize_hallucination. Placement scoring-review (Language/AZ-CLCE adjacent); not a 34th MASTER-33 isolation software; not AKM-TRIAD fabric. Product cite https://github.com/AzielEliab/AZCoherence. Never invents evidence. Confidence ≠ truth. Mesh stays default-off. Remain-Off-by-Design items stay off. Identity Aziel Eliab only." },
@@ -80,8 +81,8 @@ export function authoritySnapshot(productSlugs) {
   return {
     ok: true,
     product: "aziel-runtime",
-    name: "Aziel Eliab Runtime",
-    title: "Aziel Eliab Runtime",
+    name: "Aziel Runtime",
+    title: "Aziel Runtime",
     author: "Aziel Eliab",
     identity: "Aziel Eliab",
     version: RUNTIME_VERSION,
@@ -139,8 +140,12 @@ export function runtimeSkillMarkdown(origin, products) {
   const slugs = products.map((p) => p.slug).join(", ");
   const local = trueEngineSlugs().join(", ");
   return `---
-name: Aziel Eliab Runtime
+name: Aziel Runtime
 description: >-
+  Aziel Runtime is not merely an API orchestrator or software aggregator; it is a
+  node-meshed orchestration suite of MCP-connected software designed to coordinate
+  specialized tools through a shared, security-gated runtime while preserving
+  provenance, chain-of-custody, temporal integrity, and auditable execution.
   One door — discover, route, refuse. FragGate over the catalog: hashed
   registry, DecisionGATE after ChainLock-IN, ask/refuse ledger. Dual surface —
   agent/MCP has no technical UI chrome; Worker UI, Flutter mobile/, local
@@ -178,7 +183,7 @@ description: >-
   https://github.com/AzielEliab/fraggate
 ---
 
-# Aziel Eliab Runtime
+# Aziel Runtime
 
 This is software you use in chat. **One door — discover, route, refuse.** There is no extra technical UI for the agent surface. Show the user the software output, then take the next input.
 
