@@ -150,6 +150,7 @@ import {
   auditsSitemapUrls,
   auditGithubUrl,
   FEATURE_STATE_AUDIT,
+  REMAIN_OFF_BY_DESIGN,
   libraryJsonLd,
   llmsCiteBlock,
   llmsIdentityHeader,
@@ -1670,7 +1671,7 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
   <p>LIVE fabric (not Softwares-tab): AZPIPE, SweepGate, ChainLock, LOCKSET, packed catalog, Lamb Lens, Sentinel, RoseClock, <strong>QNS-CD-1.0</strong> (photon QNS1 1.3; local <code>qnsd</code>; Worker cites only), MASTER-33 (SUITE-PIPE-1.6.15 historical), <strong>AKM-TRIAD-1.0</strong> (adaptive recollection; Bayesian posterior ≠ truth; behind FragGate). MCP <code>chainlock_*</code> and <code>memory_*</code>. <code>GET /v1/mesh</code> never enables. <code>GET /v1/qns</code> cites the packet-transfer coding design — it does not proxy local via emit. <code>GET /v1/azpipe/arch</code> cites the locked MASTER-33 strip (same payload as <code>GET /v1/fraggate</code> <code>pipeline</code>; not a Softwares-tab door). UI=MCP. No Node Gate.</p>
   <p>Donation is a static tab — no KV, no invented wallets. Networks the operator already controls (Bitcoin, Lightning, Ethereum, Solana); paste addresses at publish time.</p>
   <p>Designs (git-hosted papers — not Softwares-tab products, not a FragGate slug; <code>GET /v1/mesh</code> never enables): <a href="${DESIGNS_GITHUB_TREE}">docs/designs/</a>${SUITE_DESIGNS.map((d) => ` · <a href="${designGithubUrl(d.file)}">${escapeHtml(d.id)}</a>`).join("")}. Author: Aziel Eliab only. PDFs sit beside each paper on GitHub.</p>
-  <p>Feature-state audit (authoritative intentional-OFF vs gaps for 1.7.3+; not a Softwares-tab product, not a FragGate slug): <a href="${auditGithubUrl(FEATURE_STATE_AUDIT.file)}">${escapeHtml(FEATURE_STATE_AUDIT.id)}</a> · <a href="${auditGithubUrl(FEATURE_STATE_AUDIT.pdf)}">PDF</a> · <a href="${AUDIT_GITHUB_TREE}">docs/audit/</a>. Do not enable mesh or safety stubs. Author: Aziel Eliab only.</p>
+  <p>Feature-state audit (authoritative intentional-OFF vs gaps for 1.7.3+; not a Softwares-tab product, not a FragGate slug): <a href="${auditGithubUrl(FEATURE_STATE_AUDIT.file)}">${escapeHtml(FEATURE_STATE_AUDIT.id)}</a> · <a href="${auditGithubUrl(FEATURE_STATE_AUDIT.pdf)}">PDF</a> · <a href="${AUDIT_GITHUB_TREE}">docs/audit/</a>. Constitutional OFF set (33 items; correctly OFF/REFUSED/GATED is not a gap): <a href="${designGithubUrl(REMAIN_OFF_BY_DESIGN.file)}">${escapeHtml(REMAIN_OFF_BY_DESIGN.id)}</a> · <a href="${designGithubUrl(REMAIN_OFF_BY_DESIGN.pdf)}">PDF</a>. Do not enable mesh or safety stubs. Author: Aziel Eliab only.</p>
   <h2>Session (the actual cut)</h2>
   <ol>
     <li><code>POST ${origin}/v1/session/open</code></li>
