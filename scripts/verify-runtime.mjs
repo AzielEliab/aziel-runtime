@@ -88,6 +88,8 @@ assert.match(skillText, /intentional-OFF vs gaps/);
 assert.match(skillText, /REMAIN-OFF-BY-DESIGN-2026-09-10/);
 assert.match(skillText, /constitutional OFF set/);
 assert.match(skillText, /AZL-DONATE-1\.0/);
+assert.match(skillText, /live-with-local-destructive-boundary/);
+assert.doesNotMatch(skillText, /EmbryoLock is STUB at FEATURE-STATE ingest/);
 assert.doesNotMatch(skillText, /runtime_run` \/ `fraggate_call` require/);
 assert.match(skillText, /runtime_run/);
 assert.match(skillText, /advanced\/internal/);

@@ -17,6 +17,7 @@ import {
   LIMITATION,
   POLICY,
   PUBLISHED_SHA256,
+  REMAIN_OFF,
   SOURCE,
   SOURCE_CITE,
   SPEC,
@@ -58,6 +59,11 @@ assert.equal(SOURCE_CITE.aead.name, "AESGCM");
 assert.equal(SOURCE_CITE.max_attempts, 3);
 assert.equal(POLICY.recovery, false);
 assert.equal(POLICY.public_mesh_destructive, false);
+assert.equal(REMAIN_OFF.id, "REMAIN-OFF-BY-DESIGN-2026-09-10");
+assert.deepEqual(REMAIN_OFF.items.slice(), [3, 28]);
+assert.equal(POLICY.remain_off, REMAIN_OFF.id);
+assert.deepEqual(POLICY.remain_off_items.slice(), [3, 28]);
+assert.equal(POLICY.remain_off_do_not_enable, true);
 assert.match(LIMITATION, /Never execute on the public mesh/);
 assert.equal(PUBLISHED_SHA256, "fa2e7203bd3924170e94c62357e29764b925a82c2cf708807128bd096333250d");
 
@@ -101,6 +107,8 @@ const health = embryolockHealth();
 assert.equal(health.ok, true);
 assert.equal(health.true_engine_runtime, true);
 assert.equal(health.public_mesh_destructive, false);
+assert.equal(health.remain_off, REMAIN_OFF.id);
+assert.deepEqual(health.remain_off_items, [3, 28]);
 assert.equal(health.surface, SURFACE);
 
 const doctor = embryolockDoctor();

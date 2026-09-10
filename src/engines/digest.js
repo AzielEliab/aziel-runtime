@@ -90,7 +90,7 @@ export const ENGINE_DIGESTS = {
   "aziel-corpus": "a33ad0018f479f954bfd0e5881f871af04bf9b39f2565db2e0cdb591f6fc8085",
   "4dmap": "0e780ef2db7c1aa9487d1d341f603fe66ab439688d2ba1ab28fa0063f1d26bb0",
   "azcoherence": "e7c4a6887bf7566eaf803baa170c21d15e4ac95d267837f88f41ef238e910ff2",
-  "embryolock": "7868e648bb76a888d2bb62c782716d1973db365392e549801b90ea5e66d65708",
+  "embryolock": "bc7f6119a4bf6910b5be50cabe19bf4a2e35ac60408b5713e94878bd4e0074f3",
 };
 
 export function trueEngineSlugs() {

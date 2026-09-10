@@ -30,7 +30,7 @@ Companion: [FEATURE-STATE-2026-09-10](../audit/FEATURE-STATE-2026-09-10.md) list
 | ---: | --- | --- | ---: | --- |
 | 1 | Mesh auto-enable | OFF | 1, 3 | `GET /v1/mesh` never enables; empty POST → `MESH-NEED-BEARER` |
 | 2 | QNS public proxy | OFF | 2 | `POST /v1/qns/via` → `QNS-NO-PROXY` |
-| 3 | ARK destructive / hosted unlock | REFUSE | 8 | stub `scorch` / `wipe` / `unlock` / `encrypt` |
+| 3 | Vault/Custody destructive / hosted unlock (ARK + EmbryoLock wipe/scorch) | REFUSE / LOCAL-ONLY | 4, 8 | ARK stub `scorch` / `wipe` / `unlock` / `encrypt`; EmbryoLock wipe/scorch `FG-STUB` on public mesh |
 | 4 | WhistleLock send / mail / release | REFUSE | 9 | stub `send` / `mail` / `release` |
 | 5 | MirageGrid VPN-hop / tunnel / mesh | REFUSE | 10 | stub `vpn-hop` / `hop` / `tunnel` / `mesh` |
 | 6 | AzielTether VPN / arm / mesh-join | REFUSE | 11 | stub `vpn` / `arm` / `mesh-join` |
@@ -86,13 +86,17 @@ Do not: proxy 127.0.0.1, add Softwares slug `qns` / `qnsd`, treat QNS as a FragG
 
 FEATURE-STATE #2.
 
-## 3. ARK destructive / hosted unlock — REFUSE
+## 3. Vault/Custody destructive / hosted unlock — REFUSE / LOCAL-ONLY
 
-Stub ops: `scorch`, `wipe`, `unlock`, `encrypt`. Hosted ARK never unlocks a vault. Advisory `sweep` / `levels` / `health` / `skill` stay live.
+Vault/Custody holds ARK + EmbryoLock (isolation label, not a second door).
 
-Do not: host wipe, invent unlock success, treat ARK as a kernel.
+**ARK** stub ops stay **REFUSE** on the public runtime: `scorch`, `wipe`, `unlock`, `encrypt`. Hosted ARK never unlocks a vault. Advisory `sweep` / `levels` / `health` / `skill` stay live.
 
-FEATURE-STATE #8.
+**EmbryoLock** land (runtime 1.7.7) may take health / skill / doctor / policy / limitation / verify-hash **LIVE**. Destructive vault `wipe` / `scorch` / `unlock` / `unlock-after-fail` stay **LOCAL-ONLY** / `FG-STUB` on the public mesh — Never execute on the public mesh. This isolate does not run Argon2id or AES-GCM.
+
+Do not: host ARK wipe/unlock/encrypt, invent unlock success, treat ARK as a kernel, or execute EmbryoLock wipe/scorch on the public mesh.
+
+FEATURE-STATE #8 (ARK), #4 (EmbryoLock live-with-local-destructive-boundary).
 
 ## 4. WhistleLock send / mail / release — REFUSE
 
@@ -288,7 +292,7 @@ FEATURE-STATE #42.
 
 ## 28. Destructive / fantasy fallback — REFUSE
 
-Named stub verbs (scorch / wipe / send / vpn / inject / blend / exec / unlock fantasies) return **`FG-STUB`** or the engine's named refuse. DecisionGATE BLOCK / Lamb REFUSE / SweepGate isolate close at the hop. No handler means no exec.
+Named stub verbs (scorch / wipe / send / vpn / inject / blend / exec / unlock fantasies) return **`FG-STUB`** or the engine's named refuse. That includes **ARK** `scorch` / `wipe` / `unlock` / `encrypt` and **EmbryoLock** public-mesh `wipe` / `scorch` / `unlock` / `unlock-after-fail`. DecisionGATE BLOCK / Lamb REFUSE / SweepGate isolate close at the hop. No handler means no exec.
 
 Do not: map a stub to a live op "for completeness." Completeness is not a reason to enable.
 
@@ -339,14 +343,14 @@ FEATURE-STATE #49.
 ## What this paper is not
 
 - Not a gap list. Gaps live in FEATURE-STATE (NOT IMPLEMENTED / PARTIAL / STUB-being-landed).
-- Not permission to enable EmbryoLock wipe/unlock on the public mesh (FEATURE-STATE #4 — parallel land is live+local-destructive-boundary only).
+- Not permission to enable EmbryoLock wipe/scorch/unlock on the public mesh (FEATURE-STATE #4 — 1.7.7 land is live-with-local-destructive-boundary only; health/skill/doctor/policy may be LIVE).
 - Not permission to promote AZChat (FEATURE-STATE #5).
 - Not a Softwares-tab product, not a FragGate slug, not a fleet-completeness claim.
 - Not a deploy. This ingest is cite-only.
 
 ## Do not do from this paper
 
-Do not enable mesh from GET. Do not proxy QNS. Do not host ARK unlock / wipe, WhistleLock send, MirageGrid hop, Tether VPN, VeilLock inject, AZ-OS exec, AZMail deanonymize, PeaceLock fabricate, 4DMap truth/invent/backdate, AZBrowser Tor/phoenix, or AZNet payloads. Do not auto-unlock Hub or Interface. Do not add rollback. Do not add LambGate. Do not put AZPIPE or AKM on the Softwares-tab. Do not let posterior authorize. Do not dump flat MCP. Do not make `/p` exec. Do not make FragGate, Mesh, or the 11 domains into extra doors.
+Do not enable mesh from GET. Do not proxy QNS. Do not host ARK unlock / wipe / encrypt. Do not execute EmbryoLock wipe / scorch on the public mesh. Do not host WhistleLock send, MirageGrid hop, Tether VPN, VeilLock inject, AZ-OS exec, AZMail deanonymize, PeaceLock fabricate, 4DMap truth/invent/backdate, AZBrowser Tor/phoenix, or AZNet payloads. Do not auto-unlock Hub or Interface. Do not add rollback. Do not add LambGate. Do not put AZPIPE or AKM on the Softwares-tab. Do not let posterior authorize. Do not dump flat MCP. Do not make `/p` exec. Do not make FragGate, Mesh, or the 11 domains into extra doors.
 
 ---
 

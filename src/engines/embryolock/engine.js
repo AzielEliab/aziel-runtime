@@ -27,6 +27,15 @@ export const DOMAIN_ID = "01";
 export const NEIGHBOR = "ark";
 export const SURFACE = "live-with-local-destructive-boundary";
 
+/** Constitutional OFF set. Cite only. Do not enable remain-off items. */
+export const REMAIN_OFF = Object.freeze({
+  id: "REMAIN-OFF-BY-DESIGN-2026-09-10",
+  items: Object.freeze([3, 28]),
+  ark_refuse: Object.freeze(["scorch", "wipe", "unlock", "encrypt"]),
+  embryolock_local_only: Object.freeze(["wipe", "scorch", "unlock", "unlock_after_fail"]),
+  do_not_enable: true,
+});
+
 /**
  * Published product SHA-256 from the EmbryoLock repo `SHA256HASH` file.
  * Cite / compare only. Not a vault key and not an unlock proof.
@@ -81,6 +90,7 @@ export const LIMITATION =
   "Does not defeat live OS compromise, keyloggers, or forensic-lab adversaries. " +
   "No recovery, no master key, no remote kill switch, no backups. " +
   "Wipe / scorch / unlock-after-fail MUST remain local-only — Never execute on the public mesh. " +
+  "Cites REMAIN-OFF-BY-DESIGN-2026-09-10 items 3 and 28. ARK scorch/wipe/unlock/encrypt stay REFUSE. " +
   "Vault/Custody domain isolation label (with ARK). Not a second door. Author: Aziel Eliab only.";
 
 export const POLICY = Object.freeze({
@@ -100,6 +110,9 @@ export const POLICY = Object.freeze({
   destruction_over_recovery: true,
   recovery: false,
   public_mesh_destructive: false,
+  remain_off: "REMAIN-OFF-BY-DESIGN-2026-09-10",
+  remain_off_items: Object.freeze([3, 28]),
+  remain_off_do_not_enable: true,
   local_only_ops: [
     "wipe",
     "scorch",
@@ -139,6 +152,9 @@ function envelope(extra = {}) {
     surface: SURFACE,
     local_destructive_boundary: true,
     public_mesh_destructive: false,
+    remain_off: REMAIN_OFF.id,
+    remain_off_items: REMAIN_OFF.items.slice(),
+    remain_off_do_not_enable: true,
     true_engine_runtime: true,
     kv_increment: false,
     limitation: LIMITATION,
@@ -152,7 +168,8 @@ export function embryolockHealth() {
     live_ops: LIVE_ENGINE_OPS.slice(),
     note:
       "True in-process engine. Cite / health / verify-hash only on the public mesh. " +
-      "Never execute wipe / scorch / unlock-after-fail on the public mesh.",
+      "Never execute wipe / scorch / unlock-after-fail on the public mesh. " +
+      "Cites REMAIN-OFF-BY-DESIGN-2026-09-10 items 3 and 28.",
   });
 }
 
@@ -166,7 +183,7 @@ Offline encrypted vault. **Destruction over recovery.** FragGate is THE single d
 **LIVE** on the public mesh: health, skill, doctor, verify-hash, policy, limitation cite.
 
 **LOCAL-ONLY / FG-STUB:** wipe, scorch, unlock, unlock-after-fail, encrypt, decrypt, initialize, login.
-Never execute those on the public mesh.
+Never execute those on the public mesh. Constitutional cite: REMAIN-OFF-BY-DESIGN-2026-09-10 items 3 and 28.
 
 Source: ${SOURCE} (\`${SOURCE_PATH}\`, ${WHITEPAPER}).
 Cited KDF/AEAD: Argon2id + AES-GCM as declared in Stealth+ v1.1 — this isolate does not run them.
