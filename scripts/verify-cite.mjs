@@ -134,7 +134,7 @@ assert.ok(citeBody.extras.some((e) => e.slug === "mesh"));
 assert.ok(citeBody.designs);
 assert.equal(citeBody.designs.folder, "docs/designs/");
 assert.match(citeBody.designs.how_to_cite, /Eliab, Aziel/);
-assert.equal(citeBody.designs.papers.length, 12);
+assert.equal(citeBody.designs.papers.length, 13);
 assert.ok(citeBody.designs.papers.some((p) => p.id === "QNS-CD-1.0" && p.path === "docs/designs/QNS-CD-1.0.md" && p.kind === "fabric"));
 assert.ok(citeBody.designs.papers.some((p) => p.id === "4DM-WP-1.0" && p.path === "docs/designs/4DM-WP-1.0.md" && p.kind === "software"));
 assert.ok(citeBody.designs.papers.some((p) => p.id === "CL-WP-0.4" && p.kind === "fabric"));

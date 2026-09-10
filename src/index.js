@@ -1341,7 +1341,7 @@ const PAGE_CSS = `
 `;
 
 function doorOnly(p) {
-  return p && (p.slug === "azbrowser" || p.slug === "azmail" || p.slug === "aznet" || p.slug === "azhub" || p.slug === "azinterface");
+  return p && (p.slug === "azbrowser" || p.slug === "azmail" || p.slug === "aznet" || p.slug === "azhub" || p.slug === "azinterface" || p.slug === "4dmap");
 }
 
 function fragGateDoorHtml(p, origin) {
