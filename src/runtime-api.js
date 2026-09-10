@@ -171,7 +171,7 @@ FragGate kernel: https://github.com/AzielEliab/fraggate (FG-0.1)
 ## How an agent uses this like software
 
 1. **Discover.** \`runtime_skill\` or \`fraggate_list\` (hashed registry: live / stub / local_only). \`fraggate_describe\` one name. \`fraggate_verify\` a name or digest.
-2. **Route.** \`fraggate_call\` with a CallEnvelope \`{ name|slug, op, payload, claim? }\`. Locked path: FragGate → SweepGate → ChainLock-IN → DecisionGATE → AZPIPE → Domain Doors (4DMap inspection) → TemporalLock → StaticClock → ChainLock-OUT → Response/Receipt. DecisionGATE runs after ChainLock-IN and before domain exec. Live allowlist: every sensible advisory / score / classify / gate / search / preview / render / verify / hash / receipt / game / overlay / route / status engine already hosted in-process. VeilLock stays local_only. Stub verbs still refuse.
+2. **Route.** \`fraggate_call\` with a CallEnvelope \`{ name|slug, op, payload, claim? }\`. Locked path (MASTER-33): FragGate → Lamb Lens → SweepGate → Sentinel → Provenance/Input Packet → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → optional ASE → RoseClock → TemporalLock → ChainLock-OUT → ForgeReceipts → Return. FragGate is THE single door. Lamb Lens is fabric after FragGate. Domain softwares execute only after AZPIPE. Live allowlist: every sensible advisory / score / classify / gate / search / preview / render / verify / hash / receipt / game / overlay / route / status engine already hosted in-process. VeilLock stays local_only. Stub verbs still refuse.
 3. **Refuse.** Unknown names return \`FG-HALLUC-TOOL\`. Stubs and \`local_only\` do not execute on the public mesh. Gate BLOCK/REVISE is ledgered; no handler.
 4. **Show the output.** Results are \`{ display, result, ledger_tip? }\`. Show \`display\` to the user.
 5. **Take the next input.**
@@ -299,7 +299,7 @@ ${skillCompatibleSection(base)}
 | GET | \`/v1/fraggate/list\` | Hashed registry entries. |
 | GET | \`/v1/fraggate/describe\` | Describe one name (\`?name=\` / \`?slug=\`). |
 | POST | \`/v1/fraggate/verify\` | Verify a name or digest. |
-| POST | \`/v1/fraggate/call\` | CallEnvelope → FragGate → SweepGate → ChainLock-IN → DecisionGATE → AZPIPE → Domain Doors → TemporalLock → StaticClock → ChainLock-OUT → Response/Receipt. |
+| POST | \`/v1/fraggate/call\` | CallEnvelope → FragGate → Lamb Lens → SweepGate → Sentinel → Provenance → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → RoseClock → TemporalLock → ChainLock-OUT → ForgeReceipts → Return. |
 | GET | \`/v1/runtime\` | Alias of \`/v1/runtime.json\` (same machine manifest). |
 | GET | \`/v1/ready\` | Readiness. 200 if SESSION binding is up. 503 if \`REQUIRE_TOKEN=1\` and \`RUNTIME_TOKEN\` missing. |
 | HEAD | \`/v1/health\`, \`/v1/ready\`, \`/v1/runtime.json\`, \`/v1/skill\` | 200 + \`X-Aziel-Runtime-Version\` / \`X-Aziel-Runtime-Role\`. |
@@ -982,7 +982,7 @@ export function runtimeStaticPaths() {
       post: {
         operationId: "fraggate_call",
         summary:
-          "CallEnvelope in → FragGate → SweepGate → ChainLock-IN → DecisionGATE → AZPIPE → Domain Doors (4DMap inspection) → TemporalLock → StaticClock → ChainLock-OUT → Response/Receipt. DecisionGATE after ChainLock-IN, before domain exec. AZHub LIVE_OPS, AZInterface LIVE_OPS, AZBrowser LIVE_OPS (ethical_search, lamb_lens_search, navigate, airlock_ingest, tab_open, tab_list, receipt_list, verify, receipt_verify, health, skill) and AZNet LIVE_OPS (health, pair_status, garden_list, stamp, verify_hash, memorial_list, memorial_append, receipt_verify, skill) are reached only through this door — same ops as MCP fraggate_call and the Worker UI buttons. AZHub, AZInterface, AZNet, and AZBrowser are separate products.",
+          "CallEnvelope in → FragGate → Lamb Lens → SweepGate → Sentinel → Provenance/Input Packet → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → optional ASE → RoseClock → TemporalLock → ChainLock-OUT → ForgeReceipts → Return. FragGate is THE single door. Lamb Lens is fabric after FragGate. Domain softwares execute only after AZPIPE. AZHub LIVE_OPS, AZInterface LIVE_OPS, AZBrowser LIVE_OPS (ethical_search, lamb_lens_search, navigate, airlock_ingest, tab_open, tab_list, receipt_list, verify, receipt_verify, health, skill) and AZNet LIVE_OPS (health, pair_status, garden_list, stamp, verify_hash, memorial_list, memorial_append, receipt_verify, skill) are reached only through this door — same ops as MCP fraggate_call and the Worker UI buttons. AZHub, AZInterface, AZNet, and AZBrowser are separate products.",
         tags: ["fraggate"],
         requestBody: {
           required: true,
