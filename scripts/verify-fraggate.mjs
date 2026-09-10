@@ -173,6 +173,12 @@ for (const [slug, ops] of Object.entries(LIVE_OPS)) {
     assert.ok(!PRODUCTS.some((p) => p.slug === "mesh"), "mesh is not a catalog Software product");
     continue;
   }
+  if (slug === "memory") {
+    assert.ok(registry.bySlug.memory && registry.bySlug.memory.kind === "kernel");
+    assert.ok(!PRODUCTS.some((p) => p.slug === "memory"), "memory is not a catalog Software product");
+    assert.equal(registry.bySlug.memory.software_tab, false);
+    continue;
+  }
   const product = PRODUCTS.find((p) => p.slug === slug);
   assert.ok(product, `LIVE_OPS slug ${slug} must be a catalog product`);
   const catalogOps = new Set((product.ops || []).map((o) => o.op));
