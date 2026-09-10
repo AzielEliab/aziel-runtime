@@ -92,7 +92,7 @@ Vault/Custody holds ARK + EmbryoLock (isolation label, not a second door).
 
 **ARK** stub ops stay **REFUSE** on the public runtime: `scorch`, `wipe`, `unlock`, `encrypt`. Hosted ARK never unlocks a vault. Advisory `sweep` / `levels` / `health` / `skill` stay live.
 
-**EmbryoLock** land (runtime 1.7.7) may take health / skill / doctor / policy / limitation / verify-hash **LIVE**. Destructive vault `wipe` / `scorch` / `unlock` / `unlock-after-fail` stay **LOCAL-ONLY** / `FG-STUB` on the public mesh — Never execute on the public mesh. This isolate does not run Argon2id or AES-GCM.
+**EmbryoLock** land (runtime 1.7.8) may take health / skill / doctor / policy / limitation / verify-hash **LIVE**. Destructive vault `wipe` / `scorch` / `unlock` / `unlock-after-fail` stay **LOCAL-ONLY** / `FG-STUB` on the public mesh — Never execute on the public mesh. This isolate does not run Argon2id or AES-GCM.
 
 Do not: host ARK wipe/unlock/encrypt, invent unlock success, treat ARK as a kernel, or execute EmbryoLock wipe/scorch on the public mesh.
 
@@ -343,7 +343,7 @@ FEATURE-STATE #49.
 ## What this paper is not
 
 - Not a gap list. Gaps live in FEATURE-STATE (NOT IMPLEMENTED / PARTIAL / STUB-being-landed).
-- Not permission to enable EmbryoLock wipe/scorch/unlock on the public mesh (FEATURE-STATE #4 — 1.7.7 land is live-with-local-destructive-boundary only; health/skill/doctor/policy may be LIVE).
+- Not permission to enable EmbryoLock wipe/scorch/unlock on the public mesh (FEATURE-STATE #4 — 1.7.8 land is live-with-local-destructive-boundary only; health/skill/doctor/policy may be LIVE).
 - Not permission to promote AZChat (FEATURE-STATE #5).
 - Not a Softwares-tab product, not a FragGate slug, not a fleet-completeness claim.
 - Not a deploy. This ingest is cite-only.

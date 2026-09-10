@@ -58,7 +58,8 @@ Default: Worker session at ${DEFAULT_URL}
 1.6.15 locked the suite hop order (SUITE-PIPE-1.6.15; LambGate is not a hop).
 1.6.14 adds 4DMap (4DM-WP-1.0) as a Research-domain inspection frame.
 1.6.12 adds GET /v1/software (hub catalog) and GET /v1/update/check (install.sh / local UI / mobile).
-1.7.7 lands EmbryoLock as a true in-process engine (live-with-local-destructive-boundary; wipe/unlock stay local-only).
+1.7.8 lands EmbryoLock as a true in-process engine (live-with-local-destructive-boundary; wipe/unlock stay local-only).
+1.7.7 lands AZCoherence (AZC-0.1) as a true in-process FragGate Softwares engine.
 1.6.11 adds a durable FragGate UI-op alias map.
 1.6.10 sets AZBrowser and AZNet catalog one_line to separate software (not engine).
 1.6.9 frames AZHub and AZInterface as sibling softwares under the same FragGate door.
