@@ -35,6 +35,7 @@ const SKIP_GET_READS = new Set([
   "/v1/mesh/status",
   "/v1/mesh/nodes",
   "/v1/qns",
+  "/v1/azpipe/arch",
   "/v1/memory",
 ]);
 
@@ -140,6 +141,7 @@ export function inferProductOp(pathname) {
   if (path === "/v1/mesh/heartbeat") return { op: "mesh.heartbeat" };
   if (path === "/v1/mesh/leave") return { op: "mesh.leave" };
   if (path === "/v1/mesh/broadcast") return { op: "mesh.broadcast" };
+  if (path === "/v1/azpipe/arch") return { op: "azpipe.arch" };
   if (path === "/mcp") return { op: "mcp" };
   return {};
 }

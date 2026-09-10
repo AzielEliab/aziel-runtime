@@ -63,6 +63,7 @@ assert.equal(shouldIncrementUse("GET", "/v1/mesh"), false);
 assert.equal(shouldIncrementUse("GET", "/v1/mesh/status"), false);
 assert.equal(shouldIncrementUse("GET", "/v1/mesh/nodes"), false);
 assert.equal(shouldIncrementUse("GET", "/v1/qns"), false);
+assert.equal(shouldIncrementUse("GET", "/v1/azpipe/arch"), false);
 assert.equal(shouldIncrementUse("POST", "/v1/mesh/enable"), true);
 assert.equal(shouldIncrementUse("POST", "/v1/mesh/join"), true);
 assert.equal(shouldIncrementUse("POST", "/v1/uses"), false);
@@ -109,6 +110,7 @@ assert.equal(inferProductOp("/p/foldlock/fold-preview").product, "foldlock");
 assert.equal(inferProductOp("/v1/pull/azclce").op, "azclce.pull");
 assert.equal(inferProductOp("/v1/session/s1a2b3c4d5e6/exec").op, "session.exec");
 assert.equal(inferProductOp("/mcp").op, "mcp");
+assert.equal(inferProductOp("/v1/azpipe/arch").op, "azpipe.arch");
 
 assert.equal(sanitizeHostLabel("aziel-runtime.vibelock.workers.dev"), "origin");
 assert.equal(sanitizeHostLabel("www.azieleliab.com"), "azieleliab.com");
