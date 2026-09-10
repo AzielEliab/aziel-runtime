@@ -170,6 +170,8 @@ assert.match(sitemap, /\/llms\.txt/);
 assert.match(sitemap, /\/sitemap-index\.xml/);
 assert.match(sitemap, /github\.com\/AzielEliab\/aziel-runtime\/tree\/main\/docs\/designs/);
 assert.match(sitemap, /SEC-FEAT-1\.0\.md/);
+assert.match(sitemap, /QNS-CD-1\.0\.md/);
+assert.match(sitemap, /\/v1\/qns/);
 
 const indexRes = await get("/sitemap-index.xml");
 assert.equal(indexRes.status, 200);
@@ -207,6 +209,7 @@ assert.match(llms, /Baiduspider\*/);
 assert.match(llms, /\/v1\/uses/);
 assert.match(llms, /docs\/designs/);
 assert.match(llms, /SEC-FEAT-1\.0/);
+assert.match(llms, /QNS-CD-1\.0/);
 assert.match(llms, /AZL-WP-1\.1/);
 assert.match(llms, /QNM-WP-1\.0/);
 assert.match(llms, /not Softwares-tab products/);
