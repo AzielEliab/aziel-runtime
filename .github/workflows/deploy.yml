@@ -1,8 +1,9 @@
-# Deploy aziel-runtime to Cloudflare Workers on push to main.
-# Secrets (repo Settings → Secrets and variables → Actions):
-#   CLOUDFLARE_API_TOKEN
-#   CLOUDFLARE_ACCOUNT_ID   (account ac575a9b822bea2bed97d0ab73aed238)
-# Do not put real tokens in this repository.
+# Deploy aziel-runtime to Cloudflare Workers.
+# Primary deploy is Cursor/wrangler OAuth (Aziel Eliab). Actions is optional
+# backup and runs only when CLOUDFLARE_API_TOKEN is set — otherwise this job
+# is skipped (not failed) so missing secrets do not send failure emails.
+# Account id ac575a9b822bea2bed97d0ab73aed238 is the non-secret default
+# (also in wrangler.toml). Do not invent or commit tokens.
 # Author: Aziel Eliab. Identity is Aziel Eliab only.
 name: Deploy
 
@@ -13,6 +14,7 @@ on:
 
 jobs:
   deploy:
+    if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -25,32 +27,25 @@ jobs:
           node-version: "22"
 
       - name: Require Cloudflare secrets
+        id: secrets
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          missing=0
           if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
-            echo "CLOUDFLARE_API_TOKEN is missing."
-            echo "Add it in GitHub → Settings → Secrets and variables → Actions."
+            echo "Skipping Actions deploy: CLOUDFLARE_API_TOKEN is not set."
+            echo "Primary deploy is Cursor/wrangler OAuth (Aziel Eliab)."
+            echo "Actions is optional backup and runs only when CLOUDFLARE_API_TOKEN is set."
             echo "Do not invent tokens. Do not commit tokens."
-            missing=1
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
-          if [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
-            echo "CLOUDFLARE_ACCOUNT_ID is missing."
-            echo "Expected Cloudflare account ac575a9b822bea2bed97d0ab73aed238."
-            echo "Add it in GitHub → Settings → Secrets and variables → Actions."
-            echo "Do not invent tokens. Do not commit tokens."
-            missing=1
-          fi
-          if [ "$missing" -ne 0 ]; then
-            echo "Deploy refused: Cloudflare secrets are not configured."
-            exit 1
-          fi
-          echo "Cloudflare secrets are present (values not printed)."
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+          echo "Cloudflare API token is present (value not printed)."
+          echo "Account id default: ac575a9b822bea2bed97d0ab73aed238 when CLOUDFLARE_ACCOUNT_ID is unset."
 
       - name: Deploy Worker
+        if: steps.secrets.outputs.skip != 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || 'ac575a9b822bea2bed97d0ab73aed238' }}
         run: npx --yes wrangler deploy --var GIT_SHA:${{ github.sha }}
