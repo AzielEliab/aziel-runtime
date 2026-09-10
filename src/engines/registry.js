@@ -82,7 +82,7 @@ export const ENGINE_RUNNERS = {
   azhub: { ops: AZHUB_OPS, run: runAzhub, source: "AZHub AIH-WP-1.0 Blank Key / neutral spatial container (not AZInterface; FragGate only; no auto-unlock)", module: "src/engines/azhub.js" },
   azinterface: { ops: AZINTERFACE_OPS, run: runAzinterface, source: "AZInterface AIH-WP-1.0 custodial operating environment (pre-locked page cycles; not AZHub; FragGate only)", module: "src/engines/azinterface.js" },
   "aziel-corpus": { ops: AZIEL_CORPUS_OPS, run: runAzielCorpus, source: "portable sample-MASTER search (live D1 ingest/review stay per-op proxy)", module: "src/engines/aziel-corpus.js" },
-  "4dmap": { ops: FOURDMAP_OPS, run: runFourdmap, source: "4DMap 4DM-WP-1.0 four-axis inspection frame T/Δ/Γ/Π (Domain Door; not a sequential gate)", module: "src/engines/4dmap.js" },
+  "4dmap": { ops: FOURDMAP_OPS, run: runFourdmap, source: "4DMap 4DM-WP-1.0 four-axis inspection frame T/Δ/Γ/Π (inspection frame after AZPIPE; not an extra door; not a sequential gate)", module: "src/engines/4dmap.js" },
 };
 
 export { ENGINE_ARTIFACTS, embeddedDigest, isTrueEngineSlug, trueEngineSlugs };

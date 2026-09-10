@@ -42,7 +42,9 @@ assert.equal(product.worker, "4dmap-download-tracker");
 assert.equal(product.github, "https://github.com/AzielEliab/4dmap");
 assert.equal(product.version, "0.1.0");
 assert.match(product.oneLine, /4DM-WP-1\.0/);
-assert.match(product.oneLine, /not a sequential gate/i);
+assert.match(product.oneLine, /not a sequential gate|not an extra door/i);
+assert.match(product.oneLine, /inspection frame/i);
+assert.doesNotMatch(product.oneLine, /Domain Door/);
 assert.equal(product.doi, null);
 assert.equal(softwareBucket(product.name, product.slug), "plain");
 
