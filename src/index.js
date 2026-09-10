@@ -655,6 +655,12 @@ const PRODUCTS_RAW = [
       { op: "card_import", method: "POST", summary: "Import a previously exported card. Hash mismatch and invent-mark refuse." },
       { op: "verify_chain", method: "POST", summary: "Verify card prev_hash or walk card-hash chain. Not a truth score." },
       { op: "neighbor_cite", method: "POST", summary: "Cite a neighbor engine on a declared card (join type neighbor or cite)." },
+      { op: "frame", method: "POST", summary: "UI alias of frame_status. Same FragGate backend as the Worker UI button." },
+      { op: "axis", method: "POST", summary: "UI alias of axis_describe. Same FragGate backend as the Worker UI button." },
+      { op: "trace", method: "POST", summary: "UI alias of walk_trace. Same FragGate backend as the Worker UI button." },
+      { op: "export", method: "POST", summary: "UI alias of card_export. Same FragGate backend as the Worker UI button." },
+      { op: "import", method: "POST", summary: "UI alias of card_import. Same FragGate backend as the Worker UI button." },
+      { op: "neighbor", method: "POST", summary: "UI alias of neighbor_cite. Same FragGate backend as the Worker UI button." },
     ],
     example: { label: "inspect-1" },
     banner:
