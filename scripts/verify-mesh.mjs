@@ -18,11 +18,15 @@ import {
   MESH_SPEC,
   MESH_STUB_OPS,
   isSha256Hex,
+  meshCiteField,
+  meshFanoutSuitePresence,
   memoryMeshKv,
   resetMeshStore,
   runMeshOp,
   sanitizeBearer,
   sanitizeProduct,
+  suitePresenceNodeId,
+  suitePresenceTargets,
 } from "../src/mesh.js";
 
 const handler = (await import("../src/index.js")).default.fetch;
@@ -153,22 +157,46 @@ assert.equal(accountBearer.data.code, "MESH-BAD-BEARER");
 const stillOff = await jsonReq(env, "/v1/mesh");
 assert.equal(stillOff.data.enabled, false);
 
+assert.equal(suitePresenceNodeId("godlock"), "godlock-worker");
+assert.equal(suitePresenceNodeId("azcoherence"), "azcoherence-worker");
+assert.ok(!suitePresenceNodeId("anon-broadcast"));
+const targets = suitePresenceTargets(PRODUCTS);
+assert.equal(targets.length, PRODUCTS.length);
+assert.ok(targets.every((t) => t.node_id.endsWith("-worker") && !t.node_id.includes("|")));
+assert.ok(targets.some((t) => t.product === "godlock" && t.node_id === "godlock-worker"));
+
+const offFanout = await meshFanoutSuitePresence(env, { source: "test-off" });
+assert.equal(offFanout.skipped, true);
+assert.equal(offFanout.enabled, false);
+assert.equal(offFanout.get_never_enables, true);
+
 const enabled = await postJson(env, "/v1/mesh/enable", { bearer: "suite-presence" });
 assert.equal(enabled.status, 200, JSON.stringify(enabled.data));
 assert.equal(enabled.data.enabled, true);
 assert.deepEqual(enabled.data.bearers, ["suite-presence"]);
 assert.equal(enabled.data.radios, "operator");
+assert.equal(enabled.data.suite_presence, "operator-enabled");
+assert.equal(enabled.data.get_never_enables, true);
+assert.equal(enabled.data.fanout, true);
+assert.equal(enabled.data.live_nodes, PRODUCTS.length, JSON.stringify(enabled.data.products_present));
+assert.ok(enabled.data.products_present.includes("godlock"));
+assert.ok(enabled.data.products_present.includes("vibelock"));
+assert.ok(enabled.data.products_present.includes("azmail"));
+assert.ok(enabled.data.products_present.includes("zsolver"));
 
-const joined = await postJson(env, "/v1/mesh/join", { product: "godlock", label: "GodLock UK" });
+const getStillOn = await jsonReq(env, "/v1/mesh");
+assert.equal(getStillOn.data.enabled, true);
+assert.equal(getStillOn.data.get_never_enables, true);
+
+const joined = await postJson(env, "/v1/mesh/join", { product: "godlock", node_id: "godlock-uk", label: "GodLock UK" });
 assert.equal(joined.status, 200, JSON.stringify(joined.data));
 assert.equal(joined.data.ok, true);
 assert.ok(joined.data.session.session_id);
-assert.ok(joined.data.session.node_id);
+assert.equal(joined.data.session.node_id, "godlock-uk");
 assert.equal(joined.data.session.product, "godlock");
 assert.equal(joined.data.session.presence, "live");
-assert.equal(joined.data.live_nodes, 1);
-assert.deepEqual(joined.data.rollup, { live: 1, locked: 0, isolated: 0 });
-assert.deepEqual(joined.data.products_present, ["godlock"]);
+assert.equal(joined.data.live_nodes, PRODUCTS.length + 1);
+assert.ok(joined.data.products_present.includes("godlock"));
 
 const nodeId = joined.data.session.node_id;
 const beat = await postJson(env, "/v1/mesh/heartbeat", { node_id: nodeId });
@@ -177,14 +205,15 @@ assert.equal(beat.data.node.node_id, nodeId);
 
 const isolated = await postJson(env, "/v1/mesh/join", {
   product: "foldlock",
+  node_id: "foldlock-isolated",
   label: "isolated fold",
   presence: "isolated",
 });
 assert.equal(isolated.status, 200, JSON.stringify(isolated.data));
-assert.equal(isolated.data.rollup.live, 1);
+assert.equal(isolated.data.rollup.live, PRODUCTS.length + 1);
 assert.equal(isolated.data.rollup.isolated, 1);
 assert.equal(isolated.data.rollup.locked, 0);
-assert.equal(isolated.data.live_nodes, 1);
+assert.equal(isolated.data.live_nodes, PRODUCTS.length + 1);
 
 const lockedBeat = await postJson(env, "/v1/mesh/heartbeat", {
   node_id: isolated.data.session.node_id,
@@ -196,7 +225,7 @@ assert.equal(lockedBeat.data.rollup.isolated, 0);
 
 const nodes = await jsonReq(env, "/v1/mesh/nodes");
 assert.equal(nodes.status, 200);
-assert.equal(nodes.data.nodes.length, 2);
+assert.equal(nodes.data.nodes.length, PRODUCTS.length + 2);
 assert.equal(nodes.data.qnm_s, false);
 assert.equal(nodes.data.leaderboard, false);
 assert.ok(nodes.data.nodes.every((n) => n.presence === "live" || n.presence === "locked" || n.presence === "isolated"));
@@ -291,6 +320,16 @@ assert.ok(!software.data.software.some((s) => s.slug === "anon-broadcast"));
 assert.ok(!software.data.software.some((s) => s.slug === "mesh"));
 assert.equal(software.data.mesh.spec, "QNM-BUILD-1.0");
 assert.equal(software.data.mesh.qnm_s, false);
+assert.equal(software.data.mesh.suite_presence, "operator-enabled");
+assert.equal(software.data.mesh.get_never_enables, true);
+assert.ok(software.data.software.every((s) => s.mesh.suite_presence === "operator-enabled"));
+assert.ok(software.data.software.every((s) => s.mesh.get_never_enables === true));
+
+const citeMesh = meshCiteField(origin);
+assert.equal(citeMesh.suite_presence, "operator-enabled");
+assert.equal(citeMesh.get_never_enables, true);
+assert.equal(citeMesh.login_mesh, false);
+assert.equal(citeMesh.node_gate, false);
 assert.ok(software.data.software.every((s) => s.qns_cd && s.qns_cd.spec === "QNS-CD-1.0"));
 assert.equal(software.data.qns_cd.spec, "QNS-CD-1.0");
 

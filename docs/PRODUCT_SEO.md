@@ -188,6 +188,27 @@ Plain text. Lead with Aziel Eliab, the product one-liner, Worker `/`, `/cite.jso
 
 Name the full compatible AI client list (ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants) and the robots.txt Allow set above. Do not claim support is only Grok / ChatGPT / Venice.
 
+## Quantum Node Mesh proxy (Live Nodes)
+
+Suite mesh is **QNM-BUILD-1.0** on `aziel-runtime`. **suite-presence is operator-enabled.** `GET /v1/mesh` never enables. Product Workers must not invent a second mesh.
+
+If the product homepage or hub shows **Live Nodes**, proxy the runtime kernel:
+
+```js
+if (url.pathname === "/v1/mesh" || url.pathname.startsWith("/v1/mesh/")) {
+  if (!env.AZIEL_RUNTIME) {
+    return Response.json({ ok: false, error: "AZIEL_RUNTIME unbound" }, { status: 503 });
+  }
+  const headers = new Headers(request.headers);
+  headers.set("User-Agent", "Mozilla/5.0");
+  return env.AZIEL_RUNTIME.fetch(new Request(request, { headers }));
+}
+```
+
+Required aliases: `GET /v1/mesh`, `GET /v1/mesh/status`, `GET /v1/mesh/nodes`. GodLock download-tracker previously 404'd `/v1/mesh/status` — add that proxy. Prefer the `AZIEL_RUNTIME` service binding. Avoid `|` in `node_id` (use `{slug}-worker`).
+
+While suite-presence is LIVE, aziel-runtime fans out join/heartbeat for live Softwares product Workers (TTL 5 min) on cron or request-path. GET still never enables.
+
 ## Hub
 
 Runtime advertises live product sitemaps from the catalog (probe 2026-09-05). VibeLock’s download-tracker `/sitemap.xml` was 404 — add one. Several Workers were missing `/llms.txt` (`godlock`, `miragegrid`, `staticclock`, `azclce`, `azai`, `azbot`) — add those so the hub can link them.

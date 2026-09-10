@@ -57,7 +57,8 @@ export function mcpInitializeInstructions() {
     "runtime_run, runtime_session_*, raw *_health, and runtime_manifest are advanced/internal. " +
     "Do not call flat {slug}_{op} names — they are not in tools/list. Unknown names refuse FG-HALLUC-TOOL. " +
     "HTTP /p/{slug}/{op} is a proxy and is not exec. " +
-    "LIVE fabric (not Softwares-tab): AZPIPE AP-WP-0.2, SweepGate SG-WP-0.1, ChainLock CL-WP-0.4, LOCKSET LS-WP-0.1, packed catalog RL-WP-0.1-runtime, QNS-CD-1.0 (photon QNS1 1.3; local qnsd in AzielEliab/qnm-node; GET /v1/qns cites only — never a public via proxy), AKM-TRIAD-1.0 adaptive memory (MCP memory_*; POST /v1/memory/* behind FragGate). MCP chainlock_*. GET /v1/mesh never enables. GET /v1/azpipe/arch cites the locked MASTER-33 strip (same FragGate pipeline payload; not a Softwares door). " +
+    "LIVE fabric (not Softwares-tab): AZPIPE AP-WP-0.2, SweepGate SG-WP-0.1, ChainLock CL-WP-0.4, LOCKSET LS-WP-0.1, packed catalog RL-WP-0.1-runtime, QNS-CD-1.0 (photon QNS1 1.3; local qnsd in AzielEliab/qnm-node; GET /v1/qns cites only — never a public via proxy), AKM-TRIAD-1.0 adaptive memory (MCP memory_*; POST /v1/memory/* behind FragGate). MCP chainlock_*. suite-presence is operator-enabled. GET /v1/mesh never enables. GET /v1/azpipe/arch cites the locked MASTER-33 strip (same FragGate pipeline payload; not a Softwares door). " +
+    "1.7.10 makes QNM Live Nodes durable (cron or request-path fan-out of live Softwares product Workers while suite-presence is enabled; TTL 5 min; GET never enables). " +
     "1.7.9 cross-maps AZCoherence (peers azclce / AZInterface / AKM-TRIAD fabric neighbor; hubs + Worker URL; domain stays null). " +
     "1.7.8 lands EmbryoLock as a true in-process engine (Vault/Custody with ARK; live-with-local-destructive-boundary). LIVE_OPS health/skill/doctor/verify-hash/policy/limitation. Wipe/scorch/unlock-after-fail stay FG-STUB on the public mesh. Softwares worker_home embryolock-download-tracker. AZChat stays name-only stub. " +
     "1.7.7 lands AZCoherence (AZC-0.1) as a true in-process FragGate Softwares engine (second-pass triad coherence; cite https://github.com/AzielEliab/AZCoherence; not AKM-TRIAD). " +
@@ -201,7 +202,7 @@ export function runtimeHelperTools() {
       name: "mesh_status",
       title: "QNM suite rollup",
       description:
-        "QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1): enabled?, declared bearers, live/locked/isolated counts. Default radios OFF. GET/this tool never enables. Not a login mesh. Views/MCP/downloads do not enter QNM-S. Full node process is local qnm-node/. Packet-transfer coding design is QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; GET /v1/qns cites only; Worker does not proxy via emit). Pipeline: fraggate_list → fraggate_describe slug=mesh → fraggate_call, or this named tool.",
+        "QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1): enabled?, declared bearers, live/locked/isolated counts. Default radios OFF. suite-presence is operator-enabled. GET/this tool never enables. Not a login mesh. Views/MCP/downloads do not enter QNM-S. While enabled, cron or request-path fans out live Softwares product Workers (TTL 5 min). Full node process is local qnm-node/. Packet-transfer coding design is QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; GET /v1/qns cites only; Worker does not proxy via emit). Pipeline: fraggate_list → fraggate_describe slug=mesh → fraggate_call, or this named tool.",
       annotations: { title: "QNM suite rollup", readOnlyHint: true, openWorldHint: false },
       inputSchema: { type: "object", additionalProperties: false, properties: {} },
     },

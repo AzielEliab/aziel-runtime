@@ -18,6 +18,11 @@
  *   downloads do not enter QNM-S.
  * - Default: radios/bearers off. LIVE only after the operator enables
  *   ≥1 declared bearer (never because a site pinged GET /v1/mesh).
+ * - suite-presence is operator-enabled. While that bearer is LIVE, this
+ *   Worker fans out join/heartbeat for every live Softwares product
+ *   (and hubs that show Live Nodes) on cron or request-path. TTL 5 min.
+ *   GET still never enables. Product Workers proxy /v1/mesh/* via
+ *   AZIEL_RUNTIME — do not invent a second mesh.
  *
  * Keep /v1/mesh status/nodes/enable/disable for suite presence.
  * Frame as QNM rollup + operator enable — not account mesh.
@@ -49,6 +54,11 @@ export const LABEL_CAP = 80;
 export const TITLE_CAP = 160;
 export const PRESENCE_STATES = Object.freeze(["live", "locked", "isolated"]);
 export const EXAMPLE_BEARER = "suite-presence";
+export const FANOUT_CRON = "*/2 * * * *";
+export const FANOUT_NODE_SUFFIX = "-worker";
+
+/** Live Softwares catalog used by suite-presence fan-out. Set from index.js (avoids a cycle). */
+let suitePresenceCatalog = [];
 
 export const QNM_HOST_NOTE =
   "azieleliab.com hosts published software/runtime — not login-recovery, not Node Gate/IP panel, not upload proxy.";
@@ -62,7 +72,7 @@ export const ANON_BROADCAST_NOTE =
   "Anon-broadcast is a sibling loopback module of local qnm-node/ only (text→TTS→desk MP4→metadata-culled file + SHA-256). Style tool. Never a publish path. Not an upload proxy. Not origin-hiding. Operator keeps the file. Not a Softwares-tab product. Not a QNM publish channel.";
 
 export const MESH_LIMITATION =
-  "THIS IS: QNM-BUILD-1.0 suite rollup on aziel-runtime — companion to AIH-WP-1.1. Packet-transfer coding design is QNS-CD-1.0 (companion to QNM-BUILD-1.0 / AIH-WP-1.3; photon QNS1 1.3 on local qnsd; Worker cites only). Public surface is live/locked/isolated counts plus operator enable of a declared bearer. Default radios/bearers OFF. GET /v1/mesh never turns LIVE. Product Workers may proxy /v1/mesh/* via AZIEL_RUNTIME. THIS IS NOT: a login mesh; login-recovery; Node Gate/IP panel; upload proxy; account resurrection; average-of-nodes leaderboard; QNM-S; the local qnm-node process (boot/chain/apg/bearers/outbox/phoenix/score/memorial/tethers); AnonBroadcast as a catalog product or publish path; AZMail's product-local ring; arming; wipe; controller hunt; implicit heal; a public qnsd proxy. Author: Aziel Eliab only.";
+  "THIS IS: QNM-BUILD-1.0 suite rollup on aziel-runtime — companion to AIH-WP-1.1. Packet-transfer coding design is QNS-CD-1.0 (companion to QNM-BUILD-1.0 / AIH-WP-1.3; photon QNS1 1.3 on local qnsd; Worker cites only). Public surface is live/locked/isolated counts plus operator enable of a declared bearer. Default radios/bearers OFF. suite-presence is operator-enabled (POST /v1/mesh/enable { bearer }). GET /v1/mesh never turns LIVE. While enabled, cron or request-path fans out join/heartbeat for live Softwares product Workers (node_id {slug}-worker; no '|'; TTL 5 min). Product Workers proxy /v1/mesh/* via AZIEL_RUNTIME. THIS IS NOT: a login mesh; login-recovery; Node Gate/IP panel; upload proxy; account resurrection; average-of-nodes leaderboard; QNM-S; the local qnm-node process (boot/chain/apg/bearers/outbox/phoenix/score/memorial/tethers); AnonBroadcast as a catalog product or publish path; AZMail's product-local ring; arming; wipe; controller hunt; implicit heal; a public qnsd proxy. Author: Aziel Eliab only.";
 
 export const MESH_CANONICAL_OPS = Object.freeze([
   "status",
@@ -185,6 +195,49 @@ export function resetMeshStore() {
   memory.seq = 0;
 }
 
+export function setSuitePresenceCatalog(products) {
+  suitePresenceCatalog = Array.isArray(products) ? products.slice() : [];
+  return suitePresenceCatalog.length;
+}
+
+export function getSuitePresenceCatalog() {
+  return suitePresenceCatalog.slice();
+}
+
+export function suitePresenceNodeId(slug) {
+  const product = sanitizeProduct(slug);
+  if (!product) return "";
+  return `${product}${FANOUT_NODE_SUFFIX}`;
+}
+
+export function isMeshReadPath(pathname) {
+  const path = String(pathname || "")
+    .split("?")[0]
+    .replace(/\/+$/, "")
+    .toLowerCase() || "/";
+  return path === "/v1/mesh" || path === "/v1/mesh/status" || path === "/v1/mesh/nodes";
+}
+
+export function suitePresenceTargets(products) {
+  const src = Array.isArray(products) && products.length ? products : suitePresenceCatalog;
+  const out = [];
+  const seen = new Set();
+  for (const item of src || []) {
+    const product = sanitizeProduct((item && (item.slug || item.product)) || "");
+    if (!product || seen.has(product)) continue;
+    const node_id = suitePresenceNodeId(product);
+    if (!node_id) continue;
+    seen.add(product);
+    out.push({
+      product,
+      node_id,
+      label: sanitizeLabel((item && (item.name || item.label)) || product),
+      presence: "live",
+    });
+  }
+  return out;
+}
+
 export function resolveMeshOp(raw) {
   const op = String(raw || "")
     .trim()
@@ -206,7 +259,27 @@ export function meshHint(path = "/v1/mesh") {
     companion: MESH_COMPANION,
     rollup_only: true,
     qnm_s: false,
+    suite_presence: "operator-enabled",
+    get_never_enables: true,
+    fanout: "cron-or-request-path",
+    presence_ttl_ms: PRESENCE_TTL_MS,
     qns_cd: qnsHint(),
+  };
+}
+
+export function meshCiteField(origin) {
+  const base = String(origin || "").replace(/\/$/, "");
+  return {
+    ...meshHint("/v1/mesh"),
+    name: MESH_NAME,
+    status: base ? `${base}/v1/mesh/status` : "/v1/mesh/status",
+    nodes: base ? `${base}/v1/mesh/nodes` : "/v1/mesh/nodes",
+    enable: base ? `${base}/v1/mesh/enable` : "/v1/mesh/enable",
+    example_bearer: EXAMPLE_BEARER,
+    login_mesh: false,
+    node_gate: false,
+    qnm_s: false,
+    note: "suite-presence is operator-enabled. GET /v1/mesh never enables. Not a login mesh.",
   };
 }
 
@@ -221,7 +294,7 @@ export function meshKernelEntry() {
     stub_ops: MESH_STUB_OPS.slice(),
     op_aliases: { ...MESH_OP_ALIASES },
     description:
-      "QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1). Packet-transfer coding design QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; Worker cites only). live/locked/isolated counts + operator-declared bearer. Default OFF. Not a login mesh. Not a Softwares-tab product.",
+      "QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1). Packet-transfer coding design QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; Worker cites only). live/locked/isolated counts + operator-declared bearer. suite-presence is operator-enabled. GET /v1/mesh never enables. Default OFF. Not a login mesh. Not a Softwares-tab product.",
     note: MESH_LIMITATION,
     kind: "kernel",
     engine: false,
@@ -246,7 +319,7 @@ export function nodeMeshHubCard(origin) {
     version: MESH_SPEC,
     door: "fraggate",
     one_line:
-      "QNM-BUILD-1.0 suite rollup (live/locked/isolated). Operator enable via a declared bearer. Default OFF. Not a login mesh. Full node is local qnm-node/. Packet transfer: QNS-CD-1.0 on local qnsd (Worker cites only).",
+      "QNM-BUILD-1.0 suite rollup (live/locked/isolated). suite-presence is operator-enabled. GET never enables. Default OFF. Not a login mesh. Full node is local qnm-node/. Packet transfer: QNS-CD-1.0 on local qnsd (Worker cites only).",
     path: "/v1/mesh",
     enabled_default: false,
     rollup_only: true,
@@ -523,7 +596,79 @@ function statusFields(state) {
     anon_broadcast: ANON_BROADCAST_NOTE,
     azmail_note:
       "AZMail mesh_* stays product-local (anonymous mail ring). This surface is QNM rollup + operator enable, not that ring and not an account mesh.",
+    suite_presence: "operator-enabled",
+    get_never_enables: true,
+    fanout: "cron-or-request-path",
   };
+}
+
+export async function meshFanoutSuitePresence(env, extra = {}) {
+  const source = String((extra && extra.source) || "fanout").trim() || "fanout";
+  const state = await loadState(env);
+  if (!state.enabled) {
+    return {
+      ok: true,
+      skipped: true,
+      reason: "off",
+      enabled: false,
+      fanout: false,
+      joined: 0,
+      refreshed: 0,
+      source,
+      get_never_enables: true,
+      suite_presence: "operator-enabled",
+      note: "GET /v1/mesh never enables. Suite-presence fan-out runs only after an operator declared a bearer.",
+    };
+  }
+  const targets = suitePresenceTargets(extra.products);
+  const now = nowMs();
+  const ts = nowIso(now);
+  let joined = 0;
+  let refreshed = 0;
+  for (const target of targets) {
+    const existing = state.nodes[target.node_id];
+    const session_id = (existing && existing.session_id) || newSessionId(target.node_id);
+    state.nodes[target.node_id] = {
+      node_id: target.node_id,
+      product: target.product,
+      label: existing && existing.label ? existing.label : target.label,
+      presence: "live",
+      session_id,
+      joined_at: (existing && existing.joined_at) || ts,
+      last_seen: ts,
+    };
+    if (existing) refreshed += 1;
+    else joined += 1;
+  }
+  const ids = Object.keys(state.nodes);
+  if (ids.length > NODE_CAP) {
+    const sorted = liveList(state.nodes);
+    state.nodes = Object.fromEntries(sorted.slice(0, NODE_CAP).map((n) => [n.node_id, n]));
+  }
+  const store = await saveState(env, state);
+  return baseResult({
+    op: "fanout",
+    skipped: false,
+    fanout: true,
+    source,
+    joined,
+    refreshed,
+    targets: targets.length,
+    node_ids: targets.map((t) => t.node_id),
+    get_never_enables: true,
+    suite_presence: "operator-enabled",
+    ...statusFields({ ...state, store }),
+    note: "Suite-presence refresh of live Softwares product Workers. GET never enables. Not a login mesh.",
+  });
+}
+
+export function scheduleSuitePresenceFanout(ctx, env, extra = {}) {
+  const work = meshFanoutSuitePresence(env, extra);
+  if (ctx && typeof ctx.waitUntil === "function") {
+    ctx.waitUntil(work);
+    return { scheduled: true, source: (extra && extra.source) || "request-path" };
+  }
+  return work;
 }
 
 export async function meshStatus(payload, env) {
@@ -554,7 +699,9 @@ Companion to **AIH-WP-1.1**. Suite public surface is **rollup + operator enable*
 
 ${MESH_LIMITATION}
 
-Default **OFF**. LIVE only after the operator enables ≥1 declared bearer (example: \`suite-presence\`). A site ping of \`GET /v1/mesh\` never turns radios on.
+Default **OFF**. **suite-presence is operator-enabled** (example: \`POST /v1/mesh/enable\` with \`{ bearer: "suite-presence" }\`). A site ping of \`GET /v1/mesh\` never turns radios on.
+
+While radios are LIVE, this Worker fans out join/heartbeat for every live Softwares product Worker (\`node_id\` \`{slug}-worker\`, no \`|\`) on cron (\`*/2 * * * *\`) or request-path. Presence TTL is 5 minutes. Product Workers proxy \`/v1/mesh/*\` via \`AZIEL_RUNTIME\`. Not a second mesh.
 
 Rollup counts: **live / locked / isolated**. No average-of-nodes leaderboard. Views / MCP / downloads do not enter QNM-S.
 
@@ -643,11 +790,16 @@ export async function meshEnable(payload, env) {
   state.bearers = bearers;
   state.enabled = radiosOn(bearers);
   state.last_enable_ms = now;
-  const store = await saveState(env, state);
+  await saveState(env, state);
+  const fanout = await meshFanoutSuitePresence(env, { source: "enable" });
+  const after = await loadState(env);
   return baseResult({
     op: "enable",
-    ...statusFields({ ...state, store }),
-    note: "Operator declared a bearer. Radios LIVE for suite rollup only. Default remains off on a fresh isolate / empty KV. Not a login mesh.",
+    ...statusFields(after),
+    fanout: fanout.skipped ? false : true,
+    fanout_joined: fanout.joined || 0,
+    fanout_refreshed: fanout.refreshed || 0,
+    note: "Operator declared a bearer. Radios LIVE for suite rollup only. Live Softwares product Workers are joined for rollup counts (TTL 5 min). Default remains off on a fresh isolate / empty KV. GET never enables. Not a login mesh.",
   });
 }
 
