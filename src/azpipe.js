@@ -381,6 +381,64 @@ export function arch() {
   };
 }
 
+export const AZPIPE_ARCH_PATH = "/v1/azpipe/arch";
+
+/**
+ * Public cite/read surface for the locked MASTER-33 strip.
+ * Same payload FragGate already exposes as pipeline / pipeline_strip.
+ * Not a Softwares-tab door. Not a FragGate slug. Mesh stays default-off.
+ */
+export function archCite() {
+  return {
+    ok: true,
+    path: AZPIPE_ARCH_PATH,
+    identity: AZPIPE_AUTHOR,
+    cite: true,
+    software_tab: false,
+    fraggate_slug: false,
+    mesh_get_never_enables: true,
+    ...arch(),
+  };
+}
+
+/**
+ * GET/HEAD/POST /v1/azpipe/arch — cite only. Same MASTER-33 arch() as FragGate.
+ * Other /v1/azpipe/* paths hint at /arch. No mutate, no mesh enable, no new door.
+ */
+export function dispatchAzpipeArchHttp(method, pathname) {
+  const verb = String(method || "GET").toUpperCase();
+  const path = String(pathname || AZPIPE_ARCH_PATH)
+    .split("?")[0]
+    .replace(/\/+$/, "") || AZPIPE_ARCH_PATH;
+  const isArch = path === AZPIPE_ARCH_PATH;
+
+  if (verb === "GET" || verb === "HEAD" || verb === "POST") {
+    if (isArch) return { status: 200, body: archCite() };
+    return {
+      status: 404,
+      body: {
+        ok: false,
+        error: "not found",
+        identity: AZPIPE_AUTHOR,
+        software_tab: false,
+        hint: "GET /v1/azpipe/arch",
+        note: "AZPIPE MASTER-33 cite/read surface. Not a Softwares-tab door.",
+      },
+    };
+  }
+
+  return {
+    status: 405,
+    body: {
+      ok: false,
+      error: "method not allowed",
+      identity: AZPIPE_AUTHOR,
+      hint: "GET /v1/azpipe/arch",
+      note: "Cite/read only. Same MASTER-33 payload as GET /v1/fraggate pipeline.",
+    },
+  };
+}
+
 function fraggateSurfaceHop(payload, claim) {
   if (emptyish(payload) && emptyish(claim)) {
     return {

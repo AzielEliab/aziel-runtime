@@ -12,6 +12,8 @@ import {
   OLD_SUITE_PIPE_INBOUND,
   REORDER_REFUSE,
   arch,
+  archCite,
+  dispatchAzpipeArchHttp,
   pipeInbound,
   pipeOutbound,
   refuseReorder,
@@ -203,4 +205,101 @@ assert.equal(pornBody.ok, false);
 assert.equal(pornBody.code, "FG-LAMB-REFUSE");
 assert.equal(pornBody.closed_at, "lamb-lens");
 
-console.log("ok MASTER-33 hops RoseClock Lamb Lens domains azchat");
+const cite = archCite();
+assert.equal(cite.ok, true);
+assert.equal(cite.master, "MASTER-33");
+assert.equal(cite.path, "/v1/azpipe/arch");
+assert.equal(cite.identity, "Aziel Eliab");
+assert.equal(cite.software_tab, false);
+assert.equal(cite.fraggate_slug, false);
+assert.equal(cite.v, a.v);
+assert.equal(cite.magic, a.magic);
+assert.equal(cite.strip, a.strip);
+assert.deepEqual(cite.inbound, a.inbound);
+assert.equal(dispatchAzpipeArchHttp("GET", "/v1/azpipe/arch").status, 200);
+assert.equal(dispatchAzpipeArchHttp("POST", "/v1/azpipe/arch").status, 200);
+assert.equal(dispatchAzpipeArchHttp("GET", "/v1/azpipe").status, 404);
+assert.equal(dispatchAzpipeArchHttp("PUT", "/v1/azpipe/arch").status, 405);
+
+async function get(path) {
+  return handler(new Request(origin + path), {});
+}
+
+const archRes = await get("/v1/azpipe/arch");
+assert.equal(archRes.status, 200);
+const archBody = await archRes.json();
+assert.equal(archBody.ok, true);
+assert.equal(archBody.master, "MASTER-33");
+assert.equal(archBody.v, a.v);
+assert.equal(archBody.magic, a.magic);
+assert.equal(archBody.locked, true);
+assert.equal(archBody.lambgate, false);
+assert.equal(archBody.fraggate_single_door, true);
+assert.equal(archBody.roseclock, true);
+assert.equal(archBody.software_tab, false);
+assert.equal(archBody.identity, "Aziel Eliab");
+assert.equal(archBody.author, "Aziel Eliab");
+assert.equal(archBody.strip, LOCKED_STRIP);
+assert.deepEqual(archBody.inbound, INBOUND_HOPS);
+assert.equal(archBody.domains.domain_count, 11);
+assert.equal(archBody.domains.software_count, 33);
+assert.equal(archBody.domains.domains_are_doors, false);
+
+const fg = await (await get("/v1/fraggate")).json();
+assert.deepEqual(fg.pipeline.inbound, archBody.inbound);
+assert.equal(fg.pipeline.strip, archBody.strip);
+assert.equal(fg.pipeline_strip, archBody.strip);
+
+const archHead = await handler(new Request(origin + "/v1/azpipe/arch", { method: "HEAD" }), {});
+assert.equal(archHead.status, 200);
+assert.equal(await archHead.text(), "");
+
+const archPost = await handler(
+  new Request(origin + "/v1/azpipe/arch", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({}),
+  }),
+  {},
+);
+assert.equal(archPost.status, 200);
+const archPostBody = await archPost.json();
+assert.equal(archPostBody.master, "MASTER-33");
+assert.equal(archPostBody.strip, LOCKED_STRIP);
+
+const unknown = await get("/v1/azpipe/invent");
+assert.equal(unknown.status, 404);
+assert.match((await unknown.json()).hint, /\/v1\/azpipe\/arch/);
+
+const software = await (await get("/v1/software")).json();
+assert.ok(!software.software.some((s) => s.slug === "azpipe" || s.slug === "master-33"));
+assert.match(software.azpipe_arch, /\/v1\/azpipe\/arch$/);
+
+const skill = await (await get("/v1/skill")).text();
+assert.match(skill, /GET \/v1\/azpipe\/arch/);
+assert.match(skill, /MASTER-33 AZPIPE cite/);
+
+const llms = await (await get("/llms.txt")).text();
+assert.match(llms, /\/v1\/azpipe\/arch/);
+
+const citeJson = await (await get("/cite.json")).json();
+assert.match(citeJson.azpipe_arch, /\/v1\/azpipe\/arch$/);
+assert.equal(citeJson.identity, "Aziel Eliab");
+
+const sitemap = await (await get("/sitemap.xml")).text();
+assert.match(sitemap, /\/v1\/azpipe\/arch/);
+
+const openapi = await (await get("/openapi.json")).json();
+assert.ok(openapi.paths["/v1/azpipe/arch"]);
+assert.ok(openapi.paths["/v1/azpipe/arch"].get);
+assert.ok(openapi.paths["/v1/azpipe/arch"].post);
+assert.match(openapi.paths["/v1/azpipe/arch"].get.summary, /MASTER-33/);
+
+const runtime = await (await get("/v1/runtime.json")).json();
+assert.equal(runtime.endpoints.azpipe_arch, origin + "/v1/azpipe/arch");
+assert.equal(runtime.fabric.azpipe_arch, "/v1/azpipe/arch");
+
+const mesh = await (await get("/v1/mesh")).json();
+assert.equal(mesh.enabled, false);
+
+console.log("ok MASTER-33 hops RoseClock Lamb Lens domains azchat azpipe/arch cite");
