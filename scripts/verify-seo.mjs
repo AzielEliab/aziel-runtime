@@ -173,6 +173,7 @@ assert.match(sitemap, /SEC-FEAT-1\.0\.md/);
 assert.match(sitemap, /QNS-CD-1\.0\.md/);
 assert.match(sitemap, /FEATURE-STATE-2026-09-10\.md/);
 assert.match(sitemap, /REMAIN-OFF-BY-DESIGN-2026-09-10\.md/);
+assert.match(sitemap, /AZL-DONATE-1\.0\.md/);
 assert.match(sitemap, /docs\/audit/);
 assert.match(sitemap, /\/v1\/qns/);
 
@@ -220,6 +221,8 @@ assert.match(llms, /FEATURE-STATE-2026-09-10/);
 assert.match(llms, /intentional-OFF vs gaps/);
 assert.match(llms, /REMAIN-OFF-BY-DESIGN-2026-09-10/);
 assert.match(llms, /constitutional OFF set/);
+assert.match(llms, /AZL-DONATE-1\.0/);
+assert.match(llms, /www\.azieleliab\.com\/donate/);
 assert.doesNotMatch(llms, /10\.5281\/zenodo\.XXXX/);
 
 const aiRes = await get("/ai.txt");
@@ -260,6 +263,7 @@ assert.equal(cite.audits.remain_off_by_design.do_not_enable, true);
 assert.equal(cite.audits.not_fraggate_slug, true);
 assert.equal(cite.audits.mesh_get_never_enables, true);
 assert.ok(cite.designs.papers.some((p) => p.id === "REMAIN-OFF-BY-DESIGN-2026-09-10" && p.kind === "law"));
+assert.ok(cite.designs.papers.some((p) => p.id === "AZL-DONATE-1.0" && p.kind === "law" && p.software_tab === false));
 
 const catalogRes = await get("/v1/catalog.json");
 assert.equal(catalogRes.status, 200);
@@ -354,12 +358,19 @@ assert.match(home, /data-slug="4dmap"/);
 assert.match(home, /github\.com\/AzielEliab\/aziel-runtime\/(?:tree|blob)\/main\/docs\/designs/);
 assert.match(home, /FEATURE-STATE-2026-09-10/);
 assert.match(home, /REMAIN-OFF-BY-DESIGN-2026-09-10/);
+assert.match(home, /AZL-DONATE-1\.0/);
+assert.match(home, /<footer class="donate">/);
+assert.match(home, /href="https:\/\/www\.azieleliab\.com\/donate">Donate<\/a>/);
+assert.doesNotMatch(home, /<img[^>]*(qr|QR)/);
 assert.match(home, /docs\/audit/);
 
 const card = await (await get("/p/foldlock")).text();
 assert.match(card, /"@type":"Person"/);
 assert.match(card, /Aziel Elroi Eliab/);
 assert.match(card, /og:image/);
+assert.match(card, /<footer class="donate">/);
+assert.match(card, /href="https:\/\/www\.azieleliab\.com\/donate">Donate<\/a>/);
+assert.doesNotMatch(card, /<img[^>]*(qr|QR)/);
 
 assert.ok(MISSING_PRODUCT_SITEMAP_SLUGS.includes("vibelock"));
 assert.equal(productWorkerOrigin({ slug: "aziel-corpus" }), "https://www.azielcorpuslibrary.net");
