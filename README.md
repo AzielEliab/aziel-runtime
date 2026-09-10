@@ -75,6 +75,7 @@ This Worker homepage stays the **API / MCP / OpenAPI** surface. Human site acces
 | GodLock.uk | https://godlock.uk — https://godlock.uk/AzielEliab — https://godlock.uk/software |
 | Repos | https://github.com/AzielEliab/aziel-corpus · https://github.com/AzielEliab/godlock |
 | Glama MCP listing | https://glama.ai/mcp/servers/AzielEliab/aziel-runtime |
+| Donate (canonical) | https://www.azieleliab.com/donate |
 
 Glama **Install Server** is stdio via [`glama.json`](glama.json) + [`Dockerfile`](Dockerfile) on `main`. See [docs/GLAMA.md](docs/GLAMA.md).
 
@@ -212,11 +213,20 @@ own counted `/download`.
 
 **Digital Library:** Eliab, Aziel. (2026). Aziel Digital Library [Software]. Apache-2.0. https://www.azielcorpuslibrary.net/
 
-Product Worker crawl template: [docs/PRODUCT_SEO.md](docs/PRODUCT_SEO.md). QNM suite rollup: [docs/NODE_MESH.md](docs/NODE_MESH.md).
+Product Worker crawl template: [docs/PRODUCT_SEO.md](docs/PRODUCT_SEO.md). QNM suite rollup: [docs/NODE_MESH.md](docs/NODE_MESH.md). Donate plan (cite-only, not a Softwares product): [docs/designs/AZL-DONATE-1.0.md](docs/designs/AZL-DONATE-1.0.md).
+
+## Donate (runtime + product Worker footer)
+
+Canonical rails live on hubs: **https://www.azieleliab.com/donate**. This runtime only links. Do not invent wallet addresses or tokens. Do not duplicate five QRs on runtime or download-trackers.
+
+- **Runtime Worker UI footer** — one line: `Donate` → `https://www.azieleliab.com/donate`
+- **Product download-tracker Workers** — same footer pattern: `Support the work` → `https://www.azieleliab.com/donate`
+
+This repo does not own product Workers. Copy that one line into those repos. Addresses stay operator paste on the hub.
 
 ## Designs
 
-Current suite software designs (AZL / SEC-FEAT / QNM-WP / NODE-OPS) plus LIVE fabric papers (CL-WP-0.4, AP-WP-0.2, SG-WP-0.1, LS-WP-0.1, RL-WP-0.1-runtime, **QNS-CD-1.0** — not Softwares-tab products): [docs/designs/](docs/designs/). Author: **Aziel Eliab** only. MCP `chainlock_*`. `GET /v1/mesh` never enables. **QNS-CD-1.0** is the Quantum Node Signal packet-transfer coding design (photon QNS1 1.3). Implementation is local `qnsd` in [AzielEliab/qnm-node](https://github.com/AzielEliab/qnm-node). `GET /v1/qns` cites only — the public Worker does not proxy local via emit. Every `/v1/software` card carries `qns_cd`. Do not add QNS as a Softwares-tab product. `GET /v1/azpipe/arch` cites the locked MASTER-33 strip (same payload as `GET /v1/fraggate` `pipeline`). Not a Softwares-tab door.
+Current suite software designs (AZL / SEC-FEAT / QNM-WP / NODE-OPS / **AZL-DONATE-1.0**) plus LIVE fabric papers (CL-WP-0.4, AP-WP-0.2, SG-WP-0.1, LS-WP-0.1, RL-WP-0.1-runtime, **QNS-CD-1.0** — not Softwares-tab products): [docs/designs/](docs/designs/). Author: **Aziel Eliab** only. MCP `chainlock_*`. `GET /v1/mesh` never enables. **QNS-CD-1.0** is the Quantum Node Signal packet-transfer coding design (photon QNS1 1.3). Implementation is local `qnsd` in [AzielEliab/qnm-node](https://github.com/AzielEliab/qnm-node). `GET /v1/qns` cites only — the public Worker does not proxy local via emit. Every `/v1/software` card carries `qns_cd`. Do not add QNS as a Softwares-tab product. `GET /v1/azpipe/arch` cites the locked MASTER-33 strip (same payload as `GET /v1/fraggate` `pipeline`). Not a Softwares-tab door.
 
 ## Add to ChatGPT (GPT Actions)
 

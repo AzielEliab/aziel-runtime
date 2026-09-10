@@ -198,3 +198,13 @@ request instead of hand-editing product copy. Client installers use
 `GET /v1/update/check?slug=&version=`. See [CLIENT_UPDATE.md](CLIENT_UPDATE.md).
 
 See also: https://aziel-runtime.vibelock.workers.dev/sitemap-index.xml
+
+## Footer (donate — download-tracker pattern)
+
+Canonical rails live on hubs. Product Workers only link. Do not invent wallets. Do not copy five QRs onto the download-tracker.
+
+One footer line on every product Worker homepage:
+
+**Support the work** → https://www.azieleliab.com/donate
+
+Runtime Worker uses the same URL with the label `Donate`. Plan: [AZL-DONATE-1.0](designs/AZL-DONATE-1.0.md). Not a Softwares-tab product.
