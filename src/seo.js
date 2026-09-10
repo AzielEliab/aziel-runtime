@@ -451,6 +451,14 @@ export const SUITE_DESIGNS = Object.freeze([
     status: "live",
     kind: "fabric",
   },
+  {
+    id: "REMAIN-OFF-BY-DESIGN-2026-09-10",
+    file: "REMAIN-OFF-BY-DESIGN-2026-09-10.md",
+    one_line:
+      "Constitutional OFF set (33 items) — correctly OFF/REFUSED/GATED does not count as missing; do not enable",
+    status: "live",
+    kind: "law",
+  },
 ]);
 
 export function designGithubUrl(file) {
@@ -529,6 +537,7 @@ export function designsSitemapUrls() {
   return [
     DESIGNS_GITHUB_TREE,
     ...SUITE_DESIGNS.map((d) => designGithubUrl(d.file)),
+    designGithubUrl("REMAIN-OFF-BY-DESIGN-2026-09-10.pdf"),
   ];
 }
 
@@ -548,13 +557,28 @@ export const FEATURE_STATE_AUDIT = Object.freeze({
   status: "live",
 });
 
+/** Constitutional OFF set. Design paper (docs/designs/). Cited beside FEATURE-STATE. Do not enable. */
+export const REMAIN_OFF_BY_DESIGN = Object.freeze({
+  id: "REMAIN-OFF-BY-DESIGN-2026-09-10",
+  file: "REMAIN-OFF-BY-DESIGN-2026-09-10.md",
+  pdf: "REMAIN-OFF-BY-DESIGN-2026-09-10.pdf",
+  one_line:
+    "Constitutional OFF set (33 items). Correctly OFF/REFUSED/GATED is not a gap. FEATURE-STATE lists gaps vs intentional OFF; this paper is the must-stay-off set. Do not enable.",
+  baseline: "1.7.6",
+  kind: "law",
+  status: "live",
+  companion: "FEATURE-STATE-2026-09-10",
+});
+
 export function auditGithubUrl(file) {
   return `${AUDIT_GITHUB_BLOB}/${file}`;
 }
 
 export function auditsCiteField() {
   const d = FEATURE_STATE_AUDIT;
+  const r = REMAIN_OFF_BY_DESIGN;
   const github = auditGithubUrl(d.file);
+  const remainGithub = designGithubUrl(r.file);
   return {
     hosted: "git",
     folder: AUDIT_FOLDER,
@@ -578,43 +602,76 @@ export function auditsCiteField() {
       software_tab: false,
       fraggate_slug: false,
       authoritative_for: "1.7.3+",
+      companion: r.id,
+      companion_role: "constitutional OFF set — correctly off is not a gap",
       how_to_cite: `${AUTHOR_FAMILY_GIVEN}. (2026). ${d.id} [Audit]. ${github}`,
+    },
+    remain_off_by_design: {
+      id: r.id,
+      path: `${DESIGNS_FOLDER}${r.file}`,
+      github: remainGithub,
+      pdf: designGithubUrl(r.pdf),
+      one_line: r.one_line,
+      baseline: r.baseline,
+      status: r.status,
+      kind: r.kind,
+      software_tab: false,
+      fraggate_slug: false,
+      item_count: 33,
+      companion: d.id,
+      companion_role: "gaps vs intentional OFF",
+      do_not_enable: true,
+      how_to_cite: `${AUTHOR_FAMILY_GIVEN}. (2026). ${r.id} [Design]. ${remainGithub}`,
     },
   };
 }
 
 export function auditsSkillMarkdown() {
   const d = FEATURE_STATE_AUDIT;
+  const r = REMAIN_OFF_BY_DESIGN;
   return [
-    "## Feature state (intentional OFF vs gaps)",
+    "## Feature state (intentional OFF vs gaps) and constitutional OFF set",
     "",
-    `**${d.id}** is the authoritative intentional-OFF vs gaps inventory for **1.7.3+** (50 items: OFF / STUB / LOCAL / NOT IMPLEMENTED / PARTIAL). Security and architecture OFF must stay. Do not enable mesh or safety stubs from this cite. Not a Softwares-tab product. Not a FragGate slug. EmbryoLock is STUB at ingest; a parallel land is live-with-local-destructive-boundary. Git-hosted — the Worker does not serve the PDF. Identity Aziel Eliab only.`,
+    `**${d.id}** is the authoritative intentional-OFF vs gaps inventory for **1.7.3+** (50 items: OFF / STUB / LOCAL / NOT IMPLEMENTED / PARTIAL). **${r.id}** is the constitutional OFF set (33 items). FEATURE-STATE lists gaps vs intentional OFF; REMAIN-OFF-BY-DESIGN is the must-stay-off set. Correctly OFF/REFUSED/GATED does not count as missing. Security and architecture OFF must stay. Do not enable mesh or safety stubs from this cite. Not Softwares-tab products. Not FragGate slugs. EmbryoLock is STUB at FEATURE-STATE ingest; a parallel land is live-with-local-destructive-boundary. Git-hosted — the Worker does not serve the PDFs. Identity Aziel Eliab only.`,
     "",
     `- **${d.id}** — ${d.one_line} ${auditGithubUrl(d.file)}`,
     `- PDF: ${auditGithubUrl(d.pdf)}`,
+    `- **${r.id}** — ${r.one_line} ${designGithubUrl(r.file)}`,
+    `- PDF: ${designGithubUrl(r.pdf)}`,
     "",
-    `Index: ${AUDIT_GITHUB_TREE}`,
+    `Index: ${AUDIT_GITHUB_TREE} · ${DESIGNS_GITHUB_TREE}`,
     "",
   ].join("\n");
 }
 
 export function auditsLlmsBlock() {
   const d = FEATURE_STATE_AUDIT;
+  const r = REMAIN_OFF_BY_DESIGN;
   return [
-    "## Feature state",
+    "## Feature state and remain-off-by-design",
     "",
-    `${d.id} is the authoritative intentional-OFF vs gaps inventory for 1.7.3+ (50 items). Do not enable mesh or safety stubs. Not a Softwares-tab product, not a FragGate slug. Author: Aziel Eliab only.`,
-    `Markdown: ${auditGithubUrl(d.file)}`,
-    `PDF: ${auditGithubUrl(d.pdf)}`,
+    `${d.id} is the authoritative intentional-OFF vs gaps inventory for 1.7.3+ (50 items). ${r.id} is the constitutional OFF set (33 items). FEATURE-STATE lists gaps vs intentional OFF; this companion is the must-stay-off set. Correctly OFF/REFUSED/GATED is not a gap. Do not enable mesh or safety stubs. Not Softwares-tab products, not FragGate slugs. Author: Aziel Eliab only.`,
+    `FEATURE-STATE markdown: ${auditGithubUrl(d.file)}`,
+    `FEATURE-STATE PDF: ${auditGithubUrl(d.pdf)}`,
+    `REMAIN-OFF markdown: ${designGithubUrl(r.file)}`,
+    `REMAIN-OFF PDF: ${designGithubUrl(r.pdf)}`,
     "",
   ].join("\n");
 }
 
 export function auditsLlmsHeaderLine() {
   const d = FEATURE_STATE_AUDIT;
-  return `Feature-state audit: ${AUDIT_FOLDER}${d.file} (${d.id}) authoritative intentional-OFF vs gaps for 1.7.3+ — not a Softwares-tab product, not a FragGate slug. GET /v1/mesh never enables. ${AUDIT_GITHUB_TREE}`;
+  const r = REMAIN_OFF_BY_DESIGN;
+  return `Feature-state audit: ${AUDIT_FOLDER}${d.file} (${d.id}) gaps vs intentional OFF for 1.7.3+. Constitutional OFF set: ${DESIGNS_FOLDER}${r.file} (${r.id}, 33 items) — correctly off is not a gap. Do not enable. Not Softwares-tab, not FragGate slugs. GET /v1/mesh never enables. ${AUDIT_GITHUB_TREE}`;
 }
 
 export function auditsSitemapUrls() {
-  return [AUDIT_GITHUB_TREE, auditGithubUrl(FEATURE_STATE_AUDIT.file), auditGithubUrl(FEATURE_STATE_AUDIT.pdf)];
+  const r = REMAIN_OFF_BY_DESIGN;
+  return [
+    AUDIT_GITHUB_TREE,
+    auditGithubUrl(FEATURE_STATE_AUDIT.file),
+    auditGithubUrl(FEATURE_STATE_AUDIT.pdf),
+    designGithubUrl(r.file),
+    designGithubUrl(r.pdf),
+  ];
 }

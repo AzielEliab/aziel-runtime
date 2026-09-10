@@ -8,6 +8,8 @@ PDF: binary was provided as `FEATURE-STATE-2026-09-10.pdf`. Path for GitBaby: `d
 
 This file is the authoritative intentional-OFF vs gaps inventory for 1.7.3+. Not a Softwares-tab product. Not a FragGate slug. Do not enable mesh or safety stubs.
 
+Companion constitutional OFF set (33 items that do NOT count as missing when correctly off/refused/gated): [REMAIN-OFF-BY-DESIGN-2026-09-10](../designs/REMAIN-OFF-BY-DESIGN-2026-09-10.md). FEATURE-STATE lists gaps vs intentional OFF; that paper is the must-stay-off set. Do not enable remain-off items from either cite.
+
 ---
 
 States: OFF/disabled, STUB, LOCAL ONLY/gated, NOT IMPLEMENTED, PARTIAL/fallback.
@@ -69,3 +71,5 @@ Bottom line: most catalog wired in-process; unfinished concentrated in networkin
 EmbryoLock at PR time: still STUB (item 4). Parallel land is live+local-destructive-boundary. This ingest does not flip that land. Do not host public wipe/unlock.
 
 Cite: Eliab, Aziel. (2026). FEATURE-STATE-2026-09-10 [Audit]. https://github.com/AzielEliab/aziel-runtime/blob/main/docs/audit/FEATURE-STATE-2026-09-10.md
+
+Companion: Eliab, Aziel. (2026). REMAIN-OFF-BY-DESIGN-2026-09-10 [Design]. https://github.com/AzielEliab/aziel-runtime/blob/main/docs/designs/REMAIN-OFF-BY-DESIGN-2026-09-10.md
