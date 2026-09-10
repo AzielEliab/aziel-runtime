@@ -82,6 +82,8 @@ assert.match(skillText, /1\.7\.3/);
 assert.match(skillText, /count_note/);
 assert.match(skillText, /domains\.software_count/);
 assert.match(skillText, /library-default-off/);
+assert.match(skillText, /FEATURE-STATE-2026-09-10/);
+assert.match(skillText, /intentional-OFF vs gaps/);
 assert.doesNotMatch(skillText, /runtime_run` \/ `fraggate_call` require/);
 assert.match(skillText, /runtime_run/);
 assert.match(skillText, /advanced\/internal/);
