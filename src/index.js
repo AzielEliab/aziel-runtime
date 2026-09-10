@@ -96,7 +96,6 @@ import {
   catalogCacheHeaders,
   donationStatic,
   readPackedCatalog,
-  visitorBucket,
 } from "./packed-catalog.js";
 import { RuntimeSession } from "./session-do.js";
 import { callSessionTool, handleSessionRequest, sessionMcpTools } from "./session-http.js";
@@ -731,19 +730,8 @@ function catalogLinkHeaders(origin, path) {
 }
 
 async function servePackedSoftware(request, env, origin, extra = {}) {
-  const bucket = await visitorBucket(request, env);
   const packed = await readPackedCatalog(env, origin, PRODUCTS, softwareExtra(env));
   const body = { ...packed.catalog, rl: packed.rl, donation: donationStatic(), ...extra };
-  if (!bucket.ok) {
-    return json(
-      { ...body, ok: false, refuse: bucket.refuse || "rate-soft" },
-      429,
-      {
-        ...catalogLinkHeaders(origin, extra.mirror_of || "/v1/software"),
-        "Retry-After": String(bucket.retryAfter || 30),
-      },
-    );
-  }
   return json(body, 200, catalogLinkHeaders(origin, extra.mirror_of || "/v1/software"));
 }
 
