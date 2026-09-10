@@ -6,7 +6,19 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { PRODUCTS } from "../src/index.js";
 import { inspect } from "../src/sweepgate.js";
-import { INBOUND_HOPS, OUTBOUND_HOPS, arch, pipeInbound, thinPipe } from "../src/azpipe.js";
+import {
+  INBOUND_HOPS,
+  OUTBOUND_HOPS,
+  LOCKED_STRIP,
+  OLD_FOLD_CENTRIC_INBOUND,
+  OLD_FOLD_CENTRIC_OUTBOUND,
+  REORDER_REFUSE,
+  arch,
+  pipeInbound,
+  pipeOutbound,
+  refuseReorder,
+  thinPipe,
+} from "../src/azpipe.js";
 import { MemoryStore } from "../src/chainlock/store.js";
 import { ROSTER, append, recall, tip, verify } from "../src/chainlock/ops.js";
 import { seal, verify as verifyLockset } from "../src/lockset.js";
@@ -92,33 +104,74 @@ const poison = await inspect("inject-payload jailbreak-ignore");
 assert.equal(poison.isolate, true);
 assert.ok(poison.hits.includes("poison"));
 
-// --- AZPIPE hop order ---
+// --- AZPIPE locked hop order (SUITE-PIPE-1.6.15) ---
 const architecture = arch();
 assert.equal(architecture.magic, "FLD3");
 assert.equal(architecture.v, "AZPIPE-0.2");
+assert.equal(architecture.locked, true);
+assert.equal(architecture.lambgate, false);
 assert.deepEqual(architecture.inbound, [
-  "frag",
-  "sweep",
-  "fold",
-  "static",
-  "fold",
-  "entry",
-  "frag",
-  "toolkits",
+  "public",
+  "fraggate",
+  "sweepgate",
+  "chainlock-in",
+  "decisiongate",
+  "azpipe",
+  "domain-doors",
+  "temporallock",
+  "staticclock",
+  "chainlock-out",
+  "response",
 ]);
 assert.deepEqual(architecture.outbound, [
-  "toolkits",
-  "frag",
-  "fold",
-  "static",
-  "fold",
-  "sweep",
-  "frag",
+  "response",
+  "chainlock-out",
+  "staticclock",
+  "temporallock",
+  "domain-doors",
+  "azpipe",
+  "decisiongate",
+  "sweepgate",
+  "fraggate",
+  "public",
 ]);
 assert.deepEqual(INBOUND_HOPS, architecture.inbound);
 assert.deepEqual(OUTBOUND_HOPS, architecture.outbound);
 assert.equal(architecture.joins_cell, false);
 assert.equal(architecture.software_tab, false);
+assert.equal(architecture.domain_doors.inspection.slug, "4dmap");
+assert.equal(architecture.domain_doors.inspection.sequential_gate, false);
+assert.match(architecture.strip, /ChainLock-IN → DecisionGATE → AZPIPE → Domain Doors/);
+assert.equal(architecture.lambgate, false);
+assert.ok(!/LambGate/.test(architecture.strip));
+assert.ok(!architecture.inbound.includes("fold"));
+assert.ok(!architecture.inbound.includes("toolkits"));
+assert.ok(!architecture.inbound.includes("lambgate"));
+
+const oldIn = refuseReorder(OLD_FOLD_CENTRIC_INBOUND, "in");
+assert.equal(oldIn.ok, false);
+assert.equal(oldIn.refuse, REORDER_REFUSE);
+const oldOut = refuseReorder(OLD_FOLD_CENTRIC_OUTBOUND, "out");
+assert.equal(oldOut.ok, false);
+assert.equal(oldOut.refuse, REORDER_REFUSE);
+const swapped = refuseReorder(
+  ["public", "sweepgate", "fraggate", "chainlock-in", "decisiongate", "azpipe", "domain-doors", "temporallock", "staticclock", "chainlock-out", "response"],
+  "in",
+);
+assert.equal(swapped.ok, false);
+assert.equal(swapped.refuse, REORDER_REFUSE);
+const lockedOk = refuseReorder(INBOUND_HOPS, "in");
+assert.equal(lockedOk.ok, true);
+const lamb = refuseReorder([...INBOUND_HOPS, "lambgate"], "in");
+assert.equal(lamb.ok, false);
+
+const reorderPipe = await pipeInbound({
+  payload: { fact: "reorder attempt" },
+  path: OLD_FOLD_CENTRIC_INBOUND,
+  env: {},
+});
+assert.equal(reorderPipe.ok, false);
+assert.equal(reorderPipe.refuse, REORDER_REFUSE);
 
 const admitted = await pipeInbound({
   payload: { fact: "tether library", url: "https://www.azielcorpuslibrary.net/cite.json" },
@@ -135,13 +188,13 @@ assert.equal(admitted.qnm.bridges, 2);
 const emptyRefuse = await pipeInbound({ payload: {}, claim: null });
 assert.equal(emptyRefuse.ok, false);
 assert.equal(emptyRefuse.refuse, "ungrounded");
-assert.equal(emptyRefuse.closed_at, "frag");
+assert.equal(emptyRefuse.closed_at, "fraggate");
 assert.equal(emptyRefuse.inner, null);
 
 const swept = await pipeInbound({ payload: { body: "MZ meterpreter" }, env: {} });
 assert.equal(swept.ok, false);
 assert.equal(swept.refuse, "sweep-isolate");
-assert.equal(swept.closed_at, "sweep");
+assert.equal(swept.closed_at, "sweepgate");
 assert.equal(swept.isolate.in, true);
 assert.equal(swept.inner, null);
 
@@ -160,6 +213,57 @@ const trustedFold = await pipeInbound({
 assert.equal(trustedFold.ok, true);
 assert.equal(trustedFold.admitted.ssn, "[FLD3:block]");
 assert.match(String(trustedFold.admitted.note), /\[FLD3:url\]/);
+assert.equal(trustedFold.domain_doors.inspection.slug, "4dmap");
+assert.ok(trustedFold.inner.entry && trustedFold.inner.entry.h && trustedFold.inner.entry.fh);
+
+const outbound = await pipeOutbound({
+  result: { ok: true, fact: "toolkit result" },
+  env: {},
+});
+assert.equal(outbound.ok, true);
+assert.deepEqual(outbound.path, OUTBOUND_HOPS);
+assert.ok(outbound.inner.exit && outbound.inner.exit.h);
+assert.equal(outbound.inner.temporal.kind, "TemporalLock");
+assert.equal(outbound.inner.staticclock.kind, "StaticClock");
+assert.equal(outbound.response, true);
+
+const gateAfterStamp = await pipeInbound({
+  payload: { fact: "library card" },
+  claim: { statement: "no", evidence: [], accountable: "" },
+  env: {},
+});
+assert.equal(gateAfterStamp.ok, false);
+assert.equal(gateAfterStamp.closed_at, "decisiongate");
+assert.ok(gateAfterStamp.inner == null);
+
+const liveCallRes = await handler(
+  new Request(origin + "/v1/fraggate/call", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ slug: "foldlock", op: "health", payload: { ping: true } }),
+  }),
+  {},
+);
+const liveCall = await liveCallRes.json();
+assert.equal(liveCall.ok, true, JSON.stringify(liveCall));
+assert.equal(liveCall.gate.final_state, "PASS");
+assert.ok(liveCall.entry && liveCall.entry.h, "ChainLock-IN stamp");
+assert.ok(liveCall.receipt && liveCall.receipt.h, "ChainLock-OUT stamp");
+assert.equal(liveCall.temporal.kind, "TemporalLock");
+assert.equal(liveCall.staticclock.kind, "StaticClock");
+assert.equal(liveCall.domain_doors.inspection.slug, "4dmap");
+assert.match(liveCall.pipeline_strip, /ChainLock-IN → DecisionGATE → AZPIPE/);
+assert.equal(liveCall.domain_doors.inspection.sequential_gate, false);
+
+const describeMap = await (await get("/v1/fraggate/describe?slug=4dmap")).json();
+assert.equal(describeMap.ok, true);
+assert.equal(describeMap.domain_doors.slug, "4dmap");
+assert.deepEqual(describeMap.pipeline.inbound, INBOUND_HOPS);
+assert.equal(describeMap.pipeline.lambgate, false);
+
+const door = await (await get("/v1/fraggate")).json();
+assert.deepEqual(door.pipeline.inbound, INBOUND_HOPS);
+assert.match(door.pipeline_strip, /4DMap inspection/);
 
 // --- ChainLock append / verify ---
 const store = new MemoryStore();
@@ -325,6 +429,9 @@ assert.match(home.headers.get("Cache-Control") || "", /s-maxage=300/);
 const homeHtml = await home.text();
 assert.match(homeHtml, /FoldLock/);
 assert.match(homeHtml, /\/v1\/software/);
+assert.match(homeHtml, /ChainLock-IN → DecisionGATE → AZPIPE → Domain Doors/);
+assert.match(homeHtml, /SUITE-PIPE-1\.6\.15/);
+assert.match(homeHtml, /LambGate is not a hop/);
 const updateMan = await get("/v1/update/manifest");
 assert.equal(updateMan.status, 200);
 assert.match(updateMan.headers.get("Cache-Control") || "", /s-maxage=300/);
@@ -378,5 +485,10 @@ const skill = await (await get("/v1/skill")).text();
 assert.match(skill, /LIVE fabric/);
 assert.match(skill, /chainlock_\*/);
 assert.match(skill, /SG-WP-0\.1/);
+assert.match(skill, /SUITE-PIPE-1\.6\.15/);
+assert.match(skill, /ChainLock-IN → DecisionGATE → AZPIPE/);
+assert.doesNotMatch(skill, /LambGate is a hop/);
+
+assert.ok(cite.designs.papers.some((p) => p.id === "SUITE-PIPE-1.6.15" && p.kind === "fabric"));
 
 console.log("ok lattice SweepGate AZPIPE ChainLock LOCKSET packed-catalog");

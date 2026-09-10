@@ -1,6 +1,6 @@
 /**
  * aziel-runtime 1.4.1 production gates — ready, token, rate-limit, TTL, receipt cap.
- * 1.5.0 / 1.6.0 / 1.6.1 / 1.6.2 / 1.6.3 / 1.6.4 / 1.6.5 / 1.6.6 / 1.6.7 / 1.6.8 / 1.6.9 / 1.6.10 / 1.6.11 / 1.6.12 / 1.6.13 keep these gates unchanged.
+ * 1.5.0 / 1.6.0 / 1.6.1 / 1.6.2 / 1.6.3 / 1.6.4 / 1.6.5 / 1.6.6 / 1.6.7 / 1.6.8 / 1.6.9 / 1.6.10 / 1.6.11 / 1.6.12 / 1.6.13 / 1.6.14 / 1.6.15 keep these gates unchanged.
  * Session mutate only. Catalog / health / runtime / skill / pull stay public.
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */

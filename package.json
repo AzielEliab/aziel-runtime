@@ -1,8 +1,8 @@
 {
   "name": "aziel-runtime",
-  "version": "1.6.14",
+  "version": "1.6.15",
   "private": true,
-  "description": "Aziel Eliab Runtime 1.6.14 — 4DMap (4DM-WP-1.0) four-axis inspection frame plus QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1; GET /v1/mesh live/locked/isolated; operator bearer enable; default radios OFF; not a login mesh; full node is local qnm-node/) plus FragGate door, GET /v1/software hub catalog, GET /v1/update/check, GitHub auto-deploy, durable UI-op aliases, EmbryoLock name-only stub, AZHub and AZInterface (AIH-WP-1.0, sibling softwares, same FragGate door), AZNet (AZN-WP-0.1) and AZBrowser (AZB-1.0) catalog one_line as separate software, AZMail (APP 1.0), PeaceLock (PL-WP-0.1), and KV-backed API use trackers. Discover, route, refuse. Author: Aziel Eliab.",
+  "description": "Aziel Eliab Runtime 1.6.15 — locked suite pipeline (SUITE-PIPE-1.6.15) plus 4DMap (4DM-WP-1.0) four-axis inspection frame plus QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1; GET /v1/mesh live/locked/isolated; operator bearer enable; default radios OFF; not a login mesh; full node is local qnm-node/) plus FragGate door, GET /v1/software hub catalog, GET /v1/update/check, GitHub auto-deploy, durable UI-op aliases, EmbryoLock name-only stub, AZHub and AZInterface (AIH-WP-1.0, sibling softwares, same FragGate door), AZNet (AZN-WP-0.1) and AZBrowser (AZB-1.0) catalog one_line as separate software, AZMail (APP 1.0), PeaceLock (PL-WP-0.1), and KV-backed API use trackers. Discover, route, refuse. Author: Aziel Eliab.",
   "license": "Apache-2.0",
   "type": "module",
   "bin": {
