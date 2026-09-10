@@ -11,4 +11,4 @@ LIVE fabric on this Worker (not Softwares-tab): CL-WP-0.4, AP-WP-0.2, SG-WP-0.1,
 
 **REMAIN-OFF-BY-DESIGN-2026-09-10** is the constitutional OFF set (33 items). Correctly OFF / REFUSED / GATED does not count as missing. Companion audit [`FEATURE-STATE-2026-09-10`](../audit/FEATURE-STATE-2026-09-10.md) lists gaps vs intentional OFF. Do not enable remain-off items.
 
-**AZL-DONATE-1.0** is the cite-only donate plan (not a Softwares-tab product). Canonical URL `https://www.azieleliab.com/donate`. Hubs host rails; this runtime and product download-trackers only link. Do not duplicate five QRs here. Do not invent wallets or tokens.
+**AZL-DONATE-1.0** is the cite-only donate plan (not a Softwares-tab product). Canonical URL `https://www.azieleliab.com/donate`. Hubs host rails, including five QRs that encode BTC / ETH / LTC / XRP / DOGE payment URIs. This runtime and product download-trackers only link. Do not duplicate those QRs here. Do not invent wallets or tokens.
