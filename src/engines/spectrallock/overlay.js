@@ -5,7 +5,7 @@
  * PNG 8-bit RGB/RGBA, longest side capped at 256.
  */
 export const LIMITATION =
-  "Rosetta spectral analysis (RSA-2.0 family). SpectralLock lenses match " +
+  "THIS IS: Rosetta spectral analysis (RSA-2.0 family). SpectralLock lenses match " +
   "Aziel Corpus Library OCR — overlays plus ink/page targets " +
   "(zero, tazel, vyrn, uv, rosetta, zen, chaos, balance). " +
   "Synthetic UV is a 365–400 nm look from an ordinary photograph. " +
@@ -13,10 +13,19 @@ export const LIMITATION =
   "(max 256 px); the full pipeline is the Python package. The human still reads the page. " +
   "Author Aziel Eliab.";
 
+export const PRODUCT = "spectrallock";
+export const NAME = "SpectralLock";
 export const VERSION = "0.3.0";
+export const SPEC = "RSA-2.0";
+export const AUTHOR = "Aziel Eliab";
+export const ROLE = "256px overlay preview";
+export const MOTTO = "The human still reads the page. Balance never invents marks.";
 export const MAX_SIDE = 256;
 export const LIVE = ["zero", "tazel", "vyrn", "uv", "rosetta", "zen", "chaos", "balance"];
 export const TARGET_IDS = ["ink", "page"];
+export const AXES = Object.freeze(["lens", "target", "geometry"]);
+export const NEIGHBORS = Object.freeze(["4dmap", "trajectorylock", "aziel-corpus"]);
+export const STUB_REFUSE = Object.freeze(["spectrometer", "forensic", "invent_mark"]);
 
 export const MODES = [
   { id: "zero", paper: "ZSA-1.0", status: "live", summary: "Equilibrium / geometry (simplified grayscale stretch)." },
@@ -509,6 +518,13 @@ export async function overlayFromB64(b64, mode, extras = {}) {
   const com = centerOfMass(out, capped.w, capped.h);
   const key = lenses.length === 1 ? lenses[0] : lenses.join("+");
   const paper = lenses.length === 1 ? ((MODES.find((m) => m.id === lenses[0]) || {}).paper) : "MULTI";
+  const overlay_hash = await overlayMetaHash({
+    mode: key,
+    lenses,
+    target: dest,
+    width: capped.w,
+    height: capped.h,
+  });
   return {
     mode: key,
     lens: key,
@@ -518,6 +534,7 @@ export async function overlayFromB64(b64, mode, extras = {}) {
     width: capped.w,
     height: capped.h,
     com,
+    overlay_hash,
     png_b64: bytesToB64(png),
     simplified: true,
     max_side: MAX_SIDE,
@@ -527,6 +544,75 @@ export async function overlayFromB64(b64, mode, extras = {}) {
     corpus_ocr_aligned: true,
     author: "Aziel Eliab",
     advisory: LIMITATION,
+  };
+}
+
+export function listTargets() {
+  return {
+    ok: true,
+    product: PRODUCT,
+    name: NAME,
+    version: VERSION,
+    spec: SPEC,
+    targets: TARGETS,
+    target_ids: TARGET_IDS.slice(),
+    modes: MODES,
+    max_side: MAX_SIDE,
+    spectrometer: false,
+    forensic: false,
+    invent_mark: false,
+    neighbors: NEIGHBORS.slice(),
+    limitation: LIMITATION,
+    author: AUTHOR,
+  };
+}
+
+async function overlayMetaHash(meta) {
+  const payload = {
+    height: meta.height,
+    lenses: meta.lenses,
+    mode: meta.mode,
+    target: meta.target,
+    width: meta.width,
+  };
+  const keys = Object.keys(payload).sort();
+  const raw = "{" + keys.map((k) => JSON.stringify(k) + ":" + JSON.stringify(payload[k])).join(",") + "}";
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(raw));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+export async function verifyOverlay(body) {
+  const src = body && typeof body === "object" ? body : {};
+  const mode = String(src.mode || src.lens || "");
+  const target = String(src.target || src.polarity || "ink");
+  const width = Number(src.width);
+  const height = Number(src.height);
+  const stored = String(src.hash || src.overlay_hash || "");
+  const lenses = Array.isArray(src.lenses) ? src.lenses : mode ? mode.split("+") : [];
+  const unknown = lenses.filter((id) => !LIVE.includes(id));
+  if (unknown.length) {
+    return { ok: false, match: false, error: "unknown lens", unknown, known: LIVE, limitation: LIMITATION };
+  }
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+    return { ok: false, match: false, error: "verify needs width and height from an overlay result", status: 400, limitation: LIMITATION };
+  }
+  const recomputed = await overlayMetaHash({ mode, lenses, target, width, height });
+  return {
+    ok: !stored || stored === recomputed,
+    match: !stored || stored === recomputed,
+    product: PRODUCT,
+    version: VERSION,
+    hash: stored || recomputed,
+    recomputed,
+    mode,
+    target,
+    width,
+    height,
+    spectrometer: false,
+    forensic: false,
+    limitation: LIMITATION,
+    author: AUTHOR,
+    note: "Metadata hash of mode/target/geometry. Not a forensic claim.",
   };
 }
 

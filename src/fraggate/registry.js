@@ -54,6 +54,9 @@ export const OP_ALIASES = {
     import: "card_import",
     neighbor: "neighbor_cite",
   },
+  chronolock: {
+    advise: "advisory",
+  },
   mesh: { ...MESH_OP_ALIASES },
 };
 
@@ -116,26 +119,26 @@ function namedStubEntry(spec) {
  * include health+skill when the product is live. Do not invent ops.
  */
 export const LIVE_OPS = {
-  decisiongate: ["check", "evaluate", "health", "skill"],
+  decisiongate: ["check", "evaluate", "gates", "verify", "doctor", "health", "skill"],
   godlock: ["score", "submit", "health", "skill"],
   "aziel-corpus": ["search", "example", "skill", "health"],
   foldlock: ["fold-preview", "unfold-preview", "health", "skill"],
   azclce: ["score", "classify", "gate", "health", "skill"],
   zsolver: ["patterns", "score", "session", "health", "skill"],
-  forgereceipts: ["receipt", "health", "skill"],
+  forgereceipts: ["receipt", "verify", "import_export", "doctor", "health", "skill"],
   codelock: ["render", "health", "skill"],
   glossafilter: ["render", "health", "skill"],
-  staticclock: ["advise", "health", "skill"],
-  chronolock: ["advisory", "anchors", "health", "skill"],
+  staticclock: ["advise", "advisory", "anchors", "click", "verify", "timeslate", "import_export", "doctor", "health", "skill"],
+  chronolock: ["advisory", "advise", "anchors", "window", "doctor", "health", "skill"],
   azos: ["status", "health", "skill"],
   azai: ["lamb-check", "lamb_check", "health", "skill"],
   postking: ["new", "move", "status", "health", "skill"],
   shadowlock: ["observe", "health", "skill"],
-  temporallock: ["genesis", "append", "verify", "health", "skill"],
+  temporallock: ["genesis", "append", "verify", "timeslate", "gate", "import_export", "doctor", "health", "skill"],
   employeelock: ["append-preview", "verify-canonical", "health", "skill"],
   whistlelock: ["hash-preview", "canon-preview", "health", "skill"],
-  trajectorylock: ["example", "analyze", "health", "skill"],
-  spectrallock: ["modes", "overlay", "health", "skill"],
+  trajectorylock: ["example", "analyze", "verify", "schema", "import_export", "doctor", "health", "skill"],
+  spectrallock: ["modes", "targets", "overlay", "verify", "doctor", "health", "skill"],
   azbot: ["route", "health", "skill"],
   azieltether: ["verify", "health", "skill"],
   peacelock: ["open", "seal", "break", "show", "verify", "stamp", "upload_envelope", "health", "skill", "doctor"],
@@ -340,6 +343,13 @@ export const STUB_OPS = {
   mesh: MESH_STUB_OPS.slice(),
   memory: MEMORY_STUB_OPS.slice(),
   "4dmap": ["truth_score", "lumen_panel", "invent_mark", "backdate_class"],
+  decisiongate: ["wrap", "execute", "remote", "truth_score", "court"],
+  forgereceipts: ["court", "legal_advice", "odyssey", "file_store"],
+  temporallock: ["truth_claim", "scheduler", "store_chain", "rollback"],
+  staticclock: ["rollback", "remote_shell", "scheduler"],
+  chronolock: ["scheduler", "targeting", "virality", "cron"],
+  trajectorylock: ["certified", "shooter", "intent", "guilt", "store_media", "face"],
+  spectrallock: ["spectrometer", "forensic", "invent_mark"],
 };
 
 const LIVE_SLUGS = new Set(Object.keys(LIVE_OPS));
