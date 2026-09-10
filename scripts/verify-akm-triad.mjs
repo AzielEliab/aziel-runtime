@@ -58,6 +58,10 @@ function freshEnv() {
 assert.equal(AKM_SPEC, "AKM-TRIAD-1.0");
 assert.ok(!PRODUCTS.some((p) => p.slug === "memory"));
 assert.ok(!listSoftwareEntries(PRODUCTS).some((s) => s.slug === "memory"));
+for (const forbidden of ["akm", "akm-triad", "adaptive-memory"]) {
+  assert.ok(!PRODUCTS.some((p) => p.slug === forbidden), `${forbidden} is not a PRODUCTS slug`);
+  assert.ok(!listSoftwareEntries(PRODUCTS).some((s) => s.slug === forbidden), `${forbidden} is not Softwares-tab`);
+}
 assert.ok(LIVE_OPS.memory.includes("observe"));
 assert.ok(LIVE_OPS.memory.includes("calibrate"));
 assert.ok(STUB_OPS.memory.includes("model_update"));

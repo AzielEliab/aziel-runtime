@@ -3,10 +3,15 @@
  * Stateless hash-chained receipts. Author: Aziel Eliab.
  */
 export const PRODUCT = "temporallock";
+export const NAME = "TemporalLock";
 export const VERSION = "0.2.0";
+export const SPEC = "TL-0.2";
 export const MOTTO = "Receipts, not truth claims.";
 export const ROLE = "immutable timeslate lattice";
 export const AUTHOR = "Aziel Eliab";
+export const AXES = Object.freeze(["receipt_hash", "timeslate_hash", "staticclock_click", "click_index"]);
+export const NEIGHBORS = Object.freeze(["staticclock", "4dmap", "forgereceipts"]);
+export const STUB_REFUSE = Object.freeze(["truth_claim", "scheduler", "store_chain", "rollback"]);
 const STATICCLOCK_HOST = "https://staticclock-download-tracker.vibelock.workers.dev";
 const AZOS_HOST = "https://azos-download-tracker.vibelock.workers.dev";
 const HOST = "https://temporallock-download-tracker.vibelock.workers.dev";
@@ -420,5 +425,50 @@ export async function gate(body) {
     bound: result.bound,
     errors: result.errors,
     chain,
+  };
+}
+
+export async function importExport(body) {
+  const src = body && typeof body === "object" ? body : {};
+  const mode = String(src.mode || src.action || "export").toLowerCase();
+  const chain = parseChain(src);
+  if (mode === "import" || mode === "verify") {
+    if (!chain.length) {
+      return { ok: false, product: PRODUCT, action: "import", error: "chain is empty", status: 400, limitation: LIMITATION };
+    }
+    const rec = await verify(chain);
+    const lat = await verifyLattice(chain, rec.errors);
+    return {
+      action: "import",
+      product: PRODUCT,
+      version: VERSION,
+      stored: false,
+      ...rec,
+      lattice: lat,
+      limitation: LIMITATION,
+      author: AUTHOR,
+    };
+  }
+  if (!chain.length) {
+    return { ok: false, product: PRODUCT, action: "export", error: "pass chain or receipts to export", status: 400, limitation: LIMITATION };
+  }
+  return {
+    ok: true,
+    action: "export",
+    product: PRODUCT,
+    version: VERSION,
+    schema: "temporallock-chain-v1",
+    envelope: {
+      product: PRODUCT,
+      schema: "temporallock-chain-v1",
+      chain,
+      stored: false,
+    },
+    length: chain.length,
+    stored: false,
+    durable: false,
+    limitation: LIMITATION,
+    author: AUTHOR,
+    note: "Client-held chain. Hosted / in-process is stateless.",
   };
 }
