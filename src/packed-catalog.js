@@ -13,6 +13,8 @@
  * Author: Aziel Eliab only.
  */
 
+import { DONATE_CANONICAL } from "./seo.js";
+
 import { sha256Hex } from "./session-core.js";
 import { softwareCatalog } from "./software-catalog.js";
 import { clientIp, extractRuntimeToken, timingSafeEqualString, tokenSecret } from "./production.js";
@@ -119,7 +121,11 @@ export function donationStatic() {
   return {
     static: true,
     kv: false,
-    note: "Donation is a static tab. Addresses are an operator paste at publish time. Do not invent wallets. Do not route donations through KV, D1, or Durable Objects.",
+    link_only: true,
+    qrs: false,
+    canonical: DONATE_CANONICAL,
+    spec: "AZL-DONATE-1.0",
+    note: `AZL-DONATE-1.0. Canonical rails live on hubs (${DONATE_CANONICAL}). Runtime and download-trackers only link. Do not duplicate five QRs here. Addresses are an operator paste at publish time on the hub. Do not invent wallets. Do not route donations through KV, D1, or Durable Objects. Not a Softwares-tab product.`,
     networks: ["bitcoin", "lightning", "ethereum", "solana"],
     addresses: null,
   };

@@ -138,6 +138,8 @@ import {
   citeHowToLibrary,
   citeHowToRuntime,
   DESIGNS_GITHUB_TREE,
+  DONATE_CANONICAL,
+  DONATE_FOOTER_RUNTIME,
   designsCiteField,
   designsLlmsBlock,
   designsLlmsHeaderLine,
@@ -1450,7 +1452,13 @@ const PAGE_CSS = `
   .fg-ops button:hover { background: #33280f; }
   .fg-door textarea { width: 100%; min-height: 4.2rem; background: #0e1014; color: #e8eaef; border: 1px solid #2a3140; border-radius: 8px; padding: .5rem .6rem; font: .82rem/1.4 ui-monospace, monospace; box-sizing: border-box; }
   .fg-out { margin: .55rem 0 0; max-height: 16rem; }
+  footer.donate { margin: 2.2rem 0 0; padding-top: 1rem; border-top: 1px solid #2a3140; }
+  footer.donate p { margin: 0; color: #9aa3b2; }
 `;
+
+function donateFooterHtml() {
+  return `<footer class="donate"><p><a href="${DONATE_CANONICAL}">${escapeHtml(DONATE_FOOTER_RUNTIME)}</a></p></footer>`;
+}
 
 function doorOnly(p) {
   return p && (p.slug === "azbrowser" || p.slug === "azmail" || p.slug === "aznet" || p.slug === "azhub" || p.slug === "azinterface" || p.slug === "4dmap");
@@ -1696,7 +1704,7 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
   </p>
   <p id="pipeline"><strong>Locked MASTER-33 pipeline</strong> (1.7.0 — FragGate is THE single door; not LambGate): <code>${LOCKED_STRIP}</code>. Lamb Lens is fabric after FragGate. Internal Domain Layer holds isolated softwares — domains are labels, not doors. RoseClock is forward-only. FoldLock fld3-wire stays internal to AZPIPE. SweepGate / ChainLock / AZPIPE / Lamb Lens / Sentinel / RoseClock are fabric, not Softwares-tab. 4DMap is cited inside the domain layer. Illegal reorder is refused.</p>
   <p>LIVE fabric (not Softwares-tab): AZPIPE, SweepGate, ChainLock, LOCKSET, packed catalog, Lamb Lens, Sentinel, RoseClock, <strong>QNS-CD-1.0</strong> (photon QNS1 1.3; local <code>qnsd</code>; Worker cites only), MASTER-33 (SUITE-PIPE-1.6.15 historical), <strong>AKM-TRIAD-1.0</strong> (adaptive recollection; Bayesian posterior ≠ truth; behind FragGate). MCP <code>chainlock_*</code> and <code>memory_*</code>. <code>GET /v1/mesh</code> never enables. <code>GET /v1/qns</code> cites the packet-transfer coding design — it does not proxy local via emit. <code>GET /v1/azpipe/arch</code> cites the locked MASTER-33 strip (same payload as <code>GET /v1/fraggate</code> <code>pipeline</code>; not a Softwares-tab door). UI=MCP. No Node Gate.</p>
-  <p>Donation is a static tab — no KV, no invented wallets. Networks the operator already controls (Bitcoin, Lightning, Ethereum, Solana); paste addresses at publish time.</p>
+  <p>Donation is a static hub tab (<a href="${DONATE_CANONICAL}">${escapeHtml(DONATE_CANONICAL)}</a>) — AZL-DONATE-1.0. Canonical rails live on hubs; this runtime only links. No KV, no invented wallets, no five QRs on this Worker. Networks the operator already controls (Bitcoin, Lightning, Ethereum, Solana); paste addresses at publish time on the hub.</p>
   <p>Designs (git-hosted papers — not Softwares-tab products, not a FragGate slug; <code>GET /v1/mesh</code> never enables): <a href="${DESIGNS_GITHUB_TREE}">docs/designs/</a>${SUITE_DESIGNS.map((d) => ` · <a href="${designGithubUrl(d.file)}">${escapeHtml(d.id)}</a>`).join("")}. Author: Aziel Eliab only. PDFs sit beside each paper on GitHub.</p>
   <p>Feature-state audit (authoritative intentional-OFF vs gaps for 1.7.3+; not a Softwares-tab product, not a FragGate slug): <a href="${auditGithubUrl(FEATURE_STATE_AUDIT.file)}">${escapeHtml(FEATURE_STATE_AUDIT.id)}</a> · <a href="${auditGithubUrl(FEATURE_STATE_AUDIT.pdf)}">PDF</a> · <a href="${AUDIT_GITHUB_TREE}">docs/audit/</a>. Constitutional OFF set (33 items; correctly OFF/REFUSED/GATED is not a gap): <a href="${designGithubUrl(REMAIN_OFF_BY_DESIGN.file)}">${escapeHtml(REMAIN_OFF_BY_DESIGN.id)}</a> · <a href="${designGithubUrl(REMAIN_OFF_BY_DESIGN.pdf)}">PDF</a>. Do not enable mesh or safety stubs. Author: Aziel Eliab only.</p>
   <h2>Session (the actual cut)</h2>
@@ -1723,6 +1731,7 @@ ${homepageAddUrlHtml(origin)}
   </section>
   ${cards}
 ${fragGateDoorScript()}
+${donateFooterHtml()}
 </body>
 </html>`;
 }
@@ -1765,6 +1774,7 @@ ${headMeta(origin, title, description, `/p/${p.slug}`)}
   <p><a href="${origin}/">← Aziel Eliab Runtime</a></p>
   ${productCardHtml(p, origin, stats)}
 ${fragGateDoorScript()}
+${donateFooterHtml()}
 </body>
 </html>`;
 }
