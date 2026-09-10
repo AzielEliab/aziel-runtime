@@ -20,6 +20,11 @@ export const LIBRARY_FRONT_DOOR = `${LIBRARY_ORIGIN}/runtime`;
 export const GODLOCK_UK_ORIGIN = "https://godlock.uk";
 export const GODLOCK_UK_SITEMAP = `${GODLOCK_UK_ORIGIN}/sitemap.xml`;
 
+/** Canonical donate rails live on hubs. Runtime and download-trackers only link. Do not invent wallets. */
+export const DONATE_CANONICAL = "https://www.azieleliab.com/donate";
+export const DONATE_FOOTER_RUNTIME = "Donate";
+export const DONATE_FOOTER_PRODUCT = "Support the work";
+
 /** Live catalog probe 2026-09-05: product Worker /sitemap.xml was 404. Do not list it. */
 export const MISSING_PRODUCT_SITEMAP_SLUGS = Object.freeze(["vibelock"]);
 
@@ -459,6 +464,14 @@ export const SUITE_DESIGNS = Object.freeze([
     status: "live",
     kind: "law",
   },
+  {
+    id: "AZL-DONATE-1.0",
+    file: "AZL-DONATE-1.0.md",
+    one_line:
+      "Cite-only donate plan — canonical https://www.azieleliab.com/donate; hubs host rails; runtime/download-trackers link only; not a Softwares product",
+    status: "live",
+    kind: "law",
+  },
 ]);
 
 export function designGithubUrl(file) {
@@ -538,6 +551,7 @@ export function designsSitemapUrls() {
     DESIGNS_GITHUB_TREE,
     ...SUITE_DESIGNS.map((d) => designGithubUrl(d.file)),
     designGithubUrl("REMAIN-OFF-BY-DESIGN-2026-09-10.pdf"),
+    designGithubUrl("AZL-DONATE-1.0.pdf"),
   ];
 }
 
