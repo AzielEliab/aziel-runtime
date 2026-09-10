@@ -13,6 +13,7 @@ Current software designs live in [docs/designs/](designs/). Author: **Aziel Elia
 - [QNM-WP-1.0](designs/QNM-WP-1.0.md) — Quantum Node Mesh fabric (local process ON / public rollup OFF)
 - [NODE-OPS-1.0](designs/NODE-OPS-1.0.md) — Node operations + surface law + phoenix loop
 - [SEC-FEAT-1.0](designs/SEC-FEAT-1.0.md) — Security feature inventory (door, stubs, vault, fabric)
+- [QNS-CD-1.0](designs/QNS-CD-1.0.md) — Quantum Node Signal packet-transfer coding design (photon QNS1 1.3; local `qnsd`; Worker cites only)
 
 This page remains the live **QNM-BUILD-1.0** rollup law. Do not rewrite that law from the papers.
 
@@ -38,7 +39,9 @@ This page remains the live **QNM-BUILD-1.0** rollup law. Do not rewrite that law
 
 The **full node process** is local:
 
-`qnm-node/` → `boot` / `chain` / `apg` / `bearers` / `outbox` / `phoenix` / `score` / `memorial` / `tethers`
+`qnm-node/` → `boot` / `chain` / `apg` / `bearers` / `outbox` / `phoenix` / `score` / `memorial` / `tethers` / `qnsd`
+
+**QNS-CD-1.0** is the packet-transfer coding design (photon QNS1 1.3). Local process `qnsd` lives in [AzielEliab/qnm-node](https://github.com/AzielEliab/qnm-node) and binds **127.0.0.1** only. Companion to QNM-BUILD-1.0 / AIH-WP-1.3. This Worker cites it at `GET /v1/qns` and as `qns_cd` on every software card — it does **not** proxy local via emit and is **not** a remote wipe/control plane.
 
 Parent rolls that package. This runtime does **not** host those engines.
 
@@ -103,6 +106,11 @@ AZMail `mesh_post` / `mesh_poll` / `mesh_listen` / `mesh_enable` / `mesh_disable
   "companion": "AIH-WP-1.1",
   "rollup_only": true,
   "qnm_s": false
+},
+"qns_cd": {
+  "spec": "QNS-CD-1.0",
+  "local": "https://github.com/AzielEliab/qnm-node",
+  "note": "Photon vias on local qnsd; Worker cites only"
 }
 ```
 

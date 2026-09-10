@@ -216,7 +216,7 @@ Product Worker crawl template: [docs/PRODUCT_SEO.md](docs/PRODUCT_SEO.md). QNM s
 
 ## Designs
 
-Current suite software designs (AZL / SEC-FEAT / QNM-WP / NODE-OPS) plus LIVE fabric papers (CL-WP-0.4, AP-WP-0.2, SG-WP-0.1, LS-WP-0.1, RL-WP-0.1-runtime — not Softwares-tab products): [docs/designs/](docs/designs/). Author: **Aziel Eliab** only. MCP `chainlock_*`. `GET /v1/mesh` never enables.
+Current suite software designs (AZL / SEC-FEAT / QNM-WP / NODE-OPS) plus LIVE fabric papers (CL-WP-0.4, AP-WP-0.2, SG-WP-0.1, LS-WP-0.1, RL-WP-0.1-runtime, **QNS-CD-1.0** — not Softwares-tab products): [docs/designs/](docs/designs/). Author: **Aziel Eliab** only. MCP `chainlock_*`. `GET /v1/mesh` never enables. **QNS-CD-1.0** is the Quantum Node Signal packet-transfer coding design (photon QNS1 1.3). Implementation is local `qnsd` in [AzielEliab/qnm-node](https://github.com/AzielEliab/qnm-node). `GET /v1/qns` cites only — the public Worker does not proxy local via emit. Every `/v1/software` card carries `qns_cd`. Do not add QNS as a Softwares-tab product.
 
 ## Add to ChatGPT (GPT Actions)
 
