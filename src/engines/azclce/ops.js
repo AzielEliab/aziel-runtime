@@ -2,61 +2,68 @@
  * AZ-CLCE in-process ops. Engine artifact is ./engine.js + ./triad.js.
  * Author: Aziel Eliab.
  */
+import { capabilityDoctor, capabilityHealth, capabilitySkill, ensureThisIs } from "../capability.js";
 import { AZCLCE_CROSS_MAP } from "../../cross-map.js";
 import { ENGINE_VERSION, LIMITATION, NEIGHBORS, classify, gate, parseLayers, score } from "./engine.js";
 
-export const AZCLCE_OPS = ["health", "skill", "score", "classify", "gate"];
+const LIVE = ["health", "skill", "score", "classify", "gate", "doctor"];
+const STUB = ["intent", "malice"];
+export const AZCLCE_OPS = LIVE.slice();
 
 function layersOf(payload) {
   return parseLayers(payload && typeof payload === "object" ? payload : {});
 }
 
-export function azclceHealth() {
+function envelope() {
   return {
-    ok: true,
     product: "azclce",
+    name: "AZ-CLCE",
     version: ENGINE_VERSION,
-    true_engine_runtime: true,
-    kv_increment: false,
-    limitation: LIMITATION,
-    author: "Aziel Eliab",
-    advisory: true,
+    role: "Jaccard triple / pairwise / CLCE+",
+    motto: "Detects inconsistency, not intent.",
+    axes: ["r", "d", "p", "triple"],
     neighbors: NEIGHBORS,
-    peers: AZCLCE_CROSS_MAP.peers,
-    hubs: AZCLCE_CROSS_MAP.hubs,
-    worker_url: AZCLCE_CROSS_MAP.worker_url,
-    cross_map: AZCLCE_CROSS_MAP,
-    domain: "Language",
-    domain_id: "04",
-    placement: "domain-software",
+    live_ops: LIVE,
+    stub_ops: STUB,
+    limitation: ensureThisIs(
+      LIMITATION,
+      "THIS IS: Jaccard triple / pairwise / CLCE+ inconsistency labels. THIS IS NOT: intent, malice, or a lie detector.",
+    ),
+    extra: {
+      advisory: true,
+      peers: AZCLCE_CROSS_MAP.peers,
+      hubs: AZCLCE_CROSS_MAP.hubs,
+      worker_url: AZCLCE_CROSS_MAP.worker_url,
+      cross_map: AZCLCE_CROSS_MAP,
+      domain: "Language",
+      domain_id: "04",
+      placement: "domain-software",
+    },
   };
 }
 
+export function azclceHealth() {
+  return capabilityHealth(envelope());
+}
+
 export function azclceSkill() {
-  return {
-    markdown: `# AZ-CLCE (in-process)
+  return capabilitySkill({
+    ...envelope(),
+    lead: "Jaccard triple / pairwise / CLCE+. Detects inconsistency, not intent. Type D is a label only. Peer AZCoherence is a separate product.",
+  });
+}
 
-Jaccard triple / pairwise / CLCE+. Detects inconsistency, not intent. Type D is a label only.
-This op ran inside aziel-runtime's Worker isolate (or a local CLI jail).
-
-LIVE_OPS: health, skill, score, classify, gate.
-
-Peer: **AZCoherence** (\`azcoherence\`) is a separate product — second-pass triad coherence reviewer (AZC-0.1). Not a replacement for AZ-CLCE. Not AKM-TRIAD fabric. Call \`fraggate_call\` with \`{ slug: "azcoherence", op: "coherence_check" }\`.
-
-Author: **Aziel Eliab**. Version: ${ENGINE_VERSION}.
-Limitation: ${LIMITATION}
-`,
-    kv_increment: false,
-    limitation: LIMITATION,
-    neighbors: NEIGHBORS,
-    peers: AZCLCE_CROSS_MAP.peers,
-    cross_map: AZCLCE_CROSS_MAP,
-  };
+export function azclceDoctor() {
+  return capabilityDoctor({
+    ...envelope(),
+    doctor_note: "AZ-CLCE doctor: score / classify / gate. Not intent. Peer azcoherence.",
+  });
 }
 
 export async function runAzclce(op, payload) {
   if (op === "health") return azclceHealth();
   if (op === "skill") return azclceSkill();
+  if (op === "doctor") return azclceDoctor();
   const layers = layersOf(payload);
   if (op === "score") return score(layers.r, layers.d, layers.p, layers.n);
   if (op === "classify") return classify(layers.r, layers.d, layers.p, layers.n);

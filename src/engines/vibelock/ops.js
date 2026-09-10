@@ -1,39 +1,51 @@
 /**
  * vibelock in-process ops. Author: Aziel Eliab.
  */
-import { LIMITATION, VERSION, handleAnalyze } from "./engine.js";
+import { capabilityDoctor, capabilityHealth, capabilitySkill, ensureThisIs } from "../capability.js";
+import { LIMITATION, MOTTO, VERSION, handleAnalyze } from "./engine.js";
 
-export const VIBELOCK_OPS = ["health", "skill", "analyze", "detect"];
+const LIVE = ["health", "skill", "analyze", "detect", "doctor"];
+const STUB = ["mic", "live_capture", "liveness_proof"];
+export const VIBELOCK_OPS = LIVE.slice();
 
-export function vibelockHealth() {
+function envelope() {
   return {
-    ok: true,
     product: "vibelock",
+    name: "VibeLock",
     version: VERSION,
-    true_engine_runtime: true,
-    kv_increment: false,
-    limitation: LIMITATION,
-    author: "Aziel Eliab",
+    role: "audio forensic risk assessment",
+    motto: MOTTO,
+    axes: ["features", "pcm", "risk"],
+    neighbors: ["spectrallock", "aziel-corpus"],
+    live_ops: LIVE,
+    stub_ops: STUB,
+    limitation: ensureThisIs(LIMITATION, "THIS IS: media authenticity advisory on posted features. THIS IS NOT: a live microphone or courtroom proof."),
+    extra: { live_mic: false },
   };
 }
 
+export function vibelockHealth() {
+  return capabilityHealth(envelope());
+}
+
 export function vibelockSkill() {
-  return {
-    markdown: `# vibelock (in-process)
+  return capabilitySkill({
+    ...envelope(),
+    lead: "Feature / PCM risk assessment. Not a live microphone and not a liveness proof.",
+  });
+}
 
-This op ran inside aziel-runtime's Worker isolate (or a local CLI jail).
-
-Author: **Aziel Eliab**.
-Limitation: ${LIMITATION}
-`,
-    kv_increment: false,
-    limitation: LIMITATION,
-  };
+export function vibelockDoctor() {
+  return capabilityDoctor({
+    ...envelope(),
+    doctor_note: "VibeLock doctor: analyze/detect on posted features. No live mic.",
+  });
 }
 
 export async function runVibelock(op, payload, scratch) {
   if (op === "health") return vibelockHealth();
   if (op === "skill") return vibelockSkill();
+  if (op === "doctor") return vibelockDoctor();
   if (op === "analyze" || op === "detect") {
     const out = await handleAnalyze(payload);
     return { ...out, true_engine_runtime: true, limitation: LIMITATION };

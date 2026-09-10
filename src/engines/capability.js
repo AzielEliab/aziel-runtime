@@ -105,3 +105,10 @@ Limitation: ${spec.limitation}
 export function srcOf(payload) {
   return payload && typeof payload === "object" ? payload : {};
 }
+
+/** Prefix a limitation so health/skill meet the capability bar without rewriting hashed engine copy. */
+export function ensureThisIs(limitation, prefix) {
+  const text = String(limitation || "").trim();
+  if (text.includes("THIS IS")) return text;
+  return `${prefix || "THIS IS: an in-process Softwares engine. THIS IS NOT: a remain-OFF enable."} ${text}`.trim();
+}

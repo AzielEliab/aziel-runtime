@@ -26,6 +26,7 @@ import {
   mailboxAck,
   mailboxVerifyReceipt,
   mailboxImportExport,
+  transportStatus,
 } from "./engine.js";
 
 export const AZMAIL_OPS = [
@@ -49,6 +50,8 @@ export const AZMAIL_OPS = [
   "ack",
   "verify_receipt",
   "import_export",
+  "transport_status",
+  "doctor",
 ];
 
 export function azmailHealthOp() {
@@ -62,6 +65,7 @@ export function azmailSkillOp() {
 export async function runAzmail(op, payload, scratch, env) {
   if (op === "health") return azmailHealth();
   if (op === "skill") return azmailSkill();
+  if (op === "doctor") return { ...azmailHealth(), op: "doctor", doctor: true };
   if (op === "airlock_classify") return airlockClassify(payload);
   if (op === "scrub") return airlockScrub(payload);
   if (op === "trust_score") return airlockTrustScore(payload);
@@ -80,6 +84,17 @@ export async function runAzmail(op, payload, scratch, env) {
   if (op === "ack") return mailboxAck(payload);
   if (op === "verify_receipt") return mailboxVerifyReceipt(payload);
   if (op === "import_export") return mailboxImportExport(payload);
+  if (op === "transport_status") {
+    return {
+      ok: true,
+      product: "azmail",
+      op: "transport_status",
+      true_engine_runtime: true,
+      limitation: LIMITATION,
+      author: AUTHOR,
+      ...transportStatus(),
+    };
+  }
   return { unsupported: true };
 }
 

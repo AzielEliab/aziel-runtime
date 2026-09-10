@@ -1,6 +1,6 @@
 # AZIEL RUNTIME — Disabled, Off, Stubbed, Gated & Not-Yet-Implemented Feature Audit
 
-Baseline aziel-runtime 1.7.3 | close 1.9.0 (AZRT-1.9-CLOSE-1.0) | 2026-09-10.
+Baseline aziel-runtime 1.7.3 | close 1.9.0 (AZRT-1.9-CLOSE-1.0) | gaps 1.9.1 (AZRT-1.9-GAPS-CLOSE) | 2026-09-10.
 
 Identity: Aziel Eliab.
 
@@ -33,8 +33,8 @@ Inventory 1–50:
 15 PeaceLock transcript/motive/etc STUB
 16 4DMap truth_score/lumen/invent_mark/backdate STUB
 17–18 AZBrowser tor_exit/phoenix_wipe STUB
-19 AZBrowser Chromium NOT IMPLEMENTED (DEFERRED)
-20 AZMail SMTP NOT IMPLEMENTED (no public MTA)
+19 AZBrowser Chromium NOT IMPLEMENTED (DEFERRED) — 1.9.1 sandbox_status/sandbox_render honest; unbound stays deferred
+20 AZMail SMTP NOT IMPLEMENTED (no public MTA) — 1.9.1 transport_status gated refuse; no public send
 21 AZMail deanonymization STUB (ASSESS — harness + example only)
 22 AZMail anonymous mesh OFF default (ASSESS — stay OFF)
 23 TrajectoryLock media store CLOSED — isolate hash object store (no CDN; store_media refuse)
@@ -43,8 +43,8 @@ Inventory 1–50:
 26 AZNet unpaired privileged CONDITIONALLY OFF
 27 AZHub auto-unlock OFF
 28 AZInterface page cycles PRE-LOCKED
-29 Corpus D1/Whisper/OCR PARTIAL/PROXY — native-vs-proxy labels (1.9.0)
-30 Universal local execution NOT COMPLETE — named fallback inventory (1.9.0)
+29 Corpus D1/Whisper/OCR PARTIAL/GATED — isolate-safe review/score/verify native (1.9.1); Whisper/OCR/D1 binding-gated
+30 Universal local execution NOT COMPLETE — named fallback inventory shrunk (1.9.1); unknown tools still refuse
 31–32 Public/RoseClock rollback OFF
 33 LambGate OFF not a hop
 34 ASE OPTIONAL

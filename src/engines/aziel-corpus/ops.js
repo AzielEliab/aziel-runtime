@@ -1,53 +1,105 @@
 /**
  * aziel-corpus in-process ops. Author: Aziel Eliab.
  */
-import { LIMITATION, VERSION, search, examplePayload } from "./engine.js";
+import { capabilityDoctor, capabilityHealth, capabilitySkill } from "../capability.js";
+import {
+  BINDING_GATED_OPS,
+  LIMITATION,
+  NATIVE_OPS,
+  PROXY_OPS,
+  VERSION,
+  SPEC,
+  documentChain,
+  examplePayload,
+  importExport,
+  mediaStatus,
+  ocr,
+  review,
+  score,
+  search,
+  transcribe,
+  verifyBackfill,
+  verifyGeo,
+} from "./engine.js";
 
-export const AZIEL_CORPUS_OPS = ["health", "skill", "search", "example"];
+export const AZIEL_CORPUS_OPS = [
+  "health",
+  "skill",
+  "search",
+  "example",
+  "doctor",
+  "review",
+  "score",
+  "verify-backfill",
+  "verify-geo",
+  "document-chain",
+  "import_export",
+];
 
-const NATIVE_OPS = ["health", "skill", "search", "example", "doctor"];
-const PROXY_OPS = ["review", "score", "jeeves", "transcribe", "ocr", "verify-backfill", "verify-geo", "document-chain", "media-run"];
+const LIVE = AZIEL_CORPUS_OPS.slice();
+const STUB = ["blend", "chat", "smtp_send"];
+const AXES = ["sample_master", "posted_json", "hash_chain", "gazetteer"];
+const NEIGHBORS = ["spectrallock", "azai", "4dmap"];
 
-export function aziel_corpusHealth() {
+function envelope(env) {
   return {
-    ok: true,
     product: "aziel-corpus",
+    name: "Aziel Digital Library",
     version: VERSION,
-    true_engine_runtime: true,
-    kv_increment: false,
+    spec: SPEC,
+    role: "portable sample-MASTER library + isolate-safe verify",
+    motto: "Sample MASTER is not live D1. Labels stay honest.",
+    axes: AXES,
+    neighbors: NEIGHBORS,
+    live_ops: LIVE,
+    stub_ops: STUB,
     limitation: LIMITATION,
-    author: "Aziel Eliab",
-    native_ops: NATIVE_OPS.slice(),
-    proxy_ops: PROXY_OPS.slice(),
-    native_vs_proxy: {
-      native: NATIVE_OPS.slice(),
-      proxy: PROXY_OPS.slice(),
-      note: "In-process search uses bundled sample MASTER. Live D1 / Whisper / OCR stay per-op proxy. Not a fake native OCR.",
+    extra: {
+      native_ops: NATIVE_OPS.slice(),
+      proxy_ops: PROXY_OPS.slice(),
+      binding_gated: { ...BINDING_GATED_OPS },
+      native_vs_proxy: {
+        native: NATIVE_OPS.slice(),
+        proxy: PROXY_OPS.slice(),
+        binding_gated: { ...BINDING_GATED_OPS },
+        note: "In-process search uses bundled sample MASTER unless CORPUS_D1 is bound. Whisper / OCR are native only when Workers AI is bound. Not a fake native OCR.",
+      },
+      media: mediaStatus(env),
     },
-    r2: { bound: false, bucket: null, cdn: false },
-    door: "fraggate",
-    mesh_enabled_default: false,
   };
 }
 
-export function aziel_corpusSkill() {
-  return {
-    markdown: `# aziel-corpus (in-process)
-
-This op ran inside aziel-runtime's Worker isolate (or a local CLI jail).
-
-Author: **Aziel Eliab**.
-Limitation: ${LIMITATION}
-`,
-    kv_increment: false,
-    limitation: LIMITATION,
-  };
+export function aziel_corpusHealth(env) {
+  return capabilityHealth(envelope(env));
 }
 
-export async function runAzielCorpus(op, payload, scratch) {
-  if (op === "health") return aziel_corpusHealth();
-  if (op === "skill") return aziel_corpusSkill();
-  if (op === "search") return search(payload);
+export function aziel_corpusSkill(env) {
+  return capabilitySkill({
+    ...envelope(env),
+    lead: "In-process search over a bundled public sample MASTER. review / score / verify-backfill / verify-geo / document-chain run on posted or sample JSON. Live D1 and Whisper/OCR stay binding-gated. jeeves / media-run stay proxy.",
+  });
+}
+
+export function aziel_corpusDoctor(env) {
+  return capabilityDoctor({
+    ...envelope(env),
+    doctor_note: "Corpus doctor: native-vs-proxy labels, binding-gated Whisper/OCR, sample gazetteer. Not a fake OCR.",
+  });
+}
+
+export async function runAzielCorpus(op, payload, scratch, env) {
+  if (op === "health") return aziel_corpusHealth(env);
+  if (op === "skill") return aziel_corpusSkill(env);
+  if (op === "doctor") return aziel_corpusDoctor(env);
+  if (op === "search") return search(payload, env);
   if (op === "example") return { product: "aziel-corpus", example: examplePayload(), true_engine_runtime: true, limitation: LIMITATION };
+  if (op === "review") return review(payload);
+  if (op === "score") return score(payload);
+  if (op === "verify-backfill") return verifyBackfill(payload);
+  if (op === "verify-geo") return verifyGeo(payload);
+  if (op === "document-chain") return documentChain(payload);
+  if (op === "import_export") return importExport(payload);
+  if (op === "transcribe") return transcribe(payload, env);
+  if (op === "ocr") return ocr(payload, env);
   return { unsupported: true };
 }

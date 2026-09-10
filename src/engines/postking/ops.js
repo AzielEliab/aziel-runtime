@@ -1,41 +1,52 @@
 /**
  * postking in-process ops. Author: Aziel Eliab.
  */
+import { capabilityDoctor, capabilityHealth, capabilitySkill, ensureThisIs } from "../capability.js";
 import { MOTTO, newGame, playMove, statusOf } from "./engine.js";
-const LIMITATION = MOTTO;
+
+const LIMITATION = ensureThisIs(MOTTO, "THIS IS: continuity chess. THIS IS NOT: a win-maximizer or a remote engine farm.");
 const VERSION = "0.1.0";
+const LIVE = ["health", "skill", "new", "move", "status", "doctor"];
+const STUB = ["win_engine", "rating"];
+export const POSTKING_OPS = LIVE.slice();
 
-export const POSTKING_OPS = ["health", "skill", "new", "move", "status"];
-
-export function postkingHealth() {
+function envelope() {
   return {
-    ok: true,
     product: "postking",
+    name: "Post-King Chess",
     version: VERSION,
-    true_engine_runtime: true,
-    kv_increment: false,
+    role: "continuity chess",
+    motto: MOTTO,
+    axes: ["remain", "steward", "fen"],
+    neighbors: ["zsolver", "decisiongate"],
+    live_ops: LIVE,
+    stub_ops: STUB,
     limitation: LIMITATION,
-    author: "Aziel Eliab",
   };
 }
 
+export function postkingHealth() {
+  return capabilityHealth(envelope());
+}
+
 export function postkingSkill() {
-  return {
-    markdown: `# postking (in-process)
+  return capabilitySkill({
+    ...envelope(),
+    lead: "The goal is not to win. The goal is to remain. Human is king-bound; AI has a Node, not a king.",
+  });
+}
 
-This op ran inside aziel-runtime's Worker isolate (or a local CLI jail).
-
-Author: **Aziel Eliab**.
-Limitation: ${LIMITATION}
-`,
-    kv_increment: false,
-    limitation: LIMITATION,
-  };
+export function postkingDoctor() {
+  return capabilityDoctor({
+    ...envelope(),
+    doctor_note: "Post-King doctor: new / move / status. Not a rating engine.",
+  });
 }
 
 export async function runPostking(op, payload, scratch) {
   if (op === "health") return postkingHealth();
   if (op === "skill") return postkingSkill();
+  if (op === "doctor") return postkingDoctor();
   try {
     if (op === "new") return { ...newGame(payload || {}), true_engine_runtime: true, limitation: LIMITATION };
     if (op === "move") return { ...(await playMove(payload || {})), true_engine_runtime: true, limitation: LIMITATION };

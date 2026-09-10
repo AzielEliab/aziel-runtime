@@ -22,7 +22,7 @@ export const KV_KEY = "azbrowser";
 export const GENESIS_PREV = "0".repeat(64);
 
 export const LIMITATION =
-  "THIS IS: AZBrowser (AZB-1.0) — Lamb Lens ethical research browser: sandboxed advisory navigate (metadata only; no raw HTML), Lamb Lens ethical search (cite; refuse harmful harvest; never invent visit results), airlock ingest, in-memory/KV tabs, hash-chained receipts. Reached only through the aziel-runtime FragGate door (POST /v1/fraggate/call or MCP fraggate_call). AZNet is separate software (same FragGate door); pairing is order/token only, not a shared app. THIS IS NOT: Chromium; a real browser exec; Tor exit control; phoenix wipe; an unrestricted proxy; a keylogger; clipboard harvest; surveillance. tor_exit / phoenix_wipe / chromium / proxy / harvest stay stub. Hosted never claims a visit it did not fetch, and never returns raw HTML. Author: Aziel Eliab only.";
+  "THIS IS: AZBrowser (AZB-1.0) — Lamb Lens ethical research browser: sandboxed advisory navigate (metadata only; no raw HTML), Lamb Lens ethical search (cite; refuse harmful harvest; never invent visit results), airlock ingest, in-memory/KV tabs, hash-chained receipts, plus an honest Browser Rendering status (sandbox_status / sandbox_render). Reached only through the aziel-runtime FragGate door (POST /v1/fraggate/call or MCP fraggate_call). AZNet is separate software (same FragGate door); pairing is order/token only, not a shared app. THIS IS NOT: Chromium unless Workers Browser Rendering is bound and a real page session ran; a Tor exit; phoenix wipe; an unrestricted proxy; a keylogger; clipboard harvest; surveillance. tor_exit / phoenix_wipe / chromium / proxy / harvest stay stub. Hosted never claims a visit it did not fetch, and never returns raw HTML. Author: Aziel Eliab only.";
 
 const HARVEST =
   /\b(harvest|scrape (all )?(emails?|contacts?|phones?)|dump (passwords?|credentials?|cookies?)|steal (cookies?|sessions?|tokens?)|keylog(ger)?|clipboard (monitor|steal|harvest)|doxx|ssn|social security|credit card dump|mass scrape|email list|phone dump|credential (dump|harvest)|wiretap|stalk|track (this )?(person|user|phone)|surveillance kit|malware kit|exploit kit|0-?day)\b/i;
@@ -272,6 +272,120 @@ async function mintReceipt(state, fields) {
   state.receipts.unshift(receipt);
   if (state.receipts.length > RING_CAP) state.receipts.length = RING_CAP;
   return receipt;
+}
+
+const PRIVATE_HOST =
+  /^(localhost|127\.|10\.|192\.168\.|169\.254\.|0\.0\.0\.0|\[::1\]|::1$|metadata\.google|169\.254\.169\.254)/i;
+
+export function isPrivateOrMetadataHost(host) {
+  const name = String(host || "").trim().toLowerCase();
+  if (!name) return true;
+  if (name.endsWith(".onion") || name.endsWith(".onion.")) return true;
+  return PRIVATE_HOST.test(name);
+}
+
+export function browserRenderingStatus(env) {
+  const bound = !!(env && env.BROWSER);
+  return {
+    chromium: false,
+    browser_rendering_bound: bound,
+    implemented: false,
+    deferred: !bound,
+    tor: false,
+    phoenix: false,
+    puppeteer_claimed: false,
+    next_step: bound
+      ? "sandbox_render may launch Workers Browser Rendering for an allowlisted https URL. Tor / phoenix stay refuse. Do not claim Chromium until a real page session returns."
+      : "Bind Workers Browser Rendering (`browser.binding = BROWSER` in wrangler) on a paid plan, install @cloudflare/puppeteer, then deploy. Do not fake Chromium. Tor / phoenix stay refuse.",
+  };
+}
+
+export function sandboxStatus(env) {
+  const status = browserRenderingStatus(env);
+  return baseResult({
+    op: "sandbox_status",
+    ok: true,
+    ...status,
+    note: status.deferred
+      ? "Chromium is DEFERRED. Advisory navigate stays metadata-only. This is not a fake browser."
+      : "Browser Rendering binding is present. sandbox_render still refuses private/onion/Tor targets.",
+  });
+}
+
+export async function sandboxRender(payload, env) {
+  const src = payload && typeof payload === "object" ? payload : {};
+  const status = browserRenderingStatus(env);
+  const parsed = parseAdvisoryUrl(src.url);
+  if (!parsed.ok) {
+    return refuse(parsed.code || "AZB-BAD-URL", parsed.error || "Pass { url }.", {
+      op: "sandbox_render",
+      visited: false,
+      ...status,
+    });
+  }
+  if (isPrivateOrMetadataHost(parsed.host)) {
+    return refuse("AZB-SSRF-REFUSE", "Private, loopback, metadata, and .onion hosts are refused. Not a proxy.", {
+      op: "sandbox_render",
+      host: parsed.host,
+      visited: false,
+      ...status,
+    });
+  }
+  if (!env || !env.BROWSER) {
+    return baseResult({
+      op: "sandbox_render",
+      ok: false,
+      implemented: false,
+      deferred: true,
+      visited: false,
+      chromium: false,
+      url: parsed.url,
+      host: parsed.host,
+      ...status,
+      note: "Workers Browser Rendering is unbound. Chromium stays NOT IMPLEMENTED. Advisory navigate remains metadata-only.",
+    });
+  }
+  try {
+    const mod = await import("@cloudflare/puppeteer");
+    const puppeteer = mod.default || mod;
+    const browser = await puppeteer.launch(env.BROWSER);
+    const page = await browser.newPage();
+    await page.goto(parsed.url, { waitUntil: "domcontentloaded", timeout: 8000 });
+    const title = String((await page.title()) || "").slice(0, 180);
+    await browser.close();
+    const state = await loadState(env);
+    const receipt = await mintReceipt(state, { op: "sandbox_render", kind: "render", url: parsed.url, visited: true, cited: true });
+    await saveState(env, state);
+    return baseResult({
+      op: "sandbox_render",
+      ok: true,
+      implemented: true,
+      deferred: false,
+      visited: true,
+      chromium: false,
+      engine: "workers-browser-rendering",
+      url: parsed.url,
+      host: parsed.host,
+      title,
+      receipt,
+      browser_rendering_bound: true,
+      note: "Workers Browser Rendering page session. Not claimed as Chromium product UI. Tor / phoenix stay refuse.",
+    });
+  } catch (err) {
+    return baseResult({
+      op: "sandbox_render",
+      ok: false,
+      implemented: false,
+      deferred: true,
+      visited: false,
+      chromium: false,
+      url: parsed.url,
+      host: parsed.host,
+      error: String(err && err.message ? err.message : err).slice(0, 180),
+      ...status,
+      note: "Browser Rendering launch failed. No visit is claimed. Do not fake Chromium.",
+    });
+  }
 }
 
 export function parseAdvisoryUrl(raw) {
@@ -663,7 +777,7 @@ export async function receiptVerify(payload, env, op = "verify") {
   });
 }
 
-export function azbrowserHealth() {
+export function azbrowserHealth(env) {
   return baseResult({
     ok: true,
     mesh: false,
@@ -671,6 +785,7 @@ export function azbrowserHealth() {
     tor: false,
     receipt_count: memory.receipts.length,
     tab_count: memory.tabs.length,
+    browser_rendering: browserRenderingStatus(env),
   });
 }
 
@@ -687,9 +802,11 @@ AZBrowser (AZB-1.0) is the Lamb Lens ethical research browser. AZNet is separate
 - Worker UI buttons on this runtime call that same door — one backend, two surfaces
 - Leftover flat names such as \`azbrowser_ethical_search\` still go through FragGate (\`parseTarget\`) — they are not a side door and are not listed on \`tools/list\`
 
-Live ops: \`ethical_search\`, \`lamb_lens_search\`, \`navigate\`, \`airlock_ingest\`, \`tab_open\`, \`tab_list\`, \`receipt_list\`, \`verify\`, \`receipt_verify\`, \`health\`, \`skill\`.
+Live ops: \`ethical_search\`, \`lamb_lens_search\`, \`navigate\`, \`airlock_ingest\`, \`tab_open\`, \`tab_list\`, \`receipt_list\`, \`verify\`, \`receipt_verify\`, \`sandbox_status\`, \`sandbox_render\`, \`health\`, \`skill\`.
 
 Lamb Lens **cites**. It **refuses harmful harvest**. It **does not invent visit results**. \`navigate\` returns advisory metadata only — never raw HTML.
+
+\`sandbox_status\` / \`sandbox_render\` report Workers Browser Rendering honestly. Chromium stays DEFERRED unless a real binding launches. Private / onion / Tor targets refuse.
 
 tor_exit / phoenix_wipe / chromium / unrestricted proxy / surveillance stay **stub**.
 

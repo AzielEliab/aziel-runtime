@@ -262,6 +262,8 @@ for (const slug of catalogSlugs) {
 }
 assert.ok(health.data.proxy_fallback_ops.azos.includes("session"));
 assert.ok(health.data.proxy_fallback_ops["aziel-corpus"].includes("transcribe"));
+assert.ok(!health.data.proxy_fallback_ops["aziel-corpus"].includes("review"));
+assert.ok(!health.data.proxy_fallback_ops["aziel-corpus"].includes("document-chain"));
 assert.equal(health.data.proxy_is_not_exec, true);
 assert.equal(manifest.data.hosted_azai_is_not_the_blend, true);
 
