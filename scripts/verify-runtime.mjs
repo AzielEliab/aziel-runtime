@@ -94,6 +94,7 @@ assert.match(skillText, /Everblooming/);
 assert.match(skillText, /## Designs/);
 assert.match(skillText, /docs\/designs/);
 assert.match(skillText, /SEC-FEAT-1\.0/);
+assert.match(skillText, /QNS-CD-1\.0/);
 assert.match(skillText, /not Softwares-tab products/);
 assert.doesNotMatch(skillText, /10\.5281\/zenodo\.XXXX/);
 

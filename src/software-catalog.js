@@ -15,6 +15,7 @@
 import { CATALOG_ALIASES } from "./catalog-meta.js";
 import { NAMED_STUBS } from "./fraggate/registry.js";
 import { meshHint } from "./mesh.js";
+import { qnsHint } from "./qns.js";
 import { LIBRARY_ORIGIN } from "./seo.js";
 
 export const SOFTWARE_SORT_LAW = "plain A–Z → gate A–Z → lock A–Z (Clock ≠ Lock)";
@@ -126,6 +127,7 @@ export function liveSoftwareCard(product, origin, meta = {}) {
     door: "fraggate",
     kind: "software",
     mesh: meshHint("/v1/mesh"),
+    qns_cd: qnsHint(),
   };
 }
 
@@ -152,6 +154,7 @@ export function stubSoftwareCard(spec, origin, meta = {}) {
     engine: false,
     note: spec.note || "stub / local-not-hosted. Name only. Not a FragGate engine.",
     mesh: meshHint("/v1/mesh"),
+    qns_cd: qnsHint(),
   };
 }
 
@@ -197,8 +200,11 @@ export function softwareCatalog(origin, products, extra = {}) {
       ...meshHint("/v1/mesh"),
       status: `${base}/v1/mesh/status`,
       nodes: `${base}/v1/mesh/nodes`,
-      note: "QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1). Default OFF. Operator bearer enable. Not a login mesh. Not a Softwares-tab product. Full node is local qnm-node/. Anon-broadcast is that process's sibling loopback only.",
+      note: "QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1). Default OFF. Operator bearer enable. Not a login mesh. Not a Softwares-tab product. Full node is local qnm-node/. Anon-broadcast is that process's sibling loopback only. Packet-transfer coding design is QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; Worker cites only).",
+      qns_cd: qnsHint(),
     },
+    qns: `${base}/v1/qns`,
+    qns_cd: qnsHint(),
   };
 }
 

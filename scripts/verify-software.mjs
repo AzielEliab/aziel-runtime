@@ -108,6 +108,11 @@ assert.equal(catalog.mesh.spec, "QNM-BUILD-1.0");
 assert.equal(catalog.mesh.companion, "AIH-WP-1.1");
 assert.equal(catalog.mesh.rollup_only, true);
 assert.equal(catalog.mesh.qnm_s, false);
+assert.ok(catalog.software.every((s) => s.qns_cd && s.qns_cd.spec === "QNS-CD-1.0"));
+assert.ok(catalog.software.every((s) => s.qns_cd.local === "https://github.com/AzielEliab/qnm-node"));
+assert.ok(!catalog.software.some((s) => s.slug === "qns" || s.slug === "qnsd"));
+assert.equal(catalog.qns_cd.spec, "QNS-CD-1.0");
+assert.equal(catalog.mesh.qns_cd.spec, "QNS-CD-1.0");
 
 assert.equal(compareVersions("0.7.0", "0.8.0") < 0, true);
 assert.equal(compareVersions("0.8.0", "0.8.0"), 0);

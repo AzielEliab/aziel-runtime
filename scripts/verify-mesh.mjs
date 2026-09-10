@@ -291,12 +291,16 @@ assert.ok(!software.data.software.some((s) => s.slug === "anon-broadcast"));
 assert.ok(!software.data.software.some((s) => s.slug === "mesh"));
 assert.equal(software.data.mesh.spec, "QNM-BUILD-1.0");
 assert.equal(software.data.mesh.qnm_s, false);
+assert.ok(software.data.software.every((s) => s.qns_cd && s.qns_cd.spec === "QNS-CD-1.0"));
+assert.equal(software.data.qns_cd.spec, "QNS-CD-1.0");
 
 const openapi = await jsonReq(env, "/openapi.json");
 assert.ok(openapi.data.paths["/v1/mesh"]);
 assert.ok(openapi.data.paths["/v1/mesh/join"]);
 assert.ok(openapi.data.paths["/v1/mesh/broadcast"]);
 assert.match(openapi.data.paths["/v1/mesh"].get.summary, /QNM-BUILD-1.0/);
+assert.match(openapi.data.paths["/v1/mesh"].get.summary, /QNS-CD-1\.0/);
+assert.ok(openapi.data.paths["/v1/qns"]);
 
 const unitOff = await runMeshOp("join", { product: "azmail" }, {});
 assert.equal(unitOff.ok, false);

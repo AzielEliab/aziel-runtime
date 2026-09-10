@@ -1,0 +1,450 @@
+%PDF-1.4
+1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj
+2 0 obj << /Type /Pages /Kids [3 0 R 5 0 R 7 0 R 9 0 R] /Count 4 >> endobj
+3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 11 0 R >> >> >> endobj
+4 0 obj << /Length 3537 >> stream
+BT
+/F1 9 Tf
+54 738 Td
+(# QNS-CD-1.0 ? Quantum Node Signal coding design) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(Author: Aziel Eliab only.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(Status: LIVE fabric coding design \(2026-09-10\). Not a Softwares-tab product. Not a FragGate) Tj
+0 -11 Td
+(slug. Not a fleet-completeness claim.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(---) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(Aziel Eliab · coding design · photon QNS1 1.3 · local qnsd only) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(    Quantum Node Signal) Tj
+0 -11 Td
+(    Packet-transfer coding design for photon vias) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(    QNS-CD-1.0  10 September 2026  Author: Aziel Eliab) Tj
+0 -11 Td
+(    Companion: QNM-BUILD-1.0 / AIH-WP-1.3 \(qnm-node\)) Tj
+0 -11 Td
+(    Hub / Interface law \(unchanged\): AIH-WP-1.1) Tj
+0 -11 Td
+(    Implementation: local process qnsd in https://github.com/AzielEliab/qnm-node) Tj
+0 -11 Td
+(    Public Worker: cites only. Never a remote wipe or control plane.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(0. Sentence) Tj
+0 -11 Td
+(A Quantum Node Signal is a folded, airlocked, fact-hashed frame that may travel a) Tj
+0 -11 Td
+(photon via on local qnsd. The public Worker names the law. It does not carry the) Tj
+0 -11 Td
+(via.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(1. Claim) Tj
+0 -11 Td
+(QNM-BUILD-1.0 already said: local process ON, public rollup OFF, GET /v1/mesh never) Tj
+0 -11 Td
+(enables. AIH-WP-1.3 already said: pair_id is medium-independent; bearer is hop-only;) Tj
+0 -11 Td
+(forward only along existing spiderweb edges after APG.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(This paper is the **coding design** for the packet that rides those edges: photon) Tj
+0 -11 Td
+(**QNS1 1.3**. The daemon is **qnsd**, a local module of qnm-node. It binds) Tj
+0 -11 Td
+(**127.0.0.1** only.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(aziel-runtime already admits Worker traffic through AZPIPE \(AP-WP-0.2\), SweepGate) Tj
+0 -11 Td
+(\(SG-WP-0.1\), APG on the local node, and ChainLock \(CL-WP-0.4\). qnsd uses **the same) Tj
+0 -11 Td
+(laws** on the loopback hop. Changing product names does not change the list.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(2. What it is not) Tj
+0 -11 Td
+(?         Not a Softwares-tab product. Do not add slug qns, qnsd, or photon.) Tj
+0 -11 Td
+(?         Not a FragGate engine. No fraggate_call { slug: "qns" }.) Tj
+0 -11 Td
+(?         Not qubit hardware, Bell-pair physics, or a quantum computer claim.) Tj
+0 -11 Td
+(?         Not a public proxy of 127.0.0.1. The Worker must not emit, via, wipe,) Tj
+0 -11 Td
+(          scorch, arm, or forward on behalf of a remote caller.) Tj
+0 -11 Td
+(?         Not a remote wipe or control plane. EmbryoLock stays stub.) Tj
+0 -11 Td
+(?         Not Node Gate / IP panel / login mesh / publish path.) Tj
+0 -11 Td
+(?         Not AZMail's product-local ring. Not AnonBroadcast as a catalog product.) Tj
+0 -11 Td
+(?         Not a substitute for AZPIPE, SweepGate, APG, or ChainLock ? it cites them.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(3. Two planes \(unchanged\)) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(  Plane                         Default                         Law) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(  A ? local qnsd / qnm-node     Process ON. Via attempt.        Bind 127.0.0.1. APG on every) Tj
+0 -11 Td
+(                                                                ingress. Photon via is) Tj
+0 -11 Td
+(hop-only.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(  B ? public Worker             Cite only. GET /v1/qns.         No emit. No proxy. GET) Tj
+ET
+BT
+/F1 8 Tf
+54 28 Td
+(QNS-CD-1.0  ·  Aziel Eliab only  ·  page 1 / 4) Tj
+ET
+endstream endobj
+5 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 6 0 R /Resources << /Font << /F1 11 0 R >> >> >> endobj
+6 0 obj << /Length 3150 >> stream
+BT
+/F1 9 Tf
+54 738 Td
+( ) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(4. Photon QNS1 1.3) Tj
+0 -11 Td
+(Magic QNS1. Version 1.3. Canonical JSON \(sorted keys, tight separators\). Body hash) Tj
+0 -11 Td
+(h is SHA-256 of the frame with h omitted. Fact hash fh is SHA-256 of the clipped) Tj
+0 -11 Td
+(fact \(?160\). QNM and AZPIPE already cite fh. Remote body does not enter STM.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(    {) Tj
+0 -11 Td
+(        magic: "QNS1",) Tj
+0 -11 Td
+(        v: "1.3",) Tj
+0 -11 Td
+(        via: "photon",) Tj
+0 -11 Td
+(        pair_id: "<AIH-WP-1.3 pair_id>",) Tj
+0 -11 Td
+(        hop: { n: 0, max: 8, seen: [] },) Tj
+0 -11 Td
+(        fh: "<sha256 fact>",) Tj
+0 -11 Td
+(        h: "<sha256 frame minus h>",) Tj
+0 -11 Td
+(        isolate: false,) Tj
+0 -11 Td
+(        pull: false,) Tj
+0 -11 Td
+(        bridges: 2,) Tj
+0 -11 Td
+(        inner: null) Tj
+0 -11 Td
+(    }) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(via is hop-only \(AIH-WP-1.3\). Any currently enabled declared bearer may carry the) Tj
+0 -11 Td
+(next hop. The pair does not store a required medium. Wi-Fi dying is path gone,) Tj
+0 -11 Td
+(bind remains.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(hop.max default 8. seen is a hash list. Loops drop. Over-length paths drop.) Tj
+0 -11 Td
+(pull stays false. bridges=2. isolate=true on poison / tamper.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(inner is the AZPIPE-admitted folded body, or null on a refuse envelope. Refuse) Tj
+0 -11 Td
+(envelopes stop at the hop that closed. They do not carry inner into memory.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(5. Same laws locally) Tj
+0 -11 Td
+(Inbound hop list \(AP-WP-0.2\), on qnsd:) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(    frag ? sweep ? fold ? static ? fold ? entry ? frag ? via) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(frag. DecisionGATE flags. Empty or ungrounded inbound refuses before SweepGate) Tj
+0 -11 Td
+(spends work.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(sweep. SweepGate airlock \(SG-WP-0.1\). Poison, malware-class marks, block-keys,) Tj
+0 -11 Td
+(off-origin when inbound and untrusted. Isolate and refuse. Do not merge.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(fold / static. fld3-wire until foldlock.py sits beside the hop. Freeze hashes the) Tj
+0 -11 Td
+(folded bytes. Second fold after canonicalization.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(entry. ChainLock stamp \(CL-WP-0.4\). Fact-bearing card. Hash-only cards refuse.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(via. Emit only along an existing pair edge, APG pass, hop bearer enabled, hop_max) Tj
+0 -11 Td
+(respected, node not isolated / PHOENIX-LOCK / scorched.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(APG \(qnm-node\): clean pass; reanswer-without-cite refuse; flood refuse; unknown) Tj
+0 -11 Td
+(slug or stub-as-live refuse; credential/login/cookie refuse; poison/tamper isolate) Tj
+0 -11 Td
+(+ spend ID + drop tethers. Poison is refused, not interpreted.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(Outbound is the reverse so a dirty toolkit result is swept before it rides a via.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(QNS-CD-1.0 Quantum Node Signal                                                             ) Tj
+0 -11 Td
+(1) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+( ) Tj
+ET
+BT
+/F1 8 Tf
+54 28 Td
+(QNS-CD-1.0  ·  Aziel Eliab only  ·  page 2 / 4) Tj
+ET
+endstream endobj
+7 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 8 0 R /Resources << /Font << /F1 11 0 R >> >> >> endobj
+8 0 obj << /Length 3622 >> stream
+BT
+/F1 9 Tf
+54 738 Td
+( ) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(6. Local API \(qnsd ? 127.0.0.1 only\)) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(  Method   Path                  Act) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(  GET      /local/qns/status     Photon via posture. Not completeness. Not QNM-S.) Tj
+0 -11 Td
+(  GET      /local/qns/cite       QNS-CD-1.0 + QNS1 1.3.) Tj
+0 -11 Td
+(  GET      /local/qns/outbox     Visible queue. Operator keeps the file.) Tj
+0 -11 Td
+(  POST     /local/qns/admit      APG then admit inbound QNS1 frame.) Tj
+0 -11 Td
+(  POST     /local/qns/via        Emit along an existing pair edge.) Tj
+0 -11 Td
+(  POST     /local/qns/cut        Drop one outbox item.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(These paths live on local qnsd in AzielEliab/qnm-node. They are **cited** by) Tj
+0 -11 Td
+(GET /v1/qns on aziel-runtime. The public Worker never fetches them, never proxies) Tj
+0 -11 Td
+(them, and never accepts emit / via / wipe / control bodies.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(7. Public Worker \(this package\)) Tj
+0 -11 Td
+(GET /v1/qns ? cite JSON \(author, spec, photon, local API table, laws\).) Tj
+0 -11 Td
+(HEAD /v1/qns ? headers only.) Tj
+0 -11 Td
+(POST /v1/qns ? refuse QNS-CITE-ONLY.) Tj
+0 -11 Td
+(POST /v1/qns/via | /emit | /wipe | /arm ? refuse QNS-NO-PROXY.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(Every GET /v1/software card and the mesh kernel extra carry a stable pointer:) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(    qns_cd: {) Tj
+0 -11 Td
+(      spec: "QNS-CD-1.0",) Tj
+0 -11 Td
+(      local: "https://github.com/AzielEliab/qnm-node",) Tj
+0 -11 Td
+(      note: "Photon vias on local qnsd; Worker cites only") Tj
+0 -11 Td
+(    }) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(Do not add QNS as a Softwares-tab product. extras[] may show the pointer on the) Tj
+0 -11 Td
+(mesh kernel card. FragGate remains the door. Mesh remains the rollup.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(Mesh status / skill notes cite QNS-CD-1.0 as the packet-transfer coding design) Tj
+0 -11 Td
+(\(companion to QNM-BUILD-1.0 / AIH-WP-1.3\). Hub / Interface stays AIH-WP-1.1.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(8. Cross-map) Tj
+0 -11 Td
+(The pointer is the same object on every live product, EmbryoLock stub, and the) Tj
+0 -11 Td
+(mesh kernel extra. Catalog GET stays full \(RL-WP-0.1-runtime\). Soft caps apply) Tj
+0 -11 Td
+(only to expensive fan-out. Packed catalog cost path is unchanged.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(9. Never) Tj
+0 -11 Td
+(?         Do not enable mesh with a GET.) Tj
+0 -11 Td
+(?         Do not bind qnsd off loopback in default config.) Tj
+0 -11 Td
+(?         Do not proxy local via emit from the public Worker.) Tj
+0 -11 Td
+(?         Do not add a Node Gate to ?see the photon.?) Tj
+0 -11 Td
+(?         Do not invent qubit claims or Bell-pair physics.) Tj
+0 -11 Td
+(?         Do not host EmbryoLock wipe on this door.) Tj
+0 -11 Td
+(?         Do not list QNS on the Softwares tab.) Tj
+0 -11 Td
+(?         Do not treat a site ping of /v1/qns as a via.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(10. Close tests) Tj
+0 -11 Td
+(?         SUITE_DESIGNS includes QNS-CD-1.0; skill / llms / cite / sitemap name it.) Tj
+0 -11 Td
+(?         Every /v1/software card has qns_cd.spec === "QNS-CD-1.0".) Tj
+0 -11 Td
+(?         Mesh extra and GET /v1/mesh cite QNS-CD-1.0.) Tj
+0 -11 Td
+(?         GET /v1/qns is 200, cite-only, public_proxy false, emit false.) Tj
+0 -11 Td
+(?         POST /v1/qns and /v1/qns/via refuse. No 127.0.0.1 fetch in the Worker.) Tj
+0 -11 Td
+(?         No software[] slug qns / qnsd / photon.) Tj
+0 -11 Td
+(?         GET /v1/mesh remains enabled:false on a fresh isolate.) Tj
+0 -11 Td
+( ) Tj
+ET
+BT
+/F1 8 Tf
+54 28 Td
+(QNS-CD-1.0  ·  Aziel Eliab only  ·  page 3 / 4) Tj
+ET
+endstream endobj
+9 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 10 0 R /Resources << /Font << /F1 11 0 R >> >> >> endobj
+10 0 obj << /Length 402 >> stream
+BT
+/F1 9 Tf
+54 738 Td
+(identity: Aziel Eliab only.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(    If the files hold, the name was never the point.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(Packet-transfer coding design · local qnsd · Worker cites only · 2026-09-10                ) Tj
+0 -11 Td
+(2) Tj
+ET
+BT
+/F1 8 Tf
+54 28 Td
+(QNS-CD-1.0  ·  Aziel Eliab only  ·  page 4 / 4) Tj
+ET
+endstream endobj
+11 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Courier >> endobj
+xref
+0 12
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000133 00000 n 
+0000000260 00000 n 
+0000003849 00000 n 
+0000003976 00000 n 
+0000007178 00000 n 
+0000007305 00000 n 
+0000010979 00000 n 
+0000011107 00000 n 
+0000011561 00000 n 
+trailer << /Size 12 /Root 1 0 R >>
+startxref
+11630
+%%EOF
