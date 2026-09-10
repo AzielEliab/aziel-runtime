@@ -123,7 +123,7 @@ AZL-ARCH-1.0                                                                    
 
   codelock                  Perceptual view of source.                                Change meaning
 
-  embryolock                Local scorched vault. Tab stub.                           Hosted Worker; FragGate engine
+  embryolock                Local scorched vault. Cite live; wipe local-only.         Hosted unlock / public-mesh wipe
 
   employeelock              Hash-chained workbook.                                    Court; UL kit; truth score
 
