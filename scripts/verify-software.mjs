@@ -5,6 +5,8 @@
 import assert from "node:assert/strict";
 import { PRODUCTS } from "../src/index.js";
 import { RUNTIME_VERSION } from "../src/runtime-api.js";
+import { BUILD_GIT_SHA } from "../src/build-meta.js";
+import { embeddedDigest, trueEngineSlugs } from "../src/engines/digest.js";
 import { NAMED_STUBS } from "../src/fraggate/registry.js";
 import {
   SOFTWARE_FRAMING,
@@ -166,10 +168,10 @@ const embryo = updateCheck({ slug: "embryo-lock", version: "0.0.1" }, origin, PR
   runtimeVersion: RUNTIME_VERSION,
 });
 assert.equal(embryo.slug, "embryolock");
-assert.equal(embryo.latest, "1.1.0");
+assert.equal(embryo.latest, "1.2.0");
 assert.equal(embryo.update_available, true);
 assert.equal(embryo.download_url, "https://embryolock-download-tracker.vibelock.workers.dev/download");
-assert.match(embryo.notes, /EmbryoLock|1\.1\.0/i);
+assert.match(embryo.notes, /EmbryoLock|1\.2\.0/i);
 
 const runtime = updateCheck({ slug: "aziel-runtime", version: "1.6.11" }, origin, PRODUCTS, {
   runtimeVersion: RUNTIME_VERSION,
@@ -203,6 +205,14 @@ assert.deepEqual(
 assert.equal(body.software[0].bucket, "plain");
 assert.equal(body.software[body.software.length - 1].bucket, "lock");
 assert.ok(body.software.some((s) => s.slug === "embryolock"));
+assert.equal(body.git_sha, BUILD_GIT_SHA);
+const liveCards = body.software.filter((s) => s.status === "live");
+assert.equal(liveCards.length, PRODUCTS.length);
+for (const card of liveCards) {
+  assert.match(card.engine_digest, /^[a-f0-9]{64}$/, `${card.slug} engine_digest`);
+  assert.equal(card.engine_digest, embeddedDigest(card.slug), `${card.slug} digest matches health embed`);
+}
+assert.equal(liveCards.length, trueEngineSlugs().length);
 assert.match(body.framing, /Never separate FragGate engines/);
 assert.ok(body.software.every((s) => !/are separate FragGate engines/i.test(s.one_line || "")));
 assert.equal(body.isolation_software_count, 33);

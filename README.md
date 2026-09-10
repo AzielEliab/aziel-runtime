@@ -4,7 +4,7 @@
 
 FragGate is THE single public executable door (`fraggate_list` → `fraggate_describe` → `fraggate_call`). Softwares catalog is Plain → Gate → Lock; hubs refresh from `GET /v1/software`. Dual-surface: agents via OpenAPI/MCP; humans via Worker UI + counted `/download`. NodeMesh / QNM suite-presence is operator-enabled; `GET /v1/mesh` never enables; not a login mesh / VPN / Node Gate.
 
-**Version 1.9.0** closes AZRT-1.9-CLOSE-1.0 (AZMail isolate mailbox; AZChat LIVE+bound; isolate hash store; OpenAPI proxy-path parity; remain-OFF untouched). Crawler surfaces keep the abstract above; changelog stays below. **1.7.11** is the SEO-clarity heritage that locked that lead copy.
+**Version 1.9.1** closes AZRT-1.9-GAPS-CLOSE (isolate-safe corpus verify ops; Whisper/OCR Workers-AI-gated; AZBrowser sandbox status Chromium DEFERRED unbound; AZMail transport gated; wave 2–3 doctor; adversarial self-check + Actions `npm test`; `/v1/software` `engine_digest` + `git_sha`; Live Nodes `live_nodes` is Softwares workers only; catalog EmbryoLock 1.2.0; remain-OFF untouched). Crawler surfaces keep the abstract above; changelog stays below. **1.9.0** closed AZRT-1.9-CLOSE-1.0. **1.7.11** is the SEO-clarity heritage that locked that lead copy.
 
 Kernel: [AzielEliab/fraggate](https://github.com/AzielEliab/fraggate) (FG-0.1)
 
@@ -29,7 +29,7 @@ Any OpenAPI-, MCP-, or HTTP-tool-capable assistant imports **this** OpenAPI file
 **Author:** Aziel Eliab  
 **Identity:** Aziel Eliab (primary). Also known as Aziel Elroi Eliab (`alternateName` / aka only).  
 **License:** [Apache-2.0](LICENSE)  
-**Version:** 1.9.0  
+**Version:** 1.9.1  
 **Role:** `engine-runtime` (layer: `catalog+pull+proxy+session+in-process-engines+fraggate`)  
 **Door:** `fraggate`  
 **Worker:** `aziel-runtime` → https://aziel-runtime.vibelock.workers.dev/  

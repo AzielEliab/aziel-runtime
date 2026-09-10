@@ -23,7 +23,7 @@ This page remains the live **QNM-BUILD-1.0** rollup law. Do not rewrite that law
 - **azieleliab.com** hosts published software/runtime — **not** login-recovery, **not** Node Gate/IP panel, **not** upload proxy.
 - Suite public surface may expose mesh **rollup only**: **live / locked / isolated** counts. No average-of-nodes leaderboard. **Views / MCP / downloads do not enter QNM-S.**
 - **Default:** radios/bearers **off**. **LIVE** only after the operator enables **≥1 declared bearer**. **suite-presence is operator-enabled** (`POST /v1/mesh/enable` `{ bearer: "suite-presence" }`). A site ping of `GET /v1/mesh` never turns radios on.
-- **Durable Live Nodes:** while suite-presence is LIVE, this Worker fans out `join` / `heartbeat` for every live Softwares product Worker (`node_id` `{slug}-worker`, no `|`) on cron (`*/2 * * * *`) or request-path. Presence TTL is **5 minutes**. GET still never enables.
+- **Durable Live Nodes:** while suite-presence is LIVE, this Worker fans out `join` / `heartbeat` for every live Softwares product Worker (`node_id` `{slug}-worker`, no `|`) on cron (`*/2 * * * *`) or request-path. Presence TTL is **5 minutes**. GET still never enables. Hub `live_nodes` counts those `{slug}-worker` Softwares only. Auto-minted `mesh_*` ids are `ephemeral_nodes` and do not inflate the Softwares count.
 
 ## What this Worker is
 

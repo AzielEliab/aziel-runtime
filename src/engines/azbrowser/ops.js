@@ -14,6 +14,8 @@ import {
   navigate,
   receiptList,
   receiptVerify,
+  sandboxRender,
+  sandboxStatus,
   tabList,
   tabOpen,
 } from "./engine.js";
@@ -30,10 +32,13 @@ export const AZBROWSER_OPS = [
   "lamb_lens_search",
   "tab_open",
   "tab_list",
+  "sandbox_status",
+  "sandbox_render",
+  "doctor",
 ];
 
-export function azbrowserHealthOp() {
-  return azbrowserHealth();
+export function azbrowserHealthOp(env) {
+  return azbrowserHealth(env);
 }
 
 export function azbrowserSkillOp() {
@@ -41,8 +46,11 @@ export function azbrowserSkillOp() {
 }
 
 export async function runAzbrowser(op, payload, scratch, env) {
-  if (op === "health") return azbrowserHealth();
+  if (op === "health") return azbrowserHealth(env);
   if (op === "skill") return azbrowserSkill();
+  if (op === "doctor") return { ...azbrowserHealth(env), op: "doctor", doctor: true };
+  if (op === "sandbox_status") return sandboxStatus(env);
+  if (op === "sandbox_render") return sandboxRender(payload, env);
   if (op === "navigate") return navigate(payload, env);
   if (op === "airlock_ingest") return airlockIngest(payload, env);
   if (op === "receipt_list") return receiptList(payload, env);

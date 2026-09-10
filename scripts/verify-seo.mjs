@@ -297,6 +297,7 @@ assert.equal(cite.audits.not_fraggate_slug, true);
 assert.equal(cite.audits.mesh_get_never_enables, true);
 assert.ok(cite.designs.papers.some((p) => p.id === "REMAIN-OFF-BY-DESIGN-2026-09-10" && p.kind === "law"));
 assert.ok(cite.designs.papers.some((p) => p.id === "AZL-DONATE-1.0" && p.kind === "law" && p.software_tab === false));
+assert.ok(cite.designs.papers.some((p) => p.id === "AZRT-1.9-GAPS-CLOSE" && p.kind === "law"));
 assert.equal(cite.identity, AUTHOR_NAME);
 assert.equal(cite.mesh_get_never_enables, true);
 assert.ok(cite.hubs);

@@ -725,6 +725,14 @@ export const SUITE_DESIGNS = Object.freeze([
     kind: "law",
   },
   {
+    id: "AZRT-1.9-GAPS-CLOSE",
+    file: "AZRT-1.9-GAPS-CLOSE.md",
+    one_line:
+      "1.9.1 genuine-gap close — isolate-safe corpus verify; Browser Rendering deferred honest; gated mail; wave 2–3 doctor; adversarial self-check + Actions npm test; remain-OFF untouched",
+    status: "live",
+    kind: "law",
+  },
+  {
     id: "AZL-DONATE-1.0",
     file: "AZL-DONATE-1.0.md",
     one_line:

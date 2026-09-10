@@ -68,6 +68,8 @@ const expectedLive = [
   "receipt_list",
   "verify",
   "receipt_verify",
+  "sandbox_status",
+  "sandbox_render",
   "health",
   "skill",
 ];
@@ -342,7 +344,9 @@ for (const op of expectedLive) {
             ? { url: "https://github.com/AzielEliab/fraggate" }
             : op === "verify" || op === "receipt_verify"
               ? { id: doorSearch.result.receipt.id }
-              : {};
+              : op === "sandbox_render"
+                ? { url: "https://github.com/AzielEliab/aziel-runtime" }
+                : {};
   const mcp = await post("/mcp", {
     jsonrpc: "2.0",
     id: 1,

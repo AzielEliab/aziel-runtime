@@ -1,0 +1,25 @@
+# Full repo self-check on pull requests and main.
+# Not a third-party lab. Remain-OFF stays off. No wrangler deploy here.
+# Author: Aziel Eliab. Identity is Aziel Eliab only.
+name: Test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: npm test
+        run: npm test

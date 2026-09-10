@@ -2,43 +2,54 @@
  * AZAI in-process ops. Hosted blend is NOT claimed. Lamb check only.
  * Author: Aziel Eliab.
  */
+import { capabilityDoctor, capabilityHealth, capabilitySkill, ensureThisIs } from "../capability.js";
 import { LIMITATION, lambCheck, models } from "./engine.js";
 
-export const AZAI_OPS = ["health", "skill", "lamb-check", "lamb_check", "models"];
+const LIVE = ["health", "skill", "lamb-check", "lamb_check", "models", "doctor"];
+const STUB = ["blend", "complete", "chat"];
+export const AZAI_OPS = LIVE.slice();
 
-export function azaiHealth() {
+function envelope() {
   return {
-    ok: true,
     product: "azai",
-    true_engine_runtime: true,
-    kv_increment: false,
-    provider_proxy: false,
-    hosted_azai_is_not_the_blend: true,
-    limitation: LIMITATION,
-    author: "Aziel Eliab",
-    note: "Protocol mirror + Lamb check. Live blend is local azai serve.",
+    name: "AZAI",
+    version: "0.1.0",
+    role: "protocol mirror + Lamb Lens",
+    motto: "Jeeves is not sovereign.",
+    axes: ["lamb", "models", "mirror"],
+    neighbors: ["aziel-corpus", "azbot"],
+    live_ops: LIVE,
+    stub_ops: STUB,
+    limitation: ensureThisIs(
+      LIMITATION,
+      "THIS IS: a protocol mirror + Lamb Lens check. THIS IS NOT: a hosted blend or paid-key proxy.",
+    ),
+    extra: { provider_proxy: false, hosted_azai_is_not_the_blend: true },
   };
 }
 
+export function azaiHealth() {
+  return capabilityHealth(envelope());
+}
+
 export function azaiSkill() {
-  return {
-    markdown: `# AZAI (in-process Lamb check)
+  return capabilitySkill({
+    ...envelope(),
+    lead: "Protocol mirror + Lamb Lens. Live blend is local `azai serve`. blend/chat stay refuse.",
+  });
+}
 
-AZAI hosted / in-process here is a **protocol mirror + Lamb Lens**, not the local blend.
-Jeeves is not sovereign. Live blend is \`azai serve\`.
-
-Author: **Aziel Eliab**.
-Limitation: ${LIMITATION}
-`,
-    kv_increment: false,
-    hosted_azai_is_not_the_blend: true,
-    limitation: LIMITATION,
-  };
+export function azaiDoctor() {
+  return capabilityDoctor({
+    ...envelope(),
+    doctor_note: "AZAI doctor: lamb-check + models metadata. blend/complete/chat stay refuse.",
+  });
 }
 
 export async function runAzai(op, payload, _scratch, env) {
   if (op === "health") return azaiHealth();
   if (op === "skill") return azaiSkill();
+  if (op === "doctor") return azaiDoctor();
   if (op === "models") return models();
   if (op === "lamb-check" || op === "lamb_check") {
     const text = payload && payload.text != null ? String(payload.text) : "";

@@ -17,7 +17,9 @@ import {
   MESH_SLUG,
   MESH_SPEC,
   MESH_STUB_OPS,
+  isEphemeralMeshNodeId,
   isSha256Hex,
+  isSoftwareWorkerNodeId,
   meshCiteField,
   meshFanoutSuitePresence,
   memoryMeshKv,
@@ -122,8 +124,13 @@ assert.equal(offStatus.data.scores, false);
 assert.equal(offStatus.data.leaderboard, false);
 assert.equal(offStatus.data.radios, "off");
 assert.deepEqual(offStatus.data.bearers, []);
-assert.deepEqual(offStatus.data.rollup, { live: 0, locked: 0, isolated: 0 });
+assert.equal(offStatus.data.rollup.live, 0);
+assert.equal(offStatus.data.rollup.locked, 0);
+assert.equal(offStatus.data.rollup.isolated, 0);
+assert.deepEqual(offStatus.data.rollup.software, { live: 0, locked: 0, isolated: 0 });
+assert.deepEqual(offStatus.data.rollup.ephemeral, { live: 0, locked: 0, isolated: 0 });
 assert.equal(offStatus.data.live_nodes, 0);
+assert.equal(offStatus.data.ephemeral_nodes, 0);
 assert.deepEqual(offStatus.data.products_present, []);
 assert.match(offStatus.data.anon_broadcast, /never a publish path/i);
 assert.match(offStatus.data.local_node_note, /qnm-node\//);
@@ -159,6 +166,9 @@ assert.equal(stillOff.data.enabled, false);
 
 assert.equal(suitePresenceNodeId("godlock"), "godlock-worker");
 assert.equal(suitePresenceNodeId("azcoherence"), "azcoherence-worker");
+assert.equal(isSoftwareWorkerNodeId("godlock-worker"), true);
+assert.equal(isEphemeralMeshNodeId("mesh_1_abc_defg"), true);
+assert.equal(isSoftwareWorkerNodeId("mesh_1_abc_defg"), false);
 assert.ok(!suitePresenceNodeId("anon-broadcast"));
 const targets = suitePresenceTargets(PRODUCTS);
 assert.equal(targets.length, PRODUCTS.length);
@@ -179,6 +189,21 @@ assert.equal(enabled.data.suite_presence, "operator-enabled");
 assert.equal(enabled.data.get_never_enables, true);
 assert.equal(enabled.data.fanout, true);
 assert.equal(enabled.data.live_nodes, PRODUCTS.length, JSON.stringify(enabled.data.products_present));
+assert.equal(enabled.data.ephemeral_nodes, 0);
+assert.equal(enabled.data.software_nodes, PRODUCTS.length);
+
+const autoJoin = await postJson(env, "/v1/mesh/join", { product: "azchat" });
+assert.equal(autoJoin.status, 200, JSON.stringify(autoJoin.data));
+assert.match(autoJoin.data.session.node_id, /^mesh_/);
+assert.equal(isEphemeralMeshNodeId(autoJoin.data.session.node_id), true);
+assert.equal(autoJoin.data.live_nodes, PRODUCTS.length, "mesh_* must not inflate Softwares live_nodes");
+assert.equal(autoJoin.data.ephemeral_nodes, 1);
+assert.equal(autoJoin.data.ephemeral_live_nodes, 1);
+assert.equal(autoJoin.data.rollup.all.live, PRODUCTS.length + 1);
+const leftEphem = await postJson(env, "/v1/mesh/leave", { node_id: autoJoin.data.session.node_id });
+assert.equal(leftEphem.data.ephemeral_nodes, 0);
+assert.equal(leftEphem.data.live_nodes, PRODUCTS.length);
+
 assert.ok(enabled.data.products_present.includes("godlock"));
 assert.ok(enabled.data.products_present.includes("vibelock"));
 assert.ok(enabled.data.products_present.includes("azmail"));
@@ -195,7 +220,10 @@ assert.ok(joined.data.session.session_id);
 assert.equal(joined.data.session.node_id, "godlock-uk");
 assert.equal(joined.data.session.product, "godlock");
 assert.equal(joined.data.session.presence, "live");
-assert.equal(joined.data.live_nodes, PRODUCTS.length + 1);
+assert.equal(joined.data.live_nodes, PRODUCTS.length);
+assert.equal(joined.data.ephemeral_nodes, 0);
+assert.equal(joined.data.rollup.named.live, 1);
+assert.equal(joined.data.rollup.all.live, PRODUCTS.length + 1);
 assert.ok(joined.data.products_present.includes("godlock"));
 
 const nodeId = joined.data.session.node_id;
@@ -210,18 +238,23 @@ const isolated = await postJson(env, "/v1/mesh/join", {
   presence: "isolated",
 });
 assert.equal(isolated.status, 200, JSON.stringify(isolated.data));
-assert.equal(isolated.data.rollup.live, PRODUCTS.length + 1);
-assert.equal(isolated.data.rollup.isolated, 1);
+assert.equal(isolated.data.rollup.live, PRODUCTS.length);
+assert.equal(isolated.data.rollup.isolated, 0);
+assert.equal(isolated.data.rollup.named.isolated, 1);
 assert.equal(isolated.data.rollup.locked, 0);
-assert.equal(isolated.data.live_nodes, PRODUCTS.length + 1);
+assert.equal(isolated.data.live_nodes, PRODUCTS.length);
+assert.equal(isolated.data.rollup.all.live, PRODUCTS.length + 1);
+assert.equal(isolated.data.rollup.all.isolated, 1);
 
 const lockedBeat = await postJson(env, "/v1/mesh/heartbeat", {
   node_id: isolated.data.session.node_id,
   presence: "locked",
 });
 assert.equal(lockedBeat.status, 200);
-assert.equal(lockedBeat.data.rollup.locked, 1);
+assert.equal(lockedBeat.data.rollup.locked, 0);
+assert.equal(lockedBeat.data.rollup.named.locked, 1);
 assert.equal(lockedBeat.data.rollup.isolated, 0);
+assert.equal(lockedBeat.data.rollup.software.live, PRODUCTS.length);
 
 const nodes = await jsonReq(env, "/v1/mesh/nodes");
 assert.equal(nodes.status, 200);
@@ -264,7 +297,9 @@ const disabled = await postJson(env, "/v1/mesh/disable", {});
 assert.equal(disabled.status, 200);
 assert.equal(disabled.data.enabled, false);
 assert.deepEqual(disabled.data.bearers, []);
-assert.deepEqual(disabled.data.rollup, { live: 0, locked: 0, isolated: 0 });
+assert.equal(disabled.data.rollup.live, 0);
+assert.equal(disabled.data.ephemeral_nodes, 0);
+assert.deepEqual(disabled.data.rollup.software, { live: 0, locked: 0, isolated: 0 });
 
 const afterDisable = await jsonReq(env, "/v1/mesh");
 assert.equal(afterDisable.data.enabled, false);

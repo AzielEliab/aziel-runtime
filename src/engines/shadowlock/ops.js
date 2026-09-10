@@ -1,39 +1,51 @@
 /**
  * shadowlock in-process ops. Author: Aziel Eliab.
  */
-import { LIMITATION, VERSION, observePair, evaluateEthics, recordsFromFrame } from "./engine.js";
+import { capabilityDoctor, capabilityHealth, capabilitySkill } from "../capability.js";
+import { LIMITATION, MOTTO, VERSION, observePair, evaluateEthics, recordsFromFrame } from "./engine.js";
 
-export const SHADOWLOCK_OPS = ["health", "skill", "observe", "hook"];
+const LIVE = ["health", "skill", "observe", "hook", "doctor"];
+const STUB = ["os_hook", "process_intercept"];
+export const SHADOWLOCK_OPS = LIVE.slice();
 
-export function shadowlockHealth() {
+function envelope() {
   return {
-    ok: true,
     product: "shadowlock",
+    name: "ShadowLock",
     version: VERSION,
-    true_engine_runtime: true,
-    kv_increment: false,
+    role: "zero-retention observation envelope",
+    motto: MOTTO,
+    axes: ["observe", "hook", "ethics"],
+    neighbors: ["azos", "peacelock"],
+    live_ops: LIVE,
+    stub_ops: STUB,
     limitation: LIMITATION,
-    author: "Aziel Eliab",
+    extra: { stored: false, os_hook: false },
   };
 }
 
+export function shadowlockHealth() {
+  return capabilityHealth(envelope());
+}
+
 export function shadowlockSkill() {
-  return {
-    markdown: `# shadowlock (in-process)
+  return capabilitySkill({
+    ...envelope(),
+    lead: "Zero-retention observation of a job list you already have. hook is an ethics receipt, not an OS hook.",
+  });
+}
 
-This op ran inside aziel-runtime's Worker isolate (or a local CLI jail).
-
-Author: **Aziel Eliab**.
-Limitation: ${LIMITATION}
-`,
-    kv_increment: false,
-    limitation: LIMITATION,
-  };
+export function shadowlockDoctor() {
+  return capabilityDoctor({
+    ...envelope(),
+    doctor_note: "ShadowLock doctor: observe + hook. Not an OS hook. Zero-retention.",
+  });
 }
 
 export async function runShadowlock(op, payload, scratch) {
   if (op === "health") return shadowlockHealth();
   if (op === "skill") return shadowlockSkill();
+  if (op === "doctor") return shadowlockDoctor();
   if (op === "observe") {
     const src = payload && typeof payload === "object" ? payload : {};
     const recs = recordsFromFrame(src);
