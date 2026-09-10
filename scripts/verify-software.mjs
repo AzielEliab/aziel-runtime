@@ -51,7 +51,7 @@ assert.deepEqual(
 
 const entries = listSoftwareEntries(PRODUCTS, origin, { updated_at: "2026-09-06", git_sha: null });
 assert.ok(entries.length === PRODUCTS.length + NAMED_STUBS.length);
-assert.ok(entries.some((e) => e.slug === "embryolock" && e.status === "stub"));
+assert.ok(entries.some((e) => e.slug === "embryolock" && e.status === "live" && e.local_destructive_boundary === true));
 assert.ok(entries.every((e) => e.slug !== "fraggate"), "FragGate is the door, not a software card");
 assert.equal(entries.filter((e) => e.status === "live").length, PRODUCTS.length);
 assert.equal(softwareBucket(entries.find((e) => e.slug === "staticclock").name, "staticclock"), "plain");
@@ -92,7 +92,15 @@ assert.match(catalog.framing, /one FragGate door/);
 assert.match(catalog.framing, /Never separate FragGate engines/);
 assert.doesNotMatch(catalog.framing, /are separate FragGate engines/);
 assert.equal(SOFTWARE_FRAMING.includes("Never separate FragGate engines"), true);
-assert.ok(catalog.software.some((s) => s.slug === "embryolock" && s.download_url === null));
+assert.ok(
+  catalog.software.some(
+    (s) =>
+      s.slug === "embryolock" &&
+      s.status === "live" &&
+      s.worker_home === "https://embryolock-download-tracker.vibelock.workers.dev/" &&
+      s.download_url === "https://embryolock-download-tracker.vibelock.workers.dev/download",
+  ),
+);
 const fold = catalog.software.find((s) => s.slug === "foldlock");
 assert.equal(fold.bucket, "lock");
 assert.equal(fold.status, "live");
@@ -158,9 +166,10 @@ const embryo = updateCheck({ slug: "embryo-lock", version: "0.0.1" }, origin, PR
   runtimeVersion: RUNTIME_VERSION,
 });
 assert.equal(embryo.slug, "embryolock");
-assert.equal(embryo.update_available, false);
-assert.equal(embryo.download_url, null);
-assert.match(embryo.notes, /stub/i);
+assert.equal(embryo.latest, "1.1.0");
+assert.equal(embryo.update_available, true);
+assert.equal(embryo.download_url, "https://embryolock-download-tracker.vibelock.workers.dev/download");
+assert.match(embryo.notes, /EmbryoLock|1\.1\.0/i);
 
 const runtime = updateCheck({ slug: "aziel-runtime", version: "1.6.11" }, origin, PRODUCTS, {
   runtimeVersion: RUNTIME_VERSION,
@@ -178,7 +187,7 @@ assert.equal(missing.status, 404);
 
 const manifest = updateManifest(origin, PRODUCTS, { runtimeVersion: RUNTIME_VERSION });
 assert.ok(manifest.latest.some((r) => r.slug === "foldlock" && r.latest === "0.8.0"));
-assert.ok(manifest.latest.some((r) => r.slug === "embryolock" && r.status === "stub"));
+assert.ok(manifest.latest.some((r) => r.slug === "embryolock" && r.status === "live"));
 assert.ok(manifest.latest.some((r) => r.slug === "aziel-runtime" && r.latest === RUNTIME_VERSION));
 assert.match(manifest.client_note, /install\.sh/);
 

@@ -19,7 +19,7 @@ Inventory 1–50:
 1 QNM/Node Mesh radios OFF default
 2 QNS proxying OFF (QNS-NO-PROXY)
 3 Public mesh auto-enable DISABLED
-4 EmbryoLock STUB (being landed live+local-destructive-boundary in parallel)
+4 EmbryoLock LIVE + local-destructive-boundary (1.7.7; wipe/scorch/unlock stay FG-STUB on public mesh)
 5 AZChat STUB
 6 VeilLock public execution LOCAL ONLY
 7 VeilLock inject/intercept/facetime STUB
@@ -68,7 +68,7 @@ Bottom line: most catalog wired in-process; unfinished concentrated in networkin
 
 ---
 
-EmbryoLock at PR time: still STUB (item 4). Parallel land is live+local-destructive-boundary. This ingest does not flip that land. Do not host public wipe/unlock.
+EmbryoLock at 1.7.7: item 4 is live-with-local-destructive-boundary (true in-process engine, `engine_digest`, Softwares `worker_home` https://embryolock-download-tracker.vibelock.workers.dev/). Wipe / scorch / unlock-after-fail stay `FG-STUB` on the public mesh — Never execute on the public mesh. This ingest does not host public wipe/unlock.
 
 Cite: Eliab, Aziel. (2026). FEATURE-STATE-2026-09-10 [Audit]. https://github.com/AzielEliab/aziel-runtime/blob/main/docs/audit/FEATURE-STATE-2026-09-10.md
 

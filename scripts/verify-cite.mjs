@@ -43,6 +43,7 @@ assert.ok(slugs.includes("azinterface"));
 assert.ok(slugs.includes("aziel-corpus"));
 assert.ok(slugs.includes("4dmap"));
 assert.ok(slugs.includes("azcoherence"));
+assert.ok(slugs.includes("embryolock"));
 
 for (const slug of slugs) {
   const version = VERSIONS[slug];

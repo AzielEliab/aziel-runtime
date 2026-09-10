@@ -99,6 +99,10 @@ const PRIMARY = {
       confidence: 0.6,
     },
   },
+  embryolock: {
+    op: "policy",
+    payload: { digest: "fa2e7203bd3924170e94c62357e29764b925a82c2cf708807128bd096333250d" },
+  },
 };
 
 async function jsonReq(path, method, body) {

@@ -30,7 +30,7 @@ Action stamped one.
 
 Sort law: **Plain A–Z → Gate A–Z → Lock A–Z**. Clock ≠ Lock (StaticClock is
 plain). Sibling software under **one FragGate door** — never “separate FragGate
-engines”. EmbryoLock is included as `status: "stub"` (name only; no Worker).
+engines”. EmbryoLock is included as `status: "live"` with `local_destructive_boundary: true` (wipe/unlock stay FG-STUB on the public mesh). AZChat remains `status: "stub"`.
 
 Softwares-tab `count` includes placements (`azinterface`, `decisiongate`,
 `forgereceipts`, `azcoherence`). Isolation `domains.software_count` is **33**

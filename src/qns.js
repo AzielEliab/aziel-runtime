@@ -11,7 +11,7 @@
  * same laws locally.
  *
  * Not a Softwares-tab product. Not a FragGate slug.
- * GET /v1/mesh never enables. No Node Gate. EmbryoLock stays stub.
+ * GET /v1/mesh never enables. No Node Gate. EmbryoLock is live-with-local-destructive-boundary.
  * Author: Aziel Eliab only.
  */
 
@@ -29,7 +29,7 @@ export const QNS_HUB_COMPANION = "AIH-WP-1.1";
 export const QNS_PAPER = "docs/designs/QNS-CD-1.0.md";
 
 export const QNS_LIMITATION =
-  "THIS IS: QNS-CD-1.0 coding design for Quantum Node Signal packet transfer (photon QNS1 1.3). Local process qnsd lives in AzielEliab/qnm-node and binds 127.0.0.1 only. This Worker cites the paper, the local API paths, and a stable qns_cd pointer on every software card plus the mesh kernel extra. qnsd uses the same laws as AZPIPE / SweepGate / APG / ChainLock locally. THIS IS NOT: a Softwares-tab product; a FragGate slug; a public proxy of local via emit; a remote wipe or control plane; Node Gate; qubit hardware; Bell-pair physics; a login mesh. GET /v1/mesh never enables. EmbryoLock stays stub. Author: Aziel Eliab only.";
+  "THIS IS: QNS-CD-1.0 coding design for Quantum Node Signal packet transfer (photon QNS1 1.3). Local process qnsd lives in AzielEliab/qnm-node and binds 127.0.0.1 only. This Worker cites the paper, the local API paths, and a stable qns_cd pointer on every software card plus the mesh kernel extra. qnsd uses the same laws as AZPIPE / SweepGate / APG / ChainLock locally. THIS IS NOT: a Softwares-tab product; a FragGate slug; a public proxy of local via emit; a remote wipe or control plane; Node Gate; qubit hardware; Bell-pair physics; a login mesh. GET /v1/mesh never enables. EmbryoLock is live-with-local-destructive-boundary (wipe/unlock stay local-only). Author: Aziel Eliab only.";
 
 /** Loopback paths on local qnsd / qnm-node. Cited only — never fetched from this Worker. */
 export const QNS_LOCAL_PATHS = Object.freeze([
@@ -135,7 +135,7 @@ export function qnsStatus() {
     laws: {
       mesh_get_never_enables: true,
       node_gate: false,
-      embryolock: "stub",
+      embryolock: "live_local_destructive",
       ui_mcp: true,
       identity: "Aziel Eliab",
       rl_packed_catalog: true,
@@ -242,7 +242,7 @@ Do **not** add QNS as a Softwares-tab product slug.
 
 Worker-side hop / airlock / ledger stay **AZPIPE / SweepGate / APG / ChainLock**. \`qnsd\` uses those same laws locally.
 
-\`GET /v1/mesh\` never enables. No Node Gate. EmbryoLock stays stub. UI=MCP. Identity Aziel Eliab only.
+\`GET /v1/mesh\` never enables. No Node Gate. EmbryoLock is live-with-local-destructive-boundary (wipe/unlock stay local-only). UI=MCP. Identity Aziel Eliab only.
 
 Author: Aziel Eliab only.
 `;
