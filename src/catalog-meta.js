@@ -134,7 +134,7 @@ export const VERSIONS = {
   azhub: "0.1.0",
   azinterface: "0.1.0",
   "aziel-corpus": "2.6.2",
-  "4dmap": "0.1.0",
+  "4dmap": "0.2.0",
 };
 
 /**

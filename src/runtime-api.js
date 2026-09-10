@@ -39,7 +39,7 @@ export const RUNTIME_ROLE = "engine-runtime";
 export const RUNTIME_LAYER = "catalog+pull+proxy+session+in-process-engines+fraggate";
 
 export const VERSION_HISTORY = [
-  { version: "1.7.4", status: "current", note: "4DMap in-process capability bump (4DM-WP-1.0): LIVE_OPS add frame_status, axis_describe, walk_trace, card_export, card_import, verify_chain, neighbor_cite. Stubs stay truth_score/lumen_panel/invent_mark/backdate_class. layer=inspection_frame; domains_are_doors:false; FragGate remains THE single door. Product 4dmap is still 0.1.0 on main — after product 0.2.0 deploys, recompute and sync engine_digest / catalog version. Mesh stays default-off. Identity Aziel Eliab only." },
+  { version: "1.7.4", status: "current", note: "4DMap in-process capability bump (4DM-WP-1.0): LIVE_OPS sync product 0.2.0 verbs pin/span/stack/gap/fork/walk/lens/class/cohort/absence/cap/join/list/example plus frame_status, axis_describe, walk_trace, card_export, card_import, verify_chain, neighbor_cite. Stubs stay truth_score/lumen_panel/invent_mark/backdate_class. layer=inspection_frame; domains_are_doors:false; FragGate remains THE single door. Catalog version 0.2.0. engine_digest is the runtime isolate artifact; GitBaby deploys the product Worker. Mesh stays default-off. Identity Aziel Eliab only." },
   { version: "1.7.3", status: "superseded", note: "Audit WARN copy/hint: refuse exist.mcp lists the live MCP tool set and points at POST /mcp tools/list (not the thin 7-tool door alone). Public FragGate call stays open; session mutate requires token when REQUIRE_TOKEN=1 and RUNTIME_TOKEN is set. 4DMap Softwares copy is inspection frame / not an extra door (domains_are_doors:false). GET /v1/software count_note explains Softwares-tab placements (azinterface / decisiongate / forgereceipts) vs isolation software_count=33. OpenAPI lists POST /mcp. Mesh stays default-off. Identity Aziel Eliab only." },
   { version: "1.7.2", status: "superseded", note: "GET /v1/azpipe/arch (and POST) cites the locked MASTER-33 AZPIPE arch/strip — same payload FragGate already exposes as pipeline / pipeline_strip (v, magic, locked, master, lambgate, fraggate_single_door, roseclock, hop list, 11 domains / 33 softwares). Cite/read surface only. Not a Softwares-tab door. Not a FragGate slug. Mesh stays default-off. Identity Aziel Eliab only." },
   { version: "1.7.1", status: "superseded", note: "AKM-TRIAD-1.0: Adaptive Knowledge Recollection, Bayesian Calibration & 3-of-4 Triad Selection. ChainLock remains the immutable learn/recall ledger; the adaptive index is derived and rebuildable. Memory APIs behind FragGate (POST /v1/memory/observe|resolve|calibrate|recall, GET /v1/memory/{id}[+history|+calibration], POST /v1/memory/rebuild-index operator/local only). MCP memory_*. Not a Softwares-tab product. Posterior ≠ truth. No rollback. Identity Aziel Eliab only." },
@@ -138,8 +138,8 @@ description: >-
   One door — discover, route, refuse. FragGate over the catalog: hashed
   registry, DecisionGATE after ChainLock-IN, ask/refuse ledger. Dual surface —
   agent/MCP has no technical UI chrome; Worker UI, Flutter mobile/, local
-  install, and counted /download stay complete human software. 1.7.4 enhances
-  4DMap LIVE_OPS (frame_status/axis_describe/walk_trace/card_export/card_import/verify_chain/neighbor_cite; inspection frame, not an extra door). 1.7.3 aligns
+  install, and counted /download stay complete human software. 1.7.4 syncs
+  4DMap LIVE_OPS with product 0.2.0 (pin/span/stack/gap/fork/walk/lens/class/cohort/absence/cap/join/list/example plus frame_status/axis_describe/walk_trace/card_export/card_import/verify_chain/neighbor_cite; inspection frame, not an extra door). 1.7.3 aligns
   audit WARN copy (exist.mcp → tools/list; public FragGate call; catalog count_note; 4DMap not an extra door). 1.7.2 adds
   GET /v1/azpipe/arch (MASTER-33 cite/read; same FragGate pipeline payload; not a Softwares door). 1.7.1 adds
   AKM-TRIAD-1.0 (adaptive recollection, Bayesian calibration, 3-of-4 triad; not Softwares-tab). 1.7.0 locks
@@ -199,7 +199,7 @@ Refuse envelopes (\`exist.mcp\`) list the live MCP tool set and point at \`POST 
 
 Every catalog slug is a true engine. Cloudflare isolate is the jail. Hosted AZAI is protocol mirror + Lamb check, **not** the blend. Identity is **Aziel Eliab** only.
 
-**1.7.4 = 4DMap inspection-frame capability bump.** LIVE_OPS add frame_status, axis_describe, walk_trace, card_export, card_import, verify_chain, neighbor_cite. Stubs stay. Not a sequential gate and not an extra door. Product 4dmap 0.2.0 is not merged — sync engine_digest after that deploy.
+**1.7.4 = 4DMap inspection-frame capability bump.** LIVE_OPS sync product 0.2.0 verbs (pin, span, stack, gap, fork, walk, lens, class, cohort, absence, cap, join, list, example) plus frame_status, axis_describe, walk_trace, card_export, card_import, verify_chain, neighbor_cite. Stubs stay. Not a sequential gate and not an extra door. Catalog version 0.2.0. GitBaby merges and deploys.
 **1.7.3 = audit WARN copy/hint.** Refuse \`exist.mcp\` lists the live MCP tool set and points at \`POST /mcp tools/list\`. Public FragGate call stays open; session mutate requires token when configured. Softwares-tab \`count\` includes placements; isolation \`software_count\` is 33. 4DMap catalog copy is inspection frame / not an extra door. OpenAPI lists \`POST /mcp\`. Mesh stays default-off.
 **1.7.2 = GET /v1/azpipe/arch.** Cite/read surface for the locked MASTER-33 AZPIPE strip (same payload as \`GET /v1/fraggate\` \`pipeline\` / \`pipeline_strip\`). Not a Softwares-tab door. Not a FragGate slug. Mesh stays default-off.
 **1.7.1 = AKM-TRIAD-1.0.** Adaptive knowledge recollection over ChainLock learn: Bayesian calibration, deterministic 3-of-4 triad (E/C/P/B), derived rebuildable index. Memory APIs behind FragGate. Not a Softwares-tab product. Posterior ≠ truth. No history rewrite.
@@ -861,7 +861,7 @@ export function runtimeStaticPaths() {
     "/v1/skill": {
       get: {
         operationId: "runtime_skill",
-        summary: "Skill markdown: 1.7.4 enhances 4DMap LIVE_OPS (frame_status/axis_describe/walk_trace/card_export/card_import/verify_chain/neighbor_cite). 1.7.3 aligns audit WARN copy (exist.mcp → tools/list; public FragGate call; catalog count_note). 1.7.2 adds GET /v1/azpipe/arch (MASTER-33 cite). 1.7.1 adds AKM-TRIAD-1.0. 1.7.0 locks MASTER-33 (FragGate single door). 1.6.15 locked SUITE-PIPE. 1.6.14 adds 4DMap (4DM-WP-1.0). 1.6.13 aligns the QNM-BUILD-1.0 suite rollup. 1.6.12 adds GET /v1/software + client update check. Honest about 1.1.0 through 1.7.4.",
+        summary: "Skill markdown: 1.7.4 syncs 4DMap LIVE_OPS with product 0.2.0. 1.7.3 aligns audit WARN copy (exist.mcp → tools/list; public FragGate call; catalog count_note). 1.7.2 adds GET /v1/azpipe/arch (MASTER-33 cite). 1.7.1 adds AKM-TRIAD-1.0. 1.7.0 locks MASTER-33 (FragGate single door). 1.6.15 locked SUITE-PIPE. 1.6.14 adds 4DMap (4DM-WP-1.0). 1.6.13 aligns the QNM-BUILD-1.0 suite rollup. 1.6.12 adds GET /v1/software + client update check. Honest about 1.1.0 through 1.7.4.",
         tags: ["runtime"],
         responses: { "200": { description: "text/markdown skill" } },
       },
