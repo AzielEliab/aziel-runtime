@@ -433,11 +433,12 @@ only when the SESSION Durable Object binding is up, and **503** when
 Receipts cap at 64. Sessions expire after 6h. Per-IP: 20 opens / minute, 60
 execs / minute (HTTP 429 JSON).
 
-Push to `main` runs `.github/workflows/deploy.yml` (`npx wrangler deploy`) when
-repo secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` are set
-(account `ac575a9b822bea2bed97d0ab73aed238`). Missing secrets fail the job with
-a clear message. Do not put tokens in the repo. `workflow_dispatch` is also
-enabled. The Action passes `GIT_SHA` so `/v1/software` can stamp `git_sha`.
+Push to `main` runs `.github/workflows/deploy.yml` (`npx wrangler deploy`) only
+when repo secret `CLOUDFLARE_API_TOKEN` is set. Missing token skips the job
+(does not fail). Primary deploy is Cursor/wrangler OAuth (Aziel Eliab).
+Account `ac575a9b822bea2bed97d0ab73aed238` is the non-secret default. Do not
+put tokens in the repo. `workflow_dispatch` is also enabled. The Action passes
+`GIT_SHA` so `/v1/software` can stamp `git_sha`.
 
 If this checkout has no wrangler credentials, deploy from the author's machine:
 
