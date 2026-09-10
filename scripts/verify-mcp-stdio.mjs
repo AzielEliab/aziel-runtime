@@ -263,7 +263,8 @@ const localTools = localHs.replies[1].result.tools.map((t) => t.name);
 assert.ok(localTools.includes("runtime_skill"));
 assert.ok(localTools.includes("fraggate_call"));
 assert.ok(localTools.includes("runtime_run"));
-assert.ok(localTools.length <= 32, `stdio tools/list ${localTools.length}`);
+assert.ok(localTools.length <= 40, `stdio tools/list ${localTools.length}`);
+assert.ok(localTools.includes("memory_recall"));
 assert.ok(!localTools.includes("godlock_submit"));
 assert.ok(!localTools.includes("foldlock_fold-preview"));
 

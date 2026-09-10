@@ -36,13 +36,13 @@ Limitation: ${LIMITATION}
   };
 }
 
-export async function runAzai(op, payload) {
+export async function runAzai(op, payload, _scratch, env) {
   if (op === "health") return azaiHealth();
   if (op === "skill") return azaiSkill();
   if (op === "models") return models();
   if (op === "lamb-check" || op === "lamb_check") {
     const text = payload && payload.text != null ? String(payload.text) : "";
-    return {
+    const out = {
       product: "azai",
       true_engine_runtime: true,
       provider_proxy: false,
@@ -50,6 +50,11 @@ export async function runAzai(op, payload) {
       limitation: LIMITATION,
       ...lambCheck(text),
     };
+    if (payload && (payload.memory || payload.adaptive_recall || payload.feed_memory)) {
+      const { feedCalibratedCards } = await import("../../memory.js");
+      out.memory = await feedCalibratedCards(env, payload.q || text, payload.use_case);
+    }
+    return out;
   }
   return { unsupported: true };
 }

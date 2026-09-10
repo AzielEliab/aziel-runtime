@@ -120,6 +120,7 @@ assert.equal(undo().ok, false);
 assert.ok(ACTION_CLASSES.includes("RESTORE_FORWARD"));
 assert.ok(ACTION_CLASSES.includes("CORRECT"));
 assert.ok(ACTION_CLASSES.includes("QUARANTINE"));
+assert.ok(ACTION_CLASSES.includes("LEARN"));
 assert.ok(!ACTION_CLASSES.includes("ROLLBACK"));
 assert.ok(!ACTION_CLASSES.includes("RESTORE"));
 

@@ -17,6 +17,7 @@ import { check as decisiongateCheck } from "../engines/decisiongate/engine.js";
 import { joinTypeForOp, normalizeJoinType } from "../engines/4dmap/engine.js";
 import { executeLocal } from "../engines/runner.js";
 import { arch, LOCKED_STRIP, pipeInbound, pipeOutbound, thinPipe } from "../azpipe.js";
+import { MEMORY_SLUG, runMemoryOp } from "../memory.js";
 import { MESH_SLUG, runMeshOp } from "../mesh.js";
 import {
   FG_GATE_REFUSE,
@@ -350,7 +351,7 @@ export async function admitCall(args, registry, bySlug, opts = {}) {
   return { admitted: true, target, gate, claim };
 }
 
-export async function fraggateCall(args, registry, bySlug, env) {
+export async function fraggateCall(args, registry, bySlug, env, request = null) {
   const admission = await admitCall(args, registry, bySlug, { gate: false });
   if (!admission.admitted) return admission.envelope;
 
@@ -408,6 +409,28 @@ export async function fraggateCall(args, registry, bySlug, env) {
   }
   const payload = inbound.admitted !== undefined ? inbound.admitted : rawPayload;
   const resolved = resolveOpAlias(target.entry.slug, target.op);
+  if (target.entry.slug === MEMORY_SLUG) {
+    const result = await runMemoryOp(resolved.op, payload, env, request);
+    const accepted = await accept({
+      name: target.entry.name,
+      slug: target.entry.slug,
+      op: target.op,
+      result,
+      gate: inbound.gate_check || gate,
+      engine: {
+        engine_digest: null,
+        ran_in: "aziel-runtime",
+        true_engine_runtime: false,
+        mode: "akm-triad",
+        status: result && result.ok === false ? 400 : 200,
+      },
+    });
+    if (resolved.aliased) {
+      accepted.canonical_op = resolved.op;
+      accepted.aliased = true;
+    }
+    return decoratePipe(accepted, inbound, result, env, claim);
+  }
   if (target.entry.slug === MESH_SLUG) {
     const result = await runMeshOp(resolved.op, payload, env);
     const accepted = await accept({
