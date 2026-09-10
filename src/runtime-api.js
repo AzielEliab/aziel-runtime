@@ -329,7 +329,7 @@ ${skillCompatibleSection(base)}
 | GET | \`/v1/runtime.json\` | Machine manifest. Authority with health: version=${RUNTIME_VERSION}, role=engine-runtime, door=fraggate, top-level registry_digest, all catalog slugs are true engines. |
 | GET | \`/v1/fraggate\` | FragGate door summary (registry_digest; live / stub / local_only product counts; stub_op_count). |
 | GET | \`/v1/fraggate/list\` | Hashed registry entries. |
-| GET | \`/v1/fraggate/describe\` | Describe one name (\`?name=\` / \`?slug=\`). |
+| GET | \`/v1/fraggate/describe\` | Describe one name (\`?name=\` / \`?slug=\`). HTML shell when Accept prefers text/html. |
 | POST | \`/v1/fraggate/verify\` | Verify a name or digest. |
 | POST | \`/v1/fraggate/call\` | CallEnvelope → FragGate → Lamb Lens → SweepGate → Sentinel → Provenance → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → RoseClock → TemporalLock → ChainLock-OUT → ForgeReceipts → Return. |
 | GET | \`/v1/runtime\` | Alias of \`/v1/runtime.json\` (same machine manifest). |
@@ -340,7 +340,7 @@ ${skillCompatibleSection(base)}
 | GET | \`/v1/pull/{slug}\` | Pull record for one product. |
 | GET | \`/v1/pull/{slug}/skill\` | Product skill markdown. |
 | GET | \`/v1/catalog.json\` | Full catalog (discover). |
-| GET | \`/v1/software\` | Authoritative hub software catalog (Plain→Gate→Lock; EmbryoLock live-with-local-destructive-boundary; AZChat name-only stub). |
+| GET | \`/v1/software\` | Authoritative hub software catalog (Plain→Gate→Lock; EmbryoLock live-with-local-destructive-boundary; AZChat name-only stub). JSON default; HTML shell when Accept prefers text/html. |
 | GET | \`/v1/fraggate/software\` | FragGate-path mirror of \`/v1/software\`. |
 | GET | \`/v1/update/check\` | Client update check (\`?slug=&version=\`). For install.sh / local UI / mobile. |
 | GET | \`/v1/update/manifest\` | Latest versions for every product + runtime. |
@@ -352,7 +352,7 @@ ${skillCompatibleSection(base)}
 | GET | \`/ai.txt\` | Alias of \`/llms.txt\`. |
 | GET | \`/robots.txt\` | Allow / for Google and major AI bots. No GPTBot Disallow. |
 | GET | \`/sitemap.xml\` | Catalog urlset. |
-| GET | \`/sitemap-index.xml\` | Catalog + Digital Library + godlock.uk + live product Worker sitemaps. |
+| GET | \`/sitemap-index.xml\` | Catalog + azieleliab.com + Digital Library + godlock.uk + live product Worker sitemaps. |
 | GET | \`/v1/health\` | Liveness. Optional \`uses_total\` when USES KV is bound. Does not increment. |
 | GET | \`/v1/uses\` | API use counters + recent ring log. Does not increment. No PII. |
 | GET | \`/v1/stats\` | Alias of \`/v1/uses\`. |
@@ -1032,7 +1032,7 @@ export function runtimeStaticPaths() {
     "/v1/fraggate/describe": {
       get: {
         operationId: "fraggate_describe",
-        summary: "Describe one registry name (live vs stub vs local_only).",
+        summary: "Describe one registry name (live vs stub vs local_only). Default JSON. Accept: text/html returns a unique-title describe docs shell + JSON-LD.",
         tags: ["fraggate"],
         parameters: [
           { name: "name", in: "query", schema: { type: "string" } },

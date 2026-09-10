@@ -19,6 +19,155 @@ export const LIBRARY_FRONT_DOOR = `${LIBRARY_ORIGIN}/runtime`;
 
 export const GODLOCK_UK_ORIGIN = "https://godlock.uk";
 export const GODLOCK_UK_SITEMAP = `${GODLOCK_UK_ORIGIN}/sitemap.xml`;
+export const GODLOCK_UK_CITE = `${GODLOCK_UK_ORIGIN}/cite.json`;
+export const GODLOCK_UK_LLMS = `${GODLOCK_UK_ORIGIN}/llms.txt`;
+export const GODLOCK_UK_SOFTWARE_TAB = `${GODLOCK_UK_ORIGIN}/software`;
+
+/** Canonical author site (www). Apex azieleliab.com redirects here. */
+export const AUTHOR_SITE_ORIGIN = "https://www.azieleliab.com";
+export const AUTHOR_SITE_APEX = "https://azieleliab.com";
+export const AUTHOR_SITE_SITEMAP = `${AUTHOR_SITE_ORIGIN}/sitemap.xml`;
+export const AUTHOR_SITE_CITE = `${AUTHOR_SITE_ORIGIN}/cite.json`;
+export const AUTHOR_SITE_LLMS = `${AUTHOR_SITE_ORIGIN}/llms.txt`;
+export const AUTHOR_SITE_SOFTWARE_TAB = `${AUTHOR_SITE_ORIGIN}/software`;
+export const AUTHOR_SITE_RUNTIME = `${AUTHOR_SITE_ORIGIN}/runtime`;
+
+export const LIBRARY_SOFTWARE_TAB = `${LIBRARY_ORIGIN}/software`;
+
+export const AZCOHERENCE_GITHUB = "https://github.com/AzielEliab/AZCoherence";
+export const AZCOHERENCE_WORKER = "https://azcoherence-download-tracker.vibelock.workers.dev";
+
+/**
+ * Softwares hubs that refresh tabs from GET /v1/software.
+ * Crawl URLs only — do not invent mesh enable, Remain-Off, or CF tokens.
+ */
+export function softwareHubCrawl() {
+  return [
+    {
+      id: "azieleliab",
+      name: AUTHOR_NAME,
+      origin: AUTHOR_SITE_ORIGIN,
+      home: `${AUTHOR_SITE_ORIGIN}/`,
+      software_tab: AUTHOR_SITE_SOFTWARE_TAB,
+      cite: AUTHOR_SITE_CITE,
+      llms: AUTHOR_SITE_LLMS,
+      ai: `${AUTHOR_SITE_ORIGIN}/ai.txt`,
+      sitemap: AUTHOR_SITE_SITEMAP,
+      robots: `${AUTHOR_SITE_ORIGIN}/robots.txt`,
+      runtime: AUTHOR_SITE_RUNTIME,
+      software_catalog: `${AUTHOR_SITE_ORIGIN}/v1/software`,
+      donate: DONATE_CANONICAL,
+    },
+    {
+      id: "library",
+      name: LIBRARY_NAME,
+      origin: LIBRARY_ORIGIN,
+      home: `${LIBRARY_ORIGIN}/`,
+      software_tab: LIBRARY_SOFTWARE_TAB,
+      cite: LIBRARY_CITE,
+      llms: LIBRARY_LLMS,
+      ai: `${LIBRARY_ORIGIN}/ai.txt`,
+      sitemap: LIBRARY_SITEMAP,
+      robots: `${LIBRARY_ORIGIN}/robots.txt`,
+      runtime: LIBRARY_FRONT_DOOR,
+      software_catalog: `${LIBRARY_ORIGIN}/v1/software`,
+    },
+    {
+      id: "godlock.uk",
+      name: "GodLock",
+      origin: GODLOCK_UK_ORIGIN,
+      home: `${GODLOCK_UK_ORIGIN}/`,
+      software_tab: GODLOCK_UK_SOFTWARE_TAB,
+      cite: GODLOCK_UK_CITE,
+      llms: GODLOCK_UK_LLMS,
+      ai: `${GODLOCK_UK_ORIGIN}/ai.txt`,
+      sitemap: GODLOCK_UK_SITEMAP,
+      robots: `${GODLOCK_UK_ORIGIN}/robots.txt`,
+      runtime: `${GODLOCK_UK_ORIGIN}/runtime`,
+      software_catalog: `${GODLOCK_UK_ORIGIN}/runtime/v1/software`,
+    },
+  ];
+}
+
+export function hubPageSitemapUrls() {
+  const out = [];
+  const seen = new Set();
+  for (const h of softwareHubCrawl()) {
+    for (const url of [h.home, h.software_tab, h.cite, h.llms, h.sitemap, h.runtime]) {
+      if (!url || seen.has(url)) continue;
+      seen.add(url);
+      out.push(url);
+    }
+  }
+  return out;
+}
+
+export function describeSitemapUrls(origin, slugs) {
+  const base = String(origin || "").replace(/\/$/, "");
+  const seen = new Set();
+  const out = [`${base}/v1/fraggate/describe`];
+  seen.add(out[0]);
+  for (const slug of slugs || []) {
+    const loc = `${base}/v1/fraggate/describe?slug=${encodeURIComponent(slug)}`;
+    if (seen.has(loc)) continue;
+    seen.add(loc);
+    out.push(loc);
+  }
+  return out;
+}
+
+export function azcoherenceCiteField(origin) {
+  const base = String(origin || "").replace(/\/$/, "");
+  return {
+    slug: "azcoherence",
+    name: "AZCoherence",
+    spec: "AZC-0.1",
+    author: AUTHOR_NAME,
+    identity: AUTHOR_NAME,
+    github: AZCOHERENCE_GITHUB,
+    worker_home: `${AZCOHERENCE_WORKER}/`,
+    download: `${AZCOHERENCE_WORKER}/download`,
+    catalog_card: `${base}/p/azcoherence`,
+    fraggate_describe: `${base}/v1/fraggate/describe?slug=azcoherence`,
+    software: `${base}/v1/software`,
+    how_to_cite: `${AUTHOR_FAMILY_GIVEN}. (2026). AZCoherence 0.1.0 [Software]. Apache-2.0. ${AZCOHERENCE_GITHUB}`,
+    note: "Softwares-tab Plain. Scoring-review placement (domain null). Second-pass triad coherence. Not AKM-TRIAD fabric. Not a 34th MASTER-33 isolation software. GET /v1/mesh never enables.",
+    hubs: softwareHubCrawl().map((h) => ({ id: h.id, software_tab: h.software_tab, cite: h.cite })),
+  };
+}
+
+export function hubsCiteField() {
+  return {
+    author: AUTHOR_NAME,
+    identity: AUTHOR_NAME,
+    mesh_get_never_enables: true,
+    remain_off_do_not_enable: true,
+    note: "Softwares hubs fetch GET /v1/software on each Software-tab request. Cross-link cite.json / llms.txt / sitemap.xml on each hub. Do not invent mesh enable or Remain-Off items.",
+    hubs: softwareHubCrawl(),
+  };
+}
+
+export function llmsHubsBlock() {
+  const lines = [
+    "## Softwares hubs",
+    "",
+    "Hubs refresh Software tabs from GET /v1/software (mirror GET /v1/fraggate/software). Do not hand-edit hub copy. Identity Aziel Eliab only. GET /v1/mesh never enables.",
+    "",
+  ];
+  for (const h of softwareHubCrawl()) {
+    lines.push(`### ${h.name} (${h.id})`);
+    lines.push(`Home: ${h.home}`);
+    lines.push(`Software tab: ${h.software_tab}`);
+    lines.push(`cite.json: ${h.cite}`);
+    lines.push(`llms.txt: ${h.llms}`);
+    lines.push(`sitemap.xml: ${h.sitemap}`);
+    lines.push(`robots.txt: ${h.robots}`);
+    lines.push(`Runtime door: ${h.runtime}`);
+    lines.push(`Hub software catalog: ${h.software_catalog}`);
+    lines.push("");
+  }
+  return lines.join("\n");
+}
 
 /** Canonical donate rails live on hubs. Runtime and download-trackers only link. Do not invent wallets. */
 export const DONATE_CANONICAL = "https://www.azieleliab.com/donate";
@@ -150,7 +299,7 @@ export function productCrawlUrls(product) {
 }
 
 export function extraHubSitemaps() {
-  return [LIBRARY_SITEMAP, GODLOCK_UK_SITEMAP];
+  return [AUTHOR_SITE_SITEMAP, LIBRARY_SITEMAP, GODLOCK_UK_SITEMAP];
 }
 
 export function liveProductSitemapUrls(products) {
@@ -189,6 +338,7 @@ export function robotsTxt(origin, products) {
     "# Author: Aziel Eliab. Also known as Aziel Elroi Eliab (alternateName only).",
     "# Content-Signal opens search + AI input + AI train. No Disallow for GPTBot.",
     "# Allow /v1/software /v1/update /mcp /openapi — hubs and agents fetch these.",
+    "# Sitemap index lists this host, azieleliab.com, azielcorpuslibrary.net, godlock.uk, and live product Workers.",
     "",
     "User-agent: *",
     "Allow: /",
@@ -267,6 +417,11 @@ export function catalogHubFields(origin) {
     library_front_door: LIBRARY_FRONT_DOOR,
     godlock_uk: GODLOCK_UK_ORIGIN + "/",
     godlock_uk_sitemap: GODLOCK_UK_SITEMAP,
+    author_site: AUTHOR_SITE_ORIGIN + "/",
+    author_site_sitemap: AUTHOR_SITE_SITEMAP,
+    author_site_cite: AUTHOR_SITE_CITE,
+    author_site_llms: AUTHOR_SITE_LLMS,
+    hubs: softwareHubCrawl(),
     crawl: {
       robots: base + "/robots.txt",
       sitemap: base + "/sitemap.xml",
@@ -306,6 +461,14 @@ export function llmsCiteBlock(origin) {
     `Digital Library: ${citeHowToLibrary()}`,
     `Digital Library cite.json: ${LIBRARY_CITE}`,
     `Digital Library llms.txt: ${LIBRARY_LLMS}`,
+    `Author site: ${AUTHOR_SITE_ORIGIN}/`,
+    `Author site cite.json: ${AUTHOR_SITE_CITE}`,
+    `Author site llms.txt: ${AUTHOR_SITE_LLMS}`,
+    `GodLock.uk cite.json: ${GODLOCK_UK_CITE}`,
+    `GodLock.uk llms.txt: ${GODLOCK_UK_LLMS}`,
+    `AZCoherence: ${AUTHOR_FAMILY_GIVEN}. (2026). AZCoherence 0.1.0 [Software]. Apache-2.0. ${AZCOHERENCE_GITHUB}`,
+    `AZCoherence describe: ${base}/v1/fraggate/describe?slug=azcoherence`,
+    `AZCoherence Worker: ${AZCOHERENCE_WORKER}/`,
     "",
     "Each product: Eliab, Aziel. (2026). {Product} {version} [Software]. Apache-2.0. {GitHub or historical DOI}.",
     "Prefer that product Worker /cite.json, then this hub /cite.json products[].how_to_cite.",

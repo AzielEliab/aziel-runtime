@@ -124,7 +124,7 @@ import {
   wrapFraggateEnvelope,
 } from "./mcp-surface.js";
 import { admitCall, describeRegistry, fraggateCall, listRegistry, verifyRegistry } from "./fraggate/door.js";
-import { LIVE_OPS, registryDigest, registrySummary } from "./fraggate/registry.js";
+import { LIVE_OPS, NAMED_STUBS, registryDigest, registrySummary } from "./fraggate/registry.js";
 import {
   AUTHOR_ALTERNATE_NAME,
   AUTHOR_GITHUB,
@@ -134,10 +134,12 @@ import {
   LIBRARY_LLMS,
   LIBRARY_NAME,
   LIBRARY_ORIGIN,
+  azcoherenceCiteField,
   catalogHubFields,
   citeHowToLibrary,
   citeHowToRuntime,
   DESIGNS_GITHUB_TREE,
+  describeSitemapUrls,
   DONATE_CANONICAL,
   DONATE_FOOTER_RUNTIME,
   designsCiteField,
@@ -153,8 +155,11 @@ import {
   auditGithubUrl,
   FEATURE_STATE_AUDIT,
   REMAIN_OFF_BY_DESIGN,
+  hubPageSitemapUrls,
+  hubsCiteField,
   libraryJsonLd,
   llmsCiteBlock,
+  llmsHubsBlock,
   llmsIdentityHeader,
   personJsonLd,
   productCrawlUrls,
@@ -162,6 +167,13 @@ import {
   sitemapIndexXml,
   SUITE_DESIGNS,
 } from "./seo.js";
+import {
+  describeDocsHtml,
+  describeIndexHtml,
+  describeUnknownHtml,
+  prefersHtml,
+  softwareCatalogHtml,
+} from "./seo-html.js";
 import { LOCKED_STRIP, arch as azpipeArch, dispatchAzpipeArchHttp } from "./azpipe.js";
 import {
   HOMEPAGE_KEYWORDS,
@@ -876,7 +888,14 @@ function catalogLinkHeaders(origin, path) {
 async function servePackedSoftware(request, env, origin, extra = {}) {
   const packed = await readPackedCatalog(env, origin, PRODUCTS, softwareExtra(env));
   const body = { ...packed.catalog, rl: packed.rl, donation: donationStatic(), ...extra };
-  return json(body, 200, catalogLinkHeaders(origin, extra.mirror_of || "/v1/software"));
+  const path = extra.mirror_of || "/v1/software";
+  if (prefersHtml(request)) {
+    return asHead(
+      request,
+      html(softwareCatalogHtml(origin, body, PAGE_CSS), catalogLinkHeaders(origin, path)),
+    );
+  }
+  return json(body, 200, catalogLinkHeaders(origin, path));
 }
 
 function linkHeaders(origin, canonicalPath = "/") {
@@ -901,12 +920,14 @@ function json(body, status = 200, extra = {}) {
 }
 
 function html(body, extra = {}) {
+  const { status, ...headers } = extra;
   return new Response(body, {
+    status: status || 200,
     headers: {
       "Content-Type": "text/html; charset=utf-8",
       ...corsHeaders(),
       "X-Robots-Tag": "index, follow, max-snippet:-1, max-image-preview:large",
-      ...extra,
+      ...headers,
     },
   });
 }
@@ -1100,6 +1121,13 @@ function sitemapXml(origin) {
   for (const loc of auditsSitemapUrls()) {
     urls.push({ loc, priority: "0.45", changefreq: "weekly", lastmod: null });
   }
+  const describeSlugs = PRODUCTS.map((p) => p.slug).concat(NAMED_STUBS.map((s) => s.slug));
+  for (const loc of describeSitemapUrls(origin, describeSlugs)) {
+    urls.push({ loc, priority: loc.endsWith("/describe") ? "0.85" : "0.75", changefreq: "weekly" });
+  }
+  for (const loc of hubPageSitemapUrls()) {
+    urls.push({ loc, priority: "0.7", changefreq: "weekly", lastmod: null });
+  }
   const body = urls
     .map((u) => {
       const last = u.lastmod === null ? "" : `    <lastmod>${u.lastmod || LASTMOD}</lastmod>\n`;
@@ -1159,7 +1187,10 @@ function llmsTxt(origin) {
     `Uses: ${base}/v1/uses`,
     `Machine catalog: ${base}/v1/catalog.json`,
     `Authoritative software (hubs fetch this): ${base}/v1/software`,
+    `Softwares HTML shell (Accept: text/html): ${base}/v1/software`,
     `FragGate software mirror: ${base}/v1/fraggate/software`,
+    `FragGate describe docs: ${base}/v1/fraggate/describe?slug={slug} (HTML when Accept prefers text/html)`,
+    `AZCoherence describe: ${base}/v1/fraggate/describe?slug=azcoherence`,
     `Client update check: ${base}/v1/update/check?slug={slug}&version={installed}`,
     `Update manifest: ${base}/v1/update/manifest`,
     `Agent pipeline: fraggate_list → fraggate_describe → fraggate_call. Prefer ${base}/mcp and ${base}/v1/software.`,
@@ -1176,6 +1207,8 @@ function llmsTxt(origin) {
     auditsLlmsHeaderLine(),
     "",
     llmsCompatibleBlock().trimEnd(),
+    "",
+    llmsHubsBlock().trimEnd(),
     "",
     "## Session (the actual runtime cut)",
     "",
@@ -1294,6 +1327,9 @@ function citeJson(origin) {
     update_manifest: base + "/v1/update/manifest",
     mcp: base + "/mcp",
     azpipe_arch: base + "/v1/azpipe/arch",
+    hubs: hubsCiteField(),
+    azcoherence: azcoherenceCiteField(origin),
+    mesh_get_never_enables: true,
     designs: designsCiteField(),
     audits: auditsCiteField(),
     products: PRODUCTS.map((p) => {
@@ -1316,6 +1352,11 @@ function citeJson(origin) {
         zenodo_deposit: cite.zenodo_deposit,
         how_to_cite: productHowToCite(p),
         qns_cd: qnsHint(),
+        worker_home: u.worker_home,
+        cite: u.cite,
+        llms: u.has_llms ? u.llms : null,
+        catalog_card: `${base}/p/${p.slug}`,
+        fraggate_describe: `${base}/v1/fraggate/describe?slug=${encodeURIComponent(p.slug)}`,
       };
     }),
   };
@@ -1345,6 +1386,13 @@ function jsonLd(origin) {
       base + "/v1/catalog.json",
       base + "/mcp",
       base + "/openapi.json",
+      base + "/v1/fraggate/describe",
+      "https://www.azieleliab.com/",
+      "https://www.azieleliab.com/software",
+      LIBRARY_ORIGIN + "/",
+      LIBRARY_ORIGIN + "/software",
+      "https://godlock.uk/",
+      "https://godlock.uk/software",
     ],
     screenshot: base + "/sigil.png",
   };
@@ -1872,7 +1920,7 @@ function staticPaths(origin) {
       get: {
         operationId: "software_catalog",
         summary:
-          "Authoritative live software catalog for hubs and clients. Every product plus AZChat name-only stub. EmbryoLock is live-with-local-destructive-boundary (worker_home embryolock-download-tracker). Sort: Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock). Sibling software under one FragGate door — never separate FragGate engines. Softwares-tab count includes placements (azinterface / decisiongate / forgereceipts / azcoherence); isolation domain software_count is 33 (domains_are_doors:false). Hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) fetch this on each Software-tab request.",
+          "Authoritative live software catalog for hubs and clients. Every product plus AZChat name-only stub. EmbryoLock is live-with-local-destructive-boundary (worker_home embryolock-download-tracker). Sort: Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock). Sibling software under one FragGate door — never separate FragGate engines. Softwares-tab count includes placements (azinterface / decisiongate / forgereceipts / azcoherence); isolation domain software_count is 33 (domains_are_doors:false). Hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) fetch this on each Software-tab request. Default application/json. Accept: text/html returns a crawl HTML shell (unique title/description + JSON-LD) without changing the Worker homepage UI.",
         tags: ["software"],
         responses: { "200": { description: "Sorted software[] plus count_note, isolation_software_count, tab_placement_slugs, domains (domains_are_doors:false)" } },
       },
@@ -2415,7 +2463,19 @@ async function handleFraggateHttp(request, url, origin, env) {
       name: url.searchParams.get("name") || url.searchParams.get("slug") || "",
       slug: url.searchParams.get("slug") || "",
     };
+    if (!args.name && !args.slug && prefersHtml(request)) {
+      const entries = [
+        ...PRODUCTS.map((p) => ({ slug: p.slug, name: p.name })),
+        ...NAMED_STUBS.map((s) => ({ slug: s.slug, name: s.name })),
+      ];
+      return asHead(request, html(describeIndexHtml(origin, entries, PAGE_CSS), extra));
+    }
     const body = await describeRegistry(args, registry, BY_SLUG);
+    if (prefersHtml(request)) {
+      const page =
+        body.ok === false ? describeUnknownHtml(origin, body, PAGE_CSS) : describeDocsHtml(origin, body, PAGE_CSS);
+      return asHead(request, html(page, { ...extra, status: body.ok === false ? 400 : 200 }));
+    }
     return asHead(request, json(body, body.ok === false ? 400 : 200, extra));
   }
   if (url.pathname === "/v1/fraggate/verify" && request.method === "POST") {
