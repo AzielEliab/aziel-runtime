@@ -6,7 +6,7 @@ Identity: Aziel Eliab.
 
 PDF: binary was provided as `FEATURE-STATE-2026-09-10.pdf`. Path for GitBaby: `docs/audit/FEATURE-STATE-2026-09-10.pdf`. If the original binary cannot be embedded, this markdown is the full inventory; keep that PDF path.
 
-This file is the authoritative intentional-OFF vs gaps inventory for 1.7.3+. Not a Softwares-tab product. Not a FragGate slug. Do not enable mesh or safety stubs.
+This file is the authoritative intentional-OFF vs gaps inventory for 1.7.3+. Not a Softwares-tab product. Not a FragGate slug. Do not enable mesh or safety stubs. Runtime **1.7.7** lands AZCoherence as a Softwares-tab placement; it does **not** enable any remain-off item and does **not** put AKM-TRIAD on the Softwares-tab.
 
 Companion constitutional OFF set (33 items that do NOT count as missing when correctly off/refused/gated): [REMAIN-OFF-BY-DESIGN-2026-09-10](../designs/REMAIN-OFF-BY-DESIGN-2026-09-10.md). FEATURE-STATE lists gaps vs intentional OFF; that paper is the must-stay-off set. Do not enable remain-off items from either cite.
 
