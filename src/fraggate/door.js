@@ -1,12 +1,14 @@
 /**
- * FragGate door — discover, route, refuse.
+ * FragGate door — discover, route, refuse. THE SINGLE DOOR.
  *
- * Locked call path (1.6.15):
- * PUBLIC/UI/Agents → FragGate (classify) → SweepGate → ChainLock-IN
- * → DecisionGATE → AZPIPE → Domain Doors (4DMap inspection)
- * → TemporalLock → StaticClock → ChainLock-OUT → Response/Receipt
+ * Locked call path (1.7.0 / MASTER-33):
+ * Human → AZInterface → PUBLIC/UI/AGENT/API → FragGate → Lamb Lens
+ * → SweepGate → Sentinel → Provenance/Input Packet → ChainLock-IN
+ * → DecisionGATE → AZPIPE → Internal Domain Layer → optional ASE
+ * → RoseClock → TemporalLock → ChainLock-OUT → ForgeReceipts → Return
  *
- * DecisionGATE sits AFTER ChainLock-IN and BEFORE domain/tool exec.
+ * Domain softwares execute only inside Internal Domain Layer after AZPIPE.
+ * Lamb Lens is fabric ethics AFTER FragGate — not a second door.
  * LambGate is not a hop. Author: Aziel Eliab. Identity is Aziel Eliab only.
  * Kernel: https://github.com/AzielEliab/fraggate (FG-0.1)
  */
@@ -43,7 +45,7 @@ export function defaultClaim(slug, op, extra = {}) {
   const name = slug || "software";
   const verb = op || "op";
   const evidence = [
-    `${name} ${verb} is on the aziel-runtime 1.6.15 FragGate public allowlist.`,
+    `${name} ${verb} is on the aziel-runtime 1.7.0 FragGate public allowlist.`,
     "Cloudflare Worker isolate is the jail. engine_digest is required.",
   ];
   let join_type = extra.join_type || extra.join || null;
@@ -181,7 +183,7 @@ export async function describeRegistry(args, registry, bySlug) {
             slug: "4dmap",
             spec: "4DM-WP-1.0",
             sequential_gate: false,
-            note: "4DMap is the Domain Door inspection frame T/Δ/Γ/Π after AZPIPE. Not a sequential gate.",
+            note: "4DMap is a Research-domain inspection frame T/Δ/Γ/Π inside Internal Domain Layer after AZPIPE. Isolated software, not an additional door.",
           }
         : { inspection: "4dmap", sequential_gate: false },
   };
@@ -368,18 +370,40 @@ export async function fraggateCall(args, registry, bySlug, env) {
   if (!inbound.ok) {
     const sweep = inbound.refuse === "sweep-isolate" || inbound.closed_at === "sweepgate";
     const atGate = inbound.closed_at === "decisiongate";
+    const atLamb = inbound.closed_at === "lamb-lens";
+    const atSentinel = inbound.closed_at === "sentinel";
+    const code = sweep
+      ? "FG-SWEEP-ISOLATE"
+      : atLamb
+        ? "FG-LAMB-REFUSE"
+        : atSentinel
+          ? "FG-SENTINEL"
+          : inbound.refuse === "illegal-reorder"
+            ? "FG-REORDER"
+            : FG_GATE_REFUSE;
     return refuse({
-      code: sweep ? "FG-SWEEP-ISOLATE" : FG_GATE_REFUSE,
+      code,
       name: target.entry.name,
       slug: target.entry.slug,
       op: target.op,
       gate: atGate ? gate : null,
-      extra: { pipe: thinPipe(inbound), sweep: inbound.sweep, status: "live", closed_at: inbound.closed_at },
+      extra: {
+        pipe: thinPipe(inbound),
+        sweep: inbound.sweep,
+        lamb_lens: inbound.lamb_lens,
+        sentinel: inbound.sentinel,
+        status: "live",
+        closed_at: inbound.closed_at,
+      },
       message: sweep
         ? "SweepGate isolate — airlock closed. Do not merge."
-        : atGate
-          ? `DecisionGATE ${gate && gate.final_state ? gate.final_state : "REFUSE"} — no handler.`
-          : `AZPIPE ${inbound.refuse || "refuse"} — no handler.`,
+        : atLamb
+          ? `Lamb Lens ${inbound.refuse === "lamb-hold" ? "HOLD-UNCERTAIN" : "REFUSE"} — no handler. Fabric ethics after FragGate. Not a second door.`
+          : atSentinel
+            ? `Sentinel ${inbound.refuse || "reject"} — no handler. No rollback.`
+            : atGate
+              ? `DecisionGATE ${gate && gate.final_state ? gate.final_state : "REFUSE"} — no handler.`
+              : `AZPIPE ${inbound.refuse || "refuse"} — no handler.`,
     });
   }
   const payload = inbound.admitted !== undefined ? inbound.admitted : rawPayload;
@@ -465,6 +489,10 @@ async function decoratePipe(accepted, inbound, parsed, env, claim) {
   accepted.pipe = thinPipe(outbound.ok ? outbound : inbound);
   accepted.pipeline_strip = LOCKED_STRIP;
   accepted.domain_doors = (inbound && inbound.domain_doors) || null;
+  accepted.domain_layer = (inbound && inbound.domain_layer) || (outbound && outbound.domain_layer) || null;
+  accepted.lamb_lens = (inbound && inbound.lamb_lens) || null;
+  accepted.sentinel = (inbound && inbound.sentinel) || null;
+  accepted.provenance = (inbound && inbound.provenance) || null;
   if (!outbound.ok && (outbound.refuse === "sweep-isolate" || outbound.closed_at === "sweepgate")) {
     accepted.ok = false;
     accepted.result = null;
@@ -476,6 +504,8 @@ async function decoratePipe(accepted, inbound, parsed, env, claim) {
   if (outbound && outbound.inner && outbound.inner.exit) accepted.receipt = outbound.inner.exit;
   if (outbound && outbound.inner && outbound.inner.temporal) accepted.temporal = outbound.inner.temporal;
   if (outbound && outbound.inner && outbound.inner.staticclock) accepted.staticclock = outbound.inner.staticclock;
+  if (outbound && outbound.inner && outbound.inner.roseclock) accepted.roseclock = outbound.inner.roseclock;
+  if (outbound && outbound.inner && outbound.inner.forgereceipts) accepted.forgereceipts = outbound.inner.forgereceipts;
   return accepted;
 }
 
