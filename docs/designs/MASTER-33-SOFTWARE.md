@@ -69,7 +69,7 @@ Domains are **isolation labels**, not doors. Softwares stay on the Softwares-tab
 | 04 | Language | codelock, foldlock, glossafilter, zsolver, godlock, azclce |
 | 05 | AI | azai, azbot, azhub |
 | 06 | Research | azbrowser, aziel-corpus, 4dmap |
-| 07 | Comms | azmail, **azchat** (name-only stub refuse until a product exists) |
+| 07 | Comms | azmail, **azchat** (LIVE+bound in 1.9.0; mesh default off; not a mailer) |
 | 08 | Network | aznet, miragegrid, azieltether |
 | 09 | System | azos |
 | 10 | Simulation | postking |

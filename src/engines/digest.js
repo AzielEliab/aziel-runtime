@@ -48,6 +48,7 @@ export const ENGINE_ARTIFACTS = {
   "4dmap": ["4dmap/engine.js"],
   azcoherence: ["azcoherence/engine.js"],
   embryolock: ["embryolock/engine.js"],
+  azchat: ["azchat/engine.js"],
 };
 
 /**
@@ -82,7 +83,7 @@ export const ENGINE_DIGESTS = {
   "mialock": "d65c53dbc46d500f6d02c8975e42bf95a22000c15db4776d5fdef58904d32a5c",
   "azieltether": "adb57573ee23e7c97567fc05f916f1fd65f2265128bd9ec3d1dca08e47c2d791",
   "peacelock": "291437f64ba15338d6358e6d2e657870619b19133430be3574d458b8db469a66",
-  "azmail": "7041aae1f9cad90dca74ab911b25b27c46350c3f7c1c203110d57886003a30b3",
+  "azmail": "4b81caee4930f62861f6c4f65d38bce0a44461a45f5b2fdeb0cd93408e55ea59",
   "azbrowser": "0d398f1cb36028165a197e850380093a4abdd51bb1023301f02ec1311d147421",
   "aznet": "eb02566041f2fa48f9b49be359732737860382052666de7df1062baf808e7d88",
   "azhub": "35683fb4735ed57bda3c4f2d5d312fe9c68fd7fb853b0b99fd1cbabcc22cba66",
@@ -91,6 +92,7 @@ export const ENGINE_DIGESTS = {
   "4dmap": "0e780ef2db7c1aa9487d1d341f603fe66ab439688d2ba1ab28fa0063f1d26bb0",
   "azcoherence": "f04dfa4af332a1c04bd7319a8f48cee3e9adec3877d198ea703ee6187790cfc5",
   "embryolock": "bc7f6119a4bf6910b5be50cabe19bf4a2e35ac60408b5713e94878bd4e0074f3",
+  "azchat": "810d370485f4d459dd1481fb54b7682b7b6f3d98af8ef8f1dcc34ccb7659ed9e",
 };
 
 export function trueEngineSlugs() {

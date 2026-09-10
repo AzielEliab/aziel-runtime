@@ -1,5 +1,5 @@
 /**
- * aziel-runtime 1.7.9 — AZCoherence catalog + engine cross_map / peers (domain stays null) + 1.7.8 EmbryoLock true in-process engine (live-with-local-destructive-boundary; worker_home embryolock-download-tracker) + 1.7.7 AZCoherence (AZC-0.1) true in-process FragGate Softwares engine + 1.7.6 4DMap LIVE_OPS synced with product 0.2.0 + 1.7.5 Softwares capability wave 1 (decisiongate / forgereceipts / temporallock / staticclock / chronolock / trajectorylock / spectrallock) + 1.7.4 4DMap inspection-frame capability bump (frame_status/axis_describe/walk_trace/card_export/card_import/verify_chain/neighbor_cite; not an extra door) + 1.7.3 audit WARN copy/hint (exist.mcp → tools/list; public FragGate call; catalog count_note; 4DMap not an extra door) + 1.7.2 GET /v1/azpipe/arch MASTER-33 cite + AKM-TRIAD-1.0 + MASTER-33 (FragGate single door) + locked suite heritage (SUITE-PIPE-1.6.15) + 4DMap (4DM-WP-1.0) + QNM-BUILD-1.0 suite rollup (default OFF; not a login mesh) + live software catalog + client update check + GitHub auto-deploy + FragGate door + UI-op aliases + AZChat name-only stub + AZHub + AZInterface + AZNet + AZBrowser + AZMail + PeaceLock + KV-backed API use trackers.
+ * aziel-runtime 1.9.0 — AZRT-1.9-CLOSE-1.0 (AZMail isolate mailbox; AZChat LIVE+bound; isolate hash store; OpenAPI proxy-path parity) on 1.7.10 QNM Live Nodes + 1.7.9 AZCoherence cross_map + 1.7.8 EmbryoLock live-with-local-destructive-boundary + MASTER-33 FragGate single door. Remain-OFF untouched. Author: Aziel Eliab.
  *
  * 1.1.0 was catalog+proxy that called itself a runtime. Useful front doors.
  * 1.2.0 owned open → policy → exec → receipt → close but exec still proxied.
@@ -216,6 +216,8 @@ const PROTOCOL = "2025-03-26";
 const CATALOG_TITLE = PRODUCT_NAME;
 /** Bound to the canonical abstract. Version rolls (1.9+) go in #version-history, not here. */
 const CATALOG_DESCRIPTION = RUNTIME_ABSTRACT;
+const CATALOG_CHANGELOG_19 =
+  "1.9.0 closes AZRT-1.9-CLOSE-1.0: public-safe LIVE_OPS promotions, AZMail isolate mailbox, AZChat spendable handles/rooms/bus (mesh default off; not AZMail), isolate hash object store (no CDN), OpenAPI /p/{slug}/{op} proxy-path parity, corpus native-vs-proxy labels, named fallback inventory. Chromium stays NOT IMPLEMENTED. Remain-OFF untouched.";
 const LASTMOD = "2026-09-10";
 
 const PRODUCTS_RAW = [
@@ -224,7 +226,10 @@ const PRODUCTS_RAW = [
     name: "VibeLock",
     worker: "vibelock-download-tracker",
     github: "https://github.com/AzielEliab/vibelock",
-    ops: [{ op: "analyze", method: "POST", summary: "Audio forensic risk assessment (JSON metrics)." }],
+    ops: [
+      { op: "analyze", method: "POST", summary: "Audio forensic risk assessment (JSON metrics)." },
+      { op: "detect", method: "POST", summary: "Alias of analyze on the existing feature path. Not a liveness proof." },
+    ],
     example: { summary: "synthetic dual-channel notes; local WAV scoring is in the Python package" },
     banner: null,
   },
@@ -242,7 +247,10 @@ const PRODUCTS_RAW = [
     name: "CodeLock",
     worker: "codelock-download-tracker",
     github: "https://github.com/AzielEliab/codelock",
-    ops: [{ op: "render", method: "POST", summary: "Canonical or CodeLock/Rosetta HTML view of source." }],
+    ops: [
+      { op: "render", method: "POST", summary: "Canonical or CodeLock/Rosetta HTML view of source." },
+      { op: "gate-status", method: "POST", summary: "Read CodeLock gate open/closed. Alters perception, not meaning." },
+    ],
     example: { source: "print('hello')", mode: "normalize" },
     banner: "This tool alters perception, not meaning.",
   },
@@ -263,7 +271,11 @@ const PRODUCTS_RAW = [
     name: "ShadowLock",
     worker: "shadowlock-download-tracker",
     github: "https://github.com/AzielEliab/shadowlock",
-    ops: [{ op: "observe", method: "POST", summary: "Zero-retention observation of a job list you already have." }],
+    ops: [
+      { op: "observe", method: "POST", summary: "Zero-retention observation of a job list you already have." },
+      { op: "hook", method: "POST", summary: "Zero-retention ethics receipt. Not an OS hook. Not process intercept." },
+      { op: "doctor", method: "GET", summary: "UI alias of health. Same FragGate backend as the Worker UI button." },
+    ],
     example: { jobs: [{ id: "a", status: "ok" }] },
     banner: "ShadowLock is a gate on an outcome you already have. No OS hook. No process intercept.",
   },
@@ -338,7 +350,12 @@ const PRODUCTS_RAW = [
     name: "AZ-OS",
     worker: "azos-download-tracker",
     github: "https://github.com/AzielEliab/azos",
-    ops: [{ op: "status", method: "POST", summary: "Read-only status / principles. No remote exec." }],
+    ops: [
+      { op: "status", method: "POST", summary: "Read-only status / principles. No remote exec." },
+      { op: "invite", method: "GET", summary: "Print invite / principles markdown. Not a remote shell." },
+      { op: "principles", method: "GET", summary: "Read AZ-OS principles. exec/shell stay refuse." },
+      { op: "doctor", method: "GET", summary: "UI alias of health. Same FragGate backend as the Worker UI button." },
+    ],
     example: {},
     banner: "AZ-OS does not grant remote shell. Invite prints principles; exec requires a local token.",
   },
@@ -347,7 +364,10 @@ const PRODUCTS_RAW = [
     name: "Glossa Filter",
     worker: "glossafilter-download-tracker",
     github: "https://github.com/AzielEliab/glossafilter",
-    ops: [{ op: "render", method: "POST", summary: "Render an intent across bundled peer ids." }],
+    ops: [
+      { op: "render", method: "POST", summary: "Render an intent across bundled peer ids." },
+      { op: "peers", method: "GET", summary: "List bundled Glossa Filter peer ids. Human opinion remains human." },
+    ],
     example: { subject: "package", rel: "release", object: "filter", channel: "tooling" },
     banner: "Human opinion remains human, and tools remain tools.",
   },
@@ -356,7 +376,11 @@ const PRODUCTS_RAW = [
     name: "MirageGrid",
     worker: "miragegrid-download-tracker",
     github: "https://github.com/AzielEliab/miragegrid",
-    ops: [{ op: "assign", method: "POST", summary: "Assign a session node id. Mapping is ephemeral." }],
+    ops: [
+      { op: "assign", method: "POST", summary: "Assign a session node id. Mapping is ephemeral." },
+      { op: "verify-receipt", method: "POST", summary: "Verify a MirageGrid control-plane receipt. Not a VPN hop." },
+      { op: "nodes", method: "GET", summary: "List ephemeral control-plane node ids. Not a hop mesh." },
+    ],
     example: {},
     banner: "MirageGrid is not a VPN and not an anonymity network. It does not guarantee anonymity against global surveillance.",
   },
@@ -440,6 +464,8 @@ const PRODUCTS_RAW = [
       { op: "health", method: "GET", summary: "Liveness. Protocol mirror. Not a provider proxy." },
       { op: "lamb-check", method: "POST", summary: "Run Lamb Lens (peace/clarity/service) on {text}. No provider call." },
       { op: "lamb_check", method: "POST", summary: "Alias of lamb-check for MCP azai_lamb_check." },
+      { op: "models", method: "GET", summary: "Protocol-mirror model list metadata only. Not a blend. Not a chat runner." },
+      { op: "doctor", method: "GET", summary: "UI alias of health. Same FragGate backend as the Worker UI button." },
     ],
     example: { text: "hello" },
     banner: "AZAI is a local OpenAI-compatible runtime, not a new foundation model. Hosted /v1 is a protocol mirror + Lamb check, NOT a proxy that spends the author's paid keys. Jeeves is not sovereign. Live blend is local azai serve.",
@@ -469,6 +495,8 @@ const PRODUCTS_RAW = [
       { op: "health", method: "GET", summary: "Liveness. Skill, not a model." },
       { op: "skill", method: "GET", summary: "Return AZBot skill markdown. Does not increment download KV." },
       { op: "route", method: "POST", summary: "Route a request onto a catalog slug/op. Skill, not a model." },
+      { op: "example", method: "GET", summary: "Sample AZBot route payload. Skill, not a model." },
+      { op: "doctor", method: "GET", summary: "UI alias of health. Same FragGate backend as the Worker UI button." },
     ],
     example: {},
     banner: "AZBot is a skill, not a foundation model. Hosted /v1/skill returns markdown. Call aziel-runtime for the engines. Jeeves is not sovereign.",
@@ -510,6 +538,10 @@ const PRODUCTS_RAW = [
       { op: "health", method: "GET", summary: "Liveness. Does not increment download KV. Hosted never holds whistle files." },
       { op: "hash-preview", method: "POST", summary: "SHA-256 of posted bytes. Not stored. Hosted never holds whistle files." },
       { op: "canon-preview", method: "POST", summary: "Hash a proposed ledger row. Not stored. Not a mailer." },
+      { op: "hash_put", method: "POST", summary: "Put bytes into the isolate hash object store. No CDN. send/mail/release stay refuse." },
+      { op: "hash_get", method: "POST", summary: "Get isolate-hash bytes by SHA-256. No public URL." },
+      { op: "hash_stat", method: "POST", summary: "Stat an isolate-hash object. Not a mailer." },
+      { op: "doctor", method: "GET", summary: "UI alias of health. Same FragGate backend as the Worker UI button." },
       { op: "skill", method: "GET", summary: "Return WhistleLock skill markdown. Does not increment download KV." },
     ],
     example: { summary: "sample drop", kind: "drop" },
@@ -527,7 +559,10 @@ const PRODUCTS_RAW = [
       { op: "verify", method: "POST", summary: "Recompute result_sha256. Not a certified instrument." },
       { op: "schema", method: "GET", summary: "List required fields and observation types. Small JSON only." },
       { op: "import_export", method: "POST", summary: "Export or import a small JSON case. NEVER store media." },
-      { op: "doctor", method: "GET", summary: "Richer liveness: geometry only, no media store." },
+      { op: "hash_put", method: "POST", summary: "Put TrajectoryLock media bytes into the isolate hash store. No CDN. store_media stays refuse." },
+      { op: "hash_get", method: "POST", summary: "Get isolate-hash media bytes by SHA-256. No public URL." },
+      { op: "hash_stat", method: "POST", summary: "Stat an isolate-hash media object. Not a CDN." },
+      { op: "doctor", method: "GET", summary: "Richer liveness: geometry only, no media CDN." },
       { op: "skill", method: "GET", summary: "Return TrajectoryLock skill markdown. Does not increment download KV." },
     ],
     example: {
@@ -565,6 +600,11 @@ const PRODUCTS_RAW = [
       { op: "health", method: "GET", summary: "Liveness when the counted Worker is live. Does not increment download KV." },
       { op: "skill", method: "GET", summary: "Return AzielTether skill markdown when hosted. Does not increment download KV." },
       { op: "verify", method: "POST", summary: "Verify a hash-chain of downloaded package receipts. Not a VPN." },
+      { op: "tip", method: "POST", summary: "Return the dual-chain tip hashes. Not a VPN. Not mesh-join." },
+      { op: "dual-chain", method: "POST", summary: "Detect dual-chain forks on posted receipts. Not a VPN." },
+      { op: "reconcile", method: "POST", summary: "Reconcile a posted hash-chain. Not arm. Not mesh-join." },
+      { op: "pulse", method: "POST", summary: "Liveness pulse over posted receipts. Not a VPN." },
+      { op: "peer-preview", method: "POST", summary: "Preview peer receipt hashes. Not mesh-join." },
     ],
     example: {},
     banner:
@@ -607,6 +647,16 @@ const PRODUCTS_RAW = [
       { op: "keyword_alert_list", method: "POST", summary: "List keyword alerts." },
       { op: "keyword_alert_check", method: "POST", summary: "Check text against keyword alerts without posting." },
       { op: "classify", method: "POST", summary: "UI alias of airlock_classify. Same FragGate backend as the Worker UI button." },
+      { op: "mailbox_open", method: "POST", summary: "Open a local isolate mailbox. Not SMTP. Not a public MTA." },
+      { op: "notice_post", method: "POST", summary: "Agent→user notice (class error|update|health|receipt). Worker inbox. Not SMTP." },
+      { op: "mail_post", method: "POST", summary: "User→user local mail in this isolate. Not SMTP. Not deanonymize." },
+      { op: "inbox_pull", method: "POST", summary: "Pull the caller's local inbox only. Stranger pull is empty/404." },
+      { op: "ack", method: "POST", summary: "Acknowledge a local mailbox item. Not a release valve." },
+      { op: "verify_receipt", method: "POST", summary: "Recompute a mailbox receipt hash. Not SMTP." },
+      { op: "import_export", method: "POST", summary: "Client-held mailbox JSON. Hosted does not become an MTA." },
+      { op: "mailbox", method: "POST", summary: "UI alias of mailbox_open." },
+      { op: "notice", method: "POST", summary: "UI alias of notice_post." },
+      { op: "inbox", method: "POST", summary: "UI alias of inbox_pull." },
     ],
     example: { text: "hello from the anonymous ring" },
     banner:
@@ -703,6 +753,7 @@ const PRODUCTS_RAW = [
       { op: "search", method: "GET", summary: "Search published corpus records. Anonymous GET." },
       { op: "example", method: "GET", summary: "Sample search payload. Does not increment download KV." },
       { op: "skill", method: "GET", summary: "Return Aziel Digital Library skill markdown. Does not increment download KV." },
+      { op: "doctor", method: "GET", summary: "UI alias of health. Native search vs proxy OCR/D1 labels." },
     ],
     example: { q: "Florence" },
     banner: "Aziel Digital Library v2.6.2. Public MASTER. Anonymous GET is read-only. Signed-in accounts may ingest. Not a 26-card software index. Author Aziel Eliab only.",
@@ -795,6 +846,27 @@ const PRODUCTS_RAW = [
     banner:
       "EmbryoLock: offline destructive-over-recovery vault (Stealth+ v1.1). Live cite/health/doctor/verify-hash/policy on FragGate. Wipe / scorch / unlock-after-fail stay local-only — Never execute on the public mesh. Vault/Custody with ARK (isolation label, not a second door). worker_home embryolock-download-tracker. This isolate does not run Argon2id or AES-GCM. Author Aziel Eliab.",
   },
+  {
+    slug: "azchat",
+    name: "AZChat",
+    worker: "azchat-download-tracker",
+    github: "https://github.com/AzielEliab/azchat",
+    ops: [
+      { op: "doctor", method: "GET", summary: "UI alias of health. Mesh hop default off. Not SMTP." },
+      { op: "handle_new", method: "POST", summary: "Mint a spendable AZChat handle. Rotate unlinks the token." },
+      { op: "handle_rotate", method: "POST", summary: "Rotate a handle. Prior token is unlinked." },
+      { op: "room_open", method: "POST", summary: "Open an ephemeral two-handle room with TTL. Seals when expired." },
+      { op: "room_post", method: "POST", summary: "Post in a room as a live member handle. Stranger is 404." },
+      { op: "room_pull", method: "POST", summary: "Pull room posts. Caller must be a member. Stranger pull 404." },
+      { op: "bus_send", method: "POST", summary: "Send an agent bus frame. Not AZMail. Mesh default off." },
+      { op: "bus_poll", method: "POST", summary: "Poll the agent bus. Not a mesh hop." },
+      { op: "verify_receipt", method: "POST", summary: "Recompute an AZChat receipt hash." },
+      { op: "import_export", method: "POST", summary: "Client-held JSON. Hosted does not store a chat archive." },
+    ],
+    example: { text: "bus frame from agent-a" },
+    banner:
+      "AZChat: spendable handles, ephemeral rooms, agent bus. FragGate only. mesh_enabled_default false. Not SMTP. Not AZMail. Do not bridge. Stranger room_pull is 404. Author Aziel Eliab.",
+  },
 ];
 
 
@@ -826,7 +898,7 @@ const ONE_LINE = {
   mialock: "M.I.A.Lock 0.1.1: event map + Doe matching + uncertainty ellipses + coverage heat. Doe leads ≠ ID. Heat ≠ presence. Author Aziel Eliab.",
   azieltether: "AzielTether 0.1.0: central × decentral survival mesh for downloaded Aziel software. Prefer-central; peer sync when down; public HTTPS stays mesh-free. Not a VPN. Author Aziel Eliab.",
   peacelock: "Chosen silence / chosen inaction as a first-class receipt (PL-WP-0.1).",
-  azmail: "AZMail (APP 1.0): anonymous MCP mesh + advisory airlock. Not a full internet MTA. Mesh default off. FragGate only.",
+  azmail: "AZMail (APP 1.0): advisory airlock + local isolate mailbox + anonymous mesh (default off). Not a full internet MTA. FragGate only.",
   azbrowser: "AZBrowser (AZB-1.0): Lamb Lens ethical research browser. Cite; refuse harvest; no invented visits. FragGate only. AZNet is a separate software (order/token pairing only).",
   aznet: "AZNet (AZN-WP-0.1): silent verification side-net. Hash continuity without hosting. Separate software; functional-order pair with AZBrowser.",
   azhub: "AZHub (AIH-WP-1.0): Blank Key / neutral spatial container. Does not interpret. FragGate only. AZInterface is sibling software under the same FragGate door.",
@@ -835,6 +907,7 @@ const ONE_LINE = {
   "4dmap": "4DMap (4DM-WP-1.0): four-axis inspection frame T/Δ/Γ/Π. Inspection frame after AZPIPE, not an extra door (domains_are_doors:false). FragGate only.",
   azcoherence: "AZCoherence: second-pass triad coherence review (primary vs alternate → PASS/FLAG/NEUTRALIZE/REFUSE). Never invents evidence. Confidence ≠ truth. Not AKM-TRIAD. Peer AZ-CLCE is a separate product.",
   embryolock: "Offline destructive-over-recovery vault. Cite live on FragGate; wipe/unlock stay local-only. Never execute on the public mesh.",
+  azchat: "AZChat: spendable handles, ephemeral rooms, agent bus. Mesh hop default off. Not SMTP. Not AZMail. FragGate only.",
 };
 
 function ensureCatalogOps(p) {
@@ -1181,6 +1254,8 @@ function llmsTxt(origin) {
     "## Version history",
     "",
     "Append 1.9 / AZRT-1.9-CLOSE-1.0 and later notes here. Do not replace ## What this is.",
+    CATALOG_CHANGELOG_19,
+    "1.7.11 leads crawler copy with the Aziel Runtime abstract (changelog stays below).",
     `Honesty: 1.1.0 was catalog+proxy. 1.2.0 was session/receipt (exec still proxied). 1.3.0 ran listed slugs in-process. 1.4.0 vendors every catalog Software slug. 1.4.1 adds production gates (ready, HEAD, no-store, receipt cap 64, TTL 6h, rate limits, optional token). 1.5.0 was the agent-native cut (flat product-verb MCP). 1.6.0 is the FragGate door (discover, route, refuse). 1.6.1 lists every major OpenAPI/MCP/HTTP client. 1.6.2 widens the public door to sensible advisory engines; stubs still refuse. 1.6.3 adds KV-backed API use trackers (GET /v1/uses; no PII). 1.6.4 adds PeaceLock (PL-WP-0.1) as a true in-process engine. 1.6.5 adds AZMail (APP 1.0) as a FragGate-live engine. 1.6.6 adds AZBrowser (AZB-1.0) as a FragGate-live engine. 1.6.7 adds AZNet (AZN-WP-0.1) as a separate FragGate-live product. 1.6.8 adds AZHub and AZInterface as two separate softwares under the same FragGate door (AIH-WP-1.0). 1.6.9 frames them as sibling products on that same door. 1.6.10 sets AZBrowser and AZNet one_line to separate software. 1.6.11 adds FragGate UI-op aliases and names EmbryoLock as stub / local-not-hosted. 1.6.12 adds GET /v1/software (hub catalog; Plain→Gate→Lock) and GET /v1/update/check. 1.6.13 aligns the QNM-BUILD-1.0 suite rollup. 1.6.14 adds 4DMap (4DM-WP-1.0). 1.6.15 locks the suite hop order (SUITE-PIPE-1.6.15). 1.7.0 locks MASTER-33 (FragGate single door; Lamb Lens after FragGate; RoseClock forward-only). 1.7.1 adds AKM-TRIAD-1.0 (adaptive recollection; Bayesian posterior ≠ truth; 3-of-4 triad; behind FragGate; not Softwares-tab). 1.7.2 adds GET /v1/azpipe/arch (MASTER-33 cite/read; same FragGate pipeline payload; not a Softwares door). 1.7.3 aligns audit WARN copy. 1.7.4 enhances 4DMap LIVE_OPS (frame_status/axis_describe/walk_trace/card_export/card_import/verify_chain/neighbor_cite; inspection frame, not an extra door). 1.7.5 is Softwares capability wave 1 (decisiongate / forgereceipts / temporallock / staticclock / chronolock / trajectorylock / spectrallock; docs/audit/SUITE-CAPABILITY-CHECKLIST.md). 1.7.6 syncs 4DMap LIVE_OPS with product 0.2.0 (pin/span/stack/gap/fork/walk/lens/class/cohort/absence/cap/join/list/example plus frame_status/axis_describe/walk_trace/card_export/card_import/verify_chain/neighbor_cite; inspection frame, not an extra door). 1.7.7 lands AZCoherence (AZC-0.1) as a true in-process FragGate Softwares engine (second-pass triad coherence; cite https://github.com/AzielEliab/AZCoherence; not AKM-TRIAD). 1.7.8 lands EmbryoLock as a true in-process engine (live-with-local-destructive-boundary; wipe/unlock stay FG-STUB on the public mesh). 1.7.9 cross-maps AZCoherence (peers azclce / AZInterface / AKM-TRIAD fabric neighbor; hubs + Worker URL; domain stays null). 1.7.10 makes QNM Live Nodes durable: suite-presence is operator-enabled; GET /v1/mesh never enables; cron or request-path fans out live Softwares product Workers while enabled (TTL 5 min). AKM-TRIAD-1.0 stays LIVE fabric, not Softwares-tab.`,
     `AZNet: FragGate only. POST /v1/fraggate/call { slug: "aznet", op }. Separate product (own Worker aznet-download-tracker, own UI). Silent verification side-net. Never hosts payloads. Garden / stamp / memorial ops require AZBrowser pair_token AND pair_flag (functional order only). payload_host / serve_content_for_peer / analytics / ranking / repair_integrity_bypass stay stub.`,
     `AZMail: FragGate only. POST /v1/fraggate/call { slug: "azmail", op }. Host /runtime proxies that same FragGate door. Not a full internet MTA. Mesh default off. SMTP / deanonymize / harvest stay stub. DecisionGATE / FragGate ledger still apply before exec.`,
@@ -1794,6 +1869,7 @@ ${homepageAddUrlHtml(origin)}
     <h2>Version history</h2>
     <strong>What this Worker is</strong>
     <ul>
+      <li><strong>1.9.0</strong> closes AZRT-1.9-CLOSE-1.0. Promotes public-safe engine ops (CodeLock gate-status, VibeLock detect, GlossaFilter peers, AZBot example, AZ-OS invite/principles, AZAI models metadata). ShadowLock hook (not OS hook). MirageGrid verify-receipt/nodes (no hop). AzielTether tip/dual-chain/reconcile/pulse/peer-preview (no VPN). AZMail isolate mailbox (notice_post / mail_post / inbox_pull; no SMTP). AZChat LIVE+bound (handles/rooms/bus; mesh default off; not AZMail). Isolate hash object store for TrajectoryLock media + WhistleLock files (no CDN; send/mail/release refuse). OpenAPI documents <code>/p/{slug}/{op}</code> as proxy paths. Corpus native-vs-proxy labels. Named fallback inventory. Flutter <code>mobile/</code> is not vendored here. Chromium stays NOT IMPLEMENTED. Remain-OFF untouched. Crawler abstract stays lead copy. Identity Aziel Eliab only.</li>
       <li><strong>1.7.11</strong> leads crawler surfaces (homepage meta / JSON-LD, <code>/llms.txt</code>, <code>/cite.json</code>, <code>/about</code>) with the Aziel Runtime definition — node-meshed MCP Softwares suite for digital forensics and auditing; not an API aggregator. Changelog stays below the abstract. Architecture facts (FragGate single door, Softwares catalog, dual-surface, NodeMesh) stay secondary. Identity Aziel Eliab only.</li>
       <li><strong>1.1.0</strong> was catalog + pull + proxy that started calling itself a runtime. Those front doors stay. They are not exec.</li>
       <li><strong>1.2.0</strong> added a session Durable Object and hash-chained receipts. Exec still proxied to product Workers.</li>
@@ -1972,7 +2048,7 @@ function staticPaths(origin) {
       get: {
         operationId: "catalog_list",
         summary:
-          "Machine-readable catalog. products[] are Software engines (slug, worker, github — hubs fetch these). extras[] / fraggate is the FragGate kernel card (github.com/AzielEliab/fraggate; worker fraggate-download-tracker is the separate human UI + counted download, not nested in AZBrowser; engine:false). Each product includes door, fraggate_live, fraggate_ops, fraggate_call. Authoritative hub tab list is GET /v1/software (Plain→Gate→Lock; EmbryoLock live-with-local-destructive-boundary; AZChat name-only stub).",
+          "Machine-readable catalog. products[] are Software engines (slug, worker, github — hubs fetch these). extras[] / fraggate is the FragGate kernel card (github.com/AzielEliab/fraggate; worker fraggate-download-tracker is the separate human UI + counted download, not nested in AZBrowser; engine:false). Each product includes door, fraggate_live, fraggate_ops, fraggate_call. Authoritative hub tab list is GET /v1/software (Plain→Gate→Lock; EmbryoLock live-with-local-destructive-boundary; AZChat LIVE+bound).",
         tags: ["runtime"],
         responses: { "200": { description: "Product catalog JSON" } },
       },
@@ -1981,7 +2057,7 @@ function staticPaths(origin) {
       get: {
         operationId: "software_catalog",
         summary:
-          "Authoritative live software catalog for hubs and clients. Every product plus AZChat name-only stub. EmbryoLock is live-with-local-destructive-boundary (worker_home embryolock-download-tracker). Sort: Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock). Sibling software under one FragGate door — never separate FragGate engines. Softwares-tab count includes placements (azinterface / decisiongate / forgereceipts / azcoherence); isolation domain software_count is 33 (domains_are_doors:false). Hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) fetch this on each Software-tab request. Default application/json. Accept: text/html returns a crawl HTML shell (unique title/description + JSON-LD) without changing the Worker homepage UI.",
+          "Authoritative live software catalog for hubs and clients. Every product including AZChat LIVE+bound. EmbryoLock is live-with-local-destructive-boundary (worker_home embryolock-download-tracker). Sort: Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock). Sibling software under one FragGate door — never separate FragGate engines. Softwares-tab count includes placements (azinterface / decisiongate / forgereceipts / azcoherence); isolation domain software_count is 33 (domains_are_doors:false). Hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) fetch this on each Software-tab request. Default application/json. Accept: text/html returns a crawl HTML shell (unique title/description + JSON-LD) without changing the Worker homepage UI.",
         tags: ["software"],
         responses: { "200": { description: "Sorted software[] plus count_note, isolation_software_count, tab_placement_slugs, domains (domains_are_doors:false)" } },
       },
@@ -2019,7 +2095,7 @@ function staticPaths(origin) {
     "/v1/update/manifest": {
       get: {
         operationId: "update_manifest",
-        summary: "Latest version list for every product plus AZChat name-only stub and aziel-runtime. For install.sh / local UI / mobile.",
+        summary: "Latest version list for every product including AZChat LIVE+bound and aziel-runtime. For install.sh / local UI / mobile.",
         tags: ["software"],
         responses: { "200": { description: "Latest versions JSON" } },
       },
@@ -2121,9 +2197,32 @@ function rewriteLivePaths(spec, product) {
   return out;
 }
 
+function catalogProxyPaths() {
+  const out = {};
+  for (const p of PRODUCTS) {
+    for (const op of p.ops || []) {
+      const name = op.op;
+      if (!name) continue;
+      const path = `/p/${p.slug}/${name}`;
+      const method = String(op.method || "POST").toLowerCase() === "get" ? "get" : "post";
+      if (!out[path]) out[path] = {};
+      out[path][method] = {
+        operationId: `${p.slug}_${String(name).replace(/-/g, "_")}`,
+        summary: op.summary || `${p.name} ${name} (proxy)`,
+        description: `PROXY path only — not exec. Agents use POST /v1/fraggate/call with { slug: "${p.slug}", op: "${name}" }. ${p.banner || ""}`,
+        tags: [p.slug, "proxy"],
+        responses: {
+          "200": { description: "Proxy response. Not a FragGate receipt unless the caller used /v1/fraggate/call." },
+        },
+      };
+    }
+  }
+  return out;
+}
+
 async function combinedOpenApi(request, env) {
   const origin = originOf(request);
-  const paths = staticPaths(origin);
+  const paths = { ...staticPaths(origin), ...catalogProxyPaths() };
   return {
     openapi: "3.1.0",
     info: {
@@ -2133,7 +2232,8 @@ async function combinedOpenApi(request, env) {
       description:
         RUNTIME_ABSTRACT +
         " FragGate is THE single public executable door (list → describe → call). Softwares catalog Plain→Gate→Lock; hubs refresh from GET /v1/software. Dual-surface: agents MCP/OpenAPI; humans Worker UI + counted /download. NodeMesh/QNM suite-presence is operator-enabled; GET /v1/mesh never enables; not a login mesh/VPN/Node Gate. Author Aziel Eliab only. " +
-        "1.7.11 leads crawler copy with that definition (changelog stays below). " +
+        CATALOG_CHANGELOG_19 +
+        " 1.7.11 leads crawler copy with that definition (changelog stays below). " +
         "1.7.10 makes QNM Live Nodes durable (suite-presence is operator-enabled; GET /v1/mesh never enables; cron or request-path fans out live Softwares product Workers while enabled; TTL 5 min). " +
         "1.7.9 cross-maps AZCoherence (peers azclce / AZInterface / AKM-TRIAD fabric neighbor; hubs + Worker URL; domain stays null). " +
         "1.7.8 lands EmbryoLock as a true in-process engine (live-with-local-destructive-boundary; wipe/unlock stay FG-STUB; worker_home embryolock-download-tracker). " +

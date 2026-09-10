@@ -40,6 +40,7 @@ import { AZIEL_CORPUS_OPS, run as runAzielCorpus } from "./aziel-corpus.js";
 import { FOURDMAP_OPS, run as runFourdmap } from "./4dmap.js";
 import { AZCOHERENCE_OPS, run as runAzcoherence } from "./azcoherence.js";
 import { EMBRYOLOCK_OPS, run as runEmbryolock } from "./embryolock.js";
+import { AZCHAT_OPS, run as runAzchat } from "./azchat.js";
 
 /** Ops that cannot run as pure JS here (bindings / media / live store). Per-op proxy_fallback. */
 const PROXY_OPS = {
@@ -87,6 +88,7 @@ export const ENGINE_RUNNERS = {
   "4dmap": { ops: FOURDMAP_OPS, run: runFourdmap, source: "4DMap 4DM-WP-1.0 four-axis inspection frame T/Δ/Γ/Π (inspection frame after AZPIPE; not an extra door; not a sequential gate)", module: "src/engines/4dmap.js" },
   azcoherence: { ops: AZCOHERENCE_OPS, run: runAzcoherence, source: "AZCoherence AZC-0.1 second-pass triad coherence reviewer (primary vs alternate; cite https://github.com/AzielEliab/AZCoherence; not AKM-TRIAD)", module: "src/engines/azcoherence.js" },
   embryolock: { ops: EMBRYOLOCK_OPS, run: runEmbryolock, source: "EmbryoLock Stealth+ v1.1 cite/policy (AzielEliab/EmbryoLock Open Source Code). Live health/skill/doctor/verify-hash/policy; wipe/unlock stay local-only", module: "src/engines/embryolock.js" },
+  azchat: { ops: AZCHAT_OPS, run: runAzchat, source: "AZChat spendable handles + ephemeral rooms + agent bus (mesh default off; not SMTP; not AZMail)", module: "src/engines/azchat.js" },
 };
 
 export { ENGINE_ARTIFACTS, embeddedDigest, isTrueEngineSlug, trueEngineSlugs };
@@ -144,6 +146,11 @@ export function honestyFields(productSlugs) {
     proxy_fallback_ops: perOp,
     proxy_is_not_exec: true,
     isolate_is_the_jail: true,
+    named_fallback_inventory: {
+      note: "Universal local execution is not complete. These named ops stay per-op proxy_fallback. Do not invent a silent unknown-tool fallback.",
+      proxy_fallback_ops: perOp,
+      refused: ["exec", "shell", "blend", "chat", "smtp_send", "deanonymize", "unknown-tool"],
+    },
     isolate_note:
       "Cloudflare's Worker / Durable Object isolate is the jail for Worker-side engines. The receipt carries that engine's digest, not only an upstream HTTP status.",
     hosted_azai_is_not_the_blend: true,

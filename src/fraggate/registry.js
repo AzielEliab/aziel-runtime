@@ -35,6 +35,30 @@ export const OP_ALIASES = {
   },
   azmail: {
     classify: "airlock_classify",
+    mailbox: "mailbox_open",
+    notice: "notice_post",
+    inbox: "inbox_pull",
+  },
+  azchat: {
+    doctor: "health",
+  },
+  azos: {
+    doctor: "health",
+  },
+  azai: {
+    doctor: "health",
+  },
+  azbot: {
+    doctor: "health",
+  },
+  shadowlock: {
+    doctor: "health",
+  },
+  whistlelock: {
+    doctor: "health",
+  },
+  "aziel-corpus": {
+    doctor: "health",
   },
   aznet: {
     doctor: "health",
@@ -78,16 +102,7 @@ export function resolveOpAlias(slug, op) {
  * Hubs link describe?slug=… instead of inventing a Worker. Separate software;
  * never a separate FragGate engine.
  */
-export const NAMED_STUBS = [
-  {
-    name: "AZChat",
-    slug: "azchat",
-    digest: null,
-    description:
-      "AZChat is stub / local-not-hosted. Name only. Product does not exist yet. Not a hosted Worker. Not a FragGate engine. Do not invent a fake engine. Author: Aziel Eliab.",
-    note: "stub / local-not-hosted. Name-only refuse until a product exists. Hubs may link describe?slug=azchat. Comms domain isolation label. Same FragGate door; never a separate FragGate engine. Author: Aziel Eliab only.",
-  },
-];
+export const NAMED_STUBS = [];
 
 function namedStubEntry(spec) {
   const domain = domainFields(spec.slug);
@@ -119,26 +134,26 @@ function namedStubEntry(spec) {
 export const LIVE_OPS = {
   decisiongate: ["check", "evaluate", "gates", "verify", "doctor", "health", "skill"],
   godlock: ["score", "submit", "health", "skill"],
-  "aziel-corpus": ["search", "example", "skill", "health"],
+  "aziel-corpus": ["search", "example", "skill", "health", "doctor"],
   foldlock: ["fold-preview", "unfold-preview", "health", "skill"],
   azclce: ["score", "classify", "gate", "health", "skill"],
   zsolver: ["patterns", "score", "session", "health", "skill"],
   forgereceipts: ["receipt", "verify", "import_export", "doctor", "health", "skill"],
-  codelock: ["render", "health", "skill"],
-  glossafilter: ["render", "health", "skill"],
+  codelock: ["render", "gate-status", "health", "skill"],
+  glossafilter: ["render", "peers", "health", "skill"],
   staticclock: ["advise", "advisory", "anchors", "click", "verify", "timeslate", "import_export", "doctor", "health", "skill"],
   chronolock: ["advisory", "advise", "anchors", "window", "doctor", "health", "skill"],
-  azos: ["status", "health", "skill"],
-  azai: ["lamb-check", "lamb_check", "health", "skill"],
+  azos: ["status", "invite", "principles", "health", "skill", "doctor"],
+  azai: ["lamb-check", "lamb_check", "models", "health", "skill", "doctor"],
   postking: ["new", "move", "status", "health", "skill"],
-  shadowlock: ["observe", "health", "skill"],
+  shadowlock: ["observe", "hook", "health", "skill", "doctor"],
   temporallock: ["genesis", "append", "verify", "timeslate", "gate", "import_export", "doctor", "health", "skill"],
   employeelock: ["append-preview", "verify-canonical", "health", "skill"],
-  whistlelock: ["hash-preview", "canon-preview", "health", "skill"],
-  trajectorylock: ["example", "analyze", "verify", "schema", "import_export", "doctor", "health", "skill"],
+  whistlelock: ["hash-preview", "canon-preview", "hash_put", "hash_get", "hash_stat", "health", "skill", "doctor"],
+  trajectorylock: ["example", "analyze", "verify", "schema", "import_export", "hash_put", "hash_get", "hash_stat", "doctor", "health", "skill"],
   spectrallock: ["modes", "targets", "overlay", "verify", "doctor", "health", "skill"],
-  azbot: ["route", "health", "skill"],
-  azieltether: ["verify", "health", "skill"],
+  azbot: ["route", "example", "health", "skill", "doctor"],
+  azieltether: ["verify", "tip", "dual-chain", "reconcile", "pulse", "peer-preview", "health", "skill"],
   peacelock: ["open", "seal", "break", "show", "verify", "stamp", "upload_envelope", "health", "skill", "doctor"],
   azmail: [
     "airlock_classify",
@@ -152,9 +167,33 @@ export const LIVE_OPS = {
     "keyword_alert_set",
     "keyword_alert_list",
     "keyword_alert_check",
+    "mailbox_open",
+    "notice_post",
+    "mail_post",
+    "inbox_pull",
+    "ack",
+    "verify_receipt",
+    "import_export",
     "health",
     "skill",
     "classify",
+    "mailbox",
+    "notice",
+    "inbox",
+  ],
+  azchat: [
+    "health",
+    "skill",
+    "doctor",
+    "handle_new",
+    "handle_rotate",
+    "room_open",
+    "room_post",
+    "room_pull",
+    "bus_send",
+    "bus_poll",
+    "verify_receipt",
+    "import_export",
   ],
   azbrowser: [
     "ethical_search",
@@ -211,9 +250,9 @@ export const LIVE_OPS = {
   ],
   mesh: MESH_LIVE_OPS.slice(),
   memory: MEMORY_CANONICAL_OPS.slice(),
-  vibelock: ["analyze", "health", "skill"],
+  vibelock: ["analyze", "detect", "health", "skill"],
   ark: ["sweep", "levels", "health", "skill"],
-  miragegrid: ["assign", "health", "skill"],
+  miragegrid: ["assign", "verify-receipt", "nodes", "health", "skill"],
   mialock: ["map", "search-options", "queries", "doe-match", "coverage", "example", "health", "skill"],
   "4dmap": [
     "health",
@@ -328,6 +367,21 @@ export const STUB_OPS = {
   veillock: ["inject", "intercept", "facetime"],
   azos: ["exec", "shell", "lattice"],
   azai: ["blend", "complete", "chat"],
+  azchat: [
+    "smtp",
+    "smtp_send",
+    "send",
+    "mail",
+    "deliver",
+    "deanonymize",
+    "harvest",
+    "mesh_join",
+    "mesh_enable",
+    "vpn",
+    "bridge_azmail",
+    "bridge",
+    "chromium",
+  ],
   employeelock: ["court", "judge"],
   peacelock: ["transcript", "transcribe", "motive", "counterfactual", "invent", "waive-duty", "bypass-duty"],
   azbrowser: [
