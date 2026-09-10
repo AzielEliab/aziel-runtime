@@ -1,7 +1,10 @@
 # Deploy aziel-runtime to Cloudflare Workers.
 # Primary deploy is Cursor/wrangler OAuth (Aziel Eliab). Actions is optional
-# backup and runs only when CLOUDFLARE_API_TOKEN is set — otherwise this job
-# is skipped (not failed) so missing secrets do not send failure emails.
+# backup. Do not use secrets in job-level `if:` — GitHub rejects that
+# ("Unrecognized named-value: 'secrets'") and marks the workflow as a
+# "workflow file issue" (fails in 0s, still emails). Map the token into
+# job env and gate steps instead. When the token is unset, only the
+# skip-notice step runs and exits 0 (workflow success, no failure email).
 # Account id ac575a9b822bea2bed97d0ab73aed238 is the non-secret default
 # (also in wrangler.toml). Do not invent or commit tokens.
 # Author: Aziel Eliab. Identity is Aziel Eliab only.
@@ -14,37 +17,30 @@ on:
 
 jobs:
   deploy:
-    if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      HAS_CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
+      - name: Skip notice when token unset
+        if: ${{ env.HAS_CF_TOKEN == '' }}
+        run: |
+          echo "Skipping Actions deploy: CLOUDFLARE_API_TOKEN unset."
+          echo "Primary deploy is Cursor/wrangler OAuth (Aziel Eliab)."
+          echo "No failure — optional backup only."
+
       - name: Checkout
+        if: ${{ env.HAS_CF_TOKEN != '' }}
         uses: actions/checkout@v4
 
       - name: Setup Node
+        if: ${{ env.HAS_CF_TOKEN != '' }}
         uses: actions/setup-node@v4
         with:
           node-version: "22"
 
-      - name: Require Cloudflare secrets
-        id: secrets
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: |
-          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
-            echo "Skipping Actions deploy: CLOUDFLARE_API_TOKEN is not set."
-            echo "Primary deploy is Cursor/wrangler OAuth (Aziel Eliab)."
-            echo "Actions is optional backup and runs only when CLOUDFLARE_API_TOKEN is set."
-            echo "Do not invent tokens. Do not commit tokens."
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          echo "skip=false" >> "$GITHUB_OUTPUT"
-          echo "Cloudflare API token is present (value not printed)."
-          echo "Account id default: ac575a9b822bea2bed97d0ab73aed238 when CLOUDFLARE_ACCOUNT_ID is unset."
-
       - name: Deploy Worker
-        if: steps.secrets.outputs.skip != 'true'
+        if: ${{ env.HAS_CF_TOKEN != '' }}
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || 'ac575a9b822bea2bed97d0ab73aed238' }}
