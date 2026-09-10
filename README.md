@@ -216,7 +216,7 @@ Product Worker crawl template: [docs/PRODUCT_SEO.md](docs/PRODUCT_SEO.md). QNM s
 
 ## Designs
 
-Current suite software designs (AZL / SEC-FEAT / QNM-WP / NODE-OPS): [docs/designs/](docs/designs/). Author: **Aziel Eliab** only.
+Current suite software designs (AZL / SEC-FEAT / QNM-WP / NODE-OPS) plus LIVE fabric papers (CL-WP-0.4, AP-WP-0.2, SG-WP-0.1, LS-WP-0.1, RL-WP-0.1-runtime — not Softwares-tab products): [docs/designs/](docs/designs/). Author: **Aziel Eliab** only. MCP `chainlock_*`. `GET /v1/mesh` never enables.
 
 ## Add to ChatGPT (GPT Actions)
 

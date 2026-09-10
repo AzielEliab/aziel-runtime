@@ -28,6 +28,7 @@ import {
   verifyRegistry,
 } from "./fraggate/door.js";
 import { buildRegistry } from "./fraggate/registry.js";
+import { chainlockMcpTools, isChainlockTool, runChainlockOp } from "./chainlock.js";
 import { isMeshMcpTool, runMeshOp } from "./mesh.js";
 
 export { ADVANCED_PREFIX, isAdvancedToolName, PUBLIC_MCP_TOOL_MAX };
@@ -55,6 +56,7 @@ export function mcpInitializeInstructions() {
     "runtime_run, runtime_session_*, raw *_health, and runtime_manifest are advanced/internal. " +
     "Do not call flat {slug}_{op} names — they are not in tools/list. Unknown names refuse FG-HALLUC-TOOL. " +
     "HTTP /p/{slug}/{op} is a proxy and is not exec. " +
+    "LIVE fabric (not Softwares-tab): AZPIPE AP-WP-0.2, SweepGate SG-WP-0.1, ChainLock CL-WP-0.4, LOCKSET LS-WP-0.1, packed catalog RL-WP-0.1-runtime. MCP chainlock_*. GET /v1/mesh never enables. " +
     "1.6.13 aligns the suite QNM rollup (QNM-BUILD-1.0, companion to AIH-WP-1.1): GET /v1/mesh live/locked/isolated counts; operator enable requires a declared bearer; default radios off; not a login mesh; full node process is local qnm-node/. " +
     "1.6.12 adds GET /v1/software (hub Software-tab catalog; Plain→Gate→Lock + EmbryoLock stub) and GET /v1/update/check. " +
     "1.6.11 adds a durable FragGate op alias map so Worker UI button names (azhub list_modules/place, azinterface genesis_boot/hold, azbrowser airlock/home, azmail classify, aznet doctor/pair, peacelock doctor) resolve to catalog LIVE_OPS. EmbryoLock is stub / local-not-hosted (name only; describe?slug=embryolock; not a FragGate engine). " +
@@ -289,6 +291,7 @@ export function runtimeHelperTools() {
         required: ["sha256"],
       },
     },
+    ...chainlockMcpTools(),
     {
       name: "runtime_software",
       title: "Authoritative software catalog",
@@ -503,6 +506,10 @@ export async function callFraggateTool(name, args, products, bySlug, env) {
   if (isMeshMcpTool(name)) {
     const body = await runMeshOp(name, args, env);
     return wrapFraggateEnvelope(name, body, { name: "Quantum Node Mesh", slug: "mesh" }, name);
+  }
+  if (isChainlockTool(name)) {
+    const body = await runChainlockOp(name, args, env);
+    return wrapFraggateEnvelope(name, body, { name: "ChainLock", slug: "chainlock" }, name);
   }
   return null;
 }

@@ -230,7 +230,7 @@ assert.match(byName.fraggate_list.title, /Step 1/);
 assert.match(byName.fraggate_describe.title, /Step 2/);
 assert.match(byName.fraggate_call.title, /Step 3/);
 assert.match(byName.fraggate_list.description, /\/v1\/software/);
-assert.ok(tools.length <= 28);
+assert.ok(tools.length <= 32);
 
 const sitemap = await (await get("/sitemap.xml")).text();
 assert.match(sitemap, /\/v1\/software/);

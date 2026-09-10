@@ -36,6 +36,17 @@ const SKIP_GET_READS = new Set([
   "/v1/mesh/nodes",
 ]);
 
+/** Hub / SEO catalog doors — full body, no USES get+put walk. */
+const SKIP_CATALOG_GETS = new Set([
+  "/v1/software",
+  "/v1/software.json",
+  "/v1/fraggate/software",
+  "/v1/fraggate/software.json",
+  "/v1/catalog.json",
+  "/v1/update/check",
+  "/v1/update/manifest",
+]);
+
 const HOST_ALIASES = {
   origin: "origin",
   "aziel-runtime.vibelock.workers.dev": "origin",
@@ -139,6 +150,7 @@ export function shouldIncrementUse(method, pathname) {
   if (ASSET_EXT.test(path)) return false;
   if (path === "/v1/uses" || path === "/v1/stats") return false;
   if (m === "GET" && SKIP_GET_READS.has(path)) return false;
+  if (m === "GET" && SKIP_CATALOG_GETS.has(path)) return false;
   if (m === "GET" && path === "/mcp") return false;
   if (m === "GET" && /^\/p\/[a-z0-9-]+$/.test(path)) return false;
   if (path.startsWith("/v1/")) return true;
