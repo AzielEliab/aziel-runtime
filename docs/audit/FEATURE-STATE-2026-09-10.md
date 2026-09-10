@@ -6,7 +6,7 @@ Identity: Aziel Eliab.
 
 PDF: binary was provided as `FEATURE-STATE-2026-09-10.pdf`. Path for GitBaby: `docs/audit/FEATURE-STATE-2026-09-10.pdf`. If the original binary cannot be embedded, this markdown is the full inventory; keep that PDF path.
 
-This file is the authoritative intentional-OFF vs gaps inventory for 1.7.3+. Not a Softwares-tab product. Not a FragGate slug. Do not enable mesh or safety stubs. Runtime **1.7.7** lands AZCoherence as a Softwares-tab placement; it does **not** enable any remain-off item and does **not** put AKM-TRIAD on the Softwares-tab.
+This file is the authoritative intentional-OFF vs gaps inventory for 1.7.3+. Not a Softwares-tab product. Not a FragGate slug. Do not enable mesh or safety stubs. Runtime **1.7.8** lands EmbryoLock as live-with-local-destructive-boundary (wipe/scorch/unlock stay FG-STUB). Runtime **1.7.7** lands AZCoherence as a Softwares-tab placement. Neither land enables any remain-off item or puts AKM-TRIAD on the Softwares-tab.
 
 Companion constitutional OFF set (33 items that do NOT count as missing when correctly off/refused/gated): [REMAIN-OFF-BY-DESIGN-2026-09-10](../designs/REMAIN-OFF-BY-DESIGN-2026-09-10.md). FEATURE-STATE lists gaps vs intentional OFF; that paper is the must-stay-off set. Do not enable remain-off items from either cite.
 
@@ -19,7 +19,7 @@ Inventory 1–50:
 1 QNM/Node Mesh radios OFF default
 2 QNS proxying OFF (QNS-NO-PROXY)
 3 Public mesh auto-enable DISABLED
-4 EmbryoLock STUB (being landed live+local-destructive-boundary in parallel)
+4 EmbryoLock LIVE + local-destructive-boundary (1.7.8; wipe/scorch/unlock stay FG-STUB on public mesh)
 5 AZChat STUB
 6 VeilLock public execution LOCAL ONLY
 7 VeilLock inject/intercept/facetime STUB
@@ -68,7 +68,7 @@ Bottom line: most catalog wired in-process; unfinished concentrated in networkin
 
 ---
 
-EmbryoLock at PR time: still STUB (item 4). Parallel land is live+local-destructive-boundary. This ingest does not flip that land. Do not host public wipe/unlock.
+EmbryoLock at 1.7.8: item 4 is live-with-local-destructive-boundary (true in-process engine, `engine_digest`, Softwares `worker_home` https://embryolock-download-tracker.vibelock.workers.dev/). Wipe / scorch / unlock-after-fail stay `FG-STUB` on the public mesh — Never execute on the public mesh. This ingest does not host public wipe/unlock.
 
 Cite: Eliab, Aziel. (2026). FEATURE-STATE-2026-09-10 [Audit]. https://github.com/AzielEliab/aziel-runtime/blob/main/docs/audit/FEATURE-STATE-2026-09-10.md
 

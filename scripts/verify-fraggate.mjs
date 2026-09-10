@@ -222,7 +222,7 @@ assert.ok(listed.entries.some((e) => e.slug === "foldlock" && e.status === "live
 assert.ok(listed.entries.some((e) => e.slug === "vibelock" && e.status === "live"));
 assert.ok(listed.entries.some((e) => e.slug === "veillock" && e.status === "local_only"));
 assert.ok(listed.entries.some((e) => e.slug === "ark" && e.status === "live" && e.ops.includes("sweep")));
-assert.ok(listed.entries.some((e) => e.slug === "embryolock" && e.status === "stub" && e.local_not_hosted));
+assert.ok(listed.entries.some((e) => e.slug === "embryolock" && e.status === "live" && e.ops.includes("policy")));
 assert.ok(listed.entries.some((e) => e.slug === "mesh" && e.status === "live" && e.ops.includes("join")));
 assert.ok(listed.op_aliases && listed.op_aliases.azhub.list_modules === "region_list");
 assert.ok(listed.entries.some((e) => e.slug === "azhub" && e.ops.includes("list_modules") && e.ops.includes("place")));
@@ -241,11 +241,11 @@ assert.ok(described.ops.includes("fold-preview"));
 const embryoDesc = await (await get("/v1/fraggate/describe?slug=embryolock")).json();
 assert.equal(embryoDesc.ok, true);
 assert.equal(embryoDesc.slug, "embryolock");
-assert.equal(embryoDesc.status, "stub");
-assert.equal(embryoDesc.stub, true);
-assert.equal(embryoDesc.local_not_hosted, true);
-assert.equal(embryoDesc.live, false);
-assert.match(String(embryoDesc.note || embryoDesc.description || ""), /local-not-hosted|name only/i);
+assert.equal(embryoDesc.status, "live");
+assert.equal(embryoDesc.live, true);
+assert.equal(embryoDesc.stub, false);
+assert.match(String(embryoDesc.digest || ""), /^[a-f0-9]{64}$/);
+assert.match(String(embryoDesc.note || embryoDesc.description || ""), /local-destructive|Never execute on the public mesh/i);
 
 const embryoCall = await (await post("/v1/fraggate/call", { slug: "embryolock", op: "arm" })).json();
 assert.equal(embryoCall.ok, false);
@@ -264,12 +264,12 @@ assert.equal(resolveOpAlias("peacelock", "doctor").op, "health");
 assert.equal(resolveOpAlias("azhub", "region_list").aliased, false);
 
 assert.ok(registry.bySlug.embryolock);
-assert.equal(registry.bySlug.embryolock.status, "stub");
-assert.equal(registry.bySlug.embryolock.local_not_hosted, true);
-assert.equal(registry.bySlug.embryolock.engine, false);
+assert.equal(registry.bySlug.embryolock.status, "live");
+assert.equal(registry.bySlug.embryolock.local_destructive_boundary, true);
 assert.equal(registry.stub_count, NAMED_STUBS.length);
 assert.equal(classifyCall(registry.bySlug.embryolock, "arm").kind, "stub");
-assert.ok(!PRODUCTS.some((p) => p.slug === "embryolock"), "embryolock is not a catalog Software engine");
+assert.equal(classifyCall(registry.bySlug.embryolock, "health").kind, "live");
+assert.ok(PRODUCTS.some((p) => p.slug === "embryolock"), "embryolock is a catalog Software engine");
 
 for (const [slug, aliases] of Object.entries(OP_ALIASES)) {
   for (const [uiOp, canon] of Object.entries(aliases)) {

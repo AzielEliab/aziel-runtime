@@ -34,12 +34,13 @@ import { citeCompatibleFields, skillCompatibleSection } from "./ai-clients.js";
 import { auditsSkillMarkdown, designsSkillMarkdown } from "./seo.js";
 import { LOCKED_STRIP } from "./azpipe.js";
 
-export const RUNTIME_VERSION = "1.7.7";
+export const RUNTIME_VERSION = "1.7.8";
 export const RUNTIME_ROLE = "engine-runtime";
 export const RUNTIME_LAYER = "catalog+pull+proxy+session+in-process-engines+fraggate";
 
 export const VERSION_HISTORY = [
-  { version: "1.7.7", status: "current", note: "AZCoherence (AZC-0.1) lands as a true in-process FragGate Softwares engine and Softwares-tab Plain card (slug azcoherence). Second-pass triad coherence reviewer: primary vs alternate → PASS/FLAG/NEUTRALIZE/REFUSE. LIVE_OPS health/skill/doctor/verify/review_triad/alternate_score/coherence_check/neutralize_hallucination. Placement scoring-review (Language/AZ-CLCE adjacent); not a 34th MASTER-33 isolation software; not AKM-TRIAD fabric. Product cite https://github.com/AzielEliab/AZCoherence. Never invents evidence. Confidence ≠ truth. Mesh stays default-off. Remain-Off-by-Design items stay off. Identity Aziel Eliab only." },
+  { version: "1.7.8", status: "current", note: "EmbryoLock is a true in-process engine (engine_digest) in Vault/Custody with ARK. LIVE_OPS health/skill/doctor/verify-hash/policy/limitation cite the AzielEliab/EmbryoLock Stealth+ v1.1 contract. Wipe/scorch/unlock-after-fail stay FG-STUB on the public mesh (Never execute on the public mesh). Catalog status live-with-local-destructive-boundary. Softwares worker_home https://embryolock-download-tracker.vibelock.workers.dev/. AZChat stays name-only stub. 1.7.7 AZCoherence remains. Mesh stays default-off. Remain-Off-by-Design items stay off. Identity Aziel Eliab only." },
+  { version: "1.7.7", status: "superseded", note: "AZCoherence (AZC-0.1) lands as a true in-process FragGate Softwares engine and Softwares-tab Plain card (slug azcoherence). Second-pass triad coherence reviewer: primary vs alternate → PASS/FLAG/NEUTRALIZE/REFUSE. LIVE_OPS health/skill/doctor/verify/review_triad/alternate_score/coherence_check/neutralize_hallucination. Placement scoring-review (Language/AZ-CLCE adjacent); not a 34th MASTER-33 isolation software; not AKM-TRIAD fabric. Product cite https://github.com/AzielEliab/AZCoherence. Never invents evidence. Confidence ≠ truth. Mesh stays default-off. Remain-Off-by-Design items stay off. Identity Aziel Eliab only." },
   { version: "1.7.6", status: "superseded", note: "4DMap LIVE_OPS sync with product 0.2.0: pin/span/stack/gap/fork/walk/lens/class/cohort/absence/cap/join/list/example plus frame_status, axis_describe, walk_trace, card_export, card_import, verify_chain, neighbor_cite. Catalog version 0.2.0. Stubs stay truth_score/lumen_panel/invent_mark/backdate_class. layer=inspection_frame; domains_are_doors:false; FragGate remains THE single door. engine_digest is the runtime isolate artifact; GitBaby deploys. Mesh stays default-off. Identity Aziel Eliab only." },
   { version: "1.7.5", status: "superseded", note: "Softwares capability wave 1: enrich health/skill (axes/neighbors/ops table) and add domain-true doctor/verify/import_export (or window/gates/schema/targets) on decisiongate, forgereceipts, temporallock, staticclock, chronolock, trajectorylock, spectrallock. Catalog one_line capability-forward. LIVE_OPS + catalog ops + engine *_OPS agree. Suite checklist at docs/audit/SUITE-CAPABILITY-CHECKLIST.md. AKM-TRIAD-1.0 stays LIVE fabric (POST /v1/memory/*, MCP memory_*; not Softwares-tab). 4DMap 1.7.4 inspection-frame ops stay. Mesh stays default-off. EmbryoLock/AZChat stay stubs. Identity Aziel Eliab only." },
   { version: "1.7.4", status: "superseded", note: "4DMap in-process capability bump (4DM-WP-1.0): LIVE_OPS add frame_status, axis_describe, walk_trace, card_export, card_import, verify_chain, neighbor_cite. Stubs stay truth_score/lumen_panel/invent_mark/backdate_class. layer=inspection_frame; domains_are_doors:false; FragGate remains THE single door. Product 4dmap is still 0.1.0 on main — after product 0.2.0 deploys, recompute and sync engine_digest / catalog version. Mesh stays default-off. Identity Aziel Eliab only." },
@@ -141,7 +142,8 @@ description: >-
   One door — discover, route, refuse. FragGate over the catalog: hashed
   registry, DecisionGATE after ChainLock-IN, ask/refuse ledger. Dual surface —
   agent/MCP has no technical UI chrome; Worker UI, Flutter mobile/, local
-  install, and counted /download stay complete human software. 1.7.7 lands
+  install, and counted /download stay complete human software. 1.7.8 lands
+  EmbryoLock as a true in-process engine (live-with-local-destructive-boundary; wipe/unlock stay FG-STUB; worker_home embryolock-download-tracker). 1.7.7 lands
   AZCoherence (AZC-0.1) as a true in-process FragGate Softwares engine (second-pass triad coherence; cite https://github.com/AzielEliab/AZCoherence; not AKM-TRIAD). 1.7.6 syncs
   4DMap LIVE_OPS with product 0.2.0 (pin/span/stack/gap/fork/walk/lens/class/cohort/absence/cap/join/list/example plus frame_status/axis_describe/walk_trace/card_export/card_import/verify_chain/neighbor_cite; inspection frame, not an extra door). 1.7.5 is Softwares
   capability wave 1 (decisiongate / forgereceipts / temporallock / staticclock / chronolock / trajectorylock / spectrallock). 1.7.4 enhances
@@ -205,6 +207,7 @@ Refuse envelopes (\`exist.mcp\`) list the live MCP tool set and point at \`POST 
 
 Every catalog slug is a true engine. Cloudflare isolate is the jail. Hosted AZAI is protocol mirror + Lamb check, **not** the blend. Identity is **Aziel Eliab** only.
 
+**1.7.8 = EmbryoLock true in-process engine.** Vault/Custody with ARK. LIVE_OPS health/skill/doctor/verify-hash/policy/limitation cite the AzielEliab/EmbryoLock Stealth+ v1.1 contract (\`Open Source Code\`). Wipe/scorch/unlock-after-fail stay FG-STUB on the public mesh — Never execute on the public mesh. Catalog surface live-with-local-destructive-boundary. Softwares worker_home https://embryolock-download-tracker.vibelock.workers.dev/. AZChat stays name-only stub.
 **1.7.7 = AZCoherence (AZC-0.1).** True in-process FragGate Softwares engine. Second-pass triad coherence reviewer (primary vs alternate → PASS/FLAG/NEUTRALIZE/REFUSE). LIVE_OPS health, skill, doctor, verify, review_triad, alternate_score, coherence_check, neutralize_hallucination. Softwares-tab Plain A–Z. Placement scoring-review (AZ-CLCE adjacent). Not AKM-TRIAD fabric. Never invents evidence. Confidence ≠ truth. Product cite: https://github.com/AzielEliab/AZCoherence. Mesh stays default-off.
 **1.7.6 = 4DMap product 0.2.0 LIVE_OPS sync.** pin, span, stack, gap, fork, walk, lens, class, cohort, absence, cap, join, list, example plus frame_status, axis_describe, walk_trace, card_export, card_import, verify_chain, neighbor_cite. Stubs stay. Not a sequential gate and not an extra door. Catalog version 0.2.0. GitBaby merges and deploys.
 **1.7.5 = Softwares capability wave 1.** Rich health/skill plus domain-true doctor/verify/import_export (or window/gates/schema/targets) on DecisionGATE, ForgeReceipts, TemporalLock, StaticClock, ChronoLock, TrajectoryLock, SpectralLock. Catalog \`one_line\` is capability-forward. LIVE_OPS matches engine ops. Checklist: \`docs/audit/SUITE-CAPABILITY-CHECKLIST.md\`. AKM-TRIAD-1.0 stays LIVE fabric (not Softwares-tab). 4DMap 1.7.4 inspection-frame ops stay. Mesh stays default-off.
@@ -296,7 +299,7 @@ node cli/aziel-runtime.mjs session close
    MASTER-33 cite: \`GET ${base}/v1/azpipe/arch\` (same \`pipeline\` payload; not a Softwares door).
    Also \`GET ${base}/v1/ready\` (200 only if SESSION binding is up; 503 if \`REQUIRE_TOKEN=1\` and \`RUNTIME_TOKEN\` is missing).
    API uses: \`GET ${base}/v1/uses\` (no increment).
-3. \`GET ${base}/v1/software\` — authoritative hub catalog (Plain → Gate → Lock + EmbryoLock stub). Mirror: \`GET ${base}/v1/fraggate/software\`.
+3. \`GET ${base}/v1/software\` — authoritative hub catalog (Plain → Gate → Lock; EmbryoLock live-with-local-destructive-boundary; AZChat name-only stub). Mirror: \`GET ${base}/v1/fraggate/software\`.
    Softwares-tab \`count\` includes placements (\`azinterface\` / \`decisiongate\` / \`forgereceipts\`). Isolation \`domains.software_count\` is **33** (\`domains_are_doors:false\`). See \`count_note\`. Do not equate the two.
    Client updates: \`GET ${base}/v1/update/check?slug={slug}&version={installed}\` · \`GET ${base}/v1/update/manifest\`.
 4. \`GET ${base}/v1/bundle\` — every product skill URL + invoke prefix.
@@ -334,7 +337,7 @@ ${skillCompatibleSection(base)}
 | GET | \`/v1/pull/{slug}\` | Pull record for one product. |
 | GET | \`/v1/pull/{slug}/skill\` | Product skill markdown. |
 | GET | \`/v1/catalog.json\` | Full catalog (discover). |
-| GET | \`/v1/software\` | Authoritative hub software catalog (Plain→Gate→Lock + EmbryoLock stub). |
+| GET | \`/v1/software\` | Authoritative hub software catalog (Plain→Gate→Lock; EmbryoLock live-with-local-destructive-boundary; AZChat name-only stub). |
 | GET | \`/v1/fraggate/software\` | FragGate-path mirror of \`/v1/software\`. |
 | GET | \`/v1/update/check\` | Client update check (\`?slug=&version=\`). For install.sh / local UI / mobile. |
 | GET | \`/v1/update/manifest\` | Latest versions for every product + runtime. |
@@ -872,7 +875,7 @@ export function runtimeStaticPaths() {
     "/v1/skill": {
       get: {
         operationId: "runtime_skill",
-        summary: "Skill markdown: 1.7.7 lands AZCoherence (AZC-0.1) as a true in-process FragGate Softwares engine. 1.7.6 syncs 4DMap LIVE_OPS with product 0.2.0. 1.7.5 Softwares capability wave 1 (decisiongate / forgereceipts / temporallock / staticclock / chronolock / trajectorylock / spectrallock). 1.7.4 enhances 4DMap LIVE_OPS (frame_status/axis_describe/walk_trace/card_export/card_import/verify_chain/neighbor_cite). 1.7.3 aligns audit WARN copy (exist.mcp → tools/list; public FragGate call; catalog count_note). 1.7.2 adds GET /v1/azpipe/arch (MASTER-33 cite). 1.7.1 adds AKM-TRIAD-1.0. 1.7.0 locks MASTER-33 (FragGate single door). 1.6.15 locked SUITE-PIPE. 1.6.14 adds 4DMap (4DM-WP-1.0). 1.6.13 aligns the QNM-BUILD-1.0 suite rollup. 1.6.12 adds GET /v1/software + client update check. Honest about 1.1.0 through 1.7.7.",
+        summary: "Skill markdown: 1.7.8 lands EmbryoLock as a true in-process engine (live-with-local-destructive-boundary). 1.7.7 lands AZCoherence (AZC-0.1) as a true in-process FragGate Softwares engine. 1.7.6 syncs 4DMap LIVE_OPS with product 0.2.0. 1.7.5 Softwares capability wave 1 (decisiongate / forgereceipts / temporallock / staticclock / chronolock / trajectorylock / spectrallock). 1.7.4 enhances 4DMap LIVE_OPS (frame_status/axis_describe/walk_trace/card_export/card_import/verify_chain/neighbor_cite). 1.7.3 aligns audit WARN copy (exist.mcp → tools/list; public FragGate call; catalog count_note). 1.7.2 adds GET /v1/azpipe/arch (MASTER-33 cite). 1.7.1 adds AKM-TRIAD-1.0. 1.7.0 locks MASTER-33 (FragGate single door). 1.6.15 locked SUITE-PIPE. 1.6.14 adds 4DMap (4DM-WP-1.0). 1.6.13 aligns the QNM-BUILD-1.0 suite rollup. 1.6.12 adds GET /v1/software + client update check. Honest about 1.1.0 through 1.7.8.",
         tags: ["runtime"],
         responses: { "200": { description: "text/markdown skill" } },
       },
@@ -944,7 +947,7 @@ export function runtimeStaticPaths() {
       get: {
         operationId: "runtime_software",
         summary:
-          "Authoritative software catalog for hubs/clients. Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock). Includes EmbryoLock stub. Mirror: GET /v1/fraggate/software.",
+          "Authoritative software catalog for hubs/clients. Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock). EmbryoLock is live-with-local-destructive-boundary. AZChat stays the name-only stub. Mirror: GET /v1/fraggate/software.",
         tags: ["software"],
         responses: { "200": { description: "Software catalog JSON" } },
       },

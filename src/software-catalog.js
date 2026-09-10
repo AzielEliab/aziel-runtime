@@ -133,6 +133,13 @@ export function liveSoftwareCard(product, origin, meta = {}) {
     kind: "software",
     mesh: meshHint("/v1/mesh"),
     qns_cd: qnsHint(),
+    ...(product.local_destructive_boundary
+      ? {
+          local_destructive_boundary: true,
+          surface: "live-with-local-destructive-boundary",
+          public_mesh_destructive: false,
+        }
+      : {}),
   };
 }
 

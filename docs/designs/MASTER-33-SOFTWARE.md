@@ -63,7 +63,7 @@ Domains are **isolation labels**, not doors. Softwares stay on the Softwares-tab
 
 | ID | Domain | Softwares |
 | --- | --- | --- |
-| 01 | Vault/Custody | ark, embryolock (stub) |
+| 01 | Vault/Custody | ark, embryolock (live-with-local-destructive-boundary) |
 | 02 | Media | vibelock, veillock, spectrallock, trajectorylock |
 | 03 | Evidence | employeelock, whistlelock, peacelock, shadowlock, mialock, chronolock |
 | 04 | Language | codelock, foldlock, glossafilter, zsolver, godlock, azclce |

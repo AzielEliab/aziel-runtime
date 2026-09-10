@@ -49,7 +49,7 @@ assert.equal(cite.bind, "127.0.0.1");
 assert.ok(cite.local_api.paths.every((p) => p.path.startsWith("/local/qns/")));
 assert.equal(cite.laws.mesh_get_never_enables, true);
 assert.equal(cite.laws.node_gate, false);
-assert.equal(cite.laws.embryolock, "stub");
+assert.equal(cite.laws.embryolock, "live_local_destructive");
 assert.equal(cite.worker_fabric.azpipe, "AP-WP-0.2");
 assert.equal(cite.worker_fabric.sweepgate, "SG-WP-0.1");
 assert.equal(cite.worker_fabric.chainlock, "CL-WP-0.4");
