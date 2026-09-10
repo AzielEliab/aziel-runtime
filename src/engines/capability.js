@@ -6,6 +6,16 @@
 
 export const AUTHOR = "Aziel Eliab";
 
+/** Round-2 (R2) health/skill envelope. R2 bucket is not bound. Isolate hash store may be. */
+export function r2Envelope() {
+  return {
+    r2: { bound: false, bucket: null, cdn: false },
+    isolate_hash_store: true,
+    object_store: "isolate-hash",
+    cdn: false,
+  };
+}
+
 export function capabilityHealth(spec) {
   const extra = spec.extra && typeof spec.extra === "object" ? spec.extra : {};
   return {
@@ -28,6 +38,7 @@ export function capabilityHealth(spec) {
     mesh_enabled_default: false,
     limitation: spec.limitation,
     author: AUTHOR,
+    ...r2Envelope(),
     ...extra,
   };
 }

@@ -4,7 +4,7 @@
 
 FragGate is THE single public executable door (`fraggate_list` → `fraggate_describe` → `fraggate_call`). Softwares catalog is Plain → Gate → Lock; hubs refresh from `GET /v1/software`. Dual-surface: agents via OpenAPI/MCP; humans via Worker UI + counted `/download`. NodeMesh / QNM suite-presence is operator-enabled; `GET /v1/mesh` never enables; not a login mesh / VPN / Node Gate.
 
-**Version 1.7.11** leads crawler copy with that definition. Version history stays below.
+**Version 1.9.0** closes AZRT-1.9-CLOSE-1.0 (AZMail isolate mailbox; AZChat LIVE+bound; isolate hash store; OpenAPI proxy-path parity; remain-OFF untouched). Crawler surfaces keep the abstract above; changelog stays below. **1.7.11** is the SEO-clarity heritage that locked that lead copy.
 
 Kernel: [AzielEliab/fraggate](https://github.com/AzielEliab/fraggate) (FG-0.1)
 
@@ -29,7 +29,7 @@ Any OpenAPI-, MCP-, or HTTP-tool-capable assistant imports **this** OpenAPI file
 **Author:** Aziel Eliab  
 **Identity:** Aziel Eliab (primary). Also known as Aziel Elroi Eliab (`alternateName` / aka only).  
 **License:** [Apache-2.0](LICENSE)  
-**Version:** 1.7.11  
+**Version:** 1.9.0  
 **Role:** `engine-runtime` (layer: `catalog+pull+proxy+session+in-process-engines+fraggate`)  
 **Door:** `fraggate`  
 **Worker:** `aziel-runtime` → https://aziel-runtime.vibelock.workers.dev/  
@@ -88,7 +88,7 @@ Public identity: **Aziel Eliab** only. Do not invent Zenodo DOIs.
 ## Dual surface (product law)
 
 1. **Agent / MCP** — Software runs through the agent. Show `display.title` / `display.summary` / `display.fields`, then take the next input. Session, OpenAPI, and HTTP plumbing stay invisible unless asked for. **One door — discover, route, refuse.**
-2. **Human software** — This Worker UI, Flutter `mobile/`, local install, and counted `/download` remain complete developed software.
+2. **Human software** — This Worker UI, local install, and counted `/download` remain complete developed software. Flutter `mobile/` is not vendored in this repo.
 
 ## FragGate door
 
@@ -96,7 +96,7 @@ Public MCP `tools/list` is a **thin FragGate door**: `runtime_skill`, `fraggate_
 
 Every catalog product is a **hashed registry** entry (`name`, `slug`, `digest`, `status`, public `ops`). Status is `live` | `stub` | `local_only`.
 
-`stub_ops` / `stub_op_count` are named refuse verbs (never hosted), not extra catalog Software engines. `stub_count` is registry entries whose status is `stub` (currently 1: **AZChat**, name-only / local-not-hosted — hubs link `describe?slug=azchat` instead of a fake Worker). EmbryoLock is a live catalog engine (`live-with-local-destructive-boundary`); wipe / scorch / unlock stay `FG-STUB` on the public mesh. FragGate `live_count + local_only_count + stub_count ===` FragGate `product_count` (catalog Software slugs are 36).
+`stub_ops` / `stub_op_count` are named refuse verbs (never hosted), not extra catalog Software engines. `stub_count` is registry entries whose status is `stub` (none after 1.9.0 — **AZChat** is LIVE+bound). EmbryoLock is a live catalog engine (`live-with-local-destructive-boundary`); wipe / scorch / unlock stay `FG-STUB` on the public mesh. FragGate `live_count + local_only_count + stub_count ===` FragGate `product_count`.
 
 **Live on the public mesh** (via `fraggate_call`): every catalog Software product that makes sense on a public agent door — advisory / score / classify / gate / search / preview / render / verify / hash / receipt / game / overlay / route / status, plus the original five (DecisionGATE, GodLock, FoldLock, AZ-CLCE, Aziel Digital Library). VeilLock stays **local_only** (device-local camera/screen). MCP `tools/list` stays the thin FragGate surface.
 

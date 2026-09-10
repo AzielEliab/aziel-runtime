@@ -2,6 +2,7 @@
  * trajectorylock in-process ops. Author: Aziel Eliab.
  */
 import { capabilityDoctor, capabilityHealth, capabilitySkill } from "../capability.js";
+import { hashGet, hashPut, hashStat, hashStoreEnvelope } from "../hash-store.js";
 import {
   AUTHOR,
   AXES,
@@ -21,7 +22,7 @@ import {
   verifyResult,
 } from "./engine.js";
 
-const LIVE = ["health", "skill", "example", "analyze", "verify", "schema", "import_export", "doctor"];
+const LIVE = ["health", "skill", "example", "analyze", "verify", "schema", "import_export", "hash_put", "hash_get", "hash_stat", "doctor"];
 
 export const TRAJECTORYLOCK_OPS = LIVE.slice();
 
@@ -38,7 +39,7 @@ function envelope() {
     live_ops: LIVE,
     stub_ops: STUB_REFUSE,
     limitation: LIMITATION,
-    extra: { certified_instrument: false, media_stored: false },
+    extra: { certified_instrument: false, media_stored: false, media_cdn: false, ...hashStoreEnvelope() },
   };
 }
 
@@ -89,6 +90,9 @@ export async function runTrajectorylock(op, payload, scratch) {
       return { error: String(err && err.message ? err.message : err), status: 400, limitation: LIMITATION };
     }
   }
+  if (op === "hash_put") return { ...hashStoreEnvelope(), ...(await hashPut("trajectorylock", payload)), limitation: LIMITATION };
+  if (op === "hash_get") return { ...hashStoreEnvelope(), ...hashGet("trajectorylock", payload), limitation: LIMITATION };
+  if (op === "hash_stat") return { ...hashStoreEnvelope(), ...hashStat("trajectorylock", payload), limitation: LIMITATION };
   return { unsupported: true };
 }
 

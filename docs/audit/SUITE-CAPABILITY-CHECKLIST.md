@@ -1,7 +1,7 @@
 # Suite Softwares capability checklist
 
 **Repo:** [AzielEliab/aziel-runtime](https://github.com/AzielEliab/aziel-runtime)  
-**Runtime:** **1.7.5** (this wave) on MASTER-33 / 1.7.4 4DMap heritage  
+**Runtime:** **1.9.0** (AZRT-1.9-CLOSE-1.0) on MASTER-33 / 1.7.5 wave-1 heritage  
 **Author / identity:** **Aziel Eliab** only  
 **Status:** living checklist. 4DMap inspection-frame ops shipped in runtime **1.7.4** (`4DM-WP-1.0`). This file covers the rest of the Softwares-tab live engines.
 
@@ -17,7 +17,7 @@ Not a Softwares-tab product. Not a FragGate slug. Not a mesh enable.
 - **Mesh default-off.** `GET /v1/mesh` never enables. Do not unify AZMail `mesh_*` onto the suite QNM rollup.
 - **Softwares tab:** Plain → Gate → Lock (Clock ≠ Lock). Hub UI is heading → list only. `one_line` is capability-forward — not a “runtime X.Y FragGate” mash.
 - **True engines** carry `engine_digest`. Cloudflare isolate is the jail. Stubs refuse by name (`FG-STUB`), they do not fake 200s.
-- **Skip name-only stubs:** EmbryoLock, AZChat. Do not promote them to engines. EmbryoLock landing is a separate PR — leave AZChat stub; EmbryoLock may still be stub until that PR lands.
+- **EmbryoLock** is live-with-local-destructive-boundary (1.7.8). **AZChat** is LIVE+bound (1.8.4 / 1.9.0). Wipe / SMTP / mesh-hop stay refuse.
 - **AKM-TRIAD-1.0 is already LIVE fabric (1.7.1+), not a Softwares-tab product.** Spec: `docs/designs/AKM-TRIAD-1.0.md` (+ `.pdf`). Surfaces: `POST /v1/memory/*`, MCP `memory_*`, FragGate slug `memory` with `software_tab: false`. Do not invent catalog slugs `akm` / `akm-triad` / `adaptive-memory`. Softwares may feed observations into `memory_*` via FragGate as fabric. Softwares enhancements stay dual-surface under FragGate only.
 
 ---
@@ -47,7 +47,8 @@ Where missing or thin, add or strengthen. Do not invent fantasy ops.
 | 2 | Remaining Locks: `peacelock`, `employeelock`, `whistlelock`, `shadowlock`, `foldlock`, `godlock`, `vibelock`, `codelock`, `veillock` (local_only — public mesh does not exec) | checklist only |
 | 3 | Remaining Gates / Plain live: `azclce`, `azos`, `glossafilter`, `miragegrid`, `postking`, `ark`, `azai`, `azbot`, `zsolver`, `mialock`, `azieltether`, `azmail`, `azbrowser`, `aznet`, `azhub`, `azinterface`, `aziel-corpus` | checklist only |
 | — | `4dmap` | shipped in runtime **1.7.4** (keep those ops; do not invent an extra door) |
-| — | `embryolock`, `azchat` | **skip** (name-only stubs; EmbryoLock landing is a separate PR) |
+| — | `embryolock` | shipped 1.7.8 (wipe/scorch stay FG-STUB) |
+| **1.8–1.9** | `codelock`, `vibelock`, `glossafilter`, `azbot`, `azos`, `azai`, `shadowlock`, `miragegrid`, `azieltether`, `azmail`, `azchat` | **yes** (AZRT-1.9-CLOSE-1.0) |
 | — | `akm` / `akm-triad` / `memory` | **not a wave** — already LIVE fabric (1.7.1+). Not Softwares-tab. |
 | — | `azcoherence` | shipped in runtime **1.7.7** (scoring-review placement; not a 34th isolation software; not AKM-TRIAD). **1.7.9** catalog + engine `cross_map` / peers; azclce reciprocates; domain stays null |
 
@@ -77,30 +78,31 @@ Do not treat this table as a license to invent verbs. Close only what the produc
 | --- | --- | --- | --- |
 | peacelock | open, seal, break, show, verify, stamp, upload_envelope | same + `doctor` alias | Enrich health/skill axes; display already rich |
 | employeelock | append-preview, verify-canonical | same | Rich skill; doctor alias |
-| whistlelock | hash-preview, canon-preview | same | Rich skill; doctor; send/mail stay stub |
-| shadowlock | observe, **hook** | observe only | Public `hook` only if it stays zero-retention / no OS hook |
+| whistlelock | hash-preview, canon-preview, hash_put, hash_get, hash_stat | same + doctor alias | 1.9.0 isolate hash store. send/mail/release stay stub |
+| shadowlock | observe, hook | same + doctor alias | 1.8.2 public hook (zero-retention) |
 | foldlock | fold-preview, unfold-preview | same | Rich skill; doctor |
 | godlock | score, submit | same | Rich skill; doctor |
-| vibelock | analyze, **detect** | analyze only | Public `detect` only if it stays the existing feature path |
-| codelock | render, **gate-status** | render only | Public `gate-status` |
+| vibelock | analyze, detect | same | 1.8.1 public detect |
+| codelock | render, gate-status | same | 1.8.1 public gate-status |
 | veillock | apps, pulse, consent, obfuscate-preview, azos-hook, call-accept | *(local_only — no public LIVE_OPS)* | Keep local_only. Do not live-mesh inject |
 | azclce | score, classify, gate | same | Rich skill; doctor |
-| azos | status, **invite**, **principles** | status only | Public invite/principles (read-only). exec/shell stay stub |
-| glossafilter | render, **peers** | render only | Public `peers` |
-| miragegrid | assign, **route**, **circuit**, **verify-receipt**, **nodes**, **mesh** | assign only | Public verify-receipt / nodes if still control-plane (not VPN hop) |
+| azos | status, invite, principles | same + doctor alias | 1.8.1 public invite/principles. exec/shell stay stub |
+| glossafilter | render, peers | same | 1.8.1 public peers |
+| miragegrid | assign, route, circuit, verify-receipt, nodes, mesh | assign, verify-receipt, nodes | 1.8.2 public verify-receipt/nodes. mesh/hop stay stub |
 | postking | new, move, status | same | Rich skill; doctor |
 | ark | sweep, levels | same | Rich skill; doctor. unlock/encrypt/scorch stay stub |
-| azai | lamb-check, lamb_check, **models** | lamb-check / lamb_check | Public `models` (protocol mirror). blend/chat stay stub |
-| azbot | route, **example** | route only | Public `example` |
+| azai | lamb-check, lamb_check, models | same + doctor alias | 1.8.1 public models metadata. blend/chat stay stub |
+| azbot | route, example | same + doctor alias | 1.8.1 public example |
 | zsolver | patterns, score, session | same | Rich skill; doctor |
 | mialock | doe-match, queries, search-options, example, map, coverage | same | Rich skill; doctor |
-| azieltether | ingest, verify, dual-chain, reconcile, pulse, tip, peer-preview | **verify only** | Public tip/verify already; other verbs only if still not-a-VPN |
-| azmail | airlock + mesh_* + keyword_alert_* | same + classify alias | Enrich skill; SMTP/deanonymize stay stub. Mesh default off |
+| azieltether | ingest, verify, dual-chain, reconcile, pulse, tip, peer-preview | verify, tip, dual-chain, reconcile, pulse, peer-preview | 1.8.2 public control-plane verbs. ingest engine-only. vpn/arm/mesh-join stay stub |
+| azmail | airlock + mesh_* + keyword_alert_* + mailbox_* | same + classify/mailbox aliases | 1.8.3 isolate mailbox. SMTP/deanonymize stay stub. Mesh default off |
 | azbrowser | ethical_search … receipt_verify | same + airlock/home aliases | Already above baseline; keep Chromium/tor stub |
 | aznet | pair_status … receipt_verify | same + doctor/pair aliases | Already above baseline; never host payloads |
 | azhub | region_list … blank_key_status | same + list_modules/place aliases | Already above baseline |
 | azinterface | genesis_status … page_cycle_status | same + genesis_boot/hold aliases | Already above baseline |
-| aziel-corpus | search, example | same | Rich skill; ingest/OCR stay per-op proxy |
+| aziel-corpus | search, example | same + doctor alias | 1.9.0 native-vs-proxy labels. OCR/D1 stay proxy |
+| azchat | handle_new, handle_rotate, room_*, bus_*, verify_receipt, import_export, doctor | same | 1.8.4 LIVE+bound. Mesh default off. Not AZMail |
 | 4dmap | card_*, verify_hash | same | Parallel wave — already at baseline |
 
 ---
@@ -114,7 +116,7 @@ These are the human surface. Do not pretend the runtime catalog is the product W
 | Product Worker buttons | each `*-download-tracker` | New LIVE_OPS need the same button names the hub already aliases (doctor / verify / import_export / …). One backend, two surfaces. |
 | Counted `/download` | product Workers | Tarball/zip must include the new ops in skill + OpenAPI. Runtime `/v1/update/check` already points at those Workers. |
 | Hub Softwares tab | azieleliab.com / library / godlock.uk | Refresh from `GET /v1/software`. Heading → list only. Do not hand-edit `one_line`. |
-| Flutter `mobile/` | claimed in README, not vendored here | Human surface follow-up. Not a FragGate slug. |
+| Flutter `mobile/` | **struck** in 1.9.0 — not vendored here | Do not claim a Flutter tree that is not in this repo. |
 | OpenAPI importers | `/openapi.json` | Catalog ops appear as `/p/{slug}/{op}` **proxy** paths. Agents should still call `fraggate_call`. |
 | `exist.mcp` refuse hint | FragGate envelopes | 1.7.3 already points at live `tools/list`. Keep that. Do not grow a flat `{slug}_{op}` pile. |
 | Mesh | suite + AZMail | Stay default-off. GET never enables. |
@@ -126,7 +128,7 @@ These are the human surface. Do not pretend the runtime catalog is the product W
 
 - Do not deploy from this document.
 - Do not enable mesh from GET or from a library overlay.
-- Do not add ZD30, a public rollback API, or EmbryoLock / AZChat as engines.
+- Do not add ZD30, a public rollback API, or public EmbryoLock wipe. AZChat is live (1.8.4); do not add SMTP or an AZChat↔AZMail bridge.
 - Do not invent a Softwares-tab AKM product. AKM-TRIAD-1.0 is already LIVE fabric (`/v1/memory/*`, MCP `memory_*`). Softwares may observe into memory via FragGate; they are not an AKM card.
 - Do not put QNS, SweepGate, AZPIPE, or Lamb Lens on the Softwares-tab.
 - Do not invent donation wallets, a Node Gate, or `CLOUDFLARE_API_TOKEN`.
