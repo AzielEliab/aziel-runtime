@@ -542,10 +542,11 @@ export const FEATURE_STATE_AUDIT = Object.freeze({
   file: "FEATURE-STATE-2026-09-10.md",
   pdf: "FEATURE-STATE-2026-09-10.pdf",
   one_line:
-    "Authoritative intentional-OFF vs gaps inventory for 1.7.3+ (50 items: OFF/STUB/LOCAL/NOT IMPLEMENTED/PARTIAL). Do not enable mesh or safety stubs.",
+    "Authoritative intentional-OFF vs gaps inventory for 1.7.3+ (50 items: OFF/STUB/LOCAL/NOT IMPLEMENTED/PARTIAL). Remain-Off-by-Design. Do not enable mesh or safety stubs.",
   baseline: "1.7.3",
   kind: "audit",
   status: "live",
+  remain_off_by_design: true,
 });
 
 export function auditGithubUrl(file) {
@@ -564,6 +565,7 @@ export function auditsCiteField() {
     not_software_tab: true,
     not_fraggate_slug: true,
     mesh_get_never_enables: true,
+    remain_off_by_design: true,
     worker_serves_pdfs: false,
     how_to_cite: `${AUTHOR_FAMILY_GIVEN}. (2026). {id} [Audit]. ${AUDIT_GITHUB_BLOB}/{FILE}`,
     feature_state: {
@@ -577,6 +579,7 @@ export function auditsCiteField() {
       kind: d.kind,
       software_tab: false,
       fraggate_slug: false,
+      remain_off_by_design: true,
       authoritative_for: "1.7.3+",
       how_to_cite: `${AUTHOR_FAMILY_GIVEN}. (2026). ${d.id} [Audit]. ${github}`,
     },
@@ -588,7 +591,7 @@ export function auditsSkillMarkdown() {
   return [
     "## Feature state (intentional OFF vs gaps)",
     "",
-    `**${d.id}** is the authoritative intentional-OFF vs gaps inventory for **1.7.3+** (50 items: OFF / STUB / LOCAL / NOT IMPLEMENTED / PARTIAL). Security and architecture OFF must stay. Do not enable mesh or safety stubs from this cite. Not a Softwares-tab product. Not a FragGate slug. EmbryoLock is STUB at ingest; a parallel land is live-with-local-destructive-boundary. Git-hosted — the Worker does not serve the PDF. Identity Aziel Eliab only.`,
+    `**${d.id}** is the Remain-Off-by-Design paper — the authoritative intentional-OFF vs gaps inventory for **1.7.3+** (50 items: OFF / STUB / LOCAL / NOT IMPLEMENTED / PARTIAL). Security and architecture OFF must stay. Softwares capability waves must not enable mesh, ARK wipe, VeilLock remote inject, AZ-OS shell, 4DMap truth_score/invent_mark/backdate, or a public rollback API. Do not enable mesh or safety stubs from this cite. Not a Softwares-tab product. Not a FragGate slug. EmbryoLock is STUB at ingest; a parallel land is live-with-local-destructive-boundary. Git-hosted — the Worker does not serve the PDF. Identity Aziel Eliab only.`,
     "",
     `- **${d.id}** — ${d.one_line} ${auditGithubUrl(d.file)}`,
     `- PDF: ${auditGithubUrl(d.pdf)}`,
@@ -603,7 +606,7 @@ export function auditsLlmsBlock() {
   return [
     "## Feature state",
     "",
-    `${d.id} is the authoritative intentional-OFF vs gaps inventory for 1.7.3+ (50 items). Do not enable mesh or safety stubs. Not a Softwares-tab product, not a FragGate slug. Author: Aziel Eliab only.`,
+    `${d.id} is the Remain-Off-by-Design paper — authoritative intentional-OFF vs gaps inventory for 1.7.3+ (50 items). Softwares waves must not enable mesh or safety stubs. Not a Softwares-tab product, not a FragGate slug. Author: Aziel Eliab only.`,
     `Markdown: ${auditGithubUrl(d.file)}`,
     `PDF: ${auditGithubUrl(d.pdf)}`,
     "",
@@ -612,7 +615,7 @@ export function auditsLlmsBlock() {
 
 export function auditsLlmsHeaderLine() {
   const d = FEATURE_STATE_AUDIT;
-  return `Feature-state audit: ${AUDIT_FOLDER}${d.file} (${d.id}) authoritative intentional-OFF vs gaps for 1.7.3+ — not a Softwares-tab product, not a FragGate slug. GET /v1/mesh never enables. ${AUDIT_GITHUB_TREE}`;
+  return `Feature-state audit: ${AUDIT_FOLDER}${d.file} (${d.id}) Remain-Off-by-Design / authoritative intentional-OFF vs gaps for 1.7.3+ — not a Softwares-tab product, not a FragGate slug. GET /v1/mesh never enables. ${AUDIT_GITHUB_TREE}`;
 }
 
 export function auditsSitemapUrls() {

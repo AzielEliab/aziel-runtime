@@ -254,6 +254,9 @@ assert.ok(cite.audits);
 assert.equal(cite.audits.feature_state.id, "FEATURE-STATE-2026-09-10");
 assert.equal(cite.audits.not_fraggate_slug, true);
 assert.equal(cite.audits.mesh_get_never_enables, true);
+assert.equal(cite.audits.remain_off_by_design, true);
+assert.equal(cite.audits.feature_state.remain_off_by_design, true);
+assert.match(cite.audits.feature_state.one_line, /Remain-Off-by-Design/);
 
 const catalogRes = await get("/v1/catalog.json");
 assert.equal(catalogRes.status, 200);
