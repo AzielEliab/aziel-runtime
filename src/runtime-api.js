@@ -132,6 +132,7 @@ description: >-
   agent/MCP has no technical UI chrome; Worker UI, Flutter mobile/, local
   install, and counted /download stay complete human software. 1.6.13 adds
   the QNM-BUILD-1.0 suite rollup (GET /v1/mesh live/locked/isolated; operator bearer enable; default OFF; not a login mesh; full node is local qnm-node/).
+  Packet-transfer coding design is QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; GET /v1/qns cites only).
   1.6.12 adds GET /v1/software (hub Software-tab catalog) plus GET /v1/update/check for install.sh /
   local UIs / mobile. 1.6.11 adds a durable
   FragGate UI-op alias map and names EmbryoLock as stub / local-not-hosted (not an engine). 1.6.10 sets
@@ -169,17 +170,17 @@ FragGate kernel: https://github.com/AzielEliab/fraggate (FG-0.1)
 
 Named live modules still on the thin tools/list: \`decisiongate_check\`, \`library_lookup\` (read-only corpus), suite \`mesh_*\` (QNM-BUILD-1.0 rollup; default OFF; not a login mesh), plus fabric \`chainlock_*\` (CL-WP-0.4 / LS-WP-0.1 — not Softwares-tab).
 
-**LIVE fabric** (runtime, not Softwares-tab products): AZPIPE (\`AP-WP-0.2\`, magic FLD3) wraps \`fraggate_call\` so admitted payloads never present raw inbound bytes; SweepGate (\`SG-WP-0.1\`) airlocks poison / malware-class / block-keys, and isolates off-origin only when inbound and untrusted; ChainLock (\`CL-WP-0.4\`) append-only stamps (vault \`vault/chains/<name>.jsonl\` on CLI; Worker KV/memory); LOCKSET (\`LS-WP-0.1\`) fail-closed seal citing \`https://godlock.uk\` (runtime does not write the public ledger); packed catalog (\`RL-WP-0.1-runtime\`) is a single-key read with edge Cache-Control. Catalog GET / HTML stay full (200) for humans and SEO; soft caps apply only to expensive fan-out. Donation stays static (no KV). \`GET /v1/mesh\` never enables.
+**LIVE fabric** (runtime, not Softwares-tab products): AZPIPE (\`AP-WP-0.2\`, magic FLD3) wraps \`fraggate_call\` so admitted payloads never present raw inbound bytes; SweepGate (\`SG-WP-0.1\`) airlocks poison / malware-class / block-keys, and isolates off-origin only when inbound and untrusted; ChainLock (\`CL-WP-0.4\`) append-only stamps (vault \`vault/chains/<name>.jsonl\` on CLI; Worker KV/memory); LOCKSET (\`LS-WP-0.1\`) fail-closed seal citing \`https://godlock.uk\` (runtime does not write the public ledger); packed catalog (\`RL-WP-0.1-runtime\`) is a single-key read with edge Cache-Control; **QNS-CD-1.0** is the Quantum Node Signal packet-transfer coding design (photon QNS1 1.3 on local \`qnsd\` in https://github.com/AzielEliab/qnm-node — companion to QNM-BUILD-1.0 / AIH-WP-1.3). \`GET /v1/qns\` cites only; the public Worker does not proxy local via emit and is not a wipe/control plane. qnsd uses the same AZPIPE / SweepGate / APG / ChainLock laws locally. Catalog GET / HTML stay full (200) for humans and SEO; soft caps apply only to expensive fan-out. Donation stays static (no KV). \`GET /v1/mesh\` never enables. Do **not** add QNS as a Softwares-tab product slug.
 
 Do **not** walk the user through \`runtime_session_open\` → policy → exec → receipt → close. Those tools, \`runtime_run\`, raw \`*_health\`, and \`runtime_manifest\` are **advanced/internal**.
 
 Do **not** call flat \`{slug}_{op}\` names (1.5.0 pile). They are not in \`tools/list\`. That is hallucination with a receipt.
 
-HTTP \`POST /p/{slug}/{op}\` is still a **proxy**. Proxy without a session receipt is **not** exec. VPN/hop mesh is **not** claimed on this public surface. AZMail anonymous ring is FragGate LIVE_OPS only (default off; not SMTP). The suite QNM rollup (\`GET /v1/mesh\`, MCP \`mesh_*\`, FragGate \`slug=mesh\`) is live/locked/isolated counts + operator bearer enable (default OFF). Not a login mesh. Views/MCP/downloads do not enter QNM-S. Full node process is local \`qnm-node/\`.
+HTTP \`POST /p/{slug}/{op}\` is still a **proxy**. Proxy without a session receipt is **not** exec. VPN/hop mesh is **not** claimed on this public surface. AZMail anonymous ring is FragGate LIVE_OPS only (default off; not SMTP). The suite QNM rollup (\`GET /v1/mesh\`, MCP \`mesh_*\`, FragGate \`slug=mesh\`) is live/locked/isolated counts + operator bearer enable (default OFF). Not a login mesh. Views/MCP/downloads do not enter QNM-S. Full node process is local \`qnm-node/\`. Packet-transfer coding design is **QNS-CD-1.0** (photon QNS1 1.3 on local \`qnsd\`; \`GET /v1/qns\` cites only).
 
 Every catalog slug is a true engine. Cloudflare isolate is the jail. Hosted AZAI is protocol mirror + Lamb check, **not** the blend. Identity is **Aziel Eliab** only.
 
-**1.6.13 = QNM-BUILD-1.0 suite rollup** (companion to AIH-WP-1.1): \`GET /v1/mesh\` / \`/status\` (live/locked/isolated; never enables), \`POST /v1/mesh/enable\` requires \`{ bearer }\`, \`POST /v1/mesh/disable\` drops tethers clean, plus join/heartbeat/leave/nodes and optional hash-only broadcast (never a publish path). Default radios OFF. Not a login mesh. Full node process is local \`qnm-node/\`. Anon-broadcast is that process's sibling loopback module only. MCP \`mesh_*\` + FragGate \`slug=mesh\`. Each software card has \`mesh: { path, enabled_default: false, spec, companion, rollup_only, qnm_s: false }\`. AZMail mesh stays product-local. See \`docs/NODE_MESH.md\`. Designs: \`docs/designs/\` (AZL / SEC-FEAT / QNM-WP / NODE-OPS plus LIVE fabric CL-WP-0.4 / AP-WP-0.2 / SG-WP-0.1 / LS-WP-0.1 / RL-WP-0.1-runtime).
+**1.6.13 = QNM-BUILD-1.0 suite rollup** (companion to AIH-WP-1.1): \`GET /v1/mesh\` / \`/status\` (live/locked/isolated; never enables), \`POST /v1/mesh/enable\` requires \`{ bearer }\`, \`POST /v1/mesh/disable\` drops tethers clean, plus join/heartbeat/leave/nodes and optional hash-only broadcast (never a publish path). Default radios OFF. Not a login mesh. Full node process is local \`qnm-node/\`. Anon-broadcast is that process's sibling loopback module only. MCP \`mesh_*\` + FragGate \`slug=mesh\`. Each software card has \`mesh: { path, enabled_default: false, spec, companion, rollup_only, qnm_s: false }\` and \`qns_cd: { spec: "QNS-CD-1.0", local: "https://github.com/AzielEliab/qnm-node", note: "Photon vias on local qnsd; Worker cites only" }\`. AZMail mesh stays product-local. See \`docs/NODE_MESH.md\`. Designs: \`docs/designs/\` (AZL / SEC-FEAT / QNM-WP / NODE-OPS plus LIVE fabric CL-WP-0.4 / AP-WP-0.2 / SG-WP-0.1 / LS-WP-0.1 / RL-WP-0.1-runtime / QNS-CD-1.0).
 **1.6.12 = live software catalog + client updates:** \`GET /v1/software\` (mirror \`GET /v1/fraggate/software\`) is the authoritative hub catalog — every product plus EmbryoLock stub, sorted Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock). \`GET /v1/update/check?slug=&version=\` and \`GET /v1/update/manifest\` for install.sh / local UIs / mobile. GitHub Action deploys on push to main. Agents prefer FragGate / \`/v1/software\` / \`/mcp\` (list → describe → call). Sibling software under one FragGate door — never separate FragGate engines.
 **1.6.11 = dual-surface op aliases:** Worker UI button names resolve to catalog LIVE_OPS (forward to the real engine method). EmbryoLock is named stub / local-not-hosted (describe?slug=embryolock; not a Worker; not a FragGate engine).
 **1.6.10 = framing: AZBrowser and AZNet catalog one_line say separate software, not separate engine.** Same FragGate door. Two catalog slugs stay.
@@ -321,6 +322,7 @@ ${skillCompatibleSection(base)}
 | POST | \`/v1/mesh/leave\` | Drop presence. Body \`{node_id}\`. No implicit heal. |
 | GET | \`/v1/mesh/nodes\` | Rollup roster (no scores / leaderboard). |
 | POST | \`/v1/mesh/broadcast\` | SHA-256 hash receipt only. Never a publish path. |
+| GET | \`/v1/qns\` | QNS-CD-1.0 cite (photon QNS1 1.3). Local \`qnsd\` in qnm-node. Never a public via proxy. |
 
 Library front door: https://www.azielcorpuslibrary.net/runtime  
 Library engine manifest (same as this Worker): https://www.azielcorpuslibrary.net/runtime/v1/runtime.json  
@@ -407,13 +409,16 @@ export function runtimeManifest(origin, products, extra = {}) {
     kernel: FRAGGATE_GITHUB,
     extras: catalogExtraCards(base),
     extras_note:
-      "Kernel / door cards for Software hubs. extras[] is not PRODUCTS — FragGate is the door; Quantum Node Mesh (QNM-BUILD-1.0) is the suite rollup (not a login mesh; not a Softwares-tab product). Human UI + counted download is the separate FragGate Worker app (fraggate-download-tracker; not nested in AZBrowser). AZPIPE / SweepGate / ChainLock / LOCKSET / packed catalog are LIVE fabric modules, not Softwares-tab products.",
+      "Kernel / door cards for Software hubs. extras[] is not PRODUCTS — FragGate is the door; Quantum Node Mesh (QNM-BUILD-1.0) is the suite rollup (not a login mesh; not a Softwares-tab product). Human UI + counted download is the separate FragGate Worker app (fraggate-download-tracker; not nested in AZBrowser). AZPIPE / SweepGate / ChainLock / LOCKSET / packed catalog / QNS-CD-1.0 are LIVE fabric modules, not Softwares-tab products. QNS implementation is local qnsd (Worker cites only).",
     fabric: {
       azpipe: "AZPIPE-0.2",
       sweepgate: "SG-0.1",
       chainlock: "CL-0.4",
       lockset: "LS-0.1",
       packed_catalog: "RL-WP-0.1-runtime",
+      qns_cd: "QNS-CD-1.0",
+      qns_process: "qnsd",
+      qns_local: "https://github.com/AzielEliab/qnm-node",
       software_tab: false,
       mesh_get_never_enables: true,
       node_gate: false,
@@ -484,6 +489,7 @@ export function runtimeManifest(origin, products, extra = {}) {
       mesh_enable: base + "/v1/mesh/enable",
       mesh_join: base + "/v1/mesh/join",
       mesh_broadcast: base + "/v1/mesh/broadcast",
+      qns: base + "/v1/qns",
       llms: base + "/llms.txt",
       ai: base + "/ai.txt",
       sitemap: base + "/sitemap.xml",
@@ -1207,7 +1213,7 @@ export function runtimeStaticPaths() {
       get: {
         operationId: "mesh_status",
         summary:
-          "QNM-BUILD-1.0 suite rollup (enabled?, bearers, live/locked/isolated). Default OFF. GET never enables. Not a login mesh. Views/MCP/downloads do not enter QNM-S.",
+          "QNM-BUILD-1.0 suite rollup (enabled?, bearers, live/locked/isolated). Default OFF. GET never enables. Not a login mesh. Views/MCP/downloads do not enter QNM-S. Packet-transfer coding design is QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; GET /v1/qns cites only).",
         tags: ["mesh"],
         responses: { "200": { description: "QNM rollup JSON" } },
       },
@@ -1318,6 +1324,28 @@ export function runtimeStaticPaths() {
           content: { "application/json": { schema: { type: "object", required: ["node_id"], properties: { node_id: { type: "string" } } } } },
         },
         responses: { "200": { description: "Left" } },
+      },
+    },
+    "/v1/qns": {
+      get: {
+        operationId: "qns_cite",
+        summary:
+          "QNS-CD-1.0 cite (photon QNS1 1.3). Packet-transfer coding design companion to QNM-BUILD-1.0 / AIH-WP-1.3. Implementation is local qnsd in AzielEliab/qnm-node (127.0.0.1 only). This Worker cites only — never a public via proxy, wipe, or control plane. Not a Softwares-tab product.",
+        tags: ["mesh"],
+        responses: { "200": { description: "QNS-CD-1.0 cite JSON (local API paths named, not proxied)" } },
+      },
+      head: {
+        operationId: "qns_cite_head",
+        summary: "HEAD of /v1/qns.",
+        tags: ["mesh"],
+        responses: { "200": { description: "headers only" } },
+      },
+      post: {
+        operationId: "qns_cite_post",
+        summary:
+          "Refused. GET /v1/qns cites only. Public Worker must not proxy local via emit.",
+        tags: ["mesh"],
+        responses: { "405": { description: "QNS-CITE-ONLY" } },
       },
     },
     "/v1/mesh/broadcast": {

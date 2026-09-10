@@ -24,12 +24,15 @@
  *
  * Full node process is local `qnm-node/` (boot/chain/apg/bearers/outbox/
  * phoenix/score/memorial/tethers). Anon-broadcast is a sibling loopback
- * module of that local process only.
+ * module of that local process only. Packet-transfer coding design is
+ * QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; Worker cites only).
  *
  * Not a Softwares-tab product. Not AZMail's product-local ring.
  * Do not invent arming / wipe / VPN-hop internals.
  * Public identity: Aziel Eliab only.
  */
+
+import { qnsCiteField, qnsHint } from "./qns.js";
 
 export const MESH_SLUG = "mesh";
 export const MESH_NAME = "Quantum Node Mesh";
@@ -51,7 +54,7 @@ export const QNM_HOST_NOTE =
   "azieleliab.com hosts published software/runtime — not login-recovery, not Node Gate/IP panel, not upload proxy.";
 
 export const QNM_LOCAL_NODE =
-  "Full node process is local qnm-node/ (boot/chain/apg/bearers/outbox/phoenix/score/memorial/tethers). Parent will roll that package. This runtime is suite rollup + operator enable only.";
+  "Full node process is local qnm-node/ (boot/chain/apg/bearers/outbox/phoenix/score/memorial/tethers). Packet-transfer coding design is QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; Worker cites only). Parent will roll that package. This runtime is suite rollup + operator enable only.";
 
 export const QNM_S_NOTE = "Views, MCP, and downloads do not enter QNM-S.";
 
@@ -59,7 +62,7 @@ export const ANON_BROADCAST_NOTE =
   "Anon-broadcast is a sibling loopback module of local qnm-node/ only (text→TTS→desk MP4→metadata-culled file + SHA-256). Style tool. Never a publish path. Not an upload proxy. Not origin-hiding. Operator keeps the file. Not a Softwares-tab product. Not a QNM publish channel.";
 
 export const MESH_LIMITATION =
-  "THIS IS: QNM-BUILD-1.0 suite rollup on aziel-runtime — companion to AIH-WP-1.1. Public surface is live/locked/isolated counts plus operator enable of a declared bearer. Default radios/bearers OFF. GET /v1/mesh never turns LIVE. Product Workers may proxy /v1/mesh/* via AZIEL_RUNTIME. THIS IS NOT: a login mesh; login-recovery; Node Gate/IP panel; upload proxy; account resurrection; average-of-nodes leaderboard; QNM-S; the local qnm-node process (boot/chain/apg/bearers/outbox/phoenix/score/memorial/tethers); AnonBroadcast as a catalog product or publish path; AZMail's product-local ring; arming; wipe; controller hunt; implicit heal. Author: Aziel Eliab only.";
+  "THIS IS: QNM-BUILD-1.0 suite rollup on aziel-runtime — companion to AIH-WP-1.1. Packet-transfer coding design is QNS-CD-1.0 (companion to QNM-BUILD-1.0 / AIH-WP-1.3; photon QNS1 1.3 on local qnsd; Worker cites only). Public surface is live/locked/isolated counts plus operator enable of a declared bearer. Default radios/bearers OFF. GET /v1/mesh never turns LIVE. Product Workers may proxy /v1/mesh/* via AZIEL_RUNTIME. THIS IS NOT: a login mesh; login-recovery; Node Gate/IP panel; upload proxy; account resurrection; average-of-nodes leaderboard; QNM-S; the local qnm-node process (boot/chain/apg/bearers/outbox/phoenix/score/memorial/tethers); AnonBroadcast as a catalog product or publish path; AZMail's product-local ring; arming; wipe; controller hunt; implicit heal; a public qnsd proxy. Author: Aziel Eliab only.";
 
 export const MESH_CANONICAL_OPS = Object.freeze([
   "status",
@@ -203,6 +206,7 @@ export function meshHint(path = "/v1/mesh") {
     companion: MESH_COMPANION,
     rollup_only: true,
     qnm_s: false,
+    qns_cd: qnsHint(),
   };
 }
 
@@ -217,7 +221,7 @@ export function meshKernelEntry() {
     stub_ops: MESH_STUB_OPS.slice(),
     op_aliases: { ...MESH_OP_ALIASES },
     description:
-      "QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1). live/locked/isolated counts + operator-declared bearer. Default OFF. Not a login mesh. Not a Softwares-tab product.",
+      "QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1). Packet-transfer coding design QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; Worker cites only). live/locked/isolated counts + operator-declared bearer. Default OFF. Not a login mesh. Not a Softwares-tab product.",
     note: MESH_LIMITATION,
     kind: "kernel",
     engine: false,
@@ -225,6 +229,7 @@ export function meshKernelEntry() {
     local_not_hosted: false,
     companion: MESH_COMPANION,
     spec: MESH_SPEC,
+    qns_cd: qnsHint(),
   };
 }
 
@@ -241,7 +246,7 @@ export function nodeMeshHubCard(origin) {
     version: MESH_SPEC,
     door: "fraggate",
     one_line:
-      "QNM-BUILD-1.0 suite rollup (live/locked/isolated). Operator enable via a declared bearer. Default OFF. Not a login mesh. Full node is local qnm-node/.",
+      "QNM-BUILD-1.0 suite rollup (live/locked/isolated). Operator enable via a declared bearer. Default OFF. Not a login mesh. Full node is local qnm-node/. Packet transfer: QNS-CD-1.0 on local qnsd (Worker cites only).",
     path: "/v1/mesh",
     enabled_default: false,
     rollup_only: true,
@@ -254,6 +259,8 @@ export function nodeMeshHubCard(origin) {
     fraggate_call: `${base}/v1/fraggate/call`,
     docs: "docs/NODE_MESH.md",
     local_node: "qnm-node/",
+    qns: `${base}/v1/qns`,
+    qns_cd: qnsHint(),
     note: MESH_LIMITATION,
     author: MESH_AUTHOR,
   };
@@ -462,6 +469,7 @@ function qnmFrame() {
     local_node: "qnm-node/",
     local_node_note: QNM_LOCAL_NODE,
     host_note: QNM_HOST_NOTE,
+    qns_cd: qnsCiteField(),
   };
 }
 
@@ -550,7 +558,7 @@ Default **OFF**. LIVE only after the operator enables ≥1 declared bearer (exam
 
 Rollup counts: **live / locked / isolated**. No average-of-nodes leaderboard. Views / MCP / downloads do not enter QNM-S.
 
-Full node process is local \`qnm-node/\` (boot / chain / apg / bearers / outbox / phoenix / score / memorial / tethers). Parent will roll that package. Anon-broadcast is a sibling loopback module of that local process only — never a publish path.
+Full node process is local \`qnm-node/\` (boot / chain / apg / bearers / outbox / phoenix / score / memorial / tethers). Packet-transfer coding design is **QNS-CD-1.0** (photon QNS1 1.3 on local \`qnsd\`; companion to QNM-BUILD-1.0 / AIH-WP-1.3). This Worker cites only — \`GET /v1/qns\`. It does not proxy local via emit. Parent will roll that package. Anon-broadcast is a sibling loopback module of that local process only — never a publish path.
 
 HTTP: \`GET /v1/mesh\` · \`GET /v1/mesh/status\` · \`POST /v1/mesh/enable\` (body \`{ bearer }\`) · \`POST /v1/mesh/disable\` · \`POST /v1/mesh/join|heartbeat|leave\` · \`GET /v1/mesh/nodes\` · \`POST /v1/mesh/broadcast\` (hash receipt only; not a publish path)
 
