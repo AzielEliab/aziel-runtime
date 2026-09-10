@@ -35,11 +35,11 @@ export const ALLOWLIST_HOSTS = Object.freeze([
 
 const GITHUB_IDENTITY_PREFIX = "/azieleliab";
 
+/** Official SG airlock-block keys. `ssn` folds on AZPIPE (FLD3:block), not this sieve. */
 export const BLOCK_KEYS = Object.freeze([
   "password",
   "private_key",
   "secret",
-  "ssn",
   "legal_name",
   "home_address",
 ]);
@@ -179,10 +179,15 @@ function offOriginHits(text) {
 }
 
 /**
- * inspect(envelope) → { v:'SG-0.1', airlock, hits, isolate, refuse? }
- * On hit: isolate=true, airlock closed, refuse sweep-isolate. Do not merge.
+ * inspect(envelope, opts?) → { v:'SG-0.1', airlock, hits, isolate, refuse? }
+ * Poison / malware-class / airlock-block always isolate.
+ * Off-origin isolates only when inbound and untrusted (SG-WP-0.1 §3).
+ * Default: inbound + untrusted (public envelope). FragGate live ops pass untrusted:false.
  */
-export async function inspect(envelope) {
+export async function inspect(envelope, opts = {}) {
+  const src = opts && typeof opts === "object" ? opts : {};
+  const dir = String(src.dir || "in").toLowerCase() === "out" ? "out" : "in";
+  const untrusted = src.untrusted !== false;
   const raw = asText(envelope);
   const hits = [];
   const add = (list) => {
@@ -195,7 +200,8 @@ export async function inspect(envelope) {
   add(blockKeyHits(envelope && typeof envelope === "object" ? envelope : null));
   add(offOriginHits(raw));
 
-  const isolate = hits.length > 0;
+  const isolateOffOrigin = dir === "in" && untrusted;
+  const isolate = hits.some((h) => h !== "off-origin" || isolateOffOrigin);
   const digest = await sha256Hex(raw);
   const out = {
     v: SG_VERSION,

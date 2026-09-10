@@ -66,6 +66,17 @@ const off = await inspect({ cite: "https://evil.example/payload" });
 assert.equal(off.isolate, true);
 assert.ok(off.hits.includes("off-origin"));
 
+const trustedOff = await inspect({ cite: "https://evil.example/payload" }, { untrusted: false });
+assert.equal(trustedOff.isolate, false);
+assert.ok(trustedOff.hits.includes("off-origin"));
+
+const outboundOff = await inspect({ cite: "https://evil.example/payload" }, { dir: "out" });
+assert.equal(outboundOff.isolate, false);
+
+const ssnKey = await inspect({ ssn: "000", fact: "fold later" });
+assert.equal(ssnKey.isolate, false);
+assert.ok(!ssnKey.hits.includes("airlock-block"));
+
 const poison = await inspect("inject-payload jailbreak-ignore");
 assert.equal(poison.isolate, true);
 assert.ok(poison.hits.includes("poison"));
@@ -129,6 +140,15 @@ const folded = await pipeInbound({
 });
 assert.equal(folded.ok, false);
 assert.equal(folded.refuse, "sweep-isolate");
+
+const trustedFold = await pipeInbound({
+  payload: { note: "see https://evil.example/x", fact: "cite only", ssn: "000" },
+  untrusted: false,
+  env: {},
+});
+assert.equal(trustedFold.ok, true);
+assert.equal(trustedFold.admitted.ssn, "[FLD3:block]");
+assert.match(String(trustedFold.admitted.note), /\[FLD3:url\]/);
 
 // --- ChainLock append / verify ---
 const store = new MemoryStore();
@@ -238,11 +258,22 @@ assert.equal(mem.kv_ops, 0);
 assert.equal(mem.source, "memory");
 assert.ok(mem.catalog.software.length >= PRODUCTS.length);
 
+const burstEnv = {};
+for (let i = 0; i < 70; i += 1) {
+  const burst = await get("/v1/software", burstEnv);
+  assert.equal(burst.status, 200, "catalog GET must stay 200 under visitor load");
+  await burst.text();
+}
+
 const soft = await get("/v1/software");
 assert.equal(soft.status, 200);
 assert.match(soft.headers.get("Cache-Control") || "", /s-maxage=300/);
 const softBody = await soft.json();
 assert.equal(softBody.rl.list, false);
+assert.equal(softBody.rl.spec, "RL-WP-0.1-runtime");
+assert.equal(softBody.rl.scope, "runtime");
+assert.equal(softBody.rl.catalog_always_full, true);
+assert.equal(softBody.rl.catalog_consumes_bucket, false);
 assert.ok(softBody.rl.kv_ops <= 1);
 assert.equal(softBody.donation.kv, false);
 assert.equal(softBody.donation.addresses, null);
@@ -276,6 +307,7 @@ assert.match(JSON.stringify(appended.result), /stamp_sha256|cl_/);
 const cite = await (await get("/cite.json")).json();
 assert.ok(cite.designs.papers.some((p) => p.id === "SG-WP-0.1" && p.status === "live" && p.kind === "fabric"));
 assert.ok(cite.designs.papers.some((p) => p.id === "CL-WP-0.4"));
+assert.ok(cite.designs.papers.some((p) => p.id === "RL-WP-0.1" && p.path === "docs/designs/RL-WP-0.1-runtime.md"));
 assert.ok(cite.designs.papers.every((p) => p.software_tab === false));
 assert.equal(cite.identity, "Aziel Eliab");
 assert.doesNotMatch(JSON.stringify(cite.designs), /GodLock\.AZ/);

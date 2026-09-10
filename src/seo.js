@@ -396,8 +396,9 @@ export const SUITE_DESIGNS = Object.freeze([
   },
   {
     id: "RL-WP-0.1",
-    file: "RL-WP-0.1.md",
-    one_line: "LIVE fabric — packed catalog single-key read + per-visitor cap (not operator; no Node Gate)",
+    file: "RL-WP-0.1-runtime.md",
+    one_line:
+      "LIVE fabric — runtime-scope packed catalog (RL-WP-0.1-runtime): single-key read + Cache-Control; catalog GET always full; soft caps only on expensive fan-out; no Node Gate",
     status: "live",
     kind: "fabric",
   },
@@ -459,7 +460,7 @@ export function designsLlmsBlock() {
   const lines = [
     "## Designs",
     "",
-    "Suite software-design papers (not Softwares-tab products, not a FragGate slug). LIVE fabric: CL-WP-0.4, AP-WP-0.2, SG-WP-0.1, LS-WP-0.1, RL-WP-0.1. GET /v1/mesh never enables. Git-hosted — the Worker does not serve the PDFs. Author: Aziel Eliab only.",
+    "Suite software-design papers (not Softwares-tab products, not a FragGate slug). LIVE fabric: CL-WP-0.4, AP-WP-0.2, SG-WP-0.1, LS-WP-0.1, RL-WP-0.1 (runtime). GET /v1/mesh never enables. Git-hosted — the Worker does not serve the PDFs. Author: Aziel Eliab only.",
     `Index: ${DESIGNS_GITHUB_TREE}`,
     "",
   ];

@@ -321,6 +321,7 @@ export async function fraggateCall(args, registry, bySlug, env) {
     slug: target.entry.slug,
     op: target.op,
     subject: `${target.entry.slug} ${target.op}`,
+    untrusted: false,
   });
   if (!inbound.ok) {
     return refuse({

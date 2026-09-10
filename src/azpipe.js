@@ -44,7 +44,9 @@ export const OUTBOUND_HOPS = Object.freeze([
 ]);
 
 const URL_RE = /https?:\/\/[^\s"'<>\\]+/gi;
-const BLOCK_KEY_SET = new Set(BLOCK_KEYS);
+/** AP-WP-0.2 fld3-wire: password, private_key, secret, ssn, legal_name, home_address. */
+export const FOLD_BLOCK_KEYS = Object.freeze([...new Set([...BLOCK_KEYS, "ssn"])]);
+const BLOCK_KEY_SET = new Set(FOLD_BLOCK_KEYS);
 
 function qnmSlot() {
   return { ready: false, pull: false, bridges: 2, isolate: true };
@@ -213,7 +215,10 @@ export async function pipeInbound(input = {}) {
   env.gates = frag1.gates;
   if (!frag1.ok) return stopAt(env, "frag", frag1.refuse || "ungrounded");
 
-  const sweep = await sweepInspect(payload);
+  const sweep = await sweepInspect(payload, {
+    dir: "in",
+    untrusted: src.untrusted !== false,
+  });
   env.sweep = sweepView(sweep);
   if (sweep.isolate) {
     env.isolate.in = true;
@@ -274,7 +279,10 @@ export async function pipeOutbound(input = {}) {
   env.teth = "fld3-wire";
   env.foldlock = false;
 
-  const sweep = await sweepInspect(folded2);
+  const sweep = await sweepInspect(folded2, {
+    dir: "out",
+    untrusted: src.untrusted !== false,
+  });
   env.sweep = sweepView(sweep);
   if (sweep.isolate) {
     env.isolate.out = true;

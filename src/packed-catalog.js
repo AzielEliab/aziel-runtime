@@ -1,11 +1,15 @@
 /**
- * RL-WP-0.1 — packed catalog + per-visitor cap (not operator).
+ * RL-WP-0.1-runtime — packed catalog (runtime scope only).
  *
  * One key (catalog:v1) instead of KV.list / multi-get on the hot path.
  * Edge-friendly Cache-Control. Donation stays static (no KV).
- * GET /v1/mesh never enables. No Node Gate UI.
+ * Catalog GET / homepage HTML always return the full packed body (200).
+ * Soft visitor caps apply only to expensive fan-out — never starve humans
+ * or SEO bots of catalog/HTML. Hubs hit GET /v1/software every Software-tab
+ * render; packed + Cache-Control is the cost multiplier.
+ * GET /v1/mesh never enables. No Node Gate UI. Library RL is aziel-corpus.
  *
- * Target: ≪191 KV ops/request on catalog paths (packed read = 0 or 1).
+ * Target: <<191 KV ops/request on catalog paths (packed read = 0 or 1).
  * Author: Aziel Eliab only.
  */
 
@@ -13,7 +17,8 @@ import { sha256Hex } from "./session-core.js";
 import { softwareCatalog } from "./software-catalog.js";
 import { clientIp, extractRuntimeToken, timingSafeEqualString, tokenSecret } from "./production.js";
 
-export const RL_SPEC = "RL-WP-0.1";
+export const RL_SPEC = "RL-WP-0.1-runtime";
+export const RL_SCOPE = "runtime";
 export const PACKED_CATALOG_KEY = "catalog:v1";
 export const KV_CACHE_TTL = 3600;
 export const KV_OPS_CAP = 30;
@@ -78,8 +83,9 @@ export async function visitorId(request) {
 }
 
 /**
- * Per-visitor cap. Operator token bypass (server-side; no Node Gate UI).
- * Soft exceed: rate-soft. Does not enable mesh.
+ * Per-visitor cap for expensive fan-out only (not catalog GET / HTML).
+ * Operator token bypass (server-side; no Node Gate UI).
+ * Soft exceed: rate-soft. Does not enable mesh. Never 429 a catalog/HTML body.
  */
 export async function visitorBucket(request, env, now = Date.now()) {
   if (isOperator(request, env)) {
@@ -182,6 +188,7 @@ export async function readPackedCatalog(env, origin, products, extra = {}) {
 function rlMeta(kv_ops, packed) {
   return {
     spec: RL_SPEC,
+    scope: RL_SCOPE,
     key: PACKED_CATALOG_KEY,
     packed,
     kv_ops,
@@ -189,6 +196,9 @@ function rlMeta(kv_ops, packed) {
     target: "<<191",
     list: false,
     donation_kv: false,
+    catalog_always_full: true,
+    catalog_consumes_bucket: false,
+    visitor_cap: "expensive-fanout-only",
     mesh_get_never_enables: true,
     node_gate: false,
   };
