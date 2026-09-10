@@ -42,6 +42,7 @@ assert.ok(slugs.includes("azhub"));
 assert.ok(slugs.includes("azinterface"));
 assert.ok(slugs.includes("aziel-corpus"));
 assert.ok(slugs.includes("4dmap"));
+assert.ok(slugs.includes("azcoherence"));
 
 for (const slug of slugs) {
   const version = VERSIONS[slug];
@@ -52,7 +53,9 @@ for (const slug of slugs) {
         ? "https://github.com/AzielEliab/postking-chess"
         : slug === "azclce"
           ? "https://github.com/AzielEliab/az-clce"
-          : `https://github.com/AzielEliab/${slug}`;
+          : slug === "azcoherence"
+            ? "https://github.com/AzielEliab/AZCoherence"
+            : `https://github.com/AzielEliab/${slug}`;
   const download =
     slug === "aziel-corpus"
       ? "https://www.azielcorpuslibrary.net/download"

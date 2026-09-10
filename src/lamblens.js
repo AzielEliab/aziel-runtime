@@ -33,6 +33,7 @@ const INSPECTION_SLUGS = new Set([
   "vibelock",
   "godlock",
   "azclce",
+  "azcoherence",
 ]);
 
 const QA_OPS = new Set([
@@ -56,6 +57,11 @@ const QA_OPS = new Set([
   "card_new",
   "ethical_search",
   "lamb_lens_search",
+  "doctor",
+  "review_triad",
+  "alternate_score",
+  "coherence_check",
+  "neutralize_hallucination",
 ]);
 
 const PROHIBITIONS = Object.freeze([
