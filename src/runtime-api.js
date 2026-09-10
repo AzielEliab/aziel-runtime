@@ -31,6 +31,7 @@ import {
   SESSION_TTL_MS,
 } from "./production.js";
 import { citeCompatibleFields, skillCompatibleSection } from "./ai-clients.js";
+import { designsSkillMarkdown } from "./seo.js";
 
 export const RUNTIME_VERSION = "1.6.13";
 export const RUNTIME_ROLE = "engine-runtime";
@@ -367,6 +368,8 @@ Primary name: Aziel Eliab. Also known as Aziel Elroi Eliab (alternateName only).
 Digital Library: Eliab, Aziel. (2026). Aziel Digital Library [Software]. Apache-2.0. https://www.azielcorpuslibrary.net/
 Machine-readable: ${base}/cite.json · https://www.azielcorpuslibrary.net/cite.json
 GitHub: https://github.com/AzielEliab/aziel-runtime
+
+${designsSkillMarkdown().trimEnd()}
 `;
 }
 
