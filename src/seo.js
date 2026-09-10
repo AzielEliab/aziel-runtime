@@ -410,6 +410,14 @@ export const SUITE_DESIGNS = Object.freeze([
     status: "live",
     kind: "fabric",
   },
+  {
+    id: "4DM-WP-1.0",
+    file: "4DM-WP-1.0.md",
+    one_line:
+      "4DMap four-axis inspection frame T/Δ/Γ/Π — Domain Door / inspection layer after AZPIPE; not a sequential gate",
+    status: "live",
+    kind: "software",
+  },
 ]);
 
 export function designGithubUrl(file) {
@@ -452,7 +460,7 @@ export function designsSkillMarkdown() {
   const lines = [
     "## Designs",
     "",
-    "Suite software-design papers (not Softwares-tab products, not a FragGate slug). LIVE fabric modules: ChainLock, AZPIPE, SweepGate, LOCKSET, packed catalog (RL), QNS-CD-1.0 (photon QNS1 1.3; local qnsd; Worker cites only). `GET /v1/mesh` never enables. Git-hosted — the Worker does not serve the PDFs. Public identity Aziel Eliab only.",
+    "Suite software-design papers (law / fabric are not Softwares-tab products, not a FragGate slug). 4DM-WP-1.0 is the 4DMap product spec (Softwares-tab slug `4dmap`; the paper is not a FragGate slug). LIVE fabric modules: ChainLock, AZPIPE, SweepGate, LOCKSET, packed catalog (RL), QNS-CD-1.0 (photon QNS1 1.3; local qnsd; Worker cites only). `GET /v1/mesh` never enables. Git-hosted — the Worker does not serve the PDFs. Public identity Aziel Eliab only.",
     "",
   ];
   for (const d of SUITE_DESIGNS) {
@@ -468,7 +476,7 @@ export function designsLlmsBlock() {
   const lines = [
     "## Designs",
     "",
-    "Suite software-design papers (not Softwares-tab products, not a FragGate slug). LIVE fabric: CL-WP-0.4, AP-WP-0.2, SG-WP-0.1, LS-WP-0.1, RL-WP-0.1 (runtime), QNS-CD-1.0 (local qnsd). GET /v1/mesh never enables. Git-hosted — the Worker does not serve the PDFs. Author: Aziel Eliab only.",
+    "Suite software-design papers (law / fabric are not Softwares-tab products, not a FragGate slug). 4DM-WP-1.0 is the 4DMap product spec (slug `4dmap`). LIVE fabric: CL-WP-0.4, AP-WP-0.2, SG-WP-0.1, LS-WP-0.1, RL-WP-0.1 (runtime), QNS-CD-1.0 (local qnsd). GET /v1/mesh never enables. Git-hosted — the Worker does not serve the PDFs. Author: Aziel Eliab only.",
     `Index: ${DESIGNS_GITHUB_TREE}`,
     "",
   ];

@@ -42,6 +42,7 @@ const CATALOG = [
   { slug: "azhub", keys: ["azhub", "blank key", "region", "place module", "tether"], op: "blank_key_status", banner: "not AZInterface; no auto-unlock; Blank Key does not interpret" },
   { slug: "azinterface", keys: ["azinterface", "page cycle", "genesis", "site state", "full shutdown"], op: "page_cycle_status", banner: "not AZHub; pre-locked page cycles; no auto-unlock" },
   { slug: "aziel-corpus", keys: ["library", "corpus", "florence", "search"], op: "search", banner: "not a 26-card index; live D1 MASTER is separate" },
+  { slug: "4dmap", keys: ["4dmap", "4d map", "inspection", "card_pin", "card_walk", "four axis", "domain door"], op: "card_new", banner: "not a sequential gate; not a truth score" },
 ];
 
 function tokensOf(text) {

@@ -87,6 +87,7 @@ const PRIMARY = {
   azhub: { op: "blank_key_status", payload: {} },
   azinterface: { op: "page_cycle_status", payload: {} },
   "aziel-corpus": { op: "search", payload: { q: "Florence" } },
+  "4dmap": { op: "card_new", payload: { label: "inspect-1" } },
 };
 
 async function jsonReq(path, method, body) {
