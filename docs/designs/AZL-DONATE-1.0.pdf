@@ -2,7 +2,7 @@
 1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj
 2 0 obj << /Type /Pages /Kids [3 0 R 5 0 R] /Count 2 >> endobj
 3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 7 0 R >> >> >> endobj
-4 0 obj << /Length 3151 >> stream
+4 0 obj << /Length 3312 >> stream
 BT
 /F1 9 Tf
 54 738 Td
@@ -80,9 +80,19 @@ BT
 0 -11 Td
 (Library already has a static tab. Addresses, copy buttons, optional receipt notes, and) Tj
 0 -11 Td
-(network QRs ? if shown ? live on the hub page after operator paste. This paper does not) Tj
+(network QRs live on the hub page after operator paste. This paper does not invent addresses) Tj
 0 -11 Td
-(invent them.) Tj
+(or payment-URI payloads.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(**Hub QRs encode payment URIs.** Donate pages on hubs include five QR codes for **BTC / ETH) Tj
+0 -11 Td
+(/ LTC / XRP / DOGE**. Each QR encodes that network?s payment URI \(not a decorative image,) Tj
+0 -11 Td
+(not a naked address string\). Operator paste at publish time fills the URI. This paper does) Tj
+0 -11 Td
+(not invent the URIs.) Tj
 0 -11 Td
 ( ) Tj
 0 -11 Td
@@ -102,9 +112,11 @@ BT
 0 -11 Td
 ( ) Tj
 0 -11 Td
-(- Do **not** duplicate five QRs on runtime.) Tj
+(- Do **not** duplicate the five hub QRs \(BTC / ETH / LTC / XRP / DOGE payment URIs\) on) Tj
 0 -11 Td
-(- Do **not** paste wallet addresses into this Worker.) Tj
+(runtime.) Tj
+0 -11 Td
+(- Do **not** paste wallet addresses or payment URIs into this Worker.) Tj
 0 -11 Td
 (- Do **not** route donations through Workers KV, D1, or Durable Objects.) Tj
 0 -11 Td
@@ -115,18 +127,6 @@ BT
 (- No legal name. No home. No ?support my custody case? copy.) Tj
 0 -11 Td
 (- No Node Gate. No invented `CLOUDFLARE_API_TOKEN` or other tokens.) Tj
-0 -11 Td
-( ) Tj
-0 -11 Td
-(The existing static donation JSON \(networks the operator already controls: Bitcoin,) Tj
-0 -11 Td
-(Lightning, Ethereum, Solana\) remains a cite of RL law. It is not a hosted wallet list.) Tj
-0 -11 Td
-( ) Tj
-0 -11 Td
-(## 4. Product download-trackers \(pattern\)) Tj
-0 -11 Td
-( ) Tj
 ET
 BT
 /F1 8 Tf
@@ -135,10 +135,26 @@ BT
 ET
 endstream endobj
 5 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 6 0 R /Resources << /Font << /F1 7 0 R >> >> >> endobj
-6 0 obj << /Length 1408 >> stream
+6 0 obj << /Length 1900 >> stream
 BT
 /F1 9 Tf
 54 738 Td
+( ) Tj
+0 -11 Td
+(RL-WP-0.1 named Bitcoin / Lightning / Ethereum / Solana as operator-controlled networks.) Tj
+0 -11 Td
+(**AZL-DONATE-1.0** hub rails use five QR codes that encode **BTC / ETH / LTC / XRP / DOGE**) Tj
+0 -11 Td
+(payment URIs. Runtime JSON may cite that fact. It is not a hosted wallet list and it does) Tj
+0 -11 Td
+(not embed the URIs or QR images.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(## 4. Product download-trackers \(pattern\)) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
 (This repo does **not** own product Workers. Copy this footer into those repos.) Tj
 0 -11 Td
 ( ) Tj
@@ -151,9 +167,9 @@ BT
 0 -11 Td
 ( ) Tj
 0 -11 Td
-(Same rails rule: link only. Do not copy hub QRs, addresses, or receipt forms onto) Tj
+(Same rails rule: link only. Do not copy hub QRs \(payment-URI encodings\), addresses, or) Tj
 0 -11 Td
-(`*-download-tracker` Workers.) Tj
+(receipt forms onto `*-download-tracker` Workers.) Tj
 0 -11 Td
 ( ) Tj
 0 -11 Td
@@ -207,10 +223,10 @@ xref
 0000000049 00000 n 
 0000000112 00000 n 
 0000000238 00000 n 
-0000003441 00000 n 
-0000003567 00000 n 
-0000005027 00000 n 
+0000003602 00000 n 
+0000003728 00000 n 
+0000005680 00000 n 
 trailer << /Size 8 /Root 1 0 R >>
 startxref
-5104
+5757
 %%EOF

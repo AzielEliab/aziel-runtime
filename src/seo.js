@@ -468,7 +468,7 @@ export const SUITE_DESIGNS = Object.freeze([
     id: "AZL-DONATE-1.0",
     file: "AZL-DONATE-1.0.md",
     one_line:
-      "Cite-only donate plan — canonical https://www.azieleliab.com/donate; hubs host rails; runtime/download-trackers link only; not a Softwares product",
+      "Cite-only donate plan — canonical https://www.azieleliab.com/donate; hubs host rails (QRs encode BTC/ETH/LTC/XRP/DOGE payment URIs); runtime/download-trackers link only; not a Softwares product",
     status: "live",
     kind: "law",
   },
