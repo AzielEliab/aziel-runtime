@@ -15,8 +15,12 @@ export const SPEC = "4DM-WP-1.0";
 export const AUTHOR = "Aziel Eliab";
 export const MOTTO = "Inspect on four axes. Do not invent a mark. Do not score truth.";
 export const ROLE = "four-axis inspection frame T/Δ/Γ/Π";
-export const LAYER = "domain_door";
+export const LAYER = "inspection_frame";
 export const SEQUENTIAL_GATE = false;
+export const DOMAINS_ARE_DOORS = false;
+export const EXPORT_SCHEMA = "4DM-EXPORT-0.1";
+export const PRODUCT_SYNC_NOTE =
+  "Product repo 4dmap is still 0.1.0 on main. Runtime 1.7.4 hosts enhanced 4DM-WP-1.0 inspection-frame ops (frame_status, axis_describe, walk_trace, card_export, card_import, verify_chain, neighbor_cite). After product 0.2.0 deploys, recompute engine_digest and align catalog version if the product Worker digest changes. Do not invent a product digest before that deploy.";
 export const CARD_CAP = 64;
 export const WALK_CAP = 32;
 export const MARK_CAP = 240;
@@ -44,6 +48,13 @@ export const AXIS_ALIASES = Object.freeze({
   path: "Π",
   walk: "Π",
   projection: "Π",
+});
+
+export const AXIS_ROLES = Object.freeze({
+  T: "time / temporal class",
+  Δ: "change / difference",
+  Γ: "class / genus / spectral class",
+  Π: "path / projection / walk",
 });
 
 export const AXIS_NEIGHBORS = Object.freeze({
@@ -160,8 +171,9 @@ export function joinTypeForOp(op) {
   if (verb === "card_pin") return "pin";
   if (verb === "card_span") return "span";
   if (verb === "card_join") return "join";
-  if (verb === "card_walk") return "walk";
-  if (verb === "verify_hash") return "cite";
+  if (verb === "card_walk" || verb === "walk_trace") return "walk";
+  if (verb === "verify_hash" || verb === "verify_chain") return "cite";
+  if (verb === "neighbor_cite") return "neighbor";
   return "inspect";
 }
 
@@ -196,6 +208,8 @@ function refuseForbidden(hit, extra = {}) {
     kv_increment: false,
     door: "fraggate",
     sequential_gate: false,
+    domains_are_doors: DOMAINS_ARE_DOORS,
+    not_a_door: true,
     layer: LAYER,
     truth_score: false,
     lumen_panel: false,
@@ -221,6 +235,8 @@ function baseResult(extra = {}) {
     kv_increment: false,
     door: "fraggate",
     sequential_gate: SEQUENTIAL_GATE,
+    domains_are_doors: DOMAINS_ARE_DOORS,
+    not_a_door: true,
     layer: LAYER,
     axes: AXES.slice(),
     neighbors: NEIGHBORS.slice(),
@@ -258,6 +274,7 @@ async function hashCard(card) {
     canonicalJson({
       axes: card.axes,
       card_id: card.card_id,
+      cites: card.cites || [],
       created_at: card.created_at,
       joins: card.joins,
       label: card.label,
@@ -274,6 +291,7 @@ function cardView(card) {
     axes: { ...card.axes },
     spans: card.spans.map((s) => ({ ...s })),
     joins: card.joins.map((j) => ({ ...j })),
+    cites: (card.cites || []).map((c) => ({ ...c })),
     created_at: card.created_at,
     prev_hash: card.prev_hash,
     card_hash: card.card_hash,
@@ -301,6 +319,8 @@ export function fourdmapHealth() {
     live: true,
     cards: memory.cards.size,
     walks: memory.walks.size,
+    stubs: STUB_REFUSE.slice(),
+    product_sync_note: PRODUCT_SYNC_NOTE,
   });
 }
 
@@ -316,9 +336,11 @@ Four-axis inspection frame **T / Δ / Γ / Π**. Inspection frame after AZPIPE (
 - FragGate claims cite join types: pin, span, join, walk, overlay, cite, neighbor, inspect
 - Leftover flat names such as \`4dmap_card_new\` still go through FragGate (\`parseTarget\`) — they are not a side door and are not listed on \`tools/list\`
 
-LIVE_OPS: health, skill, card_new, card_pin, card_span, card_join, card_walk, card_list, verify_hash.
+LIVE_OPS: health, skill, card_new, card_pin, card_span, card_join, card_walk, card_list, verify_hash, frame_status, axis_describe, walk_trace, card_export, card_import, verify_chain, neighbor_cite.
 
 Stubs (refuse): truth_score, lumen_panel, invent_mark, backdate_class.
+
+Product sync: ${PRODUCT_SYNC_NOTE}
 
 Neighbors: TemporalLock, StaticClock, ChronoLock, TrajectoryLock, SpectralLock. ChainLock may stamp walks.
 
@@ -329,7 +351,7 @@ Limitation: ${LIMITATION}
 
 Four-axis inspection frame T/Δ/Γ/Π. Inspection frame after AZPIPE, not an extra door. Not a sequential gate.
 
-LIVE_OPS: health, skill, card_new, card_pin, card_span, card_join, card_walk, card_list, verify_hash.
+LIVE_OPS: health, skill, card_new, card_pin, card_span, card_join, card_walk, card_list, verify_hash, frame_status, axis_describe, walk_trace, card_export, card_import, verify_chain, neighbor_cite.
 Stubs: truth_score, lumen_panel, invent_mark, backdate_class.
 Join types cited on FragGate claims: ${JOIN_TYPES.join(", ")}.
 Neighbors: ${NEIGHBORS.join(", ")}.
@@ -364,6 +386,7 @@ export async function cardNew(payload) {
     axes: emptyAxes(),
     spans: [],
     joins: [],
+    cites: [],
     created_at,
     prev_hash: GENESIS_PREV,
     card_hash: "",
@@ -655,5 +678,477 @@ export async function verifyHash(payload) {
     join_type: "cite",
     match: false,
     hash: want,
+  });
+}
+
+export function frameStatus(payload) {
+  const hit = detectForbidden(payload);
+  if (hit) return refuseForbidden(hit, { op: "frame_status", join_type: "inspect" });
+  const pinned = { T: 0, Δ: 0, Γ: 0, Π: 0 };
+  for (const card of memory.cards.values()) {
+    for (const axis of AXES) {
+      if (card.axes[axis]) pinned[axis] += 1;
+    }
+  }
+  return baseResult({
+    op: "frame_status",
+    join_type: "inspect",
+    status: "ok",
+    role: ROLE,
+    motto: MOTTO,
+    extra_door: false,
+    axes: AXES.slice(),
+    axis_roles: { ...AXIS_ROLES },
+    neighbors: NEIGHBORS.slice(),
+    axis_neighbors: { ...AXIS_NEIGHBORS },
+    join_types: JOIN_TYPES.slice(),
+    stubs: STUB_REFUSE.slice(),
+    cards: memory.cards.size,
+    walks: memory.walks.size,
+    pinned_axes: pinned,
+    product_sync_note: PRODUCT_SYNC_NOTE,
+    note: "4DMap is an inspection frame after AZPIPE. FragGate is THE single door. domains_are_doors:false.",
+  });
+}
+
+export function axisDescribe(payload) {
+  const hit = detectForbidden(payload);
+  if (hit) return refuseForbidden(hit, { op: "axis_describe", join_type: "inspect" });
+  const src = srcOf(payload);
+  const axis = normalizeAxis(src.axis || src.name);
+  if (!axis) {
+    return {
+      ...refuseForbidden({ kind: "axis", code: "4DM-AXIS" }, { op: "axis_describe", join_type: "inspect" }),
+      message: `Axis must be one of ${AXES.join(" / ")}.`,
+    };
+  }
+  const pinned = [];
+  for (const card of memory.cards.values()) {
+    if (!card.axes[axis]) continue;
+    pinned.push({
+      card_id: card.card_id,
+      mark: card.axes[axis].mark,
+      pin_hash: card.axes[axis].hash || null,
+    });
+  }
+  return baseResult({
+    op: "axis_describe",
+    join_type: "inspect",
+    axis,
+    role: AXIS_ROLES[axis],
+    neighbors: AXIS_NEIGHBORS[axis].slice(),
+    pinned_count: pinned.length,
+    pinned,
+    note: "Axes are simultaneous, not a hop list. 4DMap is not a sequential gate.",
+  });
+}
+
+export function walkTrace(payload) {
+  const hit = detectForbidden(payload);
+  if (hit) return refuseForbidden(hit, { op: "walk_trace", join_type: "walk" });
+  const src = srcOf(payload);
+  const walk = memory.walks.get(clip(src.walk_id, ID_CAP));
+  if (!walk) {
+    return {
+      ...refuseForbidden({ kind: "missing", code: "4DM-MISSING" }, { op: "walk_trace", join_type: "walk" }),
+      message: "Unknown walk_id. Trace a declared walk — 4DMap does not invent a path.",
+    };
+  }
+  const steps = walk.card_ids.map((id, i) => {
+    const card = memory.cards.get(id);
+    const current_hash = card ? card.card_hash : null;
+    const snap = walk.card_hashes[i] || null;
+    return {
+      index: i,
+      card_id: id,
+      join_type_in: i === 0 ? null : walk.join_types[i - 1] || "walk",
+      snap_hash: snap,
+      current_hash,
+      still_matches: Boolean(card && current_hash === snap),
+      card: card ? cardView(card) : null,
+    };
+  });
+  return baseResult({
+    op: "walk_trace",
+    join_type: "walk",
+    walk: walkView(walk),
+    steps,
+    sequential_gate: false,
+    note: "A walk traces declared cards. 4DMap is not a sequential gate.",
+  });
+}
+
+async function exportHashOf(envelope) {
+  return sha256Hex(
+    canonicalJson({
+      card: envelope.card || null,
+      cards: envelope.cards || null,
+      schema: envelope.schema,
+      spec: envelope.spec,
+      walks: envelope.walks || null,
+    }),
+  );
+}
+
+export async function cardExport(payload) {
+  const hit = detectForbidden(payload);
+  if (hit) return refuseForbidden(hit, { op: "card_export", join_type: "inspect" });
+  const src = srcOf(payload);
+  if (src.card_id) {
+    const card = memory.cards.get(clip(src.card_id, ID_CAP));
+    if (!card) {
+      return {
+        ...refuseForbidden({ kind: "missing", code: "4DM-MISSING" }, { op: "card_export", join_type: "inspect" }),
+        message: "Unknown card_id. Export a declared card.",
+      };
+    }
+    const envelope = {
+      schema: EXPORT_SCHEMA,
+      spec: SPEC,
+      version: VERSION,
+      exported_at: nowIso(),
+      card: cardView(card),
+    };
+    envelope.export_hash = await exportHashOf(envelope);
+    return baseResult({
+      op: "card_export",
+      join_type: "inspect",
+      envelope,
+    });
+  }
+  const envelope = {
+    schema: EXPORT_SCHEMA,
+    spec: SPEC,
+    version: VERSION,
+    exported_at: nowIso(),
+    cards: [...memory.cards.values()].map(cardView),
+    walks: [...memory.walks.values()].map(walkView),
+  };
+  envelope.export_hash = await exportHashOf(envelope);
+  return baseResult({
+    op: "card_export",
+    join_type: "inspect",
+    envelope,
+    count: envelope.cards.length,
+  });
+}
+
+function restoreCard(view) {
+  const axes = emptyAxes();
+  const srcAxes = view && view.axes && typeof view.axes === "object" ? view.axes : {};
+  for (const axis of AXES) {
+    if (srcAxes[axis]) axes[axis] = { ...srcAxes[axis] };
+  }
+  return {
+    card_id: clip(view.card_id, ID_CAP),
+    label: clip(view.label, LABEL_CAP) || clip(view.card_id, ID_CAP),
+    axes,
+    spans: Array.isArray(view.spans) ? view.spans.map((s) => ({ ...s })) : [],
+    joins: Array.isArray(view.joins) ? view.joins.map((j) => ({ ...j })) : [],
+    cites: Array.isArray(view.cites) ? view.cites.map((c) => ({ ...c })) : [],
+    created_at: clip(view.created_at, 40),
+    prev_hash: clip(view.prev_hash, 64) || GENESIS_PREV,
+    card_hash: clip(view.card_hash, 64).toLowerCase(),
+  };
+}
+
+function pinBackdated(card) {
+  for (const axis of AXES) {
+    const pin = card.axes[axis];
+    if (!pin || !pin.pinned_at) continue;
+    if (card.created_at && pin.pinned_at < card.created_at) return true;
+  }
+  return false;
+}
+
+async function importOneCard(view) {
+  if (!view || typeof view !== "object" || !view.card_id) {
+    return {
+      ok: false,
+      code: "4DM-MISSING",
+      message: "Import needs a declared card envelope. 4DMap does not invent marks.",
+    };
+  }
+  const card = restoreCard(view);
+  if (!card.card_id || !card.created_at || !card.card_hash) {
+    return {
+      ok: false,
+      code: "4DM-HASH",
+      message: "Import requires card_id, created_at, and card_hash.",
+    };
+  }
+  if (pinBackdated(card)) {
+    return {
+      ok: false,
+      code: "4DM-BACKDATE-REFUSE",
+      message: "4DMap refuses a backdated class on import.",
+    };
+  }
+  const recomputed = await hashCard({ ...card, card_hash: undefined });
+  if (recomputed !== card.card_hash) {
+    return {
+      ok: false,
+      code: "4DM-HASH",
+      message: "Import hash mismatch. 4DMap does not invent a repaired card.",
+      card_id: card.card_id,
+      recomputed,
+    };
+  }
+  const existing = memory.cards.get(card.card_id);
+  if (existing) {
+    if (existing.card_hash === card.card_hash) {
+      return { ok: true, idempotent: true, card };
+    }
+    return {
+      ok: false,
+      code: "4DM-DUP",
+      message: `Card ${card.card_id} already exists. 4DMap does not invent a second genesis.`,
+    };
+  }
+  if (memory.cards.size >= CARD_CAP) {
+    return {
+      ok: false,
+      code: "4DM-CAP",
+      message: "Card cap reached. 4DMap does not invent overflow cards.",
+    };
+  }
+  memory.cards.set(card.card_id, card);
+  return { ok: true, idempotent: false, card };
+}
+
+export async function cardImport(payload) {
+  const hit = detectForbidden(payload);
+  if (hit) return refuseForbidden(hit, { op: "card_import", join_type: "inspect" });
+  const src = srcOf(payload);
+  const envelope = src.envelope && typeof src.envelope === "object" ? src.envelope : src;
+  const views = [];
+  if (envelope.card) views.push(envelope.card);
+  if (Array.isArray(envelope.cards)) views.push(...envelope.cards);
+  if (!views.length && src.card_id) {
+    return {
+      ...refuseForbidden({ kind: "missing", code: "4DM-MISSING" }, { op: "card_import", join_type: "inspect" }),
+      message: "Pass an export envelope with card or cards. 4DMap does not invent an import.",
+    };
+  }
+  if (!views.length) {
+    return {
+      ...refuseForbidden({ kind: "missing", code: "4DM-MISSING" }, { op: "card_import", join_type: "inspect" }),
+      message: "Pass an export envelope with card or cards. 4DMap does not invent an import.",
+    };
+  }
+  const imported = [];
+  for (const view of views) {
+    const row = await importOneCard(view);
+    if (!row.ok) {
+      return {
+        ...refuseForbidden({ kind: row.code === "4DM-BACKDATE-REFUSE" ? "backdate_class" : "hash", code: row.code }, { op: "card_import", join_type: "inspect" }),
+        message: row.message,
+        card_id: row.card_id || null,
+        recomputed: row.recomputed || null,
+      };
+    }
+    imported.push({ card: cardView(row.card), idempotent: row.idempotent });
+  }
+  const walks = [];
+  if (Array.isArray(envelope.walks)) {
+    for (const raw of envelope.walks) {
+      if (!raw || !raw.walk_id) continue;
+      const walk_id = clip(raw.walk_id, ID_CAP);
+      const card_ids = Array.isArray(raw.card_ids) ? raw.card_ids.map((id) => clip(id, ID_CAP)).filter(Boolean) : [];
+      const join_types = Array.isArray(raw.join_types) ? raw.join_types.map((j) => normalizeJoinType(j) || "walk") : card_ids.slice(1).map(() => "walk");
+      const card_hashes = card_ids.map((id) => (memory.cards.get(id) || {}).card_hash).filter(Boolean);
+      if (card_hashes.length !== card_ids.length) {
+        return {
+          ...refuseForbidden({ kind: "missing", code: "4DM-MISSING" }, { op: "card_import", join_type: "inspect" }),
+          message: "Walk import needs every card already imported. 4DMap does not invent walk cards.",
+        };
+      }
+      const walk_hash = await sha256Hex(canonicalJson({ card_hashes, join_types, walk_id }));
+      if (raw.walk_hash && String(raw.walk_hash).toLowerCase() !== walk_hash) {
+        return {
+          ...refuseForbidden({ kind: "hash", code: "4DM-HASH" }, { op: "card_import", join_type: "inspect" }),
+          message: "Walk import hash mismatch.",
+        };
+      }
+      const walk = {
+        walk_id,
+        card_ids,
+        join_types,
+        card_hashes,
+        created_at: clip(raw.created_at, 40) || nowIso(),
+        walk_hash,
+      };
+      if (!memory.walks.has(walk_id) && memory.walks.size >= WALK_CAP) {
+        return {
+          ...refuseForbidden({ kind: "cap", code: "4DM-CAP" }, { op: "card_import", join_type: "inspect" }),
+          message: "Walk cap reached.",
+        };
+      }
+      memory.walks.set(walk_id, walk);
+      walks.push(walkView(walk));
+    }
+  }
+  return baseResult({
+    op: "card_import",
+    join_type: "inspect",
+    imported: imported.length,
+    cards: imported.map((row) => row.card),
+    walks,
+  });
+}
+
+export async function verifyChain(payload) {
+  const hit = detectForbidden(payload);
+  if (hit) return refuseForbidden(hit, { op: "verify_chain", join_type: "cite" });
+  const src = srcOf(payload);
+  if (src.walk_id) {
+    const walk = memory.walks.get(clip(src.walk_id, ID_CAP));
+    if (!walk) {
+      return {
+        ...refuseForbidden({ kind: "missing", code: "4DM-MISSING" }, { op: "verify_chain", join_type: "cite" }),
+        message: "Unknown walk_id.",
+      };
+    }
+    const recomputed = await sha256Hex(canonicalJson({ card_hashes: walk.card_hashes, join_types: walk.join_types, walk_id: walk.walk_id }));
+    const steps = [];
+    let all = recomputed === walk.walk_hash;
+    for (let i = 0; i < walk.card_ids.length; i++) {
+      const id = walk.card_ids[i];
+      const card = memory.cards.get(id);
+      const current = card ? await hashCard({ ...card, card_hash: undefined }) : null;
+      const snap = walk.card_hashes[i];
+      const match = Boolean(card && current === card.card_hash && current === snap);
+      if (!match) all = false;
+      steps.push({
+        index: i,
+        card_id: id,
+        snap_hash: snap,
+        current_hash: current,
+        stored_hash: card ? card.card_hash : null,
+        match,
+      });
+    }
+    return baseResult({
+      op: "verify_chain",
+      join_type: "cite",
+      kind: "walk",
+      walk_id: walk.walk_id,
+      walk_hash: walk.walk_hash,
+      recomputed,
+      match: all,
+      steps,
+      chainlock_may_stamp: true,
+    });
+  }
+  if (src.card_id) {
+    const card = memory.cards.get(clip(src.card_id, ID_CAP));
+    if (!card) {
+      return {
+        ...refuseForbidden({ kind: "missing", code: "4DM-MISSING" }, { op: "verify_chain", join_type: "cite" }),
+        message: "Unknown card_id.",
+      };
+    }
+    const recomputed = await hashCard({ ...card, card_hash: undefined });
+    const genesis = card.prev_hash === GENESIS_PREV;
+    return baseResult({
+      op: "verify_chain",
+      join_type: "cite",
+      kind: "card",
+      card_id: card.card_id,
+      prev_hash: card.prev_hash,
+      card_hash: card.card_hash,
+      recomputed,
+      genesis,
+      match: recomputed === card.card_hash,
+      note: genesis
+        ? "Genesis card: prev_hash is the zero digest. 4DMap does not store prior card bodies after a pin/span/join."
+        : "prev_hash is the prior card_hash of this same card. Historical bodies are not replayed.",
+    });
+  }
+  const cards = [];
+  let match = true;
+  for (const card of memory.cards.values()) {
+    const recomputed = await hashCard({ ...card, card_hash: undefined });
+    const ok = recomputed === card.card_hash;
+    if (!ok) match = false;
+    cards.push({ card_id: card.card_id, card_hash: card.card_hash, recomputed, match: ok, genesis: card.prev_hash === GENESIS_PREV });
+  }
+  const walks = [];
+  for (const walk of memory.walks.values()) {
+    const recomputed = await sha256Hex(canonicalJson({ card_hashes: walk.card_hashes, join_types: walk.join_types, walk_id: walk.walk_id }));
+    const ok = recomputed === walk.walk_hash;
+    if (!ok) match = false;
+    walks.push({ walk_id: walk.walk_id, walk_hash: walk.walk_hash, recomputed, match: ok });
+  }
+  return baseResult({
+    op: "verify_chain",
+    join_type: "cite",
+    kind: "isolate",
+    match,
+    cards,
+    walks,
+  });
+}
+
+export async function neighborCite(payload) {
+  const hit = detectForbidden(payload);
+  if (hit) return refuseForbidden(hit, { op: "neighbor_cite", join_type: "neighbor" });
+  const src = srcOf(payload);
+  const card = memory.cards.get(clip(src.card_id, ID_CAP));
+  if (!card) {
+    return {
+      ...refuseForbidden({ kind: "missing", code: "4DM-MISSING" }, { op: "neighbor_cite", join_type: "neighbor" }),
+      message: "Unknown card_id. Cite a neighbor on a declared card.",
+    };
+  }
+  const neighbor = clip(src.neighbor || src.slug || src.engine, ID_CAP).toLowerCase();
+  if (!NEIGHBORS.includes(neighbor)) {
+    return {
+      ...refuseForbidden({ kind: "neighbor", code: "4DM-NEIGHBOR" }, { op: "neighbor_cite", join_type: "neighbor" }),
+      message: `Neighbor must be one of ${NEIGHBORS.join(", ")}. 4DMap does not invent a neighbor.`,
+    };
+  }
+  let axis = null;
+  if (src.axis) {
+    axis = normalizeAxis(src.axis);
+    if (!axis) {
+      return {
+        ...refuseForbidden({ kind: "axis", code: "4DM-AXIS" }, { op: "neighbor_cite", join_type: "neighbor" }),
+        message: `Axis must be one of ${AXES.join(" / ")}.`,
+      };
+    }
+    if (!AXIS_NEIGHBORS[axis].includes(neighbor)) {
+      return {
+        ...refuseForbidden({ kind: "neighbor", code: "4DM-NEIGHBOR" }, { op: "neighbor_cite", join_type: "neighbor" }),
+        message: `${neighbor} is not a neighbor of axis ${axis}.`,
+      };
+    }
+  }
+  const join_type = normalizeJoinType(src.join_type || "neighbor") || "neighbor";
+  if (join_type !== "neighbor" && join_type !== "cite") {
+    return {
+      ...refuseForbidden({ kind: "join", code: "4DM-JOIN" }, { op: "neighbor_cite", join_type: "neighbor" }),
+      message: "Neighbor cite uses join type neighbor or cite.",
+    };
+  }
+  if (!card.cites) card.cites = [];
+  const cite = {
+    neighbor,
+    axis,
+    join_type,
+    note: clip(src.note, MARK_CAP) || null,
+    cited_at: nowIso(),
+  };
+  cite.hash = await sha256Hex(canonicalJson(cite));
+  card.prev_hash = card.card_hash;
+  card.cites.push(cite);
+  card.card_hash = await hashCard(card);
+  memory.cards.set(card.card_id, card);
+  return baseResult({
+    op: "neighbor_cite",
+    join_type,
+    cite,
+    card: cardView(card),
+    note: "Neighbor cite records a declared neighbor engine. 4DMap does not invent marks or open a second door.",
   });
 }

@@ -46,6 +46,14 @@ export const OP_ALIASES = {
     genesis_boot: "genesis_status",
     hold: "page_cycle_status",
   },
+  "4dmap": {
+    frame: "frame_status",
+    axis: "axis_describe",
+    trace: "walk_trace",
+    export: "card_export",
+    import: "card_import",
+    neighbor: "neighbor_cite",
+  },
   mesh: { ...MESH_OP_ALIASES },
 };
 
@@ -216,6 +224,19 @@ export const LIVE_OPS = {
     "card_walk",
     "card_list",
     "verify_hash",
+    "frame_status",
+    "axis_describe",
+    "walk_trace",
+    "card_export",
+    "card_import",
+    "verify_chain",
+    "neighbor_cite",
+    "frame",
+    "axis",
+    "trace",
+    "export",
+    "import",
+    "neighbor",
   ],
 };
 

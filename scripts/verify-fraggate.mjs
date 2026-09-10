@@ -155,6 +155,8 @@ assert.equal(registry.bySlug["4dmap"].status, "live");
 assert.ok(registry.bySlug["4dmap"].ops.includes("card_new"));
 assert.ok(registry.bySlug["4dmap"].ops.includes("card_walk"));
 assert.ok(registry.bySlug["4dmap"].ops.includes("verify_hash"));
+assert.ok(registry.bySlug["4dmap"].ops.includes("frame_status"));
+assert.ok(registry.bySlug["4dmap"].ops.includes("neighbor_cite"));
 assert.ok(registry.bySlug["4dmap"].stub_ops.includes("truth_score"));
 assert.ok(registry.bySlug["4dmap"].stub_ops.includes("invent_mark"));
 assert.equal(classifyCall(registry.bySlug["4dmap"], "card_new").kind, "live");
