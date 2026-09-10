@@ -116,6 +116,12 @@ export const PLACEMENTS = Object.freeze({
     domain_id: null,
     note: "QNM-BUILD-1.0 suite rollup. Fabric/hub. Not a Softwares-tab product. Default OFF.",
   },
+  memory: {
+    placement: "fabric-memory",
+    domain: null,
+    domain_id: null,
+    note: "AKM-TRIAD-1.0 adaptive knowledge memory. Fabric. Not a Softwares-tab product. Behind FragGate.",
+  },
 });
 
 const BY_SLUG = (() => {

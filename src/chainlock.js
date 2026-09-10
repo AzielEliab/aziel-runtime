@@ -6,6 +6,7 @@
  */
 
 import { append, groundedDoor, interact, recall, ROSTER, tip, verify, CL_VERSION, VAULT_NOTE } from "./chainlock/ops.js";
+import { adaptiveRecall } from "./memory.js";
 import { storeFor, VAULT_CHAINS_PATH } from "./chainlock/store.js";
 import { seal, verify as verifyLockset, LS_VERSION } from "./lockset.js";
 import { arch, pipe, thinPipe, AZPIPE_VERSION } from "./azpipe.js";
@@ -13,6 +14,7 @@ import { arch, pipe, thinPipe, AZPIPE_VERSION } from "./azpipe.js";
 export {
   append,
   recall,
+  adaptiveRecall,
   tip,
   verify,
   interact,

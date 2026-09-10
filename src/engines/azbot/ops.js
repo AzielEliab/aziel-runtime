@@ -31,10 +31,17 @@ Limitation: ${LIMITATION}
   };
 }
 
-export async function runAzbot(op, payload, scratch) {
+export async function runAzbot(op, payload, scratch, env) {
   if (op === "health") return azbotHealth();
   if (op === "skill") return azbotSkill();
-  if (op === "route") return route(payload);
+  if (op === "route") {
+    const routed = route(payload);
+    if (payload && (payload.memory || payload.adaptive_recall || payload.feed_memory)) {
+      const { feedCalibratedCards } = await import("../../memory.js");
+      routed.memory = await feedCalibratedCards(env, payload.q || payload.text, payload.use_case);
+    }
+    return routed;
+  }
   if (op === "example") return { product: "azbot", example: examplePayload(), true_engine_runtime: true, limitation: LIMITATION };
   return { unsupported: true };
 }

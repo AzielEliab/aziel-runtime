@@ -34,12 +34,13 @@ import { citeCompatibleFields, skillCompatibleSection } from "./ai-clients.js";
 import { designsSkillMarkdown } from "./seo.js";
 import { LOCKED_STRIP } from "./azpipe.js";
 
-export const RUNTIME_VERSION = "1.7.0";
+export const RUNTIME_VERSION = "1.7.1";
 export const RUNTIME_ROLE = "engine-runtime";
 export const RUNTIME_LAYER = "catalog+pull+proxy+session+in-process-engines+fraggate";
 
 export const VERSION_HISTORY = [
-  { version: "1.7.0", status: "current", note: "MASTER-33: FragGate is THE single door. Locked strip Human → AZInterface → PUBLIC/UI/AGENT/API → FragGate → Lamb Lens → SweepGate → Sentinel → Provenance/Input Packet → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → optional ASE → RoseClock (forward-only; StaticClock/VECTOR as needed) → TemporalLock → ChainLock-OUT → ForgeReceipts → Return. Lamb Lens is fabric ethics after FragGate (not Softwares-tab, not a second door). 11 domains / 33 softwares are isolation labels. AZChat name-only stub. ASE/VECTOR cite+refuse until armed. Overrides MASTER-ARCHITECTURE-2.0 §4.2. Keeps all 1.6.15 live fabric. No ZD30. No rollback. Identity Aziel Eliab only." },
+  { version: "1.7.1", status: "current", note: "AKM-TRIAD-1.0: Adaptive Knowledge Recollection, Bayesian Calibration & 3-of-4 Triad Selection. ChainLock remains the immutable learn/recall ledger; the adaptive index is derived and rebuildable. Memory APIs behind FragGate (POST /v1/memory/observe|resolve|calibrate|recall, GET /v1/memory/{id}[+history|+calibration], POST /v1/memory/rebuild-index operator/local only). MCP memory_*. Not a Softwares-tab product. Posterior ≠ truth. No rollback. Identity Aziel Eliab only." },
+  { version: "1.7.0", status: "superseded", note: "MASTER-33: FragGate is THE single door. Locked strip Human → AZInterface → PUBLIC/UI/AGENT/API → FragGate → Lamb Lens → SweepGate → Sentinel → Provenance/Input Packet → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → optional ASE → RoseClock (forward-only; StaticClock/VECTOR as needed) → TemporalLock → ChainLock-OUT → ForgeReceipts → Return. Lamb Lens is fabric ethics after FragGate (not Softwares-tab, not a second door). 11 domains / 33 softwares are isolation labels. AZChat name-only stub. ASE/VECTOR cite+refuse until armed. Overrides MASTER-ARCHITECTURE-2.0 §4.2. Keeps all 1.6.15 live fabric. No ZD30. No rollback. Identity Aziel Eliab only." },
   { version: "1.6.15", status: "superseded", note: "Lock the suite pipeline hop order (SUITE-PIPE-1.6.15): PUBLIC/UI/Agents → FragGate → SweepGate → ChainLock-IN → DecisionGATE → AZPIPE → Domain Doors (4DMap inspection) → TemporalLock → StaticClock → ChainLock-OUT → Response/Receipt. Outbound reverses sensibly. FragGate call runs DecisionGATE AFTER ChainLock-IN and BEFORE domain exec. ChainLock-IN stamps inbound; ChainLock-OUT stamps outbound receipts. TemporalLock + StaticClock are advisory envelope stamps (existing engines). 4DMap remains the Domain Door inspection frame — not a sequential gate. FoldLock fld3-wire stays internal to AZPIPE. LambGate is not a hop. Illegal reorder is refused. Identity Aziel Eliab only. 34 catalog slugs. 1.6.14 remains the 4DMap engine add." },
   { version: "1.6.14", status: "superseded", note: "Add 4DMap (4DM-WP-1.0) as a true in-process engine: four-axis inspection frame T/Δ/Γ/Π. Domain Door / inspection layer after AZPIPE routes to isolated engines — not a sequential gate. LIVE_OPS health/skill/card_new/card_pin/card_span/card_join/card_walk/card_list/verify_hash. truth_score/lumen_panel/invent_mark/backdate_class stay STUB_OPS. Plain A–Z. worker_home https://4dmap-download-tracker.vibelock.workers.dev/. mesh.enabled_default false; qns_cd pointer like peers. FragGate claims cite join types. ChainLock may stamp walks. Neighbors TemporalLock/StaticClock/ChronoLock/TrajectoryLock/SpectralLock. 34 catalog slugs. EmbryoLock stays stub. GET /v1/mesh never enables. RL packed catalog stays 0-KV hot path. 1.6.13 remains the QNM suite rollup." },
   { version: "1.6.13", status: "superseded", note: "QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1): GET /v1/mesh + /status expose live/locked/isolated counts only (no QNM-S, no leaderboard). POST enable requires a declared bearer (empty {} refused; GET never enables). POST disable drops tethers clean (no implicit heal / resurrection). Keep join/heartbeat/leave/nodes + optional hash-only broadcast (never a publish path). Default radios/bearers OFF. Not a login mesh; not Node Gate/IP panel; not login-recovery; not upload proxy. Full node process is local qnm-node/ (boot/chain/apg/bearers/outbox/phoenix/score/memorial/tethers); anon-broadcast is that process's sibling loopback module only. FragGate slug=mesh + MCP mesh_*. Each /v1/software card carries mesh: { path, enabled_default: false, spec, companion, rollup_only, qnm_s: false }. AZMail mesh_* stays product-local. docs/NODE_MESH.md. 1.6.12 remains the live catalog + client update foundation." },
@@ -134,7 +135,8 @@ description: >-
   One door — discover, route, refuse. FragGate over the catalog: hashed
   registry, DecisionGATE after ChainLock-IN, ask/refuse ledger. Dual surface —
   agent/MCP has no technical UI chrome; Worker UI, Flutter mobile/, local
-  install, and counted /download stay complete human software. 1.7.0 locks
+  install, and counted /download stay complete human software. 1.7.1 adds
+  AKM-TRIAD-1.0 (adaptive recollection, Bayesian calibration, 3-of-4 triad; not Softwares-tab). 1.7.0 locks
   MASTER-33 (FragGate single door; Lamb Lens after FragGate; RoseClock forward-only). 1.6.15 locked
   the suite hop order (SUITE-PIPE-1.6.15; LambGate is not a hop). 1.6.14 adds
   4DMap (4DM-WP-1.0) as a true in-process engine (four-axis inspection frame T/Δ/Γ/Π; Domain Door, not a sequential gate).
@@ -176,9 +178,9 @@ FragGate kernel: https://github.com/AzielEliab/fraggate (FG-0.1)
 4. **Show the output.** Results are \`{ display, result, ledger_tip? }\`. Show \`display\` to the user.
 5. **Take the next input.**
 
-Named live modules still on the thin tools/list: \`decisiongate_check\`, \`library_lookup\` (read-only corpus), suite \`mesh_*\` (QNM-BUILD-1.0 rollup; default OFF; not a login mesh), plus fabric \`chainlock_*\` (CL-WP-0.4 / LS-WP-0.1 — not Softwares-tab).
+Named live modules still on the thin tools/list: \`decisiongate_check\`, \`library_lookup\` (read-only corpus), suite \`mesh_*\` (QNM-BUILD-1.0 rollup; default OFF; not a login mesh), plus fabric \`chainlock_*\` (CL-WP-0.4 / LS-WP-0.1 — not Softwares-tab) and \`memory_*\` (AKM-TRIAD-1.0 — not Softwares-tab).
 
-**LIVE fabric** (runtime, not Softwares-tab products): AZPIPE (\`AP-WP-0.2\`, magic FLD3) wraps \`fraggate_call\` so admitted payloads never present raw inbound bytes. **Locked hop order (1.7.0 / MASTER-33):** Human → AZInterface → PUBLIC/UI/AGENT/API → FragGate → Lamb Lens → SweepGate → Sentinel → Provenance/Input Packet → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → optional ASE → RoseClock (forward-only; StaticClock/VECTOR as needed) → TemporalLock → ChainLock-OUT → ForgeReceipts → Return. FragGate is THE single door. Lamb Lens is fabric ethics after FragGate (not Softwares-tab, not a second door). Domains are isolation labels, not doors. RoseClock sequence never decreases. FoldLock fld3-wire is internal to AZPIPE. LambGate is not a hop. Illegal reorder is refused. SweepGate (\`SG-WP-0.1\`) airlocks poison / malware-class / block-keys, and isolates off-origin only when inbound and untrusted; ChainLock (\`CL-WP-0.4\`) append-only stamps (vault \`vault/chains/<name>.jsonl\` on CLI; Worker KV/memory) — ChainLock-IN inbound, ChainLock-OUT outbound receipts; LOCKSET (\`LS-WP-0.1\`) fail-closed seal citing \`https://godlock.uk\` (runtime does not write the public ledger); packed catalog (\`RL-WP-0.1-runtime\`) is a single-key read with edge Cache-Control; **QNS-CD-1.0** is the Quantum Node Signal packet-transfer coding design (photon QNS1 1.3 on local \`qnsd\` in https://github.com/AzielEliab/qnm-node — companion to QNM-BUILD-1.0 / AIH-WP-1.3). \`GET /v1/qns\` cites only; the public Worker does not proxy local via emit and is not a wipe/control plane. qnsd uses the same AZPIPE / SweepGate / APG / ChainLock laws locally. Catalog GET / HTML stay full (200) for humans and SEO; soft caps apply only to expensive fan-out. Donation stays static (no KV). \`GET /v1/mesh\` never enables. Do **not** add QNS as a Softwares-tab product slug.
+**LIVE fabric** (runtime, not Softwares-tab products): AZPIPE (\`AP-WP-0.2\`, magic FLD3) wraps \`fraggate_call\` so admitted payloads never present raw inbound bytes. **Locked hop order (1.7.0 / MASTER-33):** Human → AZInterface → PUBLIC/UI/AGENT/API → FragGate → Lamb Lens → SweepGate → Sentinel → Provenance/Input Packet → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → optional ASE → RoseClock (forward-only; StaticClock/VECTOR as needed) → TemporalLock → ChainLock-OUT → ForgeReceipts → Return. FragGate is THE single door. Lamb Lens is fabric ethics after FragGate (not Softwares-tab, not a second door). Domains are isolation labels, not doors. RoseClock sequence never decreases. FoldLock fld3-wire is internal to AZPIPE. LambGate is not a hop. Illegal reorder is refused. SweepGate (\`SG-WP-0.1\`) airlocks poison / malware-class / block-keys, and isolates off-origin only when inbound and untrusted; ChainLock (\`CL-WP-0.4\`) append-only stamps (vault \`vault/chains/<name>.jsonl\` on CLI; Worker KV/memory) — ChainLock-IN inbound, ChainLock-OUT outbound receipts; LOCKSET (\`LS-WP-0.1\`) fail-closed seal citing \`https://godlock.uk\` (runtime does not write the public ledger); packed catalog (\`RL-WP-0.1-runtime\`) is a single-key read with edge Cache-Control; **QNS-CD-1.0** is the Quantum Node Signal packet-transfer coding design (photon QNS1 1.3 on local \`qnsd\` in https://github.com/AzielEliab/qnm-node — companion to QNM-BUILD-1.0 / AIH-WP-1.3). \`GET /v1/qns\` cites only; the public Worker does not proxy local via emit and is not a wipe/control plane. qnsd uses the same AZPIPE / SweepGate / APG / ChainLock laws locally. Catalog GET / HTML stay full (200) for humans and SEO; soft caps apply only to expensive fan-out. Donation stays static (no KV). \`GET /v1/mesh\` never enables. Do **not** add QNS or AKM-TRIAD as Softwares-tab product slugs. Adaptive memory is LIVE fabric behind FragGate (\`POST /v1/memory/*\`, MCP \`memory_*\`, FragGate \`slug=memory\`). Bayesian posterior is calibrated belief, not truth.
 
 Do **not** walk the user through \`runtime_session_open\` → policy → exec → receipt → close. Those tools, \`runtime_run\`, raw \`*_health\`, and \`runtime_manifest\` are **advanced/internal**.
 
@@ -188,6 +190,7 @@ HTTP \`POST /p/{slug}/{op}\` is still a **proxy**. Proxy without a session recei
 
 Every catalog slug is a true engine. Cloudflare isolate is the jail. Hosted AZAI is protocol mirror + Lamb check, **not** the blend. Identity is **Aziel Eliab** only.
 
+**1.7.1 = AKM-TRIAD-1.0.** Adaptive knowledge recollection over ChainLock learn: Bayesian calibration, deterministic 3-of-4 triad (E/C/P/B), derived rebuildable index. Memory APIs behind FragGate. Not a Softwares-tab product. Posterior ≠ truth. No history rewrite.
 **1.7.0 = MASTER-33.** FragGate is THE single door. Public hop list: Human → AZInterface → PUBLIC/UI/AGENT/API → FragGate → Lamb Lens → SweepGate → Sentinel → Provenance/Input Packet → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → optional ASE → RoseClock (forward-only; StaticClock/VECTOR as needed) → TemporalLock → ChainLock-OUT → ForgeReceipts → Return. Lamb Lens is fabric ethics after FragGate (not Softwares-tab, not a second door). 11 domains / 33 softwares are isolation labels. AZChat is a name-only stub. ASE/VECTOR cite + refuse until armed. RoseClock sequence never decreases. Overrides MASTER-ARCHITECTURE-2.0 §4.2. No ZD30. No rollback. Identity Aziel Eliab only.
 **1.6.15 = locked suite pipeline (SUITE-PIPE-1.6.15).** Historical public hop list: PUBLIC/UI/Agents → FragGate → SweepGate → ChainLock-IN → DecisionGATE → AZPIPE → Domain Doors (4DMap inspection) → TemporalLock → StaticClock → ChainLock-OUT → Response/Receipt. Kept live; 1.7.0 extends it. FragGate \`fraggate_call\` aligns. DecisionGATE after ChainLock-IN, before domain exec. 4DMap stays the inspection frame — not a sequential gate. TemporalLock + StaticClock are advisory stamps on the envelope (existing engines). LambGate is not a hop. FoldLock fld3-wire stays internal. Illegal reorder is refused. Identity Aziel Eliab only.
 **1.6.14 = 4DMap (4DM-WP-1.0)** as a true in-process engine: four-axis inspection frame T/Δ/Γ/Π. Domain Door / inspection layer after AZPIPE routes to isolated engines — not a sequential gate. LIVE_OPS health/skill/card_new/card_pin/card_span/card_join/card_walk/card_list/verify_hash. truth_score/lumen_panel/invent_mark/backdate_class stay stub. Plain bucket. FragGate claims cite join types. ChainLock may stamp walks. Neighbors TemporalLock/StaticClock/ChronoLock/TrajectoryLock/SpectralLock. EmbryoLock stays stub. GET /v1/mesh never enables. RL packed catalog stays 0-KV hot path.
@@ -334,6 +337,12 @@ ${skillCompatibleSection(base)}
 | GET | \`/v1/mesh/nodes\` | Rollup roster (no scores / leaderboard). |
 | POST | \`/v1/mesh/broadcast\` | SHA-256 hash receipt only. Never a publish path. |
 | GET | \`/v1/qns\` | QNS-CD-1.0 cite (photon QNS1 1.3). Local \`qnsd\` in qnm-node. Never a public via proxy. |
+| POST | \`/v1/memory/observe\` | AKM-TRIAD-1.0 observe (behind FragGate). |
+| POST | \`/v1/memory/resolve\` | Append a graded/UNKNOWN resolution. |
+| POST | \`/v1/memory/calibrate\` | 3-of-4 triad + Bayesian posterior. No auto MODEL_UPDATE. |
+| POST | \`/v1/memory/recall\` | Adaptive ranked recall after ChainLock verify. |
+| GET | \`/v1/memory/{id}\` | Read-only node / \`/history\` / \`/calibration\`. |
+| POST | \`/v1/memory/rebuild-index\` | OPERATOR / local only. |
 
 Library front door: https://www.azielcorpuslibrary.net/runtime  
 Library engine manifest (same as this Worker): https://www.azielcorpuslibrary.net/runtime/v1/runtime.json  
@@ -434,6 +443,7 @@ export function runtimeManifest(origin, products, extra = {}) {
       qns_cd: "QNS-CD-1.0",
       qns_process: "qnsd",
       qns_local: "https://github.com/AzielEliab/qnm-node",
+      akm_triad: "AKM-TRIAD-1.0",
       pipeline: "MASTER-33",
       pipeline_strip: LOCKED_STRIP,
       lamb_lens: true,
@@ -511,6 +521,11 @@ export function runtimeManifest(origin, products, extra = {}) {
       mesh_join: base + "/v1/mesh/join",
       mesh_broadcast: base + "/v1/mesh/broadcast",
       qns: base + "/v1/qns",
+      memory_observe: base + "/v1/memory/observe",
+      memory_resolve: base + "/v1/memory/resolve",
+      memory_calibrate: base + "/v1/memory/calibrate",
+      memory_recall: base + "/v1/memory/recall",
+      memory: base + "/v1/memory/{id}",
       llms: base + "/llms.txt",
       ai: base + "/ai.txt",
       sitemap: base + "/sitemap.xml",
@@ -829,7 +844,7 @@ export function runtimeStaticPaths() {
     "/v1/skill": {
       get: {
         operationId: "runtime_skill",
-        summary: "Skill markdown: 1.7.0 locks MASTER-33 (FragGate single door). 1.6.15 locked SUITE-PIPE. 1.6.14 adds 4DMap (4DM-WP-1.0). 1.6.13 aligns the QNM-BUILD-1.0 suite rollup. 1.6.12 adds GET /v1/software + client update check. Honest about 1.1.0 through 1.7.0.",
+        summary: "Skill markdown: 1.7.1 adds AKM-TRIAD-1.0. 1.7.0 locks MASTER-33 (FragGate single door). 1.6.15 locked SUITE-PIPE. 1.6.14 adds 4DMap (4DM-WP-1.0). 1.6.13 aligns the QNM-BUILD-1.0 suite rollup. 1.6.12 adds GET /v1/software + client update check. Honest about 1.1.0 through 1.7.1.",
         tags: ["runtime"],
         responses: { "200": { description: "text/markdown skill" } },
       },
@@ -1367,6 +1382,79 @@ export function runtimeStaticPaths() {
           "Refused. GET /v1/qns cites only. Public Worker must not proxy local via emit.",
         tags: ["mesh"],
         responses: { "405": { description: "QNS-CITE-ONLY" } },
+      },
+    },
+    "/v1/memory/observe": {
+      post: {
+        operationId: "memory_observe",
+        summary: "AKM-TRIAD-1.0 observe. Behind FragGate. Not a Softwares-tab product. Append-only learn stamp.",
+        tags: ["memory"],
+        requestBody: { required: true, content: { "application/json": { schema: { type: "object" } } } },
+        responses: { "200": { description: "Observation stamp" } },
+      },
+    },
+    "/v1/memory/resolve": {
+      post: {
+        operationId: "memory_resolve",
+        summary: "AKM-TRIAD-1.0 resolve. UNKNOWN ≠ MISS. Outcome requires provenance.",
+        tags: ["memory"],
+        requestBody: { required: true, content: { "application/json": { schema: { type: "object" } } } },
+        responses: { "200": { description: "Resolution stamp" } },
+      },
+    },
+    "/v1/memory/calibrate": {
+      post: {
+        operationId: "memory_calibrate",
+        summary: "AKM-TRIAD-1.0 calibrate. Deterministic 3-of-4 triad. No automatic MODEL_UPDATE.",
+        tags: ["memory"],
+        requestBody: { required: false, content: { "application/json": { schema: { type: "object" } } } },
+        responses: { "200": { description: "Calibration + triad" } },
+      },
+    },
+    "/v1/memory/recall": {
+      post: {
+        operationId: "memory_recall",
+        summary: "AKM-TRIAD-1.0 adaptive recall after ChainLock verify. Additive path.",
+        tags: ["memory"],
+        requestBody: { required: false, content: { "application/json": { schema: { type: "object" } } } },
+        responses: { "200": { description: "Ranked memory cards" } },
+      },
+    },
+    "/v1/memory/rebuild-index": {
+      post: {
+        operationId: "memory_rebuild_index",
+        security: [{ RuntimeToken: [] }],
+        summary: "Rebuild derived AdaptiveMemoryNode index from learn stamps. OPERATOR / local only.",
+        tags: ["memory"],
+        requestBody: { required: false, content: { "application/json": { schema: { type: "object" } } } },
+        responses: { "200": { description: "Rebuilt index" }, "400": { description: "Not operator" } },
+      },
+    },
+    "/v1/memory/{id}": {
+      get: {
+        operationId: "memory_get",
+        summary: "Read-only AdaptiveMemoryNode explainability.",
+        tags: ["memory"],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+        responses: { "200": { description: "Node JSON" }, "404": { description: "Unknown id" } },
+      },
+    },
+    "/v1/memory/{id}/history": {
+      get: {
+        operationId: "memory_history",
+        summary: "Read-only learn-chain history for one memory.",
+        tags: ["memory"],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+        responses: { "200": { description: "History JSON" } },
+      },
+    },
+    "/v1/memory/{id}/calibration": {
+      get: {
+        operationId: "memory_calibration",
+        summary: "Read-only posterior, triad legs, effective N, Brier.",
+        tags: ["memory"],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+        responses: { "200": { description: "Calibration JSON" } },
       },
     },
     "/v1/mesh/broadcast": {

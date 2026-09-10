@@ -475,6 +475,7 @@ assert.ok(!softBody.software.some((s) => s.slug === "chainlock"));
 assert.ok(!softBody.software.some((s) => s.slug === "azpipe"));
 assert.ok(!softBody.software.some((s) => s.slug === "sweepgate"));
 assert.ok(!softBody.software.some((s) => s.slug === "lockset"));
+assert.ok(!softBody.software.some((s) => s.slug === "memory"));
 
 const mesh = await (await get("/v1/mesh")).json();
 assert.equal(mesh.enabled, false);
@@ -491,6 +492,7 @@ const tools = (await list.json()).result.tools.map((t) => t.name);
 assert.ok(tools.includes("chainlock_append"));
 assert.ok(tools.includes("chainlock_verify"));
 assert.ok(tools.includes("chainlock_seal"));
+assert.ok(tools.includes("memory_recall"));
 assert.ok(tools.length <= PUBLIC_MCP_TOOL_MAX);
 
 const env = {};
@@ -518,5 +520,8 @@ assert.doesNotMatch(skill, /LambGate is a hop/);
 
 assert.ok(cite.designs.papers.some((p) => p.id === "SUITE-PIPE-1.6.15" && p.kind === "fabric"));
 assert.ok(cite.designs.papers.some((p) => p.id === "MASTER-33" && p.kind === "fabric"));
+assert.ok(cite.designs.papers.some((p) => p.id === "AKM-TRIAD-1.0" && p.kind === "fabric" && p.software_tab === false));
+assert.match(homeHtml, /AKM-TRIAD-1\.0/);
+assert.match(skill, /AKM-TRIAD-1\.0/);
 
 console.log("ok lattice SweepGate AZPIPE ChainLock LOCKSET packed-catalog");

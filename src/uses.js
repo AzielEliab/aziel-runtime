@@ -35,6 +35,7 @@ const SKIP_GET_READS = new Set([
   "/v1/mesh/status",
   "/v1/mesh/nodes",
   "/v1/qns",
+  "/v1/memory",
 ]);
 
 /** Hub / SEO catalog doors — full body, no USES get+put walk. */

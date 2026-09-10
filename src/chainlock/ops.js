@@ -6,6 +6,7 @@
  * Author: Aziel Eliab only.
  */
 
+import { boundMemoryMeta } from "../memory/meta.js";
 import { canonicalize, sha256Hex } from "../session-core.js";
 import { parseJsonl, storeFor, toJsonl, VAULT_CHAINS_PATH } from "./store.js";
 
@@ -132,6 +133,10 @@ export async function append(storeOrEnv, input = {}) {
   if (src.rose_transition_hash) unsigned.rose_transition_hash = String(src.rose_transition_hash);
   if (src.temporal_hash) unsigned.temporal_hash = String(src.temporal_hash);
   if (src.provenance_hash) unsigned.provenance_hash = String(src.provenance_hash);
+  if (src.memory != null) {
+    const memory = boundMemoryMeta(src.memory);
+    if (memory) unsigned.memory = memory;
+  }
   unsigned.fh = await factHash(fact);
   unsigned.stamp_sha256 = await stampSha256(unsigned);
   const card = toCard(unsigned, { pipe: src.pipe });
