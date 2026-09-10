@@ -33,8 +33,12 @@ plain). Sibling software under **one FragGate door** — never “separate FragG
 engines”. EmbryoLock is included as `status: "stub"` (name only; no Worker).
 
 Softwares-tab `count` includes placements (`azinterface`, `decisiongate`,
-`forgereceipts`). Isolation `domains.software_count` is **33**
+`forgereceipts`, `azcoherence`). Isolation `domains.software_count` is **33**
 (`domains_are_doors: false`). See `count_note`. Do not equate the two.
+
+`azcoherence` is Softwares-tab Plain (AZCoherence, AZC-0.1). Scoring-review
+placement adjacent to AZ-CLCE. Not AKM-TRIAD fabric. Not a 34th MASTER-33
+isolation software.
 
 ## Update check
 

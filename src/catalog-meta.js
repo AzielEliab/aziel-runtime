@@ -48,6 +48,10 @@ export const CATALOG_ALIASES = {
   "4d-map": "4dmap",
   "4dm-wp": "4dmap",
   "4dm-wp-1.0": "4dmap",
+  "az-coherence": "azcoherence",
+  az_coherence: "azcoherence",
+  "azc-0.1": "azcoherence",
+  "azc-wp": "azcoherence",
 };
 
 /**
@@ -135,6 +139,7 @@ export const VERSIONS = {
   azinterface: "0.1.0",
   "aziel-corpus": "2.6.2",
   "4dmap": "0.2.0",
+  azcoherence: "0.1.0",
 };
 
 /**
@@ -208,6 +213,7 @@ export const FIRST_TIME_DEPOSIT_SLUGS = [
   "azinterface",
   "aziel-corpus",
   "4dmap",
+  "azcoherence",
 ];
 
 export const ZENODO_AUDIT = {

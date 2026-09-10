@@ -255,6 +255,16 @@ export const LIVE_OPS = {
     "import",
     "neighbor",
   ],
+  azcoherence: [
+    "health",
+    "skill",
+    "doctor",
+    "verify",
+    "review_triad",
+    "alternate_score",
+    "coherence_check",
+    "neutralize_hallucination",
+  ],
 };
 
 /**
@@ -357,6 +367,18 @@ export const STUB_OPS = {
   mesh: MESH_STUB_OPS.slice(),
   memory: MEMORY_STUB_OPS.slice(),
   "4dmap": ["truth_score", "lumen_panel", "invent_mark", "backdate_class"],
+  azcoherence: [
+    "invent_evidence",
+    "invent",
+    "fabricate",
+    "truth_score",
+    "truth_claim",
+    "akm_calibrate",
+    "memory_observe",
+    "posterior_as_truth",
+    "auto_pass",
+    "blend_scores",
+  ],
   decisiongate: ["wrap", "execute", "remote", "truth_score", "court"],
   forgereceipts: ["court", "legal_advice", "odyssey", "file_store"],
   temporallock: ["truth_claim", "scheduler", "store_chain", "rollback"],

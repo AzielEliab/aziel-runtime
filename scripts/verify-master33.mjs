@@ -161,7 +161,7 @@ const map = domainMapView();
 assert.equal(map.domain_count, 11);
 assert.equal(map.software_count, 33);
 assert.equal(map.domains_are_doors, false);
-assert.deepEqual(map.tab_placement_slugs, ["azinterface", "decisiongate", "forgereceipts"]);
+assert.deepEqual(map.tab_placement_slugs, ["azinterface", "decisiongate", "forgereceipts", "azcoherence"]);
 assert.match(map.note, /placements/);
 assert.equal(MASTER_33_SLUGS.length, 33);
 assert.equal(domainFields("ark").domain_id, "01");
@@ -171,6 +171,8 @@ assert.equal(domainFields("azchat").domain, "Comms");
 assert.equal(domainFields("azinterface").placement, "human-ui");
 assert.equal(domainFields("decisiongate").placement, "fabric-product");
 assert.equal(domainFields("forgereceipts").placement, "fabric-product");
+assert.equal(domainFields("azcoherence").placement, "scoring-review");
+assert.equal(domainFields("azcoherence").domain, null);
 
 const cards = listSoftwareEntries(PRODUCTS, origin);
 assert.ok(cards.some((c) => c.slug === "azchat" && c.status === "stub" && c.domain_id === "07"));

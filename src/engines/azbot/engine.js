@@ -26,6 +26,7 @@ const CATALOG = [
   { slug: "chronolock", keys: ["window", "08:30", "advisory", "chrono"], op: "advisory", banner: "advisory only" },
   { slug: "postking", keys: ["chess", "king", "fen", "uci", "continuity"], op: "new", banner: "the goal is to remain" },
   { slug: "azclce", keys: ["clce", "jaccard", "triad", "inconsist"], op: "score", banner: "detects inconsistency, not intent" },
+  { slug: "azcoherence", keys: ["coherence", "hallucination", "alternate triad", "alternate score", "neutralize", "azcoherence"], op: "coherence_check", banner: "confidence ≠ truth; never invents evidence" },
   { slug: "ark", keys: ["vault", "sweep", "pe", "elf", "powershell"], op: "sweep", banner: "not a kernel" },
   { slug: "azai", keys: ["lamb", "jeeves", "blend", "openai"], op: "lamb-check", banner: "not the local blend" },
   { slug: "spectrallock", keys: ["overlay", "uv", "rosetta", "spectral", "png"], op: "overlay", banner: "256px preview, not a spectrometer" },
