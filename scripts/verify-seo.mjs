@@ -168,6 +168,8 @@ assert.match(sitemap, /\/v1\/fraggate\/software/);
 assert.match(sitemap, /\/cite\.json/);
 assert.match(sitemap, /\/llms\.txt/);
 assert.match(sitemap, /\/sitemap-index\.xml/);
+assert.match(sitemap, /github\.com\/AzielEliab\/aziel-runtime\/tree\/main\/docs\/designs/);
+assert.match(sitemap, /SEC-FEAT-1\.0\.md/);
 
 const indexRes = await get("/sitemap-index.xml");
 assert.equal(indexRes.status, 200);
@@ -203,6 +205,11 @@ assert.match(llms, /GPTBot\/ChatGPT/);
 assert.match(llms, /Google-CloudVertexBot/);
 assert.match(llms, /Baiduspider\*/);
 assert.match(llms, /\/v1\/uses/);
+assert.match(llms, /docs\/designs/);
+assert.match(llms, /SEC-FEAT-1\.0/);
+assert.match(llms, /AZL-WP-1\.1/);
+assert.match(llms, /QNM-WP-1\.0/);
+assert.match(llms, /not Softwares-tab products/);
 assert.doesNotMatch(llms, /10\.5281\/zenodo\.XXXX/);
 
 const aiRes = await get("/ai.txt");
@@ -227,6 +234,14 @@ assert.ok(cite.compatible_ai_clients.includes("Claude (Anthropic Desktop / custo
 assert.ok(cite.compatible_ai_clients.includes("plus other MCP/OpenAPI-capable assistants"));
 assert.match(cite.crawler_allow, /GPTBot\/ChatGPT/);
 assert.match(cite.crawler_allow, /Yandex/);
+assert.ok(cite.designs);
+assert.equal(cite.designs.folder, "docs/designs/");
+assert.equal(cite.designs.author, AUTHOR_NAME);
+assert.equal(cite.designs.not_fraggate_slug, true);
+assert.equal(cite.designs.mesh_get_never_enables, true);
+assert.match(cite.designs.how_to_cite, /Eliab, Aziel/);
+assert.ok(cite.designs.papers.some((p) => p.id === "SEC-FEAT-1.0"));
+assert.ok(cite.designs.papers.every((p) => /docs\/designs\//.test(p.path) && /github\.com\/AzielEliab\/aziel-runtime\/blob\/main/.test(p.github)));
 
 const catalogRes = await get("/v1/catalog.json");
 assert.equal(catalogRes.status, 200);
@@ -314,6 +329,9 @@ assert.match(home, /Microsoft Copilot \/ Bing/);
 assert.match(home, /Google Gemini \/ Vertex AI/);
 assert.match(home, /plus other MCP\/OpenAPI-capable assistants/);
 assert.doesNotMatch(home, /Import this file in ChatGPT GPT Actions, Grok custom tools, or Venice HTTP tools/);
+assert.match(home, /docs\/designs/);
+assert.match(home, /SEC-FEAT-1\.0/);
+assert.match(home, /github\.com\/AzielEliab\/aziel-runtime\/(?:tree|blob)\/main\/docs\/designs/);
 
 const card = await (await get("/p/foldlock")).text();
 assert.match(card, /"@type":"Person"/);
@@ -329,6 +347,8 @@ assert.ok(openapi.paths["/sitemap-index.xml"]);
 assert.ok(openapi.paths["/robots.txt"]);
 assert.match(openapi.info.description, /Claude \(Anthropic Desktop \/ custom tools\)/);
 assert.match(openapi.info.description, /plus other MCP\/OpenAPI-capable assistants/);
+assert.match(openapi.info.description, /docs\/designs/);
+assert.equal(openapi.info.externalDocs.url, "https://github.com/AzielEliab/aziel-runtime/tree/main/docs/designs");
 assert.doesNotMatch(openapi.info.description, /Import this file in ChatGPT GPT Actions, Grok custom tools, or Venice HTTP tools/);
 assert.match(openapi.components.securitySchemes.RuntimeToken.description, /Claude, Cursor, Glama/);
 

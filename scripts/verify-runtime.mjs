@@ -91,6 +91,10 @@ assert.match(skillText, /\/v1\/pull\/\{slug\}/);
 assert.match(skillText, /\/p\/\{slug\}\/\{op\}/);
 assert.match(skillText, /Mozilla\/5\.0/);
 assert.match(skillText, /Everblooming/);
+assert.match(skillText, /## Designs/);
+assert.match(skillText, /docs\/designs/);
+assert.match(skillText, /SEC-FEAT-1\.0/);
+assert.match(skillText, /not Softwares-tab products/);
 assert.doesNotMatch(skillText, /10\.5281\/zenodo\.XXXX/);
 
 const manifestRes = await get("/v1/runtime.json");

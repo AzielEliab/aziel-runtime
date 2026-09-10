@@ -317,3 +317,117 @@ export function llmsIdentityHeader() {
     `Digital Library: ${LIBRARY_NAME} — ${LIBRARY_ORIGIN}/`,
   ];
 }
+
+/** Git-hosted suite design pack. Not Softwares-tab products. Not a FragGate slug. GET /v1/mesh never enables. */
+export const DESIGNS_FOLDER = "docs/designs/";
+export const DESIGNS_GITHUB_TREE = "https://github.com/AzielEliab/aziel-runtime/tree/main/docs/designs";
+export const DESIGNS_GITHUB_BLOB = "https://github.com/AzielEliab/aziel-runtime/blob/main/docs/designs";
+
+export const SUITE_DESIGNS = Object.freeze([
+  {
+    id: "SEC-FEAT-1.0",
+    file: "SEC-FEAT-1.0.md",
+    one_line: "Security feature inventory — door, stubs, vault, fabric; what is not a security feature",
+  },
+  {
+    id: "AZL-VOL-1.0",
+    file: "AZL-VOL-1.0.md",
+    one_line: "Software catalog + Q×act lattice ledger",
+  },
+  {
+    id: "AZL-ARCH-1.0",
+    file: "AZL-ARCH-1.0.md",
+    one_line: "azieleliab.com architecture (39 named)",
+  },
+  {
+    id: "AZL-WP-1.1",
+    file: "AZL-WP-1.1.md",
+    one_line: "Master lattice concept — exec pipe, ledger, UI=MCP",
+  },
+  {
+    id: "QNM-WP-1.0",
+    file: "QNM-WP-1.0.md",
+    one_line: "Quantum Node Mesh fabric — local ON / public rollup OFF",
+  },
+  {
+    id: "NODE-OPS-1.0",
+    file: "NODE-OPS-1.0.md",
+    one_line: "Node operations + surface law + phoenix loop",
+  },
+]);
+
+export function designGithubUrl(file) {
+  return `${DESIGNS_GITHUB_BLOB}/${file}`;
+}
+
+function designPaperRecord(d) {
+  const github = designGithubUrl(d.file);
+  const pdf_file = d.file.replace(/\.md$/, ".pdf");
+  return {
+    id: d.id,
+    path: `${DESIGNS_FOLDER}${d.file}`,
+    github,
+    pdf: designGithubUrl(pdf_file),
+    one_line: d.one_line,
+    how_to_cite: `${AUTHOR_FAMILY_GIVEN}. (2026). ${d.id} [Design]. ${github}`,
+  };
+}
+
+export function designsCiteField() {
+  return {
+    hosted: "git",
+    folder: DESIGNS_FOLDER,
+    folder_github: DESIGNS_GITHUB_TREE,
+    author: AUTHOR_NAME,
+    identity: AUTHOR_NAME,
+    not_software_tab: true,
+    not_fraggate_slug: true,
+    mesh_get_never_enables: true,
+    worker_serves_pdfs: false,
+    how_to_cite: `${AUTHOR_FAMILY_GIVEN}. (2026). {id} [Design]. ${DESIGNS_GITHUB_BLOB}/{FILE}`,
+    papers: SUITE_DESIGNS.map(designPaperRecord),
+  };
+}
+
+export function designsSkillMarkdown() {
+  const lines = [
+    "## Designs",
+    "",
+    "Suite software-design papers (not Softwares-tab products, not a FragGate slug). `GET /v1/mesh` never enables. Git-hosted — the Worker does not serve the PDFs. Public identity Aziel Eliab only.",
+    "",
+  ];
+  for (const d of SUITE_DESIGNS) {
+    lines.push(`- **${d.id}** — ${d.one_line}. ${designGithubUrl(d.file)}`);
+  }
+  lines.push("");
+  lines.push(`Index: ${DESIGNS_GITHUB_TREE}`);
+  lines.push("");
+  return lines.join("\n");
+}
+
+export function designsLlmsBlock() {
+  const lines = [
+    "## Designs",
+    "",
+    "Suite software-design papers (not Softwares-tab products, not a FragGate slug). GET /v1/mesh never enables. Git-hosted — the Worker does not serve the PDFs. Author: Aziel Eliab only.",
+    `Index: ${DESIGNS_GITHUB_TREE}`,
+    "",
+  ];
+  for (const d of SUITE_DESIGNS) {
+    lines.push(`- ${d.id} — ${d.one_line}. ${designGithubUrl(d.file)}`);
+  }
+  lines.push("");
+  return lines.join("\n");
+}
+
+export function designsLlmsHeaderLine() {
+  const ids = SUITE_DESIGNS.map((d) => d.id).join(", ");
+  return `Designs: ${DESIGNS_FOLDER} (${ids}) git-hosted — not Softwares-tab products, not a FragGate slug. GET /v1/mesh never enables. ${DESIGNS_GITHUB_TREE}`;
+}
+
+export function designsSitemapUrls() {
+  return [
+    DESIGNS_GITHUB_TREE,
+    ...SUITE_DESIGNS.map((d) => designGithubUrl(d.file)),
+  ];
+}
