@@ -17,10 +17,18 @@ import {
   uniqueUserAgents,
 } from "../src/seo.js";
 import {
+  ABOUT_PAGE_TITLE,
   DESCRIBE_INDEX_TITLE,
   SOFTWARE_PAGE_TITLE,
   prefersHtml,
 } from "../src/seo-html.js";
+import {
+  CRAWLER_LEAD_VERSION_RE,
+  PRODUCT_NAME,
+  RUNTIME_ABSTRACT,
+  RUNTIME_ONE_LINE,
+  RUNTIME_PAGE_TITLE,
+} from "../src/seo.js";
 
 const handler = (await import("../src/index.js")).default.fetch;
 const origin = "https://aziel-runtime.example";
@@ -462,7 +470,7 @@ const describeHtmlRes = await handler(
 assert.equal(describeHtmlRes.status, 200);
 mime(describeHtmlRes, /text\/html; charset=utf-8/);
 const describeHtml = await describeHtmlRes.text();
-assert.match(describeHtml, /<title>AZCoherence — FragGate describe — Aziel Eliab Runtime<\/title>/);
+assert.match(describeHtml, /<title>AZCoherence — FragGate describe — Aziel Runtime<\/title>/);
 assert.match(describeHtml, /application\/ld\+json/);
 assert.match(describeHtml, /"@type":"Person"/);
 assert.match(describeHtml, /www\.azieleliab\.com\/software/);
@@ -497,4 +505,60 @@ assert.equal(openapi.info.externalDocs.url, "https://github.com/AzielEliab/aziel
 assert.doesNotMatch(openapi.info.description, /Import this file in ChatGPT GPT Actions, Grok custom tools, or Venice HTTP tools/);
 assert.match(openapi.components.securitySchemes.RuntimeToken.description, /Claude, Cursor, Glama/);
 
-console.log("ok seo hub: robots, sitemap-index, llms/cite MIME, Person JSON-LD, catalog crawl links, HTML shells");
+function firstVisibleText(html, n = 500) {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, n);
+}
+
+const homeLead = firstVisibleText(home, 500);
+assert.match(homeLead, /not merely an API orchestrator or software aggregator/);
+assert.match(homeLead, /node-meshed orchestration suite of MCP-connected software/);
+assert.doesNotMatch(homeLead, CRAWLER_LEAD_VERSION_RE);
+assert.match(home, new RegExp(`<title>${RUNTIME_PAGE_TITLE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}</title>`));
+assert.match(home, new RegExp(`<meta name="description" content="${RUNTIME_ABSTRACT.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`));
+assert.match(home, /<h2>Softwares<\/h2>\s*[\s\S]*?class="card"/);
+assert.match(home, /id="version-history"/);
+assert.ok(home.indexOf(RUNTIME_ABSTRACT) < home.indexOf("id=\"version-history\""));
+assert.match(home, /"@type":"WebAPI"/);
+assert.match(home, /"name":"FragGate"/);
+
+const llmsHead = llms.split("\n").slice(0, 30).join("\n");
+assert.match(llmsHead, /## What this is/);
+assert.match(llmsHead, /## How to use/);
+assert.match(llmsHead, /not merely an API orchestrator or software aggregator/);
+assert.doesNotMatch(llmsHead, CRAWLER_LEAD_VERSION_RE);
+assert.match(llms, /## Version history/);
+assert.ok(llms.indexOf("## What this is") < llms.indexOf("## Version history"));
+assert.equal(llms.includes(RUNTIME_ABSTRACT), true);
+
+assert.equal(cite.one_line, RUNTIME_ONE_LINE);
+assert.equal(cite.abstract, RUNTIME_ABSTRACT);
+assert.equal(cite.product, PRODUCT_NAME);
+assert.equal(cite.about.what, RUNTIME_ABSTRACT);
+assert.equal(cite.about.author, AUTHOR_NAME);
+assert.ok(cite.about.not.some((line) => /API orchestrator/.test(line)));
+assert.match(cite.about.architecture.fraggate, /single public executable door/);
+assert.match(cite.about.architecture.nodemesh, /GET \/v1\/mesh never enables/);
+
+assert.match(sitemap, /\/about</);
+assert.match(sitemap, /\/v1\/about</);
+
+const aboutRes = await get("/about");
+assert.equal(aboutRes.status, 200);
+mime(aboutRes, /text\/html; charset=utf-8/);
+const aboutHtml = await aboutRes.text();
+assert.match(aboutHtml, new RegExp(`<title>${ABOUT_PAGE_TITLE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}</title>`));
+assert.match(aboutHtml, /not merely an API orchestrator or software aggregator/);
+assert.doesNotMatch(firstVisibleText(aboutHtml, 500), CRAWLER_LEAD_VERSION_RE);
+assert.equal(cite.about.changelog_below_abstract, true);
+assert.match(aboutHtml, /How agents call it/);
+assert.match(aboutHtml, /How hubs use it/);
+assert.match(aboutHtml, /What it is not/);
+assert.equal(await (await get("/v1/about")).text(), aboutHtml);
+
+console.log("ok seo hub: robots, sitemap-index, llms/cite MIME, Person JSON-LD, catalog crawl links, HTML shells, definition-first abstract");
