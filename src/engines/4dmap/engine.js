@@ -10,7 +10,7 @@
 
 export const PRODUCT = "4dmap";
 export const NAME = "4DMap";
-export const VERSION = "0.1.0";
+export const VERSION = "0.2.0";
 export const SPEC = "4DM-WP-1.0";
 export const AUTHOR = "Aziel Eliab";
 export const MOTTO = "Inspect on four axes. Do not invent a mark. Do not score truth.";
@@ -19,8 +19,10 @@ export const LAYER = "inspection_frame";
 export const SEQUENTIAL_GATE = false;
 export const DOMAINS_ARE_DOORS = false;
 export const EXPORT_SCHEMA = "4DM-EXPORT-0.1";
+export const PI_EMPTY = "Π-EMPTY";
+export const ZION_CAP = 0.75;
 export const PRODUCT_SYNC_NOTE =
-  "Product repo 4dmap is still 0.1.0 on main. Runtime 1.7.4 hosts enhanced 4DM-WP-1.0 inspection-frame ops (frame_status, axis_describe, walk_trace, card_export, card_import, verify_chain, neighbor_cite). After product 0.2.0 deploys, recompute engine_digest and align catalog version if the product Worker digest changes. Do not invent a product digest before that deploy.";
+  "Product repo 4dmap 0.2.0 is merged on main (4DM-WP-1.0). Runtime 1.7.6 hosts the same LIVE_OPS verbs on the in-process multi-axis card store (not a rewrite to product 4DM-CARD receipts). engine_digest is the runtime isolate artifact. GitBaby merges and deploys the product Worker — do not invent a product Worker digest here. FragGate remains THE single door. Mesh stays default-off.";
 export const CARD_CAP = 64;
 export const WALK_CAP = 32;
 export const MARK_CAP = 240;
@@ -43,6 +45,10 @@ export const AXIS_ALIASES = Object.freeze({
   class: "Γ",
   genus: "Γ",
   spectral: "Γ",
+  clock: "T",
+  interval: "Δ",
+  trajectory: "Γ",
+  provenance: "Π",
   p: "Π",
   pi: "Π",
   path: "Π",
@@ -50,19 +56,62 @@ export const AXIS_ALIASES = Object.freeze({
   projection: "Π",
 });
 
+export const AXIS_FRAME = Object.freeze({
+  T: {
+    glyph: "T",
+    name: "Clock",
+    meaning: "time / when a pin sits",
+    companions: ["temporallock", "staticclock", "chronolock"],
+    ops: ["pin", "card_pin", "span", "card_span", "walk", "walk_trace"],
+  },
+  Δ: {
+    glyph: "Δ",
+    name: "Interval",
+    meaning: "delta / change / span or gap between pins",
+    companions: ["temporallock", "chronolock"],
+    ops: ["span", "card_span", "gap", "walk", "walk_trace"],
+  },
+  Γ: {
+    glyph: "Γ",
+    name: "Trajectory",
+    meaning: "pattern / geometry / stacked or walked motion of pins",
+    companions: ["trajectorylock"],
+    ops: ["stack", "walk", "walk_trace", "pin", "card_pin"],
+  },
+  Π: {
+    glyph: "Π",
+    name: "Pattern",
+    meaning: "provenance / path / class / cohort / absence / silence",
+    companions: ["spectrallock"],
+    ops: ["lens", "class", "cohort", "absence", "pin", "card_pin"],
+  },
+});
+
 export const AXIS_ROLES = Object.freeze({
-  T: "time / temporal class",
-  Δ: "change / difference",
-  Γ: "class / genus / spectral class",
-  Π: "path / projection / walk",
+  T: AXIS_FRAME.T.meaning,
+  Δ: AXIS_FRAME.Δ.meaning,
+  Γ: AXIS_FRAME.Γ.meaning,
+  Π: AXIS_FRAME.Π.meaning,
 });
 
 export const AXIS_NEIGHBORS = Object.freeze({
-  T: ["temporallock", "staticclock", "chronolock"],
-  Δ: ["temporallock", "trajectorylock"],
-  Γ: ["spectrallock"],
-  Π: ["trajectorylock"],
+  T: AXIS_FRAME.T.companions.slice(),
+  Δ: AXIS_FRAME.Δ.companions.slice(),
+  Γ: AXIS_FRAME.Γ.companions.slice(),
+  Π: AXIS_FRAME.Π.companions.slice(),
 });
+
+export const ALLOWED_AXIS_JOINS = Object.freeze([
+  ["T", "Δ"],
+  ["Δ", "T"],
+  ["Δ", "Γ"],
+  ["Γ", "Δ"],
+  ["Γ", "Π"],
+  ["Π", "Γ"],
+  ["T", "Π"],
+]);
+
+export const ILLEGAL_AXIS_JOINS = Object.freeze([["Π", "T"]]);
 
 export const NEIGHBORS = Object.freeze([
   "temporallock",
@@ -168,10 +217,10 @@ export function normalizeJoinType(raw) {
 
 export function joinTypeForOp(op) {
   const verb = String(op || "").trim();
-  if (verb === "card_pin") return "pin";
-  if (verb === "card_span") return "span";
-  if (verb === "card_join") return "join";
-  if (verb === "card_walk" || verb === "walk_trace") return "walk";
+  if (verb === "card_pin" || verb === "pin") return "pin";
+  if (verb === "card_span" || verb === "span" || verb === "gap") return "span";
+  if (verb === "card_join" || verb === "join") return "join";
+  if (verb === "card_walk" || verb === "walk" || verb === "walk_trace") return "walk";
   if (verb === "verify_hash" || verb === "verify_chain") return "cite";
   if (verb === "neighbor_cite") return "neighbor";
   return "inspect";
@@ -336,7 +385,7 @@ Four-axis inspection frame **T / Δ / Γ / Π**. Inspection frame after AZPIPE (
 - FragGate claims cite join types: pin, span, join, walk, overlay, cite, neighbor, inspect
 - Leftover flat names such as \`4dmap_card_new\` still go through FragGate (\`parseTarget\`) — they are not a side door and are not listed on \`tools/list\`
 
-LIVE_OPS: health, skill, card_new, card_pin, card_span, card_join, card_walk, card_list, verify_hash, frame_status, axis_describe, walk_trace, card_export, card_import, verify_chain, neighbor_cite.
+LIVE_OPS: health, skill, pin, span, stack, gap, fork, walk, lens, class, cohort, absence, cap, join, list, example, card_new, card_pin, card_span, card_join, card_walk, card_list, verify_hash, frame_status, axis_describe, walk_trace, card_export, card_import, verify_chain, neighbor_cite.
 
 Stubs (refuse): truth_score, lumen_panel, invent_mark, backdate_class.
 
@@ -351,7 +400,7 @@ Limitation: ${LIMITATION}
 
 Four-axis inspection frame T/Δ/Γ/Π. Inspection frame after AZPIPE, not an extra door. Not a sequential gate.
 
-LIVE_OPS: health, skill, card_new, card_pin, card_span, card_join, card_walk, card_list, verify_hash, frame_status, axis_describe, walk_trace, card_export, card_import, verify_chain, neighbor_cite.
+LIVE_OPS: health, skill, pin, span, stack, gap, fork, walk, lens, class, cohort, absence, cap, join, list, example, card_new, card_pin, card_span, card_join, card_walk, card_list, verify_hash, frame_status, axis_describe, walk_trace, card_export, card_import, verify_chain, neighbor_cite.
 Stubs: truth_score, lumen_panel, invent_mark, backdate_class.
 Join types cited on FragGate claims: ${JOIN_TYPES.join(", ")}.
 Neighbors: ${NEIGHBORS.join(", ")}.
@@ -731,12 +780,18 @@ export function axisDescribe(payload) {
       pin_hash: card.axes[axis].hash || null,
     });
   }
+  const frame = AXIS_FRAME[axis];
   return baseResult({
     op: "axis_describe",
     join_type: "inspect",
     axis,
+    glyph: frame.glyph,
+    name: frame.name,
+    meaning: frame.meaning,
     role: AXIS_ROLES[axis],
     neighbors: AXIS_NEIGHBORS[axis].slice(),
+    companions: frame.companions.slice(),
+    ops: frame.ops.slice(),
     pinned_count: pinned.length,
     pinned,
     note: "Axes are simultaneous, not a hop list. 4DMap is not a sequential gate.",
@@ -749,6 +804,8 @@ export function walkTrace(payload) {
   const src = srcOf(payload);
   const walk = memory.walks.get(clip(src.walk_id, ID_CAP));
   if (!walk) {
+    const tip = clip(src.tip || src.id || src.card_id, ID_CAP);
+    if (tip && memory.cards.has(tip)) return walkPrevChain(tip, "walk_trace");
     return {
       ...refuseForbidden({ kind: "missing", code: "4DM-MISSING" }, { op: "walk_trace", join_type: "walk" }),
       message: "Unknown walk_id. Trace a declared walk — 4DMap does not invent a path.",
@@ -1150,5 +1207,429 @@ export async function neighborCite(payload) {
     cite,
     card: cardView(card),
     note: "Neighbor cite records a declared neighbor engine. 4DMap does not invent marks or open a second door.",
+  });
+}
+
+function retag(result, op, extra = {}) {
+  if (!result || typeof result !== "object") return result;
+  return { ...result, op, ...extra };
+}
+
+function findForks() {
+  const children = {};
+  for (const card of memory.cards.values()) {
+    const prev = card.prev_hash || GENESIS_PREV;
+    if (!children[prev]) children[prev] = [];
+    children[prev].push(card.card_hash);
+  }
+  return Object.entries(children)
+    .filter(([, hashes]) => hashes.length > 1)
+    .map(([prev, hashes]) => ({ prev, child_hashes: hashes, kept: true, winner: null }));
+}
+
+function walkPrevChain(tip, op) {
+  const start = memory.cards.get(tip);
+  if (!start) {
+    return {
+      ...refuseForbidden({ kind: "missing", code: "4DM-MISSING" }, { op, join_type: "walk" }),
+      message: `Unknown card_id ${tip}. Walks do not invent cards.`,
+    };
+  }
+  const seen = new Set();
+  const chain = [];
+  let card = start;
+  while (card) {
+    if (seen.has(card.card_hash)) {
+      return {
+        ...refuseForbidden({ kind: "hash", code: "4DM-HASH" }, { op, join_type: "walk" }),
+        message: "fail-closed: walk cycle",
+      };
+    }
+    seen.add(card.card_hash);
+    chain.push(card);
+    const prev = card.prev_hash || GENESIS_PREV;
+    if (prev === GENESIS_PREV || !prev) break;
+    card = [...memory.cards.values()].find((row) => row.card_hash === prev) || null;
+  }
+  chain.reverse();
+  const steps = chain.map((row, i) => ({
+    i,
+    card_id: row.card_id,
+    h: row.card_hash,
+    prev: row.prev_hash,
+    axes: { ...row.axes },
+  }));
+  return baseResult({
+    op,
+    join_type: "walk",
+    tip,
+    n: chain.length,
+    cards: chain.map(cardView),
+    steps,
+    forks: findForks(),
+    genesis: Boolean(steps.length) && steps[0].prev === GENESIS_PREV,
+    sequential_gate: false,
+    note: "A walk traces declared cards. 4DMap is not a sequential gate.",
+  });
+}
+
+function markFromObject(value) {
+  if (value == null) return "";
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return String(value);
+  if (Array.isArray(value)) return value.map((item) => String(item)).join(",");
+  if (typeof value === "object") {
+    return String(value.change || value.geometry || value.gap || value.class || value.cohort || value.mark || value.value || "");
+  }
+  return "";
+}
+
+function declaredMark(src, axis) {
+  const byAxis = axis === "T" ? src.t : axis === "Δ" ? src.delta : axis === "Γ" ? src.gamma : src.pi;
+  return clip(src.mark || src.text || src.declared || src.value || markFromObject(byAxis) || markFromObject(src.t) || src.note, MARK_CAP);
+}
+
+function parseAxisJoin(raw) {
+  if (raw == null || raw === "") return null;
+  let text = String(raw)
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "")
+    .replace(/Δ/g, "DELTA")
+    .replace(/Γ/g, "GAMMA")
+    .replace(/Π/g, "PI")
+    .replace(/↔/g, "-")
+    .replace(/->/g, "-")
+    .replace(/→/g, "-")
+    .replace(/_/g, "-");
+  const aliases = { D: "DELTA", INTERVAL: "DELTA", G: "GAMMA", TRAJECTORY: "GAMMA", P: "PI", PATTERN: "PI", CLOCK: "T" };
+  const parts = text.split("-").filter(Boolean);
+  if (parts.length !== 2) return null;
+  const left = normalizeAxis(aliases[parts[0]] || parts[0]);
+  const right = normalizeAxis(aliases[parts[1]] || parts[1]);
+  if (!left || !right) return null;
+  return [left, right];
+}
+
+function searchCards(query) {
+  const q = String(query || "").trim().toLowerCase();
+  if (!q) return [];
+  const hits = [];
+  for (const card of memory.cards.values()) {
+    const blob = [card.card_id, card.label, ...AXES.map((axis) => (card.axes[axis] && card.axes[axis].mark) || "")].join(" ").toLowerCase();
+    if (blob.includes(q)) hits.push(card.card_id);
+  }
+  return hits;
+}
+
+export async function pin(payload) {
+  const hit = detectForbidden(payload);
+  if (hit) return refuseForbidden(hit, { op: "pin", join_type: "pin" });
+  const src = srcOf(payload);
+  const axis = normalizeAxis(src.axis || "T");
+  if (!axis) {
+    return {
+      ...refuseForbidden({ kind: "axis", code: "4DM-AXIS" }, { op: "pin", join_type: "pin" }),
+      message: `Axis must be one of ${AXES.join(" / ")}.`,
+    };
+  }
+  const mark = declaredMark(src, axis);
+  let card_id = clip(src.card_id, ID_CAP);
+  if (!card_id) {
+    const opened = await cardNew({ label: src.note || src.label || `${axis} pin` });
+    if (!opened.ok) return retag(opened, "pin");
+    card_id = opened.card.card_id;
+  }
+  return retag(await cardPin({ ...src, card_id, axis, mark }), "pin");
+}
+
+export async function span(payload) {
+  const hit = detectForbidden(payload);
+  if (hit) return refuseForbidden(hit, { op: "span", join_type: "span" });
+  const src = srcOf(payload);
+  const card_id = clip(src.card_id, ID_CAP);
+  const fromAxis = normalizeAxis(src.from);
+  const toAxis = normalizeAxis(src.to);
+  if (card_id && fromAxis && toAxis) return retag(await cardSpan(payload), "span");
+  const fromId = clip(src.from_id || src.a, ID_CAP);
+  const toId = clip(src.to_id || src.b, ID_CAP);
+  const left = memory.cards.get(fromId);
+  const right = memory.cards.get(toId);
+  if (!left || !right) {
+    return {
+      ...refuseForbidden({ kind: "missing", code: "4DM-MISSING" }, { op: "span", join_type: "span" }),
+      message: "Span needs two existing cards or a card_id with two axes. 4DMap does not invent marks.",
+    };
+  }
+  const opened = await cardNew({ label: src.note || "Δ span" });
+  if (!opened.ok) return retag(opened, "span");
+  const pinned = await cardPin({
+    card_id: opened.card.card_id,
+    axis: "Δ",
+    mark: `span ${left.card_id}→${right.card_id}`,
+  });
+  if (!pinned.ok) return retag(pinned, "span");
+  const card = memory.cards.get(opened.card.card_id);
+  card.prev_hash = right.card_hash || left.card_hash;
+  card.card_hash = await hashCard(card);
+  memory.cards.set(card.card_id, card);
+  return baseResult({
+    op: "span",
+    join_type: "span",
+    axis: "Δ",
+    glyph: "Δ",
+    card: cardView(card),
+    companions_merged: false,
+  });
+}
+
+export async function stack(payload) {
+  const hit = detectForbidden(payload);
+  if (hit) return refuseForbidden(hit, { op: "stack", join_type: "inspect" });
+  const src = srcOf(payload);
+  const ids = Array.isArray(src.ids) ? src.ids.map((id) => clip(id, ID_CAP)).filter(Boolean) : [];
+  const picked = [];
+  for (const id of ids) {
+    const card = memory.cards.get(id);
+    if (!card) {
+      return {
+        ...refuseForbidden({ kind: "missing", code: "4DM-MISSING" }, { op: "stack", join_type: "inspect" }),
+        message: `Unknown card_id ${id}. Stack does not invent cards.`,
+      };
+    }
+    picked.push(card);
+  }
+  const opened = await cardNew({ label: src.note || "Γ stack" });
+  if (!opened.ok) return retag(opened, "stack");
+  const mark = picked.length ? `stack ${picked.map((c) => c.card_id).join(",")}` : "Γ stack";
+  const pinned = await cardPin({ card_id: opened.card.card_id, axis: "Γ", mark });
+  if (!pinned.ok) return retag(pinned, "stack");
+  const card = memory.cards.get(opened.card.card_id);
+  if (picked.length) {
+    card.prev_hash = picked[picked.length - 1].card_hash;
+    card.card_hash = await hashCard(card);
+    memory.cards.set(card.card_id, card);
+  }
+  return baseResult({
+    op: "stack",
+    join_type: "inspect",
+    axis: "Γ",
+    glyph: "Γ",
+    card: cardView(card),
+  });
+}
+
+export async function gap(payload) {
+  const hit = detectForbidden(payload);
+  if (hit) return refuseForbidden(hit, { op: "gap", join_type: "span" });
+  const src = srcOf(payload);
+  const from = clip(src.from_id || src.t0 || src.from, ID_CAP);
+  const to = clip(src.to_id || src.t1 || src.to, ID_CAP);
+  const opened = await cardNew({ label: src.note || "Δ gap" });
+  if (!opened.ok) return retag(opened, "gap");
+  const pinned = await cardPin({
+    card_id: opened.card.card_id,
+    axis: "Δ",
+    mark: `gap ${from || "?"}→${to || "?"}`,
+  });
+  if (!pinned.ok) return retag(pinned, "gap");
+  return retag(pinned, "gap", { axis: "Δ", glyph: "Δ" });
+}
+
+export async function fork(payload) {
+  const hit = detectForbidden(payload);
+  if (hit) return refuseForbidden(hit, { op: "fork", join_type: "inspect" });
+  const src = srcOf(payload);
+  const source = memory.cards.get(clip(src.id || src.card_id, ID_CAP));
+  if (!source) {
+    return {
+      ...refuseForbidden({ kind: "missing", code: "4DM-MISSING" }, { op: "fork", join_type: "inspect" }),
+      message: "Unknown card_id. Fork a declared card — 4DMap does not invent a sibling.",
+    };
+  }
+  const opened = await cardNew({ label: src.note || `${source.label} fork` });
+  if (!opened.ok) return retag(opened, "fork");
+  const card = memory.cards.get(opened.card.card_id);
+  card.axes = emptyAxes();
+  for (const axis of AXES) {
+    if (source.axes[axis]) card.axes[axis] = { ...source.axes[axis] };
+  }
+  card.prev_hash = source.prev_hash;
+  card.card_hash = await hashCard(card);
+  memory.cards.set(card.card_id, card);
+  return baseResult({
+    op: "fork",
+    join_type: "inspect",
+    card: cardView(card),
+    forks_kept: true,
+    winner: null,
+    forks: findForks(),
+  });
+}
+
+export async function walk(payload) {
+  const hit = detectForbidden(payload);
+  if (hit) return refuseForbidden(hit, { op: "walk", join_type: "walk" });
+  const src = srcOf(payload);
+  const ids = Array.isArray(src.card_ids) ? src.card_ids : [];
+  if (ids.length >= 2) return retag(await cardWalk(payload), "walk");
+  const tip = clip(src.tip || src.id || src.card_id, ID_CAP);
+  if (tip) return walkPrevChain(tip, "walk");
+  return {
+    ...refuseForbidden({ kind: "walk", code: "4DM-WALK" }, { op: "walk", join_type: "walk" }),
+    message: "A walk needs card_ids or a tip. 4DMap is not a sequential gate.",
+  };
+}
+
+export function lens(payload) {
+  const hit = detectForbidden(payload);
+  if (hit) return refuseForbidden(hit, { op: "lens", join_type: "inspect" });
+  const query = String(srcOf(payload).query || "").trim();
+  if (!query) {
+    return baseResult({ op: "lens", join_type: "inspect", pi: PI_EMPTY, silent: true, note: "lens silent → Π-EMPTY" });
+  }
+  const hits = searchCards(query);
+  if (!hits.length) {
+    return baseResult({ op: "lens", join_type: "inspect", pi: PI_EMPTY, silent: true, note: "lens silent → Π-EMPTY" });
+  }
+  return baseResult({
+    op: "lens",
+    join_type: "inspect",
+    pi: { class: "lens-hit", ids: hits },
+    silent: false,
+    hits,
+  });
+}
+
+export function absence(payload) {
+  const hit = detectForbidden(payload);
+  if (hit) return refuseForbidden(hit, { op: "absence", join_type: "inspect" });
+  const query = String(srcOf(payload).query || "").trim();
+  if (!query) {
+    return baseResult({ op: "absence", join_type: "inspect", pi: PI_EMPTY, silent: true, note: "lens silent → Π-EMPTY" });
+  }
+  const hits = searchCards(query);
+  if (!hits.length) {
+    return baseResult({ op: "absence", join_type: "inspect", pi: PI_EMPTY, silent: true, note: "lens silent → Π-EMPTY" });
+  }
+  return baseResult({
+    op: "absence",
+    join_type: "inspect",
+    pi: { class: "lens-hit", ids: hits },
+    silent: false,
+    hits,
+  });
+}
+
+export async function classMark(payload) {
+  const hit = detectForbidden(payload);
+  if (hit) return refuseForbidden(hit, { op: "class", join_type: "inspect" });
+  const src = srcOf(payload);
+  const label = clip(src.label || src.mark || src.class, MARK_CAP);
+  if (!label) return baseResult({ op: "class", join_type: "inspect", pi: PI_EMPTY, silent: true });
+  const opened = await cardNew({ label: src.note || `Π class ${label}` });
+  if (!opened.ok) return retag(opened, "class");
+  const pinned = await cardPin({ card_id: opened.card.card_id, axis: "Π", mark: label, class: label });
+  return retag(pinned, "class", { pi: { class: label } });
+}
+
+export async function cohort(payload) {
+  const hit = detectForbidden(payload);
+  if (hit) return refuseForbidden(hit, { op: "cohort", join_type: "inspect" });
+  const src = srcOf(payload);
+  const ids = (Array.isArray(src.ids) ? src.ids : []).map((id) => clip(id, ID_CAP)).filter(Boolean);
+  if (!ids.length) return baseResult({ op: "cohort", join_type: "inspect", pi: PI_EMPTY, silent: true });
+  const opened = await cardNew({ label: src.note || "Π cohort" });
+  if (!opened.ok) return retag(opened, "cohort");
+  const pinned = await cardPin({ card_id: opened.card.card_id, axis: "Π", mark: `cohort ${ids.join(",")}` });
+  return retag(pinned, "cohort", { pi: { cohort: ids } });
+}
+
+export function cap(payload) {
+  const hit = detectForbidden(payload);
+  if (hit) return refuseForbidden(hit, { op: "cap", join_type: "inspect" });
+  const src = srcOf(payload);
+  const score = Number(src.score ?? src.confidence ?? 0);
+  if (!Number.isFinite(score)) {
+    return {
+      ...refuseForbidden({ kind: "cap", code: "4DM-CAP" }, { op: "cap", join_type: "inspect" }),
+      message: "score must be a number",
+    };
+  }
+  const capped = Math.min(Math.max(score, 0), ZION_CAP);
+  return baseResult({
+    op: "cap",
+    join_type: "inspect",
+    score: capped,
+    raw: score,
+    capped: score > ZION_CAP,
+    zion_cap: ZION_CAP,
+    note: "ZionPattern cap 75%. P(pattern | cards) is not P(the world is true).",
+  });
+}
+
+export async function join(payload) {
+  const hit = detectForbidden(payload);
+  if (hit) return refuseForbidden(hit, { op: "join", join_type: "join" });
+  const src = srcOf(payload);
+  if (src.backdate) {
+    return refuseForbidden(
+      { kind: "backdate_class", code: "4DM-BACKDATE-REFUSE" },
+      { op: "join", join_type: "join", message: "illegal join: Π→T backdate refused (pattern cannot rewrite the clock)" },
+    );
+  }
+  const pair = parseAxisJoin(src.join_type || src.type);
+  if (pair) {
+    const illegal = ILLEGAL_AXIS_JOINS.some(([a, b]) => a === pair[0] && b === pair[1]);
+    if (illegal) {
+      return refuseForbidden(
+        { kind: "backdate_class", code: "4DM-BACKDATE-REFUSE" },
+        { op: "join", join_type: "join", message: "illegal join: Π→T backdate refused (pattern cannot rewrite the clock)" },
+      );
+    }
+    const allowed = ALLOWED_AXIS_JOINS.some(([a, b]) => a === pair[0] && b === pair[1]);
+    if (!allowed) {
+      return {
+        ...refuseForbidden({ kind: "join", code: "4DM-JOIN" }, { op: "join", join_type: "join" }),
+        message: `illegal join ${pair[0]}→${pair[1]}; allowed T↔Δ, Δ↔Γ, Γ↔Π, T↔Π`,
+      };
+    }
+  }
+  const leftId = clip(src.left || src.a || src.card_id, ID_CAP);
+  const rightId = clip(src.right || src.b || src.other_id || src.other_card_id, ID_CAP);
+  const runtimeJoin = pair ? "join" : normalizeJoinType(src.join_type || src.join || "join") || "join";
+  const joined = await cardJoin({ card_id: leftId, other_id: rightId, join_type: runtimeJoin });
+  return retag(joined, "join", pair ? { axis_join: `${pair[0]}-${pair[1]}`, allowed: true } : {});
+}
+
+export function list(payload) {
+  const listed = cardList(payload);
+  if (!listed.ok) return retag(listed, "list");
+  return retag(listed, "list", { forks: findForks() });
+}
+
+export async function example(payload) {
+  const hit = detectForbidden(payload);
+  if (hit) return refuseForbidden(hit, { op: "example", join_type: "inspect" });
+  const existing = memory.cards.get("4dm-example-pin");
+  if (existing) {
+    return baseResult({
+      op: "example",
+      join_type: "inspect",
+      synthetic: true,
+      card: cardView(existing),
+      limitation: LIMITATION,
+      note: "synthetic T pin — not a real case",
+    });
+  }
+  const opened = await cardNew({ card_id: "4dm-example-pin", label: "synthetic T pin — not a real case" });
+  if (!opened.ok) return retag(opened, "example", { synthetic: true });
+  const pinned = await cardPin({ card_id: "4dm-example-pin", axis: "T", mark: "2026-09-10T00:00:00Z" });
+  return baseResult({
+    op: "example",
+    join_type: "inspect",
+    synthetic: true,
+    card: pinned.ok ? pinned.card : opened.card,
+    limitation: LIMITATION,
+    note: "synthetic T pin — not a real case",
   });
 }
