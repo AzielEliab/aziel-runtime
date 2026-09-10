@@ -125,6 +125,12 @@ import {
   catalogHubFields,
   citeHowToLibrary,
   citeHowToRuntime,
+  DESIGNS_GITHUB_TREE,
+  designsCiteField,
+  designsLlmsBlock,
+  designsLlmsHeaderLine,
+  designsSitemapUrls,
+  designGithubUrl,
   libraryJsonLd,
   llmsCiteBlock,
   llmsIdentityHeader,
@@ -132,6 +138,7 @@ import {
   productCrawlUrls,
   robotsTxt as buildRobotsTxt,
   sitemapIndexXml,
+  SUITE_DESIGNS,
 } from "./seo.js";
 import {
   HOMEPAGE_KEYWORDS,
@@ -919,6 +926,9 @@ function sitemapXml(origin) {
     urls.push({ loc: `${base}/v1/pull/${p.slug}/skill`, priority: "0.85", changefreq: "daily" });
     urls.push({ loc: p.github, priority: "0.5", changefreq: "weekly", lastmod: null });
   }
+  for (const loc of designsSitemapUrls()) {
+    urls.push({ loc, priority: "0.5", changefreq: "weekly", lastmod: null });
+  }
   const body = urls
     .map((u) => {
       const last = u.lastmod === null ? "" : `    <lastmod>${u.lastmod || LASTMOD}</lastmod>\n`;
@@ -986,6 +996,7 @@ function llmsTxt(origin) {
     `Library front door: https://www.azielcorpuslibrary.net/runtime`,
     `License: Apache-2.0`,
     `User-Agent: Mozilla/5.0`,
+    designsLlmsHeaderLine(),
     "",
     llmsCompatibleBlock().trimEnd(),
     "",
@@ -1040,6 +1051,7 @@ function llmsTxt(origin) {
     }
     lines.push("");
   }
+  lines.push(designsLlmsBlock());
   lines.push(llmsCiteBlock(origin));
   lines.push("## Crawl (GitBaby product Workers)");
   lines.push("");
@@ -1103,6 +1115,7 @@ function citeJson(origin) {
     update_check: base + "/v1/update/check",
     update_manifest: base + "/v1/update/manifest",
     mcp: base + "/mcp",
+    designs: designsCiteField(),
     products: PRODUCTS.map((p) => {
       const u = productUrls(p, origin);
       const cite = citationFields(p, u);
@@ -1511,6 +1524,7 @@ ${headMeta(origin, CATALOG_TITLE, CATALOG_DESCRIPTION, "/")}
     <a href="https://www.azielcorpuslibrary.net/runtime">Library /runtime</a>
     <a href="https://github.com/AzielEliab/aziel-runtime">GitHub</a>
   </p>
+  <p>Designs (git-hosted papers — not Softwares-tab products, not a FragGate slug; <code>GET /v1/mesh</code> never enables): <a href="${DESIGNS_GITHUB_TREE}">docs/designs/</a>${SUITE_DESIGNS.map((d) => ` · <a href="${designGithubUrl(d.file)}">${escapeHtml(d.id)}</a>`).join("")}. Author: Aziel Eliab only. PDFs sit beside each paper on GitHub.</p>
   <h2>Session (the actual cut)</h2>
   <ol>
     <li><code>POST ${origin}/v1/session/open</code></li>
@@ -1807,6 +1821,7 @@ async function combinedOpenApi(request, env) {
         "Hubs fetch GET /v1/software (also GET /v1/fraggate/software). Clients check GET /v1/update/check?slug=&version=. " +
         "GET /v1/bundle lists every product skill URL + invoke prefix. " +
         "GET /v1/pull/{slug} and GET /v1/pull/{slug}/skill pull a product without visiting its Worker. " +
+        "Suite design papers live at docs/designs/ (git-hosted; not Softwares-tab products, not a FragGate slug). " +
         openApiImportSentence() +
         " " +
         "GodLock/MirageGrid are not VPNs. ForgeReceipts is not legal advice. " +
@@ -1828,6 +1843,10 @@ async function combinedOpenApi(request, env) {
         "Forks welcome. Apache-2.0. Author: Aziel Eliab.",
       license: { name: "Apache-2.0", identifier: "Apache-2.0" },
       contact: { name: "Aziel Eliab", url: "https://github.com/AzielEliab/aziel-runtime" },
+      externalDocs: {
+        description: "Suite software designs (docs/designs/) — git-hosted. Not Softwares-tab products.",
+        url: DESIGNS_GITHUB_TREE,
+      },
     },
     servers: [{ url: origin }],
     tags: [
