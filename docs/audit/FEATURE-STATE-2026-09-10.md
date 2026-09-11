@@ -1,6 +1,6 @@
 # AZIEL RUNTIME — Disabled, Off, Stubbed, Gated & Not-Yet-Implemented Feature Audit
 
-Baseline aziel-runtime 1.7.3 | close 1.9.0 (AZRT-1.9-CLOSE-1.0) | gaps 1.9.1 (AZRT-1.9-GAPS-CLOSE) | binds 1.9.2 | 2026-09-11.
+Baseline aziel-runtime 1.7.3 | close 1.9.0 (AZRT-1.9-CLOSE-1.0) | gaps 1.9.1 (AZRT-1.9-GAPS-CLOSE) | binds 1.9.2 | remaining 1.9.3 | 2026-09-11.
 
 Identity: Aziel Eliab.
 
@@ -27,7 +27,7 @@ Inventory 1–50:
 9 WhistleLock send/mail/release STUB
 10 MirageGrid VPN-hop STUB
 11 AzielTether mesh-join/vpn/arm STUB
-12 AZ-OS exec/shell STUB
+12 AZ-OS exec/shell STUB (1.9.3 session/close CLOSED in-process ethics VFS; exec/shell stay refuse)
 13 AZAI blend/complete/chat STUB (protocol mirror)
 14 EmployeeLock court/judge STUB
 15 PeaceLock transcript/motive/etc STUB
@@ -43,8 +43,8 @@ Inventory 1–50:
 26 AZNet unpaired privileged CONDITIONALLY OFF
 27 AZHub auto-unlock OFF
 28 AZInterface page cycles PRE-LOCKED
-29 Corpus D1 BOUND (1.9.2 CORPUS_D1 → aziel-digital-library `records`); Whisper/OCR Workers-AI-bound (`AI`). Isolate-safe review/score/verify native (1.9.1). Sample MASTER fallback when unbound
-30 Universal local execution NOT COMPLETE — named fallback inventory shrunk (1.9.1); unknown tools still refuse
+29 Corpus D1 BOUND (1.9.2 CORPUS_D1 → aziel-digital-library `records`); Whisper/OCR Workers-AI-bound (`AI`). Isolate-safe review/score/verify native (1.9.1). jeeves isolate-native + media-run binding-gated (1.9.3). Sample MASTER fallback when unbound
+30 Universal local execution NOT COMPLETE — named fallback inventory shrunk (1.9.3 session/close + jeeves + media-run); unknown tools still refuse; exec/shell stay refuse
 31–32 Public/RoseClock rollback OFF
 33 LambGate OFF not a hop
 34 ASE OPTIONAL

@@ -1,0 +1,59 @@
+# Independent validation attestation on release / tag.
+# Not a third-party lab. Remain-OFF stays off. No wrangler deploy.
+# Author: Aziel Eliab. Identity is Aziel Eliab only.
+name: Independent validate
+
+on:
+  release:
+    types: [published]
+  push:
+    tags:
+      - "v*"
+      - "1.*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  attest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: npm test
+        run: npm test
+
+      - name: Write attestation
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+        run: node scripts/write-attestation.mjs --out attestation.json
+
+      - name: Upload attestation artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: independent-validation-${{ github.sha }}
+          path: |
+            attestation.json
+            attestation.junit.xml
+          if-no-files-found: error
+
+      - name: Sign attestation subject
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: attestation.json
+
+      - name: Attach release assets
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" attestation.json attestation.junit.xml --clobber
