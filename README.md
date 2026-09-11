@@ -4,7 +4,7 @@
 
 FragGate is THE single public executable door (`fraggate_list` → `fraggate_describe` → `fraggate_call`). Softwares catalog is Plain → Gate → Lock; hubs refresh from `GET /v1/software`. Dual-surface: agents via OpenAPI/MCP; humans via Worker UI + counted `/download`. NodeMesh / QNM suite-presence is operator-enabled; `GET /v1/mesh` never enables; not a login mesh / VPN / Node Gate.
 
-**Version 1.9.3** closes the remaining AZRT-1.9-GAPS-CLOSE items: isolate-native AZ-OS ethics session VFS; isolate-safe Ask Jeeves; binding-gated media-run; published independent-validation attestation path (not a third-party lab). Remain-OFF untouched. Crawler surfaces keep the abstract above; changelog stays below. **1.9.2** bound Browser Rendering and live D1 MASTER. **1.9.1** closed AZRT-1.9-GAPS-CLOSE isolate-safe verify. **1.9.0** closed AZRT-1.9-CLOSE-1.0. **1.7.11** is the SEO-clarity heritage that locked that lead copy.
+**Version 2.0.0-rc1** is the certification-point freeze (not a feature dump): public contract, clean-room reproducibility, and external adversarial pack under `docs/2.0/`. No intentional behavioral breaks from 1.9.3. Remain-OFF untouched. Crawler surfaces keep the abstract above; changelog stays below. **1.9.3** closed remaining AZRT-1.9-GAPS-CLOSE items (isolate AZ-OS ethics session VFS; isolate-safe Ask Jeeves; binding-gated media-run; published independent-validation attestation path — not a third-party lab). **1.9.2** bound Browser Rendering and live D1 MASTER. **1.9.1** closed AZRT-1.9-GAPS-CLOSE isolate-safe verify. **1.9.0** closed AZRT-1.9-CLOSE-1.0. **1.7.11** is the SEO-clarity heritage that locked that lead copy.
 
 Kernel: [AzielEliab/fraggate](https://github.com/AzielEliab/fraggate) (FG-0.1)
 
@@ -29,7 +29,8 @@ Any OpenAPI-, MCP-, or HTTP-tool-capable assistant imports **this** OpenAPI file
 **Author:** Aziel Eliab  
 **Identity:** Aziel Eliab (primary). Also known as Aziel Elroi Eliab (`alternateName` / aka only).  
 **License:** [Apache-2.0](LICENSE)  
-**Version:** 1.9.3  
+**Version:** 2.0.0-rc1  
+**2.0 pack:** [`docs/2.0/`](docs/2.0/) (contract freeze; self-test ≠ third-party lab)  
 **Role:** `engine-runtime` (layer: `catalog+pull+proxy+session+in-process-engines+fraggate`)  
 **Door:** `fraggate`  
 **Worker:** `aziel-runtime` → https://aziel-runtime.vibelock.workers.dev/  

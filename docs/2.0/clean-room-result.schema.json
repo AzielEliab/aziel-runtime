@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AzielEliab/aziel-runtime/blob/main/docs/2.0/clean-room-result.schema.json",
+  "title": "Aziel Runtime 2.0 clean-room result",
+  "description": "Machine-readable evidence from scripts/clean-room-2.0.sh. Not a third-party lab. Author: Aziel Eliab only.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "runtime_version",
+    "git_sha",
+    "author",
+    "identity",
+    "generated_at",
+    "verdict",
+    "steps",
+    "third_party_lab",
+    "court_audit",
+    "remain_off_untouched",
+    "fraggate_single_door",
+    "mesh_get_never_enables",
+    "secrets_required"
+  ],
+  "properties": {
+    "kind": { "const": "aziel-runtime.clean-room-2.0" },
+    "runtime_version": { "type": "string", "minLength": 1 },
+    "git_sha": { "type": ["string", "null"], "pattern": "^[0-9a-f]{7,40}$" },
+    "author": { "const": "Aziel Eliab" },
+    "identity": { "const": "Aziel Eliab" },
+    "generated_at": { "type": "string" },
+    "verdict": { "enum": ["PASS", "FAIL"] },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "status"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "status": { "enum": ["PASS", "FAIL", "SKIP"] },
+          "detail": { "type": "string" }
+        }
+      }
+    },
+    "mcp": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "protocol_version": { "type": "string" },
+        "server_name": { "type": "string" },
+        "server_version": { "type": "string" },
+        "tools_list_count": { "type": "integer", "minimum": 0 },
+        "tools_list_names": { "type": "array", "items": { "type": "string" } },
+        "harmless_call": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "slug": { "type": "string" },
+            "op": { "type": "string" },
+            "ok": { "type": "boolean" },
+            "code": { "type": "string" }
+          }
+        }
+      }
+    },
+    "receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "type": "string" },
+        "session_id": { "type": "string" },
+        "chain_ok": { "type": "boolean" },
+        "count": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "docker": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "attempted": { "type": "boolean" },
+        "available": { "type": "boolean" },
+        "status": { "enum": ["PASS", "FAIL", "SKIP"] },
+        "detail": { "type": "string" }
+      }
+    },
+    "npm_test": { "enum": ["pass", "fail", "skip"] },
+    "third_party_lab": { "const": false },
+    "court_audit": { "const": false },
+    "remain_off_untouched": { "const": true },
+    "fraggate_single_door": { "const": true },
+    "mesh_get_never_enables": { "const": true },
+    "secrets_required": { "const": false },
+    "note": { "type": "string" },
+    "result_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  }
+}

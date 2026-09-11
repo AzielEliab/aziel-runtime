@@ -13,7 +13,7 @@ import { resetAzmailStore } from "../src/engines/azmail/engine.js";
 import { RUNTIME_VERSION } from "../src/runtime-api.js";
 import { D1_SEARCH_SQL, search } from "../src/engines/aziel-corpus/engine.js";
 
-assert.equal(RUNTIME_VERSION, "1.9.3");
+assert.equal(RUNTIME_VERSION, "2.0.0-rc1");
 assert.equal(NAMED_STUBS.length, 0);
 
 const aliasesOf = (slug) => new Set(Object.keys(OP_ALIASES[slug] || {}));
@@ -222,7 +222,9 @@ const openapi = await (
   await handler(new Request("https://aziel-runtime.example/openapi.json", { headers: { "user-agent": "Mozilla/5.0" } }), {})
 ).json();
 assert.ok(openapi.info.description.startsWith("Aziel Runtime is not merely an API orchestrator"));
+assert.match(openapi.info.description, /2\.0\.0-rc1/);
 assert.match(openapi.info.description, /1\.9\.3/);
+assert.ok(openapi.info.description.indexOf("Aziel Runtime is not merely") < openapi.info.description.indexOf("2.0.0-rc1"));
 assert.ok(openapi.info.description.indexOf("Aziel Runtime is not merely") < openapi.info.description.indexOf("1.9.3"));
 const pathKeys = Object.keys(openapi.paths).join(" ");
 assert.doesNotMatch(pathKeys, /smtp_send|deanonymize/);
@@ -234,6 +236,7 @@ const home = await (
 ).text();
 assert.match(home, /not merely an API orchestrator or software aggregator/);
 assert.match(home, /node-meshed orchestration suite of MCP-connected software/);
+assert.match(home, /2\.0\.0-rc1/);
 assert.match(home, /1\.9\.3/);
 assert.ok(home.indexOf("not merely an API orchestrator") < home.indexOf("id=\"version-history\""));
 assert.doesNotMatch(home, /Flutter <code>mobile\/<\/code>, local install/);
