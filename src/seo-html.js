@@ -8,11 +8,14 @@
 import {
   AUTHOR_ALTERNATE_NAME,
   AUTHOR_GITHUB,
+  AUTHOR_ID,
   AUTHOR_NAME,
   AZCOHERENCE_GITHUB,
   AZCOHERENCE_WORKER,
   DONATE_CANONICAL,
   DONATE_FOOTER_RUNTIME,
+  ECOSYSTEM_HEADING,
+  ECOSYSTEM_LINKS,
   LIBRARY_NAME,
   LIBRARY_ORIGIN,
   PRODUCT_ALTERNATE_NAME,
@@ -21,8 +24,10 @@ import {
   RUNTIME_NOT,
   RUNTIME_ONE_LINE,
   RUNTIME_PAGE_TITLE,
+  ecosystemJsonLd,
   personJsonLd,
   runtimeAboutField,
+  runtimeSoftwareJsonLd,
   softwareHubCrawl,
 } from "./seo.js";
 import { distributionDoorsHtml } from "./ai-clients.js";
@@ -120,6 +125,19 @@ function donateFooter() {
   return `<footer class="donate"><p><a href="${DONATE_CANONICAL}">${escapeHtml(DONATE_FOOTER_RUNTIME)}</a></p></footer>`;
 }
 
+/** Concise ecosystem chrome. Safe constants only — labels/URLs are not request data. */
+export function ecosystemBlockHtml() {
+  const items = ECOSYSTEM_LINKS.map(
+    (link) => `    <li><a href="${escapeHtml(link.url)}">${escapeHtml(link.label)}</a></li>`,
+  ).join("\n");
+  return `<nav class="ecosystem" aria-label="${escapeHtml(ECOSYSTEM_HEADING)}">
+  <p>${escapeHtml(ECOSYSTEM_HEADING)}</p>
+  <ul>
+${items}
+  </ul>
+</nav>`;
+}
+
 function brandRow() {
   return `  <div class="brandrow">
     <img class="brandmark" src="/sigil.png" width="40" height="40" alt="Everblooming sigil — Aziel Eliab" decoding="async">
@@ -145,6 +163,8 @@ export function softwareJsonLd(origin, catalog) {
     "@context": "https://schema.org",
     "@graph": [
       person,
+      runtimeSoftwareJsonLd(origin),
+      ecosystemJsonLd(origin),
       {
         "@type": "WebPage",
         "@id": `${base}/v1/software#page`,
@@ -152,7 +172,7 @@ export function softwareJsonLd(origin, catalog) {
         url: `${base}/v1/software`,
         description: SOFTWARE_PAGE_DESCRIPTION,
         isPartOf: { "@id": `${base}/#website` },
-        author: { "@id": person["@id"] },
+        author: { "@id": AUTHOR_ID },
         about: { "@id": `${base}/#runtime` },
       },
       {
@@ -174,7 +194,7 @@ export function softwareJsonLd(origin, catalog) {
             url: s.worker_home || `${base}/v1/software`,
             downloadUrl: s.download_url || undefined,
             codeRepository: s.github || undefined,
-            author: { "@id": person["@id"] },
+            author: { "@id": AUTHOR_ID },
             license: "https://www.apache.org/licenses/LICENSE-2.0",
           },
         })),
@@ -199,7 +219,7 @@ export function describeJsonLd(origin, body) {
         name: `${name} — FragGate describe — ${PRODUCT_NAME}`,
         url,
         description: (body && (body.description || body.note)) || DESCRIBE_INDEX_DESCRIPTION,
-        author: { "@id": person["@id"] },
+        author: { "@id": AUTHOR_ID },
       },
       {
         "@type": "SoftwareApplication",
@@ -207,7 +227,7 @@ export function describeJsonLd(origin, body) {
         description: (body && (body.description || body.note)) || name,
         url,
         codeRepository: body && body.cross_map && body.cross_map.github,
-        author: { "@id": person["@id"] },
+        author: { "@id": AUTHOR_ID },
         license: "https://www.apache.org/licenses/LICENSE-2.0",
       },
     ],
@@ -226,6 +246,7 @@ ${headMeta(origin, title, description, canonicalPath)}
 <body>
 ${brandRow()}
 ${inner}
+${ecosystemBlockHtml()}
 ${donateFooter()}
 </body>
 </html>`;
@@ -258,19 +279,11 @@ export function aboutJsonLd(origin) {
         url: `${base}/about`,
         description: RUNTIME_ABSTRACT,
         isPartOf: { "@id": `${base}/#website` },
-        author: { "@id": person["@id"] },
+        author: { "@id": AUTHOR_ID },
         about: { "@id": `${base}/#runtime` },
       },
-      {
-        "@type": "SoftwareApplication",
-        "@id": `${base}/#runtime`,
-        name: PRODUCT_NAME,
-        alternateName: [PRODUCT_ALTERNATE_NAME],
-        description: RUNTIME_ABSTRACT,
-        url: `${base}/`,
-        author: { "@id": person["@id"] },
-        license: "https://www.apache.org/licenses/LICENSE-2.0",
-      },
+      runtimeSoftwareJsonLd(origin),
+      ecosystemJsonLd(origin),
     ],
   };
 }
@@ -327,6 +340,7 @@ export function softwareCatalogHtml(origin, catalog, css) {
   <h1>Softwares</h1>
   <p class="lead">${escapeHtml(SOFTWARE_PAGE_DESCRIPTION)}</p>
 ${distributionDoorsHtml(base)}
+${ecosystemBlockHtml()}
   <p class="secondary">Author: <strong>${escapeHtml(AUTHOR_NAME)}</strong> (also known as ${escapeHtml(AUTHOR_ALTERNATE_NAME)}). Machine JSON: <a href="${base}/v1/software">GET /v1/software</a> (default). FragGate mirror: <a href="${base}/v1/fraggate/software">/v1/fraggate/software</a>. Cite: <a href="${base}/cite.json">/cite.json</a> · <a href="${base}/llms.txt">/llms.txt</a>. ${escapeHtml(LIBRARY_NAME)}: <a href="${LIBRARY_ORIGIN}/">${LIBRARY_ORIGIN}/</a>. GET /v1/mesh never enables.</p>
   <h2>Softwares hubs</h2>
   ${hubListHtml()}
@@ -368,13 +382,15 @@ ${items}
     "@context": "https://schema.org",
     "@graph": [
       personJsonLd(),
+      runtimeSoftwareJsonLd(origin),
+      ecosystemJsonLd(origin),
       {
         "@type": "WebPage",
         "@id": `${base}/v1/fraggate/describe#page`,
         name: DESCRIBE_INDEX_TITLE,
         url: `${base}/v1/fraggate/describe`,
         description: DESCRIBE_INDEX_DESCRIPTION,
-        author: { "@id": `${AUTHOR_GITHUB}#person` },
+        author: { "@id": AUTHOR_ID },
       },
     ],
   };

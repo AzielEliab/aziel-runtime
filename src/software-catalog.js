@@ -20,7 +20,7 @@ import { embeddedDigest } from "./engines/digest.js";
 import { NAMED_STUBS } from "./fraggate/registry.js";
 import { meshHint } from "./mesh.js";
 import { qnsHint } from "./qns.js";
-import { azcoherenceCiteField, hubsCiteField, LIBRARY_ORIGIN } from "./seo.js";
+import { AUTHOR_ID, azcoherenceCiteField, hubsCiteField, LIBRARY_ORIGIN } from "./seo.js";
 
 export const SOFTWARE_SORT_LAW = "plain A–Z → gate A–Z → lock A–Z (Clock ≠ Lock)";
 export const SOFTWARE_FRAMING =
@@ -200,6 +200,7 @@ export function softwareCatalog(origin, products, extra = {}) {
     ok: true,
     author: "Aziel Eliab",
     identity: "Aziel Eliab",
+    author_id: AUTHOR_ID,
     version: extra.runtimeVersion || extra.version || null,
     door: "fraggate",
     kernel: "https://github.com/AzielEliab/fraggate",
@@ -391,6 +392,7 @@ export function updateManifest(origin, products, extra = {}) {
     ok: true,
     author: "Aziel Eliab",
     identity: "Aziel Eliab",
+    author_id: AUTHOR_ID,
     version: extra.runtimeVersion || extra.version || null,
     door: "fraggate",
     framing: SOFTWARE_FRAMING,

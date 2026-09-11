@@ -10,10 +10,15 @@ export const AUTHOR_FAMILY_GIVEN = "Eliab, Aziel";
 export const AUTHOR_GITHUB = "https://github.com/AzielEliab";
 export const AUTHOR_SAME_AS = [AUTHOR_GITHUB];
 
+/** Shared hub Person @id. Runtime is not the identity hub — do not use GitHub#person. */
+export const AUTHOR_ID = "https://www.azieleliab.com/#aziel";
+
 /** Public product name. Do not mash with version + FragGate. Author is Aziel Eliab only. */
 export const PRODUCT_NAME = "Aziel Runtime";
 export const PRODUCT_SLUG = "aziel-runtime";
 export const PRODUCT_ALTERNATE_NAME = "Aziel Eliab Runtime";
+export const RUNTIME_GITHUB = "https://github.com/AzielEliab/aziel-runtime";
+export const RUNTIME_GLAMA = "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime";
 
 export const RUNTIME_PAGE_TITLE =
   "Aziel Runtime — node-meshed MCP Softwares suite (not an API aggregator)";
@@ -76,7 +81,7 @@ export function llmsWhatThisIsBlock() {
     "",
     RUNTIME_ABSTRACT,
     "",
-    "Public name: Aziel Runtime (aziel-runtime). Author / identity: Aziel Eliab only. Also known as Aziel Elroi Eliab (alternateName only).",
+    `Public name: Aziel Runtime (aziel-runtime). Author / identity: Aziel Eliab only (@id ${AUTHOR_ID}). Also known as Aziel Elroi Eliab (alternateName only). Runtime is the execution surface, not the identity hub.`,
     "",
     "## How to use",
     "",
@@ -226,6 +231,7 @@ export function hubsCiteField() {
   return {
     author: AUTHOR_NAME,
     identity: AUTHOR_NAME,
+    author_id: AUTHOR_ID,
     mesh_get_never_enables: true,
     remain_off_do_not_enable: true,
     note: "Softwares hubs fetch GET /v1/software on each Software-tab request. Cross-link cite.json / llms.txt / sitemap.xml on each hub. Do not invent mesh enable or Remain-Off items.",
@@ -461,10 +467,10 @@ ${entries}
 export function personJsonLd() {
   return {
     "@type": "Person",
-    "@id": `${AUTHOR_GITHUB}#person`,
+    "@id": AUTHOR_ID,
     name: AUTHOR_NAME,
     alternateName: [AUTHOR_ALTERNATE_NAME],
-    url: AUTHOR_GITHUB,
+    url: `${AUTHOR_SITE_ORIGIN}/`,
     sameAs: AUTHOR_SAME_AS,
   };
 }
@@ -481,10 +487,78 @@ export function libraryJsonLd() {
     applicationCategory: "ReferenceApplication",
     operatingSystem: "Cloudflare Workers",
     license: "https://www.apache.org/licenses/LICENSE-2.0",
-    author: { "@id": `${AUTHOR_GITHUB}#person` },
+    author: { "@id": AUTHOR_ID },
     codeRepository: "https://github.com/AzielEliab/aziel-corpus",
     downloadUrl: `${LIBRARY_ORIGIN}/download`,
     sameAs: [LIBRARY_CITE, LIBRARY_LLMS, LIBRARY_SITEMAP],
+  };
+}
+
+/** Runtime SoftwareApplication sameAs — repo + Glama listing. Worker origin is url, not Person identity. */
+export function runtimeSoftwareSameAs() {
+  return [RUNTIME_GITHUB, RUNTIME_GLAMA];
+}
+
+/**
+ * Runtime is the execution surface / SoftwareApplication — not the identity hub.
+ * author always points at the shared hub Person @id.
+ */
+export function runtimeSoftwareJsonLd(origin, extra = {}) {
+  const base = String(origin || "").replace(/\/$/, "");
+  return {
+    "@type": "SoftwareApplication",
+    "@id": `${base}/#runtime`,
+    name: PRODUCT_NAME,
+    alternateName: [PRODUCT_ALTERNATE_NAME],
+    url: `${base}/`,
+    description: RUNTIME_ABSTRACT,
+    applicationCategory: "DeveloperApplication",
+    operatingSystem: "Cloudflare Workers",
+    license: "https://www.apache.org/licenses/LICENSE-2.0",
+    author: { "@id": AUTHOR_ID },
+    creator: { "@id": AUTHOR_ID },
+    codeRepository: RUNTIME_GITHUB,
+    sameAs: runtimeSoftwareSameAs(),
+    ...extra,
+  };
+}
+
+export const ECOSYSTEM_HEADING = "Part of the Aziel Eliab ecosystem";
+
+/** Visible + cite ecosystem doors. Do not invent hosts. */
+export const ECOSYSTEM_LINKS = Object.freeze([
+  { label: "Official site", url: `${AUTHOR_SITE_ORIGIN}/` },
+  { label: "Aziel Corpus Library", url: `${LIBRARY_ORIGIN}/` },
+  { label: "Aziel Runtime on GitHub", url: RUNTIME_GITHUB },
+  { label: "Try on Glama", url: RUNTIME_GLAMA },
+  { label: "GodLock", url: `${GODLOCK_UK_ORIGIN}/` },
+]);
+
+export function ecosystemJsonLd(origin) {
+  const base = String(origin || "").replace(/\/$/, "");
+  return {
+    "@type": "ItemList",
+    "@id": `${base}/#ecosystem`,
+    name: ECOSYSTEM_HEADING,
+    itemListElement: ECOSYSTEM_LINKS.map((link, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: link.label,
+      url: link.url,
+    })),
+  };
+}
+
+export function entityGraphCiteField(origin) {
+  const base = String(origin || "").replace(/\/$/, "");
+  return {
+    person: AUTHOR_ID,
+    runtime: `${base}/#runtime`,
+    execution_url: `${base}/`,
+    identity_hub: `${AUTHOR_SITE_ORIGIN}/`,
+    sameAs: runtimeSoftwareSameAs(),
+    ecosystem: ECOSYSTEM_LINKS.map((link) => ({ ...link })),
+    note: "Runtime is SoftwareApplication / execution surface. Person identity lives at the official hub @id. Worker origin is self-canonical.",
   };
 }
 
@@ -493,6 +567,7 @@ export function catalogHubFields(origin) {
   return {
     author: AUTHOR_NAME,
     identity: AUTHOR_NAME,
+    author_id: AUTHOR_ID,
     aka: AUTHOR_ALTERNATE_NAME,
     alternateName: AUTHOR_ALTERNATE_NAME,
     library: LIBRARY_ORIGIN + "/",
@@ -542,6 +617,7 @@ export function llmsCiteBlock(origin) {
     "## How to cite Aziel Eliab software and the Digital Library",
     "",
     `Primary name: ${AUTHOR_NAME}. Also known as ${AUTHOR_ALTERNATE_NAME} (alternateName / aka only — do not treat as a second author).`,
+    `Author @id: ${AUTHOR_ID} (shared hub Person). Runtime SoftwareApplication sameAs: ${RUNTIME_GITHUB} and ${RUNTIME_GLAMA}. Worker origin is the execution url, not Person identity.`,
     "Do not invent Zenodo DOIs. Cite the machine record. Known historical DOIs may be 410 tombstones.",
     "",
     `Runtime: ${citeHowToRuntime(origin)}`,
@@ -569,6 +645,7 @@ export function llmsIdentityHeader() {
   return [
     `Product: ${PRODUCT_NAME} (${PRODUCT_SLUG})`,
     `Author: ${AUTHOR_NAME}`,
+    `Author @id: ${AUTHOR_ID}`,
     `Also known as: ${AUTHOR_ALTERNATE_NAME} (alternateName only)`,
     `Identity: ${AUTHOR_NAME} (primary). Do not invent other names.`,
     `Digital Library: ${LIBRARY_NAME} — ${LIBRARY_ORIGIN}/`,

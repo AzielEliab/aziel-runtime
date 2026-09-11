@@ -6,14 +6,26 @@ import { PRODUCTS } from "../src/index.js";
 import {
   AI_CRAWLER_AGENTS,
   AUTHOR_ALTERNATE_NAME,
+  AUTHOR_GITHUB,
+  AUTHOR_ID,
   AUTHOR_NAME,
   AUTHOR_SITE_SITEMAP,
+  CRAWLER_LEAD_VERSION_RE,
+  ECOSYSTEM_HEADING,
   GODLOCK_UK_SITEMAP,
   LIBRARY_SITEMAP,
   MISSING_PRODUCT_SITEMAP_SLUGS,
+  PRODUCT_NAME,
+  RUNTIME_ABSTRACT,
+  RUNTIME_GITHUB,
+  RUNTIME_GLAMA,
+  RUNTIME_ONE_LINE,
+  RUNTIME_PAGE_TITLE,
   hubSitemapList,
+  personJsonLd,
   productCrawlUrls,
   productWorkerOrigin,
+  runtimeSoftwareSameAs,
   uniqueUserAgents,
 } from "../src/seo.js";
 import {
@@ -22,13 +34,6 @@ import {
   SOFTWARE_PAGE_TITLE,
   prefersHtml,
 } from "../src/seo-html.js";
-import {
-  CRAWLER_LEAD_VERSION_RE,
-  PRODUCT_NAME,
-  RUNTIME_ABSTRACT,
-  RUNTIME_ONE_LINE,
-  RUNTIME_PAGE_TITLE,
-} from "../src/seo.js";
 
 const handler = (await import("../src/index.js")).default.fetch;
 const origin = "https://aziel-runtime.example";
@@ -218,6 +223,8 @@ mime(llmsRes, /^text\/plain; charset=utf-8/);
 const llms = await llmsRes.text();
 assert.match(llms, /Aziel Eliab/);
 assert.match(llms, /Aziel Elroi Eliab/);
+assert.match(llms, /www\.azieleliab\.com\/#aziel/);
+assert.match(llms, /execution surface, not the identity hub/);
 assert.match(llms, /Aziel Digital Library/);
 assert.match(llms, /How to cite Aziel Eliab software/);
 assert.match(llms, /www\.azielcorpuslibrary\.net\/cite\.json/);
@@ -264,6 +271,7 @@ mime(citeRes, /application\/json; charset=utf-8/);
 const cite = await citeRes.json();
 assert.equal(cite.author, AUTHOR_NAME);
 assert.equal(cite.identity, AUTHOR_NAME);
+assert.equal(cite.author_id, AUTHOR_ID);
 assert.equal(cite.aka, AUTHOR_ALTERNATE_NAME);
 assert.equal(cite.alternateName, AUTHOR_ALTERNATE_NAME);
 assert.match(cite.how_to_cite, /Eliab, Aziel/);
@@ -305,6 +313,15 @@ assert.equal(cite.hubs.mesh_get_never_enables, true);
 assert.ok(cite.hubs.hubs.some((h) => h.id === "azieleliab" && /azieleliab\.com\/software/.test(h.software_tab)));
 assert.ok(cite.hubs.hubs.some((h) => h.id === "library" && /azielcorpuslibrary\.net\/software/.test(h.software_tab)));
 assert.ok(cite.hubs.hubs.some((h) => h.id === "godlock.uk" && /godlock\.uk\/software/.test(h.software_tab)));
+assert.equal(cite.entity_graph.person, AUTHOR_ID);
+assert.equal(cite.entity_graph.runtime, `${origin}/#runtime`);
+assert.equal(cite.entity_graph.execution_url, `${origin}/`);
+assert.deepEqual(cite.entity_graph.sameAs, runtimeSoftwareSameAs());
+assert.ok(cite.entity_graph.ecosystem.some((l) => l.label === "Official site" && l.url === "https://www.azieleliab.com/"));
+assert.ok(cite.entity_graph.ecosystem.some((l) => l.label === "Aziel Corpus Library" && l.url === "https://www.azielcorpuslibrary.net/"));
+assert.ok(cite.entity_graph.ecosystem.some((l) => l.label === "Aziel Runtime on GitHub" && l.url === RUNTIME_GITHUB));
+assert.ok(cite.entity_graph.ecosystem.some((l) => l.label === "Try on Glama" && l.url === RUNTIME_GLAMA));
+assert.ok(cite.entity_graph.ecosystem.some((l) => l.label === "GodLock" && l.url === "https://godlock.uk/"));
 assert.equal(cite.azcoherence.slug, "azcoherence");
 assert.equal(cite.azcoherence.identity, AUTHOR_NAME);
 assert.match(cite.azcoherence.github, /AZCoherence/);
@@ -315,6 +332,7 @@ assert.equal(catalogRes.status, 200);
 mime(catalogRes, /application\/json; charset=utf-8/);
 const catalog = await catalogRes.json();
 assert.equal(catalog.author, AUTHOR_NAME);
+assert.equal(catalog.author_id, AUTHOR_ID);
 assert.equal(catalog.aka, AUTHOR_ALTERNATE_NAME);
 assert.equal(catalog.library_name, "Aziel Digital Library");
 assert.ok(catalog.crawl.sitemap_index.endsWith("/sitemap-index.xml"));
@@ -380,6 +398,43 @@ assert.match(home, /application\/ld\+json/);
 assert.match(home, /"@type":"Person"/);
 assert.match(home, /"name":"Aziel Eliab"/);
 assert.match(home, /Aziel Elroi Eliab/);
+assert.doesNotMatch(home, /github\.com\/AzielEliab#person/);
+assert.match(home, /rel="canonical" href="https:\/\/aziel-runtime\.example\/"/);
+assert.doesNotMatch(home, /rel="canonical" href="https:\/\/www\.azieleliab\.com/);
+{
+  const ldMatch = home.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
+  assert.ok(ldMatch, "homepage JSON-LD");
+  const graph = JSON.parse(ldMatch[1])["@graph"] || [];
+  const person = graph.find((n) => n["@type"] === "Person");
+  assert.equal(person["@id"], AUTHOR_ID);
+  assert.equal(person.name, AUTHOR_NAME);
+  assert.deepEqual(person.alternateName, [AUTHOR_ALTERNATE_NAME]);
+  assert.equal(person.url, "https://www.azieleliab.com/");
+  assert.ok(!String(person.url).includes("workers.dev"));
+  assert.ok(!String(person["@id"]).includes("github.com"));
+  const runtimeApp = graph.find((n) => n["@type"] === "SoftwareApplication" && n["@id"] === `${origin}/#runtime`);
+  assert.ok(runtimeApp, "runtime SoftwareApplication");
+  assert.equal(runtimeApp.url, `${origin}/`);
+  assert.equal(runtimeApp.author["@id"], AUTHOR_ID);
+  assert.deepEqual(runtimeApp.sameAs, [RUNTIME_GITHUB, RUNTIME_GLAMA]);
+  assert.ok(!runtimeApp.sameAs.includes(AUTHOR_GITHUB));
+  assert.ok(!runtimeApp.sameAs.includes("https://www.azieleliab.com/"));
+  const eco = graph.find((n) => n["@id"] === `${origin}/#ecosystem`);
+  assert.equal(eco.name, ECOSYSTEM_HEADING);
+}
+assert.equal(personJsonLd()["@id"], AUTHOR_ID);
+assert.match(home, /class="ecosystem"/);
+assert.match(home, new RegExp(ECOSYSTEM_HEADING.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+assert.match(home, /href="https:\/\/www\.azieleliab\.com\/">Official site<\/a>/);
+assert.match(home, /href="https:\/\/www\.azielcorpuslibrary\.net\/">Aziel Corpus Library<\/a>/);
+assert.match(home, /href="https:\/\/github\.com\/AzielEliab\/aziel-runtime">Aziel Runtime on GitHub<\/a>/);
+assert.match(home, /href="https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime">Try on Glama<\/a>/);
+assert.match(home, /href="https:\/\/godlock\.uk\/">GodLock<\/a>/);
+{
+  const ecoAt = home.indexOf(ECOSYSTEM_HEADING);
+  const softwaresAt = home.indexOf("<h2>Softwares</h2>");
+  assert.ok(ecoAt >= 0 && softwaresAt > ecoAt, "ecosystem chrome precedes Softwares catalog");
+}
 assert.match(home, /property="og:image" content="https:\/\/aziel-runtime\.example\/sigil\.png"/);
 assert.match(home, /name="twitter:image" content="https:\/\/aziel-runtime\.example\/sigil\.png"/);
 assert.match(home, /property="og:site_name" content="Aziel Eliab"/);
@@ -430,6 +485,9 @@ assert.match(home, /docs\/audit/);
 const card = await (await get("/p/foldlock")).text();
 assert.match(card, /"@type":"Person"/);
 assert.match(card, /Aziel Elroi Eliab/);
+assert.match(card, /www\.azieleliab\.com\/#aziel/);
+assert.doesNotMatch(card, /github\.com\/AzielEliab#person/);
+assert.match(card, /class="ecosystem"/);
 assert.match(card, /og:image/);
 assert.match(card, /<footer class="donate">/);
 assert.match(card, /href="https:\/\/www\.azieleliab\.com\/donate">Donate<\/a>/);
@@ -466,6 +524,15 @@ assert.match(softwareHtml, /<meta name="description"/);
 assert.match(softwareHtml, /application\/ld\+json/);
 assert.match(softwareHtml, /"@type":"Person"/);
 assert.match(softwareHtml, /"name":"Aziel Eliab"/);
+assert.match(softwareHtml, /www\.azieleliab\.com\/#aziel/);
+assert.doesNotMatch(softwareHtml, /github\.com\/AzielEliab#person/);
+assert.match(softwareHtml, /class="ecosystem"/);
+assert.match(softwareHtml, new RegExp(ECOSYSTEM_HEADING.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+{
+  const ecoAt = softwareHtml.indexOf('class="ecosystem"');
+  const catalogAt = softwareHtml.indexOf("<h2>Catalog</h2>");
+  assert.ok(ecoAt >= 0 && catalogAt > ecoAt, "ecosystem chrome precedes Softwares catalog list");
+}
 assert.match(softwareHtml, /data-slug="azcoherence"/);
 assert.match(softwareHtml, /www\.azieleliab\.com\/software/);
 assert.match(softwareHtml, /godlock\.uk\/software/);
@@ -487,6 +554,7 @@ const softwareJsonStill = await get("/v1/software");
 assert.match(softwareJsonStill.headers.get("content-type") || "", /application\/json/);
 const softwareJsonBody = await softwareJsonStill.json();
 assert.equal(softwareJsonBody.identity, AUTHOR_NAME);
+assert.equal(softwareJsonBody.author_id, AUTHOR_ID);
 assert.equal(softwareJsonBody.mesh_get_never_enables, true);
 assert.ok(softwareJsonBody.hubs_crawl);
 assert.equal(softwareJsonBody.azcoherence.slug, "azcoherence");
@@ -501,6 +569,9 @@ const describeHtml = await describeHtmlRes.text();
 assert.match(describeHtml, /<title>AZCoherence — FragGate describe — Aziel Runtime<\/title>/);
 assert.match(describeHtml, /application\/ld\+json/);
 assert.match(describeHtml, /"@type":"Person"/);
+assert.match(describeHtml, /www\.azieleliab\.com\/#aziel/);
+assert.doesNotMatch(describeHtml, /github\.com\/AzielEliab#person/);
+assert.match(describeHtml, /class="ecosystem"/);
 assert.match(describeHtml, /www\.azieleliab\.com\/software/);
 assert.match(describeHtml, /GET \/v1\/mesh never enables/);
 
@@ -582,6 +653,10 @@ mime(aboutRes, /text\/html; charset=utf-8/);
 const aboutHtml = await aboutRes.text();
 assert.match(aboutHtml, new RegExp(`<title>${ABOUT_PAGE_TITLE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}</title>`));
 assert.match(aboutHtml, /not merely an API orchestrator or software aggregator/);
+assert.match(aboutHtml, /www\.azieleliab\.com\/#aziel/);
+assert.doesNotMatch(aboutHtml, /github\.com\/AzielEliab#person/);
+assert.match(aboutHtml, /class="ecosystem"/);
+assert.match(aboutHtml, /href="https:\/\/www\.azieleliab\.com\/">Official site<\/a>/);
 assert.doesNotMatch(firstVisibleText(aboutHtml, 500), CRAWLER_LEAD_VERSION_RE);
 assert.equal(cite.about.changelog_below_abstract, true);
 assert.match(aboutHtml, /How agents call it/);
