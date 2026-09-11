@@ -17,6 +17,7 @@ assert.equal(VERSION_HISTORY.filter((row) => row.status === "current").length, 1
 const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
 assert.equal(pkg.version, "2.0.0-rc1");
 assert.match(pkg.scripts.test, /verify-2\.0-rc1\.mjs/);
+assert.match(pkg.scripts.test, /verify-mcp-tdqs\.mjs/);
 assert.equal(pkg.scripts["clean-room:2.0"], "bash scripts/clean-room-2.0.sh");
 assert.equal(pkg.scripts["adversarial:external"], "bash scripts/external-adversarial-2.0.sh");
 
@@ -32,6 +33,7 @@ const requiredDocs = [
   "docs/2.0/EXTERNAL-ADVERSARIAL-PACK.md",
   "docs/2.0/clean-room-result.schema.json",
   "docs/2.0/clean-room-result.sample.json",
+  "docs/GLAMA-TDQS.md",
 ];
 for (const rel of requiredDocs) {
   assert.ok(existsSync(new URL(`../${rel}`, import.meta.url)), rel);
@@ -90,12 +92,14 @@ const changelog = readFileSync(new URL("../docs/2.0/CHANGELOG.md", import.meta.u
 assert.match(changelog, /1\.9\.x/);
 assert.match(changelog, /2\.0\.0-rc1/);
 assert.match(changelog, /No intentional behavioral breaks/);
+assert.match(changelog, /TDQS/);
 
 const clean = readFileSync(new URL("../docs/2.0/CLEAN-ROOM.md", import.meta.url), "utf8");
 assert.match(clean, /scripts\/clean-room-2\.0\.sh/);
 assert.match(clean, /AZIEL_RUNTIME_MCP=local/);
 assert.match(clean, /No undocumented secrets|no undocumented secrets/i);
-assert.doesNotMatch(clean, /wrangler deploy/);
+assert.match(clean, /without `wrangler deploy`/);
+assert.doesNotMatch(clean, /run `wrangler deploy`|wrangler secret put|npx wrangler deploy/);
 
 const adv = readFileSync(new URL("../docs/2.0/EXTERNAL-ADVERSARIAL-PACK.md", import.meta.url), "utf8");
 assert.match(adv, /Self-test ≠ third-party lab|self-test ≠ third-party lab/i);

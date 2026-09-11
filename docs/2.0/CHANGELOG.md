@@ -16,6 +16,7 @@ Certification point — not a feature dump.
 - Clean-room reproducibility script + machine-readable evidence schema.
 - External adversarial pack wrapping the existing `verify-adversarial` + Remain-OFF matrix (reviewer-ready; **self-test ≠ third-party lab**).
 - Version strings: `package.json`, `RUNTIME_VERSION`, `VERSION_HISTORY`, SEO changelog **below** the abstract.
+- Glama TDQS metadata-only pass folded in: richer `tools/list` descriptions, parameter text, truthful annotations, and output schemas. **No tool rename. No intentional behavioral breaks.** `fraggate_call` is not globally read-only or idempotent. See `docs/GLAMA-TDQS.md`.
 - Remain-OFF untouched. FragGate remains THE single door. `GET /v1/mesh` never enables.
 - No new Softwares engines. No remote shell / VPN / deanonymize / public SMTP.
 - No `2.0.0` final tag in this PR.
