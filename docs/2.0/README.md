@@ -32,7 +32,7 @@ FragGate remains THE single public executable door. `GET /v1/mesh` never enables
 | [clean-room-result.schema.json](clean-room-result.schema.json) | Machine-readable clean-room evidence |
 | [clean-room-result.sample.json](clean-room-result.sample.json) | Sample evidence (not a live run) |
 | [EXTERNAL-ADVERSARIAL-PACK.md](EXTERNAL-ADVERSARIAL-PACK.md) | Reviewer-ready wrapper over existing self-checks |
-| [../GLAMA-TDQS.md](../GLAMA-TDQS.md) | Gate 4: Glama TDQS metadata-only pass (descriptions / params / annotations; no rename) |
+| [../GLAMA-TDQS.md](../GLAMA-TDQS.md) | Gate 4 fold-in: Glama TDQS schema/metadata quality (names frozen; no behavior change) |
 
 ## Hard stops
 
