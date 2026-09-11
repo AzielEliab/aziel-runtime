@@ -97,7 +97,8 @@ assert.match(packIndex, /glama\.json/);
 const tdqs = readFileSync(new URL("../docs/GLAMA-TDQS.md", import.meta.url), "utf8");
 assert.match(tdqs, /2\.0\.0-rc1/);
 assert.match(tdqs, /No tool rename|names/);
-assert.doesNotMatch(tdqs, /behavior change|routing change/i);
+assert.match(tdqs, /does not change (?:runtime )?behavior|does \*\*not\*\* change runtime behavior/i);
+assert.doesNotMatch(tdqs, /this (?:PR|pass) changes (?:runtime )?behavior|routing change required/i);
 
 const changelog = readFileSync(new URL("../docs/2.0/CHANGELOG.md", import.meta.url), "utf8");
 assert.match(changelog, /1\.9\.x/);
@@ -108,7 +109,11 @@ const clean = readFileSync(new URL("../docs/2.0/CLEAN-ROOM.md", import.meta.url)
 assert.match(clean, /scripts\/clean-room-2\.0\.sh/);
 assert.match(clean, /AZIEL_RUNTIME_MCP=local/);
 assert.match(clean, /No undocumented secrets|no undocumented secrets/i);
-assert.doesNotMatch(clean, /wrangler deploy/);
+assert.match(clean, /without `wrangler deploy`/);
+assert.match(clean, /or `wrangler deploy`/);
+assert.doesNotMatch(clean, /(?:^|\n)\s*(?:npx\s+)?wrangler deploy/m);
+assert.doesNotMatch(packIndex, /(?:^|\n)\s*(?:npx\s+)?wrangler deploy/m);
+assert.match(packIndex, /Do not run `wrangler deploy`/);
 
 const adv = readFileSync(new URL("../docs/2.0/EXTERNAL-ADVERSARIAL-PACK.md", import.meta.url), "utf8");
 assert.match(adv, /Self-test ≠ third-party lab|self-test ≠ third-party lab/i);
