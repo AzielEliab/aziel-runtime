@@ -14,7 +14,7 @@ This repo ships:
 | [`cli/mcp-stdio.mjs`](../cli/mcp-stdio.mjs) | Stdio MCP server. Default **bridges** to the hosted Worker `/mcp`. |
 | [`Dockerfile`](../Dockerfile) | Local / “from Dockerfile” image. Glama admin often **generates** its own image from CMD args — still ship this file. |
 | [`src/mcp-stdio.js`](../src/mcp-stdio.js) | Framing + bridge / in-process dispatch. |
-| [`docs/GLAMA-TDQS.md`](GLAMA-TDQS.md) | Metadata-only TDQS pass (`tools/list` descriptions, params, annotations, output schemas). |
+| [`docs/GLAMA-TDQS.md`](GLAMA-TDQS.md) | Metadata-only TDQS pass (`tools/list` descriptions, params, annotations, output schemas). Fold into 2.0.0-rc1 Gate 4. |
 
 ## Why stdio
 

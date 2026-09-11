@@ -4,7 +4,7 @@ Public identity: **Aziel Eliab** only.
 
 This note records a **schema-and-metadata quality pass** for Glama [TDQS](https://github.com/glama-ai/tool-definition-quality-score) (Tool Definition Quality Score). It does **not** change runtime behavior, FragGate routing, permissions, refusal semantics, engine execution, or Remain-OFF.
 
-Runtime version line is **2.0.0-rc1** (contract freeze). This pass is metadata-only and does not change behavior. No wrangler deploy. No tool rename. No tools added for score gaming. No tools removed. Included in Gate 4 of `docs/2.0/`.
+**Fold into 2.0.0-rc1** (same release train as `docs/2.0/`, not a side quest). This pass is metadata-only and does not change behavior. Names stay the frozen 36 `PUBLIC_MCP_TOOLS`. No wrangler deploy. No tool rename. No tools added for score gaming. No tools removed. Included in Gate 4 of `docs/2.0/` (TDQS metadata + existing `glama.json` / GitHub topics).
 
 ## Source of truth
 

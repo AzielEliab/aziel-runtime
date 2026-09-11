@@ -12,7 +12,7 @@ Crawler abstract (`RUNTIME_ABSTRACT`) is unchanged and stays the lead on homepag
 Certification point — not a feature dump.
 
 - Public contract frozen under `docs/2.0/` (FragGate flow, MCP names, OpenAPI parity, health/version, `engine_digest`, live/stub/proxy-fallback).
-- Gate 4 distribution identity includes Glama TDQS 5.0 metadata (`tools/list` descriptions / params / truthful annotations) plus existing `glama.json` and GitHub topics. **No tool renames. No behavior changes.**
+- Gate 4 distribution identity includes Glama TDQS 5.0 metadata (`tools/list` descriptions / params / truthful annotations / output schemas) plus existing `glama.json` and GitHub topics. Folded into this same 2.0.0-rc1 train — not a side quest. **No tool renames. No behavior / routing / refusal changes.** `fraggate_call` is not globally read-only or idempotent. See `docs/GLAMA-TDQS.md`.
 - Compatibility, receipt, refusal, and breaking-change policies published.
 - Clean-room reproducibility script + machine-readable evidence schema.
 - External adversarial pack wrapping the existing `verify-adversarial` + Remain-OFF matrix (reviewer-ready; **self-test ≠ third-party lab**).
@@ -28,7 +28,7 @@ Certification point — not a feature dump.
 | `fraggate_list` → `fraggate_describe` → `fraggate_call` | Unchanged |
 | `POST /v1/fraggate/call` | Unchanged |
 | `POST /mcp` initialize `2025-03-26` | Unchanged |
-| 36 `PUBLIC_MCP_TOOLS` | Unchanged |
+| 36 `PUBLIC_MCP_TOOLS` | Unchanged names; TDQS-richer descriptions / params / annotations |
 | `/p/{slug}/{op}` is proxy | Unchanged |
 | Remain-OFF verbs refuse | Unchanged |
 | Glama stdio `node cli/mcp-stdio.mjs` | Unchanged |

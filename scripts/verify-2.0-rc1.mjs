@@ -104,6 +104,7 @@ const changelog = readFileSync(new URL("../docs/2.0/CHANGELOG.md", import.meta.u
 assert.match(changelog, /1\.9\.x/);
 assert.match(changelog, /2\.0\.0-rc1/);
 assert.match(changelog, /No intentional behavioral breaks/);
+assert.match(changelog, /TDQS/);
 
 const clean = readFileSync(new URL("../docs/2.0/CLEAN-ROOM.md", import.meta.url), "utf8");
 assert.match(clean, /scripts\/clean-room-2\.0\.sh/);

@@ -20,7 +20,7 @@ Public, no OAuth. Always send `User-Agent: Mozilla/5.0`.
 ## Promises (must not regress)
 
 1. **FragGate remains THE single public executable door.** Agents do not need a new tool family.
-2. **`POST /mcp` `tools/list` names stay the 36 `PUBLIC_MCP_TOOLS`.** Adding a public MCP name is a contract change (see [BREAKING-CHANGE-POLICY.md](BREAKING-CHANGE-POLICY.md)). Flat `{slug}_{op}` stays unlistable.
+2. **`POST /mcp` `tools/list` names stay the 36 `PUBLIC_MCP_TOOLS`.** Adding a public MCP name is a contract change (see [BREAKING-CHANGE-POLICY.md](BREAKING-CHANGE-POLICY.md)). Flat `{slug}_{op}` stays unlistable. Description / annotation / `outputSchema` enrichment (Glama TDQS 5.0) is **not** a name change and **not** a behavioral break. `fraggate_call` must not be marked globally read-only or idempotent.
 3. **MCP `initialize`** keeps `protocolVersion: "2025-03-26"`, `serverInfo.name: "aziel-runtime"`, `capabilities.tools.listChanged: false`.
 4. **OpenAPI** `GET /openapi.json` stays OpenAPI 3.1. `info.description` still **starts** with `RUNTIME_ABSTRACT`. Prefer `POST /v1/fraggate/call`. `/p/{slug}/{op}` stays proxy-not-exec.
 5. **Authority JSON** (`/v1/health`, `/v1/ready`, `/v1/runtime.json`) stay the same snapshot shape (`authoritySnapshot()`). `door` stays `"fraggate"`. `fraggate_call_public` stays `true`.
