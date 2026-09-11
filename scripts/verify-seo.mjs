@@ -12,6 +12,9 @@ import {
   AUTHOR_SITE_SITEMAP,
   CRAWLER_LEAD_VERSION_RE,
   ECOSYSTEM_HEADING,
+  NAMED_COMPONENTS_LINE,
+  NAMED_RUNTIME_TOOLS,
+  RUNTIME_SOFTWARE_ID,
   GODLOCK_UK_SITEMAP,
   LIBRARY_SITEMAP,
   MISSING_PRODUCT_SITEMAP_SLUGS,
@@ -34,6 +37,7 @@ import {
   SOFTWARE_PAGE_TITLE,
   prefersHtml,
 } from "../src/seo-html.js";
+import { PUBLIC_MCP_TOOLS } from "../src/fraggate/codes.js";
 
 const handler = (await import("../src/index.js")).default.fetch;
 const origin = "https://aziel-runtime.example";
@@ -314,9 +318,15 @@ assert.ok(cite.hubs.hubs.some((h) => h.id === "azieleliab" && /azieleliab\.com\/
 assert.ok(cite.hubs.hubs.some((h) => h.id === "library" && /azielcorpuslibrary\.net\/software/.test(h.software_tab)));
 assert.ok(cite.hubs.hubs.some((h) => h.id === "godlock.uk" && /godlock\.uk\/software/.test(h.software_tab)));
 assert.equal(cite.entity_graph.person, AUTHOR_ID);
-assert.equal(cite.entity_graph.runtime, `${origin}/#runtime`);
+assert.equal(cite.entity_graph.runtime, RUNTIME_SOFTWARE_ID);
 assert.equal(cite.entity_graph.execution_url, `${origin}/`);
+assert.equal(cite.entity_graph.relatedLink, `${origin}/`);
 assert.deepEqual(cite.entity_graph.sameAs, runtimeSoftwareSameAs());
+assert.equal(cite.entity_graph.named_tools.length, NAMED_RUNTIME_TOOLS.length);
+assert.ok(cite.entity_graph.named_tools.every((t) => t["@id"] === `https://www.azieleliab.com/runtime#${t.slug}`));
+assert.ok(cite.entity_graph.named_tools.some((t) => t.slug === "jeeves" && t.name === "Ask Jeeves"));
+assert.ok(cite.entity_graph.named_tools.some((t) => t.slug === "fraggate" && t.name === "FragGate"));
+assert.ok(!cite.entity_graph.named_tools.some((t) => PUBLIC_MCP_TOOLS.includes(t.slug) || PUBLIC_MCP_TOOLS.includes(t.name)));
 assert.ok(cite.entity_graph.ecosystem.some((l) => l.label === "Official site" && l.url === "https://www.azieleliab.com/"));
 assert.ok(cite.entity_graph.ecosystem.some((l) => l.label === "Aziel Corpus Library" && l.url === "https://www.azielcorpuslibrary.net/"));
 assert.ok(cite.entity_graph.ecosystem.some((l) => l.label === "Aziel Runtime on GitHub" && l.url === RUNTIME_GITHUB));
@@ -412,13 +422,44 @@ assert.doesNotMatch(home, /rel="canonical" href="https:\/\/www\.azieleliab\.com/
   assert.equal(person.url, "https://www.azieleliab.com/");
   assert.ok(!String(person.url).includes("workers.dev"));
   assert.ok(!String(person["@id"]).includes("github.com"));
-  const runtimeApp = graph.find((n) => n["@type"] === "SoftwareApplication" && n["@id"] === `${origin}/#runtime`);
-  assert.ok(runtimeApp, "runtime SoftwareApplication");
+  const runtimeApp = graph.find((n) => n["@type"] === "SoftwareApplication" && n["@id"] === RUNTIME_SOFTWARE_ID);
+  assert.ok(runtimeApp, "runtime SoftwareApplication hub @id");
+  assert.equal(runtimeApp.name, PRODUCT_NAME);
   assert.equal(runtimeApp.url, `${origin}/`);
+  assert.equal(runtimeApp.relatedLink, `${origin}/`);
   assert.equal(runtimeApp.author["@id"], AUTHOR_ID);
   assert.deepEqual(runtimeApp.sameAs, [RUNTIME_GITHUB, RUNTIME_GLAMA]);
   assert.ok(!runtimeApp.sameAs.includes(AUTHOR_GITHUB));
   assert.ok(!runtimeApp.sameAs.includes("https://www.azieleliab.com/"));
+  assert.ok(!graph.some((n) => n["@id"] === `${origin}/#runtime`));
+  const hasPartIds = (runtimeApp.hasPart || []).map((p) => p["@id"]);
+  assert.deepEqual(
+    hasPartIds,
+    NAMED_RUNTIME_TOOLS.map((t) => `https://www.azieleliab.com/runtime#${t.slug}`),
+  );
+  for (const tool of NAMED_RUNTIME_TOOLS) {
+    const child = graph.find((n) => n["@id"] === `https://www.azieleliab.com/runtime#${tool.slug}`);
+    assert.ok(child, `named tool ${tool.slug}`);
+    assert.equal(child["@type"], "SoftwareApplication");
+    assert.equal(child.name, tool.name);
+    assert.equal(child.author["@id"], AUTHOR_ID);
+    assert.equal(child.isPartOf["@id"], RUNTIME_SOFTWARE_ID);
+  }
+  const appNames = [];
+  const walk = (node) => {
+    if (!node || typeof node !== "object") return;
+    if (Array.isArray(node)) {
+      node.forEach(walk);
+      return;
+    }
+    if (node["@type"] === "SoftwareApplication" && node.name) appNames.push(node.name);
+    for (const value of Object.values(node)) walk(value);
+  };
+  walk(graph);
+  for (const mcpName of PUBLIC_MCP_TOOLS) {
+    assert.ok(!appNames.includes(mcpName), `MCP op ${mcpName} must not be a SoftwareApplication`);
+    assert.ok(!graph.some((n) => n && n["@id"] && String(n["@id"]).endsWith(`#${mcpName}`)), `MCP op ${mcpName} must not have a schema @id`);
+  }
   const eco = graph.find((n) => n["@id"] === `${origin}/#ecosystem`);
   assert.equal(eco.name, ECOSYSTEM_HEADING);
 }
@@ -432,9 +473,12 @@ assert.match(home, /href="https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-r
 assert.match(home, /href="https:\/\/godlock\.uk\/">GodLock<\/a>/);
 {
   const ecoAt = home.indexOf(ECOSYSTEM_HEADING);
+  const namedAt = home.indexOf(NAMED_COMPONENTS_LINE);
   const softwaresAt = home.indexOf("<h2>Softwares</h2>");
   assert.ok(ecoAt >= 0 && softwaresAt > ecoAt, "ecosystem chrome precedes Softwares catalog");
+  assert.ok(namedAt >= 0 && namedAt < softwaresAt, "named components line precedes Softwares catalog");
 }
+assert.match(home, /Includes named components such as FragGate/);
 assert.match(home, /property="og:image" content="https:\/\/aziel-runtime\.example\/sigil\.png"/);
 assert.match(home, /name="twitter:image" content="https:\/\/aziel-runtime\.example\/sigil\.png"/);
 assert.match(home, /property="og:site_name" content="Aziel Eliab"/);
@@ -528,6 +572,8 @@ assert.match(softwareHtml, /www\.azieleliab\.com\/#aziel/);
 assert.doesNotMatch(softwareHtml, /github\.com\/AzielEliab#person/);
 assert.match(softwareHtml, /class="ecosystem"/);
 assert.match(softwareHtml, new RegExp(ECOSYSTEM_HEADING.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+assert.match(softwareHtml, /www\.azieleliab\.com\/runtime#runtime/);
+assert.match(softwareHtml, /Includes named components such as FragGate/);
 {
   const ecoAt = softwareHtml.indexOf('class="ecosystem"');
   const catalogAt = softwareHtml.indexOf("<h2>Catalog</h2>");
@@ -657,6 +703,8 @@ assert.match(aboutHtml, /www\.azieleliab\.com\/#aziel/);
 assert.doesNotMatch(aboutHtml, /github\.com\/AzielEliab#person/);
 assert.match(aboutHtml, /class="ecosystem"/);
 assert.match(aboutHtml, /href="https:\/\/www\.azieleliab\.com\/">Official site<\/a>/);
+assert.match(aboutHtml, /www\.azieleliab\.com\/runtime#runtime/);
+assert.match(aboutHtml, /Includes named components such as FragGate/);
 assert.doesNotMatch(firstVisibleText(aboutHtml, 500), CRAWLER_LEAD_VERSION_RE);
 assert.equal(cite.about.changelog_below_abstract, true);
 assert.match(aboutHtml, /How agents call it/);

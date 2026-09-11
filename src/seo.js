@@ -13,6 +13,10 @@ export const AUTHOR_SAME_AS = [AUTHOR_GITHUB];
 /** Shared hub Person @id. Runtime is not the identity hub — do not use GitHub#person. */
 export const AUTHOR_ID = "https://www.azieleliab.com/#aziel";
 
+/** Hub identity for the suite. Worker origin is execution endpoint / relatedLink only. */
+export const RUNTIME_SOFTWARE_ID = "https://www.azieleliab.com/runtime#runtime";
+export const RUNTIME_HUB_URL = "https://www.azieleliab.com/runtime";
+
 /** Public product name. Do not mash with version + FragGate. Author is Aziel Eliab only. */
 export const PRODUCT_NAME = "Aziel Runtime";
 export const PRODUCT_SLUG = "aziel-runtime";
@@ -500,17 +504,77 @@ export function runtimeSoftwareSameAs() {
 }
 
 /**
- * Runtime is the execution surface / SoftwareApplication — not the identity hub.
- * author always points at the shared hub Person @id.
+ * Named suite components only. Exact public names.
+ * Do not publish MCP operation names (fraggate_call, runtime_run, …) as schema entities.
+ */
+export const NAMED_RUNTIME_TOOLS = Object.freeze([
+  { slug: "fraggate", name: "FragGate" },
+  { slug: "forgereceipts", name: "ForgeReceipts" },
+  { slug: "decisiongate", name: "DecisionGATE" },
+  { slug: "temporallock", name: "TemporalLock" },
+  { slug: "trajectorylock", name: "TrajectoryLock" },
+  { slug: "peacelock", name: "PeaceLock" },
+  { slug: "godlock", name: "GodLock" },
+  { slug: "azos", name: "AZ-OS" },
+  { slug: "azcoherence", name: "AZCoherence" },
+  { slug: "4dmap", name: "4DMap" },
+  { slug: "aziel-corpus", name: "Aziel Corpus" },
+  { slug: "jeeves", name: "Ask Jeeves" },
+  { slug: "azbrowser", name: "AZBrowser" },
+  { slug: "azmail", name: "AZMail" },
+  { slug: "azhub", name: "AZHub" },
+  { slug: "azinterface", name: "AZInterface" },
+  { slug: "spectrallock", name: "SpectralLock" },
+  { slug: "shadowlock", name: "ShadowLock" },
+  { slug: "foldlock", name: "FoldLock" },
+  { slug: "codelock", name: "CodeLock" },
+  { slug: "vibelock", name: "VibeLock" },
+]);
+
+export const NAMED_COMPONENTS_LINE =
+  "Includes named components such as FragGate, ForgeReceipts, DecisionGATE, TemporalLock, GodLock, AZ-OS, AZCoherence, 4DMap, Aziel Corpus, and Ask Jeeves.";
+
+export function namedToolId(slug) {
+  return `${AUTHOR_SITE_ORIGIN}/runtime#${slug}`;
+}
+
+export function namedToolJsonLd(tool) {
+  return {
+    "@type": "SoftwareApplication",
+    "@id": namedToolId(tool.slug),
+    name: tool.name,
+    author: { "@id": AUTHOR_ID },
+    isPartOf: { "@id": RUNTIME_SOFTWARE_ID },
+  };
+}
+
+export function namedToolsJsonLd() {
+  return NAMED_RUNTIME_TOOLS.map(namedToolJsonLd);
+}
+
+export function runtimeHasPart() {
+  return NAMED_RUNTIME_TOOLS.map((tool) => ({ "@id": namedToolId(tool.slug) }));
+}
+
+/**
+ * Parent Runtime SoftwareApplication — hub @id.
+ * Worker origin is the execution endpoint / relatedLink, not the identity @id.
  */
 export function runtimeSoftwareJsonLd(origin, extra = {}) {
   const base = String(origin || "").replace(/\/$/, "");
+  const execution = `${base}/`;
+  const rest = { ...extra };
+  delete rest.hasPart;
+  delete rest["@id"];
+  delete rest.author;
+  delete rest.sameAs;
   return {
     "@type": "SoftwareApplication",
-    "@id": `${base}/#runtime`,
+    "@id": RUNTIME_SOFTWARE_ID,
     name: PRODUCT_NAME,
     alternateName: [PRODUCT_ALTERNATE_NAME],
-    url: `${base}/`,
+    url: execution,
+    relatedLink: execution,
     description: RUNTIME_ABSTRACT,
     applicationCategory: "DeveloperApplication",
     operatingSystem: "Cloudflare Workers",
@@ -519,7 +583,8 @@ export function runtimeSoftwareJsonLd(origin, extra = {}) {
     creator: { "@id": AUTHOR_ID },
     codeRepository: RUNTIME_GITHUB,
     sameAs: runtimeSoftwareSameAs(),
-    ...extra,
+    ...rest,
+    hasPart: runtimeHasPart(),
   };
 }
 
@@ -553,12 +618,18 @@ export function entityGraphCiteField(origin) {
   const base = String(origin || "").replace(/\/$/, "");
   return {
     person: AUTHOR_ID,
-    runtime: `${base}/#runtime`,
+    runtime: RUNTIME_SOFTWARE_ID,
     execution_url: `${base}/`,
+    relatedLink: `${base}/`,
     identity_hub: `${AUTHOR_SITE_ORIGIN}/`,
     sameAs: runtimeSoftwareSameAs(),
+    named_tools: NAMED_RUNTIME_TOOLS.map((tool) => ({
+      slug: tool.slug,
+      name: tool.name,
+      "@id": namedToolId(tool.slug),
+    })),
     ecosystem: ECOSYSTEM_LINKS.map((link) => ({ ...link })),
-    note: "Runtime is SoftwareApplication / execution surface. Person identity lives at the official hub @id. Worker origin is self-canonical.",
+    note: "Runtime parent @id is the hub suite node. Worker origin is execution endpoint / relatedLink and stays self-canonical. hasPart is named tools only — not MCP operation names.",
   };
 }
 

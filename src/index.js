@@ -172,6 +172,7 @@ import {
   hubsCiteField,
   ecosystemJsonLd,
   entityGraphCiteField,
+  namedToolsJsonLd,
   libraryJsonLd,
   llmsCiteBlock,
   llmsHubsBlock,
@@ -190,6 +191,7 @@ import {
   describeUnknownHtml,
   ecosystemBlockHtml,
   homepageLeadHtml,
+  namedComponentsHtml,
   prefersHtml,
   softwareCatalogHtml,
 } from "./seo-html.js";
@@ -1599,7 +1601,17 @@ function jsonLd(origin) {
   };
   return {
     "@context": "https://schema.org",
-    "@graph": [person, software, website, webApi, libraryJsonLd(), ecosystemJsonLd(origin), itemList, softwareList],
+    "@graph": [
+      person,
+      software,
+      ...namedToolsJsonLd(),
+      website,
+      webApi,
+      libraryJsonLd(),
+      ecosystemJsonLd(origin),
+      itemList,
+      softwareList,
+    ],
   };
 }
 
@@ -1660,6 +1672,7 @@ const PAGE_CSS = `
   .ecosystem p { margin: 0 0 .45rem; font-weight: 600; }
   .ecosystem ul { margin: 0; padding-left: 1.2rem; }
   .ecosystem li { margin: .2rem 0; }
+  .named-tools { color:#9aa3b2; margin: 0 0 1.25rem; }
   .links { color:#9aa3b2; font-size:.92rem; }
   .links a { margin-right: 1rem; color:#9aa3b2; }
   .cite { border: 1px solid #2a3140; border-radius: 12px; padding: 1rem 1.15rem; background: #12151c; margin: 0 0 1.4rem; }
@@ -1819,6 +1832,7 @@ ${headMeta(origin, RUNTIME_PAGE_TITLE, RUNTIME_ABSTRACT, "/")}
 ${homepageLeadHtml()}
 ${distributionDoorsHtml(origin)}
 ${ecosystemBlockHtml()}
+${namedComponentsHtml()}
 
   <section class="cite" id="cite">
     <h2>How to cite</h2>
