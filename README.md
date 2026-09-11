@@ -71,6 +71,7 @@ This Worker homepage stays the **API / MCP / OpenAPI** surface. Human site acces
 
 | Surface | URL |
 |---------|-----|
+| Canonical GitHub | https://github.com/AzielEliab/aziel-runtime |
 | Runtime Worker / MCP / OpenAPI | https://aziel-runtime.vibelock.workers.dev/ |
 | Library Runtime front door | https://www.azielcorpuslibrary.net/runtime |
 | Aziel Corpus Library | https://www.azielcorpuslibrary.net/ |
