@@ -396,6 +396,17 @@ assert.match(
   home,
   /<a href="https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime">Try on Glama<\/a>/,
 );
+assert.match(
+  home,
+  /<a href="https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime" class="cta">Try on Glama<\/a>/,
+);
+{
+  const doorsAt = home.indexOf('<p class="doors">');
+  const workerSelfAt = home.indexOf(`<p class="links">`);
+  assert.ok(doorsAt >= 0, "homepage has distribution doors");
+  assert.match(home.slice(doorsAt, doorsAt + 400), /class="cta">Try on Glama<\/a>/);
+  assert.ok(workerSelfAt > doorsAt, "Try on Glama CTA precedes Worker origin self-links");
+}
 assert.doesNotMatch(home, /glama\.ai\/mcp\/servers\/[0-9a-f]{8}-[0-9a-f-]{27}/i);
 assert.match(home, /Microsoft Copilot \/ Bing/);
 assert.match(home, /Google Gemini \/ Vertex AI/);
@@ -461,8 +472,15 @@ assert.match(softwareHtml, /godlock\.uk\/software/);
 assert.match(softwareHtml, /GET \/v1\/mesh never enables/);
 assert.match(
   softwareHtml,
-  /<a href="https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime">Try on Glama<\/a>/,
+  /<a href="https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime" class="cta">Try on Glama<\/a>/,
 );
+{
+  const doorsAt = softwareHtml.indexOf('<p class="doors">');
+  const machineAt = softwareHtml.indexOf('class="secondary">Author');
+  assert.ok(doorsAt >= 0, "Softwares HTML has distribution doors");
+  assert.match(softwareHtml.slice(doorsAt, doorsAt + 400), /class="cta">Try on Glama<\/a>/);
+  assert.ok(machineAt > doorsAt, "Try on Glama CTA precedes Worker origin Softwares self-link");
+}
 assert.doesNotMatch(softwareHtml, /Yahweh|Messiah|Jesus Christ/);
 
 const softwareJsonStill = await get("/v1/software");
@@ -571,8 +589,15 @@ assert.match(aboutHtml, /How hubs use it/);
 assert.match(aboutHtml, /What it is not/);
 assert.match(
   aboutHtml,
-  /<a href="https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime">Try on Glama<\/a>/,
+  /<a href="https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime" class="cta">Try on Glama<\/a>/,
 );
+{
+  const doorsAt = aboutHtml.indexOf('<p class="doors">');
+  const machineAt = aboutHtml.indexOf('class="secondary">Author');
+  assert.ok(doorsAt >= 0, "About HTML has distribution doors");
+  assert.match(aboutHtml.slice(doorsAt, doorsAt + 400), /class="cta">Try on Glama<\/a>/);
+  assert.ok(machineAt > doorsAt, "Try on Glama CTA precedes Worker origin cite self-link");
+}
 assert.equal(await (await get("/v1/about")).text(), aboutHtml);
 
 console.log("ok seo hub: robots, sitemap-index, llms/cite MIME, Person JSON-LD, catalog crawl links, HTML shells, definition-first abstract");
