@@ -25,7 +25,13 @@ const cli = join(root, "cli/mcp-stdio.mjs");
 const glama = JSON.parse(await readFile(join(root, "glama.json"), "utf8"));
 assert.equal(glama.$schema, "https://glama.ai/mcp/schemas/server.json");
 assert.deepEqual(glama.maintainers, ["AzielEliab"]);
-assert.equal(Object.keys(glama).sort().join(","), "$schema,maintainers");
+assert.equal(glama.name, "Aziel Runtime");
+assert.equal(
+  glama.description,
+  "Node-meshed MCP software orchestration suite for digital forensics, auditing, provenance, research, intelligence-support, and secure agent workflows, with gated execution, compartmentalized engines, verifiable receipts, temporal integrity, and explicit capability refusal.",
+);
+assert.ok(Array.isArray(glama.keywords) && glama.keywords.includes("mcp"));
+assert.ok(Array.isArray(glama.categories) && glama.categories.includes("agent-orchestration"));
 
 const dockerfile = await readFile(join(root, "Dockerfile"), "utf8");
 assert.match(dockerfile, /cli\/mcp-stdio\.mjs/);
