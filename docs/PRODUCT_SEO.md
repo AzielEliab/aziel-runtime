@@ -11,7 +11,7 @@ This repo does **not** own VibeLock or other product Workers. Copy this pattern 
 - `alternateName` / aka only: **Aziel Elroi Eliab**
 - Do not invent other identities.
 - Do not invent Zenodo DOIs. Cite `/cite.json`.
-- Crawler lead is the canonical abstract. Version notes (1.7.x, **1.9 / AZRT-1.9-CLOSE-1.0**, later) stay **below** the abstract.
+- Crawler lead is the canonical abstract. Version notes (1.7.x, **1.9 / AZRT-1.9-CLOSE-1.0**, **2.0.0-rc1**, later) stay **below** the abstract.
 
 ## Required routes
 

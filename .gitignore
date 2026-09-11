@@ -1,5 +1,7 @@
 attestation.json
 attestation.junit.xml
+clean-room-result.json
+adversarial-result.json
 node_modules/
 .wrangler/
 .venv

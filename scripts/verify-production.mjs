@@ -61,13 +61,14 @@ async function jsonReq(env, path, method, body, headers = {}) {
 }
 
 // --- helpers ---
-assert.equal(RUNTIME_VERSION, "1.9.3");
+assert.equal(RUNTIME_VERSION, "2.0.0-rc1");
 assert.equal(RECEIPT_CAP, 64);
 assert.equal(SESSION_TTL_MS, 6 * 60 * 60 * 1000);
 assert.equal(RATE_OPEN_PER_MIN, 20);
 assert.equal(RATE_EXEC_PER_MIN, 60);
-assert.equal(authoritySnapshot().version, "1.9.3");
-assert.ok(VERSION_HISTORY.some((row) => row.version === "1.9.3" && row.status === "current"));
+assert.equal(authoritySnapshot().version, "2.0.0-rc1");
+assert.ok(VERSION_HISTORY.some((row) => row.version === "2.0.0-rc1" && row.status === "current"));
+assert.ok(VERSION_HISTORY.some((row) => row.version === "1.9.3" && row.status === "superseded"));
 assert.ok(VERSION_HISTORY.some((row) => row.version === "1.9.2" && row.status === "superseded"));
 assert.ok(VERSION_HISTORY.some((row) => row.version === "1.9.1" && row.status === "superseded"));
 assert.ok(VERSION_HISTORY.some((row) => row.version === "1.9.0" && row.status === "superseded"));
