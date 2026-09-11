@@ -29,8 +29,18 @@ export const COMPATIBLE_AI_CLIENTS_PLUS = "plus other MCP/OpenAPI-capable assist
 export const GLAMA_LISTING_URL = "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime";
 export const GLAMA_TRY_LABEL = "Try on Glama";
 
-export function tryOnGlamaAnchorHtml() {
-  return `<a href="${GLAMA_LISTING_URL}">${GLAMA_TRY_LABEL}</a>`;
+export function tryOnGlamaAnchorHtml(attrs = "") {
+  return `<a href="${GLAMA_LISTING_URL}"${attrs}>${GLAMA_TRY_LABEL}</a>`;
+}
+
+/** Primary Softwares / client-options door. Worker origin self-link stays secondary. */
+export function distributionDoorsHtml(origin) {
+  const host = String(origin || "").replace(/\/$/, "");
+  return `  <p class="doors">
+    ${tryOnGlamaAnchorHtml(' class="cta"')}
+    <a href="https://github.com/AzielEliab/aziel-runtime">GitHub</a>
+    <a class="secondary" href="${host}/">${host}/</a>
+  </p>`;
 }
 
 /** robots.txt Allow-set names for SEO / llms / cite / homepage crawl copy. */
@@ -90,12 +100,12 @@ ${compatibleClientsMarkdownList()}
 
 Practical pull + call (do not invent steps for every crawler):
 
+- **Glama** — [${GLAMA_TRY_LABEL}](${GLAMA_LISTING_URL}) — primary Install Server via glama.json + Dockerfile CMD \`["node", "cli/mcp-stdio.mjs"]\`
 - **ChatGPT** — GPT Actions → Import from URL → \`${host}/openapi.json\`
 - **Grok** — custom tool / OpenAPI / MCP remote → \`${host}/openapi.json\` or \`POST ${host}/mcp\`
 - **Venice** — custom HTTP tools / OpenAPI → same OpenAPI URL
 - **Claude Desktop** — MCP stdio \`node cli/mcp-stdio.mjs\` (see docs/GLAMA.md) or remote \`POST ${host}/mcp\`
 - **Cursor (MCP)** — same stdio config or remote \`POST ${host}/mcp\`
-- **Glama** — [${GLAMA_TRY_LABEL}](${GLAMA_LISTING_URL}) — Install Server via glama.json + Dockerfile CMD \`["node", "cli/mcp-stdio.mjs"]\`
 - **Any installer / agent** — \`GET ${host}/v1/skill\` or \`GET ${host}/v1/software\`, then \`fraggate_list\` → \`fraggate_describe\` → \`fraggate_call\`. Session tools and \`runtime_run\` are advanced/internal. \`/p/{slug}/{op}\` is proxy only.
 
 MCP is a **thin FragGate door**: pipeline \`fraggate_list\` → \`fraggate_describe\` → \`fraggate_call\`, plus \`runtime_skill\`, \`fraggate_verify\`, \`decisiongate_check\`, \`library_lookup\`, suite \`mesh_*\`, and catalog helpers \`runtime_software\` (\`GET /v1/software\`) / \`runtime_bundle\` / \`runtime_pull\`. Advanced/internal: \`runtime_run\`, \`runtime_manifest\`, \`runtime_session_*\`. Flat \`{slug}_{op}\` names are **not** listed. Prefer FragGate, \`GET /v1/software\`, and \`POST /mcp\`. Public, no OAuth.
@@ -105,18 +115,19 @@ MCP is a **thin FragGate door**: pipeline \`fraggate_list\` → \`fraggate_descr
 export function homepageAddUrlHtml(origin) {
   const host = String(origin || "").replace(/\/$/, "");
   return `  <h2>Compatible AI clients</h2>
+${distributionDoorsHtml(host)}
   <p>Assistants / clients that can call OpenAPI, MCP, or HTTP tools:</p>
   <ul>
 ${compatibleClientsHtmlItems()}
   </ul>
   <h2>Add this URL</h2>
   <ul>
+    <li><strong>${tryOnGlamaAnchorHtml()}</strong> — primary Install Server; Dockerfile CMD <code>["node", "cli/mcp-stdio.mjs"]</code></li>
     <li><strong>ChatGPT</strong> — GPT Actions → Import from URL → <code>${host}/openapi.json</code></li>
     <li><strong>Grok</strong> — custom tool / OpenAPI / MCP remote → <code>${host}/openapi.json</code> or <code>${host}/mcp</code></li>
     <li><strong>Venice</strong> — custom HTTP tools / OpenAPI → same OpenAPI URL</li>
     <li><strong>Claude Desktop</strong> — MCP stdio <code>node cli/mcp-stdio.mjs</code> or remote <code>POST ${host}/mcp</code></li>
     <li><strong>Cursor (MCP)</strong> — same stdio / remote MCP</li>
-    <li><strong>${tryOnGlamaAnchorHtml()}</strong> — Install Server; Dockerfile CMD <code>["node", "cli/mcp-stdio.mjs"]</code></li>
     <li><strong>Any installer / agent</strong> — start at <code>${host}/v1/skill</code> or <code>${host}/v1/software</code>. Pipeline <code>fraggate_list</code> → <code>fraggate_describe</code> → <code>fraggate_call</code>. Session tools and <code>runtime_run</code> are advanced/internal.</li>
   </ul>`;
 }

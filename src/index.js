@@ -194,11 +194,11 @@ import {
   HOMEPAGE_KEYWORDS,
   citeCompatibleFields,
   crawlerAllowSentence,
+  distributionDoorsHtml,
   homepageAddUrlHtml,
   llmsCompatibleBlock,
   openApiImportSentence,
   tokenAuthSentence,
-  tryOnGlamaAnchorHtml,
 } from "./ai-clients.js";
 import { finishWithUse, peekUsesTotal, readUses } from "./uses.js";
 import {
@@ -1674,7 +1674,12 @@ const PAGE_CSS = `
   .meta a { margin-right: .85rem; }
   pre { background: #0e1014; padding: .75rem .9rem; overflow: auto; border-radius: 8px; font-size: .82rem; }
   code { font-size: .88rem; }
-  .links a { margin-right: 1rem; }
+  .doors { display:flex; flex-wrap:wrap; align-items:center; gap:.55rem 1rem; margin:0 0 1.25rem; }
+  .doors a.cta { display:inline-block; background:#241c0d; color:#f0d78c; border:1px solid #5c4a1a; border-radius:8px; padding:.4rem .85rem; font-weight:600; text-decoration:none; }
+  .doors a.cta:hover { background:#33280f; }
+  .doors a.secondary, a.secondary, p.secondary { color:#9aa3b2; font-size:.92rem; }
+  .links { color:#9aa3b2; font-size:.92rem; }
+  .links a { margin-right: 1rem; color:#9aa3b2; }
   .cite { border: 1px solid #2a3140; border-radius: 12px; padding: 1rem 1.15rem; background: #12151c; margin: 0 0 1.4rem; }
   .fg-door { border: 1px solid #3d3420; background: #16120a; border-radius: 10px; padding: .75rem .85rem; margin: .75rem 0 0; }
   .fg-door p { margin: 0 0 .55rem; color: #e6d19a; font-size: .92rem; }
@@ -1830,6 +1835,7 @@ ${headMeta(origin, RUNTIME_PAGE_TITLE, RUNTIME_ABSTRACT, "/")}
     <p class="stamp">Everblooming sigil · Aziel Eliab</p>
   </div>
 ${homepageLeadHtml()}
+${distributionDoorsHtml(origin)}
 
   <section class="cite" id="cite">
     <h2>How to cite</h2>
@@ -1866,7 +1872,6 @@ ${homepageLeadHtml()}
     <a href="${origin}/v1/ready">/v1/ready</a>
     <a href="https://www.azielcorpuslibrary.net/runtime">Library /runtime</a>
     <a href="https://github.com/AzielEliab/aziel-runtime">GitHub</a>
-    ${tryOnGlamaAnchorHtml()}
   </p>
   <p id="pipeline"><strong>Locked MASTER-33 pipeline</strong> (1.7.0 — FragGate is THE single door; not LambGate): <code>${LOCKED_STRIP}</code>. Lamb Lens is fabric after FragGate. Internal Domain Layer holds isolated softwares — domains are labels, not doors. RoseClock is forward-only. FoldLock fld3-wire stays internal to AZPIPE. SweepGate / ChainLock / AZPIPE / Lamb Lens / Sentinel / RoseClock are fabric, not Softwares-tab. 4DMap is cited inside the domain layer. Illegal reorder is refused.</p>
   <p>LIVE fabric (not Softwares-tab): AZPIPE, SweepGate, ChainLock, LOCKSET, packed catalog, Lamb Lens, Sentinel, RoseClock, <strong>QNS-CD-1.0</strong> (photon QNS1 1.3; local <code>qnsd</code>; Worker cites only), MASTER-33 (SUITE-PIPE-1.6.15 historical), <strong>AKM-TRIAD-1.0</strong> (adaptive recollection; Bayesian posterior ≠ truth; behind FragGate). MCP <code>chainlock_*</code> and <code>memory_*</code>. <code>GET /v1/mesh</code> never enables. <code>GET /v1/qns</code> cites the packet-transfer coding design — it does not proxy local via emit. <code>GET /v1/azpipe/arch</code> cites the locked MASTER-33 strip (same payload as <code>GET /v1/fraggate</code> <code>pipeline</code>; not a Softwares-tab door). UI=MCP. No Node Gate.</p>
@@ -1896,6 +1901,7 @@ ${homepageAddUrlHtml(origin)}
     <p><a href="${origin}/v1/fraggate">/v1/fraggate</a> · <a href="${origin}/v1/fraggate/list">/v1/fraggate/list</a> · <a href="${origin}/v1/catalog.json">catalog extras</a> · <a href="${FRAGGATE_WORKER_ORIGIN}/">Worker UI</a> · <a href="${FRAGGATE_WORKER_ORIGIN}/download">counted download</a> · <a href="${FRAGGATE_GITHUB}">GitHub</a></p>
   </section>
   <h2>Softwares</h2>
+${distributionDoorsHtml(origin)}
   ${cards}
   <section id="version-history">
   <div class="honesty">
