@@ -198,6 +198,7 @@ import {
   llmsCompatibleBlock,
   openApiImportSentence,
   tokenAuthSentence,
+  tryOnGlamaAnchorHtml,
 } from "./ai-clients.js";
 import { finishWithUse, peekUsesTotal, readUses } from "./uses.js";
 import {
@@ -1865,6 +1866,7 @@ ${homepageLeadHtml()}
     <a href="${origin}/v1/ready">/v1/ready</a>
     <a href="https://www.azielcorpuslibrary.net/runtime">Library /runtime</a>
     <a href="https://github.com/AzielEliab/aziel-runtime">GitHub</a>
+    ${tryOnGlamaAnchorHtml()}
   </p>
   <p id="pipeline"><strong>Locked MASTER-33 pipeline</strong> (1.7.0 — FragGate is THE single door; not LambGate): <code>${LOCKED_STRIP}</code>. Lamb Lens is fabric after FragGate. Internal Domain Layer holds isolated softwares — domains are labels, not doors. RoseClock is forward-only. FoldLock fld3-wire stays internal to AZPIPE. SweepGate / ChainLock / AZPIPE / Lamb Lens / Sentinel / RoseClock are fabric, not Softwares-tab. 4DMap is cited inside the domain layer. Illegal reorder is refused.</p>
   <p>LIVE fabric (not Softwares-tab): AZPIPE, SweepGate, ChainLock, LOCKSET, packed catalog, Lamb Lens, Sentinel, RoseClock, <strong>QNS-CD-1.0</strong> (photon QNS1 1.3; local <code>qnsd</code>; Worker cites only), MASTER-33 (SUITE-PIPE-1.6.15 historical), <strong>AKM-TRIAD-1.0</strong> (adaptive recollection; Bayesian posterior ≠ truth; behind FragGate). MCP <code>chainlock_*</code> and <code>memory_*</code>. <code>GET /v1/mesh</code> never enables. <code>GET /v1/qns</code> cites the packet-transfer coding design — it does not proxy local via emit. <code>GET /v1/azpipe/arch</code> cites the locked MASTER-33 strip (same payload as <code>GET /v1/fraggate</code> <code>pipeline</code>; not a Softwares-tab door). UI=MCP. No Node Gate.</p>

@@ -392,6 +392,11 @@ assert.match(home, /Compatible AI clients/);
 assert.match(home, /Claude \(Anthropic Desktop \/ custom tools\)/);
 assert.match(home, /Cursor \(MCP\)/);
 assert.match(home, /Glama \(Install Server \/ MCP\)/);
+assert.match(
+  home,
+  /<a href="https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime">Try on Glama<\/a>/,
+);
+assert.doesNotMatch(home, /glama\.ai\/mcp\/servers\/[0-9a-f]{8}-[0-9a-f-]{27}/i);
 assert.match(home, /Microsoft Copilot \/ Bing/);
 assert.match(home, /Google Gemini \/ Vertex AI/);
 assert.match(home, /plus other MCP\/OpenAPI-capable assistants/);
@@ -454,6 +459,10 @@ assert.match(softwareHtml, /data-slug="azcoherence"/);
 assert.match(softwareHtml, /www\.azieleliab\.com\/software/);
 assert.match(softwareHtml, /godlock\.uk\/software/);
 assert.match(softwareHtml, /GET \/v1\/mesh never enables/);
+assert.match(
+  softwareHtml,
+  /<a href="https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime">Try on Glama<\/a>/,
+);
 assert.doesNotMatch(softwareHtml, /Yahweh|Messiah|Jesus Christ/);
 
 const softwareJsonStill = await get("/v1/software");
@@ -560,6 +569,10 @@ assert.equal(cite.about.changelog_below_abstract, true);
 assert.match(aboutHtml, /How agents call it/);
 assert.match(aboutHtml, /How hubs use it/);
 assert.match(aboutHtml, /What it is not/);
+assert.match(
+  aboutHtml,
+  /<a href="https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime">Try on Glama<\/a>/,
+);
 assert.equal(await (await get("/v1/about")).text(), aboutHtml);
 
 console.log("ok seo hub: robots, sitemap-index, llms/cite MIME, Person JSON-LD, catalog crawl links, HTML shells, definition-first abstract");
