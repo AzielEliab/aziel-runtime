@@ -1,5 +1,5 @@
 /**
- * aziel-runtime 1.9.2 — Browser Rendering + live D1 MASTER (records) on 1.9.1 AZRT-1.9-GAPS-CLOSE heritage. Remain-OFF untouched. Author: Aziel Eliab.
+ * aziel-runtime 1.9.3 — isolate AZ-OS session VFS + isolate jeeves + binding-gated media-run + published attestation path on 1.9.2 heritage. Remain-OFF untouched. Author: Aziel Eliab.
  *
  * 1.1.0 was catalog+proxy that called itself a runtime. Useful front doors.
  * 1.2.0 owned open → policy → exec → receipt → close but exec still proxied.
@@ -218,7 +218,7 @@ const CATALOG_TITLE = PRODUCT_NAME;
 /** Bound to the canonical abstract. Version rolls (1.9+) go in #version-history, not here. */
 const CATALOG_DESCRIPTION = RUNTIME_ABSTRACT;
 const CATALOG_CHANGELOG_19 =
-  "1.9.2 binds Workers Browser Rendering (BROWSER) and live D1 MASTER (CORPUS_D1 → aziel-digital-library records). Whisper/OCR Workers-AI-bound. Sample MASTER remains the unbound fallback. Chromium product UI is not claimed; Tor/phoenix stay refuse. Remain-OFF untouched. 1.9.1 closes AZRT-1.9-GAPS-CLOSE: isolate-safe corpus review/score/verify/document-chain; Whisper/OCR Workers-AI-gated; AZBrowser sandbox_status (Chromium DEFERRED unbound); AZMail transport_status (no public MTA); wave 2–3 doctor/health richness; adversarial self-check + Actions npm test; software cards carry engine_digest; Live Nodes live_nodes is Softwares workers only; catalog EmbryoLock 1.2.0; catalog git_sha from deploy/build-meta. Remain-OFF untouched. 1.9.0 closed AZRT-1.9-CLOSE-1.0: public-safe LIVE_OPS promotions, AZMail isolate mailbox, AZChat spendable handles/rooms/bus (mesh default off; not AZMail), isolate hash object store (no CDN), OpenAPI /p/{slug}/{op} proxy-path parity, corpus native-vs-proxy labels, named fallback inventory. Chromium stays NOT IMPLEMENTED. Remain-OFF untouched.";
+  "1.9.3 closes the remaining AZRT-1.9-GAPS-CLOSE items: isolate-native AZ-OS session_open/status/close (prefab ethics VFS; exec/shell/lattice stay refuse); isolate-safe Ask Jeeves over sample MASTER / CORPUS_D1 records; binding-gated media-run when env.AI is present (no fake OCR); published independent-validation attestation path (not a third-party lab). Remain-OFF untouched. 1.9.2 binds Workers Browser Rendering (BROWSER) and live D1 MASTER (CORPUS_D1 → aziel-digital-library records). Whisper/OCR Workers-AI-bound. Sample MASTER remains the unbound fallback. Chromium product UI is not claimed; Tor/phoenix stay refuse. Remain-OFF untouched. 1.9.1 closes AZRT-1.9-GAPS-CLOSE isolate-safe corpus verify; Whisper/OCR Workers-AI-gated; AZBrowser sandbox_status; AZMail transport_status; wave 2–3 doctor; adversarial self-check + Actions npm test. Remain-OFF untouched. 1.9.0 closed AZRT-1.9-CLOSE-1.0. Chromium product UI is not claimed. Remain-OFF untouched.";
 const LASTMOD = "2026-09-11";
 
 const PRODUCTS_RAW = [
@@ -360,6 +360,11 @@ const PRODUCTS_RAW = [
       { op: "invite", method: "GET", summary: "Print invite / principles markdown. Not a remote shell." },
       { op: "principles", method: "GET", summary: "Read AZ-OS principles. exec/shell stay refuse." },
       { op: "doctor", method: "GET", summary: "UI alias of health. Same FragGate backend as the Worker UI button." },
+      { op: "session_open", method: "POST", summary: "Open an isolate-native prefab ethics session VFS. Not a host shell." },
+      { op: "session_status", method: "POST", summary: "Preview the ethics VFS listing. Not host exec." },
+      { op: "session_close", method: "POST", summary: "Seal the ethics session. exec/shell stay refuse." },
+      { op: "session", method: "POST", summary: "Alias of session_open. Isolate ethics VFS, not a remote shell." },
+      { op: "close", method: "POST", summary: "Alias of session_close. Seals the ethics session." },
     ],
     example: {},
     banner: "AZ-OS does not grant remote shell. Invite prints principles; exec requires a local token.",
@@ -778,6 +783,8 @@ const PRODUCTS_RAW = [
       { op: "verify-geo", method: "POST", summary: "Sample gazetteer check (Florence / Indiana). Not a live geocoder." },
       { op: "document-chain", method: "POST", summary: "Client-held document hash chain. Hosted does not store the library." },
       { op: "import_export", method: "POST", summary: "Client-held library JSON. Hosted does not persist MASTER." },
+      { op: "jeeves", method: "POST", summary: "Isolate-safe Ask Jeeves over sample MASTER / CORPUS_D1 records. Refuses secrets and triad-tamper. Not AZAI blend." },
+      { op: "media-run", method: "POST", summary: "Binding-gated hash-chained media job. Whisper/vision only when Workers AI is bound. Does not invent transcripts." },
       { op: "doctor", method: "GET", summary: "Richer liveness: native-vs-proxy labels, binding-gated Whisper/OCR. Does not increment download KV." },
     ],
     example: { q: "Florence" },
@@ -1890,6 +1897,7 @@ ${homepageAddUrlHtml(origin)}
     <h2>Version history</h2>
     <strong>What this Worker is</strong>
     <ul>
+      <li><strong>1.9.3</strong> closes the remaining AZRT-1.9-GAPS-CLOSE items. AZ-OS <code>session_open</code> / <code>session_status</code> / <code>session_close</code> (aliases <code>session</code> / <code>close</code>) are isolate-native prefab ethics VFS — not a remote host shell. Public <code>exec</code> / <code>shell</code> / <code>lattice</code> stay refuse. Corpus <code>jeeves</code> is isolate-safe Ask Jeeves over sample MASTER / <code>CORPUS_D1</code> <code>records</code> (refuse secrets / triad-tamper; Jesus-image-only if the user says the devil is not real; no AZAI blend). <code>media-run</code> is binding-gated: hash-chained Whisper / vision only when <code>env.AI</code> is present; otherwise honest refuse — no fake OCR. Independent validation path: <code>docs/audit/INDEPENDENT-VALIDATION.md</code> + Actions <code>validate.yml</code> attestation artifact (not a third-party lab). Remain-OFF untouched. Crawler abstract stays lead copy. Identity Aziel Eliab only.</li>
       <li><strong>1.9.2</strong> binds Workers Browser Rendering (<code>BROWSER</code>) and live D1 MASTER (<code>CORPUS_D1</code> → <code>aziel-digital-library</code>). Corpus <code>searchD1</code> queries production <code>records</code> (not <code>master</code>). Workers AI (<code>AI</code>) is bound so Whisper / OCR stay honest (native only when <code>env.AI</code> runs). Sample MASTER remains the unbound fallback. Chromium product UI is not claimed; Tor / phoenix stay refuse. Remain-OFF untouched. Crawler abstract stays lead copy. Identity Aziel Eliab only.</li>
       <li><strong>1.9.1</strong> closes AZRT-1.9-GAPS-CLOSE. Isolate-safe corpus review / score / verify-backfill / verify-geo / document-chain / import_export run in-process. Whisper / OCR stay Workers-AI-gated (not a fake native OCR). AZBrowser <code>sandbox_status</code> / <code>sandbox_render</code> report Workers Browser Rendering honestly — Chromium stays DEFERRED unless bound; Tor / phoenix refuse. AZMail <code>transport_status</code>: public MTA stays NOT IMPLEMENTED; no public send. Wave 2–3 health / skill / doctor richness. Adversarial repo self-check + GitHub Actions <code>npm test</code> on pull requests and main. Consumer MCP / OpenAPI examples. <code>/v1/software</code> cards carry <code>engine_digest</code>. Live Nodes <code>live_nodes</code> counts Softwares <code>{slug}-worker</code> only (<code>mesh_*</code> is ephemeral). Catalog EmbryoLock is 1.2.0. Catalog <code>git_sha</code> from deploy var or stamped build-meta. Flutter <code>mobile/</code> is not vendored here. Remain-OFF untouched. Crawler abstract stays lead copy. Identity Aziel Eliab only.</li>
       <li><strong>1.9.0</strong> closes AZRT-1.9-CLOSE-1.0. Promotes public-safe engine ops (CodeLock gate-status, VibeLock detect, GlossaFilter peers, AZBot example, AZ-OS invite/principles, AZAI models metadata). ShadowLock hook (not OS hook). MirageGrid verify-receipt/nodes (no hop). AzielTether tip/dual-chain/reconcile/pulse/peer-preview (no VPN). AZMail isolate mailbox (notice_post / mail_post / inbox_pull; no SMTP). AZChat LIVE+bound (handles/rooms/bus; mesh default off; not AZMail). Isolate hash object store for TrajectoryLock media + WhistleLock files (no CDN; send/mail/release refuse). OpenAPI documents <code>/p/{slug}/{op}</code> as proxy paths. Corpus native-vs-proxy labels. Named fallback inventory. Flutter <code>mobile/</code> is not vendored here. Chromium stays NOT IMPLEMENTED. Remain-OFF untouched. Crawler abstract stays lead copy. Identity Aziel Eliab only.</li>

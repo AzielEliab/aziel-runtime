@@ -1,6 +1,7 @@
 /**
  * AZ-OS engine (portable ethics / status core from workers/download-tracker/src/runtime.js).
- * Status + invite + principles + gate preview. session/exec/lattice need KV — those ops stay proxy_fallback.
+ * Status + invite + principles + gate preview + isolate-native ethics session VFS.
+ * Public exec / shell / lattice stay FG-STUB. Not a remote host shell.
  * Author: Aziel Eliab.
  */
 
@@ -9,7 +10,7 @@ export const VERSION = "0.3.0";
 export const MOTTO = "Integrity precedes execution.";
 export const AUTHOR = "Aziel Eliab";
 export const LIMITATION =
-  "THIS IS: read-only status / principles and a five-gate ethics preview. THIS IS NOT: a remote host shell, SSH, a kernel, or unrestricted bash. Hosted session/exec/lattice persist in product-Worker KV and stay explicit proxy_fallback. Halt does not kill the caller OS.";
+  "THIS IS: read-only status / principles, a five-gate ethics preview, and an isolate-native prefab ethics session VFS (session_open / session_status / session_close). THIS IS NOT: a remote host shell, SSH, a kernel, or unrestricted bash. Public exec / shell / lattice stay FG-STUB. Halt does not kill the caller OS.";
 
 export const PRINCIPLES = [
   "Integrity precedes execution.",
@@ -126,7 +127,7 @@ export function statusPayload() {
     builtins: SAFE_ACTIONS,
     shell_verbs: SHELL_VERBS,
     tokens: { active: 0, revoked: 0, issued: 0 },
-    note: "Read-only status / principles. No remote exec on this route. session/exec/lattice stay proxy_fallback (product-Worker KV).",
+    note: "Read-only status / principles. No remote exec on this route. session_open / session_status / session_close are isolate-native ethics VFS. exec / shell / lattice stay refuse.",
   });
 }
 

@@ -19,7 +19,7 @@ const CATALOG = [
   { slug: "forgereceipts", keys: ["court", "legal", "forge", "checklist"], op: "receipt", banner: "not legal advice" },
   { slug: "decisiongate", keys: ["gate", "proposal", "decide", "check"], op: "check", banner: "not moral authority" },
   { slug: "zsolver", keys: ["zion", "pattern", "case", "ontology"], op: "score", banner: "75% cap; does not solve cases" },
-  { slug: "azos", keys: ["shell", "azos", "principles", "invite"], op: "status", banner: "not a kernel; session/exec stay proxy" },
+  { slug: "azos", keys: ["shell", "azos", "principles", "invite"], op: "status", banner: "not a kernel; ethics session VFS is isolate-native; exec/shell stay refuse" },
   { slug: "glossafilter", keys: ["peer", "language", "glossa", "intent"], op: "render", banner: "tools remain tools" },
   { slug: "miragegrid", keys: ["mesh", "circuit", "anonymity", "socks"], op: "assign", banner: "control-plane only; not a hosted VPN hop" },
   { slug: "staticclock", keys: ["gear", "click", "staticclock", "advise"], op: "advise", banner: "not a scheduler" },

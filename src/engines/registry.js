@@ -44,8 +44,8 @@ import { AZCHAT_OPS, run as runAzchat } from "./azchat.js";
 
 /** Ops that cannot run as pure JS here (bindings / media / live store). Per-op proxy_fallback. */
 const PROXY_OPS = {
-  azos: ["session", "exec", "close", "lattice"],
-  "aziel-corpus": ["jeeves", "transcribe", "ocr", "media-run"],
+  azos: [],
+  "aziel-corpus": ["transcribe", "ocr"],
   azai: [],
   spectrallock: [],
   vibelock: [],
@@ -61,7 +61,7 @@ export const ENGINE_RUNNERS = {
   forgereceipts: { ops: FORGERECEIPTS_OPS, run: runForgereceipts, source: "ported ForgeReceipts Worker receipt mint", module: "src/engines/forgereceipts.js" },
   decisiongate: { ops: DECISIONGATE_OPS, run: runDecisiongate, source: "ported DecisionGATE Worker gates (no separate engine.js upstream)", module: "src/engines/decisiongate.js" },
   zsolver: { ops: ZSOLVER_OPS, run: runZsolver, source: "vendored ZionPattern Solver Worker engine.js", module: "src/engines/zsolver.js" },
-  azos: { ops: AZOS_OPS, run: runAzos, source: "ported AZ-OS status/principles/invite (session/exec/close/lattice stay per-op proxy; public exec/shell refuse)", module: "src/engines/azos.js" },
+  azos: { ops: AZOS_OPS, run: runAzos, source: "ported AZ-OS status/principles/invite plus isolate ethics session VFS (public exec/shell/lattice refuse)", module: "src/engines/azos.js" },
   glossafilter: { ops: GLOSSAFILTER_OPS, run: runGlossafilter, source: "ported Glossa Filter Worker render + packs", module: "src/engines/glossafilter.js" },
   miragegrid: { ops: MIRAGEGRID_OPS, run: runMiragegrid, source: "ported MirageGrid Worker control-plane (not a hosted VPN hop)", module: "src/engines/miragegrid.js" },
   staticclock: { ops: STATICCLOCK_OPS, run: runStaticclock, source: "ported StaticClock Worker advise + gear-click + index-data", module: "src/engines/staticclock.js" },
@@ -84,7 +84,7 @@ export const ENGINE_RUNNERS = {
   aznet: { ops: AZNET_OPS, run: runAznet, source: "AZNet AZN-WP-0.1 silent verification side-net (hash garden + memorial; never hosts payloads; AZBrowser pair required)", module: "src/engines/aznet.js" },
   azhub: { ops: AZHUB_OPS, run: runAzhub, source: "AZHub AIH-WP-1.0 Blank Key / neutral spatial container (not AZInterface; FragGate only; no auto-unlock)", module: "src/engines/azhub.js" },
   azinterface: { ops: AZINTERFACE_OPS, run: runAzinterface, source: "AZInterface AIH-WP-1.0 custodial operating environment (pre-locked page cycles; not AZHub; FragGate only)", module: "src/engines/azinterface.js" },
-  "aziel-corpus": { ops: AZIEL_CORPUS_OPS, run: runAzielCorpus, source: "portable sample-MASTER search + isolate-safe review/score/verify/document-chain (jeeves/media-run stay proxy; Whisper/OCR Workers-AI-gated)", module: "src/engines/aziel-corpus.js" },
+  "aziel-corpus": { ops: AZIEL_CORPUS_OPS, run: runAzielCorpus, source: "portable sample-MASTER search + isolate-safe review/score/verify/document-chain/jeeves (Whisper/OCR/media-run Workers-AI-gated)", module: "src/engines/aziel-corpus.js" },
   "4dmap": { ops: FOURDMAP_OPS, run: runFourdmap, source: "4DMap 4DM-WP-1.0 four-axis inspection frame T/Δ/Γ/Π (inspection frame after AZPIPE; not an extra door; not a sequential gate)", module: "src/engines/4dmap.js" },
   azcoherence: { ops: AZCOHERENCE_OPS, run: runAzcoherence, source: "AZCoherence AZC-0.1 second-pass triad coherence reviewer (primary vs alternate; cite https://github.com/AzielEliab/AZCoherence; not AKM-TRIAD)", module: "src/engines/azcoherence.js" },
   embryolock: { ops: EMBRYOLOCK_OPS, run: runEmbryolock, source: "EmbryoLock Stealth+ v1.1 cite/policy (AzielEliab/EmbryoLock Open Source Code). Live health/skill/doctor/verify-hash/policy; wipe/unlock stay local-only", module: "src/engines/embryolock.js" },
