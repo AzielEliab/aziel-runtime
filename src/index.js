@@ -134,9 +134,9 @@ import { LIVE_OPS, NAMED_STUBS, registryDigest, registrySummary } from "./fragga
 import {
   AUTHOR_ALTERNATE_NAME,
   AUTHOR_GITHUB,
+  AUTHOR_ID,
   AUTHOR_NAME,
   LIBRARY_CITE,
-  LIBRARY_FRONT_DOOR,
   LIBRARY_LLMS,
   LIBRARY_NAME,
   LIBRARY_ORIGIN,
@@ -170,11 +170,15 @@ import {
   REMAIN_OFF_BY_DESIGN,
   hubPageSitemapUrls,
   hubsCiteField,
+  ecosystemJsonLd,
+  entityGraphCiteField,
+  namedToolsJsonLd,
   libraryJsonLd,
   llmsCiteBlock,
   llmsHubsBlock,
   llmsIdentityHeader,
   personJsonLd,
+  runtimeSoftwareJsonLd,
   productCrawlUrls,
   robotsTxt as buildRobotsTxt,
   sitemapIndexXml,
@@ -185,7 +189,9 @@ import {
   describeDocsHtml,
   describeIndexHtml,
   describeUnknownHtml,
+  ecosystemBlockHtml,
   homepageLeadHtml,
+  namedComponentsHtml,
   prefersHtml,
   softwareCatalogHtml,
 } from "./seo-html.js";
@@ -1435,6 +1441,7 @@ function citeJson(origin) {
     aka: AUTHOR_ALTERNATE_NAME,
     alternateName: AUTHOR_ALTERNATE_NAME,
     identity: AUTHOR_NAME,
+    author_id: AUTHOR_ID,
     author_github: AUTHOR_GITHUB,
     catalog: base + "/",
     runtime: base + "/",
@@ -1474,6 +1481,7 @@ function citeJson(origin) {
     mcp: base + "/mcp",
     azpipe_arch: base + "/v1/azpipe/arch",
     hubs: hubsCiteField(),
+    entity_graph: entityGraphCiteField(origin),
     azcoherence: azcoherenceCiteField(origin),
     mesh_get_never_enables: true,
     designs: designsCiteField(),
@@ -1514,38 +1522,10 @@ function citeJson(origin) {
 function jsonLd(origin) {
   const base = origin.replace(/\/$/, "");
   const person = personJsonLd();
-  const software = {
-    "@type": "SoftwareApplication",
-    "@id": base + "/#runtime",
-    name: PRODUCT_NAME,
-    alternateName: [PRODUCT_ALTERNATE_NAME],
-    url: base + "/",
-    description: RUNTIME_ABSTRACT,
+  const software = runtimeSoftwareJsonLd(origin, {
     softwareVersion: RUNTIME_VERSION,
-    applicationCategory: "DeveloperApplication",
-    operatingSystem: "Cloudflare Workers",
-    license: "https://www.apache.org/licenses/LICENSE-2.0",
-    author: { "@id": person["@id"] },
-    creator: { "@id": person["@id"] },
-    codeRepository: "https://github.com/AzielEliab/aziel-runtime",
-    sameAs: [
-      "https://github.com/AzielEliab/aziel-runtime",
-      AUTHOR_GITHUB,
-      LIBRARY_FRONT_DOOR,
-      base + "/v1/software",
-      base + "/v1/catalog.json",
-      base + "/mcp",
-      base + "/openapi.json",
-      base + "/v1/fraggate/describe",
-      "https://www.azieleliab.com/",
-      "https://www.azieleliab.com/software",
-      LIBRARY_ORIGIN + "/",
-      LIBRARY_ORIGIN + "/software",
-      "https://godlock.uk/",
-      "https://godlock.uk/software",
-    ],
     screenshot: base + "/sigil.png",
-  };
+  });
   const website = {
     "@type": "WebSite",
     "@id": base + "/#website",
@@ -1621,7 +1601,17 @@ function jsonLd(origin) {
   };
   return {
     "@context": "https://schema.org",
-    "@graph": [person, software, website, webApi, libraryJsonLd(), itemList, softwareList],
+    "@graph": [
+      person,
+      software,
+      ...namedToolsJsonLd(),
+      website,
+      webApi,
+      libraryJsonLd(),
+      ecosystemJsonLd(origin),
+      itemList,
+      softwareList,
+    ],
   };
 }
 
@@ -1678,6 +1668,11 @@ const PAGE_CSS = `
   .doors a.cta { display:inline-block; background:#241c0d; color:#f0d78c; border:1px solid #5c4a1a; border-radius:8px; padding:.4rem .85rem; font-weight:600; text-decoration:none; }
   .doors a.cta:hover { background:#33280f; }
   .doors a.secondary, a.secondary, p.secondary { color:#9aa3b2; font-size:.92rem; }
+  .ecosystem { margin: 0 0 1.25rem; padding: .85rem 1rem; border: 1px solid #2a3140; border-radius: 10px; background: #151922; }
+  .ecosystem p { margin: 0 0 .45rem; font-weight: 600; }
+  .ecosystem ul { margin: 0; padding-left: 1.2rem; }
+  .ecosystem li { margin: .2rem 0; }
+  .named-tools { color:#9aa3b2; margin: 0 0 1.25rem; }
   .links { color:#9aa3b2; font-size:.92rem; }
   .links a { margin-right: 1rem; color:#9aa3b2; }
   .cite { border: 1px solid #2a3140; border-radius: 12px; padding: 1rem 1.15rem; background: #12151c; margin: 0 0 1.4rem; }
@@ -1836,6 +1831,8 @@ ${headMeta(origin, RUNTIME_PAGE_TITLE, RUNTIME_ABSTRACT, "/")}
   </div>
 ${homepageLeadHtml()}
 ${distributionDoorsHtml(origin)}
+${ecosystemBlockHtml()}
+${namedComponentsHtml()}
 
   <section class="cite" id="cite">
     <h2>How to cite</h2>
@@ -2005,7 +2002,7 @@ function productPageHtml(p, origin, stats) {
         url: u.catalog_card,
         codeRepository: p.github,
         downloadUrl: u.download,
-        author: { "@id": person["@id"] },
+        author: { "@id": AUTHOR_ID },
         license: "https://www.apache.org/licenses/LICENSE-2.0",
         identifier: u.doi_url || undefined,
         sameAs: [u.worker_home, u.cite, u.download].concat(u.has_llms ? [u.llms] : []),
@@ -2027,6 +2024,7 @@ ${headMeta(origin, title, description, `/p/${p.slug}`)}
   <p><a href="${origin}/">← ${escapeHtml(PRODUCT_NAME)}</a></p>
   ${productCardHtml(p, origin, stats)}
 ${fragGateDoorScript()}
+${ecosystemBlockHtml()}
 ${donateFooterHtml()}
 </body>
 </html>`;
