@@ -194,6 +194,7 @@ import {
   HOMEPAGE_KEYWORDS,
   citeCompatibleFields,
   crawlerAllowSentence,
+  distributionDoorsHtml,
   homepageAddUrlHtml,
   llmsCompatibleBlock,
   openApiImportSentence,
@@ -1673,7 +1674,12 @@ const PAGE_CSS = `
   .meta a { margin-right: .85rem; }
   pre { background: #0e1014; padding: .75rem .9rem; overflow: auto; border-radius: 8px; font-size: .82rem; }
   code { font-size: .88rem; }
-  .links a { margin-right: 1rem; }
+  .doors { display:flex; flex-wrap:wrap; align-items:center; gap:.55rem 1rem; margin:0 0 1.25rem; }
+  .doors a.cta { display:inline-block; background:#241c0d; color:#f0d78c; border:1px solid #5c4a1a; border-radius:8px; padding:.4rem .85rem; font-weight:600; text-decoration:none; }
+  .doors a.cta:hover { background:#33280f; }
+  .doors a.secondary, a.secondary, p.secondary { color:#9aa3b2; font-size:.92rem; }
+  .links { color:#9aa3b2; font-size:.92rem; }
+  .links a { margin-right: 1rem; color:#9aa3b2; }
   .cite { border: 1px solid #2a3140; border-radius: 12px; padding: 1rem 1.15rem; background: #12151c; margin: 0 0 1.4rem; }
   .fg-door { border: 1px solid #3d3420; background: #16120a; border-radius: 10px; padding: .75rem .85rem; margin: .75rem 0 0; }
   .fg-door p { margin: 0 0 .55rem; color: #e6d19a; font-size: .92rem; }
@@ -1829,6 +1835,7 @@ ${headMeta(origin, RUNTIME_PAGE_TITLE, RUNTIME_ABSTRACT, "/")}
     <p class="stamp">Everblooming sigil · Aziel Eliab</p>
   </div>
 ${homepageLeadHtml()}
+${distributionDoorsHtml(origin)}
 
   <section class="cite" id="cite">
     <h2>How to cite</h2>
@@ -1894,6 +1901,7 @@ ${homepageAddUrlHtml(origin)}
     <p><a href="${origin}/v1/fraggate">/v1/fraggate</a> · <a href="${origin}/v1/fraggate/list">/v1/fraggate/list</a> · <a href="${origin}/v1/catalog.json">catalog extras</a> · <a href="${FRAGGATE_WORKER_ORIGIN}/">Worker UI</a> · <a href="${FRAGGATE_WORKER_ORIGIN}/download">counted download</a> · <a href="${FRAGGATE_GITHUB}">GitHub</a></p>
   </section>
   <h2>Softwares</h2>
+${distributionDoorsHtml(origin)}
   ${cards}
   <section id="version-history">
   <div class="honesty">
