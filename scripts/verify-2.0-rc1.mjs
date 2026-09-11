@@ -113,6 +113,7 @@ assert.match(clean, /No undocumented secrets|no undocumented secrets/i);
 assert.match(clean, /without `wrangler deploy`/);
 assert.match(clean, /or `wrangler deploy`/);
 assert.doesNotMatch(clean, /(?:^|\n)\s*(?:npx\s+)?wrangler deploy/m);
+assert.doesNotMatch(clean, /run `wrangler deploy`|wrangler secret put|npx wrangler deploy/);
 assert.doesNotMatch(packIndex, /(?:^|\n)\s*(?:npx\s+)?wrangler deploy/m);
 assert.match(packIndex, /Do not run `wrangler deploy`/);
 
