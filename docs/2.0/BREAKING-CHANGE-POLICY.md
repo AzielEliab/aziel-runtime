@@ -33,6 +33,7 @@ Any of the following, once 2.0.0 is cut (and already treated as frozen for this 
 - Honest binding-gated refuse when `BROWSER` / `CORPUS_D1` / `AI` is unbound.
 - Additional `version_history` rows **below** the abstract.
 - Enriched listing metadata that does not change MCP/OpenAPI semantics (`glama.json` keywords already landed on 1.9.3).
+- Glama TDQS 5.0 `tools/list` description / parameter / annotation / `outputSchema` enrichment that does **not** rename tools, add tools, or change FragGate routing / Remain-OFF / refusal codes.
 - Tightening a refuse (more specific code, same `ok: false`) as long as previously-refused verbs stay refused.
 
 ---
