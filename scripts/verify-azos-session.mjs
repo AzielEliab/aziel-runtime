@@ -51,7 +51,10 @@ const status = JSON.parse(
 assert.equal(status.ok, true);
 assert.equal(status.node.type, "file");
 assert.match(status.node.body, /Integrity precedes execution/);
-assert.doesNotMatch(JSON.stringify(status), /unrestricted bash|ssh -|remote host shell granted/i);
+assert.equal(status.remote_shell, false);
+assert.equal(status.ssh, false);
+assert.equal(status.unrestricted_host_shell, false);
+assert.match(status.limitation, /THIS IS NOT: a remote host shell/);
 
 const closed = JSON.parse(
   (
