@@ -1,6 +1,6 @@
 {
   "name": "aziel-runtime",
-  "version": "1.9.1",
+  "version": "1.9.2",
   "private": true,
   "description": "Aziel Runtime is not merely an API orchestrator or software aggregator; it is a node-meshed orchestration suite of MCP-connected software designed to coordinate specialized tools through a shared, security-gated runtime while preserving provenance, chain-of-custody, temporal integrity, and auditable execution. Author: Aziel Eliab.",
   "license": "Apache-2.0",
@@ -17,5 +17,8 @@
   },
   "devDependencies": {
     "wrangler": "^4.127.1"
+  },
+  "dependencies": {
+    "@cloudflare/puppeteer": "^1.4.0"
   }
 }

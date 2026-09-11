@@ -1,7 +1,7 @@
 # Suite Softwares capability checklist
 
 **Repo:** [AzielEliab/aziel-runtime](https://github.com/AzielEliab/aziel-runtime)  
-**Runtime:** **1.9.1** (AZRT-1.9-GAPS-CLOSE) on 1.9.0 / MASTER-33 / 1.7.5 wave-1 heritage  
+**Runtime:** **1.9.2** (Browser Rendering + live D1 MASTER bound) on 1.9.1 AZRT-1.9-GAPS-CLOSE / 1.9.0 / MASTER-33 / 1.7.5 wave-1 heritage  
 **Author / identity:** **Aziel Eliab** only  
 **Status:** living checklist. 4DMap inspection-frame ops shipped in runtime **1.7.4** (`4DM-WP-1.0`). This file covers the rest of the Softwares-tab live engines.
 
@@ -97,11 +97,11 @@ Do not treat this table as a license to invent verbs. Close only what the produc
 | mialock | doe-match, queries, search-options, example, map, coverage | same | Rich skill; doctor |
 | azieltether | ingest, verify, dual-chain, reconcile, pulse, tip, peer-preview | verify, tip, dual-chain, reconcile, pulse, peer-preview | 1.8.2 public control-plane verbs. ingest engine-only. vpn/arm/mesh-join stay stub |
 | azmail | airlock + mesh_* + keyword_alert_* + mailbox_* | same + classify/mailbox aliases | 1.8.3 isolate mailbox. SMTP/deanonymize stay stub. Mesh default off |
-| azbrowser | ethical_search … receipt_verify | same + airlock/home aliases | Already above baseline; keep Chromium/tor stub |
+| azbrowser | ethical_search … receipt_verify + sandbox_* | same + airlock/home aliases | 1.9.2 Browser Rendering bound; Tor/phoenix stay stub |
 | aznet | pair_status … receipt_verify | same + doctor/pair aliases | Already above baseline; never host payloads |
 | azhub | region_list … blank_key_status | same + list_modules/place aliases | Already above baseline |
 | azinterface | genesis_status … page_cycle_status | same + genesis_boot/hold aliases | Already above baseline |
-| aziel-corpus | search, example, review, score, verify-*, document-chain, import_export | same + doctor | 1.9.1 isolate-safe verify. OCR/D1/Whisper binding-gated |
+| aziel-corpus | search, example, review, score, verify-*, document-chain, import_export | same + doctor | 1.9.2 live D1 `records` bound; Whisper/OCR AI-bound. 1.9.1 isolate-safe verify |
 | azchat | handle_new, handle_rotate, room_*, bus_*, verify_receipt, import_export, doctor | same | 1.8.4 LIVE+bound. Mesh default off. Not AZMail |
 | 4dmap | card_*, verify_hash | same | Parallel wave — already at baseline |
 

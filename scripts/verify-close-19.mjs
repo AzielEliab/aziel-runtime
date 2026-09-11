@@ -3,6 +3,7 @@
  * Author: Aziel Eliab.
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { PRODUCTS } from "../src/index.js";
 import { LIVE_OPS, STUB_OPS, NAMED_STUBS, OP_ALIASES, buildRegistry, classifyCall } from "../src/fraggate/registry.js";
 import { engineOps } from "../src/engines/registry.js";
@@ -10,8 +11,9 @@ import { executeLocal } from "../src/engines/runner.js";
 import { resetHashStore } from "../src/engines/hash-store.js";
 import { resetAzmailStore } from "../src/engines/azmail/engine.js";
 import { RUNTIME_VERSION } from "../src/runtime-api.js";
+import { D1_SEARCH_SQL, search } from "../src/engines/aziel-corpus/engine.js";
 
-assert.equal(RUNTIME_VERSION, "1.9.1");
+assert.equal(RUNTIME_VERSION, "1.9.2");
 assert.equal(NAMED_STUBS.length, 0);
 
 const aliasesOf = (slug) => new Set(Object.keys(OP_ALIASES[slug] || {}));
@@ -152,13 +154,73 @@ assert.ok(corpus.proxy_ops.includes("jeeves"));
 assert.ok(corpus.binding_gated.transcribe);
 assert.ok(corpus.binding_gated.ocr);
 
+assert.match(D1_SEARCH_SQL, /\bFROM records\b/);
+assert.doesNotMatch(D1_SEARCH_SQL, /\bFROM master\b/);
+for (const col of ["record_id", "title", "author", "domain", "subjects", "keywords", "library", "body", "created_utc"]) {
+  assert.match(D1_SEARCH_SQL, new RegExp(`\\b${col}\\b`), `searchD1 SQL selects ${col}`);
+}
+let prepared = "";
+let binds = [];
+const db = {
+  prepare(sql) {
+    prepared = sql;
+    return {
+      bind(...args) {
+        binds = args;
+        return {
+          async all() {
+            return {
+              results: [
+                {
+                  record_id: "AZDOC-LIVE-FLORENCE",
+                  title: "Florence live shelf",
+                  author: "Aziel Eliab",
+                  domain: "library",
+                  subjects: "Florence",
+                  keywords: "Florence",
+                  library: "corpus",
+                  body: "Live records row used to prove searchD1 targets production records.",
+                  created_utc: "2026-09-11T00:00:00Z",
+                },
+              ],
+            };
+          },
+        };
+      },
+    };
+  },
+};
+const live = await search({ q: "Florence" }, { CORPUS_D1: db });
+assert.equal(prepared, D1_SEARCH_SQL);
+assert.equal(binds.length, 5);
+assert.equal(live.live_d1, true);
+assert.equal(live.sample_master, false);
+assert.equal(live.table, "records");
+assert.equal(live.count, 1);
+assert.equal(live.records[0].record_id, "AZDOC-LIVE-FLORENCE");
+assert.match(live.records[0].snippet, /Live records row/);
+assert.equal(live.records[0].body, undefined);
+const sample = await search({ q: "Florence" }, {});
+assert.equal(sample.live_d1, false);
+assert.equal(sample.sample_master, true);
+assert.ok(sample.records.some((r) => r.record_id === "AZDOC-FLORENCE-SAMPLE"));
+
+const wrangler = readFileSync(new URL("../wrangler.toml", import.meta.url), "utf8");
+assert.match(wrangler, /\[browser\]/);
+assert.match(wrangler, /binding = "BROWSER"/);
+assert.match(wrangler, /\[ai\]/);
+assert.match(wrangler, /binding = "AI"/);
+assert.match(wrangler, /binding = "CORPUS_D1"/);
+assert.match(wrangler, /database_name = "aziel-digital-library"/);
+assert.match(wrangler, /database_id = "23f33238-f1ca-4066-b56e-af66a1e72031"/);
+
 const handler = (await import("../src/index.js")).default.fetch;
 const openapi = await (
   await handler(new Request("https://aziel-runtime.example/openapi.json", { headers: { "user-agent": "Mozilla/5.0" } }), {})
 ).json();
 assert.ok(openapi.info.description.startsWith("Aziel Runtime is not merely an API orchestrator"));
-assert.match(openapi.info.description, /1\.9\.1/);
-assert.ok(openapi.info.description.indexOf("Aziel Runtime is not merely") < openapi.info.description.indexOf("1.9.1"));
+assert.match(openapi.info.description, /1\.9\.2/);
+assert.ok(openapi.info.description.indexOf("Aziel Runtime is not merely") < openapi.info.description.indexOf("1.9.2"));
 const pathKeys = Object.keys(openapi.paths).join(" ");
 assert.doesNotMatch(pathKeys, /smtp_send|deanonymize/);
 assert.ok(openapi.paths["/p/azchat/handle_new"]);
@@ -169,7 +231,7 @@ const home = await (
 ).text();
 assert.match(home, /not merely an API orchestrator or software aggregator/);
 assert.match(home, /node-meshed orchestration suite of MCP-connected software/);
-assert.match(home, /1\.9\.1/);
+assert.match(home, /1\.9\.2/);
 assert.ok(home.indexOf("not merely an API orchestrator") < home.indexOf("id=\"version-history\""));
 assert.doesNotMatch(home, /Flutter <code>mobile\/<\/code>, local install/);
 
