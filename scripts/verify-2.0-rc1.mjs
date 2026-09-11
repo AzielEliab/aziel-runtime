@@ -17,6 +17,7 @@ assert.equal(VERSION_HISTORY.filter((row) => row.status === "current").length, 1
 const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
 assert.equal(pkg.version, "2.0.0-rc1");
 assert.match(pkg.scripts.test, /verify-2\.0-rc1\.mjs/);
+assert.match(pkg.scripts.test, /verify-mcp-tdqs\.mjs/);
 assert.equal(pkg.scripts["clean-room:2.0"], "bash scripts/clean-room-2.0.sh");
 assert.equal(pkg.scripts["adversarial:external"], "bash scripts/external-adversarial-2.0.sh");
 
@@ -32,6 +33,7 @@ const requiredDocs = [
   "docs/2.0/EXTERNAL-ADVERSARIAL-PACK.md",
   "docs/2.0/clean-room-result.schema.json",
   "docs/2.0/clean-room-result.sample.json",
+  "docs/GLAMA-TDQS.md",
 ];
 for (const rel of requiredDocs) {
   assert.ok(existsSync(new URL(`../${rel}`, import.meta.url)), rel);
@@ -83,8 +85,19 @@ assert.match(breaking, /PUBLIC_MCP_TOOLS/);
 
 const compat = readFileSync(new URL("../docs/2.0/COMPATIBILITY-POLICY.md", import.meta.url), "utf8");
 assert.match(compat, /Glama/);
+assert.match(compat, /TDQS/);
 assert.match(compat, /no intentional behavioral breaks/i);
 assert.match(compat, /2025-03-26/);
+
+const packIndex = readFileSync(new URL("../docs/2.0/README.md", import.meta.url), "utf8");
+assert.match(packIndex, /Gate 4/);
+assert.match(packIndex, /TDQS/);
+assert.match(packIndex, /glama\.json/);
+
+const tdqs = readFileSync(new URL("../docs/GLAMA-TDQS.md", import.meta.url), "utf8");
+assert.match(tdqs, /2\.0\.0-rc1/);
+assert.match(tdqs, /No tool rename|names/);
+assert.doesNotMatch(tdqs, /behavior change|routing change/i);
 
 const changelog = readFileSync(new URL("../docs/2.0/CHANGELOG.md", import.meta.url), "utf8");
 assert.match(changelog, /1\.9\.x/);

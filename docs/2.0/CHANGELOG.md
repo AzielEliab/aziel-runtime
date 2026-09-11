@@ -12,6 +12,7 @@ Crawler abstract (`RUNTIME_ABSTRACT`) is unchanged and stays the lead on homepag
 Certification point — not a feature dump.
 
 - Public contract frozen under `docs/2.0/` (FragGate flow, MCP names, OpenAPI parity, health/version, `engine_digest`, live/stub/proxy-fallback).
+- Gate 4 distribution identity includes Glama TDQS 5.0 metadata (`tools/list` descriptions / params / truthful annotations) plus existing `glama.json` and GitHub topics. **No tool renames. No behavior changes.**
 - Compatibility, receipt, refusal, and breaking-change policies published.
 - Clean-room reproducibility script + machine-readable evidence schema.
 - External adversarial pack wrapping the existing `verify-adversarial` + Remain-OFF matrix (reviewer-ready; **self-test ≠ third-party lab**).

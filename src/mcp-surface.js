@@ -19,6 +19,19 @@ import { resolveSlug } from "./runtime-api.js";
 import { callSessionTool } from "./session-http.js";
 import { existMcpHint, FG_HALLUC_TOOL, FRAGGATE_KERNEL, PUBLIC_MCP_TOOL_MAX } from "./fraggate/codes.js";
 import {
+  emptyArgsSchema,
+  FRAGGATE_CATALOG_ALLOWLIST,
+  FRAGGATE_OUTPUT_SCHEMA,
+  HINT_ADDITIVE,
+  HINT_DESTRUCTIVE_IDEMPOTENT,
+  HINT_EXEC,
+  HINT_READ,
+  MCP_OUTPUT_SCHEMA,
+  mcpAnnotations,
+  nameOrSlugProps,
+  tdqsDescription,
+} from "./mcp-schema.js";
+import {
   admitCall,
   describeRegistry,
   fraggateCall,
@@ -103,269 +116,589 @@ export function runtimeHelperTools() {
     {
       name: "runtime_skill",
       title: "How to use this software",
-      description:
-        "Read how an agent uses Aziel Eliab software: one door — discover, route, refuse. Pipeline: fraggate_list → fraggate_describe → fraggate_call. Hubs/clients: GET /v1/software. Dual surface: agent chat has no technical UI chrome; Worker / Flutter / local install / counted download stay complete human software.",
-      annotations: { title: "How to use this software", readOnlyHint: true, openWorldHint: false },
-      inputSchema: { type: "object", additionalProperties: false, properties: {} },
+      description: tdqsDescription({
+        action:
+          "Read how an agent uses Aziel Eliab software: one door — discover, route, refuse (pipeline fraggate_list → fraggate_describe → fraggate_call; hubs use GET /v1/software)",
+        when: "starting a session or choosing the door before any catalog call",
+        notFor: "listing registry names or executing an engine",
+        instead: "fraggate_list or fraggate_call",
+        effects:
+          "Read-only, non-destructive, idempotent. Dual surface: agent chat has no technical UI chrome; Worker / Flutter / local install stay complete human software",
+        returns: "skill markdown plus display.title / display.summary",
+      }),
+      annotations: mcpAnnotations("How to use this software", HINT_READ),
+      inputSchema: emptyArgsSchema("No arguments. Send {}. Returns the agent skill text."),
+      outputSchema: MCP_OUTPUT_SCHEMA,
     },
     {
       name: "fraggate_list",
       title: "Step 1 — List the FragGate registry",
       description:
-        "Step 1 of the agent pipeline (list → describe → call). List hashed registry entries (live / stub / local_only). Discover names. Do not invent tools. For hub Software tabs prefer GET /v1/software (Plain→Gate→Lock; EmbryoLock live-with-local-destructive-boundary; AZChat LIVE+bound). Sibling software under one FragGate door — never separate FragGate engines. allowlist.azhub LIVE_OPS: health, skill, region_list, place_module, remove_module, tether_declare, tether_cut, tether_list, blank_key_status, list_modules, place. allowlist.azinterface LIVE_OPS: health, skill, genesis_status, site_state_get, site_state_set, integrity_check, witness_list, page_cycle_status, genesis_boot, hold. allowlist.azbrowser LIVE_OPS: ethical_search, lamb_lens_search, navigate, airlock_ingest, airlock, home, tab_open, tab_list, receipt_list, verify, receipt_verify, sandbox_status, sandbox_render, health, skill. allowlist.aznet LIVE_OPS: health, doctor, pair_status, pair, garden_list, stamp, verify_hash, memorial_list, memorial_append, receipt_verify, skill — same ops MCP fraggate_call and the Worker UI buttons execute. UI aliases forward to catalog ops. EmbryoLock LIVE_OPS health/skill/doctor/verify-hash/policy/limitation; wipe/scorch/unlock stay FG-STUB on the public mesh. AZChat is stub / local-not-hosted (name only). AZHub, AZInterface, AZNet, and AZBrowser are separate products. Kernel: https://github.com/AzielEliab/fraggate",
-      annotations: { title: "Step 1 — List the FragGate registry", readOnlyHint: true, openWorldHint: false },
-      inputSchema: { type: "object", additionalProperties: false, properties: {} },
+        tdqsDescription({
+          action:
+            "List hashed FragGate registry entries (live / stub / local_only) for discovery first. Discover names; do not invent tools",
+          when: "you do not yet know the catalog name or slug",
+          notFor: "inspecting one known capability or executing an op",
+          instead: "fraggate_describe or fraggate_call",
+          effects:
+            "Read-only, non-destructive, idempotent. Does not enable mesh radios. For hub Software tabs prefer GET /v1/software (Plain→Gate→Lock; EmbryoLock live-with-local-destructive-boundary; AZChat LIVE+bound). Sibling software under one FragGate door — never separate FragGate engines",
+          returns: "registry entries, allowlists, and digests (kernel https://github.com/AzielEliab/fraggate)",
+        }) +
+        " " +
+        FRAGGATE_CATALOG_ALLOWLIST,
+      annotations: mcpAnnotations("Step 1 — List the FragGate registry", HINT_READ),
+      inputSchema: emptyArgsSchema("No arguments. Send {}. Discovery first — not describe or execute."),
+      outputSchema: FRAGGATE_OUTPUT_SCHEMA,
     },
     {
       name: "fraggate_describe",
       title: "Step 2 — Describe one registry name",
-      description:
-        "Step 2 of the agent pipeline. After fraggate_list, describe one catalog name: live vs stub vs local_only, public ops, digest. Pass name or slug (not both required). EmbryoLock: slug=embryolock (live-with-local-destructive-boundary; wipe/unlock stay FG-STUB). AZChat: slug=azchat (LIVE+bound; mesh default off; not AZMail).",
-      annotations: { title: "Step 2 — Describe one registry name", readOnlyHint: true, openWorldHint: false },
+      description: tdqsDescription({
+        action:
+          "Inspect one known FragGate capability: live vs stub vs local_only, public ops, and engine_digest. Not execute",
+        when: "you already have a name or slug from fraggate_list or GET /v1/software (pass name or slug; not both required)",
+        notFor: "discovering the full registry or executing an op",
+        instead: "fraggate_list or fraggate_call",
+        effects:
+          "Read-only, non-destructive, idempotent. Missing both name and slug, or an unknown name, refuses FG-HALLUC-TOOL. EmbryoLock slug=embryolock is live-with-local-destructive-boundary (wipe/unlock stay FG-STUB). AZChat slug=azchat is LIVE+bound (mesh default off; not AZMail)",
+        returns: "one registry card (ops, stub_ops, digest, status, aliases)",
+      }),
+      annotations: mcpAnnotations("Step 2 — Describe one registry name", HINT_READ),
       inputSchema: {
         type: "object",
         additionalProperties: false,
-        properties: {
-          name: { type: "string", description: "Registry display name (e.g. FoldLock, EmbryoLock)" },
-          slug: { type: "string", description: "Catalog slug (e.g. foldlock, embryolock, azhub)" },
-        },
+        description:
+          "Exactly one of name or slug is enough. Extra properties are rejected by the schema; the door still only reads name/slug.",
+        properties: nameOrSlugProps(),
       },
+      outputSchema: FRAGGATE_OUTPUT_SCHEMA,
     },
     {
       name: "fraggate_verify",
       title: "Verify a registry name or digest",
-      description:
-        "Confirm a name, slug, or digest against the hashed FragGate registry. Not an exec path. Prefer after fraggate_describe when the agent must prove a name exists.",
-      annotations: { title: "Verify a registry name or digest", readOnlyHint: true, openWorldHint: false },
+      description: tdqsDescription({
+        action: "Confirm a name, slug, or engine_digest against the hashed FragGate registry",
+        when: "you must prove a listed name or digest exists after fraggate_describe",
+        notFor: "listing the registry, describing ops, or executing",
+        instead: "fraggate_list, fraggate_describe, or fraggate_call",
+        effects: "Read-only, non-destructive, idempotent. Not an exec path. Unknown names refuse FG-HALLUC-TOOL",
+        returns: "match or mismatch against the registry digest",
+      }),
+      annotations: mcpAnnotations("Verify a registry name or digest", HINT_READ),
       inputSchema: {
         type: "object",
         additionalProperties: false,
+        description: "Provide name, slug, and/or digest. Digest-only checks the whole registry hash.",
         properties: {
-          name: { type: "string", description: "Registry display name" },
-          slug: { type: "string", description: "Catalog slug" },
-          digest: { type: "string", description: "engine_digest hex to verify" },
+          ...nameOrSlugProps(),
+          digest: {
+            type: "string",
+            description:
+              "Optional 64-char lowercase hex engine_digest or registry digest to verify. When digest is set without name/slug, the tool compares the live registry digest.",
+            pattern: "^[a-fA-F0-9]{64}$",
+          },
         },
       },
+      outputSchema: FRAGGATE_OUTPUT_SCHEMA,
     },
     {
       name: "fraggate_call",
       title: "Step 3 — Call through FragGate",
       description:
-        "Step 3 of the agent pipeline (after list + describe). Locked path (MASTER-33): CallEnvelope → FragGate → Lamb Lens → SweepGate → Sentinel → Provenance/Input Packet → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → optional ASE → RoseClock → TemporalLock → ChainLock-OUT → ForgeReceipts → Return. FragGate is THE single door. Lamb Lens is fabric after FragGate. Domain softwares execute only after AZPIPE. Pass slug (or name) plus a public allowlisted op. Optional claim (DecisionGATE proposal). Default exec path. Unknown names refuse FG-HALLUC-TOOL. UI aliases (list_modules, place, genesis_boot, hold, airlock, home, classify, doctor, pair) forward to catalog ops. AZHub LIVE_OPS (region_list, place_module, remove_module, tether_declare, tether_cut, tether_list, blank_key_status, list_modules, place, health, skill) and AZInterface LIVE_OPS (genesis_status, site_state_get, site_state_set, integrity_check, witness_list, page_cycle_status, genesis_boot, hold, health, skill) and AZBrowser LIVE_OPS (ethical_search, lamb_lens_search, navigate, airlock_ingest, airlock, home, tab_open, tab_list, receipt_list, verify, receipt_verify, sandbox_status, sandbox_render, health, skill) map here — same backend as the Worker UI buttons. Sibling software under one FragGate door.",
-      annotations: { title: "Step 3 — Call through FragGate", readOnlyHint: false, openWorldHint: false },
+        tdqsDescription({
+          action:
+            "Execute a known catalog slug+op through the FragGate single door (CallEnvelope → FragGate → Lamb Lens → SweepGate → Sentinel → Provenance → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → optional ASE → RoseClock → TemporalLock → ChainLock-OUT → ForgeReceipts → Return). Not discovery",
+          when: "fraggate_list and fraggate_describe already identified a live allowlisted op",
+          notFor: "discovering names or inspecting one capability without exec",
+          instead: "fraggate_list or fraggate_describe",
+          effects:
+            "Side effects are operation-dependent (read, write, or refuse). Not globally read-only or idempotent. May reach an open world when the target op does (for example AZBrowser ethical_search); many ops stay isolate-local. Unknown names refuse FG-HALLUC-TOOL. Stub, local-only, and Remain-OFF verbs refuse explicitly (FG-STUB / FG-LOCAL-ONLY / FG-GATE-REFUSE / FG-LAMB-REFUSE). Prefer this over runtime_run or runtime_session_exec. FragGate is THE single door",
+          returns:
+            "status, result, receipt, engine_slug, engine_op, engine_digest, ran_in, provenance, refusal, and limitations",
+        }) +
+        " " +
+        FRAGGATE_CATALOG_ALLOWLIST,
+      annotations: mcpAnnotations("Step 3 — Call through FragGate", HINT_EXEC),
       inputSchema: {
         type: "object",
         additionalProperties: true,
+        description:
+          "Required: op. Also pass slug or name. Extra top-level keys other than name/slug/product/tool/op/verb/claim/proposal/ground/payload/session_id/id become the op payload when payload is omitted.",
         properties: {
-          name: { type: "string", description: "Registry display name (alternative to slug)" },
-          slug: { type: "string", description: "Catalog slug from fraggate_list / GET /v1/software" },
-          op: { type: "string", description: "Public allowlisted op from fraggate_describe" },
-          payload: { type: "object", additionalProperties: true, description: "Op payload object" },
+          ...nameOrSlugProps(),
+          op: {
+            type: "string",
+            description:
+              "Required public allowlisted op from fraggate_describe (for example fold-preview, ethical_search, blank_key_status). UI aliases (list_modules, place, genesis_boot, hold, airlock, home, classify, doctor, pair) forward to catalog ops. Unknown ops refuse FG-UNKNOWN-OP; stubs refuse FG-STUB.",
+          },
+          payload: {
+            type: "object",
+            additionalProperties: true,
+            description:
+              "Optional op payload object. Shape is engine-specific (see fraggate_describe). Malformed fields are refused by the engine, not by this door schema. If omitted, leftover top-level keys are used as the payload.",
+          },
           claim: {
             type: "object",
             additionalProperties: true,
-            description: "Optional DecisionGATE proposal (statement, evidence, impacts, values, accountable)",
+            description:
+              "Optional DecisionGATE proposal attached to this call. Also runs automatically inside the door even when omitted (defaults). Freedom without clarity is chaos.",
+            properties: {
+              statement: { type: "string", description: "Optional proposal statement (what is being asked)." },
+              evidence: {
+                type: "array",
+                items: { type: "string" },
+                description: "Optional evidence strings supporting the statement.",
+              },
+              impact_pos: {
+                type: "array",
+                items: { type: "string" },
+                description: "Optional positive impacts.",
+              },
+              impact_neg: {
+                type: "array",
+                items: { type: "string" },
+                description: "Optional negative impacts.",
+              },
+              values: {
+                type: "array",
+                items: { type: "string" },
+                description: "Optional values the proposal claims to honor.",
+              },
+              accountable: {
+                type: "string",
+                description: "Optional accountable party. Identity on this runtime is Aziel Eliab only.",
+              },
+            },
           },
         },
         required: ["op"],
       },
+      outputSchema: FRAGGATE_OUTPUT_SCHEMA,
     },
     {
       name: "decisiongate_check",
       title: "Run DecisionGATE on a proposal",
-      description:
-        "Named live module. Five sequential gates on a proposal. Freedom without clarity is chaos. Also runs automatically inside fraggate_call before exec.",
-      annotations: { title: "Run DecisionGATE on a proposal", readOnlyHint: false, openWorldHint: false },
+      description: tdqsDescription({
+        action:
+          "Run the named DecisionGATE five sequential gates on a proposal (Freedom without clarity is chaos). Also runs automatically inside fraggate_call before exec",
+        when: "you want a gate check without executing a catalog product verb",
+        notFor: "executing a product op or searching the library",
+        instead: "fraggate_call or library_lookup",
+        effects:
+          "Write: appends an ask/refuse ledger tip. Not read-only and not idempotent. Does not execute domain software",
+        returns: "gate view, final_state, ledger_tip, and result (code FG-OK on the named module wrapper)",
+      }),
+      annotations: mcpAnnotations("Run DecisionGATE on a proposal", HINT_ADDITIVE),
       inputSchema: {
         type: "object",
         additionalProperties: true,
+        description: "All fields optional. Empty proposals still run the five gates and stamp the ledger.",
         properties: {
-          statement: { type: "string" },
-          evidence: { type: "array", items: { type: "string" } },
-          impact_pos: { type: "array", items: { type: "string" } },
-          impact_neg: { type: "array", items: { type: "string" } },
-          values: { type: "array", items: { type: "string" } },
-          accountable: { type: "string" },
+          statement: { type: "string", description: "Optional proposal statement to evaluate." },
+          evidence: {
+            type: "array",
+            items: { type: "string" },
+            description: "Optional evidence strings. Missing evidence can fail a gate.",
+          },
+          impact_pos: {
+            type: "array",
+            items: { type: "string" },
+            description: "Optional positive-impact list.",
+          },
+          impact_neg: {
+            type: "array",
+            items: { type: "string" },
+            description: "Optional negative-impact list.",
+          },
+          values: {
+            type: "array",
+            items: { type: "string" },
+            description: "Optional values list.",
+          },
+          accountable: {
+            type: "string",
+            description: "Optional accountable party string.",
+          },
         },
       },
+      outputSchema: FRAGGATE_OUTPUT_SCHEMA,
     },
     {
       name: "library_lookup",
       title: "Search the Aziel Digital Library",
-      description:
-        "Read-only library lookup (aziel-corpus search / example / skill). Not a private-file search engine.",
-      annotations: { title: "Search the Aziel Digital Library", readOnlyHint: true, openWorldHint: false },
+      description: tdqsDescription({
+        action: "Search the Aziel Digital Library (aziel-corpus search / example / skill)",
+        when: "you need a public corpus cite, example record, or library skill",
+        notFor: "adaptive memory belief, ChainLock facts, or private-file search",
+        instead: "memory_recall, chainlock_recall, or fraggate_call slug=aziel-corpus",
+        effects:
+          "Read-only, non-destructive, idempotent relative to library records. Not a private-file search engine. Unknown ops refuse FG-UNKNOWN-OP",
+        returns: "search, example, or skill payload inside the display envelope",
+      }),
+      annotations: mcpAnnotations("Search the Aziel Digital Library", HINT_READ),
       inputSchema: {
         type: "object",
         additionalProperties: true,
+        description: "q is the search text. op selects the library verb. Extra keys are forwarded as corpus payload.",
         properties: {
-          q: { type: "string" },
-          op: { type: "string", description: "search (default), example, or skill" },
+          q: {
+            type: "string",
+            description: "Optional query string for op=search. Empty q returns an empty or default hit set, not an invented cite.",
+          },
+          op: {
+            type: "string",
+            enum: ["search", "example", "skill", "health"],
+            description:
+              "Optional library verb. search (default) looks up public corpus text; example returns a sample; skill returns the library skill; health is liveness. Other values refuse FG-UNKNOWN-OP.",
+          },
         },
       },
+      outputSchema: FRAGGATE_OUTPUT_SCHEMA,
     },
     {
       name: "mesh_status",
       title: "QNM suite rollup",
-      description:
-        "QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1): enabled?, declared bearers, live/locked/isolated counts. Default radios OFF. suite-presence is operator-enabled. GET/this tool never enables. Not a login mesh. Views/MCP/downloads do not enter QNM-S. While enabled, cron or request-path fans out live Softwares product Workers (TTL 5 min). Full node process is local qnm-node/. Packet-transfer coding design is QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; GET /v1/qns cites only; Worker does not proxy via emit). Pipeline: fraggate_list → fraggate_describe slug=mesh → fraggate_call, or this named tool.",
-      annotations: { title: "QNM suite rollup", readOnlyHint: true, openWorldHint: false },
-      inputSchema: { type: "object", additionalProperties: false, properties: {} },
+      description: tdqsDescription({
+        action:
+          "Read the QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1): enabled?, declared bearers, live/locked/isolated counts. Packet-transfer coding design is QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; GET /v1/qns cites only; Worker does not proxy via emit)",
+        when: "you need suite presence counts or whether radios are OFF",
+        notFor: "enabling radios, listing individual nodes, or executing a catalog engine",
+        instead: "mesh_enable, mesh_nodes, or fraggate_call",
+        effects:
+          "Read-only, non-destructive, idempotent. GET/this tool never enables. Default radios OFF. suite-presence is operator-enabled. Not a login mesh. Views/MCP/downloads do not enter QNM-S. Full node process is local qnm-node/",
+        returns: "enabled flag, bearers, live/locked/isolated counts, and QNS-CD-1.0 cite",
+      }),
+      annotations: mcpAnnotations("QNM suite rollup", HINT_READ),
+      inputSchema: emptyArgsSchema("No arguments. Send {}. Never enables radios."),
+      outputSchema: FRAGGATE_OUTPUT_SCHEMA,
     },
     {
       name: "mesh_enable",
       title: "Enable QNM radios (declared bearer)",
-      description:
-        "Operator enable for the QNM suite rollup. LIVE only after ≥1 declared bearer (example: suite-presence). Empty {} is refused. Default OFF. Rate-limited. Not a login mesh. Does not arm, wipe, heal, or resurrect accounts. Same as POST /v1/mesh/enable.",
-      annotations: { title: "Enable QNM radios (declared bearer)", readOnlyHint: false, openWorldHint: false },
+      description: tdqsDescription({
+        action: "Operator-enable the QNM suite rollup by declaring a bearer (same as POST /v1/mesh/enable)",
+        when: "an operator must turn radios LIVE after ≥1 declared bearer (example: suite-presence)",
+        notFor: "reading status, disabling radios, or logging into an account",
+        instead: "mesh_status or mesh_disable",
+        effects:
+          "Write: stores the bearer and turns radios LIVE. Rate-limited. Empty {} is refused. Login/account/recover/gate names refuse. Does not arm, wipe, heal, or resurrect accounts. Not a login mesh. Default remains OFF on a fresh isolate",
+        returns: "enabled state, bearers, and suite-presence note",
+      }),
+      annotations: mcpAnnotations("Enable QNM radios (declared bearer)", HINT_ADDITIVE),
       inputSchema: {
         type: "object",
         additionalProperties: false,
+        description: "bearer is required. Empty object is MESH-ENABLE refuse.",
         properties: {
           bearer: {
             type: "string",
-            description: "Declared bearer name (example: suite-presence). Login/account/recover/gate names refuse.",
+            description:
+              "Required declared bearer name. Example: suite-presence. Login / account / recover / recovery / gate / IP / publish / phoenix / heal names refuse MESH-ENABLE. This is not a login mesh.",
           },
         },
         required: ["bearer"],
       },
+      outputSchema: FRAGGATE_OUTPUT_SCHEMA,
     },
     {
       name: "mesh_disable",
       title: "Disable QNM radios",
-      description:
-        "Radios/bearers OFF. Tethers drop clean — no implicit heal, no account resurrection, no wipe internals. Always allowed.",
-      annotations: { title: "Disable QNM radios", readOnlyHint: false, openWorldHint: false },
-      inputSchema: { type: "object", additionalProperties: false, properties: {} },
+      description: tdqsDescription({
+        action: "Turn QNM radios and bearers OFF (same as POST /v1/mesh/disable)",
+        when: "the operator wants suite presence off",
+        notFor: "dropping one node or enabling radios",
+        instead: "mesh_leave or mesh_enable",
+        effects:
+          "Destructive to live tethers: they drop clean. No implicit heal, no account resurrection, no wipe internals. Always allowed. Repeating while already OFF stays OFF",
+        returns: "enabled=false and a clean-drop note",
+      }),
+      annotations: mcpAnnotations("Disable QNM radios", HINT_DESTRUCTIVE_IDEMPOTENT),
+      inputSchema: emptyArgsSchema("No arguments. Send {}. Always allowed."),
+      outputSchema: FRAGGATE_OUTPUT_SCHEMA,
     },
     {
       name: "mesh_join",
       title: "Register QNM rollup presence",
-      description:
-        "Register a product node for rollup counts. Body: { product, node_id?, label?, presence? }. presence is live|locked|isolated. Refused while radios are OFF. Not an account session. Same as POST /v1/mesh/join.",
-      annotations: { title: "Register QNM rollup presence", readOnlyHint: false, openWorldHint: false },
+      description: tdqsDescription({
+        action: "Register a product node for QNM rollup counts (same as POST /v1/mesh/join)",
+        when: "radios are already LIVE and a catalog product should appear in live/locked/isolated counts",
+        notFor: "refreshing an existing node, reading the roster, or opening an account session",
+        instead: "mesh_heartbeat, mesh_nodes, or runtime_session_open",
+        effects:
+          "Write: additive presence with a 5-minute TTL. Refused while radios are OFF (MESH-OFF). Not an account session. AnonBroadcast is not a product",
+        returns: "node_id, presence, and TTL note",
+      }),
+      annotations: mcpAnnotations("Register QNM rollup presence", HINT_ADDITIVE),
       inputSchema: {
         type: "object",
         additionalProperties: false,
+        description: "product is required. presence must be live|locked|isolated when set. node_id must be 8–80 [a-z0-9._-].",
         properties: {
-          product: { type: "string", description: "Catalog product slug (e.g. godlock, azmail)" },
-          node_id: { type: "string", description: "Optional stable node id" },
-          label: { type: "string", description: "Optional short label" },
-          presence: { type: "string", description: "live (default), locked, or isolated — rollup only, no scores" },
+          product: {
+            type: "string",
+            description:
+              "Required catalog product slug (a-z0-9-, for example godlock, azmail). AnonBroadcast is refused. Unknown slugs refuse MESH-BAD-INPUT.",
+          },
+          node_id: {
+            type: "string",
+            description:
+              "Optional stable node id. When set, must be 8–80 characters matching [a-z0-9._-]. Omit to receive a generated id.",
+            minLength: 8,
+            maxLength: 80,
+            pattern: "^[a-z0-9._-]+$",
+          },
+          label: {
+            type: "string",
+            description: "Optional short label for the roster. Display only; not a score.",
+          },
+          presence: {
+            type: "string",
+            enum: ["live", "locked", "isolated"],
+            description: "Optional rollup class. live (default), locked, or isolated. No scores. Other values refuse MESH-BAD-INPUT.",
+          },
         },
         required: ["product"],
       },
+      outputSchema: FRAGGATE_OUTPUT_SCHEMA,
     },
     {
       name: "mesh_heartbeat",
       title: "Refresh QNM rollup presence",
-      description: "Refresh 5-minute presence. Body: { node_id, presence? }. Same as POST /v1/mesh/heartbeat.",
-      annotations: { title: "Refresh QNM rollup presence", readOnlyHint: false, openWorldHint: false },
+      description: tdqsDescription({
+        action: "Refresh a node's 5-minute QNM presence TTL (same as POST /v1/mesh/heartbeat)",
+        when: "you already have a node_id from mesh_join and radios are LIVE",
+        notFor: "first-time registration or dropping the node",
+        instead: "mesh_join or mesh_leave",
+        effects:
+          "Write: extends TTL. Each call has an additional TTL effect (not idempotent). Unknown or expired node_id refuses MESH-UNKNOWN-NODE — join again; no account resurrection",
+        returns: "updated presence and TTL",
+      }),
+      annotations: mcpAnnotations("Refresh QNM rollup presence", HINT_ADDITIVE),
       inputSchema: {
         type: "object",
         additionalProperties: false,
+        description: "node_id is required. Missing node_id refuses MESH-BAD-INPUT.",
         properties: {
-          node_id: { type: "string", description: "Node id from mesh_join" },
-          presence: { type: "string", description: "Optional live|locked|isolated" },
+          node_id: {
+            type: "string",
+            description: "Required node id returned by mesh_join.",
+          },
+          presence: {
+            type: "string",
+            enum: ["live", "locked", "isolated"],
+            description: "Optional replacement presence class. Other values refuse MESH-BAD-INPUT.",
+          },
         },
         required: ["node_id"],
       },
+      outputSchema: FRAGGATE_OUTPUT_SCHEMA,
     },
     {
       name: "mesh_leave",
       title: "Drop QNM rollup presence",
-      description: "Drop a node from the rollup. Body: { node_id }. Always allowed. No implicit heal. Same as POST /v1/mesh/leave.",
-      annotations: { title: "Drop QNM rollup presence", readOnlyHint: false, openWorldHint: false },
+      description: tdqsDescription({
+        action: "Drop a node from the QNM rollup (same as POST /v1/mesh/leave)",
+        when: "a previously joined node should leave the counts",
+        notFor: "turning all radios OFF or listing nodes",
+        instead: "mesh_disable or mesh_nodes",
+        effects:
+          "Destructive to that node's presence. Always allowed. No implicit heal. Repeating a missing node_id is a no-op/refuse, not resurrection",
+        returns: "leave receipt for the node_id",
+      }),
+      annotations: mcpAnnotations("Drop QNM rollup presence", HINT_DESTRUCTIVE_IDEMPOTENT),
       inputSchema: {
         type: "object",
         additionalProperties: false,
-        properties: { node_id: { type: "string" } },
+        description: "node_id is required. Missing node_id refuses MESH-BAD-INPUT.",
+        properties: {
+          node_id: {
+            type: "string",
+            description: "Required node id to drop from the rollup.",
+          },
+        },
         required: ["node_id"],
       },
+      outputSchema: FRAGGATE_OUTPUT_SCHEMA,
     },
     {
       name: "mesh_nodes",
       title: "List QNM rollup nodes",
-      description:
-        "Roster with live/locked/isolated presence (5-minute TTL). No scores. No leaderboard. Views/MCP/downloads do not enter QNM-S. Same as GET /v1/mesh/nodes.",
-      annotations: { title: "List QNM rollup nodes", readOnlyHint: true, openWorldHint: false },
-      inputSchema: { type: "object", additionalProperties: false, properties: {} },
+      description: tdqsDescription({
+        action: "List the QNM rollup roster with live/locked/isolated presence (5-minute TTL; same as GET /v1/mesh/nodes)",
+        when: "you need the current node list after mesh_status",
+        notFor: "suite counts without the roster, or mutating presence",
+        instead: "mesh_status, mesh_join, or mesh_leave",
+        effects:
+          "Read-only, non-destructive, idempotent. No scores. No leaderboard. Views/MCP/downloads do not enter QNM-S",
+        returns: "node roster with presence classes",
+      }),
+      annotations: mcpAnnotations("List QNM rollup nodes", HINT_READ),
+      inputSchema: emptyArgsSchema("No arguments. Send {}."),
+      outputSchema: FRAGGATE_OUTPUT_SCHEMA,
     },
     {
       name: "mesh_broadcast",
       title: "Register a local hash receipt",
-      description:
-        "Register SHA-256 of a local communique. NEVER a publish path. Does NOT accept video bytes. Anon-broadcast is a sibling loopback module of local qnm-node/ only. Operator keeps the file. Body: { sha256, title? }.",
-      annotations: { title: "Register a local hash receipt", readOnlyHint: false, openWorldHint: false },
+      description: tdqsDescription({
+        action: "Register the SHA-256 of a local communique as a hash receipt — never a publish path",
+        when: "the operator already holds a local file and wants only its hash recorded",
+        notFor: "uploading bytes, publishing video, or sending mail",
+        instead: "local qnm-node/ anon-broadcast loopback, or AZMail via fraggate_call",
+        effects:
+          "Write: stores a hash receipt. Does NOT accept video bytes. Anon-broadcast is a sibling loopback module of local qnm-node/ only. Operator keeps the file. Malformed sha256 refuses MESH-BAD-INPUT; publish-shaped keys refuse MESH-NO-PUBLISH",
+        returns: "hash receipt (sha256, optional title)",
+      }),
+      annotations: mcpAnnotations("Register a local hash receipt", HINT_ADDITIVE),
       inputSchema: {
         type: "object",
         additionalProperties: false,
+        description: "sha256 is required (64 hex). This is a receipt, not a blob upload.",
         properties: {
-          sha256: { type: "string", description: "64-char hex SHA-256 of the local file" },
-          title: { type: "string", description: "Optional short title" },
-          product: { type: "string", description: "Optional product slug" },
+          sha256: {
+            type: "string",
+            description: "Required 64-character hex SHA-256 of the local file. Hash receipt only — not a publish path.",
+            minLength: 64,
+            maxLength: 64,
+            pattern: "^[a-fA-F0-9]{64}$",
+          },
+          title: {
+            type: "string",
+            description: "Optional short title for the receipt. Not the file contents.",
+          },
+          product: {
+            type: "string",
+            description: "Optional catalog product slug to attribute the receipt. Not required.",
+          },
         },
         required: ["sha256"],
       },
+      outputSchema: FRAGGATE_OUTPUT_SCHEMA,
     },
     ...chainlockMcpTools(),
     ...memoryMcpTools(),
     {
       name: "runtime_software",
       title: "Authoritative software catalog",
-      description:
-        "Hub/client helper: GET /v1/software. Every product including AZChat LIVE+bound, sorted Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock). EmbryoLock is live-with-local-destructive-boundary (worker_home embryolock-download-tracker). Prefer this for Software-tab refresh. Agent exec still uses fraggate_list → fraggate_describe → fraggate_call.",
-      annotations: { title: "Authoritative software catalog", readOnlyHint: true, openWorldHint: false },
-      inputSchema: { type: "object", additionalProperties: false, properties: {} },
+      description: tdqsDescription({
+        action:
+          "Read the authoritative hub catalog (GET /v1/software): every product including AZChat LIVE+bound, sorted Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock)",
+        when: "a hub or client refreshes the Software tab",
+        notFor: "agent discovery of hashed registry status or executing an op",
+        instead: "fraggate_list or fraggate_call",
+        effects:
+          "Read-only, non-destructive, idempotent. EmbryoLock is live-with-local-destructive-boundary (worker_home embryolock-download-tracker). Agent exec still uses fraggate_list → fraggate_describe → fraggate_call",
+        returns: "sorted software cards (name, slug, ops, worker_home)",
+      }),
+      annotations: mcpAnnotations("Authoritative software catalog", HINT_READ),
+      inputSchema: emptyArgsSchema("No arguments. Send {}. Hub/client helper — not exec."),
+      outputSchema: MCP_OUTPUT_SCHEMA,
     },
     {
       name: "runtime_bundle",
       title: "List every product (bundle helper)",
-      description:
-        "Compact bootstrap of every product skill URL + invoke prefix. Prefer GET /v1/software for hub Software tabs and fraggate_list for the agent door.",
-      annotations: { title: "List every product (bundle helper)", readOnlyHint: true, openWorldHint: false },
-      inputSchema: { type: "object", additionalProperties: false, properties: {} },
+      description: tdqsDescription({
+        action: "Read a compact bootstrap of every product skill URL and invoke prefix",
+        when: "a client needs skill URLs in one shot",
+        notFor: "Software-tab refresh, hashed registry discovery, or exec",
+        instead: "runtime_software, fraggate_list, or fraggate_call",
+        effects: "Read-only, non-destructive, idempotent. Prefer GET /v1/software for hub Software tabs",
+        returns: "compact product list with skill URLs",
+      }),
+      annotations: mcpAnnotations("List every product (bundle helper)", HINT_READ),
+      inputSchema: emptyArgsSchema("No arguments. Send {}."),
+      outputSchema: MCP_OUTPUT_SCHEMA,
     },
     {
       name: "runtime_pull",
       title: "Open one product",
-      description:
-        "Open one product by slug: name, version, skill, download, and ops. Argument: slug from GET /v1/software or fraggate_list. Not exec — then use fraggate_call.",
-      annotations: { title: "Open one product", readOnlyHint: true, openWorldHint: false },
+      description: tdqsDescription({
+        action: "Open one product card by slug: name, version, skill, download, and ops",
+        when: "you already have a slug from GET /v1/software or fraggate_list and need the card, not exec",
+        notFor: "inspecting FragGate live/stub status or executing an op",
+        instead: "fraggate_describe or fraggate_call",
+        effects: "Read-only, non-destructive, idempotent. Not exec — then use fraggate_call. Unknown slug errors",
+        returns: "one product card",
+      }),
+      annotations: mcpAnnotations("Open one product", HINT_READ),
       inputSchema: {
         type: "object",
         additionalProperties: true,
-        properties: { slug: { type: "string" } },
+        description: "slug is required. Extra keys are ignored by the pull helper.",
+        properties: {
+          slug: {
+            type: "string",
+            description:
+              "Required catalog slug from GET /v1/software or fraggate_list (for example foldlock). Not an exec path.",
+          },
+        },
         required: ["slug"],
       },
+      outputSchema: MCP_OUTPUT_SCHEMA,
     },
     {
       name: "runtime_run",
       title: "Advanced: raw runtime_run",
       description: markAdvanced(
-        "Advanced exec façade. Prefer fraggate_call. Still DecisionGATE-admitted; not a backdoor past the door.",
+        tdqsDescription({
+          action: "Advanced exec façade: admit a slug+op (still DecisionGATE-admitted) and run it through a raw session",
+          when: "you were explicitly asked for the raw runtime_run path",
+          notFor: "the default agent exec path",
+          instead: "fraggate_call",
+          effects:
+            "Side effects are operation-dependent. Not globally read-only or idempotent. Not a backdoor past FragGate. Opens a session when session_id is omitted",
+          returns: "exec display envelope with session_id, result, engine_digest, ran_in, and refusal when gated",
+        }),
       ),
-      annotations: { title: "Advanced: raw runtime_run", readOnlyHint: false, openWorldHint: false },
+      annotations: mcpAnnotations("Advanced: raw runtime_run", HINT_EXEC),
       inputSchema: {
         type: "object",
         additionalProperties: true,
+        description: "slug and op are required. Extra keys other than payload/session_id may be treated as payload.",
         properties: {
-          slug: { type: "string" },
-          op: { type: "string" },
-          payload: { type: "object" },
-          session_id: { type: "string" },
+          slug: {
+            type: "string",
+            description: "Required catalog slug (or name alias). Unknown slugs refuse FG-HALLUC-TOOL.",
+          },
+          op: {
+            type: "string",
+            description: "Required allowlisted op. Stubs refuse FG-STUB.",
+          },
+          payload: {
+            type: "object",
+            additionalProperties: true,
+            description: "Optional op payload object. Engine-specific.",
+          },
+          session_id: {
+            type: "string",
+            description:
+              "Optional existing raw session id. If omitted, a session is opened automatically. Prefer leaving session plumbing invisible unless asked.",
+          },
         },
         required: ["slug", "op"],
       },
+      outputSchema: MCP_OUTPUT_SCHEMA,
     },
     {
       name: "runtime_manifest",
       title: "Advanced: runtime manifest",
       description: markAdvanced(
-        "Machine manifest (version, role, door=fraggate, engine slugs). Prefer runtime_skill or fraggate_list. Not the default agent path.",
+        tdqsDescription({
+          action: "Read the machine runtime manifest (version, role, door=fraggate, engine slugs, registry_digest)",
+          when: "a client needs the machine manifest rather than the human skill",
+          notFor: "the default agent how-to or hashed registry discovery",
+          instead: "runtime_skill or fraggate_list",
+          effects: "Read-only, non-destructive, idempotent. Not the default agent path",
+          returns: "manifest including door=fraggate and registry_digest",
+        }),
       ),
-      annotations: { title: "Advanced: runtime manifest", readOnlyHint: true, openWorldHint: false },
-      inputSchema: { type: "object", additionalProperties: true },
+      annotations: mcpAnnotations("Advanced: runtime manifest", HINT_READ),
+      inputSchema: {
+        type: "object",
+        additionalProperties: true,
+        description: "No required arguments. Extra keys are ignored.",
+        properties: {},
+      },
+      outputSchema: MCP_OUTPUT_SCHEMA,
     },
   ];
 }
@@ -378,17 +711,24 @@ export function buildMcpToolList({ sessionTools }) {
   return tools;
 }
 
+const SESSION_HINTS = Object.freeze({
+  runtime_session_open: HINT_ADDITIVE,
+  runtime_session_policy: HINT_ADDITIVE,
+  runtime_session_exec: HINT_EXEC,
+  runtime_session_receipt: HINT_READ,
+  runtime_session_receipts: HINT_READ,
+  runtime_session_close: HINT_DESTRUCTIVE_IDEMPOTENT,
+});
+
 export function annotateSessionTool(tool) {
   const title = sessionToolTitle(tool.name);
+  const hints = SESSION_HINTS[tool.name] || HINT_EXEC;
   return {
     ...tool,
     title,
     description: markAdvanced(stripAdvanced(tool.description)),
-    annotations: {
-      title,
-      readOnlyHint: tool.name === "runtime_session_receipt" || tool.name === "runtime_session_receipts",
-      openWorldHint: false,
-    },
+    annotations: mcpAnnotations(title, hints),
+    outputSchema: tool.outputSchema || MCP_OUTPUT_SCHEMA,
   };
 }
 
