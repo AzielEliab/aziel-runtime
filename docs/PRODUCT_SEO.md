@@ -10,7 +10,9 @@ This repo does **not** own VibeLock or other product Workers. Copy this pattern 
 - Primary author: **Aziel Eliab**
 - Shared Person `@id`: `https://www.azieleliab.com/#aziel` (official hub). Do **not** use `https://github.com/AzielEliab#person`.
 - `alternateName` / aka only: **Aziel Elroi Eliab**
-- Runtime is **SoftwareApplication / execution surface**, not the identity hub. `author` is `{ "@id": "https://www.azieleliab.com/#aziel" }`. `sameAs` is the GitHub repo and the Glama listing. Worker origin is the software `url` (self-canonical), not Person identity.
+- Runtime parent SoftwareApplication `@id`: `https://www.azieleliab.com/runtime#runtime` (hub identity for the suite). Worker origin is the execution endpoint / `relatedLink` and stays self-canonical for Worker pages. `author` is `{ "@id": "https://www.azieleliab.com/#aziel" }`. `sameAs` is the GitHub repo and the Glama listing.
+- `hasPart` lists **named tools only** (FragGate, ForgeReceipts, DecisionGATE, TemporalLock, TrajectoryLock, PeaceLock, GodLock, AZ-OS, AZCoherence, 4DMap, Aziel Corpus, Ask Jeeves, AZBrowser, AZMail, AZHub, AZInterface, SpectralLock, ShadowLock, FoldLock, CodeLock, VibeLock). Each child is `@id` `https://www.azieleliab.com/runtime#<slug>`, exact public name, `author` → Person, `isPartOf` → Runtime `@id`.
+- Do **not** publish MCP operation names (`fraggate_call`, `runtime_run`, …) as schema entities.
 - Do not invent other identities.
 - Do not invent Zenodo DOIs. Cite `/cite.json`.
 - Crawler lead is the canonical abstract. Version notes (1.7.x, **1.9 / AZRT-1.9-CLOSE-1.0**, **2.0.0-rc1**, later) stay **below** the abstract.
@@ -260,3 +262,5 @@ Concise **Part of the Aziel Eliab ecosystem** block on homepage Softwares / clie
 - Aziel Runtime on GitHub → https://github.com/AzielEliab/aziel-runtime
 - Try on Glama → https://glama.ai/mcp/servers/AzielEliab/aziel-runtime
 - GodLock → https://godlock.uk/
+
+A short **Includes named components such as FragGate…** line may sit with that chrome. It does not replace the Softwares catalog.
