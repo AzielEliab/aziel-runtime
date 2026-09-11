@@ -88,6 +88,7 @@ const catalog = softwareCatalog(origin, PRODUCTS, { runtimeVersion: RUNTIME_VERS
 assert.equal(catalog.ok, true);
 assert.equal(catalog.author, "Aziel Eliab");
 assert.equal(catalog.identity, "Aziel Eliab");
+assert.equal(catalog.author_id, "https://www.azieleliab.com/#aziel");
 assert.equal(catalog.door, "fraggate");
 assert.equal(catalog.sort_law, SOFTWARE_SORT_LAW);
 assert.match(catalog.framing, /one FragGate door/);
