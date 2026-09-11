@@ -72,6 +72,8 @@ Source of truth: `PUBLIC_MCP_TOOLS` in `src/fraggate/codes.js`. Live `POST /mcp`
 
 Unknown MCP names refuse `FG-HALLUC-TOOL`. Flat `{slug}_{op}` names are **not** listed. `exist.mcp` on a refuse envelope is a hint, not an exec allowlist (`existMcpHint()`).
 
+Tool **names** are the contract. Descriptions, parameter text, truthful MCP annotations (`readOnlyHint` / `destructiveHint` / `idempotentHint` / `openWorldHint`), and `outputSchema` may be enriched for Glama TDQS without renaming tools or changing exec. `fraggate_call` is **not** globally `readOnlyHint` or `idempotentHint` (side effects are operation-dependent). See `docs/GLAMA-TDQS.md`.
+
 ### MCP initialize
 
 - Transport: `POST /mcp` (HTTP JSON-RPC) or stdio (`cli/mcp-stdio.mjs`)

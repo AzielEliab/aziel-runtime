@@ -15,7 +15,7 @@ FragGate remains THE single public executable door. `GET /v1/mesh` never enables
 | 1. Stable public contract | `PUBLIC-CONTRACT.md`, `COMPATIBILITY-POLICY.md`, `RECEIPT-SCHEMA.md`, `REFUSAL-CONTRACT.md`, `BREAKING-CHANGE-POLICY.md` |
 | 2. Independent reproducibility | `CLEAN-ROOM.md` + `scripts/clean-room-2.0.sh` + evidence schema |
 | 3. External adversarial | `EXTERNAL-ADVERSARIAL-PACK.md` + `scripts/external-adversarial-2.0.sh` |
-| 4. Distribution identity | Unchanged Glama claim (`glama.json`) + GitHub listing; identity **Aziel Eliab** only |
+| 4. Distribution identity | Unchanged Glama claim (`glama.json`) + GitHub listing; identity **Aziel Eliab** only. TDQS metadata-only pass (`docs/GLAMA-TDQS.md`) — names frozen, no behavior change |
 | 5. Outside use | Operational proof **outside this PR** — not claimed here |
 
 ## Documents
@@ -28,6 +28,7 @@ FragGate remains THE single public executable door. `GET /v1/mesh` never enables
 | [REFUSAL-CONTRACT.md](REFUSAL-CONTRACT.md) | Remain-OFF + stable refuse codes as intentional boundaries |
 | [BREAKING-CHANGE-POLICY.md](BREAKING-CHANGE-POLICY.md) | Breaking changes require a future major |
 | [CHANGELOG.md](CHANGELOG.md) | 1.9.x → 2.0.0-rc1 migration notes (no intentional behavioral breaks) |
+| [../GLAMA-TDQS.md](../GLAMA-TDQS.md) | Fold-in: Glama TDQS schema/metadata quality (names frozen) |
 | [CLEAN-ROOM.md](CLEAN-ROOM.md) | Independent clone → test → MCP → receipt path |
 | [clean-room-result.schema.json](clean-room-result.schema.json) | Machine-readable clean-room evidence |
 | [clean-room-result.sample.json](clean-room-result.sample.json) | Sample evidence (not a live run) |
