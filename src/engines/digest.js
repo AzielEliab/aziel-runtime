@@ -88,7 +88,7 @@ export const ENGINE_DIGESTS = {
   "aznet": "eb02566041f2fa48f9b49be359732737860382052666de7df1062baf808e7d88",
   "azhub": "35683fb4735ed57bda3c4f2d5d312fe9c68fd7fb853b0b99fd1cbabcc22cba66",
   "azinterface": "0deb713c76dcb437a6b91983595f6abc47a401799c7ffa9ccda9fdf1332db2bd",
-  "aziel-corpus": "53adc3923e6fc9cf57677684ce79af43ecdd7e121a055318c2a38d8e11209442",
+  "aziel-corpus": "43855e7f0d0f45452171209b9b4f3f12266637ec1f0fd5cb1457196a56df9f3d",
   "4dmap": "0e780ef2db7c1aa9487d1d341f603fe66ab439688d2ba1ab28fa0063f1d26bb0",
   "azcoherence": "f04dfa4af332a1c04bd7319a8f48cee3e9adec3877d198ea703ee6187790cfc5",
   "embryolock": "bc7f6119a4bf6910b5be50cabe19bf4a2e35ac60408b5713e94878bd4e0074f3",

@@ -1,6 +1,7 @@
 /**
  * Aziel Digital Library portable search core.
  * In-process search of a bundled public sample MASTER (not live D1 unless CORPUS_D1 is bound).
+ * Live D1 MASTER is production table `records` (aziel-corpus schema.sql) — not `master`.
  * review / score / verify-* / document-chain run on posted or sample JSON.
  * Whisper / OCR stay Workers-AI-gated (native only when env.AI is bound); else proxy_fallback.
  * jeeves / media-run stay per-op proxy. Author: Aziel Eliab.
@@ -10,7 +11,7 @@ export const PRODUCT = "aziel-corpus";
 export const VERSION = "2.6.2";
 export const SPEC = "aziel-digital-library-portable-sample-v2.6.2";
 export const LIMITATION =
-  "THIS IS: in-process search over a bundled public sample MASTER, plus isolate-safe review/score/verify/document-chain on posted JSON. Live D1 search runs only when CORPUS_D1 is bound. Whisper / OCR run only when Workers AI is bound. THIS IS NOT: Zenodo, a 26-card software index, a fake native OCR, or Ask Jeeves. jeeves / media-run stay per-op proxy_fallback. Author: Aziel Eliab only.";
+  "THIS IS: in-process search over a bundled public sample MASTER, plus isolate-safe review/score/verify/document-chain on posted JSON. Live D1 search runs only when CORPUS_D1 is bound and queries production `records` (not `master`). Whisper / OCR run only when Workers AI is bound. THIS IS NOT: Zenodo, a 26-card software index, a fake native OCR, or Ask Jeeves. jeeves / media-run stay per-op proxy_fallback. Author: Aziel Eliab only.";
 
 export const NATIVE_OPS = [
   "health",
@@ -180,25 +181,34 @@ function searchSample(body) {
   });
 }
 
-async function searchD1(body, db) {
+/**
+ * Production aziel-digital-library table is `records` (not `master`).
+ * Columns match aziel-corpus workers/download-tracker/schema.sql.
+ */
+export const D1_SEARCH_SQL =
+  "SELECT record_id, title, author, domain, subjects, keywords, library, body, created_utc FROM records WHERE title LIKE ? OR body LIKE ? OR keywords LIKE ? OR subjects LIKE ? OR author LIKE ? LIMIT 25";
+
+export async function searchD1(body, db) {
   const src = srcOf(body);
   const q = src.q != null ? String(src.q) : src.query != null ? String(src.query) : "";
   const query = q.trim();
   const like = `%${query.replace(/[%_]/g, "")}%`;
-  const stmt = db
-    .prepare(
-      "SELECT record_id, title, author, domain, subjects, keywords, library, created_utc FROM master WHERE title LIKE ? OR body LIKE ? OR keywords LIKE ? LIMIT 25",
-    )
-    .bind(like, like, like);
+  const stmt = db.prepare(D1_SEARCH_SQL).bind(like, like, like, like, like);
   const out = await stmt.all();
-  const records = Array.isArray(out && out.results) ? out.results : [];
+  const rows = Array.isArray(out && out.results) ? out.results : [];
+  const records = rows.map((rec) => {
+    const row = rec && typeof rec === "object" ? rec : {};
+    const { body: fullBody, ...rest } = row;
+    return { ...rest, snippet: String(fullBody || "").slice(0, 280) };
+  });
   return baseResult({
     live_d1: true,
     sample_master: false,
     q: query,
     count: records.length,
     records,
-    note: "Native isolate D1 (CORPUS_D1 bound). Not a fake OCR.",
+    table: "records",
+    note: "Native isolate D1 (CORPUS_D1 bound) over production records. Not a fake OCR. Not the sample MASTER.",
   });
 }
 
@@ -468,7 +478,7 @@ export function mediaStatus(env) {
     native_ops: NATIVE_OPS.slice(),
     proxy_ops: PROXY_OPS.slice(),
     binding_gated: { ...BINDING_GATED_OPS },
-    next_step_d1: "Create the library D1 database and bind CORPUS_D1. Do not claim live D1 until bound.",
-    next_step_ai: "Bind Workers AI (`AI`) for Whisper/OCR. Do not fake native media.",
+    next_step_d1: "wrangler.toml binds CORPUS_D1 to aziel-digital-library. Search queries production `records` when bound; sample MASTER when unbound.",
+    next_step_ai: "wrangler.toml binds Workers AI (`AI`). transcribe / ocr are native only when env.AI.run is present. Do not fake native media.",
   };
 }

@@ -62,7 +62,7 @@ function envelope(env) {
         native: NATIVE_OPS.slice(),
         proxy: PROXY_OPS.slice(),
         binding_gated: { ...BINDING_GATED_OPS },
-        note: "In-process search uses bundled sample MASTER unless CORPUS_D1 is bound. Whisper / OCR are native only when Workers AI is bound. Not a fake native OCR.",
+        note: "In-process search uses bundled sample MASTER unless CORPUS_D1 is bound (then production `records`). Whisper / OCR are native only when Workers AI is bound. Not a fake native OCR.",
       },
       media: mediaStatus(env),
     },
@@ -76,7 +76,7 @@ export function aziel_corpusHealth(env) {
 export function aziel_corpusSkill(env) {
   return capabilitySkill({
     ...envelope(env),
-    lead: "In-process search over a bundled public sample MASTER. review / score / verify-backfill / verify-geo / document-chain run on posted or sample JSON. Live D1 and Whisper/OCR stay binding-gated. jeeves / media-run stay proxy.",
+    lead: "In-process search over a bundled public sample MASTER. review / score / verify-backfill / verify-geo / document-chain run on posted or sample JSON. Live D1 queries production `records` when CORPUS_D1 is bound. Whisper/OCR stay binding-gated. jeeves / media-run stay proxy.",
   });
 }
 

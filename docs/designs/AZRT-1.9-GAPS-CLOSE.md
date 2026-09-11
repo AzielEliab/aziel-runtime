@@ -1,10 +1,10 @@
 # AZRT-1.9-GAPS-CLOSE
 
-**Target:** aziel-runtime **1.9.1**  
+**Target:** aziel-runtime **1.9.2** (1.9.1 heritage)  
 **Repo:** https://github.com/AzielEliab/aziel-runtime  
 **Identity / author:** **Aziel Eliab** only  
-**Ingest date:** 2026-09-10  
-**Baseline:** latest `main` **1.9.0** (AZRT-1.9-CLOSE-1.0)
+**Ingest date:** 2026-09-10 · **Bind close:** 2026-09-11  
+**Baseline:** latest `main` **1.9.1** (AZRT-1.9-GAPS-CLOSE) on **1.9.0** (AZRT-1.9-CLOSE-1.0)
 
 Not a Softwares-tab product. Not a FragGate slug. This paper does **not** enable remain-OFF items. `GET /v1/mesh` never enables. FragGate is THE single door. SEO crawler abstract stays LEAD on homepage meta / llms / cite / about; changelog stays below.
 
@@ -13,6 +13,14 @@ Companion close: [AZRT-1.9-CLOSE-1.0](AZRT-1.9-CLOSE-1.0.md).
 Companion inventory: [UNIVERSAL-EXEC-FALLBACK-1.9](../audit/UNIVERSAL-EXEC-FALLBACK-1.9.md).
 
 ---
+
+## Closed in 1.9.2 (bindings)
+
+| Gap | Disposition |
+| --- | --- |
+| AZBrowser Chromium | **CLOSED (bound)** — `wrangler.toml` `[browser] binding = "BROWSER"`. `sandbox_status` / `sandbox_render` already use `env.BROWSER` + `@cloudflare/puppeteer`. Do not fake Chromium when unbound. Tor / phoenix stay refuse. Chromium product UI is not claimed. |
+| Live D1 MASTER | **CLOSED (bound)** — `CORPUS_D1` → production `aziel-digital-library` (`23f33238-f1ca-4066-b56e-af66a1e72031`). `searchD1` queries `records` (record_id, title, author, domain, subjects, keywords, library, body, created_utc). Sample MASTER remains the unbound fallback. |
+| Whisper / OCR native | **CLOSED (bound)** — `wrangler.toml` `[ai] binding = "AI"`. `transcribe` / `ocr` stay native only when `env.AI.run` is present. Not a fake native OCR. |
 
 ## Closed in 1.9.1
 
@@ -37,9 +45,9 @@ Companion inventory: [UNIVERSAL-EXEC-FALLBACK-1.9](../audit/UNIVERSAL-EXEC-FALLB
 
 | Gap | Disposition | Concrete next step |
 | --- | --- | --- |
-| AZBrowser Chromium | **DEFERRED** | Bind Workers Browser Rendering (`browser.binding = BROWSER`) on a paid plan, `npm i @cloudflare/puppeteer`, then deploy. `sandbox_render` already refuses private / onion / Tor targets and does not fake Chromium when unbound. Do not enable Tor / phoenix. |
-| Live D1 MASTER | **OPEN (gated)** | Create the library D1 database and bind `CORPUS_D1`. Search already uses it when present. |
-| Whisper / OCR native | **OPEN (gated)** | Bind Workers AI (`AI`). `transcribe` / `ocr` stay `proxy_fallback` until bound. |
+| AZBrowser Chromium | **CLOSED (bound in 1.9.2)** | Workers Browser Rendering is bound. Coordinator deploys. Do not enable Tor / phoenix. |
+| Live D1 MASTER | **CLOSED (bound in 1.9.2)** | `CORPUS_D1` → `aziel-digital-library`. Search uses production `records`. |
+| Whisper / OCR native | **CLOSED (bound in 1.9.2)** | Workers AI (`AI`) is bound. Native only when `env.AI.run` is present. |
 | AZ-OS session/exec/close | **OPEN (named proxy)** | Product-Worker VFS / ethics shell stays proxy. Public `exec` / `shell` stay refuse. Do not enable remote shell. |
 | jeeves / media-run | **OPEN (named proxy)** | Jeeves is AZAI-adjacent (blend stays refuse). media-run needs live media bindings. |
 | Independent lab | **ASSESS** | `npm test` is a repo self-check. Do not claim a third-party lab. |
