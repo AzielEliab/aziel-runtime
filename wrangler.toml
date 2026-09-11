@@ -1,6 +1,7 @@
 name = "aziel-runtime"
 main = "src/index.js"
 compatibility_date = "2026-07-01"
+compatibility_flags = ["nodejs_compat"]
 workers_dev = true
 account_id = "ac575a9b822bea2bed97d0ab73aed238"
 
@@ -168,11 +169,16 @@ REQUIRE_TOKEN = "1"
 binding = "CF_VERSION_METADATA"
 
 # One Durable Object per session (open → policy → exec → receipt → close).
-# 1.4.0 engines run in this Worker isolate; no new DO class. 1.4.1 / 1.5.0 / 1.6.0 / 1.6.1 / 1.6.2 / 1.6.3 / 1.6.4 / 1.6.5 / 1.6.6 / 1.6.7 / 1.6.8 / 1.6.9 / 1.6.10 / 1.6.11 / 1.6.12 / 1.6.13 / 1.6.14 / 1.6.15 / 1.7.0 / 1.9.1 reuse SESSION.
-# Browser Rendering next step (not bound — Chromium stays DEFERRED):
-# [browser]
-# binding = "BROWSER"
-# Then: npm i @cloudflare/puppeteer  — do not fake Chromium; Tor/phoenix stay refuse.
+# 1.4.0 engines run in this Worker isolate; no new DO class. 1.4.1 / 1.5.0 / 1.6.0 / 1.6.1 / 1.6.2 / 1.6.3 / 1.6.4 / 1.6.5 / 1.6.6 / 1.6.7 / 1.6.8 / 1.6.9 / 1.6.10 / 1.6.11 / 1.6.12 / 1.6.13 / 1.6.14 / 1.6.15 / 1.7.0 / 1.9.1 / 1.9.2 reuse SESSION.
+# 1.9.2: Workers Browser Rendering for AZBrowser sandbox_status / sandbox_render.
+# Do not fake Chromium when unbound; Tor / phoenix stay refuse.
+[browser]
+binding = "BROWSER"
+
+# 1.9.2: Workers AI for Whisper / OCR honesty (native only when env.AI.run is present).
+[ai]
+binding = "AI"
+
 [[durable_objects.bindings]]
 name = "SESSION"
 class_name = "RuntimeSession"
@@ -196,6 +202,13 @@ id = "ce81cecf8b75412fb7b56e1119e017da"
 [[kv_namespaces]]
 binding = "AZBROWSER_TABS"
 id = "7487aba1bbb5417fb668de86d8b48f37"
+
+# 1.9.2: live Aziel Digital Library MASTER. Production table is `records` (not `master`).
+# Sample MASTER remains the unbound fallback. Search SQL is in src/engines/aziel-corpus/engine.js.
+[[d1_databases]]
+binding = "CORPUS_D1"
+database_name = "aziel-digital-library"
+database_id = "23f33238-f1ca-4066-b56e-af66a1e72031"
 
 [[migrations]]
 tag = "v1"
