@@ -106,15 +106,67 @@ assert.match(changelog, /2\.0\.0-rc1/);
 assert.match(changelog, /No intentional behavioral breaks/);
 assert.match(changelog, /TDQS/);
 
+/**
+ * True only for a real wrangler-deploy dependency: a CI `run:` step,
+ * a package script, or an install/deploy command. Negated / advisory
+ * mentions must not trip this (the old bare `/wrangler deploy/` and
+ * `/run \`wrangler deploy\`|npx wrangler deploy/` checks did).
+ */
+function hasWranglerDeployDependency(text) {
+  if (typeof text !== "string") return false;
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.replace(/`/g, "").trim();
+    if (!/\bwrangler deploy\b/i.test(line)) continue;
+    if (isAdvisoryWranglerDeployLine(line)) continue;
+    if (isWranglerDeployInstructionLine(line)) return true;
+  }
+  return false;
+}
+
+function isAdvisoryWranglerDeployLine(line) {
+  return (
+    /\b(?:do(?:es)? not|don't|without|not required|must not|never)\b/i.test(line) ||
+    /\bno\s+(?:npx\s+(?:--yes\s+)?)?wrangler deploy\b/i.test(line)
+  );
+}
+
+function isWranglerDeployInstructionLine(line) {
+  if (/^(?:-\s+)?run:\s+(?:npx\s+(?:--yes\s+)?)?wrangler deploy\b/i.test(line)) return true;
+  if (/^(?:npx\s+(?:--yes\s+)?)?wrangler deploy\b/i.test(line)) return true;
+  if (/"[^"]+"\s*:\s*"[^"]*\b(?:npx\s+(?:--yes\s+)?)?wrangler deploy\b/i.test(line)) return true;
+  if (/\b(?:requires?|required|must|need(?:s)? to|install(?:s|ing)?)\b/i.test(line)) return true;
+  if (/\brun\s+(?:npx\s+(?:--yes\s+)?)?wrangler deploy\b/i.test(line)) return true;
+  return false;
+}
+
+assert.equal(hasWranglerDeployDependency("you do not need wrangler deploy"), false);
+assert.equal(hasWranglerDeployDependency("no wrangler deploy"), false);
+assert.equal(
+  hasWranglerDeployDependency("coordinator deploys; no wrangler deploy from this agent"),
+  false,
+);
+assert.equal(hasWranglerDeployDependency("without `wrangler deploy`"), false);
+assert.equal(hasWranglerDeployDependency("Do not run `wrangler deploy`"), false);
+assert.equal(hasWranglerDeployDependency("npx wrangler deploy"), true);
+assert.equal(hasWranglerDeployDependency("  run: wrangler deploy"), true);
+assert.equal(hasWranglerDeployDependency("  run: npx --yes wrangler deploy --var GIT_SHA:abc"), true);
+assert.equal(hasWranglerDeployDependency('"deploy": "wrangler deploy"'), true);
+assert.equal(hasWranglerDeployDependency("This path requires wrangler deploy"), true);
+
 const clean = readFileSync(new URL("../docs/2.0/CLEAN-ROOM.md", import.meta.url), "utf8");
 assert.match(clean, /scripts\/clean-room-2\.0\.sh/);
 assert.match(clean, /AZIEL_RUNTIME_MCP=local/);
 assert.match(clean, /No undocumented secrets|no undocumented secrets/i);
 assert.match(clean, /without `wrangler deploy`/);
 assert.match(clean, /or `wrangler deploy`/);
-assert.doesNotMatch(clean, /(?:^|\n)\s*(?:npx\s+)?wrangler deploy/m);
-assert.doesNotMatch(clean, /run `wrangler deploy`|wrangler secret put|npx wrangler deploy/);
-assert.doesNotMatch(packIndex, /(?:^|\n)\s*(?:npx\s+)?wrangler deploy/m);
+assert.equal(hasWranglerDeployDependency(clean), false, "CLEAN-ROOM must not require wrangler deploy");
+assert.equal(hasWranglerDeployDependency(packIndex), false, "2.0 pack must not require wrangler deploy");
+assert.equal(hasWranglerDeployDependency(tdqs), false, "TDQS may mention wrangler deploy only as advisory");
+assert.equal(
+  hasWranglerDeployDependency(JSON.stringify(pkg.scripts)),
+  false,
+  "package scripts must not run wrangler deploy",
+);
 assert.match(packIndex, /Do not run `wrangler deploy`/);
 
 const adv = readFileSync(new URL("../docs/2.0/EXTERNAL-ADVERSARIAL-PACK.md", import.meta.url), "utf8");
