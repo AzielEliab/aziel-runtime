@@ -12,6 +12,7 @@ import {
   documentChain,
   examplePayload,
   importExport,
+  mediaRun,
   mediaStatus,
   ocr,
   review,
@@ -21,6 +22,7 @@ import {
   verifyBackfill,
   verifyGeo,
 } from "./engine.js";
+import { jeevesAsk } from "./jeeves.js";
 
 export const AZIEL_CORPUS_OPS = [
   "health",
@@ -34,6 +36,8 @@ export const AZIEL_CORPUS_OPS = [
   "verify-geo",
   "document-chain",
   "import_export",
+  "jeeves",
+  "media-run",
 ];
 
 const LIVE = AZIEL_CORPUS_OPS.slice();
@@ -62,7 +66,7 @@ function envelope(env) {
         native: NATIVE_OPS.slice(),
         proxy: PROXY_OPS.slice(),
         binding_gated: { ...BINDING_GATED_OPS },
-        note: "In-process search uses bundled sample MASTER unless CORPUS_D1 is bound (then production `records`). Whisper / OCR are native only when Workers AI is bound. Not a fake native OCR.",
+        note: "In-process search uses bundled sample MASTER unless CORPUS_D1 is bound (then production `records`). jeeves is isolate-native. Whisper / OCR / media-run are native only when Workers AI is bound. Not a fake native OCR.",
       },
       media: mediaStatus(env),
     },
@@ -76,14 +80,14 @@ export function aziel_corpusHealth(env) {
 export function aziel_corpusSkill(env) {
   return capabilitySkill({
     ...envelope(env),
-    lead: "In-process search over a bundled public sample MASTER. review / score / verify-backfill / verify-geo / document-chain run on posted or sample JSON. Live D1 queries production `records` when CORPUS_D1 is bound. Whisper/OCR stay binding-gated. jeeves / media-run stay proxy.",
+    lead: "In-process search over a bundled public sample MASTER. review / score / verify-backfill / verify-geo / document-chain / jeeves run on posted or sample JSON. Live D1 queries production `records` when CORPUS_D1 is bound. Whisper / OCR / media-run stay binding-gated.",
   });
 }
 
 export function aziel_corpusDoctor(env) {
   return capabilityDoctor({
     ...envelope(env),
-    doctor_note: "Corpus doctor: native-vs-proxy labels, binding-gated Whisper/OCR, sample gazetteer. Not a fake OCR.",
+    doctor_note: "Corpus doctor: native-vs-proxy labels, isolate-safe jeeves, binding-gated Whisper/OCR/media-run, sample gazetteer. Not a fake OCR.",
   });
 }
 
@@ -99,6 +103,8 @@ export async function runAzielCorpus(op, payload, scratch, env) {
   if (op === "verify-geo") return verifyGeo(payload);
   if (op === "document-chain") return documentChain(payload);
   if (op === "import_export") return importExport(payload);
+  if (op === "jeeves") return jeevesAsk(payload, env);
+  if (op === "media-run") return mediaRun(payload, env);
   if (op === "transcribe") return transcribe(payload, env);
   if (op === "ocr") return ocr(payload, env);
   return { unsupported: true };

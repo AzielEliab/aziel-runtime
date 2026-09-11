@@ -25,6 +25,10 @@ import { FRAGGATE_DOOR, FRAGGATE_KERNEL, FRAGGATE_KERNEL_VERSION } from "./codes
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
 export const OP_ALIASES = {
+  azos: {
+    session: "session_open",
+    close: "session_close",
+  },
   azhub: {
     list_modules: "region_list",
     place: "place_module",
@@ -122,6 +126,8 @@ export const LIVE_OPS = {
     "verify-geo",
     "document-chain",
     "import_export",
+    "jeeves",
+    "media-run",
   ],
   foldlock: ["fold-preview", "unfold-preview", "health", "skill", "doctor"],
   azclce: ["score", "classify", "gate", "health", "skill", "doctor"],
@@ -131,7 +137,19 @@ export const LIVE_OPS = {
   glossafilter: ["render", "peers", "health", "skill", "doctor"],
   staticclock: ["advise", "advisory", "anchors", "click", "verify", "timeslate", "import_export", "doctor", "health", "skill"],
   chronolock: ["advisory", "advise", "anchors", "window", "doctor", "health", "skill"],
-  azos: ["status", "invite", "principles", "health", "skill", "doctor"],
+  azos: [
+    "status",
+    "invite",
+    "principles",
+    "health",
+    "skill",
+    "doctor",
+    "session_open",
+    "session_status",
+    "session_close",
+    "session",
+    "close",
+  ],
   azai: ["lamb-check", "lamb_check", "models", "health", "skill", "doctor"],
   postking: ["new", "move", "status", "health", "skill", "doctor"],
   shadowlock: ["observe", "hook", "health", "skill", "doctor"],
