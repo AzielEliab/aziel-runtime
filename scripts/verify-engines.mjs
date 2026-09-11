@@ -210,21 +210,25 @@ assert.equal(foldExec.status, 200);
 assert.equal(foldExec.data.exec.ran_in, "aziel-runtime");
 assert.equal(foldExec.data.exec.engine_digest, embeddedDigest("foldlock"));
 
-const azosUnsupported = await executeLocal({ slug: "azos", op: "session", payload: {}, ranIn: "aziel-runtime" });
-assert.equal(azosUnsupported.unsupported, true);
-assert.equal(azosUnsupported.engine_digest, embeddedDigest("azos"));
+const azosSession = await executeLocal({ slug: "azos", op: "session", payload: {}, ranIn: "aziel-runtime" });
+assert.equal(azosSession.unsupported, undefined);
+assert.equal(azosSession.mode, "local");
+assert.equal(azosSession.engine_digest, embeddedDigest("azos"));
+const azosSessionBody = JSON.parse(azosSession.responseText);
+assert.equal(azosSessionBody.ok, true);
+assert.equal(azosSessionBody.remote_shell, false);
+assert.match(azosSessionBody.session_id, /^azos_[a-f0-9]{32}$/);
 
-const proxy = await jsonReq(`/v1/session/${id}/exec`, "POST", {
+const azosNative = await jsonReq(`/v1/session/${id}/exec`, "POST", {
   slug: "azos",
   op: "session",
-  payload: { note: "per-op proxy fallback fixture" },
+  payload: { note: "isolate ethics VFS" },
 });
-assert.equal(proxy.status, 200);
-assert.equal(proxy.data.exec.mode, "proxy_fallback");
-assert.equal(proxy.data.exec.true_engine_runtime, false);
-assert.equal(proxy.data.exec.engine_digest, null);
-assert.equal(proxy.data.exec.ran_in, null);
-assert.ok(proxy.data.receipt.payload.result.mode === "proxy_fallback");
+assert.equal(azosNative.status, 200);
+assert.equal(azosNative.data.exec.mode, "local");
+assert.equal(azosNative.data.exec.true_engine_runtime, true);
+assert.equal(azosNative.data.exec.engine_digest, embeddedDigest("azos"));
+assert.equal(azosNative.data.exec.ran_in, "aziel-runtime");
 
 const corpusUnsupported = await executeLocal({ slug: "aziel-corpus", op: "transcribe", payload: {}, ranIn: "aziel-runtime" });
 assert.equal(corpusUnsupported.unsupported, true);
@@ -260,8 +264,10 @@ for (const slug of catalogSlugs) {
   assert.equal(health.data.engines[slug].true_engine_runtime, true, `health ${slug}`);
   assert.match(health.data.engines[slug].engine_digest, /^[a-f0-9]{64}$/, `health ${slug} digest`);
 }
-assert.ok(health.data.proxy_fallback_ops.azos.includes("session"));
+assert.ok(!health.data.proxy_fallback_ops.azos);
 assert.ok(health.data.proxy_fallback_ops["aziel-corpus"].includes("transcribe"));
+assert.ok(!health.data.proxy_fallback_ops["aziel-corpus"].includes("jeeves"));
+assert.ok(!health.data.proxy_fallback_ops["aziel-corpus"].includes("media-run"));
 assert.ok(!health.data.proxy_fallback_ops["aziel-corpus"].includes("review"));
 assert.ok(!health.data.proxy_fallback_ops["aziel-corpus"].includes("document-chain"));
 assert.equal(health.data.proxy_is_not_exec, true);

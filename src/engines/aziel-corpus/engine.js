@@ -3,15 +3,15 @@
  * In-process search of a bundled public sample MASTER (not live D1 unless CORPUS_D1 is bound).
  * Live D1 MASTER is production table `records` (aziel-corpus schema.sql) — not `master`.
  * review / score / verify-* / document-chain run on posted or sample JSON.
- * Whisper / OCR stay Workers-AI-gated (native only when env.AI is bound); else proxy_fallback.
- * jeeves / media-run stay per-op proxy. Author: Aziel Eliab.
+ * Whisper / OCR / media-run stay Workers-AI-gated (native only when env.AI is bound).
+ * jeeves is isolate-native over sample MASTER / CORPUS_D1 records. Author: Aziel Eliab.
  */
 
 export const PRODUCT = "aziel-corpus";
 export const VERSION = "2.6.2";
 export const SPEC = "aziel-digital-library-portable-sample-v2.6.2";
 export const LIMITATION =
-  "THIS IS: in-process search over a bundled public sample MASTER, plus isolate-safe review/score/verify/document-chain on posted JSON. Live D1 search runs only when CORPUS_D1 is bound and queries production `records` (not `master`). Whisper / OCR run only when Workers AI is bound. THIS IS NOT: Zenodo, a 26-card software index, a fake native OCR, or Ask Jeeves. jeeves / media-run stay per-op proxy_fallback. Author: Aziel Eliab only.";
+  "THIS IS: in-process search over a bundled public sample MASTER, plus isolate-safe review/score/verify/document-chain and isolate-safe Ask Jeeves over sample MASTER / CORPUS_D1 records. Live D1 search runs only when CORPUS_D1 is bound and queries production `records` (not `master`). Whisper / OCR / media-run run only when Workers AI is bound. THIS IS NOT: Zenodo, a 26-card software index, a fake native OCR, AZAI blend/chat, invented visits, or operator secrets. Author: Aziel Eliab only.";
 
 export const NATIVE_OPS = [
   "health",
@@ -25,11 +25,13 @@ export const NATIVE_OPS = [
   "verify-geo",
   "document-chain",
   "import_export",
+  "jeeves",
 ];
-export const PROXY_OPS = ["jeeves", "media-run"];
+export const PROXY_OPS = [];
 export const BINDING_GATED_OPS = {
   transcribe: "workers-ai-whisper",
   ocr: "workers-ai-vision",
+  "media-run": "workers-ai-whisper-vision",
   search_d1: "CORPUS_D1",
 };
 
@@ -472,13 +474,114 @@ export async function ocr(body, env) {
 export function mediaStatus(env) {
   return {
     d1_bound: !!(env && (env.CORPUS_D1 || env.DB)),
-    ai_bound: !!(env && env.AI),
-    whisper: !!(env && env.AI),
-    ocr: !!(env && env.AI),
+    ai_bound: !!(env && env.AI && typeof env.AI.run === "function"),
+    whisper: !!(env && env.AI && typeof env.AI.run === "function"),
+    ocr: !!(env && env.AI && typeof env.AI.run === "function"),
+    media_run: !!(env && env.AI && typeof env.AI.run === "function"),
     native_ops: NATIVE_OPS.slice(),
     proxy_ops: PROXY_OPS.slice(),
     binding_gated: { ...BINDING_GATED_OPS },
     next_step_d1: "wrangler.toml binds CORPUS_D1 to aziel-digital-library. Search queries production `records` when bound; sample MASTER when unbound.",
-    next_step_ai: "wrangler.toml binds Workers AI (`AI`). transcribe / ocr are native only when env.AI.run is present. Do not fake native media.",
+    next_step_ai: "wrangler.toml binds Workers AI (`AI`). transcribe / ocr / media-run are native only when env.AI.run is present. Do not fake native media.",
   };
+}
+
+function mediaKind(src) {
+  const raw = String(src.kind || src.mode || "").toLowerCase();
+  if (raw === "ocr" || raw === "vision") return "ocr";
+  if (raw === "transcribe" || raw === "whisper") return "transcribe";
+  if (src.image_b64 || src.image || src.b64) return "ocr";
+  if (src.audio_b64 || src.audio || src.bytes_b64) return "transcribe";
+  return "transcribe";
+}
+
+/**
+ * Binding-gated hash-chained media job. Runs Whisper or vision only when env.AI is present.
+ * Does not invent transcripts or OCR. Unbound path is an honest refuse, not a fake native.
+ */
+export async function mediaRun(body, env) {
+  const src = srcOf(body);
+  const bound = !!(env && env.AI && typeof env.AI.run === "function");
+  if (!bound) {
+    return baseResult({
+      op: "media-run",
+      ok: false,
+      refused: true,
+      native: false,
+      whisper_bound: false,
+      vision_bound: false,
+      live_d1: false,
+      sample_master: false,
+      reason: "Workers AI (env.AI) is not bound. media-run does not invent transcripts or OCR.",
+      binding_gated: BINDING_GATED_OPS["media-run"],
+      chain: [],
+      note: "Honest refuse / binding-gated label. Not a fake OCR. Not a silent proxy.",
+    });
+  }
+  const kind = mediaKind(src);
+  const audio = src.audio_b64 || src.audio || src.bytes_b64;
+  const image = src.image_b64 || src.image || src.b64;
+  if (kind === "transcribe" && !audio) {
+    return baseResult({
+      op: "media-run",
+      ok: false,
+      error: "audio_b64 required for media-run transcribe when Workers AI is bound.",
+      status: 400,
+      native: true,
+      whisper_bound: true,
+      kind,
+    });
+  }
+  if (kind === "ocr" && !image) {
+    return baseResult({
+      op: "media-run",
+      ok: false,
+      error: "image_b64 required for media-run ocr when Workers AI is bound.",
+      status: 400,
+      native: true,
+      vision_bound: true,
+      kind,
+    });
+  }
+  const jobId = `media_${Date.now().toString(16)}`;
+  const opened = new Date().toISOString();
+  const genesis = JSON.stringify({ job_id: jobId, kind, opened, author: "Aziel Eliab" });
+  const h0 = await sha256Hex(genesis);
+  let text = "";
+  let engine = null;
+  if (kind === "transcribe") {
+    const out = await env.AI.run("@cf/openai/whisper", { audio });
+    text = out && out.text != null ? String(out.text) : "";
+    engine = "workers-ai-whisper";
+  } else {
+    const out = await env.AI.run("@cf/llava-hf/llava-1.5-7b-hf", {
+      image,
+      prompt: "Transcribe visible printed text only. Do not invent marks.",
+      max_tokens: 256,
+    });
+    text = out && (out.response || out.description || out.text) ? String(out.response || out.description || out.text) : "";
+    engine = "workers-ai-vision";
+  }
+  const resultCanon = JSON.stringify({ prev: h0, job_id: jobId, kind, text, engine });
+  const h1 = await sha256Hex(resultCanon);
+  return baseResult({
+    op: "media-run",
+    ok: true,
+    native: true,
+    refused: false,
+    whisper_bound: kind === "transcribe",
+    vision_bound: kind === "ocr",
+    live_d1: false,
+    sample_master: false,
+    kind,
+    job_id: jobId,
+    engine,
+    text,
+    chain: [
+      { i: 0, event: "job", hash: h0, prev: "0".repeat(64) },
+      { i: 1, event: "result", hash: h1, prev: h0 },
+    ],
+    tip: h1,
+    note: "Native Workers AI media-run. Hash-chained job. Not a fake transcript or OCR.",
+  });
 }

@@ -1,7 +1,7 @@
 # Suite Softwares capability checklist
 
 **Repo:** [AzielEliab/aziel-runtime](https://github.com/AzielEliab/aziel-runtime)  
-**Runtime:** **1.9.2** (Browser Rendering + live D1 MASTER bound) on 1.9.1 AZRT-1.9-GAPS-CLOSE / 1.9.0 / MASTER-33 / 1.7.5 wave-1 heritage  
+**Runtime:** **1.9.3** (isolate AZ-OS session VFS + isolate jeeves + binding-gated media-run + published attestation) on 1.9.2 binds / 1.9.1 AZRT-1.9-GAPS-CLOSE / 1.9.0 / MASTER-33 / 1.7.5 wave-1 heritage  
 **Author / identity:** **Aziel Eliab** only  
 **Status:** living checklist. 4DMap inspection-frame ops shipped in runtime **1.7.4** (`4DM-WP-1.0`). This file covers the rest of the Softwares-tab live engines.
 
@@ -86,7 +86,7 @@ Do not treat this table as a license to invent verbs. Close only what the produc
 | codelock | render, gate-status | same | 1.8.1 public gate-status |
 | veillock | apps, pulse, consent, obfuscate-preview, azos-hook, call-accept | *(local_only — no public LIVE_OPS)* | Keep local_only. Do not live-mesh inject |
 | azclce | score, classify, gate | same | Rich skill; doctor |
-| azos | status, invite, principles | same + doctor alias | 1.8.1 public invite/principles. exec/shell stay stub |
+| azos | status, invite, principles, session_open/status/close | same + doctor + session/close aliases | 1.9.3 isolate ethics VFS. exec/shell stay stub |
 | glossafilter | render, peers | same | 1.8.1 public peers |
 | miragegrid | assign, route, circuit, verify-receipt, nodes, mesh | assign, verify-receipt, nodes | 1.8.2 public verify-receipt/nodes. mesh/hop stay stub |
 | postking | new, move, status | same | Rich skill; doctor |
@@ -101,7 +101,7 @@ Do not treat this table as a license to invent verbs. Close only what the produc
 | aznet | pair_status … receipt_verify | same + doctor/pair aliases | Already above baseline; never host payloads |
 | azhub | region_list … blank_key_status | same + list_modules/place aliases | Already above baseline |
 | azinterface | genesis_status … page_cycle_status | same + genesis_boot/hold aliases | Already above baseline |
-| aziel-corpus | search, example, review, score, verify-*, document-chain, import_export | same + doctor | 1.9.2 live D1 `records` bound; Whisper/OCR AI-bound. 1.9.1 isolate-safe verify |
+| aziel-corpus | search, example, review, score, verify-*, document-chain, import_export, jeeves, media-run | same + doctor | 1.9.3 isolate jeeves + binding-gated media-run. 1.9.2 live D1 `records` + AI bound |
 | azchat | handle_new, handle_rotate, room_*, bus_*, verify_receipt, import_export, doctor | same | 1.8.4 LIVE+bound. Mesh default off. Not AZMail |
 | 4dmap | card_*, verify_hash | same | Parallel wave — already at baseline |
 

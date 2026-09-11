@@ -134,8 +134,10 @@ for (const slug of catalogSlugs) {
   assert.equal(manifest.engines[slug].mode, "local", `${slug} mode`);
   assert.match(manifest.engines[slug].engine_digest, /^[a-f0-9]{64}$/, `${slug} digest`);
 }
-assert.ok(manifest.proxy_fallback_ops.azos.includes("session"));
+assert.ok(!manifest.proxy_fallback_ops.azos);
 assert.ok(manifest.proxy_fallback_ops["aziel-corpus"].includes("transcribe"));
+assert.ok(!manifest.proxy_fallback_ops["aziel-corpus"].includes("jeeves"));
+assert.ok(!manifest.proxy_fallback_ops["aziel-corpus"].includes("media-run"));
 assert.ok(!manifest.proxy_fallback_ops["aziel-corpus"].includes("review"));
 assert.equal(manifest.author, "Aziel Eliab");
 assert.equal(manifest.identity, "Aziel Eliab");
