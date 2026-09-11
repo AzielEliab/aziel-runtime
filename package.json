@@ -1,6 +1,6 @@
 {
   "name": "aziel-runtime",
-  "version": "1.9.3",
+  "version": "2.0.0-rc1",
   "private": true,
   "description": "Aziel Runtime is not merely an API orchestrator or software aggregator; it is a node-meshed orchestration suite of MCP-connected software designed to coordinate specialized tools through a shared, security-gated runtime while preserving provenance, chain-of-custody, temporal integrity, and auditable execution. Author: Aziel Eliab.",
   "license": "Apache-2.0",
@@ -11,9 +11,11 @@
   },
   "scripts": {
     "mcp": "node cli/mcp-stdio.mjs",
-    "test": "node scripts/hash-engines.mjs && node scripts/verify-cite.mjs && node scripts/verify-seo.mjs && node scripts/verify-runtime.mjs && node scripts/verify-session.mjs && node scripts/verify-engines.mjs && node scripts/verify-production.mjs && node scripts/verify-mcp-stdio.mjs && node scripts/verify-fraggate.mjs && node scripts/verify-uses.mjs && node scripts/verify-peacelock.mjs && node scripts/verify-azmail.mjs && node scripts/verify-azchat.mjs && node scripts/verify-azbrowser.mjs && node scripts/verify-aznet.mjs && node scripts/verify-azhub.mjs && node scripts/verify-azinterface.mjs && node scripts/verify-4dmap.mjs && node scripts/verify-azcoherence.mjs && node scripts/verify-embryolock.mjs && node scripts/verify-remain-off.mjs && node scripts/verify-capability-wave.mjs && node scripts/verify-close-19.mjs && node scripts/verify-azos-session.mjs && node scripts/verify-corpus-jeeves.mjs && node scripts/verify-independent-validation.mjs && node scripts/verify-adversarial.mjs && node scripts/verify-software.mjs && node scripts/verify-mesh.mjs && node scripts/verify-lattice.mjs && node scripts/verify-qns.mjs && node scripts/verify-master33.mjs && node scripts/verify-akm-triad.mjs",
+    "test": "node scripts/hash-engines.mjs && node scripts/verify-cite.mjs && node scripts/verify-seo.mjs && node scripts/verify-runtime.mjs && node scripts/verify-session.mjs && node scripts/verify-engines.mjs && node scripts/verify-production.mjs && node scripts/verify-mcp-stdio.mjs && node scripts/verify-fraggate.mjs && node scripts/verify-uses.mjs && node scripts/verify-peacelock.mjs && node scripts/verify-azmail.mjs && node scripts/verify-azchat.mjs && node scripts/verify-azbrowser.mjs && node scripts/verify-aznet.mjs && node scripts/verify-azhub.mjs && node scripts/verify-azinterface.mjs && node scripts/verify-4dmap.mjs && node scripts/verify-azcoherence.mjs && node scripts/verify-embryolock.mjs && node scripts/verify-remain-off.mjs && node scripts/verify-capability-wave.mjs && node scripts/verify-close-19.mjs && node scripts/verify-azos-session.mjs && node scripts/verify-corpus-jeeves.mjs && node scripts/verify-independent-validation.mjs && node scripts/verify-adversarial.mjs && node scripts/verify-2.0-rc1.mjs && node scripts/verify-mcp-tdqs.mjs && node scripts/verify-software.mjs && node scripts/verify-mesh.mjs && node scripts/verify-lattice.mjs && node scripts/verify-qns.mjs && node scripts/verify-master33.mjs && node scripts/verify-akm-triad.mjs",
     "probe:live": "node scripts/probe-live.mjs",
-    "demo:session": "bash scripts/demo-session.sh"
+    "demo:session": "bash scripts/demo-session.sh",
+    "clean-room:2.0": "bash scripts/clean-room-2.0.sh",
+    "adversarial:external": "bash scripts/external-adversarial-2.0.sh"
   },
   "devDependencies": {
     "wrangler": "^4.127.1"

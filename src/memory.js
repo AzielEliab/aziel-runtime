@@ -21,6 +21,13 @@ import {
 import { append as chainAppend, recall as chainRecall, verify as chainVerify } from "./chainlock/ops.js";
 import { storeFor } from "./chainlock/store.js";
 import { wrapToolOutput } from "./display.js";
+import {
+  FRAGGATE_OUTPUT_SCHEMA,
+  HINT_ADDITIVE,
+  HINT_READ,
+  mcpAnnotations,
+  tdqsDescription,
+} from "./mcp-schema.js";
 import { domainFields } from "./domain-map.js";
 import { boundMemoryMeta, MEMORY_META_CAP, SECRET_KEYS } from "./memory/meta.js";
 import { isOperator } from "./packed-catalog.js";
@@ -669,71 +676,179 @@ export async function runMemoryMcp(name, args, env) {
 }
 
 export function memoryMcpTools() {
+  const baseProps = {
+    subject: {
+      type: "string",
+      description: "Optional subject key clipped to 80 characters. Used to find or create memory_id.",
+      maxLength: 80,
+    },
+    fact: {
+      type: "string",
+      description: "Fact text clipped to 160 characters. Required on observe. Hash-only cards refuse AKM-NO-FACT.",
+      maxLength: 160,
+    },
+    memory_id: {
+      type: "string",
+      description: "Optional existing memory id. Alternative to subject for resolve/calibrate/get.",
+    },
+    use_case: {
+      type: "string",
+      description: "Optional use-case label for calibration / adaptive recall ranking. Not a truth claim.",
+    },
+  };
   const base = {
     additionalProperties: true,
     type: "object",
-    properties: {
-      subject: { type: "string" },
-      fact: { type: "string" },
-      memory_id: { type: "string" },
-      use_case: { type: "string" },
-    },
+    properties: baseProps,
   };
   return [
     {
       name: "memory_observe",
       title: "Observe a memory",
-      description:
-        "Append a memory_observation to the ChainLock learn chain (AKM-TRIAD-1.0). Fabric — not Softwares-tab. Posterior ≠ truth.",
-      annotations: { title: "Observe a memory", readOnlyHint: false, openWorldHint: false },
-      inputSchema: { ...base, required: ["fact"] },
+      description: tdqsDescription({
+        action:
+          "Append a memory_observation to the ChainLock learn chain (AKM-TRIAD-1.0). Fabric — not Softwares-tab. Posterior ≠ truth",
+        when: "you have a new fact to observe before resolve/calibrate",
+        notFor: "grounded ChainLock append without AKM, resolving an outcome, or ranked recall",
+        instead: "chainlock_append, memory_resolve, or memory_recall",
+        effects:
+          "Write: additive learn-chain stamp. Not read-only and not idempotent. authorizes_action stays false. Hash-only cards refuse",
+        returns: "memory_id, observation stamp, and display envelope (belief is not truth)",
+      }),
+      annotations: mcpAnnotations("Observe a memory", HINT_ADDITIVE),
+      inputSchema: {
+        ...base,
+        description: "fact is required. subject/memory_id/use_case optional.",
+        required: ["fact"],
+      },
+      outputSchema: FRAGGATE_OUTPUT_SCHEMA,
     },
     {
       name: "memory_resolve",
       title: "Resolve a memory outcome",
-      description:
-        "Append a memory_resolution. UNKNOWN is distinct from MISS. Does not rewrite history. AKM-TRIAD-1.0.",
-      annotations: { title: "Resolve a memory outcome", readOnlyHint: false, openWorldHint: false },
+      description: tdqsDescription({
+        action: "Append a memory_resolution (AKM-TRIAD-1.0). UNKNOWN is distinct from MISS. Does not rewrite history",
+        when: "an observed memory_id or subject now has an outcome",
+        notFor: "first observation, calibration, or reading history",
+        instead: "memory_observe, memory_calibrate, or memory_get",
+        effects:
+          "Write: additive resolution stamp. Not read-only. Missing memory_id/subject refuses AKM-NO-MEMORY. Does not rewrite prior observations",
+        returns: "resolution stamp with outcome or UNKNOWN",
+      }),
+      annotations: mcpAnnotations("Resolve a memory outcome", HINT_ADDITIVE),
       inputSchema: {
         ...base,
-        properties: { ...base.properties, outcome: { type: "number" }, outcome_label: { type: "string" } },
+        description:
+          "Requires memory_id or a previously observed subject. outcome may be omitted for UNKNOWN. Extra keys are accepted.",
+        properties: {
+          ...baseProps,
+          outcome: {
+            type: "number",
+            minimum: 0,
+            maximum: 1,
+            description:
+              "Optional graded outcome in [0, 1]. Omit (or pass UNKNOWN) for an UNKNOWN resolution — distinct from MISS.",
+          },
+          outcome_label: {
+            type: "string",
+            description:
+              "Optional label (for example HIT, MISS, GRADED, UNKNOWN). UNKNOWN is a first-class state, not a miss.",
+          },
+        },
       },
+      outputSchema: FRAGGATE_OUTPUT_SCHEMA,
     },
     {
       name: "memory_calibrate",
       title: "Calibrate a memory",
-      description:
-        "Deterministic 3-of-4 triad + Bayesian posterior. Forward-only RoseClock LEARN. No automatic MODEL_UPDATE. AKM-TRIAD-1.0.",
-      annotations: { title: "Calibrate a memory", readOnlyHint: false, openWorldHint: false },
-      inputSchema: base,
+      description: tdqsDescription({
+        action:
+          "Calibrate a memory with the deterministic 3-of-4 triad plus Bayesian posterior (AKM-TRIAD-1.0). Forward-only RoseClock LEARN. No automatic MODEL_UPDATE",
+        when: "an observed memory should receive a posterior after evidence, not a ranked search",
+        notFor: "observing a new fact, resolving an outcome, or explaining a stored node",
+        instead: "memory_observe, memory_resolve, or memory_get",
+        effects:
+          "Write: forward-only LEARN stamp. Not read-only. Posterior ≠ truth. authorizes_action=false. No automatic MODEL_UPDATE",
+        returns: "triad_score, omitted leg, posterior, effective N, and Brier notes",
+      }),
+      annotations: mcpAnnotations("Calibrate a memory", HINT_ADDITIVE),
+      inputSchema: {
+        ...base,
+        description: "subject or memory_id recommended. Extra keys are accepted.",
+      },
+      outputSchema: FRAGGATE_OUTPUT_SCHEMA,
     },
     {
       name: "memory_recall",
       title: "Adaptive recall",
-      description:
-        "Ranked adaptive recall after ChainLock verify. Additive path — normal recall/verify untouched. Belief ≠ truth.",
-      annotations: { title: "Adaptive recall", readOnlyHint: true, openWorldHint: false },
+      description: tdqsDescription({
+        action:
+          "Ranked adaptive recall after ChainLock verify (AKM-TRIAD-1.0). Additive path — normal ChainLock recall/verify untouched. Belief ≠ truth",
+        when: "you want a ranked belief list after verify, not raw grounded stamps",
+        notFor: "grounded ChainLock recall, library search, or explaining one memory_id",
+        instead: "chainlock_recall, library_lookup, or memory_get",
+        effects:
+          "Read-only, non-destructive, idempotent relative to the vault. Does not authorize action. Do not treat posterior rank as fact",
+        returns: "ranked cards after verify (count, facts, belief_is_not_truth)",
+      }),
+      annotations: mcpAnnotations("Adaptive recall", HINT_READ),
       inputSchema: {
         type: "object",
         additionalProperties: true,
-        properties: { q: { type: "string" }, use_case: { type: "string" }, depth: { type: "number" } },
+        description: "All fields optional. depth follows ChainLock 0–5.",
+        properties: {
+          q: {
+            type: "string",
+            description: "Optional query to rank against. Empty query still runs verify-then-rank; it does not invent facts.",
+          },
+          use_case: {
+            type: "string",
+            description: "Optional use-case label that weights ranking. Not a permission.",
+          },
+          depth: {
+            type: "number",
+            minimum: 0,
+            maximum: 5,
+            description: "Optional recall depth 0–5 after ChainLock verify.",
+          },
+        },
       },
+      outputSchema: FRAGGATE_OUTPUT_SCHEMA,
     },
     {
       name: "memory_get",
       title: "Explain a memory",
-      description:
-        "Read-only explainability: node, history, or calibration (posterior, triad legs, effective N, Brier). AKM-TRIAD-1.0.",
-      annotations: { title: "Explain a memory", readOnlyHint: true, openWorldHint: false },
+      description: tdqsDescription({
+        action:
+          "Read-only explainability for one memory: node, history, or calibration (posterior, triad legs, effective N, Brier). AKM-TRIAD-1.0",
+        when: "you have a memory_id (or id) and need the stored explanation",
+        notFor: "ranked adaptive recall or appending an observation",
+        instead: "memory_recall or memory_observe",
+        effects: "Read-only, non-destructive, idempotent. Missing id returns not-found — do not invent a node",
+        returns: "node, history, or calibration view",
+      }),
+      annotations: mcpAnnotations("Explain a memory", HINT_READ),
       inputSchema: {
         type: "object",
         additionalProperties: false,
+        description: "Pass memory_id or id. view selects the explain slice.",
         properties: {
-          memory_id: { type: "string" },
-          id: { type: "string" },
-          view: { type: "string", description: "get | history | calibration" },
+          memory_id: {
+            type: "string",
+            description: "Memory id to explain. Alternative to id.",
+          },
+          id: {
+            type: "string",
+            description: "Alias of memory_id.",
+          },
+          view: {
+            type: "string",
+            enum: ["get", "history", "calibration"],
+            description: "Optional view: get (default node), history, or calibration.",
+          },
         },
       },
+      outputSchema: FRAGGATE_OUTPUT_SCHEMA,
     },
   ];
 }

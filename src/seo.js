@@ -60,7 +60,7 @@ export function runtimeAboutField(origin) {
     },
     not: [...RUNTIME_NOT],
     changelog_below_abstract: true,
-    version_notes: "Below the abstract only. AZRT-1.9-CLOSE-1.0 and later rolls must not replace crawler lead copy.",
+    version_notes: "Below the abstract only. AZRT-1.9-CLOSE-1.0, 2.0.0-rc1, and later rolls must not replace crawler lead copy.",
     author: AUTHOR_NAME,
     identity: AUTHOR_NAME,
     aka: AUTHOR_ALTERNATE_NAME,
@@ -68,7 +68,7 @@ export function runtimeAboutField(origin) {
 }
 
 /** Fail if crawler-lead text is a version mash (1.7.x / 1.9 / AZRT-…). */
-export const CRAWLER_LEAD_VERSION_RE = /\b(?:1\.\d+\.\d+|AZRT-1\.9)\b/;
+export const CRAWLER_LEAD_VERSION_RE = /\b(?:[12]\.\d+\.\d+(?:-rc\d+)?|AZRT-1\.9)\b/;
 
 export function llmsWhatThisIsBlock() {
   return [
