@@ -25,6 +25,7 @@ import {
   runtimeAboutField,
   softwareHubCrawl,
 } from "./seo.js";
+import { distributionDoorsHtml } from "./ai-clients.js";
 
 export const SOFTWARE_PAGE_TITLE = `Softwares — ${PRODUCT_NAME}`;
 export const SOFTWARE_PAGE_DESCRIPTION =
@@ -281,6 +282,7 @@ export function aboutPageHtml(origin, css) {
   const inner = `  <p><a href="${base}/">← ${escapeHtml(PRODUCT_NAME)}</a> · <a href="${base}/v1/software">Softwares</a></p>
   <h1>About ${escapeHtml(PRODUCT_NAME)}</h1>
   <p class="lead">${escapeHtml(RUNTIME_ABSTRACT)}</p>
+${distributionDoorsHtml(base)}
   <h2>What</h2>
   <p>${escapeHtml(RUNTIME_ONE_LINE)}</p>
   <h2>For whom</h2>
@@ -301,7 +303,7 @@ export function aboutPageHtml(origin, css) {
   <ul>
 ${notItems}
   </ul>
-  <p>Author: <strong>${escapeHtml(AUTHOR_NAME)}</strong> (also known as ${escapeHtml(AUTHOR_ALTERNATE_NAME)}). Machine record: <a href="${base}/cite.json">/cite.json</a> · <a href="${base}/llms.txt">/llms.txt</a>. GET /v1/mesh never enables.</p>
+  <p class="secondary">Author: <strong>${escapeHtml(AUTHOR_NAME)}</strong> (also known as ${escapeHtml(AUTHOR_ALTERNATE_NAME)}). Machine record: <a href="${base}/cite.json">/cite.json</a> · <a href="${base}/llms.txt">/llms.txt</a>. GET /v1/mesh never enables.</p>
   <h2>Softwares hubs</h2>
   ${hubListHtml()}`;
   return documentShell(origin, ABOUT_PAGE_TITLE, ABOUT_PAGE_DESCRIPTION, "/about", aboutJsonLd(origin), css, inner);
@@ -324,7 +326,8 @@ export function softwareCatalogHtml(origin, catalog, css) {
   const inner = `  <p><a href="${base}/">← ${escapeHtml(PRODUCT_NAME)}</a></p>
   <h1>Softwares</h1>
   <p class="lead">${escapeHtml(SOFTWARE_PAGE_DESCRIPTION)}</p>
-  <p>Author: <strong>${escapeHtml(AUTHOR_NAME)}</strong> (also known as ${escapeHtml(AUTHOR_ALTERNATE_NAME)}). Machine JSON: <a href="${base}/v1/software">GET /v1/software</a> (default). FragGate mirror: <a href="${base}/v1/fraggate/software">/v1/fraggate/software</a>. Cite: <a href="${base}/cite.json">/cite.json</a> · <a href="${base}/llms.txt">/llms.txt</a>. ${escapeHtml(LIBRARY_NAME)}: <a href="${LIBRARY_ORIGIN}/">${LIBRARY_ORIGIN}/</a>. GET /v1/mesh never enables.</p>
+${distributionDoorsHtml(base)}
+  <p class="secondary">Author: <strong>${escapeHtml(AUTHOR_NAME)}</strong> (also known as ${escapeHtml(AUTHOR_ALTERNATE_NAME)}). Machine JSON: <a href="${base}/v1/software">GET /v1/software</a> (default). FragGate mirror: <a href="${base}/v1/fraggate/software">/v1/fraggate/software</a>. Cite: <a href="${base}/cite.json">/cite.json</a> · <a href="${base}/llms.txt">/llms.txt</a>. ${escapeHtml(LIBRARY_NAME)}: <a href="${LIBRARY_ORIGIN}/">${LIBRARY_ORIGIN}/</a>. GET /v1/mesh never enables.</p>
   <h2>Softwares hubs</h2>
   ${hubListHtml()}
   <p>AZCoherence (AZC-0.1): <a href="${base}/v1/fraggate/describe?slug=azcoherence">describe</a> · <a href="${AZCOHERENCE_GITHUB}">GitHub</a> · <a href="${AZCOHERENCE_WORKER}/">Worker</a>. Not AKM-TRIAD.</p>

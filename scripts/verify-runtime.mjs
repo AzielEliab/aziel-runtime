@@ -63,6 +63,7 @@ assert.match(skillText, /Compatible AI clients/);
 assert.match(skillText, /Claude \(Anthropic Desktop \/ custom tools\)/);
 assert.match(skillText, /Cursor \(MCP\)/);
 assert.match(skillText, /Glama \(Install Server \/ MCP\)/);
+assert.match(skillText, /\[Try on Glama\]\(https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime\)/);
 assert.match(skillText, /Microsoft Copilot \/ Bing/);
 assert.match(skillText, /Google Gemini \/ Vertex AI/);
 assert.match(skillText, /Apple Intelligence \/ Applebot surfaces/);
