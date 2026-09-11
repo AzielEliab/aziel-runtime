@@ -25,6 +25,14 @@ export const COMPATIBLE_AI_CLIENTS = Object.freeze([
 
 export const COMPATIBLE_AI_CLIENTS_PLUS = "plus other MCP/OpenAPI-capable assistants";
 
+/** Verified AzielEliab/aziel-runtime listing. Never invent a Glama UUID. */
+export const GLAMA_LISTING_URL = "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime";
+export const GLAMA_TRY_LABEL = "Try on Glama";
+
+export function tryOnGlamaAnchorHtml() {
+  return `<a href="${GLAMA_LISTING_URL}">${GLAMA_TRY_LABEL}</a>`;
+}
+
 /** robots.txt Allow-set names for SEO / llms / cite / homepage crawl copy. */
 export const CRAWLER_ALLOW_MENTION =
   "GPTBot/ChatGPT, Venice, Grok, Google-Extended, GoogleOther, Google-CloudVertexBot, Claude(+Search/User), anthropic-ai, Perplexity(+User), bingbot, Meta-External*, Applebot(+Extended), Amazonbot, DuckDuck/DuckAssist, MistralAI-User, YouBot, CCBot, cohere-ai, cohere-training-data-crawler, Diffbot, AI2Bot(+Dolma), Timpibot, Petalbot, Bytespider, Omgili(+bot), FirecrawlAgent, ImagesiftBot, FacebookBot, TikTokSpider, Baiduspider*, Yandex";
@@ -42,8 +50,12 @@ export function compatibleClientsMarkdownList() {
 
 export function compatibleClientsHtmlItems() {
   return (
-    COMPATIBLE_AI_CLIENTS.map((name) => `    <li>${name}</li>`).join("\n") +
-    `\n    <li>${COMPATIBLE_AI_CLIENTS_PLUS}</li>`
+    COMPATIBLE_AI_CLIENTS.map((name) => {
+      if (name.startsWith("Glama")) {
+        return `    <li>${tryOnGlamaAnchorHtml()} — ${name}</li>`;
+      }
+      return `    <li>${name}</li>`;
+    }).join("\n") + `\n    <li>${COMPATIBLE_AI_CLIENTS_PLUS}</li>`
   );
 }
 
@@ -83,7 +95,7 @@ Practical pull + call (do not invent steps for every crawler):
 - **Venice** — custom HTTP tools / OpenAPI → same OpenAPI URL
 - **Claude Desktop** — MCP stdio \`node cli/mcp-stdio.mjs\` (see docs/GLAMA.md) or remote \`POST ${host}/mcp\`
 - **Cursor (MCP)** — same stdio config or remote \`POST ${host}/mcp\`
-- **Glama** — Install Server via glama.json + Dockerfile CMD \`["node", "cli/mcp-stdio.mjs"]\`
+- **Glama** — [${GLAMA_TRY_LABEL}](${GLAMA_LISTING_URL}) — Install Server via glama.json + Dockerfile CMD \`["node", "cli/mcp-stdio.mjs"]\`
 - **Any installer / agent** — \`GET ${host}/v1/skill\` or \`GET ${host}/v1/software\`, then \`fraggate_list\` → \`fraggate_describe\` → \`fraggate_call\`. Session tools and \`runtime_run\` are advanced/internal. \`/p/{slug}/{op}\` is proxy only.
 
 MCP is a **thin FragGate door**: pipeline \`fraggate_list\` → \`fraggate_describe\` → \`fraggate_call\`, plus \`runtime_skill\`, \`fraggate_verify\`, \`decisiongate_check\`, \`library_lookup\`, suite \`mesh_*\`, and catalog helpers \`runtime_software\` (\`GET /v1/software\`) / \`runtime_bundle\` / \`runtime_pull\`. Advanced/internal: \`runtime_run\`, \`runtime_manifest\`, \`runtime_session_*\`. Flat \`{slug}_{op}\` names are **not** listed. Prefer FragGate, \`GET /v1/software\`, and \`POST /mcp\`. Public, no OAuth.
@@ -104,7 +116,7 @@ ${compatibleClientsHtmlItems()}
     <li><strong>Venice</strong> — custom HTTP tools / OpenAPI → same OpenAPI URL</li>
     <li><strong>Claude Desktop</strong> — MCP stdio <code>node cli/mcp-stdio.mjs</code> or remote <code>POST ${host}/mcp</code></li>
     <li><strong>Cursor (MCP)</strong> — same stdio / remote MCP</li>
-    <li><strong>Glama</strong> — Install Server; Dockerfile CMD <code>["node", "cli/mcp-stdio.mjs"]</code></li>
+    <li><strong>${tryOnGlamaAnchorHtml()}</strong> — Install Server; Dockerfile CMD <code>["node", "cli/mcp-stdio.mjs"]</code></li>
     <li><strong>Any installer / agent</strong> — start at <code>${host}/v1/skill</code> or <code>${host}/v1/software</code>. Pipeline <code>fraggate_list</code> → <code>fraggate_describe</code> → <code>fraggate_call</code>. Session tools and <code>runtime_run</code> are advanced/internal.</li>
   </ul>`;
 }
