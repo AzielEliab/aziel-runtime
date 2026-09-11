@@ -8,6 +8,7 @@ import { digestText, newSessionId, SESSION_ID_RE } from "./session-core.js";
 import { RUNTIME_VERSION } from "./runtime-api.js";
 import { executeLocal, proxyFallbackMeta } from "./engines/runner.js";
 import { attachExecDisplay } from "./display.js";
+import { MCP_OUTPUT_SCHEMA, tdqsDescription } from "./mcp-schema.js";
 import {
   copyTokenHeaders,
   isSessionMutatePath,
@@ -303,72 +304,178 @@ export function sessionMcpTools() {
   return [
     {
       name: "runtime_session_open",
-      description:
-        "Open a raw session object. Prefer fraggate_call. Session plumbing stays invisible unless the user asked for the receipt chain.",
-      inputSchema: { type: "object", additionalProperties: true },
+      description: tdqsDescription({
+        action: "Open a raw session object",
+        when: "you were explicitly asked for raw session plumbing",
+        notFor: "the default agent exec path",
+        instead: "fraggate_call",
+        effects:
+          "Write: creates a session. Not read-only and not idempotent. Session plumbing stays invisible unless the user asked for the receipt chain",
+        returns: "session.id plus display envelope",
+      }),
+      inputSchema: {
+        type: "object",
+        additionalProperties: true,
+        description: "No required arguments. Extra keys may be stored as open metadata. Prefer fraggate_call.",
+        properties: {},
+      },
+      outputSchema: MCP_OUTPUT_SCHEMA,
     },
     {
       name: "runtime_session_policy",
-      description:
-        "Attach allow rules on a raw session. Prefer fraggate_call, which applies defaults. Identity remains Aziel Eliab.",
+      description: tdqsDescription({
+        action: "Attach allow rules on a raw session. Identity remains Aziel Eliab",
+        when: "an already-open session needs tighter allow_slugs / allow_ops before exec",
+        notFor: "executing an op or opening a session",
+        instead: "runtime_session_exec or runtime_session_open (prefer fraggate_call, which applies defaults)",
+        effects: "Write: mutates session policy. Not read-only. Missing session_id fails",
+        returns: "updated session policy",
+      }),
       inputSchema: {
         type: "object",
         additionalProperties: true,
+        description: "session_id is required. Other fields are optional policy overlays.",
         properties: {
-          session_id: { type: "string" },
-          allow_slugs: { type: "array", items: { type: "string" } },
-          allow_ops: { type: "array", items: { type: "string" } },
-          max_payload_bytes: { type: "integer" },
-          kv_increment: { type: "boolean" },
+          session_id: {
+            type: "string",
+            description: "Required raw session id from runtime_session_open. Alias: id.",
+          },
+          allow_slugs: {
+            type: "array",
+            items: { type: "string" },
+            description: "Optional allowlist of catalog slugs this session may exec.",
+          },
+          allow_ops: {
+            type: "array",
+            items: { type: "string" },
+            description: "Optional allowlist of ops this session may exec.",
+          },
+          max_payload_bytes: {
+            type: "integer",
+            description: "Optional max payload size in bytes for later exec.",
+          },
+          kv_increment: {
+            type: "boolean",
+            description: "Optional. When true, allow KV increment side effects on this session.",
+          },
         },
         required: ["session_id"],
       },
+      outputSchema: MCP_OUTPUT_SCHEMA,
     },
     {
       name: "runtime_session_exec",
-      description:
-        "Raw session exec for an already-open session. Prefer fraggate_call. FragGate-admitted on the MCP path. Binding-only ops stay per-op proxy_fallback.",
+      description: tdqsDescription({
+        action:
+          "Raw session exec for an already-open session. FragGate-admitted on the MCP path. Binding-only ops stay per-op proxy_fallback",
+        when: "you already have a session_id and were asked for raw session exec",
+        notFor: "the default agent exec path or opening a session",
+        instead: "fraggate_call or runtime_session_open",
+        effects:
+          "Side effects are operation-dependent. Not globally read-only or idempotent. Prefer fraggate_call",
+        returns: "exec result with engine_slug, engine_op, engine_digest, ran_in, receipt, and refusal when gated",
+      }),
       inputSchema: {
         type: "object",
         additionalProperties: true,
+        description: "session_id, slug, and op are required.",
         properties: {
-          session_id: { type: "string" },
-          slug: { type: "string" },
-          op: { type: "string" },
-          payload: { type: "object" },
+          session_id: {
+            type: "string",
+            description: "Required open session id. Alias: id.",
+          },
+          slug: {
+            type: "string",
+            description: "Required catalog slug to exec. Unknown slugs refuse FG-HALLUC-TOOL.",
+          },
+          op: {
+            type: "string",
+            description: "Required allowlisted op. Stubs refuse FG-STUB.",
+          },
+          payload: {
+            type: "object",
+            additionalProperties: true,
+            description: "Optional op payload object. Engine-specific.",
+          },
         },
         required: ["session_id", "slug", "op"],
       },
+      outputSchema: MCP_OUTPUT_SCHEMA,
     },
     {
       name: "runtime_session_receipt",
-      description: "Read the last receipt for a raw session. Prefer product output (display) unless the user asked for the chain.",
+      description: tdqsDescription({
+        action: "Read the last receipt for a raw session",
+        when: "the user asked for the latest receipt on an open or sealed session",
+        notFor: "the full receipt chain or product output the user did not ask to audit",
+        instead: "runtime_session_receipts (full chain) or the product display from fraggate_call",
+        effects:
+          "Read-only, non-destructive, idempotent. Prefer product output (display) unless the user asked for the chain",
+        returns: "the last receipt object",
+      }),
       inputSchema: {
         type: "object",
         additionalProperties: true,
-        properties: { session_id: { type: "string" } },
+        description: "session_id is required.",
+        properties: {
+          session_id: {
+            type: "string",
+            description: "Required session id whose last receipt to read. Alias: id.",
+          },
+        },
         required: ["session_id"],
       },
+      outputSchema: MCP_OUTPUT_SCHEMA,
     },
     {
       name: "runtime_session_receipts",
-      description: "Read the full receipt list for a raw session. Prefer product output unless the user asked for the chain.",
+      description: tdqsDescription({
+        action: "Read the full receipt list for a raw session",
+        when: "the user asked for the whole receipt chain",
+        notFor: "only the last receipt or ordinary product output",
+        instead: "runtime_session_receipt or the product display from fraggate_call",
+        effects:
+          "Read-only, non-destructive, idempotent. Prefer product output unless the user asked for the chain",
+        returns: "the receipt list (capped by the runtime receipt cap)",
+      }),
       inputSchema: {
         type: "object",
         additionalProperties: true,
-        properties: { session_id: { type: "string" } },
+        description: "session_id is required.",
+        properties: {
+          session_id: {
+            type: "string",
+            description: "Required session id whose receipt list to read. Alias: id.",
+          },
+        },
         required: ["session_id"],
       },
+      outputSchema: MCP_OUTPUT_SCHEMA,
     },
     {
       name: "runtime_session_close",
-      description: "Seal a raw session. Further exec is rejected. Prefer leaving sessions to expire unless the user asked to close.",
+      description: tdqsDescription({
+        action: "Seal a raw session so further exec is rejected",
+        when: "the user asked to close the session",
+        notFor: "ordinary completion — prefer leaving sessions to expire",
+        instead: "leaving the session to TTL expire, or fraggate_call for new work",
+        effects:
+          "Destructive to further exec on that session. Repeating close on an already-sealed id stays sealed. Prefer leaving sessions to expire unless asked",
+        returns: "sealed session status",
+      }),
       inputSchema: {
         type: "object",
         additionalProperties: true,
-        properties: { session_id: { type: "string" } },
+        description: "session_id is required.",
+        properties: {
+          session_id: {
+            type: "string",
+            description: "Required session id to seal. Further exec on this id is rejected.",
+          },
+        },
         required: ["session_id"],
       },
+      outputSchema: MCP_OUTPUT_SCHEMA,
     },
   ];
 }
