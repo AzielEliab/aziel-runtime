@@ -39,7 +39,7 @@ Any OpenAPI-, MCP-, or HTTP-tool-capable assistant imports **this** OpenAPI file
 **Door:** `fraggate`  
 **Worker:** `aziel-runtime` → https://aziel-runtime.vibelock.workers.dev/  
 **Library front door:** https://www.azielcorpuslibrary.net/runtime  
-**Everblooming sigil:** https://aziel-runtime.vibelock.workers.dev/sigil.png  
+**Rose-star brand mark:** https://aziel-runtime.vibelock.workers.dev/sigil.png  
 **Packaging:** Worker session + in-repo CLI (`node cli/aziel-runtime.mjs`) + stdio MCP (`node cli/mcp-stdio.mjs` / `npm run mcp`). **No counted runtime tarball.**
 
 **Forks are welcome and always allowed.** Do not invent Zenodo DOIs.
@@ -212,7 +212,7 @@ Always send `User-Agent: Mozilla/5.0`.
 | Health | https://aziel-runtime.vibelock.workers.dev/v1/health |
 | API uses (no increment, no PII) | https://aziel-runtime.vibelock.workers.dev/v1/uses |
 | Ready | https://aziel-runtime.vibelock.workers.dev/v1/ready |
-| Everblooming sigil | https://aziel-runtime.vibelock.workers.dev/sigil.png |
+| Rose-star brand mark | https://aziel-runtime.vibelock.workers.dev/sigil.png |
 
 `GET /v1/pull?all=1` is an alias of `/v1/bundle`.
 
