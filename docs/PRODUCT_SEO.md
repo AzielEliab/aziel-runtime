@@ -241,7 +241,7 @@ Runtime HTML shells (content negotiation — hubs still get JSON by default):
 
 JSON-LD Person (`https://www.azieleliab.com/#aziel`) + SoftwareApplication / ItemList on those shells. Runtime SoftwareApplication `sameAs` is GitHub + Glama only. Homepage Worker UI CSS stays the existing chrome plus a concise ecosystem nav (not the Softwares catalog).
 
-`/cite.json` and `/llms.txt` cross-link Softwares hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) plus AZCoherence. Identity Aziel Eliab only.
+`/cite.json` and `/llms.txt` cross-link Softwares hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) plus AZCoherence and the He Didn't Jump sister archive. Identity Aziel Eliab only.
 
 See also: https://aziel-runtime.vibelock.workers.dev/sitemap-index.xml
 
@@ -264,6 +264,7 @@ Concise **Part of the Aziel Eliab ecosystem** block on homepage Softwares / clie
 - Aziel Runtime on GitHub → https://github.com/AzielEliab/aziel-runtime
 - Try on Glama → https://glama.ai/mcp/servers/AzielEliab/aziel-runtime
 - GodLock → https://godlock.uk/
+- He Didn't Jump → https://www.hedidntjump.com/
 
 A short **Includes named components such as FragGate…** line may sit with that chrome. It does not replace the Softwares catalog.
 
@@ -275,7 +276,7 @@ GitHub description / homepage / topics are **not** in git. Lock + apply command:
 - **Homepage** is **Try on Glama** (`https://glama.ai/mcp/servers/AzielEliab/aziel-runtime`). Worker origin stays the execution surface.
 - **Topics** must include `mcp`, `openapi`, `fraggate`, `digital-forensics` (plus `glama`, `mcp-server`, `nodemesh`).
 
-README websites table lists official site, Runtime hub `@id` parent, FragGate kernel, and Try on Glama **above** the Worker origin. Do not drop azieleliab.com / azielcorpuslibrary.net / godlock.uk.
+README websites table lists official site, Runtime hub `@id` parent, FragGate kernel, and Try on Glama **above** the Worker origin. Do not drop azieleliab.com / azielcorpuslibrary.net / godlock.uk / hedidntjump.com.
 
 ## llms.txt / cite.json (docs, not handlers)
 
