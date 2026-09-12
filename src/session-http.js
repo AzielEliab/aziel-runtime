@@ -8,7 +8,7 @@ import { digestText, newSessionId, SESSION_ID_RE } from "./session-core.js";
 import { RUNTIME_VERSION } from "./runtime-api.js";
 import { executeLocal, proxyFallbackMeta } from "./engines/runner.js";
 import { attachExecDisplay } from "./display.js";
-import { MCP_OUTPUT_SCHEMA, tdqsDescription } from "./mcp-schema.js";
+import { sessionIdProps, tdqsDescription, toolEnvelopeOutputSchema } from "./mcp-schema.js";
 import {
   copyTokenHeaders,
   isSessionMutatePath,
@@ -310,16 +310,32 @@ export function sessionMcpTools() {
         notFor: "the default agent exec path or attaching policy to an existing id",
         instead: "fraggate_call (default) or runtime_session_policy (existing session_id)",
         effects:
-          "Write: creates a session. Session plumbing stays invisible unless the user asked for the receipt chain. Prefer leaving sessions to TTL expire",
-        returns: "session.id plus display envelope",
+          "Write: creates a session with a 6h TTL and receipt cap 64. Re-open on an existing id returns already=true without resetting the chain. Expired sessions refuse session_expired (410). When REQUIRE_TOKEN=1, session mutate needs RUNTIME_TOKEN; missing SESSION binding returns session_binding_missing (503). Prefer leaving sessions to TTL expire. Not chainlock_seal",
+        params:
+          "Empty {} mints sess_ + 32 hex. Optional id is accepted only when it already matches that pattern; otherwise bad_session_id. source is open metadata (default worker)",
+        returns: "session.id plus the first receipt in the display envelope",
       }),
       inputSchema: {
         type: "object",
         additionalProperties: true,
-        description: "No required arguments. Extra keys may be stored as open metadata. Prefer fraggate_call.",
-        properties: {},
+        description:
+          "No required arguments. Empty {} mints a sess_ + 32 hex id. Extra keys may be stored as open metadata.",
+        properties: {
+          id: {
+            type: "string",
+            description:
+              "Optional caller-chosen session id. Must already match sess_ + 32 lowercase hex or the open refuses bad_session_id. Omit to mint one.",
+            pattern: "^sess_[a-f0-9]{32}$",
+          },
+          source: {
+            type: "string",
+            description: "Optional open metadata label. Default worker. Not a permission and not a catalog slug.",
+          },
+        },
       },
-      outputSchema: MCP_OUTPUT_SCHEMA,
+      outputSchema: toolEnvelopeOutputSchema(
+        "Open body: session.id, receipts[0], already=true when the id already exists. Errors: bad_session_id, session_binding_missing, session_expired.",
+      ),
     },
     {
       name: "runtime_session_policy",
@@ -328,41 +344,46 @@ export function sessionMcpTools() {
         when: "an already-open session needs tighter allow_slugs / allow_ops before exec",
         notFor: "executing an op or opening a session",
         instead: "runtime_session_exec or runtime_session_open (prefer fraggate_call, which applies defaults)",
-        effects: "Write: mutates session policy. Missing session_id fails",
-        params: "session_id is required (alias id). allow_slugs, allow_ops, max_payload_bytes, and kv_increment are optional overlays",
-        returns: "updated session policy",
+        effects:
+          "Write: mutates session policy only. A sealed session refuses session_closed (409). Expired sessions refuse session_expired (410). Missing both session_id and id fails before the door runs. Does not exec and does not mint a new id",
+        params:
+          "session_id or id (aliases) required. allow_slugs / allow_ops replace the allow overlay when sent; omit them to leave the current lists. max_payload_bytes and kv_increment are optional overlays, not exec payload. Nested policy{} is accepted as the same overlay",
+        returns: "updated session policy plus a policy receipt",
       }),
       inputSchema: {
         type: "object",
         additionalProperties: true,
-        description: "session_id is required. Other fields are optional policy overlays.",
+        description:
+          "session_id or id required. Other fields are optional policy overlays (also accepted nested under policy).",
         properties: {
-          session_id: {
-            type: "string",
-            description: "Required raw session id from runtime_session_open. Alias: id.",
-          },
+          ...sessionIdProps("Required."),
           allow_slugs: {
             type: "array",
             items: { type: "string" },
-            description: "Optional allowlist of catalog slugs this session may exec.",
+            description: "Optional replacement allowlist of catalog slugs this session may exec. Omit to keep the current list.",
           },
           allow_ops: {
             type: "array",
             items: { type: "string" },
-            description: "Optional allowlist of ops this session may exec.",
+            description: "Optional replacement allowlist of ops this session may exec. Omit to keep the current list.",
           },
           max_payload_bytes: {
             type: "integer",
-            description: "Optional max payload size in bytes for later exec.",
+            minimum: 1,
+            maximum: 1048576,
+            description:
+              "Optional max payload size in bytes for later exec (integer 1..1048576). Overlay only; not the exec body. Out of range refuses bad_policy.",
           },
           kv_increment: {
             type: "boolean",
-            description: "Optional. When true, allow KV increment side effects on this session.",
+            description: "Optional. When true, allow KV increment side effects on later exec. Not an increment itself.",
           },
         },
         required: ["session_id"],
       },
-      outputSchema: MCP_OUTPUT_SCHEMA,
+      outputSchema: toolEnvelopeOutputSchema(
+        "Policy body: updated session allow lists and a policy receipt. Refuses session_id required, session_not_found, session_closed, session_expired.",
+      ),
     },
     {
       name: "runtime_session_exec",
@@ -373,36 +394,43 @@ export function sessionMcpTools() {
         notFor: "the default agent exec path or opening a session",
         instead: "fraggate_call or runtime_session_open",
         effects:
-          "Side effects are operation-dependent. Binding-only ops stay per-op proxy_fallback. Prefer fraggate_call",
-        params: "session_id, slug, and op are required. payload is optional and engine-specific",
+          "Side effects are operation-dependent (read, write, or refuse). Does not mint a session_id — missing id fails before admit. Sealed sessions refuse session_closed (409); TTL 6h refuses session_expired (410); receipt cap 64 refuses receipt_cap (409). Rate-limited (exec). Binding-only ops stay per-op proxy_fallback. Prefer fraggate_call",
+        params:
+          "session_id or id, plus slug and op, are required. payload is optional and engine-specific; leftover keys are not auto-payload the way fraggate_call leftover keys are. Unknown slugs refuse FG-HALLUC-TOOL; stubs refuse FG-STUB",
         returns: "exec result with engine_slug, engine_op, engine_digest, ran_in, receipt, and refusal when gated",
       }),
       inputSchema: {
         type: "object",
         additionalProperties: true,
-        description: "session_id, slug, and op are required.",
+        description:
+          "session_id (or id), slug, and op are required. Extra keys besides payload are not treated as the op payload.",
         properties: {
-          session_id: {
-            type: "string",
-            description: "Required open session id. Alias: id.",
-          },
+          ...sessionIdProps("Required."),
           slug: {
             type: "string",
-            description: "Required catalog slug to exec. Unknown slugs refuse FG-HALLUC-TOOL.",
+            description:
+              "Required catalog slug to exec. Alias: product. Unknown slugs refuse FG-HALLUC-TOOL. This tool does not auto-open.",
+          },
+          product: {
+            type: "string",
+            description: "Alias of slug. Do not send two different values.",
           },
           op: {
             type: "string",
-            description: "Required allowlisted op. Stubs refuse FG-STUB.",
+            description: "Required allowlisted op. Stubs refuse FG-STUB. UI aliases still forward only after FragGate admit.",
           },
           payload: {
             type: "object",
             additionalProperties: true,
-            description: "Optional op payload object. Engine-specific.",
+            description:
+              "Optional op payload object. Engine-specific. Unlike fraggate_call, leftover top-level keys are not used as payload.",
           },
         },
         required: ["session_id", "slug", "op"],
       },
-      outputSchema: MCP_OUTPUT_SCHEMA,
+      outputSchema: toolEnvelopeOutputSchema(
+        "Exec body: session, receipt, engine_slug, engine_op, engine_digest, ran_in, refusal when gated. Errors: session_id required, session_closed, session_expired, receipt_cap, FG-HALLUC-TOOL, FG-STUB.",
+      ),
     },
     {
       name: "runtime_session_receipt",
@@ -411,23 +439,21 @@ export function sessionMcpTools() {
         when: "the user asked for the latest receipt on an open or sealed session",
         notFor: "the full receipt chain or product output the user did not ask to audit",
         instead: "runtime_session_receipts (full chain) or the product display from fraggate_call",
-        effects: "Prefer product output (display) unless the user asked for the chain",
-        params: "session_id is required (alias id)",
-        returns: "the last receipt object",
+        effects:
+          "Does not mutate the session. Unknown id returns session_not_found. An empty receipt list returns receipt=null rather than inventing one. Prefer product output (display) unless the user asked for the chain",
+        params: "session_id or id (aliases) required. No view/limit — this is always the last receipt plus a chain verified flag",
+        returns: "the last receipt object (or null) and verified",
       }),
       inputSchema: {
         type: "object",
         additionalProperties: true,
-        description: "session_id is required.",
-        properties: {
-          session_id: {
-            type: "string",
-            description: "Required session id whose last receipt to read. Alias: id.",
-          },
-        },
+        description: "session_id or id required. Extra keys are ignored.",
+        properties: sessionIdProps("Required."),
         required: ["session_id"],
       },
-      outputSchema: MCP_OUTPUT_SCHEMA,
+      outputSchema: toolEnvelopeOutputSchema(
+        "Last-receipt body: receipt (or null), verified chain flag, public session. Errors: session_id required, session_not_found.",
+      ),
     },
     {
       name: "runtime_session_receipts",
@@ -436,49 +462,45 @@ export function sessionMcpTools() {
         when: "the user asked for the whole receipt chain",
         notFor: "only the last receipt or ordinary product output",
         instead: "runtime_session_receipt or the product display from fraggate_call",
-        effects: "Prefer product output unless the user asked for the chain. List is capped by the runtime receipt cap",
-        params: "session_id is required (alias id)",
-        returns: "the receipt list (capped by the runtime receipt cap)",
+        effects:
+          "Does not mutate the session. Unknown id returns session_not_found. List is the stored chain (cap 64), oldest to newest, plus verified. Prefer product output unless the user asked for the chain",
+        params: "session_id or id (aliases) required. No pagination — the cap is the runtime receipt cap, not a cursor",
+        returns: "the receipt list (capped at 64) and verified",
       }),
       inputSchema: {
         type: "object",
         additionalProperties: true,
-        description: "session_id is required.",
-        properties: {
-          session_id: {
-            type: "string",
-            description: "Required session id whose receipt list to read. Alias: id.",
-          },
-        },
+        description: "session_id or id required. Extra keys are ignored. No cursor/limit.",
+        properties: sessionIdProps("Required."),
         required: ["session_id"],
       },
-      outputSchema: MCP_OUTPUT_SCHEMA,
+      outputSchema: toolEnvelopeOutputSchema(
+        "Receipt-chain body: receipts[] (cap 64), verified, public session. Errors: session_id required, session_not_found.",
+      ),
     },
     {
       name: "runtime_session_close",
       description: tdqsDescription({
-        action: "Seal a raw session so further exec on that session_id is rejected. End of the raw lifecycle — not a FragGate call",
+        action:
+          "Seal a raw session so further exec or policy on that session_id is rejected. End of the raw lifecycle — not a LOCKSET seal and not a FragGate call",
         when: "the user asked to close the session",
-        notFor: "ordinary completion — prefer leaving sessions to expire",
-        instead: "leaving the session to TTL expire, or fraggate_call for new work",
+        notFor: "ordinary completion, writing a ChainLock LOCKSET, or default product work",
+        instead: "leaving the session to TTL expire (6h), chainlock_seal for a lockset, or fraggate_call for new work",
         effects:
-          "Destructive to further exec on that session. Repeating close on an already-sealed id stays sealed. Prefer leaving sessions to expire unless asked",
-        params: "session_id is required",
-        returns: "sealed session status",
+          "Destructive to further exec/policy on that session_id only (session_closed 409). Does not delete receipts. A second close does not reopen — it returns session_closed (409) while the session stays sealed. Missing session returns session_not_found. Prefer leaving sessions to expire unless asked",
+        params: "session_id or id (aliases) required. No force flag on the public tool — TTL expiry is the automatic close path",
+        returns: "sealed session status, close receipt, and verified",
       }),
       inputSchema: {
         type: "object",
         additionalProperties: true,
-        description: "session_id is required.",
-        properties: {
-          session_id: {
-            type: "string",
-            description: "Required session id to seal. Further exec on this id is rejected.",
-          },
-        },
+        description: "session_id or id required. Extra keys are ignored. This is not chainlock_seal.",
+        properties: sessionIdProps("Required."),
         required: ["session_id"],
       },
-      outputSchema: MCP_OUTPUT_SCHEMA,
+      outputSchema: toolEnvelopeOutputSchema(
+        "Close body: sealed session, close receipt, verified. Errors: session_id required, session_not_found, session_closed (already sealed; does not reopen).",
+      ),
     },
   ];
 }

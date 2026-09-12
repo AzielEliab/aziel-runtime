@@ -30,6 +30,7 @@ import {
   mcpAnnotations,
   nameOrSlugProps,
   tdqsDescription,
+  toolEnvelopeOutputSchema,
 } from "./mcp-schema.js";
 import {
   admitCall,
@@ -69,7 +70,7 @@ export function mcpInitializeInstructions() {
     "Execute only through fraggate_call (CallEnvelope → FragGate → Lamb Lens → SweepGate → Sentinel → Provenance → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → RoseClock → TemporalLock → ChainLock-OUT → ForgeReceipts → Return). " +
     "Neighbor map (do not confuse siblings): runtime_skill = how-to markdown; runtime_manifest = machine JSON (advanced/internal); runtime_software = hub Software-tab cards; runtime_bundle = skill-URL bootstrap; runtime_pull = one product card; fraggate_list = hashed live/stub/digest roster; fraggate_describe = one registry card; fraggate_verify = digest proof; fraggate_call = default exec. " +
     "decisiongate_check gates a proposal without exec. library_lookup is public corpus cite (not memory, not ChainLock). " +
-    "ChainLock lifecycle is append-only: append → tip or recall → verify → seal (no chainlock_delete). " +
+    "ChainLock lifecycle is append-only: append → tip or recall → verify → seal (no chainlock_delete). chainlock_seal writes a local LOCKSET; runtime_session_close seals a raw session — they are not the same. " +
     "Memory lifecycle is append-only belief (≠ truth): observe → resolve → calibrate → recall or get (no memory_delete). " +
     "QNM mesh lifecycle: mesh_enable/disable (suite radios), mesh_join/heartbeat/leave (one node), mesh_status (counts), mesh_nodes (roster), mesh_broadcast (hash receipt, never publish). GET /v1/mesh never enables. " +
     "Raw session lifecycle (advanced/internal): open → policy → exec → receipt or receipts → close. Prefer fraggate_call. " +
@@ -147,8 +148,8 @@ export function runtimeHelperTools() {
           notFor: "hub Software-tab refresh, inspecting one known capability, or executing an op",
           instead: "runtime_software (GET /v1/software), fraggate_describe, or fraggate_call",
           effects:
-            "Does not enable mesh radios. Does not invent tools. Unknown later names refuse FG-HALLUC-TOOL. Compact op tokens below are discovery hints; call fraggate_describe for the live card",
-          returns: "registry entries, allowlists, and digests",
+            "Empty {} only. Never enables mesh radios. Never invents tools or ops. Compact LIVE_OPS tokens below are discovery hints required by product verify scripts — they are not exec. Call fraggate_describe for the live card; later unknown names refuse FG-HALLUC-TOOL",
+          returns: "registry entries, allowlists, digests, and the MASTER-33 pipeline cite",
         }) +
         " " +
         FRAGGATE_CATALOG_ALLOWLIST,
@@ -188,15 +189,18 @@ export function runtimeHelperTools() {
         when: "you must prove a listed name or digest exists after fraggate_describe",
         notFor: "listing the registry, describing ops, or executing",
         instead: "fraggate_list, fraggate_describe, or fraggate_call",
-        effects: "Not an exec path. Unknown names refuse FG-HALLUC-TOOL. Digest-only compares the live registry hash",
-        params: "name, slug, and digest are all optional; at least one should be set. Digest without name/slug checks the whole registry hash",
-        returns: "match or mismatch against the registry digest",
+        effects:
+          "Not an exec path and not a describe card. Empty {} (no name, slug, or digest) refuses FG-HALLUC-TOOL. Digest without name/slug compares the whole registry hash (kind=registry). Name or slug with an optional digest compares that entry (kind=entry); unknown names refuse FG-HALLUC-TOOL. Mismatch returns ok=false with matched=false — it does not invent a digest",
+        params:
+          "Send digest alone to proof the live registry_digest. Send name or slug (one is enough) to proof one card. Combined name+digest must equal that card's engine_digest",
+        returns: "match or mismatch (kind registry|entry, matched, registry_digest)",
       }),
       annotations: mcpAnnotations("Verify a registry name or digest", HINT_READ),
       inputSchema: {
         type: "object",
         additionalProperties: false,
-        description: "Provide name, slug, and/or digest. Digest-only checks the whole registry hash.",
+        description:
+          "Provide name, slug, and/or digest. Empty {} refuses FG-HALLUC-TOOL. Digest-only checks the whole registry hash.",
         properties: {
           ...nameOrSlugProps(),
           digest: {
@@ -342,9 +346,11 @@ export function runtimeHelperTools() {
         when: "you need a public corpus cite, example record, or library skill",
         notFor: "adaptive memory belief, ChainLock facts, or private-file search",
         instead: "memory_recall, chainlock_recall, or fraggate_call slug=aziel-corpus",
-        effects: "Not a private-file search engine. Empty q does not invent a cite. Unknown ops refuse FG-UNKNOWN-OP",
-        params: "q is the search text. op defaults to search; enum is search|example|skill|health",
-        returns: "search, example, or skill payload inside the display envelope",
+        effects:
+          "Not a private-file search engine and not AKM/ChainLock. Empty q does not invent a cite. Unknown ops refuse FG-UNKNOWN-OP (allowed: search, example, skill, health). Prefer this helper over a raw aziel-corpus fraggate_call only when you want the named library door",
+        params:
+          "q is public corpus text — not memory_recall q and not ChainLock q. Omit op to search. Extra keys besides q/op/payload ride along as aziel-corpus payload (same as passing payload{})",
+        returns: "search, example, skill, or health payload inside the display envelope",
       }),
       annotations: mcpAnnotations("Search the Aziel Digital Library", HINT_READ),
       inputSchema: {
@@ -354,7 +360,8 @@ export function runtimeHelperTools() {
         properties: {
           q: {
             type: "string",
-            description: "Optional query string for op=search. Empty q returns an empty or default hit set, not an invented cite.",
+            description:
+              "Optional public-corpus query for op=search. Empty q returns an empty or default hit set, not an invented cite. Not a memory or ChainLock query.",
           },
           op: {
             type: "string",
@@ -601,12 +608,14 @@ export function runtimeHelperTools() {
         notFor: "agent discovery of hashed registry status, compact skill URLs, or executing an op",
         instead: "fraggate_list, runtime_bundle, or fraggate_call",
         effects:
-          "EmbryoLock is live-with-local-destructive-boundary (worker_home embryolock-download-tracker). Agent exec still uses fraggate_list → fraggate_describe → fraggate_call",
-        returns: "sorted software cards (name, slug, ops, worker_home)",
+          "Empty {} only. Never enables mesh radios and never execs. Same JSON as GET /v1/software (also /v1/fraggate/software). Cards carry name, slug, ops, worker_home — not live/stub/digest hashes. EmbryoLock is live-with-local-destructive-boundary (worker_home embryolock-download-tracker). Agent exec still uses fraggate_list → fraggate_describe → fraggate_call",
+        returns: "sorted software cards (name, slug, ops, worker_home) matching GET /v1/software",
       }),
       annotations: mcpAnnotations("Authoritative software catalog", HINT_READ),
-      inputSchema: emptyArgsSchema("No arguments. Send {}. Hub/client helper — not exec."),
-      outputSchema: MCP_OUTPUT_SCHEMA,
+      inputSchema: emptyArgsSchema("No arguments. Send {}. Hub/client helper — not exec and not fraggate_list."),
+      outputSchema: toolEnvelopeOutputSchema(
+        "Software-tab catalog JSON (products/cards with name, slug, ops, worker_home, sort lanes Plain→Gate→Lock). Not a hashed registry roster.",
+      ),
     },
     {
       name: "runtime_bundle",
@@ -631,25 +640,33 @@ export function runtimeHelperTools() {
         when: "you already have a slug from GET /v1/software or fraggate_list and need the card, not exec",
         notFor: "inspecting FragGate live/stub status or executing an op",
         instead: "fraggate_describe or fraggate_call",
-        effects: "Not exec — then use fraggate_call. Unknown slug errors",
-        params: "slug is required. Extra keys are ignored",
-        returns: "one product card",
+        effects:
+          "Not exec — then use fraggate_call. Unknown slug throws unknown product (it does not invent a card and does not refuse FG-HALLUC-TOOL; that code is FragGate-only). Missing skill falls back to in-repo markdown",
+        params:
+          "slug is required. product is an accepted alias of slug. Extra keys besides those two are ignored and are not an op payload",
+        returns: "one product card (name, version, skill, download, ops, skill_source)",
       }),
       annotations: mcpAnnotations("Open one product", HINT_READ),
       inputSchema: {
         type: "object",
         additionalProperties: true,
-        description: "slug is required. Extra keys are ignored by the pull helper.",
+        description: "slug or product required. Extra keys are ignored by the pull helper — not an exec payload.",
         properties: {
           slug: {
             type: "string",
             description:
-              "Required catalog slug from GET /v1/software or fraggate_list (for example foldlock). Not an exec path.",
+              "Required catalog slug from GET /v1/software or fraggate_list (for example foldlock). Alias: product. Not an exec path.",
+          },
+          product: {
+            type: "string",
+            description: "Alias of slug. Do not send two different values.",
           },
         },
         required: ["slug"],
       },
-      outputSchema: MCP_OUTPUT_SCHEMA,
+      outputSchema: toolEnvelopeOutputSchema(
+        "One hub product card: name, version, skill markdown, download, ops, skill_source. Unknown slug is unknown product — not a FragGate FG-HALLUC-TOOL envelope.",
+      ),
     },
     {
       name: "runtime_run",
