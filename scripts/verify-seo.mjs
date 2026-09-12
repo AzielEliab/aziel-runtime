@@ -20,6 +20,8 @@ import {
   MISSING_PRODUCT_SITEMAP_SLUGS,
   PRODUCT_NAME,
   RUNTIME_ABSTRACT,
+  HEDIDNTJUMP_HOME,
+  HEDIDNTJUMP_NAME,
   RUNTIME_GITHUB,
   RUNTIME_GLAMA,
   RUNTIME_ONE_LINE,
@@ -258,6 +260,8 @@ assert.match(llms, /## Softwares hubs/);
 assert.match(llms, /www\.azieleliab\.com\/software/);
 assert.match(llms, /www\.azielcorpuslibrary\.net\/software/);
 assert.match(llms, /godlock\.uk\/software/);
+assert.match(llms, /## Ecosystem/);
+assert.match(llms, /www\.hedidntjump\.com/);
 assert.match(llms, /AZCoherence/);
 assert.match(llms, /describe\?slug=azcoherence/);
 assert.match(llms, /suite-presence is operator-enabled/);
@@ -332,6 +336,7 @@ assert.ok(cite.entity_graph.ecosystem.some((l) => l.label === "Aziel Corpus Libr
 assert.ok(cite.entity_graph.ecosystem.some((l) => l.label === "Aziel Runtime on GitHub" && l.url === RUNTIME_GITHUB));
 assert.ok(cite.entity_graph.ecosystem.some((l) => l.label === "Try on Glama" && l.url === RUNTIME_GLAMA));
 assert.ok(cite.entity_graph.ecosystem.some((l) => l.label === "GodLock" && l.url === "https://godlock.uk/"));
+assert.ok(cite.entity_graph.ecosystem.some((l) => l.label === HEDIDNTJUMP_NAME && l.url === HEDIDNTJUMP_HOME));
 assert.equal(cite.azcoherence.slug, "azcoherence");
 assert.equal(cite.azcoherence.identity, AUTHOR_NAME);
 assert.match(cite.azcoherence.github, /AZCoherence/);
@@ -471,6 +476,7 @@ assert.match(home, /href="https:\/\/www\.azielcorpuslibrary\.net\/">Aziel Corpus
 assert.match(home, /href="https:\/\/github\.com\/AzielEliab\/aziel-runtime">Aziel Runtime on GitHub<\/a>/);
 assert.match(home, /href="https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime">Try on Glama<\/a>/);
 assert.match(home, /href="https:\/\/godlock\.uk\/">GodLock<\/a>/);
+assert.match(home, /href="https:\/\/www\.hedidntjump\.com\/">He Didn't Jump<\/a>/);
 {
   const ecoAt = home.indexOf(ECOSYSTEM_HEADING);
   const namedAt = home.indexOf(NAMED_COMPONENTS_LINE);
@@ -572,6 +578,7 @@ assert.match(softwareHtml, /www\.azieleliab\.com\/#aziel/);
 assert.doesNotMatch(softwareHtml, /github\.com\/AzielEliab#person/);
 assert.match(softwareHtml, /class="ecosystem"/);
 assert.match(softwareHtml, new RegExp(ECOSYSTEM_HEADING.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+assert.match(softwareHtml, /href="https:\/\/www\.hedidntjump\.com\/">He Didn't Jump<\/a>/);
 assert.match(softwareHtml, /www\.azieleliab\.com\/runtime#runtime/);
 assert.match(softwareHtml, /Includes named components such as FragGate/);
 {
