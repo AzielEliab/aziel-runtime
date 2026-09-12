@@ -10,6 +10,9 @@ import {
   AUTHOR_ID,
   AUTHOR_NAME,
   AUTHOR_SITE_SITEMAP,
+  BRAND_MARK_ALT,
+  BRAND_MARK_SRC,
+  BRAND_MARK_STAMP,
   CRAWLER_LEAD_VERSION_RE,
   ECOSYSTEM_HEADING,
   NAMED_COMPONENTS_LINE,
@@ -46,6 +49,15 @@ const origin = "https://aziel-runtime.example";
 
 async function get(path) {
   return handler(new Request(origin + path), {});
+}
+
+function assertRoseStarBrand(html, label) {
+  assert.match(html, /<header class="brandrow">/, `${label} rose-star header`);
+  assert.match(html, new RegExp(`src="${BRAND_MARK_SRC.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`), `${label} brand src`);
+  assert.match(html, new RegExp(BRAND_MARK_ALT.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), `${label} rose-star alt`);
+  assert.match(html, new RegExp(`<p class="stamp">${BRAND_MARK_STAMP.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}</p>`), `${label} stamp`);
+  assert.match(html, /property="og:image:alt"/, `${label} og:image:alt`);
+  assert.doesNotMatch(html, /everbloom/i, `${label} must not say everblooming`);
 }
 
 async function head(path) {
@@ -487,6 +499,7 @@ assert.match(home, /href="https:\/\/www\.hedidntjump\.com\/">He Didn't Jump<\/a>
   assert.ok(namedAt >= 0 && namedAt < softwaresAt, "named components line precedes Softwares catalog");
 }
 assert.match(home, /Includes named components such as FragGate/);
+assertRoseStarBrand(home, "homepage");
 assert.match(home, /property="og:image" content="https:\/\/aziel-runtime\.example\/sigil\.png"/);
 assert.match(home, /name="twitter:image" content="https:\/\/aziel-runtime\.example\/sigil\.png"/);
 assert.match(home, /property="og:site_name" content="Aziel Eliab"/);
@@ -541,6 +554,7 @@ assert.match(card, /www\.azieleliab\.com\/#aziel/);
 assert.doesNotMatch(card, /github\.com\/AzielEliab#person/);
 assert.match(card, /class="ecosystem"/);
 assert.match(card, /og:image/);
+assertRoseStarBrand(card, "product card");
 assert.match(card, /<footer class="donate">/);
 assert.match(card, /href="https:\/\/www\.azieleliab\.com\/donate">Donate<\/a>/);
 assert.doesNotMatch(card, /<img[^>]*(qr|QR)/);
@@ -604,6 +618,7 @@ assert.match(
   assert.ok(machineAt > doorsAt, "Try on Glama CTA precedes Worker origin Softwares self-link");
 }
 assert.doesNotMatch(softwareHtml, /Yahweh|Messiah|Jesus Christ/);
+assertRoseStarBrand(softwareHtml, "Softwares HTML");
 
 const softwareJsonStill = await get("/v1/software");
 assert.match(softwareJsonStill.headers.get("content-type") || "", /application\/json/);
@@ -629,6 +644,7 @@ assert.doesNotMatch(describeHtml, /github\.com\/AzielEliab#person/);
 assert.match(describeHtml, /class="ecosystem"/);
 assert.match(describeHtml, /www\.azieleliab\.com\/software/);
 assert.match(describeHtml, /GET \/v1\/mesh never enables/);
+assertRoseStarBrand(describeHtml, "describe HTML");
 
 const describeIndexRes = await handler(
   new Request(origin + "/v1/fraggate/describe", { headers: { accept: "text/html" } }),
@@ -638,6 +654,7 @@ assert.equal(describeIndexRes.status, 200);
 const describeIndex = await describeIndexRes.text();
 assert.match(describeIndex, new RegExp(`<title>${DESCRIBE_INDEX_TITLE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}</title>`));
 assert.match(describeIndex, /data-slug="azcoherence"/);
+assertRoseStarBrand(describeIndex, "describe index HTML");
 
 const describeJsonStill = await get("/v1/fraggate/describe?slug=azcoherence");
 assert.match(describeJsonStill.headers.get("content-type") || "", /application\/json/);
@@ -730,6 +747,7 @@ assert.match(
   assert.match(aboutHtml.slice(doorsAt, doorsAt + 400), /class="cta">Try on Glama<\/a>/);
   assert.ok(machineAt > doorsAt, "Try on Glama CTA precedes Worker origin cite self-link");
 }
+assertRoseStarBrand(aboutHtml, "about HTML");
 assert.equal(await (await get("/v1/about")).text(), aboutHtml);
 
 const readme = await (await import("node:fs/promises")).readFile(

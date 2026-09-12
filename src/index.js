@@ -10,8 +10,8 @@
  * 1.5.0 agent-native MCP: display envelopes, flat product-verb tools, runtime_run façade.
  * 1.6.0 FragGate door: hashed registry, thin tools/list, DecisionGATE before exec, ask/refuse ledger.
  *
- * GET  /                      HTML (indexable) + Everblooming sigil
- * GET  /sigil.png             Everblooming sigil stamp
+ * GET  /                      HTML (indexable) + rose-star brand mark
+ * GET  /sigil.png             rose-star brand mark
  * GET  /robots.txt            Allow / for Google + major AI bots; sitemap-index + hub sitemaps
  * GET  /sitemap.xml           session, pull, OpenAPI, product cards/health, GitHub
  * GET  /sitemap-index.xml     catalog sitemap + corpus + godlock.uk + live product Worker sitemaps
@@ -138,6 +138,7 @@ import {
   AUTHOR_GITHUB,
   AUTHOR_ID,
   AUTHOR_NAME,
+  BRAND_MARK_ALT,
   LIBRARY_CITE,
   LIBRARY_LLMS,
   LIBRARY_NAME,
@@ -189,6 +190,7 @@ import {
 } from "./seo.js";
 import {
   aboutPageHtml,
+  brandRow,
   describeDocsHtml,
   describeIndexHtml,
   describeUnknownHtml,
@@ -1643,7 +1645,7 @@ function headMeta(origin, title, description, canonicalPath) {
 <meta property="og:url" content="${escapeHtml(canonical)}">
 <meta property="og:site_name" content="${escapeHtml(AUTHOR_NAME)}">
 <meta property="og:image" content="${escapeHtml(image)}">
-<meta property="og:image:alt" content="Everblooming sigil — Aziel Eliab">
+<meta property="og:image:alt" content="${escapeHtml(BRAND_MARK_ALT)}">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="${escapeHtml(title)}">
 <meta name="twitter:description" content="${escapeHtml(description)}">
@@ -1652,7 +1654,7 @@ function headMeta(origin, title, description, canonicalPath) {
 
 const PAGE_CSS = `
   :root { color-scheme: dark; }
-  .brandrow{display:flex;align-items:center;gap:12px;margin:0 0 10px}
+  .brandrow{display:flex;align-items:center;justify-content:flex-start;gap:12px;margin:0 0 1.15rem}
   .brandmark{width:40px;height:40px;border-radius:10px;object-fit:cover;flex:0 0 auto;box-shadow:0 0 0 1px #d4af3733}
   .stamp{margin:0;color:#d4af37;font-size:.88rem;letter-spacing:.02em}
   body { font: 16px/1.45 system-ui, sans-serif; max-width: 52rem; margin: 2.5rem auto; padding: 0 1.25rem 4rem; background: #0e1014; color: #e8eaef; }
@@ -1830,10 +1832,7 @@ ${headMeta(origin, RUNTIME_PAGE_TITLE, RUNTIME_ABSTRACT, "/")}
 <style>${PAGE_CSS}</style>
 </head>
 <body>
-  <div class="brandrow">
-    <img class="brandmark" src="/sigil.png" width="40" height="40" alt="Everblooming sigil — Aziel Eliab" decoding="async">
-    <p class="stamp">Everblooming sigil · Aziel Eliab</p>
-  </div>
+${brandRow()}
 ${homepageLeadHtml()}
 ${distributionDoorsHtml(origin)}
 ${ecosystemBlockHtml()}
@@ -2022,10 +2021,7 @@ ${headMeta(origin, title, description, `/p/${p.slug}`)}
 <style>${PAGE_CSS}</style>
 </head>
 <body>
-  <div class="brandrow">
-    <img class="brandmark" src="/sigil.png" width="40" height="40" alt="Everblooming sigil — Aziel Eliab" decoding="async">
-    <p class="stamp">Everblooming sigil · Aziel Eliab</p>
-  </div>
+${brandRow()}
   <p><a href="${origin}/">← ${escapeHtml(PRODUCT_NAME)}</a></p>
   ${productCardHtml(p, origin, stats)}
 ${fragGateDoorScript()}

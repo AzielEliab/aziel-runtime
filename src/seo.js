@@ -21,6 +21,11 @@ export const RUNTIME_HUB_URL = "https://www.azieleliab.com/runtime";
 export const PRODUCT_NAME = "Aziel Runtime";
 export const PRODUCT_SLUG = "aziel-runtime";
 export const PRODUCT_ALTERNATE_NAME = "Aziel Eliab Runtime";
+
+/** Public Worker HTML brand mark (rose-star image). Visible identity is Aziel Eliab only. */
+export const BRAND_MARK_SRC = "/sigil.png";
+export const BRAND_MARK_ALT = "Rose-star — Aziel Eliab";
+export const BRAND_MARK_STAMP = AUTHOR_NAME;
 export const RUNTIME_GITHUB = "https://github.com/AzielEliab/aziel-runtime";
 export const RUNTIME_GLAMA = "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime";
 
