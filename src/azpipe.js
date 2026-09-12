@@ -386,7 +386,7 @@ export const AZPIPE_ARCH_PATH = "/v1/azpipe/arch";
 /**
  * Public cite/read surface for the locked MASTER-33 strip.
  * Same payload FragGate already exposes as pipeline / pipeline_strip.
- * Not a Softwares-tab door. Not a FragGate slug. Mesh stays default-off.
+ * Not a Softwares-tab door. Not a FragGate slug. Suite-presence is ON by default.
  */
 export function archCite() {
   return {

@@ -16,16 +16,18 @@
  * - Suite public surface may expose mesh rollup only: live / locked /
  *   isolated counts (no average-of-nodes leaderboard). Views / MCP /
  *   downloads do not enter QNM-S.
- * - Default: radios/bearers off. LIVE only after the operator enables
- *   ≥1 declared bearer (never because a site pinged GET /v1/mesh).
- * - suite-presence is operator-enabled. While that bearer is LIVE, this
- *   Worker fans out join/heartbeat for every live Softwares product
- *   (and hubs that show Live Nodes) on cron or request-path. TTL 5 min.
- *   GET still never enables. Product Workers proxy /v1/mesh/* via
- *   AZIEL_RUNTIME — do not invent a second mesh.
+ * - Default: read-only suite-presence ON (bearer suite-presence).
+ *   GET /v1/mesh never enables radios beyond that read-only presence.
+ *   Do not require POST /v1/mesh/enable for public Live Nodes.
+ * - Public disable of suite-presence is refused. POST /v1/mesh/disable / mesh_disable
+ *   must refuse — they cannot turn suite-presence off.
+ * - While suite-presence is LIVE, this Worker fans out join/heartbeat
+ *   for every live Softwares product (and hubs that show Live Nodes)
+ *   on cron or request-path. TTL 5 min. Product Workers proxy
+ *   /v1/mesh/* via AZIEL_RUNTIME — do not invent a second mesh.
  *
- * Keep /v1/mesh status/nodes/enable/disable for suite presence.
- * Frame as QNM rollup + operator enable — not account mesh.
+ * Keep /v1/mesh status/nodes/enable plus a refused disable route.
+ * Frame as QNM rollup + read-only suite presence — not account mesh.
  *
  * Full node process is local `qnm-node/` (boot/chain/apg/bearers/outbox/
  * phoenix/score/memorial/tethers). Anon-broadcast is a sibling loopback
@@ -44,8 +46,9 @@ export const MESH_NAME = "Quantum Node Mesh";
 export const MESH_SPEC = "QNM-BUILD-1.0";
 export const MESH_COMPANION = "AIH-WP-1.1";
 export const MESH_AUTHOR = "Aziel Eliab";
-export const MESH_DEFAULT = "off";
-export const MESH_DEFAULT_ENABLED = false;
+export const MESH_DEFAULT = "on";
+export const MESH_DEFAULT_ENABLED = true;
+export const SUITE_PRESENCE = "on";
 export const PRESENCE_TTL_MS = 5 * 60 * 1000;
 export const ENABLE_COOLDOWN_MS = 60_000;
 export const RECEIPT_CAP = 32;
@@ -72,7 +75,7 @@ export const ANON_BROADCAST_NOTE =
   "Anon-broadcast is a sibling loopback module of local qnm-node/ only (text→TTS→desk MP4→metadata-culled file + SHA-256). Style tool. Never a publish path. Not an upload proxy. Not origin-hiding. Operator keeps the file. Not a Softwares-tab product. Not a QNM publish channel.";
 
 export const MESH_LIMITATION =
-  "THIS IS: QNM-BUILD-1.0 suite rollup on aziel-runtime — companion to AIH-WP-1.1. Packet-transfer coding design is QNS-CD-1.0 (companion to QNM-BUILD-1.0 / AIH-WP-1.3; photon QNS1 1.3 on local qnsd; Worker cites only). Public surface is live/locked/isolated counts plus operator enable of a declared bearer. Default radios/bearers OFF. suite-presence is operator-enabled (POST /v1/mesh/enable { bearer }). GET /v1/mesh never turns LIVE. While enabled, cron or request-path fans out join/heartbeat for live Softwares product Workers (node_id {slug}-worker; no '|'; TTL 5 min). Product Workers proxy /v1/mesh/* via AZIEL_RUNTIME. THIS IS NOT: a login mesh; login-recovery; Node Gate/IP panel; upload proxy; account resurrection; average-of-nodes leaderboard; QNM-S; the local qnm-node process (boot/chain/apg/bearers/outbox/phoenix/score/memorial/tethers); AnonBroadcast as a catalog product or publish path; AZMail's product-local ring; arming; wipe; controller hunt; implicit heal; a public qnsd proxy. Author: Aziel Eliab only.";
+  "THIS IS: QNM-BUILD-1.0 suite rollup on aziel-runtime — companion to AIH-WP-1.1. Packet-transfer coding design is QNS-CD-1.0 (companion to QNM-BUILD-1.0 / AIH-WP-1.3; photon QNS1 1.3 on local qnsd; Worker cites only). Public surface is live/locked/isolated counts plus read-only suite-presence ON by default (bearer suite-presence). GET /v1/mesh never enables radios beyond that read-only presence. POST /v1/mesh/disable refuses MESH-DISABLE-REFUSED — public disable of suite-presence is refused. While LIVE, cron or request-path fans out join/heartbeat for live Softwares product Workers (node_id {slug}-worker; no '|'; TTL 5 min). Product Workers proxy /v1/mesh/* via AZIEL_RUNTIME. THIS IS NOT: a login mesh; login-recovery; Node Gate/IP panel; upload proxy; account resurrection; average-of-nodes leaderboard; QNM-S; the local qnm-node process (boot/chain/apg/bearers/outbox/phoenix/score/memorial/tethers); AnonBroadcast as a catalog product or publish path; AZMail's product-local ring; arming; wipe; controller hunt; implicit heal; a public qnsd proxy. Author: Aziel Eliab only.";
 
 export const MESH_CANONICAL_OPS = Object.freeze([
   "status",
@@ -180,7 +183,7 @@ const POISON_KEY_RE = /poison/i;
 const memory = {
   enabled: MESH_DEFAULT_ENABLED,
   last_enable_ms: 0,
-  bearers: [],
+  bearers: MESH_DEFAULT_ENABLED ? [EXAMPLE_BEARER] : [],
   nodes: {},
   receipts: [],
   seq: 0,
@@ -189,7 +192,7 @@ const memory = {
 export function resetMeshStore() {
   memory.enabled = MESH_DEFAULT_ENABLED;
   memory.last_enable_ms = 0;
-  memory.bearers = [];
+  memory.bearers = MESH_DEFAULT_ENABLED ? [EXAMPLE_BEARER] : [];
   memory.nodes = {};
   memory.receipts = [];
   memory.seq = 0;
@@ -254,12 +257,13 @@ export function isMeshMcpTool(name) {
 export function meshHint(path = "/v1/mesh") {
   return {
     path: String(path || "/v1/mesh"),
-    enabled_default: false,
+    enabled_default: MESH_DEFAULT_ENABLED,
+    mesh_default: MESH_DEFAULT,
     spec: MESH_SPEC,
     companion: MESH_COMPANION,
     rollup_only: true,
     qnm_s: false,
-    suite_presence: "operator-enabled",
+    suite_presence: SUITE_PRESENCE,
     get_never_enables: true,
     fanout: "cron-or-request-path",
     presence_ttl_ms: PRESENCE_TTL_MS,
@@ -279,7 +283,7 @@ export function meshCiteField(origin) {
     login_mesh: false,
     node_gate: false,
     qnm_s: false,
-    note: "suite-presence is operator-enabled. GET /v1/mesh never enables. Not a login mesh.",
+    note: "Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Not a login mesh.",
   };
 }
 
@@ -294,7 +298,7 @@ export function meshKernelEntry() {
     stub_ops: MESH_STUB_OPS.slice(),
     op_aliases: { ...MESH_OP_ALIASES },
     description:
-      "QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1). Packet-transfer coding design QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; Worker cites only). live/locked/isolated counts + operator-declared bearer. suite-presence is operator-enabled. GET /v1/mesh never enables. Default OFF. Not a login mesh. Not a Softwares-tab product.",
+      "QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1). Packet-transfer coding design QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; Worker cites only). live/locked/isolated counts. Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public disable of suite-presence is refused. Not a login mesh. Not a Softwares-tab product.",
     note: MESH_LIMITATION,
     kind: "kernel",
     engine: false,
@@ -319,9 +323,9 @@ export function nodeMeshHubCard(origin) {
     version: MESH_SPEC,
     door: "fraggate",
     one_line:
-      "QNM-BUILD-1.0 suite rollup (live/locked/isolated). suite-presence is operator-enabled. GET never enables. Default OFF. Not a login mesh. Full node is local qnm-node/. Packet transfer: QNS-CD-1.0 on local qnsd (Worker cites only).",
+      "QNM-BUILD-1.0 suite rollup (live/locked/isolated). Read-only suite-presence is ON by default. GET never enables radios beyond that. Public disable of suite-presence is refused. Not a login mesh. Full node is local qnm-node/. Packet transfer: QNS-CD-1.0 on local qnsd (Worker cites only).",
     path: "/v1/mesh",
-    enabled_default: false,
+    enabled_default: MESH_DEFAULT_ENABLED,
     rollup_only: true,
     qnm_s: false,
     status: `${base}/v1/mesh/status`,
@@ -497,6 +501,12 @@ function normalizeBearers(raw) {
   return out;
 }
 
+function withDefaultBearers(raw) {
+  const bearers = normalizeBearers(raw);
+  if (bearers.length >= 1) return bearers;
+  return MESH_DEFAULT_ENABLED ? [EXAMPLE_BEARER] : [];
+}
+
 function storeHonesty(binding) {
   if (binding === "MESH") return "Dedicated MESH KV.";
   if (binding === "USES") return "USES KV under mesh| keys (no placeholder namespace ids).";
@@ -511,7 +521,7 @@ async function loadState(env) {
   const bound = meshKv(env);
   if (!bound) {
     memory.nodes = pruneNodes(memory.nodes);
-    const bearers = normalizeBearers(memory.bearers);
+    const bearers = withDefaultBearers(memory.bearers);
     memory.enabled = radiosOn(bearers);
     memory.bearers = bearers;
     return {
@@ -524,7 +534,7 @@ async function loadState(env) {
     };
   }
   const lastRaw = await bound.kv.get(`${bound.prefix}last_enable_ms`);
-  const bearers = normalizeBearers(await kvGetJson(bound.kv, `${bound.prefix}bearers`, []));
+  const bearers = withDefaultBearers(await kvGetJson(bound.kv, `${bound.prefix}bearers`, []));
   const nodes = pruneNodes(await kvGetJson(bound.kv, `${bound.prefix}nodes`, {}));
   const receipts = await kvGetJson(bound.kv, `${bound.prefix}receipts`, []);
   return {
@@ -613,7 +623,7 @@ function statusFields(state) {
   const enabled = radiosOn(bearers);
   return {
     enabled,
-    radios: enabled ? "operator" : "off",
+    radios: enabled ? "on" : "off",
     bearers,
     rollup,
     live_nodes: rollup.live,
@@ -628,8 +638,8 @@ function statusFields(state) {
     store_note: storeHonesty(state.store),
     anon_broadcast: ANON_BROADCAST_NOTE,
     azmail_note:
-      "AZMail mesh_* stays product-local (anonymous mail ring). This surface is QNM rollup + operator enable, not that ring and not an account mesh.",
-    suite_presence: "operator-enabled",
+      "AZMail mesh_* stays product-local (anonymous mail ring). This surface is QNM rollup + read-only suite-presence, not that ring and not an account mesh.",
+    suite_presence: SUITE_PRESENCE,
     get_never_enables: true,
     fanout: "cron-or-request-path",
   };
@@ -649,8 +659,8 @@ export async function meshFanoutSuitePresence(env, extra = {}) {
       refreshed: 0,
       source,
       get_never_enables: true,
-      suite_presence: "operator-enabled",
-      note: "GET /v1/mesh never enables. Suite-presence fan-out runs only after an operator declared a bearer.",
+      suite_presence: SUITE_PRESENCE,
+      note: "GET /v1/mesh never enables radios beyond read-only suite-presence. Fan-out runs when suite-presence is LIVE.",
     };
   }
   const targets = suitePresenceTargets(extra.products);
@@ -689,9 +699,9 @@ export async function meshFanoutSuitePresence(env, extra = {}) {
     targets: targets.length,
     node_ids: targets.map((t) => t.node_id),
     get_never_enables: true,
-    suite_presence: "operator-enabled",
+    suite_presence: SUITE_PRESENCE,
     ...statusFields({ ...state, store }),
-    note: "Suite-presence refresh of live Softwares product Workers. GET never enables. Not a login mesh.",
+    note: "Suite-presence refresh of live Softwares product Workers. GET never enables radios beyond read-only suite-presence. Not a login mesh.",
   });
 }
 
@@ -710,8 +720,8 @@ export async function meshStatus(payload, env) {
     op: "status",
     ...statusFields(state),
     note: state.enabled
-      ? "QNM suite rollup is LIVE because an operator declared ≥1 bearer. Counts only — no QNM-S, no leaderboard."
-      : "QNM radios/bearers are OFF (default). GET /v1/mesh never enables. Declare a bearer with POST /v1/mesh/enable.",
+      ? "QNM suite rollup is LIVE. Read-only suite-presence is ON by default. Counts only — no QNM-S, no leaderboard."
+      : "QNM suite-presence is not LIVE. GET /v1/mesh never enables radios beyond read-only suite-presence.",
   });
 }
 
@@ -732,7 +742,7 @@ Companion to **AIH-WP-1.1**. Suite public surface is **rollup + operator enable*
 
 ${MESH_LIMITATION}
 
-Default **OFF**. **suite-presence is operator-enabled** (example: \`POST /v1/mesh/enable\` with \`{ bearer: "suite-presence" }\`). A site ping of \`GET /v1/mesh\` never turns radios on.
+Read-only **suite-presence is ON by default**. A site ping of \`GET /v1/mesh\` never enables radios beyond that read-only presence. Public \`POST /v1/mesh/disable\` / \`mesh_disable\` refuses \`MESH-DISABLE-REFUSED\` — it cannot turn suite-presence off.
 
 While radios are LIVE, this Worker fans out join/heartbeat for every live Softwares product Worker (\`node_id\` \`{slug}-worker\`, no \`|\`) on cron (\`*/2 * * * *\`) or request-path. Presence TTL is 5 minutes. Product Workers proxy \`/v1/mesh/*\` via \`AZIEL_RUNTIME\`. Not a second mesh.
 
@@ -740,7 +750,7 @@ Rollup counts: **live / locked / isolated**. No average-of-nodes leaderboard. Vi
 
 Full node process is local \`qnm-node/\` (boot / chain / apg / bearers / outbox / phoenix / score / memorial / tethers). Packet-transfer coding design is **QNS-CD-1.0** (photon QNS1 1.3 on local \`qnsd\`; companion to QNM-BUILD-1.0 / AIH-WP-1.3). This Worker cites only — \`GET /v1/qns\`. It does not proxy local via emit. Parent will roll that package. Anon-broadcast is a sibling loopback module of that local process only — never a publish path.
 
-HTTP: \`GET /v1/mesh\` · \`GET /v1/mesh/status\` · \`POST /v1/mesh/enable\` (body \`{ bearer }\`) · \`POST /v1/mesh/disable\` · \`POST /v1/mesh/join|heartbeat|leave\` · \`GET /v1/mesh/nodes\` · \`POST /v1/mesh/broadcast\` (hash receipt only; not a publish path)
+HTTP: \`GET /v1/mesh\` · \`GET /v1/mesh/status\` · \`POST /v1/mesh/enable\` (optional extra bearer) · \`POST /v1/mesh/disable\` (refused) · \`POST /v1/mesh/join|heartbeat|leave\` · \`GET /v1/mesh/nodes\` · \`POST /v1/mesh/broadcast\` (hash receipt only; not a publish path)
 
 FragGate: \`fraggate_list\` → \`fraggate_describe\` slug=mesh → \`fraggate_call { slug: "mesh", op }\`
 
@@ -786,7 +796,7 @@ export async function meshEnable(payload, env) {
   if (!raw.length) {
     return refuse(
       "MESH-NEED-BEARER",
-      "LIVE only after the operator declares ≥1 bearer. Pass { bearer: \"suite-presence\" }. Empty enable is refused. GET /v1/mesh never enables.",
+      "Pass { bearer: \"suite-presence\" } to declare a bearer. Empty enable is refused. GET /v1/mesh never enables radios beyond read-only suite-presence.",
       {
         op: "enable",
         mesh_enabled: state.enabled === true,
@@ -810,7 +820,7 @@ export async function meshEnable(payload, env) {
   const now = nowMs();
   if (state.last_enable_ms && now - state.last_enable_ms < ENABLE_COOLDOWN_MS) {
     const retry_ms = ENABLE_COOLDOWN_MS - (now - state.last_enable_ms);
-    return refuse("MESH-ENABLE-RATE", "mesh enable is rate-limited. disable is always allowed.", {
+    return refuse("MESH-ENABLE-RATE", "mesh enable is rate-limited. Public disable of suite-presence is refused.", {
       op: "enable",
       mesh_enabled: state.enabled === true,
       retry_ms,
@@ -832,26 +842,25 @@ export async function meshEnable(payload, env) {
     fanout: fanout.skipped ? false : true,
     fanout_joined: fanout.joined || 0,
     fanout_refreshed: fanout.refreshed || 0,
-    note: "Operator declared a bearer. Radios LIVE for suite rollup only. Live Softwares product Workers are joined for rollup counts (TTL 5 min). Default remains off on a fresh isolate / empty KV. GET never enables. Not a login mesh.",
+    note: "Operator declared a bearer. Radios LIVE for suite rollup only. Live Softwares product Workers are joined for rollup counts (TTL 5 min). Read-only suite-presence stays ON by default. GET never enables radios beyond that. Not a login mesh.",
   });
 }
 
 export async function meshDisable(payload, env) {
   const state = await loadState(env);
-  state.bearers = [];
-  state.enabled = false;
-  state.nodes = {};
-  state.receipts = [];
-  const store = await saveState(env, state);
-  return baseResult({
-    op: "disable",
-    ...statusFields({ ...state, store }),
-    note: "Radios/bearers OFF. Tethers drop clean — no implicit heal, no account resurrection, no wipe internals.",
-  });
+  return refuse(
+    "MESH-DISABLE-REFUSED",
+    "Read-only QNM suite-presence stays ON. Public disable of suite-presence is refused. POST /v1/mesh/disable cannot turn suite presence off. AZMail mesh_disable is a separate product-local mail ring.",
+    {
+      op: "disable",
+      mesh_enabled: true,
+      ...statusFields(state),
+    },
+  );
 }
 
 function offRefuse(op, state) {
-  return refuse("MESH-OFF", "QNM radios are off. Default OFF. Declare ≥1 bearer with enable first. Site pings do not enable.", {
+  return refuse("MESH-OFF", "QNM suite-presence is not LIVE. GET never enables radios beyond read-only suite-presence.", {
     op,
     mesh_enabled: false,
     ...statusFields(state),
@@ -1141,7 +1150,7 @@ export async function dispatchMeshHttp(method, pathname, payload, env) {
   return {
     status: 404,
     body: refuse("MESH-NOT-FOUND", "Unknown mesh path.", {
-      hint: "GET /v1/mesh /status /nodes  POST /v1/mesh/enable|disable|join|heartbeat|leave|broadcast",
+      hint: "GET /v1/mesh /status /nodes  POST /v1/mesh/enable|join|heartbeat|leave|broadcast  POST /v1/mesh/disable (refused)",
     }),
   };
 }

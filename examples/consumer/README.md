@@ -53,7 +53,7 @@ See `openapi-client.mjs`.
 
 ## 4. Hard laws for integrators
 
-- Do not enable mesh from `GET /v1/mesh`.
+- `GET /v1/mesh` never enables radios beyond read-only suite-presence (ON by default).
 - Do not call `smtp_send`, `deanonymize`, `chromium`, `tor_exit`, `exec`, `blend`.
 - Identity on receipts stays **Aziel Eliab** only.
 

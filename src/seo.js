@@ -64,7 +64,7 @@ export function runtimeAboutField(origin) {
       softwares: "Plain → Gate → Lock catalog products with true in-process engines where live.",
       dual_surface: "Agents via OpenAPI/MCP; humans via Worker UI + counted /download.",
       nodemesh:
-        "QNM suite-presence is operator-enabled. GET /v1/mesh never enables. Local qnm-node. Not a login mesh / VPN / Node Gate.",
+        "QNM read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Local qnm-node. Not a login mesh / VPN / Node Gate.",
       master33: "Domains are isolation labels, not extra doors. Lamb Lens ethics hop after FragGate.",
     },
     not: [...RUNTIME_NOT],
@@ -95,7 +95,7 @@ export function llmsWhatThisIsBlock() {
     "",
     "FragGate is THE single public executable door (not 37 separate APIs).",
     "Softwares = Plain → Gate → Lock catalog products with true in-process engines where live.",
-    "NodeMesh / QNM suite-presence is operator-enabled. GET /v1/mesh never enables. Local qnm-node. Not a login mesh / VPN / Node Gate.",
+    "NodeMesh / QNM read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Local qnm-node. Not a login mesh / VPN / Node Gate.",
     "MASTER-33: domains are isolation labels, not extra doors. Lamb Lens ethics hop after FragGate.",
     "",
     "## What this is not",
@@ -1006,7 +1006,7 @@ export const FEATURE_STATE_AUDIT = Object.freeze({
   file: "FEATURE-STATE-2026-09-10.md",
   pdf: "FEATURE-STATE-2026-09-10.pdf",
   one_line:
-    "Authoritative intentional-OFF vs gaps inventory for 1.7.3+ (50 items: OFF/STUB/LOCAL/NOT IMPLEMENTED/PARTIAL). Do not enable mesh or safety stubs.",
+    "Authoritative intentional-OFF vs gaps inventory for 1.7.3+ (50 items: OFF/STUB/LOCAL/NOT IMPLEMENTED/PARTIAL). Do not enable Remain-OFF products or safety stubs.",
   baseline: "1.7.3",
   kind: "audit",
   status: "live",
@@ -1087,7 +1087,7 @@ export function auditsSkillMarkdown() {
   return [
     "## Feature state (intentional OFF vs gaps) and constitutional OFF set",
     "",
-    `**${d.id}** is the authoritative intentional-OFF vs gaps inventory for **1.7.3+** (50 items: OFF / STUB / LOCAL / NOT IMPLEMENTED / PARTIAL). **${r.id}** is the constitutional OFF set (33 items). FEATURE-STATE lists gaps vs intentional OFF; REMAIN-OFF-BY-DESIGN is the must-stay-off set. Correctly OFF/REFUSED/GATED does not count as missing. Security and architecture OFF must stay. Do not enable mesh or safety stubs from this cite. Not Softwares-tab products. Not FragGate slugs. EmbryoLock at 1.7.8 is live-with-local-destructive-boundary (health/skill/doctor/policy/limitation/verify-hash may be LIVE; wipe/scorch/unlock stay FG-STUB on the public mesh — remain-off items 3 and 28). ARK scorch/wipe/unlock/encrypt stay REFUSE. Do not enable mesh, rollback, AZPIPE as a Softwares slug, or any remain-off item. Git-hosted — the Worker does not serve the PDFs. Identity Aziel Eliab only.`,
+    `**${d.id}** is the authoritative intentional-OFF vs gaps inventory for **1.7.3+** (50 items: OFF / STUB / LOCAL / NOT IMPLEMENTED / PARTIAL). **${r.id}** is the constitutional OFF set (33 items). FEATURE-STATE lists gaps vs intentional OFF; REMAIN-OFF-BY-DESIGN is the must-stay-off set. Correctly OFF/REFUSED/GATED does not count as missing. Security and architecture OFF must stay. Do not enable Remain-OFF products or safety stubs from this cite. Not Softwares-tab products. Not FragGate slugs. EmbryoLock at 1.7.8 is live-with-local-destructive-boundary (health/skill/doctor/policy/limitation/verify-hash may be LIVE; wipe/scorch/unlock stay FG-STUB on the public mesh — remain-off items 3 and 28). ARK scorch/wipe/unlock/encrypt stay REFUSE. Do not enable Remain-OFF products, rollback, AZPIPE as a Softwares slug, or any remain-off item. Git-hosted — the Worker does not serve the PDFs. Identity Aziel Eliab only.`,
     "",
     `- **${d.id}** — ${d.one_line} ${auditGithubUrl(d.file)}`,
     `- PDF: ${auditGithubUrl(d.pdf)}`,
@@ -1105,7 +1105,7 @@ export function auditsLlmsBlock() {
   return [
     "## Feature state and remain-off-by-design",
     "",
-    `${d.id} is the authoritative intentional-OFF vs gaps inventory for 1.7.3+ (50 items). ${r.id} is the constitutional OFF set (33 items). FEATURE-STATE lists gaps vs intentional OFF; this companion is the must-stay-off set. Correctly OFF/REFUSED/GATED is not a gap. Do not enable mesh or safety stubs. Not Softwares-tab products, not FragGate slugs. Author: Aziel Eliab only.`,
+    `${d.id} is the authoritative intentional-OFF vs gaps inventory for 1.7.3+ (50 items). ${r.id} is the constitutional OFF set (33 items). FEATURE-STATE lists gaps vs intentional OFF; this companion is the must-stay-off set. Correctly OFF/REFUSED/GATED is not a gap. Do not enable Remain-OFF products or safety stubs. Not Softwares-tab products, not FragGate slugs. Author: Aziel Eliab only.`,
     `FEATURE-STATE markdown: ${auditGithubUrl(d.file)}`,
     `FEATURE-STATE PDF: ${auditGithubUrl(d.pdf)}`,
     `REMAIN-OFF markdown: ${designGithubUrl(r.file)}`,

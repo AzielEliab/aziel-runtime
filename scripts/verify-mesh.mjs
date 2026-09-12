@@ -1,8 +1,8 @@
 /**
- * QNM-BUILD-1.0 suite rollup: default OFF, bearer-gated enable,
- * live/locked/isolated counts, hash-only non-publish broadcast,
- * MCP mesh_* tools, FragGate slug=mesh. Not a login mesh.
- * Author: Aziel Eliab. Identity is Aziel Eliab only.
+ * QNM-BUILD-1.0 suite rollup: read-only suite-presence ON by default,
+ * public disable refused, live/locked/isolated counts, hash-only
+ * non-publish broadcast, MCP mesh_* tools, FragGate slug=mesh.
+ * Not a login mesh. Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
 import assert from "node:assert/strict";
 import { PRODUCTS } from "../src/index.js";
@@ -11,7 +11,9 @@ import { LIVE_OPS, STUB_OPS, buildRegistry, classifyCall, parseTarget } from "..
 import { memorySessionNamespace } from "../src/session-do.js";
 import {
   MESH_COMPANION,
+  MESH_DEFAULT,
   MESH_DEFAULT_ENABLED,
+  SUITE_PRESENCE,
   MESH_LIVE_OPS,
   MESH_MCP_TOOLS,
   MESH_SLUG,
@@ -76,7 +78,9 @@ async function mcp(env, method, params = {}, id = 1) {
   return res.json();
 }
 
-assert.equal(MESH_DEFAULT_ENABLED, false);
+assert.equal(MESH_DEFAULT_ENABLED, true);
+assert.equal(MESH_DEFAULT, "on");
+assert.equal(SUITE_PRESENCE, "on");
 assert.equal(MESH_SPEC, "QNM-BUILD-1.0");
 assert.equal(MESH_COMPANION, "AIH-WP-1.1");
 assert.equal(sanitizeProduct("godlock"), "godlock");
@@ -114,44 +118,54 @@ assert.ok(MESH_LIVE_OPS.includes("broadcast"));
 
 const env = envWithMesh();
 
-const offStatus = await jsonReq(env, "/v1/mesh");
-assert.equal(offStatus.status, 200);
-assert.equal(offStatus.data.enabled, false);
-assert.equal(offStatus.data.spec, "QNM-BUILD-1.0");
-assert.equal(offStatus.data.companion, "AIH-WP-1.1");
-assert.equal(offStatus.data.qnm_s, false);
-assert.equal(offStatus.data.scores, false);
-assert.equal(offStatus.data.leaderboard, false);
-assert.equal(offStatus.data.radios, "off");
-assert.deepEqual(offStatus.data.bearers, []);
-assert.equal(offStatus.data.rollup.live, 0);
-assert.equal(offStatus.data.rollup.locked, 0);
-assert.equal(offStatus.data.rollup.isolated, 0);
-assert.deepEqual(offStatus.data.rollup.software, { live: 0, locked: 0, isolated: 0 });
-assert.deepEqual(offStatus.data.rollup.ephemeral, { live: 0, locked: 0, isolated: 0 });
-assert.equal(offStatus.data.live_nodes, 0);
-assert.equal(offStatus.data.ephemeral_nodes, 0);
-assert.deepEqual(offStatus.data.products_present, []);
-assert.match(offStatus.data.anon_broadcast, /never a publish path/i);
-assert.match(offStatus.data.local_node_note, /qnm-node\//);
-assert.match(offStatus.data.host_note, /not login-recovery/i);
-assert.match(offStatus.data.note, /never enables|OFF/i);
+const onStatus = await jsonReq(env, "/v1/mesh");
+assert.equal(onStatus.status, 200);
+assert.equal(onStatus.data.enabled, true);
+assert.equal(onStatus.data.mesh_default, "on");
+assert.equal(onStatus.data.spec, "QNM-BUILD-1.0");
+assert.equal(onStatus.data.companion, "AIH-WP-1.1");
+assert.equal(onStatus.data.qnm_s, false);
+assert.equal(onStatus.data.scores, false);
+assert.equal(onStatus.data.leaderboard, false);
+assert.equal(onStatus.data.radios, "on");
+assert.deepEqual(onStatus.data.bearers, ["suite-presence"]);
+assert.equal(onStatus.data.suite_presence, "on");
+assert.equal(onStatus.data.rollup.live, 0);
+assert.equal(onStatus.data.rollup.locked, 0);
+assert.equal(onStatus.data.rollup.isolated, 0);
+assert.deepEqual(onStatus.data.rollup.software, { live: 0, locked: 0, isolated: 0 });
+assert.deepEqual(onStatus.data.rollup.ephemeral, { live: 0, locked: 0, isolated: 0 });
+assert.equal(onStatus.data.live_nodes, 0);
+assert.equal(onStatus.data.ephemeral_nodes, 0);
+assert.deepEqual(onStatus.data.products_present, []);
+assert.match(onStatus.data.anon_broadcast, /never a publish path/i);
+assert.match(onStatus.data.local_node_note, /qnm-node\//);
+assert.match(onStatus.data.host_note, /not login-recovery/i);
+assert.match(onStatus.data.note, /ON by default|LIVE/i);
+assert.doesNotMatch(JSON.stringify(onStatus.data), /mesh_default":"off"/);
+assert.doesNotMatch(onStatus.data.note, /Default OFF|mesh off/i);
 
 const pingAgain = await jsonReq(env, "/v1/mesh");
-assert.equal(pingAgain.data.enabled, false, "GET /v1/mesh must not enable radios");
+assert.equal(pingAgain.data.enabled, true, "GET /v1/mesh reports default-on presence");
+assert.deepEqual(pingAgain.data.bearers, ["suite-presence"], "GET must not add extra radios");
+assert.equal(pingAgain.data.get_never_enables, true);
 
 const alias = await jsonReq(env, "/v1/mesh/status");
-assert.equal(alias.data.enabled, false);
+assert.equal(alias.data.enabled, true);
+assert.equal(alias.data.mesh_default, "on");
 assert.equal(alias.data.qnm_s, false);
 
-const offJoin = await postJson(env, "/v1/mesh/join", { product: "godlock" });
-assert.equal(offJoin.status, 400);
-assert.equal(offJoin.data.code, "MESH-OFF");
+const defaultJoin = await postJson(env, "/v1/mesh/join", { product: "godlock", node_id: "godlock-default-on" });
+assert.equal(defaultJoin.status, 200, JSON.stringify(defaultJoin.data));
+assert.equal(defaultJoin.data.ok, true);
+assert.equal(defaultJoin.data.session.product, "godlock");
+const leftDefault = await postJson(env, "/v1/mesh/leave", { node_id: "godlock-default-on" });
+assert.equal(leftDefault.data.left, true);
 
 const emptyEnable = await postJson(env, "/v1/mesh/enable", {});
 assert.equal(emptyEnable.status, 400);
 assert.equal(emptyEnable.data.code, "MESH-NEED-BEARER");
-assert.equal(emptyEnable.data.enabled, false);
+assert.equal(emptyEnable.data.enabled, true);
 
 const loginBearer = await postJson(env, "/v1/mesh/enable", { bearer: "login" });
 assert.equal(loginBearer.status, 400);
@@ -161,8 +175,9 @@ const accountBearer = await postJson(env, "/v1/mesh/enable", { bearer: "account-
 assert.equal(accountBearer.status, 400);
 assert.equal(accountBearer.data.code, "MESH-BAD-BEARER");
 
-const stillOff = await jsonReq(env, "/v1/mesh");
-assert.equal(stillOff.data.enabled, false);
+const stillOn = await jsonReq(env, "/v1/mesh");
+assert.equal(stillOn.data.enabled, true);
+assert.deepEqual(stillOn.data.bearers, ["suite-presence"]);
 
 assert.equal(suitePresenceNodeId("godlock"), "godlock-worker");
 assert.equal(suitePresenceNodeId("azcoherence"), "azcoherence-worker");
@@ -175,17 +190,18 @@ assert.equal(targets.length, PRODUCTS.length);
 assert.ok(targets.every((t) => t.node_id.endsWith("-worker") && !t.node_id.includes("|")));
 assert.ok(targets.some((t) => t.product === "godlock" && t.node_id === "godlock-worker"));
 
-const offFanout = await meshFanoutSuitePresence(env, { source: "test-off" });
-assert.equal(offFanout.skipped, true);
-assert.equal(offFanout.enabled, false);
-assert.equal(offFanout.get_never_enables, true);
+const defaultFanout = await meshFanoutSuitePresence(env, { source: "test-default-on" });
+assert.equal(defaultFanout.skipped, false);
+assert.equal(defaultFanout.enabled, true);
+assert.equal(defaultFanout.get_never_enables, true);
+assert.equal(defaultFanout.live_nodes, PRODUCTS.length);
 
 const enabled = await postJson(env, "/v1/mesh/enable", { bearer: "suite-presence" });
 assert.equal(enabled.status, 200, JSON.stringify(enabled.data));
 assert.equal(enabled.data.enabled, true);
 assert.deepEqual(enabled.data.bearers, ["suite-presence"]);
-assert.equal(enabled.data.radios, "operator");
-assert.equal(enabled.data.suite_presence, "operator-enabled");
+assert.equal(enabled.data.radios, "on");
+assert.equal(enabled.data.suite_presence, "on");
 assert.equal(enabled.data.get_never_enables, true);
 assert.equal(enabled.data.fanout, true);
 assert.equal(enabled.data.live_nodes, PRODUCTS.length, JSON.stringify(enabled.data.products_present));
@@ -294,27 +310,35 @@ assert.equal(left.status, 200);
 assert.equal(left.data.left, true);
 
 const disabled = await postJson(env, "/v1/mesh/disable", {});
-assert.equal(disabled.status, 200);
-assert.equal(disabled.data.enabled, false);
-assert.deepEqual(disabled.data.bearers, []);
-assert.equal(disabled.data.rollup.live, 0);
-assert.equal(disabled.data.ephemeral_nodes, 0);
-assert.deepEqual(disabled.data.rollup.software, { live: 0, locked: 0, isolated: 0 });
+assert.equal(disabled.status, 400);
+assert.equal(disabled.data.ok, false);
+assert.equal(disabled.data.code, "MESH-DISABLE-REFUSED");
+assert.equal(disabled.data.enabled, true);
+assert.ok(disabled.data.bearers.includes("suite-presence"));
+assert.match(disabled.data.message, /cannot turn suite presence off|stays ON/i);
 
 const afterDisable = await jsonReq(env, "/v1/mesh");
-assert.equal(afterDisable.data.enabled, false);
+assert.equal(afterDisable.data.enabled, true);
+assert.equal(afterDisable.data.mesh_default, "on");
+assert.ok(afterDisable.data.live_nodes >= 1, "disable must not wipe Live Nodes");
 
 const doorEnv = envWithMesh();
-const doorOff = await postJson(doorEnv, "/v1/fraggate/call", { slug: "mesh", op: "status", payload: {} });
-assert.equal(doorOff.status, 200);
-assert.equal(doorOff.data.ok, true);
-assert.equal(doorOff.data.slug, "mesh");
-assert.equal(doorOff.data.result.enabled, false);
-assert.equal(doorOff.data.result.spec, "QNM-BUILD-1.0");
+const doorOn = await postJson(doorEnv, "/v1/fraggate/call", { slug: "mesh", op: "status", payload: {} });
+assert.equal(doorOn.status, 200);
+assert.equal(doorOn.data.ok, true);
+assert.equal(doorOn.data.slug, "mesh");
+assert.equal(doorOn.data.result.enabled, true);
+assert.equal(doorOn.data.result.mesh_default, "on");
+assert.equal(doorOn.data.result.spec, "QNM-BUILD-1.0");
 
 const doorEmpty = await postJson(doorEnv, "/v1/fraggate/call", { slug: "mesh", op: "enable", payload: {} });
-assert.equal(doorEmpty.data.result.enabled, false);
+assert.equal(doorEmpty.data.result.enabled, true);
 assert.equal(doorEmpty.data.result.code, "MESH-NEED-BEARER");
+
+const doorDisable = await postJson(doorEnv, "/v1/fraggate/call", { slug: "mesh", op: "disable", payload: {} });
+assert.equal(doorDisable.data.result.ok, false);
+assert.equal(doorDisable.data.result.code, "MESH-DISABLE-REFUSED");
+assert.equal(doorDisable.data.result.enabled, true);
 
 const doorEnable = await postJson(doorEnv, "/v1/fraggate/call", {
   slug: "mesh",
@@ -348,20 +372,24 @@ const mcpNodes = await mcp(doorEnv, "tools/call", { name: "mesh_nodes", argument
 assert.ok(mcpNodes.result.structuredContent.result.live_nodes >= 1);
 
 const software = await jsonReq(env, "/v1/software");
-assert.ok(software.data.software.every((s) => s.mesh && s.mesh.enabled_default === false));
+assert.ok(software.data.software.every((s) => s.mesh && s.mesh.enabled_default === true));
 assert.ok(software.data.software.every((s) => s.mesh.spec === "QNM-BUILD-1.0"));
 assert.ok(software.data.software.every((s) => s.mesh.qnm_s === false));
 assert.ok(!software.data.software.some((s) => s.slug === "anon-broadcast"));
 assert.ok(!software.data.software.some((s) => s.slug === "mesh"));
 assert.equal(software.data.mesh.spec, "QNM-BUILD-1.0");
 assert.equal(software.data.mesh.qnm_s, false);
-assert.equal(software.data.mesh.suite_presence, "operator-enabled");
+assert.equal(software.data.mesh.suite_presence, "on");
+assert.equal(software.data.mesh.enabled_default, true);
+assert.equal(software.data.mesh.mesh_default, "on");
 assert.equal(software.data.mesh.get_never_enables, true);
-assert.ok(software.data.software.every((s) => s.mesh.suite_presence === "operator-enabled"));
+assert.ok(software.data.software.every((s) => s.mesh.suite_presence === "on"));
 assert.ok(software.data.software.every((s) => s.mesh.get_never_enables === true));
 
 const citeMesh = meshCiteField(origin);
-assert.equal(citeMesh.suite_presence, "operator-enabled");
+assert.equal(citeMesh.suite_presence, "on");
+assert.equal(citeMesh.enabled_default, true);
+assert.equal(citeMesh.mesh_default, "on");
 assert.equal(citeMesh.get_never_enables, true);
 assert.equal(citeMesh.login_mesh, false);
 assert.equal(citeMesh.node_gate, false);
@@ -374,12 +402,20 @@ assert.ok(openapi.data.paths["/v1/mesh/join"]);
 assert.ok(openapi.data.paths["/v1/mesh/broadcast"]);
 assert.match(openapi.data.paths["/v1/mesh"].get.summary, /QNM-BUILD-1.0/);
 assert.match(openapi.data.paths["/v1/mesh"].get.summary, /QNS-CD-1\.0/);
+assert.match(openapi.data.paths["/v1/mesh"].get.summary, /ON by default/);
+assert.doesNotMatch(openapi.data.paths["/v1/mesh"].get.summary, /Default OFF/);
+assert.match(openapi.data.paths["/v1/mesh/disable"].post.summary, /MESH-DISABLE-REFUSED|Refused/);
 assert.ok(openapi.data.paths["/v1/qns"]);
 
-const unitOff = await runMeshOp("join", { product: "azmail" }, {});
-assert.equal(unitOff.ok, false);
-assert.equal(unitOff.code, "MESH-OFF");
+const unitOn = await runMeshOp("join", { product: "azmail" }, {});
+assert.equal(unitOn.ok, true);
+assert.equal(unitOn.enabled, true);
+
+const unitDisable = await runMeshOp("disable", {}, {});
+assert.equal(unitDisable.ok, false);
+assert.equal(unitDisable.code, "MESH-DISABLE-REFUSED");
+assert.equal(unitDisable.enabled, true);
 
 console.log(
-  `ok mesh ${RUNTIME_VERSION}: QNM-BUILD-1.0 rollup, bearer enable, live/locked/isolated, MCP ${MESH_MCP_TOOLS.length} tools, FragGate slug=mesh`,
+  `ok mesh ${RUNTIME_VERSION}: QNM-BUILD-1.0 rollup, suite-presence ON by default, disable refused, live/locked/isolated, MCP ${MESH_MCP_TOOLS.length} tools, FragGate slug=mesh`,
 );

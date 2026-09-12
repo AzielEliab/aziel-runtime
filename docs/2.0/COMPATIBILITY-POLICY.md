@@ -36,7 +36,7 @@ Public, no OAuth. Always send `User-Agent: Mozilla/5.0`.
 ## Non-promises (not compatibility bugs)
 
 - Bindings (`BROWSER`, `CORPUS_D1`, `AI`, `USES`, `SESSION`) may be absent in a clean-room or fork. Binding-gated ops **honest-refuse**; they do not invent transcripts, Chromium visits, or OCR.
-- Mesh radios stay default OFF. `GET /v1/mesh` never enables. Empty `POST /v1/mesh/enable` stays `MESH-NEED-BEARER`.
+- Read-only QNM suite-presence stays ON by default (`mesh_default: "on"`). `GET /v1/mesh` never enables radios beyond that. Empty `POST /v1/mesh/enable` stays `MESH-NEED-BEARER`. `POST /v1/mesh/disable` stays `MESH-DISABLE-REFUSED`.
 - `runtime_run` / `runtime_session_*` / `runtime_manifest` remain advanced/internal.
 - Product Worker UIs, Flutter `mobile/` (not vendored here), and counted `/download` are the human surface — not required for MCP compatibility.
 - Directory **score / install badges** (Glama or any other MCP index) are operational listing state, not a runtime API. This freeze does not change MCP initialize / `tools/list` / FragGate call semantics for those indexes.

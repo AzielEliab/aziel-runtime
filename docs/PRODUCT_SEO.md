@@ -199,7 +199,7 @@ Name the full compatible AI client list (ChatGPT, Grok, Venice, Claude, Cursor, 
 
 ## Quantum Node Mesh proxy (Live Nodes)
 
-Suite mesh is **QNM-BUILD-1.0** on `aziel-runtime`. **suite-presence is operator-enabled.** `GET /v1/mesh` never enables. Product Workers must not invent a second mesh.
+Suite mesh is **QNM-BUILD-1.0** on `aziel-runtime`. **Read-only suite-presence is ON by default.** `GET /v1/mesh` never enables radios beyond that. Product Workers must not invent a second mesh.
 
 If the product homepage or hub shows **Live Nodes**, proxy the runtime kernel:
 
