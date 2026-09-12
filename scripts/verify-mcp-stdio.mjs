@@ -26,10 +26,13 @@ const glama = JSON.parse(await readFile(join(root, "glama.json"), "utf8"));
 assert.equal(glama.$schema, "https://glama.ai/mcp/schemas/server.json");
 assert.deepEqual(glama.maintainers, ["AzielEliab"]);
 assert.equal(glama.name, "Aziel Runtime");
-assert.equal(
+assert.equal(glama.version, "2.0.0-rc1");
+assert.match(
   glama.description,
-  "Node-meshed MCP software orchestration suite for digital forensics, auditing, provenance, research, intelligence-support, and secure agent workflows, with gated execution, compartmentalized engines, verifiable receipts, temporal integrity, and explicit capability refusal.",
+  /node-meshed MCP software orchestration suite for digital forensics, auditing, provenance/
 );
+assert.match(glama.description, /2\.0\.0-rc1/);
+assert.match(glama.description, /1\.6\.2 is superseded heritage/);
 assert.ok(Array.isArray(glama.keywords) && glama.keywords.includes("mcp"));
 assert.ok(Array.isArray(glama.categories) && glama.categories.includes("agent-orchestration"));
 

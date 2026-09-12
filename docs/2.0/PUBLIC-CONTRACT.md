@@ -78,7 +78,7 @@ Tool **names** are the contract (`PUBLIC_MCP_TOOLS`). `tools/list` **description
 
 - Transport: `POST /mcp` (HTTP JSON-RPC) or stdio (`cli/mcp-stdio.mjs`)
 - `protocolVersion`: `"2025-03-26"`
-- `serverInfo`: `{ name: "aziel-runtime", version: RUNTIME_VERSION }`
+- `serverInfo`: `{ name: "aziel-runtime", version: RUNTIME_VERSION }` plus optional listing fields (`title`, `websiteUrl`, `description`) that restate `2.0.0-rc1` and that `1.6.2` is superseded heritage. Name and version stay the contract.
 - `capabilities.tools.listChanged`: `false`
 - `instructions`: `mcpInitializeInstructions()` — pipeline list → describe → call; identity Aziel Eliab only
 

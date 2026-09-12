@@ -15,7 +15,7 @@ import {
   mcpContentText,
   wrapToolOutput,
 } from "./display.js";
-import { resolveSlug } from "./runtime-api.js";
+import { resolveSlug, RUNTIME_VERSION } from "./runtime-api.js";
 import { callSessionTool } from "./session-http.js";
 import { existMcpHint, FG_HALLUC_TOOL, FRAGGATE_KERNEL, PUBLIC_MCP_TOOL_MAX } from "./fraggate/codes.js";
 import {
@@ -60,19 +60,25 @@ export function registryFor(products) {
 
 export function mcpInitializeInstructions() {
   return (
+    `Current MCP serverInfo.version: ${RUNTIME_VERSION} (same as package.json). 1.6.2 is superseded heritage, not this server. Author: Aziel Eliab only. ` +
     "Aziel Runtime is not merely an API orchestrator or software aggregator; it is a node-meshed orchestration suite of MCP-connected software designed to coordinate specialized tools through a shared, security-gated runtime while preserving provenance, chain-of-custody, temporal integrity, and auditable execution. " +
     "Use Aziel Eliab software in this chat. One door — discover, route, refuse. " +
     "Pipeline: (1) fraggate_list or GET /v1/software (2) fraggate_describe one name (3) fraggate_call. " +
     "Prefer FragGate, GET /v1/software, and POST /mcp. Hubs refresh Software tabs from /v1/software. " +
     "Start with runtime_skill or fraggate_list. Describe a name with fraggate_describe. " +
     "Execute only through fraggate_call (CallEnvelope → FragGate → Lamb Lens → SweepGate → Sentinel → Provenance → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → RoseClock → TemporalLock → ChainLock-OUT → ForgeReceipts → Return). " +
-    "decisiongate_check is the named live gate. library_lookup is read-only corpus search. " +
+    "Neighbor map (do not confuse siblings): runtime_skill = how-to markdown; runtime_manifest = machine JSON (advanced/internal); runtime_software = hub Software-tab cards; runtime_bundle = skill-URL bootstrap; runtime_pull = one product card; fraggate_list = hashed live/stub/digest roster; fraggate_describe = one registry card; fraggate_verify = digest proof; fraggate_call = default exec. " +
+    "decisiongate_check gates a proposal without exec. library_lookup is public corpus cite (not memory, not ChainLock). " +
+    "ChainLock lifecycle is append-only: append → tip or recall → verify → seal (no chainlock_delete). " +
+    "Memory lifecycle is append-only belief (≠ truth): observe → resolve → calibrate → recall or get (no memory_delete). " +
+    "QNM mesh lifecycle: mesh_enable/disable (suite radios), mesh_join/heartbeat/leave (one node), mesh_status (counts), mesh_nodes (roster), mesh_broadcast (hash receipt, never publish). GET /v1/mesh never enables. " +
+    "Raw session lifecycle (advanced/internal): open → policy → exec → receipt or receipts → close. Prefer fraggate_call. " +
     "Show the user display.title and display.summary, then take the next input. " +
     "runtime_run, runtime_session_*, raw *_health, and runtime_manifest are advanced/internal. " +
     "Do not call flat {slug}_{op} names — they are not in tools/list. Unknown names refuse FG-HALLUC-TOOL. " +
     "HTTP /p/{slug}/{op} is a proxy and is not exec. " +
-    "LIVE fabric (not Softwares-tab): AZPIPE AP-WP-0.2, SweepGate SG-WP-0.1, ChainLock CL-WP-0.4, LOCKSET LS-WP-0.1, packed catalog RL-WP-0.1-runtime, QNS-CD-1.0 (photon QNS1 1.3; local qnsd in AzielEliab/qnm-node; GET /v1/qns cites only — never a public via proxy), AKM-TRIAD-1.0 adaptive memory (MCP memory_*; POST /v1/memory/* behind FragGate). MCP chainlock_*. suite-presence is operator-enabled. GET /v1/mesh never enables. GET /v1/azpipe/arch cites the locked MASTER-33 strip (same FragGate pipeline payload; not a Softwares door). " +
-    "2.0.0-rc1 is the certification-point freeze (docs/2.0/ public contract, compatibility, receipt schema, refusal contract, breaking-change policy, clean-room + external adversarial pack; self-test ≠ third-party lab). No intentional behavioral breaks from 1.9.3. Remain-OFF untouched. " +
+    "LIVE fabric (not Softwares-tab): AZPIPE AP-WP-0.2, SweepGate SG-WP-0.1, ChainLock CL-WP-0.4, LOCKSET LS-WP-0.1, packed catalog RL-WP-0.1-runtime, QNS-CD-1.0 (photon QNS1 1.3; local qnsd in AzielEliab/qnm-node; GET /v1/qns cites only — never a public via proxy), AKM-TRIAD-1.0 adaptive memory (MCP memory_*; POST /v1/memory/* behind FragGate). MCP chainlock_*. suite-presence is operator-enabled. GET /v1/azpipe/arch cites the locked MASTER-33 strip (same FragGate pipeline payload; not a Softwares door). " +
+    `${RUNTIME_VERSION} is the certification-point freeze (docs/2.0/ public contract, compatibility, receipt schema, refusal contract, breaking-change policy, clean-room + external adversarial pack; self-test ≠ third-party lab). No intentional behavioral breaks from 1.9.3. Remain-OFF untouched. ` +
     "1.9.3 closes remaining AZRT-1.9-GAPS-CLOSE items (isolate AZ-OS session VFS; isolate-safe jeeves; binding-gated media-run; published attestation path — not a third-party lab). Remain-OFF untouched. " +
     "1.9.2 binds Workers Browser Rendering (BROWSER) and live D1 MASTER (CORPUS_D1 → aziel-digital-library records). Whisper/OCR Workers-AI-bound. Sample MASTER remains the unbound fallback. Chromium product UI is not claimed; Tor/phoenix stay refuse. Remain-OFF untouched. " +
     "1.9.1 closes AZRT-1.9-GAPS-CLOSE (isolate-safe corpus verify ops; Whisper/OCR Workers-AI-gated; AZBrowser sandbox_status Chromium DEFERRED unbound; AZMail transport_status no public MTA; wave 2–3 doctor; adversarial self-check + Actions npm test; remain-OFF untouched). " +
@@ -101,13 +107,13 @@ export function mcpInitializeInstructions() {
     "AZMail is reached only via fraggate_call / POST /v1/fraggate/call (flat leftover names still map through FragGate; not a side door). " +
     "1.6.4 adds PeaceLock (PL-WP-0.1) as a true in-process engine. " +
     "1.6.3 adds KV-backed API use trackers (GET /v1/uses). " +
-    "1.6.2 widens the public door to sensible advisory engines; stubs still refuse. " +
+    "Superseded heritage note (not current serverInfo.version): 1.6.2 widened the public door to sensible advisory engines; stubs still refuse. " +
     "1.6.0 is the FragGate door cut on in-process engines. 1.5.0 was agent-native flat product tools. " +
     "Kernel: https://github.com/AzielEliab/fraggate (FG-0.1). " +
     "Every catalog slug is a true engine. Cloudflare isolate is the jail. engine_digest is required. " +
     "Hosted AZAI is protocol mirror + Lamb check, not the blend. VPN/hop mesh is not claimed on this public surface. AZMail anonymous ring is FragGate LIVE_OPS only (default off; not SMTP). " +
     "Compatible clients: ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants. " +
-    "Always send User-Agent Mozilla/5.0. Public, no OAuth. Author: Aziel Eliab only."
+    `Always send User-Agent Mozilla/5.0. Public, no OAuth. Author: Aziel Eliab only. Current version remains ${RUNTIME_VERSION}.`
   );
 }
 
@@ -118,12 +124,12 @@ export function runtimeHelperTools() {
       title: "How to use this software",
       description: tdqsDescription({
         action:
-          "Read how an agent uses Aziel Eliab software: one door — discover, route, refuse (pipeline fraggate_list → fraggate_describe → fraggate_call; hubs use GET /v1/software)",
+          "Read the agent how-to (one door — discover, route, refuse; pipeline fraggate_list → fraggate_describe → fraggate_call). This is playbook markdown, not a catalog and not a machine manifest",
         when: "starting a session or choosing the door before any catalog call",
-        notFor: "listing registry names or executing an engine",
-        instead: "fraggate_list or fraggate_call",
+        notFor: "listing hashed registry names, hub Software-tab cards, or executing an engine",
+        instead: "fraggate_list, runtime_software, or fraggate_call",
         effects:
-          "Read-only, non-destructive, idempotent. Dual surface: agent chat has no technical UI chrome; Worker / Flutter / local install stay complete human software",
+          "Dual surface: agent chat has no technical UI chrome; Worker / Flutter / local install stay complete human software. Does not list slugs or run ops",
         returns: "skill markdown plus display.title / display.summary",
       }),
       annotations: mcpAnnotations("How to use this software", HINT_READ),
@@ -136,13 +142,13 @@ export function runtimeHelperTools() {
       description:
         tdqsDescription({
           action:
-            "List hashed FragGate registry entries (live / stub / local_only) for discovery first. Discover names; do not invent tools",
+            "List the hashed FragGate registry (live / stub / local_only + digests) so you can discover names. Discovery first — not a hub Software tab and not exec",
           when: "you do not yet know the catalog name or slug",
-          notFor: "inspecting one known capability or executing an op",
-          instead: "fraggate_describe or fraggate_call",
+          notFor: "hub Software-tab refresh, inspecting one known capability, or executing an op",
+          instead: "runtime_software (GET /v1/software), fraggate_describe, or fraggate_call",
           effects:
-            "Read-only, non-destructive, idempotent. Does not enable mesh radios. For hub Software tabs prefer GET /v1/software (Plain→Gate→Lock; EmbryoLock live-with-local-destructive-boundary; AZChat LIVE+bound). Sibling software under one FragGate door — never separate FragGate engines",
-          returns: "registry entries, allowlists, and digests (kernel https://github.com/AzielEliab/fraggate)",
+            "Does not enable mesh radios. Does not invent tools. Unknown later names refuse FG-HALLUC-TOOL. Compact op tokens below are discovery hints; call fraggate_describe for the live card",
+          returns: "registry entries, allowlists, and digests",
         }) +
         " " +
         FRAGGATE_CATALOG_ALLOWLIST,
@@ -155,12 +161,13 @@ export function runtimeHelperTools() {
       title: "Step 2 — Describe one registry name",
       description: tdqsDescription({
         action:
-          "Inspect one known FragGate capability: live vs stub vs local_only, public ops, and engine_digest. Not execute",
-        when: "you already have a name or slug from fraggate_list or GET /v1/software (pass name or slug; not both required)",
-        notFor: "discovering the full registry or executing an op",
-        instead: "fraggate_list or fraggate_call",
+          "Inspect one known FragGate card (live vs stub vs local_only, public ops, engine_digest). Not execute and not a digest-only proof",
+        when: "you already have a name or slug from fraggate_list or GET /v1/software",
+        notFor: "discovering the full registry, proving a digest, pulling a hub product card, or executing an op",
+        instead: "fraggate_list, fraggate_verify, runtime_pull, or fraggate_call",
         effects:
-          "Read-only, non-destructive, idempotent. Missing both name and slug, or an unknown name, refuses FG-HALLUC-TOOL. EmbryoLock slug=embryolock is live-with-local-destructive-boundary (wipe/unlock stay FG-STUB). AZChat slug=azchat is LIVE+bound (mesh default off; not AZMail)",
+          "Missing both name and slug, or an unknown name, refuses FG-HALLUC-TOOL. Wipe/unlock on embryolock stay FG-STUB. AZChat is LIVE+bound (mesh default off; not AZMail)",
+        params: "Pass name or slug — one is enough. Combined name/op forms such as foldlock/fold-preview are accepted",
         returns: "one registry card (ops, stub_ops, digest, status, aliases)",
       }),
       annotations: mcpAnnotations("Step 2 — Describe one registry name", HINT_READ),
@@ -177,11 +184,12 @@ export function runtimeHelperTools() {
       name: "fraggate_verify",
       title: "Verify a registry name or digest",
       description: tdqsDescription({
-        action: "Confirm a name, slug, or engine_digest against the hashed FragGate registry",
+        action: "Confirm a name, slug, or 64-hex engine_digest against the hashed FragGate registry — a proof, not a card listing",
         when: "you must prove a listed name or digest exists after fraggate_describe",
         notFor: "listing the registry, describing ops, or executing",
         instead: "fraggate_list, fraggate_describe, or fraggate_call",
-        effects: "Read-only, non-destructive, idempotent. Not an exec path. Unknown names refuse FG-HALLUC-TOOL",
+        effects: "Not an exec path. Unknown names refuse FG-HALLUC-TOOL. Digest-only compares the live registry hash",
+        params: "name, slug, and digest are all optional; at least one should be set. Digest without name/slug checks the whole registry hash",
         returns: "match or mismatch against the registry digest",
       }),
       annotations: mcpAnnotations("Verify a registry name or digest", HINT_READ),
@@ -207,12 +215,14 @@ export function runtimeHelperTools() {
       description:
         tdqsDescription({
           action:
-            "Execute a known catalog slug+op through the FragGate single door (CallEnvelope → FragGate → Lamb Lens → SweepGate → Sentinel → Provenance → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → optional ASE → RoseClock → TemporalLock → ChainLock-OUT → ForgeReceipts → Return). Not discovery",
+            "Execute a known catalog slug+op through the FragGate single door (CallEnvelope → FragGate → Lamb Lens → SweepGate → Sentinel → Provenance → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → optional ASE → RoseClock → TemporalLock → ChainLock-OUT → ForgeReceipts → Return). Default exec path — not discovery and not a raw session",
           when: "fraggate_list and fraggate_describe already identified a live allowlisted op",
-          notFor: "discovering names or inspecting one capability without exec",
-          instead: "fraggate_list or fraggate_describe",
+          notFor: "discovering names, inspecting one capability without exec, or raw session plumbing",
+          instead: "fraggate_list, fraggate_describe, or (only if asked) runtime_run / runtime_session_exec",
           effects:
-            "Side effects are operation-dependent (read, write, or refuse). Not globally read-only or idempotent. May reach an open world when the target op does (for example AZBrowser ethical_search); many ops stay isolate-local. Unknown names refuse FG-HALLUC-TOOL. Stub, local-only, and Remain-OFF verbs refuse explicitly (FG-STUB / FG-LOCAL-ONLY / FG-GATE-REFUSE / FG-LAMB-REFUSE). Prefer this over runtime_run or runtime_session_exec. FragGate is THE single door",
+            "Side effects are operation-dependent (read, write, or refuse). May reach an open world when the target op does (for example AZBrowser ethical_search); many ops stay isolate-local. Unknown names refuse FG-HALLUC-TOOL. Stub, local-only, and Remain-OFF verbs refuse FG-STUB / FG-LOCAL-ONLY / FG-GATE-REFUSE / FG-LAMB-REFUSE. FragGate is THE single door",
+          params:
+            "Required: op. Also pass slug or name. Extra top-level keys other than name/slug/product/tool/op/verb/claim/proposal/ground/payload/session_id/id become the op payload when payload is omitted. UI aliases (list_modules, place, genesis_boot, hold, airlock, home, classify, doctor, pair) forward to catalog ops",
           returns:
             "status, result, receipt, engine_slug, engine_op, engine_digest, ran_in, provenance, refusal, and limitations",
         }) +
@@ -280,12 +290,13 @@ export function runtimeHelperTools() {
       title: "Run DecisionGATE on a proposal",
       description: tdqsDescription({
         action:
-          "Run the named DecisionGATE five sequential gates on a proposal (Freedom without clarity is chaos). Also runs automatically inside fraggate_call before exec",
+          "Run the named DecisionGATE five sequential gates on a proposal (Freedom without clarity is chaos) without executing a catalog product. Also runs automatically inside fraggate_call before exec",
         when: "you want a gate check without executing a catalog product verb",
         notFor: "executing a product op or searching the library",
         instead: "fraggate_call or library_lookup",
         effects:
-          "Write: appends an ask/refuse ledger tip. Not read-only and not idempotent. Does not execute domain software",
+          "Write: appends an ask/refuse ledger tip (not idempotent). Empty {} still runs the five gates and stamps the ledger. Does not execute domain software",
+        params: "All proposal fields are optional. Missing evidence can fail a gate. accountable identity on this runtime is Aziel Eliab only",
         returns: "gate view, final_state, ledger_tip, and result (code FG-OK on the named module wrapper)",
       }),
       annotations: mcpAnnotations("Run DecisionGATE on a proposal", HINT_ADDITIVE),
@@ -327,12 +338,12 @@ export function runtimeHelperTools() {
       name: "library_lookup",
       title: "Search the Aziel Digital Library",
       description: tdqsDescription({
-        action: "Search the Aziel Digital Library (aziel-corpus search / example / skill)",
+        action: "Search the public Aziel Digital Library (aziel-corpus search / example / skill) — cites, not beliefs and not vault stamps",
         when: "you need a public corpus cite, example record, or library skill",
         notFor: "adaptive memory belief, ChainLock facts, or private-file search",
         instead: "memory_recall, chainlock_recall, or fraggate_call slug=aziel-corpus",
-        effects:
-          "Read-only, non-destructive, idempotent relative to library records. Not a private-file search engine. Unknown ops refuse FG-UNKNOWN-OP",
+        effects: "Not a private-file search engine. Empty q does not invent a cite. Unknown ops refuse FG-UNKNOWN-OP",
+        params: "q is the search text. op defaults to search; enum is search|example|skill|health",
         returns: "search, example, or skill payload inside the display envelope",
       }),
       annotations: mcpAnnotations("Search the Aziel Digital Library", HINT_READ),
@@ -360,12 +371,12 @@ export function runtimeHelperTools() {
       title: "QNM suite rollup",
       description: tdqsDescription({
         action:
-          "Read the QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1): enabled?, declared bearers, live/locked/isolated counts. Packet-transfer coding design is QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; GET /v1/qns cites only; Worker does not proxy via emit)",
+          "Read QNM suite rollup totals (enabled?, bearers, live/locked/isolated counts) — not the node roster. Packet-transfer cite is QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; GET /v1/qns cites only; Worker does not proxy via emit)",
         when: "you need suite presence counts or whether radios are OFF",
-        notFor: "enabling radios, listing individual nodes, or executing a catalog engine",
-        instead: "mesh_enable, mesh_nodes, or fraggate_call",
+        notFor: "listing individual nodes, enabling radios, or executing a catalog engine",
+        instead: "mesh_nodes, mesh_enable, or fraggate_call",
         effects:
-          "Read-only, non-destructive, idempotent. GET/this tool never enables. Default radios OFF. suite-presence is operator-enabled. Not a login mesh. Views/MCP/downloads do not enter QNM-S. Full node process is local qnm-node/",
+          "Never enables. Default radios OFF. suite-presence is operator-enabled. Not a login mesh. Views/MCP/downloads do not enter QNM-S. Full node process is local qnm-node/",
         returns: "enabled flag, bearers, live/locked/isolated counts, and QNS-CD-1.0 cite",
       }),
       annotations: mcpAnnotations("QNM suite rollup", HINT_READ),
@@ -376,12 +387,13 @@ export function runtimeHelperTools() {
       name: "mesh_enable",
       title: "Enable QNM radios (declared bearer)",
       description: tdqsDescription({
-        action: "Operator-enable the QNM suite rollup by declaring a bearer (same as POST /v1/mesh/enable)",
+        action: "Operator-enable QNM suite radios by declaring a bearer (POST /v1/mesh/enable) — turns the whole suite LIVE, not one node",
         when: "an operator must turn radios LIVE after ≥1 declared bearer (example: suite-presence)",
-        notFor: "reading status, disabling radios, or logging into an account",
-        instead: "mesh_status or mesh_disable",
+        notFor: "reading status, joining one node, disabling radios, or logging into an account",
+        instead: "mesh_status, mesh_join, or mesh_disable",
         effects:
-          "Write: stores the bearer and turns radios LIVE. Rate-limited. Empty {} is refused. Login/account/recover/gate names refuse. Does not arm, wipe, heal, or resurrect accounts. Not a login mesh. Default remains OFF on a fresh isolate",
+          "Write: stores the bearer and turns radios LIVE. Rate-limited. Empty {} is refused (MESH-ENABLE). Login/account/recover/gate names refuse. Does not arm, wipe, heal, or resurrect accounts. Not a login mesh. Default remains OFF on a fresh isolate",
+        params: "bearer is required. Example: suite-presence",
         returns: "enabled state, bearers, and suite-presence note",
       }),
       annotations: mcpAnnotations("Enable QNM radios (declared bearer)", HINT_ADDITIVE),
@@ -404,7 +416,7 @@ export function runtimeHelperTools() {
       name: "mesh_disable",
       title: "Disable QNM radios",
       description: tdqsDescription({
-        action: "Turn QNM radios and bearers OFF (same as POST /v1/mesh/disable)",
+        action: "Turn all QNM radios and bearers OFF (POST /v1/mesh/disable) — suite-wide, not one node",
         when: "the operator wants suite presence off",
         notFor: "dropping one node or enabling radios",
         instead: "mesh_leave or mesh_enable",
@@ -420,12 +432,13 @@ export function runtimeHelperTools() {
       name: "mesh_join",
       title: "Register QNM rollup presence",
       description: tdqsDescription({
-        action: "Register a product node for QNM rollup counts (same as POST /v1/mesh/join)",
+        action: "Register one product node into the QNM rollup (POST /v1/mesh/join) — first presence, not a TTL refresh",
         when: "radios are already LIVE and a catalog product should appear in live/locked/isolated counts",
-        notFor: "refreshing an existing node, reading the roster, or opening an account session",
-        instead: "mesh_heartbeat, mesh_nodes, or runtime_session_open",
+        notFor: "refreshing an existing node, reading the roster, enabling radios, or opening an account session",
+        instead: "mesh_heartbeat, mesh_nodes, mesh_enable, or runtime_session_open",
         effects:
           "Write: additive presence with a 5-minute TTL. Refused while radios are OFF (MESH-OFF). Not an account session. AnonBroadcast is not a product",
+        params: "product is required (catalog slug). node_id optional 8–80 [a-z0-9._-]. presence is live|locked|isolated (default live)",
         returns: "node_id, presence, and TTL note",
       }),
       annotations: mcpAnnotations("Register QNM rollup presence", HINT_ADDITIVE),
@@ -465,12 +478,13 @@ export function runtimeHelperTools() {
       name: "mesh_heartbeat",
       title: "Refresh QNM rollup presence",
       description: tdqsDescription({
-        action: "Refresh a node's 5-minute QNM presence TTL (same as POST /v1/mesh/heartbeat)",
+        action: "Refresh one existing node's 5-minute QNM TTL (POST /v1/mesh/heartbeat) — not a first join",
         when: "you already have a node_id from mesh_join and radios are LIVE",
         notFor: "first-time registration or dropping the node",
         instead: "mesh_join or mesh_leave",
         effects:
-          "Write: extends TTL. Each call has an additional TTL effect (not idempotent). Unknown or expired node_id refuses MESH-UNKNOWN-NODE — join again; no account resurrection",
+          "Write: extends TTL (not idempotent). Unknown or expired node_id refuses MESH-UNKNOWN-NODE — join again; no account resurrection",
+        params: "node_id is required. presence may replace the class (live|locked|isolated)",
         returns: "updated presence and TTL",
       }),
       annotations: mcpAnnotations("Refresh QNM rollup presence", HINT_ADDITIVE),
@@ -497,12 +511,13 @@ export function runtimeHelperTools() {
       name: "mesh_leave",
       title: "Drop QNM rollup presence",
       description: tdqsDescription({
-        action: "Drop a node from the QNM rollup (same as POST /v1/mesh/leave)",
+        action: "Drop one node from the QNM rollup (POST /v1/mesh/leave) — not a suite-wide radio off",
         when: "a previously joined node should leave the counts",
         notFor: "turning all radios OFF or listing nodes",
         instead: "mesh_disable or mesh_nodes",
         effects:
-          "Destructive to that node's presence. Always allowed. No implicit heal. Repeating a missing node_id is a no-op/refuse, not resurrection",
+          "Destructive to that node's presence only. Always allowed. No implicit heal. Repeating a missing node_id is a no-op/refuse, not resurrection",
+        params: "node_id is required",
         returns: "leave receipt for the node_id",
       }),
       annotations: mcpAnnotations("Drop QNM rollup presence", HINT_DESTRUCTIVE_IDEMPOTENT),
@@ -524,12 +539,11 @@ export function runtimeHelperTools() {
       name: "mesh_nodes",
       title: "List QNM rollup nodes",
       description: tdqsDescription({
-        action: "List the QNM rollup roster with live/locked/isolated presence (5-minute TTL; same as GET /v1/mesh/nodes)",
+        action: "List the QNM node roster (node_id + presence + 5-minute TTL) — not suite totals",
         when: "you need the current node list after mesh_status",
         notFor: "suite counts without the roster, or mutating presence",
         instead: "mesh_status, mesh_join, or mesh_leave",
-        effects:
-          "Read-only, non-destructive, idempotent. No scores. No leaderboard. Views/MCP/downloads do not enter QNM-S",
+        effects: "No scores. No leaderboard. Views/MCP/downloads do not enter QNM-S",
         returns: "node roster with presence classes",
       }),
       annotations: mcpAnnotations("List QNM rollup nodes", HINT_READ),
@@ -540,12 +554,13 @@ export function runtimeHelperTools() {
       name: "mesh_broadcast",
       title: "Register a local hash receipt",
       description: tdqsDescription({
-        action: "Register the SHA-256 of a local communique as a hash receipt — never a publish path",
+        action: "Register the SHA-256 of a local file as a hash receipt — never a publish or upload path",
         when: "the operator already holds a local file and wants only its hash recorded",
-        notFor: "uploading bytes, publishing video, or sending mail",
-        instead: "local qnm-node/ anon-broadcast loopback, or AZMail via fraggate_call",
+        notFor: "uploading bytes, publishing video, sending mail, or joining a mesh node",
+        instead: "local qnm-node/ anon-broadcast loopback, AZMail via fraggate_call, or mesh_join",
         effects:
-          "Write: stores a hash receipt. Does NOT accept video bytes. Anon-broadcast is a sibling loopback module of local qnm-node/ only. Operator keeps the file. Malformed sha256 refuses MESH-BAD-INPUT; publish-shaped keys refuse MESH-NO-PUBLISH",
+          "Write: stores a hash receipt only. Does NOT accept video bytes. Operator keeps the file. Malformed sha256 refuses MESH-BAD-INPUT; publish-shaped keys refuse MESH-NO-PUBLISH",
+        params: "sha256 is required (64 hex). title and product are optional labels, not file contents",
         returns: "hash receipt (sha256, optional title)",
       }),
       annotations: mcpAnnotations("Register a local hash receipt", HINT_ADDITIVE),
@@ -581,12 +596,12 @@ export function runtimeHelperTools() {
       title: "Authoritative software catalog",
       description: tdqsDescription({
         action:
-          "Read the authoritative hub catalog (GET /v1/software): every product including AZChat LIVE+bound, sorted Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock)",
+          "Read hub Software-tab cards (GET /v1/software): every product including AZChat LIVE+bound, sorted Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock). Not the hashed live/stub registry",
         when: "a hub or client refreshes the Software tab",
-        notFor: "agent discovery of hashed registry status or executing an op",
-        instead: "fraggate_list or fraggate_call",
+        notFor: "agent discovery of hashed registry status, compact skill URLs, or executing an op",
+        instead: "fraggate_list, runtime_bundle, or fraggate_call",
         effects:
-          "Read-only, non-destructive, idempotent. EmbryoLock is live-with-local-destructive-boundary (worker_home embryolock-download-tracker). Agent exec still uses fraggate_list → fraggate_describe → fraggate_call",
+          "EmbryoLock is live-with-local-destructive-boundary (worker_home embryolock-download-tracker). Agent exec still uses fraggate_list → fraggate_describe → fraggate_call",
         returns: "sorted software cards (name, slug, ops, worker_home)",
       }),
       annotations: mcpAnnotations("Authoritative software catalog", HINT_READ),
@@ -597,11 +612,11 @@ export function runtimeHelperTools() {
       name: "runtime_bundle",
       title: "List every product (bundle helper)",
       description: tdqsDescription({
-        action: "Read a compact bootstrap of every product skill URL and invoke prefix",
+        action: "Read a compact bootstrap of every product skill URL and invoke prefix — not Software-tab cards and not the hashed registry",
         when: "a client needs skill URLs in one shot",
         notFor: "Software-tab refresh, hashed registry discovery, or exec",
         instead: "runtime_software, fraggate_list, or fraggate_call",
-        effects: "Read-only, non-destructive, idempotent. Prefer GET /v1/software for hub Software tabs",
+        effects: "Prefer GET /v1/software for hub Software tabs. This helper is URL bootstrap only",
         returns: "compact product list with skill URLs",
       }),
       annotations: mcpAnnotations("List every product (bundle helper)", HINT_READ),
@@ -612,11 +627,12 @@ export function runtimeHelperTools() {
       name: "runtime_pull",
       title: "Open one product",
       description: tdqsDescription({
-        action: "Open one product card by slug: name, version, skill, download, and ops",
+        action: "Open one hub product card by slug (name, version, skill, download, ops) — not FragGate live/stub status",
         when: "you already have a slug from GET /v1/software or fraggate_list and need the card, not exec",
         notFor: "inspecting FragGate live/stub status or executing an op",
         instead: "fraggate_describe or fraggate_call",
-        effects: "Read-only, non-destructive, idempotent. Not exec — then use fraggate_call. Unknown slug errors",
+        effects: "Not exec — then use fraggate_call. Unknown slug errors",
+        params: "slug is required. Extra keys are ignored",
         returns: "one product card",
       }),
       annotations: mcpAnnotations("Open one product", HINT_READ),
@@ -640,12 +656,13 @@ export function runtimeHelperTools() {
       title: "Advanced: raw runtime_run",
       description: markAdvanced(
         tdqsDescription({
-          action: "Advanced exec façade: admit a slug+op (still DecisionGATE-admitted) and run it through a raw session",
+          action: "Advanced exec façade: admit a slug+op (still DecisionGATE-admitted) and run it through a raw session. Not the default door",
           when: "you were explicitly asked for the raw runtime_run path",
-          notFor: "the default agent exec path",
-          instead: "fraggate_call",
+          notFor: "the default agent exec path or an already-open session you were asked to exec on",
+          instead: "fraggate_call (default) or runtime_session_exec (existing session_id)",
           effects:
-            "Side effects are operation-dependent. Not globally read-only or idempotent. Not a backdoor past FragGate. Opens a session when session_id is omitted",
+            "Side effects are operation-dependent. Not a backdoor past FragGate. Opens a session when session_id is omitted",
+          params: "slug and op are required. session_id optional; omit to auto-open. Extra keys other than payload/session_id may be treated as payload",
           returns: "exec display envelope with session_id, result, engine_digest, ran_in, and refusal when gated",
         }),
       ),
@@ -683,11 +700,11 @@ export function runtimeHelperTools() {
       title: "Advanced: runtime manifest",
       description: markAdvanced(
         tdqsDescription({
-          action: "Read the machine runtime manifest (version, role, door=fraggate, engine slugs, registry_digest)",
+          action: "Read the machine runtime manifest JSON (version, role, door=fraggate, engine slugs, registry_digest) — not the human how-to",
           when: "a client needs the machine manifest rather than the human skill",
           notFor: "the default agent how-to or hashed registry discovery",
           instead: "runtime_skill or fraggate_list",
-          effects: "Read-only, non-destructive, idempotent. Not the default agent path",
+          effects: "Not the default agent path. Does not list hub cards or execute",
           returns: "manifest including door=fraggate and registry_digest",
         }),
       ),
