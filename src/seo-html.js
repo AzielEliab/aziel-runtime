@@ -10,6 +10,9 @@ import {
   AUTHOR_GITHUB,
   AUTHOR_ID,
   AUTHOR_NAME,
+  BRAND_MARK_ALT,
+  BRAND_MARK_SRC,
+  BRAND_MARK_STAMP,
   AZCOHERENCE_GITHUB,
   AZCOHERENCE_WORKER,
   DONATE_CANONICAL,
@@ -119,7 +122,7 @@ export function headMeta(origin, title, description, canonicalPath) {
 <meta property="og:url" content="${escapeHtml(canonical)}">
 <meta property="og:site_name" content="${escapeHtml(AUTHOR_NAME)}">
 <meta property="og:image" content="${escapeHtml(image)}">
-<meta property="og:image:alt" content="Everblooming sigil — Aziel Eliab">
+<meta property="og:image:alt" content="${escapeHtml(BRAND_MARK_ALT)}">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="${escapeHtml(title)}">
 <meta name="twitter:description" content="${escapeHtml(description)}">
@@ -147,11 +150,11 @@ export function namedComponentsHtml() {
   return `<p class="named-tools">${escapeHtml(NAMED_COMPONENTS_LINE)}</p>`;
 }
 
-function brandRow() {
-  return `  <div class="brandrow">
-    <img class="brandmark" src="/sigil.png" width="40" height="40" alt="Everblooming sigil — Aziel Eliab" decoding="async">
-    <p class="stamp">Everblooming sigil · Aziel Eliab</p>
-  </div>`;
+export function brandRow() {
+  return `  <header class="brandrow">
+    <img class="brandmark" src="${escapeHtml(BRAND_MARK_SRC)}" width="40" height="40" alt="${escapeHtml(BRAND_MARK_ALT)}" decoding="async">
+    <p class="stamp">${escapeHtml(BRAND_MARK_STAMP)}</p>
+  </header>`;
 }
 
 function hubListHtml() {
