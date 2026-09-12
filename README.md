@@ -8,6 +8,10 @@ FragGate is THE single public executable door (`fraggate_list` → `fraggate_des
 
 Kernel: [AzielEliab/fraggate](https://github.com/AzielEliab/fraggate) (FG-0.1)
 
+**[Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime)** is the primary Install Server / MCP distribution door. Worker origin stays the execution / OpenAPI surface.
+
+**Entity graph (locked):** Person `@id` [`https://www.azieleliab.com/#aziel`](https://www.azieleliab.com/#aziel) · Runtime SoftwareApplication `@id` [`https://www.azieleliab.com/runtime#runtime`](https://www.azieleliab.com/runtime#runtime). Worker origin is the execution endpoint / `relatedLink`, not the identity hub. Identity **Aziel Eliab** only.
+
 `open → policy → exec(slug, op, payload) → receipt → close`
 
 Agents should not narrate that chain. Prefer `fraggate_list` → `fraggate_describe` → `fraggate_call { name, op, payload }`. Hubs/clients: `GET /v1/software`.
@@ -64,14 +68,20 @@ Assistants / clients that can call OpenAPI, MCP, or HTTP tools:
 
 Practical Add-to steps below cover ChatGPT, Grok, Venice, Claude Desktop, and Glama / Cursor MCP. Do not invent step-by-step for every crawler.
 
-Crawl / SEO Allow set on `robots.txt`: GPTBot/ChatGPT, Venice, Grok, Google-Extended, GoogleOther, Google-CloudVertexBot, Claude(+Search/User), anthropic-ai, Perplexity(+User), bingbot, Meta-External*, Applebot(+Extended), Amazonbot, DuckDuck/DuckAssist, MistralAI-User, YouBot, CCBot, cohere-ai, cohere-training-data-crawler, Diffbot, AI2Bot(+Dolma), Timpibot, Petalbot, Bytespider, Omgili(+bot), FirecrawlAgent, ImagesiftBot, FacebookBot, TikTokSpider, Baiduspider*, Yandex.
+Crawl / SEO Allow set on `robots.txt`: GPTBot/ChatGPT, Venice, Grok, Google-Extended, GoogleOther, Google-CloudVertexBot, Claude(+Search/User), anthropic-ai, Perplexity(+User), bingbot, Meta-External*, Applebot(+Extended), Amazonbot, DuckDuck/DuckAssist, MistralAI-User, YouBot, CCBot, cohere-ai, cohere-training-data-crawler, Diffbot, AI2Bot(+Dolma), Timpibot, Petalbot, Bytespider, Omgili(+bot), FirecrawlAgent, ImagesiftBot, Cloudflare-AI-Search, FacebookBot, TikTokSpider, Baiduspider*, Yandex.
+
+GitHub About (description / homepage / topics) is documented in [docs/GITHUB.md](docs/GITHUB.md) so Google + AI indexes see MCP, OpenAPI, FragGate, and digital forensics. Coordinator applies `gh repo edit` from that lock.
 
 ## Websites / Live sites
 
-This Worker homepage stays the **API / MCP / OpenAPI** surface. Human site access is the two public sites — **Aziel Corpus Library** and **GodLock.uk** — which cross-tether each other and this runtime.
+This Worker homepage stays the **API / MCP / OpenAPI** execution surface. Human Softwares hubs are **azieleliab.com**, **Aziel Corpus Library**, and **GodLock.uk**. **[Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime)** is the primary MCP install door.
 
 | Surface | URL |
 |---------|-----|
+| **Try on Glama** (primary MCP) | https://glama.ai/mcp/servers/AzielEliab/aziel-runtime |
+| Official site | https://www.azieleliab.com/ |
+| Runtime hub (entity parent) | https://www.azieleliab.com/runtime |
+| FragGate kernel | https://github.com/AzielEliab/fraggate |
 | Canonical GitHub | https://github.com/AzielEliab/aziel-runtime |
 | Runtime Worker / MCP / OpenAPI | https://aziel-runtime.vibelock.workers.dev/ |
 | Library Runtime front door | https://www.azielcorpuslibrary.net/runtime |
@@ -80,7 +90,6 @@ This Worker homepage stays the **API / MCP / OpenAPI** surface. Human site acces
 | Software page | https://www.azielcorpuslibrary.net/software |
 | GodLock.uk | https://godlock.uk — https://godlock.uk/AzielEliab — https://godlock.uk/software |
 | Repos | https://github.com/AzielEliab/aziel-corpus · https://github.com/AzielEliab/godlock |
-| Glama MCP listing | https://glama.ai/mcp/servers/AzielEliab/aziel-runtime |
 | Donate (canonical) | https://www.azieleliab.com/donate |
 
 Glama **Install Server** is stdio via [`glama.json`](glama.json) + [`Dockerfile`](Dockerfile) on `main`. See [docs/GLAMA.md](docs/GLAMA.md).

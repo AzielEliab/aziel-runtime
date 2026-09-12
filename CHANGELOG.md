@@ -10,6 +10,7 @@ This file exists so Glama / crawlers that look for a repo-root changelog see the
 - `1.6.2` is **superseded heritage** (FragGate public-door widen). It is not the current server.
 - Certification-point freeze. No intentional behavioral breaks from 1.9.3. Remain-OFF untouched.
 - Follow-up TDQS metadata pass: weak-tool descriptions disclose refuse codes, omit-defaults, and door aliases already accepted by handlers. No tool rename. No behavior change. See [`docs/GLAMA-TDQS.md`](docs/GLAMA-TDQS.md).
+- GitHub-side SEO / indexing lock: README ecosystem cross-links, [`docs/GITHUB.md`](docs/GITHUB.md), [`docs/CITE.md`](docs/CITE.md). Try on Glama primary. Entity `@id`s unchanged. No Worker / MCP handler change.
 - Full notes: [`docs/2.0/CHANGELOG.md`](docs/2.0/CHANGELOG.md).
 
 ## Heritage
