@@ -118,6 +118,13 @@ export const GODLOCK_UK_CITE = `${GODLOCK_UK_ORIGIN}/cite.json`;
 export const GODLOCK_UK_LLMS = `${GODLOCK_UK_ORIGIN}/llms.txt`;
 export const GODLOCK_UK_SOFTWARE_TAB = `${GODLOCK_UK_ORIGIN}/software`;
 
+/** Sister historical archive. Not a Softwares hub. www canonical is OK. */
+export const HEDIDNTJUMP_NAME = "He Didn't Jump";
+export const HEDIDNTJUMP_ORIGIN = "https://www.hedidntjump.com";
+export const HEDIDNTJUMP_HOME = `${HEDIDNTJUMP_ORIGIN}/`;
+export const HEDIDNTJUMP_SITEMAP = `${HEDIDNTJUMP_ORIGIN}/sitemap.xml`;
+export const HEDIDNTJUMP_LLMS = `${HEDIDNTJUMP_ORIGIN}/llms.txt`;
+
 /** Canonical author site (www). Apex azieleliab.com redirects here. */
 export const AUTHOR_SITE_ORIGIN = "https://www.azieleliab.com";
 export const AUTHOR_SITE_APEX = "https://azieleliab.com";
@@ -597,7 +604,23 @@ export const ECOSYSTEM_LINKS = Object.freeze([
   { label: "Aziel Runtime on GitHub", url: RUNTIME_GITHUB },
   { label: "Try on Glama", url: RUNTIME_GLAMA },
   { label: "GodLock", url: `${GODLOCK_UK_ORIGIN}/` },
+  { label: HEDIDNTJUMP_NAME, url: HEDIDNTJUMP_HOME },
 ]);
+
+/** Visible + llms sister-site doors. Not Softwares hubs. */
+export function llmsEcosystemBlock() {
+  const lines = [
+    "## Ecosystem",
+    "",
+    `${ECOSYSTEM_HEADING}. Identity ${AUTHOR_NAME} only. Softwares hubs refresh from GET /v1/software. Sister archive is not a Softwares hub.`,
+    "",
+  ];
+  for (const link of ECOSYSTEM_LINKS) {
+    lines.push(`- ${link.label}: ${link.url}`);
+  }
+  lines.push("");
+  return lines.join("\n");
+}
 
 export function ecosystemJsonLd(origin) {
   const base = String(origin || "").replace(/\/$/, "");
@@ -701,6 +724,8 @@ export function llmsCiteBlock(origin) {
     `Author site llms.txt: ${AUTHOR_SITE_LLMS}`,
     `GodLock.uk cite.json: ${GODLOCK_UK_CITE}`,
     `GodLock.uk llms.txt: ${GODLOCK_UK_LLMS}`,
+    `${HEDIDNTJUMP_NAME}: ${HEDIDNTJUMP_HOME}`,
+    `${HEDIDNTJUMP_NAME} llms.txt: ${HEDIDNTJUMP_LLMS}`,
     `AZCoherence: ${AUTHOR_FAMILY_GIVEN}. (2026). AZCoherence 0.1.0 [Software]. Apache-2.0. ${AZCOHERENCE_GITHUB}`,
     `AZCoherence describe: ${base}/v1/fraggate/describe?slug=azcoherence`,
     `AZCoherence Worker: ${AZCOHERENCE_WORKER}/`,

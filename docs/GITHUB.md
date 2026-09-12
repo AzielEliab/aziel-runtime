@@ -46,6 +46,7 @@ Do **not** use `https://github.com/AzielEliab#person`. Worker origin is `related
 - Official site → https://www.azieleliab.com/
 - Aziel Corpus Library → https://www.azielcorpuslibrary.net/
 - GodLock.uk → https://godlock.uk/
+- He Didn't Jump → https://www.hedidntjump.com/
 - FragGate kernel → https://github.com/AzielEliab/fraggate
 - Try on Glama → https://glama.ai/mcp/servers/AzielEliab/aziel-runtime
 - Runtime Worker → https://aziel-runtime.vibelock.workers.dev/
@@ -76,6 +77,6 @@ Suggested FragGate description:
 FragGate FG-0.1 — THE single door for Aziel Runtime (MCP / OpenAPI). Hashed registry, DecisionGATE, ledger. Hosted on aziel-runtime 2.0.0-rc1. Author: Aziel Eliab.
 ```
 
-Suggested homepage: `https://aziel-runtime.vibelock.workers.dev/` (runtime door) plus README links to Try on Glama, azieleliab.com, azielcorpuslibrary.net, godlock.uk, and `https://github.com/AzielEliab/aziel-runtime`.
+Suggested homepage: `https://aziel-runtime.vibelock.workers.dev/` (runtime door) plus README links to Try on Glama, azieleliab.com, azielcorpuslibrary.net, godlock.uk, hedidntjump.com, and `https://github.com/AzielEliab/aziel-runtime`.
 
 Suggested topics: `fraggate`, `mcp`, `openapi`, `aziel-eliab`, `aziel-runtime`, `digital-forensics`, `kernel`, `model-context-protocol`, `decisiongate`, `cloudflare-workers`.

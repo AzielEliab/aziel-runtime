@@ -74,7 +74,7 @@ GitHub About (description / homepage / topics) is documented in [docs/GITHUB.md]
 
 ## Websites / Live sites
 
-This Worker homepage stays the **API / MCP / OpenAPI** execution surface. Human Softwares hubs are **azieleliab.com**, **Aziel Corpus Library**, and **GodLock.uk**. **[Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime)** is the primary MCP install door.
+This Worker homepage stays the **API / MCP / OpenAPI** execution surface. Human Softwares hubs are **azieleliab.com**, **Aziel Corpus Library**, and **GodLock.uk**. Sister archive: **[He Didn't Jump](https://www.hedidntjump.com/)**. **[Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime)** is the primary MCP install door.
 
 | Surface | URL |
 |---------|-----|
@@ -89,7 +89,8 @@ This Worker homepage stays the **API / MCP / OpenAPI** execution surface. Human 
 | Aziel Eliab (library) | https://www.azielcorpuslibrary.net/AzielEliab |
 | Software page | https://www.azielcorpuslibrary.net/software |
 | GodLock.uk | https://godlock.uk — https://godlock.uk/AzielEliab — https://godlock.uk/software |
-| Repos | https://github.com/AzielEliab/aziel-corpus · https://github.com/AzielEliab/godlock |
+| He Didn't Jump (sister archive) | https://www.hedidntjump.com/ |
+| Repos | https://github.com/AzielEliab/aziel-corpus · https://github.com/AzielEliab/godlock · https://github.com/AzielEliab/hedidntjump.com |
 | Donate (canonical) | https://www.azieleliab.com/donate |
 
 Glama **Install Server** is stdio via [`glama.json`](glama.json) + [`Dockerfile`](Dockerfile) on `main`. See [docs/GLAMA.md](docs/GLAMA.md).

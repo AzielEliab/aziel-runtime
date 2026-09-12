@@ -28,6 +28,7 @@ Eliab, Aziel. (2026). Aziel Runtime 2.0.0-rc1 [Software]. Apache-2.0. https://az
 - Official site → https://www.azieleliab.com/ · Runtime hub → https://www.azieleliab.com/runtime
 - Aziel Corpus Library → https://www.azielcorpuslibrary.net/
 - GodLock.uk → https://godlock.uk/
+- He Didn't Jump (sister archive) → https://www.hedidntjump.com/
 - FragGate kernel → https://github.com/AzielEliab/fraggate
 - Try on Glama (primary MCP) → https://glama.ai/mcp/servers/AzielEliab/aziel-runtime
 
