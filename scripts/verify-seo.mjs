@@ -723,4 +723,49 @@ assert.match(
 }
 assert.equal(await (await get("/v1/about")).text(), aboutHtml);
 
-console.log("ok seo hub: robots, sitemap-index, llms/cite MIME, Person JSON-LD, catalog crawl links, HTML shells, definition-first abstract");
+const readme = await (await import("node:fs/promises")).readFile(
+  new URL("../README.md", import.meta.url),
+  "utf8",
+);
+assert.match(readme, /not merely an API orchestrator or software aggregator/);
+assert.match(readme, /\[Try on Glama\]\(https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime\)/);
+assert.match(readme, /www\.azieleliab\.com\/#aziel/);
+assert.match(readme, /www\.azieleliab\.com\/runtime#runtime/);
+assert.match(readme, /www\.azieleliab\.com\//);
+assert.match(readme, /azielcorpuslibrary\.net/);
+assert.match(readme, /godlock\.uk/);
+assert.match(readme, /github\.com\/AzielEliab\/fraggate/);
+assert.match(readme, /docs\/GITHUB\.md/);
+assert.match(readme, /ChatGPT \(GPT Actions \/ OpenAI\)/);
+assert.match(readme, /plus other MCP\/OpenAPI-capable assistants/);
+assert.match(readme, /Cloudflare-AI-Search/);
+assert.ok(
+  readme.indexOf("Try on Glama") < readme.indexOf("Runtime Worker / MCP / OpenAPI"),
+  "Try on Glama precedes Worker origin in README websites table",
+);
+
+const githubLock = await (await import("node:fs/promises")).readFile(
+  new URL("../docs/GITHUB.md", import.meta.url),
+  "utf8",
+);
+assert.match(githubLock, /NodeMesh'd MCP Softwares suite for digital forensics/);
+assert.match(githubLock, /not an API aggregator/);
+assert.match(githubLock, /glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime/);
+assert.match(githubLock, /www\.azieleliab\.com\/#aziel/);
+assert.match(githubLock, /www\.azieleliab\.com\/runtime#runtime/);
+assert.match(githubLock, /--add-topic openapi/);
+assert.match(githubLock, /--add-topic fraggate/);
+assert.match(githubLock, /digital-forensics/);
+
+const citeDoc = await (await import("node:fs/promises")).readFile(
+  new URL("../docs/CITE.md", import.meta.url),
+  "utf8",
+);
+assert.match(citeDoc, /not merely an API orchestrator or software aggregator/);
+assert.match(citeDoc, /2\.0\.0-rc1/);
+assert.match(citeDoc, /www\.azieleliab\.com\/#aziel/);
+assert.match(citeDoc, /www\.azieleliab\.com\/runtime#runtime/);
+assert.match(citeDoc, /github\.com\/AzielEliab\/fraggate/);
+assert.match(citeDoc, /plus other MCP\/OpenAPI-capable assistants/);
+
+console.log("ok seo hub: robots, sitemap-index, llms/cite MIME, Person JSON-LD, catalog crawl links, HTML shells, definition-first abstract, GitHub About lock");
