@@ -48,8 +48,21 @@ assert.match(String(halluc.data.code || ""), /FG-HALLUC|FG-UNKNOWN/);
 
 const meshGet = await handler(new Request(origin + "/v1/mesh", { headers: { "user-agent": "Mozilla/5.0" } }), env);
 const meshBody = await meshGet.json();
-assert.notEqual(meshBody.enabled, true);
-assert.notEqual(meshBody.mesh_enabled, true);
+assert.equal(meshBody.enabled, true);
+assert.equal(meshBody.mesh_default, "on");
+assert.equal(meshBody.get_never_enables, true);
+const meshDisable = await handler(
+  new Request(origin + "/v1/mesh/disable", {
+    method: "POST",
+    headers: { "content-type": "application/json", "user-agent": "Mozilla/5.0" },
+    body: "{}",
+  }),
+  env,
+);
+const meshDisableBody = await meshDisable.json();
+assert.equal(meshDisableBody.ok, false);
+assert.equal(meshDisableBody.code, "MESH-DISABLE-REFUSED");
+assert.equal(meshDisableBody.enabled, true);
 
 const smtp = await jsonPost("/v1/fraggate/call", { slug: "azmail", op: "smtp_send", payload: { to: "a@b.c", text: "no" } });
 assert.equal(smtp.data.code, "FG-STUB");
