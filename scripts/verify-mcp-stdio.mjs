@@ -31,9 +31,13 @@ assert.match(
   glama.description,
   /node-meshed MCP software orchestration suite for digital forensics, auditing, provenance/
 );
+assert.match(glama.description, /not an API aggregator/);
 assert.match(glama.description, /2\.0\.0-rc1/);
 assert.match(glama.description, /1\.6\.2 is superseded heritage/);
 assert.ok(Array.isArray(glama.keywords) && glama.keywords.includes("mcp"));
+assert.ok(glama.keywords.includes("openapi"));
+assert.ok(glama.keywords.includes("fraggate"));
+assert.ok(glama.keywords.includes("digital-forensics"));
 assert.ok(Array.isArray(glama.categories) && glama.categories.includes("agent-orchestration"));
 
 const dockerfile = await readFile(join(root, "Dockerfile"), "utf8");

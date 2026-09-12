@@ -34,7 +34,7 @@ This repo does **not** own VibeLock or other product Workers. Copy this pattern 
 
 Open crawl. **Allow: /** for `*` and every major AI bot. **Never** add `Disallow: /` for `GPTBot` (or any other listed bot). Do not ship Cloudflare managed content-signal blocks.
 
-Name the Allow set in llms / cite / homepage SEO copy (not only GPT/Venice/Grok): GPTBot/ChatGPT, Venice, Grok, Google-Extended, GoogleOther, Google-CloudVertexBot, Claude(+Search/User), anthropic-ai, Perplexity(+User), bingbot, Meta-External*, Applebot(+Extended), Amazonbot, DuckDuck/DuckAssist, MistralAI-User, YouBot, CCBot, cohere-ai, cohere-training-data-crawler, Diffbot, AI2Bot(+Dolma), Timpibot, Petalbot, Bytespider, Omgili(+bot), FirecrawlAgent, ImagesiftBot, FacebookBot, TikTokSpider, Baiduspider*, Yandex.
+Name the Allow set in llms / cite / homepage SEO copy (not only GPT/Venice/Grok): GPTBot/ChatGPT, Venice, Grok, Google-Extended, GoogleOther, Google-CloudVertexBot, Claude(+Search/User), anthropic-ai, Perplexity(+User), bingbot, Meta-External*, Applebot(+Extended), Amazonbot, DuckDuck/DuckAssist, MistralAI-User, YouBot, CCBot, cohere-ai, cohere-training-data-crawler, Diffbot, AI2Bot(+Dolma), Timpibot, Petalbot, Bytespider, Omgili(+bot), FirecrawlAgent, ImagesiftBot, Cloudflare-AI-Search, FacebookBot, TikTokSpider, Baiduspider*, Yandex.
 
 ```txt
 User-agent: *
@@ -120,6 +120,8 @@ Allow: /
 User-agent: FirecrawlAgent
 Allow: /
 User-agent: ImagesiftBot
+Allow: /
+User-agent: Cloudflare-AI-Search
 Allow: /
 User-agent: TikTokSpider
 Allow: /
@@ -264,3 +266,17 @@ Concise **Part of the Aziel Eliab ecosystem** block on homepage Softwares / clie
 - GodLock → https://godlock.uk/
 
 A short **Includes named components such as FragGate…** line may sit with that chrome. It does not replace the Softwares catalog.
+
+## GitHub About (this repo)
+
+GitHub description / homepage / topics are **not** in git. Lock + apply command: [GITHUB.md](GITHUB.md).
+
+- **Description** leads with NodeMesh'd MCP Softwares suite for digital forensics/auditing — not an API aggregator. Names FragGate, OpenAPI + MCP, 2.0.0-rc1, Aziel Eliab.
+- **Homepage** is **Try on Glama** (`https://glama.ai/mcp/servers/AzielEliab/aziel-runtime`). Worker origin stays the execution surface.
+- **Topics** must include `mcp`, `openapi`, `fraggate`, `digital-forensics` (plus `glama`, `mcp-server`, `nodemesh`).
+
+README websites table lists official site, Runtime hub `@id` parent, FragGate kernel, and Try on Glama **above** the Worker origin. Do not drop azieleliab.com / azielcorpuslibrary.net / godlock.uk.
+
+## llms.txt / cite.json (docs, not handlers)
+
+Worker `/llms.txt` and `/cite.json` are generated in `src/seo.js`. This repo's GitHub-side docs must **restate** the same abstract, entity `@id`s, full AI client set, and crawler Allow list — they must not invent a second identity or a weaker aggregator lead. See [CITE.md](CITE.md).
