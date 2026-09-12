@@ -27,6 +27,7 @@ import {
   HINT_READ,
   mcpAnnotations,
   tdqsDescription,
+  toolEnvelopeOutputSchema,
 } from "./mcp-schema.js";
 import { domainFields } from "./domain-map.js";
 import { boundMemoryMeta, MEMORY_META_CAP, SECRET_KEYS } from "./memory/meta.js";
@@ -791,33 +792,46 @@ export function memoryMcpTools() {
         notFor: "grounded ChainLock recall, library search, or explaining one memory_id",
         instead: "chainlock_recall, library_lookup, or memory_get",
         effects:
-          "Does not authorize action. Do not treat posterior rank as fact. Additive path — normal ChainLock recall/verify untouched",
-        params: "q, use_case, and depth (0–5) are optional. Empty q still runs verify-then-rank and does not invent facts",
-        returns: "ranked cards after verify (count, facts, belief_is_not_truth)",
+          "Does not authorize action (authorizes_action=false). Do not treat posterior rank as fact (belief_is_not_truth). Failed ChainLock verify refuses CHAIN_VERIFY_FAIL and does not invent cards. Empty grounded recall bubbles refuse=no-stamp. Ranking is capped at 16 cards",
+        params:
+          "Omit depth to rank at 5 (full budget), unlike chainlock_recall which defaults to 1. q/query is lexical rank text, not a SQL filter. Empty q still verify-then-ranks stored cards. use_case weights triad_fit; it is not a permission. Optional limit clips the already-capped list",
+        returns: "ranked cards after verify (count, facts, belief_is_not_truth, authorizes_action=false)",
       }),
       annotations: mcpAnnotations("Adaptive recall", HINT_READ),
       inputSchema: {
         type: "object",
         additionalProperties: true,
-        description: "All fields optional. depth follows ChainLock 0–5.",
+        description:
+          "All fields optional. Default depth is 5. Empty q still runs verify-then-rank and does not invent facts.",
         properties: {
           q: {
             type: "string",
-            description: "Optional query to rank against. Empty query still runs verify-then-rank; it does not invent facts.",
+            description:
+              "Optional lexical rank query (subject/fact). Alias: query. Empty still runs verify-then-rank; it does not invent facts.",
           },
           use_case: {
             type: "string",
-            description: "Optional use-case label that weights ranking. Not a permission.",
+            description:
+              "Optional use-case label that weights triad_fit in ranking. Not a permission and not a truth claim.",
           },
           depth: {
             type: "number",
             minimum: 0,
             maximum: 5,
-            description: "Optional recall depth 0–5 after ChainLock verify.",
+            description:
+              "Optional ChainLock recall depth after verify. Omit for 5 (full budget). 0 is tip-only ranking.",
+          },
+          limit: {
+            type: "number",
+            minimum: 1,
+            maximum: 16,
+            description: "Optional result cap. Hard ceiling is 16 (MEMORY_CONTEXT_CAP) even if a larger number is sent.",
           },
         },
       },
-      outputSchema: FRAGGATE_OUTPUT_SCHEMA,
+      outputSchema: toolEnvelopeOutputSchema(
+        "Adaptive recall body: ok, adaptive=true, verified, count, facts (ranked cards with score/retrieval), belief_is_not_truth, authorizes_action=false. Refuses CHAIN_VERIFY_FAIL or no-stamp.",
+      ),
     },
     {
       name: "memory_get",
@@ -828,32 +842,38 @@ export function memoryMcpTools() {
         when: "you have a memory_id (or id) and need the stored explanation",
         notFor: "ranked adaptive recall or appending an observation",
         instead: "memory_recall or memory_observe",
-        effects: "Missing id returns not-found — do not invent a node. There is no memory_delete; this is the read of the append-only node",
-        params: "Pass memory_id or id. view is get (default node), history, or calibration",
-        returns: "node, history, or calibration view",
+        effects:
+          "Missing both memory_id and id, or an unknown id, refuses AKM-NOT-FOUND — do not invent a node. authorizes_action stays false. There is no memory_delete; this is the read of the append-only node",
+        params:
+          "Pass memory_id or id — one is enough; they are aliases, not two different records. Omit view for the default node slice. history returns events/resolutions; calibration returns posterior/triad/Brier. subject is not a lookup key here",
+        returns: "node, history, or calibration view (belief_is_not_truth)",
       }),
       annotations: mcpAnnotations("Explain a memory", HINT_READ),
       inputSchema: {
         type: "object",
         additionalProperties: false,
-        description: "Pass memory_id or id. view selects the explain slice.",
+        description:
+          "Pass memory_id or id (aliases). Omit view for the node slice. Extra properties are rejected.",
         properties: {
           memory_id: {
             type: "string",
-            description: "Memory id to explain. Alternative to id.",
+            description: "Memory id to explain. Alternative to id. Missing both refuses AKM-NOT-FOUND.",
           },
           id: {
             type: "string",
-            description: "Alias of memory_id.",
+            description: "Alias of memory_id. Do not send two different values.",
           },
           view: {
             type: "string",
             enum: ["get", "history", "calibration"],
-            description: "Optional view: get (default node), history, or calibration.",
+            description:
+              "Optional slice. Omit or get = stored node; history = events/resolutions; calibration = posterior, triad legs, effective N, Brier.",
           },
         },
       },
-      outputSchema: FRAGGATE_OUTPUT_SCHEMA,
+      outputSchema: toolEnvelopeOutputSchema(
+        "Explain body: ok, memory_id, status, plus node or events or calibration fields. belief_is_not_truth. Refuses AKM-NOT-FOUND when the id is missing or unknown.",
+      ),
     },
   ];
 }
