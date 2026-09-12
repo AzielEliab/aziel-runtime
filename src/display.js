@@ -293,7 +293,7 @@ const OP_VERBS = {
   mesh_poll: "Poll",
   mesh_listen: "Listen on",
   mesh_enable: "Enable the mesh in",
-  mesh_disable: "Refuse suite mesh-off in",
+  mesh_disable: "Refuse suite disable in",
   mesh_status: "Read suite mesh status of",
   mesh_join: "Join the suite mesh from",
   mesh_heartbeat: "Heartbeat the suite mesh from",
@@ -619,7 +619,7 @@ function titleFromToolName(name) {
   if (n === "library_lookup") return "Search the Aziel Digital Library";
   if (n === "mesh_status") return "Suite mesh status";
   if (n === "mesh_enable") return "Enable the suite mesh";
-  if (n === "mesh_disable") return "Suite mesh-off is refused";
+  if (n === "mesh_disable") return "Suite disable is refused";
   if (n === "mesh_join") return "Join the suite mesh";
   if (n === "mesh_heartbeat") return "Suite mesh heartbeat";
   if (n === "mesh_leave") return "Leave the suite mesh";

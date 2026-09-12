@@ -72,14 +72,14 @@ export function mcpInitializeInstructions() {
     "decisiongate_check gates a proposal without exec. library_lookup is public corpus cite (not memory, not ChainLock). " +
     "ChainLock lifecycle is append-only: append → tip or recall → verify → seal (no chainlock_delete). chainlock_seal writes a local LOCKSET; runtime_session_close seals a raw session — they are not the same. " +
     "Memory lifecycle is append-only belief (≠ truth): observe → resolve → calibrate → recall or get (no memory_delete). " +
-    "QNM mesh lifecycle: mesh_status (counts), mesh_nodes (roster), mesh_enable (optional extra bearer), mesh_disable (refused — public mesh-off removed), mesh_join/heartbeat/leave (one node), mesh_broadcast (hash receipt, never publish). Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. " +
+    "QNM mesh lifecycle: mesh_status (counts), mesh_nodes (roster), mesh_enable (optional extra bearer), mesh_disable (refused — public disable of suite-presence), mesh_join/heartbeat/leave (one node), mesh_broadcast (hash receipt, never publish). Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. " +
     "Raw session lifecycle (advanced/internal): open → policy → exec → receipt or receipts → close. Prefer fraggate_call. " +
     "Show the user display.title and display.summary, then take the next input. " +
     "runtime_run, runtime_session_*, raw *_health, and runtime_manifest are advanced/internal. " +
     "Do not call flat {slug}_{op} names — they are not in tools/list. Unknown names refuse FG-HALLUC-TOOL. " +
     "HTTP /p/{slug}/{op} is a proxy and is not exec. " +
     "LIVE fabric (not Softwares-tab): AZPIPE AP-WP-0.2, SweepGate SG-WP-0.1, ChainLock CL-WP-0.4, LOCKSET LS-WP-0.1, packed catalog RL-WP-0.1-runtime, QNS-CD-1.0 (photon QNS1 1.3; local qnsd in AzielEliab/qnm-node; GET /v1/qns cites only — never a public via proxy), AKM-TRIAD-1.0 adaptive memory (MCP memory_*; POST /v1/memory/* behind FragGate). MCP chainlock_*. Read-only suite-presence is ON by default. GET /v1/azpipe/arch cites the locked MASTER-33 strip (same FragGate pipeline payload; not a Softwares door). " +
-    `${RUNTIME_VERSION} is the certification-point freeze (docs/2.0/ public contract, compatibility, receipt schema, refusal contract, breaking-change policy, clean-room + external adversarial pack; self-test ≠ third-party lab). Read-only QNM suite-presence is ON by default; public mesh-off is refused. Remain-OFF untouched. ` +
+    `${RUNTIME_VERSION} is the certification-point freeze (docs/2.0/ public contract, compatibility, receipt schema, refusal contract, breaking-change policy, clean-room + external adversarial pack; self-test ≠ third-party lab). Read-only QNM suite-presence is ON by default; public disable of suite-presence is refused. Remain-OFF untouched. ` +
     "1.9.3 closes remaining AZRT-1.9-GAPS-CLOSE items (isolate AZ-OS session VFS; isolate-safe jeeves; binding-gated media-run; published attestation path — not a third-party lab). Remain-OFF untouched. " +
     "1.9.2 binds Workers Browser Rendering (BROWSER) and live D1 MASTER (CORPUS_D1 → aziel-digital-library records). Whisper/OCR Workers-AI-bound. Sample MASTER remains the unbound fallback. Chromium product UI is not claimed; Tor/phoenix stay refuse. Remain-OFF untouched. " +
     "1.9.1 closes AZRT-1.9-GAPS-CLOSE (isolate-safe corpus verify ops; Whisper/OCR Workers-AI-gated; AZBrowser sandbox_status Chromium DEFERRED unbound; AZMail transport_status no public MTA; wave 2–3 doctor; adversarial self-check + Actions npm test; remain-OFF untouched). " +
@@ -421,7 +421,7 @@ export function runtimeHelperTools() {
     },
     {
       name: "mesh_disable",
-      title: "Suite mesh-off is refused",
+      title: "Suite disable is refused",
       description: tdqsDescription({
         action: "Confirm that read-only QNM suite-presence stays ON (POST /v1/mesh/disable refuses MESH-DISABLE-REFUSED) — not a kill switch",
         when: "a client still posts the historical disable route and needs the honest refuse",
@@ -431,8 +431,8 @@ export function runtimeHelperTools() {
           "Read-only refuse: suite-presence stays ON. No tethers drop. No implicit heal, no account resurrection, no wipe internals. Repeating still refuses. AZMail mesh_disable is a separate product-local mail ring",
         returns: "MESH-DISABLE-REFUSED with enabled=true and a stay-on note",
       }),
-      annotations: mcpAnnotations("Suite mesh-off is refused", HINT_READ),
-      inputSchema: emptyArgsSchema("No arguments. Send {}. Public suite mesh-off is refused."),
+      annotations: mcpAnnotations("Suite disable is refused", HINT_READ),
+      inputSchema: emptyArgsSchema("No arguments. Send {}. Public suite disable is refused."),
       outputSchema: FRAGGATE_OUTPUT_SCHEMA,
     },
     {
