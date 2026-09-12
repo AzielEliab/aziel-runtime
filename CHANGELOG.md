@@ -8,7 +8,7 @@ This file exists so Glama / crawlers that look for a repo-root changelog see the
 
 - MCP `initialize` `serverInfo.version` is `2.0.0-rc1` (same as `package.json` and `RUNTIME_VERSION`).
 - `1.6.2` is **superseded heritage** (FragGate public-door widen). It is not the current server.
-- Certification-point freeze. No intentional behavioral breaks from 1.9.3. Remain-OFF untouched.
+- Certification-point freeze. Read-only QNM suite-presence is ON by default; `POST /v1/mesh/disable` refuses `MESH-DISABLE-REFUSED`. Remain-OFF untouched.
 - Follow-up TDQS metadata pass: weak-tool descriptions disclose refuse codes, omit-defaults, and door aliases already accepted by handlers. No tool rename. No behavior change. See [`docs/GLAMA-TDQS.md`](docs/GLAMA-TDQS.md).
 - GitHub-side SEO / indexing lock: README ecosystem cross-links, [`docs/GITHUB.md`](docs/GITHUB.md), [`docs/CITE.md`](docs/CITE.md). Try on Glama primary. Entity `@id`s unchanged. No Worker / MCP handler change.
 - Sister-archive chrome: Worker homepage / `/cite.json` / `/llms.txt` ecosystem lists [He Didn't Jump](https://www.hedidntjump.com/). Not a Softwares hub. **No MCP behavior change.**

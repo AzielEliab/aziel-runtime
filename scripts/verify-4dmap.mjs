@@ -258,7 +258,7 @@ assert.ok(card);
 assert.equal(card.bucket, "plain");
 assert.equal(card.status, "live");
 assert.equal(card.worker_home, "https://4dmap-download-tracker.vibelock.workers.dev/");
-assert.equal(card.mesh.enabled_default, false);
+assert.equal(card.mesh.enabled_default, true);
 assert.equal(card.qns_cd.spec, "QNS-CD-1.0");
 assert.equal(card.qns_cd.local, "https://github.com/AzielEliab/qnm-node");
 assert.ok(!software.software.some((s) => s.slug === "memory"), "AKM-TRIAD is not Softwares-tab");

@@ -278,7 +278,7 @@ export function homepageLeadHtml() {
   return `  <h1>${escapeHtml(PRODUCT_NAME)}</h1>
   <p class="lead">${escapeHtml(RUNTIME_ABSTRACT)}</p>
   <p><strong>FragGate</strong> is THE single public executable door (list → describe → call) — not 37 separate APIs. Softwares are Plain → Gate → Lock catalog products with true in-process engines where live. Hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) refresh Softwares tabs from <code>GET /v1/software</code>. Dual-surface: agents use OpenAPI/MCP; humans use Worker UI + counted <code>/download</code>.</p>
-  <p>NodeMesh / QNM suite-presence is operator-enabled. <code>GET /v1/mesh</code> never enables. Full node process is local <code>qnm-node/</code>. MASTER-33: domains are isolation labels, not extra doors. Lamb Lens is the ethics hop after FragGate.</p>
+  <p>NodeMesh / QNM read-only suite-presence is ON by default. <code>GET /v1/mesh</code> never enables radios beyond that. Full node process is local <code>qnm-node/</code>. MASTER-33: domains are isolation labels, not extra doors. Lamb Lens is the ethics hop after FragGate.</p>
   <p>Author / public identity: <strong>${escapeHtml(AUTHOR_NAME)}</strong> (also known as ${escapeHtml(AUTHOR_ALTERNATE_NAME)} — alternateName only). Product: ${escapeHtml(PRODUCT_NAME)} (<code>aziel-runtime</code>). Also published as ${escapeHtml(PRODUCT_ALTERNATE_NAME)} (alternateName).</p>
   <ul>
 ${notItems}

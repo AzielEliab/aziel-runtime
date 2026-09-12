@@ -17,7 +17,7 @@ Certification point — not a feature dump.
 - Clean-room reproducibility script + machine-readable evidence schema.
 - External adversarial pack wrapping the existing `verify-adversarial` + Remain-OFF matrix (reviewer-ready; **self-test ≠ third-party lab**).
 - Version strings: `package.json`, `RUNTIME_VERSION`, `VERSION_HISTORY`, SEO changelog **below** the abstract.
-- Remain-OFF untouched. FragGate remains THE single door. `GET /v1/mesh` never enables.
+- Remain-OFF untouched. FragGate remains THE single door. Read-only QNM suite-presence is ON by default. `GET /v1/mesh` never enables radios beyond that. `POST /v1/mesh/disable` refuses `MESH-DISABLE-REFUSED`.
 - No new Softwares engines. No remote shell / VPN / deanonymize / public SMTP.
 - No `2.0.0` final tag in this PR.
 
@@ -31,6 +31,8 @@ Certification point — not a feature dump.
 | 36 `PUBLIC_MCP_TOOLS` | Unchanged names; TDQS-richer descriptions / params / annotations |
 | `/p/{slug}/{op}` is proxy | Unchanged |
 | Remain-OFF verbs refuse | Unchanged |
+| `POST /v1/mesh/disable` turns suite radios off | Now `MESH-DISABLE-REFUSED`; read-only suite-presence stays ON |
+| `/v1/mesh` `mesh_default: "off"` | Now `"on"`; `enabled_default` true |
 | Glama stdio `node cli/mcp-stdio.mjs` | Unchanged |
 | Read `version` from health / runtime.json | Now `2.0.0-rc1` (same snapshot shape) |
 

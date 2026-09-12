@@ -58,7 +58,7 @@ Source of truth: `PUBLIC_MCP_TOOLS` in `src/fraggate/codes.js`. Live `POST /mcp`
 
 ### Fabric (`PUBLIC_FABRIC_TOOLS`)
 
-- Mesh: `mesh_status`, `mesh_enable` (**`bearer` required**), `mesh_disable`, `mesh_join` (**`product` required**), `mesh_heartbeat` (**`node_id` required**), `mesh_leave` (**`node_id` required**), `mesh_nodes`, `mesh_broadcast` (**`sha256` required**)
+- Mesh: `mesh_status`, `mesh_enable` (**`bearer` required**), `mesh_disable` (**refuses `MESH-DISABLE-REFUSED`** — public suite mesh-off removed), `mesh_join` (**`product` required**), `mesh_heartbeat` (**`node_id` required**), `mesh_leave` (**`node_id` required**), `mesh_nodes`, `mesh_broadcast` (**`sha256` required**)
 - ChainLock: `chainlock_append` (**`fact` required**), `chainlock_tip`, `chainlock_recall`, `chainlock_verify`, `chainlock_seal`
 - AKM: `memory_observe` (**`fact` required**), `memory_resolve`, `memory_calibrate`, `memory_recall`, `memory_get`
 

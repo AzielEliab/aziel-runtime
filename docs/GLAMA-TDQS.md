@@ -101,7 +101,7 @@ If Glama’s parser skips prerelease strings (`2.0.0-rc1`) and keeps the last `X
 | Local LOCKSET over live tips | `chainlock_seal` | `runtime_session_close` |
 | Seal a raw session | `runtime_session_close` | `chainlock_seal` |
 | Suite counts | `mesh_status` | `mesh_nodes`, `mesh_enable` |
-| One node in/out | `mesh_join` / `mesh_leave` | `mesh_enable` / `mesh_disable` |
+| One node in/out | `mesh_join` / `mesh_leave` | `mesh_enable` / `mesh_status` |
 
 ## Verify
 
