@@ -2,7 +2,8 @@
   "$schema": "https://glama.ai/mcp/schemas/server.json",
   "maintainers": ["AzielEliab"],
   "name": "Aziel Runtime",
-  "description": "Node-meshed MCP software orchestration suite for digital forensics, auditing, provenance, research, intelligence-support, and secure agent workflows, with gated execution, compartmentalized engines, verifiable receipts, temporal integrity, and explicit capability refusal.",
+  "version": "2.0.0-rc1",
+  "description": "Aziel Runtime 2.0.0-rc1 — node-meshed MCP software orchestration suite for digital forensics, auditing, provenance, research, intelligence-support, and secure agent workflows, with gated execution, compartmentalized engines, verifiable receipts, temporal integrity, and explicit capability refusal. 1.6.2 is superseded heritage, not the current server.",
   "keywords": [
     "mcp",
     "agent-orchestration",

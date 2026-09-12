@@ -201,9 +201,16 @@ assert.doesNotMatch(JSON.stringify(sample), /CLOUDFLARE_API_TOKEN|wrangler secre
 const glama = JSON.parse(readFileSync(new URL("../glama.json", import.meta.url), "utf8"));
 assert.deepEqual(glama.maintainers, ["AzielEliab"]);
 assert.equal(glama.name, "Aziel Runtime");
+assert.equal(glama.version, "2.0.0-rc1");
 assert.ok(Array.isArray(glama.keywords) && glama.keywords.length >= 8);
 assert.ok(Array.isArray(glama.categories) && glama.categories.length >= 3);
 assert.match(glama.description, /forensic|audit|provenance/i);
+assert.match(glama.description, /2\.0\.0-rc1/);
+assert.match(glama.description, /1\.6\.2 is superseded/i);
+
+const rootChangelog = readFileSync(new URL("../CHANGELOG.md", import.meta.url), "utf8");
+assert.match(rootChangelog, /^## 2\.0\.0-rc1/m);
+assert.match(rootChangelog, /1\.6\.2. is \*\*superseded heritage\*\*/);
 
 assert.match(RUNTIME_ABSTRACT, /^Aziel Runtime is not merely an API orchestrator/);
 assert.equal(RUNTIME_ONE_LINE.startsWith("Aziel Runtime is not merely an API orchestrator"), true);

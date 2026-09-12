@@ -4,7 +4,8 @@
  */
 import assert from "node:assert/strict";
 import { PUBLIC_MCP_TOOLS } from "../src/fraggate/codes.js";
-import { buildMcpToolList } from "../src/mcp-surface.js";
+import { buildMcpToolList, mcpInitializeInstructions } from "../src/mcp-surface.js";
+import { RUNTIME_VERSION } from "../src/runtime-api.js";
 import { sessionMcpTools } from "../src/session-http.js";
 
 /** Pre-change inventory from main (1.9.3). Do not add or rename tools in a metadata pass. */
@@ -118,5 +119,41 @@ assert.match(byName.mesh_status.description, /QNS-CD-1\.0/);
 assert.match(byName.fraggate_list.title, /Step 1/);
 assert.match(byName.fraggate_describe.title, /Step 2/);
 assert.match(byName.fraggate_call.title, /Step 3/);
+
+const instructions = mcpInitializeInstructions();
+assert.match(instructions, new RegExp(`Current MCP serverInfo\\.version: ${RUNTIME_VERSION.replaceAll(".", "\\.")}`));
+assert.match(instructions, /1\.6\.2 is superseded heritage/);
+assert.match(instructions, /Neighbor map/);
+assert.match(instructions, /append-only/);
+assert.match(instructions, /no chainlock_delete/);
+assert.match(instructions, /no memory_delete/);
+assert.match(instructions, new RegExp(`Current version remains ${RUNTIME_VERSION.replaceAll(".", "\\.")}`));
+
+const firstSentence = (text) => String(text || "").split(/(?<=\.)\s+/)[0];
+const pairs = [
+  ["fraggate_list", "runtime_software"],
+  ["fraggate_describe", "runtime_pull"],
+  ["fraggate_call", "runtime_run"],
+  ["chainlock_recall", "memory_recall"],
+  ["chainlock_tip", "chainlock_recall"],
+  ["mesh_status", "mesh_nodes"],
+  ["mesh_enable", "mesh_join"],
+  ["mesh_disable", "mesh_leave"],
+  ["memory_observe", "memory_resolve"],
+  ["memory_recall", "memory_get"],
+  ["runtime_session_receipt", "runtime_session_receipts"],
+  ["runtime_skill", "runtime_manifest"],
+  ["library_lookup", "memory_recall"],
+];
+for (const [a, b] of pairs) {
+  const sa = firstSentence(byName[a].description);
+  const sb = firstSentence(byName[b].description);
+  assert.notEqual(sa, sb, `${a} vs ${b} first sentences must differ`);
+}
+
+assert.match(byName.chainlock_append.description, /no chainlock_delete|append-only/);
+assert.match(byName.memory_observe.description, /no memory_delete|Append-only/);
+assert.match(byName.runtime_software.description, /Not the hashed/);
+assert.match(byName.runtime_bundle.description, /not Software-tab/);
 
 console.log(`ok mcp-tdqs ${names.length} tools, names frozen, schema coverage complete`);
