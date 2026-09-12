@@ -324,7 +324,12 @@ assert.match(mcpBody.result.instructions, /runtime_run/);
 assert.match(mcpBody.result.instructions, /display\.title/);
 assert.match(mcpBody.result.instructions, /advanced\/internal/);
 assert.match(mcpBody.result.instructions, /1\.6\.0/);
+assert.match(mcpBody.result.instructions, /1\.6\.2 is superseded heritage/);
+assert.match(mcpBody.result.instructions, new RegExp(`Current MCP serverInfo\\.version: ${RUNTIME_VERSION.replaceAll(".", "\\.")}`));
 assert.equal(mcpBody.result.serverInfo.version, RUNTIME_VERSION);
+assert.equal(mcpBody.result.serverInfo.name, "aziel-runtime");
+assert.equal(mcpBody.result.serverInfo.title, "Aziel Runtime");
+assert.match(mcpBody.result.serverInfo.description, /2\.0\.0-rc1/);
 
 const mcpList = await handler(
   new Request(origin + "/mcp", {

@@ -707,12 +707,13 @@ export function memoryMcpTools() {
       title: "Observe a memory",
       description: tdqsDescription({
         action:
-          "Append a memory_observation to the ChainLock learn chain (AKM-TRIAD-1.0). Fabric — not Softwares-tab. Posterior ≠ truth",
+          "Append the first memory_observation to the ChainLock learn chain (AKM-TRIAD-1.0). New fact in — not an outcome resolve and not a grounded ChainLock append. Posterior ≠ truth",
         when: "you have a new fact to observe before resolve/calibrate",
         notFor: "grounded ChainLock append without AKM, resolving an outcome, or ranked recall",
         instead: "chainlock_append, memory_resolve, or memory_recall",
         effects:
-          "Write: additive learn-chain stamp. Not read-only and not idempotent. authorizes_action stays false. Hash-only cards refuse",
+          "Write: additive learn-chain stamp. authorizes_action stays false. Hash-only cards refuse AKM-NO-FACT. Append-only; there is no memory_delete",
+        params: "fact is required (≤160). subject/memory_id/use_case optional",
         returns: "memory_id, observation stamp, and display envelope (belief is not truth)",
       }),
       annotations: mcpAnnotations("Observe a memory", HINT_ADDITIVE),
@@ -727,12 +728,13 @@ export function memoryMcpTools() {
       name: "memory_resolve",
       title: "Resolve a memory outcome",
       description: tdqsDescription({
-        action: "Append a memory_resolution (AKM-TRIAD-1.0). UNKNOWN is distinct from MISS. Does not rewrite history",
+        action: "Append a memory_resolution outcome on an already-observed memory (AKM-TRIAD-1.0). UNKNOWN is distinct from MISS. Does not rewrite history",
         when: "an observed memory_id or subject now has an outcome",
         notFor: "first observation, calibration, or reading history",
         instead: "memory_observe, memory_calibrate, or memory_get",
         effects:
-          "Write: additive resolution stamp. Not read-only. Missing memory_id/subject refuses AKM-NO-MEMORY. Does not rewrite prior observations",
+          "Write: additive resolution stamp. Missing memory_id/subject refuses AKM-NO-MEMORY. Does not rewrite prior observations. No memory_update — this is the forward outcome path",
+        params: "Requires memory_id or a previously observed subject. outcome is optional [0,1]; omit for UNKNOWN",
         returns: "resolution stamp with outcome or UNKNOWN",
       }),
       annotations: mcpAnnotations("Resolve a memory outcome", HINT_ADDITIVE),
@@ -763,12 +765,13 @@ export function memoryMcpTools() {
       title: "Calibrate a memory",
       description: tdqsDescription({
         action:
-          "Calibrate a memory with the deterministic 3-of-4 triad plus Bayesian posterior (AKM-TRIAD-1.0). Forward-only RoseClock LEARN. No automatic MODEL_UPDATE",
+          "Calibrate one memory with the deterministic 3-of-4 triad plus Bayesian posterior (AKM-TRIAD-1.0). Writes a LEARN stamp — not a ranked search and not an explain view",
         when: "an observed memory should receive a posterior after evidence, not a ranked search",
         notFor: "observing a new fact, resolving an outcome, or explaining a stored node",
         instead: "memory_observe, memory_resolve, or memory_get",
         effects:
-          "Write: forward-only LEARN stamp. Not read-only. Posterior ≠ truth. authorizes_action=false. No automatic MODEL_UPDATE",
+          "Write: forward-only RoseClock LEARN stamp. Posterior ≠ truth. authorizes_action=false. No automatic MODEL_UPDATE",
+        params: "subject or memory_id recommended. use_case labels calibration; it is not a permission",
         returns: "triad_score, omitted leg, posterior, effective N, and Brier notes",
       }),
       annotations: mcpAnnotations("Calibrate a memory", HINT_ADDITIVE),
@@ -783,12 +786,13 @@ export function memoryMcpTools() {
       title: "Adaptive recall",
       description: tdqsDescription({
         action:
-          "Ranked adaptive recall after ChainLock verify (AKM-TRIAD-1.0). Additive path — normal ChainLock recall/verify untouched. Belief ≠ truth",
+          "Ranked adaptive recall after ChainLock verify (AKM-TRIAD-1.0). Belief list — not raw grounded stamps, not a public corpus cite, not one-id explain",
         when: "you want a ranked belief list after verify, not raw grounded stamps",
         notFor: "grounded ChainLock recall, library search, or explaining one memory_id",
         instead: "chainlock_recall, library_lookup, or memory_get",
         effects:
-          "Read-only, non-destructive, idempotent relative to the vault. Does not authorize action. Do not treat posterior rank as fact",
+          "Does not authorize action. Do not treat posterior rank as fact. Additive path — normal ChainLock recall/verify untouched",
+        params: "q, use_case, and depth (0–5) are optional. Empty q still runs verify-then-rank and does not invent facts",
         returns: "ranked cards after verify (count, facts, belief_is_not_truth)",
       }),
       annotations: mcpAnnotations("Adaptive recall", HINT_READ),
@@ -820,11 +824,12 @@ export function memoryMcpTools() {
       title: "Explain a memory",
       description: tdqsDescription({
         action:
-          "Read-only explainability for one memory: node, history, or calibration (posterior, triad legs, effective N, Brier). AKM-TRIAD-1.0",
+          "Read one memory's stored explanation (node, history, or calibration: posterior, triad legs, effective N, Brier) — not a ranked list",
         when: "you have a memory_id (or id) and need the stored explanation",
         notFor: "ranked adaptive recall or appending an observation",
         instead: "memory_recall or memory_observe",
-        effects: "Read-only, non-destructive, idempotent. Missing id returns not-found — do not invent a node",
+        effects: "Missing id returns not-found — do not invent a node. There is no memory_delete; this is the read of the append-only node",
+        params: "Pass memory_id or id. view is get (default node), history, or calibration",
         returns: "node, history, or calibration view",
       }),
       annotations: mcpAnnotations("Explain a memory", HINT_READ),

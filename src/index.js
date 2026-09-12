@@ -2625,7 +2625,13 @@ async function handleMcp(request, env, origin) {
     return rpcResult(id, {
       protocolVersion: PROTOCOL,
       capabilities: { tools: { listChanged: false } },
-      serverInfo: { name: "aziel-runtime", version: RUNTIME_VERSION },
+      serverInfo: {
+        name: "aziel-runtime",
+        title: "Aziel Runtime",
+        version: RUNTIME_VERSION,
+        websiteUrl: "https://aziel-runtime.vibelock.workers.dev",
+        description: `Aziel Runtime ${RUNTIME_VERSION}. 1.6.2 is superseded heritage, not this server. Author: Aziel Eliab only.`,
+      },
       instructions: mcpInitializeInstructions(),
     });
   }

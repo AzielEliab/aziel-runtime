@@ -101,12 +101,13 @@ export function chainlockMcpTools() {
       title: "ChainLock append",
       description: tdqsDescription({
         action:
-          "Append a fact-bearing stamp to a local ChainLock chain (CL-WP-0.4). Runtime fabric — not a Softwares-tab product. UI=MCP. No Node Gate",
+          "Append one fact-bearing stamp to a local ChainLock chain (CL-WP-0.4). Grounded write — not a tip read, not AKM observe, not a LOCKSET seal. Fabric, not Softwares-tab. No Node Gate",
         when: "you have a concrete fact to stamp onto a named chain",
         notFor: "reading the tip, adaptive memory observation, or sealing LOCKSET",
         instead: "chainlock_tip, memory_observe, or chainlock_seal",
         effects:
-          "Write: additive append. Not read-only and not idempotent. Hash-only cards refuse. Does not write godlock.uk",
+          "Write: additive append (append-only vault; no chainlock_delete). Hash-only cards refuse. Does not write godlock.uk",
+        params: "fact is required (≤160). c/chain is optional roster name. subject clips to 80. k is an optional kind label",
         returns: "the new stamp (id, h, fh, chain) plus display envelope",
       }),
       annotations: mcpAnnotations("ChainLock append", HINT_ADDITIVE),
@@ -144,11 +145,12 @@ export function chainlockMcpTools() {
       name: "chainlock_tip",
       title: "ChainLock tip",
       description: tdqsDescription({
-        action: "Read the live tip card of one local ChainLock chain. Fabric module — not a Softwares-tab product",
+        action: "Read only the live tip card of one local ChainLock chain — not depth recall and not LOCKSET verify",
         when: "you need the current tip of a named chain",
         notFor: "depth-0–5 grounded recall, LOCKSET verify, or adaptive memory explain",
         instead: "chainlock_recall, chainlock_verify, or memory_get",
-        effects: "Read-only, non-destructive, idempotent. Does not invent a missing tip",
+        effects: "Does not invent a missing tip. Fabric module — not a Softwares-tab product",
+        params: "c selects the roster chain; omit for the default tip path",
         returns: "the tip card or an empty/refuse when the chain has no stamp",
       }),
       annotations: mcpAnnotations("ChainLock tip", HINT_READ),
@@ -170,11 +172,12 @@ export function chainlockMcpTools() {
       name: "chainlock_recall",
       title: "ChainLock recall",
       description: tdqsDescription({
-        action: "Grounded ChainLock recall at depth 0–5 (CL-WP-0.4). Returns id+h+fh facts or refuse=no-stamp. Do not invent a fact",
+        action: "Grounded ChainLock recall at depth 0–5 (id+h+fh facts or refuse=no-stamp). Stamped vault facts — not Bayesian rank and not tip-only",
         when: "you need stamped facts from the local vault, not a Bayesian ranking",
         notFor: "adaptive memory ranking or reading only the live tip",
         instead: "memory_recall or chainlock_tip",
-        effects: "Read-only, non-destructive, idempotent. Depth above 5 is clipped to 5. refuse=no-stamp when empty — do not invent",
+        effects: "Depth above 5 is clipped to 5. refuse=no-stamp when empty — do not invent a fact. Append-only; there is no chainlock_delete",
+        params: "depth 0 = tip only; 5 = genesis/budget maximum. q filters cards. c selects the chain",
         returns: "grounded facts (id, h, fh) or refuse=no-stamp",
       }),
       annotations: mcpAnnotations("ChainLock recall", HINT_READ),
@@ -207,12 +210,13 @@ export function chainlockMcpTools() {
       title: "ChainLock / LOCKSET verify",
       description: tdqsDescription({
         action:
-          "Fail-closed verify of ChainLock chains and LOCKSET (LS-WP-0.1): broken prev, tip drift, missing GodLock cite",
+          "Confirm fail-closed integrity of ChainLock chains and LOCKSET (LS-WP-0.1): broken prev, tip drift, missing GodLock cite. Integrity check — not a new seal",
         when: "you must prove local chain integrity before trusting a recall",
         notFor: "appending a stamp or sealing a new lockset",
         instead: "chainlock_append or chainlock_seal",
         effects:
-          "Read-only, non-destructive, idempotent. Cites godlock.uk; does not write the public ledger. Fail-closed — do not repair silently",
+          "Cites godlock.uk; does not write the public ledger. Fail-closed — do not repair silently",
+        params: "c optionally focuses one roster chain; omit to verify the live vault / LOCKSET",
         returns: "chain_ok, LOCKSET lattice, and per-chain verify notes",
       }),
       annotations: mcpAnnotations("ChainLock / LOCKSET verify", HINT_READ),
@@ -235,12 +239,13 @@ export function chainlockMcpTools() {
       title: "LOCKSET seal",
       description: tdqsDescription({
         action:
-          "Seal live chain tips + TemporalLock receipt + GodLock cite into a LOCKSET (LS-WP-0.1). Operator posts lockset_sha256",
+          "Seal live chain tips + TemporalLock receipt + GodLock cite into a new local LOCKSET (LS-WP-0.1). Close of a lockset — not verify-only and not a single-fact append",
         when: "the operator wants a new local lockset over current tips",
         notFor: "verify-only, appending one fact, or writing godlock.uk",
         instead: "chainlock_verify or chainlock_append",
         effects:
-          "Write: stores the lockset locally. Not read-only. Runtime cites godlock.uk and does not write the public ledger. Empty vault refuses empty-vault",
+          "Write: stores the lockset locally. Runtime cites godlock.uk and does not write the public ledger. Empty vault refuses empty-vault. Operator posts lockset_sha256",
+        params: "No required arguments. Optional ts is TemporalLock metadata and does not backdate authority",
         returns: "lockset document and lockset_sha256",
       }),
       annotations: mcpAnnotations("LOCKSET seal", HINT_ADDITIVE),

@@ -77,13 +77,14 @@ export function mcpAnnotations(title, hints) {
   return { title, ...hints };
 }
 
-export function tdqsDescription({ action, when, notFor, instead, effects, returns }) {
+export function tdqsDescription({ action, when, notFor, instead, effects, returns, params }) {
   const act = endSentence(action);
   const cond = endSentence(when);
   const fx = endSentence(effects);
   const ret = String(returns || "").trim();
   const retLine = /^returns\b/i.test(ret) ? ret : `Returns ${ret}`;
-  return `${act} Use this when ${cond} Do not use it for ${notFor}; use ${instead} instead. ${fx} ${endSentence(retLine)}`;
+  const extra = params ? ` ${endSentence(params)}` : "";
+  return `${act} Use this when ${cond} Do not use it for ${notFor}; use ${instead} instead. ${fx}${extra} ${endSentence(retLine)}`;
 }
 
 function endSentence(text) {
