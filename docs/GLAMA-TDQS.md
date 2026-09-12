@@ -22,7 +22,7 @@ Live name inventory is `PUBLIC_MCP_TOOLS` in `src/fraggate/codes.js` (36 names).
 
 ## Observed Glama card (2026-09-12)
 
-Overall **A 3.9/5.0** across 36 tools:
+Overall **A 3.9/5.0** across 36 tools. A follow-up metadata pass (this note + `tools/list` text) targets the weakest per-tool scores without touching handlers.
 
 | Dimension | Score | What we can move in-repo |
 |-----------|-------|--------------------------|
@@ -31,7 +31,27 @@ Overall **A 3.9/5.0** across 36 tools:
 | Tool Count | 2/5 | **Not fixable** without thinning `tools/list` (TDQS: 3–15 ideal, 16–25 heavy, 26+ scores 2). Do not remove mesh/chainlock/memory |
 | Completeness | 4/5 | State append-only / full lifecycles so “missing delete” is by design |
 
-Per-tool drag from the same inspection: `fraggate_list` **3.7** (allowlist op tokens required by azhub/azinterface/azbrowser verify scripts bloat conciseness). Other tools were mostly 4.1–4.8. Description quality uses `0.6×mean + 0.4×min`, so lifting the weakest tools matters.
+Per-tool drag after PR #79: weakest tools sat at **4.1–4.3** (see follow-up below). `fraggate_list` remains conciseness-taxed by required azhub/azinterface/azbrowser LIVE_OPS tokens. Description quality uses `0.6×mean + 0.4×min`, so lifting the weakest tools matters.
+
+## Follow-up: weak-tool lift (post PR #79)
+
+PR #79 already applied the template, annotations, and output schemas. Glama then showed every tool letter **A**, but the floor sat at **4.1**. TDQS description quality is `0.6×mean + 0.4×min`, and Parameter Semantics / Behavioral Transparency only credit text **beyond** schema + annotations.
+
+This follow-up keeps the same 36 names and the same handlers. It adds refuse codes, omit-defaults, and aliases the door already accepts:
+
+| Cluster | Weak scores | What the description now discloses (already true in handlers) |
+|---------|-------------|---------------------------------------------------------------|
+| LOCKSET / ChainLock write+tip | `chainlock_seal` 4.1, `chainlock_append` 4.2, `chainlock_tip` 4.2 | seal ≠ `runtime_session_close`; empty-vault; `ts` never backdates; omit `c`/`chain` defaults to **session** on append/tip; `no-fact` / `unknown-chain` / `card-cap`; empty tip is `tip=null`/`empty=true` |
+| Session plumbing | `runtime_session_*` 4.2–4.3 | `session_id`/`id` aliases; 6h TTL; receipt cap 64; `session_closed` / `session_not_found` / `session_expired`; exec does not auto-open and does not treat leftover keys as payload |
+| Hub catalog | `runtime_software` 4.1, `runtime_pull` 4.2 | Software-tab JSON ≠ hashed registry; never enables mesh; pull `product` alias; unknown slug is `unknown product` (not `FG-HALLUC-TOOL`) |
+| FragGate proof/list | `fraggate_list` 4.3, `fraggate_verify` 4.3 | empty `{}` on verify refuses `FG-HALLUC-TOOL`; digest-only = whole registry hash; **LIVE_OPS token strings kept** on list/call for azhub/azinterface/azbrowser verify scripts |
+| Memory / library | `memory_recall` 4.2, `memory_get` 4.3, `library_lookup` 4.3 | recall default depth **5** + `CHAIN_VERIFY_FAIL`; get `AKM-NOT-FOUND`; library `q` is corpus text, extra keys ride as payload |
+
+**Left alone** unless a one-line clarity win: tools already at ~4.8–4.9 (`fraggate_describe`, `memory_calibrate`, `memory_resolve`, `mesh_disable`, `mesh_heartbeat`, `mesh_leave`, `mesh_join`).
+
+**Maintenance-safe choices:** one focused PR; changelog + this note only; no empty commits; no issue theatre; Dockerfile / stdio Install Server path / license untouched. Do not trade Maintenance for TDQS.
+
+Glama **Build** may still need a healthy **Redeploy** / **Make Release** to rescore (their queue was stuck pending earlier). In-repo `POST /mcp` already serves these descriptions.
 
 ## What this pass changes
 
@@ -78,6 +98,8 @@ If Glama’s parser skips prerelease strings (`2.0.0-rc1`) and keeps the last `X
 | Public corpus cite | `library_lookup` | `memory_recall`, `chainlock_recall` |
 | Grounded stamps | `chainlock_recall` | `memory_recall` |
 | Ranked belief (≠ truth) | `memory_recall` | `chainlock_recall` |
+| Local LOCKSET over live tips | `chainlock_seal` | `runtime_session_close` |
+| Seal a raw session | `runtime_session_close` | `chainlock_seal` |
 | Suite counts | `mesh_status` | `mesh_nodes`, `mesh_enable` |
 | One node in/out | `mesh_join` / `mesh_leave` | `mesh_enable` / `mesh_disable` |
 

@@ -192,3 +192,41 @@ export function nameOrSlugProps() {
     },
   };
 }
+
+/** Raw-session id + door alias. Handlers read session_id || id. */
+export function sessionIdProps(requiredNote) {
+  const need = requiredNote || "Required unless noted.";
+  return {
+    session_id: {
+      type: "string",
+      description:
+        `${need} Raw session id from runtime_session_open (sess_ + 32 lowercase hex). Alias: id. Missing both fails with session_id required; unknown id returns session_not_found.`,
+      pattern: "^sess_[a-f0-9]{32}$",
+    },
+    id: {
+      type: "string",
+      description: "Alias of session_id. The door accepts either key; do not send two different values.",
+      pattern: "^sess_[a-f0-9]{32}$",
+    },
+  };
+}
+
+/**
+ * ChainLock roster selector. Handlers read c || chain.
+ * defaultNote must be truthful for that op (tip/append ≠ recall).
+ */
+export function chainSelectProps(defaultNote) {
+  const fallback = defaultNote || "Omit both to use the op default.";
+  return {
+    c: {
+      type: "string",
+      enum: [...CHAIN_ROSTER],
+      description: `Optional chain name. One of genesis, identity, ssh, session, acts, evidence, recall, mesh, library, learn. Alias: chain. ${fallback}`,
+    },
+    chain: {
+      type: "string",
+      enum: [...CHAIN_ROSTER],
+      description: `Alias of c. ${fallback}`,
+    },
+  };
+}
