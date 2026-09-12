@@ -106,7 +106,7 @@ assert.equal(cite.audits.remain_off_by_design.software_tab, false);
 assert.equal(cite.audits.remain_off_by_design.fraggate_slug, false);
 assert.equal(cite.audits.mesh_get_never_enables, true);
 assert.equal(cite.mesh_get_never_enables, true);
-assert.equal(cite.suite_presence, "operator-enabled");
+assert.equal(cite.suite_presence, "on");
 assert.equal(cite.mesh.get_never_enables, true);
 
 const software = await (await get("/v1/software")).json();
@@ -114,12 +114,20 @@ assert.ok(!software.software.some((s) => s.slug === "azpipe"), "AZPIPE is not a 
 assert.ok(!software.software.some((s) => s.slug === "master-33"));
 assert.ok(software.software.some((s) => s.slug === "embryolock" && s.status === "live"));
 assert.ok(software.software.some((s) => s.slug === "azchat" && s.status === "live"));
-assert.ok(software.software.every((s) => !s.mesh || s.mesh.enabled_default === false));
+assert.ok(software.software.every((s) => !s.mesh || s.mesh.enabled_default === true));
 
 const mesh = await (await get("/v1/mesh")).json();
-assert.equal(mesh.enabled, false, "GET /v1/mesh never enables");
+assert.equal(mesh.enabled, true, "read-only suite-presence is ON by default");
+assert.equal(mesh.mesh_default, "on");
+assert.equal(mesh.get_never_enables, true);
 const meshStatus = await (await get("/v1/mesh/status")).json();
-assert.equal(meshStatus.enabled, false, "GET /v1/mesh/status never enables");
+assert.equal(meshStatus.enabled, true, "GET /v1/mesh/status reports default-on presence");
+assert.equal(meshStatus.get_never_enables, true);
+const meshDisable = await post("/v1/mesh/disable", {});
+const meshDisableBody = await meshDisable.json();
+assert.equal(meshDisableBody.ok, false);
+assert.equal(meshDisableBody.code, "MESH-DISABLE-REFUSED");
+assert.equal(meshDisableBody.enabled, true);
 
 const rollback = await get("/v1/rollback");
 assert.equal(rollback.status, 404, "/v1/rollback stays 404");
@@ -151,8 +159,8 @@ assert.match(skill, /live-with-local-destructive-boundary/);
 assert.doesNotMatch(skill, /EmbryoLock is STUB at FEATURE-STATE ingest/);
 assert.match(skill, /wipe\/scorch\/unlock stay FG-STUB/);
 assert.match(skill, /ARK scorch\/wipe\/unlock\/encrypt stay REFUSE/);
-assert.match(skill, /Do not enable mesh, rollback, AZPIPE/);
+assert.match(skill, /Do not enable Remain-OFF products, rollback, AZPIPE/);
 
 console.log(
-  "ok remain-off 33 items; ARK scorch/wipe/unlock/encrypt FG-STUB; EmbryoLock wipe/scorch FG-STUB; health/skill/doctor/policy LIVE; no azpipe slug; mesh GET off; /v1/rollback 404",
+  "ok remain-off 33 items; ARK scorch/wipe/unlock/encrypt FG-STUB; EmbryoLock wipe/scorch FG-STUB; health/skill/doctor/policy LIVE; no azpipe slug; suite-presence ON; disable refused; /v1/rollback 404",
 );

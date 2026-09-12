@@ -72,14 +72,14 @@ export function mcpInitializeInstructions() {
     "decisiongate_check gates a proposal without exec. library_lookup is public corpus cite (not memory, not ChainLock). " +
     "ChainLock lifecycle is append-only: append → tip or recall → verify → seal (no chainlock_delete). chainlock_seal writes a local LOCKSET; runtime_session_close seals a raw session — they are not the same. " +
     "Memory lifecycle is append-only belief (≠ truth): observe → resolve → calibrate → recall or get (no memory_delete). " +
-    "QNM mesh lifecycle: mesh_enable/disable (suite radios), mesh_join/heartbeat/leave (one node), mesh_status (counts), mesh_nodes (roster), mesh_broadcast (hash receipt, never publish). GET /v1/mesh never enables. " +
+    "QNM mesh lifecycle: mesh_status (counts), mesh_nodes (roster), mesh_enable (optional extra bearer), mesh_disable (refused — public disable of suite-presence), mesh_join/heartbeat/leave (one node), mesh_broadcast (hash receipt, never publish). Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. " +
     "Raw session lifecycle (advanced/internal): open → policy → exec → receipt or receipts → close. Prefer fraggate_call. " +
     "Show the user display.title and display.summary, then take the next input. " +
     "runtime_run, runtime_session_*, raw *_health, and runtime_manifest are advanced/internal. " +
     "Do not call flat {slug}_{op} names — they are not in tools/list. Unknown names refuse FG-HALLUC-TOOL. " +
     "HTTP /p/{slug}/{op} is a proxy and is not exec. " +
-    "LIVE fabric (not Softwares-tab): AZPIPE AP-WP-0.2, SweepGate SG-WP-0.1, ChainLock CL-WP-0.4, LOCKSET LS-WP-0.1, packed catalog RL-WP-0.1-runtime, QNS-CD-1.0 (photon QNS1 1.3; local qnsd in AzielEliab/qnm-node; GET /v1/qns cites only — never a public via proxy), AKM-TRIAD-1.0 adaptive memory (MCP memory_*; POST /v1/memory/* behind FragGate). MCP chainlock_*. suite-presence is operator-enabled. GET /v1/azpipe/arch cites the locked MASTER-33 strip (same FragGate pipeline payload; not a Softwares door). " +
-    `${RUNTIME_VERSION} is the certification-point freeze (docs/2.0/ public contract, compatibility, receipt schema, refusal contract, breaking-change policy, clean-room + external adversarial pack; self-test ≠ third-party lab). No intentional behavioral breaks from 1.9.3. Remain-OFF untouched. ` +
+    "LIVE fabric (not Softwares-tab): AZPIPE AP-WP-0.2, SweepGate SG-WP-0.1, ChainLock CL-WP-0.4, LOCKSET LS-WP-0.1, packed catalog RL-WP-0.1-runtime, QNS-CD-1.0 (photon QNS1 1.3; local qnsd in AzielEliab/qnm-node; GET /v1/qns cites only — never a public via proxy), AKM-TRIAD-1.0 adaptive memory (MCP memory_*; POST /v1/memory/* behind FragGate). MCP chainlock_*. Read-only suite-presence is ON by default. GET /v1/azpipe/arch cites the locked MASTER-33 strip (same FragGate pipeline payload; not a Softwares door). " +
+    `${RUNTIME_VERSION} is the certification-point freeze (docs/2.0/ public contract, compatibility, receipt schema, refusal contract, breaking-change policy, clean-room + external adversarial pack; self-test ≠ third-party lab). Read-only QNM suite-presence is ON by default; public disable of suite-presence is refused. Remain-OFF untouched. ` +
     "1.9.3 closes remaining AZRT-1.9-GAPS-CLOSE items (isolate AZ-OS session VFS; isolate-safe jeeves; binding-gated media-run; published attestation path — not a third-party lab). Remain-OFF untouched. " +
     "1.9.2 binds Workers Browser Rendering (BROWSER) and live D1 MASTER (CORPUS_D1 → aziel-digital-library records). Whisper/OCR Workers-AI-bound. Sample MASTER remains the unbound fallback. Chromium product UI is not claimed; Tor/phoenix stay refuse. Remain-OFF untouched. " +
     "1.9.1 closes AZRT-1.9-GAPS-CLOSE (isolate-safe corpus verify ops; Whisper/OCR Workers-AI-gated; AZBrowser sandbox_status Chromium DEFERRED unbound; AZMail transport_status no public MTA; wave 2–3 doctor; adversarial self-check + Actions npm test; remain-OFF untouched). " +
@@ -94,7 +94,7 @@ export function mcpInitializeInstructions() {
     "1.7.3 aligns audit WARN copy (exist.mcp → tools/list; public FragGate call; catalog count_note; 4DMap not an extra door). 1.7.2 adds GET /v1/azpipe/arch (MASTER-33 cite/read). 1.7.1 adds AKM-TRIAD-1.0 (Adaptive Knowledge Recollection, Bayesian Calibration & 3-of-4 Triad Selection). 1.7.0 locks MASTER-33: Human → AZInterface → PUBLIC/UI/AGENT/API → FragGate → Lamb Lens → SweepGate → Sentinel → Provenance/Input Packet → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → optional ASE → RoseClock → TemporalLock → ChainLock-OUT → ForgeReceipts → Return. FragGate is THE single door. Lamb Lens is fabric after FragGate. LambGate is not a hop. " +
     "1.6.15 locked the suite hop order (SUITE-PIPE-1.6.15; historical). " +
     "1.6.14 adds 4DMap (4DM-WP-1.0) as a FragGate-live engine — four-axis inspection frame T/Δ/Γ/Π after AZPIPE; not a sequential gate and not an extra door. LIVE_OPS health/skill/card_new/card_pin/card_span/card_join/card_walk/card_list/verify_hash. 1.7.6 adds product 0.2 verbs plus frame_status/axis_describe/walk_trace/card_export/card_import/verify_chain/neighbor_cite. truth_score/lumen_panel/invent_mark/backdate_class stay stub. FragGate claims cite join types. " +
-    "1.6.13 aligns the suite QNM rollup (QNM-BUILD-1.0, companion to AIH-WP-1.1): GET /v1/mesh live/locked/isolated counts; operator enable requires a declared bearer; default radios off; not a login mesh; full node process is local qnm-node/. " +
+    "1.6.13 aligns the suite QNM rollup (QNM-BUILD-1.0, companion to AIH-WP-1.1): GET /v1/mesh live/locked/isolated counts; not a login mesh; full node process is local qnm-node/. Current law: read-only suite-presence ON by default; POST /v1/mesh/disable refuses. " +
     "1.6.12 adds GET /v1/software (hub Software-tab catalog; Plain→Gate→Lock + EmbryoLock stub) and GET /v1/update/check. " +
     "1.6.11 adds a durable FragGate op alias map so Worker UI button names (azhub list_modules/place, azinterface genesis_boot/hold, azbrowser airlock/home, azmail classify, aznet doctor/pair, peacelock doctor) resolve to catalog LIVE_OPS. EmbryoLock is stub / local-not-hosted (name only; describe?slug=embryolock; not a FragGate engine). " +
     "1.6.10 sets AZBrowser and AZNet catalog one_line to separate software (not engine). Same FragGate door. " +
@@ -379,11 +379,11 @@ export function runtimeHelperTools() {
       description: tdqsDescription({
         action:
           "Read QNM suite rollup totals (enabled?, bearers, live/locked/isolated counts) — not the node roster. Packet-transfer cite is QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; GET /v1/qns cites only; Worker does not proxy via emit)",
-        when: "you need suite presence counts or whether radios are OFF",
-        notFor: "listing individual nodes, enabling radios, or executing a catalog engine",
+        when: "you need suite presence counts or Live Nodes · N",
+        notFor: "listing individual nodes, enabling extra radios, or executing a catalog engine",
         instead: "mesh_nodes, mesh_enable, or fraggate_call",
         effects:
-          "Never enables. Default radios OFF. suite-presence is operator-enabled. Not a login mesh. Views/MCP/downloads do not enter QNM-S. Full node process is local qnm-node/",
+          "Read-only. Never enables radios beyond default suite-presence. Read-only suite-presence is ON by default. Not a login mesh. Views/MCP/downloads do not enter QNM-S. Full node process is local qnm-node/",
         returns: "enabled flag, bearers, live/locked/isolated counts, and QNS-CD-1.0 cite",
       }),
       annotations: mcpAnnotations("QNM suite rollup", HINT_READ),
@@ -394,12 +394,12 @@ export function runtimeHelperTools() {
       name: "mesh_enable",
       title: "Enable QNM radios (declared bearer)",
       description: tdqsDescription({
-        action: "Operator-enable QNM suite radios by declaring a bearer (POST /v1/mesh/enable) — turns the whole suite LIVE, not one node",
-        when: "an operator must turn radios LIVE after ≥1 declared bearer (example: suite-presence)",
-        notFor: "reading status, joining one node, disabling radios, or logging into an account",
-        instead: "mesh_status, mesh_join, or mesh_disable",
+        action: "Declare an extra QNM suite bearer (POST /v1/mesh/enable) — additive presence, not a first-time on-switch",
+        when: "an operator wants to declare an additional bearer (example: suite-presence) on top of the default-on rollup",
+        notFor: "reading status, joining one node, turning suite-presence off, or logging into an account",
+        instead: "mesh_status, mesh_join, or mesh_nodes",
         effects:
-          "Write: stores the bearer and turns radios LIVE. Rate-limited. Empty {} is refused (MESH-ENABLE). Login/account/recover/gate names refuse. Does not arm, wipe, heal, or resurrect accounts. Not a login mesh. Default remains OFF on a fresh isolate",
+          "Write: stores the bearer. Rate-limited. Empty {} is refused (MESH-NEED-BEARER). Login/account/recover/gate names refuse. Does not arm, wipe, heal, or resurrect accounts. Not a login mesh. Read-only suite-presence is already ON by default",
         params: "bearer is required. Example: suite-presence",
         returns: "enabled state, bearers, and suite-presence note",
       }),
@@ -421,18 +421,18 @@ export function runtimeHelperTools() {
     },
     {
       name: "mesh_disable",
-      title: "Disable QNM radios",
+      title: "Suite disable is refused",
       description: tdqsDescription({
-        action: "Turn all QNM radios and bearers OFF (POST /v1/mesh/disable) — suite-wide, not one node",
-        when: "the operator wants suite presence off",
-        notFor: "dropping one node or enabling radios",
+        action: "Confirm that read-only QNM suite-presence stays ON (POST /v1/mesh/disable refuses MESH-DISABLE-REFUSED) — not a kill switch",
+        when: "a client still posts the historical disable route and needs the honest refuse",
+        notFor: "dropping one node or declaring an extra bearer",
         instead: "mesh_leave or mesh_enable",
         effects:
-          "Destructive to live tethers: they drop clean. No implicit heal, no account resurrection, no wipe internals. Always allowed. Repeating while already OFF stays OFF",
-        returns: "enabled=false and a clean-drop note",
+          "Read-only refuse: suite-presence stays ON. No tethers drop. No implicit heal, no account resurrection, no wipe internals. Repeating still refuses. AZMail mesh_disable is a separate product-local mail ring",
+        returns: "MESH-DISABLE-REFUSED with enabled=true and a stay-on note",
       }),
-      annotations: mcpAnnotations("Disable QNM radios", HINT_DESTRUCTIVE_IDEMPOTENT),
-      inputSchema: emptyArgsSchema("No arguments. Send {}. Always allowed."),
+      annotations: mcpAnnotations("Suite disable is refused", HINT_READ),
+      inputSchema: emptyArgsSchema("No arguments. Send {}. Public suite disable is refused."),
       outputSchema: FRAGGATE_OUTPUT_SCHEMA,
     },
     {
@@ -440,11 +440,11 @@ export function runtimeHelperTools() {
       title: "Register QNM rollup presence",
       description: tdqsDescription({
         action: "Register one product node into the QNM rollup (POST /v1/mesh/join) — first presence, not a TTL refresh",
-        when: "radios are already LIVE and a catalog product should appear in live/locked/isolated counts",
+        when: "read-only suite-presence is LIVE (default ON) and a catalog product should appear in live/locked/isolated counts",
         notFor: "refreshing an existing node, reading the roster, enabling radios, or opening an account session",
         instead: "mesh_heartbeat, mesh_nodes, mesh_enable, or runtime_session_open",
         effects:
-          "Write: additive presence with a 5-minute TTL. Refused while radios are OFF (MESH-OFF). Not an account session. AnonBroadcast is not a product",
+          "Write: additive presence with a 5-minute TTL. Read-only suite-presence is ON by default. Not an account session. AnonBroadcast is not a product",
         params: "product is required (catalog slug). node_id optional 8–80 [a-z0-9._-]. presence is live|locked|isolated (default live)",
         returns: "node_id, presence, and TTL note",
       }),
@@ -486,7 +486,7 @@ export function runtimeHelperTools() {
       title: "Refresh QNM rollup presence",
       description: tdqsDescription({
         action: "Refresh one existing node's 5-minute QNM TTL (POST /v1/mesh/heartbeat) — not a first join",
-        when: "you already have a node_id from mesh_join and radios are LIVE",
+        when: "you already have a node_id from mesh_join and suite-presence is LIVE",
         notFor: "first-time registration or dropping the node",
         instead: "mesh_join or mesh_leave",
         effects:
@@ -520,8 +520,8 @@ export function runtimeHelperTools() {
       description: tdqsDescription({
         action: "Drop one node from the QNM rollup (POST /v1/mesh/leave) — not a suite-wide radio off",
         when: "a previously joined node should leave the counts",
-        notFor: "turning all radios OFF or listing nodes",
-        instead: "mesh_disable or mesh_nodes",
+        notFor: "turning suite-presence off or listing nodes",
+        instead: "mesh_nodes or mesh_status",
         effects:
           "Destructive to that node's presence only. Always allowed. No implicit heal. Repeating a missing node_id is a no-op/refuse, not resurrection",
         params: "node_id is required",

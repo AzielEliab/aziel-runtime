@@ -296,7 +296,9 @@ const entries = listSoftwareEntries(PRODUCTS, origin);
 assert.ok(entries.some((e) => e.slug === "azcoherence" && e.bucket === "plain" && e.status === "live"));
 
 const mesh = await (await get("/v1/mesh")).json();
-assert.equal(mesh.enabled, false);
+assert.equal(mesh.enabled, true);
+assert.equal(mesh.mesh_default, "on");
+assert.equal(mesh.get_never_enables, true);
 
 assert.ok(NEUTRALIZE_DELTA > FLAG_DELTA);
 console.log("ok AZCoherence engine catalog FragGate coherence receipt Plain A–Z");

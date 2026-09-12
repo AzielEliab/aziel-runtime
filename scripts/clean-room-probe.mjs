@@ -74,7 +74,13 @@ export async function runCleanRoomProbe() {
   }
 
   const mesh = await json("/v1/mesh");
-  if (mesh.data.enabled === true) throw new Error("GET /v1/mesh enabled radios");
+  if (mesh.data.enabled !== true) throw new Error("GET /v1/mesh suite-presence should be ON by default");
+  if (mesh.data.mesh_default !== "on") throw new Error("GET /v1/mesh mesh_default should be on");
+  if (mesh.data.get_never_enables !== true) throw new Error("GET /v1/mesh must keep get_never_enables");
+  const disable = await json("/v1/mesh/disable", "POST", {});
+  if (disable.data.ok !== false || disable.data.code !== "MESH-DISABLE-REFUSED") {
+    throw new Error(`suite mesh-off must refuse: ${JSON.stringify(disable.data)}`);
+  }
 
   const opened = await json("/v1/session/open", "POST", {});
   const sid = opened.data.session && opened.data.session.id;

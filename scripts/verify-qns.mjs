@@ -129,7 +129,9 @@ assert.ok(!catalog.products.some((p) => p.slug === "qns"));
 assert.ok(!catalog.extras.some((e) => e.slug === "qns"));
 
 const mesh = await (await get("/v1/mesh")).json();
-assert.equal(mesh.enabled, false);
+assert.equal(mesh.enabled, true);
+assert.equal(mesh.mesh_default, "on");
+assert.equal(mesh.get_never_enables, true);
 assert.equal(mesh.qns_cd.spec, "QNS-CD-1.0");
 assert.equal(mesh.qns_cd.local, QNS_LOCAL);
 assert.match(mesh.local_node_note, /QNS-CD-1\.0/);

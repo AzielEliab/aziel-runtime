@@ -114,7 +114,7 @@ export const PLACEMENTS = Object.freeze({
     placement: "fabric-mesh",
     domain: null,
     domain_id: null,
-    note: "QNM-BUILD-1.0 suite rollup. Fabric/hub. Not a Softwares-tab product. Default OFF.",
+    note: "QNM-BUILD-1.0 suite rollup. Fabric/hub. Not a Softwares-tab product. Read-only suite-presence ON by default.",
   },
   memory: {
     placement: "fabric-memory",
