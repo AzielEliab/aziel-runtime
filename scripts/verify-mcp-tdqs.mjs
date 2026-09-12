@@ -136,6 +136,7 @@ const pairs = [
   ["fraggate_call", "runtime_run"],
   ["chainlock_recall", "memory_recall"],
   ["chainlock_tip", "chainlock_recall"],
+  ["chainlock_seal", "runtime_session_close"],
   ["mesh_status", "mesh_nodes"],
   ["mesh_enable", "mesh_join"],
   ["mesh_disable", "mesh_leave"],
@@ -152,8 +153,36 @@ for (const [a, b] of pairs) {
 }
 
 assert.match(byName.chainlock_append.description, /no chainlock_delete|append-only/);
+assert.match(byName.chainlock_append.description, /unknown-chain|no-fact/);
+assert.match(byName.chainlock_append.description, /session chain/);
+assert.match(byName.chainlock_tip.description, /session chain/);
+assert.match(byName.chainlock_tip.description, /empty=true|tip=null/);
+assert.match(byName.chainlock_seal.description, /empty-vault/);
+assert.match(byName.chainlock_seal.description, /runtime_session_close/);
+assert.match(byName.chainlock_seal.description, /does not backdate|never backdates/i);
 assert.match(byName.memory_observe.description, /no memory_delete|Append-only/);
+assert.match(byName.memory_recall.description, /CHAIN_VERIFY_FAIL/);
+assert.match(byName.memory_recall.description, /defaults to 1|default depth is 5|Omit depth to rank at 5/);
+assert.match(byName.memory_get.description, /AKM-NOT-FOUND/);
 assert.match(byName.runtime_software.description, /Not the hashed/);
+assert.match(byName.runtime_software.description, /Never enables mesh|never enables mesh/i);
 assert.match(byName.runtime_bundle.description, /not Software-tab/);
+assert.match(byName.runtime_pull.description, /unknown product/);
+assert.match(byName.runtime_pull.inputSchema.properties.product.description, /Alias of slug/);
+assert.match(byName.fraggate_list.description, /allowlist\.azhub/);
+assert.match(byName.fraggate_list.description, /ethical_search/);
+assert.match(byName.fraggate_verify.description, /Empty \{\}/);
+assert.match(byName.fraggate_verify.description, /FG-HALLUC-TOOL/);
+assert.match(byName.library_lookup.description, /FG-UNKNOWN-OP/);
+assert.match(byName.library_lookup.description, /not memory_recall q|Not a memory/);
+assert.match(byName.runtime_session_close.description, /session_closed/);
+assert.match(byName.runtime_session_close.description, /chainlock_seal/);
+assert.match(byName.runtime_session_exec.description, /does not auto-open|Does not mint/i);
+assert.match(byName.runtime_session_policy.description, /session_closed|session_expired/);
+assert.match(byName.runtime_session_receipt.description, /receipt=null|session_not_found/);
+assert.match(byName.runtime_session_receipts.description, /cap 64|receipt cap/);
+assert.ok(byName.runtime_session_policy.inputSchema.properties.id, "session id alias is documented");
+assert.ok(byName.chainlock_append.inputSchema.properties.chain, "chain alias is documented");
+assert.match(instructions, /chainlock_seal writes a local LOCKSET/);
 
 console.log(`ok mcp-tdqs ${names.length} tools, names frozen, schema coverage complete`);
