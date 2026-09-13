@@ -14,7 +14,7 @@
  * GET  /sigil.png             rose-star brand mark
  * GET  /robots.txt            Allow / for Google + major AI bots; sitemap-index + hub sitemaps
  * GET  /sitemap.xml           session, pull, OpenAPI, product cards/health, GitHub
- * GET  /sitemap-index.xml     catalog sitemap + corpus + godlock.uk + live product Worker sitemaps
+ * GET  /sitemap-index.xml     catalog sitemap + corpus + godlock.uk + hedidntjump sister archive + live product Worker sitemaps
  * GET  /llms.txt              plain-text catalog + how to cite Aziel Eliab + Digital Library
  * GET  /ai.txt                same as /llms.txt
  * GET  /cite.json             How-to-cite: Aziel Eliab (aka Aziel Elroi Eliab), Apache-2.0, no invented DOIs
@@ -146,6 +146,11 @@ import {
   AUTHOR_ID,
   AUTHOR_NAME,
   BRAND_MARK_ALT,
+  HEDIDNTJUMP_CITE,
+  HEDIDNTJUMP_HOME,
+  HEDIDNTJUMP_LLMS,
+  HEDIDNTJUMP_NAME,
+  HEDIDNTJUMP_SITEMAP,
   LIBRARY_CITE,
   LIBRARY_LLMS,
   LIBRARY_NAME,
@@ -180,6 +185,7 @@ import {
   REMAIN_OFF_BY_DESIGN,
   hubPageSitemapUrls,
   hubsCiteField,
+  sisterArchiveCiteField,
   ecosystemJsonLd,
   entityGraphCiteField,
   namedToolsJsonLd,
@@ -1441,7 +1447,7 @@ function llmsTxt(origin) {
     "VibeLock counted Worker (vibelock-download-tracker.vibelock.workers.dev) already Allows /. The host vibelock.vibelock.workers.dev is a different Worker and previously served Cloudflare content-signal text — that repo should match the template.",
   );
   lines.push(
-    `Sitemap index (corpus + godlock.uk + live product sitemaps): ${base}/sitemap-index.xml`,
+    `Sitemap index (corpus + godlock.uk + hedidntjump sister archive + live product sitemaps): ${base}/sitemap-index.xml`,
   );
   lines.push("");
   return lines.join("\n");
@@ -1501,6 +1507,13 @@ function citeJson(origin) {
     mcp: base + "/mcp",
     azpipe_arch: base + "/v1/azpipe/arch",
     hubs: hubsCiteField(),
+    sister_archives: sisterArchiveCiteField(),
+    hedidntjump: HEDIDNTJUMP_HOME,
+    hedidntjump_name: HEDIDNTJUMP_NAME,
+    hedidntjump_sitemap: HEDIDNTJUMP_SITEMAP,
+    hedidntjump_cite: HEDIDNTJUMP_CITE,
+    hedidntjump_llms: HEDIDNTJUMP_LLMS,
+    hedidntjump_software_tab: false,
     entity_graph: entityGraphCiteField(origin),
     azcoherence: azcoherenceCiteField(origin),
     mesh_get_never_enables: true,
@@ -2217,7 +2230,7 @@ function staticPaths(origin) {
       get: {
         operationId: "catalog_sitemap_index",
         summary:
-          "Sitemap index: this catalog sitemap plus live Aziel Digital Library, godlock.uk, and product Worker sitemaps.",
+          "Sitemap index: this catalog sitemap plus live Aziel Digital Library, godlock.uk, He Didn't Jump sister archive, and product Worker sitemaps.",
         tags: ["catalog"],
         responses: { "200": { description: "sitemapindex.xml" } },
       },
