@@ -12,6 +12,8 @@ export const AUTHOR_SAME_AS = [AUTHOR_GITHUB];
 
 /** Shared hub Person @id. Runtime is not the identity hub — do not use GitHub#person. */
 export const AUTHOR_ID = "https://www.azieleliab.com/#aziel";
+/** Alias for hub/archive cite.json `person_id`. Same string as AUTHOR_ID — not a second @id. */
+export const PERSON_ID = AUTHOR_ID;
 
 /** Hub identity for the suite. Worker origin is execution endpoint / relatedLink only. */
 export const RUNTIME_SOFTWARE_ID = "https://www.azieleliab.com/runtime#runtime";
@@ -90,7 +92,7 @@ export function llmsWhatThisIsBlock() {
     "",
     RUNTIME_ABSTRACT,
     "",
-    `Public name: Aziel Runtime (aziel-runtime). Author / identity: Aziel Eliab only (@id ${AUTHOR_ID}). Also known as Aziel Elroi Eliab (alternateName only). Runtime is the execution surface, not the identity hub.`,
+    `Public name: Aziel Runtime (aziel-runtime). Author / identity: Aziel Eliab only (person_id ${PERSON_ID}). Also known as Aziel Elroi Eliab (alternateName only). Runtime is the execution surface, not the identity hub. Hub identity machine files: ${AUTHOR_PERSON_JSONLD} · ${AUTHOR_WHO_IS} · ${AUTHOR_WELL_KNOWN_PERSON} (cite only — this Worker does not serve or proxy them).`,
     "",
     "## How to use",
     "",
@@ -130,6 +132,8 @@ export const HEDIDNTJUMP_HOME = `${HEDIDNTJUMP_ORIGIN}/`;
 export const HEDIDNTJUMP_SITEMAP = `${HEDIDNTJUMP_ORIGIN}/sitemap.xml`;
 export const HEDIDNTJUMP_CITE = `${HEDIDNTJUMP_ORIGIN}/cite.json`;
 export const HEDIDNTJUMP_LLMS = `${HEDIDNTJUMP_ORIGIN}/llms.txt`;
+export const HEDIDNTJUMP_MISSION =
+  "Receipt-first public work. He Didn't Jump challenges the official 1936 Zioncheck suicide narrative via published archive. Not a Softwares engine.";
 
 /** Canonical author site (www). Apex azieleliab.com redirects here. */
 export const AUTHOR_SITE_ORIGIN = "https://www.azieleliab.com";
@@ -139,6 +143,10 @@ export const AUTHOR_SITE_CITE = `${AUTHOR_SITE_ORIGIN}/cite.json`;
 export const AUTHOR_SITE_LLMS = `${AUTHOR_SITE_ORIGIN}/llms.txt`;
 export const AUTHOR_SITE_SOFTWARE_TAB = `${AUTHOR_SITE_ORIGIN}/software`;
 export const AUTHOR_SITE_RUNTIME = `${AUTHOR_SITE_ORIGIN}/runtime`;
+/** Hub-owned identity machine files. Runtime cites; it does not serve or proxy a second Person document. */
+export const AUTHOR_PERSON_JSONLD = `${AUTHOR_SITE_ORIGIN}/person.jsonld`;
+export const AUTHOR_WHO_IS = `${AUTHOR_SITE_ORIGIN}/who-is`;
+export const AUTHOR_WELL_KNOWN_PERSON = `${AUTHOR_SITE_ORIGIN}/.well-known/person.jsonld`;
 
 export const LIBRARY_SOFTWARE_TAB = `${LIBRARY_ORIGIN}/software`;
 
@@ -215,7 +223,9 @@ export function sisterArchiveCrawl() {
       robots: `${HEDIDNTJUMP_ORIGIN}/robots.txt`,
       software_tab: false,
       fraggate_engine: false,
-      note: "Sister historical archive. Cross-index only. Not a Softwares hub. Not a FragGate engine.",
+      person_id: PERSON_ID,
+      mission: HEDIDNTJUMP_MISSION,
+      note: `${HEDIDNTJUMP_MISSION} Cross-index only. Not a Softwares hub. Not a FragGate engine.`,
     },
   ];
 }
@@ -228,10 +238,32 @@ export function sisterArchiveCiteField() {
   return {
     author: AUTHOR_NAME,
     identity: AUTHOR_NAME,
+    person_id: PERSON_ID,
     software_tab: false,
     fraggate_engine: false,
-    note: "Sister historical archives. Listed on sitemap-index / llms / cite for AZindex discovery. Not Softwares hubs. Not FragGate engines.",
+    note: `${HEDIDNTJUMP_MISSION} Listed on sitemap-index / llms / cite for AZindex discovery. Not Softwares hubs. Not FragGate engines.`,
     archives: sisterArchiveCrawl(),
+  };
+}
+
+/**
+ * Shared identity machine files live on azieleliab.com.
+ * This Worker cites those URLs. It does not serve or proxy a second Person document.
+ */
+export function identityMachineCiteField() {
+  return {
+    author: AUTHOR_NAME,
+    identity: AUTHOR_NAME,
+    person_id: PERSON_ID,
+    author_id: AUTHOR_ID,
+    identity_hub: `${AUTHOR_SITE_ORIGIN}/`,
+    person_jsonld: AUTHOR_PERSON_JSONLD,
+    who_is: AUTHOR_WHO_IS,
+    well_known: AUTHOR_WELL_KNOWN_PERSON,
+    hosted_on: "azieleliab.com",
+    runtime_serves: false,
+    runtime_proxies: false,
+    note: `Shared Person @id is ${PERSON_ID} only. Do not invent a second Person @id. person.jsonld / who-is / .well-known/person.jsonld are hub-owned on azieleliab.com. This Worker cites those URLs and does not serve or proxy a second identity document.`,
   };
 }
 
@@ -665,7 +697,7 @@ export function llmsEcosystemBlock() {
   const lines = [
     "## Ecosystem",
     "",
-    `${ECOSYSTEM_HEADING}. Identity ${AUTHOR_NAME} only. Softwares hubs refresh from GET /v1/software. Sister archive is not a Softwares hub.`,
+    `${ECOSYSTEM_HEADING}. Identity ${AUTHOR_NAME} only. Softwares hubs refresh from GET /v1/software. Sister archive is not a Softwares hub. ${HEDIDNTJUMP_MISSION}`,
     "",
   ];
   for (const link of ECOSYSTEM_LINKS) {
@@ -694,6 +726,8 @@ export function entityGraphCiteField(origin) {
   const base = String(origin || "").replace(/\/$/, "");
   return {
     person: AUTHOR_ID,
+    person_id: PERSON_ID,
+    identity_machine: identityMachineCiteField(),
     runtime: RUNTIME_SOFTWARE_ID,
     execution_url: `${base}/`,
     relatedLink: `${base}/`,
@@ -715,6 +749,8 @@ export function catalogHubFields(origin) {
     author: AUTHOR_NAME,
     identity: AUTHOR_NAME,
     author_id: AUTHOR_ID,
+    person_id: PERSON_ID,
+    identity_machine: identityMachineCiteField(),
     aka: AUTHOR_ALTERNATE_NAME,
     alternateName: AUTHOR_ALTERNATE_NAME,
     library: LIBRARY_ORIGIN + "/",
@@ -771,7 +807,8 @@ export function llmsCiteBlock(origin) {
     "## How to cite Aziel Eliab software and the Digital Library",
     "",
     `Primary name: ${AUTHOR_NAME}. Also known as ${AUTHOR_ALTERNATE_NAME} (alternateName / aka only — do not treat as a second author).`,
-    `Author @id: ${AUTHOR_ID} (shared hub Person). Runtime SoftwareApplication sameAs: ${RUNTIME_GITHUB} and ${RUNTIME_GLAMA}. Worker origin is the execution url, not Person identity.`,
+    `Author @id / person_id: ${PERSON_ID} (shared hub Person — do not invent a second @id). Runtime SoftwareApplication sameAs: ${RUNTIME_GITHUB} and ${RUNTIME_GLAMA}. Worker origin is the execution url, not Person identity.`,
+    `Identity machine files (hub-owned on azieleliab.com; this Worker cites, does not serve or proxy): person.jsonld ${AUTHOR_PERSON_JSONLD} · who-is ${AUTHOR_WHO_IS} · well-known ${AUTHOR_WELL_KNOWN_PERSON}`,
     "Do not invent Zenodo DOIs. Cite the machine record. Known historical DOIs may be 410 tombstones.",
     "",
     `Runtime: ${citeHowToRuntime(origin)}`,
@@ -788,6 +825,7 @@ export function llmsCiteBlock(origin) {
     `${HEDIDNTJUMP_NAME} cite.json: ${HEDIDNTJUMP_CITE}`,
     `${HEDIDNTJUMP_NAME} llms.txt: ${HEDIDNTJUMP_LLMS}`,
     `${HEDIDNTJUMP_NAME} sitemap.xml: ${HEDIDNTJUMP_SITEMAP}`,
+    `${HEDIDNTJUMP_NAME} mission: ${HEDIDNTJUMP_MISSION}`,
     `AZCoherence: ${AUTHOR_FAMILY_GIVEN}. (2026). AZCoherence 0.1.0 [Software]. Apache-2.0. ${AZCOHERENCE_GITHUB}`,
     `AZCoherence describe: ${base}/v1/fraggate/describe?slug=azcoherence`,
     `AZCoherence Worker: ${AZCOHERENCE_WORKER}/`,
@@ -803,9 +841,10 @@ export function llmsIdentityHeader() {
   return [
     `Product: ${PRODUCT_NAME} (${PRODUCT_SLUG})`,
     `Author: ${AUTHOR_NAME}`,
-    `Author @id: ${AUTHOR_ID}`,
+    `Author @id / person_id: ${PERSON_ID}`,
+    `Identity machine (hub-owned, not served here): ${AUTHOR_PERSON_JSONLD} · ${AUTHOR_WHO_IS} · ${AUTHOR_WELL_KNOWN_PERSON}`,
     `Also known as: ${AUTHOR_ALTERNATE_NAME} (alternateName only)`,
-    `Identity: ${AUTHOR_NAME} (primary). Do not invent other names.`,
+    `Identity: ${AUTHOR_NAME} (primary). Do not invent other names or a second Person @id.`,
     `Digital Library: ${LIBRARY_NAME} — ${LIBRARY_ORIGIN}/`,
   ];
 }

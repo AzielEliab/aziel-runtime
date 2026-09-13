@@ -8,7 +8,11 @@ import {
   AUTHOR_ALTERNATE_NAME,
   AUTHOR_GITHUB,
   AUTHOR_ID,
+  PERSON_ID,
   AUTHOR_NAME,
+  AUTHOR_PERSON_JSONLD,
+  AUTHOR_WHO_IS,
+  AUTHOR_WELL_KNOWN_PERSON,
   AUTHOR_SITE_SITEMAP,
   BRAND_MARK_ALT,
   BRAND_MARK_SRC,
@@ -249,6 +253,12 @@ const llms = await llmsRes.text();
 assert.match(llms, /Aziel Eliab/);
 assert.match(llms, /Aziel Elroi Eliab/);
 assert.match(llms, /www\.azieleliab\.com\/#aziel/);
+assert.match(llms, /www\.azieleliab\.com\/person\.jsonld/);
+assert.match(llms, /www\.azieleliab\.com\/who-is/);
+assert.match(llms, /www\.azieleliab\.com\/\.well-known\/person\.jsonld/);
+assert.match(llms, /does not serve or proxy/);
+assert.match(llms, /1936 Zioncheck/);
+assert.match(llms, /Receipt-first public work/);
 assert.match(llms, /execution surface, not the identity hub/);
 assert.match(llms, /Aziel Digital Library/);
 assert.match(llms, /How to cite Aziel Eliab software/);
@@ -303,6 +313,16 @@ const cite = await citeRes.json();
 assert.equal(cite.author, AUTHOR_NAME);
 assert.equal(cite.identity, AUTHOR_NAME);
 assert.equal(cite.author_id, AUTHOR_ID);
+assert.equal(cite.person_id, PERSON_ID);
+assert.equal(cite.person_id, cite.author_id);
+assert.equal(cite.identity_machine.person_id, PERSON_ID);
+assert.equal(cite.identity_machine.person_jsonld, AUTHOR_PERSON_JSONLD);
+assert.equal(cite.identity_machine.who_is, AUTHOR_WHO_IS);
+assert.equal(cite.identity_machine.well_known, AUTHOR_WELL_KNOWN_PERSON);
+assert.equal(cite.identity_machine.runtime_serves, false);
+assert.equal(cite.identity_machine.runtime_proxies, false);
+assert.equal(cite.entity_graph.person_id, PERSON_ID);
+assert.match(cite.identity_note, /does not serve or proxy a second Person document/);
 assert.equal(cite.aka, AUTHOR_ALTERNATE_NAME);
 assert.equal(cite.alternateName, AUTHOR_ALTERNATE_NAME);
 assert.match(cite.how_to_cite, /Eliab, Aziel/);
@@ -370,7 +390,7 @@ assert.equal(cite.hedidntjump_software_tab, false);
 assert.ok(cite.sister_archives);
 assert.equal(cite.sister_archives.software_tab, false);
 assert.equal(cite.sister_archives.fraggate_engine, false);
-assert.ok(cite.sister_archives.archives.some((a) => a.id === "hedidntjump" && a.sitemap === HEDIDNTJUMP_SITEMAP && a.software_tab === false));
+assert.ok(cite.sister_archives.archives.some((a) => a.id === "hedidntjump" && a.sitemap === HEDIDNTJUMP_SITEMAP && a.software_tab === false && a.person_id === PERSON_ID && /Zioncheck/.test(a.mission)));
 assert.ok(!cite.hubs.hubs.some((h) => h.id === "hedidntjump"));
 assert.equal(cite.azcoherence.slug, "azcoherence");
 assert.equal(cite.azcoherence.identity, AUTHOR_NAME);
@@ -383,6 +403,9 @@ mime(catalogRes, /application\/json; charset=utf-8/);
 const catalog = await catalogRes.json();
 assert.equal(catalog.author, AUTHOR_NAME);
 assert.equal(catalog.author_id, AUTHOR_ID);
+assert.equal(catalog.person_id, PERSON_ID);
+assert.equal(catalog.identity_machine.person_jsonld, AUTHOR_PERSON_JSONLD);
+assert.equal(catalog.identity_machine.runtime_serves, false);
 assert.equal(catalog.aka, AUTHOR_ALTERNATE_NAME);
 assert.equal(catalog.library_name, "Aziel Digital Library");
 assert.equal(catalog.hedidntjump, HEDIDNTJUMP_HOME);
@@ -817,6 +840,10 @@ const citeDoc = await (await import("node:fs/promises")).readFile(
 assert.match(citeDoc, /not merely an API orchestrator or software aggregator/);
 assert.match(citeDoc, /2\.0\.0-rc1/);
 assert.match(citeDoc, /www\.azieleliab\.com\/#aziel/);
+assert.match(citeDoc, /www\.azieleliab\.com\/person\.jsonld/);
+assert.match(citeDoc, /www\.azieleliab\.com\/who-is/);
+assert.match(citeDoc, /www\.azieleliab\.com\/\.well-known\/person\.jsonld/);
+assert.match(citeDoc, /1936 Zioncheck/);
 assert.match(citeDoc, /www\.azieleliab\.com\/runtime#runtime/);
 assert.match(citeDoc, /github\.com\/AzielEliab\/fraggate/);
 assert.match(citeDoc, /plus other MCP\/OpenAPI-capable assistants/);

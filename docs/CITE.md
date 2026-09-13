@@ -12,10 +12,12 @@ Aziel Runtime is not merely an API orchestrator or software aggregator; it is a 
 
 | Entity | `@id` |
 |--------|-------|
-| Person | `https://www.azieleliab.com/#aziel` |
+| Person | `https://www.azieleliab.com/#aziel` (`person_id` — do not invent a second `@id`) |
 | Runtime SoftwareApplication | `https://www.azieleliab.com/runtime#runtime` |
 
 Worker origin `https://aziel-runtime.vibelock.workers.dev/` is the execution endpoint / `relatedLink`, not the identity hub. `sameAs`: GitHub repo + [Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime).
+
+Identity machine files are hub-owned on azieleliab.com. Runtime `/cite.json` `identity_machine` cites (does not serve or proxy): [person.jsonld](https://www.azieleliab.com/person.jsonld) · [who-is](https://www.azieleliab.com/who-is) · [.well-known/person.jsonld](https://www.azieleliab.com/.well-known/person.jsonld).
 
 ## How to cite
 
@@ -28,7 +30,7 @@ Eliab, Aziel. (2026). Aziel Runtime 2.0.0-rc1 [Software]. Apache-2.0. https://az
 - Official site → https://www.azieleliab.com/ · Runtime hub → https://www.azieleliab.com/runtime
 - Aziel Corpus Library → https://www.azielcorpuslibrary.net/
 - GodLock.uk → https://godlock.uk/
-- He Didn't Jump (sister archive, not a Softwares hub) → https://www.hedidntjump.com/ · sitemap https://www.hedidntjump.com/sitemap.xml
+- He Didn't Jump (sister archive, not a Softwares hub) → https://www.hedidntjump.com/ · sitemap https://www.hedidntjump.com/sitemap.xml — receipt-first public work; challenges the official 1936 Zioncheck suicide narrative via published archive. Not a Softwares engine.
 - FragGate kernel → https://github.com/AzielEliab/fraggate
 - Try on Glama (primary MCP) → https://glama.ai/mcp/servers/AzielEliab/aziel-runtime
 
