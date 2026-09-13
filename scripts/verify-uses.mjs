@@ -63,6 +63,8 @@ assert.equal(shouldIncrementUse("GET", "/v1/mesh"), false);
 assert.equal(shouldIncrementUse("GET", "/v1/mesh/status"), false);
 assert.equal(shouldIncrementUse("GET", "/v1/mesh/nodes"), false);
 assert.equal(shouldIncrementUse("GET", "/v1/qns"), false);
+assert.equal(shouldIncrementUse("GET", "/v1/receipts"), false);
+assert.equal(shouldIncrementUse("GET", "/v1/receipts/tip"), false);
 assert.equal(shouldIncrementUse("GET", "/v1/azpipe/arch"), false);
 assert.equal(shouldIncrementUse("POST", "/v1/mesh/enable"), true);
 assert.equal(shouldIncrementUse("POST", "/v1/mesh/join"), true);

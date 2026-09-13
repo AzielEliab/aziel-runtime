@@ -1,0 +1,184 @@
+%PDF-1.4
+1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj
+2 0 obj << /Type /Pages /Kids [3 0 R 5 0 R] /Count 2 >> endobj
+3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 7 0 R >> >> >> endobj
+4 0 obj << /Length 3429 >> stream
+BT
+/F1 9 Tf
+54 738 Td
+(# ACT-RECEIPT-1.0 ? public four-field action receipts) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(Author: Aziel Eliab only.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(Status: LIVE fabric \(2026-09-13\). Not a Softwares-tab product. Not a FragGate slug.) Tj
+0 -11 Td
+(Operator-approved runtime plugin.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(---) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(Aziel Eliab · fabric · public mesh copy · corpus /receipts) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(    ACT-RECEIPT-1.0) Tj
+0 -11 Td
+(    Four-field action receipts for FragGate / MCP / significant POST /v1/*) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(    Origin: https://www.azielcorpuslibrary.net/receipts) Tj
+0 -11 Td
+(    Append: POST https://www.azielcorpuslibrary.net/v1/receipts/append) Tj
+0 -11 Td
+(    Header: x-aziel-receipt  when RECEIPT_APPEND_TOKEN is set) Tj
+0 -11 Td
+(    Fail-open: missing token or corpus dark must not break engines) Tj
+0 -11 Td
+(    Identity: Aziel Eliab only) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(0. Sentence) Tj
+0 -11 Td
+(An ACT receipt is a hash-chained public mesh copy of one act: what was asked,) Tj
+0 -11 Td
+(what came back, and event metadata. The public chain lives on the Digital Library.) Tj
+0 -11 Td
+(This runtime appends. It does not host the chain.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(1. Claim) Tj
+0 -11 Td
+(FragGate already lists and calls. POST /mcp already speaks JSON-RPC. Session and) Tj
+0 -11 Td
+(mesh already mint local receipts. Those stay local truth.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(This paper is the **public mesh copy**. After FragGate list/call, POST /mcp, and) Tj
+0 -11 Td
+(significant POST /v1/*, the runtime may POST a four-field receipt to corpus) Tj
+0 -11 Td
+(`/v1/receipts/append` when `RECEIPT_APPEND_TOKEN` is set. Header `x-aziel-receipt`) Tj
+0 -11 Td
+(carries the token. MESH-VAULT lite may mint catalog / download / mesh events.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(2. What it is not) Tj
+0 -11 Td
+(?         Not a Softwares-tab product. Do not add slug act-receipt or receipts.) Tj
+0 -11 Td
+(?         Not a FragGate engine. No fraggate_call { slug: "act-receipt" }.) Tj
+0 -11 Td
+(?         Not a new MCP tool. PUBLIC_MCP_TOOLS stays frozen.) Tj
+0 -11 Td
+(?         Not user, IP, or geo logging. Those fields are absent.) Tj
+0 -11 Td
+(?         Not a Remain-OFF flip. Do not enable remain-off items.) Tj
+0 -11 Td
+(?         Not hub UI chrome. This paper is runtime-only.) Tj
+0 -11 Td
+(?         Not a substitute for session receipts, FragGate ledger, or ForgeReceipts.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(3. Four fields) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(  Field              Law) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(  hash               SHA-256 of canonical { previous_hash, request, output, event }.) Tj
+0 -11 Td
+(                     previous_hash is the prior tip, or 64 zero hex at genesis.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(  request            One sentence. What was asked. No bodies, tokens, or PII.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(  output             One sentence. What came back \(status class\). No response body.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(  event              Metadata only: surface, path, method, status, tool, spec,) Tj
+0 -11 Td
+(                     runtime version. No user / IP / geo.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(4. Fail-open) Tj
+0 -11 Td
+(If the token is missing, skip append. If corpus is dark or times out, skip append.) Tj
+ET
+BT
+/F1 8 Tf
+54 28 Td
+(ACT-RECEIPT-1.0  ·  Aziel Eliab only  ·  page 1 / 2) Tj
+ET
+endstream endobj
+5 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 6 0 R /Resources << /Font << /F1 7 0 R >> >> >> endobj
+6 0 obj << /Length 703 >> stream
+BT
+/F1 9 Tf
+54 738 Td
+(5. Optional read) Tj
+0 -11 Td
+(GET /v1/receipts cites this paper and names the corpus origin.) Tj
+0 -11 Td
+(GET /v1/receipts/tip and GET /v1/receipts/proxy are best-effort tip proxies.) Tj
+0 -11 Td
+(They document that the public chain lives on corpus /receipts.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(6. MESH-VAULT lite) Tj
+0 -11 Td
+(Catalog GET /v1/software, pull / download, and POST /v1/mesh/* may mint an ACT) Tj
+0 -11 Td
+(receipt when the token is set. This is not a Softwares vault product.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(7. Identity) Tj
+0 -11 Td
+(Author / identity: Aziel Eliab only. Apache-2.0.) Tj
+ET
+BT
+/F1 8 Tf
+54 28 Td
+(ACT-RECEIPT-1.0  ·  Aziel Eliab only  ·  page 2 / 2) Tj
+ET
+endstream endobj
+7 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Courier >> endobj
+xref
+0 8
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000121 00000 n 
+0000000247 00000 n 
+0000003728 00000 n 
+0000003854 00000 n 
+0000004608 00000 n 
+trailer << /Size 8 /Root 1 0 R >>
+startxref
+4676
+%%EOF

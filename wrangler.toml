@@ -160,6 +160,11 @@ service = "azchat-download-tracker"
 # Catalog / health / runtime / skill / pull / OpenAPI / MCP tools/list stay public.
 # Session mutate (open/policy/exec/close) requires Authorization: Bearer … or
 # X-Aziel-Runtime-Token only when REQUIRE_TOKEN=1 (one operator token).
+# ACT-RECEIPT-1.0: optional secret RECEIPT_APPEND_TOKEN (`npx wrangler secret put
+# RECEIPT_APPEND_TOKEN`). When set, FragGate list/call, POST /mcp, and significant
+# POST /v1/* append four-field receipts to corpus /v1/receipts/append (header
+# x-aziel-receipt). Missing token is fail-open — engines still work. Not a
+# Softwares-tab product. Do not put the token in [vars].
 [vars]
 REQUIRE_TOKEN = "1"
 # GIT_SHA is injected at deploy (`wrangler deploy --var GIT_SHA:$(git rev-parse HEAD)`).
