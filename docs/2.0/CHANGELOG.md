@@ -21,6 +21,7 @@ Certification point — not a feature dump.
 - Worker homepage/UI chrome: rose-star brand mark top-left. Public Worker HTML scrubs “Everblooming sigil” / everblooming verbage. Visible identity Aziel Eliab only. README public copy now labels `/sigil.png` as the rose-star brand mark. Skill markdown + `X-Aziel-Sigil` unchanged. No Remain-OFF change. No MCP behavior change.
 - Cite/catalog `stats` / `social_status` plus optional `GET /v1/stats-rollups` for AZindex awareness (read-only sibling snapshots; never invent numbers). No MCP tool added.
 - AZindex cross-index: `/sitemap-index.xml` and `robots.txt` now list `https://www.hedidntjump.com/sitemap.xml` with the Softwares hubs. `/cite.json` and `/v1/catalog.json` add `sister_archives` / `hedidntjump_*` (`software_tab: false`). Not a Softwares-tab engine. No MCP behavior change.
+- Additive ACT-RECEIPT-1.0 fabric (not a Softwares engine): fail-open append to corpus `/v1/receipts/append` after FragGate list/call, `POST /mcp`, and significant `POST /v1/*` when `RECEIPT_APPEND_TOKEN` is set. Public chain lives on corpus `/receipts`. `GET /v1/receipts` cites; tip/proxy is optional. No new MCP tool. Remain-OFF untouched.
 - No new Softwares engines. No remote shell / VPN / deanonymize / public SMTP.
 - No `2.0.0` final tag in this PR.
 
