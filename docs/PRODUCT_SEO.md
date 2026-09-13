@@ -227,7 +227,7 @@ Hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) should fetch
 request instead of hand-editing product copy. Client installers use
 `GET /v1/update/check?slug=&version=`. See [CLIENT_UPDATE.md](CLIENT_UPDATE.md).
 
-Runtime hub sitemaps in `robots.txt` / `sitemap-index.xml`: this host, `https://www.azieleliab.com/sitemap.xml`, Digital Library, godlock.uk, and live product Worker sitemaps. Do not invent mesh-enable URLs.
+Runtime hub sitemaps in `robots.txt` / `sitemap-index.xml`: this host, `https://www.azieleliab.com/sitemap.xml`, Digital Library, godlock.uk, He Didn't Jump sister archive (`https://www.hedidntjump.com/sitemap.xml`; not a Softwares hub), and live product Worker sitemaps. Do not invent mesh-enable URLs.
 
 Runtime HTML shells (content negotiation — hubs still get JSON by default):
 
