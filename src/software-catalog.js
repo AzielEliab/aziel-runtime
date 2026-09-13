@@ -21,6 +21,7 @@ import { NAMED_STUBS } from "./fraggate/registry.js";
 import { meshHint } from "./mesh.js";
 import { qnsHint } from "./qns.js";
 import { AUTHOR_ID, azcoherenceCiteField, hubsCiteField, LIBRARY_ORIGIN } from "./seo.js";
+import { socialStatusField } from "./social-status.js";
 
 export const SOFTWARE_SORT_LAW = "plain A–Z → gate A–Z → lock A–Z (Clock ≠ Lock)";
 export const SOFTWARE_FRAMING =
@@ -220,6 +221,8 @@ export function softwareCatalog(origin, products, extra = {}) {
     fraggate: `${base}/v1/fraggate`,
     fraggate_software: `${base}/v1/fraggate/software`,
     catalog: `${base}/v1/catalog.json`,
+    stats: socialStatusField(base),
+    social_status: socialStatusField(base),
     update_check: `${base}/v1/update/check`,
     update_manifest: `${base}/v1/update/manifest`,
     hubs: SOFTWARE_HUBS.slice(),
