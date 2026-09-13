@@ -42,7 +42,7 @@ Corpus counters are `GET /stats`, not `/v1/stats`. Corpus version is `GET /v1/he
 - Official site → https://www.azieleliab.com/ · Runtime hub → https://www.azieleliab.com/runtime
 - Aziel Corpus Library → https://www.azielcorpuslibrary.net/
 - GodLock.uk → https://godlock.uk/
-- He Didn't Jump (sister archive) → https://www.hedidntjump.com/
+- He Didn't Jump (sister archive, not a Softwares hub) → https://www.hedidntjump.com/ · sitemap https://www.hedidntjump.com/sitemap.xml
 - FragGate kernel → https://github.com/AzielEliab/fraggate
 - Try on Glama (primary MCP) → https://glama.ai/mcp/servers/AzielEliab/aziel-runtime
 

@@ -125,11 +125,12 @@ export const GODLOCK_UK_CITE = `${GODLOCK_UK_ORIGIN}/cite.json`;
 export const GODLOCK_UK_LLMS = `${GODLOCK_UK_ORIGIN}/llms.txt`;
 export const GODLOCK_UK_SOFTWARE_TAB = `${GODLOCK_UK_ORIGIN}/software`;
 
-/** Sister historical archive. Not a Softwares hub. www canonical is OK. */
+/** Sister historical archive. Not a Softwares hub. www canonical matches live archive cite. */
 export const HEDIDNTJUMP_NAME = "He Didn't Jump";
 export const HEDIDNTJUMP_ORIGIN = "https://www.hedidntjump.com";
 export const HEDIDNTJUMP_HOME = `${HEDIDNTJUMP_ORIGIN}/`;
 export const HEDIDNTJUMP_SITEMAP = `${HEDIDNTJUMP_ORIGIN}/sitemap.xml`;
+export const HEDIDNTJUMP_CITE = `${HEDIDNTJUMP_ORIGIN}/cite.json`;
 export const HEDIDNTJUMP_LLMS = `${HEDIDNTJUMP_ORIGIN}/llms.txt`;
 
 /** Canonical author site (www). Apex azieleliab.com redirects here. */
@@ -198,14 +199,60 @@ export function softwareHubCrawl() {
   ];
 }
 
+/**
+ * Sister archives in the AZindex cross-index. Not Softwares hubs. Not FragGate engines.
+ * Sitemap loc uses the www host the live archive cite.json advertises.
+ */
+export function sisterArchiveCrawl() {
+  return [
+    {
+      id: "hedidntjump",
+      name: HEDIDNTJUMP_NAME,
+      origin: HEDIDNTJUMP_ORIGIN,
+      home: HEDIDNTJUMP_HOME,
+      cite: HEDIDNTJUMP_CITE,
+      llms: HEDIDNTJUMP_LLMS,
+      ai: `${HEDIDNTJUMP_ORIGIN}/ai.txt`,
+      sitemap: HEDIDNTJUMP_SITEMAP,
+      robots: `${HEDIDNTJUMP_ORIGIN}/robots.txt`,
+      software_tab: false,
+      fraggate_engine: false,
+      note: "Sister historical archive. Cross-index only. Not a Softwares hub. Not a FragGate engine.",
+    },
+  ];
+}
+
+export function sisterArchiveSitemaps() {
+  return sisterArchiveCrawl().map((a) => a.sitemap);
+}
+
+export function sisterArchiveCiteField() {
+  return {
+    author: AUTHOR_NAME,
+    identity: AUTHOR_NAME,
+    software_tab: false,
+    fraggate_engine: false,
+    note: "Sister historical archives. Listed on sitemap-index / llms / cite for AZindex discovery. Not Softwares hubs. Not FragGate engines.",
+    archives: sisterArchiveCrawl(),
+  };
+}
+
 export function hubPageSitemapUrls() {
   const out = [];
   const seen = new Set();
+  const push = (url) => {
+    if (!url || seen.has(url)) return;
+    seen.add(url);
+    out.push(url);
+  };
   for (const h of softwareHubCrawl()) {
     for (const url of [h.home, h.software_tab, h.cite, h.llms, h.sitemap, h.runtime]) {
-      if (!url || seen.has(url)) continue;
-      seen.add(url);
-      out.push(url);
+      push(url);
+    }
+  }
+  for (const a of sisterArchiveCrawl()) {
+    for (const url of [a.home, a.cite, a.llms, a.sitemap]) {
+      push(url);
     }
   }
   return out;
@@ -429,6 +476,7 @@ export function hubSitemapList(origin, products) {
   };
   push(`${base}/sitemap.xml`);
   for (const url of extraHubSitemaps()) push(url);
+  for (const url of sisterArchiveSitemaps()) push(url);
   for (const url of liveProductSitemapUrls(products)) push(url);
   return out;
 }
@@ -448,7 +496,7 @@ export function robotsTxt(origin, products) {
     "# Author: Aziel Eliab. Also known as Aziel Elroi Eliab (alternateName only).",
     "# Content-Signal opens search + AI input + AI train. No Disallow for GPTBot.",
     "# Allow /v1/software /v1/update /mcp /openapi — hubs and agents fetch these.",
-    "# Sitemap index lists this host, azieleliab.com, azielcorpuslibrary.net, godlock.uk, and live product Workers.",
+    "# Sitemap index lists this host, azieleliab.com, azielcorpuslibrary.net, godlock.uk, www.hedidntjump.com (sister archive, not a Softwares hub), and live product Workers.",
     "",
     "User-agent: *",
     "Allow: /",
@@ -684,6 +732,13 @@ export function catalogHubFields(origin) {
     author_site_sitemap: AUTHOR_SITE_SITEMAP,
     author_site_cite: AUTHOR_SITE_CITE,
     author_site_llms: AUTHOR_SITE_LLMS,
+    hedidntjump: HEDIDNTJUMP_HOME,
+    hedidntjump_name: HEDIDNTJUMP_NAME,
+    hedidntjump_sitemap: HEDIDNTJUMP_SITEMAP,
+    hedidntjump_cite: HEDIDNTJUMP_CITE,
+    hedidntjump_llms: HEDIDNTJUMP_LLMS,
+    hedidntjump_software_tab: false,
+    sister_archives: sisterArchiveCiteField(),
     hubs: softwareHubCrawl(),
     stats: social,
     social_status: social,
@@ -734,8 +789,10 @@ export function llmsCiteBlock(origin) {
     `Author site llms.txt: ${AUTHOR_SITE_LLMS}`,
     `GodLock.uk cite.json: ${GODLOCK_UK_CITE}`,
     `GodLock.uk llms.txt: ${GODLOCK_UK_LLMS}`,
-    `${HEDIDNTJUMP_NAME}: ${HEDIDNTJUMP_HOME}`,
+    `${HEDIDNTJUMP_NAME} (sister archive, not a Softwares hub): ${HEDIDNTJUMP_HOME}`,
+    `${HEDIDNTJUMP_NAME} cite.json: ${HEDIDNTJUMP_CITE}`,
     `${HEDIDNTJUMP_NAME} llms.txt: ${HEDIDNTJUMP_LLMS}`,
+    `${HEDIDNTJUMP_NAME} sitemap.xml: ${HEDIDNTJUMP_SITEMAP}`,
     `AZCoherence: ${AUTHOR_FAMILY_GIVEN}. (2026). AZCoherence 0.1.0 [Software]. Apache-2.0. ${AZCOHERENCE_GITHUB}`,
     `AZCoherence describe: ${base}/v1/fraggate/describe?slug=azcoherence`,
     `AZCoherence Worker: ${AZCOHERENCE_WORKER}/`,
