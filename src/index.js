@@ -33,6 +33,7 @@
  * GET  /v1/stats-rollups      read-only sibling views/downloads snapshot (best-effort; never invents)
  * GET  /v1/mesh               QNM rollup (live/locked/isolated; suite-presence ON by default; GET never enables extra radios)
  * GET  /v1/qns                QNS-CD-1.0 cite (photon QNS1 1.3; local qnsd; never a proxy)
+ * GET  /v1/receipts           ACT-RECEIPT-1.0 cite (public chain on corpus /receipts; tip/proxy)
  * GET  /v1/azpipe/arch        MASTER-33 AZPIPE cite (same pipeline payload as GET /v1/fraggate; not a Softwares door)
  * POST /v1/memory/observe|resolve|calibrate|recall  AKM-TRIAD-1.0 (behind FragGate)
  * GET  /v1/memory/{id}[+history|+calibration]
@@ -114,6 +115,7 @@ import {
   SUITE_PRESENCE,
 } from "./mesh.js";
 import { dispatchQnsHttp, qnsHint } from "./qns.js";
+import { dispatchActReceiptHttp, finishWithActReceipt } from "./library-receipts.js";
 import {
   catalogCacheHeaders,
   donationStatic,
@@ -1249,6 +1251,7 @@ function sitemapXml(origin) {
     { loc: base + "/v1/mesh/status", priority: "0.65", changefreq: "daily" },
     { loc: base + "/v1/mesh/nodes", priority: "0.65", changefreq: "daily" },
     { loc: base + "/v1/qns", priority: "0.65", changefreq: "weekly" },
+    { loc: base + "/v1/receipts", priority: "0.6", changefreq: "daily" },
     { loc: base + "/v1/azpipe/arch", priority: "0.65", changefreq: "weekly" },
     { loc: base + "/v1/memory", priority: "0.6", changefreq: "weekly" },
     { loc: base + "/v1/ready", priority: "0.7", changefreq: "daily" },
@@ -1352,6 +1355,7 @@ function llmsTxt(origin) {
     `Mesh: ${base}/v1/mesh  (QNM-BUILD-1.0 suite rollup. Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public disable of suite-presence is refused. Not a login mesh. Not Node Gate.)`,
     `Mesh status: ${base}/v1/mesh/status  (alias; never enables)`,
     `Mesh nodes: ${base}/v1/mesh/nodes  (roster; 5-minute TTL; no scores)`,
+    `ACT-RECEIPT-1.0: ${base}/v1/receipts  (cite). Public chain lives on https://www.azielcorpuslibrary.net/receipts. Runtime appends after FragGate list/call, POST /mcp, and significant POST /v1/* when RECEIPT_APPEND_TOKEN is set (fail-open). Tip/proxy: ${base}/v1/receipts/tip. Not a Softwares-tab product.`,
     `Agent pipeline: fraggate_list → fraggate_describe → fraggate_call. Prefer ${base}/mcp and ${base}/v1/software.`,
     `About: ${base}/about`,
     `Cite: ${base}/cite.json`,
@@ -1895,6 +1899,7 @@ ${namedComponentsHtml()}
     <a href="${origin}/v1/stats-rollups">/v1/stats-rollups</a>
     <a href="${origin}/v1/mesh">/v1/mesh</a>
     <a href="${origin}/v1/qns">/v1/qns</a>
+    <a href="${origin}/v1/receipts">/v1/receipts</a>
     <a href="${origin}/v1/azpipe/arch">/v1/azpipe/arch</a>
     <a href="${origin}/v1/memory">/v1/memory</a>
     <a href="${origin}/v1/ready">/v1/ready</a>
@@ -1902,7 +1907,7 @@ ${namedComponentsHtml()}
     <a href="https://github.com/AzielEliab/aziel-runtime">GitHub</a>
   </p>
   <p id="pipeline"><strong>Locked MASTER-33 pipeline</strong> (1.7.0 — FragGate is THE single door; not LambGate): <code>${LOCKED_STRIP}</code>. Lamb Lens is fabric after FragGate. Internal Domain Layer holds isolated softwares — domains are labels, not doors. RoseClock is forward-only. FoldLock fld3-wire stays internal to AZPIPE. SweepGate / ChainLock / AZPIPE / Lamb Lens / Sentinel / RoseClock are fabric, not Softwares-tab. 4DMap is cited inside the domain layer. Illegal reorder is refused.</p>
-  <p>LIVE fabric (not Softwares-tab): AZPIPE, SweepGate, ChainLock, LOCKSET, packed catalog, Lamb Lens, Sentinel, RoseClock, <strong>QNS-CD-1.0</strong> (photon QNS1 1.3; local <code>qnsd</code>; Worker cites only), MASTER-33 (SUITE-PIPE-1.6.15 historical), <strong>AKM-TRIAD-1.0</strong> (adaptive recollection; Bayesian posterior ≠ truth; behind FragGate). MCP <code>chainlock_*</code> and <code>memory_*</code>. <code>GET /v1/mesh</code> never enables. <code>GET /v1/qns</code> cites the packet-transfer coding design — it does not proxy local via emit. <code>GET /v1/azpipe/arch</code> cites the locked MASTER-33 strip (same payload as <code>GET /v1/fraggate</code> <code>pipeline</code>; not a Softwares-tab door). UI=MCP. No Node Gate.</p>
+  <p>LIVE fabric (not Softwares-tab): AZPIPE, SweepGate, ChainLock, LOCKSET, packed catalog, Lamb Lens, Sentinel, RoseClock, <strong>QNS-CD-1.0</strong> (photon QNS1 1.3; local <code>qnsd</code>; Worker cites only), MASTER-33 (SUITE-PIPE-1.6.15 historical), <strong>AKM-TRIAD-1.0</strong> (adaptive recollection; Bayesian posterior ≠ truth; behind FragGate), <strong>ACT-RECEIPT-1.0</strong> (four-field public mesh copy; chain lives on corpus <code>/receipts</code>; fail-open without token). MCP <code>chainlock_*</code> and <code>memory_*</code>. <code>GET /v1/mesh</code> never enables. <code>GET /v1/qns</code> cites the packet-transfer coding design — it does not proxy local via emit. <code>GET /v1/receipts</code> cites the public ACT chain (tip/proxy). <code>GET /v1/azpipe/arch</code> cites the locked MASTER-33 strip (same payload as <code>GET /v1/fraggate</code> <code>pipeline</code>; not a Softwares-tab door). UI=MCP. No Node Gate.</p>
   <p>Donation is a static hub tab (<a href="${DONATE_CANONICAL}">${escapeHtml(DONATE_CANONICAL)}</a>) — AZL-DONATE-1.0. Canonical rails live on hubs; this runtime only links. Hub Donate pages include five QRs that encode payment URIs (BTC / ETH / LTC / XRP / DOGE). No KV, no invented wallets, no five QRs on this Worker.</p>
   <p>Designs (git-hosted papers — not Softwares-tab products, not a FragGate slug; <code>GET /v1/mesh</code> never enables): <a href="${DESIGNS_GITHUB_TREE}">docs/designs/</a>${SUITE_DESIGNS.map((d) => ` · <a href="${designGithubUrl(d.file)}">${escapeHtml(d.id)}</a>`).join("")}. Author: Aziel Eliab only. PDFs sit beside each paper on GitHub.</p>
   <p>Feature-state audit (authoritative intentional-OFF vs gaps for 1.7.3+; not a Softwares-tab product, not a FragGate slug): <a href="${auditGithubUrl(FEATURE_STATE_AUDIT.file)}">${escapeHtml(FEATURE_STATE_AUDIT.id)}</a> · <a href="${auditGithubUrl(FEATURE_STATE_AUDIT.pdf)}">PDF</a> · <a href="${AUDIT_GITHUB_TREE}">docs/audit/</a>. Constitutional OFF set (33 items; correctly OFF/REFUSED/GATED is not a gap): <a href="${designGithubUrl(REMAIN_OFF_BY_DESIGN.file)}">${escapeHtml(REMAIN_OFF_BY_DESIGN.id)}</a> · <a href="${designGithubUrl(REMAIN_OFF_BY_DESIGN.pdf)}">PDF</a>. Do not enable Remain-OFF products or safety stubs. Author: Aziel Eliab only.</p>
@@ -2567,6 +2572,7 @@ function healthBody(origin) {
     mesh_status: "/v1/mesh/status",
     mesh_nodes: "/v1/mesh/nodes",
     qns: "/v1/qns",
+    receipts: "/v1/receipts",
     azpipe_arch: "/v1/azpipe/arch",
     memory: "/v1/memory",
     about: "/about",
@@ -3097,6 +3103,14 @@ async function handleRequest(request, env, ctx) {
       );
     }
 
+    if (url.pathname === "/v1/receipts" || url.pathname.startsWith("/v1/receipts/")) {
+      const out = await dispatchActReceiptHttp(request.method, url.pathname, env);
+      return asHead(
+        request,
+        json(out.body, out.status, authorityLinkHeaders(origin, url.pathname)),
+      );
+    }
+
     if (url.pathname === "/v1/uses" && request.method === "POST") {
       return json(
         { ok: false, error: "method not allowed", hint: "GET /v1/uses — increments are automatic" },
@@ -3212,7 +3226,7 @@ async function handleRequest(request, env, ctx) {
     return json(
       {
         error: "not found",
-        hint: "POST /v1/fraggate/call  GET /v1/fraggate  GET /v1/azpipe/arch  GET /v1/software  GET /v1/mesh  GET /v1/qns  POST /v1/memory/observe  GET /v1/update/check  GET /v1/skill  POST /v1/session/open  POST /v1/session/{id}/exec  GET /v1/ready  GET /v1/uses  GET /v1/runtime.json  GET /v1/bundle  GET /v1/pull/{slug}  GET /v1/catalog.json  GET /openapi.json  POST /p/{product}/{op} (proxy, not exec)  POST /mcp",
+        hint: "POST /v1/fraggate/call  GET /v1/fraggate  GET /v1/azpipe/arch  GET /v1/software  GET /v1/mesh  GET /v1/qns  GET /v1/receipts  POST /v1/memory/observe  GET /v1/update/check  GET /v1/skill  POST /v1/session/open  POST /v1/session/{id}/exec  GET /v1/ready  GET /v1/uses  GET /v1/runtime.json  GET /v1/bundle  GET /v1/pull/{slug}  GET /v1/catalog.json  GET /openapi.json  POST /p/{product}/{op} (proxy, not exec)  POST /mcp",
       },
       404,
     );
@@ -3220,8 +3234,10 @@ async function handleRequest(request, env, ctx) {
 
 export default {
   async fetch(request, env, ctx) {
+    const peek = String(request.method || "GET").toUpperCase() === "POST" ? request.clone() : request;
     const response = await handleRequest(request, env, ctx);
-    return finishWithUse(request, env, ctx, response);
+    const used = await finishWithUse(request, env, ctx, response);
+    return finishWithActReceipt(peek, env, ctx, used);
   },
   async scheduled(controller, env, ctx) {
     const source = controller && controller.cron ? `cron:${controller.cron}` : "cron";

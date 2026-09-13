@@ -38,6 +38,7 @@ const SKIP_GET_READS = new Set([
   "/v1/mesh/status",
   "/v1/mesh/nodes",
   "/v1/qns",
+  "/v1/receipts",
   "/v1/azpipe/arch",
   "/v1/memory",
 ]);
@@ -146,6 +147,8 @@ export function inferProductOp(pathname) {
   if (path === "/v1/mesh/broadcast") return { op: "mesh.broadcast" };
   if (path === "/v1/azpipe/arch") return { op: "azpipe.arch" };
   if (path === "/mcp") return { op: "mcp" };
+  if (path === "/v1/receipts") return { op: "act_receipt.cite" };
+  if (path === "/v1/receipts/tip" || path === "/v1/receipts/proxy") return { op: "act_receipt.tip" };
   return {};
 }
 
@@ -156,6 +159,7 @@ export function shouldIncrementUse(method, pathname) {
   if (SKIP_SEO.has(path)) return false;
   if (ASSET_EXT.test(path)) return false;
   if (path === "/v1/uses" || path === "/v1/stats" || path === "/v1/stats-rollups") return false;
+  if (path === "/v1/receipts" || path.startsWith("/v1/receipts/")) return false;
   if (m === "GET" && SKIP_GET_READS.has(path)) return false;
   if (m === "GET" && SKIP_CATALOG_GETS.has(path)) return false;
   if (m === "GET" && path === "/mcp") return false;

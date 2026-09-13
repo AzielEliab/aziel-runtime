@@ -180,3 +180,26 @@ Refuse code `FG-CL` is a ChainLock-domain refuse, not a FragGate halluc.
 | Default max payload | 65536 bytes | `DEFAULT_MAX_PAYLOAD_BYTES` |
 
 Optional `RUNTIME_TOKEN` / `X-Aziel-Runtime-Token` gates **session mutate only** when `REQUIRE_TOKEN=1`. Public `fraggate_call` stays open.
+
+---
+
+## 7. ACT-RECEIPT-1.0 (public mesh copy)
+
+Kind: fabric plugin (not a Softwares-tab product, not a FragGate slug).  
+Origin: `https://www.azielcorpuslibrary.net/receipts`  
+Append: `POST https://www.azielcorpuslibrary.net/v1/receipts/append`  
+Header: `x-aziel-receipt` when `RECEIPT_APPEND_TOKEN` (or `LIBRARY_RECEIPT_TOKEN`) is set.  
+Fail-open: missing token or corpus errors never break engines.
+
+Four fields (hash includes `previous_hash`):
+
+| Field | Notes |
+|-------|-------|
+| `hash` | SHA-256 of canonical `{ previous_hash, request, output, event }` |
+| `request` | One sentence. No bodies, tokens, or PII. |
+| `output` | One sentence. Status-class only. |
+| `event` | `surface`, `path`, `method`, `status`, `tool`, `spec`, `runtime_version`. No user / IP / geo. |
+
+Genesis `previous_hash` is `ZERO_HASH` (64 zero hex). Runtime `GET /v1/receipts` cites the public chain. `GET /v1/receipts/tip` and `GET /v1/receipts/proxy` are best-effort corpus tip proxies.
+
+MESH-VAULT lite may mint catalog / download / mesh events when the token is set. This is not a substitute for session receipts, the FragGate ledger, or ForgeReceipts.
