@@ -4,6 +4,8 @@
  * Do not invent DOIs. Do not invent hosts — worker origins come from the catalog.
  */
 
+import { socialStatusField } from "./social-status.js";
+
 export const AUTHOR_NAME = "Aziel Eliab";
 export const AUTHOR_ALTERNATE_NAME = "Aziel Elroi Eliab";
 export const AUTHOR_FAMILY_GIVEN = "Eliab, Aziel";
@@ -663,6 +665,7 @@ export function entityGraphCiteField(origin) {
 
 export function catalogHubFields(origin) {
   const base = origin.replace(/\/$/, "");
+  const social = socialStatusField(base);
   return {
     author: AUTHOR_NAME,
     identity: AUTHOR_NAME,
@@ -682,6 +685,8 @@ export function catalogHubFields(origin) {
     author_site_cite: AUTHOR_SITE_CITE,
     author_site_llms: AUTHOR_SITE_LLMS,
     hubs: softwareHubCrawl(),
+    stats: social,
+    social_status: social,
     crawl: {
       robots: base + "/robots.txt",
       sitemap: base + "/sitemap.xml",
