@@ -19,6 +19,8 @@ import {
   NAMED_RUNTIME_TOOLS,
   RUNTIME_SOFTWARE_ID,
   GODLOCK_UK_SITEMAP,
+  HEDIDNTJUMP_CITE,
+  HEDIDNTJUMP_SITEMAP,
   LIBRARY_SITEMAP,
   MISSING_PRODUCT_SITEMAP_SLUGS,
   PRODUCT_NAME,
@@ -191,6 +193,8 @@ assert.match(robots, /sitemap-index\.xml/);
 assert.match(robots, /azieleliab\.com\/sitemap\.xml/);
 assert.match(robots, /azielcorpuslibrary\.net\/sitemap\.xml/);
 assert.match(robots, /godlock\.uk\/sitemap\.xml/);
+assert.match(robots, /www\.hedidntjump\.com\/sitemap\.xml/);
+assert.match(robots, /www\.hedidntjump\.com \(sister archive, not a Softwares hub\)/);
 assert.doesNotMatch(robots, /vibelock-download-tracker\.vibelock\.workers\.dev\/sitemap\.xml/);
 
 const siteRes = await get("/sitemap.xml");
@@ -207,6 +211,8 @@ assert.match(sitemap, /\/v1\/fraggate\/describe\?slug=azcoherence/);
 assert.match(sitemap, /www\.azieleliab\.com\/software/);
 assert.match(sitemap, /www\.azielcorpuslibrary\.net\/software/);
 assert.match(sitemap, /godlock\.uk\/software/);
+assert.match(sitemap, /www\.hedidntjump\.com\/sitemap\.xml/);
+assert.match(sitemap, /www\.hedidntjump\.com\/cite\.json/);
 assert.match(sitemap, /\/cite\.json/);
 assert.match(sitemap, /\/llms\.txt/);
 assert.match(sitemap, /\/sitemap-index\.xml/);
@@ -228,6 +234,7 @@ assert.match(indexXml, /aziel-runtime\.example\/sitemap\.xml/);
 assert.match(indexXml, new RegExp(AUTHOR_SITE_SITEMAP.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 assert.match(indexXml, new RegExp(LIBRARY_SITEMAP.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 assert.match(indexXml, new RegExp(GODLOCK_UK_SITEMAP.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+assert.match(indexXml, new RegExp(HEDIDNTJUMP_SITEMAP.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 assert.match(indexXml, /foldlock-download-tracker\.vibelock\.workers\.dev\/sitemap\.xml/);
 assert.match(indexXml, /www\.azielcorpuslibrary\.net\/sitemap\.xml/);
 assert.doesNotMatch(indexXml, /vibelock-download-tracker\.vibelock\.workers\.dev\/sitemap\.xml/);
@@ -274,6 +281,10 @@ assert.match(llms, /www\.azielcorpuslibrary\.net\/software/);
 assert.match(llms, /godlock\.uk\/software/);
 assert.match(llms, /## Ecosystem/);
 assert.match(llms, /www\.hedidntjump\.com/);
+assert.match(llms, /www\.hedidntjump\.com\/sitemap\.xml/);
+assert.match(llms, /www\.hedidntjump\.com\/cite\.json/);
+assert.match(llms, /sister archive, not a Softwares hub/);
+assert.match(llms, /hedidntjump sister archive/);
 assert.match(llms, /AZCoherence/);
 assert.match(llms, /describe\?slug=azcoherence/);
 assert.match(llms, /suite-presence is ON by default/);
@@ -351,6 +362,16 @@ assert.ok(cite.entity_graph.ecosystem.some((l) => l.label === "Aziel Runtime on 
 assert.ok(cite.entity_graph.ecosystem.some((l) => l.label === "Try on Glama" && l.url === RUNTIME_GLAMA));
 assert.ok(cite.entity_graph.ecosystem.some((l) => l.label === "GodLock" && l.url === "https://godlock.uk/"));
 assert.ok(cite.entity_graph.ecosystem.some((l) => l.label === HEDIDNTJUMP_NAME && l.url === HEDIDNTJUMP_HOME));
+assert.equal(cite.hedidntjump, HEDIDNTJUMP_HOME);
+assert.equal(cite.hedidntjump_name, HEDIDNTJUMP_NAME);
+assert.equal(cite.hedidntjump_sitemap, HEDIDNTJUMP_SITEMAP);
+assert.equal(cite.hedidntjump_cite, HEDIDNTJUMP_CITE);
+assert.equal(cite.hedidntjump_software_tab, false);
+assert.ok(cite.sister_archives);
+assert.equal(cite.sister_archives.software_tab, false);
+assert.equal(cite.sister_archives.fraggate_engine, false);
+assert.ok(cite.sister_archives.archives.some((a) => a.id === "hedidntjump" && a.sitemap === HEDIDNTJUMP_SITEMAP && a.software_tab === false));
+assert.ok(!cite.hubs.hubs.some((h) => h.id === "hedidntjump"));
 assert.equal(cite.azcoherence.slug, "azcoherence");
 assert.equal(cite.azcoherence.identity, AUTHOR_NAME);
 assert.match(cite.azcoherence.github, /AZCoherence/);
@@ -364,6 +385,10 @@ assert.equal(catalog.author, AUTHOR_NAME);
 assert.equal(catalog.author_id, AUTHOR_ID);
 assert.equal(catalog.aka, AUTHOR_ALTERNATE_NAME);
 assert.equal(catalog.library_name, "Aziel Digital Library");
+assert.equal(catalog.hedidntjump, HEDIDNTJUMP_HOME);
+assert.equal(catalog.hedidntjump_sitemap, HEDIDNTJUMP_SITEMAP);
+assert.equal(catalog.hedidntjump_software_tab, false);
+assert.ok(catalog.sister_archives.archives.some((a) => a.id === "hedidntjump" && a.software_tab === false));
 assert.ok(catalog.crawl.sitemap_index.endsWith("/sitemap-index.xml"));
 assert.ok(catalog.crawl.software.endsWith("/v1/software"));
 assert.ok(catalog.crawl.mcp.endsWith("/mcp"));
@@ -668,6 +693,7 @@ assert.equal(productCrawlUrls({ slug: "vibelock", worker: "vibelock-download-tra
 
 const openapi = await (await get("/openapi.json")).json();
 assert.ok(openapi.paths["/sitemap-index.xml"]);
+assert.match(openapi.paths["/sitemap-index.xml"].get.summary, /He Didn't Jump sister archive/);
 assert.ok(openapi.paths["/robots.txt"]);
 assert.match(openapi.info.description, /Claude \(Anthropic Desktop \/ custom tools\)/);
 assert.match(openapi.info.description, /plus other MCP\/OpenAPI-capable assistants/);
