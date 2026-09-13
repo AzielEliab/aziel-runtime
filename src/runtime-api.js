@@ -364,6 +364,7 @@ ${skillCompatibleSection(base)}
 | GET | \`/v1/health\` | Liveness. Optional \`uses_total\` when USES KV is bound. Does not increment. |
 | GET | \`/v1/uses\` | API use counters + recent ring log. Does not increment. No PII. |
 | GET | \`/v1/stats\` | Alias of \`/v1/uses\`. |
+| GET | \`/v1/stats-rollups\` | Read-only sibling views/downloads snapshot (best-effort; never invents; omit on error). |
 | GET | \`/v1/mesh\` | QNM rollup: enabled?, bearers, live/locked/isolated. Suite-presence ON by default. Never enables extra radios. |
 | GET | \`/v1/mesh/status\` | Alias of \`/v1/mesh\`. |
 | POST | \`/v1/mesh/enable\` | Optional extra bearer. Body \`{bearer}\` required (rate-limited). |
@@ -555,6 +556,7 @@ export function runtimeManifest(origin, products, extra = {}) {
       health: base + "/v1/health",
       uses: base + "/v1/uses",
       stats: base + "/v1/stats",
+      stats_rollups: base + "/v1/stats-rollups",
       mesh: base + "/v1/mesh",
       mesh_status: base + "/v1/mesh/status",
       mesh_nodes: base + "/v1/mesh/nodes",
@@ -1319,6 +1321,27 @@ export function runtimeStaticPaths() {
         summary: "Alias of GET /v1/uses (API use counters). Does not increment.",
         tags: ["runtime"],
         responses: { "200": { description: "Uses JSON plus alias_of" } },
+      },
+    },
+    "/v1/stats-rollups": {
+      get: {
+        operationId: "runtime_stats_rollups",
+        summary:
+          "Read-only AZindex social-status snapshot. Fetches sibling hub stats best-effort (cache briefly). Combined views/downloads from successful sources only. Never invents numbers. Failed siblings are marked error and omitted. Runtime uses are agent/MCP usage. Not an MCP tool.",
+        tags: ["runtime"],
+        responses: { "200": { description: "Social-status rollup JSON" } },
+      },
+      head: {
+        operationId: "runtime_stats_rollups_head",
+        summary: "HEAD of /v1/stats-rollups.",
+        tags: ["runtime"],
+        responses: { "200": { description: "headers only" } },
+      },
+      post: {
+        operationId: "runtime_stats_rollups_post",
+        summary: "Forbidden. Read-only snapshot. Use GET /v1/stats-rollups.",
+        tags: ["runtime"],
+        responses: { "405": { description: "method not allowed" } },
       },
     },
     "/v1/mesh": {

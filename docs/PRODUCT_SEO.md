@@ -243,6 +243,8 @@ JSON-LD Person (`https://www.azieleliab.com/#aziel`) + SoftwareApplication / Ite
 
 `/cite.json` and `/llms.txt` cross-link Softwares hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) plus AZCoherence and the He Didn't Jump sister archive. Identity Aziel Eliab only.
 
+`/cite.json` and `/v1/catalog.json` also publish `stats` / `social_status` (person_id `https://www.azieleliab.com/#aziel`) for AZindex awareness. Live stats: `https://www.azieleliab.com/v1/stats`, `https://www.azielcorpuslibrary.net/stats` (not `/v1/stats`; version is `GET /v1/health`), `https://www.hedidntjump.com/api/stats`. GodLock public snapshot is `https://godlock.uk/stats` (not `/v1/stats`). Runtime agent/MCP usage is `GET /v1/uses`. Optional hub rollup: `GET /v1/stats-rollups` (read-only; never invent numbers).
+
 See also: https://aziel-runtime.vibelock.workers.dev/sitemap-index.xml
 
 ## Footer (donate — download-tracker pattern)

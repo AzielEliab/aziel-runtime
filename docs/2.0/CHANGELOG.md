@@ -19,6 +19,7 @@ Certification point — not a feature dump.
 - Version strings: `package.json`, `RUNTIME_VERSION`, `VERSION_HISTORY`, SEO changelog **below** the abstract.
 - Remain-OFF untouched. FragGate remains THE single door. Read-only QNM suite-presence is ON by default. `GET /v1/mesh` never enables radios beyond that. `POST /v1/mesh/disable` refuses `MESH-DISABLE-REFUSED`.
 - Worker homepage/UI chrome: rose-star brand mark top-left. Public Worker HTML scrubs “Everblooming sigil” / everblooming verbage. Visible identity Aziel Eliab only. README public copy now labels `/sigil.png` as the rose-star brand mark. Skill markdown + `X-Aziel-Sigil` unchanged. No Remain-OFF change. No MCP behavior change.
+- Cite/catalog `stats` / `social_status` plus optional `GET /v1/stats-rollups` for AZindex awareness (read-only sibling snapshots; never invent numbers). No MCP tool added.
 - No new Softwares engines. No remote shell / VPN / deanonymize / public SMTP.
 - No `2.0.0` final tag in this PR.
 

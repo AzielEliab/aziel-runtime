@@ -111,6 +111,7 @@ Other public HTTP surfaces that stay in the contract:
 | POST | `/v1/memory/observe\|resolve\|calibrate\|recall` | AKM (behind FragGate) |
 | GET | `/v1/memory/{id}` | AKM read |
 | GET | `/v1/uses`, `/v1/stats` | Use counters (no PII) |
+| GET | `/v1/stats-rollups` | Read-only sibling views/downloads snapshot (best-effort; never invents) |
 | POST | `/mcp` | MCP JSON-RPC |
 
 `/v1/rollback` stays **404**.

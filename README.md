@@ -211,6 +211,7 @@ Always send `User-Agent: Mozilla/5.0`.
 | Glama listing | https://glama.ai/mcp/servers/AzielEliab/aziel-runtime |
 | Health | https://aziel-runtime.vibelock.workers.dev/v1/health |
 | API uses (no increment, no PII) | https://aziel-runtime.vibelock.workers.dev/v1/uses |
+| Stats / awareness rollup (read-only) | https://aziel-runtime.vibelock.workers.dev/v1/stats-rollups |
 | Ready | https://aziel-runtime.vibelock.workers.dev/v1/ready |
 | Rose-star brand mark | https://aziel-runtime.vibelock.workers.dev/sigil.png |
 
