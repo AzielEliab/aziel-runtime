@@ -8,7 +8,8 @@ This repo does **not** own VibeLock or other product Workers. Copy this pattern 
 
 - Public product name: **Aziel Runtime** (`aziel-runtime`)
 - Primary author: **Aziel Eliab**
-- Shared Person `@id`: `https://www.azieleliab.com/#aziel` (official hub). Do **not** use `https://github.com/AzielEliab#person`.
+- Shared Person `@id` / `person_id`: `https://www.azieleliab.com/#aziel` (official hub). Do **not** use `https://github.com/AzielEliab#person`. Do **not** invent a second Person `@id`.
+- Identity machine files are hub-owned: `https://www.azieleliab.com/person.jsonld`, `https://www.azieleliab.com/who-is`, `https://www.azieleliab.com/.well-known/person.jsonld`. Runtime `/cite.json` and `/llms.txt` cite those URLs. This Worker does **not** serve or proxy a second Person document.
 - `alternateName` / aka only: **Aziel Elroi Eliab**
 - Runtime parent SoftwareApplication `@id`: `https://www.azieleliab.com/runtime#runtime` (hub identity for the suite). Worker origin is the execution endpoint / `relatedLink` and stays self-canonical for Worker pages. `author` is `{ "@id": "https://www.azieleliab.com/#aziel" }`. `sameAs` is the GitHub repo and the Glama listing.
 - `hasPart` lists **named tools only** (FragGate, ForgeReceipts, DecisionGATE, TemporalLock, TrajectoryLock, PeaceLock, GodLock, AZ-OS, AZCoherence, 4DMap, Aziel Corpus, Ask Jeeves, AZBrowser, AZMail, AZHub, AZInterface, SpectralLock, ShadowLock, FoldLock, CodeLock, VibeLock). Each child is `@id` `https://www.azieleliab.com/runtime#<slug>`, exact public name, `author` → Person, `isPartOf` → Runtime `@id`.
