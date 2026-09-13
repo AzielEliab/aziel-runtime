@@ -424,6 +424,7 @@ const sitemapIndex = await (await get("/sitemap-index.xml")).text();
 assert.match(sitemapIndex, /<sitemapindex /);
 assert.match(sitemapIndex, /azielcorpuslibrary\.net\/sitemap\.xml/);
 assert.match(sitemapIndex, /godlock\.uk\/sitemap\.xml/);
+assert.match(sitemapIndex, /www\.hedidntjump\.com\/sitemap\.xml/);
 
 const miss = await (await get("/no-such-route")).json();
 assert.match(miss.hint, /\/v1\/skill/);
