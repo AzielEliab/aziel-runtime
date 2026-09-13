@@ -33,6 +33,7 @@ const SKIP_GET_READS = new Set([
   "/v1/ready",
   "/v1/uses",
   "/v1/stats",
+  "/v1/stats-rollups",
   "/v1/mesh",
   "/v1/mesh/status",
   "/v1/mesh/nodes",
@@ -154,7 +155,7 @@ export function shouldIncrementUse(method, pathname) {
   const path = normalizePath(pathname);
   if (SKIP_SEO.has(path)) return false;
   if (ASSET_EXT.test(path)) return false;
-  if (path === "/v1/uses" || path === "/v1/stats") return false;
+  if (path === "/v1/uses" || path === "/v1/stats" || path === "/v1/stats-rollups") return false;
   if (m === "GET" && SKIP_GET_READS.has(path)) return false;
   if (m === "GET" && SKIP_CATALOG_GETS.has(path)) return false;
   if (m === "GET" && path === "/mcp") return false;

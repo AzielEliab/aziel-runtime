@@ -30,6 +30,7 @@
  * GET  /v1/health             liveness (version/role match ready); optional uses_total
  * GET  /v1/uses               API use counters + recent log (no increment, no PII)
  * GET  /v1/stats              alias of /v1/uses
+ * GET  /v1/stats-rollups      read-only sibling views/downloads snapshot (best-effort; never invents)
  * GET  /v1/mesh               QNM rollup (live/locked/isolated; suite-presence ON by default; GET never enables extra radios)
  * GET  /v1/qns                QNS-CD-1.0 cite (photon QNS1 1.3; local qnsd; never a proxy)
  * GET  /v1/azpipe/arch        MASTER-33 AZPIPE cite (same pipeline payload as GET /v1/fraggate; not a Softwares door)
@@ -97,6 +98,12 @@ import {
   runtimeStaticPaths,
 } from "./runtime-api.js";
 import { honestyFields } from "./engines/registry.js";
+import {
+  llmsStatsAwarenessBlock,
+  socialStatusCacheHeaders,
+  socialStatusField,
+  statsRollupSnapshot,
+} from "./social-status.js";
 import { dispatchMemoryHttp } from "./memory.js";
 import {
   dispatchMeshHttp,
@@ -1231,6 +1238,7 @@ function sitemapXml(origin) {
     { loc: base + "/sitemap-index.xml", priority: "0.85", changefreq: "weekly" },
     { loc: base + "/v1/health", priority: "0.5", changefreq: "daily" },
     { loc: base + "/v1/uses", priority: "0.6", changefreq: "daily" },
+    { loc: base + "/v1/stats-rollups", priority: "0.55", changefreq: "hourly" },
     { loc: base + "/v1/mesh", priority: "0.7", changefreq: "daily" },
     { loc: base + "/v1/mesh/status", priority: "0.65", changefreq: "daily" },
     { loc: base + "/v1/mesh/nodes", priority: "0.65", changefreq: "daily" },
@@ -1326,6 +1334,7 @@ function llmsTxt(origin) {
     `Catalog extras (hub kernel card, not a Software engine): slug=fraggate worker=${FRAGGATE_WORKER} github=${FRAGGATE_GITHUB} worker_home=${FRAGGATE_WORKER_ORIGIN}/ download=${FRAGGATE_WORKER_ORIGIN}/download — read catalog.json extras[] / fraggate. FragGate is the kernel door; human UI + counted download is the separate FragGate Worker app (not nested in AZBrowser).`,
     `MCP: POST ${base}/mcp`,
     `Uses: ${base}/v1/uses`,
+    `Stats rollup: ${base}/v1/stats-rollups`,
     `Machine catalog: ${base}/v1/catalog.json`,
     `Authoritative software (hubs fetch this): ${base}/v1/software`,
     `Softwares HTML shell (Accept: text/html): ${base}/v1/software`,
@@ -1356,6 +1365,8 @@ function llmsTxt(origin) {
     llmsHubsBlock().trimEnd(),
     "",
     llmsEcosystemBlock().trimEnd(),
+    "",
+    llmsStatsAwarenessBlock(origin).trimEnd(),
     "",
     "## Session (the actual runtime cut)",
     "",
@@ -1461,6 +1472,8 @@ function citeJson(origin) {
     layer: RUNTIME_LAYER,
     version: RUNTIME_VERSION,
     uses: base + "/v1/uses",
+    stats: socialStatusField(origin),
+    social_status: socialStatusField(origin),
     counted_tarball: false,
     proxy_is_not_exec: true,
     ...citeCompatibleFields(),
@@ -1866,6 +1879,7 @@ ${namedComponentsHtml()}
     <a href="${origin}/mcp">MCP (POST JSON-RPC)</a>
     <a href="${origin}/v1/health">/v1/health</a>
     <a href="${origin}/v1/uses">/v1/uses</a>
+    <a href="${origin}/v1/stats-rollups">/v1/stats-rollups</a>
     <a href="${origin}/v1/mesh">/v1/mesh</a>
     <a href="${origin}/v1/qns">/v1/qns</a>
     <a href="${origin}/v1/azpipe/arch">/v1/azpipe/arch</a>
@@ -2535,6 +2549,7 @@ function healthBody(origin) {
     update_manifest: "/v1/update/manifest",
     uses: "/v1/uses",
     stats: "/v1/stats",
+    stats_rollups: "/v1/stats-rollups",
     mesh: "/v1/mesh",
     mesh_status: "/v1/mesh/status",
     mesh_nodes: "/v1/mesh/nodes",
@@ -2954,6 +2969,8 @@ async function handleRequest(request, env, ctx) {
           runtime: origin + "/v1/runtime.json",
           ready: origin + "/v1/ready",
           uses: origin + "/v1/uses",
+          stats: socialStatusField(origin),
+          social_status: socialStatusField(origin),
           session: origin + "/v1/session/open",
           bundle: origin + "/v1/bundle",
           ...honestyFields(PRODUCTS.map((p) => p.slug)),
@@ -3083,6 +3100,26 @@ async function handleRequest(request, env, ctx) {
       const body =
         url.pathname === "/v1/stats" ? { ...uses, stats: "uses", alias_of: "/v1/uses" } : uses;
       return asHead(request, json(body, 200, authorityLinkHeaders(origin, url.pathname)));
+    }
+
+    if (url.pathname === "/v1/stats-rollups" && request.method === "POST") {
+      return json(
+        { ok: false, error: "method not allowed", hint: "GET /v1/stats-rollups — read-only snapshot" },
+        405,
+        authorityLinkHeaders(origin, "/v1/stats-rollups"),
+      );
+    }
+
+    if (url.pathname === "/v1/stats-rollups" && (request.method === "GET" || request.method === "HEAD")) {
+      const body = await statsRollupSnapshot(env, { origin });
+      return asHead(
+        request,
+        json(body, 200, {
+          ...authorityHeaders(RUNTIME_VERSION, RUNTIME_ROLE),
+          ...linkHeaders(origin, "/v1/stats-rollups"),
+          ...socialStatusCacheHeaders(),
+        }),
+      );
     }
 
     if (url.pathname === "/v1/health" && (request.method === "GET" || request.method === "HEAD")) {

@@ -23,6 +23,20 @@ Eliab, Aziel. (2026). Aziel Runtime 2.0.0-rc1 [Software]. Apache-2.0. https://az
 
 **Digital Library:** Eliab, Aziel. (2026). Aziel Digital Library [Software]. Apache-2.0. https://www.azielcorpuslibrary.net/
 
+## Stats / awareness (AZindex)
+
+Read-only public views/downloads for graph awareness. Not vanity. Not biography. Person `@id`: `https://www.azieleliab.com/#aziel`. Never invent numbers.
+
+| Hub | Stats URL | Keys |
+|-----|-----------|------|
+| Official site | https://www.azieleliab.com/v1/stats | views |
+| Aziel Corpus Library | https://www.azielcorpuslibrary.net/v1/stats | views, downloads |
+| He Didn't Jump | https://www.hedidntjump.com/api/stats | views, downloads, items |
+| GodLock | https://godlock.uk/stats | views, uses, downloads, current_score |
+| Aziel Runtime | https://aziel-runtime.vibelock.workers.dev/v1/uses | uses, by_host, by_path (agent/MCP usage) |
+
+He Didn't Jump `/stats` is the SPA — do not fetch it. Worker SoT `https://hedidntjump-stats.vibelock.workers.dev` is cite-only (do not dual-write hits). GodLock `GET /v1/stats` is 404; never cite uploads. Hub rollup: `GET /v1/stats-rollups` (best-effort; omit on error). Machine field: `/cite.json` `stats` / `social_status`.
+
 ## Softwares hubs + kernel
 
 - Official site → https://www.azieleliab.com/ · Runtime hub → https://www.azieleliab.com/runtime
