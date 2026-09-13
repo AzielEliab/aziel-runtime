@@ -31,13 +31,13 @@ export const SOCIAL_STATUS_HUBS = Object.freeze([
     id: "corpus",
     name: "Aziel Digital Library",
     kind: "hub",
-    stats: "https://www.azielcorpuslibrary.net/v1/stats",
-    fallbacks: Object.freeze([
-      "https://www.azielcorpuslibrary.net/stats",
-      "https://aziel-corpus-download-tracker.vibelock.workers.dev/stats",
-    ]),
+    stats: "https://www.azielcorpuslibrary.net/stats",
+    fallbacks: Object.freeze(["https://aziel-corpus-download-tracker.vibelock.workers.dev/stats"]),
+    not: Object.freeze(["https://www.azielcorpuslibrary.net/v1/stats"]),
+    version: "https://www.azielcorpuslibrary.net/v1/health",
     keys: Object.freeze(["views", "downloads"]),
     live: true,
+    note: "Counters are GET /stats (views, downloads). GET /v1/stats is not the counter door. Version is GET /v1/health.",
   },
   {
     id: "godlock",
@@ -85,7 +85,7 @@ export const SOCIAL_STATUS_HUBS = Object.freeze([
 
 export const SOCIAL_STATUS_LIVE_URLS = Object.freeze([
   "https://www.azieleliab.com/v1/stats",
-  "https://www.azielcorpuslibrary.net/v1/stats",
+  "https://www.azielcorpuslibrary.net/stats",
   "https://www.hedidntjump.com/api/stats",
 ]);
 
@@ -112,7 +112,7 @@ export function socialStatusField(origin) {
     live: SOCIAL_STATUS_LIVE_URLS.slice(),
     hubs: SOCIAL_STATUS_HUBS.map((h) => ({ ...h, keys: h.keys.slice(), fallbacks: h.fallbacks ? h.fallbacks.slice() : undefined, not: h.not ? h.not.slice() : undefined, never_cite: h.never_cite ? h.never_cite.slice() : undefined, host_mirrors: h.host_mirrors ? h.host_mirrors.slice() : undefined })),
     product_stats_template: "https://{slug}-download-tracker.vibelock.workers.dev/stats",
-    note: "Read-only AZindex awareness. Cite the stats URLs. GET /v1/stats-rollups fetches siblings best-effort and caches briefly. Failed siblings are omitted. He Didn't Jump: /api/stats only. GodLock: /stats (not /v1/stats). Runtime uses are agent/MCP usage, not vanity views.",
+    note: "Read-only AZindex awareness. Cite the stats URLs. GET /v1/stats-rollups fetches siblings best-effort and caches briefly. Failed siblings are omitted. Digital Library counters: /stats (not /v1/stats; version is /v1/health). He Didn't Jump: /api/stats only. GodLock: /stats (not /v1/stats). Runtime uses are agent/MCP usage, not vanity views.",
   };
 }
 
@@ -126,7 +126,7 @@ export function llmsStatsAwarenessBlock(origin) {
     "",
     "Live hub stats:",
     `- Official site views: ${SOCIAL_STATUS_LIVE_URLS[0]}`,
-    `- Digital Library views/downloads: ${SOCIAL_STATUS_LIVE_URLS[1]}`,
+    `- Digital Library views/downloads: ${SOCIAL_STATUS_LIVE_URLS[1]} (not /v1/stats — version is GET /v1/health)`,
     `- He Didn't Jump views/downloads/items: ${SOCIAL_STATUS_LIVE_URLS[2]} (not /stats — that is the SPA)`,
     "- GodLock views/uses/downloads/current_score: https://godlock.uk/stats (never cite uploads; GET /v1/stats is 404)",
     "- Runtime agent/MCP usage: https://aziel-runtime.vibelock.workers.dev/v1/uses (host mirrors …/runtime/v1/uses)",

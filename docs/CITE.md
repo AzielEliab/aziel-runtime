@@ -30,12 +30,12 @@ Read-only public views/downloads for graph awareness. Not vanity. Not biography.
 | Hub | Stats URL | Keys |
 |-----|-----------|------|
 | Official site | https://www.azieleliab.com/v1/stats | views |
-| Aziel Corpus Library | https://www.azielcorpuslibrary.net/v1/stats | views, downloads |
+| Aziel Corpus Library | https://www.azielcorpuslibrary.net/stats | views, downloads |
 | He Didn't Jump | https://www.hedidntjump.com/api/stats | views, downloads, items |
 | GodLock | https://godlock.uk/stats | views, uses, downloads, current_score |
 | Aziel Runtime | https://aziel-runtime.vibelock.workers.dev/v1/uses | uses, by_host, by_path (agent/MCP usage) |
 
-He Didn't Jump `/stats` is the SPA — do not fetch it. Worker SoT `https://hedidntjump-stats.vibelock.workers.dev` is cite-only (do not dual-write hits). GodLock `GET /v1/stats` is 404; never cite uploads. Hub rollup: `GET /v1/stats-rollups` (best-effort; omit on error). Machine field: `/cite.json` `stats` / `social_status`.
+Corpus counters are `GET /stats`, not `/v1/stats`. Corpus version is `GET /v1/health`. Tracker fallback: `https://aziel-corpus-download-tracker.vibelock.workers.dev/stats`. He Didn't Jump `/stats` is the SPA — do not fetch it. Worker SoT `https://hedidntjump-stats.vibelock.workers.dev` is cite-only (do not dual-write hits). GodLock `GET /v1/stats` is 404; never cite uploads. Hub rollup: `GET /v1/stats-rollups` (best-effort; omit on error). Machine field: `/cite.json` `stats` / `social_status`.
 
 ## Softwares hubs + kernel
 

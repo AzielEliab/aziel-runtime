@@ -53,7 +53,7 @@ assert.equal(SOCIAL_STATUS_AUTHOR, "Aziel Eliab");
 assert.equal(SOCIAL_STATUS_PERSON_ID, "https://www.azieleliab.com/#aziel");
 assert.deepEqual(SOCIAL_STATUS_LIVE_URLS, [
   "https://www.azieleliab.com/v1/stats",
-  "https://www.azielcorpuslibrary.net/v1/stats",
+  "https://www.azielcorpuslibrary.net/stats",
   "https://www.hedidntjump.com/api/stats",
 ]);
 
@@ -67,6 +67,11 @@ assert.equal(field.never_invent_numbers, true);
 assert.equal(field.rollup, `${origin}/v1/stats-rollups`);
 assert.ok(field.hubs.some((h) => h.id === "azieleliab" && h.stats === SOCIAL_STATUS_LIVE_URLS[0]));
 assert.ok(field.hubs.some((h) => h.id === "corpus" && h.stats === SOCIAL_STATUS_LIVE_URLS[1]));
+const corpusHub = field.hubs.find((h) => h.id === "corpus");
+assert.equal(corpusHub.stats, "https://www.azielcorpuslibrary.net/stats");
+assert.equal(corpusHub.version, "https://www.azielcorpuslibrary.net/v1/health");
+assert.ok(corpusHub.not.includes("https://www.azielcorpuslibrary.net/v1/stats"));
+assert.deepEqual(corpusHub.fallbacks, ["https://aziel-corpus-download-tracker.vibelock.workers.dev/stats"]);
 assert.ok(field.hubs.some((h) => h.id === "hedidntjump" && h.stats === SOCIAL_STATUS_LIVE_URLS[2]));
 const hdj = field.hubs.find((h) => h.id === "hedidntjump");
 assert.ok(hdj.not.includes("https://www.hedidntjump.com/stats"));
@@ -83,7 +88,9 @@ assert.ok(runtimeHub.host_mirrors.some((u) => u.endsWith("/runtime/v1/uses")));
 const llmsBlock = llmsStatsAwarenessBlock(origin);
 assert.match(llmsBlock, /## Stats \/ awareness/);
 assert.match(llmsBlock, /azieleliab\.com\/v1\/stats/);
-assert.match(llmsBlock, /azielcorpuslibrary\.net\/v1\/stats/);
+assert.match(llmsBlock, /azielcorpuslibrary\.net\/stats/);
+assert.doesNotMatch(llmsBlock, /azielcorpuslibrary\.net\/v1\/stats/);
+assert.match(llmsBlock, /version is GET \/v1\/health/);
 assert.match(llmsBlock, /hedidntjump\.com\/api\/stats/);
 assert.match(llmsBlock, /godlock\.uk\/stats/);
 assert.doesNotMatch(llmsBlock, /hedidntjump\.com\/stats \(/);
@@ -94,7 +101,7 @@ assert.equal(shouldIncrementUse("POST", "/v1/stats-rollups"), false);
 
 const liveRoutes = mockFetch([
   ["https://www.azieleliab.com/v1/stats", () => jsonRes({ ok: true, views: 10, product: "azieleliab", author: "Aziel Eliab" })],
-  ["https://www.azielcorpuslibrary.net/v1/stats", () => jsonRes({ ok: true, views: 20, downloads: 3 })],
+  ["https://www.azielcorpuslibrary.net/stats", () => jsonRes({ ok: true, views: 20, downloads: 3 })],
   ["https://godlock.uk/stats", () => jsonRes({ ok: true, views: 5, uses: 1, downloads: 2, current_score: 9.5, uploads: 99 })],
   ["https://www.hedidntjump.com/api/stats", () => jsonRes({ views: 4, downloads: 1, items: { landing: 4 } })],
 ]);
@@ -108,7 +115,7 @@ assert.equal(snap.person_id, SOCIAL_STATUS_PERSON_ID);
 assert.equal(snap.combined.views, 39);
 assert.equal(snap.combined.downloads, 6);
 assert.ok(snap.combined.source_urls.includes("https://www.azieleliab.com/v1/stats"));
-assert.ok(snap.combined.source_urls.includes("https://www.azielcorpuslibrary.net/v1/stats"));
+assert.ok(snap.combined.source_urls.includes("https://www.azielcorpuslibrary.net/stats"));
 assert.ok(snap.combined.source_urls.includes("https://godlock.uk/stats"));
 assert.ok(snap.combined.source_urls.includes("https://www.hedidntjump.com/api/stats"));
 const godRow = snap.sources.find((s) => s.id === "godlock");
@@ -135,7 +142,7 @@ let sotHits = 0;
 let spaHits = 0;
 const guarded = mockFetch([
   ["https://www.azieleliab.com/v1/stats", () => jsonRes({ views: 1 })],
-  ["https://www.azielcorpuslibrary.net/v1/stats", () => jsonRes({ views: 1, downloads: 1 })],
+  ["https://www.azielcorpuslibrary.net/stats", () => jsonRes({ views: 1, downloads: 1 })],
   ["https://godlock.uk/stats", () => jsonRes({ views: 1, downloads: 1, uses: 0, current_score: 1 })],
   [
     "https://www.hedidntjump.com/api/stats",
@@ -165,28 +172,32 @@ assert.equal(hdjHits, 1);
 assert.equal(sotHits, 0, "must not dual-write / fetch HDJ Worker SoT");
 assert.equal(spaHits, 0, "must not fetch He Didn't Jump /stats SPA");
 
+let corpusV1Hits = 0;
 const fallbackFetch = mockFetch([
   ["https://www.azieleliab.com/v1/stats", () => jsonRes({ views: 2 })],
-  ["https://www.azielcorpuslibrary.net/v1/stats", () => new Response("no", { status: 404, headers: { "content-type": "text/html" } })],
-  ["https://www.azielcorpuslibrary.net/stats", () => jsonRes({ views: 8, downloads: 4 })],
+  [
+    "https://www.azielcorpuslibrary.net/v1/stats",
+    () => {
+      corpusV1Hits += 1;
+      return jsonRes({ views: 999, downloads: 999 });
+    },
+  ],
+  ["https://www.azielcorpuslibrary.net/stats", () => new Response("no", { status: 404, headers: { "content-type": "text/html" } })],
+  ["https://aziel-corpus-download-tracker.vibelock.workers.dev/stats", () => jsonRes({ views: 8, downloads: 4 })],
   ["https://godlock.uk/stats", () => new Response("no", { status: 404, headers: { "content-type": "text/html" } })],
   ["https://godlock-download-tracker.vibelock.workers.dev/stats", () => jsonRes({ views: 3, downloads: 1 })],
   ["https://www.hedidntjump.com/api/stats", () => jsonRes({ views: 1, downloads: 0, items: {} })],
 ]);
 resetSocialStatusCache();
 const fallbackSnap = await statsRollupSnapshot(envWith(), { fetch: fallbackFetch, origin, skipCache: true });
-assert.equal(fallbackSnap.sources.find((s) => s.id === "corpus").url, "https://www.azielcorpuslibrary.net/stats");
+assert.equal(fallbackSnap.sources.find((s) => s.id === "corpus").url, "https://aziel-corpus-download-tracker.vibelock.workers.dev/stats");
 assert.equal(fallbackSnap.sources.find((s) => s.id === "godlock").url, "https://godlock-download-tracker.vibelock.workers.dev/stats");
 assert.equal(fallbackSnap.combined.views, 14);
 assert.equal(fallbackSnap.combined.downloads, 5);
+assert.equal(corpusV1Hits, 0, "must not fetch corpus /v1/stats");
 
 const failOne = mockFetch([
   ["https://www.azieleliab.com/v1/stats", () => jsonRes({ views: 6 })],
-  ["https://www.azielcorpuslibrary.net/v1/stats", async () => {
-    const err = new Error("aborted");
-    err.name = "TimeoutError";
-    throw err;
-  }],
   ["https://www.azielcorpuslibrary.net/stats", async () => {
     const err = new Error("aborted");
     err.name = "TimeoutError";
@@ -209,6 +220,7 @@ assert.equal(corpusFail.omitted, true);
 assert.ok(timed.omitted.some((o) => o.id === "corpus" && o.error === "timeout"));
 assert.equal(timed.combined.views, 9);
 assert.equal(timed.combined.downloads, 2);
+assert.ok(!timed.combined.source_urls.includes("https://www.azielcorpuslibrary.net/stats"));
 assert.ok(!timed.combined.source_urls.includes("https://www.azielcorpuslibrary.net/v1/stats"));
 
 resetSocialStatusCache();
@@ -268,7 +280,8 @@ assert.equal(post.status, 405);
 const llms = await (await handler(new Request(origin + "/llms.txt"), env)).text();
 assert.match(llms, /## Stats \/ awareness/);
 assert.match(llms, /azieleliab\.com\/v1\/stats/);
-assert.match(llms, /azielcorpuslibrary\.net\/v1\/stats/);
+assert.match(llms, /azielcorpuslibrary\.net\/stats/);
+assert.doesNotMatch(llms, /azielcorpuslibrary\.net\/v1\/stats/);
 assert.match(llms, /hedidntjump\.com\/api\/stats/);
 
 const sitemap = await (await handler(new Request(origin + "/sitemap.xml"), env)).text();
