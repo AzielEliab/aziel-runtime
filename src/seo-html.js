@@ -334,6 +334,7 @@ ${namedComponentsHtml()}
     <li>${escapeHtml(about.architecture.fraggate)}</li>
     <li>${escapeHtml(about.architecture.softwares)}</li>
     <li>${escapeHtml(about.architecture.dual_surface)}</li>
+    <li>${escapeHtml(about.architecture.semantic_bridge)}</li>
     <li>${escapeHtml(about.architecture.nodemesh)}</li>
     <li>${escapeHtml(about.architecture.master33)}</li>
   </ul>

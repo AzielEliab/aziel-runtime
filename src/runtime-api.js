@@ -32,6 +32,7 @@ import {
 } from "./production.js";
 import { citeCompatibleFields, skillCompatibleSection } from "./ai-clients.js";
 import { auditsSkillMarkdown, designsSkillMarkdown } from "./seo.js";
+import { dualSurfaceAgentHowTo, semanticBridgeSkillMarkdown } from "./semantic-bridge.js";
 import { LOCKED_STRIP } from "./azpipe.js";
 
 export const RUNTIME_VERSION = "2.0.0-rc1";
@@ -323,6 +324,10 @@ You do **not** need to open each product homepage.
 
 ${skillCompatibleSection(base)}
 
+${dualSurfaceAgentHowTo(base)}
+
+${semanticBridgeSkillMarkdown(base)}
+
 ## Endpoints (this Worker)
 
 | Method | Path | What |
@@ -373,6 +378,7 @@ ${skillCompatibleSection(base)}
 | POST | \`/v1/mesh/heartbeat\` | Refresh 5-minute presence. Body \`{node_id, presence?}\`. |
 | POST | \`/v1/mesh/leave\` | Drop presence. Body \`{node_id}\`. No implicit heal. |
 | GET | \`/v1/mesh/nodes\` | Rollup roster (no scores / leaderboard). |
+| GET | \`/v1/mesh/az-generator\` | Cap-7 semantic-bridge cite (MirageGrid factory; inherit designs only; \`resolves_to_hub: false\`; not ICANN). Never enables radios. |
 | POST | \`/v1/mesh/broadcast\` | SHA-256 hash receipt only. Never a publish path. |
 | GET | \`/v1/qns\` | QNS-CD-1.0 cite (photon QNS1 1.3). Local \`qnsd\` in qnm-node. Never a public via proxy. |
 | GET | \`/v1/receipts\` | ACT-RECEIPT-1.0 cite. Public chain lives on corpus \`/receipts\`. Tip/proxy at \`/v1/receipts/tip\`. Fail-open append when token set. Not a Softwares-tab product. |
@@ -570,6 +576,7 @@ export function runtimeManifest(origin, products, extra = {}) {
       mesh: base + "/v1/mesh",
       mesh_status: base + "/v1/mesh/status",
       mesh_nodes: base + "/v1/mesh/nodes",
+      mesh_az_generator: base + "/v1/mesh/az-generator",
       mesh_enable: base + "/v1/mesh/enable",
       mesh_join: base + "/v1/mesh/join",
       mesh_broadcast: base + "/v1/mesh/broadcast",
@@ -1385,6 +1392,27 @@ export function runtimeStaticPaths() {
         summary: "QNM rollup roster (live/locked/isolated). No scores. No leaderboard.",
         tags: ["mesh"],
         responses: { "200": { description: "Rollup nodes JSON" } },
+      },
+    },
+    "/v1/mesh/az-generator": {
+      get: {
+        operationId: "mesh_az_generator",
+        summary:
+          "Cap-7 semantic-bridge cite. MirageGrid-only mesh-name factory. Inherit hub designs only. resolves_to_hub false. Not aliases of the four ICANN hostnames. public_icann false. Not a live AZ-GEN registrar. GET never enables radios.",
+        tags: ["mesh"],
+        responses: { "200": { description: "Cap-7 cite JSON (not a registrar)" } },
+      },
+      head: {
+        operationId: "mesh_az_generator_head",
+        summary: "HEAD of /v1/mesh/az-generator.",
+        tags: ["mesh"],
+        responses: { "200": { description: "headers only" } },
+      },
+      post: {
+        operationId: "mesh_az_generator_post",
+        summary: "Refused (CAP7-CITE-ONLY). Not a live registrar. GET never enables radios.",
+        tags: ["mesh"],
+        responses: { "405": { description: "CAP7-CITE-ONLY" } },
       },
     },
     "/v1/mesh/enable": {

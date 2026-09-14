@@ -24,6 +24,7 @@ Certification point — not a feature dump.
 - Additive ACT-RECEIPT-1.0 fabric (not a Softwares engine): fail-open append to corpus `/v1/receipts/append` after FragGate list/call, `POST /mcp`, and significant `POST /v1/*` when `RECEIPT_APPEND_TOKEN` is set. Public chain lives on corpus `/receipts`. `GET /v1/receipts` cites; tip/proxy is optional. No new MCP tool. Remain-OFF untouched.
 - CROSS-NETWORK-SURVIVAL-1.0 machine cite: `/cite.json` `survival.tip` and `/llms.txt` carry one survival tip string. Design paper in `docs/designs/`. No new MCP tool. Remain-OFF untouched.
 - Additive NO-LIE-NO-REWRITE-1.0 law (companion under the umbrella; does not replace the machine tip): receipts that still hash; copies not all on one tunnel; no rewrite key; never lie to survive. `GET /v1/mesh` cites the flags. Rewrite / lie verbs refuse `MESH-NO-REWRITE` / `MESH-NO-LIE`. No new MCP tool. Remain-OFF untouched.
+- Dual-surface AI upload/download/invoke how-to on `runtime_skill` + OpenAPI. Cap-7 semantic-bridge cite (`/cite.json` `semantic_bridge`, `GET /v1/mesh/az-generator`, MirageGrid `bridge`). Inherit hub designs only. `resolves_to_hub: false`. Not ICANN aliases. No live registrar. GET never enables radios. No new MCP tool.
 - No new Softwares engines. No remote shell / VPN / deanonymize / public SMTP.
 - No `2.0.0` final tag in this PR.
 

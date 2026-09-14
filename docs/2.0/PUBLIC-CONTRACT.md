@@ -105,6 +105,7 @@ Other public HTTP surfaces that stay in the contract:
 | POST | `/v1/session/{id}/policy\|exec\|close` | Session mutate |
 | GET | `/v1/session/{id}/receipt\|receipts` | Receipts |
 | GET | `/v1/mesh`, `/v1/mesh/status`, `/v1/mesh/nodes` | QNM rollup (**GET never enables**) |
+| GET | `/v1/mesh/az-generator` | Cap-7 semantic-bridge cite (MirageGrid; inherit designs only; `resolves_to_hub: false`; not ICANN) |
 | POST | `/v1/mesh/enable\|disable\|join\|heartbeat\|leave\|broadcast` | Mesh mutate (bearer / radios) |
 | GET | `/v1/qns` | QNS cite only |
 | GET | `/v1/azpipe/arch` | MASTER-33 cite/read |

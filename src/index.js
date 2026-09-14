@@ -43,6 +43,7 @@
  * POST /v1/mesh/disable       refused (MESH-DISABLE-REFUSED)
  * POST /v1/mesh/join|heartbeat|leave
  * GET  /v1/mesh/nodes         rollup roster (no scores)
+ * GET  /v1/mesh/az-generator  Cap-7 semantic-bridge cite (MirageGrid; not ICANN; never enables)
  * POST /v1/mesh/broadcast     SHA-256 hash receipt only (never a publish path)
  * GET  /v1/bundle             compact bootstrap (skill URL + invoke prefix per product)
  * GET  /v1/pull?all=1         alias of /v1/bundle
@@ -117,6 +118,7 @@ import {
 import { dispatchQnsHttp, qnsHint } from "./qns.js";
 import { dispatchActReceiptHttp, finishWithActReceipt } from "./library-receipts.js";
 import { SURVIVAL_TIP, survivalCiteField, survivalLlmsBlock } from "./cross-network-survival.js";
+import { semanticBridgeCiteField, semanticBridgeLlmsBlock } from "./semantic-bridge.js";
 import {
   catalogCacheHeaders,
   donationStatic,
@@ -420,6 +422,7 @@ const PRODUCTS_RAW = [
     ops: [
       { op: "assign", method: "POST", summary: "Assign a session node id. Mapping is ephemeral." },
       { op: "verify-receipt", method: "POST", summary: "Verify a MirageGrid control-plane receipt. Not a VPN hop." },
+      { op: "bridge", method: "GET", summary: "Cap-7 mesh-name metadata cite. Inherit designs only. Not ICANN. resolves_to_hub false." },
       { op: "nodes", method: "GET", summary: "List ephemeral control-plane node ids. Not a hop mesh." },
       { op: "doctor", method: "GET", summary: "UI alias of health. Same FragGate backend as the Worker UI button." },
     ],
@@ -944,7 +947,7 @@ const ONE_LINE = {
   zsolver: "Nine ontology nodes (Zioncheck seed). Hard 75% cap. Does not solve cases.",
   azos: "Read-only status / principles. Does not grant remote shell.",
   glossafilter: "Render an intent across bundled peer ids. Human opinion remains human.",
-  miragegrid: "Ephemeral session node assignment. Not a VPN and not an anonymity network.",
+  miragegrid: "Ephemeral session node assignment plus Cap-7 name-metadata cite. Not a VPN, not ICANN, not a live registrar.",
   staticclock: "Forward-only gear-click timeline + companion advisory. click, verify, timeslate. Not a rollback clock.",
   chronolock: "Temporal Neutral Window advisory 08:30–10:30 local. Distinct from TemporalLock. Not a scheduler.",
   postking: "Continuity chess. The goal is not to win. The goal is to remain.",
@@ -1251,6 +1254,7 @@ function sitemapXml(origin) {
     { loc: base + "/v1/mesh", priority: "0.7", changefreq: "daily" },
     { loc: base + "/v1/mesh/status", priority: "0.65", changefreq: "daily" },
     { loc: base + "/v1/mesh/nodes", priority: "0.65", changefreq: "daily" },
+    { loc: base + "/v1/mesh/az-generator", priority: "0.6", changefreq: "weekly" },
     { loc: base + "/v1/qns", priority: "0.65", changefreq: "weekly" },
     { loc: base + "/v1/receipts", priority: "0.6", changefreq: "daily" },
     { loc: base + "/v1/azpipe/arch", priority: "0.65", changefreq: "weekly" },
@@ -1357,6 +1361,7 @@ function llmsTxt(origin) {
     `Survival tip: ${SURVIVAL_TIP}`,
     `Mesh status: ${base}/v1/mesh/status  (alias; never enables)`,
     `Mesh nodes: ${base}/v1/mesh/nodes  (roster; 5-minute TTL; no scores)`,
+    `Cap-7 semantic bridge: ${base}/v1/mesh/az-generator  (MirageGrid cite; inherit designs only; resolves_to_hub false; not ICANN aliases)`,
     `ACT-RECEIPT-1.0: ${base}/v1/receipts  (cite). Public chain lives on https://www.azielcorpuslibrary.net/receipts. Runtime appends after FragGate list/call, POST /mcp, and significant POST /v1/* when RECEIPT_APPEND_TOKEN is set (fail-open). Tip/proxy: ${base}/v1/receipts/tip. Not a Softwares-tab product.`,
     `Agent pipeline: fraggate_list → fraggate_describe → fraggate_call. Prefer ${base}/mcp and ${base}/v1/software.`,
     `About: ${base}/about`,
@@ -1375,6 +1380,8 @@ function llmsTxt(origin) {
     survivalLlmsBlock().trimEnd(),
     "",
     llmsCompatibleBlock().trimEnd(),
+    "",
+    semanticBridgeLlmsBlock(origin).trimEnd(),
     "",
     llmsHubsBlock().trimEnd(),
     "",
@@ -1529,7 +1536,7 @@ function citeJson(origin) {
     audits: auditsCiteField(),
     survival: survivalCiteField(),
     mesh: meshCiteField(base),
-    mesh_get_never_enables: true,
+    semantic_bridge: semanticBridgeCiteField(origin),
     suite_presence: SUITE_PRESENCE,
     products: PRODUCTS.map((p) => {
       const u = productUrls(p, origin);
@@ -2310,7 +2317,7 @@ async function combinedOpenApi(request, env) {
       summary: RUNTIME_ONE_LINE,
       description:
         RUNTIME_ABSTRACT +
-        " FragGate is THE single public executable door (list → describe → call). Softwares catalog Plain→Gate→Lock; hubs refresh from GET /v1/software. Dual-surface: agents MCP/OpenAPI; humans Worker UI + counted /download. NodeMesh/QNM read-only suite-presence is ON by default; GET /v1/mesh never enables radios beyond that; not a login mesh/VPN/Node Gate. Author Aziel Eliab only. " +
+        " FragGate is THE single public executable door (list → describe → call). Softwares catalog Plain→Gate→Lock; hubs refresh from GET /v1/software. Dual-surface: agents MCP/OpenAPI; humans Worker UI + counted /download. Cap-7 mesh names via MirageGrid only (inherit hub designs only; resolves_to_hub false; not ICANN aliases). NodeMesh/QNM read-only suite-presence is ON by default; GET /v1/mesh never enables radios beyond that; not a login mesh/VPN/Node Gate. Author Aziel Eliab only. " +
         CATALOG_CHANGELOG_20 +
         " " +
         CATALOG_CHANGELOG_19 +
@@ -3011,6 +3018,7 @@ async function handleRequest(request, env, ctx) {
           fraggate_software: origin.replace(/\/$/, "") + "/v1/fraggate/software",
           update_check: origin.replace(/\/$/, "") + "/v1/update/check",
           update_manifest: origin.replace(/\/$/, "") + "/v1/update/manifest",
+          semantic_bridge: semanticBridgeCiteField(origin),
           count: PRODUCTS.length,
           products: PRODUCTS.map((p) => catalogRecord(p, origin)),
         },
@@ -3032,7 +3040,7 @@ async function handleRequest(request, env, ctx) {
           payload = {};
         }
       }
-      const out = await dispatchMeshHttp(request.method, url.pathname, payload, env);
+      const out = await dispatchMeshHttp(request.method, url.pathname, payload, env, origin);
       if (isMeshReadPath(url.pathname)) {
         scheduleSuitePresenceFanout(ctx, env, { source: "request-path" });
       }

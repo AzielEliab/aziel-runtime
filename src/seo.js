@@ -71,6 +71,8 @@ export function runtimeAboutField(origin) {
       fraggate: "THE single public executable door (list → describe → call). Not 37 separate APIs.",
       softwares: "Plain → Gate → Lock catalog products with true in-process engines where live.",
       dual_surface: "Agents via OpenAPI/MCP; humans via Worker UI + counted /download.",
+      semantic_bridge:
+        "Cap-7 mesh names via MirageGrid only. Inherit hub designs only. resolves_to_hub false. Not aliases of the four ICANN hostnames. GET /v1/mesh never enables.",
       nodemesh:
         "QNM read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Local qnm-node. Not a login mesh / VPN / Node Gate.",
       master33: "Domains are isolation labels, not extra doors. Lamb Lens ethics hop after FragGate.",
@@ -758,6 +760,7 @@ export function catalogHubFields(origin) {
       update_check: base + "/v1/update/check",
       update_manifest: base + "/v1/update/manifest",
       mcp: base + "/mcp",
+      mesh_az_generator: base + "/v1/mesh/az-generator",
     },
   };
 }

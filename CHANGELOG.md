@@ -6,6 +6,8 @@ This file exists so Glama / crawlers that look for a repo-root changelog see the
 
 ## 2.0.0-rc1 (current)
 
+- Dual-surface AI path: agents download via `GET /v1/update/check` / `GET /v1/pull/{slug}` and invoke upload/ingest/receipt ops through `fraggate_call` / OpenAPI. Humans stay on Worker UI + counted `/download`. Full AI client set restated on skill / OpenAPI / `llms.txt` / cite.
+- Cap-7 semantic-bridge cite: MirageGrid-only mesh-name factory. Names inherit hub **designs** only. `resolves_to_hub: false`. Not aliases of the four ICANN hostnames. Live paths: MirageGrid Worker `/bridge`, `GET /v1/mesh/az-generator`, `fraggate_call` `{ slug: "miragegrid", op: "bridge" }`. `public_icann: false`. No AZ-GEN live registrar. No fake ICANN `.az`. No visible 15:20. `GET /v1/mesh` never enables radios. AZNet + AZBrowser for mesh browse. Plane A hubs mirror tips. **No MCP tool added.**
 - MCP `initialize` `serverInfo.version` is `2.0.0-rc1` (same as `package.json` and `RUNTIME_VERSION`).
 - `1.6.2` is **superseded heritage** (FragGate public-door widen). It is not the current server.
 - Certification-point freeze. Read-only QNM suite-presence is ON by default; `POST /v1/mesh/disable` refuses `MESH-DISABLE-REFUSED`. Remain-OFF untouched.

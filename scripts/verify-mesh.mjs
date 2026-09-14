@@ -456,6 +456,10 @@ assert.match(openapi.data.paths["/v1/mesh"].get.summary, /ON by default/);
 assert.doesNotMatch(openapi.data.paths["/v1/mesh"].get.summary, /Default OFF/);
 assert.match(openapi.data.paths["/v1/mesh/disable"].post.summary, /MESH-DISABLE-REFUSED|Refused/);
 assert.ok(openapi.data.paths["/v1/qns"]);
+assert.ok(openapi.data.paths["/v1/mesh/az-generator"]);
+assert.match(openapi.data.paths["/v1/mesh/az-generator"].get.summary, /resolves_to_hub false/);
+assert.equal(citeMesh.semantic_bridge.resolves_to_hub, false);
+assert.equal(citeMesh.semantic_bridge.inherit, "designs");
 
 const unitOn = await runMeshOp("join", { product: "azmail" }, {});
 assert.equal(unitOn.ok, true);

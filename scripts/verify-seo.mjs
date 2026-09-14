@@ -322,6 +322,13 @@ assert.ok(cite.compatible_ai_clients.includes("Claude (Anthropic Desktop / custo
 assert.ok(cite.compatible_ai_clients.includes("plus other MCP/OpenAPI-capable assistants"));
 assert.match(cite.crawler_allow, /GPTBot\/ChatGPT/);
 assert.match(cite.crawler_allow, /Yandex/);
+assert.equal(cite.semantic_bridge.spec, "CAP-7");
+assert.equal(cite.semantic_bridge.resolves_to_hub, false);
+assert.equal(cite.semantic_bridge.inherit, "designs");
+assert.equal(cite.semantic_bridge.public_icann, false);
+assert.equal(cite.semantic_bridge.az_gen_live_registrar, false);
+assert.equal(cite.semantic_bridge.visible_1520, false);
+assert.ok(cite.semantic_bridge.not_aliases_of.includes("https://godlock.uk/"));
 assert.ok(cite.designs);
 assert.equal(cite.designs.folder, "docs/designs/");
 assert.equal(cite.designs.author, AUTHOR_NAME);
@@ -758,6 +765,8 @@ assert.match(llmsHead, /not merely an API orchestrator or software aggregator/);
 assert.doesNotMatch(llmsHead, CRAWLER_LEAD_VERSION_RE);
 assert.match(llms, /## Version history/);
 assert.ok(llms.indexOf("## What this is") < llms.indexOf("## Version history"));
+assert.ok(llms.indexOf("## What this is") < llms.indexOf("## Cap-7 semantic bridge"));
+assert.match(llms, /resolves_to_hub: false/);
 assert.equal(llms.includes(RUNTIME_ABSTRACT), true);
 
 assert.equal(cite.one_line, RUNTIME_ONE_LINE);
@@ -768,6 +777,8 @@ assert.equal(cite.about.author, AUTHOR_NAME);
 assert.ok(cite.about.not.some((line) => /API orchestrator/.test(line)));
 assert.match(cite.about.architecture.fraggate, /single public executable door/);
 assert.match(cite.about.architecture.nodemesh, /GET \/v1\/mesh never enables/);
+assert.match(cite.about.architecture.semantic_bridge, /resolves_to_hub false/);
+assert.match(cite.about.architecture.semantic_bridge, /designs only/);
 
 assert.match(sitemap, /\/about</);
 assert.match(sitemap, /\/v1\/about</);
@@ -847,5 +858,7 @@ assert.match(citeDoc, /www\.azieleliab\.com\/#aziel/);
 assert.match(citeDoc, /www\.azieleliab\.com\/runtime#runtime/);
 assert.match(citeDoc, /github\.com\/AzielEliab\/fraggate/);
 assert.match(citeDoc, /plus other MCP\/OpenAPI-capable assistants/);
+assert.match(citeDoc, /resolves_to_hub: false/);
+assert.match(citeDoc, /inherit hub \*\*designs\*\* only/);
 
 console.log("ok seo hub: robots, sitemap-index, llms/cite MIME, Person JSON-LD, catalog crawl links, HTML shells, definition-first abstract, GitHub About lock");
