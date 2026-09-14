@@ -110,6 +110,13 @@ QNM-WP-1.0                                                                      
    • Neighbors do not phoenix because a neighbor phoenix’d. Clock desync is not a yes.
    • Multiply cold copies. Refuse live body sync. Tip expensive to erase. Unkillable by single-server pull.
    • Data outlives creators via content-addressed tips + local verify/append. Payloads pull-only cold. Named hosts only.
+   • Bytes survive, not summaries. Re-expand restores from archive after prev-hash verify. Not mesh from index.
+   • Crawlers are extra shelves only. Training residue is rumor.
+   • REHEAL: isolation is the cure. Own last good tip + verified trusted pull, or phoenix-WAIT. Never listen to neighbors.
+   • Allowed on the wire: live / locked / isolated / tip-hash. Forbidden: bodies / diffs / vote-to-fix.
+   • If network and data die tomorrow, the chain survives on cold shelves (hosts / DOI / git / vault).
+   • CROSS-NETWORK-SURVIVAL-1.0 cites die-with-the-pull, split-the-wires, cold-copy, re-expand, and REHEAL under that sentence.
+   • The live mesh is not a shelf.
    • Concept is closed when both planes, cell math, ID spend, leaf-vs-bridge poison, phoenix-without-hunt, and stub names
    are specified — they are.
  Specified 2026-09-06. Building qnm-node is implementation. This paper is the concept at 100%. Public identity: Aziel

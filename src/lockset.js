@@ -12,8 +12,14 @@
  * Cold-copy survival: tips are content-addressed and expensive to erase.
  * Local verify/append outlives a single-server pull and the creators.
  * Live body sync is refused. Payloads stay pull-only cold. Named hosts only.
+ * Re-expand-from-archive: bytes survive, not summaries. Restore after
+ * prev-hash verify. Not mesh from index. Crawlers are extra shelves only.
+ * Training residue is rumor.
+ * REHEAL: isolation is the cure. Own last good tip + verified trusted
+ * pull, or phoenix-WAIT. Never neighbor talk-back-to-health.
+ * CROSS-NETWORK-SURVIVAL-1.0: if network and data die tomorrow, the chain survives on cold shelves (hosts / DOI / git / vault).
  *
- * Paper: docs/designs/LS-WP-0.1.md · SPLIT-WIRES-1.0 · COLD-COPY-1.0
+ * Paper: docs/designs/LS-WP-0.1.md · SPLIT-WIRES-1.0 · COLD-COPY-1.0 · RE-EXPAND-1.0 · REHEAL-1.0 · CROSS-NETWORK-SURVIVAL-1.0
  * Author: Aziel Eliab only.
  */
 
@@ -32,6 +38,15 @@ import {
   partitionRejoin,
 } from "./split-wires.js";
 import { COLD_COPY, COLD_COPY_LAW, COLD_COPY_SHORT, tipEraseCost } from "./cold-copy.js";
+import { RE_EXPAND, RE_EXPAND_LAW, RE_EXPAND_SHORT, reExpandFromArchive } from "./re-expand.js";
+import { REHEAL, REHEAL_LAW, REHEAL_SHORT, rehealFromOwnTip } from "./reheal.js";
+import {
+  CROSS_NETWORK_SURVIVAL,
+  CROSS_NETWORK_SURVIVAL_LAW,
+  CROSS_NETWORK_SURVIVAL_SHORT,
+  SURVIVAL_SHELVES,
+  networkDataDie,
+} from "./cross-network-survival.js";
 
 export {
   DWELL_S,
@@ -47,6 +62,19 @@ export {
   COLD_COPY_LAW,
   COLD_COPY_SHORT,
   tipEraseCost,
+  RE_EXPAND,
+  RE_EXPAND_LAW,
+  RE_EXPAND_SHORT,
+  reExpandFromArchive,
+  REHEAL,
+  REHEAL_LAW,
+  REHEAL_SHORT,
+  rehealFromOwnTip,
+  CROSS_NETWORK_SURVIVAL,
+  CROSS_NETWORK_SURVIVAL_LAW,
+  CROSS_NETWORK_SURVIVAL_SHORT,
+  SURVIVAL_SHELVES,
+  networkDataDie,
 };
 
 export const LS_VERSION = "LS-0.1";
@@ -162,6 +190,21 @@ export async function verify(storeOrEnv, input = {}) {
     lattice = false;
     breaks.push({ reason: erase.reason });
   }
+  const expand = applyReExpand(input);
+  if (expand.breaks.length) {
+    lattice = false;
+    breaks.push(...expand.breaks);
+  }
+  const heal = applyReheal(input);
+  if (heal.breaks.length) {
+    lattice = false;
+    breaks.push(...heal.breaks);
+  }
+  const survival = applyCrossNetworkSurvival(input);
+  if (survival.breaks.length) {
+    lattice = false;
+    breaks.push(...survival.breaks);
+  }
 
   return {
     ok: lattice,
@@ -184,7 +227,67 @@ export async function verify(storeOrEnv, input = {}) {
     tip_expensive_to_erase: true,
     unkillable_by_single_server: true,
     rewrite: false,
+    re_expand: RE_EXPAND,
+    mesh_from_index: false,
+    summaries_survive: false,
+    bytes_survive: true,
+    reheal: REHEAL,
+    isolation_is_the_cure: true,
+    neighbor_heal: false,
+    vote_to_fix: false,
+    cross_network_survival: CROSS_NETWORK_SURVIVAL,
+    survival_shelves: SURVIVAL_SHELVES.slice(),
+    live_network_is_shelf: false,
+    chain_survives: true,
   };
+}
+
+function applyReExpand(input) {
+  const wants =
+    input.re_expand === true ||
+    input.archive_bytes != null ||
+    input.from_index === true ||
+    input.mesh_from_index === true ||
+    input.summary === true ||
+    input.crawler === true ||
+    input.training_residue === true ||
+    input.training === true;
+  if (!wants) return { breaks: [] };
+  const out = reExpandFromArchive(input);
+  return { breaks: out.ok ? [] : out.breaks };
+}
+
+function applyReheal(input) {
+  const wants =
+    input.reheal === true ||
+    input.neighbor_heal === true ||
+    input.listen_neighbors === true ||
+    input.listen_to_neighbors === true ||
+    input.heal_from_neighbors === true ||
+    input.vote_to_fix === true ||
+    input.talk_back === true ||
+    input.phoenix_wait === true ||
+    input.own_last_good_tip != null ||
+    input.trusted_pull === true ||
+    input.verified_trusted_pull === true;
+  if (!wants) return { breaks: [] };
+  const out = rehealFromOwnTip(input);
+  if (out.ok) return { breaks: [] };
+  return { breaks: [{ reason: out.reason || "stay-isolated" }] };
+}
+
+function applyCrossNetworkSurvival(input) {
+  const wants =
+    input.cross_network_survival === true ||
+    input.survive_on_network === true ||
+    input.live_shelf === true ||
+    input.live_network_is_shelf === true ||
+    input.network_dead === true ||
+    input.data_dead === true;
+  if (!wants) return { breaks: [] };
+  const out = networkDataDie(input);
+  if (out.ok) return { breaks: [] };
+  return { breaks: [{ reason: out.reason || "live-network-is-not-a-shelf" }] };
 }
 
 function applySplitWires(input, sealed) {

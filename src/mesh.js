@@ -33,6 +33,14 @@
  *   (equivocation isolates that peer); data outlives creators via
  *   content-addressed tips + local verify/append; payloads pull-only
  *   cold; named hosts only.
+ * - Re-expand-from-archive: bytes survive, not summaries. Restore from
+ *   archive after prev-hash verify. Not mesh from index. Crawlers are
+ *   extra shelves only. Training residue is rumor.
+ * - REHEAL: isolation is the cure. Heal from own last good tip +
+ *   verified trusted pull, or phoenix-WAIT. Never by listening to
+ *   neighbors. Allowed: live / locked / isolated / tip-hash.
+ *   Forbidden: bodies / diffs / vote-to-fix.
+ * - CROSS-NETWORK-SURVIVAL-1.0: if network and data die tomorrow, the chain survives on cold shelves (hosts / DOI / git / vault). All prior laws sit under that sentence. The live mesh is not a shelf.
  * - azieleliab.com hosts published software/runtime — NOT login-recovery,
  *   NOT Node Gate/IP panel, NOT upload proxy.
  * - Suite public surface may expose mesh rollup only: live / locked /
@@ -76,6 +84,15 @@ import {
   tickAccepts,
 } from "./split-wires.js";
 import { COLD_COPY, COLD_COPY_SHORT, refuseLiveBodySync } from "./cold-copy.js";
+import { RE_EXPAND, RE_EXPAND_SHORT, meshFromIndex } from "./re-expand.js";
+import { REHEAL, REHEAL_SHORT, neighborTalkHeal } from "./reheal.js";
+import {
+  CROSS_NETWORK_SURVIVAL,
+  CROSS_NETWORK_SURVIVAL_SHORT,
+  SURVIVAL_SHELVES,
+  citePriorLaws,
+  networkDataDie,
+} from "./cross-network-survival.js";
 
 export const MESH_SLUG = "mesh";
 export const MESH_NAME = "Quantum Node Mesh";
@@ -115,7 +132,13 @@ export const MESH_LIMITATION =
   SPLIT_WIRES_SHORT +
   " Cold-copy survival: " +
   COLD_COPY_SHORT +
-  " THIS IS NOT: a login mesh; login-recovery; Node Gate/IP panel; upload proxy; account resurrection; public hostname resurrection; bringing the .uk node back; average-of-nodes leaderboard; QNM-S; the local qnm-node process (boot/chain/apg/bearers/outbox/phoenix/score/memorial/tethers); AnonBroadcast as a catalog product or publish path; AZMail's product-local ring; arming; wipe; controller hunt; implicit heal; a public qnsd proxy; a payload push plane; vote-to-reconcile; live body sync. Author: Aziel Eliab only.";
+  " Re-expand-from-archive: " +
+  RE_EXPAND_SHORT +
+  " REHEAL: " +
+  REHEAL_SHORT +
+  " CROSS-NETWORK-SURVIVAL-1.0: " +
+  CROSS_NETWORK_SURVIVAL_SHORT +
+  " THIS IS NOT: a login mesh; login-recovery; Node Gate/IP panel; upload proxy; account resurrection; public hostname resurrection; bringing the .uk node back; average-of-nodes leaderboard; QNM-S; the local qnm-node process (boot/chain/apg/bearers/outbox/phoenix/score/memorial/tethers); AnonBroadcast as a catalog product or publish path; AZMail's product-local ring; arming; wipe; controller hunt; implicit heal; a public qnsd proxy; a payload push plane; vote-to-reconcile; live body sync; mesh from index; summary-as-archive; neighbor talk-back-to-health; vote-to-fix; live network as a shelf. Author: Aziel Eliab only.";
 
 export const MESH_CANONICAL_OPS = Object.freeze([
   "status",
@@ -338,7 +361,7 @@ export function meshKernelEntry() {
     stub_ops: MESH_STUB_OPS.slice(),
     op_aliases: { ...MESH_OP_ALIASES },
     description:
-      "QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1). Packet-transfer coding design QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; Worker cites only). live/locked/isolated counts. Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public disable of suite-presence is refused. Phoenix is wait/re-seal, not public hostname resurrection. Pulled sites die with the pull. Split the wires: presence + tip hash on the 1s tick; pull-only payloads; hash-absolute ingest; equivocation isolates that peer. Cold-copy survival: multiply cold copies; no live body sync; named hosts only. Not a login mesh. Not a Softwares-tab product.",
+      "QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1). Packet-transfer coding design QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; Worker cites only). live/locked/isolated counts. Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public disable of suite-presence is refused. Phoenix is wait/re-seal, not public hostname resurrection. Pulled sites die with the pull. Split the wires: presence + tip hash on the 1s tick; pull-only payloads; hash-absolute ingest; equivocation isolates that peer. Cold-copy survival: multiply cold copies; no live body sync; named hosts only. REHEAL: isolation is the cure. CROSS-NETWORK-SURVIVAL-1.0: if network and data die tomorrow, the chain survives on cold shelves (hosts / DOI / git / vault). Not a login mesh. Not a Softwares-tab product.",
     note: MESH_LIMITATION,
     kind: "kernel",
     engine: false,
@@ -363,7 +386,7 @@ export function nodeMeshHubCard(origin) {
     version: MESH_SPEC,
     door: "fraggate",
     one_line:
-      "QNM-BUILD-1.0 suite rollup (live/locked/isolated). Read-only suite-presence is ON by default. GET never enables radios beyond that. Public disable of suite-presence is refused. Phoenix is wait/re-seal, not public hostname resurrection. Pulled sites die with the pull. Split the wires: tick is presence + tip hash; payloads are pull-only. Cold-copy survival: no live body sync; named hosts only. Not a login mesh. Full node is local qnm-node/. Packet transfer: QNS-CD-1.0 on local qnsd (Worker cites only).",
+      "QNM-BUILD-1.0 suite rollup (live/locked/isolated). Read-only suite-presence is ON by default. GET never enables radios beyond that. Public disable of suite-presence is refused. Phoenix is wait/re-seal, not public hostname resurrection. Pulled sites die with the pull. Split the wires: tick is presence + tip hash; payloads are pull-only. Cold-copy survival: no live body sync; named hosts only. REHEAL: isolation is the cure. CROSS-NETWORK-SURVIVAL-1.0: chain survives on cold shelves (hosts / DOI / git / vault). Not a login mesh. Full node is local qnm-node/. Packet transfer: QNS-CD-1.0 on local qnsd (Worker cites only).",
     path: "/v1/mesh",
     enabled_default: MESH_DEFAULT_ENABLED,
     rollup_only: true,
@@ -629,6 +652,19 @@ function qnmFrame() {
     cold_copy_short: COLD_COPY_SHORT,
     live_body_sync: false,
     named_hosts_only: true,
+    re_expand: RE_EXPAND,
+    re_expand_short: RE_EXPAND_SHORT,
+    mesh_from_index: false,
+    summaries_survive: false,
+    reheal: REHEAL,
+    reheal_short: REHEAL_SHORT,
+    isolation_is_the_cure: true,
+    neighbor_heal: false,
+    vote_to_fix: false,
+    cross_network_survival: CROSS_NETWORK_SURVIVAL,
+    cross_network_survival_short: CROSS_NETWORK_SURVIVAL_SHORT,
+    survival_shelves: SURVIVAL_SHELVES.slice(),
+    live_network_is_shelf: false,
     local_node: "qnm-node/",
     local_node_note: QNM_LOCAL_NODE,
     host_note: QNM_HOST_NOTE,
@@ -801,6 +837,12 @@ Phoenix is wait / re-seal after tamper or isolation. It is not “bring the .uk 
 **Split the wires.** Fast 0.5–1s tick: presence + tip hash only. Fixed-size. No body, no diff, no “also here’s the file.” Payload on a second plane the receiver pulls, never a push the sender fans out. Update is a proof, not a timer. 777s is dwell after a valid cite, not wait-then-take. Clock desync is not a yes. Ambiguous tip is isolate, not merge. Equivocation ends that peer. Quorum cannot outvote a broken hash. Emit last, locally. Neighbors do not phoenix because a neighbor phoenix’d. Split brain does not auto-splice. Heartbeat loss is not isolate-by-timer and does not apply last packet. The 1s loop and the 777s gate never share a socket. ${SPLIT_WIRES_SHORT}
 
 **Cold-copy survival.** ${COLD_COPY_SHORT} A single-server pull kills that named hostname. It does not kill cold copies. Live body sync across the network is refused.
+
+**Re-expand-from-archive.** ${RE_EXPAND_SHORT}
+
+**REHEAL.** ${REHEAL_SHORT}
+
+**CROSS-NETWORK-SURVIVAL-1.0.** ${CROSS_NETWORK_SURVIVAL_SHORT}
 
 Rollup counts: **live / locked / isolated**. No average-of-nodes leaderboard. Views / MCP / downloads do not enter QNM-S.
 
@@ -1067,7 +1109,7 @@ export async function meshHeartbeat(payload, env) {
     tick_plane: TICK_PLANE,
     heartbeat_loss_isolates: loss.poison,
     apply_last_packet: loss.apply_last_packet,
-    note: "Presence + optional tip hash only. 5-minute rollup TTL. No body on this plane. No implicit heal. Heartbeat loss is not isolate-by-timer and does not apply last packet.",
+    note: "Presence + optional tip hash only. 5-minute rollup TTL. No body on this plane. No implicit heal. Isolation is the cure. Heartbeat loss is not isolate-by-timer and does not apply last packet.",
   });
 }
 
@@ -1187,6 +1229,59 @@ export async function runMeshOp(op, payload, env) {
       op: resolved || op || null,
       refused_keys: poisoned,
     });
+  }
+  if (src.from_index === true || src.mesh_from_index === true || src.summary === true) {
+    const idx = meshFromIndex();
+    return refuse("MESH-NO-INDEX", "Re-expand restores from archive after prev-hash verify. Not mesh from index. Bytes survive, not summaries.", {
+      op: resolved || op || null,
+      reason: idx.reason,
+      re_expand: RE_EXPAND,
+      mesh_from_index: false,
+    });
+  }
+  if (src.training_residue === true || src.training === true) {
+    return refuse("MESH-NO-INDEX", "Training residue is rumor. It is not an archive restore.", {
+      op: resolved || op || null,
+      reason: "training-residue-is-rumor",
+      re_expand: RE_EXPAND,
+    });
+  }
+  if (
+    src.neighbor_heal === true ||
+    src.listen_neighbors === true ||
+    src.listen_to_neighbors === true ||
+    src.heal_from_neighbors === true ||
+    src.vote_to_fix === true ||
+    src.talk_back === true
+  ) {
+    const hug = neighborTalkHeal();
+    return refuse(
+      "MESH-NO-NEIGHBOR-HEAL",
+      "Isolation is the cure. Heal from own last good tip + verified trusted pull, or phoenix-WAIT. Never by listening to neighbors.",
+      {
+        op: resolved || op || null,
+        reason: hug.reason,
+        reheal: REHEAL,
+        isolation_is_the_cure: true,
+        neighbor_heal: false,
+        vote_to_fix: false,
+      },
+    );
+  }
+  if (src.survive_on_network === true || src.live_shelf === true || src.live_network_is_shelf === true) {
+    const dead = networkDataDie({ live_network_is_shelf: true });
+    return refuse(
+      "MESH-NO-LIVE-SHELF",
+      "If network and data die tomorrow, the chain survives on cold shelves (hosts / DOI / git / vault). The live mesh is not a shelf.",
+      {
+        op: resolved || op || null,
+        reason: dead.reason,
+        cross_network_survival: CROSS_NETWORK_SURVIVAL,
+        shelves: SURVIVAL_SHELVES.slice(),
+        live_network_is_shelf: false,
+        prior: citePriorLaws().prior.map((p) => p.spec),
+      },
+    );
   }
   if (MESH_STUB_OPS.includes(resolved)) {
     return refuse(

@@ -186,6 +186,10 @@ Aziel Eliab · local specification · not a fleet-completeness claim
     keep verifying and appending. Live body sync across the network is refused. Payloads stay pull-only cold.
     Named hosts only. FragGate / public contract elsewhere stays intact.
 
+    CROSS-NETWORK-SURVIVAL-1.0: if network and data die tomorrow, the chain survives on cold shelves
+    (hosts / DOI / git / vault). Die-with-the-pull, split-the-wires, cold-copy, re-expand, and REHEAL
+    sit under that sentence. The live mesh is not a shelf.
+
     11. Cap
     This is a plan. It is not a cloudflared install script and not a new public panel. Connector IP is hidden from visitors,
     not from Cloudflare. Untraceable-origin hosting is refused. Phoenix does not restore azielcorpuslibrary.net or
