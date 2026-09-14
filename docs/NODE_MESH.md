@@ -15,6 +15,7 @@ Current software designs live in [docs/designs/](designs/). Author: **Aziel Elia
 - [SEC-FEAT-1.0](designs/SEC-FEAT-1.0.md) — Security feature inventory (door, stubs, vault, fabric)
 - [QNS-CD-1.0](designs/QNS-CD-1.0.md) — Quantum Node Signal packet-transfer coding design (photon QNS1 1.3; local `qnsd`; Worker cites only)
 - [CROSS-NETWORK-SURVIVAL-1.0](designs/CROSS-NETWORK-SURVIVAL-1.0.md) — umbrella survival law (if network and data die tomorrow, the chain survives on cold shelves — hosts / DOI / git / vault)
+- [NO-LIE-NO-REWRITE-1.0](designs/NO-LIE-NO-REWRITE-1.0.md) — receipts that still hash; no rewrite key; never lie to survive (companion under the umbrella; does not replace the machine tip)
 
 This page remains the live **QNM-BUILD-1.0** rollup law. Do not rewrite that law from the papers.
 
@@ -34,6 +35,7 @@ This page remains the live **QNM-BUILD-1.0** rollup law. Do not rewrite that law
 - **Default:** read-only **suite-presence is ON** (bearer `suite-presence`). A site ping of `GET /v1/mesh` never enables radios beyond that read-only presence. Do not require `POST /v1/mesh/enable` for public Live Nodes.
 - **Public disable of suite-presence is refused.** `POST /v1/mesh/disable` and suite `mesh_disable` refuse `MESH-DISABLE-REFUSED`. They cannot turn suite-presence off. AZMail `mesh_disable` stays a separate product-local mail ring.
 - **Durable Live Nodes:** while suite-presence is LIVE, this Worker fans out `join` / `heartbeat` for every live Softwares product Worker (`node_id` `{slug}-worker`, no `|`) on cron (`*/2 * * * *`) or request-path. Presence TTL is **5 minutes**. GET still never enables extra radios. Hub `live_nodes` counts those `{slug}-worker` Softwares only. Auto-minted `mesh_*` ids are `ephemeral_nodes` and do not inflate the Softwares count.
+- **NO-LIE / NO-REWRITE:** receipts that still hash; copies not all on one tunnel; rules simple enough others verify without the author's voice; **no rewrite key**. The network is **never allowed to lie** — even to self-preserve, sustain, stay alive, adapt, or prevent death. `GET /v1/mesh` cites `no_lie`, `no_rewrite`, `rewrite_key: false`, `lie_to_survive: false`. Rewrite / lie verbs refuse `MESH-NO-REWRITE` / `MESH-NO-LIE`. Companion under [CROSS-NETWORK-SURVIVAL-1.0](designs/CROSS-NETWORK-SURVIVAL-1.0.md); does not replace the machine tip.
 
 ## What this Worker is
 
@@ -166,4 +168,5 @@ if (url.pathname === "/v1/mesh" || url.pathname.startsWith("/v1/mesh/")) {
 - CROSS-NETWORK-SURVIVAL-1.0: if network and data die tomorrow, the chain survives on cold shelves (hosts / DOI / git / vault). All prior laws sit under that sentence. The live mesh is not a shelf.
 - Broadcast never accepts `video` / `bytes` / `file` / `mp4` / `publish` fields.
 - Public identity is Aziel Eliab only.
+- Receipts that still hash. No rewrite key. Never lie to stay alive.
 - Forks welcome. Apache-2.0.

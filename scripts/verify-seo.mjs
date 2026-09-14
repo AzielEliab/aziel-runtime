@@ -222,6 +222,8 @@ assert.match(sitemap, /QNS-CD-1\.0\.md/);
 assert.match(sitemap, /FEATURE-STATE-2026-09-10\.md/);
 assert.match(sitemap, /REMAIN-OFF-BY-DESIGN-2026-09-10\.md/);
 assert.match(sitemap, /AZL-DONATE-1\.0\.md/);
+assert.match(sitemap, /NO-LIE-NO-REWRITE-1\.0\.md/);
+assert.match(sitemap, /CROSS-NETWORK-SURVIVAL/);
 assert.match(sitemap, /docs\/audit/);
 assert.match(sitemap, /\/v1\/qns/);
 assert.match(sitemap, /\/v1\/stats-rollups/);
@@ -345,6 +347,7 @@ assert.equal(cite.audits.mesh_get_never_enables, true);
 assert.ok(cite.designs.papers.some((p) => p.id === "REMAIN-OFF-BY-DESIGN-2026-09-10" && p.kind === "law"));
 assert.ok(cite.designs.papers.some((p) => p.id === "AZL-DONATE-1.0" && p.kind === "law" && p.software_tab === false));
 assert.ok(cite.designs.papers.some((p) => p.id === "CROSS-NETWORK-SURVIVAL-1.0" && p.kind === "law" && p.software_tab === false));
+assert.ok(cite.designs.papers.some((p) => p.id === "NO-LIE-NO-REWRITE-1.0" && p.kind === "law" && p.software_tab === false));
 assert.equal(cite.survival.spec, "CROSS-NETWORK-SURVIVAL-1.0");
 assert.equal(
   cite.survival.tip,

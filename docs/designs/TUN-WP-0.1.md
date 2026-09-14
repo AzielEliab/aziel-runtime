@@ -4,6 +4,8 @@ Author: Aziel Eliab only.
 
 Status: local specification (2026-09-09; die-with-the-pull lock 2026-09-14). Not a Softwares-tab product. Not a fleet-completeness claim.
 
+**NO-LIE / NO-REWRITE:** copies are not all on one tunnel. Tunnel-front plus Worker standby is two planes. A single-tunnel copy-set is refused. Failover is not a rewrite and not a lie. Companion [NO-LIE-NO-REWRITE-1.0](NO-LIE-NO-REWRITE-1.0.md), [CROSS-NETWORK-SURVIVAL-1.0](CROSS-NETWORK-SURVIVAL-1.0.md).
+
 ---
 
 Aziel Eliab · local specification · not a fleet-completeness claim

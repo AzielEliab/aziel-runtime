@@ -2,6 +2,8 @@
 
 Author: Aziel Eliab only.
 
+**NO-LIE / NO-REWRITE** (companion [NO-LIE-NO-REWRITE-1.0](NO-LIE-NO-REWRITE-1.0.md), [CROSS-NETWORK-SURVIVAL-1.0](CROSS-NETWORK-SURVIVAL-1.0.md)): receipts that still hash; copies not all on one tunnel; no rewrite key. Phoenix wait is not a lie and not a public-hostname resurrection. The network is never allowed to lie — even to self-preserve, sustain, stay alive, adapt, or prevent death.
+
 ---
 
 NODE-OPS-1.0                                                                                               Aziel Eliab · public work identity only
