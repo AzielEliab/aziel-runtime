@@ -14,6 +14,7 @@ Current software designs live in [docs/designs/](designs/). Author: **Aziel Elia
 - [NODE-OPS-1.0](designs/NODE-OPS-1.0.md) — Node operations + surface law + phoenix wait/re-seal (not public hostname resurrection)
 - [SEC-FEAT-1.0](designs/SEC-FEAT-1.0.md) — Security feature inventory (door, stubs, vault, fabric)
 - [QNS-CD-1.0](designs/QNS-CD-1.0.md) — Quantum Node Signal packet-transfer coding design (photon QNS1 1.3; local `qnsd`; Worker cites only)
+- [CROSS-NETWORK-SURVIVAL-1.0](designs/CROSS-NETWORK-SURVIVAL-1.0.md) — umbrella survival law (if network and data die tomorrow, the chain survives on cold shelves — hosts / DOI / git / vault)
 
 This page remains the live **QNM-BUILD-1.0** rollup law. Do not rewrite that law from the papers.
 
@@ -26,7 +27,8 @@ This page remains the live **QNM-BUILD-1.0** rollup law. Do not rewrite that law
 - **Cold-copy survival:** Multiply cold copies. Refuse live body sync across the network. A tip is content-addressed and expensive to erase. A single-server pull kills that named hostname (die-with-the-pull); it does not kill vaults that already hold the hashes. Local verify/append continues. Data outlives creators. Hash-absolute poison refuse: equivocation isolates that peer, not the chain. Payloads are pull-only and cold. Named hosts only.
 - **Re-expand-from-archive:** Bytes survive, not summaries. Re-expand restores from archive after prev-hash verify. Not mesh from index. Crawlers are extra shelves only. Training residue is rumor.
 - **REHEAL:** Isolation is the cure. A poisoned node heals from its own last good tip + a verified trusted pull, or phoenix-WAIT — never by listening to neighbors. Allowed: live / locked / isolated / tip-hash. Forbidden: bodies / diffs / vote-to-fix. Neighbor talk-back-to-health is a group hug over a wound.
-- **CROSS-NETWORK-SURVIVAL-1.0:** If network and data die tomorrow, the chain survives on cold shelves (hosts / DOI / git / vault). Under that sentence: die-with-the-pull, split-the-wires, cold-copy survival, re-expand-from-archive, REHEAL. The live mesh is not a shelf.
+- **CROSS-NETWORK-SURVIVAL-1.0:** If network and data die tomorrow, the chain survives on cold shelves (hosts / DOI / git / vault). Under that sentence: die-with-the-pull, split-the-wires, cold-copy survival, ingest-as-receipt, re-expand-from-archive, REHEAL. The live mesh is not a shelf. Machine tip: `CROSS-NETWORK-SURVIVAL-1.0: someone still has bytes that match the published tip — not a living network, not LLM memory, not a public hostname that still answers.` Named hosts only. No unmarked hydra. No VPN concealment kit. No visible 15:20 chrome.
+- **Ingest-as-receipt:** Crawlers get hash + “cite, don’t merge.” Many indexes, one tip. ACT-RECEIPT-1.0 is the public four-field companion.
 - **azieleliab.com** hosts published software/runtime — **not** login-recovery, **not** Node Gate/IP panel, **not** upload proxy.
 - Suite public surface may expose mesh **rollup only**: **live / locked / isolated** counts. No average-of-nodes leaderboard. **Views / MCP / downloads do not enter QNM-S.**
 - **Default:** read-only **suite-presence is ON** (bearer `suite-presence`). A site ping of `GET /v1/mesh` never enables radios beyond that read-only presence. Do not require `POST /v1/mesh/enable` for public Live Nodes.

@@ -24,9 +24,12 @@ import {
   DIE_WITH_PULL,
   PRIOR_LAWS,
   SURVIVAL_SHELVES,
+  SURVIVAL_TIP,
   citePriorLaws,
   isSurvivalShelf,
   networkDataDie,
+  survivalCiteField,
+  survivalHint,
 } from "../src/cross-network-survival.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -42,6 +45,7 @@ const files = [
   "src/mesh.js",
   "src/lockset.js",
   "src/cross-network-survival.js",
+  "docs/designs/CROSS-NETWORK-SURVIVAL-1.0.md",
 ];
 for (const rel of files) {
   const text = read(rel);
@@ -113,6 +117,29 @@ const badShelf = await verifyLockset(vault, { live_network_is_shelf: true });
 assert.equal(badShelf.ok, false);
 
 resetMeshStore();
+
+const paper = read("docs/designs/CROSS-NETWORK-SURVIVAL-1.0.md");
+const pdf = readFileSync(join(root, "docs/designs/CROSS-NETWORK-SURVIVAL-1.0.pdf"));
+assert.ok(pdf.slice(0, 5).toString() === "%PDF-");
+assert.match(paper, /^# CROSS-NETWORK-SURVIVAL-1\.0/m);
+assert.ok(paper.includes(SURVIVAL_TIP));
+assert.match(paper, /INGEST-AS-RECEIPT/);
+assert.match(paper, /Named hosts only/);
+assert.match(paper, /No unmarked hydra/);
+assert.match(paper, /No visible 15:20 chrome/);
+assert.equal(survivalHint().tip, SURVIVAL_TIP);
+assert.equal(survivalCiteField().tip, SURVIVAL_TIP);
+assert.equal(survivalCiteField().ingest_as_receipt.spec, "INGEST-AS-RECEIPT");
+
+const handler = (await import("../src/index.js")).default.fetch;
+const origin = "https://aziel-runtime.example";
+const cite = await (await handler(new Request(`${origin}/cite.json`), {})).json();
+const llms = await (await handler(new Request(`${origin}/llms.txt`), {})).text();
+assert.equal(cite.survival.tip, SURVIVAL_TIP);
+assert.equal(cite.designs.umbrella, CROSS_NETWORK_SURVIVAL);
+assert.ok(cite.designs.papers.some((p) => p.id === CROSS_NETWORK_SURVIVAL && p.kind === "law"));
+assert.ok(llms.includes(SURVIVAL_TIP));
+
 console.log(
-  `ok ${CROSS_NETWORK_SURVIVAL}: chain survives on hosts/DOI/git/vault; cites ${cited.prior.map((p) => p.spec).join(", ")}`,
+  `ok ${CROSS_NETWORK_SURVIVAL}: chain survives on hosts/DOI/git/vault; cites ${cited.prior.map((p) => p.spec).join(", ")}; machine tip wired`,
 );

@@ -528,6 +528,7 @@ assert.ok(cite.designs.papers.some((p) => p.id === "SG-WP-0.1" && p.status === "
 assert.ok(cite.designs.papers.some((p) => p.id === "CL-WP-0.4"));
 assert.ok(cite.designs.papers.some((p) => p.id === "RL-WP-0.1" && p.path === "docs/designs/RL-WP-0.1-runtime.md"));
 assert.ok(cite.designs.papers.some((p) => p.id === "QNS-CD-1.0" && p.kind === "fabric" && p.software_tab === false));
+assert.ok(cite.designs.papers.some((p) => p.id === "CROSS-NETWORK-SURVIVAL-1.0" && p.kind === "law" && p.software_tab === false));
 assert.ok(cite.designs.papers.every((p) => p.software_tab === false));
 assert.equal(cite.identity, "Aziel Eliab");
 assert.doesNotMatch(JSON.stringify(cite.designs), /GodLock\.AZ/);
