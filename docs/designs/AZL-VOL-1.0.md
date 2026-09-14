@@ -611,7 +611,8 @@ Suite rollup. Default OFF. Not a Softwares-tab product. Full node is local qnm-n
 How. QNM suite rollup. GET /v1/mesh never enables. Operator bearer enable only. Default radios off.
 Views/MCP/downloads do not enter QNM-S. Full node is local qnm-node/. Phoenix is wait / re-seal, not
 public hostname resurrection. Sites pulled die with the pull. Mesh does not climb back onto the public
-hostname by itself.
+hostname by itself. CROSS-NETWORK-SURVIVAL-1.0: if network and data die tomorrow, the chain survives
+on cold shelves (hosts / DOI / git / vault). REHEAL is local isolate-then-own-tip, not neighbor talk.
 Live ops. status, enable, disable, join, heartbeat, leave, nodes, broadcast, health, skill, mesh_status, mesh_enable, mesh_disable, mesh_join,
 mesh_heartbeat, mesh_leave, mesh_nodes, mesh_broadcast
 Stub-refused ops. arm, wipe, vpn, hop, tunnel, scorch, login, recover, recovery, resurrection, resurrect, account, gate, ip-panel, ippanel, publish,

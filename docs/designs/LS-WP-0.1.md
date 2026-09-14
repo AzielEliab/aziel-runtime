@@ -112,6 +112,16 @@ Aziel Eliab · local specification · not a fleet-completeness claim
     content-addressed and expensive to erase. A single-server pull does not kill local verify/append.
     Data outlives creators. Payloads stay pull-only cold. Named hosts only. Hash-absolute poison refuse.
 
+    Re-expand-from-archive. Bytes survive, not summaries. Restore from archive after prev-hash
+    verify. Not mesh from index. Crawlers are extra shelves only. Training residue is rumor.
+
+    REHEAL. Isolation is the cure. Heal from own last good tip + verified trusted pull, or
+    phoenix-WAIT. Never by listening to neighbors. No bodies, diffs, or vote-to-fix.
+
+    CROSS-NETWORK-SURVIVAL-1.0. If network and data die tomorrow, the chain survives on cold shelves
+    (hosts / DOI / git / vault). Die-with-the-pull, split-the-wires, cold-copy, re-expand, and REHEAL
+    sit under that sentence. The live mesh is not a shelf.
+
     A reader who has the vault and the public cite can check: recompute the lockset hash, confirm the GodLock entry
     names that hash, confirm live tips still match. If GodLock is dark, the local receipt still exists. That is site-fail
     resilience, not public verification.

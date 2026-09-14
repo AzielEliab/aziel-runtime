@@ -115,6 +115,22 @@ NODE-OPS-1.0                                                                    
   equivocation isolates that peer, not the chain. Data outlives creators via content-addressed
   tips + local verify/append. Payloads are pull-only and cold. Named hosts only.
 
+4d. Re-expand-from-archive
+  Bytes survive, not summaries. Re-expand restores from archive after prev-hash verify.
+  It is not mesh from index. Crawlers are extra shelves only. Training residue is rumor.
+  Die-with-the-pull, split-the-wires, and cold-copy survival stay locked.
+
+4e. REHEAL
+  A poisoned node heals from its own last good tip + a verified trusted pull, or phoenix-WAIT.
+  Never by listening to neighbors. Allowed: live / locked / isolated / tip-hash.
+  Forbidden: bodies / diffs / vote-to-fix.
+  Isolation is the cure. Neighbor talk-back-to-health is a group hug over a wound.
+
+4f. CROSS-NETWORK-SURVIVAL-1.0
+  If network and data die tomorrow, the chain survives on cold shelves (hosts / DOI / git / vault).
+  Under that sentence sit die-with-the-pull, split-the-wires, cold-copy survival,
+  re-expand-from-archive, and REHEAL. The live mesh is not a shelf.
+
 5. Per-class refuse (minimum)
   Class                  Must refuse
 

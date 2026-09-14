@@ -15,6 +15,12 @@ LIVE fabric on this Worker (not Softwares-tab): CL-WP-0.4, AP-WP-0.2, SG-WP-0.1,
 
 **Cold-copy survival** (NODE_MESH / NODE-OPS / QNM-WP / LS-WP / `src/cold-copy.js`): multiply cold copies; refuse live body sync; tip expensive to erase; unkillable by single-server pull; hash-absolute poison refuse; data outlives creators via content-addressed tips + local verify/append; payloads pull-only cold; named hosts only.
 
+**Re-expand-from-archive** (NODE_MESH / NODE-OPS / QNM-WP / LS-WP / `src/re-expand.js`): bytes survive, not summaries; restore from archive after prev-hash verify; not mesh from index; crawlers extra shelves only; training residue is rumor.
+
+**REHEAL** (NODE_MESH / NODE-OPS / QNM-WP / LS-WP / `src/reheal.js`): isolation is the cure. A poisoned node heals from its own last good tip + a verified trusted pull, or phoenix-WAIT — never by listening to neighbors. Allowed: live / locked / isolated / tip-hash. Forbidden: bodies / diffs / vote-to-fix.
+
+**CROSS-NETWORK-SURVIVAL-1.0** (NODE_MESH / NODE-OPS / QNM-WP / LS-WP / `src/cross-network-survival.js`): if network and data die tomorrow, the chain survives on cold shelves (hosts / DOI / git / vault). Umbrella over die-with-the-pull, split-the-wires, cold-copy survival, re-expand-from-archive, and REHEAL. The live mesh is not a shelf.
+
 **REMAIN-OFF-BY-DESIGN-2026-09-10** is the constitutional OFF set (33 items). Correctly OFF / REFUSED / GATED does not count as missing. Companion audit [`FEATURE-STATE-2026-09-10`](../audit/FEATURE-STATE-2026-09-10.md) lists gaps vs intentional OFF. Do not enable remain-off items.
 
 **AZL-DONATE-1.0** is the cite-only donate plan (not a Softwares-tab product). Canonical URL `https://www.azieleliab.com/donate`. Hubs host rails, including five QRs that encode BTC / ETH / LTC / XRP / DOGE payment URIs. This runtime and product download-trackers only link. Do not duplicate those QRs here. Do not invent wallets or tokens.
