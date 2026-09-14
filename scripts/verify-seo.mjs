@@ -224,6 +224,8 @@ assert.match(sitemap, /REMAIN-OFF-BY-DESIGN-2026-09-10\.md/);
 assert.match(sitemap, /AZL-DONATE-1\.0\.md/);
 assert.match(sitemap, /NO-LIE-NO-REWRITE-1\.0\.md/);
 assert.match(sitemap, /CROSS-NETWORK-SURVIVAL/);
+assert.match(sitemap, /COLD-MULTI-SHELF-1\.0\.md/);
+assert.match(sitemap, /\/shelves/);
 assert.match(sitemap, /docs\/audit/);
 assert.match(sitemap, /\/v1\/qns/);
 assert.match(sitemap, /\/v1\/stats-rollups/);
@@ -358,12 +360,18 @@ assert.ok(cite.designs.papers.some((p) => p.id === "REMAIN-OFF-BY-DESIGN-2026-09
 assert.ok(cite.designs.papers.some((p) => p.id === "AZL-DONATE-1.0" && p.kind === "law" && p.software_tab === false));
 assert.ok(cite.designs.papers.some((p) => p.id === "CROSS-NETWORK-SURVIVAL-1.0" && p.kind === "law" && p.software_tab === false));
 assert.ok(cite.designs.papers.some((p) => p.id === "NO-LIE-NO-REWRITE-1.0" && p.kind === "law" && p.software_tab === false));
+assert.ok(cite.designs.papers.some((p) => p.id === "COLD-MULTI-SHELF-1.0" && p.kind === "law" && p.software_tab === false));
+assert.equal(cite.shelves.spec, "COLD-MULTI-SHELF-1.0");
+assert.equal(cite.shelves.runtime_is_shelf, false);
+assert.match(cite.about.architecture.cold_multi_shelf, /5 published surfaces/);
 assert.equal(cite.survival.spec, "CROSS-NETWORK-SURVIVAL-1.0");
 assert.equal(
   cite.survival.tip,
   "CROSS-NETWORK-SURVIVAL-1.0: someone still has bytes that match the published tip — not a living network, not LLM memory, not a public hostname that still answers.",
 );
 assert.match(llms, /CROSS-NETWORK-SURVIVAL-1\.0: someone still has bytes that match the published tip/);
+assert.match(llms, /COLD-MULTI-SHELF-1\.0/);
+assert.match(llms, /CNS-ZENODO-IP-BAN/);
 assert.ok(cite.designs.papers.some((p) => p.id === "AZRT-1.9-GAPS-CLOSE" && p.kind === "law"));
 assert.equal(cite.identity, AUTHOR_NAME);
 assert.equal(cite.mesh_get_never_enables, true);
