@@ -23,6 +23,8 @@ const SKIP_SEO = new Set([
   "/llms.txt",
   "/ai.txt",
   "/cite.json",
+  "/shelves",
+  "/cold-copy",
   "/openapi.json",
   "/sigil.png",
   "/favicon.ico",
@@ -40,6 +42,8 @@ const SKIP_GET_READS = new Set([
   "/v1/mesh/az-generator",
   "/v1/qns",
   "/v1/receipts",
+  "/v1/shelves",
+  "/v1/cold-copy",
   "/v1/azpipe/arch",
   "/v1/memory",
 ]);

@@ -153,6 +153,7 @@ export const MESH_LIMITATION =
   " CROSS-NETWORK-SURVIVAL-1.0: " +
   CROSS_NETWORK_SURVIVAL_SHORT +
   " NO-LIE-NO-REWRITE-1.0: receipts that still hash; copies not all on one tunnel; no rewrite key; the network is never allowed to lie even to self-preserve. Companion under the umbrella; does not replace the machine tip. " +
+  " COLD-MULTI-SHELF-1.0: GET /shelves cites corpus#96 honesty — Plane A one CF/GitHub tunnel (5 published surfaces / 2 family radii / 1 independent live); Plane B alt-forge SLOT (Codeberg + archive.org PASS still SLOT at https://archive.org/details/aziel-lockset-tip; Framagit URL null; GitFlic CNS-GITFLIC-EMAIL; GitLab CNS-GITLAB-CF-LOOP; Zenodo refused CNS-ZENODO-IP-BAN; doi null); Plane C USB SLOT until CNS-OPERATOR-ATTEST. Runtime is the same Plane A tunnel, not a sixth surface. " +
   " THIS IS NOT: a login mesh; login-recovery; Node Gate/IP panel; upload proxy; account resurrection; public hostname resurrection; bringing the .uk node back; average-of-nodes leaderboard; QNM-S; the local qnm-node process (boot/chain/apg/bearers/outbox/phoenix/score/memorial/tethers); AnonBroadcast as a catalog product or publish path; AZMail's product-local ring; arming; wipe; controller hunt; implicit heal; a public qnsd proxy; a payload push plane; vote-to-reconcile; live body sync; mesh from index; summary-as-archive; neighbor talk-back-to-health; vote-to-fix; live network as a shelf; a rewrite key; a lie to stay alive. Author: Aziel Eliab only.";
 
 export const MESH_CANONICAL_OPS = Object.freeze([
@@ -365,7 +366,7 @@ export function meshCiteField(origin) {
     login_mesh: false,
     node_gate: false,
     qnm_s: false,
-    note: "Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Not a login mesh. NO-LIE / NO-REWRITE: no rewrite key; never lie to survive.",
+    note: "Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Not a login mesh. NO-LIE / NO-REWRITE: no rewrite key; never lie to survive. COLD-MULTI-SHELF-1.0: GET /shelves cites corpus#96 honesty.",
     survival: survivalCiteField(),
     semantic_bridge: semanticBridgeCiteField(base),
   };
@@ -382,7 +383,7 @@ export function meshKernelEntry() {
     stub_ops: MESH_STUB_OPS.slice(),
     op_aliases: { ...MESH_OP_ALIASES },
     description:
-      "QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1). Packet-transfer coding design QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; Worker cites only). live/locked/isolated counts. Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public disable of suite-presence is refused. Phoenix is wait/re-seal, not public hostname resurrection. Pulled sites die with the pull. Split the wires: presence + tip hash on the 1s tick; pull-only payloads; hash-absolute ingest; equivocation isolates that peer. Cold-copy survival: multiply cold copies; no live body sync; named hosts only. REHEAL: isolation is the cure. CROSS-NETWORK-SURVIVAL-1.0: if network and data die tomorrow, the chain survives on cold shelves (hosts / DOI / git / vault). NO-LIE-NO-REWRITE-1.0: no rewrite key; never lie to survive. Not a login mesh. Not a Softwares-tab product.",
+      "QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1). Packet-transfer coding design QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; Worker cites only). live/locked/isolated counts. Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public disable of suite-presence is refused. Phoenix is wait/re-seal, not public hostname resurrection. Pulled sites die with the pull. Split the wires: presence + tip hash on the 1s tick; pull-only payloads; hash-absolute ingest; equivocation isolates that peer. Cold-copy survival: multiply cold copies; no live body sync; named hosts only. REHEAL: isolation is the cure. CROSS-NETWORK-SURVIVAL-1.0: if network and data die tomorrow, the chain survives on cold shelves (hosts / DOI / git / vault). NO-LIE-NO-REWRITE-1.0: no rewrite key; never lie to survive. COLD-MULTI-SHELF-1.0: GET /shelves cites corpus#96 honesty. Not a login mesh. Not a Softwares-tab product.",
     note: MESH_LIMITATION,
     kind: "kernel",
     engine: false,
@@ -407,7 +408,7 @@ export function nodeMeshHubCard(origin) {
     version: MESH_SPEC,
     door: "fraggate",
     one_line:
-      "QNM-BUILD-1.0 suite rollup (live/locked/isolated). Read-only suite-presence is ON by default. GET never enables radios beyond that. Public disable of suite-presence is refused. Phoenix is wait/re-seal, not public hostname resurrection. Pulled sites die with the pull. Split the wires: tick is presence + tip hash; payloads are pull-only. Cold-copy survival: no live body sync; named hosts only. REHEAL: isolation is the cure. CROSS-NETWORK-SURVIVAL-1.0: chain survives on cold shelves (hosts / DOI / git / vault). NO-LIE / NO-REWRITE. Not a login mesh. Full node is local qnm-node/. Packet transfer: QNS-CD-1.0 on local qnsd (Worker cites only).",
+      "QNM-BUILD-1.0 suite rollup (live/locked/isolated). Read-only suite-presence is ON by default. GET never enables radios beyond that. Public disable of suite-presence is refused. Phoenix is wait/re-seal, not public hostname resurrection. Pulled sites die with the pull. Split the wires: tick is presence + tip hash; payloads are pull-only. Cold-copy survival: no live body sync; named hosts only. REHEAL: isolation is the cure. CROSS-NETWORK-SURVIVAL-1.0: chain survives on cold shelves (hosts / DOI / git / vault). NO-LIE / NO-REWRITE. COLD-MULTI-SHELF-1.0: GET /shelves cites corpus#96 honesty. Not a login mesh. Full node is local qnm-node/. Packet transfer: QNS-CD-1.0 on local qnsd (Worker cites only).",
     path: "/v1/mesh",
     enabled_default: MESH_DEFAULT_ENABLED,
     rollup_only: true,
