@@ -491,8 +491,8 @@ export function runtimeHelperTools() {
         instead: "mesh_join or mesh_leave",
         effects:
           "Write: extends TTL (not idempotent). Unknown or expired node_id refuses MESH-UNKNOWN-NODE — join again; no account resurrection",
-        params: "node_id is required. presence may replace the class (live|locked|isolated)",
-        returns: "updated presence and TTL",
+        params: "node_id is required. presence may replace the class (live|locked|isolated). Optional tip_hash and prev are 64 hex only (Split the wires + REHEAL: presence + tip hash; no body/diff/vote-to-fix; no neighbor heal)",
+        returns: "updated presence and TTL. Body on this plane refuses MESH-NO-BYTES. Same prev + two tips refuses MESH-EQUIVOCATION. Neighbor heal / vote-to-fix refuses MESH-NO-NEIGHBOR-HEAL",
       }),
       annotations: mcpAnnotations("Refresh QNM rollup presence", HINT_ADDITIVE),
       inputSchema: {
@@ -508,6 +508,14 @@ export function runtimeHelperTools() {
             type: "string",
             enum: ["live", "locked", "isolated"],
             description: "Optional replacement presence class. Other values refuse MESH-BAD-INPUT.",
+          },
+          tip_hash: {
+            type: "string",
+            description: "Optional 64-hex tip hash on the fast tick. Fixed-size. No body. Split the wires.",
+          },
+          prev: {
+            type: "string",
+            description: "Optional 64-hex prev the receiver already holds. Same prev + a different tip_hash isolates this node (MESH-EQUIVOCATION).",
           },
         },
         required: ["node_id"],

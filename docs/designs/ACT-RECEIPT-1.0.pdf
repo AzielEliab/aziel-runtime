@@ -2,7 +2,7 @@
 1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj
 2 0 obj << /Type /Pages /Kids [3 0 R 5 0 R] /Count 2 >> endobj
 3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 7 0 R >> >> >> endobj
-4 0 obj << /Length 3429 >> stream
+4 0 obj << /Length 3474 >> stream
 BT
 /F1 9 Tf
 54 738 Td
@@ -94,6 +94,14 @@ BT
 0 -11 Td
 (?         Not a substitute for session receipts, FragGate ledger, or ForgeReceipts.) Tj
 0 -11 Td
+(?         Not public hostname resurrection. A pulled site dies with the pull. Die with the) Tj
+0 -11 Td
+(pull.) Tj
+0 -11 Td
+(          Receipts do not bring godlock.uk or any public hostname back. Phoenix is wait /) Tj
+0 -11 Td
+(re-seal only.) Tj
+0 -11 Td
 ( ) Tj
 0 -11 Td
 (3. Four fields) Tj
@@ -119,14 +127,6 @@ BT
 ( ) Tj
 0 -11 Td
 (  event              Metadata only: surface, path, method, status, tool, spec,) Tj
-0 -11 Td
-(                     runtime version. No user / IP / geo.) Tj
-0 -11 Td
-( ) Tj
-0 -11 Td
-(4. Fail-open) Tj
-0 -11 Td
-(If the token is missing, skip append. If corpus is dark or times out, skip append.) Tj
 ET
 BT
 /F1 8 Tf
@@ -135,10 +135,18 @@ BT
 ET
 endstream endobj
 5 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 6 0 R /Resources << /Font << /F1 7 0 R >> >> >> endobj
-6 0 obj << /Length 703 >> stream
+6 0 obj << /Length 1446 >> stream
 BT
 /F1 9 Tf
 54 738 Td
+(4. Fail-open) Tj
+0 -11 Td
+(If the token is missing, skip append. If corpus is dark or times out, skip append.) Tj
+0 -11 Td
+(Engines still return. GET /v1/receipts still cites the public chain.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
 (5. Optional read) Tj
 0 -11 Td
 (GET /v1/receipts cites this paper and names the corpus origin.) Tj
@@ -154,6 +162,18 @@ BT
 (Catalog GET /v1/software, pull / download, and POST /v1/mesh/* may mint an ACT) Tj
 0 -11 Td
 (receipt when the token is set. This is not a Softwares vault product.) Tj
+0 -11 Td
+(Software pull / download is a catalog event. It is not site resurrection.) Tj
+0 -11 Td
+(A site pull \(revoke token, drop Worker, kill DNS\) ends the public mesh copy on) Tj
+0 -11 Td
+(that hostname. cloudflared has nowhere legal to land. Local node may keep) Tj
+0 -11 Td
+(verifying and appending. Mesh does not climb back onto the public hostname by) Tj
+0 -11 Td
+(itself. Receipts do not restore godlock.uk. Phoenix is wait / re-seal after) Tj
+0 -11 Td
+(poison or isolation ? not ?bring the .uk node back.?) Tj
 0 -11 Td
 ( ) Tj
 0 -11 Td
@@ -175,10 +195,10 @@ xref
 0000000058 00000 n 
 0000000121 00000 n 
 0000000247 00000 n 
-0000003728 00000 n 
-0000003854 00000 n 
-0000004608 00000 n 
+0000003773 00000 n 
+0000003899 00000 n 
+0000005397 00000 n 
 trailer << /Size 8 /Root 1 0 R >>
 startxref
-4676
+5465
 %%EOF
