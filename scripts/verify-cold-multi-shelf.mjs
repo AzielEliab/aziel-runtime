@@ -31,6 +31,10 @@ import {
   isShelvesPath,
 } from "../src/cold-multi-shelf.js";
 
+const glama = JSON.parse(readFileSync(new URL("../glama.json", import.meta.url), "utf8"));
+assert.ok(glama.keywords.includes("cold-multi-shelf") || glama.keywords.includes("cold-shelf"));
+assert.doesNotMatch(JSON.stringify(glama), /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+
 const paper = readFileSync(new URL("../docs/designs/COLD-MULTI-SHELF-1.0.md", import.meta.url), "utf8");
 const survival = readFileSync(new URL("../docs/designs/CROSS-NETWORK-SURVIVAL-1.0.md", import.meta.url), "utf8");
 const nodeMesh = readFileSync(new URL("../docs/NODE_MESH.md", import.meta.url), "utf8");
