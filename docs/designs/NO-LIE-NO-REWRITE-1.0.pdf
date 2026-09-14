@@ -1,0 +1,252 @@
+%PDF-1.4
+1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj
+2 0 obj << /Type /Pages /Kids [3 0 R 5 0 R] /Count 2 >> endobj
+3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 7 0 R >> >> >> endobj
+4 0 obj << /Length 3322 >> stream
+BT
+/F1 9 Tf
+54 738 Td
+(# NO-LIE-NO-REWRITE-1.0 ? receipts hash; no rewrite key) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(Author: Aziel Eliab only.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(Status: LIVE law \(2026-09-14\). Not a Softwares-tab product. Not a FragGate slug. Not a) Tj
+0 -11 Td
+(Remain-OFF flip.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(Companion under the umbrella: [CROSS-NETWORK-SURVIVAL-1.0]\(CROSS-NETWORK-SURVIVAL-1.0.md\)) Tj
+0 -11 Td
+(\(does not replace the machine tip\). Mesh rollup: [NODE_MESH]\(../NODE_MESH.md\). Executable:) Tj
+0 -11 Td
+(`src/no-lie.js`.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(---) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(Aziel Eliab · law · independently verifiable · no rewrite key) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(    NO-LIE-NO-REWRITE-1.0) Tj
+0 -11 Td
+(    The network is never allowed to lie ? even to stay alive) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(    Identity: Aziel Eliab only) Tj
+0 -11 Td
+(    Surfaces: designs + mesh + NODE_MESH + CROSS-NETWORK-SURVIVAL-1.0) Tj
+0 -11 Td
+(    Close tests: scripts/verify-no-lie.mjs) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(0. Sentence) Tj
+0 -11 Td
+(Receipts that still hash. Copies not all on one tunnel. Rules simple enough) Tj
+0 -11 Td
+(others verify without your voice. No rewrite key.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(1. Claim) Tj
+0 -11 Td
+(A mesh that can rewrite its own tips, or invent a yes to self-preserve,) Tj
+0 -11 Td
+(is already dead as a witness. Survival is copies plus hash, not a story) Tj
+0 -11 Td
+(the node tells itself.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(This paper is the constitutional **NO-LIE / NO-REWRITE** lock. It does not) Tj
+0 -11 Td
+(add a Softwares card, an MCP tool, or a public enable switch.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(2. Four rules \(others verify without the author\)) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(  Rule                         How a stranger checks) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(  Receipts still hash          Recompute SHA-256 of the canonical unsigned) Tj
+0 -11 Td
+(                               body. A mutated field fails. The author's) Tj
+0 -11 Td
+(                               voice is not a step.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(  Copies not all on one        A legal copy-set has at least two named) Tj
+0 -11 Td
+(  tunnel                       planes \(example: local vault + public cite,) Tj
+0 -11 Td
+(                               or tunnel-front + worker-standby\). One) Tj
+0 -11 Td
+(                               tunnel alone is refused.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(  Rules stay simple            The five sentences in §0 and this table) Tj
+0 -11 Td
+(                               are the whole law. No secret clause. No) Tj
+0 -11 Td
+(                               operator commentary required to fail a) Tj
+0 -11 Td
+(                               break.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(  No rewrite key               There is no token, bearer, or admin path) Tj
+0 -11 Td
+(                               that makes a broken hash pass. Refuse) Tj
+0 -11 Td
+(                               `MESH-NO-REWRITE`. History appends. It) Tj
+0 -11 Td
+(                               does not overwrite.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(3. Never lie to survive) Tj
+0 -11 Td
+(The network is **never allowed to lie** ? even to self-preserve, sustain,) Tj
+ET
+BT
+/F1 8 Tf
+54 28 Td
+(NO-LIE-NO-REWRITE-1.0  ·  Aziel Eliab only  ·  page 1 / 2) Tj
+ET
+endstream endobj
+5 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 6 0 R /Resources << /Font << /F1 7 0 R >> >> >> endobj
+6 0 obj << /Length 2617 >> stream
+BT
+/F1 9 Tf
+54 738 Td
+(Those motives are not exceptions. They are the names of the temptation.) Tj
+0 -11 Td
+(A dying hostname, a pulled tunnel, a dark corpus, or an isolating peer) Tj
+0 -11 Td
+(does not authorize:) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(- a rewritten tip) Tj
+0 -11 Td
+(- a false receipt) Tj
+0 -11 Td
+(- a painted live count) Tj
+0 -11 Td
+(- a merge of two tips from one node) Tj
+0 -11 Td
+(- a claim that one tunnel still holds every copy) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(Refuse `MESH-NO-LIE`. Survival that needs a lie is not survival.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(4. What it is not) Tj
+0 -11 Td
+(- Not a Softwares-tab product. Do not add slug `no-lie` or `no-rewrite`.) Tj
+0 -11 Td
+(- Not a FragGate engine. No `fraggate_call { slug: "no-lie" }`.) Tj
+0 -11 Td
+(- Not a new MCP tool. `PUBLIC_MCP_TOOLS` stays frozen.) Tj
+0 -11 Td
+(- Not a Remain-OFF flip. Do not enable remain-off items.) Tj
+0 -11 Td
+(- Not a rewrite of QNM-BUILD-1.0. Suite-presence ON and disable-refused stay.) Tj
+0 -11 Td
+(- Not a VPN, mixnet, or origin-hiding kit.) Tj
+0 -11 Td
+(- Not permission to resurrect a pulled public hostname.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(5. Surfaces) Tj
+0 -11 Td
+(- Designs: this paper + cites on QNM-WP, NODE-OPS, TUN-WP, ACT-RECEIPT, LOCKSET.) Tj
+0 -11 Td
+(- Mesh: `GET /v1/mesh` carries `no_lie`, `no_rewrite`, `rewrite_key: false`,) Tj
+0 -11 Td
+(  `lie_to_survive: false`, `copies_one_tunnel: false`. Rewrite / lie verbs) Tj
+0 -11 Td
+(  refuse.) Tj
+0 -11 Td
+(- NODE_MESH: live QNM-BUILD-1.0 rollup law. This paper does not replace it.) Tj
+0 -11 Td
+(- CROSS-NETWORK-SURVIVAL: how copies and hash outlive one tunnel.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(6. Close tests) Tj
+0 -11 Td
+(- A receipt whose body changed fails its hash.) Tj
+0 -11 Td
+(- Passing a rewrite key still fails.) Tj
+0 -11 Td
+(- One tunnel as the only copy plane refuses.) Tj
+0 -11 Td
+(- Two independent planes pass.) Tj
+0 -11 Td
+(- Motives self-preserve / sustain / stay-alive / adapt / prevent-death) Tj
+0 -11 Td
+(  cannot authorize a false claim.) Tj
+0 -11 Td
+(- The five rules match `NO_LIE_RULES` in `src/no-lie.js` without commentary.) Tj
+0 -11 Td
+(- Mesh ops `rewrite`, `lie`, `lie-to-survive` refuse.) Tj
+0 -11 Td
+(- No Softwares card. No new MCP tool.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(7. Identity) Tj
+0 -11 Td
+(Author / identity: Aziel Eliab only. Apache-2.0.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(Eliab, Aziel. \(2026\). NO-LIE-NO-REWRITE-1.0 [Design].) Tj
+0 -11 Td
+(https://github.com/AzielEliab/aziel-runtime/blob/main/docs/designs/NO-LIE-NO-REWRITE-1.0.md) Tj
+ET
+BT
+/F1 8 Tf
+54 28 Td
+(NO-LIE-NO-REWRITE-1.0  ·  Aziel Eliab only  ·  page 2 / 2) Tj
+ET
+endstream endobj
+7 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Courier >> endobj
+xref
+0 8
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000121 00000 n 
+0000000247 00000 n 
+0000003621 00000 n 
+0000003747 00000 n 
+0000006416 00000 n 
+trailer << /Size 8 /Root 1 0 R >>
+startxref
+6484
+%%EOF

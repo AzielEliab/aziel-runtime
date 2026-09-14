@@ -958,6 +958,14 @@ export const SUITE_DESIGNS = Object.freeze([
     kind: "fabric",
   },
   {
+    id: "NO-LIE-NO-REWRITE-1.0",
+    file: "NO-LIE-NO-REWRITE-1.0.md",
+    one_line:
+      "LIVE law — receipts that still hash; copies not all on one tunnel; no rewrite key; never lie to self-preserve / sustain / stay alive / adapt / prevent death",
+    status: "live",
+    kind: "law",
+  },
+  {
     id: "REMAIN-OFF-BY-DESIGN-2026-09-10",
     file: "REMAIN-OFF-BY-DESIGN-2026-09-10.md",
     one_line:
@@ -1041,7 +1049,7 @@ export function designsSkillMarkdown() {
   const lines = [
     "## Designs",
     "",
-    "Suite software-design papers (law / fabric are not Softwares-tab products, not a FragGate slug). 4DM-WP-1.0 is the 4DMap product spec (Softwares-tab slug `4dmap`; the paper is not a FragGate slug). LIVE fabric modules: ChainLock, AZPIPE, SweepGate, LOCKSET, packed catalog (RL), QNS-CD-1.0 (photon QNS1 1.3; local qnsd; Worker cites only), MASTER-33 (locked hop order; FragGate single door; Lamb Lens after FragGate; LambGate is not a hop), AKM-TRIAD-1.0 (adaptive recollection; Bayesian posterior ≠ truth), ACT-RECEIPT-1.0 (public four-field receipts on corpus /receipts; fail-open). CROSS-NETWORK-SURVIVAL-1.0 is the umbrella survival law (if network and data die tomorrow, the chain survives on cold shelves — hosts / DOI / git / vault; matching bytes, not a living network). SUITE-PIPE-1.6.15 is historical. `GET /v1/mesh` never enables. Git-hosted — the Worker does not serve the PDFs. Public identity Aziel Eliab only.",
+    "Suite software-design papers (law / fabric are not Softwares-tab products, not a FragGate slug). 4DM-WP-1.0 is the 4DMap product spec (Softwares-tab slug `4dmap`; the paper is not a FragGate slug). LIVE fabric modules: ChainLock, AZPIPE, SweepGate, LOCKSET, packed catalog (RL), QNS-CD-1.0 (photon QNS1 1.3; local qnsd; Worker cites only), MASTER-33 (locked hop order; FragGate single door; Lamb Lens after FragGate; LambGate is not a hop), AKM-TRIAD-1.0 (adaptive recollection; Bayesian posterior ≠ truth), ACT-RECEIPT-1.0 (public four-field receipts on corpus /receipts; fail-open). CROSS-NETWORK-SURVIVAL-1.0 is the umbrella survival law (if network and data die tomorrow, the chain survives on cold shelves — hosts / DOI / git / vault; matching bytes, not a living network). NO-LIE-NO-REWRITE-1.0 is companion law under that umbrella (receipts still hash; no rewrite key; the network is never allowed to lie even to self-preserve; does not replace the machine tip). SUITE-PIPE-1.6.15 is historical. `GET /v1/mesh` never enables. Git-hosted — the Worker does not serve the PDFs. Public identity Aziel Eliab only.",
     "",
   ];
   for (const d of SUITE_DESIGNS) {
@@ -1057,7 +1065,7 @@ export function designsLlmsBlock() {
   const lines = [
     "## Designs",
     "",
-    "Suite software-design papers (law / fabric are not Softwares-tab products, not a FragGate slug). 4DM-WP-1.0 is the 4DMap product spec (slug `4dmap`). LIVE fabric: CL-WP-0.4, AP-WP-0.2, SG-WP-0.1, LS-WP-0.1, RL-WP-0.1 (runtime), QNS-CD-1.0 (local qnsd), MASTER-33 (locked hop order; FragGate single door), AKM-TRIAD-1.0 (adaptive recollection), ACT-RECEIPT-1.0 (corpus /receipts). CROSS-NETWORK-SURVIVAL-1.0 is the umbrella survival law (cold shelves hosts / DOI / git / vault; matching bytes ≠ living network). SUITE-PIPE-1.6.15 is historical. GET /v1/mesh never enables. Git-hosted — the Worker does not serve the PDFs. Author: Aziel Eliab only.",
+    "Suite software-design papers (law / fabric are not Softwares-tab products, not a FragGate slug). 4DM-WP-1.0 is the 4DMap product spec (slug `4dmap`). LIVE fabric: CL-WP-0.4, AP-WP-0.2, SG-WP-0.1, LS-WP-0.1, RL-WP-0.1 (runtime), QNS-CD-1.0 (local qnsd), MASTER-33 (locked hop order; FragGate single door), AKM-TRIAD-1.0 (adaptive recollection), ACT-RECEIPT-1.0 (corpus /receipts). CROSS-NETWORK-SURVIVAL-1.0 is the umbrella survival law (cold shelves hosts / DOI / git / vault; matching bytes ≠ living network). NO-LIE-NO-REWRITE-1.0 is companion law under that umbrella (no rewrite key; the network is never allowed to lie even to self-preserve; does not replace the machine tip). SUITE-PIPE-1.6.15 is historical. GET /v1/mesh never enables. Git-hosted — the Worker does not serve the PDFs. Author: Aziel Eliab only.",
     `Index: ${DESIGNS_GITHUB_TREE}`,
     "",
   ];
@@ -1080,6 +1088,8 @@ export function designsSitemapUrls() {
     designGithubUrl("REMAIN-OFF-BY-DESIGN-2026-09-10.pdf"),
     designGithubUrl("AZL-DONATE-1.0.pdf"),
     designGithubUrl("CROSS-NETWORK-SURVIVAL-1.0.pdf"),
+    designGithubUrl("NO-LIE-NO-REWRITE-1.0.pdf"),
+    "https://github.com/AzielEliab/aziel-runtime/blob/main/docs/NODE_MESH.md",
   ];
 }
 

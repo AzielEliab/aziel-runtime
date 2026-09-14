@@ -55,6 +55,14 @@
  *   for every live Softwares product (and hubs that show Live Nodes)
  *   on cron or request-path. TTL 5 min. Product Workers proxy
  *   /v1/mesh/* via AZIEL_RUNTIME — do not invent a second mesh.
+ * - NO-LIE / NO-REWRITE (NO-LIE-NO-REWRITE-1.0): receipts that still
+ *   hash; copies not all on one tunnel; rules simple enough others
+ *   verify without the author's voice; no rewrite key. The network is
+ *   never allowed to lie — even to self-preserve, sustain, stay alive,
+ *   adapt, or prevent death. Companion under
+ *   docs/designs/CROSS-NETWORK-SURVIVAL-1.0.md. Law paper:
+ *   docs/designs/NO-LIE-NO-REWRITE-1.0.md. Does not replace the
+ *   CROSS-NETWORK-SURVIVAL-1.0 machine tip.
  *
  * Keep /v1/mesh status/nodes/enable plus a refused disable route.
  * Frame as QNM rollup + read-only suite presence — not account mesh.
@@ -69,6 +77,7 @@
  * Public identity: Aziel Eliab only.
  */
 
+import { MESH_NO_LIE_REWRITE_OPS, meshNoLieRefuse, noLieFrame, noLieHint } from "./no-lie.js";
 import { qnsCiteField, qnsHint } from "./qns.js";
 import {
   DWELL_S,
@@ -141,7 +150,8 @@ export const MESH_LIMITATION =
   REHEAL_SHORT +
   " CROSS-NETWORK-SURVIVAL-1.0: " +
   CROSS_NETWORK_SURVIVAL_SHORT +
-  " THIS IS NOT: a login mesh; login-recovery; Node Gate/IP panel; upload proxy; account resurrection; public hostname resurrection; bringing the .uk node back; average-of-nodes leaderboard; QNM-S; the local qnm-node process (boot/chain/apg/bearers/outbox/phoenix/score/memorial/tethers); AnonBroadcast as a catalog product or publish path; AZMail's product-local ring; arming; wipe; controller hunt; implicit heal; a public qnsd proxy; a payload push plane; vote-to-reconcile; live body sync; mesh from index; summary-as-archive; neighbor talk-back-to-health; vote-to-fix; live network as a shelf. Author: Aziel Eliab only.";
+  " NO-LIE-NO-REWRITE-1.0: receipts that still hash; copies not all on one tunnel; no rewrite key; the network is never allowed to lie even to self-preserve. Companion under the umbrella; does not replace the machine tip. " +
+  " THIS IS NOT: a login mesh; login-recovery; Node Gate/IP panel; upload proxy; account resurrection; public hostname resurrection; bringing the .uk node back; average-of-nodes leaderboard; QNM-S; the local qnm-node process (boot/chain/apg/bearers/outbox/phoenix/score/memorial/tethers); AnonBroadcast as a catalog product or publish path; AZMail's product-local ring; arming; wipe; controller hunt; implicit heal; a public qnsd proxy; a payload push plane; vote-to-reconcile; live body sync; mesh from index; summary-as-archive; neighbor talk-back-to-health; vote-to-fix; live network as a shelf; a rewrite key; a lie to stay alive. Author: Aziel Eliab only.";
 
 export const MESH_CANONICAL_OPS = Object.freeze([
   "status",
@@ -190,6 +200,7 @@ export const MESH_STUB_OPS = Object.freeze([
   "phoenix_hunt",
   "heal",
   "controller",
+  ...MESH_NO_LIE_REWRITE_OPS,
 ]);
 
 export const MESH_MCP_TOOLS = Object.freeze([
@@ -335,6 +346,8 @@ export function meshHint(path = "/v1/mesh") {
     presence_ttl_ms: PRESENCE_TTL_MS,
     qns_cd: qnsHint(),
     survival: survivalHint(),
+    ...noLieFrame(),
+    no_lie_hint: noLieHint(),
   };
 }
 
@@ -350,7 +363,7 @@ export function meshCiteField(origin) {
     login_mesh: false,
     node_gate: false,
     qnm_s: false,
-    note: "Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Not a login mesh.",
+    note: "Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Not a login mesh. NO-LIE / NO-REWRITE: no rewrite key; never lie to survive.",
     survival: survivalCiteField(),
   };
 }
@@ -366,7 +379,7 @@ export function meshKernelEntry() {
     stub_ops: MESH_STUB_OPS.slice(),
     op_aliases: { ...MESH_OP_ALIASES },
     description:
-      "QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1). Packet-transfer coding design QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; Worker cites only). live/locked/isolated counts. Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public disable of suite-presence is refused. Phoenix is wait/re-seal, not public hostname resurrection. Pulled sites die with the pull. Split the wires: presence + tip hash on the 1s tick; pull-only payloads; hash-absolute ingest; equivocation isolates that peer. Cold-copy survival: multiply cold copies; no live body sync; named hosts only. REHEAL: isolation is the cure. CROSS-NETWORK-SURVIVAL-1.0: if network and data die tomorrow, the chain survives on cold shelves (hosts / DOI / git / vault). Not a login mesh. Not a Softwares-tab product.",
+      "QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1). Packet-transfer coding design QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; Worker cites only). live/locked/isolated counts. Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public disable of suite-presence is refused. Phoenix is wait/re-seal, not public hostname resurrection. Pulled sites die with the pull. Split the wires: presence + tip hash on the 1s tick; pull-only payloads; hash-absolute ingest; equivocation isolates that peer. Cold-copy survival: multiply cold copies; no live body sync; named hosts only. REHEAL: isolation is the cure. CROSS-NETWORK-SURVIVAL-1.0: if network and data die tomorrow, the chain survives on cold shelves (hosts / DOI / git / vault). NO-LIE-NO-REWRITE-1.0: no rewrite key; never lie to survive. Not a login mesh. Not a Softwares-tab product.",
     note: MESH_LIMITATION,
     kind: "kernel",
     engine: false,
@@ -391,7 +404,7 @@ export function nodeMeshHubCard(origin) {
     version: MESH_SPEC,
     door: "fraggate",
     one_line:
-      "QNM-BUILD-1.0 suite rollup (live/locked/isolated). Read-only suite-presence is ON by default. GET never enables radios beyond that. Public disable of suite-presence is refused. Phoenix is wait/re-seal, not public hostname resurrection. Pulled sites die with the pull. Split the wires: tick is presence + tip hash; payloads are pull-only. Cold-copy survival: no live body sync; named hosts only. REHEAL: isolation is the cure. CROSS-NETWORK-SURVIVAL-1.0: chain survives on cold shelves (hosts / DOI / git / vault). Not a login mesh. Full node is local qnm-node/. Packet transfer: QNS-CD-1.0 on local qnsd (Worker cites only).",
+      "QNM-BUILD-1.0 suite rollup (live/locked/isolated). Read-only suite-presence is ON by default. GET never enables radios beyond that. Public disable of suite-presence is refused. Phoenix is wait/re-seal, not public hostname resurrection. Pulled sites die with the pull. Split the wires: tick is presence + tip hash; payloads are pull-only. Cold-copy survival: no live body sync; named hosts only. REHEAL: isolation is the cure. CROSS-NETWORK-SURVIVAL-1.0: chain survives on cold shelves (hosts / DOI / git / vault). NO-LIE / NO-REWRITE. Not a login mesh. Full node is local qnm-node/. Packet transfer: QNS-CD-1.0 on local qnsd (Worker cites only).",
     path: "/v1/mesh",
     enabled_default: MESH_DEFAULT_ENABLED,
     rollup_only: true,
@@ -403,6 +416,7 @@ export function nodeMeshHubCard(origin) {
     fraggate_describe: `${base}/v1/fraggate/describe?slug=mesh`,
     fraggate_call: `${base}/v1/fraggate/call`,
     docs: "docs/NODE_MESH.md",
+    no_lie: noLieHint(),
     local_node: "qnm-node/",
     qns: `${base}/v1/qns`,
     qns_cd: qnsHint(),
@@ -677,6 +691,7 @@ function qnmFrame() {
     local_node_note: QNM_LOCAL_NODE,
     host_note: QNM_HOST_NOTE,
     qns_cd: qnsCiteField(),
+    ...noLieFrame(),
   };
 }
 
@@ -865,6 +880,8 @@ MCP tools: ${MESH_MCP_TOOLS.join(", ")}
 ${QNM_HOST_NOTE}
 
 ${ANON_BROADCAST_NOTE}
+
+NO-LIE / NO-REWRITE (**NO-LIE-NO-REWRITE-1.0**): receipts that still hash; copies not all on one tunnel; rules simple enough others verify without the author's voice; no rewrite key. The network is never allowed to lie — even to self-preserve, sustain, stay alive, adapt, or prevent death. Companion under **CROSS-NETWORK-SURVIVAL-1.0** (does not replace the machine tip). See \`docs/designs/NO-LIE-NO-REWRITE-1.0.md\`. Rewrite / lie verbs refuse \`MESH-NO-REWRITE\` / \`MESH-NO-LIE\`.
 
 Author: Aziel Eliab only.
 `;
@@ -1291,10 +1308,14 @@ export async function runMeshOp(op, payload, env) {
       },
     );
   }
+  const noLie = meshNoLieRefuse(resolved);
+  if (noLie) {
+    return { ...refuse(noLie.code, noLie.message, { op: resolved }), ...noLie };
+  }
   if (MESH_STUB_OPS.includes(resolved)) {
     return refuse(
       "MESH-STUB",
-      `${resolved} is stub on the suite QNM rollup. No login mesh, recovery, resurrection, Node Gate, publish, controller hunt, heal, arming, wipe, or hop internals.`,
+      `${resolved} is stub on the suite QNM rollup. No login mesh, recovery, resurrection, Node Gate, publish, controller hunt, heal, arming, wipe, hop internals, rewrite key, or lie-to-survive.`,
       { op: resolved },
     );
   }
