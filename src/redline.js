@@ -31,6 +31,27 @@ export const REDLINE_PERSON_ID = AUTHOR_ID;
 export const REDLINE_GROWTH_ON = true;
 export const REDLINE_GPTBOT_DISALLOW = false;
 
+/** Close-test pointer for attack sims that must REFUSE. */
+export const ATTACK_SIM_POINTER = "scripts/verify-redline.mjs";
+export const ATTACK_SIM_REFUSES = Object.freeze([
+  Object.freeze({ sim: "az_generator_call", code: "AZ-GEN-CALL-REFUSED" }),
+  Object.freeze({ sim: "mesh_get_enable", code: "MESH-GET-NEVER-ENABLES" }),
+  Object.freeze({ sim: "cap7_resolves_to_hub", code: "CAP7-RESOLVE-INJECT" }),
+  Object.freeze({ sim: "fake_zenodo_doi", code: "DOI-FAKE-REFUSED" }),
+  Object.freeze({ sim: "token_query", code: "TOKEN-QUERY-REFUSED" }),
+  Object.freeze({ sim: "token_body", code: "TOKEN-BODY-REFUSED" }),
+]);
+
+export function attackSimRefusePointer() {
+  return {
+    refuse: true,
+    pointer: ATTACK_SIM_POINTER,
+    paper: REDLINE_DOCS,
+    spec: REDLINE_SPEC,
+    sims: ATTACK_SIM_REFUSES.slice(),
+  };
+}
+
 export const AZ_GENERATOR_HALLUC_SLUGS = Object.freeze([
   "az-generator",
   "azgenerator",
@@ -60,6 +81,8 @@ export const TOKEN_BODY_KEYS = Object.freeze([
 export const PUBLIC_DOORS = Object.freeze([
   { method: "GET", path: "/", role: "read", auth: "none" },
   { method: "GET", path: "/cite.json", role: "read", auth: "none" },
+  { method: "GET", path: "/shelves", role: "cite", auth: "none" },
+  { method: "GET", path: "/v1/shelves", role: "cite", auth: "none" },
   { method: "GET", path: "/robots.txt", role: "read", auth: "none", growth_on: true },
   { method: "GET", path: "/openapi.json", role: "read", auth: "none" },
   { method: "GET", path: "/v1/software", role: "read", auth: "none" },
@@ -309,6 +332,7 @@ export function redlineCiteField() {
       inherit: CAP7_INHERIT,
       resolves_to_hub: CAP7_RESOLVES_TO_HUB,
     },
+    attack_sims: attackSimRefusePointer(),
     tls: { ...TLS_CITE },
     foldlock: foldlockRealCite(),
     token: {

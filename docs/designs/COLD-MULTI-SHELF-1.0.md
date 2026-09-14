@@ -130,13 +130,23 @@ This Worker cites the same honesty on:
 - `GET /v1/software` catalog
 - MCP `runtime_skill` (no new tool)
 
+`GET /shelves` (and `/cite.json` `shelves`) also carry linked fields that
+`/cite.json` already published and that Plane B must not drop:
+
+- `redline.spec` = `REDLINE-2026-09-14` (cite `/cite.json` `redline`)
+- Cap-7 `design_of: hub_designs` + `resolves_to_hub: false`
+- attack-sim refuse pointer `scripts/verify-redline.mjs`
+
+Do not invent a Framagit URL. ALL-TARGETS stays Codeberg + archive.org +
+Framagit (`CNS-PLANE-B-ALL-TARGETS`). Framagit `url` stays `null`.
+
 Corpus SoT remains https://www.azielcorpuslibrary.net/shelves.
 Verify (paste hash, yes/no) lives on corpus `/receipts/verify`.
 
-Cap-7 semantic bridge stays **designs only**: `resolves_to_hub: false`.
-`public_icann: false`. No fifth product. Dual-surface MCP/OpenAPI. Growth-ON
-crawlers Allow. Full AI client set. No visible 15:20 chrome. Person `@id`
-https://www.azieleliab.com/#aziel.
+Cap-7 semantic bridge stays **designs only**: `design_of: hub_designs`.
+`resolves_to_hub: false`. `public_icann: false`. No fifth product.
+Dual-surface MCP/OpenAPI. Growth-ON crawlers Allow. Full AI client set.
+No visible 15:20 chrome. Person `@id` https://www.azieleliab.com/#aziel.
 
 4. What this is not
 - Not a Softwares-tab product. Do not add slug `shelves` or `cold-multi-shelf`.
@@ -159,6 +169,10 @@ https://www.azieleliab.com/#aziel.
 - `/shelves` registry matches corpus#96 honesty (Codeberg + archive.org
   PASS still SLOT; Framagit URL null; GitFlic `CNS-GITFLIC-EMAIL`; GitLab
   `CNS-GITLAB-CF-LOOP`; Zenodo refused; Plane C SLOT).
+- `/shelves` (and `/cite.json` `shelves`) carry `redline.spec`
+  `REDLINE-2026-09-14`, Cap-7 `design_of: hub_designs` +
+  `resolves_to_hub: false`, and `attack_sims.pointer`
+  `scripts/verify-redline.mjs`. Framagit URL stays null.
 - `/llms.txt` and `/ai.txt` carry the same plane rule.
 - OpenAPI documents `GET /shelves` and `GET /v1/shelves`.
 - No Softwares-tab card. No FragGate slug. No new MCP tool.

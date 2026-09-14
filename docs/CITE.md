@@ -82,7 +82,7 @@ Runtime cites the same honesty as live corpus [GET /shelves](https://www.azielco
 - **Plane B** SLOT — Codeberg https://codeberg.org/AzielEliab/aziel-lockset-tip hash-verify PASS (pack `b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37`) still SLOT. archive.org PASS https://archive.org/details/aziel-lockset-tip (same pack) still SLOT. Framagit URL **null** (third ALL-TARGETS). GitFlic refused `CNS-GITFLIC-EMAIL`. GitLab refused `CNS-GITLAB-CF-LOOP`. LIVE only after all three (`CNS-PLANE-B-ALL-TARGETS`). Zenodo refused `CNS-ZENODO-IP-BAN`. `doi` null — never invent.
 - **Plane C** USB SLOT until `CNS-OPERATOR-ATTEST`.
 
-This Worker is the same Plane A tunnel — not a sixth surface. Paper: [COLD-MULTI-SHELF-1.0](designs/COLD-MULTI-SHELF-1.0.md). No visible 15:20 chrome. Growth-ON.
+This Worker is the same Plane A tunnel — not a sixth surface. Paper: [COLD-MULTI-SHELF-1.0](designs/COLD-MULTI-SHELF-1.0.md). `GET /shelves` linked fields: `redline.spec` `REDLINE-2026-09-14`; Cap-7 `design_of: hub_designs` + `resolves_to_hub: false`; attack-sim refuse pointer `scripts/verify-redline.mjs`. No visible 15:20 chrome. Growth-ON.
 
 ## Survival tip (CROSS-NETWORK-SURVIVAL-1.0)
 
