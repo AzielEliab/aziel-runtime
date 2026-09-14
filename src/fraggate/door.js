@@ -19,6 +19,7 @@ import { executeLocal } from "../engines/runner.js";
 import { arch, LOCKED_STRIP, pipeInbound, pipeOutbound, thinPipe } from "../azpipe.js";
 import { MEMORY_SLUG, runMemoryOp } from "../memory.js";
 import { MESH_SLUG, runMeshOp } from "../mesh.js";
+import { azGeneratorCallRefuse, isAzGeneratorHallucSlug } from "../redline.js";
 import {
   FG_GATE_REFUSE,
   FG_HALLUC_TOOL,
@@ -360,6 +361,10 @@ export async function admitCall(args, registry, bySlug, opts = {}) {
 }
 
 export async function fraggateCall(args, registry, bySlug, env, request = null) {
+  const asked = args && typeof args === "object" ? args.slug || args.name || args.product : "";
+  if (isAzGeneratorHallucSlug(asked)) {
+    return { ...azGeneratorCallRefuse({ slug: String(asked || "") }), door: FRAGGATE_DOOR };
+  }
   const admission = await admitCall(args, registry, bySlug, { gate: false });
   if (!admission.admitted) return admission.envelope;
 

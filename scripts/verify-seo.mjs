@@ -223,6 +223,7 @@ assert.match(sitemap, /FEATURE-STATE-2026-09-10\.md/);
 assert.match(sitemap, /REMAIN-OFF-BY-DESIGN-2026-09-10\.md/);
 assert.match(sitemap, /AZL-DONATE-1\.0\.md/);
 assert.match(sitemap, /NO-LIE-NO-REWRITE-1\.0\.md/);
+assert.match(sitemap, /REDLINE-2026-09-14\.md/);
 assert.match(sitemap, /CROSS-NETWORK-SURVIVAL/);
 assert.match(sitemap, /docs\/audit/);
 assert.match(sitemap, /\/v1\/qns/);
@@ -324,6 +325,7 @@ assert.match(cite.crawler_allow, /GPTBot\/ChatGPT/);
 assert.match(cite.crawler_allow, /Yandex/);
 assert.equal(cite.semantic_bridge.spec, "CAP-7");
 assert.equal(cite.semantic_bridge.resolves_to_hub, false);
+assert.equal(cite.semantic_bridge.design_of, "hub_designs");
 assert.equal(cite.semantic_bridge.inherit, "designs");
 assert.equal(cite.semantic_bridge.public_icann, false);
 assert.equal(cite.semantic_bridge.az_gen_live_registrar, false);
@@ -358,6 +360,10 @@ assert.ok(cite.designs.papers.some((p) => p.id === "REMAIN-OFF-BY-DESIGN-2026-09
 assert.ok(cite.designs.papers.some((p) => p.id === "AZL-DONATE-1.0" && p.kind === "law" && p.software_tab === false));
 assert.ok(cite.designs.papers.some((p) => p.id === "CROSS-NETWORK-SURVIVAL-1.0" && p.kind === "law" && p.software_tab === false));
 assert.ok(cite.designs.papers.some((p) => p.id === "NO-LIE-NO-REWRITE-1.0" && p.kind === "law" && p.software_tab === false));
+assert.ok(cite.designs.papers.some((p) => p.id === "REDLINE-2026-09-14" && p.kind === "law" && p.software_tab === false));
+assert.equal(cite.semantic_bridge.design_of, "hub_designs");
+assert.equal(cite.redline.spec, "REDLINE-2026-09-14");
+assert.equal(cite.tls.client_side_crypto_claim, false);
 assert.equal(cite.survival.spec, "CROSS-NETWORK-SURVIVAL-1.0");
 assert.equal(
   cite.survival.tip,
@@ -784,6 +790,7 @@ assert.ok(cite.about.not.some((line) => /API orchestrator/.test(line)));
 assert.match(cite.about.architecture.fraggate, /single public executable door/);
 assert.match(cite.about.architecture.nodemesh, /GET \/v1\/mesh never enables/);
 assert.match(cite.about.architecture.semantic_bridge, /resolves_to_hub false/);
+assert.match(cite.about.architecture.semantic_bridge, /design_of hub_designs/);
 assert.match(cite.about.architecture.semantic_bridge, /designs only/);
 
 assert.match(sitemap, /\/about</);
@@ -865,6 +872,7 @@ assert.match(citeDoc, /www\.azieleliab\.com\/runtime#runtime/);
 assert.match(citeDoc, /github\.com\/AzielEliab\/fraggate/);
 assert.match(citeDoc, /plus other MCP\/OpenAPI-capable assistants/);
 assert.match(citeDoc, /resolves_to_hub: false/);
+assert.match(citeDoc, /design_of: hub_designs/);
 assert.match(citeDoc, /inherit hub \*\*designs\*\* only/);
 assert.match(citeDoc, /azcorpus/);
 assert.match(citeDoc, /azlibrary/);
