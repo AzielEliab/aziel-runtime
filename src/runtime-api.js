@@ -368,7 +368,7 @@ ${shelvesSkillMarkdown(base)}
 | GET | \`/openapi.json\` | Combined OpenAPI 3.1. |
 | POST | \`/mcp\` | JSON-RPC MCP-over-HTTP. |
 | GET | \`/cite.json\` | How to cite Aziel Eliab software and the Digital Library. Aka Aziel Elroi Eliab. No invented DOIs. Cites COLD-MULTI-SHELF-1.0 / corpus#96 shelves honesty. |
-| GET | \`/shelves\` | COLD-MULTI-SHELF-1.0 registry cite matching live corpus \`/shelves\`. Plane A 5 surfaces / 2 family radii / 1 independent live. Plane B SLOT (Codeberg + archive.org PASS still SLOT at https://archive.org/details/aziel-lockset-tip; Framagit URL null; GitFlic CNS-GITFLIC-EMAIL; GitLab CNS-GITLAB-CF-LOOP; Zenodo refused). Plane C USB SLOT. \`doi\` null. Not a sixth surface. |
+| GET | \`/shelves\` | COLD-MULTI-SHELF-1.0 registry cite matching live corpus \`/shelves\`. Plane A 5 surfaces / 2 family radii / 1 independent live. Plane B SLOT (Codeberg + archive.org PASS still SLOT at https://archive.org/details/aziel-lockset-tip; Framagit URL null; GitFlic CNS-GITFLIC-EMAIL; GitLab CNS-GITLAB-CF-LOOP; Zenodo refused). Plane C USB SLOT. \`doi\` null. Linked fields: \`redline.spec\`, Cap-7 \`design_of\` + \`resolves_to_hub: false\`, attack-sim refuse pointer. Not a sixth surface. |
 | GET | \`/v1/shelves\` | Machine alias of \`/shelves\`. |
 | GET | \`/llms.txt\` | Plain-text catalog + citation rules for crawlers. |
 | GET | \`/ai.txt\` | Alias of \`/llms.txt\`. |

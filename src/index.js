@@ -2251,7 +2251,7 @@ function staticPaths(origin) {
       get: {
         operationId: "catalog_shelves",
         summary:
-          "COLD-MULTI-SHELF-1.0 registry cite matching live corpus /shelves (corpus#96). Plane A = 5 published surfaces / 2 family radii / 1 independent live. Plane B Codeberg + archive.org hash-verify PASS still SLOT (https://archive.org/details/aziel-lockset-tip pack b549362c…); Framagit URL null (third ALL-TARGETS); GitFlic refused CNS-GITFLIC-EMAIL; GitLab refused CNS-GITLAB-CF-LOOP; Zenodo refused CNS-ZENODO-IP-BAN; doi null. Plane C USB SLOT until CNS-OPERATOR-ATTEST. Runtime Worker is the same Plane A tunnel, not a sixth surface.",
+          "COLD-MULTI-SHELF-1.0 registry cite matching live corpus /shelves (corpus#96). Plane A = 5 published surfaces / 2 family radii / 1 independent live. Plane B Codeberg + archive.org hash-verify PASS still SLOT (https://archive.org/details/aziel-lockset-tip pack b549362c…); Framagit URL null (third ALL-TARGETS); GitFlic refused CNS-GITFLIC-EMAIL; GitLab refused CNS-GITLAB-CF-LOOP; Zenodo refused CNS-ZENODO-IP-BAN; doi null. Plane C USB SLOT until CNS-OPERATOR-ATTEST. Linked fields: redline.spec REDLINE-2026-09-14, Cap-7 design_of hub_designs + resolves_to_hub false, attack-sim refuse pointer scripts/verify-redline.mjs. Runtime Worker is the same Plane A tunnel, not a sixth surface.",
         tags: ["catalog"],
         responses: { "200": { description: "COLD-MULTI-SHELF registry JSON" } },
       },

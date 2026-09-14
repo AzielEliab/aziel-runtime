@@ -154,6 +154,19 @@ assert.equal(citeOk.data.semantic_bridge.resolves_to_hub, false);
 assert.equal(citeOk.data.redline.spec, REDLINE_SPEC);
 assert.equal(citeOk.data.redline.person_id, AUTHOR_ID);
 assert.equal(citeOk.data.redline.lamb_lens.door, false);
+assert.equal(citeOk.data.redline.attack_sims.pointer, "scripts/verify-redline.mjs");
+assert.equal(citeOk.data.redline.cap7.design_of, CAP7_DESIGN_OF);
+assert.equal(citeOk.data.redline.cap7.resolves_to_hub, CAP7_RESOLVES_TO_HUB);
+
+const shelvesOk = await jsonReq("/shelves");
+assert.equal(shelvesOk.status, 200);
+assert.equal(shelvesOk.data.redline.spec, REDLINE_SPEC);
+assert.equal(shelvesOk.data.cap7.design_of, CAP7_DESIGN_OF);
+assert.equal(shelvesOk.data.cap7.resolves_to_hub, false);
+assert.equal(shelvesOk.data.attack_sims.refuse, true);
+assert.equal(shelvesOk.data.attack_sims.pointer, "scripts/verify-redline.mjs");
+assert.ok(PUBLIC_DOORS.some((d) => d.path === "/shelves" && d.role === "cite"));
+assert.ok(PUBLIC_DOORS.some((d) => d.path === "/v1/shelves" && d.role === "cite"));
 assert.equal(citeOk.data.tls.via, "cloudflare");
 assert.equal(citeOk.data.tls.client_side_crypto_claim, false);
 

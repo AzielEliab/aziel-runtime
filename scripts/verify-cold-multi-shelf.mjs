@@ -27,10 +27,14 @@ import {
   judgePublishedSurfaces,
   judgeZenodoTipReuse,
   planeBLiveReady,
+  shelvesCap7Cite,
   shelvesCiteField,
   shelvesDoc,
+  shelvesRedlineCite,
   isShelvesPath,
 } from "../src/cold-multi-shelf.js";
+import { ATTACK_SIM_POINTER, REDLINE_SPEC } from "../src/redline.js";
+import { CAP7_DESIGN_OF, CAP7_RESOLVES_TO_HUB } from "../src/semantic-bridge.js";
 
 const glama = JSON.parse(readFileSync(new URL("../glama.json", import.meta.url), "utf8"));
 assert.ok(glama.keywords.includes("cold-multi-shelf") || glama.keywords.includes("cold-shelf"));
@@ -62,6 +66,9 @@ assert.match(paper, /https:\/\/www\.azieleliab\.com\/#aziel/);
 assert.match(paper, /Not a Softwares-tab product/);
 assert.match(paper, /No new MCP tool/);
 assert.match(paper, /No visible 15:20/);
+assert.match(paper, /redline\.spec/);
+assert.match(paper, /design_of: hub_designs/);
+assert.match(paper, /scripts\/verify-redline\.mjs/);
 assert.doesNotMatch(paper, /15:20 chrome visible|clock face on the homepage/i);
 assert.match(survival, /CROSS-NETWORK-SURVIVAL-1\.0/);
 assert.match(nodeMesh, /COLD-MULTI-SHELF-1\.0/);
@@ -189,6 +196,16 @@ assert.equal(
   shelves.registry.shelves.find((s) => s.id === "plane-b-framagit-tip-pack").url,
   null,
 );
+assert.equal(shelves.redline.spec, REDLINE_SPEC);
+assert.equal(shelves.redline.field, "redline");
+assert.equal(shelves.redline.cite, origin + "/cite.json");
+assert.equal(shelves.cap7.design_of, CAP7_DESIGN_OF);
+assert.equal(shelves.cap7.resolves_to_hub, CAP7_RESOLVES_TO_HUB);
+assert.equal(shelves.attack_sims.refuse, true);
+assert.equal(shelves.attack_sims.pointer, ATTACK_SIM_POINTER);
+assert.ok(shelves.attack_sims.sims.some((s) => s.code === "CAP7-RESOLVE-INJECT"));
+assert.equal(shelves.redline.cap7.design_of, "hub_designs");
+assert.equal(shelves.redline.cap7.resolves_to_hub, false);
 
 const v1 = await (await get("/v1/shelves")).json();
 assert.equal(v1.spec, COLD_MULTI_SHELF);
@@ -221,6 +238,13 @@ assert.equal(cite.shelves.plane_b.archive_org.hash_verify, "pass");
 assert.equal(cite.shelves.plane_b.archive_org.pack_sha256, "b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37");
 assert.equal(cite.shelves.plane_b.framagit.url, null);
 assert.deepEqual(cite.shelves.plane_b.working_targets, ["codeberg", "archive.org", "framagit"]);
+assert.equal(cite.shelves.redline.spec, REDLINE_SPEC);
+assert.equal(cite.shelves.cap7.design_of, "hub_designs");
+assert.equal(cite.shelves.cap7.resolves_to_hub, false);
+assert.equal(cite.shelves.attack_sims.pointer, ATTACK_SIM_POINTER);
+assert.equal(cite.redline.spec, REDLINE_SPEC);
+assert.equal(cite.redline.cap7.design_of, "hub_designs");
+assert.equal(cite.redline.attack_sims.pointer, ATTACK_SIM_POINTER);
 assert.equal(cite.shelves.plane_b.gitflic_ru.status, "refused");
 assert.equal(cite.shelves.plane_b.gitflic_ru.refuse, "CNS-GITFLIC-EMAIL");
 assert.equal(cite.shelves.plane_b.gitlab.status, "refused");
@@ -261,6 +285,9 @@ assert.match(llms, /CNS-GITLAB-CF-LOOP/);
 assert.doesNotMatch(llms, /archive\.org \+ GitFlic URL null/);
 assert.match(llms, /www\.azieleliab\.com\/#aziel/);
 assert.match(llms, /resolves_to_hub: false/);
+assert.match(llms, /REDLINE-2026-09-14/);
+assert.match(llms, /design_of: hub_designs/);
+assert.match(llms, /verify-redline\.mjs/);
 assert.doesNotMatch(llms, /doi: 10\.5281\/zenodo\.\d+ \(lockset tip\)/);
 
 const skill = await (await get("/v1/skill")).text();
@@ -271,6 +298,9 @@ assert.match(skill, /Framagit/);
 assert.match(skill, /CNS-GITFLIC-EMAIL/);
 assert.match(skill, /CNS-GITLAB-CF-LOOP/);
 assert.match(skill, /resolves_to_hub: false/);
+assert.match(skill, /REDLINE-2026-09-14/);
+assert.match(skill, /design_of: hub_designs/);
+assert.match(skill, /verify-redline\.mjs/);
 
 const sitemap = await (await get("/sitemap.xml")).text();
 assert.match(sitemap, /\/shelves/);
@@ -284,11 +314,19 @@ assert.match(openapi.paths["/shelves"].get.summary, /COLD-MULTI-SHELF/);
 assert.match(openapi.paths["/v1/shelves"].get.summary, /COLD-MULTI-SHELF/);
 assert.match(openapi.paths["/shelves"].get.summary, /archive\.org\/details\/aziel-lockset-tip/);
 assert.match(openapi.paths["/shelves"].get.summary, /Framagit/);
+assert.match(openapi.paths["/shelves"].get.summary, /REDLINE-2026-09-14/);
+assert.match(openapi.paths["/shelves"].get.summary, /design_of/);
+assert.match(openapi.paths["/shelves"].get.summary, /verify-redline/);
 assert.match(openapi.info.description, /COLD-MULTI-SHELF/);
 assert.match(openapi.info.description, /Framagit/);
 
 assert.equal(shelvesCiteField(origin).lockset_doi, null);
 assert.equal(shelvesDoc(origin).registry.planes.B.doi, null);
+assert.equal(shelvesCap7Cite().design_of, "hub_designs");
+assert.equal(shelvesCap7Cite().resolves_to_hub, false);
+assert.equal(shelvesRedlineCite(origin).spec, REDLINE_SPEC);
+assert.equal(shelvesCiteField(origin).redline.spec, REDLINE_SPEC);
+assert.equal(shelvesCiteField(origin).attack_sims.pointer, ATTACK_SIM_POINTER);
 
 console.log(
   `ok ${COLD_MULTI_SHELF}: Plane A 5/2/1; Plane B Codeberg+archive.org PASS still SLOT; Framagit URL null; GitFlic/GitLab refused; doi null; Plane C SLOT; runtime not a shelf`,
