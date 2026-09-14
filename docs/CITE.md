@@ -79,7 +79,7 @@ Agents use FragGate MCP + OpenAPI (`fraggate_call`, `GET /v1/update/check`, `GET
 Runtime cites the same honesty as live corpus [GET /shelves](https://www.azielcorpuslibrary.net/shelves) (corpus#96). Machine fields: `/cite.json` `shelves` · `GET /shelves` · `GET /v1/shelves`. Person `@id`: `https://www.azieleliab.com/#aziel`.
 
 - **Plane A** LIVE — 5 published surfaces (4 CF hubs + GitHub) / 2 family radii (`cloudflare`, `github`). One independent live: `cf-github`. Not five shelves.
-- **Plane B** SLOT — Codeberg https://codeberg.org/AzielEliab/aziel-lockset-tip hash-verify PASS (pack `b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37`) still SLOT. archive.org + GitFlic URL **null**. LIVE only after all three (`CNS-PLANE-B-ALL-TARGETS`). Zenodo refused `CNS-ZENODO-IP-BAN`. `doi` null — never invent.
+- **Plane B** SLOT — Codeberg https://codeberg.org/AzielEliab/aziel-lockset-tip hash-verify PASS (pack `b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37`) still SLOT. archive.org PASS https://archive.org/details/aziel-lockset-tip (same pack) still SLOT. Framagit URL **null** (third ALL-TARGETS). GitFlic refused `CNS-GITFLIC-EMAIL`. GitLab refused `CNS-GITLAB-CF-LOOP`. LIVE only after all three (`CNS-PLANE-B-ALL-TARGETS`). Zenodo refused `CNS-ZENODO-IP-BAN`. `doi` null — never invent.
 - **Plane C** USB SLOT until `CNS-OPERATOR-ATTEST`.
 
 This Worker is the same Plane A tunnel — not a sixth surface. Paper: [COLD-MULTI-SHELF-1.0](designs/COLD-MULTI-SHELF-1.0.md). No visible 15:20 chrome. Growth-ON.
