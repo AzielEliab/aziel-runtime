@@ -58,11 +58,36 @@ function payloadTextOf(payload) {
   return JSON.stringify(payload);
 }
 
+function bodyTokenRefuse(json) {
+  return json(
+    {
+      ok: false,
+      error: "operator token is header-only",
+      code: "TOKEN-BODY-REFUSED",
+      hint: "Authorization: Bearer … or X-Aziel-Runtime-Token",
+    },
+    400,
+  );
+}
+
+function bodyHasOperatorToken(body) {
+  if (!body || typeof body !== "object") return false;
+  return Boolean(body.runtime_token || body.RUNTIME_TOKEN || body.operator_token || body.aziel_runtime_token);
+}
+
 function gateSessionMutate(request, env, json) {
   const url = new URL(request.url);
   if (!isSessionMutatePath(url.pathname, request.method)) return null;
   const auth = sessionMutateAuth(request, env);
-  if (!auth.ok) return json(auth.body, auth.status);
+  if (!auth.ok) {
+    if (auth.body && auth.body.code === "token_required") {
+      const decision = rateLimitDecision(env, request, "anon_mutate");
+      if (!decision.ok) {
+        return json(rateLimitFailBody(decision), 429, rateLimitFailHeaders(decision));
+      }
+    }
+    return json(auth.body, auth.status);
+  }
   const kind = url.pathname === "/v1/session/open" ? "open" : url.pathname.endsWith("/exec") ? "exec" : null;
   if (kind) {
     const decision = rateLimitDecision(env, request, kind);
@@ -89,6 +114,7 @@ export async function handleSessionRequest(request, env, deps) {
     } catch {
       return json({ error: "invalid JSON", code: "bad_json" }, 400);
     }
+    if (bodyHasOperatorToken(body)) return bodyTokenRefuse(json);
     const id = SESSION_ID_RE.test(String(body.id || "")) ? body.id : newSessionId();
     const res = await stubFetch(env, id, "open", {
       method: "POST",
@@ -129,6 +155,7 @@ export async function handleSessionRequest(request, env, deps) {
     } catch {
       return json({ error: "invalid JSON", code: "bad_json" }, 400);
     }
+    if (bodyHasOperatorToken(body)) return bodyTokenRefuse(json);
     return copyJson(
       await stubFetch(env, id, "policy", {
         method: "POST",
@@ -159,6 +186,7 @@ async function handleExec(request, env, id, { json, PRODUCTS, BY_SLUG, upstreamF
   } catch {
     return json({ error: "invalid JSON", code: "bad_json" }, 400);
   }
+  if (bodyHasOperatorToken(body) || bodyHasOperatorToken(body.payload)) return bodyTokenRefuse(json);
   const slug = String(body.slug || body.product || "").trim().toLowerCase();
   const op = String(body.op || "").trim();
   const payload = body.payload !== undefined ? body.payload : {};
@@ -519,7 +547,18 @@ export async function callSessionTool(env, name, args, origin, deps) {
   const base = (origin || "https://aziel-runtime.vibelock.workers.dev").replace(/\/$/, "");
   const sid = args && (args.session_id || args.id);
   const tokenHeaders = copyTokenHeaders(deps && deps.request, {});
-  if (args && args.runtime_token) tokenHeaders["X-Aziel-Runtime-Token"] = String(args.runtime_token);
+  if (args && (args.runtime_token || args.RUNTIME_TOKEN || args.operator_token)) {
+    return {
+      status: 400,
+      text: JSON.stringify({
+        ok: false,
+        error: "operator token is header-only",
+        code: "TOKEN-BODY-REFUSED",
+        hint: "Authorization: Bearer … or X-Aziel-Runtime-Token",
+      }),
+      target: base + "/v1/session",
+    };
+  }
   if (name === "runtime_session_open") {
     const req = new Request(base + "/v1/session/open", {
       method: "POST",

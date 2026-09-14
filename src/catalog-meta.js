@@ -323,8 +323,16 @@ export function zenodoDepositMetadata(product, urls) {
   return metadata;
 }
 
+/** Known map only. Unknown / injected Zenodo IDs are dropped — never invented. */
+export function acceptedDoiForSlug(slug, doi) {
+  const raw = String(doi || "").trim();
+  if (!raw) return null;
+  const mapped = DOI_BY_SLUG[slug];
+  return mapped && mapped === raw ? raw : null;
+}
+
 export function citationFields(product, urls) {
-  const doi = product.doi || null;
+  const doi = acceptedDoiForSlug(product && product.slug, product && product.doi);
   const tarball = softwareTarball(product.slug, product.version, urls.download);
   const fields = {
     version: product.version || null,

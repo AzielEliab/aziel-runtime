@@ -105,6 +105,7 @@ import {
   survivalCiteField,
   survivalHint,
 } from "./cross-network-survival.js";
+import { meshGetEnableRefuse, meshGetLooksLikeEnable } from "./redline.js";
 import { dispatchAzGeneratorHttp, semanticBridgeCiteField } from "./semantic-bridge.js";
 
 export const MESH_SLUG = "mesh";
@@ -1337,17 +1338,20 @@ export async function runMeshOp(op, payload, env) {
   });
 }
 
-export async function dispatchMeshHttp(method, pathname, payload, env, origin) {
+export async function dispatchMeshHttp(method, pathname, payload, env, origin, searchParams) {
   const m = String(method || "GET").toUpperCase();
   const path = String(pathname || "")
     .split("?")[0]
     .replace(/\/+$/, "")
     .toLowerCase() || "/";
   if (path === "/v1/mesh/az-generator") {
-    return dispatchAzGeneratorHttp(m, path, origin);
+    return dispatchAzGeneratorHttp(m, path, origin, payload, searchParams);
   }
   if (path === "/v1/mesh" || path === "/v1/mesh/status") {
     if (m === "GET" || m === "HEAD") {
+      if (meshGetLooksLikeEnable(searchParams, payload)) {
+        return { status: 405, body: meshGetEnableRefuse({ path, method: m }) };
+      }
       const body = await meshStatus(payload, env);
       return { status: 200, body };
     }

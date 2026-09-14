@@ -85,7 +85,7 @@ Modes: **OFF** (GET/status never arms), **REFUSE** (named stub / halluc / lamb /
 
 `MESH-OK`, `MESH-NEED-BEARER`, `MESH-BAD-BEARER`, `MESH-ENABLE-RATE`, `MESH-DISABLE-REFUSED`, `MESH-OFF`, `MESH-BAD-INPUT`, `MESH-UNKNOWN-NODE`, `MESH-NO-PUBLISH`, `MESH-NO-BYTES`, `MESH-EQUIVOCATION`, `MESH-NO-INDEX`, `MESH-NO-NEIGHBOR-HEAL`, `MESH-NO-LIVE-SHELF`, `MESH-POISON`, `MESH-STUB`, `MESH-UNKNOWN-OP`, `MESH-METHOD`, `MESH-NOT-FOUND`, `MESH-NO-REWRITE`, `MESH-NO-LIE`
 
-`MESH-NO-REWRITE` / `MESH-NO-LIE` refuse rewrite-key and lie-to-survive verbs. Receipts that still hash. Copies not all on one tunnel. The network is never allowed to lie — even to self-preserve. Law paper: `docs/designs/NO-LIE-NO-REWRITE-1.0.md`. Does not replace the CROSS-NETWORK-SURVIVAL-1.0 machine tip.
+`MESH-GET-NEVER-ENABLES` refuses enable-via-GET (`?enable=true` / `op=enable`). `MESH-NO-REWRITE` / `MESH-NO-LIE` refuse rewrite-key and lie-to-survive verbs. Receipts that still hash. Copies not all on one tunnel. The network is never allowed to lie — even to self-preserve. Law paper: `docs/designs/NO-LIE-NO-REWRITE-1.0.md`. Does not replace the CROSS-NETWORK-SURVIVAL-1.0 machine tip.
 
 `POST /v1/mesh/disable` / suite `mesh_disable` return **`MESH-DISABLE-REFUSED`**. Read-only suite-presence stays ON. Library host overlay may return **409** `library-default-off` instead of Worker `MESH-NEED-BEARER`. That overlay is host-side. GET never enables extra radios.
 
@@ -112,6 +112,12 @@ Refuse objects set `belief_is_not_truth: true` and `authorizes_action: false`.
 | `RC-NO-ROLLBACK` | RoseClock |
 | `ASE-UNARMED` | ASE cite+refuse |
 | `VECTOR-UNARMED` | VECTOR cite+refuse |
+
+### Redline (`src/redline.js`)
+
+`AZ-GEN-CALL-REFUSED`, `CAP7-RESOLVE-INJECT`, `DOI-FAKE-REFUSED`, `TOKEN-QUERY-REFUSED`, `TOKEN-BODY-REFUSED`
+
+Operator token is header-only. Cap-7 `design_of` stays `hub_designs`; `resolves_to_hub` stays false. Fake Zenodo DOIs are not cited. Law paper: `docs/designs/REDLINE-2026-09-14.md`.
 
 `named_fallback_inventory.refused` stays  
 `["exec", "shell", "blend", "chat", "smtp_send", "deanonymize", "unknown-tool"]`.

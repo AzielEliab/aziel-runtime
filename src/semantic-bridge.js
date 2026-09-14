@@ -39,6 +39,8 @@ export const ICANN_HUB_HOSTS = Object.freeze([
 ]);
 
 export const CAP7_INHERIT = "designs";
+/** Cap-7 names are designs of hubs — they do not resolve to hub hostnames. */
+export const CAP7_DESIGN_OF = "hub_designs";
 export const CAP7_RESOLVES_TO_HUB = false;
 export const CAP7_NAME_MAY_CHANGE = true;
 export const CAP7_CANONICAL_HUBS_IMMUTABLE = true;
@@ -81,9 +83,10 @@ export function semanticBridgeCiteField(origin) {
     live_registrar: false,
     az_gen_live_registrar: false,
     resolves_to_hub: CAP7_RESOLVES_TO_HUB,
+    design_of: CAP7_DESIGN_OF,
     inherit: CAP7_INHERIT,
     inherit_note:
-      "Cap-7 mesh names may change. They map to the original four canonical hubs only (azieleliab.com, azielcorpuslibrary.net with azcorpus+azlibrary designs, godlock.uk, hedidntjump.com). They inherit hub designs only. They are not aliases of those hostnames and do not resolve to them.",
+      "Cap-7 mesh names may change. They map to the original four canonical hubs only (azieleliab.com, azielcorpuslibrary.net with azcorpus+azlibrary designs, godlock.uk, hedidntjump.com). They inherit hub designs only (design_of: hub_designs). They are not aliases of those hostnames and do not resolve to them.",
     name_may_change: CAP7_NAME_MAY_CHANGE,
     canonical_hubs_immutable: CAP7_CANONICAL_HUBS_IMMUTABLE,
     maps_to_canonical_hubs: true,
@@ -149,6 +152,7 @@ export function semanticBridgeRefuse(code, message, extra = {}) {
     live_registrar: false,
     az_gen_live_registrar: false,
     resolves_to_hub: CAP7_RESOLVES_TO_HUB,
+    design_of: CAP7_DESIGN_OF,
     inherit: CAP7_INHERIT,
     name_may_change: CAP7_NAME_MAY_CHANGE,
     canonical_hubs_immutable: CAP7_CANONICAL_HUBS_IMMUTABLE,
@@ -161,14 +165,74 @@ export function semanticBridgeRefuse(code, message, extra = {}) {
   };
 }
 
+function truthyFlag(value) {
+  if (value === true || value === 1) return true;
+  const s = String(value == null ? "" : value)
+    .trim()
+    .toLowerCase();
+  return s === "1" || s === "true" || s === "yes" || s === "on";
+}
+
+/**
+ * Cap-7 injection: resolves_to_hub true, resolving design_of, or register verbs.
+ * Cite fields stay locked. Attack payloads must REFUSE, not echo the injection.
+ */
+export function cap7InjectionAttempt(payload, searchParams) {
+  const src = payload && typeof payload === "object" && !Array.isArray(payload) ? payload : {};
+  if (src.resolves_to_hub === true || src.resolve_to_hub === true || src.resolves_cap7 === true) {
+    return "resolves_to_hub";
+  }
+  if (searchParams && typeof searchParams.get === "function") {
+    if (truthyFlag(searchParams.get("resolves_to_hub")) || truthyFlag(searchParams.get("resolve_to_hub"))) {
+      return "resolves_to_hub";
+    }
+    const qDesign = searchParams.get("design_of");
+    if (qDesign && String(qDesign).trim() && String(qDesign).trim() !== CAP7_DESIGN_OF) {
+      return "design_of";
+    }
+    const act = String(searchParams.get("op") || searchParams.get("action") || "").toLowerCase();
+    if (act === "register" || act === "create" || act === "mint") return "register";
+  }
+  if (src.design_of != null) {
+    const claimed = typeof src.design_of === "string" ? src.design_of.trim() : "";
+    if (claimed && claimed !== CAP7_DESIGN_OF) return "design_of";
+    if (src.design_of && typeof src.design_of === "object" && src.design_of.resolves_to_hub === true) {
+      return "design_of";
+    }
+  }
+  const act = String(src.op || src.action || src.register || "").toLowerCase();
+  if (act === "register" || act === "create" || act === "mint" || src.register === true) return "register";
+  return null;
+}
+
+export function cap7InjectionRefuse(kind, extra = {}) {
+  return semanticBridgeRefuse(
+    kind === "register" ? "AZ-GEN-CALL-REFUSED" : "CAP7-RESOLVE-INJECT",
+    kind === "register"
+      ? "AZ Generator is cite-only. Not a live registrar."
+      : "Cap-7 design_of is hub_designs. resolves_to_hub stays false. Injection refused.",
+    {
+      design_of: CAP7_DESIGN_OF,
+      resolves_to_hub: CAP7_RESOLVES_TO_HUB,
+      injected: kind,
+      ...extra,
+    },
+  );
+}
+
 /**
  * GET/HEAD cite only. Never enables radios. Never registers a name.
  */
-export function dispatchAzGeneratorHttp(method, pathname, origin) {
+export function dispatchAzGeneratorHttp(method, pathname, origin, payload, searchParams) {
   const verb = String(method || "GET").toUpperCase();
   const path = String(pathname || "/v1/mesh/az-generator")
     .split("?")[0]
     .replace(/\/+$/, "") || "/v1/mesh/az-generator";
+
+  const injected = cap7InjectionAttempt(payload, searchParams);
+  if (injected) {
+    return { status: 400, body: cap7InjectionRefuse(injected, { path, method: verb }) };
+  }
 
   if (verb === "GET" || verb === "HEAD") {
     return { status: 200, body: semanticBridgeStatus(origin) };
@@ -185,13 +249,20 @@ export function dispatchAzGeneratorHttp(method, pathname, origin) {
 }
 
 /** FragGate MirageGrid op — same cite as GET /v1/mesh/az-generator. Not a registrar. */
-export function miragegridBridgeCite(origin) {
+export function miragegridBridgeCite(origin, payload) {
+  const injected = cap7InjectionAttempt(payload);
+  if (injected) {
+    return {
+      ...cap7InjectionRefuse(injected, { product: "miragegrid", op: "bridge" }),
+      true_engine_runtime: true,
+    };
+  }
   return {
     ...semanticBridgeStatus(origin),
     product: "miragegrid",
     op: "bridge",
     true_engine_runtime: true,
-    note: "Cite-only Cap-7 metadata. Not a live AZ-GEN registrar. Not ICANN. resolves_to_hub false.",
+    note: "Cite-only Cap-7 metadata. Not a live AZ-GEN registrar. Not ICANN. design_of hub_designs. resolves_to_hub false.",
   };
 }
 
@@ -202,7 +273,7 @@ export function semanticBridgeLlmsBlock(origin) {
     "",
     SEMANTIC_BRIDGE_LIMITATION,
     "",
-    `Factory: ${cite.factory} only. public_icann: false. resolves_to_hub: false. inherit: ${cite.inherit}.`,
+    `Factory: ${cite.factory} only. public_icann: false. design_of: ${cite.design_of}. resolves_to_hub: false. inherit: ${cite.inherit}.`,
     `Live registrar: false. AZ-GEN live registrar: false. Fake ICANN .az: false. Visible 15:20: false.`,
     `GET /v1/mesh never enables radios. Growth-ON crawlers Allow.`,
     `Bridge cite: ${cite.paths.miragegrid_bridge}`,
@@ -221,7 +292,7 @@ export function semanticBridgeSkillMarkdown(origin) {
   const cite = semanticBridgeCiteField(origin);
   return `## Cap-7 semantic bridge (MirageGrid)
 
-Cap-7 mesh names are **MirageGrid-only**. They inherit hub **designs** only (\`docs/designs/\` plus mesh-resident **azcorpus** + **azlibrary** on the library hub). \`resolves_to_hub: false\`. \`name_may_change: true\`. Canonical hubs are immutable. Names may change; they map to the original four hubs only (${cite.icann_hosts.join(", ")}). They are **not** aliases of those hostnames. Not a fifth product. \`public_icann: false\`.
+Cap-7 mesh names are **MirageGrid-only**. They inherit hub **designs** only (\`docs/designs/\` plus mesh-resident **azcorpus** + **azlibrary** on the library hub). \`design_of: hub_designs\`. \`resolves_to_hub: false\`. \`name_may_change: true\`. Canonical hubs are immutable. Names may change; they map to the original four hubs only (${cite.icann_hosts.join(", ")}). They are **not** aliases of those hostnames. Not a fifth product. \`public_icann: false\`.
 
 AI pulls mesh-generated **name metadata** (not a registration) from:
 

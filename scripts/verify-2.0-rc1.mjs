@@ -18,6 +18,7 @@ const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url),
 assert.equal(pkg.version, "2.0.0-rc1");
 assert.match(pkg.scripts.test, /verify-2\.0-rc1\.mjs/);
 assert.match(pkg.scripts.test, /verify-mcp-tdqs\.mjs/);
+assert.match(pkg.scripts.test, /verify-redline\.mjs/);
 assert.equal(pkg.scripts["clean-room:2.0"], "bash scripts/clean-room-2.0.sh");
 assert.equal(pkg.scripts["adversarial:external"], "bash scripts/external-adversarial-2.0.sh");
 
@@ -34,6 +35,7 @@ const requiredDocs = [
   "docs/2.0/clean-room-result.schema.json",
   "docs/2.0/clean-room-result.sample.json",
   "docs/GLAMA-TDQS.md",
+  "docs/designs/REDLINE-2026-09-14.md",
 ];
 for (const rel of requiredDocs) {
   assert.ok(existsSync(new URL(`../${rel}`, import.meta.url)), rel);
