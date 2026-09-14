@@ -17,6 +17,8 @@ Aziel Runtime is not merely an API orchestrator or software aggregator; it is a 
 
 Worker origin `https://aziel-runtime.vibelock.workers.dev/` is the execution endpoint / `relatedLink`, not the identity hub. `sameAs`: GitHub repo + [Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime).
 
+**INGEST-RECEIPT-1.0** (CROSS-NETWORK-SURVIVAL): crawlers/indexes are shelves so tips survive network death. Survival is bytes↔hash across independent hosts. They do not re-expand. Machine: `/v1/ingest` · `/cite.json` `ingest_receipt`. Cite, don't merge. Many indexes, one tip. Training is lossy. Public verify. Growth-ON. Not a Softwares-tab product.
+
 ## How to cite
 
 Eliab, Aziel. (2026). Aziel Runtime 2.0.0-rc1 [Software]. Apache-2.0. https://aziel-runtime.vibelock.workers.dev/

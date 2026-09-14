@@ -1,0 +1,335 @@
+%PDF-1.4
+1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj
+2 0 obj << /Type /Pages /Kids [3 0 R 5 0 R 7 0 R] /Count 3 >> endobj
+3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 9 0 R >> >> >> endobj
+4 0 obj << /Length 3645 >> stream
+BT
+/F1 9 Tf
+54 738 Td
+(# INGEST-RECEIPT-1.0 ? crawler ingest, archive re-expand, node reheal) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(Author: Aziel Eliab only.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(Status: LIVE fabric \(2026-09-14\). Not a Softwares-tab product. Not a FragGate slug.) Tj
+0 -11 Td
+(Growth-ON for crawler shelves. Remain-OFF untouched.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(---) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(Aziel Eliab · fabric · CROSS-NETWORK-SURVIVAL · crawler ingest-as-receipt · archive) Tj
+0 -11 Td
+(re-expand · node reheal) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(    INGEST-RECEIPT-1.0) Tj
+0 -11 Td
+(    CROSS-NETWORK-SURVIVAL \(umbrella\)) Tj
+0 -11 Td
+(    CRAWLER/AI INGEST-AS-RECEIPT · RE-EXPAND-FROM-ARCHIVE · REHEAL) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(    Origin: https://aziel-runtime.vibelock.workers.dev/v1/ingest) Tj
+0 -11 Td
+(    Paper: docs/designs/INGEST-RECEIPT-1.0.md) Tj
+0 -11 Td
+(    Tip string \(HTML + git, same bytes\):) Tj
+0 -11 Td
+(    FragGate ledger_tip and LOCKSET lockset_sha256 are one tip class: SHA-256 of the live) Tj
+0 -11 Td
+(set. Public verify cites that hash. HTML and git publish the same string.) Tj
+0 -11 Td
+(    Identity: Aziel Eliab only) Tj
+0 -11 Td
+(    Growth: ON \(crawlers/indexes are shelves so tips survive network death; they do not) Tj
+0 -11 Td
+(re-expand\)) Tj
+0 -11 Td
+(    Survival: bytes?hash across independent hosts) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(0. Sentence) Tj
+0 -11 Td
+(Crawlers and AIs ingest as a receipt: they cite a tip, they do not become the chain.) Tj
+0 -11 Td
+(Re-expand restores from archive bytes. Reheal is a poisoned node's own last good tip.) Tj
+0 -11 Td
+(Those three are distinct. CROSS-NETWORK-SURVIVAL is the umbrella: crawlers and) Tj
+0 -11 Td
+(indexes are shelves so tips survive network death. Survival is bytes?hash across) Tj
+0 -11 Td
+(independent hosts. Shelves do not re-expand.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(1. Claim) Tj
+0 -11 Td
+(Homepage, /llms.txt, /cite.json, OpenAPI, and MCP describe already name stable IDs) Tj
+0 -11 Td
+(and canonical URLs. FragGate already returns ledger_tip. LOCKSET already seals) Tj
+0 -11 Td
+(lockset_sha256. Those tips are one class. HTML and git must publish the same string.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(This paper is the **ingest law** under **CROSS-NETWORK-SURVIVAL**. Crawler/AI) Tj
+0 -11 Td
+(growth is ON. Indexes may list so a tip still exists when one host dies. Training) Tj
+0 -11 Td
+(may see the public surfaces. None of that merges the chain, re-expands a node, or) Tj
+0 -11 Td
+(heals a poisoned tip by vote.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(2. What it is not) Tj
+0 -11 Td
+(?         Not a Softwares-tab product. Do not add slug ingest, ingest-receipt, reexpand, or) Tj
+0 -11 Td
+(reheal.) Tj
+0 -11 Td
+(?         Not a FragGate engine. No fraggate_call { slug: "ingest" }.) Tj
+0 -11 Td
+(?         Not a new MCP tool. PUBLIC_MCP_TOOLS stays frozen.) Tj
+0 -11 Td
+(?         Not ACT-RECEIPT-1.0. ACT receipts are four-field acts on corpus /receipts.) Tj
+0 -11 Td
+(?         Not a Remain-OFF flip. Do not enable remain-off items.) Tj
+0 -11 Td
+(?         Not mesh growing from an index.) Tj
+0 -11 Td
+(?         Not vote-to-fix. Neighbors do not heal a poisoned node.) Tj
+0 -11 Td
+(?         Not training residue as authority. Weights and snippets are rumor alone.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(3. Four laws \(INGEST-AS-RECEIPT ? crawlers / AIs\)) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(  Law                         Meaning) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(  1. Cite, don't merge        Cite the receipt, the @id, the canonical URL, and the tip.) Tj
+ET
+BT
+/F1 8 Tf
+54 28 Td
+(INGEST-RECEIPT-1.0  ·  Aziel Eliab only  ·  page 1 / 3) Tj
+ET
+endstream endobj
+5 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 6 0 R /Resources << /Font << /F1 9 0 R >> >> >> endobj
+6 0 obj << /Length 3723 >> stream
+BT
+/F1 9 Tf
+54 738 Td
+(  2. Many indexes, one tip    Search and AI indexes may list. One tip is the chain head.) Tj
+0 -11 Td
+(                              FragGate ledger_tip and LOCKSET lockset_sha256 are that class.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(  3. Training is lossy        Model weights, snippets, and hash-mentions without payload) Tj
+0 -11 Td
+(                              are not the chain. Training residue alone is rumor.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(  4. Public verify            Stable IDs, canonical URLs, tip SHA-256, and a public verify) Tj
+0 -11 Td
+(                              path. Ingest is a receipt of those facts, not a merge.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(Crawler/AI growth is ON. Crawlers and indexes are shelves so tips survive network) Tj
+0 -11 Td
+(death. They cite. They do not re-expand. They do not reheal. Survival is) Tj
+0 -11 Td
+(bytes?hash across independent hosts.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(4. Surfaces crawlers and AIs must see) Tj
+0 -11 Td
+(?         Stable IDs: https://www.azieleliab.com/#aziel ·) Tj
+0 -11 Td
+(https://www.azieleliab.com/runtime#runtime) Tj
+0 -11 Td
+(?         Canonical URLs: Worker origin, /cite.json, /llms.txt, this paper, GET /v1/ingest) Tj
+0 -11 Td
+(?         Tip SHA-256: FragGate ledger_tip · LOCKSET lockset_sha256 ? one tip class) Tj
+0 -11 Td
+(?         Public verify: GET /v1/ingest · chainlock_verify · lockset verify · GodLock cite) Tj
+0 -11 Td
+(?         The tip string above, identical on Worker HTML and git-hosted docs) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(5. RE-EXPAND-FROM-ARCHIVE \(distinct ? not crawlers, not reheal\)) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(Bytes of the chain survive, not summaries.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(Re-expand = original receipts + prev-hash verify + new local node on tip) Tj
+0 -11 Td
+(\(restore from archive\). It is NOT mesh growing from an index.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(  Enough                         Not enough) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(  Full files                     AI weights) Tj
+0 -11 Td
+(  Git                            Snippets) Tj
+0 -11 Td
+(  LOCKSET                        Hash-mention without payload) Tj
+0 -11 Td
+(  SHA-256 of the live set        Training residue alone) Tj
+0 -11 Td
+(  Enough cold copies             Crawler shelves) Tj
+0 -11 Td
+(  Operator verifies before       An index that only lists the tip) Tj
+0 -11 Td
+(  light-up) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(Crawlers are extra shelves. They do not re-expand. Training residue alone = rumor.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(6. REHEAL \(distinct ? not archive re-expand, not crawler ingest\)) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(A poisoned node does not heal by listening to neighbors.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(Reheal = own last good tip + verified trusted pull, or phoenix-WAIT) Tj
+0 -11 Td
+(\(NODE-OPS-1.0 isolate-then-phoenix; PHOENIX-LOCK wait; no controller hunt\).) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(Allowed chatter: live / locked / isolated / tip-hash.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(Forbid vote-to-fix. A majority of neighbors is not a tip. Gossip of state) Tj
+0 -11 Td
+(labels is not a heal. Healing from an index is not reheal.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(Companion: NODE-OPS-1.0 \(no auto-heal onto a poisoned ID; phoenix wait has) Tj
+0 -11 Td
+(no outbound hunt packet\). Remain-OFF untouched. Public mesh does not grow) Tj
+0 -11 Td
+(from an index to replace a node.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(7. Three planes \(do not collapse\)) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(  Plane                      Who                         Does not) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(  INGEST-AS-RECEIPT          Crawlers / AIs              Re-expand. Reheal. Merge.) Tj
+ET
+BT
+/F1 8 Tf
+54 28 Td
+(INGEST-RECEIPT-1.0  ·  Aziel Eliab only  ·  page 2 / 3) Tj
+ET
+endstream endobj
+7 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 8 0 R /Resources << /Font << /F1 9 0 R >> >> >> endobj
+8 0 obj << /Length 1157 >> stream
+BT
+/F1 9 Tf
+54 738 Td
+( ) Tj
+0 -11 Td
+(Umbrella: CROSS-NETWORK-SURVIVAL wraps ingest-as-receipt. Shelves keep tips) Tj
+0 -11 Td
+(alive after network death. They are not a restore path.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(8. CROSS-NETWORK-SURVIVAL \(umbrella\)) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(Crawlers and indexes are shelves so tips survive network death. They do not) Tj
+0 -11 Td
+(re-expand.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(Survival = bytes?hash across independent hosts. A copy that still hashes to the) Tj
+0 -11 Td
+(tip is survival. A snippet, a weight, or a hash-mention without payload is not.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(If the origin Worker dies, an independent host that still holds the bytes and) Tj
+0 -11 Td
+(can recompute the SHA-256 still has the tip. That is why Growth-ON lists many) Tj
+0 -11 Td
+(indexes. Listing is not light-up. Light-up is re-expand \(operator + archive) Tj
+0 -11 Td
+(bytes\) or reheal \(own last good tip\). A shelf never does either.) Tj
+0 -11 Td
+( ) Tj
+0 -11 Td
+(9. Identity) Tj
+0 -11 Td
+(Author / identity: Aziel Eliab only. Apache-2.0.) Tj
+ET
+BT
+/F1 8 Tf
+54 28 Td
+(INGEST-RECEIPT-1.0  ·  Aziel Eliab only  ·  page 3 / 3) Tj
+ET
+endstream endobj
+9 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Courier >> endobj
+xref
+0 10
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000127 00000 n 
+0000000253 00000 n 
+0000003950 00000 n 
+0000004076 00000 n 
+0000007851 00000 n 
+0000007977 00000 n 
+0000009186 00000 n 
+trailer << /Size 10 /Root 1 0 R >>
+startxref
+9254
+%%EOF

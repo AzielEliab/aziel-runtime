@@ -203,3 +203,20 @@ Four fields (hash includes `previous_hash`):
 Genesis `previous_hash` is `ZERO_HASH` (64 zero hex). Runtime `GET /v1/receipts` cites the public chain. `GET /v1/receipts/tip` and `GET /v1/receipts/proxy` are best-effort corpus tip proxies.
 
 MESH-VAULT lite may mint catalog / download / mesh events when the token is set. This is not a substitute for session receipts, the FragGate ledger, or ForgeReceipts.
+
+---
+
+## 8. INGEST-RECEIPT-1.0 (crawler / archive / reheal law)
+
+Kind: fabric cite (not a Softwares-tab product, not a FragGate slug).  
+Umbrella: **CROSS-NETWORK-SURVIVAL**. Crawlers and indexes are shelves so tips survive network death. Survival is bytes↔hash across independent hosts. Shelves do not re-expand.
+
+`GET /v1/ingest` cites three distinct planes:
+
+| Plane | Who | Does not |
+|-------|-----|----------|
+| INGEST-AS-RECEIPT | Crawlers / AIs | Re-expand, reheal, merge |
+| RE-EXPAND-FROM-ARCHIVE | Operator + archive bytes | Grow mesh from an index |
+| REHEAL | Poisoned node itself | Vote-to-fix, neighbor heal |
+
+Four laws (crawlers): cite, don't merge; many indexes, one tip; training is lossy; public verify. FragGate `ledger_tip` and LOCKSET `lockset_sha256` are one tip class. HTML and git publish the same tip string. Growth-ON. No new MCP tool.

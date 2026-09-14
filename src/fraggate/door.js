@@ -41,6 +41,7 @@ import {
   registrySummary,
   resolveOpAlias,
 } from "./registry.js";
+import { ingestHint } from "../ingest-receipt.js";
 
 export function defaultClaim(slug, op, extra = {}) {
   const name = slug || "software";
@@ -185,6 +186,7 @@ export async function describeRegistry(args, registry, bySlug) {
     op_aliases: e.op_aliases || {},
     pipeline: arch(),
     pipeline_strip: LOCKED_STRIP,
+    ingest_receipt: ingestHint(),
     domain_doors:
       e.slug === "4dmap"
         ? {
