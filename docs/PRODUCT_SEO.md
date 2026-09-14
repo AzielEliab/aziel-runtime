@@ -283,3 +283,5 @@ README websites table lists official site, Runtime hub `@id` parent, FragGate ke
 ## llms.txt / cite.json (docs, not handlers)
 
 Worker `/llms.txt` and `/cite.json` are generated in `src/seo.js`. This repo's GitHub-side docs must **restate** the same abstract, entity `@id`s, full AI client set, and crawler Allow list — they must not invent a second identity or a weaker aggregator lead. See [CITE.md](CITE.md).
+
+**INGEST-RECEIPT-1.0** (CROSS-NETWORK-SURVIVAL umbrella): crawlers/AIs ingest as a receipt. Crawlers and indexes are shelves so tips survive network death. Survival is bytes↔hash across independent hosts. They do not re-expand. Surfaces: homepage, `/llms.txt`, `/cite.json` `ingest_receipt`, OpenAPI `/v1/ingest`, MCP initialize + FragGate describe. Growth-ON. Not a Softwares-tab product.

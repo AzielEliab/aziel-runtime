@@ -51,6 +51,7 @@ const SKIP_MINT = new Set([
   "/v1/stats",
   "/v1/stats-rollups",
   "/v1/qns",
+  "/v1/ingest",
   "/v1/azpipe/arch",
   "/v1/azpipe",
 ]);
@@ -124,7 +125,7 @@ export function shouldMintActReceipt(method, pathname) {
   if (verb === "OPTIONS" || verb === "HEAD") return false;
   const path = normalizeReceiptPath(pathname);
   if (isReceiptReadPath(path)) return false;
-  if (SKIP_MINT.has(path)) return false;
+  if (SKIP_MINT.has(path) || path === "/v1/ingest" || path.startsWith("/v1/ingest/")) return false;
   if (/\.(png|jpe?g|gif|webp|svg|ico|css|js|map|woff2?|ttf)$/i.test(path)) return false;
   return classifyActSurface(verb, path) != null;
 }

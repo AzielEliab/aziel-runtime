@@ -32,6 +32,7 @@ import {
 } from "./production.js";
 import { citeCompatibleFields, skillCompatibleSection } from "./ai-clients.js";
 import { auditsSkillMarkdown, designsSkillMarkdown } from "./seo.js";
+import { ingestSkillText } from "./ingest-receipt.js";
 import { LOCKED_STRIP } from "./azpipe.js";
 
 export const RUNTIME_VERSION = "2.0.0-rc1";
@@ -39,7 +40,7 @@ export const RUNTIME_ROLE = "engine-runtime";
 export const RUNTIME_LAYER = "catalog+pull+proxy+session+in-process-engines+fraggate";
 
 export const VERSION_HISTORY = [
-  { version: "2.0.0-rc1", status: "current", note: "Certification-point freeze (not a feature dump). Public contract frozen under docs/2.0/: FragGate list→describe→call, MCP tool names, OpenAPI parity, health/version, engine_digest, live/stub/proxy-fallback. Compatibility policy, receipt schema, refusal contract, breaking-change policy. Clean-room reproducibility + external adversarial pack for independent reviewers (self-test ≠ third-party lab). Gate 4 includes Glama TDQS 5.0 tools/list metadata (descriptions/params/annotations; no rename; no behavior change) plus existing glama.json/GitHub topics. Read-only QNM suite-presence is ON by default; POST /v1/mesh/disable refuses MESH-DISABLE-REFUSED. Additive ACT-RECEIPT-1.0 fabric: after FragGate list/call, POST /mcp, and significant POST /v1/*, POST corpus /v1/receipts/append with x-aziel-receipt when RECEIPT_APPEND_TOKEN is set (fail-open; public chain on corpus /receipts; not a Softwares-tab product). Remain-Off-by-Design items stay off. FragGate remains THE single door. New engines deferred to 2.1+. Crawler abstract stays lead copy. Identity Aziel Eliab only." },
+  { version: "2.0.0-rc1", status: "current", note: "Certification-point freeze (not a feature dump). Public contract frozen under docs/2.0/: FragGate list→describe→call, MCP tool names, OpenAPI parity, health/version, engine_digest, live/stub/proxy-fallback. Compatibility policy, receipt schema, refusal contract, breaking-change policy. Clean-room reproducibility + external adversarial pack for independent reviewers (self-test ≠ third-party lab). Gate 4 includes Glama TDQS 5.0 tools/list metadata (descriptions/params/annotations; no rename; no behavior change) plus existing glama.json/GitHub topics. Read-only QNM suite-presence is ON by default; POST /v1/mesh/disable refuses MESH-DISABLE-REFUSED. Additive ACT-RECEIPT-1.0 fabric: after FragGate list/call, POST /mcp, and significant POST /v1/*, POST corpus /v1/receipts/append with x-aziel-receipt when RECEIPT_APPEND_TOKEN is set (fail-open; public chain on corpus /receipts; not a Softwares-tab product). Additive INGEST-RECEIPT-1.0 fabric under CROSS-NETWORK-SURVIVAL: crawlers/indexes are shelves so tips survive network death; survival is bytes↔hash across independent hosts; they do not re-expand; GET /v1/ingest cites four laws + RE-EXPAND-FROM-ARCHIVE + REHEAL (no vote-to-fix); Growth-ON; FragGate ledger_tip and LOCKSET lockset_sha256 share one tip string on HTML+git; not a Softwares-tab product. Remain-Off-by-Design items stay off. FragGate remains THE single door. New engines deferred to 2.1+. Crawler abstract stays lead copy. Identity Aziel Eliab only." },
   { version: "1.9.3", status: "superseded", note: "Close remaining AZRT-1.9-GAPS-CLOSE items: isolate-native AZ-OS session_open/status/close (prefab ethics VFS; exec/shell/lattice stay refuse); isolate-safe Ask Jeeves over sample MASTER / CORPUS_D1 records (refuse secrets/triad-tamper; Jesus-image-only on devil-not-real; no AZAI blend); binding-gated media-run when env.AI is present (hash-chained Whisper/vision; no fake OCR). Independent validation path: docs/audit/INDEPENDENT-VALIDATION.md + Actions validate.yml attestation (not a third-party lab). Remain-Off-by-Design items stay off. Crawler abstract stays lead copy. Identity Aziel Eliab only." },
   { version: "1.9.2", status: "superseded", note: "Bind Workers Browser Rendering (BROWSER) and live D1 MASTER (CORPUS_D1 → aziel-digital-library). searchD1 queries production records (not master). Workers AI (AI) bound for Whisper/OCR honesty. Sample MASTER remains the unbound fallback. Chromium product UI is not claimed; Tor/phoenix stay refuse. Remain-Off-by-Design items stay off. Crawler abstract stays lead copy. Identity Aziel Eliab only." },
   { version: "1.9.1", status: "superseded", note: "AZRT-1.9-GAPS-CLOSE: convert isolate-safe corpus review/score/verify-backfill/verify-geo/document-chain/import_export to in-process; Whisper/OCR stay Workers-AI-gated (native only when AI is bound). Named proxy inventory shrinks (jeeves/transcribe/ocr/media-run remain). AZBrowser sandbox_status/sandbox_render report Workers Browser Rendering honestly — Chromium stays DEFERRED unless bound; Tor/phoenix refuse. AZMail transport_status: public MTA stays NOT IMPLEMENTED; no public send. Wave 2–3 health/skill/doctor richness. Adversarial repo self-check + GitHub Actions npm test on PR/main. Consumer MCP/OpenAPI examples. Project health engine_digest onto each /v1/software card. Live Nodes live_nodes counts Softwares *-worker only (mesh_* ephemeral split). Catalog EmbryoLock 1.2.0 matches product Worker health. Catalog git_sha from deploy --var or stamped build-meta. Flutter mobile/ remains not vendored. Remain-Off-by-Design items stay off. Crawler abstract stays lead copy. Identity Aziel Eliab only." },
@@ -209,7 +210,7 @@ FragGate kernel: https://github.com/AzielEliab/fraggate (FG-0.1)
 
 Named live modules still on the thin tools/list: \`decisiongate_check\`, \`library_lookup\` (read-only corpus), suite \`mesh_*\` (QNM-BUILD-1.0 rollup; read-only suite-presence ON by default; not a login mesh), plus fabric \`chainlock_*\` (CL-WP-0.4 / LS-WP-0.1 — not Softwares-tab) and \`memory_*\` (AKM-TRIAD-1.0 — not Softwares-tab).
 
-**LIVE fabric** (runtime, not Softwares-tab products): AZPIPE (\`AP-WP-0.2\`, magic FLD3) wraps \`fraggate_call\` so admitted payloads never present raw inbound bytes. **Locked hop order (1.7.0 / MASTER-33):** Human → AZInterface → PUBLIC/UI/AGENT/API → FragGate → Lamb Lens → SweepGate → Sentinel → Provenance/Input Packet → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → optional ASE → RoseClock (forward-only; StaticClock/VECTOR as needed) → TemporalLock → ChainLock-OUT → ForgeReceipts → Return. FragGate is THE single door. Lamb Lens is fabric ethics after FragGate (not Softwares-tab, not a second door). Domains are isolation labels, not doors. RoseClock sequence never decreases. FoldLock fld3-wire is internal to AZPIPE. LambGate is not a hop. Illegal reorder is refused. SweepGate (\`SG-WP-0.1\`) airlocks poison / malware-class / block-keys, and isolates off-origin only when inbound and untrusted; ChainLock (\`CL-WP-0.4\`) append-only stamps (vault \`vault/chains/<name>.jsonl\` on CLI; Worker KV/memory) — ChainLock-IN inbound, ChainLock-OUT outbound receipts; LOCKSET (\`LS-WP-0.1\`) fail-closed seal citing \`https://godlock.uk\` (runtime does not write the public ledger); packed catalog (\`RL-WP-0.1-runtime\`) is a single-key read with edge Cache-Control; **QNS-CD-1.0** is the Quantum Node Signal packet-transfer coding design (photon QNS1 1.3 on local \`qnsd\` in https://github.com/AzielEliab/qnm-node — companion to QNM-BUILD-1.0 / AIH-WP-1.3). \`GET /v1/qns\` cites only; the public Worker does not proxy local via emit and is not a wipe/control plane. qnsd uses the same AZPIPE / SweepGate / APG / ChainLock laws locally. Catalog GET / HTML stay full (200) for humans and SEO; soft caps apply only to expensive fan-out. Donation stays static (no KV). \`GET /v1/mesh\` never enables. Do **not** add QNS, AKM-TRIAD, or ACT-RECEIPT as Softwares-tab product slugs. Adaptive memory is LIVE fabric behind FragGate (\`POST /v1/memory/*\`, MCP \`memory_*\`, FragGate \`slug=memory\`). Bayesian posterior is calibrated belief, not truth. **ACT-RECEIPT-1.0** is the public four-field action-receipt mesh copy. The chain lives on \`https://www.azielcorpuslibrary.net/receipts\`. This runtime appends after FragGate list/call, POST /mcp, and significant POST /v1/* when \`RECEIPT_APPEND_TOKEN\` is set (header \`x-aziel-receipt\`). Missing token is fail-open. \`GET /v1/receipts\` cites; \`GET /v1/receipts/tip\` proxies the corpus tip. No user/IP/geo. MESH-VAULT lite may mint catalog/download/mesh events.
+**LIVE fabric** (runtime, not Softwares-tab products): AZPIPE (\`AP-WP-0.2\`, magic FLD3) wraps \`fraggate_call\` so admitted payloads never present raw inbound bytes. **Locked hop order (1.7.0 / MASTER-33):** Human → AZInterface → PUBLIC/UI/AGENT/API → FragGate → Lamb Lens → SweepGate → Sentinel → Provenance/Input Packet → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → optional ASE → RoseClock (forward-only; StaticClock/VECTOR as needed) → TemporalLock → ChainLock-OUT → ForgeReceipts → Return. FragGate is THE single door. Lamb Lens is fabric ethics after FragGate (not Softwares-tab, not a second door). Domains are isolation labels, not doors. RoseClock sequence never decreases. FoldLock fld3-wire is internal to AZPIPE. LambGate is not a hop. Illegal reorder is refused. SweepGate (\`SG-WP-0.1\`) airlocks poison / malware-class / block-keys, and isolates off-origin only when inbound and untrusted; ChainLock (\`CL-WP-0.4\`) append-only stamps (vault \`vault/chains/<name>.jsonl\` on CLI; Worker KV/memory) — ChainLock-IN inbound, ChainLock-OUT outbound receipts; LOCKSET (\`LS-WP-0.1\`) fail-closed seal citing \`https://godlock.uk\` (runtime does not write the public ledger); packed catalog (\`RL-WP-0.1-runtime\`) is a single-key read with edge Cache-Control; **QNS-CD-1.0** is the Quantum Node Signal packet-transfer coding design (photon QNS1 1.3 on local \`qnsd\` in https://github.com/AzielEliab/qnm-node — companion to QNM-BUILD-1.0 / AIH-WP-1.3). \`GET /v1/qns\` cites only; the public Worker does not proxy local via emit and is not a wipe/control plane. qnsd uses the same AZPIPE / SweepGate / APG / ChainLock laws locally. Catalog GET / HTML stay full (200) for humans and SEO; soft caps apply only to expensive fan-out. Donation stays static (no KV). \`GET /v1/mesh\` never enables. Do **not** add QNS, AKM-TRIAD, ACT-RECEIPT, or INGEST-RECEIPT as Softwares-tab product slugs. Adaptive memory is LIVE fabric behind FragGate (\`POST /v1/memory/*\`, MCP \`memory_*\`, FragGate \`slug=memory\`). Bayesian posterior is calibrated belief, not truth. **ACT-RECEIPT-1.0** is the public four-field action-receipt mesh copy. The chain lives on \`https://www.azielcorpuslibrary.net/receipts\`. This runtime appends after FragGate list/call, POST /mcp, and significant POST /v1/* when \`RECEIPT_APPEND_TOKEN\` is set (header \`x-aziel-receipt\`). Missing token is fail-open. \`GET /v1/receipts\` cites; \`GET /v1/receipts/tip\` proxies the corpus tip. No user/IP/geo. MESH-VAULT lite may mint catalog/download/mesh events. **INGEST-RECEIPT-1.0** sits under **CROSS-NETWORK-SURVIVAL**: crawlers and indexes are shelves so tips survive network death. Survival is bytes↔hash across independent hosts. Shelves do not re-expand. Four laws: cite, don't merge; many indexes, one tip; training is lossy; public verify. Re-expand restores archive bytes. Reheal is own last good tip or phoenix-WAIT — forbid vote-to-fix. Growth-ON. \`GET /v1/ingest\` cites. FragGate \`ledger_tip\` and LOCKSET \`lockset_sha256\` share one tip string on HTML+git.
 
 Do **not** walk the user through \`runtime_session_open\` → policy → exec → receipt → close. Those tools, \`runtime_run\`, raw \`*_health\`, and \`runtime_manifest\` are **advanced/internal**.
 
@@ -376,6 +377,7 @@ ${skillCompatibleSection(base)}
 | POST | \`/v1/mesh/broadcast\` | SHA-256 hash receipt only. Never a publish path. |
 | GET | \`/v1/qns\` | QNS-CD-1.0 cite (photon QNS1 1.3). Local \`qnsd\` in qnm-node. Never a public via proxy. |
 | GET | \`/v1/receipts\` | ACT-RECEIPT-1.0 cite. Public chain lives on corpus \`/receipts\`. Tip/proxy at \`/v1/receipts/tip\`. Fail-open append when token set. Not a Softwares-tab product. |
+| GET | \`/v1/ingest\` | INGEST-RECEIPT-1.0 cite under CROSS-NETWORK-SURVIVAL. Crawlers/indexes are shelves so tips survive network death. Survival is bytes↔hash across independent hosts. They do not re-expand. Four laws + RE-EXPAND-FROM-ARCHIVE + REHEAL (no vote-to-fix). Growth-ON. Not a Softwares-tab product. |
 | GET/POST | \`/v1/azpipe/arch\` | MASTER-33 AZPIPE cite (same \`arch()\` payload as FragGate \`pipeline\`). Not a Softwares-tab door. |
 | POST | \`/v1/memory/observe\` | AKM-TRIAD-1.0 observe (behind FragGate). |
 | POST | \`/v1/memory/resolve\` | Append a graded/UNKNOWN resolution. |
@@ -435,6 +437,8 @@ GitHub: https://github.com/AzielEliab/aziel-runtime
 
 ${designsSkillMarkdown().trimEnd()}
 
+${ingestSkillText().trimEnd()}
+
 ${auditsSkillMarkdown().trimEnd()}
 `;
 }
@@ -475,7 +479,7 @@ export function runtimeManifest(origin, products, extra = {}) {
     kernel: FRAGGATE_GITHUB,
     extras: catalogExtraCards(base),
     extras_note:
-      "Kernel / door cards for Software hubs. extras[] is not PRODUCTS — FragGate is the door; Quantum Node Mesh (QNM-BUILD-1.0) is the suite rollup (not a login mesh; not a Softwares-tab product). Human UI + counted download is the separate FragGate Worker app (fraggate-download-tracker; not nested in AZBrowser). AZPIPE / SweepGate / ChainLock / LOCKSET / packed catalog / QNS-CD-1.0 / ACT-RECEIPT-1.0 are LIVE fabric modules, not Softwares-tab products. QNS implementation is local qnsd (Worker cites only). ACT receipts append to corpus /receipts when RECEIPT_APPEND_TOKEN is set.",
+      "Kernel / door cards for Software hubs. extras[] is not PRODUCTS — FragGate is the door; Quantum Node Mesh (QNM-BUILD-1.0) is the suite rollup (not a login mesh; not a Softwares-tab product). Human UI + counted download is the separate FragGate Worker app (fraggate-download-tracker; not nested in AZBrowser). AZPIPE / SweepGate / ChainLock / LOCKSET / packed catalog / QNS-CD-1.0 / ACT-RECEIPT-1.0 / INGEST-RECEIPT-1.0 are LIVE fabric modules, not Softwares-tab products. QNS implementation is local qnsd (Worker cites only). ACT receipts append to corpus /receipts when RECEIPT_APPEND_TOKEN is set. INGEST-RECEIPT-1.0 is CROSS-NETWORK-SURVIVAL (crawlers/indexes are shelves; survival is bytes↔hash across independent hosts; they do not re-expand).",
     fabric: {
       azpipe: "AZPIPE-0.2",
       sweepgate: "SG-0.1",
@@ -489,6 +493,11 @@ export function runtimeManifest(origin, products, extra = {}) {
       act_receipt: "ACT-RECEIPT-1.0",
       act_receipt_public_chain: "https://www.azielcorpuslibrary.net/receipts",
       act_receipt_path: "/v1/receipts",
+      ingest_receipt: "INGEST-RECEIPT-1.0",
+      ingest_path: "/v1/ingest",
+      ingest_growth: "ON",
+      ingest_umbrella: "CROSS-NETWORK-SURVIVAL",
+      ingest_survival: "bytes↔hash across independent hosts",
       pipeline: "MASTER-33",
       pipeline_strip: LOCKED_STRIP,
       azpipe_arch: "/v1/azpipe/arch",
@@ -570,6 +579,10 @@ export function runtimeManifest(origin, products, extra = {}) {
       qns: base + "/v1/qns",
       receipts: base + "/v1/receipts",
       receipts_tip: base + "/v1/receipts/tip",
+      ingest: base + "/v1/ingest",
+      ingest_survival: base + "/v1/ingest/survival",
+      ingest_reexpand: base + "/v1/ingest/reexpand",
+      ingest_reheal: base + "/v1/ingest/reheal",
       azpipe_arch: base + "/v1/azpipe/arch",
       memory_observe: base + "/v1/memory/observe",
       memory_resolve: base + "/v1/memory/resolve",
@@ -1525,6 +1538,54 @@ export function runtimeStaticPaths() {
         summary: "Alias of GET /v1/receipts/tip.",
         tags: ["runtime"],
         responses: { "200": { description: "Corpus tip proxy or cite-only fallback" } },
+      },
+    },
+    "/v1/ingest": {
+      get: {
+        operationId: "ingest_receipt_cite",
+        summary:
+          "INGEST-RECEIPT-1.0 cite under CROSS-NETWORK-SURVIVAL. Crawlers/indexes are shelves so tips survive network death. Survival is bytes↔hash across independent hosts. They do not re-expand. Four laws (cite, don't merge; many indexes, one tip; training is lossy; public verify) plus RE-EXPAND-FROM-ARCHIVE and REHEAL (no vote-to-fix). Growth-ON. Not a Softwares-tab product.",
+        tags: ["runtime"],
+        responses: { "200": { description: "INGEST-RECEIPT-1.0 cite JSON (four laws, re-expand, reheal, CROSS-NETWORK-SURVIVAL)" } },
+      },
+      head: {
+        operationId: "ingest_receipt_cite_head",
+        summary: "HEAD of /v1/ingest.",
+        tags: ["runtime"],
+        responses: { "200": { description: "headers only" } },
+      },
+      post: {
+        operationId: "ingest_receipt_cite_post",
+        summary: "Refused. GET /v1/ingest cites only. Crawlers do not re-expand. Vote-to-fix is forbidden.",
+        tags: ["runtime"],
+        responses: { "403": { description: "INGEST-NO-EXEC or INGEST-CITE-ONLY" } },
+      },
+    },
+    "/v1/ingest/survival": {
+      get: {
+        operationId: "ingest_receipt_survival",
+        summary:
+          "CROSS-NETWORK-SURVIVAL focus. Crawlers/indexes are shelves so tips survive network death. Survival is bytes↔hash across independent hosts. They do not re-expand.",
+        tags: ["runtime"],
+        responses: { "200": { description: "CROSS-NETWORK-SURVIVAL cite JSON" } },
+      },
+    },
+    "/v1/ingest/reexpand": {
+      get: {
+        operationId: "ingest_receipt_reexpand",
+        summary:
+          "RE-EXPAND-FROM-ARCHIVE cite. Original receipts + prev-hash verify + new local node on tip. Crawlers do not re-expand.",
+        tags: ["runtime"],
+        responses: { "200": { description: "RE-EXPAND-FROM-ARCHIVE cite JSON" } },
+      },
+    },
+    "/v1/ingest/reheal": {
+      get: {
+        operationId: "ingest_receipt_reheal",
+        summary:
+          "REHEAL cite. Poisoned node does not heal by listening to neighbors. Own last good tip + verified trusted pull or phoenix-WAIT. Allowed chatter: live/locked/isolated/tip-hash. Forbid vote-to-fix.",
+        tags: ["runtime"],
+        responses: { "200": { description: "REHEAL cite JSON" } },
       },
     },
     "/v1/azpipe/arch": {
