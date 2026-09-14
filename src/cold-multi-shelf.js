@@ -11,6 +11,17 @@
 import { AUTHOR_ID, AUTHOR_NAME, LIBRARY_ORIGIN } from "./seo.js";
 import { CROSS_NETWORK_SURVIVAL, SURVIVAL_TIP } from "./cross-network-survival.js";
 import { NO_LIE_SPEC } from "./no-lie.js";
+import {
+  ATTACK_SIM_POINTER,
+  REDLINE_DOCS,
+  REDLINE_SPEC,
+  attackSimRefusePointer,
+} from "./redline.js";
+import {
+  CAP7_DESIGN_OF,
+  CAP7_RESOLVES_TO_HUB,
+  SEMANTIC_BRIDGE_SPEC,
+} from "./semantic-bridge.js";
 
 export const COLD_MULTI_SHELF = "COLD-MULTI-SHELF-1.0";
 export const COLD_MULTI_SHELF_AUTHOR = AUTHOR_NAME;
@@ -646,6 +657,28 @@ export function shelfRegistryDoc() {
   };
 }
 
+export function shelvesCap7Cite() {
+  return {
+    spec: SEMANTIC_BRIDGE_SPEC,
+    design_of: CAP7_DESIGN_OF,
+    resolves_to_hub: CAP7_RESOLVES_TO_HUB,
+  };
+}
+
+export function shelvesRedlineCite(origin) {
+  const base = String(origin || "").replace(/\/$/, "");
+  return {
+    spec: REDLINE_SPEC,
+    path: REDLINE_DOCS,
+    cite: base ? `${base}/cite.json` : "/cite.json",
+    field: "redline",
+    software_tab: false,
+    fraggate_slug: false,
+    cap7: shelvesCap7Cite(),
+    attack_sims: attackSimRefusePointer(),
+  };
+}
+
 export function runtimeTunnelNote(origin) {
   const base = String(origin || "").replace(/\/$/, "");
   return {
@@ -692,6 +725,9 @@ export function shelvesDoc(origin) {
     planes: registry.planes,
     verify: registry.verify,
     runtime: runtimeTunnelNote(base),
+    redline: shelvesRedlineCite(base),
+    cap7: shelvesCap7Cite(),
+    attack_sims: attackSimRefusePointer(),
     visible_1520: false,
     growth_on: true,
     software_tab: false,
@@ -762,6 +798,9 @@ export function shelvesCiteField(origin) {
       refuse: REFUSE.OPERATOR_ATTEST,
       attest: USB_ATTEST,
     },
+    redline: shelvesRedlineCite(base),
+    cap7: shelvesCap7Cite(),
+    attack_sims: attackSimRefusePointer(),
     growth_on: true,
     visible_1520: false,
     software_tab: false,
@@ -788,6 +827,8 @@ export function shelvesLlmsBlock(origin) {
     `Plane B SLOT: Codeberg ${CODEBERG_TIP_PACK.url} hash-verify PASS pack ${CODEBERG_TIP_PACK.pack_sha256} still SLOT. archive.org PASS ${ARCHIVE_ORG_TIP_PACK.url} pack ${ARCHIVE_ORG_TIP_PACK.pack_sha256} still SLOT. Framagit URL null (third ALL-TARGETS). GitFlic refused CNS-GITFLIC-EMAIL. GitLab refused CNS-GITLAB-CF-LOOP. LIVE only after all three (CNS-PLANE-B-ALL-TARGETS). Zenodo refused CNS-ZENODO-IP-BAN.`,
     "Plane C USB SLOT until CNS-OPERATOR-ATTEST.",
     "aziel-runtime Worker is the same Plane A tunnel — not a sixth surface and not an independent shelf.",
+    `REDLINE cite: ${REDLINE_SPEC} (${REDLINE_DOCS}). Cap-7 design_of: hub_designs. resolves_to_hub: false.`,
+    `Attack-sim refuse pointer: ${ATTACK_SIM_POINTER}.`,
     "Cap-7 names inherit hub designs only. resolves_to_hub: false. public_icann: false. No fifth product.",
     "Growth-ON crawlers Allow. Dual-surface MCP/OpenAPI. Full AI client set.",
     "",
@@ -806,7 +847,7 @@ Corpus SoT: [${CORPUS_SHELVES}](${CORPUS_SHELVES}). Runtime cite: \`GET ${cite.s
 - **Plane B** SLOT — Codeberg ${CODEBERG_TIP_PACK.url} hash-verify PASS (pack \`${CODEBERG_TIP_PACK.pack_sha256}\`) still SLOT. archive.org PASS ${ARCHIVE_ORG_TIP_PACK.url} (pack \`${ARCHIVE_ORG_TIP_PACK.pack_sha256}\`) still SLOT. Framagit URL **null** (third ALL-TARGETS). GitFlic refused \`CNS-GITFLIC-EMAIL\`. GitLab refused \`CNS-GITLAB-CF-LOOP\`. LIVE only after all three (\`CNS-PLANE-B-ALL-TARGETS\`). Zenodo refused \`CNS-ZENODO-IP-BAN\`. \`doi\` null — never invent.
 - **Plane C** USB SLOT until \`CNS-OPERATOR-ATTEST\`.
 
-This Worker is the same Plane A tunnel. Not a sixth surface. Not a Softwares-tab product. No new MCP tool. No visible 15:20. Cap-7 stays \`resolves_to_hub: false\` / \`public_icann: false\`. Growth-ON.
+This Worker is the same Plane A tunnel. Not a sixth surface. Not a Softwares-tab product. No new MCP tool. No visible 15:20. Linked fields: \`redline.spec\` ${REDLINE_SPEC}; Cap-7 \`design_of: hub_designs\` + \`resolves_to_hub: false\`; attack-sim refuse pointer \`${ATTACK_SIM_POINTER}\`. Cap-7 stays \`resolves_to_hub: false\` / \`public_icann: false\`. Growth-ON.
 `;
 }
 
