@@ -16,6 +16,7 @@ Inventory of controls that shrink the surface. Not a guarantee. Not a new produc
 - Thin MCP tools/list. Proxy /p/{slug}/{op} is not exec.
 - runtime_run is internal. Empty User-Agent 403s on Workers.
 - GET /v1/mesh never enables. No Node Gate on public faces.
+- NO-LIE / NO-REWRITE: receipts that still hash; no rewrite key; never lie to survive. See NO-LIE-NO-REWRITE-1.0 (companion under CROSS-NETWORK-SURVIVAL-1.0).
 - Refuse is written to the ledger.
 
 2. Credentials, identity, vault — live

@@ -83,7 +83,9 @@ Modes: **OFF** (GET/status never arms), **REFUSE** (named stub / halluc / lamb /
 
 ### Mesh (`src/mesh.js`)
 
-`MESH-OK`, `MESH-NEED-BEARER`, `MESH-BAD-BEARER`, `MESH-ENABLE-RATE`, `MESH-DISABLE-REFUSED`, `MESH-OFF`, `MESH-BAD-INPUT`, `MESH-UNKNOWN-NODE`, `MESH-NO-PUBLISH`, `MESH-NO-BYTES`, `MESH-EQUIVOCATION`, `MESH-NO-INDEX`, `MESH-NO-NEIGHBOR-HEAL`, `MESH-NO-LIVE-SHELF`, `MESH-POISON`, `MESH-STUB`, `MESH-UNKNOWN-OP`, `MESH-METHOD`, `MESH-NOT-FOUND`
+`MESH-OK`, `MESH-NEED-BEARER`, `MESH-BAD-BEARER`, `MESH-ENABLE-RATE`, `MESH-DISABLE-REFUSED`, `MESH-OFF`, `MESH-BAD-INPUT`, `MESH-UNKNOWN-NODE`, `MESH-NO-PUBLISH`, `MESH-NO-BYTES`, `MESH-EQUIVOCATION`, `MESH-NO-INDEX`, `MESH-NO-NEIGHBOR-HEAL`, `MESH-NO-LIVE-SHELF`, `MESH-POISON`, `MESH-STUB`, `MESH-UNKNOWN-OP`, `MESH-METHOD`, `MESH-NOT-FOUND`, `MESH-NO-REWRITE`, `MESH-NO-LIE`
+
+`MESH-NO-REWRITE` / `MESH-NO-LIE` refuse rewrite-key and lie-to-survive verbs. Receipts that still hash. Copies not all on one tunnel. The network is never allowed to lie — even to self-preserve. Law paper: `docs/designs/NO-LIE-NO-REWRITE-1.0.md`. Does not replace the CROSS-NETWORK-SURVIVAL-1.0 machine tip.
 
 `POST /v1/mesh/disable` / suite `mesh_disable` return **`MESH-DISABLE-REFUSED`**. Read-only suite-presence stays ON. Library host overlay may return **409** `library-default-off` instead of Worker `MESH-NEED-BEARER`. That overlay is host-side. GET never enables extra radios.
 
