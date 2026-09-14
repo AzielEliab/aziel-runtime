@@ -1,0 +1,230 @@
+/**
+ * COLD-MULTI-SHELF-1.0: runtime cite matches corpus#96 /shelves honesty.
+ * Author: Aziel Eliab only.
+ */
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { SUITE_DESIGNS } from "../src/seo.js";
+import { PUBLIC_MCP_TOOLS } from "../src/fraggate/codes.js";
+import {
+  COLD_MULTI_SHELF,
+  COLD_MULTI_SHELF_DOCS,
+  COLD_MULTI_SHELF_RULE,
+  CODEBERG_TIP_PACK,
+  CORPUS_SHELVES,
+  FAMILY_BLAST_RADII,
+  LOCKSET_TIP,
+  MIN_INDEPENDENT_SHELVES,
+  PAPER_DEPOSITS,
+  PLANE_B_WORKING_TARGETS,
+  PUBLISHED_SURFACE_IDS,
+  REFUSE,
+  SHELF_REGISTRY,
+  claimShelfLive,
+  independentLiveBlastRadii,
+  judgePlaneAMirrors,
+  judgePublishedSurfaces,
+  judgeZenodoTipReuse,
+  planeBLiveReady,
+  shelvesCiteField,
+  shelvesDoc,
+  isShelvesPath,
+} from "../src/cold-multi-shelf.js";
+
+const paper = readFileSync(new URL("../docs/designs/COLD-MULTI-SHELF-1.0.md", import.meta.url), "utf8");
+const survival = readFileSync(new URL("../docs/designs/CROSS-NETWORK-SURVIVAL-1.0.md", import.meta.url), "utf8");
+const nodeMesh = readFileSync(new URL("../docs/NODE_MESH.md", import.meta.url), "utf8");
+const citeDoc = readFileSync(new URL("../docs/CITE.md", import.meta.url), "utf8");
+const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
+
+assert.equal(COLD_MULTI_SHELF, "COLD-MULTI-SHELF-1.0");
+assert.equal(COLD_MULTI_SHELF_DOCS, "docs/designs/COLD-MULTI-SHELF-1.0.md");
+assert.match(paper, /^# COLD-MULTI-SHELF-1\.0/m);
+assert.match(paper, /Author: Aziel Eliab only/);
+assert.match(paper, /5 published surfaces/);
+assert.match(paper, /CNS-PLANE-B-ALL-TARGETS/);
+assert.match(paper, /CNS-ZENODO-IP-BAN/);
+assert.match(paper, /CNS-OPERATOR-ATTEST/);
+assert.match(paper, /b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37/);
+assert.match(paper, /codeberg\.org\/AzielEliab\/aziel-lockset-tip/);
+assert.match(paper, /doi.*null/i);
+assert.match(paper, /https:\/\/www\.azieleliab\.com\/#aziel/);
+assert.match(paper, /Not a Softwares-tab product/);
+assert.match(paper, /No new MCP tool/);
+assert.match(paper, /No visible 15:20/);
+assert.doesNotMatch(paper, /15:20 chrome visible|clock face on the homepage/i);
+assert.match(survival, /CROSS-NETWORK-SURVIVAL-1\.0/);
+assert.match(nodeMesh, /COLD-MULTI-SHELF-1\.0/);
+assert.match(citeDoc, /COLD-MULTI-SHELF-1\.0/);
+assert.match(readme, /COLD-MULTI-SHELF-1\.0/);
+
+assert.ok(
+  SUITE_DESIGNS.some((d) => d.id === "COLD-MULTI-SHELF-1.0" && d.kind === "law" && d.file === "COLD-MULTI-SHELF-1.0.md"),
+);
+assert.ok(!PUBLIC_MCP_TOOLS.includes("shelves"));
+assert.ok(!PUBLIC_MCP_TOOLS.includes("cold_multi_shelf"));
+
+assert.equal(PUBLISHED_SURFACE_IDS.length, 5);
+assert.deepEqual(FAMILY_BLAST_RADII.slice(), ["cloudflare", "github"]);
+assert.deepEqual(PLANE_B_WORKING_TARGETS.slice(), ["codeberg", "archive.org", "gitflic-ru"]);
+assert.equal(MIN_INDEPENDENT_SHELVES, 3);
+assert.equal(LOCKSET_TIP, "c831429befc221bd41caeb0a6d1c5361602db5684abab7af6d39714084b6b245");
+assert.equal(CODEBERG_TIP_PACK.hash_verify || "pass", "pass");
+assert.equal(CODEBERG_TIP_PACK.pack_sha256, "b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37");
+assert.equal(planeBLiveReady(), false);
+assert.deepEqual(independentLiveBlastRadii(), ["cf-github"]);
+assert.equal(PAPER_DEPOSITS.every((p) => p.reuse_as_plane_b === false && p.tip_verified === false), true);
+
+const four = judgePlaneAMirrors({ count_four_hosts_as_four_shelves: true });
+assert.equal(four.accept, false);
+assert.equal(four.reason, REFUSE.PLANE_A_ONE_TUNNEL);
+
+const five = judgePublishedSurfaces({ five_independent_shelves: true });
+assert.equal(five.accept, false);
+assert.equal(five.reason, REFUSE.SURFACES_NOT_INDEPENDENT);
+
+const sixth = judgePublishedSurfaces({ runtime_is_sixth_surface: true });
+assert.equal(sixth.accept, false);
+assert.equal(sixth.reason, REFUSE.RUNTIME_NOT_SHELF);
+
+const zenodo = judgeZenodoTipReuse({ doi: "10.5281/zenodo.21435707" });
+assert.equal(zenodo.accept, false);
+assert.equal(zenodo.reuse_as_plane_b, false);
+
+const invented = judgeZenodoTipReuse({ doi: "10.5281/zenodo.99999999" });
+assert.equal(invented.accept, false);
+assert.equal(invented.reason, REFUSE.FAKE_DEPOSIT);
+
+const codeberg = SHELF_REGISTRY.find((s) => s.id === "plane-b-codeberg-tip-pack");
+assert.equal(codeberg.status, "slot");
+assert.equal(codeberg.hash_verify, "pass");
+assert.equal(codeberg.live_ready, false);
+assert.equal(codeberg.doi, null);
+assert.equal(claimShelfLive(codeberg).live, false);
+assert.equal(claimShelfLive(codeberg).reason, REFUSE.PLANE_B_ALL_TARGETS);
+
+const archive = SHELF_REGISTRY.find((s) => s.id === "plane-b-archive-org-tip-pack");
+assert.equal(archive.url, null);
+const gitflic = SHELF_REGISTRY.find((s) => s.id === "plane-b-gitflic-ru-tip-pack");
+assert.equal(gitflic.url, null);
+const zenodoShelf = SHELF_REGISTRY.find((s) => s.id === "plane-b-zenodo-tip-pack");
+assert.equal(zenodoShelf.status, "refused");
+assert.equal(zenodoShelf.doi, null);
+const usb = SHELF_REGISTRY.find((s) => s.id === "plane-c-usb-airgap");
+assert.equal(usb.status, "slot");
+assert.equal(usb.refuse, REFUSE.OPERATOR_ATTEST);
+
+assert.equal(isShelvesPath("/shelves"), true);
+assert.equal(isShelvesPath("/v1/shelves"), true);
+assert.equal(isShelvesPath("/cold-copy"), true);
+assert.equal(isShelvesPath("/v1/mesh"), false);
+
+const handler = (await import("../src/index.js")).default.fetch;
+const origin = "https://aziel-runtime.example";
+const get = (path) => handler(new Request(origin + path), {});
+
+const shelvesRes = await get("/shelves");
+assert.equal(shelvesRes.status, 200);
+const shelves = await shelvesRes.json();
+assert.equal(shelves.spec, COLD_MULTI_SHELF);
+assert.equal(shelves.rule, COLD_MULTI_SHELF_RULE);
+assert.equal(shelves.lockset_doi ?? shelves.registry.lockset_doi, null);
+assert.equal(shelves.registry.lockset_doi, null);
+assert.equal(shelves.registry.published_surfaces, 5);
+assert.equal(shelves.registry.independent_live_count, 1);
+assert.equal(shelves.registry.independent_requirement_met, false);
+assert.equal(shelves.registry.growth_on, true);
+assert.equal(shelves.registry.visible_1520, false);
+assert.equal(shelves.registry.runtime_is_shelf, false);
+assert.equal(shelves.registry.planes.B.doi, null);
+assert.equal(shelves.registry.planes.B.live_ready, false);
+assert.equal(shelves.source_of_truth, CORPUS_SHELVES);
+assert.equal(shelves.visible_1520, false);
+assert.equal(shelves.person_id, "https://www.azieleliab.com/#aziel");
+assert.equal(shelves.runtime.published_surface, false);
+assert.equal(shelves.runtime.independent, false);
+
+const v1 = await (await get("/v1/shelves")).json();
+assert.equal(v1.spec, COLD_MULTI_SHELF);
+assert.deepEqual(v1.registry.live, shelves.registry.live);
+const alias = await (await get("/cold-copy")).json();
+assert.equal(alias.spec, COLD_MULTI_SHELF);
+const alias2 = await (await get("/v1/cold-copy")).json();
+assert.equal(alias2.spec, COLD_MULTI_SHELF);
+
+const head = await handler(new Request(origin + "/shelves", { method: "HEAD" }), {});
+assert.equal(head.status, 200);
+assert.equal(await head.text(), "");
+
+const post = await handler(new Request(origin + "/shelves", { method: "POST", body: "{}" }), {});
+assert.equal(post.status, 405);
+
+const cite = await (await get("/cite.json")).json();
+assert.equal(cite.shelves.spec, COLD_MULTI_SHELF);
+assert.equal(cite.shelves.lockset_doi, null);
+assert.equal(cite.shelves.doi, null);
+assert.equal(cite.shelves.independent_live_count, 1);
+assert.equal(cite.shelves.published_surfaces, 5);
+assert.equal(cite.shelves.runtime_is_shelf, false);
+assert.equal(cite.shelves.growth_on, true);
+assert.equal(cite.shelves.visible_1520, false);
+assert.equal(cite.shelves.person_id, "https://www.azieleliab.com/#aziel");
+assert.equal(cite.shelves.plane_b.codeberg.hash_verify, "pass");
+assert.equal(cite.shelves.plane_b.archive_org.url, null);
+assert.equal(cite.shelves.plane_b.gitflic_ru.url, null);
+assert.equal(cite.shelves.plane_b.zenodo.status, "refused");
+assert.equal(cite.semantic_bridge.resolves_to_hub, false);
+assert.equal(cite.semantic_bridge.public_icann, false);
+assert.equal(cite.semantic_bridge.fifth_product, false);
+assert.equal(cite.author_id, "https://www.azieleliab.com/#aziel");
+
+const catalog = await (await get("/v1/catalog.json")).json();
+assert.equal(catalog.shelves.spec, COLD_MULTI_SHELF);
+assert.equal(catalog.shelves.runtime_is_shelf, false);
+
+const software = await (await get("/v1/software")).json();
+assert.equal(software.shelves.spec, COLD_MULTI_SHELF);
+assert.equal(software.survival.spec, "CROSS-NETWORK-SURVIVAL-1.0");
+
+const runtime = await (await get("/v1/runtime.json")).json();
+assert.match(runtime.endpoints.shelves, /\/shelves$/);
+assert.match(runtime.endpoints.shelves_json, /\/v1\/shelves$/);
+assert.equal(runtime.fabric.cold_multi_shelf, COLD_MULTI_SHELF);
+assert.equal(runtime.fabric.lockset_doi, null);
+
+const llms = await (await get("/llms.txt")).text();
+const ai = await (await get("/ai.txt")).text();
+assert.equal(llms, ai);
+assert.match(llms, /COLD-MULTI-SHELF-1\.0/);
+assert.match(llms, /5 published surfaces/);
+assert.match(llms, /CNS-PLANE-B-ALL-TARGETS/);
+assert.match(llms, /CNS-ZENODO-IP-BAN/);
+assert.match(llms, /CNS-OPERATOR-ATTEST/);
+assert.match(llms, /b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37/);
+assert.match(llms, /www\.azieleliab\.com\/#aziel/);
+assert.match(llms, /resolves_to_hub: false/);
+assert.doesNotMatch(llms, /doi: 10\.5281\/zenodo\.\d+ \(lockset tip\)/);
+
+const skill = await (await get("/v1/skill")).text();
+assert.match(skill, /COLD-MULTI-SHELF-1\.0/);
+assert.match(skill, /CNS-ZENODO-IP-BAN/);
+assert.match(skill, /resolves_to_hub: false/);
+
+const sitemap = await (await get("/sitemap.xml")).text();
+assert.match(sitemap, /\/shelves/);
+assert.match(sitemap, /\/v1\/shelves/);
+assert.match(sitemap, /COLD-MULTI-SHELF-1\.0\.md/);
+
+const openapi = await (await get("/openapi.json")).json();
+assert.ok(openapi.paths["/shelves"]);
+assert.ok(openapi.paths["/v1/shelves"]);
+assert.match(openapi.paths["/shelves"].get.summary, /COLD-MULTI-SHELF/);
+assert.match(openapi.paths["/v1/shelves"].get.summary, /COLD-MULTI-SHELF/);
+assert.match(openapi.info.description, /COLD-MULTI-SHELF/);
+
+assert.equal(shelvesCiteField(origin).lockset_doi, null);
+assert.equal(shelvesDoc(origin).registry.planes.B.doi, null);
+
+console.log(
+  `ok ${COLD_MULTI_SHELF}: Plane A 5/2/1; Plane B Codeberg PASS still SLOT; Zenodo refused; doi null; Plane C SLOT; runtime not a shelf`,
+);

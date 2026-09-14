@@ -34,6 +34,7 @@ import { citeCompatibleFields, skillCompatibleSection } from "./ai-clients.js";
 import { auditsSkillMarkdown, designsSkillMarkdown } from "./seo.js";
 import { dualSurfaceAgentHowTo, semanticBridgeSkillMarkdown } from "./semantic-bridge.js";
 import { websiteDesignsField, websiteDesignsSkillMarkdown } from "./website-designs.js";
+import { COLD_MULTI_SHELF, shelvesSkillMarkdown } from "./cold-multi-shelf.js";
 import { LOCKED_STRIP } from "./azpipe.js";
 
 export const RUNTIME_VERSION = "2.0.0-rc1";
@@ -41,7 +42,7 @@ export const RUNTIME_ROLE = "engine-runtime";
 export const RUNTIME_LAYER = "catalog+pull+proxy+session+in-process-engines+fraggate";
 
 export const VERSION_HISTORY = [
-  { version: "2.0.0-rc1", status: "current", note: "Certification-point freeze (not a feature dump). Public contract frozen under docs/2.0/: FragGate list→describe→call, MCP tool names, OpenAPI parity, health/version, engine_digest, live/stub/proxy-fallback. Compatibility policy, receipt schema, refusal contract, breaking-change policy. Clean-room reproducibility + external adversarial pack for independent reviewers (self-test ≠ third-party lab). Gate 4 includes Glama TDQS 5.0 tools/list metadata (descriptions/params/annotations; no rename; no behavior change) plus existing glama.json/GitHub topics. Read-only QNM suite-presence is ON by default; POST /v1/mesh/disable refuses MESH-DISABLE-REFUSED. Additive ACT-RECEIPT-1.0 fabric: after FragGate list/call, POST /mcp, and significant POST /v1/*, POST corpus /v1/receipts/append with x-aziel-receipt when RECEIPT_APPEND_TOKEN is set (fail-open; public chain on corpus /receipts; not a Softwares-tab product). Additive NO-LIE-NO-REWRITE-1.0 law (companion under CROSS-NETWORK-SURVIVAL-1.0; does not replace the machine tip): receipts that still hash; copies not all on one tunnel; no rewrite key; the network is never allowed to lie even to self-preserve (docs/designs/NO-LIE-NO-REWRITE-1.0.md; GET /v1/mesh cites no_lie / no_rewrite). Remain-Off-by-Design items stay off. FragGate remains THE single door. New engines deferred to 2.1+. Crawler abstract stays lead copy. Identity Aziel Eliab only." },
+  { version: "2.0.0-rc1", status: "current", note: "Certification-point freeze (not a feature dump). Public contract frozen under docs/2.0/: FragGate list→describe→call, MCP tool names, OpenAPI parity, health/version, engine_digest, live/stub/proxy-fallback. Compatibility policy, receipt schema, refusal contract, breaking-change policy. Clean-room reproducibility + external adversarial pack for independent reviewers (self-test ≠ third-party lab). Gate 4 includes Glama TDQS 5.0 tools/list metadata (descriptions/params/annotations; no rename; no behavior change) plus existing glama.json/GitHub topics. Read-only QNM suite-presence is ON by default; POST /v1/mesh/disable refuses MESH-DISABLE-REFUSED. Additive ACT-RECEIPT-1.0 fabric: after FragGate list/call, POST /mcp, and significant POST /v1/*, POST corpus /v1/receipts/append with x-aziel-receipt when RECEIPT_APPEND_TOKEN is set (fail-open; public chain on corpus /receipts; not a Softwares-tab product). Additive NO-LIE-NO-REWRITE-1.0 law (companion under CROSS-NETWORK-SURVIVAL-1.0; does not replace the machine tip): receipts that still hash; copies not all on one tunnel; no rewrite key; the network is never allowed to lie even to self-preserve (docs/designs/NO-LIE-NO-REWRITE-1.0.md; GET /v1/mesh cites no_lie / no_rewrite). Additive COLD-MULTI-SHELF-1.0 cite (GET /shelves) matches live corpus#96 /shelves honesty: Plane A = 5 published surfaces / 2 family radii / 1 independent live; Plane B Codeberg PASS still SLOT; Zenodo refused CNS-ZENODO-IP-BAN; doi null; Plane C USB SLOT. Remain-Off-by-Design items stay off. FragGate remains THE single door. New engines deferred to 2.1+. Crawler abstract stays lead copy. Identity Aziel Eliab only." },
   { version: "1.9.3", status: "superseded", note: "Close remaining AZRT-1.9-GAPS-CLOSE items: isolate-native AZ-OS session_open/status/close (prefab ethics VFS; exec/shell/lattice stay refuse); isolate-safe Ask Jeeves over sample MASTER / CORPUS_D1 records (refuse secrets/triad-tamper; Jesus-image-only on devil-not-real; no AZAI blend); binding-gated media-run when env.AI is present (hash-chained Whisper/vision; no fake OCR). Independent validation path: docs/audit/INDEPENDENT-VALIDATION.md + Actions validate.yml attestation (not a third-party lab). Remain-Off-by-Design items stay off. Crawler abstract stays lead copy. Identity Aziel Eliab only." },
   { version: "1.9.2", status: "superseded", note: "Bind Workers Browser Rendering (BROWSER) and live D1 MASTER (CORPUS_D1 → aziel-digital-library). searchD1 queries production records (not master). Workers AI (AI) bound for Whisper/OCR honesty. Sample MASTER remains the unbound fallback. Chromium product UI is not claimed; Tor/phoenix stay refuse. Remain-Off-by-Design items stay off. Crawler abstract stays lead copy. Identity Aziel Eliab only." },
   { version: "1.9.1", status: "superseded", note: "AZRT-1.9-GAPS-CLOSE: convert isolate-safe corpus review/score/verify-backfill/verify-geo/document-chain/import_export to in-process; Whisper/OCR stay Workers-AI-gated (native only when AI is bound). Named proxy inventory shrinks (jeeves/transcribe/ocr/media-run remain). AZBrowser sandbox_status/sandbox_render report Workers Browser Rendering honestly — Chromium stays DEFERRED unless bound; Tor/phoenix refuse. AZMail transport_status: public MTA stays NOT IMPLEMENTED; no public send. Wave 2–3 health/skill/doctor richness. Adversarial repo self-check + GitHub Actions npm test on PR/main. Consumer MCP/OpenAPI examples. Project health engine_digest onto each /v1/software card. Live Nodes live_nodes counts Softwares *-worker only (mesh_* ephemeral split). Catalog EmbryoLock 1.2.0 matches product Worker health. Catalog git_sha from deploy --var or stamped build-meta. Flutter mobile/ remains not vendored. Remain-Off-by-Design items stay off. Crawler abstract stays lead copy. Identity Aziel Eliab only." },
@@ -332,6 +333,8 @@ ${websiteDesignsSkillMarkdown(base)}
 
 ${semanticBridgeSkillMarkdown(base)}
 
+${shelvesSkillMarkdown(base)}
+
 ## Endpoints (this Worker)
 
 | Method | Path | What |
@@ -364,7 +367,9 @@ ${semanticBridgeSkillMarkdown(base)}
 | GET/POST | \`/p/{slug}/{op}\` | **Proxy only** — not exec. Service binding preferred. |
 | GET | \`/openapi.json\` | Combined OpenAPI 3.1. |
 | POST | \`/mcp\` | JSON-RPC MCP-over-HTTP. |
-| GET | \`/cite.json\` | How to cite Aziel Eliab software and the Digital Library. Aka Aziel Elroi Eliab. No invented DOIs. |
+| GET | \`/cite.json\` | How to cite Aziel Eliab software and the Digital Library. Aka Aziel Elroi Eliab. No invented DOIs. Cites COLD-MULTI-SHELF-1.0 / corpus#96 shelves honesty. |
+| GET | \`/shelves\` | COLD-MULTI-SHELF-1.0 registry cite matching live corpus \`/shelves\`. Plane A 5 surfaces / 2 family radii / 1 independent live. Plane B SLOT (Codeberg PASS; archive.org + GitFlic URL null; Zenodo refused). Plane C USB SLOT. \`doi\` null. Not a sixth surface. |
+| GET | \`/v1/shelves\` | Machine alias of \`/shelves\`. |
 | GET | \`/llms.txt\` | Plain-text catalog + citation rules for crawlers. |
 | GET | \`/ai.txt\` | Alias of \`/llms.txt\`. |
 | GET | \`/robots.txt\` | Allow / for Google and major AI bots. No GPTBot Disallow. |
@@ -502,6 +507,8 @@ export function runtimeManifest(origin, products, extra = {}) {
       act_receipt_public_chain: "https://www.azielcorpuslibrary.net/receipts",
       act_receipt_path: "/v1/receipts",
       no_lie: "NO-LIE-NO-REWRITE-1.0",
+      cold_multi_shelf: COLD_MULTI_SHELF,
+      lockset_doi: null,
       no_rewrite: true,
       rewrite_key: false,
       lie_to_survive: false,
@@ -572,6 +579,8 @@ export function runtimeManifest(origin, products, extra = {}) {
       invoke: base + "/p/{slug}/{op}",
       invoke_note: "proxy only — not exec",
       cite: base + "/cite.json",
+      shelves: base + "/shelves",
+      shelves_json: base + "/v1/shelves",
       openapi: base + "/openapi.json",
       mcp: base + "/mcp",
       health: base + "/v1/health",

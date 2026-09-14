@@ -22,6 +22,7 @@ import { meshHint } from "./mesh.js";
 import { qnsHint } from "./qns.js";
 import { actReceiptHint } from "./library-receipts.js";
 import { survivalHint } from "./cross-network-survival.js";
+import { shelvesCiteField } from "./cold-multi-shelf.js";
 import { AUTHOR_ID, azcoherenceCiteField, hubsCiteField, LIBRARY_ORIGIN } from "./seo.js";
 import { socialStatusField } from "./social-status.js";
 import { websiteDesignsField, websiteDesignsOnCorpusCard } from "./website-designs.js";
@@ -240,7 +241,7 @@ export function softwareCatalog(origin, products, extra = {}) {
       ...meshHint("/v1/mesh"),
       status: `${base}/v1/mesh/status`,
       nodes: `${base}/v1/mesh/nodes`,
-      note: "QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1). Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public disable of suite-presence is refused. NO-LIE / NO-REWRITE: receipts that still hash; copies not all on one tunnel; no rewrite key; never lie to survive. Not a login mesh. Not a Softwares-tab product. Full node is local qnm-node/. Anon-broadcast is that process's sibling loopback only. Packet-transfer coding design is QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; Worker cites only). Cron or request-path fans out live Softwares product Workers (TTL 5 min).",
+      note: "QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1). Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public disable of suite-presence is refused. NO-LIE / NO-REWRITE: receipts that still hash; copies not all on one tunnel; no rewrite key; never lie to survive. COLD-MULTI-SHELF-1.0: GET /shelves cites corpus#96 honesty. Not a login mesh. Not a Softwares-tab product. Full node is local qnm-node/. Anon-broadcast is that process's sibling loopback only. Packet-transfer coding design is QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; Worker cites only). Cron or request-path fans out live Softwares product Workers (TTL 5 min).",
       qns_cd: qnsHint(),
     },
     qns: `${base}/v1/qns`,
@@ -248,6 +249,7 @@ export function softwareCatalog(origin, products, extra = {}) {
     receipts: `${base}/v1/receipts`,
     act_receipt: actReceiptHint(),
     survival: survivalHint(),
+    shelves: shelvesCiteField(base),
     azpipe_arch: `${base}/v1/azpipe/arch`,
     website_designs: websiteDesignsField(base),
   };
