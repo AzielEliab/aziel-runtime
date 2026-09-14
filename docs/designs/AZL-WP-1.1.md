@@ -36,7 +36,7 @@ AZL-WP-1.1                                                                      
  4. Two mesh planes. Local qnm-node process default ON. Public Worker is rollup / status. GET /v1/mesh never enables.
  No Node Gate.
  5. Unkillable is isolate + rotate. Zero radios: process ON, ledger appends, bearers empty. Poison isolates, spends ID,
- rotates bridges, phoenix-waits. QNM-WP-1.0.
+ rotates bridges, phoenix-waits (wait / re-seal only — not “bring the .uk node back”). QNM-WP-1.0.
  6. Airlock credentials. Official tokens in env / keychain. AZBOT_PUBLISH=1 before network post. No browser login.
  Ledger stores token_present only.
  7. Score without theater. Triad may sit while ZionPattern is empty. Cap 75%. Return solver-not-run. Never blend.

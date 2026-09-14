@@ -609,7 +609,9 @@ Quantum Node Mesh · mesh · QNM-BUILD-1.0 · live-default-off
 Suite rollup. Default OFF. Not a Softwares-tab product. Full node is local qnm-node/.
 
 How. QNM suite rollup. GET /v1/mesh never enables. Operator bearer enable only. Default radios off.
-Views/MCP/downloads do not enter QNM-S. Full node is local qnm-node/.
+Views/MCP/downloads do not enter QNM-S. Full node is local qnm-node/. Phoenix is wait / re-seal, not
+public hostname resurrection. Sites pulled die with the pull. Mesh does not climb back onto the public
+hostname by itself.
 Live ops. status, enable, disable, join, heartbeat, leave, nodes, broadcast, health, skill, mesh_status, mesh_enable, mesh_disable, mesh_join,
 mesh_heartbeat, mesh_leave, mesh_nodes, mesh_broadcast
 Stub-refused ops. arm, wipe, vpn, hop, tunnel, scorch, login, recover, recovery, resurrection, resurrect, account, gate, ip-panel, ippanel, publish,
@@ -666,6 +668,8 @@ written beside it so a model has a single cite rule. It is not a 36th software-t
   • Call a stub op and pretend it executed.
   • Put secrets in the ledger.
   • Enable mesh from a GET or from a public UI switch.
+  • Treat Phoenix as restoring godlock.uk or auto-reattaching a public hostname.
+  • Claim a pulled site (token revoked, Worker dropped, DNS killed) still has a legal cloudflared landing.
 
 
 Software catalog + Q×act ledger · runtime 1.6.13 · 2026-09-06                                                                                          page 10

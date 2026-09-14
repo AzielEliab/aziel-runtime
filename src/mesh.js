@@ -9,8 +9,30 @@
  * Law (must not violate):
  * - Bulletproof: local modules run radios off; receipts to disk; poison
  *   refused not interpreted; tamper isolates; PHOENIX-LOCK waits locally
- *   (no controller hunt); tethers drop clean (no implicit heal); no
- *   account resurrection; anon-broadcast is never a publish path.
+ *   (no controller hunt); wait/re-seal only — not public hostname
+ *   resurrection and not “bring the .uk node back”; tethers drop clean
+ *   (no implicit heal); no account resurrection; pulled sites die with
+ *   the pull (token / Worker / DNS gone → public rollup on that hostname
+ *   down; local node may keep verifying/appending; mesh does not climb
+ *   back onto the public hostname by itself); a process supervisor
+ *   restarting cloudflared is operator kit, not this contract; it fails
+ *   if credential or hostname is gone; anon-broadcast is never a publish path.
+ * - Split the wires: 0.5–1s tick is presence + tip hash only (fixed-size;
+ *   no body, no diff, no file). Payload is a second plane the receiver
+ *   pulls — never a push fan-out. Update is a proof, not a timer. 777s is
+ *   dwell after a valid cite, not wait-then-take. Clock desync is not a
+ *   yes. Ambiguous tip is isolate, not merge. Equivocation ends that peer.
+ *   Quorum cannot outvote a broken hash. Emit last, locally. Neighbors do
+ *   not phoenix because a neighbor phoenix’d. Split brain does not
+ *   auto-splice. Heartbeat loss ≠ poison and ≠ apply last packet. The 1s
+ *   loop and the 777s gate never share a socket.
+ * - Cold-copy survival: multiply cold copies; refuse live body sync
+ *   across the network; tip expensive to erase; unkillable by
+ *   single-server pull (hostname dies; vaults that already hold the
+ *   hashes keep verifying/appending); hash-absolute poison refuse
+ *   (equivocation isolates that peer); data outlives creators via
+ *   content-addressed tips + local verify/append; payloads pull-only
+ *   cold; named hosts only.
  * - azieleliab.com hosts published software/runtime — NOT login-recovery,
  *   NOT Node Gate/IP panel, NOT upload proxy.
  * - Suite public surface may expose mesh rollup only: live / locked /
@@ -40,6 +62,20 @@
  */
 
 import { qnsCiteField, qnsHint } from "./qns.js";
+import {
+  DWELL_S,
+  FORBIDDEN_TICK_KEYS,
+  SPLIT_WIRES,
+  SPLIT_WIRES_SHORT,
+  TICK_MS_MAX,
+  TICK_MS_MIN,
+  TICK_PLANE,
+  clocksShareSocket,
+  heartbeatLossMeaning,
+  judgeEquivocation,
+  tickAccepts,
+} from "./split-wires.js";
+import { COLD_COPY, COLD_COPY_SHORT, refuseLiveBodySync } from "./cold-copy.js";
 
 export const MESH_SLUG = "mesh";
 export const MESH_NAME = "Quantum Node Mesh";
@@ -75,7 +111,11 @@ export const ANON_BROADCAST_NOTE =
   "Anon-broadcast is a sibling loopback module of local qnm-node/ only (text→TTS→desk MP4→metadata-culled file + SHA-256). Style tool. Never a publish path. Not an upload proxy. Not origin-hiding. Operator keeps the file. Not a Softwares-tab product. Not a QNM publish channel.";
 
 export const MESH_LIMITATION =
-  "THIS IS: QNM-BUILD-1.0 suite rollup on aziel-runtime — companion to AIH-WP-1.1. Packet-transfer coding design is QNS-CD-1.0 (companion to QNM-BUILD-1.0 / AIH-WP-1.3; photon QNS1 1.3 on local qnsd; Worker cites only). Public surface is live/locked/isolated counts plus read-only suite-presence ON by default (bearer suite-presence). GET /v1/mesh never enables radios beyond that read-only presence. POST /v1/mesh/disable refuses MESH-DISABLE-REFUSED — public disable of suite-presence is refused. While LIVE, cron or request-path fans out join/heartbeat for live Softwares product Workers (node_id {slug}-worker; no '|'; TTL 5 min). Product Workers proxy /v1/mesh/* via AZIEL_RUNTIME. THIS IS NOT: a login mesh; login-recovery; Node Gate/IP panel; upload proxy; account resurrection; average-of-nodes leaderboard; QNM-S; the local qnm-node process (boot/chain/apg/bearers/outbox/phoenix/score/memorial/tethers); AnonBroadcast as a catalog product or publish path; AZMail's product-local ring; arming; wipe; controller hunt; implicit heal; a public qnsd proxy. Author: Aziel Eliab only.";
+  "THIS IS: QNM-BUILD-1.0 suite rollup on aziel-runtime — companion to AIH-WP-1.1. Packet-transfer coding design is QNS-CD-1.0 (companion to QNM-BUILD-1.0 / AIH-WP-1.3; photon QNS1 1.3 on local qnsd; Worker cites only). Public surface is live/locked/isolated counts plus read-only suite-presence ON by default (bearer suite-presence). GET /v1/mesh never enables radios beyond that read-only presence. POST /v1/mesh/disable refuses MESH-DISABLE-REFUSED — public disable of suite-presence is refused. While LIVE, cron or request-path fans out join/heartbeat for live Softwares product Workers (node_id {slug}-worker; no '|'; TTL 5 min). Product Workers proxy /v1/mesh/* via AZIEL_RUNTIME. Phoenix is wait/re-seal after tamper or isolation, not public hostname resurrection. Sites pulled (token revoked, Worker dropped, DNS killed) die with the pull — public rollup on that hostname is down; local node may keep verifying/appending; mesh does not climb back onto the public hostname by itself. A process supervisor restarting cloudflared is operator kit, not this contract. Split the wires: 0.5–1s tick is presence + tip hash only (fixed-size; no body, no diff, no file). Payload is receiver-pull, never a sender fan-out. Update is a proof, not a timer. 777s is dwell after a valid cite, not wait-then-take. Clock desync is not a yes. Ambiguous tip is isolate, not merge. Equivocation ends that peer. Quorum cannot outvote a broken hash. Emit last, locally. Neighbors do not phoenix because a neighbor phoenix’d. Split brain does not auto-splice. Heartbeat loss is not isolate-by-timer and does not apply last packet. The 1s loop and the 777s gate never share a socket. " +
+  SPLIT_WIRES_SHORT +
+  " Cold-copy survival: " +
+  COLD_COPY_SHORT +
+  " THIS IS NOT: a login mesh; login-recovery; Node Gate/IP panel; upload proxy; account resurrection; public hostname resurrection; bringing the .uk node back; average-of-nodes leaderboard; QNM-S; the local qnm-node process (boot/chain/apg/bearers/outbox/phoenix/score/memorial/tethers); AnonBroadcast as a catalog product or publish path; AZMail's product-local ring; arming; wipe; controller hunt; implicit heal; a public qnsd proxy; a payload push plane; vote-to-reconcile; live body sync. Author: Aziel Eliab only.";
 
 export const MESH_CANONICAL_OPS = Object.freeze([
   "status",
@@ -298,7 +338,7 @@ export function meshKernelEntry() {
     stub_ops: MESH_STUB_OPS.slice(),
     op_aliases: { ...MESH_OP_ALIASES },
     description:
-      "QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1). Packet-transfer coding design QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; Worker cites only). live/locked/isolated counts. Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public disable of suite-presence is refused. Not a login mesh. Not a Softwares-tab product.",
+      "QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1). Packet-transfer coding design QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; Worker cites only). live/locked/isolated counts. Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public disable of suite-presence is refused. Phoenix is wait/re-seal, not public hostname resurrection. Pulled sites die with the pull. Split the wires: presence + tip hash on the 1s tick; pull-only payloads; hash-absolute ingest; equivocation isolates that peer. Cold-copy survival: multiply cold copies; no live body sync; named hosts only. Not a login mesh. Not a Softwares-tab product.",
     note: MESH_LIMITATION,
     kind: "kernel",
     engine: false,
@@ -323,7 +363,7 @@ export function nodeMeshHubCard(origin) {
     version: MESH_SPEC,
     door: "fraggate",
     one_line:
-      "QNM-BUILD-1.0 suite rollup (live/locked/isolated). Read-only suite-presence is ON by default. GET never enables radios beyond that. Public disable of suite-presence is refused. Not a login mesh. Full node is local qnm-node/. Packet transfer: QNS-CD-1.0 on local qnsd (Worker cites only).",
+      "QNM-BUILD-1.0 suite rollup (live/locked/isolated). Read-only suite-presence is ON by default. GET never enables radios beyond that. Public disable of suite-presence is refused. Phoenix is wait/re-seal, not public hostname resurrection. Pulled sites die with the pull. Split the wires: tick is presence + tip hash; payloads are pull-only. Cold-copy survival: no live body sync; named hosts only. Not a login mesh. Full node is local qnm-node/. Packet transfer: QNS-CD-1.0 on local qnsd (Worker cites only).",
     path: "/v1/mesh",
     enabled_default: MESH_DEFAULT_ENABLED,
     rollup_only: true,
@@ -578,7 +618,17 @@ function qnmFrame() {
     qnm_s_note: QNM_S_NOTE,
     scores: false,
     leaderboard: false,
-    phoenix_lock: "local wait — no controller hunt",
+    phoenix_lock: "local wait / re-seal — no controller hunt; not public hostname resurrection",
+    split_wires: SPLIT_WIRES,
+    tick_plane: TICK_PLANE,
+    tick_ms: { min: TICK_MS_MIN, max: TICK_MS_MAX },
+    dwell_s: DWELL_S,
+    clocks_share_socket: clocksShareSocket(),
+    split_wires_short: SPLIT_WIRES_SHORT,
+    cold_copy: COLD_COPY,
+    cold_copy_short: COLD_COPY_SHORT,
+    live_body_sync: false,
+    named_hosts_only: true,
     local_node: "qnm-node/",
     local_node_note: QNM_LOCAL_NODE,
     host_note: QNM_HOST_NOTE,
@@ -744,7 +794,13 @@ ${MESH_LIMITATION}
 
 Read-only **suite-presence is ON by default**. A site ping of \`GET /v1/mesh\` never enables radios beyond that read-only presence. Public \`POST /v1/mesh/disable\` / \`mesh_disable\` refuses \`MESH-DISABLE-REFUSED\` — it cannot turn suite-presence off.
 
-While radios are LIVE, this Worker fans out join/heartbeat for every live Softwares product Worker (\`node_id\` \`{slug}-worker\`, no \`|\`) on cron (\`*/2 * * * *\`) or request-path. Presence TTL is 5 minutes. Product Workers proxy \`/v1/mesh/*\` via \`AZIEL_RUNTIME\`. Not a second mesh.
+While radios are LIVE, this Worker fans out join/heartbeat for every live Softwares product Worker (\`node_id\` \`{slug}-worker\`, no \`|\`) on cron (\`*/2 * * * *\`) or request-path. Presence TTL is 5 minutes. Product Workers proxy \`/v1/mesh/*\` via \`AZIEL_RUNTIME\`. Not a second mesh. Fan-out is rollup counts for Workers that still exist. It does not restore godlock.uk or reattach a pulled public hostname.
+
+Phoenix is wait / re-seal after tamper or isolation. It is not “bring the .uk node back.” Sites pulled (token revoked, Worker dropped, DNS killed) die with the pull: public rollup on that hostname is down; a local node may keep verifying and appending. Mesh does not climb back onto the public hostname by itself. A process supervisor restarting cloudflared is operator kit, not this contract.
+
+**Split the wires.** Fast 0.5–1s tick: presence + tip hash only. Fixed-size. No body, no diff, no “also here’s the file.” Payload on a second plane the receiver pulls, never a push the sender fans out. Update is a proof, not a timer. 777s is dwell after a valid cite, not wait-then-take. Clock desync is not a yes. Ambiguous tip is isolate, not merge. Equivocation ends that peer. Quorum cannot outvote a broken hash. Emit last, locally. Neighbors do not phoenix because a neighbor phoenix’d. Split brain does not auto-splice. Heartbeat loss is not isolate-by-timer and does not apply last packet. The 1s loop and the 777s gate never share a socket. ${SPLIT_WIRES_SHORT}
+
+**Cold-copy survival.** ${COLD_COPY_SHORT} A single-server pull kills that named hostname. It does not kill cold copies. Live body sync across the network is refused.
 
 Rollup counts: **live / locked / isolated**. No average-of-nodes leaderboard. Views / MCP / downloads do not enter QNM-S.
 
@@ -934,6 +990,18 @@ export async function meshHeartbeat(payload, env) {
   const src = payload && typeof payload === "object" && !Array.isArray(payload) ? payload : {};
   const state = await loadState(env);
   if (!state.enabled) return offRefuse("heartbeat", state);
+  const tick = tickAccepts(src);
+  if (!tick.ok) {
+    return refuse(tick.code, tick.reason === "tip_hash-not-fixed-size" || tick.reason === "prev-not-fixed-size"
+      ? "Heartbeat tick is presence + tip hash only. tip_hash/prev must be 64 hex. No body, no diff, no file."
+      : "Heartbeat tick is presence + tip hash only. Fixed-size. No body, no diff, no “also here’s the file.” Payload is a pull plane, never a fan-out.", {
+      op: "heartbeat",
+      mesh_enabled: true,
+      refused_keys: tick.refused_keys || FORBIDDEN_TICK_KEYS.filter((k) => Object.prototype.hasOwnProperty.call(src, k)),
+      split_wires: SPLIT_WIRES,
+      tick_plane: TICK_PLANE,
+    });
+  }
   const node_id = sanitizeNodeId(src.node_id || src.id);
   if (!node_id) {
     return refuse("MESH-BAD-INPUT", "Pass { node_id }.", { op: "heartbeat", mesh_enabled: true });
@@ -956,14 +1024,50 @@ export async function meshHeartbeat(payload, env) {
     }
     node.presence = presence;
   }
+  if (tick.prev && tick.tip_hash) {
+    const judged = judgeEquivocation({
+      node_id,
+      prev: tick.prev,
+      tips: [node.tip_hash, tick.tip_hash].filter(Boolean),
+      presence: node.presence,
+    });
+    if (node.prev === tick.prev && judged.equivocated) {
+      node.presence = "isolated";
+      node.prev = tick.prev;
+      node.tip_hash = tick.tip_hash;
+      node.last_seen = nowIso();
+      state.nodes[node_id] = node;
+      const store = await saveState(env, state);
+      return refuse(
+        "MESH-EQUIVOCATION",
+        "Same prev, two different tips from one node. That node is isolated. No vote-to-reconcile. Quorum cannot outvote a broken hash.",
+        {
+          op: "heartbeat",
+          mesh_enabled: true,
+          node,
+          ...statusFields({ ...state, store }),
+          split_wires: SPLIT_WIRES,
+        },
+      );
+    }
+    node.prev = tick.prev;
+    node.tip_hash = tick.tip_hash;
+  } else if (tick.tip_hash) {
+    node.tip_hash = tick.tip_hash;
+  }
   node.last_seen = nowIso();
   state.nodes[node_id] = node;
   const store = await saveState(env, state);
+  const loss = heartbeatLossMeaning({ missed: false });
   return baseResult({
     op: "heartbeat",
     ...statusFields({ ...state, store }),
     node,
-    note: "Presence refreshed for rollup counts. 5-minute TTL. No implicit heal.",
+    split_wires: SPLIT_WIRES,
+    tick_plane: TICK_PLANE,
+    heartbeat_loss_isolates: loss.poison,
+    apply_last_packet: loss.apply_last_packet,
+    note: "Presence + optional tip hash only. 5-minute rollup TTL. No body on this plane. No implicit heal. Heartbeat loss is not isolate-by-timer and does not apply last packet.",
   });
 }
 
@@ -1025,15 +1129,18 @@ export async function meshBroadcast(payload, env) {
       anon_broadcast: ANON_BROADCAST_NOTE,
     });
   }
-  const banned = forbiddenBroadcastKeys(src);
+  const liveBody = refuseLiveBodySync(src);
+  const banned = [...new Set([...(liveBody.refused_keys || []), ...forbiddenBroadcastKeys(src)])];
   if (banned.length) {
     return refuse(
       "MESH-NO-BYTES",
-      "Never a publish path. Do not send video / file / bytes / publish fields. Operator keeps the file on disk. Use local qnm-node/ anon-broadcast loopback to render.",
+      "Live body sync is refused. Cold copies are pull-only. Never a publish path. Do not send video / file / bytes / publish fields. Operator keeps the file on disk.",
       {
         op: "broadcast",
         mesh_enabled: true,
         refused_keys: banned,
+        live_body_sync: false,
+        cold_copy: COLD_COPY,
         anon_broadcast: ANON_BROADCAST_NOTE,
       },
     );

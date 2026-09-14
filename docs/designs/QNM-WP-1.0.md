@@ -14,6 +14,7 @@ QNM-WP-1.0                                                                      
 
     A local process that stays on, hashes through radio failure, airlocks inbound, isolates poison, rotates
     ephemeral IDs in cells of 25 with two bridging members, and never pretends the public Worker is that cell.
+    Sites pulled → public rollup on that hostname down. Phoenix is wait / re-seal, not “bring the .uk node back.”
 
  1. What QNM is not
    • Not qubit hardware. Not a login mesh or account system.
@@ -27,7 +28,7 @@ QNM-WP-1.0                                                                      
   A — local qnm-node                   Process ON. Bearers attempt.           Zero radios: process still ON, ledger appends, bearers empty.
 
   B — public rollup                    enabled=false. GET never enables.      Counts only. No Node Gate. No fake 25 peers. Views/MCP out
-                                                                              of QNM-S.
+                                                                              of QNM-S. Pulled site → this plane down on that hostname.
 
 
 
@@ -60,8 +61,11 @@ QNM-WP-1.0                                                                      
 
 
  7. Heartbeat, airlock, poison
- Heartbeat payload: cell_id, mesh_id, tip_hash, utc. Three missed intervals → suspect. Suspect plus APG hit → isolate.
- Heartbeat is an act receipt.
+ Heartbeat payload: cell_id, mesh_id, tip_hash, utc. Fixed-size. Presence + tip hash only. No body, no diff,
+ no “also here’s the file.” Three missed intervals → suspect. Suspect plus APG hit → isolate.
+ Heartbeat loss ≠ poison. Heartbeat loss ≠ apply last packet. Heartbeat is an act receipt.
+ Payload lives on a second plane the receiver pulls. Never a push the sender fans out.
+ The 0.5–1s tick and the 777s gate never share a socket.
 
 
 
@@ -81,8 +85,12 @@ QNM-WP-1.0                                                                      
  8. Bridge rotation and phoenix
  Rotate both bridges as a pair on interval, on poison of either, or on operator act. Spent pair cannot carry traffic (refuse
  bridge_spent). A cell with fewer than two live members stays local-only.
- Phoenix: wait. No controller hunt. No public callback. Declare comms clean. assign new mesh_id. Rejoin as leaf unless
- seating a new bridge pair. Phoenix wait is an act.
+ Phoenix: wait / re-seal. No controller hunt. No public callback. No public hostname resurrection.
+ Declare comms clean. assign new mesh_id. Rejoin as leaf of the local cell unless seating a new bridge pair.
+ Rejoin is local fabric only. It does not restore godlock.uk or climb the public rollup hostname.
+ Phoenix wait is an act. Sites pulled → plane B (public rollup) down on that host. Plane A (local qnm-node)
+ may keep verifying and appending. Mesh does not climb back onto the public hostname by itself.
+ A process supervisor restarting cloudflared is operator kit, not this paper; it fails if credential or hostname is gone.
 
  9. Tethers and siblings
  Leaf tethers only inside its cell. Bridge tethers only to the other cell’s current bridge pair. Poison cuts first.
@@ -94,6 +102,14 @@ QNM-WP-1.0                                                                      
    • Do not enable mesh with a GET. Do not reuse a spent mesh_id.
    • Do not route inter-cell traffic through a leaf. Do not call MirageGrid a VPN.
    • Do not store passwords in node state. Do not claim qubits.
+   • Do not read Phoenix as restoring godlock.uk or auto-reattaching a public hostname.
+   • Sites pulled (token revoked, Worker dropped, DNS killed) die with the pull. cloudflared has nowhere legal to land.
+   • Do not put a body, diff, or file on the 1s tick. Do not treat 777s as wait-then-take.
+   • Do not vote-to-reconcile equivocation. Same prev + two tips from one node isolates that peer.
+   • Do not auto-splice islands on reconnect. Rejoin is cite + operator or lockset gate.
+   • Neighbors do not phoenix because a neighbor phoenix’d. Clock desync is not a yes.
+   • Multiply cold copies. Refuse live body sync. Tip expensive to erase. Unkillable by single-server pull.
+   • Data outlives creators via content-addressed tips + local verify/append. Payloads pull-only cold. Named hosts only.
    • Concept is closed when both planes, cell math, ID spend, leaf-vs-bridge poison, phoenix-without-hunt, and stub names
    are specified — they are.
  Specified 2026-09-06. Building qnm-node is implementation. This paper is the concept at 100%. Public identity: Aziel

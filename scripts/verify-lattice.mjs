@@ -381,6 +381,19 @@ const citeFail = await verifyLockset(missingCite);
 assert.equal(citeFail.lattice, false);
 assert.ok(citeFail.breaks.some((b) => b.reason === "missing-godlock-cite" || b.reason === "lockset-hash-miss"));
 
+const dwellTake = await verifyLockset(vault, {
+  held_prev: sealed.lockset_sha256,
+  cited_prev: sealed.lockset_sha256,
+  tip: sealed.lockset_sha256,
+  verified: true,
+  elapsed_s: 777,
+  valid_cite: false,
+  wait_then_take: true,
+});
+assert.equal(dwellTake.ok, false);
+assert.ok(dwellTake.breaks.some((b) => b.reason === "dwell-not-take"));
+assert.equal(dwellTake.merge, false);
+
 // --- packed catalog single-key read ---
 const kv = countingKv({
   [PACKED_CATALOG_KEY]: JSON.stringify({ ok: true, packed: true, software: [{ slug: "foldlock" }] }),
