@@ -29,7 +29,9 @@ Inventory of controls that shrink the surface. Not a guarantee. Not a new produc
 3. Fabric / phoenix — live in qnm-node, topology specified
 - Loopback API. APG on every ingress. Poison refused, not interpreted.
 - Tamper isolates. ID spent. Tethers cut. No account resurrection.
-- PHOENIX-LOCK waits locally. No controller hunt. No auto-heal onto a spent ID.
+- PHOENIX-LOCK waits locally. Wait / re-seal after poison or isolation. No controller hunt. No auto-heal onto a spent ID. Not public hostname resurrection. Does not restore godlock.uk.
+- REHEAL: own last good tip + verified trusted pull, or phoenix-WAIT. Isolation is the cure. Never neighbor talk-back-to-health.
+- CROSS-NETWORK-SURVIVAL-1.0: if network and data die tomorrow, the chain survives on cold shelves (hosts / DOI / git / vault).
 - Hop-max + seen-hash drop loops.
 - Specified: cell 25, two rotating bridges, process ON / public rollup OFF.
 

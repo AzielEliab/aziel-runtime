@@ -11,7 +11,7 @@ Public identity: **Aziel Eliab** only.
 Current software designs live in [docs/designs/](designs/). Author: **Aziel Eliab** only.
 
 - [QNM-WP-1.0](designs/QNM-WP-1.0.md) — Quantum Node Mesh fabric (local process ON / public rollup)
-- [NODE-OPS-1.0](designs/NODE-OPS-1.0.md) — Node operations + surface law + phoenix loop
+- [NODE-OPS-1.0](designs/NODE-OPS-1.0.md) — Node operations + surface law + phoenix wait/re-seal (not public hostname resurrection)
 - [SEC-FEAT-1.0](designs/SEC-FEAT-1.0.md) — Security feature inventory (door, stubs, vault, fabric)
 - [QNS-CD-1.0](designs/QNS-CD-1.0.md) — Quantum Node Signal packet-transfer coding design (photon QNS1 1.3; local `qnsd`; Worker cites only)
 
@@ -19,7 +19,14 @@ This page remains the live **QNM-BUILD-1.0** rollup law. Do not rewrite that law
 
 ## Law (must not violate)
 
-- **Bulletproof:** local modules run radios off; receipts to disk; poison refused not interpreted; tamper isolates; **PHOENIX-LOCK waits locally** (no controller hunt); tethers drop clean (**no implicit heal**); **no account resurrection**; **anon-broadcast is never a publish path**.
+- **Bulletproof:** local modules run radios off; receipts to disk; poison refused not interpreted; tamper isolates; **PHOENIX-LOCK waits locally** (no controller hunt); wait / re-seal after poison or isolation (**not public hostname resurrection**; Phoenix does not restore godlock.uk); tethers drop clean (**no implicit heal**); **no account resurrection**; **anon-broadcast is never a publish path**.
+- **Die with the pull:** Cloudflare Tunnel lives on a token, a DNS name, and an account. Pull the site, revoke the token, drop the Worker, or kill DNS and cloudflared has nowhere legal to land. A process supervisor restarting cloudflared is operator kit, not the public contract; it fails if credential or hostname is gone.
+- **Sites pulled → public rollup on that hostname down.** Local node may keep verifying/appending. Mesh does not climb back onto the public hostname by itself.
+- **Split the wires:** Fast 0.5–1s tick is **presence + tip hash only**. Fixed-size. No body, no diff, no “also here’s the file.” Payload lives on a **second plane the receiver pulls**, never a push the sender fans out. Update is a **proof, not a timer**. Receiver already holds prev and the lockset. New tip must cite that prev, match the lockset rule, and verify fail-closed. **777s is dwell after a valid cite**, not “wait then take whatever arrived.” Clock desync is not a yes. Ambiguous tip is isolate, not merge. Same prev + two different tips from one node → that node is locked/isolated. No vote-to-reconcile. Quorum cannot outvote a broken hash. Majority is not truth. A node may announce a tip only after its own verify passes. Phoenix is local reboot/WAIT for the failed node. Neighbors do not phoenix because a neighbor phoenix’d. No unsend, so nothing leaving the box is an unverified body. Split brain: each island keeps its own chain; they do not auto-splice on reconnect. Rejoin is cite + human/operator or lockset gate, same as first ingest. Heartbeat loss ≠ poison. Heartbeat loss ≠ “apply last packet.” The 1s loop and the 777s gate stay strangers. Anything less is a delayed epidemic.
+- **Cold-copy survival:** Multiply cold copies. Refuse live body sync across the network. A tip is content-addressed and expensive to erase. A single-server pull kills that named hostname (die-with-the-pull); it does not kill vaults that already hold the hashes. Local verify/append continues. Data outlives creators. Hash-absolute poison refuse: equivocation isolates that peer, not the chain. Payloads are pull-only and cold. Named hosts only.
+- **Re-expand-from-archive:** Bytes survive, not summaries. Re-expand restores from archive after prev-hash verify. Not mesh from index. Crawlers are extra shelves only. Training residue is rumor.
+- **REHEAL:** Isolation is the cure. A poisoned node heals from its own last good tip + a verified trusted pull, or phoenix-WAIT — never by listening to neighbors. Allowed: live / locked / isolated / tip-hash. Forbidden: bodies / diffs / vote-to-fix. Neighbor talk-back-to-health is a group hug over a wound.
+- **CROSS-NETWORK-SURVIVAL-1.0:** If network and data die tomorrow, the chain survives on cold shelves (hosts / DOI / git / vault). Under that sentence: die-with-the-pull, split-the-wires, cold-copy survival, re-expand-from-archive, REHEAL. The live mesh is not a shelf.
 - **azieleliab.com** hosts published software/runtime — **not** login-recovery, **not** Node Gate/IP panel, **not** upload proxy.
 - Suite public surface may expose mesh **rollup only**: **live / locked / isolated** counts. No average-of-nodes leaderboard. **Views / MCP / downloads do not enter QNM-S.**
 - **Default:** read-only **suite-presence is ON** (bearer `suite-presence`). A site ping of `GET /v1/mesh` never enables radios beyond that read-only presence. Do not require `POST /v1/mesh/enable` for public Live Nodes.
@@ -129,6 +136,7 @@ Hubs must **not** add AnonBroadcast as a Software-tab product from this hint. Th
    - The runtime also fans out `{slug}-worker` presence while suite-presence is on (cron or request-path). Product Workers still proxy status so hubs that show **Live Nodes** do not 404.
 4. Do **not** add login, recovery, Node Gate, IP panel, AnonBroadcast chrome, upload buttons, or origin-hiding claims.
 5. Do **not** implement arm / wipe / hop / heal / resurrection / phoenix-hunt verbs. Those refuse as stub on this kernel.
+6. Do **not** treat Phoenix or suite fan-out as restoring godlock.uk or auto-reattaching a pulled public hostname.
 
 Example proxy (product Worker):
 
@@ -148,6 +156,12 @@ if (url.pathname === "/v1/mesh" || url.pathname.startsWith("/v1/mesh/")) {
 - `POST /v1/mesh/disable` cannot turn suite-presence off.
 - Library host `www.azielcorpuslibrary.net/runtime/v1/mesh/enable` may return **409** `{ source: "library-default-off", enabled: false }` instead of this Worker's `MESH-NEED-BEARER` / `MESH-BAD-BEARER`. That overlay is **host-side** (aziel-corpus), not a runtime kill switch. Do not treat it as the suite being off.
 - Presence is ephemeral (5 minutes).
+- Phoenix is wait / re-seal only. It does not bring the .uk node back.
+- Split the wires: pull-only payloads, hash-absolute ingest, equivocation = death of that peer, two clocks that never share a socket.
+- Cold-copy survival: multiply cold copies; no live body sync; tip expensive to erase; unkillable by single-server pull; payloads pull-only cold; named hosts only.
+- Re-expand-from-archive: bytes survive, not summaries; restore after prev-hash verify; not mesh from index; crawlers extra shelves only; training residue is rumor.
+- REHEAL: isolation is the cure; own last good tip + verified trusted pull, or phoenix-WAIT; never neighbor talk-back-to-health; no bodies / diffs / vote-to-fix.
+- CROSS-NETWORK-SURVIVAL-1.0: if network and data die tomorrow, the chain survives on cold shelves (hosts / DOI / git / vault). All prior laws sit under that sentence. The live mesh is not a shelf.
 - Broadcast never accepts `video` / `bytes` / `file` / `mp4` / `publish` fields.
 - Public identity is Aziel Eliab only.
 - Forks welcome. Apache-2.0.

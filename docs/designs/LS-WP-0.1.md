@@ -102,6 +102,26 @@ Aziel Eliab · local specification · not a fleet-completeness claim
     Post the lockset SHA-256 on GodLock. Do not upload stamp bodies. Citation over reanswer. 777s-class anti-poison
     on the public node is unchanged.
 
+    Split the wires (ingest law). The 1s tick is presence + tip hash only. Update is a proof, not a timer. The receiver already holds prev and the lockset.
+    A new tip must cite that prev, match this lockset rule, and verify fail-closed. 777s is dwell after a valid cite,
+    not “wait then take whatever arrived.” Clock desync is not a yes. Ambiguous tip is isolate, not merge.
+    Equivocation (same prev, two different tips from one node) ends that peer, not the chain. Quorum cannot
+    outvote a broken hash. Majority is not truth. Payloads are pull-only. The 1s tick never carries a body.
+
+    Cold-copy survival. Multiply cold copies. Refuse live body sync across the network. Tips are
+    content-addressed and expensive to erase. A single-server pull does not kill local verify/append.
+    Data outlives creators. Payloads stay pull-only cold. Named hosts only. Hash-absolute poison refuse.
+
+    Re-expand-from-archive. Bytes survive, not summaries. Restore from archive after prev-hash
+    verify. Not mesh from index. Crawlers are extra shelves only. Training residue is rumor.
+
+    REHEAL. Isolation is the cure. Heal from own last good tip + verified trusted pull, or
+    phoenix-WAIT. Never by listening to neighbors. No bodies, diffs, or vote-to-fix.
+
+    CROSS-NETWORK-SURVIVAL-1.0. If network and data die tomorrow, the chain survives on cold shelves
+    (hosts / DOI / git / vault). Die-with-the-pull, split-the-wires, cold-copy, re-expand, and REHEAL
+    sit under that sentence. The live mesh is not a shelf.
+
     A reader who has the vault and the public cite can check: recompute the lockset hash, confirm the GodLock entry
     names that hash, confirm live tips still match. If GodLock is dark, the local receipt still exists. That is site-fail
     resilience, not public verification.

@@ -246,6 +246,31 @@ const nodeId = joined.data.session.node_id;
 const beat = await postJson(env, "/v1/mesh/heartbeat", { node_id: nodeId });
 assert.equal(beat.status, 200);
 assert.equal(beat.data.node.node_id, nodeId);
+assert.equal(beat.data.heartbeat_loss_isolates, false);
+assert.equal(beat.data.apply_last_packet, false);
+assert.equal(beat.data.split_wires, "SPLIT-WIRES-1.0");
+
+const tickBody = await postJson(env, "/v1/mesh/heartbeat", { node_id: nodeId, body: "also here’s the file" });
+assert.equal(tickBody.status, 400);
+assert.equal(tickBody.data.code, "MESH-NO-BYTES");
+
+const tipA = "11".repeat(32);
+const tipB = "22".repeat(32);
+const prev = "33".repeat(32);
+const eqJoin = await postJson(env, "/v1/mesh/join", { product: "godlock", node_id: "equivocation-peer" });
+assert.equal(eqJoin.status, 200);
+const firstHash = await postJson(env, "/v1/mesh/heartbeat", {
+  node_id: "equivocation-peer",
+  tip_hash: tipA,
+  prev,
+});
+assert.equal(firstHash.status, 200, JSON.stringify(firstHash.data));
+const forked = await postJson(env, "/v1/mesh/heartbeat", { node_id: "equivocation-peer", tip_hash: tipB, prev });
+assert.equal(forked.status, 400);
+assert.equal(forked.data.code, "MESH-EQUIVOCATION");
+assert.equal(forked.data.node.presence, "isolated");
+const eqLeft = await postJson(env, "/v1/mesh/leave", { node_id: "equivocation-peer" });
+assert.equal(eqLeft.status, 200);
 
 const isolated = await postJson(env, "/v1/mesh/join", {
   product: "foldlock",
