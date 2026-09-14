@@ -37,6 +37,7 @@ const SKIP_GET_READS = new Set([
   "/v1/mesh",
   "/v1/mesh/status",
   "/v1/mesh/nodes",
+  "/v1/mesh/az-generator",
   "/v1/qns",
   "/v1/receipts",
   "/v1/azpipe/arch",
@@ -139,6 +140,7 @@ export function inferProductOp(pathname) {
   if (path === "/v1/update/manifest") return { op: "runtime.update_manifest" };
   if (path === "/v1/mesh" || path === "/v1/mesh/status") return { op: "mesh.status" };
   if (path === "/v1/mesh/nodes") return { op: "mesh.nodes" };
+  if (path === "/v1/mesh/az-generator") return { op: "mesh.az_generator" };
   if (path === "/v1/mesh/enable") return { op: "mesh.enable" };
   if (path === "/v1/mesh/disable") return { op: "mesh.disable" };
   if (path === "/v1/mesh/join") return { op: "mesh.join" };
