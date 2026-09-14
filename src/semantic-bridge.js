@@ -40,6 +40,9 @@ export const ICANN_HUB_HOSTS = Object.freeze([
 
 export const CAP7_INHERIT = "designs";
 export const CAP7_RESOLVES_TO_HUB = false;
+export const CAP7_NAME_MAY_CHANGE = true;
+export const CAP7_CANONICAL_HUBS_IMMUTABLE = true;
+export const CAP7_FIFTH_PRODUCT = false;
 
 export const SEMANTIC_BRIDGE_LIMITATION =
   "THIS IS: Cap-7 mesh-name metadata cite. Factory is MirageGrid only. Names inherit hub designs only (docs/designs/ plus mesh-resident azcorpus + azlibrary on the library hub). Names may change; canonical hubs are immutable. AI pulls metadata from MirageGrid Worker /bridge or GET /v1/mesh/az-generator. Mesh browse is AZNet + AZBrowser via FragGate. Plane A hubs mirror published tips. THIS IS NOT: ICANN DNS; a public .az TLD; an alias of the four ICANN hostnames; a live AZ-GEN registrar; a hostname that resolves to a hub; a fifth Softwares product; visible 15:20 chrome; a GET /v1/mesh radio enable. Author: Aziel Eliab only.";
@@ -80,11 +83,11 @@ export function semanticBridgeCiteField(origin) {
     resolves_to_hub: CAP7_RESOLVES_TO_HUB,
     inherit: CAP7_INHERIT,
     inherit_note:
-      "Cap-7 names inherit hub designs only (docs/designs/ plus mesh-resident azcorpus + azlibrary on the library hub). They are not aliases of the four ICANN hostnames and do not resolve to those hosts.",
-    name_may_change: true,
-    canonical_hubs_immutable: true,
+      "Cap-7 mesh names may change. They map to the original four canonical hubs only (azieleliab.com, azielcorpuslibrary.net with azcorpus+azlibrary designs, godlock.uk, hedidntjump.com). They inherit hub designs only. They are not aliases of those hostnames and do not resolve to them.",
+    name_may_change: CAP7_NAME_MAY_CHANGE,
+    canonical_hubs_immutable: CAP7_CANONICAL_HUBS_IMMUTABLE,
     maps_to_canonical_hubs: true,
-    fifth_product: false,
+    fifth_product: CAP7_FIFTH_PRODUCT,
     icann_hosts: [...ICANN_HUB_HOSTS],
     not_aliases_of: [...ICANN_HUB_HOSTS],
     canonical_hubs: [
@@ -147,6 +150,10 @@ export function semanticBridgeRefuse(code, message, extra = {}) {
     az_gen_live_registrar: false,
     resolves_to_hub: CAP7_RESOLVES_TO_HUB,
     inherit: CAP7_INHERIT,
+    name_may_change: CAP7_NAME_MAY_CHANGE,
+    canonical_hubs_immutable: CAP7_CANONICAL_HUBS_IMMUTABLE,
+    maps_to_canonical_hubs: true,
+    fifth_product: CAP7_FIFTH_PRODUCT,
     mesh_get_never_enables: true,
     message,
     limitation: SEMANTIC_BRIDGE_LIMITATION,
@@ -214,7 +221,7 @@ export function semanticBridgeSkillMarkdown(origin) {
   const cite = semanticBridgeCiteField(origin);
   return `## Cap-7 semantic bridge (MirageGrid)
 
-Cap-7 mesh names are **MirageGrid-only**. They inherit hub **designs** only (\`docs/designs/\` plus mesh-resident **azcorpus** + **azlibrary** on the library hub). \`resolves_to_hub: false\`. \`name_may_change: true\`. Canonical hubs are immutable. They are **not** aliases of the four ICANN hostnames (${cite.icann_hosts.join(", ")}). Not a fifth product.
+Cap-7 mesh names are **MirageGrid-only**. They inherit hub **designs** only (\`docs/designs/\` plus mesh-resident **azcorpus** + **azlibrary** on the library hub). \`resolves_to_hub: false\`. \`name_may_change: true\`. Canonical hubs are immutable. Names may change; they map to the original four hubs only (${cite.icann_hosts.join(", ")}). They are **not** aliases of those hostnames. Not a fifth product. \`public_icann: false\`.
 
 AI pulls mesh-generated **name metadata** (not a registration) from:
 

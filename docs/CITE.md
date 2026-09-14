@@ -58,7 +58,7 @@ Open crawl. Never `Disallow: /` for GPTBot or any listed bot.
 
 ## Cap-7 semantic bridge (MirageGrid — not ICANN)
 
-Cap-7 mesh names are **MirageGrid-only**. They inherit hub **designs** only (`docs/designs/` plus mesh-resident **azcorpus** + **azlibrary** on the library hub). `resolves_to_hub: false`. `name_may_change: true`. Canonical hubs are immutable. They are **not** aliases of the four ICANN hostnames (https://www.azieleliab.com/ · https://www.azielcorpuslibrary.net/ · https://godlock.uk/ · https://www.hedidntjump.com/). Not a fifth product.
+Cap-7 mesh names are **MirageGrid-only**. They inherit hub **designs** only (`docs/designs/` plus mesh-resident **azcorpus** + **azlibrary** on the library hub). `resolves_to_hub: false`. `name_may_change: true`. Canonical hubs are immutable. Names may change; they map to the original four hubs only (https://www.azieleliab.com/ · https://www.azielcorpuslibrary.net/ with azcorpus+azlibrary designs · https://godlock.uk/ · https://www.hedidntjump.com/). They are **not** aliases of the four ICANN hostnames. Not a fifth product. `public_icann: false`.
 
 AI pulls name metadata from:
 

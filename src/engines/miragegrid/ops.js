@@ -21,7 +21,16 @@ function envelope() {
     live_ops: LIVE,
     stub_ops: STUB,
     limitation: LIMITATION,
-    extra: { vpn: false, hop: false, public_icann: false, live_registrar: false, resolves_to_hub: false },
+    extra: {
+      vpn: false,
+      hop: false,
+      public_icann: false,
+      live_registrar: false,
+      resolves_to_hub: false,
+      name_may_change: true,
+      canonical_hubs_immutable: true,
+      fifth_product: false,
+    },
   };
 }
 
@@ -39,7 +48,7 @@ export function miragegridSkill() {
 export function miragegridDoctor() {
   return capabilityDoctor({
     ...envelope(),
-    doctor_note: "MirageGrid doctor: assign / verify-receipt / nodes / bridge cite. vpn-hop stays refuse. Cap-7 names inherit designs only; resolves_to_hub false.",
+    doctor_note: "MirageGrid doctor: assign / verify-receipt / nodes / bridge cite. vpn-hop stays refuse. Cap-7 names may change; map to the original four hubs only; inherit designs only; resolves_to_hub false; name_may_change; canonical hubs immutable; no fifth product; public_icann false.",
   });
 }
 
