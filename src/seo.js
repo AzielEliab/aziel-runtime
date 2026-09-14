@@ -852,14 +852,14 @@ export const SUITE_DESIGNS = Object.freeze([
   {
     id: "QNM-WP-1.0",
     file: "QNM-WP-1.0.md",
-    one_line: "Quantum Node Mesh fabric — local ON / public rollup OFF",
+    one_line: "Quantum Node Mesh fabric — local ON / public rollup; Phoenix wait/re-seal; pulled sites die with the pull",
     status: "live",
     kind: "law",
   },
   {
     id: "NODE-OPS-1.0",
     file: "NODE-OPS-1.0.md",
-    one_line: "Node operations + surface law + phoenix loop",
+    one_line: "Node operations + surface law + phoenix wait/re-seal (not public hostname resurrection)",
     status: "live",
     kind: "law",
   },

@@ -41,6 +41,8 @@ carries the token. MESH-VAULT lite may mint catalog / download / mesh events.
 •         Not a Remain-OFF flip. Do not enable remain-off items.
 •         Not hub UI chrome. This paper is runtime-only.
 •         Not a substitute for session receipts, FragGate ledger, or ForgeReceipts.
+•         Not public hostname resurrection. A pulled site dies with the pull. Die with the pull.
+          Receipts do not bring godlock.uk or any public hostname back. Phoenix is wait / re-seal only.
 
 3. Four fields
 
@@ -68,6 +70,12 @@ They document that the public chain lives on corpus /receipts.
 6. MESH-VAULT lite
 Catalog GET /v1/software, pull / download, and POST /v1/mesh/* may mint an ACT
 receipt when the token is set. This is not a Softwares vault product.
+Software pull / download is a catalog event. It is not site resurrection.
+A site pull (revoke token, drop Worker, kill DNS) ends the public mesh copy on
+that hostname. cloudflared has nowhere legal to land. Local node may keep
+verifying and appending. Mesh does not climb back onto the public hostname by
+itself. Receipts do not restore godlock.uk. Phoenix is wait / re-seal after
+poison or isolation — not “bring the .uk node back.”
 
 7. Identity
 Author / identity: Aziel Eliab only. Apache-2.0.

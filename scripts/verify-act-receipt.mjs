@@ -40,6 +40,10 @@ assert.match(paper, /No user \/ IP \/ geo/);
 assert.match(paper, /MESH-VAULT lite/);
 assert.match(paper, /Not a Remain-OFF flip/);
 assert.match(paper, /Do not enable remain-off items/);
+assert.match(paper, /die with the pull/i);
+assert.match(paper, /wait \/ re-seal/);
+assert.doesNotMatch(paper, /Phoenix brings/i);
+assert.doesNotMatch(paper, /auto-reattach/i);
 
 assert.equal(RECEIPTS_SPEC, "ACT-RECEIPT-1.0");
 assert.equal(LIBRARY_RECEIPTS, "https://www.azielcorpuslibrary.net/v1/receipts/append");

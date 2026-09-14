@@ -2,7 +2,7 @@
 
 Author: Aziel Eliab only.
 
-Status: local specification (2026-09-09). Not a Softwares-tab product. Not a fleet-completeness claim.
+Status: local specification (2026-09-09; die-with-the-pull lock 2026-09-14). Not a Softwares-tab product. Not a fleet-completeness claim.
 
 ---
 
@@ -19,8 +19,9 @@ Aziel Eliab · local specification · not a fleet-completeness claim
 
 
     0. Sentence
-    Tunnel first. Cloudflare Worker only if the tunnel is down. Visitors never receive a home IP. “Untraceable” is not a
-    claim this paper makes.
+    Tunnel first. Cloudflare Worker only if the tunnel process is down and the site is still published. Visitors never
+    receive a home IP. “Untraceable” is not a claim this paper makes. Public tunnels and sites die with the pull.
+    Phoenix is wait / re-seal only — not public hostname resurrection.
 
     1. What is already true
     The library already answers with server: cloudflare and a CF-Ray. Public clients hit Cloudflare, not a
@@ -37,20 +38,23 @@ Aziel Eliab · local specification · not a fleet-completeness claim
 
     1. Tunnel (primary). Named cloudflared frontend. Packed disk index. Rate bucket. Outbound only. 2.
     Cloudflare Worker (standby). Same hostname. Packed library:index:v1. No KV.list() on the hot path. Takes
-    traffic only when the tunnel is down or 5xx.
+    traffic only when the tunnel process is down or 5xx and the site is still published (token, DNS, Worker, account
+    still exist). A pulled site has no standby and no legal landing.
 
     Cloudflare edge is not a third origin. It is the always-on switch: TLS, orange-cloud DNS, cache, health check. It
-    forwards to (1), and if (1) fails it forwards to (2).
+    forwards to (1), and if (1) fails it forwards to (2) only while those published assets remain.
 
     3. What it is not
 •         Not a public Node Gate panel or IP allow/block UI.
 •         Not an untraceable-origin path. AZbot will not build that.
 •         Not a promise that Cloudflare, the registrar, or a payment processor cannot see an account.
 •         Not a VPN that hides the operator from Cloudflare. The tunnel connector IP is visible to Cloudflare. It is not
-          visible to library visitors.
+          visible to library visitors. Named hosts only. No VPN / concealment kit.
 •         Not rate limits on godlock.uk or on local ChainLock.
 •         Not a second catalog of truth. The Worker remains the record of public AZDOC cards. The tunnel serves a
           replica.
+•         Not Phoenix resurrection of a pulled site. Phoenix does not bring godlock.uk or this hostname back.
+•         Not a public contract that a process supervisor can re-land cloudflared after the token, Worker, or DNS is gone.
 
     4. Target topology
      visitor
@@ -158,19 +162,36 @@ Aziel Eliab · local specification · not a fleet-completeness claim
 
     Do not flip the apex A record to a raw VPS. That publishes an IP.
 
-    9. When the tunnel goes down
-    Tunnel down → Cloudflare Worker answers on the same hostname. Search still works from the packed index. Some
-    freshness lag. Soft rate limit still on. ChainLock library-sync still uses /v1/search on that hostname. When the
-    tunnel returns, it becomes primary again without a DNS change.
+    9. When the tunnel process is down (site still published)
+    If the named token, DNS name, Worker, and account still exist, a down cloudflared process is a temporary miss.
+    Cloudflare Worker may answer on the same hostname (standby). Search still works from the packed index. Some
+    freshness lag. Soft rate limit still on. ChainLock library-sync still uses /v1/search on that hostname.
+
+    A process supervisor restarting cloudflared is operator kit, not the public contract. It can land again only while
+    the credential and hostname remain. It fails if the credential or hostname is gone. That restart is not Phoenix.
+    It is not public hostname resurrection.
 
     Local ChainLock vault/library.jsonl is the site-fail shelf for the operator and for any client that already synced.
     That path does not need the tunnel.
 
-    10. Cap
-    This is a plan. It is not a cloudflared install script and not a new public panel. Connector IP is hidden from visitors,
-    not from Cloudflare. Untraceable-origin hosting is refused.
+    10. Die with the pull
+    Cloudflare Tunnel lives on a token, a DNS name, and an account. Pull the site, revoke the token, drop the Worker,
+    or kill DNS and cloudflared has nowhere legal to land.
 
-    Companion: RL-WP-0.1, CL-WP-0.4 § library tether, SG-WP-0.1.
+    Sites pulled → public rollup on that hostname is down. A local node may keep verifying and appending.
+    Mesh does not climb back onto the public hostname by itself. Phoenix is wait / re-seal after poison or isolation — not
+    “bring the .uk node back” and not public hostname resurrection.
+
+    Cold-copy survival: multiply cold copies. The pulled hostname is dead; vaults that already hold the hashes
+    keep verifying and appending. Live body sync across the network is refused. Payloads stay pull-only cold.
+    Named hosts only. FragGate / public contract elsewhere stays intact.
+
+    11. Cap
+    This is a plan. It is not a cloudflared install script and not a new public panel. Connector IP is hidden from visitors,
+    not from Cloudflare. Untraceable-origin hosting is refused. Phoenix does not restore azielcorpuslibrary.net or
+    godlock.uk after a pull.
+
+    Companion: RL-WP-0.1, CL-WP-0.4 § library tether, SG-WP-0.1, NODE-OPS-1.0, QNM-WP-1.0.
 
 
 

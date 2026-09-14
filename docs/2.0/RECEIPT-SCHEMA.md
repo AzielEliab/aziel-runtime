@@ -202,4 +202,4 @@ Four fields (hash includes `previous_hash`):
 
 Genesis `previous_hash` is `ZERO_HASH` (64 zero hex). Runtime `GET /v1/receipts` cites the public chain. `GET /v1/receipts/tip` and `GET /v1/receipts/proxy` are best-effort corpus tip proxies.
 
-MESH-VAULT lite may mint catalog / download / mesh events when the token is set. This is not a substitute for session receipts, the FragGate ledger, or ForgeReceipts.
+MESH-VAULT lite may mint catalog / download / mesh events when the token is set. This is not a substitute for session receipts, the FragGate ledger, or ForgeReceipts. Software pull / download is a catalog event, not site resurrection. A pulled site (token revoked, Worker dropped, DNS killed) dies with the pull. Receipts do not restore godlock.uk. Phoenix is wait / re-seal only.

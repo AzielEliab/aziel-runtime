@@ -5,14 +5,49 @@
  * TemporalLock block {kind,ts,note,n}
  * GodLock block cites https://godlock.uk — runtime does not write the public ledger.
  * verify is fail-closed.
+ * Split the wires: ingest is a proof, not a timer. The 1s tick is
+ * presence + tip hash only. 777s is dwell after a valid cite. Clock
+ * desync is not a yes. Ambiguous tip is isolate, not merge.
+ * Equivocation ends the peer. Quorum cannot outvote a broken hash.
+ * Cold-copy survival: tips are content-addressed and expensive to erase.
+ * Local verify/append outlives a single-server pull and the creators.
+ * Live body sync is refused. Payloads stay pull-only cold. Named hosts only.
  *
- * Paper: docs/designs/LS-WP-0.1.md
+ * Paper: docs/designs/LS-WP-0.1.md · SPLIT-WIRES-1.0 · COLD-COPY-1.0
  * Author: Aziel Eliab only.
  */
 
 import { canonicalize, sha256Hex } from "./session-core.js";
 import { hashFieldsOf, liveTips, verify as verifyChains } from "./chainlock/ops.js";
 import { storeFor } from "./chainlock/store.js";
+import {
+  DWELL_S,
+  SPLIT_WIRES,
+  SPLIT_WIRES_LAW,
+  SPLIT_WIRES_SHORT,
+  ingestProof,
+  judgeEquivocation,
+  mayEmitTip,
+  neighborPhoenix,
+  partitionRejoin,
+} from "./split-wires.js";
+import { COLD_COPY, COLD_COPY_LAW, COLD_COPY_SHORT, tipEraseCost } from "./cold-copy.js";
+
+export {
+  DWELL_S,
+  SPLIT_WIRES,
+  SPLIT_WIRES_LAW,
+  SPLIT_WIRES_SHORT,
+  ingestProof,
+  judgeEquivocation,
+  mayEmitTip,
+  neighborPhoenix,
+  partitionRejoin,
+  COLD_COPY,
+  COLD_COPY_LAW,
+  COLD_COPY_SHORT,
+  tipEraseCost,
+};
 
 export const LS_VERSION = "LS-0.1";
 export const LS_SPEC = "LS-WP-0.1";
@@ -116,6 +151,18 @@ export async function verify(storeOrEnv, input = {}) {
     }
   }
   if (!chain.ok) lattice = false;
+
+  const wires = applySplitWires(input, sealed);
+  if (wires.breaks.length) {
+    lattice = false;
+    breaks.push(...wires.breaks);
+  }
+  const erase = tipEraseCost(input);
+  if (!erase.ok) {
+    lattice = false;
+    breaks.push({ reason: erase.reason });
+  }
+
   return {
     ok: lattice,
     v: LS_VERSION,
@@ -126,5 +173,50 @@ export async function verify(storeOrEnv, input = {}) {
     lockset_sha256: sealed && sealed.lockset_sha256 ? sealed.lockset_sha256 : null,
     cite: GODLOCK_URL,
     write_public_ledger: false,
+    split_wires: SPLIT_WIRES,
+    dwell_s: DWELL_S,
+    timer_is_not_yes: true,
+    majority_is_truth: false,
+    isolate: wires.isolate || breaks.some((b) => b.reason === "ambiguous-tip-isolate"),
+    merge: false,
+    cold_copy: COLD_COPY,
+    live_body_sync: false,
+    tip_expensive_to_erase: true,
+    unkillable_by_single_server: true,
+    rewrite: false,
   };
+}
+
+function applySplitWires(input, sealed) {
+  const wants =
+    input.clock_desync === true ||
+    input.ambiguous === true ||
+    input.wait_then_take === true ||
+    input.quorum_overrides_hash === true ||
+    input.majority_vote === true ||
+    input.cited_prev != null ||
+    input.tip != null ||
+    input.held_prev != null ||
+    input.held_lockset != null ||
+    input.lockset != null ||
+    input.valid_cite != null ||
+    input.elapsed_s != null ||
+    input.verified != null;
+  if (!wants) return { breaks: [], isolate: false };
+  const proof = ingestProof({
+    held_prev: input.held_prev,
+    cited_prev: input.cited_prev,
+    tip: input.tip,
+    held_lockset: input.held_lockset || (sealed && sealed.lockset_sha256),
+    lockset: input.lockset || (sealed && sealed.lockset_sha256),
+    verified: input.verified,
+    clock_desync: input.clock_desync,
+    ambiguous: input.ambiguous,
+    wait_then_take: input.wait_then_take,
+    valid_cite: input.valid_cite,
+    elapsed_s: input.elapsed_s,
+    quorum_overrides_hash: input.quorum_overrides_hash,
+    majority_vote: input.majority_vote,
+  });
+  return { breaks: proof.breaks, isolate: proof.isolate };
 }
