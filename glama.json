@@ -16,6 +16,7 @@
     "audit",
     "provenance",
     "chain-of-custody",
+    "cold-shelf",
     "verification",
     "agent-security",
     "model-context-protocol",

@@ -41,6 +41,8 @@ Required discovery terms: **mcp**, **openapi**, **fraggate**, **digital-forensic
 
 Do **not** use `https://github.com/AzielEliab#person`. Worker origin is `relatedLink` / execution URL, not the identity hub.
 
+COLD-MULTI-SHELF-1.0 honesty (in-repo scrape surfaces: `/cite.json`, `/llms.txt`, `/shelves`, OpenAPI, `docs/CITE.md`) matches live corpus `/shelves`. Do not invent a Glama UUID, lockset DOI, archive.org item, or GitFlic URL.
+
 ## Cross-links (README + this lock)
 
 - Official site → https://www.azieleliab.com/
