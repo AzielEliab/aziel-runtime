@@ -90,8 +90,11 @@ import {
   CROSS_NETWORK_SURVIVAL,
   CROSS_NETWORK_SURVIVAL_SHORT,
   SURVIVAL_SHELVES,
+  SURVIVAL_TIP,
   citePriorLaws,
   networkDataDie,
+  survivalCiteField,
+  survivalHint,
 } from "./cross-network-survival.js";
 
 export const MESH_SLUG = "mesh";
@@ -331,6 +334,7 @@ export function meshHint(path = "/v1/mesh") {
     fanout: "cron-or-request-path",
     presence_ttl_ms: PRESENCE_TTL_MS,
     qns_cd: qnsHint(),
+    survival: survivalHint(),
   };
 }
 
@@ -347,6 +351,7 @@ export function meshCiteField(origin) {
     node_gate: false,
     qnm_s: false,
     note: "Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Not a login mesh.",
+    survival: survivalCiteField(),
   };
 }
 
@@ -401,6 +406,7 @@ export function nodeMeshHubCard(origin) {
     local_node: "qnm-node/",
     qns: `${base}/v1/qns`,
     qns_cd: qnsHint(),
+    survival: survivalHint(),
     note: MESH_LIMITATION,
     author: MESH_AUTHOR,
   };
@@ -665,6 +671,8 @@ function qnmFrame() {
     cross_network_survival_short: CROSS_NETWORK_SURVIVAL_SHORT,
     survival_shelves: SURVIVAL_SHELVES.slice(),
     live_network_is_shelf: false,
+    survival: survivalHint(),
+    survival_tip: SURVIVAL_TIP,
     local_node: "qnm-node/",
     local_node_note: QNM_LOCAL_NODE,
     host_note: QNM_HOST_NOTE,

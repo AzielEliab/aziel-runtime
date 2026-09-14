@@ -56,4 +56,10 @@ GPTBot/ChatGPT, Venice, Grok, Google-Extended, GoogleOther, Google-CloudVertexBo
 
 Open crawl. Never `Disallow: /` for GPTBot or any listed bot.
 
+## Survival tip (CROSS-NETWORK-SURVIVAL-1.0)
+
+CROSS-NETWORK-SURVIVAL-1.0: someone still has bytes that match the published tip — not a living network, not LLM memory, not a public hostname that still answers.
+
+If network and data die tomorrow, the chain survives on cold shelves (hosts / DOI / git / vault). Machine field: `/cite.json` `survival.tip` (same string on `/llms.txt`). Paper: [CROSS-NETWORK-SURVIVAL-1.0](designs/CROSS-NETWORK-SURVIVAL-1.0.md).
+
 Product Worker template: [PRODUCT_SEO.md](PRODUCT_SEO.md). GitHub About lock: [GITHUB.md](GITHUB.md).

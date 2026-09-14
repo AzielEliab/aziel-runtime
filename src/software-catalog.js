@@ -21,6 +21,7 @@ import { NAMED_STUBS } from "./fraggate/registry.js";
 import { meshHint } from "./mesh.js";
 import { qnsHint } from "./qns.js";
 import { actReceiptHint } from "./library-receipts.js";
+import { survivalHint } from "./cross-network-survival.js";
 import { AUTHOR_ID, azcoherenceCiteField, hubsCiteField, LIBRARY_ORIGIN } from "./seo.js";
 import { socialStatusField } from "./social-status.js";
 
@@ -244,6 +245,7 @@ export function softwareCatalog(origin, products, extra = {}) {
     qns_cd: qnsHint(),
     receipts: `${base}/v1/receipts`,
     act_receipt: actReceiptHint(),
+    survival: survivalHint(),
     azpipe_arch: `${base}/v1/azpipe/arch`,
   };
 }
