@@ -10,6 +10,7 @@ export const SESSION_TTL_MS = 6 * 60 * 60 * 1000;
 export const RATE_WINDOW_MS = 60_000;
 export const RATE_OPEN_PER_MIN = 20;
 export const RATE_EXEC_PER_MIN = 60;
+export const RATE_ANON_MUTATE_PER_MIN = 10;
 
 export const TOKEN_HEADER = "X-Aziel-Runtime-Token";
 export const VERSION_HEADER = "X-Aziel-Runtime-Version";
@@ -143,6 +144,34 @@ export function evaluateReady(env) {
   };
 }
 
+const TOKEN_QUERY_KEYS = Object.freeze([
+  "token",
+  "runtime_token",
+  "RUNTIME_TOKEN",
+  "aziel_runtime_token",
+  "bearer",
+  "access_token",
+]);
+
+/** Operator token is header-only. Query / fragment presentation is a leak attempt. */
+export function tokenPresentedInQuery(request) {
+  if (!request || !request.url) return false;
+  try {
+    const url = new URL(request.url);
+    for (const key of TOKEN_QUERY_KEYS) {
+      const v = url.searchParams.get(key);
+      if (v != null && String(v).trim()) return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Header-only operator token. Never reads query, body, or env from the URL.
+ * Authorization: Bearer … or X-Aziel-Runtime-Token.
+ */
 export function extractRuntimeToken(request) {
   if (!request || !request.headers) return "";
   const named = request.headers.get(TOKEN_HEADER) || request.headers.get("x-aziel-runtime-token");
@@ -170,6 +199,18 @@ export function timingSafeEqualString(a, b) {
 }
 
 export function sessionMutateAuth(request, env) {
+  if (tokenPresentedInQuery(request)) {
+    return {
+      ok: false,
+      status: 400,
+      body: {
+        ok: false,
+        error: "operator token is header-only",
+        code: "TOKEN-QUERY-REFUSED",
+        hint: "Authorization: Bearer … or X-Aziel-Runtime-Token",
+      },
+    };
+  }
   const gate = tokenGateState(env);
   if (gate.mutate_blocked) {
     return {
@@ -227,7 +268,7 @@ function rateStore(env) {
     throw new Error("rate limiter requires env object");
   }
   if (!env.__aziel_rate) {
-    env.__aziel_rate = { open: new Map(), exec: new Map() };
+    env.__aziel_rate = { open: new Map(), exec: new Map(), anon_mutate: new Map() };
   }
   return env.__aziel_rate;
 }
@@ -271,6 +312,10 @@ export function rateLimitDecision(env, request, kind, now = Date.now()) {
   if (kind === "exec") {
     const slot = takeRateSlot(env, "exec", ip, RATE_EXEC_PER_MIN, now);
     return { ...slot, scope: "session_exec", ip };
+  }
+  if (kind === "anon_mutate") {
+    const slot = takeRateSlot(env, "anon_mutate", ip, RATE_ANON_MUTATE_PER_MIN, now);
+    return { ...slot, scope: "anon_mutate", ip };
   }
   return { ok: true, scope: kind, ip, limit: 0, remaining: 0, count: 0, retry_after: 0, window_seconds: 60 };
 }

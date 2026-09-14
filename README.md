@@ -104,7 +104,7 @@ Public identity: **Aziel Eliab** only. Do not invent Zenodo DOIs.
 
 ### Cap-7 semantic bridge (not ICANN)
 
-Cap-7 mesh names are **MirageGrid-only**. They inherit hub **designs** only (including mesh-resident **azcorpus** + **azlibrary** on the library hub). `resolves_to_hub: false`. `name_may_change: true`. Canonical hubs are immutable. They are **not** aliases of the four ICANN hostnames (azieleliab.com, azielcorpuslibrary.net, godlock.uk, hedidntjump.com). Not a fifth product. AI pulls metadata from MirageGrid Worker `/bridge` or `GET /v1/mesh/az-generator`. `public_icann: false`. No live AZ-GEN registrar. No fake ICANN `.az`. No visible 15:20. `GET /v1/mesh` never enables radios. Mesh browse: AZNet + AZBrowser via FragGate. Plane A hubs mirror tips.
+Cap-7 mesh names are **MirageGrid-only**. They inherit hub **designs** only (including mesh-resident **azcorpus** + **azlibrary** on the library hub). `design_of: hub_designs`. `resolves_to_hub: false`. `name_may_change: true`. Canonical hubs are immutable. They are **not** aliases of the four ICANN hostnames (azieleliab.com, azielcorpuslibrary.net, godlock.uk, hedidntjump.com). Not a fifth product. AI pulls metadata from MirageGrid Worker `/bridge` or `GET /v1/mesh/az-generator`. `public_icann: false`. No live AZ-GEN registrar. No fake ICANN `.az`. No visible 15:20. `GET /v1/mesh` never enables radios. Mesh browse: AZNet + AZBrowser via FragGate. Plane A hubs mirror tips.
 
 ## FragGate door
 

@@ -15,6 +15,7 @@ import {
   recordIntent,
 } from "../src/session-core.js";
 import {
+  RATE_ANON_MUTATE_PER_MIN,
   RATE_EXEC_PER_MIN,
   RATE_OPEN_PER_MIN,
   RECEIPT_CAP,
@@ -24,6 +25,7 @@ import {
   clientIp,
   evaluateReady,
   extractRuntimeToken,
+  tokenPresentedInQuery,
   isSessionExpired,
   rateLimitDecision,
   receiptCapReached,
@@ -109,6 +111,16 @@ const tokenReq = new Request(origin + "/", {
 });
 assert.equal(extractRuntimeToken(tokenReq), "named");
 assert.equal(extractRuntimeToken(new Request(origin + "/", { headers: { Authorization: "Bearer only" } })), "only");
+assert.equal(extractRuntimeToken(new Request(origin + "/?token=query-secret")), "");
+assert.equal(tokenPresentedInQuery(new Request(origin + "/?token=query-secret")), true);
+assert.equal(tokenPresentedInQuery(new Request(origin + "/", { headers: { Authorization: "Bearer only" } })), false);
+const queryTok = sessionMutateAuth(
+  new Request(origin + "/v1/session/open?runtime_token=s3cret", { method: "POST" }),
+  { REQUIRE_TOKEN: "1", RUNTIME_TOKEN: "s3cret" },
+);
+assert.equal(queryTok.status, 400);
+assert.equal(queryTok.body.code, "TOKEN-QUERY-REFUSED");
+assert.ok(RATE_ANON_MUTATE_PER_MIN >= 1);
 assert.equal(clientIp(new Request(origin + "/", { headers: { "CF-Connecting-IP": "1.2.3.4" } })), "1.2.3.4");
 
 const devGate = tokenGateState({});

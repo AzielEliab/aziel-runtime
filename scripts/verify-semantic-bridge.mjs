@@ -11,6 +11,7 @@ import { PRODUCTS } from "../src/index.js";
 import { LIVE_OPS } from "../src/fraggate/registry.js";
 import { executeLocal } from "../src/engines/runner.js";
 import {
+  CAP7_DESIGN_OF,
   CAP7_INHERIT,
   CAP7_RESOLVES_TO_HUB,
   ICANN_HUB_HOSTS,
@@ -50,6 +51,7 @@ async function post(path, body) {
 assert.equal(SEMANTIC_BRIDGE_SPEC, "CAP-7");
 assert.equal(SEMANTIC_BRIDGE_FACTORY, "miragegrid");
 assert.equal(CAP7_INHERIT, "designs");
+assert.equal(CAP7_DESIGN_OF, "hub_designs");
 assert.equal(CAP7_RESOLVES_TO_HUB, false);
 assert.deepEqual(ICANN_HUB_HOSTS, [
   "https://www.azieleliab.com/",
@@ -65,6 +67,7 @@ assert.equal(cite.icann_tld_az, false);
 assert.equal(cite.live_registrar, false);
 assert.equal(cite.az_gen_live_registrar, false);
 assert.equal(cite.resolves_to_hub, false);
+assert.equal(cite.design_of, "hub_designs");
 assert.equal(cite.inherit, "designs");
 assert.equal(cite.name_may_change, true);
 assert.equal(cite.canonical_hubs_immutable, true);
@@ -143,6 +146,7 @@ assert.equal(httpCite.status, 200);
 const citeBody = await httpCite.json();
 assert.equal(citeBody.semantic_bridge.spec, "CAP-7");
 assert.equal(citeBody.semantic_bridge.resolves_to_hub, false);
+assert.equal(citeBody.semantic_bridge.design_of, "hub_designs");
 assert.equal(citeBody.semantic_bridge.inherit, "designs");
 assert.equal(citeBody.semantic_bridge.public_icann, false);
 assert.equal(citeBody.semantic_bridge.az_gen_live_registrar, false);
@@ -202,6 +206,7 @@ assert.match(skill, /airlock_ingest/);
 assert.match(skill, /upload_envelope/);
 assert.match(skill, /Cap-7 semantic bridge/);
 assert.match(skill, /resolves_to_hub: false/);
+assert.match(skill, /design_of: hub_designs/);
 assert.match(skill, /inherit hub \*\*designs\*\* only/);
 assert.match(skill, /azcorpus/);
 assert.match(skill, /azlibrary/);
@@ -214,6 +219,7 @@ assert.match(skill, /plus other MCP\/OpenAPI-capable assistants/);
 const llms = await (await get("/llms.txt")).text();
 assert.match(llms, /Cap-7 semantic bridge/);
 assert.match(llms, /resolves_to_hub: false/);
+assert.match(llms, /design_of: hub_designs/);
 assert.match(llms, /inherit: designs/);
 assert.match(llms, /azcorpus \+ azlibrary/);
 assert.match(llms, /name_may_change: true/);
@@ -236,6 +242,7 @@ assert.match(semanticBridgeStatus(origin).code, /CAP7-CITE/);
 
 const citeDoc = await readFile(new URL("../docs/CITE.md", import.meta.url), "utf8");
 assert.match(citeDoc, /resolves_to_hub: false/);
+assert.match(citeDoc, /design_of: hub_designs|`design_of: hub_designs`/);
 assert.match(citeDoc, /inherit hub \*\*designs\*\* only/);
 assert.match(citeDoc, /azcorpus/);
 assert.match(citeDoc, /azlibrary upload/);

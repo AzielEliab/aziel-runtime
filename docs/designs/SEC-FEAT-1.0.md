@@ -62,4 +62,6 @@ Inventory of controls that shrink the surface. Not a guarantee. Not a new produc
 - Auto-heal.
 - The word bulletproof as a guarantee.
 
+Companion redline (2026-09-14): [REDLINE-2026-09-14](REDLINE-2026-09-14.md) — door map, header-only operator token, Growth-ON Allow, Cloudflare TLS cite, attack-sim refuses. Not a new product.
+
 Public identity: Aziel Eliab only. 2026-09-06.

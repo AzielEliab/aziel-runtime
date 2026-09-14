@@ -133,7 +133,15 @@ import {
   authorityHeaders,
   evaluateReady,
   noStoreHeaders,
+  tokenPresentedInQuery,
 } from "./production.js";
+import {
+  doiInjectionRefuse,
+  isAzGeneratorHallucSlug,
+  azGeneratorCallRefuse,
+  redlineCiteField,
+  tokenQueryRefuse,
+} from "./redline.js";
 import {
   buildMcpToolList,
   callFraggateTool,
@@ -1540,6 +1548,8 @@ function citeJson(origin) {
     survival: survivalCiteField(),
     mesh: meshCiteField(base),
     semantic_bridge: semanticBridgeCiteField(origin),
+    redline: redlineCiteField(),
+    tls: redlineCiteField().tls,
     website_designs: websiteDesignsField(origin),
     suite_presence: SUITE_PRESENCE,
     products: PRODUCTS.map((p) => {
@@ -2777,6 +2787,9 @@ async function handleFraggateHttp(request, url, origin, env) {
     } catch {
       args = {};
     }
+    if (isAzGeneratorHallucSlug(args.slug || args.name || args.product)) {
+      return json({ ...azGeneratorCallRefuse(), door: "fraggate" }, 400, extra);
+    }
     const body = await fraggateCall(args, registry, BY_SLUG, env, request);
     return json(body, body.ok === false ? 400 : 200, extra);
   }
@@ -2854,6 +2867,10 @@ async function handleRequest(request, env, ctx) {
       return new Response(null, { status: 204, headers: corsHeaders() });
     }
 
+    if (tokenPresentedInQuery(request)) {
+      return json(tokenQueryRefuse(), 400, extra(url.pathname));
+    }
+
     if (url.pathname === "/" && request.method === "GET") {
       return html(catalogHtml(origin, {}), { ...extra("/"), ...catalogCacheHeaders() });
     }
@@ -2882,6 +2899,10 @@ async function handleRequest(request, env, ctx) {
     }
 
     if (url.pathname === "/cite.json" && (request.method === "GET" || request.method === "HEAD")) {
+      const injected = doiInjectionRefuse(url.searchParams.get("doi"));
+      if (injected) {
+        return asHead(request, json(injected, 400, extra("/cite.json")));
+      }
       return asHead(request, json(citeJson(origin), 200, extra("/cite.json")));
     }
 
@@ -3023,6 +3044,8 @@ async function handleRequest(request, env, ctx) {
           update_check: origin.replace(/\/$/, "") + "/v1/update/check",
           update_manifest: origin.replace(/\/$/, "") + "/v1/update/manifest",
           semantic_bridge: semanticBridgeCiteField(origin),
+          redline: redlineCiteField(),
+          tls: redlineCiteField().tls,
           website_designs: websiteDesignsField(origin),
           count: PRODUCTS.length,
           products: PRODUCTS.map((p) => catalogRecord(p, origin)),
@@ -3045,7 +3068,7 @@ async function handleRequest(request, env, ctx) {
           payload = {};
         }
       }
-      const out = await dispatchMeshHttp(request.method, url.pathname, payload, env, origin);
+      const out = await dispatchMeshHttp(request.method, url.pathname, payload, env, origin, url.searchParams);
       if (isMeshReadPath(url.pathname)) {
         scheduleSuitePresenceFanout(ctx, env, { source: "request-path" });
       }

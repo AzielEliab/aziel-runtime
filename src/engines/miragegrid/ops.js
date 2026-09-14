@@ -70,7 +70,7 @@ export async function runMiragegrid(op, payload, scratch) {
   }
   if (op === "bridge") {
     const origin = (payload && payload.origin) || "";
-    return miragegridBridgeCite(origin);
+    return miragegridBridgeCite(origin, payload);
   }
   return { unsupported: true };
 }
