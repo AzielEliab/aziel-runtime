@@ -11,6 +11,8 @@ import {
   COLD_MULTI_SHELF_DOCS,
   COLD_MULTI_SHELF_RULE,
   ARCHIVE_ORG_TIP_PACK,
+  ARCHIVE_ORG_TIP_PACK_202609,
+  ARCHIVE_ORG_TIP_PACK_URLS,
   CODEBERG_TIP_PACK,
   CORPUS_SHELVES,
   FAMILY_BLAST_RADII,
@@ -57,6 +59,8 @@ assert.match(paper, /CNS-OPERATOR-ATTEST/);
 assert.match(paper, /b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37/);
 assert.match(paper, /codeberg\.org\/AzielEliab\/aziel-lockset-tip/);
 assert.match(paper, /archive\.org\/details\/aziel-lockset-tip/);
+assert.match(paper, /aziel-lockset-tip_202609/);
+assert.match(paper, /Same blast_radius/);
 assert.match(paper, /Framagit/);
 assert.match(paper, /CNS-GITFLIC-EMAIL/);
 assert.match(paper, /CNS-GITLAB-CF-LOOP/);
@@ -91,6 +95,19 @@ assert.equal(CODEBERG_TIP_PACK.pack_sha256, "b549362c0736ddb54ddc488812327c464e0
 assert.equal(ARCHIVE_ORG_TIP_PACK.url, "https://archive.org/details/aziel-lockset-tip");
 assert.equal(ARCHIVE_ORG_TIP_PACK.hash_verify, "pass");
 assert.equal(ARCHIVE_ORG_TIP_PACK.pack_sha256, "b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37");
+assert.equal(ARCHIVE_ORG_TIP_PACK_202609.url, "https://archive.org/details/aziel-lockset-tip_202609");
+assert.equal(ARCHIVE_ORG_TIP_PACK_202609.identifier, "aziel-lockset-tip_202609");
+assert.equal(ARCHIVE_ORG_TIP_PACK_202609.hash_verify, "pass");
+assert.equal(ARCHIVE_ORG_TIP_PACK_202609.pack_sha256, "b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37");
+assert.equal(ARCHIVE_ORG_TIP_PACK_202609.ia_flat_sha256, null);
+assert.equal(ARCHIVE_ORG_TIP_PACK_202609.wrap, "zip");
+assert.deepEqual(ARCHIVE_ORG_TIP_PACK_URLS.slice(), [
+  "https://archive.org/details/aziel-lockset-tip",
+  "https://archive.org/details/aziel-lockset-tip_202609",
+]);
+assert.equal(ARCHIVE_ORG_TIP_PACK.secondary_items.length, 1);
+assert.equal(ARCHIVE_ORG_TIP_PACK.secondary_items[0].url, ARCHIVE_ORG_TIP_PACK_202609.url);
+assert.equal(ARCHIVE_ORG_TIP_PACK.secondary_items[0].independent_shelf, false);
 assert.equal(planeBLiveReady(), false);
 assert.deepEqual(independentLiveBlastRadii(), ["cf-github"]);
 assert.equal(PAPER_DEPOSITS.every((p) => p.reuse_as_plane_b === false && p.tip_verified === false), true);
@@ -128,9 +145,28 @@ assert.equal(archive.url, "https://archive.org/details/aziel-lockset-tip");
 assert.equal(archive.hash_verify, "pass");
 assert.equal(archive.live_ready, false);
 assert.equal(archive.status, "slot");
+assert.equal(archive.independent, true);
 assert.equal(archive.pack_sha256, "b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37");
+assert.equal(archive.secondary_items.length, 1);
+assert.equal(archive.secondary_items[0].url, "https://archive.org/details/aziel-lockset-tip_202609");
+assert.equal(archive.secondary_items[0].independent_shelf, false);
 assert.equal(claimShelfLive(archive).live, false);
 assert.equal(claimShelfLive(archive).reason, REFUSE.PLANE_B_ALL_TARGETS);
+const archive202609 = SHELF_REGISTRY.find((s) => s.id === "plane-b-archive-org-tip-pack-202609");
+assert.equal(archive202609.url, "https://archive.org/details/aziel-lockset-tip_202609");
+assert.equal(archive202609.hash_verify, "pass");
+assert.equal(archive202609.live_ready, false);
+assert.equal(archive202609.status, "slot");
+assert.equal(archive202609.independent, false);
+assert.equal(archive202609.blast_radius, "archive-org");
+assert.equal(archive202609.same_pack_as, "plane-b-archive-org-tip-pack");
+assert.equal(archive202609.required_for_plane_b_live, false);
+assert.equal(archive202609.doi, null);
+assert.equal(archive202609.pack_sha256, "b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37");
+assert.equal(archive202609.wrap, "zip");
+assert.equal(archive202609.ia_flat_sha256, null);
+assert.equal(claimShelfLive(archive202609).live, false);
+assert.equal(claimShelfLive(archive202609).reason, REFUSE.PLANE_B_ALL_TARGETS);
 const framagit = SHELF_REGISTRY.find((s) => s.id === "plane-b-framagit-tip-pack");
 assert.equal(framagit.status, "slot");
 assert.equal(framagit.url, null);
@@ -179,6 +215,11 @@ assert.ok(shelves.registry.refused.includes("plane-b-gitflic-ru-tip-pack"));
 assert.ok(shelves.registry.refused.includes("plane-b-gitlab-tip-pack"));
 assert.ok(shelves.registry.slot.includes("plane-b-framagit-tip-pack"));
 assert.ok(shelves.registry.slot.includes("plane-b-archive-org-tip-pack"));
+assert.ok(shelves.registry.slot.includes("plane-b-archive-org-tip-pack-202609"));
+assert.ok(!shelves.registry.live.includes("plane-b-archive-org-tip-pack-202609"));
+assert.equal(shelves.registry.planes.B.working_targets.filter((t) => t === "archive.org").length, 1);
+assert.match(shelves.registry.planes.B.note, /aziel-lockset-tip_202609/);
+assert.match(shelves.registry.note, /aziel-lockset-tip_202609/);
 assert.equal(shelves.source_of_truth, CORPUS_SHELVES);
 assert.equal(shelves.visible_1520, false);
 assert.equal(shelves.person_id, "https://www.azieleliab.com/#aziel");
@@ -191,6 +232,14 @@ assert.equal(
 assert.equal(
   shelves.registry.shelves.find((s) => s.id === "plane-b-archive-org-tip-pack").hash_verify,
   "pass",
+);
+assert.equal(
+  shelves.registry.shelves.find((s) => s.id === "plane-b-archive-org-tip-pack-202609").url,
+  "https://archive.org/details/aziel-lockset-tip_202609",
+);
+assert.equal(
+  shelves.registry.shelves.find((s) => s.id === "plane-b-archive-org-tip-pack-202609").independent,
+  false,
 );
 assert.equal(
   shelves.registry.shelves.find((s) => s.id === "plane-b-framagit-tip-pack").url,
@@ -236,6 +285,14 @@ assert.equal(cite.shelves.plane_b.codeberg.hash_verify, "pass");
 assert.equal(cite.shelves.plane_b.archive_org.url, "https://archive.org/details/aziel-lockset-tip");
 assert.equal(cite.shelves.plane_b.archive_org.hash_verify, "pass");
 assert.equal(cite.shelves.plane_b.archive_org.pack_sha256, "b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37");
+assert.equal(cite.shelves.plane_b.archive_org.secondary_items[0].url, "https://archive.org/details/aziel-lockset-tip_202609");
+assert.equal(cite.shelves.plane_b.archive_org_202609.url, "https://archive.org/details/aziel-lockset-tip_202609");
+assert.equal(cite.shelves.plane_b.archive_org_202609.independent, false);
+assert.equal(cite.shelves.plane_b.archive_org_202609.hash_verify, "pass");
+assert.deepEqual(cite.shelves.archive_org_tip_packs, [
+  "https://archive.org/details/aziel-lockset-tip",
+  "https://archive.org/details/aziel-lockset-tip_202609",
+]);
 assert.equal(cite.shelves.plane_b.framagit.url, null);
 assert.deepEqual(cite.shelves.plane_b.working_targets, ["codeberg", "archive.org", "framagit"]);
 assert.equal(cite.shelves.redline.spec, REDLINE_SPEC);
@@ -279,6 +336,8 @@ assert.match(llms, /CNS-ZENODO-IP-BAN/);
 assert.match(llms, /CNS-OPERATOR-ATTEST/);
 assert.match(llms, /b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37/);
 assert.match(llms, /archive\.org\/details\/aziel-lockset-tip/);
+assert.match(llms, /aziel-lockset-tip_202609/);
+assert.match(llms, /same blast_radius/);
 assert.match(llms, /Framagit/);
 assert.match(llms, /CNS-GITFLIC-EMAIL/);
 assert.match(llms, /CNS-GITLAB-CF-LOOP/);
@@ -294,6 +353,8 @@ const skill = await (await get("/v1/skill")).text();
 assert.match(skill, /COLD-MULTI-SHELF-1\.0/);
 assert.match(skill, /CNS-ZENODO-IP-BAN/);
 assert.match(skill, /archive\.org\/details\/aziel-lockset-tip/);
+assert.match(skill, /aziel-lockset-tip_202609/);
+assert.match(skill, /same blast_radius/);
 assert.match(skill, /Framagit/);
 assert.match(skill, /CNS-GITFLIC-EMAIL/);
 assert.match(skill, /CNS-GITLAB-CF-LOOP/);
@@ -313,6 +374,7 @@ assert.ok(openapi.paths["/v1/shelves"]);
 assert.match(openapi.paths["/shelves"].get.summary, /COLD-MULTI-SHELF/);
 assert.match(openapi.paths["/v1/shelves"].get.summary, /COLD-MULTI-SHELF/);
 assert.match(openapi.paths["/shelves"].get.summary, /archive\.org\/details\/aziel-lockset-tip/);
+assert.match(openapi.paths["/shelves"].get.summary, /aziel-lockset-tip_202609/);
 assert.match(openapi.paths["/shelves"].get.summary, /Framagit/);
 assert.match(openapi.paths["/shelves"].get.summary, /REDLINE-2026-09-14/);
 assert.match(openapi.paths["/shelves"].get.summary, /design_of/);
@@ -329,5 +391,5 @@ assert.equal(shelvesCiteField(origin).redline.spec, REDLINE_SPEC);
 assert.equal(shelvesCiteField(origin).attack_sims.pointer, ATTACK_SIM_POINTER);
 
 console.log(
-  `ok ${COLD_MULTI_SHELF}: Plane A 5/2/1; Plane B Codeberg+archive.org PASS still SLOT; Framagit URL null; GitFlic/GitLab refused; doi null; Plane C SLOT; runtime not a shelf`,
+  `ok ${COLD_MULTI_SHELF}: Plane A 5/2/1; Plane B Codeberg+archive.org PASS still SLOT (primary + 202609 same blast_radius); Framagit URL null; GitFlic/GitLab refused; doi null; Plane C SLOT; runtime not a shelf`,
 );

@@ -31,8 +31,10 @@ Plane A is one CF/GitHub tunnel: four host mirrors + git = **5 published
 surfaces** and **2 family radii** (cloudflare + github), counted as **one**
 independent live (`cf-github`). Plane B is an alternate independent
 forge/archive tip-pack **SLOT**. Codeberg hash-verify PASS; archive.org
-PASS at https://archive.org/details/aziel-lockset-tip (pack `b549362c…`)
-still SLOT; Framagit URL null (third ALL-TARGETS). GitFlic refused
+PASS at https://archive.org/details/aziel-lockset-tip and
+https://archive.org/details/aziel-lockset-tip_202609 (same blast_radius
+`archive-org`; pack `b549362c…`) still SLOT; Framagit URL null (third
+ALL-TARGETS). GitFlic refused
 (`CNS-GITFLIC-EMAIL`). GitLab refused (`CNS-GITLAB-CF-LOOP`). LIVE only
 after all three (`CNS-PLANE-B-ALL-TARGETS`). Zenodo refused
 (`CNS-ZENODO-IP-BAN`). `doi` null.
@@ -100,6 +102,12 @@ Plane B stays `slot` until **all three** hash-verify (`CNS-PLANE-B-ALL-TARGETS`)
 - archive.org tip-pack: https://archive.org/details/aziel-lockset-tip
   (`identifier` `aziel-lockset-tip`). Same pack SHA-256. Hash-verify PASS.
   Status remains **slot**.
+- Second archive.org item: https://archive.org/details/aziel-lockset-tip_202609
+  (`identifier` `aziel-lockset-tip_202609`). Same blast_radius `archive-org`
+  as the primary — not a new independent shelf. Same inner tar SHA-256.
+  Zip wrap: `ia_flat_sha256` null; SHA256SUMS flat-check incomplete at the
+  IA file list is OK because the inner `aziel-tip-pack.tar` hash-verifies.
+  Status remains **slot**. `independent: false`.
 - Framagit stays `url: null` until verified. Do not invent a URL.
 - GitFlic is `refused` (`CNS-GITFLIC-EMAIL`). Not a working target.
 - GitLab is `refused` (`CNS-GITLAB-CF-LOOP`). Not a working path.
@@ -167,7 +175,9 @@ No visible 15:20 chrome. Person `@id` https://www.azieleliab.com/#aziel.
 - `/cite.json` `shelves.published_surfaces` is 5.
 - `/cite.json` `shelves.runtime_is_shelf` is false.
 - `/shelves` registry matches corpus#96 honesty (Codeberg + archive.org
-  PASS still SLOT; Framagit URL null; GitFlic `CNS-GITFLIC-EMAIL`; GitLab
+  PASS still SLOT at https://archive.org/details/aziel-lockset-tip and
+  https://archive.org/details/aziel-lockset-tip_202609, same blast_radius;
+  Framagit URL null; GitFlic `CNS-GITFLIC-EMAIL`; GitLab
   `CNS-GITLAB-CF-LOOP`; Zenodo refused; Plane C SLOT).
 - `/shelves` (and `/cite.json` `shelves`) carry `redline.spec`
   `REDLINE-2026-09-14`, Cap-7 `design_of: hub_designs` +
@@ -184,7 +194,7 @@ No visible 15:20 chrome. Person `@id` https://www.azieleliab.com/#aziel.
 Plane A is one LIVE CF/GitHub tunnel (5 published surfaces / 2 family radii /
 1 independent live). Plane B is an alt independent forge/archive SLOT until
 Codeberg + archive.org + Framagit hash-verify. Codeberg + archive.org PASS
-still SLOT. GitFlic refused (`CNS-GITFLIC-EMAIL`). GitLab refused
+still SLOT (primary + `aziel-lockset-tip_202609`, same blast_radius). GitFlic refused (`CNS-GITFLIC-EMAIL`). GitLab refused
 (`CNS-GITLAB-CF-LOOP`). Zenodo is refused (`CNS-ZENODO-IP-BAN`). `doi` null.
 Plane C is the USB airgap pack (SLOT until attested). Survival is
 bytes↔hash. Identity: Aziel Eliab only.
