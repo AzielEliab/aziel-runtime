@@ -116,6 +116,7 @@ import {
 } from "./mesh.js";
 import { dispatchQnsHttp, qnsHint } from "./qns.js";
 import { dispatchActReceiptHttp, finishWithActReceipt } from "./library-receipts.js";
+import { SURVIVAL_TIP, survivalCiteField, survivalLlmsBlock } from "./cross-network-survival.js";
 import {
   catalogCacheHeaders,
   donationStatic,
@@ -1353,6 +1354,7 @@ function llmsTxt(origin) {
     `Client update check: ${base}/v1/update/check?slug={slug}&version={installed}`,
     `Update manifest: ${base}/v1/update/manifest`,
     `Mesh: ${base}/v1/mesh  (QNM-BUILD-1.0 suite rollup. Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public disable of suite-presence is refused. Not a login mesh. Not Node Gate.)`,
+    `Survival tip: ${SURVIVAL_TIP}`,
     `Mesh status: ${base}/v1/mesh/status  (alias; never enables)`,
     `Mesh nodes: ${base}/v1/mesh/nodes  (roster; 5-minute TTL; no scores)`,
     `ACT-RECEIPT-1.0: ${base}/v1/receipts  (cite). Public chain lives on https://www.azielcorpuslibrary.net/receipts. Runtime appends after FragGate list/call, POST /mcp, and significant POST /v1/* when RECEIPT_APPEND_TOKEN is set (fail-open). Tip/proxy: ${base}/v1/receipts/tip. Not a Softwares-tab product.`,
@@ -1369,6 +1371,8 @@ function llmsTxt(origin) {
     `User-Agent: Mozilla/5.0`,
     designsLlmsHeaderLine(),
     auditsLlmsHeaderLine(),
+    "",
+    survivalLlmsBlock().trimEnd(),
     "",
     llmsCompatibleBlock().trimEnd(),
     "",
@@ -1523,6 +1527,7 @@ function citeJson(origin) {
     mesh_get_never_enables: true,
     designs: designsCiteField(),
     audits: auditsCiteField(),
+    survival: survivalCiteField(),
     mesh: meshCiteField(base),
     mesh_get_never_enables: true,
     suite_presence: SUITE_PRESENCE,

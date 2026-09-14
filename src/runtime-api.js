@@ -487,6 +487,7 @@ export function runtimeManifest(origin, products, extra = {}) {
       qns_local: "https://github.com/AzielEliab/qnm-node",
       akm_triad: "AKM-TRIAD-1.0",
       act_receipt: "ACT-RECEIPT-1.0",
+      cross_network_survival: "CROSS-NETWORK-SURVIVAL-1.0",
       act_receipt_public_chain: "https://www.azielcorpuslibrary.net/receipts",
       act_receipt_path: "/v1/receipts",
       pipeline: "MASTER-33",

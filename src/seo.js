@@ -5,6 +5,7 @@
  */
 
 import { socialStatusField } from "./social-status.js";
+import { CROSS_NETWORK_SURVIVAL, survivalHint } from "./cross-network-survival.js";
 
 export const AUTHOR_NAME = "Aziel Eliab";
 export const AUTHOR_ALTERNATE_NAME = "Aziel Elroi Eliab";
@@ -988,6 +989,14 @@ export const SUITE_DESIGNS = Object.freeze([
     status: "live",
     kind: "law",
   },
+  {
+    id: "CROSS-NETWORK-SURVIVAL-1.0",
+    file: "CROSS-NETWORK-SURVIVAL-1.0.md",
+    one_line:
+      "Umbrella survival law — if network and data die tomorrow, the chain survives on cold shelves (hosts / DOI / git / vault); matching bytes, not a living network / LLM memory / answering hostname; cites Die-with-pull, Split the wires, Cold-copy, Ingest-as-receipt, Re-expand, Reheal",
+    status: "live",
+    kind: "law",
+  },
 ]);
 
 export function designGithubUrl(file) {
@@ -1022,6 +1031,8 @@ export function designsCiteField() {
     mesh_get_never_enables: true,
     worker_serves_pdfs: false,
     how_to_cite: `${AUTHOR_FAMILY_GIVEN}. (2026). {id} [Design]. ${DESIGNS_GITHUB_BLOB}/{FILE}`,
+    umbrella: CROSS_NETWORK_SURVIVAL,
+    survival: survivalHint(),
     papers: SUITE_DESIGNS.map(designPaperRecord),
   };
 }
@@ -1030,7 +1041,7 @@ export function designsSkillMarkdown() {
   const lines = [
     "## Designs",
     "",
-    "Suite software-design papers (law / fabric are not Softwares-tab products, not a FragGate slug). 4DM-WP-1.0 is the 4DMap product spec (Softwares-tab slug `4dmap`; the paper is not a FragGate slug). LIVE fabric modules: ChainLock, AZPIPE, SweepGate, LOCKSET, packed catalog (RL), QNS-CD-1.0 (photon QNS1 1.3; local qnsd; Worker cites only), MASTER-33 (locked hop order; FragGate single door; Lamb Lens after FragGate; LambGate is not a hop), AKM-TRIAD-1.0 (adaptive recollection; Bayesian posterior ≠ truth), ACT-RECEIPT-1.0 (public four-field receipts on corpus /receipts; fail-open). SUITE-PIPE-1.6.15 is historical. `GET /v1/mesh` never enables. Git-hosted — the Worker does not serve the PDFs. Public identity Aziel Eliab only.",
+    "Suite software-design papers (law / fabric are not Softwares-tab products, not a FragGate slug). 4DM-WP-1.0 is the 4DMap product spec (Softwares-tab slug `4dmap`; the paper is not a FragGate slug). LIVE fabric modules: ChainLock, AZPIPE, SweepGate, LOCKSET, packed catalog (RL), QNS-CD-1.0 (photon QNS1 1.3; local qnsd; Worker cites only), MASTER-33 (locked hop order; FragGate single door; Lamb Lens after FragGate; LambGate is not a hop), AKM-TRIAD-1.0 (adaptive recollection; Bayesian posterior ≠ truth), ACT-RECEIPT-1.0 (public four-field receipts on corpus /receipts; fail-open). CROSS-NETWORK-SURVIVAL-1.0 is the umbrella survival law (if network and data die tomorrow, the chain survives on cold shelves — hosts / DOI / git / vault; matching bytes, not a living network). SUITE-PIPE-1.6.15 is historical. `GET /v1/mesh` never enables. Git-hosted — the Worker does not serve the PDFs. Public identity Aziel Eliab only.",
     "",
   ];
   for (const d of SUITE_DESIGNS) {
@@ -1046,7 +1057,7 @@ export function designsLlmsBlock() {
   const lines = [
     "## Designs",
     "",
-    "Suite software-design papers (law / fabric are not Softwares-tab products, not a FragGate slug). 4DM-WP-1.0 is the 4DMap product spec (slug `4dmap`). LIVE fabric: CL-WP-0.4, AP-WP-0.2, SG-WP-0.1, LS-WP-0.1, RL-WP-0.1 (runtime), QNS-CD-1.0 (local qnsd), MASTER-33 (locked hop order; FragGate single door), AKM-TRIAD-1.0 (adaptive recollection), ACT-RECEIPT-1.0 (corpus /receipts). SUITE-PIPE-1.6.15 is historical. GET /v1/mesh never enables. Git-hosted — the Worker does not serve the PDFs. Author: Aziel Eliab only.",
+    "Suite software-design papers (law / fabric are not Softwares-tab products, not a FragGate slug). 4DM-WP-1.0 is the 4DMap product spec (slug `4dmap`). LIVE fabric: CL-WP-0.4, AP-WP-0.2, SG-WP-0.1, LS-WP-0.1, RL-WP-0.1 (runtime), QNS-CD-1.0 (local qnsd), MASTER-33 (locked hop order; FragGate single door), AKM-TRIAD-1.0 (adaptive recollection), ACT-RECEIPT-1.0 (corpus /receipts). CROSS-NETWORK-SURVIVAL-1.0 is the umbrella survival law (cold shelves hosts / DOI / git / vault; matching bytes ≠ living network). SUITE-PIPE-1.6.15 is historical. GET /v1/mesh never enables. Git-hosted — the Worker does not serve the PDFs. Author: Aziel Eliab only.",
     `Index: ${DESIGNS_GITHUB_TREE}`,
     "",
   ];
@@ -1059,7 +1070,7 @@ export function designsLlmsBlock() {
 
 export function designsLlmsHeaderLine() {
   const ids = SUITE_DESIGNS.map((d) => d.id).join(", ");
-  return `Designs: ${DESIGNS_FOLDER} (${ids}) git-hosted LIVE modules — not Softwares-tab products, not a FragGate slug. GET /v1/mesh never enables. ${DESIGNS_GITHUB_TREE}`;
+  return `Designs: ${DESIGNS_FOLDER} (${ids}) git-hosted LIVE modules — not Softwares-tab products, not a FragGate slug. GET /v1/mesh never enables. Umbrella: ${CROSS_NETWORK_SURVIVAL}. ${DESIGNS_GITHUB_TREE}`;
 }
 
 export function designsSitemapUrls() {
@@ -1068,6 +1079,7 @@ export function designsSitemapUrls() {
     ...SUITE_DESIGNS.map((d) => designGithubUrl(d.file)),
     designGithubUrl("REMAIN-OFF-BY-DESIGN-2026-09-10.pdf"),
     designGithubUrl("AZL-DONATE-1.0.pdf"),
+    designGithubUrl("CROSS-NETWORK-SURVIVAL-1.0.pdf"),
   ];
 }
 

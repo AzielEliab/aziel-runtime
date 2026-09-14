@@ -19,7 +19,7 @@ LIVE fabric on this Worker (not Softwares-tab): CL-WP-0.4, AP-WP-0.2, SG-WP-0.1,
 
 **REHEAL** (NODE_MESH / NODE-OPS / QNM-WP / LS-WP / `src/reheal.js`): isolation is the cure. A poisoned node heals from its own last good tip + a verified trusted pull, or phoenix-WAIT — never by listening to neighbors. Allowed: live / locked / isolated / tip-hash. Forbidden: bodies / diffs / vote-to-fix.
 
-**CROSS-NETWORK-SURVIVAL-1.0** (NODE_MESH / NODE-OPS / QNM-WP / LS-WP / `src/cross-network-survival.js`): if network and data die tomorrow, the chain survives on cold shelves (hosts / DOI / git / vault). Umbrella over die-with-the-pull, split-the-wires, cold-copy survival, re-expand-from-archive, and REHEAL. The live mesh is not a shelf.
+**CROSS-NETWORK-SURVIVAL-1.0** (NODE_MESH / NODE-OPS / QNM-WP / LS-WP / `src/cross-network-survival.js` / [CROSS-NETWORK-SURVIVAL-1.0.md](CROSS-NETWORK-SURVIVAL-1.0.md)): if network and data die tomorrow, the chain survives on cold shelves (hosts / DOI / git / vault). Umbrella over die-with-the-pull, split-the-wires, cold-copy survival, ingest-as-receipt, re-expand-from-archive, and REHEAL. Survival = someone still has bytes that match the published tip — not a living network, not LLM memory, not a public hostname that still answers. Machine tip lives on `/cite.json` `survival.tip` and `/llms.txt`. The live mesh is not a shelf. Named hosts only. No unmarked hydra. No VPN concealment kit. No visible 15:20 chrome.
 
 **REMAIN-OFF-BY-DESIGN-2026-09-10** is the constitutional OFF set (33 items). Correctly OFF / REFUSED / GATED does not count as missing. Companion audit [`FEATURE-STATE-2026-09-10`](../audit/FEATURE-STATE-2026-09-10.md) lists gaps vs intentional OFF. Do not enable remain-off items.
 
