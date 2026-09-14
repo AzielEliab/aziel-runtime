@@ -24,6 +24,7 @@ import { actReceiptHint } from "./library-receipts.js";
 import { survivalHint } from "./cross-network-survival.js";
 import { AUTHOR_ID, azcoherenceCiteField, hubsCiteField, LIBRARY_ORIGIN } from "./seo.js";
 import { socialStatusField } from "./social-status.js";
+import { websiteDesignsField, websiteDesignsOnCorpusCard } from "./website-designs.js";
 
 export const SOFTWARE_SORT_LAW = "plain A–Z → gate A–Z → lock A–Z (Clock ≠ Lock)";
 export const SOFTWARE_FRAMING =
@@ -151,6 +152,7 @@ export function liveSoftwareCard(product, origin, meta = {}) {
           public_mesh_destructive: false,
         }
       : {}),
+    ...(product.slug === "aziel-corpus" ? websiteDesignsOnCorpusCard(base) : {}),
   };
 }
 
@@ -247,6 +249,7 @@ export function softwareCatalog(origin, products, extra = {}) {
     act_receipt: actReceiptHint(),
     survival: survivalHint(),
     azpipe_arch: `${base}/v1/azpipe/arch`,
+    website_designs: websiteDesignsField(base),
   };
 }
 

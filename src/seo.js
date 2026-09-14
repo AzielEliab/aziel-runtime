@@ -72,7 +72,7 @@ export function runtimeAboutField(origin) {
       softwares: "Plain → Gate → Lock catalog products with true in-process engines where live.",
       dual_surface: "Agents via OpenAPI/MCP; humans via Worker UI + counted /download.",
       semantic_bridge:
-        "Cap-7 mesh names via MirageGrid only. Inherit hub designs only. resolves_to_hub false. Not aliases of the four ICANN hostnames. GET /v1/mesh never enables.",
+        "Cap-7 mesh names via MirageGrid only. Inherit hub designs only (azcorpus + azlibrary on the library hub). resolves_to_hub false. name_may_change. Canonical hubs immutable. Not aliases of the four ICANN hostnames. GET /v1/mesh never enables.",
       nodemesh:
         "QNM read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Local qnm-node. Not a login mesh / VPN / Node Gate.",
       master33: "Domains are isolation labels, not extra doors. Lamb Lens ethics hop after FragGate.",
@@ -552,7 +552,7 @@ export function libraryJsonLd() {
     alternateName: ["Aziel Corpus Library"],
     url: LIBRARY_ORIGIN + "/",
     description:
-      "Self-contained immutable digital library. Public MASTER. Counted package download. Author Aziel Eliab. Not a 26-card software index.",
+      "Self-contained immutable digital library. Public MASTER. Counted package download. Mesh-resident website designs azcorpus + azlibrary downloadable to nodes. Author Aziel Eliab. Not a 26-card software index.",
     applicationCategory: "ReferenceApplication",
     operatingSystem: "Cloudflare Workers",
     license: "https://www.apache.org/licenses/LICENSE-2.0",

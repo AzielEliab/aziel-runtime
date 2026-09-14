@@ -460,6 +460,8 @@ assert.ok(openapi.data.paths["/v1/mesh/az-generator"]);
 assert.match(openapi.data.paths["/v1/mesh/az-generator"].get.summary, /resolves_to_hub false/);
 assert.equal(citeMesh.semantic_bridge.resolves_to_hub, false);
 assert.equal(citeMesh.semantic_bridge.inherit, "designs");
+assert.equal(citeMesh.semantic_bridge.name_may_change, true);
+assert.deepEqual(citeMesh.semantic_bridge.website_designs.ids, ["azcorpus", "azlibrary"]);
 
 const unitOn = await runMeshOp("join", { product: "azmail" }, {});
 assert.equal(unitOn.ok, true);

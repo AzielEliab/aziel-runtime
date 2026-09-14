@@ -3,6 +3,8 @@
  *
  * Cap-7 names inherit hub **designs** only. resolves_to_hub: false.
  * They are not aliases of the four public ICANN hostnames.
+ * Mesh names may change; they map to the original four canonical hubs
+ * (library hub carries azcorpus + azlibrary designs). No fifth product.
  * Factory is MirageGrid-only. AZ-GEN is a cite label, not a live registrar.
  * AI pulls name metadata from public bridge URLs. GET /v1/mesh never enables.
  *
@@ -19,6 +21,7 @@ import {
   LIBRARY_ORIGIN,
   softwareHubCrawl,
 } from "./seo.js";
+import { WEBSITE_DESIGN_IDS, websiteDesignsField } from "./website-designs.js";
 
 export const SEMANTIC_BRIDGE_SPEC = "CAP-7";
 export const SEMANTIC_BRIDGE_NAME = "Cap-7 semantic bridge";
@@ -39,7 +42,7 @@ export const CAP7_INHERIT = "designs";
 export const CAP7_RESOLVES_TO_HUB = false;
 
 export const SEMANTIC_BRIDGE_LIMITATION =
-  "THIS IS: Cap-7 mesh-name metadata cite. Factory is MirageGrid only. Names inherit hub designs only (docs/designs/). AI pulls metadata from MirageGrid Worker /bridge or GET /v1/mesh/az-generator. Mesh browse is AZNet + AZBrowser via FragGate. Plane A hubs mirror published tips. THIS IS NOT: ICANN DNS; a public .az TLD; an alias of the four ICANN hostnames; a live AZ-GEN registrar; a hostname that resolves to a hub; visible 15:20 chrome; a GET /v1/mesh radio enable. Author: Aziel Eliab only.";
+  "THIS IS: Cap-7 mesh-name metadata cite. Factory is MirageGrid only. Names inherit hub designs only (docs/designs/ plus mesh-resident azcorpus + azlibrary on the library hub). Names may change; canonical hubs are immutable. AI pulls metadata from MirageGrid Worker /bridge or GET /v1/mesh/az-generator. Mesh browse is AZNet + AZBrowser via FragGate. Plane A hubs mirror published tips. THIS IS NOT: ICANN DNS; a public .az TLD; an alias of the four ICANN hostnames; a live AZ-GEN registrar; a hostname that resolves to a hub; a fifth Softwares product; visible 15:20 chrome; a GET /v1/mesh radio enable. Author: Aziel Eliab only.";
 
 export function miragegridBridgeUrl() {
   return `${MIRAGEGRID_WORKER_ORIGIN}${MIRAGEGRID_BRIDGE_PATH}`;
@@ -77,9 +80,20 @@ export function semanticBridgeCiteField(origin) {
     resolves_to_hub: CAP7_RESOLVES_TO_HUB,
     inherit: CAP7_INHERIT,
     inherit_note:
-      "Cap-7 names inherit hub designs only. They are not aliases of the four ICANN hostnames and do not resolve to those hosts.",
+      "Cap-7 names inherit hub designs only (docs/designs/ plus mesh-resident azcorpus + azlibrary on the library hub). They are not aliases of the four ICANN hostnames and do not resolve to those hosts.",
+    name_may_change: true,
+    canonical_hubs_immutable: true,
+    maps_to_canonical_hubs: true,
+    fifth_product: false,
     icann_hosts: [...ICANN_HUB_HOSTS],
     not_aliases_of: [...ICANN_HUB_HOSTS],
+    canonical_hubs: [
+      { host: ICANN_HUB_HOSTS[0], designs: [] },
+      { host: ICANN_HUB_HOSTS[1], designs: [...WEBSITE_DESIGN_IDS] },
+      { host: ICANN_HUB_HOSTS[2], designs: [] },
+      { host: ICANN_HUB_HOSTS[3], designs: [] },
+    ],
+    website_designs: websiteDesignsField(base),
     visible_1520: false,
     mesh_get_never_enables: true,
     growth_on: true,
@@ -107,6 +121,7 @@ export function semanticBridgeCiteField(origin) {
       folder: DESIGNS_FOLDER,
       folder_github: DESIGNS_GITHUB_TREE,
       inherit_only: true,
+      mesh_resident: [...WEBSITE_DESIGN_IDS],
     },
     limitation: SEMANTIC_BRIDGE_LIMITATION,
   };
@@ -188,6 +203,8 @@ export function semanticBridgeLlmsBlock(origin) {
     `FragGate: POST ${cite.paths.fraggate_call} { slug: "miragegrid", op: "bridge" }`,
     `Mesh browse: AZNet + AZBrowser via fraggate_call. Plane A hubs mirror tips; they do not become Cap-7 aliases.`,
     `Four ICANN hosts (not Cap-7 aliases): ${cite.icann_hosts.join(" ")}`,
+    `name_may_change: true. canonical_hubs_immutable: true. fifth_product: false.`,
+    `Library hub designs: azcorpus + azlibrary (mesh-resident; downloadable to nodes).`,
     `Designs inherited only: ${cite.designs.folder_github}`,
     "",
   ].join("\n");
@@ -197,7 +214,7 @@ export function semanticBridgeSkillMarkdown(origin) {
   const cite = semanticBridgeCiteField(origin);
   return `## Cap-7 semantic bridge (MirageGrid)
 
-Cap-7 mesh names are **MirageGrid-only**. They inherit hub **designs** only (\`docs/designs/\`). \`resolves_to_hub: false\`. They are **not** aliases of the four ICANN hostnames (${cite.icann_hosts.join(", ")}).
+Cap-7 mesh names are **MirageGrid-only**. They inherit hub **designs** only (\`docs/designs/\` plus mesh-resident **azcorpus** + **azlibrary** on the library hub). \`resolves_to_hub: false\`. \`name_may_change: true\`. Canonical hubs are immutable. They are **not** aliases of the four ICANN hostnames (${cite.icann_hosts.join(", ")}). Not a fifth product.
 
 AI pulls mesh-generated **name metadata** (not a registration) from:
 
@@ -221,10 +238,11 @@ Agents (MCP / OpenAPI in AI clients) and humans (Worker UI + counted \`/download
 
 ### Download (agent)
 
-1. \`GET ${host}/v1/software\` or MCP \`runtime_software\` — catalog cards include \`download_url\`.
+1. \`GET ${host}/v1/software\` or MCP \`runtime_software\` — catalog cards include \`download_url\`. The same JSON names mesh-resident website designs **azcorpus** + **azlibrary** (\`website_designs\`).
 2. \`GET ${host}/v1/update/check?slug={slug}&version={installed}\` — if \`update_available\`, fetch \`download_url\` (counted product Worker \`/download\`).
 3. \`GET ${host}/v1/pull/{slug}\` — pull record with \`download\`, skill, ops. MCP \`runtime_pull\`.
 4. \`GET ${host}/v1/update/manifest\` — latest versions.
+5. Node download of **azcorpus** / **azlibrary** — open for all AI clients via catalog \`website_designs[].download_url\` (library counted \`/download\`). Not extra Softwares slugs.
 
 Do **not** increment product download counters on skill, health, proxy, or session exec.
 
@@ -241,6 +259,8 @@ Call \`POST ${host}/v1/fraggate/call\` or MCP \`fraggate_call\` with \`{ slug, o
 | aznet | stamp, verify_hash, receipt_verify | Side-net hash stamp / verify (never hosts payloads) |
 | azchat | verify_receipt, import_export | Chat receipt verify; client-held JSON |
 | azmail | verify_receipt, import_export | Mail receipt verify (not SMTP) |
+
+**azlibrary upload** is API token only (operator \`Authorization: Bearer\` / env / keychain at call time). Never embed the secret in catalog, skill, MCP schema, or OpenAPI examples. Download of azcorpus + azlibrary stays open.
 
 Humans use the product Worker UI and counted \`/download\`. Agents stay in chat: show \`display.title\` / \`display.summary\`, then take the next input.
 `;

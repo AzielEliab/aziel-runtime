@@ -227,6 +227,20 @@ assert.match(body.count_note, /placements/);
 assert.match(body.count_note, /software_count is 33/);
 assert.equal(body.domains.software_count, 33);
 assert.equal(body.domains.domains_are_doors, false);
+assert.ok(body.website_designs);
+assert.deepEqual(body.website_designs.ids, ["azcorpus", "azlibrary"]);
+assert.equal(body.website_designs.software_tab, false);
+assert.equal(body.website_designs.fraggate_slug, false);
+assert.equal(body.website_designs.fifth_product, false);
+assert.equal(body.website_designs.download_open, true);
+assert.ok(body.software.every((s) => s.slug !== "azcorpus" && s.slug !== "azlibrary"));
+const corpusCard = body.software.find((s) => s.slug === "aziel-corpus");
+assert.deepEqual(corpusCard.website_designs, ["azcorpus", "azlibrary"]);
+assert.equal(
+  corpusCard.website_designs_cards.find((d) => d.id === "azlibrary").upload.method,
+  "api_token_only",
+);
+assert.match(corpusCard.one_line, /azcorpus \+ azlibrary/);
 assert.ok(body.count !== body.isolation_software_count, "Softwares-tab count is not the isolation 33");
 const fourdLine = body.software.find((s) => s.slug === "4dmap").one_line;
 assert.match(fourdLine, /inspection frame/i);
@@ -277,6 +291,8 @@ const mcp = await handler(
 const mcpBody = await mcp.json();
 assert.ok(mcpBody.result);
 assert.match(JSON.stringify(mcpBody.result), /embryolock/);
+assert.match(JSON.stringify(mcpBody.result), /azcorpus/);
+assert.match(JSON.stringify(mcpBody.result), /azlibrary/);
 
 const list = await handler(
   new Request(origin + "/mcp", {

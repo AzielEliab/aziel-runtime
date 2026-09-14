@@ -119,6 +119,7 @@ import { dispatchQnsHttp, qnsHint } from "./qns.js";
 import { dispatchActReceiptHttp, finishWithActReceipt } from "./library-receipts.js";
 import { SURVIVAL_TIP, survivalCiteField, survivalLlmsBlock } from "./cross-network-survival.js";
 import { semanticBridgeCiteField, semanticBridgeLlmsBlock } from "./semantic-bridge.js";
+import { websiteDesignsField, websiteDesignsLlmsBlock } from "./website-designs.js";
 import {
   catalogCacheHeaders,
   donationStatic,
@@ -422,7 +423,7 @@ const PRODUCTS_RAW = [
     ops: [
       { op: "assign", method: "POST", summary: "Assign a session node id. Mapping is ephemeral." },
       { op: "verify-receipt", method: "POST", summary: "Verify a MirageGrid control-plane receipt. Not a VPN hop." },
-      { op: "bridge", method: "GET", summary: "Cap-7 mesh-name metadata cite. Inherit designs only. Not ICANN. resolves_to_hub false." },
+      { op: "bridge", method: "GET", summary: "Cap-7 mesh-name metadata cite. Inherit designs only (azcorpus + azlibrary). Not ICANN. resolves_to_hub false. name_may_change." },
       { op: "nodes", method: "GET", summary: "List ephemeral control-plane node ids. Not a hop mesh." },
       { op: "doctor", method: "GET", summary: "UI alias of health. Same FragGate backend as the Worker UI button." },
     ],
@@ -968,7 +969,7 @@ const ONE_LINE = {
   aznet: "AZNet (AZN-WP-0.1): silent verification side-net. Hash continuity without hosting. Separate software; functional-order pair with AZBrowser.",
   azhub: "AZHub (AIH-WP-1.0): Blank Key / neutral spatial container. Does not interpret. FragGate only. AZInterface is sibling software under the same FragGate door.",
   azinterface: "AZInterface (AIH-WP-1.0): custodial operating environment. Pre-locked page cycles OFF/integrity/ON/FULL SHUTDOWN/MEMORIAL. FragGate only. AZHub is sibling software under the same FragGate door.",
-  "aziel-corpus": "Self-contained immutable digital library. Public MASTER. Not a 26-card index.",
+  "aziel-corpus": "Self-contained immutable digital library. Public MASTER. Mesh-resident website designs azcorpus + azlibrary downloadable to nodes. Not a 26-card index.",
   "4dmap": "4DMap (4DM-WP-1.0): four-axis inspection frame T/Δ/Γ/Π. Inspection frame after AZPIPE, not an extra door (domains_are_doors:false). FragGate only.",
   azcoherence: "AZCoherence: second-pass triad coherence review (primary vs alternate → PASS/FLAG/NEUTRALIZE/REFUSE). Never invents evidence. Confidence ≠ truth. Not AKM-TRIAD. Peer AZ-CLCE is a separate product.",
   embryolock: "Offline destructive-over-recovery vault. Cite live on FragGate; wipe/unlock stay local-only. Never execute on the public mesh.",
@@ -1361,7 +1362,7 @@ function llmsTxt(origin) {
     `Survival tip: ${SURVIVAL_TIP}`,
     `Mesh status: ${base}/v1/mesh/status  (alias; never enables)`,
     `Mesh nodes: ${base}/v1/mesh/nodes  (roster; 5-minute TTL; no scores)`,
-    `Cap-7 semantic bridge: ${base}/v1/mesh/az-generator  (MirageGrid cite; inherit designs only; resolves_to_hub false; not ICANN aliases)`,
+    `Cap-7 semantic bridge: ${base}/v1/mesh/az-generator  (MirageGrid cite; inherit designs only including azcorpus + azlibrary; resolves_to_hub false; name_may_change; not ICANN aliases)`,
     `ACT-RECEIPT-1.0: ${base}/v1/receipts  (cite). Public chain lives on https://www.azielcorpuslibrary.net/receipts. Runtime appends after FragGate list/call, POST /mcp, and significant POST /v1/* when RECEIPT_APPEND_TOKEN is set (fail-open). Tip/proxy: ${base}/v1/receipts/tip. Not a Softwares-tab product.`,
     `Agent pipeline: fraggate_list → fraggate_describe → fraggate_call. Prefer ${base}/mcp and ${base}/v1/software.`,
     `About: ${base}/about`,
@@ -1382,6 +1383,8 @@ function llmsTxt(origin) {
     llmsCompatibleBlock().trimEnd(),
     "",
     semanticBridgeLlmsBlock(origin).trimEnd(),
+    "",
+    websiteDesignsLlmsBlock(origin).trimEnd(),
     "",
     llmsHubsBlock().trimEnd(),
     "",
@@ -1537,6 +1540,7 @@ function citeJson(origin) {
     survival: survivalCiteField(),
     mesh: meshCiteField(base),
     semantic_bridge: semanticBridgeCiteField(origin),
+    website_designs: websiteDesignsField(origin),
     suite_presence: SUITE_PRESENCE,
     products: PRODUCTS.map((p) => {
       const u = productUrls(p, origin);
@@ -2143,9 +2147,9 @@ function staticPaths(origin) {
       get: {
         operationId: "software_catalog",
         summary:
-          "Authoritative live software catalog for hubs and clients. Every product including AZChat LIVE+bound. EmbryoLock is live-with-local-destructive-boundary (worker_home embryolock-download-tracker). Sort: Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock). Sibling software under one FragGate door — never separate FragGate engines. Softwares-tab count includes placements (azinterface / decisiongate / forgereceipts / azcoherence); isolation domain software_count is 33 (domains_are_doors:false). Hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) fetch this on each Software-tab request. Default application/json. Accept: text/html returns a crawl HTML shell (unique title/description + JSON-LD) without changing the Worker homepage UI.",
+          "Authoritative live software catalog for hubs and clients. Every product including AZChat LIVE+bound. EmbryoLock is live-with-local-destructive-boundary (worker_home embryolock-download-tracker). Sort: Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock). Sibling software under one FragGate door — never separate FragGate engines. Softwares-tab count includes placements (azinterface / decisiongate / forgereceipts / azcoherence); isolation domain software_count is 33 (domains_are_doors:false). website_designs names mesh-resident azcorpus + azlibrary (downloadable to nodes; not extra Softwares; azlibrary upload is API token only). Hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) fetch this on each Software-tab request. Default application/json. Accept: text/html returns a crawl HTML shell (unique title/description + JSON-LD) without changing the Worker homepage UI.",
         tags: ["software"],
-        responses: { "200": { description: "Sorted software[] plus count_note, isolation_software_count, tab_placement_slugs, domains (domains_are_doors:false)" } },
+        responses: { "200": { description: "Sorted software[] plus count_note, isolation_software_count, tab_placement_slugs, domains (domains_are_doors:false), website_designs (azcorpus + azlibrary)" } },
       },
       head: {
         operationId: "software_catalog_head",
@@ -2317,7 +2321,7 @@ async function combinedOpenApi(request, env) {
       summary: RUNTIME_ONE_LINE,
       description:
         RUNTIME_ABSTRACT +
-        " FragGate is THE single public executable door (list → describe → call). Softwares catalog Plain→Gate→Lock; hubs refresh from GET /v1/software. Dual-surface: agents MCP/OpenAPI; humans Worker UI + counted /download. Cap-7 mesh names via MirageGrid only (inherit hub designs only; resolves_to_hub false; not ICANN aliases). NodeMesh/QNM read-only suite-presence is ON by default; GET /v1/mesh never enables radios beyond that; not a login mesh/VPN/Node Gate. Author Aziel Eliab only. " +
+        " FragGate is THE single public executable door (list → describe → call). Softwares catalog Plain→Gate→Lock; hubs refresh from GET /v1/software. Dual-surface: agents MCP/OpenAPI; humans Worker UI + counted /download. Catalog names mesh-resident website designs azcorpus + azlibrary (downloadable to nodes; not extra Softwares; azlibrary upload is API token only). Cap-7 mesh names via MirageGrid only (inherit hub designs only; resolves_to_hub false; name_may_change; canonical hubs immutable; not ICANN aliases). NodeMesh/QNM read-only suite-presence is ON by default; GET /v1/mesh never enables radios beyond that; not a login mesh/VPN/Node Gate. Author Aziel Eliab only. " +
         CATALOG_CHANGELOG_20 +
         " " +
         CATALOG_CHANGELOG_19 +
@@ -3019,6 +3023,7 @@ async function handleRequest(request, env, ctx) {
           update_check: origin.replace(/\/$/, "") + "/v1/update/check",
           update_manifest: origin.replace(/\/$/, "") + "/v1/update/manifest",
           semantic_bridge: semanticBridgeCiteField(origin),
+          website_designs: websiteDesignsField(origin),
           count: PRODUCTS.length,
           products: PRODUCTS.map((p) => catalogRecord(p, origin)),
         },

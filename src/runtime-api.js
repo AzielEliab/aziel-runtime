@@ -33,6 +33,7 @@ import {
 import { citeCompatibleFields, skillCompatibleSection } from "./ai-clients.js";
 import { auditsSkillMarkdown, designsSkillMarkdown } from "./seo.js";
 import { dualSurfaceAgentHowTo, semanticBridgeSkillMarkdown } from "./semantic-bridge.js";
+import { websiteDesignsField, websiteDesignsSkillMarkdown } from "./website-designs.js";
 import { LOCKED_STRIP } from "./azpipe.js";
 
 export const RUNTIME_VERSION = "2.0.0-rc1";
@@ -313,6 +314,7 @@ node cli/aziel-runtime.mjs session close
    API uses: \`GET ${base}/v1/uses\` (no increment).
 3. \`GET ${base}/v1/software\` — authoritative hub catalog (Plain → Gate → Lock; EmbryoLock live-with-local-destructive-boundary; AZChat LIVE+bound). Mirror: \`GET ${base}/v1/fraggate/software\`.
    Softwares-tab \`count\` includes placements (\`azinterface\` / \`decisiongate\` / \`forgereceipts\`). Isolation \`domains.software_count\` is **33** (\`domains_are_doors:false\`). See \`count_note\`. Do not equate the two.
+   \`website_designs\` names mesh-resident **azcorpus** + **azlibrary** (downloadable to nodes; not extra Softwares; azlibrary upload is API token only).
    Client updates: \`GET ${base}/v1/update/check?slug={slug}&version={installed}\` · \`GET ${base}/v1/update/manifest\`.
 4. \`GET ${base}/v1/bundle\` — every product skill URL + invoke prefix.
    Alias: \`GET ${base}/v1/pull?all=1\`.
@@ -325,6 +327,8 @@ You do **not** need to open each product homepage.
 ${skillCompatibleSection(base)}
 
 ${dualSurfaceAgentHowTo(base)}
+
+${websiteDesignsSkillMarkdown(base)}
 
 ${semanticBridgeSkillMarkdown(base)}
 
@@ -353,7 +357,7 @@ ${semanticBridgeSkillMarkdown(base)}
 | GET | \`/v1/pull/{slug}\` | Pull record for one product. |
 | GET | \`/v1/pull/{slug}/skill\` | Product skill markdown. |
 | GET | \`/v1/catalog.json\` | Full catalog (discover). |
-| GET | \`/v1/software\` | Authoritative hub software catalog (Plain→Gate→Lock; EmbryoLock live-with-local-destructive-boundary; AZChat LIVE+bound). JSON default; HTML shell when Accept prefers text/html. |
+| GET | \`/v1/software\` | Authoritative hub software catalog (Plain→Gate→Lock; EmbryoLock live-with-local-destructive-boundary; AZChat LIVE+bound). Names mesh-resident **azcorpus** + **azlibrary** website designs (downloadable to nodes; not extra Softwares). JSON default; HTML shell when Accept prefers text/html. |
 | GET | \`/v1/fraggate/software\` | FragGate-path mirror of \`/v1/software\`. |
 | GET | \`/v1/update/check\` | Client update check (\`?slug=&version=\`). For install.sh / local UI / mobile. |
 | GET | \`/v1/update/manifest\` | Latest versions for every product + runtime. |
@@ -378,7 +382,7 @@ ${semanticBridgeSkillMarkdown(base)}
 | POST | \`/v1/mesh/heartbeat\` | Refresh 5-minute presence. Body \`{node_id, presence?}\`. |
 | POST | \`/v1/mesh/leave\` | Drop presence. Body \`{node_id}\`. No implicit heal. |
 | GET | \`/v1/mesh/nodes\` | Rollup roster (no scores / leaderboard). |
-| GET | \`/v1/mesh/az-generator\` | Cap-7 semantic-bridge cite (MirageGrid factory; inherit designs only; \`resolves_to_hub: false\`; not ICANN). Never enables radios. |
+| GET | \`/v1/mesh/az-generator\` | Cap-7 semantic-bridge cite (MirageGrid factory; inherit designs only including azcorpus + azlibrary; \`resolves_to_hub: false\`; \`name_may_change\`; not ICANN). Never enables radios. |
 | POST | \`/v1/mesh/broadcast\` | SHA-256 hash receipt only. Never a publish path. |
 | GET | \`/v1/qns\` | QNS-CD-1.0 cite (photon QNS1 1.3). Local \`qnsd\` in qnm-node. Never a public via proxy. |
 | GET | \`/v1/receipts\` | ACT-RECEIPT-1.0 cite. Public chain lives on corpus \`/receipts\`. Tip/proxy at \`/v1/receipts/tip\`. Fail-open append when token set. Not a Softwares-tab product. |
@@ -480,6 +484,7 @@ export function runtimeManifest(origin, products, extra = {}) {
     door: "fraggate",
     kernel: FRAGGATE_GITHUB,
     extras: catalogExtraCards(base),
+    website_designs: websiteDesignsField(base),
     extras_note:
       "Kernel / door cards for Software hubs. extras[] is not PRODUCTS — FragGate is the door; Quantum Node Mesh (QNM-BUILD-1.0) is the suite rollup (not a login mesh; not a Softwares-tab product). Human UI + counted download is the separate FragGate Worker app (fraggate-download-tracker; not nested in AZBrowser). AZPIPE / SweepGate / ChainLock / LOCKSET / packed catalog / QNS-CD-1.0 / ACT-RECEIPT-1.0 are LIVE fabric modules, not Softwares-tab products. QNS implementation is local qnsd (Worker cites only). ACT receipts append to corpus /receipts when RECEIPT_APPEND_TOKEN is set. NO-LIE-NO-REWRITE-1.0 is LIVE law (no rewrite key; never lie to survive).",
     fabric: {
@@ -979,7 +984,7 @@ export function runtimeStaticPaths() {
       get: {
         operationId: "runtime_software",
         summary:
-          "Authoritative software catalog for hubs/clients. Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock). EmbryoLock is live-with-local-destructive-boundary. AZChat is LIVE+bound (mesh default off). Mirror: GET /v1/fraggate/software.",
+          "Authoritative software catalog for hubs/clients. Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock). EmbryoLock is live-with-local-destructive-boundary. AZChat is LIVE+bound (mesh default off). Names mesh-resident website designs azcorpus + azlibrary (downloadable to nodes; not extra Softwares; azlibrary upload is API token only). Mirror: GET /v1/fraggate/software.",
         tags: ["software"],
         responses: { "200": { description: "Software catalog JSON" } },
       },
@@ -1398,7 +1403,7 @@ export function runtimeStaticPaths() {
       get: {
         operationId: "mesh_az_generator",
         summary:
-          "Cap-7 semantic-bridge cite. MirageGrid-only mesh-name factory. Inherit hub designs only. resolves_to_hub false. Not aliases of the four ICANN hostnames. public_icann false. Not a live AZ-GEN registrar. GET never enables radios.",
+          "Cap-7 semantic-bridge cite. MirageGrid-only mesh-name factory. Inherit hub designs only (azcorpus + azlibrary on the library hub). resolves_to_hub false. name_may_change. Canonical hubs immutable. Not aliases of the four ICANN hostnames. public_icann false. Not a live AZ-GEN registrar. Not a fifth product. GET never enables radios.",
         tags: ["mesh"],
         responses: { "200": { description: "Cap-7 cite JSON (not a registrar)" } },
       },

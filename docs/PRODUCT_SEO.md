@@ -199,7 +199,7 @@ Plain text. Lead with **What this is** — the canonical Aziel Runtime abstract 
 
 Name the full compatible AI client list (ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants) and the robots.txt Allow set above. Do not claim support is only Grok / ChatGPT / Venice.
 
-Cap-7 semantic bridge (below the abstract): MirageGrid-only mesh-name factory. Inherit hub designs only. `resolves_to_hub: false`. Not aliases of the four ICANN hostnames. Cite `GET /v1/mesh/az-generator` and MirageGrid Worker `/bridge`. Growth-ON crawlers Allow. No fake ICANN `.az`. No AZ-GEN live registrar. No visible 15:20. `GET /v1/mesh` never enables radios.
+Cap-7 semantic bridge (below the abstract): MirageGrid-only mesh-name factory. Inherit hub designs only (azcorpus + azlibrary on the library hub). `resolves_to_hub: false`. `name_may_change: true`. Canonical hubs immutable. Not aliases of the four ICANN hostnames. Not a fifth product. Cite `GET /v1/mesh/az-generator` and MirageGrid Worker `/bridge`. Catalog + skill name mesh-resident website designs **azcorpus** + **azlibrary** (downloadable to nodes; azlibrary upload is API token only). Growth-ON crawlers Allow. No fake ICANN `.az`. No AZ-GEN live registrar. No visible 15:20. `GET /v1/mesh` never enables radios.
 
 ## Quantum Node Mesh proxy (Live Nodes)
 

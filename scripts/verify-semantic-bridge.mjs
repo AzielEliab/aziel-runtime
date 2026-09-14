@@ -66,6 +66,19 @@ assert.equal(cite.live_registrar, false);
 assert.equal(cite.az_gen_live_registrar, false);
 assert.equal(cite.resolves_to_hub, false);
 assert.equal(cite.inherit, "designs");
+assert.equal(cite.name_may_change, true);
+assert.equal(cite.canonical_hubs_immutable, true);
+assert.equal(cite.fifth_product, false);
+assert.deepEqual(cite.canonical_hubs.find((h) => h.host.includes("azielcorpuslibrary")).designs, [
+  "azcorpus",
+  "azlibrary",
+]);
+assert.ok(cite.website_designs.ids.includes("azcorpus"));
+assert.ok(cite.website_designs.ids.includes("azlibrary"));
+assert.equal(cite.website_designs.fifth_product, false);
+assert.equal(cite.website_designs.designs.find((d) => d.id === "azlibrary").upload.method, "api_token_only");
+assert.equal(cite.website_designs.designs.find((d) => d.id === "azlibrary").upload.never_embed_secret, true);
+assert.equal(cite.website_designs.designs.find((d) => d.id === "azcorpus").download_open, true);
 assert.equal(cite.visible_1520, false);
 assert.equal(cite.mesh_get_never_enables, true);
 assert.equal(cite.growth_on, true);
@@ -180,6 +193,11 @@ assert.match(skill, /upload_envelope/);
 assert.match(skill, /Cap-7 semantic bridge/);
 assert.match(skill, /resolves_to_hub: false/);
 assert.match(skill, /inherit hub \*\*designs\*\* only/);
+assert.match(skill, /azcorpus/);
+assert.match(skill, /azlibrary/);
+assert.match(skill, /API token only/);
+assert.match(skill, /never embed the secret/i);
+assert.match(skill, /name_may_change: true/);
 assert.match(skill, /ChatGPT \(GPT Actions \/ OpenAI\)/);
 assert.match(skill, /plus other MCP\/OpenAPI-capable assistants/);
 
@@ -187,6 +205,8 @@ const llms = await (await get("/llms.txt")).text();
 assert.match(llms, /Cap-7 semantic bridge/);
 assert.match(llms, /resolves_to_hub: false/);
 assert.match(llms, /inherit: designs/);
+assert.match(llms, /azcorpus \+ azlibrary/);
+assert.match(llms, /name_may_change: true/);
 assert.match(llms, /Visible 15:20: false/);
 assert.ok(llms.indexOf("## What this is") < llms.indexOf("## Cap-7 semantic bridge"));
 assert.doesNotMatch(llms.split("\n").slice(0, 30).join("\n"), CRAWLER_LEAD_VERSION_RE);
@@ -207,6 +227,8 @@ assert.match(semanticBridgeStatus(origin).code, /CAP7-CITE/);
 const citeDoc = await readFile(new URL("../docs/CITE.md", import.meta.url), "utf8");
 assert.match(citeDoc, /resolves_to_hub: false/);
 assert.match(citeDoc, /inherit hub \*\*designs\*\* only/);
+assert.match(citeDoc, /azcorpus/);
+assert.match(citeDoc, /azlibrary upload/);
 assert.match(citeDoc, /not\*\* aliases of the four ICANN hostnames/);
 
 const readme = await readFile(new URL("../README.md", import.meta.url), "utf8");

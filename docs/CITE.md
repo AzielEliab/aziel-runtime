@@ -58,7 +58,7 @@ Open crawl. Never `Disallow: /` for GPTBot or any listed bot.
 
 ## Cap-7 semantic bridge (MirageGrid — not ICANN)
 
-Cap-7 mesh names are **MirageGrid-only**. They inherit hub **designs** only (`docs/designs/`). `resolves_to_hub: false`. They are **not** aliases of the four ICANN hostnames (https://www.azieleliab.com/ · https://www.azielcorpuslibrary.net/ · https://godlock.uk/ · https://www.hedidntjump.com/).
+Cap-7 mesh names are **MirageGrid-only**. They inherit hub **designs** only (`docs/designs/` plus mesh-resident **azcorpus** + **azlibrary** on the library hub). `resolves_to_hub: false`. `name_may_change: true`. Canonical hubs are immutable. They are **not** aliases of the four ICANN hostnames (https://www.azieleliab.com/ · https://www.azielcorpuslibrary.net/ · https://godlock.uk/ · https://www.hedidntjump.com/). Not a fifth product.
 
 AI pulls name metadata from:
 
@@ -68,11 +68,11 @@ AI pulls name metadata from:
 
 `public_icann: false`. No live AZ-GEN registrar. No fake ICANN `.az`. No visible 15:20. `GET /v1/mesh` never enables radios. Mesh browse: AZNet + AZBrowser via FragGate. Plane A hubs mirror tips; mirroring a tip does not resolve a Cap-7 name onto a hub hostname.
 
-Machine field: `/cite.json` `semantic_bridge`.
+Machine field: `/cite.json` `semantic_bridge`. `/cite.json` + `GET /v1/software` also name `website_designs` **azcorpus** + **azlibrary**.
 
 ## Dual surface (upload / download / invoke)
 
-Agents use FragGate MCP + OpenAPI (`fraggate_call`, `GET /v1/update/check`, `GET /v1/pull/{slug}`). Humans use Worker UI + counted `/download`. Upload/ingest/receipt ops (azbrowser `airlock_ingest`, peacelock `upload_envelope`, forgereceipts `verify`, miragegrid `verify-receipt` / `bridge`) are the same door. `POST /p/{slug}/{op}` is proxy, not exec.
+Agents use FragGate MCP + OpenAPI (`fraggate_call`, `GET /v1/update/check`, `GET /v1/pull/{slug}`, catalog `website_designs`). Humans use Worker UI + counted `/download`. Upload/ingest/receipt ops (azbrowser `airlock_ingest`, peacelock `upload_envelope`, forgereceipts `verify`, miragegrid `verify-receipt` / `bridge`) are the same door. **azlibrary upload** is API token only — never embed the secret. Download of azcorpus + azlibrary is open for all AI clients. `POST /p/{slug}/{op}` is proxy, not exec.
 
 ## Survival tip (CROSS-NETWORK-SURVIVAL-1.0)
 

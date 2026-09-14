@@ -329,6 +329,9 @@ assert.equal(cite.semantic_bridge.public_icann, false);
 assert.equal(cite.semantic_bridge.az_gen_live_registrar, false);
 assert.equal(cite.semantic_bridge.visible_1520, false);
 assert.ok(cite.semantic_bridge.not_aliases_of.includes("https://godlock.uk/"));
+assert.equal(cite.semantic_bridge.name_may_change, true);
+assert.ok(cite.website_designs);
+assert.deepEqual(cite.website_designs.ids, ["azcorpus", "azlibrary"]);
 assert.ok(cite.designs);
 assert.equal(cite.designs.folder, "docs/designs/");
 assert.equal(cite.designs.author, AUTHOR_NAME);
@@ -662,6 +665,9 @@ assert.match(softwareHtml, /Includes named components such as FragGate/);
   assert.ok(ecoAt >= 0 && catalogAt > ecoAt, "ecosystem chrome precedes Softwares catalog list");
 }
 assert.match(softwareHtml, /data-slug="azcoherence"/);
+assert.match(softwareHtml, /<h2>Mesh-resident website designs<\/h2>/);
+assert.match(softwareHtml, /<strong>azcorpus<\/strong> \+ <strong>azlibrary<\/strong>/);
+assert.match(softwareHtml, /API token only/);
 assert.match(softwareHtml, /www\.azieleliab\.com\/software/);
 assert.match(softwareHtml, /godlock\.uk\/software/);
 assert.match(softwareHtml, /GET \/v1\/mesh never enables/);
@@ -860,5 +866,7 @@ assert.match(citeDoc, /github\.com\/AzielEliab\/fraggate/);
 assert.match(citeDoc, /plus other MCP\/OpenAPI-capable assistants/);
 assert.match(citeDoc, /resolves_to_hub: false/);
 assert.match(citeDoc, /inherit hub \*\*designs\*\* only/);
+assert.match(citeDoc, /azcorpus/);
+assert.match(citeDoc, /azlibrary/);
 
 console.log("ok seo hub: robots, sitemap-index, llms/cite MIME, Person JSON-LD, catalog crawl links, HTML shells, definition-first abstract, GitHub About lock");

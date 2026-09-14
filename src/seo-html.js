@@ -375,7 +375,9 @@ ${namedComponentsHtml()}
   <h2>Catalog</h2>
   <ol>
 ${rows}
-  </ol>`;
+  </ol>
+  <h2>Mesh-resident website designs</h2>
+  <p class="secondary"><strong>azcorpus</strong> + <strong>azlibrary</strong> are website designs on the library hub, downloadable to nodes. Named on <code>GET /v1/software</code> <code>website_designs</code> and <code>runtime_skill</code>. Not extra Softwares. Not FragGate slugs. Download is open for all AI clients. <strong>azlibrary upload</strong> is API token only — never embed the secret.</p>`;
   return documentShell(
     origin,
     SOFTWARE_PAGE_TITLE,
