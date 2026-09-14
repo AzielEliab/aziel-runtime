@@ -366,8 +366,13 @@ assert.ok(cite.designs.papers.some((p) => p.id === "REDLINE-2026-09-14" && p.kin
 assert.ok(cite.designs.papers.some((p) => p.id === "COLD-MULTI-SHELF-1.0" && p.kind === "law" && p.software_tab === false));
 assert.equal(cite.semantic_bridge.design_of, "hub_designs");
 assert.equal(cite.redline.spec, "REDLINE-2026-09-14");
+assert.equal(cite.redline.attack_sims.pointer, "scripts/verify-redline.mjs");
 assert.equal(cite.tls.client_side_crypto_claim, false);
 assert.equal(cite.shelves.spec, "COLD-MULTI-SHELF-1.0");
+assert.equal(cite.shelves.redline.spec, "REDLINE-2026-09-14");
+assert.equal(cite.shelves.cap7.design_of, "hub_designs");
+assert.equal(cite.shelves.cap7.resolves_to_hub, false);
+assert.equal(cite.shelves.attack_sims.pointer, "scripts/verify-redline.mjs");
 assert.equal(cite.shelves.runtime_is_shelf, false);
 assert.match(cite.about.architecture.cold_multi_shelf, /5 published surfaces/);
 assert.equal(cite.survival.spec, "CROSS-NETWORK-SURVIVAL-1.0");

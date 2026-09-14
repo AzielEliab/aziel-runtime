@@ -184,9 +184,16 @@ assert.ok(citeBody.designs.papers.some((p) => p.id === "COLD-MULTI-SHELF-1.0" &&
 assert.equal(citeBody.semantic_bridge.design_of, "hub_designs");
 assert.equal(citeBody.redline.spec, "REDLINE-2026-09-14");
 assert.equal(citeBody.redline.person_id, "https://www.azieleliab.com/#aziel");
+assert.equal(citeBody.redline.cap7.design_of, "hub_designs");
+assert.equal(citeBody.redline.cap7.resolves_to_hub, false);
+assert.equal(citeBody.redline.attack_sims.pointer, "scripts/verify-redline.mjs");
 assert.equal(citeBody.tls.via, "cloudflare");
 assert.equal(citeBody.tls.client_side_crypto_claim, false);
 assert.equal(citeBody.shelves.spec, "COLD-MULTI-SHELF-1.0");
+assert.equal(citeBody.shelves.redline.spec, "REDLINE-2026-09-14");
+assert.equal(citeBody.shelves.cap7.design_of, "hub_designs");
+assert.equal(citeBody.shelves.cap7.resolves_to_hub, false);
+assert.equal(citeBody.shelves.attack_sims.pointer, "scripts/verify-redline.mjs");
 assert.equal(citeBody.shelves.lockset_doi, null);
 assert.equal(citeBody.shelves.independent_live_count, 1);
 assert.equal(citeBody.shelves.published_surfaces, 5);
