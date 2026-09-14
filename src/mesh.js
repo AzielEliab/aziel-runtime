@@ -105,6 +105,7 @@ import {
   survivalCiteField,
   survivalHint,
 } from "./cross-network-survival.js";
+import { dispatchAzGeneratorHttp, semanticBridgeCiteField } from "./semantic-bridge.js";
 
 export const MESH_SLUG = "mesh";
 export const MESH_NAME = "Quantum Node Mesh";
@@ -365,6 +366,7 @@ export function meshCiteField(origin) {
     qnm_s: false,
     note: "Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Not a login mesh. NO-LIE / NO-REWRITE: no rewrite key; never lie to survive.",
     survival: survivalCiteField(),
+    semantic_bridge: semanticBridgeCiteField(base),
   };
 }
 
@@ -1335,12 +1337,15 @@ export async function runMeshOp(op, payload, env) {
   });
 }
 
-export async function dispatchMeshHttp(method, pathname, payload, env) {
+export async function dispatchMeshHttp(method, pathname, payload, env, origin) {
   const m = String(method || "GET").toUpperCase();
   const path = String(pathname || "")
     .split("?")[0]
     .replace(/\/+$/, "")
     .toLowerCase() || "/";
+  if (path === "/v1/mesh/az-generator") {
+    return dispatchAzGeneratorHttp(m, path, origin);
+  }
   if (path === "/v1/mesh" || path === "/v1/mesh/status") {
     if (m === "GET" || m === "HEAD") {
       const body = await meshStatus(payload, env);
@@ -1381,7 +1386,7 @@ export async function dispatchMeshHttp(method, pathname, payload, env) {
   return {
     status: 404,
     body: refuse("MESH-NOT-FOUND", "Unknown mesh path.", {
-      hint: "GET /v1/mesh /status /nodes  POST /v1/mesh/enable|join|heartbeat|leave|broadcast  POST /v1/mesh/disable (refused)",
+      hint: "GET /v1/mesh /status /nodes /az-generator  POST /v1/mesh/enable|join|heartbeat|leave|broadcast  POST /v1/mesh/disable (refused)",
     }),
   };
 }

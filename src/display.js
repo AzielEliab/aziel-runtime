@@ -42,6 +42,7 @@ const TITLE_OVERRIDES = {
   "azbot:example": "Show an AZBot example route",
   "shadowlock:hook": "Take a ShadowLock ethics receipt",
   "miragegrid:verify-receipt": "Verify a MirageGrid receipt",
+  "miragegrid:bridge": "Cite Cap-7 mesh-name metadata",
   "miragegrid:nodes": "List MirageGrid nodes",
   "azieltether:tip": "Read the AzielTether chain tip",
   "azieltether:dual-chain": "Detect an AzielTether dual-chain",

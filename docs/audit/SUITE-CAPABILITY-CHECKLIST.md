@@ -88,7 +88,7 @@ Do not treat this table as a license to invent verbs. Close only what the produc
 | azclce | score, classify, gate | same | Rich skill; doctor |
 | azos | status, invite, principles, session_open/status/close | same + doctor + session/close aliases | 1.9.3 isolate ethics VFS. exec/shell stay stub |
 | glossafilter | render, peers | same | 1.8.1 public peers |
-| miragegrid | assign, route, circuit, verify-receipt, nodes, mesh | assign, verify-receipt, nodes | 1.8.2 public verify-receipt/nodes. mesh/hop stay stub |
+| miragegrid | assign, route, circuit, verify-receipt, nodes, bridge, mesh | assign, verify-receipt, nodes, bridge | Cap-7 bridge cite (inherit designs only; resolves_to_hub false). mesh/hop stay stub |
 | postking | new, move, status | same | Rich skill; doctor |
 | ark | sweep, levels | same | Rich skill; doctor. unlock/encrypt/scorch stay stub |
 | azai | lamb-check, lamb_check, models | same + doctor alias | 1.8.1 public models metadata. blend/chat stay stub |

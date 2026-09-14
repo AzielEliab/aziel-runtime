@@ -43,6 +43,7 @@
  * POST /v1/mesh/disable       refused (MESH-DISABLE-REFUSED)
  * POST /v1/mesh/join|heartbeat|leave
  * GET  /v1/mesh/nodes         rollup roster (no scores)
+ * GET  /v1/mesh/az-generator  Cap-7 semantic-bridge cite (MirageGrid; not ICANN; never enables)
  * POST /v1/mesh/broadcast     SHA-256 hash receipt only (never a publish path)
  * GET  /v1/bundle             compact bootstrap (skill URL + invoke prefix per product)
  * GET  /v1/pull?all=1         alias of /v1/bundle
@@ -117,6 +118,8 @@ import {
 import { dispatchQnsHttp, qnsHint } from "./qns.js";
 import { dispatchActReceiptHttp, finishWithActReceipt } from "./library-receipts.js";
 import { SURVIVAL_TIP, survivalCiteField, survivalLlmsBlock } from "./cross-network-survival.js";
+import { semanticBridgeCiteField, semanticBridgeLlmsBlock } from "./semantic-bridge.js";
+import { websiteDesignsField, websiteDesignsLlmsBlock } from "./website-designs.js";
 import {
   catalogCacheHeaders,
   donationStatic,
@@ -420,6 +423,7 @@ const PRODUCTS_RAW = [
     ops: [
       { op: "assign", method: "POST", summary: "Assign a session node id. Mapping is ephemeral." },
       { op: "verify-receipt", method: "POST", summary: "Verify a MirageGrid control-plane receipt. Not a VPN hop." },
+      { op: "bridge", method: "GET", summary: "Cap-7 mesh-name metadata cite. Inherit designs only (azcorpus + azlibrary). Not ICANN. resolves_to_hub false. name_may_change." },
       { op: "nodes", method: "GET", summary: "List ephemeral control-plane node ids. Not a hop mesh." },
       { op: "doctor", method: "GET", summary: "UI alias of health. Same FragGate backend as the Worker UI button." },
     ],
@@ -944,7 +948,7 @@ const ONE_LINE = {
   zsolver: "Nine ontology nodes (Zioncheck seed). Hard 75% cap. Does not solve cases.",
   azos: "Read-only status / principles. Does not grant remote shell.",
   glossafilter: "Render an intent across bundled peer ids. Human opinion remains human.",
-  miragegrid: "Ephemeral session node assignment. Not a VPN and not an anonymity network.",
+  miragegrid: "Ephemeral session node assignment plus Cap-7 name-metadata cite. Not a VPN, not ICANN, not a live registrar.",
   staticclock: "Forward-only gear-click timeline + companion advisory. click, verify, timeslate. Not a rollback clock.",
   chronolock: "Temporal Neutral Window advisory 08:30–10:30 local. Distinct from TemporalLock. Not a scheduler.",
   postking: "Continuity chess. The goal is not to win. The goal is to remain.",
@@ -965,7 +969,7 @@ const ONE_LINE = {
   aznet: "AZNet (AZN-WP-0.1): silent verification side-net. Hash continuity without hosting. Separate software; functional-order pair with AZBrowser.",
   azhub: "AZHub (AIH-WP-1.0): Blank Key / neutral spatial container. Does not interpret. FragGate only. AZInterface is sibling software under the same FragGate door.",
   azinterface: "AZInterface (AIH-WP-1.0): custodial operating environment. Pre-locked page cycles OFF/integrity/ON/FULL SHUTDOWN/MEMORIAL. FragGate only. AZHub is sibling software under the same FragGate door.",
-  "aziel-corpus": "Self-contained immutable digital library. Public MASTER. Not a 26-card index.",
+  "aziel-corpus": "Self-contained immutable digital library. Public MASTER. Mesh-resident website designs azcorpus + azlibrary downloadable to nodes. Not a 26-card index.",
   "4dmap": "4DMap (4DM-WP-1.0): four-axis inspection frame T/Δ/Γ/Π. Inspection frame after AZPIPE, not an extra door (domains_are_doors:false). FragGate only.",
   azcoherence: "AZCoherence: second-pass triad coherence review (primary vs alternate → PASS/FLAG/NEUTRALIZE/REFUSE). Never invents evidence. Confidence ≠ truth. Not AKM-TRIAD. Peer AZ-CLCE is a separate product.",
   embryolock: "Offline destructive-over-recovery vault. Cite live on FragGate; wipe/unlock stay local-only. Never execute on the public mesh.",
@@ -1251,6 +1255,7 @@ function sitemapXml(origin) {
     { loc: base + "/v1/mesh", priority: "0.7", changefreq: "daily" },
     { loc: base + "/v1/mesh/status", priority: "0.65", changefreq: "daily" },
     { loc: base + "/v1/mesh/nodes", priority: "0.65", changefreq: "daily" },
+    { loc: base + "/v1/mesh/az-generator", priority: "0.6", changefreq: "weekly" },
     { loc: base + "/v1/qns", priority: "0.65", changefreq: "weekly" },
     { loc: base + "/v1/receipts", priority: "0.6", changefreq: "daily" },
     { loc: base + "/v1/azpipe/arch", priority: "0.65", changefreq: "weekly" },
@@ -1357,6 +1362,7 @@ function llmsTxt(origin) {
     `Survival tip: ${SURVIVAL_TIP}`,
     `Mesh status: ${base}/v1/mesh/status  (alias; never enables)`,
     `Mesh nodes: ${base}/v1/mesh/nodes  (roster; 5-minute TTL; no scores)`,
+    `Cap-7 semantic bridge: ${base}/v1/mesh/az-generator  (MirageGrid cite; inherit designs only including azcorpus + azlibrary; resolves_to_hub false; name_may_change; not ICANN aliases)`,
     `ACT-RECEIPT-1.0: ${base}/v1/receipts  (cite). Public chain lives on https://www.azielcorpuslibrary.net/receipts. Runtime appends after FragGate list/call, POST /mcp, and significant POST /v1/* when RECEIPT_APPEND_TOKEN is set (fail-open). Tip/proxy: ${base}/v1/receipts/tip. Not a Softwares-tab product.`,
     `Agent pipeline: fraggate_list → fraggate_describe → fraggate_call. Prefer ${base}/mcp and ${base}/v1/software.`,
     `About: ${base}/about`,
@@ -1375,6 +1381,10 @@ function llmsTxt(origin) {
     survivalLlmsBlock().trimEnd(),
     "",
     llmsCompatibleBlock().trimEnd(),
+    "",
+    semanticBridgeLlmsBlock(origin).trimEnd(),
+    "",
+    websiteDesignsLlmsBlock(origin).trimEnd(),
     "",
     llmsHubsBlock().trimEnd(),
     "",
@@ -1529,7 +1539,8 @@ function citeJson(origin) {
     audits: auditsCiteField(),
     survival: survivalCiteField(),
     mesh: meshCiteField(base),
-    mesh_get_never_enables: true,
+    semantic_bridge: semanticBridgeCiteField(origin),
+    website_designs: websiteDesignsField(origin),
     suite_presence: SUITE_PRESENCE,
     products: PRODUCTS.map((p) => {
       const u = productUrls(p, origin);
@@ -2136,9 +2147,9 @@ function staticPaths(origin) {
       get: {
         operationId: "software_catalog",
         summary:
-          "Authoritative live software catalog for hubs and clients. Every product including AZChat LIVE+bound. EmbryoLock is live-with-local-destructive-boundary (worker_home embryolock-download-tracker). Sort: Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock). Sibling software under one FragGate door — never separate FragGate engines. Softwares-tab count includes placements (azinterface / decisiongate / forgereceipts / azcoherence); isolation domain software_count is 33 (domains_are_doors:false). Hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) fetch this on each Software-tab request. Default application/json. Accept: text/html returns a crawl HTML shell (unique title/description + JSON-LD) without changing the Worker homepage UI.",
+          "Authoritative live software catalog for hubs and clients. Every product including AZChat LIVE+bound. EmbryoLock is live-with-local-destructive-boundary (worker_home embryolock-download-tracker). Sort: Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock). Sibling software under one FragGate door — never separate FragGate engines. Softwares-tab count includes placements (azinterface / decisiongate / forgereceipts / azcoherence); isolation domain software_count is 33 (domains_are_doors:false). website_designs names mesh-resident azcorpus + azlibrary (downloadable to nodes; not extra Softwares; azlibrary upload is API token only). Hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) fetch this on each Software-tab request. Default application/json. Accept: text/html returns a crawl HTML shell (unique title/description + JSON-LD) without changing the Worker homepage UI.",
         tags: ["software"],
-        responses: { "200": { description: "Sorted software[] plus count_note, isolation_software_count, tab_placement_slugs, domains (domains_are_doors:false)" } },
+        responses: { "200": { description: "Sorted software[] plus count_note, isolation_software_count, tab_placement_slugs, domains (domains_are_doors:false), website_designs (azcorpus + azlibrary)" } },
       },
       head: {
         operationId: "software_catalog_head",
@@ -2310,7 +2321,7 @@ async function combinedOpenApi(request, env) {
       summary: RUNTIME_ONE_LINE,
       description:
         RUNTIME_ABSTRACT +
-        " FragGate is THE single public executable door (list → describe → call). Softwares catalog Plain→Gate→Lock; hubs refresh from GET /v1/software. Dual-surface: agents MCP/OpenAPI; humans Worker UI + counted /download. NodeMesh/QNM read-only suite-presence is ON by default; GET /v1/mesh never enables radios beyond that; not a login mesh/VPN/Node Gate. Author Aziel Eliab only. " +
+        " FragGate is THE single public executable door (list → describe → call). Softwares catalog Plain→Gate→Lock; hubs refresh from GET /v1/software. Dual-surface: agents MCP/OpenAPI; humans Worker UI + counted /download. Catalog names mesh-resident website designs azcorpus + azlibrary (downloadable to nodes; not extra Softwares; azlibrary upload is API token only). Cap-7 mesh names via MirageGrid only (inherit hub designs only; resolves_to_hub false; name_may_change; canonical hubs immutable; not ICANN aliases). NodeMesh/QNM read-only suite-presence is ON by default; GET /v1/mesh never enables radios beyond that; not a login mesh/VPN/Node Gate. Author Aziel Eliab only. " +
         CATALOG_CHANGELOG_20 +
         " " +
         CATALOG_CHANGELOG_19 +
@@ -3011,6 +3022,8 @@ async function handleRequest(request, env, ctx) {
           fraggate_software: origin.replace(/\/$/, "") + "/v1/fraggate/software",
           update_check: origin.replace(/\/$/, "") + "/v1/update/check",
           update_manifest: origin.replace(/\/$/, "") + "/v1/update/manifest",
+          semantic_bridge: semanticBridgeCiteField(origin),
+          website_designs: websiteDesignsField(origin),
           count: PRODUCTS.length,
           products: PRODUCTS.map((p) => catalogRecord(p, origin)),
         },
@@ -3032,7 +3045,7 @@ async function handleRequest(request, env, ctx) {
           payload = {};
         }
       }
-      const out = await dispatchMeshHttp(request.method, url.pathname, payload, env);
+      const out = await dispatchMeshHttp(request.method, url.pathname, payload, env, origin);
       if (isMeshReadPath(url.pathname)) {
         scheduleSuitePresenceFanout(ctx, env, { source: "request-path" });
       }

@@ -56,6 +56,24 @@ GPTBot/ChatGPT, Venice, Grok, Google-Extended, GoogleOther, Google-CloudVertexBo
 
 Open crawl. Never `Disallow: /` for GPTBot or any listed bot.
 
+## Cap-7 semantic bridge (MirageGrid — not ICANN)
+
+Cap-7 mesh names are **MirageGrid-only**. They inherit hub **designs** only (`docs/designs/` plus mesh-resident **azcorpus** + **azlibrary** on the library hub). `resolves_to_hub: false`. `name_may_change: true`. Canonical hubs are immutable. Names may change; they map to the original four hubs only (https://www.azieleliab.com/ · https://www.azielcorpuslibrary.net/ with azcorpus+azlibrary designs · https://godlock.uk/ · https://www.hedidntjump.com/). They are **not** aliases of the four ICANN hostnames. Not a fifth product. `public_icann: false`.
+
+AI pulls name metadata from:
+
+- https://miragegrid-download-tracker.vibelock.workers.dev/bridge
+- https://aziel-runtime.vibelock.workers.dev/v1/mesh/az-generator
+- `fraggate_call` `{ slug: "miragegrid", op: "bridge" }`
+
+`public_icann: false`. No live AZ-GEN registrar. No fake ICANN `.az`. No visible 15:20. `GET /v1/mesh` never enables radios. Mesh browse: AZNet + AZBrowser via FragGate. Plane A hubs mirror tips; mirroring a tip does not resolve a Cap-7 name onto a hub hostname.
+
+Machine field: `/cite.json` `semantic_bridge`. `/cite.json` + `GET /v1/software` also name `website_designs` **azcorpus** + **azlibrary**.
+
+## Dual surface (upload / download / invoke)
+
+Agents use FragGate MCP + OpenAPI (`fraggate_call`, `GET /v1/update/check`, `GET /v1/pull/{slug}`, catalog `website_designs`). Humans use Worker UI + counted `/download`. Upload/ingest/receipt ops (azbrowser `airlock_ingest`, peacelock `upload_envelope`, forgereceipts `verify`, miragegrid `verify-receipt` / `bridge`) are the same door. **azlibrary upload** is API token only — never embed the secret. Download of azcorpus + azlibrary is open for all AI clients. `POST /p/{slug}/{op}` is proxy, not exec.
+
 ## Survival tip (CROSS-NETWORK-SURVIVAL-1.0)
 
 CROSS-NETWORK-SURVIVAL-1.0: someone still has bytes that match the published tip — not a living network, not LLM memory, not a public hostname that still answers.

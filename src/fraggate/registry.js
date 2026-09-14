@@ -263,7 +263,7 @@ export const LIVE_OPS = {
   memory: MEMORY_CANONICAL_OPS.slice(),
   vibelock: ["analyze", "detect", "health", "skill", "doctor"],
   ark: ["sweep", "levels", "health", "skill", "doctor"],
-  miragegrid: ["assign", "verify-receipt", "nodes", "health", "skill", "doctor"],
+  miragegrid: ["assign", "verify-receipt", "nodes", "bridge", "health", "skill", "doctor"],
   mialock: ["map", "search-options", "queries", "doe-match", "coverage", "example", "health", "skill", "doctor"],
   "4dmap": [
     "health",

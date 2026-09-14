@@ -322,6 +322,16 @@ assert.ok(cite.compatible_ai_clients.includes("Claude (Anthropic Desktop / custo
 assert.ok(cite.compatible_ai_clients.includes("plus other MCP/OpenAPI-capable assistants"));
 assert.match(cite.crawler_allow, /GPTBot\/ChatGPT/);
 assert.match(cite.crawler_allow, /Yandex/);
+assert.equal(cite.semantic_bridge.spec, "CAP-7");
+assert.equal(cite.semantic_bridge.resolves_to_hub, false);
+assert.equal(cite.semantic_bridge.inherit, "designs");
+assert.equal(cite.semantic_bridge.public_icann, false);
+assert.equal(cite.semantic_bridge.az_gen_live_registrar, false);
+assert.equal(cite.semantic_bridge.visible_1520, false);
+assert.ok(cite.semantic_bridge.not_aliases_of.includes("https://godlock.uk/"));
+assert.equal(cite.semantic_bridge.name_may_change, true);
+assert.ok(cite.website_designs);
+assert.deepEqual(cite.website_designs.ids, ["azcorpus", "azlibrary"]);
 assert.ok(cite.designs);
 assert.equal(cite.designs.folder, "docs/designs/");
 assert.equal(cite.designs.author, AUTHOR_NAME);
@@ -655,6 +665,9 @@ assert.match(softwareHtml, /Includes named components such as FragGate/);
   assert.ok(ecoAt >= 0 && catalogAt > ecoAt, "ecosystem chrome precedes Softwares catalog list");
 }
 assert.match(softwareHtml, /data-slug="azcoherence"/);
+assert.match(softwareHtml, /<h2>Mesh-resident website designs<\/h2>/);
+assert.match(softwareHtml, /<strong>azcorpus<\/strong> \+ <strong>azlibrary<\/strong>/);
+assert.match(softwareHtml, /API token only/);
 assert.match(softwareHtml, /www\.azieleliab\.com\/software/);
 assert.match(softwareHtml, /godlock\.uk\/software/);
 assert.match(softwareHtml, /GET \/v1\/mesh never enables/);
@@ -758,6 +771,8 @@ assert.match(llmsHead, /not merely an API orchestrator or software aggregator/);
 assert.doesNotMatch(llmsHead, CRAWLER_LEAD_VERSION_RE);
 assert.match(llms, /## Version history/);
 assert.ok(llms.indexOf("## What this is") < llms.indexOf("## Version history"));
+assert.ok(llms.indexOf("## What this is") < llms.indexOf("## Cap-7 semantic bridge"));
+assert.match(llms, /resolves_to_hub: false/);
 assert.equal(llms.includes(RUNTIME_ABSTRACT), true);
 
 assert.equal(cite.one_line, RUNTIME_ONE_LINE);
@@ -768,6 +783,8 @@ assert.equal(cite.about.author, AUTHOR_NAME);
 assert.ok(cite.about.not.some((line) => /API orchestrator/.test(line)));
 assert.match(cite.about.architecture.fraggate, /single public executable door/);
 assert.match(cite.about.architecture.nodemesh, /GET \/v1\/mesh never enables/);
+assert.match(cite.about.architecture.semantic_bridge, /resolves_to_hub false/);
+assert.match(cite.about.architecture.semantic_bridge, /designs only/);
 
 assert.match(sitemap, /\/about</);
 assert.match(sitemap, /\/v1\/about</);
@@ -847,5 +864,9 @@ assert.match(citeDoc, /www\.azieleliab\.com\/#aziel/);
 assert.match(citeDoc, /www\.azieleliab\.com\/runtime#runtime/);
 assert.match(citeDoc, /github\.com\/AzielEliab\/fraggate/);
 assert.match(citeDoc, /plus other MCP\/OpenAPI-capable assistants/);
+assert.match(citeDoc, /resolves_to_hub: false/);
+assert.match(citeDoc, /inherit hub \*\*designs\*\* only/);
+assert.match(citeDoc, /azcorpus/);
+assert.match(citeDoc, /azlibrary/);
 
 console.log("ok seo hub: robots, sitemap-index, llms/cite MIME, Person JSON-LD, catalog crawl links, HTML shells, definition-first abstract, GitHub About lock");
