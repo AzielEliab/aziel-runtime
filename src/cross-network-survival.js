@@ -160,6 +160,9 @@ export function survivalCiteField() {
       paper: "ACT-RECEIPT-1.0",
       short: INGEST_AS_RECEIPT_SHORT,
     },
+    cold_multi_shelf: "COLD-MULTI-SHELF-1.0",
+    cold_multi_shelf_rule:
+      "Planes A/B/C: A=one CF/GitHub tunnel (5 surfaces / 2 family radii, not 5 shelves); B=alt independent forge/archive tip-pack SLOT; C=USB airgap SLOT. Survival = bytes↔hash. LIVE only after hash verify.",
     chatter: ["live", "locked", "isolated", "tip-hash"],
     refuse: {
       unmarked_hydra: true,
@@ -187,7 +190,7 @@ export function survivalLlmsBlock() {
     "",
     CROSS_NETWORK_SURVIVAL_SENTENCE,
     "Umbrella survival law. Cite each locked law: die-with-the-pull · SPLIT-WIRES-1.0 · COLD-COPY-1.0 · INGEST-AS-RECEIPT · RE-EXPAND-1.0 · REHEAL-1.0.",
-    "Cross-network shelves: official hosts (corpus, ae, godlock.uk, HDJ) + Workers + git tags + Zenodo/DOI (do not invent) + local MESH-VAULT cold copies + optional pin of already-public tip/receipts. Cold-shelf rollup: hosts / DOI / git / vault. The live mesh is not a shelf. One shelf dying is not last tip gone.",
+    "Cross-network shelves: official hosts (corpus, ae, godlock.uk, HDJ) + Workers + git tags + Zenodo/DOI (do not invent) + local MESH-VAULT cold copies + optional pin of already-public tip/receipts. Cold-shelf rollup: hosts / DOI / git / vault. COLD-MULTI-SHELF-1.0 executable planes A/B/C cite corpus /shelves (5 surfaces / 2 family radii / 1 independent live; B and C SLOT). The live mesh is not a shelf. One shelf dying is not last tip gone.",
     "Named hosts only. No unmarked hydra. No VPN concealment kit. No visible 15:20 chrome. GET /v1/mesh never enables. Not a Softwares-tab product. Not a FragGate slug. Author: Aziel Eliab only.",
     `Paper: https://github.com/AzielEliab/aziel-runtime/blob/main/${SURVIVAL_PAPER}`,
     "",

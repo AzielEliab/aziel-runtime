@@ -18,6 +18,10 @@
  * GET  /llms.txt              plain-text catalog + how to cite Aziel Eliab + Digital Library
  * GET  /ai.txt                same as /llms.txt
  * GET  /cite.json             How-to-cite: Aziel Eliab (aka Aziel Elroi Eliab), Apache-2.0, no invented DOIs
+ * GET  /shelves               COLD-MULTI-SHELF-1.0 cite (corpus#96 honesty; Plane A 5/2/1; B/C SLOT)
+ * GET  /cold-copy             alias of /shelves
+ * GET  /v1/shelves            machine alias of /shelves
+ * GET  /v1/cold-copy          alias of /shelves
  * GET  /v1/skill              skill markdown (session + front doors)
  * GET  /v1/runtime.json       machine manifest: role=engine-runtime (1.7.9), door=fraggate
  * GET  /v1/fraggate           FragGate door summary
@@ -119,6 +123,13 @@ import { dispatchQnsHttp, qnsHint } from "./qns.js";
 import { dispatchActReceiptHttp, finishWithActReceipt } from "./library-receipts.js";
 import { SURVIVAL_TIP, survivalCiteField, survivalLlmsBlock } from "./cross-network-survival.js";
 import { semanticBridgeCiteField, semanticBridgeLlmsBlock } from "./semantic-bridge.js";
+import {
+  COLD_MULTI_SHELF,
+  dispatchShelvesHttp,
+  isShelvesPath,
+  shelvesCiteField,
+  shelvesLlmsBlock,
+} from "./cold-multi-shelf.js";
 import { websiteDesignsField, websiteDesignsLlmsBlock } from "./website-designs.js";
 import {
   catalogCacheHeaders,
@@ -257,10 +268,10 @@ const CATALOG_TITLE = PRODUCT_NAME;
 /** Bound to the canonical abstract. Version rolls (1.9+) go in #version-history, not here. */
 const CATALOG_DESCRIPTION = RUNTIME_ABSTRACT;
 const CATALOG_CHANGELOG_20 =
-  "2.0.0-rc1 is the certification-point freeze (not a feature dump): public contract, compatibility, receipt schema, refusal contract, and breaking-change policy under docs/2.0/. Clean-room reproducibility + external adversarial pack for independent reviewers (self-test ≠ third-party lab). Gate 4 includes Glama TDQS 5.0 tools/list metadata (no rename; no behavior change) plus existing glama.json / GitHub topics. Read-only QNM suite-presence is ON by default; POST /v1/mesh/disable refuses MESH-DISABLE-REFUSED. Remain-OFF untouched. FragGate remains THE single door. New engines deferred to 2.1+. Crawler abstract stays lead copy. Identity Aziel Eliab only.";
+  "2.0.0-rc1 is the certification-point freeze (not a feature dump): public contract, compatibility, receipt schema, refusal contract, and breaking-change policy under docs/2.0/. Clean-room reproducibility + external adversarial pack for independent reviewers (self-test ≠ third-party lab). Gate 4 includes Glama TDQS 5.0 tools/list metadata (no rename; no behavior change) plus existing glama.json / GitHub topics. Read-only QNM suite-presence is ON by default; POST /v1/mesh/disable refuses MESH-DISABLE-REFUSED. Additive COLD-MULTI-SHELF-1.0 cite (GET /shelves) matches corpus#96 /shelves honesty: Plane A = 5 published surfaces / 2 family radii / 1 independent live; Plane B Codeberg + archive.org PASS still SLOT (https://archive.org/details/aziel-lockset-tip); Framagit URL null; GitFlic CNS-GITFLIC-EMAIL; GitLab CNS-GITLAB-CF-LOOP; Zenodo refused CNS-ZENODO-IP-BAN; doi null; Plane C USB SLOT. Remain-OFF untouched. FragGate remains THE single door. New engines deferred to 2.1+. Crawler abstract stays lead copy. Identity Aziel Eliab only.";
 const CATALOG_CHANGELOG_19 =
   "1.9.3 closes the remaining AZRT-1.9-GAPS-CLOSE items: isolate-native AZ-OS session_open/status/close (prefab ethics VFS; exec/shell/lattice stay refuse); isolate-safe Ask Jeeves over sample MASTER / CORPUS_D1 records; binding-gated media-run when env.AI is present (no fake OCR); published independent-validation attestation path (not a third-party lab). Remain-OFF untouched. 1.9.2 binds Workers Browser Rendering (BROWSER) and live D1 MASTER (CORPUS_D1 → aziel-digital-library records). Whisper/OCR Workers-AI-bound. Sample MASTER remains the unbound fallback. Chromium product UI is not claimed; Tor/phoenix stay refuse. Remain-OFF untouched. 1.9.1 closes AZRT-1.9-GAPS-CLOSE isolate-safe corpus verify; Whisper/OCR Workers-AI-gated; AZBrowser sandbox_status; AZMail transport_status; wave 2–3 doctor; adversarial self-check + Actions npm test. Remain-OFF untouched. 1.9.0 closed AZRT-1.9-CLOSE-1.0. Chromium product UI is not claimed. Remain-OFF untouched.";
-const LASTMOD = "2026-09-11";
+const LASTMOD = "2026-09-14";
 
 const PRODUCTS_RAW = [
   {
@@ -1254,6 +1265,10 @@ function sitemapXml(origin) {
     { loc: base + "/v1/session/open", priority: "0.95", changefreq: "daily" },
     { loc: base + "/v1/bundle", priority: "0.95", changefreq: "daily" },
     { loc: base + "/cite.json", priority: "0.9", changefreq: "weekly" },
+    { loc: base + "/shelves", priority: "0.85", changefreq: "weekly" },
+    { loc: base + "/cold-copy", priority: "0.8", changefreq: "weekly" },
+    { loc: base + "/v1/shelves", priority: "0.85", changefreq: "weekly" },
+    { loc: base + "/v1/cold-copy", priority: "0.8", changefreq: "weekly" },
     { loc: base + "/llms.txt", priority: "0.9", changefreq: "weekly" },
     { loc: base + "/ai.txt", priority: "0.9", changefreq: "weekly" },
     { loc: base + "/sitemap-index.xml", priority: "0.85", changefreq: "weekly" },
@@ -1375,6 +1390,7 @@ function llmsTxt(origin) {
     `Agent pipeline: fraggate_list → fraggate_describe → fraggate_call. Prefer ${base}/mcp and ${base}/v1/software.`,
     `About: ${base}/about`,
     `Cite: ${base}/cite.json`,
+    `Shelves: ${base}/shelves  (COLD-MULTI-SHELF-1.0; corpus SoT ${LIBRARY_ORIGIN}/shelves)`,
     `Sitemap: ${base}/sitemap.xml`,
     `Sitemap index: ${base}/sitemap-index.xml`,
     `Library: ${LIBRARY_NAME} ${LIBRARY_ORIGIN}/`,
@@ -1387,6 +1403,8 @@ function llmsTxt(origin) {
     auditsLlmsHeaderLine(),
     "",
     survivalLlmsBlock().trimEnd(),
+    "",
+    shelvesLlmsBlock(origin).trimEnd(),
     "",
     llmsCompatibleBlock().trimEnd(),
     "",
@@ -1546,6 +1564,8 @@ function citeJson(origin) {
     designs: designsCiteField(),
     audits: auditsCiteField(),
     survival: survivalCiteField(),
+    shelves: shelvesCiteField(origin),
+    cold_multi_shelf: COLD_MULTI_SHELF,
     mesh: meshCiteField(base),
     semantic_bridge: semanticBridgeCiteField(origin),
     redline: redlineCiteField(),
@@ -1914,6 +1934,8 @@ ${namedComponentsHtml()}
     <a href="${origin}/v1/about">/v1/about</a>
     <a href="${origin}/v1/software">/v1/software</a>
     <a href="${origin}/v1/update/check">/v1/update/check</a>
+    <a href="${origin}/cite.json">/cite.json</a>
+    <a href="${origin}/shelves">/shelves</a>
     <a href="${origin}/llms.txt">/llms.txt</a>
     <a href="${origin}/ai.txt">/ai.txt</a>
     <a href="${origin}/sitemap.xml">/sitemap.xml</a>
@@ -1933,7 +1955,7 @@ ${namedComponentsHtml()}
     <a href="https://github.com/AzielEliab/aziel-runtime">GitHub</a>
   </p>
   <p id="pipeline"><strong>Locked MASTER-33 pipeline</strong> (1.7.0 — FragGate is THE single door; not LambGate): <code>${LOCKED_STRIP}</code>. Lamb Lens is fabric after FragGate. Internal Domain Layer holds isolated softwares — domains are labels, not doors. RoseClock is forward-only. FoldLock fld3-wire stays internal to AZPIPE. SweepGate / ChainLock / AZPIPE / Lamb Lens / Sentinel / RoseClock are fabric, not Softwares-tab. 4DMap is cited inside the domain layer. Illegal reorder is refused.</p>
-  <p>LIVE fabric (not Softwares-tab): AZPIPE, SweepGate, ChainLock, LOCKSET, packed catalog, Lamb Lens, Sentinel, RoseClock, <strong>QNS-CD-1.0</strong> (photon QNS1 1.3; local <code>qnsd</code>; Worker cites only), MASTER-33 (SUITE-PIPE-1.6.15 historical), <strong>AKM-TRIAD-1.0</strong> (adaptive recollection; Bayesian posterior ≠ truth; behind FragGate), <strong>ACT-RECEIPT-1.0</strong> (four-field public mesh copy; chain lives on corpus <code>/receipts</code>; fail-open without token). Survival paper: <a href="https://github.com/AzielEliab/aziel-runtime/blob/main/docs/designs/CROSS-NETWORK-SURVIVAL-1.0.md">CROSS-NETWORK-SURVIVAL-1.0</a> — someone still has bytes that match the published tip — not a living network, not LLM memory, not a public hostname that still answers. Companion <strong>NO-LIE-NO-REWRITE-1.0</strong>: receipts that still hash; copies not all on one tunnel; no rewrite key; the network is never allowed to lie even to self-preserve (<a href="https://github.com/AzielEliab/aziel-runtime/blob/main/docs/designs/NO-LIE-NO-REWRITE-1.0.md">NO-LIE-NO-REWRITE-1.0</a>). MCP <code>chainlock_*</code> and <code>memory_*</code>. <code>GET /v1/mesh</code> never enables. <code>GET /v1/qns</code> cites the packet-transfer coding design — it does not proxy local via emit. <code>GET /v1/receipts</code> cites the public ACT chain (tip/proxy). <code>GET /v1/azpipe/arch</code> cites the locked MASTER-33 strip (same payload as <code>GET /v1/fraggate</code> <code>pipeline</code>; not a Softwares-tab door). UI=MCP. No Node Gate.</p>
+  <p>LIVE fabric (not Softwares-tab): AZPIPE, SweepGate, ChainLock, LOCKSET, packed catalog, Lamb Lens, Sentinel, RoseClock, <strong>QNS-CD-1.0</strong> (photon QNS1 1.3; local <code>qnsd</code>; Worker cites only), MASTER-33 (SUITE-PIPE-1.6.15 historical), <strong>AKM-TRIAD-1.0</strong> (adaptive recollection; Bayesian posterior ≠ truth; behind FragGate), <strong>ACT-RECEIPT-1.0</strong> (four-field public mesh copy; chain lives on corpus <code>/receipts</code>; fail-open without token). Survival paper: <a href="https://github.com/AzielEliab/aziel-runtime/blob/main/docs/designs/CROSS-NETWORK-SURVIVAL-1.0.md">CROSS-NETWORK-SURVIVAL-1.0</a> — someone still has bytes that match the published tip — not a living network, not LLM memory, not a public hostname that still answers. Companion <strong>NO-LIE-NO-REWRITE-1.0</strong>: receipts that still hash; copies not all on one tunnel; no rewrite key; the network is never allowed to lie even to self-preserve (<a href="https://github.com/AzielEliab/aziel-runtime/blob/main/docs/designs/NO-LIE-NO-REWRITE-1.0.md">NO-LIE-NO-REWRITE-1.0</a>). <strong>COLD-MULTI-SHELF-1.0</strong> cite: <a href="${origin}/shelves">/shelves</a> matches live corpus <a href="https://www.azielcorpuslibrary.net/shelves">/shelves</a> (Plane A 5 surfaces / 2 family radii / 1 independent live; Plane B SLOT; Plane C USB SLOT; doi null). MCP <code>chainlock_*</code> and <code>memory_*</code>. <code>GET /v1/mesh</code> never enables. <code>GET /v1/qns</code> cites the packet-transfer coding design — it does not proxy local via emit. <code>GET /v1/receipts</code> cites the public ACT chain (tip/proxy). <code>GET /v1/azpipe/arch</code> cites the locked MASTER-33 strip (same payload as <code>GET /v1/fraggate</code> <code>pipeline</code>; not a Softwares-tab door). UI=MCP. No Node Gate.</p>
   <p>Donation is a static hub tab (<a href="${DONATE_CANONICAL}">${escapeHtml(DONATE_CANONICAL)}</a>) — AZL-DONATE-1.0. Canonical rails live on hubs; this runtime only links. Hub Donate pages include five QRs that encode payment URIs (BTC / ETH / LTC / XRP / DOGE). No KV, no invented wallets, no five QRs on this Worker.</p>
   <p>Designs (git-hosted papers — not Softwares-tab products, not a FragGate slug; <code>GET /v1/mesh</code> never enables): <a href="${DESIGNS_GITHUB_TREE}">docs/designs/</a>${SUITE_DESIGNS.map((d) => ` · <a href="${designGithubUrl(d.file)}">${escapeHtml(d.id)}</a>`).join("")}. Author: Aziel Eliab only. PDFs sit beside each paper on GitHub.</p>
   <p>Feature-state audit (authoritative intentional-OFF vs gaps for 1.7.3+; not a Softwares-tab product, not a FragGate slug): <a href="${auditGithubUrl(FEATURE_STATE_AUDIT.file)}">${escapeHtml(FEATURE_STATE_AUDIT.id)}</a> · <a href="${auditGithubUrl(FEATURE_STATE_AUDIT.pdf)}">PDF</a> · <a href="${AUDIT_GITHUB_TREE}">docs/audit/</a>. Constitutional OFF set (33 items; correctly OFF/REFUSED/GATED is not a gap): <a href="${designGithubUrl(REMAIN_OFF_BY_DESIGN.file)}">${escapeHtml(REMAIN_OFF_BY_DESIGN.id)}</a> · <a href="${designGithubUrl(REMAIN_OFF_BY_DESIGN.pdf)}">PDF</a>. Do not enable Remain-OFF products or safety stubs. Author: Aziel Eliab only.</p>
@@ -2220,9 +2242,48 @@ function staticPaths(origin) {
       get: {
         operationId: "catalog_cite",
         summary:
-          "How to cite Aziel Eliab software and the Digital Library. Aka Aziel Elroi Eliab. No invented DOIs.",
+          "How to cite Aziel Eliab software and the Digital Library. Aka Aziel Elroi Eliab. No invented DOIs. Cites COLD-MULTI-SHELF-1.0 / corpus#96 shelves honesty.",
         tags: ["catalog"],
         responses: { "200": { description: "Citation JSON" } },
+      },
+    },
+    "/shelves": {
+      get: {
+        operationId: "catalog_shelves",
+        summary:
+          "COLD-MULTI-SHELF-1.0 registry cite matching live corpus /shelves (corpus#96). Plane A = 5 published surfaces / 2 family radii / 1 independent live. Plane B Codeberg + archive.org hash-verify PASS still SLOT (https://archive.org/details/aziel-lockset-tip pack b549362c…); Framagit URL null (third ALL-TARGETS); GitFlic refused CNS-GITFLIC-EMAIL; GitLab refused CNS-GITLAB-CF-LOOP; Zenodo refused CNS-ZENODO-IP-BAN; doi null. Plane C USB SLOT until CNS-OPERATOR-ATTEST. Runtime Worker is the same Plane A tunnel, not a sixth surface.",
+        tags: ["catalog"],
+        responses: { "200": { description: "COLD-MULTI-SHELF registry JSON" } },
+      },
+      head: {
+        operationId: "catalog_shelves_head",
+        summary: "HEAD of /shelves.",
+        tags: ["catalog"],
+        responses: { "200": { description: "headers only" } },
+      },
+    },
+    "/cold-copy": {
+      get: {
+        operationId: "catalog_cold_copy",
+        summary: "Alias of GET /shelves.",
+        tags: ["catalog"],
+        responses: { "200": { description: "COLD-MULTI-SHELF registry JSON" } },
+      },
+    },
+    "/v1/shelves": {
+      get: {
+        operationId: "catalog_shelves_v1",
+        summary: "Machine alias of GET /shelves (COLD-MULTI-SHELF-1.0).",
+        tags: ["catalog"],
+        responses: { "200": { description: "COLD-MULTI-SHELF registry JSON" } },
+      },
+    },
+    "/v1/cold-copy": {
+      get: {
+        operationId: "catalog_cold_copy_v1",
+        summary: "Alias of GET /shelves.",
+        tags: ["catalog"],
+        responses: { "200": { description: "COLD-MULTI-SHELF registry JSON" } },
       },
     },
     "/llms.txt": {
@@ -2331,7 +2392,7 @@ async function combinedOpenApi(request, env) {
       summary: RUNTIME_ONE_LINE,
       description:
         RUNTIME_ABSTRACT +
-        " FragGate is THE single public executable door (list → describe → call). Softwares catalog Plain→Gate→Lock; hubs refresh from GET /v1/software. Dual-surface: agents MCP/OpenAPI; humans Worker UI + counted /download. Catalog names mesh-resident website designs azcorpus + azlibrary (downloadable to nodes; not extra Softwares; azlibrary upload is API token only). Cap-7 mesh names via MirageGrid only (inherit hub designs only; resolves_to_hub false; name_may_change; canonical hubs immutable; not ICANN aliases). NodeMesh/QNM read-only suite-presence is ON by default; GET /v1/mesh never enables radios beyond that; not a login mesh/VPN/Node Gate. Author Aziel Eliab only. " +
+        " FragGate is THE single public executable door (list → describe → call). Softwares catalog Plain→Gate→Lock; hubs refresh from GET /v1/software. Dual-surface: agents MCP/OpenAPI; humans Worker UI + counted /download. Catalog names mesh-resident website designs azcorpus + azlibrary (downloadable to nodes; not extra Softwares; azlibrary upload is API token only). Cap-7 mesh names via MirageGrid only (inherit hub designs only; resolves_to_hub false; name_may_change; canonical hubs immutable; not ICANN aliases). COLD-MULTI-SHELF-1.0 cite on GET /shelves matches corpus#96 honesty (Plane A 5 surfaces / 2 family radii / 1 independent live; Plane B Codeberg + archive.org PASS still SLOT at https://archive.org/details/aziel-lockset-tip; Framagit URL null; GitFlic CNS-GITFLIC-EMAIL; GitLab CNS-GITLAB-CF-LOOP; Zenodo refused; doi null; Plane C USB SLOT). NodeMesh/QNM read-only suite-presence is ON by default; GET /v1/mesh never enables radios beyond that; not a login mesh/VPN/Node Gate. Author Aziel Eliab only. " +
         CATALOG_CHANGELOG_20 +
         " " +
         CATALOG_CHANGELOG_19 +
@@ -2603,6 +2664,8 @@ function healthBody(origin) {
     memory: "/v1/memory",
     about: "/about",
     cite: "/cite.json",
+    shelves: "/shelves",
+    shelves_json: "/v1/shelves",
     sitemap: "/sitemap.xml",
     sitemap_index: "/sitemap-index.xml",
     robots: "/robots.txt",
@@ -2906,6 +2969,13 @@ async function handleRequest(request, env, ctx) {
       return asHead(request, json(citeJson(origin), 200, extra("/cite.json")));
     }
 
+    if (isShelvesPath(url.pathname)) {
+      const out = dispatchShelvesHttp(request.method, url.pathname, origin);
+      if (out) {
+        return asHead(request, json(out.body, out.status, extra(url.pathname)));
+      }
+    }
+
     if (url.pathname === "/v1/skill" && (request.method === "GET" || request.method === "HEAD")) {
       return asHead(
         request,
@@ -3047,6 +3117,8 @@ async function handleRequest(request, env, ctx) {
           redline: redlineCiteField(),
           tls: redlineCiteField().tls,
           website_designs: websiteDesignsField(origin),
+          shelves: shelvesCiteField(origin),
+          cold_multi_shelf: COLD_MULTI_SHELF,
           count: PRODUCTS.length,
           products: PRODUCTS.map((p) => catalogRecord(p, origin)),
         },

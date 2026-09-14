@@ -161,7 +161,7 @@ assert.deepEqual(catalogBody.website_designs.ids, ["azcorpus", "azlibrary"]);
 assert.ok(citeBody.designs);
 assert.equal(citeBody.designs.folder, "docs/designs/");
 assert.match(citeBody.designs.how_to_cite, /Eliab, Aziel/);
-assert.equal(citeBody.designs.papers.length, 25);
+assert.equal(citeBody.designs.papers.length, 26);
 assert.ok(citeBody.designs.papers.some((p) => p.id === "AKM-TRIAD-1.0" && p.path === "docs/designs/AKM-TRIAD-1.0.md" && p.kind === "fabric"));
 assert.ok(citeBody.designs.papers.some((p) => p.id === "ACT-RECEIPT-1.0" && p.path === "docs/designs/ACT-RECEIPT-1.0.md" && p.kind === "fabric" && p.software_tab === false));
 assert.ok(citeBody.designs.papers.some((p) => p.id === "QNS-CD-1.0" && p.path === "docs/designs/QNS-CD-1.0.md" && p.kind === "fabric"));
@@ -180,11 +180,19 @@ assert.ok(citeBody.designs.papers.some((p) => p.id === "AZL-DONATE-1.0" && p.pat
 assert.ok(citeBody.designs.papers.some((p) => p.id === "CROSS-NETWORK-SURVIVAL-1.0" && p.path === "docs/designs/CROSS-NETWORK-SURVIVAL-1.0.md" && p.kind === "law" && p.software_tab === false));
 assert.ok(citeBody.designs.papers.some((p) => p.id === "NO-LIE-NO-REWRITE-1.0" && p.path === "docs/designs/NO-LIE-NO-REWRITE-1.0.md" && p.kind === "law" && p.software_tab === false));
 assert.ok(citeBody.designs.papers.some((p) => p.id === "REDLINE-2026-09-14" && p.path === "docs/designs/REDLINE-2026-09-14.md" && p.kind === "law" && p.software_tab === false));
+assert.ok(citeBody.designs.papers.some((p) => p.id === "COLD-MULTI-SHELF-1.0" && p.path === "docs/designs/COLD-MULTI-SHELF-1.0.md" && p.kind === "law" && p.software_tab === false));
 assert.equal(citeBody.semantic_bridge.design_of, "hub_designs");
 assert.equal(citeBody.redline.spec, "REDLINE-2026-09-14");
 assert.equal(citeBody.redline.person_id, "https://www.azieleliab.com/#aziel");
 assert.equal(citeBody.tls.via, "cloudflare");
 assert.equal(citeBody.tls.client_side_crypto_claim, false);
+assert.equal(citeBody.shelves.spec, "COLD-MULTI-SHELF-1.0");
+assert.equal(citeBody.shelves.lockset_doi, null);
+assert.equal(citeBody.shelves.independent_live_count, 1);
+assert.equal(citeBody.shelves.published_surfaces, 5);
+assert.equal(citeBody.shelves.runtime_is_shelf, false);
+assert.equal(citeBody.shelves.visible_1520, false);
+assert.equal(citeBody.cold_multi_shelf, "COLD-MULTI-SHELF-1.0");
 assert.equal(citeBody.survival.spec, "CROSS-NETWORK-SURVIVAL-1.0");
 assert.equal(
   citeBody.survival.tip,
