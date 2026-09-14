@@ -197,6 +197,14 @@ assert.equal(citeBody.shelves.attack_sims.pointer, "scripts/verify-redline.mjs")
 assert.equal(citeBody.shelves.lockset_doi, null);
 assert.equal(citeBody.shelves.independent_live_count, 1);
 assert.equal(citeBody.shelves.published_surfaces, 5);
+assert.equal(citeBody.shelves.plane_b.framagit.url, null);
+assert.equal(citeBody.shelves.plane_b.archive_org.url, "https://archive.org/details/aziel-lockset-tip");
+assert.equal(citeBody.shelves.plane_b.archive_org_202609.url, "https://archive.org/details/aziel-lockset-tip_202609");
+assert.equal(citeBody.shelves.plane_b.archive_org_202609.independent, false);
+assert.deepEqual(citeBody.shelves.archive_org_tip_packs, [
+  "https://archive.org/details/aziel-lockset-tip",
+  "https://archive.org/details/aziel-lockset-tip_202609",
+]);
 assert.equal(citeBody.shelves.runtime_is_shelf, false);
 assert.equal(citeBody.shelves.visible_1520, false);
 assert.equal(citeBody.cold_multi_shelf, "COLD-MULTI-SHELF-1.0");

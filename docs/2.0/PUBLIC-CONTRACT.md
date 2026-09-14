@@ -106,7 +106,7 @@ Other public HTTP surfaces that stay in the contract:
 | GET | `/v1/session/{id}/receipt\|receipts` | Receipts |
 | GET | `/v1/mesh`, `/v1/mesh/status`, `/v1/mesh/nodes` | QNM rollup (**GET never enables**) |
 | GET | `/v1/mesh/az-generator` | Cap-7 semantic-bridge cite (MirageGrid; inherit designs only including azcorpus + azlibrary; `design_of: hub_designs`; `resolves_to_hub: false`; `name_may_change`; not ICANN) |
-| GET | `/shelves`, `/v1/shelves` | COLD-MULTI-SHELF-1.0 cite matching corpus#96 `/shelves` (Plane A 5/2/1; Plane B SLOT; Plane C USB SLOT; `doi` null). Linked fields: `redline.spec`, Cap-7 `design_of` + `resolves_to_hub: false`, attack-sim refuse pointer |
+| GET | `/shelves`, `/v1/shelves` | COLD-MULTI-SHELF-1.0 cite matching corpus#96 `/shelves` (Plane A 5/2/1; Plane B SLOT — archive.org primary + `aziel-lockset-tip_202609` same blast_radius; Framagit `url` null; Plane C USB SLOT; `doi` null). Linked fields: `redline.spec`, Cap-7 `design_of` + `resolves_to_hub: false`, attack-sim refuse pointer |
 | POST | `/v1/mesh/enable\|disable\|join\|heartbeat\|leave\|broadcast` | Mesh mutate (bearer / radios) |
 | GET | `/v1/qns` | QNS cite only |
 | GET | `/v1/azpipe/arch` | MASTER-33 cite/read |
