@@ -4,6 +4,8 @@ Author: Aziel Eliab only.
 
 Status: local specification (2026-09-09). Not a Softwares-tab product. Not a fleet-completeness claim.
 
+**NO-LIE / NO-REWRITE:** history is not rewritten. There is no rewrite key. Local receipt plus public cite are two copy planes — not all on one tunnel. Companion [NO-LIE-NO-REWRITE-1.0](NO-LIE-NO-REWRITE-1.0.md).
+
 ---
 
 Aziel Eliab · local specification · not a fleet-completeness claim

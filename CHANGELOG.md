@@ -18,6 +18,7 @@ This file exists so Glama / crawlers that look for a repo-root changelog see the
 - README public copy labels `/sigil.png` as the rose-star brand mark (not “Everblooming sigil”). Skill markdown + `X-Aziel-Sigil` stay unchanged. **No MCP behavior change.**
 - Additive ACT-RECEIPT-1.0 fabric (operator-approved runtime plugin): after FragGate list/call, `POST /mcp`, and significant `POST /v1/*`, the runtime POSTs four-field receipts to corpus `/v1/receipts/append` with header `x-aziel-receipt` when `RECEIPT_APPEND_TOKEN` is set. Fail-open without token. Public chain lives on [corpus /receipts](https://www.azielcorpuslibrary.net/receipts). `GET /v1/receipts` cites; tip/proxy is optional. Not a Softwares-tab product. Remain-OFF untouched.
 - CROSS-NETWORK-SURVIVAL-1.0 machine cite: `/cite.json` `survival.tip` and `/llms.txt` carry one tip string (matching bytes on an independent shelf). Design paper in `docs/designs/`. Not a Softwares-tab product. No new MCP tool. Remain-OFF untouched.
+- Additive **NO-LIE-NO-REWRITE-1.0** law (companion under that umbrella, does not replace the machine tip): receipts that still hash; copies not all on one tunnel; no rewrite key. The network is never allowed to lie — even to self-preserve, sustain, stay alive, adapt, or prevent death. `GET /v1/mesh` cites `no_lie` / `no_rewrite` / `rewrite_key: false`. Rewrite / lie verbs refuse `MESH-NO-REWRITE` / `MESH-NO-LIE`. No new MCP tool. Remain-OFF untouched.
 - Full notes: [`docs/2.0/CHANGELOG.md`](docs/2.0/CHANGELOG.md).
 
 ## Heritage

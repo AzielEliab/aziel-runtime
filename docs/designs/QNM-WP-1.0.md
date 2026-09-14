@@ -2,6 +2,8 @@
 
 Author: Aziel Eliab only.
 
+**NO-LIE / NO-REWRITE** (companion [NO-LIE-NO-REWRITE-1.0](NO-LIE-NO-REWRITE-1.0.md), [CROSS-NETWORK-SURVIVAL-1.0](CROSS-NETWORK-SURVIVAL-1.0.md)): receipts that still hash; copies not all on one tunnel; no rewrite key. The network is never allowed to lie — even to self-preserve, sustain, stay alive, adapt, or prevent death. This paper is not rewritten by that law.
+
 ---
 
 QNM-WP-1.0                                                                                                Aziel Eliab · public work identity only

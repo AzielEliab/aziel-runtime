@@ -4,6 +4,8 @@ Author: Aziel Eliab only.
 
 Status: LIVE fabric (2026-09-13). Not a Softwares-tab product. Not a FragGate slug. Operator-approved runtime plugin.
 
+**NO-LIE / NO-REWRITE:** receipts that still hash. There is no rewrite key. Fail-open skip (no token / corpus dark) is a missing append, not a fake receipt. Companion [NO-LIE-NO-REWRITE-1.0](NO-LIE-NO-REWRITE-1.0.md).
+
 ---
 
 Aziel Eliab · fabric · public mesh copy · corpus /receipts
