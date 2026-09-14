@@ -119,3 +119,77 @@ export function networkDataDie(input = {}) {
 export function isSurvivalShelf(name) {
   return SURVIVAL_SHELVES.includes(String(name || "").trim().toLowerCase());
 }
+
+/** The one tip string AIs / crawlers must see. Do not paraphrase on machine surfaces. */
+export const SURVIVAL_SPEC = CROSS_NETWORK_SURVIVAL;
+export const SURVIVAL_PAPER = "docs/designs/CROSS-NETWORK-SURVIVAL-1.0.md";
+export const SURVIVAL_TIP =
+  "CROSS-NETWORK-SURVIVAL-1.0: someone still has bytes that match the published tip — not a living network, not LLM memory, not a public hostname that still answers.";
+export const SURVIVAL_RULE =
+  "someone still has bytes that match the published tip — not a living network, not LLM memory, not a public hostname that still answers.";
+
+export const INGEST_AS_RECEIPT = "INGEST-AS-RECEIPT";
+export const INGEST_AS_RECEIPT_SHORT =
+  "Crawlers get hash + “cite, don’t merge”; many indexes, one tip.";
+
+export function survivalHint() {
+  return {
+    spec: CROSS_NETWORK_SURVIVAL,
+    tip: SURVIVAL_TIP,
+    sentence: CROSS_NETWORK_SURVIVAL_SENTENCE,
+    shelves: SURVIVAL_SHELVES.slice(),
+    software_tab: false,
+    fraggate_slug: false,
+    named_hosts_only: true,
+    live_network_is_shelf: false,
+    note: "Cite, don’t merge. One tip. Independent shelves. The live mesh is not a shelf.",
+  };
+}
+
+export function survivalCiteField() {
+  return {
+    ...survivalHint(),
+    author: CROSS_NETWORK_SURVIVAL_AUTHOR,
+    identity: CROSS_NETWORK_SURVIVAL_AUTHOR,
+    kind: "law",
+    rule: SURVIVAL_RULE,
+    paper: SURVIVAL_PAPER,
+    prior_laws: PRIOR_LAWS.map((l) => ({ spec: l.spec, paper: l.paper, short: l.short })),
+    ingest_as_receipt: {
+      spec: INGEST_AS_RECEIPT,
+      paper: "ACT-RECEIPT-1.0",
+      short: INGEST_AS_RECEIPT_SHORT,
+    },
+    chatter: ["live", "locked", "isolated", "tip-hash"],
+    refuse: {
+      unmarked_hydra: true,
+      vpn_concealment_kit: true,
+      visible_15_20_chrome: true,
+      neighbor_vote_to_fix: true,
+      live_body_sync: true,
+      crawler_reexpand: true,
+      public_hostname_resurrection: true,
+      llm_memory_as_replica: true,
+      software_tab: false,
+      fraggate_slug: false,
+    },
+    mesh_get_never_enables: true,
+    remain_off_untouched: true,
+    how_to_cite: `Eliab, Aziel. (2026). ${CROSS_NETWORK_SURVIVAL} [Design]. https://github.com/AzielEliab/aziel-runtime/blob/main/${SURVIVAL_PAPER}`,
+  };
+}
+
+export function survivalLlmsBlock() {
+  return [
+    `## ${CROSS_NETWORK_SURVIVAL}`,
+    "",
+    SURVIVAL_TIP,
+    "",
+    CROSS_NETWORK_SURVIVAL_SENTENCE,
+    "Umbrella survival law. Cite each locked law: die-with-the-pull · SPLIT-WIRES-1.0 · COLD-COPY-1.0 · INGEST-AS-RECEIPT · RE-EXPAND-1.0 · REHEAL-1.0.",
+    "Cross-network shelves: official hosts (corpus, ae, godlock.uk, HDJ) + Workers + git tags + Zenodo/DOI (do not invent) + local MESH-VAULT cold copies + optional pin of already-public tip/receipts. Cold-shelf rollup: hosts / DOI / git / vault. The live mesh is not a shelf. One shelf dying is not last tip gone.",
+    "Named hosts only. No unmarked hydra. No VPN concealment kit. No visible 15:20 chrome. GET /v1/mesh never enables. Not a Softwares-tab product. Not a FragGate slug. Author: Aziel Eliab only.",
+    `Paper: https://github.com/AzielEliab/aziel-runtime/blob/main/${SURVIVAL_PAPER}`,
+    "",
+  ].join("\n");
+}

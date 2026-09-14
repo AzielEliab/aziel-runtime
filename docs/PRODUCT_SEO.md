@@ -191,6 +191,8 @@ Use the canonical User-agent names above (for example `Meta-ExternalAgent`, not 
 
 No invented DOIs. Historical tombstones may be listed with `zenodo_status`.
 
+Runtime `/cite.json` also publishes `survival.tip` — the CROSS-NETWORK-SURVIVAL-1.0 one-string rule (matching bytes on an independent shelf). Same string on `/llms.txt`. Not a Softwares-tab product.
+
 ## llms.txt
 
 Plain text. Lead with **What this is** — the canonical Aziel Runtime abstract (not a version mash). Then How to use (FragGate list→describe→call; `/v1/software`; `/mcp`). Version history (including **1.9 / AZRT-1.9-CLOSE-1.0**) goes **below** that abstract. Never replace the abstract with a changelog.
