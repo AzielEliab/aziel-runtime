@@ -304,6 +304,8 @@ assert.ok(openapi.paths["/v1/fraggate"]);
 assert.ok(openapi.paths["/v1/fraggate/call"]);
 assert.ok(openapi.paths["/mcp"], "OpenAPI lists POST /mcp");
 assert.ok(openapi.paths["/mcp"].post);
+assert.ok(openapi.paths["/.well-known/mcp/server-card.json"]?.get, "OpenAPI lists server-card");
+assert.ok(openapi.paths["/.well-known/oauth-protected-resource"]?.get, "OpenAPI lists oauth-protected-resource");
 assert.ok(openapi.paths["/v1/uses"]);
 assert.ok(openapi.paths["/v1/stats"]);
 assert.ok(openapi.paths["/v1/stats-rollups"]);

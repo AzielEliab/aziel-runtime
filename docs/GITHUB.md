@@ -2,7 +2,7 @@
 
 Public identity: **Aziel Eliab** only. Aka / `alternateName` only: **Aziel Elroi Eliab**.
 
-This file locks the **GitHub repository About box** (description, homepage, topics) so Google, GitHub search, and AI indexes pick up **MCP, OpenAPI, FragGate, and digital forensics**. It does **not** change Worker MCP behavior or homepage HTML. No `wrangler deploy`.
+This file locks the **GitHub repository About box** (description, homepage, topics) so Google, GitHub search, and AI indexes pick up **MCP, OpenAPI, FragGate, and digital forensics**. Applying the About box (`gh repo edit`) does not deploy the Worker. Worker HTML is unchanged. The About **homepage** must be the live MCP endpoint (not a directory listing) so registry validators do not skip initialize.
 
 Coordinator applies the live box with `gh repo edit` (this file is the source of truth; PRs cannot patch About via git).
 
@@ -20,9 +20,11 @@ NodeMesh'd MCP Softwares suite for digital forensics and auditing — not an API
 
 ## Homepage
 
-**Try on Glama** is the primary Install Server / MCP distribution door:
+GitHub About homepage is the **live MCP endpoint** (registry validators / Sentinel `remote_url`):
 
-`https://glama.ai/mcp/servers/AzielEliab/aziel-runtime`
+`https://aziel-runtime.vibelock.workers.dev/mcp`
+
+**Try on Glama** remains the primary Install Server / MCP distribution door in Description text, README table, topics, and cross-links — it is **not** the About homepage. A directory listing is not the MCP endpoint.
 
 Worker origin (`https://aziel-runtime.vibelock.workers.dev/`) stays the execution / OpenAPI / `/llms.txt` / `/cite.json` surface. Official hub identity is `https://www.azieleliab.com/runtime` (`@id` `#runtime`). Do not invent a Glama UUID.
 
@@ -62,7 +64,7 @@ Full client set (ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copil
 ```bash
 gh repo edit AzielEliab/aziel-runtime \
   --description "NodeMesh'd MCP Softwares suite for digital forensics and auditing — not an API aggregator. FragGate door, OpenAPI + MCP, provenance and chain-of-custody. Aziel Runtime 2.0.0-rc1 by Aziel Eliab. Try on Glama." \
-  --homepage "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime" \
+  --homepage "https://aziel-runtime.vibelock.workers.dev/mcp" \
   --add-topic openapi --add-topic fraggate --add-topic glama \
   --add-topic mcp-server --add-topic nodemesh --add-topic cloudflare --add-topic workers
 ```

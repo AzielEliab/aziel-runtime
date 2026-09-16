@@ -163,6 +163,7 @@ export function shouldIncrementUse(method, pathname) {
   if (m === "OPTIONS" || m === "HEAD") return false;
   const path = normalizePath(pathname);
   if (SKIP_SEO.has(path)) return false;
+  if (path.includes("/.well-known/")) return false;
   if (ASSET_EXT.test(path)) return false;
   if (path === "/v1/uses" || path === "/v1/stats" || path === "/v1/stats-rollups") return false;
   if (path === "/v1/receipts" || path.startsWith("/v1/receipts/")) return false;

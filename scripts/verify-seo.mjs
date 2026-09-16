@@ -230,6 +230,8 @@ assert.match(sitemap, /\/shelves/);
 assert.match(sitemap, /docs\/audit/);
 assert.match(sitemap, /\/v1\/qns/);
 assert.match(sitemap, /\/v1\/stats-rollups/);
+assert.match(sitemap, /\/\.well-known\/mcp\/server-card\.json/);
+assert.match(sitemap, /\/\.well-known\/oauth-protected-resource/);
 
 const indexRes = await get("/sitemap-index.xml");
 assert.equal(indexRes.status, 200);
@@ -868,6 +870,8 @@ const githubLock = await (await import("node:fs/promises")).readFile(
 assert.match(githubLock, /NodeMesh'd MCP Softwares suite for digital forensics/);
 assert.match(githubLock, /not an API aggregator/);
 assert.match(githubLock, /glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime/);
+assert.match(githubLock, /--homepage "https:\/\/aziel-runtime\.vibelock\.workers\.dev\/mcp"/);
+assert.doesNotMatch(githubLock, /--homepage "https:\/\/glama\.ai/);
 assert.match(githubLock, /www\.azieleliab\.com\/#aziel/);
 assert.match(githubLock, /www\.azieleliab\.com\/runtime#runtime/);
 assert.match(githubLock, /--add-topic openapi/);

@@ -115,6 +115,8 @@ Other public HTTP surfaces that stay in the contract:
 | GET | `/v1/uses`, `/v1/stats` | Use counters (no PII) |
 | GET | `/v1/stats-rollups` | Read-only sibling views/downloads snapshot (best-effort; never invents) |
 | POST | `/mcp` | MCP JSON-RPC |
+| GET | `/.well-known/mcp/server-card.json` | Honest MCP server card (auth none / public) |
+| GET | `/.well-known/oauth-protected-resource` | RFC 9728 public resource (no auth server) |
 
 `/v1/rollback` stays **404**.
 
