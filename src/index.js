@@ -68,6 +68,8 @@
  * GET  /p/{product}/{op}      proxy GET (not exec)
  * POST /p/{product}/{op}      proxy → product Worker /v1/{op} (not exec)
  * GET  /v1/health
+ * GET  /.well-known/mcp/server-card.json          honest MCP server card (also /mcp/.well-known/…)
+ * GET  /.well-known/oauth-protected-resource      RFC 9728 public MCP (no auth server; also /mcp path)
  * POST /mcp                   JSON-RPC MCP-over-HTTP (initialize, tools/list, tools/call)
  *
  * Product download-KV is not incremented here. API uses go to binding USES.
@@ -163,6 +165,11 @@ import {
   registryFor,
   wrapFraggateEnvelope,
 } from "./mcp-surface.js";
+import {
+  mcpDiscoveryKind,
+  mcpServerCard,
+  oauthProtectedResource,
+} from "./mcp-discovery.js";
 import { admitCall, describeRegistry, fraggateCall, listRegistry, verifyRegistry } from "./fraggate/door.js";
 import { LIVE_OPS, NAMED_STUBS, registryDigest, registrySummary } from "./fraggate/registry.js";
 import {
@@ -1285,6 +1292,8 @@ function sitemapXml(origin) {
     { loc: base + "/v1/memory", priority: "0.6", changefreq: "weekly" },
     { loc: base + "/v1/ready", priority: "0.7", changefreq: "daily" },
     { loc: base + "/mcp", priority: "0.6", changefreq: "weekly" },
+    { loc: base + "/.well-known/mcp/server-card.json", priority: "0.7", changefreq: "weekly" },
+    { loc: base + "/.well-known/oauth-protected-resource", priority: "0.65", changefreq: "weekly" },
     { loc: base + "/sigil.png", priority: "0.3", changefreq: "monthly" },
   ];
   for (const p of PRODUCTS) {
@@ -2722,6 +2731,8 @@ async function handleMcp(request, env, origin) {
       endpoint: "POST /mcp",
       methods: ["initialize", "tools/list", "tools/call", "ping"],
       auth: "none (public)",
+      server_card: "/.well-known/mcp/server-card.json",
+      oauth_protected_resource: "/.well-known/oauth-protected-resource",
       note: "Durable Objects / agents McpAgent not used. Minimal HTTP JSON-RPC. tools/list is the thin FragGate door. Pipeline: fraggate_list → fraggate_describe → fraggate_call. Hubs: GET /v1/software.",
       door: "fraggate",
       skill: "/v1/skill",
@@ -2932,6 +2943,22 @@ async function handleRequest(request, env, ctx) {
 
     if (tokenPresentedInQuery(request)) {
       return json(tokenQueryRefuse(), 400, extra(url.pathname));
+    }
+
+    if (request.method === "GET" || request.method === "HEAD") {
+      const discovery = mcpDiscoveryKind(url.pathname);
+      if (discovery === "server-card") {
+        return asHead(
+          request,
+          json(mcpServerCard(origin), 200, authorityLinkHeaders(origin, url.pathname)),
+        );
+      }
+      if (discovery === "oauth-protected-resource") {
+        return asHead(
+          request,
+          json(oauthProtectedResource(origin), 200, authorityLinkHeaders(origin, url.pathname)),
+        );
+      }
     }
 
     if (url.pathname === "/" && request.method === "GET") {

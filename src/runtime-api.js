@@ -965,6 +965,12 @@ export function runtimeStaticPaths() {
       },
     },
     "/mcp": {
+      get: {
+        operationId: "mcp_transport_note",
+        summary: "Public MCP transport note. auth: none (public). JSON-RPC is POST /mcp.",
+        tags: ["fraggate"],
+        responses: { "200": { description: "Transport + auth none (public) + well-known pointers." } },
+      },
       post: {
         operationId: "mcp_jsonrpc",
         summary:
@@ -987,6 +993,24 @@ export function runtimeStaticPaths() {
           },
         },
         responses: { "200": { description: "JSON-RPC result. tools/list names match refuse exist.mcp." } },
+      },
+    },
+    "/.well-known/mcp/server-card.json": {
+      get: {
+        operationId: "mcp_server_card",
+        summary:
+          "Honest MCP server card. Name aziel-runtime, version 2.0.0-rc1, streamable-http JSON-RPC POST /mcp, auth none (public). Homepage azieleliab.com/runtime. Support GitHub aziel-runtime. No invented Glama UUID or OAuth IdP.",
+        tags: ["fraggate"],
+        responses: { "200": { description: "Server card JSON (tools summary = public tools/list)." } },
+      },
+    },
+    "/.well-known/oauth-protected-resource": {
+      get: {
+        operationId: "mcp_oauth_protected_resource",
+        summary:
+          "RFC 9728 protected-resource metadata for the public MCP. authorization_servers is empty — no IdP. Auth none (public).",
+        tags: ["fraggate"],
+        responses: { "200": { description: "Public resource metadata. No authorization server URL." } },
       },
     },
     "/v1/software": {

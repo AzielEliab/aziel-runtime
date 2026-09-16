@@ -281,7 +281,7 @@ A short **Includes named components such as FragGate…** line may sit with that
 GitHub description / homepage / topics are **not** in git. Lock + apply command: [GITHUB.md](GITHUB.md).
 
 - **Description** leads with NodeMesh'd MCP Softwares suite for digital forensics/auditing — not an API aggregator. Names FragGate, OpenAPI + MCP, 2.0.0-rc1, Aziel Eliab.
-- **Homepage** is **Try on Glama** (`https://glama.ai/mcp/servers/AzielEliab/aziel-runtime`). Worker origin stays the execution surface.
+- **Homepage** is the live MCP endpoint (`https://aziel-runtime.vibelock.workers.dev/mcp`) so registry validators do not treat the Glama directory listing as `remote_url`. **Try on Glama** stays the primary Install/distribution door in Description, README table, topics, and cross-links. Worker origin stays the execution / OpenAPI surface.
 - **Topics** must include `mcp`, `openapi`, `fraggate`, `digital-forensics` (plus `glama`, `mcp-server`, `nodemesh`).
 
 README websites table lists official site, Runtime hub `@id` parent, FragGate kernel, and Try on Glama **above** the Worker origin. Do not drop azieleliab.com / azielcorpuslibrary.net / godlock.uk / hedidntjump.com.
