@@ -107,6 +107,7 @@ import {
 } from "./cross-network-survival.js";
 import { meshGetEnableRefuse, meshGetLooksLikeEnable } from "./redline.js";
 import { dispatchAzGeneratorHttp, semanticBridgeCiteField } from "./semantic-bridge.js";
+import { durabilityLabels } from "./durability-labels.js";
 
 export const MESH_SLUG = "mesh";
 export const MESH_NAME = "Quantum Node Mesh";
@@ -1426,7 +1427,7 @@ export async function runMeshOp(op, payload, env) {
   });
 }
 
-export async function dispatchMeshHttp(method, pathname, payload, env, origin, searchParams) {
+async function dispatchMeshHttpCore(method, pathname, payload, env, origin, searchParams) {
   const m = String(method || "GET").toUpperCase();
   const path = String(pathname || "")
     .split("?")[0]
@@ -1481,6 +1482,14 @@ export async function dispatchMeshHttp(method, pathname, payload, env, origin, s
       hint: "GET /v1/mesh /status /nodes /az-generator  POST /v1/mesh/enable|join|heartbeat|leave|broadcast  POST /v1/mesh/disable (refused)",
     }),
   };
+}
+
+export async function dispatchMeshHttp(method, pathname, payload, env, origin, searchParams) {
+  const out = await dispatchMeshHttpCore(method, pathname, payload, env, origin, searchParams);
+  if (out && out.body && typeof out.body === "object") {
+    return { ...out, body: { ...out.body, durability: durabilityLabels(env) } };
+  }
+  return out;
 }
 
 /** In-memory KV stand-in for tests (same shape as USES / MESH). */

@@ -279,7 +279,7 @@ for (let i = 0; i < RATE_OPEN_PER_MIN; i++) {
 }
 const limitedOpen = await jsonReq(rateEnv, "/v1/session/open", "POST", {}, { "CF-Connecting-IP": "9.9.9.9" });
 assert.equal(limitedOpen.status, 429);
-assert.equal(limitedOpen.data.code, "rate_limited");
+assert.equal(limitedOpen.data.code, "RATE_LIMIT");
 assert.equal(limitedOpen.data.scope, "session_open");
 assert.equal(limitedOpen.data.limit, RATE_OPEN_PER_MIN);
 assert.ok(limitedOpen.data.retry_after >= 1);
@@ -308,7 +308,7 @@ const limitedExec = await jsonReq(
   { "CF-Connecting-IP": "7.7.7.7" },
 );
 assert.equal(limitedExec.status, 429);
-assert.equal(limitedExec.data.code, "rate_limited");
+assert.equal(limitedExec.data.code, "RATE_LIMIT");
 assert.equal(limitedExec.data.scope, "session_exec");
 assert.equal(limitedExec.data.limit, RATE_EXEC_PER_MIN);
 

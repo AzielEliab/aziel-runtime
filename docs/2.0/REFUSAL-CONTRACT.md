@@ -115,6 +115,17 @@ Refuse objects set `belief_is_not_truth: true` and `authorizes_action: false`.
 | `ASE-UNARMED` | ASE cite+refuse |
 | `VECTOR-UNARMED` | VECTOR cite+refuse |
 
+### Gateway (F03 — `src/request-limits.js` / `src/production.js`)
+
+| Code | HTTP | When |
+|------|------|------|
+| `RATE_LIMIT` | 429 | FragGate HTTP, MCP, or session mutate window exceeded |
+| `BODY_TOO_LARGE` | 413 | Inbound body over 256 KiB before parse |
+| `BODY_TOO_DEEP` | 400 | JSON depth > 12 or nodes > 4096 |
+| `REQUEST_DEADLINE` | 408 | Request exceeded the deadline budget (default 25s) |
+
+`enforcement` is `durable-object` when `RATE` is bound, else `isolate`. Not a second door.
+
 ### Redline (`src/redline.js`)
 
 `AZ-GEN-CALL-REFUSED`, `CAP7-RESOLVE-INJECT`, `DOI-FAKE-REFUSED`, `TOKEN-QUERY-REFUSED`, `TOKEN-BODY-REFUSED`

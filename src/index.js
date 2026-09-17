@@ -7,6 +7,8 @@
  * 1.4.0 vendors a true engine for every catalog Software slug.
  * 1.4.1 adds /v1/ready, HEAD, no-store authority JSON, receipt cap 64, session TTL 6h,
  *       per-IP rate limits, optional RUNTIME_TOKEN on session mutate.
+ * F03–F05 (audit 2026-09-17): FragGate HTTP + MCP rate/body/deadline gates; security headers;
+ *       honest ephemeral ledger vs durable SESSION/CHAINLOCK labels. MemoryStore is not durable.
  * 1.5.0 agent-native MCP: display envelopes, flat product-verb tools, runtime_run façade.
  * 1.6.0 FragGate door: hashed registry, thin tools/list, DecisionGATE before exec, ask/refuse ledger.
  *
@@ -149,8 +151,25 @@ import {
   authorityHeaders,
   evaluateReady,
   noStoreHeaders,
+  rateLimitFailBody,
+  rateLimitFailHeaders,
   tokenPresentedInQuery,
 } from "./production.js";
+import { applySecurityHeaders, securityHeaders } from "./security-headers.js";
+import { durabilityLabels } from "./durability-labels.js";
+import { RateQuota, doorRateLimitDecision } from "./rate-quota.js";
+import {
+  MAX_BODY_BYTES,
+  bodyTooDeepRefuse,
+  deadlineRefuse,
+  jsonStructureStats,
+  parseJsonBytes,
+  readCappedBytes,
+  rebuildRequest,
+  requestDeadlineMs,
+  requestLimitKind,
+  withDeadline,
+} from "./request-limits.js";
 import {
   doiInjectionRefuse,
   isAzGeneratorHallucSlug,
@@ -281,7 +300,7 @@ import {
 } from "./software-catalog.js";
 import { crossMapFields } from "./cross-map.js";
 
-export { RuntimeSession, ChainWriter };
+export { RuntimeSession, ChainWriter, RateQuota };
 
 const CATALOG_HOST = "https://aziel-runtime.vibelock.workers.dev";
 const PROTOCOL = MCP_PROTOCOL_PREFERRED;
@@ -1162,6 +1181,7 @@ function json(body, status = 200, extra = {}) {
     headers: {
       "Content-Type": "application/json; charset=utf-8",
       ...corsHeaders(),
+      ...securityHeaders("api"),
       "X-Robots-Tag": "index, follow, max-snippet:-1, max-image-preview:large",
       ...extra,
     },
@@ -1175,6 +1195,7 @@ function html(body, extra = {}) {
     headers: {
       "Content-Type": "text/html; charset=utf-8",
       ...corsHeaders(),
+      ...securityHeaders("html"),
       "X-Robots-Tag": "index, follow, max-snippet:-1, max-image-preview:large",
       ...headers,
     },
@@ -1186,6 +1207,7 @@ function text(body, extra = {}) {
     status: 200,
     headers: {
       ...corsHeaders(),
+      ...securityHeaders("api"),
       "X-Robots-Tag": "index, follow, max-snippet:-1, max-image-preview:large",
       ...extra,
       "Content-Type": "text/plain; charset=utf-8",
@@ -1198,6 +1220,7 @@ function xml(body, extra = {}) {
     status: 200,
     headers: {
       ...corsHeaders(),
+      ...securityHeaders("api"),
       "X-Robots-Tag": "index, follow, max-snippet:-1, max-image-preview:large",
       ...extra,
       "Content-Type": "application/xml; charset=utf-8",
@@ -2971,11 +2994,12 @@ async function handleFraggateHttp(request, url, origin, env) {
       skill: origin.replace(/\/$/, "") + "/v1/skill",
       mcp: origin.replace(/\/$/, "") + "/mcp",
       kernel: "https://github.com/AzielEliab/fraggate",
+      durability: durabilityLabels(env),
     };
     return asHead(request, json(body, 200, extra));
   }
   if (url.pathname === "/v1/fraggate/list" && (request.method === "GET" || request.method === "HEAD")) {
-    return asHead(request, json(await listRegistry(registry), 200, extra));
+    return asHead(request, json({ ...(await listRegistry(registry)), durability: durabilityLabels(env) }, 200, extra));
   }
   if (url.pathname === "/v1/fraggate/describe" && (request.method === "GET" || request.method === "HEAD")) {
     const args = {
@@ -3084,6 +3108,40 @@ async function serveSigil(request, env) {
     }
   }
   return json({ error: "sigil unavailable" }, 502);
+}
+
+async function gateInbound(request, env, jsonReply) {
+  const url = new URL(request.url);
+  const method = String(request.method || "GET").toUpperCase();
+  if (method === "OPTIONS") return { request, response: null };
+  const kind = requestLimitKind(url.pathname, method);
+  if (kind) {
+    const decision = await doorRateLimitDecision(env, request, kind);
+    if (!decision.ok) {
+      return {
+        request,
+        response: jsonReply(rateLimitFailBody(decision), 429, rateLimitFailHeaders(decision)),
+      };
+    }
+  }
+  if (method !== "POST" && method !== "PUT" && method !== "PATCH") {
+    return { request, response: null };
+  }
+  const capped = await readCappedBytes(request, MAX_BODY_BYTES);
+  if (!capped.ok) {
+    return { request, response: jsonReply(capped.refuse, 413) };
+  }
+  const rebuilt = rebuildRequest(request, capped.bytes);
+  if (capped.bytes && capped.bytes.byteLength) {
+    const parsed = parseJsonBytes(capped.bytes);
+    if (parsed.ok) {
+      const stats = jsonStructureStats(parsed.value);
+      if (stats.too_deep || stats.too_wide) {
+        return { request: rebuilt, response: jsonReply(bodyTooDeepRefuse(stats), 400) };
+      }
+    }
+  }
+  return { request: rebuilt, response: null };
 }
 
 async function handleRequest(request, env, ctx) {
@@ -3475,6 +3533,7 @@ async function handleRequest(request, env, ctx) {
           confirm_is_not_auth: true,
           owner_string_is_not_auth: true,
         },
+        durability: durabilityLabels(env),
         ...(gate.error
           ? { error: gate.error, code: gate.code, hint: gate.hint }
           : {}),
@@ -3534,16 +3593,18 @@ async function handleRequest(request, env, ctx) {
 
 export default {
   async fetch(request, env, ctx) {
+    const budget = requestDeadlineMs(env);
     const run = async () => {
       const peek = String(request.method || "GET").toUpperCase() === "POST" ? request.clone() : request;
-      const response = await handleRequest(request, env, ctx);
-      const used = await finishWithUse(request, env, ctx, response);
+      const inbound = await gateInbound(request, env, json);
+      if (inbound.response) return inbound.response;
+      const response = await handleRequest(inbound.request, env, ctx);
+      const used = await finishWithUse(inbound.request, env, ctx, response);
       return finishWithActReceipt(peek, env, ctx, used);
     };
-    if (env && env.CHAINLOCK) {
-      return runWithLedgerStore(storeFor(env), run);
-    }
-    return run();
+    const execute = () => (env && env.CHAINLOCK ? runWithLedgerStore(storeFor(env), run) : run());
+    const result = await withDeadline(execute(), budget, () => json(deadlineRefuse(budget), 408));
+    return applySecurityHeaders(result);
   },
   async scheduled(controller, env, ctx) {
     const source = controller && controller.cron ? `cron:${controller.cron}` : "cron";
