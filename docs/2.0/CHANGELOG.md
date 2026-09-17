@@ -11,6 +11,7 @@ Crawler abstract (`RUNTIME_ABSTRACT`) is unchanged and stays the lead on homepag
 
 Certification point — not a feature dump.
 
+- Mesh/security close-test matrix (`scripts/verify-mesh-security.mjs`, not a new public tool): fail-closed gates for suite-presence ON, GET-never-enables, `MESH-DISABLE-REFUSED`, bearer enable, join product/node_id/presence, 5-minute non-fanout TTL + heartbeat refresh, broadcast no-bytes, NO-LIE / NO-REWRITE, Cap-7 `resolves_to_hub: false`. No MCP tool added, removed, or renamed. Remain-OFF untouched.
 - F02 caller isolation (not a new public tool): AZHub and AZInterface isolate private workspace state by verified session or operator token. Public FragGate HTTP / MCP / UI stay on the labeled shared public-demo singleton. `confirm:true` is not authentication. No invented OAuth IdP.
 - F01 concurrent-append integrity patch (not a new public tool): CHAINLOCK Durable Object writer per chain; individual records; commit-before-ack; idempotency + caller namespaces. No MCP tool added, removed, or renamed. Remain-OFF untouched.
 - Sentinel pass4 MCP honesty (not a new public tool): mutating MCP tools still document `confirm` / `dry_run` and set `annotations.requiresConfirmation`, but those flags are **not** in `inputSchema.required` (connector replay after refresh must not break). Runtime `tools/call` still refuses `MCP-CONFIRM-REQUIRED` unless `confirm=true` or `dry_run=true`. Initialize instructions also scrub bare `retired` / `this`. HTTP FragGate call unchanged. Identity Aziel Eliab only. Lamb Lens / DecisionGATE not weakened.
