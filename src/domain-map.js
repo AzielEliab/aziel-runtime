@@ -128,6 +128,24 @@ export const PLACEMENTS = Object.freeze({
     domain_id: null,
     note: "AZCoherence is the second-pass coherence reviewer for triad scores. Scoring-adjacent to AZ-CLCE (Language isolation). Catalog software. Not an extra door. Not AKM-TRIAD fabric. Domain stays null — same pattern as decisiongate/forgereceipts: scoring-review is a placement, not a 34th isolation software. Domains are isolation labels, not doors. Cross-map peers: azclce (peer scorer), azinterface (human-UI), AKM-TRIAD (fabric neighbor, not merged).",
   },
+  zkattest: {
+    placement: "receipt-attest",
+    domain: null,
+    domain_id: null,
+    note: "ZKAttest is a hash-commitment attest helper. Adjacent to ForgeReceipts. Catalog placement, not a 34th isolation software. Not Groth16/SNARK. In-runtime (no invented product Worker). FragGate only.",
+  },
+  mmconsensus: {
+    placement: "consensus-review",
+    domain: null,
+    domain_id: null,
+    note: "MMConsensus tallies caller-supplied opinions. Adjacent to DecisionGATE — not a replacement hop. Not live multi-model calls. Catalog placement, not a 34th isolation software. FragGate only.",
+  },
+  toolbench: {
+    placement: "tool-playground",
+    domain: null,
+    domain_id: null,
+    note: "ToolBench is a synthetic FragGate refuse playground. Self-test ≠ third-party lab. Not fielded-100. Catalog placement, not a 34th isolation software. FragGate only.",
+  },
 });
 
 const BY_SLUG = (() => {
@@ -152,10 +170,18 @@ const BY_SLUG = (() => {
 export const MASTER_33_SLUGS = Object.freeze(DOMAINS.flatMap((d) => d.softwares.slice()));
 
 /** Softwares-tab live cards that are not in the 33-software isolation set. Not extra doors. */
-export const TAB_PLACEMENT_SLUGS = Object.freeze(["azinterface", "decisiongate", "forgereceipts", "azcoherence"]);
+export const TAB_PLACEMENT_SLUGS = Object.freeze([
+  "azinterface",
+  "decisiongate",
+  "forgereceipts",
+  "azcoherence",
+  "zkattest",
+  "mmconsensus",
+  "toolbench",
+]);
 
 export const CATALOG_COUNT_NOTE =
-  "Softwares-tab count includes placements (azinterface / decisiongate / forgereceipts / azcoherence). Isolation domain software_count is 33 (domains_are_doors:false). Do not equate the two. EmbryoLock is live-with-local-destructive-boundary (Vault/Custody with ARK); wipe/unlock stay FG-STUB on the public mesh. AZChat is LIVE+bound (mesh default off; not AZMail). FragGate remains THE single door.";
+  "Softwares-tab count includes placements (azinterface / decisiongate / forgereceipts / azcoherence / zkattest / mmconsensus / toolbench). Isolation domain software_count is 33 (domains_are_doors:false). Do not equate the two. EmbryoLock is live-with-local-destructive-boundary (Vault/Custody with ARK); wipe/unlock stay FG-STUB on the public mesh. AZChat is LIVE+bound (mesh default off; not AZMail). FragGate remains THE single door.";
 
 export function domainForSlug(slug) {
   const key = String(slug || "")
@@ -203,6 +229,6 @@ export function domainMapView() {
     })),
     placements: { ...PLACEMENTS },
     note:
-      "11 domains / 33 softwares are isolation labels. Softwares-tab count is larger because it includes placements (azinterface / decisiongate / forgereceipts / azcoherence). Internal Domain Layer executes isolated softwares after AZPIPE. Not additional doors. domains_are_doors:false.",
+      "11 domains / 33 softwares are isolation labels. Softwares-tab count is larger because it includes placements (azinterface / decisiongate / forgereceipts / azcoherence / zkattest / mmconsensus / toolbench). Internal Domain Layer executes isolated softwares after AZPIPE. Not additional doors. domains_are_doors:false.",
   };
 }

@@ -5,7 +5,8 @@
  *
  * Receipts are hash-chained and owned by this runtime process/session.
  * Local exec receipts include engine_digest of the artifact that ran here.
- * Isolation is Cloudflare's Worker/DO isolate (the jail). No extra sandbox is claimed.
+ * Isolation is Cloudflare's Worker/DO isolate (the jail). Dynamic policy / exec /
+ * wipe envelopes are isolate-honest. Full guest VM / QEMU / KVM is SLOT.
  * Author: Aziel Eliab. Identity is Aziel Eliab only. Do not invent DOIs.
  */
 
@@ -14,7 +15,18 @@ import { RECEIPT_CAP, SESSION_TTL_MS, isSessionExpired, receiptCapReached, sessi
 export const ZERO_HASH = "0".repeat(64);
 export const SESSION_ID_RE = /^sess_[a-f0-9]{32}$/;
 export const DEFAULT_MAX_PAYLOAD_BYTES = 65_536;
+export const DEFAULT_MAX_OPS = 64;
 export const RECEIPT_KIND = "aziel-runtime.receipt";
+export const ISOLATE_CLASS = "worker-do";
+export const SANDBOX_KIND = "isolate";
+export const GUEST_VM_KEYS = Object.freeze([
+  "qemu",
+  "kvm",
+  "hypervisor",
+  "guest_vm",
+  "virtual_machine",
+  "full_vm",
+]);
 
 export function newSessionId() {
   const bytes = crypto.getRandomValues(new Uint8Array(16));
@@ -26,11 +38,17 @@ export function defaultPolicy() {
     allow_slugs: ["*"],
     allow_ops: ["*"],
     max_payload_bytes: DEFAULT_MAX_PAYLOAD_BYTES,
+    max_ops: DEFAULT_MAX_OPS,
     kv_increment: false,
     identity: "Aziel Eliab",
     lamb_banners: true,
+    isolate_class: ISOLATE_CLASS,
+    sandbox_kind: SANDBOX_KIND,
+    wipe_on_close: false,
+    deny_guest_vm: true,
+    guest_vm: false,
     note:
-      "Download counters stay off unless kv_increment is explicitly true. This Worker has no download KV and still will not increment one.",
+      "Download counters stay off unless kv_increment is explicitly true. This Worker has no download KV and still will not increment one. Isolate (Worker/DO) is the jail — not QEMU/KVM.",
   };
 }
 
@@ -175,6 +193,8 @@ export function openSession({ id, now, version, source }) {
     policy: defaultPolicy(),
     receipts: [],
     pending_intent: null,
+    exec_count: 0,
+    wiped: false,
     head_hash: ZERO_HASH,
     honesty: {
       layer: "catalog+pull+proxy+session+in-process-engines",
@@ -183,15 +203,54 @@ export function openSession({ id, now, version, source }) {
       isolate_is_the_jail: true,
       hosted_azai_is_not_the_blend: true,
       no_extra_sandbox_claimed: true,
+      sandbox_kind: SANDBOX_KIND,
+      isolate_class: ISOLATE_CLASS,
+      guest_vm: false,
+      hypervisor: false,
+      qemu: false,
+      kvm: false,
       local_blends: ["azai serve", "forgereceipts ui", "azos ui"],
     },
   };
+}
+
+function refuseGuestVm(incoming) {
+  if (!incoming || typeof incoming !== "object") return;
+  for (const key of GUEST_VM_KEYS) {
+    if (incoming[key] === true) {
+      throw sessionError(
+        400,
+        "guest_vm_refused",
+        "Worker/DO isolate is the jail. Full VM / QEMU / KVM is SLOT — not implemented.",
+        { isolate_is_the_jail: true, sandbox_kind: SANDBOX_KIND, guest_vm: false },
+      );
+    }
+  }
+  const isolate = incoming.isolate_class != null ? String(incoming.isolate_class).trim().toLowerCase() : "";
+  const kind = incoming.sandbox_kind != null ? String(incoming.sandbox_kind).trim().toLowerCase() : "";
+  if (isolate && isolate !== ISOLATE_CLASS) {
+    throw sessionError(
+      400,
+      "guest_vm_refused",
+      `isolate_class ${isolate} is not implementable here. Only worker-do (Cloudflare isolate).`,
+      { isolate_is_the_jail: true, sandbox_kind: SANDBOX_KIND, allowed: ISOLATE_CLASS },
+    );
+  }
+  if (kind && kind !== SANDBOX_KIND) {
+    throw sessionError(
+      400,
+      "guest_vm_refused",
+      `sandbox_kind ${kind} is SLOT. Only isolate (Worker/DO jail) is real.`,
+      { isolate_is_the_jail: true, sandbox_kind: SANDBOX_KIND },
+    );
+  }
 }
 
 export function mergePolicy(current, incoming) {
   if (!incoming || typeof incoming !== "object" || Array.isArray(incoming)) {
     throw sessionError(400, "bad_policy", "policy must be a JSON object");
   }
+  refuseGuestVm(incoming);
   const next = { ...current };
   if (incoming.allow_slugs !== undefined) {
     if (!Array.isArray(incoming.allow_slugs) || incoming.allow_slugs.some((s) => typeof s !== "string")) {
@@ -228,6 +287,24 @@ export function mergePolicy(current, incoming) {
   if (incoming.note !== undefined) {
     next.note = String(incoming.note);
   }
+  if (incoming.max_ops !== undefined) {
+    const n = Number(incoming.max_ops);
+    if (!Number.isInteger(n) || n < 1 || n > 1024) {
+      throw sessionError(400, "bad_policy", "max_ops must be an integer 1..1024");
+    }
+    next.max_ops = n;
+  }
+  if (incoming.wipe_on_close !== undefined) {
+    next.wipe_on_close = incoming.wipe_on_close === true;
+  }
+  if (incoming.isolate_class !== undefined) {
+    next.isolate_class = ISOLATE_CLASS;
+  }
+  if (incoming.sandbox_kind !== undefined) {
+    next.sandbox_kind = SANDBOX_KIND;
+  }
+  next.deny_guest_vm = true;
+  next.guest_vm = false;
   return next;
 }
 
@@ -282,6 +359,15 @@ export function assertExecAllowed(session, { slug, op, payloadBytes, knownSlugs,
       max_payload_bytes: max,
     });
   }
+  const maxOps = session.policy.max_ops || DEFAULT_MAX_OPS;
+  const used = Number(session.exec_count) || 0;
+  if (used >= maxOps) {
+    throw sessionError(409, "max_ops", `session exec_count ${used} reached max_ops ${maxOps}`, {
+      exec_count: used,
+      max_ops: maxOps,
+      sandbox_kind: SANDBOX_KIND,
+    });
+  }
   return { slug: s, op: o };
 }
 
@@ -328,6 +414,7 @@ export async function recordIntent(session, { slug, op, payload, payloadText, kn
       : {}),
   };
   session.pending_intent = intent;
+  session.exec_count = (Number(session.exec_count) || 0) + 1;
   session.updated_at = nowIso;
   return { intent, payload };
 }
@@ -376,9 +463,16 @@ export async function applyClose(session, nowIso, { force = false } = {}) {
   session.closed = true;
   session.closed_at = nowIso;
   session.pending_intent = null;
+  const wipe = session.policy && session.policy.wipe_on_close === true;
+  if (wipe) session.wiped = true;
   const receipt = await appendReceipt(session, "close", {
     sealed: true,
     receipt_count: session.receipts.length + 1,
+    wipe_on_close: wipe,
+    wiped: session.wiped === true,
+    sandbox_kind: SANDBOX_KIND,
+    isolate_class: ISOLATE_CLASS,
+    guest_vm: false,
   }, nowIso);
   return { session, receipt };
 }
@@ -398,6 +492,8 @@ export function publicSession(session) {
     policy: session.policy,
     receipt_count: (session.receipts || []).length,
     receipt_cap: RECEIPT_CAP,
+    exec_count: Number(session.exec_count) || 0,
+    wiped: session.wiped === true,
     expires_at: sessionExpiresAt(session),
     head_hash: session.head_hash,
     pending_intent: session.pending_intent,

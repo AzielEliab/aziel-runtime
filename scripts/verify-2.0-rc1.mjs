@@ -25,6 +25,7 @@ assert.equal(pkg.scripts["adversarial:external"], "bash scripts/external-adversa
 const requiredDocs = [
   "docs/2.0/README.md",
   "docs/2.0/PUBLIC-CONTRACT.md",
+  "docs/2.0/ARCHITECTURE-FIT-FIVE.md",
   "docs/2.0/COMPATIBILITY-POLICY.md",
   "docs/2.0/RECEIPT-SCHEMA.md",
   "docs/2.0/REFUSAL-CONTRACT.md",

@@ -49,6 +49,9 @@ export const ENGINE_ARTIFACTS = {
   azcoherence: ["azcoherence/engine.js"],
   embryolock: ["embryolock/engine.js"],
   azchat: ["azchat/engine.js"],
+  zkattest: ["zkattest/engine.js"],
+  mmconsensus: ["mmconsensus/engine.js"],
+  toolbench: ["toolbench/engine.js"],
 };
 
 /**
@@ -93,6 +96,9 @@ export const ENGINE_DIGESTS = {
   "azcoherence": "f04dfa4af332a1c04bd7319a8f48cee3e9adec3877d198ea703ee6187790cfc5",
   "embryolock": "bc7f6119a4bf6910b5be50cabe19bf4a2e35ac60408b5713e94878bd4e0074f3",
   "azchat": "9b63fc0adcbb65318fbad7fd6aaf39b6f44edc5ff41696571457a5bd765ec5c5",
+  "zkattest": "bb3831ed980be81dce15fda1dbb471a7458c91feb907a410a86173003df1c84a",
+  "mmconsensus": "9624f144b1eacfc11cf86fe45ed83acb6f65fa324629668510c55f1fcabe6fe7",
+  "toolbench": "79f5b8197d82be30125b92dd337c594b159360f509b09e75e3b8222dedbbecde",
 };
 
 export function trueEngineSlugs() {

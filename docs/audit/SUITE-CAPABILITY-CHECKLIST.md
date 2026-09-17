@@ -51,6 +51,7 @@ Where missing or thin, add or strengthen. Do not invent fantasy ops.
 | **1.8–1.9** | `codelock`, `vibelock`, `glossafilter`, `azbot`, `azos`, `azai`, `shadowlock`, `miragegrid`, `azieltether`, `azmail`, `azchat` | **yes** (AZRT-1.9-CLOSE-1.0) |
 | — | `akm` / `akm-triad` / `memory` | **not a wave** — already LIVE fabric (1.7.1+). Not Softwares-tab. |
 | — | `azcoherence` | shipped in runtime **1.7.7** (scoring-review placement; not a 34th isolation software; not AKM-TRIAD). **1.7.9** catalog + engine `cross_map` / peers; azclce reciprocates; domain stays null |
+| — | `zkattest` / `mmconsensus` / `toolbench` | architecture-fit placements (2.0.0-rc1). In-runtime. Isolation 33 unchanged. See `docs/2.0/ARCHITECTURE-FIT-FIVE.md`. |
 
 ---
 

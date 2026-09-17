@@ -6,7 +6,7 @@
 
 This directory is the **certification-point** freeze for 2.0.0-rc1. It is **not** a feature dump, **not** a third-party lab letter, and **not** permission to enable Remain-OFF items.
 
-FragGate remains THE single public executable door. `GET /v1/mesh` never enables. New Softwares engines are deferred to 2.1+. This tag does **not** cut `2.0.0` final.
+FragGate remains THE single public executable door. `GET /v1/mesh` never enables. Isolation software_count stays 33. Architecture-fit placements (`zkattest` / `mmconsensus` / `toolbench`) are in-runtime engines behind FragGate — see [ARCHITECTURE-FIT-FIVE.md](ARCHITECTURE-FIT-FIVE.md). This tag does **not** cut `2.0.0` final.
 
 ## Gates
 
@@ -23,6 +23,7 @@ FragGate remains THE single public executable door. `GET /v1/mesh` never enables
 | File | Role |
 |------|------|
 | [PUBLIC-CONTRACT.md](PUBLIC-CONTRACT.md) | FragGate flow, MCP names, OpenAPI parity, health/version, `engine_digest`, live/stub/proxy-fallback |
+| [ARCHITECTURE-FIT-FIVE.md](ARCHITECTURE-FIT-FIVE.md) | Five-capability fit map (ZK attest / consensus / edge MCP / isolate sandbox / toolbench) |
 | [COMPATIBILITY-POLICY.md](COMPATIBILITY-POLICY.md) | What 2.0.0-rc1 promises not to break (Glama / MCP / OpenAPI clients) |
 | [RECEIPT-SCHEMA.md](RECEIPT-SCHEMA.md) | Session receipts, FragGate envelopes, ledger tip, ForgeReceipts, pipe stamps |
 | [REFUSAL-CONTRACT.md](REFUSAL-CONTRACT.md) | Remain-OFF + stable refuse codes as intentional boundaries |
@@ -38,7 +39,7 @@ FragGate remains THE single public executable door. `GET /v1/mesh` never enables
 
 - Do not enable Remain-OFF / REFUSE items (`docs/designs/REMAIN-OFF-BY-DESIGN-2026-09-10.md`).
 - Do not weaken FragGate as the single door.
-- Do not add Softwares engines in this release.
+- Do not add isolation-33 Softwares or new public MCP tools. Placement engines behind FragGate stay off `PUBLIC_MCP_TOOLS`.
 - Do not invent remote shell, VPN, deanonymize, public SMTP, or unknown-tool fallback.
 - Do not run `wrangler deploy` from this pack (coordinator).
 - Do not treat `npm test` or this pack as a third-party lab.

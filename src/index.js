@@ -170,6 +170,7 @@ import {
 } from "./mcp-surface.js";
 import {
   mcpDiscoveryKind,
+  mcpGatewayCite,
   mcpServerCard,
   oauthProtectedResource,
 } from "./mcp-discovery.js";
@@ -288,7 +289,7 @@ const CATALOG_TITLE = PRODUCT_NAME;
 /** Bound to the canonical abstract. Version rolls (1.9+) go in #version-history, not here. */
 const CATALOG_DESCRIPTION = RUNTIME_ABSTRACT;
 const CATALOG_CHANGELOG_20 =
-  "2.0.0-rc1 is the certification-point freeze (not a feature dump): public contract, compatibility, receipt schema, refusal contract, and breaking-change policy under docs/2.0/. Clean-room reproducibility + external adversarial pack for independent reviewers (self-test ≠ third-party lab). Gate 4 includes Glama TDQS 5.0 tools/list metadata (no rename; no behavior change) plus existing glama.json / GitHub topics. Read-only QNM suite-presence is ON by default; POST /v1/mesh/disable refuses MESH-DISABLE-REFUSED. Additive COLD-MULTI-SHELF-1.0 cite (GET /shelves) matches corpus#96 /shelves honesty: Plane A = 5 published surfaces / 2 family radii / 1 independent live; Plane B Codeberg + archive.org PASS still SLOT (https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius); Framagit URL null; GitFlic CNS-GITFLIC-EMAIL; GitLab CNS-GITLAB-CF-LOOP; Zenodo refused CNS-ZENODO-IP-BAN; doi null; Plane C USB SLOT. Remain-OFF untouched. FragGate remains THE single door. New engines deferred to 2.1+. Crawler abstract stays lead copy. Identity Aziel Eliab only.";
+  "2.0.0-rc1 is the certification-point freeze (not a feature dump): public contract, compatibility, receipt schema, refusal contract, and breaking-change policy under docs/2.0/. Clean-room reproducibility + external adversarial pack for independent reviewers (self-test ≠ third-party lab). Gate 4 includes Glama TDQS 5.0 tools/list metadata (no rename; no behavior change) plus existing glama.json / GitHub topics. Read-only QNM suite-presence is ON by default; POST /v1/mesh/disable refuses MESH-DISABLE-REFUSED. Additive COLD-MULTI-SHELF-1.0 cite (GET /shelves) matches corpus#96 /shelves honesty: Plane A = 5 published surfaces / 2 family radii / 1 independent live; Plane B Codeberg + archive.org PASS still SLOT (https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius); Framagit URL null; GitFlic CNS-GITFLIC-EMAIL; GitLab CNS-GITLAB-CF-LOOP; Zenodo refused CNS-ZENODO-IP-BAN; doi null; Plane C USB SLOT. Remain-OFF untouched. FragGate remains THE single door. Architecture-fit placements zkattest / mmconsensus / toolbench are in-runtime engines behind FragGate (isolation 33 unchanged; no new MCP tool). Crawler abstract stays lead copy. Identity Aziel Eliab only.";
 const CATALOG_CHANGELOG_19 =
   "1.9.3 closes the remaining AZRT-1.9-GAPS-CLOSE items: isolate-native AZ-OS session_open/status/close (prefab ethics VFS; exec/shell/lattice stay refuse); isolate-safe Ask Jeeves over sample MASTER / CORPUS_D1 records; binding-gated media-run when env.AI is present (no fake OCR); published independent-validation attestation path (not a third-party lab). Remain-OFF untouched. 1.9.2 binds Workers Browser Rendering (BROWSER) and live D1 MASTER (CORPUS_D1 → aziel-digital-library records). Whisper/OCR Workers-AI-bound. Sample MASTER remains the unbound fallback. Chromium product UI is not claimed; Tor/phoenix stay refuse. Remain-OFF untouched. 1.9.1 closes AZRT-1.9-GAPS-CLOSE isolate-safe corpus verify; Whisper/OCR Workers-AI-gated; AZBrowser sandbox_status; AZMail transport_status; wave 2–3 doctor; adversarial self-check + Actions npm test. Remain-OFF untouched. 1.9.0 closed AZRT-1.9-CLOSE-1.0. Chromium product UI is not claimed. Remain-OFF untouched.";
 const LASTMOD = "2026-09-14";
@@ -972,6 +973,56 @@ const PRODUCTS_RAW = [
     banner:
       "AZChat: spendable handles, ephemeral rooms, agent bus. FragGate only. mesh_enabled_default false. Not SMTP. Not AZMail. Do not bridge. Stranger room_pull is 404. Author Aziel Eliab.",
   },
+  {
+    slug: "zkattest",
+    name: "ZKAttest",
+    github: "https://github.com/AzielEliab/aziel-runtime",
+    ops: [
+      { op: "doctor", method: "GET", summary: "Richer liveness: hash-commitment attest, refuse list. Does not increment download KV." },
+      { op: "commit", method: "POST", summary: "SHA-256 commitment of salt+witness. Witness is not returned. Not a SNARK." },
+      { op: "attest", method: "POST", summary: "Bind a public statement to a commitment. Refuses a posted witness." },
+      { op: "open", method: "POST", summary: "Check a commitment opening the caller already holds. Reveals; not a ZK proof." },
+      { op: "verify", method: "POST", summary: "Recompute a public attest receipt hash. Does not recover a witness." },
+      { op: "limitation", method: "GET", summary: "Honesty labels: REAL hash commitment; SLOT for Groth16/SNARK." },
+    ],
+    example: { statement: "receipt bound without publishing the witness", commitment: "0".repeat(64) },
+    banner:
+      "ZKAttest (ZK-ATTEST-0.1): hash-commitment attest. Witness stays off the public receipt. Not Groth16 / SNARK / STARK. In-runtime placement (no invented product Worker). FragGate only. Author Aziel Eliab.",
+  },
+  {
+    slug: "mmconsensus",
+    name: "MMConsensus",
+    github: "https://github.com/AzielEliab/aziel-runtime",
+    ops: [
+      { op: "doctor", method: "GET", summary: "Richer liveness: posted-opinion tally, refuse list. Does not increment download KV." },
+      { op: "tally", method: "POST", summary: "Majority over caller-supplied verdicts. Does not call models." },
+      { op: "agree", method: "POST", summary: "Token Jaccard over posted opinion texts. HEURISTIC. Not live inference." },
+      { op: "limitation", method: "GET", summary: "Honesty labels: HEURISTIC tally; SLOT for live multi-model calls." },
+    ],
+    example: {
+      statement: "Ship the catalog Worker this week.",
+      opinions: [
+        { source: "a", verdict: "PASS", text: "OpenAPI review is done" },
+        { source: "b", verdict: "PASS", text: "OpenAPI review finished" },
+      ],
+    },
+    banner:
+      "MMConsensus (MM-CONSENSUS-0.1): structured consensus over opinions you already have. Adjacent to DecisionGATE — not a replacement hop. No live model calls. In-runtime placement. FragGate only. Author Aziel Eliab.",
+  },
+  {
+    slug: "toolbench",
+    name: "ToolBench",
+    github: "https://github.com/AzielEliab/aziel-runtime",
+    ops: [
+      { op: "doctor", method: "GET", summary: "Richer liveness: synthetic suite, refuse list. Does not increment download KV." },
+      { op: "suite", method: "GET", summary: "List synthetic FragGate refuse / happy cases. Self-test ≠ third-party lab." },
+      { op: "run_case", method: "POST", summary: "Classify one named synthetic case against the live door table. Does not invent a pass." },
+      { op: "limitation", method: "GET", summary: "Honesty labels: REAL door classification; SLOT for fielded-100." },
+    ],
+    example: { id: "fg-halluc" },
+    banner:
+      "ToolBench (TOOLBENCH-0.1): synthetic FragGate / Sentinel / TDQS refuse playground. Self-test ≠ third-party lab. Not fielded-100. In-runtime placement. FragGate only. Author Aziel Eliab.",
+  },
 ];
 
 
@@ -1013,6 +1064,9 @@ const ONE_LINE = {
   azcoherence: "AZCoherence: second-pass triad coherence review (primary vs alternate → PASS/FLAG/NEUTRALIZE/REFUSE). Never invents evidence. Confidence ≠ truth. Not AKM-TRIAD. Peer AZ-CLCE is a separate product.",
   embryolock: "Offline destructive-over-recovery vault. Cite live on FragGate; wipe/unlock stay local-only. Never execute on the public mesh.",
   azchat: "AZChat: spendable handles, ephemeral rooms, agent bus. Mesh hop default off. Not SMTP. Not AZMail. FragGate only.",
+  zkattest: "ZKAttest: hash-commitment attest without returning the witness. Not Groth16/SNARK. FragGate only.",
+  mmconsensus: "MMConsensus: structured consensus over posted opinions. Adjacent to DecisionGATE. No live model calls. FragGate only.",
+  toolbench: "ToolBench: synthetic FragGate refuse playground. Self-test ≠ third-party lab. Not fielded-100. FragGate only.",
 };
 
 function ensureCatalogOps(p) {
@@ -1161,11 +1215,13 @@ function originOf(request) {
 
 function workerHost(product) {
   if (product.slug === "aziel-corpus") return "https://www.azielcorpuslibrary.net";
+  if (!product.worker) return null;
   return `https://${product.worker}.vibelock.workers.dev`;
 }
 
 function workerUrl(product, op) {
-  return `${workerHost(product)}/v1/${op}`;
+  const host = workerHost(product);
+  return host ? `${host}/v1/${op}` : null;
 }
 
 function productUrls(product, origin) {
@@ -1173,14 +1229,15 @@ function productUrls(product, origin) {
   const base = (origin || CATALOG_HOST).replace(/\/$/, "");
   return {
     github: product.github,
-    worker: product.worker,
-    worker_home: host + "/",
-    download: host + "/download",
-    count: host + "/count",
-    install: host + "/install.sh",
-    skill: host + "/v1/skill",
-    openapi: host + "/openapi.json",
-    stats: host + "/stats",
+    worker: product.worker || null,
+    worker_home: host ? host + "/" : null,
+    download: host ? host + "/download" : null,
+    count: host ? host + "/count" : null,
+    install: host ? host + "/install.sh" : null,
+    skill: host ? host + "/v1/skill" : `${base}/v1/skill`,
+    openapi: host ? host + "/openapi.json" : `${base}/openapi.json`,
+    stats: host ? host + "/stats" : `${base}/v1/uses`,
+    in_runtime: !host,
     catalog_card: `${base}/p/${product.slug}`,
     catalog_health: `${base}/p/${product.slug}/health`,
     catalog_skill: `${base}/p/${product.slug}/skill`,
@@ -1375,6 +1432,11 @@ function llmsTxt(origin) {
     `AZInterface: FragGate only. POST /v1/fraggate/call { slug: "azinterface", op }. Custodial operating environment (AIH-WP-1.0). Pre-locked page cycles OFF / integrity / ON / FULL SHUTDOWN / MEMORIAL. AZHub is sibling software under the same FragGate door.`,
     `4DMap: FragGate only. POST /v1/fraggate/call { slug: "4dmap", op }. Four-axis inspection frame T/Δ/Γ/Π (4DM-WP-1.0 / product 0.2.0). Research-domain inspection frame inside Internal Domain Layer after AZPIPE — not a sequential gate and not an extra door. LIVE_OPS match product 0.2 (pin/span/stack/gap/fork/walk/lens/class/cohort/absence/cap/join/list/example plus card_* / frame_status / axis_describe / walk_trace / card_export / card_import / verify_chain / neighbor_cite). Cited on the locked MASTER-33 pipeline. truth_score / lumen_panel / invent_mark / backdate_class stay stub. FragGate claims cite join types.`,
     `AZCoherence: FragGate only. POST /v1/fraggate/call { slug: "azcoherence", op }. Second-pass triad coherence reviewer (AZC-0.1). Peer AZ-CLCE detects R/D/P inconsistency; AZCoherence reviews primary vs alternate → PASS / FLAG / NEUTRALIZE / REFUSE. Never invents evidence. Confidence ≠ truth. Not AKM-TRIAD fabric. Cross-map peers: azclce (peer scorer), azinterface (human UI), AKM-TRIAD (fabric neighbor, not merged). Hubs: azieleliab.com, azielcorpuslibrary.net, godlock.uk. Worker: https://azcoherence-download-tracker.vibelock.workers.dev/. Domain stays null (scoring-review placement). Product cite https://github.com/AzielEliab/AZCoherence.`,
+    `ZKAttest: FragGate only. POST /v1/fraggate/call { slug: "zkattest", op }. Hash-commitment attest (ZK-ATTEST-0.1). commit / attest / open / verify are REAL SHA-256 commitments. groth16 / snark / stark / plonk stay FG-STUB. Not a SNARK. In-runtime placement (no invented product Worker). Domain stays null (receipt-attest placement).`,
+    `MMConsensus: FragGate only. POST /v1/fraggate/call { slug: "mmconsensus", op }. Posted-opinion tally (MM-CONSENSUS-0.1). Adjacent to DecisionGATE — not a replacement hop. live_model_call stays FG-STUB. In-runtime placement. Domain stays null (consensus-review placement).`,
+    `ToolBench: FragGate only. POST /v1/fraggate/call { slug: "toolbench", op }. Synthetic FragGate refuse playground (TOOLBENCH-0.1). suite / run_case classify against the live door table. fielded_100 stays FG-STUB. Self-test ≠ third-party lab. In-runtime placement. Domain stays null (tool-playground placement).`,
+    `Edge MCP gateway: POST /mcp is THE public MCP surface. It terminates into FragGate list → describe → call. Not a second door. No backdoor exec. POST /p/{slug}/{op} stays proxy-not-exec.`,
+    `Session isolate sandbox: runtime_session_* policy may set max_ops / wipe_on_close / allow_slugs. Isolate class is worker-do. QEMU / KVM / guest VM policy keys refuse guest_vm_refused. isolate_is_the_jail stays true.`,
     `EmbryoLock: FragGate only. POST /v1/fraggate/call { slug: "embryolock", op }. True in-process engine (engine_digest). Vault/Custody with ARK. LIVE_OPS health/skill/doctor/verify-hash/policy/limitation. Wipe/scorch/unlock-after-fail stay FG-STUB — Never execute on the public mesh. worker_home https://embryolock-download-tracker.vibelock.workers.dev/.`,
     `Locked MASTER-33 pipeline: ${LOCKED_STRIP}. FragGate is THE single door. Lamb Lens is fabric after FragGate. Domains are isolation labels, not doors. LambGate is not a hop. FoldLock fld3-wire is internal to AZPIPE. Illegal reorder is refused. No rollback. Cite: GET ${base}/v1/azpipe/arch (same payload as GET /v1/fraggate pipeline; not a Softwares-tab door).`,
     `True-engine slugs: ${honestyFields(PRODUCTS.map((p) => p.slug)).true_engine_slugs.join(", ")}`,
@@ -1475,13 +1537,17 @@ function llmsTxt(origin) {
     lines.push(p.oneLine);
     if (p.banner) lines.push(`Banner: ${p.banner}`);
     lines.push(`GitHub: ${u.github}`);
-    lines.push(`Worker: ${u.worker_home}`);
-    lines.push(`Worker cite: ${u.cite}`);
-    if (u.has_llms) lines.push(`Worker llms: ${u.llms}`);
-    if (u.has_sitemap) lines.push(`Worker sitemap: ${u.sitemap}`);
-    lines.push(`Download (counted, gzip 200): ${u.download}`);
+    if (u.worker_home) {
+      lines.push(`Worker: ${u.worker_home}`);
+      lines.push(`Worker cite: ${u.cite}`);
+      if (u.has_llms) lines.push(`Worker llms: ${u.llms}`);
+      if (u.has_sitemap) lines.push(`Worker sitemap: ${u.sitemap}`);
+      lines.push(`Download (counted, gzip 200): ${u.download}`);
+      lines.push(`Install: curl -fsSL ${u.install} | bash`);
+    } else {
+      lines.push(`Worker: in-runtime (no separate product Worker)`);
+    }
     if (p.version) lines.push(`Version: ${p.version}`);
-    lines.push(`Install: curl -fsSL ${u.install} | bash`);
     lines.push(`Skill: ${u.skill}`);
     lines.push(`Pull: ${u.pull}`);
     lines.push(`Pull skill: ${u.pull_skill}`);
@@ -1665,7 +1731,7 @@ function jsonLd(origin) {
         downloadUrl: u.download,
         author: { "@id": person["@id"] },
         license: "https://www.apache.org/licenses/LICENSE-2.0",
-        sameAs: [u.worker_home, u.cite, u.download].concat(u.has_llms ? [u.llms] : []),
+        sameAs: [u.worker_home, u.cite, u.download].concat(u.has_llms ? [u.llms] : []).filter(Boolean),
       };
       if (p.version) item.softwareVersion = p.version;
       if (u.doi_url) item.identifier = u.doi_url;
@@ -1891,18 +1957,18 @@ function productCardHtml(p, origin, stats) {
   ${banner}
   <p class="meta">
     <a href="${p.github}">GitHub</a>
-    <a href="${u.worker_home}">Worker /</a>
-    <a href="${u.cite}">/cite.json</a>
+    ${u.worker_home ? `<a href="${u.worker_home}">Worker /</a>` : `<span class="slug">in-runtime</span>`}
+    ${u.cite ? `<a href="${u.cite}">/cite.json</a>` : ""}
     ${u.has_llms ? `<a href="${u.llms}">/llms.txt</a>` : ""}
-    <a href="${u.download}">counted /download</a>${count}
-    <a href="${u.install}">install.sh</a>
+    ${u.download ? `<a href="${u.download}">counted /download</a>${count}` : ""}
+    ${u.install ? `<a href="${u.install}">install.sh</a>` : ""}
     <a href="${u.skill}">/v1/skill</a>
     <a href="${u.pull}">pull</a>
     <a href="${u.pull_skill}">pull skill</a>
     <a href="${origin}/p/${p.slug}/health">catalog proxy health</a>${doi}${tarball}
   </p>
-  <p>Worker: <a href="${u.worker_home}">${escapeHtml(u.worker_home)}</a>
-     · <a href="${u.openapi}">product OpenAPI</a>
+  <p>${u.worker_home ? `Worker: <a href="${u.worker_home}">${escapeHtml(u.worker_home)}</a>` : "In-runtime engine (no separate product Worker)."}
+     · <a href="${u.openapi}">${u.worker_home ? "product OpenAPI" : "runtime OpenAPI"}</a>
      ${u.has_sitemap ? `· <a href="${u.sitemap}">Worker sitemap</a>` : ""}</p>
   <p>${ops}</p>
   ${invokePre}
@@ -2011,7 +2077,7 @@ ${distributionDoorsHtml(origin)}
     <h2>Version history</h2>
     <strong>What this Worker is</strong>
     <ul>
-      <li><strong>2.0.0-rc1</strong> is the certification-point freeze (not a feature dump). Public contract, compatibility, receipt schema, refusal contract, and breaking-change policy live under <code>docs/2.0/</code>. Clean-room reproducibility + external adversarial pack for independent reviewers (self-test ≠ third-party lab). Gate 4 includes Glama TDQS 5.0 <code>tools/list</code> metadata (no rename; no behavior change) plus existing <code>glama.json</code> / GitHub topics. Read-only QNM suite-presence is ON by default; <code>POST /v1/mesh/disable</code> refuses <code>MESH-DISABLE-REFUSED</code>. Remain-OFF untouched. FragGate remains THE single door. New engines deferred to 2.1+. Crawler abstract stays lead copy. Identity Aziel Eliab only.</li>
+      <li><strong>2.0.0-rc1</strong> is the certification-point freeze (not a feature dump). Public contract, compatibility, receipt schema, refusal contract, and breaking-change policy live under <code>docs/2.0/</code>. Clean-room reproducibility + external adversarial pack for independent reviewers (self-test ≠ third-party lab). Gate 4 includes Glama TDQS 5.0 <code>tools/list</code> metadata (no rename; no behavior change) plus existing <code>glama.json</code> / GitHub topics. Read-only QNM suite-presence is ON by default; <code>POST /v1/mesh/disable</code> refuses <code>MESH-DISABLE-REFUSED</code>. Remain-OFF untouched. FragGate remains THE single door. Architecture-fit placements <code>zkattest</code> / <code>mmconsensus</code> / <code>toolbench</code> are in-runtime engines behind FragGate (isolation 33 unchanged; no new MCP tool). Crawler abstract stays lead copy. Identity Aziel Eliab only.</li>
       <li><strong>1.9.3</strong> closes the remaining AZRT-1.9-GAPS-CLOSE items. AZ-OS <code>session_open</code> / <code>session_status</code> / <code>session_close</code> (aliases <code>session</code> / <code>close</code>) are isolate-native prefab ethics VFS — not a remote host shell. Public <code>exec</code> / <code>shell</code> / <code>lattice</code> stay refuse. Corpus <code>jeeves</code> is isolate-safe Ask Jeeves over sample MASTER / <code>CORPUS_D1</code> <code>records</code> (refuse secrets / triad-tamper; Jesus-image-only if the user says the devil is not real; no AZAI blend). <code>media-run</code> is binding-gated: hash-chained Whisper / vision only when <code>env.AI</code> is present; otherwise honest refuse — no fake OCR. Independent validation path: <code>docs/audit/INDEPENDENT-VALIDATION.md</code> + Actions <code>validate.yml</code> attestation artifact (not a third-party lab). Remain-OFF untouched. Crawler abstract stays lead copy. Identity Aziel Eliab only.</li>
       <li><strong>1.9.2</strong> binds Workers Browser Rendering (<code>BROWSER</code>) and live D1 MASTER (<code>CORPUS_D1</code> → <code>aziel-digital-library</code>). Corpus <code>searchD1</code> queries production <code>records</code> (not <code>master</code>). Workers AI (<code>AI</code>) is bound so Whisper / OCR stay honest (native only when <code>env.AI</code> runs). Sample MASTER remains the unbound fallback. Chromium product UI is not claimed; Tor / phoenix stay refuse. Remain-OFF untouched. Crawler abstract stays lead copy. Identity Aziel Eliab only.</li>
       <li><strong>1.9.1</strong> closes AZRT-1.9-GAPS-CLOSE. Isolate-safe corpus review / score / verify-backfill / verify-geo / document-chain / import_export run in-process. Whisper / OCR stay Workers-AI-gated (not a fake native OCR). AZBrowser <code>sandbox_status</code> / <code>sandbox_render</code> report Workers Browser Rendering honestly — Chromium stays DEFERRED unless bound; Tor / phoenix refuse. AZMail <code>transport_status</code>: public MTA stays NOT IMPLEMENTED; no public send. Wave 2–3 health / skill / doctor richness. Adversarial repo self-check + GitHub Actions <code>npm test</code> on pull requests and main. Consumer MCP / OpenAPI examples. <code>/v1/software</code> cards carry <code>engine_digest</code>. Live Nodes <code>live_nodes</code> counts Softwares <code>{slug}-worker</code> only (<code>mesh_*</code> is ephemeral). Catalog EmbryoLock is 1.2.0. Catalog <code>git_sha</code> from deploy var or stamped build-meta. Flutter <code>mobile/</code> is not vendored here. Remain-OFF untouched. Crawler abstract stays lead copy. Identity Aziel Eliab only.</li>
@@ -2111,7 +2177,7 @@ function productPageHtml(p, origin, stats) {
         author: { "@id": AUTHOR_ID },
         license: "https://www.apache.org/licenses/LICENSE-2.0",
         identifier: u.doi_url || undefined,
-        sameAs: [u.worker_home, u.cite, u.download].concat(u.has_llms ? [u.llms] : []),
+        sameAs: [u.worker_home, u.cite, u.download].concat(u.has_llms ? [u.llms] : []).filter(Boolean),
       },
     ],
   });
@@ -2201,7 +2267,7 @@ function staticPaths(origin) {
       get: {
         operationId: "software_catalog",
         summary:
-          "Authoritative live software catalog for hubs and clients. Every product including AZChat LIVE+bound. EmbryoLock is live-with-local-destructive-boundary (worker_home embryolock-download-tracker). Sort: Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock). Sibling software under one FragGate door — never separate FragGate engines. Softwares-tab count includes placements (azinterface / decisiongate / forgereceipts / azcoherence); isolation domain software_count is 33 (domains_are_doors:false). website_designs names mesh-resident azcorpus + azlibrary (downloadable to nodes; not extra Softwares; azlibrary upload is API token only). Hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) fetch this on each Software-tab request. Default application/json. Accept: text/html returns a crawl HTML shell (unique title/description + JSON-LD) without changing the Worker homepage UI.",
+          "Authoritative live software catalog for hubs and clients. Every product including AZChat LIVE+bound. EmbryoLock is live-with-local-destructive-boundary (worker_home embryolock-download-tracker). Sort: Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock). Sibling software under one FragGate door — never separate FragGate engines. Softwares-tab count includes placements (azinterface / decisiongate / forgereceipts / azcoherence / zkattest / mmconsensus / toolbench); isolation domain software_count is 33 (domains_are_doors:false). website_designs names mesh-resident azcorpus + azlibrary (downloadable to nodes; not extra Softwares; azlibrary upload is API token only). Hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) fetch this on each Software-tab request. Default application/json. Accept: text/html returns a crawl HTML shell (unique title/description + JSON-LD) without changing the Worker homepage UI.",
         tags: ["software"],
         responses: { "200": { description: "Sorted software[] plus count_note, isolation_software_count, tab_placement_slugs, domains (domains_are_doors:false), website_designs (azcorpus + azlibrary)" } },
       },
@@ -2369,7 +2435,9 @@ function rewriteLivePaths(spec, product) {
       if (opObj && typeof opObj === "object") {
         opObj.operationId = `${product.slug}_${op}`;
         opObj.tags = [product.slug];
-        const extra = `Proxies to ${workerUrl(product, op)}.`;
+        const extra = workerUrl(product, op)
+          ? `Proxies to ${workerUrl(product, op)}.`
+          : "In-runtime engine. POST /p/{slug}/{op} is still proxy-not-exec. Use POST /v1/fraggate/call.";
         opObj.description = [opObj.description || opObj.summary || "", product.banner || "", extra]
           .filter(Boolean)
           .join("\n\n");
@@ -2528,6 +2596,9 @@ function withUpstreamHeaders(init) {
 }
 
 async function upstreamFetch(env, product, path, init) {
+  if (!product.worker && product.slug !== "aziel-corpus") {
+    return { res: null, target: null, in_runtime: true };
+  }
   const bind = env && env[bindingName(product)];
   const publicHost =
     product.slug === "aziel-corpus"
@@ -2568,7 +2639,22 @@ async function proxy(product, op, request, env) {
     init.body = text && text.trim() ? text : "{}";
   }
   try {
-    const { res, target } = await upstreamFetch(env, product, targetPath, init);
+    const { res, target, in_runtime } = await upstreamFetch(env, product, targetPath, init);
+    if (in_runtime || !res) {
+      return json(
+        {
+          error: "proxy is not exec",
+          code: "PROXY-NOT-EXEC",
+          product: product.slug,
+          op,
+          in_runtime: true,
+          worker: null,
+          hint: `Use POST /v1/fraggate/call with { slug: "${product.slug}", op: "${op}" }. No separate product Worker.`,
+          proxy_is_not_exec: true,
+        },
+        404,
+      );
+    }
     const buf = await res.arrayBuffer();
     const outHeaders = new Headers(corsHeaders());
     const ct = res.headers.get("content-type") || "application/json; charset=utf-8";
@@ -2769,8 +2855,9 @@ async function handleMcp(request, env, origin) {
       auth: "none (public)",
       server_card: "/.well-known/mcp/server-card.json",
       oauth_protected_resource: "/.well-known/oauth-protected-resource",
-      note: "Durable Objects / agents McpAgent not used. Minimal HTTP JSON-RPC. tools/list is the thin door. Pipeline: fraggate_list → fraggate_describe → fraggate_call. Hubs: GET /v1/software. Mutating tools require confirm=true or dry_run=true.",
+      note: "Durable Objects / agents McpAgent not used. Minimal HTTP JSON-RPC. tools/list is the thin door. Pipeline: fraggate_list → fraggate_describe → fraggate_call. Hubs: GET /v1/software. Mutating tools require confirm=true or dry_run=true. This Worker POST /mcp is THE edge MCP gateway — it terminates into FragGate; no backdoor exec.",
       door: "fraggate",
+      gateway: mcpGatewayCite(),
       skill: "/v1/skill",
       runtime: "/v1/runtime.json",
       fraggate: "/v1/fraggate",

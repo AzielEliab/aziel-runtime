@@ -52,6 +52,12 @@ export const CATALOG_ALIASES = {
   az_coherence: "azcoherence",
   "azc-0.1": "azcoherence",
   "azc-wp": "azcoherence",
+  "zk-attest": "zkattest",
+  zk_attest: "zkattest",
+  "mm-consensus": "mmconsensus",
+  mm_consensus: "mmconsensus",
+  "tool-bench": "toolbench",
+  tool_bench: "toolbench",
 };
 
 /**
@@ -142,6 +148,9 @@ export const VERSIONS = {
   azcoherence: "0.1.0",
   embryolock: "1.2.0",
   azchat: "0.1.0",
+  zkattest: "0.1.0",
+  mmconsensus: "0.1.0",
+  toolbench: "0.1.0",
 };
 
 /**
@@ -218,6 +227,9 @@ export const FIRST_TIME_DEPOSIT_SLUGS = [
   "azcoherence",
   "embryolock",
   "azchat",
+  "zkattest",
+  "mmconsensus",
+  "toolbench",
 ];
 
 export const ZENODO_AUDIT = {
@@ -249,6 +261,7 @@ export function softwareDepositNeeded(_slug, _doi) {
 }
 
 export function softwareTarball(slug, version, downloadUrl) {
+  if (!downloadUrl) return null;
   if (slug === "aziel-corpus") {
     return {
       url: downloadUrl,
@@ -278,13 +291,15 @@ export function relatedIdentifiers(product, urls) {
       resource_type: "software",
       scheme: "url",
     },
-    {
+  ];
+  if (urls && urls.download) {
+    ids.push({
       identifier: urls.download,
       relation: "isIdenticalTo",
       resource_type: "software",
       scheme: "url",
-    },
-  ];
+    });
+  }
   if (DOI_KIND_BY_SLUG[product.slug] === "shared_method_paper" && product.doi) {
     ids.push({
       identifier: product.doi,
