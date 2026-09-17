@@ -127,6 +127,8 @@ assert.match(instructions, /Neighbor map/);
 assert.match(instructions, /append-only/);
 assert.match(instructions, /no chainlock_delete/);
 assert.match(instructions, /no memory_delete/);
+assert.doesNotMatch(instructions, /\bretired\b/);
+assert.doesNotMatch(instructions, /\bthis\b/);
 assert.match(instructions, new RegExp(`Current version remains ${RUNTIME_VERSION.replaceAll(".", "\\.")}`));
 
 const firstSentence = (text) => String(text || "").split(/(?<=\.)\s+/)[0];
@@ -204,7 +206,14 @@ for (const name of [
 ]) {
   assert.ok(byName[name].inputSchema.properties.confirm, `${name} documents confirm`);
   assert.ok(byName[name].inputSchema.properties.dry_run, `${name} documents dry_run`);
-  assert.ok((byName[name].inputSchema.required || []).includes("confirm"), `${name} required confirm`);
+  assert.ok(
+    !(byName[name].inputSchema.required || []).includes("confirm"),
+    `${name} must not list confirm in required[]`,
+  );
+  assert.ok(
+    !(byName[name].inputSchema.required || []).includes("dry_run"),
+    `${name} must not list dry_run in required[]`,
+  );
   assert.equal(byName[name].annotations.requiresConfirmation, true, `${name} requiresConfirmation`);
   assert.match(byName[name].description, /confirm=true/);
 }
