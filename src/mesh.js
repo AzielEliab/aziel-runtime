@@ -108,6 +108,7 @@ import {
 import { meshGetEnableRefuse, meshGetLooksLikeEnable } from "./redline.js";
 import { dispatchAzGeneratorHttp, semanticBridgeCiteField } from "./semantic-bridge.js";
 import { durabilityLabels } from "./durability-labels.js";
+import { nineLawsFrame, nineLawsHint, nineLawsLaunchCite, refuseNineLawGet, refuseNineLawViolation } from "./mesh-nine-laws.js";
 
 export const MESH_SLUG = "mesh";
 export const MESH_NAME = "Quantum Node Mesh";
@@ -155,7 +156,8 @@ export const MESH_LIMITATION =
   CROSS_NETWORK_SURVIVAL_SHORT +
   " NO-LIE-NO-REWRITE-1.0: receipts that still hash; copies not all on one tunnel; no rewrite key; the network is never allowed to lie even to self-preserve. Companion under the umbrella; does not replace the machine tip. " +
   " COLD-MULTI-SHELF-1.0: GET /shelves cites corpus#96 honesty — Plane A one CF/GitHub tunnel (5 published surfaces / 2 family radii / 1 independent live); Plane B alt-forge SLOT (Codeberg + archive.org PASS still SLOT at https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius; Framagit URL null; GitFlic CNS-GITFLIC-EMAIL; GitLab CNS-GITLAB-CF-LOOP; Zenodo refused CNS-ZENODO-IP-BAN; doi null); Plane C USB SLOT until CNS-OPERATOR-ATTEST. Runtime is the same Plane A tunnel, not a sixth surface. " +
-  " THIS IS NOT: a login mesh; login-recovery; Node Gate/IP panel; upload proxy; account resurrection; public hostname resurrection; bringing the .uk node back; average-of-nodes leaderboard; QNM-S; the local qnm-node process (boot/chain/apg/bearers/outbox/phoenix/score/memorial/tethers); AnonBroadcast as a catalog product or publish path; AZMail's product-local ring; arming; wipe; controller hunt; implicit heal; a public qnsd proxy; a payload push plane; vote-to-reconcile; live body sync; mesh from index; summary-as-archive; neighbor talk-back-to-health; vote-to-fix; live network as a shelf; a rewrite key; a lie to stay alive. Author: Aziel Eliab only.";
+  " Nine QNM laws are HARD TRUE on GET /v1/mesh (and status): split-wires, cold-copy, REHEAL refuse, phoenix local-only, die-with-pull (no godlock.uk back), no neighbor heal, no Node Gate, no auto-heal, not an anonymity network. Each law has a machine field and a published refuse code. GodLock is a product name, not identity. " +
+  " THIS IS NOT: a login mesh; login-recovery; Node Gate/IP panel; upload proxy; account resurrection; public hostname resurrection; bringing the .uk node back; average-of-nodes leaderboard; QNM-S; the local qnm-node process (boot/chain/apg/bearers/outbox/phoenix/score/memorial/tethers); AnonBroadcast as a catalog product or publish path; AZMail's product-local ring; arming; wipe; controller hunt; implicit heal; a public qnsd proxy; a payload push plane; vote-to-reconcile; live body sync; mesh from index; summary-as-archive; neighbor talk-back-to-health; vote-to-fix; live network as a shelf; a rewrite key; a lie to stay alive; a VPN; an anonymity network. Author: Aziel Eliab only.";
 
 export const MESH_CANONICAL_OPS = Object.freeze([
   "status",
@@ -404,6 +406,16 @@ export function meshHint(path = "/v1/mesh") {
     survival: survivalHint(),
     ...noLieFrame(),
     no_lie_hint: noLieHint(),
+    nine_laws: nineLawsHint(),
+    ...nineLawsLaunchCite(),
+    clocks_share_socket: false,
+    live_body_sync: false,
+    node_gate: false,
+    anonymity_network: false,
+    die_with_pull: true,
+    phoenix_local_only: true,
+    implicit_heal: false,
+    neighbor_heal: false,
   };
 }
 
@@ -411,7 +423,9 @@ export function meshCiteField(origin) {
   const base = String(origin || "").replace(/\/$/, "");
   return {
     ...meshHint("/v1/mesh"),
+    ...nineLawsLaunchCite(origin),
     name: MESH_NAME,
+    identity: MESH_AUTHOR,
     status: base ? `${base}/v1/mesh/status` : "/v1/mesh/status",
     nodes: base ? `${base}/v1/mesh/nodes` : "/v1/mesh/nodes",
     enable: base ? `${base}/v1/mesh/enable` : "/v1/mesh/enable",
@@ -419,7 +433,8 @@ export function meshCiteField(origin) {
     login_mesh: false,
     node_gate: false,
     qnm_s: false,
-    note: "Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Not a login mesh. NO-LIE / NO-REWRITE: no rewrite key; never lie to survive. COLD-MULTI-SHELF-1.0: GET /shelves cites corpus#96 honesty.",
+    nine_laws: nineLawsHint(),
+    note: "Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Not a login mesh. Not a Node Gate. Nine QNM laws are hard-true (fields + published refuse codes). Worker-launch cite: hashtag parts #aziel / #runtime and always About Aziel (/about). NO-LIE / NO-REWRITE: no rewrite key; never lie to survive. COLD-MULTI-SHELF-1.0: GET /shelves cites corpus#96 honesty.",
     survival: survivalCiteField(),
     semantic_bridge: semanticBridgeCiteField(base),
   };
@@ -436,7 +451,7 @@ export function meshKernelEntry() {
     stub_ops: MESH_STUB_OPS.slice(),
     op_aliases: { ...MESH_OP_ALIASES },
     description:
-      "QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1). Packet-transfer coding design QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; Worker cites only). live/locked/isolated counts. Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public disable of suite-presence is refused. Phoenix is wait/re-seal, not public hostname resurrection. Pulled sites die with the pull. Split the wires: presence + tip hash on the 1s tick; pull-only payloads; hash-absolute ingest; equivocation isolates that peer. Cold-copy survival: multiply cold copies; no live body sync; named hosts only. REHEAL: isolation is the cure. CROSS-NETWORK-SURVIVAL-1.0: if network and data die tomorrow, the chain survives on cold shelves (hosts / DOI / git / vault). NO-LIE-NO-REWRITE-1.0: no rewrite key; never lie to survive. COLD-MULTI-SHELF-1.0: GET /shelves cites corpus#96 honesty. Not a login mesh. Not a Softwares-tab product.",
+      "QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1). Packet-transfer coding design QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; Worker cites only). live/locked/isolated counts. Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public disable of suite-presence is refused. Nine QNM laws are hard-true on GET /v1/mesh. Phoenix is wait/re-seal, not public hostname resurrection. Pulled sites die with the pull — godlock.uk does not come back. Split the wires: presence + tip hash on the 1s tick; pull-only payloads; hash-absolute ingest; equivocation isolates that peer. Cold-copy survival: multiply cold copies; no live body sync; named hosts only. REHEAL: isolation is the cure. Not a Node Gate. Not a VPN. Not an anonymity network. CROSS-NETWORK-SURVIVAL-1.0: if network and data die tomorrow, the chain survives on cold shelves (hosts / DOI / git / vault). NO-LIE-NO-REWRITE-1.0: no rewrite key; never lie to survive. COLD-MULTI-SHELF-1.0: GET /shelves cites corpus#96 honesty. Not a login mesh. Not a Softwares-tab product.",
     note: MESH_LIMITATION,
     kind: "kernel",
     engine: false,
@@ -461,7 +476,7 @@ export function nodeMeshHubCard(origin) {
     version: MESH_SPEC,
     door: "fraggate",
     one_line:
-      "QNM-BUILD-1.0 suite rollup (live/locked/isolated). Read-only suite-presence is ON by default. GET never enables radios beyond that. Public disable of suite-presence is refused. Phoenix is wait/re-seal, not public hostname resurrection. Pulled sites die with the pull. Split the wires: tick is presence + tip hash; payloads are pull-only. Cold-copy survival: no live body sync; named hosts only. REHEAL: isolation is the cure. CROSS-NETWORK-SURVIVAL-1.0: chain survives on cold shelves (hosts / DOI / git / vault). NO-LIE / NO-REWRITE. COLD-MULTI-SHELF-1.0: GET /shelves cites corpus#96 honesty. Not a login mesh. Full node is local qnm-node/. Packet transfer: QNS-CD-1.0 on local qnsd (Worker cites only).",
+      "QNM-BUILD-1.0 suite rollup (live/locked/isolated). Read-only suite-presence is ON by default. GET never enables radios beyond that. Public disable of suite-presence is refused. Nine QNM laws are hard-true on GET /v1/mesh. Phoenix is wait/re-seal, not public hostname resurrection. Pulled sites die with the pull. Split the wires: tick is presence + tip hash; payloads are pull-only. Cold-copy survival: no live body sync; named hosts only. REHEAL: isolation is the cure. Not a Node Gate. Not a VPN. CROSS-NETWORK-SURVIVAL-1.0: chain survives on cold shelves (hosts / DOI / git / vault). NO-LIE / NO-REWRITE. COLD-MULTI-SHELF-1.0: GET /shelves cites corpus#96 honesty. Not a login mesh. Full node is local qnm-node/. Packet transfer: QNS-CD-1.0 on local qnsd (Worker cites only).",
     path: "/v1/mesh",
     enabled_default: MESH_DEFAULT_ENABLED,
     rollup_only: true,
@@ -767,6 +782,7 @@ function qnmFrame() {
     host_note: QNM_HOST_NOTE,
     qns_cd: qnsCiteField(),
     ...noLieFrame(),
+    ...nineLawsFrame(),
   };
 }
 
@@ -957,6 +973,8 @@ MCP tools: ${MESH_MCP_TOOLS.join(", ")}
 ${QNM_HOST_NOTE}
 
 ${ANON_BROADCAST_NOTE}
+
+**Nine laws (hard-true).** \`GET /v1/mesh\` and status carry machine fields for all nine: split-wires (\`clocks_share_socket: false\`), cold-copy (\`live_body_sync: false\`), REHEAL refuse (\`isolation_is_the_cure: true\`), phoenix local-only, die-with-pull (\`restore_godlock_uk: false\`), no neighbor heal, no Node Gate, no auto-heal, not an anonymity network. Violations reuse published refuse codes (\`MESH-NO-BYTES\`, \`MESH-NO-NEIGHBOR-HEAL\`, \`MESH-STUB\`, \`MESH-BAD-INPUT\`). GodLock is a product name, not identity. Papers: NODE_MESH / SEC-FEAT / NODE-OPS / QNM-WP.
 
 NO-LIE / NO-REWRITE (**NO-LIE-NO-REWRITE-1.0**): receipts that still hash; copies not all on one tunnel; rules simple enough others verify without the author's voice; no rewrite key. The network is never allowed to lie — even to self-preserve, sustain, stay alive, adapt, or prevent death. Companion under **CROSS-NETWORK-SURVIVAL-1.0** (does not replace the machine tip). See \`docs/designs/NO-LIE-NO-REWRITE-1.0.md\`. Rewrite / lie verbs refuse \`MESH-NO-REWRITE\` / \`MESH-NO-LIE\`.
 
@@ -1347,6 +1365,15 @@ export async function runMeshOp(op, payload, env) {
       refused_keys: poisoned,
     });
   }
+  const nineRefuse = refuseNineLawViolation(src, resolved);
+  if (nineRefuse) {
+    return refuse(nineRefuse.code, nineRefuse.message, {
+      op: resolved || op || null,
+      reason: nineRefuse.reason,
+      law: nineRefuse.law,
+      nine_laws: nineRefuse.nine_laws,
+    });
+  }
   if (src.from_index === true || src.mesh_from_index === true || src.summary === true) {
     const idx = meshFromIndex();
     return refuse("MESH-NO-INDEX", "Re-expand restores from archive after prev-hash verify. Not mesh from index. Bytes survive, not summaries.", {
@@ -1440,6 +1467,10 @@ async function dispatchMeshHttpCore(method, pathname, payload, env, origin, sear
     if (m === "GET" || m === "HEAD") {
       if (meshGetLooksLikeEnable(searchParams, payload)) {
         return { status: 405, body: meshGetEnableRefuse({ path, method: m }) };
+      }
+      const nineGet = refuseNineLawGet(searchParams, payload);
+      if (nineGet) {
+        return { status: 405, body: refuse(nineGet.code, nineGet.message, { path, method: m, law: nineGet.law, reason: nineGet.reason }) };
       }
       const body = await meshStatus(payload, env);
       return { status: 200, body };

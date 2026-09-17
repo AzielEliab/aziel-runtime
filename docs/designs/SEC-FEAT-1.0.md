@@ -15,7 +15,7 @@ Inventory of controls that shrink the surface. Not a guarantee. Not a new produc
 - DecisionGATE pre-exec: five gates → PASS / REVISE / BLOCK.
 - Thin MCP tools/list. Proxy /p/{slug}/{op} is not exec.
 - runtime_run is internal. Empty User-Agent 403s on Workers.
-- GET /v1/mesh never enables. No Node Gate on public faces.
+- GET /v1/mesh never enables. No Node Gate on public faces. Nine QNM laws are hard-true on GET /v1/mesh (fields + published refuse codes). See docs/NODE_MESH.md and scripts/verify-mesh-nine-laws.mjs.
 - NO-LIE / NO-REWRITE: receipts that still hash; no rewrite key; never lie to survive. See NO-LIE-NO-REWRITE-1.0 (companion under CROSS-NETWORK-SURVIVAL-1.0).
 - Refuse is written to the ledger.
 
