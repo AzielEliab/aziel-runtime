@@ -161,8 +161,8 @@ const card = mcpServerCard(origin);
 assert.equal(card.gateway.role, "edge-mcp-gateway");
 assert.equal(card.tools.count, PUBLIC_MCP_TOOLS.length);
 
-const opened = await (await post("/v1/session/open", {})).json();
-const sid = opened.session.id;
+const sessOpened = await (await post("/v1/session/open", {})).json();
+const sid = sessOpened.session.id;
 const guest = await post(`/v1/session/${sid}/policy`, { qemu: true });
 const guestBody = await guest.json();
 assert.equal(guest.status, 400);

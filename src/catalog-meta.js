@@ -317,7 +317,9 @@ export function zenodoDepositMetadata(product, urls) {
     product.oneLine || product.name,
     product.banner || "",
     `GitHub: ${product.github}`,
-    `Counted software package: ${urls.download} (${tarball.filename})`,
+    tarball && urls.download
+      ? `Counted software package: ${urls.download} (${tarball.filename})`
+      : "In-runtime placement — no separate counted Worker /download.",
     "Author: Aziel Eliab. Identity is Aziel Eliab only.",
   ]
     .filter(Boolean)
