@@ -54,7 +54,7 @@ These are **not** soft docs. `GET /v1/mesh` and `GET /v1/mesh/status` publish ma
 | Die-with-pull (no godlock.uk back) | `die_with_pull: true`, `restore_godlock_uk: false`, `climb_public_hostname: false` | `MESH-STUB` |
 | No neighbor talk-back-to-health | `neighbor_heal: false`, `apply_last_packet_on_heartbeat_loss: false` | `MESH-NO-NEIGHBOR-HEAL` |
 | No Node Gate | `node_gate: false`, `get_is_node_gate: false`, `ip_panel: false`, `login_recovery: false` | `MESH-STUB` (GET `/v1/mesh?node_gate=true` is 405) |
-| No auto-heal | `implicit_heal: false`, `auto_heal: false`, `heartbeat_loss_is_poison: false`, `apply_last_packet: false` | `MESH-STUB` |
+| No auto-heal | `implicit_heal: false`, `auto_heal: false`, `heartbeat_loss_isolates: false`, `apply_last_packet: false` | `MESH-STUB` |
 | Not an anonymity network | `anonymity_network: false`, `vpn: false`, `origin_hiding: false` | `MESH-STUB` |
 
 No new MCP tool. FragGate stays the only public exec door.
