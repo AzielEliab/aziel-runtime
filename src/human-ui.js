@@ -1,7 +1,8 @@
 /**
  * Human workspace UI — dual-surface (agents MCP + humans Worker UI).
  * Same FragGate door as POST /v1/fraggate/call / MCP fraggate_call.
- * Addresses audit F04 (HTML headers) and F06–F08 (task-first, labels, live mesh).
+ * Addresses audit F06–F08 (task-first, labels, live mesh).
+ * HTML security headers live in security-headers.js (F03–F05 / #111).
  * Does not add, remove, or rename MCP tools.
  * Author: Aziel Eliab only.
  */
@@ -28,18 +29,6 @@ function escapeHtml(s) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
-}
-
-/** Browser hardening for HTML responses. No OAuth invented. */
-export function browserSecurityHeaders() {
-  return {
-    "Content-Security-Policy":
-      "default-src 'none'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'",
-    "X-Frame-Options": "DENY",
-    "X-Content-Type-Options": "nosniff",
-    "Referrer-Policy": "strict-origin-when-cross-origin",
-    "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
-  };
 }
 
 /**

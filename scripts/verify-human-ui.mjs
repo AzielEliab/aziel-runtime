@@ -1,6 +1,6 @@
 /**
- * Human workspace UI (audit F06–F08) + HTML hardening (F04).
- * Dual-surface: agents MCP + humans Worker UI. MCP inventory unchanged.
+ * Human workspace UI (audit F06–F08). Dual-surface: agents MCP + humans Worker UI.
+ * HTML headers come from F03–F05 (#111). MCP inventory unchanged.
  * Author: Aziel Eliab only.
  */
 import assert from "node:assert/strict";
@@ -49,10 +49,11 @@ const homeRes = await get("/");
 assert.equal(homeRes.status, 200);
 assert.match(homeRes.headers.get("content-type") || "", /text\/html/);
 assert.match(homeRes.headers.get("content-security-policy") || "", /frame-ancestors 'none'/);
+assert.match(homeRes.headers.get("content-security-policy") || "", /script-src 'unsafe-inline'/);
 assert.equal(homeRes.headers.get("x-frame-options"), "DENY");
 assert.equal(homeRes.headers.get("x-content-type-options"), "nosniff");
-assert.equal(homeRes.headers.get("referrer-policy"), "strict-origin-when-cross-origin");
-assert.match(homeRes.headers.get("strict-transport-security") || "", /max-age=/);
+assert.equal(homeRes.headers.get("referrer-policy"), "no-referrer");
+assert.match(homeRes.headers.get("strict-transport-security") || "", /max-age=31536000/);
 
 const home = await homeRes.text();
 assert.match(home, /id="workspace"/);
@@ -89,7 +90,9 @@ for (const attrs of textareas) {
 
 const wsRes = await get("/workspace");
 assert.equal(wsRes.status, 200);
-assert.match(wsRes.headers.get("content-security-policy") || "", /object-src 'none'/);
+assert.match(wsRes.headers.get("content-security-policy") || "", /frame-ancestors 'none'/);
+assert.equal(wsRes.headers.get("x-frame-options"), "DENY");
+assert.equal(wsRes.headers.get("referrer-policy"), "no-referrer");
 const ws = await wsRes.text();
 assert.match(ws, /<title>Workspace — /);
 assert.match(ws, /id="fg-console"/);
