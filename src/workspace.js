@@ -6,7 +6,7 @@
  * owner / workspace_id / caller string is NOT authorization.
  *
  * Public FragGate call stays open on the shared public-demo singleton
- * (ephemeral, labeled, not isolated). Private AZHub / AZInterface state is
+ * (ephemeral, labeled, not isolated). Private AZHub and AZInterface state is
  * namespaced by a verified session or a verified operator token.
  *
  * Identity: Aziel Eliab only. Lamb Lens. NO-LIE. No invented OAuth IdP.
