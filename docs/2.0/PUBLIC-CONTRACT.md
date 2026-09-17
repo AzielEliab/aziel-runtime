@@ -153,7 +153,7 @@ Headers on authority responses:
 - `X-Aziel-Runtime-Role` = `engine-runtime`
 - `Cache-Control` / `CDN-Cache-Control` = `no-store`
 
-`GET /v1/ready` additionally reports `ready`, `session_binding`, `require_token`, `token_configured`, `mutate_requires_token`, `fraggate_call_public` (**always `true`** — public FragGate call is never token-gated).
+`GET /v1/ready` additionally reports `ready`, `session_binding`, `require_token`, `token_configured`, `mutate_requires_token`, `fraggate_call_public` (**always `true`** — public FragGate call stays open on the shared **public-demo** workspace). Additive `workspace_isolation` labels public-demo (ephemeral, shared) vs private-workspace (session- or operator-token-scoped). `confirm:true` is not authentication.
 
 Historical notes live only in `version_history`. Never read a superseded row as the current version.
 

@@ -2595,7 +2595,7 @@ function toolList() {
 
 async function callRuntimeTool(env, name, args, origin, request) {
   const base = (origin || CATALOG_HOST).replace(/\/$/, "");
-  const fraggate = await callFraggateTool(name, args, PRODUCTS, BY_SLUG, env);
+  const fraggate = await callFraggateTool(name, args, PRODUCTS, BY_SLUG, env, request);
   if (fraggate) return fraggate;
   if (name === "runtime_run" || name === "use_software") {
     return callRuntimeRun(env, args, origin, sessionDeps(env, origin, request));
@@ -2931,7 +2931,8 @@ async function handleFraggateHttp(request, url, origin, env) {
       return json({ ...azGeneratorCallRefuse(), door: "fraggate" }, 400, extra);
     }
     const body = await fraggateCall(args, registry, BY_SLUG, env, request);
-    return json(body, body.ok === false ? 400 : 200, extra);
+    const status = body.ok === false ? Number(body.status) || 400 : 200;
+    return json(body, status, extra);
   }
   return json(
     {
@@ -3381,6 +3382,12 @@ async function handleRequest(request, env, ctx) {
         mutate_requires_token: gate.mutate_requires_token,
         fraggate_call_public: gate.fraggate_call_public !== false,
         token_note: gate.token_note,
+        workspace_isolation: {
+          public_demo: "shared ephemeral isolate memory — labeled, not private",
+          private_workspace: "session-scoped or operator-token-scoped; two callers cannot read or overwrite each other",
+          confirm_is_not_auth: true,
+          owner_string_is_not_auth: true,
+        },
         ...(gate.error
           ? { error: gate.error, code: gate.code, hint: gate.hint }
           : {}),

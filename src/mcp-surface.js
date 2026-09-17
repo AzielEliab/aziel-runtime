@@ -899,7 +899,7 @@ export async function callRuntimeRun(env, args, origin, deps) {
   };
 }
 
-export async function callFraggateTool(name, args, products, bySlug, env) {
+export async function callFraggateTool(name, args, products, bySlug, env, request = null) {
   const registry = registryFor(products);
   if (name === "fraggate_list") {
     return wrapFraggateEnvelope(name, await listRegistry(registry), null, "list");
@@ -911,7 +911,7 @@ export async function callFraggateTool(name, args, products, bySlug, env) {
     return wrapFraggateEnvelope(name, await verifyRegistry(args, registry, bySlug), null, "verify");
   }
   if (name === "fraggate_call") {
-    const body = await fraggateCall(args, registry, bySlug, env);
+    const body = await fraggateCall(args, registry, bySlug, env, request);
     const product = body.slug && bySlug ? bySlug[body.slug] : null;
     return wrapFraggateEnvelope(name, body, product, body.op);
   }

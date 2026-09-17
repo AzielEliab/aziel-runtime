@@ -16,6 +16,13 @@ export const TOKEN_HEADER = "X-Aziel-Runtime-Token";
 export const VERSION_HEADER = "X-Aziel-Runtime-Version";
 export const ROLE_HEADER = "X-Aziel-Runtime-Role";
 
+/** Honest token / isolation note. Public FragGate call stays open on public-demo. */
+export const TOKEN_NOTE =
+  "Public FragGate call stays open on the shared public-demo workspace (ephemeral, not isolated). " +
+  "Private AZHub and AZInterface workspace reads and writes require a verified runtime token and/or an authenticated session. " +
+  "Session mutate requires token when REQUIRE_TOKEN=1 and RUNTIME_TOKEN is set. " +
+  "confirm:true is not authentication. A client-supplied owner or workspace_id is not authorization.";
+
 export function authorityHeaders(version, role) {
   return {
     [VERSION_HEADER]: String(version),
@@ -105,8 +112,7 @@ export function evaluateReady(env) {
       token_configured: gate.token_configured,
       mutate_requires_token: gate.mutate_requires_token,
       fraggate_call_public: true,
-      token_note:
-        "Public FragGate call stays open. Session mutate requires token when REQUIRE_TOKEN=1 and RUNTIME_TOKEN is set.",
+      token_note: TOKEN_NOTE,
       code: "session_binding_missing",
       error: "SESSION Durable Object binding missing",
       hint: "Deploy with [[durable_objects.bindings]] name=SESSION class_name=RuntimeSession (migration tag v1).",
@@ -121,8 +127,7 @@ export function evaluateReady(env) {
       token_configured: false,
       mutate_requires_token: false,
       fraggate_call_public: true,
-      token_note:
-        "Public FragGate call stays open. Session mutate requires token when REQUIRE_TOKEN=1 and RUNTIME_TOKEN is set.",
+      token_note: TOKEN_NOTE,
       code: "token_not_configured",
       error: "REQUIRE_TOKEN=1 but RUNTIME_TOKEN secret is missing",
       hint: "npx wrangler secret put RUNTIME_TOKEN",
@@ -136,8 +141,7 @@ export function evaluateReady(env) {
     token_configured: gate.token_configured,
     mutate_requires_token: gate.mutate_requires_token,
     fraggate_call_public: true,
-    token_note:
-      "Public FragGate call stays open. Session mutate requires token when REQUIRE_TOKEN=1 and RUNTIME_TOKEN is set.",
+    token_note: TOKEN_NOTE,
     code: null,
     error: null,
     hint: null,
