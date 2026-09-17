@@ -76,6 +76,8 @@ GitHub About (description / homepage / topics) is documented in [docs/GITHUB.md]
 
 This Worker homepage stays the **API / MCP / OpenAPI** execution surface. Human Softwares hubs are **azieleliab.com**, **Aziel Corpus Library**, and **GodLock.uk**. Sister archive: **[He Didn't Jump](https://www.hedidntjump.com/)**. **[Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime)** is the primary MCP install door.
 
+The Worker ships a FoldLock-packed **library tip** (index cite + sample MASTER + About Aziel) — not the entire live corpus. Verify via FragGate `foldlock/pack-verify`; open via `aziel-corpus/tip-pack`. Honesty: [`docs/corpus-fold-pack.md`](docs/corpus-fold-pack.md).
+
 | Surface | URL |
 |---------|-----|
 | **Try on Glama** (primary MCP) | https://glama.ai/mcp/servers/AzielEliab/aziel-runtime |

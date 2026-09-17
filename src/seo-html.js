@@ -39,6 +39,7 @@ import {
   softwareHubCrawl,
 } from "./seo.js";
 import { distributionDoorsHtml } from "./ai-clients.js";
+import { aboutAzielAndPackHtml } from "./about-aziel.js";
 
 export const SOFTWARE_PAGE_TITLE = `Softwares — ${PRODUCT_NAME}`;
 export const SOFTWARE_PAGE_DESCRIPTION =
@@ -321,6 +322,7 @@ export function aboutPageHtml(origin, css) {
   <p class="lead">${escapeHtml(RUNTIME_ABSTRACT)}</p>
 ${distributionDoorsHtml(base)}
 ${namedComponentsHtml()}
+${aboutAzielAndPackHtml(base)}
   <h2>What</h2>
   <p>${escapeHtml(RUNTIME_ONE_LINE)}</p>
   <h2>For whom</h2>

@@ -22,7 +22,7 @@ This repo does **not** own VibeLock or other product Workers. Copy this pattern 
 | Path | MIME | Purpose |
 |------|------|---------|
 | `GET /` | `text/html; charset=utf-8` | Indexable homepage. Lead with the Aziel Runtime abstract (not a changelog). |
-| `GET /about` | `text/html; charset=utf-8` | What / for whom / how agents / how hubs / what it is not |
+| `GET /about` | `text/html; charset=utf-8` | About Aziel (work, not biography) + About Aziel Runtime (what / for whom / how agents / how hubs / what it is not) + FoldLock corpus-tip control panel |
 | `GET /robots.txt` | `text/plain; charset=utf-8` | Open crawl |
 | `GET /sitemap.xml` | `application/xml; charset=utf-8` | This host only |
 | `GET /llms.txt` | `text/plain; charset=utf-8` | LLM / AI crawlers |

@@ -267,6 +267,7 @@ import {
   sitemapIndexXml,
   SUITE_DESIGNS,
 } from "./seo.js";
+import { aboutAzielAndPackHtml, aboutAzielCiteField, aboutAzielLlmsBlock, corpusFoldPackCiteField } from "./about-aziel.js";
 import {
   aboutPageHtml,
   brandRow,
@@ -643,6 +644,7 @@ const PRODUCTS_RAW = [
       { op: "health", method: "GET", summary: "Liveness. Does not increment download KV. Not zip." },
       { op: "fold-preview", method: "POST", summary: "Small UTF-8 text in, receipt + FLD3 base64 out. Cap ~8KB. Not zip." },
       { op: "unfold-preview", method: "POST", summary: "FLD3 base64 in, verified restore or error. Not zip." },
+      { op: "pack-verify", method: "POST", summary: "Verify the shipped FoldLock Aziel Corpus Library tip (SHA-256). Refuse on mismatch. Not the full live library. Not zip. Not hosted_store." },
       { op: "doctor", method: "GET", summary: "UI alias of health. Same FragGate backend as the Worker UI button." },
       { op: "skill", method: "GET", summary: "Return FoldLock skill markdown. Does not increment download KV." },
     ],
@@ -886,6 +888,7 @@ const PRODUCTS_RAW = [
       { op: "verify-geo", method: "POST", summary: "Sample gazetteer check (Florence / Indiana). Not a live geocoder." },
       { op: "document-chain", method: "POST", summary: "Client-held document hash chain. Hosted does not store the library." },
       { op: "import_export", method: "POST", summary: "Client-held library JSON. Hosted does not persist MASTER." },
+      { op: "tip-pack", method: "POST", summary: "Open the FoldLock-packed library tip (index cite + sample artifacts + About Aziel). Not the full live library on azielcorpuslibrary.net." },
       { op: "jeeves", method: "POST", summary: "Isolate-safe Ask Jeeves over sample MASTER / CORPUS_D1 records. Refuses secrets and triad-tamper. Not AZAI blend." },
       { op: "media-run", method: "POST", summary: "Binding-gated hash-chained media job. Whisper/vision only when Workers AI is bound. Does not invent transcripts." },
       { op: "doctor", method: "GET", summary: "Richer liveness: native-vs-proxy labels, binding-gated Whisper/OCR. Does not increment download KV." },
@@ -1450,6 +1453,8 @@ function llmsTxt(origin) {
     llmsWhatThisIsBlock().trimEnd(),
     "",
     ...llmsIdentityHeader(),
+    aboutAzielLlmsBlock().trimEnd(),
+    "",
     `Role: engine-runtime (catalog + pull + proxy + session + in-process engines)`,
     "",
     "## Version history",
@@ -1627,6 +1632,8 @@ function citeJson(origin) {
     one_line: RUNTIME_ONE_LINE,
     abstract: RUNTIME_ABSTRACT,
     about: runtimeAboutField(origin),
+    about_aziel: aboutAzielCiteField(),
+    corpus_fold_pack: corpusFoldPackCiteField(),
     author: AUTHOR_NAME,
     aka: AUTHOR_ALTERNATE_NAME,
     alternateName: AUTHOR_ALTERNATE_NAME,
@@ -1859,6 +1866,7 @@ const PAGE_CSS = `
   body:has(#workspace) { max-width: 72rem; }
   h1 { font-size: 1.85rem; margin: 0 0 .35rem; }
   h2 { font-size: 1.2rem; margin: 0 0 .4rem; }
+  h3 { font-size: 1.02rem; margin: .85rem 0 .35rem; }
   .slug { font-weight: 500; color: #9aa3b2; font-size: .95rem; }
   a { color: #c9d4ff; }
   .lead { color: #9aa3b2; margin: 0 0 1.25rem; }
@@ -1988,6 +1996,7 @@ ${workspacePaneHtml(origin, PRODUCTS)}
 ${distributionDoorsHtml(origin)}
 ${ecosystemBlockHtml()}
 ${namedComponentsHtml()}
+${aboutAzielAndPackHtml(origin)}
 
   <section class="cite" id="cite">
     <h2>How to cite</h2>
@@ -2179,6 +2188,7 @@ ${headMeta(origin, title, description, `/p/${p.slug}`)}
 ${brandRow()}
   <p><a href="${origin}/">← ${escapeHtml(PRODUCT_NAME)}</a> · <a href="${origin}/workspace">Workspace</a></p>
   ${productCardHtml(p, origin, stats)}
+  ${p.slug === "foldlock" || p.slug === "aziel-corpus" ? aboutAzielAndPackHtml(origin) : ""}
 ${humanDoorScript()}
 ${ecosystemBlockHtml()}
 ${donateFooterHtml()}
