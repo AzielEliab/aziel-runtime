@@ -177,6 +177,7 @@ binding = "CF_VERSION_METADATA"
 # One Durable Object per session (open → policy → exec → receipt → close).
 # 1.4.0 engines run in this Worker isolate. 1.4.1–2.0.0-rc1 reuse SESSION.
 # F01: CHAINLOCK / ChainWriter is a second class — serialized append per chain.
+# F03: RATE / RateQuota is a third class — distributed sliding window per IP+bucket.
 # 1.9.2: Workers Browser Rendering for AZBrowser sandbox_status / sandbox_render.
 # Do not fake Chromium when unbound; Tor / phoenix stay refuse.
 [browser]
@@ -196,6 +197,12 @@ class_name = "RuntimeSession"
 [[durable_objects.bindings]]
 name = "CHAINLOCK"
 class_name = "ChainWriter"
+
+# F03 door quotas. One object per bucket:ip (getByName). Isolate fallback when unbound.
+# Not OAuth. Not a public ledger. MemoryStore is not this quota.
+[[durable_objects.bindings]]
+name = "RATE"
+class_name = "RateQuota"
 
 # API use counters + ring log (1.6.3). Distinct from product download-trackers.
 # 1.6.13 QNM suite rollup also stores here under mesh| keys when MESH is unbound
@@ -231,3 +238,7 @@ new_sqlite_classes = ["RuntimeSession"]
 [[migrations]]
 tag = "v2"
 new_sqlite_classes = ["ChainWriter"]
+
+[[migrations]]
+tag = "v3"
+new_sqlite_classes = ["RateQuota"]

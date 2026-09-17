@@ -11,6 +11,7 @@ Crawler abstract (`RUNTIME_ABSTRACT`) is unchanged and stays the lead on homepag
 
 Certification point — not a feature dump.
 
+- F03–F05 gates (not a new public tool): FragGate HTTP + MCP rate limits, body/depth/deadline refuses, security headers on HTML+API+product pages, and honest ephemeral-vs-durable labels on ready/mesh/fraggate. MemoryStore is not durable. No MCP tool added, removed, or renamed. Remain-OFF untouched.
 - Mesh/security close-test matrix (`scripts/verify-mesh-security.mjs`, not a new public tool): fail-closed gates for suite-presence ON, GET-never-enables, `MESH-DISABLE-REFUSED`, bearer enable, join product/node_id/presence, 5-minute non-fanout TTL + heartbeat refresh, broadcast no-bytes, NO-LIE / NO-REWRITE, Cap-7 `resolves_to_hub: false`. No MCP tool added, removed, or renamed. Remain-OFF untouched.
 - F02 caller isolation (not a new public tool): AZHub and AZInterface isolate private workspace state by verified session or operator token. Public FragGate HTTP / MCP / UI stay on the labeled shared public-demo singleton. `confirm:true` is not authentication. No invented OAuth IdP.
 - F01 concurrent-append integrity patch (not a new public tool): CHAINLOCK Durable Object writer per chain; individual records; commit-before-ack; idempotency + caller namespaces. No MCP tool added, removed, or renamed. Remain-OFF untouched.
