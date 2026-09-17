@@ -107,7 +107,7 @@ function law7_no_node_gate(live) {
 function law8_no_auto_heal(live) {
   assert.equal(live.implicit_heal, false);
   assert.equal(live.auto_heal, false);
-  assert.equal(live.heartbeat_loss_is_poison, false);
+  assert.equal(live.heartbeat_loss_isolates, false);
   assert.equal(live.apply_last_packet, false);
 }
 

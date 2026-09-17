@@ -206,7 +206,7 @@ export const NINE_LAWS = Object.freeze([
     fields: Object.freeze({
       implicit_heal: false,
       auto_heal: false,
-      heartbeat_loss_is_poison: false,
+      heartbeat_loss_isolates: false,
       apply_last_packet: false,
     }),
   }),
@@ -251,6 +251,8 @@ export function nineLawsFrame() {
   return {
     nine_laws: nineLawsHint(),
     payload_plane: PAYLOAD_PLANE,
+    tick_ms_min: TICK_MS_MIN,
+    tick_ms_max: TICK_MS_MAX,
     tick_body: false,
     tick_diff: false,
     tick_file: false,
@@ -277,7 +279,7 @@ export function nineLawsFrame() {
     get_is_node_gate: false,
     implicit_heal: false,
     auto_heal: false,
-    heartbeat_loss_is_poison: false,
+    heartbeat_loss_isolates: false,
     apply_last_packet: false,
     anonymity_network: false,
     vpn: false,
