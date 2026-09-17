@@ -19,10 +19,11 @@ import {
   RUNTIME_GLAMA,
   RUNTIME_HUB_URL,
 } from "./seo.js";
+import { MCP_PROTOCOL_PREFERRED, MCP_PROTOCOL_SUPPORTED } from "./mcp-transport.js";
 
 export const LIVE_MCP_ORIGIN = "https://aziel-runtime.vibelock.workers.dev";
 export const LIVE_MCP_URL = `${LIVE_MCP_ORIGIN}/mcp`;
-export const MCP_PROTOCOL_VERSION = "2025-03-26";
+export const MCP_PROTOCOL_VERSION = MCP_PROTOCOL_PREFERRED;
 
 export const MCP_SERVER_CARD_PATHS = Object.freeze([
   "/.well-known/mcp/server-card.json",
@@ -83,7 +84,7 @@ export function mcpServerCard(origin) {
       {
         type: "streamable-http",
         url: endpoint,
-        supportedProtocolVersions: [MCP_PROTOCOL_VERSION],
+        supportedProtocolVersions: MCP_PROTOCOL_SUPPORTED.slice(),
       },
     ],
     auth: {

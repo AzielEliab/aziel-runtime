@@ -582,7 +582,7 @@ assert.doesNotMatch(byName.fraggate_call.description, /\[advanced\/internal\]/);
 
 const foldMcp = await mcp("tools/call", {
   name: "fraggate_call",
-  arguments: { slug: "foldlock", op: "fold-preview", payload: { text: "the cat and the dog" } },
+  arguments: { slug: "foldlock", op: "fold-preview", payload: { text: "the cat and the dog" }, confirm: true },
 });
 assert.equal(foldMcp.result.isError, false);
 assert.ok(foldMcp.result.structuredContent.display);
@@ -590,7 +590,7 @@ assert.equal(foldMcp.result.structuredContent.code, "FG-OK");
 
 const hallucMcp = await mcp("tools/call", {
   name: "fraggate_call",
-  arguments: { name: "not-a-lock", op: "explode" },
+  arguments: { name: "not-a-lock", op: "explode", confirm: true },
 });
 assert.equal(hallucMcp.result.isError, true);
 assert.equal(hallucMcp.result.structuredContent.code, "FG-HALLUC-TOOL");

@@ -178,6 +178,27 @@ export const FRAGGATE_OUTPUT_SCHEMA = toolEnvelopeOutputSchema(
   "FragGate body: ok, code, door, slug, op, engine_digest, ran_in, provenance, refusal, limitations, receipt, plus the engine result. Unknown names refuse FG-HALLUC-TOOL; stubs refuse FG-STUB.",
 );
 
+/** Sentinel confirm / dry_run on mutating MCP tools. Not a second door. */
+export const CONFIRM_PROPS = Object.freeze({
+  confirm: {
+    type: "boolean",
+    description:
+      "Must be true to mutate. Without confirm=true the tool refuses MCP-CONFIRM-REQUIRED unless dry_run=true.",
+  },
+  dry_run: {
+    type: "boolean",
+    description: "When true, return a preview and do not mutate. Does not require confirm.",
+  },
+});
+
+export const CONFIRM_PARAM_NOTE =
+  "Mutation requires confirm=true or dry_run=true (preview only, no write).";
+
+export function withConfirmProperties(schema) {
+  const properties = { ...(schema.properties || {}), ...CONFIRM_PROPS };
+  return { ...schema, properties };
+}
+
 export function nameOrSlugProps() {
   return {
     name: {

@@ -519,7 +519,7 @@ assert.ok(tools.includes("memory_recall"));
 assert.ok(tools.length <= PUBLIC_MCP_TOOL_MAX);
 
 const env = {};
-const appended = await mcp("chainlock_append", { c: "session", fact: "mcp append fact on session" }, env);
+const appended = await mcp("chainlock_append", { c: "session", fact: "mcp append fact on session", confirm: true }, env);
 assert.equal(appended.result.isError, false);
 assert.match(JSON.stringify(appended.result), /stamp_sha256|cl_/);
 

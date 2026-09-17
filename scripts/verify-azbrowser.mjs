@@ -351,7 +351,7 @@ for (const op of expectedLive) {
     jsonrpc: "2.0",
     id: 1,
     method: "tools/call",
-    params: { name: "fraggate_call", arguments: { slug: "azbrowser", op, payload } },
+    params: { name: "fraggate_call", arguments: { slug: "azbrowser", op, payload, confirm: true } },
   });
   assert.equal(mcp.result.structuredContent.code, "FG-OK", `MCP maps ${op}`);
   assert.equal(mcp.result.structuredContent.result.slug, "azbrowser");
