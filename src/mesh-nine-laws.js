@@ -13,6 +13,7 @@
 
 import { COLD_COPY } from "./cold-copy.js";
 import { REHEAL, REHEAL_LAW, neighborTalkHeal } from "./reheal.js";
+import { AUTHOR_ID, RUNTIME_SOFTWARE_ID } from "./seo.js";
 import {
   DWELL_S,
   PAYLOAD_PLANE,
@@ -28,6 +29,12 @@ export const NINE_LAWS_AUTHOR = "Aziel Eliab";
 export const NINE_LAWS_IDENTITY = "Aziel Eliab";
 export const NINE_LAWS_COUNT = 9;
 export const NINE_LAWS_HARD_TRUE = true;
+export const NINE_LAWS_AUTHOR_ID = AUTHOR_ID;
+export const NINE_LAWS_RUNTIME_ID = RUNTIME_SOFTWARE_ID;
+export const NINE_LAWS_HASHTAG_PARTS = Object.freeze({
+  person: "#aziel",
+  runtime: "#runtime",
+});
 
 export const NINE_LAW_PAPERS = Object.freeze({
   node_mesh: "docs/NODE_MESH.md",
@@ -227,12 +234,38 @@ export const NINE_LAWS = Object.freeze([
   }),
 ]);
 
+/** Worker-launch cite only — hashtag parts + always About Aziel. Not a UI. */
+export function nineLawsLaunchCite(origin) {
+  const base = String(origin || "").replace(/\/$/, "");
+  const about = {
+    path: "/about",
+    v1: "/v1/about",
+    identity: NINE_LAWS_IDENTITY,
+    author_id: AUTHOR_ID,
+    always: true,
+  };
+  if (base) {
+    about.url = `${base}/about`;
+    about.v1_url = `${base}/v1/about`;
+  }
+  return {
+    author_id: AUTHOR_ID,
+    runtime_id: RUNTIME_SOFTWARE_ID,
+    hashtag_parts: { ...NINE_LAWS_HASHTAG_PARTS },
+    about,
+  };
+}
+
 export function nineLawsHint() {
   return {
     hard_true: NINE_LAWS_HARD_TRUE,
     count: NINE_LAWS_COUNT,
     author: NINE_LAWS_AUTHOR,
     identity: NINE_LAWS_IDENTITY,
+    author_id: AUTHOR_ID,
+    runtime_id: RUNTIME_SOFTWARE_ID,
+    hashtag_parts: { ...NINE_LAWS_HASHTAG_PARTS },
+    about: { path: "/about", v1: "/v1/about", identity: NINE_LAWS_IDENTITY, always: true },
     clocks_share_socket: false,
     live_body_sync: false,
     isolation_is_the_cure: true,
@@ -250,6 +283,7 @@ export function nineLawsHint() {
 export function nineLawsFrame() {
   return {
     nine_laws: nineLawsHint(),
+    ...nineLawsLaunchCite(),
     payload_plane: PAYLOAD_PLANE,
     tick_ms_min: TICK_MS_MIN,
     tick_ms_max: TICK_MS_MAX,
@@ -573,6 +607,13 @@ export function assertNineLawsHardTrue(obj) {
   }
   if (obj.nine_laws?.hard_true !== true) missing.push("nine_laws.hard_true");
   if (obj.godlock_is_identity !== false) missing.push("godlock_is_identity");
+  if (obj.author_id !== AUTHOR_ID) missing.push("author_id");
+  if (obj.runtime_id !== RUNTIME_SOFTWARE_ID) missing.push("runtime_id");
+  if (obj.hashtag_parts?.person !== NINE_LAWS_HASHTAG_PARTS.person) missing.push("hashtag_parts.person");
+  if (obj.hashtag_parts?.runtime !== NINE_LAWS_HASHTAG_PARTS.runtime) missing.push("hashtag_parts.runtime");
+  if (obj.about?.always !== true) missing.push("about.always");
+  if (obj.about?.path !== "/about") missing.push("about.path");
+  if (obj.about?.identity !== NINE_LAWS_IDENTITY) missing.push("about.identity");
   if (obj.papers?.node_mesh !== NINE_LAW_PAPERS.node_mesh) missing.push("papers.node_mesh");
   if (obj.papers?.sec_feat !== NINE_LAW_PAPERS.sec_feat) missing.push("papers.sec_feat");
   if (obj.papers?.node_ops !== NINE_LAW_PAPERS.node_ops) missing.push("papers.node_ops");

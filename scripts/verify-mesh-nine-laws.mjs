@@ -19,8 +19,11 @@ import {
   NINE_LAW_PAPERS,
   NINE_LAW_REFUSE_CODES,
   NINE_LAWS,
+  NINE_LAWS_AUTHOR_ID,
   NINE_LAWS_COUNT,
+  NINE_LAWS_HASHTAG_PARTS,
   NINE_LAWS_IDENTITY,
+  NINE_LAWS_RUNTIME_ID,
   assertNineLawsHardTrue,
   refuseNineLawViolation,
 } from "../src/mesh-nine-laws.js";
@@ -134,6 +137,12 @@ const mesh = await jsonReq("/v1/mesh");
 assert.equal(mesh.status, 200, JSON.stringify(mesh.data));
 assert.equal(mesh.data.identity, "Aziel Eliab");
 assert.equal(mesh.data.author, "Aziel Eliab");
+assert.equal(mesh.data.author_id, NINE_LAWS_AUTHOR_ID);
+assert.equal(mesh.data.runtime_id, NINE_LAWS_RUNTIME_ID);
+assert.deepEqual(mesh.data.hashtag_parts, { ...NINE_LAWS_HASHTAG_PARTS });
+assert.equal(mesh.data.about.always, true);
+assert.equal(mesh.data.about.path, "/about");
+assert.equal(mesh.data.about.identity, "Aziel Eliab");
 assert.equal(mesh.data.nine_laws.hard_true, true);
 assert.equal(mesh.data.nine_laws.count, 9);
 assert.equal(mesh.data.semantic_bridge?.resolves_to_hub ?? meshCiteField(origin).semantic_bridge.resolves_to_hub, false);
@@ -297,6 +306,14 @@ assert.equal(cite.node_gate, false);
 assert.equal(cite.semantic_bridge.resolves_to_hub, false);
 assert.equal(cite.nine_laws.hard_true, true);
 assert.equal(cite.identity || NINE_LAWS_IDENTITY, "Aziel Eliab");
+assert.equal(cite.author_id, NINE_LAWS_AUTHOR_ID);
+assert.equal(cite.runtime_id, NINE_LAWS_RUNTIME_ID);
+assert.deepEqual(cite.hashtag_parts, { ...NINE_LAWS_HASHTAG_PARTS });
+assert.equal(cite.about.always, true);
+assert.equal(cite.about.path, "/about");
+assert.equal(cite.about.url, `${origin}/about`);
+assert.match(NINE_LAWS_AUTHOR_ID, /#aziel$/);
+assert.match(NINE_LAWS_RUNTIME_ID, /#runtime$/);
 
 const openapi = await jsonReq("/openapi.json");
 assert.match(openapi.data.paths["/v1/mesh"].get.summary, /Nine QNM laws|hard-true|clocks_share_socket/);
