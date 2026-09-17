@@ -1488,7 +1488,7 @@ function llmsTxt(origin) {
     `AZCoherence describe: ${base}/v1/fraggate/describe?slug=azcoherence`,
     `Client update check: ${base}/v1/update/check?slug={slug}&version={installed}`,
     `Update manifest: ${base}/v1/update/manifest`,
-    `Mesh: ${base}/v1/mesh  (QNM-BUILD-1.0 suite rollup. Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public disable of suite-presence is refused. Not a login mesh. Not Node Gate.)`,
+    `Mesh: ${base}/v1/mesh  (QNM-BUILD-1.0 suite rollup. Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public disable of suite-presence is refused. Not a login mesh. OPERATOR-OVERRIDE 2026-09-17 armed node_gate / get_is_node_gate, auto_heal, neighbor_heal, network, anonymity_network mode flag. Not a login-recovery IP panel. Not a VPN.)`,
     `Survival tip: ${SURVIVAL_TIP}`,
     `Mesh status: ${base}/v1/mesh/status  (alias; never enables)`,
     `Mesh nodes: ${base}/v1/mesh/nodes  (roster; 5-minute TTL; no scores)`,
@@ -1546,7 +1546,7 @@ function llmsTxt(origin) {
     "",
     "## Quantum Node Mesh (QNM-BUILD-1.0)",
     "",
-    "Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. POST /v1/mesh/disable refuses MESH-DISABLE-REFUSED. Not a login mesh. Not Node Gate. Not QNM-S.",
+    "Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. POST /v1/mesh/disable refuses MESH-DISABLE-REFUSED. Not a login mesh. OPERATOR-OVERRIDE 2026-09-17 armed node_gate / auto_heal / neighbor_heal / network / anonymity_network (mode flag). Not a login-recovery IP panel. Not QNM-S.",
     "While enabled, this Worker fans out join/heartbeat for every live Softwares product Worker (node_id {slug}-worker, no '|') on cron (*/2 * * * *) or request-path. Presence TTL is 5 minutes.",
     "Product Workers and hubs that show Live Nodes proxy /v1/mesh and /v1/mesh/* to the AZIEL_RUNTIME binding (same path). Do not invent a second mesh. GodLock download-tracker /v1/mesh/status is that proxy — not a local mesh.",
     "Full node process is local qnm-node/. Anon-broadcast is never a publish path.",
@@ -2165,7 +2165,7 @@ ${distributionDoorsHtml(origin)}
       <li>AzielTether is <em>not</em> a VPN. Prefer-central mesh for downloaded Aziel Eliab software; public HTTPS stays mesh-free.</li>
       <li>PeaceLock is chosen silence / chosen inaction as a receipt (PL-WP-0.1). It is <em>not</em> a transcript, not a counterfactual, not a motive score, and not a HARD_DUTY waiver. Hosted never invents speech or stores files.</li>
       <li>AZMail is an anonymous MCP mesh + advisory airlock (APP 1.0). It is <em>not</em> a full internet MTA, not SMTP, not identity. Mesh default off. Reached only via FragGate. VPN/hop mesh is still not claimed on this public surface. AZMail <code>mesh_*</code> stays product-local; the suite QNM surface is rollup + operator enable, not that ring.</li>
-      <li>The suite QNM surface is <code>QNM-BUILD-1.0</code> rollup (live/locked/isolated) plus read-only suite-presence ON by default. It is <em>not</em> a login mesh, not login-recovery, not Node Gate/IP panel, not AnonBroadcast as a Softwares-tab product, not an upload proxy, not origin-hiding, not QNM-S. Public disable of suite-presence is refused. Full node process is local <code>qnm-node/</code>. Anon-broadcast is that process's sibling loopback only — never a publish path. <code>azieleliab.com</code> hosts published software/runtime only.</li>
+      <li>The suite QNM surface is <code>QNM-BUILD-1.0</code> rollup (live/locked/isolated) plus read-only suite-presence ON by default. It is <em>not</em> a login mesh, not login-recovery, not an IP panel, not AnonBroadcast as a Softwares-tab product, not an upload proxy, not origin-hiding, not QNM-S. OPERATOR-OVERRIDE 2026-09-17 armed <code>node_gate</code> / <code>get_is_node_gate</code>, <code>auto_heal</code>, <code>neighbor_heal</code>, <code>network</code>, and <code>anonymity_network</code> (mode flag only). Public disable of suite-presence is refused. Full node process is local <code>qnm-node/</code>. Anon-broadcast is that process's sibling loopback only — never a publish path. <code>azieleliab.com</code> hosts published software/runtime only.</li>
       <li>AZBrowser is the Lamb Lens ethical research browser (AZB-1.0). It is <em>not</em> Chromium, not a Tor exit, not an unrestricted proxy, and not surveillance. Lamb Lens cites; refuses harmful harvest; never invents visit results. Reached only via FragGate. AZNet is separate software (same FragGate door) — pairing is order/token only, not a shared Phase-1 UI.</li>
       <li>AZNet is a silent verification side-net (AZN-WP-0.1). It is <em>not</em> a payload host, not a CDN, not analytics, not an integrity-repair bypass. Own Worker / own UI. Garden / stamp / memorial ops require AZBrowser pairing token AND flag (functional order only). Hosted never stores payloads.</li>
       <li>AZHub is a Blank Key / neutral spatial container (AIH-WP-1.0). It does <em>not</em> interpret meaning, does <em>not</em> auto-unlock, and does <em>not</em> fire completeness events. AZInterface is a <em>separate</em> product.</li>

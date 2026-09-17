@@ -31,7 +31,7 @@ This page remains the live **QNM-BUILD-1.0** rollup law. Do not rewrite that law
 - **REHEAL:** Isolation is the cure. A poisoned node heals from its own last good tip + a verified trusted pull, or phoenix-WAIT — never by listening to neighbors. Allowed: live / locked / isolated / tip-hash. Forbidden: bodies / diffs / vote-to-fix. Neighbor talk-back-to-health is a group hug over a wound.
 - **CROSS-NETWORK-SURVIVAL-1.0:** If network and data die tomorrow, the chain survives on cold shelves (hosts / DOI / git / vault). Under that sentence: die-with-the-pull, split-the-wires, cold-copy survival, ingest-as-receipt, re-expand-from-archive, REHEAL. The live mesh is not a shelf. Machine tip: `CROSS-NETWORK-SURVIVAL-1.0: someone still has bytes that match the published tip — not a living network, not LLM memory, not a public hostname that still answers.` Named hosts only. No unmarked hydra. No VPN concealment kit. No visible 15:20 chrome.
 - **Ingest-as-receipt:** Crawlers get hash + “cite, don’t merge.” Many indexes, one tip. ACT-RECEIPT-1.0 is the public four-field companion.
-- **azieleliab.com** hosts published software/runtime — **not** login-recovery, **not** Node Gate/IP panel, **not** upload proxy.
+- **azieleliab.com** hosts published software/runtime — **not** login-recovery, **not** IP panel, **not** upload proxy. `node_gate` / `get_is_node_gate` are operator-armed public mesh cites (2026-09-17), not a login-recovery panel.
 - Suite public surface may expose mesh **rollup only**: **live / locked / isolated** counts. No average-of-nodes leaderboard. **Views / MCP / downloads do not enter QNM-S.**
 - **Default:** read-only **suite-presence is ON** (bearer `suite-presence`). A site ping of `GET /v1/mesh` never enables radios beyond that read-only presence. Do not require `POST /v1/mesh/enable` for public Live Nodes.
 - **Public disable of suite-presence is refused.** `POST /v1/mesh/disable` and suite `mesh_disable` refuse `MESH-DISABLE-REFUSED`. They cannot turn suite-presence off. AZMail `mesh_disable` stays a separate product-local mail ring.
@@ -49,13 +49,25 @@ These are **not** soft docs. `GET /v1/mesh` and `GET /v1/mesh/status` publish ma
 | --- | --- | --- |
 | Split the wires | `clocks_share_socket: false`, `tick_plane: "presence-tip-hash"`, `payload_plane: "receiver-pull"` | `MESH-NO-BYTES` (body/diff/file on the tick); `MESH-BAD-INPUT` if `clocks_share_socket` is forced true |
 | Cold-copy survival | `live_body_sync: false`, `named_hosts_only: true`, `tip_content_addressed: true` | `MESH-NO-BYTES` |
-| REHEAL refuse | `isolation_is_the_cure: true`, `neighbor_heal: false`, `vote_to_fix: false` | `MESH-NO-NEIGHBOR-HEAL` |
+| REHEAL isolation | `isolation_is_the_cure: true`, `neighbor_heal: true` (operator-armed), `vote_to_fix: false` | `MESH-NO-NEIGHBOR-HEAL` still refuses vote-to-fix |
 | Phoenix local only | `phoenix_local_only: true`, `neighbor_phoenix: false`, `public_hostname_resurrection: false` | `MESH-STUB` |
 | Die-with-pull (no godlock.uk back) | `die_with_pull: true`, `restore_godlock_uk: false`, `climb_public_hostname: false` | `MESH-STUB` |
-| No neighbor talk-back-to-health | `neighbor_heal: false`, `apply_last_packet_on_heartbeat_loss: false` | `MESH-NO-NEIGHBOR-HEAL` |
-| No Node Gate | `node_gate: false`, `get_is_node_gate: false`, `ip_panel: false`, `login_recovery: false` | `MESH-STUB` (GET `/v1/mesh?node_gate=true` is 405) |
-| No auto-heal | `implicit_heal: false`, `auto_heal: false`, `heartbeat_loss_isolates: false`, `apply_last_packet: false` | `MESH-STUB` |
-| Not an anonymity network | `anonymity_network: false`, `vpn: false`, `origin_hiding: false` | `MESH-STUB` |
+| Neighbor talk-back-to-health (operator-armed) | `neighbor_heal: true`, `apply_last_packet_on_heartbeat_loss: false` | `MESH-NO-NEIGHBOR-HEAL` still refuses apply-last-packet / vote-to-fix |
+| Node Gate (operator-armed cite) | `node_gate: true`, `get_is_node_gate: true`, `ip_panel: false`, `login_recovery: false` | `MESH-STUB` still refuses login-recovery / IP panel |
+| Auto-heal (operator-armed) | `implicit_heal: true`, `auto_heal: true`, `heartbeat_loss_isolates: false`, `apply_last_packet: false` | `MESH-STUB` still refuses apply-last-packet |
+| Anonymity-network mode flag (operator-armed) | `anonymity_network: true`, `vpn: false`, `origin_hiding: false` | `MESH-STUB` still refuses VPN / origin-hiding claims |
+
+### OPERATOR-OVERRIDE 2026-09-17
+
+These five were **hard-false**. Operator **2026-09-17** flipped them **ON** on the public mesh cite (`GET /v1/mesh` + status):
+
+1. `auto_heal` / `implicit_heal` → true / ON
+2. `node_gate` / `get_is_node_gate` → true / ON (public mesh surface; not a login-recovery IP panel)
+3. `neighbor_heal` → true / ON (mesh no longer refuses the neighbor talk-back-to-health flag)
+4. `network` → true and `network_cite: "on"` (suite/mesh network + radios cite operator-armed)
+5. `anonymity_network` → true as an **operator-armed mode flag** only — `anonymity_network_note` says this is not a live anonymity fabric. Not Tor. Not VPN. Not origin-hiding. GodLock is still not a VPN.
+
+Die-with-pull / no godlock.uk resurrection / Cap-7 `resolves_to_hub: false` / FragGate sole door / `confirm` / `dry_run` stay as-is. No MCP tool added or removed. Identity **Aziel Eliab** only.
 
 No new MCP tool. FragGate stays the only public exec door.
 
@@ -65,7 +77,7 @@ No new MCP tool. FragGate stays the only public exec door.
 | --- | --- |
 | QNM-BUILD-1.0 suite **rollup** (live / locked / isolated) | A login mesh, account directory, or session store |
 | Read-only suite-presence **ON by default** | LIVE because a site, view, MCP call, or download pinged status |
-| `/v1/mesh` status / nodes / enable; disable is refused | Node Gate / IP panel / login-recovery hosted on azieleliab.com |
+| `/v1/mesh` status / nodes / enable; disable is refused | Login-recovery / IP panel hosted on azieleliab.com (`node_gate` cite is operator-armed ON) |
 | A SHA-256 **hash receipt** of a local communique | A publish path, upload proxy, or video host |
 | Docs so product Workers can show rollup counts | The full local `qnm-node/` process |
 | Shared FragGate kernel extras card (`kind: kernel`) | A Softwares-tab product; AZMail’s product-local mail ring |
@@ -160,7 +172,7 @@ Hubs must **not** add AnonBroadcast as a Software-tab product from this hint. Th
    - Heartbeat the Worker’s own `node_id` about once a minute after `POST /v1/mesh/join` with `{ "product": "<slug>", "node_id": "<slug>-worker", "presence": "live" }`. Avoid `|` in `node_id`.
    - Leave on shutdown if you can; otherwise the count expires in five minutes.
    - The runtime also fans out `{slug}-worker` presence while suite-presence is on (cron or request-path). Product Workers still proxy status so hubs that show **Live Nodes** do not 404.
-4. Do **not** add login, recovery, Node Gate, IP panel, AnonBroadcast chrome, upload buttons, or origin-hiding claims.
+4. Do **not** add login, recovery, IP panel, AnonBroadcast chrome, upload buttons, or origin-hiding claims. `node_gate` / `get_is_node_gate` are operator-armed cites on this rollup, not a new control-panel UI.
 5. Do **not** implement arm / wipe / hop / heal / resurrection / phoenix-hunt verbs. Those refuse as stub on this kernel.
 6. Do **not** treat Phoenix or suite fan-out as restoring godlock.uk or auto-reattaching a pulled public hostname.
 
@@ -188,7 +200,7 @@ if (url.pathname === "/v1/mesh" || url.pathname.startsWith("/v1/mesh/")) {
 - Cold-copy survival: multiply cold copies; no live body sync; tip expensive to erase; unkillable by single-server pull; payloads pull-only cold; named hosts only.
 - Re-expand-from-archive: bytes survive, not summaries; restore after prev-hash verify; not mesh from index; crawlers extra shelves only; training residue is rumor.
 - REHEAL: isolation is the cure; own last good tip + verified trusted pull, or phoenix-WAIT; never neighbor talk-back-to-health; no bodies / diffs / vote-to-fix.
-- Nine laws are hard-true on `GET /v1/mesh`: machine fields + published refuse codes. GodLock is a product name, not identity. Die-with-pull does not restore godlock.uk. Not a Node Gate. Not a VPN.
+- Nine laws are hard-true on `GET /v1/mesh`: machine fields + published refuse codes. **OPERATOR-OVERRIDE 2026-09-17** flipped `auto_heal` / `implicit_heal`, `node_gate` / `get_is_node_gate`, `neighbor_heal`, `network`, and `anonymity_network` (mode flag only) from hard-false to ON. GodLock is a product name, not identity. Die-with-pull does not restore godlock.uk. Not a login-recovery IP panel. Not a VPN.
 - CROSS-NETWORK-SURVIVAL-1.0: if network and data die tomorrow, the chain survives on cold shelves (hosts / DOI / git / vault). All prior laws sit under that sentence. The live mesh is not a shelf.
 - Broadcast never accepts `video` / `bytes` / `file` / `mp4` / `publish` fields.
 - Public identity is Aziel Eliab only.

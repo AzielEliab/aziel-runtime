@@ -101,7 +101,7 @@ QNM-WP-1.0                                                                      
 
  10. Never / close tests
    • Do not draw 25 peers on a public page that does not host them.
-   • Do not enable mesh with a GET. Do not reuse a spent mesh_id. Nine QNM laws are hard-true on GET /v1/mesh.
+   • Do not enable mesh with a GET. Do not reuse a spent mesh_id. Nine QNM laws are hard-true on GET /v1/mesh. OPERATOR-OVERRIDE 2026-09-17 flipped auto_heal / implicit_heal, node_gate / get_is_node_gate, neighbor_heal, network, and anonymity_network (mode flag only) from hard-false to ON.
    • Do not route inter-cell traffic through a leaf. Do not call MirageGrid a VPN.
    • Do not store passwords in node state. Do not claim qubits.
    • Do not read Phoenix as restoring godlock.uk or auto-reattaching a public hostname.
