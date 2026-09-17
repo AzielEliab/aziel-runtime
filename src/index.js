@@ -139,6 +139,9 @@ import {
   readPackedCatalog,
 } from "./packed-catalog.js";
 import { RuntimeSession } from "./session-do.js";
+import { ChainWriter } from "./chainlock/writer-do.js";
+import { storeFor } from "./chainlock/store.js";
+import { runWithLedgerStore } from "./fraggate/ledger.js";
 import { callSessionTool, handleSessionRequest, sessionMcpTools } from "./session-http.js";
 import {
   VERSION_HEADER,
@@ -277,7 +280,7 @@ import {
 } from "./software-catalog.js";
 import { crossMapFields } from "./cross-map.js";
 
-export { RuntimeSession };
+export { RuntimeSession, ChainWriter };
 
 const CATALOG_HOST = "https://aziel-runtime.vibelock.workers.dev";
 const PROTOCOL = MCP_PROTOCOL_PREFERRED;
@@ -3437,10 +3440,16 @@ async function handleRequest(request, env, ctx) {
 
 export default {
   async fetch(request, env, ctx) {
-    const peek = String(request.method || "GET").toUpperCase() === "POST" ? request.clone() : request;
-    const response = await handleRequest(request, env, ctx);
-    const used = await finishWithUse(request, env, ctx, response);
-    return finishWithActReceipt(peek, env, ctx, used);
+    const run = async () => {
+      const peek = String(request.method || "GET").toUpperCase() === "POST" ? request.clone() : request;
+      const response = await handleRequest(request, env, ctx);
+      const used = await finishWithUse(request, env, ctx, response);
+      return finishWithActReceipt(peek, env, ctx, used);
+    };
+    if (env && env.CHAINLOCK) {
+      return runWithLedgerStore(storeFor(env), run);
+    }
+    return run();
   },
   async scheduled(controller, env, ctx) {
     const source = controller && controller.cron ? `cron:${controller.cron}` : "cron";
