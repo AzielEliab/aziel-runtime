@@ -29,24 +29,24 @@ export const AZHUB_OPS = [
   "blank_key_status",
 ];
 
-export function azhubHealthOp() {
-  return azhubHealth();
+export function azhubHealthOp(env) {
+  return azhubHealth(env);
 }
 
-export function azhubSkillOp() {
-  return azhubSkill();
+export function azhubSkillOp(env) {
+  return azhubSkill(env);
 }
 
-export async function runAzhub(op, payload) {
-  if (op === "health") return azhubHealth();
-  if (op === "skill") return azhubSkill();
-  if (op === "region_list") return regionList(payload);
-  if (op === "place_module") return placeModule(payload);
-  if (op === "remove_module") return removeModule(payload);
-  if (op === "tether_declare") return tetherDeclare(payload);
-  if (op === "tether_cut") return tetherCut(payload);
-  if (op === "tether_list") return tetherList(payload);
-  if (op === "blank_key_status") return blankKeyStatus(payload);
+export async function runAzhub(op, payload, _scratch, env) {
+  if (op === "health") return azhubHealth(env);
+  if (op === "skill") return azhubSkill(env);
+  if (op === "region_list") return regionList(payload, env);
+  if (op === "place_module") return placeModule(payload, env);
+  if (op === "remove_module") return removeModule(payload, env);
+  if (op === "tether_declare") return tetherDeclare(payload, env);
+  if (op === "tether_cut") return tetherCut(payload, env);
+  if (op === "tether_list") return tetherList(payload, env);
+  if (op === "blank_key_status") return blankKeyStatus(payload, env);
   return { unsupported: true };
 }
 

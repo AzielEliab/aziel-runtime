@@ -23,6 +23,7 @@ import {
   rateLimitFailHeaders,
   sessionMutateAuth,
 } from "./production.js";
+import { attachWorkspace, sessionWorkspaceView } from "./workspace.js";
 
 function sessionStub(env, id) {
   if (!env || !env.SESSION) return null;
@@ -231,7 +232,8 @@ async function handleExec(request, env, id, { json, PRODUCTS, BY_SLUG, upstreamF
   let engine = null;
   let parsedBody = null;
 
-  const local = await executeLocal({ slug, op, payload, ranIn: "aziel-runtime", env });
+  const isolatedEnv = attachWorkspace(env && typeof env === "object" ? env : {}, sessionWorkspaceView(id));
+  const local = await executeLocal({ slug, op, payload, ranIn: "aziel-runtime", env: isolatedEnv });
   if (local && !local.unsupported) {
     status = local.status;
     responseText = local.responseText;

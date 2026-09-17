@@ -6,6 +6,7 @@
  * Separate product from AZHub. FragGate LIVE only.
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
+import { isolationView, storeKeyOf } from "../../workspace.js";
 
 export const PRODUCT = "azinterface";
 export const NAME = "AZInterface";
@@ -44,20 +45,27 @@ export const FORBIDDEN_EVENT_KEYS = Object.freeze([
 const FORBIDDEN_TEXT =
   /\b(auto[-_ ]?unlock|completeness([-_ ]detect|[-_ ]?event)?|rank(ing)?|scorch([-_ ]remote)?|skip[-_ ]cycle|invent[-_ ]cycle)\b/i;
 
-const memory = {
-  genesis_sealed: true,
-  cycle_index: 0,
-  integrity_ok: false,
-  witnesses: [],
-  seq: 0,
-};
+const stores = new Map();
 
-export function resetAzinterfaceStore() {
-  memory.genesis_sealed = true;
-  memory.cycle_index = 0;
-  memory.integrity_ok = false;
-  memory.witnesses = [];
-  memory.seq = 0;
+function emptyInterfaceMemory() {
+  return {
+    genesis_sealed: true,
+    cycle_index: 0,
+    integrity_ok: false,
+    witnesses: [],
+    seq: 0,
+  };
+}
+
+function storeOf(env) {
+  const key = storeKeyOf(env);
+  if (!stores.has(key)) stores.set(key, emptyInterfaceMemory());
+  return stores.get(key);
+}
+
+export function resetAzinterfaceStore(workspaceId) {
+  if (workspaceId) stores.delete(String(workspaceId));
+  else stores.clear();
 }
 
 function nowIso() {
@@ -107,7 +115,8 @@ export function detectForbiddenEvent(payload) {
   return null;
 }
 
-function refuseForbidden(hit, extra = {}) {
+function refuseForbidden(hit, extra = {}, env = null) {
+  const memory = storeOf(env);
   return {
     ok: false,
     product: PRODUCT,
@@ -128,11 +137,13 @@ function refuseForbidden(hit, extra = {}) {
     current: PAGE_CYCLES[memory.cycle_index],
     limitation: LIMITATION,
     author: AUTHOR,
+    isolation: isolationView(env),
     ...extra,
   };
 }
 
-function baseResult(extra = {}) {
+function baseResult(extra = {}, env = null) {
+  const memory = storeOf(env);
   return {
     ok: true,
     product: PRODUCT,
@@ -152,6 +163,7 @@ function baseResult(extra = {}) {
     cycle_index: memory.cycle_index,
     limitation: LIMITATION,
     author: AUTHOR,
+    isolation: isolationView(env),
     ...extra,
   };
 }
@@ -174,7 +186,7 @@ export function cycleIndex(name) {
   return PAGE_CYCLES.indexOf(name);
 }
 
-function cycleView() {
+function cycleView(memory) {
   return {
     pre_locked: true,
     locked_order: true,
@@ -189,22 +201,27 @@ function cycleView() {
   };
 }
 
-export function azinterfaceHealth() {
-  return baseResult({
-    op: "health",
-    status: "ok",
-    role: ROLE,
-    motto: MOTTO,
-    live: true,
-    genesis_sealed: memory.genesis_sealed,
-    page_cycle: cycleView(),
-  });
+export function azinterfaceHealth(env) {
+  const memory = storeOf(env);
+  return baseResult(
+    {
+      op: "health",
+      status: "ok",
+      role: ROLE,
+      motto: MOTTO,
+      live: true,
+      genesis_sealed: memory.genesis_sealed,
+      page_cycle: cycleView(memory),
+    },
+    env,
+  );
 }
 
-export function azinterfaceSkill() {
-  return baseResult({
-    op: "skill",
-    skill: `# AZInterface (AIH-WP-1.0)
+export function azinterfaceSkill(env) {
+  return baseResult(
+    {
+      op: "skill",
+      skill: `# AZInterface (AIH-WP-1.0)
 
 Custodial operating environment. Page cycles are **pre-locked** at genesis:
 
@@ -220,47 +237,60 @@ Stubs (refuse): scorch_remote, auto_unlock, ranking, completeness_detect.
 
 AZHub is **sibling software** under the same FragGate door (Blank Key / spatial container). Do not combine them.
 
+Isolation: unauthenticated HTTP / MCP / UI FragGate calls share the labeled **public-demo** singleton (ephemeral, not private). Private workspace state is session-scoped or operator-token-scoped. \`confirm:true\` is not authentication. A client-supplied owner / workspace_id is not authorization.
+
 Author: Aziel Eliab only.
 `,
-  });
-}
-
-export function genesisStatus(payload) {
-  const hit = detectForbiddenEvent(payload);
-  if (hit) return refuseForbidden(hit, { op: "genesis_status" });
-  return baseResult({
-    op: "genesis_status",
-    genesis_sealed: memory.genesis_sealed,
-    cycles_sealed: true,
-    page_cycle: cycleView(),
-    note: "Genesis sealed the five AIH-WP-1.0 page cycles. They cannot be invented or reordered.",
-  });
-}
-
-export function siteStateGet(payload) {
-  const hit = detectForbiddenEvent(payload);
-  if (hit) return refuseForbidden(hit, { op: "site_state_get" });
-  return baseResult({
-    op: "site_state_get",
-    genesis_sealed: memory.genesis_sealed,
-    integrity_ok: memory.integrity_ok,
-    page_cycle: cycleView(),
-    state: {
-      cycle: PAGE_CYCLES[memory.cycle_index],
-      integrity_ok: memory.integrity_ok,
-      witnesses: memory.witnesses.length,
     },
-  });
+    env,
+  );
 }
 
-export function siteStateSet(payload) {
+export function genesisStatus(payload, env) {
   const hit = detectForbiddenEvent(payload);
-  if (hit) return refuseForbidden(hit, { op: "site_state_set" });
+  if (hit) return refuseForbidden(hit, { op: "genesis_status" }, env);
+  const memory = storeOf(env);
+  return baseResult(
+    {
+      op: "genesis_status",
+      genesis_sealed: memory.genesis_sealed,
+      cycles_sealed: true,
+      page_cycle: cycleView(memory),
+      note: "Genesis sealed the five AIH-WP-1.0 page cycles. They cannot be invented or reordered.",
+    },
+    env,
+  );
+}
+
+export function siteStateGet(payload, env) {
+  const hit = detectForbiddenEvent(payload);
+  if (hit) return refuseForbidden(hit, { op: "site_state_get" }, env);
+  const memory = storeOf(env);
+  return baseResult(
+    {
+      op: "site_state_get",
+      genesis_sealed: memory.genesis_sealed,
+      integrity_ok: memory.integrity_ok,
+      page_cycle: cycleView(memory),
+      state: {
+        cycle: PAGE_CYCLES[memory.cycle_index],
+        integrity_ok: memory.integrity_ok,
+        witnesses: memory.witnesses.length,
+      },
+    },
+    env,
+  );
+}
+
+export function siteStateSet(payload, env) {
+  const hit = detectForbiddenEvent(payload);
+  if (hit) return refuseForbidden(hit, { op: "site_state_set" }, env);
+  const memory = storeOf(env);
   const src = srcOf(payload);
   const requested = normalizeCycle(src.cycle != null ? src.cycle : src.state != null ? src.state : src.page_cycle);
   if (!requested) {
     return {
-      ...baseResult({ op: "site_state_set" }),
+      ...baseResult({ op: "site_state_set" }, env),
       ok: false,
       code: "AIH-CYCLE-UNKNOWN",
       refused: true,
@@ -270,55 +300,62 @@ export function siteStateSet(payload) {
   const target = cycleIndex(requested);
   const current = memory.cycle_index;
   if (target === current) {
-    return baseResult({
-      op: "site_state_set",
-      unchanged: true,
-      page_cycle: cycleView(),
-    });
+    return baseResult(
+      {
+        op: "site_state_set",
+        unchanged: true,
+        page_cycle: cycleView(memory),
+      },
+      env,
+    );
   }
   if (PAGE_CYCLES[current] === "MEMORIAL") {
     return {
-      ...baseResult({ op: "site_state_set" }),
+      ...baseResult({ op: "site_state_set" }, env),
       ok: false,
       code: "AIH-CYCLE-TERMINAL",
       refused: true,
-      page_cycle: cycleView(),
+      page_cycle: cycleView(memory),
       note: "MEMORIAL is terminal. Page cycles stay pre-locked.",
     };
   }
   if (target !== current + 1) {
     return {
-      ...baseResult({ op: "site_state_set" }),
+      ...baseResult({ op: "site_state_set" }, env),
       ok: false,
       code: "AIH-CYCLE-LOCKED",
       refused: true,
       requested,
-      page_cycle: cycleView(),
+      page_cycle: cycleView(memory),
       note: "Pre-locked cycles advance one step only. Auto-unlock / skip / invent stay refused.",
     };
   }
   if (requested === "ON" && !memory.integrity_ok) {
     return {
-      ...baseResult({ op: "site_state_set" }),
+      ...baseResult({ op: "site_state_set" }, env),
       ok: false,
       code: "AIH-INTEGRITY-REQUIRED",
       refused: true,
-      page_cycle: cycleView(),
+      page_cycle: cycleView(memory),
       note: "ON requires a passing integrity_check. Auto-unlock is refused.",
     };
   }
   memory.cycle_index = target;
   memory.seq += 1;
-  return baseResult({
-    op: "site_state_set",
-    advanced: true,
-    page_cycle: cycleView(),
-  });
+  return baseResult(
+    {
+      op: "site_state_set",
+      advanced: true,
+      page_cycle: cycleView(memory),
+    },
+    env,
+  );
 }
 
-export function integrityCheck(payload) {
+export function integrityCheck(payload, env) {
   const hit = detectForbiddenEvent(payload);
-  if (hit) return refuseForbidden(hit, { op: "integrity_check" });
+  if (hit) return refuseForbidden(hit, { op: "integrity_check" }, env);
+  const memory = storeOf(env);
   const src = srcOf(payload);
   const witnessId = clip(src.witness != null ? src.witness : src.witness_id != null ? src.witness_id : src.id, ID_CAP);
   const label = clip(src.label != null ? src.label : src.note, LABEL_CAP);
@@ -335,43 +372,54 @@ export function integrityCheck(payload) {
     memory.cycle_index = cycleIndex("integrity");
   }
   memory.seq += 1;
-  return baseResult({
-    op: "integrity_check",
-    integrity_ok: true,
-    page_cycle: cycleView(),
-    witnesses: memory.witnesses.length,
-    note: "Integrity recorded. Does not auto-unlock to ON.",
-  });
+  return baseResult(
+    {
+      op: "integrity_check",
+      integrity_ok: true,
+      page_cycle: cycleView(memory),
+      witnesses: memory.witnesses.length,
+      note: "Integrity recorded. Does not auto-unlock to ON.",
+    },
+    env,
+  );
 }
 
-export function witnessList(payload) {
+export function witnessList(payload, env) {
   const hit = detectForbiddenEvent(payload);
-  if (hit) return refuseForbidden(hit, { op: "witness_list" });
-  return baseResult({
-    op: "witness_list",
-    count: memory.witnesses.length,
-    witnesses: memory.witnesses.map((w) => ({ ...w })),
-    ranking: false,
-    note: "Custodial witnesses only. Not a ranking.",
-  });
+  if (hit) return refuseForbidden(hit, { op: "witness_list" }, env);
+  const memory = storeOf(env);
+  return baseResult(
+    {
+      op: "witness_list",
+      count: memory.witnesses.length,
+      witnesses: memory.witnesses.map((w) => ({ ...w })),
+      ranking: false,
+      note: "Custodial witnesses only. Not a ranking.",
+    },
+    env,
+  );
 }
 
-export function pageCycleStatus(payload) {
+export function pageCycleStatus(payload, env) {
   const hit = detectForbiddenEvent(payload);
-  if (hit) return refuseForbidden(hit, { op: "page_cycle_status" });
-  const view = cycleView();
-  return baseResult({
-    op: "page_cycle_status",
-    spec: SPEC,
-    page_cycle: view,
-    cycles: view.cycles,
-    current: view.current,
-    OFF: view.current === "OFF",
-    integrity: view.current === "integrity",
-    ON: view.current === "ON",
-    "FULL SHUTDOWN": view.current === "FULL SHUTDOWN",
-    MEMORIAL: view.current === "MEMORIAL",
-    pre_locked: true,
-    note: "AIH-WP-1.0 pre-locked page cycles: OFF / integrity / ON / FULL SHUTDOWN / MEMORIAL.",
-  });
+  if (hit) return refuseForbidden(hit, { op: "page_cycle_status" }, env);
+  const memory = storeOf(env);
+  const view = cycleView(memory);
+  return baseResult(
+    {
+      op: "page_cycle_status",
+      spec: SPEC,
+      page_cycle: view,
+      cycles: view.cycles,
+      current: view.current,
+      OFF: view.current === "OFF",
+      integrity: view.current === "integrity",
+      ON: view.current === "ON",
+      "FULL SHUTDOWN": view.current === "FULL SHUTDOWN",
+      MEMORIAL: view.current === "MEMORIAL",
+      pre_locked: true,
+      note: "AIH-WP-1.0 pre-locked page cycles: OFF / integrity / ON / FULL SHUTDOWN / MEMORIAL.",
+    },
+    env,
+  );
 }

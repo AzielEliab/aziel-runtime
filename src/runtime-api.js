@@ -406,7 +406,7 @@ Library engine manifest (same as this Worker): https://www.azielcorpuslibrary.ne
 
 ## Operator token (session mutate)
 
-When \`REQUIRE_TOKEN=1\` and \`RUNTIME_TOKEN\` is set, **session mutate** (open/policy/exec/close) and MCP session tools require \`Authorization: Bearer $RUNTIME_TOKEN\` (Wrangler secret — one operator token, not per-user). **Public FragGate call stays open** (\`POST /v1/fraggate/call\`, MCP \`fraggate_call\`). Catalog, skill, OpenAPI, health, pull, FragGate list/describe/verify, MCP \`tools/list\`, and proxy \`/p/{slug}/{op}\` stay public. Proxy is not exec. \`runtime_run\` opens a session internally, so it inherits session-mutate auth.
+When \`REQUIRE_TOKEN=1\` and \`RUNTIME_TOKEN\` is set, **session mutate** (open/policy/exec/close) and MCP session tools require \`Authorization: Bearer $RUNTIME_TOKEN\` (Wrangler secret — one operator token, not per-user). **Public FragGate call stays open** (\`POST /v1/fraggate/call\`, MCP \`fraggate_call\`) on the shared **public-demo** workspace (ephemeral, labeled, not isolated). Private AZHub and AZInterface state is session-scoped or operator-token-scoped. \`confirm:true\` is not authentication. A client-supplied owner / workspace_id is not authorization. Catalog, skill, OpenAPI, health, pull, FragGate list/describe/verify, MCP \`tools/list\`, and proxy \`/p/{slug}/{op}\` stay public. Proxy is not exec. \`runtime_run\` opens a session internally, so it inherits session-mutate auth.
 
 ## Example (Mozilla/5.0)
 
