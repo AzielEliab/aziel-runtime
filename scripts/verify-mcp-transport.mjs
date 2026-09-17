@@ -1,5 +1,6 @@
 /**
- * Sentinel pass3: claim 2025-11-25, scrub instruction tokens, action_safety schema.
+ * Sentinel pass4: confirm/dry_run optional on schema required[]; runtime still gates.
+ * pass3 claim 2025-11-25 + instruction scrub stays. Extra scrub: retired / this.
  * Does not invent OAuth, SSE, DOI, or a second door.
  * Author: Aziel Eliab only.
  */
@@ -50,6 +51,8 @@ assert.doesNotMatch(initBody.result.instructions, /\bFragGate\b/);
 assert.doesNotMatch(initBody.result.instructions, /\bAziel\b/);
 assert.doesNotMatch(initBody.result.instructions, /\bcounters\b/);
 assert.doesNotMatch(initBody.result.instructions, /\bleftover\b/);
+assert.doesNotMatch(initBody.result.instructions, /\bretired\b/);
+assert.doesNotMatch(initBody.result.instructions, /\bthis\b/);
 assert.match(initBody.result.instructions, /aziel eliab only/);
 
 const sid = init.headers.get(MCP_SESSION_HEADER) || init.headers.get("mcp-session-id");
@@ -64,14 +67,25 @@ const byName = Object.fromEntries(listed.result.tools.map((t) => [t.name, t]));
 assert.ok(byName.fraggate_call.inputSchema.properties.confirm);
 assert.ok(byName.fraggate_call.inputSchema.properties.dry_run);
 assert.match(byName.fraggate_call.description, /confirm=true/);
-assert.ok(byName.fraggate_call.inputSchema.required.includes("confirm"));
+assert.ok(!(byName.fraggate_call.inputSchema.required || []).includes("confirm"));
+assert.ok(!(byName.fraggate_call.inputSchema.required || []).includes("dry_run"));
+assert.deepEqual(byName.fraggate_call.inputSchema.required, ["op"]);
+assert.ok(byName.mesh_enable.inputSchema.required.includes("bearer"));
+assert.ok(!(byName.decisiongate_check.inputSchema.required || []).length);
 assert.equal(byName.fraggate_call.annotations.requiresConfirmation, true);
 
 for (const name of MUTATING_MCP_TOOLS) {
   assert.ok(byName[name], `${name} must be listed`);
   assert.ok(byName[name].inputSchema.properties.confirm, `${name} confirm`);
   assert.ok(byName[name].inputSchema.properties.dry_run, `${name} dry_run`);
-  assert.ok((byName[name].inputSchema.required || []).includes("confirm"), `${name} required confirm`);
+  assert.ok(
+    !(byName[name].inputSchema.required || []).includes("confirm"),
+    `${name} must not list confirm in required[]`,
+  );
+  assert.ok(
+    !(byName[name].inputSchema.required || []).includes("dry_run"),
+    `${name} must not list dry_run in required[]`,
+  );
   assert.equal(byName[name].annotations.requiresConfirmation, true, `${name} requiresConfirmation`);
   assert.match(byName[name].description, /confirm=true/);
 }
@@ -110,6 +124,8 @@ const instructions = mcpInitializeInstructions();
 assert.doesNotMatch(instructions, /\bAziel\b/);
 assert.doesNotMatch(instructions, /\bcounters\b/);
 assert.doesNotMatch(instructions, /\bleftover\b/);
+assert.doesNotMatch(instructions, /\bretired\b/);
+assert.doesNotMatch(instructions, /\bthis\b/);
 
 const badHeader = await handler(
   new Request(origin + "/mcp", {
@@ -219,4 +235,4 @@ const openapi = await (await handler(new Request(origin + "/openapi.json"), env)
 assert.ok(openapi.paths["/mcp"].delete);
 assert.ok(openapi.paths["/mcp"].post);
 
-console.log("ok mcp-transport: claim 2025-11-25, instruction scrub, confirm required, dry_run, protocol 400");
+console.log("ok mcp-transport: claim 2025-11-25, instruction scrub, confirm schema-optional, runtime gate, dry_run, protocol 400");
