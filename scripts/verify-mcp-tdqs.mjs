@@ -190,9 +190,12 @@ for (const name of [
   "runtime_session_policy",
   "runtime_session_exec",
   "runtime_session_close",
+  "decisiongate_check",
   "mesh_leave",
   "mesh_join",
   "mesh_enable",
+  "mesh_heartbeat",
+  "mesh_broadcast",
   "chainlock_append",
   "chainlock_seal",
   "memory_observe",
@@ -201,6 +204,8 @@ for (const name of [
 ]) {
   assert.ok(byName[name].inputSchema.properties.confirm, `${name} documents confirm`);
   assert.ok(byName[name].inputSchema.properties.dry_run, `${name} documents dry_run`);
+  assert.ok((byName[name].inputSchema.required || []).includes("confirm"), `${name} required confirm`);
+  assert.equal(byName[name].annotations.requiresConfirmation, true, `${name} requiresConfirmation`);
   assert.match(byName[name].description, /confirm=true/);
 }
 assert.match(instructions, /chainlock_seal writes a local LOCKSET/);

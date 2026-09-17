@@ -80,6 +80,7 @@ export function mcpServerCard(origin) {
     endpoint: "POST /mcp",
     url: endpoint,
     protocolVersion: MCP_PROTOCOL_VERSION,
+    preferredProtocolVersion: MCP_PROTOCOL_PREFERRED,
     remotes: [
       {
         type: "streamable-http",
