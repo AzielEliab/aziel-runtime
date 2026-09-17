@@ -1,0 +1,171 @@
+/**
+ * Sentinel pass2: streamable HTTP transport + mutate confirm/dry_run.
+ * Does not invent OAuth, SSE, DOI, or a second door.
+ * Author: Aziel Eliab only.
+ */
+import assert from "node:assert/strict";
+import {
+  MCP_PROTOCOL_PREFERRED,
+  MCP_PROTOCOL_SUPPORTED,
+  MCP_PROTOCOL_HEADER,
+  MCP_SESSION_HEADER,
+} from "../src/mcp-transport.js";
+import { MCP_CONFIRM_REQUIRED, MCP_DRY_RUN } from "../src/mcp-safeguard.js";
+import { MCP_PROTOCOL_VERSION } from "../src/mcp-discovery.js";
+
+const handler = (await import("../src/index.js")).default.fetch;
+const origin = "https://aziel-runtime.example";
+const env = {};
+
+assert.equal(MCP_PROTOCOL_VERSION, "2025-11-25");
+assert.equal(MCP_PROTOCOL_PREFERRED, "2025-11-25");
+assert.ok(MCP_PROTOCOL_SUPPORTED.includes("2025-11-25"));
+assert.ok(MCP_PROTOCOL_SUPPORTED.includes("2025-06-18"));
+assert.ok(MCP_PROTOCOL_SUPPORTED.includes("2025-03-26"));
+
+async function mcp(method, params = {}, id = 1, extraHeaders = {}) {
+  return handler(
+    new Request(origin + "/mcp", {
+      method: "POST",
+      headers: { "content-type": "application/json", ...extraHeaders },
+      body: JSON.stringify({ jsonrpc: "2.0", id, method, params }),
+    }),
+    env,
+  );
+}
+
+const init = await mcp("initialize", {});
+assert.equal(init.status, 200);
+const initBody = await init.json();
+assert.equal(initBody.result.protocolVersion, "2025-11-25");
+assert.equal(initBody.result.serverInfo.name, "aziel-runtime");
+assert.match(init.headers.get(MCP_SESSION_HEADER) || init.headers.get("mcp-session-id") || "", /./);
+assert.equal(init.headers.get(MCP_PROTOCOL_HEADER) || init.headers.get("mcp-protocol-version"), "2025-11-25");
+assert.match(initBody.result.instructions, /confirm=true/);
+assert.doesNotMatch(initBody.result.instructions, /\bflat\b/);
+assert.doesNotMatch(initBody.result.instructions, /\btrackers\b/);
+assert.doesNotMatch(initBody.result.instructions, /\bFragGate\b/);
+
+const sid = init.headers.get(MCP_SESSION_HEADER) || init.headers.get("mcp-session-id");
+const resumed = await mcp("tools/list", {}, 2, {
+  [MCP_SESSION_HEADER]: sid,
+  [MCP_PROTOCOL_HEADER]: "2025-11-25",
+});
+assert.equal(resumed.status, 200);
+assert.equal(resumed.headers.get(MCP_SESSION_HEADER) || resumed.headers.get("mcp-session-id"), sid);
+const listed = await resumed.json();
+const byName = Object.fromEntries(listed.result.tools.map((t) => [t.name, t]));
+assert.ok(byName.fraggate_call.inputSchema.properties.confirm);
+assert.ok(byName.fraggate_call.inputSchema.properties.dry_run);
+assert.match(byName.fraggate_call.description, /confirm=true/);
+
+const negotiated = await mcp("initialize", { protocolVersion: "2025-06-18" });
+assert.equal(negotiated.status, 200);
+const negotiatedBody = await negotiated.json();
+assert.equal(negotiatedBody.result.protocolVersion, "2025-06-18");
+assert.equal(negotiated.headers.get(MCP_PROTOCOL_HEADER) || negotiated.headers.get("mcp-protocol-version"), "2025-06-18");
+
+const legacy = await mcp("initialize", { protocolVersion: "2025-03-26" });
+assert.equal(legacy.status, 200);
+assert.equal((await legacy.json()).result.protocolVersion, "2025-03-26");
+
+const badHeader = await handler(
+  new Request(origin + "/mcp", {
+    method: "POST",
+    headers: { "content-type": "application/json", [MCP_PROTOCOL_HEADER]: "99.99.99" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 9, method: "initialize", params: {} }),
+  }),
+  env,
+);
+assert.equal(badHeader.status, 400, "invalid MCP-Protocol-Version header must be HTTP 400");
+const badHeaderBody = await badHeader.json();
+assert.match(String(badHeaderBody.error || ""), /unsupported MCP-Protocol-Version/);
+
+const badParam = await mcp("initialize", { protocolVersion: "99.99.99" });
+assert.equal(badParam.status, 400, "invalid initialize protocolVersion must be HTTP 400");
+
+const sse = await handler(
+  new Request(origin + "/mcp", { method: "GET", headers: { accept: "text/event-stream" } }),
+  env,
+);
+assert.equal(sse.status, 405, "no fake SSE");
+
+const opened = await mcp("initialize", { protocolVersion: "2025-11-25" });
+const openSid = opened.headers.get(MCP_SESSION_HEADER) || opened.headers.get("mcp-session-id");
+assert.ok(openSid);
+const closed = await handler(
+  new Request(origin + "/mcp", {
+    method: "DELETE",
+    headers: { [MCP_SESSION_HEADER]: openSid, [MCP_PROTOCOL_HEADER]: "2025-11-25" },
+  }),
+  env,
+);
+assert.equal(closed.status, 204, "DELETE /mcp tears down");
+
+const reuse = await handler(
+  new Request(origin + "/mcp", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      [MCP_SESSION_HEADER]: openSid,
+      [MCP_PROTOCOL_HEADER]: "2025-11-25",
+    },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 11, method: "tools/list", params: {} }),
+  }),
+  env,
+);
+assert.equal(reuse.status, 404, "reuse of torn-down session must 404");
+
+const unknown = await handler(
+  new Request(origin + "/mcp", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      [MCP_SESSION_HEADER]: "00000000-0000-0000-0000-000000000000",
+      [MCP_PROTOCOL_HEADER]: "2025-11-25",
+    },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 12, method: "ping", params: {} }),
+  }),
+  env,
+);
+assert.equal(unknown.status, 404);
+
+const refuse = await mcp("tools/call", {
+  name: "fraggate_call",
+  arguments: { slug: "foldlock", op: "fold-preview", payload: { text: "confirm gate" } },
+});
+assert.equal(refuse.status, 200);
+const refuseBody = await refuse.json();
+assert.equal(refuseBody.result.isError, true);
+assert.equal(refuseBody.result.structuredContent.code, MCP_CONFIRM_REQUIRED);
+assert.equal(refuseBody.result.structuredContent.mutated, false);
+
+const preview = await mcp("tools/call", {
+  name: "chainlock_append",
+  arguments: { c: "session", fact: "dry run must not write", dry_run: true },
+});
+const previewBody = await preview.json();
+assert.equal(previewBody.result.isError, false);
+assert.equal(previewBody.result.structuredContent.code, MCP_DRY_RUN);
+assert.equal(previewBody.result.structuredContent.mutated, false);
+assert.equal(previewBody.result.structuredContent.dry_run, true);
+
+const confirmed = await mcp("tools/call", {
+  name: "fraggate_call",
+  arguments: { slug: "foldlock", op: "fold-preview", payload: { text: "the cat and the dog" }, confirm: true },
+});
+const confirmedBody = await confirmed.json();
+assert.equal(confirmedBody.result.isError, false);
+assert.equal(confirmedBody.result.structuredContent.code, "FG-OK");
+
+const card = await handler(new Request(origin + "/.well-known/mcp/server-card.json"), env);
+const cardBody = await card.json();
+assert.equal(cardBody.protocolVersion, "2025-11-25");
+assert.deepEqual(cardBody.remotes[0].supportedProtocolVersions, MCP_PROTOCOL_SUPPORTED.slice());
+assert.equal(cardBody.author, "Aziel Eliab");
+
+const openapi = await (await handler(new Request(origin + "/openapi.json"), env)).json();
+assert.ok(openapi.paths["/mcp"].delete);
+assert.ok(openapi.paths["/mcp"].post);
+
+console.log("ok mcp-transport: protocol 400, DELETE 404, confirm refuse, dry_run, 2025-11-25 advertise");

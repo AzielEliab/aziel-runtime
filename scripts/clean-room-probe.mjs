@@ -64,7 +64,7 @@ export async function runCleanRoomProbe() {
 
   const call = await mcp(
     "tools/call",
-    { name: "fraggate_call", arguments: { slug: "decisiongate", op: "health", payload: {} } },
+    { name: "fraggate_call", arguments: { slug: "decisiongate", op: "health", payload: {}, confirm: true } },
     3,
   );
   if (call.isError) throw new Error("harmless call isError");

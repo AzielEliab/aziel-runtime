@@ -27,10 +27,12 @@ import {
   HINT_EXEC,
   HINT_READ,
   MCP_OUTPUT_SCHEMA,
+  CONFIRM_PARAM_NOTE,
   mcpAnnotations,
   nameOrSlugProps,
   tdqsDescription,
   toolEnvelopeOutputSchema,
+  withConfirmProperties,
 } from "./mcp-schema.js";
 import {
   admitCall,
@@ -62,12 +64,12 @@ export function registryFor(products) {
 export function mcpInitializeInstructions() {
   return (
     `Current MCP serverInfo.version: ${RUNTIME_VERSION} (same as package.json). 1.6.2 is superseded heritage, not this server. Author: Aziel Eliab only. ` +
-    "Aziel Runtime is not merely an API orchestrator or software aggregator; it is a node-meshed orchestration suite of MCP-connected software designed to coordinate specialized tools through a shared, security-gated runtime while preserving provenance, chain-of-custody, temporal integrity, and auditable execution. " +
+    "This runtime is not merely an API orchestrator or software aggregator; it is a node-meshed orchestration suite of MCP-connected software designed to coordinate specialized tools through a shared, security-gated runtime while preserving provenance, chain-of-custody, temporal integrity, and auditable execution. " +
     "Use Aziel Eliab software in this chat. One door — discover, route, refuse. " +
     "Pipeline: (1) fraggate_list or GET /v1/software (2) fraggate_describe one name (3) fraggate_call. " +
-    "Prefer FragGate, GET /v1/software, and POST /mcp. Hubs refresh Software tabs from /v1/software. " +
+    "Prefer fraggate_call, GET /v1/software, and POST /mcp. Hubs refresh Software tabs from /v1/software. " +
     "Start with runtime_skill or fraggate_list. Describe a name with fraggate_describe. " +
-    "Execute only through fraggate_call (CallEnvelope → FragGate → Lamb Lens → SweepGate → Sentinel → Provenance → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → RoseClock → TemporalLock → ChainLock-OUT → ForgeReceipts → Return). " +
+    "Execute only through fraggate_call (CallEnvelope → the door → Lamb Lens → SweepGate → Sentinel → Provenance → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → RoseClock → TemporalLock → ChainLock-OUT → ForgeReceipts → Return). Mutating tools require confirm=true or dry_run=true. " +
     "Neighbor map (do not confuse siblings): runtime_skill = how-to markdown; runtime_manifest = machine JSON (advanced/internal); runtime_software = hub Software-tab cards; runtime_bundle = skill-URL bootstrap; runtime_pull = one product card; fraggate_list = hashed live/stub/digest roster; fraggate_describe = one registry card; fraggate_verify = digest proof; fraggate_call = default exec. " +
     "decisiongate_check gates a proposal without exec. library_lookup is public corpus cite (not memory, not ChainLock). " +
     "ChainLock lifecycle is append-only: append → tip or recall → verify → seal (no chainlock_delete). chainlock_seal writes a local LOCKSET; runtime_session_close seals a raw session — they are not the same. " +
@@ -76,9 +78,9 @@ export function mcpInitializeInstructions() {
     "Raw session lifecycle (advanced/internal): open → policy → exec → receipt or receipts → close. Prefer fraggate_call. " +
     "Show the user display.title and display.summary, then take the next input. " +
     "runtime_run, runtime_session_*, raw *_health, and runtime_manifest are advanced/internal. " +
-    "Do not call flat {slug}_{op} names — they are not in tools/list. Unknown names refuse FG-HALLUC-TOOL. " +
+    "Do not call leftover {slug}_{op} names — they are not in tools/list. Unknown names refuse FG-HALLUC-TOOL. " +
     "HTTP /p/{slug}/{op} is a proxy and is not exec. " +
-    "LIVE fabric (not Softwares-tab): AZPIPE AP-WP-0.2, SweepGate SG-WP-0.1, ChainLock CL-WP-0.4, LOCKSET LS-WP-0.1, packed catalog RL-WP-0.1-runtime, QNS-CD-1.0 (photon QNS1 1.3; local qnsd in AzielEliab/qnm-node; GET /v1/qns cites only — never a public via proxy), AKM-TRIAD-1.0 adaptive memory (MCP memory_*; POST /v1/memory/* behind FragGate), ACT-RECEIPT-1.0 public four-field receipts (GET /v1/receipts cites; public chain on corpus /receipts; append when RECEIPT_APPEND_TOKEN is set; fail-open). CROSS-NETWORK-SURVIVAL-1.0 is the umbrella survival law (matching bytes, not a living network). Companion NO-LIE-NO-REWRITE-1.0 is LIVE law (no rewrite key; never lie to survive; docs/designs/NO-LIE-NO-REWRITE-1.0.md; does not replace the machine tip). COLD-MULTI-SHELF-1.0 cite (GET /shelves) matches live corpus#96 /shelves honesty: Plane A 5 published surfaces / 2 family radii / 1 independent live; Plane B Codeberg + archive.org PASS still SLOT (https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius); Framagit URL null; GitFlic CNS-GITFLIC-EMAIL; GitLab CNS-GITLAB-CF-LOOP; Zenodo refused CNS-ZENODO-IP-BAN; doi null; Plane C USB SLOT. MCP chainlock_*. Read-only suite-presence is ON by default. GET /v1/azpipe/arch cites the locked MASTER-33 strip (same FragGate pipeline payload; not a Softwares door). " +
+    "LIVE fabric (not Softwares-tab): AZPIPE AP-WP-0.2, SweepGate SG-WP-0.1, ChainLock CL-WP-0.4, LOCKSET LS-WP-0.1, packed catalog RL-WP-0.1-runtime, QNS-CD-1.0 (photon QNS1 1.3; local qnsd in AzielEliab/qnm-node; GET /v1/qns cites only — never a public via proxy), AKM-TRIAD-1.0 adaptive memory (MCP memory_*; POST /v1/memory/* behind the door), ACT-RECEIPT-1.0 public four-field receipts (GET /v1/receipts cites; public chain on corpus /receipts; append when RECEIPT_APPEND_TOKEN is set; fail-open). CROSS-NETWORK-SURVIVAL-1.0 is the umbrella survival law (matching bytes, not a living network). Companion NO-LIE-NO-REWRITE-1.0 is LIVE law (no rewrite key; never lie to survive; docs/designs/NO-LIE-NO-REWRITE-1.0.md; does not replace the machine tip). COLD-MULTI-SHELF-1.0 cite (GET /shelves) matches live corpus#96 /shelves honesty: Plane A 5 published surfaces / 2 family radii / 1 independent live; Plane B Codeberg + archive.org PASS still SLOT (https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius); Framagit URL null; GitFlic CNS-GITFLIC-EMAIL; GitLab CNS-GITLAB-CF-LOOP; Zenodo refused CNS-ZENODO-IP-BAN; doi null; Plane C USB SLOT. MCP chainlock_*. Read-only suite-presence is ON by default. GET /v1/azpipe/arch cites the locked MASTER-33 strip (same door pipeline payload; not a Softwares door). " +
     `${RUNTIME_VERSION} is the certification-point freeze (docs/2.0/ public contract, compatibility, receipt schema, refusal contract, breaking-change policy, clean-room + external adversarial pack; self-test ≠ third-party lab). Read-only QNM suite-presence is ON by default; public disable of suite-presence is refused. Remain-OFF untouched. ` +
     "1.9.3 closes remaining AZRT-1.9-GAPS-CLOSE items (isolate AZ-OS session VFS; isolate-safe jeeves; binding-gated media-run; published attestation path — not a third-party lab). Remain-OFF untouched. " +
     "1.9.2 binds Workers Browser Rendering (BROWSER) and live D1 MASTER (CORPUS_D1 → aziel-digital-library records). Whisper/OCR Workers-AI-bound. Sample MASTER remains the unbound fallback. Chromium product UI is not claimed; Tor/phoenix stay refuse. Remain-OFF untouched. " +
@@ -87,32 +89,32 @@ export function mcpInitializeInstructions() {
     "1.7.10 makes QNM Live Nodes durable (cron or request-path fan-out of live Softwares product Workers while suite-presence is enabled; TTL 5 min; GET never enables). " +
     "1.7.9 cross-maps AZCoherence (peers azclce / AZInterface / AKM-TRIAD fabric neighbor; hubs + Worker URL; domain stays null). " +
     "1.7.8 lands EmbryoLock as a true in-process engine (Vault/Custody with ARK; live-with-local-destructive-boundary). LIVE_OPS health/skill/doctor/verify-hash/policy/limitation. Wipe/scorch/unlock-after-fail stay FG-STUB on the public mesh. Softwares worker_home embryolock-download-tracker. " +
-    "1.7.7 lands AZCoherence (AZC-0.1) as a true in-process FragGate Softwares engine (second-pass triad coherence; cite https://github.com/AzielEliab/AZCoherence; not AKM-TRIAD). " +
+    "1.7.7 lands AZCoherence (AZC-0.1) as a true in-process Softwares engine (second-pass triad coherence; cite https://github.com/AzielEliab/AZCoherence; not AKM-TRIAD). " +
     "1.7.6 syncs 4DMap LIVE_OPS with product 0.2.0 (pin/span/stack/gap/fork/walk/lens/class/cohort/absence/cap/join/list/example plus frame_status/axis_describe/walk_trace/card_export/card_import/verify_chain/neighbor_cite; inspection frame after AZPIPE, not an extra door). " +
     "1.7.5 is Softwares capability wave 1 (decisiongate / forgereceipts / temporallock / staticclock / chronolock / trajectorylock / spectrallock). " +
     "1.7.4 enhances 4DMap LIVE_OPS (frame_status/axis_describe/walk_trace/card_export/card_import/verify_chain/neighbor_cite; inspection frame after AZPIPE, not an extra door). " +
-    "1.7.3 aligns audit WARN copy (exist.mcp → tools/list; public FragGate call; catalog count_note; 4DMap not an extra door). 1.7.2 adds GET /v1/azpipe/arch (MASTER-33 cite/read). 1.7.1 adds AKM-TRIAD-1.0 (Adaptive Knowledge Recollection, Bayesian Calibration & 3-of-4 Triad Selection). 1.7.0 locks MASTER-33: Human → AZInterface → PUBLIC/UI/AGENT/API → FragGate → Lamb Lens → SweepGate → Sentinel → Provenance/Input Packet → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → optional ASE → RoseClock → TemporalLock → ChainLock-OUT → ForgeReceipts → Return. FragGate is THE single door. Lamb Lens is fabric after FragGate. LambGate is not a hop. " +
+    "1.7.3 aligns audit WARN copy (exist.mcp → tools/list; public door call; catalog count_note; 4DMap not an extra door). 1.7.2 adds GET /v1/azpipe/arch (MASTER-33 cite/read). 1.7.1 adds AKM-TRIAD-1.0 (Adaptive Knowledge Recollection, Bayesian Calibration & 3-of-4 Triad Selection). 1.7.0 locks MASTER-33: Human → AZInterface → PUBLIC/UI/AGENT/API → the door → Lamb Lens → SweepGate → Sentinel → Provenance/Input Packet → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → optional ASE → RoseClock → TemporalLock → ChainLock-OUT → ForgeReceipts → Return. fraggate_call is THE single door. Lamb Lens is fabric after the door. LambGate is not a hop. " +
     "1.6.15 locked the suite hop order (SUITE-PIPE-1.6.15; historical). " +
-    "1.6.14 adds 4DMap (4DM-WP-1.0) as a FragGate-live engine — four-axis inspection frame T/Δ/Γ/Π after AZPIPE; not a sequential gate and not an extra door. LIVE_OPS health/skill/card_new/card_pin/card_span/card_join/card_walk/card_list/verify_hash. 1.7.6 adds product 0.2 verbs plus frame_status/axis_describe/walk_trace/card_export/card_import/verify_chain/neighbor_cite. truth_score/lumen_panel/invent_mark/backdate_class stay stub. FragGate claims cite join types. " +
+    "1.6.14 adds 4DMap (4DM-WP-1.0) as a door-live engine — four-axis inspection frame T/Δ/Γ/Π after AZPIPE; not a sequential gate and not an extra door. LIVE_OPS health/skill/card_new/card_pin/card_span/card_join/card_walk/card_list/verify_hash. 1.7.6 adds product 0.2 verbs plus frame_status/axis_describe/walk_trace/card_export/card_import/verify_chain/neighbor_cite. truth_score/lumen_panel/invent_mark/backdate_class stay stub. Door claims cite join types. " +
     "1.6.13 aligns the suite QNM rollup (QNM-BUILD-1.0, companion to AIH-WP-1.1): GET /v1/mesh live/locked/isolated counts; not a login mesh; full node process is local qnm-node/. Current law: read-only suite-presence ON by default; POST /v1/mesh/disable refuses. " +
     "1.6.12 adds GET /v1/software (hub Software-tab catalog; Plain→Gate→Lock + EmbryoLock stub) and GET /v1/update/check. " +
-    "1.6.11 adds a durable FragGate op alias map so Worker UI button names (azhub list_modules/place, azinterface genesis_boot/hold, azbrowser airlock/home, azmail classify, aznet doctor/pair, peacelock doctor) resolve to catalog LIVE_OPS. EmbryoLock is stub / local-not-hosted (name only; describe?slug=embryolock; not a FragGate engine). " +
-    "1.6.10 sets AZBrowser and AZNet catalog one_line to separate software (not engine). Same FragGate door. " +
-    "1.6.9 frames AZHub and AZInterface as two separate softwares under the same FragGate door (AIH-WP-1.0) — Blank Key spatial container + custodial page cycles. Never one combined product. Hub refuses auto-unlock / completeness. Interface page_cycle_status reports OFF / integrity / ON / FULL SHUTDOWN / MEMORIAL. " +
+    "1.6.11 adds a durable op alias map so Worker UI button names (azhub list_modules/place, azinterface genesis_boot/hold, azbrowser airlock/home, azmail classify, aznet doctor/pair, peacelock doctor) resolve to catalog LIVE_OPS. EmbryoLock is stub / local-not-hosted (name only; describe?slug=embryolock; not a door engine). " +
+    "1.6.10 sets AZBrowser and AZNet catalog one_line to separate software (not engine). Same door. " +
+    "1.6.9 frames AZHub and AZInterface as two separate softwares under the same door (AIH-WP-1.0) — Blank Key spatial container + custodial page cycles. Never one combined product. Hub refuses auto-unlock / completeness. Interface page_cycle_status reports OFF / integrity / ON / FULL SHUTDOWN / MEMORIAL. " +
     "AZHub LIVE_OPS (health, skill, region_list, place_module, remove_module, tether_declare, tether_cut, tether_list, blank_key_status) and AZInterface LIVE_OPS (health, skill, genesis_status, site_state_get, site_state_set, integrity_check, witness_list, page_cycle_status) are listed by fraggate_list and executed only via fraggate_call / POST /v1/fraggate/call. " +
-    "1.6.7 adds AZNet (AZN-WP-0.1) as a FragGate-live engine — silent verification side-net; never hosts payloads; AZBrowser pair required (functional order only; own Worker UI). " +
-    "AZNet is reached only via fraggate_call / POST /v1/fraggate/call (flat leftover names still map through FragGate; not a side door). " +
-    "1.6.6 adds AZBrowser (AZB-1.0) as a FragGate-live engine — Lamb Lens ethical research browser: ethical search + advisory navigate; cite; refuse harmful harvest; never invent visit results; not Chromium. AZNet is separate software (same FragGate door; order/token pairing only, not a shared Phase-1 UI). " +
+    "1.6.7 adds AZNet (AZN-WP-0.1) as a door-live engine — silent verification side-net; never hosts payloads; AZBrowser pair required (functional order only; own Worker UI). " +
+    "AZNet is reached only via fraggate_call / POST /v1/fraggate/call (leftover names still map through the door; not a side door). " +
+    "1.6.6 adds AZBrowser (AZB-1.0) as a door-live engine — Lamb Lens ethical research browser: ethical_search + advisory navigate; cite; refuse harmful harvest; never invent visit results; not Chromium. AZNet is separate software (same door; order/token pairing only, not a shared Phase-1 UI). " +
     "AZBrowser LIVE_OPS (ethical_search, lamb_lens_search, navigate, airlock_ingest, tab_open, tab_list, receipt_list, verify, receipt_verify, sandbox_status, sandbox_render, health, skill) are listed by fraggate_list and executed only via fraggate_call / POST /v1/fraggate/call — the same ops Worker UI buttons call. " +
-    "1.6.5 adds AZMail (APP 1.0) as a FragGate-live engine — anonymous mesh default off, advisory airlock; SMTP/deanonymize stay stub. " +
-    "AZMail is reached only via fraggate_call / POST /v1/fraggate/call (flat leftover names still map through FragGate; not a side door). " +
+    "1.6.5 adds AZMail (APP 1.0) as a door-live engine — anonymous mesh default off, advisory airlock; SMTP/deanonymize stay stub. " +
+    "AZMail is reached only via fraggate_call / POST /v1/fraggate/call (leftover names still map through the door; not a side door). " +
     "1.6.4 adds PeaceLock (PL-WP-0.1) as a true in-process engine. " +
-    "1.6.3 adds KV-backed API use trackers (GET /v1/uses). " +
+    "1.6.3 adds KV-backed API use counters (GET /v1/uses). " +
     "Superseded heritage note (not current serverInfo.version): 1.6.2 widened the public door to sensible advisory engines; stubs still refuse. " +
-    "1.6.0 is the FragGate door cut on in-process engines. 1.5.0 was agent-native flat product tools. " +
+    "1.6.0 is the door cut on in-process engines. 1.5.0 was agent-native leftover product tools. " +
     "Kernel: https://github.com/AzielEliab/fraggate (FG-0.1). " +
     "Every catalog slug is a true engine. Cloudflare isolate is the jail. engine_digest is required. " +
-    "Hosted AZAI is protocol mirror + Lamb check, not the blend. VPN/hop mesh is not claimed on this public surface. AZMail anonymous ring is FragGate LIVE_OPS only (default off; not SMTP). " +
+    "Hosted AZAI is protocol mirror + Lamb check, not the blend. VPN/hop mesh is not claimed on this public surface. AZMail anonymous ring is door LIVE_OPS only (default off; not SMTP). " +
     "Compatible clients: ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants. " +
     `Always send User-Agent Mozilla/5.0. Public, no OAuth. Author: Aziel Eliab only. Current version remains ${RUNTIME_VERSION}.`
   );
@@ -226,18 +228,19 @@ export function runtimeHelperTools() {
           effects:
             "Side effects are operation-dependent (read, write, or refuse). May reach an open world when the target op does (for example AZBrowser ethical_search); many ops stay isolate-local. Unknown names refuse FG-HALLUC-TOOL. Stub, local-only, and Remain-OFF verbs refuse FG-STUB / FG-LOCAL-ONLY / FG-GATE-REFUSE / FG-LAMB-REFUSE. FragGate is THE single door",
           params:
-            "Required: op. Also pass slug or name. Extra top-level keys other than name/slug/product/tool/op/verb/claim/proposal/ground/payload/session_id/id become the op payload when payload is omitted. UI aliases (list_modules, place, genesis_boot, hold, airlock, home, classify, doctor, pair) forward to catalog ops",
+            "Required: op. Also pass slug or name. Extra top-level keys other than name/slug/product/tool/op/verb/claim/proposal/ground/payload/session_id/id become the op payload when payload is omitted. UI aliases (list_modules, place, genesis_boot, hold, airlock, home, classify, doctor, pair) forward to catalog ops. " +
+            CONFIRM_PARAM_NOTE,
           returns:
             "status, result, receipt, engine_slug, engine_op, engine_digest, ran_in, provenance, refusal, and limitations",
         }) +
         " " +
         FRAGGATE_CATALOG_ALLOWLIST,
       annotations: mcpAnnotations("Step 3 — Call through FragGate", HINT_EXEC),
-      inputSchema: {
+      inputSchema: withConfirmProperties({
         type: "object",
         additionalProperties: true,
         description:
-          "Required: op. Also pass slug or name. Extra top-level keys other than name/slug/product/tool/op/verb/claim/proposal/ground/payload/session_id/id become the op payload when payload is omitted.",
+          "Required: op. Also pass slug or name. Extra top-level keys other than name/slug/product/tool/op/verb/claim/proposal/ground/payload/session_id/id become the op payload when payload is omitted. Mutation requires confirm=true or dry_run=true.",
         properties: {
           ...nameOrSlugProps(),
           op: {
@@ -286,7 +289,7 @@ export function runtimeHelperTools() {
           },
         },
         required: ["op"],
-      },
+      }),
       outputSchema: FRAGGATE_OUTPUT_SCHEMA,
     },
     {
@@ -400,14 +403,14 @@ export function runtimeHelperTools() {
         instead: "mesh_status, mesh_join, or mesh_nodes",
         effects:
           "Write: stores the bearer. Rate-limited. Empty {} is refused (MESH-NEED-BEARER). Login/account/recover/gate names refuse. Does not arm, wipe, heal, or resurrect accounts. Not a login mesh. Read-only suite-presence is already ON by default",
-        params: "bearer is required. Example: suite-presence",
+        params: "bearer is required. Example: suite-presence. " + CONFIRM_PARAM_NOTE,
         returns: "enabled state, bearers, and suite-presence note",
       }),
       annotations: mcpAnnotations("Enable QNM radios (declared bearer)", HINT_ADDITIVE),
-      inputSchema: {
+      inputSchema: withConfirmProperties({
         type: "object",
         additionalProperties: false,
-        description: "bearer is required. Empty object is MESH-ENABLE refuse.",
+        description: "bearer is required. Empty object is MESH-ENABLE refuse. Mutation requires confirm=true or dry_run=true.",
         properties: {
           bearer: {
             type: "string",
@@ -416,7 +419,7 @@ export function runtimeHelperTools() {
           },
         },
         required: ["bearer"],
-      },
+      }),
       outputSchema: FRAGGATE_OUTPUT_SCHEMA,
     },
     {
@@ -445,14 +448,14 @@ export function runtimeHelperTools() {
         instead: "mesh_heartbeat, mesh_nodes, mesh_enable, or runtime_session_open",
         effects:
           "Write: additive presence with a 5-minute TTL. Read-only suite-presence is ON by default. Not an account session. AnonBroadcast is not a product",
-        params: "product is required (catalog slug). node_id optional 8–80 [a-z0-9._-]. presence is live|locked|isolated (default live)",
+        params: "product is required (catalog slug). node_id optional 8–80 [a-z0-9._-]. presence is live|locked|isolated (default live). " + CONFIRM_PARAM_NOTE,
         returns: "node_id, presence, and TTL note",
       }),
       annotations: mcpAnnotations("Register QNM rollup presence", HINT_ADDITIVE),
-      inputSchema: {
+      inputSchema: withConfirmProperties({
         type: "object",
         additionalProperties: false,
-        description: "product is required. presence must be live|locked|isolated when set. node_id must be 8–80 [a-z0-9._-].",
+        description: "product is required. presence must be live|locked|isolated when set. node_id must be 8–80 [a-z0-9._-]. Mutation requires confirm=true or dry_run=true.",
         properties: {
           product: {
             type: "string",
@@ -478,7 +481,7 @@ export function runtimeHelperTools() {
           },
         },
         required: ["product"],
-      },
+      }),
       outputSchema: FRAGGATE_OUTPUT_SCHEMA,
     },
     {
@@ -532,14 +535,14 @@ export function runtimeHelperTools() {
         instead: "mesh_nodes or mesh_status",
         effects:
           "Destructive to that node's presence only. Always allowed. No implicit heal. Repeating a missing node_id is a no-op/refuse, not resurrection",
-        params: "node_id is required",
+        params: "node_id is required. " + CONFIRM_PARAM_NOTE,
         returns: "leave receipt for the node_id",
       }),
       annotations: mcpAnnotations("Drop QNM rollup presence", HINT_DESTRUCTIVE_IDEMPOTENT),
-      inputSchema: {
+      inputSchema: withConfirmProperties({
         type: "object",
         additionalProperties: false,
-        description: "node_id is required. Missing node_id refuses MESH-BAD-INPUT.",
+        description: "node_id is required. Missing node_id refuses MESH-BAD-INPUT. Mutation requires confirm=true or dry_run=true.",
         properties: {
           node_id: {
             type: "string",
@@ -547,7 +550,7 @@ export function runtimeHelperTools() {
           },
         },
         required: ["node_id"],
-      },
+      }),
       outputSchema: FRAGGATE_OUTPUT_SCHEMA,
     },
     {
@@ -687,15 +690,15 @@ export function runtimeHelperTools() {
           instead: "fraggate_call (default) or runtime_session_exec (existing session_id)",
           effects:
             "Side effects are operation-dependent. Not a backdoor past FragGate. Opens a session when session_id is omitted",
-          params: "slug and op are required. session_id optional; omit to auto-open. Extra keys other than payload/session_id may be treated as payload",
+          params: "slug and op are required. session_id optional; omit to auto-open. Extra keys other than payload/session_id may be treated as payload. " + CONFIRM_PARAM_NOTE,
           returns: "exec display envelope with session_id, result, engine_digest, ran_in, and refusal when gated",
         }),
       ),
       annotations: mcpAnnotations("Advanced: raw runtime_run", HINT_EXEC),
-      inputSchema: {
+      inputSchema: withConfirmProperties({
         type: "object",
         additionalProperties: true,
-        description: "slug and op are required. Extra keys other than payload/session_id may be treated as payload.",
+        description: "slug and op are required. Extra keys other than payload/session_id may be treated as payload. Mutation requires confirm=true or dry_run=true.",
         properties: {
           slug: {
             type: "string",
@@ -717,7 +720,7 @@ export function runtimeHelperTools() {
           },
         },
         required: ["slug", "op"],
-      },
+      }),
       outputSchema: MCP_OUTPUT_SCHEMA,
     },
     {
@@ -805,6 +808,8 @@ export function wrapFraggateEnvelope(name, body, product, op) {
   if (body && body.ledger_tip && !envelope.ledger_tip) envelope.ledger_tip = body.ledger_tip;
   if (body && body.code) envelope.code = body.code;
   if (body && body.door) envelope.door = body.door;
+  if (body && body.mutated !== undefined) envelope.mutated = body.mutated;
+  if (body && body.dry_run !== undefined) envelope.dry_run = body.dry_run;
   return {
     status,
     text: JSON.stringify(envelope, null, 2),

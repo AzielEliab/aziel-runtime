@@ -396,6 +396,7 @@ const foldCall = await mcpCall("fraggate_call", {
   slug: "foldlock",
   op: "fold-preview",
   payload: { text: "the cat and the dog" },
+  confirm: true,
 });
 assert.equal(foldCall.result.isError, false);
 assert.ok(foldCall.result.structuredContent);
@@ -407,6 +408,7 @@ const runCall = await mcpCall("runtime_run", {
   slug: "azclce",
   op: "score",
   payload: { r: "login button blue", d: "login form submits", p: "login button submits" },
+  confirm: true,
 });
 assert.equal(runCall.result.isError, false);
 assert.ok(runCall.result.structuredContent.display.title);

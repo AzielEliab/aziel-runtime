@@ -183,6 +183,26 @@ assert.match(byName.runtime_session_receipt.description, /receipt=null|session_n
 assert.match(byName.runtime_session_receipts.description, /cap 64|receipt cap/);
 assert.ok(byName.runtime_session_policy.inputSchema.properties.id, "session id alias is documented");
 assert.ok(byName.chainlock_append.inputSchema.properties.chain, "chain alias is documented");
+for (const name of [
+  "fraggate_call",
+  "runtime_run",
+  "runtime_session_open",
+  "runtime_session_policy",
+  "runtime_session_exec",
+  "runtime_session_close",
+  "mesh_leave",
+  "mesh_join",
+  "mesh_enable",
+  "chainlock_append",
+  "chainlock_seal",
+  "memory_observe",
+  "memory_resolve",
+  "memory_calibrate",
+]) {
+  assert.ok(byName[name].inputSchema.properties.confirm, `${name} documents confirm`);
+  assert.ok(byName[name].inputSchema.properties.dry_run, `${name} documents dry_run`);
+  assert.match(byName[name].description, /confirm=true/);
+}
 assert.match(instructions, /chainlock_seal writes a local LOCKSET/);
 
 console.log(`ok mcp-tdqs ${names.length} tools, names frozen, schema coverage complete`);

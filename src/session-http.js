@@ -8,7 +8,13 @@ import { digestText, newSessionId, SESSION_ID_RE } from "./session-core.js";
 import { RUNTIME_VERSION } from "./runtime-api.js";
 import { executeLocal, proxyFallbackMeta } from "./engines/runner.js";
 import { attachExecDisplay } from "./display.js";
-import { sessionIdProps, tdqsDescription, toolEnvelopeOutputSchema } from "./mcp-schema.js";
+import {
+  CONFIRM_PARAM_NOTE,
+  sessionIdProps,
+  tdqsDescription,
+  toolEnvelopeOutputSchema,
+  withConfirmProperties,
+} from "./mcp-schema.js";
 import {
   copyTokenHeaders,
   isSessionMutatePath,
@@ -340,14 +346,15 @@ export function sessionMcpTools() {
         effects:
           "Write: creates a session with a 6h TTL and receipt cap 64. Re-open on an existing id returns already=true without resetting the chain. Expired sessions refuse session_expired (410). When REQUIRE_TOKEN=1, session mutate needs RUNTIME_TOKEN; missing SESSION binding returns session_binding_missing (503). Prefer leaving sessions to TTL expire. Not chainlock_seal",
         params:
-          "Empty {} mints sess_ + 32 hex. Optional id is accepted only when it already matches that pattern; otherwise bad_session_id. source is open metadata (default worker)",
+          "Empty {} mints sess_ + 32 hex. Optional id is accepted only when it already matches that pattern; otherwise bad_session_id. source is open metadata (default worker). " +
+          CONFIRM_PARAM_NOTE,
         returns: "session.id plus the first receipt in the display envelope",
       }),
-      inputSchema: {
+      inputSchema: withConfirmProperties({
         type: "object",
         additionalProperties: true,
         description:
-          "No required arguments. Empty {} mints a sess_ + 32 hex id. Extra keys may be stored as open metadata.",
+          "No required arguments. Empty {} mints a sess_ + 32 hex id. Extra keys may be stored as open metadata. Mutation requires confirm=true or dry_run=true.",
         properties: {
           id: {
             type: "string",
@@ -360,7 +367,7 @@ export function sessionMcpTools() {
             description: "Optional open metadata label. Default worker. Not a permission and not a catalog slug.",
           },
         },
-      },
+      }),
       outputSchema: toolEnvelopeOutputSchema(
         "Open body: session.id, receipts[0], already=true when the id already exists. Errors: bad_session_id, session_binding_missing, session_expired.",
       ),
@@ -375,14 +382,15 @@ export function sessionMcpTools() {
         effects:
           "Write: mutates session policy only. A sealed session refuses session_closed (409). Expired sessions refuse session_expired (410). Missing both session_id and id fails before the door runs. Does not exec and does not mint a new id",
         params:
-          "session_id or id (aliases) required. allow_slugs / allow_ops replace the allow overlay when sent; omit them to leave the current lists. max_payload_bytes and kv_increment are optional overlays, not exec payload. Nested policy{} is accepted as the same overlay",
+          "session_id or id (aliases) required. allow_slugs / allow_ops replace the allow overlay when sent; omit them to leave the current lists. max_payload_bytes and kv_increment are optional overlays, not exec payload. Nested policy{} is accepted as the same overlay. " +
+          CONFIRM_PARAM_NOTE,
         returns: "updated session policy plus a policy receipt",
       }),
-      inputSchema: {
+      inputSchema: withConfirmProperties({
         type: "object",
         additionalProperties: true,
         description:
-          "session_id or id required. Other fields are optional policy overlays (also accepted nested under policy).",
+          "session_id or id required. Other fields are optional policy overlays (also accepted nested under policy). Mutation requires confirm=true or dry_run=true.",
         properties: {
           ...sessionIdProps("Required."),
           allow_slugs: {
@@ -408,7 +416,7 @@ export function sessionMcpTools() {
           },
         },
         required: ["session_id"],
-      },
+      }),
       outputSchema: toolEnvelopeOutputSchema(
         "Policy body: updated session allow lists and a policy receipt. Refuses session_id required, session_not_found, session_closed, session_expired.",
       ),
@@ -424,14 +432,15 @@ export function sessionMcpTools() {
         effects:
           "Side effects are operation-dependent (read, write, or refuse). Does not mint a session_id — missing id fails before admit. Sealed sessions refuse session_closed (409); TTL 6h refuses session_expired (410); receipt cap 64 refuses receipt_cap (409). Rate-limited (exec). Binding-only ops stay per-op proxy_fallback. Prefer fraggate_call",
         params:
-          "session_id or id, plus slug and op, are required. payload is optional and engine-specific; leftover keys are not auto-payload the way fraggate_call leftover keys are. Unknown slugs refuse FG-HALLUC-TOOL; stubs refuse FG-STUB",
+          "session_id or id, plus slug and op, are required. payload is optional and engine-specific; leftover keys are not auto-payload the way fraggate_call leftover keys are. Unknown slugs refuse FG-HALLUC-TOOL; stubs refuse FG-STUB. " +
+          CONFIRM_PARAM_NOTE,
         returns: "exec result with engine_slug, engine_op, engine_digest, ran_in, receipt, and refusal when gated",
       }),
-      inputSchema: {
+      inputSchema: withConfirmProperties({
         type: "object",
         additionalProperties: true,
         description:
-          "session_id (or id), slug, and op are required. Extra keys besides payload are not treated as the op payload.",
+          "session_id (or id), slug, and op are required. Extra keys besides payload are not treated as the op payload. Mutation requires confirm=true or dry_run=true.",
         properties: {
           ...sessionIdProps("Required."),
           slug: {
@@ -455,7 +464,7 @@ export function sessionMcpTools() {
           },
         },
         required: ["session_id", "slug", "op"],
-      },
+      }),
       outputSchema: toolEnvelopeOutputSchema(
         "Exec body: session, receipt, engine_slug, engine_op, engine_digest, ran_in, refusal when gated. Errors: session_id required, session_closed, session_expired, receipt_cap, FG-HALLUC-TOOL, FG-STUB.",
       ),
@@ -516,16 +525,16 @@ export function sessionMcpTools() {
         instead: "leaving the session to TTL expire (6h), chainlock_seal for a lockset, or fraggate_call for new work",
         effects:
           "Destructive to further exec/policy on that session_id only (session_closed 409). Does not delete receipts. A second close does not reopen — it returns session_closed (409) while the session stays sealed. Missing session returns session_not_found. Prefer leaving sessions to expire unless asked",
-        params: "session_id or id (aliases) required. No force flag on the public tool — TTL expiry is the automatic close path",
+        params: "session_id or id (aliases) required. No force flag on the public tool — TTL expiry is the automatic close path. " + CONFIRM_PARAM_NOTE,
         returns: "sealed session status, close receipt, and verified",
       }),
-      inputSchema: {
+      inputSchema: withConfirmProperties({
         type: "object",
         additionalProperties: true,
-        description: "session_id or id required. Extra keys are ignored. This is not chainlock_seal.",
+        description: "session_id or id required. Extra keys are ignored. This is not chainlock_seal. Mutation requires confirm=true or dry_run=true.",
         properties: sessionIdProps("Required."),
         required: ["session_id"],
-      },
+      }),
       outputSchema: toolEnvelopeOutputSchema(
         "Close body: sealed session, close receipt, verified. Errors: session_id required, session_not_found, session_closed (already sealed; does not reopen).",
       ),

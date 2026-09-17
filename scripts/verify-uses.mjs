@@ -117,6 +117,7 @@ assert.equal(shouldIncrementUse("GET", "/v1/pull/foldlock"), true);
 assert.equal(shouldIncrementUse("GET", "/v1/bundle"), true);
 assert.equal(shouldIncrementUse("GET", "/v1/skill"), true);
 assert.equal(shouldIncrementUse("POST", "/mcp"), true);
+assert.equal(shouldIncrementUse("DELETE", "/mcp"), false);
 assert.equal(shouldIncrementUse("POST", "/p/azclce/score"), true);
 assert.equal(shouldIncrementUse("GET", "/p/azclce/score"), true);
 

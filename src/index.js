@@ -170,6 +170,16 @@ import {
   mcpServerCard,
   oauthProtectedResource,
 } from "./mcp-discovery.js";
+import {
+  MCP_PROTOCOL_PREFERRED,
+  MCP_PROTOCOL_SUPPORTED,
+  admitMcpPost,
+  closeMcpSession,
+  mcpTransportHeaders,
+  readMcpProtocolHeader,
+  readMcpSessionHeader,
+} from "./mcp-transport.js";
+import { evaluateMutateSafeguard } from "./mcp-safeguard.js";
 import { admitCall, describeRegistry, fraggateCall, listRegistry, verifyRegistry } from "./fraggate/door.js";
 import { LIVE_OPS, NAMED_STUBS, registryDigest, registrySummary } from "./fraggate/registry.js";
 import {
@@ -270,7 +280,7 @@ import { crossMapFields } from "./cross-map.js";
 export { RuntimeSession };
 
 const CATALOG_HOST = "https://aziel-runtime.vibelock.workers.dev";
-const PROTOCOL = "2025-03-26";
+const PROTOCOL = MCP_PROTOCOL_PREFERRED;
 const CATALOG_TITLE = PRODUCT_NAME;
 /** Bound to the canonical abstract. Version rolls (1.9+) go in #version-history, not here. */
 const CATALOG_DESCRIPTION = RUNTIME_ABSTRACT;
@@ -1039,10 +1049,10 @@ const BY_SLUG = Object.fromEntries(PRODUCTS.map((p) => [p.slug, p]));
 function corsHeaders() {
   return {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, HEAD, POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, HEAD, POST, DELETE, OPTIONS",
     "Access-Control-Allow-Headers":
-      "Content-Type, Accept, Authorization, X-Aziel-Runtime-Token, X-Aziel-Runtime-Via, X-Aziel-Runtime-Host, MCP-Protocol-Version, mcp-session-id",
-    "Access-Control-Expose-Headers": `${VERSION_HEADER}, ${ROLE_HEADER}`,
+      "Content-Type, Accept, Authorization, X-Aziel-Runtime-Token, X-Aziel-Runtime-Via, X-Aziel-Runtime-Host, MCP-Protocol-Version, Mcp-Session-Id, mcp-session-id",
+    "Access-Control-Expose-Headers": `${VERSION_HEADER}, ${ROLE_HEADER}, MCP-Protocol-Version, Mcp-Session-Id`,
   };
 }
 
@@ -2703,6 +2713,10 @@ function splitProductToolName(name) {
 }
 
 async function callTool(env, name, args, origin, request) {
+  const safeguard = evaluateMutateSafeguard(name, args);
+  if (safeguard.gated) {
+    return wrapFraggateEnvelope(name, safeguard.envelope, null, (args && args.op) || null);
+  }
   if (name === "runtime_session_exec") {
     const registry = registryFor(PRODUCTS);
     const admission = await admitCall(args, registry, BY_SLUG);
@@ -2715,25 +2729,43 @@ async function callTool(env, name, args, origin, request) {
   return wrapFraggateEnvelope(name, hallucRefuse(name), null, null);
 }
 
-function rpcResult(id, result) {
-  return json({ jsonrpc: "2.0", id: id ?? null, result });
+function rpcResult(id, result, extra = {}) {
+  return json({ jsonrpc: "2.0", id: id ?? null, result }, 200, extra);
 }
 
-function rpcError(id, code, message) {
-  return json({ jsonrpc: "2.0", id: id ?? null, error: { code, message } });
+function rpcError(id, code, message, extra = {}) {
+  return json({ jsonrpc: "2.0", id: id ?? null, error: { code, message } }, 200, extra);
+}
+
+function mcpWireHeaders(transport) {
+  return mcpTransportHeaders(transport && transport.sessionId, transport && transport.protocolVersion);
 }
 
 async function handleMcp(request, env, origin) {
+  const accept = String(request.headers.get("accept") || "");
   if (request.method === "GET") {
+    if (/\btext\/event-stream\b/i.test(accept)) {
+      return json(
+        {
+          error: "SSE not offered",
+          note: "JSON-RPC POST /mcp only. This server does not fake an event stream.",
+        },
+        405,
+      );
+    }
     return json({
       ok: true,
-      transport: "JSON-RPC MCP-over-HTTP",
+      transport: "streamable-http",
+      encoding: "JSON-RPC MCP-over-HTTP",
       endpoint: "POST /mcp",
       methods: ["initialize", "tools/list", "tools/call", "ping"],
+      mcp_session: "Mcp-Session-Id issued on initialize and echoed on every POST. DELETE /mcp tears down. Reuse of a closed id is 404.",
+      protocol_versions: MCP_PROTOCOL_SUPPORTED.slice(),
+      protocol_preferred: MCP_PROTOCOL_PREFERRED,
       auth: "none (public)",
       server_card: "/.well-known/mcp/server-card.json",
       oauth_protected_resource: "/.well-known/oauth-protected-resource",
-      note: "Durable Objects / agents McpAgent not used. Minimal HTTP JSON-RPC. tools/list is the thin FragGate door. Pipeline: fraggate_list → fraggate_describe → fraggate_call. Hubs: GET /v1/software.",
+      note: "Durable Objects / agents McpAgent not used. Minimal HTTP JSON-RPC. tools/list is the thin door. Pipeline: fraggate_list → fraggate_describe → fraggate_call. Hubs: GET /v1/software. Mutating tools require confirm=true or dry_run=true.",
       door: "fraggate",
       skill: "/v1/skill",
       runtime: "/v1/runtime.json",
@@ -2742,6 +2774,17 @@ async function handleMcp(request, env, origin) {
       update_check: "/v1/update/check",
       bundle: "/v1/bundle",
       session: "/v1/session/open",
+    });
+  }
+  if (request.method === "DELETE") {
+    const sid = readMcpSessionHeader(request);
+    const closed = await closeMcpSession(env, sid);
+    if (!closed.ok) {
+      return json({ error: closed.error }, closed.status, mcpTransportHeaders(sid, readMcpProtocolHeader(request) || PROTOCOL));
+    }
+    return new Response(null, {
+      status: 204,
+      headers: { ...corsHeaders(), ...mcpTransportHeaders(closed.sessionId, closed.protocolVersion) },
     });
   }
   if (request.method !== "POST") {
@@ -2756,28 +2799,46 @@ async function handleMcp(request, env, origin) {
   const id = body && body.id !== undefined ? body.id : null;
   const method = body && body.method;
   const params = (body && body.params) || {};
-  if (method === "initialize") {
-    return rpcResult(id, {
-      protocolVersion: PROTOCOL,
-      capabilities: { tools: { listChanged: false } },
-      serverInfo: {
-        name: "aziel-runtime",
-        title: "Aziel Runtime",
-        version: RUNTIME_VERSION,
-        websiteUrl: "https://aziel-runtime.vibelock.workers.dev",
-        description: `Aziel Runtime ${RUNTIME_VERSION}. 1.6.2 is superseded heritage, not this server. Author: Aziel Eliab only.`,
+  const requestedProtocol = method === "initialize" ? params.protocolVersion : undefined;
+  const admitted = await admitMcpPost(request, env, { method, requestedProtocol });
+  if (!admitted.ok) {
+    return json(
+      {
+        error: admitted.error,
+        requested: admitted.requested,
+        supported: admitted.supported,
       },
-      instructions: mcpInitializeInstructions(),
-    });
+      admitted.status,
+      mcpTransportHeaders(admitted.sessionId, admitted.requested || PROTOCOL),
+    );
+  }
+  const wire = mcpWireHeaders(admitted);
+  if (method === "initialize") {
+    return rpcResult(
+      id,
+      {
+        protocolVersion: admitted.protocolVersion,
+        capabilities: { tools: { listChanged: false } },
+        serverInfo: {
+          name: "aziel-runtime",
+          title: "Aziel Runtime",
+          version: RUNTIME_VERSION,
+          websiteUrl: "https://aziel-runtime.vibelock.workers.dev",
+          description: `Aziel Runtime ${RUNTIME_VERSION}. 1.6.2 is superseded heritage, not this server. Author: Aziel Eliab only.`,
+        },
+        instructions: mcpInitializeInstructions(),
+      },
+      wire,
+    );
   }
   if (method === "notifications/initialized" || method === "initialized") {
-    return new Response(null, { status: 204, headers: corsHeaders() });
+    return new Response(null, { status: 204, headers: { ...corsHeaders(), ...wire } });
   }
   if (method === "ping") {
-    return rpcResult(id, {});
+    return rpcResult(id, {}, wire);
   }
   if (method === "tools/list") {
-    return rpcResult(id, { tools: toolList() });
+    return rpcResult(id, { tools: toolList() }, wire);
   }
   if (method === "tools/call") {
     const name = params.name;
@@ -2785,13 +2846,13 @@ async function handleMcp(request, env, origin) {
     try {
       const out = await callTool(env, name, args, origin, request);
       const { slug, op } = splitProductToolName(name);
-      return rpcResult(id, mcpCallPayload(name, out, out.product || BY_SLUG[slug], out.op || op));
+      return rpcResult(id, mcpCallPayload(name, out, out.product || BY_SLUG[slug], out.op || op), wire);
     } catch (err) {
       const text = JSON.stringify({ error: String(err.message || err) });
-      return rpcResult(id, mcpCallPayload(name, { status: 400, text }, null, null));
+      return rpcResult(id, mcpCallPayload(name, { status: 400, text }, null, null), wire);
     }
   }
-  return rpcError(id, -32601, `Method not found: ${method}`);
+  return rpcError(id, -32601, `Method not found: ${method}`, wire);
 }
 
 

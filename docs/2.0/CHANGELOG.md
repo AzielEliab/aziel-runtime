@@ -11,6 +11,7 @@ Crawler abstract (`RUNTIME_ABSTRACT`) is unchanged and stays the lead on homepag
 
 Certification point — not a feature dump.
 
+- Sentinel pass2 MCP transport honesty (not a new public tool): preferred `protocolVersion` `2025-11-25` in initialize, response headers, and `/.well-known/mcp/server-card.json`. Still accepts `2025-06-18` and `2025-03-26`. Invalid protocol is HTTP 400. `Mcp-Session-Id` issued and echoed. `DELETE /mcp` tears down; reuse is 404. `GET` SSE is 405 (not faked). Mutating MCP tools require `confirm=true` or `dry_run=true`. HTTP FragGate call unchanged. Identity Aziel Eliab only. Lamb Lens / DecisionGATE not weakened.
 - Public contract frozen under `docs/2.0/` (FragGate flow, MCP names, OpenAPI parity, health/version, `engine_digest`, live/stub/proxy-fallback).
 - Gate 4 distribution identity includes Glama TDQS 5.0 metadata (`tools/list` descriptions / params / truthful annotations / output schemas) plus existing `glama.json` and GitHub topics. Folded into this same 2.0.0-rc1 train — not a side quest. **No tool renames. No behavior / routing / refusal changes.** `fraggate_call` is not globally read-only or idempotent. A follow-up metadata pass tightens pairwise first sentences, lifecycle completeness (append-only families have no delete), initialize `serverInfo.version` lead, and `glama.json` `version`. A second metadata pass lifts the weakest per-tool scores (4.1–4.3) with refuse codes, omit-defaults, and aliases the door already accepts — still no behavior change. See `docs/GLAMA-TDQS.md`. GitHub-side SEO lock (`docs/GITHUB.md` / README hubs) restates Try on Glama primary and locked Person/Runtime `@id`s without changing Worker HTML or MCP handlers.
 - Compatibility, receipt, refusal, and breaking-change policies published.
@@ -36,7 +37,8 @@ Certification point — not a feature dump.
 |----------------------|-----------|
 | `fraggate_list` → `fraggate_describe` → `fraggate_call` | Unchanged |
 | `POST /v1/fraggate/call` | Unchanged |
-| `POST /mcp` initialize `2025-03-26` | Unchanged |
+| `POST /mcp` initialize `2025-03-26` | Still accepted; preferred advertised version is `2025-11-25` |
+| MCP mutating `tools/call` without confirm | Now `MCP-CONFIRM-REQUIRED` unless `dry_run=true`. HTTP `/v1/fraggate/call` unchanged |
 | 36 `PUBLIC_MCP_TOOLS` | Unchanged names; TDQS-richer descriptions / params / annotations |
 | `/p/{slug}/{op}` is proxy | Unchanged |
 | Remain-OFF verbs refuse | Unchanged |
@@ -45,7 +47,7 @@ Certification point — not a feature dump.
 | Glama stdio `node cli/mcp-stdio.mjs` | Unchanged |
 | Read `version` from health / runtime.json | Now `2.0.0-rc1` (same snapshot shape) |
 
-If you pinned `1.9.3` in a client assertion, update the version string only. Do not change call shapes.
+If you pinned `1.9.3` in a client assertion, update the version string only. MCP mutating `tools/call` now also needs `confirm=true` (or `dry_run=true`). HTTP FragGate call shapes stay the same.
 
 ---
 
