@@ -47,6 +47,7 @@ import { buildRegistry } from "./fraggate/registry.js";
 import { chainlockMcpTools, isChainlockTool, runChainlockOp } from "./chainlock.js";
 import { isMemoryMcpTool, memoryMcpTools, runMemoryMcp, wrapMemoryDisplay } from "./memory.js";
 import { isMeshMcpTool, runMeshOp } from "./mesh.js";
+import { isMutatingMcpTool } from "./mcp-safeguard.js";
 
 export { ADVANCED_PREFIX, isAdvancedToolName, PUBLIC_MCP_TOOL_MAX };
 
@@ -63,9 +64,9 @@ export function registryFor(products) {
 
 export function mcpInitializeInstructions() {
   return (
-    `Current MCP serverInfo.version: ${RUNTIME_VERSION} (same as package.json). 1.6.2 is superseded heritage, not this server. Author: Aziel Eliab only. ` +
+    `Current MCP serverInfo.version: ${RUNTIME_VERSION} (same as package.json). 1.6.2 is superseded heritage, not this server. Author identity is aziel eliab only. ` +
     "This runtime is not merely an API orchestrator or software aggregator; it is a node-meshed orchestration suite of MCP-connected software designed to coordinate specialized tools through a shared, security-gated runtime while preserving provenance, chain-of-custody, temporal integrity, and auditable execution. " +
-    "Use Aziel Eliab software in this chat. One door — discover, route, refuse. " +
+    "Use this author's software in this chat. One door — discover, route, refuse. " +
     "Pipeline: (1) fraggate_list or GET /v1/software (2) fraggate_describe one name (3) fraggate_call. " +
     "Prefer fraggate_call, GET /v1/software, and POST /mcp. Hubs refresh Software tabs from /v1/software. " +
     "Start with runtime_skill or fraggate_list. Describe a name with fraggate_describe. " +
@@ -78,7 +79,7 @@ export function mcpInitializeInstructions() {
     "Raw session lifecycle (advanced/internal): open → policy → exec → receipt or receipts → close. Prefer fraggate_call. " +
     "Show the user display.title and display.summary, then take the next input. " +
     "runtime_run, runtime_session_*, raw *_health, and runtime_manifest are advanced/internal. " +
-    "Do not call leftover {slug}_{op} names — they are not in tools/list. Unknown names refuse FG-HALLUC-TOOL. " +
+    "Do not invoke retired {slug}_{op} names — they are not in tools/list. Unknown names refuse FG-HALLUC-TOOL. " +
     "HTTP /p/{slug}/{op} is a proxy and is not exec. " +
     "LIVE fabric (not Softwares-tab): AZPIPE AP-WP-0.2, SweepGate SG-WP-0.1, ChainLock CL-WP-0.4, LOCKSET LS-WP-0.1, packed catalog RL-WP-0.1-runtime, QNS-CD-1.0 (photon QNS1 1.3; local qnsd in AzielEliab/qnm-node; GET /v1/qns cites only — never a public via proxy), AKM-TRIAD-1.0 adaptive memory (MCP memory_*; POST /v1/memory/* behind the door), ACT-RECEIPT-1.0 public four-field receipts (GET /v1/receipts cites; public chain on corpus /receipts; append when RECEIPT_APPEND_TOKEN is set; fail-open). CROSS-NETWORK-SURVIVAL-1.0 is the umbrella survival law (matching bytes, not a living network). Companion NO-LIE-NO-REWRITE-1.0 is LIVE law (no rewrite key; never lie to survive; docs/designs/NO-LIE-NO-REWRITE-1.0.md; does not replace the machine tip). COLD-MULTI-SHELF-1.0 cite (GET /shelves) matches live corpus#96 /shelves honesty: Plane A 5 published surfaces / 2 family radii / 1 independent live; Plane B Codeberg + archive.org PASS still SLOT (https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius); Framagit URL null; GitFlic CNS-GITFLIC-EMAIL; GitLab CNS-GITLAB-CF-LOOP; Zenodo refused CNS-ZENODO-IP-BAN; doi null; Plane C USB SLOT. MCP chainlock_*. Read-only suite-presence is ON by default. GET /v1/azpipe/arch cites the locked MASTER-33 strip (same door pipeline payload; not a Softwares door). " +
     `${RUNTIME_VERSION} is the certification-point freeze (docs/2.0/ public contract, compatibility, receipt schema, refusal contract, breaking-change policy, clean-room + external adversarial pack; self-test ≠ third-party lab). Read-only QNM suite-presence is ON by default; public disable of suite-presence is refused. Remain-OFF untouched. ` +
@@ -103,20 +104,20 @@ export function mcpInitializeInstructions() {
     "1.6.9 frames AZHub and AZInterface as two separate softwares under the same door (AIH-WP-1.0) — Blank Key spatial container + custodial page cycles. Never one combined product. Hub refuses auto-unlock / completeness. Interface page_cycle_status reports OFF / integrity / ON / FULL SHUTDOWN / MEMORIAL. " +
     "AZHub LIVE_OPS (health, skill, region_list, place_module, remove_module, tether_declare, tether_cut, tether_list, blank_key_status) and AZInterface LIVE_OPS (health, skill, genesis_status, site_state_get, site_state_set, integrity_check, witness_list, page_cycle_status) are listed by fraggate_list and executed only via fraggate_call / POST /v1/fraggate/call. " +
     "1.6.7 adds AZNet (AZN-WP-0.1) as a door-live engine — silent verification side-net; never hosts payloads; AZBrowser pair required (functional order only; own Worker UI). " +
-    "AZNet is reached only via fraggate_call / POST /v1/fraggate/call (leftover names still map through the door; not a side door). " +
+    "AZNet is reached only via fraggate_call / POST /v1/fraggate/call (retired names still map through the door; not a side door). " +
     "1.6.6 adds AZBrowser (AZB-1.0) as a door-live engine — Lamb Lens ethical research browser: ethical_search + advisory navigate; cite; refuse harmful harvest; never invent visit results; not Chromium. AZNet is separate software (same door; order/token pairing only, not a shared Phase-1 UI). " +
     "AZBrowser LIVE_OPS (ethical_search, lamb_lens_search, navigate, airlock_ingest, tab_open, tab_list, receipt_list, verify, receipt_verify, sandbox_status, sandbox_render, health, skill) are listed by fraggate_list and executed only via fraggate_call / POST /v1/fraggate/call — the same ops Worker UI buttons call. " +
     "1.6.5 adds AZMail (APP 1.0) as a door-live engine — anonymous mesh default off, advisory airlock; SMTP/deanonymize stay stub. " +
-    "AZMail is reached only via fraggate_call / POST /v1/fraggate/call (leftover names still map through the door; not a side door). " +
+    "AZMail is reached only via fraggate_call / POST /v1/fraggate/call (retired names still map through the door; not a side door). " +
     "1.6.4 adds PeaceLock (PL-WP-0.1) as a true in-process engine. " +
-    "1.6.3 adds KV-backed API use counters (GET /v1/uses). " +
+    "1.6.3 adds KV-backed API usage tallies (GET /v1/uses). " +
     "Superseded heritage note (not current serverInfo.version): 1.6.2 widened the public door to sensible advisory engines; stubs still refuse. " +
-    "1.6.0 is the door cut on in-process engines. 1.5.0 was agent-native leftover product tools. " +
+    "1.6.0 is the door cut on in-process engines. 1.5.0 was agent-native former product tools. " +
     "Kernel: https://github.com/AzielEliab/fraggate (FG-0.1). " +
     "Every catalog slug is a true engine. Cloudflare isolate is the jail. engine_digest is required. " +
     "Hosted AZAI is protocol mirror + Lamb check, not the blend. VPN/hop mesh is not claimed on this public surface. AZMail anonymous ring is door LIVE_OPS only (default off; not SMTP). " +
     "Compatible clients: ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants. " +
-    `Always send User-Agent Mozilla/5.0. Public, no OAuth. Author: Aziel Eliab only. Current version remains ${RUNTIME_VERSION}.`
+    `Always send User-Agent Mozilla/5.0. Public, no OAuth. Author identity is aziel eliab only. Current version remains ${RUNTIME_VERSION}.`
   );
 }
 
@@ -303,14 +304,17 @@ export function runtimeHelperTools() {
         instead: "fraggate_call or library_lookup",
         effects:
           "Write: appends an ask/refuse ledger tip (not idempotent). Empty {} still runs the five gates and stamps the ledger. Does not execute domain software",
-        params: "All proposal fields are optional. Missing evidence can fail a gate. accountable identity on this runtime is Aziel Eliab only",
+        params:
+          "All proposal fields are optional. Missing evidence can fail a gate. accountable identity on this runtime is Aziel Eliab only. " +
+          CONFIRM_PARAM_NOTE,
         returns: "gate view, final_state, ledger_tip, and result (code FG-OK on the named module wrapper)",
       }),
       annotations: mcpAnnotations("Run DecisionGATE on a proposal", HINT_ADDITIVE),
-      inputSchema: {
+      inputSchema: withConfirmProperties({
         type: "object",
         additionalProperties: true,
-        description: "All fields optional. Empty proposals still run the five gates and stamp the ledger.",
+        description:
+          "All fields optional except confirm for a live ledger stamp. Empty proposals still run the five gates and stamp the ledger. Mutation requires confirm=true or dry_run=true.",
         properties: {
           statement: { type: "string", description: "Optional proposal statement to evaluate." },
           evidence: {
@@ -338,7 +342,7 @@ export function runtimeHelperTools() {
             description: "Optional accountable party string.",
           },
         },
-      },
+      }),
       outputSchema: FRAGGATE_OUTPUT_SCHEMA,
     },
     {
@@ -494,14 +498,16 @@ export function runtimeHelperTools() {
         instead: "mesh_join or mesh_leave",
         effects:
           "Write: extends TTL (not idempotent). Unknown or expired node_id refuses MESH-UNKNOWN-NODE — join again; no account resurrection",
-        params: "node_id is required. presence may replace the class (live|locked|isolated). Optional tip_hash and prev are 64 hex only (Split the wires + REHEAL: presence + tip hash; no body/diff/vote-to-fix; no neighbor heal)",
+        params:
+          "node_id is required. presence may replace the class (live|locked|isolated). Optional tip_hash and prev are 64 hex only (Split the wires + REHEAL: presence + tip hash; no body/diff/vote-to-fix; no neighbor heal). " +
+          CONFIRM_PARAM_NOTE,
         returns: "updated presence and TTL. Body on this plane refuses MESH-NO-BYTES. Same prev + two tips refuses MESH-EQUIVOCATION. Neighbor heal / vote-to-fix refuses MESH-NO-NEIGHBOR-HEAL",
       }),
       annotations: mcpAnnotations("Refresh QNM rollup presence", HINT_ADDITIVE),
-      inputSchema: {
+      inputSchema: withConfirmProperties({
         type: "object",
         additionalProperties: false,
-        description: "node_id is required. Missing node_id refuses MESH-BAD-INPUT.",
+        description: "node_id is required. Missing node_id refuses MESH-BAD-INPUT. Mutation requires confirm=true or dry_run=true.",
         properties: {
           node_id: {
             type: "string",
@@ -522,7 +528,7 @@ export function runtimeHelperTools() {
           },
         },
         required: ["node_id"],
-      },
+      }),
       outputSchema: FRAGGATE_OUTPUT_SCHEMA,
     },
     {
@@ -578,14 +584,14 @@ export function runtimeHelperTools() {
         instead: "local qnm-node/ anon-broadcast loopback, AZMail via fraggate_call, or mesh_join",
         effects:
           "Write: stores a hash receipt only. Does NOT accept video bytes. Operator keeps the file. Malformed sha256 refuses MESH-BAD-INPUT; publish-shaped keys refuse MESH-NO-PUBLISH",
-        params: "sha256 is required (64 hex). title and product are optional labels, not file contents",
+        params: "sha256 is required (64 hex). title and product are optional labels, not file contents. " + CONFIRM_PARAM_NOTE,
         returns: "hash receipt (sha256, optional title)",
       }),
       annotations: mcpAnnotations("Register a local hash receipt", HINT_ADDITIVE),
-      inputSchema: {
+      inputSchema: withConfirmProperties({
         type: "object",
         additionalProperties: false,
-        description: "sha256 is required (64 hex). This is a receipt, not a blob upload.",
+        description: "sha256 is required (64 hex). This is a receipt, not a blob upload. Mutation requires confirm=true or dry_run=true.",
         properties: {
           sha256: {
             type: "string",
@@ -604,7 +610,7 @@ export function runtimeHelperTools() {
           },
         },
         required: ["sha256"],
-      },
+      }),
       outputSchema: FRAGGATE_OUTPUT_SCHEMA,
     },
     ...chainlockMcpTools(),
@@ -753,7 +759,18 @@ export function buildMcpToolList({ sessionTools }) {
   for (const tool of sessionTools || []) {
     tools.push(annotateSessionTool(tool));
   }
-  return tools;
+  return tools.map(applyMutatingConfirmation);
+}
+
+/** Honest extra annotation + confirm required so Sentinel sees every write tool. */
+export function applyMutatingConfirmation(tool) {
+  if (!isMutatingMcpTool(tool.name)) return tool;
+  const annotations = { ...(tool.annotations || {}), requiresConfirmation: true };
+  const inputSchema = withConfirmProperties(tool.inputSchema || { type: "object", properties: {} });
+  const description = /confirm=true/.test(String(tool.description || ""))
+    ? tool.description
+    : `${String(tool.description || "").trim()} ${CONFIRM_PARAM_NOTE}`.trim();
+  return { ...tool, annotations, inputSchema, description };
 }
 
 const SESSION_HINTS = Object.freeze({

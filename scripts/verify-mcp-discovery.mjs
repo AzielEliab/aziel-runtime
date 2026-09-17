@@ -54,6 +54,7 @@ for (const path of cardPaths) {
   assert.equal(body.endpoint, "POST /mcp");
   assert.equal(body.url, origin + "/mcp");
   assert.equal(body.protocolVersion, MCP_PROTOCOL_VERSION);
+  assert.equal(body.preferredProtocolVersion, MCP_PROTOCOL_VERSION);
   assert.equal(body.auth.type, "none");
   assert.equal(body.auth.public, true);
   assert.deepEqual(body.tools.names.slice().sort(), PUBLIC_MCP_TOOLS.slice().sort());

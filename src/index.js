@@ -2762,6 +2762,7 @@ async function handleMcp(request, env, origin) {
       mcp_session: "Mcp-Session-Id issued on initialize and echoed on every POST. DELETE /mcp tears down. Reuse of a closed id is 404.",
       protocol_versions: MCP_PROTOCOL_SUPPORTED.slice(),
       protocol_preferred: MCP_PROTOCOL_PREFERRED,
+      protocol_claimed: MCP_PROTOCOL_PREFERRED,
       auth: "none (public)",
       server_card: "/.well-known/mcp/server-card.json",
       oauth_protected_resource: "/.well-known/oauth-protected-resource",
@@ -2800,7 +2801,8 @@ async function handleMcp(request, env, origin) {
   const method = body && body.method;
   const params = (body && body.params) || {};
   const requestedProtocol = method === "initialize" ? params.protocolVersion : undefined;
-  const admitted = await admitMcpPost(request, env, { method, requestedProtocol });
+  const requireLegacy = method === "initialize" && params.require_legacy_protocol === true;
+  const admitted = await admitMcpPost(request, env, { method, requestedProtocol, requireLegacy });
   if (!admitted.ok) {
     return json(
       {

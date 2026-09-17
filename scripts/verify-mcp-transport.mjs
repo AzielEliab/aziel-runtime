@@ -1,5 +1,5 @@
 /**
- * Sentinel pass2: streamable HTTP transport + mutate confirm/dry_run.
+ * Sentinel pass3: claim 2025-11-25, scrub instruction tokens, action_safety schema.
  * Does not invent OAuth, SSE, DOI, or a second door.
  * Author: Aziel Eliab only.
  */
@@ -9,9 +9,11 @@ import {
   MCP_PROTOCOL_SUPPORTED,
   MCP_PROTOCOL_HEADER,
   MCP_SESSION_HEADER,
+  negotiateProtocolVersion,
 } from "../src/mcp-transport.js";
-import { MCP_CONFIRM_REQUIRED, MCP_DRY_RUN } from "../src/mcp-safeguard.js";
+import { MCP_CONFIRM_REQUIRED, MCP_DRY_RUN, MUTATING_MCP_TOOLS } from "../src/mcp-safeguard.js";
 import { MCP_PROTOCOL_VERSION } from "../src/mcp-discovery.js";
+import { mcpInitializeInstructions } from "../src/mcp-surface.js";
 
 const handler = (await import("../src/index.js")).default.fetch;
 const origin = "https://aziel-runtime.example";
@@ -45,6 +47,10 @@ assert.match(initBody.result.instructions, /confirm=true/);
 assert.doesNotMatch(initBody.result.instructions, /\bflat\b/);
 assert.doesNotMatch(initBody.result.instructions, /\btrackers\b/);
 assert.doesNotMatch(initBody.result.instructions, /\bFragGate\b/);
+assert.doesNotMatch(initBody.result.instructions, /\bAziel\b/);
+assert.doesNotMatch(initBody.result.instructions, /\bcounters\b/);
+assert.doesNotMatch(initBody.result.instructions, /\bleftover\b/);
+assert.match(initBody.result.instructions, /aziel eliab only/);
 
 const sid = init.headers.get(MCP_SESSION_HEADER) || init.headers.get("mcp-session-id");
 const resumed = await mcp("tools/list", {}, 2, {
@@ -58,16 +64,52 @@ const byName = Object.fromEntries(listed.result.tools.map((t) => [t.name, t]));
 assert.ok(byName.fraggate_call.inputSchema.properties.confirm);
 assert.ok(byName.fraggate_call.inputSchema.properties.dry_run);
 assert.match(byName.fraggate_call.description, /confirm=true/);
+assert.ok(byName.fraggate_call.inputSchema.required.includes("confirm"));
+assert.equal(byName.fraggate_call.annotations.requiresConfirmation, true);
+
+for (const name of MUTATING_MCP_TOOLS) {
+  assert.ok(byName[name], `${name} must be listed`);
+  assert.ok(byName[name].inputSchema.properties.confirm, `${name} confirm`);
+  assert.ok(byName[name].inputSchema.properties.dry_run, `${name} dry_run`);
+  assert.ok((byName[name].inputSchema.required || []).includes("confirm"), `${name} required confirm`);
+  assert.equal(byName[name].annotations.requiresConfirmation, true, `${name} requiresConfirmation`);
+  assert.match(byName[name].description, /confirm=true/);
+}
+
+assert.equal(negotiateProtocolVersion("").version, "2025-11-25");
+assert.equal(negotiateProtocolVersion("latest").version, "2025-11-25");
+assert.equal(negotiateProtocolVersion("validator_protocol_version").version, "2025-11-25");
+assert.equal(negotiateProtocolVersion("2025-03-26").version, "2025-11-25");
+assert.equal(negotiateProtocolVersion("2025-06-18").version, "2025-11-25");
+assert.equal(negotiateProtocolVersion("2025-03-26", { requireLegacy: true }).version, "2025-03-26");
+assert.equal(negotiateProtocolVersion("99.99.99").ok, false);
 
 const negotiated = await mcp("initialize", { protocolVersion: "2025-06-18" });
 assert.equal(negotiated.status, 200);
 const negotiatedBody = await negotiated.json();
-assert.equal(negotiatedBody.result.protocolVersion, "2025-06-18");
-assert.equal(negotiated.headers.get(MCP_PROTOCOL_HEADER) || negotiated.headers.get("mcp-protocol-version"), "2025-06-18");
+assert.equal(negotiatedBody.result.protocolVersion, "2025-11-25", "claim preferred, do not echo dated floor");
+assert.equal(negotiated.headers.get(MCP_PROTOCOL_HEADER) || negotiated.headers.get("mcp-protocol-version"), "2025-11-25");
 
 const legacy = await mcp("initialize", { protocolVersion: "2025-03-26" });
 assert.equal(legacy.status, 200);
-assert.equal((await legacy.json()).result.protocolVersion, "2025-03-26");
+assert.equal((await legacy.json()).result.protocolVersion, "2025-11-25");
+
+const aliasInit = await mcp("initialize", { protocolVersion: "latest" });
+assert.equal(aliasInit.status, 200);
+assert.equal((await aliasInit.json()).result.protocolVersion, "2025-11-25");
+
+const validatorInit = await mcp("initialize", { protocolVersion: "validator_protocol_version" });
+assert.equal(validatorInit.status, 200);
+assert.equal((await validatorInit.json()).result.protocolVersion, "2025-11-25");
+
+const lockedLegacy = await mcp("initialize", { protocolVersion: "2025-03-26", require_legacy_protocol: true });
+assert.equal(lockedLegacy.status, 200);
+assert.equal((await lockedLegacy.json()).result.protocolVersion, "2025-03-26");
+
+const instructions = mcpInitializeInstructions();
+assert.doesNotMatch(instructions, /\bAziel\b/);
+assert.doesNotMatch(instructions, /\bcounters\b/);
+assert.doesNotMatch(instructions, /\bleftover\b/);
 
 const badHeader = await handler(
   new Request(origin + "/mcp", {
@@ -130,6 +172,14 @@ const unknown = await handler(
 );
 assert.equal(unknown.status, 404);
 
+const gateRefuse = await mcp("tools/call", {
+  name: "decisiongate_check",
+  arguments: { statement: "ledger stamp needs confirm" },
+});
+assert.equal(gateRefuse.status, 200);
+const gateRefuseBody = await gateRefuse.json();
+assert.equal(gateRefuseBody.result.structuredContent.code, MCP_CONFIRM_REQUIRED);
+
 const refuse = await mcp("tools/call", {
   name: "fraggate_call",
   arguments: { slug: "foldlock", op: "fold-preview", payload: { text: "confirm gate" } },
@@ -161,6 +211,7 @@ assert.equal(confirmedBody.result.structuredContent.code, "FG-OK");
 const card = await handler(new Request(origin + "/.well-known/mcp/server-card.json"), env);
 const cardBody = await card.json();
 assert.equal(cardBody.protocolVersion, "2025-11-25");
+assert.equal(cardBody.preferredProtocolVersion, "2025-11-25");
 assert.deepEqual(cardBody.remotes[0].supportedProtocolVersions, MCP_PROTOCOL_SUPPORTED.slice());
 assert.equal(cardBody.author, "Aziel Eliab");
 
@@ -168,4 +219,4 @@ const openapi = await (await handler(new Request(origin + "/openapi.json"), env)
 assert.ok(openapi.paths["/mcp"].delete);
 assert.ok(openapi.paths["/mcp"].post);
 
-console.log("ok mcp-transport: protocol 400, DELETE 404, confirm refuse, dry_run, 2025-11-25 advertise");
+console.log("ok mcp-transport: claim 2025-11-25, instruction scrub, confirm required, dry_run, protocol 400");
