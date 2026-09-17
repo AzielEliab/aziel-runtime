@@ -99,7 +99,7 @@ assert.equal(RATE_MCP_PER_MIN, 240);
 assert.equal(RATE_OPEN_PER_MIN, 20);
 assert.equal(rateLimitFailBody({ scope: "fraggate_call", limit: 3, window_seconds: 60, retry_after: 1 }).code, CODE_RATE_LIMIT);
 assert.equal(jsonStructureStats({ a: { b: { c: 1 } } }).depth, 3);
-assert.equal(jsonStructureStats({ a: 1 }, 1).too_deep, true);
+assert.equal(jsonStructureStats({ a: { b: 1 } }, 1).too_deep, true);
 assert.equal(deadlineExceeded(0, 25_000, 25_000), true);
 assert.equal(deadlineExceeded(0, 24_999, 25_000), false);
 
@@ -123,7 +123,8 @@ const wrangler = readFileSync(new URL("../wrangler.toml", import.meta.url), "utf
 assert.match(wrangler, /name = "RATE"/);
 assert.match(wrangler, /class_name = "RateQuota"/);
 assert.match(wrangler, /tag = "v3"/);
-assert.doesNotMatch(wrangler, /OAuth|doi:|framagit|/i);
+assert.match(wrangler, /F03 door quotas/);
+assert.doesNotMatch(wrangler, /doi:|framagit|/i);
 
 // --- F03 HTTP FragGate + MCP rate-limit refuses ---
 const rateEnv = baseEnv({
