@@ -51,9 +51,9 @@ export function jsonStructureStats(value, maxDepth = MAX_JSON_DEPTH, maxNodes = 
   function walk(v, d) {
     nodes += 1;
     if (nodes > maxNodes) return;
-    if (d > depth) depth = d;
-    if (d > maxDepth) return;
     if (v && typeof v === "object") {
+      if (d > depth) depth = d;
+      if (d > maxDepth) return;
       if (Array.isArray(v)) {
         for (const item of v) walk(item, d + 1);
       } else {
