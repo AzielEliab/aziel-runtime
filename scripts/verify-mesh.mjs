@@ -25,10 +25,15 @@ import {
   meshCiteField,
   meshFanoutSuitePresence,
   memoryMeshKv,
+  PRESENCE_TTL_MS,
+  resetMeshClock,
   resetMeshStore,
   runMeshOp,
   sanitizeBearer,
+  sanitizeNodeId,
   sanitizeProduct,
+  setMeshNowMs,
+  setMeshRadiosEnabled,
   suitePresenceNodeId,
   suitePresenceTargets,
 } from "../src/mesh.js";
@@ -472,6 +477,123 @@ assert.equal(unitDisable.ok, false);
 assert.equal(unitDisable.code, "MESH-DISABLE-REFUSED");
 assert.equal(unitDisable.enabled, true);
 
+// --- mesh_join contract: product / node_id / presence / MESH-OFF / 5-minute TTL ---
+assert.equal(PRESENCE_TTL_MS, 5 * 60 * 1000);
+assert.equal(sanitizeNodeId("godlock-uk"), "godlock-uk");
+assert.equal(sanitizeNodeId("GODLOCK-UK"), "");
+assert.equal(sanitizeNodeId("short"), "");
+assert.equal(sanitizeNodeId("a".repeat(81)), "");
+assert.equal(sanitizeNodeId("bad|pipe1"), "");
+
+const contractEnv = envWithMesh();
+resetMeshStore();
+
+const noProduct = await postJson(contractEnv, "/v1/mesh/join", { node_id: "need-prod" });
+assert.equal(noProduct.status, 400);
+assert.equal(noProduct.data.ok, false);
+assert.equal(noProduct.data.code, "MESH-BAD-INPUT");
+assert.match(noProduct.data.message, /product/i);
+
+const noProductMcp = await mcp(contractEnv, "tools/call", {
+  name: "mesh_join",
+  arguments: { node_id: "need-prod", confirm: true },
+}, 20);
+assert.equal(noProductMcp.result.isError, true);
+assert.equal(noProductMcp.result.structuredContent.result.code, "MESH-BAD-INPUT");
+
+const badNode = await postJson(contractEnv, "/v1/mesh/join", { product: "godlock", node_id: "NO-UPPER" });
+assert.equal(badNode.status, 400);
+assert.equal(badNode.data.code, "MESH-BAD-INPUT");
+assert.match(badNode.data.message, /node_id/i);
+
+const badNodeShort = await postJson(contractEnv, "/v1/mesh/join", { product: "godlock", node_id: "short" });
+assert.equal(badNodeShort.status, 400);
+assert.equal(badNodeShort.data.code, "MESH-BAD-INPUT");
+
+const badNodePipe = await postJson(contractEnv, "/v1/mesh/join", { product: "godlock", node_id: "godlock|uk" });
+assert.equal(badNodePipe.status, 400);
+assert.equal(badNodePipe.data.code, "MESH-BAD-INPUT");
+
+const badPresence = await postJson(contractEnv, "/v1/mesh/join", {
+  product: "godlock",
+  node_id: "godlock-ok1",
+  presence: "online",
+});
+assert.equal(badPresence.status, 400);
+assert.equal(badPresence.data.code, "MESH-BAD-INPUT");
+assert.match(badPresence.data.message, /live, locked, or isolated/i);
+
+const radiosOffEnv = envWithMesh({ MESH_RADIOS: "off" });
+const joinRadiosOff = await postJson(radiosOffEnv, "/v1/mesh/join", { product: "godlock", node_id: "godlock-tx1" });
+assert.equal(joinRadiosOff.status, 400);
+assert.equal(joinRadiosOff.data.ok, false);
+assert.equal(joinRadiosOff.data.code, "MESH-OFF");
+assert.equal(joinRadiosOff.data.radios, "off");
+
+const doorOff = await postJson(radiosOffEnv, "/v1/fraggate/call", {
+  slug: "mesh",
+  op: "join",
+  payload: { product: "godlock", node_id: "godlock-tx2" },
+});
+assert.equal(doorOff.data.result.code, "MESH-OFF");
+
+const mcpOff = await mcp(radiosOffEnv, "tools/call", {
+  name: "mesh_join",
+  arguments: { product: "godlock", node_id: "godlock-tx3", confirm: true },
+}, 21);
+assert.equal(mcpOff.result.structuredContent.result.code, "MESH-OFF");
+
+const statusOff = await jsonReq(radiosOffEnv, "/v1/mesh");
+assert.equal(statusOff.status, 200);
+assert.equal(statusOff.data.radios, "off");
+assert.equal(statusOff.data.suite_presence, "on");
+
+setMeshRadiosEnabled(false);
+const unitOff = await runMeshOp("join", { product: "godlock", node_id: "godlock-tx4" }, {});
+assert.equal(unitOff.ok, false);
+assert.equal(unitOff.code, "MESH-OFF");
+setMeshRadiosEnabled(true);
+
+const ttlEnv = envWithMesh();
+resetMeshStore();
+const t0 = 1_700_000_000_000;
+setMeshNowMs(t0);
+const ttlJoin = await runMeshOp("join", { product: "godlock", node_id: "ttl-node1" }, ttlEnv);
+assert.equal(ttlJoin.ok, true, JSON.stringify(ttlJoin));
+assert.equal(ttlJoin.session.node_id, "ttl-node1");
+assert.equal(ttlJoin.session.presence_ttl_ms, PRESENCE_TTL_MS);
+const rosterLive = await runMeshOp("nodes", {}, ttlEnv);
+assert.ok(rosterLive.nodes.some((n) => n.node_id === "ttl-node1"), "joined node must appear on roster");
+
+setMeshNowMs(t0 + PRESENCE_TTL_MS + 1);
+const rosterExpired = await runMeshOp("nodes", {}, ttlEnv);
+assert.ok(!rosterExpired.nodes.some((n) => n.node_id === "ttl-node1"), "node must drop after 5 minutes without heartbeat");
+const expiredBeat = await runMeshOp("heartbeat", { node_id: "ttl-node1" }, ttlEnv);
+assert.equal(expiredBeat.ok, false);
+assert.equal(expiredBeat.code, "MESH-UNKNOWN-NODE");
+
+setMeshNowMs(t0 + PRESENCE_TTL_MS + 2);
+const ttlJoin2 = await runMeshOp("join", { product: "godlock", node_id: "ttl-keep1" }, ttlEnv);
+assert.equal(ttlJoin2.ok, true, JSON.stringify(ttlJoin2));
+setMeshNowMs(t0 + PRESENCE_TTL_MS + 2 + (PRESENCE_TTL_MS - 1_000));
+const keptBeat = await runMeshOp("heartbeat", { node_id: "ttl-keep1" }, ttlEnv);
+assert.equal(keptBeat.ok, true, JSON.stringify(keptBeat));
+setMeshNowMs(t0 + PRESENCE_TTL_MS + 2 + PRESENCE_TTL_MS + 500);
+const stillKept = await runMeshOp("nodes", {}, ttlEnv);
+assert.ok(stillKept.nodes.some((n) => n.node_id === "ttl-keep1"), "heartbeat inside the window must keep the node");
+setMeshNowMs(t0 + PRESENCE_TTL_MS + 2 + PRESENCE_TTL_MS + 500 + PRESENCE_TTL_MS + 1);
+const droppedAfterKeep = await runMeshOp("nodes", {}, ttlEnv);
+assert.ok(!droppedAfterKeep.nodes.some((n) => n.node_id === "ttl-keep1"), "missed heartbeat after refresh must drop the node");
+resetMeshClock();
+resetMeshStore();
+
+const joinTool = listed.result.tools.find((t) => t.name === "mesh_join");
+assert.match(joinTool.description, /MESH-OFF/);
+assert.match(joinTool.description, /5-minute TTL|5-minute/);
+assert.equal(joinTool.inputSchema.required.includes("product"), true);
+assert.equal(joinTool.inputSchema.properties.node_id.pattern, "^[a-z0-9._-]+$");
+assert.deepEqual(joinTool.inputSchema.properties.presence.enum, ["live", "locked", "isolated"]);
+
 console.log(
-  `ok mesh ${RUNTIME_VERSION}: QNM-BUILD-1.0 rollup, suite-presence ON by default, disable refused, live/locked/isolated, MCP ${MESH_MCP_TOOLS.length} tools, FragGate slug=mesh`,
+  `ok mesh ${RUNTIME_VERSION}: QNM-BUILD-1.0 rollup, suite-presence ON by default, disable refused, live/locked/isolated, join TTL/MESH-OFF/validation, MCP ${MESH_MCP_TOOLS.length} tools, FragGate slug=mesh`,
 );
