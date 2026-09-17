@@ -14,7 +14,7 @@ Any of the following, once 2.0.0 is cut (and already treated as frozen for this 
 
 1. **Removing or renaming** a name in `PUBLIC_MCP_TOOLS`.
 2. **Adding** a public MCP tool without a minor that is explicitly documented as additive **and** still ≤ `PUBLIC_MCP_TOOL_MAX` (40). Adding a tool that changes the required list → describe → call flow, or re-introducing flat `{slug}_{op}` names, is breaking.
-3. Changing MCP `initialize` `protocolVersion`, `serverInfo.name`, or `capabilities.tools.listChanged`.
+3. Changing MCP `initialize` `serverInfo.name` or `capabilities.tools.listChanged`. Preferred `protocolVersion` may advance along the MCP date series (`2025-03-26` → `2025-06-18` → `2025-11-25`) when the transport honestly supports that revision; dropping accepted older dates, or advertising a date the transport does not implement, is breaking.
 4. Changing FragGate HTTP paths (`/v1/fraggate`, `/v1/fraggate/list`, `/v1/fraggate/describe`, `/v1/fraggate/verify`, `/v1/fraggate/call`, `/v1/fraggate/software`) or making public `fraggate_call` token-gated.
 5. Changing authority snapshot identity fields (`product`, `name`, `author`, `identity`, `role`, `door`) or making `version` / `engine_slugs` diverge across `/v1/health`, `/v1/ready`, `/v1/runtime.json`.
 6. Changing session receipt `kind` (`aziel-runtime.receipt`), hash algorithm, or signed-field set such that `verifyChainStrict` on an old chain fails.
@@ -35,6 +35,7 @@ Any of the following, once 2.0.0 is cut (and already treated as frozen for this 
 - Enriched listing metadata that does not change MCP/OpenAPI semantics (`glama.json` keywords already landed on 1.9.3).
 - Glama TDQS 5.0 `tools/list` description / parameter / annotation / `outputSchema` enrichment that does **not** rename tools, add tools, or change FragGate routing / Remain-OFF / refusal codes.
 - Tightening a refuse (more specific code, same `ok: false`) as long as previously-refused verbs stay refused.
+- Honest streamable-HTTP session headers (`Mcp-Session-Id`, `MCP-Protocol-Version`), `DELETE /mcp` teardown, and MCP-only `confirm` / `dry_run` on mutating tools. HTTP `POST /v1/fraggate/call` is not gated. No new public MCP tool name. No fake SSE. No invented OAuth IdP.
 
 ---
 

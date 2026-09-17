@@ -22,12 +22,14 @@ import { append as chainAppend, recall as chainRecall, verify as chainVerify } f
 import { storeFor } from "./chainlock/store.js";
 import { wrapToolOutput } from "./display.js";
 import {
+  CONFIRM_PARAM_NOTE,
   FRAGGATE_OUTPUT_SCHEMA,
   HINT_ADDITIVE,
   HINT_READ,
   mcpAnnotations,
   tdqsDescription,
   toolEnvelopeOutputSchema,
+  withConfirmProperties,
 } from "./mcp-schema.js";
 import { domainFields } from "./domain-map.js";
 import { boundMemoryMeta, MEMORY_META_CAP, SECRET_KEYS } from "./memory/meta.js";
@@ -714,15 +716,15 @@ export function memoryMcpTools() {
         instead: "chainlock_append, memory_resolve, or memory_recall",
         effects:
           "Write: additive learn-chain stamp. authorizes_action stays false. Hash-only cards refuse AKM-NO-FACT. Append-only; there is no memory_delete",
-        params: "fact is required (≤160). subject/memory_id/use_case optional",
+        params: "fact is required (≤160). subject/memory_id/use_case optional. " + CONFIRM_PARAM_NOTE,
         returns: "memory_id, observation stamp, and display envelope (belief is not truth)",
       }),
       annotations: mcpAnnotations("Observe a memory", HINT_ADDITIVE),
-      inputSchema: {
+      inputSchema: withConfirmProperties({
         ...base,
-        description: "fact is required. subject/memory_id/use_case optional.",
+        description: "fact is required. subject/memory_id/use_case optional. Mutation requires confirm=true or dry_run=true.",
         required: ["fact"],
-      },
+      }),
       outputSchema: FRAGGATE_OUTPUT_SCHEMA,
     },
     {
@@ -735,14 +737,14 @@ export function memoryMcpTools() {
         instead: "memory_observe, memory_calibrate, or memory_get",
         effects:
           "Write: additive resolution stamp. Missing memory_id/subject refuses AKM-NO-MEMORY. Does not rewrite prior observations. No memory_update — this is the forward outcome path",
-        params: "Requires memory_id or a previously observed subject. outcome is optional [0,1]; omit for UNKNOWN",
+        params: "Requires memory_id or a previously observed subject. outcome is optional [0,1]; omit for UNKNOWN. " + CONFIRM_PARAM_NOTE,
         returns: "resolution stamp with outcome or UNKNOWN",
       }),
       annotations: mcpAnnotations("Resolve a memory outcome", HINT_ADDITIVE),
-      inputSchema: {
+      inputSchema: withConfirmProperties({
         ...base,
         description:
-          "Requires memory_id or a previously observed subject. outcome may be omitted for UNKNOWN. Extra keys are accepted.",
+          "Requires memory_id or a previously observed subject. outcome may be omitted for UNKNOWN. Extra keys are accepted. Mutation requires confirm=true or dry_run=true.",
         properties: {
           ...baseProps,
           outcome: {
@@ -758,7 +760,7 @@ export function memoryMcpTools() {
               "Optional label (for example HIT, MISS, GRADED, UNKNOWN). UNKNOWN is a first-class state, not a miss.",
           },
         },
-      },
+      }),
       outputSchema: FRAGGATE_OUTPUT_SCHEMA,
     },
     {
@@ -772,14 +774,14 @@ export function memoryMcpTools() {
         instead: "memory_observe, memory_resolve, or memory_get",
         effects:
           "Write: forward-only RoseClock LEARN stamp. Posterior ≠ truth. authorizes_action=false. No automatic MODEL_UPDATE",
-        params: "subject or memory_id recommended. use_case labels calibration; it is not a permission",
+        params: "subject or memory_id recommended. use_case labels calibration; it is not a permission. " + CONFIRM_PARAM_NOTE,
         returns: "triad_score, omitted leg, posterior, effective N, and Brier notes",
       }),
       annotations: mcpAnnotations("Calibrate a memory", HINT_ADDITIVE),
-      inputSchema: {
+      inputSchema: withConfirmProperties({
         ...base,
-        description: "subject or memory_id recommended. Extra keys are accepted.",
-      },
+        description: "subject or memory_id recommended. Extra keys are accepted. Mutation requires confirm=true or dry_run=true.",
+      }),
       outputSchema: FRAGGATE_OUTPUT_SCHEMA,
     },
     {

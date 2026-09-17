@@ -76,8 +76,9 @@ Tool **names** are the contract (`PUBLIC_MCP_TOOLS`). `tools/list` **description
 
 ### MCP initialize
 
-- Transport: `POST /mcp` (HTTP JSON-RPC) or stdio (`cli/mcp-stdio.mjs`)
-- `protocolVersion`: `"2025-03-26"`
+- Transport: `POST /mcp` (HTTP JSON-RPC) or stdio (`cli/mcp-stdio.mjs`). `DELETE /mcp` tears down `Mcp-Session-Id`. No fake SSE (`GET` with `Accept: text/event-stream` is 405).
+- Preferred `protocolVersion`: `"2025-11-25"` (streamable HTTP session + protocol headers). Still accepts `"2025-06-18"` and `"2025-03-26"`. Invalid `MCP-Protocol-Version` is HTTP 400.
+- Mutating MCP tools (`fraggate_call`, `runtime_run`, session mutate, mesh join/leave/enable, chainlock append/seal, memory observe/resolve/calibrate) require `confirm=true` or `dry_run=true`. HTTP `POST /v1/fraggate/call` is unchanged. FragGate stays THE single door.
 - `serverInfo`: `{ name: "aziel-runtime", version: RUNTIME_VERSION }` plus optional listing fields (`title`, `websiteUrl`, `description`) that restate `2.0.0-rc1` and that `1.6.2` is superseded heritage. Name and version stay the contract.
 - `capabilities.tools.listChanged`: `false`
 - `instructions`: `mcpInitializeInstructions()` — pipeline list → describe → call; identity Aziel Eliab only
@@ -114,7 +115,8 @@ Other public HTTP surfaces that stay in the contract:
 | GET | `/v1/memory/{id}` | AKM read |
 | GET | `/v1/uses`, `/v1/stats` | Use counters (no PII) |
 | GET | `/v1/stats-rollups` | Read-only sibling views/downloads snapshot (best-effort; never invents) |
-| POST | `/mcp` | MCP JSON-RPC |
+| POST | `/mcp` | MCP JSON-RPC (echo session + protocol headers; preferred `2025-11-25`) |
+| DELETE | `/mcp` | Streamable HTTP session teardown (reuse → 404) |
 | GET | `/.well-known/mcp/server-card.json` | Honest MCP server card (auth none / public) |
 | GET | `/.well-known/oauth-protected-resource` | RFC 9728 public resource (no auth server) |
 

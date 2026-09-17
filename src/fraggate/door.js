@@ -559,6 +559,8 @@ function payloadWithoutMeta(src) {
     "payload",
     "session_id",
     "id",
+    "confirm",
+    "dry_run",
   ]);
   const out = {};
   for (const [k, v] of Object.entries(src || {})) {

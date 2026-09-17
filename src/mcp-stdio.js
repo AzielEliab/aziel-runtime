@@ -9,9 +9,11 @@
  * Logs go to stderr. Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
 
+import { MCP_PROTOCOL_PREFERRED } from "./mcp-transport.js";
+
 export const DEFAULT_RUNTIME_URL = "https://aziel-runtime.vibelock.workers.dev";
 export const DEFAULT_UA = "Mozilla/5.0";
-export const PROTOCOL = "2025-03-26";
+export const PROTOCOL = MCP_PROTOCOL_PREFERRED;
 
 const PARSE_ERROR = -32700;
 const INVALID_REQUEST = -32600;

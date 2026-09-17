@@ -24,7 +24,7 @@ console.log("describe", described.result?.structuredContent?.result?.slug || des
 
 const called = await mcp("tools/call", {
   name: "fraggate_call",
-  arguments: { slug: "aziel-corpus", op: "search", payload: { q: "Florence" } },
+  arguments: { slug: "aziel-corpus", op: "search", payload: { q: "Florence" }, confirm: true },
 });
 const result = called.result?.structuredContent?.result || called;
 console.log("search_count", result?.result?.count ?? result?.count ?? result);

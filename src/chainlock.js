@@ -12,12 +12,14 @@ import { seal, verify as verifyLockset, LS_VERSION } from "./lockset.js";
 import { arch, pipe, thinPipe, AZPIPE_VERSION } from "./azpipe.js";
 import {
   chainSelectProps,
+  CONFIRM_PARAM_NOTE,
   FRAGGATE_OUTPUT_SCHEMA,
   HINT_ADDITIVE,
   HINT_READ,
   mcpAnnotations,
   tdqsDescription,
   toolEnvelopeOutputSchema,
+  withConfirmProperties,
 } from "./mcp-schema.js";
 
 export {
@@ -109,15 +111,16 @@ export function chainlockMcpTools() {
         effects:
           "Write: additive append (append-only vault; no chainlock_delete). Hash-only or empty fact refuses no-fact. Unknown roster name refuses unknown-chain. Oversized card refuses card-cap. Does not write godlock.uk",
         params:
-          "Omit c/chain to stamp the session chain. Door aliases: chain→c, s→subject, f→fact, kind→k. Omit k to store kind stamp. subject clips to 80; fact clips to 160 then refuses if still empty",
+          "Omit c/chain to stamp the session chain. Door aliases: chain→c, s→subject, f→fact, kind→k. Omit k to store kind stamp. subject clips to 80; fact clips to 160 then refuses if still empty. " +
+          CONFIRM_PARAM_NOTE,
         returns: "the new stamp (id, h, fh, chain, seq) plus display envelope",
       }),
       annotations: mcpAnnotations("ChainLock append", HINT_ADDITIVE),
-      inputSchema: {
+      inputSchema: withConfirmProperties({
         type: "object",
         additionalProperties: true,
         description:
-          "fact is required. Omit c/chain to stamp session. Extra keys such as s/f/kind are aliases; they do not change the append-only rule.",
+          "fact is required. Omit c/chain to stamp session. Extra keys such as s/f/kind are aliases; they do not change the append-only rule. Mutation requires confirm=true or dry_run=true.",
         properties: {
           ...chainSelectProps("Omit both to stamp the session chain."),
           subject: {
@@ -137,7 +140,7 @@ export function chainlockMcpTools() {
           },
         },
         required: ["fact"],
-      },
+      }),
       outputSchema: toolEnvelopeOutputSchema(
         "Append body: ok, stamp (id, c, k, fact, fh, stamp_sha256, prev), card, seq, vault path. Refuses: no-fact, unknown-chain, card-cap.",
       ),
@@ -245,15 +248,16 @@ export function chainlockMcpTools() {
         effects:
           "Write: replaces receipts/LOCKSET.json. Empty vault (no live tip on any roster chain) refuses empty-vault. Empty chains are omitted from members, not invented. Runtime cites godlock.uk and does not write the public ledger — the operator posts lockset_sha256. A later seal overwrites the previous local lockset",
         params:
-          "Empty {} still attempts the seal. Omit ts so TemporalLock stamps now. Passing ts labels that receipt only and never backdates seal authority or prior stamps",
+          "Empty {} still attempts the seal. Omit ts so TemporalLock stamps now. Passing ts labels that receipt only and never backdates seal authority or prior stamps. " +
+          CONFIRM_PARAM_NOTE,
         returns: "lockset document (members, temporal, godlock cite) and lockset_sha256",
       }),
       annotations: mcpAnnotations("LOCKSET seal", HINT_ADDITIVE),
-      inputSchema: {
+      inputSchema: withConfirmProperties({
         type: "object",
         additionalProperties: true,
         description:
-          "No required arguments. Empty {} seals current live tips. Optional ts is TemporalLock metadata only.",
+          "No required arguments. Empty {} seals current live tips. Optional ts is TemporalLock metadata only. Mutation requires confirm=true or dry_run=true.",
         properties: {
           ts: {
             type: "string",
@@ -261,7 +265,7 @@ export function chainlockMcpTools() {
               "Optional ISO-8601 timestamp copied onto the TemporalLock block. Omit to use now. Never backdates authority, prior stamps, or godlock.uk.",
           },
         },
-      },
+      }),
       outputSchema: toolEnvelopeOutputSchema(
         "Seal body: ok, lockset (members, temporal, godlock, lockset_sha256), or refuse empty-vault when no live tips exist. Does not write godlock.uk.",
       ),

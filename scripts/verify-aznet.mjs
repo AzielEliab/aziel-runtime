@@ -284,7 +284,7 @@ const mcp = await post("/mcp", {
   jsonrpc: "2.0",
   id: 1,
   method: "tools/call",
-  params: { name: "fraggate_call", arguments: { slug: "aznet", op: "pair_status", payload: {} } },
+  params: { name: "fraggate_call", arguments: { slug: "aznet", op: "pair_status", payload: {}, confirm: true } },
 });
 assert.equal(mcp.result.structuredContent.code, "FG-OK");
 assert.equal(mcp.result.structuredContent.result.slug, "aznet");
