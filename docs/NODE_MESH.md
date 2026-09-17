@@ -43,7 +43,7 @@ This page remains the live **QNM-BUILD-1.0** rollup law. Do not rewrite that law
 
 ## Nine laws (hard-true)
 
-These are **not** soft docs. `GET /v1/mesh` and `GET /v1/mesh/status` publish machine fields. A violation takes a **published** refuse code. Close test: `scripts/verify-mesh-nine-laws.mjs`. Papers: [SEC-FEAT-1.0](designs/SEC-FEAT-1.0.md), [NODE-OPS-1.0](designs/NODE-OPS-1.0.md), [QNM-WP-1.0](designs/QNM-WP-1.0.md). **GodLock is a product name, not identity.** Identity is **Aziel Eliab** only. Cap-7 stays `resolves_to_hub: false`.
+These are **not** soft docs. `GET /v1/mesh` and `GET /v1/mesh/status` publish machine fields. A violation takes a **published** refuse code. Close test: `scripts/verify-mesh-nine-laws.mjs`. Papers: [SEC-FEAT-1.0](designs/SEC-FEAT-1.0.md), [NODE-OPS-1.0](designs/NODE-OPS-1.0.md), [QNM-WP-1.0](designs/QNM-WP-1.0.md). **GodLock is a product name, not identity.** Identity is **Aziel Eliab** only. Cap-7 stays `resolves_to_hub: false`. Worker-launch cite fields on the same JSON: `hashtag_parts` (`#aziel`, `#runtime`), `author_id` `https://www.azieleliab.com/#aziel`, `runtime_id` `https://www.azieleliab.com/runtime#runtime`, and always-About (`about.path` `/about`). Cite only — not a control-panel UI.
 
 | Law | LIVE field | Refuse |
 | --- | --- | --- |

@@ -108,7 +108,7 @@ import {
 import { meshGetEnableRefuse, meshGetLooksLikeEnable } from "./redline.js";
 import { dispatchAzGeneratorHttp, semanticBridgeCiteField } from "./semantic-bridge.js";
 import { durabilityLabels } from "./durability-labels.js";
-import { nineLawsFrame, nineLawsHint, refuseNineLawGet, refuseNineLawViolation } from "./mesh-nine-laws.js";
+import { nineLawsFrame, nineLawsHint, nineLawsLaunchCite, refuseNineLawGet, refuseNineLawViolation } from "./mesh-nine-laws.js";
 
 export const MESH_SLUG = "mesh";
 export const MESH_NAME = "Quantum Node Mesh";
@@ -407,6 +407,7 @@ export function meshHint(path = "/v1/mesh") {
     ...noLieFrame(),
     no_lie_hint: noLieHint(),
     nine_laws: nineLawsHint(),
+    ...nineLawsLaunchCite(),
     clocks_share_socket: false,
     live_body_sync: false,
     node_gate: false,
@@ -422,6 +423,7 @@ export function meshCiteField(origin) {
   const base = String(origin || "").replace(/\/$/, "");
   return {
     ...meshHint("/v1/mesh"),
+    ...nineLawsLaunchCite(origin),
     name: MESH_NAME,
     identity: MESH_AUTHOR,
     status: base ? `${base}/v1/mesh/status` : "/v1/mesh/status",
@@ -432,7 +434,7 @@ export function meshCiteField(origin) {
     node_gate: false,
     qnm_s: false,
     nine_laws: nineLawsHint(),
-    note: "Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Not a login mesh. Not a Node Gate. Nine QNM laws are hard-true (fields + published refuse codes). NO-LIE / NO-REWRITE: no rewrite key; never lie to survive. COLD-MULTI-SHELF-1.0: GET /shelves cites corpus#96 honesty.",
+    note: "Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Not a login mesh. Not a Node Gate. Nine QNM laws are hard-true (fields + published refuse codes). Worker-launch cite: hashtag parts #aziel / #runtime and always About Aziel (/about). NO-LIE / NO-REWRITE: no rewrite key; never lie to survive. COLD-MULTI-SHELF-1.0: GET /shelves cites corpus#96 honesty.",
     survival: survivalCiteField(),
     semantic_bridge: semanticBridgeCiteField(base),
   };
