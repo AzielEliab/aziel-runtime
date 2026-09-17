@@ -316,7 +316,7 @@ export function aboutPageHtml(origin, css) {
   const base = String(origin || "").replace(/\/$/, "");
   const about = runtimeAboutField(origin);
   const notItems = about.not.map((line) => `    <li>${escapeHtml(line)}</li>`).join("\n");
-  const inner = `  <p><a href="${base}/">← ${escapeHtml(PRODUCT_NAME)}</a> · <a href="${base}/v1/software">Softwares</a></p>
+  const inner = `  <p><a href="${base}/">← ${escapeHtml(PRODUCT_NAME)}</a> · <a href="${base}/workspace">Use in browser</a> · <a href="${base}/v1/software">Softwares</a></p>
   <h1>About ${escapeHtml(PRODUCT_NAME)}</h1>
   <p class="lead">${escapeHtml(RUNTIME_ABSTRACT)}</p>
 ${distributionDoorsHtml(base)}
@@ -359,10 +359,13 @@ export function softwareCatalogHtml(origin, catalog, css) {
         ? ` · <a href="${escapeHtml(s.worker_home)}">Worker</a>`
         : "";
       const gh = s.github ? ` · <a href="${escapeHtml(s.github)}">GitHub</a>` : "";
-      return `    <li data-slug="${escapeHtml(s.slug)}"><a href="${escapeHtml(card)}">${escapeHtml(s.name)}</a> <span class="slug">${escapeHtml(s.bucket)} · ${escapeHtml(s.status)}</span> — ${escapeHtml(s.one_line || "")} · <a href="${escapeHtml(describe)}">describe</a>${home}${gh}</li>`;
+      const use = ` · <a href="${escapeHtml(base)}/workspace#task-${escapeHtml(s.slug)}">Use in browser</a>`;
+      const download = s.download_url ? ` · <a href="${escapeHtml(s.download_url)}">Download desktop</a>` : "";
+      const hay = `${s.name} ${s.slug} ${s.bucket} ${s.status} ${s.one_line || ""}`.toLowerCase();
+      return `    <li data-software-row data-slug="${escapeHtml(s.slug)}" data-bucket="${escapeHtml(s.bucket || "")}" data-search="${escapeHtml(hay)}"><a href="${escapeHtml(card)}">${escapeHtml(s.name)}</a> <span class="slug">${escapeHtml(s.bucket)} · ${escapeHtml(s.status)}</span> — ${escapeHtml(s.one_line || "")}${use}${download} · <a href="${escapeHtml(base)}/mcp">Connect AI</a> · <a href="${escapeHtml(describe)}">describe</a>${home}${gh}</li>`;
     })
     .join("\n");
-  const inner = `  <p><a href="${base}/">← ${escapeHtml(PRODUCT_NAME)}</a></p>
+  const inner = `  <p><a href="${base}/">← ${escapeHtml(PRODUCT_NAME)}</a> · <a href="${base}/workspace">Use in browser</a></p>
   <h1>Softwares</h1>
   <p class="lead">${escapeHtml(SOFTWARE_PAGE_DESCRIPTION)}</p>
 ${distributionDoorsHtml(base)}
@@ -372,10 +375,43 @@ ${namedComponentsHtml()}
   <h2>Softwares hubs</h2>
   ${hubListHtml()}
   <p>AZCoherence (AZC-0.1): <a href="${base}/v1/fraggate/describe?slug=azcoherence">describe</a> · <a href="${AZCOHERENCE_GITHUB}">GitHub</a> · <a href="${AZCOHERENCE_WORKER}/">Worker</a>. Not AKM-TRIAD.</p>
+  <div class="field">
+    <label for="software-filter">Search Softwares (name, slug, or task)</label>
+    <input id="software-filter" type="search" placeholder="foldlock, receipt, browser…" autocomplete="off">
+  </div>
+  <div class="field">
+    <label for="software-lane">Lane</label>
+    <select id="software-lane">
+      <option value="all" selected>All</option>
+      <option value="plain">Plain</option>
+      <option value="gate">Gate</option>
+      <option value="lock">Lock</option>
+    </select>
+  </div>
   <h2>Catalog</h2>
   <ol>
 ${rows}
   </ol>
+  <script>
+(function () {
+  var input = document.getElementById("software-filter");
+  var lane = document.getElementById("software-lane");
+  var items = document.querySelectorAll("[data-software-row]");
+  function apply() {
+    var q = String(input && input.value || "").toLowerCase().trim();
+    var want = String(lane && lane.value || "all");
+    items.forEach(function (li) {
+      var hay = String(li.getAttribute("data-search") || "");
+      var bucket = String(li.getAttribute("data-bucket") || "");
+      var okQ = !q || hay.indexOf(q) !== -1;
+      var okL = want === "all" || bucket === want;
+      li.hidden = !(okQ && okL);
+    });
+  }
+  if (input) input.addEventListener("input", apply);
+  if (lane) lane.addEventListener("change", apply);
+})();
+  </script>
   <h2>Mesh-resident website designs</h2>
   <p class="secondary"><strong>azcorpus</strong> + <strong>azlibrary</strong> are website designs on the library hub, downloadable to nodes. Named on <code>GET /v1/software</code> <code>website_designs</code> and <code>runtime_skill</code>. Not extra Softwares. Not FragGate slugs. Download is open for all AI clients. <strong>azlibrary upload</strong> is API token only — never embed the secret.</p>`;
   return documentShell(
