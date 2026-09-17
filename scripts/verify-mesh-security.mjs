@@ -218,6 +218,22 @@ const afterEnableGet = await jsonReq(env, "/v1/mesh");
 assert.deepEqual(afterEnableGet.data.bearers, ["suite-presence"]);
 gate("GET-ENABLE-REFUSE", "GET ?enable=true refuses MESH-GET-NEVER-ENABLES");
 
+assert.equal(firstGet.data.nine_laws.hard_true, true);
+assert.equal(firstGet.data.clocks_share_socket, false);
+assert.equal(firstGet.data.live_body_sync, false);
+assert.equal(firstGet.data.isolation_is_the_cure, true);
+assert.equal(firstGet.data.phoenix_local_only, true);
+assert.equal(firstGet.data.restore_godlock_uk, false);
+assert.equal(firstGet.data.neighbor_heal, false);
+assert.equal(firstGet.data.node_gate, false);
+assert.equal(firstGet.data.implicit_heal, false);
+assert.equal(firstGet.data.anonymity_network, false);
+assert.equal(firstGet.data.godlock_is_identity, false);
+assert.match(secFeat, /Nine QNM laws are hard-true/);
+assert.match(nodeMesh, /Nine laws \(hard-true\)/);
+assert.match(nodeOps, /Nine QNM laws are hard-true/);
+gate("NINE-LAWS", "nine laws hard-true on GET /v1/mesh + paper cites");
+
 // request-path fan-out refreshes {slug}-worker only — extra bearers stay off
 const waited = waitUntilCtx();
 const getWithFanout = await jsonReq(env, "/v1/mesh", {}, waited.ctx);

@@ -41,6 +41,24 @@ This page remains the live **QNM-BUILD-1.0** rollup law. Do not rewrite that law
 - **Cap-7 semantic bridge:** mesh-name factory is **MirageGrid-only**. Names inherit hub **designs** only (library hub carries mesh-resident **azcorpus** + **azlibrary**). `resolves_to_hub: false`. `name_may_change: true`. Canonical hubs immutable. Not aliases of the four ICANN hostnames. Not a fifth product. `GET /v1/mesh/az-generator` and MirageGrid Worker `/bridge` are cite-only. No live AZ-GEN registrar. No fake ICANN `.az`. No visible 15:20. `GET /v1/mesh` never enables radios. AZNet + AZBrowser browse the mesh via FragGate. Plane A hubs mirror tips.
 - **COLD-MULTI-SHELF-1.0:** `GET /shelves` cites live corpus `/shelves` (corpus#96). Plane A = 5 published surfaces / 2 family radii / 1 independent live (`cf-github`). Plane B is alt-forge SLOT (Codeberg + archive.org hash-verify PASS still SLOT at https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius; Framagit URL null; GitFlic refused `CNS-GITFLIC-EMAIL`; GitLab refused `CNS-GITLAB-CF-LOOP`; Zenodo refused `CNS-ZENODO-IP-BAN`; `doi` null). Plane C USB SLOT until `CNS-OPERATOR-ATTEST`. This Worker is the same Plane A tunnel, not a sixth surface. Paper: [COLD-MULTI-SHELF-1.0](designs/COLD-MULTI-SHELF-1.0.md).
 
+## Nine laws (hard-true)
+
+These are **not** soft docs. `GET /v1/mesh` and `GET /v1/mesh/status` publish machine fields. A violation takes a **published** refuse code. Close test: `scripts/verify-mesh-nine-laws.mjs`. Papers: [SEC-FEAT-1.0](designs/SEC-FEAT-1.0.md), [NODE-OPS-1.0](designs/NODE-OPS-1.0.md), [QNM-WP-1.0](designs/QNM-WP-1.0.md). **GodLock is a product name, not identity.** Identity is **Aziel Eliab** only. Cap-7 stays `resolves_to_hub: false`. Worker-launch cite fields on the same JSON: `hashtag_parts` (`#aziel`, `#runtime`), `author_id` `https://www.azieleliab.com/#aziel`, `runtime_id` `https://www.azieleliab.com/runtime#runtime`, and always-About (`about.path` `/about`). Cite only — not a control-panel UI.
+
+| Law | LIVE field | Refuse |
+| --- | --- | --- |
+| Split the wires | `clocks_share_socket: false`, `tick_plane: "presence-tip-hash"`, `payload_plane: "receiver-pull"` | `MESH-NO-BYTES` (body/diff/file on the tick); `MESH-BAD-INPUT` if `clocks_share_socket` is forced true |
+| Cold-copy survival | `live_body_sync: false`, `named_hosts_only: true`, `tip_content_addressed: true` | `MESH-NO-BYTES` |
+| REHEAL refuse | `isolation_is_the_cure: true`, `neighbor_heal: false`, `vote_to_fix: false` | `MESH-NO-NEIGHBOR-HEAL` |
+| Phoenix local only | `phoenix_local_only: true`, `neighbor_phoenix: false`, `public_hostname_resurrection: false` | `MESH-STUB` |
+| Die-with-pull (no godlock.uk back) | `die_with_pull: true`, `restore_godlock_uk: false`, `climb_public_hostname: false` | `MESH-STUB` |
+| No neighbor talk-back-to-health | `neighbor_heal: false`, `apply_last_packet_on_heartbeat_loss: false` | `MESH-NO-NEIGHBOR-HEAL` |
+| No Node Gate | `node_gate: false`, `get_is_node_gate: false`, `ip_panel: false`, `login_recovery: false` | `MESH-STUB` (GET `/v1/mesh?node_gate=true` is 405) |
+| No auto-heal | `implicit_heal: false`, `auto_heal: false`, `heartbeat_loss_isolates: false`, `apply_last_packet: false` | `MESH-STUB` |
+| Not an anonymity network | `anonymity_network: false`, `vpn: false`, `origin_hiding: false` | `MESH-STUB` |
+
+No new MCP tool. FragGate stays the only public exec door.
+
 ## What this Worker is
 
 | This is | This is not |
@@ -170,6 +188,7 @@ if (url.pathname === "/v1/mesh" || url.pathname.startsWith("/v1/mesh/")) {
 - Cold-copy survival: multiply cold copies; no live body sync; tip expensive to erase; unkillable by single-server pull; payloads pull-only cold; named hosts only.
 - Re-expand-from-archive: bytes survive, not summaries; restore after prev-hash verify; not mesh from index; crawlers extra shelves only; training residue is rumor.
 - REHEAL: isolation is the cure; own last good tip + verified trusted pull, or phoenix-WAIT; never neighbor talk-back-to-health; no bodies / diffs / vote-to-fix.
+- Nine laws are hard-true on `GET /v1/mesh`: machine fields + published refuse codes. GodLock is a product name, not identity. Die-with-pull does not restore godlock.uk. Not a Node Gate. Not a VPN.
 - CROSS-NETWORK-SURVIVAL-1.0: if network and data die tomorrow, the chain survives on cold shelves (hosts / DOI / git / vault). All prior laws sit under that sentence. The live mesh is not a shelf.
 - Broadcast never accepts `video` / `bytes` / `file` / `mp4` / `publish` fields.
 - Public identity is Aziel Eliab only.
