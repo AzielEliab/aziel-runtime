@@ -19,7 +19,7 @@ import { brandRow, ecosystemBlockHtml, headMeta } from "./seo-html.js";
 
 export const WORKSPACE_PAGE_TITLE = `Workspace — ${PRODUCT_NAME}`;
 export const WORKSPACE_PAGE_DESCRIPTION =
-  "Human workspace for Aziel Runtime: FragGate list → describe → call, labeled Softwares tasks, live mesh counts, optional session strip. Same door as MCP. Identity Aziel Eliab only.";
+  "Human workspace for Aziel Runtime: operator control panel, dashboard (Softwares grid + live mesh + receipts), and FragGate list → describe → call. Same door as MCP. Identity Aziel Eliab only.";
 
 const CALL_TIMEOUT_MS = 20000;
 
@@ -163,6 +163,33 @@ export const HUMAN_UI_CSS = `
   .task-hidden{display:none}
   .receipt-row{margin:.45rem 0 0}
   .receipt-row a,.receipt-row button{font-size:.85rem}
+  .op-panel{border:1px solid #7a6224;background:#1a160c;border-radius:12px;padding:.85rem .95rem 1rem;margin:0 0 1.15rem}
+  .op-panel h3{margin:.05rem 0 .35rem}
+  .op-rack{display:flex;flex-direction:column;gap:.65rem}
+  .op-row{display:grid;gap:.45rem .55rem;align-items:end;border:1px solid #3d3420;border-radius:10px;padding:.55rem .65rem;background:#14110a}
+  @media (min-width:56rem){
+    .op-row.fg{grid-template-columns:minmax(7rem,1fr) minmax(6rem,.8fr) minmax(8rem,1.4fr) auto}
+    .op-row.mesh{grid-template-columns:auto auto auto minmax(7rem,1fr) auto auto}
+    .op-row.sess{grid-template-columns:minmax(8rem,1fr) minmax(8rem,1fr) auto}
+  }
+  .op-row .field{margin:0}
+  .op-soft{display:flex;flex-wrap:wrap;gap:.35rem}
+  .metric-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.65rem;margin:0 0 1rem}
+  @media (min-width:40rem){ .metric-grid{grid-template-columns:repeat(4,minmax(0,1fr))} }
+  .metric{border:1px solid #2a3140;border-radius:10px;padding:.7rem .8rem;background:#151922}
+  .metric .label{display:block;color:#9aa3b2;font-size:.78rem;letter-spacing:.03em;text-transform:uppercase}
+  .metric .value{display:block;font-size:1.45rem;font-weight:700;color:#f0d78c;margin:.15rem 0 0}
+  .dash{margin:1.2rem 0 0}
+  .sw-grid{display:grid;gap:.7rem;margin:.5rem 0 1rem}
+  @media (min-width:40rem){ .sw-grid{grid-template-columns:1fr 1fr} }
+  @media (min-width:64rem){ .sw-grid{grid-template-columns:1fr 1fr 1fr} }
+  .dash-card{border:1px solid #2a3140;border-radius:10px;padding:.7rem .8rem;background:#151922}
+  .dash-card h4{margin:.05rem 0 .25rem;font-size:.98rem}
+  .dash-card .blurb{min-height:2.4rem}
+  .receipt-board{border:1px solid #2a3140;border-radius:10px;padding:.75rem .85rem;background:#12151c}
+  .receipt-log{list-style:none;margin:.4rem 0 0;padding:0}
+  .receipt-log li{border-top:1px solid #2a3140;padding:.45rem 0;font-size:.88rem}
+  .op-out{max-height:12rem}
 `;
 
 function fieldHtml(task, field, idx) {
@@ -201,17 +228,110 @@ function productOptions(products) {
     .join("");
 }
 
+function primaryOpFor(slug) {
+  const task = HUMAN_TASKS.find((t) => t.slug === slug);
+  if (task) return task.op;
+  const ops = LIVE_OPS[slug] || [];
+  return ops.find((op) => op !== "health" && op !== "skill") || ops[0] || "health";
+}
+
+function dashCardHtml(p, origin) {
+  const base = String(origin || "").replace(/\/$/, "");
+  const live = hasLiveDoor(p.slug);
+  const op = primaryOpFor(p.slug);
+  const task = HUMAN_TASKS.find((t) => t.slug === p.slug);
+  const door = live
+    ? `<button type="button" class="dash-run" data-slug="${escapeHtml(p.slug)}" data-op="${escapeHtml(op)}">Run ${escapeHtml(op)}</button>`
+    : `<span class="slug">local only — no public FragGate door</span>`;
+  const fields = task
+    ? `<a href="#task-${escapeHtml(p.slug)}">Labeled fields</a>`
+    : `<a href="${escapeHtml(base)}/p/${escapeHtml(p.slug)}">Product card</a>`;
+  const hay = `${p.name} ${p.slug} ${p.oneLine || ""}`.toLowerCase();
+  return `<article class="dash-card" data-dash-slug="${escapeHtml(p.slug)}" data-search="${escapeHtml(hay)}">
+  <h4><a href="${escapeHtml(base)}/p/${escapeHtml(p.slug)}">${escapeHtml(p.name)}</a> <span class="slug">${escapeHtml(p.slug)}</span></h4>
+  <p class="blurb">${escapeHtml(p.oneLine || "")}</p>
+  <div class="actions">${door} ${fields} <a href="${escapeHtml(base)}/mcp">Connect AI</a></div>
+</article>`;
+}
+
+function operatorSoftButtons() {
+  return HUMAN_TASKS.map(
+    (t) =>
+      `<button type="button" data-op-soft="${escapeHtml(t.slug)}" data-op="${escapeHtml(t.op)}">${escapeHtml(t.name)} ${escapeHtml(t.op)}</button>`,
+  ).join("\n      ");
+}
+
 export function workspacePaneHtml(origin, products) {
   const base = String(origin || "").replace(/\/$/, "");
   const tasks = HUMAN_TASKS.map(taskCardHtml).join("\n");
   const slugs = productOptions(products);
+  const dashCards = (products || []).map((p) => dashCardHtml(p, base)).join("\n");
   return `<section class="workspace" id="workspace" aria-labelledby="workspace-title">
   <h2 id="workspace-title">What do you want to do?</h2>
-  <p class="hint">Human workspace first. Same FragGate door as MCP <code>fraggate_call</code> / <code>POST ${escapeHtml(base)}/v1/fraggate/call</code>. Architecture, cite, and version history stay below. Identity ${escapeHtml(AUTHOR_NAME)} only.</p>
+  <p class="hint">Human workspace first. Operator control panel + dashboard below. Same FragGate door as MCP <code>fraggate_call</code> / <code>POST ${escapeHtml(base)}/v1/fraggate/call</code>. Architecture, cite, and version history stay below. Identity ${escapeHtml(AUTHOR_NAME)} only.</p>
   <div class="ws-filter field">
     <label for="task-filter">Search tasks</label>
     <input id="task-filter" type="search" placeholder="decisiongate, fold, mesh…" autocomplete="off">
   </div>
+
+  <section class="op-panel" id="op-panel" data-origin="${escapeHtml(base)}" aria-labelledby="op-panel-title">
+    <h3 id="op-panel-title">Operator control panel</h3>
+    <p class="blurb">Off-the-shelf rack. FragGate call, Softwares ops, mesh, session. Same door — not a second exec path.</p>
+    <div class="op-rack">
+      <div class="op-row fg">
+        <div class="field">
+          <label for="op-fg-name">Name / slug</label>
+          <input id="op-fg-name" name="op_name" type="text" value="decisiongate" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="field">
+          <label for="op-fg-op">Operation</label>
+          <input id="op-fg-op" name="op_op" type="text" value="health" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="field">
+          <label for="op-fg-payload">Payload JSON</label>
+          <textarea id="op-fg-payload" name="op_payload">{}</textarea>
+        </div>
+        <div class="actions">
+          <button type="button" data-op-console="list">List</button>
+          <button type="button" data-op-console="describe">Describe</button>
+          <button type="button" data-op-console="call">Call</button>
+        </div>
+      </div>
+      <div class="op-row">
+        <p class="hint" style="margin:0">Softwares ops (labeled primary verbs)</p>
+        <div class="op-soft">
+      ${operatorSoftButtons()}
+        </div>
+      </div>
+      <div class="op-row mesh">
+        <p class="ws-status" id="op-mesh-line" data-state="loading">Loading status</p>
+        <div class="field">
+          <label for="op-mesh-product">Product slug</label>
+          <input id="op-mesh-product" name="op_product" type="text" list="mesh-product-list" placeholder="foldlock" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="actions">
+          <button type="button" data-op-mesh="status">Refresh mesh</button>
+          <button type="button" data-op-mesh="join">Join</button>
+        </div>
+      </div>
+      <div class="op-row sess">
+        <div class="field">
+          <label for="op-sess-token">Operator token (header only)</label>
+          <input id="op-sess-token" name="op_token" type="password" autocomplete="off" placeholder="empty if public session is open">
+        </div>
+        <div class="field">
+          <label for="op-sess-id">Session id</label>
+          <input id="op-sess-id" name="op_session_id" type="text" placeholder="filled after open" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="actions">
+          <button type="button" data-op-sess="open">Open</button>
+          <button type="button" data-op-sess="receipt">Receipt</button>
+          <button type="button" data-op-sess="close">Close</button>
+        </div>
+      </div>
+    </div>
+    <pre class="ws-out fg-out op-out" id="op-panel-out" role="status" aria-live="polite">Operator rack ready. FragGate list → describe → call.</pre>
+  </section>
 
   <section class="task" id="fg-console" data-kind="console" data-origin="${escapeHtml(base)}">
     <h3>FragGate console</h3>
@@ -289,6 +409,36 @@ export function workspacePaneHtml(origin, products) {
     </div>
   </section>
 
+  <section class="dash" id="dashboard" aria-labelledby="dashboard-title">
+    <h3 id="dashboard-title">Dashboard</h3>
+    <p class="hint">Browseable Softwares + live mesh counts + receipts. Metrics come from <code>GET /v1/mesh</code> and <code>GET /v1/receipts</code>. GET never enables radios.</p>
+    <div class="metric-grid" id="dash-metrics">
+      <div class="metric"><span class="label">Live</span><span class="value" id="metric-live">—</span></div>
+      <div class="metric"><span class="label">Locked</span><span class="value" id="metric-locked">—</span></div>
+      <div class="metric"><span class="label">Isolated</span><span class="value" id="metric-isolated">—</span></div>
+      <div class="metric"><span class="label">Radios</span><span class="value" id="metric-radios">—</span></div>
+    </div>
+    <h3 id="dash-softwares-title">Softwares</h3>
+    <div class="field">
+      <label for="dash-filter">Search Softwares</label>
+      <input id="dash-filter" type="search" placeholder="foldlock, receipt, browser…" autocomplete="off">
+    </div>
+    <div class="sw-grid" id="dash-softwares">
+${dashCards}
+    </div>
+    <pre class="ws-out fg-out" id="dash-out" role="status" aria-live="polite">Pick a Software card. FragGate only.</pre>
+    <div class="receipt-board" id="dash-receipts">
+      <h3>Receipts</h3>
+      <p class="blurb">ACT-RECEIPT-1.0 cite from <code>GET /v1/receipts</code>. Public chain lives on the corpus. Fail-open without an append token. Local mints from this pane are listed below — hosted never stores files.</p>
+      <p class="ws-status" id="receipt-cite-line" data-state="loading">Loading receipts cite…</p>
+      <pre class="ws-out fg-out" id="receipt-cite-out" role="status">GET ${escapeHtml(base)}/v1/receipts</pre>
+      <div class="actions">
+        <button type="button" id="receipt-refresh">Refresh receipts cite</button>
+      </div>
+      <ol class="receipt-log" id="dash-receipt-log"></ol>
+    </div>
+  </section>
+
   <details class="task" id="session-strip">
     <summary><strong>Session strip (advanced)</strong> — open / policy / exec / receipt / close</summary>
     <p class="blurb">Optional. Public FragGate call stays open — the tasks above do not need a session. When <code>REQUIRE_TOKEN=1</code>, mutate needs a header-only operator token (<code>Authorization: Bearer</code> or <code>X-Aziel-Runtime-Token</code>). Never put the token in the query string or JSON body.</p>
@@ -336,8 +486,10 @@ export function humanNavHtml(origin, { current } = {}) {
   return `<a class="skip-workspace" href="${current === "workspace" ? "#workspace" : "#workspace"}">Skip to workspace</a>
 <nav class="human-nav" aria-label="Human workspace">
   <a href="${escapeHtml(ws)}">Workspace</a>
+  <a href="#op-panel">Control panel</a>
   <a href="${current === "workspace" ? "#fg-console" : "#fg-console"}">FragGate console</a>
   <a href="${current === "workspace" ? "#tasks" : "#tasks"}">Tasks</a>
+  <a href="#dashboard">Dashboard</a>
   <a href="${current === "workspace" ? "#mesh-panel" : "#mesh-panel"}">Mesh</a>
   <a href="${current === "workspace" ? "#session-strip" : "#session-strip"}">Session</a>
   <a href="${escapeHtml(home)}#cite">Cite / docs</a>
@@ -453,8 +605,10 @@ export function humanDoorScript() {
     let payload = {};
     box.querySelectorAll("[name]").forEach(function (el) {
       if (el.closest("#fg-console") && box.id !== "fg-console") return;
+      if (el.closest("#op-panel") && box.id !== "op-panel") return;
+      if (el.closest("#dashboard") && box.id !== "dashboard") return;
       let name = el.getAttribute("name");
-      if (!name || name === "token") return;
+      if (!name || name === "token" || name === "op_token") return;
       if (el.getAttribute("data-list") === "1") payload[name] = linesToList(el.value);
       else if (name === "confidence") {
         let n = Number(el.value);
@@ -553,7 +707,9 @@ export function humanDoorScript() {
     box.querySelectorAll(".run-task").forEach(function (btn) {
       btn.addEventListener("click", function () {
         let payload = collectFields(box);
-        fraggateCall(origin, slug, btn.getAttribute("data-op") || box.getAttribute("data-op"), payload, out, btn);
+        fraggateCall(origin, slug, btn.getAttribute("data-op") || box.getAttribute("data-op"), payload, out, btn).then(function (got) {
+          if (slug === "forgereceipts") rememberReceipt("forgereceipts", got && got.body);
+        });
       });
     });
   });
@@ -581,6 +737,8 @@ export function humanDoorScript() {
     let out = document.getElementById("mesh-out");
     let line = document.getElementById("mesh-status-line");
     if (line) { line.textContent = "Loading status"; line.setAttribute("data-state", "loading"); }
+    let opLine = document.getElementById("op-mesh-line");
+    if (opLine) { opLine.textContent = "Loading status"; opLine.setAttribute("data-state", "loading"); }
     request(origin + "/v1/mesh", { headers: { accept: "application/json" } }, out, btn).then(function (got) {
       if (!got || !got.body) return;
       let b = got.body;
@@ -589,11 +747,24 @@ export function humanDoorScript() {
       let locked = roll.locked != null ? roll.locked : b.locked_nodes;
       let isolated = roll.isolated != null ? roll.isolated : b.isolated_nodes;
       let radios = b.radios || (b.enabled ? "on" : "off");
+      let text = "live " + live + " · locked " + locked + " · isolated " + isolated + " · radios " + radios + " · suite-presence " + (b.suite_presence || "on") + " · GET never enables";
+      if (b.nine_laws && b.nine_laws.hard_true === true) text += " · nine laws hard-true";
       if (line) {
-        var laws = b.nine_laws && b.nine_laws.hard_true === true ? " · nine laws hard-true" : "";
-        line.textContent = "live " + live + " · locked " + locked + " · isolated " + isolated + " · radios " + radios + " · suite-presence " + (b.suite_presence || "on") + " · GET never enables" + laws;
+        line.textContent = text;
         line.setAttribute("data-state", "ready");
       }
+      if (opLine) {
+        opLine.textContent = text;
+        opLine.setAttribute("data-state", "ready");
+      }
+      let setMetric = function (id, value) {
+        let el = document.getElementById(id);
+        if (el) el.textContent = value == null ? "—" : String(value);
+      };
+      setMetric("metric-live", live);
+      setMetric("metric-locked", locked);
+      setMetric("metric-isolated", isolated);
+      setMetric("metric-radios", radios);
     });
   }
   if (mesh) {
@@ -614,14 +785,71 @@ export function humanDoorScript() {
     });
     refreshMesh();
   }
+  let opPanel = document.getElementById("op-panel");
+  if (opPanel) {
+    let origin = opPanel.getAttribute("data-origin") || "";
+    let out = document.getElementById("op-panel-out");
+    opPanel.querySelectorAll("[data-op-console]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        let act = btn.getAttribute("data-op-console");
+        let name = String(document.getElementById("op-fg-name") && document.getElementById("op-fg-name").value || "").trim();
+        if (act === "list") {
+          request(origin + "/v1/fraggate/list", { headers: { accept: "application/json" } }, out, btn);
+          return;
+        }
+        if (act === "describe") {
+          if (!name) { show(out, "Name / slug is required.", "error"); return; }
+          request(origin + "/v1/fraggate/describe?slug=" + encodeURIComponent(name), { headers: { accept: "application/json" } }, out, btn);
+          return;
+        }
+        let parsed = parsePayload(document.getElementById("op-fg-payload") && document.getElementById("op-fg-payload").value);
+        if (!parsed.ok) { show(out, parsed.error, "error"); return; }
+        let op = String(document.getElementById("op-fg-op") && document.getElementById("op-fg-op").value || "").trim();
+        if (!name || !op) { show(out, "Name / slug and operation are required.", "error"); return; }
+        fraggateCall(origin, name, op, parsed.value, out, btn);
+      });
+    });
+    opPanel.querySelectorAll("[data-op-soft]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        let slug = btn.getAttribute("data-op-soft");
+        let card = document.getElementById("task-" + slug);
+        if (card) {
+          card.scrollIntoView({ block: "nearest" });
+          let run = card.querySelector(".run-task");
+          if (run) run.click();
+          return;
+        }
+        fraggateCall(origin, slug, btn.getAttribute("data-op") || "health", {}, out, btn);
+      });
+    });
+    opPanel.querySelectorAll("[data-op-mesh]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        let act = btn.getAttribute("data-op-mesh");
+        if (act === "status") { refreshMesh(btn); return; }
+        let product = String(document.getElementById("op-mesh-product") && document.getElementById("op-mesh-product").value || "").trim();
+        if (!product) { show(out, "Product slug is required. MESH-BAD-INPUT if omitted. AnonBroadcast is not a product.", "error"); return; }
+        let meshProduct = document.getElementById("mesh-product");
+        if (meshProduct) meshProduct.value = product;
+        fraggateCall(origin, "mesh", "join", { product: product, presence: "live" }, out, btn).then(function () { refreshMesh(); });
+      });
+    });
+  }
   let sessOut = document.getElementById("sess-out");
   let gateLine = document.getElementById("session-gate");
   function tokenHeaders() {
     let headers = { "content-type": "application/json", accept: "application/json" };
-    let tok = document.getElementById("sess-token");
+    let tok = document.getElementById("sess-token") || document.getElementById("op-sess-token");
+    let alt = document.getElementById("op-sess-token");
     let value = tok && tok.value ? String(tok.value).trim() : "";
+    if (!value && alt && alt.value) value = String(alt.value).trim();
     if (value) headers["X-Aziel-Runtime-Token"] = value;
     return headers;
+  }
+  function syncSessionId(sid) {
+    let a = document.getElementById("sess-id");
+    let b = document.getElementById("op-sess-id");
+    if (sid && a) a.value = sid;
+    if (sid && b) b.value = sid;
   }
   function loadReady() {
     let origin = (document.getElementById("fg-console") && document.getElementById("fg-console").getAttribute("data-origin")) || "";
@@ -651,6 +879,7 @@ export function humanDoorScript() {
           request(origin + "/v1/session/open", { method: "POST", headers: tokenHeaders(), body: "{}" }, sessOut, btn).then(function (got) {
             let sid = got && got.body && got.body.session && got.body.session.id;
             if (sid && idEl) idEl.value = sid;
+            syncSessionId(sid);
           });
           return;
         }
@@ -683,13 +912,94 @@ export function humanDoorScript() {
       });
     });
   }
+  let opSessOut = document.getElementById("op-panel-out") || sessOut;
+  document.querySelectorAll("[data-op-sess]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      let origin = (document.getElementById("op-panel") && document.getElementById("op-panel").getAttribute("data-origin")) || "";
+      let act = btn.getAttribute("data-op-sess");
+      let idEl = document.getElementById("op-sess-id") || document.getElementById("sess-id");
+      let id = String(idEl && idEl.value || "").trim();
+      if (act === "open") {
+        request(origin + "/v1/session/open", { method: "POST", headers: tokenHeaders(), body: "{}" }, opSessOut, btn).then(function (got) {
+          let sid = got && got.body && got.body.session && got.body.session.id;
+          syncSessionId(sid);
+        });
+        return;
+      }
+      if (!id) { show(opSessOut, "Open a session first (session id required).", "error"); return; }
+      if (act === "receipt") {
+        request(origin + "/v1/session/" + encodeURIComponent(id) + "/receipt", { headers: tokenHeaders() }, opSessOut, btn).then(function (got) {
+          rememberReceipt("session", got && got.body);
+        });
+        return;
+      }
+      if (act === "close") {
+        request(origin + "/v1/session/" + encodeURIComponent(id) + "/close", { method: "POST", headers: tokenHeaders(), body: "{}" }, opSessOut, btn);
+      }
+    });
+  });
+  let dashOut = document.getElementById("dash-out");
+  document.querySelectorAll(".dash-run").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      let origin = (document.getElementById("fg-console") && document.getElementById("fg-console").getAttribute("data-origin")) || "";
+      let slug = btn.getAttribute("data-slug");
+      let op = btn.getAttribute("data-op") || "health";
+      let task = document.getElementById("task-" + slug);
+      if (task && task.querySelector(".run-task")) {
+        task.scrollIntoView({ block: "nearest" });
+        task.querySelector(".run-task").click();
+        return;
+      }
+      fraggateCall(origin, slug, op, {}, dashOut, btn).then(function (got) {
+        if (slug === "forgereceipts") rememberReceipt("forgereceipts", got && got.body);
+      });
+    });
+  });
+  function rememberReceipt(kind, body) {
+    let log = document.getElementById("dash-receipt-log");
+    if (!log || !body) return;
+    let hash = (body.hash || (body.result && body.result.hash) || (body.receipt && body.receipt.hash) || "").toString();
+    let code = body.code || (body.result && body.result.code) || "";
+    let li = document.createElement("li");
+    li.textContent = new Date().toISOString() + " · " + kind + (code ? " · " + code : "") + (hash ? " · " + hash.slice(0, 16) : " · local mint (hosted does not store)");
+    log.insertBefore(li, log.firstChild);
+  }
+  function loadReceipts(btn) {
+    let origin = (document.getElementById("fg-console") && document.getElementById("fg-console").getAttribute("data-origin")) || "";
+    let line = document.getElementById("receipt-cite-line");
+    let out = document.getElementById("receipt-cite-out");
+    if (line) { line.textContent = "Loading receipts cite…"; line.setAttribute("data-state", "loading"); }
+    request(origin + "/v1/receipts", { headers: { accept: "application/json" } }, out, btn).then(function (got) {
+      if (!got || !got.body) return;
+      let b = got.body;
+      let spec = b.spec || (b.cite && b.cite.spec) || "ACT-RECEIPT-1.0";
+      let chain = b.public_chain || b.path || "/v1/receipts";
+      if (line) {
+        line.textContent = spec + " · " + chain + (b.fail_open || (b.note && /fail-open/i.test(String(b.note))) ? " · fail-open" : "") + " · not a Softwares-tab product";
+        line.setAttribute("data-state", "ready");
+      }
+    });
+  }
+  let receiptBtn = document.getElementById("receipt-refresh");
+  if (receiptBtn) receiptBtn.addEventListener("click", function () { loadReceipts(receiptBtn); });
+  if (document.getElementById("dash-receipts")) loadReceipts();
   let filter = document.getElementById("task-filter");
   if (filter) {
     filter.addEventListener("input", function () {
       let q = String(filter.value || "").toLowerCase().trim();
-      document.querySelectorAll("#workspace .task, #workspace .az-task").forEach(function (el) {
+      document.querySelectorAll("#workspace .task, #workspace .az-task, #workspace .op-panel").forEach(function (el) {
         if (el.id === "workspace") return;
         let hay = (el.textContent || "").toLowerCase();
+        el.classList.toggle("task-hidden", !!(q && hay.indexOf(q) === -1));
+      });
+    });
+  }
+  let dashFilter = document.getElementById("dash-filter");
+  if (dashFilter) {
+    dashFilter.addEventListener("input", function () {
+      let q = String(dashFilter.value || "").toLowerCase().trim();
+      document.querySelectorAll("[data-dash-slug]").forEach(function (el) {
+        let hay = String(el.getAttribute("data-search") || el.textContent || "").toLowerCase();
         el.classList.toggle("task-hidden", !!(q && hay.indexOf(q) === -1));
       });
     });

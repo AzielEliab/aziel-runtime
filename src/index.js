@@ -1856,6 +1856,7 @@ const PAGE_CSS = `
   .brandmark{width:40px;height:40px;border-radius:10px;object-fit:cover;flex:0 0 auto;box-shadow:0 0 0 1px #d4af3733}
   .stamp{margin:0;color:#d4af37;font-size:.88rem;letter-spacing:.02em}
   body { font: 16px/1.45 system-ui, sans-serif; max-width: 52rem; margin: 2.5rem auto; padding: 0 1.25rem 4rem; background: #0e1014; color: #e8eaef; }
+  body:has(#workspace) { max-width: 72rem; }
   h1 { font-size: 1.85rem; margin: 0 0 .35rem; }
   h2 { font-size: 1.2rem; margin: 0 0 .4rem; }
   .slug { font-weight: 500; color: #9aa3b2; font-size: .95rem; }

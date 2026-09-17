@@ -57,9 +57,20 @@ assert.match(homeRes.headers.get("strict-transport-security") || "", /max-age=31
 
 const home = await homeRes.text();
 assert.match(home, /id="workspace"/);
+assert.match(home, /id="op-panel"/);
 assert.match(home, /id="fg-console"/);
+assert.match(home, /id="dashboard"/);
+assert.match(home, /id="dash-metrics"/);
+assert.match(home, /id="dash-softwares"/);
+assert.match(home, /id="dash-receipts"/);
 assert.match(home, /id="mesh-panel"/);
 assert.match(home, /id="session-strip"/);
+assert.match(home, /Operator control panel/);
+assert.match(home, /<label for="op-fg-name">Name \/ slug<\/label>/);
+assert.match(home, /<label for="op-fg-op">Operation<\/label>/);
+assert.match(home, /<label for="op-fg-payload">Payload JSON<\/label>/);
+assert.match(home, /id="metric-live"/);
+assert.match(home, /data-dash-slug="foldlock"/);
 assert.match(home, /What do you want to do\?/);
 assert.match(home, /Loading status/);
 assert.doesNotMatch(home, /15:20/);
@@ -96,8 +107,11 @@ assert.equal(wsRes.headers.get("referrer-policy"), "no-referrer");
 const ws = await wsRes.text();
 assert.match(ws, /<title>Workspace — /);
 assert.match(ws, /id="fg-console"/);
+assert.match(ws, /id="op-panel"/);
+assert.match(ws, /id="dashboard"/);
 assert.match(ws, /id="mesh-panel"/);
 assert.match(ws, /FragGate console/);
+assert.match(ws, /Operator control panel/);
 assert.doesNotMatch(ws, /15:20/);
 
 const sitemap = await (await get("/sitemap.xml")).text();
@@ -147,6 +161,9 @@ for (const [slug, op, payload] of ops) {
   assert.notEqual(body.code, "FG-HALLUC-TOOL", `${slug}/${op} halluc`);
   assert.notEqual(body.ok, false, `${slug}/${op} refused ${body.code || body.error}`);
 }
+
+const receipts = await (await get("/v1/receipts")).json();
+assert.ok(receipts.spec || receipts.public_chain || receipts.path || receipts.ok !== undefined);
 
 const mesh = await (await get("/v1/mesh")).json();
 assert.ok(mesh.rollup || mesh.live_nodes != null);
