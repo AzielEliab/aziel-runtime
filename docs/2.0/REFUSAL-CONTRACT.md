@@ -87,6 +87,8 @@ Modes: **OFF** (GET/status never arms), **REFUSE** (named stub / halluc / lamb /
 
 `MESH-GET-NEVER-ENABLES` refuses enable-via-GET (`?enable=true` / `op=enable`). `MESH-NO-REWRITE` / `MESH-NO-LIE` refuse rewrite-key and lie-to-survive verbs. Receipts that still hash. Copies not all on one tunnel. The network is never allowed to lie — even to self-preserve. Law paper: `docs/designs/NO-LIE-NO-REWRITE-1.0.md`. Does not replace the CROSS-NETWORK-SURVIVAL-1.0 machine tip.
 
+Nine QNM laws are hard-true on `GET /v1/mesh` (and status). Violations reuse the published codes above — they do not invent a new door: tick body / live body sync → `MESH-NO-BYTES`; clocks sharing a socket → `MESH-BAD-INPUT`; neighbor heal / vote-to-fix / apply-last-packet → `MESH-NO-NEIGHBOR-HEAL`; phoenix-neighbor / hostname-restore / Node Gate / auto-heal / VPN-anonymity claims → `MESH-STUB`. Close test: `scripts/verify-mesh-nine-laws.mjs`.
+
 `POST /v1/mesh/disable` / suite `mesh_disable` return **`MESH-DISABLE-REFUSED`**. Read-only suite-presence stays ON. Library host overlay may return **409** `library-default-off` instead of Worker `MESH-NEED-BEARER`. That overlay is host-side. GET never enables extra radios.
 
 `mesh_join` / `mesh_heartbeat` / `mesh_broadcast` (HTTP + MCP) return **`MESH-OFF`** when transmission radios are powered down or suite radios are not enabled. Software presence is blocked. Do not invent a second spelling. Missing `product`, `node_id` outside 8–80 `[a-z0-9._-]`, or a `presence` other than `live`/`locked`/`isolated` is **`MESH-BAD-INPUT`**. Presence TTL is a strict 5 minutes; no heartbeat (or fan-out refresh) inside that window drops the node from the live roster.
