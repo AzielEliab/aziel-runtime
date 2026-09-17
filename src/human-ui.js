@@ -413,18 +413,18 @@ export function fragGateDoorHtml(p, origin) {
 export function catalogFilterScript() {
   return `<script>
 (function () {
-  var input = document.getElementById("software-filter");
-  var lane = document.getElementById("software-lane");
-  var items = document.querySelectorAll("[data-software-row]");
+  let input = document.getElementById("software-filter");
+  let lane = document.getElementById("software-lane");
+  let items = document.querySelectorAll("[data-software-row]");
   if (!input && !lane) return;
   function apply() {
-    var q = String(input && input.value || "").toLowerCase().trim();
-    var want = String(lane && lane.value || "all");
+    let q = String(input && input.value || "").toLowerCase().trim();
+    let want = String(lane && lane.value || "all");
     items.forEach(function (li) {
-      var hay = String(li.getAttribute("data-search") || "");
-      var bucket = String(li.getAttribute("data-bucket") || "");
-      var okQ = !q || hay.indexOf(q) !== -1;
-      var okL = want === "all" || bucket === want;
+      let hay = String(li.getAttribute("data-search") || "");
+      let bucket = String(li.getAttribute("data-bucket") || "");
+      let okQ = !q || hay.indexOf(q) !== -1;
+      let okL = want === "all" || bucket === want;
       li.classList.toggle("task-hidden", !(okQ && okL));
     });
   }
@@ -437,12 +437,12 @@ export function catalogFilterScript() {
 export function humanDoorScript() {
   return `<script>
 (function () {
-  var TIMEOUT_MS = ${CALL_TIMEOUT_MS};
+  let TIMEOUT_MS = ${CALL_TIMEOUT_MS};
   function parsePayload(raw) {
-    var text = String(raw == null ? "" : raw).trim();
+    let text = String(raw == null ? "" : raw).trim();
     if (!text) return { ok: true, value: {} };
     try {
-      var value = JSON.parse(text);
+      let value = JSON.parse(text);
       if (value === null || typeof value !== "object" || Array.isArray(value)) {
         return { ok: false, error: "Payload JSON must be an object (not an array or scalar)." };
       }
@@ -461,45 +461,45 @@ export function humanDoorScript() {
     return String(raw || "").split(/\\n|;/).map(function (s) { return s.trim(); }).filter(Boolean);
   }
   function collectFields(box) {
-    var payload = {};
+    let payload = {};
     box.querySelectorAll("[name]").forEach(function (el) {
       if (el.closest("#fg-console") && box.id !== "fg-console") return;
-      var name = el.getAttribute("name");
+      let name = el.getAttribute("name");
       if (!name || name === "token") return;
       if (el.getAttribute("data-list") === "1") payload[name] = linesToList(el.value);
       else if (name === "confidence") {
-        var n = Number(el.value);
+        let n = Number(el.value);
         payload[name] = Number.isFinite(n) ? n : el.value;
       } else payload[name] = el.value;
     });
     return payload;
   }
   function formatBody(res, body) {
-    var title = body && body.display && body.display.title ? body.display.title : "";
-    var summary = body && body.display && body.display.summary ? body.display.summary : "";
-    var code = (body && (body.code || body.refuse || (body.error && body.error.code))) || "";
-    var http = res ? ("HTTP " + res.status) : "";
-    var head = [http, code, title].filter(Boolean).join(" · ");
-    var note = "";
+    let title = body && body.display && body.display.title ? body.display.title : "";
+    let summary = body && body.display && body.display.summary ? body.display.summary : "";
+    let code = (body && (body.code || body.refuse || (body.error && body.error.code))) || "";
+    let http = res ? ("HTTP " + res.status) : "";
+    let head = [http, code, title].filter(Boolean).join(" · ");
+    let note = "";
     if (body && (body.visited === false || body.advisory === true || (body.note && /advisory|visited=false|sealed index/i.test(String(body.note))))) {
       note = "Advisory citations / metadata — not retrieved article evidence.\\n";
     }
     return (head ? head + "\\n" : "") + note + (summary ? summary + "\\n\\n" : "") + JSON.stringify(body, null, 2);
   }
   function request(url, init, out, btn) {
-    var ctrl = new AbortController();
-    var timer = setTimeout(function () { ctrl.abort(); }, TIMEOUT_MS);
+    let ctrl = new AbortController();
+    let timer = setTimeout(function () { ctrl.abort(); }, TIMEOUT_MS);
     if (btn) btn.disabled = true;
     show(out, "calling " + url + " …");
     return fetch(url, Object.assign({ signal: ctrl.signal }, init)).then(function (res) {
       return res.text().then(function (text) {
-        var body = text;
+        let body = text;
         try { body = text ? JSON.parse(text) : {}; } catch (e) { body = { ok: false, error: "Response was not JSON", raw: text, parse_error: String(e && e.message ? e.message : e) }; }
         show(out, formatBody(res, body), res.ok && body && body.ok !== false ? "" : "error");
         return { res: res, body: body };
       });
     }).catch(function (err) {
-      var msg = err && err.name === "AbortError" ? "Request timed out after " + TIMEOUT_MS + "ms." : String(err && err.message ? err.message : err);
+      let msg = err && err.name === "AbortError" ? "Request timed out after " + TIMEOUT_MS + "ms." : String(err && err.message ? err.message : err);
       show(out, msg, "error");
     }).finally(function () {
       clearTimeout(timer);
@@ -514,13 +514,13 @@ export function humanDoorScript() {
     }, out, btn);
   }
   document.querySelectorAll(".fg-door").forEach(function (box) {
-    var slug = box.getAttribute("data-slug");
-    var origin = box.getAttribute("data-origin") || "";
-    var out = box.querySelector(".fg-out");
-    var area = box.querySelector(".fg-payload");
+    let slug = box.getAttribute("data-slug");
+    let origin = box.getAttribute("data-origin") || "";
+    let out = box.querySelector(".fg-out");
+    let area = box.querySelector(".fg-payload");
     box.querySelectorAll("[data-op]").forEach(function (btn) {
       btn.addEventListener("click", function () {
-        var parsed = parsePayload(area && area.value);
+        let parsed = parsePayload(area && area.value);
         if (!parsed.ok) {
           show(out, parsed.error, "error");
           return;
@@ -529,17 +529,17 @@ export function humanDoorScript() {
       });
     });
   });
-  var consoleBox = document.getElementById("fg-console");
+  let consoleBox = document.getElementById("fg-console");
   if (consoleBox) {
-    var origin = consoleBox.getAttribute("data-origin") || "";
-    var out = document.getElementById("fg-console-out");
-    var nameEl = document.getElementById("fg-name");
-    var opEl = document.getElementById("fg-op");
-    var payloadEl = document.getElementById("fg-payload-console");
+    let origin = consoleBox.getAttribute("data-origin") || "";
+    let out = document.getElementById("fg-console-out");
+    let nameEl = document.getElementById("fg-name");
+    let opEl = document.getElementById("fg-op");
+    let payloadEl = document.getElementById("fg-payload-console");
     consoleBox.querySelectorAll("[data-console]").forEach(function (btn) {
       btn.addEventListener("click", function () {
-        var act = btn.getAttribute("data-console");
-        var name = String(nameEl && nameEl.value || "").trim();
+        let act = btn.getAttribute("data-console");
+        let name = String(nameEl && nameEl.value || "").trim();
         if (act === "list") {
           request(origin + "/v1/fraggate/list", { headers: { accept: "application/json" } }, out, btn);
           return;
@@ -549,34 +549,34 @@ export function humanDoorScript() {
           request(origin + "/v1/fraggate/describe?slug=" + encodeURIComponent(name), { headers: { accept: "application/json" } }, out, btn);
           return;
         }
-        var parsed = parsePayload(payloadEl && payloadEl.value);
+        let parsed = parsePayload(payloadEl && payloadEl.value);
         if (!parsed.ok) { show(out, parsed.error, "error"); return; }
-        var op = String(opEl && opEl.value || "").trim();
+        let op = String(opEl && opEl.value || "").trim();
         if (!name || !op) { show(out, "Name / slug and operation are required.", "error"); return; }
         fraggateCall(origin, name, op, parsed.value, out, btn);
       });
     });
   }
   document.querySelectorAll(".az-task[data-kind='fraggate']").forEach(function (box) {
-    var slug = box.getAttribute("data-slug");
-    var origin = (document.getElementById("fg-console") && document.getElementById("fg-console").getAttribute("data-origin")) || "";
-    var out = box.querySelector(".ws-out");
+    let slug = box.getAttribute("data-slug");
+    let origin = (document.getElementById("fg-console") && document.getElementById("fg-console").getAttribute("data-origin")) || "";
+    let out = box.querySelector(".ws-out");
     box.querySelectorAll(".run-task").forEach(function (btn) {
       btn.addEventListener("click", function () {
-        var payload = collectFields(box);
+        let payload = collectFields(box);
         fraggateCall(origin, slug, btn.getAttribute("data-op") || box.getAttribute("data-op"), payload, out, btn);
       });
     });
   });
-  var cl = document.getElementById("task-chainlock");
+  let cl = document.getElementById("task-chainlock");
   if (cl) {
-    var origin = cl.getAttribute("data-origin") || "";
-    var out = cl.querySelector(".ws-out");
-    var chainEl = document.getElementById("cl-chain");
+    let origin = cl.getAttribute("data-origin") || "";
+    let out = cl.querySelector(".ws-out");
+    let chainEl = document.getElementById("cl-chain");
     cl.querySelectorAll("[data-cl]").forEach(function (btn) {
       btn.addEventListener("click", function () {
-        var op = btn.getAttribute("data-cl");
-        var name = op === "tip" ? "chainlock_tip" : "chainlock_verify";
+        let op = btn.getAttribute("data-cl");
+        let name = op === "tip" ? "chainlock_tip" : "chainlock_verify";
         request(origin + "/mcp", {
           method: "POST",
           headers: { "content-type": "application/json", accept: "application/json" },
@@ -585,21 +585,21 @@ export function humanDoorScript() {
       });
     });
   }
-  var mesh = document.getElementById("mesh-panel");
+  let mesh = document.getElementById("mesh-panel");
   function refreshMesh(btn) {
     if (!mesh) return;
-    var origin = mesh.getAttribute("data-origin") || "";
-    var out = document.getElementById("mesh-out");
-    var line = document.getElementById("mesh-status-line");
+    let origin = mesh.getAttribute("data-origin") || "";
+    let out = document.getElementById("mesh-out");
+    let line = document.getElementById("mesh-status-line");
     if (line) { line.textContent = "Loading status"; line.setAttribute("data-state", "loading"); }
     request(origin + "/v1/mesh", { headers: { accept: "application/json" } }, out, btn).then(function (got) {
       if (!got || !got.body) return;
-      var b = got.body;
-      var roll = b.rollup || {};
-      var live = roll.live != null ? roll.live : b.live_nodes;
-      var locked = roll.locked != null ? roll.locked : b.locked_nodes;
-      var isolated = roll.isolated != null ? roll.isolated : b.isolated_nodes;
-      var radios = b.radios || (b.enabled ? "on" : "off");
+      let b = got.body;
+      let roll = b.rollup || {};
+      let live = roll.live != null ? roll.live : b.live_nodes;
+      let locked = roll.locked != null ? roll.locked : b.locked_nodes;
+      let isolated = roll.isolated != null ? roll.isolated : b.isolated_nodes;
+      let radios = b.radios || (b.enabled ? "on" : "off");
       if (line) {
         line.textContent = "live " + live + " · locked " + locked + " · isolated " + isolated + " · radios " + radios + " · suite-presence " + (b.suite_presence || "on") + " · GET never enables";
         line.setAttribute("data-state", "ready");
@@ -607,38 +607,38 @@ export function humanDoorScript() {
     });
   }
   if (mesh) {
-    var origin = mesh.getAttribute("data-origin") || "";
-    var out = document.getElementById("mesh-out");
+    let origin = mesh.getAttribute("data-origin") || "";
+    let out = document.getElementById("mesh-out");
     mesh.querySelectorAll("[data-mesh]").forEach(function (btn) {
       btn.addEventListener("click", function () {
-        var act = btn.getAttribute("data-mesh");
+        let act = btn.getAttribute("data-mesh");
         if (act === "status") { refreshMesh(btn); return; }
-        var product = String(document.getElementById("mesh-product").value || "").trim();
-        var node_id = String(document.getElementById("mesh-node").value || "").trim();
-        var presence = String(document.getElementById("mesh-presence").value || "live");
+        let product = String(document.getElementById("mesh-product").value || "").trim();
+        let node_id = String(document.getElementById("mesh-node").value || "").trim();
+        let presence = String(document.getElementById("mesh-presence").value || "live");
         if (!product) { show(out, "Product slug is required. MESH-BAD-INPUT if omitted. AnonBroadcast is not a product.", "error"); return; }
-        var payload = { product: product, presence: presence };
+        let payload = { product: product, presence: presence };
         if (node_id) payload.node_id = node_id;
         fraggateCall(origin, "mesh", "join", payload, out, btn).then(function () { refreshMesh(); });
       });
     });
     refreshMesh();
   }
-  var sessOut = document.getElementById("sess-out");
-  var gateLine = document.getElementById("session-gate");
+  let sessOut = document.getElementById("sess-out");
+  let gateLine = document.getElementById("session-gate");
   function tokenHeaders() {
-    var headers = { "content-type": "application/json", accept: "application/json" };
-    var tok = document.getElementById("sess-token");
-    var value = tok && tok.value ? String(tok.value).trim() : "";
+    let headers = { "content-type": "application/json", accept: "application/json" };
+    let tok = document.getElementById("sess-token");
+    let value = tok && tok.value ? String(tok.value).trim() : "";
     if (value) headers["X-Aziel-Runtime-Token"] = value;
     return headers;
   }
   function loadReady() {
-    var origin = (document.getElementById("fg-console") && document.getElementById("fg-console").getAttribute("data-origin")) || "";
+    let origin = (document.getElementById("fg-console") && document.getElementById("fg-console").getAttribute("data-origin")) || "";
     if (!gateLine || !origin) return;
     fetch(origin + "/v1/ready", { headers: { accept: "application/json" } }).then(function (res) { return res.json(); }).then(function (body) {
-      var need = body && (body.mutate_requires_token || (body.token && body.token.mutate_requires_token));
-      var msg = need
+      let need = body && (body.mutate_requires_token || (body.token && body.token.mutate_requires_token));
+      let msg = need
         ? "Session mutate requires a header-only operator token. Public FragGate call stays open."
         : "Session mutate is open on this Worker (no REQUIRE_TOKEN gate). Public FragGate call stays open either way.";
       if (body && body.error) msg = String(body.error) + " — " + (body.hint || "");
@@ -651,15 +651,15 @@ export function humanDoorScript() {
   }
   if (document.getElementById("session-strip")) {
     loadReady();
-    var origin = (document.getElementById("fg-console") && document.getElementById("fg-console").getAttribute("data-origin")) || "";
+    let origin = (document.getElementById("fg-console") && document.getElementById("fg-console").getAttribute("data-origin")) || "";
     document.querySelectorAll("[data-sess]").forEach(function (btn) {
       btn.addEventListener("click", function () {
-        var act = btn.getAttribute("data-sess");
-        var idEl = document.getElementById("sess-id");
-        var id = String(idEl && idEl.value || "").trim();
+        let act = btn.getAttribute("data-sess");
+        let idEl = document.getElementById("sess-id");
+        let id = String(idEl && idEl.value || "").trim();
         if (act === "open") {
           request(origin + "/v1/session/open", { method: "POST", headers: tokenHeaders(), body: "{}" }, sessOut, btn).then(function (got) {
-            var sid = got && got.body && got.body.session && got.body.session.id;
+            let sid = got && got.body && got.body.session && got.body.session.id;
             if (sid && idEl) idEl.value = sid;
           });
           return;
@@ -674,12 +674,12 @@ export function humanDoorScript() {
           return;
         }
         if (act === "policy") {
-          var policy = parsePayload(document.getElementById("sess-policy").value);
+          let policy = parsePayload(document.getElementById("sess-policy").value);
           if (!policy.ok) { show(sessOut, policy.error, "error"); return; }
           request(origin + "/v1/session/" + encodeURIComponent(id) + "/policy", { method: "POST", headers: tokenHeaders(), body: JSON.stringify(policy.value) }, sessOut, btn);
           return;
         }
-        var parsed = parsePayload(document.getElementById("sess-payload").value);
+        let parsed = parsePayload(document.getElementById("sess-payload").value);
         if (!parsed.ok) { show(sessOut, parsed.error, "error"); return; }
         request(origin + "/v1/session/" + encodeURIComponent(id) + "/exec", {
           method: "POST",
@@ -693,13 +693,13 @@ export function humanDoorScript() {
       });
     });
   }
-  var filter = document.getElementById("task-filter");
+  let filter = document.getElementById("task-filter");
   if (filter) {
     filter.addEventListener("input", function () {
-      var q = String(filter.value || "").toLowerCase().trim();
+      let q = String(filter.value || "").toLowerCase().trim();
       document.querySelectorAll("#workspace .task, #workspace .az-task").forEach(function (el) {
         if (el.id === "workspace") return;
-        var hay = (el.textContent || "").toLowerCase();
+        let hay = (el.textContent || "").toLowerCase();
         el.classList.toggle("task-hidden", !!(q && hay.indexOf(q) === -1));
       });
     });

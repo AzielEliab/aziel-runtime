@@ -64,6 +64,8 @@ assert.match(home, /Loading status/);
 assert.doesNotMatch(home, /15:20/);
 assert.doesNotMatch(home, /\{ q: text, text: text \}/);
 assert.match(home, /Invalid JSON — not sent/);
+assert.match(home, /let out = document.getElementById\("fg-console-out"\)/);
+assert.doesNotMatch(home, /var out = document.getElementById\("fg-console-out"\)/);
 assert.match(home, /<label for="fg-name">Name \/ slug<\/label>/);
 assert.match(home, /<label for="fg-op">Operation<\/label>/);
 assert.match(home, /<label for="fg-payload-console">Payload JSON<\/label>/);
