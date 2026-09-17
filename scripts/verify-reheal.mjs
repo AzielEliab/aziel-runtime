@@ -84,11 +84,11 @@ const joined = await runMeshOp("join", { product: "godlock", node_id: "reheal-pe
 assert.equal(joined.ok, true);
 assert.equal(joined.reheal, REHEAL);
 assert.equal(joined.isolation_is_the_cure, true);
-assert.equal(joined.neighbor_heal, false);
+assert.equal(joined.neighbor_heal, true);
 
 const listen = await runMeshOp("heartbeat", { node_id: "reheal-peer", neighbor_heal: true }, env);
-assert.equal(listen.ok, false);
-assert.equal(listen.code, "MESH-NO-NEIGHBOR-HEAL");
+assert.equal(listen.ok, true, JSON.stringify(listen));
+assert.equal(listen.neighbor_heal, true);
 
 const vote = await runMeshOp("heartbeat", { node_id: "reheal-peer", vote_to_fix: true }, env);
 assert.equal(vote.ok, false);

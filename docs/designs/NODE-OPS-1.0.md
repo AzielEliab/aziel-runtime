@@ -168,7 +168,7 @@ sentence. No token body.
   • qnm-node is not reachable off loopback in default config.
   • Spent mesh_id rejected on rejoin. Phoenix wait has no outbound hunt packet.
   • Phoenix wait / re-seal does not restore godlock.uk or reattach a public hostname.
-  • GET /v1/mesh carries machine-true nine-law fields; violations refuse published MESH-* codes. Nine QNM laws are hard-true.
+  • GET /v1/mesh carries machine-true nine-law fields; violations refuse published MESH-* codes. Nine QNM laws are hard-true. OPERATOR-OVERRIDE 2026-09-17 flipped auto_heal / implicit_heal, node_gate / get_is_node_gate, neighbor_heal, network, and anonymity_network (mode flag only) from hard-false to ON.
   • Tick plane refuses body / diff / file. Payload is pull-only. Equivocation isolates that peer.
   • 777s dwell is after a valid cite. Clock desync is not a yes. No auto-splice on reconnect.
   • Cold copies multiply. Live body sync refused. Single-server pull does not erase local tips.

@@ -9,6 +9,10 @@
  * resurrect godlock.uk. Cap-7 stays resolves_to_hub false.
  *
  * Identity: Aziel Eliab only. Lamb Lens. NO-LIE.
+ *
+ * OPERATOR-OVERRIDE 2026-09-17 flipped auto_heal / implicit_heal,
+ * node_gate / get_is_node_gate, neighbor_heal, network, and
+ * anonymity_network (mode flag only) from hard-false to ON.
  */
 
 import { COLD_COPY } from "./cold-copy.js";
@@ -55,6 +59,35 @@ export const NINE_LAW_REFUSE_CODES = Object.freeze({
   "node-gate": "MESH-STUB",
   "auto-heal": "MESH-STUB",
   anonymity: "MESH-STUB",
+});
+
+/**
+ * OPERATOR-OVERRIDE 2026-09-17 — Aziel Eliab only.
+ * These five were hard-false on GET /v1/mesh. Operator flipped them ON.
+ * Die-with-pull / no godlock.uk / Cap-7 / FragGate / confirm/dry_run stay.
+ * GodLock is not a VPN. anonymity_network is a mode flag, not Tor.
+ */
+export const OPERATOR_OVERRIDE_DATE = "2026-09-17";
+export const OPERATOR_OVERRIDE_SPEC = "OPERATOR-OVERRIDE-2026-09-17";
+export const ANONYMITY_NETWORK_NOTE =
+  "Operator override 2026-09-17 armed anonymity_network as a mode flag. Not a live anonymity fabric. Not Tor. Not VPN. Not origin-hiding. GodLock is a product name, not a VPN.";
+export const OPERATOR_OVERRIDE = Object.freeze({
+  spec: OPERATOR_OVERRIDE_SPEC,
+  date: OPERATOR_OVERRIDE_DATE,
+  identity: NINE_LAWS_IDENTITY,
+  author: NINE_LAWS_AUTHOR,
+  operator_armed: true,
+  auto_heal: true,
+  implicit_heal: true,
+  node_gate: true,
+  get_is_node_gate: true,
+  neighbor_heal: true,
+  network: true,
+  network_cite: "on",
+  anonymity_network: true,
+  anonymity_network_note: ANONYMITY_NETWORK_NOTE,
+  note:
+    "These five were hard-false on GET /v1/mesh. Operator 2026-09-17 flipped them ON: auto_heal (+ implicit_heal), node_gate (+ get_is_node_gate), neighbor_heal, network, anonymity_network (mode flag only). Die-with-pull / no godlock.uk resurrection / Cap-7 / FragGate / confirm/dry_run unchanged. GodLock is not a VPN.",
 });
 
 const TRUTHY = new Set(["1", "true", "on", "yes"]);
@@ -137,7 +170,7 @@ export const NINE_LAWS = Object.freeze([
     refuse: NINE_LAW_REFUSE_CODES.reheal,
     fields: Object.freeze({
       isolation_is_the_cure: true,
-      neighbor_heal: false,
+      neighbor_heal: true,
       vote_to_fix: false,
       bodies: false,
       diffs: false,
@@ -175,13 +208,13 @@ export const NINE_LAWS = Object.freeze([
   Object.freeze({
     id: 6,
     slug: "neighbor-heal",
-    name: "No neighbor talk-back-to-health",
+    name: "Neighbor talk-back-to-health (operator-armed)",
     spec: REHEAL,
     source: "src/reheal.js",
-    test: "law6_no_neighbor_heal",
+    test: "law6_neighbor_heal_operator_on",
     refuse: NINE_LAW_REFUSE_CODES["neighbor-heal"],
     fields: Object.freeze({
-      neighbor_heal: false,
+      neighbor_heal: true,
       vote_to_fix: false,
       apply_last_packet_on_heartbeat_loss: false,
     }),
@@ -189,30 +222,30 @@ export const NINE_LAWS = Object.freeze([
   Object.freeze({
     id: 7,
     slug: "node-gate",
-    name: "No Node Gate",
+    name: "Node Gate (operator-armed public mesh cite)",
     spec: "QNM-BUILD-1.0",
     source: "src/mesh.js",
-    test: "law7_no_node_gate",
+    test: "law7_node_gate_operator_on",
     refuse: NINE_LAW_REFUSE_CODES["node-gate"],
     fields: Object.freeze({
-      node_gate: false,
+      node_gate: true,
       login_mesh: false,
       login_recovery: false,
       ip_panel: false,
-      get_is_node_gate: false,
+      get_is_node_gate: true,
     }),
   }),
   Object.freeze({
     id: 8,
     slug: "auto-heal",
-    name: "No auto-heal",
+    name: "Auto-heal (operator-armed)",
     spec: "NODE-OPS-1.0",
     source: "src/mesh.js",
-    test: "law8_no_auto_heal",
+    test: "law8_auto_heal_operator_on",
     refuse: NINE_LAW_REFUSE_CODES["auto-heal"],
     fields: Object.freeze({
-      implicit_heal: false,
-      auto_heal: false,
+      implicit_heal: true,
+      auto_heal: true,
       heartbeat_loss_isolates: false,
       apply_last_packet: false,
     }),
@@ -220,13 +253,13 @@ export const NINE_LAWS = Object.freeze([
   Object.freeze({
     id: 9,
     slug: "anonymity",
-    name: "Not an anonymity network",
+    name: "Anonymity-network mode flag (operator-armed; not Tor/VPN)",
     spec: COLD_COPY,
     source: "src/cold-copy.js",
-    test: "law9_not_anonymity_network",
+    test: "law9_anonymity_network_operator_flag",
     refuse: NINE_LAW_REFUSE_CODES.anonymity,
     fields: Object.freeze({
-      anonymity_network: false,
+      anonymity_network: true,
       vpn: false,
       origin_hiding: false,
       godlock_is_identity: false,
@@ -269,13 +302,19 @@ export function nineLawsHint() {
     clocks_share_socket: false,
     live_body_sync: false,
     isolation_is_the_cure: true,
-    neighbor_heal: false,
+    neighbor_heal: true,
     phoenix_local_only: true,
     die_with_pull: true,
     restore_godlock_uk: false,
-    node_gate: false,
-    implicit_heal: false,
-    anonymity_network: false,
+    node_gate: true,
+    get_is_node_gate: true,
+    implicit_heal: true,
+    auto_heal: true,
+    network: true,
+    network_cite: "on",
+    anonymity_network: true,
+    anonymity_network_note: ANONYMITY_NETWORK_NOTE,
+    operator_override: { ...OPERATOR_OVERRIDE },
     papers: { ...NINE_LAW_PAPERS },
   };
 }
@@ -295,7 +334,7 @@ export function nineLawsFrame() {
     named_hosts_only: true,
     tip_content_addressed: true,
     isolation_is_the_cure: REHEAL_LAW.isolation_is_the_cure === true,
-    neighbor_heal: false,
+    neighbor_heal: true,
     vote_to_fix: false,
     bodies: false,
     diffs: false,
@@ -306,19 +345,23 @@ export function nineLawsFrame() {
     restore_godlock_uk: false,
     climb_public_hostname: false,
     apply_last_packet_on_heartbeat_loss: false,
-    node_gate: false,
+    node_gate: true,
     login_mesh: false,
     login_recovery: false,
     ip_panel: false,
-    get_is_node_gate: false,
-    implicit_heal: false,
-    auto_heal: false,
+    get_is_node_gate: true,
+    implicit_heal: true,
+    auto_heal: true,
     heartbeat_loss_isolates: false,
     apply_last_packet: false,
-    anonymity_network: false,
+    network: true,
+    network_cite: "on",
+    anonymity_network: true,
+    anonymity_network_note: ANONYMITY_NETWORK_NOTE,
     vpn: false,
     origin_hiding: false,
     godlock_is_identity: false,
+    operator_override: { ...OPERATOR_OVERRIDE },
     papers: { ...NINE_LAW_PAPERS },
   };
 }
@@ -344,9 +387,11 @@ export function looksLikeNeighborHeal(src) {
     "listen_to_neighbors",
     "heal_from_neighbors",
     "talk_back",
-    "vote_to_fix",
-    "majority_vote",
   ]);
+}
+
+export function looksLikeVoteToFix(src) {
+  return anyFlag(src, ["vote_to_fix", "majority_vote"]);
 }
 
 export function looksLikeApplyLastPacket(src) {
@@ -393,25 +438,15 @@ export function looksLikeHostnameRestore(src) {
 }
 
 export function looksLikeNodeGate(src) {
-  return anyFlag(src, [
-    "node_gate",
-    "gate",
-    "ip_panel",
-    "ippanel",
-    "login_recovery",
-    "login_mesh",
-  ]);
+  return anyFlag(src, ["node_gate", "get_is_node_gate", "gate"]);
+}
+
+export function looksLikeLoginPanel(src) {
+  return anyFlag(src, ["ip_panel", "ippanel", "login_recovery", "login_mesh"]);
 }
 
 export function looksLikeAnonymityClaim(src) {
-  return anyFlag(src, [
-    "anonymity_network",
-    "anonymity",
-    "vpn",
-    "origin_hiding",
-    "hide_origin",
-    "conceal_origin",
-  ]);
+  return anyFlag(src, ["vpn", "origin_hiding", "hide_origin", "conceal_origin", "tor", "ip_hiding"]);
 }
 
 export function looksLikeSharedSocket(src) {
@@ -444,13 +479,13 @@ export function refuseNineLawViolation(src = {}, op = "") {
       { reason: "live-body-sync-refused", live_body_sync: false },
     );
   }
-  if (looksLikeNeighborHeal(body)) {
+  if (looksLikeVoteToFix(body)) {
     const hug = neighborTalkHeal();
     return baseRefuse(
       "neighbor-heal",
       hug.code,
-      "Isolation is the cure. Heal from own last good tip + verified trusted pull, or phoenix-WAIT. Never by listening to neighbors.",
-      { reason: hug.reason, isolation_is_the_cure: true, neighbor_heal: false, vote_to_fix: false },
+      "Vote-to-fix stays refused. Operator 2026-09-17 armed neighbor_heal; majority vote is still not truth.",
+      { reason: hug.reason, isolation_is_the_cure: true, neighbor_heal: true, vote_to_fix: false },
     );
   }
   if (looksLikeApplyLastPacket(body)) {
@@ -488,28 +523,26 @@ export function refuseNineLawViolation(src = {}, op = "") {
       },
     );
   }
-  if (looksLikeAutoHeal(body)) {
-    return baseRefuse(
-      "auto-heal",
-      NINE_LAW_REFUSE_CODES["auto-heal"],
-      "No implicit heal. Tethers drop clean. Heartbeat loss is not poison and does not apply last packet.",
-      { reason: "auto-heal-refused", implicit_heal: false, auto_heal: false },
-    );
-  }
-  if (looksLikeNodeGate(body)) {
+  if (looksLikeLoginPanel(body)) {
     return baseRefuse(
       "node-gate",
       NINE_LAW_REFUSE_CODES["node-gate"],
-      "No Node Gate / IP panel / login-recovery on the public mesh. GET /v1/mesh is never a Node Gate.",
-      { reason: "node-gate-refused", node_gate: false, get_is_node_gate: false, ip_panel: false, login_recovery: false },
+      "Login-recovery / IP panel stay refused. Operator 2026-09-17 armed node_gate / get_is_node_gate on the public mesh cite — not a login panel.",
+      { reason: "login-panel-refused", node_gate: true, get_is_node_gate: true, ip_panel: false, login_recovery: false },
     );
   }
   if (looksLikeAnonymityClaim(body)) {
     return baseRefuse(
       "anonymity",
       NINE_LAW_REFUSE_CODES.anonymity,
-      "Not a VPN and not an anonymity network. No origin-hiding claim. GodLock is a product name, not identity.",
-      { reason: "anonymity-claim-refused", anonymity_network: false, vpn: false, origin_hiding: false },
+      "Not a VPN and not origin-hiding. anonymity_network is an operator-armed mode flag only. GodLock is a product name, not a VPN.",
+      {
+        reason: "anonymity-claim-refused",
+        anonymity_network: true,
+        anonymity_network_note: ANONYMITY_NETWORK_NOTE,
+        vpn: false,
+        origin_hiding: false,
+      },
     );
   }
   return null;
@@ -525,9 +558,6 @@ function searchLooksLike(searchParams, keys) {
       const v = String(raw).trim().toLowerCase();
       if (
         [
-          "gate",
-          "node-gate",
-          "node_gate",
           "ip-panel",
           "login",
           "recover",
@@ -536,9 +566,6 @@ function searchLooksLike(searchParams, keys) {
           "resurrection",
           "restore",
           "vpn",
-          "heal",
-          "auto-heal",
-          "anonymity",
         ].includes(v)
       ) {
         return true;
@@ -552,8 +579,6 @@ export function meshGetLooksLikeNineLawViolation(searchParams, payload) {
   const src = payload && typeof payload === "object" && !Array.isArray(payload) ? payload : {};
   if (refuseNineLawViolation(src, src.op || "")) return true;
   return searchLooksLike(searchParams, [
-    "node_gate",
-    "gate",
     "ip_panel",
     "ippanel",
     "login_recovery",
@@ -562,12 +587,8 @@ export function meshGetLooksLikeNineLawViolation(searchParams, payload) {
     "resurrection",
     "public_hostname_resurrection",
     "vpn",
-    "anonymity",
     "origin_hiding",
-    "auto_heal",
-    "implicit_heal",
     "apply_last_packet",
-    "neighbor_heal",
     "vote_to_fix",
     "op",
   ]);
@@ -579,22 +600,22 @@ export function refuseNineLawGet(searchParams, payload) {
   if (fromBody) return fromBody;
   if (!meshGetLooksLikeNineLawViolation(searchParams, payload)) return null;
   const op = searchParams && typeof searchParams.get === "function" ? String(searchParams.get("op") || "").toLowerCase() : "";
-  if (["gate", "node-gate", "node_gate", "ip-panel", "login", "recover", "recovery"].includes(op) || searchLooksLike(searchParams, ["node_gate", "gate", "ip_panel", "ippanel", "login_recovery"])) {
-    return refuseNineLawViolation({ node_gate: true }, op || "gate");
+  if (["ip-panel", "login", "recover", "recovery"].includes(op) || searchLooksLike(searchParams, ["ip_panel", "ippanel", "login_recovery"])) {
+    return refuseNineLawViolation({ ip_panel: true }, op || "login");
   }
   if (["resurrect", "resurrection", "restore"].includes(op) || searchLooksLike(searchParams, ["restore_godlock_uk", "resurrect", "resurrection", "public_hostname_resurrection"])) {
     return refuseNineLawViolation({ restore_godlock_uk: true }, op || "resurrect");
   }
-  if (["vpn", "anonymity"].includes(op) || searchLooksLike(searchParams, ["vpn", "anonymity", "origin_hiding"])) {
-    return refuseNineLawViolation({ anonymity_network: true }, op || "vpn");
+  if (["vpn"].includes(op) || searchLooksLike(searchParams, ["vpn", "origin_hiding"])) {
+    return refuseNineLawViolation({ vpn: true }, op || "vpn");
   }
-  if (["heal", "auto-heal"].includes(op) || searchLooksLike(searchParams, ["auto_heal", "implicit_heal", "apply_last_packet"])) {
-    return refuseNineLawViolation({ auto_heal: true }, op || "heal");
+  if (searchLooksLike(searchParams, ["apply_last_packet"])) {
+    return refuseNineLawViolation({ apply_last_packet: true }, op || "heal");
   }
-  if (searchLooksLike(searchParams, ["neighbor_heal", "vote_to_fix"])) {
-    return refuseNineLawViolation({ neighbor_heal: true }, "heartbeat");
+  if (searchLooksLike(searchParams, ["vote_to_fix"])) {
+    return refuseNineLawViolation({ vote_to_fix: true }, "heartbeat");
   }
-  return refuseNineLawViolation({ node_gate: true }, "gate");
+  return null;
 }
 
 export function assertNineLawsHardTrue(obj) {
@@ -607,6 +628,11 @@ export function assertNineLawsHardTrue(obj) {
   }
   if (obj.nine_laws?.hard_true !== true) missing.push("nine_laws.hard_true");
   if (obj.godlock_is_identity !== false) missing.push("godlock_is_identity");
+  if (obj.operator_override?.spec !== OPERATOR_OVERRIDE_SPEC) missing.push("operator_override.spec");
+  if (obj.operator_override?.date !== OPERATOR_OVERRIDE_DATE) missing.push("operator_override.date");
+  if (obj.network !== true) missing.push("network");
+  if (obj.network_cite !== "on") missing.push("network_cite");
+  if (obj.anonymity_network_note !== ANONYMITY_NETWORK_NOTE) missing.push("anonymity_network_note");
   if (obj.author_id !== AUTHOR_ID) missing.push("author_id");
   if (obj.runtime_id !== RUNTIME_SOFTWARE_ID) missing.push("runtime_id");
   if (obj.hashtag_parts?.person !== NINE_LAWS_HASHTAG_PARTS.person) missing.push("hashtag_parts.person");
