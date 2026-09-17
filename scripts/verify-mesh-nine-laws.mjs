@@ -16,6 +16,7 @@ import {
   runMeshOp,
 } from "../src/mesh.js";
 import {
+  ANONYMITY_NETWORK_NOTE,
   NINE_LAW_PAPERS,
   NINE_LAW_REFUSE_CODES,
   NINE_LAWS,
@@ -24,6 +25,9 @@ import {
   NINE_LAWS_HASHTAG_PARTS,
   NINE_LAWS_IDENTITY,
   NINE_LAWS_RUNTIME_ID,
+  OPERATOR_OVERRIDE,
+  OPERATOR_OVERRIDE_DATE,
+  OPERATOR_OVERRIDE_SPEC,
   assertNineLawsHardTrue,
   refuseNineLawViolation,
 } from "../src/mesh-nine-laws.js";
@@ -77,7 +81,7 @@ function law2_cold_copy_fields_and_refuse(live) {
 
 function law3_reheal_refuse(live) {
   assert.equal(live.isolation_is_the_cure, true);
-  assert.equal(live.neighbor_heal, false);
+  assert.equal(live.neighbor_heal, true);
   assert.equal(live.vote_to_fix, false);
 }
 
@@ -94,30 +98,57 @@ function law5_die_with_pull_no_godlock_uk(live) {
   assert.equal(live.godlock_is_identity, false);
 }
 
-function law6_no_neighbor_heal(live) {
-  assert.equal(live.neighbor_heal, false);
+function law6_neighbor_heal_operator_on(live) {
+  assert.equal(live.neighbor_heal, true);
   assert.equal(live.apply_last_packet_on_heartbeat_loss, false);
 }
 
-function law7_no_node_gate(live) {
-  assert.equal(live.node_gate, false);
+function law7_node_gate_operator_on(live) {
+  assert.equal(live.node_gate, true);
   assert.equal(live.login_mesh, false);
   assert.equal(live.login_recovery, false);
   assert.equal(live.ip_panel, false);
-  assert.equal(live.get_is_node_gate, false);
+  assert.equal(live.get_is_node_gate, true);
 }
 
-function law8_no_auto_heal(live) {
-  assert.equal(live.implicit_heal, false);
-  assert.equal(live.auto_heal, false);
+function law8_auto_heal_operator_on(live) {
+  assert.equal(live.implicit_heal, true);
+  assert.equal(live.auto_heal, true);
   assert.equal(live.heartbeat_loss_isolates, false);
   assert.equal(live.apply_last_packet, false);
 }
 
-function law9_not_anonymity_network(live) {
-  assert.equal(live.anonymity_network, false);
+function law9_anonymity_network_operator_flag(live) {
+  assert.equal(live.anonymity_network, true);
+  assert.equal(live.anonymity_network_note, ANONYMITY_NETWORK_NOTE);
   assert.equal(live.vpn, false);
   assert.equal(live.origin_hiding, false);
+}
+
+function operator_override_section(live) {
+  assert.equal(OPERATOR_OVERRIDE.spec, OPERATOR_OVERRIDE_SPEC);
+  assert.equal(OPERATOR_OVERRIDE.date, OPERATOR_OVERRIDE_DATE);
+  assert.equal(OPERATOR_OVERRIDE.identity, "Aziel Eliab");
+  assert.equal(OPERATOR_OVERRIDE.auto_heal, true);
+  assert.equal(OPERATOR_OVERRIDE.implicit_heal, true);
+  assert.equal(OPERATOR_OVERRIDE.node_gate, true);
+  assert.equal(OPERATOR_OVERRIDE.get_is_node_gate, true);
+  assert.equal(OPERATOR_OVERRIDE.neighbor_heal, true);
+  assert.equal(OPERATOR_OVERRIDE.network, true);
+  assert.equal(OPERATOR_OVERRIDE.network_cite, "on");
+  assert.equal(OPERATOR_OVERRIDE.anonymity_network, true);
+  assert.equal(live.operator_override.spec, OPERATOR_OVERRIDE_SPEC);
+  assert.equal(live.operator_override.date, "2026-09-17");
+  assert.equal(live.auto_heal, true);
+  assert.equal(live.implicit_heal, true);
+  assert.equal(live.node_gate, true);
+  assert.equal(live.get_is_node_gate, true);
+  assert.equal(live.neighbor_heal, true);
+  assert.equal(live.network, true);
+  assert.equal(live.network_cite, "on");
+  assert.equal(live.anonymity_network, true);
+  assert.equal(live.radios, "on");
+  assert.equal(live.enabled, true);
 }
 
 assert.equal(NINE_LAWS.length, NINE_LAWS_COUNT);
@@ -159,10 +190,11 @@ for (const live of [mesh.data, status.data]) {
   law3_reheal_refuse(live);
   law4_phoenix_local_only(live);
   law5_die_with_pull_no_godlock_uk(live);
-  law6_no_neighbor_heal(live);
-  law7_no_node_gate(live);
-  law8_no_auto_heal(live);
-  law9_not_anonymity_network(live);
+  law6_neighbor_heal_operator_on(live);
+  law7_node_gate_operator_on(live);
+  law8_auto_heal_operator_on(live);
+  law9_anonymity_network_operator_flag(live);
+  operator_override_section(live);
   assert.equal(live.papers.node_mesh, NINE_LAW_PAPERS.node_mesh);
   assert.equal(live.papers.sec_feat, NINE_LAW_PAPERS.sec_feat);
   assert.equal(live.papers.node_ops, NINE_LAW_PAPERS.node_ops);
@@ -189,8 +221,8 @@ assert.equal(liveSync.ok, false);
 assert.equal(liveSync.code, NINE_LAW_REFUSE_CODES["cold-copy"]);
 
 const reheal = await runMeshOp("heartbeat", { node_id: "nine-laws-peer", neighbor_heal: true }, {});
-assert.equal(reheal.ok, false);
-assert.equal(reheal.code, NINE_LAW_REFUSE_CODES.reheal);
+assert.equal(reheal.ok, true, JSON.stringify(reheal));
+assert.equal(reheal.neighbor_heal, true);
 
 const phoenix = await runMeshOp("heartbeat", { node_id: "nine-laws-peer", neighbor_phoenix: true }, {});
 assert.equal(phoenix.ok, false);
@@ -224,16 +256,15 @@ assert.equal(vote.ok, false);
 assert.equal(vote.code, NINE_LAW_REFUSE_CODES["neighbor-heal"]);
 
 const gate = await runMeshOp("status", { node_gate: true }, {});
-assert.equal(gate.ok, false);
-assert.equal(gate.code, NINE_LAW_REFUSE_CODES["node-gate"]);
-assert.equal(gate.node_gate, false);
+assert.equal(gate.ok, true, JSON.stringify(gate));
+assert.equal(gate.node_gate, true);
+assert.equal(gate.get_is_node_gate, true);
 
 const getGate = await jsonReq("/v1/mesh?node_gate=true");
-assert.equal(getGate.status, 405);
-assert.equal(getGate.data.ok, false);
-assert.equal(getGate.data.code, NINE_LAW_REFUSE_CODES["node-gate"]);
-assert.equal(getGate.data.node_gate, false);
-assert.equal(getGate.data.get_is_node_gate, false);
+assert.equal(getGate.status, 200);
+assert.equal(getGate.data.ok, true);
+assert.equal(getGate.data.node_gate, true);
+assert.equal(getGate.data.get_is_node_gate, true);
 
 const getUk = await jsonReq("/v1/mesh?restore_godlock_uk=true");
 assert.equal(getUk.status, 405);
@@ -241,18 +272,19 @@ assert.equal(getUk.data.code, NINE_LAW_REFUSE_CODES["die-with-pull"]);
 assert.equal(getUk.data.restore_godlock_uk, false);
 
 const autoHeal = await runMeshOp("heartbeat", { node_id: "nine-laws-peer", auto_heal: true }, {});
-assert.equal(autoHeal.ok, false);
-assert.equal(autoHeal.code, NINE_LAW_REFUSE_CODES["auto-heal"]);
-assert.equal(autoHeal.implicit_heal, false);
+assert.equal(autoHeal.ok, true, JSON.stringify(autoHeal));
+assert.equal(autoHeal.auto_heal, true);
+assert.equal(autoHeal.implicit_heal, true);
 
 const implicit = await runMeshOp("leave", { node_id: "nine-laws-peer", implicit_heal: true }, {});
-assert.equal(implicit.ok, false);
-assert.equal(implicit.code, NINE_LAW_REFUSE_CODES["auto-heal"]);
+assert.equal(implicit.ok, true, JSON.stringify(implicit));
+assert.equal(implicit.implicit_heal, true);
 
 const vpn = await runMeshOp("status", { vpn: true }, {});
 assert.equal(vpn.ok, false);
 assert.equal(vpn.code, NINE_LAW_REFUSE_CODES.anonymity);
-assert.equal(vpn.anonymity_network, false);
+assert.equal(vpn.anonymity_network, true);
+assert.equal(vpn.vpn, false);
 
 const hide = await runMeshOp("broadcast", { sha256: "cd".repeat(32), origin_hiding: true }, {});
 assert.equal(hide.ok, false);
@@ -288,6 +320,8 @@ papers_cited_on_live();
 
 const nodeMesh = read("docs/NODE_MESH.md");
 assert.match(nodeMesh, /Nine laws \(hard-true\)/);
+assert.match(nodeMesh, /OPERATOR-OVERRIDE/);
+assert.match(nodeMesh, /2026-09-17/);
 assert.match(nodeMesh, /clocks_share_socket/);
 assert.match(nodeMesh, /restore_godlock_uk/);
 assert.match(nodeMesh, /anonymity_network/);
@@ -302,7 +336,13 @@ const qnm = read("docs/designs/QNM-WP-1.0.md");
 assert.match(qnm, /nine-law|Nine QNM laws are hard-true/);
 
 const cite = meshCiteField(origin);
-assert.equal(cite.node_gate, false);
+assert.equal(cite.node_gate, true);
+assert.equal(cite.get_is_node_gate, true);
+assert.equal(cite.neighbor_heal, true);
+assert.equal(cite.auto_heal, true);
+assert.equal(cite.network, true);
+assert.equal(cite.network_cite, "on");
+assert.equal(cite.anonymity_network, true);
 assert.equal(cite.semantic_bridge.resolves_to_hub, false);
 assert.equal(cite.nine_laws.hard_true, true);
 assert.equal(cite.identity || NINE_LAWS_IDENTITY, "Aziel Eliab");
@@ -321,7 +361,9 @@ assert.match(openapi.data.paths["/v1/mesh/az-generator"].get.summary, /resolves_
 
 const software = await jsonReq("/v1/software");
 assert.equal(software.data.mesh.nine_laws.hard_true, true);
-assert.equal(software.data.mesh.node_gate, false);
+assert.equal(software.data.mesh.node_gate, true);
+assert.equal(software.data.mesh.neighbor_heal, true);
+assert.equal(software.data.mesh.network, true);
 assert.ok(!software.data.software.some((s) => s.slug === "mesh"));
 
 const mcp = await jsonReq("/mcp", {

@@ -1417,7 +1417,7 @@ export function runtimeStaticPaths() {
       get: {
         operationId: "mesh_status",
         summary:
-          "QNM-BUILD-1.0 suite rollup (enabled?, bearers, live/locked/isolated). Read-only suite-presence ON by default. GET never enables radios beyond that. Nine QNM laws are hard-true (clocks_share_socket false, live_body_sync false, restore_godlock_uk false, node_gate false, anonymity_network false). NO-LIE / NO-REWRITE: receipts still hash; no rewrite key; never lie to survive. Not a login mesh. Not a Node Gate. Not a VPN. Views/MCP/downloads do not enter QNM-S. Packet-transfer coding design is QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; GET /v1/qns cites only).",
+          "QNM-BUILD-1.0 suite rollup (enabled?, bearers, live/locked/isolated). Read-only suite-presence ON by default. GET never enables radios beyond that. Nine QNM laws are hard-true (clocks_share_socket false, live_body_sync false, restore_godlock_uk false). OPERATOR-OVERRIDE 2026-09-17: node_gate true, get_is_node_gate true, auto_heal / implicit_heal true, neighbor_heal true, network on/true, anonymity_network true (mode flag only — not Tor/VPN). NO-LIE / NO-REWRITE: receipts still hash; no rewrite key; never lie to survive. Not a login mesh. Not a login-recovery IP panel. Not a VPN. Views/MCP/downloads do not enter QNM-S. Packet-transfer coding design is QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; GET /v1/qns cites only).",
         tags: ["mesh"],
         responses: { "200": { description: "QNM rollup JSON" } },
       },
