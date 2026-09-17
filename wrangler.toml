@@ -175,7 +175,8 @@ REQUIRE_TOKEN = "1"
 binding = "CF_VERSION_METADATA"
 
 # One Durable Object per session (open → policy → exec → receipt → close).
-# 1.4.0 engines run in this Worker isolate; no new DO class. 1.4.1 / 1.5.0 / 1.6.0 / 1.6.1 / 1.6.2 / 1.6.3 / 1.6.4 / 1.6.5 / 1.6.6 / 1.6.7 / 1.6.8 / 1.6.9 / 1.6.10 / 1.6.11 / 1.6.12 / 1.6.13 / 1.6.14 / 1.6.15 / 1.7.0 / 1.9.1 / 1.9.2 / 1.9.3 / 2.0.0-rc1 reuse SESSION.
+# 1.4.0 engines run in this Worker isolate. 1.4.1–2.0.0-rc1 reuse SESSION.
+# F01: CHAINLOCK / ChainWriter is a second class — serialized append per chain.
 # 1.9.2: Workers Browser Rendering for AZBrowser sandbox_status / sandbox_render.
 # Do not fake Chromium when unbound; Tor / phoenix stay refuse.
 [browser]
@@ -188,6 +189,13 @@ binding = "AI"
 [[durable_objects.bindings]]
 name = "SESSION"
 class_name = "RuntimeSession"
+
+# F01 concurrent append writer. One object per chain (getByName).
+# FragGate ledger uses name "fraggate". ChainLock roster uses the chain name.
+# Individual records + transactional seq/tip. Not OAuth. Not a public ledger.
+[[durable_objects.bindings]]
+name = "CHAINLOCK"
+class_name = "ChainWriter"
 
 # API use counters + ring log (1.6.3). Distinct from product download-trackers.
 # 1.6.13 QNM suite rollup also stores here under mesh| keys when MESH is unbound
@@ -219,3 +227,7 @@ database_id = "23f33238-f1ca-4066-b56e-af66a1e72031"
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["RuntimeSession"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["ChainWriter"]

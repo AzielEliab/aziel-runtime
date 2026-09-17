@@ -72,7 +72,7 @@ export async function runChainlockOp(name, args, env) {
     };
   }
   if (op === "append") return append(store, src);
-  if (op === "tip") return tip(store, src.c || src.chain);
+  if (op === "tip") return tip(store, src.c || src.chain, src.caller || src.space);
   if (op === "recall") return recall(store, src);
   if (op === "verify") {
     const chains = await verify(store, src);
