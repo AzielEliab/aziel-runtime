@@ -45,7 +45,7 @@ fraggate_list → fraggate_describe { slug: foldlock | aziel-corpus } → fragga
 
 Posted `{ sha256 }` or `{ b64 }` that does not match the shipped tip refuses `AZCL-PACK-HASH-MISMATCH` or `AZCL-PACK-UNFOLD-REFUSE`.
 
-Human UI: Worker homepage dashboard + `/about` + FoldLock / Aziel Digital Library product pages. Control panel buttons call the same FragGate ops.
+Human UI: every Worker launch (homepage, `/about`, every `/p/{slug}`, HTML Softwares/describe shells) includes the FoldLock corpus-tip panel plus the shared About Aziel block. Product-specific `#hashtag` parts are separate — see [`docs/WORKER-LAUNCH.md`](WORKER-LAUNCH.md). Control panel buttons call the same FragGate ops.
 
 ## Not this change
 

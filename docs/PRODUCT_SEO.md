@@ -4,6 +4,16 @@ Aziel Eliab Runtime is the crawl hub. Each product Worker should expose the same
 
 This repo does **not** own VibeLock or other product Workers. Copy this pattern into those repos.
 
+## Worker launch (every homepage)
+
+Every product Worker homepage / dashboard / control panel must include:
+
+1. **Distinct `#hashtag` parts** — product-specific sections labeled `#slug-…`. Do not paste another product’s hashtag copy.
+2. **The same About Aziel block** — Person `@id` https://www.azieleliab.com/#aziel; goals / philosophy / mission / status from published work only. Not a biography. Not legal name / home. No visible 15:20 chrome.
+3. **FoldLock corpus tip** — hash-verified tip (label REAL). Full library remains LIVE on azielcorpuslibrary.net.
+
+Runtime wires this once as `workerLaunchHtml` (`src/about-aziel.js` + `src/launch-parts.js`). Product Workers inherit the shared About Aziel + FoldLock partials by copy (or by citing `/cite.json` `about_aziel` / `corpus_fold_pack`). Hashtag parts stay local. See [`docs/WORKER-LAUNCH.md`](WORKER-LAUNCH.md).
+
 ## Identity
 
 - Public product name: **Aziel Runtime** (`aziel-runtime`)
@@ -22,7 +32,7 @@ This repo does **not** own VibeLock or other product Workers. Copy this pattern 
 | Path | MIME | Purpose |
 |------|------|---------|
 | `GET /` | `text/html; charset=utf-8` | Indexable homepage. Lead with the Aziel Runtime abstract (not a changelog). |
-| `GET /about` | `text/html; charset=utf-8` | About Aziel (work, not biography) + About Aziel Runtime (what / for whom / how agents / how hubs / what it is not) + FoldLock corpus-tip control panel |
+| `GET /about` | `text/html; charset=utf-8` | About Aziel (work, not biography) + About Aziel Runtime + FoldLock corpus-tip + product-specific `#hashtag` launch parts |
 | `GET /robots.txt` | `text/plain; charset=utf-8` | Open crawl |
 | `GET /sitemap.xml` | `application/xml; charset=utf-8` | This host only |
 | `GET /llms.txt` | `text/plain; charset=utf-8` | LLM / AI crawlers |

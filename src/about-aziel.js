@@ -17,6 +17,11 @@ import {
   aboutAzielCiteField,
   corpusFoldPackCiteField,
 } from "./engines/aziel-corpus/tip-pack.js";
+import {
+  launchHashtagPartsHtml,
+  runtimeLaunchParts,
+  workerLaunchCiteField,
+} from "./launch-parts.js";
 
 export {
   ABOUT_AZIEL,
@@ -25,6 +30,7 @@ export {
   TIP_PACK_SPEC,
   aboutAzielCiteField,
   corpusFoldPackCiteField,
+  workerLaunchCiteField,
 };
 
 function escapeHtml(s) {
@@ -42,7 +48,7 @@ function listHtml(items) {
 /** Human About Aziel section. Dashboard + /about. No 15:20 chrome. */
 export function aboutAzielSectionHtml() {
   return `<section class="cite" id="about-aziel">
-  <h2>About Aziel</h2>
+  <h2>About Aziel <span class="hashtag">#about-aziel</span></h2>
   <p class="lead">${escapeHtml(ABOUT_AZIEL.mission[0])} ${escapeHtml(ABOUT_AZIEL.public_identity)}</p>
   <p>Person <code>@id</code> <a href="${PERSON_ID}">${PERSON_ID}</a>. Identity <strong>${escapeHtml(ABOUT_AZIEL.identity)}</strong> only. Also known as ${escapeHtml(ABOUT_AZIEL.aka_only)} (alternateName only). GodLock is a product name, not identity.</p>
   <h3>Goals</h3>
@@ -74,7 +80,7 @@ export function corpusFoldPackPanelHtml(origin) {
   const base = String(origin || "").replace(/\/$/, "");
   const verifyExample = JSON.stringify({ pack: TIP_PACK_ID }, null, 2);
   return `<section class="cite" id="corpus-fold-pack">
-  <h2>FoldLock corpus tip</h2>
+  <h2>FoldLock corpus tip <span class="hashtag">#foldlock-corpus-tip</span></h2>
   <p><strong>${escapeHtml(TIP_PACK_SPEC)}</strong> — hash-verified in-process tip (label <strong>REAL</strong>). The full Aziel Digital Library remains on <a href="${LIVE_LIBRARY_ORIGIN}/">${LIVE_LIBRARY_ORIGIN}/</a> (label <strong>LIVE</strong>). In-process D1 is <strong>SLOT</strong> unless <code>CORPUS_D1</code> is bound. This Worker does <em>not</em> contain the entire live library.</p>
   <p class="secondary">${escapeHtml(TIP_PACK_LIMITATION)}</p>
   <p>Live index (not embedded): <a href="${LIVE_LIBRARY_INDEX}">${LIVE_LIBRARY_INDEX}</a>. Open / verify only through FragGate.</p>
@@ -130,6 +136,23 @@ export function aboutAzielAndPackHtml(origin) {
 ${corpusFoldPackPanelHtml(origin)}`;
 }
 
+/**
+ * Shared Worker-launch footer: distinct #hashtag parts + About Aziel + FoldLock tip.
+ * Wire this once on every homepage / dashboard / /p/{slug} / HTML shell.
+ */
+export function workerLaunchHtml(origin, product) {
+  return `${launchHashtagPartsHtml(product)}
+${aboutAzielAndPackHtml(origin)}`;
+}
+
+export function runtimeLaunchHtml(origin) {
+  return workerLaunchHtml(origin, {
+    slug: "aziel-runtime",
+    name: "Aziel Runtime",
+    oneLine: runtimeLaunchParts()[0].body,
+  });
+}
+
 export function aboutAzielLlmsBlock() {
   return [
     "## About Aziel (work, not biography)",
@@ -147,6 +170,11 @@ export function aboutAzielLlmsBlock() {
     `Full library remains LIVE on ${LIVE_LIBRARY_ORIGIN}/ (index ${LIVE_LIBRARY_INDEX}). In-process D1 is SLOT unless CORPUS_D1 is bound.`,
     "Verify: fraggate_call { slug: foldlock, op: pack-verify }. Open: fraggate_call { slug: aziel-corpus, op: tip-pack }.",
     "Not zip. Not hosted_store. Not an invented DOI / Framagit / Glama UUID / fielded-100.",
+    "",
+    "## Worker launch (every surface)",
+    "",
+    "Every Worker launch includes (1) product-specific #hashtag parts — not identical copy across slugs — and (2) the same About Aziel block + FoldLock corpus tip.",
+    "Shared partial: src/about-aziel.js workerLaunchHtml. Product Workers inherit by copying that partial; hashtag parts stay slug-specific. See docs/WORKER-LAUNCH.md.",
     "",
   ].join("\n");
 }

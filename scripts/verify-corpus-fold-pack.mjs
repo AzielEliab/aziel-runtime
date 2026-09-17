@@ -158,6 +158,9 @@ assert.match(home, /full Aziel Digital Library remains/);
 assert.match(home, /data-op="pack-verify"/);
 assert.match(home, /data-op="tip-pack"/);
 assert.match(home, /www\.azieleliab\.com\/#aziel/);
+assert.match(home, /id="launch-parts"/);
+assert.match(home, /#aziel-runtime/);
+assert.match(home, /#aziel-runtime-fraggate/);
 assert.doesNotMatch(home, /15:20|1 Chronicles/i);
 assert.doesNotMatch(home, /home address|date of birth|county seat/i);
 assert.match(home, /Not a legal name/);
@@ -168,15 +171,46 @@ assert.match(about, /id="about-aziel"/);
 assert.match(about, /About Aziel/);
 assert.match(about, /id="corpus-fold-pack"/);
 assert.match(about, /pack-verify/);
+assert.match(about, /id="launch-parts"/);
 assert.doesNotMatch(about, /15:20|1 Chronicles/i);
 
 const foldPage = await (await get("/p/foldlock")).text();
 assert.match(foldPage, /id="about-aziel"/);
 assert.match(foldPage, /id="corpus-fold-pack"/);
+assert.match(foldPage, /id="launch-parts"/);
+assert.match(foldPage, /#foldlock/);
+assert.match(foldPage, /#foldlock-fold-preview|#foldlock-pack-verify/);
 
 const corpusPage = await (await get("/p/aziel-corpus")).text();
 assert.match(corpusPage, /id="about-aziel"/);
 assert.match(corpusPage, /id="corpus-fold-pack"/);
+assert.match(corpusPage, /#aziel-corpus/);
+
+const godPage = await (await get("/p/godlock")).text();
+assert.match(godPage, /id="about-aziel"/);
+assert.match(godPage, /id="corpus-fold-pack"/);
+assert.match(godPage, /#godlock/);
+assert.match(godPage, /#godlock-score|#godlock-submit/);
+const foldParts = foldPage.slice(foldPage.indexOf('id="launch-parts"'), foldPage.indexOf('id="about-aziel"'));
+const godParts = godPage.slice(godPage.indexOf('id="launch-parts"'), godPage.indexOf('id="about-aziel"'));
+assert.notEqual(foldParts, godParts, "hashtag parts must not be identical across slugs");
+
+for (const p of PRODUCTS) {
+  const page = await (await get(`/p/${p.slug}`)).text();
+  assert.match(page, /id="about-aziel"/, `${p.slug} missing About Aziel`);
+  assert.match(page, /id="corpus-fold-pack"/, `${p.slug} missing FoldLock corpus tip`);
+  assert.match(page, /id="launch-parts"/, `${p.slug} missing launch hashtag parts`);
+  assert.match(page, new RegExp(`#${p.slug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`), `${p.slug} missing #${p.slug}`);
+}
+
+const softwareHtml = await handler(
+  new Request(origin + "/v1/software", { headers: { accept: "text/html" } }),
+  {},
+);
+assert.equal(softwareHtml.status, 200);
+const softwareText = await softwareHtml.text();
+assert.match(softwareText, /id="about-aziel"/);
+assert.match(softwareText, /id="launch-parts"/);
 
 const cite = await (await get("/cite.json")).json();
 assert.equal(cite.about_aziel.person_id, PERSON_ID);
@@ -192,6 +226,12 @@ assert.match(cite.corpus_fold_pack.open, /tip-pack/);
 assert.deepEqual(cite.about_aziel.goals, ABOUT_AZIEL.goals.slice());
 assert.deepEqual(aboutAzielCiteField().sources, ABOUT_AZIEL.sources);
 assert.equal(corpusFoldPackCiteField().hosted_store, false);
+assert.equal(cite.worker_launch.spec, "AZRT-WORKER-LAUNCH-1.0");
+assert.ok(cite.worker_launch.every_launch_includes.includes("about_aziel"));
+assert.ok(cite.worker_launch.every_launch_includes.includes("hashtag_parts"));
+assert.ok(cite.worker_launch.tags_by_slug.foldlock.some((t) => t.startsWith("#foldlock")));
+assert.ok(cite.worker_launch.tags_by_slug.godlock.some((t) => t.startsWith("#godlock")));
+assert.notDeepEqual(cite.worker_launch.tags_by_slug.foldlock, cite.worker_launch.tags_by_slug.godlock);
 
 const llms = await (await get("/llms.txt")).text();
 assert.match(llms, /About Aziel \(work, not biography\)/);
@@ -221,4 +261,4 @@ assert.equal(doorBody.result.verified, true);
 assert.equal(doorBody.result.sha256, ready.sha256);
 assert.equal(doorBody.result.full_library_in_process, false);
 
-console.log(`ok corpus fold pack ${ready.sha256} + About Aziel`);
+console.log(`ok corpus fold pack ${ready.sha256} + About Aziel + worker launch hashtags`);

@@ -39,7 +39,7 @@ import {
   softwareHubCrawl,
 } from "./seo.js";
 import { distributionDoorsHtml } from "./ai-clients.js";
-import { aboutAzielAndPackHtml } from "./about-aziel.js";
+import { workerLaunchHtml } from "./about-aziel.js";
 
 export const SOFTWARE_PAGE_TITLE = `Softwares — ${PRODUCT_NAME}`;
 export const SOFTWARE_PAGE_DESCRIPTION =
@@ -258,7 +258,7 @@ export function describeJsonLd(origin, body) {
   };
 }
 
-function documentShell(origin, title, description, canonicalPath, jsonLd, css, inner) {
+function documentShell(origin, title, description, canonicalPath, jsonLd, css, inner, launchProduct) {
   const ld = JSON.stringify(jsonLd);
   return `<!doctype html>
 <html lang="en">
@@ -270,6 +270,7 @@ ${headMeta(origin, title, description, canonicalPath)}
 <body>
 ${brandRow()}
 ${inner}
+${workerLaunchHtml(origin, launchProduct)}
 ${ecosystemBlockHtml()}
 ${donateFooter()}
 </body>
@@ -322,7 +323,6 @@ export function aboutPageHtml(origin, css) {
   <p class="lead">${escapeHtml(RUNTIME_ABSTRACT)}</p>
 ${distributionDoorsHtml(base)}
 ${namedComponentsHtml()}
-${aboutAzielAndPackHtml(base)}
   <h2>What</h2>
   <p>${escapeHtml(RUNTIME_ONE_LINE)}</p>
   <h2>For whom</h2>
@@ -506,7 +506,22 @@ export function describeDocsHtml(origin, body, css) {
   <h2>Softwares hubs</h2>
   ${hubListHtml()}
   <p>Pipeline: <code>${escapeHtml(body.pipeline_strip || "")}</code></p>`;
-  return documentShell(origin, title, description, canonical, describeJsonLd(origin, body), css, inner);
+  return documentShell(
+    origin,
+    title,
+    description,
+    canonical,
+    describeJsonLd(origin, body),
+    css,
+    inner,
+    {
+      slug,
+      name,
+      oneLine: body.description || body.note || name,
+      banner: body.note || body.description || "",
+      ops: Array.isArray(body.ops) ? body.ops.map((op) => ({ op, summary: `${name} ${op}` })) : [],
+    },
+  );
 }
 
 export function describeUnknownHtml(origin, body, css) {

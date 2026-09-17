@@ -78,6 +78,8 @@ This Worker homepage stays the **API / MCP / OpenAPI** execution surface. Human 
 
 The Worker ships a FoldLock-packed **library tip** (index cite + sample MASTER + About Aziel) — not the entire live corpus. Verify via FragGate `foldlock/pack-verify`; open via `aziel-corpus/tip-pack`. Honesty: [`docs/corpus-fold-pack.md`](docs/corpus-fold-pack.md).
 
+Every Worker launch (homepage, `/about`, every `/p/{slug}`, HTML Softwares/describe shells) includes product-specific `#hashtag` parts plus the same About Aziel block. Shared partial `workerLaunchHtml`. Product Workers inherit About Aziel + the fold tip by copy; hashtag parts stay local. Rule: [`docs/WORKER-LAUNCH.md`](docs/WORKER-LAUNCH.md).
+
 | Surface | URL |
 |---------|-----|
 | **Try on Glama** (primary MCP) | https://glama.ai/mcp/servers/AzielEliab/aziel-runtime |

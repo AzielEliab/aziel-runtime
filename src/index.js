@@ -267,7 +267,7 @@ import {
   sitemapIndexXml,
   SUITE_DESIGNS,
 } from "./seo.js";
-import { aboutAzielAndPackHtml, aboutAzielCiteField, aboutAzielLlmsBlock, corpusFoldPackCiteField } from "./about-aziel.js";
+import { aboutAzielCiteField, aboutAzielLlmsBlock, corpusFoldPackCiteField, workerLaunchCiteField, workerLaunchHtml } from "./about-aziel.js";
 import {
   aboutPageHtml,
   brandRow,
@@ -1634,6 +1634,7 @@ function citeJson(origin) {
     about: runtimeAboutField(origin),
     about_aziel: aboutAzielCiteField(),
     corpus_fold_pack: corpusFoldPackCiteField(),
+    worker_launch: workerLaunchCiteField(PRODUCTS),
     author: AUTHOR_NAME,
     aka: AUTHOR_ALTERNATE_NAME,
     alternateName: AUTHOR_ALTERNATE_NAME,
@@ -1867,6 +1868,8 @@ const PAGE_CSS = `
   h1 { font-size: 1.85rem; margin: 0 0 .35rem; }
   h2 { font-size: 1.2rem; margin: 0 0 .4rem; }
   h3 { font-size: 1.02rem; margin: .85rem 0 .35rem; }
+  .hashtag { color: #d4af37; font-weight: 600; letter-spacing: .01em; }
+  .launch-parts article { margin: .7rem 0 0; }
   .slug { font-weight: 500; color: #9aa3b2; font-size: .95rem; }
   a { color: #c9d4ff; }
   .lead { color: #9aa3b2; margin: 0 0 1.25rem; }
@@ -1996,7 +1999,7 @@ ${workspacePaneHtml(origin, PRODUCTS)}
 ${distributionDoorsHtml(origin)}
 ${ecosystemBlockHtml()}
 ${namedComponentsHtml()}
-${aboutAzielAndPackHtml(origin)}
+${workerLaunchHtml(origin, { slug: "aziel-runtime", name: "Aziel Runtime" })}
 
   <section class="cite" id="cite">
     <h2>How to cite</h2>
@@ -2188,7 +2191,7 @@ ${headMeta(origin, title, description, `/p/${p.slug}`)}
 ${brandRow()}
   <p><a href="${origin}/">← ${escapeHtml(PRODUCT_NAME)}</a> · <a href="${origin}/workspace">Workspace</a></p>
   ${productCardHtml(p, origin, stats)}
-  ${p.slug === "foldlock" || p.slug === "aziel-corpus" ? aboutAzielAndPackHtml(origin) : ""}
+  ${workerLaunchHtml(origin, p)}
 ${humanDoorScript()}
 ${ecosystemBlockHtml()}
 ${donateFooterHtml()}
