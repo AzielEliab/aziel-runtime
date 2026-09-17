@@ -33,8 +33,10 @@ plain). Sibling software under **one FragGate door** — never “separate FragG
 engines”. EmbryoLock is included as `status: "live"` with `local_destructive_boundary: true` and `worker_home` `https://embryolock-download-tracker.vibelock.workers.dev/` (wipe/unlock stay FG-STUB on the public mesh). AZChat remains `status: "stub"`.
 
 Softwares-tab `count` includes placements (`azinterface`, `decisiongate`,
-`forgereceipts`, `azcoherence`). Isolation `domains.software_count` is **33**
+`forgereceipts`, `azcoherence`, `zkattest`, `mmconsensus`, `toolbench`).
+Isolation `domains.software_count` is **33**
 (`domains_are_doors: false`). See `count_note`. Do not equate the two.
+In-runtime placements have `worker_home` null — do not invent a download-tracker.
 
 `azcoherence` is Softwares-tab Plain (AZCoherence, AZC-0.1). Scoring-review
 placement adjacent to AZ-CLCE. Not AKM-TRIAD fabric. Not a 34th MASTER-33

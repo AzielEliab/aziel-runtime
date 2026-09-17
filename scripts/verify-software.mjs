@@ -222,7 +222,15 @@ assert.equal(liveCards.length, trueEngineSlugs().length);
 assert.match(body.framing, /Never separate FragGate engines/);
 assert.ok(body.software.every((s) => !/are separate FragGate engines/i.test(s.one_line || "")));
 assert.equal(body.isolation_software_count, 33);
-assert.deepEqual(body.tab_placement_slugs, ["azinterface", "decisiongate", "forgereceipts", "azcoherence"]);
+assert.deepEqual(body.tab_placement_slugs, [
+  "azinterface",
+  "decisiongate",
+  "forgereceipts",
+  "azcoherence",
+  "zkattest",
+  "mmconsensus",
+  "toolbench",
+]);
 assert.match(body.count_note, /placements/);
 assert.match(body.count_note, /software_count is 33/);
 assert.equal(body.domains.software_count, 33);

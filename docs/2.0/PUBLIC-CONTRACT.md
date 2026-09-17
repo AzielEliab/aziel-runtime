@@ -204,11 +204,16 @@ Binding-only / unsupported isolate ops may still return `FG-LOCAL-ONLY` with mes
 
 ---
 
+`GET /.well-known/mcp/server-card.json` and `GET /mcp` cite `gateway.role = edge-mcp-gateway`. That Worker `POST /mcp` **is** the edge MCP surface. It terminates into FragGate. It is not a second door.
+
+---
+
 ## 7. What this freeze does **not** change
 
 - Remain-OFF inventory (33 items) stays OFF / REFUSE / GATED.
-- No new Softwares engines.
+- Isolation `software_count` stays **33**. Architecture-fit slugs (`zkattest`, `mmconsensus`, `toolbench`) are **placements** (domain null), reached only via FragGate — not extra isolation softwares and not new MCP tools. See [ARCHITECTURE-FIT-FIVE.md](ARCHITECTURE-FIT-FIVE.md).
 - No Glama `glama.json` semantic change (maintainers + listing metadata already enriched).
 - No MCP protocol version change.
 - No flattening of `tools/list`.
 - No public SMTP, remote shell, VPN hop, deanonymize, Tor/phoenix, or unknown-tool fallback.
+- No invented OAuth IdP / Zenodo DOI / Framagit URL / Glama UUID / fielded-100.

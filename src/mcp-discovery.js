@@ -57,6 +57,25 @@ export function mcpEndpointUrl(origin) {
 }
 
 /**
+ * Honest edge-MCP gateway cite. POST /mcp is THE public MCP surface.
+ * It terminates into FragGate. Not a second door. No backdoor exec.
+ */
+export function mcpGatewayCite() {
+  return {
+    role: "edge-mcp-gateway",
+    surface: "POST /mcp",
+    door: "fraggate",
+    terminates_at: "fraggate_call",
+    pipeline: "fraggate_list → fraggate_describe → fraggate_call",
+    second_door: false,
+    backdoor_exec: false,
+    proxy_is_not_exec: true,
+    isolate_is_the_jail: true,
+    note: "This Worker POST /mcp is THE edge MCP gateway. JSON-RPC terminates into FragGate. No parallel exec path. POST /p/{slug}/{op} is proxy, not exec.",
+  };
+}
+
+/**
  * Complete honest server card. Name matches initialize serverInfo.name.
  * Does not claim the experimental SEP-2127 $schema (that schema requires
  * reverse-DNS name/namespace). Do not invent a Glama UUID or OAuth server.
@@ -102,6 +121,7 @@ export function mcpServerCard(origin) {
       count: PUBLIC_MCP_TOOLS.length,
       pointer: PUBLIC_MCP_POINTER,
     },
+    gateway: mcpGatewayCite(),
     links: {
       homepage: RUNTIME_HUB_URL,
       support: RUNTIME_GITHUB,
