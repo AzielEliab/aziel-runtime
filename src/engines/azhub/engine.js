@@ -6,6 +6,7 @@
  * Separate product from AZInterface. FragGate LIVE only.
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
+import { isolationView, storeKeyOf } from "../../workspace.js";
 
 export const PRODUCT = "azhub";
 export const NAME = "AZHub";
@@ -43,11 +44,7 @@ export const FORBIDDEN_EVENT_KEYS = Object.freeze([
 const FORBIDDEN_TEXT =
   /\b(auto[-_ ]?unlock|completeness([-_ ]detect|[-_ ]?event)?|rank(ing)?|scorch([-_ ]remote)?)\b/i;
 
-const memory = {
-  regions: defaultRegionMap(),
-  tethers: [],
-  seq: 0,
-};
+const stores = new Map();
 
 function defaultRegionMap() {
   const out = {};
@@ -55,10 +52,23 @@ function defaultRegionMap() {
   return out;
 }
 
-export function resetAzhubStore() {
-  memory.regions = defaultRegionMap();
-  memory.tethers = [];
-  memory.seq = 0;
+function emptyHubMemory() {
+  return {
+    regions: defaultRegionMap(),
+    tethers: [],
+    seq: 0,
+  };
+}
+
+function storeOf(env) {
+  const key = storeKeyOf(env);
+  if (!stores.has(key)) stores.set(key, emptyHubMemory());
+  return stores.get(key);
+}
+
+export function resetAzhubStore(workspaceId) {
+  if (workspaceId) stores.delete(String(workspaceId));
+  else stores.clear();
 }
 
 function nowIso() {
@@ -104,7 +114,7 @@ export function detectForbiddenEvent(payload) {
   return null;
 }
 
-function refuseForbidden(hit, extra = {}) {
+function refuseForbidden(hit, extra = {}, env = null) {
   return {
     ok: false,
     product: PRODUCT,
@@ -124,11 +134,12 @@ function refuseForbidden(hit, extra = {}) {
     event: hit.kind,
     limitation: LIMITATION,
     author: AUTHOR,
+    isolation: isolationView(env),
     ...extra,
   };
 }
 
-function baseResult(extra = {}) {
+function baseResult(extra = {}, env = null) {
   return {
     ok: true,
     product: PRODUCT,
@@ -146,47 +157,53 @@ function baseResult(extra = {}) {
     separate_from: "azinterface",
     limitation: LIMITATION,
     author: AUTHOR,
+    isolation: isolationView(env),
     ...extra,
   };
 }
 
-function regionIds() {
+function regionIds(memory) {
   return Object.keys(memory.regions);
 }
 
-function regionSnapshot() {
-  return regionIds().map((id) => ({
+function regionSnapshot(memory) {
+  return regionIds(memory).map((id) => ({
     id,
     modules: memory.regions[id].map((m) => ({ ...m })),
     count: memory.regions[id].length,
   }));
 }
 
-function findModule(moduleId) {
+function findModule(memory, moduleId) {
   const id = clip(moduleId, ID_CAP);
   if (!id) return null;
-  for (const region of regionIds()) {
+  for (const region of regionIds(memory)) {
     const idx = memory.regions[region].findIndex((m) => m.id === id);
     if (idx >= 0) return { region, idx, module: memory.regions[region][idx] };
   }
   return null;
 }
 
-export function azhubHealth() {
-  return baseResult({
-    op: "health",
-    status: "ok",
-    role: ROLE,
-    motto: MOTTO,
-    live: true,
-    regions: regionIds(),
-  });
+export function azhubHealth(env) {
+  const memory = storeOf(env);
+  return baseResult(
+    {
+      op: "health",
+      status: "ok",
+      role: ROLE,
+      motto: MOTTO,
+      live: true,
+      regions: regionIds(memory),
+    },
+    env,
+  );
 }
 
-export function azhubSkill() {
-  return baseResult({
-    op: "skill",
-    skill: `# AZHub (AIH-WP-1.0)
+export function azhubSkill(env) {
+  return baseResult(
+    {
+      op: "skill",
+      skill: `# AZHub (AIH-WP-1.0)
 
 Neutral spatial container / Blank Key. Hub does **not** interpret meaning.
 
@@ -200,47 +217,56 @@ Stubs (refuse): scorch_remote, auto_unlock, ranking, completeness_detect.
 
 AZInterface is **sibling software** under the same FragGate door (custodial operating environment). Do not combine them.
 
+Isolation: unauthenticated HTTP / MCP / UI FragGate calls share the labeled **public-demo** singleton (ephemeral, not private). Private workspace state is session-scoped or operator-token-scoped. \`confirm:true\` is not authentication. A client-supplied owner / workspace_id is not authorization.
+
 Author: Aziel Eliab only.
 `,
-  });
+    },
+    env,
+  );
 }
 
-export function regionList(payload) {
+export function regionList(payload, env) {
   const hit = detectForbiddenEvent(payload);
-  if (hit) return refuseForbidden(hit, { op: "region_list" });
-  return baseResult({
-    op: "region_list",
-    count: regionIds().length,
-    regions: regionSnapshot(),
-  });
+  if (hit) return refuseForbidden(hit, { op: "region_list" }, env);
+  const memory = storeOf(env);
+  return baseResult(
+    {
+      op: "region_list",
+      count: regionIds(memory).length,
+      regions: regionSnapshot(memory),
+    },
+    env,
+  );
 }
 
-export function placeModule(payload) {
+export function placeModule(payload, env) {
   const hit = detectForbiddenEvent(payload);
-  if (hit) return refuseForbidden(hit, { op: "place_module" });
+  if (hit) return refuseForbidden(hit, { op: "place_module" }, env);
+  const memory = storeOf(env);
   const src = srcOf(payload);
   const region = clip(src.region != null ? src.region : src.slot != null ? src.slot : src.place, ID_CAP).toLowerCase();
   const moduleId = clip(src.module_id != null ? src.module_id : src.module != null ? src.module : src.id, ID_CAP);
   const label = clip(src.label != null ? src.label : src.name, LABEL_CAP);
   if (!region) {
-    return { ...baseResult({ op: "place_module" }), ok: false, code: "AIH-REGION-REQUIRED", refused: true };
+    return { ...baseResult({ op: "place_module" }, env), ok: false, code: "AIH-REGION-REQUIRED", refused: true };
   }
   if (!memory.regions[region]) {
-    if (regionIds().length >= REGION_CAP) {
-      return { ...baseResult({ op: "place_module" }), ok: false, code: "AIH-REGION-CAP", refused: true };
+    if (regionIds(memory).length >= REGION_CAP) {
+      return { ...baseResult({ op: "place_module" }, env), ok: false, code: "AIH-REGION-CAP", refused: true };
     }
     memory.regions[region] = [];
   }
   if (!moduleId) {
-    return { ...baseResult({ op: "place_module" }), ok: false, code: "AIH-MODULE-REQUIRED", refused: true };
+    return { ...baseResult({ op: "place_module" }, env), ok: false, code: "AIH-MODULE-REQUIRED", refused: true };
   }
-  const existing = findModule(moduleId);
+  const existing = findModule(memory, moduleId);
   if (existing) {
     memory.regions[existing.region].splice(existing.idx, 1);
   }
-  const total = regionIds().reduce((n, id) => n + memory.regions[id].length, 0);
+  const total = regionIds(memory).reduce((n, id) => n + memory.regions[id].length, 0);
   if (!existing && total >= MODULE_CAP) {
-    return { ...baseResult({ op: "place_module" }), ok: false, code: "AIH-MODULE-CAP", refused: true };
+    return { ...baseResult({ op: "place_module" }, env), ok: false, code: "AIH-MODULE-CAP", refused: true };
   }
   const placed = {
     id: moduleId,
@@ -251,55 +277,63 @@ export function placeModule(payload) {
   };
   memory.regions[region].push(placed);
   memory.seq += 1;
-  return baseResult({
-    op: "place_module",
-    module: { ...placed },
-    interprets: false,
-    note: "Placed without interpretation. Blank Key does not read meaning.",
-  });
+  return baseResult(
+    {
+      op: "place_module",
+      module: { ...placed },
+      interprets: false,
+      note: "Placed without interpretation. Blank Key does not read meaning.",
+    },
+    env,
+  );
 }
 
-export function removeModule(payload) {
+export function removeModule(payload, env) {
   const hit = detectForbiddenEvent(payload);
-  if (hit) return refuseForbidden(hit, { op: "remove_module" });
+  if (hit) return refuseForbidden(hit, { op: "remove_module" }, env);
+  const memory = storeOf(env);
   const src = srcOf(payload);
   const moduleId = clip(src.module_id != null ? src.module_id : src.module != null ? src.module : src.id, ID_CAP);
   if (!moduleId) {
-    return { ...baseResult({ op: "remove_module" }), ok: false, code: "AIH-MODULE-REQUIRED", refused: true };
+    return { ...baseResult({ op: "remove_module" }, env), ok: false, code: "AIH-MODULE-REQUIRED", refused: true };
   }
-  const found = findModule(moduleId);
+  const found = findModule(memory, moduleId);
   if (!found) {
-    return { ...baseResult({ op: "remove_module" }), ok: false, code: "AIH-MODULE-MISSING", refused: true };
+    return { ...baseResult({ op: "remove_module" }, env), ok: false, code: "AIH-MODULE-MISSING", refused: true };
   }
   memory.regions[found.region].splice(found.idx, 1);
   memory.tethers = memory.tethers.filter((t) => t.from !== moduleId && t.to !== moduleId);
   memory.seq += 1;
-  return baseResult({
-    op: "remove_module",
-    removed: { id: moduleId, region: found.region },
-    interprets: false,
-  });
+  return baseResult(
+    {
+      op: "remove_module",
+      removed: { id: moduleId, region: found.region },
+      interprets: false,
+    },
+    env,
+  );
 }
 
-export function tetherDeclare(payload) {
+export function tetherDeclare(payload, env) {
   const hit = detectForbiddenEvent(payload);
-  if (hit) return refuseForbidden(hit, { op: "tether_declare" });
+  if (hit) return refuseForbidden(hit, { op: "tether_declare" }, env);
+  const memory = storeOf(env);
   const src = srcOf(payload);
   const from = clip(src.from != null ? src.from : src.a, ID_CAP);
   const to = clip(src.to != null ? src.to : src.b, ID_CAP);
   const label = clip(src.label, LABEL_CAP);
   if (!from || !to) {
-    return { ...baseResult({ op: "tether_declare" }), ok: false, code: "AIH-TETHER-ENDS", refused: true };
+    return { ...baseResult({ op: "tether_declare" }, env), ok: false, code: "AIH-TETHER-ENDS", refused: true };
   }
   if (from === to) {
-    return { ...baseResult({ op: "tether_declare" }), ok: false, code: "AIH-TETHER-SELF", refused: true };
+    return { ...baseResult({ op: "tether_declare" }, env), ok: false, code: "AIH-TETHER-SELF", refused: true };
   }
   const exists = memory.tethers.find((t) => (t.from === from && t.to === to) || (t.from === to && t.to === from));
   if (exists) {
-    return baseResult({ op: "tether_declare", tether: { ...exists }, already: true });
+    return baseResult({ op: "tether_declare", tether: { ...exists }, already: true }, env);
   }
   if (memory.tethers.length >= TETHER_CAP) {
-    return { ...baseResult({ op: "tether_declare" }), ok: false, code: "AIH-TETHER-CAP", refused: true };
+    return { ...baseResult({ op: "tether_declare" }, env), ok: false, code: "AIH-TETHER-CAP", refused: true };
   }
   const tether = {
     id: `tether_${memory.seq + 1}`,
@@ -311,16 +345,20 @@ export function tetherDeclare(payload) {
   };
   memory.tethers.push(tether);
   memory.seq += 1;
-  return baseResult({
-    op: "tether_declare",
-    tether: { ...tether },
-    note: "Declared link only. Blank Key does not interpret the tether.",
-  });
+  return baseResult(
+    {
+      op: "tether_declare",
+      tether: { ...tether },
+      note: "Declared link only. Blank Key does not interpret the tether.",
+    },
+    env,
+  );
 }
 
-export function tetherCut(payload) {
+export function tetherCut(payload, env) {
   const hit = detectForbiddenEvent(payload);
-  if (hit) return refuseForbidden(hit, { op: "tether_cut" });
+  if (hit) return refuseForbidden(hit, { op: "tether_cut" }, env);
+  const memory = storeOf(env);
   const src = srcOf(payload);
   const id = clip(src.id != null ? src.id : src.tether_id, ID_CAP);
   const from = clip(src.from != null ? src.from : src.a, ID_CAP);
@@ -331,43 +369,54 @@ export function tetherCut(payload) {
     idx = memory.tethers.findIndex((t) => (t.from === from && t.to === to) || (t.from === to && t.to === from));
   }
   if (idx < 0) {
-    return { ...baseResult({ op: "tether_cut" }), ok: false, code: "AIH-TETHER-MISSING", refused: true };
+    return { ...baseResult({ op: "tether_cut" }, env), ok: false, code: "AIH-TETHER-MISSING", refused: true };
   }
   const cut = memory.tethers.splice(idx, 1)[0];
   memory.seq += 1;
-  return baseResult({
-    op: "tether_cut",
-    cut: { ...cut },
-  });
+  return baseResult(
+    {
+      op: "tether_cut",
+      cut: { ...cut },
+    },
+    env,
+  );
 }
 
-export function tetherList(payload) {
+export function tetherList(payload, env) {
   const hit = detectForbiddenEvent(payload);
-  if (hit) return refuseForbidden(hit, { op: "tether_list" });
-  return baseResult({
-    op: "tether_list",
-    count: memory.tethers.length,
-    tethers: memory.tethers.map((t) => ({ ...t })),
-  });
+  if (hit) return refuseForbidden(hit, { op: "tether_list" }, env);
+  const memory = storeOf(env);
+  return baseResult(
+    {
+      op: "tether_list",
+      count: memory.tethers.length,
+      tethers: memory.tethers.map((t) => ({ ...t })),
+    },
+    env,
+  );
 }
 
-export function blankKeyStatus(payload) {
+export function blankKeyStatus(payload, env) {
   const hit = detectForbiddenEvent(payload);
-  if (hit) return refuseForbidden(hit, { op: "blank_key_status" });
-  return baseResult({
-    op: "blank_key_status",
-    motto: MOTTO,
-    role: ROLE,
-    interprets: false,
-    blank_key: true,
-    auto_unlock: false,
-    completeness: false,
-    completeness_detect: false,
-    ranking: false,
-    scorch_remote: false,
-    regions: regionIds().length,
-    modules: regionIds().reduce((n, id) => n + memory.regions[id].length, 0),
-    tethers: memory.tethers.length,
-    note: "Blank Key reports presence, not meaning. Completeness events and auto-unlock stay refused.",
-  });
+  if (hit) return refuseForbidden(hit, { op: "blank_key_status" }, env);
+  const memory = storeOf(env);
+  return baseResult(
+    {
+      op: "blank_key_status",
+      motto: MOTTO,
+      role: ROLE,
+      interprets: false,
+      blank_key: true,
+      auto_unlock: false,
+      completeness: false,
+      completeness_detect: false,
+      ranking: false,
+      scorch_remote: false,
+      regions: regionIds(memory).length,
+      modules: regionIds(memory).reduce((n, id) => n + memory.regions[id].length, 0),
+      tethers: memory.tethers.length,
+      note: "Blank Key reports presence, not meaning. Completeness events and auto-unlock stay refused.",
+    },
+    env,
+  );
 }

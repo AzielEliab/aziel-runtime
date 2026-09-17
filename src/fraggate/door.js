@@ -16,6 +16,14 @@
 import { check as decisiongateCheck } from "../engines/decisiongate/engine.js";
 import { joinTypeForOp, normalizeJoinType } from "../engines/4dmap/engine.js";
 import { executeLocal } from "../engines/runner.js";
+import {
+  WORKSPACE_SKIP_KEYS,
+  attachWorkspace,
+  claimedSessionId,
+  isolationView,
+  resolveCallerWorkspace,
+  workspaceRefuseEnvelope,
+} from "../workspace.js";
 import { arch, LOCKED_STRIP, pipeInbound, pipeOutbound, thinPipe } from "../azpipe.js";
 import { MEMORY_SLUG, runMemoryOp } from "../memory.js";
 import { MESH_SLUG, runMeshOp } from "../mesh.js";
@@ -370,6 +378,19 @@ export async function fraggateCall(args, registry, bySlug, env, request = null) 
 
   const { target, claim } = admission;
   const src = args && typeof args === "object" ? args : {};
+  const resolvedWorkspace = await resolveCallerWorkspace({
+    request,
+    env,
+    sessionId: claimedSessionId(src),
+  });
+  if (!resolvedWorkspace.ok) {
+    return workspaceRefuseEnvelope(resolvedWorkspace, {
+      name: target.entry.name,
+      slug: target.entry.slug,
+      op: target.op,
+    });
+  }
+  env = attachWorkspace(env && typeof env === "object" ? env : {}, resolvedWorkspace.workspace);
   const rawPayload = src.payload !== undefined ? src.payload : payloadWithoutMeta(src);
   const inbound = await pipeInbound({
     payload: rawPayload,
@@ -536,6 +557,7 @@ async function decoratePipe(accepted, inbound, parsed, env, claim) {
     accepted.sweep = outbound.sweep;
     return accepted;
   }
+  accepted.isolation = isolationView(env);
   if (inbound && inbound.inner && inbound.inner.entry) accepted.entry = inbound.inner.entry;
   if (outbound && outbound.inner && outbound.inner.exit) accepted.receipt = outbound.inner.exit;
   if (outbound && outbound.inner && outbound.inner.temporal) accepted.temporal = outbound.inner.temporal;
@@ -561,6 +583,7 @@ function payloadWithoutMeta(src) {
     "id",
     "confirm",
     "dry_run",
+    ...WORKSPACE_SKIP_KEYS,
   ]);
   const out = {};
   for (const [k, v] of Object.entries(src || {})) {
