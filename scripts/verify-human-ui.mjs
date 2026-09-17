@@ -151,6 +151,7 @@ for (const [slug, op, payload] of ops) {
 const mesh = await (await get("/v1/mesh")).json();
 assert.ok(mesh.rollup || mesh.live_nodes != null);
 assert.equal(mesh.get_never_enables, true);
+assert.equal(mesh.nine_laws && mesh.nine_laws.hard_true, true);
 
 const health = await call("decisiongate", "health", {});
 assert.equal(health.status, 200);

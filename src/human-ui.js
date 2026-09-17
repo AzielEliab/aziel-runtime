@@ -262,7 +262,7 @@ export function workspacePaneHtml(origin, products) {
 
   <section class="task" id="mesh-panel" data-kind="mesh" data-origin="${escapeHtml(base)}">
     <h3>Mesh status</h3>
-    <p class="blurb">Live / locked / isolated from <code>GET /v1/mesh</code>. GET never enables radios. Join needs a catalog product. Presence TTL is 5 minutes.</p>
+    <p class="blurb">Live / locked / isolated from <code>GET /v1/mesh</code>. GET never enables radios. Nine QNM laws stay machine-true on that JSON. Join needs a catalog product. Presence TTL is 5 minutes.</p>
     <p class="ws-status" id="mesh-status-line" data-state="loading" role="status" aria-live="polite">Loading status</p>
     <pre class="ws-out fg-out" id="mesh-out" role="status" aria-live="polite">Loading status…</pre>
     <div class="field">
@@ -590,7 +590,8 @@ export function humanDoorScript() {
       let isolated = roll.isolated != null ? roll.isolated : b.isolated_nodes;
       let radios = b.radios || (b.enabled ? "on" : "off");
       if (line) {
-        line.textContent = "live " + live + " · locked " + locked + " · isolated " + isolated + " · radios " + radios + " · suite-presence " + (b.suite_presence || "on") + " · GET never enables";
+        var laws = b.nine_laws && b.nine_laws.hard_true === true ? " · nine laws hard-true" : "";
+        line.textContent = "live " + live + " · locked " + locked + " · isolated " + isolated + " · radios " + radios + " · suite-presence " + (b.suite_presence || "on") + " · GET never enables" + laws;
         line.setAttribute("data-state", "ready");
       }
     });
