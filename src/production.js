@@ -1,9 +1,12 @@
 /**
  * aziel-runtime 1.4.1 production gates — ready, token, rate-limit, TTL, receipt cap.
  * 1.5.0 / 1.6.0 / 1.6.1 / 1.6.2 / 1.6.3 / 1.6.4 / 1.6.5 / 1.6.6 / 1.6.7 / 1.6.8 / 1.6.9 / 1.6.10 / 1.6.11 / 1.6.12 / 1.6.13 / 1.6.14 / 1.6.15 / 1.7.0 keep these gates unchanged.
- * Session mutate only. Catalog / health / runtime / skill / pull stay public.
+ * Session mutate keeps its isolate windows. F03 also covers FragGate HTTP + MCP
+ * (distributed RATE Durable Object when bound; isolate otherwise).
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
+
+import { CODE_RATE_LIMIT } from "./request-limits.js";
 
 export const RECEIPT_CAP = 64;
 export const SESSION_TTL_MS = 6 * 60 * 60 * 1000;
@@ -11,6 +14,9 @@ export const RATE_WINDOW_MS = 60_000;
 export const RATE_OPEN_PER_MIN = 20;
 export const RATE_EXEC_PER_MIN = 60;
 export const RATE_ANON_MUTATE_PER_MIN = 10;
+export const RATE_FRAGGATE_CALL_PER_MIN = 240;
+export const RATE_FRAGGATE_READ_PER_MIN = 360;
+export const RATE_MCP_PER_MIN = 240;
 
 export const TOKEN_HEADER = "X-Aziel-Runtime-Token";
 export const VERSION_HEADER = "X-Aziel-Runtime-Version";
@@ -272,9 +278,31 @@ function rateStore(env) {
     throw new Error("rate limiter requires env object");
   }
   if (!env.__aziel_rate) {
-    env.__aziel_rate = { open: new Map(), exec: new Map(), anon_mutate: new Map() };
+    env.__aziel_rate = {
+      open: new Map(),
+      exec: new Map(),
+      anon_mutate: new Map(),
+      fraggate_call: new Map(),
+      fraggate_read: new Map(),
+      mcp: new Map(),
+    };
   }
   return env.__aziel_rate;
+}
+
+export function rateLimitForKind(env, kind) {
+  const bag = env && env.__aziel_rate_limits && typeof env.__aziel_rate_limits === "object" ? env.__aziel_rate_limits : {};
+  const pick = (key, fallback) => {
+    const n = Number(bag[key]);
+    return Number.isFinite(n) && n >= 1 ? Math.floor(n) : fallback;
+  };
+  if (kind === "open") return pick("open", RATE_OPEN_PER_MIN);
+  if (kind === "exec") return pick("exec", RATE_EXEC_PER_MIN);
+  if (kind === "anon_mutate") return pick("anon_mutate", RATE_ANON_MUTATE_PER_MIN);
+  if (kind === "fraggate_call") return pick("fraggate_call", RATE_FRAGGATE_CALL_PER_MIN);
+  if (kind === "fraggate_read") return pick("fraggate_read", RATE_FRAGGATE_READ_PER_MIN);
+  if (kind === "mcp") return pick("mcp", RATE_MCP_PER_MIN);
+  return 0;
 }
 
 export function takeRateSlot(env, bucket, key, limit, now = Date.now()) {
@@ -293,6 +321,7 @@ export function takeRateSlot(env, bucket, key, limit, now = Date.now()) {
       count: times.length,
       retry_after: retryAfter,
       window_seconds: Math.round(RATE_WINDOW_MS / 1000),
+      enforcement: "isolate",
     };
   }
   times.push(t);
@@ -304,35 +333,39 @@ export function takeRateSlot(env, bucket, key, limit, now = Date.now()) {
     count: times.length,
     retry_after: 0,
     window_seconds: Math.round(RATE_WINDOW_MS / 1000),
+    enforcement: "isolate",
   };
 }
 
+const RATE_SCOPES = {
+  open: "session_open",
+  exec: "session_exec",
+  anon_mutate: "anon_mutate",
+  fraggate_call: "fraggate_call",
+  fraggate_read: "fraggate_read",
+  mcp: "mcp",
+};
+
 export function rateLimitDecision(env, request, kind, now = Date.now()) {
   const ip = clientIp(request);
-  if (kind === "open") {
-    const slot = takeRateSlot(env, "open", ip, RATE_OPEN_PER_MIN, now);
-    return { ...slot, scope: "session_open", ip };
+  const limit = rateLimitForKind(env, kind);
+  if (limit >= 1 && RATE_SCOPES[kind]) {
+    const slot = takeRateSlot(env, kind, ip, limit, now);
+    return { ...slot, scope: RATE_SCOPES[kind], ip, enforcement: slot.enforcement || "isolate" };
   }
-  if (kind === "exec") {
-    const slot = takeRateSlot(env, "exec", ip, RATE_EXEC_PER_MIN, now);
-    return { ...slot, scope: "session_exec", ip };
-  }
-  if (kind === "anon_mutate") {
-    const slot = takeRateSlot(env, "anon_mutate", ip, RATE_ANON_MUTATE_PER_MIN, now);
-    return { ...slot, scope: "anon_mutate", ip };
-  }
-  return { ok: true, scope: kind, ip, limit: 0, remaining: 0, count: 0, retry_after: 0, window_seconds: 60 };
+  return { ok: true, scope: kind, ip, limit: 0, remaining: 0, count: 0, retry_after: 0, window_seconds: 60, enforcement: "isolate" };
 }
 
 export function rateLimitFailBody(decision) {
   return {
     ok: false,
     error: "rate limit exceeded",
-    code: "rate_limited",
+    code: CODE_RATE_LIMIT,
     scope: decision.scope,
     limit: decision.limit,
     window_seconds: decision.window_seconds,
     retry_after: decision.retry_after,
+    enforcement: (decision && decision.enforcement) || "isolate",
   };
 }
 

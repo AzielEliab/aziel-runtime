@@ -82,6 +82,9 @@ export function ledgerTipView(ledger = isolateLedger) {
     op: last ? last.op : null,
     prev: last ? last.prev : ZERO_HASH,
     hash: last ? last.hash : ZERO_HASH,
+    window_cap: LEDGER_CAP,
+    ephemeral_window: true,
+    memory_store_is_durable: false,
   };
 }
 
