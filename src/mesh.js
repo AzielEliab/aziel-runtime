@@ -219,7 +219,9 @@ export const MESH_MCP_TOOLS = Object.freeze([
 
 const SHA256_RE = /^[a-f0-9]{64}$/;
 const PRODUCT_RE = /^[a-z0-9][a-z0-9-]{0,39}$/;
-const NODE_RE = /^[a-z0-9][a-z0-9._-]{7,79}$/i;
+/** Full-string node_id: exactly 8–80 chars of [a-z0-9._-]. No uppercase. */
+export const NODE_ID_RE = /^[a-z0-9._-]{8,80}$/;
+const NODE_RE = NODE_ID_RE;
 const BEARER_RE = /^[a-z][a-z0-9-]{1,39}$/;
 const FORBIDDEN_BEARER_TOKENS = Object.freeze([
   "login",
@@ -269,6 +271,54 @@ const memory = {
   seq: 0,
 };
 
+/** Test / time-travel clock. Null means Date.now(). */
+let injectedNowMs = null;
+/** Test / HW radio override. null = derive from bearers + env; false = TX off. */
+let radiosOverride = null;
+
+export function setMeshNowMs(ms) {
+  if (ms == null || ms === "") {
+    injectedNowMs = null;
+    return null;
+  }
+  const n = Number(ms);
+  injectedNowMs = Number.isFinite(n) ? n : null;
+  return injectedNowMs;
+}
+
+export function resetMeshClock() {
+  injectedNowMs = null;
+  return null;
+}
+
+/**
+ * Force TX radios on/off for tests or a localized hardware toggle.
+ * Public mesh_disable still refuses — this is not a public kill switch.
+ * When off, mesh_join / heartbeat / broadcast refuse MESH-OFF.
+ */
+export function setMeshRadiosEnabled(on) {
+  radiosOverride = on === true;
+  if (radiosOverride) {
+    memory.enabled = true;
+    if (!memory.bearers.length) memory.bearers = [EXAMPLE_BEARER];
+  } else {
+    memory.enabled = false;
+    memory.bearers = [];
+  }
+  return radiosOverride;
+}
+
+/** Honest HW / operator radio env. Missing = no hardware claim (do not invent radios). */
+export function readMeshRadioEnv(env) {
+  if (!env || typeof env !== "object") return null;
+  const raw = env.MESH_RADIOS != null && env.MESH_RADIOS !== "" ? env.MESH_RADIOS : env.QNM_RADIOS;
+  if (raw == null || raw === "") return null;
+  const s = String(raw).trim().toLowerCase();
+  if (s === "off" || s === "0" || s === "false" || s === "disabled") return false;
+  if (s === "on" || s === "1" || s === "true" || s === "enabled") return true;
+  return null;
+}
+
 export function resetMeshStore() {
   memory.enabled = MESH_DEFAULT_ENABLED;
   memory.last_enable_ms = 0;
@@ -276,6 +326,8 @@ export function resetMeshStore() {
   memory.nodes = {};
   memory.receipts = [];
   memory.seq = 0;
+  injectedNowMs = null;
+  radiosOverride = null;
 }
 
 export function setSuitePresenceCatalog(products) {
@@ -431,7 +483,7 @@ export function nodeMeshHubCard(origin) {
 }
 
 function nowMs() {
-  return Date.now();
+  return injectedNowMs == null || !Number.isFinite(injectedNowMs) ? Date.now() : injectedNowMs;
 }
 
 function nowIso(ms = nowMs()) {
@@ -604,12 +656,30 @@ function radiosOn(bearers) {
   return Array.isArray(bearers) && bearers.length >= 1;
 }
 
+/**
+ * TX radios for join/heartbeat/broadcast.
+ * HW env off or test override off → MESH-OFF.
+ * HW absent: do not invent a radio. Suite software presence follows declared bearers.
+ */
+function txRadiosLive(bearers, env) {
+  if (radiosOverride === false) return false;
+  const hw = readMeshRadioEnv(env);
+  if (hw === false) return false;
+  if (radiosOverride === true) return true;
+  return radiosOn(bearers);
+}
+
+function withBearersForLoad(raw) {
+  if (radiosOverride === false) return normalizeBearers(raw);
+  return withDefaultBearers(raw);
+}
+
 async function loadState(env) {
   const bound = meshKv(env);
   if (!bound) {
     memory.nodes = pruneNodes(memory.nodes);
-    const bearers = withDefaultBearers(memory.bearers);
-    memory.enabled = radiosOn(bearers);
+    const bearers = withBearersForLoad(memory.bearers);
+    memory.enabled = txRadiosLive(bearers, env);
     memory.bearers = bearers;
     return {
       enabled: memory.enabled === true,
@@ -621,11 +691,11 @@ async function loadState(env) {
     };
   }
   const lastRaw = await bound.kv.get(`${bound.prefix}last_enable_ms`);
-  const bearers = withDefaultBearers(await kvGetJson(bound.kv, `${bound.prefix}bearers`, []));
+  const bearers = withBearersForLoad(await kvGetJson(bound.kv, `${bound.prefix}bearers`, []));
   const nodes = pruneNodes(await kvGetJson(bound.kv, `${bound.prefix}nodes`, {}));
   const receipts = await kvGetJson(bound.kv, `${bound.prefix}receipts`, []);
   return {
-    enabled: radiosOn(bearers),
+    enabled: txRadiosLive(bearers, env),
     last_enable_ms: Number(lastRaw) || 0,
     bearers,
     nodes: nodes && typeof nodes === "object" && !Array.isArray(nodes) ? nodes : {},
@@ -733,7 +803,7 @@ function statusFields(state) {
   const products = productsPresent(nodes);
   const rollup = rollupCounts(nodes);
   const bearers = normalizeBearers(state.bearers);
-  const enabled = radiosOn(bearers);
+  const enabled = state.enabled === true;
   return {
     enabled,
     radios: enabled ? "on" : "off",
@@ -856,6 +926,8 @@ Companion to **AIH-WP-1.1**. Suite public surface is **rollup + operator enable*
 ${MESH_LIMITATION}
 
 Read-only **suite-presence is ON by default**. A site ping of \`GET /v1/mesh\` never enables radios beyond that read-only presence. Public \`POST /v1/mesh/disable\` / \`mesh_disable\` refuses \`MESH-DISABLE-REFUSED\` — it cannot turn suite-presence off.
+
+\`mesh_join\` / \`POST /v1/mesh/join\` requires \`product\` (catalog slug). Optional \`node_id\` must be exactly 8–80 chars matching \`[a-z0-9._-]\` (full string). \`presence\` must be \`live\` (default), \`locked\`, or \`isolated\`. Join is additive presence with a **strict 5-minute TTL**. \`mesh_heartbeat\` refreshes that TTL. If no heartbeat (or fan-out refresh) arrives inside the window, the node is **dropped** from the live roster. When transmission radios are powered down or suite radios are not enabled, join/heartbeat/broadcast refuse **\`MESH-OFF\`**. Read paths stay honest. Do not invent a second refuse spelling.
 
 While radios are LIVE, this Worker fans out join/heartbeat for every live Softwares product Worker (\`node_id\` \`{slug}-worker\`, no \`|\`) on cron (\`*/2 * * * *\`) or request-path. Presence TTL is 5 minutes. Product Workers proxy \`/v1/mesh/*\` via \`AZIEL_RUNTIME\`. Not a second mesh. Fan-out is rollup counts for Workers that still exist. It does not restore godlock.uk or reattach a pulled public hostname.
 
@@ -987,17 +1059,28 @@ export async function meshDisable(payload, env) {
 }
 
 function offRefuse(op, state) {
-  return refuse("MESH-OFF", "QNM suite-presence is not LIVE. GET never enables radios beyond read-only suite-presence.", {
-    op,
-    mesh_enabled: false,
-    ...statusFields(state),
-  });
+  return refuse(
+    "MESH-OFF",
+    "MESH-OFF: transmission radios are powered down or suite radios are not enabled. Software presence is blocked. GET /v1/mesh never enables radios. Read-only suite-presence remains a rollup read.",
+    {
+      op,
+      mesh_enabled: false,
+      radios: "off",
+      ...statusFields({ ...state, enabled: false }),
+    },
+  );
 }
 
 export async function meshJoin(payload, env) {
   const src = payload && typeof payload === "object" && !Array.isArray(payload) ? payload : {};
   const state = await loadState(env);
   if (!state.enabled) return offRefuse("join", state);
+  if (!Object.prototype.hasOwnProperty.call(src, "product") || src.product == null || String(src.product).trim() === "") {
+    return refuse("MESH-BAD-INPUT", "Pass { product } as a catalog slug (a-z0-9-). product is required. AnonBroadcast is not a product.", {
+      op: "join",
+      mesh_enabled: true,
+    });
+  }
   const product = sanitizeProduct(src.product);
   if (!product) {
     return refuse("MESH-BAD-INPUT", "Pass { product } as a catalog slug (a-z0-9-). AnonBroadcast is not a product.", {
@@ -1014,9 +1097,13 @@ export async function meshJoin(payload, env) {
       mesh_enabled: true,
     });
   }
-  let node_id = sanitizeNodeId(src.node_id || src.id);
-  if (src.node_id && !node_id) {
-    return refuse("MESH-BAD-INPUT", "node_id must be 8–80 chars [a-z0-9._-].", { op: "join", mesh_enabled: true });
+  const rawId = Object.prototype.hasOwnProperty.call(src, "node_id") ? src.node_id : src.id;
+  let node_id = "";
+  if (rawId != null && String(rawId).trim() !== "") {
+    node_id = sanitizeNodeId(rawId);
+    if (!node_id) {
+      return refuse("MESH-BAD-INPUT", "node_id must be 8–80 chars matching [a-z0-9._-].", { op: "join", mesh_enabled: true });
+    }
   }
   const now = nowMs();
   const ts = nowIso(now);

@@ -75,7 +75,7 @@ export function mcpInitializeInstructions() {
     "decisiongate_check gates a proposal without exec. library_lookup is public corpus cite (not memory, not ChainLock). " +
     "ChainLock lifecycle is append-only: append → tip or recall → verify → seal (no chainlock_delete). chainlock_seal writes a local LOCKSET; runtime_session_close seals a raw session — they are not the same. " +
     "Memory lifecycle is append-only belief (≠ truth): observe → resolve → calibrate → recall or get (no memory_delete). " +
-    "QNM mesh lifecycle: mesh_status (counts), mesh_nodes (roster), mesh_enable (optional extra bearer), mesh_disable (refused — public disable of suite-presence), mesh_join/heartbeat/leave (one node), mesh_broadcast (hash receipt, never publish). Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. NO-LIE / NO-REWRITE: receipts that still hash; copies not all on one tunnel; no rewrite key; the network is never allowed to lie even to self-preserve. " +
+    "QNM mesh lifecycle: mesh_status (counts), mesh_nodes (roster), mesh_enable (optional extra bearer), mesh_disable (refused — public disable of suite-presence), mesh_join/heartbeat/leave (one node), mesh_broadcast (hash receipt, never publish). mesh_join requires product; optional node_id is 8–80 [a-z0-9._-]; presence is live|locked|isolated; additive presence has a strict 5-minute TTL (heartbeat refreshes; else dropped). Join/heartbeat/broadcast refuse MESH-OFF when transmission radios are off. Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. NO-LIE / NO-REWRITE: receipts that still hash; copies not all on one tunnel; no rewrite key; the network is never allowed to lie even to self-preserve. " +
     "Raw session lifecycle (advanced/internal): open → policy → exec → receipt or receipts → close. Prefer fraggate_call. " +
     "Show the user display.title and display.summary, then take the next input. " +
     "runtime_run, runtime_session_*, raw *_health, and runtime_manifest are advanced/internal. " +
@@ -447,19 +447,19 @@ export function runtimeHelperTools() {
       title: "Register QNM rollup presence",
       description: tdqsDescription({
         action: "Register one product node into the QNM rollup (POST /v1/mesh/join) — first presence, not a TTL refresh",
-        when: "read-only suite-presence is LIVE (default ON) and a catalog product should appear in live/locked/isolated counts",
+        when: "transmission radios are LIVE and a catalog product should appear in live/locked/isolated counts",
         notFor: "refreshing an existing node, reading the roster, enabling radios, or opening an account session",
         instead: "mesh_heartbeat, mesh_nodes, mesh_enable, or runtime_session_open",
         effects:
-          "Write: additive presence with a 5-minute TTL. Read-only suite-presence is ON by default. Not an account session. AnonBroadcast is not a product",
+          "Write: additive presence with a strict 5-minute TTL. No heartbeat (or fan-out refresh) inside that window drops the node from the live roster. Radios off refuses MESH-OFF. Missing product / bad node_id / bad presence refuse MESH-BAD-INPUT. Read-only suite-presence is ON by default. Not an account session. AnonBroadcast is not a product",
         params: "product is required (catalog slug). node_id optional 8–80 [a-z0-9._-]. presence is live|locked|isolated (default live). " + CONFIRM_PARAM_NOTE,
-        returns: "node_id, presence, and TTL note",
+        returns: "node_id, presence, presence_ttl_ms (300000), and TTL note. MESH-OFF when radios are off",
       }),
       annotations: mcpAnnotations("Register QNM rollup presence", HINT_ADDITIVE),
       inputSchema: withConfirmProperties({
         type: "object",
         additionalProperties: false,
-        description: "product is required. presence must be live|locked|isolated when set. node_id must be 8–80 [a-z0-9._-]. Mutation requires confirm=true or dry_run=true.",
+        description: "product is required. presence must be live|locked|isolated when set. node_id must be 8–80 [a-z0-9._-]. Radios off refuses MESH-OFF. Mutation requires confirm=true or dry_run=true.",
         properties: {
           product: {
             type: "string",
@@ -493,11 +493,11 @@ export function runtimeHelperTools() {
       title: "Refresh QNM rollup presence",
       description: tdqsDescription({
         action: "Refresh one existing node's 5-minute QNM TTL (POST /v1/mesh/heartbeat) — not a first join",
-        when: "you already have a node_id from mesh_join and suite-presence is LIVE",
+        when: "you already have a node_id from mesh_join and transmission radios are LIVE",
         notFor: "first-time registration or dropping the node",
         instead: "mesh_join or mesh_leave",
         effects:
-          "Write: extends TTL (not idempotent). Unknown or expired node_id refuses MESH-UNKNOWN-NODE — join again; no account resurrection",
+          "Write: refreshes the strict 5-minute TTL (not idempotent). Miss the window and the node is dropped from the live roster. Radios off refuses MESH-OFF. Unknown or expired node_id refuses MESH-UNKNOWN-NODE — join again; no account resurrection",
         params:
           "node_id is required. presence may replace the class (live|locked|isolated). Optional tip_hash and prev are 64 hex only (Split the wires + REHEAL: presence + tip hash; no body/diff/vote-to-fix; no neighbor heal). " +
           CONFIRM_PARAM_NOTE,

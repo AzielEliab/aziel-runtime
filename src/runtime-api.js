@@ -384,8 +384,8 @@ ${shelvesSkillMarkdown(base)}
 | GET | \`/v1/mesh/status\` | Alias of \`/v1/mesh\`. |
 | POST | \`/v1/mesh/enable\` | Optional extra bearer. Body \`{bearer}\` required (rate-limited). |
 | POST | \`/v1/mesh/disable\` | Refused (\`MESH-DISABLE-REFUSED\`). Public disable of suite-presence is refused. |
-| POST | \`/v1/mesh/join\` | Register rollup presence. Body \`{product, node_id?, label?, presence?}\`. |
-| POST | \`/v1/mesh/heartbeat\` | Refresh 5-minute presence. Body \`{node_id, presence?}\`. |
+| POST | \`/v1/mesh/join\` | Register rollup presence. Body \`{product, node_id?, label?, presence?}\`. product required. node_id 8–80 \`[a-z0-9._-]\`. presence live\\|locked\\|isolated. Strict 5-minute TTL. \`MESH-OFF\` when radios off. |
+| POST | \`/v1/mesh/heartbeat\` | Refresh the strict 5-minute TTL. Body \`{node_id, presence?}\`. \`MESH-OFF\` when radios off. |
 | POST | \`/v1/mesh/leave\` | Drop presence. Body \`{node_id}\`. No implicit heal. |
 | GET | \`/v1/mesh/nodes\` | Rollup roster (no scores / leaderboard). |
 | GET | \`/v1/mesh/az-generator\` | Cap-7 semantic-bridge cite (MirageGrid factory; inherit designs only including azcorpus + azlibrary; \`design_of: hub_designs\`; \`resolves_to_hub: false\`; \`name_may_change\`; not ICANN). Never enables radios. |
@@ -1497,7 +1497,7 @@ export function runtimeStaticPaths() {
     "/v1/mesh/join": {
       post: {
         operationId: "mesh_join",
-        summary: "Register rollup presence. Body { product, node_id?, label?, presence? }. Read-only suite-presence is ON by default.",
+        summary: "Register rollup presence. Body { product, node_id?, label?, presence? }. product required. node_id 8–80 [a-z0-9._-]. presence live|locked|isolated. Strict 5-minute TTL. MESH-OFF when radios off.",
         tags: ["mesh"],
         requestBody: {
           required: true,
@@ -1507,22 +1507,22 @@ export function runtimeStaticPaths() {
                 type: "object",
                 required: ["product"],
                 properties: {
-                  product: { type: "string" },
-                  node_id: { type: "string" },
+                  product: { type: "string", description: "Required catalog slug (a-z0-9-)." },
+                  node_id: { type: "string", minLength: 8, maxLength: 80, pattern: "^[a-z0-9._-]+$", description: "Optional. Exactly 8–80 chars [a-z0-9._-]." },
                   label: { type: "string" },
-                  presence: { type: "string", description: "live | locked | isolated" },
+                  presence: { type: "string", enum: ["live", "locked", "isolated"], description: "live | locked | isolated" },
                 },
               },
             },
           },
         },
-        responses: { "200": { description: "Session + node" }, "400": { description: "Radios off or bad input" } },
+        responses: { "200": { description: "Session + node (presence_ttl_ms 300000)" }, "400": { description: "MESH-OFF, MESH-BAD-INPUT, or radios off" } },
       },
     },
     "/v1/mesh/heartbeat": {
       post: {
         operationId: "mesh_heartbeat",
-        summary: "Refresh 5-minute presence. Body { node_id, presence? }.",
+        summary: "Refresh the strict 5-minute presence TTL. Body { node_id, presence? }. MESH-OFF when radios off. Expired node is MESH-UNKNOWN-NODE.",
         tags: ["mesh"],
         requestBody: {
           required: true,

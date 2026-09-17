@@ -89,6 +89,8 @@ Modes: **OFF** (GET/status never arms), **REFUSE** (named stub / halluc / lamb /
 
 `POST /v1/mesh/disable` / suite `mesh_disable` return **`MESH-DISABLE-REFUSED`**. Read-only suite-presence stays ON. Library host overlay may return **409** `library-default-off` instead of Worker `MESH-NEED-BEARER`. That overlay is host-side. GET never enables extra radios.
 
+`mesh_join` / `mesh_heartbeat` / `mesh_broadcast` (HTTP + MCP) return **`MESH-OFF`** when transmission radios are powered down or suite radios are not enabled. Software presence is blocked. Do not invent a second spelling. Missing `product`, `node_id` outside 8–80 `[a-z0-9._-]`, or a `presence` other than `live`/`locked`/`isolated` is **`MESH-BAD-INPUT`**. Presence TTL is a strict 5 minutes; no heartbeat (or fan-out refresh) inside that window drops the node from the live roster.
+
 ### QNS (`src/qns.js`)
 
 `QNS-OK` (cite), `QNS-CITE-ONLY`, `QNS-NO-PROXY`
