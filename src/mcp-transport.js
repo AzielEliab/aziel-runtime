@@ -11,6 +11,13 @@
 export const MCP_PROTOCOL_PREFERRED = "2025-11-25";
 export const MCP_PROTOCOL_LEGACY = "2025-03-26";
 export const MCP_PROTOCOL_SUPPORTED = Object.freeze(["2025-11-25", "2025-06-18", "2025-03-26"]);
+/** Client tokens that mean "give me the current revision", not a dated floor. */
+export const MCP_PROTOCOL_ALIASES = Object.freeze({
+  latest: MCP_PROTOCOL_PREFERRED,
+  current: MCP_PROTOCOL_PREFERRED,
+  preferred: MCP_PROTOCOL_PREFERRED,
+  validator_protocol_version: MCP_PROTOCOL_PREFERRED,
+});
 export const MCP_SESSION_HEADER = "Mcp-Session-Id";
 export const MCP_PROTOCOL_HEADER = "MCP-Protocol-Version";
 export const MCP_SESSION_TTL_MS = 6 * 60 * 60 * 1000;
@@ -24,10 +31,23 @@ export function isSupportedProtocolVersion(raw) {
   return MCP_PROTOCOL_SUPPORTED.includes(v);
 }
 
-export function negotiateProtocolVersion(requested) {
+/**
+ * Claim the current revision unless the client explicitly locks a supported
+ * legacy date (requireLegacy). Sentinel's validator sends 2025-03-26 as
+ * validator_protocol_version; echoing that stuck claimed_version on the floor.
+ * latest / current / preferred / validator_protocol_version → preferred.
+ * Dated supported versions are accepted (not HTTP 400) but the advertised
+ * result is still 2025-11-25 unless requireLegacy is true.
+ */
+export function negotiateProtocolVersion(requested, options = {}) {
   const v = String(requested || "").trim();
+  const requireLegacy = options.requireLegacy === true;
   if (!v) {
     return { ok: true, version: MCP_PROTOCOL_PREFERRED, source: "default" };
+  }
+  const alias = MCP_PROTOCOL_ALIASES[v.toLowerCase()];
+  if (alias) {
+    return { ok: true, version: alias, source: "alias", requested: v };
   }
   if (!isSupportedProtocolVersion(v)) {
     return {
@@ -37,7 +57,13 @@ export function negotiateProtocolVersion(requested) {
       supported: MCP_PROTOCOL_SUPPORTED.slice(),
     };
   }
-  return { ok: true, version: v, source: "client" };
+  if (v === MCP_PROTOCOL_PREFERRED) {
+    return { ok: true, version: v, source: "client" };
+  }
+  if (requireLegacy) {
+    return { ok: true, version: v, source: "client-legacy", requested: v };
+  }
+  return { ok: true, version: MCP_PROTOCOL_PREFERRED, source: "preferred", accepted: v };
 }
 
 export function readMcpProtocolHeader(request) {
@@ -134,9 +160,9 @@ export async function closeMcpSession(env, id) {
  * Presented unknown/dead session → HTTP 404.
  * Missing session mints a new one (initialize and first POST) so headers are always echoed.
  */
-export async function admitMcpPost(request, env, { method, requestedProtocol } = {}) {
+export async function admitMcpPost(request, env, { method, requestedProtocol, requireLegacy } = {}) {
   const headerProtocol = readMcpProtocolHeader(request);
-  if (headerProtocol && !isSupportedProtocolVersion(headerProtocol)) {
+  if (headerProtocol && !isSupportedProtocolVersion(headerProtocol) && !MCP_PROTOCOL_ALIASES[headerProtocol.toLowerCase()]) {
     return {
       ok: false,
       status: 400,
@@ -145,7 +171,7 @@ export async function admitMcpPost(request, env, { method, requestedProtocol } =
       supported: MCP_PROTOCOL_SUPPORTED.slice(),
     };
   }
-  const negotiated = negotiateProtocolVersion(requestedProtocol || headerProtocol);
+  const negotiated = negotiateProtocolVersion(requestedProtocol || headerProtocol, { requireLegacy });
   if (!negotiated.ok) {
     return {
       ok: false,

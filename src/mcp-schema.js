@@ -183,20 +183,22 @@ export const CONFIRM_PROPS = Object.freeze({
   confirm: {
     type: "boolean",
     description:
-      "Must be true to mutate. Without confirm=true the tool refuses MCP-CONFIRM-REQUIRED unless dry_run=true.",
+      "Required confirmation flag. Must be true to execute a mutation. The tool refuses MCP-CONFIRM-REQUIRED when confirm is missing or false unless dry_run=true (preview, no write).",
   },
   dry_run: {
     type: "boolean",
-    description: "When true, return a preview and do not mutate. Does not require confirm.",
+    description:
+      "Preview flag. When true, return a would-mutate preview and do not write. Alternative to confirm=true. Does not mutate.",
   },
 });
 
 export const CONFIRM_PARAM_NOTE =
-  "Mutation requires confirm=true or dry_run=true (preview only, no write).";
+  "Mutation requires confirm=true (required confirmation) or dry_run=true (preview only, no write).";
 
 export function withConfirmProperties(schema) {
   const properties = { ...(schema.properties || {}), ...CONFIRM_PROPS };
-  return { ...schema, properties };
+  const required = Array.from(new Set([...(schema.required || []), "confirm"]));
+  return { ...schema, properties, required };
 }
 
 export function nameOrSlugProps() {
