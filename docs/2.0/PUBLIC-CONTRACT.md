@@ -143,6 +143,9 @@ Other public HTTP surfaces that stay in the contract:
 | `session_ttl_ms` | `21600000` (6h) |
 | `rate_open_per_minute` | `20` |
 | `rate_exec_per_minute` | `60` |
+| `rate_fraggate_call_per_minute` | `240` |
+| `rate_fraggate_read_per_minute` | `360` |
+| `rate_mcp_per_minute` | `240` |
 | `token` | `optional-on-session-mutate` |
 | `true_engine_slugs` / `engine_slugs` | catalog true-engine slugs |
 | `proxy_fallback_ops` | per-op only (see §6) |
@@ -152,8 +155,17 @@ Headers on authority responses:
 - `X-Aziel-Runtime-Version` = `RUNTIME_VERSION`
 - `X-Aziel-Runtime-Role` = `engine-runtime`
 - `Cache-Control` / `CDN-Cache-Control` = `no-store`
+- `Content-Security-Policy` (HTML allows existing inline style/script; API is `default-src 'none'; frame-ancestors 'none'`)
+- `X-Frame-Options: DENY`
+- `X-Content-Type-Options: nosniff`
+- `Referrer-Policy: no-referrer`
+- `Strict-Transport-Security: max-age=31536000; includeSubDomains`
 
 `GET /v1/ready` additionally reports `ready`, `session_binding`, `require_token`, `token_configured`, `mutate_requires_token`, `fraggate_call_public` (**always `true`** — public FragGate call stays open on the shared **public-demo** workspace). Additive `workspace_isolation` labels public-demo (ephemeral, shared) vs private-workspace (session- or operator-token-scoped). `confirm:true` is not authentication.
+
+Additive `durability` on `GET /v1/ready`, `GET /v1/fraggate` (+ list), and `GET /v1/mesh` labels the ephemeral FragGate ledger window (cap 64) versus ChainLock / SESSION durable commits when those Durable Objects are bound. **MemoryStore is never durable.**
+
+F03 door gates: FragGate HTTP + MCP share per-IP rate limits (`RATE_LIMIT` 429). Body over 256 KiB is `BODY_TOO_LARGE` (413). JSON deeper than 12 / wider than 4096 nodes is `BODY_TOO_DEEP` (400). Request budget default 25s is `REQUEST_DEADLINE` (408). `RATE` Durable Object is the Worker-feasible distributed quota when bound; isolate otherwise (`enforcement` is labeled).
 
 Historical notes live only in `version_history`. Never read a superseded row as the current version.
 
