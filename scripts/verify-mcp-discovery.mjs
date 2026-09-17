@@ -53,6 +53,11 @@ for (const path of cardPaths) {
   assert.match(body.encoding, /JSON-RPC MCP-over-HTTP/);
   assert.equal(body.endpoint, "POST /mcp");
   assert.equal(body.url, origin + "/mcp");
+  assert.equal(body.gateway.role, "edge-mcp-gateway");
+  assert.equal(body.gateway.door, "fraggate");
+  assert.equal(body.gateway.terminates_at, "fraggate_call");
+  assert.equal(body.gateway.second_door, false);
+  assert.equal(body.gateway.backdoor_exec, false);
   assert.equal(body.protocolVersion, MCP_PROTOCOL_VERSION);
   assert.equal(body.preferredProtocolVersion, MCP_PROTOCOL_VERSION);
   assert.equal(body.auth.type, "none");
@@ -130,6 +135,8 @@ const getMcpBody = await getMcp.json();
 assert.equal(getMcpBody.auth, "none (public)");
 assert.equal(getMcpBody.server_card, "/.well-known/mcp/server-card.json");
 assert.equal(getMcpBody.oauth_protected_resource, "/.well-known/oauth-protected-resource");
+assert.equal(getMcpBody.gateway.role, "edge-mcp-gateway");
+assert.equal(getMcpBody.gateway.second_door, false);
 
 const openapi = await (await get("/openapi.json")).json();
 assert.ok(openapi.paths["/.well-known/mcp/server-card.json"].get);

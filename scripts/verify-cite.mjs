@@ -44,6 +44,9 @@ assert.ok(slugs.includes("aziel-corpus"));
 assert.ok(slugs.includes("4dmap"));
 assert.ok(slugs.includes("azcoherence"));
 assert.ok(slugs.includes("embryolock"));
+assert.ok(slugs.includes("zkattest"));
+assert.ok(slugs.includes("mmconsensus"));
+assert.ok(slugs.includes("toolbench"));
 
 for (const slug of slugs) {
   const version = VERSIONS[slug];

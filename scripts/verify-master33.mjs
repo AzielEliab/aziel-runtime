@@ -161,7 +161,15 @@ const map = domainMapView();
 assert.equal(map.domain_count, 11);
 assert.equal(map.software_count, 33);
 assert.equal(map.domains_are_doors, false);
-assert.deepEqual(map.tab_placement_slugs, ["azinterface", "decisiongate", "forgereceipts", "azcoherence"]);
+assert.deepEqual(map.tab_placement_slugs, [
+  "azinterface",
+  "decisiongate",
+  "forgereceipts",
+  "azcoherence",
+  "zkattest",
+  "mmconsensus",
+  "toolbench",
+]);
 assert.match(map.note, /placements/);
 assert.equal(MASTER_33_SLUGS.length, 33);
 assert.equal(domainFields("ark").domain_id, "01");

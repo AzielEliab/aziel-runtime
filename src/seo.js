@@ -441,12 +441,26 @@ export function uniqueUserAgents(agents) {
 }
 
 export function productWorkerOrigin(product) {
+  if (!product) return null;
   if (product.slug === "aziel-corpus") return LIBRARY_ORIGIN;
+  if (!product.worker) return null;
   return `https://${product.worker}.vibelock.workers.dev`;
 }
 
 export function productCrawlUrls(product) {
   const host = productWorkerOrigin(product);
+  if (!host) {
+    return {
+      worker_home: null,
+      cite: null,
+      llms: null,
+      download: null,
+      sitemap: null,
+      has_sitemap: false,
+      has_llms: false,
+      in_runtime: true,
+    };
+  }
   const hasSitemap = !MISSING_PRODUCT_SITEMAP_SLUGS.includes(product.slug);
   const hasLlms = !MISSING_PRODUCT_LLMS_SLUGS.includes(product.slug);
   return {
@@ -466,7 +480,7 @@ export function extraHubSitemaps() {
 
 export function liveProductSitemapUrls(products) {
   return products
-    .filter((p) => !MISSING_PRODUCT_SITEMAP_SLUGS.includes(p.slug))
+    .filter((p) => p.worker && !MISSING_PRODUCT_SITEMAP_SLUGS.includes(p.slug))
     .map((p) => productWorkerOrigin(p) + "/sitemap.xml");
 }
 

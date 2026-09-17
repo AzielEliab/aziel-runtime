@@ -34,6 +34,9 @@ const INSPECTION_SLUGS = new Set([
   "godlock",
   "azclce",
   "azcoherence",
+  "zkattest",
+  "mmconsensus",
+  "toolbench",
 ]);
 
 const QA_OPS = new Set([
@@ -62,6 +65,13 @@ const QA_OPS = new Set([
   "alternate_score",
   "coherence_check",
   "neutralize_hallucination",
+  "commit",
+  "attest",
+  "tally",
+  "agree",
+  "suite",
+  "run_case",
+  "limitation",
 ]);
 
 const PROHIBITIONS = Object.freeze([
