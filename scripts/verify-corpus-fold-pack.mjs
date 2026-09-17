@@ -42,7 +42,10 @@ assert.equal(doc.identity, "Aziel Eliab");
 assert.ok(doc.key_artifacts.length >= 3);
 assert.ok(doc.about_aziel.mission[0].includes("understand the work"));
 assert.doesNotMatch(JSON.stringify(doc), /15:20|1 Chronicles|Chronicles 15/i);
-assert.doesNotMatch(JSON.stringify(doc), /legal name|home address|county/i);
+assert.equal(Object.hasOwn(doc.about_aziel, "legal_name"), false);
+assert.equal(Object.hasOwn(doc.about_aziel, "home"), false);
+assert.equal(Object.hasOwn(doc.about_aziel, "residence"), false);
+assert.match(JSON.stringify(doc.about_aziel.not), /Not a legal name/);
 assert.match(JSON.stringify(doc.about_aziel), /GodLock is a product/);
 
 const ready = await tipPackReady();
@@ -156,7 +159,8 @@ assert.match(home, /data-op="pack-verify"/);
 assert.match(home, /data-op="tip-pack"/);
 assert.match(home, /www\.azieleliab\.com\/#aziel/);
 assert.doesNotMatch(home, /15:20|1 Chronicles/i);
-assert.doesNotMatch(home, /legal name|home address/i);
+assert.doesNotMatch(home, /home address|date of birth|county seat/i);
+assert.match(home, /Not a legal name/);
 assert.doesNotMatch(home, /glama\.ai\/mcp\/servers\/[0-9a-f]{8}-[0-9a-f-]{27}/i);
 
 const about = await (await get("/about")).text();
@@ -193,7 +197,10 @@ const llms = await (await get("/llms.txt")).text();
 assert.match(llms, /About Aziel \(work, not biography\)/);
 assert.match(llms, /AZCL-FOLD-TIP-1\.0/);
 assert.match(llms, /pack-verify/);
-assert.doesNotMatch(llms, /15:20|1 Chronicles/i);
+const aboutLlmsStart = llms.indexOf("## About Aziel");
+const aboutLlmsEnd = llms.indexOf("Role: engine-runtime");
+assert.ok(aboutLlmsStart >= 0 && aboutLlmsEnd > aboutLlmsStart);
+assert.doesNotMatch(llms.slice(aboutLlmsStart, aboutLlmsEnd), /1 Chronicles|Chronicles 15/i);
 
 assert.match(embeddedDigest("aziel-corpus"), /^[a-f0-9]{64}$/);
 

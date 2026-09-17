@@ -61,6 +61,10 @@ ${listHtml(ABOUT_AZIEL.mission)}
   <ul>
 ${listHtml(ABOUT_AZIEL.status)}
   </ul>
+  <h3>Not this</h3>
+  <ul>
+${listHtml(ABOUT_AZIEL.not)}
+  </ul>
   <p class="secondary">Published machine / Person surfaces only: ${ABOUT_AZIEL_SOURCES.map((u) => `<a href="${escapeHtml(u)}">${escapeHtml(u.replace("https://www.azieleliab.com/", "/"))}</a>`).join(" · ")}. Not a biography.</p>
 </section>`;
 }
@@ -135,7 +139,7 @@ export function aboutAzielLlmsBlock() {
     ABOUT_AZIEL.public_identity,
     ...ABOUT_AZIEL.goals.map((line) => `- Goal: ${line}`),
     ...ABOUT_AZIEL.mission.slice(1).map((line) => `- Mission: ${line}`),
-    "No legal name / home. No visible 15:20 chrome. Sources: " + ABOUT_AZIEL_SOURCES.join(" · "),
+    "No legal name / home. No biography chrome. Sources: " + ABOUT_AZIEL_SOURCES.join(" · "),
     "",
     "## FoldLock corpus tip (not the full library)",
     "",
