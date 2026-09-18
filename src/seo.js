@@ -108,13 +108,17 @@ export function runtimeAboutField(origin) {
 /** Fail if crawler-lead text is a version mash (1.7.x / 1.9 / AZRT-…). */
 export const CRAWLER_LEAD_VERSION_RE = /\b(?:[12]\.\d+\.\d+(?:-rc\d+)?|AZRT-1\.9)\b/;
 
-export function llmsWhatThisIsBlock() {
+export function llmsWhatThisIsBlock(calling = null) {
+  const rotated = calling && calling.rotated === true;
+  const publicName = rotated
+    ? `Public calling name: ${calling.calling_name} (${calling.calling_slug}). ${calling.alert}. Author / identity: Aziel Eliab only (@id ${AUTHOR_ID}). Also known as Aziel Elroi Eliab (alternateName only). Runtime is the execution surface, not the identity hub. Old name Aziel Runtime may remain on cold shelves as history.`
+    : `Public name: Aziel Runtime (aziel-runtime). Author / identity: Aziel Eliab only (@id ${AUTHOR_ID}). Also known as Aziel Elroi Eliab (alternateName only). Runtime is the execution surface, not the identity hub.`;
   return [
     "## What this is",
     "",
     RUNTIME_ABSTRACT,
     "",
-    `Public name: Aziel Runtime (aziel-runtime). Author / identity: Aziel Eliab only (@id ${AUTHOR_ID}). Also known as Aziel Elroi Eliab (alternateName only). Runtime is the execution surface, not the identity hub.`,
+    publicName,
     "",
     "## How to use",
     "",

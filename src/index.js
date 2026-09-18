@@ -1340,11 +1340,16 @@ function workerOnlyCiteRecord(spec, origin) {
 
 function softwareExtra(env) {
   const meta = softwareMeta(env, { updated_at: LASTMOD });
+  const calling = resolveCallingName(env);
   return {
     runtimeVersion: RUNTIME_VERSION,
     version: RUNTIME_VERSION,
     updated_at: meta.updated_at || LASTMOD,
     git_sha: meta.git_sha,
+    calling_name: calling.calling_name,
+    calling_slug: calling.calling_slug,
+    calling_name_alert: calling.alert,
+    calling_name_rotated: calling.rotated,
   };
 }
 
@@ -1516,10 +1521,11 @@ function escapeXml(s) {
 
 function llmsTxt(origin, env = {}) {
   const base = origin.replace(/\/$/, "");
+  const calling = resolveCallingName(env);
   const lines = [
-    `# ${CATALOG_TITLE}`,
+    `# ${calling.calling_name}`,
     "",
-    llmsWhatThisIsBlock().trimEnd(),
+    llmsWhatThisIsBlock(calling).trimEnd(),
     "",
     ...llmsIdentityHeader(),
     aboutAzielLlmsBlock().trimEnd(),
@@ -1797,7 +1803,7 @@ function citeJson(origin, env = {}) {
     platforms: platformsCite(env),
     shelves: shelvesCiteField(origin),
     cold_multi_shelf: COLD_MULTI_SHELF,
-    mesh: meshCiteField(base),
+    mesh: meshCiteField(base, env),
     semantic_bridge: semanticBridgeCiteField(origin),
     redline: redlineCiteField(),
     tls: redlineCiteField().tls,
@@ -1833,9 +1839,10 @@ function citeJson(origin, env = {}) {
   };
 }
 
-function jsonLd(origin) {
+function jsonLd(origin, env = {}) {
   const base = origin.replace(/\/$/, "");
   const person = personJsonLd();
+  const calling = resolveCallingName(env);
   const software = runtimeSoftwareJsonLd(origin, {
     softwareVersion: RUNTIME_VERSION,
     screenshot: base + "/sigil.png",
@@ -1843,7 +1850,7 @@ function jsonLd(origin) {
   const website = {
     "@type": "WebSite",
     "@id": base + "/#website",
-    name: PRODUCT_NAME,
+    name: calling.calling_name,
     url: base + "/",
     description: RUNTIME_ABSTRACT,
     publisher: { "@id": person["@id"] },
@@ -2086,9 +2093,9 @@ function productCardHtml(p, origin, stats) {
 </article>`;
 }
 
-function catalogHtml(origin, statsMap) {
+function catalogHtml(origin, statsMap, env = {}) {
   const cards = PRODUCTS.map((p) => productCardHtml(p, origin, statsMap && statsMap[p.slug])).join("\n");
-  const ld = JSON.stringify(jsonLd(origin));
+  const ld = JSON.stringify(jsonLd(origin, env));
   const citeProducts = PRODUCTS.map((p) => {
     const u = productUrls(p, origin);
     const cite = citationFields(p, u);
@@ -3148,7 +3155,7 @@ async function handleMcp(request, env, origin) {
           websiteUrl: "https://aziel-runtime.vibelock.workers.dev",
           description: `${resolveCallingName(env).calling_name} ${RUNTIME_VERSION}. 1.6.2 is superseded heritage, not this server. Author: Aziel Eliab only.`,
         },
-        instructions: mcpInitializeInstructions(),
+        instructions: mcpInitializeInstructions(env),
       },
       wire,
     );
@@ -3393,7 +3400,7 @@ async function handleRequest(request, env, ctx) {
     }
 
     if (url.pathname === "/" && request.method === "GET") {
-      return html(catalogHtml(origin, {}), { ...extra("/"), ...catalogCacheHeaders() });
+      return html(catalogHtml(origin, {}, env), { ...extra("/"), ...catalogCacheHeaders() });
     }
 
     if ((url.pathname === "/workspace" || url.pathname === "/workspace/") && (request.method === "GET" || request.method === "HEAD")) {
@@ -3459,7 +3466,7 @@ async function handleRequest(request, env, ctx) {
       (url.pathname === "/who-is" || url.pathname === "/who-is-aziel-eliab.txt") &&
       (request.method === "GET" || request.method === "HEAD")
     ) {
-      return asHead(request, text(whoIsTxt(origin), extra(url.pathname)));
+      return asHead(request, text(whoIsTxt(origin, resolveCallingName(env)), extra(url.pathname)));
     }
 
     if (url.pathname === "/cite.json" && (request.method === "GET" || request.method === "HEAD")) {

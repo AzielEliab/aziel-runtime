@@ -499,7 +499,7 @@ export function personIndexJsonLd(origin) {
   };
 }
 
-export function whoIsTxt(origin) {
+export function whoIsTxt(origin, calling = null) {
   const base = String(origin || "").replace(/\/$/, "");
   const worker = personWorkerMachine(origin);
   const lines = [
@@ -547,6 +547,11 @@ export function whoIsTxt(origin) {
   lines.push(`llms.txt: ${worker.llms}`);
   lines.push(`ai.txt: ${worker.ai}`);
   lines.push(`MCP Softwares door 2.0.0-rc1: ${base}/mcp`);
+  if (calling && calling.rotated) {
+    lines.push(`Live calling name: ${calling.calling_name} (${calling.calling_slug})`);
+    lines.push(calling.alert);
+    lines.push("Identity stays Aziel Eliab. FragGate stays THE door. Old name may remain on cold shelves as history.");
+  }
   lines.push("");
   lines.push("## Softwares (what Aziel Eliab makes)");
   lines.push("");

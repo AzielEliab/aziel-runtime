@@ -256,11 +256,29 @@ Eliab Runtime → Potato Runtime → Elroi Runtime → Softwares-family
 `*-runtime` → endless random distinct names. No hard cap. No
 third-party trademarks (ChatGPT / Claude / Gemini / …).
 
-**On trigger:** rewrite discovery metadata — OpenAPI `info.title`,
-MCP `serverInfo` name/title, server card, `/cite.json` `calling_name`,
-`/survival` `calling_name`, llms/ai survival block. Mesh nodes **pull**
-`*new name alert: <name>` from `GET /survival` (GET never enables; not
-a publish path). Old name may remain on cold shelves as history.
+**Pipeline (trigger → alert → metadata rewrite → client rediscovery):**
+1. **Trigger** — honest ban / blacklist / impending-ban signal only
+   (`BAN_SURVIVAL_BLOCKED`, operator rotate, uses/traffic collapse,
+   downloads-stop, door block, user-uploaded data marked `implies_ban`).
+   Empty metrics are not a ban. Invented bans refuse `BAN-NO-INVENT-BAN`.
+2. **Ingest observe** — user-uploaded data goes through DecisionGATE
+   `check` + AKM `observe` (`belief_is_not_truth`; append-only; no
+   `memory_delete`). Unmarked uploads stay belief, not a rotate trigger.
+3. **Mesh alert** — share `*new name alert: <name>` across existing
+   live mesh nodes on `GET /v1/mesh`, `GET /v1/mesh/status`,
+   `GET /v1/mesh/nodes`, and `GET /survival`. GET never enables. Not
+   `mesh_broadcast` (hash-only; never a publish path).
+4. **Metadata rewrite** — discovery surfaces only: OpenAPI `info.title`,
+   MCP `serverInfo` name/title/instructions, server card, `/cite.json`
+   product/slug/`calling_name`, `/survival` `calling_name`, `/llms.txt`
+   `/ai.txt` public-name line, `/who-is` calling string, `/v1/software`
+   suite vanity, PWA manifest. Identity **Aziel Eliab** unchanged.
+   ChainLock tips and AKM history do **not** rewrite.
+5. **Client rediscovery** — major AI/LLM clients pick up the fresh
+   name on those surfaces and still **call** the same FragGate routes
+   (`POST /mcp`, `POST /v1/fraggate/call`). Not a second door.
+
+Old name may remain on cold shelves as history.
 
 Hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk,
 hedidntjump.com) should pull `/survival` rather than hardcode. Hub
@@ -325,9 +343,12 @@ calling-name discovery, Cap-7 shuffle ping, and Softwares download/run.
   `BAN-NO-AZNET-PAYLOAD-HOST`. `radio_phy` false.
 - `akm_memory.belief_is_not_truth` is true. `memory_get` append-only.
   `memory_resolve` additive. stub_ops stay refused.
-- Calling-name rotation is discovery-only. Trademark names refuse
+- Calling-name rotation is discovery-only. Pipeline is trigger → mesh
+  alert → metadata rewrite → client rediscovery. Trademark names refuse
   `BAN-NO-TRADEMARK-NAME`. History rewrite refuses
   `BAN-NO-NAME-HISTORY-REWRITE`. Invented bans refuse `BAN-NO-INVENT-BAN`.
+  Unmarked ingest does not rotate. Live mesh `calling_name_alert` is
+  `*new name alert: <name>` when rotated (GET pull, not publish).
 - Claiming a banned host is LIVE refuses `BAN-NO-LIE`.
 - Treating shelves as a live exec door refuses `BAN-NO-SHELF-ONLY`.
 - Dropping shelves / claiming the shelf plan failed refuses `BAN-NO-DOOR-ONLY`.
