@@ -123,9 +123,9 @@ export const SOFTWARE_COPY = Object.freeze({
       "Use StaticClock to click a client-held chain forward and read advisory fields. It exists as a plain clock of actions, not a lock, rollback, or scheduler.",
   },
   ark: {
-    one_line: "Sweep text for common packed-script heuristics and cite the local vault.",
+    one_line: "Keep a local deniable vault; one phrase opens one vault.",
     description:
-      "Use The ARK for a Mode E heuristics sweep and a cite of the local deniable vault. It exists as a local sweep and vault cite, not a hosted unlock or an operating-system kernel.",
+      "Use The ARK as a local deniable vault you download and run on your device. It exists so one phrase opens one vault on that machine; hosted doors never unlock or store vaults.",
   },
   toolbench: {
     one_line: "Run synthetic door cases to see how FragGate classifies them.",
