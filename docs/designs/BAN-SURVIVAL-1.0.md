@@ -65,6 +65,10 @@ hydra, a LIVE Plane B/C, or a fake live door.
   Live-node API via mesh        Complete Worker/API failure, **if**      Not LIVE yet.
   roster                        a node publishes an attested named       SLOT until attest.
                                 FragGate origin + hash/receipt           No open proxy.
+  Cap-7 + AZNet                 Name-metadata cite + hash verify         Hosted exec endpoints
+                                when a public door is banned             SLOT. AZNet never
+                                                                         hosts payloads.
+                                                                         No fake ICANN `.az`.
 
 Hub `/runtime` on azielcorpuslibrary.net, azieleliab.com, and godlock.uk
 is the **same FragGate door** via service binding — not a second door and
@@ -75,7 +79,9 @@ one hostname or path must not strand clients on that dead endpoint.
 
 Dropping shelves refuses `BAN-NO-DOOR-ONLY`. Treating shelves as a live
 exec door refuses `BAN-NO-SHELF-ONLY`. An open proxy to random mesh
-nodes refuses `BAN-NO-OPEN-NODE-PROXY`.
+nodes refuses `BAN-NO-OPEN-NODE-PROXY`. Faking a Cap-7 hosted
+`/mcp` or ICANN `.az` refuses `BAN-NO-FAKE-CAP7-HOST`. Claiming AZNet
+hosts payloads refuses `BAN-NO-AZNET-PAYLOAD-HOST`.
 
 3. Client order (LLM / MCP / OpenAPI)
 
@@ -94,17 +100,21 @@ as the death-by-ban backup — they are not mixed into `exec_origins`.
    remaining **LIVE** fronts still publish this map (`/survival`,
    `/cite.json`, `/llms.txt`, `/v1/health`, `/v1/software`, `/v1/mesh`).
    Mode on the banned front is **DEGRADED**.
-5. If every named live front is gone (death-by-ban of the public door
+5. Cap-7 cite (`GET /v1/mesh/az-generator` or MirageGrid `/bridge`) and
+   AZNet `stamp` / `verify_hash` / `receipt_verify` stay **LIVE** via
+   FragGate — name metadata and hash continuity, not a hosted `/mcp`.
+6. If every named live front is gone (death-by-ban of the public door
    set): verify bytes against the published lockset tip on GitHub /
    corpus `/shelves` / Codeberg + archive.org tip-packs (**SLOT**,
    hash-verify PASS). Plane C USB stays SLOT. `doi` null. This is the
    **shelf backup**, not a live door.
-6. Vice versa: if a shelf or alt-forge dies, keep using the LIVE named
+7. Vice versa: if a shelf or alt-forge dies, keep using the LIVE named
    fronts. Do not treat one dead shelf as last tip gone.
 
 Never invent an unnamed origin. Never claim a banned host is still LIVE.
 Never treat LLM memory as a replica. Never treat a cold shelf as `/mcp`.
 Never treat `GET /v1/mesh` `live_nodes` as an API roster.
+Never treat a Cap-7 name as a hosted exec door.
 
 4. Endpoint quarantine
 Exec surfaces (`POST /mcp`, `POST /v1/fraggate/call`) may be operator-
@@ -151,6 +161,31 @@ Until that attest exists, `live_node_api.status` is **SLOT**. Follow-on
 work (not this PR): full security audit → attest named node origins →
 rescan → then consider LIVE.
 
+6b. Cap-7 → AZNet (cite + verify LIVE; hosted exec SLOT)
+Cap-7 mesh-name factory is **MirageGrid-only**. Names inherit hub
+**design DNA** only (`design_of: hub_designs`). `resolves_to_hub: false`.
+`name_may_change: true`. Canonical hubs immutable. Not aliases of the
+four ICANN hostnames. Not a fifth product. `radio_phy: false`.
+`GET /v1/mesh/az-generator` and MirageGrid `/bridge` are cite/bridge
+surfaces — not a live AZ-GEN registrar. No fake ICANN `.az`.
+
+AZNet is a **verification side-net** reached only through FragGate
+(`stamp`, `verify_hash`, `receipt_verify`). Pairing with AZBrowser is
+functional order — not a tunnel. Channel plane is not VPN. AZNet
+**never hosts payloads** (`payload_host` stays stub).
+
+**LIVE as security allows:** the Cap-7 cite and AZNet hash verify.
+Clients can still learn mesh-name metadata and verify tip hashes when
+a public door is banned.
+
+**SLOT (do not fake):** Cap-7 names as hosted `/mcp` endpoints.
+`cap7_aznet.hosted_endpoints.status` is SLOT
+(`BAN-CAP7-HOST-NOT-ATTESTED`). Next concrete step: AZNet `stamp`
+binds a Cap-7 name (design DNA only) to an attested named FragGate
+origin. Only that named origin may later flip hosted_endpoints LIVE.
+Security audit first. Runtime cites the MirageGrid bridge; it does
+not invent a second factory.
+
 7. What this is not
 - Not a Softwares-tab product. Do not add slug `ban-survival` or `survival`.
 - Not a FragGate engine. No `fraggate_call { slug: "survival" }`.
@@ -165,11 +200,13 @@ rescan → then consider LIVE.
 - Not permission to lie that a banned host is still LIVE.
 - Not permission to drop shelves, or to drop live multi-front.
 - Not an open proxy onto the QNM roster.
+- Not a fake Cap-7 hosted endpoint. Not ICANN `.az`. Not AZNet payload host.
+- Not `radio_phy`. Not `resolves_to_hub: true`.
 
 8. Surfaces
 - `GET /survival` · `GET /v1/survival` · aliases `/doors` `/failover`
 - `/cite.json` `ban_survival` (`live_doors` = LIVE only; `shelf_backup`;
-  `live_node_api` SLOT)
+  `live_node_api` SLOT; `cap7_aznet` cite+verify LIVE / hosted SLOT)
 - `/llms.txt` · `/ai.txt`
 - `/openapi.json`
 - MCP `runtime_skill` + stdio bridge failover (no new tool)
@@ -185,6 +222,9 @@ rescan → then consider LIVE.
 - `mutual_backup` true. Shelves backup death-by-ban. Live fronts backup shelf death.
 - Plane B / C stay SLOT. `doi` null. No invented live door.
 - `live_node_api.status` is SLOT. Open node proxy refuses `BAN-NO-OPEN-NODE-PROXY`.
+- `cap7_aznet.cite` / `aznet_verify` are LIVE. `hosted_endpoints` is SLOT.
+  Fake Cap-7 host refuses `BAN-NO-FAKE-CAP7-HOST`. AZNet payload host
+  refuses `BAN-NO-AZNET-PAYLOAD-HOST`. `radio_phy` false.
 - Claiming a banned host is LIVE refuses `BAN-NO-LIE`.
 - Treating shelves as a live exec door refuses `BAN-NO-SHELF-ONLY`.
 - Dropping shelves / claiming the shelf plan failed refuses `BAN-NO-DOOR-ONLY`.

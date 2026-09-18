@@ -215,6 +215,8 @@ assert.equal(citeBody.ban_survival.second_door, false);
 assert.equal(citeBody.ban_survival.mutual_backup, true);
 assert.equal(citeBody.ban_survival.shelves_are_not_a_live_door, true);
 assert.equal(citeBody.ban_survival.live_node_api.status, "slot");
+assert.equal(citeBody.ban_survival.cap7_aznet.hosted_endpoints.status, "slot");
+assert.equal(citeBody.ban_survival.cap7_aznet.cite.status, "live");
 assert.ok(Array.isArray(citeBody.ban_survival.live_doors) && citeBody.ban_survival.live_doors.length >= 1);
 assert.equal(citeBody.semantic_bridge.design_of, "hub_designs");
 assert.equal(citeBody.redline.spec, "REDLINE-2026-09-14");

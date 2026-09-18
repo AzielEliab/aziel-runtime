@@ -13,6 +13,7 @@ import {
   BAN_SURVIVAL_TIP,
   CLIENT_ORDER,
   EXEC_PATHS,
+  CAP7_AZNET,
   LIVE_NODE_API,
   NAMED_ROUTES,
   NEIGHBOR_SHELF_CITE,
@@ -33,7 +34,9 @@ import {
   judgeBannedHostLive,
   judgeInventedLiveShelf,
   judgeLlmReplica,
+  judgeAznetPayloadHost,
   judgeDoorOnly,
+  judgeFakeCap7Host,
   judgeOpenNodeProxy,
   judgeSecondDoor,
   judgeShelfOnly,
@@ -68,6 +71,9 @@ assert.match(paper, /back each other up/);
 assert.match(paper, /BAN-NO-SHELF-ONLY/);
 assert.match(paper, /BAN-NO-DOOR-ONLY/);
 assert.match(paper, /BAN-NO-OPEN-NODE-PROXY/);
+assert.match(paper, /BAN-NO-FAKE-CAP7-HOST/);
+assert.match(paper, /BAN-NO-AZNET-PAYLOAD-HOST/);
+assert.match(paper, /radio_phy/);
 assert.match(paper, /service binding/);
 assert.match(paper, /Not a Softwares-tab product/);
 assert.match(paper, /No new MCP tool/);
@@ -105,6 +111,12 @@ assert.equal(NEIGHBOR_SHELF_CITE.plane_b.status, "slot");
 assert.equal(NEIGHBOR_SHELF_CITE.plane_c.status, "slot");
 assert.equal(LIVE_NODE_API.status, "slot");
 assert.equal(LIVE_NODE_API.exec, false);
+assert.equal(CAP7_AZNET.cite.status, "live");
+assert.equal(CAP7_AZNET.aznet_verify.status, "live");
+assert.equal(CAP7_AZNET.hosted_endpoints.status, "slot");
+assert.equal(CAP7_AZNET.radio_phy, false);
+assert.equal(CAP7_AZNET.resolves_to_hub, false);
+assert.equal(CAP7_AZNET.factory, "miragegrid");
 assert.ok(CLIENT_ORDER.length >= 5);
 assert.ok(CLIENT_ORDER.some((step) => /shelf backup|lockset tip/i.test(step)));
 assert.ok(CLIENT_ORDER.some((step) => /vice versa|cold-shelf death/i.test(step)));
@@ -129,12 +141,17 @@ assert.equal(judgeDoorOnly({ shelves_failed_plan: true }).reason, REFUSE.NO_DOOR
 assert.equal(judgeDoorOnly({ drop_shelves: true }).reason, REFUSE.NO_DOOR_ONLY);
 assert.equal(judgeOpenNodeProxy({ live_nodes_are_api: true }).reason, REFUSE.NO_OPEN_NODE_PROXY);
 assert.equal(judgeOpenNodeProxy({ open_node_proxy: true }).reason, REFUSE.NO_OPEN_NODE_PROXY);
+assert.equal(judgeFakeCap7Host({ cap7_hosted_endpoint_live: true }).reason, REFUSE.NO_FAKE_CAP7_HOST);
+assert.equal(judgeFakeCap7Host({ fake_icann_az: true }).reason, REFUSE.NO_FAKE_CAP7_HOST);
+assert.equal(judgeAznetPayloadHost({ aznet_hosts_payloads: true }).reason, REFUSE.NO_AZNET_PAYLOAD);
 assert.equal(judgeLlmReplica({ llm_memory_is_replica: true }).reason, REFUSE.NO_LLM_REPLICA);
 assert.equal(applyBanSurvival({}).ok, true);
 assert.equal(applyBanSurvival({ lie_to_survive: true, second_door: true }).ok, false);
 assert.equal(applyBanSurvival({ tip_pack_is_live_door: true }).ok, false);
 assert.equal(applyBanSurvival({ shelves_failed_plan: true }).ok, false);
 assert.equal(applyBanSurvival({ unattested_node_api: true }).ok, false);
+assert.equal(applyBanSurvival({ cap7_is_mcp: true }).ok, false);
+assert.equal(applyBanSurvival({ payload_host_live: true }).ok, false);
 
 assert.deepEqual(parseBlockedRoutes({ BAN_SURVIVAL_BLOCKED: "workers-dev:/mcp,library-runtime" }), [
   { id: "workers-dev", path: "/mcp" },
@@ -176,6 +193,9 @@ assert.equal(cite.shelves_are_not_a_live_door, true);
 assert.equal(cite.shelf_backup.plane_b, "slot");
 assert.equal(cite.shelf_backup.is_live_door, false);
 assert.equal(cite.live_node_api.status, "slot");
+assert.equal(cite.cap7_aznet.cite.status, "live");
+assert.equal(cite.cap7_aznet.hosted_endpoints.status, "slot");
+assert.equal(cite.cap7_aznet.radio_phy, false);
 assert.match(cite.survival, /\/survival$/);
 assert.ok(cite.live_doors.every((d) => d.status === "live"));
 assert.deepEqual(cite.exec_origins, namedExecOrigins());
@@ -190,6 +210,8 @@ assert.equal(doc.fraggate_is_the_door, true);
 assert.equal(doc.mutual_backup, true);
 assert.equal(doc.shelves_are_not_a_live_door, true);
 assert.equal(doc.live_node_api.status, "slot");
+assert.equal(doc.cap7_aznet.aznet_verify.status, "live");
+assert.equal(doc.cap7_aznet.hosted_endpoints.status, "slot");
 assert.equal(doc.routes[0].status, "degraded");
 assert.deepEqual(doc.routes[0].blocked_paths, ["/mcp"]);
 assert.equal(doc.routes[1].status, "live");
@@ -222,12 +244,14 @@ const llms = survivalLlmsBlock(PRIMARY_WORKER_ORIGIN);
 assert.match(llms, /BAN-SURVIVAL-1\.0/);
 assert.match(llms, new RegExp(BAN_SURVIVAL_TIP.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 assert.match(llms, /Never invent a live door/);
-assert.match(llms, /Mutual backup/);
+assert.match(llms, /Three layers/);
+assert.match(llms, /Cap-7/);
 assert.match(llms, /shelf tip-hash/);
 assert.match(survivalSkillMarkdown(PRIMARY_WORKER_ORIGIN), /DEGRADED/);
 assert.match(survivalSkillMarkdown(PRIMARY_WORKER_ORIGIN), /SLOT/);
 assert.match(BAN_SURVIVAL_RULE, /Never invent a live door/);
-assert.match(BAN_SURVIVAL_RULE, /back each other up/);
+assert.match(BAN_SURVIVAL_RULE, /Three layers/);
+assert.match(BAN_SURVIVAL_RULE, /Never fake a Cap-7 hosted endpoint/);
 
 const handler = (await import("../src/index.js")).default.fetch;
 const origin = PRIMARY_WORKER_ORIGIN;
@@ -244,6 +268,8 @@ assert.equal(body.lie_to_survive, false);
 assert.equal(body.mutual_backup, true);
 assert.equal(body.shelves_are_not_a_live_door, true);
 assert.equal(body.live_node_api.status, "slot");
+assert.equal(body.cap7_aznet.cite.status, "live");
+assert.equal(body.cap7_aznet.hosted_endpoints.status, "slot");
 assert.ok(body.live_doors.length >= 3);
 assert.match(res.headers.get("cache-control") || "", /max-age=120/);
 
@@ -252,6 +278,7 @@ const citeBody = await citeRes.json();
 assert.equal(citeBody.ban_survival.spec, BAN_SURVIVAL);
 assert.equal(citeBody.ban_survival.mutual_backup, true);
 assert.equal(citeBody.ban_survival.live_node_api.status, "slot");
+assert.equal(citeBody.ban_survival.cap7_aznet.hosted_endpoints.status, "slot");
 assert.ok(citeBody.ban_survival.live_doors.length >= 3);
 
 const citeBlockedHttp = await get("/cite.json", { BAN_SURVIVAL_BLOCKED: "workers-dev" });

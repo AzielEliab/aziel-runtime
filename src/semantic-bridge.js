@@ -47,7 +47,7 @@ export const CAP7_CANONICAL_HUBS_IMMUTABLE = true;
 export const CAP7_FIFTH_PRODUCT = false;
 
 export const SEMANTIC_BRIDGE_LIMITATION =
-  "THIS IS: Cap-7 mesh-name metadata cite. Factory is MirageGrid only. Names inherit hub designs only (docs/designs/ plus mesh-resident azcorpus + azlibrary on the library hub). Names may change; canonical hubs are immutable. AI pulls metadata from MirageGrid Worker /bridge or GET /v1/mesh/az-generator. Mesh browse is AZNet + AZBrowser via FragGate. Plane A hubs mirror published tips. THIS IS NOT: ICANN DNS; a public .az TLD; an alias of the four ICANN hostnames; a live AZ-GEN registrar; a hostname that resolves to a hub; a fifth Softwares product; visible 15:20 chrome; a GET /v1/mesh radio enable. Author: Aziel Eliab only.";
+  "THIS IS: Cap-7 mesh-name metadata cite. Factory is MirageGrid only. Names inherit hub designs only (docs/designs/ plus mesh-resident azcorpus + azlibrary on the library hub). Names may change; canonical hubs are immutable. AI pulls metadata from MirageGrid Worker /bridge or GET /v1/mesh/az-generator. Mesh browse is AZNet + AZBrowser via FragGate. Plane A hubs mirror published tips. THIS IS NOT: ICANN DNS; a public .az TLD; an alias of the four ICANN hostnames; a live AZ-GEN registrar; a hostname that resolves to a hub; a fifth Softwares product; radio_phy; visible 15:20 chrome; a GET /v1/mesh radio enable; AZNet payload host. Author: Aziel Eliab only.";
 
 export function miragegridBridgeUrl() {
   return `${MIRAGEGRID_WORKER_ORIGIN}${MIRAGEGRID_BRIDGE_PATH}`;
@@ -102,6 +102,7 @@ export function semanticBridgeCiteField(origin) {
     website_designs: websiteDesignsField(base),
     visible_1520: false,
     mesh_get_never_enables: true,
+    radio_phy: false,
     growth_on: true,
     software_tab: false,
     fraggate_slug: false,
@@ -109,7 +110,9 @@ export function semanticBridgeCiteField(origin) {
       aznet: true,
       azbrowser: true,
       door: "fraggate_call",
-      note: "Mesh browse is AZNet + AZBrowser via FragGate. Not ICANN DNS. Not Chromium.",
+      pairing_is_tunnel: false,
+      channel_plane_is_vpn: false,
+      note: "Mesh browse is AZNet + AZBrowser via FragGate. Pairing ≠ tunnel. Channel plane ≠ VPN. Not ICANN DNS. Not Chromium.",
     },
     plane_a: {
       local: "qnm-node",
@@ -159,6 +162,7 @@ export function semanticBridgeRefuse(code, message, extra = {}) {
     maps_to_canonical_hubs: true,
     fifth_product: CAP7_FIFTH_PRODUCT,
     mesh_get_never_enables: true,
+    radio_phy: false,
     message,
     limitation: SEMANTIC_BRIDGE_LIMITATION,
     ...extra,
