@@ -68,7 +68,7 @@ export function vpnAutoCite(extra = {}) {
 
 export function publicVpnCite() {
   return {
-    spec: PUBLIC_VPN_SPEC,
+    vpn_spec: PUBLIC_VPN_SPEC,
     date: PUBLIC_VPN_DATE,
     author: PUBLIC_VPN_AUTHOR,
     identity: PUBLIC_VPN_IDENTITY,

@@ -1136,7 +1136,7 @@ export function runtimeStaticPaths() {
       post: {
         operationId: "fraggate_call",
         summary:
-          "CallEnvelope in → FragGate → Lamb Lens → SweepGate → Sentinel → Provenance/Input Packet → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → optional ASE → RoseClock → TemporalLock → ChainLock-OUT → ForgeReceipts → Return. FragGate is THE single door. Lamb Lens is fabric after FragGate. Domain softwares execute only after AZPIPE. AZHub LIVE_OPS, AZInterface LIVE_OPS, AZBrowser LIVE_OPS (ethical_search, lamb_lens_search, navigate, airlock_ingest, tab_open, tab_list, receipt_list, verify, receipt_verify, health, skill) and AZNet LIVE_OPS (health, pair_status, garden_list, stamp, verify_hash, memorial_list, memorial_append, receipt_verify, skill) are reached only through this door — same ops as MCP fraggate_call and the Worker UI buttons. AZHub, AZInterface, AZNet, and AZBrowser are separate products.",
+          "CallEnvelope in → FragGate → Lamb Lens → SweepGate → Sentinel → Provenance/Input Packet → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → optional ASE → RoseClock → TemporalLock → ChainLock-OUT → ForgeReceipts → Return. FragGate is THE single door. Lamb Lens is fabric after FragGate. Domain softwares execute only after AZPIPE. AZHub LIVE_OPS, AZInterface LIVE_OPS, AZBrowser LIVE_OPS (ethical_search, lamb_lens_search, navigate, airlock_ingest, tab_open, tab_list, receipt_list, verify, receipt_verify, health, skill, vpn) and AZNet LIVE_OPS (health, pair_status, garden_list, stamp, verify_hash, memorial_list, memorial_append, receipt_verify, skill) and AZVPN LIVE_OPS (describe, open, status, list, close) are reached only through this door — same ops as MCP fraggate_call and the Worker UI buttons. AZHub, AZInterface, AZNet, AZBrowser, and AZVPN are separate products. Public VPN auto-binds AZVPN.",
         tags: ["fraggate"],
         requestBody: {
           required: true,
@@ -1150,7 +1150,7 @@ export function runtimeStaticPaths() {
                   op: {
                     type: "string",
                     description:
-                      "Public allowlisted op. UI aliases forward to catalog ops: azhub list_modules→region_list, place→place_module; azinterface genesis_boot→genesis_status, hold→page_cycle_status; azbrowser airlock→airlock_ingest, home→health; azmail classify→airlock_classify; aznet doctor→health, pair→pair_status; peacelock doctor→health. AZHub: region_list | place_module | remove_module | tether_declare | tether_cut | tether_list | blank_key_status | list_modules | place | health | skill. AZInterface: genesis_status | site_state_get | site_state_set | integrity_check | witness_list | page_cycle_status | genesis_boot | hold | health | skill. AZBrowser: ethical_search | lamb_lens_search | navigate | airlock_ingest | airlock | home | tab_open | tab_list | receipt_list | verify | receipt_verify | sandbox_status | sandbox_render | health | skill. AZNet: health | doctor | pair_status | pair | garden_list | stamp | verify_hash | memorial_list | memorial_append | receipt_verify | skill.",
+                      "Public allowlisted op. UI aliases forward to catalog ops: azhub list_modules→region_list, place→place_module; azinterface genesis_boot→genesis_status, hold→page_cycle_status; azbrowser airlock→airlock_ingest, home→health; azmail classify→airlock_classify; aznet doctor→health, pair→pair_status; peacelock doctor→health. AZHub: region_list | place_module | remove_module | tether_declare | tether_cut | tether_list | blank_key_status | list_modules | place | health | skill. AZInterface: genesis_status | site_state_get | site_state_set | integrity_check | witness_list | page_cycle_status | genesis_boot | hold | health | skill. AZBrowser: ethical_search | lamb_lens_search | navigate | airlock_ingest | airlock | home | tab_open | tab_list | receipt_list | verify | receipt_verify | sandbox_status | sandbox_render | health | skill | vpn. AZVPN: describe | open | status | list | close. AZNet: health | doctor | pair_status | pair | garden_list | stamp | verify_hash | memorial_list | memorial_append | receipt_verify | skill.",
                   },
                   payload: { type: "object" },
                   claim: { type: "object" },
@@ -1208,6 +1208,18 @@ export function runtimeStaticPaths() {
                 azbrowser_sandbox_render: {
                   summary: "AZBrowser binding-gated sandbox render (refuses private/onion)",
                   value: { slug: "azbrowser", op: "sandbox_render", payload: { url: "https://github.com/AzielEliab/aziel-runtime" } },
+                },
+                azbrowser_vpn: {
+                  summary: "AZBrowser auto-binds AZVPN (HTTPS/WS REAL; WireGuard SLOT)",
+                  value: { slug: "azbrowser", op: "vpn", payload: {} },
+                },
+                azvpn_describe: {
+                  summary: "AZVPN concentrator describe",
+                  value: { slug: "azvpn", op: "describe", payload: {} },
+                },
+                azvpn_open: {
+                  summary: "AZVPN open HTTPS/WS session",
+                  value: { slug: "azvpn", op: "open", payload: { kind: "https_ws", peer: "peer-a" } },
                 },
                 aznet_pair_status: {
                   summary: "AZNet pair_status",

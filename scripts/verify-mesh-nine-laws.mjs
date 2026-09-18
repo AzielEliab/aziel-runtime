@@ -360,7 +360,7 @@ assert.match(nodeMesh, /2026-09-17/);
 assert.match(nodeMesh, /clocks_share_socket/);
 assert.match(nodeMesh, /restore_godlock_uk/);
 assert.match(nodeMesh, /anonymity_network/);
-assert.match(nodeMesh, /Channel plane ≠ VPN/);
+assert.match(nodeMesh, /Channel plane ≠ kernel VPN/);
 assert.match(nodeMesh, /pairing ≠ tunnel/i);
 assert.match(nodeMesh, /QNM-CHANNEL-PLANE-1\.0/);
 assert.match(nodeMesh, /MESH-NO-NEIGHBOR-HEAL/);

@@ -1046,7 +1046,7 @@ export const SUITE_DESIGNS = Object.freeze([
     one_line:
       "AZVPN automatic public VPN concentrator — HTTPS/FragGate envelopes REAL; WireGuard/OpenVPN/L3 SLOT; default_vpn_backend azvpn; auto_use true; worker_terminates_tunnels true for app-layer only",
     status: "live",
-    kind: "law",
+    kind: "software",
   },
 ]);
 
