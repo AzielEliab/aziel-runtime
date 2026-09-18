@@ -14,7 +14,7 @@ import {
   TIP_PACK_ID,
   TIP_PACK_LIMITATION,
   TIP_PACK_SPEC,
-  aboutAzielCiteField,
+  aboutAzielCiteField as aboutAzielBaseCiteField,
   corpusFoldPackCiteField,
 } from "./engines/aziel-corpus/tip-pack.js";
 import {
@@ -22,13 +22,24 @@ import {
   runtimeLaunchParts,
   workerLaunchCiteField,
 } from "./launch-parts.js";
+import {
+  WHAT_AZIEL_ELIAB_DOES,
+  whatAzielEliabDoesLlmsLines,
+  whatAzielEliabDoesMachineField,
+} from "./person-index.js";
+
+export function aboutAzielCiteField() {
+  return {
+    ...aboutAzielBaseCiteField(),
+    ...whatAzielEliabDoesMachineField(),
+  };
+}
 
 export {
   ABOUT_AZIEL,
   ABOUT_AZIEL_SOURCES,
   PERSON_ID,
   TIP_PACK_SPEC,
-  aboutAzielCiteField,
   corpusFoldPackCiteField,
   workerLaunchCiteField,
 };
@@ -165,8 +176,10 @@ export function aboutAzielLlmsBlock() {
     "## About Aziel (work, not biography)",
     "",
     `Person @id: ${PERSON_ID}. Identity Aziel Eliab only. GodLock is a product name, not identity.`,
+    WHAT_AZIEL_ELIAB_DOES,
     ABOUT_AZIEL.mission[0],
     ABOUT_AZIEL.public_identity,
+    ...whatAzielEliabDoesLlmsLines(),
     ...ABOUT_AZIEL.goals.map((line) => `- Goal: ${line}`),
     ...ABOUT_AZIEL.mission.slice(1).map((line) => `- Mission: ${line}`),
     "No legal name / home. No biography chrome. Sources: " + ABOUT_AZIEL_SOURCES.join(" · "),
