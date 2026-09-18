@@ -268,6 +268,7 @@ import {
   SUITE_DESIGNS,
 } from "./seo.js";
 import { aboutAzielCiteField, aboutAzielLlmsBlock, corpusFoldPackCiteField, workerLaunchCiteField, workerLaunchHtml } from "./about-aziel.js";
+import { launchHashtagChipsHtml } from "./launch-parts.js";
 import {
   aboutPageHtml,
   brandRow,
@@ -1869,6 +1870,9 @@ const PAGE_CSS = `
   h2 { font-size: 1.2rem; margin: 0 0 .4rem; }
   h3 { font-size: 1.02rem; margin: .85rem 0 .35rem; }
   .hashtag { color: #d4af37; font-weight: 600; letter-spacing: .01em; }
+  .launch-chips{margin:.35rem 0 .45rem;display:flex;flex-wrap:wrap;gap:.3rem .55rem}
+  .launch-chips .hashtag{font-size:.82rem}
+  .about-aziel-strip{margin:.2rem 0 .7rem;padding:.45rem .6rem;border:1px solid #3d3420;border-radius:8px;background:#16120a;color:#e6d19a;font-size:.88rem}
   .launch-parts article { margin: .7rem 0 0; }
   .slug { font-weight: 500; color: #9aa3b2; font-size: .95rem; }
   a { color: #c9d4ff; }
@@ -1946,6 +1950,7 @@ function productCardHtml(p, origin, stats) {
   return `<article class="card" id="${escapeHtml(p.slug)}">
   <h2><a href="${origin}/p/${p.slug}">${escapeHtml(p.name)}</a> <span class="slug">${escapeHtml(p.slug)}</span>${ver}</h2>
   <p class="oneline">${escapeHtml(p.oneLine)}</p>
+  ${launchHashtagChipsHtml(p)}
   ${banner}
   <p class="meta">
     <a href="${origin}/workspace#task-${escapeHtml(p.slug)}">Use in browser</a>

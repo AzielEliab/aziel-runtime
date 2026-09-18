@@ -38,6 +38,7 @@ Included on:
 
 - Runtime homepage `/` and `/about`
 - Human workspace `/workspace` (`#op-panel` / `#dashboard` / `#fg-console` stay; About Aziel + hashtag parts follow the pane)
+- Operator panel and dashboard always show the About Aziel strip (Person `#aziel`). Each dashboard / task / homepage Softwares card carries **that slug’s** `#hashtag` chips — not one identical blob.
 - Every catalog card `/p/{slug}`
 - HTML shells that use `documentShell` (`/v1/software` Accept: text/html, FragGate describe docs)
 
