@@ -2,14 +2,24 @@
  * Machine-only LLM / SEO / Google AI Person pack.
  *
  * Serves /person.jsonld, /who-is, /who-is-aziel-eliab.txt and fields on
- * /cite.json + /llms.txt + /ai.txt. Locked Softwares FAQ + research + hardware
- * addenda. Not visible HTML chrome. No 15:20 on pages.
+ * /cite.json + /llms.txt + /ai.txt. Locked Softwares FAQ + Softwares list
+ * (The ARK + peers) + research + hardware addenda. Not visible HTML chrome.
+ * No 15:20 on pages.
  * Machine 15:20 disambiguation is allowed here only.
  *
  * Person @id https://www.azieleliab.com/#aziel. Identity Aziel Eliab only.
  * Published work only. No legal name / home invent. GodLock is a product.
  * Growth-ON. NO-LIE.
  */
+
+import {
+  ARK_NAME,
+  ARK_ONE_LINE,
+  ARK_WORKER_HOME,
+  softwaresAddendum,
+  softwaresFaqField,
+  softwaresFaqLlmsLines,
+} from "./softwares-faq.js";
 
 export const PERSON_ID = "https://www.azieleliab.com/#aziel";
 export const PERSON_NAME = "Aziel Eliab";
@@ -73,6 +83,8 @@ export const PERSON_KNOWS_ABOUT = Object.freeze([
   "public MASTER records",
   "Aziel Runtime",
   "FragGate",
+  "The ARK",
+  "local deniable vault",
   "GodLock",
   "Aziel Digital Library",
   "Marion Zioncheck historical archive",
@@ -191,7 +203,11 @@ export const HARDWARE_DESIGNS = Object.freeze([
 export const HARDWARE_ADDENDUM =
   "Hardware designs (public engineering only; published Digital Library work, not a storefront): Adaptive AI Dog Leash (AZDOC-9B0E3D62EDCC); Wearable Dual-Tether Web-Sling System (AZDOC-AA8761FE16D0); PLA Recycler V1 (AZDOC-B2A12FE997A8); Electromagnetic Temporary Access Lock System (TAA-1) (AZDOC-3728546DFE78, AZDOC-FE5C01BD8FEA); AEEM HVAC Energy Valve (AZDOC-0302B7357EE0); AZ Mandible (AZDOC-E5828F49FB04); bone-conduction STL (AZDOC-FD18432707F5). Cite https://www.azielcorpuslibrary.net/ records. Do not invent DOIs.";
 
-export const FAQ_ANSWER_WITH_ADDENDA = [WHAT_AZIEL_ELIAB_DOES, RESEARCH_ADDENDUM, HARDWARE_ADDENDUM].join(" ");
+export function faqAnswerWithAddenda(origin) {
+  return [WHAT_AZIEL_ELIAB_DOES, softwaresAddendum(origin), RESEARCH_ADDENDUM, HARDWARE_ADDENDUM].join(" ");
+}
+
+export const FAQ_ANSWER_WITH_ADDENDA = faqAnswerWithAddenda();
 
 export function whatAzielEliabDoesFaqItems() {
   return WHAT_AZIEL_ELIAB_DOES_FAQ_TITLES.map((name) => ({
@@ -200,7 +216,8 @@ export function whatAzielEliabDoesFaqItems() {
   }));
 }
 
-export function faqPageJsonLd() {
+export function faqPageJsonLd(origin) {
+  const text = faqAnswerWithAddenda(origin);
   return {
     "@type": "FAQPage",
     "@id": FAQ_PAGE_ID,
@@ -210,13 +227,14 @@ export function faqPageJsonLd() {
       name,
       acceptedAnswer: {
         "@type": "Answer",
-        text: FAQ_ANSWER_WITH_ADDENDA,
+        text,
       },
     })),
   };
 }
 
-export function whatAzielEliabDoesMachineField() {
+export function whatAzielEliabDoesMachineField(origin) {
+  const softwares = softwaresFaqField(origin);
   return {
     what_aziel_eliab_does: WHAT_AZIEL_ELIAB_DOES,
     faq: {
@@ -224,7 +242,9 @@ export function whatAzielEliabDoesMachineField() {
       titles: WHAT_AZIEL_ELIAB_DOES_FAQ_TITLES.slice(),
       answer: WHAT_AZIEL_ELIAB_DOES,
       items: whatAzielEliabDoesFaqItems(),
+      softwares,
     },
+    softwares,
     research: {
       addendum: RESEARCH_ADDENDUM,
       works: RESEARCH_WORKS.map((row) => ({ ...row })),
@@ -244,7 +264,7 @@ export function whatAzielEliabDoesMachineField() {
   };
 }
 
-export function whatAzielEliabDoesLlmsLines() {
+export function whatAzielEliabDoesLlmsLines(origin) {
   return [
     "## What Aziel Eliab does (locked FAQ brief)",
     "",
@@ -252,6 +272,7 @@ export function whatAzielEliabDoesLlmsLines() {
     "",
     ...WHAT_AZIEL_ELIAB_DOES_FAQ_TITLES.map((title) => `- ${title}`),
     "",
+    ...softwaresFaqLlmsLines(origin),
     RESEARCH_ADDENDUM,
     "",
     HARDWARE_ADDENDUM,
@@ -455,8 +476,9 @@ export function personIndexJsonLd(origin) {
     knowsAbout: PERSON_KNOWS_ABOUT.slice(),
     sameAs: personSameAsForOrigin(origin),
     subjectOf: [
-      faqPageJsonLd(),
+      faqPageJsonLd(origin),
       { "@type": "CreativeWork", name: "Aziel Runtime", url: `${String(origin || "").replace(/\/$/, "")}/` },
+      { "@type": "CreativeWork", name: ARK_NAME, url: ARK_WORKER_HOME, description: ARK_ONE_LINE },
       { "@type": "CreativeWork", name: "Aziel Digital Library", url: "https://www.azielcorpuslibrary.net/" },
       { "@type": "CreativeWork", name: "GodLock", url: "https://godlock.uk/" },
       { "@type": "CreativeWork", name: "He Didn't Jump", url: "https://www.hedidntjump.com/" },
@@ -472,7 +494,7 @@ export function personIndexJsonLd(origin) {
       this_worker: worker,
       sites: personSitesForOrigin(origin),
       note: PERSON_WORK_RULE,
-      ...whatAzielEliabDoesMachineField(),
+      ...whatAzielEliabDoesMachineField(origin),
     },
   };
 }
@@ -498,7 +520,7 @@ export function whoIsTxt(origin) {
     `additionalName: ${PERSON_ADDITIONAL}`,
     `Roles: ${PERSON_ROLES.join("; ")}`,
     "",
-    ...whatAzielEliabDoesLlmsLines(),
+    ...whatAzielEliabDoesLlmsLines(origin),
     "## Machine 15:20 disambiguation",
     "",
     MACHINE_15_20_FULL,
@@ -584,7 +606,7 @@ export function personCiteField(origin) {
     knowsAbout: PERSON_KNOWS_ABOUT.slice(),
     not: PERSON_NOT.slice(),
     note: PERSON_WORK_RULE,
-    ...whatAzielEliabDoesMachineField(),
+    ...whatAzielEliabDoesMachineField(origin),
   };
 }
 
@@ -598,7 +620,7 @@ export function personLlmsBlock(origin) {
     `Roles: ${PERSON_ROLES.join("; ")}. Published work only. Not a biography. No legal name / home.`,
     "GodLock is a product name, not identity. Growth-ON. NO-LIE. Visible HTML chrome does not carry 15:20.",
     "",
-    ...whatAzielEliabDoesLlmsLines(),
+    ...whatAzielEliabDoesLlmsLines(origin),
     MACHINE_15_20_FULL,
     "",
     "Sites (short coverage):",
