@@ -32,10 +32,14 @@ an honest map with **both** backups:
 - **Cold shelves** (GitHub + `GET /shelves` + Plane B SLOT packs + USB)
   are the backup when **death-by-ban** takes the public door set.
 
-They back each other up. Do not drop shelves. Do not make shelves the
+They back each other up. **Cold shelves are the backup for death-by-ban.
+Live multi-front is the backup for cold-shelf death.** Keep both. Do not
+drop shelves. Do not discard the shelf layer. Do not make shelves the
 only answer. Do not make multi-door the only answer. Prefer honest
 **DEGRADED** on a banned front. Do not paint a banned host LIVE. Do not
-paint a tip-pack as `/mcp`.
+paint a tip-pack as `/mcp`. There is no `BAN-NO-SHELF-FAILOVER` refuse —
+that name encoded the AZBot misread. Law codes are `BAN-NO-SHELF-ONLY`
+(shelves are not `/mcp`) and `BAN-NO-DOOR-ONLY` (do not drop shelves).
 
 1. Claim
 Zenodo already showed a Plane B death mode (`CNS-ZENODO-IP-BAN`). That
@@ -327,6 +331,7 @@ calling-name discovery, Cap-7 shuffle ping, and Softwares download/run.
 - Claiming a banned host is LIVE refuses `BAN-NO-LIE`.
 - Treating shelves as a live exec door refuses `BAN-NO-SHELF-ONLY`.
 - Dropping shelves / claiming the shelf plan failed refuses `BAN-NO-DOOR-ONLY`.
+- `BAN-NO-SHELF-FAILOVER` is not a refuse code. That name was the AZBot misread of mutual backup.
 - Unnamed failover refuses `BAN-NO-HYDRA`.
 - A secret backdoor refuses `BAN-NO-SECOND-DOOR`.
 - 429 exec refuse includes the next LIVE front first, then the shelf backup.
