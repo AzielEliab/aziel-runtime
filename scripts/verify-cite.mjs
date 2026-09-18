@@ -47,6 +47,7 @@ assert.ok(slugs.includes("embryolock"));
 assert.ok(slugs.includes("zkattest"));
 assert.ok(slugs.includes("mmconsensus"));
 assert.ok(slugs.includes("toolbench"));
+assert.ok(slugs.includes("whitestone"));
 
 for (const slug of slugs) {
   const version = VERSIONS[slug];
@@ -59,10 +60,14 @@ for (const slug of slugs) {
           ? "https://github.com/AzielEliab/az-clce"
           : slug === "azcoherence"
             ? "https://github.com/AzielEliab/AZCoherence"
+            : slug === "whitestone"
+              ? "https://github.com/AzielEliab/Whitestone"
             : `https://github.com/AzielEliab/${slug}`;
   const download =
     slug === "aziel-corpus"
       ? "https://www.azielcorpuslibrary.net/download"
+      : slug === "whitestone"
+        ? "https://whitestone.vibelock.workers.dev/download"
       : `https://${slug}-download-tracker.vibelock.workers.dev/download`;
   const product = {
     slug,
@@ -144,7 +149,9 @@ assert.ok(citeBody.stats.hubs.some((h) => h.id === "corpus" && h.stats === "http
 assert.ok(catalogBody.stats.hubs.some((h) => h.id === "corpus" && !h.stats.endsWith("/v1/stats")));
 assert.match(citeBody.library_how_to_cite, /Aziel Digital Library/);
 assert.equal(citeBody.products.length, slugs.length);
-assert.equal(catalogBody.count, slugs.length);
+assert.ok(citeBody.products.some((p) => p.slug === "whitestone" && p.worker_only === true && p.engine === false));
+assert.equal(catalogBody.count, slugs.length - 1, "catalog.json is true-engine PRODUCTS; Whitestone is Worker-only");
+assert.ok(!catalogBody.products.some((p) => p.slug === "whitestone"), "Whitestone is not a FragGate true-engine");
 assert.ok(!catalogBody.products.some((p) => p.slug === "fraggate"));
 assert.equal(catalogBody.door, "fraggate");
 assert.equal(catalogBody.fraggate.slug, "fraggate");

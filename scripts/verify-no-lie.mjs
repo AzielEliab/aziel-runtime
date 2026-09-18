@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { NAMED_STUBS } from "../src/fraggate/registry.js";
 import { PRODUCTS } from "../src/index.js";
+import { WORKER_ONLY_PRODUCTS } from "../src/software-catalog.js";
 import { SUITE_DESIGNS } from "../src/seo.js";
 import { RUNTIME_VERSION } from "../src/runtime-api.js";
 import {
@@ -242,6 +243,6 @@ const mcp = await handler(
 );
 const listed = (await mcp.json()).result.tools;
 assert.ok(!listed.some((t) => /no.?lie|no.?rewrite/i.test(t.name)), "no NO-LIE MCP product tool");
-assert.equal(software.software.length, PRODUCTS.length + NAMED_STUBS.length);
+assert.equal(software.software.length, PRODUCTS.length + NAMED_STUBS.length + WORKER_ONLY_PRODUCTS.length);
 
 console.log(`ok no-lie ${NO_LIE_SPEC} ${RUNTIME_VERSION}: receipts hash, no rewrite key, never lie to survive`);

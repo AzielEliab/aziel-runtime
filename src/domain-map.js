@@ -152,6 +152,12 @@ export const PLACEMENTS = Object.freeze({
     domain_id: null,
     note: "AZVPN is the automatic application-layer HTTPS/WS tunnel concentrator (default_vpn_backend:azvpn, auto_use:true). Adjacent to AZNet (pairing stays order/token). Catalog placement, not a 34th isolation software. WireGuard/OpenVPN/L3 stay SLOT. In-runtime (no invented product Worker). FragGate only.",
   },
+  whitestone: {
+    placement: "pro-se-advisor",
+    domain: null,
+    domain_id: null,
+    note: "Whitestone is a live Worker-only ephemeral pro se advisor (Criminal, Civil, Divorce). Catalog software. Not a FragGate engine — do not invent door ops. Not an extra door. Not a 34th isolation software. Domain stays null. Not a lawyer / not legal advice. Session-only; optional zip.",
+  },
 });
 
 const BY_SLUG = (() => {
@@ -185,10 +191,11 @@ export const TAB_PLACEMENT_SLUGS = Object.freeze([
   "mmconsensus",
   "toolbench",
   "azvpn",
+  "whitestone",
 ]);
 
 export const CATALOG_COUNT_NOTE =
-  "Softwares-tab count includes placements (azinterface / decisiongate / forgereceipts / azcoherence / zkattest / mmconsensus / toolbench / azvpn). Isolation domain software_count is 33 (domains_are_doors:false). Do not equate the two. EmbryoLock is live-with-local-destructive-boundary (Vault/Custody with ARK); wipe/unlock stay FG-STUB on the public mesh. AZChat is LIVE+bound (mesh default off; not AZMail). AZVPN is the automatic public VPN concentrator placement (HTTPS/WS REAL; WireGuard/OpenVPN SLOT; auto_use true). VeilLock hub card is local_only (matches FragGate; no public door). Sister products such as trades-runtime are cite-only extras (not isolation-33, not Softwares-tab, not fraggate_call company ops). FragGate remains THE single door.";
+  "Softwares-tab count includes placements (azinterface / decisiongate / forgereceipts / azcoherence / zkattest / mmconsensus / toolbench / azvpn / whitestone). Isolation domain software_count is 33 (domains_are_doors:false). Do not equate the two. EmbryoLock is live-with-local-destructive-boundary (Vault/Custody with ARK); wipe/unlock stay FG-STUB on the public mesh. AZChat is LIVE+bound (mesh default off; not AZMail). AZVPN is the automatic public VPN concentrator placement (HTTPS/WS REAL; WireGuard/OpenVPN SLOT; auto_use true). Whitestone is a live Worker-only placement (no FragGate engine; not a lawyer). VeilLock hub card is local_only (matches FragGate; no public door). Sister products such as trades-runtime are cite-only extras (not isolation-33, not Softwares-tab, not fraggate_call company ops). FragGate remains THE single door.";
 
 export function domainForSlug(slug) {
   const key = String(slug || "")
@@ -236,6 +243,6 @@ export function domainMapView() {
     })),
     placements: { ...PLACEMENTS },
     note:
-      "11 domains / 33 softwares are isolation labels. Softwares-tab count is larger because it includes placements (azinterface / decisiongate / forgereceipts / azcoherence / zkattest / mmconsensus / toolbench / azvpn). Internal Domain Layer executes isolated softwares after AZPIPE. Not additional doors. domains_are_doors:false.",
+      "11 domains / 33 softwares are isolation labels. Softwares-tab count is larger because it includes placements (azinterface / decisiongate / forgereceipts / azcoherence / zkattest / mmconsensus / toolbench / azvpn / whitestone). Internal Domain Layer executes isolated softwares after AZPIPE. Not additional doors. domains_are_doors:false.",
   };
 }

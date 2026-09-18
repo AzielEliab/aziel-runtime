@@ -362,15 +362,21 @@ export function softwareCatalogHtml(origin, catalog, css) {
   const rows = entries
     .map((s) => {
       const describe = `${base}/v1/fraggate/describe?slug=${encodeURIComponent(s.slug)}`;
-      const card = s.status === "stub" ? describe : `${base}/p/${s.slug}`;
+      const card = s.worker_only
+        ? s.worker_home || s.github || `${base}/v1/software`
+        : s.status === "stub"
+          ? describe
+          : `${base}/p/${s.slug}`;
       const home = s.worker_home
         ? ` · <a href="${escapeHtml(s.worker_home)}">Worker</a>`
         : "";
       const gh = s.github ? ` · <a href="${escapeHtml(s.github)}">GitHub</a>` : "";
-      const use = ` · <a href="${escapeHtml(useInBrowserHref(base, s.slug))}">Use in browser</a>`;
-      const download = s.download_url ? ` · <a href="${escapeHtml(s.download_url)}">Download desktop</a>` : "";
+      const useHref = s.worker_only ? s.worker_home || card : useInBrowserHref(base, s.slug);
+      const use = ` · <a href="${escapeHtml(useHref)}">Use in browser</a>`;
+      const download = s.download_url ? ` · <a href="${escapeHtml(s.download_url)}">${s.worker_only ? "optional zip" : "Download desktop"}</a>` : "";
       const hay = `${s.name} ${s.slug} ${s.bucket} ${s.status} ${s.one_line || ""}`.toLowerCase();
-      return `    <li data-software-row data-slug="${escapeHtml(s.slug)}" data-bucket="${escapeHtml(s.bucket || "")}" data-search="${escapeHtml(hay)}"><a href="${escapeHtml(card)}">${escapeHtml(s.name)}</a> <span class="slug">${escapeHtml(s.bucket)} · ${escapeHtml(s.status)}</span> — ${escapeHtml(s.one_line || "")}${launchHashtagChipsHtml({ slug: s.slug, name: s.name, oneLine: s.one_line })}${use}${download} · <a href="${escapeHtml(base)}/mcp">Connect AI</a> · <a href="${escapeHtml(describe)}">describe</a>${home}${gh}</li>`;
+      const describeLink = s.worker_only ? "" : ` · <a href="${escapeHtml(describe)}">describe</a>`;
+      return `    <li data-software-row data-slug="${escapeHtml(s.slug)}" data-bucket="${escapeHtml(s.bucket || "")}" data-search="${escapeHtml(hay)}"><a href="${escapeHtml(card)}">${escapeHtml(s.name)}</a> <span class="slug">${escapeHtml(s.bucket)} · ${escapeHtml(s.status)}</span> — ${escapeHtml(s.one_line || "")}${launchHashtagChipsHtml({ slug: s.slug, name: s.name, oneLine: s.one_line })}${use}${download} · <a href="${escapeHtml(base)}/mcp">Connect AI</a>${describeLink}${home}${gh}</li>`;
     })
     .join("\n");
   const inner = `  <p><a href="${base}/">← ${escapeHtml(PRODUCT_NAME)}</a> · <a href="${base}/workspace">Use in browser</a></p>
@@ -385,6 +391,7 @@ ${namedComponentsHtml()}
   <h2>Softwares hubs</h2>
   ${hubListHtml()}
   <p>AZCoherence (AZC-0.1): <a href="${base}/v1/fraggate/describe?slug=azcoherence">describe</a> · <a href="${AZCOHERENCE_GITHUB}">GitHub</a> · <a href="${AZCOHERENCE_WORKER}/">Worker</a>. Not AKM-TRIAD.</p>
+  <p>Whitestone 1.4.0: <a href="https://whitestone.vibelock.workers.dev/">live Worker</a> · <a href="https://whitestone.vibelock.workers.dev/download">optional zip</a> · <a href="https://github.com/AzielEliab/Whitestone">GitHub</a>. Ephemeral pro se advisor. Not a lawyer. Not a FragGate engine.</p>
   <div class="field">
     <label for="software-filter">Search Softwares (name, slug, or task)</label>
     <input id="software-filter" type="search" placeholder="foldlock, receipt, browser…" autocomplete="off">
