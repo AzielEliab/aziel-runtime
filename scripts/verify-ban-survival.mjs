@@ -17,8 +17,10 @@ import {
   siteForMirageNode,
 } from "../src/cap7-shuffle.js";
 import {
+  CALLING_NAME_HARD_CAP,
   CALLING_NAME_PIPELINE,
   CALLING_NAME_SEEDS,
+  billsRuntimeAsNeeded,
   generateCallingName,
   ingestBanSignal,
   meshCallingNameAlert,
@@ -228,12 +230,28 @@ assert.equal(judgeMemoryAsTruth({ belief_is_truth: true }).reason, REFUSE.NO_MEM
 assert.equal(judgeMemoryRewrite({ delete_history: true }).reason, REFUSE.NO_MEMORY_REWRITE);
 assert.equal(generateCallingName(0), "Whitestone AI");
 assert.equal(generateCallingName(1), "Bills");
+assert.equal(generateCallingName(2), "Runtime");
+assert.equal(generateCallingName(3), "Eliab Runtime");
+assert.equal(generateCallingName(4), "Potato Runtime");
 assert.equal(generateCallingName(5), "Elroi Runtime");
 assert.equal(CALLING_NAME_SEEDS.length, 6);
+assert.equal(CALLING_NAME_HARD_CAP, false);
 assert.ok(generateCallingName(20).endsWith("Runtime"));
+assert.ok(generateCallingName(200).endsWith("Runtime"));
 assert.notEqual(generateCallingName(40, "a"), generateCallingName(41, "a"));
+const endless = new Set();
+for (let i = 0; i < 80; i++) endless.add(generateCallingName(i, "pool"));
+assert.equal(endless.size, 80);
 assert.equal(nameAlertText("Whitestone AI"), "*new name alert: Whitestone AI");
+assert.equal(slugifyCallingName("Bills"), "bills-runtime");
+assert.equal(slugifyCallingName("Bills Runtime"), "bills-runtime");
 assert.equal(slugifyCallingName("Eliab Runtime"), "eliab-runtime");
+assert.equal(slugifyCallingName("Potato Runtime"), "potato-runtime");
+assert.equal(slugifyCallingName("Elroi Runtime"), "elroi-runtime");
+assert.equal(billsRuntimeAsNeeded("Bills", false), "Bills");
+assert.equal(billsRuntimeAsNeeded("Bills", true), "Bills Runtime");
+assert.equal(resolveCallingName({ BAN_SURVIVAL_NAME_ROTATE: "1", BAN_SURVIVAL_NAME_GEN: "1" }).calling_slug, "bills-runtime");
+assert.equal(resolveCallingName({ BAN_SURVIVAL_NAME_ROTATE: "1", BAN_SURVIVAL_NAME_GEN: "1", BAN_SURVIVAL_BILLS_RUNTIME: "1" }).calling_name, "Bills Runtime");
 const idleName = resolveCallingName({});
 assert.equal(idleName.rotated, false);
 assert.equal(idleName.calling_name, "Aziel Runtime");

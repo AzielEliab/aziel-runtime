@@ -251,10 +251,19 @@ collapse or downloads-stop flags; user-uploaded data marked
 ban). Empty metrics are not a ban. A CF/WAF rule that never reaches
 the isolate cannot be invented here.
 
-**Cascade / open-ended pool:** Whitestone AI → Bills → Runtime →
-Eliab Runtime → Potato Runtime → Elroi Runtime → Softwares-family
-`*-runtime` → endless random distinct names. No hard cap. No
-third-party trademarks (ChatGPT / Claude / Gemini / …).
+**Cascade / open-ended pool (never exhausts; no hard cap at 6):**
+1. Whitestone AI (`whitestone-ai`)
+2. Bills (`bills-runtime` as needed; display **Bills Runtime** when a
+   `*-runtime` form is required)
+3. Runtime (`runtime`)
+4. Eliab Runtime (`eliab-runtime`)
+5. Potato Runtime (`potato-runtime`)
+6. Elroi Runtime (`elroi-runtime`)
+7. Softwares-family `*-runtime` then endless distinct operator names
+   (`generateCallingName(n)` for any n). The six seeds are first, not
+   a cap.
+
+No third-party trademarks (ChatGPT / Claude / Gemini / …).
 
 **Pipeline (trigger → alert → metadata rewrite → client rediscovery):**
 1. **Trigger** — honest ban / blacklist / impending-ban signal only

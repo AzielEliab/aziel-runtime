@@ -145,9 +145,10 @@ additive stamps. stub_ops `model_update` / `rollback` / `rewrite` /
 
 Calling-name rotation is **discovery metadata only**. Pipeline:
 trigger → mesh alert → metadata rewrite → client rediscovery. On honest
-ban signals the public calling name may rotate (Whitestone AI → Bills →
-Runtime → Eliab Runtime → Potato Runtime → Elroi Runtime → endless
-Softwares-family / random). Live mesh nodes pull `*new name alert: <name>`
+ban signals the public calling name may rotate (open-ended; no hard cap
+at 6: Whitestone AI → Bills / Bills Runtime as needed → Runtime →
+Eliab Runtime → Potato Runtime → Elroi Runtime → Softwares-family
+`*-runtime` → endless distinct names). Live mesh nodes pull `*new name alert: <name>`
 from `GET /v1/mesh` and `GET /survival` (GET never enables; not a
 publish path). User-uploaded data is a DecisionGATE/AKM observe signal
 — unmarked uploads are not a ban. Call routes stay `POST /mcp` /

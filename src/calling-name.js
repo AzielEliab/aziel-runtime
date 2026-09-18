@@ -28,7 +28,18 @@ export const CALLING_NAME_SEEDS = Object.freeze([
   "Elroi Runtime",
 ]);
 
-/** Softwares-family pool after the six seeds. Open-ended via random after this list. */
+/** Operator slug forms (`eliab - runtime` → eliab-runtime). Bills uses bills-runtime as needed. */
+export const CALLING_NAME_SEED_SLUGS = Object.freeze({
+  "Whitestone AI": "whitestone-ai",
+  Bills: "bills-runtime",
+  "Bills Runtime": "bills-runtime",
+  Runtime: "runtime",
+  "Eliab Runtime": "eliab-runtime",
+  "Potato Runtime": "potato-runtime",
+  "Elroi Runtime": "elroi-runtime",
+});
+
+/** Softwares-family pool after the six seeds. Not a cap — endless generator follows. */
 export const CALLING_NAME_FAMILY = Object.freeze([
   "FoldLock Runtime",
   "GodLock Runtime",
@@ -42,6 +53,34 @@ export const CALLING_NAME_FAMILY = Object.freeze([
   "MirageGrid Runtime",
   "AZInterface Runtime",
   "AZVPN Runtime",
+]);
+
+export const CALLING_NAME_HARD_CAP = false;
+export const CALLING_NAME_ENDLESS_STEMS = Object.freeze([
+  "FoldLock",
+  "GodLock",
+  "PeaceLock",
+  "AZHub",
+  "AZNet",
+  "AZBrowser",
+  "AZMail",
+  "EmbryoLock",
+  "AZCoherence",
+  "MirageGrid",
+  "AZInterface",
+  "AZVPN",
+  "Loom",
+  "Span",
+  "Keel",
+  "Rift",
+  "Well",
+  "Ember",
+  "Vault",
+  "Whitestone",
+  "Eliab",
+  "Potato",
+  "Elroi",
+  "Bills",
 ]);
 
 const TRADEMARK_BLOCK = Object.freeze([
@@ -113,12 +152,21 @@ export function nameAlertText(name) {
 }
 
 export function slugifyCallingName(name) {
-  const slug = String(name || "")
-    .trim()
+  const trimmed = String(name || "").trim();
+  if (CALLING_NAME_SEED_SLUGS[trimmed]) return CALLING_NAME_SEED_SLUGS[trimmed];
+  const slug = trimmed
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+  if (slug === "bills") return "bills-runtime";
   return slug || DEFAULT_CALLING_SLUG;
+}
+
+/** Bills stays Bills; Bills Runtime when a *-runtime form is required. */
+export function billsRuntimeAsNeeded(name, needRuntimeSuffix = false) {
+  const n = String(name || "").trim();
+  if (n === "Bills" && needRuntimeSuffix) return "Bills Runtime";
+  return n;
 }
 
 function truthyFlag(value) {
@@ -151,9 +199,14 @@ function randomFamilyName(index, seed) {
   const hex = fnv1a(`${seed}|${index}|calling-name`)
     .toString(16)
     .padStart(8, "0");
-  return `Softwares ${hex} Runtime`;
+  const stem = CALLING_NAME_ENDLESS_STEMS[index % CALLING_NAME_ENDLESS_STEMS.length];
+  return `${stem} ${hex} Runtime`;
 }
 
+/**
+ * Open-ended cascade. Seeds first (never a hard cap of 6), then
+ * Softwares-family `*-runtime`, then distinct endless operator names.
+ */
 export function generateCallingName(index, seed = "ban-survival") {
   const i = Number.isInteger(index) && index >= 0 ? index : 0;
   if (i < CALLING_NAME_SEEDS.length) return CALLING_NAME_SEEDS[i];
@@ -291,6 +344,10 @@ export function resolveCallingName(env = {}, extra = {}) {
     name = generateCallingName(index, seed);
     if (isTrademarkCallingName(name)) name = generateCallingName(index + 1, seed);
   }
+  name = billsRuntimeAsNeeded(
+    name,
+    truthyFlag(env && env.BAN_SURVIVAL_BILLS_RUNTIME) || truthyFlag(extra.need_runtime_suffix),
+  );
 
   return {
     spec: CALLING_NAME_SPEC,
@@ -307,8 +364,10 @@ export function resolveCallingName(env = {}, extra = {}) {
     triggers,
     alert: nameAlertText(name),
     pool: "open-ended",
+    hard_cap: CALLING_NAME_HARD_CAP,
     seeds: CALLING_NAME_SEEDS.slice(),
-    cascade: "Whitestone AI → Bills → Runtime → Eliab Runtime → Potato Runtime → Elroi Runtime → Softwares-family → endless random",
+    seed_slugs: { ...CALLING_NAME_SEED_SLUGS },
+    cascade: "Whitestone AI → Bills (Bills Runtime as needed) → Runtime → Eliab Runtime → Potato Runtime → Elroi Runtime → Softwares-family *-runtime → endless",
     pipeline: CALLING_NAME_PIPELINE.slice(),
     surfaces: CALLING_NAME_SURFACES.slice(),
     call_routes: { ...CALLING_NAME_CALL_ROUTES },
@@ -332,7 +391,10 @@ export function callingNameCite(env = {}, extra = {}) {
     alert: resolved.alert,
     triggers: resolved.triggers,
     pool: resolved.pool,
+    hard_cap: CALLING_NAME_HARD_CAP,
     seeds: CALLING_NAME_SEEDS.slice(),
+    seed_slugs: { ...CALLING_NAME_SEED_SLUGS },
+    cascade: resolved.cascade || "Whitestone AI → Bills (Bills Runtime as needed) → Runtime → Eliab Runtime → Potato Runtime → Elroi Runtime → Softwares-family *-runtime → endless",
     pipeline: CALLING_NAME_PIPELINE.slice(),
     surfaces: CALLING_NAME_SURFACES.slice(),
     call_routes: { ...CALLING_NAME_CALL_ROUTES },
