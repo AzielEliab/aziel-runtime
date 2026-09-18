@@ -155,8 +155,11 @@ assert.deepEqual(onStatus.data.rollup.ephemeral, { live: 0, locked: 0, isolated:
 assert.equal(onStatus.data.live_nodes, 0);
 assert.equal(onStatus.data.software_nodes, 0);
 assert.equal(onStatus.data.instance_nodes, 0);
-assert.match(onStatus.data.live_nodes_note, /living downloaded Softwares instances/i);
-assert.match(LIVE_NODES_NOTE, /not catalog/i);
+assert.match(onStatus.data.live_nodes_note, /mesh size/i);
+assert.match(LIVE_NODES_NOTE, /Isolated nodes are excluded/i);
+assert.equal(onStatus.data.active_nodes, 0);
+assert.equal(onStatus.data.inactive_nodes, 0);
+assert.equal(onStatus.data.rollup.mesh, 0);
 assert.equal(onStatus.data.ephemeral_nodes, 0);
 assert.deepEqual(onStatus.data.products_present, []);
 assert.match(onStatus.data.anon_broadcast, /never a publish path/i);
@@ -182,11 +185,9 @@ assert.equal(defaultJoin.data.ok, true);
 assert.equal(defaultJoin.data.session.product, "godlock");
 assert.equal(defaultJoin.data.session.plane, "instance");
 assert.equal(defaultJoin.data.session.counts_as_live_nodes, true);
-assert.equal(defaultJoin.data.live_nodes, 1);
-assert.ok(
-  defaultJoin.data.software_nodes === 0 || defaultJoin.data.software_nodes === PRODUCTS.length,
-  "request-path fan-out may land after the first GET; it must not become live_nodes",
-);
+assert.equal(defaultJoin.data.live_nodes, defaultJoin.data.active_nodes + defaultJoin.data.inactive_nodes);
+assert.equal(defaultJoin.data.live_nodes, defaultJoin.data.rollup.mesh);
+assert.ok(defaultJoin.data.live_nodes >= 1);
 const leftDefault = await postJson(env, "/v1/mesh/leave", { node_id: "godlock-default-on" });
 assert.equal(leftDefault.data.left, true);
 
@@ -225,9 +226,11 @@ const defaultFanout = await meshFanoutSuitePresence(env, { source: "test-default
 assert.equal(defaultFanout.skipped, false);
 assert.equal(defaultFanout.enabled, true);
 assert.equal(defaultFanout.get_never_enables, true);
-assert.equal(defaultFanout.live_nodes, 0, "fan-out must not drive public Live Nodes");
+assert.equal(defaultFanout.live_nodes, PRODUCTS.length, "non-isolated workers are real mesh presence");
 assert.equal(defaultFanout.software_nodes, PRODUCTS.length);
 assert.equal(defaultFanout.software_live_nodes, PRODUCTS.length);
+assert.equal(defaultFanout.active_nodes, PRODUCTS.length);
+assert.equal(defaultFanout.inactive_nodes, 0);
 
 const enabled = await postJson(env, "/v1/mesh/enable", { bearer: "suite-presence" });
 assert.equal(enabled.status, 200, JSON.stringify(enabled.data));
@@ -237,34 +240,36 @@ assert.equal(enabled.data.radios, "on");
 assert.equal(enabled.data.suite_presence, "on");
 assert.equal(enabled.data.get_never_enables, true);
 assert.equal(enabled.data.fanout, true);
-assert.equal(enabled.data.live_nodes, 0, JSON.stringify(enabled.data.products_present));
+assert.equal(enabled.data.live_nodes, PRODUCTS.length, JSON.stringify(enabled.data.products_present));
 assert.equal(enabled.data.ephemeral_nodes, 0);
 assert.equal(enabled.data.software_nodes, PRODUCTS.length);
 assert.equal(enabled.data.software_live_nodes, PRODUCTS.length);
+assert.equal(enabled.data.live_nodes, enabled.data.software_nodes, "workers alone are not the Live Nodes definition — they happen to be the whole roster here");
 const workerJoin = await postJson(env, "/v1/mesh/join", { product: "godlock", node_id: "godlock-worker" });
 assert.equal(workerJoin.status, 200, JSON.stringify(workerJoin.data));
 assert.equal(workerJoin.data.session.plane, "software");
-assert.equal(workerJoin.data.session.counts_as_live_nodes, false);
-assert.equal(workerJoin.data.live_nodes, 0, "{slug}-worker join must not drive Live Nodes");
+assert.equal(workerJoin.data.session.counts_as_live_nodes, true);
+assert.equal(workerJoin.data.live_nodes, PRODUCTS.length);
 assert.equal(workerJoin.data.software_nodes, PRODUCTS.length);
 
 const autoJoin = await postJson(env, "/v1/mesh/join", { product: "azchat" });
 assert.equal(autoJoin.status, 200, JSON.stringify(autoJoin.data));
 assert.match(autoJoin.data.session.node_id, /^mesh_/);
 assert.equal(isEphemeralMeshNodeId(autoJoin.data.session.node_id), true);
-assert.equal(autoJoin.data.live_nodes, 1, "mesh_* instance join is public Live Nodes");
+assert.equal(autoJoin.data.live_nodes, PRODUCTS.length + 1, "mesh_* instance adds to mesh size");
 assert.equal(autoJoin.data.session.plane, "instance");
 assert.equal(autoJoin.data.session.counts_as_live_nodes, true);
 assert.equal(autoJoin.data.software_nodes, PRODUCTS.length, "mesh_* must not inflate software_nodes");
 assert.equal(autoJoin.data.ephemeral_nodes, 1);
 assert.equal(autoJoin.data.ephemeral_live_nodes, 1);
 assert.equal(autoJoin.data.instance_live_nodes, 1);
-assert.equal(autoJoin.data.rollup.live, 1);
+assert.equal(autoJoin.data.rollup.live, PRODUCTS.length + 1);
+assert.equal(autoJoin.data.rollup.mesh, PRODUCTS.length + 1);
 assert.equal(autoJoin.data.rollup.software.live, PRODUCTS.length);
 assert.equal(autoJoin.data.rollup.all.live, PRODUCTS.length + 1);
 const leftEphem = await postJson(env, "/v1/mesh/leave", { node_id: autoJoin.data.session.node_id });
 assert.equal(leftEphem.data.ephemeral_nodes, 0);
-assert.equal(leftEphem.data.live_nodes, 0);
+assert.equal(leftEphem.data.live_nodes, PRODUCTS.length);
 assert.equal(leftEphem.data.software_nodes, PRODUCTS.length);
 
 assert.ok(enabled.data.products_present.includes("godlock"));
@@ -283,13 +288,14 @@ assert.ok(joined.data.session.session_id);
 assert.equal(joined.data.session.node_id, "godlock-uk");
 assert.equal(joined.data.session.product, "godlock");
 assert.equal(joined.data.session.presence, "live");
-assert.equal(joined.data.live_nodes, 1);
+assert.equal(joined.data.live_nodes, PRODUCTS.length + 1);
 assert.equal(joined.data.session.plane, "instance");
 assert.equal(joined.data.session.counts_as_live_nodes, true);
 assert.equal(joined.data.software_nodes, PRODUCTS.length);
 assert.equal(joined.data.ephemeral_nodes, 0);
 assert.equal(joined.data.rollup.named.live, 1);
-assert.equal(joined.data.rollup.live, 1);
+assert.equal(joined.data.rollup.live, PRODUCTS.length + 1);
+assert.equal(joined.data.rollup.mesh, PRODUCTS.length + 1);
 assert.equal(joined.data.rollup.all.live, PRODUCTS.length + 1);
 assert.ok(joined.data.products_present.includes("godlock"));
 
@@ -330,11 +336,12 @@ const isolated = await postJson(env, "/v1/mesh/join", {
   presence: "isolated",
 });
 assert.equal(isolated.status, 200, JSON.stringify(isolated.data));
-assert.equal(isolated.data.rollup.live, 1, "godlock-uk still living instance");
+assert.equal(isolated.data.rollup.live, PRODUCTS.length + 1, "workers + godlock-uk still active");
 assert.equal(isolated.data.rollup.isolated, 1);
 assert.equal(isolated.data.rollup.named.isolated, 1);
 assert.equal(isolated.data.rollup.locked, 0);
-assert.equal(isolated.data.live_nodes, 1);
+assert.equal(isolated.data.live_nodes, PRODUCTS.length + 1, "isolated node excluded from mesh size");
+assert.equal(isolated.data.isolated_nodes, 1);
 assert.equal(isolated.data.software_nodes, PRODUCTS.length);
 assert.equal(isolated.data.session.counts_as_live_nodes, false);
 assert.equal(isolated.data.rollup.all.live, PRODUCTS.length + 1);
@@ -348,7 +355,8 @@ assert.equal(lockedBeat.status, 200);
 assert.equal(lockedBeat.data.rollup.locked, 1);
 assert.equal(lockedBeat.data.rollup.named.locked, 1);
 assert.equal(lockedBeat.data.rollup.isolated, 0);
-assert.equal(lockedBeat.data.live_nodes, 1, "locked instance is not a Live Node");
+assert.equal(lockedBeat.data.inactive_nodes, 1);
+assert.equal(lockedBeat.data.live_nodes, PRODUCTS.length + 2, "inactive locked node still counts in mesh size");
 assert.equal(lockedBeat.data.software_locked_nodes, 0);
 assert.equal(lockedBeat.data.software_live_nodes, PRODUCTS.length);
 assert.equal(lockedBeat.data.rollup.software.live, PRODUCTS.length);
@@ -411,7 +419,8 @@ const afterDisable = await jsonReq(env, "/v1/mesh");
 assert.equal(afterDisable.data.enabled, true);
 assert.equal(afterDisable.data.mesh_default, "on");
 assert.equal(afterDisable.data.software_nodes, PRODUCTS.length, "disable must not wipe software_nodes");
-assert.ok(afterDisable.data.live_nodes >= 0);
+assert.equal(afterDisable.data.live_nodes, afterDisable.data.active_nodes + afterDisable.data.inactive_nodes);
+assert.ok(afterDisable.data.live_nodes >= PRODUCTS.length, "disable must not wipe mesh-size Live Nodes");
 assert.ok(afterDisable.data.instance_nodes >= 1, "locked instance remains until TTL");
 
 const doorEnv = envWithMesh();
@@ -463,22 +472,26 @@ assert.equal(mcpStatus.result.structuredContent.result.qnm_s, false);
 const mcpNodes = await mcp(doorEnv, "tools/call", { name: "mesh_nodes", arguments: {} }, 4);
 assert.ok(mcpNodes.result.structuredContent.result.live_nodes >= 1);
 assert.ok(mcpNodes.result.structuredContent.result.software_nodes >= 1);
-assert.match(mcpNodes.result.structuredContent.result.live_nodes_note, /living downloaded Softwares instances/i);
+assert.match(mcpNodes.result.structuredContent.result.live_nodes_note, /mesh size/i);
+assert.equal(
+  mcpNodes.result.structuredContent.result.live_nodes,
+  mcpNodes.result.structuredContent.result.active_nodes + mcpNodes.result.structuredContent.result.inactive_nodes,
+);
 
 const software = await jsonReq(env, "/v1/software");
 assert.ok(software.data.software.every((s) => s.mesh && s.mesh.enabled_default === true));
 assert.ok(software.data.software.every((s) => s.mesh.live_nodes === undefined));
-assert.ok(software.data.software.every((s) => s.mesh.live_nodes_plane === "instance"));
+assert.ok(software.data.software.every((s) => s.mesh.live_nodes_plane === "mesh-size"));
 assert.ok(software.data.software.every((s) => s.mesh.spec === "QNM-BUILD-1.0"));
 assert.ok(software.data.software.every((s) => s.mesh.qnm_s === false));
 assert.ok(!software.data.software.some((s) => s.slug === "anon-broadcast"));
 assert.ok(!software.data.software.some((s) => s.slug === "mesh"));
 assert.equal(software.data.mesh.spec, "QNM-BUILD-1.0");
 assert.equal(software.data.mesh.qnm_s, false);
-assert.equal(software.data.mesh.live_nodes_plane, "instance");
+assert.equal(software.data.mesh.live_nodes_plane, "mesh-size");
 assert.equal(software.data.mesh.software_nodes_plane, "software-worker-fanout");
 assert.equal(software.data.mesh.live_nodes, undefined, "catalog mesh hint must not publish a live_nodes count");
-assert.match(software.data.mesh.live_nodes_note, /living downloaded Softwares instances/i);
+assert.match(software.data.mesh.live_nodes_note, /mesh size/i);
 assert.equal(software.data.mesh.suite_presence, "on");
 assert.equal(software.data.mesh.enabled_default, true);
 assert.equal(software.data.mesh.mesh_default, "on");
