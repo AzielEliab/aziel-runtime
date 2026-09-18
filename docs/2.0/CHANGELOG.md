@@ -11,6 +11,7 @@ Crawler abstract (`RUNTIME_ABSTRACT`) is unchanged and stays the lead on homepag
 
 Certification point — not a feature dump.
 
+- Additive Trades-Runtime 0.3.3 machine cite (not a new public MCP tool; not a FragGate true-engine): `/cite.json` `sister_products`, `/llms.txt` Sister products, catalog `extras[]` kind `cite_only`. `fraggate_call` does not execute company ops. `live_backends` false. Identity Aziel Eliab only.
 - Additive machine-only Person / who-is discovery (not a new public MCP tool): `/person.jsonld`, `/who-is`, `/cite.json` `person`, `/llms.txt` Person section. No visible 15:20 HTML chrome. Growth-ON. NO-LIE.
 - MED/LOW launch remediations (not a new public MCP tool; never `fielded_100`): more labeled `#task-*` panes; MCP fabric hop-list honesty (kernel-direct ≠ MASTER-33 ≠ second Softwares door); production SESSION / CHAINLOCK / RATE DO bind cites; local `qnm-node` radio hooks LIVE-when-HW-present / refuse-when-absent (Worker channel_plane cite-only).
 - Additive Framagit Plane B refuse honesty (not a new public MCP tool): Framagit `url` stays null; row refuse is `CNS-NO-FORGE-MIRROR` until a real project exists and remote bytes hash-verify. Plane B LIVE still requires all three (`CNS-PLANE-B-ALL-TARGETS`). Operator checklist `tools/cold_shelf/FRAMAGIT-TIP-PACK-CHECKLIST.md`. No invented URL. No LIVE flip.

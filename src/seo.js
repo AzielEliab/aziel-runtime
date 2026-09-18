@@ -13,6 +13,15 @@ import {
   personLlmsBlock,
   personPageJsonLd,
 } from "./person-index.js";
+import {
+  TRADES_RUNTIME_CITE,
+  TRADES_RUNTIME_DOWNLOAD,
+  TRADES_RUNTIME_GITHUB,
+  TRADES_RUNTIME_MCP,
+  TRADES_RUNTIME_ORIGIN,
+  TRADES_RUNTIME_VERSION,
+  sisterProductHubFields,
+} from "./sister-products.js";
 
 export const AUTHOR_NAME = "Aziel Eliab";
 export const AUTHOR_ALTERNATE_NAME = "Aziel Elroi Eliab";
@@ -249,6 +258,23 @@ export function sisterArchiveCiteField() {
     archives: sisterArchiveCrawl(),
   };
 }
+
+export {
+  TRADES_RUNTIME_CITE,
+  TRADES_RUNTIME_DOWNLOAD,
+  TRADES_RUNTIME_GITHUB,
+  TRADES_RUNTIME_HOME,
+  TRADES_RUNTIME_LLMS,
+  TRADES_RUNTIME_MCP,
+  TRADES_RUNTIME_NAME,
+  TRADES_RUNTIME_ORIGIN,
+  TRADES_RUNTIME_SLUG,
+  TRADES_RUNTIME_VERSION,
+  llmsSisterProductsBlock,
+  sisterProductCiteField,
+  sisterProductHubFields,
+  tradesRuntimeCiteCard,
+} from "./sister-products.js";
 
 export function hubPageSitemapUrls() {
   const out = [];
@@ -763,6 +789,7 @@ export function catalogHubFields(origin) {
     hedidntjump_llms: HEDIDNTJUMP_LLMS,
     hedidntjump_software_tab: false,
     sister_archives: sisterArchiveCiteField(),
+    ...sisterProductHubFields(),
     hubs: softwareHubCrawl(),
     stats: social,
     social_status: social,
@@ -822,6 +849,11 @@ export function llmsCiteBlock(origin) {
     `${HEDIDNTJUMP_NAME} cite.json: ${HEDIDNTJUMP_CITE}`,
     `${HEDIDNTJUMP_NAME} llms.txt: ${HEDIDNTJUMP_LLMS}`,
     `${HEDIDNTJUMP_NAME} sitemap.xml: ${HEDIDNTJUMP_SITEMAP}`,
+    `Trades-Runtime (sister product, not a Softwares-tab engine; fraggate_call does not execute company ops): ${AUTHOR_FAMILY_GIVEN}. (2026). Trades-Runtime ${TRADES_RUNTIME_VERSION} [Software]. Apache-2.0. ${TRADES_RUNTIME_GITHUB}`,
+    `Trades-Runtime Worker: ${TRADES_RUNTIME_ORIGIN}`,
+    `Trades-Runtime MCP: ${TRADES_RUNTIME_MCP}`,
+    `Trades-Runtime download: ${TRADES_RUNTIME_DOWNLOAD}`,
+    `Trades-Runtime cite.json: ${TRADES_RUNTIME_CITE}`,
     `AZCoherence: ${AUTHOR_FAMILY_GIVEN}. (2026). AZCoherence 0.1.0 [Software]. Apache-2.0. ${AZCOHERENCE_GITHUB}`,
     `AZCoherence describe: ${base}/v1/fraggate/describe?slug=azcoherence`,
     `AZCoherence Worker: ${AZCOHERENCE_WORKER}/`,

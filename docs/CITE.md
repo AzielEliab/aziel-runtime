@@ -46,6 +46,7 @@ Corpus counters are `GET /stats`, not `/v1/stats`. Corpus version is `GET /v1/he
 - GodLock.uk → https://godlock.uk/ — GodLock challenge/score (not VPN)
 - He Didn't Jump (sister archive, not a Softwares hub) → https://www.hedidntjump.com/ · sitemap https://www.hedidntjump.com/sitemap.xml — Zioncheck archive sister
 - This Worker → FragGate engine-runtime / MCP Softwares door 2.0.0-rc1
+- Trades-Runtime (sister product, not a Softwares-tab engine; `fraggate_call` does not execute company ops) → https://github.com/AzielEliab/trades-runtime · Worker https://trades-runtime.vibelock.workers.dev · MCP https://trades-runtime.vibelock.workers.dev/mcp · download https://trades-runtime.vibelock.workers.dev/download
 - FragGate kernel → https://github.com/AzielEliab/fraggate
 - Try on Glama (primary MCP) → https://glama.ai/mcp/servers/AzielEliab/aziel-runtime
 
@@ -72,6 +73,16 @@ AI pulls name metadata from:
 `public_icann: false`. No live AZ-GEN registrar. No fake ICANN `.az`. No visible 15:20. `GET /v1/mesh` never enables radios. Mesh browse: AZNet + AZBrowser via FragGate. Plane A hubs mirror tips; mirroring a tip does not resolve a Cap-7 name onto a hub hostname.
 
 Machine field: `/cite.json` `semantic_bridge`. `/cite.json` + `GET /v1/software` also name `website_designs` **azcorpus** + **azlibrary**.
+
+## Sister products (cite-only)
+
+Trades-Runtime 0.3.3 is a sister product, not a FragGate true-engine and not nested Softwares suite exec. Machine fields: `/cite.json` `sister_products` / `trades_runtime_*`, `/v1/catalog.json` `extras[]` kind `cite_only`, `/v1/software` `sister_products`, `/llms.txt` **Sister products**. `fraggate_call` does **not** execute Trades-Runtime company ops. `live_backends` false. Not a hosted company OS. Identity Aziel Eliab only.
+
+- GitHub → https://github.com/AzielEliab/trades-runtime
+- Worker → https://trades-runtime.vibelock.workers.dev
+- MCP → https://trades-runtime.vibelock.workers.dev/mcp
+- Download → https://trades-runtime.vibelock.workers.dev/download
+- Brief: Shadow-first local BYO runtime for HVAC/plumbing/electrical/sewer/cross-trades. BYO ServiceTitan+ProBooks. Human authority. Not hosted company OS. live_backends false.
 
 ## Dual surface (upload / download / invoke)
 

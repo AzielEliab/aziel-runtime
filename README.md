@@ -94,7 +94,8 @@ Every Worker launch (homepage, `/about`, every `/p/{slug}`, HTML Softwares/descr
 | Software page | https://www.azielcorpuslibrary.net/software |
 | GodLock.uk | https://godlock.uk — https://godlock.uk/AzielEliab — https://godlock.uk/software |
 | He Didn't Jump (sister archive) | https://www.hedidntjump.com/ |
-| Repos | https://github.com/AzielEliab/aziel-corpus · https://github.com/AzielEliab/godlock · https://github.com/AzielEliab/hedidntjump.com |
+| Trades-Runtime (sister product, cite-only) | https://github.com/AzielEliab/trades-runtime — Worker https://trades-runtime.vibelock.workers.dev — MCP `/mcp` — download `/download`. Not a FragGate true-engine. `fraggate_call` does not execute company ops. |
+| Repos | https://github.com/AzielEliab/aziel-corpus · https://github.com/AzielEliab/godlock · https://github.com/AzielEliab/hedidntjump.com · https://github.com/AzielEliab/trades-runtime |
 | Donate (canonical) | https://www.azieleliab.com/donate |
 
 Glama **Install Server** is stdio via [`glama.json`](glama.json) + [`Dockerfile`](Dockerfile) on `main`. See [docs/GLAMA.md](docs/GLAMA.md).

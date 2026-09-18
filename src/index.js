@@ -91,6 +91,7 @@ import {
   productHowToCite,
   citeZenodoBlock,
   catalogExtraCards,
+  CATALOG_EXTRAS_NOTE,
   fraggateHubCard,
   FRAGGATE_GITHUB,
   FRAGGATE_WORKER,
@@ -258,6 +259,9 @@ import {
   hubPageSitemapUrls,
   hubsCiteField,
   sisterArchiveCiteField,
+  sisterProductCiteField,
+  sisterProductHubFields,
+  llmsSisterProductsBlock,
   ecosystemJsonLd,
   entityGraphCiteField,
   namedToolsJsonLd,
@@ -331,7 +335,7 @@ const CATALOG_TITLE = PRODUCT_NAME;
 /** Bound to the canonical abstract. Version rolls (1.9+) go in #version-history, not here. */
 const CATALOG_DESCRIPTION = RUNTIME_ABSTRACT;
 const CATALOG_CHANGELOG_20 =
-  "2.0.0-rc1 is the certification-point freeze (not a feature dump): public contract, compatibility, receipt schema, refusal contract, and breaking-change policy under docs/2.0/. Clean-room reproducibility + external adversarial pack for independent reviewers (self-test ≠ third-party lab). Gate 4 includes Glama TDQS 5.0 tools/list metadata (no rename; no behavior change) plus existing glama.json / GitHub topics. Read-only QNM suite-presence is ON by default; POST /v1/mesh/disable refuses MESH-DISABLE-REFUSED. Additive COLD-MULTI-SHELF-1.0 cite (GET /shelves) matches corpus#96 /shelves honesty: Plane A = 5 published surfaces / 2 family radii / 1 independent live; Plane B Codeberg + archive.org PASS still SLOT (https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius); Framagit URL null; GitFlic CNS-GITFLIC-EMAIL; GitLab CNS-GITLAB-CF-LOOP; Zenodo refused CNS-ZENODO-IP-BAN; doi null; Plane C USB SLOT. Remain-OFF untouched. FragGate remains THE single door. Architecture-fit placements zkattest / mmconsensus / toolbench are in-runtime engines behind FragGate (isolation 33 unchanged; no new MCP tool). Crawler abstract stays lead copy. Identity Aziel Eliab only.";
+  "2.0.0-rc1 is the certification-point freeze (not a feature dump): public contract, compatibility, receipt schema, refusal contract, and breaking-change policy under docs/2.0/. Clean-room reproducibility + external adversarial pack for independent reviewers (self-test ≠ third-party lab). Gate 4 includes Glama TDQS 5.0 tools/list metadata (no rename; no behavior change) plus existing glama.json / GitHub topics. Read-only QNM suite-presence is ON by default; POST /v1/mesh/disable refuses MESH-DISABLE-REFUSED. Additive COLD-MULTI-SHELF-1.0 cite (GET /shelves) matches corpus#96 /shelves honesty: Plane A = 5 published surfaces / 2 family radii / 1 independent live; Plane B Codeberg + archive.org PASS still SLOT (https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius); Framagit URL null; GitFlic CNS-GITFLIC-EMAIL; GitLab CNS-GITLAB-CF-LOOP; Zenodo refused CNS-ZENODO-IP-BAN; doi null; Plane C USB SLOT. Additive Trades-Runtime 0.3.3 machine cite (sister_products / extras cite_only; not a FragGate true-engine; fraggate_call does not execute company ops). Remain-OFF untouched. FragGate remains THE single door. Architecture-fit placements zkattest / mmconsensus / toolbench are in-runtime engines behind FragGate (isolation 33 unchanged; no new MCP tool). Crawler abstract stays lead copy. Identity Aziel Eliab only.";
 const CATALOG_CHANGELOG_19 =
   "1.9.3 closes the remaining AZRT-1.9-GAPS-CLOSE items: isolate-native AZ-OS session_open/status/close (prefab ethics VFS; exec/shell/lattice stay refuse); isolate-safe Ask Jeeves over sample MASTER / CORPUS_D1 records; binding-gated media-run when env.AI is present (no fake OCR); published independent-validation attestation path (not a third-party lab). Remain-OFF untouched. 1.9.2 binds Workers Browser Rendering (BROWSER) and live D1 MASTER (CORPUS_D1 → aziel-digital-library records). Whisper/OCR Workers-AI-bound. Sample MASTER remains the unbound fallback. Chromium product UI is not claimed; Tor/phoenix stay refuse. Remain-OFF untouched. 1.9.1 closes AZRT-1.9-GAPS-CLOSE isolate-safe corpus verify; Whisper/OCR Workers-AI-gated; AZBrowser sandbox_status; AZMail transport_status; wave 2–3 doctor; adversarial self-check + Actions npm test. Remain-OFF untouched. 1.9.0 closed AZRT-1.9-CLOSE-1.0. Chromium product UI is not claimed. Remain-OFF untouched.";
 const LASTMOD = "2026-09-14";
@@ -1493,7 +1497,7 @@ function llmsTxt(origin) {
     `FragGate: ${base}/v1/fraggate`,
     `AZPIPE MASTER-33 cite: ${base}/v1/azpipe/arch`,
     `Kernel: ${FRAGGATE_GITHUB}`,
-    `Catalog extras (hub kernel card, not a Software engine): slug=fraggate worker=${FRAGGATE_WORKER} github=${FRAGGATE_GITHUB} worker_home=${FRAGGATE_WORKER_ORIGIN}/ download=${FRAGGATE_WORKER_ORIGIN}/download — read catalog.json extras[] / fraggate. FragGate is the kernel door; human UI + counted download is the separate FragGate Worker app (not nested in AZBrowser).`,
+    `Catalog extras (hub kernel card, not a Software engine): slug=fraggate worker=${FRAGGATE_WORKER} github=${FRAGGATE_GITHUB} worker_home=${FRAGGATE_WORKER_ORIGIN}/ download=${FRAGGATE_WORKER_ORIGIN}/download — read catalog.json extras[] / fraggate. FragGate is the kernel door; human UI + counted download is the separate FragGate Worker app (not nested in AZBrowser). extras[] also cites sister product trades-runtime (engine:false; fraggate_call:false; not a FragGate true-engine).`,
     `MCP: POST ${base}/mcp`,
     `Uses: ${base}/v1/uses`,
     `Stats rollup: ${base}/v1/stats-rollups`,
@@ -1539,6 +1543,8 @@ function llmsTxt(origin) {
     llmsHubsBlock().trimEnd(),
     "",
     llmsEcosystemBlock().trimEnd(),
+    "",
+    llmsSisterProductsBlock().trimEnd(),
     "",
     llmsStatsAwarenessBlock(origin).trimEnd(),
     "",
@@ -1684,6 +1690,8 @@ function citeJson(origin) {
     azpipe_arch: base + "/v1/azpipe/arch",
     hubs: hubsCiteField(),
     sister_archives: sisterArchiveCiteField(),
+    sister_products: sisterProductCiteField(),
+    ...sisterProductHubFields(),
     hedidntjump: HEDIDNTJUMP_HOME,
     hedidntjump_name: HEDIDNTJUMP_NAME,
     hedidntjump_sitemap: HEDIDNTJUMP_SITEMAP,
@@ -3440,8 +3448,7 @@ async function handleRequest(request, env, ctx) {
           kernel: FRAGGATE_GITHUB,
           fraggate: fraggateHubCard(origin),
           extras: catalogExtraCards(origin),
-          extras_note:
-            "Kernel / door cards for Software hubs. extras[] is not PRODUCTS — FragGate is the door; Quantum Node Mesh (QNM-BUILD-1.0) is the suite rollup (not a login mesh; not a Softwares-tab product). QNS-CD-1.0 is the packet-transfer coding design (local qnsd; Worker cites only — not a Softwares-tab slug). Human UI + counted download is the separate FragGate Worker app (fraggate-download-tracker; not nested in AZBrowser).",
+          extras_note: CATALOG_EXTRAS_NOTE,
           software: origin.replace(/\/$/, "") + "/v1/software",
           fraggate_software: origin.replace(/\/$/, "") + "/v1/fraggate/software",
           update_check: origin.replace(/\/$/, "") + "/v1/update/check",

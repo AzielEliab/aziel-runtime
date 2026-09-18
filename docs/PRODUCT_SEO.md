@@ -261,7 +261,7 @@ Runtime HTML shells (content negotiation — hubs still get JSON by default):
 
 JSON-LD Person (`https://www.azieleliab.com/#aziel`) + SoftwareApplication / ItemList on those shells. Runtime SoftwareApplication `sameAs` is GitHub + Glama only. Homepage Worker UI CSS stays the existing chrome plus a concise ecosystem nav (not the Softwares catalog).
 
-`/cite.json` and `/llms.txt` cross-link Softwares hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) plus AZCoherence and the He Didn't Jump sister archive. Identity Aziel Eliab only.
+`/cite.json` and `/llms.txt` cross-link Softwares hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) plus AZCoherence, the He Didn't Jump sister archive, and cite-only sister product Trades-Runtime (`sister_products` / catalog `extras[]` kind `cite_only`; not a FragGate true-engine; `fraggate_call` does not execute company ops). Identity Aziel Eliab only.
 
 `/cite.json` `person` + `/person.jsonld` + `/who-is` list site coverage blurbs: azieleliab.com (Person hub + Softwares + research landing); azielcorpuslibrary.net (Digital Library MASTER); godlock.uk (GodLock challenge/score, not VPN); hedidntjump.com (Zioncheck archive sister); this Worker (FragGate engine-runtime / MCP Softwares door 2.0.0-rc1). `sameAs` cross-links hub Person/who-is/cite files. Growth-ON. NO-LIE.
 
