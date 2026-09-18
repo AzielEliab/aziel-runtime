@@ -34,6 +34,11 @@ cd workers/download-tracker
 npx wrangler deploy
 ```
 
+`GET /runtime/survival` (and `/runtime/v1/survival`) should proxy to origin
+`GET /survival` so a workers.dev hostname ban still advertises the named
+failover map from the library door (BAN-SURVIVAL-1.0). Same FragGate door.
+Not a second door.
+
 Until that ships, AIs should pull from the origin Worker:
 
 - https://aziel-runtime.vibelock.workers.dev/v1/skill

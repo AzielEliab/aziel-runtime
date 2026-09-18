@@ -35,6 +35,7 @@ import { auditsSkillMarkdown, designsSkillMarkdown, sisterProductCiteField } fro
 import { dualSurfaceAgentHowTo, semanticBridgeSkillMarkdown } from "./semantic-bridge.js";
 import { websiteDesignsField, websiteDesignsSkillMarkdown } from "./website-designs.js";
 import { COLD_MULTI_SHELF, shelvesSkillMarkdown } from "./cold-multi-shelf.js";
+import { BAN_SURVIVAL, survivalSkillMarkdown } from "./ban-survival.js";
 import { LOCKED_STRIP } from "./azpipe.js";
 
 export const RUNTIME_VERSION = "2.0.0-rc1";
@@ -335,6 +336,8 @@ ${semanticBridgeSkillMarkdown(base)}
 
 ${shelvesSkillMarkdown(base)}
 
+${survivalSkillMarkdown(base)}
+
 ## Endpoints (this Worker)
 
 | Method | Path | What |
@@ -375,6 +378,8 @@ ${shelvesSkillMarkdown(base)}
 | GET | \`/who-is\` | Machine who-is text. Same Person \`@id\`. Site coverage blurbs. Alias \`/who-is-aziel-eliab.txt\`. Not an HTML page. |
 | GET | \`/shelves\` | COLD-MULTI-SHELF-1.0 registry cite matching live corpus \`/shelves\`. Plane A 5 surfaces / 2 family radii / 1 independent live. Plane B SLOT (Codeberg + archive.org PASS still SLOT at https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius; Framagit URL null; GitFlic CNS-GITFLIC-EMAIL; GitLab CNS-GITLAB-CF-LOOP; Zenodo refused). Plane C USB SLOT. \`doi\` null. Linked fields: \`redline.spec\`, Cap-7 \`design_of\` + \`resolves_to_hub: false\`, attack-sim refuse pointer. Not a sixth surface. |
 | GET | \`/v1/shelves\` | Machine alias of \`/shelves\`. |
+| GET | \`/survival\` | BAN-SURVIVAL-1.0 door/path failover map. Named same-tunnel routes + read-surface quarantine + cold tip-hash. Not a second door. Never invent a live door. |
+| GET | \`/v1/survival\` | Machine alias of \`/survival\`. |
 | GET | \`/llms.txt\` | Plain-text catalog + citation rules for crawlers. |
 | GET | \`/ai.txt\` | Alias of \`/llms.txt\`. |
 | GET | \`/robots.txt\` | Allow / for Google and major AI bots. No GPTBot Disallow. |
@@ -589,6 +594,8 @@ export function runtimeManifest(origin, products, extra = {}) {
       who_is_txt: base + "/who-is-aziel-eliab.txt",
       shelves: base + "/shelves",
       shelves_json: base + "/v1/shelves",
+      survival: base + "/survival",
+      survival_json: base + "/v1/survival",
       openapi: base + "/openapi.json",
       mcp: base + "/mcp",
       health: base + "/v1/health",
@@ -652,6 +659,8 @@ export function bundleJson(origin, products) {
     invoke: base + "/p/{slug}/{op}",
     invoke_note: "proxy only — not exec",
     cite: base + "/cite.json",
+    survival: base + "/survival",
+    ban_survival: BAN_SURVIVAL,
     user_agent: DEFAULT_UA,
     true_engine_slugs: honesty.true_engine_slugs,
     proxy_is_not_exec: true,

@@ -66,6 +66,8 @@ hostname resurrection.
   Re-expand-from-archive      RE-EXPAND-1.0              Bytes survive, not summaries; crawlers do not re-expand; operator verifies then restores.
   Reheal                      REHEAL-1.0                 Own last good tip + verified trusted pull OR phoenix-WAIT; no neighbor vote-to-fix; chatter live/locked/isolated/tip-hash only.
 
+**BAN-SURVIVAL-1.0** is the door/path companion under this umbrella: one banned public door (`workers.dev`, `/mcp`, a FragGate path) does not kill clients. Named hub `/runtime` + read quarantine + cold tip-hash. Never invent a live door. Paper: [BAN-SURVIVAL-1.0](BAN-SURVIVAL-1.0.md).
+
 **COLD-MULTI-SHELF-1.0** is the executable planes cite under this umbrella: `GET /shelves` matches live corpus `/shelves` (corpus#96). Plane A is one CF/GitHub tunnel (5 surfaces / 2 family radii / 1 independent live). Plane B is alt-forge SLOT. Plane C is USB SLOT. `doi` null. Runtime is not a sixth surface. Paper: [COLD-MULTI-SHELF-1.0](COLD-MULTI-SHELF-1.0.md).
 
 Companion papers already on this runtime (cross-link, do not rewrite):

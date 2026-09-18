@@ -548,7 +548,7 @@ export function robotsTxt(origin, products) {
     "# Aziel Eliab Runtime — open crawl for Google and AI search.",
     "# Author: Aziel Eliab. Also known as Aziel Elroi Eliab (alternateName only).",
     "# Content-Signal opens search + AI input + AI train. No Disallow for GPTBot.",
-    "# Allow /v1/software /v1/update /mcp /openapi — hubs and agents fetch these.",
+    "# Allow /v1/software /v1/update /mcp /openapi /survival — hubs and agents fetch these.",
     "# Sitemap index lists this host, azieleliab.com, azielcorpuslibrary.net, godlock.uk, www.hedidntjump.com (sister archive, not a Softwares hub), and live product Workers.",
     "",
     "User-agent: *",
@@ -1045,6 +1045,14 @@ export const SUITE_DESIGNS = Object.freeze([
     kind: "law",
   },
   {
+    id: "BAN-SURVIVAL-1.0",
+    file: "BAN-SURVIVAL-1.0.md",
+    one_line:
+      "LIVE law — one banned hostname or blocked exec path does not kill the runtime; named same-tunnel routes + read-surface quarantine + cold tip-hash; never invent a live door; never lie to survive",
+    status: "live",
+    kind: "law",
+  },
+  {
     id: "REMAIN-OFF-BY-DESIGN-2026-09-10",
     file: "REMAIN-OFF-BY-DESIGN-2026-09-10.md",
     one_line:
@@ -1136,7 +1144,7 @@ export function designsSkillMarkdown() {
   const lines = [
     "## Designs",
     "",
-    "Suite software-design papers (law / fabric are not Softwares-tab products, not a FragGate slug). 4DM-WP-1.0 is the 4DMap product spec (Softwares-tab slug `4dmap`; the paper is not a FragGate slug). LIVE fabric modules: ChainLock, AZPIPE, SweepGate, LOCKSET, packed catalog (RL), QNS-CD-1.0 (photon QNS1 1.3; local qnsd; Worker cites only), MASTER-33 (locked hop order; FragGate single door; Lamb Lens after FragGate; LambGate is not a hop), AKM-TRIAD-1.0 (adaptive recollection; Bayesian posterior ≠ truth), ACT-RECEIPT-1.0 (public four-field receipts on corpus /receipts; fail-open). CROSS-NETWORK-SURVIVAL-1.0 is the umbrella survival law (if network and data die tomorrow, the chain survives on cold shelves — hosts / DOI / git / vault; matching bytes, not a living network). NO-LIE-NO-REWRITE-1.0 is companion law under that umbrella (receipts still hash; no rewrite key; the network is never allowed to lie even to self-preserve; does not replace the machine tip). REDLINE-2026-09-14 is runtime attack-surface law (header-only operator token; Growth-ON Allow; Cloudflare TLS; Cap-7 design_of + resolves_to_hub false). COLD-MULTI-SHELF-1.0 cites corpus#96 /shelves honesty (Plane A 5/2/1; Plane B SLOT; Plane C USB SLOT; doi null). SUITE-PIPE-1.6.15 is historical. `GET /v1/mesh` never enables. Git-hosted — the Worker does not serve the PDFs. Public identity Aziel Eliab only.",
+    "Suite software-design papers (law / fabric are not Softwares-tab products, not a FragGate slug). 4DM-WP-1.0 is the 4DMap product spec (Softwares-tab slug `4dmap`; the paper is not a FragGate slug). LIVE fabric modules: ChainLock, AZPIPE, SweepGate, LOCKSET, packed catalog (RL), QNS-CD-1.0 (photon QNS1 1.3; local qnsd; Worker cites only), MASTER-33 (locked hop order; FragGate single door; Lamb Lens after FragGate; LambGate is not a hop), AKM-TRIAD-1.0 (adaptive recollection; Bayesian posterior ≠ truth), ACT-RECEIPT-1.0 (public four-field receipts on corpus /receipts; fail-open). CROSS-NETWORK-SURVIVAL-1.0 is the umbrella survival law (if network and data die tomorrow, the chain survives on cold shelves — hosts / DOI / git / vault; matching bytes, not a living network). NO-LIE-NO-REWRITE-1.0 is companion law under that umbrella (receipts still hash; no rewrite key; the network is never allowed to lie even to self-preserve; does not replace the machine tip). BAN-SURVIVAL-1.0 is the door/path companion (one banned hostname or blocked /mcp does not kill clients; named hub /runtime + read quarantine + cold tip-hash; never invent a live door). REDLINE-2026-09-14 is runtime attack-surface law (header-only operator token; Growth-ON Allow; Cloudflare TLS; Cap-7 design_of + resolves_to_hub false). COLD-MULTI-SHELF-1.0 cites corpus#96 /shelves honesty (Plane A 5/2/1; Plane B SLOT; Plane C USB SLOT; doi null). SUITE-PIPE-1.6.15 is historical. `GET /v1/mesh` never enables. Git-hosted — the Worker does not serve the PDFs. Public identity Aziel Eliab only.",
     "",
   ];
   for (const d of SUITE_DESIGNS) {
@@ -1152,7 +1160,7 @@ export function designsLlmsBlock() {
   const lines = [
     "## Designs",
     "",
-    "Suite software-design papers (law / fabric are not Softwares-tab products, not a FragGate slug). 4DM-WP-1.0 is the 4DMap product spec (slug `4dmap`). LIVE fabric: CL-WP-0.4, AP-WP-0.2, SG-WP-0.1, LS-WP-0.1, RL-WP-0.1 (runtime), QNS-CD-1.0 (local qnsd), MASTER-33 (locked hop order; FragGate single door), AKM-TRIAD-1.0 (adaptive recollection), ACT-RECEIPT-1.0 (corpus /receipts). CROSS-NETWORK-SURVIVAL-1.0 is the umbrella survival law (cold shelves hosts / DOI / git / vault; matching bytes ≠ living network). NO-LIE-NO-REWRITE-1.0 is companion law under that umbrella (no rewrite key; the network is never allowed to lie even to self-preserve; does not replace the machine tip). REDLINE-2026-09-14 is runtime attack-surface law (header-only token; Growth-ON; Cloudflare TLS; Cap-7 design_of). COLD-MULTI-SHELF-1.0 cites corpus#96 /shelves honesty (Plane A 5/2/1; Plane B SLOT; Plane C USB SLOT; doi null). SUITE-PIPE-1.6.15 is historical. GET /v1/mesh never enables. Git-hosted — the Worker does not serve the PDFs. Author: Aziel Eliab only.",
+    "Suite software-design papers (law / fabric are not Softwares-tab products, not a FragGate slug). 4DM-WP-1.0 is the 4DMap product spec (slug `4dmap`). LIVE fabric: CL-WP-0.4, AP-WP-0.2, SG-WP-0.1, LS-WP-0.1, RL-WP-0.1 (runtime), QNS-CD-1.0 (local qnsd), MASTER-33 (locked hop order; FragGate single door), AKM-TRIAD-1.0 (adaptive recollection), ACT-RECEIPT-1.0 (corpus /receipts). CROSS-NETWORK-SURVIVAL-1.0 is the umbrella survival law (cold shelves hosts / DOI / git / vault; matching bytes ≠ living network). NO-LIE-NO-REWRITE-1.0 is companion law under that umbrella (no rewrite key; the network is never allowed to lie even to self-preserve; does not replace the machine tip). BAN-SURVIVAL-1.0 is the door/path companion (named hub /runtime + read quarantine + cold tip-hash; never invent a live door). REDLINE-2026-09-14 is runtime attack-surface law (header-only token; Growth-ON; Cloudflare TLS; Cap-7 design_of). COLD-MULTI-SHELF-1.0 cites corpus#96 /shelves honesty (Plane A 5/2/1; Plane B SLOT; Plane C USB SLOT; doi null). SUITE-PIPE-1.6.15 is historical. GET /v1/mesh never enables. Git-hosted — the Worker does not serve the PDFs. Author: Aziel Eliab only.",
     `Index: ${DESIGNS_GITHUB_TREE}`,
     "",
   ];
@@ -1176,6 +1184,7 @@ export function designsSitemapUrls() {
     designGithubUrl("AZL-DONATE-1.0.pdf"),
     designGithubUrl("CROSS-NETWORK-SURVIVAL-1.0.pdf"),
     designGithubUrl("NO-LIE-NO-REWRITE-1.0.pdf"),
+    designGithubUrl("BAN-SURVIVAL-1.0.md"),
     "https://github.com/AzielEliab/aziel-runtime/blob/main/docs/NODE_MESH.md",
   ];
 }

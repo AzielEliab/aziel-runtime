@@ -10,8 +10,15 @@
  */
 
 import { MCP_PROTOCOL_PREFERRED } from "./mcp-transport.js";
+import {
+  COLD_FALLBACK,
+  PRIMARY_WORKER_ORIGIN,
+  bridgeOrigins,
+  failoverCite,
+  shouldFailoverStatus,
+} from "./ban-survival.js";
 
-export const DEFAULT_RUNTIME_URL = "https://aziel-runtime.vibelock.workers.dev";
+export const DEFAULT_RUNTIME_URL = PRIMARY_WORKER_ORIGIN;
 export const DEFAULT_UA = "Mozilla/5.0";
 export const PROTOCOL = MCP_PROTOCOL_PREFERRED;
 
@@ -65,7 +72,11 @@ Usage:
 Env:
   AZIEL_RUNTIME_URL                 Worker origin (default ${DEFAULT_RUNTIME_URL})
   AZIEL_RUNTIME_MCP=local           same as --local (in-process Worker /mcp)
+  AZIEL_RUNTIME_FAILOVER=0          disable named hub /runtime failover
   RUNTIME_TOKEN / AZIEL_RUNTIME_TOKEN   optional; sent as Bearer + X-Aziel-Runtime-Token
+
+Default (no pinned --url) tries named origins: workers.dev, then hub /runtime
+(service binding; same FragGate door). A custom --url stays pinned.
 `;
 }
 
@@ -163,9 +174,12 @@ export function mcpRequestHeaders(ctx) {
 export function createBridgeContext(options = {}, env = process.env) {
   const flags = options.flags || {};
   const token = options.token != null ? String(options.token) : flags.token || runtimeToken(env);
+  const origins = options.origins || bridgeOrigins(flags, env);
   return {
     local: isLocalMode(flags, env),
     url: resolveRuntimeUrl(flags, env),
+    origins,
+    originIndex: 0,
     token: token || "",
     protocolVersion: options.protocolVersion || PROTOCOL,
     sessionId: options.sessionId || "",
@@ -236,7 +250,8 @@ export async function responseToRpc(res, message, ctx) {
 }
 
 export async function sendBridgeHttp(message, ctx) {
-  const url = ctx.url.replace(/\/$/, "") + "/mcp";
+  const origin = (ctx.origins && ctx.origins[ctx.originIndex]) || ctx.url;
+  const url = String(origin).replace(/\/$/, "") + "/mcp";
   const headers = mcpRequestHeaders(ctx);
   return ctx.fetchImpl(url, {
     method: "POST",
@@ -278,11 +293,45 @@ export async function dispatchMcp(message, ctx) {
       if (!ctx.localSend) ctx.localSend = await createLocalSend();
       res = await ctx.localSend(message, ctx);
     } else {
-      res = await sendBridgeHttp(message, ctx);
+      const origins = ctx.origins && ctx.origins.length ? ctx.origins : [ctx.url];
+      let lastErr = null;
+      for (let i = ctx.originIndex || 0; i < origins.length; i++) {
+        ctx.originIndex = i;
+        ctx.url = origins[i];
+        try {
+          res = await sendBridgeHttp(message, ctx);
+        } catch (err) {
+          lastErr = err;
+          if (i < origins.length - 1) {
+            ctx.sessionId = "";
+            ctx.log(`BAN-SURVIVAL failover: ${origins[i]} failed (${err && err.message ? err.message : err}); trying ${origins[i + 1]}`);
+            continue;
+          }
+          throw err;
+        }
+        if (res && shouldFailoverStatus(res.status) && i < origins.length - 1) {
+          ctx.sessionId = "";
+          ctx.log(`BAN-SURVIVAL failover: ${origins[i]} HTTP ${res.status}; trying ${origins[i + 1]}`);
+          continue;
+        }
+        return responseToRpc(res, message, ctx);
+      }
+      if (isNotification(message)) return null;
+      return rpcError(message.id, UPSTREAM_ERROR, "All named exec origins failed", {
+        ban_survival: failoverCite(ctx.url),
+        cold: {
+          github: COLD_FALLBACK.github,
+          lockset_tip: COLD_FALLBACK.lockset_tip,
+          shelves: COLD_FALLBACK.shelves,
+        },
+        last: lastErr && (lastErr.message || String(lastErr)),
+      });
     }
   } catch (err) {
     if (isNotification(message)) return null;
-    return rpcError(message.id, UPSTREAM_ERROR, `Upstream MCP failed: ${err && err.message ? err.message : err}`);
+    return rpcError(message.id, UPSTREAM_ERROR, `Upstream MCP failed: ${err && err.message ? err.message : err}`, {
+      ban_survival: failoverCite(ctx.url),
+    });
   }
   return responseToRpc(res, message, ctx);
 }

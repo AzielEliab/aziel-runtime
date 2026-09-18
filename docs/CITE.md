@@ -106,4 +106,10 @@ CROSS-NETWORK-SURVIVAL-1.0: someone still has bytes that match the published tip
 
 If network and data die tomorrow, the chain survives on cold shelves (hosts / DOI / git / vault). Machine field: `/cite.json` `survival.tip` (same string on `/llms.txt`). Paper: [CROSS-NETWORK-SURVIVAL-1.0](designs/CROSS-NETWORK-SURVIVAL-1.0.md).
 
+## Ban / blocked-endpoint survival (BAN-SURVIVAL-1.0)
+
+One banned public door (`workers.dev`, `/mcp`, a FragGate path) is a surface death, not last tip gone. Named hub `/runtime` (service binding, same FragGate door) → remaining read surfaces in honest **DEGRADED** → cold tip-hash. Never invent a live door. Never claim a banned host is LIVE.
+
+Machine map: `GET /survival` · `/cite.json` `ban_survival` · `/llms.txt`. Paper: [BAN-SURVIVAL-1.0](designs/BAN-SURVIVAL-1.0.md). Client order: [CLIENT_UPDATE.md](CLIENT_UPDATE.md).
+
 Product Worker template: [PRODUCT_SEO.md](PRODUCT_SEO.md). GitHub About lock: [GITHUB.md](GITHUB.md).
