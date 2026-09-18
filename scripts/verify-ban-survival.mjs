@@ -9,9 +9,13 @@ import { LIVE_OPS } from "../src/fraggate/registry.js";
 import { MEMORY_STUB_OPS } from "../src/memory.js";
 import { SUITE_DESIGNS } from "../src/seo.js";
 import {
+  CAP7_FACTORY_LABELS,
+  CAP7_NAME_SOT,
   CAP7_SITES,
+  CAP7_SITES_HERITAGE,
   cap7AznetRemainder,
   cap7BrowserSubset,
+  cap7FactoryMeshNames,
   cap7SiteNames,
   landCap7Shuffle,
   siteForMirageNode,
@@ -182,13 +186,23 @@ assert.deepEqual(AKM_MEMORY_LAW.stub_ops.slice(), MEMORY_STUB_OPS.slice());
 assert.deepEqual(MEMORY_STUB_OPS.slice(), ["model_update", "rollback", "rewrite", "delete_history", "auto_update"]);
 assert.equal(cap7SiteNames().length, 7);
 assert.equal(new Set(cap7SiteNames()).size, 7);
-assert.ok(cap7SiteNames().every((n) => n.startsWith("cap7-") && !n.includes(".")));
-assert.equal(cap7BrowserSubset().length, 3);
-assert.equal(cap7AznetRemainder().length, 4);
-assert.equal(siteForMirageNode(1).mesh_name, "cap7-loom");
-assert.equal(siteForMirageNode(8).mesh_name, "cap7-loom");
-assert.notEqual(siteForMirageNode(1).mesh_name, siteForMirageNode(2).mesh_name);
-assert.ok(CAP7_SITES.every((s) => s.resolves_to_hub === false && s.name_may_change === true && s.is_live_door === false));
+assert.deepEqual(cap7SiteNames(), ["azgrid", "azbooth", "azcloak", "azvault", "azshift", "azflag", "azstandby"]);
+assert.ok(cap7SiteNames().every((n) => !n.startsWith("cap7-")));
+assert.equal(cap7BrowserSubset().length, 2);
+assert.equal(cap7AznetRemainder().length, 5);
+assert.equal(siteForMirageNode(1).id, "azgrid");
+assert.equal(siteForMirageNode(1).mesh_name, "azgrid.az");
+assert.equal(siteForMirageNode(1).mesh_name_icann, "slot");
+assert.equal(siteForMirageNode(1).hosted_status, "slot");
+assert.equal(siteForMirageNode(1).is_live_door, false);
+assert.equal(siteForMirageNode(8).id, "azgrid");
+assert.notEqual(siteForMirageNode(1).id, siteForMirageNode(2).id);
+assert.ok(CAP7_SITES.every((s) => s.resolves_to_hub === false && s.name_may_change === true && s.is_live_door === false && s.hosted_status === "slot" && s.design_of === "hub_designs" && s.public_icann === false));
+assert.equal(CAP7_NAME_SOT, "miragegrid");
+assert.deepEqual(CAP7_FACTORY_LABELS.slice(), cap7SiteNames());
+assert.deepEqual(cap7FactoryMeshNames(), CAP7_FACTORY_LABELS.map((id) => `${id}.az`));
+assert.ok(CAP7_SITES_HERITAGE.every((n) => n.startsWith("cap7-")));
+assert.ok(CAP7_SITES.every((s) => !CAP7_SITES_HERITAGE.includes(s.id)));
 assert.ok((LIVE_OPS.miragegrid || []).includes("shuffle"));
 assert.ok(CLIENT_ORDER.length >= 5);
 assert.ok(CLIENT_ORDER.some((step) => /ping MirageGrid|shuffle/i.test(step)));
@@ -528,7 +542,11 @@ assert.equal(landed.public_worker_shuffle, "slot");
 assert.equal(landed.update.status, "slot");
 assert.equal(landed.update.hosted_url, null);
 assert.equal(landed.update.is_live_door, false);
-assert.ok(cap7SiteNames().includes(landed.land.mesh_name));
+assert.ok(cap7SiteNames().includes(landed.land.id));
+assert.ok(cap7FactoryMeshNames().includes(landed.land.mesh_name));
+assert.equal(landed.land.mesh_name_icann, "slot");
+assert.equal(landed.land.hosted_status, "slot");
+assert.equal(landed.land.public_icann, false);
 assert.equal(landed.update.that_round_endpoint, landed.land.mesh_name);
 assert.doesNotMatch(JSON.stringify(landed.update), /127\.0\.0\.1/);
 const hard = await landCap7Shuffle({ hardcoded_single_host: true });
@@ -670,6 +688,9 @@ const shuffleBody = await shuffleCall.json();
 assert.equal(shuffleBody.ok, true);
 assert.equal(shuffleBody.result.ok, true);
 assert.equal(shuffleBody.result.update.status, "slot");
-assert.ok(cap7SiteNames().includes(shuffleBody.result.land.mesh_name));
+assert.ok(cap7SiteNames().includes(shuffleBody.result.land.id));
+assert.ok(cap7FactoryMeshNames().includes(shuffleBody.result.land.mesh_name));
+assert.equal(shuffleBody.result.land.mesh_name_icann, "slot");
+assert.equal(shuffleBody.result.land.hosted_status, "slot");
 
 console.log("verify-ban-survival: ok");

@@ -33,14 +33,20 @@ export function deadlineExceeded(startedAt, now, budgetMs) {
 }
 
 export function requestLimitKind(pathname, method) {
-  const path = String(pathname || "");
+  const path = String(pathname || "").replace(/\/+$/, "") || "/";
   const m = String(method || "").toUpperCase();
-  if (path === "/mcp" || path === "/mcp/") {
+  if (path === "/mcp") {
     return m === "POST" || m === "DELETE" ? "mcp" : null;
   }
   if (path === "/v1/fraggate" || path.startsWith("/v1/fraggate/")) {
     if (path === "/v1/fraggate/call" && m === "POST") return "fraggate_call";
     return "fraggate_read";
+  }
+  if (m === "POST" && (path === "/v1/mesh/join" || path === "/v1/mesh/heartbeat" || path === "/v1/mesh/broadcast" || path === "/v1/mesh/leave")) {
+    return "mesh_mutate";
+  }
+  if (m === "POST" && path.startsWith("/v1/memory/")) {
+    return "memory_mutate";
   }
   return null;
 }

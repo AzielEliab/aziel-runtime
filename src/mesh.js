@@ -452,6 +452,13 @@ export function meshHint(path = "/v1/mesh") {
     implicit_heal: true,
     auto_heal: true,
     neighbor_heal: true,
+    neighbor_heal_is_cite: true,
+    neighbor_heal_exec: false,
+    join_is_presence_only: true,
+    join_is_not_login: true,
+    roster_publishes_exec_urls: false,
+    mesh_mutate_rate_kind: "mesh_mutate",
+    roster_cap: NODE_CAP,
     network: true,
     network_cite: "on",
     ...channelPlaneFrame(),
@@ -673,6 +680,18 @@ function liveList(nodes) {
     .sort((a, b) => String(b.last_seen || "").localeCompare(String(a.last_seen || "")));
 }
 
+/** Prefer {slug}-worker fan-out rows when the presence roster hits NODE_CAP. */
+function trimRoster(nodes) {
+  const list = liveList(nodes);
+  if (list.length <= NODE_CAP) {
+    return Object.fromEntries(list.map((n) => [n.node_id, n]));
+  }
+  const software = list.filter((n) => isSoftwareWorkerNodeId(n.node_id));
+  const others = list.filter((n) => !isSoftwareWorkerNodeId(n.node_id));
+  const kept = software.concat(others).slice(0, NODE_CAP);
+  return Object.fromEntries(kept.map((n) => [n.node_id, n]));
+}
+
 function productsPresent(nodes) {
   const set = new Set();
   for (const node of liveList(nodes)) {
@@ -839,6 +858,13 @@ function qnmFrame() {
     reheal_short: REHEAL_SHORT,
     isolation_is_the_cure: true,
     neighbor_heal: true,
+    neighbor_heal_is_cite: true,
+    neighbor_heal_exec: false,
+    join_is_presence_only: true,
+    join_is_not_login: true,
+    roster_publishes_exec_urls: false,
+    mesh_mutate_rate_kind: "mesh_mutate",
+    roster_cap: NODE_CAP,
     vote_to_fix: false,
     cross_network_survival: CROSS_NETWORK_SURVIVAL,
     cross_network_survival_short: CROSS_NETWORK_SURVIVAL_SHORT,
@@ -927,6 +953,11 @@ function statusFields(state) {
     suite_presence: SUITE_PRESENCE,
     get_never_enables: true,
     fanout: "cron-or-request-path",
+    join_is_presence_only: true,
+    join_is_not_login: true,
+    roster_publishes_exec_urls: false,
+    mesh_mutate_rate_kind: "mesh_mutate",
+    roster_cap: NODE_CAP,
   };
 }
 
@@ -968,10 +999,8 @@ export async function meshFanoutSuitePresence(env, extra = {}) {
     if (existing) refreshed += 1;
     else joined += 1;
   }
-  const ids = Object.keys(state.nodes);
-  if (ids.length > NODE_CAP) {
-    const sorted = liveList(state.nodes);
-    state.nodes = Object.fromEntries(sorted.slice(0, NODE_CAP).map((n) => [n.node_id, n]));
+  if (Object.keys(state.nodes).length > NODE_CAP) {
+    state.nodes = trimRoster(state.nodes);
   }
   const store = await saveState(env, state);
   return baseResult({
@@ -1081,7 +1110,7 @@ ${MESH_LIMITATION}
 
 Read-only **suite-presence is ON by default**. A site ping of \`GET /v1/mesh\` never enables radios beyond that read-only presence. Public \`POST /v1/mesh/disable\` / \`mesh_disable\` refuses \`MESH-DISABLE-REFUSED\` — it cannot turn suite-presence off.
 
-\`mesh_join\` / \`POST /v1/mesh/join\` requires \`product\` (catalog slug). Optional \`node_id\` must be exactly 8–80 chars matching \`[a-z0-9._-]\` (full string). \`presence\` must be \`live\` (default), \`locked\`, or \`isolated\`. Join is additive presence with a **strict 5-minute TTL**. \`mesh_heartbeat\` refreshes that TTL. If no heartbeat (or fan-out refresh) arrives inside the window, the node is **dropped** from the live roster. When transmission radios are powered down or suite radios are not enabled, join/heartbeat/broadcast refuse **\`MESH-OFF\`**. Read paths stay honest. Do not invent a second refuse spelling.
+\`mesh_join\` / \`POST /v1/mesh/join\` requires \`product\` (catalog slug). Optional \`node_id\` must be exactly 8–80 chars matching \`[a-z0-9._-]\` (full string). \`presence\` must be \`live\` (default), \`locked\`, or \`isolated\`. Join is additive presence with a **strict 5-minute TTL**. \`mesh_heartbeat\` refreshes that TTL. If no heartbeat (or fan-out refresh) arrives inside the window, the node is **dropped** from the live roster. Direct HTTP join/heartbeat/leave/broadcast share F03 kind \`mesh_mutate\` (default 30/min; \`RATE_LIMIT\` 429). Not a login mesh. Roster does not publish exec URLs. Roster cap \`NODE_CAP\` prefers \`{slug}-worker\` rows; extra anonymous joins refuse \`MESH-ROSTER-FULL\`. When transmission radios are powered down or suite radios are not enabled, join/heartbeat/broadcast refuse **\`MESH-OFF\`**. Read paths stay honest. Do not invent a second refuse spelling.
 
 While radios are LIVE, this Worker fans out join/heartbeat for every live Softwares product Worker (\`node_id\` \`{slug}-worker\`, no \`|\`) on cron (\`*/2 * * * *\`) or request-path. That roster is **software_nodes** — it must not be used alone as public Live Nodes. Public **live_nodes** is mesh size: every join/heartbeat node that is **active** (presence \`live\`) or **inactive** (presence \`locked\`). Isolated nodes are excluded. Downloads and catalog size are not live. Zero is honest when the roster is empty. Product Workers proxy \`/v1/mesh/*\` via \`AZIEL_RUNTIME\`. Not a second mesh. Fan-out does not restore godlock.uk or reattach a pulled public hostname.
 
@@ -1277,10 +1306,18 @@ export async function meshJoin(payload, env) {
     last_seen: ts,
   };
   state.nodes[node_id] = node;
-  const ids = Object.keys(state.nodes);
-  if (ids.length > NODE_CAP) {
-    const sorted = liveList(state.nodes);
-    state.nodes = Object.fromEntries(sorted.slice(0, NODE_CAP).map((n) => [n.node_id, n]));
+  if (Object.keys(state.nodes).length > NODE_CAP) {
+    state.nodes = trimRoster(state.nodes);
+    if (!state.nodes[node_id] && !isSoftwareWorkerNodeId(node_id)) {
+      return refuse("MESH-ROSTER-FULL", "Presence roster is at cap. Rate-limited join is presence-only; not a login mesh. Retry after TTL drop or heartbeat an existing node_id.", {
+        op: "join",
+        mesh_enabled: true,
+        roster_cap: NODE_CAP,
+        join_is_presence_only: true,
+        join_is_not_login: true,
+        roster_publishes_exec_urls: false,
+      });
+    }
   }
   const store = await saveState(env, state);
   return baseResult({

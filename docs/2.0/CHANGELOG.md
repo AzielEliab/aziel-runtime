@@ -11,6 +11,7 @@ Crawler abstract (`RUNTIME_ABSTRACT`) is unchanged and stays the lead on homepag
 
 Certification point — not a feature dump.
 
+- Additive security rescan after BAN-SURVIVAL audit (not a new public MCP tool): Cap-7 `CAP7_SITES` uses MirageGrid factory names; hosted land/`/mcp` stay SLOT; F03 `mesh_mutate` / `memory_mutate`; `neighbor_heal_is_cite` / `neighbor_heal_exec`; `/p` documented-ops allowlist. Corpus root `/survival` remains hub follow-on. See [`docs/audit/SECURITY-ARCHITECTURE-POST-BAN-SURVIVAL.md`](../audit/SECURITY-ARCHITECTURE-POST-BAN-SURVIVAL.md).
 - OPERATOR LAW honesty (not a new public MCP tool): public `live_nodes` / `rollup.mesh` is mesh size (active + inactive join/heartbeat nodes, exclude isolated). `{slug}-worker` roster is `software_nodes` and must not be used alone as Live Nodes. Downloads are not live. Zero is honest. Hubs read runtime SoT (`live_nodes` + `live_nodes_note`). See [`docs/NODE_MESH.md`](../NODE_MESH.md).
 - Additive Whitestone counted-download retarget (not a new public MCP tool; not a FragGate engine): Softwares `worker_home` / `download_url` use `whitestone-download-tracker` (ARK-style). Live web app stays `https://whitestone.vibelock.workers.dev/`. `fraggate_status` stays `none`. Not a lawyer. Identity Aziel Eliab only.
 - Additive Whitestone 1.4.0 Softwares-tab placement (not a new public MCP tool; not a FragGate engine; not a 34th isolation software): `GET /v1/software` live Worker card, who-is / llms / cite product lists. Isolation `software_count` stays 33. Not a lawyer. Identity Aziel Eliab only.

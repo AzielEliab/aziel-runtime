@@ -17,7 +17,7 @@ import { assign } from "./engines/miragegrid/engine.js";
 export const CAP7_SHUFFLE = "CAP7-SHUFFLE-1.0";
 export const CAP7_SHUFFLE_PATH = "ping → land → that-round update";
 export const CAP7_SHUFFLE_HANDOFF =
-  "MirageGrid app Worker https://miragegrid.vibelock.workers.dev/bridge and GET /v1/shuffle are LIVE cite surfaces (BRIDGE-CAP7-SHUFFLE / CAP7-SHUFFLE-CITE). Download-tracker /bridge is 404 — do not cite it as the factory. Public shuffle land and hosted /mcp stay SLOT. In-process land is fraggate_call miragegrid/shuffle. Do not invent LIVE hosted exec. Factory site names (azgrid/azbooth/…) are not yet the in-process cap7-loom set — follow-on align; do not invent a merge.";
+  "Name-set SoT is the MirageGrid factory (GET /v1/cap7 + /bridge): azgrid / azbooth / azcloak / azvault / azshift / azflag / azstandby. Runtime in-process CAP7_SITES uses those labels. Factory mesh_name strings (azgrid.az …) are mesh strings — mesh_name_icann stays SLOT; not ICANN .az. App Worker /bridge and GET /v1/shuffle are LIVE cite. Download-tracker /bridge is 404. Public shuffle land and hosted /mcp stay SLOT. In-process land is fraggate_call miragegrid/shuffle. Factory honesty_public LIVE on azgrid/azbooth is factory-path cite, not hosted /mcp. Do not invent LIVE hosted exec.";
 
 export const CAP7_SHUFFLE_REFUSE = Object.freeze({
   HARDCODE_HOST: "BAN-NO-HARDCODE-CAP7-HOST",
@@ -25,127 +25,144 @@ export const CAP7_SHUFFLE_REFUSE = Object.freeze({
   LOCALHOST_UPDATE: "BAN-NO-LOCALHOST-CAP7-UPDATE",
 });
 
-/** Seven distinct mesh names. Not ICANN hosts. Not hub aliases. Names may change. */
+/** Factory is the single name SoT. Former in-process cap7-loom… labels are heritage, not a second live set. */
+export const CAP7_NAME_SOT = "miragegrid";
+export const CAP7_FACTORY_LABELS = Object.freeze([
+  "azgrid",
+  "azbooth",
+  "azcloak",
+  "azvault",
+  "azshift",
+  "azflag",
+  "azstandby",
+]);
+/** Superseded #129 in-process labels. Do not emit as live site ids. */
+export const CAP7_SITES_HERITAGE = Object.freeze([
+  "cap7-loom",
+  "cap7-span",
+  "cap7-keel",
+  "cap7-rift",
+  "cap7-well",
+  "cap7-ember",
+  "cap7-vault",
+]);
+
+function factorySite(id, surface, factoryHonestyPublic, factoryDesignOf, note) {
+  return Object.freeze({
+    id,
+    mesh_name: `${id}.az`,
+    factory_label: id,
+    factory_mesh_name: `${id}.az`,
+    mesh_name_icann: "slot",
+    surface,
+    hosted_status: "slot",
+    factory_honesty_public: factoryHonestyPublic,
+    is_live_door: false,
+    resolves_to_hub: false,
+    name_may_change: true,
+    inherit: "designs",
+    design_of: "hub_designs",
+    factory_design_of: factoryDesignOf,
+    public_icann: false,
+    icann_tld_az: false,
+    name_set_sot: CAP7_NAME_SOT,
+    note,
+  });
+}
+
+/**
+ * Seven factory names. Hosted /mcp and public land stay SLOT.
+ * azgrid/azbooth factory honesty_public LIVE is factory-path cite only.
+ */
 export const CAP7_SITES = Object.freeze([
-  Object.freeze({
-    id: "cap7-loom",
-    mesh_name: "cap7-loom",
-    surface: "browser",
-    hosted_status: "slot",
-    is_live_door: false,
-    resolves_to_hub: false,
-    name_may_change: true,
-    inherit: "designs",
-    design_of: "hub_designs",
-    public_icann: false,
-    note: "Typically browser-reachable hosted class. Hosted URL SLOT until attested.",
-  }),
-  Object.freeze({
-    id: "cap7-span",
-    mesh_name: "cap7-span",
-    surface: "browser",
-    hosted_status: "slot",
-    is_live_door: false,
-    resolves_to_hub: false,
-    name_may_change: true,
-    inherit: "designs",
-    design_of: "hub_designs",
-    public_icann: false,
-    note: "Typically browser-reachable hosted class. Hosted URL SLOT until attested.",
-  }),
-  Object.freeze({
-    id: "cap7-keel",
-    mesh_name: "cap7-keel",
-    surface: "browser",
-    hosted_status: "slot",
-    is_live_door: false,
-    resolves_to_hub: false,
-    name_may_change: true,
-    inherit: "designs",
-    design_of: "hub_designs",
-    public_icann: false,
-    note: "Typically browser-reachable hosted class. Hosted URL SLOT until attested.",
-  }),
-  Object.freeze({
-    id: "cap7-rift",
-    mesh_name: "cap7-rift",
-    surface: "aznet",
-    hosted_status: "slot",
-    is_live_door: false,
-    resolves_to_hub: false,
-    name_may_change: true,
-    inherit: "designs",
-    design_of: "hub_designs",
-    public_icann: false,
-    note: "Mesh / AZNet-side. Not a browser-hosted /mcp. AZNet never hosts payloads.",
-  }),
-  Object.freeze({
-    id: "cap7-well",
-    mesh_name: "cap7-well",
-    surface: "aznet",
-    hosted_status: "slot",
-    is_live_door: false,
-    resolves_to_hub: false,
-    name_may_change: true,
-    inherit: "designs",
-    design_of: "hub_designs",
-    public_icann: false,
-    note: "Mesh / AZNet-side. Not a browser-hosted /mcp. AZNet never hosts payloads.",
-  }),
-  Object.freeze({
-    id: "cap7-ember",
-    mesh_name: "cap7-ember",
-    surface: "aznet",
-    hosted_status: "slot",
-    is_live_door: false,
-    resolves_to_hub: false,
-    name_may_change: true,
-    inherit: "designs",
-    design_of: "hub_designs",
-    public_icann: false,
-    note: "Mesh / AZNet-side. Not a browser-hosted /mcp. AZNet never hosts payloads.",
-  }),
-  Object.freeze({
-    id: "cap7-vault",
-    mesh_name: "cap7-vault",
-    surface: "aznet",
-    hosted_status: "slot",
-    is_live_door: false,
-    resolves_to_hub: false,
-    name_may_change: true,
-    inherit: "designs",
-    design_of: "hub_designs",
-    public_icann: false,
-    note: "Mesh / AZNet-side. Not a browser-hosted /mcp. AZNet never hosts payloads.",
-  }),
+  factorySite(
+    "azgrid",
+    "browser",
+    "live",
+    "https://www.azieleliab.com/",
+    "Factory label azgrid. Browser-class. Factory honesty_public LIVE is path cite, not hosted /mcp. Hosted URL SLOT until attested.",
+  ),
+  factorySite(
+    "azbooth",
+    "browser",
+    "live",
+    "https://www.azieleliab.com/",
+    "Factory label azbooth. Browser-class. Factory honesty_public LIVE is path cite, not hosted /mcp. Hosted URL SLOT until attested.",
+  ),
+  factorySite(
+    "azcloak",
+    "aznet",
+    "slot",
+    "https://godlock.uk/",
+    "Factory label azcloak. Mesh / AZNet-side. Not a browser-hosted /mcp. AZNet never hosts payloads.",
+  ),
+  factorySite(
+    "azvault",
+    "aznet",
+    "slot",
+    "https://www.azielcorpuslibrary.net/",
+    "Factory label azvault. Mesh / AZNet-side. Not a browser-hosted /mcp. AZNet never hosts payloads.",
+  ),
+  factorySite(
+    "azshift",
+    "aznet",
+    "slot",
+    "https://hedidntjump.com/",
+    "Factory label azshift. Mesh / AZNet-side. Not a browser-hosted /mcp. AZNet never hosts payloads.",
+  ),
+  factorySite(
+    "azflag",
+    "aznet",
+    "slot",
+    "https://www.azielcorpuslibrary.net/",
+    "Factory label azflag. Mesh / AZNet-side. Not a browser-hosted /mcp. AZNet never hosts payloads.",
+  ),
+  factorySite(
+    "azstandby",
+    "aznet",
+    "slot",
+    "https://godlock.uk/",
+    "Factory label azstandby. Mesh / AZNet-side. Not a browser-hosted /mcp. AZNet never hosts payloads.",
+  ),
 ]);
 
 function siteCite(site) {
   return {
     id: site.id,
     mesh_name: site.mesh_name,
+    factory_label: site.factory_label,
+    factory_mesh_name: site.factory_mesh_name,
+    mesh_name_icann: "slot",
     surface: site.surface,
-    hosted_status: site.hosted_status,
+    hosted_status: "slot",
+    factory_honesty_public: site.factory_honesty_public,
     is_live_door: false,
     resolves_to_hub: false,
     name_may_change: true,
     inherit: site.inherit,
-    design_of: site.design_of,
+    design_of: "hub_designs",
+    factory_design_of: site.factory_design_of,
     public_icann: false,
+    icann_tld_az: false,
+    name_set_sot: CAP7_NAME_SOT,
     note: site.note,
   };
 }
 
 export function cap7SiteNames() {
+  return CAP7_SITES.map((s) => s.id);
+}
+
+export function cap7FactoryMeshNames() {
   return CAP7_SITES.map((s) => s.mesh_name);
 }
 
 export function cap7BrowserSubset() {
-  return CAP7_SITES.filter((s) => s.surface === "browser").map((s) => s.mesh_name);
+  return CAP7_SITES.filter((s) => s.surface === "browser").map((s) => s.id);
 }
 
 export function cap7AznetRemainder() {
-  return CAP7_SITES.filter((s) => s.surface === "aznet").map((s) => s.mesh_name);
+  return CAP7_SITES.filter((s) => s.surface === "aznet").map((s) => s.id);
 }
 
 export function siteForMirageNode(mirageNode) {
@@ -162,12 +179,17 @@ export function cap7ShuffleLayout() {
     public_worker_shuffle: "slot",
     hosted_update: "slot",
     site_count: CAP7_SITES.length,
+    name_set_sot: CAP7_NAME_SOT,
+    factory_labels: CAP7_FACTORY_LABELS.slice(),
+    heritage_labels: CAP7_SITES_HERITAGE.slice(),
     distinct_mesh_names: true,
     name_may_change: true,
     resolves_to_hub: false,
     inherit: "designs",
     design_of: "hub_designs",
+    mesh_name_icann: "slot",
     public_icann: false,
+    icann_tld_az: false,
     fifth_product: false,
     hardcoded_single_host: false,
     localhost_pool_is_not_public_update: true,
@@ -213,6 +235,11 @@ export function cap7ShuffleCite() {
     hardcoded_single_host: false,
     localhost_pool_is_not_public_update: true,
     site_count: layout.site_count,
+    name_set_sot: CAP7_NAME_SOT,
+    factory_labels: CAP7_FACTORY_LABELS.slice(),
+    mesh_name_icann: "slot",
+    public_icann: false,
+    icann_tld_az: false,
     browser_reachable_subset: layout.browser_reachable_subset.slice(),
     aznet_mesh_remainder: layout.aznet_mesh_remainder.slice(),
     sites: layout.sites.slice(),
@@ -395,18 +422,26 @@ export async function landCap7Shuffle(payload = {}) {
       note: "Control-plane ping. Circuit mapping is in-request only. Not a public hosted update door.",
     },
     land: {
+      id: site.id,
       mesh_name: site.mesh_name,
+      factory_label: site.id,
+      mesh_name_icann: "slot",
       surface: site.surface,
+      hosted_status: "slot",
+      factory_honesty_public: site.factory_honesty_public,
       name_may_change: true,
       resolves_to_hub: false,
       inherit: "designs",
       design_of: "hub_designs",
+      public_icann: false,
     },
     update: {
       that_round_endpoint: site.mesh_name,
+      factory_label: site.id,
       hosted_url: null,
       status: "slot",
       is_live_door: false,
+      mesh_name_icann: "slot",
       surface: site.surface,
       localhost_pool_is_not_public_update: true,
       note:

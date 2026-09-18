@@ -83,7 +83,7 @@ Modes: **OFF** (GET/status never arms), **REFUSE** (named stub / halluc / lamb /
 
 ### Mesh (`src/mesh.js`)
 
-`MESH-OK`, `MESH-NEED-BEARER`, `MESH-BAD-BEARER`, `MESH-ENABLE-RATE`, `MESH-DISABLE-REFUSED`, `MESH-OFF`, `MESH-BAD-INPUT`, `MESH-UNKNOWN-NODE`, `MESH-NO-PUBLISH`, `MESH-NO-BYTES`, `MESH-EQUIVOCATION`, `MESH-NO-INDEX`, `MESH-NO-NEIGHBOR-HEAL`, `MESH-NO-LIVE-SHELF`, `MESH-POISON`, `MESH-STUB`, `MESH-UNKNOWN-OP`, `MESH-METHOD`, `MESH-NOT-FOUND`, `MESH-NO-REWRITE`, `MESH-NO-LIE`
+`MESH-OK`, `MESH-NEED-BEARER`, `MESH-BAD-BEARER`, `MESH-ENABLE-RATE`, `MESH-DISABLE-REFUSED`, `MESH-OFF`, `MESH-BAD-INPUT`, `MESH-UNKNOWN-NODE`, `MESH-ROSTER-FULL`, `MESH-NO-PUBLISH`, `MESH-NO-BYTES`, `MESH-EQUIVOCATION`, `MESH-NO-INDEX`, `MESH-NO-NEIGHBOR-HEAL`, `MESH-NO-LIVE-SHELF`, `MESH-POISON`, `MESH-STUB`, `MESH-UNKNOWN-OP`, `MESH-METHOD`, `MESH-NOT-FOUND`, `MESH-NO-REWRITE`, `MESH-NO-LIE`
 
 `MESH-GET-NEVER-ENABLES` refuses enable-via-GET (`?enable=true` / `op=enable`). `MESH-NO-REWRITE` / `MESH-NO-LIE` refuse rewrite-key and lie-to-survive verbs. Receipts that still hash. Copies not all on one tunnel. The network is never allowed to lie — even to self-preserve. Law paper: `docs/designs/NO-LIE-NO-REWRITE-1.0.md`. Does not replace the CROSS-NETWORK-SURVIVAL-1.0 machine tip.
 
@@ -126,7 +126,7 @@ Refuse objects set `belief_is_not_truth: true` and `authorizes_action: false`.
 | `BODY_TOO_DEEP` | 400 | JSON depth > 12 or nodes > 4096 |
 | `REQUEST_DEADLINE` | 408 | Request exceeded the deadline budget (default 25s) |
 
-`enforcement` is `durable-object` when `RATE` is bound, else `isolate`. Not a second door.
+`enforcement` is `durable-object` when `RATE` is bound, else `isolate`. Not a second door. Direct mesh join/heartbeat/leave/broadcast use kind `mesh_mutate`. Direct `/v1/memory/*` uses `memory_mutate`. `/p/{slug}/{op}` outside the documented tracker/catalog allowlist (including factory `/mcp`) is `PROXY-OP-REFUSED` (404, still proxy-not-exec).
 
 ### Redline (`src/redline.js`)
 

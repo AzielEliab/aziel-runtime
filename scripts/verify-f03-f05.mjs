@@ -14,6 +14,8 @@ import { LEDGER_CAP, resetLedger } from "../src/fraggate/ledger.js";
 import {
   RATE_FRAGGATE_CALL_PER_MIN,
   RATE_MCP_PER_MIN,
+  RATE_MESH_MUTATE_PER_MIN,
+  RATE_MEMORY_MUTATE_PER_MIN,
   RATE_OPEN_PER_MIN,
   rateLimitDecision,
   rateLimitFailBody,
@@ -94,8 +96,16 @@ assert.equal(requestLimitKind("/v1/fraggate/call", "POST"), "fraggate_call");
 assert.equal(requestLimitKind("/v1/fraggate/list", "GET"), "fraggate_read");
 assert.equal(requestLimitKind("/mcp", "POST"), "mcp");
 assert.equal(requestLimitKind("/v1/session/open", "POST"), null);
+assert.equal(requestLimitKind("/v1/mesh/join", "POST"), "mesh_mutate");
+assert.equal(requestLimitKind("/v1/mesh/heartbeat", "POST"), "mesh_mutate");
+assert.equal(requestLimitKind("/v1/mesh/broadcast", "POST"), "mesh_mutate");
+assert.equal(requestLimitKind("/v1/mesh/leave", "POST"), "mesh_mutate");
+assert.equal(requestLimitKind("/v1/mesh", "GET"), null);
+assert.equal(requestLimitKind("/v1/memory/observe", "POST"), "memory_mutate");
 assert.equal(RATE_FRAGGATE_CALL_PER_MIN, 240);
 assert.equal(RATE_MCP_PER_MIN, 240);
+assert.equal(RATE_MESH_MUTATE_PER_MIN, 30);
+assert.equal(RATE_MEMORY_MUTATE_PER_MIN, 60);
 assert.equal(RATE_OPEN_PER_MIN, 20);
 assert.equal(rateLimitFailBody({ scope: "fraggate_call", limit: 3, window_seconds: 60, retry_after: 1 }).code, CODE_RATE_LIMIT);
 assert.equal(jsonStructureStats({ a: { b: { c: 1 } } }).depth, 3);
@@ -180,6 +190,34 @@ const limitedMcp = await jsonReq(
 assert.equal(limitedMcp.status, 429);
 assert.equal(limitedMcp.data.code, CODE_RATE_LIMIT);
 assert.equal(limitedMcp.data.scope, "mcp");
+
+const meshRateEnv = baseEnv({
+  __aziel_rate_limits: { mesh_mutate: 2 },
+});
+for (let i = 0; i < 2; i++) {
+  const join = await jsonReq(
+    meshRateEnv,
+    "/v1/mesh/join",
+    "POST",
+    { product: "aznet", node_id: `auditnode${i + 10}` },
+    { "CF-Connecting-IP": "203.0.113.40" },
+  );
+  assert.equal(join.status, 200, `mesh join ${i + 1}`);
+  assert.equal(join.data.code, "MESH-OK");
+  assert.equal(join.data.join_is_not_login, true);
+  assert.equal(join.data.roster_publishes_exec_urls, false);
+}
+const limitedJoin = await jsonReq(
+  meshRateEnv,
+  "/v1/mesh/join",
+  "POST",
+  { product: "aznet", node_id: "auditnode99" },
+  { "CF-Connecting-IP": "203.0.113.40" },
+);
+assert.equal(limitedJoin.status, 429);
+assert.equal(limitedJoin.data.code, CODE_RATE_LIMIT);
+assert.equal(limitedJoin.data.scope, "mesh_mutate");
+assert.equal(limitedJoin.data.limit, 2);
 
 const helperEnv = { __aziel_rate_limits: { fraggate_call: 2 } };
 const reqA = new Request(origin + "/v1/fraggate/call", { headers: { "CF-Connecting-IP": "198.51.100.1" } });

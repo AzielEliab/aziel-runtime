@@ -82,6 +82,8 @@ function law2_cold_copy_fields_and_refuse(live) {
 function law3_reheal_refuse(live) {
   assert.equal(live.isolation_is_the_cure, true);
   assert.equal(live.neighbor_heal, true);
+  assert.equal(live.neighbor_heal_is_cite, true);
+  assert.equal(live.neighbor_heal_exec, false);
   assert.equal(live.vote_to_fix, false);
 }
 
@@ -100,6 +102,8 @@ function law5_die_with_pull_no_godlock_uk(live) {
 
 function law6_neighbor_heal_operator_on(live) {
   assert.equal(live.neighbor_heal, true);
+  assert.equal(live.neighbor_heal_is_cite, true);
+  assert.equal(live.neighbor_heal_exec, false);
   assert.equal(live.apply_last_packet_on_heartbeat_loss, false);
 }
 
@@ -165,6 +169,8 @@ function operator_override_section(live) {
   assert.equal(OPERATOR_OVERRIDE.node_gate, true);
   assert.equal(OPERATOR_OVERRIDE.get_is_node_gate, true);
   assert.equal(OPERATOR_OVERRIDE.neighbor_heal, true);
+  assert.equal(OPERATOR_OVERRIDE.neighbor_heal_is_cite, true);
+  assert.equal(OPERATOR_OVERRIDE.neighbor_heal_exec, false);
   assert.equal(OPERATOR_OVERRIDE.network, true);
   assert.equal(OPERATOR_OVERRIDE.network_cite, "on");
   assert.equal(OPERATOR_OVERRIDE.anonymity_network, true);
