@@ -145,15 +145,19 @@ additive stamps. stub_ops `model_update` / `rollback` / `rewrite` /
 
 Calling-name rotation is **discovery metadata only**. Pipeline:
 trigger → mesh alert → metadata rewrite → client rediscovery. On honest
-ban signals the public calling name may rotate (open-ended; no hard cap
-at 6: Whitestone AI → Bills / Bills Runtime as needed → Runtime →
+ban signals the public calling name may rotate (open-ended + random; no
+hard cap at 6: Whitestone AI → Bills / Bills Runtime as needed → Runtime →
 Eliab Runtime → Potato Runtime → Elroi Runtime → Softwares-family
-`*-runtime` → endless distinct names). Live mesh nodes pull `*new name alert: <name>`
-from `GET /v1/mesh` and `GET /survival` (GET never enables; not a
-publish path). User-uploaded data is a DecisionGATE/AKM observe signal
-— unmarked uploads are not a ban. Call routes stay `POST /mcp` /
-`POST /v1/fraggate/call`. Identity stays Aziel Eliab. No ChainLock / AKM
-rewrite. No third-party trademarks.
+`*-runtime` → endless distinct names, including `BAN_SURVIVAL_NAME_RANDOM`
+alongside the seeds). On trigger, rewrite **all** live discovery metadata
+(OpenAPI `info`, MCP name/instructions, cite/llms/ai/who-is/person calling
+strings, `/survival` live product, Softwares vanity, hub-facing runtime
+labels) so the banned name is not the live call target. Live mesh nodes
+pull `*new name alert: <name>` from `GET /v1/mesh` and `GET /survival`
+(GET never enables; not a publish path). User-uploaded data is a
+DecisionGATE/AKM observe signal — unmarked uploads are not a ban. Call
+routes stay `POST /mcp` / `POST /v1/fraggate/call`. Identity stays Aziel
+Eliab. No ChainLock / AKM rewrite. No third-party trademarks.
 
 Platforms are **LIVE** on every listed OS — Windows, Mac, Linux,
 Android, iPhone — via browser + PWA (`/manifest.webmanifest`) + Worker

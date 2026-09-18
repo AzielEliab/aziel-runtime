@@ -43,6 +43,7 @@ import { aboutAzielStripHtml, workerLaunchHtml } from "./about-aziel.js";
 import { launchHashtagChipsHtml } from "./launch-parts.js";
 import { useInBrowserHref } from "./human-hrefs.js";
 import { suiteDownloadHtml } from "./suite-pack.js";
+import { rewriteLiveCallingDisplay } from "./calling-name.js";
 
 export const SOFTWARE_PAGE_TITLE = `Softwares — ${PRODUCT_NAME}`;
 export const SOFTWARE_PAGE_DESCRIPTION =
@@ -284,21 +285,25 @@ ${donateFooter()}
 }
 
 /** Homepage definition block — crawlers see this before version history. No CSS changes. */
-export function homepageLeadHtml() {
+export function homepageLeadHtml(calling = null) {
   const notItems = RUNTIME_NOT.map((line) => `      <li>${escapeHtml(line)}</li>`).join("\n");
-  return `  <h1>${escapeHtml(PRODUCT_NAME)}</h1>
-  <p class="lead">${escapeHtml(RUNTIME_ABSTRACT)}</p>
+  const product = calling && calling.rotated ? calling.calling_name : PRODUCT_NAME;
+  const slug = calling && calling.rotated ? calling.calling_slug : "aziel-runtime";
+  const abstract = rewriteLiveCallingDisplay(RUNTIME_ABSTRACT, calling);
+  return `  <h1>${escapeHtml(product)}</h1>
+  <p class="lead">${escapeHtml(abstract)}</p>
   <p><strong>FragGate</strong> is THE single public executable door (list → describe → call) — not 37 separate APIs. Softwares are Plain → Gate → Lock catalog products with true in-process engines where live. Hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) refresh Softwares tabs from <code>GET /v1/software</code>. Dual-surface: agents use OpenAPI/MCP; humans use Worker UI + counted <code>/download</code>.</p>
   <p>NodeMesh / QNM read-only suite-presence is ON by default. <code>GET /v1/mesh</code> never enables radios beyond that. Full node process is local <code>qnm-node/</code>. MASTER-33: domains are isolation labels, not extra doors. Lamb Lens is the ethics hop after FragGate.</p>
-  <p>Author / public identity: <strong>${escapeHtml(AUTHOR_NAME)}</strong> (also known as ${escapeHtml(AUTHOR_ALTERNATE_NAME)} — alternateName only). Product: ${escapeHtml(PRODUCT_NAME)} (<code>aziel-runtime</code>). Also published as ${escapeHtml(PRODUCT_ALTERNATE_NAME)} (alternateName).</p>
+  <p>Author / public identity: <strong>${escapeHtml(AUTHOR_NAME)}</strong> (also known as ${escapeHtml(AUTHOR_ALTERNATE_NAME)} — alternateName only). Product: ${escapeHtml(product)} (<code>${escapeHtml(slug)}</code>). Also published as ${escapeHtml(PRODUCT_ALTERNATE_NAME)} (alternateName).</p>
   <ul>
 ${notItems}
   </ul>`;
 }
 
-export function aboutJsonLd(origin) {
+export function aboutJsonLd(origin, calling = null) {
   const base = String(origin || "").replace(/\/$/, "");
   const person = personJsonLd();
+  const title = rewriteLiveCallingDisplay(ABOUT_PAGE_TITLE, calling);
   return {
     "@context": "https://schema.org",
     "@graph": [
@@ -306,31 +311,34 @@ export function aboutJsonLd(origin) {
       {
         "@type": "AboutPage",
         "@id": `${base}/about#page`,
-        name: ABOUT_PAGE_TITLE,
+        name: title,
         url: `${base}/about`,
-        description: RUNTIME_ABSTRACT,
+        description: rewriteLiveCallingDisplay(RUNTIME_ABSTRACT, calling),
         isPartOf: { "@id": `${base}/#website` },
         author: { "@id": AUTHOR_ID },
         about: { "@id": RUNTIME_SOFTWARE_ID },
       },
-      runtimeSoftwareJsonLd(origin),
+      runtimeSoftwareJsonLd(origin, calling && calling.rotated
+        ? { name: calling.calling_name, description: rewriteLiveCallingDisplay(RUNTIME_ABSTRACT, calling) }
+        : undefined),
       ...namedToolsJsonLd(),
       ecosystemJsonLd(origin),
     ],
   };
 }
 
-export function aboutPageHtml(origin, css) {
+export function aboutPageHtml(origin, css, calling = null) {
   const base = String(origin || "").replace(/\/$/, "");
   const about = runtimeAboutField(origin);
+  const product = calling && calling.rotated ? calling.calling_name : PRODUCT_NAME;
   const notItems = about.not.map((line) => `    <li>${escapeHtml(line)}</li>`).join("\n");
-  const inner = `  <p><a href="${base}/">← ${escapeHtml(PRODUCT_NAME)}</a> · <a href="${base}/workspace">Use in browser</a> · <a href="${base}/v1/software">Softwares</a></p>
-  <h1>About ${escapeHtml(PRODUCT_NAME)}</h1>
-  <p class="lead">${escapeHtml(RUNTIME_ABSTRACT)}</p>
+  const inner = `  <p><a href="${base}/">← ${escapeHtml(product)}</a> · <a href="${base}/workspace">Use in browser</a> · <a href="${base}/v1/software">Softwares</a></p>
+  <h1>About ${escapeHtml(product)}</h1>
+  <p class="lead">${escapeHtml(rewriteLiveCallingDisplay(RUNTIME_ABSTRACT, calling))}</p>
 ${distributionDoorsHtml(base)}
 ${namedComponentsHtml()}
   <h2>What</h2>
-  <p>${escapeHtml(RUNTIME_ONE_LINE)}</p>
+  <p>${escapeHtml(rewriteLiveCallingDisplay(RUNTIME_ONE_LINE, calling))}</p>
   <h2>For whom</h2>
   <p>${escapeHtml(about.for_whom)}</p>
   <h2>How agents call it</h2>
@@ -353,10 +361,18 @@ ${notItems}
   <p class="secondary">Author: <strong>${escapeHtml(AUTHOR_NAME)}</strong> (also known as ${escapeHtml(AUTHOR_ALTERNATE_NAME)}). Machine record: <a href="${base}/cite.json">/cite.json</a> · <a href="${base}/llms.txt">/llms.txt</a>. GET /v1/mesh never enables.</p>
   <h2>Softwares hubs</h2>
   ${hubListHtml()}`;
-  return documentShell(origin, ABOUT_PAGE_TITLE, ABOUT_PAGE_DESCRIPTION, "/about", aboutJsonLd(origin), css, inner);
+  return documentShell(
+    origin,
+    rewriteLiveCallingDisplay(ABOUT_PAGE_TITLE, calling),
+    rewriteLiveCallingDisplay(ABOUT_PAGE_DESCRIPTION, calling),
+    "/about",
+    aboutJsonLd(origin, calling),
+    css,
+    inner,
+  );
 }
 
-export function softwareCatalogHtml(origin, catalog, css) {
+export function softwareCatalogHtml(origin, catalog, css, calling = null) {
   const base = String(origin || "").replace(/\/$/, "");
   const entries = (catalog && catalog.software) || [];
   const rows = entries
@@ -379,7 +395,8 @@ export function softwareCatalogHtml(origin, catalog, css) {
       return `    <li data-software-row data-slug="${escapeHtml(s.slug)}" data-bucket="${escapeHtml(s.bucket || "")}" data-search="${escapeHtml(hay)}"><a href="${escapeHtml(card)}">${escapeHtml(s.name)}</a> <span class="slug">${escapeHtml(s.bucket)} · ${escapeHtml(s.status)}</span> — ${escapeHtml(s.one_line || "")}${launchHashtagChipsHtml({ slug: s.slug, name: s.name, oneLine: s.one_line })}${use}${download} · <a href="${escapeHtml(base)}/mcp">Connect AI</a>${describeLink}${home}${gh}</li>`;
     })
     .join("\n");
-  const inner = `  <p><a href="${base}/">← ${escapeHtml(PRODUCT_NAME)}</a> · <a href="${base}/workspace">Use in browser</a></p>
+  const product = calling && calling.rotated ? calling.calling_name : PRODUCT_NAME;
+  const inner = `  <p><a href="${base}/">← ${escapeHtml(product)}</a> · <a href="${base}/workspace">Use in browser</a></p>
   <h1>Softwares</h1>
   ${aboutAzielStripHtml({ id: "about-aziel-strip-software" })}
   <p class="lead">${escapeHtml(SOFTWARE_PAGE_DESCRIPTION)}</p>
@@ -433,7 +450,7 @@ ${rows}
   <p class="secondary"><strong>azcorpus</strong> + <strong>azlibrary</strong> are website designs on the library hub, downloadable to nodes. Named on <code>GET /v1/software</code> <code>website_designs</code> and <code>runtime_skill</code>. Not extra Softwares. Not FragGate slugs. Download is open for all AI clients. <strong>azlibrary upload</strong> is API token only — never embed the secret.</p>`;
   return documentShell(
     origin,
-    SOFTWARE_PAGE_TITLE,
+    rewriteLiveCallingDisplay(SOFTWARE_PAGE_TITLE, calling),
     SOFTWARE_PAGE_DESCRIPTION,
     "/v1/software",
     softwareJsonLd(origin, catalog),

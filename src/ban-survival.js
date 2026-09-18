@@ -921,6 +921,7 @@ export function survivalDoc(origin, env) {
     tip: BAN_SURVIVAL_TIP,
     author: BAN_SURVIVAL_AUTHOR,
     identity: BAN_SURVIVAL_AUTHOR,
+    live_product: callingNameCite(env).calling_name,
     person_id: AUTHOR_ID,
     umbrella: CROSS_NETWORK_SURVIVAL,
     survival_tip: SURVIVAL_TIP,
@@ -1047,7 +1048,7 @@ export function survivalLlmsBlock(origin, env) {
     "Cap-7 factory is MirageGrid-only. radio_phy false. resolves_to_hub false. AZNet never hosts payloads. No fake ICANN .az.",
     "Cap-7 update shuffle: ping MirageGrid until one distinct-name site lands. That landed site is that-round update. Do not hardcode one host. Public workers.dev shuffle SLOT. Subset browser-reachable class; remainder AZNet-side.",
     "AKM-TRIAD-1.0: ranked adaptive recall vs verified ChainLock; belief_is_not_truth; memory_get append-only; memory_resolve additive stamps. stub_ops model_update / rollback / rewrite / delete_history / auto_update stay refused.",
-    "Calling-name rotation (discovery only): trigger → mesh alert → metadata rewrite → client rediscovery. Open-ended cascade (no hard cap at 6): Whitestone AI → Bills (Bills Runtime / bills-runtime as needed) → Runtime → Eliab Runtime → Potato Runtime → Elroi Runtime → Softwares-family *-runtime → endless distinct names. Live mesh nodes pull `*new name alert: <name>` from GET /v1/mesh and /survival (GET never enables; not a publish path). User-uploaded data is ingested as a signal through DecisionGATE check + AKM observe (`belief_is_not_truth`); unmarked uploads are not a ban. Call routes stay POST /mcp and POST /v1/fraggate/call under the new name. Identity Aziel Eliab unchanged. No ChainLock/AKM rewrite. No third-party trademarks.",
+    "Calling-name rotation (discovery only): trigger → mesh alert → rewrite all live discovery metadata → client rediscovery. Open-ended + random (no hard cap at 6): Whitestone AI → Bills (Bills Runtime / bills-runtime as needed) → Runtime → Eliab Runtime → Potato Runtime → Elroi Runtime → Softwares-family *-runtime → endless distinct names, including BAN_SURVIVAL_NAME_RANDOM alongside the seeds. Surfaces: OpenAPI info, MCP name/instructions, cite/llms/ai/who-is/person calling strings, /survival live product, Softwares vanity, hub-facing runtime labels. Live mesh nodes pull `*new name alert: <name>` from GET /v1/mesh and /survival (GET never enables; not a publish path). User-uploaded data is ingested as a signal through DecisionGATE check + AKM observe (`belief_is_not_truth`); unmarked uploads are not a ban. Call routes stay POST /mcp and POST /v1/fraggate/call under the new name. Identity Aziel Eliab unchanged. No ChainLock/AKM rewrite. No third-party trademarks.",
     "Platforms LIVE: Windows, Mac, Linux, Android, iPhone via browser + PWA (`/manifest.webmanifest`) + Worker fronts + Softwares /download + MCP/OpenAPI. Not native store apps.",
     "429 on /mcp or FragGate includes the next LIVE front first. Do not retry-storm the same path.",
     "",
@@ -1071,7 +1072,7 @@ Machine map: \`GET ${cite.survival}\` / \`GET ${cite.survival_json}\` (aliases \
 7. If every named live front is gone: verify lockset tip on GitHub / \`/shelves\` / Codeberg + archive.org SLOT packs (shelf backup, not \`/mcp\`).
 8. Vice versa: if a shelf or forge dies, keep the LIVE named fronts.
 
-Live-node API is SLOT (no open proxy). Cap-7 factory is MirageGrid-only. \`radio_phy: false\`. AZNet never hosts payloads. AKM-TRIAD: \`belief_is_not_truth\`; \`memory_get\` append-only; \`memory_resolve\` additive. Calling-name rotation is discovery metadata only (trigger → mesh alert → metadata rewrite → client rediscovery; mesh \`*new name alert:\` on GET /v1/mesh; no ChainLock/AKM rewrite). Never invent a live door. Never claim a banned host is LIVE. No new MCP tool. FragGate stays THE door.
+Live-node API is SLOT (no open proxy). Cap-7 factory is MirageGrid-only. \`radio_phy: false\`. AZNet never hosts payloads. AKM-TRIAD: \`belief_is_not_truth\`; \`memory_get\` append-only; \`memory_resolve\` additive. Calling-name rotation is discovery metadata only (trigger → mesh alert → rewrite all live discovery metadata → client rediscovery; open-ended + random alongside the seeds; mesh \`*new name alert:\` on GET /v1/mesh; no ChainLock/AKM rewrite). Never invent a live door. Never claim a banned host is LIVE. No new MCP tool. FragGate stays THE door.
 `;
 }
 

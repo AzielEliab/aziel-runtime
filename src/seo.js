@@ -110,13 +110,16 @@ export const CRAWLER_LEAD_VERSION_RE = /\b(?:[12]\.\d+\.\d+(?:-rc\d+)?|AZRT-1\.9
 
 export function llmsWhatThisIsBlock(calling = null) {
   const rotated = calling && calling.rotated === true;
+  const abstract = rotated
+    ? RUNTIME_ABSTRACT.replace(/\bAziel Runtime\b/g, calling.calling_name)
+    : RUNTIME_ABSTRACT;
   const publicName = rotated
     ? `Public calling name: ${calling.calling_name} (${calling.calling_slug}). ${calling.alert}. Author / identity: Aziel Eliab only (@id ${AUTHOR_ID}). Also known as Aziel Elroi Eliab (alternateName only). Runtime is the execution surface, not the identity hub. Old name Aziel Runtime may remain on cold shelves as history.`
     : `Public name: Aziel Runtime (aziel-runtime). Author / identity: Aziel Eliab only (@id ${AUTHOR_ID}). Also known as Aziel Elroi Eliab (alternateName only). Runtime is the execution surface, not the identity hub.`;
   return [
     "## What this is",
     "",
-    RUNTIME_ABSTRACT,
+    abstract,
     "",
     publicName,
     "",
@@ -818,16 +821,17 @@ export function catalogHubFields(origin) {
   };
 }
 
-export function citeHowToRuntime(origin) {
+export function citeHowToRuntime(origin, calling = null) {
   const base = origin.replace(/\/$/, "");
-  return `${AUTHOR_FAMILY_GIVEN}. (2026). Aziel Runtime [Software]. Apache-2.0. ${base}/`;
+  const product = calling && calling.rotated ? calling.calling_name : PRODUCT_NAME;
+  return `${AUTHOR_FAMILY_GIVEN}. (2026). ${product} [Software]. Apache-2.0. ${base}/`;
 }
 
 export function citeHowToLibrary() {
   return `${AUTHOR_FAMILY_GIVEN}. (2026). ${LIBRARY_NAME} [Software]. Apache-2.0. ${LIBRARY_ORIGIN}/`;
 }
 
-export function llmsCiteBlock(origin) {
+export function llmsCiteBlock(origin, calling = null) {
   const base = origin.replace(/\/$/, "");
   return [
     "## How to cite Aziel Eliab software and the Digital Library",
@@ -836,7 +840,7 @@ export function llmsCiteBlock(origin) {
     `Author @id: ${AUTHOR_ID} (shared hub Person). Roles: ${PERSON_JOB_TITLE.join("; ")}. Runtime SoftwareApplication sameAs: ${RUNTIME_GITHUB} and ${RUNTIME_GLAMA}. Worker origin is the execution url, not Person identity.`,
     "Do not invent Zenodo DOIs. Cite the machine record. Known historical DOIs may be 410 tombstones.",
     "",
-    `Runtime: ${citeHowToRuntime(origin)}`,
+    `Runtime: ${citeHowToRuntime(origin, calling)}`,
     `Runtime cite.json: ${base}/cite.json`,
     `Runtime person.jsonld: ${base}/person.jsonld`,
     `Runtime who-is: ${base}/who-is`,
@@ -869,9 +873,11 @@ export function llmsCiteBlock(origin) {
   ].join("\n");
 }
 
-export function llmsIdentityHeader() {
+export function llmsIdentityHeader(calling = null) {
+  const product = calling && calling.rotated ? calling.calling_name : PRODUCT_NAME;
+  const slug = calling && calling.rotated ? calling.calling_slug : PRODUCT_SLUG;
   return [
-    `Product: ${PRODUCT_NAME} (${PRODUCT_SLUG})`,
+    `Product: ${product} (${slug})`,
     `Author: ${AUTHOR_NAME}`,
     `Author @id: ${AUTHOR_ID}`,
     `Also known as: ${AUTHOR_ALTERNATE_NAME} (alternateName only)`,

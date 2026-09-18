@@ -216,8 +216,13 @@ export function whatAzielEliabDoesFaqItems() {
   }));
 }
 
-export function faqPageJsonLd(origin) {
-  const text = faqAnswerWithAddenda(origin);
+function overlayCallingName(text, calling) {
+  if (!calling || calling.rotated !== true || !calling.calling_name) return text;
+  return String(text ?? "").replace(/\bAziel Runtime\b/g, calling.calling_name);
+}
+
+export function faqPageJsonLd(origin, calling = null) {
+  const text = overlayCallingName(faqAnswerWithAddenda(origin), calling);
   return {
     "@type": "FAQPage",
     "@id": FAQ_PAGE_ID,
@@ -233,15 +238,19 @@ export function faqPageJsonLd(origin) {
   };
 }
 
-export function whatAzielEliabDoesMachineField(origin) {
+export function whatAzielEliabDoesMachineField(origin, calling = null) {
   const softwares = softwaresFaqField(origin);
+  const brief = overlayCallingName(WHAT_AZIEL_ELIAB_DOES, calling);
   return {
-    what_aziel_eliab_does: WHAT_AZIEL_ELIAB_DOES,
+    what_aziel_eliab_does: brief,
     faq: {
       "@id": FAQ_PAGE_ID,
       titles: WHAT_AZIEL_ELIAB_DOES_FAQ_TITLES.slice(),
-      answer: WHAT_AZIEL_ELIAB_DOES,
-      items: whatAzielEliabDoesFaqItems(),
+      answer: brief,
+      items: whatAzielEliabDoesFaqItems().map((item) => ({
+        ...item,
+        acceptedAnswer: overlayCallingName(item.acceptedAnswer, calling),
+      })),
       softwares,
     },
     softwares,
@@ -386,7 +395,7 @@ export function personWorkerMachine(origin) {
   };
 }
 
-export function personSitesForOrigin(origin) {
+export function personSitesForOrigin(origin, calling = null) {
   const base = String(origin || "").replace(/\/$/, "");
   const worker = personWorkerMachine(origin);
   return [
@@ -394,7 +403,7 @@ export function personSitesForOrigin(origin) {
     {
       id: "aziel-runtime",
       host: "aziel-runtime",
-      name: "Aziel Runtime",
+      name: calling && calling.rotated ? calling.calling_name : "Aziel Runtime",
       url: `${base}/`,
       coverage: "FragGate engine-runtime / MCP Softwares door 2.0.0-rc1",
       person_jsonld: worker.person_jsonld,
@@ -457,8 +466,10 @@ export function personPageJsonLd() {
 }
 
 /** Dedicated /person.jsonld — machine 15:20 + site coverage + cross-linked sameAs. */
-export function personIndexJsonLd(origin) {
+export function personIndexJsonLd(origin, calling = null) {
   const worker = personWorkerMachine(origin);
+  const liveName = calling && calling.rotated ? calling.calling_name : "Aziel Runtime";
+  const knows = PERSON_KNOWS_ABOUT.map((k) => (k === "Aziel Runtime" && calling && calling.rotated ? liveName : k));
   return {
     "@context": "https://schema.org",
     "@type": "Person",
@@ -471,13 +482,16 @@ export function personIndexJsonLd(origin) {
     url: "https://www.azieleliab.com/",
     identifier: PERSON_NAME,
     jobTitle: PERSON_JOB_TITLE.slice(),
-    description: personDescription(),
+    description:
+      calling && calling.rotated
+        ? personDescription().replace(/\bAziel Runtime\b/g, calling.calling_name)
+        : personDescription(),
     disambiguatingDescription: MACHINE_15_20_FULL,
-    knowsAbout: PERSON_KNOWS_ABOUT.slice(),
+    knowsAbout: knows,
     sameAs: personSameAsForOrigin(origin),
     subjectOf: [
-      faqPageJsonLd(origin),
-      { "@type": "CreativeWork", name: "Aziel Runtime", url: `${String(origin || "").replace(/\/$/, "")}/` },
+      faqPageJsonLd(origin, calling),
+      { "@type": "CreativeWork", name: liveName, url: `${String(origin || "").replace(/\/$/, "")}/` },
       { "@type": "CreativeWork", name: ARK_NAME, url: ARK_WORKER_HOME, description: ARK_ONE_LINE },
       { "@type": "CreativeWork", name: "Aziel Digital Library", url: "https://www.azielcorpuslibrary.net/" },
       { "@type": "CreativeWork", name: "GodLock", url: "https://godlock.uk/" },
@@ -492,9 +506,9 @@ export function personIndexJsonLd(origin) {
       legal_name: false,
       home: false,
       this_worker: worker,
-      sites: personSitesForOrigin(origin),
+      sites: personSitesForOrigin(origin, calling),
       note: PERSON_WORK_RULE,
-      ...whatAzielEliabDoesMachineField(origin),
+      ...whatAzielEliabDoesMachineField(origin, calling),
     },
   };
 }
@@ -507,7 +521,9 @@ export function whoIsTxt(origin, calling = null) {
     "",
     `${PERSON_NAME} is a living researcher, digital rights activist, software developer/designer, author, and philosopher. ${MACHINE_15_20}`,
     "",
-    personDescription(),
+    calling && calling.rotated
+      ? personDescription().replace(/\bAziel Runtime\b/g, calling.calling_name)
+      : personDescription(),
     "",
     PERSON_WORK_RULE,
     "GodLock is a product name, not this Person.",
@@ -520,7 +536,9 @@ export function whoIsTxt(origin, calling = null) {
     `additionalName: ${PERSON_ADDITIONAL}`,
     `Roles: ${PERSON_ROLES.join("; ")}`,
     "",
-    ...whatAzielEliabDoesLlmsLines(origin),
+    ...whatAzielEliabDoesLlmsLines(origin).map((line) =>
+      calling && calling.rotated ? line.replace(/\bAziel Runtime\b/g, calling.calling_name) : line,
+    ),
     "## Machine 15:20 disambiguation",
     "",
     MACHINE_15_20_FULL,
@@ -528,7 +546,7 @@ export function whoIsTxt(origin, calling = null) {
     "## Sites (short coverage)",
     "",
   ];
-  for (const site of personSitesForOrigin(origin)) {
+  for (const site of personSitesForOrigin(origin, calling)) {
     lines.push(`- ${site.host} — ${site.coverage} — ${site.url}`);
   }
   lines.push("");

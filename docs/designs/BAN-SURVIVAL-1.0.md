@@ -260,8 +260,10 @@ the isolate cannot be invented here.
 5. Potato Runtime (`potato-runtime`)
 6. Elroi Runtime (`elroi-runtime`)
 7. Softwares-family `*-runtime` then endless distinct operator names
-   (`generateCallingName(n)` for any n). The six seeds are first, not
-   a cap.
+   (`generateCallingName(n)` for any n). Random generation is also
+   allowed **alongside** the seeds (`generateRandomCallingName` /
+   `BAN_SURVIVAL_NAME_RANDOM`) so the pool never exhausts. The six
+   seeds are first, not a cap.
 
 No third-party trademarks (ChatGPT / Claude / Gemini / …).
 
@@ -277,12 +279,19 @@ No third-party trademarks (ChatGPT / Claude / Gemini / …).
    live mesh nodes on `GET /v1/mesh`, `GET /v1/mesh/status`,
    `GET /v1/mesh/nodes`, and `GET /survival`. GET never enables. Not
    `mesh_broadcast` (hash-only; never a publish path).
-4. **Metadata rewrite** — discovery surfaces only: OpenAPI `info.title`,
-   MCP `serverInfo` name/title/instructions, server card, `/cite.json`
-   product/slug/`calling_name`, `/survival` `calling_name`, `/llms.txt`
-   `/ai.txt` public-name line, `/who-is` calling string, `/v1/software`
-   suite vanity, PWA manifest. Identity **Aziel Eliab** unchanged.
-   ChainLock tips and AKM history do **not** rewrite.
+4. **Metadata rewrite** — on trigger, rewrite **all live discovery
+   metadata** so the banned calling identity is not the live call
+   target: OpenAPI `info` (title/summary/description lead), MCP
+   `serverInfo` name/title/instructions, server card, `/cite.json`
+   product/slug/how_to_cite/bibtex/apa, `/survival` live product,
+   `/llms.txt` `/ai.txt` product line, `/who-is` and `/person.jsonld`
+   calling strings (Person identity stays Aziel Eliab), `/v1/software`
+   suite vanity + update manifest, `/v1/runtime.json` `/v1/health`
+   `/v1/skill` labels, PWA manifest, hub-facing runtime labels.
+   Historical changelog and GitHub repo URLs stay factual. Identity
+   **Aziel Eliab** unchanged. ChainLock tips and AKM history do **not**
+   rewrite. Random generation is allowed after **and alongside** the
+   seeded cascade (`BAN_SURVIVAL_NAME_RANDOM`).
 5. **Client rediscovery** — major AI/LLM clients pick up the fresh
    name on those surfaces and still **call** the same FragGate routes
    (`POST /mcp`, `POST /v1/fraggate/call`). Not a second door.

@@ -22,10 +22,12 @@ import {
   CALLING_NAME_SEEDS,
   billsRuntimeAsNeeded,
   generateCallingName,
+  generateRandomCallingName,
   ingestBanSignal,
   meshCallingNameAlert,
   nameAlertText,
   resolveCallingName,
+  rewriteLiveCallingDisplay,
   slugifyCallingName,
 } from "../src/calling-name.js";
 import {
@@ -250,6 +252,15 @@ assert.equal(slugifyCallingName("Potato Runtime"), "potato-runtime");
 assert.equal(slugifyCallingName("Elroi Runtime"), "elroi-runtime");
 assert.equal(billsRuntimeAsNeeded("Bills", false), "Bills");
 assert.equal(billsRuntimeAsNeeded("Bills", true), "Bills Runtime");
+const rndA = generateRandomCallingName("pool", "a");
+const rndB = generateRandomCallingName("pool", "b");
+assert.ok(rndA.endsWith("Runtime"));
+assert.notEqual(rndA, rndB);
+assert.equal(CALLING_NAME_SEEDS.includes(rndA), false);
+const randomRotated = resolveCallingName({ BAN_SURVIVAL_NAME_ROTATE: "1", BAN_SURVIVAL_NAME_RANDOM: "1", BAN_SURVIVAL_NAME_SALT: "x" });
+assert.equal(randomRotated.rotated, true);
+assert.ok(randomRotated.calling_name.endsWith("Runtime"));
+assert.equal(rewriteLiveCallingDisplay("Aziel Runtime is not merely", randomRotated).startsWith("Aziel Runtime"), false);
 assert.equal(resolveCallingName({ BAN_SURVIVAL_NAME_ROTATE: "1", BAN_SURVIVAL_NAME_GEN: "1" }).calling_slug, "bills-runtime");
 assert.equal(resolveCallingName({ BAN_SURVIVAL_NAME_ROTATE: "1", BAN_SURVIVAL_NAME_GEN: "1", BAN_SURVIVAL_BILLS_RUNTIME: "1" }).calling_name, "Bills Runtime");
 const idleName = resolveCallingName({});
@@ -509,7 +520,11 @@ assert.equal(rotatedCite.author, "Aziel Eliab");
 
 const rotatedOpen = await (await get("/openapi.json", rotatedEnv)).json();
 assert.equal(rotatedOpen.info.title, "Whitestone AI");
-assert.match(rotatedOpen.info.description, /^Aziel Runtime is not merely/);
+assert.match(rotatedOpen.info.description, /^Whitestone AI is not merely/);
+assert.match(rotatedOpen.info.summary, /^Whitestone AI —/);
+assert.equal(rotatedCite.bibtex.includes("title = {Whitestone AI}"), true);
+assert.equal(rotatedCite.apa.includes("Whitestone AI"), true);
+assert.equal(rotatedBody.live_product, "Whitestone AI");
 
 const rotatedMcp = await handler(
   new Request(origin + "/mcp", {
@@ -547,6 +562,57 @@ const rotatedSoft = await (await get("/v1/software", rotatedEnv)).json();
 assert.equal(rotatedSoft.suite_calling_name, "Whitestone AI");
 assert.equal(rotatedSoft.calling_name_alert, "*new name alert: Whitestone AI");
 assert.equal(rotatedSoft.identity, "Aziel Eliab");
+
+assert.equal(rotatedCite.calling_name.random_alongside, true);
+assert.equal(rotatedCite.calling_name.rewrites_all_discovery_metadata, true);
+assert.match(rotatedLlms, /Whitestone AI is not merely/);
+assert.match(rotatedWho, /Softwares through Whitestone AI/);
+
+const rotatedHealth = await (await get("/v1/health", rotatedEnv)).json();
+assert.equal(rotatedHealth.product, "whitestone-ai");
+assert.equal(rotatedHealth.title, "Whitestone AI");
+assert.equal(rotatedHealth.authoritySnapshot.name, "Whitestone AI");
+assert.equal(rotatedHealth.identity, "Aziel Eliab");
+
+const rotatedRuntime = await (await get("/v1/runtime.json", rotatedEnv)).json();
+assert.equal(rotatedRuntime.product, "whitestone-ai");
+assert.equal(rotatedRuntime.name, "Whitestone AI");
+assert.equal(rotatedRuntime.title, "Whitestone AI");
+
+const rotatedSkill = await (await get("/v1/skill", rotatedEnv)).text();
+assert.match(rotatedSkill, /^name: Whitestone AI/m);
+assert.match(rotatedSkill, /Whitestone AI is not merely/);
+
+const rotatedPerson = await (await get("/person.jsonld", rotatedEnv)).json();
+assert.equal(rotatedPerson.name, "Aziel Eliab");
+assert.ok(rotatedPerson.knowsAbout.includes("Whitestone AI"));
+assert.equal(rotatedPerson.knowsAbout.includes("Aziel Runtime"), false);
+assert.equal(rotatedPerson.subjectOf.some((w) => w.name === "Whitestone AI"), true);
+assert.match(rotatedPerson.machine.what_aziel_eliab_does, /Softwares through Whitestone AI/);
+
+const rotatedAbout = await (await get("/about", rotatedEnv)).text();
+assert.match(rotatedAbout, /<h1>About Whitestone AI<\/h1>/);
+assert.match(rotatedAbout, /Whitestone AI is not merely/);
+
+const rotatedUpdate = await (await get("/v1/update/manifest", rotatedEnv)).json();
+assert.equal(rotatedUpdate.latest.some((row) => row.slug === "whitestone-ai" && row.name === "Whitestone AI"), true);
+
+const rotatedCard = await (await get("/.well-known/mcp/server-card.json", rotatedEnv)).json();
+assert.equal(rotatedCard.name, "whitestone-ai");
+assert.equal(rotatedCard.title, "Whitestone AI");
+assert.match(rotatedCard.abstract, /^Whitestone AI is not merely/);
+
+const rotatedManifest = await (await get("/manifest.webmanifest", rotatedEnv)).json();
+assert.equal(rotatedManifest.name, "Whitestone AI");
+assert.equal(rotatedManifest.id, "whitestone-ai");
+
+const randomEnv = { BAN_SURVIVAL_NAME_ROTATE: "1", BAN_SURVIVAL_NAME_RANDOM: "1", BAN_SURVIVAL_NAME_SALT: "pool-x" };
+const randomSurvival = await (await get("/survival", randomEnv)).json();
+assert.equal(randomSurvival.calling_name.rotated, true);
+assert.ok(randomSurvival.calling_name.calling_name.endsWith("Runtime"));
+assert.equal(CALLING_NAME_SEEDS.includes(randomSurvival.calling_name.calling_name), false);
+assert.equal(randomSurvival.live_product, randomSurvival.calling_name.calling_name);
+assert.match(randomSurvival.calling_name.alert, /^\*new name alert: /);
 
 const shuffleCall = await handler(
   new Request(origin + "/v1/fraggate/call", {

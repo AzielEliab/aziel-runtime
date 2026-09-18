@@ -123,18 +123,31 @@ export const CALLING_NAME_PIPELINE = Object.freeze([
 
 export const CALLING_NAME_SURFACES = Object.freeze([
   "openapi.info.title",
+  "openapi.info.summary",
+  "openapi.info.description",
   "mcp.serverInfo.name",
   "mcp.serverInfo.title",
+  "mcp.serverInfo.description",
   "mcp.initialize.instructions",
   "mcp.server_card",
   "cite.json.product",
   "cite.json.slug",
+  "cite.json.how_to_cite",
+  "cite.json.bibtex",
+  "cite.json.apa",
   "cite.json.calling_name",
   "/survival.calling_name",
+  "/survival.live_product",
   "/llms.txt",
   "/ai.txt",
   "/who-is",
+  "/person.jsonld",
+  "/about",
   "/v1/software.suite_calling_name",
+  "/v1/update/manifest",
+  "/v1/runtime.json",
+  "/v1/health",
+  "/v1/skill",
   "/v1/mesh.calling_name_alert",
   "/manifest.webmanifest",
 ]);
@@ -213,6 +226,27 @@ export function generateCallingName(index, seed = "ban-survival") {
   const fam = i - CALLING_NAME_SEEDS.length;
   if (fam < CALLING_NAME_FAMILY.length) return CALLING_NAME_FAMILY[fam];
   return randomFamilyName(i, seed);
+}
+
+/** Endless random Softwares-family name. Alongside the seeded cascade — not a sixth-name cap. */
+export function generateRandomCallingName(seed = "ban-survival", salt = "rnd") {
+  const h = fnv1a(`${seed}|${salt}|endless-random`);
+  const index = CALLING_NAME_SEEDS.length + CALLING_NAME_FAMILY.length + (h % 1_000_000);
+  return randomFamilyName(index, `${seed}|${salt}`);
+}
+
+/** Rewrite live calling display. Does not touch URLs, receipts, or Person identity. */
+export function rewriteLiveCallingDisplay(text, calling) {
+  const src = String(text ?? "");
+  if (!calling || calling.rotated !== true || !calling.calling_name) return src;
+  return src.replace(/\bAziel Runtime\b/g, calling.calling_name);
+}
+
+/** Keyword / vanity lists only. Never rewrite github.com/.../aziel-runtime URLs. */
+export function rewriteLiveCallingKeywords(text, calling) {
+  const src = rewriteLiveCallingDisplay(text, calling);
+  if (!calling || calling.rotated !== true || !calling.calling_slug) return src;
+  return src.replace(/(^|[\s,])aziel-runtime(?=[\s,]|$)/g, `$1${calling.calling_slug}`);
 }
 
 export function detectCallingNameTriggers(env = {}, extra = {}) {
@@ -337,10 +371,15 @@ export function resolveCallingName(env = {}, extra = {}) {
   const forced = String((env && env.BAN_SURVIVAL_CALLING_NAME) || (extra && extra.calling_name) || "").trim();
   let name = forced || null;
   if (name && isTrademarkCallingName(name)) name = null;
+  const seed = String((env && env.BAN_SURVIVAL_NAME_SEED) || extra.seed || "ban-survival");
+  const wantRandom = truthyFlag(env && env.BAN_SURVIVAL_NAME_RANDOM) || extra.random === true;
+  if (!name && wantRandom) {
+    name = generateRandomCallingName(seed, extra.salt || env.BAN_SURVIVAL_NAME_SALT || "rnd");
+    if (isTrademarkCallingName(name)) name = generateRandomCallingName(seed, `${extra.salt || "rnd"}|skip`);
+  }
   if (!name) {
     const gen = Number(env && env.BAN_SURVIVAL_NAME_GEN);
     const index = Number.isInteger(gen) && gen >= 0 ? gen : 0;
-    const seed = String((env && env.BAN_SURVIVAL_NAME_SEED) || extra.seed || "ban-survival");
     name = generateCallingName(index, seed);
     if (isTrademarkCallingName(name)) name = generateCallingName(index + 1, seed);
   }
@@ -399,6 +438,8 @@ export function callingNameCite(env = {}, extra = {}) {
     surfaces: CALLING_NAME_SURFACES.slice(),
     call_routes: { ...CALLING_NAME_CALL_ROUTES },
     mesh_share: "live-mesh-pull",
+    random_alongside: true,
+    rewrites_all_discovery_metadata: true,
     hub_follow_on: Object.freeze(["azieleliab.com", "azielcorpuslibrary.net", "godlock.uk", "hedidntjump.com"]),
     note: resolved.note,
   };
