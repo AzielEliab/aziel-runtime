@@ -26,8 +26,12 @@ export const MEMORIAL_CAP = 64;
 export const RECEIPT_CAP = 64;
 export const LABEL_CAP = 160;
 
+export const PAIR_KIND = "functional-order";
+export const PAIR_NOTE =
+  "Functional-order pair with AZBrowser (order/token). Hash continuity / silent side-net. Pairing ≠ tunnel. Pairing is not a VPN product. Public VPN auto-binds AZVPN (default_vpn_backend:azvpn). Products stay separate. FragGate stays THE single door.";
+
 export const LIMITATION =
-  "THIS IS: AZNet AZN-WP-0.1 — silent verification side-net. Hash stamps, a custodian garden of hash refs, a memorial ledger, and integrity refuse/isolate. FragGate LIVE only. StaticClock stamps time; TemporalLock-style receipt fields ride on ops. Garden / mesh ops require pairing token AND flag with azbrowser (both required). THIS IS NOT: a payload host; a CDN; a peer content server; analytics; ranking; an integrity-repair bypass; AZ-OS / Lumen / interface / hub. Hosted never stores payloads. Author: Aziel Eliab only.";
+  "THIS IS: AZNet AZN-WP-0.1 — silent verification side-net. Hash stamps, a custodian garden of hash refs, a memorial ledger, and integrity refuse/isolate. FragGate LIVE only. StaticClock stamps time; TemporalLock-style receipt fields ride on ops. Garden / mesh ops require pairing token AND flag with azbrowser (both required). Pairing is functional-order (order/token) — hash continuity / side-net, not payload hosting. Pairing ≠ tunnel. Public VPN auto-binds AZVPN as a sibling Softwares (not this product). THIS IS NOT: a payload host; a CDN; a peer content server; a VPN product; a tunnel; analytics; ranking; an integrity-repair bypass; AZ-OS / Lumen / interface / hub; a merge with AZBrowser. Hosted never stores payloads. Author: Aziel Eliab only.";
 
 export const GARDEN_OPS = Object.freeze([
   "garden_list",
@@ -170,8 +174,18 @@ export function inspectPair(payload) {
     flag_present,
     flag_ok,
     peer: PAIR_PEER,
+    peer_name: "AZBrowser",
     pair_flag_required: PAIR_FLAG,
     both_required: true,
+    kind: PAIR_KIND,
+    pairing: "order/token",
+    hash_continuity: true,
+    side_net: true,
+    payload_host: false,
+    tunnel: false,
+    vpn: false,
+    products_merged: false,
+    note: PAIR_NOTE,
   };
 }
 
@@ -345,16 +359,43 @@ function isolateRef(row, reason) {
   return row;
 }
 
-export function pairStatus(payload) {
+export async function pairStatus(payload) {
   const pair = inspectPair(payload);
+  const { ensureDefaultVpnSession, vpnArmed, vpnAutoCite } = await import("../../azvpn-auto.js");
+  const src = payload && typeof payload === "object" ? payload : {};
+  const shouldEnsure = pair.paired === true || vpnArmed(src);
+  let vpn_auto = vpnAutoCite({ open: shouldEnsure });
+  let vpn_session = null;
+  if (shouldEnsure) {
+    const auto = await ensureDefaultVpnSession(src);
+    vpn_auto = auto && auto.vpn_auto ? auto.vpn_auto : vpn_auto;
+    vpn_session = auto && auto.ok ? auto.session : auto;
+  }
   return baseResult({
     op: "pair_status",
     code: pair.paired ? "AZN-OK" : "AZN-PAIR-MISSING",
     pair,
+    pair_state: pair.paired ? "paired" : "unpaired",
+    functional_order: true,
+    peer: PAIR_PEER,
+    peer_name: "AZBrowser",
+    pairing_kind: PAIR_KIND,
+    pairing: "order/token",
+    hash_continuity: true,
+    side_net: true,
+    payload_hosting: false,
+    tunnel: false,
+    vpn: false,
+    public_vpn: true,
+    default_vpn_backend: "azvpn",
+    auto_use: true,
+    vpn_auto,
+    vpn_session,
+    products_merged: false,
     garden_unlocked: pair.paired,
     note: pair.paired
-      ? "AZBrowser pair present (token + flag). Garden / memorial ops are unlocked."
-      : "AZBrowser pair missing. Garden / mesh ops refuse until both token and flag are present.",
+      ? "AZBrowser functional-order pair present (token + flag). Garden / memorial ops are unlocked. Order/token pairing only — hash continuity / side-net. Pairing ≠ tunnel. Public VPN auto-binds AZVPN."
+      : "AZBrowser functional-order pair missing. Garden / mesh ops refuse until both token and flag are present. Order/token pairing only — hash continuity / side-net. Pairing ≠ tunnel. Public VPN auto-binds AZVPN when the pair is present or vpn is armed.",
   });
 }
 
@@ -687,6 +728,10 @@ export function aznetHealth() {
     pair_peer: PAIR_PEER,
     pair_flag_required: PAIR_FLAG,
     both_required: true,
+    pairing_kind: PAIR_KIND,
+    pairing: "order/token",
+    tunnel: false,
+    vpn: false,
     garden_count: memory.garden.length,
     memorial_count: memory.memorials.length,
     isolated_count: memory.isolated.length,
@@ -709,7 +754,7 @@ AZNet (AZN-WP-0.1) is the silent verification side-net: hash stamps, a custodian
 
 Live ops: \`health\`, \`pair_status\`, \`garden_list\`, \`stamp\`, \`verify_hash\`, \`memorial_list\`, \`memorial_append\` (terminal only), \`receipt_verify\`, \`skill\`.
 
-Garden / mesh ops require **pairing token AND flag with azbrowser** (both required). Missing pair refuses.
+Garden / mesh ops require **pairing token AND flag with azbrowser** (both required). Missing pair refuses. \`pair_status\` (alias \`pair\`) reports functional-order pair state — order/token only, hash continuity / side-net. **Pairing ≠ tunnel.** Public VPN auto-binds **AZVPN**. Products stay separate.
 
 **Never hosts payloads.** payload_host / serve_content_for_peer / analytics / ranking / repair_integrity_bypass / interface / lumen / hub stay **stub**.
 

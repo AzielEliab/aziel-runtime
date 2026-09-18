@@ -28,6 +28,10 @@ export const CATALOG_ALIASES = {
   "lamb-lens": "azbrowser",
   lamb_lens: "azbrowser",
   "az-net": "aznet",
+  "az-vpn": "azvpn",
+  az_vpn: "azvpn",
+  tunnelconcentrator: "azvpn",
+  "tunnel-concentrator": "azvpn",
   "az.net": "aznet",
   "azn-wp": "aznet",
   "azn-wp-0.1": "aznet",
@@ -151,6 +155,7 @@ export const VERSIONS = {
   zkattest: "0.1.0",
   mmconsensus: "0.1.0",
   toolbench: "0.1.0",
+  azvpn: "0.1.0",
 };
 
 /**
@@ -230,6 +235,7 @@ export const FIRST_TIME_DEPOSIT_SLUGS = [
   "zkattest",
   "mmconsensus",
   "toolbench",
+  "azvpn",
 ];
 
 export const ZENODO_AUDIT = {

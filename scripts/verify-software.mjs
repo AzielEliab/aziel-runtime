@@ -230,6 +230,7 @@ assert.deepEqual(body.tab_placement_slugs, [
   "zkattest",
   "mmconsensus",
   "toolbench",
+  "azvpn",
 ]);
 assert.match(body.count_note, /placements/);
 assert.match(body.count_note, /software_count is 33/);

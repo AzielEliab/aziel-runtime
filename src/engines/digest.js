@@ -52,6 +52,7 @@ export const ENGINE_ARTIFACTS = {
   zkattest: ["zkattest/engine.js"],
   mmconsensus: ["mmconsensus/engine.js"],
   toolbench: ["toolbench/engine.js"],
+  azvpn: ["azvpn/engine.js"],
 };
 
 /**
@@ -87,8 +88,8 @@ export const ENGINE_DIGESTS = {
   "azieltether": "adb57573ee23e7c97567fc05f916f1fd65f2265128bd9ec3d1dca08e47c2d791",
   "peacelock": "291437f64ba15338d6358e6d2e657870619b19133430be3574d458b8db469a66",
   "azmail": "830f4a545b6ef223ec943de8ab0bbba5a5b9667630de6b552567c3f7253f1207",
-  "azbrowser": "6f33efe8a0ebfd4118b2d57946ab2f8512ccf9e878a083068710e39a4a2546fe",
-  "aznet": "eb02566041f2fa48f9b49be359732737860382052666de7df1062baf808e7d88",
+  "azbrowser": "211553208f6536826fcd5c49c844b2aa21a724ea8ac81ac6a99bdb45ea84b843",
+  "aznet": "5af55140c2565d4258e44a8f67bbed0d8dc16ed689245f24e459db515dbddf21",
   "azhub": "dc8848353c0db397b9b0503446ad8dcb14212162776b24278071559bd2e83d81",
   "azinterface": "56d43728d2848503fdca946822de43997b62480a1fc4918f979279e15f5431ef",
   "aziel-corpus": "87899a199a9d5bc990c8bc2480bb27643a699e008702668c7f020986a7657f10",
@@ -99,6 +100,7 @@ export const ENGINE_DIGESTS = {
   "zkattest": "bb3831ed980be81dce15fda1dbb471a7458c91feb907a410a86173003df1c84a",
   "mmconsensus": "9624f144b1eacfc11cf86fe45ed83acb6f65fa324629668510c55f1fcabe6fe7",
   "toolbench": "79f5b8197d82be30125b92dd337c594b159360f509b09e75e3b8222dedbbecde",
+  "azvpn": "c79b3feaf8023d6e01a93e90eb473b0b9a02ea2a211d597aaa00c1672947aab5",
 };
 
 export function trueEngineSlugs() {

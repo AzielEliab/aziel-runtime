@@ -143,6 +143,7 @@ import {
 } from "./packed-catalog.js";
 import { RuntimeSession } from "./session-do.js";
 import { ChainWriter } from "./chainlock/writer-do.js";
+import { TunnelHub } from "./tunnel-hub-do.js";
 import { storeFor } from "./chainlock/store.js";
 import { runWithLedgerStore } from "./fraggate/ledger.js";
 import { callSessionTool, handleSessionRequest, sessionMcpTools } from "./session-http.js";
@@ -312,7 +313,7 @@ import {
 } from "./software-catalog.js";
 import { crossMapFields } from "./cross-map.js";
 
-export { RuntimeSession, ChainWriter, RateQuota };
+export { RuntimeSession, ChainWriter, RateQuota, TunnelHub };
 
 const CATALOG_HOST = "https://aziel-runtime.vibelock.workers.dev";
 const PROTOCOL = MCP_PROTOCOL_PREFERRED;
@@ -809,6 +810,7 @@ const PRODUCTS_RAW = [
       { op: "doctor", method: "GET", summary: "Richer liveness: sandbox/Browser Rendering status. Chromium stays DEFERRED unbound." },
       { op: "airlock", method: "POST", summary: "UI alias of airlock_ingest. Same FragGate backend as the Worker UI button." },
       { op: "home", method: "POST", summary: "UI alias of health. Same FragGate backend as the Worker UI button." },
+      { op: "vpn", method: "POST", summary: "Auto-bind AZVPN concentrator session. AZBrowser is not a VPN product. HTTPS/WS REAL; WireGuard/OpenVPN SLOT." },
     ],
     example: { q: "ethical web principles" },
     banner:
@@ -820,7 +822,7 @@ const PRODUCTS_RAW = [
     worker: "aznet-download-tracker",
     github: "https://github.com/AzielEliab/aznet",
     ops: [
-      { op: "pair_status", method: "POST", summary: "Report AZBrowser pairing token + flag. Both required for garden / mesh ops." },
+      { op: "pair_status", method: "POST", summary: "Report functional-order AZBrowser pair state (order/token; hash continuity / side-net). Pairing ≠ tunnel. Both token and flag required for garden / mesh ops." },
       { op: "garden_list", method: "POST", summary: "List the custodian garden of hash refs. Refuses without AZBrowser pair. Never hosts payloads." },
       { op: "stamp", method: "POST", summary: "Stamp a hash ref into the garden. Hashes then discards bytes. Never hosts payloads." },
       { op: "verify_hash", method: "POST", summary: "Verify a garden hash ref. Integrity mismatch isolates. Never hosts payloads." },
@@ -828,7 +830,7 @@ const PRODUCTS_RAW = [
       { op: "memorial_append", method: "POST", summary: "Append a terminal memorial for a garden hash. No rewrite. Requires AZBrowser pair." },
       { op: "receipt_verify", method: "POST", summary: "Verify TemporalLock-style receipt + StaticClock timeslate fields." },
       { op: "doctor", method: "POST", summary: "UI alias of health. Same FragGate backend as the Worker UI button." },
-      { op: "pair", method: "POST", summary: "UI alias of pair_status. Reports pairing; does not invent unlock." },
+      { op: "pair", method: "POST", summary: "UI alias of pair_status. Reports functional-order pairing; does not invent a tunnel or unlock." },
     ],
     example: { pair_token: "aznet-azbrowser-pair", pair_flag: "azbrowser", hash: "0".repeat(64) },
     banner:
@@ -1056,6 +1058,28 @@ const PRODUCTS_RAW = [
     banner:
       "ToolBench (TOOLBENCH-0.1): synthetic FragGate / Sentinel / TDQS refuse playground. Self-test ≠ third-party lab. Not . In-runtime placement. FragGate only. Author Aziel Eliab.",
   },
+  {
+    slug: "azvpn",
+    name: "AZVPN",
+    github: "https://github.com/AzielEliab/aziel-runtime",
+    ops: [
+      { op: "doctor", method: "GET", summary: "Richer liveness: REAL/SLOT tunnel matrix. Does not increment download KV." },
+      { op: "describe", method: "POST", summary: "Public VPN concentrator cite. HTTPS/WS REAL; WireGuard/OpenVPN SLOT." },
+      { op: "open", method: "POST", summary: "Open an application-layer HTTPS/WS tunnel session with a receipt." },
+      { op: "status", method: "POST", summary: "Read one concentrator session. Not a kernel VPN status." },
+      { op: "list", method: "POST", summary: "List concentrator sessions." },
+      { op: "close", method: "POST", summary: "Close a concentrator session." },
+      { op: "send", method: "POST", summary: "Queue an encrypted envelope on the session inbox." },
+      { op: "recv", method: "POST", summary: "Pull queued ciphertext envelopes." },
+      { op: "pull", method: "POST", summary: "Alias of recv." },
+      { op: "peers", method: "POST", summary: "Peer routing table for open sessions." },
+      { op: "attach", method: "POST", summary: "Mint a WS attach ticket for the same inbox. Not a second door." },
+      { op: "limitation", method: "GET", summary: "Honesty labels: HTTPS/WS REAL; WireGuard/OpenVPN/L3 SLOT." },
+    ],
+    example: { kind: "https_ws", peer: "peer-a" },
+    banner:
+      "AZVPN (AZVPN-CONCENTRATOR-1.0): automatic public VPN / tunnel concentrator. HTTPS/WS REAL. WireGuard / OpenVPN / L3 stay SLOT. default_vpn_backend azvpn; auto_use true. Separate software from AZNet and AZBrowser (same FragGate door). In-runtime placement (no invented product Worker). Author Aziel Eliab.",
+  },
 ];
 
 
@@ -1088,7 +1112,7 @@ const ONE_LINE = {
   azieltether: "AzielTether 0.1.0: central × decentral survival mesh for downloaded Aziel software. Prefer-central; peer sync when down; public HTTPS stays mesh-free. Not a VPN. Author Aziel Eliab.",
   peacelock: "Chosen silence / chosen inaction as a first-class receipt (PL-WP-0.1).",
   azmail: "AZMail (APP 1.0): advisory airlock + local isolate mailbox + anonymous mesh (default off). Not a full internet MTA. FragGate only.",
-  azbrowser: "AZBrowser (AZB-1.0): Lamb Lens ethical research browser. Cite; refuse harvest; no invented visits. FragGate only. AZNet is a separate software (order/token pairing only).",
+  azbrowser: "AZBrowser (AZB-1.0): Lamb Lens ethical research browser. Cite; refuse harvest; no invented visits. FragGate only. pairs with AZNet (order/token). AZNet is a separate software (order/token pairing only).",
   aznet: "AZNet (AZN-WP-0.1): silent verification side-net. Hash continuity without hosting. Separate software; functional-order pair with AZBrowser.",
   azhub: "AZHub (AIH-WP-1.0): Blank Key / neutral spatial container. Does not interpret. FragGate only. AZInterface is sibling software under the same FragGate door.",
   azinterface: "AZInterface (AIH-WP-1.0): custodial operating environment. Pre-locked page cycles OFF/integrity/ON/FULL SHUTDOWN/MEMORIAL. FragGate only. AZHub is sibling software under the same FragGate door.",
@@ -1100,6 +1124,7 @@ const ONE_LINE = {
   zkattest: "ZKAttest: hash-commitment attest without returning the witness. Not Groth16/SNARK. FragGate only.",
   mmconsensus: "MMConsensus: structured consensus over posted opinions. Adjacent to DecisionGATE. No live model calls. FragGate only.",
   toolbench: "ToolBench: synthetic FragGate refuse playground. Self-test ≠ third-party lab. Not . FragGate only.",
+  azvpn: "AZVPN: automatic public VPN concentrator. HTTPS/FragGate envelopes REAL. WireGuard/OpenVPN/L3 SLOT. default_vpn_backend azvpn; auto_use true. FragGate only. Separate from AZNet and AZBrowser.",
 };
 
 function ensureCatalogOps(p) {
@@ -1475,12 +1500,13 @@ function llmsTxt(origin) {
     `ZKAttest: FragGate only. POST /v1/fraggate/call { slug: "zkattest", op }. Hash-commitment attest (ZK-ATTEST-0.1). commit / attest / open / verify are REAL SHA-256 commitments. groth16 / snark / stark / plonk stay FG-STUB. Not a SNARK. In-runtime placement (no invented product Worker). Domain stays null (receipt-attest placement).`,
     `MMConsensus: FragGate only. POST /v1/fraggate/call { slug: "mmconsensus", op }. Posted-opinion tally (MM-CONSENSUS-0.1). Adjacent to DecisionGATE — not a replacement hop. live_model_call stays FG-STUB. In-runtime placement. Domain stays null (consensus-review placement).`,
     `ToolBench: FragGate only. POST /v1/fraggate/call { slug: "toolbench", op }. Synthetic FragGate refuse playground (TOOLBENCH-0.1). suite / run_case classify against the live door table.  stays FG-STUB. Self-test ≠ third-party lab. In-runtime placement. Domain stays null (tool-playground placement).`,
+    `AZVPN: FragGate only. POST /v1/fraggate/call { slug: "azvpn", op }. Automatic public VPN concentrator (AZVPN-CONCENTRATOR-1.0). default_vpn_backend azvpn; auto_use true — mesh / AZNet pair / session / AZBrowser auto-bind without naming software=azvpn. open/send/recv/close are REAL application-layer HTTPS/WS sessions (worker_terminates_tunnels:true). wireguard / openvpn / l3_exit stay FG-STUB (SLOT). Not a kernel UDP concentrator. In-runtime placement (no invented product Worker). Domain stays null (tunnel-concentrator placement). Separate from AZNet and AZBrowser.`,
     `Edge MCP gateway: POST /mcp is THE public MCP surface. It terminates into FragGate list → describe → call. Not a second door. No backdoor exec. POST /p/{slug}/{op} stays proxy-not-exec.`,
     `Session isolate sandbox: runtime_session_* policy may set max_ops / wipe_on_close / allow_slugs. Isolate class is worker-do. QEMU / KVM / guest VM policy keys refuse guest_vm_refused. isolate_is_the_jail stays true.`,
     `EmbryoLock: FragGate only. POST /v1/fraggate/call { slug: "embryolock", op }. True in-process engine (engine_digest). Vault/Custody with ARK. LIVE_OPS health/skill/doctor/verify-hash/policy/limitation. Wipe/scorch/unlock-after-fail stay FG-STUB — Never execute on the public mesh. worker_home https://embryolock-download-tracker.vibelock.workers.dev/.`,
     `Locked MASTER-33 pipeline: ${LOCKED_STRIP}. FragGate is THE single door. Lamb Lens is fabric after FragGate. Domains are isolation labels, not doors. LambGate is not a hop. FoldLock fld3-wire is internal to AZPIPE. Illegal reorder is refused. No rollback. Cite: GET ${base}/v1/azpipe/arch (same payload as GET /v1/fraggate pipeline; not a Softwares-tab door).`,
     `True-engine slugs: ${honestyFields(PRODUCTS.map((p) => p.slug)).true_engine_slugs.join(", ")}`,
-    `Proxy /p/{slug}/{op} is not exec. Hosted AZAI is not the local blend. VPN/hop mesh is not claimed on this public surface.`,
+    `Proxy /p/{slug}/{op} is not exec. Hosted AZAI is not the local blend. Public VPN auto-binds AZVPN (HTTPS/WS REAL; WireGuard/OpenVPN SLOT). GodLock / MirageGrid hop stay stub.`,
     `Local blends: azai serve · forgereceipts ui · azos ui`,
     `Counted tarball: none (Worker session + in-repo CLI)`,
     `Host: ${base}/`,
@@ -3357,6 +3383,11 @@ async function handleRequest(request, env, ctx) {
 
     if (url.pathname === "/openapi.json" && request.method === "GET") {
       return json(await combinedOpenApi(request, env), 200, extra("/openapi.json"));
+    }
+
+    if (url.pathname === "/v1/azvpn/ws") {
+      const { attachWebSocket } = await import("./engines/azvpn/engine.js");
+      return attachWebSocket(request);
     }
 
     if (url.pathname === "/v1/mesh" || url.pathname.startsWith("/v1/mesh/")) {

@@ -1040,6 +1040,14 @@ export const SUITE_DESIGNS = Object.freeze([
     status: "live",
     kind: "law",
   },
+  {
+    id: "AZVPN-CONCENTRATOR-1.0",
+    file: "AZVPN-CONCENTRATOR-1.0.md",
+    one_line:
+      "AZVPN automatic public VPN concentrator — HTTPS/FragGate envelopes REAL; WireGuard/OpenVPN/L3 SLOT; default_vpn_backend azvpn; auto_use true; worker_terminates_tunnels true for app-layer only",
+    status: "live",
+    kind: "software",
+  },
 ]);
 
 export function designGithubUrl(file) {

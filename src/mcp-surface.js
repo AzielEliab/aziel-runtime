@@ -106,7 +106,7 @@ export function mcpInitializeInstructions() {
     "1.6.7 adds AZNet (AZN-WP-0.1) as a door-live engine — silent verification side-net; never hosts payloads; AZBrowser pair required (functional order only; own Worker UI). " +
     "AZNet is reached only via fraggate_call / POST /v1/fraggate/call (former {slug}_{op} names still map through the door; not a side door). " +
     "1.6.6 adds AZBrowser (AZB-1.0) as a door-live engine — Lamb Lens ethical research browser: ethical_search + advisory navigate; cite; refuse harmful harvest; never invent visit results; not Chromium. AZNet is separate software (same door; order/token pairing only, not a shared Phase-1 UI). " +
-    "AZBrowser LIVE_OPS (ethical_search, lamb_lens_search, navigate, airlock_ingest, tab_open, tab_list, receipt_list, verify, receipt_verify, sandbox_status, sandbox_render, health, skill) are listed by fraggate_list and executed only via fraggate_call / POST /v1/fraggate/call — the same ops Worker UI buttons call. " +
+    "AZBrowser LIVE_OPS (ethical_search, lamb_lens_search, navigate, airlock_ingest, tab_open, tab_list, receipt_list, verify, receipt_verify, sandbox_status, sandbox_render, health, skill, vpn) are listed by fraggate_list and executed only via fraggate_call / POST /v1/fraggate/call — the same ops Worker UI buttons call. vpn auto-binds AZVPN. " +
     "1.6.5 adds AZMail (APP 1.0) as a door-live engine — anonymous mesh default off, advisory airlock; SMTP/deanonymize stay stub. " +
     "AZMail is reached only via fraggate_call / POST /v1/fraggate/call (former {slug}_{op} names still map through the door; not a side door). " +
     "1.6.4 adds PeaceLock (PL-WP-0.1) as a true in-process engine. " +
