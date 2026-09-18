@@ -282,6 +282,20 @@ assert.deepEqual(
   PRODUCTS.map((p) => p.slug).concat(WORKER_ONLY_PRODUCTS.map((p) => p.slug)).sort(),
 );
 assert.equal(body.software.length, softwareCopySlugs().length);
+{
+  const { SOFTWARE_FAQ_NAMES, softwaresFaqItems, ARK_ONE_LINE } = await import("../src/softwares-faq.js");
+  assert.deepEqual(Object.keys(SOFTWARE_FAQ_NAMES).sort(), softwareCopySlugs().sort());
+  const faqItems = softwaresFaqItems(origin);
+  assert.equal(faqItems.length, PRODUCTS.length);
+  const ark = faqItems.find((s) => s.slug === "ark");
+  assert.equal(ark.name, "The ARK");
+  assert.equal(ark.one_line, "Keep a local deniable vault; one phrase opens one vault.");
+  assert.equal(ark.one_line, ARK_ONE_LINE);
+  assert.equal(ark.one_line, SOFTWARE_COPY.ark.one_line);
+  assert.equal(ark.url, "https://ark-download-tracker.vibelock.workers.dev/");
+  assert.equal(ark.download_url, "https://ark-download-tracker.vibelock.workers.dev/download");
+  assert.ok(faqItems.every((s) => s.name && s.one_line && s.url));
+}
 assert.ok(
   body.software.every((s) => String(s.one_line || "").trim().length > 0),
   "every Softwares card has a non-empty one_line",
