@@ -36,6 +36,7 @@ import { dualSurfaceAgentHowTo, semanticBridgeSkillMarkdown } from "./semantic-b
 import { websiteDesignsField, websiteDesignsSkillMarkdown } from "./website-designs.js";
 import { COLD_MULTI_SHELF, shelvesSkillMarkdown } from "./cold-multi-shelf.js";
 import { BAN_SURVIVAL, survivalSkillMarkdown } from "./ban-survival.js";
+import { resolveCallingName, rewriteLiveCallingDisplay } from "./calling-name.js";
 import { LOCKED_STRIP } from "./azpipe.js";
 
 export const RUNTIME_VERSION = "2.0.0-rc1";
@@ -85,13 +86,14 @@ export const VERSION_HISTORY = [
 ];
 
 /** Single source of truth for health + runtime.json + ready — never diverge. */
-export function authoritySnapshot(productSlugs) {
+export function authoritySnapshot(productSlugs, env = {}) {
   const honesty = honestyFields(productSlugs || []);
+  const calling = resolveCallingName(env);
   return {
     ok: true,
-    product: "aziel-runtime",
-    name: "Aziel Runtime",
-    title: "Aziel Runtime",
+    product: calling.calling_slug,
+    name: calling.calling_name,
+    title: calling.calling_name,
     author: "Aziel Eliab",
     identity: "Aziel Eliab",
     version: RUNTIME_VERSION,
@@ -143,12 +145,13 @@ export function aliasesForSlug(slug) {
     .map(([alias]) => alias);
 }
 
-export function runtimeSkillMarkdown(origin, products) {
+export function runtimeSkillMarkdown(origin, products, env = {}) {
   const base = origin.replace(/\/$/, "");
   const n = products.length;
   const slugs = products.map((p) => p.slug).join(", ");
   const local = trueEngineSlugs().join(", ");
-  return `---
+  const calling = resolveCallingName(env);
+  return rewriteLiveCallingDisplay(`---
 name: Aziel Runtime
 description: >-
   Aziel Runtime is not merely an API orchestrator or software aggregator; it is a
@@ -461,7 +464,7 @@ GitHub: https://github.com/AzielEliab/aziel-runtime
 ${designsSkillMarkdown().trimEnd()}
 
 ${auditsSkillMarkdown().trimEnd()}
-`;
+`, calling);
 }
 
 function extraFraggate(products, extra = {}) {
@@ -489,7 +492,7 @@ export function runtimeManifest(origin, products, extra = {}) {
   const base = origin.replace(/\/$/, "");
   const slugs = products.map((p) => p.slug);
   const honesty = honestyFields(slugs);
-  const authority = authoritySnapshot(slugs);
+  const authority = authoritySnapshot(slugs, extra.env);
   const fraggate = extraFraggate(products, extra);
   return {
     ...authority,

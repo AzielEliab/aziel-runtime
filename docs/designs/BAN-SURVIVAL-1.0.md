@@ -260,28 +260,81 @@ collapse or downloads-stop flags; user-uploaded data marked
 ban). Empty metrics are not a ban. A CF/WAF rule that never reaches
 the isolate cannot be invented here.
 
-**Cascade / open-ended pool:** Whitestone AI → Bills → Runtime →
-Eliab Runtime → Potato Runtime → Elroi Runtime → Softwares-family
-`*-runtime` → endless random distinct names. No hard cap. No
-third-party trademarks (ChatGPT / Claude / Gemini / …).
+**Cascade / open-ended pool (never exhausts; no hard cap at 6):**
+1. Whitestone AI (`whitestone-ai`)
+2. Bills (`bills-runtime` as needed; display **Bills Runtime** when a
+   `*-runtime` form is required)
+3. Runtime (`runtime`)
+4. Eliab Runtime (`eliab-runtime`)
+5. Potato Runtime (`potato-runtime`)
+6. Elroi Runtime (`elroi-runtime`)
+7. Softwares-family `*-runtime` then endless distinct operator names
+   (`generateCallingName(n)` for any n). Random generation is also
+   allowed **alongside** the seeds (`generateRandomCallingName` /
+   `BAN_SURVIVAL_NAME_RANDOM`) so the pool never exhausts. The six
+   seeds are first, not a cap.
 
-**On trigger:** rewrite discovery metadata — OpenAPI `info.title`,
-MCP `serverInfo` name/title, server card, `/cite.json` `calling_name`,
-`/survival` `calling_name`, llms/ai survival block. Mesh nodes **pull**
-`*new name alert: <name>` from `GET /survival` (GET never enables; not
-a publish path). Old name may remain on cold shelves as history.
+No third-party trademarks (ChatGPT / Claude / Gemini / …).
 
-Hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk,
-hedidntjump.com) should pull `/survival` rather than hardcode. Hub
-rollout is a follow-on, not this repo.
+**Pipeline (trigger → alert → metadata rewrite → client rediscovery):**
+1. **Trigger** — honest ban / blacklist / impending-ban signal only
+   (`BAN_SURVIVAL_BLOCKED`, operator rotate, uses/traffic collapse,
+   downloads-stop, door block, user-uploaded data marked `implies_ban`).
+   Empty metrics are not a ban. Invented bans refuse `BAN-NO-INVENT-BAN`.
+2. **Ingest observe** — user-uploaded data goes through DecisionGATE
+   `check` + AKM `observe` (`belief_is_not_truth`; append-only; no
+   `memory_delete`). Unmarked uploads stay belief, not a rotate trigger.
+3. **Mesh alert** — share `*new name alert: <name>` across existing
+   live mesh nodes on `GET /v1/mesh`, `GET /v1/mesh/status`,
+   `GET /v1/mesh/nodes`, and `GET /survival`. GET never enables. Not
+   `mesh_broadcast` (hash-only; never a publish path).
+4. **Metadata rewrite** — on trigger, rewrite **all live discovery
+   metadata** so the banned calling identity is not the live call
+   target: OpenAPI `info` (title/summary/description lead), MCP
+   `serverInfo` name/title/instructions, server card, `/cite.json`
+   product/slug/how_to_cite/bibtex/apa, `/survival` live product,
+   `/llms.txt` `/ai.txt` product line, `/who-is` and `/person.jsonld`
+   calling strings (Person identity stays Aziel Eliab), `/v1/software`
+   suite vanity + update manifest, `/v1/runtime.json` `/v1/health`
+   `/v1/skill` labels, PWA manifest, hub-facing runtime labels.
+   Historical changelog and GitHub repo URLs stay factual. Identity
+   **Aziel Eliab** unchanged. ChainLock tips and AKM history do **not**
+   rewrite. Random generation is allowed after **and alongside** the
+   seeded cascade (`BAN_SURVIVAL_NAME_RANDOM`).
+5. **Client rediscovery** — major AI/LLM clients pick up the fresh
+   name on those surfaces and still **call** the same FragGate routes
+   (`POST /mcp`, `POST /v1/fraggate/call`). Not a second door.
+
+Old name may remain on cold shelves as history.
+
+Hubs should pull `/survival` SoT (`live_doors` + `calling_name`
+alert / `live_product`) rather than hardcode. Hub rollout is a
+follow-on, not this repo. Surfaces that must consume that pull:
+
+- **ae** azieleliab.com — `/runtime` Softwares tab + door labels;
+  `/cite.json` `/llms.txt` `/ai.txt`; `/who-is` `/person.jsonld`;
+  homepage / MCP titles that advertise the suite calling name.
+- **corpus** azielcorpuslibrary.net — same `/runtime` + cite/llms/who-is
+  + library catalog copy that names the live suite.
+- **godlock** godlock.uk — `/runtime` + cite/llms/who-is. GodLock is a
+  product name, not identity — only the suite calling name rotates.
+- **HDJ** hedidntjump.com — cite/llms/who-is/person and sister-product
+  copy. No `/runtime` exec binding; still pull `/survival`.
 
 6f. Platforms (all LIVE)
-Windows, Mac, Linux, Android, and iPhone are **LIVE** on the same
-public Worker: browser, installable PWA (`GET /manifest.webmanifest`),
+Windows (`windows`), Mac (`mac`), Linux (`linux`), Android
+(`android`), and iPhone (`ios`) are **LIVE** on the same public
+Worker: browser, installable PWA (`GET /manifest.webmanifest`),
 Worker fronts (`/survival` `/mcp` `/runtime`), Softwares `/download`,
-and MCP/OpenAPI. This is not five native App Store binaries
-(`native_app_store: false`). Each OS can reach survival doors,
-calling-name discovery, Cap-7 shuffle ping, and Softwares download/run.
+and MCP/OpenAPI. Dual-surface on each OS: agents MCP/OpenAPI; humans
+Worker UI + PWA + counted download. This is not five native App Store
+binaries (`native_app_store: false`). Do **not** mark any of these five
+as SLOT. `GET /platforms` cites `live: true` only because those Worker
+paths exist. Each OS can reach survival doors,
+calling-name discovery, Cap-7 in-process shuffle ping (public
+workers.dev shuffle stays SLOT), and Softwares download/run. Machine
+matrix: `/survival` `platforms`, `/v1/software` `platforms`,
+`/v1/update/manifest` `platforms`.
 
 7. What this is not
 - Not a Softwares-tab product. Do not add slug `ban-survival` or `survival`.
@@ -335,9 +388,12 @@ calling-name discovery, Cap-7 shuffle ping, and Softwares download/run.
   `BAN-NO-AZNET-PAYLOAD-HOST`. `radio_phy` false.
 - `akm_memory.belief_is_not_truth` is true. `memory_get` append-only.
   `memory_resolve` additive. stub_ops stay refused.
-- Calling-name rotation is discovery-only. Trademark names refuse
+- Calling-name rotation is discovery-only. Pipeline is trigger → mesh
+  alert → metadata rewrite → client rediscovery. Trademark names refuse
   `BAN-NO-TRADEMARK-NAME`. History rewrite refuses
   `BAN-NO-NAME-HISTORY-REWRITE`. Invented bans refuse `BAN-NO-INVENT-BAN`.
+  Unmarked ingest does not rotate. Live mesh `calling_name_alert` is
+  `*new name alert: <name>` when rotated (GET pull, not publish).
 - Claiming a banned host is LIVE refuses `BAN-NO-LIE`.
 - Treating shelves as a live exec door refuses `BAN-NO-SHELF-ONLY`.
 - Dropping shelves / claiming the shelf plan failed refuses `BAN-NO-DOOR-ONLY`.

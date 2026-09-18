@@ -105,9 +105,10 @@ export function mcpServerCard(origin, env = {}) {
     name: calling.calling_slug,
     title: calling.calling_name,
     version: RUNTIME_VERSION,
-    description:
-      "NodeMesh'd MCP Softwares suite for digital forensics and auditing — not an API aggregator. FragGate door over streamable HTTP JSON-RPC.",
-    abstract: RUNTIME_ABSTRACT,
+    description: calling.rotated
+      ? `${calling.calling_name} — node-meshed MCP Softwares suite for digital forensics and auditing — not an API aggregator. FragGate door over streamable HTTP JSON-RPC.`
+      : "NodeMesh'd MCP Softwares suite for digital forensics and auditing — not an API aggregator. FragGate door over streamable HTTP JSON-RPC.",
+    abstract: calling.rotated ? RUNTIME_ABSTRACT.replace(/\bAziel Runtime\b/g, calling.calling_name) : RUNTIME_ABSTRACT,
     author: AUTHOR_NAME,
     identity: AUTHOR_NAME,
     homepage: RUNTIME_HUB_URL,
@@ -160,15 +161,16 @@ export function mcpServerCard(origin, env = {}) {
  * RFC 9728 Protected Resource Metadata for a public MCP.
  * authorization_servers is empty — there is no IdP. Do not invent one.
  */
-export function oauthProtectedResource(origin) {
+export function oauthProtectedResource(origin, env = {}) {
   const resource = mcpEndpointUrl(origin);
   const base = String(origin || LIVE_MCP_ORIGIN).replace(/\/$/, "") || LIVE_MCP_ORIGIN;
+  const calling = resolveCallingName(env);
   return {
     resource,
     authorization_servers: [],
     bearer_methods_supported: [],
     scopes_supported: [],
-    resource_name: PRODUCT_SLUG,
+    resource_name: calling.calling_slug,
     resource_documentation: resource,
     auth: "none (public)",
     note: "Public MCP. No authorization server. GET/POST /mcp require no bearer. Do not invent an OAuth IdP.",

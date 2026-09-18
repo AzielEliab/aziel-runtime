@@ -17,12 +17,24 @@ import {
   siteForMirageNode,
 } from "../src/cap7-shuffle.js";
 import {
+  CALLING_NAME_HARD_CAP,
+  CALLING_NAME_PIPELINE,
   CALLING_NAME_SEEDS,
+  billsRuntimeAsNeeded,
   generateCallingName,
+  generateRandomCallingName,
+  ingestBanSignal,
+  meshCallingNameAlert,
   nameAlertText,
   resolveCallingName,
+  rewriteLiveCallingDisplay,
   slugifyCallingName,
 } from "../src/calling-name.js";
+import {
+  LIVE_PLATFORM_PATHS,
+  PLATFORM_REFUSE,
+  judgePlatformSlot,
+} from "../src/platforms.js";
 import {
   AKM_MEMORY_LAW,
   BAN_SURVIVAL,
@@ -103,6 +115,10 @@ assert.match(paper, /distinct mesh names/);
 assert.match(paper, /Calling-name rotation/);
 assert.match(paper, /\*new name alert:/);
 assert.match(paper, /Whitestone AI/);
+assert.match(paper, /trigger → mesh alert → metadata rewrite → client rediscovery|Pipeline \(trigger/);
+assert.match(paper, /DecisionGATE/);
+assert.match(paper, /implies_ban/);
+assert.doesNotMatch(paper, /failed plan/i);
 assert.match(paper, /Platforms \(all LIVE\)/);
 assert.match(clientUpdate, /Calling-name rotation/);
 assert.match(clientUpdate, /Windows/);
@@ -222,12 +238,37 @@ assert.equal(judgeMemoryAsTruth({ belief_is_truth: true }).reason, REFUSE.NO_MEM
 assert.equal(judgeMemoryRewrite({ delete_history: true }).reason, REFUSE.NO_MEMORY_REWRITE);
 assert.equal(generateCallingName(0), "Whitestone AI");
 assert.equal(generateCallingName(1), "Bills");
+assert.equal(generateCallingName(2), "Runtime");
+assert.equal(generateCallingName(3), "Eliab Runtime");
+assert.equal(generateCallingName(4), "Potato Runtime");
 assert.equal(generateCallingName(5), "Elroi Runtime");
 assert.equal(CALLING_NAME_SEEDS.length, 6);
+assert.equal(CALLING_NAME_HARD_CAP, false);
 assert.ok(generateCallingName(20).endsWith("Runtime"));
+assert.ok(generateCallingName(200).endsWith("Runtime"));
 assert.notEqual(generateCallingName(40, "a"), generateCallingName(41, "a"));
+const endless = new Set();
+for (let i = 0; i < 80; i++) endless.add(generateCallingName(i, "pool"));
+assert.equal(endless.size, 80);
 assert.equal(nameAlertText("Whitestone AI"), "*new name alert: Whitestone AI");
+assert.equal(slugifyCallingName("Bills"), "bills-runtime");
+assert.equal(slugifyCallingName("Bills Runtime"), "bills-runtime");
 assert.equal(slugifyCallingName("Eliab Runtime"), "eliab-runtime");
+assert.equal(slugifyCallingName("Potato Runtime"), "potato-runtime");
+assert.equal(slugifyCallingName("Elroi Runtime"), "elroi-runtime");
+assert.equal(billsRuntimeAsNeeded("Bills", false), "Bills");
+assert.equal(billsRuntimeAsNeeded("Bills", true), "Bills Runtime");
+const rndA = generateRandomCallingName("pool", "a");
+const rndB = generateRandomCallingName("pool", "b");
+assert.ok(rndA.endsWith("Runtime"));
+assert.notEqual(rndA, rndB);
+assert.equal(CALLING_NAME_SEEDS.includes(rndA), false);
+const randomRotated = resolveCallingName({ BAN_SURVIVAL_NAME_ROTATE: "1", BAN_SURVIVAL_NAME_RANDOM: "1", BAN_SURVIVAL_NAME_SALT: "x" });
+assert.equal(randomRotated.rotated, true);
+assert.ok(randomRotated.calling_name.endsWith("Runtime"));
+assert.equal(rewriteLiveCallingDisplay("Aziel Runtime is not merely", randomRotated).startsWith("Aziel Runtime"), false);
+assert.equal(resolveCallingName({ BAN_SURVIVAL_NAME_ROTATE: "1", BAN_SURVIVAL_NAME_GEN: "1" }).calling_slug, "bills-runtime");
+assert.equal(resolveCallingName({ BAN_SURVIVAL_NAME_ROTATE: "1", BAN_SURVIVAL_NAME_GEN: "1", BAN_SURVIVAL_BILLS_RUNTIME: "1" }).calling_name, "Bills Runtime");
 const idleName = resolveCallingName({});
 assert.equal(idleName.rotated, false);
 assert.equal(idleName.calling_name, "Aziel Runtime");
@@ -243,6 +284,26 @@ assert.equal(ingest.rotated, true);
 const invented = resolveCallingName({}, { invent_ban: true });
 assert.equal(invented.rotated, false);
 assert.equal(invented.invented_ban, true);
+assert.equal(resolveCallingName({}, { uses_collapse: true }).rotated, true);
+assert.equal(resolveCallingName({}, { downloads_crater: true }).rotated, true);
+assert.deepEqual(CALLING_NAME_PIPELINE, ["trigger", "mesh_alert", "metadata_rewrite", "client_rediscovery"]);
+assert.equal(meshCallingNameAlert({}).alert, null);
+assert.equal(meshCallingNameAlert({ BAN_SURVIVAL_NAME_ROTATE: "1", BAN_SURVIVAL_NAME_GEN: "0" }).alert, "*new name alert: Whitestone AI");
+const ingestMarked = ingestBanSignal({ implies_ban: true, fact: "Door listings vanished from two LLM directories." }, {});
+assert.equal(ingestMarked.ok, true);
+assert.equal(ingestMarked.rotate, true);
+assert.equal(ingestMarked.invented_ban, false);
+assert.equal(ingestMarked.akm.belief_is_not_truth, true);
+assert.equal(ingestMarked.akm.memory_delete, false);
+assert.equal(ingestMarked.decisiongate.slug, "decisiongate");
+assert.equal(ingestMarked.calling_name.calling_name, "Whitestone AI");
+const ingestUnmarked = ingestBanSignal({ fact: "Traffic looks quiet today." }, {});
+assert.equal(ingestUnmarked.ok, true);
+assert.equal(ingestUnmarked.rotate, false);
+assert.equal(ingestUnmarked.calling_name.calling_name, "Aziel Runtime");
+const ingestInvent = ingestBanSignal({ invent_ban: true }, {});
+assert.equal(ingestInvent.ok, false);
+assert.equal(ingestInvent.reason, REFUSE.NO_INVENT_BAN);
 
 assert.deepEqual(parseBlockedRoutes({ BAN_SURVIVAL_BLOCKED: "workers-dev:/mcp,library-runtime" }), [
   { id: "workers-dev", path: "/mcp" },
@@ -299,9 +360,20 @@ assert.equal(cite.akm_memory.memory_delete, false);
 assert.ok(cite.akm_memory.stub_ops.includes("delete_history"));
 assert.equal(cite.calling_name.rotated, false);
 assert.equal(cite.calling_name.calling_name, "Aziel Runtime");
+assert.deepEqual(cite.calling_name.pipeline, CALLING_NAME_PIPELINE);
+assert.equal(cite.calling_name.call_routes.door, "fraggate");
+assert.equal(cite.calling_name.call_routes.second_door, false);
 assert.equal(cite.platforms.all_live, true);
+assert.deepEqual(cite.platforms.slot_os, []);
+assert.equal(cite.platforms.worker_live, true);
+assert.equal(cite.platforms.calling_name_live, true);
 assert.ok(cite.platforms.platforms.every((p) => p.live === true && p.native_app_store === false));
+assert.ok(cite.platforms.platforms.every((p) => p.survival === true && p.calling_name === true && p.cap7_shuffle_in_process === true));
+assert.ok(cite.platforms.platforms.every((p) => p.dual_surface.agents === "mcp_openapi"));
 assert.deepEqual(cite.platforms.platforms.map((p) => p.id), ["windows", "mac", "linux", "android", "ios"]);
+assert.equal(judgePlatformSlot({ id: "ios", slot: true }).reason, PLATFORM_REFUSE.SLOT_OS);
+assert.equal(judgePlatformSlot({ id: "android", live: false }).accept, false);
+assert.equal(judgePlatformSlot({ id: "windows" }).accept, true);
 assert.match(cite.survival, /\/survival$/);
 assert.ok(cite.live_doors.every((d) => d.status === "live"));
 assert.deepEqual(cite.exec_origins, namedExecOrigins());
@@ -382,6 +454,12 @@ assert.equal(body.cap7_aznet.shuffle.layout, "live");
 assert.equal(body.akm_memory.belief_is_not_truth, true);
 assert.equal(body.platforms.all_live, true);
 assert.equal(body.platforms.platforms.length, 5);
+assert.deepEqual(body.hub_follow_on.map((h) => h.id), ["ae", "corpus", "godlock", "hdj"]);
+assert.equal(body.hub_follow_on_pull.sot, "/survival");
+assert.equal(body.hub_follow_on_pull.hardcode, false);
+assert.ok(body.hub_follow_on_pull.fields.includes("live_doors"));
+assert.ok(body.hub_follow_on_pull.fields.includes("calling_name.alert"));
+assert.equal(body.calling_name.hub_follow_on_pull.sot, "/survival");
 assert.equal(body.platforms.all_live, true);
 assert.ok(body.live_doors.length >= 3);
 assert.match(res.headers.get("cache-control") || "", /max-age=120/);
@@ -405,6 +483,21 @@ const manifestBody = await manifest.json();
 assert.equal(manifestBody.name, "Aziel Runtime");
 assert.equal(manifestBody.aziel.native_app_store, false);
 assert.deepEqual(manifestBody.aziel.platforms, ["windows", "mac", "linux", "android", "ios"]);
+
+const plat = await get("/platforms");
+assert.equal(plat.status, 200);
+const platBody = await plat.json();
+assert.equal(platBody.all_live, true);
+assert.deepEqual(platBody.slot_os, []);
+assert.equal(platBody.worker_live, true);
+assert.equal(platBody.calling_name_live, true);
+assert.ok(platBody.platforms.every((p) => p.live === true));
+const platAlias = await get("/v1/platforms");
+assert.equal(platAlias.status, 200);
+for (const path of LIVE_PLATFORM_PATHS) {
+  const hit = await get(path);
+  assert.equal(hit.status, 200, path);
+}
 
 const home = await get("/");
 assert.match(await home.text(), /rel="manifest"/);
@@ -465,7 +558,11 @@ assert.equal(rotatedCite.author, "Aziel Eliab");
 
 const rotatedOpen = await (await get("/openapi.json", rotatedEnv)).json();
 assert.equal(rotatedOpen.info.title, "Whitestone AI");
-assert.match(rotatedOpen.info.description, /^Aziel Runtime is not merely/);
+assert.match(rotatedOpen.info.description, /^Whitestone AI is not merely/);
+assert.match(rotatedOpen.info.summary, /^Whitestone AI is not merely/);
+assert.equal(rotatedCite.bibtex.includes("title = {Whitestone AI}"), true);
+assert.equal(rotatedCite.apa.includes("Whitestone AI"), true);
+assert.equal(rotatedBody.live_product, "Whitestone AI");
 
 const rotatedMcp = await handler(
   new Request(origin + "/mcp", {
@@ -478,6 +575,87 @@ const rotatedMcp = await handler(
 const rotatedMcpBody = await rotatedMcp.json();
 assert.equal(rotatedMcpBody.result.serverInfo.name, "whitestone-ai");
 assert.equal(rotatedMcpBody.result.serverInfo.title, "Whitestone AI");
+assert.match(rotatedMcpBody.result.instructions, /\*new name alert: Whitestone AI/);
+assert.match(rotatedMcpBody.result.instructions, /Live calling name: Whitestone AI/);
+
+const rotatedMesh = await (await get("/v1/mesh", rotatedEnv)).json();
+assert.equal(rotatedMesh.calling_name_alert, "*new name alert: Whitestone AI");
+assert.equal(rotatedMesh.calling_name.rotated, true);
+assert.equal(rotatedMesh.calling_name.publish, false);
+assert.equal(rotatedMesh.calling_name.mesh_broadcast, false);
+const idleMesh = await (await get("/v1/mesh")).json();
+assert.equal(idleMesh.calling_name_alert, null);
+
+const rotatedLlms = await (await get("/llms.txt", rotatedEnv)).text();
+assert.match(rotatedLlms, /^# Whitestone AI/m);
+assert.match(rotatedLlms, /\*new name alert: Whitestone AI/);
+assert.match(rotatedLlms, /trigger → mesh alert → rewrite all live discovery metadata → client rediscovery/);
+
+const rotatedWho = await (await get("/who-is", rotatedEnv)).text();
+assert.match(rotatedWho, /Live calling name: Whitestone AI/);
+assert.match(rotatedWho, /\*new name alert: Whitestone AI/);
+assert.match(rotatedWho, /Who is Aziel Eliab/);
+
+const rotatedSoft = await (await get("/v1/software", rotatedEnv)).json();
+assert.equal(rotatedSoft.suite_calling_name, "Whitestone AI");
+assert.equal(rotatedSoft.calling_name_alert, "*new name alert: Whitestone AI");
+assert.equal(rotatedSoft.identity, "Aziel Eliab");
+assert.equal(rotatedSoft.platforms.all_live, true);
+assert.deepEqual(rotatedSoft.platforms.platforms.map((p) => p.id), ["windows", "mac", "linux", "android", "ios"]);
+assert.equal(rotatedSoft.platforms.calling_name, "Whitestone AI");
+
+assert.equal(rotatedCite.calling_name.random_alongside, true);
+assert.equal(rotatedCite.calling_name.rewrites_all_discovery_metadata, true);
+assert.match(rotatedLlms, /Whitestone AI is not merely/);
+assert.match(rotatedWho, /Softwares through Whitestone AI/);
+
+const rotatedHealth = await (await get("/v1/health", rotatedEnv)).json();
+assert.equal(rotatedHealth.product, "whitestone-ai");
+assert.equal(rotatedHealth.title, "Whitestone AI");
+assert.equal(rotatedHealth.authoritySnapshot.name, "Whitestone AI");
+assert.equal(rotatedHealth.identity, "Aziel Eliab");
+
+const rotatedRuntime = await (await get("/v1/runtime.json", rotatedEnv)).json();
+assert.equal(rotatedRuntime.product, "whitestone-ai");
+assert.equal(rotatedRuntime.name, "Whitestone AI");
+assert.equal(rotatedRuntime.title, "Whitestone AI");
+
+const rotatedSkill = await (await get("/v1/skill", rotatedEnv)).text();
+assert.match(rotatedSkill, /^name: Whitestone AI/m);
+assert.match(rotatedSkill, /Whitestone AI is not merely/);
+
+const rotatedPerson = await (await get("/person.jsonld", rotatedEnv)).json();
+assert.equal(rotatedPerson.name, "Aziel Eliab");
+assert.ok(rotatedPerson.knowsAbout.includes("Whitestone AI"));
+assert.equal(rotatedPerson.knowsAbout.includes("Aziel Runtime"), false);
+assert.equal(rotatedPerson.subjectOf.some((w) => w.name === "Whitestone AI"), true);
+assert.match(rotatedPerson.machine.what_aziel_eliab_does, /Softwares through Whitestone AI/);
+
+const rotatedAbout = await (await get("/about", rotatedEnv)).text();
+assert.match(rotatedAbout, /<h1>About Whitestone AI<\/h1>/);
+assert.match(rotatedAbout, /Whitestone AI is not merely/);
+
+const rotatedUpdate = await (await get("/v1/update/manifest", rotatedEnv)).json();
+assert.equal(rotatedUpdate.latest.some((row) => row.slug === "whitestone-ai" && row.name === "Whitestone AI"), true);
+assert.equal(rotatedUpdate.platforms.all_live, true);
+assert.deepEqual(rotatedUpdate.platforms.platforms.map((p) => p.id), ["windows", "mac", "linux", "android", "ios"]);
+
+const rotatedCard = await (await get("/.well-known/mcp/server-card.json", rotatedEnv)).json();
+assert.equal(rotatedCard.name, "whitestone-ai");
+assert.equal(rotatedCard.title, "Whitestone AI");
+assert.match(rotatedCard.abstract, /^Whitestone AI is not merely/);
+
+const rotatedManifest = await (await get("/manifest.webmanifest", rotatedEnv)).json();
+assert.equal(rotatedManifest.name, "Whitestone AI");
+assert.equal(rotatedManifest.id, "whitestone-ai");
+
+const randomEnv = { BAN_SURVIVAL_NAME_ROTATE: "1", BAN_SURVIVAL_NAME_RANDOM: "1", BAN_SURVIVAL_NAME_SALT: "pool-x" };
+const randomSurvival = await (await get("/survival", randomEnv)).json();
+assert.equal(randomSurvival.calling_name.rotated, true);
+assert.ok(randomSurvival.calling_name.calling_name.endsWith("Runtime"));
+assert.equal(CALLING_NAME_SEEDS.includes(randomSurvival.calling_name.calling_name), false);
+assert.equal(randomSurvival.live_product, randomSurvival.calling_name.calling_name);
+assert.match(randomSurvival.calling_name.alert, /^\*new name alert: /);
 
 const shuffleCall = await handler(
   new Request(origin + "/v1/fraggate/call", {
