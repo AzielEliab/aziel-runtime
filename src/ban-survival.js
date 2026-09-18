@@ -32,6 +32,8 @@ import {
 } from "./cap7-shuffle.js";
 import {
   CALLING_NAME_REFUSE,
+  HUB_FOLLOW_ON,
+  HUB_FOLLOW_ON_PULL,
   callingNameCite,
   judgeCallingNameHistoryRewrite,
   judgeInventedBan,
@@ -962,6 +964,8 @@ export function survivalDoc(origin, env) {
     cap7_aznet: cap7AznetCite(base),
     akm_memory: akmMemoryCite(),
     calling_name: callingNameCite(env),
+    hub_follow_on: HUB_FOLLOW_ON,
+    hub_follow_on_pull: HUB_FOLLOW_ON_PULL,
     platforms: platformsCite(env),
     cite: base ? `${base}/cite.json` : "/cite.json",
     llms: base ? `${base}/llms.txt` : "/llms.txt",

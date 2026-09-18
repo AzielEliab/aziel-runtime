@@ -160,6 +160,75 @@ export const CALLING_NAME_CALL_ROUTES = Object.freeze({
   note: "Same FragGate door. Clients rediscover these call routes under the live calling name. Not a new exec path.",
 });
 
+/** Hub follow-on — pull runtime /survival SoT. Not this repo. */
+export const HUB_FOLLOW_ON_PULL = Object.freeze({
+  sot: "/survival",
+  also: Object.freeze(["/cite.json", "/v1/mesh"]),
+  fields: Object.freeze([
+    "live_doors",
+    "exec_origins",
+    "live_product",
+    "calling_name",
+    "calling_name.alert",
+    "calling_name.calling_name",
+    "calling_name.calling_slug",
+  ]),
+  hardcode: false,
+  this_repo: false,
+  note: "Hubs pull runtime /survival rather than hardcode live_doors or the calling name. Hub site PRs are follow-on, not this repo.",
+});
+
+export const HUB_FOLLOW_ON = Object.freeze([
+  Object.freeze({
+    id: "ae",
+    host: "azieleliab.com",
+    origin: "https://www.azieleliab.com",
+    runtime: "https://www.azieleliab.com/runtime",
+    surfaces: Object.freeze([
+      "/runtime Softwares tab + door labels",
+      "/cite.json /llms.txt /ai.txt",
+      "/who-is /person.jsonld calling strings",
+      "homepage / MCP titles that advertise the suite calling name",
+    ]),
+  }),
+  Object.freeze({
+    id: "corpus",
+    host: "azielcorpuslibrary.net",
+    origin: "https://www.azielcorpuslibrary.net",
+    runtime: "https://www.azielcorpuslibrary.net/runtime",
+    surfaces: Object.freeze([
+      "/runtime Softwares tab + door labels",
+      "/cite.json /llms.txt /ai.txt",
+      "/who-is /person.jsonld calling strings",
+      "library catalog copy that names the live suite",
+    ]),
+  }),
+  Object.freeze({
+    id: "godlock",
+    host: "godlock.uk",
+    origin: "https://godlock.uk",
+    runtime: "https://godlock.uk/runtime",
+    surfaces: Object.freeze([
+      "/runtime Softwares tab + door labels",
+      "/cite.json /llms.txt",
+      "/who-is /person.jsonld calling strings",
+      "GodLock is a product name, not identity — only the suite calling name rotates",
+    ]),
+  }),
+  Object.freeze({
+    id: "hdj",
+    host: "hedidntjump.com",
+    origin: "https://www.hedidntjump.com",
+    runtime: null,
+    surfaces: Object.freeze([
+      "/cite.json /llms.txt /ai.txt",
+      "/who-is /person.jsonld calling strings",
+      "archive about / sister-product copy that advertises the live suite name",
+    ]),
+    note: "Sister archive. No /runtime exec binding. Still pull /survival for live_doors + calling-name alert.",
+  }),
+]);
+
 export function nameAlertText(name) {
   return `${NAME_ALERT_PREFIX} ${String(name || "").trim()}`;
 }
@@ -442,7 +511,8 @@ export function callingNameCite(env = {}, extra = {}) {
     mesh_share: "live-mesh-pull",
     random_alongside: true,
     rewrites_all_discovery_metadata: true,
-    hub_follow_on: Object.freeze(["azieleliab.com", "azielcorpuslibrary.net", "godlock.uk", "hedidntjump.com"]),
+    hub_follow_on: HUB_FOLLOW_ON,
+    hub_follow_on_pull: HUB_FOLLOW_ON_PULL,
     note: resolved.note,
   };
 }

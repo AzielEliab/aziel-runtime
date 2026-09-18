@@ -298,9 +298,19 @@ No third-party trademarks (ChatGPT / Claude / Gemini / …).
 
 Old name may remain on cold shelves as history.
 
-Hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk,
-hedidntjump.com) should pull `/survival` rather than hardcode. Hub
-rollout is a follow-on, not this repo.
+Hubs should pull `/survival` SoT (`live_doors` + `calling_name`
+alert / `live_product`) rather than hardcode. Hub rollout is a
+follow-on, not this repo. Surfaces that must consume that pull:
+
+- **ae** azieleliab.com — `/runtime` Softwares tab + door labels;
+  `/cite.json` `/llms.txt` `/ai.txt`; `/who-is` `/person.jsonld`;
+  homepage / MCP titles that advertise the suite calling name.
+- **corpus** azielcorpuslibrary.net — same `/runtime` + cite/llms/who-is
+  + library catalog copy that names the live suite.
+- **godlock** godlock.uk — `/runtime` + cite/llms/who-is. GodLock is a
+  product name, not identity — only the suite calling name rotates.
+- **HDJ** hedidntjump.com — cite/llms/who-is/person and sister-product
+  copy. No `/runtime` exec binding; still pull `/survival`.
 
 6f. Platforms (all LIVE)
 Windows, Mac, Linux, Android, and iPhone are **LIVE** on the same

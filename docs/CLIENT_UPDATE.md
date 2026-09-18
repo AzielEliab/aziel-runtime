@@ -164,7 +164,9 @@ Android, iPhone — via browser + PWA (`/manifest.webmanifest`) + Worker
 fronts + Softwares `/download` + MCP/OpenAPI. Not native store apps.
 
 Machine map: `GET /survival` (aliases `/v1/survival`, `/doors`, `/failover`).
-`live_doors` / `exec_origins` omit blocked fronts. Stdio MCP
+`live_doors` / `exec_origins` omit blocked fronts. Hubs (ae / corpus /
+godlock / HDJ) pull that SoT for live doors + `*new name alert:` rather
+than hardcode — follow-on hub PRs, not this repo. Stdio MCP
 (`cli/mcp-stdio.mjs`) follows the live-front order unless `--url` is pinned
 or `AZIEL_RUNTIME_FAILOVER=0`.
 
