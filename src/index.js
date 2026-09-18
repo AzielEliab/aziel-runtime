@@ -12,7 +12,8 @@
  * 1.5.0 agent-native MCP: display envelopes, flat product-verb tools, runtime_run façade.
  * 1.6.0 FragGate door: hashed registry, thin tools/list, DecisionGATE before exec, ask/refuse ledger.
  *
- * GET  /                      HTML (indexable) + rose-star brand mark
+ * GET  /                      HTML (indexable) + rose-star brand mark + human workspace pane
+ * GET  /workspace             Human task pane (FragGate console, labeled ops, live mesh)
  * GET  /sigil.png             rose-star brand mark
  * GET  /robots.txt            Allow / for Google + major AI bots; sitemap-index + hub sitemaps
  * GET  /sitemap.xml           session, pull, OpenAPI, product cards/health, GitHub
@@ -278,6 +279,15 @@ import {
   prefersHtml,
   softwareCatalogHtml,
 } from "./seo-html.js";
+import {
+  HUMAN_UI_CSS,
+  fragGateDoorHtml,
+  hasLiveDoor,
+  humanDoorScript,
+  humanNavHtml,
+  workspacePageHtml,
+  workspacePaneHtml,
+} from "./human-ui.js";
 import { LOCKED_STRIP, arch as azpipeArch, dispatchAzpipeArchHttp } from "./azpipe.js";
 import {
   HOMEPAGE_KEYWORDS,
@@ -1160,7 +1170,7 @@ async function servePackedSoftware(request, env, origin, extra = {}) {
   if (prefersHtml(request)) {
     return asHead(
       request,
-      html(softwareCatalogHtml(origin, body, PAGE_CSS), catalogLinkHeaders(origin, path)),
+      html(softwareCatalogHtml(origin, body, PAGE_CSS + HUMAN_UI_CSS), catalogLinkHeaders(origin, path)),
     );
   }
   return json(body, 200, catalogLinkHeaders(origin, path));
@@ -1350,6 +1360,7 @@ function sitemapXml(origin) {
   const base = origin.replace(/\/$/, "");
   const urls = [
     { loc: base + "/", priority: "1.0", changefreq: "daily" },
+    { loc: base + "/workspace", priority: "0.96", changefreq: "daily" },
     { loc: base + "/about", priority: "0.95", changefreq: "weekly" },
     { loc: base + "/v1/about", priority: "0.9", changefreq: "weekly" },
     { loc: base + "/openapi.json", priority: "0.9", changefreq: "daily" },
@@ -1845,6 +1856,7 @@ const PAGE_CSS = `
   .brandmark{width:40px;height:40px;border-radius:10px;object-fit:cover;flex:0 0 auto;box-shadow:0 0 0 1px #d4af3733}
   .stamp{margin:0;color:#d4af37;font-size:.88rem;letter-spacing:.02em}
   body { font: 16px/1.45 system-ui, sans-serif; max-width: 52rem; margin: 2.5rem auto; padding: 0 1.25rem 4rem; background: #0e1014; color: #e8eaef; }
+  body:has(#workspace) { max-width: 72rem; }
   h1 { font-size: 1.85rem; margin: 0 0 .35rem; }
   h2 { font-size: 1.2rem; margin: 0 0 .4rem; }
   .slug { font-weight: 500; color: #9aa3b2; font-size: .95rem; }
@@ -1886,61 +1898,7 @@ function donateFooterHtml() {
 }
 
 function doorOnly(p) {
-  return p && (p.slug === "azbrowser" || p.slug === "azmail" || p.slug === "aznet" || p.slug === "azhub" || p.slug === "azinterface" || p.slug === "4dmap" || p.slug === "embryolock");
-}
-
-function fragGateDoorHtml(p, origin) {
-  if (!doorOnly(p)) return "";
-  const live = (p.ops || [])
-    .map((o) => o.op)
-    .filter((op) => op !== "health" && op !== "skill");
-  const buttons = ["health", ...live, "skill"]
-    .map((op) => `<button type="button" data-op="${escapeHtml(op)}">${escapeHtml(op)}</button>`)
-    .join("");
-  const example = JSON.stringify(p.example || {}, null, 2);
-  return `<div class="fg-door" data-slug="${escapeHtml(p.slug)}" data-origin="${escapeHtml(origin)}">
-  <p>FragGate only — same LIVE_OPS as MCP <code>fraggate_call</code> / <code>POST /v1/fraggate/call</code>. One backend, two surfaces.</p>
-  <div class="fg-ops">${buttons}</div>
-  <textarea class="fg-payload">${escapeHtml(example)}</textarea>
-  <pre class="fg-out">POST ${escapeHtml(origin)}/v1/fraggate/call
-{ "slug": "${escapeHtml(p.slug)}", "op": "${escapeHtml(live[0] || "health")}", "payload": ${example} }</pre>
-</div>`;
-}
-
-function fragGateDoorScript() {
-  return `<script>
-(function () {
-  function parsePayload(raw) {
-    var text = String(raw || "").trim();
-    if (!text) return {};
-    try { return JSON.parse(text); } catch (e) { return { q: text, text: text }; }
-  }
-  document.querySelectorAll(".fg-door").forEach(function (box) {
-    var slug = box.getAttribute("data-slug");
-    var origin = box.getAttribute("data-origin") || "";
-    var out = box.querySelector(".fg-out");
-    var area = box.querySelector(".fg-payload");
-    box.querySelectorAll("[data-op]").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        var op = btn.getAttribute("data-op");
-        var payload = parsePayload(area && area.value);
-        out.textContent = "calling " + slug + "/" + op + " …";
-        fetch(origin + "/v1/fraggate/call", {
-          method: "POST",
-          headers: { "content-type": "application/json", accept: "application/json" },
-          body: JSON.stringify({ slug: slug, op: op, payload: payload })
-        }).then(function (res) { return res.json(); }).then(function (body) {
-          var title = body && body.display && body.display.title ? body.display.title : (slug + "/" + op);
-          var summary = body && body.display && body.display.summary ? body.display.summary : "";
-          out.textContent = title + (summary ? "\\n" + summary : "") + "\\n\\n" + JSON.stringify(body, null, 2);
-        }).catch(function (err) {
-          out.textContent = String(err && err.message ? err.message : err);
-        });
-      });
-    });
-  });
-})();
-</script>`;
+  return hasLiveDoor(p && p.slug);
 }
 
 function productCardHtml(p, origin, stats) {
@@ -1979,12 +1937,15 @@ function productCardHtml(p, origin, stats) {
   <p class="oneline">${escapeHtml(p.oneLine)}</p>
   ${banner}
   <p class="meta">
+    <a href="${origin}/workspace#task-${escapeHtml(p.slug)}">Use in browser</a>
+    <a href="${u.download}">Download desktop</a>
+    <a href="${origin}/mcp">Connect AI</a>
     <a href="${p.github}">GitHub</a>
     ${u.worker_home ? `<a href="${u.worker_home}">Worker /</a>` : `<span class="slug">in-runtime</span>`}
     ${u.cite ? `<a href="${u.cite}">/cite.json</a>` : ""}
     ${u.has_llms ? `<a href="${u.llms}">/llms.txt</a>` : ""}
     ${u.download ? `<a href="${u.download}">counted /download</a>${count}` : ""}
-    ${u.install ? `<a href="${u.install}">install.sh</a>` : ""}
+    ${u.install ? `<a href="${u.install}" class="copy-install">Copy install command</a>` : ""}
     <a href="${u.skill}">/v1/skill</a>
     <a href="${u.pull}">pull</a>
     <a href="${u.pull_skill}">pull skill</a>
@@ -2016,11 +1977,14 @@ function catalogHtml(origin, statsMap) {
 <head>
 ${headMeta(origin, RUNTIME_PAGE_TITLE, RUNTIME_ABSTRACT, "/")}
 <script type="application/ld+json">${ld}</script>
-<style>${PAGE_CSS}</style>
+<style>${PAGE_CSS}${HUMAN_UI_CSS}</style>
 </head>
 <body>
 ${brandRow()}
 ${homepageLeadHtml()}
+${humanNavHtml(origin)}
+${workspacePaneHtml(origin, PRODUCTS)}
+<p class="docs-after">Cite, architecture, and Softwares cards stay below. Humans start in the workspace; crawlers still see the abstract first.</p>
 ${distributionDoorsHtml(origin)}
 ${ecosystemBlockHtml()}
 ${namedComponentsHtml()}
@@ -2100,7 +2064,7 @@ ${distributionDoorsHtml(origin)}
     <h2>Version history</h2>
     <strong>What this Worker is</strong>
     <ul>
-      <li><strong>2.0.0-rc1</strong> is the certification-point freeze (not a feature dump). Public contract, compatibility, receipt schema, refusal contract, and breaking-change policy live under <code>docs/2.0/</code>. Clean-room reproducibility + external adversarial pack for independent reviewers (self-test ≠ third-party lab). Gate 4 includes Glama TDQS 5.0 <code>tools/list</code> metadata (no rename; no behavior change) plus existing <code>glama.json</code> / GitHub topics. Read-only QNM suite-presence is ON by default; <code>POST /v1/mesh/disable</code> refuses <code>MESH-DISABLE-REFUSED</code>. Remain-OFF untouched. FragGate remains THE single door. Architecture-fit placements <code>zkattest</code> / <code>mmconsensus</code> / <code>toolbench</code> are in-runtime engines behind FragGate (isolation 33 unchanged; no new MCP tool). Crawler abstract stays lead copy. Identity Aziel Eliab only.</li>
+      <li><strong>2.0.0-rc1</strong> is the certification-point freeze (not a feature dump). Public contract, compatibility, receipt schema, refusal contract, and breaking-change policy live under <code>docs/2.0/</code>. Clean-room reproducibility + external adversarial pack for independent reviewers (self-test ≠ third-party lab). Gate 4 includes Glama TDQS 5.0 <code>tools/list</code> metadata (no rename; no behavior change) plus existing <code>glama.json</code> / GitHub topics. Read-only QNM suite-presence is ON by default; <code>POST /v1/mesh/disable</code> refuses <code>MESH-DISABLE-REFUSED</code>. Remain-OFF untouched. FragGate remains THE single door. Architecture-fit placements <code>zkattest</code> / <code>mmconsensus</code> / <code>toolbench</code> are in-runtime engines behind FragGate (isolation 33 unchanged; no new MCP tool). Human workspace (audit F06–F08) is dual-surface: agents MCP + humans Worker UI (<code>/workspace</code> and homepage <code>#workspace</code>) with FragGate list→describe→call, labeled Softwares controls, and live <code>GET /v1/mesh</code> counts. MCP inventory unchanged. Crawler abstract stays lead copy. Identity Aziel Eliab only.</li
       <li><strong>1.9.3</strong> closes the remaining AZRT-1.9-GAPS-CLOSE items. AZ-OS <code>session_open</code> / <code>session_status</code> / <code>session_close</code> (aliases <code>session</code> / <code>close</code>) are isolate-native prefab ethics VFS — not a remote host shell. Public <code>exec</code> / <code>shell</code> / <code>lattice</code> stay refuse. Corpus <code>jeeves</code> is isolate-safe Ask Jeeves over sample MASTER / <code>CORPUS_D1</code> <code>records</code> (refuse secrets / triad-tamper; Jesus-image-only if the user says the devil is not real; no AZAI blend). <code>media-run</code> is binding-gated: hash-chained Whisper / vision only when <code>env.AI</code> is present; otherwise honest refuse — no fake OCR. Independent validation path: <code>docs/audit/INDEPENDENT-VALIDATION.md</code> + Actions <code>validate.yml</code> attestation artifact (not a third-party lab). Remain-OFF untouched. Crawler abstract stays lead copy. Identity Aziel Eliab only.</li>
       <li><strong>1.9.2</strong> binds Workers Browser Rendering (<code>BROWSER</code>) and live D1 MASTER (<code>CORPUS_D1</code> → <code>aziel-digital-library</code>). Corpus <code>searchD1</code> queries production <code>records</code> (not <code>master</code>). Workers AI (<code>AI</code>) is bound so Whisper / OCR stay honest (native only when <code>env.AI</code> runs). Sample MASTER remains the unbound fallback. Chromium product UI is not claimed; Tor / phoenix stay refuse. Remain-OFF untouched. Crawler abstract stays lead copy. Identity Aziel Eliab only.</li>
       <li><strong>1.9.1</strong> closes AZRT-1.9-GAPS-CLOSE. Isolate-safe corpus review / score / verify-backfill / verify-geo / document-chain / import_export run in-process. Whisper / OCR stay Workers-AI-gated (not a fake native OCR). AZBrowser <code>sandbox_status</code> / <code>sandbox_render</code> report Workers Browser Rendering honestly — Chromium stays DEFERRED unless bound; Tor / phoenix refuse. AZMail <code>transport_status</code>: public MTA stays NOT IMPLEMENTED; no public send. Wave 2–3 health / skill / doctor richness. Adversarial repo self-check + GitHub Actions <code>npm test</code> on pull requests and main. Consumer MCP / OpenAPI examples. <code>/v1/software</code> cards carry <code>engine_digest</code>. Live Nodes <code>live_nodes</code> counts Softwares <code>{slug}-worker</code> only (<code>mesh_*</code> is ephemeral). Catalog EmbryoLock is 1.2.0. Catalog <code>git_sha</code> from deploy var or stamped build-meta. Flutter <code>mobile/</code> is not vendored here. Remain-OFF untouched. Crawler abstract stays lead copy. Identity Aziel Eliab only.</li>
@@ -2175,7 +2139,7 @@ ${distributionDoorsHtml(origin)}
     </ul>
   </div>
   </section>
-${fragGateDoorScript()}
+${humanDoorScript()}
 ${donateFooterHtml()}
 </body>
 </html>`;
@@ -2209,13 +2173,13 @@ function productPageHtml(p, origin, stats) {
 <head>
 ${headMeta(origin, title, description, `/p/${p.slug}`)}
 <script type="application/ld+json">${ld}</script>
-<style>${PAGE_CSS}</style>
+<style>${PAGE_CSS}${HUMAN_UI_CSS}</style>
 </head>
 <body>
 ${brandRow()}
-  <p><a href="${origin}/">← ${escapeHtml(PRODUCT_NAME)}</a></p>
+  <p><a href="${origin}/">← ${escapeHtml(PRODUCT_NAME)}</a> · <a href="${origin}/workspace">Workspace</a></p>
   ${productCardHtml(p, origin, stats)}
-${fragGateDoorScript()}
+${humanDoorScript()}
 ${ecosystemBlockHtml()}
 ${donateFooterHtml()}
 </body>
@@ -3177,10 +3141,17 @@ async function handleRequest(request, env, ctx) {
       return html(catalogHtml(origin, {}), { ...extra("/"), ...catalogCacheHeaders() });
     }
 
+    if ((url.pathname === "/workspace" || url.pathname === "/workspace/") && (request.method === "GET" || request.method === "HEAD")) {
+      return asHead(
+        request,
+        html(workspacePageHtml(origin, PRODUCTS, PAGE_CSS), { ...extra("/workspace"), ...catalogCacheHeaders() }),
+      );
+    }
+
     if ((url.pathname === "/about" || url.pathname === "/v1/about") && (request.method === "GET" || request.method === "HEAD")) {
       return asHead(
         request,
-        html(aboutPageHtml(origin, PAGE_CSS), { ...extra("/about"), ...catalogCacheHeaders() }),
+        html(aboutPageHtml(origin, PAGE_CSS + HUMAN_UI_CSS), { ...extra("/about"), ...catalogCacheHeaders() }),
       );
     }
 
