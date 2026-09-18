@@ -26,6 +26,7 @@ import { shelvesCiteField } from "./cold-multi-shelf.js";
 import { AUTHOR_ID, azcoherenceCiteField, hubsCiteField, LIBRARY_ORIGIN } from "./seo.js";
 import { socialStatusField } from "./social-status.js";
 import { websiteDesignsField, websiteDesignsOnCorpusCard } from "./website-designs.js";
+import { softwareDescription } from "./software-copy.js";
 
 export const SOFTWARE_SORT_LAW = "plain A–Z → gate A–Z → lock A–Z (Clock ≠ Lock)";
 export const SOFTWARE_FRAMING =
@@ -140,6 +141,7 @@ export function liveSoftwareCard(product, origin, meta = {}) {
     fraggate_status: doorLive ? "live" : "local_only",
     version: product.version || null,
     one_line: product.oneLine || product.one_line || product.name,
+    description: softwareDescription(product.slug, product),
     worker_home: host ? `${host}/` : null,
     download_url: host ? `${host}/download` : null,
     github: product.github || null,
@@ -184,7 +186,8 @@ export function stubSoftwareCard(spec, origin, meta = {}) {
     placement: domain.placement,
     status: "stub",
     version: spec.version || null,
-    one_line: spec.description || spec.one_line || spec.note || spec.name,
+    one_line: spec.one_line || spec.description || spec.note || spec.name,
+    description: spec.description || spec.one_line || spec.note || spec.name,
     worker_home: null,
     download_url: null,
     github: spec.github || null,
@@ -260,7 +263,7 @@ export function softwareCatalog(origin, products, extra = {}) {
       ...meshHint("/v1/mesh"),
       status: `${base}/v1/mesh/status`,
       nodes: `${base}/v1/mesh/nodes`,
-      note: "QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1). Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Channel plane (wifi / bluetooth / rf / photon) is an operator-armed cite — live hardware on local qnm-node. Channel plane ≠ kernel VPN. Public VPN auto-binds AZVPN (cite-only on GET). Pairing ≠ tunnel. Public disable of suite-presence is refused. NO-LIE / NO-REWRITE: receipts that still hash; copies not all on one tunnel; no rewrite key; never lie to survive. COLD-MULTI-SHELF-1.0: GET /shelves cites corpus#96 honesty. Not a login mesh. Not a Softwares-tab product. Full node is local qnm-node/. Anon-broadcast is that process's sibling loopback only. Packet-transfer coding design is QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; Worker cites only). Cron or request-path fans out live Softwares product Workers (TTL 5 min).",
+      note: "QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1). Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Channel plane (wifi / bluetooth / rf / photon) is an operator-armed cite — live hardware on local qnm-node; Worker channel_plane stays cite-only (worker_hardware:false). Channel plane ≠ kernel VPN. Public VPN auto-binds AZVPN (cite-only on GET). Pairing ≠ tunnel. Public disable of suite-presence is refused. NO-LIE / NO-REWRITE: receipts that still hash; copies not all on one tunnel; no rewrite key; never lie to survive. COLD-MULTI-SHELF-1.0: GET /shelves cites corpus#96 honesty. Not a login mesh. Not a Softwares-tab product. Full node is local qnm-node/. Anon-broadcast is that process's sibling loopback only. Packet-transfer coding design is QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; Worker cites only). Cron or request-path fans out live Softwares product Workers (TTL 5 min).",
       qns_cd: qnsHint(),
     },
     qns: `${base}/v1/qns`,
