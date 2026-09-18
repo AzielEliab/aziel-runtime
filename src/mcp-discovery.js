@@ -71,7 +71,23 @@ export function mcpGatewayCite() {
     backdoor_exec: false,
     proxy_is_not_exec: true,
     isolate_is_the_jail: true,
-    note: "This Worker POST /mcp is THE edge MCP gateway. JSON-RPC terminates into FragGate. No parallel exec path. POST /p/{slug}/{op} is proxy, not exec.",
+    softwares_exec: "fraggate_call",
+    fabric: {
+      tools: [
+        "mesh_*",
+        "chainlock_*",
+        "memory_*",
+        "decisiongate_check",
+        "library_lookup",
+      ],
+      hop_list: "kernel-direct",
+      master_33: false,
+      second_softwares_door: false,
+      same_kernels: true,
+      note:
+        "Fabric wrappers reach the same kernels FragGate mesh / memory / chainlock / DecisionGATE / corpus use. Softwares exec stays fraggate_call only. Not MASTER-33. Not a second Softwares door.",
+    },
+    note: "This Worker POST /mcp is THE edge MCP gateway. JSON-RPC terminates into FragGate for Softwares exec. Fabric wrappers are kernel-direct (same kernels; not MASTER-33). No parallel Softwares door. POST /p/{slug}/{op} is proxy, not exec.",
   };
 }
 

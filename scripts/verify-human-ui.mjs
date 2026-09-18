@@ -147,6 +147,10 @@ assert.match(softwareHtml, /id="suite-download-software"/);
 assert.match(ws, /id="suite-download-op"/);
 assert.match(ws, /data-mesh="vpn"/);
 assert.match(ws, /data-mesh="heartbeat"/);
+assert.match(ws, /data-mesh="enable"/);
+assert.match(ws, /id="mesh-bearer"/);
+assert.match(ws, /id="task-azmail"/);
+assert.match(ws, /id="task-embryolock"/);
 assert.match(softwareHtml, /Connect AI/);
 assert.match(softwareHtml, /data-software-row/);
 assert.match(softwareHtml, /id="about-aziel"/);
@@ -181,6 +185,13 @@ const ops = [
   ["forgereceipts", "receipt", { summary: "filed locally", evidence: "sha256:demo" }],
   ["godlock", "score", { text: "ABAD does not layer on phi." }],
   ["temporallock", "genesis", { summary: "sky was overcast", evidence: "photo:./sky.jpg", confidence: 0.9 }],
+  ["azmail", "airlock_classify", { text: "hello from the anonymous ring" }],
+  ["azhub", "region_list", {}],
+  ["azinterface", "genesis_status", {}],
+  ["aziel-corpus", "search", { q: "Florence" }],
+  ["4dmap", "pin", { label: "inspect-1" }],
+  ["embryolock", "limitation", {}],
+  ["peacelock", "open", { scope: "silence", subject: "chamber-1" }],
 ];
 
 for (const [slug, op, payload] of ops) {

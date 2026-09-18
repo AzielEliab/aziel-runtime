@@ -137,6 +137,12 @@ assert.equal(getMcpBody.server_card, "/.well-known/mcp/server-card.json");
 assert.equal(getMcpBody.oauth_protected_resource, "/.well-known/oauth-protected-resource");
 assert.equal(getMcpBody.gateway.role, "edge-mcp-gateway");
 assert.equal(getMcpBody.gateway.second_door, false);
+assert.equal(getMcpBody.gateway.fabric.master_33, false);
+assert.equal(getMcpBody.gateway.fabric.hop_list, "kernel-direct");
+assert.equal(getMcpBody.gateway.fabric.second_softwares_door, false);
+assert.equal(getMcpBody.production_binds.SESSION.class_name, "RuntimeSession");
+assert.equal(getMcpBody.production_binds.CHAINLOCK.class_name, "ChainWriter");
+assert.equal(getMcpBody.production_binds.RATE.class_name, "RateQuota");
 
 const openapi = await (await get("/openapi.json")).json();
 assert.ok(openapi.paths["/.well-known/mcp/server-card.json"].get);

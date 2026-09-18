@@ -120,10 +120,15 @@ assert.ok(PUBLIC_MCP_TOOLS.includes("fraggate_call"));
 assert.ok(!PUBLIC_MCP_TOOLS.includes("rate_limit"));
 
 const wrangler = readFileSync(new URL("../wrangler.toml", import.meta.url), "utf8");
+assert.match(wrangler, /name = "SESSION"/);
+assert.match(wrangler, /class_name = "RuntimeSession"/);
+assert.match(wrangler, /name = "CHAINLOCK"/);
+assert.match(wrangler, /class_name = "ChainWriter"/);
 assert.match(wrangler, /name = "RATE"/);
 assert.match(wrangler, /class_name = "RateQuota"/);
 assert.match(wrangler, /tag = "v3"/);
 assert.match(wrangler, /F03 door quotas/);
+assert.match(wrangler, /Production Durable Object binds/);
 assert.doesNotMatch(wrangler, /doi:|framagit|/i);
 
 // --- F03 HTTP FragGate + MCP rate-limit refuses ---

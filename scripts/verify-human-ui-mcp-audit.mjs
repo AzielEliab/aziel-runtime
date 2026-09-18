@@ -22,6 +22,7 @@ import {
   PUBLIC_SESSION_TOOLS,
 } from "../src/fraggate/codes.js";
 import { HUMAN_TASKS, hasLiveDoor, parseHumanPayload } from "../src/human-ui.js";
+import { LABELED_HUMAN_TASK_SLUGS } from "../src/human-hrefs.js";
 import { MUTATING_MCP_TOOLS } from "../src/mcp-safeguard.js";
 import { buildMcpToolList, mcpInitializeInstructions } from "../src/mcp-surface.js";
 import { sessionMcpTools } from "../src/session-http.js";
@@ -54,6 +55,7 @@ const catalogLive = productSlugs.filter((s) => hasLiveDoor(s));
 const localOnly = productSlugs.filter((s) => !hasLiveDoor(s));
 const kernelSlugs = liveOpSlugs.filter((s) => !productSlugs.includes(s));
 const taskSlugs = HUMAN_TASKS.map((t) => t.slug);
+assert.deepEqual(taskSlugs.slice().sort(), LABELED_HUMAN_TASK_SLUGS.slice().sort(), "href allowlist matches HUMAN_TASKS");
 
 const tools = buildMcpToolList({ sessionTools: sessionMcpTools() });
 const toolNames = tools.map((t) => t.name).sort();
@@ -119,7 +121,7 @@ for (const html of [home, workspace]) {
   assert.match(html, /data-dash-slug="veillock"/);
   assert.match(html, /local only — no public FragGate door/);
 }
-assert.match(home, /href="https:\/\/aziel-runtime\.example\/p\/azmail">Use in browser/);
+assert.match(home, /href="https:\/\/aziel-runtime\.example\/workspace#task-azmail">Use in browser/);
 
 assert.match(about, /id="about-aziel"/);
 assert.match(about, /#aziel/);
@@ -129,7 +131,7 @@ assert.match(softwareHtml, /Use in browser/);
 assert.match(softwareHtml, /data-software-row/);
 assert.match(softwareHtml, /data-slug="azvpn"/);
 assert.match(softwareHtml, /href="https:\/\/aziel-runtime\.example\/workspace#task-azvpn"/);
-assert.match(softwareHtml, /href="https:\/\/aziel-runtime\.example\/p\/azmail"/);
+assert.match(softwareHtml, /href="https:\/\/aziel-runtime\.example\/workspace#task-azmail"/);
 assert.match(softwareHtml, /id="suite-download-software"/);
 
 assert.match(azvpnCard, /data-op="describe"/);
@@ -174,10 +176,20 @@ assert.match(script, /origin \+ "\/mcp"/);
 assert.match(script, /name: name, arguments: \{ c:/);
 assert.match(script, /fraggateCall\(origin, "mesh", "join"/);
 assert.match(script, /fraggateCall\(origin, "mesh", "vpn"/);
+assert.match(script, /fraggateCall\(origin, "mesh", "enable"/);
 assert.match(script, /fraggateCall\(origin, "mesh", act/);
 assert.match(home, /data-mesh="heartbeat"/);
 assert.match(home, /data-mesh="leave"/);
 assert.match(home, /data-mesh="vpn"/);
+assert.match(home, /data-mesh="enable"/);
+assert.match(home, /id="mesh-bearer"/);
+assert.match(home, /id="task-azmail"/);
+assert.match(home, /id="task-azhub"/);
+assert.match(home, /id="task-azinterface"/);
+assert.match(home, /id="task-aziel-corpus"/);
+assert.match(home, /id="task-4dmap"/);
+assert.match(home, /id="task-embryolock"/);
+assert.match(home, /id="task-peacelock"/);
 assert.match(home, /id="suite-download-op"/);
 assert.match(home, /id="suite-download-dash"/);
 assert.match(home, /worker_hardware false/);
@@ -259,17 +271,41 @@ const mcpText = JSON.stringify(mcpCallBody);
 assert.match(mcpText, /MCP-CONFIRM-REQUIRED|confirm=true/);
 
 const unlabeled = productSlugs.filter((s) => !taskSlugs.includes(s));
-assert.ok(unlabeled.length >= 30, "most Softwares use /p/{slug} instead of a labeled #task-* pane");
+assert.ok(unlabeled.length >= 20, "remaining Softwares use /p/{slug} instead of a labeled #task-* pane");
 assert.ok(taskSlugs.includes("azvpn"));
-assert.ok(!taskSlugs.includes("azmail"));
-assert.ok(!taskSlugs.includes("azhub"));
+assert.ok(taskSlugs.includes("azmail"));
+assert.ok(taskSlugs.includes("azhub"));
+assert.ok(taskSlugs.includes("azinterface"));
+assert.ok(taskSlugs.includes("aziel-corpus"));
+assert.ok(taskSlugs.includes("4dmap"));
+assert.ok(taskSlugs.includes("embryolock"));
+assert.ok(taskSlugs.includes("peacelock"));
+assert.equal(taskSlugs.length, 15);
 
 const instructions = mcpInitializeInstructions();
 assert.match(instructions, /fraggate_call is THE single door|Execute only through fraggate_call/);
 assert.match(instructions, /Do not invoke former \{slug\}_\{op\} names/);
 assert.doesNotMatch(instructions, /VPN\/hop mesh is not claimed on the public surface/);
 assert.match(instructions, /Public VPN auto-binds AZVPN/);
+assert.match(tools.find((t) => t.name === "fraggate_list").description, /Not the full FragGate door/);
+assert.match(tools.find((t) => t.name === "fraggate_list").description, /4dmap/);
+assert.match(tools.find((t) => t.name === "fraggate_call").description, /Catalog LIVE_OPS slugs/);
 assert.match(instructions, /AZVPN|azvpn|1\.7\.|public VPN|concentrator/i);
+assert.match(instructions, /kernel-direct wrappers/);
+assert.match(instructions, /Not MASTER-33/);
+assert.match(instructions, /Not a second Softwares door/);
+assert.doesNotMatch(instructions, /EmbryoLock is stub \/ local-not-hosted/);
+
+const getMcp = await (await get("/mcp")).json();
+assert.equal(getMcp.gateway.second_door, false);
+assert.equal(getMcp.gateway.fabric.master_33, false);
+assert.equal(getMcp.gateway.fabric.second_softwares_door, false);
+assert.equal(getMcp.gateway.fabric.hop_list, "kernel-direct");
+assert.equal(getMcp.gateway.fabric.same_kernels, true);
+assert.ok(getMcp.production_binds.SESSION.class_name === "RuntimeSession");
+assert.ok(getMcp.production_binds.CHAINLOCK.class_name === "ChainWriter");
+assert.ok(getMcp.production_binds.RATE.class_name === "RateQuota");
+assert.equal(getMcp.durability.production_binds.CHAINLOCK.class_name, "ChainWriter");
 
 const suitePack = await (await get("/download")).json();
 assert.equal(suitePack.ok, true);
@@ -281,6 +317,8 @@ assert.equal(suitePack.labels., false);
 assert.equal(suitePack.foldlock_tip.full_library_in_process, false);
 assert.ok(Array.isArray(suitePack.catalog.software) && suitePack.catalog.software.length === 41);
 assert.ok(suitePack.mesh.channel_plane.worker_hardware === false);
+assert.equal(suitePack.mesh.channel_plane.local_radio_hooks.mock, false);
+assert.equal(suitePack.mesh.channel_plane.local_radio_hooks.worker_hardware, false);
 
 assert.ok(MESH_CANONICAL_OPS.includes("vpn"));
 assert.ok(Array.isArray(MESH_MCP_TOOLS));

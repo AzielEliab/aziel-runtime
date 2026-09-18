@@ -161,7 +161,7 @@ import {
   tokenPresentedInQuery,
 } from "./production.js";
 import { applySecurityHeaders, securityHeaders } from "./security-headers.js";
-import { durabilityLabels } from "./durability-labels.js";
+import { durabilityLabels, productionBindCite } from "./durability-labels.js";
 import { RateQuota, doorRateLimitDecision } from "./rate-quota.js";
 import {
   MAX_BODY_BYTES,
@@ -2927,9 +2927,11 @@ async function handleMcp(request, env, origin) {
       auth: "none (public)",
       server_card: "/.well-known/mcp/server-card.json",
       oauth_protected_resource: "/.well-known/oauth-protected-resource",
-      note: "Durable Objects / agents McpAgent not used. Minimal HTTP JSON-RPC. tools/list is the thin door. Pipeline: fraggate_list → fraggate_describe → fraggate_call. Hubs: GET /v1/software. Mutating tools require confirm=true or dry_run=true. This Worker POST /mcp is THE edge MCP gateway — it terminates into FragGate; no backdoor exec.",
+      note: "Durable Objects / agents McpAgent not used. Minimal HTTP JSON-RPC. tools/list is the thin door. Pipeline: fraggate_list → fraggate_describe → fraggate_call. Fabric mesh_* / chainlock_* / memory_* / decisiongate_check / library_lookup are kernel-direct (same kernels; not MASTER-33; not a second Softwares door). Hubs: GET /v1/software. Mutating tools require confirm=true or dry_run=true. This Worker POST /mcp is THE edge MCP gateway — Softwares exec terminates into FragGate; no backdoor exec.",
       door: "fraggate",
       gateway: mcpGatewayCite(),
+      durability: durabilityLabels(env),
+      production_binds: productionBindCite(env),
       skill: "/v1/skill",
       runtime: "/v1/runtime.json",
       fraggate: "/v1/fraggate",
