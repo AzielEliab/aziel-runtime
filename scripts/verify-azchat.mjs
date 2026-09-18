@@ -21,7 +21,8 @@ assert.equal(product.name, "AZChat");
 assert.equal(product.worker, "azchat-download-tracker");
 assert.equal(product.version, VERSION);
 assert.equal(MESH_ENABLED_DEFAULT, false);
-assert.match(product.oneLine, /Mesh hop default off/);
+assert.match(product.oneLine, /short-lived rooms|spendable handles/i);
+assert.doesNotMatch(product.oneLine, /THIS IS:|THIS IS NOT:/i);
 assert.ok(embeddedDigest("azchat"));
 
 const catalogOps = new Set(product.ops.map((o) => o.op));
