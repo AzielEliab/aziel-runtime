@@ -11,7 +11,6 @@
 
 import { MCP_PROTOCOL_PREFERRED } from "./mcp-transport.js";
 import {
-  COLD_FALLBACK,
   PRIMARY_WORKER_ORIGIN,
   bridgeOrigins,
   failoverCite,
@@ -75,8 +74,9 @@ Env:
   AZIEL_RUNTIME_FAILOVER=0          disable named hub /runtime failover
   RUNTIME_TOKEN / AZIEL_RUNTIME_TOKEN   optional; sent as Bearer + X-Aziel-Runtime-Token
 
-Default (no pinned --url) tries named origins: workers.dev, then hub /runtime
-(service binding; same FragGate door). A custom --url stays pinned.
+Default (no pinned --url) tries LIVE named fronts: workers.dev, then
+custom-domain hub /runtime (service binding; same FragGate door).
+A custom --url stays pinned. Shelves are not a live door.
 `;
 }
 
@@ -187,6 +187,7 @@ export function createBridgeContext(options = {}, env = process.env) {
     log: options.log || ((line) => process.stderr.write(String(line) + "\n")),
     fetchImpl: options.fetchImpl || globalThis.fetch.bind(globalThis),
     localSend: options.localSend || null,
+    env,
   };
 }
 
@@ -317,20 +318,16 @@ export async function dispatchMcp(message, ctx) {
         return responseToRpc(res, message, ctx);
       }
       if (isNotification(message)) return null;
-      return rpcError(message.id, UPSTREAM_ERROR, "All named exec origins failed", {
-        ban_survival: failoverCite(ctx.url),
-        cold: {
-          github: COLD_FALLBACK.github,
-          lockset_tip: COLD_FALLBACK.lockset_tip,
-          shelves: COLD_FALLBACK.shelves,
-        },
+      return rpcError(message.id, UPSTREAM_ERROR, "All named LIVE exec origins failed", {
+        ban_survival: failoverCite(ctx.url, ctx.env),
+        shelves_are_not_failover: true,
         last: lastErr && (lastErr.message || String(lastErr)),
       });
     }
   } catch (err) {
     if (isNotification(message)) return null;
     return rpcError(message.id, UPSTREAM_ERROR, `Upstream MCP failed: ${err && err.message ? err.message : err}`, {
-      ban_survival: failoverCite(ctx.url),
+      ban_survival: failoverCite(ctx.url, ctx.env),
     });
   }
   return responseToRpc(res, message, ctx);

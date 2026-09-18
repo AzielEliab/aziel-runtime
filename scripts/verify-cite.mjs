@@ -212,6 +212,8 @@ assert.ok(citeBody.designs.papers.some((p) => p.id === "COLD-MULTI-SHELF-1.0" &&
 assert.ok(citeBody.designs.papers.some((p) => p.id === "BAN-SURVIVAL-1.0" && p.path === "docs/designs/BAN-SURVIVAL-1.0.md" && p.kind === "law" && p.software_tab === false));
 assert.equal(citeBody.ban_survival.spec, "BAN-SURVIVAL-1.0");
 assert.equal(citeBody.ban_survival.second_door, false);
+assert.equal(citeBody.ban_survival.shelves_are_not_failover, true);
+assert.ok(Array.isArray(citeBody.ban_survival.live_doors) && citeBody.ban_survival.live_doors.length >= 1);
 assert.equal(citeBody.semantic_bridge.design_of, "hub_designs");
 assert.equal(citeBody.redline.spec, "REDLINE-2026-09-14");
 assert.equal(citeBody.redline.person_id, "https://www.azieleliab.com/#aziel");

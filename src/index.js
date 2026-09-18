@@ -30,7 +30,7 @@
  * GET  /cold-copy             alias of /shelves
  * GET  /v1/shelves            machine alias of /shelves
  * GET  /v1/cold-copy          alias of /shelves
- * GET  /survival              BAN-SURVIVAL-1.0 door/path failover map (named routes + cold tip-hash)
+ * GET  /survival              BAN-SURVIVAL-1.0 live multi-front failover map (workers.dev + custom-domain /runtime; LIVE doors only)
  * GET  /v1/survival           machine alias of /survival
  * GET  /doors                 alias of /survival
  * GET  /failover              alias of /survival
@@ -1510,7 +1510,7 @@ function escapeXml(s) {
     .replace(/"/g, "&quot;");
 }
 
-function llmsTxt(origin) {
+function llmsTxt(origin, env = {}) {
   const base = origin.replace(/\/$/, "");
   const lines = [
     `# ${CATALOG_TITLE}`,
@@ -1582,7 +1582,7 @@ function llmsTxt(origin) {
     `About: ${base}/about`,
     `Cite: ${base}/cite.json`,
     `Shelves: ${base}/shelves  (COLD-MULTI-SHELF-1.0; corpus SoT ${LIBRARY_ORIGIN}/shelves)`,
-    `Ban survival: ${base}/survival  (BAN-SURVIVAL-1.0; named hub /runtime + read quarantine + cold tip-hash)`,
+    `Ban survival: ${base}/survival  (BAN-SURVIVAL-1.0; live multi-front workers.dev + custom-domain /runtime; LIVE doors only; shelves are not failover)`,
     `Sitemap: ${base}/sitemap.xml`,
     `Sitemap index: ${base}/sitemap-index.xml`,
     `Library: ${LIBRARY_NAME} ${LIBRARY_ORIGIN}/`,
@@ -1596,7 +1596,7 @@ function llmsTxt(origin) {
     "",
     survivalLlmsBlock().trimEnd(),
     "",
-    banSurvivalLlmsBlock(origin).trimEnd(),
+    banSurvivalLlmsBlock(origin, env).trimEnd(),
     "",
     shelvesLlmsBlock(origin).trimEnd(),
     "",
@@ -1713,7 +1713,7 @@ function llmsTxt(origin) {
   return lines.join("\n");
 }
 
-function citeJson(origin) {
+function citeJson(origin, env = {}) {
   const base = origin.replace(/\/$/, "");
   return {
     product: PRODUCT_NAME,
@@ -1786,7 +1786,7 @@ function citeJson(origin) {
     designs: designsCiteField(),
     audits: auditsCiteField(),
     survival: survivalCiteField(),
-    ban_survival: banSurvivalCiteField(origin),
+    ban_survival: banSurvivalCiteField(origin, env),
     shelves: shelvesCiteField(origin),
     cold_multi_shelf: COLD_MULTI_SHELF,
     mesh: meshCiteField(base),
@@ -2553,7 +2553,7 @@ function staticPaths(origin) {
       get: {
         operationId: "catalog_ban_survival",
         summary:
-          "BAN-SURVIVAL-1.0 door/path failover map. Named same-tunnel routes (workers.dev + hub /runtime service bindings) plus read-surface quarantine plus cold tip-hash. Not a second FragGate door. Never invent a live door. Never claim a banned host is LIVE.",
+          "BAN-SURVIVAL-1.0 live multi-front failover map. workers.dev + custom-domain hub /runtime + path quarantine. Client door list = LIVE doors only. Not a second FragGate door. Never invent a live door. Never claim shelves saved you.",
         tags: ["catalog"],
         responses: { "200": { description: "BAN-SURVIVAL failover JSON" } },
       },
@@ -3314,7 +3314,7 @@ async function gateInbound(request, env, jsonReply) {
   if (method === "OPTIONS") return { request, response: null };
   const blocked = isRouteBlocked(env, url.origin, url.pathname);
   if (blocked && isExecPath(url.pathname)) {
-    const refuse = blockedRouteRefuse(blocked, url.origin);
+    const refuse = blockedRouteRefuse(blocked, url.origin, env);
     return {
       request,
       response: jsonReply(refuse, refuse.status || 503),
@@ -3327,7 +3327,7 @@ async function gateInbound(request, env, jsonReply) {
       return {
         request,
         response: jsonReply(
-          { ...rateLimitFailBody(decision), ban_survival: rateLimitFailoverCite(decision, url.origin) },
+          { ...rateLimitFailBody(decision), ban_survival: rateLimitFailoverCite(decision, url.origin, env) },
           429,
           rateLimitFailHeaders(decision),
         ),
@@ -3433,7 +3433,7 @@ async function handleRequest(request, env, ctx) {
     }
 
     if ((url.pathname === "/llms.txt" || url.pathname === "/ai.txt") && (request.method === "GET" || request.method === "HEAD")) {
-      return asHead(request, text(llmsTxt(origin), extra(url.pathname)));
+      return asHead(request, text(llmsTxt(origin, env), extra(url.pathname)));
     }
 
     if (url.pathname === "/person.jsonld" && (request.method === "GET" || request.method === "HEAD")) {
@@ -3458,7 +3458,7 @@ async function handleRequest(request, env, ctx) {
       if (injected) {
         return asHead(request, json(injected, 400, extra("/cite.json")));
       }
-      return asHead(request, json(citeJson(origin), 200, extra("/cite.json")));
+      return asHead(request, json(citeJson(origin, env), 200, extra("/cite.json")));
     }
 
     if (isShelvesPath(url.pathname)) {

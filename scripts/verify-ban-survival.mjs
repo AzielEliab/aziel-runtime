@@ -1,5 +1,5 @@
 /**
- * BAN-SURVIVAL-1.0: named same-tunnel failover + honest DEGRADED + no invented live door.
+ * BAN-SURVIVAL-1.0: live multi-front failover. LIVE doors only. Shelves are not failover.
  * Author: Aziel Eliab only.
  */
 import assert from "node:assert/strict";
@@ -12,9 +12,9 @@ import {
   BAN_SURVIVAL_RULE,
   BAN_SURVIVAL_TIP,
   CLIENT_ORDER,
-  COLD_FALLBACK,
   EXEC_PATHS,
   NAMED_ROUTES,
+  NEIGHBOR_SHELF_CITE,
   PRIMARY_WORKER_ORIGIN,
   READ_PATHS,
   REFUSE,
@@ -32,7 +32,10 @@ import {
   judgeInventedLiveShelf,
   judgeLlmReplica,
   judgeSecondDoor,
+  judgeShelfFailover,
   judgeUnmarkedHydra,
+  liveDoors,
+  liveExecOrigins,
   namedExecOrigins,
   nextExecOrigin,
   parseBlockedRoutes,
@@ -42,7 +45,6 @@ import {
   survivalDoc,
   survivalLlmsBlock,
   survivalSkillMarkdown,
-  LOCKSET_TIP,
 } from "../src/ban-survival.js";
 
 const paper = readFileSync(new URL("../docs/designs/BAN-SURVIVAL-1.0.md", import.meta.url), "utf8");
@@ -58,6 +60,8 @@ assert.match(paper, /^# BAN-SURVIVAL-1\.0/m);
 assert.match(paper, /Author: Aziel Eliab only/);
 assert.match(paper, /Never invent a live door/);
 assert.match(paper, /Never claim a banned host is still LIVE/);
+assert.match(paper, /Never claim shelves saved you/);
+assert.match(paper, /BAN-NO-SHELF-FAILOVER/);
 assert.match(paper, /service binding/);
 assert.match(paper, /Not a Softwares-tab product/);
 assert.match(paper, /No new MCP tool/);
@@ -66,9 +70,11 @@ assert.match(paper, /BAN-NO-HYDRA/);
 assert.match(paper, /BAN-NO-SECOND-DOOR/);
 assert.match(paper, /https:\/\/www\.azieleliab\.com\/#aziel/);
 assert.doesNotMatch(paper, /15:20 chrome visible|clock face on the homepage/i);
+assert.match(paper, /failed plan|not the ban-survival answer|not failover/i);
 assert.match(survival, /BAN-SURVIVAL-1\.0/);
 assert.match(nodeMesh, /BAN-SURVIVAL-1\.0/);
 assert.match(clientUpdate, /BAN-SURVIVAL-1\.0/);
+assert.match(clientUpdate, /LIVE only/);
 assert.match(citeDoc, /BAN-SURVIVAL-1\.0/);
 assert.match(designsReadme, /BAN-SURVIVAL-1\.0/);
 
@@ -85,15 +91,16 @@ assert.deepEqual(namedExecOrigins(), [
 ]);
 assert.ok(NAMED_ROUTES.every((r) => r.independent === false));
 assert.ok(NAMED_ROUTES.every((r) => r.blast_radius === "cf-github"));
-assert.equal(COLD_FALLBACK.plane_b.status, "slot");
-assert.equal(COLD_FALLBACK.plane_c.status, "slot");
-assert.equal(COLD_FALLBACK.lockset_tip, LOCKSET_TIP);
-assert.ok(CLIENT_ORDER.length >= 4);
+assert.equal(NEIGHBOR_SHELF_CITE.failover, false);
+assert.equal(NEIGHBOR_SHELF_CITE.shelves_are_not_failover, true);
+assert.equal(NEIGHBOR_SHELF_CITE.plane_b.status, "slot");
+assert.equal(NEIGHBOR_SHELF_CITE.plane_c.status, "slot");
+assert.ok(CLIENT_ORDER.length >= 3);
+assert.ok(CLIENT_ORDER.every((step) => !/cold tip-hash|verify lockset|archive\.org tip-pack/i.test(step)));
 assert.ok(EXEC_PATHS.includes("/mcp"));
 assert.ok(EXEC_PATHS.includes("/v1/fraggate/call"));
 assert.ok(READ_PATHS.includes("/survival"));
 assert.ok(READ_PATHS.includes("/cite.json"));
-assert.ok(READ_PATHS.includes("/shelves"));
 assert.equal(isExecPath("/mcp"), true);
 assert.equal(isExecPath("/cite.json"), false);
 assert.equal(isReadPath("/survival"), true);
@@ -105,9 +112,12 @@ assert.equal(judgeBannedHostLive({ banned_host_is_live: true }).reason, REFUSE.N
 assert.equal(judgeUnmarkedHydra({ unnamed_failover: true }).reason, REFUSE.NO_HYDRA);
 assert.equal(judgeSecondDoor({ secret_backdoor: true }).reason, REFUSE.NO_SECOND_DOOR);
 assert.equal(judgeInventedLiveShelf({ plane_b_live: true }).reason, REFUSE.NO_FAN);
+assert.equal(judgeShelfFailover({ shelves_saved_you: true }).reason, REFUSE.NO_SHELF_FAILOVER);
+assert.equal(judgeShelfFailover({ failover_to_archive: true }).reason, REFUSE.NO_SHELF_FAILOVER);
 assert.equal(judgeLlmReplica({ llm_memory_is_replica: true }).reason, REFUSE.NO_LLM_REPLICA);
 assert.equal(applyBanSurvival({}).ok, true);
 assert.equal(applyBanSurvival({ lie_to_survive: true, second_door: true }).ok, false);
+assert.equal(applyBanSurvival({ cold_shelf_is_failover: true }).ok, false);
 
 assert.deepEqual(parseBlockedRoutes({ BAN_SURVIVAL_BLOCKED: "workers-dev:/mcp,library-runtime" }), [
   { id: "workers-dev", path: "/mcp" },
@@ -118,10 +128,11 @@ assert.equal(doorMode({ BAN_SURVIVAL_BLOCKED: "workers-dev:/mcp" }), "DEGRADED")
 assert.ok(isRouteBlocked({ BAN_SURVIVAL_BLOCKED: "workers-dev:/mcp" }, PRIMARY_WORKER_ORIGIN, "/mcp"));
 assert.equal(isRouteBlocked({ BAN_SURVIVAL_BLOCKED: "workers-dev:/mcp" }, PRIMARY_WORKER_ORIGIN, "/cite.json"), null);
 
-const quarantined = blockedRouteRefuse({ id: "workers-dev", path: "/mcp" }, PRIMARY_WORKER_ORIGIN);
+const quarantined = blockedRouteRefuse({ id: "workers-dev", path: "/mcp" }, PRIMARY_WORKER_ORIGIN, {});
 assert.equal(quarantined.status, 503);
 assert.equal(quarantined.mode, "DEGRADED");
 assert.equal(quarantined.lie_to_survive, false);
+assert.equal(quarantined.shelves_are_not_failover, true);
 assert.equal(quarantined.failover.spec, BAN_SURVIVAL);
 
 assert.deepEqual(bridgeOrigins({ url: "https://example.test/runtime" }, {}), ["https://example.test/runtime"]);
@@ -131,21 +142,42 @@ assert.equal(nextExecOrigin(PRIMARY_WORKER_ORIGIN), "https://www.azielcorpuslibr
 assert.equal(shouldFailoverStatus(429), true);
 assert.equal(shouldFailoverStatus(200), false);
 
-const cite = survivalCiteField(PRIMARY_WORKER_ORIGIN);
+const blockedEnv = { BAN_SURVIVAL_BLOCKED: "workers-dev" };
+assert.equal(liveExecOrigins(blockedEnv).includes(PRIMARY_WORKER_ORIGIN), false);
+assert.ok(liveExecOrigins(blockedEnv).includes("https://www.azielcorpuslibrary.net/runtime"));
+assert.equal(liveDoors(blockedEnv).some((d) => d.id === "workers-dev"), false);
+assert.equal(liveDoors({}).length, NAMED_ROUTES.length);
+
+const cite = survivalCiteField(PRIMARY_WORKER_ORIGIN, {});
 assert.equal(cite.spec, BAN_SURVIVAL);
 assert.equal(cite.doi, null);
 assert.equal(cite.second_door, false);
 assert.equal(cite.software_tab, false);
-assert.equal(cite.cold_fallback.plane_b, "slot");
+assert.equal(cite.shelves_are_not_failover, true);
+assert.equal(cite.neighbor_shelf_cite.plane_b, "slot");
+assert.equal(cite.neighbor_shelf_cite.failover, false);
 assert.match(cite.survival, /\/survival$/);
+assert.ok(cite.live_doors.every((d) => d.status === "live"));
+assert.deepEqual(cite.exec_origins, namedExecOrigins());
+
+const citeBlocked = survivalCiteField(PRIMARY_WORKER_ORIGIN, blockedEnv);
+assert.equal(citeBlocked.exec_origins.includes(PRIMARY_WORKER_ORIGIN), false);
+assert.ok(citeBlocked.live_doors.every((d) => d.id !== "workers-dev"));
 
 const doc = survivalDoc(PRIMARY_WORKER_ORIGIN, { BAN_SURVIVAL_BLOCKED: "workers-dev:/mcp" });
 assert.equal(doc.mode, "DEGRADED");
 assert.equal(doc.fraggate_is_the_door, true);
-assert.equal(doc.routes[0].status, "blocked");
+assert.equal(doc.shelves_are_not_failover, true);
+assert.equal(doc.routes[0].status, "degraded");
 assert.deepEqual(doc.routes[0].blocked_paths, ["/mcp"]);
 assert.equal(doc.routes[1].status, "live");
-assert.equal(doc.cold_fallback.plane_b.live_ready, false);
+assert.ok(doc.live_doors.some((d) => d.id === "workers-dev"));
+assert.ok(doc.live_doors.find((d) => d.id === "workers-dev").exec.every((u) => !u.endsWith("/mcp")));
+assert.equal(doc.neighbor_shelf_cite.failover, false);
+
+const fullyBlocked = survivalDoc(PRIMARY_WORKER_ORIGIN, { BAN_SURVIVAL_BLOCKED: "workers-dev" });
+assert.equal(fullyBlocked.routes[0].status, "blocked");
+assert.equal(fullyBlocked.exec_origins.includes(PRIMARY_WORKER_ORIGIN), false);
 
 const http = dispatchSurvivalHttp("GET", "/survival", PRIMARY_WORKER_ORIGIN, {});
 assert.equal(http.status, 200);
@@ -153,18 +185,23 @@ assert.equal(http.body.spec, BAN_SURVIVAL);
 assert.equal(http.body.mode, "LIVE");
 assert.equal(dispatchSurvivalHttp("POST", "/survival", PRIMARY_WORKER_ORIGIN, {}).status, 405);
 
-const failover = rateLimitFailoverCite({ scope: "mcp", limit: 1, retry_after: 2 }, PRIMARY_WORKER_ORIGIN);
+const failover = rateLimitFailoverCite({ scope: "mcp", limit: 1, retry_after: 2 }, PRIMARY_WORKER_ORIGIN, {});
 assert.equal(failover.spec, BAN_SURVIVAL);
 assert.equal(failover.rate_limit.code, "RATE_LIMIT");
-assert.ok(failover.exec_origins.includes(PRIMARY_WORKER_ORIGIN));
+assert.equal(failover.exec_origins.includes(PRIMARY_WORKER_ORIGIN), false);
+assert.ok(failover.exec_origins.includes("https://www.azielcorpuslibrary.net/runtime"));
+assert.equal(failover.shelves_are_not_failover, true);
 assert.equal(failoverCite(PRIMARY_WORKER_ORIGIN).lie_to_survive, false);
 
 const llms = survivalLlmsBlock(PRIMARY_WORKER_ORIGIN);
 assert.match(llms, /BAN-SURVIVAL-1\.0/);
 assert.match(llms, new RegExp(BAN_SURVIVAL_TIP.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 assert.match(llms, /Never invent a live door/);
+assert.match(llms, /not failover/);
+assert.doesNotMatch(llms, /then cold tip-hash/);
 assert.match(survivalSkillMarkdown(PRIMARY_WORKER_ORIGIN), /DEGRADED/);
 assert.match(BAN_SURVIVAL_RULE, /Never invent a live door/);
+assert.match(BAN_SURVIVAL_RULE, /Never claim shelves saved you/);
 
 const handler = (await import("../src/index.js")).default.fetch;
 const origin = PRIMARY_WORKER_ORIGIN;
@@ -178,11 +215,19 @@ assert.equal(body.spec, BAN_SURVIVAL);
 assert.equal(body.mode, "LIVE");
 assert.equal(body.second_door, false);
 assert.equal(body.lie_to_survive, false);
+assert.equal(body.shelves_are_not_failover, true);
+assert.ok(body.live_doors.length >= 3);
 assert.match(res.headers.get("cache-control") || "", /max-age=120/);
 
 const citeRes = await get("/cite.json");
 const citeBody = await citeRes.json();
 assert.equal(citeBody.ban_survival.spec, BAN_SURVIVAL);
+assert.equal(citeBody.ban_survival.shelves_are_not_failover, true);
+assert.ok(citeBody.ban_survival.live_doors.length >= 3);
+
+const citeBlockedHttp = await get("/cite.json", { BAN_SURVIVAL_BLOCKED: "workers-dev" });
+const citeBlockedBody = await citeBlockedHttp.json();
+assert.equal(citeBlockedBody.ban_survival.exec_origins.includes(PRIMARY_WORKER_ORIGIN), false);
 
 const openapi = await (await get("/openapi.json")).json();
 assert.ok(openapi.paths["/survival"]);
@@ -195,7 +240,9 @@ const blocked = await handler(
 assert.equal(blocked.status, 503);
 const blockedBody = await blocked.json();
 assert.equal(blockedBody.mode, "DEGRADED");
+assert.equal(blockedBody.shelves_are_not_failover, true);
 assert.equal(blockedBody.failover.spec, BAN_SURVIVAL);
+assert.ok(blockedBody.failover.exec_origins.includes("https://www.azielcorpuslibrary.net/runtime"));
 
 const stillCite = await get("/cite.json", { BAN_SURVIVAL_BLOCKED: "workers-dev:/mcp" });
 assert.equal(stillCite.status, 200);

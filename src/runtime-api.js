@@ -378,7 +378,7 @@ ${survivalSkillMarkdown(base)}
 | GET | \`/who-is\` | Machine who-is text. Same Person \`@id\`. Site coverage blurbs. Alias \`/who-is-aziel-eliab.txt\`. Not an HTML page. |
 | GET | \`/shelves\` | COLD-MULTI-SHELF-1.0 registry cite matching live corpus \`/shelves\`. Plane A 5 surfaces / 2 family radii / 1 independent live. Plane B SLOT (Codeberg + archive.org PASS still SLOT at https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius; Framagit URL null; GitFlic CNS-GITFLIC-EMAIL; GitLab CNS-GITLAB-CF-LOOP; Zenodo refused). Plane C USB SLOT. \`doi\` null. Linked fields: \`redline.spec\`, Cap-7 \`design_of\` + \`resolves_to_hub: false\`, attack-sim refuse pointer. Not a sixth surface. |
 | GET | \`/v1/shelves\` | Machine alias of \`/shelves\`. |
-| GET | \`/survival\` | BAN-SURVIVAL-1.0 door/path failover map. Named same-tunnel routes + read-surface quarantine + cold tip-hash. Not a second door. Never invent a live door. |
+| GET | \`/survival\` | BAN-SURVIVAL-1.0 live multi-front failover map. workers.dev + custom-domain /runtime + path quarantine. LIVE doors only. Not a second door. Never invent a live door. Never claim shelves saved you. |
 | GET | \`/v1/survival\` | Machine alias of \`/survival\`. |
 | GET | \`/llms.txt\` | Plain-text catalog + citation rules for crawlers. |
 | GET | \`/ai.txt\` | Alias of \`/llms.txt\`. |

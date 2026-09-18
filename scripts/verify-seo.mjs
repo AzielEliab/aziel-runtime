@@ -563,8 +563,10 @@ assert.ok(cite.designs.papers.some((p) => p.id === "BAN-SURVIVAL-1.0" && p.kind 
 assert.equal(cite.ban_survival.spec, "BAN-SURVIVAL-1.0");
 assert.equal(cite.ban_survival.second_door, false);
 assert.equal(cite.ban_survival.doi, null);
-assert.equal(cite.ban_survival.cold_fallback.plane_b, "slot");
-assert.match(llms, /BAN-SURVIVAL-1\.0: one banned door is not last tip gone/);
+assert.equal(cite.ban_survival.shelves_are_not_failover, true);
+assert.ok(Array.isArray(cite.ban_survival.live_doors) && cite.ban_survival.live_doors.length >= 1);
+assert.ok(Array.isArray(cite.ban_survival.exec_origins) && cite.ban_survival.exec_origins.length >= 1);
+assert.match(llms, /BAN-SURVIVAL-1\.0: one banned door is not the runtime gone/);
 assert.equal(cite.semantic_bridge.design_of, "hub_designs");
 assert.equal(cite.redline.spec, "REDLINE-2026-09-14");
 assert.equal(cite.redline.attack_sims.pointer, "scripts/verify-redline.mjs");
