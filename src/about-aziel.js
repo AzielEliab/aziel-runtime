@@ -90,7 +90,8 @@ export function corpusFoldPackPanelHtml(origin) {
       <button type="button" data-op="pack-verify">pack-verify</button>
       <button type="button" data-slug="aziel-corpus" data-op="tip-pack">tip-pack</button>
     </div>
-    <textarea class="fg-payload">${escapeHtml(verifyExample)}</textarea>
+    <label for="fold-pack-payload">Pack payload JSON</label>
+    <textarea id="fold-pack-payload" class="fg-payload" name="fold_pack_payload">${escapeHtml(verifyExample)}</textarea>
     <pre class="fg-out">POST ${escapeHtml(base)}/v1/fraggate/call
 { "slug": "foldlock", "op": "pack-verify", "payload": ${verifyExample} }</pre>
   </div>
