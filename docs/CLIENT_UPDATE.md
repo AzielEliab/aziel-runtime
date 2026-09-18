@@ -143,19 +143,46 @@ verified ChainLock (`belief_is_not_truth`; posterior ≠ truth);
 additive stamps. stub_ops `model_update` / `rollback` / `rewrite` /
 `delete_history` / `auto_update` stay refused.
 
-Calling-name rotation is **discovery metadata only**. On honest ban
-signals the public calling name may rotate (Whitestone AI → Bills →
-Runtime → Eliab Runtime → Potato Runtime → Elroi Runtime → endless
-Softwares-family / random). Mesh nodes pull `*new name alert: <name>`
-from `GET /survival`. Identity stays Aziel Eliab. No ChainLock / AKM
-rewrite. No third-party trademarks.
+Calling-name rotation is **discovery metadata only**. Pipeline:
+trigger → mesh alert → metadata rewrite → client rediscovery. On honest
+ban signals the public calling name may rotate (open-ended + random; no
+hard cap at 6: Whitestone AI → Bills / Bills Runtime as needed → Runtime →
+Eliab Runtime → Potato Runtime → Elroi Runtime → Softwares-family
+`*-runtime` → endless distinct names, including `BAN_SURVIVAL_NAME_RANDOM`
+alongside the seeds). On trigger, rewrite **all** live discovery metadata
+(OpenAPI `info`, MCP name/instructions, cite/llms/ai/who-is/person calling
+strings, `/survival` live product, Softwares vanity, hub-facing runtime
+labels) so the banned name is not the live call target. Live mesh nodes
+pull `*new name alert: <name>` from `GET /v1/mesh` and `GET /survival`
+(GET never enables; not a publish path). User-uploaded data is a
+DecisionGATE/AKM observe signal — unmarked uploads are not a ban. Call
+routes stay `POST /mcp` / `POST /v1/fraggate/call`. Identity stays Aziel
+Eliab. No ChainLock / AKM rewrite. No third-party trademarks.
 
-Platforms are **LIVE** on every listed OS — Windows, Mac, Linux,
-Android, iPhone — via browser + PWA (`/manifest.webmanifest`) + Worker
-fronts + Softwares `/download` + MCP/OpenAPI. Not native store apps.
+Platforms are **LIVE** on every listed OS. This is not five native
+store binaries (`native_app_store: false`). Dual-surface on each:
+agents use MCP/OpenAPI; humans use Worker UI + PWA + counted `/download`.
+
+| id | OS | LIVE path |
+| --- | --- | --- |
+| `windows` | Windows | Edge / Chrome / Firefox + PWA + `/download` + `/mcp` |
+| `mac` | Mac | Safari / Chrome / Firefox + PWA + `/download` + `/mcp` |
+| `linux` | Linux | Firefox / Chrome / Chromium + PWA + `/download` + `/mcp` |
+| `android` | Android | Chrome / Firefox + installed PWA + `/download` + `/mcp` |
+| `ios` | iPhone | Safari Add to Home Screen PWA + `/download` + `/mcp` |
+
+Each OS can reach `/survival` (name-rotation + live doors), Cap-7
+in-process shuffle (`fraggate_call` `miragegrid`/`shuffle`; public
+workers.dev shuffle stays SLOT), and Softwares download/run. Machine
+matrix: `GET /platforms` (alias `/v1/platforms`), `GET /survival`
+`platforms`, `GET /v1/software` `platforms`, `GET /v1/update/manifest`
+`platforms`, suite pack `/download` `platforms`. `live: true` only when
+those Worker paths exist. Do not mark any of the five OS as SLOT.
 
 Machine map: `GET /survival` (aliases `/v1/survival`, `/doors`, `/failover`).
-`live_doors` / `exec_origins` omit blocked fronts. Stdio MCP
+`live_doors` / `exec_origins` omit blocked fronts. Hubs (ae / corpus /
+godlock / HDJ) pull that SoT for live doors + `*new name alert:` rather
+than hardcode — follow-on hub PRs, not this repo. Stdio MCP
 (`cli/mcp-stdio.mjs`) follows the live-front order unless `--url` is pinned
 or `AZIEL_RUNTIME_FAILOVER=0`.
 

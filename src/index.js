@@ -31,7 +31,9 @@
  * GET  /v1/shelves            machine alias of /shelves
  * GET  /v1/cold-copy          alias of /shelves
  * GET  /survival              BAN-SURVIVAL-1.0 mutual-backup map (live multi-front ↔ cold shelves; LIVE doors only; live-node API SLOT)
+ * GET  /platforms             BAN-PLATFORMS-1.0 — windows/mac/linux/android/ios all LIVE (not SLOT)
  * GET  /v1/survival           machine alias of /survival
+ * GET  /v1/platforms          machine alias of /platforms
  * GET  /doors                 alias of /survival
  * GET  /failover              alias of /survival
  * GET  /v1/skill              skill markdown (session + front doors)
@@ -216,8 +218,8 @@ import {
   mcpServerCard,
   oauthProtectedResource,
 } from "./mcp-discovery.js";
-import { resolveCallingName } from "./calling-name.js";
-import { isManifestPath, platformHeadLinks, platformsCite, webManifest } from "./platforms.js";
+import { resolveCallingName, rewriteLiveCallingDisplay, rewriteLiveCallingKeywords } from "./calling-name.js";
+import { dispatchPlatformsHttp, isManifestPath, isPlatformPath, platformHeadLinks, platformsCite, webManifest } from "./platforms.js";
 import {
   MCP_PROTOCOL_PREFERRED,
   MCP_PROTOCOL_SUPPORTED,
@@ -1190,7 +1192,7 @@ async function servePackedSoftware(request, env, origin, extra = {}) {
   if (prefersHtml(request)) {
     return asHead(
       request,
-      html(softwareCatalogHtml(origin, body, PAGE_CSS + HUMAN_UI_CSS), catalogLinkHeaders(origin, path)),
+      html(softwareCatalogHtml(origin, body, PAGE_CSS + HUMAN_UI_CSS, resolveCallingName(env)), catalogLinkHeaders(origin, path)),
     );
   }
   return json(body, 200, catalogLinkHeaders(origin, path));
@@ -1340,11 +1342,17 @@ function workerOnlyCiteRecord(spec, origin) {
 
 function softwareExtra(env) {
   const meta = softwareMeta(env, { updated_at: LASTMOD });
+  const calling = resolveCallingName(env);
   return {
     runtimeVersion: RUNTIME_VERSION,
     version: RUNTIME_VERSION,
     updated_at: meta.updated_at || LASTMOD,
     git_sha: meta.git_sha,
+    calling_name: calling.calling_name,
+    calling_slug: calling.calling_slug,
+    calling_name_alert: calling.alert,
+    calling_name_rotated: calling.rotated,
+    env,
   };
 }
 
@@ -1441,6 +1449,8 @@ function sitemapXml(origin) {
     { loc: base + "/v1/cold-copy", priority: "0.8", changefreq: "weekly" },
     { loc: base + "/survival", priority: "0.85", changefreq: "weekly" },
     { loc: base + "/v1/survival", priority: "0.85", changefreq: "weekly" },
+    { loc: base + "/platforms", priority: "0.8", changefreq: "weekly" },
+    { loc: base + "/v1/platforms", priority: "0.8", changefreq: "weekly" },
     { loc: base + "/doors", priority: "0.7", changefreq: "weekly" },
     { loc: base + "/failover", priority: "0.7", changefreq: "weekly" },
     { loc: base + "/llms.txt", priority: "0.9", changefreq: "weekly" },
@@ -1516,17 +1526,18 @@ function escapeXml(s) {
 
 function llmsTxt(origin, env = {}) {
   const base = origin.replace(/\/$/, "");
+  const calling = resolveCallingName(env);
   const lines = [
-    `# ${CATALOG_TITLE}`,
+    `# ${calling.calling_name}`,
     "",
-    llmsWhatThisIsBlock().trimEnd(),
+    llmsWhatThisIsBlock(calling).trimEnd(),
     "",
-    ...llmsIdentityHeader(),
-    aboutAzielLlmsBlock().trimEnd(),
+    ...llmsIdentityHeader(calling),
+    rewriteLiveCallingDisplay(aboutAzielLlmsBlock(), calling).trimEnd(),
     "",
     `Role: engine-runtime (catalog + pull + proxy + session + in-process engines)`,
     "",
-    personLlmsBlock(origin).trimEnd(),
+    rewriteLiveCallingDisplay(personLlmsBlock(origin), calling).trimEnd(),
     "",
     "## Version history",
     "",
@@ -1698,7 +1709,7 @@ function llmsTxt(origin, env = {}) {
   }
   lines.push(designsLlmsBlock());
   lines.push(auditsLlmsBlock());
-  lines.push(llmsCiteBlock(origin));
+  lines.push(llmsCiteBlock(origin, calling));
   lines.push("## Crawl (GitBaby product Workers)");
   lines.push("");
   lines.push(
@@ -1756,16 +1767,16 @@ function citeJson(origin, env = {}) {
     ...honestyFields(PRODUCTS.map((p) => p.slug)),
     license: "Apache-2.0",
     license_url: "https://www.apache.org/licenses/LICENSE-2.0",
-    how_to_cite: citeHowToRuntime(origin),
+    how_to_cite: citeHowToRuntime(origin, calling),
     bibtex: `@software{eliab_aziel_runtime_2026,
   author = {Eliab, Aziel},
-  title = {Aziel Runtime},
+  title = {${calling.calling_name}},
   year = {2026},
   url = {${base}/},
   version = {${RUNTIME_VERSION}},
   license = {Apache-2.0}
 }`,
-    apa: `Eliab, A. (2026). Aziel Runtime [Computer software]. ${base}/`,
+    apa: `Eliab, A. (2026). ${calling.calling_name} [Computer software]. ${base}/`,
     zenodo: citeZenodoBlock(),
     door: "fraggate",
     kernel: FRAGGATE_GITHUB,
@@ -1797,7 +1808,7 @@ function citeJson(origin, env = {}) {
     platforms: platformsCite(env),
     shelves: shelvesCiteField(origin),
     cold_multi_shelf: COLD_MULTI_SHELF,
-    mesh: meshCiteField(base),
+    mesh: meshCiteField(base, env),
     semantic_bridge: semanticBridgeCiteField(origin),
     redline: redlineCiteField(),
     tls: redlineCiteField().tls,
@@ -1833,19 +1844,22 @@ function citeJson(origin, env = {}) {
   };
 }
 
-function jsonLd(origin) {
+function jsonLd(origin, env = {}) {
   const base = origin.replace(/\/$/, "");
   const person = personJsonLd();
+  const calling = resolveCallingName(env);
   const software = runtimeSoftwareJsonLd(origin, {
     softwareVersion: RUNTIME_VERSION,
     screenshot: base + "/sigil.png",
+    name: calling.calling_name,
+    description: rewriteLiveCallingDisplay(RUNTIME_ABSTRACT, calling),
   });
   const website = {
     "@type": "WebSite",
     "@id": base + "/#website",
-    name: PRODUCT_NAME,
+    name: calling.calling_name,
     url: base + "/",
-    description: RUNTIME_ABSTRACT,
+    description: rewriteLiveCallingDisplay(RUNTIME_ABSTRACT, calling),
     publisher: { "@id": person["@id"] },
     inLanguage: "en",
   };
@@ -1854,7 +1868,10 @@ function jsonLd(origin) {
     "@id": base + "/#fraggate",
     name: "FragGate",
     description:
-      "THE single public executable door for Aziel Runtime Softwares. Discover, route, refuse: fraggate_list → fraggate_describe → fraggate_call. Not 37 separate APIs. Not an API aggregator.",
+      rewriteLiveCallingDisplay(
+        "THE single public executable door for Aziel Runtime Softwares. Discover, route, refuse: fraggate_list → fraggate_describe → fraggate_call. Not 37 separate APIs. Not an API aggregator.",
+        calling,
+      ),
     url: base + "/v1/fraggate",
     documentation: base + "/v1/fraggate/describe",
     provider: { "@id": person["@id"] },
@@ -1935,17 +1952,18 @@ function jsonLd(origin) {
   };
 }
 
-function headMeta(origin, title, description, canonicalPath) {
+function headMeta(origin, title, description, canonicalPath, env = {}) {
   const base = origin.replace(/\/$/, "");
   const canonical = base + canonicalPath;
   const image = base + "/sigil.png";
+  const calling = resolveCallingName(env);
   return `<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${escapeHtml(title)}</title>
-<meta name="description" content="${escapeHtml(description)}">
+<title>${escapeHtml(rewriteLiveCallingDisplay(title, calling))}</title>
+<meta name="description" content="${escapeHtml(rewriteLiveCallingDisplay(description, calling))}">
 <meta name="author" content="${escapeHtml(AUTHOR_NAME)}">
 <meta name="citation_author" content="${escapeHtml(AUTHOR_NAME)}">
-<meta name="keywords" content="${escapeHtml(HOMEPAGE_KEYWORDS)}">
+<meta name="keywords" content="${escapeHtml(rewriteLiveCallingKeywords(HOMEPAGE_KEYWORDS, calling))}">
 <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1">
 <link rel="canonical" href="${escapeHtml(canonical)}">
 <link rel="sitemap" type="application/xml" href="${base}/sitemap.xml">
@@ -2086,9 +2104,9 @@ function productCardHtml(p, origin, stats) {
 </article>`;
 }
 
-function catalogHtml(origin, statsMap) {
+function catalogHtml(origin, statsMap, env = {}) {
   const cards = PRODUCTS.map((p) => productCardHtml(p, origin, statsMap && statsMap[p.slug])).join("\n");
-  const ld = JSON.stringify(jsonLd(origin));
+  const ld = JSON.stringify(jsonLd(origin, env));
   const citeProducts = PRODUCTS.map((p) => {
     const u = productUrls(p, origin);
     const cite = citationFields(p, u);
@@ -2110,25 +2128,25 @@ function catalogHtml(origin, statsMap) {
   return `<!doctype html>
 <html lang="en">
 <head>
-${headMeta(origin, RUNTIME_PAGE_TITLE, RUNTIME_ABSTRACT, "/")}
+${headMeta(origin, RUNTIME_PAGE_TITLE, RUNTIME_ABSTRACT, "/", env)}
 <script type="application/ld+json">${ld}</script>
 <style>${PAGE_CSS}${HUMAN_UI_CSS}</style>
 </head>
 <body>
 ${brandRow()}
-${homepageLeadHtml()}
+${homepageLeadHtml(resolveCallingName(env))}
 ${humanNavHtml(origin)}
 ${workspacePaneHtml(origin, PRODUCTS)}
 <p class="docs-after">Cite, architecture, and Softwares cards stay below. Humans start in the workspace; crawlers still see the abstract first.</p>
 ${distributionDoorsHtml(origin)}
 ${ecosystemBlockHtml()}
 ${namedComponentsHtml()}
-${workerLaunchHtml(origin, { slug: "aziel-runtime", name: "Aziel Runtime" })}
+${workerLaunchHtml(origin, { slug: resolveCallingName(env).calling_slug, name: resolveCallingName(env).calling_name })}
 
   <section class="cite" id="cite">
     <h2>How to cite</h2>
     <p>Author: <strong>${escapeHtml(AUTHOR_NAME)}</strong> (also known as ${escapeHtml(AUTHOR_ALTERNATE_NAME)}) · Runtime: <a href="${origin}/">${origin}/</a> · License: Apache-2.0 · Machine-readable: <a href="${origin}/cite.json">/cite.json</a></p>
-    <p>${escapeHtml(citeHowToRuntime(origin))}</p>
+    <p>${escapeHtml(citeHowToRuntime(origin, resolveCallingName(env)))}</p>
     <p>${escapeHtml(citeHowToLibrary())} · <a href="${LIBRARY_CITE}">Digital Library /cite.json</a> · <a href="${LIBRARY_LLMS}">/llms.txt</a></p>
     <p class="lead">Known DOIs are historical. Zenodo currently returns HTTP 410 (user blocked) for every wired record. FoldLock and WhistleLock share method-paper DOI 10.5281/zenodo.22257762 on purpose — WhistleLock still needs its own software deposit. No DOIs are invented here.</p>
     <ul>${citeProducts}</ul>
@@ -2361,7 +2379,7 @@ function escapeHtml(s) {
     .replace(/"/g, "&quot;");
 }
 
-function staticPaths(origin) {
+function staticPaths(origin, env = {}) {
   const paths = {
     ...runtimeStaticPaths(),
     "/v1/health": {
@@ -2471,7 +2489,10 @@ function staticPaths(origin) {
     "/about": {
       get: {
         operationId: "catalog_about",
-        summary: "What Aziel Runtime is — node-meshed MCP Softwares suite, not an API aggregator.",
+        summary: rewriteLiveCallingDisplay(
+          "What Aziel Runtime is — node-meshed MCP Softwares suite, not an API aggregator.",
+          resolveCallingName(env),
+        ),
         tags: ["catalog"],
         responses: { "200": { description: "About HTML" } },
       },
@@ -2597,6 +2618,23 @@ function staticPaths(origin) {
         responses: { "200": { description: "BAN-SURVIVAL failover JSON" } },
       },
     },
+    "/platforms": {
+      get: {
+        operationId: "catalog_ban_platforms",
+        summary:
+          "BAN-PLATFORMS-1.0. Windows, Mac, Linux, Android, and iPhone are LIVE via browser / PWA / download / MCP. native_app_store false. Do not mark any of these five as SLOT.",
+        tags: ["catalog"],
+        responses: { "200": { description: "Platform reachability JSON" } },
+      },
+    },
+    "/v1/platforms": {
+      get: {
+        operationId: "catalog_ban_platforms_v1",
+        summary: "Machine alias of GET /platforms.",
+        tags: ["catalog"],
+        responses: { "200": { description: "Platform reachability JSON" } },
+      },
+    },
     "/llms.txt": {
       get: {
         operationId: "catalog_llms",
@@ -2696,15 +2734,15 @@ function catalogProxyPaths() {
 
 async function combinedOpenApi(request, env) {
   const origin = originOf(request);
-  const paths = { ...staticPaths(origin), ...catalogProxyPaths() };
+  const paths = { ...staticPaths(origin, env), ...catalogProxyPaths() };
   return {
     openapi: "3.1.0",
     info: {
       title: resolveCallingName(env).calling_name,
       version: RUNTIME_VERSION,
-      summary: RUNTIME_ONE_LINE,
+      summary: rewriteLiveCallingDisplay(RUNTIME_ONE_LINE, resolveCallingName(env)),
       description:
-        RUNTIME_ABSTRACT +
+        rewriteLiveCallingDisplay(RUNTIME_ABSTRACT, resolveCallingName(env)) +
         " FragGate is THE single public executable door (list → describe → call). Softwares catalog Plain→Gate→Lock; hubs refresh from GET /v1/software. Dual-surface: agents MCP/OpenAPI; humans Worker UI + counted /download. Catalog names mesh-resident website designs azcorpus + azlibrary (downloadable to nodes; not extra Softwares; azlibrary upload is API token only). Cap-7 mesh names via MirageGrid only (inherit hub designs only; resolves_to_hub false; name_may_change; canonical hubs immutable; not ICANN aliases). COLD-MULTI-SHELF-1.0 cite on GET /shelves matches corpus#96 honesty (Plane A 5 surfaces / 2 family radii / 1 independent live; Plane B Codeberg + archive.org PASS still SLOT at https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius; Framagit URL null; GitFlic CNS-GITFLIC-EMAIL; GitLab CNS-GITLAB-CF-LOOP; Zenodo refused; doi null; Plane C USB SLOT). NodeMesh/QNM read-only suite-presence is ON by default; GET /v1/mesh never enables radios beyond that; not a login mesh / Node Gate. Public VPN auto-binds AZVPN (HTTPS/WS REAL; WireGuard/OpenVPN SLOT). Author Aziel Eliab only. " +
         CATALOG_CHANGELOG_20 +
         " " +
@@ -2952,15 +2990,16 @@ async function callRuntimeTool(env, name, args, origin, request) {
   return null;
 }
 
-function healthBody(origin) {
+function healthBody(origin, env = {}) {
+  const calling = resolveCallingName(env);
   return {
     ok: true,
-    product: "aziel-runtime",
+    product: calling.calling_slug,
     author: "Aziel Eliab",
     role: RUNTIME_ROLE,
     layer: RUNTIME_LAYER,
     version: RUNTIME_VERSION,
-    title: CATALOG_TITLE,
+    title: calling.calling_name,
     identity: "Aziel Eliab",
     products: PRODUCTS.map((p) => p.slug),
     count: PRODUCTS.length,
@@ -2975,7 +3014,7 @@ function healthBody(origin) {
     invoke: "/p/{slug}/{op}",
     invoke_note: "proxy only — not exec",
     ...honestyFields(PRODUCTS.map((p) => p.slug)),
-    authoritySnapshot: authoritySnapshot(PRODUCTS.map((p) => p.slug)),
+    authoritySnapshot: authoritySnapshot(PRODUCTS.map((p) => p.slug), env),
     version_history: VERSION_HISTORY,
     counted_tarball: false,
     openapi: "/openapi.json",
@@ -3002,6 +3041,8 @@ function healthBody(origin) {
     shelves_json: "/v1/shelves",
     survival: "/survival",
     survival_json: "/v1/survival",
+    platforms: "/platforms",
+    platforms_json: "/v1/platforms",
     sitemap: "/sitemap.xml",
     sitemap_index: "/sitemap-index.xml",
     robots: "/robots.txt",
@@ -3148,7 +3189,7 @@ async function handleMcp(request, env, origin) {
           websiteUrl: "https://aziel-runtime.vibelock.workers.dev",
           description: `${resolveCallingName(env).calling_name} ${RUNTIME_VERSION}. 1.6.2 is superseded heritage, not this server. Author: Aziel Eliab only.`,
         },
-        instructions: mcpInitializeInstructions(),
+        instructions: mcpInitializeInstructions(env),
       },
       wire,
     );
@@ -3387,13 +3428,13 @@ async function handleRequest(request, env, ctx) {
       if (discovery === "oauth-protected-resource") {
         return asHead(
           request,
-          json(oauthProtectedResource(origin), 200, authorityLinkHeaders(origin, url.pathname)),
+          json(oauthProtectedResource(origin, env), 200, authorityLinkHeaders(origin, url.pathname)),
         );
       }
     }
 
     if (url.pathname === "/" && request.method === "GET") {
-      return html(catalogHtml(origin, {}), { ...extra("/"), ...catalogCacheHeaders() });
+      return html(catalogHtml(origin, {}, env), { ...extra("/"), ...catalogCacheHeaders() });
     }
 
     if ((url.pathname === "/workspace" || url.pathname === "/workspace/") && (request.method === "GET" || request.method === "HEAD")) {
@@ -3425,7 +3466,7 @@ async function handleRequest(request, env, ctx) {
     if ((url.pathname === "/about" || url.pathname === "/v1/about") && (request.method === "GET" || request.method === "HEAD")) {
       return asHead(
         request,
-        html(aboutPageHtml(origin, PAGE_CSS + HUMAN_UI_CSS), { ...extra("/about"), ...catalogCacheHeaders() }),
+        html(aboutPageHtml(origin, PAGE_CSS + HUMAN_UI_CSS, resolveCallingName(env)), { ...extra("/about"), ...catalogCacheHeaders() }),
       );
     }
 
@@ -3448,7 +3489,7 @@ async function handleRequest(request, env, ctx) {
     if (url.pathname === "/person.jsonld" && (request.method === "GET" || request.method === "HEAD")) {
       return asHead(
         request,
-        json(personIndexJsonLd(origin), 200, {
+        json(personIndexJsonLd(origin, resolveCallingName(env)), 200, {
           ...extra("/person.jsonld"),
           "Content-Type": "application/ld+json; charset=utf-8",
         }),
@@ -3459,7 +3500,7 @@ async function handleRequest(request, env, ctx) {
       (url.pathname === "/who-is" || url.pathname === "/who-is-aziel-eliab.txt") &&
       (request.method === "GET" || request.method === "HEAD")
     ) {
-      return asHead(request, text(whoIsTxt(origin), extra(url.pathname)));
+      return asHead(request, text(whoIsTxt(origin, resolveCallingName(env)), extra(url.pathname)));
     }
 
     if (url.pathname === "/cite.json" && (request.method === "GET" || request.method === "HEAD")) {
@@ -3497,10 +3538,17 @@ async function handleRequest(request, env, ctx) {
       }
     }
 
+    if (isPlatformPath(url.pathname)) {
+      const out = dispatchPlatformsHttp(request.method, url.pathname, origin, env);
+      if (out) {
+        return asHead(request, json(out.body, out.status, extra(url.pathname)));
+      }
+    }
+
     if (url.pathname === "/v1/skill" && (request.method === "GET" || request.method === "HEAD")) {
       return asHead(
         request,
-        markdownResponse(runtimeSkillMarkdown(origin, PRODUCTS), {
+        markdownResponse(runtimeSkillMarkdown(origin, PRODUCTS, env), {
           ...authorityLinkHeaders(origin, "/v1/skill"),
         }),
       );
@@ -3516,7 +3564,7 @@ async function handleRequest(request, env, ctx) {
       return asHead(
         request,
         json(
-          runtimeManifest(origin, PRODUCTS, { registry_digest: digest, fraggate: registrySummary(registry, digest) }),
+          runtimeManifest(origin, PRODUCTS, { registry_digest: digest, fraggate: registrySummary(registry, digest), env }),
           200,
           authorityLinkHeaders(origin, canon),
         ),
@@ -3621,7 +3669,7 @@ async function handleRequest(request, env, ctx) {
           session: origin + "/v1/session/open",
           bundle: origin + "/v1/bundle",
           ...honestyFields(PRODUCTS.map((p) => p.slug)),
-          authoritySnapshot: authoritySnapshot(PRODUCTS.map((p) => p.slug)),
+          authoritySnapshot: authoritySnapshot(PRODUCTS.map((p) => p.slug), env),
           version_history: VERSION_HISTORY,
           license: "Apache-2.0",
           door: "fraggate",
@@ -3788,7 +3836,7 @@ async function handleRequest(request, env, ctx) {
     }
 
     if (url.pathname === "/v1/health" && (request.method === "GET" || request.method === "HEAD")) {
-      const body = healthBody(origin);
+      const body = healthBody(origin, env);
       const usesTotal = await peekUsesTotal(env);
       if (usesTotal != null) body.uses_total = usesTotal;
       return asHead(
@@ -3804,7 +3852,7 @@ async function handleRequest(request, env, ctx) {
     if (url.pathname === "/v1/ready" && (request.method === "GET" || request.method === "HEAD")) {
       const gate = evaluateReady(env);
       const body = {
-        ...healthBody(origin),
+        ...healthBody(origin, env),
         ok: gate.ok,
         ready: gate.ok,
         session_binding: gate.session_binding,

@@ -124,6 +124,7 @@ export function buildSuitePack({ origin, products, registry, extra = {} } = {}) 
         downloads_are_not_live: true,
       },
     },
+    platforms: catalog.platforms,
     catalog: {
       count: catalog.count,
       live_count: catalog.live_count,

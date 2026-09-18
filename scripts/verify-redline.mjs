@@ -169,6 +169,8 @@ assert.ok(PUBLIC_DOORS.some((d) => d.path === "/shelves" && d.role === "cite"));
 assert.ok(PUBLIC_DOORS.some((d) => d.path === "/v1/shelves" && d.role === "cite"));
 assert.ok(PUBLIC_DOORS.some((d) => d.path === "/survival" && d.role === "cite"));
 assert.ok(PUBLIC_DOORS.some((d) => d.path === "/v1/survival" && d.role === "cite"));
+assert.ok(PUBLIC_DOORS.some((d) => d.path === "/platforms" && d.role === "cite"));
+assert.ok(PUBLIC_DOORS.some((d) => d.path === "/v1/platforms" && d.role === "cite"));
 assert.equal(citeOk.data.tls.via, "cloudflare");
 assert.equal(citeOk.data.tls.client_side_crypto_claim, false);
 

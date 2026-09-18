@@ -88,6 +88,8 @@ export const PUBLIC_DOORS = Object.freeze([
   { method: "GET", path: "/v1/shelves", role: "cite", auth: "none" },
   { method: "GET", path: "/survival", role: "cite", auth: "none" },
   { method: "GET", path: "/v1/survival", role: "cite", auth: "none" },
+  { method: "GET", path: "/platforms", role: "cite", auth: "none" },
+  { method: "GET", path: "/v1/platforms", role: "cite", auth: "none" },
   { method: "GET", path: "/robots.txt", role: "read", auth: "none", growth_on: true },
   { method: "GET", path: "/openapi.json", role: "read", auth: "none" },
   { method: "GET", path: "/v1/software", role: "read", auth: "none" },

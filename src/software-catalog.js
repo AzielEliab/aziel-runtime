@@ -27,6 +27,7 @@ import { AUTHOR_ID, azcoherenceCiteField, hubsCiteField, LIBRARY_ORIGIN, sisterP
 import { socialStatusField } from "./social-status.js";
 import { websiteDesignsField, websiteDesignsOnCorpusCard } from "./website-designs.js";
 import { softwareDescription, softwareOneLine } from "./software-copy.js";
+import { platformsCite } from "./platforms.js";
 
 /**
  * Live Worker products that are Softwares-tab cards but not FragGate engines.
@@ -302,6 +303,10 @@ export function softwareCatalog(origin, products, extra = {}) {
     identity: "Aziel Eliab",
     author_id: AUTHOR_ID,
     version: extra.runtimeVersion || extra.version || null,
+    suite_calling_name: extra.calling_name || "Aziel Runtime",
+    suite_calling_slug: extra.calling_slug || "aziel-runtime",
+    calling_name_alert: extra.calling_name_alert || null,
+    calling_name_rotated: extra.calling_name_rotated === true,
     door: "fraggate",
     kernel: "https://github.com/AzielEliab/fraggate",
     framing: SOFTWARE_FRAMING,
@@ -316,7 +321,8 @@ export function softwareCatalog(origin, products, extra = {}) {
     suite_download: `${base}/download`,
     suite_download_v1: `${base}/v1/suite/download`,
     suite_download_note:
-      "One-click suite pack JSON (REAL catalog + FoldLock tip + mesh cite). Worker wasm / WireGuard / OpenVPN SLOT. Counted GET /download. Not fielded_100.",
+      "One-click suite pack JSON (REAL catalog + FoldLock tip + mesh cite). Worker wasm / WireGuard / OpenVPN SLOT. Counted GET /download. LIVE on Windows / Mac / Linux / Android / iPhone via browser + PWA + Worker UI (native_app_store false). Not fielded_100.",
+    platforms: platformsCite(extra.env),
     isolation_software_count: MASTER_33_SLUGS.length,
     tab_placement_slugs: TAB_PLACEMENT_SLUGS.slice(),
     count_note: CATALOG_COUNT_NOTE,
@@ -356,11 +362,15 @@ export function softwareCatalog(origin, products, extra = {}) {
   };
 }
 
-export function resolveSoftwareSlug(raw, products) {
+export function resolveSoftwareSlug(raw, products, extra = {}) {
   const key = String(raw || "")
     .trim()
     .toLowerCase();
   if (!key) return null;
+  const liveSlug = String(extra.calling_slug || "").trim().toLowerCase();
+  const liveName = String(extra.calling_name || "").trim().toLowerCase();
+  if (liveSlug && key === liveSlug) return RUNTIME_SOFTWARE_SLUG;
+  if (liveName && key === liveName) return RUNTIME_SOFTWARE_SLUG;
   if (RUNTIME_ALIASES[key]) return RUNTIME_SOFTWARE_SLUG;
   if (products && products.some((p) => p.slug === key)) return key;
   const aliased = CATALOG_ALIASES[key];
@@ -414,7 +424,7 @@ function updateAvailable(current, latest) {
 
 export function updateCheck({ slug, version, current } = {}, origin, products, extra = {}) {
   const installed = version != null && version !== "" ? version : current;
-  const key = resolveSoftwareSlug(slug, products);
+  const key = resolveSoftwareSlug(slug, products, extra);
   if (!key) {
     return {
       ok: false,
@@ -498,14 +508,14 @@ export function updateManifest(origin, products, extra = {}) {
     check: `${base}/v1/update/check?slug=${encodeURIComponent(s.slug)}&version=`,
   }));
   items.push({
-    slug: RUNTIME_SOFTWARE_SLUG,
-    name: "Aziel Runtime",
+    slug: extra.calling_slug || RUNTIME_SOFTWARE_SLUG,
+    name: extra.calling_name || "Aziel Runtime",
     bucket: "plain",
     status: "live",
     latest: extra.runtimeVersion || extra.version || null,
     download_url: `${base}/download`,
     github: "https://github.com/AzielEliab/aziel-runtime",
-    check: `${base}/v1/update/check?slug=${RUNTIME_SOFTWARE_SLUG}&version=`,
+    check: `${base}/v1/update/check?slug=${encodeURIComponent(extra.calling_slug || RUNTIME_SOFTWARE_SLUG)}&version=`,
   });
   return {
     ok: true,
@@ -519,8 +529,9 @@ export function updateManifest(origin, products, extra = {}) {
     git_sha: extra.git_sha || extra.gitSha || null,
     software: `${base}/v1/software`,
     check: `${base}/v1/update/check?slug={slug}&version={installed}`,
+    platforms: platformsCite(extra.env),
     client_note:
-      "install.sh, local UIs, and mobile: GET /v1/update/check?slug=<product>&version=<installed>. If update_available, fetch download_url (counted product Worker /download, or GET /download suite pack for aziel-runtime). Hubs refresh tabs from GET /v1/software.",
+      "install.sh, local UIs, and mobile (Windows / Mac / Linux / Android / iPhone): GET /v1/update/check?slug=<product>&version=<installed>. If update_available, fetch download_url (counted product Worker /download, or GET /download suite pack). LIVE via browser + PWA + Worker UI. native_app_store false. Hubs refresh tabs from GET /v1/software.",
     count: items.length,
     latest: items,
   };
