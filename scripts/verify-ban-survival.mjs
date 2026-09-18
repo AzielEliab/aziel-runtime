@@ -356,6 +356,8 @@ assert.equal(cite.calling_name.call_routes.door, "fraggate");
 assert.equal(cite.calling_name.call_routes.second_door, false);
 assert.equal(cite.platforms.all_live, true);
 assert.ok(cite.platforms.platforms.every((p) => p.live === true && p.native_app_store === false));
+assert.ok(cite.platforms.platforms.every((p) => p.survival === true && p.calling_name === true && p.cap7_shuffle_in_process === true));
+assert.ok(cite.platforms.platforms.every((p) => p.dual_surface.agents === "mcp_openapi"));
 assert.deepEqual(cite.platforms.platforms.map((p) => p.id), ["windows", "mac", "linux", "android", "ios"]);
 assert.match(cite.survival, /\/survival$/);
 assert.ok(cite.live_doors.every((d) => d.status === "live"));
@@ -568,6 +570,9 @@ const rotatedSoft = await (await get("/v1/software", rotatedEnv)).json();
 assert.equal(rotatedSoft.suite_calling_name, "Whitestone AI");
 assert.equal(rotatedSoft.calling_name_alert, "*new name alert: Whitestone AI");
 assert.equal(rotatedSoft.identity, "Aziel Eliab");
+assert.equal(rotatedSoft.platforms.all_live, true);
+assert.deepEqual(rotatedSoft.platforms.platforms.map((p) => p.id), ["windows", "mac", "linux", "android", "ios"]);
+assert.equal(rotatedSoft.platforms.calling_name, "Whitestone AI");
 
 assert.equal(rotatedCite.calling_name.random_alongside, true);
 assert.equal(rotatedCite.calling_name.rewrites_all_discovery_metadata, true);
@@ -602,6 +607,8 @@ assert.match(rotatedAbout, /Whitestone AI is not merely/);
 
 const rotatedUpdate = await (await get("/v1/update/manifest", rotatedEnv)).json();
 assert.equal(rotatedUpdate.latest.some((row) => row.slug === "whitestone-ai" && row.name === "Whitestone AI"), true);
+assert.equal(rotatedUpdate.platforms.all_live, true);
+assert.deepEqual(rotatedUpdate.platforms.platforms.map((p) => p.id), ["windows", "mac", "linux", "android", "ios"]);
 
 const rotatedCard = await (await get("/.well-known/mcp/server-card.json", rotatedEnv)).json();
 assert.equal(rotatedCard.name, "whitestone-ai");

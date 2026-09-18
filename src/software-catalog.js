@@ -27,6 +27,7 @@ import { AUTHOR_ID, azcoherenceCiteField, hubsCiteField, LIBRARY_ORIGIN, sisterP
 import { socialStatusField } from "./social-status.js";
 import { websiteDesignsField, websiteDesignsOnCorpusCard } from "./website-designs.js";
 import { softwareDescription, softwareOneLine } from "./software-copy.js";
+import { platformsCite } from "./platforms.js";
 
 /**
  * Live Worker products that are Softwares-tab cards but not FragGate engines.
@@ -320,7 +321,8 @@ export function softwareCatalog(origin, products, extra = {}) {
     suite_download: `${base}/download`,
     suite_download_v1: `${base}/v1/suite/download`,
     suite_download_note:
-      "One-click suite pack JSON (REAL catalog + FoldLock tip + mesh cite). Worker wasm / WireGuard / OpenVPN SLOT. Counted GET /download. Not fielded_100.",
+      "One-click suite pack JSON (REAL catalog + FoldLock tip + mesh cite). Worker wasm / WireGuard / OpenVPN SLOT. Counted GET /download. LIVE on Windows / Mac / Linux / Android / iPhone via browser + PWA + Worker UI (native_app_store false). Not fielded_100.",
+    platforms: platformsCite(extra.env),
     isolation_software_count: MASTER_33_SLUGS.length,
     tab_placement_slugs: TAB_PLACEMENT_SLUGS.slice(),
     count_note: CATALOG_COUNT_NOTE,
@@ -527,8 +529,9 @@ export function updateManifest(origin, products, extra = {}) {
     git_sha: extra.git_sha || extra.gitSha || null,
     software: `${base}/v1/software`,
     check: `${base}/v1/update/check?slug={slug}&version={installed}`,
+    platforms: platformsCite(extra.env),
     client_note:
-      "install.sh, local UIs, and mobile: GET /v1/update/check?slug=<product>&version=<installed>. If update_available, fetch download_url (counted product Worker /download, or GET /download suite pack for aziel-runtime). Hubs refresh tabs from GET /v1/software.",
+      "install.sh, local UIs, and mobile (Windows / Mac / Linux / Android / iPhone): GET /v1/update/check?slug=<product>&version=<installed>. If update_available, fetch download_url (counted product Worker /download, or GET /download suite pack). LIVE via browser + PWA + Worker UI. native_app_store false. Hubs refresh tabs from GET /v1/software.",
     count: items.length,
     latest: items,
   };

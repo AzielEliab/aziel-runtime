@@ -24,12 +24,24 @@ const SHARED_PATHS = Object.freeze({
   native_app_store: false,
 });
 
+const SHARED_CLIENTS = Object.freeze({
+  survival: true,
+  calling_name: true,
+  cap7_shuffle_in_process: true,
+  cap7_public_worker_shuffle: "slot",
+  dual_surface: Object.freeze({
+    agents: "mcp_openapi",
+    humans: "worker_ui_pwa_download",
+  }),
+});
+
 function platformRow(id, label, ua_note) {
   return Object.freeze({
     id,
     label,
     live: true,
     ...SHARED_PATHS,
+    ...SHARED_CLIENTS,
     ua_note,
     doors: Object.freeze([
       `${PRIMARY_WORKER_ORIGIN}/survival`,
@@ -38,7 +50,7 @@ function platformRow(id, label, ua_note) {
       `${PRIMARY_WORKER_ORIGIN}/manifest.webmanifest`,
     ]),
     note:
-      "LIVE via browser + installable PWA + Worker fronts + Softwares /download. Not a native store app. Same FragGate door.",
+      "LIVE via browser + installable PWA + Worker fronts + Softwares /download + MCP/OpenAPI. Not a native store app. Same FragGate door. Cap-7 in-process shuffle is LIVE; public workers.dev shuffle stays SLOT.",
   });
 }
 
@@ -60,8 +72,14 @@ export function platformsCite(env = {}) {
     survival: "/survival",
     manifest: "/manifest.webmanifest",
     platforms: PLATFORM_IDS.map((id) => ({ ...PLATFORM_MATRIX[id] })),
+    download_run: Object.freeze({
+      suite_pack: "/download",
+      update_manifest: "/v1/update/manifest",
+      update_check: "/v1/update/check",
+      pwa: "/manifest.webmanifest",
+    }),
     note:
-      "Windows, Mac, Linux, Android, and iPhone are LIVE on the public Worker (browser / PWA / download / MCP). Hubs pull /survival. Not five native store binaries.",
+      "Windows, Mac, Linux, Android, and iPhone are LIVE on the public Worker (browser / PWA / download / MCP). Dual-surface: agents MCP/OpenAPI; humans Worker UI + PWA + counted /download. Not five native store binaries. Hubs pull /survival.",
   };
 }
 

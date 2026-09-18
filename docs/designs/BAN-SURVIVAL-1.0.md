@@ -313,12 +313,17 @@ follow-on, not this repo. Surfaces that must consume that pull:
   copy. No `/runtime` exec binding; still pull `/survival`.
 
 6f. Platforms (all LIVE)
-Windows, Mac, Linux, Android, and iPhone are **LIVE** on the same
-public Worker: browser, installable PWA (`GET /manifest.webmanifest`),
+Windows (`windows`), Mac (`mac`), Linux (`linux`), Android
+(`android`), and iPhone (`ios`) are **LIVE** on the same public
+Worker: browser, installable PWA (`GET /manifest.webmanifest`),
 Worker fronts (`/survival` `/mcp` `/runtime`), Softwares `/download`,
-and MCP/OpenAPI. This is not five native App Store binaries
-(`native_app_store: false`). Each OS can reach survival doors,
-calling-name discovery, Cap-7 shuffle ping, and Softwares download/run.
+and MCP/OpenAPI. Dual-surface on each OS: agents MCP/OpenAPI; humans
+Worker UI + PWA + counted download. This is not five native App Store
+binaries (`native_app_store: false`). Each OS can reach survival doors,
+calling-name discovery, Cap-7 in-process shuffle ping (public
+workers.dev shuffle stays SLOT), and Softwares download/run. Machine
+matrix: `/survival` `platforms`, `/v1/software` `platforms`,
+`/v1/update/manifest` `platforms`.
 
 7. What this is not
 - Not a Softwares-tab product. Do not add slug `ban-survival` or `survival`.

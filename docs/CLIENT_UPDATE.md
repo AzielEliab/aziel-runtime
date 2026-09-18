@@ -159,9 +159,23 @@ DecisionGATE/AKM observe signal — unmarked uploads are not a ban. Call
 routes stay `POST /mcp` / `POST /v1/fraggate/call`. Identity stays Aziel
 Eliab. No ChainLock / AKM rewrite. No third-party trademarks.
 
-Platforms are **LIVE** on every listed OS — Windows, Mac, Linux,
-Android, iPhone — via browser + PWA (`/manifest.webmanifest`) + Worker
-fronts + Softwares `/download` + MCP/OpenAPI. Not native store apps.
+Platforms are **LIVE** on every listed OS. This is not five native
+store binaries (`native_app_store: false`). Dual-surface on each:
+agents use MCP/OpenAPI; humans use Worker UI + PWA + counted `/download`.
+
+| id | OS | LIVE path |
+| --- | --- | --- |
+| `windows` | Windows | Edge / Chrome / Firefox + PWA + `/download` + `/mcp` |
+| `mac` | Mac | Safari / Chrome / Firefox + PWA + `/download` + `/mcp` |
+| `linux` | Linux | Firefox / Chrome / Chromium + PWA + `/download` + `/mcp` |
+| `android` | Android | Chrome / Firefox + installed PWA + `/download` + `/mcp` |
+| `ios` | iPhone | Safari Add to Home Screen PWA + `/download` + `/mcp` |
+
+Each OS can reach `/survival` (name-rotation + live doors), Cap-7
+in-process shuffle (`fraggate_call` `miragegrid`/`shuffle`; public
+workers.dev shuffle stays SLOT), and Softwares download/run. Machine
+matrix: `GET /survival` `platforms`, `GET /v1/software` `platforms`,
+`GET /v1/update/manifest` `platforms`, suite pack `/download` `platforms`.
 
 Machine map: `GET /survival` (aliases `/v1/survival`, `/doors`, `/failover`).
 `live_doors` / `exec_origins` omit blocked fronts. Hubs (ae / corpus /

@@ -1350,6 +1350,7 @@ function softwareExtra(env) {
     calling_slug: calling.calling_slug,
     calling_name_alert: calling.alert,
     calling_name_rotated: calling.rotated,
+    env,
   };
 }
 
