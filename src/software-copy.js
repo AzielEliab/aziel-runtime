@@ -201,9 +201,9 @@ export const SOFTWARE_COPY = Object.freeze({
   },
   godlock: {
     one_line:
-      "THIS IS: an offline ABAD / hardening score (GodLock is a product name). THIS IS NOT: identity, a VPN, or an anonymity network. Identity is Aziel Eliab only.",
+      "THIS IS: an offline ABAD / hardening score (GodLock is a product name). Empty/null submit refuses — no spam receipt. THIS IS NOT: identity, a VPN, or an anonymity network. Identity is Aziel Eliab only.",
     description:
-      "THIS IS: GodLock — offline ABAD / hardening score and an ephemeral logical receipt. GodLock is a product name, not an author or identity. Public identity is Aziel Eliab only. Logical grid nodes are names, not IPs. THIS IS NOT: identity, a VPN, an anonymity network, a proxy, a Tor hop, or IP-hiding. FragGate only. Author Aziel Eliab.",
+      "THIS IS: GodLock — offline ABAD / hardening score and an ephemeral logical receipt. GodLock is a product name, not an author or identity. Public identity is Aziel Eliab only. Logical grid nodes are names, not IPs. Empty/null submit refuses — no spam receipt (live GodLock.uk: GODLOCK-NULL-ARG / GODLOCK-EMPTY-TEXT; FragGate score/submit also refuse empty text). THIS IS NOT: identity, a VPN, an anonymity network, a proxy, a Tor hop, or IP-hiding. FragGate only. Author Aziel Eliab.",
   },
   mialock: {
     one_line:

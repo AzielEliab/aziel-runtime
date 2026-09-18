@@ -9,6 +9,7 @@ import { BUILD_GIT_SHA } from "../src/build-meta.js";
 import { embeddedDigest, trueEngineSlugs } from "../src/engines/digest.js";
 import { NAMED_STUBS } from "../src/fraggate/registry.js";
 import { SOFTWARE_COPY, softwareCopySlugs } from "../src/software-copy.js";
+import { executeLocal } from "../src/engines/runner.js";
 import { catalogExtraCards } from "../src/catalog-meta.js";
 import {
   SOFTWARE_FRAMING,
@@ -295,7 +296,7 @@ const REQUIRED_PHRASES = {
   staticclock: [/Clock ≠ Lock|plain Clock/i, /Lock product/],
   ark: [/EmbryoLock/, /kernel/],
   "aziel-corpus": [/azcorpus \+ azlibrary/, /sister archive/i],
-  godlock: [/product name/, /Identity is Aziel Eliab only/],
+  godlock: [/product name/, /Identity is Aziel Eliab only/, /Empty\/null submit refuses/],
   azvpn: [/HTTPS\/WS REAL/, /WireGuard/, /SLOT/],
   veillock: [/local_only/, /YOUR device/i],
   embryolock: [/local-only/, /ARK/],
@@ -397,6 +398,14 @@ const openapi = await (await get("/openapi.json")).json();
 assert.ok(openapi.paths["/v1/software"]);
 assert.ok(openapi.paths["/v1/update/check"]);
 assert.ok(openapi.paths["/v1/update/manifest"]);
+
+for (const payload of [{}, { text: "" }, { text: "   " }, { text: null }]) {
+  const refused = await executeLocal({ slug: "godlock", op: "submit", payload, ranIn: "aziel-runtime" });
+  assert.equal(refused.status, 400, `godlock submit refuse ${JSON.stringify(payload)}`);
+  const refusedBody = JSON.parse(refused.responseText);
+  assert.equal(refusedBody.ok, false);
+  assert.ok(refusedBody.receipt == null, "empty/null GodLock submit mints no receipt");
+}
 
 console.log(
   `ok software catalog: ${body.software.length} entries, sort ${SOFTWARE_SORT_LAW}, update check foldlock 0.7.0→0.8.0`,

@@ -34,6 +34,7 @@ No capabilities, DOIs, or `fielded_100` were invented. AZVPN honesty stays HTTPS
 | Sister archives vs Softwares | Corpus: azcorpus + azlibrary are website designs. He Didn't Jump is a sister archive, not Softwares. |
 | Mesh radios on the Worker | extras mesh + catalog mesh note: `worker_hardware:false` — cite-only, not live Worker RF. |
 | GodLock vs identity | GodLock is a product name. Identity is Aziel Eliab only. |
+| GodLock empty submit | Live GodLock.uk (godlock#65) and FragGate score/submit refuse empty/null text — no spam receipt. |
 
 ## Slug → old `one_line` → new `one_line`
 
@@ -70,7 +71,7 @@ No capabilities, DOIs, or `fielded_100` were invented. AZVPN honesty stays HTTPS
 | `embryolock` | Offline destructive-over-recovery vault. Cite live on FragGate; wipe/unlock stay local-only. Never execute on the public mesh. | THIS IS: an offline destructive-over-recovery vault (cite live on FragGate; wipe/unlock stay local-only). THIS IS NOT: a hosted unlock, ARK, or a public-mesh wipe. |
 | `employeelock` | Hash-chained accountability workbook. Not a court, not UL, not a truth score. | THIS IS: a hash-chained accountability workbook. THIS IS NOT: a court, UL, or a truth score. |
 | `foldlock` | Algorithmic tether-word suppression on UTF-8 text. Not zip. | THIS IS: algorithmic tether-word suppression on UTF-8 text. THIS IS NOT: zip or a general compressor. |
-| `godlock` | Offline ABAD / hardening score. Not a VPN and not an anonymity network. | THIS IS: an offline ABAD / hardening score (GodLock is a product name). THIS IS NOT: identity, a VPN, or an anonymity network. Identity is Aziel Eliab only. |
+| `godlock` | Offline ABAD / hardening score. Not a VPN and not an anonymity network. | THIS IS: an offline ABAD / hardening score (GodLock is a product name). Empty/null submit refuses — no spam receipt. THIS IS NOT: identity, a VPN, or an anonymity network. Identity is Aziel Eliab only. |
 | `mialock` | M.I.A.Lock 0.1.1: event map + Doe matching + uncertainty ellipses + coverage heat. Doe leads ≠ ID. Heat ≠ presence. Author Aziel Eliab. | THIS IS: event map + Doe matching + uncertainty ellipses + coverage heat. THIS IS NOT: an ID, live tracking, or presence. Doe leads ≠ ID. Heat ≠ presence. |
 | `peacelock` | Chosen silence / chosen inaction as a first-class receipt (PL-WP-0.1). | THIS IS: Chosen silence / chosen inaction as a first-class receipt (PL-WP-0.1). THIS IS NOT: a transcript, a court, or TemporalLock. |
 | `shadowlock` | Zero-retention observation of a job list you already have. No OS hook. | THIS IS: zero-retention observation of a job list you already have. THIS IS NOT: an OS hook or process intercept. |
