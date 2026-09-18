@@ -44,6 +44,7 @@ assert.match(product.banner, /FragGate/);
 assert.match(product.banner, /AZNet is separate software/);
 assert.match(product.banner, /same FragGate door/);
 assert.match(product.oneLine, /AZNet is a separate software/);
+assert.match(product.oneLine, /pairs with AZNet \(order\/token\)/);
 assert.doesNotMatch(product.oneLine, /separate engine/i);
 assert.doesNotMatch(product.banner, /separate engine/i);
 assert.doesNotMatch(product.oneLine, /product\/engine/);
@@ -88,6 +89,10 @@ for (const op of expectedLive) {
   assert.equal(classifyCall(registry.bySlug.azbrowser, op).kind, "live", `${op} is live`);
 }
 assert.equal(classifyCall(registry.bySlug.azbrowser, "tor_exit").kind, "stub");
+assert.equal(classifyCall(registry.bySlug.azbrowser, "tor").kind, "stub");
+assert.equal(classifyCall(registry.bySlug.azbrowser, "vpn").kind, "stub");
+assert.equal(classifyCall(registry.bySlug.azbrowser, "socks").kind, "stub");
+assert.equal(classifyCall(registry.bySlug.azbrowser, "proxy").kind, "stub");
 assert.equal(classifyCall(registry.bySlug.azbrowser, "phoenix_wipe").kind, "stub");
 assert.equal(classifyCall(registry.bySlug.azbrowser, "chromium").kind, "stub");
 assert.equal(classifyCall(registry.bySlug.azbrowser, "chromium_exec").kind, "stub");

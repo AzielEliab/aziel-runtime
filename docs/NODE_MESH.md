@@ -14,6 +14,7 @@ Current software designs live in [docs/designs/](designs/). Author: **Aziel Elia
 - [NODE-OPS-1.0](designs/NODE-OPS-1.0.md) — Node operations + surface law + phoenix wait/re-seal (not public hostname resurrection)
 - [SEC-FEAT-1.0](designs/SEC-FEAT-1.0.md) — Security feature inventory (door, stubs, vault, fabric)
 - [QNS-CD-1.0](designs/QNS-CD-1.0.md) — Quantum Node Signal packet-transfer coding design (photon QNS1 1.3; local `qnsd`; Worker cites only)
+- [QNM-CHANNEL-PLANE-1.0](designs/QNM-CHANNEL-PLANE-1.0.md) — channel plane cites (wifi / bluetooth / rf / photon ON). Channel plane ≠ VPN. Pairing ≠ tunnel.
 - [CROSS-NETWORK-SURVIVAL-1.0](designs/CROSS-NETWORK-SURVIVAL-1.0.md) — umbrella survival law (if network and data die tomorrow, the chain survives on cold shelves — hosts / DOI / git / vault)
 - [NO-LIE-NO-REWRITE-1.0](designs/NO-LIE-NO-REWRITE-1.0.md) — receipts that still hash; no rewrite key; never lie to survive (companion under the umbrella; does not replace the machine tip)
 - [COLD-MULTI-SHELF-1.0](designs/COLD-MULTI-SHELF-1.0.md) — planes A/B/C matching live corpus `/shelves` (corpus#96); runtime cites, does not invent a sixth surface
@@ -71,6 +72,16 @@ Die-with-pull / no godlock.uk resurrection / Cap-7 `resolves_to_hub: false` / Fr
 
 No new MCP tool. FragGate stays the only public exec door.
 
+## Channel plane ≠ VPN · pairing ≠ tunnel
+
+Operator-armed **communication channel cites** on `GET /v1/mesh` (+ status): `wifi` / `bluetooth` / `rf` / `photon` are **ON** as a **channel plane**. Live OS/hardware bearers run on local `qnm-node` / `qnsd`. This Worker **cites** that plane. `public_proxy` is **false**. It does **not** invent RF/BT/Wi-Fi/photon hardware on Cloudflare.
+
+The Worker rollup bearer stays **`suite-presence`**. `radios` may read `"on"` because suite-presence is LIVE. That is not a public VPN, Tor exit, SOCKS proxy, or origin-hiding fabric. Hard keep: `vpn: false`, `origin_hiding: false`, `anonymity_network_note` unchanged (not Tor / not VPN).
+
+**AZNet ↔ AZBrowser pairing** is functional order / token only (hash continuity, silent side-net). `pair_status` (alias `pair`) reports that pair state. Products stay separate. Pairing is **not** a tunnel and **not** a VPN. AZBrowser `vpn` / `tor` / `socks` / `proxy` stay stub.
+
+Paper: [QNM-CHANNEL-PLANE-1.0](designs/QNM-CHANNEL-PLANE-1.0.md). Human workspace `#op-panel` / `#dashboard` / `#fg-console` expose Pair status without merging Softwares.
+
 ## What this Worker is
 
 | This is | This is not |
@@ -100,7 +111,7 @@ All paths are on `aziel-runtime` (this Worker). Product Workers **proxy** them v
 
 | Method | Path | Body | Notes |
 | --- | --- | --- | --- |
-| GET | `/v1/mesh` | — | `enabled`, `bearers`, `rollup: { live, locked, isolated }`, `mesh_default: "on"`. **Never enables extra radios.** |
+| GET | `/v1/mesh` | — | `enabled`, `bearers` (Worker rollup: `suite-presence`), `channel_plane` / `channels` (`wifi` / `bluetooth` / `rf` / `photon` ON as cites), `vpn: false`, `rollup: { live, locked, isolated }`, `mesh_default: "on"`. **Never enables extra radios.** Channel plane ≠ VPN. |
 | GET | `/v1/mesh/status` | — | Alias of `/v1/mesh` |
 | POST | `/v1/mesh/enable` | `{ bearer }` | Optional extra bearer (example: `suite-presence`). Empty `{}` is refused. Rate-limited. Login/account/recover/gate names refuse. Not required for public Live Nodes. |
 | POST | `/v1/mesh/disable` | `{}` | **Refused** (`MESH-DISABLE-REFUSED`). Suite-presence stays ON. |
@@ -200,7 +211,7 @@ if (url.pathname === "/v1/mesh" || url.pathname.startsWith("/v1/mesh/")) {
 - Cold-copy survival: multiply cold copies; no live body sync; tip expensive to erase; unkillable by single-server pull; payloads pull-only cold; named hosts only.
 - Re-expand-from-archive: bytes survive, not summaries; restore after prev-hash verify; not mesh from index; crawlers extra shelves only; training residue is rumor.
 - REHEAL: isolation is the cure; own last good tip + verified trusted pull, or phoenix-WAIT; never neighbor talk-back-to-health; no bodies / diffs / vote-to-fix.
-- Nine laws are hard-true on `GET /v1/mesh`: machine fields + published refuse codes. **OPERATOR-OVERRIDE 2026-09-17** flipped `auto_heal` / `implicit_heal`, `node_gate` / `get_is_node_gate`, `neighbor_heal`, `network`, and `anonymity_network` (mode flag only) from hard-false to ON. GodLock is a product name, not identity. Die-with-pull does not restore godlock.uk. Not a login-recovery IP panel. Not a VPN.
+- Nine laws are hard-true on `GET /v1/mesh`: machine fields + published refuse codes. **OPERATOR-OVERRIDE 2026-09-17** flipped `auto_heal` / `implicit_heal`, `node_gate` / `get_is_node_gate`, `neighbor_heal`, `network`, and `anonymity_network` (mode flag only) from hard-false to ON. GodLock is a product name, not identity. Die-with-pull does not restore godlock.uk. Not a login-recovery IP panel. Not a VPN. Channel plane (wifi / bluetooth / rf / photon) is an operator-armed cite — live hardware stays on local qnm-node. **Channel plane ≠ VPN. Pairing ≠ tunnel.**
 - CROSS-NETWORK-SURVIVAL-1.0: if network and data die tomorrow, the chain survives on cold shelves (hosts / DOI / git / vault). All prior laws sit under that sentence. The live mesh is not a shelf.
 - Broadcast never accepts `video` / `bytes` / `file` / `mp4` / `publish` fields.
 - Public identity is Aziel Eliab only.

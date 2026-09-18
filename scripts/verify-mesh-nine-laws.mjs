@@ -125,6 +125,33 @@ function law9_anonymity_network_operator_flag(live) {
   assert.equal(live.origin_hiding, false);
 }
 
+function channel_plane_cites(live) {
+  assert.equal(live.vpn, false);
+  assert.equal(live.origin_hiding, false);
+  assert.equal(live.wifi, "on");
+  assert.equal(live.bluetooth, "on");
+  assert.equal(live.rf, "on");
+  assert.equal(live.photon, "on");
+  assert.equal(live.channels.wifi, "on");
+  assert.equal(live.channels.bluetooth, "on");
+  assert.equal(live.channels.rf, "on");
+  assert.equal(live.channels.photon, "on");
+  assert.equal(live.channel_plane.spec, "QNM-CHANNEL-PLANE-1.0");
+  assert.equal(live.channel_plane.wifi, "on");
+  assert.equal(live.channel_plane.bluetooth, "on");
+  assert.equal(live.channel_plane.rf, "on");
+  assert.equal(live.channel_plane.photon, "on");
+  assert.equal(live.channel_plane.vpn, false);
+  assert.equal(live.channel_plane.public_proxy, false);
+  assert.equal(live.channel_plane.worker_hardware, false);
+  assert.equal(live.channel_plane.invented_hardware, false);
+  assert.equal(live.channel_plane.bearer, "suite-presence");
+  assert.ok(Array.isArray(live.bearers));
+  assert.ok(live.bearers.includes("suite-presence"));
+  assert.match(live.channel_plane.note, /Channel plane ≠ VPN|not Worker-proxied VPN/);
+  assert.match(live.anonymity_network_note, /Not Tor\. Not VPN/);
+}
+
 function operator_override_section(live) {
   assert.equal(OPERATOR_OVERRIDE.spec, OPERATOR_OVERRIDE_SPEC);
   assert.equal(OPERATOR_OVERRIDE.date, OPERATOR_OVERRIDE_DATE);
@@ -194,6 +221,7 @@ for (const live of [mesh.data, status.data]) {
   law7_node_gate_operator_on(live);
   law8_auto_heal_operator_on(live);
   law9_anonymity_network_operator_flag(live);
+  channel_plane_cites(live);
   operator_override_section(live);
   assert.equal(live.papers.node_mesh, NINE_LAW_PAPERS.node_mesh);
   assert.equal(live.papers.sec_feat, NINE_LAW_PAPERS.sec_feat);
@@ -325,6 +353,9 @@ assert.match(nodeMesh, /2026-09-17/);
 assert.match(nodeMesh, /clocks_share_socket/);
 assert.match(nodeMesh, /restore_godlock_uk/);
 assert.match(nodeMesh, /anonymity_network/);
+assert.match(nodeMesh, /Channel plane ≠ VPN/);
+assert.match(nodeMesh, /pairing ≠ tunnel/i);
+assert.match(nodeMesh, /QNM-CHANNEL-PLANE-1\.0/);
 assert.match(nodeMesh, /MESH-NO-NEIGHBOR-HEAL/);
 assert.match(nodeMesh, /GodLock is a product name/);
 

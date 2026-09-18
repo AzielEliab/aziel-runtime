@@ -99,6 +99,17 @@ export const HUMAN_TASKS = Object.freeze([
     result_note: "advisory",
   },
   {
+    slug: "aznet",
+    name: "AZNet",
+    op: "pair_status",
+    title: "Pair status",
+    blurb: "Functional-order pair with AZBrowser (order/token). Hash continuity / side-net. Pairing ≠ tunnel. Not a VPN. Products stay separate.",
+    fields: [
+      { name: "pair_token", label: "Pair token (optional; min 8 chars)", type: "text", example: "aznet-azbrowser-pair" },
+      { name: "pair_flag", label: "Pair flag (must be azbrowser)", type: "text", example: "azbrowser" },
+    ],
+  },
+  {
     slug: "forgereceipts",
     name: "ForgeReceipts",
     op: "receipt",
@@ -228,7 +239,8 @@ function taskCardHtml(task) {
   ${chips}
   ${fields}
   <div class="actions">
-    <button type="button" class="run-task" data-op="${escapeHtml(task.op)}">Run ${escapeHtml(task.op)}</button>
+    <button type="button" class="run-task" data-op="${escapeHtml(task.op)}">Run ${escapeHtml(doorOpLabel(task.slug, task.op))}</button>
+    ${task.slug === "aznet" ? `<button type="button" class="run-task" data-op="pair">pair</button>` : ""}
   </div>
   <pre class="ws-out fg-out" role="status" aria-live="polite">Ready. Same door: POST /v1/fraggate/call { slug: "${escapeHtml(task.slug)}", op: "${escapeHtml(task.op)}" }</pre>
 </article>`;
@@ -247,31 +259,48 @@ function primaryOpFor(slug) {
   return ops.find((op) => op !== "health" && op !== "skill") || ops[0] || "health";
 }
 
+function doorOpLabel(slug, op) {
+  if (slug === "aznet" && op === "pair_status") return "Pair status";
+  if (slug === "aznet" && op === "pair") return "pair";
+  return op;
+}
+
 function dashCardHtml(p, origin) {
   const base = String(origin || "").replace(/\/$/, "");
   const live = hasLiveDoor(p.slug);
   const op = primaryOpFor(p.slug);
   const task = HUMAN_TASKS.find((t) => t.slug === p.slug);
-  const door = live
-    ? `<button type="button" class="dash-run" data-slug="${escapeHtml(p.slug)}" data-op="${escapeHtml(op)}">Run ${escapeHtml(op)}</button>`
+  let door = live
+    ? `<button type="button" class="dash-run" data-slug="${escapeHtml(p.slug)}" data-op="${escapeHtml(op)}">Run ${escapeHtml(doorOpLabel(p.slug, op))}</button>`
     : `<span class="slug">local only — no public FragGate door</span>`;
+  if (p.slug === "aznet" && live) {
+    door = `<button type="button" class="dash-run" data-slug="aznet" data-op="pair_status">Pair status</button>
+    <button type="button" class="dash-run" data-slug="aznet" data-op="pair">pair</button>`;
+  }
+  const pairCite =
+    p.slug === "azbrowser"
+      ? `<p class="hint">pairs with AZNet (order/token) — separate software; not a VPN; pairing ≠ tunnel</p>`
+      : p.slug === "aznet"
+        ? `<p class="hint">pairs with AZBrowser (order/token) — hash continuity / side-net; pairing ≠ tunnel</p>`
+        : "";
   const fields = task
     ? `<a href="#task-${escapeHtml(p.slug)}">Labeled fields</a>`
     : `<a href="${escapeHtml(base)}/p/${escapeHtml(p.slug)}">Product card</a>`;
-  const hay = `${p.name} ${p.slug} ${p.oneLine || ""}`.toLowerCase();
+  const hay = `${p.name} ${p.slug} ${p.oneLine || ""} pair aznet azbrowser`.toLowerCase();
   return `<article class="dash-card" data-dash-slug="${escapeHtml(p.slug)}" data-search="${escapeHtml(hay)}">
   <h4><a href="${escapeHtml(base)}/p/${escapeHtml(p.slug)}">${escapeHtml(p.name)}</a> <span class="slug">${escapeHtml(p.slug)}</span></h4>
   <p class="blurb">${escapeHtml(p.oneLine || "")}</p>
   ${launchHashtagChipsHtml(p)}
+  ${pairCite}
   <div class="actions">${door} ${fields} <a href="${escapeHtml(base)}/mcp">Connect AI</a></div>
 </article>`;
 }
 
 function operatorSoftButtons() {
-  return HUMAN_TASKS.map(
-    (t) =>
-      `<button type="button" data-op-soft="${escapeHtml(t.slug)}" data-op="${escapeHtml(t.op)}">${escapeHtml(t.name)} ${escapeHtml(t.op)}</button>`,
-  ).join("\n      ");
+  return HUMAN_TASKS.map((t) => {
+    const label = t.slug === "aznet" ? "AZNet Pair status" : `${t.name} ${t.op}`;
+    return `<button type="button" data-op-soft="${escapeHtml(t.slug)}" data-op="${escapeHtml(t.op)}">${escapeHtml(label)}</button>`;
+  }).join("\n      ");
 }
 
 export function workspacePaneHtml(origin, products) {
@@ -315,6 +344,13 @@ export function workspacePaneHtml(origin, products) {
         <p class="hint" style="margin:0">Softwares ops (labeled primary verbs)</p>
         <div class="op-soft">
       ${operatorSoftButtons()}
+        </div>
+      </div>
+      <div class="op-row pair" id="op-aznet-pair">
+        <p class="hint" style="margin:0">AZNet ↔ AZBrowser functional-order pair (order/token — hash continuity / side-net). Pairing ≠ tunnel. Not a VPN.</p>
+        <div class="actions">
+          <button type="button" data-op-pair="pair_status">Pair status</button>
+          <button type="button" data-op-pair="pair">pair</button>
         </div>
       </div>
       <div class="op-row mesh">
@@ -396,7 +432,7 @@ export function workspacePaneHtml(origin, products) {
 
   <section class="task" id="mesh-panel" data-kind="mesh" data-origin="${escapeHtml(base)}">
     <h3>Mesh status</h3>
-    <p class="blurb">Live / locked / isolated from <code>GET /v1/mesh</code>. GET never enables radios. Nine QNM laws stay machine-true on that JSON. Join needs a catalog product. Presence TTL is 5 minutes.</p>
+    <p class="blurb">Live / locked / isolated from <code>GET /v1/mesh</code>. GET never enables radios. Channel plane cites wifi / bluetooth / rf / photon ON (local qnm-node; not Worker VPN). Nine QNM laws stay machine-true on that JSON. Join needs a catalog product. Presence TTL is 5 minutes.</p>
     <p class="ws-status" id="mesh-status-line" data-state="loading" role="status" aria-live="polite">Loading status</p>
     <pre class="ws-out fg-out" id="mesh-out" role="status" aria-live="polite">Loading status…</pre>
     <div class="field">
@@ -426,7 +462,7 @@ export function workspacePaneHtml(origin, products) {
   <section class="dash" id="dashboard" aria-labelledby="dashboard-title">
     <h3 id="dashboard-title">Dashboard</h3>
     ${aboutAzielStripHtml({ id: "about-aziel-strip" })}
-    <p class="hint">Browseable Softwares + live mesh counts + receipts. Metrics come from <code>GET /v1/mesh</code> and <code>GET /v1/receipts</code>. GET never enables radios. Each card has slug-specific <code>#hashtag</code> parts — not one identical blob.</p>
+    <p class="hint">Browseable Softwares + live mesh counts + receipts. Metrics come from <code>GET /v1/mesh</code> and <code>GET /v1/receipts</code>. GET never enables radios. Each card has slug-specific <code>#hashtag</code> parts — not one identical blob. Channel plane (wifi / bluetooth / rf / photon) is a cite — live hardware is local qnm-node, not Worker VPN.</p>
     <div class="metric-grid" id="dash-metrics">
       <div class="metric"><span class="label">Live</span><span class="value" id="metric-live">—</span></div>
       <div class="metric"><span class="label">Locked</span><span class="value" id="metric-locked">—</span></div>
@@ -549,9 +585,10 @@ export function fragGateDoorHtml(p, origin) {
   if (!p || !hasLiveDoor(p.slug)) return "";
   const live = (LIVE_OPS[p.slug] || [])
     .filter((op) => op !== "health" && op !== "skill");
-  const buttons = [...live, "health", "skill"]
+  const extras = p.slug === "aznet" && !live.includes("pair") ? ["pair"] : [];
+  const buttons = [...live, ...extras, "health", "skill"]
     .filter((op, i, all) => all.indexOf(op) === i)
-    .map((op) => `<button type="button" data-op="${escapeHtml(op)}">${escapeHtml(op)}</button>`)
+    .map((op) => `<button type="button" data-op="${escapeHtml(op)}">${escapeHtml(doorOpLabel(p.slug, op))}</button>`)
     .join("");
   const example = JSON.stringify(p.example || {}, null, 2);
   const areaId = `fg-payload-${p.slug}`;
@@ -763,7 +800,11 @@ export function humanDoorScript() {
       let locked = roll.locked != null ? roll.locked : b.locked_nodes;
       let isolated = roll.isolated != null ? roll.isolated : b.isolated_nodes;
       let radios = b.radios || (b.enabled ? "on" : "off");
+      let ch = b.channel_plane || b.channels || {};
+      let channelsOn = (ch.wifi || b.wifi) === "on" && (ch.bluetooth || b.bluetooth) === "on" && (ch.rf || b.rf) === "on" && (ch.photon || b.photon) === "on";
       let text = "live " + live + " · locked " + locked + " · isolated " + isolated + " · radios " + radios + " · suite-presence " + (b.suite_presence || "on") + " · GET never enables";
+      if (channelsOn) text += " · channels wifi/bt/rf/photon on · not VPN";
+      if (b.vpn === false) text += " · vpn false";
       if (b.nine_laws && b.nine_laws.hard_true === true) text += " · nine laws hard-true";
       if (line) {
         line.textContent = text;
@@ -836,6 +877,21 @@ export function humanDoorScript() {
           return;
         }
         fraggateCall(origin, slug, btn.getAttribute("data-op") || "health", {}, out, btn);
+      });
+    });
+    opPanel.querySelectorAll("[data-op-pair]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        let op = btn.getAttribute("data-op-pair") || "pair_status";
+        let task = document.getElementById("task-aznet");
+        let payload = {};
+        if (task) {
+          task.querySelectorAll("[name]").forEach(function (el) {
+            let key = el.getAttribute("name");
+            if (!key) return;
+            payload[key] = el.value;
+          });
+        }
+        fraggateCall(origin, "aznet", op, payload, out, btn);
       });
     });
     opPanel.querySelectorAll("[data-op-mesh]").forEach(function (btn) {
@@ -960,6 +1016,19 @@ export function humanDoorScript() {
       let origin = (document.getElementById("fg-console") && document.getElementById("fg-console").getAttribute("data-origin")) || "";
       let slug = btn.getAttribute("data-slug");
       let op = btn.getAttribute("data-op") || "health";
+      if (slug === "aznet" && (op === "pair_status" || op === "pair")) {
+        let pairTask = document.getElementById("task-aznet");
+        let payload = {};
+        if (pairTask) {
+          pairTask.querySelectorAll("[name]").forEach(function (el) {
+            let key = el.getAttribute("name");
+            if (!key) return;
+            payload[key] = el.value;
+          });
+        }
+        fraggateCall(origin, "aznet", op, payload, dashOut, btn);
+        return;
+      }
       let task = document.getElementById("task-" + slug);
       if (task && task.querySelector(".run-task")) {
         task.scrollIntoView({ block: "nearest" });

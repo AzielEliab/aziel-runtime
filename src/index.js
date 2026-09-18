@@ -820,7 +820,7 @@ const PRODUCTS_RAW = [
     worker: "aznet-download-tracker",
     github: "https://github.com/AzielEliab/aznet",
     ops: [
-      { op: "pair_status", method: "POST", summary: "Report AZBrowser pairing token + flag. Both required for garden / mesh ops." },
+      { op: "pair_status", method: "POST", summary: "Report functional-order AZBrowser pair state (order/token; hash continuity / side-net). Pairing ≠ tunnel. Both token and flag required for garden / mesh ops." },
       { op: "garden_list", method: "POST", summary: "List the custodian garden of hash refs. Refuses without AZBrowser pair. Never hosts payloads." },
       { op: "stamp", method: "POST", summary: "Stamp a hash ref into the garden. Hashes then discards bytes. Never hosts payloads." },
       { op: "verify_hash", method: "POST", summary: "Verify a garden hash ref. Integrity mismatch isolates. Never hosts payloads." },
@@ -828,7 +828,7 @@ const PRODUCTS_RAW = [
       { op: "memorial_append", method: "POST", summary: "Append a terminal memorial for a garden hash. No rewrite. Requires AZBrowser pair." },
       { op: "receipt_verify", method: "POST", summary: "Verify TemporalLock-style receipt + StaticClock timeslate fields." },
       { op: "doctor", method: "POST", summary: "UI alias of health. Same FragGate backend as the Worker UI button." },
-      { op: "pair", method: "POST", summary: "UI alias of pair_status. Reports pairing; does not invent unlock." },
+      { op: "pair", method: "POST", summary: "UI alias of pair_status. Reports functional-order pairing; does not invent a tunnel or unlock." },
     ],
     example: { pair_token: "aznet-azbrowser-pair", pair_flag: "azbrowser", hash: "0".repeat(64) },
     banner:
@@ -1088,7 +1088,7 @@ const ONE_LINE = {
   azieltether: "AzielTether 0.1.0: central × decentral survival mesh for downloaded Aziel software. Prefer-central; peer sync when down; public HTTPS stays mesh-free. Not a VPN. Author Aziel Eliab.",
   peacelock: "Chosen silence / chosen inaction as a first-class receipt (PL-WP-0.1).",
   azmail: "AZMail (APP 1.0): advisory airlock + local isolate mailbox + anonymous mesh (default off). Not a full internet MTA. FragGate only.",
-  azbrowser: "AZBrowser (AZB-1.0): Lamb Lens ethical research browser. Cite; refuse harvest; no invented visits. FragGate only. AZNet is a separate software (order/token pairing only).",
+  azbrowser: "AZBrowser (AZB-1.0): Lamb Lens ethical research browser. Cite; refuse harvest; no invented visits. FragGate only. pairs with AZNet (order/token). AZNet is a separate software (order/token pairing only).",
   aznet: "AZNet (AZN-WP-0.1): silent verification side-net. Hash continuity without hosting. Separate software; functional-order pair with AZBrowser.",
   azhub: "AZHub (AIH-WP-1.0): Blank Key / neutral spatial container. Does not interpret. FragGate only. AZInterface is sibling software under the same FragGate door.",
   azinterface: "AZInterface (AIH-WP-1.0): custodial operating environment. Pre-locked page cycles OFF/integrity/ON/FULL SHUTDOWN/MEMORIAL. FragGate only. AZHub is sibling software under the same FragGate door.",
