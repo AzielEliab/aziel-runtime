@@ -26,6 +26,7 @@ function envelope() {
       hop: false,
       public_icann: false,
       live_registrar: false,
+      radio_phy: false,
       resolves_to_hub: false,
       name_may_change: true,
       canonical_hubs_immutable: true,

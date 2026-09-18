@@ -66,7 +66,7 @@ hostname resurrection.
   Re-expand-from-archive      RE-EXPAND-1.0              Bytes survive, not summaries; crawlers do not re-expand; operator verifies then restores.
   Reheal                      REHEAL-1.0                 Own last good tip + verified trusted pull OR phoenix-WAIT; no neighbor vote-to-fix; chatter live/locked/isolated/tip-hash only.
 
-**BAN-SURVIVAL-1.0** is the mutual-backup companion under this umbrella: live multi-front backs up cold-shelf death; cold shelves back up death-by-ban. Keep both. Door list = LIVE only. Live-node API is SLOT (no open proxy to the QNM roster). Never invent a live door. Paper: [BAN-SURVIVAL-1.0](BAN-SURVIVAL-1.0.md).
+**BAN-SURVIVAL-1.0** is the mutual-backup companion under this umbrella: live multi-front ↔ cold shelves; live-node API SLOT until attest; Cap-7 cite + AZNet verify LIVE (hosted Cap-7 endpoints SLOT). Door list = LIVE only. Never invent a live door. Paper: [BAN-SURVIVAL-1.0](BAN-SURVIVAL-1.0.md).
 
 **COLD-MULTI-SHELF-1.0** is the executable planes cite under this umbrella: `GET /shelves` matches live corpus `/shelves` (corpus#96). Plane A is one CF/GitHub tunnel (5 surfaces / 2 family radii / 1 independent live). Plane B is alt-forge SLOT. Plane C is USB SLOT. `doi` null. Runtime is not a sixth surface. Paper: [COLD-MULTI-SHELF-1.0](COLD-MULTI-SHELF-1.0.md).
 

@@ -2553,7 +2553,7 @@ function staticPaths(origin) {
       get: {
         operationId: "catalog_ban_survival",
         summary:
-          "BAN-SURVIVAL-1.0 mutual-backup map. Live multi-front ↔ cold shelves. Client door list = LIVE doors only. Live-node API SLOT (no open proxy). Not a second FragGate door. Never invent a live door.",
+          "BAN-SURVIVAL-1.0 three-layer map. Live multi-front ↔ cold shelves; live-node API SLOT; Cap-7 cite + AZNet verify LIVE (hosted exec SLOT). Client door list = LIVE doors only. Not a second FragGate door. Never invent a live door.",
         tags: ["catalog"],
         responses: { "200": { description: "BAN-SURVIVAL failover JSON" } },
       },

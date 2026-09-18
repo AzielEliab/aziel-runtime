@@ -4,6 +4,7 @@
  * Live fronts back up cold-shelf death. Cold shelves back up death-by-ban.
  * Keep both. Client door list = LIVE doors only. Shelves are the later backup,
  * not /mcp. Live-node API is SLOT (no open proxy to the QNM roster).
+ * Cap-7 cite + AZNet verify are LIVE; Cap-7/AZNet hosted exec endpoints are SLOT.
  *
  * Not a Softwares-tab product. Not a FragGate slug. Not a new MCP tool.
  * Author: Aziel Eliab only.
@@ -12,6 +13,14 @@
 import { AUTHOR_ID, AUTHOR_NAME, LIBRARY_FRONT_DOOR, LIBRARY_ORIGIN, RUNTIME_GITHUB, RUNTIME_HUB_URL } from "./seo.js";
 import { CROSS_NETWORK_SURVIVAL, SURVIVAL_TIP } from "./cross-network-survival.js";
 import { NO_LIE_SPEC } from "./no-lie.js";
+import {
+  CAP7_NAME_MAY_CHANGE,
+  CAP7_RESOLVES_TO_HUB,
+  MIRAGEGRID_WORKER_ORIGIN,
+  SEMANTIC_BRIDGE_FACTORY,
+  azGeneratorPath,
+  miragegridBridgeUrl,
+} from "./semantic-bridge.js";
 
 /** CNS / shelf cite — death-by-ban backup. Not a live exec door. */
 export const COLD_MULTI_SHELF = "COLD-MULTI-SHELF-1.0";
@@ -30,10 +39,10 @@ export const PRIMARY_WORKER_ORIGIN = "https://aziel-runtime.vibelock.workers.dev
 export const GODLOCK_RUNTIME = "https://godlock.uk/runtime";
 
 export const BAN_SURVIVAL_RULE =
-  "Survive survive survive — grow. Live multi-front and cold shelves back each other up. One banned door is not last tip gone. One dead shelf is not last live door gone. Client door list = LIVE doors only. Never invent a live door. Never lie to survive.";
+  "Survive survive survive — grow. Three layers: live multi-front ↔ cold shelves; live-node API when attested; Cap-7 cite + AZNet verify (hosted exec SLOT). Never invent a live door. Never fake a Cap-7 hosted endpoint. Never lie to survive.";
 
 export const BAN_SURVIVAL_TIP =
-  "BAN-SURVIVAL-1.0: one banned door is not last tip gone — try the next LIVE named front, then remaining LIVE paths, then cold-shelf tip-hash. One dead shelf is not last door gone — keep the named fronts. Never invent a live door. Never claim a banned host is LIVE.";
+  "BAN-SURVIVAL-1.0: one banned door is not last tip gone — try the next LIVE named front, then remaining LIVE paths, then cold-shelf tip-hash. Cap-7/AZNet cite+verify stay LIVE; hosted Cap-7 endpoints stay SLOT. Never invent a live door. Never claim a banned host is LIVE.";
 
 export const REFUSE = Object.freeze({
   NO_LIE: "BAN-NO-LIE",
@@ -46,6 +55,8 @@ export const REFUSE = Object.freeze({
   NO_SHELF_FAILOVER: "BAN-NO-SHELF-ONLY",
   NO_DOOR_ONLY: "BAN-NO-DOOR-ONLY",
   NO_OPEN_NODE_PROXY: "BAN-NO-OPEN-NODE-PROXY",
+  NO_FAKE_CAP7_HOST: "BAN-NO-FAKE-CAP7-HOST",
+  NO_AZNET_PAYLOAD: "BAN-NO-AZNET-PAYLOAD-HOST",
   ROUTE_BLOCKED: "BAN-ROUTE-BLOCKED",
   EXEC_QUARANTINE: "BAN-EXEC-QUARANTINE",
 });
@@ -65,6 +76,7 @@ export const MAP_PATHS = Object.freeze([
   "/v1/health",
   "/v1/ready",
   "/v1/software",
+  "/v1/mesh/az-generator",
   "/openapi.json",
 ]);
 export const READ_PATHS = Object.freeze([
@@ -218,13 +230,58 @@ export const LIVE_NODE_API = Object.freeze({
   handoff: "Follow-on (not this PR): security audit → attest named node origins → rescan → then consider LIVE.",
 });
 
+/**
+ * Layer 3 — Cap-7 generator + AZNet.
+ * LIVE: name-metadata cite (MirageGrid-only) + AZNet hash stamp/verify.
+ * SLOT: hosted exec endpoints. AZNet never hosts payloads. No fake .az.
+ */
+export const CAP7_AZNET = Object.freeze({
+  layer: 3,
+  factory: SEMANTIC_BRIDGE_FACTORY,
+  factory_only: true,
+  radio_phy: false,
+  resolves_to_hub: CAP7_RESOLVES_TO_HUB,
+  name_may_change: CAP7_NAME_MAY_CHANGE,
+  public_icann: false,
+  live_registrar: false,
+  fifth_product: false,
+  pairing_is_tunnel: false,
+  channel_plane_is_vpn: false,
+  cite: Object.freeze({
+    status: "live",
+    mesh_az_generator: "/v1/mesh/az-generator",
+    miragegrid_bridge: `${MIRAGEGRID_WORKER_ORIGIN}/bridge`,
+    fraggate: 'fraggate_call { slug: "miragegrid", op: "bridge" }',
+    note: "Cap-7 name-metadata cite. Inherit hub designs only. Not a live registrar.",
+  }),
+  aznet_verify: Object.freeze({
+    status: "live",
+    ops: Object.freeze(["stamp", "verify_hash", "receipt_verify"]),
+    door: "fraggate_call",
+    slug: "aznet",
+    note: "AZNet verification side-net. Hash continuity when a public door is banned. Never hosts payloads.",
+  }),
+  hosted_endpoints: Object.freeze({
+    status: "slot",
+    code: "BAN-CAP7-HOST-NOT-ATTESTED",
+    payload_host: "stub",
+    is_live_door: false,
+    note:
+      "AZNet never hosts payloads (payload_host stays stub). Cap-7 names are not /mcp and not ICANN aliases. Do not invent a hosted endpoint.",
+    next:
+      "AZNet stamp binds a Cap-7 name (design DNA only; resolves_to_hub false) to an attested named FragGate origin. Only that named origin may later flip hosted_endpoints LIVE. Security audit first.",
+  }),
+});
+
 export const CLIENT_ORDER = Object.freeze([
   "try primary workers.dev exec (POST /mcp or POST /v1/fraggate/call)",
   "if hostname or exec path blocked: try the next LIVE custom-domain hub /runtime (library, author, godlock — same FragGate door, service binding)",
   "if one exec path is quarantined: remaining LIVE exec paths on remaining LIVE fronts still run",
   "if exec is gone on a front: remaining LIVE read surfaces on remaining LIVE fronts still publish this door map (honest DEGRADED for that front)",
+  "Cap-7 cite (GET /v1/mesh/az-generator or MirageGrid /bridge) + AZNet stamp/verify_hash stay LIVE via FragGate — name metadata and hash continuity, not a hosted /mcp",
   "if every named live front is gone (death-by-ban): verify lockset tip on GitHub / /shelves / Codeberg + archive.org SLOT packs — shelf backup, not a live door",
   "vice versa: if a shelf or alt-forge dies, keep the LIVE named fronts — live multi-front is the backup for cold-shelf death",
+  "Cap-7/AZNet hosted exec endpoints stay SLOT — never fake a hosted door, never treat live_nodes as API, never claim AZNet hosts payloads",
 ]);
 
 function normPath(pathname) {
@@ -506,6 +563,44 @@ export function judgeOpenNodeProxy(input) {
   return { accept: true, action: "ok", live_node_api: "slot" };
 }
 
+export function judgeFakeCap7Host(input) {
+  const src = input && typeof input === "object" ? input : {};
+  if (
+    src.cap7_hosted_endpoint_live === true ||
+    src.cap7_is_mcp === true ||
+    src.fake_icann_az === true ||
+    src.live_registrar === true ||
+    src.resolves_to_hub === true ||
+    src.radio_phy === true
+  ) {
+    return {
+      accept: false,
+      action: "refuse",
+      reason: REFUSE.NO_FAKE_CAP7_HOST,
+      hosted_endpoints: "slot",
+      radio_phy: false,
+      resolves_to_hub: false,
+      public_icann: false,
+      note: "Cap-7 cite is LIVE. Hosted Cap-7 exec endpoints are SLOT. No fake .az. radio_phy false. resolves_to_hub false.",
+    };
+  }
+  return { accept: true, action: "ok", hosted_endpoints: "slot", radio_phy: false };
+}
+
+export function judgeAznetPayloadHost(input) {
+  const src = input && typeof input === "object" ? input : {};
+  if (src.aznet_hosts_payloads === true || src.payload_host_live === true || src.serve_content_for_peer === true) {
+    return {
+      accept: false,
+      action: "refuse",
+      reason: REFUSE.NO_AZNET_PAYLOAD,
+      payload_host: "stub",
+      note: "AZNet is a verification side-net. Never hosts payloads. pairing ≠ tunnel.",
+    };
+  }
+  return { accept: true, action: "ok", payload_host: "stub" };
+}
+
 export function judgeHostnameResurrection(input) {
   const src = input && typeof input === "object" ? input : {};
   if (src.public_hostname_resurrection === true || src.restore_pulled_host === true) {
@@ -541,6 +636,8 @@ export function applyBanSurvival(input) {
     judgeShelfOnly(input),
     judgeDoorOnly(input),
     judgeOpenNodeProxy(input),
+    judgeFakeCap7Host(input),
+    judgeAznetPayloadHost(input),
     judgeHostnameResurrection(input),
     judgeLlmReplica(input),
   ];
@@ -598,6 +695,42 @@ export function liveNodeApiCite() {
   };
 }
 
+export function cap7AznetCite(origin) {
+  return {
+    layer: CAP7_AZNET.layer,
+    factory: CAP7_AZNET.factory,
+    factory_only: true,
+    radio_phy: false,
+    resolves_to_hub: false,
+    name_may_change: true,
+    public_icann: false,
+    live_registrar: false,
+    fifth_product: false,
+    pairing_is_tunnel: false,
+    channel_plane_is_vpn: false,
+    cite: {
+      status: "live",
+      mesh_az_generator: azGeneratorPath(origin),
+      miragegrid_bridge: miragegridBridgeUrl(),
+      fraggate: CAP7_AZNET.cite.fraggate,
+    },
+    aznet_verify: {
+      status: "live",
+      ops: CAP7_AZNET.aznet_verify.ops.slice(),
+      door: "fraggate_call",
+      note: CAP7_AZNET.aznet_verify.note,
+    },
+    hosted_endpoints: {
+      status: "slot",
+      code: CAP7_AZNET.hosted_endpoints.code,
+      payload_host: "stub",
+      is_live_door: false,
+      note: CAP7_AZNET.hosted_endpoints.note,
+      next: CAP7_AZNET.hosted_endpoints.next,
+    },
+  };
+}
+
 export function failoverCite(origin, env) {
   const live = liveExecOrigins(env);
   return {
@@ -613,6 +746,7 @@ export function failoverCite(origin, env) {
     shelves_are_not_a_live_door: true,
     shelf_backup: shelfBackupCite(),
     live_node_api: liveNodeApiCite(),
+    cap7_aznet: cap7AznetCite(origin),
     lie_to_survive: false,
     second_door: false,
     unmarked_hydra: false,
@@ -706,6 +840,7 @@ export function survivalDoc(origin, env) {
       plane_c: { ...SHELF_BACKUP.plane_c },
     },
     live_node_api: liveNodeApiCite(),
+    cap7_aznet: cap7AznetCite(base),
     cite: base ? `${base}/cite.json` : "/cite.json",
     llms: base ? `${base}/llms.txt` : "/llms.txt",
     paper: BAN_SURVIVAL_DOCS,
@@ -716,7 +851,8 @@ export function survivalDoc(origin, env) {
       "Hub /runtime is the same FragGate door via service binding (survives a workers.dev hostname ban). " +
       "Same Plane A tunnel — not four independent blast-radius doors. They are four named live fronts. " +
       "Client door list = LIVE only. Cold shelves back up death-by-ban. Live fronts back up shelf death. " +
-      "Live-node API is SLOT (no open proxy). Never claim a banned host is LIVE.",
+      "Live-node API is SLOT. Cap-7 cite + AZNet verify are LIVE; hosted Cap-7 endpoints are SLOT. " +
+      "Never claim a banned host is LIVE.",
   };
 }
 
@@ -753,6 +889,7 @@ export function survivalCiteField(origin, env) {
     live_doors_backup_for: "cold-shelf-death",
     shelf_backup: shelfBackupCite(),
     live_node_api: liveNodeApiCite(),
+    cap7_aznet: cap7AznetCite(origin),
     lie_to_survive: false,
     second_door: false,
     unmarked_hydra: false,
@@ -777,10 +914,11 @@ export function survivalLlmsBlock(origin, env) {
     `Person @id: ${AUTHOR_ID}. No visible 15:20 chrome.`,
     `Machine map: ${cite.survival} · ${cite.survival_json} · aliases ${cite.doors} ${cite.failover}`,
     `LIVE exec origins (same Plane A tunnel, not independent shelves): ${cite.exec_origins.join(" · ")}`,
-    "Mutual backup: live multi-front backs up cold-shelf death; cold shelves back up death-by-ban. Keep both.",
-    "Client order: workers.dev exec → next LIVE custom-domain /runtime → remaining LIVE exec/read paths → shelf tip-hash if every live front is gone.",
+    "Three layers: (1) live multi-front ↔ cold shelves (2) live-node API SLOT until attest (3) Cap-7 cite + AZNet verify LIVE; hosted Cap-7 endpoints SLOT.",
+    "Client order: workers.dev exec → next LIVE custom-domain /runtime → remaining LIVE exec/read paths → Cap-7/AZNet cite+verify → shelf tip-hash if every live front is gone.",
     "Hub /runtime is the same FragGate door — not a second door and not a sixth shelf.",
     "Live-node API is SLOT (QNM roster is presence, not exec). No open proxy to random nodes.",
+    "Cap-7 factory is MirageGrid-only. radio_phy false. resolves_to_hub false. AZNet never hosts payloads. No fake ICANN .az.",
     "429 on /mcp or FragGate includes the next LIVE front first. Do not retry-storm the same path.",
     "",
   ].join("\n");
@@ -798,10 +936,11 @@ Machine map: \`GET ${cite.survival}\` / \`GET ${cite.survival_json}\` (aliases \
 2. If that hostname or exec path is blocked: try named LIVE hub \`/runtime\` — \`${LIBRARY_FRONT_DOOR}\`, \`${RUNTIME_HUB_URL}\`, \`${GODLOCK_RUNTIME}\` (custom domain + service binding; same FragGate door).
 3. If one exec path is quarantined: remaining LIVE exec paths on remaining LIVE fronts still run.
 4. If exec is gone on a front: remaining LIVE read surfaces (\`/survival\` \`/cite.json\` \`/llms.txt\` \`/v1/health\`) still publish this map. Mode **DEGRADED** on the banned front.
-5. If every named live front is gone: verify lockset tip on GitHub / \`/shelves\` / Codeberg + archive.org SLOT packs (shelf backup, not \`/mcp\`).
-6. Vice versa: if a shelf or forge dies, keep the LIVE named fronts.
+5. Cap-7 cite (\`GET /v1/mesh/az-generator\` / MirageGrid \`/bridge\`) + AZNet \`stamp\` / \`verify_hash\` stay LIVE via FragGate (name metadata + hash continuity). Hosted Cap-7 exec endpoints stay **SLOT**.
+6. If every named live front is gone: verify lockset tip on GitHub / \`/shelves\` / Codeberg + archive.org SLOT packs (shelf backup, not \`/mcp\`).
+7. Vice versa: if a shelf or forge dies, keep the LIVE named fronts.
 
-Live-node API is SLOT (no open proxy to the QNM roster). Never invent a live door. Never claim a banned host is LIVE. No new MCP tool. FragGate stays THE door.
+Live-node API is SLOT (no open proxy). Cap-7 factory is MirageGrid-only. \`radio_phy: false\`. AZNet never hosts payloads. Never invent a live door. Never claim a banned host is LIVE. No new MCP tool. FragGate stays THE door.
 `;
 }
 

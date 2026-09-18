@@ -65,6 +65,7 @@ const cite = semanticBridgeCiteField(origin);
 assert.equal(cite.public_icann, false);
 assert.equal(cite.icann_tld_az, false);
 assert.equal(cite.live_registrar, false);
+assert.equal(cite.radio_phy, false);
 assert.equal(cite.az_gen_live_registrar, false);
 assert.equal(cite.resolves_to_hub, false);
 assert.equal(cite.design_of, "hub_designs");

@@ -125,6 +125,12 @@ Live-node API (other mesh nodes as `/mcp`) is **SLOT** until a node
 publishes an attested named FragGate origin. Do not treat `GET /v1/mesh`
 `live_nodes` as an API roster.
 
+Cap-7 cite (`GET /v1/mesh/az-generator` or MirageGrid `/bridge`) and
+AZNet `stamp` / `verify_hash` stay **LIVE** via FragGate (name metadata
++ hash continuity). Cap-7/AZNet **hosted exec endpoints** stay **SLOT**.
+Do not invent a hosted door. Do not claim AZNet hosts payloads.
+`radio_phy: false`. `resolves_to_hub: false`.
+
 Machine map: `GET /survival` (aliases `/v1/survival`, `/doors`, `/failover`).
 `live_doors` / `exec_origins` omit blocked fronts. Stdio MCP
 (`cli/mcp-stdio.mjs`) follows the live-front order unless `--url` is pinned
