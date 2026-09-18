@@ -203,6 +203,19 @@ assert.ok(
   JSON.stringify(doorRewriteBody),
 );
 
+const httpRewrite = await postJson("/v1/mesh/rewrite", { key: "admin" });
+const httpRewriteBody = await httpRewrite.json();
+assert.equal(httpRewrite.status, 400);
+assert.equal(httpRewriteBody.ok, false);
+assert.equal(httpRewriteBody.code, "MESH-NO-REWRITE");
+assert.equal(httpRewriteBody.rewrite_key, false);
+const httpLie = await postJson("/v1/mesh/lie-to-survive", { motive: "self-preserve" });
+const httpLieBody = await httpLie.json();
+assert.equal(httpLie.status, 400);
+assert.equal(httpLieBody.ok, false);
+assert.equal(httpLieBody.code, "MESH-NO-LIE");
+assert.equal(httpLieBody.lie_to_survive, false);
+
 const software = await (await get("/v1/software")).json();
 assert.ok(!software.software.some((s) => s.slug === "no-lie" || s.slug === "no-rewrite"));
 assert.equal(software.mesh.no_lie, true);

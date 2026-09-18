@@ -1681,6 +1681,12 @@ async function dispatchMeshHttpCore(method, pathname, payload, env, origin, sear
     "/v1/mesh/heartbeat": "heartbeat",
     "/v1/mesh/leave": "leave",
     "/v1/mesh/broadcast": "broadcast",
+    "/v1/mesh/rewrite": "rewrite",
+    "/v1/mesh/rewrite-key": "rewrite-key",
+    "/v1/mesh/rewrite_key": "rewrite_key",
+    "/v1/mesh/lie": "lie",
+    "/v1/mesh/lie-to-survive": "lie-to-survive",
+    "/v1/mesh/lie_to_survive": "lie_to_survive",
   };
   if (postOps[path]) {
     if (m !== "POST") {
@@ -1695,7 +1701,7 @@ async function dispatchMeshHttpCore(method, pathname, payload, env, origin, sear
   return {
     status: 404,
     body: refuse("MESH-NOT-FOUND", "Unknown mesh path.", {
-      hint: "GET /v1/mesh /status /nodes /az-generator  POST /v1/mesh/enable|join|heartbeat|leave|broadcast  POST /v1/mesh/disable (refused)",
+      hint: "GET /v1/mesh /status /nodes /az-generator  POST /v1/mesh/enable|join|heartbeat|leave|broadcast  POST /v1/mesh/disable (refused)  POST /v1/mesh/rewrite|lie (MESH-NO-REWRITE / MESH-NO-LIE)",
     }),
   };
 }

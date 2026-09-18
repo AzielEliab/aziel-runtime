@@ -924,6 +924,11 @@ export async function dispatchMemoryHttp(method, pathname, payload, env, request
     "/v1/memory/calibrate": "calibrate",
     "/v1/memory/recall": "recall",
     "/v1/memory/rebuild-index": "rebuild-index",
+    "/v1/memory/delete": "delete_history",
+    "/v1/memory/update": "rewrite",
+    "/v1/memory/rewrite": "rewrite",
+    "/v1/memory/rollback": "rollback",
+    "/v1/memory/model_update": "model_update",
   };
   if (postOps[path]) {
     if (m !== "POST") {
@@ -944,7 +949,7 @@ export async function dispatchMemoryHttp(method, pathname, payload, env, request
   return {
     status: 404,
     body: refuse("AKM-NOT-FOUND", "Unknown memory path.", {
-      hint: "POST /v1/memory/observe|resolve|calibrate|recall  GET /v1/memory/{id}[/history|/calibration]  POST /v1/memory/rebuild-index",
+      hint: "POST /v1/memory/observe|resolve|calibrate|recall  GET /v1/memory/{id}[/history|/calibration]  POST /v1/memory/rebuild-index  POST /v1/memory/delete|update|rewrite refuse AKM-STUB",
     }),
   };
 }
