@@ -115,7 +115,7 @@ Plane A LIVE: 5 published surfaces (4 CF hubs + GitHub) / 2 family radii. One in
 
 ### Cap-7 semantic bridge (not ICANN)
 
-Cap-7 mesh names are **MirageGrid-only**. They inherit hub **designs** only (including mesh-resident **azcorpus** + **azlibrary** on the library hub). `design_of: hub_designs`. `resolves_to_hub: false`. `name_may_change: true`. Canonical hubs are immutable. They are **not** aliases of the four ICANN hostnames (azieleliab.com, azielcorpuslibrary.net, godlock.uk, hedidntjump.com). Not a fifth product. AI pulls metadata from MirageGrid Worker `/bridge` or `GET /v1/mesh/az-generator`. `public_icann: false`. No live AZ-GEN registrar. No fake ICANN `.az`. No visible 15:20. `GET /v1/mesh` never enables radios. Mesh browse: AZNet + AZBrowser via FragGate. Plane A hubs mirror tips.
+Cap-7 mesh names are **MirageGrid-only**. They inherit hub **designs** only (including mesh-resident **azcorpus** + **azlibrary** on the library hub). `design_of: hub_designs`. `resolves_to_hub: false`. `name_may_change: true`. Canonical hubs are immutable. They are **not** aliases of the four ICANN hostnames (azieleliab.com, azielcorpuslibrary.net, godlock.uk, hedidntjump.com). Not a fifth product. AI pulls metadata from MirageGrid Worker `/bridge` or `GET /v1/mesh/az-generator`. Update shuffle: `fraggate_call { slug: "miragegrid", op: "shuffle" }` pings until one distinct-name Cap-7 site lands (that-round update; hosted URL SLOT; public workers.dev shuffle SLOT). `public_icann: false`. No live AZ-GEN registrar. No fake ICANN `.az`. No visible 15:20. `GET /v1/mesh` never enables radios. Mesh browse: AZNet + AZBrowser via FragGate. Plane A hubs mirror tips.
 
 ## FragGate door
 
@@ -217,6 +217,7 @@ Always send `User-Agent: Mozilla/5.0`.
 | Update manifest | https://aziel-runtime.vibelock.workers.dev/v1/update/manifest |
 | Machine catalog | https://aziel-runtime.vibelock.workers.dev/v1/catalog.json |
 | How to cite | https://aziel-runtime.vibelock.workers.dev/cite.json |
+| Ban / blocked-endpoint failover | https://aziel-runtime.vibelock.workers.dev/survival (aliases `/v1/survival`, `/doors`, `/failover`) |
 | LLM crawler | https://aziel-runtime.vibelock.workers.dev/llms.txt (also `/ai.txt`) |
 | Person (machine) | https://aziel-runtime.vibelock.workers.dev/person.jsonld |
 | Who-is (machine) | https://aziel-runtime.vibelock.workers.dev/who-is |

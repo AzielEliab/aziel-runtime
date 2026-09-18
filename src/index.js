@@ -30,6 +30,10 @@
  * GET  /cold-copy             alias of /shelves
  * GET  /v1/shelves            machine alias of /shelves
  * GET  /v1/cold-copy          alias of /shelves
+ * GET  /survival              BAN-SURVIVAL-1.0 mutual-backup map (live multi-front ↔ cold shelves; LIVE doors only; live-node API SLOT)
+ * GET  /v1/survival           machine alias of /survival
+ * GET  /doors                 alias of /survival
+ * GET  /failover              alias of /survival
  * GET  /v1/skill              skill markdown (session + front doors)
  * GET  /v1/runtime.json       machine manifest: role=engine-runtime (1.7.9), door=fraggate
  * GET  /v1/fraggate           FragGate door summary
@@ -141,6 +145,17 @@ import {
   shelvesCiteField,
   shelvesLlmsBlock,
 } from "./cold-multi-shelf.js";
+import {
+  blockedRouteRefuse,
+  dispatchSurvivalHttp,
+  isExecPath,
+  isRouteBlocked,
+  isSurvivalPath,
+  rateLimitFailoverCite,
+  survivalCacheHeaders,
+  survivalCiteField as banSurvivalCiteField,
+  survivalLlmsBlock as banSurvivalLlmsBlock,
+} from "./ban-survival.js";
 import { websiteDesignsField, websiteDesignsLlmsBlock } from "./website-designs.js";
 import {
   catalogCacheHeaders,
@@ -201,6 +216,8 @@ import {
   mcpServerCard,
   oauthProtectedResource,
 } from "./mcp-discovery.js";
+import { resolveCallingName } from "./calling-name.js";
+import { isManifestPath, platformHeadLinks, platformsCite, webManifest } from "./platforms.js";
 import {
   MCP_PROTOCOL_PREFERRED,
   MCP_PROTOCOL_SUPPORTED,
@@ -512,6 +529,7 @@ const PRODUCTS_RAW = [
       { op: "assign", method: "POST", summary: "Assign a session node id. Mapping is ephemeral." },
       { op: "verify-receipt", method: "POST", summary: "Verify a MirageGrid control-plane receipt. Not a VPN hop." },
       { op: "bridge", method: "GET", summary: "Cap-7 mesh-name metadata cite. Inherit designs only (azcorpus + azlibrary). Not ICANN. resolves_to_hub false. name_may_change." },
+      { op: "shuffle", method: "POST", summary: "Ping MirageGrid until one Cap-7 site lands. That landed mesh name is that-round update. Distinct names. No hardcoded host. Hosted URL SLOT. Public workers.dev shuffle SLOT." },
       { op: "nodes", method: "GET", summary: "List ephemeral control-plane node ids. Not a hop mesh." },
       { op: "doctor", method: "GET", summary: "UI alias of health. Same FragGate backend as the Worker UI button." },
     ],
@@ -1421,6 +1439,10 @@ function sitemapXml(origin) {
     { loc: base + "/cold-copy", priority: "0.8", changefreq: "weekly" },
     { loc: base + "/v1/shelves", priority: "0.85", changefreq: "weekly" },
     { loc: base + "/v1/cold-copy", priority: "0.8", changefreq: "weekly" },
+    { loc: base + "/survival", priority: "0.85", changefreq: "weekly" },
+    { loc: base + "/v1/survival", priority: "0.85", changefreq: "weekly" },
+    { loc: base + "/doors", priority: "0.7", changefreq: "weekly" },
+    { loc: base + "/failover", priority: "0.7", changefreq: "weekly" },
     { loc: base + "/llms.txt", priority: "0.9", changefreq: "weekly" },
     { loc: base + "/ai.txt", priority: "0.9", changefreq: "weekly" },
     { loc: base + "/sitemap-index.xml", priority: "0.85", changefreq: "weekly" },
@@ -1440,6 +1462,7 @@ function sitemapXml(origin) {
     { loc: base + "/.well-known/mcp/server-card.json", priority: "0.7", changefreq: "weekly" },
     { loc: base + "/.well-known/oauth-protected-resource", priority: "0.65", changefreq: "weekly" },
     { loc: base + "/sigil.png", priority: "0.3", changefreq: "monthly" },
+    { loc: base + "/manifest.webmanifest", priority: "0.5", changefreq: "weekly" },
   ];
   for (const p of PRODUCTS) {
     urls.push({ loc: `${base}/#${p.slug}`, priority: "0.8", changefreq: "weekly" });
@@ -1491,7 +1514,7 @@ function escapeXml(s) {
     .replace(/"/g, "&quot;");
 }
 
-function llmsTxt(origin) {
+function llmsTxt(origin, env = {}) {
   const base = origin.replace(/\/$/, "");
   const lines = [
     `# ${CATALOG_TITLE}`,
@@ -1563,6 +1586,7 @@ function llmsTxt(origin) {
     `About: ${base}/about`,
     `Cite: ${base}/cite.json`,
     `Shelves: ${base}/shelves  (COLD-MULTI-SHELF-1.0; corpus SoT ${LIBRARY_ORIGIN}/shelves)`,
+    `Ban survival: ${base}/survival  (BAN-SURVIVAL-1.0; mutual backup: live multi-front ↔ cold shelves; LIVE doors only; live-node API SLOT)`,
     `Sitemap: ${base}/sitemap.xml`,
     `Sitemap index: ${base}/sitemap-index.xml`,
     `Library: ${LIBRARY_NAME} ${LIBRARY_ORIGIN}/`,
@@ -1575,6 +1599,8 @@ function llmsTxt(origin) {
     auditsLlmsHeaderLine(),
     "",
     survivalLlmsBlock().trimEnd(),
+    "",
+    banSurvivalLlmsBlock(origin, env).trimEnd(),
     "",
     shelvesLlmsBlock(origin).trimEnd(),
     "",
@@ -1691,11 +1717,13 @@ function llmsTxt(origin) {
   return lines.join("\n");
 }
 
-function citeJson(origin) {
+function citeJson(origin, env = {}) {
   const base = origin.replace(/\/$/, "");
+  const calling = resolveCallingName(env);
+  const banCite = banSurvivalCiteField(origin, env);
   return {
-    product: PRODUCT_NAME,
-    slug: "aziel-runtime",
+    product: calling.calling_name,
+    slug: calling.calling_slug,
     one_line: RUNTIME_ONE_LINE,
     abstract: RUNTIME_ABSTRACT,
     about: runtimeAboutField(origin),
@@ -1764,6 +1792,9 @@ function citeJson(origin) {
     designs: designsCiteField(),
     audits: auditsCiteField(),
     survival: survivalCiteField(),
+    ban_survival: banCite,
+    calling_name: calling,
+    platforms: platformsCite(env),
     shelves: shelvesCiteField(origin),
     cold_multi_shelf: COLD_MULTI_SHELF,
     mesh: meshCiteField(base),
@@ -1934,7 +1965,8 @@ function headMeta(origin, title, description, canonicalPath) {
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="${escapeHtml(title)}">
 <meta name="twitter:description" content="${escapeHtml(description)}">
-<meta name="twitter:image" content="${escapeHtml(image)}">`;
+<meta name="twitter:image" content="${escapeHtml(image)}">
+${platformHeadLinks(base)}`;
 }
 
 const PAGE_CSS = `
@@ -2526,6 +2558,45 @@ function staticPaths(origin) {
         responses: { "200": { description: "COLD-MULTI-SHELF registry JSON" } },
       },
     },
+    "/survival": {
+      get: {
+        operationId: "catalog_ban_survival",
+        summary:
+          "BAN-SURVIVAL-1.0 three-layer map. Live multi-front ↔ cold shelves; live-node API SLOT; Cap-7 cite + AZNet verify LIVE (hosted exec SLOT). Client door list = LIVE doors only. Not a second FragGate door. Never invent a live door.",
+        tags: ["catalog"],
+        responses: { "200": { description: "BAN-SURVIVAL failover JSON" } },
+      },
+      head: {
+        operationId: "catalog_ban_survival_head",
+        summary: "HEAD of /survival.",
+        tags: ["catalog"],
+        responses: { "200": { description: "headers only" } },
+      },
+    },
+    "/v1/survival": {
+      get: {
+        operationId: "catalog_ban_survival_v1",
+        summary: "Machine alias of GET /survival (BAN-SURVIVAL-1.0).",
+        tags: ["catalog"],
+        responses: { "200": { description: "BAN-SURVIVAL failover JSON" } },
+      },
+    },
+    "/doors": {
+      get: {
+        operationId: "catalog_ban_survival_doors",
+        summary: "Alias of GET /survival.",
+        tags: ["catalog"],
+        responses: { "200": { description: "BAN-SURVIVAL failover JSON" } },
+      },
+    },
+    "/failover": {
+      get: {
+        operationId: "catalog_ban_survival_failover",
+        summary: "Alias of GET /survival.",
+        tags: ["catalog"],
+        responses: { "200": { description: "BAN-SURVIVAL failover JSON" } },
+      },
+    },
     "/llms.txt": {
       get: {
         operationId: "catalog_llms",
@@ -2629,7 +2700,7 @@ async function combinedOpenApi(request, env) {
   return {
     openapi: "3.1.0",
     info: {
-      title: PRODUCT_NAME,
+      title: resolveCallingName(env).calling_name,
       version: RUNTIME_VERSION,
       summary: RUNTIME_ONE_LINE,
       description:
@@ -2929,6 +3000,8 @@ function healthBody(origin) {
     who_is_txt: "/who-is-aziel-eliab.txt",
     shelves: "/shelves",
     shelves_json: "/v1/shelves",
+    survival: "/survival",
+    survival_json: "/v1/survival",
     sitemap: "/sitemap.xml",
     sitemap_index: "/sitemap-index.xml",
     robots: "/robots.txt",
@@ -3069,11 +3142,11 @@ async function handleMcp(request, env, origin) {
         protocolVersion: admitted.protocolVersion,
         capabilities: { tools: { listChanged: false } },
         serverInfo: {
-          name: "aziel-runtime",
-          title: "Aziel Runtime",
+          name: resolveCallingName(env).calling_slug,
+          title: resolveCallingName(env).calling_name,
           version: RUNTIME_VERSION,
           websiteUrl: "https://aziel-runtime.vibelock.workers.dev",
-          description: `Aziel Runtime ${RUNTIME_VERSION}. 1.6.2 is superseded heritage, not this server. Author: Aziel Eliab only.`,
+          description: `${resolveCallingName(env).calling_name} ${RUNTIME_VERSION}. 1.6.2 is superseded heritage, not this server. Author: Aziel Eliab only.`,
         },
         instructions: mcpInitializeInstructions(),
       },
@@ -3248,13 +3321,25 @@ async function gateInbound(request, env, jsonReply) {
   const url = new URL(request.url);
   const method = String(request.method || "GET").toUpperCase();
   if (method === "OPTIONS") return { request, response: null };
+  const blocked = isRouteBlocked(env, url.origin, url.pathname);
+  if (blocked && isExecPath(url.pathname)) {
+    const refuse = blockedRouteRefuse(blocked, url.origin, env);
+    return {
+      request,
+      response: jsonReply(refuse, refuse.status || 503),
+    };
+  }
   const kind = requestLimitKind(url.pathname, method);
   if (kind) {
     const decision = await doorRateLimitDecision(env, request, kind);
     if (!decision.ok) {
       return {
         request,
-        response: jsonReply(rateLimitFailBody(decision), 429, rateLimitFailHeaders(decision)),
+        response: jsonReply(
+          { ...rateLimitFailBody(decision), ban_survival: rateLimitFailoverCite(decision, url.origin, env) },
+          429,
+          rateLimitFailHeaders(decision),
+        ),
       };
     }
   }
@@ -3296,7 +3381,7 @@ async function handleRequest(request, env, ctx) {
       if (discovery === "server-card") {
         return asHead(
           request,
-          json(mcpServerCard(origin), 200, authorityLinkHeaders(origin, url.pathname)),
+          json(mcpServerCard(origin, env), 200, authorityLinkHeaders(origin, url.pathname)),
         );
       }
       if (discovery === "oauth-protected-resource") {
@@ -3357,7 +3442,7 @@ async function handleRequest(request, env, ctx) {
     }
 
     if ((url.pathname === "/llms.txt" || url.pathname === "/ai.txt") && (request.method === "GET" || request.method === "HEAD")) {
-      return asHead(request, text(llmsTxt(origin), extra(url.pathname)));
+      return asHead(request, text(llmsTxt(origin, env), extra(url.pathname)));
     }
 
     if (url.pathname === "/person.jsonld" && (request.method === "GET" || request.method === "HEAD")) {
@@ -3382,13 +3467,33 @@ async function handleRequest(request, env, ctx) {
       if (injected) {
         return asHead(request, json(injected, 400, extra("/cite.json")));
       }
-      return asHead(request, json(citeJson(origin), 200, extra("/cite.json")));
+      return asHead(request, json(citeJson(origin, env), 200, extra("/cite.json")));
     }
 
     if (isShelvesPath(url.pathname)) {
       const out = dispatchShelvesHttp(request.method, url.pathname, origin);
       if (out) {
         return asHead(request, json(out.body, out.status, extra(url.pathname)));
+      }
+    }
+
+    if (isManifestPath(url.pathname) && (request.method === "GET" || request.method === "HEAD")) {
+      return asHead(
+        request,
+        json(webManifest(origin, env), 200, {
+          ...extra(url.pathname),
+          "Content-Type": "application/manifest+json; charset=utf-8",
+        }),
+      );
+    }
+
+    if (isSurvivalPath(url.pathname)) {
+      const out = dispatchSurvivalHttp(request.method, url.pathname, origin, env);
+      if (out) {
+        return asHead(
+          request,
+          json(out.body, out.status, { ...extra(url.pathname), ...(out.status === 200 ? survivalCacheHeaders() : {}) }),
+        );
       }
     }
 

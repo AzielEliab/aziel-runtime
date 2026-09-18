@@ -71,6 +71,7 @@ AI pulls name metadata from:
 - https://miragegrid-download-tracker.vibelock.workers.dev/bridge
 - https://aziel-runtime.vibelock.workers.dev/v1/mesh/az-generator
 - `fraggate_call` `{ slug: "miragegrid", op: "bridge" }`
+- `fraggate_call` `{ slug: "miragegrid", op: "shuffle" }` — ping MirageGrid until one distinct-name Cap-7 site lands (that-round update). Hosted URL SLOT. Public workers.dev shuffle SLOT.
 
 `public_icann: false`. No live AZ-GEN registrar. No fake ICANN `.az`. No visible 15:20. `GET /v1/mesh` never enables radios. Mesh browse: AZNet + AZBrowser via FragGate. Plane A hubs mirror tips; mirroring a tip does not resolve a Cap-7 name onto a hub hostname.
 
@@ -105,5 +106,13 @@ This Worker is the same Plane A tunnel — not a sixth surface. Paper: [COLD-MUL
 CROSS-NETWORK-SURVIVAL-1.0: someone still has bytes that match the published tip — not a living network, not LLM memory, not a public hostname that still answers.
 
 If network and data die tomorrow, the chain survives on cold shelves (hosts / DOI / git / vault). Machine field: `/cite.json` `survival.tip` (same string on `/llms.txt`). Paper: [CROSS-NETWORK-SURVIVAL-1.0](designs/CROSS-NETWORK-SURVIVAL-1.0.md).
+
+## Ban / blocked-endpoint survival (BAN-SURVIVAL-1.0)
+
+One banned public door (`workers.dev`, `/mcp`, a FragGate path) is a surface death, not last tip gone. Three layers: live multi-front ↔ cold shelves; live-node API SLOT until attest; Cap-7 cite + AZNet verify LIVE (hosted Cap-7 endpoints SLOT; update shuffle ping→land, no hardcoded host; public workers.dev shuffle SLOT). AKM-TRIAD: `belief_is_not_truth`; `memory_get` append-only; `memory_resolve` additive. Door list = LIVE only. Never invent a live door. Never fake a Cap-7 hosted endpoint. Never claim a banned host is LIVE.
+
+Calling-name rotation is discovery-only: honest ban signals rewrite the public calling name (Whitestone AI → Bills → Runtime → … endless). Mesh pull `*new name alert: <name>` from `/survival`. Identity Aziel Eliab unchanged.
+
+Machine map: `GET /survival` · `/cite.json` `ban_survival` · `/llms.txt`. Paper: [BAN-SURVIVAL-1.0](designs/BAN-SURVIVAL-1.0.md). Client order: [CLIENT_UPDATE.md](CLIENT_UPDATE.md).
 
 Product Worker template: [PRODUCT_SEO.md](PRODUCT_SEO.md). GitHub About lock: [GITHUB.md](GITHUB.md).
