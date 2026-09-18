@@ -42,8 +42,8 @@ import {
   survivalDoc,
   survivalLlmsBlock,
   survivalSkillMarkdown,
+  LOCKSET_TIP,
 } from "../src/ban-survival.js";
-import { LOCKSET_TIP } from "../src/cold-multi-shelf.js";
 
 const paper = readFileSync(new URL("../docs/designs/BAN-SURVIVAL-1.0.md", import.meta.url), "utf8");
 const survival = readFileSync(new URL("../docs/designs/CROSS-NETWORK-SURVIVAL-1.0.md", import.meta.url), "utf8");
@@ -57,7 +57,7 @@ assert.equal(BAN_SURVIVAL_DOCS, "docs/designs/BAN-SURVIVAL-1.0.md");
 assert.match(paper, /^# BAN-SURVIVAL-1\.0/m);
 assert.match(paper, /Author: Aziel Eliab only/);
 assert.match(paper, /Never invent a live door/);
-assert.match(paper, /Never claim a banned host is LIVE/);
+assert.match(paper, /Never claim a banned host is still LIVE/);
 assert.match(paper, /service binding/);
 assert.match(paper, /Not a Softwares-tab product/);
 assert.match(paper, /No new MCP tool/);
@@ -161,7 +161,7 @@ assert.equal(failoverCite(PRIMARY_WORKER_ORIGIN).lie_to_survive, false);
 
 const llms = survivalLlmsBlock(PRIMARY_WORKER_ORIGIN);
 assert.match(llms, /BAN-SURVIVAL-1\.0/);
-assert.match(llms, BAN_SURVIVAL_TIP.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+assert.match(llms, new RegExp(BAN_SURVIVAL_TIP.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 assert.match(llms, /Never invent a live door/);
 assert.match(survivalSkillMarkdown(PRIMARY_WORKER_ORIGIN), /DEGRADED/);
 assert.match(BAN_SURVIVAL_RULE, /Never invent a live door/);

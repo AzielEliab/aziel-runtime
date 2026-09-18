@@ -117,7 +117,6 @@ import { dispatchAzGeneratorHttp, semanticBridgeCiteField } from "./semantic-bri
 import { durabilityLabels } from "./durability-labels.js";
 import { nineLawsFrame, nineLawsHint, nineLawsLaunchCite, refuseNineLawGet, refuseNineLawViolation } from "./mesh-nine-laws.js";
 import { CHANNEL_PLANE_NOTE, CHANNEL_PLANE_SPEC, channelPlaneFrame, channelPlaneHint } from "./mesh-channel-plane.js";
-import { BAN_SURVIVAL, survivalCiteField as banSurvivalCiteField } from "./ban-survival.js";
 import { publicVpnCite } from "./public-vpn.js";
 import { ensureDefaultVpnSession, vpnAutoCite } from "./azvpn-auto.js";
 
@@ -437,7 +436,7 @@ export function meshHint(path = "/v1/mesh") {
     presence_ttl_ms: PRESENCE_TTL_MS,
     qns_cd: qnsHint(),
     survival: survivalHint(),
-    ban_survival: BAN_SURVIVAL,
+    ban_survival: "BAN-SURVIVAL-1.0",
     ...noLieFrame(),
     no_lie_hint: noLieHint(),
     nine_laws: nineLawsHint(),
@@ -835,7 +834,7 @@ function qnmFrame() {
     live_network_is_shelf: false,
     survival: survivalHint(),
     survival_tip: SURVIVAL_TIP,
-    ban_survival: banSurvivalCiteField(),
+    ban_survival: "BAN-SURVIVAL-1.0",
     local_node: "qnm-node/",
     local_node_note: QNM_LOCAL_NODE,
     host_note: QNM_HOST_NOTE,
