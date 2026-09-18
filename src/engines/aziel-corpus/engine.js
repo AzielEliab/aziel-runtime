@@ -26,6 +26,7 @@ export const NATIVE_OPS = [
   "document-chain",
   "import_export",
   "jeeves",
+  "tip-pack",
 ];
 export const PROXY_OPS = [];
 export const BINDING_GATED_OPS = {

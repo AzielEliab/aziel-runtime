@@ -3,6 +3,7 @@
  * Author: Aziel Eliab.
  */
 import { capabilityDoctor, capabilityHealth, capabilitySkill } from "../capability.js";
+import { verifyTipPack } from "../aziel-corpus/tip-pack.js";
 import {
   LIMITATION,
   PAPER,
@@ -17,7 +18,7 @@ import {
 } from "./codec.js";
 
 const PRODUCT = "foldlock";
-const LIVE = ["health", "skill", "fold-preview", "unfold-preview", "doctor"];
+const LIVE = ["health", "skill", "fold-preview", "unfold-preview", "doctor", "pack-verify"];
 const STUB = ["zip", "hosted_store"];
 export const FOLDLOCK_OPS = LIVE.slice();
 
@@ -34,7 +35,13 @@ function envelope() {
     live_ops: LIVE,
     stub_ops: STUB,
     limitation: LIMITATION,
-    extra: { zip: false, paper: PAPER, tether_words: TETHERS.length, method: "adaptive" },
+    extra: {
+      zip: false,
+      paper: PAPER,
+      tether_words: TETHERS.length,
+      method: "adaptive",
+      corpus_tip: "pack-verify checks the shipped FoldLock Aziel Corpus Library tip. Not hosted_store. Not the full live library.",
+    },
   };
 }
 
@@ -45,14 +52,14 @@ export function foldlockHealth() {
 export function foldlockSkill() {
   return capabilitySkill({
     ...envelope(),
-    lead: "Algorithmic tether-word suppression on UTF-8 text. Preview cap ~8KB. Not zip.",
+    lead: "Algorithmic tether-word suppression on UTF-8 text. Preview cap ~8KB. pack-verify checks the shipped Aziel Corpus Library tip (hash-verified; not the full live library). Not zip. Not hosted_store.",
   });
 }
 
 export function foldlockDoctor() {
   return capabilityDoctor({
     ...envelope(),
-    doctor_note: "FoldLock doctor: fold-preview / unfold-preview. Not zip. No hosted store.",
+    doctor_note: "FoldLock doctor: fold-preview / unfold-preview / pack-verify. Not zip. No hosted store. Tip pack is not the full live library.",
   });
 }
 
@@ -139,5 +146,6 @@ export async function runFoldlock(op, payload, scratch) {
   if (op === "doctor") return foldlockDoctor();
   if (op === "fold-preview") return foldPreview(payload, scratch);
   if (op === "unfold-preview") return unfoldPreview(payload, scratch);
+  if (op === "pack-verify") return verifyTipPack(payload);
   return { unsupported: true };
 }

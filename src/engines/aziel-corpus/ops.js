@@ -23,6 +23,7 @@ import {
   verifyGeo,
 } from "./engine.js";
 import { jeevesAsk } from "./jeeves.js";
+import { openTipPack, TIP_PACK_LIMITATION, TIP_PACK_SPEC } from "./tip-pack.js";
 
 export const AZIEL_CORPUS_OPS = [
   "health",
@@ -38,6 +39,7 @@ export const AZIEL_CORPUS_OPS = [
   "import_export",
   "jeeves",
   "media-run",
+  "tip-pack",
 ];
 
 const LIVE = AZIEL_CORPUS_OPS.slice();
@@ -69,6 +71,13 @@ function envelope(env) {
         note: "In-process search uses bundled sample MASTER unless CORPUS_D1 is bound (then production `records`). jeeves is isolate-native. Whisper / OCR / media-run are native only when Workers AI is bound. Not a fake native OCR.",
       },
       media: mediaStatus(env),
+      fold_pack: {
+        spec: TIP_PACK_SPEC,
+        op: "tip-pack",
+        verify_op: "foldlock/pack-verify",
+        full_library_in_process: false,
+        limitation: TIP_PACK_LIMITATION,
+      },
     },
   };
 }
@@ -80,7 +89,7 @@ export function aziel_corpusHealth(env) {
 export function aziel_corpusSkill(env) {
   return capabilitySkill({
     ...envelope(env),
-    lead: "In-process search over a bundled public sample MASTER. review / score / verify-backfill / verify-geo / document-chain / jeeves run on posted or sample JSON. Live D1 queries production `records` when CORPUS_D1 is bound. Whisper / OCR / media-run stay binding-gated.",
+    lead: "In-process search over a bundled public sample MASTER. review / score / verify-backfill / verify-geo / document-chain / jeeves run on posted or sample JSON. tip-pack opens the FoldLock-packed library tip (index cite + sample artifacts + About Aziel) — not the full live library on azielcorpuslibrary.net. Live D1 queries production `records` when CORPUS_D1 is bound. Whisper / OCR / media-run stay binding-gated.",
   });
 }
 
@@ -103,6 +112,7 @@ export async function runAzielCorpus(op, payload, scratch, env) {
   if (op === "verify-geo") return verifyGeo(payload);
   if (op === "document-chain") return documentChain(payload);
   if (op === "import_export") return importExport(payload);
+  if (op === "tip-pack") return openTipPack(payload);
   if (op === "jeeves") return jeevesAsk(payload, env);
   if (op === "media-run") return mediaRun(payload, env);
   if (op === "transcribe") return transcribe(payload, env);

@@ -112,6 +112,8 @@ assert.match(ws, /id="dashboard"/);
 assert.match(ws, /id="mesh-panel"/);
 assert.match(ws, /FragGate console/);
 assert.match(ws, /Operator control panel/);
+assert.match(ws, /id="about-aziel"/);
+assert.match(ws, /id="launch-parts"/);
 assert.doesNotMatch(ws, /15:20/);
 
 const sitemap = await (await get("/sitemap.xml")).text();

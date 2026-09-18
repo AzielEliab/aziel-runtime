@@ -128,8 +128,9 @@ export const LIVE_OPS = {
     "import_export",
     "jeeves",
     "media-run",
+    "tip-pack",
   ],
-  foldlock: ["fold-preview", "unfold-preview", "health", "skill", "doctor"],
+  foldlock: ["fold-preview", "unfold-preview", "health", "skill", "doctor", "pack-verify"],
   azclce: ["score", "classify", "gate", "health", "skill", "doctor"],
   zsolver: ["patterns", "score", "session", "health", "skill", "doctor"],
   forgereceipts: ["receipt", "verify", "import_export", "doctor", "health", "skill"],
@@ -335,6 +336,7 @@ export const LIVE_OPS = {
  * even if the engine has no such op.
  */
 export const STUB_OPS = {
+  foldlock: ["zip", "hosted_store"],
   embryolock: [
     "wipe",
     "scorch",

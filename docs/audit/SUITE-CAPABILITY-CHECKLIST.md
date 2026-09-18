@@ -81,7 +81,7 @@ Do not treat this table as a license to invent verbs. Close only what the produc
 | employeelock | append-preview, verify-canonical | same | Rich skill; doctor alias |
 | whistlelock | hash-preview, canon-preview, hash_put, hash_get, hash_stat | same + doctor alias | 1.9.0 isolate hash store. send/mail/release stay stub |
 | shadowlock | observe, hook | same + doctor alias | 1.8.2 public hook (zero-retention) |
-| foldlock | fold-preview, unfold-preview | same | Rich skill; doctor |
+| foldlock | fold-preview, unfold-preview, pack-verify | same | Rich skill; doctor. pack-verify = shipped corpus tip, not hosted_store |
 | godlock | score, submit | same | Rich skill; doctor |
 | vibelock | analyze, detect | same | 1.8.1 public detect |
 | codelock | render, gate-status | same | 1.8.1 public gate-status |
@@ -102,7 +102,7 @@ Do not treat this table as a license to invent verbs. Close only what the produc
 | aznet | pair_status … receipt_verify | same + doctor/pair aliases | Already above baseline; never host payloads |
 | azhub | region_list … blank_key_status | same + list_modules/place aliases | Already above baseline |
 | azinterface | genesis_status … page_cycle_status | same + genesis_boot/hold aliases | Already above baseline |
-| aziel-corpus | search, example, review, score, verify-*, document-chain, import_export, jeeves, media-run | same + doctor | 1.9.3 isolate jeeves + binding-gated media-run. 1.9.2 live D1 `records` + AI bound |
+| aziel-corpus | search, example, review, score, verify-*, document-chain, import_export, jeeves, media-run, tip-pack | same + doctor | 1.9.3 isolate jeeves + binding-gated media-run. tip-pack opens FoldLock library tip (not full live library) |
 | azchat | handle_new, handle_rotate, room_*, bus_*, verify_receipt, import_export, doctor | same | 1.8.4 LIVE+bound. Mesh default off. Not AZMail |
 | 4dmap | card_*, verify_hash | same | Parallel wave — already at baseline |
 
