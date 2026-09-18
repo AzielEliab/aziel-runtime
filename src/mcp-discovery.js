@@ -144,6 +144,7 @@ export function mcpServerCard(origin) {
       openapi: `${base}/openapi.json`,
       llms: `${base}/llms.txt`,
       cite: `${base}/cite.json`,
+      survival: `${base}/survival`,
       person_jsonld: `${base}/person.jsonld`,
       who_is: `${base}/who-is`,
       skill: `${base}/v1/skill`,
@@ -172,6 +173,7 @@ export function oauthProtectedResource(origin) {
     links: {
       openapi: `${base}/openapi.json`,
       llms: `${base}/llms.txt`,
+      survival: `${base}/survival`,
       server_card: `${base}/.well-known/mcp/server-card.json`,
     },
   };

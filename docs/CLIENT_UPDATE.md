@@ -95,5 +95,29 @@ curl -s -A 'Mozilla/5.0' https://aziel-runtime.vibelock.workers.dev/v1/update/ma
 
 Always send `User-Agent: Mozilla/5.0`.
 
+## Ban / blocked-endpoint failover (BAN-SURVIVAL-1.0)
+
+If `workers.dev` or `POST /mcp` is banned or blocked, do **not** invent a
+live door and do **not** claim the banned host is still LIVE.
+
+1. Try the primary Worker: `https://aziel-runtime.vibelock.workers.dev`
+   (`POST /mcp` or `POST /v1/fraggate/call`).
+2. If that hostname or exec path fails (403 / 429 / 502 / 503 / network):
+   try the next **named** hub `/runtime` prefix (same FragGate door via
+   service binding — not a second door):
+   - `https://www.azielcorpuslibrary.net/runtime`
+   - `https://www.azieleliab.com/runtime`
+   - `https://godlock.uk/runtime`
+3. If exec is gone: remaining read surfaces still cite the tip
+   (`GET /survival`, `/cite.json`, `/llms.txt`, `/shelves`, `/v1/mesh`,
+   `/v1/software`, `/v1/health`). Mode is **DEGRADED**.
+4. If the live CF tunnel is gone: verify lockset tip on GitHub / corpus
+   `/shelves` / Codeberg + archive.org tip-packs (**SLOT**, hash-verify
+   PASS). Plane C USB stays SLOT. `doi` null. Never invent LIVE.
+
+Machine map: `GET /survival` (aliases `/v1/survival`, `/doors`, `/failover`).
+Stdio MCP (`cli/mcp-stdio.mjs`) follows that order unless `--url` is pinned
+or `AZIEL_RUNTIME_FAILOVER=0`.
+
 Agent exec is still FragGate: `fraggate_list` → `fraggate_describe` →
 `fraggate_call` (or `POST /mcp`). Catalog helpers do not exec.

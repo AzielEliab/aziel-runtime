@@ -167,6 +167,8 @@ assert.equal(shelvesOk.data.attack_sims.refuse, true);
 assert.equal(shelvesOk.data.attack_sims.pointer, "scripts/verify-redline.mjs");
 assert.ok(PUBLIC_DOORS.some((d) => d.path === "/shelves" && d.role === "cite"));
 assert.ok(PUBLIC_DOORS.some((d) => d.path === "/v1/shelves" && d.role === "cite"));
+assert.ok(PUBLIC_DOORS.some((d) => d.path === "/survival" && d.role === "cite"));
+assert.ok(PUBLIC_DOORS.some((d) => d.path === "/v1/survival" && d.role === "cite"));
 assert.equal(citeOk.data.tls.via, "cloudflare");
 assert.equal(citeOk.data.tls.client_side_crypto_claim, false);
 

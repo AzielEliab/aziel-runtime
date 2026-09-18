@@ -175,8 +175,35 @@ assert.ok(names.includes("runtime_run"));
 const failed = await dispatchMcp({ jsonrpc: "2.0", id: 3, method: "boom" }, ctx);
 assert.equal(failed.error.code, -32000);
 assert.match(failed.error.message, /non-JSON|502/);
+assert.deepEqual(ctx.origins, [mock.url]);
 
 await new Promise((resolve, reject) => mock.server.close((err) => (err ? reject(err) : resolve())));
+
+const deadHits = [];
+const liveHits = [];
+const dead = await startMock(async (_req, res) => {
+  deadHits.push(1);
+  res.writeHead(429, { "Content-Type": "application/json" });
+  res.end(JSON.stringify({ ok: false, code: "RATE_LIMIT" }));
+});
+const live = await startMock(async (req, res) => {
+  liveHits.push(req.url);
+  const body = await readJson(req);
+  res.writeHead(200, { "Content-Type": "application/json" });
+  res.end(JSON.stringify({ jsonrpc: "2.0", id: body.id, result: { ok: true, via: "named-hub" } }));
+});
+const failCtx = createBridgeContext({
+  origins: [dead.url, live.url],
+  flags: { url: dead.url },
+  fetchImpl: fetch,
+});
+const failedOver = await dispatchMcp({ jsonrpc: "2.0", id: 9, method: "ping" }, failCtx);
+assert.equal(failedOver.result.via, "named-hub");
+assert.equal(deadHits.length, 1);
+assert.equal(liveHits.length, 1);
+assert.equal(failCtx.url, live.url);
+await new Promise((resolve, reject) => dead.server.close((err) => (err ? reject(err) : resolve())));
+await new Promise((resolve, reject) => live.server.close((err) => (err ? reject(err) : resolve())));
 
 function spawnMcp(args, extraEnv = {}) {
   return spawn(process.execPath, [cli, ...args], {

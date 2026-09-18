@@ -18,6 +18,7 @@
     "chain-of-custody",
     "cold-shelf",
     "cold-multi-shelf",
+    "ban-survival",
     "verification",
     "agent-security",
     "model-context-protocol",

@@ -30,6 +30,10 @@
  * GET  /cold-copy             alias of /shelves
  * GET  /v1/shelves            machine alias of /shelves
  * GET  /v1/cold-copy          alias of /shelves
+ * GET  /survival              BAN-SURVIVAL-1.0 door/path failover map (named routes + cold tip-hash)
+ * GET  /v1/survival           machine alias of /survival
+ * GET  /doors                 alias of /survival
+ * GET  /failover              alias of /survival
  * GET  /v1/skill              skill markdown (session + front doors)
  * GET  /v1/runtime.json       machine manifest: role=engine-runtime (1.7.9), door=fraggate
  * GET  /v1/fraggate           FragGate door summary
@@ -141,6 +145,17 @@ import {
   shelvesCiteField,
   shelvesLlmsBlock,
 } from "./cold-multi-shelf.js";
+import {
+  blockedRouteRefuse,
+  dispatchSurvivalHttp,
+  isExecPath,
+  isRouteBlocked,
+  isSurvivalPath,
+  rateLimitFailoverCite,
+  survivalCacheHeaders,
+  survivalCiteField as banSurvivalCiteField,
+  survivalLlmsBlock as banSurvivalLlmsBlock,
+} from "./ban-survival.js";
 import { websiteDesignsField, websiteDesignsLlmsBlock } from "./website-designs.js";
 import {
   catalogCacheHeaders,
@@ -1421,6 +1436,10 @@ function sitemapXml(origin) {
     { loc: base + "/cold-copy", priority: "0.8", changefreq: "weekly" },
     { loc: base + "/v1/shelves", priority: "0.85", changefreq: "weekly" },
     { loc: base + "/v1/cold-copy", priority: "0.8", changefreq: "weekly" },
+    { loc: base + "/survival", priority: "0.85", changefreq: "weekly" },
+    { loc: base + "/v1/survival", priority: "0.85", changefreq: "weekly" },
+    { loc: base + "/doors", priority: "0.7", changefreq: "weekly" },
+    { loc: base + "/failover", priority: "0.7", changefreq: "weekly" },
     { loc: base + "/llms.txt", priority: "0.9", changefreq: "weekly" },
     { loc: base + "/ai.txt", priority: "0.9", changefreq: "weekly" },
     { loc: base + "/sitemap-index.xml", priority: "0.85", changefreq: "weekly" },
@@ -1563,6 +1582,7 @@ function llmsTxt(origin) {
     `About: ${base}/about`,
     `Cite: ${base}/cite.json`,
     `Shelves: ${base}/shelves  (COLD-MULTI-SHELF-1.0; corpus SoT ${LIBRARY_ORIGIN}/shelves)`,
+    `Ban survival: ${base}/survival  (BAN-SURVIVAL-1.0; named hub /runtime + read quarantine + cold tip-hash)`,
     `Sitemap: ${base}/sitemap.xml`,
     `Sitemap index: ${base}/sitemap-index.xml`,
     `Library: ${LIBRARY_NAME} ${LIBRARY_ORIGIN}/`,
@@ -1575,6 +1595,8 @@ function llmsTxt(origin) {
     auditsLlmsHeaderLine(),
     "",
     survivalLlmsBlock().trimEnd(),
+    "",
+    banSurvivalLlmsBlock(origin).trimEnd(),
     "",
     shelvesLlmsBlock(origin).trimEnd(),
     "",
@@ -1764,6 +1786,7 @@ function citeJson(origin) {
     designs: designsCiteField(),
     audits: auditsCiteField(),
     survival: survivalCiteField(),
+    ban_survival: banSurvivalCiteField(origin),
     shelves: shelvesCiteField(origin),
     cold_multi_shelf: COLD_MULTI_SHELF,
     mesh: meshCiteField(base),
@@ -2526,6 +2549,45 @@ function staticPaths(origin) {
         responses: { "200": { description: "COLD-MULTI-SHELF registry JSON" } },
       },
     },
+    "/survival": {
+      get: {
+        operationId: "catalog_ban_survival",
+        summary:
+          "BAN-SURVIVAL-1.0 door/path failover map. Named same-tunnel routes (workers.dev + hub /runtime service bindings) plus read-surface quarantine plus cold tip-hash. Not a second FragGate door. Never invent a live door. Never claim a banned host is LIVE.",
+        tags: ["catalog"],
+        responses: { "200": { description: "BAN-SURVIVAL failover JSON" } },
+      },
+      head: {
+        operationId: "catalog_ban_survival_head",
+        summary: "HEAD of /survival.",
+        tags: ["catalog"],
+        responses: { "200": { description: "headers only" } },
+      },
+    },
+    "/v1/survival": {
+      get: {
+        operationId: "catalog_ban_survival_v1",
+        summary: "Machine alias of GET /survival (BAN-SURVIVAL-1.0).",
+        tags: ["catalog"],
+        responses: { "200": { description: "BAN-SURVIVAL failover JSON" } },
+      },
+    },
+    "/doors": {
+      get: {
+        operationId: "catalog_ban_survival_doors",
+        summary: "Alias of GET /survival.",
+        tags: ["catalog"],
+        responses: { "200": { description: "BAN-SURVIVAL failover JSON" } },
+      },
+    },
+    "/failover": {
+      get: {
+        operationId: "catalog_ban_survival_failover",
+        summary: "Alias of GET /survival.",
+        tags: ["catalog"],
+        responses: { "200": { description: "BAN-SURVIVAL failover JSON" } },
+      },
+    },
     "/llms.txt": {
       get: {
         operationId: "catalog_llms",
@@ -2929,6 +2991,8 @@ function healthBody(origin) {
     who_is_txt: "/who-is-aziel-eliab.txt",
     shelves: "/shelves",
     shelves_json: "/v1/shelves",
+    survival: "/survival",
+    survival_json: "/v1/survival",
     sitemap: "/sitemap.xml",
     sitemap_index: "/sitemap-index.xml",
     robots: "/robots.txt",
@@ -3248,13 +3312,25 @@ async function gateInbound(request, env, jsonReply) {
   const url = new URL(request.url);
   const method = String(request.method || "GET").toUpperCase();
   if (method === "OPTIONS") return { request, response: null };
+  const blocked = isRouteBlocked(env, url.origin, url.pathname);
+  if (blocked && isExecPath(url.pathname)) {
+    const refuse = blockedRouteRefuse(blocked, url.origin);
+    return {
+      request,
+      response: jsonReply(refuse, refuse.status || 503),
+    };
+  }
   const kind = requestLimitKind(url.pathname, method);
   if (kind) {
     const decision = await doorRateLimitDecision(env, request, kind);
     if (!decision.ok) {
       return {
         request,
-        response: jsonReply(rateLimitFailBody(decision), 429, rateLimitFailHeaders(decision)),
+        response: jsonReply(
+          { ...rateLimitFailBody(decision), ban_survival: rateLimitFailoverCite(decision, url.origin) },
+          429,
+          rateLimitFailHeaders(decision),
+        ),
       };
     }
   }
@@ -3389,6 +3465,16 @@ async function handleRequest(request, env, ctx) {
       const out = dispatchShelvesHttp(request.method, url.pathname, origin);
       if (out) {
         return asHead(request, json(out.body, out.status, extra(url.pathname)));
+      }
+    }
+
+    if (isSurvivalPath(url.pathname)) {
+      const out = dispatchSurvivalHttp(request.method, url.pathname, origin, env);
+      if (out) {
+        return asHead(
+          request,
+          json(out.body, out.status, { ...extra(url.pathname), ...(out.status === 200 ? survivalCacheHeaders() : {}) }),
+        );
       }
     }
 

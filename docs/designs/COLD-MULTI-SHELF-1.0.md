@@ -136,7 +136,8 @@ a Framagit URL (`CNS-NO-FORGE-MIRROR`).
 This Worker cites the same honesty on:
 
 - `GET /shelves` · `GET /cold-copy` · `GET /v1/shelves` · `GET /v1/cold-copy`
-- `/cite.json` `shelves` / `cold_multi_shelf`
+- `GET /survival` (BAN-SURVIVAL-1.0 door/path failover; not a sixth shelf)
+- `/cite.json` `shelves` / `cold_multi_shelf` / `ban_survival`
 - `/llms.txt` · `/ai.txt`
 - `/openapi.json`
 - `GET /v1/software` catalog
