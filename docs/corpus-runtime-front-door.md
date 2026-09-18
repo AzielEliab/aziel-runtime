@@ -37,7 +37,8 @@ npx wrangler deploy
 `GET /runtime/survival` (and `/runtime/v1/survival`) should proxy to origin
 `GET /survival` so a workers.dev hostname ban still advertises the LIVE
 multi-front map from the library custom-domain door (BAN-SURVIVAL-1.0).
-Same FragGate door. Not a second door. Not a cold-shelf failover.
+Same FragGate door. Not a second door. Cold shelves remain the death-by-ban
+backup on that same map.
 
 Until that ships, AIs should pull from the origin Worker:
 

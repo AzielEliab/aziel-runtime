@@ -30,7 +30,7 @@
  * GET  /cold-copy             alias of /shelves
  * GET  /v1/shelves            machine alias of /shelves
  * GET  /v1/cold-copy          alias of /shelves
- * GET  /survival              BAN-SURVIVAL-1.0 live multi-front failover map (workers.dev + custom-domain /runtime; LIVE doors only)
+ * GET  /survival              BAN-SURVIVAL-1.0 mutual-backup map (live multi-front ↔ cold shelves; LIVE doors only; live-node API SLOT)
  * GET  /v1/survival           machine alias of /survival
  * GET  /doors                 alias of /survival
  * GET  /failover              alias of /survival
@@ -1582,7 +1582,7 @@ function llmsTxt(origin, env = {}) {
     `About: ${base}/about`,
     `Cite: ${base}/cite.json`,
     `Shelves: ${base}/shelves  (COLD-MULTI-SHELF-1.0; corpus SoT ${LIBRARY_ORIGIN}/shelves)`,
-    `Ban survival: ${base}/survival  (BAN-SURVIVAL-1.0; live multi-front workers.dev + custom-domain /runtime; LIVE doors only; shelves are not failover)`,
+    `Ban survival: ${base}/survival  (BAN-SURVIVAL-1.0; mutual backup: live multi-front ↔ cold shelves; LIVE doors only; live-node API SLOT)`,
     `Sitemap: ${base}/sitemap.xml`,
     `Sitemap index: ${base}/sitemap-index.xml`,
     `Library: ${LIBRARY_NAME} ${LIBRARY_ORIGIN}/`,
@@ -2553,7 +2553,7 @@ function staticPaths(origin) {
       get: {
         operationId: "catalog_ban_survival",
         summary:
-          "BAN-SURVIVAL-1.0 live multi-front failover map. workers.dev + custom-domain hub /runtime + path quarantine. Client door list = LIVE doors only. Not a second FragGate door. Never invent a live door. Never claim shelves saved you.",
+          "BAN-SURVIVAL-1.0 mutual-backup map. Live multi-front ↔ cold shelves. Client door list = LIVE doors only. Live-node API SLOT (no open proxy). Not a second FragGate door. Never invent a live door.",
         tags: ["catalog"],
         responses: { "200": { description: "BAN-SURVIVAL failover JSON" } },
       },

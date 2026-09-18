@@ -320,7 +320,8 @@ export async function dispatchMcp(message, ctx) {
       if (isNotification(message)) return null;
       return rpcError(message.id, UPSTREAM_ERROR, "All named LIVE exec origins failed", {
         ban_survival: failoverCite(ctx.url, ctx.env),
-        shelves_are_not_failover: true,
+        mutual_backup: true,
+        shelves_are_not_a_live_door: true,
         last: lastErr && (lastErr.message || String(lastErr)),
       });
     }

@@ -108,7 +108,7 @@ If network and data die tomorrow, the chain survives on cold shelves (hosts / DO
 
 ## Ban / blocked-endpoint survival (BAN-SURVIVAL-1.0)
 
-One banned public door (`workers.dev`, `/mcp`, a FragGate path) is a surface death, not the runtime gone. Next LIVE custom-domain hub `/runtime` (service binding, same FragGate door) → remaining LIVE exec paths → remaining LIVE read surfaces that republish the door map. Door list = LIVE only. Never invent a live door. Never claim a banned host is LIVE. Never claim shelves saved you.
+One banned public door (`workers.dev`, `/mcp`, a FragGate path) is a surface death, not last tip gone. Live multi-front and cold shelves **back each other up**: next LIVE custom-domain hub `/runtime` → remaining LIVE paths → shelf tip-hash if every live front is gone. Vice versa: a dead shelf does not kill the named fronts. Door list = LIVE only. Live-node API is SLOT (no open proxy). Never invent a live door. Never claim a banned host is LIVE.
 
 Machine map: `GET /survival` · `/cite.json` `ban_survival` · `/llms.txt`. Paper: [BAN-SURVIVAL-1.0](designs/BAN-SURVIVAL-1.0.md). Client order: [CLIENT_UPDATE.md](CLIENT_UPDATE.md).
 
