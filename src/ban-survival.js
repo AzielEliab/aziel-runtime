@@ -12,14 +12,15 @@
 import { AUTHOR_ID, AUTHOR_NAME, LIBRARY_FRONT_DOOR, LIBRARY_ORIGIN, RUNTIME_GITHUB, RUNTIME_HUB_URL } from "./seo.js";
 import { CROSS_NETWORK_SURVIVAL, SURVIVAL_TIP } from "./cross-network-survival.js";
 import { NO_LIE_SPEC } from "./no-lie.js";
-import {
-  ARCHIVE_ORG_TIP_PACK,
-  ARCHIVE_ORG_TIP_PACK_202609,
-  CODEBERG_TIP_PACK,
-  COLD_MULTI_SHELF,
-  CORPUS_SHELVES,
-  LOCKSET_TIP,
-} from "./cold-multi-shelf.js";
+
+/** Published lockset / Plane B facts — copied, not imported, to avoid mesh↔shelf cycles. */
+export const COLD_MULTI_SHELF = "COLD-MULTI-SHELF-1.0";
+export const LOCKSET_TIP = "c831429befc221bd41caeb0a6d1c5361602db5684abab7af6d39714084b6b245";
+export const CORPUS_SHELVES = `${LIBRARY_ORIGIN}/shelves`;
+export const TIP_PACK_SHA256 = "b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37";
+export const CODEBERG_TIP_PACK_URL = "https://codeberg.org/AzielEliab/aziel-lockset-tip";
+export const ARCHIVE_ORG_TIP_PACK_URL = "https://archive.org/details/aziel-lockset-tip";
+export const ARCHIVE_ORG_TIP_PACK_202609_URL = "https://archive.org/details/aziel-lockset-tip_202609";
 
 export const BAN_SURVIVAL = "BAN-SURVIVAL-1.0";
 export const BAN_SURVIVAL_AUTHOR = AUTHOR_NAME;
@@ -171,10 +172,10 @@ export const COLD_FALLBACK = Object.freeze({
   lockset_tip: LOCKSET_TIP,
   plane_b: Object.freeze({
     status: "slot",
-    codeberg: CODEBERG_TIP_PACK.url,
-    archive_org: ARCHIVE_ORG_TIP_PACK.url,
-    archive_org_202609: ARCHIVE_ORG_TIP_PACK_202609.url,
-    pack_sha256: CODEBERG_TIP_PACK.pack_sha256,
+    codeberg: CODEBERG_TIP_PACK_URL,
+    archive_org: ARCHIVE_ORG_TIP_PACK_URL,
+    archive_org_202609: ARCHIVE_ORG_TIP_PACK_202609_URL,
+    pack_sha256: TIP_PACK_SHA256,
     hash_verify: "pass",
     live_ready: false,
     note: "Hash-verify PASS still SLOT. Do not invent LIVE Plane B. doi null.",
