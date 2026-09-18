@@ -143,11 +143,15 @@ verified ChainLock (`belief_is_not_truth`; posterior ≠ truth);
 additive stamps. stub_ops `model_update` / `rollback` / `rewrite` /
 `delete_history` / `auto_update` stay refused.
 
-Calling-name rotation is **discovery metadata only**. On honest ban
-signals the public calling name may rotate (Whitestone AI → Bills →
+Calling-name rotation is **discovery metadata only**. Pipeline:
+trigger → mesh alert → metadata rewrite → client rediscovery. On honest
+ban signals the public calling name may rotate (Whitestone AI → Bills →
 Runtime → Eliab Runtime → Potato Runtime → Elroi Runtime → endless
-Softwares-family / random). Mesh nodes pull `*new name alert: <name>`
-from `GET /survival`. Identity stays Aziel Eliab. No ChainLock / AKM
+Softwares-family / random). Live mesh nodes pull `*new name alert: <name>`
+from `GET /v1/mesh` and `GET /survival` (GET never enables; not a
+publish path). User-uploaded data is a DecisionGATE/AKM observe signal
+— unmarked uploads are not a ban. Call routes stay `POST /mcp` /
+`POST /v1/fraggate/call`. Identity stays Aziel Eliab. No ChainLock / AKM
 rewrite. No third-party trademarks.
 
 Platforms are **LIVE** on every listed OS — Windows, Mac, Linux,

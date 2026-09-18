@@ -119,6 +119,7 @@ import { nineLawsFrame, nineLawsHint, nineLawsLaunchCite, refuseNineLawGet, refu
 import { CHANNEL_PLANE_NOTE, CHANNEL_PLANE_SPEC, channelPlaneFrame, channelPlaneHint } from "./mesh-channel-plane.js";
 import { publicVpnCite } from "./public-vpn.js";
 import { ensureDefaultVpnSession, vpnAutoCite } from "./azvpn-auto.js";
+import { meshCallingNameAlert } from "./calling-name.js";
 
 export const MESH_SLUG = "mesh";
 export const MESH_NAME = "Quantum Node Mesh";
@@ -458,8 +459,9 @@ export function meshHint(path = "/v1/mesh") {
   };
 }
 
-export function meshCiteField(origin) {
+export function meshCiteField(origin, env) {
   const base = String(origin || "").replace(/\/$/, "");
+  const nameAlert = meshCallingNameAlert(env);
   return {
     ...meshHint("/v1/mesh"),
     ...nineLawsLaunchCite(origin),
@@ -477,8 +479,16 @@ export function meshCiteField(origin) {
     note: "Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public Live Nodes (live_nodes) are mesh size: active + inactive, not isolated. {slug}-worker fan-out is software_nodes and must not be used alone as that pill. Downloads are not live. Channel plane (wifi / bluetooth / rf / photon) is an operator-armed cite — live hardware runs on local qnm-node. Channel plane ≠ kernel VPN. Public VPN auto-binds AZVPN (cite-only on GET; no session open). Pairing ≠ tunnel. Not a login mesh. Not a login-recovery IP panel. OPERATOR-OVERRIDE 2026-09-17 armed node_gate / get_is_node_gate, auto_heal / implicit_heal, neighbor_heal, network, anonymity_network (mode flag), and public VPN. Nine QNM laws are hard-true (fields + published refuse codes). Worker-launch cite: hashtag parts #aziel / #runtime and always About Aziel (/about). NO-LIE / NO-REWRITE: no rewrite key; never lie to survive. COLD-MULTI-SHELF-1.0: GET /shelves cites corpus#96 honesty.",
     survival: survivalCiteField(),
     semantic_bridge: semanticBridgeCiteField(base),
-    calling_name_alert:
-      "Pull GET /survival calling_name.alert (`*new name alert: <name>`). GET never enables. Not a publish path.",
+    calling_name_alert: nameAlert.alert,
+    calling_name: {
+      rotated: nameAlert.rotated,
+      calling_name: nameAlert.calling_name,
+      form: nameAlert.form,
+      pull: nameAlert.pull,
+      publish: false,
+      mesh_broadcast: false,
+      note: nameAlert.note,
+    },
   };
 }
 
@@ -1033,9 +1043,19 @@ export async function meshVpnCite(payload, env) {
 
 export async function meshStatus(payload, env) {
   const state = await loadState(env);
+  const nameAlert = meshCallingNameAlert(env);
   return baseResult({
     op: "status",
     ...statusFields(state),
+    calling_name_alert: nameAlert.alert,
+    calling_name: {
+      rotated: nameAlert.rotated,
+      calling_name: nameAlert.calling_name,
+      identity: nameAlert.identity,
+      pull: nameAlert.pull,
+      publish: false,
+      mesh_broadcast: false,
+    },
     note: state.enabled
       ? "QNM suite rollup is LIVE. Read-only suite-presence is ON by default. live_nodes is mesh size (active + inactive, not isolated). software_nodes is the {slug}-worker roster and must not be used alone as Live Nodes. Counts only — no QNM-S, no leaderboard. Downloads are not live."
       : "QNM suite-presence is not LIVE. GET /v1/mesh never enables radios beyond read-only suite-presence.",
@@ -1402,10 +1422,19 @@ export async function meshNodes(payload, env) {
     last_seen: n.last_seen,
     joined_at: n.joined_at,
   }));
+  const nameAlert = meshCallingNameAlert(env);
   return baseResult({
     op: "nodes",
     ...statusFields(state),
     nodes,
+    calling_name_alert: nameAlert.alert,
+    calling_name: {
+      rotated: nameAlert.rotated,
+      calling_name: nameAlert.calling_name,
+      pull: nameAlert.pull,
+      publish: false,
+      mesh_broadcast: false,
+    },
     note: "QNM rollup roster (live/locked/isolated). No scores. No leaderboard. Views/MCP/downloads do not enter QNM-S.",
   });
 }

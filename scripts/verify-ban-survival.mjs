@@ -17,8 +17,11 @@ import {
   siteForMirageNode,
 } from "../src/cap7-shuffle.js";
 import {
+  CALLING_NAME_PIPELINE,
   CALLING_NAME_SEEDS,
   generateCallingName,
+  ingestBanSignal,
+  meshCallingNameAlert,
   nameAlertText,
   resolveCallingName,
   slugifyCallingName,
@@ -103,6 +106,10 @@ assert.match(paper, /distinct mesh names/);
 assert.match(paper, /Calling-name rotation/);
 assert.match(paper, /\*new name alert:/);
 assert.match(paper, /Whitestone AI/);
+assert.match(paper, /trigger → mesh alert → metadata rewrite → client rediscovery|Pipeline \(trigger/);
+assert.match(paper, /DecisionGATE/);
+assert.match(paper, /implies_ban/);
+assert.doesNotMatch(paper, /failed plan/i);
 assert.match(paper, /Platforms \(all LIVE\)/);
 assert.match(clientUpdate, /Calling-name rotation/);
 assert.match(clientUpdate, /Windows/);
@@ -242,6 +249,26 @@ assert.equal(ingest.rotated, true);
 const invented = resolveCallingName({}, { invent_ban: true });
 assert.equal(invented.rotated, false);
 assert.equal(invented.invented_ban, true);
+assert.equal(resolveCallingName({}, { uses_collapse: true }).rotated, true);
+assert.equal(resolveCallingName({}, { downloads_crater: true }).rotated, true);
+assert.deepEqual(CALLING_NAME_PIPELINE, ["trigger", "mesh_alert", "metadata_rewrite", "client_rediscovery"]);
+assert.equal(meshCallingNameAlert({}).alert, null);
+assert.equal(meshCallingNameAlert({ BAN_SURVIVAL_NAME_ROTATE: "1", BAN_SURVIVAL_NAME_GEN: "0" }).alert, "*new name alert: Whitestone AI");
+const ingestMarked = ingestBanSignal({ implies_ban: true, fact: "Door listings vanished from two LLM directories." }, {});
+assert.equal(ingestMarked.ok, true);
+assert.equal(ingestMarked.rotate, true);
+assert.equal(ingestMarked.invented_ban, false);
+assert.equal(ingestMarked.akm.belief_is_not_truth, true);
+assert.equal(ingestMarked.akm.memory_delete, false);
+assert.equal(ingestMarked.decisiongate.slug, "decisiongate");
+assert.equal(ingestMarked.calling_name.calling_name, "Whitestone AI");
+const ingestUnmarked = ingestBanSignal({ fact: "Traffic looks quiet today." }, {});
+assert.equal(ingestUnmarked.ok, true);
+assert.equal(ingestUnmarked.rotate, false);
+assert.equal(ingestUnmarked.calling_name.calling_name, "Aziel Runtime");
+const ingestInvent = ingestBanSignal({ invent_ban: true }, {});
+assert.equal(ingestInvent.ok, false);
+assert.equal(ingestInvent.reason, REFUSE.NO_INVENT_BAN);
 
 assert.deepEqual(parseBlockedRoutes({ BAN_SURVIVAL_BLOCKED: "workers-dev:/mcp,library-runtime" }), [
   { id: "workers-dev", path: "/mcp" },
@@ -295,6 +322,9 @@ assert.equal(cite.akm_memory.memory_delete, false);
 assert.ok(cite.akm_memory.stub_ops.includes("delete_history"));
 assert.equal(cite.calling_name.rotated, false);
 assert.equal(cite.calling_name.calling_name, "Aziel Runtime");
+assert.deepEqual(cite.calling_name.pipeline, CALLING_NAME_PIPELINE);
+assert.equal(cite.calling_name.call_routes.door, "fraggate");
+assert.equal(cite.calling_name.call_routes.second_door, false);
 assert.equal(cite.platforms.all_live, true);
 assert.ok(cite.platforms.platforms.every((p) => p.live === true && p.native_app_store === false));
 assert.deepEqual(cite.platforms.platforms.map((p) => p.id), ["windows", "mac", "linux", "android", "ios"]);
@@ -474,6 +504,31 @@ const rotatedMcp = await handler(
 const rotatedMcpBody = await rotatedMcp.json();
 assert.equal(rotatedMcpBody.result.serverInfo.name, "whitestone-ai");
 assert.equal(rotatedMcpBody.result.serverInfo.title, "Whitestone AI");
+assert.match(rotatedMcpBody.result.instructions, /\*new name alert: Whitestone AI/);
+assert.match(rotatedMcpBody.result.instructions, /Live calling name: Whitestone AI/);
+
+const rotatedMesh = await (await get("/v1/mesh", rotatedEnv)).json();
+assert.equal(rotatedMesh.calling_name_alert, "*new name alert: Whitestone AI");
+assert.equal(rotatedMesh.calling_name.rotated, true);
+assert.equal(rotatedMesh.calling_name.publish, false);
+assert.equal(rotatedMesh.calling_name.mesh_broadcast, false);
+const idleMesh = await (await get("/v1/mesh")).json();
+assert.equal(idleMesh.calling_name_alert, null);
+
+const rotatedLlms = await (await get("/llms.txt", rotatedEnv)).text();
+assert.match(rotatedLlms, /^# Whitestone AI/m);
+assert.match(rotatedLlms, /\*new name alert: Whitestone AI/);
+assert.match(rotatedLlms, /trigger → mesh alert → metadata rewrite → client rediscovery/);
+
+const rotatedWho = await (await get("/who-is", rotatedEnv)).text();
+assert.match(rotatedWho, /Live calling name: Whitestone AI/);
+assert.match(rotatedWho, /\*new name alert: Whitestone AI/);
+assert.match(rotatedWho, /Who is Aziel Eliab/);
+
+const rotatedSoft = await (await get("/v1/software", rotatedEnv)).json();
+assert.equal(rotatedSoft.suite_calling_name, "Whitestone AI");
+assert.equal(rotatedSoft.calling_name_alert, "*new name alert: Whitestone AI");
+assert.equal(rotatedSoft.identity, "Aziel Eliab");
 
 const shuffleCall = await handler(
   new Request(origin + "/v1/fraggate/call", {
