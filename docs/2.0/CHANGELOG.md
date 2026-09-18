@@ -11,6 +11,7 @@ Crawler abstract (`RUNTIME_ABSTRACT`) is unchanged and stays the lead on homepag
 
 Certification point — not a feature dump.
 
+- Additive machine-only Person / who-is discovery (not a new public MCP tool): `/person.jsonld`, `/who-is`, `/cite.json` `person`, `/llms.txt` Person section. No visible 15:20 HTML chrome. Growth-ON. NO-LIE.
 - MED/LOW launch remediations (not a new public MCP tool; never ``): more labeled `#task-*` panes; MCP fabric hop-list honesty (kernel-direct ≠ MASTER-33 ≠ second Softwares door); production SESSION / CHAINLOCK / RATE DO bind cites; local `qnm-node` radio hooks LIVE-when-HW-present / refuse-when-absent (Worker channel_plane cite-only).
 - Additive Framagit Plane B refuse honesty (not a new public MCP tool): Framagit `url` stays null; row refuse is `CNS-NO-FORGE-MIRROR` until a real project exists and remote bytes hash-verify. Plane B LIVE still requires all three (`CNS-PLANE-B-ALL-TARGETS`). Operator checklist `tools/cold_shelf/FRAMAGIT-TIP-PACK-CHECKLIST.md`. No invented URL. No LIVE flip.
 - Additive AZVPN Softwares + public VPN auto-bind (not a new public MCP tool): slug `azvpn` (AZVPN) is the automatic concentrator (`default_vpn_backend: "azvpn"`, `auto_use: true`). `GET /v1/mesh` cites `vpn: true` / `public_vpn: true` / `tunnel_concentrator: true` (GET never opens). Mesh `vpn` / AZNet pair / armed session / AZBrowser `vpn` auto-bind. HTTPS/WS REAL; WireGuard/OpenVPN SLOT. Human `#op-panel` / `#dashboard` / `#fg-console` stay. See [`AZVPN-CONCENTRATOR-1.0`](../designs/AZVPN-CONCENTRATOR-1.0.md).
