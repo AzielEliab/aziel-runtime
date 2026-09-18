@@ -15,7 +15,7 @@
 export const SOFTWARE_COPY = Object.freeze({
   "4dmap": {
     one_line:
-      "THIS IS: a four-axis inspection frame T/Δ/Γ/Π after AZPIPE (4DM-WP-1.0). THIS IS NOT: an extra door (domains_are_doors:false), a sequential gate, a truth score, or a Lumen panel.",
+      "THIS IS: a four-axis inspection frame T/Δ/Γ/Π after AZPIPE (4DM-WP-1.0). Inspection frame after AZPIPE, not an extra door (domains_are_doors:false). THIS IS NOT: a sequential gate, a truth score, or a Lumen panel.",
     description:
       "THIS IS: 4DMap (4DM-WP-1.0) — pin/span/walk cards on simultaneous axes T/Δ/Γ/Π after AZPIPE routes to isolated engines. FragGate claims cite join types. ChainLock may stamp walks. Neighbors TemporalLock / StaticClock / ChronoLock / TrajectoryLock / SpectralLock. THIS IS NOT: an extra door, a sequential gate, a truth score, a Lumen panel, or invented marks / backdated class. FragGate only. Author Aziel Eliab.",
   },
@@ -45,13 +45,13 @@ export const SOFTWARE_COPY = Object.freeze({
   },
   azbrowser: {
     one_line:
-      "THIS IS: the Lamb Lens ethical research browser (cite; refuse harvest; no invented visits). THIS IS NOT: Chromium-by-default, a VPN, or AZNet. AZNet is separate software (order/token pair only).",
+      "THIS IS: the Lamb Lens ethical research browser (cite; refuse harvest; no invented visits). FragGate only. pairs with AZNet (order/token). AZNet is a separate software (order/token pairing only). THIS IS NOT: Chromium-by-default, a VPN product, or AZNet.",
     description:
       "THIS IS: AZBrowser (AZB-1.0) — Lamb Lens ethical research browser. Cite; refuse harmful harvest; never invent visit results. Advisory navigate is metadata-only. Reached only through FragGate. Pairs with AZNet by order/token only. Public VPN auto-binds AZVPN (HTTPS/WS REAL; WireGuard/OpenVPN SLOT). THIS IS NOT: Chromium unless Workers Browser Rendering is bound and a real page session ran; a Tor exit; phoenix wipe; an unrestricted proxy; AZNet; or a VPN product. FragGate only. Author Aziel Eliab.",
   },
   azchat: {
     one_line:
-      "THIS IS: spendable handles, ephemeral rooms, and an agent bus (mesh hop default off). THIS IS NOT: SMTP, AZMail, or a public mailer.",
+      "THIS IS: spendable handles, ephemeral rooms, and an agent bus. Mesh hop default off. THIS IS NOT: SMTP, AZMail, or a public mailer.",
     description:
       "THIS IS: AZChat — spendable handles, ephemeral two-handle rooms, and an agent bus. Mesh hop default off. Stranger room_pull is 404. Client-held import/export. THIS IS NOT: SMTP, AZMail, a public MTA, or a mesh hop. Do not bridge to AZMail. FragGate only. Author Aziel Eliab.",
   },
@@ -87,13 +87,13 @@ export const SOFTWARE_COPY = Object.freeze({
   },
   azmail: {
     one_line:
-      "THIS IS: advisory airlock + isolate mailbox + anonymous mail ring (default off). THIS IS NOT: a full internet MTA, SMTP, or AZChat.",
+      "THIS IS: AZMail (APP 1.0) advisory airlock + isolate mailbox + anonymous mail ring (default off). THIS IS NOT: a full internet MTA, SMTP, or AZChat.",
     description:
       "THIS IS: AZMail (APP 1.0) — advisory airlock, local isolate mailbox, and an anonymous mail ring that defaults off. Independent of AZ-OS / Lumen. THIS IS NOT: a full internet MTA, SMTP, deanonymize, harvest, or AZChat. Public send stays refuse. FragGate only. Author Aziel Eliab.",
   },
   aznet: {
     one_line:
-      "THIS IS: a silent verification side-net (hash continuity without hosting). THIS IS NOT: a VPN, AZVPN, or AZBrowser. Separate software; functional-order pair with AZBrowser.",
+      "THIS IS: a silent verification side-net. Hash continuity without hosting. Separate software; functional-order pair with AZBrowser. THIS IS NOT: a VPN, AZVPN, or AZBrowser.",
     description:
       "THIS IS: AZNet (AZN-WP-0.1) — silent verification side-net. Custodian garden of hash refs + memorial ledger. Never hosts payloads. Functional-order pair with AZBrowser (token AND flag; pairing ≠ tunnel). Public VPN auto-binds AZVPN. THIS IS NOT: a VPN product, AZVPN, AZBrowser, or a payload host. Separate software; same FragGate door. Author Aziel Eliab.",
   },
@@ -213,7 +213,7 @@ export const SOFTWARE_COPY = Object.freeze({
   },
   peacelock: {
     one_line:
-      "THIS IS: chosen silence / chosen inaction as a first-class hash-chained receipt (PL-WP-0.1). THIS IS NOT: a transcript, a court, or TemporalLock.",
+      "THIS IS: Chosen silence / chosen inaction as a first-class receipt (PL-WP-0.1). THIS IS NOT: a transcript, a court, or TemporalLock.",
     description:
       "THIS IS: PeaceLock (PL-WP-0.1) — chosen silence or chosen inaction as a hash-chained receipt. Transcript, counterfactual, and motive stay ABSENT. HARD_DUTY refuses a silence/inaction receipt. THIS IS NOT: a transcript, a court, a motive score, a HARD_DUTY waiver, or TemporalLock. FragGate only. Author Aziel Eliab.",
   },

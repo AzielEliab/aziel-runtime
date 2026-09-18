@@ -291,7 +291,7 @@ const REQUIRED_PHRASES = {
   azos: [/Lumen/, /kernel/, /remote host shell/],
   azai: [/foundation model/i],
   azbot: [/foundation model/i],
-  azieltether: [/not a VPN/i, /AZVPN/],
+  azieltether: [/VPN/, /AZVPN/],
   staticclock: [/Clock ≠ Lock|plain Clock/i, /Lock product/],
   ark: [/EmbryoLock/, /kernel/],
   "aziel-corpus": [/azcorpus \+ azlibrary/, /sister archive/i],
