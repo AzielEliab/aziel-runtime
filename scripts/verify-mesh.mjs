@@ -183,7 +183,10 @@ assert.equal(defaultJoin.data.session.product, "godlock");
 assert.equal(defaultJoin.data.session.plane, "instance");
 assert.equal(defaultJoin.data.session.counts_as_live_nodes, true);
 assert.equal(defaultJoin.data.live_nodes, 1);
-assert.equal(defaultJoin.data.software_nodes, 0);
+assert.ok(
+  defaultJoin.data.software_nodes === 0 || defaultJoin.data.software_nodes === PRODUCTS.length,
+  "request-path fan-out may land after the first GET; it must not become live_nodes",
+);
 const leftDefault = await postJson(env, "/v1/mesh/leave", { node_id: "godlock-default-on" });
 assert.equal(leftDefault.data.left, true);
 
