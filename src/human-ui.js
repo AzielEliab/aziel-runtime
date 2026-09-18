@@ -15,6 +15,7 @@ import {
   DONATE_FOOTER_RUNTIME,
   PRODUCT_NAME,
 } from "./seo.js";
+import { workerLaunchHtml } from "./about-aziel.js";
 import { brandRow, ecosystemBlockHtml, headMeta } from "./seo-html.js";
 
 export const WORKSPACE_PAGE_TITLE = `Workspace — ${PRODUCT_NAME}`;
@@ -521,6 +522,7 @@ ${humanNavHtml(origin, { current: "workspace" })}
   <p class="lead">Human pane. ${escapeHtml(WORKSPACE_PAGE_DESCRIPTION)}</p>
   <p class="hint">Author: <strong>${escapeHtml(AUTHOR_NAME)}</strong> (also known as ${escapeHtml(AUTHOR_ALTERNATE_NAME)}). Crawler abstract and machine surfaces stay on <a href="${escapeHtml(base)}/">the homepage</a>.</p>
 ${workspacePaneHtml(origin, products)}
+${workerLaunchHtml(origin, { slug: "aziel-runtime", name: "Aziel Runtime" })}
   <p class="docs-after"><a href="${escapeHtml(base)}/">${escapeHtml(PRODUCT_NAME)} docs / Softwares / cite</a> · <a href="${escapeHtml(base)}/about">About</a></p>
 ${ecosystemBlockHtml()}
   <footer class="donate"><p><a href="${DONATE_CANONICAL}">${escapeHtml(DONATE_FOOTER_RUNTIME)}</a></p></footer>
@@ -656,7 +658,7 @@ export function humanDoorScript() {
       body: JSON.stringify({ slug: slug, op: op, payload: payload })
     }, out, btn);
   }
-  document.querySelectorAll(".fg-door").forEach(function (box) {
+  document.querySelectorAll(".fg-door:not(#fold-pack-verify)").forEach(function (box) {
     let slug = box.getAttribute("data-slug");
     let origin = box.getAttribute("data-origin") || "";
     let out = box.querySelector(".fg-out");

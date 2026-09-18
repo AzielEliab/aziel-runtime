@@ -161,6 +161,9 @@ assert.match(home, /www\.azieleliab\.com\/#aziel/);
 assert.match(home, /id="launch-parts"/);
 assert.match(home, /#aziel-runtime/);
 assert.match(home, /#aziel-runtime-fraggate/);
+assert.match(home, /id="op-panel"/);
+assert.match(home, /id="dashboard"/);
+assert.match(home, /id="fg-console"/);
 assert.doesNotMatch(home, /15:20|1 Chronicles/i);
 assert.doesNotMatch(home, /home address|date of birth|county seat/i);
 assert.match(home, /Not a legal name/);
@@ -173,6 +176,16 @@ assert.match(about, /id="corpus-fold-pack"/);
 assert.match(about, /pack-verify/);
 assert.match(about, /id="launch-parts"/);
 assert.doesNotMatch(about, /15:20|1 Chronicles/i);
+
+const workspace = await (await get("/workspace")).text();
+assert.match(workspace, /id="op-panel"/);
+assert.match(workspace, /id="dashboard"/);
+assert.match(workspace, /id="fg-console"/);
+assert.match(workspace, /id="about-aziel"/);
+assert.match(workspace, /id="corpus-fold-pack"/);
+assert.match(workspace, /id="launch-parts"/);
+assert.match(workspace, /#aziel-runtime/);
+assert.doesNotMatch(workspace, /15:20|1 Chronicles/i);
 
 const foldPage = await (await get("/p/foldlock")).text();
 assert.match(foldPage, /id="about-aziel"/);

@@ -37,6 +37,7 @@ src/about-aziel.js  workerLaunchHtml(origin, p) → all three, in that order
 Included on:
 
 - Runtime homepage `/` and `/about`
+- Human workspace `/workspace` (`#op-panel` / `#dashboard` / `#fg-console` stay; About Aziel + hashtag parts follow the pane)
 - Every catalog card `/p/{slug}`
 - HTML shells that use `documentShell` (`/v1/software` Accept: text/html, FragGate describe docs)
 
