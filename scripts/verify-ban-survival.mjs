@@ -688,6 +688,9 @@ const shuffleBody = await shuffleCall.json();
 assert.equal(shuffleBody.ok, true);
 assert.equal(shuffleBody.result.ok, true);
 assert.equal(shuffleBody.result.update.status, "slot");
-assert.ok(cap7SiteNames().includes(shuffleBody.result.land.mesh_name));
+assert.ok(cap7SiteNames().includes(shuffleBody.result.land.id));
+assert.ok(cap7FactoryMeshNames().includes(shuffleBody.result.land.mesh_name));
+assert.equal(shuffleBody.result.land.mesh_name_icann, "slot");
+assert.equal(shuffleBody.result.land.hosted_status, "slot");
 
 console.log("verify-ban-survival: ok");

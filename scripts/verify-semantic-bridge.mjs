@@ -213,7 +213,10 @@ assert.equal(shBody.ok, true);
 assert.equal(shBody.result.ok, true);
 assert.equal(shBody.result.public_worker_shuffle, "slot");
 assert.equal(shBody.result.update.hosted_url, null);
-assert.ok(shBody.result.land.mesh_name.startsWith("cap7-"));
+assert.ok(shBody.result.land.id.startsWith("az"));
+assert.ok(shBody.result.land.mesh_name.endsWith(".az"));
+assert.equal(shBody.result.land.mesh_name_icann, "slot");
+assert.equal(shBody.result.land.hosted_status, "slot");
 
 const openapi = await (await get("/openapi.json")).json();
 assert.ok(openapi.paths["/v1/mesh/az-generator"]);
