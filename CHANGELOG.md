@@ -6,6 +6,7 @@ This file exists so Glama / crawlers that look for a repo-root changelog see the
 
 ## 2.0.0-rc1 (current)
 
+- Post BAN-SURVIVAL security architecture audit (`docs/audit/SECURITY-ARCHITECTURE-POST-BAN-SURVIVAL.md`). Safe cite fix only: Cap-7 factory bridge is the app Worker `https://miragegrid.vibelock.workers.dev/bridge` (LIVE cite). Download-tracker `/bridge` is 404 — do not cite it as the factory. `public_worker_bridge=live`; public shuffle **land** and hosted `/mcp` stay **SLOT**. No name-set merge. No shelf drop. No new MCP tool. Remain-OFF untouched.
 - BAN-SURVIVAL honesty lock: remove leftover `BAN-NO-SHELF-FAILOVER` alias. Mutual backup stays — shelves backup death-by-ban; live multi-front backups cold-shelf death. Keep both. `BAN-NO-SHELF-ONLY` = shelves are not `/mcp`. `BAN-NO-DOOR-ONLY` = do not drop shelves. No new MCP tool.
 - BAN-SURVIVAL-1.0 platforms all LIVE: Windows, Mac, Linux, Android, iPhone via browser + PWA (`/manifest.webmanifest`) + Worker fronts + Softwares `/download` + MCP/OpenAPI. `native_app_store` false. No new MCP tool.
 - BAN-SURVIVAL-1.0 calling-name rotation (discovery only): honest ban signals rewrite OpenAPI/MCP/cite/survival calling name. Cascade Whitestone AI → Bills → Runtime → Eliab Runtime → Potato Runtime → Elroi Runtime → endless Softwares-family / random. Mesh pull `*new name alert: <name>`. Identity Aziel Eliab unchanged. No ChainLock/AKM rewrite. No third-party trademarks. Hubs pull `/survival` (ae / corpus / godlock / HDJ follow-on). No new MCP tool.

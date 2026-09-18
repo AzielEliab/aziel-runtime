@@ -314,6 +314,7 @@ export const CAP7_AZNET = Object.freeze({
   }),
   shuffle: Object.freeze({
     layout: "live",
+    public_worker_bridge: "live",
     public_worker_shuffle: "slot",
     hosted_update: "slot",
     path: "ping → land → that-round update",

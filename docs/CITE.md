@@ -68,10 +68,11 @@ Cap-7 mesh names are **MirageGrid-only**. They inherit hub **designs** only (`do
 
 AI pulls name metadata from:
 
-- https://miragegrid-download-tracker.vibelock.workers.dev/bridge
+- https://miragegrid.vibelock.workers.dev/bridge (Cap-7 factory app Worker; LIVE cite)
+- https://miragegrid-download-tracker.vibelock.workers.dev/download (counted download plane; `/bridge` here is 404)
 - https://aziel-runtime.vibelock.workers.dev/v1/mesh/az-generator
 - `fraggate_call` `{ slug: "miragegrid", op: "bridge" }`
-- `fraggate_call` `{ slug: "miragegrid", op: "shuffle" }` — ping MirageGrid until one distinct-name Cap-7 site lands (that-round update). Hosted URL SLOT. Public workers.dev shuffle SLOT.
+- `fraggate_call` `{ slug: "miragegrid", op: "shuffle" }` — ping MirageGrid until one distinct-name Cap-7 site lands (that-round update). Hosted URL SLOT. Public shuffle land SLOT. App-Worker `/bridge` is a LIVE cite, not land/exec.
 
 `public_icann: false`. No live AZ-GEN registrar. No fake ICANN `.az`. No visible 15:20. `GET /v1/mesh` never enables radios. Mesh browse: AZNet + AZBrowser via FragGate. Plane A hubs mirror tips; mirroring a tip does not resolve a Cap-7 name onto a hub hostname.
 
