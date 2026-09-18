@@ -411,6 +411,8 @@ export function resolveCallingName(env = {}, extra = {}) {
     surfaces: CALLING_NAME_SURFACES.slice(),
     call_routes: { ...CALLING_NAME_CALL_ROUTES },
     mesh_share: "live-mesh-pull",
+    random_alongside: true,
+    rewrites_all_discovery_metadata: true,
     note:
       "Discovery / calling-name layer only. Old name may remain on cold shelves as history. FragGate stays THE door. Hubs pull /survival.",
   };

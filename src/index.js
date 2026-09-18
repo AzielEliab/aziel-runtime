@@ -1528,11 +1528,11 @@ function llmsTxt(origin, env = {}) {
     llmsWhatThisIsBlock(calling).trimEnd(),
     "",
     ...llmsIdentityHeader(calling),
-    aboutAzielLlmsBlock().trimEnd(),
+    rewriteLiveCallingDisplay(aboutAzielLlmsBlock(), calling).trimEnd(),
     "",
     `Role: engine-runtime (catalog + pull + proxy + session + in-process engines)`,
     "",
-    personLlmsBlock(origin).trimEnd(),
+    rewriteLiveCallingDisplay(personLlmsBlock(origin), calling).trimEnd(),
     "",
     "## Version history",
     "",
@@ -2374,7 +2374,7 @@ function escapeHtml(s) {
     .replace(/"/g, "&quot;");
 }
 
-function staticPaths(origin) {
+function staticPaths(origin, env = {}) {
   const paths = {
     ...runtimeStaticPaths(),
     "/v1/health": {
@@ -2712,7 +2712,7 @@ function catalogProxyPaths() {
 
 async function combinedOpenApi(request, env) {
   const origin = originOf(request);
-  const paths = { ...staticPaths(origin), ...catalogProxyPaths() };
+  const paths = { ...staticPaths(origin, env), ...catalogProxyPaths() };
   return {
     openapi: "3.1.0",
     info: {

@@ -521,7 +521,7 @@ assert.equal(rotatedCite.author, "Aziel Eliab");
 const rotatedOpen = await (await get("/openapi.json", rotatedEnv)).json();
 assert.equal(rotatedOpen.info.title, "Whitestone AI");
 assert.match(rotatedOpen.info.description, /^Whitestone AI is not merely/);
-assert.match(rotatedOpen.info.summary, /^Whitestone AI —/);
+assert.match(rotatedOpen.info.summary, /^Whitestone AI is not merely/);
 assert.equal(rotatedCite.bibtex.includes("title = {Whitestone AI}"), true);
 assert.equal(rotatedCite.apa.includes("Whitestone AI"), true);
 assert.equal(rotatedBody.live_product, "Whitestone AI");
@@ -551,7 +551,7 @@ assert.equal(idleMesh.calling_name_alert, null);
 const rotatedLlms = await (await get("/llms.txt", rotatedEnv)).text();
 assert.match(rotatedLlms, /^# Whitestone AI/m);
 assert.match(rotatedLlms, /\*new name alert: Whitestone AI/);
-assert.match(rotatedLlms, /trigger → mesh alert → metadata rewrite → client rediscovery/);
+assert.match(rotatedLlms, /trigger → mesh alert → rewrite all live discovery metadata → client rediscovery/);
 
 const rotatedWho = await (await get("/who-is", rotatedEnv)).text();
 assert.match(rotatedWho, /Live calling name: Whitestone AI/);
