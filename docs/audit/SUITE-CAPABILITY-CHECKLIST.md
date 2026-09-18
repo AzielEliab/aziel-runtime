@@ -15,7 +15,7 @@ Not a Softwares-tab product. Not a FragGate slug. Not a mesh enable.
 - **Dual surface:** agent via FragGate/MCP (`fraggate_list` → `fraggate_describe` → `fraggate_call`) **and** a complete human Worker UI / counted `/download`. One backend, two surfaces. `POST /p/{slug}/{op}` is a **proxy**, not exec.
 - **Identity:** Aziel Eliab only. Full AI client set stays in skill / OpenAPI / `llms.txt` / cite.
 - **Mesh default-off.** `GET /v1/mesh` never enables. Do not unify AZMail `mesh_*` onto the suite QNM rollup.
-- **Softwares tab:** Plain → Gate → Lock (Clock ≠ Lock). Hub UI is heading → list only. `one_line` is capability-forward — not a “runtime X.Y FragGate” mash.
+- **Softwares tab:** Plain → Gate → Lock (Clock ≠ Lock). Hub UI is heading → list only. `one_line` is plain use-purpose; `description` is why it exists. No THIS-IS / THIS-IS-NOT template. No “runtime X.Y FragGate” mash.
 - **True engines** carry `engine_digest`. Cloudflare isolate is the jail. Stubs refuse by name (`FG-STUB`), they do not fake 200s.
 - **EmbryoLock** is live-with-local-destructive-boundary (1.7.8). **AZChat** is LIVE+bound (1.8.4 / 1.9.0). Wipe / SMTP / mesh-hop stay refuse.
 - **AKM-TRIAD-1.0 is already LIVE fabric (1.7.1+), not a Softwares-tab product.** Spec: `docs/designs/AKM-TRIAD-1.0.md` (+ `.pdf`). Surfaces: `POST /v1/memory/*`, MCP `memory_*`, FragGate slug `memory` with `software_tab: false`. Do not invent catalog slugs `akm` / `akm-triad` / `adaptive-memory`. Softwares may feed observations into `memory_*` via FragGate as fabric. Softwares enhancements stay dual-surface under FragGate only.
@@ -31,7 +31,7 @@ Where missing or thin, add or strengthen. Do not invent fantasy ops.
 | 1 | **health + skill richness** | `health` returns role, motto/limitation, axes or gate/order list, neighbors, `live_ops`, `stub_ops`, `door: fraggate`, `mesh_enabled_default: false`. `skill` is an ops table + refuse list, not “this op ran inside aziel-runtime.” |
 | 2 | **doctor / verify / import_export** | Only if the product domain already supports the act. `doctor` = richer liveness (ops + refuse + digest note). `verify` recomputes a hash or lineage the engine already defines. `import_export` is client-held JSON (no hosted store). Alias `doctor` → `health` is enough when health is already rich. |
 | 3 | **Display summaries** | `display.title` / `display.summary` / `display.fields` for new ops. MCP agents show display, then take the next input. |
-| 4 | **Catalog `one_line`** | Capability-forward. Names the live act. Names the refuse. No marketing mash, no runtime-version + FragGate mash. |
+| 4 | **Catalog `one_line` / `description`** | Use-purpose in everyday words, then why the software exists. No THIS-IS / THIS-IS-NOT template. No marketing mash, no runtime-version + FragGate mash. |
 | 5 | **OpenAPI / MCP match LIVE_OPS** | Catalog `ops[]`, FragGate `LIVE_OPS`, and engine `*_OPS` agree on the public verbs. UI aliases may extra-list on `LIVE_OPS` and forward. `tools/list` stays the thin FragGate door (no flat `{slug}_{op}` pile). |
 | 6 | **engine_digest** | Artifact bytes hashed. Tests refuse a stale embed. |
 
