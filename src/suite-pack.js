@@ -111,6 +111,18 @@ export function buildSuitePack({ origin, products, registry, extra = {} } = {}) 
       vpn: publicVpnCite(),
       get_never_enables: true,
       worker_hardware: false,
+      live_nodes_plane: "mesh-size",
+      software_nodes_plane: "software-worker-fanout",
+      live_nodes_note:
+        "Public Live Nodes count mesh size: active + inactive join/heartbeat nodes, excluding isolated. This pack download is not live. A running instance should POST /v1/mesh/join with product + an instance node_id (not {slug}-worker), then heartbeat inside 5 minutes. Isolated presence does not count.",
+      instance_join: {
+        path: "/v1/mesh/join",
+        heartbeat: "/v1/mesh/heartbeat",
+        product_required: true,
+        node_id: "instance id 8–80 [a-z0-9._-]; do not use {slug}-worker",
+        presence_ttl_ms: 5 * 60 * 1000,
+        downloads_are_not_live: true,
+      },
     },
     catalog: {
       count: catalog.count,

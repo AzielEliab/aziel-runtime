@@ -45,7 +45,7 @@ Companion outsider path: [INDEPENDENT-VALIDATION](../audit/INDEPENDENT-VALIDATIO
 | Outside adoption | **CLOSED (skeleton → install path)** — `examples/consumer/` documents MCP stdio + OpenAPI `fraggate_call` so an independent developer can integrate without the author. |
 | Outbound mail | **CLOSED as gated refuse** — `transport_status` is live and honest. Public MTA / `smtp_send` stay NOT IMPLEMENTED / FG-STUB. No public send. |
 | Y1 software digests | **CLOSED** — each `/v1/software` live card carries `engine_digest` from the same embed `GET /v1/health` `engines[]` uses (37/37). |
-| Y6 Live Nodes rollup | **CLOSED** — `live_nodes` is Softwares `{slug}-worker` only. Auto-minted `mesh_*` ids are `ephemeral_nodes` / `rollup.ephemeral`. Named extras stay `rollup.named`. Hubs no longer see 37+2=39. |
+| Y6 Live Nodes rollup | **CLOSED (1.9.1 split)** — then `live_nodes` was Softwares `{slug}-worker` only (`mesh_*` = `ephemeral_nodes`). **OPERATOR LAW (later):** public `live_nodes` is mesh size (active + inactive, not isolated). `{slug}-worker` roster is `software_nodes` and must not be used alone as that pill. Downloads are not live. |
 | Y7 EmbryoLock catalog | **CLOSED** — catalog / update-check version is **1.2.0** (matches product Worker health). In-process cite contract stays Stealth+ v1.1 (`engine VERSION` 1.1.0). Wipe stays FG-STUB. |
 | W2 catalog git_sha | **CLOSED (practical)** — `GET /v1/software` `git_sha` prefers `GIT_SHA` (`wrangler deploy --var`, Actions already passes `github.sha`), then `CF_VERSION_METADATA.tag`, then stamped `src/build-meta.js`. |
 

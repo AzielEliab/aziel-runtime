@@ -222,7 +222,7 @@ Cap-7 semantic bridge (below the abstract): MirageGrid-only mesh-name factory. I
 
 Suite mesh is **QNM-BUILD-1.0** on `aziel-runtime`. **Read-only suite-presence is ON by default.** `GET /v1/mesh` never enables radios beyond that. Product Workers must not invent a second mesh.
 
-If the product homepage or hub shows **Live Nodes**, proxy the runtime kernel:
+If the product homepage or hub shows **Live Nodes**, proxy the runtime kernel and display `live_nodes` / `rollup.mesh` (mesh size = active + inactive, not isolated). Tooltip: `live_nodes_note`. Do **not** show `software_nodes` (`{slug}-worker` roster) alone as Live Nodes. Downloads are not live.
 
 ```js
 if (url.pathname === "/v1/mesh" || url.pathname.startsWith("/v1/mesh/")) {
@@ -235,9 +235,9 @@ if (url.pathname === "/v1/mesh" || url.pathname.startsWith("/v1/mesh/")) {
 }
 ```
 
-Required aliases: `GET /v1/mesh`, `GET /v1/mesh/status`, `GET /v1/mesh/nodes`. GodLock download-tracker previously 404'd `/v1/mesh/status` — add that proxy. Prefer the `AZIEL_RUNTIME` service binding. Avoid `|` in `node_id` (use `{slug}-worker`).
+Required aliases: `GET /v1/mesh`, `GET /v1/mesh/status`, `GET /v1/mesh/nodes`. GodLock download-tracker previously 404'd `/v1/mesh/status` — add that proxy. Prefer the `AZIEL_RUNTIME` service binding. Instance joins use a unique `node_id` (not `{slug}-worker`). Avoid `|` in `node_id`.
 
-While suite-presence is LIVE, aziel-runtime fans out join/heartbeat for live Softwares product Workers (TTL 5 min) on cron or request-path. GET still never enables.
+While suite-presence is LIVE, aziel-runtime fans out join/heartbeat for live Softwares product Workers as **`software_nodes`** (TTL 5 min) on cron or request-path. GET still never enables. Public **Live Nodes** is mesh size (active + inactive, exclude isolated) from the real join/heartbeat roster.
 
 ## Hub
 

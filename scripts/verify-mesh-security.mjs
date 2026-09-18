@@ -29,6 +29,7 @@ import {
   PRESENCE_STATES,
   SUITE_PRESENCE,
   isEphemeralMeshNodeId,
+  isInstanceMeshNodeId,
   isSoftwareWorkerNodeId,
   meshCiteField,
   meshFanoutSuitePresence,
@@ -199,7 +200,8 @@ assert.equal(firstGet.data.no_lie, true);
 assert.equal(firstGet.data.no_rewrite, true);
 assert.equal(firstGet.data.rewrite_key, false);
 assert.equal(firstGet.data.lie_to_survive, false);
-assert.equal(firstGet.data.live_nodes, 0, "GET without waitUntil must not join Softwares workers in the response");
+assert.equal(firstGet.data.live_nodes, 0, "GET without waitUntil must not invent mesh-size Live Nodes");
+assert.equal(firstGet.data.software_nodes, 0, "GET without waitUntil must not join Softwares workers in the response");
 assert.doesNotMatch(JSON.stringify(firstGet.data), /oauth|framagit|fielded-100|glama uuid/i);
 
 const ping = await jsonReq(env, "/v1/mesh");
@@ -246,7 +248,9 @@ await waited.flush();
 const afterFanoutGet = await jsonReq(env, "/v1/mesh");
 assert.deepEqual(afterFanoutGet.data.bearers, ["suite-presence"], "fan-out must not declare extra bearers");
 assert.equal(afterFanoutGet.data.get_never_enables, true);
-assert.equal(afterFanoutGet.data.live_nodes, PRODUCTS.length);
+assert.equal(afterFanoutGet.data.live_nodes, PRODUCTS.length, "non-isolated workers add to mesh size");
+assert.equal(afterFanoutGet.data.software_nodes, PRODUCTS.length);
+assert.equal(afterFanoutGet.data.live_nodes, afterFanoutGet.data.active_nodes + afterFanoutGet.data.inactive_nodes);
 assert.equal(afterFanoutGet.data.ephemeral_nodes, 0);
 assert.ok(afterFanoutGet.data.products_present.includes("godlock"));
 const nodesAfterFanout = await jsonReq(env, "/v1/mesh/nodes");
@@ -263,7 +267,8 @@ assert.equal(disabled.data.enabled, true);
 assert.ok(disabled.data.bearers.includes("suite-presence"));
 const afterDisable = await jsonReq(env, "/v1/mesh");
 assert.equal(afterDisable.data.enabled, true);
-assert.ok(afterDisable.data.live_nodes >= 1, "disable must not wipe Live Nodes");
+assert.equal(afterDisable.data.software_nodes, PRODUCTS.length, "disable must not wipe software_nodes");
+assert.equal(afterDisable.data.live_nodes, PRODUCTS.length, "disable must not wipe mesh-size Live Nodes");
 gate("DISABLE-REFUSED", "POST /v1/mesh/disable is MESH-DISABLE-REFUSED; suite-presence stays ON");
 
 // --- enable needs bearer ---
@@ -424,7 +429,9 @@ const namedJoin = await postJson(mixEnv, "/v1/mesh/join", { product: "godlock", 
 assert.equal(namedJoin.status, 200);
 const fanout1 = await meshFanoutSuitePresence(mixEnv, { source: "ttl-matrix" });
 assert.equal(fanout1.skipped, false);
-assert.equal(fanout1.live_nodes, PRODUCTS.length);
+assert.equal(fanout1.live_nodes, PRODUCTS.length + 1, "named instance + non-isolated workers = mesh size");
+assert.equal(fanout1.software_nodes, PRODUCTS.length);
+assert.equal(fanout1.inactive_nodes, 0);
 const workerId = suitePresenceNodeId("godlock");
 assert.equal(workerId, "godlock-worker");
 await ageNode(mixKv, "named-ttl-1", PRESENCE_TTL_MS + 2000);
@@ -550,6 +557,8 @@ gate("FRAGGATE-MCP-FROZEN", "FragGate slug=mesh intact; 8 mesh_* tools frozen; 3
 assert.ok(isSoftwareWorkerNodeId("godlock-worker"));
 assert.ok(isEphemeralMeshNodeId("mesh_1_abc_defg"));
 assert.equal(isSoftwareWorkerNodeId("mesh_1_abc_defg"), false);
+assert.equal(isInstanceMeshNodeId("mesh_1_abc_defg"), true);
+assert.equal(isInstanceMeshNodeId("godlock-worker"), false);
 
 const software = await jsonReq(env, "/v1/software");
 assert.ok(software.data.software.every((s) => s.mesh && s.mesh.enabled_default === true));

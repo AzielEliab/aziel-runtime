@@ -93,7 +93,7 @@ export function runtimeAboutField(origin) {
       cold_multi_shelf:
         "COLD-MULTI-SHELF-1.0 cite of corpus#96 /shelves. Plane A = 5 published surfaces / 2 family radii / 1 independent live. Plane B SLOT (Codeberg + archive.org PASS still SLOT at https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius, pack b549362c…; Framagit URL null; GitFlic CNS-GITFLIC-EMAIL; GitLab CNS-GITLAB-CF-LOOP; Zenodo refused; doi null). Plane C USB SLOT. Runtime Worker is the same Plane A tunnel, not a sixth surface.",
       nodemesh:
-        "QNM read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Local qnm-node. Not a login mesh / VPN / Node Gate.",
+        "QNM read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public Live Nodes (live_nodes) count mesh size: active + inactive join/heartbeat nodes, excluding isolated — not catalog size, not downloads. software_nodes is the {slug}-worker roster and must not be used alone as that pill. Local qnm-node. Not a login mesh / VPN / Node Gate.",
       master33: "Domains are isolation labels, not extra doors. Lamb Lens ethics hop after FragGate.",
     },
     not: [...RUNTIME_NOT],
@@ -124,7 +124,7 @@ export function llmsWhatThisIsBlock() {
     "",
     "FragGate is THE single public executable door (not 37 separate APIs).",
     "Softwares = Plain → Gate → Lock catalog products with true in-process engines where live.",
-    "NodeMesh / QNM read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Local qnm-node. Not a login mesh / VPN / Node Gate.",
+    "NodeMesh / QNM read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public Live Nodes (live_nodes) count mesh size: active + inactive join/heartbeat nodes, excluding isolated — not catalog size, not downloads. software_nodes is the {slug}-worker roster and must not be used alone as that pill. Local qnm-node. Not a login mesh / VPN / Node Gate.",
     "MASTER-33: domains are isolation labels, not extra doors. Lamb Lens ethics hop after FragGate.",
     "",
     "## What this is not",
