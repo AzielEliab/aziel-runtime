@@ -52,7 +52,7 @@ Where missing or thin, add or strengthen. Do not invent fantasy ops.
 | — | `akm` / `akm-triad` / `memory` | **not a wave** — already LIVE fabric (1.7.1+). Not Softwares-tab. |
 | — | `azcoherence` | shipped in runtime **1.7.7** (scoring-review placement; not a 34th isolation software; not AKM-TRIAD). **1.7.9** catalog + engine `cross_map` / peers; azclce reciprocates; domain stays null |
 | — | `zkattest` / `mmconsensus` / `toolbench` | architecture-fit placements (2.0.0-rc1). In-runtime. Isolation 33 unchanged. See `docs/2.0/ARCHITECTURE-FIT-FIVE.md`. |
-| — | `whitestone` | live Worker-only placement (1.4.0). Softwares-tab Plain. No FragGate engine / no invented op. Not a lawyer. Isolation 33 unchanged. |
+| — | `whitestone` | live Worker-only placement (1.4.0). Softwares-tab Plain. Counted zip `whitestone-download-tracker` (ARK-style worker_home). Live web app `https://whitestone.vibelock.workers.dev/`. No FragGate engine / no invented op. Not a lawyer. Isolation 33 unchanged. |
 
 ---
 
