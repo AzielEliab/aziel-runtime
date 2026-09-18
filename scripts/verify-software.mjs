@@ -14,6 +14,7 @@ import { catalogExtraCards } from "../src/catalog-meta.js";
 import {
   SOFTWARE_FRAMING,
   SOFTWARE_SORT_LAW,
+  WORKER_ONLY_PRODUCTS,
   compareVersions,
   listSoftwareEntries,
   softwareBucket,
@@ -40,6 +41,7 @@ assert.equal(softwareBucket("ForgeReceipts", "forgereceipts"), "plain");
 assert.equal(softwareBucket("Glossa Filter", "glossafilter"), "plain");
 assert.equal(softwareBucket("4DMap", "4dmap"), "plain");
 assert.equal(softwareBucket("AZCoherence", "azcoherence"), "plain");
+assert.equal(softwareBucket("Whitestone", "whitestone"), "plain");
 
 const mixed = sortSoftwareEntries([
   { name: "VibeLock", bucket: "lock" },
@@ -55,10 +57,10 @@ assert.deepEqual(
 );
 
 const entries = listSoftwareEntries(PRODUCTS, origin, { updated_at: "2026-09-06", git_sha: null });
-assert.ok(entries.length === PRODUCTS.length + NAMED_STUBS.length);
+assert.ok(entries.length === PRODUCTS.length + NAMED_STUBS.length + WORKER_ONLY_PRODUCTS.length);
 assert.ok(entries.some((e) => e.slug === "embryolock" && e.status === "live" && e.local_destructive_boundary === true));
 assert.ok(entries.every((e) => e.slug !== "fraggate"), "FragGate is the door, not a software card");
-assert.equal(entries.filter((e) => e.status === "live").length, PRODUCTS.length - 1);
+assert.equal(entries.filter((e) => e.status === "live").length, PRODUCTS.length - 1 + WORKER_ONLY_PRODUCTS.length);
 assert.ok(entries.some((e) => e.slug === "veillock" && e.status === "local_only" && e.door === "none" && e.fraggate_status === "local_only"));
 assert.equal(softwareBucket(entries.find((e) => e.slug === "staticclock").name, "staticclock"), "plain");
 
@@ -210,7 +212,7 @@ assert.match(manifest.client_note, /install\.sh/);
 const res = await get("/v1/software");
 assert.equal(res.status, 200);
 const body = await res.json();
-assert.equal(body.software.length, PRODUCTS.length + NAMED_STUBS.length);
+assert.equal(body.software.length, PRODUCTS.length + NAMED_STUBS.length + WORKER_ONLY_PRODUCTS.length);
 assert.ok(body.software.some((s) => s.slug === "azchat" && s.status === "live" && s.domain_id === "07"));
 assert.deepEqual(
   body.software.map((s) => s.slug),
@@ -222,16 +224,20 @@ assert.ok(body.software.some((s) => s.slug === "embryolock"));
 assert.equal(body.git_sha, BUILD_GIT_SHA);
 const liveCards = body.software.filter((s) => s.status === "live");
 const localOnlyCards = body.software.filter((s) => s.status === "local_only");
-assert.equal(liveCards.length, PRODUCTS.length - 1);
+const workerOnlyCards = body.software.filter((s) => s.worker_only);
+const engineCards = [...liveCards, ...localOnlyCards].filter((s) => !s.worker_only);
+assert.equal(liveCards.length, PRODUCTS.length - 1 + WORKER_ONLY_PRODUCTS.length);
 assert.equal(localOnlyCards.length, 1);
-assert.equal(body.live_count, PRODUCTS.length - 1);
+assert.equal(body.live_count, PRODUCTS.length - 1 + WORKER_ONLY_PRODUCTS.length);
 assert.equal(body.local_only_count, 1);
+assert.equal(body.worker_only_count, WORKER_ONLY_PRODUCTS.length);
 assert.ok(body.suite_download.endsWith("/download"));
-for (const card of [...liveCards, ...localOnlyCards]) {
+for (const card of engineCards) {
   assert.match(card.engine_digest, /^[a-f0-9]{64}$/, `${card.slug} engine_digest`);
   assert.equal(card.engine_digest, embeddedDigest(card.slug), `${card.slug} digest matches health embed`);
 }
-assert.equal(liveCards.length + localOnlyCards.length, trueEngineSlugs().length);
+assert.equal(engineCards.length, trueEngineSlugs().length);
+assert.ok(workerOnlyCards.every((s) => s.engine_digest == null && s.engine === false && s.door === "none"));
 assert.match(body.framing, /Never separate FragGate engines/);
 assert.ok(body.software.every((s) => !/are separate FragGate engines/i.test(s.one_line || "")));
 assert.equal(body.isolation_software_count, 33);
@@ -244,6 +250,7 @@ assert.deepEqual(body.tab_placement_slugs, [
   "mmconsensus",
   "toolbench",
   "azvpn",
+  "whitestone",
 ]);
 assert.match(body.count_note, /placements/);
 assert.match(body.count_note, /software_count is 33/);
@@ -270,7 +277,10 @@ assert.match(fourdLine, /time, change, graph, and place/i);
 assert.doesNotMatch(fourdLine, /Domain Door/);
 assert.doesNotMatch(fourdLine, /THIS IS:/i);
 
-assert.deepEqual(softwareCopySlugs().sort(), PRODUCTS.map((p) => p.slug).sort());
+assert.deepEqual(
+  softwareCopySlugs().sort(),
+  PRODUCTS.map((p) => p.slug).concat(WORKER_ONLY_PRODUCTS.map((p) => p.slug)).sort(),
+);
 assert.equal(body.software.length, softwareCopySlugs().length);
 assert.ok(
   body.software.every((s) => String(s.one_line || "").trim().length > 0),
@@ -305,6 +315,7 @@ const USE_PURPOSE = {
   veillock: [/own device/i],
   embryolock: [/offline vault|local vault/i],
   azinterface: [/page cycles/i],
+  whitestone: [/not a lawyer/i, /not legal advice/i, /ephemeral|session/i, /zip/i],
 };
 for (const [slug, patterns] of Object.entries(USE_PURPOSE)) {
   const card = body.software.find((s) => s.slug === slug);
@@ -333,6 +344,38 @@ const clce = body.software.find((s) => s.slug === "azclce");
 assert.ok(clce.peers.some((p) => p.slug === "azcoherence"));
 assert.match(clce.description, /AZ-CLCE/);
 assert.match(clce.one_line, /three written layers/i);
+
+const whitestone = body.software.find((s) => s.slug === "whitestone");
+assert.ok(whitestone, "whitestone Softwares-tab card");
+assert.equal(whitestone.name, "Whitestone");
+assert.equal(whitestone.bucket, "plain");
+assert.equal(whitestone.status, "live");
+assert.equal(whitestone.fraggate_status, "none");
+assert.equal(whitestone.door, "none");
+assert.equal(whitestone.kind, "software");
+assert.equal(whitestone.worker_only, true);
+assert.equal(whitestone.engine, false);
+assert.equal(whitestone.domain, null);
+assert.equal(whitestone.placement, "pro-se-advisor");
+assert.equal(whitestone.version, "1.4.0");
+assert.equal(whitestone.worker_home, "https://whitestone.vibelock.workers.dev/");
+assert.equal(whitestone.download_url, "https://whitestone.vibelock.workers.dev/download");
+assert.equal(whitestone.github, "https://github.com/AzielEliab/Whitestone");
+assert.equal(whitestone.engine_digest, null);
+assert.equal(whitestone.agent.fraggate_call, null);
+assert.match(whitestone.one_line, /not a lawyer/i);
+assert.match(whitestone.description, /not legal advice/i);
+assert.doesNotMatch(`${whitestone.one_line} ${whitestone.description}`, /THIS IS:/i);
+
+const whiteCheck = updateCheck({ slug: "whitestone", version: "1.0.0" }, origin, PRODUCTS, {
+  runtimeVersion: RUNTIME_VERSION,
+});
+assert.equal(whiteCheck.ok, true);
+assert.equal(whiteCheck.slug, "whitestone");
+assert.equal(whiteCheck.latest, "1.4.0");
+assert.equal(whiteCheck.update_available, true);
+assert.equal(whiteCheck.download_url, "https://whitestone.vibelock.workers.dev/download");
+assert.equal(whiteCheck.github, "https://github.com/AzielEliab/Whitestone");
 
 const mirror = await get("/v1/fraggate/software");
 assert.equal(mirror.status, 200);

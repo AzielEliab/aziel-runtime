@@ -13,7 +13,7 @@
  */
 
 import { BUILD_GIT_SHA } from "./build-meta.js";
-import { CATALOG_ALIASES } from "./catalog-meta.js";
+import { CATALOG_ALIASES, VERSIONS } from "./catalog-meta.js";
 import { SOFTWARE_HUBS as CROSS_MAP_HUBS, crossMapFields } from "./cross-map.js";
 import { CATALOG_COUNT_NOTE, MASTER_33_SLUGS, TAB_PLACEMENT_SLUGS, domainFields, domainMapView } from "./domain-map.js";
 import { embeddedDigest } from "./engines/digest.js";
@@ -26,7 +26,27 @@ import { shelvesCiteField } from "./cold-multi-shelf.js";
 import { AUTHOR_ID, azcoherenceCiteField, hubsCiteField, LIBRARY_ORIGIN, sisterProductCiteField } from "./seo.js";
 import { socialStatusField } from "./social-status.js";
 import { websiteDesignsField, websiteDesignsOnCorpusCard } from "./website-designs.js";
-import { softwareDescription } from "./software-copy.js";
+import { softwareDescription, softwareOneLine } from "./software-copy.js";
+
+/**
+ * Live Worker products that are Softwares-tab cards but not FragGate engines.
+ * Do not invent LIVE_OPS or engine_digest for these slugs.
+ * Author: Aziel Eliab only.
+ */
+export const WORKER_ONLY_PRODUCTS = Object.freeze([
+  {
+    slug: "whitestone",
+    name: "Whitestone",
+    worker: "whitestone",
+    github: "https://github.com/AzielEliab/Whitestone",
+    version: VERSIONS.whitestone || "1.4.0",
+    author: "Aziel Eliab",
+    identity: "Aziel Eliab",
+    worker_only: true,
+    engine: false,
+    fraggate_engine: false,
+  },
+]);
 
 export const SOFTWARE_SORT_LAW = "plain A–Z → gate A–Z → lock A–Z (Clock ≠ Lock)";
 export const SOFTWARE_FRAMING =
@@ -173,6 +193,54 @@ export function liveSoftwareCard(product, origin, meta = {}) {
   };
 }
 
+export function workerOnlySoftwareCard(spec, origin, meta = {}) {
+  const base = String(origin || "").replace(/\/$/, "");
+  const host = workerHostOf(spec);
+  const bucket = softwareBucket(spec.name, spec.slug);
+  const domain = domainFields(spec.slug);
+  const oneLine = softwareOneLine(spec.slug, spec.one_line || spec.name);
+  return {
+    slug: spec.slug,
+    name: spec.name,
+    bucket,
+    domain: domain.domain,
+    domain_id: domain.domain_id,
+    placement: domain.placement,
+    status: "live",
+    fraggate_status: "none",
+    version: spec.version || VERSIONS[spec.slug] || null,
+    one_line: oneLine,
+    description: softwareDescription(spec.slug, spec),
+    worker_home: host ? `${host}/` : null,
+    download_url: host ? `${host}/download` : null,
+    github: spec.github || null,
+    mcp: `${base}/mcp`,
+    agent: {
+      mcp: `${base}/mcp`,
+      skill: null,
+      fraggate_list: null,
+      fraggate_describe: null,
+      fraggate_call: null,
+      software: `${base}/v1/software`,
+      pull: null,
+      pipeline: "Live Worker only. Not a FragGate engine. Do not invent fraggate_call ops.",
+    },
+    engine_digest: null,
+    updated_at: meta.updated_at || null,
+    git_sha: meta.git_sha || null,
+    door: "none",
+    kind: "software",
+    engine: false,
+    fraggate_engine: false,
+    worker_only: true,
+    note:
+      "Live Worker. FragGate status is none — not a FragGate engine. Hub tab must not treat this as fraggate_call live. Not a lawyer / not legal advice.",
+    mesh: meshHint("/v1/mesh"),
+    qns_cd: qnsHint(),
+    ...crossMapFields(spec.slug),
+  };
+}
+
 export function stubSoftwareCard(spec, origin, meta = {}) {
   const base = String(origin || "").replace(/\/$/, "");
   const bucket = softwareBucket(spec.name, spec.slug);
@@ -209,7 +277,8 @@ export function stubSoftwareCard(spec, origin, meta = {}) {
 export function listSoftwareEntries(products, origin, meta = {}) {
   const live = (products || []).map((p) => liveSoftwareCard(p, origin, meta));
   const stubs = (NAMED_STUBS || []).map((s) => stubSoftwareCard(s, origin, meta));
-  return sortSoftwareEntries(live.concat(stubs));
+  const workerOnly = (WORKER_ONLY_PRODUCTS || []).map((s) => workerOnlySoftwareCard(s, origin, meta));
+  return sortSoftwareEntries(live.concat(stubs, workerOnly));
 }
 
 export function softwareCatalog(origin, products, extra = {}) {
@@ -235,6 +304,7 @@ export function softwareCatalog(origin, products, extra = {}) {
     live_count: software.filter((s) => s.status === "live").length,
     local_only_count: software.filter((s) => s.status === "local_only").length,
     stub_count: software.filter((s) => s.status === "stub").length,
+    worker_only_count: software.filter((s) => s.worker_only).length,
     suite_download: `${base}/download`,
     suite_download_v1: `${base}/v1/suite/download`,
     suite_download_note:
@@ -290,10 +360,15 @@ export function resolveSoftwareSlug(raw, products) {
   if ((NAMED_STUBS || []).some((s) => s.slug === key)) return key;
   const stubAlias = CATALOG_ALIASES[key];
   if (stubAlias && (NAMED_STUBS || []).some((s) => s.slug === stubAlias)) return stubAlias;
+  if ((WORKER_ONLY_PRODUCTS || []).some((s) => s.slug === key)) return key;
+  const workerAlias = CATALOG_ALIASES[key];
+  if (workerAlias && (WORKER_ONLY_PRODUCTS || []).some((s) => s.slug === workerAlias)) return workerAlias;
   const byName = (products || []).find((p) => String(p.name).toLowerCase() === key);
   if (byName) return byName.slug;
   const stubName = (NAMED_STUBS || []).find((s) => String(s.name).toLowerCase() === key);
   if (stubName) return stubName.slug;
+  const workerName = (WORKER_ONLY_PRODUCTS || []).find((s) => String(s.name).toLowerCase() === key);
+  if (workerName) return workerName.slug;
   return null;
 }
 

@@ -63,6 +63,9 @@ export const CATALOG_ALIASES = {
   mm_consensus: "mmconsensus",
   "tool-bench": "toolbench",
   tool_bench: "toolbench",
+  "white-stone": "whitestone",
+  white_stone: "whitestone",
+  "pro-se": "whitestone",
 };
 
 /**
@@ -162,6 +165,7 @@ export const VERSIONS = {
   mmconsensus: "0.1.0",
   toolbench: "0.1.0",
   azvpn: "0.1.0",
+  whitestone: "1.4.0",
 };
 
 /**
@@ -242,6 +246,7 @@ export const FIRST_TIME_DEPOSIT_SLUGS = [
   "mmconsensus",
   "toolbench",
   "azvpn",
+  "whitestone",
 ];
 
 export const ZENODO_AUDIT = {

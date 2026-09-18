@@ -28,6 +28,7 @@ import { buildMcpToolList, mcpInitializeInstructions } from "../src/mcp-surface.
 import { sessionMcpTools } from "../src/session-http.js";
 import { memorySessionNamespace } from "../src/session-do.js";
 import { MASTER_33_SLUGS, TAB_PLACEMENT_SLUGS } from "../src/domain-map.js";
+import { WORKER_ONLY_PRODUCTS } from "../src/software-catalog.js";
 import { MESH_CANONICAL_OPS, MESH_MCP_TOOLS } from "../src/mesh.js";
 
 const handler = (await import("../src/index.js")).default.fetch;
@@ -95,9 +96,16 @@ assert.ok(STUB_OPS.azvpn.includes("wireguard"));
 for (const slug of MASTER_33_SLUGS) {
   assert.ok(productSlugs.includes(slug), `MASTER-33 slug in PRODUCTS: ${slug}`);
 }
+const workerOnlySlugs = WORKER_ONLY_PRODUCTS.map((p) => p.slug);
 for (const slug of TAB_PLACEMENT_SLUGS) {
+  if (workerOnlySlugs.includes(slug)) {
+    assert.ok(!productSlugs.includes(slug), `Worker-only placement is not a PRODUCTS true-engine: ${slug}`);
+    continue;
+  }
   assert.ok(productSlugs.includes(slug), `placement slug in PRODUCTS: ${slug}`);
 }
+assert.ok(TAB_PLACEMENT_SLUGS.includes("whitestone"));
+assert.ok(workerOnlySlugs.includes("whitestone"));
 
 for (const task of HUMAN_TASKS) {
   assert.ok(hasLiveDoor(task.slug), `HUMAN_TASKS slug live: ${task.slug}`);
@@ -155,6 +163,10 @@ for (const p of PRODUCTS) {
     assert.doesNotMatch(softwareHtml, new RegExp(`/workspace#task-${p.slug}`));
   }
 }
+assert.match(softwareHtml, /data-slug="whitestone"/);
+assert.match(softwareHtml, /whitestone\.vibelock\.workers\.dev/);
+assert.doesNotMatch(softwareHtml, /\/p\/whitestone/);
+assert.match(softwareHtml, /not a lawyer/i);
 
 for (const slug of ["azvpn", "foldlock", "zkattest", "veillock", "azmail"]) {
   const card = await (await get(`/p/${slug}`)).text();
@@ -235,10 +247,22 @@ const veil = (registry.entries || []).find((e) => e.slug === "veillock");
 assert.equal(veil.status, "local_only");
 
 const catalog = await (await get("/v1/software")).json();
-assert.equal(catalog.count, 41);
-assert.equal(catalog.live_count, 40, "hub Softwares live_count excludes VeilLock local_only");
+assert.equal(catalog.count, 42);
+assert.equal(catalog.live_count, 41, "hub Softwares live_count excludes VeilLock local_only and includes Whitestone Worker-only");
 assert.equal(catalog.local_only_count, 1);
+assert.equal(catalog.worker_only_count, 1);
 assert.ok(catalog.software.some((s) => s.slug === "veillock" && s.status === "local_only" && s.door === "none"));
+assert.ok(
+  catalog.software.some(
+    (s) =>
+      s.slug === "whitestone" &&
+      s.status === "live" &&
+      s.worker_only === true &&
+      s.engine === false &&
+      s.door === "none" &&
+      s.worker_home === "https://whitestone.vibelock.workers.dev/",
+  ),
+);
 assert.ok(String(catalog.suite_download || "").endsWith("/download"));
 assert.ok(catalog.software.some((s) => s.slug === "azvpn"));
 assert.ok(!catalog.software.some((s) => s.slug === "mesh"), "mesh is not a Softwares-tab card");
@@ -246,6 +270,13 @@ assert.ok(!catalog.software.some((s) => s.slug === "lumen"), "Lumen is not a cat
 assert.ok(!catalog.software.some((s) => s.slug === "ark-private"));
 assert.ok(!catalog.software.some((s) => s.slug === "trades-runtime"), "trades-runtime is cite-only, not a Softwares card");
 assert.ok(catalog.sister_products.products.some((p) => p.slug === "trades-runtime" && p.fraggate_call === false));
+
+const describeWhite = await (await get("/v1/fraggate/describe?slug=whitestone")).json();
+assert.equal(describeWhite.code, "FG-HALLUC-TOOL", "Whitestone is not a FragGate engine — do not invent ops");
+const callWhite = await post("/v1/fraggate/call", { slug: "whitestone", op: "health", payload: {} });
+const callWhiteBody = await callWhite.json();
+assert.equal(callWhiteBody.ok, false);
+assert.equal(callWhiteBody.code, "FG-HALLUC-TOOL");
 
 const describeTrades = await (await get("/v1/fraggate/describe?slug=trades-runtime")).json();
 assert.equal(describeTrades.code, "FG-HALLUC-TOOL", "trades-runtime is not a FragGate registry name");
@@ -324,7 +355,8 @@ assert.equal(suitePack.labels.worker_wasm_bundle, "SLOT");
 assert.equal(suitePack.labels.wireguard_openvpn_l3, "SLOT");
 assert.equal(suitePack.labels.fielded_100, false);
 assert.equal(suitePack.foldlock_tip.full_library_in_process, false);
-assert.ok(Array.isArray(suitePack.catalog.software) && suitePack.catalog.software.length === 41);
+assert.ok(Array.isArray(suitePack.catalog.software) && suitePack.catalog.software.length === 42);
+assert.ok(suitePack.catalog.software.some((s) => s.slug === "whitestone" && s.worker_only === true));
 assert.ok(suitePack.mesh.channel_plane.worker_hardware === false);
 assert.equal(suitePack.mesh.channel_plane.local_radio_hooks.mock, false);
 assert.equal(suitePack.mesh.channel_plane.local_radio_hooks.worker_hardware, false);
