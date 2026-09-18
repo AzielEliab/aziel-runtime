@@ -370,7 +370,9 @@ ${shelvesSkillMarkdown(base)}
 | GET | \`/openapi.json\` | Combined OpenAPI 3.1. |
 | POST | \`/mcp\` | JSON-RPC MCP-over-HTTP. Echoes \`Mcp-Session-Id\` + \`MCP-Protocol-Version\`. Preferred protocolVersion \`2025-11-25\`; still accepts \`2025-06-18\` and \`2025-03-26\`. Invalid protocol is HTTP 400. Mutating MCP tools require \`confirm=true\` or \`dry_run=true\`. |
 | DELETE | \`/mcp\` | Streamable HTTP session teardown. Reuse of that session id is HTTP 404. |
-| GET | \`/cite.json\` | How to cite Aziel Eliab software and the Digital Library. Aka Aziel Elroi Eliab. No invented DOIs. Cites COLD-MULTI-SHELF-1.0 / corpus#96 shelves honesty. |
+| GET | \`/cite.json\` | How to cite Aziel Eliab software and the Digital Library. Aka Aziel Elroi Eliab. No invented DOIs. Cites COLD-MULTI-SHELF-1.0 / corpus#96 shelves honesty. Person \`@id\` + site coverage + sameAs. |
+| GET | \`/person.jsonld\` | Machine Person JSON-LD (Google AI / LLM profile). \`@id\` https://www.azieleliab.com/#aziel. Roles: researcher, digital rights activist, software developer/designer, author, philosopher. Machine 15:20 disambiguation. No visible HTML chrome. No legal name / home. |
+| GET | \`/who-is\` | Machine who-is text. Same Person \`@id\`. Site coverage blurbs. Alias \`/who-is-aziel-eliab.txt\`. Not an HTML page. |
 | GET | \`/shelves\` | COLD-MULTI-SHELF-1.0 registry cite matching live corpus \`/shelves\`. Plane A 5 surfaces / 2 family radii / 1 independent live. Plane B SLOT (Codeberg + archive.org PASS still SLOT at https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius; Framagit URL null; GitFlic CNS-GITFLIC-EMAIL; GitLab CNS-GITLAB-CF-LOOP; Zenodo refused). Plane C USB SLOT. \`doi\` null. Linked fields: \`redline.spec\`, Cap-7 \`design_of\` + \`resolves_to_hub: false\`, attack-sim refuse pointer. Not a sixth surface. |
 | GET | \`/v1/shelves\` | Machine alias of \`/shelves\`. |
 | GET | \`/llms.txt\` | Plain-text catalog + citation rules for crawlers. |
@@ -582,6 +584,9 @@ export function runtimeManifest(origin, products, extra = {}) {
       invoke: base + "/p/{slug}/{op}",
       invoke_note: "proxy only — not exec",
       cite: base + "/cite.json",
+      person_jsonld: base + "/person.jsonld",
+      who_is: base + "/who-is",
+      who_is_txt: base + "/who-is-aziel-eliab.txt",
       shelves: base + "/shelves",
       shelves_json: base + "/v1/shelves",
       openapi: base + "/openapi.json",

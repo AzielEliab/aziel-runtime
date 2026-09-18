@@ -87,6 +87,9 @@ await assertSeoMime("/ai.txt", /^text\/plain; charset=utf-8$/);
 await assertSeoMime("/sitemap.xml", /^application\/xml; charset=utf-8$/);
 await assertSeoMime("/sitemap-index.xml", /^application\/xml; charset=utf-8$/);
 await assertSeoMime("/cite.json", /^application\/json; charset=utf-8$/);
+await assertSeoMime("/person.jsonld", /^application\/ld\+json; charset=utf-8$/);
+await assertSeoMime("/who-is", /^text\/plain; charset=utf-8$/);
+await assertSeoMime("/who-is-aziel-eliab.txt", /^text\/plain; charset=utf-8$/);
 
 const robotsRes = await get("/robots.txt");
 assert.equal(robotsRes.status, 200);
@@ -214,6 +217,9 @@ assert.match(sitemap, /godlock\.uk\/software/);
 assert.match(sitemap, /www\.hedidntjump\.com\/sitemap\.xml/);
 assert.match(sitemap, /www\.hedidntjump\.com\/cite\.json/);
 assert.match(sitemap, /\/cite\.json/);
+assert.match(sitemap, /\/person\.jsonld/);
+assert.match(sitemap, /\/who-is</);
+assert.match(sitemap, /\/who-is-aziel-eliab\.txt/);
 assert.match(sitemap, /\/llms\.txt/);
 assert.match(sitemap, /\/sitemap-index\.xml/);
 assert.match(sitemap, /github\.com\/AzielEliab\/aziel-runtime\/tree\/main\/docs\/designs/);
@@ -309,6 +315,70 @@ assert.equal(aiRes.status, 200);
 mime(aiRes, /^text\/plain; charset=utf-8/);
 assert.equal(await aiRes.text(), llms);
 
+const personRes = await get("/person.jsonld");
+assert.equal(personRes.status, 200);
+mime(personRes, /^application\/ld\+json; charset=utf-8$/);
+const personDoc = await personRes.json();
+assert.equal(personDoc["@id"], AUTHOR_ID);
+assert.equal(personDoc["@type"], "Person");
+assert.equal(personDoc.name, AUTHOR_NAME);
+assert.ok(personDoc.jobTitle.includes("researcher"));
+assert.ok(personDoc.jobTitle.includes("digital rights activist"));
+assert.ok(personDoc.jobTitle.includes("software developer/designer"));
+assert.ok(personDoc.jobTitle.includes("author"));
+assert.ok(personDoc.jobTitle.includes("philosopher"));
+assert.match(personDoc.disambiguatingDescription, /1 Chronicles 15:20/);
+assert.equal(personDoc.machine.chrome_15_20, false);
+assert.equal(personDoc.machine.machine_15_20, true);
+assert.equal(personDoc.machine.legal_name, false);
+assert.equal(personDoc.machine.home, false);
+assert.equal(personDoc.machine.growth_on, true);
+assert.ok(personDoc.sameAs.includes("https://github.com/AzielEliab"));
+assert.ok(personDoc.sameAs.includes("https://www.azieleliab.com/person.jsonld"));
+assert.ok(personDoc.sameAs.includes(`${origin}/person.jsonld`));
+assert.ok(personDoc.sameAs.includes(`${origin}/who-is`));
+assert.ok(personDoc.machine.sites.some((s) => s.id === "azieleliab" && /Person hub/.test(s.coverage)));
+assert.ok(personDoc.machine.sites.some((s) => s.id === "library" && /Digital Library MASTER/.test(s.coverage)));
+assert.ok(personDoc.machine.sites.some((s) => s.id === "godlock.uk" && /not VPN/.test(s.coverage)));
+assert.ok(personDoc.machine.sites.some((s) => s.id === "hedidntjump" && /Zioncheck archive sister/.test(s.coverage)));
+assert.ok(personDoc.machine.sites.some((s) => s.id === "aziel-runtime" && /2\.0\.0-rc1/.test(s.coverage)));
+assert.equal(Object.hasOwn(personDoc, "legalName"), false);
+assert.equal(Object.hasOwn(personDoc, "homeLocation"), false);
+assert.equal(Object.hasOwn(personDoc, "birthPlace"), false);
+
+const whoRes = await get("/who-is");
+assert.equal(whoRes.status, 200);
+const whoIs = await whoRes.text();
+assert.equal(await (await get("/who-is-aziel-eliab.txt")).text(), whoIs);
+assert.match(whoIs, /Who is Aziel Eliab/);
+assert.match(whoIs, /digital rights activist/);
+assert.match(whoIs, /1 Chronicles 15:20/);
+assert.match(whoIs, /Person hub \+ Softwares \+ research landing/);
+assert.match(whoIs, /Digital Library MASTER/);
+assert.match(whoIs, /GodLock challenge\/score \(not VPN\)/);
+assert.match(whoIs, /Zioncheck archive sister/);
+assert.match(whoIs, /FragGate engine-runtime \/ MCP Softwares door 2\.0\.0-rc1/);
+assert.match(whoIs, /www\.azieleliab\.com\/#aziel/);
+assert.doesNotMatch(whoIs, /legal name is/i);
+assert.doesNotMatch(whoIs, /\bhome address\b/i);
+
+assert.match(llms, /## Person \/ who-is \(machine\)/);
+assert.match(llms, /Person hub \+ Softwares \+ research landing/);
+assert.match(llms, /Digital Library MASTER/);
+assert.match(llms, /GodLock challenge\/score \(not VPN\)/);
+assert.match(llms, /Zioncheck archive sister/);
+assert.match(llms, /FragGate engine-runtime \/ MCP Softwares door 2\.0\.0-rc1/);
+assert.match(llms, /\/person\.jsonld/);
+assert.match(llms, /\/who-is/);
+{
+  const aboutStart = llms.indexOf("## About Aziel");
+  const roleAt = llms.indexOf("Role: engine-runtime");
+  const personAt = llms.indexOf("## Person / who-is (machine)");
+  assert.ok(aboutStart >= 0 && roleAt > aboutStart && personAt > roleAt);
+  assert.doesNotMatch(llms.slice(aboutStart, roleAt), /1 Chronicles|Chronicles 15/);
+  assert.match(llms.slice(personAt), /1 Chronicles 15:20/);
+}
+
 const citeRes = await get("/cite.json");
 assert.equal(citeRes.status, 200);
 mime(citeRes, /application\/json; charset=utf-8/);
@@ -402,6 +472,8 @@ assert.equal(cite.stats.vanity, false);
 assert.ok(cite.stats.hubs.some((h) => h.id === "azieleliab" && h.stats === "https://www.azieleliab.com/v1/stats"));
 assert.ok(cite.stats.hubs.some((h) => h.id === "hedidntjump" && /\/api\/stats$/.test(h.stats)));
 assert.equal(cite.entity_graph.person, AUTHOR_ID);
+assert.equal(cite.entity_graph.person_jsonld, `${origin}/person.jsonld`);
+assert.equal(cite.entity_graph.who_is, `${origin}/who-is`);
 assert.equal(cite.entity_graph.runtime, RUNTIME_SOFTWARE_ID);
 assert.equal(cite.entity_graph.execution_url, `${origin}/`);
 assert.equal(cite.entity_graph.relatedLink, `${origin}/`);
@@ -431,6 +503,28 @@ assert.equal(cite.azcoherence.slug, "azcoherence");
 assert.equal(cite.azcoherence.identity, AUTHOR_NAME);
 assert.match(cite.azcoherence.github, /AZCoherence/);
 assert.ok(cite.products.some((p) => p.slug === "azcoherence" && /describe\?slug=azcoherence/.test(p.fraggate_describe)));
+assert.ok(cite.person);
+assert.equal(cite.person.person_id, AUTHOR_ID);
+assert.equal(cite.person.chrome_15_20, false);
+assert.equal(cite.person.machine_15_20, true);
+assert.equal(cite.person.legal_name, false);
+assert.equal(cite.person.home, false);
+assert.equal(cite.person.growth_on, true);
+assert.deepEqual(cite.person.roles, [
+  "researcher",
+  "digital rights activist",
+  "software developer/designer",
+  "author",
+  "philosopher",
+]);
+assert.ok(cite.person.sites.some((s) => s.id === "azieleliab" && s.coverage.includes("Person hub")));
+assert.ok(cite.person.sites.some((s) => s.id === "library" && s.coverage.includes("Digital Library MASTER")));
+assert.ok(cite.person.sites.some((s) => s.id === "godlock.uk" && s.coverage.includes("not VPN")));
+assert.ok(cite.person.sites.some((s) => s.id === "hedidntjump" && s.coverage.includes("Zioncheck archive sister")));
+assert.ok(cite.person.sites.some((s) => s.id === "aziel-runtime" && s.coverage.includes("2.0.0-rc1")));
+assert.ok(cite.person.sameAs.includes("https://www.azieleliab.com/"));
+assert.ok(cite.person.sameAs.includes(`${origin}/person.jsonld`));
+assert.equal(cite.person.person_jsonld, `${origin}/person.jsonld`);
 
 const catalogRes = await get("/v1/catalog.json");
 assert.equal(catalogRes.status, 200);
@@ -447,6 +541,9 @@ assert.ok(catalog.sister_archives.archives.some((a) => a.id === "hedidntjump" &&
 assert.ok(catalog.crawl.sitemap_index.endsWith("/sitemap-index.xml"));
 assert.ok(catalog.crawl.software.endsWith("/v1/software"));
 assert.ok(catalog.crawl.mcp.endsWith("/mcp"));
+assert.equal(catalog.crawl.person_jsonld, `${origin}/person.jsonld`);
+assert.equal(catalog.crawl.who_is, `${origin}/who-is`);
+assert.equal(catalog.crawl.who_is_txt, `${origin}/who-is-aziel-eliab.txt`);
 assert.equal(catalog.stats.person_id, AUTHOR_ID);
 assert.equal(catalog.social_status.identity, AUTHOR_NAME);
 assert.ok(catalog.stats.rollup.endsWith("/v1/stats-rollups"));
@@ -522,6 +619,11 @@ assert.doesNotMatch(home, /rel="canonical" href="https:\/\/www\.azieleliab\.com/
   assert.equal(person.name, AUTHOR_NAME);
   assert.deepEqual(person.alternateName, [AUTHOR_ALTERNATE_NAME]);
   assert.equal(person.url, "https://www.azieleliab.com/");
+  assert.ok(person.jobTitle.includes("researcher"));
+  assert.ok(person.jobTitle.includes("digital rights activist"));
+  assert.ok(person.sameAs.includes("https://github.com/AzielEliab"));
+  assert.ok(person.sameAs.includes("https://www.azieleliab.com/"));
+  assert.doesNotMatch(JSON.stringify(person), /1 Chronicles|15:20/);
   assert.ok(!String(person.url).includes("workers.dev"));
   assert.ok(!String(person["@id"]).includes("github.com"));
   const runtimeApp = graph.find((n) => n["@type"] === "SoftwareApplication" && n["@id"] === RUNTIME_SOFTWARE_ID);
@@ -591,6 +693,9 @@ assert.match(home, /href="https:\/\/foldlock-download-tracker\.vibelock\.workers
 assert.match(home, /href="https:\/\/foldlock-download-tracker\.vibelock\.workers\.dev\/download"/);
 assert.match(home, /sitemap-index\.xml/);
 assert.doesNotMatch(home, /Yahweh|Messiah|Jesus Christ/);
+assert.doesNotMatch(firstVisibleText(home, 4000), /1 Chronicles|15:20/);
+assert.match(home, /rel="alternate" type="application\/ld\+json" href="https:\/\/aziel-runtime\.example\/person\.jsonld"/);
+assert.match(home, /rel="alternate" type="text\/plain" href="https:\/\/aziel-runtime\.example\/who-is"/);
 assert.match(home, /Compatible AI clients/);
 assert.match(home, /Claude \(Anthropic Desktop \/ custom tools\)/);
 assert.match(home, /Cursor \(MCP\)/);
@@ -753,6 +858,9 @@ assert.equal(productWorkerOrigin({ slug: "aziel-corpus" }), "https://www.azielco
 assert.equal(productCrawlUrls({ slug: "vibelock", worker: "vibelock-download-tracker" }).has_sitemap, false);
 
 const openapi = await (await get("/openapi.json")).json();
+assert.ok(openapi.paths["/person.jsonld"]);
+assert.ok(openapi.paths["/who-is"]);
+assert.ok(openapi.paths["/who-is-aziel-eliab.txt"]);
 assert.ok(openapi.paths["/sitemap-index.xml"]);
 assert.match(openapi.paths["/sitemap-index.xml"].get.summary, /He Didn't Jump sister archive/);
 assert.ok(openapi.paths["/robots.txt"]);
@@ -840,6 +948,7 @@ assert.match(
   assert.ok(machineAt > doorsAt, "Try on Glama CTA precedes Worker origin cite self-link");
 }
 assertRoseStarBrand(aboutHtml, "about HTML");
+assert.doesNotMatch(firstVisibleText(aboutHtml, 4000), /1 Chronicles|15:20/);
 assert.equal(await (await get("/v1/about")).text(), aboutHtml);
 
 const readme = await (await import("node:fs/promises")).readFile(

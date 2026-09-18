@@ -6,12 +6,20 @@
 
 import { socialStatusField } from "./social-status.js";
 import { CROSS_NETWORK_SURVIVAL, survivalHint } from "./cross-network-survival.js";
+import {
+  PERSON_JOB_TITLE,
+  PERSON_SAME_AS,
+  personCrawlField,
+  personLlmsBlock,
+  personPageJsonLd,
+} from "./person-index.js";
 
 export const AUTHOR_NAME = "Aziel Eliab";
 export const AUTHOR_ALTERNATE_NAME = "Aziel Elroi Eliab";
 export const AUTHOR_FAMILY_GIVEN = "Eliab, Aziel";
 export const AUTHOR_GITHUB = "https://github.com/AzielEliab";
-export const AUTHOR_SAME_AS = [AUTHOR_GITHUB];
+/** Hub Person sameAs (published). Runtime SoftwareApplication sameAs stays repo + Glama. */
+export const AUTHOR_SAME_AS = PERSON_SAME_AS.slice();
 
 /** Shared hub Person @id. Runtime is not the identity hub — do not use GitHub#person. */
 export const AUTHOR_ID = "https://www.azieleliab.com/#aziel";
@@ -549,15 +557,9 @@ ${entries}
 `;
 }
 
+/** HTML-embedded Person. Roles + published sameAs. No 15:20 text on pages. */
 export function personJsonLd() {
-  return {
-    "@type": "Person",
-    "@id": AUTHOR_ID,
-    name: AUTHOR_NAME,
-    alternateName: [AUTHOR_ALTERNATE_NAME],
-    url: `${AUTHOR_SITE_ORIGIN}/`,
-    sameAs: AUTHOR_SAME_AS,
-  };
+  return personPageJsonLd();
 }
 
 export function libraryJsonLd() {
@@ -726,7 +728,10 @@ export function entityGraphCiteField(origin) {
       "@id": namedToolId(tool.slug),
     })),
     ecosystem: ECOSYSTEM_LINKS.map((link) => ({ ...link })),
-    note: "Runtime parent @id is the hub suite node. Worker origin is execution endpoint / relatedLink and stays self-canonical. hasPart is named tools only — not MCP operation names.",
+    person_jsonld: `${base}/person.jsonld`,
+    who_is: `${base}/who-is`,
+    who_is_txt: `${base}/who-is-aziel-eliab.txt`,
+    note: "Runtime parent @id is the hub suite node. Worker origin is execution endpoint / relatedLink and stays self-canonical. hasPart is named tools only — not MCP operation names. Person machine files are /person.jsonld and /who-is — not visible HTML chrome.",
   };
 }
 
@@ -777,6 +782,7 @@ export function catalogHubFields(origin) {
       update_manifest: base + "/v1/update/manifest",
       mcp: base + "/mcp",
       mesh_az_generator: base + "/v1/mesh/az-generator",
+      ...personCrawlField(base),
     },
   };
 }
@@ -796,11 +802,14 @@ export function llmsCiteBlock(origin) {
     "## How to cite Aziel Eliab software and the Digital Library",
     "",
     `Primary name: ${AUTHOR_NAME}. Also known as ${AUTHOR_ALTERNATE_NAME} (alternateName / aka only — do not treat as a second author).`,
-    `Author @id: ${AUTHOR_ID} (shared hub Person). Runtime SoftwareApplication sameAs: ${RUNTIME_GITHUB} and ${RUNTIME_GLAMA}. Worker origin is the execution url, not Person identity.`,
+    `Author @id: ${AUTHOR_ID} (shared hub Person). Roles: ${PERSON_JOB_TITLE.join("; ")}. Runtime SoftwareApplication sameAs: ${RUNTIME_GITHUB} and ${RUNTIME_GLAMA}. Worker origin is the execution url, not Person identity.`,
     "Do not invent Zenodo DOIs. Cite the machine record. Known historical DOIs may be 410 tombstones.",
     "",
     `Runtime: ${citeHowToRuntime(origin)}`,
     `Runtime cite.json: ${base}/cite.json`,
+    `Runtime person.jsonld: ${base}/person.jsonld`,
+    `Runtime who-is: ${base}/who-is`,
+    `Runtime who-is-aziel-eliab.txt: ${base}/who-is-aziel-eliab.txt`,
     `Digital Library: ${citeHowToLibrary()}`,
     `Digital Library cite.json: ${LIBRARY_CITE}`,
     `Digital Library llms.txt: ${LIBRARY_LLMS}`,
@@ -831,9 +840,12 @@ export function llmsIdentityHeader() {
     `Author @id: ${AUTHOR_ID}`,
     `Also known as: ${AUTHOR_ALTERNATE_NAME} (alternateName only)`,
     `Identity: ${AUTHOR_NAME} (primary). Do not invent other names.`,
+    `Roles: ${PERSON_JOB_TITLE.join("; ")} (published work only)`,
     `Digital Library: ${LIBRARY_NAME} — ${LIBRARY_ORIGIN}/`,
   ];
 }
+
+export { personLlmsBlock };
 
 /** Git-hosted suite design pack. Not Softwares-tab products. Not a FragGate slug. GET /v1/mesh never enables. */
 export const DESIGNS_FOLDER = "docs/designs/";

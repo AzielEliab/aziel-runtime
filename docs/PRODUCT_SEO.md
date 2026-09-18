@@ -19,6 +19,8 @@ Runtime wires this once as `workerLaunchHtml` (`src/about-aziel.js` + `src/launc
 - Public product name: **Aziel Runtime** (`aziel-runtime`)
 - Primary author: **Aziel Eliab**
 - Shared Person `@id`: `https://www.azieleliab.com/#aziel` (official hub). Do **not** use `https://github.com/AzielEliab#person`.
+- Published work roles: researcher, digital rights activist, software developer/designer, author, philosopher. Not a biography. No legal name / home.
+- Machine 15:20 disambiguation lives on `/person.jsonld` + `/who-is` + `/cite.json` `person` + `/llms.txt` Person section. **No visible 15:20 HTML chrome.**
 - `alternateName` / aka only: **Aziel Elroi Eliab**
 - Runtime parent SoftwareApplication `@id`: `https://www.azieleliab.com/runtime#runtime` (hub identity for the suite). Worker origin is the execution endpoint / `relatedLink` and stays self-canonical for Worker pages. `author` is `{ "@id": "https://www.azieleliab.com/#aziel" }`. `sameAs` is the GitHub repo and the Glama listing.
 - `hasPart` lists **named tools only** (FragGate, ForgeReceipts, DecisionGATE, TemporalLock, TrajectoryLock, PeaceLock, GodLock, AZ-OS, AZCoherence, 4DMap, Aziel Corpus, Ask Jeeves, AZBrowser, AZMail, AZHub, AZInterface, SpectralLock, ShadowLock, FoldLock, CodeLock, VibeLock). Each child is `@id` `https://www.azieleliab.com/runtime#<slug>`, exact public name, `author` → Person, `isPartOf` → Runtime `@id`.
@@ -38,6 +40,8 @@ Runtime wires this once as `workerLaunchHtml` (`src/about-aziel.js` + `src/launc
 | `GET /llms.txt` | `text/plain; charset=utf-8` | LLM / AI crawlers |
 | `GET /ai.txt` | `text/plain; charset=utf-8` | Alias of `/llms.txt` |
 | `GET /cite.json` | `application/json; charset=utf-8` | How to cite |
+| `GET /person.jsonld` | `application/ld+json; charset=utf-8` | Machine Person (Google AI / LLM profile). `@id` https://www.azieleliab.com/#aziel |
+| `GET /who-is` | `text/plain; charset=utf-8` | Machine who-is. Alias `/who-is-aziel-eliab.txt`. Not an HTML page |
 | `GET /download` | counted tarball / zip | Software package |
 
 ## robots.txt
@@ -258,6 +262,8 @@ Runtime HTML shells (content negotiation — hubs still get JSON by default):
 JSON-LD Person (`https://www.azieleliab.com/#aziel`) + SoftwareApplication / ItemList on those shells. Runtime SoftwareApplication `sameAs` is GitHub + Glama only. Homepage Worker UI CSS stays the existing chrome plus a concise ecosystem nav (not the Softwares catalog).
 
 `/cite.json` and `/llms.txt` cross-link Softwares hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) plus AZCoherence and the He Didn't Jump sister archive. Identity Aziel Eliab only.
+
+`/cite.json` `person` + `/person.jsonld` + `/who-is` list site coverage blurbs: azieleliab.com (Person hub + Softwares + research landing); azielcorpuslibrary.net (Digital Library MASTER); godlock.uk (GodLock challenge/score, not VPN); hedidntjump.com (Zioncheck archive sister); this Worker (FragGate engine-runtime / MCP Softwares door 2.0.0-rc1). `sameAs` cross-links hub Person/who-is/cite files. Growth-ON. NO-LIE.
 
 `/cite.json` and `/v1/catalog.json` also publish `stats` / `social_status` (person_id `https://www.azieleliab.com/#aziel`) for AZindex awareness. Live stats: `https://www.azieleliab.com/v1/stats`, `https://www.azielcorpuslibrary.net/stats` (not `/v1/stats`; version is `GET /v1/health`), `https://www.hedidntjump.com/api/stats`. GodLock public snapshot is `https://godlock.uk/stats` (not `/v1/stats`). Runtime agent/MCP usage is `GET /v1/uses`. Optional hub rollup: `GET /v1/stats-rollups` (read-only; never invent numbers).
 

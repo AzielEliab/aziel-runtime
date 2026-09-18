@@ -24,6 +24,8 @@
  * GET  /llms.txt              plain-text catalog + how to cite Aziel Eliab + Digital Library
  * GET  /ai.txt                same as /llms.txt
  * GET  /cite.json             How-to-cite: Aziel Eliab (aka Aziel Elroi Eliab), Apache-2.0, no invented DOIs
+ * GET  /person.jsonld         Machine Person JSON-LD (Google AI / LLM profile). No visible HTML chrome.
+ * GET  /who-is                Machine who-is text (alias /who-is-aziel-eliab.txt). 15:20 machine-only.
  * GET  /shelves               COLD-MULTI-SHELF-1.0 cite (corpus#96 honesty; Plane A 5/2/1; B/C SLOT)
  * GET  /cold-copy             alias of /shelves
  * GET  /v1/shelves            machine alias of /shelves
@@ -265,6 +267,7 @@ import {
   llmsHubsBlock,
   llmsIdentityHeader,
   personJsonLd,
+  personLlmsBlock,
   runtimeSoftwareJsonLd,
   productCrawlUrls,
   robotsTxt as buildRobotsTxt,
@@ -272,6 +275,7 @@ import {
   SUITE_DESIGNS,
 } from "./seo.js";
 import { aboutAzielCiteField, aboutAzielLlmsBlock, corpusFoldPackCiteField, workerLaunchCiteField, workerLaunchHtml } from "./about-aziel.js";
+import { personCiteField, personIndexJsonLd, whoIsTxt } from "./person-index.js";
 import { launchHashtagChipsHtml } from "./launch-parts.js";
 import {
   aboutPageHtml,
@@ -1370,6 +1374,9 @@ function sitemapXml(origin) {
     { loc: base + "/v1/session/open", priority: "0.95", changefreq: "daily" },
     { loc: base + "/v1/bundle", priority: "0.95", changefreq: "daily" },
     { loc: base + "/cite.json", priority: "0.9", changefreq: "weekly" },
+    { loc: base + "/person.jsonld", priority: "0.9", changefreq: "weekly" },
+    { loc: base + "/who-is", priority: "0.85", changefreq: "weekly" },
+    { loc: base + "/who-is-aziel-eliab.txt", priority: "0.85", changefreq: "weekly" },
     { loc: base + "/shelves", priority: "0.85", changefreq: "weekly" },
     { loc: base + "/cold-copy", priority: "0.8", changefreq: "weekly" },
     { loc: base + "/v1/shelves", priority: "0.85", changefreq: "weekly" },
@@ -1447,6 +1454,8 @@ function llmsTxt(origin) {
     aboutAzielLlmsBlock().trimEnd(),
     "",
     `Role: engine-runtime (catalog + pull + proxy + session + in-process engines)`,
+    "",
+    personLlmsBlock(origin).trimEnd(),
     "",
     "## Version history",
     "",
@@ -1625,6 +1634,7 @@ function citeJson(origin) {
     abstract: RUNTIME_ABSTRACT,
     about: runtimeAboutField(origin),
     about_aziel: aboutAzielCiteField(),
+    person: personCiteField(origin),
     corpus_fold_pack: corpusFoldPackCiteField(),
     worker_launch: workerLaunchCiteField(PRODUCTS),
     author: AUTHOR_NAME,
@@ -1837,6 +1847,9 @@ function headMeta(origin, title, description, canonicalPath) {
 <link rel="sitemap" type="application/xml" href="${base}/sitemap-index.xml">
 <link rel="alternate" type="text/plain" href="${base}/llms.txt" title="llms.txt">
 <link rel="alternate" type="application/json" href="${base}/cite.json" title="cite.json">
+<link rel="alternate" type="application/ld+json" href="${base}/person.jsonld" title="person.jsonld">
+<link rel="alternate" type="text/plain" href="${base}/who-is" title="who-is">
+<link rel="alternate" type="text/plain" href="${base}/who-is-aziel-eliab.txt" title="who-is-aziel-eliab.txt">
 <meta property="og:type" content="website">
 <meta property="og:title" content="${escapeHtml(title)}">
 <meta property="og:description" content="${escapeHtml(description)}">
@@ -2360,9 +2373,35 @@ function staticPaths(origin) {
       get: {
         operationId: "catalog_cite",
         summary:
-          "How to cite Aziel Eliab software and the Digital Library. Aka Aziel Elroi Eliab. No invented DOIs. Cites COLD-MULTI-SHELF-1.0 / corpus#96 shelves honesty.",
+          "How to cite Aziel Eliab software and the Digital Library. Aka Aziel Elroi Eliab. No invented DOIs. Cites COLD-MULTI-SHELF-1.0 / corpus#96 shelves honesty. Person @id + site coverage + sameAs.",
         tags: ["catalog"],
         responses: { "200": { description: "Citation JSON" } },
+      },
+    },
+    "/person.jsonld": {
+      get: {
+        operationId: "catalog_person_jsonld",
+        summary:
+          "Machine Person JSON-LD for Google AI / LLM profile. @id https://www.azieleliab.com/#aziel. Roles: researcher, digital rights activist, software developer/designer, author, philosopher. Machine 15:20 disambiguation. No visible HTML chrome. No legal name / home.",
+        tags: ["catalog"],
+        responses: { "200": { description: "application/ld+json Person" } },
+      },
+    },
+    "/who-is": {
+      get: {
+        operationId: "catalog_who_is",
+        summary:
+          "Machine who-is text for Aziel Eliab. Same Person @id. Site coverage blurbs. Machine 15:20 disambiguation. Alias /who-is-aziel-eliab.txt. Not an HTML page.",
+        tags: ["catalog"],
+        responses: { "200": { description: "text/plain who-is" } },
+      },
+    },
+    "/who-is-aziel-eliab.txt": {
+      get: {
+        operationId: "catalog_who_is_txt",
+        summary: "Alias of /who-is.",
+        tags: ["catalog"],
+        responses: { "200": { description: "text/plain who-is" } },
       },
     },
     "/shelves": {
@@ -2802,6 +2841,9 @@ function healthBody(origin) {
     memory: "/v1/memory",
     about: "/about",
     cite: "/cite.json",
+    person_jsonld: "/person.jsonld",
+    who_is: "/who-is",
+    who_is_txt: "/who-is-aziel-eliab.txt",
     shelves: "/shelves",
     shelves_json: "/v1/shelves",
     sitemap: "/sitemap.xml",
@@ -3233,6 +3275,23 @@ async function handleRequest(request, env, ctx) {
 
     if ((url.pathname === "/llms.txt" || url.pathname === "/ai.txt") && (request.method === "GET" || request.method === "HEAD")) {
       return asHead(request, text(llmsTxt(origin), extra(url.pathname)));
+    }
+
+    if (url.pathname === "/person.jsonld" && (request.method === "GET" || request.method === "HEAD")) {
+      return asHead(
+        request,
+        json(personIndexJsonLd(origin), 200, {
+          ...extra("/person.jsonld"),
+          "Content-Type": "application/ld+json; charset=utf-8",
+        }),
+      );
+    }
+
+    if (
+      (url.pathname === "/who-is" || url.pathname === "/who-is-aziel-eliab.txt") &&
+      (request.method === "GET" || request.method === "HEAD")
+    ) {
+      return asHead(request, text(whoIsTxt(origin), extra(url.pathname)));
     }
 
     if (url.pathname === "/cite.json" && (request.method === "GET" || request.method === "HEAD")) {
