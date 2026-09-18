@@ -226,7 +226,7 @@ export const SOFTWARE_COPY = Object.freeze({
     one_line:
       "Ephemeral pro se advisor for Criminal, Civil, and Divorce. Live web app + optional zip. Session-only memory; AZCoherence-inspired anti-hallucination; not a lawyer.",
     description:
-      "Use Whitestone for short Criminal, Civil, or Divorce questions in a live web app. It exists as an ephemeral pro se advisor with session-only memory that wipes when you close — not a lawyer and not legal advice. Optional zip download is available from the same Worker.",
+      "Use Whitestone for short Criminal, Civil, or Divorce questions in a live web app. It exists as an ephemeral pro se advisor with session-only memory that wipes when you close — not a lawyer and not legal advice. Optional counted zip is on the download tracker; the live web app stays on the Whitestone Worker.",
   },
 });
 

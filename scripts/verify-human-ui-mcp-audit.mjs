@@ -165,6 +165,7 @@ for (const p of PRODUCTS) {
 }
 assert.match(softwareHtml, /data-slug="whitestone"/);
 assert.match(softwareHtml, /whitestone\.vibelock\.workers\.dev/);
+assert.match(softwareHtml, /whitestone-download-tracker\.vibelock\.workers\.dev\/download/);
 assert.doesNotMatch(softwareHtml, /\/p\/whitestone/);
 assert.match(softwareHtml, /not a lawyer/i);
 
@@ -260,7 +261,9 @@ assert.ok(
       s.worker_only === true &&
       s.engine === false &&
       s.door === "none" &&
-      s.worker_home === "https://whitestone.vibelock.workers.dev/",
+      s.worker_home === "https://whitestone-download-tracker.vibelock.workers.dev/" &&
+      s.download_url === "https://whitestone-download-tracker.vibelock.workers.dev/download" &&
+      s.web_app === "https://whitestone.vibelock.workers.dev/",
   ),
 );
 assert.ok(String(catalog.suite_download || "").endsWith("/download"));

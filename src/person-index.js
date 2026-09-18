@@ -553,7 +553,8 @@ export function whoIsTxt(origin) {
   lines.push(`Authoritative catalog: ${base}/v1/software (Plain → Gate → Lock). Hubs refresh from that Worker SSoT.`);
   lines.push("The ARK — Keep a local deniable vault; one phrase opens one vault.");
   lines.push("Whitestone — Ephemeral pro se advisor for Criminal, Civil, and Divorce. Live web app + optional zip. Session-only. Not a lawyer.");
-  lines.push("Whitestone Worker: https://whitestone.vibelock.workers.dev/");
+  lines.push("Whitestone web app: https://whitestone.vibelock.workers.dev/");
+  lines.push("Whitestone counted download: https://whitestone-download-tracker.vibelock.workers.dev/download");
   lines.push("Whitestone GitHub: https://github.com/AzielEliab/Whitestone");
   lines.push("");
   lines.push("## Model rules");

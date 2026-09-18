@@ -66,8 +66,6 @@ for (const slug of slugs) {
   const download =
     slug === "aziel-corpus"
       ? "https://www.azielcorpuslibrary.net/download"
-      : slug === "whitestone"
-        ? "https://whitestone.vibelock.workers.dev/download"
       : `https://${slug}-download-tracker.vibelock.workers.dev/download`;
   const product = {
     slug,

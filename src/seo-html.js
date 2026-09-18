@@ -371,7 +371,7 @@ export function softwareCatalogHtml(origin, catalog, css) {
         ? ` · <a href="${escapeHtml(s.worker_home)}">Worker</a>`
         : "";
       const gh = s.github ? ` · <a href="${escapeHtml(s.github)}">GitHub</a>` : "";
-      const useHref = s.worker_only ? s.worker_home || card : useInBrowserHref(base, s.slug);
+      const useHref = s.worker_only ? s.web_app || s.worker_home || card : useInBrowserHref(base, s.slug);
       const use = ` · <a href="${escapeHtml(useHref)}">Use in browser</a>`;
       const download = s.download_url ? ` · <a href="${escapeHtml(s.download_url)}">${s.worker_only ? "optional zip" : "Download desktop"}</a>` : "";
       const hay = `${s.name} ${s.slug} ${s.bucket} ${s.status} ${s.one_line || ""}`.toLowerCase();
@@ -391,7 +391,7 @@ ${namedComponentsHtml()}
   <h2>Softwares hubs</h2>
   ${hubListHtml()}
   <p>AZCoherence (AZC-0.1): <a href="${base}/v1/fraggate/describe?slug=azcoherence">describe</a> · <a href="${AZCOHERENCE_GITHUB}">GitHub</a> · <a href="${AZCOHERENCE_WORKER}/">Worker</a>. Not AKM-TRIAD.</p>
-  <p>Whitestone 1.4.0: <a href="https://whitestone.vibelock.workers.dev/">live Worker</a> · <a href="https://whitestone.vibelock.workers.dev/download">optional zip</a> · <a href="https://github.com/AzielEliab/Whitestone">GitHub</a>. Ephemeral pro se advisor. Not a lawyer. Not a FragGate engine.</p>
+  <p>Whitestone 1.4.0: <a href="https://whitestone.vibelock.workers.dev/">live web app</a> · <a href="https://whitestone-download-tracker.vibelock.workers.dev/download">counted zip</a> · <a href="https://github.com/AzielEliab/Whitestone">GitHub</a>. Ephemeral pro se advisor. Not a lawyer. Not a FragGate engine.</p>
   <div class="field">
     <label for="software-filter">Search Softwares (name, slug, or task)</label>
     <input id="software-filter" type="search" placeholder="foldlock, receipt, browser…" autocomplete="off">
