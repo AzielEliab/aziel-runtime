@@ -202,6 +202,8 @@ assert.equal(citeBody.shelves.lockset_doi, null);
 assert.equal(citeBody.shelves.independent_live_count, 1);
 assert.equal(citeBody.shelves.published_surfaces, 5);
 assert.equal(citeBody.shelves.plane_b.framagit.url, null);
+assert.equal(citeBody.shelves.plane_b.framagit.refuse, "CNS-NO-FORGE-MIRROR");
+assert.equal(citeBody.shelves.plane_b.framagit.hash_verify, null);
 assert.equal(citeBody.shelves.plane_b.archive_org.url, "https://archive.org/details/aziel-lockset-tip");
 assert.equal(citeBody.shelves.plane_b.archive_org_202609.url, "https://archive.org/details/aziel-lockset-tip_202609");
 assert.equal(citeBody.shelves.plane_b.archive_org_202609.independent, false);
