@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { PRODUCTS } from "../src/index.js";
 import { NAMED_STUBS } from "../src/fraggate/registry.js";
+import { WORKER_ONLY_PRODUCTS } from "../src/software-catalog.js";
 import { SUITE_DESIGNS } from "../src/seo.js";
 import {
   QNS_SPEC,
@@ -114,7 +115,7 @@ assert.equal((await viaHttp.json()).code, "QNS-NO-PROXY");
 
 const software = await (await get("/v1/software")).json();
 assert.ok(!software.software.some((s) => s.slug === "qns" || s.slug === "qnsd" || s.slug === "photon"));
-assert.equal(software.software.length, PRODUCTS.length + NAMED_STUBS.length);
+assert.equal(software.software.length, PRODUCTS.length + NAMED_STUBS.length + WORKER_ONLY_PRODUCTS.length);
 assert.ok(software.software.every((s) => s.qns_cd && s.qns_cd.spec === "QNS-CD-1.0"), "every software card has qns_cd");
 assert.ok(software.software.every((s) => s.qns_cd.local === QNS_LOCAL));
 assert.ok(software.software.every((s) => s.qns_cd.note === QNS_NOTE));

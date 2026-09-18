@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { PRODUCTS } from "../src/index.js";
 import { NAMED_STUBS } from "../src/fraggate/registry.js";
+import { WORKER_ONLY_PRODUCTS } from "../src/software-catalog.js";
 import { SUITE_DESIGNS } from "../src/seo.js";
 import { RUNTIME_VERSION } from "../src/runtime-api.js";
 import { ZERO_HASH } from "../src/session-core.js";
@@ -275,7 +276,7 @@ try {
 
 const software = await (await get("/v1/software")).json();
 assert.ok(!software.software.some((s) => s.slug === "act-receipt" || s.slug === "receipts" || s.slug === "actreceipt"));
-assert.equal(software.software.length, PRODUCTS.length + NAMED_STUBS.length);
+assert.equal(software.software.length, PRODUCTS.length + NAMED_STUBS.length + WORKER_ONLY_PRODUCTS.length);
 assert.equal(software.act_receipt.spec, RECEIPTS_SPEC);
 assert.equal(software.act_receipt.software_tab, false);
 assert.ok(software.software.every((s) => s.slug !== "act-receipt"));

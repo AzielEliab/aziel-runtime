@@ -222,6 +222,12 @@ export const SOFTWARE_COPY = Object.freeze({
     description:
       "Use WhistleLock to hash posted bytes and hold isolate-hash objects without a public URL. It exists as a local drop ledger, not a mailer or public CDN.",
   },
+  whitestone: {
+    one_line:
+      "Ephemeral pro se advisor for Criminal, Civil, and Divorce. Live web app + optional zip. Session-only memory; AZCoherence-inspired anti-hallucination; not a lawyer.",
+    description:
+      "Use Whitestone for short Criminal, Civil, or Divorce questions in a live web app. It exists as an ephemeral pro se advisor with session-only memory that wipes when you close — not a lawyer and not legal advice. Optional zip download is available from the same Worker.",
+  },
 });
 
 export function softwareOneLine(slug, fallback = "") {
