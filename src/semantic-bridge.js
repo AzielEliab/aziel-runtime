@@ -22,6 +22,7 @@ import {
   softwareHubCrawl,
 } from "./seo.js";
 import { WEBSITE_DESIGN_IDS, websiteDesignsField } from "./website-designs.js";
+import { cap7ShuffleCite } from "./cap7-shuffle.js";
 
 export const SEMANTIC_BRIDGE_SPEC = "CAP-7";
 export const SEMANTIC_BRIDGE_NAME = "Cap-7 semantic bridge";
@@ -133,6 +134,7 @@ export function semanticBridgeCiteField(origin) {
       mesh_resident: [...WEBSITE_DESIGN_IDS],
     },
     limitation: SEMANTIC_BRIDGE_LIMITATION,
+    shuffle: cap7ShuffleCite(),
   };
 }
 
@@ -286,6 +288,7 @@ export function semanticBridgeLlmsBlock(origin) {
     `Mesh browse: AZNet + AZBrowser via fraggate_call. Plane A hubs mirror tips; they do not become Cap-7 aliases.`,
     `Four ICANN hosts (not Cap-7 aliases): ${cite.icann_hosts.join(" ")}`,
     `name_may_change: true. canonical_hubs_immutable: true. fifth_product: false.`,
+    `Update shuffle: ping MirageGrid until one Cap-7 site lands. That landed site is that-round update. Distinct mesh names. No hardcoded host. Public workers.dev shuffle SLOT.`,
     `Library hub designs: azcorpus + azlibrary (mesh-resident; downloadable to nodes).`,
     `Designs inherited only: ${cite.designs.folder_github}`,
     "",
@@ -303,6 +306,7 @@ AI pulls mesh-generated **name metadata** (not a registration) from:
 - \`${cite.paths.miragegrid_bridge}\`
 - \`GET ${cite.paths.mesh_az_generator}\`
 - \`fraggate_call\` \`{ slug: "miragegrid", op: "bridge" }\`
+- \`fraggate_call\` \`{ slug: "miragegrid", op: "shuffle" }\` — ping MirageGrid until one distinct-name Cap-7 site lands (that-round update endpoint). Hosted URL SLOT. Public workers.dev shuffle SLOT.
 
 \`public_icann: false\`. No live AZ-GEN registrar. No fake ICANN \`.az\`. No visible 15:20. \`GET /v1/mesh\` never enables radios.
 
@@ -337,7 +341,7 @@ Call \`POST ${host}/v1/fraggate/call\` or MCP \`fraggate_call\` with \`{ slug, o
 | azbrowser | airlock_ingest, receipt_list, verify, receipt_verify | Ingest a URL/text through the airlock; list/verify receipts |
 | peacelock | upload_envelope | Upload a client-held envelope (not a transcript) |
 | forgereceipts | verify, import_export | Verify a receipt; client-held JSON import/export |
-| miragegrid | verify-receipt, bridge | Verify a control-plane receipt; Cap-7 name-metadata cite |
+| miragegrid | verify-receipt, bridge, shuffle | Verify a control-plane receipt; Cap-7 name-metadata cite; ping→land update shuffle (hosted URL SLOT) |
 | aznet | stamp, verify_hash, receipt_verify | Side-net hash stamp / verify (never hosts payloads) |
 | azchat | verify_receipt, import_export | Chat receipt verify; client-held JSON |
 | azmail | verify_receipt, import_export | Mail receipt verify (not SMTP) |

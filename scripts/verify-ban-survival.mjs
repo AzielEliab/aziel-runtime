@@ -5,8 +5,19 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { PUBLIC_MCP_TOOLS } from "../src/fraggate/codes.js";
+import { LIVE_OPS } from "../src/fraggate/registry.js";
+import { MEMORY_STUB_OPS } from "../src/memory.js";
 import { SUITE_DESIGNS } from "../src/seo.js";
 import {
+  CAP7_SITES,
+  cap7AznetRemainder,
+  cap7BrowserSubset,
+  cap7SiteNames,
+  landCap7Shuffle,
+  siteForMirageNode,
+} from "../src/cap7-shuffle.js";
+import {
+  AKM_MEMORY_LAW,
   BAN_SURVIVAL,
   BAN_SURVIVAL_DOCS,
   BAN_SURVIVAL_RULE,
@@ -37,6 +48,8 @@ import {
   judgeAznetPayloadHost,
   judgeDoorOnly,
   judgeFakeCap7Host,
+  judgeMemoryAsTruth,
+  judgeMemoryRewrite,
   judgeOpenNodeProxy,
   judgeSecondDoor,
   judgeShelfOnly,
@@ -73,6 +86,13 @@ assert.match(paper, /BAN-NO-DOOR-ONLY/);
 assert.match(paper, /BAN-NO-OPEN-NODE-PROXY/);
 assert.match(paper, /BAN-NO-FAKE-CAP7-HOST/);
 assert.match(paper, /BAN-NO-AZNET-PAYLOAD-HOST/);
+assert.match(paper, /BAN-NO-HARDCODE-CAP7-HOST/);
+assert.match(paper, /BAN-NO-FAKE-SHUFFLE-LIVE/);
+assert.match(paper, /belief_is_not_truth/);
+assert.match(paper, /memory_get/);
+assert.match(paper, /memory_resolve/);
+assert.match(paper, /ping MirageGrid/);
+assert.match(paper, /distinct mesh names/);
 assert.match(paper, /radio_phy/);
 assert.match(paper, /service binding/);
 assert.match(paper, /Not a Softwares-tab product/);
@@ -117,7 +137,27 @@ assert.equal(CAP7_AZNET.hosted_endpoints.status, "slot");
 assert.equal(CAP7_AZNET.radio_phy, false);
 assert.equal(CAP7_AZNET.resolves_to_hub, false);
 assert.equal(CAP7_AZNET.factory, "miragegrid");
+assert.equal(CAP7_AZNET.shuffle.layout, "live");
+assert.equal(CAP7_AZNET.shuffle.public_worker_shuffle, "slot");
+assert.equal(CAP7_AZNET.shuffle.hosted_update, "slot");
+assert.equal(CAP7_AZNET.shuffle.hardcoded_single_host, false);
+assert.equal(AKM_MEMORY_LAW.belief_is_not_truth, true);
+assert.equal(AKM_MEMORY_LAW.append_only, true);
+assert.equal(AKM_MEMORY_LAW.memory_delete, false);
+assert.deepEqual(AKM_MEMORY_LAW.stub_ops.slice(), MEMORY_STUB_OPS.slice());
+assert.deepEqual(MEMORY_STUB_OPS.slice(), ["model_update", "rollback", "rewrite", "delete_history", "auto_update"]);
+assert.equal(cap7SiteNames().length, 7);
+assert.equal(new Set(cap7SiteNames()).size, 7);
+assert.ok(cap7SiteNames().every((n) => n.startsWith("cap7-") && !n.includes(".")));
+assert.equal(cap7BrowserSubset().length, 3);
+assert.equal(cap7AznetRemainder().length, 4);
+assert.equal(siteForMirageNode(1).mesh_name, "cap7-loom");
+assert.equal(siteForMirageNode(8).mesh_name, "cap7-loom");
+assert.notEqual(siteForMirageNode(1).mesh_name, siteForMirageNode(2).mesh_name);
+assert.ok(CAP7_SITES.every((s) => s.resolves_to_hub === false && s.name_may_change === true && s.is_live_door === false));
+assert.ok((LIVE_OPS.miragegrid || []).includes("shuffle"));
 assert.ok(CLIENT_ORDER.length >= 5);
+assert.ok(CLIENT_ORDER.some((step) => /ping MirageGrid|shuffle/i.test(step)));
 assert.ok(CLIENT_ORDER.some((step) => /shelf backup|lockset tip/i.test(step)));
 assert.ok(CLIENT_ORDER.some((step) => /vice versa|cold-shelf death/i.test(step)));
 assert.ok(EXEC_PATHS.includes("/mcp"));
@@ -152,6 +192,13 @@ assert.equal(applyBanSurvival({ shelves_failed_plan: true }).ok, false);
 assert.equal(applyBanSurvival({ unattested_node_api: true }).ok, false);
 assert.equal(applyBanSurvival({ cap7_is_mcp: true }).ok, false);
 assert.equal(applyBanSurvival({ payload_host_live: true }).ok, false);
+assert.equal(applyBanSurvival({ hardcoded_single_host: true }).ok, false);
+assert.equal(applyBanSurvival({ public_shuffle_live: true }).ok, false);
+assert.equal(applyBanSurvival({ localhost_pool_is_public_update: true }).ok, false);
+assert.equal(applyBanSurvival({ posterior_is_truth: true }).ok, false);
+assert.equal(applyBanSurvival({ memory_delete: true }).ok, false);
+assert.equal(judgeMemoryAsTruth({ belief_is_truth: true }).reason, REFUSE.NO_MEMORY_AS_TRUTH);
+assert.equal(judgeMemoryRewrite({ delete_history: true }).reason, REFUSE.NO_MEMORY_REWRITE);
 
 assert.deepEqual(parseBlockedRoutes({ BAN_SURVIVAL_BLOCKED: "workers-dev:/mcp,library-runtime" }), [
   { id: "workers-dev", path: "/mcp" },
@@ -196,6 +243,13 @@ assert.equal(cite.live_node_api.status, "slot");
 assert.equal(cite.cap7_aznet.cite.status, "live");
 assert.equal(cite.cap7_aznet.hosted_endpoints.status, "slot");
 assert.equal(cite.cap7_aznet.radio_phy, false);
+assert.equal(cite.cap7_aznet.shuffle.layout, "live");
+assert.equal(cite.cap7_aznet.shuffle.public_worker_shuffle, "slot");
+assert.equal(cite.cap7_aznet.shuffle.hardcoded_single_host, false);
+assert.equal(cite.akm_memory.spec, "AKM-TRIAD-1.0");
+assert.equal(cite.akm_memory.belief_is_not_truth, true);
+assert.equal(cite.akm_memory.memory_delete, false);
+assert.ok(cite.akm_memory.stub_ops.includes("delete_history"));
 assert.match(cite.survival, /\/survival$/);
 assert.ok(cite.live_doors.every((d) => d.status === "live"));
 assert.deepEqual(cite.exec_origins, namedExecOrigins());
@@ -247,6 +301,8 @@ assert.match(llms, /Never invent a live door/);
 assert.match(llms, /Three layers/);
 assert.match(llms, /Cap-7/);
 assert.match(llms, /shelf tip-hash/);
+assert.match(llms, /shuffle/);
+assert.match(llms, /belief_is_not_truth/);
 assert.match(survivalSkillMarkdown(PRIMARY_WORKER_ORIGIN), /DEGRADED/);
 assert.match(survivalSkillMarkdown(PRIMARY_WORKER_ORIGIN), /SLOT/);
 assert.match(BAN_SURVIVAL_RULE, /Never invent a live door/);
@@ -270,6 +326,8 @@ assert.equal(body.shelves_are_not_a_live_door, true);
 assert.equal(body.live_node_api.status, "slot");
 assert.equal(body.cap7_aznet.cite.status, "live");
 assert.equal(body.cap7_aznet.hosted_endpoints.status, "slot");
+assert.equal(body.cap7_aznet.shuffle.layout, "live");
+assert.equal(body.akm_memory.belief_is_not_truth, true);
 assert.ok(body.live_doors.length >= 3);
 assert.match(res.headers.get("cache-control") || "", /max-age=120/);
 
@@ -303,5 +361,40 @@ assert.ok(blockedBody.failover.exec_origins.includes("https://www.azielcorpuslib
 
 const stillCite = await get("/cite.json", { BAN_SURVIVAL_BLOCKED: "workers-dev:/mcp" });
 assert.equal(stillCite.status, 200);
+
+const landed = await landCap7Shuffle({});
+assert.equal(landed.ok, true);
+assert.equal(landed.hardcoded_single_host, false);
+assert.equal(landed.public_worker_shuffle, "slot");
+assert.equal(landed.update.status, "slot");
+assert.equal(landed.update.hosted_url, null);
+assert.equal(landed.update.is_live_door, false);
+assert.ok(cap7SiteNames().includes(landed.land.mesh_name));
+assert.equal(landed.update.that_round_endpoint, landed.land.mesh_name);
+assert.doesNotMatch(JSON.stringify(landed.update), /127\.0\.0\.1/);
+const hard = await landCap7Shuffle({ hardcoded_single_host: true });
+assert.equal(hard.ok, false);
+assert.equal(hard.code, REFUSE.NO_HARDCODE_CAP7_HOST);
+const fakeLive = await landCap7Shuffle({ public_shuffle_live: true });
+assert.equal(fakeLive.ok, false);
+assert.equal(fakeLive.code, REFUSE.NO_FAKE_SHUFFLE_LIVE);
+const localUp = await landCap7Shuffle({ update_url: "http://127.0.0.1:19001" });
+assert.equal(localUp.ok, false);
+assert.equal(localUp.code, REFUSE.NO_LOCALHOST_CAP7_UPDATE);
+
+const shuffleCall = await handler(
+  new Request(origin + "/v1/fraggate/call", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ slug: "miragegrid", op: "shuffle", payload: {} }),
+  }),
+  {},
+);
+assert.equal(shuffleCall.status, 200);
+const shuffleBody = await shuffleCall.json();
+assert.equal(shuffleBody.ok, true);
+assert.equal(shuffleBody.result.ok, true);
+assert.equal(shuffleBody.result.update.status, "slot");
+assert.ok(cap7SiteNames().includes(shuffleBody.result.land.mesh_name));
 
 console.log("verify-ban-survival: ok");
