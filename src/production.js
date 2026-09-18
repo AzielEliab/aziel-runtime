@@ -17,6 +17,10 @@ export const RATE_ANON_MUTATE_PER_MIN = 10;
 export const RATE_FRAGGATE_CALL_PER_MIN = 240;
 export const RATE_FRAGGATE_READ_PER_MIN = 360;
 export const RATE_MCP_PER_MIN = 240;
+/** Presence-only join/heartbeat/leave/broadcast. Not a login mesh. Tighter than FragGate. */
+export const RATE_MESH_MUTATE_PER_MIN = 30;
+/** Direct AKM HTTP. FragGate-wrapped memory still uses fraggate_call. */
+export const RATE_MEMORY_MUTATE_PER_MIN = 60;
 
 export const TOKEN_HEADER = "X-Aziel-Runtime-Token";
 export const VERSION_HEADER = "X-Aziel-Runtime-Version";
@@ -285,6 +289,8 @@ function rateStore(env) {
       fraggate_call: new Map(),
       fraggate_read: new Map(),
       mcp: new Map(),
+      mesh_mutate: new Map(),
+      memory_mutate: new Map(),
     };
   }
   return env.__aziel_rate;
@@ -302,6 +308,8 @@ export function rateLimitForKind(env, kind) {
   if (kind === "fraggate_call") return pick("fraggate_call", RATE_FRAGGATE_CALL_PER_MIN);
   if (kind === "fraggate_read") return pick("fraggate_read", RATE_FRAGGATE_READ_PER_MIN);
   if (kind === "mcp") return pick("mcp", RATE_MCP_PER_MIN);
+  if (kind === "mesh_mutate") return pick("mesh_mutate", RATE_MESH_MUTATE_PER_MIN);
+  if (kind === "memory_mutate") return pick("memory_mutate", RATE_MEMORY_MUTATE_PER_MIN);
   return 0;
 }
 
@@ -344,6 +352,8 @@ const RATE_SCOPES = {
   fraggate_call: "fraggate_call",
   fraggate_read: "fraggate_read",
   mcp: "mcp",
+  mesh_mutate: "mesh_mutate",
+  memory_mutate: "memory_mutate",
 };
 
 export function rateLimitDecision(env, request, kind, now = Date.now()) {
