@@ -20,6 +20,7 @@ import {
   RUNTIME_HUB_URL,
 } from "./seo.js";
 import { MCP_PROTOCOL_PREFERRED, MCP_PROTOCOL_SUPPORTED } from "./mcp-transport.js";
+import { resolveCallingName } from "./calling-name.js";
 
 export const LIVE_MCP_ORIGIN = "https://aziel-runtime.vibelock.workers.dev";
 export const LIVE_MCP_URL = `${LIVE_MCP_ORIGIN}/mcp`;
@@ -96,12 +97,13 @@ export function mcpGatewayCite() {
  * Does not claim the experimental SEP-2127 $schema (that schema requires
  * reverse-DNS name/namespace). Do not invent a Glama UUID or OAuth server.
  */
-export function mcpServerCard(origin) {
+export function mcpServerCard(origin, env = {}) {
   const base = String(origin || LIVE_MCP_ORIGIN).replace(/\/$/, "") || LIVE_MCP_ORIGIN;
   const endpoint = `${base}/mcp`;
+  const calling = resolveCallingName(env);
   return {
-    name: PRODUCT_SLUG,
-    title: PRODUCT_NAME,
+    name: calling.calling_slug,
+    title: calling.calling_name,
     version: RUNTIME_VERSION,
     description:
       "NodeMesh'd MCP Softwares suite for digital forensics and auditing — not an API aggregator. FragGate door over streamable HTTP JSON-RPC.",

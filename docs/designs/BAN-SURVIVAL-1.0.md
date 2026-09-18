@@ -234,6 +234,34 @@ AKM-TRIAD-1.0 is already LIVE fabric. Survival must not weaken it:
 FragGate describe already lists stub_ops `model_update`, `rollback`,
 `rewrite`, `delete_history`, `auto_update` — those stay refused.
 
+6e. Calling-name rotation (discovery only)
+On honest ban / blacklist / impending-ban signals, the runtime may
+**rewrite its public calling name** so LLM clients can still discover
+the door. Identity remains **Aziel Eliab**. ChainLock tips and AKM
+history do **not** rewrite.
+
+**Triggers (do not invent a ban):** door quarantine
+(`BAN_SURVIVAL_BLOCKED`); operator rotate / explicit ban signal; uses
+collapse or downloads-stop flags; user-uploaded data marked
+`implies_ban` (DecisionGATE/AKM observe — unmarked uploads are not a
+ban). Empty metrics are not a ban. A CF/WAF rule that never reaches
+the isolate cannot be invented here.
+
+**Cascade / open-ended pool:** Whitestone AI → Bills → Runtime →
+Eliab Runtime → Potato Runtime → Elroi Runtime → Softwares-family
+`*-runtime` → endless random distinct names. No hard cap. No
+third-party trademarks (ChatGPT / Claude / Gemini / …).
+
+**On trigger:** rewrite discovery metadata — OpenAPI `info.title`,
+MCP `serverInfo` name/title, server card, `/cite.json` `calling_name`,
+`/survival` `calling_name`, llms/ai survival block. Mesh nodes **pull**
+`*new name alert: <name>` from `GET /survival` (GET never enables; not
+a publish path). Old name may remain on cold shelves as history.
+
+Hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk,
+hedidntjump.com) should pull `/survival` rather than hardcode. Hub
+rollout is a follow-on, not this repo.
+
 7. What this is not
 - Not a Softwares-tab product. Do not add slug `ban-survival` or `survival`.
 - Not a FragGate engine. No `fraggate_call { slug: "survival" }`.
@@ -252,6 +280,9 @@ FragGate describe already lists stub_ops `model_update`, `rollback`,
 - Not `radio_phy`. Not `resolves_to_hub: true`.
 - Not a hardcoded single Cap-7 update host. Not a LIVE public MirageGrid shuffle invent.
 - Not permission to treat AKM posterior as truth or to delete / rewrite memory history.
+- Not a ChainLock / AKM history rewrite when the calling name rotates.
+- Not third-party trademark impersonation as the product identity.
+- Not an invented ban from empty metrics.
 
 8. Surfaces
 - `GET /survival` · `GET /v1/survival` · aliases `/doors` `/failover`
@@ -282,6 +313,9 @@ FragGate describe already lists stub_ops `model_update`, `rollback`,
   `BAN-NO-AZNET-PAYLOAD-HOST`. `radio_phy` false.
 - `akm_memory.belief_is_not_truth` is true. `memory_get` append-only.
   `memory_resolve` additive. stub_ops stay refused.
+- Calling-name rotation is discovery-only. Trademark names refuse
+  `BAN-NO-TRADEMARK-NAME`. History rewrite refuses
+  `BAN-NO-NAME-HISTORY-REWRITE`. Invented bans refuse `BAN-NO-INVENT-BAN`.
 - Claiming a banned host is LIVE refuses `BAN-NO-LIE`.
 - Treating shelves as a live exec door refuses `BAN-NO-SHELF-ONLY`.
 - Dropping shelves / claiming the shelf plan failed refuses `BAN-NO-DOOR-ONLY`.

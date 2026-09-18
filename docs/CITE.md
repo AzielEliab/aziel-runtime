@@ -111,6 +111,8 @@ If network and data die tomorrow, the chain survives on cold shelves (hosts / DO
 
 One banned public door (`workers.dev`, `/mcp`, a FragGate path) is a surface death, not last tip gone. Three layers: live multi-front ↔ cold shelves; live-node API SLOT until attest; Cap-7 cite + AZNet verify LIVE (hosted Cap-7 endpoints SLOT; update shuffle ping→land, no hardcoded host; public workers.dev shuffle SLOT). AKM-TRIAD: `belief_is_not_truth`; `memory_get` append-only; `memory_resolve` additive. Door list = LIVE only. Never invent a live door. Never fake a Cap-7 hosted endpoint. Never claim a banned host is LIVE.
 
+Calling-name rotation is discovery-only: honest ban signals rewrite the public calling name (Whitestone AI → Bills → Runtime → … endless). Mesh pull `*new name alert: <name>` from `/survival`. Identity Aziel Eliab unchanged.
+
 Machine map: `GET /survival` · `/cite.json` `ban_survival` · `/llms.txt`. Paper: [BAN-SURVIVAL-1.0](designs/BAN-SURVIVAL-1.0.md). Client order: [CLIENT_UPDATE.md](CLIENT_UPDATE.md).
 
 Product Worker template: [PRODUCT_SEO.md](PRODUCT_SEO.md). GitHub About lock: [GITHUB.md](GITHUB.md).
