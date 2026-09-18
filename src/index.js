@@ -318,11 +318,13 @@ import {
 import { finishWithUse, peekUsesTotal, readUses } from "./uses.js";
 import {
   SOFTWARE_FRAMING,
+  WORKER_ONLY_PRODUCTS,
   listSoftwareEntries,
   softwareCatalog,
   softwareMeta,
   updateCheck,
   updateManifest,
+  workerHostOf,
 } from "./software-catalog.js";
 import { softwareDescription, softwareOneLine } from "./software-copy.js";
 import { crossMapFields } from "./cross-map.js";
@@ -1284,6 +1286,39 @@ function productUrls(product, origin) {
   };
 }
 
+function workerOnlyCiteRecord(spec, origin) {
+  const host = workerHostOf(spec);
+  const oneLine = softwareOneLine(spec.slug, spec.name);
+  return {
+    name: spec.name,
+    slug: spec.slug,
+    github: spec.github,
+    download: host ? `${host}/download` : null,
+    version: spec.version || null,
+    doi: null,
+    doi_url: null,
+    doi_kind: null,
+    zenodo_status: "none",
+    software_deposit_needed: true,
+    related_identifiers: [],
+    software_tarball: null,
+    zenodo_deposit: null,
+    how_to_cite: `Eliab, Aziel. (2026). ${spec.name} ${spec.version || ""} [Software]. Apache-2.0. ${spec.github}`.replace("  ", " "),
+    qns_cd: qnsHint(),
+    worker_home: host ? `${host}/` : null,
+    cite: null,
+    llms: null,
+    catalog_card: host ? `${host}/` : `${String(origin || "").replace(/\/$/, "")}/v1/software`,
+    fraggate_describe: null,
+    engine: false,
+    fraggate_engine: false,
+    worker_only: true,
+    one_line: oneLine,
+    description: softwareDescription(spec.slug, spec),
+    note: "Live Worker. Not a FragGate engine. Not a lawyer / not legal advice.",
+  };
+}
+
 function softwareExtra(env) {
   const meta = softwareMeta(env, { updated_at: LASTMOD });
   return {
@@ -1412,6 +1447,14 @@ function sitemapXml(origin) {
     urls.push({ loc: `${base}/v1/pull/${p.slug}`, priority: "0.85", changefreq: "daily" });
     urls.push({ loc: `${base}/v1/pull/${p.slug}/skill`, priority: "0.85", changefreq: "daily" });
     urls.push({ loc: p.github, priority: "0.5", changefreq: "weekly", lastmod: null });
+  }
+  for (const spec of WORKER_ONLY_PRODUCTS) {
+    const host = workerHostOf(spec);
+    urls.push({ loc: spec.github, priority: "0.5", changefreq: "weekly", lastmod: null });
+    if (host) {
+      urls.push({ loc: `${host}/`, priority: "0.75", changefreq: "weekly" });
+      urls.push({ loc: `${host}/download`, priority: "0.7", changefreq: "weekly" });
+    }
   }
   for (const loc of designsSitemapUrls()) {
     urls.push({ loc, priority: "0.5", changefreq: "weekly", lastmod: null });
@@ -1610,6 +1653,22 @@ function llmsTxt(origin) {
     }
     lines.push("");
   }
+  for (const spec of WORKER_ONLY_PRODUCTS) {
+    const rec = workerOnlyCiteRecord(spec, origin);
+    lines.push(`### ${rec.name} (${rec.slug})`);
+    lines.push(rec.one_line);
+    lines.push(rec.description);
+    lines.push("Not a lawyer. Not legal advice. Session-only / ephemeral. Optional zip download.");
+    lines.push(`GitHub: ${rec.github}`);
+    if (rec.worker_home) {
+      lines.push(`Worker: ${rec.worker_home}`);
+      lines.push(`Download (optional zip): ${rec.download}`);
+    }
+    if (rec.version) lines.push(`Version: ${rec.version}`);
+    lines.push("FragGate engine: false. Do not invent fraggate_call ops.");
+    lines.push(`How to cite: ${rec.how_to_cite}`);
+    lines.push("");
+  }
   lines.push(designsLlmsBlock());
   lines.push(auditsLlmsBlock());
   lines.push(llmsCiteBlock(origin));
@@ -1738,7 +1797,7 @@ function citeJson(origin) {
         catalog_card: `${base}/p/${p.slug}`,
         fraggate_describe: `${base}/v1/fraggate/describe?slug=${encodeURIComponent(p.slug)}`,
       };
-    }),
+    }).concat(WORKER_ONLY_PRODUCTS.map((spec) => workerOnlyCiteRecord(spec, origin))),
   };
 }
 
@@ -1768,30 +1827,36 @@ function jsonLd(origin) {
     documentation: base + "/v1/fraggate/describe",
     provider: { "@id": person["@id"] },
   };
+  const productList = PRODUCTS.concat(WORKER_ONLY_PRODUCTS);
   const itemList = {
     "@type": "ItemList",
     name: "Aziel Eliab products",
-    numberOfItems: PRODUCTS.length,
-    itemListElement: PRODUCTS.map((p, i) => {
-      const u = productUrls(p, origin);
+    numberOfItems: productList.length,
+    itemListElement: productList.map((p, i) => {
+      const workerOnly = Boolean(p.worker_only);
+      const rec = workerOnly ? workerOnlyCiteRecord(p, origin) : null;
+      const u = workerOnly ? null : productUrls(p, origin);
       const item = {
         "@type": "SoftwareApplication",
         name: p.name,
-        description: p.oneLine,
-        url: u.catalog_card,
+        description: workerOnly ? rec.one_line : p.oneLine,
+        url: workerOnly ? rec.worker_home || rec.catalog_card : u.catalog_card,
         codeRepository: p.github,
-        downloadUrl: u.download,
+        downloadUrl: workerOnly ? rec.download : u.download,
         author: { "@id": person["@id"] },
         license: "https://www.apache.org/licenses/LICENSE-2.0",
-        sameAs: [u.worker_home, u.cite, u.download].concat(u.has_llms ? [u.llms] : []).filter(Boolean),
+        sameAs: workerOnly
+          ? [rec.worker_home, rec.github, rec.download].filter(Boolean)
+          : [u.worker_home, u.cite, u.download].concat(u.has_llms ? [u.llms] : []).filter(Boolean),
       };
-      if (p.version) item.softwareVersion = p.version;
-      if (u.doi_url) item.identifier = u.doi_url;
+      const version = workerOnly ? rec.version : p.version;
+      if (version) item.softwareVersion = version;
+      if (!workerOnly && u.doi_url) item.identifier = u.doi_url;
       return {
         "@type": "ListItem",
         position: i + 1,
         name: p.name,
-        url: u.catalog_card,
+        url: workerOnly ? rec.worker_home || rec.catalog_card : u.catalog_card,
         item,
       };
     }),
@@ -1999,7 +2064,16 @@ function catalogHtml(origin, statsMap) {
       : " — Zenodo software deposit needed (no DOI invented)";
     const ver = p.version ? ` ${escapeHtml(p.version)}` : "";
     return `<li><a href="${p.github}">${escapeHtml(p.name)}</a>${ver}${doi} · <a href="${u.download}">counted tarball</a></li>`;
-  }).join("");
+  })
+    .concat(
+      WORKER_ONLY_PRODUCTS.map((spec) => {
+        const rec = workerOnlyCiteRecord(spec, origin);
+        const ver = rec.version ? ` ${escapeHtml(rec.version)}` : "";
+        const dl = rec.download ? ` · <a href="${escapeHtml(rec.download)}">optional zip</a>` : "";
+        return `<li><a href="${escapeHtml(spec.github)}">${escapeHtml(spec.name)}</a>${ver} — live Worker, not a FragGate engine, not a lawyer${dl}</li>`;
+      }),
+    )
+    .join("");
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -2284,7 +2358,7 @@ function staticPaths(origin) {
       get: {
         operationId: "software_catalog",
         summary:
-          "Authoritative live software catalog for hubs and clients. Every product including AZChat LIVE+bound. EmbryoLock is live-with-local-destructive-boundary (worker_home embryolock-download-tracker). Sort: Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock). Sibling software under one FragGate door — never separate FragGate engines. Softwares-tab count includes placements (azinterface / decisiongate / forgereceipts / azcoherence / zkattest / mmconsensus / toolbench); isolation domain software_count is 33 (domains_are_doors:false). website_designs names mesh-resident azcorpus + azlibrary (downloadable to nodes; not extra Softwares; azlibrary upload is API token only). Hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) fetch this on each Software-tab request. Default application/json. Accept: text/html returns a crawl HTML shell (unique title/description + JSON-LD) without changing the Worker homepage UI.",
+          "Authoritative live software catalog for hubs and clients. Every product including AZChat LIVE+bound. EmbryoLock is live-with-local-destructive-boundary (worker_home embryolock-download-tracker). Whitestone is a live Worker-only placement (no FragGate engine; not a lawyer). Sort: Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock). Sibling software under one FragGate door — never separate FragGate engines. Softwares-tab count includes placements (azinterface / decisiongate / forgereceipts / azcoherence / zkattest / mmconsensus / toolbench / azvpn / whitestone); isolation domain software_count is 33 (domains_are_doors:false). website_designs names mesh-resident azcorpus + azlibrary (downloadable to nodes; not extra Softwares; azlibrary upload is API token only). Hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) fetch this on each Software-tab request. Default application/json. Accept: text/html returns a crawl HTML shell (unique title/description + JSON-LD) without changing the Worker homepage UI.",
         tags: ["software"],
         responses: { "200": { description: "Sorted software[] plus count_note, isolation_software_count, tab_placement_slugs, domains (domains_are_doors:false), website_designs (azcorpus + azlibrary)" } },
       },

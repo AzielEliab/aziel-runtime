@@ -26,19 +26,23 @@ AKM-TRIAD-1.0 is LIVE fabric (`/v1/memory/*`, MCP `memory_*`), not a
 Softwares-tab card — do not invent an `akm` product on hubs.
 
 Each entry: `slug`, `name`, `bucket` (`plain` | `gate` | `lock`), `status`
-(`live` | `stub`), `version`, `one_line`, `description`, `worker_home`, `download_url`,
+(`live` | `stub` | `local_only`), `version`, `one_line`, `description`, `worker_home`, `download_url`,
 `github`, `mcp` / `agent` path hints, `updated_at`, `git_sha` when the deploy
-Action stamped one.
+Action stamped one. Whitestone is `status: "live"` with `worker_only: true` and
+`fraggate_status: "none"` (live Worker, not a FragGate engine).
 
 Sort law: **Plain A–Z → Gate A–Z → Lock A–Z**. Clock ≠ Lock (StaticClock is
 plain). Sibling software under **one FragGate door** — never “separate FragGate
 engines”. EmbryoLock is included as `status: "live"` with `local_destructive_boundary: true` and `worker_home` `https://embryolock-download-tracker.vibelock.workers.dev/` (wipe/unlock stay FG-STUB on the public mesh). AZChat remains `status: "stub"`.
 
 Softwares-tab `count` includes placements (`azinterface`, `decisiongate`,
-`forgereceipts`, `azcoherence`, `zkattest`, `mmconsensus`, `toolbench`).
+`forgereceipts`, `azcoherence`, `zkattest`, `mmconsensus`, `toolbench`,
+`azvpn`, `whitestone`).
 Isolation `domains.software_count` is **33**
 (`domains_are_doors: false`). See `count_note`. Do not equate the two.
 In-runtime placements have `worker_home` null — do not invent a download-tracker.
+Whitestone is Worker-only (`https://whitestone.vibelock.workers.dev/`); do not
+invent FragGate ops for it.
 
 `azcoherence` is Softwares-tab Plain (AZCoherence, AZC-0.1). Scoring-review
 placement adjacent to AZ-CLCE. Not AKM-TRIAD fabric. Not a 34th MASTER-33

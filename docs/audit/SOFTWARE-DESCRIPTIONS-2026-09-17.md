@@ -15,7 +15,7 @@ Sort law is unchanged: Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock
 
 | Area | Change |
 | --- | --- |
-| `src/software-copy.js` | SoT for all 41 Softwares slugs: verb-led `one_line` + 1–3 sentence `description` |
+| `src/software-copy.js` | SoT for Softwares slugs: verb-led `one_line` + 1–3 sentence `description` (41 engines + Whitestone Worker-only) |
 | `src/software-catalog.js` | Emits `description` on each card; mesh note cites `worker_hardware:false` |
 | `src/index.js` | PRODUCTS `oneLine` / `description` / banner fallback read the SoT |
 | `scripts/verify-software.mjs` | No empty fields; no THIS-IS template; every description has Use + exists |
@@ -37,6 +37,6 @@ No capabilities, DOIs, or `fielded_100` were invented. AZVPN honesty stays HTTPS
 | `azbrowser` | THIS IS: the Lamb Lens ethical research browser… THIS IS NOT: Chromium-by-default… | Browse and search with citations, without inventing visits. |
 | `peacelock` | THIS IS: Chosen silence / chosen inaction as a first-class receipt (PL-WP-0.1). THIS IS NOT: a transcript… | Record chosen silence or chosen inaction as a hash-chained receipt. |
 
-**Rewritten Softwares slugs: 41.** Mesh extras `one_line` is not a Softwares card; it may still name `THIS IS NOT: a Softwares-tab product` so extras stay distinct from the tab.
+**Rewritten Softwares slugs: 41 engines + Whitestone 1.4.0 Worker-only placement.** Whitestone is live Worker / no FragGate engine / not a lawyer. Mesh extras `one_line` is not a Softwares card; it may still name `THIS IS NOT: a Softwares-tab product` so extras stay distinct from the tab.
 
 Hubs pick up the new copy from `GET /v1/software`. No hub mirror is required unless a hub hardcodes blurbs.

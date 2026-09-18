@@ -170,7 +170,10 @@ assert.deepEqual(map.tab_placement_slugs, [
   "mmconsensus",
   "toolbench",
   "azvpn",
+  "whitestone",
 ]);
+assert.equal(domainFields("whitestone").placement, "pro-se-advisor");
+assert.equal(domainFields("whitestone").domain, null);
 assert.match(map.note, /placements/);
 assert.equal(MASTER_33_SLUGS.length, 33);
 assert.equal(domainFields("ark").domain_id, "01");
