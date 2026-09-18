@@ -108,7 +108,11 @@ Plane B stays `slot` until **all three** hash-verify (`CNS-PLANE-B-ALL-TARGETS`)
   Zip wrap: `ia_flat_sha256` null; SHA256SUMS flat-check incomplete at the
   IA file list is OK because the inner `aziel-tip-pack.tar` hash-verifies.
   Status remains **slot**. `independent: false`.
-- Framagit stays `url: null` until verified. Do not invent a URL.
+- Framagit stays `url: null` until verified. Refuse while the URL is null:
+  `CNS-NO-FORGE-MIRROR` (no project to download). Plane B as a whole still
+  refuses `CNS-PLANE-B-ALL-TARGETS` until Codeberg + archive.org + Framagit
+  all hash-verify. Do not invent a URL. Operator steps:
+  `tools/cold_shelf/FRAMAGIT-TIP-PACK-CHECKLIST.md`.
 - GitFlic is `refused` (`CNS-GITFLIC-EMAIL`). Not a working target.
 - GitLab is `refused` (`CNS-GITLAB-CF-LOOP`). Not a working path.
 - Zenodo tip-pack is `refused` (`CNS-ZENODO-IP-BAN` + `CNS-NO-TIP-DOI`).
@@ -146,7 +150,10 @@ This Worker cites the same honesty on:
 - attack-sim refuse pointer `scripts/verify-redline.mjs`
 
 Do not invent a Framagit URL. ALL-TARGETS stays Codeberg + archive.org +
-Framagit (`CNS-PLANE-B-ALL-TARGETS`). Framagit `url` stays `null`.
+Framagit (`CNS-PLANE-B-ALL-TARGETS`). Framagit `url` stays `null` and the
+Framagit row refuse stays `CNS-NO-FORGE-MIRROR` until a real URL exists
+and remote bytes hash-verify. Then, and only then, a SLOT→LIVE flip is
+allowed — never before bytes↔hash PASS.
 
 Corpus SoT remains https://www.azielcorpuslibrary.net/shelves.
 Verify (paste hash, yes/no) lives on corpus `/receipts/verify`.
@@ -177,12 +184,14 @@ No visible 15:20 chrome. Person `@id` https://www.azieleliab.com/#aziel.
 - `/shelves` registry matches corpus#96 honesty (Codeberg + archive.org
   PASS still SLOT at https://archive.org/details/aziel-lockset-tip and
   https://archive.org/details/aziel-lockset-tip_202609, same blast_radius;
-  Framagit URL null; GitFlic `CNS-GITFLIC-EMAIL`; GitLab
-  `CNS-GITLAB-CF-LOOP`; Zenodo refused; Plane C SLOT).
+  Framagit URL null + row refuse `CNS-NO-FORGE-MIRROR`; GitFlic
+  `CNS-GITFLIC-EMAIL`; GitLab `CNS-GITLAB-CF-LOOP`; Zenodo refused;
+  Plane C SLOT).
 - `/shelves` (and `/cite.json` `shelves`) carry `redline.spec`
   `REDLINE-2026-09-14`, Cap-7 `design_of: hub_designs` +
   `resolves_to_hub: false`, and `attack_sims.pointer`
-  `scripts/verify-redline.mjs`. Framagit URL stays null.
+  `scripts/verify-redline.mjs`. Framagit URL stays null
+  (`CNS-NO-FORGE-MIRROR`).
 - `/llms.txt` and `/ai.txt` carry the same plane rule.
 - OpenAPI documents `GET /shelves` and `GET /v1/shelves`.
 - No Softwares-tab card. No FragGate slug. No new MCP tool.

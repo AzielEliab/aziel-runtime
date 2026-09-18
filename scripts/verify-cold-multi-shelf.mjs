@@ -62,6 +62,9 @@ assert.match(paper, /archive\.org\/details\/aziel-lockset-tip/);
 assert.match(paper, /aziel-lockset-tip_202609/);
 assert.match(paper, /Same blast_radius/);
 assert.match(paper, /Framagit/);
+assert.match(paper, /CNS-NO-FORGE-MIRROR/);
+assert.match(paper, /FRAMAGIT-TIP-PACK-CHECKLIST/);
+assert.doesNotMatch(paper, /framagit\.org\/AzielEliab/i);
 assert.match(paper, /CNS-GITFLIC-EMAIL/);
 assert.match(paper, /CNS-GITLAB-CF-LOOP/);
 assert.doesNotMatch(paper, /archive\.org \+ GitFlic URL null/);
@@ -170,7 +173,32 @@ assert.equal(claimShelfLive(archive202609).reason, REFUSE.PLANE_B_ALL_TARGETS);
 const framagit = SHELF_REGISTRY.find((s) => s.id === "plane-b-framagit-tip-pack");
 assert.equal(framagit.status, "slot");
 assert.equal(framagit.url, null);
-assert.equal(framagit.refuse, REFUSE.PLANE_B_ALL_TARGETS);
+assert.equal(framagit.hash_verify, null);
+assert.equal(framagit.tip_verified, false);
+assert.equal(framagit.live_ready, false);
+assert.equal(framagit.required_for_plane_b_live, true);
+assert.equal(framagit.refuse, REFUSE.NO_FORGE);
+assert.equal(framagit.plane_b_refuse, REFUSE.PLANE_B_ALL_TARGETS);
+assert.equal(framagit.checklist, "tools/cold_shelf/FRAMAGIT-TIP-PACK-CHECKLIST.md");
+assert.equal(framagit.expect_pack_sha256, "b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37");
+assert.doesNotMatch(JSON.stringify(framagit), /framagit\.org\//i);
+assert.equal(claimShelfLive(framagit).live, false);
+assert.equal(claimShelfLive(framagit).reason, REFUSE.NO_FORGE);
+const framagitChecklist = readFileSync(
+  new URL("../tools/cold_shelf/FRAMAGIT-TIP-PACK-CHECKLIST.md", import.meta.url),
+  "utf8",
+);
+assert.match(framagitChecklist, /CNS-NO-FORGE-MIRROR/);
+assert.match(framagitChecklist, /CNS-PLANE-B-ALL-TARGETS/);
+assert.match(framagitChecklist, /b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37/);
+assert.match(framagitChecklist, /Do not invent a Framagit URL/);
+assert.doesNotMatch(framagitChecklist, /https:\/\/framagit\.org\/AzielEliab\/aziel-lockset-tip/);
+const altForgeChecklist = readFileSync(
+  new URL("../tools/cold_shelf/ALT-FORGE-TIP-PACK-CHECKLIST.md", import.meta.url),
+  "utf8",
+);
+assert.match(altForgeChecklist, /CNS-NO-FORGE-MIRROR/);
+assert.match(altForgeChecklist, /FRAMAGIT-TIP-PACK-CHECKLIST/);
 const gitflic = SHELF_REGISTRY.find((s) => s.id === "plane-b-gitflic-ru-tip-pack");
 assert.equal(gitflic.status, "refused");
 assert.equal(gitflic.url, null);
@@ -245,6 +273,14 @@ assert.equal(
   shelves.registry.shelves.find((s) => s.id === "plane-b-framagit-tip-pack").url,
   null,
 );
+assert.equal(
+  shelves.registry.shelves.find((s) => s.id === "plane-b-framagit-tip-pack").refuse,
+  REFUSE.NO_FORGE,
+);
+assert.equal(
+  shelves.registry.shelves.find((s) => s.id === "plane-b-framagit-tip-pack").hash_verify,
+  null,
+);
 assert.equal(shelves.redline.spec, REDLINE_SPEC);
 assert.equal(shelves.redline.field, "redline");
 assert.equal(shelves.redline.cite, origin + "/cite.json");
@@ -294,6 +330,9 @@ assert.deepEqual(cite.shelves.archive_org_tip_packs, [
   "https://archive.org/details/aziel-lockset-tip_202609",
 ]);
 assert.equal(cite.shelves.plane_b.framagit.url, null);
+assert.equal(cite.shelves.plane_b.framagit.hash_verify, null);
+assert.equal(cite.shelves.plane_b.framagit.refuse, REFUSE.NO_FORGE);
+assert.equal(cite.shelves.plane_b.framagit.plane_b_refuse, REFUSE.PLANE_B_ALL_TARGETS);
 assert.deepEqual(cite.shelves.plane_b.working_targets, ["codeberg", "archive.org", "framagit"]);
 assert.equal(cite.shelves.redline.spec, REDLINE_SPEC);
 assert.equal(cite.shelves.cap7.design_of, "hub_designs");
@@ -339,6 +378,7 @@ assert.match(llms, /archive\.org\/details\/aziel-lockset-tip/);
 assert.match(llms, /aziel-lockset-tip_202609/);
 assert.match(llms, /same blast_radius/);
 assert.match(llms, /Framagit/);
+assert.match(llms, /CNS-NO-FORGE-MIRROR/);
 assert.match(llms, /CNS-GITFLIC-EMAIL/);
 assert.match(llms, /CNS-GITLAB-CF-LOOP/);
 assert.doesNotMatch(llms, /archive\.org \+ GitFlic URL null/);
@@ -356,6 +396,7 @@ assert.match(skill, /archive\.org\/details\/aziel-lockset-tip/);
 assert.match(skill, /aziel-lockset-tip_202609/);
 assert.match(skill, /same blast_radius/);
 assert.match(skill, /Framagit/);
+assert.match(skill, /CNS-NO-FORGE-MIRROR/);
 assert.match(skill, /CNS-GITFLIC-EMAIL/);
 assert.match(skill, /CNS-GITLAB-CF-LOOP/);
 assert.match(skill, /resolves_to_hub: false/);
@@ -391,5 +432,5 @@ assert.equal(shelvesCiteField(origin).redline.spec, REDLINE_SPEC);
 assert.equal(shelvesCiteField(origin).attack_sims.pointer, ATTACK_SIM_POINTER);
 
 console.log(
-  `ok ${COLD_MULTI_SHELF}: Plane A 5/2/1; Plane B Codeberg+archive.org PASS still SLOT (primary + 202609 same blast_radius); Framagit URL null; GitFlic/GitLab refused; doi null; Plane C SLOT; runtime not a shelf`,
+  `ok ${COLD_MULTI_SHELF}: Plane A 5/2/1; Plane B Codeberg+archive.org PASS still SLOT (primary + 202609 same blast_radius); Framagit URL null CNS-NO-FORGE-MIRROR; GitFlic/GitLab refused; doi null; Plane C SLOT; runtime not a shelf`,
 );
