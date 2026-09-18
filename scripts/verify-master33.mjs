@@ -169,6 +169,7 @@ assert.deepEqual(map.tab_placement_slugs, [
   "zkattest",
   "mmconsensus",
   "toolbench",
+  "azvpn",
 ]);
 assert.match(map.note, /placements/);
 assert.equal(MASTER_33_SLUGS.length, 33);

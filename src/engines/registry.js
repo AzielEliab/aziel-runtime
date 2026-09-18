@@ -44,6 +44,7 @@ import { AZCHAT_OPS, run as runAzchat } from "./azchat.js";
 import { ZKATTEST_OPS, run as runZkattest } from "./zkattest.js";
 import { MMCONSENSUS_OPS, run as runMmconsensus } from "./mmconsensus.js";
 import { TOOLBENCH_OPS, run as runToolbench } from "./toolbench.js";
+import { AZVPN_OPS, run as runAzvpn } from "./azvpn.js";
 
 /** Ops that cannot run as pure JS here (bindings / media / live store). Per-op proxy_fallback. */
 const PROXY_OPS = {
@@ -95,6 +96,7 @@ export const ENGINE_RUNNERS = {
   zkattest: { ops: ZKATTEST_OPS, run: runZkattest, source: "ZKAttest ZK-ATTEST-0.1 hash-commitment attest (not Groth16/SNARK; FragGate only)", module: "src/engines/zkattest.js" },
   mmconsensus: { ops: MMCONSENSUS_OPS, run: runMmconsensus, source: "MMConsensus MM-CONSENSUS-0.1 posted-opinion tally (adjacent to DecisionGATE; no live model calls)", module: "src/engines/mmconsensus.js" },
   toolbench: { ops: TOOLBENCH_OPS, run: runToolbench, source: "ToolBench TOOLBENCH-0.1 synthetic FragGate refuse playground (self-test ≠ third-party lab; not fielded-100)", module: "src/engines/toolbench.js" },
+  azvpn: { ops: AZVPN_OPS, run: runAzvpn, source: "AZVPN AZVPN-CONCENTRATOR-1.0 automatic HTTPS/WS concentrator (WireGuard/OpenVPN SLOT; FragGate only; auto_use true)", module: "src/engines/azvpn.js" },
 };
 
 export { ENGINE_ARTIFACTS, embeddedDigest, isTrueEngineSlug, trueEngineSlugs };

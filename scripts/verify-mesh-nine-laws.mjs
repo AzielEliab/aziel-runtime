@@ -121,8 +121,39 @@ function law8_auto_heal_operator_on(live) {
 function law9_anonymity_network_operator_flag(live) {
   assert.equal(live.anonymity_network, true);
   assert.equal(live.anonymity_network_note, ANONYMITY_NETWORK_NOTE);
-  assert.equal(live.vpn, false);
+  assert.equal(live.vpn, true);
+  assert.equal(live.public_vpn, true);
+  assert.equal(live.default_vpn_backend, "azvpn");
   assert.equal(live.origin_hiding, false);
+}
+
+function channel_plane_cites(live) {
+  assert.equal(live.vpn, true);
+  assert.equal(live.public_vpn, true);
+  assert.equal(live.origin_hiding, false);
+  assert.equal(live.wifi, "on");
+  assert.equal(live.bluetooth, "on");
+  assert.equal(live.rf, "on");
+  assert.equal(live.photon, "on");
+  assert.equal(live.channels.wifi, "on");
+  assert.equal(live.channels.bluetooth, "on");
+  assert.equal(live.channels.rf, "on");
+  assert.equal(live.channels.photon, "on");
+  assert.equal(live.channel_plane.spec, "QNM-CHANNEL-PLANE-1.0");
+  assert.equal(live.channel_plane.wifi, "on");
+  assert.equal(live.channel_plane.bluetooth, "on");
+  assert.equal(live.channel_plane.rf, "on");
+  assert.equal(live.channel_plane.photon, "on");
+  assert.equal(live.channel_plane.vpn, true);
+  assert.equal(live.channel_plane.concentrator_slug, "azvpn");
+  assert.equal(live.channel_plane.public_proxy, false);
+  assert.equal(live.channel_plane.worker_hardware, false);
+  assert.equal(live.channel_plane.invented_hardware, false);
+  assert.equal(live.channel_plane.bearer, "suite-presence");
+  assert.ok(Array.isArray(live.bearers));
+  assert.ok(live.bearers.includes("suite-presence"));
+  assert.match(live.channel_plane.note, /AZVPN|kernel UDP|not a kernel/);
+  assert.match(live.anonymity_network_note, /Not Tor/);
 }
 
 function operator_override_section(live) {
@@ -194,6 +225,7 @@ for (const live of [mesh.data, status.data]) {
   law7_node_gate_operator_on(live);
   law8_auto_heal_operator_on(live);
   law9_anonymity_network_operator_flag(live);
+  channel_plane_cites(live);
   operator_override_section(live);
   assert.equal(live.papers.node_mesh, NINE_LAW_PAPERS.node_mesh);
   assert.equal(live.papers.sec_feat, NINE_LAW_PAPERS.sec_feat);
@@ -281,10 +313,10 @@ assert.equal(implicit.ok, true, JSON.stringify(implicit));
 assert.equal(implicit.implicit_heal, true);
 
 const vpn = await runMeshOp("status", { vpn: true }, {});
-assert.equal(vpn.ok, false);
-assert.equal(vpn.code, NINE_LAW_REFUSE_CODES.anonymity);
-assert.equal(vpn.anonymity_network, true);
-assert.equal(vpn.vpn, false);
+assert.equal(vpn.ok, true, JSON.stringify(vpn));
+assert.equal(vpn.vpn, true);
+assert.equal(vpn.public_vpn, true);
+assert.equal(vpn.default_vpn_backend, "azvpn");
 
 const hide = await runMeshOp("broadcast", { sha256: "cd".repeat(32), origin_hiding: true }, {});
 assert.equal(hide.ok, false);
@@ -294,8 +326,11 @@ const stubHeal = await runMeshOp("heal", {}, {});
 assert.equal(stubHeal.ok, false);
 assert.equal(stubHeal.code, "MESH-STUB");
 const stubVpn = await runMeshOp("vpn", {}, {});
-assert.equal(stubVpn.ok, false);
-assert.equal(stubVpn.code, "MESH-STUB");
+assert.equal(stubVpn.ok, true, JSON.stringify(stubVpn));
+assert.equal(stubVpn.auto, true);
+assert.equal(stubVpn.connected, true);
+assert.equal(stubVpn.fake_connected, false);
+assert.equal(stubVpn.concentrator.slug, "azvpn");
 const stubGate = await runMeshOp("gate", {}, {});
 assert.equal(stubGate.ok, false);
 assert.equal(stubGate.code, "MESH-STUB");
@@ -325,6 +360,9 @@ assert.match(nodeMesh, /2026-09-17/);
 assert.match(nodeMesh, /clocks_share_socket/);
 assert.match(nodeMesh, /restore_godlock_uk/);
 assert.match(nodeMesh, /anonymity_network/);
+assert.match(nodeMesh, /Channel plane ≠ kernel VPN/);
+assert.match(nodeMesh, /pairing ≠ tunnel/i);
+assert.match(nodeMesh, /QNM-CHANNEL-PLANE-1\.0/);
 assert.match(nodeMesh, /MESH-NO-NEIGHBOR-HEAL/);
 assert.match(nodeMesh, /GodLock is a product name/);
 

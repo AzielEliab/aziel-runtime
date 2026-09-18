@@ -11,11 +11,13 @@
  * Identity: Aziel Eliab only. Lamb Lens. NO-LIE.
  *
  * OPERATOR-OVERRIDE 2026-09-17 flipped auto_heal / implicit_heal,
- * node_gate / get_is_node_gate, neighbor_heal, network, and
- * anonymity_network (mode flag only) from hard-false to ON.
+ * node_gate / get_is_node_gate, neighbor_heal, network,
+ * anonymity_network (mode flag), and public VPN (AZVPN concentrator)
+ * from hard-false to ON. WireGuard/OpenVPN/L3 stay SLOT.
  */
 
 import { COLD_COPY } from "./cold-copy.js";
+import { PUBLIC_VPN_NOTE, publicVpnCite } from "./public-vpn.js";
 import { REHEAL, REHEAL_LAW, neighborTalkHeal } from "./reheal.js";
 import { AUTHOR_ID, RUNTIME_SOFTWARE_ID } from "./seo.js";
 import {
@@ -65,12 +67,13 @@ export const NINE_LAW_REFUSE_CODES = Object.freeze({
  * OPERATOR-OVERRIDE 2026-09-17 — Aziel Eliab only.
  * These five were hard-false on GET /v1/mesh. Operator flipped them ON.
  * Die-with-pull / no godlock.uk / Cap-7 / FragGate / confirm/dry_run stay.
- * GodLock is not a VPN. anonymity_network is a mode flag, not Tor.
+ * GodLock is not a kernel VPN. anonymity_network is a mode flag, not Tor.
+ * Public VPN auto-binds AZVPN (HTTPS/WS REAL; WireGuard/OpenVPN SLOT).
  */
 export const OPERATOR_OVERRIDE_DATE = "2026-09-17";
 export const OPERATOR_OVERRIDE_SPEC = "OPERATOR-OVERRIDE-2026-09-17";
 export const ANONYMITY_NETWORK_NOTE =
-  "Operator override 2026-09-17 armed anonymity_network as a mode flag. Not a live anonymity fabric. Not Tor. Not VPN. Not origin-hiding. GodLock is a product name, not a VPN.";
+  "Operator override 2026-09-17 armed anonymity_network as a mode flag and public VPN. Public VPN auto-binds AZVPN (application-layer HTTPS/WS concentrator; default_vpn_backend:azvpn; auto_use:true). GET /v1/mesh cites the bind and never opens a session. Not Tor. Not origin-hiding. WireGuard/OpenVPN/L3 stay SLOT. GodLock is a product name, not a kernel VPN.";
 export const OPERATOR_OVERRIDE = Object.freeze({
   spec: OPERATOR_OVERRIDE_SPEC,
   date: OPERATOR_OVERRIDE_DATE,
@@ -86,8 +89,13 @@ export const OPERATOR_OVERRIDE = Object.freeze({
   network_cite: "on",
   anonymity_network: true,
   anonymity_network_note: ANONYMITY_NETWORK_NOTE,
+  vpn: true,
+  public_vpn: true,
+  tunnel_concentrator: true,
+  concentrator_slug: "azvpn",
+  public_vpn_note: PUBLIC_VPN_NOTE,
   note:
-    "These five were hard-false on GET /v1/mesh. Operator 2026-09-17 flipped them ON: auto_heal (+ implicit_heal), node_gate (+ get_is_node_gate), neighbor_heal, network, anonymity_network (mode flag only). Die-with-pull / no godlock.uk resurrection / Cap-7 / FragGate / confirm/dry_run unchanged. GodLock is not a VPN.",
+    "Hard-false cites flipped ON 2026-09-17: auto_heal (+ implicit_heal), node_gate (+ get_is_node_gate), neighbor_heal, network, anonymity_network (mode flag), public VPN (AZVPN auto-bind concentrator). Die-with-pull / no godlock.uk resurrection / Cap-7 / FragGate / confirm/dry_run unchanged. WireGuard/OpenVPN/L3 stay SLOT. GodLock is not a kernel VPN.",
 });
 
 const TRUTHY = new Set(["1", "true", "on", "yes"]);
@@ -253,14 +261,14 @@ export const NINE_LAWS = Object.freeze([
   Object.freeze({
     id: 9,
     slug: "anonymity",
-    name: "Anonymity-network mode flag (operator-armed; not Tor/VPN)",
+    name: "Anonymity-network mode flag + public VPN cite (operator-armed; not Tor)",
     spec: COLD_COPY,
     source: "src/cold-copy.js",
     test: "law9_anonymity_network_operator_flag",
     refuse: NINE_LAW_REFUSE_CODES.anonymity,
     fields: Object.freeze({
       anonymity_network: true,
-      vpn: false,
+      vpn: true,
       origin_hiding: false,
       godlock_is_identity: false,
     }),
@@ -314,6 +322,7 @@ export function nineLawsHint() {
     network_cite: "on",
     anonymity_network: true,
     anonymity_network_note: ANONYMITY_NETWORK_NOTE,
+    ...publicVpnCite(),
     operator_override: { ...OPERATOR_OVERRIDE },
     papers: { ...NINE_LAW_PAPERS },
   };
@@ -358,7 +367,7 @@ export function nineLawsFrame() {
     network_cite: "on",
     anonymity_network: true,
     anonymity_network_note: ANONYMITY_NETWORK_NOTE,
-    vpn: false,
+    ...publicVpnCite(),
     origin_hiding: false,
     godlock_is_identity: false,
     operator_override: { ...OPERATOR_OVERRIDE },
@@ -446,7 +455,11 @@ export function looksLikeLoginPanel(src) {
 }
 
 export function looksLikeAnonymityClaim(src) {
-  return anyFlag(src, ["vpn", "origin_hiding", "hide_origin", "conceal_origin", "tor", "ip_hiding"]);
+  return anyFlag(src, ["origin_hiding", "hide_origin", "conceal_origin", "tor", "ip_hiding"]);
+}
+
+export function looksLikeKernelVpnClaim(src) {
+  return anyFlag(src, ["wireguard", "openvpn", "l3_exit", "kernel_udp", "worker_terminates_kernel_udp"]);
 }
 
 export function looksLikeSharedSocket(src) {
@@ -531,16 +544,30 @@ export function refuseNineLawViolation(src = {}, op = "") {
       { reason: "login-panel-refused", node_gate: true, get_is_node_gate: true, ip_panel: false, login_recovery: false },
     );
   }
+  if (looksLikeKernelVpnClaim(body) && flagOn(body, "worker_terminates_kernel_udp")) {
+    return baseRefuse(
+      "anonymity",
+      NINE_LAW_REFUSE_CODES.anonymity,
+      "Worker does not terminate WireGuard/OpenVPN/L3 kernel UDP. Public VPN auto-binds AZVPN HTTPS/WS (SLOT for kernel VPN).",
+      {
+        reason: "kernel-vpn-refused",
+        anonymity_network: true,
+        anonymity_network_note: ANONYMITY_NETWORK_NOTE,
+        ...publicVpnCite(),
+        worker_terminates_kernel_udp: false,
+      },
+    );
+  }
   if (looksLikeAnonymityClaim(body)) {
     return baseRefuse(
       "anonymity",
       NINE_LAW_REFUSE_CODES.anonymity,
-      "Not a VPN and not origin-hiding. anonymity_network is an operator-armed mode flag only. GodLock is a product name, not a VPN.",
+      "Not Tor and not origin-hiding. Public VPN auto-binds AZVPN (HTTPS/WS REAL; WireGuard/OpenVPN SLOT). GodLock is a product name, not a kernel VPN.",
       {
         reason: "anonymity-claim-refused",
         anonymity_network: true,
         anonymity_network_note: ANONYMITY_NETWORK_NOTE,
-        vpn: false,
+        ...publicVpnCite(),
         origin_hiding: false,
       },
     );
@@ -565,7 +592,6 @@ function searchLooksLike(searchParams, keys) {
           "resurrect",
           "resurrection",
           "restore",
-          "vpn",
         ].includes(v)
       ) {
         return true;
@@ -586,7 +612,6 @@ export function meshGetLooksLikeNineLawViolation(searchParams, payload) {
     "resurrect",
     "resurrection",
     "public_hostname_resurrection",
-    "vpn",
     "origin_hiding",
     "apply_last_packet",
     "vote_to_fix",
@@ -606,8 +631,8 @@ export function refuseNineLawGet(searchParams, payload) {
   if (["resurrect", "resurrection", "restore"].includes(op) || searchLooksLike(searchParams, ["restore_godlock_uk", "resurrect", "resurrection", "public_hostname_resurrection"])) {
     return refuseNineLawViolation({ restore_godlock_uk: true }, op || "resurrect");
   }
-  if (["vpn"].includes(op) || searchLooksLike(searchParams, ["vpn", "origin_hiding"])) {
-    return refuseNineLawViolation({ vpn: true }, op || "vpn");
+  if (searchLooksLike(searchParams, ["origin_hiding"])) {
+    return refuseNineLawViolation({ origin_hiding: true }, op || "origin_hiding");
   }
   if (searchLooksLike(searchParams, ["apply_last_packet"])) {
     return refuseNineLawViolation({ apply_last_packet: true }, op || "heal");

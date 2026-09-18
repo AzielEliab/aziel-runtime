@@ -69,7 +69,8 @@ export const CHAIN_ROSTER = Object.freeze([
 export const FRAGGATE_CATALOG_ALLOWLIST =
   "allowlist.azhub LIVE_OPS: health, skill, region_list, place_module, remove_module, tether_declare, tether_cut, tether_list, blank_key_status, list_modules, place. " +
   "allowlist.azinterface LIVE_OPS: health, skill, genesis_status, site_state_get, site_state_set, integrity_check, witness_list, page_cycle_status, genesis_boot, hold. " +
-  "allowlist.azbrowser LIVE_OPS: ethical_search, lamb_lens_search, navigate, airlock_ingest, airlock, home, tab_open, tab_list, receipt_list, verify, receipt_verify, sandbox_status, sandbox_render, health, skill. " +
+  "allowlist.azbrowser LIVE_OPS: ethical_search, lamb_lens_search, navigate, airlock_ingest, airlock, home, tab_open, tab_list, receipt_list, verify, receipt_verify, sandbox_status, sandbox_render, health, skill, vpn. " +
+  "allowlist.azvpn LIVE_OPS: health, skill, doctor, limitation, describe, open, status, list, close, send, recv, pull, peers, attach. " +
   "allowlist.aznet LIVE_OPS: health, doctor, pair_status, pair, garden_list, stamp, verify_hash, memorial_list, memorial_append, receipt_verify, skill. " +
   "UI aliases forward to catalog ops. EmbryoLock LIVE_OPS health/skill/doctor/verify-hash/policy/limitation; wipe/scorch/unlock stay FG-STUB on the public mesh.";
 

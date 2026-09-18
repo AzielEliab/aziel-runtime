@@ -121,6 +121,29 @@ export function launchHashtagParts(product) {
       body: banner,
     });
   }
+  if (slug === "azvpn") {
+    const extras = [
+      {
+        tag: hashtag(slug, "concentrator"),
+        title: "AZVPN concentrator",
+        body: "Application-layer HTTPS/WS tunnel concentrator. Worker terminates those sessions. WireGuard/OpenVPN/L3 stay SLOT.",
+      },
+      {
+        tag: hashtag(slug, "session"),
+        title: "AZVPN session",
+        body: "open / status / close / list allocate session-scoped envelopes + receipts. Auto-bind reuses the default auto-backend peer.",
+      },
+      {
+        tag: hashtag(slug, "auto"),
+        title: "AZVPN auto-bind",
+        body: "default_vpn_backend azvpn; auto_use true. Mesh / AZNet pair / session / AZBrowser paths auto-select AZVPN. Callers do not name software=azvpn.",
+      },
+    ];
+    const have = new Set(parts.map((p) => p.tag));
+    for (const extra of extras) {
+      if (!have.has(extra.tag)) parts.push(extra);
+    }
+  }
   return parts;
 }
 

@@ -498,5 +498,6 @@ export function publicSession(session) {
     head_hash: session.head_hash,
     pending_intent: session.pending_intent,
     honesty: session.honesty,
+    ...(session.vpn_auto ? { vpn_auto: session.vpn_auto } : {}),
   };
 }
