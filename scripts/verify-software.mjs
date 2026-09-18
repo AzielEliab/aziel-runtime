@@ -1,5 +1,5 @@
 /**
- * Software catalog sort law + client update check.
+ * Software catalog sort law + client update check + THIS-IS / THIS-IS-NOT copy.
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
 import assert from "node:assert/strict";
@@ -8,6 +8,9 @@ import { RUNTIME_VERSION } from "../src/runtime-api.js";
 import { BUILD_GIT_SHA } from "../src/build-meta.js";
 import { embeddedDigest, trueEngineSlugs } from "../src/engines/digest.js";
 import { NAMED_STUBS } from "../src/fraggate/registry.js";
+import { SOFTWARE_COPY, softwareCopySlugs } from "../src/software-copy.js";
+import { executeLocal } from "../src/engines/runner.js";
+import { catalogExtraCards } from "../src/catalog-meta.js";
 import {
   SOFTWARE_FRAMING,
   SOFTWARE_SORT_LAW,
@@ -263,6 +266,61 @@ assert.match(fourdLine, /inspection frame/i);
 assert.match(fourdLine, /not an extra door/i);
 assert.doesNotMatch(fourdLine, /Domain Door/);
 
+assert.deepEqual(softwareCopySlugs().sort(), PRODUCTS.map((p) => p.slug).sort());
+assert.equal(body.software.length, softwareCopySlugs().length);
+assert.ok(
+  body.software.every((s) => String(s.one_line || "").trim().length > 0),
+  "every Softwares card has a non-empty one_line",
+);
+assert.ok(
+  body.software.every((s) => String(s.description || "").trim().length > 0),
+  "every Softwares card has a non-empty description",
+);
+assert.ok(
+  body.software.every((s) => /THIS IS:/i.test(s.one_line) && /THIS IS NOT:/i.test(s.one_line)),
+  "every one_line names THIS IS and THIS IS NOT",
+);
+assert.ok(
+  body.software.every((s) => /THIS IS:/i.test(s.description) && /THIS IS NOT:/i.test(s.description)),
+  "every description names THIS IS and THIS IS NOT",
+);
+assert.ok(body.software.every((s) => !/\b\b/.test(`${s.one_line} ${s.description}`)));
+assert.ok(body.software.every((s) => !/10\.\d{4,}\//.test(`${s.one_line} ${s.description}`)), "no invented DOI in copy");
+assert.ok(body.software.every((s) => !/are separate FragGate engines/i.test(s.description || "")));
+
+const REQUIRED_PHRASES = {
+  azos: [/Lumen/, /kernel/, /remote host shell/],
+  azai: [/foundation model/i],
+  azbot: [/foundation model/i],
+  azieltether: [/VPN/, /AZVPN/],
+  staticclock: [/Clock ≠ Lock|plain Clock/i, /Lock product/],
+  ark: [/EmbryoLock/, /kernel/],
+  "aziel-corpus": [/azcorpus \+ azlibrary/, /sister archive/i],
+  godlock: [/product name/, /Identity is Aziel Eliab only/, /Empty\/null submit refuses/],
+  azvpn: [/HTTPS\/WS REAL/, /WireGuard/, /SLOT/],
+  veillock: [/local_only/, /YOUR device/i],
+  embryolock: [/local-only/, /ARK/],
+  azinterface: [/Lumen/, /AZHub is sibling/],
+};
+for (const [slug, patterns] of Object.entries(REQUIRED_PHRASES)) {
+  const card = body.software.find((s) => s.slug === slug);
+  assert.ok(card, `${slug} catalog card`);
+  const hay = `${card.one_line} ${card.description}`;
+  for (const re of patterns) {
+    assert.match(hay, re, `${slug} must keep disambiguation ${re}`);
+  }
+}
+assert.equal(body.software.find((s) => s.slug === "veillock").local_only, true);
+assert.equal(body.software.find((s) => s.slug === "veillock").door, "none");
+assert.match(body.mesh.note, /worker_hardware:false/);
+assert.match(SOFTWARE_COPY.godlock.one_line, /Aziel Eliab only/);
+const extras = catalogExtraCards(origin);
+const meshExtra = extras.find((e) => e.slug === "mesh" || e.name === "Quantum Node Mesh" || /QNM/.test(e.one_line || ""));
+assert.ok(meshExtra, "mesh extras card exists");
+assert.match(meshExtra.one_line, /worker_hardware:false/);
+assert.match(meshExtra.one_line, /THIS IS NOT: a Softwares-tab product/);
+assert.ok(!body.software.some((s) => s.slug === "hedidntjump" || s.slug === "he-didnt-jump"));
+
 const azc = body.software.find((s) => s.slug === "azcoherence");
 assert.ok(azc.cross_map);
 assert.equal(azc.domain, null);
@@ -340,6 +398,14 @@ const openapi = await (await get("/openapi.json")).json();
 assert.ok(openapi.paths["/v1/software"]);
 assert.ok(openapi.paths["/v1/update/check"]);
 assert.ok(openapi.paths["/v1/update/manifest"]);
+
+for (const payload of [{}, { text: "" }, { text: "   " }, { text: null }]) {
+  const refused = await executeLocal({ slug: "godlock", op: "submit", payload, ranIn: "aziel-runtime" });
+  assert.equal(refused.status, 400, `godlock submit refuse ${JSON.stringify(payload)}`);
+  const refusedBody = JSON.parse(refused.responseText);
+  assert.equal(refusedBody.ok, false);
+  assert.ok(refusedBody.receipt == null, "empty/null GodLock submit mints no receipt");
+}
 
 console.log(
   `ok software catalog: ${body.software.length} entries, sort ${SOFTWARE_SORT_LAW}, update check foldlock 0.7.0→0.8.0`,

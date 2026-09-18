@@ -316,6 +316,7 @@ import {
   updateCheck,
   updateManifest,
 } from "./software-catalog.js";
+import { softwareDescription, softwareOneLine } from "./software-copy.js";
 import { crossMapFields } from "./cross-map.js";
 
 export { RuntimeSession, ChainWriter, RateQuota, TunnelHub };
@@ -1088,50 +1089,6 @@ const PRODUCTS_RAW = [
 ];
 
 
-const ONE_LINE = {
-  vibelock: "Physical-consistency evaluation of speech audio. Risk assessment, not a liveness proof.",
-  veillock: "Local camera/screen steps for YOUR device only. Not a call interceptor.",
-  codelock: "Canonical or Rosetta HTML view of source. Alters perception, not meaning.",
-  godlock: "Offline ABAD / hardening score. Not a VPN and not an anonymity network.",
-  shadowlock: "Zero-retention observation of a job list you already have. No OS hook.",
-  temporallock: "Hash-chained receipts + timeslate lattice. genesis, append, verify, timeslate, gate. Not a truth claim.",
-  forgereceipts: "Local receipt mint + verify / import_export. Not legal advice. Does not contact courts.",
-  decisiongate: "Five sequential gates (Definition, Evidence, Impact, Integrity, Responsibility). PASS/REVISE/BLOCK. wrap is not hosted.",
-  zsolver: "Nine ontology nodes (Zioncheck seed). Hard 75% cap. Does not solve cases.",
-  azos: "Read-only status / principles. Does not grant remote shell.",
-  glossafilter: "Render an intent across bundled peer ids. Human opinion remains human.",
-  miragegrid: "Ephemeral session node assignment plus Cap-7 name-metadata cite. Not a VPN, not ICANN, not a live registrar.",
-  staticclock: "Forward-only gear-click timeline + companion advisory. click, verify, timeslate. Not a rollback clock.",
-  chronolock: "Temporal Neutral Window advisory 08:30–10:30 local. Distinct from TemporalLock. Not a scheduler.",
-  postking: "Continuity chess. The goal is not to win. The goal is to remain.",
-  azclce: "Jaccard triple / pairwise / CLCE+. Detects inconsistency, not intent. AZCoherence is a separate peer reviewer.",
-  ark: "Mode E heuristics sweep. Not a kernel. Hosted never unlocks or stores vaults.",
-  azai: "Local OpenAI-compatible runtime. Not a new foundation model. Jeeves is not sovereign.",
-  spectrallock: "256px overlay preview (zero/tazel/vyrn/uv/rosetta/zen/chaos/balance). Not a spectrometer.",
-  azbot: "Skill, not a foundation model. Hosted /v1/skill returns markdown.",
-  employeelock: "Hash-chained accountability workbook. Not a court, not UL, not a truth score.",
-  foldlock: "Algorithmic tether-word suppression on UTF-8 text. Not zip.",
-  whistlelock: "Local drop ledger + dead-man copy. Not a mailer.",
-  trajectorylock: "Auditable geometric compatibility vs a declared line. Research prototype. Hosted never stores media.",
-  mialock: "M.I.A.Lock 0.1.1: event map + Doe matching + uncertainty ellipses + coverage heat. Doe leads ≠ ID. Heat ≠ presence. Author Aziel Eliab.",
-  azieltether: "AzielTether 0.1.0: central × decentral survival mesh for downloaded Aziel software. Prefer-central; peer sync when down; public HTTPS stays mesh-free. Not a VPN. Author Aziel Eliab.",
-  peacelock: "Chosen silence / chosen inaction as a first-class receipt (PL-WP-0.1).",
-  azmail: "AZMail (APP 1.0): advisory airlock + local isolate mailbox + anonymous mesh (default off). Not a full internet MTA. FragGate only.",
-  azbrowser: "AZBrowser (AZB-1.0): Lamb Lens ethical research browser. Cite; refuse harvest; no invented visits. FragGate only. pairs with AZNet (order/token). AZNet is a separate software (order/token pairing only).",
-  aznet: "AZNet (AZN-WP-0.1): silent verification side-net. Hash continuity without hosting. Separate software; functional-order pair with AZBrowser.",
-  azhub: "AZHub (AIH-WP-1.0): Blank Key / neutral spatial container. Does not interpret. FragGate only. AZInterface is sibling software under the same FragGate door.",
-  azinterface: "AZInterface (AIH-WP-1.0): custodial operating environment. Pre-locked page cycles OFF/integrity/ON/FULL SHUTDOWN/MEMORIAL. FragGate only. AZHub is sibling software under the same FragGate door.",
-  "aziel-corpus": "Self-contained immutable digital library. Public MASTER. Mesh-resident website designs azcorpus + azlibrary downloadable to nodes. Not a 26-card index.",
-  "4dmap": "4DMap (4DM-WP-1.0): four-axis inspection frame T/Δ/Γ/Π. Inspection frame after AZPIPE, not an extra door (domains_are_doors:false). FragGate only.",
-  azcoherence: "AZCoherence: second-pass triad coherence review (primary vs alternate → PASS/FLAG/NEUTRALIZE/REFUSE). Never invents evidence. Confidence ≠ truth. Not AKM-TRIAD. Peer AZ-CLCE is a separate product.",
-  embryolock: "Offline destructive-over-recovery vault. Cite live on FragGate; wipe/unlock stay local-only. Never execute on the public mesh.",
-  azchat: "AZChat: spendable handles, ephemeral rooms, agent bus. Mesh hop default off. Not SMTP. Not AZMail. FragGate only.",
-  zkattest: "ZKAttest: hash-commitment attest without returning the witness. Not Groth16/SNARK. FragGate only.",
-  mmconsensus: "MMConsensus: structured consensus over posted opinions. Adjacent to DecisionGATE. No live model calls. FragGate only.",
-  toolbench: "ToolBench: synthetic FragGate refuse playground. Self-test ≠ third-party lab. Not . FragGate only.",
-  azvpn: "AZVPN: automatic public VPN concentrator. HTTPS/FragGate envelopes REAL. WireGuard/OpenVPN/L3 SLOT. default_vpn_backend azvpn; auto_use true. FragGate only. Separate from AZNet and AZBrowser.",
-};
-
 function ensureCatalogOps(p) {
   const have = new Set((p.ops || []).map((o) => o.op));
   const ops = [];
@@ -1156,9 +1113,10 @@ function ensureCatalogOps(p) {
 export const PRODUCTS = PRODUCTS_RAW.map((p) => ({
   ...p,
   version: VERSIONS[p.slug] || p.version || null,
-  oneLine: ONE_LINE[p.slug] || p.name,
+  oneLine: softwareOneLine(p.slug, p.name),
+  description: softwareDescription(p.slug, p),
   doi: DOI_BY_SLUG[p.slug] || null,
-  banner: p.banner || ONE_LINE[p.slug] || p.name,
+  banner: p.banner || softwareDescription(p.slug, p),
   ops: ensureCatalogOps(p),
 }));
 
