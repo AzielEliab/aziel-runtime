@@ -1,10 +1,9 @@
 /**
- * BAN-SURVIVAL-1.0 — live multi-front door survival.
+ * BAN-SURVIVAL-1.0 — mutual backup: live multi-front ↔ cold shelves.
  *
- * One banned hostname or blocked exec path does not kill the runtime.
- * workers.dev + custom-domain hub /runtime + path quarantine.
- * Client door list = LIVE doors only. Never invent a live door.
- * Never claim shelves saved you. Cold shelves are a neighbor cite, not failover.
+ * Live fronts back up cold-shelf death. Cold shelves back up death-by-ban.
+ * Keep both. Client door list = LIVE doors only. Shelves are the later backup,
+ * not /mcp. Live-node API is SLOT (no open proxy to the QNM roster).
  *
  * Not a Softwares-tab product. Not a FragGate slug. Not a new MCP tool.
  * Author: Aziel Eliab only.
@@ -14,7 +13,7 @@ import { AUTHOR_ID, AUTHOR_NAME, LIBRARY_FRONT_DOOR, LIBRARY_ORIGIN, RUNTIME_GIT
 import { CROSS_NETWORK_SURVIVAL, SURVIVAL_TIP } from "./cross-network-survival.js";
 import { NO_LIE_SPEC } from "./no-lie.js";
 
-/** Existing CNS / shelf cite — neighbor only. Not a live door. Not failover. */
+/** CNS / shelf cite — death-by-ban backup. Not a live exec door. */
 export const COLD_MULTI_SHELF = "COLD-MULTI-SHELF-1.0";
 export const LOCKSET_TIP = "c831429befc221bd41caeb0a6d1c5361602db5684abab7af6d39714084b6b245";
 export const CORPUS_SHELVES = `${LIBRARY_ORIGIN}/shelves`;
@@ -31,10 +30,10 @@ export const PRIMARY_WORKER_ORIGIN = "https://aziel-runtime.vibelock.workers.dev
 export const GODLOCK_RUNTIME = "https://godlock.uk/runtime";
 
 export const BAN_SURVIVAL_RULE =
-  "One banned hostname or blocked exec path does not kill the runtime for clients. Live multi-front: workers.dev + custom-domain hub /runtime proxies + path quarantine. Client door list = LIVE doors only. Never invent a live door. Never claim shelves saved you.";
+  "Survive survive survive — grow. Live multi-front and cold shelves back each other up. One banned door is not last tip gone. One dead shelf is not last live door gone. Client door list = LIVE doors only. Never invent a live door. Never lie to survive.";
 
 export const BAN_SURVIVAL_TIP =
-  "BAN-SURVIVAL-1.0: one banned door is not the runtime gone — try the next LIVE named front (workers.dev → custom-domain /runtime). Never invent a live door. Never claim a banned host is LIVE. Never claim shelves saved you.";
+  "BAN-SURVIVAL-1.0: one banned door is not last tip gone — try the next LIVE named front, then remaining LIVE paths, then cold-shelf tip-hash. One dead shelf is not last door gone — keep the named fronts. Never invent a live door. Never claim a banned host is LIVE.";
 
 export const REFUSE = Object.freeze({
   NO_LIE: "BAN-NO-LIE",
@@ -43,7 +42,10 @@ export const REFUSE = Object.freeze({
   NO_RESURRECT: "BAN-NO-RESURRECT",
   NO_LLM_REPLICA: "BAN-NO-LLM-REPLICA",
   NO_FAN: "BAN-NO-FAN",
-  NO_SHELF_FAILOVER: "BAN-NO-SHELF-FAILOVER",
+  NO_SHELF_ONLY: "BAN-NO-SHELF-ONLY",
+  NO_SHELF_FAILOVER: "BAN-NO-SHELF-ONLY",
+  NO_DOOR_ONLY: "BAN-NO-DOOR-ONLY",
+  NO_OPEN_NODE_PROXY: "BAN-NO-OPEN-NODE-PROXY",
   ROUTE_BLOCKED: "BAN-ROUTE-BLOCKED",
   EXEC_QUARANTINE: "BAN-EXEC-QUARANTINE",
 });
@@ -167,10 +169,11 @@ export const NAMED_ROUTES = Object.freeze([
   }),
 ]);
 
-/** Existing CNS shelf cite. Neighbor only — not a live door, not failover. */
-export const NEIGHBOR_SHELF_CITE = Object.freeze({
-  failover: false,
-  shelves_are_not_failover: true,
+/** Cold-shelf backup for death-by-ban. Not a live exec door. Not the only answer. */
+export const SHELF_BACKUP = Object.freeze({
+  role: "death-by-ban-backup",
+  is_live_door: false,
+  mutual_backup: true,
   github: RUNTIME_GITHUB,
   paper: `https://github.com/AzielEliab/aziel-runtime/blob/main/${BAN_SURVIVAL_DOCS}`,
   client_update: "https://github.com/AzielEliab/aziel-runtime/blob/main/docs/CLIENT_UPDATE.md",
@@ -184,23 +187,44 @@ export const NEIGHBOR_SHELF_CITE = Object.freeze({
     pack_sha256: TIP_PACK_SHA256,
     hash_verify: "pass",
     live_ready: false,
-    note: "Existing COLD-MULTI-SHELF cite. Hash-verify PASS still SLOT. Not a live door. Not ban-survival failover.",
+    note: "COLD-MULTI-SHELF cite. Hash-verify PASS still SLOT. Backup for death-by-ban. Not /mcp.",
   }),
   plane_c: Object.freeze({
     status: "slot",
-    note: "USB airgap SLOT until CNS-OPERATOR-ATTEST. Not a live door. Not ban-survival failover.",
+    note: "USB airgap SLOT until CNS-OPERATOR-ATTEST. Backup for death-by-ban. Not /mcp.",
   }),
-  note: "Shelves already exist as CNS. They do not keep LLM/MCP/OpenAPI clients alive. BAN-NO-SHELF-FAILOVER.",
+  note: "Cold shelves back up death-by-ban. Live fronts back up shelf death. Keep both. BAN-NO-SHELF-ONLY / BAN-NO-DOOR-ONLY.",
 });
 
-/** @deprecated neighbor cite only — do not use as client failover */
-export const COLD_FALLBACK = NEIGHBOR_SHELF_CITE;
+export const NEIGHBOR_SHELF_CITE = SHELF_BACKUP;
+export const COLD_FALLBACK = SHELF_BACKUP;
+
+/** Live-node-as-API. Roster is presence, not exec. SLOT until attest. */
+export const LIVE_NODE_API = Object.freeze({
+  status: "slot",
+  code: "BAN-NODE-API-NOT-ATTESTED",
+  refuse: REFUSE.NO_OPEN_NODE_PROXY,
+  exec: false,
+  is_live_door: false,
+  mesh_live_nodes_are_api: false,
+  note:
+    "QNM live_nodes is mesh size (presence). Nodes do not publish exec URLs. Product Workers proxy /v1/mesh/* only — not /mcp. No submesh/subpipe exec hop. Open proxy to random nodes is refused.",
+  secure_path: Object.freeze([
+    "named origin only (no unmarked hydra)",
+    "FragGate is the only exec path (/mcp or /v1/fraggate/call)",
+    "engine_digest + ChainLock / ForgeReceipts attest of that origin",
+    "same Lamb Lens → SweepGate → Sentinel hop — no side door",
+  ]),
+  handoff: "Follow-on (not this PR): security audit → attest named node origins → rescan → then consider LIVE.",
+});
 
 export const CLIENT_ORDER = Object.freeze([
   "try primary workers.dev exec (POST /mcp or POST /v1/fraggate/call)",
   "if hostname or exec path blocked: try the next LIVE custom-domain hub /runtime (library, author, godlock — same FragGate door, service binding)",
   "if one exec path is quarantined: remaining LIVE exec paths on remaining LIVE fronts still run",
-  "if exec is gone on a front: remaining LIVE read surfaces on remaining LIVE fronts still publish this door map (honest DEGRADED for that front). Cold shelves are not a live door.",
+  "if exec is gone on a front: remaining LIVE read surfaces on remaining LIVE fronts still publish this door map (honest DEGRADED for that front)",
+  "if every named live front is gone (death-by-ban): verify lockset tip on GitHub / /shelves / Codeberg + archive.org SLOT packs — shelf backup, not a live door",
+  "vice versa: if a shelf or alt-forge dies, keep the LIVE named fronts — live multi-front is the backup for cold-shelf death",
 ]);
 
 function normPath(pathname) {
@@ -355,7 +379,7 @@ export function judgeBannedHostLive(input) {
       action: "refuse",
       reason: REFUSE.NO_LIE,
       mode: "DEGRADED",
-      note: "Never claim a banned host is LIVE. Prefer honest DEGRADED + the next LIVE front.",
+      note: "Never claim a banned host is LIVE. Prefer honest DEGRADED + the next LIVE front, then the shelf backup.",
     };
   }
   return { accept: true, action: "ok", mode: src.mode || "LIVE" };
@@ -419,26 +443,67 @@ export function judgeInventedLiveShelf(input) {
   return { accept: true, action: "ok", plane_b: "slot", plane_c: "slot", doi: null };
 }
 
-export function judgeShelfFailover(input) {
+export function judgeShelfOnly(input) {
   const src = input && typeof input === "object" ? input : {};
   if (
-    src.shelves_saved_you === true ||
-    src.cold_shelf_is_failover === true ||
-    src.failover_to_plane_b === true ||
-    src.failover_to_archive === true ||
-    src.failover_to_tip_pack === true ||
-    src.plane_b_is_ban_survival === true ||
-    src.tip_pack_is_live_door === true
+    src.shelf_is_live_door === true ||
+    src.tip_pack_is_live_door === true ||
+    src.plane_b_is_live_exec === true ||
+    src.archive_is_mcp === true
   ) {
     return {
       accept: false,
       action: "refuse",
-      reason: REFUSE.NO_SHELF_FAILOVER,
-      shelves_are_not_failover: true,
-      note: "Cold shelves / tip-packs / archive.org are not a live door. They do not keep LLM/MCP/OpenAPI clients alive.",
+      reason: REFUSE.NO_SHELF_ONLY,
+      is_live_door: false,
+      note: "Cold shelves back up death-by-ban. They are not /mcp and not the only answer.",
     };
   }
-  return { accept: true, action: "ok", shelves_are_not_failover: true };
+  return { accept: true, action: "ok", is_live_door: false, mutual_backup: true };
+}
+
+/** @deprecated name — shelves are not a live exec door */
+export function judgeShelfFailover(input) {
+  return judgeShelfOnly(input);
+}
+
+export function judgeDoorOnly(input) {
+  const src = input && typeof input === "object" ? input : {};
+  if (
+    src.shelves_failed_plan === true ||
+    src.drop_shelves === true ||
+    src.live_doors_only_answer === true ||
+    src.drop_mutual_backup === true
+  ) {
+    return {
+      accept: false,
+      action: "refuse",
+      reason: REFUSE.NO_DOOR_ONLY,
+      mutual_backup: true,
+      note: "Do not drop shelves. Live multi-front is not the only answer. They back each other up.",
+    };
+  }
+  return { accept: true, action: "ok", mutual_backup: true };
+}
+
+export function judgeOpenNodeProxy(input) {
+  const src = input && typeof input === "object" ? input : {};
+  if (
+    src.open_node_proxy === true ||
+    src.unattested_node_api === true ||
+    src.live_nodes_are_api === true ||
+    src.submesh_exec === true ||
+    src.random_node_as_door === true
+  ) {
+    return {
+      accept: false,
+      action: "refuse",
+      reason: REFUSE.NO_OPEN_NODE_PROXY,
+      live_node_api: "slot",
+      note: "QNM roster is presence, not an API. No open proxy to random nodes. SLOT until named FragGate origin + digest/receipt attest.",
+    };
+  }
+  return { accept: true, action: "ok", live_node_api: "slot" };
 }
 
 export function judgeHostnameResurrection(input) {
@@ -473,7 +538,9 @@ export function applyBanSurvival(input) {
     judgeUnmarkedHydra(input),
     judgeSecondDoor(input),
     judgeInventedLiveShelf(input),
-    judgeShelfFailover(input),
+    judgeShelfOnly(input),
+    judgeDoorOnly(input),
+    judgeOpenNodeProxy(input),
     judgeHostnameResurrection(input),
     judgeLlmReplica(input),
   ];
@@ -496,12 +563,38 @@ export function blockedRouteRefuse(row, origin, env) {
     door: "fraggate",
     second_door: false,
     lie_to_survive: false,
-    shelves_are_not_failover: true,
+    mutual_backup: true,
+    shelves_are_not_a_live_door: true,
     route: row || null,
     origin: String(origin || "").replace(/\/$/, "") || null,
     message:
-      "This named exec route is operator-quarantined (honest DEGRADED). Try the next LIVE custom-domain /runtime. Never invent a live door. Never claim shelves saved you.",
+      "This named exec route is operator-quarantined (honest DEGRADED). Try the next LIVE custom-domain /runtime. If every live front is gone, use the shelf backup (tip-hash). Never invent a live door.",
     failover: failoverCite(origin, env),
+  };
+}
+
+export function shelfBackupCite() {
+  return {
+    role: SHELF_BACKUP.role,
+    is_live_door: false,
+    shelves: SHELF_BACKUP.shelves,
+    lockset_tip: SHELF_BACKUP.lockset_tip,
+    plane_b: "slot",
+    plane_c: "slot",
+    note: SHELF_BACKUP.note,
+  };
+}
+
+export function liveNodeApiCite() {
+  return {
+    status: LIVE_NODE_API.status,
+    code: LIVE_NODE_API.code,
+    refuse: LIVE_NODE_API.refuse,
+    exec: false,
+    mesh_live_nodes_are_api: false,
+    note: LIVE_NODE_API.note,
+    secure_path: LIVE_NODE_API.secure_path.slice(),
+    handoff: LIVE_NODE_API.handoff,
   };
 }
 
@@ -516,7 +609,10 @@ export function failoverCite(origin, env) {
     exec_origins: live.slice(),
     next: nextExecOrigin(origin, {}, env),
     read: MAP_PATHS.slice(),
-    shelves_are_not_failover: true,
+    mutual_backup: true,
+    shelves_are_not_a_live_door: true,
+    shelf_backup: shelfBackupCite(),
+    live_node_api: liveNodeApiCite(),
     lie_to_survive: false,
     second_door: false,
     unmarked_hydra: false,
@@ -536,7 +632,7 @@ export function rateLimitFailoverCite(decision, origin, env) {
       limit: decision && decision.limit,
       retry_after: decision && decision.retry_after,
       enforcement: (decision && decision.enforcement) || "isolate",
-      note: "Honest capacity. Do not retry-storm this door. Try the next LIVE named front or wait Retry-After. Shelves are not a live door.",
+      note: "Honest capacity. Do not retry-storm this door. Try the next LIVE named front or wait Retry-After. Shelves are the later death-by-ban backup, not the 429 hop.",
     },
   };
 }
@@ -590,7 +686,10 @@ export function survivalDoc(origin, env) {
     independent: false,
     blast_radius: "cf-github",
     runtime_is_shelf: false,
-    shelves_are_not_failover: true,
+    mutual_backup: true,
+    shelves_are_not_a_live_door: true,
+    shelves_backup_for: "death-by-ban",
+    live_doors_backup_for: "cold-shelf-death",
     software_tab: false,
     fraggate_slug: false,
     door: "fraggate",
@@ -601,14 +700,12 @@ export function survivalDoc(origin, env) {
     exec_paths: EXEC_PATHS.slice(),
     read_paths: MAP_PATHS.slice(),
     client_order: CLIENT_ORDER.slice(),
-    neighbor_shelf_cite: {
-      failover: false,
-      shelves: NEIGHBOR_SHELF_CITE.shelves,
-      lockset_tip: NEIGHBOR_SHELF_CITE.lockset_tip,
-      plane_b: "slot",
-      plane_c: "slot",
-      note: NEIGHBOR_SHELF_CITE.note,
+    shelf_backup: {
+      ...shelfBackupCite(),
+      plane_b: { ...SHELF_BACKUP.plane_b },
+      plane_c: { ...SHELF_BACKUP.plane_c },
     },
+    live_node_api: liveNodeApiCite(),
     cite: base ? `${base}/cite.json` : "/cite.json",
     llms: base ? `${base}/llms.txt` : "/llms.txt",
     paper: BAN_SURVIVAL_DOCS,
@@ -618,8 +715,8 @@ export function survivalDoc(origin, env) {
     note:
       "Hub /runtime is the same FragGate door via service binding (survives a workers.dev hostname ban). " +
       "Same Plane A tunnel — not four independent blast-radius doors. They are four named live fronts. " +
-      "Client door list = LIVE only. Cold shelves are a neighbor cite, not failover. " +
-      "Never claim a banned host is LIVE. Never claim shelves saved you.",
+      "Client door list = LIVE only. Cold shelves back up death-by-ban. Live fronts back up shelf death. " +
+      "Live-node API is SLOT (no open proxy). Never claim a banned host is LIVE.",
   };
 }
 
@@ -650,14 +747,12 @@ export function survivalCiteField(origin, env) {
     client_order: CLIENT_ORDER.slice(),
     exec_paths: EXEC_PATHS.slice(),
     read_paths: MAP_PATHS.slice(),
-    shelves_are_not_failover: true,
-    neighbor_shelf_cite: {
-      failover: false,
-      shelves: NEIGHBOR_SHELF_CITE.shelves,
-      lockset_tip: NEIGHBOR_SHELF_CITE.lockset_tip,
-      plane_b: "slot",
-      plane_c: "slot",
-    },
+    mutual_backup: true,
+    shelves_are_not_a_live_door: true,
+    shelves_backup_for: "death-by-ban",
+    live_doors_backup_for: "cold-shelf-death",
+    shelf_backup: shelfBackupCite(),
+    live_node_api: liveNodeApiCite(),
     lie_to_survive: false,
     second_door: false,
     unmarked_hydra: false,
@@ -678,14 +773,15 @@ export function survivalLlmsBlock(origin, env) {
     "",
     BAN_SURVIVAL_RULE,
     "",
-    `Umbrella: ${CROSS_NETWORK_SURVIVAL}. NO-LIE / NO-REWRITE: never claim a banned host is LIVE. Never claim shelves saved you.`,
+    `Umbrella: ${CROSS_NETWORK_SURVIVAL}. NO-LIE / NO-REWRITE: never claim a banned host is LIVE.`,
     `Person @id: ${AUTHOR_ID}. No visible 15:20 chrome.`,
     `Machine map: ${cite.survival} · ${cite.survival_json} · aliases ${cite.doors} ${cite.failover}`,
     `LIVE exec origins (same Plane A tunnel, not independent shelves): ${cite.exec_origins.join(" · ")}`,
-    "Client order: workers.dev exec → next LIVE custom-domain /runtime (library, author, godlock) → remaining LIVE exec paths → remaining LIVE read surfaces that republish this map.",
+    "Mutual backup: live multi-front backs up cold-shelf death; cold shelves back up death-by-ban. Keep both.",
+    "Client order: workers.dev exec → next LIVE custom-domain /runtime → remaining LIVE exec/read paths → shelf tip-hash if every live front is gone.",
     "Hub /runtime is the same FragGate door — not a second door and not a sixth shelf.",
-    "Cold shelves / tip-packs / archive.org are a neighbor CNS cite, not a live door, not failover.",
-    "429 on /mcp or FragGate includes the next LIVE front. Do not retry-storm the same path.",
+    "Live-node API is SLOT (QNM roster is presence, not exec). No open proxy to random nodes.",
+    "429 on /mcp or FragGate includes the next LIVE front first. Do not retry-storm the same path.",
     "",
   ].join("\n");
 }
@@ -696,14 +792,16 @@ export function survivalSkillMarkdown(origin, env) {
 
 ${BAN_SURVIVAL_RULE}
 
-Machine map: \`GET ${cite.survival}\` / \`GET ${cite.survival_json}\` (aliases \`/doors\` \`/failover\`). Person \`@id\` ${AUTHOR_ID}. Door list = LIVE only.
+Machine map: \`GET ${cite.survival}\` / \`GET ${cite.survival_json}\` (aliases \`/doors\` \`/failover\`). Person \`@id\` ${AUTHOR_ID}. Door list = LIVE only. Mutual backup with cold shelves.
 
 1. Try \`${PRIMARY_WORKER_ORIGIN}/mcp\` (or \`POST /v1/fraggate/call\`).
 2. If that hostname or exec path is blocked: try named LIVE hub \`/runtime\` — \`${LIBRARY_FRONT_DOOR}\`, \`${RUNTIME_HUB_URL}\`, \`${GODLOCK_RUNTIME}\` (custom domain + service binding; same FragGate door).
 3. If one exec path is quarantined: remaining LIVE exec paths on remaining LIVE fronts still run.
 4. If exec is gone on a front: remaining LIVE read surfaces (\`/survival\` \`/cite.json\` \`/llms.txt\` \`/v1/health\`) still publish this map. Mode **DEGRADED** on the banned front.
+5. If every named live front is gone: verify lockset tip on GitHub / \`/shelves\` / Codeberg + archive.org SLOT packs (shelf backup, not \`/mcp\`).
+6. Vice versa: if a shelf or forge dies, keep the LIVE named fronts.
 
-Never invent a live door. Never claim a banned host is LIVE. Never claim shelves saved you. No new MCP tool. FragGate stays THE door.
+Live-node API is SLOT (no open proxy to the QNM roster). Never invent a live door. Never claim a banned host is LIVE. No new MCP tool. FragGate stays THE door.
 `;
 }
 

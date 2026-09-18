@@ -97,9 +97,10 @@ Always send `User-Agent: Mozilla/5.0`.
 
 ## Ban / blocked-endpoint failover (BAN-SURVIVAL-1.0)
 
-If `workers.dev` or `POST /mcp` is banned or blocked, do **not** invent a
-live door, do **not** claim the banned host is still LIVE, and do **not**
-treat cold shelves / tip-packs as a live door. Door list = **LIVE only**.
+Live multi-front and cold shelves **back each other up**. Do not invent a
+live door. Do not claim a banned host is still LIVE. Do not treat a
+tip-pack as `/mcp`. Do not drop either backup. Door list = **LIVE only**;
+shelves stay on the map as the death-by-ban backup.
 
 1. Try the primary Worker: `https://aziel-runtime.vibelock.workers.dev`
    (`POST /mcp` or `POST /v1/fraggate/call`).
@@ -114,12 +115,19 @@ treat cold shelves / tip-packs as a live door. Door list = **LIVE only**.
 4. If exec is gone on a front: remaining LIVE read surfaces on remaining
    LIVE fronts still publish the door map (`GET /survival`, `/cite.json`,
    `/llms.txt`, `/v1/software`, `/v1/health`). Mode on the banned front is
-   **DEGRADED**. Cold shelves are a neighbor CNS cite — they do not keep
-   LLM/MCP/OpenAPI clients alive.
+   **DEGRADED**.
+5. If every named live front is gone (death-by-ban): verify the lockset
+   tip on GitHub / corpus `/shelves` / Codeberg + archive.org SLOT packs.
+   That is the **shelf backup**, not a live door.
+6. Vice versa: if a shelf or alt-forge dies, keep the LIVE named fronts.
+
+Live-node API (other mesh nodes as `/mcp`) is **SLOT** until a node
+publishes an attested named FragGate origin. Do not treat `GET /v1/mesh`
+`live_nodes` as an API roster.
 
 Machine map: `GET /survival` (aliases `/v1/survival`, `/doors`, `/failover`).
 `live_doors` / `exec_origins` omit blocked fronts. Stdio MCP
-(`cli/mcp-stdio.mjs`) follows that order unless `--url` is pinned
+(`cli/mcp-stdio.mjs`) follows the live-front order unless `--url` is pinned
 or `AZIEL_RUNTIME_FAILOVER=0`.
 
 Agent exec is still FragGate: `fraggate_list` → `fraggate_describe` →

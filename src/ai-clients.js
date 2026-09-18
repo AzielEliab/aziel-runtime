@@ -111,7 +111,7 @@ Practical pull + call (do not invent steps for every crawler):
 - **Upload / ingest / receipt** — \`fraggate_call\` (azbrowser \`airlock_ingest\`, peacelock \`upload_envelope\`, forgereceipts \`verify\`, miragegrid \`verify-receipt\` / \`bridge\`). Same ops on OpenAPI as proxy paths. **azlibrary upload** is API token only — never embed the secret.
 - **Cap-7 names** — \`GET ${host}/v1/mesh/az-generator\` or MirageGrid \`bridge\`. Inherit hub designs only (azcorpus + azlibrary on the library hub). \`resolves_to_hub: false\`. \`name_may_change: true\`. Not ICANN aliases.
 - **Shelves** — \`GET ${host}/shelves\` cites COLD-MULTI-SHELF-1.0 matching corpus \`/shelves\` (Plane A 5/2/1; Plane B SLOT; Plane C USB SLOT; doi null).
-- **Ban survival** — \`GET ${host}/survival\` cites BAN-SURVIVAL-1.0. If \`/mcp\` or workers.dev is blocked: try the next LIVE custom-domain hub \`/runtime\` (same FragGate door). Door list = LIVE only. Never invent a live door. Never claim shelves saved you.
+- **Ban survival** — \`GET ${host}/survival\` cites BAN-SURVIVAL-1.0. Live multi-front and cold shelves back each other up. If \`/mcp\` or workers.dev is blocked: try the next LIVE custom-domain hub \`/runtime\`. If every live front is gone: shelf tip-hash. Live-node API is SLOT. Never invent a live door.
 
 MCP is a **thin FragGate door**: pipeline \`fraggate_list\` → \`fraggate_describe\` → \`fraggate_call\`, plus \`runtime_skill\`, \`fraggate_verify\`, \`decisiongate_check\`, \`library_lookup\`, suite \`mesh_*\`, and catalog helpers \`runtime_software\` (\`GET /v1/software\`) / \`runtime_bundle\` / \`runtime_pull\`. Advanced/internal: \`runtime_run\`, \`runtime_manifest\`, \`runtime_session_*\`. Flat \`{slug}_{op}\` names are **not** listed. Prefer FragGate, \`GET /v1/software\`, and \`POST /mcp\`. Public, no OAuth.
 `;
@@ -138,7 +138,7 @@ ${compatibleClientsHtmlItems()}
     <li><strong>Upload / ingest / receipt</strong> — <code>fraggate_call</code> (azbrowser <code>airlock_ingest</code>, peacelock <code>upload_envelope</code>, forgereceipts <code>verify</code>, miragegrid <code>verify-receipt</code> / <code>bridge</code>). <strong>azlibrary upload</strong> is API token only — never embed the secret.</li>
     <li><strong>Cap-7 names</strong> — <code>GET ${host}/v1/mesh/az-generator</code> or MirageGrid <code>bridge</code>. Inherit hub designs only (azcorpus + azlibrary). <code>resolves_to_hub: false</code>. <code>name_may_change: true</code>. Not ICANN aliases.</li>
     <li><strong>Shelves</strong> — <code>GET ${host}/shelves</code> cites COLD-MULTI-SHELF-1.0 matching corpus <code>/shelves</code> (Plane A 5/2/1; Plane B SLOT; Plane C USB SLOT; doi null).</li>
-    <li><strong>Ban survival</strong> — <code>GET ${host}/survival</code> cites BAN-SURVIVAL-1.0. If <code>/mcp</code> or workers.dev is blocked: try the next LIVE custom-domain hub <code>/runtime</code>. Door list = LIVE only. Never invent a live door. Never claim shelves saved you.</li>
+    <li><strong>Ban survival</strong> — <code>GET ${host}/survival</code> cites BAN-SURVIVAL-1.0. Live multi-front and cold shelves back each other up. If <code>/mcp</code> or workers.dev is blocked: try the next LIVE custom-domain hub <code>/runtime</code>. Live-node API is SLOT. Never invent a live door.</li>
   </ul>`;
 }
 
