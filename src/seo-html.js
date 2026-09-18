@@ -41,6 +41,8 @@ import {
 import { distributionDoorsHtml } from "./ai-clients.js";
 import { aboutAzielStripHtml, workerLaunchHtml } from "./about-aziel.js";
 import { launchHashtagChipsHtml } from "./launch-parts.js";
+import { useInBrowserHref } from "./human-hrefs.js";
+import { suiteDownloadHtml } from "./suite-pack.js";
 
 export const SOFTWARE_PAGE_TITLE = `Softwares — ${PRODUCT_NAME}`;
 export const SOFTWARE_PAGE_DESCRIPTION =
@@ -362,7 +364,7 @@ export function softwareCatalogHtml(origin, catalog, css) {
         ? ` · <a href="${escapeHtml(s.worker_home)}">Worker</a>`
         : "";
       const gh = s.github ? ` · <a href="${escapeHtml(s.github)}">GitHub</a>` : "";
-      const use = ` · <a href="${escapeHtml(base)}/workspace#task-${escapeHtml(s.slug)}">Use in browser</a>`;
+      const use = ` · <a href="${escapeHtml(useInBrowserHref(base, s.slug))}">Use in browser</a>`;
       const download = s.download_url ? ` · <a href="${escapeHtml(s.download_url)}">Download desktop</a>` : "";
       const hay = `${s.name} ${s.slug} ${s.bucket} ${s.status} ${s.one_line || ""}`.toLowerCase();
       return `    <li data-software-row data-slug="${escapeHtml(s.slug)}" data-bucket="${escapeHtml(s.bucket || "")}" data-search="${escapeHtml(hay)}"><a href="${escapeHtml(card)}">${escapeHtml(s.name)}</a> <span class="slug">${escapeHtml(s.bucket)} · ${escapeHtml(s.status)}</span> — ${escapeHtml(s.one_line || "")}${launchHashtagChipsHtml({ slug: s.slug, name: s.name, oneLine: s.one_line })}${use}${download} · <a href="${escapeHtml(base)}/mcp">Connect AI</a> · <a href="${escapeHtml(describe)}">describe</a>${home}${gh}</li>`;
@@ -372,6 +374,7 @@ export function softwareCatalogHtml(origin, catalog, css) {
   <h1>Softwares</h1>
   ${aboutAzielStripHtml({ id: "about-aziel-strip-software" })}
   <p class="lead">${escapeHtml(SOFTWARE_PAGE_DESCRIPTION)}</p>
+  ${suiteDownloadHtml(base, { id: "suite-download-software" })}
 ${distributionDoorsHtml(base)}
 ${ecosystemBlockHtml()}
 ${namedComponentsHtml()}

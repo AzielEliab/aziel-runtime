@@ -114,6 +114,9 @@ assert.equal(shouldIncrementUse("POST", "/v1/session/open"), true);
 assert.equal(shouldIncrementUse("POST", "/v1/session/s1a2b3c4d5e6/exec"), true);
 assert.equal(shouldIncrementUse("POST", "/v1/session/s1a2b3c4d5e6/close"), true);
 assert.equal(shouldIncrementUse("GET", "/v1/pull/foldlock"), true);
+assert.equal(shouldIncrementUse("GET", "/download"), true);
+assert.equal(shouldIncrementUse("GET", "/v1/download"), true);
+assert.equal(shouldIncrementUse("GET", "/v1/suite/download"), true);
 assert.equal(shouldIncrementUse("GET", "/v1/bundle"), true);
 assert.equal(shouldIncrementUse("GET", "/v1/skill"), true);
 assert.equal(shouldIncrementUse("POST", "/mcp"), true);
@@ -128,6 +131,8 @@ assert.equal(inferProductOp("/v1/pull/azclce").op, "azclce.pull");
 assert.equal(inferProductOp("/v1/session/s1a2b3c4d5e6/exec").op, "session.exec");
 assert.equal(inferProductOp("/mcp").op, "mcp");
 assert.equal(inferProductOp("/v1/azpipe/arch").op, "azpipe.arch");
+assert.equal(inferProductOp("/download").op, "runtime.suite_download");
+assert.equal(inferProductOp("/v1/suite/download").op, "runtime.suite_download");
 
 assert.equal(sanitizeHostLabel("aziel-runtime.vibelock.workers.dev"), "origin");
 assert.equal(sanitizeHostLabel("www.azieleliab.com"), "azieleliab.com");

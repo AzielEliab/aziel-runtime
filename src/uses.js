@@ -151,6 +151,9 @@ export function inferProductOp(pathname) {
   if (path === "/v1/mesh/heartbeat") return { op: "mesh.heartbeat" };
   if (path === "/v1/mesh/leave") return { op: "mesh.leave" };
   if (path === "/v1/mesh/broadcast") return { op: "mesh.broadcast" };
+  if (path === "/download" || path === "/v1/download" || path === "/v1/suite/download") {
+    return { op: "runtime.suite_download" };
+  }
   if (path === "/v1/azpipe/arch") return { op: "azpipe.arch" };
   if (path === "/mcp") return { op: "mcp" };
   if (path === "/v1/receipts") return { op: "act_receipt.cite" };
@@ -171,6 +174,7 @@ export function shouldIncrementUse(method, pathname) {
   if (m === "GET" && SKIP_CATALOG_GETS.has(path)) return false;
   if (m === "GET" && path === "/mcp") return false;
   if (m === "GET" && /^\/p\/[a-z0-9-]+$/.test(path)) return false;
+  if (path === "/download" || path === "/v1/download" || path === "/v1/suite/download") return true;
   if (path.startsWith("/v1/")) return true;
   if (path === "/mcp") return m === "POST";
   if (/^\/p\/[a-z0-9-]+\/[a-z0-9_-]+$/.test(path)) return true;

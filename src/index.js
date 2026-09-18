@@ -14,6 +14,9 @@
  *
  * GET  /                      HTML (indexable) + rose-star brand mark + human workspace pane
  * GET  /workspace             Human task pane (FragGate console, labeled ops, live mesh)
+ * GET  /download              One-click suite pack JSON (REAL catalog+tip+cite; SLOT wasm/WG)
+ * GET  /v1/download           alias of /download
+ * GET  /v1/suite/download     alias of /download
  * GET  /sigil.png             rose-star brand mark
  * GET  /robots.txt            Allow / for Google + major AI bots; sitemap-index + hub sitemaps
  * GET  /sitemap.xml           session, pull, OpenAPI, product cards/health, GitHub
@@ -291,6 +294,8 @@ import {
   workspacePageHtml,
   workspacePaneHtml,
 } from "./human-ui.js";
+import { useInBrowserHref } from "./human-hrefs.js";
+import { buildSuitePack, suitePackResponseHeaders } from "./suite-pack.js";
 import { LOCKED_STRIP, arch as azpipeArch, dispatchAzpipeArchHttp } from "./azpipe.js";
 import {
   HOMEPAGE_KEYWORDS,
@@ -1390,6 +1395,8 @@ function sitemapXml(origin) {
   const urls = [
     { loc: base + "/", priority: "1.0", changefreq: "daily" },
     { loc: base + "/workspace", priority: "0.96", changefreq: "daily" },
+    { loc: base + "/download", priority: "0.88", changefreq: "daily" },
+    { loc: base + "/v1/suite/download", priority: "0.86", changefreq: "daily" },
     { loc: base + "/about", priority: "0.95", changefreq: "weekly" },
     { loc: base + "/v1/about", priority: "0.9", changefreq: "weekly" },
     { loc: base + "/openapi.json", priority: "0.9", changefreq: "daily" },
@@ -1979,8 +1986,8 @@ function productCardHtml(p, origin, stats) {
   ${launchHashtagChipsHtml(p)}
   ${banner}
   <p class="meta">
-    <a href="${origin}/workspace#task-${escapeHtml(p.slug)}">Use in browser</a>
-    <a href="${u.download}">Download desktop</a>
+    <a href="${useInBrowserHref(origin, p.slug)}">Use in browser</a>
+    ${u.download ? `<a href="${u.download}">Download desktop</a>` : `<span class="slug">no counted Worker tarball (in-runtime)</span>`}
     <a href="${origin}/mcp">Connect AI</a>
     <a href="${p.github}">GitHub</a>
     ${u.worker_home ? `<a href="${u.worker_home}">Worker /</a>` : `<span class="slug">in-runtime</span>`}
@@ -2341,6 +2348,40 @@ function staticPaths(origin) {
         responses: { "200": { description: "Latest versions JSON" } },
       },
     },
+    "/workspace": {
+      get: {
+        operationId: "catalog_workspace",
+        summary:
+          "Human workspace HTML: operator panel, dashboard, FragGate console, mesh panel. Same FragGate door as MCP. Not a second exec path.",
+        tags: ["catalog"],
+        responses: { "200": { description: "Workspace HTML" } },
+      },
+    },
+    "/download": {
+      get: {
+        operationId: "suite_download",
+        summary:
+          "One-click suite pack JSON. REAL: Softwares catalog, FragGate registry summary, FoldLock tip cite, mesh/nine-laws/VPN cites, About Aziel. SLOT: Worker wasm, WireGuard/OpenVPN/L3, qnm-node bytes. Counted when USES is bound. Not . Not exec.",
+        tags: ["software"],
+        responses: { "200": { description: "Suite pack JSON attachment" } },
+      },
+    },
+    "/v1/download": {
+      get: {
+        operationId: "suite_download_v1",
+        summary: "Alias of GET /download (suite pack JSON).",
+        tags: ["software"],
+        responses: { "200": { description: "Suite pack JSON attachment" } },
+      },
+    },
+    "/v1/suite/download": {
+      get: {
+        operationId: "suite_download_machine",
+        summary: "Machine alias of GET /download (suite pack JSON).",
+        tags: ["software"],
+        responses: { "200": { description: "Suite pack JSON attachment" } },
+      },
+    },
     "/about": {
       get: {
         operationId: "catalog_about",
@@ -2513,7 +2554,7 @@ async function combinedOpenApi(request, env) {
       summary: RUNTIME_ONE_LINE,
       description:
         RUNTIME_ABSTRACT +
-        " FragGate is THE single public executable door (list → describe → call). Softwares catalog Plain→Gate→Lock; hubs refresh from GET /v1/software. Dual-surface: agents MCP/OpenAPI; humans Worker UI + counted /download. Catalog names mesh-resident website designs azcorpus + azlibrary (downloadable to nodes; not extra Softwares; azlibrary upload is API token only). Cap-7 mesh names via MirageGrid only (inherit hub designs only; resolves_to_hub false; name_may_change; canonical hubs immutable; not ICANN aliases). COLD-MULTI-SHELF-1.0 cite on GET /shelves matches corpus#96 honesty (Plane A 5 surfaces / 2 family radii / 1 independent live; Plane B Codeberg + archive.org PASS still SLOT at https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius; Framagit URL null; GitFlic CNS-GITFLIC-EMAIL; GitLab CNS-GITLAB-CF-LOOP; Zenodo refused; doi null; Plane C USB SLOT). NodeMesh/QNM read-only suite-presence is ON by default; GET /v1/mesh never enables radios beyond that; not a login mesh/VPN/Node Gate. Author Aziel Eliab only. " +
+        " FragGate is THE single public executable door (list → describe → call). Softwares catalog Plain→Gate→Lock; hubs refresh from GET /v1/software. Dual-surface: agents MCP/OpenAPI; humans Worker UI + counted /download. Catalog names mesh-resident website designs azcorpus + azlibrary (downloadable to nodes; not extra Softwares; azlibrary upload is API token only). Cap-7 mesh names via MirageGrid only (inherit hub designs only; resolves_to_hub false; name_may_change; canonical hubs immutable; not ICANN aliases). COLD-MULTI-SHELF-1.0 cite on GET /shelves matches corpus#96 honesty (Plane A 5 surfaces / 2 family radii / 1 independent live; Plane B Codeberg + archive.org PASS still SLOT at https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius; Framagit URL null; GitFlic CNS-GITFLIC-EMAIL; GitLab CNS-GITLAB-CF-LOOP; Zenodo refused; doi null; Plane C USB SLOT). NodeMesh/QNM read-only suite-presence is ON by default; GET /v1/mesh never enables radios beyond that; not a login mesh / Node Gate. Public VPN auto-binds AZVPN (HTTPS/WS REAL; WireGuard/OpenVPN SLOT). Author Aziel Eliab only. " +
         CATALOG_CHANGELOG_20 +
         " " +
         CATALOG_CHANGELOG_19 +
@@ -2550,7 +2591,7 @@ async function combinedOpenApi(request, env) {
         "1.3.0 listed portable slugs. 1.2.0 was session/receipt (exec still proxied). 1.1.0 was catalog+proxy that called itself a runtime. " +
         "Agent default exec is POST /v1/fraggate/call or MCP fraggate_call (CallEnvelope → FragGate → Lamb Lens → SweepGate → Sentinel → Provenance → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → RoseClock → TemporalLock → ChainLock-OUT → ForgeReceipts → Return). " +
         "Binding-only ops stay per-op proxy_fallback. POST /p/{product}/{op} is a proxy, not exec, and is not the agent default path. " +
-        "Cloudflare isolate is the jail. Hosted AZAI is a protocol mirror + Lamb check, not the local blend. VPN/hop mesh is not claimed on this public surface. AZMail anonymous ring is FragGate LIVE_OPS only (default off; not SMTP, not identity). AZBrowser Lamb Lens is FragGate LIVE_OPS only (not Chromium; no invented visits). AZHub Blank Key and AZInterface page cycles are two separate softwares under the same FragGate door (AIH-WP-1.0). " +
+        "Cloudflare isolate is the jail. Hosted AZAI is a protocol mirror + Lamb check, not the local blend. Public VPN auto-binds AZVPN (HTTPS/WS REAL; WireGuard/OpenVPN/L3 SLOT; origin-hiding false). GET /v1/mesh cites vpn=true and never opens a session. AZMail anonymous ring is FragGate LIVE_OPS only (default off; not SMTP, not identity). AZBrowser Lamb Lens is FragGate LIVE_OPS only (not Chromium; no invented visits). AZHub Blank Key and AZInterface page cycles are two separate softwares under the same FragGate door (AIH-WP-1.0). " +
         "Start at GET /v1/skill or GET /v1/software. Agents use fraggate_list → fraggate_describe → fraggate_call (POST /mcp). " +
         "Hubs fetch GET /v1/software (also GET /v1/fraggate/software). Clients check GET /v1/update/check?slug=&version=. " +
         "GET /v1/bundle lists every product skill URL + invoke prefix. " +
@@ -3189,6 +3230,25 @@ async function handleRequest(request, env, ctx) {
       return asHead(
         request,
         html(workspacePageHtml(origin, PRODUCTS, PAGE_CSS), { ...extra("/workspace"), ...catalogCacheHeaders() }),
+      );
+    }
+
+    if (
+      (url.pathname === "/download" ||
+        url.pathname === "/v1/download" ||
+        url.pathname === "/v1/suite/download") &&
+      (request.method === "GET" || request.method === "HEAD")
+    ) {
+      const registry = registryFor(PRODUCTS);
+      const pack = buildSuitePack({
+        origin,
+        products: PRODUCTS,
+        registry,
+        extra: { runtimeVersion: RUNTIME_VERSION },
+      });
+      return asHead(
+        request,
+        json(pack, 200, { ...extra(url.pathname), ...suitePackResponseHeaders() }),
       );
     }
 
