@@ -217,6 +217,8 @@ Always send `User-Agent: Mozilla/5.0`.
 | Machine catalog | https://aziel-runtime.vibelock.workers.dev/v1/catalog.json |
 | How to cite | https://aziel-runtime.vibelock.workers.dev/cite.json |
 | LLM crawler | https://aziel-runtime.vibelock.workers.dev/llms.txt (also `/ai.txt`) |
+| Person (machine) | https://aziel-runtime.vibelock.workers.dev/person.jsonld |
+| Who-is (machine) | https://aziel-runtime.vibelock.workers.dev/who-is |
 | robots.txt | https://aziel-runtime.vibelock.workers.dev/robots.txt |
 | sitemap.xml | https://aziel-runtime.vibelock.workers.dev/sitemap.xml |
 | sitemap-index.xml | https://aziel-runtime.vibelock.workers.dev/sitemap-index.xml |

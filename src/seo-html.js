@@ -120,6 +120,9 @@ export function headMeta(origin, title, description, canonicalPath) {
 <link rel="sitemap" type="application/xml" href="${base}/sitemap-index.xml">
 <link rel="alternate" type="text/plain" href="${base}/llms.txt" title="llms.txt">
 <link rel="alternate" type="application/json" href="${base}/cite.json" title="cite.json">
+<link rel="alternate" type="application/ld+json" href="${base}/person.jsonld" title="person.jsonld">
+<link rel="alternate" type="text/plain" href="${base}/who-is" title="who-is">
+<link rel="alternate" type="text/plain" href="${base}/who-is-aziel-eliab.txt" title="who-is-aziel-eliab.txt">
 <meta property="og:type" content="website">
 <meta property="og:title" content="${escapeHtml(title)}">
 <meta property="og:description" content="${escapeHtml(description)}">

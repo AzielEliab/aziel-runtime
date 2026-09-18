@@ -81,6 +81,9 @@ export const TOKEN_BODY_KEYS = Object.freeze([
 export const PUBLIC_DOORS = Object.freeze([
   { method: "GET", path: "/", role: "read", auth: "none" },
   { method: "GET", path: "/cite.json", role: "read", auth: "none" },
+  { method: "GET", path: "/person.jsonld", role: "cite", auth: "none", chrome_15_20: false },
+  { method: "GET", path: "/who-is", role: "cite", auth: "none", chrome_15_20: false },
+  { method: "GET", path: "/who-is-aziel-eliab.txt", role: "cite", auth: "none", chrome_15_20: false },
   { method: "GET", path: "/shelves", role: "cite", auth: "none" },
   { method: "GET", path: "/v1/shelves", role: "cite", auth: "none" },
   { method: "GET", path: "/robots.txt", role: "read", auth: "none", growth_on: true },
