@@ -1,5 +1,5 @@
 /**
- * Software catalog sort law + client update check + THIS-IS / THIS-IS-NOT copy.
+ * Software catalog sort law + client update check + plain use-purpose copy.
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
 import assert from "node:assert/strict";
@@ -265,9 +265,10 @@ assert.equal(
 assert.match(corpusCard.one_line, /azcorpus \+ azlibrary/);
 assert.ok(body.count !== body.isolation_software_count, "Softwares-tab count is not the isolation 33");
 const fourdLine = body.software.find((s) => s.slug === "4dmap").one_line;
-assert.match(fourdLine, /inspection frame/i);
-assert.match(fourdLine, /not an extra door/i);
+assert.match(fourdLine, /Inspect the same event/i);
+assert.match(fourdLine, /time, change, graph, and place/i);
 assert.doesNotMatch(fourdLine, /Domain Door/);
+assert.doesNotMatch(fourdLine, /THIS IS:/i);
 
 assert.deepEqual(softwareCopySlugs().sort(), PRODUCTS.map((p) => p.slug).sort());
 assert.equal(body.software.length, softwareCopySlugs().length);
@@ -280,43 +281,43 @@ assert.ok(
   "every Softwares card has a non-empty description",
 );
 assert.ok(
-  body.software.every((s) => /THIS IS:/i.test(s.one_line) && /THIS IS NOT:/i.test(s.one_line)),
-  "every one_line names THIS IS and THIS IS NOT",
+  body.software.every((s) => !/THIS IS:|THIS IS NOT:/i.test(`${s.one_line} ${s.description}`)),
+  "Softwares catalog copy has no THIS IS / THIS IS NOT template",
 );
 assert.ok(
-  body.software.every((s) => /THIS IS:/i.test(s.description) && /THIS IS NOT:/i.test(s.description)),
-  "every description names THIS IS and THIS IS NOT",
+  body.software.every((s) => /\bUse\b/.test(s.description) && /exists/i.test(s.description)),
+  "every description names the job (Use) and why it exists",
 );
 assert.ok(body.software.every((s) => !/\b\b/.test(`${s.one_line} ${s.description}`)));
 assert.ok(body.software.every((s) => !/10\.\d{4,}\//.test(`${s.one_line} ${s.description}`)), "no invented DOI in copy");
 assert.ok(body.software.every((s) => !/are separate FragGate engines/i.test(s.description || "")));
 
-const REQUIRED_PHRASES = {
-  azos: [/Lumen/, /kernel/, /remote host shell/],
-  azai: [/foundation model/i],
-  azbot: [/foundation model/i],
-  azieltether: [/VPN/, /AZVPN/],
-  staticclock: [/Clock ≠ Lock|plain Clock/i, /Lock product/],
-  ark: [/EmbryoLock/, /kernel/],
-  "aziel-corpus": [/azcorpus \+ azlibrary/, /sister archive/i],
-  godlock: [/product name/, /Identity is Aziel Eliab only/, /Empty\/null submit refuses/],
-  azvpn: [/HTTPS\/WS REAL/, /WireGuard/, /SLOT/],
-  veillock: [/local_only/, /YOUR device/i],
-  embryolock: [/local-only/, /ARK/],
-  azinterface: [/Lumen/, /AZHub is sibling/],
+const USE_PURPOSE = {
+  azos: [/ethics status|ethics workspace/i],
+  azai: [/local chat runtime|OpenAI-compatible/i],
+  azbot: [/skill router/i],
+  azieltether: [/downloaded packages|central Worker/i],
+  staticclock: [/gear-click|plain clock/i],
+  ark: [/heuristics sweep|local vault/i],
+  "aziel-corpus": [/azcorpus \+ azlibrary/, /public library/i],
+  godlock: [/product name/, /Aziel Eliab only/],
+  azvpn: [/HTTPS|WebSocket/i, /public VPN concentrator/i],
+  veillock: [/own device/i],
+  embryolock: [/offline vault|local vault/i],
+  azinterface: [/page cycles/i],
 };
-for (const [slug, patterns] of Object.entries(REQUIRED_PHRASES)) {
+for (const [slug, patterns] of Object.entries(USE_PURPOSE)) {
   const card = body.software.find((s) => s.slug === slug);
   assert.ok(card, `${slug} catalog card`);
   const hay = `${card.one_line} ${card.description}`;
   for (const re of patterns) {
-    assert.match(hay, re, `${slug} must keep disambiguation ${re}`);
+    assert.match(hay, re, `${slug} must keep use-purpose ${re}`);
   }
 }
 assert.equal(body.software.find((s) => s.slug === "veillock").local_only, true);
 assert.equal(body.software.find((s) => s.slug === "veillock").door, "none");
 assert.match(body.mesh.note, /worker_hardware:false/);
-assert.match(SOFTWARE_COPY.godlock.one_line, /Aziel Eliab only/);
+assert.match(SOFTWARE_COPY.godlock.description, /Aziel Eliab only/);
 const extras = catalogExtraCards(origin);
 const meshExtra = extras.find((e) => e.slug === "mesh" || e.name === "Quantum Node Mesh" || /QNM/.test(e.one_line || ""));
 assert.ok(meshExtra, "mesh extras card exists");
@@ -330,7 +331,8 @@ assert.equal(azc.domain, null);
 assert.ok(azc.peers.some((p) => p.slug === "azclce"));
 const clce = body.software.find((s) => s.slug === "azclce");
 assert.ok(clce.peers.some((p) => p.slug === "azcoherence"));
-assert.match(clce.one_line, /AZCoherence is a separate peer reviewer/);
+assert.match(clce.description, /AZ-CLCE/);
+assert.match(clce.one_line, /three written layers/i);
 
 const mirror = await get("/v1/fraggate/software");
 assert.equal(mirror.status, 200);
