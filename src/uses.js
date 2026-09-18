@@ -34,6 +34,9 @@ const SKIP_SEO = new Set([
   "/openapi.json",
   "/sigil.png",
   "/favicon.ico",
+  "/manifest.webmanifest",
+  "/manifest.json",
+  "/site.webmanifest",
 ]);
 
 const SKIP_GET_READS = new Set([
