@@ -150,6 +150,72 @@ export const HUMAN_TASKS = Object.freeze([
       { name: "confidence", label: "Confidence (0–1)", type: "text", example: "0.9" },
     ],
   },
+  {
+    slug: "azmail",
+    name: "AZMail",
+    op: "airlock_classify",
+    title: "Airlock classify",
+    blurb: "Advisory APP 1.0 airlock. Not an MTA. SMTP / deanonymize stay stub. Mesh default off.",
+    fields: [{ name: "text", label: "Text to classify", type: "textarea", example: "hello from the anonymous ring" }],
+  },
+  {
+    slug: "azhub",
+    name: "AZHub",
+    op: "region_list",
+    title: "List Blank Key regions",
+    blurb: "Neutral spatial container. Does not interpret meaning. Auto-unlock / completeness stay refused.",
+    fields: [{ name: "region", label: "Region filter (optional)", type: "text", example: "core" }],
+  },
+  {
+    slug: "azinterface",
+    name: "AZInterface",
+    op: "genesis_status",
+    title: "Genesis status",
+    blurb: "Custodial page cycles: OFF / integrity / ON / FULL SHUTDOWN / MEMORIAL. Sibling of AZHub. Same door.",
+    fields: [{ name: "cycle", label: "Cycle (optional)", type: "text", example: "OFF" }],
+  },
+  {
+    slug: "aziel-corpus",
+    name: "Aziel Digital Library",
+    op: "search",
+    title: "Search the public corpus",
+    blurb: "Published MASTER cites. Not a 26-card index. Not AKM belief. Not ChainLock.",
+    fields: [{ name: "q", label: "Search query", type: "text", example: "Florence" }],
+  },
+  {
+    slug: "4dmap",
+    name: "4DMap",
+    op: "pin",
+    title: "Pin a declared mark",
+    blurb: "Inspection frame T/Δ/Γ/Π after AZPIPE. Not a sequential gate. Not a truth score. Not a Lumen panel.",
+    fields: [{ name: "label", label: "Declared mark label", type: "text", example: "inspect-1" }],
+  },
+  {
+    slug: "embryolock",
+    name: "EmbryoLock",
+    op: "limitation",
+    title: "Cite limitations",
+    blurb: "Live-with-local-destructive-boundary. Wipe / scorch / unlock stay FG-STUB on the public mesh. Not an unlock.",
+    fields: [
+      {
+        name: "digest",
+        label: "Digest (optional; used by verify_hash)",
+        type: "text",
+        example: "fa2e7203bd3924170e94c62357e29764b925a82c2cf708807128bd096333250d",
+      },
+    ],
+  },
+  {
+    slug: "peacelock",
+    name: "PeaceLock",
+    op: "open",
+    title: "Open a lattice",
+    blurb: "Chosen silence or chosen inaction. Transcript / counterfactual / motive stay ABSENT. HARD_DUTY refuses.",
+    fields: [
+      { name: "scope", label: "Scope", type: "text", example: "silence" },
+      { name: "subject", label: "Subject", type: "text", example: "chamber-1" },
+    ],
+  },
 ]);
 
 export const HUMAN_UI_CSS = `
@@ -255,6 +321,7 @@ function taskCardHtml(task) {
   <div class="actions">
     <button type="button" class="run-task" data-op="${escapeHtml(task.op)}">Run ${escapeHtml(doorOpLabel(task.slug, task.op))}</button>
     ${task.slug === "aznet" ? `<button type="button" class="run-task" data-op="pair">pair</button>` : ""}
+    ${task.slug === "embryolock" ? `<button type="button" class="run-task" data-op="doctor">doctor</button><button type="button" class="run-task" data-op="verify_hash">verify_hash</button>` : ""}
   </div>
   <pre class="ws-out fg-out" role="status" aria-live="polite">Ready. Same door: POST /v1/fraggate/call { slug: "${escapeHtml(task.slug)}", op: "${escapeHtml(task.op)}" }</pre>
 </article>`;
@@ -381,6 +448,7 @@ export function workspacePaneHtml(origin, products) {
           <button type="button" data-op-mesh="heartbeat">Heartbeat</button>
           <button type="button" data-op-mesh="leave">Leave</button>
           <button type="button" data-op-mesh="vpn">VPN cite</button>
+          <button type="button" data-op-mesh="enable">Enable extra bearer</button>
         </div>
       </div>
       <div class="op-row sess">
@@ -471,7 +539,11 @@ export function workspacePaneHtml(origin, products) {
         <option value="isolated">isolated</option>
       </select>
     </div>
-    <p class="hint">Join is first presence. Heartbeat / Leave need a node id. Heartbeat refreshes the 5-minute TTL. MESH-OFF refuses join/heartbeat/broadcast when transmission radios are not LIVE — GET will not turn them on. Channel plane is CITE-only. AnonBroadcast is not a product. VPN cite is FragGate <code>mesh/vpn</code> (AZVPN auto; never fake connected).</p>
+    <p class="hint">Join is first presence. Heartbeat / Leave need a node id. Heartbeat refreshes the 5-minute TTL. MESH-OFF refuses join/heartbeat/broadcast when transmission radios are not LIVE — GET will not turn them on. Channel plane is CITE-only. AnonBroadcast is not a product. VPN cite is FragGate <code>mesh/vpn</code> (AZVPN auto; never fake connected). Extra bearer is rate-limited; GET still never enables.</p>
+    <div class="field">
+      <label for="mesh-bearer">Extra bearer (optional; GET never enables)</label>
+      <input id="mesh-bearer" name="bearer" type="text" value="suite-presence" autocomplete="off" spellcheck="false">
+    </div>
     <div class="actions">
       <button type="button" data-mesh="status">Refresh status</button>
       <button type="button" data-mesh="nodes">Nodes</button>
@@ -479,6 +551,7 @@ export function workspacePaneHtml(origin, products) {
       <button type="button" data-mesh="heartbeat">Heartbeat</button>
       <button type="button" data-mesh="leave">Leave</button>
       <button type="button" data-mesh="vpn">VPN cite (AZVPN auto)</button>
+      <button type="button" data-mesh="enable">Enable extra bearer</button>
     </div>
   </section>
 
@@ -872,6 +945,12 @@ export function humanDoorScript() {
           fraggateCall(origin, "mesh", "vpn", {}, out, btn);
           return;
         }
+        if (act === "enable") {
+          let bearer = String(document.getElementById("mesh-bearer") && document.getElementById("mesh-bearer").value || "").trim();
+          if (!bearer) { show(out, "Bearer is required (MESH-NEED-BEARER). GET never enables.", "error"); return; }
+          fraggateCall(origin, "mesh", "enable", { bearer: bearer }, out, btn);
+          return;
+        }
         let product = String(document.getElementById("mesh-product").value || "").trim();
         let node_id = String(document.getElementById("mesh-node").value || "").trim();
         let presence = String(document.getElementById("mesh-presence").value || "live");
@@ -951,6 +1030,12 @@ export function humanDoorScript() {
         }
         if (act === "vpn") {
           fraggateCall(origin, "mesh", "vpn", {}, out, btn);
+          return;
+        }
+        if (act === "enable") {
+          let bearer = String(document.getElementById("mesh-bearer") && document.getElementById("mesh-bearer").value || "").trim();
+          if (!bearer) { show(out, "Bearer is required (MESH-NEED-BEARER). GET never enables.", "error"); return; }
+          fraggateCall(origin, "mesh", "enable", { bearer: bearer }, out, btn);
           return;
         }
         let product = String(document.getElementById("op-mesh-product") && document.getElementById("op-mesh-product").value || "").trim();

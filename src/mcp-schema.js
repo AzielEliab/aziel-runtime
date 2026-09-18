@@ -63,16 +63,34 @@ export const CHAIN_ROSTER = Object.freeze([
 ]);
 
 /**
- * Compact allowlist copy required by product verify scripts (azhub / azinterface / azbrowser).
- * Discovery still happens via fraggate_list result.allowlist — this text is metadata only.
+ * Compact product-verify tokens required by azhub / azinterface / azbrowser scripts.
+ * Not the full FragGate door. Discovery is empty fraggate_list (hashed LIVE_OPS).
  */
-export const FRAGGATE_CATALOG_ALLOWLIST =
+export const FRAGGATE_CATALOG_VERIFY_HINTS =
   "allowlist.azhub LIVE_OPS: health, skill, region_list, place_module, remove_module, tether_declare, tether_cut, tether_list, blank_key_status, list_modules, place. " +
   "allowlist.azinterface LIVE_OPS: health, skill, genesis_status, site_state_get, site_state_set, integrity_check, witness_list, page_cycle_status, genesis_boot, hold. " +
   "allowlist.azbrowser LIVE_OPS: ethical_search, lamb_lens_search, navigate, airlock_ingest, airlock, home, tab_open, tab_list, receipt_list, verify, receipt_verify, sandbox_status, sandbox_render, health, skill, vpn. " +
   "allowlist.azvpn LIVE_OPS: health, skill, doctor, limitation, describe, open, status, list, close, send, recv, pull, peers, attach. " +
   "allowlist.aznet LIVE_OPS: health, doctor, pair_status, pair, garden_list, stamp, verify_hash, memorial_list, memorial_append, receipt_verify, skill. " +
   "UI aliases forward to catalog ops. EmbryoLock LIVE_OPS health/skill/doctor/verify-hash/policy/limitation; wipe/scorch/unlock stay FG-STUB on the public mesh.";
+
+/** Build after LIVE_OPS is initialized (avoid mcp-schema ↔ registry cycle). */
+export function fraggateCatalogAllowlistText(liveOps) {
+  const slugs = Object.keys(liveOps || {})
+    .filter((s) => s !== "mesh" && s !== "memory")
+    .sort();
+  return (
+    "Not the full FragGate door. Empty fraggate_list is discovery (hashed LIVE_OPS). " +
+    `Catalog LIVE_OPS slugs (${slugs.length}): ${slugs.join(", ")}. ` +
+    "Compact product-verify tokens (not a second allowlist): " +
+    FRAGGATE_CATALOG_VERIFY_HINTS
+  );
+}
+
+/** Fallback suffix if a caller has no LIVE_OPS yet. Verify tokens still present. */
+export const FRAGGATE_CATALOG_ALLOWLIST =
+  "Not the full FragGate door. Empty fraggate_list is discovery (hashed LIVE_OPS). Compact product-verify tokens (not a second allowlist): " +
+  FRAGGATE_CATALOG_VERIFY_HINTS;
 
 export function mcpAnnotations(title, hints) {
   return { title, ...hints };

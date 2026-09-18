@@ -17,11 +17,48 @@ function bindingUp(ns) {
   );
 }
 
+/** Production wrangler.toml bind contract (classes exported from src/index.js). */
+export const PRODUCTION_DO_BINDS = Object.freeze({
+  SESSION: { class_name: "RuntimeSession", migration: "v1" },
+  CHAINLOCK: { class_name: "ChainWriter", migration: "v2" },
+  RATE: { class_name: "RateQuota", migration: "v3" },
+});
+
+export function productionBindCite(env) {
+  const chainlock = bindingUp(env && env.CHAINLOCK);
+  const session = sessionBindingUp(env);
+  const rate = bindingUp(env && env.RATE);
+  return {
+    wrangler: "wrangler.toml [[durable_objects.bindings]]",
+    SESSION: {
+      bound: session,
+      class_name: PRODUCTION_DO_BINDS.SESSION.class_name,
+      migration: PRODUCTION_DO_BINDS.SESSION.migration,
+      durable_commit: session,
+    },
+    CHAINLOCK: {
+      bound: chainlock,
+      class_name: PRODUCTION_DO_BINDS.CHAINLOCK.class_name,
+      migration: PRODUCTION_DO_BINDS.CHAINLOCK.migration,
+      durable_commit: chainlock,
+    },
+    RATE: {
+      bound: rate,
+      class_name: PRODUCTION_DO_BINDS.RATE.class_name,
+      migration: PRODUCTION_DO_BINDS.RATE.migration,
+      durable_commit: rate,
+    },
+    note:
+      "Production wrangler.toml binds SESSION / CHAINLOCK / RATE. Isolate tests and unbound deploys label MemoryStore / isolate window — not durable-commit.",
+  };
+}
+
 export function durabilityLabels(env) {
   const chainlock = bindingUp(env && env.CHAINLOCK);
   const session = sessionBindingUp(env);
   const rate = bindingUp(env && env.RATE);
   return {
+    production_binds: productionBindCite(env),
     fraggate_ledger: {
       kind: "ask-refuse-hash-chain",
       window_cap: LEDGER_CAP,
