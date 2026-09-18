@@ -86,7 +86,6 @@ export const REFUSE = Object.freeze({
   NO_LLM_REPLICA: "BAN-NO-LLM-REPLICA",
   NO_FAN: "BAN-NO-FAN",
   NO_SHELF_ONLY: "BAN-NO-SHELF-ONLY",
-  NO_SHELF_FAILOVER: "BAN-NO-SHELF-ONLY",
   NO_DOOR_ONLY: "BAN-NO-DOOR-ONLY",
   NO_OPEN_NODE_PROXY: "BAN-NO-OPEN-NODE-PROXY",
   NO_FAKE_CAP7_HOST: "BAN-NO-FAKE-CAP7-HOST",
@@ -572,11 +571,6 @@ export function judgeShelfOnly(input) {
     };
   }
   return { accept: true, action: "ok", is_live_door: false, mutual_backup: true };
-}
-
-/** @deprecated name — shelves are not a live exec door */
-export function judgeShelfFailover(input) {
-  return judgeShelfOnly(input);
 }
 
 export function judgeDoorOnly(input) {
