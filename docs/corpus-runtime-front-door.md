@@ -40,17 +40,32 @@ multi-front map from the library custom-domain door (BAN-SURVIVAL-1.0).
 Same FragGate door. Not a second door. Cold shelves remain the death-by-ban
 backup on that same map.
 
-## Hub follow-on — corpus root `/survival` 404 (H5)
+## Hub follow-on — corpus root `/survival` (H5)
 
-Fetched 2026-09-18: `https://www.azielcorpuslibrary.net/survival` is **404**
-`{error:"not found"}`. `https://www.azielcorpuslibrary.net/runtime/survival`
-is **200** (service-binding proxy). Author hub `https://www.azieleliab.com/survival`
-is already a 200 wrap. Runtime cannot invent a library hostname route.
+**OUTLAST rescan 2026-09-18T14:31Z (User-Agent `Mozilla/5.0`):**
+`https://www.azielcorpuslibrary.net/survival` and
+`https://www.azielcorpuslibrary.net/v1/survival` are **200**
+`BAN-SURVIVAL-1.0` / `mode=LIVE` (37100 bytes — same raw runtime map as
+workers.dev, not an ae-style hub wrap). `/runtime/survival` remains 200.
+H5 (clients who only know the library hostname miss the map) is **closed
+on live bytes**. Do not keep citing the earlier 404 as current.
 
-aziel-corpus#116 wired `/runtime/survival` + SEO pull. It did **not** add
-root `/survival` / `/v1/survival`. Crawl routes in
-`workers/download-tracker/src/index.js` fall through to
-`return json({ error: "not found" }, 404)`.
+Remaining library-hub gaps (not this isolate):
+
+- `GET https://www.azielcorpuslibrary.net/v1/shelves` is **404**;
+  `GET https://www.azielcorpuslibrary.net/shelves` is **200**
+  COLD-MULTI-SHELF-1.0 (SoT). Prefer `/shelves`. Do not invent `/v1/shelves`.
+- GodLock hub wrap still cites
+  `https://aziel-runtime/v1/mesh/az-generator` (host missing
+  `.vibelock.workers.dev`) — hub cite typo, not this repo.
+
+Author hub `https://www.azieleliab.com/survival` is a 200 wrap.
+Runtime cannot invent a library hostname route.
+
+Historical note (pre-OUTLAST, same calendar day): aziel-corpus#116 wired
+`/runtime/survival` + SEO pull. A later hub deploy added root `/survival`.
+The 404 write-up below is the **original GitBaby patch** if a future
+deploy regresses the root map. It is not the current live state.
 
 **Exact GitBaby / aziel-corpus patch** (same isolate, not a second door):
 
