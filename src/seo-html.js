@@ -39,7 +39,8 @@ import {
   softwareHubCrawl,
 } from "./seo.js";
 import { distributionDoorsHtml } from "./ai-clients.js";
-import { workerLaunchHtml } from "./about-aziel.js";
+import { aboutAzielStripHtml, workerLaunchHtml } from "./about-aziel.js";
+import { launchHashtagChipsHtml } from "./launch-parts.js";
 
 export const SOFTWARE_PAGE_TITLE = `Softwares — ${PRODUCT_NAME}`;
 export const SOFTWARE_PAGE_DESCRIPTION =
@@ -364,11 +365,12 @@ export function softwareCatalogHtml(origin, catalog, css) {
       const use = ` · <a href="${escapeHtml(base)}/workspace#task-${escapeHtml(s.slug)}">Use in browser</a>`;
       const download = s.download_url ? ` · <a href="${escapeHtml(s.download_url)}">Download desktop</a>` : "";
       const hay = `${s.name} ${s.slug} ${s.bucket} ${s.status} ${s.one_line || ""}`.toLowerCase();
-      return `    <li data-software-row data-slug="${escapeHtml(s.slug)}" data-bucket="${escapeHtml(s.bucket || "")}" data-search="${escapeHtml(hay)}"><a href="${escapeHtml(card)}">${escapeHtml(s.name)}</a> <span class="slug">${escapeHtml(s.bucket)} · ${escapeHtml(s.status)}</span> — ${escapeHtml(s.one_line || "")}${use}${download} · <a href="${escapeHtml(base)}/mcp">Connect AI</a> · <a href="${escapeHtml(describe)}">describe</a>${home}${gh}</li>`;
+      return `    <li data-software-row data-slug="${escapeHtml(s.slug)}" data-bucket="${escapeHtml(s.bucket || "")}" data-search="${escapeHtml(hay)}"><a href="${escapeHtml(card)}">${escapeHtml(s.name)}</a> <span class="slug">${escapeHtml(s.bucket)} · ${escapeHtml(s.status)}</span> — ${escapeHtml(s.one_line || "")}${launchHashtagChipsHtml({ slug: s.slug, name: s.name, oneLine: s.one_line })}${use}${download} · <a href="${escapeHtml(base)}/mcp">Connect AI</a> · <a href="${escapeHtml(describe)}">describe</a>${home}${gh}</li>`;
     })
     .join("\n");
   const inner = `  <p><a href="${base}/">← ${escapeHtml(PRODUCT_NAME)}</a> · <a href="${base}/workspace">Use in browser</a></p>
   <h1>Softwares</h1>
+  ${aboutAzielStripHtml({ id: "about-aziel-strip-software" })}
   <p class="lead">${escapeHtml(SOFTWARE_PAGE_DESCRIPTION)}</p>
 ${distributionDoorsHtml(base)}
 ${ecosystemBlockHtml()}

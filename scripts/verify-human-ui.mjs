@@ -113,7 +113,18 @@ assert.match(ws, /id="mesh-panel"/);
 assert.match(ws, /FragGate console/);
 assert.match(ws, /Operator control panel/);
 assert.match(ws, /id="about-aziel"/);
+assert.match(ws, /id="about-aziel-strip"/);
+assert.match(ws, /id="about-aziel-strip-op"/);
 assert.match(ws, /id="launch-parts"/);
+assert.match(ws, /#aziel/);
+assert.match(ws, /data-launch-slug="foldlock"/);
+assert.match(ws, /data-launch-slug="godlock"/);
+assert.match(ws, /#foldlock/);
+assert.match(ws, /#godlock/);
+const foldChips = ws.match(/data-launch-slug="foldlock"[^>]*>([^<]*(?:<span[^>]*>[^<]*<\/span>[^<]*)*)/) || [];
+const godChips = ws.match(/data-launch-slug="godlock"[^>]*>([^<]*(?:<span[^>]*>[^<]*<\/span>[^<]*)*)/) || [];
+assert.ok(foldChips[0] && godChips[0], "dashboard cards must carry launch chips");
+assert.notEqual(foldChips[0], godChips[0], "hashtag chips must differ per Softwares card");
 assert.doesNotMatch(ws, /15:20/);
 
 const sitemap = await (await get("/sitemap.xml")).text();
@@ -126,6 +137,9 @@ assert.match(softwareHtml, /<label for="software-filter">Search Softwares/);
 assert.match(softwareHtml, /Use in browser/);
 assert.match(softwareHtml, /Connect AI/);
 assert.match(softwareHtml, /data-software-row/);
+assert.match(softwareHtml, /id="about-aziel"/);
+assert.match(softwareHtml, /data-launch-slug="foldlock"/);
+assert.match(softwareHtml, /#foldlock/);
 
 const listed = await (await get("/v1/fraggate/list")).json();
 assert.equal(listed.ok, true);

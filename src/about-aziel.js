@@ -45,6 +45,12 @@ function listHtml(items) {
   return items.map((line) => `    <li>${escapeHtml(line)}</li>`).join("\n");
 }
 
+/** Always-visible About Aziel cite on operator panel / dashboard / cards. No 15:20 chrome. */
+export function aboutAzielStripHtml({ id = "about-aziel-strip" } = {}) {
+  const attr = id ? ` id="${escapeHtml(id)}"` : "";
+  return `<p class="about-aziel-strip"${attr}>About Aziel · Person <a href="${PERSON_ID}"><span class="hashtag">#aziel</span></a> · identity <strong>${escapeHtml(ABOUT_AZIEL.identity)}</strong> only · published work, not a biography · <a href="#about-aziel">full section</a></p>`;
+}
+
 /** Human About Aziel section. Dashboard + /about. No 15:20 chrome. */
 export function aboutAzielSectionHtml() {
   return `<section class="cite" id="about-aziel">

@@ -15,7 +15,8 @@ import {
   DONATE_FOOTER_RUNTIME,
   PRODUCT_NAME,
 } from "./seo.js";
-import { workerLaunchHtml } from "./about-aziel.js";
+import { aboutAzielStripHtml, workerLaunchHtml } from "./about-aziel.js";
+import { launchHashtagChipsHtml } from "./launch-parts.js";
 import { brandRow, ecosystemBlockHtml, headMeta } from "./seo-html.js";
 
 export const WORKSPACE_PAGE_TITLE = `Workspace — ${PRODUCT_NAME}`;
@@ -191,6 +192,9 @@ export const HUMAN_UI_CSS = `
   .receipt-log{list-style:none;margin:.4rem 0 0;padding:0}
   .receipt-log li{border-top:1px solid #2a3140;padding:.45rem 0;font-size:.88rem}
   .op-out{max-height:12rem}
+  .launch-chips{margin:.35rem 0 .2rem;display:flex;flex-wrap:wrap;gap:.3rem .55rem}
+  .launch-chips .hashtag{color:#d4af37;font-size:.82rem;font-weight:600}
+  .about-aziel-strip{margin:.2rem 0 .7rem;padding:.45rem .6rem;border:1px solid #3d3420;border-radius:8px;background:#16120a;color:#e6d19a;font-size:.88rem}
 `;
 
 function fieldHtml(task, field, idx) {
@@ -212,9 +216,16 @@ function fieldHtml(task, field, idx) {
 
 function taskCardHtml(task) {
   const fields = (task.fields || []).map((f, i) => fieldHtml(task, f, i)).join("\n");
+  const chips = launchHashtagChipsHtml({
+    slug: task.slug,
+    name: task.name,
+    oneLine: task.blurb,
+    ops: [{ op: task.op, summary: task.title }],
+  });
   return `<article class="task az-task" id="task-${escapeHtml(task.slug)}" data-slug="${escapeHtml(task.slug)}" data-op="${escapeHtml(task.op)}" data-kind="fraggate">
   <h3>${escapeHtml(task.name)} — ${escapeHtml(task.title)}</h3>
   <p class="blurb">${escapeHtml(task.blurb)}</p>
+  ${chips}
   ${fields}
   <div class="actions">
     <button type="button" class="run-task" data-op="${escapeHtml(task.op)}">Run ${escapeHtml(task.op)}</button>
@@ -251,6 +262,7 @@ function dashCardHtml(p, origin) {
   return `<article class="dash-card" data-dash-slug="${escapeHtml(p.slug)}" data-search="${escapeHtml(hay)}">
   <h4><a href="${escapeHtml(base)}/p/${escapeHtml(p.slug)}">${escapeHtml(p.name)}</a> <span class="slug">${escapeHtml(p.slug)}</span></h4>
   <p class="blurb">${escapeHtml(p.oneLine || "")}</p>
+  ${launchHashtagChipsHtml(p)}
   <div class="actions">${door} ${fields} <a href="${escapeHtml(base)}/mcp">Connect AI</a></div>
 </article>`;
 }
@@ -277,6 +289,7 @@ export function workspacePaneHtml(origin, products) {
 
   <section class="op-panel" id="op-panel" data-origin="${escapeHtml(base)}" aria-labelledby="op-panel-title">
     <h3 id="op-panel-title">Operator control panel</h3>
+    ${aboutAzielStripHtml({ id: "about-aziel-strip-op" })}
     <p class="blurb">Off-the-shelf rack. FragGate call, Softwares ops, mesh, session. Same door — not a second exec path.</p>
     <div class="op-rack">
       <div class="op-row fg">
@@ -412,7 +425,8 @@ export function workspacePaneHtml(origin, products) {
 
   <section class="dash" id="dashboard" aria-labelledby="dashboard-title">
     <h3 id="dashboard-title">Dashboard</h3>
-    <p class="hint">Browseable Softwares + live mesh counts + receipts. Metrics come from <code>GET /v1/mesh</code> and <code>GET /v1/receipts</code>. GET never enables radios.</p>
+    ${aboutAzielStripHtml({ id: "about-aziel-strip" })}
+    <p class="hint">Browseable Softwares + live mesh counts + receipts. Metrics come from <code>GET /v1/mesh</code> and <code>GET /v1/receipts</code>. GET never enables radios. Each card has slug-specific <code>#hashtag</code> parts — not one identical blob.</p>
     <div class="metric-grid" id="dash-metrics">
       <div class="metric"><span class="label">Live</span><span class="value" id="metric-live">—</span></div>
       <div class="metric"><span class="label">Locked</span><span class="value" id="metric-locked">—</span></div>

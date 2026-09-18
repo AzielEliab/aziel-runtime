@@ -124,6 +124,16 @@ export function launchHashtagParts(product) {
   return parts;
 }
 
+/** Compact slug-specific hashtag chips for cards / catalog rows / launch tiles. */
+export function launchHashtagChipsHtml(product) {
+  const slug = product && product.slug ? String(product.slug) : PRODUCT_SLUG;
+  const parts = launchHashtagParts(product);
+  const chips = parts
+    .map((p) => `<span class="hashtag" data-part="${escapeHtml(p.tag.slice(1))}">${escapeHtml(p.tag)}</span>`)
+    .join(" ");
+  return `<p class="launch-chips" data-launch-slug="${escapeHtml(slug)}">${chips}</p>`;
+}
+
 export function launchHashtagPartsHtml(product) {
   const slug = product && product.slug ? String(product.slug) : PRODUCT_SLUG;
   const name = product && product.name ? String(product.name) : PRODUCT_NAME;
