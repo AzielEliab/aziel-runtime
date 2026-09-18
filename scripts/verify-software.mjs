@@ -55,7 +55,8 @@ const entries = listSoftwareEntries(PRODUCTS, origin, { updated_at: "2026-09-06"
 assert.ok(entries.length === PRODUCTS.length + NAMED_STUBS.length);
 assert.ok(entries.some((e) => e.slug === "embryolock" && e.status === "live" && e.local_destructive_boundary === true));
 assert.ok(entries.every((e) => e.slug !== "fraggate"), "FragGate is the door, not a software card");
-assert.equal(entries.filter((e) => e.status === "live").length, PRODUCTS.length);
+assert.equal(entries.filter((e) => e.status === "live").length, PRODUCTS.length - 1);
+assert.ok(entries.some((e) => e.slug === "veillock" && e.status === "local_only" && e.door === "none" && e.fraggate_status === "local_only"));
 assert.equal(softwareBucket(entries.find((e) => e.slug === "staticclock").name, "staticclock"), "plain");
 
 const buckets = entries.map((e) => e.bucket);
@@ -185,7 +186,8 @@ const runtime = updateCheck({ slug: "aziel-runtime", version: "1.6.11" }, origin
 assert.equal(runtime.slug, "aziel-runtime");
 assert.equal(runtime.latest, RUNTIME_VERSION);
 assert.equal(runtime.update_available, true);
-assert.equal(runtime.download_url, null);
+assert.equal(runtime.download_url, `${origin}/download`);
+assert.match(runtime.notes, /SLOT|suite pack/i);
 
 const missing = updateCheck({ slug: "not-a-product", version: "1.0.0" }, origin, PRODUCTS, {
   runtimeVersion: RUNTIME_VERSION,
@@ -213,12 +215,17 @@ assert.equal(body.software[body.software.length - 1].bucket, "lock");
 assert.ok(body.software.some((s) => s.slug === "embryolock"));
 assert.equal(body.git_sha, BUILD_GIT_SHA);
 const liveCards = body.software.filter((s) => s.status === "live");
-assert.equal(liveCards.length, PRODUCTS.length);
-for (const card of liveCards) {
+const localOnlyCards = body.software.filter((s) => s.status === "local_only");
+assert.equal(liveCards.length, PRODUCTS.length - 1);
+assert.equal(localOnlyCards.length, 1);
+assert.equal(body.live_count, PRODUCTS.length - 1);
+assert.equal(body.local_only_count, 1);
+assert.ok(body.suite_download.endsWith("/download"));
+for (const card of [...liveCards, ...localOnlyCards]) {
   assert.match(card.engine_digest, /^[a-f0-9]{64}$/, `${card.slug} engine_digest`);
   assert.equal(card.engine_digest, embeddedDigest(card.slug), `${card.slug} digest matches health embed`);
 }
-assert.equal(liveCards.length, trueEngineSlugs().length);
+assert.equal(liveCards.length + localOnlyCards.length, trueEngineSlugs().length);
 assert.match(body.framing, /Never separate FragGate engines/);
 assert.ok(body.software.every((s) => !/are separate FragGate engines/i.test(s.one_line || "")));
 assert.equal(body.isolation_software_count, 33);

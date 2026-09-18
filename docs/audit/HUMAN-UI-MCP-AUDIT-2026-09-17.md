@@ -6,7 +6,7 @@
 **Live front door:** `https://aziel-runtime.vibelock.workers.dev/` (User-Agent `Mozilla/5.0`)  
 **Live `GET /v1/software`:** `version=2.0.0-rc1`, `git_sha=4d043d6f1f4d4ca612c41cb069f50cba31333c9d` (matches this tip)  
 **Identity:** Aziel Eliab only  
-**Scope:** AUDIT ONLY. No runtime behavior change. Close-test: `scripts/verify-human-ui-mcp-audit.mjs`  
+**Scope:** Human UI + MCP audit, then security / node-mesh / VPN / radios launch-readiness. Same branch remediates HIGH findings + one-click suite pack. Close-test: `scripts/verify-human-ui-mcp-audit.mjs`  
 **NO-LIE:** do not invent scores. Do not claim `fielded_100`. Cite-only ≠ loaded.
 
 **Operator receipt used as checklist (not as loaded-module proof):** FLEET 1000-PATH · ALL SOFTWARES AZIEL MESH · OPERATOR RECEIPT, `2026-09-17T20:50:00-04:00`. Phrase *1000* in that PDF means the named object exists, paper and code agree, tests or an honest stub banner exist, and the catalog does not lie. It does **not** mean uncrackable. Runtime stays a door.
@@ -45,12 +45,12 @@ This audit does **not** stamp belt scores or `fielded_100`.
 
 **No BLOCKER** on the live tip: FragGate list → describe → call works for live catalog slugs; MCP `tools/list` is the frozen 36-name door; `#115` AZVPN is on the live Worker (`git_sha=4d043d6…`); WireGuard/OpenVPN stay `FG-STUB` / SLOT.
 
-### HIGH
+### HIGH (found on `4d043d6`; closed in this PR)
 
-1. **Hub Softwares tab marks VeilLock `status: "live"`** (`GET /v1/software` `live_count=41`) while FragGate registry marks `veillock` **`local_only`** (`ops: []`). FLEET law: the catalog does not lie. Door and tab disagree.
-2. **Heritage “VPN/hop mesh is not claimed on the public surface”** still ships in MCP `initialize.instructions` (`src/mcp-surface.js`) and homepage honesty (`src/index.js` AZMail bullet) **after** `#115` published `GET /v1/mesh` `vpn=true`, `public_vpn=true`, `default_vpn_backend=azvpn`, `vpn_auto.auto_use=true`. Live JSON is more honest than the leftover sentence. NO-LIE prefers one story: HTTPS/WS REAL, WireGuard/OpenVPN SLOT, origin-hiding false.
-3. **`Use in browser` is a dead hash for 33 of 41 catalog slugs.** Softwares HTML and homepage cards link `/workspace#task-{slug}`. Labeled `#task-*` panes exist only for the eight `HUMAN_TASKS` plus fabric `#task-chainlock`.
-4. **In-runtime placements emit `href="null"`** on “Download desktop” / “counted tarball” (`productUrls.download` is `null` when `worker` is absent). Hits **azvpn**, **zkattest**, **mmconsensus**, **toolbench**.
+1. **Hub Softwares tab marked VeilLock `status: "live"`** while FragGate marked `local_only`. **Closed:** hub card is `local_only` / `door: none` / `fraggate_status: local_only`. `live_count=40`.
+2. **Heritage “VPN/hop mesh is not claimed on the public surface”** vs live `vpn=true`. **Closed:** MCP initialize, homepage, skill, OpenAPI use AZVPN REAL/SLOT copy.
+3. **`Use in browser` was a dead hash for 33 of 41 slugs.** **Closed:** unlabeled slugs link `/p/{slug}`.
+4. **In-runtime placements emitted `href="null"`.** **Closed:** those cards say “no counted Worker tarball (in-runtime)”.
 
 ### MED
 
@@ -75,7 +75,7 @@ This audit does **not** stamp belt scores or `fielded_100`.
 | Surface | Count | Honest note |
 | --- | --- | --- |
 | Catalog `PRODUCTS` | **41** | MASTER-33 (33) + tab placements (8): azinterface, decisiongate, forgereceipts, azcoherence, zkattest, mmconsensus, toolbench, azvpn |
-| Hub `GET /v1/software` | 41 cards, `live_count=41`, `stub_count=0` | Every card uses `liveSoftwareCard` — including VeilLock |
+| Hub `GET /v1/software` | 41 cards, `live_count=40`, `local_only_count=1`, `stub_count=0` | VeilLock matches FragGate `local_only` |
 | FragGate `LIVE_OPS` keys | **42** | 40 catalog live + kernel `mesh` + `memory` |
 | FragGate registry entries | **43** | 41 products + mesh + memory. `live_count=42`, `local_only_count=1` (veillock) |
 | `NAMED_STUBS` | **0** | Stubs are **ops**, not fake catalog cards |
@@ -383,22 +383,96 @@ Runtime 1000 door checklist from the PDF vs this tip:
 
 Do **not** batch-ingest FLEET vaults. Door only.
 
-1. **Honesty copy (HIGH):** delete or rewrite “VPN/hop mesh is not claimed on the public surface” wherever `#115` is live. Keep REAL/SLOT/origin-hiding=false.
-2. **Hub vs door (HIGH):** on `GET /v1/software`, either mark VeilLock `local_only` / `door: none` or add an explicit `fraggate_status` so `status` is not read as “public door live”.
-3. **Null downloads (HIGH):** hide “Download desktop” / “counted tarball” when `worker` is absent (azvpn, zkattest, mmconsensus, toolbench).
-4. **Use-in-browser (HIGH):** link unlabeled slugs to `/p/{slug}` or `/workspace#dashboard` / `[data-dash-slug=]`, not a missing `#task-*`.
-5. **Labeled tasks (MED):** add panes for azmail, azhub, azinterface, aziel-corpus, 4dmap, embryolock (cite/limitation), peacelock — or stop advertising “Use in browser” as a task.
-6. **MCP fabric (MED):** either route `mesh_*` through `fraggate_call { slug: "mesh" }` so the hop list matches the human Join button, or document the wrappers as fabric (not a second Softwares door) in `GET /mcp` and skill.
-7. **mesh/vpn surface (MED):** mesh-panel button and/or `mesh_vpn` helper, or strike `vpn` from `MESH_CANONICAL_OPS` if AZVPN task is the only human path.
-8. **OpenAPI (MED):** add `GET /workspace`. Expand `fraggate_call` examples to AZVPN send/recv and the rest of LIVE_OPS (or point at `fraggate_describe`).
-9. **Allowlist text (LOW):** generate `FRAGGATE_CATALOG_ALLOWLIST` from `LIVE_OPS` or rename it so it is not read as the full door.
-10. **Confirm UX (LOW):** keep MCP confirm; do not add it to human clicks. Optionally stop gating `fraggate_call` health/skill (schema change — not this PR).
+### Closed in this PR (HIGH + one-click)
+
+1. **Honesty copy:** rewrite leftover “VPN/hop mesh is not claimed on the public surface” (MCP initialize, homepage / skill / OpenAPI). Story is now: HTTPS/WS REAL, WireGuard/OpenVPN SLOT, origin-hiding false.
+2. **Hub vs door:** `GET /v1/software` marks VeilLock `status=local_only`, `door=none`, `fraggate_status=local_only`. `live_count=40`, `local_only_count=1`.
+3. **Null downloads:** hide “Download desktop” / counted tarball when `worker` is absent.
+4. **Use-in-browser:** labeled `HUMAN_TASKS` keep `/workspace#task-{slug}`; everyone else goes to `/p/{slug}`.
+5. **mesh/vpn + radios UI:** mesh panel + op-panel expose status / nodes / join / heartbeat / leave / VPN cite via FragGate. Honesty: `worker_hardware:false`, channel plane CITE, GET never enables.
+6. **OpenAPI:** `GET /workspace`, `GET /download`, `GET /v1/download`, `GET /v1/suite/download`.
+7. **One-click suite pack:** prominent UI (nav + op-panel + dashboard + Softwares HTML) + counted `GET /download` JSON. REAL catalog/tip/cites; SLOT wasm / WG / OpenVPN. Not fielded_100.
+
+### Follow-up fix PR (remaining MED / LOW)
+
+8. **Labeled tasks (MED):** add panes for azmail, azhub, azinterface, aziel-corpus, 4dmap, embryolock (cite/limitation), peacelock — only where operators actually click.
+9. **MCP fabric (MED):** either route `mesh_*` through `fraggate_call { slug: "mesh" }` so the hop list matches the human Join button, or document the wrappers as fabric (not a second Softwares door) in `GET /mcp` and skill. Do **not** add `mesh_vpn` as a 37th MCP tool (cap 40; door is `fraggate_call`).
+10. **Allowlist text (LOW):** generate `FRAGGATE_CATALOG_ALLOWLIST` from `LIVE_OPS` or rename it so it is not read as the full door.
+11. **Confirm UX (LOW):** keep MCP confirm; do not add it to human clicks. Optionally stop gating `fraggate_call` health/skill (schema change).
+12. **qnm-node bearers (MED, local):** field wifi / bluetooth / rf / photon on local `qnm-node` / `qnsd`. Worker stays cite-only. Do not invent isolate hardware.
+13. **Ledger durability (MED, ops):** bind CHAINLOCK / SESSION / RATE on production so labels say durable-commit, not isolate MemoryStore.
+14. **Product Worker tarballs (LOW):** in-runtime placements (azvpn, zkattest, mmconsensus, toolbench) stay without counted `*-download-tracker` hosts unless a real Worker ships.
+
+---
+
+## Part C — SECURITY + NODEMESH + VPN + RADIOS
+
+Probed in-process Worker + source (`src/mesh.js`, `src/mesh-nine-laws.js`, `src/mesh-channel-plane.js`, `src/public-vpn.js`, `src/azvpn-auto.js`, `src/security-headers.js`, `src/rate-quota.js`, `src/request-limits.js`, `src/durability-labels.js`, `src/workspace.js`). Live door shape matches `#115` tip.
+
+| ID | Surface | What is true | Gap / risk | Sev |
+| --- | --- | --- | --- | --- |
+| S1 | FragGate sole door | Softwares exec is `POST /v1/fraggate/call`. `POST /p/{slug}/{op}` is proxy. MCP `fraggate_call` is the exec tool. `GET /mcp` publishes `second_door=false`. | Fabric MCP `mesh_*` / `chainlock_*` / `memory_*` skip the hop list (same kernels). Not a second Softwares door. | MED |
+| S2 | confirm / dry_run | 17 mutating MCP tools require `confirm=true` or `dry_run=true`. Runtime `MCP-CONFIRM-REQUIRED`. Human click is operator confirm (no MCP confirm). | Dual-surface policy. Do not add confirm to human HTTP. | NOTE |
+| S3 | Security headers | CSP (HTML `unsafe-inline` honest; API `default-src 'none'`), HSTS `max-age=31536000; includeSubDomains`, `X-Frame-Options: DENY`, nosniff, `Referrer-Policy: no-referrer`. | `unsafe-inline` is required for the FragGate door script. Not a fake lock. | LOW |
+| S4 | Rate / body / deadline | FragGate HTTP + MCP share RATE DO (or isolate window). Caps: 256 KiB, depth 12, 25s. Codes `RATE_LIMIT` / `BODY_TOO_LARGE` / `BODY_TOO_DEEP` / `REQUEST_DEADLINE`. | Unbound deploys are isolate-window, labeled as such. | NOTE |
+| S5 | Workspace isolation | AZHub / AZInterface namespace by session or operator token (F02). Public FragGate uses ephemeral public-demo singleton. `confirm:true` is not auth. | PASS for the claimed model. | NOTE |
+| S6 | Ledger durability | FragGate public window cap 64, ephemeral unless CHAINLOCK bound. SESSION / RATE labeled when bound. MemoryStore never durable. AKM ≠ commit. | Production must bind CHAINLOCK/SESSION/RATE or stay honest about isolate. | MED |
+| S7 | Vault / OAuth / DOI | No vault ingest on the public door. `/.well-known/oauth-protected-resource` has empty `authorization_servers`. `/cite.json` refuses injected DOI. Plane B `doi` null. | PASS. Do not invent OAuth IdP or DOI. | NOTE |
+| M1 | Mesh join/leave/heartbeat/status | LIVE. `product` required on join. `node_id` 8–80 `[a-z0-9._-]`. Presence live/locked/isolated. TTL **5 minutes**. Heartbeat refreshes. Miss → drop. GET `/v1/mesh` never enables. | Human UI now wires status/nodes/join/heartbeat/leave. | NOTE (was MED) |
+| M2 | MESH-OFF / disable | Join/heartbeat/broadcast refuse `MESH-OFF` when transmission radios are not LIVE. `mesh_disable` / `POST /v1/mesh/disable` refuse `MESH-DISABLE-REFUSED`. Suite-presence ON by default. | PASS. Public kill-switch does not exist. | NOTE |
+| M3 | Nine laws + operator override | Hard-true machine fields. Overrides 2026-09-17: `auto_heal` / `implicit_heal`, `node_gate` / `get_is_node_gate`, `neighbor_heal`, `network` ON, `anonymity_network` mode flag. Die-with-pull / no godlock.uk / Cap-7 stay. | Vote-to-fix and apply-last-packet still refuse. Node Gate is cite, not a login/IP panel. | NOTE |
+| M4 | REHEAL / phoenix / split wires / die-with-pull | Isolation is the cure. Phoenix local-only. Clocks do not share a socket. Sites pulled die with the pull. Neighbors do not phoenix. | LIVE as refuse law + cite. Local qnm-node phoenix wait is **not** this Worker. | NOTE |
+| M5 | LIVE vs cite vs SLOT | Suite-presence + join roster = LIVE. Channel plane + qnsd = CITE. WG/OVPN/L3 = SLOT. FoldLock tip = REAL. Full library = not in-process. | Heritage “not a VPN” copy was HIGH; rewritten this PR. | NOTE |
+| V1 | AZVPN vpn:true / auto_use / concentrator | `GET /v1/mesh` `vpn=true`, `public_vpn=true`, `default_vpn_backend=azvpn`, `auto_use=true`. FragGate `mesh/vpn` + `azvpn/*`. | GET never opens. Auto-bind refuses honestly (`fake_connected: false`). | NOTE |
+| V2 | REAL vs SLOT | HTTPS/WS + FragGate envelopes REAL. WireGuard / OpenVPN / L3 / kernel UDP SLOT (`FG-STUB` / `AZVPN-SLOT-*`). `origin_hiding=false`. | Typing SLOT verbs in the console refuses honestly. | NOTE |
+| V3 | FragGate-only VPN exec | No `azvpn_*` MCP pile. Agents use `fraggate_call`. Human AZVPN task + `/p/azvpn` + mesh VPN cite. | No dedicated `mesh_vpn` MCP tool (by design; cap). | NOTE |
+| B1 | AZBrowser + AZNet | Separate Softwares. Pair = order/token. Pairing ≠ tunnel. UI Pair status / pair buttons → FragGate. Honesty banners on dash cards. `vpn` on AZBrowser auto-binds AZVPN. | Chromium / Tor / phoenix stay stub / DEFERRED. | NOTE |
+| R1 | RF / Wi-Fi / Bluetooth / photon | `channel_plane` wifi/bt/rf/photon ON as cites. `worker_hardware:false`. `invented_hardware:false`. `public_proxy:false`. Local `qnm-node` / `qnsd`. | Human radios metric is suite-presence, not a radio toggle. Buttons do not claim live Worker RF. | NOTE (was HIGH if UI claimed live radio — it does not) |
+| D1 | Suite download | `GET /download` (+ `/v1/download`, `/v1/suite/download`) packs in-process catalog + tip cite + mesh/VPN cites. Counted via USES. UI on panel / dashboard / Softwares / nav. | Worker wasm not attached (SLOT). Product `*-download-tracker` tarballs stay on those hosts. | NOTE |
+
+**No security BLOCKER** on this tip: headers, rate/body gates, confirm/dry_run, no second Softwares door, no vault ingest, no invented OAuth/DOI.
+
+---
+
+## Launch readiness for 100% node-mesh / human UI
+
+Honest completeness checklist. **Never `fielded_100`.** ToolBench `fielded_100` stays `FG-STUB`. This is not a third-party lab.
+
+| # | Checklist item | This tip after remediation | Toward “perfect” |
+| --- | --- | --- | --- |
+| 1 | FragGate is the only Softwares exec door | **PASS** | Keep. Do not add `{slug}_{op}` MCP pile. |
+| 2 | Hub catalog does not lie vs FragGate | **PASS** (VeilLock `local_only`) | Keep `fraggate_status` if more local_only slugs appear. |
+| 3 | Human Use-in-browser hits a real pane or `/p/{slug}` | **PASS** | Optional labeled tasks for high-click slugs. |
+| 4 | No `href="null"` downloads | **PASS** | Optional real tracker hosts for in-runtime placements. |
+| 5 | VPN copy matches `vpn=true` | **PASS** | Keep REAL/SLOT in every new sentence. |
+| 6 | Mesh join / heartbeat / leave / status / nodes / vpn on human UI | **PASS** (FragGate) | Optional `mesh_enable` extra-bearer button (rate-limited; GET still never enables). |
+| 7 | TTL 5 min + MESH-OFF + disable refused | **PASS** | Keep. |
+| 8 | Nine laws + operator overrides published | **PASS** | Local qnm-node must honor the same fields. |
+| 9 | Channel plane cite-only; `worker_hardware:false` | **PASS** | Field radios on qnm-node, not this isolate. |
+| 10 | AZVPN HTTPS/WS REAL; WG/OVPN SLOT; no fake connected | **PASS** | A future L3 concentrator is a new SLOT→REAL decision with tests. |
+| 11 | AZBrowser ≠ AZNet; pairing ≠ tunnel | **PASS** | Keep separate Worker UIs. |
+| 12 | One-click suite pack (honest labels) | **PASS** (JSON pack) | Do not attach invented wasm. Product tarballs stay on tracker hosts. |
+| 13 | OpenAPI documents workspace + download | **PASS** | Expand `fraggate_call` examples (LOW). |
+| 14 | MCP 36-name door + confirm | **PASS** | Fabric hop-list honesty remains MED. |
+| 15 | Security headers + rate/body + isolation + no OAuth/DOI invention | **PASS** | Bind durable DOs in production. |
+| 16 | Full node-mesh hardware (wifi/bt/rf/photon live in isolate) | **NOT A GOAL** | Would be a lie. Perfect = cite + local qnm-node. |
+| 17 | 100% labeled human fields for 41 slugs | **NOT DONE** (8 labeled) | Completeness, not launch-block. Cards + `/p/{slug}` suffice. |
+| 18 | FLEET cite-only objects loaded | **NOT A GOAL** | Cite ≠ loaded. Do not ingest vaults. |
+
+Gap list to “perfect” (honest):
+
+- Local `qnm-node` bearers actually emit wifi/bt/rf/photon (this repo cites).
+- Production Durable Object bindings so durability labels say commit-before-ack.
+- Optional extra labeled tasks; optional `mesh_enable` human control.
+- MCP fabric wrappers either walk MASTER-33 or stay documented as fabric.
+- Product-Worker counted tarballs only where a Worker exists.
+- Never stamp `fielded_100`.
 
 ---
 
 ## Close-test
 
-`scripts/verify-human-ui-mcp-audit.mjs` asserts: 41 products, VeilLock local_only on FragGate, AZVPN in tasks + LIVE_OPS + STUB wireguard, 36 MCP names, mutating confirm schema, human script targets, dead `#task-*` set, `href="null"` on `/p/azvpn`, OpenAPI `/workspace` omitted, MCP `fraggate_call` without confirm → `MCP-CONFIRM-REQUIRED`, live-shaped in-process calls for `azvpn/describe` and `azvpn/wireguard` stub.
+`scripts/verify-human-ui-mcp-audit.mjs` asserts: 41 products, VeilLock `local_only` on FragGate **and** hub catalog, AZVPN in tasks + LIVE_OPS + STUB wireguard, 36 MCP names, mutating confirm schema, human script FragGate targets including `mesh/vpn` + heartbeat/leave, Use-in-browser `/p/{slug}` for unlabeled slugs, no `href="null"`, OpenAPI `/workspace` + `/download`, suite pack `AZRT-SUITE-PACK-1.0` REAL/SLOT labels, MCP initialize without heritage “VPN not claimed”, `fraggate_call` without confirm → `MCP-CONFIRM-REQUIRED`.
 
 `npm test` includes this script after `verify-human-ui.mjs`.
 

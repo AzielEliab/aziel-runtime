@@ -17,7 +17,7 @@ import { CATALOG_ALIASES } from "./catalog-meta.js";
 import { SOFTWARE_HUBS as CROSS_MAP_HUBS, crossMapFields } from "./cross-map.js";
 import { CATALOG_COUNT_NOTE, MASTER_33_SLUGS, TAB_PLACEMENT_SLUGS, domainFields, domainMapView } from "./domain-map.js";
 import { embeddedDigest } from "./engines/digest.js";
-import { NAMED_STUBS } from "./fraggate/registry.js";
+import { LIVE_OPS, NAMED_STUBS } from "./fraggate/registry.js";
 import { meshHint } from "./mesh.js";
 import { qnsHint } from "./qns.js";
 import { actReceiptHint } from "./library-receipts.js";
@@ -118,11 +118,17 @@ function agentHints(base, slug, status) {
   };
 }
 
+function catalogDoorLive(slug) {
+  const ops = LIVE_OPS[slug];
+  return Array.isArray(ops) && ops.length > 0;
+}
+
 export function liveSoftwareCard(product, origin, meta = {}) {
   const base = String(origin || "").replace(/\/$/, "");
   const host = workerHostOf(product);
   const bucket = softwareBucket(product.name, product.slug);
   const domain = domainFields(product.slug);
+  const doorLive = catalogDoorLive(product.slug);
   return {
     slug: product.slug,
     name: product.name,
@@ -130,7 +136,8 @@ export function liveSoftwareCard(product, origin, meta = {}) {
     domain: domain.domain,
     domain_id: domain.domain_id,
     placement: domain.placement,
-    status: "live",
+    status: doorLive ? "live" : "local_only",
+    fraggate_status: doorLive ? "live" : "local_only",
     version: product.version || null,
     one_line: product.oneLine || product.one_line || product.name,
     worker_home: host ? `${host}/` : null,
@@ -141,11 +148,18 @@ export function liveSoftwareCard(product, origin, meta = {}) {
     engine_digest: embeddedDigest(product.slug) || null,
     updated_at: meta.updated_at || null,
     git_sha: meta.git_sha || null,
-    door: "fraggate",
+    door: doorLive ? "fraggate" : "none",
     kind: "software",
     mesh: meshHint("/v1/mesh"),
     qns_cd: qnsHint(),
     ...crossMapFields(product.slug),
+    ...(doorLive
+      ? {}
+      : {
+          local_only: true,
+          note:
+            "Device-local. FragGate status is local_only — no public door. Hub tab must not read this card as public-door live.",
+        }),
     ...(product.local_destructive_boundary
       ? {
           local_destructive_boundary: true,
@@ -216,7 +230,12 @@ export function softwareCatalog(origin, products, extra = {}) {
     git_sha: meta.git_sha,
     count: software.length,
     live_count: software.filter((s) => s.status === "live").length,
+    local_only_count: software.filter((s) => s.status === "local_only").length,
     stub_count: software.filter((s) => s.status === "stub").length,
+    suite_download: `${base}/download`,
+    suite_download_v1: `${base}/v1/suite/download`,
+    suite_download_note:
+      "One-click suite pack JSON (REAL catalog + FoldLock tip + mesh cite). Worker wasm / WireGuard / OpenVPN SLOT. Counted GET /download. Not fielded_100.",
     isolation_software_count: MASTER_33_SLUGS.length,
     tab_placement_slugs: TAB_PLACEMENT_SLUGS.slice(),
     count_note: CATALOG_COUNT_NOTE,
@@ -332,9 +351,9 @@ export function updateCheck({ slug, version, current } = {}, origin, products, e
       current: installed != null && installed !== "" ? String(installed) : null,
       latest,
       update_available: available,
-      download_url: null,
+      download_url: `${base}/download`,
       notes:
-        "Aziel Eliab Runtime has no counted tarball. Worker + in-repo CLI. Hubs/clients refresh GET /v1/software. install.sh / local UI / mobile: compare version then pull GitHub or redeploy.",
+        "Suite pack JSON at GET /download (REAL catalog + FoldLock tip + mesh cite; counted). Worker wasm / WireGuard / OpenVPN stay SLOT. Not a product-Worker tarball. Not fielded_100. Hubs/clients refresh GET /v1/software. Redeploy or pull GitHub for isolate updates.",
       github: "https://github.com/AzielEliab/aziel-runtime",
       software: `${base}/v1/software`,
       status: 200,
@@ -397,7 +416,7 @@ export function updateManifest(origin, products, extra = {}) {
     bucket: "plain",
     status: "live",
     latest: extra.runtimeVersion || extra.version || null,
-    download_url: null,
+    download_url: `${base}/download`,
     github: "https://github.com/AzielEliab/aziel-runtime",
     check: `${base}/v1/update/check?slug=${RUNTIME_SOFTWARE_SLUG}&version=`,
   });
@@ -414,7 +433,7 @@ export function updateManifest(origin, products, extra = {}) {
     software: `${base}/v1/software`,
     check: `${base}/v1/update/check?slug={slug}&version={installed}`,
     client_note:
-      "install.sh, local UIs, and mobile: GET /v1/update/check?slug=<product>&version=<installed>. If update_available, fetch download_url (counted Worker /download). Hubs refresh tabs from GET /v1/software.",
+      "install.sh, local UIs, and mobile: GET /v1/update/check?slug=<product>&version=<installed>. If update_available, fetch download_url (counted product Worker /download, or GET /download suite pack for aziel-runtime). Hubs refresh tabs from GET /v1/software.",
     count: items.length,
     latest: items,
   };

@@ -18,6 +18,8 @@ import {
 import { aboutAzielStripHtml, workerLaunchHtml } from "./about-aziel.js";
 import { launchHashtagChipsHtml } from "./launch-parts.js";
 import { brandRow, ecosystemBlockHtml, headMeta } from "./seo-html.js";
+import { suiteDownloadHref } from "./human-hrefs.js";
+import { suiteDownloadHtml } from "./suite-pack.js";
 
 export const WORKSPACE_PAGE_TITLE = `Workspace — ${PRODUCT_NAME}`;
 export const WORKSPACE_PAGE_DESCRIPTION =
@@ -170,6 +172,10 @@ export const HUMAN_UI_CSS = `
   .field input,.field select,.field textarea{width:100%;background:#0e1014;color:#e8eaef;border:1px solid #2a3140;border-radius:8px;padding:.45rem .55rem;font:inherit;box-sizing:border-box}
   .field textarea{min-height:4.2rem;font:.82rem/1.4 ui-monospace,monospace}
   .field input,.field select{font-size:.95rem}
+  .suite-dl{border:1px solid #7a6224;background:#1f1a0d;border-radius:10px;padding:.7rem .85rem;margin:.55rem 0 1rem}
+  .suite-dl .hint{margin:0 0 .45rem}
+  .suite-dl-btn{display:inline-block;background:#241c0d;color:#f0d78c;border:1px solid #5c4a1a;border-radius:8px;padding:.45rem .85rem;font-weight:700;text-decoration:none}
+  .suite-dl-btn:hover,.suite-dl-btn:focus{background:#33280f;text-decoration:underline}
   .actions{display:flex;flex-wrap:wrap;gap:.4rem;margin:.35rem 0}
   .actions button,.fg-ops button{background:#241c0d;color:#f0d78c;border:1px solid #5c4a1a;border-radius:8px;padding:.4rem .75rem;cursor:pointer;font:inherit;font-size:.85rem}
   .actions button:hover,.fg-ops button:hover{background:#33280f}
@@ -328,6 +334,7 @@ export function workspacePaneHtml(origin, products) {
     <h3 id="op-panel-title">Operator control panel</h3>
     ${aboutAzielStripHtml({ id: "about-aziel-strip-op" })}
     <p class="blurb">Off-the-shelf rack. FragGate call, Softwares ops, mesh, session. Same door — not a second exec path.</p>
+    ${suiteDownloadHtml(base, { id: "suite-download-op" })}
     <div class="op-rack">
       <div class="op-row fg">
         <div class="field">
@@ -369,7 +376,11 @@ export function workspacePaneHtml(origin, products) {
         </div>
         <div class="actions">
           <button type="button" data-op-mesh="status">Refresh mesh</button>
+          <button type="button" data-op-mesh="nodes">Nodes</button>
           <button type="button" data-op-mesh="join">Join</button>
+          <button type="button" data-op-mesh="heartbeat">Heartbeat</button>
+          <button type="button" data-op-mesh="leave">Leave</button>
+          <button type="button" data-op-mesh="vpn">VPN cite</button>
         </div>
       </div>
       <div class="op-row sess">
@@ -440,7 +451,7 @@ export function workspacePaneHtml(origin, products) {
 
   <section class="task" id="mesh-panel" data-kind="mesh" data-origin="${escapeHtml(base)}">
     <h3>Mesh status</h3>
-    <p class="blurb">Live / locked / isolated from <code>GET /v1/mesh</code>. GET never enables radios. Channel plane cites wifi / bluetooth / rf / photon ON (local qnm-node; not Worker VPN). Nine QNM laws stay machine-true on that JSON. Join needs a catalog product. Presence TTL is 5 minutes.</p>
+    <p class="blurb">Live / locked / isolated from <code>GET /v1/mesh</code>. GET never enables radios. Channel plane cites wifi / bluetooth / rf / photon ON (local qnm-node; <code>worker_hardware:false</code> — not live Worker RF). Nine QNM laws stay machine-true on that JSON. Join needs a catalog product. Presence TTL is 5 minutes. Public VPN auto-binds AZVPN (HTTPS/WS REAL; WireGuard/OpenVPN SLOT).</p>
     <p class="ws-status" id="mesh-status-line" data-state="loading" role="status" aria-live="polite">Loading status</p>
     <pre class="ws-out fg-out" id="mesh-out" role="status" aria-live="polite">Loading status…</pre>
     <div class="field">
@@ -460,10 +471,14 @@ export function workspacePaneHtml(origin, products) {
         <option value="isolated">isolated</option>
       </select>
     </div>
-    <p class="hint">Join is first presence. Heartbeat refreshes the 5-minute TTL. MESH-OFF means radios are not LIVE — GET will not turn them on. AnonBroadcast is not a product.</p>
+    <p class="hint">Join is first presence. Heartbeat / Leave need a node id. Heartbeat refreshes the 5-minute TTL. MESH-OFF refuses join/heartbeat/broadcast when transmission radios are not LIVE — GET will not turn them on. Channel plane is CITE-only. AnonBroadcast is not a product. VPN cite is FragGate <code>mesh/vpn</code> (AZVPN auto; never fake connected).</p>
     <div class="actions">
       <button type="button" data-mesh="status">Refresh status</button>
+      <button type="button" data-mesh="nodes">Nodes</button>
       <button type="button" data-mesh="join">Join (product required)</button>
+      <button type="button" data-mesh="heartbeat">Heartbeat</button>
+      <button type="button" data-mesh="leave">Leave</button>
+      <button type="button" data-mesh="vpn">VPN cite (AZVPN auto)</button>
     </div>
   </section>
 
@@ -476,7 +491,10 @@ export function workspacePaneHtml(origin, products) {
       <div class="metric"><span class="label">Locked</span><span class="value" id="metric-locked">—</span></div>
       <div class="metric"><span class="label">Isolated</span><span class="value" id="metric-isolated">—</span></div>
       <div class="metric"><span class="label">Radios</span><span class="value" id="metric-radios">—</span></div>
+      <div class="metric"><span class="label">VPN</span><span class="value" id="metric-vpn">—</span></div>
+      <div class="metric"><span class="label">Hardware</span><span class="value" id="metric-hardware">—</span></div>
     </div>
+    ${suiteDownloadHtml(base, { id: "suite-download-dash" })}
     <h3 id="dash-softwares-title">Softwares</h3>
     <div class="field">
       <label for="dash-filter">Search Softwares</label>
@@ -551,6 +569,7 @@ export function humanNavHtml(origin, { current } = {}) {
   <a href="#dashboard">Dashboard</a>
   <a href="${current === "workspace" ? "#mesh-panel" : "#mesh-panel"}">Mesh</a>
   <a href="${current === "workspace" ? "#session-strip" : "#session-strip"}">Session</a>
+  <a href="${escapeHtml(suiteDownloadHref(base))}" download="aziel-runtime-suite.json">Download suite</a>
   <a href="${escapeHtml(home)}#cite">Cite / docs</a>
   <a href="${escapeHtml(base)}/v1/software">Softwares</a>
 </nav>`;
@@ -811,9 +830,10 @@ export function humanDoorScript() {
       let ch = b.channel_plane || b.channels || {};
       let channelsOn = (ch.wifi || b.wifi) === "on" && (ch.bluetooth || b.bluetooth) === "on" && (ch.rf || b.rf) === "on" && (ch.photon || b.photon) === "on";
       let text = "live " + live + " · locked " + locked + " · isolated " + isolated + " · radios " + radios + " · suite-presence " + (b.suite_presence || "on") + " · GET never enables";
-      if (channelsOn) text += " · channels wifi/bt/rf/photon on";
+      if (channelsOn) text += " · channels wifi/bt/rf/photon cite-on";
       if (b.vpn === true) text += " · public VPN AZVPN auto";
       else if (b.vpn === false) text += " · vpn false";
+      if (b.worker_hardware === false || (b.channel_plane && b.channel_plane.worker_hardware === false)) text += " · worker_hardware false";
       if (b.nine_laws && b.nine_laws.hard_true === true) text += " · nine laws hard-true";
       if (line) {
         line.textContent = text;
@@ -831,6 +851,10 @@ export function humanDoorScript() {
       setMetric("metric-locked", locked);
       setMetric("metric-isolated", isolated);
       setMetric("metric-radios", radios);
+      setMetric("metric-vpn", b.vpn === true ? "AZVPN auto" : (b.vpn === false ? "false" : "—"));
+      let hw = b.worker_hardware;
+      if (hw == null && b.channel_plane) hw = b.channel_plane.worker_hardware;
+      setMetric("metric-hardware", hw === false ? "cite only" : (hw == null ? "—" : String(hw)));
     });
   }
   if (mesh) {
@@ -840,9 +864,23 @@ export function humanDoorScript() {
       btn.addEventListener("click", function () {
         let act = btn.getAttribute("data-mesh");
         if (act === "status") { refreshMesh(btn); return; }
+        if (act === "nodes") {
+          request(origin + "/v1/mesh/nodes", { headers: { accept: "application/json" } }, out, btn);
+          return;
+        }
+        if (act === "vpn") {
+          fraggateCall(origin, "mesh", "vpn", {}, out, btn);
+          return;
+        }
         let product = String(document.getElementById("mesh-product").value || "").trim();
         let node_id = String(document.getElementById("mesh-node").value || "").trim();
         let presence = String(document.getElementById("mesh-presence").value || "live");
+        if (act === "heartbeat" || act === "leave") {
+          if (!node_id) { show(out, "Node id is required for heartbeat / leave.", "error"); return; }
+          let payload = act === "leave" ? { node_id: node_id } : { node_id: node_id, presence: presence };
+          fraggateCall(origin, "mesh", act, payload, out, btn).then(function () { refreshMesh(); });
+          return;
+        }
         if (!product) { show(out, "Product slug is required. MESH-BAD-INPUT if omitted. AnonBroadcast is not a product.", "error"); return; }
         let payload = { product: product, presence: presence };
         if (node_id) payload.node_id = node_id;
@@ -907,7 +945,23 @@ export function humanDoorScript() {
       btn.addEventListener("click", function () {
         let act = btn.getAttribute("data-op-mesh");
         if (act === "status") { refreshMesh(btn); return; }
+        if (act === "nodes") {
+          request(origin + "/v1/mesh/nodes", { headers: { accept: "application/json" } }, out, btn);
+          return;
+        }
+        if (act === "vpn") {
+          fraggateCall(origin, "mesh", "vpn", {}, out, btn);
+          return;
+        }
         let product = String(document.getElementById("op-mesh-product") && document.getElementById("op-mesh-product").value || "").trim();
+        let nodeEl = document.getElementById("mesh-node");
+        let node_id = String(nodeEl && nodeEl.value || "").trim();
+        if (act === "heartbeat" || act === "leave") {
+          if (!node_id) { show(out, "Node id is required for heartbeat / leave (use the mesh panel field).", "error"); return; }
+          let payload = act === "leave" ? { node_id: node_id } : { node_id: node_id, presence: "live" };
+          fraggateCall(origin, "mesh", act, payload, out, btn).then(function () { refreshMesh(); });
+          return;
+        }
         if (!product) { show(out, "Product slug is required. MESH-BAD-INPUT if omitted. AnonBroadcast is not a product.", "error"); return; }
         let meshProduct = document.getElementById("mesh-product");
         if (meshProduct) meshProduct.value = product;

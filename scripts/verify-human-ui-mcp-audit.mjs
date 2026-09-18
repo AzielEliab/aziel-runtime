@@ -119,6 +119,7 @@ for (const html of [home, workspace]) {
   assert.match(html, /data-dash-slug="veillock"/);
   assert.match(html, /local only — no public FragGate door/);
 }
+assert.match(home, /href="https:\/\/aziel-runtime\.example\/p\/azmail">Use in browser/);
 
 assert.match(about, /id="about-aziel"/);
 assert.match(about, /#aziel/);
@@ -128,12 +129,15 @@ assert.match(softwareHtml, /Use in browser/);
 assert.match(softwareHtml, /data-software-row/);
 assert.match(softwareHtml, /data-slug="azvpn"/);
 assert.match(softwareHtml, /href="https:\/\/aziel-runtime\.example\/workspace#task-azvpn"/);
+assert.match(softwareHtml, /href="https:\/\/aziel-runtime\.example\/p\/azmail"/);
+assert.match(softwareHtml, /id="suite-download-software"/);
 
 assert.match(azvpnCard, /data-op="describe"/);
 assert.match(azvpnCard, /data-op="open"/);
 assert.match(azvpnCard, /WireGuard \/ OpenVPN \/ L3 stay SLOT/);
 assert.match(azvpnCard, /data-slug="azvpn"/);
-assert.match(azvpnCard, /href="null"/, "in-runtime AZVPN card currently emits Download desktop href=null (audit HIGH)");
+assert.doesNotMatch(azvpnCard, /href="null"/, "in-runtime AZVPN card must not emit Download desktop href=null");
+assert.match(azvpnCard, /no counted Worker tarball \(in-runtime\)/);
 assert.doesNotMatch(veillockCard, /data-slug="veillock"[^>]*data-kind="door"/, "VeilLock has no public FragGate button rack");
 assert.match(veillockCard, /id="fold-pack-verify"/, "every /p/{slug} still ships FoldLock corpus-tip door");
 assert.match(foldCard, /data-op="fold-preview"/);
@@ -142,7 +146,12 @@ for (const p of PRODUCTS) {
   assert.match(home, new RegExp(`data-dash-slug="${p.slug}"`));
   assert.match(home, new RegExp(`id="${p.slug}"`));
   assert.match(softwareHtml, new RegExp(`data-slug="${p.slug}"`));
-  assert.match(softwareHtml, new RegExp(`/workspace#task-${p.slug}`));
+  if (taskSlugs.includes(p.slug)) {
+    assert.match(softwareHtml, new RegExp(`/workspace#task-${p.slug}`));
+  } else {
+    assert.match(softwareHtml, new RegExp(`/p/${p.slug}`));
+    assert.doesNotMatch(softwareHtml, new RegExp(`/workspace#task-${p.slug}`));
+  }
 }
 
 for (const slug of ["azvpn", "foldlock", "zkattest", "veillock", "azmail"]) {
@@ -164,6 +173,14 @@ assert.match(script, /origin \+ "\/v1\/session\/open"/);
 assert.match(script, /origin \+ "\/mcp"/);
 assert.match(script, /name: name, arguments: \{ c:/);
 assert.match(script, /fraggateCall\(origin, "mesh", "join"/);
+assert.match(script, /fraggateCall\(origin, "mesh", "vpn"/);
+assert.match(script, /fraggateCall\(origin, "mesh", act/);
+assert.match(home, /data-mesh="heartbeat"/);
+assert.match(home, /data-mesh="leave"/);
+assert.match(home, /data-mesh="vpn"/);
+assert.match(home, /id="suite-download-op"/);
+assert.match(home, /id="suite-download-dash"/);
+assert.match(home, /worker_hardware false/);
 assert.match(script, /fraggateCall\(origin, "aznet", op/);
 assert.doesNotMatch(script, /confirm\s*:/, "human HTTP FragGate path does not send MCP confirm");
 
@@ -189,7 +206,9 @@ assert.ok(openapi.paths["/v1/fraggate/call"], "OpenAPI documents FragGate call")
 assert.ok(openapi.paths["/mcp"], "OpenAPI documents MCP edge");
 assert.ok(openapi.paths["/p/azvpn/describe"], "OpenAPI documents per-slug proxy paths, not a single /p/{product}/{op} template");
 assert.ok(openapi.paths["/about"]);
-assert.equal(openapi.paths["/workspace"], undefined, "OpenAPI omits /workspace — human pane is HTML-only (audit finding)");
+assert.ok(openapi.paths["/workspace"], "OpenAPI documents GET /workspace");
+assert.ok(openapi.paths["/download"], "OpenAPI documents GET /download suite pack");
+assert.ok(openapi.paths["/v1/suite/download"], "OpenAPI documents machine suite pack alias");
 
 const registry = await (await get("/v1/fraggate/list")).json();
 assert.equal(registry.ok, true);
@@ -205,7 +224,10 @@ assert.equal(veil.status, "local_only");
 
 const catalog = await (await get("/v1/software")).json();
 assert.equal(catalog.count, 41);
-assert.equal(catalog.live_count, 41, "hub Softwares cards mark catalog products live (VeilLock card is live-named; FragGate status is local_only)");
+assert.equal(catalog.live_count, 40, "hub Softwares live_count excludes VeilLock local_only");
+assert.equal(catalog.local_only_count, 1);
+assert.ok(catalog.software.some((s) => s.slug === "veillock" && s.status === "local_only" && s.door === "none"));
+assert.ok(String(catalog.suite_download || "").endsWith("/download"));
 assert.ok(catalog.software.some((s) => s.slug === "azvpn"));
 assert.ok(!catalog.software.some((s) => s.slug === "mesh"), "mesh is not a Softwares-tab card");
 assert.ok(!catalog.software.some((s) => s.slug === "lumen"), "Lumen is not a catalog card");
@@ -236,8 +258,8 @@ const mcpCallBody = await mcpCallNoConfirm.json();
 const mcpText = JSON.stringify(mcpCallBody);
 assert.match(mcpText, /MCP-CONFIRM-REQUIRED|confirm=true/);
 
-const deadTaskHrefs = productSlugs.filter((s) => !taskSlugs.includes(s));
-assert.ok(deadTaskHrefs.length >= 30, "most Softwares Use-in-browser anchors have no labeled #task-* pane");
+const unlabeled = productSlugs.filter((s) => !taskSlugs.includes(s));
+assert.ok(unlabeled.length >= 30, "most Softwares use /p/{slug} instead of a labeled #task-* pane");
 assert.ok(taskSlugs.includes("azvpn"));
 assert.ok(!taskSlugs.includes("azmail"));
 assert.ok(!taskSlugs.includes("azhub"));
@@ -245,8 +267,20 @@ assert.ok(!taskSlugs.includes("azhub"));
 const instructions = mcpInitializeInstructions();
 assert.match(instructions, /fraggate_call is THE single door|Execute only through fraggate_call/);
 assert.match(instructions, /Do not invoke former \{slug\}_\{op\} names/);
-assert.match(instructions, /VPN\/hop mesh is not claimed on the public surface/, "heritage initialize sentence still present — audit finding, not silently rewritten here");
+assert.doesNotMatch(instructions, /VPN\/hop mesh is not claimed on the public surface/);
+assert.match(instructions, /Public VPN auto-binds AZVPN/);
 assert.match(instructions, /AZVPN|azvpn|1\.7\.|public VPN|concentrator/i);
+
+const suitePack = await (await get("/download")).json();
+assert.equal(suitePack.ok, true);
+assert.equal(suitePack.spec, "AZRT-SUITE-PACK-1.0");
+assert.equal(suitePack.labels.software_catalog, "REAL");
+assert.equal(suitePack.labels.worker_wasm_bundle, "SLOT");
+assert.equal(suitePack.labels.wireguard_openvpn_l3, "SLOT");
+assert.equal(suitePack.labels.fielded_100, false);
+assert.equal(suitePack.foldlock_tip.full_library_in_process, false);
+assert.ok(Array.isArray(suitePack.catalog.software) && suitePack.catalog.software.length === 41);
+assert.ok(suitePack.mesh.channel_plane.worker_hardware === false);
 
 assert.ok(MESH_CANONICAL_OPS.includes("vpn"));
 assert.ok(Array.isArray(MESH_MCP_TOOLS));
@@ -279,7 +313,7 @@ console.log(
       local_only: localOnly,
       kernel: kernelSlugs,
       human_tasks: taskSlugs,
-      use_in_browser_without_task_pane: deadTaskHrefs,
+      use_in_browser_without_task_pane: unlabeled,
       mcp_tools: toolNames.length,
       mutating: MUTATING_MCP_TOOLS.length,
       registry_live: built.live_count,

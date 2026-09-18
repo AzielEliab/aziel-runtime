@@ -136,12 +136,17 @@ assert.doesNotMatch(ws, /15:20/);
 
 const sitemap = await (await get("/sitemap.xml")).text();
 assert.match(sitemap, /\/workspace</);
+assert.match(sitemap, /\/download</);
 
 const softwareHtml = await (
   await get("/v1/software", { accept: "text/html" })
 ).text();
 assert.match(softwareHtml, /<label for="software-filter">Search Softwares/);
 assert.match(softwareHtml, /Use in browser/);
+assert.match(softwareHtml, /id="suite-download-software"/);
+assert.match(ws, /id="suite-download-op"/);
+assert.match(ws, /data-mesh="vpn"/);
+assert.match(ws, /data-mesh="heartbeat"/);
 assert.match(softwareHtml, /Connect AI/);
 assert.match(softwareHtml, /data-software-row/);
 assert.match(softwareHtml, /id="about-aziel"/);
