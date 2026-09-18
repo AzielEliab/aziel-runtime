@@ -66,9 +66,10 @@ hydra, a LIVE Plane B/C, or a fake live door.
   roster                        a node publishes an attested named       SLOT until attest.
                                 FragGate origin + hash/receipt           No open proxy.
   Cap-7 + AZNet                 Name-metadata cite + hash verify         Hosted exec endpoints
-                                when a public door is banned             SLOT. AZNet never
-                                                                         hosts payloads.
-                                                                         No fake ICANN `.az`.
+                                when a public door is banned;            SLOT. AZNet never
+                                update shuffle ping→land                 hosts payloads.
+                                (distinct mesh names)                    No fake ICANN `.az`.
+                                                                         No hardcoded host.
 
 Hub `/runtime` on azielcorpuslibrary.net, azieleliab.com, and godlock.uk
 is the **same FragGate door** via service binding — not a second door and
@@ -103,18 +104,25 @@ as the death-by-ban backup — they are not mixed into `exec_origins`.
 5. Cap-7 cite (`GET /v1/mesh/az-generator` or MirageGrid `/bridge`) and
    AZNet `stamp` / `verify_hash` / `receipt_verify` stay **LIVE** via
    FragGate — name metadata and hash continuity, not a hosted `/mcp`.
-6. If every named live front is gone (death-by-ban of the public door
+6. Cap-7 update shuffle: all nodes ping MirageGrid until they land on
+   **one** Cap-7 site (distinct mesh names; `name_may_change`). That
+   landed site is the update endpoint for that round. Do not hardcode
+   a single Cap-7 host. Hosted update URL stays **SLOT**. Public
+   MirageGrid workers.dev shuffle stays **SLOT** (follow-on product PR).
+7. If every named live front is gone (death-by-ban of the public door
    set): verify bytes against the published lockset tip on GitHub /
    corpus `/shelves` / Codeberg + archive.org tip-packs (**SLOT**,
    hash-verify PASS). Plane C USB stays SLOT. `doi` null. This is the
    **shelf backup**, not a live door.
-7. Vice versa: if a shelf or alt-forge dies, keep using the LIVE named
+8. Vice versa: if a shelf or alt-forge dies, keep using the LIVE named
    fronts. Do not treat one dead shelf as last tip gone.
 
 Never invent an unnamed origin. Never claim a banned host is still LIVE.
 Never treat LLM memory as a replica. Never treat a cold shelf as `/mcp`.
 Never treat `GET /v1/mesh` `live_nodes` as an API roster.
 Never treat a Cap-7 name as a hosted exec door.
+Never hardcode one Cap-7 host as the only update door.
+Never treat AKM memory / posterior as truth.
 
 4. Endpoint quarantine
 Exec surfaces (`POST /mcp`, `POST /v1/fraggate/call`) may be operator-
@@ -186,6 +194,46 @@ origin. Only that named origin may later flip hosted_endpoints LIVE.
 Security audit first. Runtime cites the MirageGrid bridge; it does
 not invent a second factory.
 
+6c. Cap-7 update shuffle (layout LIVE; public / hosted SLOT)
+Cap-7 sites have **different names** — distinct mesh names, not aliases
+of the four ICANN hubs. `name_may_change: true`. Inherit hub **design
+DNA** only. `resolves_to_hub: false`.
+
+**Update path (exact):** all nodes **ping MirageGrid** until they
+**land on one Cap-7 site in the shuffle**. That landed site is the
+update endpoint for that round. Do not hardcode a single Cap-7 host
+as the only update door.
+
+Typically a **subset** of Cap-7 can be browser-reachable hosted
+servers (class `browser`; hosted URL still SLOT until attested).
+The **remainder** are mesh / AZNet-side. Keep that honesty.
+
+In-process land is `fraggate_call { slug: "miragegrid", op: "shuffle" }`
+(ping control-plane `assign` → land one of seven mesh names). The
+MirageGrid localhost assign-pool (`127.0.0.1:19000+`) is **not** a
+public update door.
+
+Public MirageGrid Worker `/bridge` is **not** a LIVE shuffle door
+from this runtime (absent on workers.dev). Do not invent LIVE public
+shuffle. Follow-on: MirageGrid product PR to publish `/bridge` +
+shuffle land with the same distinct-name layout. Runtime already
+bridges in-process.
+
+6d. AKM memory law (cite alongside this stack)
+AKM-TRIAD-1.0 is already LIVE fabric. Survival must not weaken it:
+
+1. **Ranked adaptive recall** — Belief List cross-referenced against
+   verified ChainLock states. Flag `belief_is_not_truth` (posterior ≠
+   truth). Runtime must not treat its own memory as absolute fact.
+2. **Append-only recollection (`memory_get`)** — no `memory_delete` /
+   `memory_update` overwrite. Audit trail trapped by history.
+3. **Forward-path adaptive outcomes (`memory_resolve`)** — additive
+   resolution stamps on existing memory IDs; sedimentary learning;
+   no sanitizing the old trail.
+
+FragGate describe already lists stub_ops `model_update`, `rollback`,
+`rewrite`, `delete_history`, `auto_update` — those stay refused.
+
 7. What this is not
 - Not a Softwares-tab product. Do not add slug `ban-survival` or `survival`.
 - Not a FragGate engine. No `fraggate_call { slug: "survival" }`.
@@ -202,11 +250,14 @@ not invent a second factory.
 - Not an open proxy onto the QNM roster.
 - Not a fake Cap-7 hosted endpoint. Not ICANN `.az`. Not AZNet payload host.
 - Not `radio_phy`. Not `resolves_to_hub: true`.
+- Not a hardcoded single Cap-7 update host. Not a LIVE public MirageGrid shuffle invent.
+- Not permission to treat AKM posterior as truth or to delete / rewrite memory history.
 
 8. Surfaces
 - `GET /survival` · `GET /v1/survival` · aliases `/doors` `/failover`
 - `/cite.json` `ban_survival` (`live_doors` = LIVE only; `shelf_backup`;
-  `live_node_api` SLOT; `cap7_aznet` cite+verify LIVE / hosted SLOT)
+  `live_node_api` SLOT; `cap7_aznet` cite+verify LIVE / hosted SLOT /
+  shuffle layout LIVE / public shuffle SLOT; `akm_memory` cite)
 - `/llms.txt` · `/ai.txt`
 - `/openapi.json`
 - MCP `runtime_skill` + stdio bridge failover (no new tool)
@@ -223,8 +274,14 @@ not invent a second factory.
 - Plane B / C stay SLOT. `doi` null. No invented live door.
 - `live_node_api.status` is SLOT. Open node proxy refuses `BAN-NO-OPEN-NODE-PROXY`.
 - `cap7_aznet.cite` / `aznet_verify` are LIVE. `hosted_endpoints` is SLOT.
-  Fake Cap-7 host refuses `BAN-NO-FAKE-CAP7-HOST`. AZNet payload host
-  refuses `BAN-NO-AZNET-PAYLOAD-HOST`. `radio_phy` false.
+  Shuffle layout is LIVE (ping→land; distinct names; no hardcoded host).
+  Public workers.dev shuffle and hosted update URL are SLOT. Fake Cap-7
+  host refuses `BAN-NO-FAKE-CAP7-HOST`. Hardcoded update host refuses
+  `BAN-NO-HARDCODE-CAP7-HOST`. Fake public shuffle LIVE refuses
+  `BAN-NO-FAKE-SHUFFLE-LIVE`. AZNet payload host refuses
+  `BAN-NO-AZNET-PAYLOAD-HOST`. `radio_phy` false.
+- `akm_memory.belief_is_not_truth` is true. `memory_get` append-only.
+  `memory_resolve` additive. stub_ops stay refused.
 - Claiming a banned host is LIVE refuses `BAN-NO-LIE`.
 - Treating shelves as a live exec door refuses `BAN-NO-SHELF-ONLY`.
 - Dropping shelves / claiming the shelf plan failed refuses `BAN-NO-DOOR-ONLY`.

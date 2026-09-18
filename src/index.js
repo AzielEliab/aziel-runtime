@@ -527,6 +527,7 @@ const PRODUCTS_RAW = [
       { op: "assign", method: "POST", summary: "Assign a session node id. Mapping is ephemeral." },
       { op: "verify-receipt", method: "POST", summary: "Verify a MirageGrid control-plane receipt. Not a VPN hop." },
       { op: "bridge", method: "GET", summary: "Cap-7 mesh-name metadata cite. Inherit designs only (azcorpus + azlibrary). Not ICANN. resolves_to_hub false. name_may_change." },
+      { op: "shuffle", method: "POST", summary: "Ping MirageGrid until one Cap-7 site lands. That landed mesh name is that-round update. Distinct names. No hardcoded host. Hosted URL SLOT. Public workers.dev shuffle SLOT." },
       { op: "nodes", method: "GET", summary: "List ephemeral control-plane node ids. Not a hop mesh." },
       { op: "doctor", method: "GET", summary: "UI alias of health. Same FragGate backend as the Worker UI button." },
     ],
