@@ -103,11 +103,19 @@ export const HUMAN_TASKS = Object.freeze([
     name: "AZNet",
     op: "pair_status",
     title: "Pair status",
-    blurb: "Functional-order pair with AZBrowser (order/token). Hash continuity / side-net. Pairing ≠ tunnel. Not a VPN. Products stay separate.",
+    blurb: "Functional-order pair with AZBrowser (order/token). Hash continuity / side-net. Pairing ≠ tunnel. Public VPN auto-binds AZVPN. Products stay separate.",
     fields: [
       { name: "pair_token", label: "Pair token (optional; min 8 chars)", type: "text", example: "aznet-azbrowser-pair" },
       { name: "pair_flag", label: "Pair flag (must be azbrowser)", type: "text", example: "azbrowser" },
     ],
+  },
+  {
+    slug: "azvpn",
+    name: "AZVPN",
+    op: "describe",
+    title: "Describe concentrator",
+    blurb: "Automatic public VPN backend. HTTPS/WS REAL. WireGuard/OpenVPN SLOT. Callers do not name software=azvpn on auto paths.",
+    fields: [{ name: "kind", label: "Kind (https_ws)", type: "text", example: "https_ws" }],
   },
   {
     slug: "forgereceipts",
@@ -347,7 +355,7 @@ export function workspacePaneHtml(origin, products) {
         </div>
       </div>
       <div class="op-row pair" id="op-aznet-pair">
-        <p class="hint" style="margin:0">AZNet ↔ AZBrowser functional-order pair (order/token — hash continuity / side-net). Pairing ≠ tunnel. Not a VPN.</p>
+        <p class="hint" style="margin:0">AZNet ↔ AZBrowser functional-order pair (order/token — hash continuity / side-net). Pairing ≠ tunnel. Public VPN auto-binds AZVPN.</p>
         <div class="actions">
           <button type="button" data-op-pair="pair_status">Pair status</button>
           <button type="button" data-op-pair="pair">pair</button>
@@ -462,7 +470,7 @@ export function workspacePaneHtml(origin, products) {
   <section class="dash" id="dashboard" aria-labelledby="dashboard-title">
     <h3 id="dashboard-title">Dashboard</h3>
     ${aboutAzielStripHtml({ id: "about-aziel-strip" })}
-    <p class="hint">Browseable Softwares + live mesh counts + receipts. Metrics come from <code>GET /v1/mesh</code> and <code>GET /v1/receipts</code>. GET never enables radios. Each card has slug-specific <code>#hashtag</code> parts — not one identical blob. Channel plane (wifi / bluetooth / rf / photon) is a cite — live hardware is local qnm-node, not Worker VPN.</p>
+    <p class="hint">Browseable Softwares + live mesh counts + receipts. Metrics come from <code>GET /v1/mesh</code> and <code>GET /v1/receipts</code>. GET never enables radios. Each card has slug-specific <code>#hashtag</code> parts — not one identical blob. Channel plane (wifi / bluetooth / rf / photon) is a cite — live hardware is local qnm-node. Public VPN auto-binds AZVPN (HTTPS/WS; GET cites only).</p>
     <div class="metric-grid" id="dash-metrics">
       <div class="metric"><span class="label">Live</span><span class="value" id="metric-live">—</span></div>
       <div class="metric"><span class="label">Locked</span><span class="value" id="metric-locked">—</span></div>
@@ -803,8 +811,9 @@ export function humanDoorScript() {
       let ch = b.channel_plane || b.channels || {};
       let channelsOn = (ch.wifi || b.wifi) === "on" && (ch.bluetooth || b.bluetooth) === "on" && (ch.rf || b.rf) === "on" && (ch.photon || b.photon) === "on";
       let text = "live " + live + " · locked " + locked + " · isolated " + isolated + " · radios " + radios + " · suite-presence " + (b.suite_presence || "on") + " · GET never enables";
-      if (channelsOn) text += " · channels wifi/bt/rf/photon on · not VPN";
-      if (b.vpn === false) text += " · vpn false";
+      if (channelsOn) text += " · channels wifi/bt/rf/photon on";
+      if (b.vpn === true) text += " · public VPN AZVPN auto";
+      else if (b.vpn === false) text += " · vpn false";
       if (b.nine_laws && b.nine_laws.hard_true === true) text += " · nine laws hard-true";
       if (line) {
         line.textContent = text;

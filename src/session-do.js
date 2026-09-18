@@ -17,6 +17,7 @@ import {
   verifyChainStrict,
 } from "./session-core.js";
 import { SESSION_TTL_MS, isSessionExpired } from "./production.js";
+import { ensureDefaultVpnSession, vpnArmed } from "./azvpn-auto.js";
 
 function json(body, status = 200) {
   return new Response(JSON.stringify(body, null, 2), {
@@ -141,6 +142,29 @@ export class RuntimeSession {
       version: body.version,
       source: body.source || "worker",
     });
+    if (vpnArmed(body)) {
+      const auto = await ensureDefaultVpnSession(body, this.env);
+      if (!auto || auto.ok === false) {
+        return json(
+          {
+            ok: false,
+            error: (auto && auto.error) || "AZVPN auto-bind could not start.",
+            code: (auto && auto.code) || "AZVPN-AUTO-FAIL",
+            connected: false,
+            fake_connected: false,
+            vpn_auto: auto && auto.vpn_auto ? auto.vpn_auto : null,
+          },
+          400,
+        );
+      }
+      session.vpn_auto = {
+        backend: "azvpn",
+        auto: true,
+        tunnel_id: auto.tunnel_id,
+        kind: "https_ws",
+        honesty: "REAL",
+      };
+    }
     await applyOpen(session, now);
     await this.save(session);
     await this.scheduleExpiry();

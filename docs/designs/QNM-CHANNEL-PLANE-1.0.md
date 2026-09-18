@@ -21,14 +21,14 @@ The Worker rollup bearer stays **`suite-presence`**. Do not invent a second Work
 
 ## This is not
 
-- A public VPN product
+- A kernel UDP VPN product (WireGuard/OpenVPN stay SLOT)
 - Tor / SOCKS / origin-hiding fabric
-- GodLock-as-VPN (`vpn: false` stays)
+- GodLock-as-VPN (GodLock stays a product name)
 - Worker-proxied radios
 - Invented live OS/hardware on this isolate
 - A tunnel that merges AZNet and AZBrowser
 
-**Channel plane ≠ VPN.**
+**Channel plane ≠ kernel VPN.** Public VPN auto-binds **AZVPN** (HTTPS/WS REAL). `GET /v1/mesh` cites `vpn: true` and never opens a concentrator session.
 
 **AZNet ↔ AZBrowser pairing ≠ tunnel.** Pairing is functional order / token (hash continuity, silent side-net). Products stay separate. FragGate stays THE single public door.
 

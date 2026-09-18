@@ -73,6 +73,7 @@ const expectedLive = [
   "sandbox_render",
   "health",
   "skill",
+  "vpn",
 ];
 for (const op of expectedLive) {
   assert.ok(live.includes(op), `LIVE_OPS.azbrowser has ${op}`);
@@ -90,7 +91,7 @@ for (const op of expectedLive) {
 }
 assert.equal(classifyCall(registry.bySlug.azbrowser, "tor_exit").kind, "stub");
 assert.equal(classifyCall(registry.bySlug.azbrowser, "tor").kind, "stub");
-assert.equal(classifyCall(registry.bySlug.azbrowser, "vpn").kind, "stub");
+assert.equal(classifyCall(registry.bySlug.azbrowser, "vpn").kind, "live");
 assert.equal(classifyCall(registry.bySlug.azbrowser, "socks").kind, "stub");
 assert.equal(classifyCall(registry.bySlug.azbrowser, "proxy").kind, "stub");
 assert.equal(classifyCall(registry.bySlug.azbrowser, "phoenix_wipe").kind, "stub");

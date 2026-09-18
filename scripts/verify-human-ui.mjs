@@ -192,19 +192,25 @@ const mesh = await (await get("/v1/mesh")).json();
 assert.ok(mesh.rollup || mesh.live_nodes != null);
 assert.equal(mesh.get_never_enables, true);
 assert.equal(mesh.nine_laws && mesh.nine_laws.hard_true, true);
-assert.equal(mesh.vpn, false);
+assert.equal(mesh.vpn, true);
+assert.equal(mesh.public_vpn, true);
+assert.equal(mesh.default_vpn_backend, "azvpn");
 assert.equal(mesh.origin_hiding, false);
 assert.equal(mesh.wifi, "on");
 assert.equal(mesh.bluetooth, "on");
 assert.equal(mesh.rf, "on");
 assert.equal(mesh.photon, "on");
 assert.equal(mesh.channel_plane && mesh.channel_plane.spec, "QNM-CHANNEL-PLANE-1.0");
-assert.equal(mesh.channel_plane.vpn, false);
+assert.equal(mesh.channel_plane.vpn, true);
+assert.equal(mesh.channel_plane.concentrator_slug, "azvpn");
+assert.equal(mesh.vpn_auto.get_never_opens, true);
 assert.ok(Array.isArray(mesh.bearers) && mesh.bearers.includes("suite-presence"));
 
 const pair = await call("aznet", "pair_status", {});
 assert.equal(pair.status, 200);
 assert.equal(pair.body.result.vpn, false);
+assert.equal(pair.body.result.public_vpn, true);
+assert.equal(pair.body.result.default_vpn_backend, "azvpn");
 assert.equal(pair.body.result.tunnel, false);
 assert.equal(pair.body.result.pairing, "order/token");
 

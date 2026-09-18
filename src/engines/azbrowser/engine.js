@@ -777,6 +777,46 @@ export async function receiptVerify(payload, env, op = "verify") {
   });
 }
 
+export async function azbrowserVpn(payload, env) {
+  const { ensureDefaultVpnSession, vpnAutoCite } = await import("../../azvpn-auto.js");
+  const auto = await ensureDefaultVpnSession(payload, env);
+  if (!auto || auto.ok === false) {
+    return {
+      ok: false,
+      refused: true,
+      op: "vpn",
+      product: PRODUCT,
+      name: NAME,
+      code: (auto && auto.code) || "AZVPN-AUTO-FAIL",
+      error: (auto && auto.error) || "AZVPN auto-bind could not start.",
+      connected: false,
+      fake_connected: false,
+      backend: "azvpn",
+      auto: true,
+      vpn_auto: auto && auto.vpn_auto ? auto.vpn_auto : vpnAutoCite({ open: true }),
+      note: "AZBrowser is not a VPN product. Public VPN auto-binds AZVPN. Auto could not start — no fake connected.",
+    };
+  }
+  return {
+    ok: true,
+    op: "vpn",
+    product: PRODUCT,
+    name: NAME,
+    backend: "azvpn",
+    auto: true,
+    connected: true,
+    fake_connected: false,
+    kind: "https_ws",
+    tunnel_id: auto.tunnel_id,
+    session: auto.session || null,
+    vpn_auto: auto.vpn_auto || vpnAutoCite({ open: true }),
+    public_vpn: true,
+    default_vpn_backend: "azvpn",
+    auto_use: true,
+    note: "AZBrowser is not a VPN product. Public VPN auto-binds AZVPN (HTTPS/WS REAL; WireGuard/OpenVPN SLOT).",
+  };
+}
+
 export function azbrowserHealth(env) {
   return baseResult({
     ok: true,
@@ -802,7 +842,7 @@ AZBrowser (AZB-1.0) is the Lamb Lens ethical research browser. AZNet is separate
 - Worker UI buttons on this runtime call that same door — one backend, two surfaces
 - Leftover flat names such as \`azbrowser_ethical_search\` still go through FragGate (\`parseTarget\`) — they are not a side door and are not listed on \`tools/list\`
 
-Live ops: \`ethical_search\`, \`lamb_lens_search\`, \`navigate\`, \`airlock_ingest\`, \`tab_open\`, \`tab_list\`, \`receipt_list\`, \`verify\`, \`receipt_verify\`, \`sandbox_status\`, \`sandbox_render\`, \`health\`, \`skill\`.
+Live ops: \`ethical_search\`, \`lamb_lens_search\`, \`navigate\`, \`airlock_ingest\`, \`tab_open\`, \`tab_list\`, \`receipt_list\`, \`verify\`, \`receipt_verify\`, \`sandbox_status\`, \`sandbox_render\`, \`health\`, \`skill\`, \`vpn\` (auto-binds AZVPN).
 
 Lamb Lens **cites**. It **refuses harmful harvest**. It **does not invent visit results**. \`navigate\` returns advisory metadata only — never raw HTML.
 

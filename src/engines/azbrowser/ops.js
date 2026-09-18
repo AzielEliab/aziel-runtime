@@ -18,6 +18,7 @@ import {
   sandboxStatus,
   tabList,
   tabOpen,
+  azbrowserVpn,
 } from "./engine.js";
 
 export const AZBROWSER_OPS = [
@@ -35,6 +36,7 @@ export const AZBROWSER_OPS = [
   "sandbox_status",
   "sandbox_render",
   "doctor",
+  "vpn",
 ];
 
 export function azbrowserHealthOp(env) {
@@ -59,6 +61,7 @@ export async function runAzbrowser(op, payload, scratch, env) {
   if (op === "lamb_lens_search") return ethicalSearch(payload, env, "lamb_lens_search");
   if (op === "tab_open") return tabOpen(payload, env);
   if (op === "tab_list") return tabList(payload, env);
+  if (op === "vpn") return azbrowserVpn(payload, env);
   return { unsupported: true };
 }
 

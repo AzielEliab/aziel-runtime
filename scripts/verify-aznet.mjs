@@ -118,7 +118,7 @@ const both = inspectPair(PAIR);
 assert.equal(both.paired, true);
 assert.equal(both.flag_ok, true);
 
-const status = pairStatus({});
+const status = await pairStatus({});
 assert.equal(status.ok, true);
 assert.equal(status.pair.paired, false);
 assert.equal(status.code, "AZN-PAIR-MISSING");
@@ -130,6 +130,8 @@ assert.equal(status.peer, "azbrowser");
 assert.equal(status.peer_name, "AZBrowser");
 assert.equal(status.tunnel, false);
 assert.equal(status.vpn, false);
+assert.equal(status.public_vpn, true);
+assert.equal(status.default_vpn_backend, "azvpn");
 assert.equal(status.payload_hosting, false);
 assert.equal(status.products_merged, false);
 assert.equal(status.pair.kind, "functional-order");
@@ -137,13 +139,16 @@ assert.equal(status.pair.tunnel, false);
 assert.equal(status.pair.vpn, false);
 assert.match(status.note, /Pairing ≠ tunnel/);
 
-const pairedStatus = pairStatus(PAIR);
+const pairedStatus = await pairStatus(PAIR);
 assert.equal(pairedStatus.ok, true);
 assert.equal(pairedStatus.pair.paired, true);
 assert.equal(pairedStatus.pair_state, "paired");
 assert.equal(pairedStatus.code, "AZN-OK");
 assert.equal(pairedStatus.vpn, false);
 assert.equal(pairedStatus.tunnel, false);
+assert.equal(pairedStatus.public_vpn, true);
+assert.equal(pairedStatus.default_vpn_backend, "azvpn");
+assert.ok(pairedStatus.vpn_session && pairedStatus.vpn_session.tunnel_id);
 
 const refusedGarden = await gardenList({});
 assert.equal(refusedGarden.ok, false);

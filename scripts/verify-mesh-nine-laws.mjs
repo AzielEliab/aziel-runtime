@@ -121,12 +121,15 @@ function law8_auto_heal_operator_on(live) {
 function law9_anonymity_network_operator_flag(live) {
   assert.equal(live.anonymity_network, true);
   assert.equal(live.anonymity_network_note, ANONYMITY_NETWORK_NOTE);
-  assert.equal(live.vpn, false);
+  assert.equal(live.vpn, true);
+  assert.equal(live.public_vpn, true);
+  assert.equal(live.default_vpn_backend, "azvpn");
   assert.equal(live.origin_hiding, false);
 }
 
 function channel_plane_cites(live) {
-  assert.equal(live.vpn, false);
+  assert.equal(live.vpn, true);
+  assert.equal(live.public_vpn, true);
   assert.equal(live.origin_hiding, false);
   assert.equal(live.wifi, "on");
   assert.equal(live.bluetooth, "on");
@@ -141,15 +144,16 @@ function channel_plane_cites(live) {
   assert.equal(live.channel_plane.bluetooth, "on");
   assert.equal(live.channel_plane.rf, "on");
   assert.equal(live.channel_plane.photon, "on");
-  assert.equal(live.channel_plane.vpn, false);
+  assert.equal(live.channel_plane.vpn, true);
+  assert.equal(live.channel_plane.concentrator_slug, "azvpn");
   assert.equal(live.channel_plane.public_proxy, false);
   assert.equal(live.channel_plane.worker_hardware, false);
   assert.equal(live.channel_plane.invented_hardware, false);
   assert.equal(live.channel_plane.bearer, "suite-presence");
   assert.ok(Array.isArray(live.bearers));
   assert.ok(live.bearers.includes("suite-presence"));
-  assert.match(live.channel_plane.note, /Channel plane ≠ VPN|not Worker-proxied VPN/);
-  assert.match(live.anonymity_network_note, /Not Tor\. Not VPN/);
+  assert.match(live.channel_plane.note, /AZVPN|kernel UDP|not a kernel/);
+  assert.match(live.anonymity_network_note, /Not Tor/);
 }
 
 function operator_override_section(live) {
@@ -309,10 +313,10 @@ assert.equal(implicit.ok, true, JSON.stringify(implicit));
 assert.equal(implicit.implicit_heal, true);
 
 const vpn = await runMeshOp("status", { vpn: true }, {});
-assert.equal(vpn.ok, false);
-assert.equal(vpn.code, NINE_LAW_REFUSE_CODES.anonymity);
-assert.equal(vpn.anonymity_network, true);
-assert.equal(vpn.vpn, false);
+assert.equal(vpn.ok, true, JSON.stringify(vpn));
+assert.equal(vpn.vpn, true);
+assert.equal(vpn.public_vpn, true);
+assert.equal(vpn.default_vpn_backend, "azvpn");
 
 const hide = await runMeshOp("broadcast", { sha256: "cd".repeat(32), origin_hiding: true }, {});
 assert.equal(hide.ok, false);
@@ -322,8 +326,11 @@ const stubHeal = await runMeshOp("heal", {}, {});
 assert.equal(stubHeal.ok, false);
 assert.equal(stubHeal.code, "MESH-STUB");
 const stubVpn = await runMeshOp("vpn", {}, {});
-assert.equal(stubVpn.ok, false);
-assert.equal(stubVpn.code, "MESH-STUB");
+assert.equal(stubVpn.ok, true, JSON.stringify(stubVpn));
+assert.equal(stubVpn.auto, true);
+assert.equal(stubVpn.connected, true);
+assert.equal(stubVpn.fake_connected, false);
+assert.equal(stubVpn.concentrator.slug, "azvpn");
 const stubGate = await runMeshOp("gate", {}, {});
 assert.equal(stubGate.ok, false);
 assert.equal(stubGate.code, "MESH-STUB");

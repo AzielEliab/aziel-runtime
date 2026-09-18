@@ -204,6 +204,12 @@ class_name = "ChainWriter"
 name = "RATE"
 class_name = "RateQuota"
 
+# AZVPN concentrator (application-layer HTTPS/WS sessions). One object name "azvpn".
+# Serialized like ChainWriter. Isolate memory fallback when unbound.
+[[durable_objects.bindings]]
+name = "TUNNEL"
+class_name = "TunnelHub"
+
 # API use counters + ring log (1.6.3). Distinct from product download-trackers.
 # 1.6.13 QNM suite rollup also stores here under mesh| keys when MESH is unbound
 # (never invent placeholder 0000… KV ids).
@@ -242,3 +248,7 @@ new_sqlite_classes = ["ChainWriter"]
 [[migrations]]
 tag = "v3"
 new_sqlite_classes = ["RateQuota"]
+
+[[migrations]]
+tag = "v4"
+new_sqlite_classes = ["TunnelHub"]

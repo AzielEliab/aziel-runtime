@@ -112,6 +112,8 @@ import { dispatchAzGeneratorHttp, semanticBridgeCiteField } from "./semantic-bri
 import { durabilityLabels } from "./durability-labels.js";
 import { nineLawsFrame, nineLawsHint, nineLawsLaunchCite, refuseNineLawGet, refuseNineLawViolation } from "./mesh-nine-laws.js";
 import { CHANNEL_PLANE_NOTE, CHANNEL_PLANE_SPEC, channelPlaneFrame, channelPlaneHint } from "./mesh-channel-plane.js";
+import { publicVpnCite } from "./public-vpn.js";
+import { ensureDefaultVpnSession, vpnAutoCite } from "./azvpn-auto.js";
 
 export const MESH_SLUG = "mesh";
 export const MESH_NAME = "Quantum Node Mesh";
@@ -174,6 +176,7 @@ export const MESH_CANONICAL_OPS = Object.freeze([
   "broadcast",
   "health",
   "skill",
+  "vpn",
 ]);
 
 export const MESH_OP_ALIASES = Object.freeze({
@@ -192,7 +195,6 @@ export const MESH_LIVE_OPS = Object.freeze([...MESH_CANONICAL_OPS, ...Object.key
 export const MESH_STUB_OPS = Object.freeze([
   "arm",
   "wipe",
-  "vpn",
   "hop",
   "tunnel",
   "scorch",
@@ -445,7 +447,7 @@ export function meshCiteField(origin) {
     get_is_node_gate: true,
     qnm_s: false,
     nine_laws: nineLawsHint(),
-    note: "Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Channel plane (wifi / bluetooth / rf / photon) is an operator-armed cite — live hardware runs on local qnm-node, not Worker-proxied VPN. Channel plane ≠ VPN. Pairing ≠ tunnel. Not a login mesh. Not a login-recovery IP panel. OPERATOR-OVERRIDE 2026-09-17 armed node_gate / get_is_node_gate, auto_heal / implicit_heal, neighbor_heal, network, and anonymity_network (mode flag only). Nine QNM laws are hard-true (fields + published refuse codes). Worker-launch cite: hashtag parts #aziel / #runtime and always About Aziel (/about). NO-LIE / NO-REWRITE: no rewrite key; never lie to survive. COLD-MULTI-SHELF-1.0: GET /shelves cites corpus#96 honesty.",
+    note: "Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Channel plane (wifi / bluetooth / rf / photon) is an operator-armed cite — live hardware runs on local qnm-node. Channel plane ≠ kernel VPN. Public VPN auto-binds AZVPN (cite-only on GET; no session open). Pairing ≠ tunnel. Not a login mesh. Not a login-recovery IP panel. OPERATOR-OVERRIDE 2026-09-17 armed node_gate / get_is_node_gate, auto_heal / implicit_heal, neighbor_heal, network, anonymity_network (mode flag), and public VPN. Nine QNM laws are hard-true (fields + published refuse codes). Worker-launch cite: hashtag parts #aziel / #runtime and always About Aziel (/about). NO-LIE / NO-REWRITE: no rewrite key; never lie to survive. COLD-MULTI-SHELF-1.0: GET /shelves cites corpus#96 honesty.",
     survival: survivalCiteField(),
     semantic_bridge: semanticBridgeCiteField(base),
   };
@@ -462,7 +464,7 @@ export function meshKernelEntry() {
     stub_ops: MESH_STUB_OPS.slice(),
     op_aliases: { ...MESH_OP_ALIASES },
     description:
-      "QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1). Packet-transfer coding design QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; Worker cites only). Channel plane QNM-CHANNEL-PLANE-1.0: operator-armed wifi / bluetooth / rf / photon cites ON; live hardware on local qnm-node; not Worker-proxied VPN. live/locked/isolated counts. Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public disable of suite-presence is refused. Nine QNM laws are hard-true on GET /v1/mesh. OPERATOR-OVERRIDE 2026-09-17 armed auto_heal / node_gate / neighbor_heal / network / anonymity_network (mode flag only). Phoenix is wait/re-seal, not public hostname resurrection. Pulled sites die with the pull — godlock.uk does not come back. Split the wires: presence + tip hash on the 1s tick; pull-only payloads; hash-absolute ingest; equivocation isolates that peer. Cold-copy survival: multiply cold copies; no live body sync; named hosts only. REHEAL: isolation is the cure. Not a login-recovery IP panel. Not a VPN. Not a live Tor fabric. Channel plane ≠ VPN. Pairing ≠ tunnel. CROSS-NETWORK-SURVIVAL-1.0: if network and data die tomorrow, the chain survives on cold shelves (hosts / DOI / git / vault). NO-LIE-NO-REWRITE-1.0: no rewrite key; never lie to survive. COLD-MULTI-SHELF-1.0: GET /shelves cites corpus#96 honesty. Not a login mesh. Not a Softwares-tab product.",
+      "QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1). Packet-transfer coding design QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; Worker cites only). Channel plane QNM-CHANNEL-PLANE-1.0: operator-armed wifi / bluetooth / rf / photon cites ON; live hardware on local qnm-node. Public VPN auto-binds AZVPN (HTTPS/WS REAL; WireGuard/OpenVPN SLOT; GET cites only). live/locked/isolated counts. Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public disable of suite-presence is refused. Nine QNM laws are hard-true on GET /v1/mesh. OPERATOR-OVERRIDE 2026-09-17 armed auto_heal / node_gate / neighbor_heal / network / anonymity_network (mode flag) / public VPN. Phoenix is wait/re-seal, not public hostname resurrection. Pulled sites die with the pull — godlock.uk does not come back. Split the wires: presence + tip hash on the 1s tick; pull-only payloads; hash-absolute ingest; equivocation isolates that peer. Cold-copy survival: multiply cold copies; no live body sync; named hosts only. REHEAL: isolation is the cure. Not a login-recovery IP panel. Not a live Tor fabric. Channel plane ≠ kernel VPN. Pairing ≠ tunnel. CROSS-NETWORK-SURVIVAL-1.0: if network and data die tomorrow, the chain survives on cold shelves (hosts / DOI / git / vault). NO-LIE-NO-REWRITE-1.0: no rewrite key; never lie to survive. COLD-MULTI-SHELF-1.0: GET /shelves cites corpus#96 honesty. Not a login mesh. Not a Softwares-tab product.",
     note: MESH_LIMITATION,
     kind: "kernel",
     engine: false,
@@ -927,6 +929,48 @@ export function scheduleSuitePresenceFanout(ctx, env, extra = {}) {
     return { scheduled: true, source: (extra && extra.source) || "request-path" };
   }
   return work;
+}
+
+export async function meshVpnCite(payload, env) {
+  const state = await loadState(env);
+  const auto = await ensureDefaultVpnSession(payload, env);
+  if (!auto || auto.ok === false) {
+    return {
+      ...baseResult({
+        op: "vpn",
+        ...statusFields(state),
+        ...publicVpnCite(),
+      }),
+      ok: false,
+      refused: true,
+      code: (auto && auto.code) || "AZVPN-AUTO-FAIL",
+      error: (auto && auto.error) || "AZVPN auto-bind could not start.",
+      connected: false,
+      fake_connected: false,
+      vpn_auto: vpnAutoCite({ open: true }),
+      auto,
+      note: "Public VPN auto-bind refused honestly. No fake connected. Explicit FragGate azvpn/* still exist.",
+    };
+  }
+  return baseResult({
+    op: "vpn",
+    ...statusFields(state),
+    ...publicVpnCite(),
+    vpn_auto: vpnAutoCite({ open: true, already: auto.already === true }),
+    auto: true,
+    already: auto.already === true,
+    connected: true,
+    fake_connected: false,
+    tunnel_id: auto.tunnel_id,
+    session: auto.session || null,
+    concentrator: {
+      slug: "azvpn",
+      name: "AZVPN",
+      door: "fraggate",
+      ops: ["describe", "open", "status", "list", "close", "send", "recv", "pull", "peers", "attach"],
+    },
+    note: "Public VPN auto-bind. REAL concentrator is AZVPN (HTTPS/WS). WireGuard/OpenVPN/L3 stay SLOT. FragGate only. Callers did not name software=azvpn.",
+  });
 }
 
 export async function meshStatus(payload, env) {
@@ -1449,6 +1493,7 @@ export async function runMeshOp(op, payload, env) {
     );
   }
   if (resolved === "status") return meshStatus(payload, env);
+  if (resolved === "vpn") return meshVpnCite(payload, env);
   if (resolved === "health") return meshHealth(payload, env);
   if (resolved === "skill") return meshSkill();
   if (resolved === "enable") return meshEnable(payload, env);

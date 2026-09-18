@@ -146,6 +146,12 @@ export const PLACEMENTS = Object.freeze({
     domain_id: null,
     note: "ToolBench is a synthetic FragGate refuse playground. Self-test ≠ third-party lab. Not fielded-100. Catalog placement, not a 34th isolation software. FragGate only.",
   },
+  azvpn: {
+    placement: "tunnel-concentrator",
+    domain: null,
+    domain_id: null,
+    note: "AZVPN is the automatic application-layer HTTPS/WS tunnel concentrator (default_vpn_backend:azvpn, auto_use:true). Adjacent to AZNet (pairing stays order/token). Catalog placement, not a 34th isolation software. WireGuard/OpenVPN/L3 stay SLOT. In-runtime (no invented product Worker). FragGate only.",
+  },
 });
 
 const BY_SLUG = (() => {
@@ -178,10 +184,11 @@ export const TAB_PLACEMENT_SLUGS = Object.freeze([
   "zkattest",
   "mmconsensus",
   "toolbench",
+  "azvpn",
 ]);
 
 export const CATALOG_COUNT_NOTE =
-  "Softwares-tab count includes placements (azinterface / decisiongate / forgereceipts / azcoherence / zkattest / mmconsensus / toolbench). Isolation domain software_count is 33 (domains_are_doors:false). Do not equate the two. EmbryoLock is live-with-local-destructive-boundary (Vault/Custody with ARK); wipe/unlock stay FG-STUB on the public mesh. AZChat is LIVE+bound (mesh default off; not AZMail). FragGate remains THE single door.";
+  "Softwares-tab count includes placements (azinterface / decisiongate / forgereceipts / azcoherence / zkattest / mmconsensus / toolbench / azvpn). Isolation domain software_count is 33 (domains_are_doors:false). Do not equate the two. EmbryoLock is live-with-local-destructive-boundary (Vault/Custody with ARK); wipe/unlock stay FG-STUB on the public mesh. AZChat is LIVE+bound (mesh default off; not AZMail). AZVPN is the automatic public VPN concentrator placement (HTTPS/WS REAL; WireGuard/OpenVPN SLOT; auto_use true). FragGate remains THE single door.";
 
 export function domainForSlug(slug) {
   const key = String(slug || "")
@@ -229,6 +236,6 @@ export function domainMapView() {
     })),
     placements: { ...PLACEMENTS },
     note:
-      "11 domains / 33 softwares are isolation labels. Softwares-tab count is larger because it includes placements (azinterface / decisiongate / forgereceipts / azcoherence / zkattest / mmconsensus / toolbench). Internal Domain Layer executes isolated softwares after AZPIPE. Not additional doors. domains_are_doors:false.",
+      "11 domains / 33 softwares are isolation labels. Softwares-tab count is larger because it includes placements (azinterface / decisiongate / forgereceipts / azcoherence / zkattest / mmconsensus / toolbench / azvpn). Internal Domain Layer executes isolated softwares after AZPIPE. Not additional doors. domains_are_doors:false.",
   };
 }
