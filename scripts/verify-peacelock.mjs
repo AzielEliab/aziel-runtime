@@ -30,7 +30,8 @@ assert.ok(product, "peacelock is a catalog product");
 assert.equal(product.name, "PeaceLock");
 assert.equal(product.worker, "peacelock-download-tracker");
 assert.equal(product.github, "https://github.com/AzielEliab/peacelock");
-assert.match(product.oneLine, /Chosen silence \/ chosen inaction as a first-class receipt \(PL-WP-0\.1\)/);
+assert.match(product.oneLine, /chosen silence or chosen inaction/i);
+assert.doesNotMatch(product.oneLine, /THIS IS:|THIS IS NOT:/i);
 assert.equal(product.doi, null);
 
 const catalogOps = new Set(product.ops.map((o) => o.op));
