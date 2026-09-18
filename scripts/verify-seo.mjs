@@ -353,6 +353,46 @@ assert.ok(personDoc.machine.sites.some((s) => s.id === "aziel-runtime" && /2\.0\
 assert.equal(Object.hasOwn(personDoc, "legalName"), false);
 assert.equal(Object.hasOwn(personDoc, "homeLocation"), false);
 assert.equal(Object.hasOwn(personDoc, "birthPlace"), false);
+assert.equal(
+  personDoc.machine.what_aziel_eliab_does,
+  "Aziel Eliab builds receipt-first, local-first software and public MASTER records — Softwares through Aziel Runtime (FragGate / MCP), the Aziel Digital Library, GodLock (product, not identity), and the He Didn’t Jump Zioncheck archive. Public identity is the work, not a biography. @id https://www.azieleliab.com/#aziel",
+);
+assert.deepEqual(personDoc.machine.faq.titles, [
+  "What does Aziel Eliab do?",
+  "What Aziel Eliab does",
+  "Who is Aziel Eliab the developer?",
+  "What software does Aziel Eliab make?",
+]);
+assert.equal(personDoc.machine.faq.answer, personDoc.machine.what_aziel_eliab_does);
+assert.ok(personDoc.subjectOf.some((s) => s["@type"] === "FAQPage" && s["@id"] === "https://www.azieleliab.com/#what-aziel-eliab-does"));
+assert.ok(personDoc.knowsAbout.includes("Book of the Knowledge"));
+assert.ok(personDoc.knowsAbout.includes("Blemmyes/Ewaipanoma hypothesis packets"));
+assert.ok(personDoc.knowsAbout.includes("Libro Method"));
+assert.ok(personDoc.knowsAbout.includes("Post-Perturbation Integrative Neuroplasticity (PPIN)"));
+assert.ok(personDoc.knowsAbout.includes("Lenses as Viewpoint Constraints for Artificial Systems"));
+assert.ok(personDoc.knowsAbout.includes("ABAD Copper Scroll work"));
+assert.ok(personDoc.knowsAbout.includes("Adaptive AI Dog Leash"));
+assert.ok(personDoc.knowsAbout.includes("Wearable Dual-Tether Web-Sling System"));
+assert.ok(personDoc.knowsAbout.includes("PLA Recycler"));
+assert.ok(personDoc.knowsAbout.includes("TAA-1"));
+assert.ok(personDoc.knowsAbout.includes("AEEM HVAC"));
+assert.ok(personDoc.knowsAbout.includes("AZ Mandible"));
+assert.ok(personDoc.knowsAbout.includes("bone-conduction STL"));
+assert.match(personDoc.machine.research.addendum, /AZDOC-F83D7E6D28B6/);
+assert.match(personDoc.machine.research.addendum, /AZDOC-E00603883906/);
+assert.match(personDoc.machine.research.addendum, /AZDOC-8F14A40DC9A6/);
+assert.match(personDoc.machine.research.addendum, /AZDOC-DD5912D05D6E/);
+assert.equal(personDoc.machine.research.invent_doi, false);
+assert.equal(personDoc.machine.research.library_live_records, "~326");
+assert.match(personDoc.machine.hardware_designs.addendum, /AZDOC-9B0E3D62EDCC/);
+assert.match(personDoc.machine.hardware_designs.addendum, /AZDOC-AA8761FE16D0/);
+assert.match(personDoc.machine.hardware_designs.addendum, /AZDOC-B2A12FE997A8/);
+assert.match(personDoc.machine.hardware_designs.addendum, /AZDOC-3728546DFE78/);
+assert.match(personDoc.machine.hardware_designs.addendum, /AZDOC-0302B7357EE0/);
+assert.match(personDoc.machine.hardware_designs.addendum, /AZDOC-E5828F49FB04/);
+assert.match(personDoc.machine.hardware_designs.addendum, /AZDOC-FD18432707F5/);
+assert.equal(personDoc.machine.hardware_designs.storefront, false);
+assert.equal(personDoc.machine.hardware_designs.public_engineering_only, true);
 
 const whoRes = await get("/who-is");
 assert.equal(whoRes.status, 200);
@@ -369,6 +409,28 @@ assert.match(whoIs, /FragGate engine-runtime \/ MCP Softwares door 2\.0\.0-rc1/)
 assert.match(whoIs, /www\.azieleliab\.com\/#aziel/);
 assert.doesNotMatch(whoIs, /legal name is/i);
 assert.doesNotMatch(whoIs, /\bhome address\b/i);
+assert.match(whoIs, /Aziel Eliab builds receipt-first, local-first software and public MASTER records — Softwares through Aziel Runtime \(FragGate \/ MCP\)/);
+assert.match(whoIs, /What does Aziel Eliab do\?/);
+assert.match(whoIs, /What Aziel Eliab does/);
+assert.match(whoIs, /Who is Aziel Eliab the developer\?/);
+assert.match(whoIs, /What software does Aziel Eliab make\?/);
+assert.match(whoIs, /Book of the knowledge of all the kingdoms/);
+assert.match(whoIs, /Blemmyes\/Ewaipanoma/);
+assert.match(whoIs, /Libro Method/);
+assert.match(whoIs, /PPIN/);
+assert.match(whoIs, /Lenses as Viewpoint Constraints for Artificial Systems/);
+assert.match(whoIs, /Copper Scroll/);
+assert.match(whoIs, /AZDOC-F83D7E6D28B6/);
+assert.match(whoIs, /Library live ~326 records/);
+assert.match(whoIs, /Adaptive AI Dog Leash/);
+assert.match(whoIs, /Web-Sling/);
+assert.match(whoIs, /PLA Recycler/);
+assert.match(whoIs, /TAA-1/);
+assert.match(whoIs, /AEEM HVAC/);
+assert.match(whoIs, /AZ Mandible/);
+assert.match(whoIs, /bone-conduction STL/);
+assert.match(whoIs, /not a storefront/);
+assert.doesNotMatch(whoIs, /10\.5281\/zenodo\.\d{5,}/);
 
 assert.match(llms, /## Person \/ who-is \(machine\)/);
 assert.match(llms, /Person hub \+ Softwares \+ research landing/);
@@ -378,6 +440,20 @@ assert.match(llms, /Zioncheck archive sister/);
 assert.match(llms, /FragGate engine-runtime \/ MCP Softwares door 2\.0\.0-rc1/);
 assert.match(llms, /\/person\.jsonld/);
 assert.match(llms, /\/who-is/);
+assert.match(llms, /Aziel Eliab builds receipt-first, local-first software and public MASTER records — Softwares through Aziel Runtime \(FragGate \/ MCP\)/);
+assert.match(llms, /What does Aziel Eliab do\?/);
+assert.match(llms, /What Aziel Eliab does/);
+assert.match(llms, /Who is Aziel Eliab the developer\?/);
+assert.match(llms, /What software does Aziel Eliab make\?/);
+assert.match(llms, /AZDOC-F83D7E6D28B6/);
+assert.match(llms, /Libro Method/);
+assert.match(llms, /AZDOC-8F14A40DC9A6/);
+assert.match(llms, /AZDOC-DD5912D05D6E/);
+assert.match(llms, /Library live ~326 records/);
+assert.match(llms, /AZDOC-9B0E3D62EDCC/);
+assert.match(llms, /AZDOC-AA8761FE16D0/);
+assert.match(llms, /AZDOC-B2A12FE997A8/);
+assert.match(llms, /not a storefront/);
 {
   const aboutStart = llms.indexOf("## About Aziel");
   const roleAt = llms.indexOf("Role: engine-runtime");
@@ -547,6 +623,24 @@ assert.ok(cite.person.sites.some((s) => s.id === "aziel-runtime" && s.coverage.i
 assert.ok(cite.person.sameAs.includes("https://www.azieleliab.com/"));
 assert.ok(cite.person.sameAs.includes(`${origin}/person.jsonld`));
 assert.equal(cite.person.person_jsonld, `${origin}/person.jsonld`);
+assert.equal(
+  cite.person.what_aziel_eliab_does,
+  "Aziel Eliab builds receipt-first, local-first software and public MASTER records — Softwares through Aziel Runtime (FragGate / MCP), the Aziel Digital Library, GodLock (product, not identity), and the He Didn’t Jump Zioncheck archive. Public identity is the work, not a biography. @id https://www.azieleliab.com/#aziel",
+);
+assert.deepEqual(cite.person.faq.titles, [
+  "What does Aziel Eliab do?",
+  "What Aziel Eliab does",
+  "Who is Aziel Eliab the developer?",
+  "What software does Aziel Eliab make?",
+]);
+assert.equal(cite.person.faq.answer, cite.person.what_aziel_eliab_does);
+assert.ok(cite.person.knowsAbout.includes("Book of the Knowledge"));
+assert.ok(cite.person.knowsAbout.includes("bone-conduction STL"));
+assert.equal(cite.person.research.invent_doi, false);
+assert.equal(cite.person.research.library_live_records, "~326");
+assert.equal(cite.person.hardware_designs.storefront, false);
+assert.match(cite.about_aziel.what_aziel_eliab_does, /Softwares through Aziel Runtime/);
+assert.deepEqual(cite.about_aziel.faq.titles, cite.person.faq.titles);
 
 const catalogRes = await get("/v1/catalog.json");
 assert.equal(catalogRes.status, 200);
