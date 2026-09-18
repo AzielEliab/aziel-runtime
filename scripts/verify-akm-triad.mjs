@@ -426,4 +426,24 @@ const toolNames = (await mcpList.json()).result.tools.map((t) => t.name);
 assert.ok(toolNames.includes("memory_recall"));
 assert.ok(toolNames.includes("memory_get"));
 
+async function postMemory(path) {
+  return handler(
+    new Request(origin + path, {
+      method: "POST",
+      headers: { "content-type": "application/json", "user-agent": "Mozilla/5.0" },
+      body: JSON.stringify({ memory_id: obs.memory_id }),
+    }),
+    env,
+  );
+}
+const delHttp = await postMemory("/v1/memory/delete");
+assert.equal(delHttp.status, 400);
+const delBody = await delHttp.json();
+assert.equal(delBody.ok, false);
+assert.equal(delBody.code, "AKM-STUB");
+assert.equal(delBody.belief_is_not_truth, true);
+const updHttp = await postMemory("/v1/memory/update");
+assert.equal(updHttp.status, 400);
+assert.equal((await updHttp.json()).code, "AKM-STUB");
+
 console.log("ok akm-triad Bayesian 3-of-4 rebuild tamper concurrency privacy FragGate");
