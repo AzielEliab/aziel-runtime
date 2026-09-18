@@ -2,7 +2,8 @@
  * Aziel Eliab Runtime — Quantum Node Mesh suite rollup (QNM-BUILD-1.0).
  *
  * Companion to AIH-WP-1.1. Public surface is rollup + operator enable only.
- * Parent will roll the full local `qnm-node/` package next.
+ * Parent rolls the full local `qnm-node/` package. This repo hosts
+ * radio bearer hooks only (`qnm-node/bearers/radio.js`).
  * This Worker must not invent a login mesh, IP panel,
  * login-recovery, upload proxy, or account resurrection.
  * OPERATOR-OVERRIDE 2026-09-17 armed node_gate / get_is_node_gate as

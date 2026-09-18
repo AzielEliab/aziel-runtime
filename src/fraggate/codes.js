@@ -88,6 +88,6 @@ export function existMcpHint() {
     see: PUBLIC_MCP_SEE,
     pointer: PUBLIC_MCP_POINTER,
     note:
-      "Refuse hint only — not an exec allowlist. Live MCP tool set is POST /mcp tools/list. Unknown names still FG-HALLUC-TOOL. Flat {slug}_{op} is not listed. FragGate remains THE single door.",
+      "Refuse hint only — not an exec allowlist. Live MCP tool set is POST /mcp tools/list. Unknown names still FG-HALLUC-TOOL. Flat {slug}_{op} is not listed. FragGate remains THE single Softwares door. Fabric mesh_* / chainlock_* / memory_* are kernel-direct (not MASTER-33).",
   };
 }

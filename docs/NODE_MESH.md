@@ -99,9 +99,11 @@ The **full node process** is local:
 
 `qnm-node/` → `boot` / `chain` / `apg` / `bearers` / `outbox` / `phoenix` / `score` / `memorial` / `tethers` / `qnsd`
 
+**Radio hooks in this repo:** `qnm-node/bearers/radio.js` (`QNM-RADIO-HOOKS-1.0`). wifi / bluetooth / rf / photon are **LIVE** only when host hardware or local `qnsd` is present; otherwise they refuse `QNM-RADIO-ABSENT`. **No mock LIVE.** The Worker `channel_plane` stays cite-only (`worker_hardware: false`). Close-test: `scripts/verify-qnm-radio.mjs`.
+
 **QNS-CD-1.0** is the packet-transfer coding design (photon QNS1 1.3). Local process `qnsd` lives in [AzielEliab/qnm-node](https://github.com/AzielEliab/qnm-node) and binds **127.0.0.1** only. Companion to QNM-BUILD-1.0 / AIH-WP-1.3. This Worker cites it at `GET /v1/qns` and as `qns_cd` on every software card — it does **not** proxy local via emit and is **not** a remote wipe/control plane.
 
-Parent rolls that package. This runtime does **not** host those engines.
+Parent rolls the remaining engines. This runtime hosts **radio bearer hooks only** — not boot/chain/apg/phoenix.
 
 **Anon-broadcast** is a **sibling loopback module** of that local process only (`text → TTS → desk MP4 → metadata-culled file + SHA-256`). Style tool. Operator keeps the file. **Never a publish path.** Not listed on `/v1/software`.
 

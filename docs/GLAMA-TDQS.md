@@ -69,7 +69,7 @@ Glama **Build** may still need a healthy **Redeploy** / **Make Release** to resc
 - Tool **names** (36).
 - FragGate single door + Remain-OFF.
 - Handler code paths, allowlists, ledger writes, mesh radios, engine ops.
-- `FRAGGATE_CATALOG_ALLOWLIST` tokens on `fraggate_list` / `fraggate_call` (product verify scripts still require those op names in the description).
+- `FRAGGATE_CATALOG_ALLOWLIST` is generated from `LIVE_OPS` plus compact product-verify tokens (`FRAGGATE_CATALOG_VERIFY_HINTS`). The text is **not** the full FragGate door — empty `fraggate_list` is discovery. Product verify scripts still require the azhub / azinterface / azbrowser op-name tokens.
 
 ## Glama Tool Schema Changelog still showing v1.6.2
 

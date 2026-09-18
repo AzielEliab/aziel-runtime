@@ -1223,6 +1223,26 @@ export function runtimeStaticPaths() {
                   summary: "AZVPN open HTTPS/WS session",
                   value: { slug: "azvpn", op: "open", payload: { kind: "https_ws", peer: "peer-a" } },
                 },
+                azvpn_status: {
+                  summary: "AZVPN session status (HTTPS/WS REAL)",
+                  value: { slug: "azvpn", op: "status", payload: {} },
+                },
+                azvpn_list: {
+                  summary: "AZVPN list sessions",
+                  value: { slug: "azvpn", op: "list", payload: {} },
+                },
+                azvpn_send: {
+                  summary: "AZVPN send on an HTTPS/WS session",
+                  value: { slug: "azvpn", op: "send", payload: { session_id: "azvpn_example", text: "ping" } },
+                },
+                azvpn_recv: {
+                  summary: "AZVPN recv on an HTTPS/WS session",
+                  value: { slug: "azvpn", op: "recv", payload: { session_id: "azvpn_example" } },
+                },
+                azvpn_close: {
+                  summary: "AZVPN close HTTPS/WS session",
+                  value: { slug: "azvpn", op: "close", payload: { session_id: "azvpn_example" } },
+                },
                 aznet_pair_status: {
                   summary: "AZNet pair_status",
                   value: { slug: "aznet", op: "pair_status", payload: {} },

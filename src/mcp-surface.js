@@ -21,6 +21,7 @@ import { existMcpHint, FG_HALLUC_TOOL, FRAGGATE_KERNEL, PUBLIC_MCP_TOOL_MAX } fr
 import {
   emptyArgsSchema,
   FRAGGATE_CATALOG_ALLOWLIST,
+  fraggateCatalogAllowlistText,
   FRAGGATE_OUTPUT_SCHEMA,
   HINT_ADDITIVE,
   HINT_DESTRUCTIVE_IDEMPOTENT,
@@ -43,7 +44,9 @@ import {
   namedDecisiongateCheck,
   verifyRegistry,
 } from "./fraggate/door.js";
-import { buildRegistry } from "./fraggate/registry.js";
+import { buildRegistry, LIVE_OPS } from "./fraggate/registry.js";
+
+const FRAGGATE_CATALOG_DOOR_HINT = fraggateCatalogAllowlistText(LIVE_OPS) || FRAGGATE_CATALOG_ALLOWLIST;
 import { chainlockMcpTools, isChainlockTool, runChainlockOp } from "./chainlock.js";
 import { isMemoryMcpTool, memoryMcpTools, runMemoryMcp, wrapMemoryDisplay } from "./memory.js";
 import { isMeshMcpTool, runMeshOp } from "./mesh.js";
@@ -71,6 +74,7 @@ export function mcpInitializeInstructions() {
     "Prefer fraggate_call, GET /v1/software, and POST /mcp. Hubs refresh Software tabs from /v1/software. " +
     "Start with runtime_skill or fraggate_list. Describe a name with fraggate_describe. " +
     "Execute only through fraggate_call (CallEnvelope → the door → Lamb Lens → SweepGate → Sentinel → Provenance → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → RoseClock → TemporalLock → ChainLock-OUT → ForgeReceipts → Return). Mutating tools require confirm=true or dry_run=true. " +
+    "Fabric MCP names mesh_* chainlock_* memory_* decisiongate_check library_lookup are kernel-direct wrappers (same kernels the door mesh/memory/chainlock use). Not MASTER-33. Not a second Softwares door. Softwares exec stays fraggate_call only. " +
     "Neighbor map (do not confuse siblings): runtime_skill = how-to markdown; runtime_manifest = machine JSON (advanced/internal); runtime_software = hub Software-tab cards; runtime_bundle = skill-URL bootstrap; runtime_pull = one product card; fraggate_list = hashed live/stub/digest roster; fraggate_describe = one registry card; fraggate_verify = digest proof; fraggate_call = default exec. " +
     "decisiongate_check gates a proposal without exec. library_lookup is public corpus cite (not memory, not ChainLock). " +
     "ChainLock lifecycle is append-only: append → tip or recall → verify → seal (no chainlock_delete). chainlock_seal writes a local LOCKSET; runtime_session_close seals a raw session — they are not the same. " +
@@ -99,7 +103,7 @@ export function mcpInitializeInstructions() {
     "1.6.14 adds 4DMap (4DM-WP-1.0) as a door-live engine — four-axis inspection frame T/Δ/Γ/Π after AZPIPE; not a sequential gate and not an extra door. LIVE_OPS health/skill/card_new/card_pin/card_span/card_join/card_walk/card_list/verify_hash. 1.7.6 adds product 0.2 verbs plus frame_status/axis_describe/walk_trace/card_export/card_import/verify_chain/neighbor_cite. truth_score/lumen_panel/invent_mark/backdate_class stay stub. Door claims cite join types. " +
     "1.6.13 aligns the suite QNM rollup (QNM-BUILD-1.0, companion to AIH-WP-1.1): GET /v1/mesh live/locked/isolated counts; not a login mesh; full node process is local qnm-node/. Current law: read-only suite-presence ON by default; POST /v1/mesh/disable refuses. " +
     "1.6.12 adds GET /v1/software (hub Software-tab catalog; Plain→Gate→Lock + EmbryoLock stub) and GET /v1/update/check. " +
-    "1.6.11 adds a durable op alias map so Worker UI button names (azhub list_modules/place, azinterface genesis_boot/hold, azbrowser airlock/home, azmail classify, aznet doctor/pair, peacelock doctor) resolve to catalog LIVE_OPS. EmbryoLock is stub / local-not-hosted (name only; describe?slug=embryolock; not a door engine). " +
+    "1.6.11 adds a durable op alias map so Worker UI button names (azhub list_modules/place, azinterface genesis_boot/hold, azbrowser airlock/home, azmail classify, aznet doctor/pair, peacelock doctor) resolve to catalog LIVE_OPS. Heritage note: 1.6.11 named EmbryoLock stub; 1.7.8 later lands live-with-local-destructive-boundary (wipe/scorch/unlock stay FG-STUB). " +
     "1.6.10 sets AZBrowser and AZNet catalog one_line to separate software (not engine). Same door. " +
     "1.6.9 frames AZHub and AZInterface as two separate softwares under the same door (AIH-WP-1.0) — Blank Key spatial container + custodial page cycles. Never one combined product. Hub refuses auto-unlock / completeness. Interface page_cycle_status reports OFF / integrity / ON / FULL SHUTDOWN / MEMORIAL. " +
     "AZHub LIVE_OPS (health, skill, region_list, place_module, remove_module, tether_declare, tether_cut, tether_list, blank_key_status) and AZInterface LIVE_OPS (health, skill, genesis_status, site_state_get, site_state_set, integrity_check, witness_list, page_cycle_status) are listed by fraggate_list and executed only via fraggate_call / POST /v1/fraggate/call. " +
@@ -155,7 +159,7 @@ export function runtimeHelperTools() {
           returns: "registry entries, allowlists, digests, and the MASTER-33 pipeline cite",
         }) +
         " " +
-        FRAGGATE_CATALOG_ALLOWLIST,
+        FRAGGATE_CATALOG_DOOR_HINT,
       annotations: mcpAnnotations("Step 1 — List the FragGate registry", HINT_READ),
       inputSchema: emptyArgsSchema("No arguments. Send {}. Discovery first — not describe or execute."),
       outputSchema: FRAGGATE_OUTPUT_SCHEMA,
@@ -235,7 +239,7 @@ export function runtimeHelperTools() {
             "status, result, receipt, engine_slug, engine_op, engine_digest, ran_in, provenance, refusal, and limitations",
         }) +
         " " +
-        FRAGGATE_CATALOG_ALLOWLIST,
+        FRAGGATE_CATALOG_DOOR_HINT,
       annotations: mcpAnnotations("Step 3 — Call through FragGate", HINT_EXEC),
       inputSchema: withConfirmProperties({
         type: "object",
@@ -303,7 +307,7 @@ export function runtimeHelperTools() {
         notFor: "executing a product op or searching the library",
         instead: "fraggate_call or library_lookup",
         effects:
-          "Write: appends an ask/refuse ledger tip (not idempotent). Empty {} still runs the five gates and stamps the ledger. Does not execute domain software",
+          "Write: appends an ask/refuse ledger tip (not idempotent). Empty {} still runs the five gates and stamps the ledger. Does not execute domain software. Named wrapper — same DecisionGATE kernel; not the full MASTER-33 hop list; Softwares exec stays fraggate_call",
         params:
           "All proposal fields are optional. Missing evidence can fail a gate. accountable identity on this runtime is Aziel Eliab only. " +
           CONFIRM_PARAM_NOTE,
@@ -354,7 +358,7 @@ export function runtimeHelperTools() {
         notFor: "adaptive memory belief, ChainLock facts, or private-file search",
         instead: "memory_recall, chainlock_recall, or fraggate_call slug=aziel-corpus",
         effects:
-          "Not a private-file search engine and not AKM/ChainLock. Empty q does not invent a cite. Unknown ops refuse FG-UNKNOWN-OP (allowed: search, example, skill, health). Prefer this helper over a raw aziel-corpus fraggate_call only when you want the named library door",
+          "Not a private-file search engine and not AKM/ChainLock. Empty q does not invent a cite. Unknown ops refuse FG-UNKNOWN-OP (allowed: search, example, skill, health). Named corpus wrapper — not MASTER-33; full aziel-corpus LIVE_OPS stay on fraggate_call",
         params:
           "q is public corpus text — not memory_recall q and not ChainLock q. Omit op to search. Extra keys besides q/op/payload ride along as aziel-corpus payload (same as passing payload{})",
         returns: "search, example, skill, or health payload inside the display envelope",
@@ -390,7 +394,7 @@ export function runtimeHelperTools() {
         notFor: "listing individual nodes, enabling extra radios, or executing a catalog engine",
         instead: "mesh_nodes, mesh_enable, or fraggate_call",
         effects:
-          "Read-only. Never enables radios beyond default suite-presence. Read-only suite-presence is ON by default. Not a login mesh. Views/MCP/downloads do not enter QNM-S. Full node process is local qnm-node/",
+          "Read-only. Never enables radios beyond default suite-presence. Read-only suite-presence is ON by default. Not a login mesh. Views/MCP/downloads do not enter QNM-S. Full node process is local qnm-node/. Kernel-direct fabric wrapper — not MASTER-33; not a second Softwares door. Softwares exec stays fraggate_call",
         returns: "enabled flag, bearers, live/locked/isolated counts, and QNS-CD-1.0 cite",
       }),
       annotations: mcpAnnotations("QNM suite rollup", HINT_READ),
@@ -451,7 +455,7 @@ export function runtimeHelperTools() {
         notFor: "refreshing an existing node, reading the roster, enabling radios, or opening an account session",
         instead: "mesh_heartbeat, mesh_nodes, mesh_enable, or runtime_session_open",
         effects:
-          "Write: additive presence with a strict 5-minute TTL. No heartbeat (or fan-out refresh) inside that window drops the node from the live roster. Radios off refuses MESH-OFF. Missing product / bad node_id / bad presence refuse MESH-BAD-INPUT. Read-only suite-presence is ON by default. Not an account session. AnonBroadcast is not a product",
+          "Write: additive presence with a strict 5-minute TTL. No heartbeat (or fan-out refresh) inside that window drops the node from the live roster. Radios off refuses MESH-OFF. Missing product / bad node_id / bad presence refuse MESH-BAD-INPUT. Read-only suite-presence is ON by default. Not an account session. AnonBroadcast is not a product. Kernel-direct fabric wrapper — same mesh kernel as FragGate mesh/join; not MASTER-33; human Join uses fraggate_call",
         params: "product is required (catalog slug). node_id optional 8–80 [a-z0-9._-]. presence is live|locked|isolated (default live). " + CONFIRM_PARAM_NOTE,
         returns: "node_id, presence, presence_ttl_ms (300000), and TTL note. MESH-OFF when radios are off",
       }),

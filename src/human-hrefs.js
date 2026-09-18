@@ -14,6 +14,13 @@ export const LABELED_HUMAN_TASK_SLUGS = Object.freeze([
   "forgereceipts",
   "godlock",
   "temporallock",
+  "azmail",
+  "azhub",
+  "azinterface",
+  "aziel-corpus",
+  "4dmap",
+  "embryolock",
+  "peacelock",
 ]);
 
 export function hasLabeledTask(slug) {
