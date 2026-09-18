@@ -365,6 +365,26 @@ assert.deepEqual(personDoc.machine.faq.titles, [
 ]);
 assert.equal(personDoc.machine.faq.answer, personDoc.machine.what_aziel_eliab_does);
 assert.ok(personDoc.subjectOf.some((s) => s["@type"] === "FAQPage" && s["@id"] === "https://www.azieleliab.com/#what-aziel-eliab-does"));
+{
+  const faq = personDoc.subjectOf.find((s) => s["@type"] === "FAQPage");
+  const softwareQ = faq.mainEntity.find((q) => q.name === "What software does Aziel Eliab make?");
+  assert.match(softwareQ.acceptedAnswer.text, /The ARK — Keep a local deniable vault; one phrase opens one vault\./);
+  assert.match(softwareQ.acceptedAnswer.text, /https:\/\/ark-download-tracker\.vibelock\.workers\.dev\//);
+  assert.match(softwareQ.acceptedAnswer.text, /Aziel Eliab builds receipt-first, local-first software and public MASTER records — Softwares through Aziel Runtime \(FragGate \/ MCP\)/);
+}
+assert.ok(personDoc.knowsAbout.includes("The ARK"));
+assert.ok(personDoc.knowsAbout.includes("local deniable vault"));
+assert.ok(personDoc.subjectOf.some((s) => s.name === "The ARK" && /ark-download-tracker/.test(s.url || "")));
+assert.ok(personDoc.machine.softwares.items.some((s) => s.slug === "ark" && s.name === "The ARK"));
+assert.equal(
+  personDoc.machine.softwares.items.find((s) => s.slug === "ark").one_line,
+  "Keep a local deniable vault; one phrase opens one vault.",
+);
+assert.equal(personDoc.machine.softwares.ark.url, "https://ark-download-tracker.vibelock.workers.dev/");
+assert.equal(personDoc.machine.softwares.ark.download_url, "https://ark-download-tracker.vibelock.workers.dev/download");
+assert.equal(personDoc.machine.faq.softwares.ark.name, "The ARK");
+assert.match(personDoc.machine.softwares.addendum, /The ARK — Keep a local deniable vault/);
+assert.match(personDoc.machine.softwares.addendum, /ark-download-tracker\.vibelock\.workers\.dev/);
 assert.ok(personDoc.knowsAbout.includes("Book of the Knowledge"));
 assert.ok(personDoc.knowsAbout.includes("Blemmyes/Ewaipanoma hypothesis packets"));
 assert.ok(personDoc.knowsAbout.includes("Libro Method"));
@@ -421,6 +441,9 @@ assert.match(whoIs, /What does Aziel Eliab do\?/);
 assert.match(whoIs, /What Aziel Eliab does/);
 assert.match(whoIs, /Who is Aziel Eliab the developer\?/);
 assert.match(whoIs, /What software does Aziel Eliab make\?/);
+assert.match(whoIs, /## Softwares \(machine cite\)/);
+assert.match(whoIs, /The ARK — Keep a local deniable vault; one phrase opens one vault\. https:\/\/ark-download-tracker\.vibelock\.workers\.dev\//);
+assert.match(whoIs, /EmbryoLock — Cite an offline vault that prefers destruction over recovery\./);
 assert.match(whoIs, /Book of the knowledge of all the kingdoms/);
 assert.match(whoIs, /Blemmyes\/Ewaipanoma/);
 assert.match(whoIs, /Libro Method/);
@@ -456,6 +479,8 @@ assert.match(llms, /What does Aziel Eliab do\?/);
 assert.match(llms, /What Aziel Eliab does/);
 assert.match(llms, /Who is Aziel Eliab the developer\?/);
 assert.match(llms, /What software does Aziel Eliab make\?/);
+assert.match(llms, /## Softwares \(machine cite\)/);
+assert.match(llms, /The ARK — Keep a local deniable vault; one phrase opens one vault\. https:\/\/ark-download-tracker\.vibelock\.workers\.dev\//);
 assert.match(llms, /AZDOC-F83D7E6D28B6/);
 assert.match(llms, /Libro Method/);
 assert.match(llms, /AZDOC-8F14A40DC9A6/);
@@ -647,8 +672,15 @@ assert.deepEqual(cite.person.faq.titles, [
   "What software does Aziel Eliab make?",
 ]);
 assert.equal(cite.person.faq.answer, cite.person.what_aziel_eliab_does);
+assert.ok(cite.person.knowsAbout.includes("The ARK"));
 assert.ok(cite.person.knowsAbout.includes("Book of the Knowledge"));
 assert.ok(cite.person.knowsAbout.includes("bone-conduction STL"));
+assert.equal(cite.person.softwares.ark.name, "The ARK");
+assert.equal(cite.person.softwares.ark.one_line, "Keep a local deniable vault; one phrase opens one vault.");
+assert.equal(cite.person.softwares.ark.url, "https://ark-download-tracker.vibelock.workers.dev/");
+assert.equal(cite.person.faq.softwares.ark.download_url, "https://ark-download-tracker.vibelock.workers.dev/download");
+assert.ok(cite.person.softwares.items.some((s) => s.slug === "embryolock" && s.url.includes("embryolock-download-tracker")));
+assert.match(cite.about_aziel.softwares.addendum, /The ARK — Keep a local deniable vault/);
 assert.equal(cite.person.research.invent_doi, false);
 assert.equal(cite.person.research.library_live_records, "~326");
 assert.equal(cite.person.hardware_designs.storefront, false);

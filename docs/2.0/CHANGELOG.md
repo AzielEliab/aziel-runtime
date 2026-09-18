@@ -12,6 +12,7 @@ Crawler abstract (`RUNTIME_ABSTRACT`) is unchanged and stays the lead on homepag
 Certification point — not a feature dump.
 
 - Additive Whitestone 1.4.0 Softwares-tab placement (not a new public MCP tool; not a FragGate engine; not a 34th isolation software): `GET /v1/software` live Worker card, who-is / llms / cite product lists. Isolation `software_count` stays 33. Not a lawyer. Identity Aziel Eliab only.
+- Additive machine Softwares list on Person / FAQ / llms / cite (not a new public MCP tool): name + one_line + Worker URL for catalog products, including The ARK local deniable vault (https://ark-download-tracker.vibelock.workers.dev/). Locked Softwares sentence unchanged. No visible 15:20 HTML chrome.
 - Additive locked “What Aziel Eliab does” FAQ/brief on machine-only Person / who-is / llms / cite (not a new public MCP tool). Softwares sentence + four FAQ titles + research AZDOC addendum + public-engineering hardware addendum. No visible 15:20 HTML chrome. Do not invent DOIs.
 - Additive Trades-Runtime 0.3.3 machine cite (not a new public MCP tool; not a FragGate true-engine): `/cite.json` `sister_products`, `/llms.txt` Sister products, catalog `extras[]` kind `cite_only`. `fraggate_call` does not execute company ops. `live_backends` false. Identity Aziel Eliab only.
 - Additive machine-only Person / who-is discovery (not a new public MCP tool): `/person.jsonld`, `/who-is`, `/cite.json` `person`, `/llms.txt` Person section. No visible 15:20 HTML chrome. Growth-ON. NO-LIE.
