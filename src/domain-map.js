@@ -188,7 +188,7 @@ export const TAB_PLACEMENT_SLUGS = Object.freeze([
 ]);
 
 export const CATALOG_COUNT_NOTE =
-  "Softwares-tab count includes placements (azinterface / decisiongate / forgereceipts / azcoherence / zkattest / mmconsensus / toolbench / azvpn). Isolation domain software_count is 33 (domains_are_doors:false). Do not equate the two. EmbryoLock is live-with-local-destructive-boundary (Vault/Custody with ARK); wipe/unlock stay FG-STUB on the public mesh. AZChat is LIVE+bound (mesh default off; not AZMail). AZVPN is the automatic public VPN concentrator placement (HTTPS/WS REAL; WireGuard/OpenVPN SLOT; auto_use true). VeilLock hub card is local_only (matches FragGate; no public door). FragGate remains THE single door.";
+  "Softwares-tab count includes placements (azinterface / decisiongate / forgereceipts / azcoherence / zkattest / mmconsensus / toolbench / azvpn). Isolation domain software_count is 33 (domains_are_doors:false). Do not equate the two. EmbryoLock is live-with-local-destructive-boundary (Vault/Custody with ARK); wipe/unlock stay FG-STUB on the public mesh. AZChat is LIVE+bound (mesh default off; not AZMail). AZVPN is the automatic public VPN concentrator placement (HTTPS/WS REAL; WireGuard/OpenVPN SLOT; auto_use true). VeilLock hub card is local_only (matches FragGate; no public door). Sister products such as trades-runtime are cite-only extras (not isolation-33, not Softwares-tab, not fraggate_call company ops). FragGate remains THE single door.";
 
 export function domainForSlug(slug) {
   const key = String(slug || "")

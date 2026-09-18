@@ -23,7 +23,7 @@ import { qnsHint } from "./qns.js";
 import { actReceiptHint } from "./library-receipts.js";
 import { survivalHint } from "./cross-network-survival.js";
 import { shelvesCiteField } from "./cold-multi-shelf.js";
-import { AUTHOR_ID, azcoherenceCiteField, hubsCiteField, LIBRARY_ORIGIN } from "./seo.js";
+import { AUTHOR_ID, azcoherenceCiteField, hubsCiteField, LIBRARY_ORIGIN, sisterProductCiteField } from "./seo.js";
 import { socialStatusField } from "./social-status.js";
 import { websiteDesignsField, websiteDesignsOnCorpusCard } from "./website-designs.js";
 import { softwareDescription } from "./software-copy.js";
@@ -255,6 +255,7 @@ export function softwareCatalog(origin, products, extra = {}) {
     hubs: SOFTWARE_HUBS.slice(),
     hubs_crawl: hubsCiteField(),
     azcoherence: azcoherenceCiteField(base),
+    sister_products: sisterProductCiteField(),
     mesh_get_never_enables: true,
     hubs_note:
       "Hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) fetch GET /v1/software on each Software-tab request. A GitHub drop that updates this runtime refreshes those tabs without hand-editing hub copy.",

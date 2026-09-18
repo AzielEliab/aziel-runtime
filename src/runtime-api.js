@@ -20,7 +20,7 @@
  * 1.6.5 adds AZMail (APP 1.0) as a FragGate-live engine (mesh default off).
  * Public identity: Aziel Eliab only. Forks welcome. Do not invent DOIs.
  */
-import { CATALOG_ALIASES, catalogExtraCards, FRAGGATE_GITHUB, fraggateHubCard } from "./catalog-meta.js";
+import { CATALOG_ALIASES, CATALOG_EXTRAS_NOTE, catalogExtraCards, FRAGGATE_GITHUB, fraggateHubCard } from "./catalog-meta.js";
 import { honestyFields, trueEngineSlugs } from "./engines/registry.js";
 import { FRAGGATE_KERNEL, FRAGGATE_KERNEL_VERSION } from "./fraggate/codes.js";
 import { LIVE_OPS, buildRegistry } from "./fraggate/registry.js";
@@ -31,7 +31,7 @@ import {
   SESSION_TTL_MS,
 } from "./production.js";
 import { citeCompatibleFields, skillCompatibleSection } from "./ai-clients.js";
-import { auditsSkillMarkdown, designsSkillMarkdown } from "./seo.js";
+import { auditsSkillMarkdown, designsSkillMarkdown, sisterProductCiteField } from "./seo.js";
 import { dualSurfaceAgentHowTo, semanticBridgeSkillMarkdown } from "./semantic-bridge.js";
 import { websiteDesignsField, websiteDesignsSkillMarkdown } from "./website-designs.js";
 import { COLD_MULTI_SHELF, shelvesSkillMarkdown } from "./cold-multi-shelf.js";
@@ -494,9 +494,9 @@ export function runtimeManifest(origin, products, extra = {}) {
     door: "fraggate",
     kernel: FRAGGATE_GITHUB,
     extras: catalogExtraCards(base),
+    sister_products: sisterProductCiteField(),
     website_designs: websiteDesignsField(base),
-    extras_note:
-      "Kernel / door cards for Software hubs. extras[] is not PRODUCTS — FragGate is the door; Quantum Node Mesh (QNM-BUILD-1.0) is the suite rollup (not a login mesh; not a Softwares-tab product). Human UI + counted download is the separate FragGate Worker app (fraggate-download-tracker; not nested in AZBrowser). AZPIPE / SweepGate / ChainLock / LOCKSET / packed catalog / QNS-CD-1.0 / ACT-RECEIPT-1.0 are LIVE fabric modules, not Softwares-tab products. QNS implementation is local qnsd (Worker cites only). ACT receipts append to corpus /receipts when RECEIPT_APPEND_TOKEN is set. NO-LIE-NO-REWRITE-1.0 is LIVE law (no rewrite key; never lie to survive).",
+    extras_note: CATALOG_EXTRAS_NOTE,
     fabric: {
       azpipe: "AZPIPE-0.2",
       sweepgate: "SG-0.1",

@@ -4,6 +4,7 @@
  */
 
 import { nodeMeshHubCard } from "./mesh.js";
+import { CATALOG_EXTRAS_SISTER_NOTE, tradesRuntimeCiteCard } from "./sister-products.js";
 
 /** Extra slugs an installer or AI may type. Values are catalog slugs. */
 export const CATALOG_ALIASES = {
@@ -110,8 +111,13 @@ export function fraggateHubCard(origin) {
 }
 
 export function catalogExtraCards(origin) {
-  return [fraggateHubCard(origin), nodeMeshHubCard(origin)];
+  return [fraggateHubCard(origin), nodeMeshHubCard(origin), tradesRuntimeCiteCard(origin)];
 }
+
+/** extras[] = kernel/door cards plus cite-only sister products (not PRODUCTS). */
+export const CATALOG_EXTRAS_NOTE =
+  "Kernel / door cards for Software hubs plus cite-only sister products. extras[] is not PRODUCTS — FragGate is the door; Quantum Node Mesh (QNM-BUILD-1.0) is the suite rollup (not a login mesh; not a Softwares-tab product). Human UI + counted download is the separate FragGate Worker app (fraggate-download-tracker; not nested in AZBrowser). AZPIPE / SweepGate / ChainLock / LOCKSET / packed catalog / QNS-CD-1.0 / ACT-RECEIPT-1.0 are LIVE fabric modules, not Softwares-tab products. QNS implementation is local qnsd (Worker cites only). ACT receipts append to corpus /receipts when RECEIPT_APPEND_TOKEN is set. NO-LIE-NO-REWRITE-1.0 is LIVE law (no rewrite key; never lie to survive). " +
+  CATALOG_EXTRAS_SISTER_NOTE;
 
 /** Package versions from live product Workers / counted /download filenames. */
 export const VERSIONS = {

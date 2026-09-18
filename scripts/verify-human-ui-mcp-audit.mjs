@@ -244,6 +244,15 @@ assert.ok(catalog.software.some((s) => s.slug === "azvpn"));
 assert.ok(!catalog.software.some((s) => s.slug === "mesh"), "mesh is not a Softwares-tab card");
 assert.ok(!catalog.software.some((s) => s.slug === "lumen"), "Lumen is not a catalog card");
 assert.ok(!catalog.software.some((s) => s.slug === "ark-private"));
+assert.ok(!catalog.software.some((s) => s.slug === "trades-runtime"), "trades-runtime is cite-only, not a Softwares card");
+assert.ok(catalog.sister_products.products.some((p) => p.slug === "trades-runtime" && p.fraggate_call === false));
+
+const describeTrades = await (await get("/v1/fraggate/describe?slug=trades-runtime")).json();
+assert.equal(describeTrades.code, "FG-HALLUC-TOOL", "trades-runtime is not a FragGate registry name");
+const callTrades = await post("/v1/fraggate/call", { slug: "trades-runtime", op: "health", payload: {} });
+const callTradesBody = await callTrades.json();
+assert.equal(callTradesBody.ok, false);
+assert.equal(callTradesBody.code, "FG-HALLUC-TOOL");
 
 const describeAzvpn = await (await get("/v1/fraggate/describe?slug=azvpn")).json();
 assert.notEqual(describeAzvpn.code, "FG-HALLUC-TOOL");

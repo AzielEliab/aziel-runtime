@@ -335,7 +335,7 @@ PDF belt numbers are **operator receipt**, not this audit’s scores. Mapping on
 | TemporalLock origin acct | **no extra slug** | — | — | Cite-only mirror note |
 | anon-broadcast | **not a catalog product** | mesh copy forbids it | — | Cite-only / local qnm-node sibling |
 | lumen | **not listed live OS** | — | — | Struck. Correct |
-| trades-runtime, Whitestone | **no** | — | — | Verticals. Not ingested |
+| trades-runtime, Whitestone | **cite-only** (trades-runtime) / **no** (Whitestone) | — | — | Trades-Runtime is machine-cited on `/cite.json` `sister_products` + catalog extras `cite_only`. Not a FragGate true-engine. `fraggate_call` does not execute company ops. Whitestone still not ingested |
 | godlock, aziel-corpus | catalog live | dash; corpus no task | call / library_lookup | Loaded |
 | azieleliab | hub cite only | About / hubs list | — | Landing, not a slug |
 | qnm-node | local process cite | mesh copy | mesh_* | Not hosted |
