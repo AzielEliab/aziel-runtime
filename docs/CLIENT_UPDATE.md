@@ -41,8 +41,11 @@ Softwares-tab `count` includes placements (`azinterface`, `decisiongate`,
 Isolation `domains.software_count` is **33**
 (`domains_are_doors: false`). See `count_note`. Do not equate the two.
 In-runtime placements have `worker_home` null — do not invent a download-tracker.
-Whitestone is Worker-only (`https://whitestone.vibelock.workers.dev/`); do not
-invent FragGate ops for it.
+Whitestone is Worker-only. Counted package is
+`https://whitestone-download-tracker.vibelock.workers.dev/download`
+(`worker_home` `https://whitestone-download-tracker.vibelock.workers.dev/`,
+ARK-style). Live web app stays `https://whitestone.vibelock.workers.dev/`.
+Do not invent FragGate ops for it.
 
 `azcoherence` is Softwares-tab Plain (AZCoherence, AZC-0.1). Scoring-review
 placement adjacent to AZ-CLCE. Not AKM-TRIAD fabric. Not a 34th MASTER-33

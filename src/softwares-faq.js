@@ -100,7 +100,6 @@ export function softwareFaqUrl(slug, origin) {
   const s = String(slug || "");
   const base = String(origin || defaultRuntimeOrigin()).replace(/\/$/, "");
   if (s === "aziel-corpus") return `${LIBRARY_ORIGIN}/`;
-  if (s === "whitestone") return "https://whitestone.vibelock.workers.dev/";
   if (IN_RUNTIME_SLUGS.includes(s)) return `${base}/#task-${s}`;
   return `https://${s}-download-tracker.vibelock.workers.dev/`;
 }

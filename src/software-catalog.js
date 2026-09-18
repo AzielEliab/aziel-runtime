@@ -31,13 +31,20 @@ import { softwareDescription, softwareOneLine } from "./software-copy.js";
 /**
  * Live Worker products that are Softwares-tab cards but not FragGate engines.
  * Do not invent LIVE_OPS or engine_digest for these slugs.
+ * Counted Whitestone zip uses the download-tracker Worker (ARK-style worker_home).
+ * Live web app stays on the product Worker.
  * Author: Aziel Eliab only.
  */
+export const WHITESTONE_TRACKER_WORKER = "whitestone-download-tracker";
+export const WHITESTONE_TRACKER_ORIGIN = `https://${WHITESTONE_TRACKER_WORKER}.vibelock.workers.dev`;
+export const WHITESTONE_APP_ORIGIN = "https://whitestone.vibelock.workers.dev";
+
 export const WORKER_ONLY_PRODUCTS = Object.freeze([
   {
     slug: "whitestone",
     name: "Whitestone",
-    worker: "whitestone",
+    worker: WHITESTONE_TRACKER_WORKER,
+    web_app: `${WHITESTONE_APP_ORIGIN}/`,
     github: "https://github.com/AzielEliab/Whitestone",
     version: VERSIONS.whitestone || "1.4.0",
     author: "Aziel Eliab",
@@ -213,6 +220,7 @@ export function workerOnlySoftwareCard(spec, origin, meta = {}) {
     description: softwareDescription(spec.slug, spec),
     worker_home: host ? `${host}/` : null,
     download_url: host ? `${host}/download` : null,
+    web_app: spec.web_app || null,
     github: spec.github || null,
     mcp: `${base}/mcp`,
     agent: {
