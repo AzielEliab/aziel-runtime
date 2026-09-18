@@ -298,7 +298,7 @@ const USE_PURPOSE = {
   azbot: [/skill router/i],
   azieltether: [/downloaded packages|central Worker/i],
   staticclock: [/gear-click|plain clock/i],
-  ark: [/heuristics sweep|local vault/i],
+  ark: [/local deniable vault/i, /one phrase opens one vault/i],
   "aziel-corpus": [/azcorpus \+ azlibrary/, /public library/i],
   godlock: [/product name/, /Aziel Eliab only/],
   azvpn: [/HTTPS|WebSocket/i, /public VPN concentrator/i],
