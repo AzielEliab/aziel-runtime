@@ -15,6 +15,8 @@ import {
   CAP7_INHERIT,
   CAP7_RESOLVES_TO_HUB,
   ICANN_HUB_HOSTS,
+  MIRAGEGRID_APP_ORIGIN,
+  MIRAGEGRID_DOWNLOAD_ORIGIN,
   MIRAGEGRID_WORKER_ORIGIN,
   SEMANTIC_BRIDGE_FACTORY,
   SEMANTIC_BRIDGE_SPEC,
@@ -59,7 +61,11 @@ assert.deepEqual(ICANN_HUB_HOSTS, [
   "https://godlock.uk/",
   "https://www.hedidntjump.com/",
 ]);
-assert.equal(miragegridBridgeUrl(), `${MIRAGEGRID_WORKER_ORIGIN}/bridge`);
+assert.equal(MIRAGEGRID_WORKER_ORIGIN, MIRAGEGRID_APP_ORIGIN);
+assert.equal(MIRAGEGRID_APP_ORIGIN, "https://miragegrid.vibelock.workers.dev");
+assert.equal(MIRAGEGRID_DOWNLOAD_ORIGIN, "https://miragegrid-download-tracker.vibelock.workers.dev");
+assert.ok(!MIRAGEGRID_WORKER_ORIGIN.includes("download-tracker"));
+assert.equal(miragegridBridgeUrl(), `${MIRAGEGRID_APP_ORIGIN}/bridge`);
 
 const cite = semanticBridgeCiteField(origin);
 assert.equal(cite.public_icann, false);
@@ -144,6 +150,7 @@ const mg = PRODUCTS.find((p) => p.slug === "miragegrid");
 assert.ok(mg.ops.some((o) => o.op === "bridge"));
 assert.ok(mg.ops.some((o) => o.op === "shuffle"));
 assert.equal(cite.shuffle.layout, "live");
+assert.equal(cite.shuffle.public_worker_bridge, "live");
 assert.equal(cite.shuffle.public_worker_shuffle, "slot");
 assert.equal(cite.shuffle.hardcoded_single_host, false);
 assert.equal(cite.shuffle.site_count, 7);

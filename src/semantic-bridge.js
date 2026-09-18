@@ -28,7 +28,12 @@ export const SEMANTIC_BRIDGE_SPEC = "CAP-7";
 export const SEMANTIC_BRIDGE_NAME = "Cap-7 semantic bridge";
 export const SEMANTIC_BRIDGE_FACTORY = "miragegrid";
 export const SEMANTIC_BRIDGE_AUTHOR = AUTHOR_NAME;
-export const MIRAGEGRID_WORKER_ORIGIN = "https://miragegrid-download-tracker.vibelock.workers.dev";
+/** Counted download plane. Isolated from the Cap-7 factory. `/bridge` here is 404. */
+export const MIRAGEGRID_DOWNLOAD_ORIGIN = "https://miragegrid-download-tracker.vibelock.workers.dev";
+/** Named Cap-7 factory / shuffle-app Worker. LIVE cite for `/bridge` and `GET /v1/shuffle`. */
+export const MIRAGEGRID_APP_ORIGIN = "https://miragegrid.vibelock.workers.dev";
+/** Factory origin used by bridge cites. Not the download-tracker. */
+export const MIRAGEGRID_WORKER_ORIGIN = MIRAGEGRID_APP_ORIGIN;
 export const MIRAGEGRID_BRIDGE_PATH = "/bridge";
 
 /** Four public ICANN hostnames. Cap-7 names are not aliases of these and do not resolve to them. */

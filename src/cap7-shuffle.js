@@ -17,7 +17,7 @@ import { assign } from "./engines/miragegrid/engine.js";
 export const CAP7_SHUFFLE = "CAP7-SHUFFLE-1.0";
 export const CAP7_SHUFFLE_PATH = "ping → land → that-round update";
 export const CAP7_SHUFFLE_HANDOFF =
-  "MirageGrid product Worker follow-on (not this runtime PR): publish /bridge + shuffle land with the same distinct mesh-name layout. Runtime already bridges in-process via FragGate miragegrid/shuffle. Do not invent a LIVE public shuffle on workers.dev while /bridge is absent.";
+  "MirageGrid app Worker https://miragegrid.vibelock.workers.dev/bridge and GET /v1/shuffle are LIVE cite surfaces (BRIDGE-CAP7-SHUFFLE / CAP7-SHUFFLE-CITE). Download-tracker /bridge is 404 — do not cite it as the factory. Public shuffle land and hosted /mcp stay SLOT. In-process land is fraggate_call miragegrid/shuffle. Do not invent LIVE hosted exec. Factory site names (azgrid/azbooth/…) are not yet the in-process cap7-loom set — follow-on align; do not invent a merge.";
 
 export const CAP7_SHUFFLE_REFUSE = Object.freeze({
   HARDCODE_HOST: "BAN-NO-HARDCODE-CAP7-HOST",
@@ -158,6 +158,7 @@ export function cap7ShuffleLayout() {
   return {
     spec: CAP7_SHUFFLE,
     layout: "live",
+    public_worker_bridge: "live",
     public_worker_shuffle: "slot",
     hosted_update: "slot",
     site_count: CAP7_SITES.length,
@@ -177,7 +178,7 @@ export function cap7ShuffleLayout() {
       door: "fraggate_call",
       op: "shuffle",
       also: Object.freeze(["assign", "bridge"]),
-      note: "All nodes ping MirageGrid. In-process FragGate is the live ping. Public workers.dev /bridge is not a LIVE shuffle door.",
+      note: "All nodes ping MirageGrid. In-process FragGate is the live ping. App-Worker /bridge is a LIVE cite surface. Public shuffle land stays SLOT.",
     }),
     land: Object.freeze({
       one_site_per_round: true,
@@ -202,6 +203,7 @@ export function cap7ShuffleCite() {
   return {
     spec: layout.spec,
     layout: layout.layout,
+    public_worker_bridge: layout.public_worker_bridge,
     public_worker_shuffle: layout.public_worker_shuffle,
     hosted_update: layout.hosted_update,
     path: CAP7_SHUFFLE_PATH,
@@ -327,6 +329,7 @@ export function shuffleRefuse(code, message, extra = {}) {
     resolves_to_hub: false,
     name_may_change: true,
     hardcoded_single_host: false,
+    public_worker_bridge: "live",
     public_worker_shuffle: "slot",
     hosted_update: "slot",
     localhost_pool_is_not_public_update: true,
@@ -378,6 +381,7 @@ export async function landCap7Shuffle(payload = {}) {
     resolves_to_hub: false,
     name_may_change: true,
     hardcoded_single_host: false,
+    public_worker_bridge: "live",
     public_worker_shuffle: "slot",
     hosted_update: "slot",
     localhost_pool_is_not_public_update: true,

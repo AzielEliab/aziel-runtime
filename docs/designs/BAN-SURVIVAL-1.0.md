@@ -112,7 +112,8 @@ as the death-by-ban backup — they are not mixed into `exec_origins`.
    **one** Cap-7 site (distinct mesh names; `name_may_change`). That
    landed site is the update endpoint for that round. Do not hardcode
    a single Cap-7 host. Hosted update URL stays **SLOT**. Public
-   MirageGrid workers.dev shuffle stays **SLOT** (follow-on product PR).
+   MirageGrid workers.dev shuffle **land** stays **SLOT**. App-Worker
+   `/bridge` is a LIVE cite surface (not land/exec).
 7. If every named live front is gone (death-by-ban of the public door
    set): verify bytes against the published lockset tip on GitHub /
    corpus `/shelves` / Codeberg + archive.org tip-packs (**SLOT**,
@@ -217,11 +218,19 @@ In-process land is `fraggate_call { slug: "miragegrid", op: "shuffle" }`
 MirageGrid localhost assign-pool (`127.0.0.1:19000+`) is **not** a
 public update door.
 
-Public MirageGrid Worker `/bridge` is **not** a LIVE shuffle door
-from this runtime (absent on workers.dev). Do not invent LIVE public
-shuffle. Follow-on: MirageGrid product PR to publish `/bridge` +
-shuffle land with the same distinct-name layout. Runtime already
-bridges in-process.
+Public MirageGrid **app** Worker `/bridge` and `GET /v1/shuffle` are
+**LIVE cite** surfaces on `https://miragegrid.vibelock.workers.dev`
+(codes `BRIDGE-CAP7-SHUFFLE` / `CAP7-SHUFFLE-CITE`). They are not a
+hosted `/mcp` and not a public land/exec door. The counted
+download-tracker `/bridge`
+(`https://miragegrid-download-tracker.vibelock.workers.dev/bridge`)
+is **404** — do not cite it as the factory. Public shuffle **land**
+and hosted update URL stay **SLOT**. Do not invent LIVE public
+shuffle land. In-process land remains
+`fraggate_call { slug: "miragegrid", op: "shuffle" }`. Factory
+Worker site names (azgrid / azbooth / …) are not the runtime
+in-process set (cap7-loom / …). Align in a follow-on; do not invent
+a merge here.
 
 6d. AKM memory law (cite alongside this stack)
 AKM-TRIAD-1.0 is already LIVE fabric. Survival must not weaken it:
@@ -318,7 +327,8 @@ calling-name discovery, Cap-7 shuffle ping, and Softwares download/run.
 - `live_node_api.status` is SLOT. Open node proxy refuses `BAN-NO-OPEN-NODE-PROXY`.
 - `cap7_aznet.cite` / `aznet_verify` are LIVE. `hosted_endpoints` is SLOT.
   Shuffle layout is LIVE (ping→land; distinct names; no hardcoded host).
-  Public workers.dev shuffle and hosted update URL are SLOT. Fake Cap-7
+  App-Worker `/bridge` is a LIVE cite. Public shuffle land and hosted
+  update URL are SLOT. Fake Cap-7
   host refuses `BAN-NO-FAKE-CAP7-HOST`. Hardcoded update host refuses
   `BAN-NO-HARDCODE-CAP7-HOST`. Fake public shuffle LIVE refuses
   `BAN-NO-FAKE-SHUFFLE-LIVE`. AZNet payload host refuses
