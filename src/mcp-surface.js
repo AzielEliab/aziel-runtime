@@ -115,7 +115,7 @@ export function mcpInitializeInstructions() {
     "1.6.0 is the door cut on in-process engines. 1.5.0 was agent-native former product tools. " +
     "Kernel: https://github.com/AzielEliab/fraggate (FG-0.1). " +
     "Every catalog slug is a true engine. Cloudflare isolate is the jail. engine_digest is required. " +
-    "Hosted AZAI is protocol mirror + Lamb check, not the blend. VPN/hop mesh is not claimed on the public surface. AZMail anonymous ring is door LIVE_OPS only (default off; not SMTP). " +
+    "Hosted AZAI is protocol mirror + Lamb check, not the blend. Public VPN auto-binds AZVPN (HTTPS/WS REAL; WireGuard/OpenVPN/L3 SLOT; origin-hiding false). GET /v1/mesh cites vpn=true and never opens a session. AZMail anonymous ring is door LIVE_OPS only (default off; not SMTP). " +
     "Compatible clients: ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants. " +
     `Always send User-Agent Mozilla/5.0. Public, no OAuth. Author identity is aziel eliab only. Current version remains ${RUNTIME_VERSION}.`
   );

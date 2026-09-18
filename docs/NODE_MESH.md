@@ -66,7 +66,7 @@ These five were **hard-false**. Operator **2026-09-17** flipped them **ON** on t
 2. `node_gate` / `get_is_node_gate` → true / ON (public mesh surface; not a login-recovery IP panel)
 3. `neighbor_heal` → true / ON (mesh no longer refuses the neighbor talk-back-to-health flag)
 4. `network` → true and `network_cite: "on"` (suite/mesh network + radios cite operator-armed)
-5. `anonymity_network` → true as an **operator-armed mode flag** only — `anonymity_network_note` says this is not a live anonymity fabric. Not Tor. Not VPN. Not origin-hiding. GodLock is still not a VPN.
+5. `anonymity_network` → true as an **operator-armed mode flag** only — `anonymity_network_note` says this is not a live anonymity fabric. Not Tor. Not origin-hiding. Public VPN auto-binds AZVPN (HTTPS/WS REAL; WireGuard/OpenVPN SLOT). GodLock is still not a kernel VPN.
 
 Die-with-pull / no godlock.uk resurrection / Cap-7 `resolves_to_hub: false` / FragGate sole door / `confirm` / `dry_run` stay as-is. No MCP tool added or removed. Identity **Aziel Eliab** only.
 
