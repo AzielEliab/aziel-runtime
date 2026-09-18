@@ -389,13 +389,13 @@ export function runtimeHelperTools() {
       title: "QNM suite rollup",
       description: tdqsDescription({
         action:
-          "Read QNM suite rollup totals (enabled?, bearers, live/locked/isolated counts) — not the node roster. Packet-transfer cite is QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; GET /v1/qns cites only; Worker does not proxy via emit)",
-        when: "you need suite presence counts or Live Nodes · N",
+          "Read QNM suite rollup totals (enabled?, bearers, live_nodes = living downloaded Softwares instances, software_nodes = {slug}-worker fan-out) — not the node roster. Packet-transfer cite is QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; GET /v1/qns cites only; Worker does not proxy via emit)",
+        when: "you need public Live Nodes (living downloaded Softwares instances) or software_nodes (product Worker fan-out)",
         notFor: "listing individual nodes, enabling extra radios, or executing a catalog engine",
         instead: "mesh_nodes, mesh_enable, or fraggate_call",
         effects:
           "Read-only. Never enables radios beyond default suite-presence. Read-only suite-presence is ON by default. Not a login mesh. Views/MCP/downloads do not enter QNM-S. Full node process is local qnm-node/. Kernel-direct fabric wrapper — not MASTER-33; not a second Softwares door. Softwares exec stays fraggate_call",
-        returns: "enabled flag, bearers, live/locked/isolated counts, and QNS-CD-1.0 cite",
+        returns: "enabled flag, bearers, live_nodes (instances), software_nodes (product Workers), locked/isolated instance counts, and QNS-CD-1.0 cite",
       }),
       annotations: mcpAnnotations("QNM suite rollup", HINT_READ),
       inputSchema: emptyArgsSchema("No arguments. Send {}. Never enables radios."),
@@ -455,7 +455,7 @@ export function runtimeHelperTools() {
         notFor: "refreshing an existing node, reading the roster, enabling radios, or opening an account session",
         instead: "mesh_heartbeat, mesh_nodes, mesh_enable, or runtime_session_open",
         effects:
-          "Write: additive presence with a strict 5-minute TTL. No heartbeat (or fan-out refresh) inside that window drops the node from the live roster. Radios off refuses MESH-OFF. Missing product / bad node_id / bad presence refuse MESH-BAD-INPUT. Read-only suite-presence is ON by default. Not an account session. AnonBroadcast is not a product. Kernel-direct fabric wrapper — same mesh kernel as FragGate mesh/join; not MASTER-33; human Join uses fraggate_call",
+          "Write: additive presence with a strict 5-minute TTL. Instance node_ids (not {slug}-worker) count as public Live Nodes when presence is live. {slug}-worker counts as software_nodes only. No heartbeat (or fan-out refresh) inside that window drops the node from the live roster. Radios off refuses MESH-OFF. Missing product / bad node_id / bad presence refuse MESH-BAD-INPUT. Downloads are not live. Read-only suite-presence is ON by default. Not an account session. AnonBroadcast is not a product. Kernel-direct fabric wrapper — same mesh kernel as FragGate mesh/join; not MASTER-33; human Join uses fraggate_call",
         params: "product is required (catalog slug). node_id optional 8–80 [a-z0-9._-]. presence is live|locked|isolated (default live). " + CONFIRM_PARAM_NOTE,
         returns: "node_id, presence, presence_ttl_ms (300000), and TTL note. MESH-OFF when radios are off",
       }),

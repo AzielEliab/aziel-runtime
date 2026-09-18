@@ -55,8 +55,11 @@
  * - Public disable of suite-presence is refused. POST /v1/mesh/disable / mesh_disable
  *   must refuse — they cannot turn suite-presence off.
  * - While suite-presence is LIVE, this Worker fans out join/heartbeat
- *   for every live Softwares product (and hubs that show Live Nodes)
- *   on cron or request-path. TTL 5 min. Product Workers proxy
+ *   for every live Softwares product Worker (`{slug}-worker`) on cron
+ *   or request-path. That roster is software_nodes — not public Live
+ *   Nodes. Public live_nodes counts living downloaded Softwares
+ *   instances (mesh_join / mesh_heartbeat with instance node_ids,
+ *   TTL 5 min). Downloads are not live. Product Workers proxy
  *   /v1/mesh/* via AZIEL_RUNTIME — do not invent a second mesh.
  * - NO-LIE / NO-REWRITE (NO-LIE-NO-REWRITE-1.0): receipts that still
  *   hash; copies not all on one tunnel; rules simple enough others
@@ -135,6 +138,13 @@ export const EXAMPLE_BEARER = "suite-presence";
 export const FANOUT_CRON = "*/2 * * * *";
 export const FANOUT_NODE_SUFFIX = "-worker";
 
+/** Public Live Nodes = living downloaded Softwares instances (join/heartbeat). Not catalog. Not {slug}-worker. */
+export const LIVE_NODES_NOTE =
+  "Public Live Nodes (live_nodes / rollup.live) count living downloaded Softwares instances that joined or heartbeat inside the 5-minute TTL. Not catalog product count. Not {slug}-worker suite fan-out (that is software_nodes / rollup.software). Downloads are not live. Zero is honest when no instance has heartbeated.";
+
+export const SOFTWARE_NODES_NOTE =
+  "software_nodes / rollup.software count live Softwares product Workers ({slug}-worker) from suite-presence fan-out. They do not drive the public Live Nodes pill.";
+
 /** Live Softwares catalog used by suite-presence fan-out. Set from index.js (avoids a cycle). */
 let suitePresenceCatalog = [];
 
@@ -164,6 +174,7 @@ export const MESH_LIMITATION =
   " COLD-MULTI-SHELF-1.0: GET /shelves cites corpus#96 honesty — Plane A one CF/GitHub tunnel (5 published surfaces / 2 family radii / 1 independent live); Plane B alt-forge SLOT (Codeberg + archive.org PASS still SLOT at https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius; Framagit URL null; GitFlic CNS-GITFLIC-EMAIL; GitLab CNS-GITLAB-CF-LOOP; Zenodo refused CNS-ZENODO-IP-BAN; doi null); Plane C USB SLOT until CNS-OPERATOR-ATTEST. Runtime is the same Plane A tunnel, not a sixth surface. " +
   " Nine QNM laws are HARD TRUE on GET /v1/mesh (and status): split-wires, cold-copy, REHEAL isolation, phoenix local-only, die-with-pull (no godlock.uk back). OPERATOR-OVERRIDE 2026-09-17 flipped auto_heal / implicit_heal, node_gate / get_is_node_gate, neighbor_heal, network, and anonymity_network (mode flag only — not Tor/VPN/origin-hiding) from hard-false to ON. Each remaining refuse still uses a published code. GodLock is a product name, not identity. " +
   " Channel plane (QNM-CHANNEL-PLANE-1.0): operator-armed wifi / bluetooth / rf / photon cites are ON. Live OS/hardware bearers run on local qnm-node / qnsd. Worker channel_plane stays cite-only (worker_hardware:false). Worker does not invent RF/BT hardware and does not proxy those vias. suite-presence remains the Worker rollup bearer. Channel plane ≠ VPN. AZNet ↔ AZBrowser pairing is order/token only — pairing ≠ tunnel. " +
+  " Public Live Nodes (live_nodes / rollup.live) count living downloaded Softwares instances that joined or heartbeat inside the 5-minute TTL — not catalog product count, not {slug}-worker suite fan-out (that is software_nodes). Downloads are not live. Zero is honest when no instance has heartbeated. " +
   " THIS IS NOT: a login mesh; login-recovery; IP panel; upload proxy; account resurrection; public hostname resurrection; bringing the .uk node back; average-of-nodes leaderboard; QNM-S; the local qnm-node process (boot/chain/apg/bearers/outbox/phoenix/score/memorial/tethers); AnonBroadcast as a catalog product or publish path; AZMail's product-local ring; arming; wipe; controller hunt; a public qnsd proxy; a payload push plane; vote-to-reconcile; live body sync; mesh from index; summary-as-archive; vote-to-fix; live network as a shelf; a rewrite key; a lie to stay alive; a kernel UDP VPN / WireGuard concentrator (public VPN is AZVPN HTTPS/WS REAL; GET cites only); a live Tor/origin-hiding anonymity fabric (anonymity_network is an operator-armed mode flag only); Worker-proxied radios. Author: Aziel Eliab only.";
 
 export const MESH_CANONICAL_OPS = Object.freeze([
@@ -408,6 +419,10 @@ export function meshHint(path = "/v1/mesh") {
     suite_presence: SUITE_PRESENCE,
     get_never_enables: true,
     fanout: "cron-or-request-path",
+    live_nodes_plane: "instance",
+    software_nodes_plane: "software-worker-fanout",
+    live_nodes_note: LIVE_NODES_NOTE,
+    software_nodes_note: SOFTWARE_NODES_NOTE,
     presence_ttl_ms: PRESENCE_TTL_MS,
     qns_cd: qnsHint(),
     survival: survivalHint(),
@@ -448,7 +463,7 @@ export function meshCiteField(origin) {
     get_is_node_gate: true,
     qnm_s: false,
     nine_laws: nineLawsHint(),
-    note: "Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Channel plane (wifi / bluetooth / rf / photon) is an operator-armed cite — live hardware runs on local qnm-node. Channel plane ≠ kernel VPN. Public VPN auto-binds AZVPN (cite-only on GET; no session open). Pairing ≠ tunnel. Not a login mesh. Not a login-recovery IP panel. OPERATOR-OVERRIDE 2026-09-17 armed node_gate / get_is_node_gate, auto_heal / implicit_heal, neighbor_heal, network, anonymity_network (mode flag), and public VPN. Nine QNM laws are hard-true (fields + published refuse codes). Worker-launch cite: hashtag parts #aziel / #runtime and always About Aziel (/about). NO-LIE / NO-REWRITE: no rewrite key; never lie to survive. COLD-MULTI-SHELF-1.0: GET /shelves cites corpus#96 honesty.",
+    note: "Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public Live Nodes count living downloaded Softwares instances (live_nodes); {slug}-worker fan-out is software_nodes. Downloads are not live. Channel plane (wifi / bluetooth / rf / photon) is an operator-armed cite — live hardware runs on local qnm-node. Channel plane ≠ kernel VPN. Public VPN auto-binds AZVPN (cite-only on GET; no session open). Pairing ≠ tunnel. Not a login mesh. Not a login-recovery IP panel. OPERATOR-OVERRIDE 2026-09-17 armed node_gate / get_is_node_gate, auto_heal / implicit_heal, neighbor_heal, network, anonymity_network (mode flag), and public VPN. Nine QNM laws are hard-true (fields + published refuse codes). Worker-launch cite: hashtag parts #aziel / #runtime and always About Aziel (/about). NO-LIE / NO-REWRITE: no rewrite key; never lie to survive. COLD-MULTI-SHELF-1.0: GET /shelves cites corpus#96 honesty.",
     survival: survivalCiteField(),
     semantic_bridge: semanticBridgeCiteField(base),
   };
@@ -539,15 +554,26 @@ export function sanitizeNodeId(raw) {
   return s;
 }
 
-/** Auto-minted join ids (`mesh_${seq}_…`). Not Softwares product Workers. */
+/** Auto-minted join ids (`mesh_${seq}_…`). Instance plane (downloaded Softwares). */
 export function isEphemeralMeshNodeId(nodeId) {
   return /^mesh_/.test(String(nodeId || ""));
 }
 
-/** Suite-presence fan-out ids (`{slug}-worker`). Hubs count these as Softwares live nodes. */
+/** Suite-presence fan-out ids (`{slug}-worker`). software_nodes only — not public Live Nodes. */
 export function isSoftwareWorkerNodeId(nodeId) {
   const id = String(nodeId || "");
   return id.endsWith(FANOUT_NODE_SUFFIX) && !isEphemeralMeshNodeId(id);
+}
+
+/** Downloaded Softwares instance ids (join/heartbeat). Public Live Nodes count these when presence is live. */
+export function isInstanceMeshNodeId(nodeId) {
+  const id = String(nodeId || "");
+  if (!id) return false;
+  return !isSoftwareWorkerNodeId(id);
+}
+
+export function meshNodePlane(nodeId) {
+  return isSoftwareWorkerNodeId(nodeId) ? "software" : "instance";
 }
 
 export function sanitizeLabel(raw) {
@@ -640,6 +666,7 @@ function rollupCounts(nodes) {
   const software = emptyPresence();
   const ephemeral = emptyPresence();
   const named = emptyPresence();
+  const instances = emptyPresence();
   const all = emptyPresence();
   for (const node of liveList(nodes)) {
     const p = node && PRESENCE_STATES.includes(node.presence) ? node.presence : "live";
@@ -648,12 +675,14 @@ function rollupCounts(nodes) {
     if (isEphemeralMeshNodeId(id)) ephemeral[p] += 1;
     else if (isSoftwareWorkerNodeId(id)) software[p] += 1;
     else named[p] += 1;
+    if (isInstanceMeshNodeId(id)) instances[p] += 1;
   }
   return {
-    live: software.live,
-    locked: software.locked,
-    isolated: software.isolated,
+    live: instances.live,
+    locked: instances.locked,
+    isolated: instances.isolated,
     software,
+    instances,
     ephemeral,
     named,
     all,
@@ -847,9 +876,18 @@ function statusFields(state) {
     live_nodes: rollup.live,
     locked_nodes: rollup.locked,
     isolated_nodes: rollup.isolated,
+    live_nodes_note: LIVE_NODES_NOTE,
+    software_nodes_note: SOFTWARE_NODES_NOTE,
     ephemeral_nodes: rollup.ephemeral.live + rollup.ephemeral.locked + rollup.ephemeral.isolated,
     ephemeral_live_nodes: rollup.ephemeral.live,
     software_nodes: rollup.software.live + rollup.software.locked + rollup.software.isolated,
+    software_live_nodes: rollup.software.live,
+    software_locked_nodes: rollup.software.locked,
+    software_isolated_nodes: rollup.software.isolated,
+    instance_nodes: rollup.instances.live + rollup.instances.locked + rollup.instances.isolated,
+    instance_live_nodes: rollup.instances.live,
+    instance_locked_nodes: rollup.instances.locked,
+    instance_isolated_nodes: rollup.instances.isolated,
     products_present: products,
     products,
     store: state.store,
@@ -919,7 +957,7 @@ export async function meshFanoutSuitePresence(env, extra = {}) {
     get_never_enables: true,
     suite_presence: SUITE_PRESENCE,
     ...statusFields({ ...state, store }),
-    note: "Suite-presence refresh of live Softwares product Workers. GET never enables radios beyond read-only suite-presence. Not a login mesh.",
+    note: "Suite-presence refresh of live Softwares product Workers ({slug}-worker → software_nodes). Does not drive public Live Nodes. GET never enables radios beyond read-only suite-presence. Not a login mesh.",
   });
 }
 
@@ -980,7 +1018,7 @@ export async function meshStatus(payload, env) {
     op: "status",
     ...statusFields(state),
     note: state.enabled
-      ? "QNM suite rollup is LIVE. Read-only suite-presence is ON by default. Counts only — no QNM-S, no leaderboard."
+      ? "QNM suite rollup is LIVE. Read-only suite-presence is ON by default. live_nodes are living downloaded Softwares instances. software_nodes are {slug}-worker fan-out. Counts only — no QNM-S, no leaderboard. Downloads are not live."
       : "QNM suite-presence is not LIVE. GET /v1/mesh never enables radios beyond read-only suite-presence.",
   });
 }
@@ -1006,7 +1044,7 @@ Read-only **suite-presence is ON by default**. A site ping of \`GET /v1/mesh\` n
 
 \`mesh_join\` / \`POST /v1/mesh/join\` requires \`product\` (catalog slug). Optional \`node_id\` must be exactly 8–80 chars matching \`[a-z0-9._-]\` (full string). \`presence\` must be \`live\` (default), \`locked\`, or \`isolated\`. Join is additive presence with a **strict 5-minute TTL**. \`mesh_heartbeat\` refreshes that TTL. If no heartbeat (or fan-out refresh) arrives inside the window, the node is **dropped** from the live roster. When transmission radios are powered down or suite radios are not enabled, join/heartbeat/broadcast refuse **\`MESH-OFF\`**. Read paths stay honest. Do not invent a second refuse spelling.
 
-While radios are LIVE, this Worker fans out join/heartbeat for every live Softwares product Worker (\`node_id\` \`{slug}-worker\`, no \`|\`) on cron (\`*/2 * * * *\`) or request-path. Presence TTL is 5 minutes. Product Workers proxy \`/v1/mesh/*\` via \`AZIEL_RUNTIME\`. Not a second mesh. Fan-out is rollup counts for Workers that still exist. It does not restore godlock.uk or reattach a pulled public hostname.
+While radios are LIVE, this Worker fans out join/heartbeat for every live Softwares product Worker (\`node_id\` \`{slug}-worker\`, no \`|\`) on cron (\`*/2 * * * *\`) or request-path. That roster is **software_nodes** — not public Live Nodes. Public **live_nodes** count living downloaded Softwares instances (\`mesh_join\` / \`mesh_heartbeat\` with instance \`node_id\`s inside the 5-minute TTL). Downloads are not live. Zero is honest when no instance has heartbeated. Product Workers proxy \`/v1/mesh/*\` via \`AZIEL_RUNTIME\`. Not a second mesh. Fan-out does not restore godlock.uk or reattach a pulled public hostname.
 
 Phoenix is wait / re-seal after tamper or isolation. It is not “bring the .uk node back.” Sites pulled (token revoked, Worker dropped, DNS killed) die with the pull: public rollup on that hostname is down; a local node may keep verifying and appending. Mesh does not climb back onto the public hostname by itself. A process supervisor restarting cloudflared is operator kit, not this contract.
 
@@ -1020,7 +1058,7 @@ Phoenix is wait / re-seal after tamper or isolation. It is not “bring the .uk 
 
 **CROSS-NETWORK-SURVIVAL-1.0.** ${CROSS_NETWORK_SURVIVAL_SHORT}
 
-Rollup counts: **live / locked / isolated**. No average-of-nodes leaderboard. Views / MCP / downloads do not enter QNM-S.
+Public rollup **live / locked / isolated** (\`live_nodes\`) is the instance plane. Softwares product Workers stay on \`software_nodes\` / \`rollup.software\`. No average-of-nodes leaderboard. Views / MCP / downloads do not enter QNM-S.
 
 Full node process is local \`qnm-node/\` (boot / chain / apg / bearers / outbox / phoenix / score / memorial / tethers). Packet-transfer coding design is **QNS-CD-1.0** (photon QNS1 1.3 on local \`qnsd\`; companion to QNM-BUILD-1.0 / AIH-WP-1.3). This Worker cites only — \`GET /v1/qns\`. It does not proxy local via emit. **Channel plane (${CHANNEL_PLANE_SPEC}):** operator-armed wifi / bluetooth / rf / photon cites are ON. Live OS/hardware bearers run on local qnm-node / qnsd. ${CHANNEL_PLANE_NOTE} Parent will roll that package. Anon-broadcast is a sibling loopback module of that local process only — never a publish path.
 
@@ -1120,7 +1158,7 @@ export async function meshEnable(payload, env) {
     fanout: fanout.skipped ? false : true,
     fanout_joined: fanout.joined || 0,
     fanout_refreshed: fanout.refreshed || 0,
-    note: "Operator declared a bearer. Radios LIVE for suite rollup only. Live Softwares product Workers are joined for rollup counts (TTL 5 min). Read-only suite-presence stays ON by default. GET never enables radios beyond that. Not a login mesh.",
+    note: "Operator declared a bearer. Radios LIVE for suite rollup only. Live Softwares product Workers are joined as software_nodes (TTL 5 min) — not public Live Nodes. Read-only suite-presence stays ON by default. GET never enables radios beyond that. Not a login mesh.",
   });
 }
 
@@ -1215,11 +1253,17 @@ export async function meshJoin(payload, env) {
       product,
       label,
       presence,
+      plane: meshNodePlane(node_id),
+      counts_as_live_nodes: isInstanceMeshNodeId(node_id) && presence === "live",
       joined_at: node.joined_at,
       presence_ttl_ms: PRESENCE_TTL_MS,
     },
+    plane: meshNodePlane(node_id),
+    counts_as_live_nodes: isInstanceMeshNodeId(node_id) && presence === "live",
     node,
-    note: "Presence registered for QNM rollup only. Heartbeat within 5 minutes or the count drops. Not an account session.",
+    note: isSoftwareWorkerNodeId(node_id)
+      ? "Software product Worker presence registered. Counts as software_nodes, not public Live Nodes. Heartbeat within 5 minutes or the count drops. Not an account session."
+      : "Downloaded Softwares instance presence registered. Living instances count as public Live Nodes. Heartbeat within 5 minutes or the count drops. Downloads are not live. Not an account session.",
   });
 }
 
