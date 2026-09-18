@@ -319,7 +319,9 @@ Worker: browser, installable PWA (`GET /manifest.webmanifest`),
 Worker fronts (`/survival` `/mcp` `/runtime`), Softwares `/download`,
 and MCP/OpenAPI. Dual-surface on each OS: agents MCP/OpenAPI; humans
 Worker UI + PWA + counted download. This is not five native App Store
-binaries (`native_app_store: false`). Each OS can reach survival doors,
+binaries (`native_app_store: false`). Do **not** mark any of these five
+as SLOT. `GET /platforms` cites `live: true` only because those Worker
+paths exist. Each OS can reach survival doors,
 calling-name discovery, Cap-7 in-process shuffle ping (public
 workers.dev shuffle stays SLOT), and Softwares download/run. Machine
 matrix: `/survival` `platforms`, `/v1/software` `platforms`,

@@ -174,8 +174,10 @@ agents use MCP/OpenAPI; humans use Worker UI + PWA + counted `/download`.
 Each OS can reach `/survival` (name-rotation + live doors), Cap-7
 in-process shuffle (`fraggate_call` `miragegrid`/`shuffle`; public
 workers.dev shuffle stays SLOT), and Softwares download/run. Machine
-matrix: `GET /survival` `platforms`, `GET /v1/software` `platforms`,
-`GET /v1/update/manifest` `platforms`, suite pack `/download` `platforms`.
+matrix: `GET /platforms` (alias `/v1/platforms`), `GET /survival`
+`platforms`, `GET /v1/software` `platforms`, `GET /v1/update/manifest`
+`platforms`, suite pack `/download` `platforms`. `live: true` only when
+those Worker paths exist. Do not mark any of the five OS as SLOT.
 
 Machine map: `GET /survival` (aliases `/v1/survival`, `/doors`, `/failover`).
 `live_doors` / `exec_origins` omit blocked fronts. Hubs (ae / corpus /

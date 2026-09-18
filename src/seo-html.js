@@ -44,6 +44,7 @@ import { launchHashtagChipsHtml } from "./launch-parts.js";
 import { useInBrowserHref } from "./human-hrefs.js";
 import { suiteDownloadHtml } from "./suite-pack.js";
 import { rewriteLiveCallingDisplay } from "./calling-name.js";
+import { platformHeadLinks } from "./platforms.js";
 
 export const SOFTWARE_PAGE_TITLE = `Softwares — ${PRODUCT_NAME}`;
 export const SOFTWARE_PAGE_DESCRIPTION =
@@ -134,7 +135,8 @@ export function headMeta(origin, title, description, canonicalPath) {
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="${escapeHtml(title)}">
 <meta name="twitter:description" content="${escapeHtml(description)}">
-<meta name="twitter:image" content="${escapeHtml(image)}">`;
+<meta name="twitter:image" content="${escapeHtml(image)}">
+${platformHeadLinks(base)}`;
 }
 
 function donateFooter() {

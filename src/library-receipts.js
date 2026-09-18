@@ -51,6 +51,8 @@ const SKIP_MINT = new Set([
   "/v1/cold-copy",
   "/survival",
   "/v1/survival",
+  "/platforms",
+  "/v1/platforms",
   "/doors",
   "/v1/doors",
   "/failover",

@@ -31,7 +31,9 @@
  * GET  /v1/shelves            machine alias of /shelves
  * GET  /v1/cold-copy          alias of /shelves
  * GET  /survival              BAN-SURVIVAL-1.0 mutual-backup map (live multi-front ↔ cold shelves; LIVE doors only; live-node API SLOT)
+ * GET  /platforms             BAN-PLATFORMS-1.0 — windows/mac/linux/android/ios all LIVE (not SLOT)
  * GET  /v1/survival           machine alias of /survival
+ * GET  /v1/platforms          machine alias of /platforms
  * GET  /doors                 alias of /survival
  * GET  /failover              alias of /survival
  * GET  /v1/skill              skill markdown (session + front doors)
@@ -217,7 +219,7 @@ import {
   oauthProtectedResource,
 } from "./mcp-discovery.js";
 import { resolveCallingName, rewriteLiveCallingDisplay, rewriteLiveCallingKeywords } from "./calling-name.js";
-import { isManifestPath, platformHeadLinks, platformsCite, webManifest } from "./platforms.js";
+import { dispatchPlatformsHttp, isManifestPath, isPlatformPath, platformHeadLinks, platformsCite, webManifest } from "./platforms.js";
 import {
   MCP_PROTOCOL_PREFERRED,
   MCP_PROTOCOL_SUPPORTED,
@@ -1447,6 +1449,8 @@ function sitemapXml(origin) {
     { loc: base + "/v1/cold-copy", priority: "0.8", changefreq: "weekly" },
     { loc: base + "/survival", priority: "0.85", changefreq: "weekly" },
     { loc: base + "/v1/survival", priority: "0.85", changefreq: "weekly" },
+    { loc: base + "/platforms", priority: "0.8", changefreq: "weekly" },
+    { loc: base + "/v1/platforms", priority: "0.8", changefreq: "weekly" },
     { loc: base + "/doors", priority: "0.7", changefreq: "weekly" },
     { loc: base + "/failover", priority: "0.7", changefreq: "weekly" },
     { loc: base + "/llms.txt", priority: "0.9", changefreq: "weekly" },
@@ -2614,6 +2618,23 @@ function staticPaths(origin, env = {}) {
         responses: { "200": { description: "BAN-SURVIVAL failover JSON" } },
       },
     },
+    "/platforms": {
+      get: {
+        operationId: "catalog_ban_platforms",
+        summary:
+          "BAN-PLATFORMS-1.0. Windows, Mac, Linux, Android, and iPhone are LIVE via browser / PWA / download / MCP. native_app_store false. Do not mark any of these five as SLOT.",
+        tags: ["catalog"],
+        responses: { "200": { description: "Platform reachability JSON" } },
+      },
+    },
+    "/v1/platforms": {
+      get: {
+        operationId: "catalog_ban_platforms_v1",
+        summary: "Machine alias of GET /platforms.",
+        tags: ["catalog"],
+        responses: { "200": { description: "Platform reachability JSON" } },
+      },
+    },
     "/llms.txt": {
       get: {
         operationId: "catalog_llms",
@@ -3020,6 +3041,8 @@ function healthBody(origin, env = {}) {
     shelves_json: "/v1/shelves",
     survival: "/survival",
     survival_json: "/v1/survival",
+    platforms: "/platforms",
+    platforms_json: "/v1/platforms",
     sitemap: "/sitemap.xml",
     sitemap_index: "/sitemap-index.xml",
     robots: "/robots.txt",
@@ -3512,6 +3535,13 @@ async function handleRequest(request, env, ctx) {
           request,
           json(out.body, out.status, { ...extra(url.pathname), ...(out.status === 200 ? survivalCacheHeaders() : {}) }),
         );
+      }
+    }
+
+    if (isPlatformPath(url.pathname)) {
+      const out = dispatchPlatformsHttp(request.method, url.pathname, origin, env);
+      if (out) {
+        return asHead(request, json(out.body, out.status, extra(url.pathname)));
       }
     }
 

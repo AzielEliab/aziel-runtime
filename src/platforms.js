@@ -14,6 +14,19 @@ const PRIMARY_WORKER_ORIGIN = "https://aziel-runtime.vibelock.workers.dev";
 
 export const PLATFORM_SPEC = "BAN-PLATFORMS-1.0";
 export const PLATFORM_IDS = Object.freeze(["windows", "mac", "linux", "android", "ios"]);
+export const PLATFORM_PATHS = Object.freeze(["/platforms", "/v1/platforms"]);
+export const LIVE_PLATFORM_PATHS = Object.freeze([
+  "/survival",
+  "/openapi.json",
+  "/manifest.webmanifest",
+  "/download",
+  "/v1/software",
+  "/v1/update/manifest",
+  "/platforms",
+]);
+export const PLATFORM_REFUSE = Object.freeze({
+  SLOT_OS: "BAN-NO-PLATFORM-SLOT",
+});
 
 const SHARED_PATHS = Object.freeze({
   browser: true,
@@ -62,15 +75,37 @@ export const PLATFORM_MATRIX = Object.freeze({
   ios: platformRow("ios", "iPhone", "Safari / Add to Home Screen PWA"),
 });
 
+export function judgePlatformSlot(input = {}) {
+  const src = input && typeof input === "object" ? input : {};
+  const id = String(src.platform || src.id || "")
+    .trim()
+    .toLowerCase();
+  if (PLATFORM_IDS.includes(id) && (src.slot === true || src.live === false || src.status === "slot")) {
+    return {
+      accept: false,
+      action: "refuse",
+      reason: PLATFORM_REFUSE.SLOT_OS,
+      live: true,
+      note: "Do not mark Windows / Mac / Linux / Android / iPhone as SLOT. Build the path to LIVE.",
+    };
+  }
+  return { accept: true, action: "ok", live: true };
+}
+
 export function platformsCite(env = {}) {
   const calling = resolveCallingName(env);
   return {
     spec: PLATFORM_SPEC,
     all_live: true,
     native_app_store: false,
+    slot_os: [],
+    worker_live: true,
+    calling_name_live: true,
     calling_name: calling.calling_name,
+    calling_name_rotated: calling.rotated === true,
     survival: "/survival",
     manifest: "/manifest.webmanifest",
+    verified_paths: LIVE_PLATFORM_PATHS.slice(),
     platforms: PLATFORM_IDS.map((id) => ({ ...PLATFORM_MATRIX[id] })),
     download_run: Object.freeze({
       suite_pack: "/download",
@@ -79,7 +114,36 @@ export function platformsCite(env = {}) {
       pwa: "/manifest.webmanifest",
     }),
     note:
-      "Windows, Mac, Linux, Android, and iPhone are LIVE on the public Worker (browser / PWA / download / MCP). Dual-surface: agents MCP/OpenAPI; humans Worker UI + PWA + counted /download. Not five native store binaries. Hubs pull /survival.",
+      "Windows, Mac, Linux, Android, and iPhone are LIVE on the public Worker (browser / PWA / download / MCP). Dual-surface: agents MCP/OpenAPI; humans Worker UI + PWA + counted /download. Not five native store binaries. Do not mark any of these five as SLOT. Hubs pull /survival.",
+  };
+}
+
+export function isPlatformPath(pathname) {
+  const path = String(pathname || "/")
+    .split("?")[0]
+    .replace(/\/+$/, "") || "/";
+  return PLATFORM_PATHS.includes(path);
+}
+
+export function platformsDoc(origin, env = {}) {
+  const base = String(origin || PRIMARY_WORKER_ORIGIN).replace(/\/$/, "");
+  return {
+    ...platformsCite(env),
+    origin: base,
+    mcp: `${base}/mcp`,
+    fraggate_call: `${base}/v1/fraggate/call`,
+  };
+}
+
+export function dispatchPlatformsHttp(method, pathname, origin, env = {}) {
+  if (!isPlatformPath(pathname)) return null;
+  const verb = String(method || "GET").toUpperCase();
+  if (verb === "GET" || verb === "HEAD") {
+    return { status: 200, body: platformsDoc(origin, env) };
+  }
+  return {
+    status: 405,
+    body: { ok: false, code: "BAN-CITE-ONLY", note: "GET /platforms only." },
   };
 }
 

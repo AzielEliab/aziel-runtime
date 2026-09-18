@@ -31,6 +31,11 @@ import {
   slugifyCallingName,
 } from "../src/calling-name.js";
 import {
+  LIVE_PLATFORM_PATHS,
+  PLATFORM_REFUSE,
+  judgePlatformSlot,
+} from "../src/platforms.js";
+import {
   AKM_MEMORY_LAW,
   BAN_SURVIVAL,
   BAN_SURVIVAL_DOCS,
@@ -355,10 +360,16 @@ assert.deepEqual(cite.calling_name.pipeline, CALLING_NAME_PIPELINE);
 assert.equal(cite.calling_name.call_routes.door, "fraggate");
 assert.equal(cite.calling_name.call_routes.second_door, false);
 assert.equal(cite.platforms.all_live, true);
+assert.deepEqual(cite.platforms.slot_os, []);
+assert.equal(cite.platforms.worker_live, true);
+assert.equal(cite.platforms.calling_name_live, true);
 assert.ok(cite.platforms.platforms.every((p) => p.live === true && p.native_app_store === false));
 assert.ok(cite.platforms.platforms.every((p) => p.survival === true && p.calling_name === true && p.cap7_shuffle_in_process === true));
 assert.ok(cite.platforms.platforms.every((p) => p.dual_surface.agents === "mcp_openapi"));
 assert.deepEqual(cite.platforms.platforms.map((p) => p.id), ["windows", "mac", "linux", "android", "ios"]);
+assert.equal(judgePlatformSlot({ id: "ios", slot: true }).reason, PLATFORM_REFUSE.SLOT_OS);
+assert.equal(judgePlatformSlot({ id: "android", live: false }).accept, false);
+assert.equal(judgePlatformSlot({ id: "windows" }).accept, true);
 assert.match(cite.survival, /\/survival$/);
 assert.ok(cite.live_doors.every((d) => d.status === "live"));
 assert.deepEqual(cite.exec_origins, namedExecOrigins());
@@ -468,6 +479,21 @@ const manifestBody = await manifest.json();
 assert.equal(manifestBody.name, "Aziel Runtime");
 assert.equal(manifestBody.aziel.native_app_store, false);
 assert.deepEqual(manifestBody.aziel.platforms, ["windows", "mac", "linux", "android", "ios"]);
+
+const plat = await get("/platforms");
+assert.equal(plat.status, 200);
+const platBody = await plat.json();
+assert.equal(platBody.all_live, true);
+assert.deepEqual(platBody.slot_os, []);
+assert.equal(platBody.worker_live, true);
+assert.equal(platBody.calling_name_live, true);
+assert.ok(platBody.platforms.every((p) => p.live === true));
+const platAlias = await get("/v1/platforms");
+assert.equal(platAlias.status, 200);
+for (const path of LIVE_PLATFORM_PATHS) {
+  const hit = await get(path);
+  assert.equal(hit.status, 200, path);
+}
 
 const home = await get("/");
 assert.match(await home.text(), /rel="manifest"/);
