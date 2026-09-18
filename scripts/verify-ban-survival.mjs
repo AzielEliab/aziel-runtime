@@ -103,7 +103,9 @@ assert.match(paper, /distinct mesh names/);
 assert.match(paper, /Calling-name rotation/);
 assert.match(paper, /\*new name alert:/);
 assert.match(paper, /Whitestone AI/);
+assert.match(paper, /Platforms \(all LIVE\)/);
 assert.match(clientUpdate, /Calling-name rotation/);
+assert.match(clientUpdate, /Windows/);
 assert.match(paper, /radio_phy/);
 assert.match(paper, /service binding/);
 assert.match(paper, /Not a Softwares-tab product/);
@@ -289,6 +291,9 @@ assert.equal(cite.akm_memory.memory_delete, false);
 assert.ok(cite.akm_memory.stub_ops.includes("delete_history"));
 assert.equal(cite.calling_name.rotated, false);
 assert.equal(cite.calling_name.calling_name, "Aziel Runtime");
+assert.equal(cite.platforms.all_live, true);
+assert.ok(cite.platforms.platforms.every((p) => p.live === true && p.native_app_store === false));
+assert.deepEqual(cite.platforms.platforms.map((p) => p.id), ["windows", "mac", "linux", "android", "ios"]);
 assert.match(cite.survival, /\/survival$/);
 assert.ok(cite.live_doors.every((d) => d.status === "live"));
 assert.deepEqual(cite.exec_origins, namedExecOrigins());
@@ -367,6 +372,9 @@ assert.equal(body.cap7_aznet.cite.status, "live");
 assert.equal(body.cap7_aznet.hosted_endpoints.status, "slot");
 assert.equal(body.cap7_aznet.shuffle.layout, "live");
 assert.equal(body.akm_memory.belief_is_not_truth, true);
+assert.equal(body.platforms.all_live, true);
+assert.equal(body.platforms.platforms.length, 5);
+assert.equal(body.platforms.all_live, true);
 assert.ok(body.live_doors.length >= 3);
 assert.match(res.headers.get("cache-control") || "", /max-age=120/);
 
@@ -381,6 +389,17 @@ assert.ok(citeBody.ban_survival.live_doors.length >= 3);
 const citeBlockedHttp = await get("/cite.json", { BAN_SURVIVAL_BLOCKED: "workers-dev" });
 const citeBlockedBody = await citeBlockedHttp.json();
 assert.equal(citeBlockedBody.ban_survival.exec_origins.includes(PRIMARY_WORKER_ORIGIN), false);
+
+const manifest = await get("/manifest.webmanifest");
+assert.equal(manifest.status, 200);
+assert.match(manifest.headers.get("content-type") || "", /manifest\+json/);
+const manifestBody = await manifest.json();
+assert.equal(manifestBody.name, "Aziel Runtime");
+assert.equal(manifestBody.aziel.native_app_store, false);
+assert.deepEqual(manifestBody.aziel.platforms, ["windows", "mac", "linux", "android", "ios"]);
+
+const home = await get("/");
+assert.match(await home.text(), /rel="manifest"/);
 
 const openapi = await (await get("/openapi.json")).json();
 assert.ok(openapi.paths["/survival"]);

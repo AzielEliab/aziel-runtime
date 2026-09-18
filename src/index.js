@@ -217,6 +217,7 @@ import {
   oauthProtectedResource,
 } from "./mcp-discovery.js";
 import { resolveCallingName } from "./calling-name.js";
+import { isManifestPath, platformHeadLinks, platformsCite, webManifest } from "./platforms.js";
 import {
   MCP_PROTOCOL_PREFERRED,
   MCP_PROTOCOL_SUPPORTED,
@@ -1461,6 +1462,7 @@ function sitemapXml(origin) {
     { loc: base + "/.well-known/mcp/server-card.json", priority: "0.7", changefreq: "weekly" },
     { loc: base + "/.well-known/oauth-protected-resource", priority: "0.65", changefreq: "weekly" },
     { loc: base + "/sigil.png", priority: "0.3", changefreq: "monthly" },
+    { loc: base + "/manifest.webmanifest", priority: "0.5", changefreq: "weekly" },
   ];
   for (const p of PRODUCTS) {
     urls.push({ loc: `${base}/#${p.slug}`, priority: "0.8", changefreq: "weekly" });
@@ -1792,6 +1794,7 @@ function citeJson(origin, env = {}) {
     survival: survivalCiteField(),
     ban_survival: banCite,
     calling_name: calling,
+    platforms: platformsCite(env),
     shelves: shelvesCiteField(origin),
     cold_multi_shelf: COLD_MULTI_SHELF,
     mesh: meshCiteField(base),
@@ -1962,7 +1965,8 @@ function headMeta(origin, title, description, canonicalPath) {
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="${escapeHtml(title)}">
 <meta name="twitter:description" content="${escapeHtml(description)}">
-<meta name="twitter:image" content="${escapeHtml(image)}">`;
+<meta name="twitter:image" content="${escapeHtml(image)}">
+${platformHeadLinks(base)}`;
 }
 
 const PAGE_CSS = `
@@ -3471,6 +3475,16 @@ async function handleRequest(request, env, ctx) {
       if (out) {
         return asHead(request, json(out.body, out.status, extra(url.pathname)));
       }
+    }
+
+    if (isManifestPath(url.pathname) && (request.method === "GET" || request.method === "HEAD")) {
+      return asHead(
+        request,
+        json(webManifest(origin, env), 200, {
+          ...extra(url.pathname),
+          "Content-Type": "application/manifest+json; charset=utf-8",
+        }),
+      );
     }
 
     if (isSurvivalPath(url.pathname)) {

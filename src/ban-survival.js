@@ -37,6 +37,7 @@ import {
   judgeInventedBan,
   judgeTrademarkCallingName,
 } from "./calling-name.js";
+import { platformsCite } from "./platforms.js";
 
 /** CNS / shelf cite — death-by-ban backup. Not a live exec door. */
 export const COLD_MULTI_SHELF = "COLD-MULTI-SHELF-1.0";
@@ -869,6 +870,7 @@ export function failoverCite(origin, env) {
     cap7_aznet: cap7AznetCite(origin),
     akm_memory: akmMemoryCite(),
     calling_name: callingNameCite(env),
+    platforms: platformsCite(env),
     lie_to_survive: false,
     second_door: false,
     unmarked_hydra: false,
@@ -965,6 +967,7 @@ export function survivalDoc(origin, env) {
     cap7_aznet: cap7AznetCite(base),
     akm_memory: akmMemoryCite(),
     calling_name: callingNameCite(env),
+    platforms: platformsCite(env),
     cite: base ? `${base}/cite.json` : "/cite.json",
     llms: base ? `${base}/llms.txt` : "/llms.txt",
     paper: BAN_SURVIVAL_DOCS,
@@ -1018,6 +1021,7 @@ export function survivalCiteField(origin, env) {
     cap7_aznet: cap7AznetCite(origin),
     akm_memory: akmMemoryCite(),
     calling_name: callingNameCite(env),
+    platforms: platformsCite(env),
     lie_to_survive: false,
     second_door: false,
     unmarked_hydra: false,
@@ -1050,6 +1054,7 @@ export function survivalLlmsBlock(origin, env) {
     "Cap-7 update shuffle: ping MirageGrid until one distinct-name site lands. That landed site is that-round update. Do not hardcode one host. Public workers.dev shuffle SLOT. Subset browser-reachable class; remainder AZNet-side.",
     "AKM-TRIAD-1.0: ranked adaptive recall vs verified ChainLock; belief_is_not_truth; memory_get append-only; memory_resolve additive stamps. stub_ops model_update / rollback / rewrite / delete_history / auto_update stay refused.",
     "Calling-name rotation (discovery only): on honest ban signals, rewrite the public calling name (Whitestone AI → Bills → Runtime → Eliab Runtime → Potato Runtime → Elroi Runtime → endless Softwares-family / random). Mesh nodes pull `*new name alert: <name>` from /survival. Identity Aziel Eliab unchanged. No ChainLock/AKM rewrite. No third-party trademarks.",
+    "Platforms LIVE: Windows, Mac, Linux, Android, iPhone via browser + PWA (`/manifest.webmanifest`) + Worker fronts + Softwares /download + MCP/OpenAPI. Not native store apps.",
     "429 on /mcp or FragGate includes the next LIVE front first. Do not retry-storm the same path.",
     "",
   ].join("\n");

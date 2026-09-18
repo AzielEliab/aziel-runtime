@@ -150,6 +150,10 @@ Softwares-family / random). Mesh nodes pull `*new name alert: <name>`
 from `GET /survival`. Identity stays Aziel Eliab. No ChainLock / AKM
 rewrite. No third-party trademarks.
 
+Platforms are **LIVE** on every listed OS — Windows, Mac, Linux,
+Android, iPhone — via browser + PWA (`/manifest.webmanifest`) + Worker
+fronts + Softwares `/download` + MCP/OpenAPI. Not native store apps.
+
 Machine map: `GET /survival` (aliases `/v1/survival`, `/doors`, `/failover`).
 `live_doors` / `exec_origins` omit blocked fronts. Stdio MCP
 (`cli/mcp-stdio.mjs`) follows the live-front order unless `--url` is pinned

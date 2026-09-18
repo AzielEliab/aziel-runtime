@@ -262,6 +262,14 @@ Hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk,
 hedidntjump.com) should pull `/survival` rather than hardcode. Hub
 rollout is a follow-on, not this repo.
 
+6f. Platforms (all LIVE)
+Windows, Mac, Linux, Android, and iPhone are **LIVE** on the same
+public Worker: browser, installable PWA (`GET /manifest.webmanifest`),
+Worker fronts (`/survival` `/mcp` `/runtime`), Softwares `/download`,
+and MCP/OpenAPI. This is not five native App Store binaries
+(`native_app_store: false`). Each OS can reach survival doors,
+calling-name discovery, Cap-7 shuffle ping, and Softwares download/run.
+
 7. What this is not
 - Not a Softwares-tab product. Do not add slug `ban-survival` or `survival`.
 - Not a FragGate engine. No `fraggate_call { slug: "survival" }`.
