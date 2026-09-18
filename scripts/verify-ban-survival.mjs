@@ -17,6 +17,13 @@ import {
   siteForMirageNode,
 } from "../src/cap7-shuffle.js";
 import {
+  CALLING_NAME_SEEDS,
+  generateCallingName,
+  nameAlertText,
+  resolveCallingName,
+  slugifyCallingName,
+} from "../src/calling-name.js";
+import {
   AKM_MEMORY_LAW,
   BAN_SURVIVAL,
   BAN_SURVIVAL_DOCS,
@@ -93,6 +100,10 @@ assert.match(paper, /memory_get/);
 assert.match(paper, /memory_resolve/);
 assert.match(paper, /ping MirageGrid/);
 assert.match(paper, /distinct mesh names/);
+assert.match(paper, /Calling-name rotation/);
+assert.match(paper, /\*new name alert:/);
+assert.match(paper, /Whitestone AI/);
+assert.match(clientUpdate, /Calling-name rotation/);
 assert.match(paper, /radio_phy/);
 assert.match(paper, /service binding/);
 assert.match(paper, /Not a Softwares-tab product/);
@@ -197,8 +208,34 @@ assert.equal(applyBanSurvival({ public_shuffle_live: true }).ok, false);
 assert.equal(applyBanSurvival({ localhost_pool_is_public_update: true }).ok, false);
 assert.equal(applyBanSurvival({ posterior_is_truth: true }).ok, false);
 assert.equal(applyBanSurvival({ memory_delete: true }).ok, false);
+assert.equal(applyBanSurvival({ calling_name: "ChatGPT" }).ok, false);
+assert.equal(applyBanSurvival({ chainlock_rewrite: true }).ok, false);
+assert.equal(applyBanSurvival({ invent_ban: true }).ok, false);
 assert.equal(judgeMemoryAsTruth({ belief_is_truth: true }).reason, REFUSE.NO_MEMORY_AS_TRUTH);
 assert.equal(judgeMemoryRewrite({ delete_history: true }).reason, REFUSE.NO_MEMORY_REWRITE);
+assert.equal(generateCallingName(0), "Whitestone AI");
+assert.equal(generateCallingName(1), "Bills");
+assert.equal(generateCallingName(5), "Elroi Runtime");
+assert.equal(CALLING_NAME_SEEDS.length, 6);
+assert.ok(generateCallingName(20).endsWith("Runtime"));
+assert.notEqual(generateCallingName(40, "a"), generateCallingName(41, "a"));
+assert.equal(nameAlertText("Whitestone AI"), "*new name alert: Whitestone AI");
+assert.equal(slugifyCallingName("Eliab Runtime"), "eliab-runtime");
+const idleName = resolveCallingName({});
+assert.equal(idleName.rotated, false);
+assert.equal(idleName.calling_name, "Aziel Runtime");
+assert.equal(idleName.identity, "Aziel Eliab");
+const rotated = resolveCallingName({ BAN_SURVIVAL_NAME_ROTATE: "1", BAN_SURVIVAL_NAME_GEN: "0" });
+assert.equal(rotated.rotated, true);
+assert.equal(rotated.calling_name, "Whitestone AI");
+assert.equal(rotated.alert, "*new name alert: Whitestone AI");
+assert.equal(rotated.chainlock_rewrite, false);
+assert.equal(rotated.akm_rewrite, false);
+const ingest = resolveCallingName({}, { implies_ban: true, seed: "t" });
+assert.equal(ingest.rotated, true);
+const invented = resolveCallingName({}, { invent_ban: true });
+assert.equal(invented.rotated, false);
+assert.equal(invented.invented_ban, true);
 
 assert.deepEqual(parseBlockedRoutes({ BAN_SURVIVAL_BLOCKED: "workers-dev:/mcp,library-runtime" }), [
   { id: "workers-dev", path: "/mcp" },
@@ -250,6 +287,8 @@ assert.equal(cite.akm_memory.spec, "AKM-TRIAD-1.0");
 assert.equal(cite.akm_memory.belief_is_not_truth, true);
 assert.equal(cite.akm_memory.memory_delete, false);
 assert.ok(cite.akm_memory.stub_ops.includes("delete_history"));
+assert.equal(cite.calling_name.rotated, false);
+assert.equal(cite.calling_name.calling_name, "Aziel Runtime");
 assert.match(cite.survival, /\/survival$/);
 assert.ok(cite.live_doors.every((d) => d.status === "live"));
 assert.deepEqual(cite.exec_origins, namedExecOrigins());
@@ -381,6 +420,37 @@ assert.equal(fakeLive.code, REFUSE.NO_FAKE_SHUFFLE_LIVE);
 const localUp = await landCap7Shuffle({ update_url: "http://127.0.0.1:19001" });
 assert.equal(localUp.ok, false);
 assert.equal(localUp.code, REFUSE.NO_LOCALHOST_CAP7_UPDATE);
+
+const rotatedEnv = { BAN_SURVIVAL_NAME_ROTATE: "1", BAN_SURVIVAL_NAME_GEN: "0" };
+const rotatedSurvival = await get("/survival", rotatedEnv);
+const rotatedBody = await rotatedSurvival.json();
+assert.equal(rotatedBody.calling_name.rotated, true);
+assert.equal(rotatedBody.calling_name.calling_name, "Whitestone AI");
+assert.equal(rotatedBody.calling_name.alert, "*new name alert: Whitestone AI");
+assert.equal(rotatedBody.calling_name.identity, "Aziel Eliab");
+assert.equal(rotatedBody.akm_memory.belief_is_not_truth, true);
+
+const rotatedCite = await (await get("/cite.json", rotatedEnv)).json();
+assert.equal(rotatedCite.product, "Whitestone AI");
+assert.equal(rotatedCite.slug, "whitestone-ai");
+assert.equal(rotatedCite.calling_name.alert, "*new name alert: Whitestone AI");
+assert.equal(rotatedCite.author, "Aziel Eliab");
+
+const rotatedOpen = await (await get("/openapi.json", rotatedEnv)).json();
+assert.equal(rotatedOpen.info.title, "Whitestone AI");
+assert.match(rotatedOpen.info.description, /^Aziel Runtime is not merely/);
+
+const rotatedMcp = await handler(
+  new Request(origin + "/mcp", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize", params: {} }),
+  }),
+  rotatedEnv,
+);
+const rotatedMcpBody = await rotatedMcp.json();
+assert.equal(rotatedMcpBody.result.serverInfo.name, "whitestone-ai");
+assert.equal(rotatedMcpBody.result.serverInfo.title, "Whitestone AI");
 
 const shuffleCall = await handler(
   new Request(origin + "/v1/fraggate/call", {

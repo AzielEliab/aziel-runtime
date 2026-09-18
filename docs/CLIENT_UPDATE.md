@@ -143,6 +143,13 @@ verified ChainLock (`belief_is_not_truth`; posterior ≠ truth);
 additive stamps. stub_ops `model_update` / `rollback` / `rewrite` /
 `delete_history` / `auto_update` stay refused.
 
+Calling-name rotation is **discovery metadata only**. On honest ban
+signals the public calling name may rotate (Whitestone AI → Bills →
+Runtime → Eliab Runtime → Potato Runtime → Elroi Runtime → endless
+Softwares-family / random). Mesh nodes pull `*new name alert: <name>`
+from `GET /survival`. Identity stays Aziel Eliab. No ChainLock / AKM
+rewrite. No third-party trademarks.
+
 Machine map: `GET /survival` (aliases `/v1/survival`, `/doors`, `/failover`).
 `live_doors` / `exec_origins` omit blocked fronts. Stdio MCP
 (`cli/mcp-stdio.mjs`) follows the live-front order unless `--url` is pinned

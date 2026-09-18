@@ -30,6 +30,13 @@ import {
   judgeHardcodedCap7Host,
   judgeLocalhostCap7Update,
 } from "./cap7-shuffle.js";
+import {
+  CALLING_NAME_REFUSE,
+  callingNameCite,
+  judgeCallingNameHistoryRewrite,
+  judgeInventedBan,
+  judgeTrademarkCallingName,
+} from "./calling-name.js";
 
 /** CNS / shelf cite — death-by-ban backup. Not a live exec door. */
 export const COLD_MULTI_SHELF = "COLD-MULTI-SHELF-1.0";
@@ -88,6 +95,9 @@ export const REFUSE = Object.freeze({
   NO_LOCALHOST_CAP7_UPDATE: CAP7_SHUFFLE_REFUSE.LOCALHOST_UPDATE,
   NO_MEMORY_AS_TRUTH: "BAN-NO-MEMORY-AS-TRUTH",
   NO_MEMORY_REWRITE: "BAN-NO-MEMORY-REWRITE",
+  NO_TRADEMARK_NAME: CALLING_NAME_REFUSE.TRADEMARK,
+  NO_NAME_HISTORY_REWRITE: CALLING_NAME_REFUSE.HISTORY_REWRITE,
+  NO_INVENT_BAN: CALLING_NAME_REFUSE.INVENT_BAN,
   ROUTE_BLOCKED: "BAN-ROUTE-BLOCKED",
   EXEC_QUARANTINE: "BAN-EXEC-QUARANTINE",
 });
@@ -727,6 +737,9 @@ export function applyBanSurvival(input) {
     judgeLocalhostCap7Update(input),
     judgeMemoryAsTruth(input),
     judgeMemoryRewrite(input),
+    judgeTrademarkCallingName(input),
+    judgeCallingNameHistoryRewrite(input),
+    judgeInventedBan(input),
     judgeHostnameResurrection(input),
     judgeLlmReplica(input),
   ];
@@ -855,6 +868,7 @@ export function failoverCite(origin, env) {
     live_node_api: liveNodeApiCite(),
     cap7_aznet: cap7AznetCite(origin),
     akm_memory: akmMemoryCite(),
+    calling_name: callingNameCite(env),
     lie_to_survive: false,
     second_door: false,
     unmarked_hydra: false,
@@ -950,6 +964,7 @@ export function survivalDoc(origin, env) {
     live_node_api: liveNodeApiCite(),
     cap7_aznet: cap7AznetCite(base),
     akm_memory: akmMemoryCite(),
+    calling_name: callingNameCite(env),
     cite: base ? `${base}/cite.json` : "/cite.json",
     llms: base ? `${base}/llms.txt` : "/llms.txt",
     paper: BAN_SURVIVAL_DOCS,
@@ -1002,6 +1017,7 @@ export function survivalCiteField(origin, env) {
     live_node_api: liveNodeApiCite(),
     cap7_aznet: cap7AznetCite(origin),
     akm_memory: akmMemoryCite(),
+    calling_name: callingNameCite(env),
     lie_to_survive: false,
     second_door: false,
     unmarked_hydra: false,
@@ -1033,6 +1049,7 @@ export function survivalLlmsBlock(origin, env) {
     "Cap-7 factory is MirageGrid-only. radio_phy false. resolves_to_hub false. AZNet never hosts payloads. No fake ICANN .az.",
     "Cap-7 update shuffle: ping MirageGrid until one distinct-name site lands. That landed site is that-round update. Do not hardcode one host. Public workers.dev shuffle SLOT. Subset browser-reachable class; remainder AZNet-side.",
     "AKM-TRIAD-1.0: ranked adaptive recall vs verified ChainLock; belief_is_not_truth; memory_get append-only; memory_resolve additive stamps. stub_ops model_update / rollback / rewrite / delete_history / auto_update stay refused.",
+    "Calling-name rotation (discovery only): on honest ban signals, rewrite the public calling name (Whitestone AI → Bills → Runtime → Eliab Runtime → Potato Runtime → Elroi Runtime → endless Softwares-family / random). Mesh nodes pull `*new name alert: <name>` from /survival. Identity Aziel Eliab unchanged. No ChainLock/AKM rewrite. No third-party trademarks.",
     "429 on /mcp or FragGate includes the next LIVE front first. Do not retry-storm the same path.",
     "",
   ].join("\n");
@@ -1055,7 +1072,7 @@ Machine map: \`GET ${cite.survival}\` / \`GET ${cite.survival_json}\` (aliases \
 7. If every named live front is gone: verify lockset tip on GitHub / \`/shelves\` / Codeberg + archive.org SLOT packs (shelf backup, not \`/mcp\`).
 8. Vice versa: if a shelf or forge dies, keep the LIVE named fronts.
 
-Live-node API is SLOT (no open proxy). Cap-7 factory is MirageGrid-only. \`radio_phy: false\`. AZNet never hosts payloads. AKM-TRIAD: \`belief_is_not_truth\`; \`memory_get\` append-only; \`memory_resolve\` additive. Never invent a live door. Never claim a banned host is LIVE. No new MCP tool. FragGate stays THE door.
+Live-node API is SLOT (no open proxy). Cap-7 factory is MirageGrid-only. \`radio_phy: false\`. AZNet never hosts payloads. AKM-TRIAD: \`belief_is_not_truth\`; \`memory_get\` append-only; \`memory_resolve\` additive. Calling-name rotation is discovery metadata only (mesh \`*new name alert:\`; no ChainLock/AKM rewrite). Never invent a live door. Never claim a banned host is LIVE. No new MCP tool. FragGate stays THE door.
 `;
 }
 

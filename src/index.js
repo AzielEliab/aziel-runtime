@@ -216,6 +216,7 @@ import {
   mcpServerCard,
   oauthProtectedResource,
 } from "./mcp-discovery.js";
+import { resolveCallingName } from "./calling-name.js";
 import {
   MCP_PROTOCOL_PREFERRED,
   MCP_PROTOCOL_SUPPORTED,
@@ -1716,9 +1717,11 @@ function llmsTxt(origin, env = {}) {
 
 function citeJson(origin, env = {}) {
   const base = origin.replace(/\/$/, "");
+  const calling = resolveCallingName(env);
+  const banCite = banSurvivalCiteField(origin, env);
   return {
-    product: PRODUCT_NAME,
-    slug: "aziel-runtime",
+    product: calling.calling_name,
+    slug: calling.calling_slug,
     one_line: RUNTIME_ONE_LINE,
     abstract: RUNTIME_ABSTRACT,
     about: runtimeAboutField(origin),
@@ -1787,7 +1790,8 @@ function citeJson(origin, env = {}) {
     designs: designsCiteField(),
     audits: auditsCiteField(),
     survival: survivalCiteField(),
-    ban_survival: banSurvivalCiteField(origin, env),
+    ban_survival: banCite,
+    calling_name: calling,
     shelves: shelvesCiteField(origin),
     cold_multi_shelf: COLD_MULTI_SHELF,
     mesh: meshCiteField(base),
@@ -2692,7 +2696,7 @@ async function combinedOpenApi(request, env) {
   return {
     openapi: "3.1.0",
     info: {
-      title: PRODUCT_NAME,
+      title: resolveCallingName(env).calling_name,
       version: RUNTIME_VERSION,
       summary: RUNTIME_ONE_LINE,
       description:
@@ -3134,11 +3138,11 @@ async function handleMcp(request, env, origin) {
         protocolVersion: admitted.protocolVersion,
         capabilities: { tools: { listChanged: false } },
         serverInfo: {
-          name: "aziel-runtime",
-          title: "Aziel Runtime",
+          name: resolveCallingName(env).calling_slug,
+          title: resolveCallingName(env).calling_name,
           version: RUNTIME_VERSION,
           websiteUrl: "https://aziel-runtime.vibelock.workers.dev",
-          description: `Aziel Runtime ${RUNTIME_VERSION}. 1.6.2 is superseded heritage, not this server. Author: Aziel Eliab only.`,
+          description: `${resolveCallingName(env).calling_name} ${RUNTIME_VERSION}. 1.6.2 is superseded heritage, not this server. Author: Aziel Eliab only.`,
         },
         instructions: mcpInitializeInstructions(),
       },
@@ -3373,7 +3377,7 @@ async function handleRequest(request, env, ctx) {
       if (discovery === "server-card") {
         return asHead(
           request,
-          json(mcpServerCard(origin), 200, authorityLinkHeaders(origin, url.pathname)),
+          json(mcpServerCard(origin, env), 200, authorityLinkHeaders(origin, url.pathname)),
         );
       }
       if (discovery === "oauth-protected-resource") {
