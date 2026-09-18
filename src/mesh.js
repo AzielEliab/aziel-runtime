@@ -436,6 +436,7 @@ export function meshHint(path = "/v1/mesh") {
     presence_ttl_ms: PRESENCE_TTL_MS,
     qns_cd: qnsHint(),
     survival: survivalHint(),
+    ban_survival: "BAN-SURVIVAL-1.0",
     ...noLieFrame(),
     no_lie_hint: noLieHint(),
     nine_laws: nineLawsHint(),
@@ -476,6 +477,8 @@ export function meshCiteField(origin) {
     note: "Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public Live Nodes (live_nodes) are mesh size: active + inactive, not isolated. {slug}-worker fan-out is software_nodes and must not be used alone as that pill. Downloads are not live. Channel plane (wifi / bluetooth / rf / photon) is an operator-armed cite — live hardware runs on local qnm-node. Channel plane ≠ kernel VPN. Public VPN auto-binds AZVPN (cite-only on GET; no session open). Pairing ≠ tunnel. Not a login mesh. Not a login-recovery IP panel. OPERATOR-OVERRIDE 2026-09-17 armed node_gate / get_is_node_gate, auto_heal / implicit_heal, neighbor_heal, network, anonymity_network (mode flag), and public VPN. Nine QNM laws are hard-true (fields + published refuse codes). Worker-launch cite: hashtag parts #aziel / #runtime and always About Aziel (/about). NO-LIE / NO-REWRITE: no rewrite key; never lie to survive. COLD-MULTI-SHELF-1.0: GET /shelves cites corpus#96 honesty.",
     survival: survivalCiteField(),
     semantic_bridge: semanticBridgeCiteField(base),
+    calling_name_alert:
+      "Pull GET /survival calling_name.alert (`*new name alert: <name>`). GET never enables. Not a publish path.",
   };
 }
 
@@ -833,6 +836,7 @@ function qnmFrame() {
     live_network_is_shelf: false,
     survival: survivalHint(),
     survival_tip: SURVIVAL_TIP,
+    ban_survival: "BAN-SURVIVAL-1.0",
     local_node: "qnm-node/",
     local_node_note: QNM_LOCAL_NODE,
     host_note: QNM_HOST_NOTE,

@@ -95,5 +95,69 @@ curl -s -A 'Mozilla/5.0' https://aziel-runtime.vibelock.workers.dev/v1/update/ma
 
 Always send `User-Agent: Mozilla/5.0`.
 
+## Ban / blocked-endpoint failover (BAN-SURVIVAL-1.0)
+
+Live multi-front and cold shelves **back each other up**. Do not invent a
+live door. Do not claim a banned host is still LIVE. Do not treat a
+tip-pack as `/mcp`. Do not drop either backup. Door list = **LIVE only**;
+shelves stay on the map as the death-by-ban backup.
+
+1. Try the primary Worker: `https://aziel-runtime.vibelock.workers.dev`
+   (`POST /mcp` or `POST /v1/fraggate/call`).
+2. If that hostname or exec path fails (403 / 429 / 502 / 503 / network):
+   try the next **LIVE** custom-domain hub `/runtime` prefix (same FragGate
+   door via service binding — not a second door):
+   - `https://www.azielcorpuslibrary.net/runtime`
+   - `https://www.azieleliab.com/runtime`
+   - `https://godlock.uk/runtime`
+3. If one exec path is quarantined: remaining LIVE exec paths on remaining
+   LIVE fronts still run.
+4. If exec is gone on a front: remaining LIVE read surfaces on remaining
+   LIVE fronts still publish the door map (`GET /survival`, `/cite.json`,
+   `/llms.txt`, `/v1/software`, `/v1/health`). Mode on the banned front is
+   **DEGRADED**.
+5. If every named live front is gone (death-by-ban): verify the lockset
+   tip on GitHub / corpus `/shelves` / Codeberg + archive.org SLOT packs.
+   That is the **shelf backup**, not a live door.
+6. Vice versa: if a shelf or alt-forge dies, keep the LIVE named fronts.
+
+Live-node API (other mesh nodes as `/mcp`) is **SLOT** until a node
+publishes an attested named FragGate origin. Do not treat `GET /v1/mesh`
+`live_nodes` as an API roster.
+
+Cap-7 cite (`GET /v1/mesh/az-generator` or MirageGrid `/bridge`) and
+AZNet `stamp` / `verify_hash` stay **LIVE** via FragGate (name metadata
++ hash continuity). Cap-7/AZNet **hosted exec endpoints** stay **SLOT**.
+Update shuffle: all nodes ping MirageGrid
+(`fraggate_call { slug: "miragegrid", op: "shuffle" }`) until they land
+on **one** distinct-name Cap-7 site — that landed site is the update
+endpoint for that round. Do not hardcode a single Cap-7 host. Public
+workers.dev shuffle stays **SLOT** (MirageGrid product follow-on).
+Subset of Cap-7 is browser-reachable class; remainder is AZNet-side.
+Do not invent a hosted door. Do not claim AZNet hosts payloads.
+`radio_phy: false`. `resolves_to_hub: false`.
+
+AKM-TRIAD-1.0 stays true on this stack: ranked adaptive recall vs
+verified ChainLock (`belief_is_not_truth`; posterior ≠ truth);
+`memory_get` append-only (no delete / overwrite); `memory_resolve`
+additive stamps. stub_ops `model_update` / `rollback` / `rewrite` /
+`delete_history` / `auto_update` stay refused.
+
+Calling-name rotation is **discovery metadata only**. On honest ban
+signals the public calling name may rotate (Whitestone AI → Bills →
+Runtime → Eliab Runtime → Potato Runtime → Elroi Runtime → endless
+Softwares-family / random). Mesh nodes pull `*new name alert: <name>`
+from `GET /survival`. Identity stays Aziel Eliab. No ChainLock / AKM
+rewrite. No third-party trademarks.
+
+Platforms are **LIVE** on every listed OS — Windows, Mac, Linux,
+Android, iPhone — via browser + PWA (`/manifest.webmanifest`) + Worker
+fronts + Softwares `/download` + MCP/OpenAPI. Not native store apps.
+
+Machine map: `GET /survival` (aliases `/v1/survival`, `/doors`, `/failover`).
+`live_doors` / `exec_origins` omit blocked fronts. Stdio MCP
+(`cli/mcp-stdio.mjs`) follows the live-front order unless `--url` is pinned
+or `AZIEL_RUNTIME_FAILOVER=0`.
+
 Agent exec is still FragGate: `fraggate_list` → `fraggate_describe` →
 `fraggate_call` (or `POST /mcp`). Catalog helpers do not exec.

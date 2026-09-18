@@ -28,9 +28,15 @@ const SKIP_SEO = new Set([
   "/who-is-aziel-eliab.txt",
   "/shelves",
   "/cold-copy",
+  "/survival",
+  "/doors",
+  "/failover",
   "/openapi.json",
   "/sigil.png",
   "/favicon.ico",
+  "/manifest.webmanifest",
+  "/manifest.json",
+  "/site.webmanifest",
 ]);
 
 const SKIP_GET_READS = new Set([
@@ -47,6 +53,9 @@ const SKIP_GET_READS = new Set([
   "/v1/receipts",
   "/v1/shelves",
   "/v1/cold-copy",
+  "/v1/survival",
+  "/v1/doors",
+  "/v1/failover",
   "/v1/azpipe/arch",
   "/v1/memory",
 ]);

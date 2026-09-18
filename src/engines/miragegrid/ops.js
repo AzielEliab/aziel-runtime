@@ -3,11 +3,12 @@
  */
 import { capabilityDoctor, capabilityHealth, capabilitySkill } from "../capability.js";
 import { miragegridBridgeCite } from "../../semantic-bridge.js";
+import { landCap7Shuffle } from "../../cap7-shuffle.js";
 import { LIMITATION, MOTTO, VERSION, assign, listNodes, meshView, routeView, buildCircuit, verifyReceipt, makePool } from "./engine.js";
 
-const LIVE = ["health", "skill", "assign", "verify-receipt", "nodes", "bridge", "doctor"];
+const LIVE = ["health", "skill", "assign", "verify-receipt", "nodes", "bridge", "shuffle", "doctor"];
 const STUB = ["vpn-hop", "hop", "tunnel", "mesh"];
-export const MIRAGEGRID_OPS = ["health", "skill", "assign", "route", "circuit", "verify-receipt", "nodes", "bridge", "mesh", "doctor"];
+export const MIRAGEGRID_OPS = ["health", "skill", "assign", "route", "circuit", "verify-receipt", "nodes", "bridge", "shuffle", "mesh", "doctor"];
 
 function envelope() {
   return {
@@ -16,7 +17,7 @@ function envelope() {
     version: VERSION,
     role: "ephemeral control-plane assignment",
     motto: MOTTO,
-    axes: ["assign", "receipt", "nodes", "bridge"],
+    axes: ["assign", "receipt", "nodes", "bridge", "shuffle"],
     neighbors: ["azieltether", "aznet"],
     live_ops: LIVE,
     stub_ops: STUB,
@@ -26,6 +27,7 @@ function envelope() {
       hop: false,
       public_icann: false,
       live_registrar: false,
+      radio_phy: false,
       resolves_to_hub: false,
       name_may_change: true,
       canonical_hubs_immutable: true,
@@ -41,14 +43,14 @@ export function miragegridHealth() {
 export function miragegridSkill() {
   return capabilitySkill({
     ...envelope(),
-    lead: "Ephemeral session node assignment plus Cap-7 bridge cite. Not a VPN, not ICANN, not a live registrar. mesh/hop stay refuse on the public door.",
+    lead: "Ephemeral session node assignment plus Cap-7 bridge cite and ping→land update shuffle. Not a VPN, not ICANN, not a live registrar. Hosted shuffle SLOT. mesh/hop stay refuse on the public door.",
   });
 }
 
 export function miragegridDoctor() {
   return capabilityDoctor({
     ...envelope(),
-    doctor_note: "MirageGrid doctor: assign / verify-receipt / nodes / bridge cite. vpn-hop stays refuse. Cap-7 names may change; map to the original four hubs only; inherit designs only; resolves_to_hub false; name_may_change; canonical hubs immutable; no fifth product; public_icann false.",
+    doctor_note: "MirageGrid doctor: assign / verify-receipt / nodes / bridge cite / shuffle land. vpn-hop stays refuse. Cap-7 names may change; map to the original four hubs only; inherit designs only; resolves_to_hub false; name_may_change; canonical hubs immutable; no fifth product; public_icann false. Shuffle: ping until one site lands; no hardcoded host; public workers.dev shuffle SLOT.",
   });
 }
 
@@ -71,6 +73,9 @@ export async function runMiragegrid(op, payload, scratch) {
   if (op === "bridge") {
     const origin = (payload && payload.origin) || "";
     return miragegridBridgeCite(origin, payload);
+  }
+  if (op === "shuffle") {
+    return landCap7Shuffle(payload || {});
   }
   return { unsupported: true };
 }

@@ -65,6 +65,7 @@ const cite = semanticBridgeCiteField(origin);
 assert.equal(cite.public_icann, false);
 assert.equal(cite.icann_tld_az, false);
 assert.equal(cite.live_registrar, false);
+assert.equal(cite.radio_phy, false);
 assert.equal(cite.az_gen_live_registrar, false);
 assert.equal(cite.resolves_to_hub, false);
 assert.equal(cite.design_of, "hub_designs");
@@ -138,8 +139,15 @@ assert.equal(localBody.resolves_to_hub, false);
 assert.equal(localBody.inherit, "designs");
 
 assert.ok((LIVE_OPS.miragegrid || []).includes("bridge"));
+assert.ok((LIVE_OPS.miragegrid || []).includes("shuffle"));
 const mg = PRODUCTS.find((p) => p.slug === "miragegrid");
 assert.ok(mg.ops.some((o) => o.op === "bridge"));
+assert.ok(mg.ops.some((o) => o.op === "shuffle"));
+assert.equal(cite.shuffle.layout, "live");
+assert.equal(cite.shuffle.public_worker_shuffle, "slot");
+assert.equal(cite.shuffle.hardcoded_single_host, false);
+assert.equal(cite.shuffle.site_count, 7);
+assert.equal(cite.shuffle.distinct_mesh_names, true);
 
 const httpCite = await get("/cite.json");
 assert.equal(httpCite.status, 200);
@@ -183,6 +191,16 @@ assert.equal(fgBody.ok, true);
 assert.equal(fgBody.result.spec, "CAP-7");
 assert.equal(fgBody.result.resolves_to_hub, false);
 assert.equal(fgBody.result.inherit, "designs");
+assert.equal(fgBody.result.shuffle.layout, "live");
+
+const sh = await post("/v1/fraggate/call", { slug: "miragegrid", op: "shuffle", payload: {} });
+assert.equal(sh.status, 200);
+const shBody = await sh.json();
+assert.equal(shBody.ok, true);
+assert.equal(shBody.result.ok, true);
+assert.equal(shBody.result.public_worker_shuffle, "slot");
+assert.equal(shBody.result.update.hosted_url, null);
+assert.ok(shBody.result.land.mesh_name.startsWith("cap7-"));
 
 const openapi = await (await get("/openapi.json")).json();
 assert.ok(openapi.paths["/v1/mesh/az-generator"]);
@@ -190,6 +208,7 @@ assert.match(openapi.paths["/v1/mesh/az-generator"].get.summary, /resolves_to_hu
 assert.match(openapi.paths["/v1/mesh/az-generator"].get.summary, /Not a live AZ-GEN registrar/);
 assert.ok(openapi.paths["/p/miragegrid/bridge"]);
 assert.match(openapi.paths["/p/miragegrid/bridge"].get.description, /fraggate\/call/);
+assert.ok(openapi.paths["/p/miragegrid/shuffle"]);
 assert.ok(openapi.paths["/v1/update/check"]);
 assert.ok(openapi.paths["/v1/pull/{slug}"]);
 assert.ok(openapi.paths["/p/azbrowser/airlock_ingest"]);
