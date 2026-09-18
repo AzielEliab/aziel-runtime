@@ -130,10 +130,13 @@ AZNet `stamp` / `verify_hash` stay **LIVE** via FragGate (name metadata
 + hash continuity). Cap-7/AZNet **hosted exec endpoints** stay **SLOT**.
 Update shuffle: all nodes ping MirageGrid
 (`fraggate_call { slug: "miragegrid", op: "shuffle" }`) until they land
-on **one** distinct-name Cap-7 site — that landed site is the update
-endpoint for that round. Do not hardcode a single Cap-7 host. Public
-workers.dev shuffle stays **SLOT** (MirageGrid product follow-on).
-Subset of Cap-7 is browser-reachable class; remainder is AZNet-side.
+on **one** distinct-name Cap-7 site — factory SoT labels `azgrid` /
+`azbooth` / `azcloak` / `azvault` / `azshift` / `azflag` / `azstandby`.
+That landed site is the update endpoint for that round. Factory
+`azgrid.az` strings are mesh names (`mesh_name_icann` SLOT), not ICANN.
+Do not hardcode a single Cap-7 host. Public workers.dev shuffle **land**
+and hosted `/mcp` stay **SLOT**. Subset of Cap-7 is browser-reachable
+class (`azgrid` / `azbooth`); remainder is AZNet-side.
 Do not invent a hosted door. Do not claim AZNet hosts payloads.
 `radio_phy: false`. `resolves_to_hub: false`.
 
@@ -182,7 +185,7 @@ those Worker paths exist. Do not mark any of the five OS as SLOT.
 Machine map: `GET /survival` (aliases `/v1/survival`, `/doors`, `/failover`).
 `live_doors` / `exec_origins` omit blocked fronts. Hubs (ae / corpus /
 godlock / HDJ) pull that SoT for live doors + `*new name alert:` rather
-than hardcode — follow-on hub PRs, not this repo. Stdio MCP
+than hardcode. Library hub root `/survival` is LIVE (corpus #117). Stdio MCP
 (`cli/mcp-stdio.mjs`) follows the live-front order unless `--url` is pinned
 or `AZIEL_RUNTIME_FAILOVER=0`.
 

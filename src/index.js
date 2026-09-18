@@ -183,6 +183,7 @@ import {
 import { applySecurityHeaders, securityHeaders } from "./security-headers.js";
 import { durabilityLabels, productionBindCite } from "./durability-labels.js";
 import { RateQuota, doorRateLimitDecision } from "./rate-quota.js";
+import { proxyOpAllowed, proxyOpRefuse } from "./proxy-allowlist.js";
 import {
   MAX_BODY_BYTES,
   bodyTooDeepRefuse,
@@ -2888,6 +2889,9 @@ async function upstreamFetch(env, product, path, init) {
 }
 
 async function proxy(product, op, request, env) {
+  if (!proxyOpAllowed(product, op)) {
+    return json(proxyOpRefuse(product, op), 404);
+  }
   const targetPath = `/v1/${op}`;
   const method = request.method === "GET" ? "GET" : "POST";
   const headers = {

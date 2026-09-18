@@ -155,6 +155,12 @@ assert.equal(cite.shuffle.public_worker_shuffle, "slot");
 assert.equal(cite.shuffle.hardcoded_single_host, false);
 assert.equal(cite.shuffle.site_count, 7);
 assert.equal(cite.shuffle.distinct_mesh_names, true);
+assert.equal(cite.shuffle.name_set_sot, "miragegrid");
+assert.deepEqual(cite.shuffle.factory_labels, ["azgrid", "azbooth", "azcloak", "azvault", "azshift", "azflag", "azstandby"]);
+assert.equal(cite.shuffle.mesh_name_icann, "slot");
+assert.equal(cite.shuffle.public_icann, false);
+assert.ok(cite.shuffle.sites.every((s) => s.hosted_status === "slot" && s.is_live_door === false && s.design_of === "hub_designs"));
+assert.ok(cite.shuffle.sites.every((s) => s.id.startsWith("az") && s.mesh_name.endsWith(".az")));
 
 const httpCite = await get("/cite.json");
 assert.equal(httpCite.status, 200);
@@ -207,7 +213,10 @@ assert.equal(shBody.ok, true);
 assert.equal(shBody.result.ok, true);
 assert.equal(shBody.result.public_worker_shuffle, "slot");
 assert.equal(shBody.result.update.hosted_url, null);
-assert.ok(shBody.result.land.mesh_name.startsWith("cap7-"));
+assert.ok(shBody.result.land.id.startsWith("az"));
+assert.ok(shBody.result.land.mesh_name.endsWith(".az"));
+assert.equal(shBody.result.land.mesh_name_icann, "slot");
+assert.equal(shBody.result.land.hosted_status, "slot");
 
 const openapi = await (await get("/openapi.json")).json();
 assert.ok(openapi.paths["/v1/mesh/az-generator"]);

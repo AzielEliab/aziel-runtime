@@ -227,10 +227,15 @@ download-tracker `/bridge`
 is **404** — do not cite it as the factory. Public shuffle **land**
 and hosted update URL stay **SLOT**. Do not invent LIVE public
 shuffle land. In-process land remains
-`fraggate_call { slug: "miragegrid", op: "shuffle" }`. Factory
-Worker site names (azgrid / azbooth / …) are not the runtime
-in-process set (cap7-loom / …). Align in a follow-on; do not invent
-a merge here.
+`fraggate_call { slug: "miragegrid", op: "shuffle" }`. Name-set SoT
+is the MirageGrid factory (`azgrid` / `azbooth` / `azcloak` /
+`azvault` / `azshift` / `azflag` / `azstandby`). Runtime
+`CAP7_SITES` uses those labels. Factory `mesh_name` strings
+(`azgrid.az` …) are mesh strings — `mesh_name_icann` stays SLOT;
+not ICANN `.az`. Former in-process `cap7-loom`… labels are
+heritage, not a second live set. Factory `honesty_public` LIVE on
+azgrid/azbooth is factory-path cite, not hosted `/mcp`. Do not
+invent LIVE hosted exec.
 
 6d. AKM memory law (cite alongside this stack)
 AKM-TRIAD-1.0 is already LIVE fabric. Survival must not weaken it:

@@ -396,8 +396,8 @@ ${survivalSkillMarkdown(base)}
 | GET | \`/v1/mesh/status\` | Alias of \`/v1/mesh\`. |
 | POST | \`/v1/mesh/enable\` | Optional extra bearer. Body \`{bearer}\` required (rate-limited). |
 | POST | \`/v1/mesh/disable\` | Refused (\`MESH-DISABLE-REFUSED\`). Public disable of suite-presence is refused. |
-| POST | \`/v1/mesh/join\` | Register rollup presence. Body \`{product, node_id?, label?, presence?}\`. product required. node_id 8–80 \`[a-z0-9._-]\`. presence live\\|locked\\|isolated. Strict 5-minute TTL. \`MESH-OFF\` when radios off. |
-| POST | \`/v1/mesh/heartbeat\` | Refresh the strict 5-minute TTL. Body \`{node_id, presence?}\`. \`MESH-OFF\` when radios off. |
+| POST | \`/v1/mesh/join\` | Register rollup presence. Body \`{product, node_id?, label?, presence?}\`. product required. node_id 8–80 \`[a-z0-9._-]\`. presence live\\|locked\\|isolated. Strict 5-minute TTL. F03 \`mesh_mutate\` (30/min). Presence-only — not a login mesh. \`MESH-OFF\` when radios off. \`MESH-ROSTER-FULL\` at cap. |
+| POST | \`/v1/mesh/heartbeat\` | Refresh the strict 5-minute TTL. Body \`{node_id, presence?}\`. F03 \`mesh_mutate\`. \`MESH-OFF\` when radios off. |
 | POST | \`/v1/mesh/leave\` | Drop presence. Body \`{node_id}\`. No implicit heal. |
 | GET | \`/v1/mesh/nodes\` | Rollup roster (no scores / leaderboard). |
 | GET | \`/v1/mesh/az-generator\` | Cap-7 semantic-bridge cite (MirageGrid factory; inherit designs only including azcorpus + azlibrary; \`design_of: hub_designs\`; \`resolves_to_hub: false\`; \`name_may_change\`; not ICANN). Never enables radios. |

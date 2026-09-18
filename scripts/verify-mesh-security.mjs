@@ -227,6 +227,12 @@ assert.equal(firstGet.data.isolation_is_the_cure, true);
 assert.equal(firstGet.data.phoenix_local_only, true);
 assert.equal(firstGet.data.restore_godlock_uk, false);
 assert.equal(firstGet.data.neighbor_heal, true);
+assert.equal(firstGet.data.neighbor_heal_is_cite, true);
+assert.equal(firstGet.data.neighbor_heal_exec, false);
+assert.equal(firstGet.data.join_is_presence_only, true);
+assert.equal(firstGet.data.join_is_not_login, true);
+assert.equal(firstGet.data.roster_publishes_exec_urls, false);
+assert.equal(firstGet.data.mesh_mutate_rate_kind, "mesh_mutate");
 assert.equal(firstGet.data.node_gate, true);
 assert.equal(firstGet.data.get_is_node_gate, true);
 assert.equal(firstGet.data.implicit_heal, true);
@@ -331,6 +337,11 @@ assert.equal(liveJoin.status, 200, JSON.stringify(liveJoin.data));
 assert.equal(liveJoin.data.session.presence, "live");
 assert.equal(liveJoin.data.session.node_id, "oknode08");
 assert.equal(liveJoin.data.session.presence_ttl_ms, PRESENCE_TTL_MS);
+assert.equal(liveJoin.data.join_is_presence_only, true);
+assert.equal(liveJoin.data.join_is_not_login, true);
+assert.equal(liveJoin.data.roster_publishes_exec_urls, false);
+assert.ok(!liveJoin.data.session.exec_url);
+assert.ok(!liveJoin.data.node || !liveJoin.data.node.exec_url);
 
 const lockedJoin = await postJson(env, "/v1/mesh/join", {
   product: "foldlock",
@@ -565,6 +576,17 @@ assert.ok(software.data.software.every((s) => s.mesh && s.mesh.enabled_default =
 assert.ok(software.data.software.every((s) => s.mesh.get_never_enables === true));
 assert.ok(!software.data.software.some((s) => s.slug === "mesh"));
 assert.equal(software.data.mesh.resolves_to_hub, undefined);
+
+const proxyMcp = await jsonReq(env, "/p/miragegrid/mcp", {
+  method: "POST",
+  headers: { "content-type": "application/json", "user-agent": "Mozilla/5.0" },
+  body: "{}",
+});
+assert.equal(proxyMcp.status, 404);
+assert.equal(proxyMcp.data.code, "PROXY-OP-REFUSED");
+assert.equal(proxyMcp.data.factory_mcp, false);
+assert.equal(proxyMcp.data.proxy_is_not_exec, true);
+gate("PROXY-ALLOWLIST", " /p never forwards factory /mcp; documented tracker ops only");
 
 console.log(
   `ok mesh-security ${RUNTIME_VERSION}: ${gates.length} gates — ${gates.map((g) => g.id).join(", ")}`,
