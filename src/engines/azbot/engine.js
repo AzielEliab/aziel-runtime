@@ -29,7 +29,7 @@ const CATALOG = [
   { slug: "azcoherence", keys: ["coherence", "hallucination", "alternate triad", "alternate score", "neutralize", "azcoherence"], op: "coherence_check", banner: "confidence ≠ truth; never invents evidence" },
   { slug: "ark", keys: ["vault", "sweep", "pe", "elf", "powershell"], op: "sweep", banner: "not a kernel" },
   { slug: "azai", keys: ["lamb", "jeeves", "blend", "openai"], op: "lamb-check", banner: "not the local blend" },
-  { slug: "spectrallock", keys: ["overlay", "uv", "rosetta", "spectral", "png", "unredact", "leftover"], op: "overlay", banner: "256px preview; leftover-bytes recover honest; opaque refuse; never invent letters; not a spectrometer" },
+  { slug: "spectrallock", keys: ["overlay", "uv", "rosetta", "spectral", "png", "unredact", "leftover", "recover", "handwriting", "revision"], op: "overlay", banner: "256px preview; leftover-bytes + revision-graph recover honest; handwriting heuristic not ESDA; SLOT 7z/HEIC; never invent letters; not a spectrometer" },
   { slug: "employeelock", keys: ["workbook", "unowned", "xlsx", "log row"], op: "append-preview", banner: "not a court" },
   { slug: "foldlock", keys: ["fold", "compress", "tether", "zip"], op: "fold-preview", banner: "not zip" },
   { slug: "whistlelock", keys: ["whistle", "drop", "mailer", "dead-man"], op: "canon-preview", banner: "not a mailer" },

@@ -635,14 +635,14 @@ const PRODUCTS_RAW = [
     github: "https://github.com/AzielEliab/spectrallock",
     ops: [
       { op: "health", method: "GET", summary: "Liveness. Does not increment download KV." },
-      { op: "modes", method: "GET", summary: "List live overlay modes (zero, tazel, vyrn, uv, rosetta, zen, chaos, balance, candle, indent, lemon). Also reports honest leftover-bytes unredact family metadata (locate/lift/recover/refuse). Unredact is not a FragGate door op." },
+      { op: "modes", method: "GET", summary: "List live overlay modes (zero, tazel, vyrn, uv, rosetta, zen, chaos, balance, candle, indent, lemon). Also reports honest leftover-bytes unredact, revision-graph, universal recover (7z/HEIC/HEIF SLOT), and handwriting (not ESDA) family metadata. Unredact / recover / handwriting are not FragGate door ops." },
       { op: "targets", method: "GET", summary: "List ink/page targets. Same targets as Aziel Corpus Library OCR." },
-      { op: "overlay", method: "POST", summary: "Simplified overlay preview. PNG b64 in, longest side capped at 256 px. Accepts inject true|false (ON = false-color membership paint, not recovered pigment; OFF = gray of the same gate; zero ignores the switch). Reports tazel_inband_pct and vyrn_inband_pct. Leftover-bytes unredact is vendored in overlay.js but is not this door op. Not the full Python pipeline." },
+      { op: "overlay", method: "POST", summary: "Simplified overlay preview. PNG b64 in, longest side capped at 256 px. Accepts inject true|false (ON = false-color membership paint, not recovered pigment; OFF is gray of the same gate; zero ignores the switch). Reports tazel_inband_pct and vyrn_inband_pct. Leftover-bytes unredact, recover, and handwriting are vendored in overlay.js but are not this door op. Not the full Python pipeline." },
       { op: "verify", method: "POST", summary: "Recompute overlay metadata hash (mode/target/geometry). Not forensic. Not OCR-from-black-box." },
-      { op: "doctor", method: "GET", summary: "Richer liveness: 256px preview, not a spectrometer. Inject ON is not pigment recovery. Leftover-bytes recover is honest; opaque refuse is SL-UNREDACT-OPAQUE; never OCR-from-black-box. Unredact is not a FragGate door op." },
+      { op: "doctor", method: "GET", summary: "Richer liveness: 256px preview, not a spectrometer. Inject ON is not pigment recovery. Leftover-bytes recover is honest; revision graph is honest; opaque refuse is SL-UNREDACT-OPAQUE; 7z/HEIC/HEIF stay SLOT; handwriting is not ESDA. Unredact / recover / handwriting are not FragGate door ops." },
     ],
     example: { mode: "rosetta", inject: true, b64: "<png-base64>" },
-    banner: "Hosted overlay is a 256px preview. Inject ON is false-color membership paint, not recovered pigment. OFF is gray of the same gate. Zero ignores the switch. Leftover-bytes recover is honest (object id / offset / stream). Opaque replace with no leftover bytes refuses SL-UNREDACT-OPAQUE. Heatmaps are not transcripts. Never OCR-from-black-box. Unredact is not a FragGate door op. UV is not a lamp. Not a spectrometer, forensic lab, ESDA, or chemical test. Balance/lemon/indent never invent marks.",
+    banner: "Hosted overlay is a 256px preview. Inject ON is false-color membership paint, not recovered pigment. OFF is gray of the same gate. Zero ignores the switch. Leftover-bytes recover is honest (object id / offset / stream). Incremental PDF revisions return a revision graph and per-revision copies. Opaque replace with no leftover bytes refuses SL-UNREDACT-OPAQUE. Universal recover (Worker /v1/recover) cites present bytes only; 7z / HEIC / HEIF stay SLOT. Handwriting (Worker /v1/handwriting) is a 256px PNG ink-scan heuristic, not ESDA or a court finding. Heatmaps are not transcripts. Never OCR-from-black-box. Unredact / recover / handwriting are not FragGate door ops. UV is not a lamp. Not a spectrometer, forensic lab, ESDA, or chemical test. Balance/lemon/indent never invent marks.",
   },
   {
     slug: "azbot",
@@ -2275,7 +2275,7 @@ ${distributionDoorsHtml(origin)}
       <li>ChronoLock is advisory only — not a scheduler, not targeting, not virality. 08:30–10:30 local. Distinct from TemporalLock.</li>
       <li>The ARK is <em>not</em> a kernel. Hosted API never unlocks or encrypts with a passphrase and never stores vaults. Sweep is Mode E heuristics only.</li>
       <li>AZAI is a local OpenAI-compatible runtime, not a new foundation model. Hosted /v1 is a protocol mirror + Lamb check, not a provider proxy. Jeeves is not sovereign.</li>
-      <li>SpectralLock hosted overlay is a 256px preview, not a spectrometer, not forensic. Inject ON is paint, not pigment recovery. Leftover-bytes recover is honest; opaque refuse is honest; never OCR-from-black-box. UV is not a lamp. Balance/lemon/indent never invent marks.</li>
+      <li>SpectralLock hosted overlay is a 256px preview, not a spectrometer, not forensic. Inject ON is paint, not pigment recovery. Leftover-bytes recover is honest; revision graph is honest; opaque refuse is honest; 7z/HEIC/HEIF stay SLOT; handwriting is ink-scan heuristic not ESDA; never OCR-from-black-box. UV is not a lamp. Balance/lemon/indent never invent marks.</li>
       <li>EmployeeLock is <em>not</em> a court, not UL, not a truth score. Hosted never stores xlsx. Demo rows are format proof, not case facts.</li>
       <li>FoldLock is <em>not</em> zip. Hosted preview is tether-suppression on small UTF-8 text. Ratios are receipts, not trophies.</li>
       <li>WhistleLock is a local vault + dead-man copy. It is <em>not</em> a mailer. Hosted never holds whistle files.</li>
@@ -2795,7 +2795,7 @@ async function combinedOpenApi(request, env) {
         "ChronoLock is advisory only (not a scheduler, not targeting, not virality; 08:30–10:30 local; distinct from TemporalLock). " +
         "The ARK is not a kernel. Hosted API never unlocks or encrypts with a passphrase and never stores vaults. Sweep is Mode E heuristics only. " +
         "AZAI is a local OpenAI-compatible runtime, not a new foundation model. Hosted /v1 is a protocol mirror + Lamb check, not a provider proxy. Jeeves is not sovereign. " +
-        "SpectralLock hosted overlay is a 256px preview, not a spectrometer, not forensic. Inject ON is paint, not pigment recovery. Present-container-bytes recover is honest; opaque refuse is honest; never OCR-from-black-box. UV is not a lamp. Balance/lemon/indent never invent marks. " +
+        "SpectralLock hosted overlay is a 256px preview, not a spectrometer, not forensic. Inject ON is paint, not pigment recovery. Present-container-bytes recover is honest; revision graph is honest; opaque refuse is honest; 7z/HEIC/HEIF stay SLOT; handwriting is not ESDA; never OCR-from-black-box. UV is not a lamp. Balance/lemon/indent never invent marks. " +
         "EmployeeLock is not a court, not UL, not a truth score. Hosted never stores xlsx. " +
         "FoldLock is not zip. Hosted preview is tether-suppression on small UTF-8 text. " +
         "WhistleLock is not a mailer. Hosted never holds whistle files. " +
