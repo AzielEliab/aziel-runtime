@@ -129,7 +129,7 @@ export function llmsSisterProductsBlock() {
     lines.push(`cite.json: ${p.cite}`);
     lines.push(`llms.txt: ${p.llms}`);
     lines.push(`live_backends: ${p.live_backends}`);
-    lines.push("fraggate_call: false (aziel-runtime does not execute company ops)");
+    lines.push("fraggate_call: false. aziel-runtime fraggate_call executes Aziel Runtime catalog engines.");
     lines.push("");
   }
   return lines.join("\n");

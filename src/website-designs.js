@@ -150,9 +150,9 @@ export function websiteDesignsLlmsBlock(origin) {
     WEBSITE_DESIGN_LIMITATION,
     "",
     `Named on GET /v1/software website_designs and runtime_skill. Hub: ${field.hub}`,
-    "azcorpus: download open. Not a FragGate slug.",
+    "azcorpus: download open. Mesh-resident website design on the library hub.",
     "azlibrary: download open. Upload API token only. Never embed secret.",
-    "Not a fifth Softwares product. Cap-7 inherits these designs on the library hub.",
+    "Cap-7 inherits these designs on the library hub.",
     "",
   ].join("\n");
 }

@@ -77,6 +77,7 @@ export function helpTxt(origin) {
     "",
     "## FragGate — THE single public door",
     "",
+    "FragGate is THE single public door.",
     "Use one door for every catalog engine:",
     "",
     "1. fraggate_list — see hashed products and ops",

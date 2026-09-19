@@ -1584,7 +1584,7 @@ function llmsTxt(origin, env = {}) {
     `FragGate: ${base}/v1/fraggate`,
     `AZPIPE MASTER-33 cite: ${base}/v1/azpipe/arch`,
     `Kernel: ${FRAGGATE_GITHUB}`,
-    `Catalog extras (hub kernel card, not a Software engine): slug=fraggate worker=${FRAGGATE_WORKER} github=${FRAGGATE_GITHUB} worker_home=${FRAGGATE_WORKER_ORIGIN}/ download=${FRAGGATE_WORKER_ORIGIN}/download — read catalog.json extras[] / fraggate. FragGate is the kernel door; human UI + counted download is the separate FragGate Worker app (not nested in AZBrowser). extras[] also cites sister product trades-runtime (engine:false; fraggate_call:false; not a FragGate true-engine).`,
+    `Catalog extras (hub kernel card): slug=fraggate worker=${FRAGGATE_WORKER} github=${FRAGGATE_GITHUB} worker_home=${FRAGGATE_WORKER_ORIGIN}/ download=${FRAGGATE_WORKER_ORIGIN}/download — read catalog.json extras[] / fraggate. FragGate is the kernel door; human UI + counted download is the separate FragGate Worker app. extras[] also cites sister product trades-runtime.`,
     `MCP: POST ${base}/mcp`,
     `Uses: ${base}/v1/uses`,
     `Stats rollup: ${base}/v1/stats-rollups`,
@@ -1705,9 +1705,8 @@ function llmsTxt(origin, env = {}) {
     lines.push(`### ${rec.name} (${rec.slug})`);
     lines.push(rec.one_line);
     lines.push(rec.description);
-    lines.push("Case Mode: historical as-of + suppression / honesty axes + TrajectoryLock-lite; export hash-chain score card; confidence ≤75%. Not legal advice.");
-    lines.push("Not a lawyer. Not legal advice. Session-only / ephemeral. Optional zip download.");
-    lines.push("NO-LIE placement: Whitestone is not FragGate kernel. Session-only. Author Aziel Eliab.");
+    lines.push("Case Mode: historical as-of + suppression / honesty axes + TrajectoryLock-lite; export hash-chain card; confidence ≤75%.");
+    lines.push("Session-only / ephemeral. Optional zip download. FragGate status none.");
     lines.push(`GitHub: ${rec.github}`);
     if (rec.worker_home) {
       lines.push(`Worker: ${rec.worker_home}`);
@@ -1715,10 +1714,10 @@ function llmsTxt(origin, env = {}) {
     }
     if (rec.web_app) {
       lines.push(`Live web app: ${rec.web_app}`);
-      lines.push(`Product catalog (dual-surface AI discovery, not FragGate): ${String(rec.web_app).replace(/\/$/, "")}/v1/software`);
+      lines.push(`Product catalog (dual-surface AI discovery): ${String(rec.web_app).replace(/\/$/, "")}/v1/software`);
     }
     if (rec.version) lines.push(`Version: ${rec.version}`);
-    lines.push("FragGate engine: false. worker_only. door none. Do not invent fraggate_call ops.");
+    lines.push("Worker-only placement. Do not invent fraggate_call ops.");
     lines.push(`How to cite: ${rec.how_to_cite}`);
     lines.push("");
   }
@@ -2228,7 +2227,7 @@ ${workerLaunchHtml(origin, { slug: resolveCallingName(env).calling_slug, name: r
 ${homepageAddUrlHtml(origin)}
   <section class="cite" id="fraggate">
     <h2>FragGate (kernel / door — not a Software engine)</h2>
-    <p>FragGate is the kernel door. Human UI + counted download is the separate FragGate Worker app (not nested in AZBrowser). Hubs already show <a href="${FRAGGATE_GITHUB}">${FRAGGATE_GITHUB}</a>. This runtime publishes a catalog-friendly card at <code>GET /v1/catalog.json</code> <code>extras[]</code> / <code>fraggate</code> so corpus / godlock.uk / azieleliab Software indexes can list Worker <code>${FRAGGATE_WORKER}</code> without adding a PRODUCTS true-engine slug.</p>
+    <p>FragGate is the kernel door. Human UI + counted download is the separate FragGate Worker app. Hubs already show <a href="${FRAGGATE_GITHUB}">${FRAGGATE_GITHUB}</a>. This runtime publishes a catalog-friendly card at <code>GET /v1/catalog.json</code> <code>extras[]</code> / <code>fraggate</code> so corpus / godlock.uk / azieleliab Software indexes can list Worker <code>${FRAGGATE_WORKER}</code>.</p>
     <p><a href="${origin}/v1/fraggate">/v1/fraggate</a> · <a href="${origin}/v1/fraggate/list">/v1/fraggate/list</a> · <a href="${origin}/v1/catalog.json">catalog extras</a> · <a href="${FRAGGATE_WORKER_ORIGIN}/">Worker UI</a> · <a href="${FRAGGATE_WORKER_ORIGIN}/download">counted download</a> · <a href="${FRAGGATE_GITHUB}">GitHub</a></p>
   </section>
   <h2>Softwares</h2>
@@ -2421,7 +2420,7 @@ function staticPaths(origin, env = {}) {
       get: {
         operationId: "catalog_list",
         summary:
-          "Machine-readable catalog. products[] are Software engines (slug, worker, github — hubs fetch these). extras[] / fraggate is the FragGate kernel card (github.com/AzielEliab/fraggate; worker fraggate-download-tracker is the separate human UI + counted download, not nested in AZBrowser; engine:false). Each product includes door, fraggate_live, fraggate_ops, fraggate_call. Authoritative hub tab list is GET /v1/software (Plain→Gate→Lock; EmbryoLock live-with-local-destructive-boundary; AZChat LIVE+bound).",
+          "Machine-readable catalog. products[] are Software engines (slug, worker, github — hubs fetch these). extras[] / fraggate is the FragGate kernel card (github.com/AzielEliab/fraggate; worker fraggate-download-tracker is the separate human UI + counted download). Each product includes door, fraggate_live, fraggate_ops, fraggate_call. Authoritative hub tab list is GET /v1/software (Plain→Gate→Lock; EmbryoLock live-with-local-destructive-boundary; AZChat LIVE+bound).",
         tags: ["runtime"],
         responses: { "200": { description: "Product catalog JSON" } },
       },

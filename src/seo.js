@@ -848,7 +848,7 @@ export function llmsCiteBlock(origin, calling = null) {
     `${HEDIDNTJUMP_NAME} cite.json: ${HEDIDNTJUMP_CITE}`,
     `${HEDIDNTJUMP_NAME} llms.txt: ${HEDIDNTJUMP_LLMS}`,
     `${HEDIDNTJUMP_NAME} sitemap.xml: ${HEDIDNTJUMP_SITEMAP}`,
-    `Trades-Runtime (sister product, not a Softwares-tab engine; fraggate_call does not execute company ops): ${AUTHOR_FAMILY_GIVEN}. (2026). Trades-Runtime ${TRADES_RUNTIME_VERSION} [Software]. Apache-2.0. ${TRADES_RUNTIME_GITHUB}`,
+    `Trades-Runtime (sister product): ${AUTHOR_FAMILY_GIVEN}. (2026). Trades-Runtime ${TRADES_RUNTIME_VERSION} [Software]. Apache-2.0. ${TRADES_RUNTIME_GITHUB}`,
     `Trades-Runtime Worker: ${TRADES_RUNTIME_ORIGIN}`,
     `Trades-Runtime MCP: ${TRADES_RUNTIME_MCP}`,
     `Trades-Runtime download: ${TRADES_RUNTIME_DOWNLOAD}`,

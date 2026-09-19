@@ -65,7 +65,7 @@ assert.match(meshDoc, /does not climb back onto the public hostname/i);
 
 assert.match(MESH_LIMITATION, /die with the pull/);
 assert.match(MESH_LIMITATION, /not public hostname resurrection/);
-assert.match(MESH_LIMITATION, /bringing the \.uk node back/);
+assert.match(MESH_LIMITATION, /no godlock\.uk back/);
 assert.match(papers["src/mesh.js"], /local wait \/ re-seal — no controller hunt; not public hostname resurrection/);
 
 assert.match(papers["docs/designs/ACT-RECEIPT-1.0.md"], /die with the pull/i);

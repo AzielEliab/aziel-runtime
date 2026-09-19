@@ -156,7 +156,7 @@ export const PLACEMENTS = Object.freeze({
     placement: "pro-se-advisor",
     domain: null,
     domain_id: null,
-    note: "Whitestone is a live Worker-only ephemeral pro se advisor (Criminal, Civil, Divorce) with historical as-of and Case Mode. Catalog software. worker_only. FragGate none — do not invent door ops. Dual-surface AI discovery via GET /v1/software + llms/ai/cite/who-is, plus Whitestone Worker GET /v1/software. Not FragGate kernel. Not an extra door. Not a 34th isolation software. Domain stays null. Not a lawyer / not legal advice. Session-only; optional zip. Author: Aziel Eliab only.",
+    note: "Whitestone is a live Worker-only ephemeral pro se advisor (Criminal, Civil, Divorce) with historical as-of and Case Mode. Catalog software. worker_only. FragGate status none — do not invent door ops. Dual-surface AI discovery via GET /v1/software + llms/ai/cite/who-is, plus Whitestone Worker GET /v1/software. Domain stays null. Session-only; optional zip. Author: Aziel Eliab only.",
   },
 });
 

@@ -284,7 +284,7 @@ assert.match(llms, /SEC-FEAT-1\.0/);
 assert.match(llms, /QNS-CD-1\.0/);
 assert.match(llms, /AZL-WP-1\.1/);
 assert.match(llms, /QNM-WP-1\.0/);
-assert.match(llms, /not Softwares-tab products/);
+assert.match(llms, /Suite software-design papers \(law \/ fabric\)/);
 assert.match(llms, /FEATURE-STATE-2026-09-10/);
 assert.match(llms, /intentional-OFF vs gaps/);
 assert.match(llms, /REMAIN-OFF-BY-DESIGN-2026-09-10/);
@@ -312,8 +312,8 @@ assert.match(llms, /Shadow-first local BYO runtime/);
 assert.match(llms, /https:\/\/github\.com\/AzielEliab\/trades-runtime/);
 assert.match(llms, /https:\/\/trades-runtime\.vibelock\.workers\.dev\/mcp/);
 assert.match(llms, /https:\/\/trades-runtime\.vibelock\.workers\.dev\/download/);
-assert.match(llms, /fraggate_call does not execute/);
-assert.match(llms, /sister product trades-runtime \(engine:false; fraggate_call:false/);
+assert.match(llms, /sister product trades-runtime/);
+assert.match(llms, /aziel-runtime fraggate_call executes Aziel Runtime catalog engines/);
 assert.match(llms, /AZCoherence/);
 assert.match(llms, /describe\?slug=azcoherence/);
 assert.match(llms, /suite-presence is ON by default/);
@@ -792,7 +792,7 @@ assert.equal(catalog.fraggate.worker_home, "https://fraggate-download-tracker.vi
 assert.equal(catalog.fraggate.download, "https://fraggate-download-tracker.vibelock.workers.dev/download");
 assert.ok(!catalog.products.some((p) => p.worker === "fraggate-download-tracker"));
 assert.match(catalog.extras_note, /fraggate-download-tracker/);
-assert.match(catalog.extras_note, /not nested in AZBrowser/);
+assert.match(catalog.extras_note, /FragGate is THE single public executable door/);
 
 const homeRes = await get("/");
 assert.equal(homeRes.status, 200);

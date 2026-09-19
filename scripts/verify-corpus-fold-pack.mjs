@@ -166,7 +166,8 @@ assert.match(home, /id="dashboard"/);
 assert.match(home, /id="fg-console"/);
 assert.doesNotMatch(home, /15:20|1 Chronicles/i);
 assert.doesNotMatch(home, /home address|date of birth|county seat/i);
-assert.match(home, /Not a legal name/);
+assert.match(home, /The public identity is the published work/);
+assert.doesNotMatch(home, /<h3>Not this<\/h3>/);
 assert.doesNotMatch(home, /glama\.ai\/mcp\/servers\/[0-9a-f]{8}-[0-9a-f-]{27}/i);
 
 const about = await (await get("/about")).text();
