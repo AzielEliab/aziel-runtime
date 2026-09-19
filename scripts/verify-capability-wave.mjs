@@ -9,6 +9,15 @@ import { LIVE_OPS, STUB_OPS, buildRegistry, classifyCall } from "../src/fraggate
 import { engineOps } from "../src/engines/registry.js";
 import { executeLocal } from "../src/engines/runner.js";
 import { productVerbTitle } from "../src/display.js";
+import {
+  REFUSE_OPAQUE,
+  UNREDACT_NOTE,
+  classifyCoverBuf,
+  listUnredact,
+  locatePdfBytes,
+  parseUnredactOp,
+  unredactFromB64,
+} from "../src/engines/spectrallock/overlay.js";
 
 const WAVE = [
   "decisiongate",
@@ -264,6 +273,27 @@ assert.match(modesBody.limitation, /inject/i);
 assert.match(modesBody.limitation, /pigment/);
 assert.match(String(modesBody.inject.note), /UV is not a lamp/);
 assert.match(String(modesBody.inject.note), /Balance does not invent marks/);
+assert.equal(modesBody.leftover_bytes_recovery, true);
+assert.equal(modesBody.ocr_from_black_box, false);
+assert.equal(modesBody.unredact.leftover_bytes_recovery, true);
+assert.equal(modesBody.unredact.pigment_recovery, false);
+assert.equal(modesBody.unredact.guessed_letters, false);
+assert.equal(modesBody.unredact.heatmap_is_transcript, false);
+assert.equal(modesBody.unredact.ocr_from_black_box, false);
+assert.equal(modesBody.unredact.catalog_door_op, false);
+assert.equal(modesBody.unredact.refuse_code, "SL-UNREDACT-OPAQUE");
+assert.deepEqual(modesBody.unredact.ops, ["locate", "lift", "recover", "refuse"]);
+assert.deepEqual(modesBody.unredact.family, ["unredact", "lift", "redact-locate"]);
+assert.match(String(modesBody.unredact.note), /leftover/);
+assert.match(modesBody.limitation, /SL-UNREDACT-OPAQUE/);
+assert.match(modesBody.limitation, /leftover-bytes/);
+assert.match(modesBody.limitation, /not a FragGate door op/);
+assert.ok(!LIVE_OPS.spectrallock.includes("unredact"), "unredact is not a catalog LIVE_OP");
+assert.ok(!LIVE_OPS.spectrallock.includes("locate"), "locate is not a catalog LIVE_OP");
+assert.ok(!LIVE_OPS.spectrallock.includes("lift"), "lift is not a catalog LIVE_OP");
+assert.ok(!LIVE_OPS.spectrallock.includes("recover"), "recover is not a catalog LIVE_OP");
+assert.ok(!LIVE_OPS.spectrallock.includes("refuse"), "refuse is not a catalog LIVE_OP");
+assert.deepEqual(LIVE_OPS.spectrallock, ["modes", "targets", "overlay", "verify", "doctor", "health", "skill"]);
 
 const spSkill = await executeLocal({
   slug: "spectrallock",
@@ -275,7 +305,11 @@ const skillBody = JSON.parse(spSkill.responseText);
 assert.match(String(skillBody.skill || skillBody.markdown), /inject true\|false/);
 assert.match(String(skillBody.skill || skillBody.markdown), /not recovered pigment/);
 assert.match(String(skillBody.skill || skillBody.markdown), /tazel_inband_pct/);
+assert.match(String(skillBody.skill || skillBody.markdown), /leftover-bytes/);
+assert.match(String(skillBody.skill || skillBody.markdown), /SL-UNREDACT-OPAQUE/);
+assert.match(String(skillBody.skill || skillBody.markdown), /Never OCR-from-black-box/);
 assert.match(String(skillBody.limitation), /Balance\/lemon\/indent never invent marks/);
+assert.match(String(skillBody.limitation), /SL-UNREDACT-OPAQUE/);
 
 const TINY_PNG =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
@@ -310,6 +344,43 @@ assert.equal(overlayZero.inject, true);
 assert.equal(overlayZero.inject_applied, false);
 assert.equal(overlayZero.inject_ignored, true);
 
+assert.equal(parseUnredactOp("redact-locate"), "locate");
+assert.equal(parseUnredactOp("leftover-bytes"), "recover");
+assert.equal(REFUSE_OPAQUE, "SL-UNREDACT-OPAQUE");
+assert.match(UNREDACT_NOTE, /leftover/);
+assert.match(UNREDACT_NOTE, /not a transcript/);
+assert.equal(listUnredact().leftover_bytes_recovery, true);
+const leftoverPdf = new TextEncoder().encode(
+  "%PDF-1.4\n1 0 obj << /Title (Docket) >> endobj\n4 0 obj << /Length 20 >> stream\nBT (ALICE SMITH) Tj ET\nendstream\nendobj\n4 0 obj << /Length 8 >> stream\n0 0 0 rg\nendstream\nendobj\n%%EOF\n%%EOF\n",
+);
+const leftoverLocate = locatePdfBytes(leftoverPdf);
+assert.equal(leftoverLocate.leftover_bytes, true);
+assert.match((leftoverLocate.recovered || []).map((r) => r.preview || "").join(" ").toUpperCase(), /ALICE/);
+assert.ok((leftoverLocate.recovered_from || []).length >= 1);
+const leftoverB64 = Buffer.from(leftoverPdf).toString("base64");
+const leftoverRecover = await unredactFromB64(leftoverB64, { op: "recover" });
+assert.equal(leftoverRecover.leftover_bytes, true);
+assert.ok(Array.isArray(leftoverRecover.recovered_from));
+assert.ok((leftoverRecover.recovered || []).some((r) => String(r.object_id || "").length && Number.isFinite(r.offset)));
+assert.match(String(leftoverRecover.note), /leftover/);
+assert.equal(leftoverRecover.guessed_letters, false);
+assert.equal(leftoverRecover.heatmap_is_transcript, false);
+const blackBuf = new Float32Array(32 * 48 * 3);
+for (let i = 0; i < blackBuf.length; i++) blackBuf[i] = 0.93;
+for (let y = 8; y < 24; y++) {
+  for (let x = 6; x < 42; x++) {
+    const p = (y * 48 + x) * 3;
+    blackBuf[p] = blackBuf[p + 1] = blackBuf[p + 2] = 0;
+  }
+}
+const opaqueCover = classifyCoverBuf(blackBuf, 48, 32);
+assert.equal(opaqueCover.opaque_replace, true);
+const noLeftoverRecover = await unredactFromB64(TINY_PNG, { op: "recover" });
+assert.equal(noLeftoverRecover.leftover_bytes, false);
+assert.equal(noLeftoverRecover.refuse_code, "SL-UNREDACT-OPAQUE");
+assert.equal(noLeftoverRecover.stop, true);
+assert.equal(noLeftoverRecover.guessed_letters, false);
+
 for (const forbidden of ["akm", "akm-triad", "adaptive-memory", "memory"]) {
   assert.ok(!product(forbidden), `${forbidden} is fabric, not a Softwares-tab catalog engine`);
 }
@@ -328,6 +399,10 @@ assert.equal(classifyCall(registry.bySlug.staticclock, "rollback").kind, "stub")
 assert.equal(classifyCall(registry.bySlug.chronolock, "cron").kind, "stub");
 assert.equal(classifyCall(registry.bySlug.trajectorylock, "store_media").kind, "stub");
 assert.equal(classifyCall(registry.bySlug.spectrallock, "forensic").kind, "stub");
+assert.equal(classifyCall(registry.bySlug.spectrallock, "unredact").kind, "unknown_op");
+assert.equal(classifyCall(registry.bySlug.spectrallock, "locate").kind, "unknown_op");
+assert.equal(classifyCall(registry.bySlug.spectrallock, "lift").kind, "unknown_op");
+assert.equal(classifyCall(registry.bySlug.spectrallock, "recover").kind, "unknown_op");
 
 for (const slug of WAVE23) {
   const p = product(slug);
