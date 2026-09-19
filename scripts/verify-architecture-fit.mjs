@@ -200,5 +200,16 @@ assert.match(fitDoc, /mmconsensus/);
 assert.match(fitDoc, /toolbench/);
 assert.match(fitDoc, /edge-mcp-gateway/);
 assert.doesNotMatch(fitDoc, / is LIVE|full ZK proving is LIVE|KVM guest is LIVE/i);
+assert.match(fitDoc, /Worker-only placement/);
+assert.match(fitDoc, /WHITESTONE-PLACEMENT/);
+assert.match(fitDoc, /do \*\*not\*\* invent `fraggate_call` ops/);
+
+const whitePlace = readFileSync(new URL("../docs/2.0/WHITESTONE-PLACEMENT.md", import.meta.url), "utf8");
+assert.match(whitePlace, /worker_only/);
+assert.match(whitePlace, /FG-HALLUC-TOOL/);
+assert.match(whitePlace, /Case Mode/);
+assert.match(whitePlace, /not\*\* the FragGate kernel/);
+assert.match(whitePlace, /Aziel Eliab/);
+assert.doesNotMatch(whitePlace, /fraggate_call ops for Whitestone|invent a FragGate door/i);
 
 console.log("ok architecture-fit: zkattest/mmconsensus/toolbench door paths + isolate sandbox + edge MCP gateway");

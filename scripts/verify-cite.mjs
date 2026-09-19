@@ -153,6 +153,7 @@ assert.ok(catalogBody.stats.hubs.some((h) => h.id === "corpus" && !h.stats.endsW
 assert.match(citeBody.library_how_to_cite, /Aziel Digital Library/);
 assert.equal(citeBody.products.length, slugs.length);
 assert.ok(citeBody.products.some((p) => p.slug === "whitestone" && p.worker_only === true && p.engine === false));
+assert.ok(citeBody.products.some((p) => p.slug === "whitestone" && /Case Mode/i.test(p.one_line || "")));
 assert.equal(catalogBody.count, slugs.length - 1, "catalog.json is true-engine PRODUCTS; Whitestone is Worker-only");
 assert.ok(!catalogBody.products.some((p) => p.slug === "whitestone"), "Whitestone is not a FragGate true-engine");
 assert.ok(!catalogBody.products.some((p) => p.slug === "fraggate"));

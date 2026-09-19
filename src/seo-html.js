@@ -410,7 +410,7 @@ ${namedComponentsHtml()}
   <h2>Softwares hubs</h2>
   ${hubListHtml()}
   <p>AZCoherence (AZC-0.1): <a href="${base}/v1/fraggate/describe?slug=azcoherence">describe</a> · <a href="${AZCOHERENCE_GITHUB}">GitHub</a> · <a href="${AZCOHERENCE_WORKER}/">Worker</a>. Not AKM-TRIAD.</p>
-  <p>Whitestone 1.4.0: <a href="https://whitestone.vibelock.workers.dev/">live web app</a> · <a href="https://whitestone-download-tracker.vibelock.workers.dev/download">counted zip</a> · <a href="https://github.com/AzielEliab/Whitestone">GitHub</a>. Ephemeral pro se advisor. Not a lawyer. Not a FragGate engine.</p>
+  <p>Whitestone 1.6.0 Case Mode: <a href="https://whitestone.vibelock.workers.dev/">live web app</a> · <a href="https://whitestone-download-tracker.vibelock.workers.dev/download">counted zip</a> · <a href="https://whitestone.vibelock.workers.dev/v1/software">product catalog</a> · <a href="https://github.com/AzielEliab/Whitestone">GitHub</a>. Historical as-of + suppression axes + TrajectoryLock-lite + export; confidence ≤75%. Ephemeral pro se advisor. Not a lawyer. Not legal advice. Session-only. Not a FragGate engine.</p>
   <div class="field">
     <label for="software-filter">Search Softwares (name, slug, or task)</label>
     <input id="software-filter" type="search" placeholder="foldlock, receipt, browser…" autocomplete="off">

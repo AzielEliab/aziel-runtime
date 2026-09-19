@@ -26,6 +26,7 @@ const requiredDocs = [
   "docs/2.0/README.md",
   "docs/2.0/PUBLIC-CONTRACT.md",
   "docs/2.0/ARCHITECTURE-FIT-FIVE.md",
+  "docs/2.0/WHITESTONE-PLACEMENT.md",
   "docs/2.0/COMPATIBILITY-POLICY.md",
   "docs/2.0/RECEIPT-SCHEMA.md",
   "docs/2.0/REFUSAL-CONTRACT.md",
@@ -96,6 +97,7 @@ const packIndex = readFileSync(new URL("../docs/2.0/README.md", import.meta.url)
 assert.match(packIndex, /Gate 4/);
 assert.match(packIndex, /TDQS/);
 assert.match(packIndex, /glama\.json/);
+assert.match(packIndex, /WHITESTONE-PLACEMENT/);
 
 const tdqs = readFileSync(new URL("../docs/GLAMA-TDQS.md", import.meta.url), "utf8");
 assert.match(tdqs, /2\.0\.0-rc1/);
