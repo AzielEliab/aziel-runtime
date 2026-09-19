@@ -11,10 +11,15 @@ import {
   LIVE,
   MAX_SIDE,
   MODES,
+  REFUSE_OPAQUE,
   STUB_MODES,
   TARGET_IDS,
   TARGETS,
+  UNREDACT_FAMILY,
+  UNREDACT_NOTE,
+  UNREDACT_OPS,
   VERSION,
+  listUnredact,
   overlayFromB64,
   resolveMode,
 } from "./overlay.js";
@@ -39,7 +44,13 @@ export const RUNTIME_LIMITATION =
   LIMITATION +
   " Overlay payload accepts inject true|false. ON is false-color membership paint, not recovered pigment. " +
   "OFF is gray of the same gate. Zero ignores the switch. Reports tazel_inband_pct and vyrn_inband_pct. " +
-  "THIS IS NOT: a spectrometer, forensic lab, ESDA, chemical test, UV lamp, or pigment recovery. " +
+  "Vendored overlay also carries honest unredact / leftover-bytes (locate, lift, recover, refuse). " +
+  "Leftover-bytes recover reads present container bytes only (object id / offset / stream). " +
+  "Opaque clipped black / flattened screenshot with no leftover bytes refuses " +
+  REFUSE_OPAQUE +
+  ". Heatmaps are not transcripts. Never OCR-from-black-box. " +
+  "Catalog LIVE_OPS stay health, modes, targets, overlay, verify, doctor, skill — unredact is not a FragGate door op. " +
+  "THIS IS NOT: a spectrometer, forensic lab, ESDA, chemical test, UV lamp, pigment recovery, or letter invention. " +
   "Balance/lemon/indent never invent marks. Identity Aziel Eliab only.";
 
 const INJECT_FLAG = Object.freeze({
@@ -52,6 +63,21 @@ const INJECT_FLAG = Object.freeze({
   pigment_recovery: false,
   reports: ["tazel_inband_pct", "vyrn_inband_pct"],
   note: INJECT_NOTE,
+});
+
+/** Product-side unredact family. Not a FragGate LIVE_OP until GitBaby adds a door. */
+const UNREDACT_FLAG = Object.freeze({
+  ...listUnredact(),
+  family: UNREDACT_FAMILY.slice(),
+  ops: UNREDACT_OPS.slice(),
+  refuse_code: REFUSE_OPAQUE,
+  leftover_bytes_recovery: true,
+  pigment_recovery: false,
+  guessed_letters: false,
+  heatmap_is_transcript: false,
+  ocr_from_black_box: false,
+  catalog_door_op: false,
+  note: UNREDACT_NOTE,
 });
 
 const CANONICAL_MODE_IDS = Object.freeze([
@@ -88,8 +114,11 @@ function envelope() {
       chemical_test: false,
       pigment_recovery: false,
       uv_lamp: false,
+      leftover_bytes_recovery: true,
+      ocr_from_black_box: false,
       max_side: MAX_SIDE,
       inject: INJECT_FLAG,
+      unredact: UNREDACT_FLAG,
     },
   };
 }
@@ -105,7 +134,11 @@ export function spectrallockSkill() {
       "256px hosted overlay preview. Lenses: zero, tazel, vyrn, uv, rosetta, zen, chaos, balance, candle, indent, lemon. " +
       "UV aliases: ultraviolet, uv-light, uvsa. Targets: ink, page. Overlay payload accepts inject true|false. " +
       "ON is false-color membership paint, not recovered pigment. OFF is gray of the same gate. Zero ignores the switch. " +
-      "Reports tazel_inband_pct and vyrn_inband_pct. Synthetic looks. UV is not a lamp. Not a spectrometer. Not forensic. Not ESDA. Not a chemical test. " +
+      "Reports tazel_inband_pct and vyrn_inband_pct. " +
+      "Honest unredact family (locate, lift, recover, refuse) lives in vendored overlay.js and the product Worker /v1/unredact — not a catalog FragGate door op. " +
+      "Leftover-bytes recover is honest (object id / offset / stream). Opaque replace with no leftover bytes refuses SL-UNREDACT-OPAQUE. " +
+      "Heatmaps are not transcripts. Never invent letters. Never OCR-from-black-box. " +
+      "Synthetic looks. UV is not a lamp. Not a spectrometer. Not forensic. Not ESDA. Not a chemical test. " +
       "Candle/indent/lemon never invent marks. Balance never invents marks. Full histogram / band-pass lives in the Python package. " +
       "4DMap Γ may cite a class; SpectralLock does not write 4DMap cards.",
   });
@@ -115,7 +148,7 @@ export function spectrallockDoctor() {
   return capabilityDoctor({
     ...envelope(),
     doctor_note:
-      "SpectralLock doctor: 256px preview only. Inject ON is paint, not pigment recovery. UV is not a lamp. Not a spectrometer. Not forensic. Not ESDA. Not a chemical test. Balance/lemon/indent never invent marks.",
+      "SpectralLock doctor: 256px preview only. Inject ON is paint, not pigment recovery. Leftover-bytes recover is honest; opaque refuse is honest; never OCR-from-black-box. UV is not a lamp. Not a spectrometer. Not forensic. Not ESDA. Not a chemical test. Balance/lemon/indent never invent marks. Unredact is not a FragGate door op.",
   });
 }
 
@@ -139,7 +172,10 @@ export function listTargets() {
     chemical_test: false,
     pigment_recovery: false,
     uv_lamp: false,
+    leftover_bytes_recovery: true,
+    ocr_from_black_box: false,
     inject: INJECT_FLAG,
+    unredact: UNREDACT_FLAG,
     neighbors: NEIGHBORS.slice(),
     limitation: RUNTIME_LIMITATION,
     author: AUTHOR,
@@ -227,8 +263,11 @@ export async function runSpectrallock(op, payload, scratch) {
       targets: TARGETS,
       stub_modes: STUB_MODES.slice(),
       inject: INJECT_FLAG,
+      unredact: UNREDACT_FLAG,
       pigment_recovery: false,
       uv_lamp: false,
+      leftover_bytes_recovery: true,
+      ocr_from_black_box: false,
       limitation: RUNTIME_LIMITATION,
       true_engine_runtime: true,
     };
@@ -256,4 +295,4 @@ export async function runSpectrallock(op, payload, scratch) {
   return { unsupported: true };
 }
 
-export { LIMITATION, LIVE, MODES, CANONICAL_MODE_IDS, INJECT_FLAG, INJECT_NOTE };
+export { LIMITATION, LIVE, MODES, CANONICAL_MODE_IDS, INJECT_FLAG, INJECT_NOTE, UNREDACT_FLAG, UNREDACT_NOTE, REFUSE_OPAQUE };

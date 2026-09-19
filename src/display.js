@@ -94,7 +94,7 @@ const TITLE_OVERRIDES = {
   "zsolver:patterns": "List ZionPattern Solver patterns",
   "ark:sweep": "Sweep with The ARK",
   "spectrallock:overlay": "Preview a SpectralLock overlay (inject ON/OFF)",
-  "spectrallock:modes": "List SpectralLock overlay modes",
+  "spectrallock:modes": "List SpectralLock overlay modes (unredact family is honesty metadata, not a door op)",
   "spectrallock:targets": "List SpectralLock overlay targets",
   "spectrallock:verify": "Verify a SpectralLock overlay hash",
   "spectrallock:doctor": "Check liveness of SpectralLock",
