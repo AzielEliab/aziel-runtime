@@ -37,7 +37,7 @@ FragGate is THE single public **Softwares** executable door. `POST /mcp` is the 
 | **LOW** | Heritage sentence, partial allowlist text, heuristic primary op. |
 | **NOTE** | By-design thin MCP door, cite-only fleet objects, fabric vs Softwares-tab. |
 
-This audit does **not** stamp belt scores or ``.
+This audit records LIVE / SLOT / hash-verify facts only. It does not claim ``.
 
 ---
 

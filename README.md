@@ -111,7 +111,7 @@ Public identity: **Aziel Eliab** only. Do not invent Zenodo DOIs.
 
 Runtime cites the same honesty as live corpus [GET /shelves](https://www.azielcorpuslibrary.net/shelves) (corpus#96). `GET /shelves` · `GET /v1/shelves` · `/cite.json` `shelves`. Person `@id` https://www.azieleliab.com/#aziel.
 
-Plane A LIVE: 5 published surfaces (4 CF hubs + GitHub) / 2 family radii. One independent live (`cf-github`). Plane B SLOT: Codeberg https://codeberg.org/AzielEliab/aziel-lockset-tip hash-verify PASS still SLOT; archive.org PASS https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609 (same blast_radius `archive-org`; pack `b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37`) still SLOT; Framagit URL null (third ALL-TARGETS); GitFlic refused (`CNS-GITFLIC-EMAIL`); GitLab refused (`CNS-GITLAB-CF-LOOP`); Zenodo refused (`CNS-ZENODO-IP-BAN`); `doi` null. Plane C USB SLOT until `CNS-OPERATOR-ATTEST`. This Worker is the same Plane A tunnel — not a sixth surface. No visible 15:20.
+Plane A LIVE: 5 published surfaces (4 CF hubs + GitHub) / 2 family radii. One independent live (`cf-github`). Plane B SLOT: Codeberg https://codeberg.org/AzielEliab/aziel-lockset-tip hash-verify PASS still SLOT; archive.org PASS https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609 (same blast_radius `archive-org`; pack `b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37`) still SLOT; Framagit URL null; `doi` null. Plane C USB SLOT until `CNS-OPERATOR-ATTEST`. This Worker is the same Plane A tunnel — not a sixth surface. No visible 15:20.
 
 ### Cap-7 semantic bridge (not ICANN)
 

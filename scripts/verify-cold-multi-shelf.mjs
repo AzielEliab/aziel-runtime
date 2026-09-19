@@ -378,16 +378,16 @@ assert.equal(llms, ai);
 assert.match(llms, /COLD-MULTI-SHELF-1\.0/);
 assert.match(llms, /5 published surfaces/);
 assert.match(llms, /CNS-PLANE-B-ALL-TARGETS/);
-assert.match(llms, /CNS-ZENODO-IP-BAN/);
 assert.match(llms, /CNS-OPERATOR-ATTEST/);
 assert.match(llms, /b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37/);
 assert.match(llms, /archive\.org\/details\/aziel-lockset-tip/);
 assert.match(llms, /aziel-lockset-tip_202609/);
 assert.match(llms, /same blast_radius/);
 assert.match(llms, /Framagit/);
-assert.match(llms, /CNS-NO-FORGE-MIRROR/);
-assert.match(llms, /CNS-GITFLIC-EMAIL/);
-assert.match(llms, /CNS-GITLAB-CF-LOOP/);
+assert.doesNotMatch(llms, /CNS-ZENODO-IP-BAN/);
+assert.doesNotMatch(llms, /CNS-GITFLIC-EMAIL/);
+assert.doesNotMatch(llms, /CNS-GITLAB-CF-LOOP/);
+assert.doesNotMatch(llms, /AZBot PASS/i);
 assert.doesNotMatch(llms, /archive\.org \+ GitFlic URL null/);
 assert.match(llms, /www\.azieleliab\.com\/#aziel/);
 assert.match(llms, /resolves_to_hub: false/);
@@ -398,14 +398,15 @@ assert.doesNotMatch(llms, /doi: 10\.5281\/zenodo\.\d+ \(lockset tip\)/);
 
 const skill = await (await get("/v1/skill")).text();
 assert.match(skill, /COLD-MULTI-SHELF-1\.0/);
-assert.match(skill, /CNS-ZENODO-IP-BAN/);
 assert.match(skill, /archive\.org\/details\/aziel-lockset-tip/);
 assert.match(skill, /aziel-lockset-tip_202609/);
 assert.match(skill, /same blast_radius/);
 assert.match(skill, /Framagit/);
-assert.match(skill, /CNS-NO-FORGE-MIRROR/);
-assert.match(skill, /CNS-GITFLIC-EMAIL/);
-assert.match(skill, /CNS-GITLAB-CF-LOOP/);
+assert.match(skill, /CNS-PLANE-B-ALL-TARGETS/);
+assert.doesNotMatch(skill, /CNS-ZENODO-IP-BAN/);
+assert.doesNotMatch(skill, /CNS-GITFLIC-EMAIL/);
+assert.doesNotMatch(skill, /CNS-GITLAB-CF-LOOP/);
+assert.doesNotMatch(skill, /AZBot PASS/i);
 assert.match(skill, /resolves_to_hub: false/);
 assert.match(skill, /REDLINE-2026-09-14/);
 assert.match(skill, /design_of: hub_designs/);
@@ -439,5 +440,5 @@ assert.equal(shelvesCiteField(origin).redline.spec, REDLINE_SPEC);
 assert.equal(shelvesCiteField(origin).attack_sims.pointer, ATTACK_SIM_POINTER);
 
 console.log(
-  `ok ${COLD_MULTI_SHELF}: Plane A 5/2/1; Plane B Codeberg+archive.org PASS still SLOT (primary + 202609 same blast_radius); Framagit URL null CNS-NO-FORGE-MIRROR; GitFlic/GitLab refused; doi null; Plane C SLOT; runtime not a shelf`,
+  `ok ${COLD_MULTI_SHELF}: Plane A 5/2/1; Plane B Codeberg+archive.org PASS still SLOT (primary + 202609 same blast_radius); Framagit URL null; doi null; Plane C SLOT; runtime not a shelf`,
 );

@@ -60,7 +60,7 @@ Close tests added/extended: `verify-ban-survival.mjs`, `verify-semantic-bridge.m
 | **LOW** | Stale handoff sentence, trademark heuristic breadth, cache TTL vs rotation, heritage copy. |
 | **NOTE** | By-design public demo, cite-only fleet objects, SLOT until attest. Not a missing feature. |
 
-This audit does **not** stamp belt scores.
+This audit records LIVE / SLOT / hash-verify facts only.
 
 ---
 

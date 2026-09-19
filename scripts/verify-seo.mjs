@@ -31,6 +31,8 @@ import {
   RUNTIME_GLAMA,
   RUNTIME_ONE_LINE,
   RUNTIME_PAGE_TITLE,
+  SCOREBOARD_FORBIDDEN,
+  SHELVES_DISCOVERY_SHORT,
   hubSitemapList,
   personJsonLd,
   productCrawlUrls,
@@ -591,7 +593,30 @@ assert.equal(
 );
 assert.match(llms, /CROSS-NETWORK-SURVIVAL-1\.0: someone still has bytes that match the published tip/);
 assert.match(llms, /COLD-MULTI-SHELF-1\.0/);
-assert.match(llms, /CNS-ZENODO-IP-BAN/);
+assert.match(llms, /archive\.org\/details\/aziel-lockset-tip/);
+assert.match(llms, /Framagit URL null/);
+assert.doesNotMatch(llms, /CNS-ZENODO-IP-BAN/);
+assert.doesNotMatch(llms, /CNS-GITFLIC-EMAIL/);
+assert.doesNotMatch(llms, /CNS-GITLAB-CF-LOOP/);
+assert.match(cite.about.architecture.cold_multi_shelf, /Framagit URL null/);
+assert.equal(cite.about.architecture.cold_multi_shelf, SHELVES_DISCOVERY_SHORT);
+const readmeText = await (await import("node:fs/promises")).readFile(
+  new URL("../README.md", import.meta.url),
+  "utf8",
+);
+const skillText = await (await get("/v1/skill")).text();
+for (const [label, text] of [
+  ["llms.txt", llms],
+  ["ai.txt", await (await get("/ai.txt")).text()],
+  ["cite.json", JSON.stringify(cite)],
+  ["who-is", whoIs],
+  ["README.md", readmeText],
+  ["/v1/skill", skillText],
+]) {
+  for (const re of SCOREBOARD_FORBIDDEN) {
+    assert.doesNotMatch(text, re, `${label} must not publish shelves copy ${re}`);
+  }
+}
 assert.ok(cite.designs.papers.some((p) => p.id === "AZRT-1.9-GAPS-CLOSE" && p.kind === "law"));
 assert.equal(cite.identity, AUTHOR_NAME);
 assert.equal(cite.mesh_get_never_enables, true);

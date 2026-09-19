@@ -73,6 +73,34 @@ export const RUNTIME_NOT = Object.freeze([
   "Not just OpenAPI docs",
 ]);
 
+/**
+ * Discovery / crawler Plane B+C cite. LIVE vs SLOT + tip-pack URLs + hashes.
+ * No CNS ban-code scoreboard. Structured refuse fields stay on GET /shelves JSON.
+ */
+export const SHELVES_DISCOVERY_SHORT =
+  "COLD-MULTI-SHELF-1.0 cite of corpus#96 /shelves. Plane A = 5 published surfaces / 2 family radii / 1 independent live. " +
+  "Plane B SLOT (Codeberg + archive.org PASS still SLOT at https://archive.org/details/aziel-lockset-tip + " +
+  "https://archive.org/details/aziel-lockset-tip_202609, same blast_radius, pack b549362c…; Framagit URL null; doi null). " +
+  "Plane C USB SLOT. Runtime Worker is the same Plane A tunnel, not a sixth surface.";
+
+/**
+ * Internal survival / fielded-scoreboard phrases. Must not appear on
+ * llms / ai / cite / README / skill / OpenAPI discovery copy.
+ */
+export const SCOREBOARD_FORBIDDEN = Object.freeze([
+  /pissed[-\s]?off[-\s]?gov/i,
+  /hard[-\s]?to[-\s]?kill/i,
+  /difficult[-\s]?to[-\s]?kill/i,
+  /survival/i,
+  /fielded\s+score/i,
+  /\b~?69\/100\b/,
+  /\btarget\s+80\+/i,
+  /\b80\+\s+band\b/i,
+  /azbot\s+band/i,
+  /azbot\s+pass/i,
+  /belt\s+scores?/i,
+]);
+
 export function runtimeAboutField(origin) {
   const base = String(origin || "").replace(/\/$/, "");
   return {
@@ -90,8 +118,7 @@ export function runtimeAboutField(origin) {
       dual_surface: "Agents via OpenAPI/MCP; humans via Worker UI + counted /download.",
       semantic_bridge:
         "Cap-7 mesh names via MirageGrid only. Inherit hub designs only (azcorpus + azlibrary on the library hub). design_of hub_designs. resolves_to_hub false. name_may_change. Canonical hubs immutable. Not aliases of the four ICANN hostnames. GET /v1/mesh never enables.",
-      cold_multi_shelf:
-        "COLD-MULTI-SHELF-1.0 cite of corpus#96 /shelves. Plane A = 5 published surfaces / 2 family radii / 1 independent live. Plane B SLOT (Codeberg + archive.org PASS still SLOT at https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius, pack b549362c…; Framagit URL null; GitFlic CNS-GITFLIC-EMAIL; GitLab CNS-GITLAB-CF-LOOP; Zenodo refused; doi null). Plane C USB SLOT. Runtime Worker is the same Plane A tunnel, not a sixth surface.",
+      cold_multi_shelf: SHELVES_DISCOVERY_SHORT,
       nodemesh:
         "QNM read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public Live Nodes (live_nodes) count mesh size: active + inactive join/heartbeat nodes, excluding isolated — not catalog size, not downloads. software_nodes is the {slug}-worker roster and must not be used alone as that pill. Local qnm-node. Not a login mesh / VPN / Node Gate.",
       master33: "Domains are isolation labels, not extra doors. Lamb Lens ethics hop after FragGate.",
@@ -1050,7 +1077,7 @@ export const SUITE_DESIGNS = Object.freeze([
     id: "COLD-MULTI-SHELF-1.0",
     file: "COLD-MULTI-SHELF-1.0.md",
     one_line:
-      "LIVE law cite — Planes A/B/C match corpus#96 /shelves (5 surfaces / 2 family radii / 1 independent live; Plane B Codeberg + archive.org PASS still SLOT; Framagit URL null; GitFlic/GitLab refused; Zenodo refused; doi null; Plane C USB SLOT)",
+      "LIVE law cite — Planes A/B/C match corpus#96 /shelves (5 surfaces / 2 family radii / 1 independent live; Plane B Codeberg + archive.org PASS still SLOT; Framagit URL null; doi null; Plane C USB SLOT)",
     status: "live",
     kind: "law",
   },

@@ -26,7 +26,7 @@ This report covers the **new outlast pillars** (preservation, receipts, AI, pers
 | **LOW** | Stale handoff sentence, trademark heuristic breadth, cache TTL vs rotation, heritage copy, wrong refuse *label* on a path that already refuses. |
 | **NOTE** | By-design public demo, cite-only fleet objects, SLOT until attest. Not a missing feature. |
 
-This audit does **not** stamp belt scores.
+This audit records LIVE / SLOT / hash-verify facts only.
 
 ---
 
@@ -232,7 +232,7 @@ AZNet `pair_status`: unpaired, `hosts_payloads=false`, `tunnel=false`. Verify op
 
 ### 2.3 CROSS-NETWORK / COLD-MULTI-SHELF / die-with-pull
 
-Shelves (runtime + corpus `/shelves`): Plane A live (5 surfaces / 2 family radii / 1 independent live). Plane B Codeberg + archive.org PASS still **SLOT** (two IA items, same `blast_radius`). Framagit URL null. GitFlic / GitLab / Zenodo refused. `doi` null. Plane C USB **SLOT**.
+Shelves (runtime + corpus `/shelves`): Plane A live (5 surfaces / 2 family radii / 1 independent live). Plane B Codeberg + archive.org PASS still **SLOT** (two IA items, same `blast_radius`). Framagit URL null. `doi` null. Plane C USB **SLOT**.
 
 Die-with-pull: `restore_godlock_uk=false`, `public_hostname_resurrection=false`, `die_with_pull=true`.
 
