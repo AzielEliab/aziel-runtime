@@ -193,9 +193,9 @@ export const SOFTWARE_COPY = Object.freeze({
       "Use ShadowLock to wrap an existing job list in a zero-retention observation. It exists as an ethics envelope, not an operating-system hook or process intercept.",
   },
   spectrallock: {
-    one_line: "Preview a small overlay on an image; leftover container bytes recover honestly, opaque rewrite refuses.",
+    one_line: "Preview a small overlay on an image; leftover bytes and revision graphs recover honestly, opaque rewrite refuses.",
     description:
-      "Use SpectralLock for a 256-pixel overlay preview with an optional inject true|false color switch, plus a metadata-hash check. Inject ON paints membership; it does not recover pigment. Locate / lift / recover / refuse live in the vendored overlay (product Worker /v1/unredact) — leftover-bytes recover is honest (object id / offset / stream); opaque replace with no leftover bytes refuses SL-UNREDACT-OPAQUE; heatmaps are not transcripts; never invent letters; never OCR-from-black-box. It exists as a hosted preview, not a spectrometer or forensic instrument. Unredact is not a catalog FragGate door op.",
+      "Use SpectralLock for a 256-pixel overlay preview with an optional inject true|false color switch, plus a metadata-hash check. Inject ON paints membership; it does not recover pigment. Locate / lift / recover / refuse live in the vendored overlay (product Worker /v1/unredact) — leftover-bytes recover is honest (object id / offset / stream); incremental PDF revisions return a revision graph and per-revision copies; opaque replace with no leftover bytes refuses SL-UNREDACT-OPAQUE; heatmaps are not transcripts; never invent letters; never OCR-from-black-box. Universal recover (product Worker /v1/recover) cites present bytes only; 7z / HEIC / HEIF stay SLOT. Handwriting (product Worker /v1/handwriting) is a 256-pixel PNG ink-scan heuristic, not ESDA or a court finding. It exists as a hosted preview, not a spectrometer or forensic instrument. Unredact, recover, and handwriting are not catalog FragGate door ops.",
   },
   temporallock: {
     one_line: "Build and verify a hash-chained receipt timeline you keep on the client.",

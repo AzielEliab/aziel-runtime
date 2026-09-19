@@ -10,12 +10,20 @@ import { engineOps } from "../src/engines/registry.js";
 import { executeLocal } from "../src/engines/runner.js";
 import { productVerbTitle } from "../src/display.js";
 import {
+  HANDWRITING_NOTE,
+  RECOVER_NOTE,
   REFUSE_OPAQUE,
   UNREDACT_NOTE,
   classifyCoverBuf,
+  handwritingFromB64,
+  listHandwriting,
+  listRecover,
   listUnredact,
   locatePdfBytes,
+  parseHandwritingOp,
+  parseRecoverOp,
   parseUnredactOp,
+  recoverFromB64,
   unredactFromB64,
 } from "../src/engines/spectrallock/overlay.js";
 
@@ -276,6 +284,8 @@ assert.match(String(modesBody.inject.note), /Balance does not invent marks/);
 assert.equal(modesBody.leftover_bytes_recovery, true);
 assert.equal(modesBody.ocr_from_black_box, false);
 assert.equal(modesBody.unredact.leftover_bytes_recovery, true);
+assert.equal(modesBody.unredact.revision_graph, true);
+assert.equal(modesBody.unredact.revision_copies, true);
 assert.equal(modesBody.unredact.pigment_recovery, false);
 assert.equal(modesBody.unredact.guessed_letters, false);
 assert.equal(modesBody.unredact.heatmap_is_transcript, false);
@@ -285,13 +295,45 @@ assert.equal(modesBody.unredact.refuse_code, "SL-UNREDACT-OPAQUE");
 assert.deepEqual(modesBody.unredact.ops, ["locate", "lift", "recover", "refuse"]);
 assert.deepEqual(modesBody.unredact.family, ["unredact", "lift", "redact-locate"]);
 assert.match(String(modesBody.unredact.note), /leftover/);
+assert.equal(modesBody.revision_graph, true);
+assert.equal(modesBody.recover.catalog_door, false);
+assert.equal(modesBody.recover.catalog_door_op, false);
+assert.equal(modesBody.recover.revision_graph, true);
+assert.deepEqual(
+  modesBody.recover.ops,
+  ["locate", "deep-recover", "revision-graph", "cross-compare", "extract-embedded", "scan-orphans", "scan-metadata", "scan-sidecars", "scan-history", "refuse"],
+);
+assert.ok(modesBody.recover.slot_kinds.includes("7z"));
+assert.ok(modesBody.recover.slot_kinds.includes("heic"));
+assert.ok(modesBody.recover.slot_kinds.includes("heif"));
+assert.ok(modesBody.recover.refuse_codes.includes("SL-RECOVER-NO-BYTES"));
+assert.equal(modesBody.recover.worker_path, "/v1/recover");
+assert.equal(modesBody.handwriting.catalog_door, false);
+assert.equal(modesBody.handwriting.catalog_door_op, false);
+assert.equal(modesBody.handwriting.esda, false);
+assert.equal(modesBody.handwriting.forensic_certification, false);
+assert.equal(modesBody.handwriting.jpeg, false);
+assert.deepEqual(
+  modesBody.handwriting.ops,
+  ["analyze", "compare", "side-by-side", "graph", "forgery-indicators", "refuse"],
+);
+assert.ok(modesBody.handwriting.slot_signals.includes("esda"));
+assert.ok(modesBody.handwriting.slot_signals.includes("writer_identity"));
+assert.ok(modesBody.handwriting.slot_signals.includes("jpeg_decode"));
+assert.equal(modesBody.handwriting.worker_path, "/v1/handwriting");
 assert.match(modesBody.limitation, /SL-UNREDACT-OPAQUE/);
 assert.match(modesBody.limitation, /leftover-bytes/);
+assert.match(modesBody.limitation, /revision graph/);
+assert.match(modesBody.limitation, /7z \/ HEIC \/ HEIF stay SLOT/);
+assert.match(modesBody.limitation, /not ESDA/);
 assert.match(modesBody.limitation, /not a FragGate door op/);
+assert.match(modesBody.limitation, /\/v1\/recover/);
+assert.match(modesBody.limitation, /\/v1\/handwriting/);
 assert.ok(!LIVE_OPS.spectrallock.includes("unredact"), "unredact is not a catalog LIVE_OP");
 assert.ok(!LIVE_OPS.spectrallock.includes("locate"), "locate is not a catalog LIVE_OP");
 assert.ok(!LIVE_OPS.spectrallock.includes("lift"), "lift is not a catalog LIVE_OP");
 assert.ok(!LIVE_OPS.spectrallock.includes("recover"), "recover is not a catalog LIVE_OP");
+assert.ok(!LIVE_OPS.spectrallock.includes("handwriting"), "handwriting is not a catalog LIVE_OP");
 assert.ok(!LIVE_OPS.spectrallock.includes("refuse"), "refuse is not a catalog LIVE_OP");
 assert.deepEqual(LIVE_OPS.spectrallock, ["modes", "targets", "overlay", "verify", "doctor", "health", "skill"]);
 
@@ -306,10 +348,17 @@ assert.match(String(skillBody.skill || skillBody.markdown), /inject true\|false/
 assert.match(String(skillBody.skill || skillBody.markdown), /not recovered pigment/);
 assert.match(String(skillBody.skill || skillBody.markdown), /tazel_inband_pct/);
 assert.match(String(skillBody.skill || skillBody.markdown), /leftover-bytes/);
+assert.match(String(skillBody.skill || skillBody.markdown), /revision_graph/);
 assert.match(String(skillBody.skill || skillBody.markdown), /SL-UNREDACT-OPAQUE/);
 assert.match(String(skillBody.skill || skillBody.markdown), /Never OCR-from-black-box/);
+assert.match(String(skillBody.skill || skillBody.markdown), /7z \/ HEIC \/ HEIF stay SLOT/);
+assert.match(String(skillBody.skill || skillBody.markdown), /not ESDA/);
 assert.match(String(skillBody.limitation), /Balance\/lemon\/indent never invent marks/);
 assert.match(String(skillBody.limitation), /SL-UNREDACT-OPAQUE/);
+assert.match(String(skillBody.limitation), /SL-RECOVER-\*/);
+assert.match(String(skillBody.limitation), /SL-HANDWRITING-\*/);
+assert.match(String(skillBody.skill || skillBody.markdown), /SL-RECOVER-\*/);
+assert.match(String(skillBody.skill || skillBody.markdown), /SL-HANDWRITING-\*/);
 
 const TINY_PNG =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
@@ -346,10 +395,22 @@ assert.equal(overlayZero.inject_ignored, true);
 
 assert.equal(parseUnredactOp("redact-locate"), "locate");
 assert.equal(parseUnredactOp("leftover-bytes"), "recover");
+assert.equal(parseRecoverOp("deep"), "deep-recover");
+assert.equal(parseRecoverOp("revision-graph"), "revision-graph");
+assert.equal(parseHandwritingOp("forgery-scan"), "forgery-indicators");
 assert.equal(REFUSE_OPAQUE, "SL-UNREDACT-OPAQUE");
 assert.match(UNREDACT_NOTE, /leftover/);
 assert.match(UNREDACT_NOTE, /not a transcript/);
+assert.match(UNREDACT_NOTE, /revision graph/);
+assert.match(RECOVER_NOTE, /SLOT parsers are not advertised as LIVE/);
+assert.match(HANDWRITING_NOTE, /Not ESDA/);
 assert.equal(listUnredact().leftover_bytes_recovery, true);
+assert.equal(listUnredact().revision_graph, true);
+assert.deepEqual(listRecover().slot_kinds, ["7z", "heic", "heif"]);
+assert.equal(listRecover().catalog_door, false);
+assert.equal(listHandwriting().esda, false);
+assert.equal(listHandwriting().catalog_door, false);
+assert.ok(listHandwriting().slot_signals.includes("jpeg_decode"));
 const leftoverPdf = new TextEncoder().encode(
   "%PDF-1.4\n1 0 obj << /Title (Docket) >> endobj\n4 0 obj << /Length 20 >> stream\nBT (ALICE SMITH) Tj ET\nendstream\nendobj\n4 0 obj << /Length 8 >> stream\n0 0 0 rg\nendstream\nendobj\n%%EOF\n%%EOF\n",
 );
@@ -365,6 +426,15 @@ assert.ok((leftoverRecover.recovered || []).some((r) => String(r.object_id || ""
 assert.match(String(leftoverRecover.note), /leftover/);
 assert.equal(leftoverRecover.guessed_letters, false);
 assert.equal(leftoverRecover.heatmap_is_transcript, false);
+assert.ok(leftoverRecover.revision_graph);
+assert.equal(leftoverRecover.revision_graph.invented, false);
+assert.ok(Array.isArray(leftoverRecover.page_revisions));
+const leftoverUniversal = await recoverFromB64(leftoverB64, { op: "revision-graph", filename: "docket.pdf" });
+assert.equal(leftoverUniversal.family, "recover");
+assert.equal(leftoverUniversal.type, "pdf");
+assert.equal(leftoverUniversal.no_lie, true);
+assert.ok(leftoverUniversal.revision_graph);
+assert.ok((leftoverUniversal.recovered || []).length >= 1);
 const blackBuf = new Float32Array(32 * 48 * 3);
 for (let i = 0; i < blackBuf.length; i++) blackBuf[i] = 0.93;
 for (let y = 8; y < 24; y++) {
@@ -380,6 +450,15 @@ assert.equal(noLeftoverRecover.leftover_bytes, false);
 assert.equal(noLeftoverRecover.refuse_code, "SL-UNREDACT-OPAQUE");
 assert.equal(noLeftoverRecover.stop, true);
 assert.equal(noLeftoverRecover.guessed_letters, false);
+const tinyHand = await handwritingFromB64(TINY_PNG, { op: "analyze" });
+assert.equal(tinyHand.family, "handwriting");
+assert.equal(tinyHand.esda, false);
+assert.equal(tinyHand.forensic_certification, false);
+assert.equal(tinyHand.writer_identification_as_fact, false);
+assert.ok(
+  tinyHand.refuse_code === "SL-HANDWRITING-NO-INK" ||
+    (Array.isArray(tinyHand.indicators) && tinyHand.invented === false),
+);
 
 for (const forbidden of ["akm", "akm-triad", "adaptive-memory", "memory"]) {
   assert.ok(!product(forbidden), `${forbidden} is fabric, not a Softwares-tab catalog engine`);
@@ -403,6 +482,7 @@ assert.equal(classifyCall(registry.bySlug.spectrallock, "unredact").kind, "unkno
 assert.equal(classifyCall(registry.bySlug.spectrallock, "locate").kind, "unknown_op");
 assert.equal(classifyCall(registry.bySlug.spectrallock, "lift").kind, "unknown_op");
 assert.equal(classifyCall(registry.bySlug.spectrallock, "recover").kind, "unknown_op");
+assert.equal(classifyCall(registry.bySlug.spectrallock, "handwriting").kind, "unknown_op");
 
 for (const slug of WAVE23) {
   const p = product(slug);
