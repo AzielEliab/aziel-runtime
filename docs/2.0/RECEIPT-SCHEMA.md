@@ -200,7 +200,7 @@ Four fields (hash includes `previous_hash`):
 | `output` | One sentence. Status-class only. |
 | `event` | `surface`, `path`, `method`, `status`, `tool`, `spec`, `runtime_version`. No user / IP / geo. |
 
-Genesis `previous_hash` is `ZERO_HASH` (64 zero hex). Runtime `GET /v1/receipts` cites the public chain. `GET /v1/receipts/tip` and `GET /v1/receipts/proxy` are best-effort corpus tip proxies.
+Genesis `previous_hash` is `ZERO_HASH` (64 zero hex). Runtime `GET /v1/receipts` cites the public chain. `GET /v1/receipts/tip` and `GET /v1/receipts/proxy` proxy the corpus tip. Empty (ZERO_HASH / null) or dark tip is SLOT (`ACT-RECEIPT-TIP-EMPTY` / `ACT-RECEIPT-TIP-DARK`) — not success. Fail-open is append-skip only. ForgeReceipts is not this public tip.
 
 MESH-VAULT lite may mint catalog / download / mesh events when the token is set. This is not a substitute for session receipts, the FragGate ledger, or ForgeReceipts. Software pull / download is a catalog event, not site resurrection. A pulled site (token revoked, Worker dropped, DNS killed) dies with the pull. Receipts do not restore godlock.uk. Phoenix is wait / re-seal only.
 

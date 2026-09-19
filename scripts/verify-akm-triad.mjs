@@ -27,9 +27,12 @@ import {
   adaptiveRecall,
   calibrate,
   contradict,
+  bySubject,
   explain,
   feedback,
   getNode,
+  hydrateBeliefList,
+  memoryDryRunPreview,
   observe,
   providersFor,
   rebuildFromLearn,
@@ -446,4 +449,63 @@ const updHttp = await postMemory("/v1/memory/update");
 assert.equal(updHttp.status, 400);
 assert.equal((await updHttp.json()).code, "AKM-STUB");
 
-console.log("ok akm-triad Bayesian 3-of-4 rebuild tamper concurrency privacy FragGate");
+// O1: HTTP dry_run must not write ChainLock learn
+const learnBeforeDry = (await loadChain(storeFor(env), "learn")).length;
+const dryHttp = await handler(
+  new Request(origin + "/v1/memory/observe", {
+    method: "POST",
+    headers: { "content-type": "application/json", "user-agent": "Mozilla/5.0" },
+    body: JSON.stringify({ subject: "dry-run-claim", fact: "dry run must not stamp learn", dry_run: true }),
+  }),
+  env,
+);
+assert.equal(dryHttp.status, 200);
+const dryBody = await dryHttp.json();
+assert.equal(dryBody.dry_run, true);
+assert.equal(dryBody.mutated, false);
+assert.equal(dryBody.code, "AKM-DRY-RUN");
+assert.equal(dryBody.belief_is_not_truth, true);
+assert.equal((await loadChain(storeFor(env), "learn")).length, learnBeforeDry);
+assert.equal(getNode("akm_dry_should_not_exist"), null);
+assert.equal(bySubject("dry-run-claim"), null);
+const dryDirect = await runMemoryOp("observe", { subject: "dry-direct", fact: "also no write", dry_run: true }, env);
+assert.equal(dryDirect.code, "AKM-DRY-RUN");
+assert.equal(dryDirect.mutated, false);
+assert.equal((await loadChain(storeFor(env), "learn")).length, learnBeforeDry);
+const preview = memoryDryRunPreview("resolve", { memory_id: obs.memory_id });
+assert.equal(preview.mutated, false);
+assert.equal(preview.authority, "chainlock-learn");
+
+// O2: Belief List rebuilds from durable learn on a cold isolate
+resetMemoryIndexForTests();
+assert.equal(getNode(obs.memory_id), null);
+const missWithoutEnv = await explain(obs.memory_id, "get");
+assert.equal(missWithoutEnv.code, "AKM-NOT-FOUND");
+assert.equal(missWithoutEnv.authority, "chainlock-learn");
+const rebuiltGet = await explain(obs.memory_id, "get", env);
+assert.equal(rebuiltGet.ok, true, JSON.stringify(rebuiltGet));
+assert.equal(rebuiltGet.memory_id, obs.memory_id);
+assert.equal(rebuiltGet.authority, "chainlock-learn");
+assert.equal(rebuiltGet.rebuilt, true);
+assert.equal(rebuiltGet.belief_is_not_truth, true);
+resetMemoryIndexForTests();
+const httpGetAfterCold = await handler(new Request(origin + `/v1/memory/${obs.memory_id}`), env);
+assert.equal(httpGetAfterCold.status, 200);
+const httpGot = await httpGetAfterCold.json();
+assert.equal(httpGot.memory_id, obs.memory_id);
+assert.equal(httpGot.authority, "chainlock-learn");
+resetMemoryIndexForTests();
+const resolvedFromLedger = await resolve(env, {
+  subject: "claim-H",
+  memory_id: obs.memory_id,
+  outcome: 1,
+  weight: 0.8,
+  evidence_hash: "ev-rebuild",
+});
+assert.equal(resolvedFromLedger.ok, true, JSON.stringify(resolvedFromLedger));
+assert.equal(resolvedFromLedger.authority, "chainlock-learn");
+const hydrated = await hydrateBeliefList(env);
+assert.equal(hydrated.authority, "chainlock-learn");
+assert.ok(hydrated.count >= 1);
+
+console.log("ok akm-triad Bayesian 3-of-4 rebuild tamper concurrency privacy FragGate durable-belief dry_run");

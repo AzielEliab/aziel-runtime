@@ -127,7 +127,7 @@ import {
   socialStatusField,
   statsRollupSnapshot,
 } from "./social-status.js";
-import { dispatchMemoryHttp } from "./memory.js";
+import { dispatchMemoryHttp, memoryDryRunPreview } from "./memory.js";
 import {
   dispatchMeshHttp,
   isMeshReadPath,
@@ -230,7 +230,7 @@ import {
   readMcpProtocolHeader,
   readMcpSessionHeader,
 } from "./mcp-transport.js";
-import { evaluateMutateSafeguard } from "./mcp-safeguard.js";
+import { evaluateMutateSafeguard, isTruthyFlag } from "./mcp-safeguard.js";
 import { admitCall, describeRegistry, fraggateCall, listRegistry, verifyRegistry } from "./fraggate/door.js";
 import { LIVE_OPS, NAMED_STUBS, registryDigest, registrySummary } from "./fraggate/registry.js";
 import {
@@ -3745,6 +3745,13 @@ async function handleRequest(request, env, ctx) {
         "/v1/memory/rebuild-index": "rebuild-index",
       };
       if (memPost[memPath] && request.method === "POST") {
+        if (isTruthyFlag(payload && payload.dry_run)) {
+          const preview = memoryDryRunPreview(memPost[memPath], payload);
+          return asHead(
+            request,
+            json(preview, 200, authorityLinkHeaders(origin, url.pathname)),
+          );
+        }
         const registry = registryFor(PRODUCTS);
         const envelope = await fraggateCall(
           { slug: "memory", name: "memory", op: memPost[memPath], payload },

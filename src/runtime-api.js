@@ -1649,7 +1649,7 @@ export function runtimeStaticPaths() {
       get: {
         operationId: "act_receipt_tip",
         summary:
-          "ACT-RECEIPT-1.0 tip/proxy. Documents that the public chain lives on corpus /receipts. Best-effort proxy of corpus /v1/receipts/tip (fail-open if corpus is dark).",
+          "ACT-RECEIPT-1.0 tip/proxy. Documents that the public chain lives on corpus /receipts. Empty or dark tip is SLOT (ACT-RECEIPT-TIP-EMPTY / ACT-RECEIPT-TIP-DARK) — not success. Fail-open is append-skip only.",
         tags: ["runtime"],
         responses: { "200": { description: "Corpus tip proxy or cite-only fallback" } },
       },
