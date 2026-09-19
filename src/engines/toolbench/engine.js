@@ -120,7 +120,6 @@ export function suiteList() {
     count: SUITE_CASES.length,
     cases: SUITE_CASES.map((c) => ({ ...c })),
     third_party_lab: false,
-    : false,
     note: "Synthetic cases only. Self-test ≠ third-party lab.",
     author: AUTHOR,
     identity: AUTHOR,

@@ -40,7 +40,6 @@ export const SUITE_PACK_LABELS = Object.freeze({
   qnm_node_process: "CITE",
   product_worker_tarballs: "SLOT_OR_COUNTED_HOST",
   full_library_in_process: false,
-  : false,
   invented_doi: false,
 });
 
@@ -98,7 +97,6 @@ export function buildSuitePack({ origin, products, registry, extra = {} } = {}) 
       foldlock_tip: "REAL tip cite — full_library_in_process false.",
       wireguard_openvpn_l3: "SLOT — AZVPN HTTPS/WS is the REAL concentrator.",
       qnm_node: "CITE — local process; Worker does not ship qnm-node bytes.",
-      : false,
       invented_binary: false,
     },
     hashtag_parts: { person: "#aziel", runtime: "#runtime", suite: "#aziel-runtime" },

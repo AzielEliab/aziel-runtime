@@ -41,7 +41,6 @@ function envelope() {
     extra: {
       github: PRODUCT_GITHUB,
       third_party_lab: false,
-      : false,
       worker_home: null,
       in_runtime: true,
       domain: null,

@@ -10,7 +10,7 @@
  * Do not write THIS IS: / THIS IS NOT: in these fields.
  *
  * Sort law lives in software-catalog.js (Plain → Gate → Lock; Clock ≠ Lock).
- * Do not invent capabilities, DOIs, , or VPN claims beyond AZVPN
+ * Do not invent capabilities, DOIs, or VPN claims beyond AZVPN
  * honesty (HTTPS/WS REAL; WireGuard/OpenVPN/L3 SLOT).
  *
  * Author: Aziel Eliab.
