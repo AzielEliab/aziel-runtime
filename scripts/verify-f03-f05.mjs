@@ -87,7 +87,7 @@ function assertDurability(block, label, env) {
   assert.equal(block.akm_memory.rebuildable, true, `${label} AKM rebuildable`);
   assert.equal(block.akm_memory.http_dry_run_writes, false, `${label} AKM dry_run`);
   assert.equal(block.akm_memory.belief_is_not_truth, true, `${label} AKM belief`);
-  assert.doesNotMatch(JSON.stringify(block), /OAuth|doi:|framagit|/i, `${label} no invented claims`);
+  assert.doesNotMatch(JSON.stringify(block), /OAuth|doi:|framagit/i, `${label} no invented claims`);
   const expectChain = Boolean(env && env.CHAINLOCK);
   const expectSession = Boolean(env && env.SESSION);
   assert.equal(block.chainlock.durable_commit, expectChain, `${label} chainlock commit flag`);
@@ -143,7 +143,7 @@ assert.match(wrangler, /class_name = "RateQuota"/);
 assert.match(wrangler, /tag = "v3"/);
 assert.match(wrangler, /F03 door quotas/);
 assert.match(wrangler, /Production Durable Object binds/);
-assert.doesNotMatch(wrangler, /doi:|framagit|/i);
+assert.doesNotMatch(wrangler, /doi:|framagit/i);
 
 // --- F03 HTTP FragGate + MCP rate-limit refuses ---
 const rateEnv = baseEnv({

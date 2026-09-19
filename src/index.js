@@ -1089,7 +1089,7 @@ const PRODUCTS_RAW = [
       { op: "doctor", method: "GET", summary: "Richer liveness: synthetic suite, refuse list. Does not increment download KV." },
       { op: "suite", method: "GET", summary: "List synthetic FragGate refuse / happy cases. Self-test ≠ third-party lab." },
       { op: "run_case", method: "POST", summary: "Classify one named synthetic case against the live door table. Does not invent a pass." },
-      { op: "limitation", method: "GET", summary: "Honesty labels: REAL door classification; SLOT for ." },
+      { op: "limitation", method: "GET", summary: "Honesty labels: REAL door classification; SLOT for fielded_100." },
     ],
     example: { id: "fg-halluc" },
     banner:
@@ -1337,7 +1337,8 @@ function workerOnlyCiteRecord(spec, origin) {
     worker_only: true,
     one_line: oneLine,
     description: softwareDescription(spec.slug, spec),
-    note: "Live Worker. Not a FragGate engine. Not a lawyer / not legal advice.",
+    note: "Live Worker. Not a FragGate engine. Not FragGate kernel. Case Mode is a product feature, not a door. Dual-surface AI discovery via this runtime /v1/software + llms/ai/cite/who-is and Whitestone Worker GET /v1/software. Not a lawyer / not legal advice. Session-only. Author: Aziel Eliab only.",
+    product_catalog: spec.web_app ? `${String(spec.web_app).replace(/\/$/, "")}/v1/software` : null,
   };
 }
 
@@ -1556,7 +1557,7 @@ function llmsTxt(origin, env = {}) {
     `AZCoherence: FragGate only. POST /v1/fraggate/call { slug: "azcoherence", op }. Second-pass triad coherence reviewer (AZC-0.1). Peer AZ-CLCE detects R/D/P inconsistency; AZCoherence reviews primary vs alternate → PASS / FLAG / NEUTRALIZE / REFUSE. Never invents evidence. Confidence ≠ truth. Not AKM-TRIAD fabric. Cross-map peers: azclce (peer scorer), azinterface (human UI), AKM-TRIAD (fabric neighbor, not merged). Hubs: azieleliab.com, azielcorpuslibrary.net, godlock.uk. Worker: https://azcoherence-download-tracker.vibelock.workers.dev/. Domain stays null (scoring-review placement). Product cite https://github.com/AzielEliab/AZCoherence.`,
     `ZKAttest: FragGate only. POST /v1/fraggate/call { slug: "zkattest", op }. Hash-commitment attest (ZK-ATTEST-0.1). commit / attest / open / verify are REAL SHA-256 commitments. groth16 / snark / stark / plonk stay FG-STUB. Not a SNARK. In-runtime placement (no invented product Worker). Domain stays null (receipt-attest placement).`,
     `MMConsensus: FragGate only. POST /v1/fraggate/call { slug: "mmconsensus", op }. Posted-opinion tally (MM-CONSENSUS-0.1). Adjacent to DecisionGATE — not a replacement hop. live_model_call stays FG-STUB. In-runtime placement. Domain stays null (consensus-review placement).`,
-    `ToolBench: FragGate only. POST /v1/fraggate/call { slug: "toolbench", op }. Synthetic FragGate refuse playground (TOOLBENCH-0.1). suite / run_case classify against the live door table.  stays FG-STUB. Self-test ≠ third-party lab. In-runtime placement. Domain stays null (tool-playground placement).`,
+    `ToolBench: FragGate only. POST /v1/fraggate/call { slug: "toolbench", op }. Synthetic FragGate refuse playground (TOOLBENCH-0.1). suite / run_case classify against the live door table. fielded_100 stays FG-STUB. Self-test ≠ third-party lab. In-runtime placement. Domain stays null (tool-playground placement).`,
     `AZVPN: FragGate only. POST /v1/fraggate/call { slug: "azvpn", op }. Automatic public VPN concentrator (AZVPN-CONCENTRATOR-1.0). default_vpn_backend azvpn; auto_use true — mesh / AZNet pair / session / AZBrowser auto-bind without naming software=azvpn. open/send/recv/close are REAL application-layer HTTPS/WS sessions (worker_terminates_tunnels:true). wireguard / openvpn / l3_exit stay FG-STUB (SLOT). Not a kernel UDP concentrator. In-runtime placement (no invented product Worker). Domain stays null (tunnel-concentrator placement). Separate from AZNet and AZBrowser.`,
     `Edge MCP gateway: POST /mcp is THE public MCP surface. It terminates into FragGate list → describe → call. Not a second door. No backdoor exec. POST /p/{slug}/{op} stays proxy-not-exec.`,
     `Session isolate sandbox: runtime_session_* policy may set max_ops / wipe_on_close / allow_slugs. Isolate class is worker-do. QEMU / KVM / guest VM policy keys refuse guest_vm_refused. isolate_is_the_jail stays true.`,
@@ -1697,14 +1698,20 @@ function llmsTxt(origin, env = {}) {
     lines.push(`### ${rec.name} (${rec.slug})`);
     lines.push(rec.one_line);
     lines.push(rec.description);
+    lines.push("Case Mode: historical as-of + suppression / honesty axes + TrajectoryLock-lite; export hash-chain score card; confidence ≤75%. Not legal advice.");
     lines.push("Not a lawyer. Not legal advice. Session-only / ephemeral. Optional zip download.");
+    lines.push("NO-LIE placement: Whitestone is not FragGate kernel. Session-only. Author Aziel Eliab.");
     lines.push(`GitHub: ${rec.github}`);
     if (rec.worker_home) {
       lines.push(`Worker: ${rec.worker_home}`);
       lines.push(`Download (optional zip): ${rec.download}`);
     }
+    if (rec.web_app) {
+      lines.push(`Live web app: ${rec.web_app}`);
+      lines.push(`Product catalog (dual-surface AI discovery, not FragGate): ${String(rec.web_app).replace(/\/$/, "")}/v1/software`);
+    }
     if (rec.version) lines.push(`Version: ${rec.version}`);
-    lines.push("FragGate engine: false. Do not invent fraggate_call ops.");
+    lines.push("FragGate engine: false. worker_only. door none. Do not invent fraggate_call ops.");
     lines.push(`How to cite: ${rec.how_to_cite}`);
     lines.push("");
   }
@@ -2410,7 +2417,7 @@ function staticPaths(origin, env = {}) {
       get: {
         operationId: "software_catalog",
         summary:
-          "Authoritative live software catalog for hubs and clients. Every product including AZChat LIVE+bound. EmbryoLock is live-with-local-destructive-boundary (worker_home embryolock-download-tracker). Whitestone is a live Worker-only placement (no FragGate engine; not a lawyer). Sort: Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock). Sibling software under one FragGate door — never separate FragGate engines. Softwares-tab count includes placements (azinterface / decisiongate / forgereceipts / azcoherence / zkattest / mmconsensus / toolbench / azvpn / whitestone); isolation domain software_count is 33 (domains_are_doors:false). website_designs names mesh-resident azcorpus + azlibrary (downloadable to nodes; not extra Softwares; azlibrary upload is API token only). Hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) fetch this on each Software-tab request. Default application/json. Accept: text/html returns a crawl HTML shell (unique title/description + JSON-LD) without changing the Worker homepage UI.",
+          "Authoritative live software catalog for hubs and clients. Every product including AZChat LIVE+bound. EmbryoLock is live-with-local-destructive-boundary (worker_home embryolock-download-tracker). Whitestone is a live Worker-only placement (no FragGate engine; Case Mode is a product feature not a door; not a lawyer). Sort: Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock). Sibling software under one FragGate door — never separate FragGate engines. Softwares-tab count includes placements (azinterface / decisiongate / forgereceipts / azcoherence / zkattest / mmconsensus / toolbench / azvpn / whitestone); isolation domain software_count is 33 (domains_are_doors:false). website_designs names mesh-resident azcorpus + azlibrary (downloadable to nodes; not extra Softwares; azlibrary upload is API token only). Hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) fetch this on each Software-tab request. Default application/json. Accept: text/html returns a crawl HTML shell (unique title/description + JSON-LD) without changing the Worker homepage UI.",
         tags: ["software"],
         responses: { "200": { description: "Sorted software[] plus count_note, isolation_software_count, tab_placement_slugs, domains (domains_are_doors:false), website_designs (azcorpus + azlibrary)" } },
       },

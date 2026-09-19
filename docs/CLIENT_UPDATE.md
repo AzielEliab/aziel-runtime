@@ -29,7 +29,10 @@ Each entry: `slug`, `name`, `bucket` (`plain` | `gate` | `lock`), `status`
 (`live` | `stub` | `local_only`), `version`, `one_line`, `description`, `worker_home`, `download_url`,
 `github`, `mcp` / `agent` path hints, `updated_at`, `git_sha` when the deploy
 Action stamped one. Whitestone is `status: "live"` with `worker_only: true` and
-`fraggate_status: "none"` (live Worker, not a FragGate engine).
+`fraggate_status: "none"` (live Worker, not a FragGate engine). Version **1.6.0**
+adds historical as-of + **Case Mode** (suppression axes, TrajectoryLock-lite,
+hash-chain export, confidence ≤75%). Not legal advice. Session-only. Placement
+note: [`docs/2.0/WHITESTONE-PLACEMENT.md`](2.0/WHITESTONE-PLACEMENT.md).
 
 Sort law: **Plain A–Z → Gate A–Z → Lock A–Z**. Clock ≠ Lock (StaticClock is
 plain). Sibling software under **one FragGate door** — never “separate FragGate
@@ -45,7 +48,10 @@ Whitestone is Worker-only. Counted package is
 `https://whitestone-download-tracker.vibelock.workers.dev/download`
 (`worker_home` `https://whitestone-download-tracker.vibelock.workers.dev/`,
 ARK-style). Live web app stays `https://whitestone.vibelock.workers.dev/`.
-Do not invent FragGate ops for it.
+Product catalog (dual-surface AI discovery, not FragGate):
+`https://whitestone.vibelock.workers.dev/v1/software`.
+Do not invent FragGate ops for it. Aliases `case-mode` / `pro-se` resolve to
+`whitestone`.
 
 `azcoherence` is Softwares-tab Plain (AZCoherence, AZC-0.1). Scoring-review
 placement adjacent to AZ-CLCE. Not AKM-TRIAD fabric. Not a 34th MASTER-33

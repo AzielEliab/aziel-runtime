@@ -163,7 +163,7 @@ assert.match(nodeMesh, /suite-presence is ON/);
 assert.match(nodeMesh, /MESH-DISABLE-REFUSED/);
 assert.match(nodeMesh, /Presence TTL is \*\*5 minutes\*\*|presence TTL is \*\*5 minutes\*\*|TTL is \*\*5 minutes\*\*|Presence TTL is \*\*5 minutes\*\*/i);
 assert.match(nodeMesh, /resolves_to_hub: false/);
-assert.doesNotMatch(nodeMesh, /|glama uuid|oauth idp/i);
+assert.doesNotMatch(nodeMesh, /glama uuid|oauth idp/i);
 assert.match(nodeOps, /GET does not change mesh state|GET \/v1\/mesh never enables/);
 assert.match(nodeOps, /Author: Aziel Eliab only/);
 gate("LAW-CITE", "SEC-FEAT / NODE_MESH / NODE-OPS cite Aziel Eliab + GET-never-enables");
@@ -202,7 +202,7 @@ assert.equal(firstGet.data.rewrite_key, false);
 assert.equal(firstGet.data.lie_to_survive, false);
 assert.equal(firstGet.data.live_nodes, 0, "GET without waitUntil must not invent mesh-size Live Nodes");
 assert.equal(firstGet.data.software_nodes, 0, "GET without waitUntil must not join Softwares workers in the response");
-assert.doesNotMatch(JSON.stringify(firstGet.data), /oauth|framagit||glama uuid/i);
+assert.doesNotMatch(JSON.stringify(firstGet.data), /oauth|framagit|glama uuid/i);
 
 const ping = await jsonReq(env, "/v1/mesh");
 assert.deepEqual(ping.data.bearers, ["suite-presence"], "GET must not add extra radios");

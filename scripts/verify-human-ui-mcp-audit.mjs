@@ -168,6 +168,8 @@ assert.match(softwareHtml, /whitestone\.vibelock\.workers\.dev/);
 assert.match(softwareHtml, /whitestone-download-tracker\.vibelock\.workers\.dev\/download/);
 assert.doesNotMatch(softwareHtml, /\/p\/whitestone/);
 assert.match(softwareHtml, /not a lawyer/i);
+assert.match(softwareHtml, /Case Mode/i);
+assert.match(softwareHtml, /1\.6\.0/);
 
 for (const slug of ["azvpn", "foldlock", "zkattest", "veillock", "azmail"]) {
   const card = await (await get(`/p/${slug}`)).text();
@@ -356,7 +358,7 @@ assert.equal(suitePack.spec, "AZRT-SUITE-PACK-1.0");
 assert.equal(suitePack.labels.software_catalog, "REAL");
 assert.equal(suitePack.labels.worker_wasm_bundle, "SLOT");
 assert.equal(suitePack.labels.wireguard_openvpn_l3, "SLOT");
-assert.equal(suitePack.labels., false);
+assert.equal(suitePack.labels.invented_doi, false);
 assert.equal(suitePack.foldlock_tip.full_library_in_process, false);
 assert.ok(Array.isArray(suitePack.catalog.software) && suitePack.catalog.software.length === 42);
 assert.ok(suitePack.catalog.software.some((s) => s.slug === "whitestone" && s.worker_only === true));

@@ -519,7 +519,7 @@ export const STUB_OPS = {
     "truth_score",
     "court",
   ],
-  toolbench: ["", "live_remote_harness", "invent_pass", "third_party_lab"],
+  toolbench: ["fielded_100", "live_remote_harness", "invent_pass", "third_party_lab"],
   azvpn: [
     "wireguard",
     "wg",

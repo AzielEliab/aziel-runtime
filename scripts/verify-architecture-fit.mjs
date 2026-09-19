@@ -47,7 +47,7 @@ for (const slug of SLUGS) {
 
 assert.equal(classifyCall(buildRegistry(PRODUCTS).bySlug.zkattest, "groth16").kind, "stub");
 assert.equal(classifyCall(buildRegistry(PRODUCTS).bySlug.mmconsensus, "live_model_call").kind, "stub");
-assert.equal(classifyCall(buildRegistry(PRODUCTS).bySlug.toolbench, "").kind, "stub");
+assert.equal(classifyCall(buildRegistry(PRODUCTS).bySlug.toolbench, "fielded_100").kind, "stub");
 assert.equal(classifyCall(null, "health").kind, "halluc");
 
 const committed = await commit({ witness: "private-witness-1", salt: "aa".repeat(16) });
@@ -129,7 +129,7 @@ const mmStub = await (await post("/v1/fraggate/call", { slug: "mmconsensus", op:
 assert.equal(mmStub.ok, false);
 assert.equal(mmStub.code, "FG-STUB");
 
-const tbStub = await (await post("/v1/fraggate/call", { slug: "toolbench", op: "" })).json();
+const tbStub = await (await post("/v1/fraggate/call", { slug: "toolbench", op: "fielded_100" })).json();
 assert.equal(tbStub.ok, false);
 assert.equal(tbStub.code, "FG-STUB");
 
@@ -200,5 +200,16 @@ assert.match(fitDoc, /mmconsensus/);
 assert.match(fitDoc, /toolbench/);
 assert.match(fitDoc, /edge-mcp-gateway/);
 assert.doesNotMatch(fitDoc, / is LIVE|full ZK proving is LIVE|KVM guest is LIVE/i);
+assert.match(fitDoc, /Worker-only placement/);
+assert.match(fitDoc, /WHITESTONE-PLACEMENT/);
+assert.match(fitDoc, /do \*\*not\*\* invent `fraggate_call` ops/);
+
+const whitePlace = readFileSync(new URL("../docs/2.0/WHITESTONE-PLACEMENT.md", import.meta.url), "utf8");
+assert.match(whitePlace, /worker_only/);
+assert.match(whitePlace, /FG-HALLUC-TOOL/);
+assert.match(whitePlace, /Case Mode/);
+assert.match(whitePlace, /not\*\* the FragGate kernel/);
+assert.match(whitePlace, /Aziel Eliab/);
+assert.doesNotMatch(whitePlace, /fraggate_call ops for Whitestone|invent a FragGate door/i);
 
 console.log("ok architecture-fit: zkattest/mmconsensus/toolbench door paths + isolate sandbox + edge MCP gateway");

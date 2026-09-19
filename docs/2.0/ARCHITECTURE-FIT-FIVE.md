@@ -113,3 +113,11 @@ Self-test ≠ third-party lab.
 | Remain-OFF | Untouched. |
 
 See [PUBLIC-CONTRACT.md](PUBLIC-CONTRACT.md) and [CHANGELOG.md](CHANGELOG.md).
+
+---
+
+## Worker-only placement (not a sixth fit)
+
+**Whitestone** (`slug: whitestone`) is a live Softwares-tab card with `worker_only: true` and FragGate **none**. Case Mode (historical as-of, suppression axes, TrajectoryLock-lite, export, confidence ≤75%) is a **product feature**, not a FragGate door and not a sixth architecture-fit capability. Dual-surface AI discovery is `GET /v1/software` + `/llms.txt` / `/ai.txt` / `/cite.json` / `/who-is` plus the Whitestone Worker catalog — do **not** invent `fraggate_call` ops. Isolation 33 unchanged. Session-only. Author **Aziel Eliab** only.
+
+See [WHITESTONE-PLACEMENT.md](WHITESTONE-PLACEMENT.md).

@@ -66,6 +66,11 @@ export const CATALOG_ALIASES = {
   "white-stone": "whitestone",
   white_stone: "whitestone",
   "pro-se": "whitestone",
+  "pro-se-advisor": "whitestone",
+  "case-mode": "whitestone",
+  casemode: "whitestone",
+  "whitestone-case": "whitestone",
+  "whitestone-case-mode": "whitestone",
 };
 
 /**
@@ -165,7 +170,7 @@ export const VERSIONS = {
   mmconsensus: "0.1.0",
   toolbench: "0.1.0",
   azvpn: "0.1.0",
-  whitestone: "1.4.0",
+  whitestone: "1.6.0",
 };
 
 /**

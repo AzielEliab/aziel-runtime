@@ -10,7 +10,7 @@ import { embeddedDigest, trueEngineSlugs } from "../src/engines/digest.js";
 import { NAMED_STUBS } from "../src/fraggate/registry.js";
 import { SOFTWARE_COPY, softwareCopySlugs } from "../src/software-copy.js";
 import { executeLocal } from "../src/engines/runner.js";
-import { catalogExtraCards } from "../src/catalog-meta.js";
+import { CATALOG_ALIASES, catalogExtraCards } from "../src/catalog-meta.js";
 import {
   SOFTWARE_FRAMING,
   SOFTWARE_SORT_LAW,
@@ -42,6 +42,9 @@ assert.equal(softwareBucket("Glossa Filter", "glossafilter"), "plain");
 assert.equal(softwareBucket("4DMap", "4dmap"), "plain");
 assert.equal(softwareBucket("AZCoherence", "azcoherence"), "plain");
 assert.equal(softwareBucket("Whitestone", "whitestone"), "plain");
+assert.equal(CATALOG_ALIASES["case-mode"], "whitestone");
+assert.equal(CATALOG_ALIASES.casemode, "whitestone");
+assert.equal(CATALOG_ALIASES["pro-se"], "whitestone");
 
 const mixed = sortSoftwareEntries([
   { name: "VibeLock", bucket: "lock" },
@@ -300,6 +303,7 @@ assert.equal(body.software.length, softwareCopySlugs().length);
   assert.equal(whiteFaq.url, "https://whitestone-download-tracker.vibelock.workers.dev/");
   assert.equal(whiteFaq.download_url, "https://whitestone-download-tracker.vibelock.workers.dev/download");
   assert.match(whiteFaq.one_line, /not a lawyer/i);
+  assert.match(whiteFaq.one_line, /Case Mode/i);
   assert.ok(faqItems.every((s) => s.name && s.one_line && s.url));
 }
 assert.ok(
@@ -318,7 +322,7 @@ assert.ok(
   body.software.every((s) => /\bUse\b/.test(s.description) && /exists/i.test(s.description)),
   "every description names the job (Use) and why it exists",
 );
-assert.ok(body.software.every((s) => !/\b\b/.test(`${s.one_line} ${s.description}`)));
+assert.ok(body.software.every((s) => !/\bfielded_100\b/.test(`${s.one_line} ${s.description}`)));
 assert.ok(body.software.every((s) => !/10\.\d{4,}\//.test(`${s.one_line} ${s.description}`)), "no invented DOI in copy");
 assert.ok(body.software.every((s) => !/are separate FragGate engines/i.test(s.description || "")));
 
@@ -335,7 +339,16 @@ const USE_PURPOSE = {
   veillock: [/own device/i],
   embryolock: [/offline vault|local vault/i],
   azinterface: [/page cycles/i],
-  whitestone: [/not a lawyer/i, /not legal advice/i, /ephemeral|session/i, /zip/i],
+  whitestone: [
+    /not a lawyer/i,
+    /not legal advice/i,
+    /ephemeral|session/i,
+    /zip/i,
+    /Case Mode/i,
+    /historical as-of/i,
+    /TrajectoryLock/i,
+    /75%/,
+  ],
 };
 for (const [slug, patterns] of Object.entries(USE_PURPOSE)) {
   const card = body.software.find((s) => s.slug === slug);
@@ -377,7 +390,7 @@ assert.equal(whitestone.worker_only, true);
 assert.equal(whitestone.engine, false);
 assert.equal(whitestone.domain, null);
 assert.equal(whitestone.placement, "pro-se-advisor");
-assert.equal(whitestone.version, "1.4.0");
+assert.equal(whitestone.version, "1.6.0");
 assert.equal(whitestone.worker_home, "https://whitestone-download-tracker.vibelock.workers.dev/");
 assert.equal(whitestone.download_url, "https://whitestone-download-tracker.vibelock.workers.dev/download");
 assert.equal(whitestone.web_app, "https://whitestone.vibelock.workers.dev/");
@@ -385,7 +398,11 @@ assert.equal(whitestone.github, "https://github.com/AzielEliab/Whitestone");
 assert.equal(whitestone.engine_digest, null);
 assert.equal(whitestone.agent.fraggate_call, null);
 assert.match(whitestone.one_line, /not a lawyer/i);
+assert.match(whitestone.one_line, /Case Mode/i);
 assert.match(whitestone.description, /not legal advice/i);
+assert.match(whitestone.description, /historical as-of/i);
+assert.match(whitestone.description, /TrajectoryLock/i);
+assert.match(whitestone.note, /Case Mode is a product feature/i);
 assert.doesNotMatch(`${whitestone.one_line} ${whitestone.description}`, /THIS IS:/i);
 
 const whiteCheck = updateCheck({ slug: "whitestone", version: "1.0.0" }, origin, PRODUCTS, {
@@ -393,7 +410,8 @@ const whiteCheck = updateCheck({ slug: "whitestone", version: "1.0.0" }, origin,
 });
 assert.equal(whiteCheck.ok, true);
 assert.equal(whiteCheck.slug, "whitestone");
-assert.equal(whiteCheck.latest, "1.4.0");
+assert.equal(whiteCheck.latest, "1.6.0");
+assert.equal(updateCheck({ slug: "case-mode", version: "1.0.0" }, origin, PRODUCTS, { runtimeVersion: RUNTIME_VERSION }).slug, "whitestone");
 assert.equal(whiteCheck.update_available, true);
 assert.equal(whiteCheck.download_url, "https://whitestone-download-tracker.vibelock.workers.dev/download");
 assert.equal(whiteCheck.github, "https://github.com/AzielEliab/Whitestone");

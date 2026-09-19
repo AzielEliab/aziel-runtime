@@ -47,7 +47,7 @@ export const WORKER_ONLY_PRODUCTS = Object.freeze([
     worker: WHITESTONE_TRACKER_WORKER,
     web_app: `${WHITESTONE_APP_ORIGIN}/`,
     github: "https://github.com/AzielEliab/Whitestone",
-    version: VERSIONS.whitestone || "1.4.0",
+    version: VERSIONS.whitestone || "1.6.0",
     author: "Aziel Eliab",
     identity: "Aziel Eliab",
     worker_only: true,
@@ -243,7 +243,7 @@ export function workerOnlySoftwareCard(spec, origin, meta = {}) {
     fraggate_engine: false,
     worker_only: true,
     note:
-      "Live Worker. FragGate status is none — not a FragGate engine. Hub tab must not treat this as fraggate_call live. Not a lawyer / not legal advice.",
+      "Live Worker. FragGate status is none — not a FragGate engine. Hub tab must not treat this as fraggate_call live. Case Mode is a product feature, not a door. Not a lawyer / not legal advice. Session-only. Author: Aziel Eliab only.",
     mesh: meshHint("/v1/mesh"),
     qns_cd: qnsHint(),
     ...crossMapFields(spec.slug),

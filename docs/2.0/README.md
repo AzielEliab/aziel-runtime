@@ -6,7 +6,7 @@
 
 This directory is the **certification-point** freeze for 2.0.0-rc1. It is **not** a feature dump, **not** a third-party lab letter, and **not** permission to enable Remain-OFF items.
 
-FragGate remains THE single public executable door. `GET /v1/mesh` never enables. Isolation software_count stays 33. Architecture-fit placements (`zkattest` / `mmconsensus` / `toolbench`) are in-runtime engines behind FragGate — see [ARCHITECTURE-FIT-FIVE.md](ARCHITECTURE-FIT-FIVE.md). This tag does **not** cut `2.0.0` final.
+FragGate remains THE single public executable door. `GET /v1/mesh` never enables. Isolation software_count stays 33. Architecture-fit placements (`zkattest` / `mmconsensus` / `toolbench`) are in-runtime engines behind FragGate — see [ARCHITECTURE-FIT-FIVE.md](ARCHITECTURE-FIT-FIVE.md). Whitestone is a **Worker-only** Softwares card (FragGate none; Case Mode is not a door) — see [WHITESTONE-PLACEMENT.md](WHITESTONE-PLACEMENT.md). This tag does **not** cut `2.0.0` final.
 
 ## Gates
 
@@ -24,6 +24,7 @@ FragGate remains THE single public executable door. `GET /v1/mesh` never enables
 |------|------|
 | [PUBLIC-CONTRACT.md](PUBLIC-CONTRACT.md) | FragGate flow, MCP names, OpenAPI parity, health/version, `engine_digest`, live/stub/proxy-fallback |
 | [ARCHITECTURE-FIT-FIVE.md](ARCHITECTURE-FIT-FIVE.md) | Five-capability fit map (ZK attest / consensus / edge MCP / isolate sandbox / toolbench) |
+| [WHITESTONE-PLACEMENT.md](WHITESTONE-PLACEMENT.md) | Whitestone Softwares / worker_only / FragGate none / dual-surface AI discovery (not a sixth fit) |
 | [COMPATIBILITY-POLICY.md](COMPATIBILITY-POLICY.md) | What 2.0.0-rc1 promises not to break (Glama / MCP / OpenAPI clients) |
 | [RECEIPT-SCHEMA.md](RECEIPT-SCHEMA.md) | Session receipts, FragGate envelopes, ledger tip, ForgeReceipts, pipe stamps |
 | [REFUSAL-CONTRACT.md](REFUSAL-CONTRACT.md) | Remain-OFF + stable refuse codes as intentional boundaries |

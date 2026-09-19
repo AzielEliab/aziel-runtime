@@ -3,7 +3,7 @@
  *
  * REAL: named synthetic cases that classify against the live FragGate
  * kind table (halluc / stub / live / unknown_op). Does not invent pass.
- * THIS IS NOT: , a live remote harness, or a third-party lab.
+ * THIS IS NOT: fielded_100, a live remote harness, or a third-party lab.
  *
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
@@ -23,14 +23,14 @@ export const AXES = Object.freeze(["case", "kind", "code", "pass"]);
 export const NEIGHBORS = Object.freeze(["zkattest", "mmconsensus", "decisiongate"]);
 
 export const STUB_REFUSE = Object.freeze([
-  "",
+  "fielded_100",
   "live_remote_harness",
   "invent_pass",
   "third_party_lab",
 ]);
 
 export const LIMITATION =
-  "THIS IS: an in-process synthetic tool-use playground (TOOLBENCH-0.1) for FragGate refuse packs (Sentinel / TDQS / FG-HALLUC-TOOL / FG-STUB). suite lists cases; run_case classifies one case. THIS IS NOT: , a live remote harness, a third-party lab, or permission to invent a pass. Honesty: REAL classification against the live door table. SLOT for . FragGate only. Author: Aziel Eliab only.";
+  "THIS IS: an in-process synthetic tool-use playground (TOOLBENCH-0.1) for FragGate refuse packs (Sentinel / TDQS / FG-HALLUC-TOOL / FG-STUB). suite lists cases; run_case classifies one case. THIS IS NOT: fielded_100, a live remote harness, a third-party lab, or permission to invent a pass. Honesty: REAL classification against the live door table. SLOT for fielded_100. FragGate only. Author: Aziel Eliab only.";
 
 export const LIVE_OPS = Object.freeze(["health", "skill", "doctor", "suite", "run_case", "limitation"]);
 
@@ -94,10 +94,10 @@ export const SUITE_CASES = Object.freeze([
   {
     id: "tb-stub-fielded",
     slug: "toolbench",
-    op: "",
+    op: "fielded_100",
     expect_kind: "stub",
     expect_code: "FG-STUB",
-    note: " is not invented.",
+    note: "fielded_100 is not invented.",
   },
   {
     id: "guest-vm-halluc",
@@ -169,6 +169,7 @@ export function limitationCite() {
     honesty_labels: {
       suite: "REAL",
       run_case: "REAL",
+      fielded_100: "SLOT",
       live_remote_harness: "SLOT",
     },
     out_of_scope: STUB_REFUSE.slice(),
