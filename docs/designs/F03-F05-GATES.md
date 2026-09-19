@@ -47,7 +47,7 @@ Honest: HTML CSP is not a nonce lock. The door script stays inline.
 | ChainLock stamps | CHAINLOCK Durable Object when bound. |
 | Runtime sessions | SESSION Durable Object when bound (TTL 6h, receipt cap 64). |
 | MemoryStore | **Never durable.** In-process isolate memory only. |
-| AKM memory | Derived belief. Not a durable commit. Posterior ≠ truth. |
+| AKM memory | Isolate index is derived belief (not a MemoryStore commit). Recollection authority is the append-only ChainLock learn chain (rebuild on get/resolve/recall miss). Posterior ≠ truth. HTTP `dry_run` does not write. |
 
 `ledger_tip` carries `window_cap: 64`, `ephemeral_window: true`, `memory_store_is_durable: false`.
 

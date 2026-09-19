@@ -3,6 +3,7 @@
 **Date written:** 2026-09-18 UTC  
 **Repo:** [AzielEliab/aziel-runtime](https://github.com/AzielEliab/aziel-runtime)  
 **Tip audited:** `origin/main` `26dd8b6` — Security fix→rescan→patch post BAN-SURVIVAL audit (#132)  
+**Audit paper tip:** `origin/main` `726e635` — OUTLAST audit — 9 pillars (#133)  
 **Prior security paper (do not duplicate):** [`SECURITY-ARCHITECTURE-POST-BAN-SURVIVAL.md`](SECURITY-ARCHITECTURE-POST-BAN-SURVIVAL.md) (tip `df0b42c` / rescan `60d8667`)  
 **Live fronts fetched (User-Agent `Mozilla/5.0`, ~14:31–14:32Z):**  
 `https://aziel-runtime.vibelock.workers.dev` · hub `/runtime` on azieleliab.com / azielcorpuslibrary.net / godlock.uk · hub `/survival` on ae / corpus / godlock / HDJ · `https://miragegrid.vibelock.workers.dev` · FragGate MCP (`runtime_skill`, `fraggate_list`, `fraggate_call`, `mesh_status`, `chainlock_tip`, `chainlock_verify`, `memory_observe` dry-run, `fraggate_describe` ForgeReceipts)  
@@ -26,6 +27,26 @@ This report covers the **new outlast pillars** (preservation, receipts, AI, pers
 | **NOTE** | By-design public demo, cite-only fleet objects, SLOT until attest. Not a missing feature. |
 
 This audit does **not** stamp belt scores.
+
+---
+
+## Rescan (GAP harden — this PR, post #133)
+
+**Date rescanned:** 2026-09-19 UTC  
+**Isolate tip:** this PR on `cursor/outlast-gap-harden-3600` (base `726e635` / #133).  
+**Live bytes fetched (UA `Mozilla/5.0`, before deploy):** runtime `/v1/receipts/tip` still `ok:true` + `hash:null` + `fail_open:true` (O5 live residual until this Worker deploys). Corpus `/v1/receipts` tip still 64-zero, `receipts: []`. MirageGrid hosted `/mcp` still **404**. Plane B still SLOT. Do not treat pre-deploy live bytes as this isolate.
+
+| ID | Audit finding | This loop | Honesty |
+| --- | --- | --- | --- |
+| O1 | HTTP `dry_run` wrote learn stamps | **Closed in isolate** — HTTP + `runMemoryOp` honor `dry_run` (`AKM-DRY-RUN`, `mutated:false`). No ChainLock write. MCP `MCP-DRY-RUN` unchanged. | Silent write after `dry_run:true` is refused |
+| O2 | Isolate Belief List vs durable ChainLock | **Closed in isolate** — `memory_get` / `memory_resolve` / `recall` hydrate from append-only learn on miss / cold isolate. Index stays derived. `belief_is_not_truth`. No `memory_delete` / overwrite. | MemoryStore cache ≠ ledger authority |
+| O5 | Empty ACT tip fail-open as success | **Closed in isolate** — empty (ZERO_HASH / null) or dark tip is SLOT (`ACT-RECEIPT-TIP-EMPTY` / `ACT-RECEIPT-TIP-DARK`). `fail_open` is append-skip only. Tip is content-addressed; ForgeReceipts is not this public tip. | Do not invent receipts to look alive |
+| Plane B/C | SLOT honesty | **Honesty cites added** — `hash_verify_pass_is_not_live`, `do_not_paint_slot_as_live`, Framagit URL null, Zenodo/GitFlic/GitLab not LIVE. Still SLOT until hash-verify LIVE (ALL-TARGETS / USB attest). | No invented LIVE shelves |
+| Cap-7 hosted | SLOT unless attested | **Still SLOT** — `hosted_mcp` / `hosted_land` / `attested:false`. Factory SoT `miragegrid`. `resolves_to_hub:false`. Injected hosted `/mcp` LIVE refuses. Live factory `/mcp` 404. | Do not fake hosted land |
+
+Not flipped: live-node API SLOT. No HTTP ChainLock dump (O4). No second FragGate door. Remain-OFF untouched. No new MCP tool. Shelves stay.
+
+Close tests: `verify-akm-triad.mjs` (dry_run + rebuild-from-learn), `verify-act-receipt.mjs` (empty/dark SLOT), `verify-cold-multi-shelf.mjs` + `verify-ban-survival.mjs` (honesty + hosted SLOT), `verify-f03-f05.mjs` (AKM ledger labels).
 
 ---
 
@@ -56,8 +77,8 @@ This audit does **not** stamp belt scores.
 
 | ID | Sev | Pillar | Finding |
 | --- | --- | --- | --- |
-| O1 | HIGH | Memory / receipts | HTTP `POST /v1/memory/observe` with `dry_run:true` **wrote** learn-chain stamp `cl_858b598b…` / `akm_c0b50a01…`. MCP `memory_observe` `dry_run:true` is `MCP-DRY-RUN` / `mutated:false`. HTTP click = confirm (F02 public-demo). `dry_run` is not a second HTTP gate. |
-| O2 | HIGH | Memory | Immediate `GET /v1/memory/akm_c0b50a01…` → `AKM-NOT-FOUND`. ChainLock stamp is durable (DO). Belief List is isolate MemoryStore. `rebuild-index` is OPERATOR/local. Worker memory ≠ mesh-scoped ledger. |
+| O1 | HIGH | Memory / receipts | HTTP `POST /v1/memory/observe` with `dry_run:true` **wrote** learn-chain stamp `cl_858b598b…` / `akm_c0b50a01…`. MCP `memory_observe` `dry_run:true` is `MCP-DRY-RUN` / `mutated:false`. HTTP click = confirm (F02 public-demo). `dry_run` is not a second HTTP gate. **Closed in isolate (GAP harden):** HTTP dry_run → `AKM-DRY-RUN` / `mutated:false`. |
+| O2 | HIGH | Memory | Immediate `GET /v1/memory/akm_c0b50a01…` → `AKM-NOT-FOUND`. ChainLock stamp is durable (DO). Belief List is isolate MemoryStore. `rebuild-index` is OPERATOR/local. Worker memory ≠ mesh-scoped ledger. **Closed in isolate (GAP harden):** get/resolve/recall rebuild from learn. |
 | O3 | HIGH | Survival / comms | GodLock hub wrap still cites `https://aziel-runtime/v1/mesh/az-generator` (host missing `.vibelock.workers.dev`). DNS does not resolve. Hub follow-on (prior M7). |
 | O4 | MED | Preservation / receipts | `GET /v1/chainlock/tip` and `/v1/chainlock/verify` are **404** (no public HTTP chain). Tip/verify are MCP `chainlock_*` + FragGate kernel. HTTP-only clients cannot hash-verify the vault without MCP/FragGate. By design — label it, do not invent the route. |
 | O5 | MED | Receipts | ACT-RECEIPT public chain: corpus `/v1/receipts` `tip` is 64-zero, `receipts: []`. Runtime `/v1/receipts/tip` `hash: null`, `token_configured: false`, fail-open. Cite is honest. Continuity of *public* ingest receipts is empty. |
@@ -146,9 +167,9 @@ Legend: **PASS** = paper + isolate + fetched bytes agree. **GAP** = contradictio
 | 3 Integration | PASS | PASS | PASS | PASS; O6 sha pin | **PASS** |
 | 4 Preservation | PASS | PASS (MCP) | GAP O4 HTTP | SLOT Plane B/C | **PASS / SLOT** |
 | 5 Communication | PASS | PASS | PASS | PASS | **PASS** |
-| 6 Hash receipts | PASS | PASS (ChainLock MCP + ForgeReceipts) | PASS fail-open | GAP O5 empty public chain | **PASS / GAP** |
+| 6 Hash receipts | PASS | PASS (ChainLock MCP + ForgeReceipts) | PASS fail-open append-skip | GAP O5 empty public chain **closed as SLOT cite** (not success) | **PASS / SLOT** |
 | 7 AI integration | PASS | PASS | PASS | PASS | **PASS** (H4 residual) |
-| 8 Persistent memory | PASS paper | GAP O1/O2 | PASS MCP confirm | GAP isolate index | **GAP** |
+| 8 Persistent memory | PASS paper | GAP O1/O2 **closed in isolate** | PASS MCP confirm + HTTP dry_run | GAP isolate index **closed in isolate** (rebuild-from-learn) | **PASS** (belief ≠ truth; live deploy pending) |
 | 9 Node mesh | PASS | PASS | PASS | PASS | **PASS** |
 
 ---
@@ -324,9 +345,9 @@ No `chainlock_delete` in MCP tools/list (36 names). **PASS** for MCP. **O4** for
 
 ### 6.3 ACT-RECEIPT / library / ingest
 
-Runtime cite four fields (`hash`, `request`, `output`, `event`). Corpus public chain empty + zero tip. Runtime tip proxy `hash=null`. `fail_open=true`.
+Runtime cite four fields (`hash`, `request`, `output`, `event`). Corpus public chain empty + zero tip. Runtime tip proxy `hash=null`.
 
-**O5 GAP** is emptiness of the *public* ingest chain, not a lie about it. Follow-on: operator `RECEIPT_APPEND_TOKEN` + corpus append, then rescan tip ≠ zero. Do not invent receipts to look alive.
+**O5 (closed as SLOT cite):** empty / dark public tip is no longer `ok:true` success. Isolate returns `ACT-RECEIPT-TIP-EMPTY` / `ACT-RECEIPT-TIP-DARK`, `tip_status=slot`, `fail_open=false` on the tip read. Fail-open remains append-skip only. Operator `RECEIPT_APPEND_TOKEN` + corpus append still required before tip ≠ zero. Do not invent receipts to look alive.
 
 Control-plane MirageGrid assign/shuffle receipts hash in-request only — not the ACT public chain.
 
@@ -372,21 +393,21 @@ Live survival `akm_memory`:
 
 MCP: observe dry-run does not write. `authorizes_action=false` on HTTP observe body.
 
-**O1:** HTTP `dry_run` is ignored (MCP-only gate in `mcp-safeguard.js`). Public HTTP observe **is** a write. Document as HTTP-click=confirm. Follow-on: honor `dry_run` on HTTP memory/mesh **or** refuse unknown flags (`AKM-DRY-RUN-HTTP` / ignore-with-warning). Silent write after `dry_run:true` is the honesty break.
+**O1 (closed in isolate):** HTTP `dry_run` is honored (`AKM-DRY-RUN`, `mutated:false`). No ChainLock learn write. MCP `MCP-DRY-RUN` unchanged. HTTP click without the flag is still confirm (F02 public-demo).
 
-**O2:** Belief List is isolate MemoryStore (`durability.akm_memory.durable=false` on survival). ChainLock learn is durable DO. `GET /v1/memory/{id}` does not rebuild from learn on a cold isolate. `rebuild-index` is operator/local (`AKM-OPERATOR`).
+**O2 (closed in isolate):** Belief List isolate index remains a derived cache (`durability.akm_memory.durable=false`). Recollection authority is the append-only ChainLock learn chain. `GET /v1/memory/{id}`, resolve, and recall hydrate from learn on a cold isolate. `rebuild-index` stays OPERATOR/local for a forced rebuild. Posterior ≠ truth.
 
 This is the mesh-scoped vs Worker-memory honesty the pillar asked for:
 
 | Store | Durable? | Truth? | Public get? |
 | --- | --- | --- | --- |
-| ChainLock learn stamps | Yes (CHAINLOCK DO) | Ledger facts (still not “the world”) | MCP tip/recall; no HTTP dump |
-| AKM Belief List / posterior | No (isolate) | **Not truth** | Only while that isolate still holds the index |
+| ChainLock learn stamps | Yes (CHAINLOCK DO) | Ledger facts (still not “the world”) | MCP tip/recall; GET rebuilds Belief List from this ledger |
+| AKM Belief List / posterior | Derived (rebuildable) | **Not truth** | After hydrate-from-learn; isolate cache may be empty |
 | LLM client memory | No | Rumor | Never a replica |
 
-**PASS** as law. **GAP** as “persistent memory” if a client treats `memory_id` from HTTP observe as a durable handle. Follow-on: `memory_get` may `rebuildFromLearn` (already exported) on miss — *or* the GET body must say `index=isolate` / `rebuild=operator`. Do not pretend the posterior survived a pull.
+**PASS** as law. **PASS** as durable handle: `memory_id` from HTTP observe is a learn-chain id, not an isolate-only cookie. Do not pretend the posterior is truth after a pull.
 
-This PR does **not** auto-rebuild (that is hardening). It maps delete/update HTTP to `AKM-STUB`.
+Delete/update HTTP stay `AKM-STUB`.
 
 ---
 
@@ -416,14 +437,14 @@ At this instant the numbers match because the roster is the `{slug}-worker` fan-
 
 | ID | Sev | Area | Evidence | This PR |
 | --- | --- | --- | --- | --- |
-| O1 | HIGH | HTTP `dry_run` writes memory | Live observe+dry_run minted `cl_858b598b…` | Follow-on HTTP dry_run honor; documented |
-| O2 | HIGH | Isolate Belief List vs durable ChainLock | GET id → `AKM-NOT-FOUND` after write | Follow-on get-rebuild or label |
+| O1 | HIGH | HTTP `dry_run` writes memory | Live observe+dry_run minted `cl_858b598b…` | **Closed in isolate** (`AKM-DRY-RUN`) |
+| O2 | HIGH | Isolate Belief List vs durable ChainLock | GET id → `AKM-NOT-FOUND` after write | **Closed in isolate** (rebuild-from-learn) |
 | O3 | HIGH | GodLock az-generator host typo | Live wrap `https://aziel-runtime/v1/…` | Hub follow-on |
 | O7 | HIGH | Public FragGate / HTTP memory without token | `/mcp` auth none; HTTP observe 200 | By design; attest first |
 | H4 | HIGH | (prior, still open) | same | Attest / not this PR |
 | H6 | HIGH | (prior) factory `design_of` URL vs `hub_designs` | Runtime keeps `hub_designs` + `factory_design_of` | Pair-repo |
 | O4 | MED | No HTTP ChainLock tip/verify | 404 | Cite-only; do not invent dump |
-| O5 | MED | Empty public ACT chain | zero tip, `[]` | Operator token + rescan |
+| O5 | MED | Empty public ACT chain | zero tip, `[]` | **Closed as SLOT cite** (not success). Operator token still needed for a non-empty public chain |
 | O6 | MED | Catalog `git_sha` ≠ git tip | `e2159d5b` vs `26dd8b6` | Stamp on deploy or label pin |
 | M2 | MED | Mesh HTTP skips MASTER-33 | prior; still true | Documented |
 | M4 | MED | Hub SoT prefers workers.dev | ae/godlock wraps | Hub failover aliases |
@@ -443,8 +464,8 @@ Do **not** boil the ocean. One loop per row. Rescan live bytes after each. Do no
 
 1. **Deploy this PR** (audit paper + H5 cite + O8 refuse maps). Rescan `POST /v1/mesh/rewrite` → `MESH-NO-REWRITE`; `POST /v1/memory/delete` → `AKM-STUB`; corpus `/survival` still 200.
 2. **Hub cite completeness (O3, M4, O9)** — GodLock az-generator host; hub `sot_aliases` failover; optional corpus `/v1/shelves` alias to `/shelves`. Separate hub PRs.
-3. **Memory honesty (O1, O2)** — HTTP `dry_run` preview-or-refuse; `memory_get` rebuild-from-learn on miss **or** explicit `index=isolate` on 404. Then rescan with observe→get across two requests. Do not treat posterior as truth.
-4. **Public ACT tip (O5)** — set `RECEIPT_APPEND_TOKEN` on corpus; rescan tip ≠ zero. Fail-open stays if unset.
+3. **Memory honesty (O1, O2)** — **Closed in isolate (this PR).** HTTP `dry_run` preview; `memory_get` / resolve / recall rebuild-from-learn. Rescan live after deploy with observe→get across two requests. Do not treat posterior as truth.
+4. **Public ACT tip (O5)** — **Empty tip no longer fail-opens as success (this PR).** Operator `RECEIPT_APPEND_TOKEN` + corpus append still required before tip ≠ zero. Fail-open stays for append-skip only.
 5. **Attest gate (O7, H4, N1, N2)** — named origin + `engine_digest` + ChainLock/ForgeReceipts **before** live-node API or hosted Cap-7 SLOT→LIVE.
 6. **Catalog pin (O6)** — stamp `BUILD_GIT_SHA` at deploy or publish `git_sha_is_build_meta=true`.
 7. **Optional compact OpenAPI / llms (M6)** — only if crawler hammering returns.
@@ -458,10 +479,11 @@ Do **not** boil the ocean. One loop per row. Rescan live bytes after each. Do no
 - H5 cite: `docs/corpus-runtime-front-door.md` records corpus root `/survival` **200** on the OUTLAST rescan.
 - Refuse-label maps: HTTP `/v1/mesh/rewrite|lie*` → `MESH-NO-REWRITE` / `MESH-NO-LIE`; HTTP `/v1/memory/delete|update|rewrite` → `AKM-STUB`.
 - Close tests in `scripts/verify-no-lie.mjs` and `scripts/verify-akm-triad.mjs`.
+- **GAP harden (rescan):** Belief List rebuild-from-learn; HTTP memory `dry_run` does not write; ACT empty/dark tip SLOT; Plane B/C honesty cites; hosted Cap-7 `/mcp`/land SLOT + factory SoT.
 
 ## What this PR does not change
 
-- No new MCP tool. No FragGate slug. No shelf drop. No live-node API LIVE. No hosted Cap-7 `/mcp`. No Remain-OFF flip. No HTTP ChainLock dump. No auto `rebuildFromLearn` on GET. No GodLock hub deploy.
+- No new MCP tool. No FragGate slug. No shelf drop. No live-node API LIVE. No hosted Cap-7 `/mcp`. No Remain-OFF flip. No HTTP ChainLock dump. No GodLock hub deploy. No invented LIVE Zenodo/Framagit. Posterior is still not truth.
 
 ---
 

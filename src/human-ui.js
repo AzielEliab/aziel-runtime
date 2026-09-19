@@ -580,7 +580,7 @@ ${dashCards}
     <pre class="ws-out fg-out" id="dash-out" role="status" aria-live="polite">Pick a Software card. FragGate only.</pre>
     <div class="receipt-board" id="dash-receipts">
       <h3>Receipts</h3>
-      <p class="blurb">ACT-RECEIPT-1.0 cite from <code>GET /v1/receipts</code>. Public chain lives on the corpus. Fail-open without an append token. Local mints from this pane are listed below — hosted never stores files.</p>
+      <p class="blurb">ACT-RECEIPT-1.0 cite from <code>GET /v1/receipts</code>. Public chain lives on the corpus. Fail-open is append-skip without a token. Empty or dark public tip is SLOT, not success. Local mints from this pane are listed below — hosted never stores files.</p>
       <p class="ws-status" id="receipt-cite-line" data-state="loading">Loading receipts cite…</p>
       <pre class="ws-out fg-out" id="receipt-cite-out" role="status">GET ${escapeHtml(base)}/v1/receipts</pre>
       <div class="actions">

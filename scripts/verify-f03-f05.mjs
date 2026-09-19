@@ -83,6 +83,10 @@ function assertDurability(block, label, env) {
   assert.equal(block.memory_store.durable, false, `${label} MemoryStore durable`);
   assert.equal(block.memory_store.durable_commit, false, `${label} MemoryStore commit`);
   assert.equal(block.akm_memory.durable, false, `${label} AKM durable`);
+  assert.equal(block.akm_memory.ledger, "chainlock-learn", `${label} AKM ledger`);
+  assert.equal(block.akm_memory.rebuildable, true, `${label} AKM rebuildable`);
+  assert.equal(block.akm_memory.http_dry_run_writes, false, `${label} AKM dry_run`);
+  assert.equal(block.akm_memory.belief_is_not_truth, true, `${label} AKM belief`);
   assert.doesNotMatch(JSON.stringify(block), /OAuth|doi:|framagit|/i, `${label} no invented claims`);
   const expectChain = Boolean(env && env.CHAINLOCK);
   const expectSession = Boolean(env && env.SESSION);

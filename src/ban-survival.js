@@ -71,13 +71,16 @@ export const AKM_MEMORY_LAW = Object.freeze({
   belief_is_not_truth: true,
   posterior_is_not_truth: true,
   append_only: true,
-  memory_get: "append-only recollection",
+  memory_get: "append-only recollection rebuilt from ChainLock learn",
   memory_resolve: "forward-path additive stamps on existing memory IDs",
   memory_delete: false,
   memory_update_overwrite: false,
+  belief_list_durable: "chainlock-learn",
+  isolate_index: "derived-cache",
+  http_dry_run_writes: false,
   stub_ops: Object.freeze(["model_update", "rollback", "rewrite", "delete_history", "auto_update"]),
   note:
-    "Ranked adaptive recall cross-references the Belief List against verified ChainLock states. Posterior ≠ truth. Runtime must not treat its own memory as absolute fact. memory_get is append-only (no memory_delete / memory_update overwrite). memory_resolve adds sedimentary stamps — no sanitizing the old trail.",
+    "Ranked adaptive recall cross-references the Belief List against verified ChainLock states. The isolate index is a derived cache; recollection authority is the append-only learn chain (rebuild on get/resolve/recall miss). Posterior ≠ truth. Runtime must not treat its own memory as absolute fact. memory_get is append-only (no memory_delete / memory_update overwrite). memory_resolve adds sedimentary stamps — no sanitizing the old trail. HTTP dry_run previews and does not write durable state.",
 });
 
 export const REFUSE = Object.freeze({
@@ -242,11 +245,26 @@ export const SHELF_BACKUP = Object.freeze({
     pack_sha256: TIP_PACK_SHA256,
     hash_verify: "pass",
     live_ready: false,
-    note: "COLD-MULTI-SHELF cite. Hash-verify PASS still SLOT. Backup for death-by-ban. Not /mcp.",
+    honesty: Object.freeze({
+      hash_verify_pass_is_not_live: true,
+      do_not_paint_slot_as_live: true,
+      invented_live: false,
+      framagit_url: null,
+      zenodo_live: false,
+      gitlab_live: false,
+      gitflic_live: false,
+      slot_until: "CNS-PLANE-B-ALL-TARGETS",
+    }),
+    note: "COLD-MULTI-SHELF cite. Hash-verify PASS still SLOT. Do not paint SLOT as LIVE. Framagit URL null. Zenodo/GitFlic/GitLab not LIVE. Backup for death-by-ban. Not /mcp.",
   }),
   plane_c: Object.freeze({
     status: "slot",
-    note: "USB airgap SLOT until CNS-OPERATOR-ATTEST. Backup for death-by-ban. Not /mcp.",
+    honesty: Object.freeze({
+      do_not_paint_slot_as_live: true,
+      attested: false,
+      slot_until: "CNS-OPERATOR-ATTEST",
+    }),
+    note: "USB airgap SLOT until CNS-OPERATOR-ATTEST. Do not paint SLOT as LIVE. Backup for death-by-ban. Not /mcp.",
   }),
   note: "Cold shelves back up death-by-ban. Live fronts back up shelf death. Keep both. BAN-NO-SHELF-ONLY / BAN-NO-DOOR-ONLY.",
 });
@@ -309,8 +327,13 @@ export const CAP7_AZNET = Object.freeze({
     code: "BAN-CAP7-HOST-NOT-ATTESTED",
     payload_host: "stub",
     is_live_door: false,
+    hosted_mcp: "slot",
+    hosted_land: "slot",
+    attested: false,
+    name_set_sot: "miragegrid",
+    resolves_to_hub: false,
     note:
-      "AZNet never hosts payloads (payload_host stays stub). Cap-7 names are not /mcp and not ICANN aliases. Do not invent a hosted endpoint.",
+      "AZNet never hosts payloads (payload_host stays stub). Cap-7 names are not /mcp and not ICANN aliases. Hosted /mcp and public land stay SLOT unless attested. Do not invent a hosted endpoint. Factory SoT is MirageGrid. resolves_to_hub false.",
     next:
       "AZNet stamp binds a Cap-7 name (design DNA only; resolves_to_hub false) to an attested named FragGate origin. Only that named origin may later flip hosted_endpoints LIVE. Security audit first.",
   }),
@@ -623,20 +646,28 @@ export function judgeFakeCap7Host(input) {
     src.fake_icann_az === true ||
     src.live_registrar === true ||
     src.resolves_to_hub === true ||
-    src.radio_phy === true
+    src.radio_phy === true ||
+    src.hosted_mcp === "live" ||
+    src.hosted_land === "live" ||
+    src.hosted_mcp_live === true ||
+    src.cap7_hosted_mcp_live === true
   ) {
     return {
       accept: false,
       action: "refuse",
       reason: REFUSE.NO_FAKE_CAP7_HOST,
       hosted_endpoints: "slot",
+      hosted_mcp: "slot",
+      hosted_land: "slot",
+      attested: false,
       radio_phy: false,
       resolves_to_hub: false,
       public_icann: false,
-      note: "Cap-7 cite is LIVE. Hosted Cap-7 exec endpoints are SLOT. No fake .az. radio_phy false. resolves_to_hub false.",
+      name_set_sot: "miragegrid",
+      note: "Cap-7 cite is LIVE. Hosted Cap-7 exec /mcp and public land are SLOT until attested. No fake .az. radio_phy false. resolves_to_hub false. Factory SoT is MirageGrid.",
     };
   }
-  return { accept: true, action: "ok", hosted_endpoints: "slot", radio_phy: false };
+  return { accept: true, action: "ok", hosted_endpoints: "slot", hosted_mcp: "slot", hosted_land: "slot", attested: false, radio_phy: false };
 }
 
 export function judgeMemoryAsTruth(input) {
@@ -778,6 +809,13 @@ export function shelfBackupCite() {
     lockset_tip: SHELF_BACKUP.lockset_tip,
     plane_b: "slot",
     plane_c: "slot",
+    honesty: {
+      hash_verify_pass_is_not_live: true,
+      do_not_paint_slot_as_live: true,
+      invented_live: false,
+      framagit_url: null,
+      zenodo_live: false,
+    },
     note: SHELF_BACKUP.note,
   };
 }
@@ -825,6 +863,11 @@ export function cap7AznetCite(origin) {
       code: CAP7_AZNET.hosted_endpoints.code,
       payload_host: "stub",
       is_live_door: false,
+      hosted_mcp: "slot",
+      hosted_land: "slot",
+      attested: false,
+      name_set_sot: "miragegrid",
+      resolves_to_hub: false,
       note: CAP7_AZNET.hosted_endpoints.note,
       next: CAP7_AZNET.hosted_endpoints.next,
     },
@@ -844,6 +887,9 @@ export function akmMemoryCite() {
     memory_resolve: AKM_MEMORY_LAW.memory_resolve,
     memory_delete: false,
     memory_update_overwrite: false,
+    belief_list_durable: AKM_MEMORY_LAW.belief_list_durable,
+    isolate_index: AKM_MEMORY_LAW.isolate_index,
+    http_dry_run_writes: false,
     stub_ops: AKM_MEMORY_LAW.stub_ops.slice(),
     note: AKM_MEMORY_LAW.note,
   };

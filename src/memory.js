@@ -33,6 +33,7 @@ import {
 } from "./mcp-schema.js";
 import { domainFields } from "./domain-map.js";
 import { boundMemoryMeta, MEMORY_META_CAP, SECRET_KEYS } from "./memory/meta.js";
+import { isTruthyFlag } from "./mcp-safeguard.js";
 import { isOperator } from "./packed-catalog.js";
 import { advance as roseAdvance, ensureTip, tipOf } from "./roseclock/engine.js";
 import { canonicalize, sha256Hex } from "./session-core.js";
@@ -101,6 +102,22 @@ export const MEMORY_MCP_TOOLS = Object.freeze([
   "memory_get",
 ]);
 
+/** Write ops that must not persist when dry_run is set (HTTP or payload). */
+export const MEMORY_WRITE_OPS = Object.freeze([
+  "observe",
+  "resolve",
+  "calibrate",
+  "support",
+  "contradict",
+  "supersede",
+  "revoke",
+  "feedback",
+  "rebuild-index",
+  "rebuild_index",
+]);
+
+export const AKM_DRY_RUN = "AKM-DRY-RUN";
+
 const PROVIDERS = {
   "generic-evidence": evidenceProvider,
   clce: clceProvider,
@@ -116,6 +133,7 @@ export {
   getNode,
   allNodes,
   byChainHash,
+  bySubject,
 };
 
 function clip(text, cap) {
@@ -135,6 +153,54 @@ export function refuse(code, message, extra = {}) {
     belief_is_not_truth: true,
     authorizes_action: false,
     ...extra,
+  };
+}
+
+export function memoryLedgerHonesty(extra = {}) {
+  return {
+    index: "derived-isolate",
+    authority: "chainlock-learn",
+    belief_list_durable: "chainlock-learn",
+    belief_is_not_truth: true,
+    memory_delete: false,
+    memory_update_overwrite: false,
+    ...extra,
+  };
+}
+
+/**
+ * Rebuild the isolate Belief List from the append-only ChainLock learn chain.
+ * Isolate MemoryStore is never the durable source. Posterior ≠ truth.
+ */
+export async function hydrateBeliefList(storeOrEnv) {
+  const rebuilt = await rebuildFromLearn(storeOrEnv);
+  return {
+    ...rebuilt,
+    ...memoryLedgerHonesty({ rebuilt: true }),
+  };
+}
+
+export function memoryDryRunPreview(op, src = {}) {
+  const packet = src && typeof src === "object" ? src : {};
+  return {
+    ok: true,
+    dry_run: true,
+    mutated: false,
+    code: AKM_DRY_RUN,
+    spec: AKM_SPEC,
+    author: AKM_AUTHOR,
+    software_tab: false,
+    op: String(op || ""),
+    would: {
+      op: String(op || ""),
+      subject: packet.subject || packet.s || null,
+      fact: packet.fact || packet.f || packet.claim || null,
+      memory_id: packet.memory_id || packet.id || null,
+    },
+    ...memoryLedgerHonesty(),
+    authorizes_action: false,
+    note:
+      "Preview only. HTTP dry_run does not write ChainLock learn or the Belief List. Silent write after dry_run:true is refused. MCP dry_run stays MCP-DRY-RUN.",
   };
 }
 
@@ -243,13 +309,13 @@ async function forwardLearn(env, input) {
     provenance_hash: input.provenance_hash,
   });
   if (!stamp.ok) return refuse("AKM-STAMP", stamp.message || stamp.refuse || "ChainLock append failed.", { stamp });
-  await rebuildFromLearn(env);
+  await hydrateBeliefList(env);
   return {
     ok: true,
     spec: AKM_SPEC,
     author: AKM_AUTHOR,
     software_tab: false,
-    belief_is_not_truth: true,
+    ...memoryLedgerHonesty(),
     authorizes_action: false,
     stamp: stamp.card,
     chainlock: { id: stamp.stamp.id, h: stamp.stamp.stamp_sha256, seq: stamp.seq },
@@ -317,8 +383,12 @@ export async function observe(env, src = {}) {
 export async function resolve(env, src = {}) {
   const packet = src && typeof src === "object" ? src : {};
   const subject = clip(packet.subject || packet.s || "resolution", 80);
-  const memory_id = packet.memory_id || bySubject(subject)?.memory_id;
-  if (!memory_id) return refuse("AKM-NO-MEMORY", "Resolution requires memory_id or an observed subject.");
+  let memory_id = packet.memory_id || bySubject(subject)?.memory_id;
+  if (!memory_id || (packet.memory_id && !getNode(packet.memory_id))) {
+    await hydrateBeliefList(env);
+    memory_id = packet.memory_id || bySubject(subject)?.memory_id;
+  }
+  if (!memory_id) return refuse("AKM-NO-MEMORY", "Resolution requires memory_id or an observed subject.", memoryLedgerHonesty());
   const label = String(packet.outcome_label || "").toUpperCase();
   const unknown = label === "UNKNOWN" || packet.outcome === "UNKNOWN" || packet.outcome == null;
   if (!unknown && packet.outcome == null) {
@@ -358,8 +428,12 @@ export async function resolve(env, src = {}) {
 async function kindEvent(env, src, kind, factDefault) {
   const packet = src && typeof src === "object" ? src : {};
   const subject = clip(packet.subject || packet.s || kind, 80);
-  const memory_id = packet.memory_id || bySubject(subject)?.memory_id;
-  if (!memory_id) return refuse("AKM-NO-MEMORY", `${kind} requires memory_id or an observed subject.`);
+  let memory_id = packet.memory_id || bySubject(subject)?.memory_id;
+  if (!memory_id || (packet.memory_id && !getNode(packet.memory_id))) {
+    await hydrateBeliefList(env);
+    memory_id = packet.memory_id || bySubject(subject)?.memory_id;
+  }
+  if (!memory_id) return refuse("AKM-NO-MEMORY", `${kind} requires memory_id or an observed subject.`, memoryLedgerHonesty());
   return forwardLearn(env, {
     k: kind,
     subject,
@@ -424,6 +498,7 @@ export async function calibrate(env, src = {}) {
   const verified = await chainVerify(env, { c: "learn" });
   if (!verified.ok) return refuse("CHAIN_VERIFY_FAIL", "ChainLock verify failed. Adaptive path is closed.", { verify: verified });
   const subject = clip(packet.subject || packet.s || "calibration", 80);
+  await hydrateBeliefList(env);
   const memory_id = packet.memory_id || bySubject(subject)?.memory_id || findOrCreateId(subject);
   const node = getNode(memory_id);
   const useCase = classifyUseCase(packet, packet.operation || "calibrate");
@@ -502,6 +577,7 @@ export async function adaptiveRecall(storeOrEnv, input = {}) {
       verify: verified,
     });
   }
+  await hydrateBeliefList(storeOrEnv);
   const raw = await chainRecall(storeOrEnv, {
     q: src.q || src.query,
     depth: src.depth != null ? src.depth : 5,
@@ -556,18 +632,30 @@ export async function adaptiveRecall(storeOrEnv, input = {}) {
     use_case: useCase.id,
     count: Math.min(ranked.length, cap),
     facts: ranked.slice(0, cap),
+    ...memoryLedgerHonesty({ rebuilt: true }),
   };
 }
 
-export async function explain(memoryId, view = "get") {
-  const node = getNode(memoryId);
-  if (!node) return refuse("AKM-NOT-FOUND", "Unknown memory id.", { memory_id: memoryId });
+export async function explain(memoryId, view = "get", env = null) {
+  let node = getNode(memoryId);
+  let rebuilt = false;
+  if (!node && env != null) {
+    await hydrateBeliefList(env);
+    node = getNode(memoryId);
+    rebuilt = true;
+  }
+  if (!node) {
+    return refuse("AKM-NOT-FOUND", "Unknown memory id.", {
+      memory_id: memoryId,
+      ...memoryLedgerHonesty({ rebuilt, rebuild: env == null ? "pass-env-to-rebuild" : "miss-after-rebuild" }),
+    });
+  }
   const base = {
     ok: true,
     spec: AKM_SPEC,
     author: AKM_AUTHOR,
     software_tab: false,
-    belief_is_not_truth: true,
+    ...memoryLedgerHonesty({ rebuilt }),
     authorizes_action: false,
     memory_id: node.memory_id,
     status: node.status,
@@ -600,7 +688,7 @@ export async function rebuildIndex(env, src = {}, request = null) {
   if (!local && !operator) {
     return refuse("AKM-OPERATOR", "rebuild-index is OPERATOR / local only.", { operator: false });
   }
-  const rebuilt = await rebuildFromLearn(env);
+  const rebuilt = await hydrateBeliefList(env);
   return {
     ok: true,
     spec: AKM_SPEC,
@@ -620,7 +708,7 @@ export async function memoryHealth() {
     nodes: allNodes().length,
     manifest: manifestView(),
     learn_kinds: LEARN_KINDS.slice(),
-    belief_is_not_truth: true,
+    ...memoryLedgerHonesty(),
   };
 }
 
@@ -628,7 +716,7 @@ export function memorySkill() {
   return {
     markdown: `# Adaptive Knowledge Memory (AKM-TRIAD-1.0)
 
-Fabric recollection over ChainLock learn. Bayesian posterior is **calibrated belief**, not truth. History never changes.
+Fabric recollection over ChainLock learn. Bayesian posterior is **calibrated belief**, not truth. History never changes. The Belief List is derived from the append-only learn chain — isolate MemoryStore is a cache, not the durable source. HTTP dry_run previews without write.
 
 FragGate is THE single door. Not a Softwares-tab product.
 
@@ -645,6 +733,9 @@ export async function runMemoryOp(op, payload, env, request = null) {
   if (MEMORY_STUB_OPS.includes(action)) {
     return refuse("AKM-STUB", `${action} is refused. No rollback, no history rewrite, no automatic model update.`);
   }
+  if (MEMORY_WRITE_OPS.includes(action) && isTruthyFlag(src.dry_run)) {
+    return memoryDryRunPreview(action, src);
+  }
   if (action === "health") return memoryHealth();
   if (action === "skill") return memorySkill();
   if (action === "observe") return observe(env, src);
@@ -656,9 +747,9 @@ export async function runMemoryOp(op, payload, env, request = null) {
   if (action === "supersede") return supersede(env, src);
   if (action === "revoke") return revoke(env, src);
   if (action === "feedback") return feedback(env, src);
-  if (action === "get") return explain(src.memory_id || src.id, src.view || "get");
-  if (action === "history") return explain(src.memory_id || src.id, "history");
-  if (action === "calibration") return explain(src.memory_id || src.id, "calibration");
+  if (action === "get") return explain(src.memory_id || src.id, src.view || "get", env);
+  if (action === "history") return explain(src.memory_id || src.id, "history", env);
+  if (action === "calibration") return explain(src.memory_id || src.id, "calibration", env);
   if (action === "rebuild-index" || action === "rebuild_index") return rebuildIndex(env, src, request);
   return refuse("AKM-UNKNOWN-OP", `Unknown memory op ${JSON.stringify(op || "")}.`, { ops: MEMORY_CANONICAL_OPS.slice() });
 }
@@ -940,7 +1031,7 @@ export async function dispatchMemoryHttp(method, pathname, payload, env, request
   const getMatch = path.match(/^\/v1\/memory\/([^/]+)(?:\/(history|calibration))?$/);
   if (getMatch && (m === "GET" || m === "HEAD")) {
     const view = getMatch[2] || "get";
-    const body = await explain(decodeURIComponent(getMatch[1]), view);
+    const body = await explain(decodeURIComponent(getMatch[1]), view, env);
     return { status: body.ok === false ? 404 : 200, body };
   }
   if (path === "/v1/memory" && (m === "GET" || m === "HEAD")) {
