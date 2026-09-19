@@ -6,12 +6,20 @@
 import { capabilityDoctor, capabilityHealth, capabilitySkill } from "../capability.js";
 import {
   ALIASES,
+  HANDWRITING_FAMILY,
+  HANDWRITING_NOTE,
+  HANDWRITING_OPS,
   INJECT_NOTE,
   LIMITATION,
   LIVE,
   MAX_SIDE,
   MODES,
+  RECOVER_NOTE,
+  RECOVER_OPS,
+  REFUSE_NO_INK,
   REFUSE_OPAQUE,
+  REFUSE_UNSUPPORTED,
+  REFUSE_LIMIT,
   STUB_MODES,
   TARGET_IDS,
   TARGETS,
@@ -19,6 +27,8 @@ import {
   UNREDACT_NOTE,
   UNREDACT_OPS,
   VERSION,
+  listHandwriting,
+  listRecover,
   listUnredact,
   overlayFromB64,
   resolveMode,
@@ -44,12 +54,20 @@ export const RUNTIME_LIMITATION =
   LIMITATION +
   " Overlay payload accepts inject true|false. ON is false-color membership paint, not recovered pigment. " +
   "OFF is gray of the same gate. Zero ignores the switch. Reports tazel_inband_pct and vyrn_inband_pct. " +
-  "Vendored overlay also carries honest unredact / leftover-bytes (locate, lift, recover, refuse). " +
+  "Vendored overlay also carries honest unredact / leftover-bytes (locate, lift, recover, refuse), " +
+  "deep PDF revision graph + per-revision copies, universal recover (locate/deep-recover/revision-graph/" +
+  "cross-compare/extract-embedded/scan-orphans/scan-metadata/scan-sidecars/scan-history/refuse), " +
+  "and handwriting ink-scan heuristics (analyze/compare/side-by-side/graph/forgery-indicators/refuse). " +
   "Leftover-bytes recover reads present container bytes only (object id / offset / stream). " +
+  "Incremental PDF revisions return revision_graph (startxref/Prev edges) plus per-revision tip-cut copies. " +
   "Opaque clipped black / flattened screenshot with no leftover bytes refuses " +
   REFUSE_OPAQUE +
-  ". Heatmaps are not transcripts. Never OCR-from-black-box. " +
-  "Catalog LIVE_OPS stay health, modes, targets, overlay, verify, doctor, skill — unredact is not a FragGate door op. " +
+  ". Universal recover cites present bytes only; 7z / HEIC / HEIF stay SLOT (SL-RECOVER-UNSUPPORTED). " +
+  "Handwriting is a 256px PNG preview heuristic — not ESDA, not chemical dating, not writer identity, not a court finding. " +
+  "Hosted JPEG handwriting is SLOT. Recover refuse codes are SL-RECOVER-*. Handwriting refuse codes are SL-HANDWRITING-*. " +
+  "Heatmaps are not transcripts. Never OCR-from-black-box. " +
+  "Catalog LIVE_OPS stay health, modes, targets, overlay, verify, doctor, skill — unredact / recover / handwriting " +
+  "are product Worker doors (/v1/unredact, /v1/recover, /v1/handwriting), not a FragGate door op. " +
   "THIS IS NOT: a spectrometer, forensic lab, ESDA, chemical test, UV lamp, pigment recovery, or letter invention. " +
   "Balance/lemon/indent never invent marks. Identity Aziel Eliab only.";
 
@@ -72,12 +90,49 @@ const UNREDACT_FLAG = Object.freeze({
   ops: UNREDACT_OPS.slice(),
   refuse_code: REFUSE_OPAQUE,
   leftover_bytes_recovery: true,
+  revision_graph: true,
+  revision_copies: true,
   pigment_recovery: false,
   guessed_letters: false,
   heatmap_is_transcript: false,
   ocr_from_black_box: false,
   catalog_door_op: false,
+  worker_path: "/v1/unredact",
   note: UNREDACT_NOTE,
+});
+
+/** Product-side universal recover family. Worker /v1/recover — not a FragGate LIVE_OP. */
+const RECOVER_FLAG = Object.freeze({
+  ...listRecover(),
+  family: "recover",
+  ops: RECOVER_OPS.slice(),
+  leftover_bytes_recovery: true,
+  revision_graph: true,
+  guessed_letters: false,
+  context_reconstruction: false,
+  catalog_door_op: false,
+  catalog_door: false,
+  worker_path: "/v1/recover",
+  note: RECOVER_NOTE,
+});
+
+/** Product-side handwriting family. Worker /v1/handwriting — not a FragGate LIVE_OP. */
+const HANDWRITING_FLAG = Object.freeze({
+  ...listHandwriting(),
+  family: HANDWRITING_FAMILY.slice(),
+  ops: HANDWRITING_OPS.slice(),
+  refuse_codes: [REFUSE_NO_INK, REFUSE_UNSUPPORTED, REFUSE_LIMIT],
+  esda: false,
+  chemical_ink_dating: false,
+  writer_identification_as_fact: false,
+  forensic_certification: false,
+  heatmap_is_transcript: false,
+  heatmap_is_court_finding: false,
+  jpeg: false,
+  catalog_door_op: false,
+  catalog_door: false,
+  worker_path: "/v1/handwriting",
+  note: HANDWRITING_NOTE,
 });
 
 const CANONICAL_MODE_IDS = Object.freeze([
@@ -115,10 +170,13 @@ function envelope() {
       pigment_recovery: false,
       uv_lamp: false,
       leftover_bytes_recovery: true,
+      revision_graph: true,
       ocr_from_black_box: false,
       max_side: MAX_SIDE,
       inject: INJECT_FLAG,
       unredact: UNREDACT_FLAG,
+      recover: RECOVER_FLAG,
+      handwriting: HANDWRITING_FLAG,
     },
   };
 }
@@ -136,7 +194,10 @@ export function spectrallockSkill() {
       "ON is false-color membership paint, not recovered pigment. OFF is gray of the same gate. Zero ignores the switch. " +
       "Reports tazel_inband_pct and vyrn_inband_pct. " +
       "Honest unredact family (locate, lift, recover, refuse) lives in vendored overlay.js and the product Worker /v1/unredact — not a catalog FragGate door op. " +
-      "Leftover-bytes recover is honest (object id / offset / stream). Opaque replace with no leftover bytes refuses SL-UNREDACT-OPAQUE. " +
+      "Leftover-bytes recover is honest (object id / offset / stream). Incremental PDF revisions return revision_graph + per-revision copies. " +
+      "Universal recover (locate/deep-recover/revision-graph/cross-compare/extract-embedded/scan-orphans/scan-metadata/scan-sidecars/scan-history/refuse) is product Worker /v1/recover — 7z / HEIC / HEIF stay SLOT. " +
+      "Handwriting (analyze/compare/side-by-side/graph/forgery-indicators/refuse) is product Worker /v1/handwriting — 256px PNG ink-scan heuristic, not ESDA / chemical dating / writer identity / court finding. Hosted JPEG is SLOT. " +
+      "Opaque replace with no leftover bytes refuses SL-UNREDACT-OPAQUE. Recover refuse codes are SL-RECOVER-*. Handwriting refuse codes are SL-HANDWRITING-*. " +
       "Heatmaps are not transcripts. Never invent letters. Never OCR-from-black-box. " +
       "Synthetic looks. UV is not a lamp. Not a spectrometer. Not forensic. Not ESDA. Not a chemical test. " +
       "Candle/indent/lemon never invent marks. Balance never invents marks. Full histogram / band-pass lives in the Python package. " +
@@ -148,7 +209,7 @@ export function spectrallockDoctor() {
   return capabilityDoctor({
     ...envelope(),
     doctor_note:
-      "SpectralLock doctor: 256px preview only. Inject ON is paint, not pigment recovery. Leftover-bytes recover is honest; opaque refuse is honest; never OCR-from-black-box. UV is not a lamp. Not a spectrometer. Not forensic. Not ESDA. Not a chemical test. Balance/lemon/indent never invent marks. Unredact is not a FragGate door op.",
+      "SpectralLock doctor: 256px preview only. Inject ON is paint, not pigment recovery. Leftover-bytes recover is honest; revision graph is honest; opaque refuse is honest; never OCR-from-black-box. Universal recover marks 7z/HEIC/HEIF SLOT. Handwriting is ink-scan heuristic, not ESDA or court cert. UV is not a lamp. Not a spectrometer. Not forensic. Not ESDA. Not a chemical test. Balance/lemon/indent never invent marks. Unredact / recover / handwriting are not FragGate door ops.",
   });
 }
 
@@ -173,9 +234,12 @@ export function listTargets() {
     pigment_recovery: false,
     uv_lamp: false,
     leftover_bytes_recovery: true,
+    revision_graph: true,
     ocr_from_black_box: false,
     inject: INJECT_FLAG,
     unredact: UNREDACT_FLAG,
+    recover: RECOVER_FLAG,
+    handwriting: HANDWRITING_FLAG,
     neighbors: NEIGHBORS.slice(),
     limitation: RUNTIME_LIMITATION,
     author: AUTHOR,
@@ -264,9 +328,12 @@ export async function runSpectrallock(op, payload, scratch) {
       stub_modes: STUB_MODES.slice(),
       inject: INJECT_FLAG,
       unredact: UNREDACT_FLAG,
+      recover: RECOVER_FLAG,
+      handwriting: HANDWRITING_FLAG,
       pigment_recovery: false,
       uv_lamp: false,
       leftover_bytes_recovery: true,
+      revision_graph: true,
       ocr_from_black_box: false,
       limitation: RUNTIME_LIMITATION,
       true_engine_runtime: true,
@@ -295,4 +362,18 @@ export async function runSpectrallock(op, payload, scratch) {
   return { unsupported: true };
 }
 
-export { LIMITATION, LIVE, MODES, CANONICAL_MODE_IDS, INJECT_FLAG, INJECT_NOTE, UNREDACT_FLAG, UNREDACT_NOTE, REFUSE_OPAQUE };
+export {
+  LIMITATION,
+  LIVE,
+  MODES,
+  CANONICAL_MODE_IDS,
+  INJECT_FLAG,
+  INJECT_NOTE,
+  UNREDACT_FLAG,
+  UNREDACT_NOTE,
+  RECOVER_FLAG,
+  RECOVER_NOTE,
+  HANDWRITING_FLAG,
+  HANDWRITING_NOTE,
+  REFUSE_OPAQUE,
+};

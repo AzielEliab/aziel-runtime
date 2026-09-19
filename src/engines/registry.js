@@ -74,7 +74,7 @@ export const ENGINE_RUNNERS = {
   azclce: { ops: AZCLCE_OPS, run: runAzclce, source: "vendored az-clce Worker engine.js + triad.js", module: "src/engines/azclce.js" },
   ark: { ops: ARK_OPS, run: runArk, source: "vendored ARK Worker engine.js", module: "src/engines/ark.js" },
   azai: { ops: AZAI_OPS, run: runAzai, source: "vendored AZAI Worker Lamb engine.js", module: "src/engines/azai.js" },
-  spectrallock: { ops: SPECTRALLOCK_OPS, run: runSpectrallock, source: "vendored SpectralLock Worker overlay.js (256px PNG preview; leftover-bytes unredact in artifact, not a door op)", module: "src/engines/spectrallock.js" },
+  spectrallock: { ops: SPECTRALLOCK_OPS, run: runSpectrallock, source: "vendored SpectralLock Worker overlay.js (256px PNG preview; leftover-bytes + recover + handwriting in artifact, not door ops)", module: "src/engines/spectrallock.js" },
   azbot: { ops: AZBOT_OPS, run: runAzbot, source: "AZBot skill router (not a model)", module: "src/engines/azbot.js" },
   employeelock: { ops: EMPLOYEELOCK_OPS, run: runEmployeelock, source: "ported EmployeeLock Worker append-preview / verify-canonical", module: "src/engines/employeelock.js" },
   foldlock: { ops: FOLDLOCK_OPS, run: runFoldlock, source: "vendored foldlock Worker codec.js", module: "src/engines/foldlock.js" },
