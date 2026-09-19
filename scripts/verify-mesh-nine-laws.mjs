@@ -354,7 +354,7 @@ const papers_cited_on_live = () => {
     assert.match(text, /Aziel Eliab only/, rel);
     assert.match(text, /GET \/v1\/mesh/, rel);
     assert.doesNotMatch(text, /Phoenix brings/i, rel);
-    assert.doesNotMatch(text, /|Glama UUID/i, rel);
+    assert.doesNotMatch(text, /Glama UUID/i, rel);
   }
 };
 papers_cited_on_live();

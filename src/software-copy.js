@@ -226,7 +226,7 @@ export const SOFTWARE_COPY = Object.freeze({
     one_line:
       "Ephemeral pro se advisor for Criminal, Civil, and Divorce, plus historical as-of and Case Mode (suppression axes, TrajectoryLock-lite, export, confidence ≤75%). Live web app + optional zip. Session-only. Not a lawyer.",
     description:
-      "Use Whitestone for short Criminal, Civil, or Divorce questions in a live web app, including optional historical as-of evaluation and Case Mode scores (truth_upheld, narrative / systemic / personal-professional suppression, honesty axes). TrajectoryLock-lite is labeled heuristic; Case Mode may export a hash-chain score card; confidence never exceeds 75%. Session-only memory wipes when you close — not a lawyer and not legal advice — and the optional counted zip stays on the download tracker while the live web app stays on the Whitestone Worker.",
+      "Use Whitestone for short Criminal, Civil, or Divorce questions in a live web app, including optional historical as-of evaluation and Case Mode scores (truth_upheld, narrative / systemic / personal-professional suppression, honesty axes). It exists as an ephemeral pro se advisor: TrajectoryLock-lite is labeled heuristic, Case Mode may export a hash-chain score card, and confidence never exceeds 75%. Session-only memory wipes when you close — not a lawyer and not legal advice — and the optional counted zip stays on the download tracker while the live web app stays on the Whitestone Worker.",
   },
 });
 

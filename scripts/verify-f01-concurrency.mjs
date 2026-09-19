@@ -27,7 +27,7 @@ assert.match(wrangler, /class_name = "ChainWriter"/);
 assert.match(wrangler, /tag = "v2"/);
 assert.match(wrangler, /new_sqlite_classes = \["ChainWriter"\]/);
 assert.match(WORKER_STORE_NOTE, /Durable Object/);
-assert.doesNotMatch(WORKER_STORE_NOTE, /OAuth|doi:|framagit|/i);
+assert.doesNotMatch(WORKER_STORE_NOTE, /OAuth|doi:|framagit/i);
 
 function seqs(rows) {
   return rows.map((x) => x.tip.seq);

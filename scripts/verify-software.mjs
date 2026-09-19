@@ -322,7 +322,7 @@ assert.ok(
   body.software.every((s) => /\bUse\b/.test(s.description) && /exists/i.test(s.description)),
   "every description names the job (Use) and why it exists",
 );
-assert.ok(body.software.every((s) => !/\b\b/.test(`${s.one_line} ${s.description}`)));
+assert.ok(body.software.every((s) => !/\bfielded_100\b/.test(`${s.one_line} ${s.description}`)));
 assert.ok(body.software.every((s) => !/10\.\d{4,}\//.test(`${s.one_line} ${s.description}`)), "no invented DOI in copy");
 assert.ok(body.software.every((s) => !/are separate FragGate engines/i.test(s.description || "")));
 

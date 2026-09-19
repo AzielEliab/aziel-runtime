@@ -47,7 +47,7 @@ for (const slug of SLUGS) {
 
 assert.equal(classifyCall(buildRegistry(PRODUCTS).bySlug.zkattest, "groth16").kind, "stub");
 assert.equal(classifyCall(buildRegistry(PRODUCTS).bySlug.mmconsensus, "live_model_call").kind, "stub");
-assert.equal(classifyCall(buildRegistry(PRODUCTS).bySlug.toolbench, "").kind, "stub");
+assert.equal(classifyCall(buildRegistry(PRODUCTS).bySlug.toolbench, "fielded_100").kind, "stub");
 assert.equal(classifyCall(null, "health").kind, "halluc");
 
 const committed = await commit({ witness: "private-witness-1", salt: "aa".repeat(16) });
@@ -129,7 +129,7 @@ const mmStub = await (await post("/v1/fraggate/call", { slug: "mmconsensus", op:
 assert.equal(mmStub.ok, false);
 assert.equal(mmStub.code, "FG-STUB");
 
-const tbStub = await (await post("/v1/fraggate/call", { slug: "toolbench", op: "" })).json();
+const tbStub = await (await post("/v1/fraggate/call", { slug: "toolbench", op: "fielded_100" })).json();
 assert.equal(tbStub.ok, false);
 assert.equal(tbStub.code, "FG-STUB");
 
