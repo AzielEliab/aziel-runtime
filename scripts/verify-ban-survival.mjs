@@ -601,8 +601,8 @@ assert.equal(rotatedCite.author, "Aziel Eliab");
 
 const rotatedOpen = await (await get("/openapi.json", rotatedEnv)).json();
 assert.equal(rotatedOpen.info.title, "Whitestone AI");
-assert.match(rotatedOpen.info.description, /^Whitestone AI is not merely/);
-assert.match(rotatedOpen.info.summary, /^Whitestone AI is not merely/);
+assert.match(rotatedOpen.info.description, /^Whitestone AI is a node-meshed/);
+assert.match(rotatedOpen.info.summary, /^Whitestone AI is a node-meshed/);
 assert.equal(rotatedCite.bibtex.includes("title = {Whitestone AI}"), true);
 assert.equal(rotatedCite.apa.includes("Whitestone AI"), true);
 assert.equal(rotatedBody.live_product, "Whitestone AI");
@@ -649,7 +649,7 @@ assert.equal(rotatedSoft.platforms.calling_name, "Whitestone AI");
 
 assert.equal(rotatedCite.calling_name.random_alongside, true);
 assert.equal(rotatedCite.calling_name.rewrites_all_discovery_metadata, true);
-assert.match(rotatedLlms, /Whitestone AI is not merely/);
+assert.match(rotatedLlms, /Whitestone AI is a node-meshed/);
 assert.match(rotatedWho, /Softwares through Whitestone AI/);
 
 const rotatedHealth = await (await get("/v1/health", rotatedEnv)).json();
@@ -665,7 +665,7 @@ assert.equal(rotatedRuntime.title, "Whitestone AI");
 
 const rotatedSkill = await (await get("/v1/skill", rotatedEnv)).text();
 assert.match(rotatedSkill, /^name: Whitestone AI/m);
-assert.match(rotatedSkill, /Whitestone AI is not merely/);
+assert.match(rotatedSkill, /Whitestone AI is a node-meshed/);
 
 const rotatedPerson = await (await get("/person.jsonld", rotatedEnv)).json();
 assert.equal(rotatedPerson.name, "Aziel Eliab");
@@ -676,7 +676,7 @@ assert.match(rotatedPerson.machine.what_aziel_eliab_does, /Softwares through Whi
 
 const rotatedAbout = await (await get("/about", rotatedEnv)).text();
 assert.match(rotatedAbout, /<h1>About Whitestone AI<\/h1>/);
-assert.match(rotatedAbout, /Whitestone AI is not merely/);
+assert.match(rotatedAbout, /Whitestone AI is a node-meshed/);
 
 const rotatedUpdate = await (await get("/v1/update/manifest", rotatedEnv)).json();
 assert.equal(rotatedUpdate.latest.some((row) => row.slug === "whitestone-ai" && row.name === "Whitestone AI"), true);
@@ -686,7 +686,7 @@ assert.deepEqual(rotatedUpdate.platforms.platforms.map((p) => p.id), ["windows",
 const rotatedCard = await (await get("/.well-known/mcp/server-card.json", rotatedEnv)).json();
 assert.equal(rotatedCard.name, "whitestone-ai");
 assert.equal(rotatedCard.title, "Whitestone AI");
-assert.match(rotatedCard.abstract, /^Whitestone AI is not merely/);
+assert.match(rotatedCard.abstract, /^Whitestone AI is a node-meshed/);
 
 const rotatedManifest = await (await get("/manifest.webmanifest", rotatedEnv)).json();
 assert.equal(rotatedManifest.name, "Whitestone AI");

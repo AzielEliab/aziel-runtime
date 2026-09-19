@@ -31,7 +31,8 @@ assert.match(
   glama.description,
   /node-meshed MCP software orchestration suite for digital forensics, auditing, provenance/
 );
-assert.match(glama.description, /not an API aggregator/);
+assert.match(glama.description, /NodeMesh'd MCP Softwares suite for digital forensics/);
+assert.doesNotMatch(glama.description, /not an API aggregator/);
 assert.match(glama.description, /2\.0\.0-rc1/);
 assert.match(glama.description, /1\.6\.2 is superseded heritage/);
 assert.ok(Array.isArray(glama.keywords) && glama.keywords.includes("mcp"));

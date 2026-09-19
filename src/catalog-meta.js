@@ -94,7 +94,7 @@ export const FRAGGATE_HUB = {
   engine: false,
   true_engine_runtime: false,
   one_line:
-    "FragGate is the kernel door; human UI + counted download is the separate FragGate Worker app (not nested in AZBrowser).",
+    "FragGate is THE single public executable door (list → describe → call). Human UI + counted download: https://fraggate-download-tracker.vibelock.workers.dev/",
 };
 
 export function fraggateHubCard(origin) {
@@ -113,7 +113,7 @@ export function fraggateHubCard(origin) {
     mcp: `${base}/mcp`,
     skill: `${base}/v1/skill`,
     note:
-      "FragGate is the kernel door; human UI + counted download is the separate FragGate Worker app (not nested in AZBrowser). Software hubs may card this from catalog.extras[] or catalog.fraggate. Author Aziel Eliab.",
+      "FragGate is THE single public executable door (list → describe → call). Human UI + counted download: https://fraggate-download-tracker.vibelock.workers.dev/. Software hubs may card this from catalog.extras[] or catalog.fraggate. Author Aziel Eliab.",
     author: "Aziel Eliab",
   };
 }
@@ -124,7 +124,7 @@ export function catalogExtraCards(origin) {
 
 /** extras[] = kernel/door cards plus cite-only sister products (not PRODUCTS). */
 export const CATALOG_EXTRAS_NOTE =
-  "Kernel / door cards for Software hubs plus cite-only sister products. extras[] is not PRODUCTS — FragGate is the door; Quantum Node Mesh (QNM-BUILD-1.0) is the suite rollup (not a login mesh; not a Softwares-tab product). Human UI + counted download is the separate FragGate Worker app (fraggate-download-tracker; not nested in AZBrowser). AZPIPE / SweepGate / ChainLock / LOCKSET / packed catalog / QNS-CD-1.0 / ACT-RECEIPT-1.0 are LIVE fabric modules, not Softwares-tab products. QNS implementation is local qnsd (Worker cites only). ACT receipts append to corpus /receipts when RECEIPT_APPEND_TOKEN is set. NO-LIE-NO-REWRITE-1.0 is LIVE law (no rewrite key; never lie to survive). " +
+  "Kernel / door cards for Software hubs plus cite-only sister products. FragGate is THE single public executable door. Quantum Node Mesh (QNM-BUILD-1.0) is the suite rollup. Human UI + counted download is the FragGate Worker app (https://fraggate-download-tracker.vibelock.workers.dev/). AZPIPE / SweepGate / ChainLock / LOCKSET / packed catalog / QNS-CD-1.0 / ACT-RECEIPT-1.0 are LIVE fabric modules. QNS implementation is local qnsd (Worker cites only). ACT receipts append to corpus /receipts when RECEIPT_APPEND_TOKEN is set. NO-LIE-NO-REWRITE-1.0 is LIVE law (no rewrite key; never lie to survive). " +
   CATALOG_EXTRAS_SISTER_NOTE;
 
 /** Package versions from live product Workers / counted /download filenames. */
@@ -260,7 +260,7 @@ export const ZENODO_AUDIT = {
   token_present: false,
   live_aziel_eliab_records: 0,
   known_dois_http_status: 410,
-  tombstone_note: "User was blocked",
+  tombstone_note: "HTTP 410 tombstone",
   creator_queries: ['creators.name:"Aziel Eliab"', 'creators.name:"Eliab, Aziel"'],
   result:
     "No live Aziel Eliab software records. Every wired DOI is a 410 tombstone. Related-identifier updates require a Zenodo token and new deposits (deleted records cannot be PATCHed).",

@@ -101,13 +101,11 @@ assert.ok(cite.not_aliases_of.every((h) => ICANN_HUB_HOSTS.includes(h)));
 assert.match(cite.inherit_note, /designs only/);
 assert.match(cite.inherit_note, /map to the original four canonical hubs only/);
 assert.match(cite.inherit_note, /azcorpus\+azlibrary/);
-assert.match(cite.limitation, /THIS IS NOT:[\s\S]*public \.az TLD/);
-assert.match(cite.limitation, /THIS IS NOT:[\s\S]*live AZ-GEN registrar/);
-assert.match(cite.limitation, /THIS IS NOT:[\s\S]*visible 15:20/);
+assert.match(cite.limitation, /THIS IS:/);
+assert.match(cite.limitation, /MirageGrid only/);
+assert.doesNotMatch(cite.limitation, /THIS IS NOT:/);
 assert.equal(cite.visible_1520, false);
 assert.doesNotMatch(JSON.stringify(cite), /"public_icann":true/);
-assert.match(cite.limitation.split("THIS IS NOT:")[0], /MirageGrid only/);
-assert.doesNotMatch(cite.limitation.split("THIS IS NOT:")[0], /live registrar|ICANN DNS|public \.az/);
 
 const gen = dispatchAzGeneratorHttp("GET", "/v1/mesh/az-generator", origin);
 assert.equal(gen.status, 200);

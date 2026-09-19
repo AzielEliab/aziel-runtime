@@ -247,7 +247,8 @@ assert.ok(cite.worker_launch.tags_by_slug.godlock.some((t) => t.startsWith("#god
 assert.notDeepEqual(cite.worker_launch.tags_by_slug.foldlock, cite.worker_launch.tags_by_slug.godlock);
 
 const llms = await (await get("/llms.txt")).text();
-assert.match(llms, /About Aziel \(work, not biography\)/);
+assert.match(llms, /## About Aziel/);
+assert.doesNotMatch(llms, /About Aziel \(work, not biography\)/);
 assert.match(llms, /AZCL-FOLD-TIP-1\.0/);
 assert.match(llms, /pack-verify/);
 const aboutLlmsStart = llms.indexOf("## About Aziel");

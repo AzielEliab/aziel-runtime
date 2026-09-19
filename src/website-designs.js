@@ -18,7 +18,7 @@ export const WEBSITE_DESIGN_HUB_ID = "library";
 export const WEBSITE_DESIGN_GITHUB = "https://github.com/AzielEliab/aziel-corpus";
 
 export const WEBSITE_DESIGN_LIMITATION =
-  "THIS IS: mesh-resident website designs azcorpus + azlibrary, named on GET /v1/software and runtime_skill, downloadable to nodes. Download is open for all AI clients (MCP / OpenAPI). azlibrary upload is API token only. THIS IS NOT: a fifth Softwares product; a FragGate slug; an ICANN hostname alias; a secret embedded in catalog/skill/MCP/OpenAPI. Author: Aziel Eliab only.";
+  "THIS IS: mesh-resident website designs azcorpus + azlibrary, named on GET /v1/software and runtime_skill, downloadable to nodes. Download is open for all AI clients (MCP / OpenAPI). azlibrary upload is API token only. Author: Aziel Eliab only.";
 
 function libraryHome() {
   return `${LIBRARY_ORIGIN}/`;

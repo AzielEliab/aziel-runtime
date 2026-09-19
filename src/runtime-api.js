@@ -154,7 +154,7 @@ export function runtimeSkillMarkdown(origin, products, env = {}) {
   return rewriteLiveCallingDisplay(`---
 name: Aziel Runtime
 description: >-
-  Aziel Runtime is not merely an API orchestrator or software aggregator; it is a
+  Aziel Runtime is a
   node-meshed orchestration suite of MCP-connected software designed to coordinate
   specialized tools through a shared, security-gated runtime while preserving
   provenance, chain-of-custody, temporal integrity, and auditable execution.
@@ -379,7 +379,7 @@ ${survivalSkillMarkdown(base)}
 | GET | \`/cite.json\` | How to cite Aziel Eliab software and the Digital Library. Aka Aziel Elroi Eliab. No invented DOIs. Cites COLD-MULTI-SHELF-1.0 / corpus#96 shelves honesty. Person \`@id\` + site coverage + sameAs. |
 | GET | \`/person.jsonld\` | Machine Person JSON-LD (Google AI / LLM profile). \`@id\` https://www.azieleliab.com/#aziel. Roles: researcher, digital rights activist, software developer/designer, author, philosopher. Machine 15:20 disambiguation. No visible HTML chrome. No legal name / home. |
 | GET | \`/who-is\` | Machine who-is text. Same Person \`@id\`. Site coverage blurbs. Alias \`/who-is-aziel-eliab.txt\`. Not an HTML page. |
-| GET | \`/shelves\` | COLD-MULTI-SHELF-1.0 registry cite matching live corpus \`/shelves\`. Plane A 5 surfaces / 2 family radii / 1 independent live. Plane B SLOT (Codeberg + archive.org PASS still SLOT at https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius; Framagit URL null; GitFlic CNS-GITFLIC-EMAIL; GitLab CNS-GITLAB-CF-LOOP; Zenodo refused). Plane C USB SLOT. \`doi\` null. Linked fields: \`redline.spec\`, Cap-7 \`design_of\` + \`resolves_to_hub: false\`, attack-sim refuse pointer. Not a sixth surface. |
+| GET | \`/shelves\` | COLD-MULTI-SHELF-1.0 registry cite matching live corpus \`/shelves\`. Plane A 5 surfaces / 2 family radii / 1 independent live. Plane B SLOT (Codeberg + archive.org PASS still SLOT at https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius; Framagit URL null). Plane C USB SLOT. \`doi\` null. Linked fields: \`redline.spec\`, Cap-7 \`design_of\` + \`resolves_to_hub: false\`, attack-sim refuse pointer. Runtime Worker is the same Plane A tunnel. |
 | GET | \`/v1/shelves\` | Machine alias of \`/shelves\`. |
 | GET | \`/survival\` | BAN-SURVIVAL-1.0 mutual-backup map. Live multi-front ↔ cold shelves. LIVE doors only. Live-node API SLOT. Not a second door. Never invent a live door. |
 | GET | \`/v1/survival\` | Machine alias of \`/survival\`. |

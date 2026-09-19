@@ -50,28 +50,24 @@ export const RUNTIME_GITHUB = "https://github.com/AzielEliab/aziel-runtime";
 export const RUNTIME_GLAMA = "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime";
 
 export const RUNTIME_PAGE_TITLE =
-  "Aziel Runtime — node-meshed MCP Softwares suite (not an API aggregator)";
+  "Aziel Runtime — node-meshed MCP Softwares suite";
 
 /** First sentence of the canonical abstract — title/one_line split, meaning intact. */
 export const RUNTIME_ONE_LINE =
-  "Aziel Runtime is not merely an API orchestrator or software aggregator; it is a node-meshed orchestration suite of MCP-connected software designed to coordinate specialized tools through a shared, security-gated runtime while preserving provenance, chain-of-custody, temporal integrity, and auditable execution.";
+  "Aziel Runtime is a node-meshed orchestration suite of MCP-connected software designed to coordinate specialized tools through a shared, security-gated runtime while preserving provenance, chain-of-custody, temporal integrity, and auditable execution.";
 
 /**
  * Canonical crawler abstract. Use verbatim on cite.json abstract, homepage lead,
- * llms.txt opening, and JSON-LD description. Do not replace with weaker aggregator language.
+ * llms.txt opening, and JSON-LD description. Lead with the positive definition.
  *
  * AZRT-1.9-CLOSE-1.0 / later version rolls: put version notes BELOW this abstract.
  * Never replace the abstract with a changelog. Never mash "runtime 1.9 FragGate".
  */
 export const RUNTIME_ABSTRACT =
-  "Aziel Runtime is not merely an API orchestrator or software aggregator; it is a node-meshed orchestration suite of MCP-connected software designed to coordinate specialized tools through a shared, security-gated runtime while preserving provenance, chain-of-custody, temporal integrity, and auditable execution. It functions as a digital forensic, investigative, verification, research, intelligence-support, and systems-auditing environment in which individual engines can analyze evidence, validate records, inspect trajectories and patterns, track lineage, enforce capability boundaries, generate receipts, and exchange structured results without collapsing into one opaque model or unrestricted control plane. Its architecture emphasizes compartmentalization, deterministic routing, explicit refusal states, append-only evidence handling, and machine-readable metadata, making it suitable for distributed analysis workflows where trust, reproducibility, attribution, and post-hoc auditability matter as much as the result itself.";
+  "Aziel Runtime is a node-meshed orchestration suite of MCP-connected software designed to coordinate specialized tools through a shared, security-gated runtime while preserving provenance, chain-of-custody, temporal integrity, and auditable execution. It functions as a digital forensic, investigative, verification, research, intelligence-support, and systems-auditing environment in which individual engines can analyze evidence, validate records, inspect trajectories and patterns, track lineage, enforce capability boundaries, generate receipts, and exchange structured results without collapsing into one opaque model or unrestricted control plane. Its architecture emphasizes compartmentalization, deterministic routing, explicit refusal states, append-only evidence handling, and machine-readable metadata, making it suitable for distributed analysis workflows where trust, reproducibility, attribution, and post-hoc auditability matter as much as the result itself.";
 
-export const RUNTIME_NOT = Object.freeze([
-  "Not merely an API orchestrator or software aggregator",
-  "Not a generic Zapier-style orchestrator",
-  "Not a VPN / login mesh / Node Gate",
-  "Not just OpenAPI docs",
-]);
+/** Heritage list — do not publish on llms / cite / about. Positive definition lives in RUNTIME_ABSTRACT. */
+export const RUNTIME_NOT = Object.freeze([]);
 
 export function runtimeAboutField(origin) {
   const base = String(origin || "").replace(/\/$/, "");
@@ -85,18 +81,17 @@ export function runtimeAboutField(origin) {
     how_hubs:
       "Hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) fetch GET /v1/software on each Softwares-tab request.",
     architecture: {
-      fraggate: "THE single public executable door (list → describe → call). Not 37 separate APIs.",
+      fraggate: "THE single public executable door (list → describe → call).",
       softwares: "Plain → Gate → Lock catalog products with true in-process engines where live.",
       dual_surface: "Agents via OpenAPI/MCP; humans via Worker UI + counted /download.",
       semantic_bridge:
-        "Cap-7 mesh names via MirageGrid only. Inherit hub designs only (azcorpus + azlibrary on the library hub). design_of hub_designs. resolves_to_hub false. name_may_change. Canonical hubs immutable. Not aliases of the four ICANN hostnames. GET /v1/mesh never enables.",
+        "Cap-7 mesh names via MirageGrid only. Inherit hub designs only (azcorpus + azlibrary on the library hub). design_of hub_designs. resolves_to_hub false. name_may_change. Canonical hubs immutable. GET /v1/mesh never enables.",
       cold_multi_shelf:
-        "COLD-MULTI-SHELF-1.0 cite of corpus#96 /shelves. Plane A = 5 published surfaces / 2 family radii / 1 independent live. Plane B SLOT (Codeberg + archive.org PASS still SLOT at https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius, pack b549362c…; Framagit URL null; GitFlic CNS-GITFLIC-EMAIL; GitLab CNS-GITLAB-CF-LOOP; Zenodo refused; doi null). Plane C USB SLOT. Runtime Worker is the same Plane A tunnel, not a sixth surface.",
+        "COLD-MULTI-SHELF-1.0 cite of corpus#96 /shelves. Plane A = 5 published surfaces / 2 family radii / 1 independent live. Plane B SLOT (Codeberg + archive.org PASS still SLOT at https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius, pack b549362c…; Framagit URL null; doi null). Plane C USB SLOT. Runtime Worker is the same Plane A tunnel.",
       nodemesh:
-        "QNM read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public Live Nodes (live_nodes) count mesh size: active + inactive join/heartbeat nodes, excluding isolated — not catalog size, not downloads. software_nodes is the {slug}-worker roster and must not be used alone as that pill. Local qnm-node. Not a login mesh / VPN / Node Gate.",
-      master33: "Domains are isolation labels, not extra doors. Lamb Lens ethics hop after FragGate.",
+        "QNM read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public Live Nodes (live_nodes) count mesh size: active + inactive join/heartbeat nodes, excluding isolated. software_nodes is the {slug}-worker roster. Local qnm-node.",
+      master33: "Domains are isolation labels. FragGate is the single door. Lamb Lens ethics hop after FragGate.",
     },
-    not: [...RUNTIME_NOT],
     changelog_below_abstract: true,
     version_notes: "Below the abstract only. AZRT-1.9-CLOSE-1.0, 2.0.0-rc1, and later rolls must not replace crawler lead copy.",
     author: AUTHOR_NAME,
@@ -114,8 +109,8 @@ export function llmsWhatThisIsBlock(calling = null) {
     ? RUNTIME_ABSTRACT.replace(/\bAziel Runtime\b/g, calling.calling_name)
     : RUNTIME_ABSTRACT;
   const publicName = rotated
-    ? `Public calling name: ${calling.calling_name} (${calling.calling_slug}). ${calling.alert}. Author / identity: Aziel Eliab only (@id ${AUTHOR_ID}). Also known as Aziel Elroi Eliab (alternateName only). Runtime is the execution surface, not the identity hub. Old name Aziel Runtime may remain on cold shelves as history.`
-    : `Public name: Aziel Runtime (aziel-runtime). Author / identity: Aziel Eliab only (@id ${AUTHOR_ID}). Also known as Aziel Elroi Eliab (alternateName only). Runtime is the execution surface, not the identity hub.`;
+    ? `Public calling name: ${calling.calling_name} (${calling.calling_slug}). ${calling.alert}. Author / identity: Aziel Eliab only (@id ${AUTHOR_ID}). Also known as Aziel Elroi Eliab (alternateName only). Runtime is the execution surface. Person @id is ${AUTHOR_ID}. Old name Aziel Runtime may remain on cold shelves as history.`
+    : `Public name: Aziel Runtime (aziel-runtime). Author / identity: Aziel Eliab only (@id ${AUTHOR_ID}). Also known as Aziel Elroi Eliab (alternateName only). Runtime is the execution surface. Person @id is ${AUTHOR_ID}.`;
   return [
     "## What this is",
     "",
@@ -127,16 +122,12 @@ export function llmsWhatThisIsBlock(calling = null) {
     "",
     "1. Agents: fraggate_list → fraggate_describe → fraggate_call (POST /mcp or POST /v1/fraggate/call).",
     "2. Hubs: GET /v1/software (mirror GET /v1/fraggate/software) on each Softwares-tab refresh.",
-    "3. Humans: Worker UI + counted /download — dual-surface. POST /p/{slug}/{op} is proxy, not exec.",
+    "3. Humans: Worker UI + counted /download — dual-surface. POST /p/{slug}/{op} is proxy. Exec is FragGate.",
     "",
-    "FragGate is THE single public executable door (not 37 separate APIs).",
+    "FragGate is THE single public executable door (list → describe → call).",
     "Softwares = Plain → Gate → Lock catalog products with true in-process engines where live.",
-    "NodeMesh / QNM read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public Live Nodes (live_nodes) count mesh size: active + inactive join/heartbeat nodes, excluding isolated — not catalog size, not downloads. software_nodes is the {slug}-worker roster and must not be used alone as that pill. Local qnm-node. Not a login mesh / VPN / Node Gate.",
-    "MASTER-33: domains are isolation labels, not extra doors. Lamb Lens ethics hop after FragGate.",
-    "",
-    "## What this is not",
-    "",
-    ...RUNTIME_NOT.map((line) => `- ${line}`),
+    "NodeMesh / QNM read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public Live Nodes (live_nodes) count mesh size: active + inactive join/heartbeat nodes, excluding isolated. software_nodes is the {slug}-worker roster. Local qnm-node.",
+    "MASTER-33: domains are isolation labels. FragGate is the single door. Lamb Lens ethics hop after FragGate.",
     "",
   ].join("\n");
 }
@@ -246,7 +237,7 @@ export function sisterArchiveCrawl() {
       robots: `${HEDIDNTJUMP_ORIGIN}/robots.txt`,
       software_tab: false,
       fraggate_engine: false,
-      note: "Sister historical archive. Cross-index only. Not a Softwares hub. Not a FragGate engine.",
+      note: "Sister historical archive. Cross-index only. Zioncheck archive sister.",
     },
   ];
 }
@@ -261,7 +252,7 @@ export function sisterArchiveCiteField() {
     identity: AUTHOR_NAME,
     software_tab: false,
     fraggate_engine: false,
-    note: "Sister historical archives. Listed on sitemap-index / llms / cite for AZindex discovery. Not Softwares hubs. Not FragGate engines.",
+    note: "Sister historical archives. Listed on sitemap-index / llms / cite for AZindex discovery. Zioncheck archive sister.",
     archives: sisterArchiveCrawl(),
   };
 }
@@ -556,7 +547,7 @@ export function robotsTxt(origin, products) {
     "# Author: Aziel Eliab. Also known as Aziel Elroi Eliab (alternateName only).",
     "# Content-Signal opens search + AI input + AI train. No Disallow for GPTBot.",
     "# Allow /v1/software /v1/update /mcp /openapi /survival — hubs and agents fetch these.",
-    "# Sitemap index lists this host, azieleliab.com, azielcorpuslibrary.net, godlock.uk, www.hedidntjump.com (sister archive, not a Softwares hub), and live product Workers.",
+    "# Sitemap index lists this host, azieleliab.com, azielcorpuslibrary.net, godlock.uk, www.hedidntjump.com (sister archive), and live product Workers.",
     "",
     "User-agent: *",
     "Allow: /",
@@ -721,7 +712,7 @@ export function llmsEcosystemBlock() {
   const lines = [
     "## Ecosystem",
     "",
-    `${ECOSYSTEM_HEADING}. Identity ${AUTHOR_NAME} only. Softwares hubs refresh from GET /v1/software. Sister archive is not a Softwares hub.`,
+    `${ECOSYSTEM_HEADING}. Identity ${AUTHOR_NAME} only. Softwares hubs refresh from GET /v1/software. Sister archive: ${HEDIDNTJUMP_HOME}.`,
     "",
   ];
   for (const link of ECOSYSTEM_LINKS) {
@@ -853,7 +844,7 @@ export function llmsCiteBlock(origin, calling = null) {
     `Author site llms.txt: ${AUTHOR_SITE_LLMS}`,
     `GodLock.uk cite.json: ${GODLOCK_UK_CITE}`,
     `GodLock.uk llms.txt: ${GODLOCK_UK_LLMS}`,
-    `${HEDIDNTJUMP_NAME} (sister archive, not a Softwares hub): ${HEDIDNTJUMP_HOME}`,
+    `${HEDIDNTJUMP_NAME} (sister archive): ${HEDIDNTJUMP_HOME}`,
     `${HEDIDNTJUMP_NAME} cite.json: ${HEDIDNTJUMP_CITE}`,
     `${HEDIDNTJUMP_NAME} llms.txt: ${HEDIDNTJUMP_LLMS}`,
     `${HEDIDNTJUMP_NAME} sitemap.xml: ${HEDIDNTJUMP_SITEMAP}`,
@@ -898,7 +889,7 @@ export const SUITE_DESIGNS = Object.freeze([
   {
     id: "SEC-FEAT-1.0",
     file: "SEC-FEAT-1.0.md",
-    one_line: "Security feature inventory — door, stubs, vault, fabric; what is not a security feature",
+    one_line: "Security feature inventory — door, stubs, vault, fabric",
     status: "live",
     kind: "law",
   },
@@ -933,14 +924,14 @@ export const SUITE_DESIGNS = Object.freeze([
   {
     id: "NODE-OPS-1.0",
     file: "NODE-OPS-1.0.md",
-    one_line: "Node operations + surface law + phoenix wait/re-seal (not public hostname resurrection)",
+    one_line: "Node operations + surface law + phoenix wait/re-seal",
     status: "live",
     kind: "law",
   },
   {
     id: "CL-WP-0.4",
     file: "CL-WP-0.4.md",
-    one_line: "LIVE fabric — ChainLock append-only stamp chains (MCP chainlock_*; not Softwares-tab)",
+    one_line: "LIVE fabric — ChainLock append-only stamp chains (MCP chainlock_*)",
     status: "live",
     kind: "fabric",
   },
@@ -948,14 +939,14 @@ export const SUITE_DESIGNS = Object.freeze([
     id: "AP-WP-0.2",
     file: "AP-WP-0.2.md",
     one_line:
-      "LIVE fabric — AZPIPE FLD3; public hop list locked (MASTER-33 / 1.7.0 FragGate-first); fld3-wire internal (not Softwares-tab)",
+      "LIVE fabric — AZPIPE FLD3; public hop list locked (MASTER-33 / 1.7.0 FragGate-first); fld3-wire internal",
     status: "live",
     kind: "fabric",
   },
   {
     id: "SG-WP-0.1",
     file: "SG-WP-0.1.md",
-    one_line: "LIVE fabric — SweepGate airlock before memory/entry (not Softwares-tab)",
+    one_line: "LIVE fabric — SweepGate airlock before memory/entry",
     status: "live",
     kind: "fabric",
   },
@@ -986,7 +977,7 @@ export const SUITE_DESIGNS = Object.freeze([
     id: "4DM-WP-1.0",
     file: "4DM-WP-1.0.md",
     one_line:
-      "4DMap four-axis inspection frame T/Δ/Γ/Π — Research-domain inspection inside Internal Domain Layer after AZPIPE; not a sequential gate; not an extra door",
+      "4DMap four-axis inspection frame T/Δ/Γ/Π — Research-domain inspection inside Internal Domain Layer after AZPIPE",
     status: "live",
     kind: "software",
   },
@@ -1018,7 +1009,7 @@ export const SUITE_DESIGNS = Object.freeze([
     id: "AKM-TRIAD-1.0",
     file: "AKM-TRIAD-1.0.md",
     one_line:
-      "LIVE fabric — Adaptive Knowledge Recollection, Bayesian Calibration & 3-of-4 Triad Selection (not Softwares-tab; behind FragGate)",
+      "LIVE fabric — Adaptive Knowledge Recollection, Bayesian Calibration & 3-of-4 Triad Selection (behind FragGate)",
     status: "live",
     kind: "fabric",
   },
@@ -1026,7 +1017,7 @@ export const SUITE_DESIGNS = Object.freeze([
     id: "ACT-RECEIPT-1.0",
     file: "ACT-RECEIPT-1.0.md",
     one_line:
-      "LIVE fabric — public four-field action receipts on corpus /receipts (hash + request + output + event; fail-open append; not Softwares-tab)",
+      "LIVE fabric — public four-field action receipts on corpus /receipts (hash + request + output + event; fail-open append)",
     status: "live",
     kind: "fabric",
   },
@@ -1050,7 +1041,7 @@ export const SUITE_DESIGNS = Object.freeze([
     id: "COLD-MULTI-SHELF-1.0",
     file: "COLD-MULTI-SHELF-1.0.md",
     one_line:
-      "LIVE law cite — Planes A/B/C match corpus#96 /shelves (5 surfaces / 2 family radii / 1 independent live; Plane B Codeberg + archive.org PASS still SLOT; Framagit URL null; GitFlic/GitLab refused; Zenodo refused; doi null; Plane C USB SLOT)",
+      "LIVE law cite — Planes A/B/C match corpus#96 /shelves (5 surfaces / 2 family radii / 1 independent live; Plane B Codeberg + archive.org PASS still SLOT; Framagit URL null; doi null; Plane C USB SLOT)",
     status: "live",
     kind: "law",
   },
@@ -1090,7 +1081,7 @@ export const SUITE_DESIGNS = Object.freeze([
     id: "AZL-DONATE-1.0",
     file: "AZL-DONATE-1.0.md",
     one_line:
-      "Cite-only donate plan — canonical https://www.azieleliab.com/donate; hubs host rails (QRs encode BTC/ETH/LTC/XRP/DOGE payment URIs); runtime/download-trackers link only; not a Softwares product",
+      "Cite-only donate plan — canonical https://www.azieleliab.com/donate; hubs host rails (QRs encode BTC/ETH/LTC/XRP/DOGE payment URIs); runtime/download-trackers link only",
     status: "live",
     kind: "law",
   },
@@ -1098,7 +1089,7 @@ export const SUITE_DESIGNS = Object.freeze([
     id: "CROSS-NETWORK-SURVIVAL-1.0",
     file: "CROSS-NETWORK-SURVIVAL-1.0.md",
     one_line:
-      "Umbrella survival law — if network and data die tomorrow, the chain survives on cold shelves (hosts / DOI / git / vault); matching bytes, not a living network / LLM memory / answering hostname; cites Die-with-pull, Split the wires, Cold-copy, Ingest-as-receipt, Re-expand, Reheal",
+      "Umbrella survival law — if network and data die tomorrow, the chain survives on cold shelves (hosts / DOI / git / vault); matching bytes on an independent shelf; cites Die-with-pull, Split the wires, Cold-copy, Ingest-as-receipt, Re-expand, Reheal",
     status: "live",
     kind: "law",
   },
@@ -1154,7 +1145,7 @@ export function designsSkillMarkdown() {
   const lines = [
     "## Designs",
     "",
-    "Suite software-design papers (law / fabric are not Softwares-tab products, not a FragGate slug). 4DM-WP-1.0 is the 4DMap product spec (Softwares-tab slug `4dmap`; the paper is not a FragGate slug). LIVE fabric modules: ChainLock, AZPIPE, SweepGate, LOCKSET, packed catalog (RL), QNS-CD-1.0 (photon QNS1 1.3; local qnsd; Worker cites only), MASTER-33 (locked hop order; FragGate single door; Lamb Lens after FragGate; LambGate is not a hop), AKM-TRIAD-1.0 (adaptive recollection; Bayesian posterior ≠ truth), ACT-RECEIPT-1.0 (public four-field receipts on corpus /receipts; fail-open). CROSS-NETWORK-SURVIVAL-1.0 is the umbrella survival law (if network and data die tomorrow, the chain survives on cold shelves — hosts / DOI / git / vault; matching bytes, not a living network). NO-LIE-NO-REWRITE-1.0 is companion law under that umbrella (receipts still hash; no rewrite key; the network is never allowed to lie even to self-preserve; does not replace the machine tip). BAN-SURVIVAL-1.0 is the three-layer companion (live multi-front ↔ cold shelves; live-node API SLOT; Cap-7 cite + AZNet verify LIVE / hosted exec SLOT / shuffle ping→land; AKM belief_is_not_truth; never invent a live door). REDLINE-2026-09-14 is runtime attack-surface law (header-only operator token; Growth-ON Allow; Cloudflare TLS; Cap-7 design_of + resolves_to_hub false). COLD-MULTI-SHELF-1.0 cites corpus#96 /shelves honesty (Plane A 5/2/1; Plane B SLOT; Plane C USB SLOT; doi null). SUITE-PIPE-1.6.15 is historical. `GET /v1/mesh` never enables. Git-hosted — the Worker does not serve the PDFs. Public identity Aziel Eliab only.",
+    "Suite software-design papers (law / fabric). 4DM-WP-1.0 is the 4DMap product spec (Softwares-tab slug `4dmap`). LIVE fabric modules: ChainLock, AZPIPE, SweepGate, LOCKSET, packed catalog (RL), QNS-CD-1.0 (photon QNS1 1.3; local qnsd; Worker cites only), MASTER-33 (locked hop order; FragGate single door; Lamb Lens after FragGate), AKM-TRIAD-1.0 (adaptive recollection; Bayesian posterior is belief), ACT-RECEIPT-1.0 (public four-field receipts on corpus /receipts; fail-open). CROSS-NETWORK-SURVIVAL-1.0 is the umbrella survival law (if network and data die tomorrow, the chain survives on cold shelves — hosts / DOI / git / vault; matching bytes on an independent shelf). NO-LIE-NO-REWRITE-1.0 is companion law under that umbrella (receipts still hash; no rewrite key; the network is never allowed to lie even to self-preserve). BAN-SURVIVAL-1.0 is the three-layer companion (live multi-front ↔ cold shelves; live-node API SLOT; Cap-7 cite + AZNet verify LIVE / hosted exec SLOT / shuffle ping→land; AKM belief_is_not_truth; never invent a live door). REDLINE-2026-09-14 is runtime attack-surface law (header-only operator token; Growth-ON Allow; Cloudflare TLS; Cap-7 design_of + resolves_to_hub false). COLD-MULTI-SHELF-1.0 cites corpus#96 /shelves honesty (Plane A 5/2/1; Plane B SLOT; Plane C USB SLOT; doi null). SUITE-PIPE-1.6.15 is historical. `GET /v1/mesh` never enables. Git-hosted. Public identity Aziel Eliab only.",
     "",
   ];
   for (const d of SUITE_DESIGNS) {
@@ -1170,7 +1161,7 @@ export function designsLlmsBlock() {
   const lines = [
     "## Designs",
     "",
-    "Suite software-design papers (law / fabric are not Softwares-tab products, not a FragGate slug). 4DM-WP-1.0 is the 4DMap product spec (slug `4dmap`). LIVE fabric: CL-WP-0.4, AP-WP-0.2, SG-WP-0.1, LS-WP-0.1, RL-WP-0.1 (runtime), QNS-CD-1.0 (local qnsd), MASTER-33 (locked hop order; FragGate single door), AKM-TRIAD-1.0 (adaptive recollection), ACT-RECEIPT-1.0 (corpus /receipts). CROSS-NETWORK-SURVIVAL-1.0 is the umbrella survival law (cold shelves hosts / DOI / git / vault; matching bytes ≠ living network). NO-LIE-NO-REWRITE-1.0 is companion law under that umbrella (no rewrite key; the network is never allowed to lie even to self-preserve; does not replace the machine tip). BAN-SURVIVAL-1.0 is the three-layer companion (live multi-front ↔ cold shelves; live-node API SLOT; Cap-7 cite + AZNet verify LIVE / hosted exec SLOT / shuffle ping→land; AKM belief_is_not_truth; never invent a live door). REDLINE-2026-09-14 is runtime attack-surface law (header-only token; Growth-ON; Cloudflare TLS; Cap-7 design_of). COLD-MULTI-SHELF-1.0 cites corpus#96 /shelves honesty (Plane A 5/2/1; Plane B SLOT; Plane C USB SLOT; doi null). SUITE-PIPE-1.6.15 is historical. GET /v1/mesh never enables. Git-hosted — the Worker does not serve the PDFs. Author: Aziel Eliab only.",
+    "Suite software-design papers (law / fabric). 4DM-WP-1.0 is the 4DMap product spec (slug `4dmap`). LIVE fabric: CL-WP-0.4, AP-WP-0.2, SG-WP-0.1, LS-WP-0.1, RL-WP-0.1 (runtime), QNS-CD-1.0 (local qnsd), MASTER-33 (locked hop order; FragGate single door), AKM-TRIAD-1.0 (adaptive recollection), ACT-RECEIPT-1.0 (corpus /receipts). CROSS-NETWORK-SURVIVAL-1.0 is the umbrella survival law (cold shelves hosts / DOI / git / vault; matching bytes on an independent shelf). NO-LIE-NO-REWRITE-1.0 is companion law under that umbrella (no rewrite key; the network is never allowed to lie even to self-preserve). BAN-SURVIVAL-1.0 is the three-layer companion (live multi-front ↔ cold shelves; live-node API SLOT; Cap-7 cite + AZNet verify LIVE / hosted exec SLOT / shuffle ping→land; AKM belief_is_not_truth; never invent a live door). REDLINE-2026-09-14 is runtime attack-surface law (header-only token; Growth-ON; Cloudflare TLS; Cap-7 design_of). COLD-MULTI-SHELF-1.0 cites corpus#96 /shelves honesty (Plane A 5/2/1; Plane B SLOT; Plane C USB SLOT; doi null). SUITE-PIPE-1.6.15 is historical. GET /v1/mesh never enables. Git-hosted. Author: Aziel Eliab only.",
     `Index: ${DESIGNS_GITHUB_TREE}`,
     "",
   ];
@@ -1183,7 +1174,7 @@ export function designsLlmsBlock() {
 
 export function designsLlmsHeaderLine() {
   const ids = SUITE_DESIGNS.map((d) => d.id).join(", ");
-  return `Designs: ${DESIGNS_FOLDER} (${ids}) git-hosted LIVE modules — not Softwares-tab products, not a FragGate slug. GET /v1/mesh never enables. Umbrella: ${CROSS_NETWORK_SURVIVAL}. ${DESIGNS_GITHUB_TREE}`;
+  return `Designs: ${DESIGNS_FOLDER} (${ids}) git-hosted LIVE modules. GET /v1/mesh never enables. Umbrella: ${CROSS_NETWORK_SURVIVAL}. ${DESIGNS_GITHUB_TREE}`;
 }
 
 export function designsSitemapUrls() {
@@ -1290,7 +1281,7 @@ export function auditsSkillMarkdown() {
   return [
     "## Feature state (intentional OFF vs gaps) and constitutional OFF set",
     "",
-    `**${d.id}** is the authoritative intentional-OFF vs gaps inventory for **1.7.3+** (50 items: OFF / STUB / LOCAL / NOT IMPLEMENTED / PARTIAL). **${r.id}** is the constitutional OFF set (33 items). FEATURE-STATE lists gaps vs intentional OFF; REMAIN-OFF-BY-DESIGN is the must-stay-off set. Correctly OFF/REFUSED/GATED does not count as missing. Security and architecture OFF must stay. Do not enable Remain-OFF products or safety stubs from this cite. Not Softwares-tab products. Not FragGate slugs. EmbryoLock at 1.7.8 is live-with-local-destructive-boundary (health/skill/doctor/policy/limitation/verify-hash may be LIVE; wipe/scorch/unlock stay FG-STUB on the public mesh — remain-off items 3 and 28). ARK scorch/wipe/unlock/encrypt stay REFUSE. Do not enable Remain-OFF products, rollback, AZPIPE as a Softwares slug, or any remain-off item. Git-hosted — the Worker does not serve the PDFs. Identity Aziel Eliab only.`,
+    `**${d.id}** is the authoritative intentional-OFF vs gaps inventory for **1.7.3+** (50 items: OFF / STUB / LOCAL / NOT IMPLEMENTED / PARTIAL). **${r.id}** is the constitutional OFF set (33 items). FEATURE-STATE lists gaps vs intentional OFF; REMAIN-OFF-BY-DESIGN is the must-stay-off set. Correctly OFF/REFUSED/GATED stays recorded as OFF. Security and architecture OFF must stay. Do not enable Remain-OFF products or safety stubs from this cite. EmbryoLock at 1.7.8 is live-with-local-destructive-boundary (health/skill/doctor/policy/limitation/verify-hash may be LIVE; wipe/scorch/unlock stay FG-STUB on the public mesh — remain-off items 3 and 28). ARK scorch/wipe/unlock/encrypt stay REFUSE. Do not enable Remain-OFF products, rollback, AZPIPE as a Softwares slug, or any remain-off item. Git-hosted. Identity Aziel Eliab only.`,
     "",
     `- **${d.id}** — ${d.one_line} ${auditGithubUrl(d.file)}`,
     `- PDF: ${auditGithubUrl(d.pdf)}`,
@@ -1308,7 +1299,7 @@ export function auditsLlmsBlock() {
   return [
     "## Feature state and remain-off-by-design",
     "",
-    `${d.id} is the authoritative intentional-OFF vs gaps inventory for 1.7.3+ (50 items). ${r.id} is the constitutional OFF set (33 items). FEATURE-STATE lists gaps vs intentional OFF; this companion is the must-stay-off set. Correctly OFF/REFUSED/GATED is not a gap. Do not enable Remain-OFF products or safety stubs. Not Softwares-tab products, not FragGate slugs. Author: Aziel Eliab only.`,
+    `${d.id} is the authoritative intentional-OFF vs gaps inventory for 1.7.3+ (50 items). ${r.id} is the constitutional OFF set (33 items). FEATURE-STATE lists gaps vs intentional OFF; this companion is the must-stay-off set. Correctly OFF/REFUSED/GATED stays recorded as OFF. Do not enable Remain-OFF products or safety stubs. Author: Aziel Eliab only.`,
     `FEATURE-STATE markdown: ${auditGithubUrl(d.file)}`,
     `FEATURE-STATE PDF: ${auditGithubUrl(d.pdf)}`,
     `REMAIN-OFF markdown: ${designGithubUrl(r.file)}`,
@@ -1320,7 +1311,7 @@ export function auditsLlmsBlock() {
 export function auditsLlmsHeaderLine() {
   const d = FEATURE_STATE_AUDIT;
   const r = REMAIN_OFF_BY_DESIGN;
-  return `Feature-state audit: ${AUDIT_FOLDER}${d.file} (${d.id}) gaps vs intentional OFF for 1.7.3+. Constitutional OFF set: ${DESIGNS_FOLDER}${r.file} (${r.id}, 33 items) — correctly off is not a gap. Do not enable. Not Softwares-tab, not FragGate slugs. GET /v1/mesh never enables. ${AUDIT_GITHUB_TREE}`;
+  return `Feature-state audit: ${AUDIT_FOLDER}${d.file} (${d.id}) gaps vs intentional OFF for 1.7.3+. Constitutional OFF set: ${DESIGNS_FOLDER}${r.file} (${r.id}, 33 items). Do not enable. GET /v1/mesh never enables. ${AUDIT_GITHUB_TREE}`;
 }
 
 export function auditsSitemapUrls() {

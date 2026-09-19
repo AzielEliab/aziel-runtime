@@ -23,6 +23,11 @@
  * GET  /sitemap-index.xml     catalog sitemap + corpus + godlock.uk + hedidntjump sister archive + live product Worker sitemaps
  * GET  /llms.txt              plain-text catalog + how to cite Aziel Eliab + Digital Library
  * GET  /ai.txt                same as /llms.txt
+ * GET  /help.txt              additive human help (FragGate / Softwares / Glama / dual-surface)
+ * GET  /addendum.txt          longer human addendum (does not replace /llms.txt)
+ * GET  /help/softwares.txt    Softwares one_line catalog (SSoT)
+ * GET  /help/fraggate.txt     FragGate list → describe → call
+ * GET  /help/glama.txt        Glama + MCP client help
  * GET  /cite.json             How-to-cite: Aziel Eliab (aka Aziel Elroi Eliab), Apache-2.0, no invented DOIs
  * GET  /person.jsonld         Machine Person JSON-LD (Google AI / LLM profile). No visible HTML chrome.
  * GET  /who-is                Machine who-is text (alias /who-is-aziel-eliab.txt). 15:20 machine-only.
@@ -299,6 +304,7 @@ import {
   SUITE_DESIGNS,
 } from "./seo.js";
 import { aboutAzielCiteField, aboutAzielLlmsBlock, corpusFoldPackCiteField, workerLaunchCiteField, workerLaunchHtml } from "./about-aziel.js";
+import { helpOpenApiPaths, helpSitemapEntries, helpTxtForPath } from "./help-txt.js";
 import { personCiteField, personIndexJsonLd, whoIsTxt } from "./person-index.js";
 import { launchHashtagChipsHtml } from "./launch-parts.js";
 import {
@@ -357,7 +363,7 @@ const CATALOG_TITLE = PRODUCT_NAME;
 /** Bound to the canonical abstract. Version rolls (1.9+) go in #version-history, not here. */
 const CATALOG_DESCRIPTION = RUNTIME_ABSTRACT;
 const CATALOG_CHANGELOG_20 =
-  "2.0.0-rc1 is the certification-point freeze (not a feature dump): public contract, compatibility, receipt schema, refusal contract, and breaking-change policy under docs/2.0/. Clean-room reproducibility + external adversarial pack for independent reviewers (self-test ≠ third-party lab). Gate 4 includes Glama TDQS 5.0 tools/list metadata (no rename; no behavior change) plus existing glama.json / GitHub topics. Read-only QNM suite-presence is ON by default; POST /v1/mesh/disable refuses MESH-DISABLE-REFUSED. Additive COLD-MULTI-SHELF-1.0 cite (GET /shelves) matches corpus#96 /shelves honesty: Plane A = 5 published surfaces / 2 family radii / 1 independent live; Plane B Codeberg + archive.org PASS still SLOT (https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius); Framagit URL null; GitFlic CNS-GITFLIC-EMAIL; GitLab CNS-GITLAB-CF-LOOP; Zenodo tip-pack SLOT (zenodo_live:false; CNS-ZENODO-NOT-LIVE); doi null; Plane C USB SLOT. Additive Trades-Runtime 0.3.3 machine cite (sister_products / extras cite_only; not a FragGate true-engine; fraggate_call does not execute company ops). Remain-OFF untouched. FragGate remains THE single door. Architecture-fit placements zkattest / mmconsensus / toolbench are in-runtime engines behind FragGate (isolation 33 unchanged; no new MCP tool). Crawler abstract stays lead copy. Identity Aziel Eliab only.";
+  "2.0.0-rc1 is the certification-point freeze: public contract, compatibility, receipt schema, refusal contract, and breaking-change policy under docs/2.0/. Clean-room reproducibility + external adversarial pack for independent reviewers. Gate 4 includes Glama TDQS 5.0 tools/list metadata (no rename; no behavior change) plus existing glama.json / GitHub topics. Read-only QNM suite-presence is ON by default; POST /v1/mesh/disable refuses MESH-DISABLE-REFUSED. Additive COLD-MULTI-SHELF-1.0 cite (GET /shelves) matches corpus#96 /shelves honesty: Plane A = 5 published surfaces / 2 family radii / 1 independent live; Plane B Codeberg + archive.org PASS still SLOT (https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius); Framagit URL null; GitFlic CNS-GITFLIC-EMAIL; GitLab CNS-GITLAB-CF-LOOP; Zenodo tip-pack SLOT (zenodo_live:false; CNS-ZENODO-NOT-LIVE); doi null; Plane C USB SLOT. Additive Trades-Runtime 0.3.3 machine cite (sister_products / extras cite_only; live_backends false). Remain-OFF untouched. FragGate remains THE single door. Architecture-fit placements zkattest / mmconsensus / toolbench are in-runtime engines behind FragGate (isolation 33 unchanged; no new MCP tool). Crawler abstract stays lead copy. Identity Aziel Eliab only.";
 const CATALOG_CHANGELOG_19 =
   "1.9.3 closes the remaining AZRT-1.9-GAPS-CLOSE items: isolate-native AZ-OS session_open/status/close (prefab ethics VFS; exec/shell/lattice stay refuse); isolate-safe Ask Jeeves over sample MASTER / CORPUS_D1 records; binding-gated media-run when env.AI is present (no fake OCR); published independent-validation attestation path (not a third-party lab). Remain-OFF untouched. 1.9.2 binds Workers Browser Rendering (BROWSER) and live D1 MASTER (CORPUS_D1 → aziel-digital-library records). Whisper/OCR Workers-AI-bound. Sample MASTER remains the unbound fallback. Chromium product UI is not claimed; Tor/phoenix stay refuse. Remain-OFF untouched. 1.9.1 closes AZRT-1.9-GAPS-CLOSE isolate-safe corpus verify; Whisper/OCR Workers-AI-gated; AZBrowser sandbox_status; AZMail transport_status; wave 2–3 doctor; adversarial self-check + Actions npm test. Remain-OFF untouched. 1.9.0 closed AZRT-1.9-CLOSE-1.0. Chromium product UI is not claimed. Remain-OFF untouched.";
 const LASTMOD = "2026-09-14";
@@ -1337,7 +1343,7 @@ function workerOnlyCiteRecord(spec, origin) {
     worker_only: true,
     one_line: oneLine,
     description: softwareDescription(spec.slug, spec),
-    note: "Live Worker. Not a FragGate engine. Not FragGate kernel. Case Mode is a product feature, not a door. Dual-surface AI discovery via this runtime /v1/software + llms/ai/cite/who-is and Whitestone Worker GET /v1/software. Not a lawyer / not legal advice. Session-only. Author: Aziel Eliab only.",
+    note: "Live Worker-only placement. FragGate status none. Case Mode is a product feature. Dual-surface AI discovery via this runtime /v1/software + llms/ai/cite/who-is and Whitestone Worker GET /v1/software. Session-only. Author: Aziel Eliab only. https://whitestone.vibelock.workers.dev/",
     product_catalog: spec.web_app ? `${String(spec.web_app).replace(/\/$/, "")}/v1/software` : null,
   };
 }
@@ -1457,6 +1463,7 @@ function sitemapXml(origin) {
     { loc: base + "/failover", priority: "0.7", changefreq: "weekly" },
     { loc: base + "/llms.txt", priority: "0.9", changefreq: "weekly" },
     { loc: base + "/ai.txt", priority: "0.9", changefreq: "weekly" },
+    ...helpSitemapEntries(base),
     { loc: base + "/sitemap-index.xml", priority: "0.85", changefreq: "weekly" },
     { loc: base + "/v1/health", priority: "0.5", changefreq: "daily" },
     { loc: base + "/v1/uses", priority: "0.6", changefreq: "daily" },
@@ -1977,6 +1984,9 @@ function headMeta(origin, title, description, canonicalPath, env = {}) {
 <link rel="sitemap" type="application/xml" href="${base}/sitemap.xml">
 <link rel="sitemap" type="application/xml" href="${base}/sitemap-index.xml">
 <link rel="alternate" type="text/plain" href="${base}/llms.txt" title="llms.txt">
+<link rel="alternate" type="text/plain" href="${base}/help.txt" title="help.txt">
+<link rel="alternate" type="text/plain" href="${base}/addendum.txt" title="addendum.txt">
+<link rel="alternate" type="text/plain" href="${base}/help/softwares.txt" title="help/softwares.txt">
 <link rel="alternate" type="application/json" href="${base}/cite.json" title="cite.json">
 <link rel="alternate" type="application/ld+json" href="${base}/person.jsonld" title="person.jsonld">
 <link rel="alternate" type="text/plain" href="${base}/who-is" title="who-is">
@@ -2129,7 +2139,7 @@ function catalogHtml(origin, statsMap, env = {}) {
         const rec = workerOnlyCiteRecord(spec, origin);
         const ver = rec.version ? ` ${escapeHtml(rec.version)}` : "";
         const dl = rec.download ? ` · <a href="${escapeHtml(rec.download)}">optional zip</a>` : "";
-        return `<li><a href="${escapeHtml(spec.github)}">${escapeHtml(spec.name)}</a>${ver} — live Worker, not a FragGate engine, not a lawyer${dl}</li>`;
+        return `<li><a href="${escapeHtml(spec.github)}">${escapeHtml(spec.name)}</a>${ver} — live Worker · optional zip${dl}</li>`;
       }),
     )
     .join("");
@@ -2156,7 +2166,7 @@ ${workerLaunchHtml(origin, { slug: resolveCallingName(env).calling_slug, name: r
     <p>Author: <strong>${escapeHtml(AUTHOR_NAME)}</strong> (also known as ${escapeHtml(AUTHOR_ALTERNATE_NAME)}) · Runtime: <a href="${origin}/">${origin}/</a> · License: Apache-2.0 · Machine-readable: <a href="${origin}/cite.json">/cite.json</a></p>
     <p>${escapeHtml(citeHowToRuntime(origin, resolveCallingName(env)))}</p>
     <p>${escapeHtml(citeHowToLibrary())} · <a href="${LIBRARY_CITE}">Digital Library /cite.json</a> · <a href="${LIBRARY_LLMS}">/llms.txt</a></p>
-    <p class="lead">Known DOIs are historical. Zenodo currently returns HTTP 410 (user blocked) for every wired record. FoldLock and WhistleLock share method-paper DOI 10.5281/zenodo.22257762 on purpose — WhistleLock still needs its own software deposit. No DOIs are invented here.</p>
+    <p class="lead">Known DOIs are historical. Wired records return HTTP 410. FoldLock and WhistleLock share method-paper DOI 10.5281/zenodo.22257762 on purpose — WhistleLock still needs its own software deposit. No DOIs are invented here.</p>
     <ul>${citeProducts}</ul>
   </section>
   <p class="links">
@@ -2175,6 +2185,9 @@ ${workerLaunchHtml(origin, { slug: resolveCallingName(env).calling_slug, name: r
     <a href="${origin}/shelves">/shelves</a>
     <a href="${origin}/llms.txt">/llms.txt</a>
     <a href="${origin}/ai.txt">/ai.txt</a>
+    <a href="${origin}/help.txt">/help.txt</a>
+    <a href="${origin}/addendum.txt">/addendum.txt</a>
+    <a href="${origin}/help/softwares.txt">/help/softwares.txt</a>
     <a href="${origin}/sitemap.xml">/sitemap.xml</a>
     <a href="${origin}/sitemap-index.xml">/sitemap-index.xml</a>
     <a href="${origin}/robots.txt">/robots.txt</a>
@@ -2231,7 +2244,7 @@ ${distributionDoorsHtml(origin)}
       <li><strong>1.9.2</strong> binds Workers Browser Rendering (<code>BROWSER</code>) and live D1 MASTER (<code>CORPUS_D1</code> → <code>aziel-digital-library</code>). Corpus <code>searchD1</code> queries production <code>records</code> (not <code>master</code>). Workers AI (<code>AI</code>) is bound so Whisper / OCR stay honest (native only when <code>env.AI</code> runs). Sample MASTER remains the unbound fallback. Chromium product UI is not claimed; Tor / phoenix stay refuse. Remain-OFF untouched. Crawler abstract stays lead copy. Identity Aziel Eliab only.</li>
       <li><strong>1.9.1</strong> closes AZRT-1.9-GAPS-CLOSE. Isolate-safe corpus review / score / verify-backfill / verify-geo / document-chain / import_export run in-process. Whisper / OCR stay Workers-AI-gated (not a fake native OCR). AZBrowser <code>sandbox_status</code> / <code>sandbox_render</code> report Workers Browser Rendering honestly — Chromium stays DEFERRED unless bound; Tor / phoenix refuse. AZMail <code>transport_status</code>: public MTA stays NOT IMPLEMENTED; no public send. Wave 2–3 health / skill / doctor richness. Adversarial repo self-check + GitHub Actions <code>npm test</code> on pull requests and main. Consumer MCP / OpenAPI examples. <code>/v1/software</code> cards carry <code>engine_digest</code>. Live Nodes <code>live_nodes</code> counts Softwares <code>{slug}-worker</code> only (<code>mesh_*</code> is ephemeral). Catalog EmbryoLock is 1.2.0. Catalog <code>git_sha</code> from deploy var or stamped build-meta. Flutter <code>mobile/</code> is not vendored here. Remain-OFF untouched. Crawler abstract stays lead copy. Identity Aziel Eliab only.</li>
       <li><strong>1.9.0</strong> closes AZRT-1.9-CLOSE-1.0. Promotes public-safe engine ops (CodeLock gate-status, VibeLock detect, GlossaFilter peers, AZBot example, AZ-OS invite/principles, AZAI models metadata). ShadowLock hook (not OS hook). MirageGrid verify-receipt/nodes (no hop). AzielTether tip/dual-chain/reconcile/pulse/peer-preview (no VPN). AZMail isolate mailbox (notice_post / mail_post / inbox_pull; no SMTP). AZChat LIVE+bound (handles/rooms/bus; mesh default off; not AZMail). Isolate hash object store for TrajectoryLock media + WhistleLock files (no CDN; send/mail/release refuse). OpenAPI documents <code>/p/{slug}/{op}</code> as proxy paths. Corpus native-vs-proxy labels. Named fallback inventory. Flutter <code>mobile/</code> is not vendored here. Chromium stays NOT IMPLEMENTED. Remain-OFF untouched. Crawler abstract stays lead copy. Identity Aziel Eliab only.</li>
-      <li><strong>1.7.11</strong> leads crawler surfaces (homepage meta / JSON-LD, <code>/llms.txt</code>, <code>/cite.json</code>, <code>/about</code>) with the Aziel Runtime definition — node-meshed MCP Softwares suite for digital forensics and auditing; not an API aggregator. Changelog stays below the abstract. Architecture facts (FragGate single door, Softwares catalog, dual-surface, NodeMesh) stay secondary. Identity Aziel Eliab only.</li>
+      <li><strong>1.7.11</strong> leads crawler surfaces (homepage meta / JSON-LD, <code>/llms.txt</code>, <code>/cite.json</code>, <code>/about</code>) with the Aziel Runtime definition — node-meshed MCP Softwares suite for digital forensics and auditing. Changelog stays below the abstract. Architecture facts (FragGate single door, Softwares catalog, dual-surface, NodeMesh) stay secondary. Identity Aziel Eliab only.</li>
       <li><strong>1.1.0</strong> was catalog + pull + proxy that started calling itself a runtime. Those front doors stay. They are not exec.</li>
       <li><strong>1.2.0</strong> added a session Durable Object and hash-chained receipts. Exec still proxied to product Workers.</li>
       <li><strong>1.3.0</strong> vendored portable engines and ran them <em>inside this Worker isolate</em> for listed slugs. Receipts include <code>engine_digest</code> and <code>ran_in</code>.</li>
@@ -2417,7 +2430,7 @@ function staticPaths(origin, env = {}) {
       get: {
         operationId: "software_catalog",
         summary:
-          "Authoritative live software catalog for hubs and clients. Every product including AZChat LIVE+bound. EmbryoLock is live-with-local-destructive-boundary (worker_home embryolock-download-tracker). Whitestone is a live Worker-only placement (no FragGate engine; Case Mode is a product feature not a door; not a lawyer). Sort: Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock). Sibling software under one FragGate door — never separate FragGate engines. Softwares-tab count includes placements (azinterface / decisiongate / forgereceipts / azcoherence / zkattest / mmconsensus / toolbench / azvpn / whitestone); isolation domain software_count is 33 (domains_are_doors:false). website_designs names mesh-resident azcorpus + azlibrary (downloadable to nodes; not extra Softwares; azlibrary upload is API token only). Hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) fetch this on each Software-tab request. Default application/json. Accept: text/html returns a crawl HTML shell (unique title/description + JSON-LD) without changing the Worker homepage UI.",
+          "Authoritative live software catalog for hubs and clients. Every product including AZChat LIVE+bound. EmbryoLock is live-with-local-destructive-boundary (worker_home embryolock-download-tracker). Whitestone is a live Worker-only placement (FragGate status none; Case Mode is a product feature; https://whitestone.vibelock.workers.dev/). Sort: Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock). Sibling software under one FragGate door. Softwares-tab count includes placements (azinterface / decisiongate / forgereceipts / azcoherence / zkattest / mmconsensus / toolbench / azvpn / whitestone); isolation domain software_count is 33 (domains_are_doors:false). website_designs names mesh-resident azcorpus + azlibrary (downloadable to nodes; azlibrary upload is API token only). Hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) fetch this on each Software-tab request. Default application/json. Accept: text/html returns a crawl HTML shell (unique title/description + JSON-LD) without changing the Worker homepage UI.",
         tags: ["software"],
         responses: { "200": { description: "Sorted software[] plus count_note, isolation_software_count, tab_placement_slugs, domains (domains_are_doors:false), website_designs (azcorpus + azlibrary)" } },
       },
@@ -2498,7 +2511,7 @@ function staticPaths(origin, env = {}) {
       get: {
         operationId: "catalog_about",
         summary: rewriteLiveCallingDisplay(
-          "What Aziel Runtime is — node-meshed MCP Softwares suite, not an API aggregator.",
+          "What Aziel Runtime is — node-meshed MCP Softwares suite.",
           resolveCallingName(env),
         ),
         tags: ["catalog"],
@@ -2552,7 +2565,7 @@ function staticPaths(origin, env = {}) {
       get: {
         operationId: "catalog_shelves",
         summary:
-          "COLD-MULTI-SHELF-1.0 registry cite matching live corpus /shelves (corpus#96). Plane A = 5 published surfaces / 2 family radii / 1 independent live. Plane B Codeberg + archive.org hash-verify PASS still SLOT (https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius, pack b549362c…); Framagit URL null (third ALL-TARGETS); GitFlic refused CNS-GITFLIC-EMAIL; GitLab refused CNS-GITLAB-CF-LOOP; Zenodo tip-pack SLOT (zenodo_live:false; CNS-ZENODO-NOT-LIVE); doi null. Plane C USB SLOT until CNS-OPERATOR-ATTEST. Linked fields: redline.spec REDLINE-2026-09-14, Cap-7 design_of hub_designs + resolves_to_hub false, attack-sim refuse pointer scripts/verify-redline.mjs. Runtime Worker is the same Plane A tunnel, not a sixth surface.",
+          "COLD-MULTI-SHELF-1.0 registry cite matching live corpus /shelves (corpus#96). Plane A = 5 published surfaces / 2 family radii / 1 independent live. Plane B Codeberg + archive.org hash-verify PASS still SLOT (https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius, pack b549362c…); Framagit URL null (third ALL-TARGETS); GitFlic refused CNS-GITFLIC-EMAIL; GitLab refused CNS-GITLAB-CF-LOOP; Zenodo tip-pack SLOT (zenodo_live:false; CNS-ZENODO-NOT-LIVE); doi null. Plane C USB SLOT until CNS-OPERATOR-ATTEST. Linked fields: redline.spec REDLINE-2026-09-14, Cap-7 design_of hub_designs + resolves_to_hub false, attack-sim refuse pointer scripts/verify-redline.mjs. Runtime Worker is the same Plane A tunnel.",
         tags: ["catalog"],
         responses: { "200": { description: "COLD-MULTI-SHELF registry JSON" } },
       },
@@ -2684,6 +2697,7 @@ function staticPaths(origin, env = {}) {
         responses: { "200": { description: "sitemapindex.xml" } },
       },
     },
+    ...helpOpenApiPaths(),
   };
   return paths;
 }
@@ -2751,7 +2765,7 @@ async function combinedOpenApi(request, env) {
       summary: rewriteLiveCallingDisplay(RUNTIME_ONE_LINE, resolveCallingName(env)),
       description:
         rewriteLiveCallingDisplay(RUNTIME_ABSTRACT, resolveCallingName(env)) +
-        " FragGate is THE single public executable door (list → describe → call). Softwares catalog Plain→Gate→Lock; hubs refresh from GET /v1/software. Dual-surface: agents MCP/OpenAPI; humans Worker UI + counted /download. Catalog names mesh-resident website designs azcorpus + azlibrary (downloadable to nodes; not extra Softwares; azlibrary upload is API token only). Cap-7 mesh names via MirageGrid only (inherit hub designs only; resolves_to_hub false; name_may_change; canonical hubs immutable; not ICANN aliases). COLD-MULTI-SHELF-1.0 cite on GET /shelves matches corpus#96 honesty (Plane A 5 surfaces / 2 family radii / 1 independent live; Plane B Codeberg + archive.org PASS still SLOT at https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius; Framagit URL null; GitFlic CNS-GITFLIC-EMAIL; GitLab CNS-GITLAB-CF-LOOP; Zenodo refused; doi null; Plane C USB SLOT). NodeMesh/QNM read-only suite-presence is ON by default; GET /v1/mesh never enables radios beyond that; not a login mesh / Node Gate. Public VPN auto-binds AZVPN (HTTPS/WS REAL; WireGuard/OpenVPN SLOT). Author Aziel Eliab only. " +
+        " FragGate is THE single public executable door (list → describe → call). Softwares catalog Plain→Gate→Lock; hubs refresh from GET /v1/software. Dual-surface: agents MCP/OpenAPI; humans Worker UI + counted /download. Catalog names mesh-resident website designs azcorpus + azlibrary (downloadable to nodes; azlibrary upload is API token only). Cap-7 mesh names via MirageGrid only (inherit hub designs only; resolves_to_hub false; name_may_change; canonical hubs immutable). COLD-MULTI-SHELF-1.0 cite on GET /shelves matches corpus#96 honesty (Plane A 5 surfaces / 2 family radii / 1 independent live; Plane B Codeberg + archive.org PASS still SLOT at https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius; Framagit URL null; doi null; Plane C USB SLOT). NodeMesh/QNM read-only suite-presence is ON by default; GET /v1/mesh never enables radios beyond that. Public VPN auto-binds AZVPN (HTTPS/WS REAL; WireGuard/OpenVPN SLOT). Author Aziel Eliab only. " +
         CATALOG_CHANGELOG_20 +
         " " +
         CATALOG_CHANGELOG_19 +
@@ -3495,6 +3509,13 @@ async function handleRequest(request, env, ctx) {
 
     if ((url.pathname === "/llms.txt" || url.pathname === "/ai.txt") && (request.method === "GET" || request.method === "HEAD")) {
       return asHead(request, text(llmsTxt(origin, env), extra(url.pathname)));
+    }
+
+    {
+      const helpBody = helpTxtForPath(url.pathname, origin);
+      if (helpBody && (request.method === "GET" || request.method === "HEAD")) {
+        return asHead(request, text(helpBody, extra(url.pathname)));
+      }
     }
 
     if (url.pathname === "/person.jsonld" && (request.method === "GET" || request.method === "HEAD")) {

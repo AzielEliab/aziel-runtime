@@ -35,11 +35,16 @@ Runtime wires this once as `workerLaunchHtml` (`src/about-aziel.js` + `src/launc
 | Path | MIME | Purpose |
 |------|------|---------|
 | `GET /` | `text/html; charset=utf-8` | Indexable homepage. Lead with the Aziel Runtime abstract (not a changelog). |
-| `GET /about` | `text/html; charset=utf-8` | About Aziel (work, not biography) + About Aziel Runtime + FoldLock corpus-tip + product-specific `#hashtag` launch parts |
+| `GET /about` | `text/html; charset=utf-8` | About Aziel (published work) + About Aziel Runtime + FoldLock corpus-tip + product-specific `#hashtag` launch parts |
 | `GET /robots.txt` | `text/plain; charset=utf-8` | Open crawl |
 | `GET /sitemap.xml` | `application/xml; charset=utf-8` | This host only |
 | `GET /llms.txt` | `text/plain; charset=utf-8` | LLM / AI crawlers |
 | `GET /ai.txt` | `text/plain; charset=utf-8` | Alias of `/llms.txt` |
+| `GET /help.txt` | `text/plain; charset=utf-8` | Additive human help (FragGate, Softwares, Glama, dual-surface). Does not replace `/llms.txt` |
+| `GET /addendum.txt` | `text/plain; charset=utf-8` | Longer human addendum |
+| `GET /help/softwares.txt` | `text/plain; charset=utf-8` | Softwares `one_line` catalog (SSoT) |
+| `GET /help/fraggate.txt` | `text/plain; charset=utf-8` | FragGate list → describe → call |
+| `GET /help/glama.txt` | `text/plain; charset=utf-8` | Glama + MCP client help |
 | `GET /cite.json` | `application/json; charset=utf-8` | How to cite |
 | `GET /person.jsonld` | `application/ld+json; charset=utf-8` | Machine Person (Google AI / LLM profile). `@id` https://www.azieleliab.com/#aziel |
 | `GET /who-is` | `text/plain; charset=utf-8` | Machine who-is. Alias `/who-is-aziel-eliab.txt`. Not an HTML page |
@@ -214,7 +219,7 @@ Plain text. Lead with **What this is** — the canonical Aziel Runtime abstract 
 
 Name the full compatible AI client list (ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants) and the robots.txt Allow set above. Do not claim support is only Grok / ChatGPT / Venice.
 
-COLD-MULTI-SHELF-1.0 (below the abstract): `GET /shelves` cites corpus#96 honesty. Plane A = 5 published surfaces / 2 family radii / 1 independent live. Plane B SLOT (Codeberg + archive.org PASS still SLOT at https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius; Framagit URL null; GitFlic `CNS-GITFLIC-EMAIL`; GitLab `CNS-GITLAB-CF-LOOP`; Zenodo refused; `doi` null). Plane C USB SLOT. Runtime is not a sixth surface. Growth-ON crawlers Allow. No visible 15:20. Person `@id` https://www.azieleliab.com/#aziel.
+COLD-MULTI-SHELF-1.0 (below the abstract): `GET /shelves` cites corpus#96 honesty. Plane A = 5 published surfaces / 2 family radii / 1 independent live. Plane B SLOT (Codeberg + archive.org PASS still SLOT at https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius; Framagit URL null; `doi` null). Plane C USB SLOT. Runtime Worker is the same Plane A tunnel. Growth-ON crawlers Allow. No visible 15:20. Person `@id` https://www.azieleliab.com/#aziel.
 
 Cap-7 semantic bridge (below the abstract): MirageGrid-only mesh-name factory. Inherit hub designs only (azcorpus + azlibrary on the library hub). `resolves_to_hub: false`. `name_may_change: true`. Canonical hubs immutable. Not aliases of the four ICANN hostnames. Not a fifth product. Cite `GET /v1/mesh/az-generator` and MirageGrid Worker `/bridge`. Catalog + skill name mesh-resident website designs **azcorpus** + **azlibrary** (downloadable to nodes; azlibrary upload is API token only). Growth-ON crawlers Allow. No fake ICANN `.az`. No AZ-GEN live registrar. No visible 15:20. `GET /v1/mesh` never enables radios.
 
@@ -254,7 +259,7 @@ Runtime HTML shells (content negotiation — hubs still get JSON by default):
 
 | Path | Unique title |
 |------|----------------|
-| `GET /` | Aziel Runtime — node-meshed MCP Softwares suite (not an API aggregator) |
+| `GET /` | Aziel Runtime — node-meshed MCP Softwares suite |
 | `GET /about` | About — Aziel Runtime |
 | `GET /v1/software` (`Accept: text/html`) | Softwares — Aziel Runtime |
 | `GET /v1/fraggate/describe` (`Accept: text/html`) | FragGate describe — Aziel Runtime |
@@ -264,7 +269,7 @@ JSON-LD Person (`https://www.azieleliab.com/#aziel`) + SoftwareApplication / Ite
 
 `/cite.json` and `/llms.txt` cross-link Softwares hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) plus AZCoherence, the He Didn't Jump sister archive, and cite-only sister product Trades-Runtime (`sister_products` / catalog `extras[]` kind `cite_only`; not a FragGate true-engine; `fraggate_call` does not execute company ops). Identity Aziel Eliab only.
 
-`/cite.json` `person` + `/person.jsonld` + `/who-is` list site coverage blurbs: azieleliab.com (Person hub + Softwares + research landing); azielcorpuslibrary.net (Digital Library MASTER); godlock.uk (GodLock challenge/score, not VPN); hedidntjump.com (Zioncheck archive sister); this Worker (FragGate engine-runtime / MCP Softwares door 2.0.0-rc1). `sameAs` cross-links hub Person/who-is/cite files. Growth-ON. NO-LIE.
+`/cite.json` `person` + `/person.jsonld` + `/who-is` list site coverage blurbs: azieleliab.com (Person hub + Softwares + research landing); azielcorpuslibrary.net (Digital Library MASTER); godlock.uk (GodLock challenge/score); hedidntjump.com (Zioncheck archive sister); this Worker (FragGate engine-runtime / MCP Softwares door 2.0.0-rc1). `sameAs` cross-links hub Person/who-is/cite files. Growth-ON. NO-LIE.
 
 `/cite.json` and `/v1/catalog.json` also publish `stats` / `social_status` (person_id `https://www.azieleliab.com/#aziel`) for AZindex awareness. Live stats: `https://www.azieleliab.com/v1/stats`, `https://www.azielcorpuslibrary.net/stats` (not `/v1/stats`; version is `GET /v1/health`), `https://www.hedidntjump.com/api/stats`. GodLock public snapshot is `https://godlock.uk/stats` (not `/v1/stats`). Runtime agent/MCP usage is `GET /v1/uses`. Optional hub rollup: `GET /v1/stats-rollups` (read-only; never invent numbers).
 
@@ -297,7 +302,7 @@ A short **Includes named components such as FragGate…** line may sit with that
 
 GitHub description / homepage / topics are **not** in git. Lock + apply command: [GITHUB.md](GITHUB.md).
 
-- **Description** leads with NodeMesh'd MCP Softwares suite for digital forensics/auditing — not an API aggregator. Names FragGate, OpenAPI + MCP, 2.0.0-rc1, Aziel Eliab.
+- **Description** leads with NodeMesh'd MCP Softwares suite for digital forensics/auditing. Names FragGate, OpenAPI + MCP, 2.0.0-rc1, Aziel Eliab.
 - **Homepage** is the live MCP endpoint (`https://aziel-runtime.vibelock.workers.dev/mcp`) so registry validators do not treat the Glama directory listing as `remote_url`. **Try on Glama** stays the primary Install/distribution door in Description, README table, topics, and cross-links. Worker origin stays the execution / OpenAPI surface.
 - **Topics** must include `mcp`, `openapi`, `fraggate`, `digital-forensics` (plus `glama`, `mcp-server`, `nodemesh`).
 

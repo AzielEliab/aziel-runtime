@@ -106,8 +106,8 @@ export function mcpServerCard(origin, env = {}) {
     title: calling.calling_name,
     version: RUNTIME_VERSION,
     description: calling.rotated
-      ? `${calling.calling_name} — node-meshed MCP Softwares suite for digital forensics and auditing — not an API aggregator. FragGate door over streamable HTTP JSON-RPC.`
-      : "NodeMesh'd MCP Softwares suite for digital forensics and auditing — not an API aggregator. FragGate door over streamable HTTP JSON-RPC.",
+      ? `${calling.calling_name} — node-meshed MCP Softwares suite for digital forensics and auditing. FragGate door over streamable HTTP JSON-RPC.`
+      : "NodeMesh'd MCP Softwares suite for digital forensics and auditing. FragGate door over streamable HTTP JSON-RPC.",
     abstract: calling.rotated ? RUNTIME_ABSTRACT.replace(/\bAziel Runtime\b/g, calling.calling_name) : RUNTIME_ABSTRACT,
     author: AUTHOR_NAME,
     identity: AUTHOR_NAME,

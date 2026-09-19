@@ -101,7 +101,7 @@ assert.match(home, /id="task-chainlock"/);
 assert.match(home, /<label for="mesh-product">Product slug \(required to join\)<\/label>/);
 assert.ok(home.indexOf("<button") < home.indexOf('id="version-history"'), "first button is in the workspace, not the essay");
 assert.ok(home.indexOf('id="workspace"') < home.indexOf('id="version-history"'));
-assert.ok(home.indexOf("not merely an API orchestrator") < home.indexOf('id="workspace"') || home.indexOf("not merely an API orchestrator") > 0);
+assert.ok(home.indexOf("node-meshed orchestration suite") < home.indexOf('id="workspace"') || home.indexOf("node-meshed orchestration suite") > 0);
 
 const textareas = [...home.matchAll(/<textarea\b([^>]*)>/g)].map((m) => m[1]);
 assert.ok(textareas.length >= 8, `expected labeled workspace textareas, got ${textareas.length}`);

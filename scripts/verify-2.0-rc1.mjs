@@ -217,8 +217,9 @@ const rootChangelog = readFileSync(new URL("../CHANGELOG.md", import.meta.url), 
 assert.match(rootChangelog, /^## 2\.0\.0-rc1/m);
 assert.match(rootChangelog, /1\.6\.2. is \*\*superseded heritage\*\*/);
 
-assert.match(RUNTIME_ABSTRACT, /^Aziel Runtime is not merely an API orchestrator/);
-assert.equal(RUNTIME_ONE_LINE.startsWith("Aziel Runtime is not merely an API orchestrator"), true);
+assert.match(RUNTIME_ABSTRACT, /^Aziel Runtime is a node-meshed orchestration suite/);
+assert.equal(RUNTIME_ONE_LINE.startsWith("Aziel Runtime is a node-meshed orchestration suite"), true);
+assert.doesNotMatch(RUNTIME_ABSTRACT, /not merely an API orchestrator|not an API aggregator/);
 
 const probe = await runCleanRoomProbe();
 assert.equal(probe.mcp.server_version, "2.0.0-rc1");

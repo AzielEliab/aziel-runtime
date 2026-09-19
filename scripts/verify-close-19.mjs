@@ -221,11 +221,12 @@ const handler = (await import("../src/index.js")).default.fetch;
 const openapi = await (
   await handler(new Request("https://aziel-runtime.example/openapi.json", { headers: { "user-agent": "Mozilla/5.0" } }), {})
 ).json();
-assert.ok(openapi.info.description.startsWith("Aziel Runtime is not merely an API orchestrator"));
+assert.ok(openapi.info.description.startsWith("Aziel Runtime is a node-meshed orchestration suite"));
 assert.match(openapi.info.description, /2\.0\.0-rc1/);
 assert.match(openapi.info.description, /1\.9\.3/);
-assert.ok(openapi.info.description.indexOf("Aziel Runtime is not merely") < openapi.info.description.indexOf("2.0.0-rc1"));
-assert.ok(openapi.info.description.indexOf("Aziel Runtime is not merely") < openapi.info.description.indexOf("1.9.3"));
+assert.ok(openapi.info.description.indexOf("Aziel Runtime is a node-meshed") < openapi.info.description.indexOf("2.0.0-rc1"));
+assert.ok(openapi.info.description.indexOf("Aziel Runtime is a node-meshed") < openapi.info.description.indexOf("1.9.3"));
+assert.doesNotMatch(openapi.info.description, /not merely an API orchestrator|CNS-ZENODO-IP-BAN/);
 const pathKeys = Object.keys(openapi.paths).join(" ");
 assert.doesNotMatch(pathKeys, /smtp_send|deanonymize/);
 assert.ok(openapi.paths["/p/azchat/handle_new"]);
@@ -234,11 +235,11 @@ assert.ok(openapi.paths["/p/azmail/notice_post"]);
 const home = await (
   await handler(new Request("https://aziel-runtime.example/", { headers: { "user-agent": "Mozilla/5.0" } }), {})
 ).text();
-assert.match(home, /not merely an API orchestrator or software aggregator/);
 assert.match(home, /node-meshed orchestration suite of MCP-connected software/);
 assert.match(home, /2\.0\.0-rc1/);
 assert.match(home, /1\.9\.3/);
-assert.ok(home.indexOf("not merely an API orchestrator") < home.indexOf("id=\"version-history\""));
+assert.ok(home.indexOf("node-meshed orchestration suite") < home.indexOf("id=\"version-history\""));
+assert.doesNotMatch(home, /not merely an API orchestrator/);
 assert.doesNotMatch(home, /Flutter <code>mobile\/<\/code>, local install/);
 
 console.log("ok close-19 ops≡LIVE_OPS remain-OFF mailbox hash-store openapi SEO");
