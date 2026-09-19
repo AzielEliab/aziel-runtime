@@ -239,6 +239,23 @@ const targets = JSON.parse(sp.responseText);
 assert.ok(targets.target_ids.includes("ink"));
 assert.equal(targets.spectrometer, false);
 
+const spModes = await executeLocal({
+  slug: "spectrallock",
+  op: "modes",
+  payload: {},
+  ranIn: "aziel-runtime",
+});
+const modesBody = JSON.parse(spModes.responseText);
+const expectedModes = ["zero", "tazel", "vyrn", "uv", "rosetta", "zen", "chaos", "balance", "candle", "indent", "lemon"];
+assert.deepEqual(modesBody.live, expectedModes);
+assert.deepEqual(modesBody.mode_ids, expectedModes);
+assert.equal(modesBody.modes.length, 11);
+assert.equal(modesBody.aliases.ultraviolet, "uv");
+assert.equal(modesBody.aliases["uv-light"], "uv");
+assert.equal(modesBody.aliases.uvsa, "uv");
+assert.ok(modesBody.limitation.includes("THIS IS"));
+assert.match(modesBody.limitation, /256/);
+
 for (const forbidden of ["akm", "akm-triad", "adaptive-memory", "memory"]) {
   assert.ok(!product(forbidden), `${forbidden} is fabric, not a Softwares-tab catalog engine`);
 }
