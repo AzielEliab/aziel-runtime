@@ -324,7 +324,7 @@ export function azcoherenceCiteField(origin) {
     fraggate_describe: `${base}/v1/fraggate/describe?slug=azcoherence`,
     software: `${base}/v1/software`,
     how_to_cite: `${AUTHOR_FAMILY_GIVEN}. (2026). AZCoherence 0.1.0 [Software]. Apache-2.0. ${AZCOHERENCE_GITHUB}`,
-    note: "Softwares-tab Plain. Scoring-review placement (domain null). Second-pass triad coherence. Not AKM-TRIAD fabric. Not a 34th MASTER-33 isolation software. GET /v1/mesh never enables.",
+    note: "Softwares-tab Plain. Scoring-review placement (domain null). Second-pass triad coherence. Peer AZ-CLCE. Neighbor of AKM-TRIAD fabric. GET /v1/mesh never enables.",
     hubs: softwareHubCrawl().map((h) => ({ id: h.id, software_tab: h.software_tab, cite: h.cite })),
   };
 }
@@ -1057,7 +1057,7 @@ export const SUITE_DESIGNS = Object.freeze([
     id: "REMAIN-OFF-BY-DESIGN-2026-09-10",
     file: "REMAIN-OFF-BY-DESIGN-2026-09-10.md",
     one_line:
-      "Constitutional OFF set (33 items) — correctly OFF/REFUSED/GATED does not count as missing; do not enable",
+      "Constitutional OFF set (33 items) — correctly OFF/REFUSED/GATED stays recorded as OFF; do not enable",
     status: "live",
     kind: "law",
   },
@@ -1212,7 +1212,7 @@ export const REMAIN_OFF_BY_DESIGN = Object.freeze({
   file: "REMAIN-OFF-BY-DESIGN-2026-09-10.md",
   pdf: "REMAIN-OFF-BY-DESIGN-2026-09-10.pdf",
   one_line:
-    "Constitutional OFF set (33 items). Correctly OFF/REFUSED/GATED is not a gap. FEATURE-STATE lists gaps vs intentional OFF; this paper is the must-stay-off set. Do not enable.",
+    "Constitutional OFF set (33 items). Correctly OFF/REFUSED/GATED stays recorded as OFF. FEATURE-STATE lists gaps vs intentional OFF; this paper is the must-stay-off set. Do not enable.",
   baseline: "1.7.6",
   kind: "law",
   status: "live",
@@ -1252,7 +1252,7 @@ export function auditsCiteField() {
       fraggate_slug: false,
       authoritative_for: "1.7.3+",
       companion: r.id,
-      companion_role: "constitutional OFF set — correctly off is not a gap",
+      companion_role: "constitutional OFF set — correctly OFF/REFUSED/GATED stays recorded as OFF",
       how_to_cite: `${AUTHOR_FAMILY_GIVEN}. (2026). ${d.id} [Audit]. ${github}`,
     },
     remain_off_by_design: {

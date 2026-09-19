@@ -1208,6 +1208,12 @@ assert.doesNotMatch(citeDoc, /CNS-ZENODO-IP-BAN|CNS-GITFLIC-EMAIL|CNS-GITLAB-CF-
 assert.doesNotMatch(readme, /CNS-ZENODO-IP-BAN|CNS-GITFLIC-EMAIL|CNS-GITLAB-CF-LOOP|Operator IP banned/i);
 assert.equal(cite.about_aziel.not, undefined);
 assert.doesNotMatch(llms, /About Aziel \(work, not biography\)|Not zip\. Not hosted_store/);
+assert.doesNotMatch(llms, /^Banner:/m);
+assert.doesNotMatch(llms, /Not AKM-TRIAD|What this is not|not a lawyer|Not legal advice|GodLock is not a VPN|is not a gap|does not count as missing/i);
+assert.doesNotMatch(JSON.stringify(cite.azcoherence.note || ""), /Not AKM-TRIAD|not a 34th/i);
+assert.match(cite.azcoherence.note, /Second-pass triad coherence/);
+assert.doesNotMatch(cite.audits.remain_off_by_design.one_line, /is not a gap|does not count as missing/i);
+assert.match(cite.audits.remain_off_by_design.one_line, /stays recorded as OFF/);
 assert.doesNotMatch(aboutHtml, /<h3>Not this<\/h3>/);
 assert.doesNotMatch(home, /user blocked/i);
 assert.equal(cite.zenodo.audit.tombstone_note, "HTTP 410 tombstone");

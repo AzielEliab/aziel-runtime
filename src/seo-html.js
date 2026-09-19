@@ -399,7 +399,7 @@ ${namedComponentsHtml()}
   <p class="secondary">Author: <strong>${escapeHtml(AUTHOR_NAME)}</strong> (also known as ${escapeHtml(AUTHOR_ALTERNATE_NAME)}). Machine JSON: <a href="${base}/v1/software">GET /v1/software</a> (default). FragGate mirror: <a href="${base}/v1/fraggate/software">/v1/fraggate/software</a>. Cite: <a href="${base}/cite.json">/cite.json</a> · <a href="${base}/llms.txt">/llms.txt</a>. ${escapeHtml(LIBRARY_NAME)}: <a href="${LIBRARY_ORIGIN}/">${LIBRARY_ORIGIN}/</a>. GET /v1/mesh never enables.</p>
   <h2>Softwares hubs</h2>
   ${hubListHtml()}
-  <p>AZCoherence (AZC-0.1): <a href="${base}/v1/fraggate/describe?slug=azcoherence">describe</a> · <a href="${AZCOHERENCE_GITHUB}">GitHub</a> · <a href="${AZCOHERENCE_WORKER}/">Worker</a>. Not AKM-TRIAD.</p>
+  <p>AZCoherence (AZC-0.1): <a href="${base}/v1/fraggate/describe?slug=azcoherence">describe</a> · <a href="${AZCOHERENCE_GITHUB}">GitHub</a> · <a href="${AZCOHERENCE_WORKER}/">Worker</a>. Second-pass triad coherence. Peer AZ-CLCE. Neighbor of AKM-TRIAD fabric.</p>
   <p>Whitestone 1.6.0 Case Mode: <a href="https://whitestone.vibelock.workers.dev/">live web app</a> · <a href="https://whitestone-download-tracker.vibelock.workers.dev/download">counted zip</a> · <a href="https://whitestone.vibelock.workers.dev/v1/software">product catalog</a> · <a href="https://github.com/AzielEliab/Whitestone">GitHub</a>. Historical as-of + suppression axes + TrajectoryLock-lite + export; confidence ≤75%. Ephemeral pro se advisor. Session-only. FragGate status none.</p>
   <div class="field">
     <label for="software-filter">Search Softwares (name, slug, or task)</label>
