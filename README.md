@@ -338,7 +338,7 @@ Pull via `GET /v1/bundle` / `GET /v1/pull/{slug}`. Session exec is
 - **ChronoLock** is advisory only — not a scheduler, not targeting, not virality. 08:30–10:30 local. Distinct from TemporalLock.
 - **The ARK** is not a kernel. Hosted API never unlocks or encrypts with a passphrase and never stores vaults. Sweep is Mode E heuristics only.
 - **AZAI** is a local OpenAI-compatible runtime, not a new foundation model. Hosted / in-process `/v1` is a protocol mirror + Lamb check, not a provider proxy. Jeeves is not sovereign. Live blend is local `azai serve`.
-- **SpectralLock** hosted overlay is a 256px preview, not a spectrometer, not forensic. Full pipeline is the Python package.
+- **SpectralLock** hosted overlay is a 256px preview, not a spectrometer, not forensic. Inject ON is paint, not pigment recovery. UV is not a lamp. Balance/lemon/indent never invent marks. Full pipeline is the Python package.
 - **EmployeeLock** is not a court, not UL, not a truth score. Hosted never stores xlsx. Demo rows are format proof, not case facts.
 - **FoldLock** is not zip. Hosted / in-process preview is tether-suppression on small UTF-8 text. Ratios are receipts, not trophies. Short strings can grow.
 - **WhistleLock** is a local vault + dead-man copy. Not a mailer. Hosted never holds whistle files.
@@ -373,7 +373,7 @@ Pull via `GET /v1/bundle` / `GET /v1/pull/{slug}`. Session exec is
 | azclce | azclce-download-tracker | score, classify, gate | **in-process** |
 | ark | ark-download-tracker | sweep, levels | **in-process** |
 | azai | azai-download-tracker | health, lamb-check | **in-process (Lamb only; not the blend)** |
-| spectrallock | spectrallock-download-tracker | health, modes, overlay | **in-process** (256px PNG preview) |
+| spectrallock | spectrallock-download-tracker | health, modes, overlay | **in-process** (256px PNG preview; inject ON/OFF) |
 | azbot | azbot-download-tracker | health, skill, route | **in-process** (skill router, not a model) |
 | employeelock | employeelock-download-tracker | health, append-preview, verify-canonical, skill | **in-process** (no xlsx store) |
 | foldlock | foldlock-download-tracker | health, fold-preview, unfold-preview, skill | **in-process** |
