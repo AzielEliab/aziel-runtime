@@ -635,14 +635,14 @@ const PRODUCTS_RAW = [
     github: "https://github.com/AzielEliab/spectrallock",
     ops: [
       { op: "health", method: "GET", summary: "Liveness. Does not increment download KV." },
-      { op: "modes", method: "GET", summary: "List live overlay modes (zero, tazel, vyrn, uv, rosetta, zen, chaos, balance)." },
+      { op: "modes", method: "GET", summary: "List live overlay modes (zero, tazel, vyrn, uv, rosetta, zen, chaos, balance, candle, indent, lemon)." },
       { op: "targets", method: "GET", summary: "List ink/page targets. Same targets as Aziel Corpus Library OCR." },
       { op: "overlay", method: "POST", summary: "Simplified overlay preview. PNG b64 in, longest side capped at 256 px. Not the full Python pipeline." },
       { op: "verify", method: "POST", summary: "Recompute overlay metadata hash (mode/target/geometry). Not forensic." },
       { op: "doctor", method: "GET", summary: "Richer liveness: 256px preview, not a spectrometer." },
     ],
     example: { mode: "rosetta", b64: "<png-base64>" },
-    banner: "Hosted overlay is a 256px preview, not a spectrometer, not forensic.",
+    banner: "Hosted overlay is a 256px preview. Synthetic looks. Not a spectrometer, forensic lab, ESDA, or chemical test. Never invent marks.",
   },
   {
     slug: "azbot",
