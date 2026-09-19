@@ -255,6 +255,60 @@ assert.equal(modesBody.aliases["uv-light"], "uv");
 assert.equal(modesBody.aliases.uvsa, "uv");
 assert.ok(modesBody.limitation.includes("THIS IS"));
 assert.match(modesBody.limitation, /256/);
+assert.equal(modesBody.inject.accepted, true);
+assert.deepEqual(modesBody.inject.values, [true, false]);
+assert.equal(modesBody.inject.zero_ignores, true);
+assert.equal(modesBody.pigment_recovery, false);
+assert.equal(modesBody.uv_lamp, false);
+assert.match(modesBody.limitation, /inject/i);
+assert.match(modesBody.limitation, /pigment/);
+assert.match(String(modesBody.inject.note), /UV is not a lamp/);
+assert.match(String(modesBody.inject.note), /Balance does not invent marks/);
+
+const spSkill = await executeLocal({
+  slug: "spectrallock",
+  op: "skill",
+  payload: {},
+  ranIn: "aziel-runtime",
+});
+const skillBody = JSON.parse(spSkill.responseText);
+assert.match(String(skillBody.skill || skillBody.markdown), /inject true\|false/);
+assert.match(String(skillBody.skill || skillBody.markdown), /not recovered pigment/);
+assert.match(String(skillBody.skill || skillBody.markdown), /tazel_inband_pct/);
+assert.match(String(skillBody.limitation), /Balance\/lemon\/indent never invent marks/);
+
+const TINY_PNG =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+const spOverlayOn = await executeLocal({
+  slug: "spectrallock",
+  op: "overlay",
+  payload: { mode: "vyrn", inject: true, b64: TINY_PNG },
+  ranIn: "aziel-runtime",
+});
+const overlayOn = JSON.parse(spOverlayOn.responseText);
+assert.equal(overlayOn.inject, true);
+assert.equal(overlayOn.pigment_recovery, false);
+assert.equal(typeof overlayOn.tazel_inband_pct, "number");
+assert.equal(typeof overlayOn.vyrn_inband_pct, "number");
+const spOverlayOff = await executeLocal({
+  slug: "spectrallock",
+  op: "overlay",
+  payload: { mode: "vyrn", inject: false, b64: TINY_PNG },
+  ranIn: "aziel-runtime",
+});
+const overlayOff = JSON.parse(spOverlayOff.responseText);
+assert.equal(overlayOff.inject, false);
+assert.equal(overlayOff.inject_applied, false);
+const spOverlayZero = await executeLocal({
+  slug: "spectrallock",
+  op: "overlay",
+  payload: { mode: "zero", inject: true, b64: TINY_PNG },
+  ranIn: "aziel-runtime",
+});
+const overlayZero = JSON.parse(spOverlayZero.responseText);
+assert.equal(overlayZero.inject, true);
+assert.equal(overlayZero.inject_applied, false);
+assert.equal(overlayZero.inject_ignored, true);
 
 for (const forbidden of ["akm", "akm-triad", "adaptive-memory", "memory"]) {
   assert.ok(!product(forbidden), `${forbidden} is fabric, not a Softwares-tab catalog engine`);

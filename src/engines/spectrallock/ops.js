@@ -6,6 +6,7 @@
 import { capabilityDoctor, capabilityHealth, capabilitySkill } from "../capability.js";
 import {
   ALIASES,
+  INJECT_NOTE,
   LIMITATION,
   LIVE,
   MAX_SIDE,
@@ -36,7 +37,22 @@ export const STUB_REFUSE = Object.freeze(["spectrometer", "forensic", "invent_ma
 export const RUNTIME_LIMITATION =
   "THIS IS: hosted 256px overlay preview. Synthetic looks only. " +
   LIMITATION +
-  " THIS IS NOT: a spectrometer, forensic lab, ESDA, or chemical test. Never invent marks. Identity Aziel Eliab only.";
+  " Overlay payload accepts inject true|false. ON is false-color membership paint, not recovered pigment. " +
+  "OFF is gray of the same gate. Zero ignores the switch. Reports tazel_inband_pct and vyrn_inband_pct. " +
+  "THIS IS NOT: a spectrometer, forensic lab, ESDA, chemical test, UV lamp, or pigment recovery. " +
+  "Balance/lemon/indent never invent marks. Identity Aziel Eliab only.";
+
+const INJECT_FLAG = Object.freeze({
+  accepted: true,
+  values: [true, false],
+  default: true,
+  on: "false-color membership paint (not recovered pigment)",
+  off: "gray of the same gate",
+  zero_ignores: true,
+  pigment_recovery: false,
+  reports: ["tazel_inband_pct", "vyrn_inband_pct"],
+  note: INJECT_NOTE,
+});
 
 const CANONICAL_MODE_IDS = Object.freeze([
   "zero",
@@ -65,7 +81,16 @@ function envelope() {
     live_ops: LIVE_OPS_LIST,
     stub_ops: STUB_REFUSE,
     limitation: RUNTIME_LIMITATION,
-    extra: { spectrometer: false, forensic: false, esda: false, chemical_test: false, max_side: MAX_SIDE },
+    extra: {
+      spectrometer: false,
+      forensic: false,
+      esda: false,
+      chemical_test: false,
+      pigment_recovery: false,
+      uv_lamp: false,
+      max_side: MAX_SIDE,
+      inject: INJECT_FLAG,
+    },
   };
 }
 
@@ -78,7 +103,9 @@ export function spectrallockSkill() {
     ...envelope(),
     lead:
       "256px hosted overlay preview. Lenses: zero, tazel, vyrn, uv, rosetta, zen, chaos, balance, candle, indent, lemon. " +
-      "UV aliases: ultraviolet, uv-light, uvsa. Targets: ink, page. Synthetic looks. Not a spectrometer. Not forensic. Not ESDA. Not a chemical test. " +
+      "UV aliases: ultraviolet, uv-light, uvsa. Targets: ink, page. Overlay payload accepts inject true|false. " +
+      "ON is false-color membership paint, not recovered pigment. OFF is gray of the same gate. Zero ignores the switch. " +
+      "Reports tazel_inband_pct and vyrn_inband_pct. Synthetic looks. UV is not a lamp. Not a spectrometer. Not forensic. Not ESDA. Not a chemical test. " +
       "Candle/indent/lemon never invent marks. Balance never invents marks. Full histogram / band-pass lives in the Python package. " +
       "4DMap Γ may cite a class; SpectralLock does not write 4DMap cards.",
   });
@@ -87,7 +114,8 @@ export function spectrallockSkill() {
 export function spectrallockDoctor() {
   return capabilityDoctor({
     ...envelope(),
-    doctor_note: "SpectralLock doctor: 256px preview only. Not a spectrometer. Not forensic. Not ESDA. Not a chemical test.",
+    doctor_note:
+      "SpectralLock doctor: 256px preview only. Inject ON is paint, not pigment recovery. UV is not a lamp. Not a spectrometer. Not forensic. Not ESDA. Not a chemical test. Balance/lemon/indent never invent marks.",
   });
 }
 
@@ -109,6 +137,9 @@ export function listTargets() {
     invent_mark: false,
     esda: false,
     chemical_test: false,
+    pigment_recovery: false,
+    uv_lamp: false,
+    inject: INJECT_FLAG,
     neighbors: NEIGHBORS.slice(),
     limitation: RUNTIME_LIMITATION,
     author: AUTHOR,
@@ -195,6 +226,9 @@ export async function runSpectrallock(op, payload, scratch) {
       aliases: { ...ALIASES },
       targets: TARGETS,
       stub_modes: STUB_MODES.slice(),
+      inject: INJECT_FLAG,
+      pigment_recovery: false,
+      uv_lamp: false,
       limitation: RUNTIME_LIMITATION,
       true_engine_runtime: true,
     };
@@ -222,4 +256,4 @@ export async function runSpectrallock(op, payload, scratch) {
   return { unsupported: true };
 }
 
-export { LIMITATION, LIVE, MODES, CANONICAL_MODE_IDS };
+export { LIMITATION, LIVE, MODES, CANONICAL_MODE_IDS, INJECT_FLAG, INJECT_NOTE };

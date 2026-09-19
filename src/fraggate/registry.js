@@ -600,6 +600,8 @@ export function registryEntry(product) {
     note:
       slug === "embryolock"
         ? "Live-with-local-destructive-boundary. Health/skill/doctor/verify-hash/policy cite on the public FragGate door. Wipe/scorch/unlock-after-fail stay local-only — Never execute on the public mesh. Vault/Custody isolation label (with ARK). Author: Aziel Eliab only."
+        : slug === "spectrallock"
+          ? "Live on the public FragGate door. Overlay payload accepts inject true|false (ON = false-color membership paint, not recovered pigment; OFF = gray of the same gate; zero ignores the switch). Reports tazel_inband_pct and vyrn_inband_pct. UV is not a lamp. Balance/lemon/indent never invent marks. 256px preview. Author: Aziel Eliab only."
         : status === "live"
           ? "Live on the public FragGate door."
           : "Named in the registry. Local / in-process engine exists; not live on the public mesh.",

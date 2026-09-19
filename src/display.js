@@ -93,7 +93,7 @@ const TITLE_OVERRIDES = {
   "zsolver:score": "Score ZionPattern Solver answers",
   "zsolver:patterns": "List ZionPattern Solver patterns",
   "ark:sweep": "Sweep with The ARK",
-  "spectrallock:overlay": "Preview a SpectralLock overlay",
+  "spectrallock:overlay": "Preview a SpectralLock overlay (inject ON/OFF)",
   "spectrallock:modes": "List SpectralLock overlay modes",
   "spectrallock:targets": "List SpectralLock overlay targets",
   "spectrallock:verify": "Verify a SpectralLock overlay hash",
