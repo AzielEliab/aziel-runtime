@@ -30,7 +30,11 @@ export const RECEIPTS_HEADER = "x-aziel-receipt";
 export const HEX64 = /^[a-f0-9]{64}$/;
 
 export const ACT_RECEIPT_NOTE =
-  "Public ACT-RECEIPT-1.0 chain lives on https://www.azielcorpuslibrary.net/receipts. Runtime appends after FragGate list/call, POST /mcp, and significant POST /v1/* when RECEIPT_APPEND_TOKEN is set. Missing token is fail-open. No user/IP/geo. Not a Softwares-tab product.";
+  "Public ACT-RECEIPT-1.0 chain lives on https://www.azielcorpuslibrary.net/receipts. Runtime appends after FragGate list/call, POST /mcp, and significant POST /v1/* when RECEIPT_APPEND_TOKEN is set. Missing token is fail-open append-skip (engines still work). Empty or dark public tip is SLOT / refuse — not a live tip and not success. No user/IP/geo. Not a Softwares-tab product.";
+
+export const ACT_RECEIPT_TIP_EMPTY = "ACT-RECEIPT-TIP-EMPTY";
+export const ACT_RECEIPT_TIP_DARK = "ACT-RECEIPT-TIP-DARK";
+export const ACT_RECEIPT_TIP_SLOT = "ACT-RECEIPT-TIP-SLOT";
 
 const SKIP_MINT = new Set([
   "/",
@@ -91,7 +95,59 @@ export function actReceiptHint() {
     software_tab: false,
     fraggate_slug: false,
     fail_open: true,
-    note: "Public chain lives on corpus /receipts. Runtime appends when RECEIPT_APPEND_TOKEN is set.",
+    fail_open_means: "append-skip only — empty tip is not a live receipt",
+    empty_tip_is_not_success: true,
+    note: "Public chain lives on corpus /receipts. Runtime appends when RECEIPT_APPEND_TOKEN is set. Empty tip is SLOT, not success.",
+  };
+}
+
+export function isEmptyActTipHash(hash) {
+  const h = String(hash || "").toLowerCase();
+  return !HEX64.test(h) || h === ZERO_HASH;
+}
+
+/**
+ * Public tip read honesty: genesis ZERO_HASH / null / dark corpus are SLOT, not success.
+ * Fail-open remains the append-skip law (engines still return). ForgeReceipts is not this tip.
+ */
+export function classifyPublicActTip(proxied = {}) {
+  const hash = proxied && proxied.hash != null ? String(proxied.hash) : "";
+  const dark = proxied.proxied === false || proxied.status === 0 || proxied.fail_open === true;
+  const empty = isEmptyActTipHash(hash);
+  if (dark && empty) {
+    return {
+      live: false,
+      empty: true,
+      dark: true,
+      code: ACT_RECEIPT_TIP_DARK,
+      status: "slot",
+    };
+  }
+  if (empty) {
+    return {
+      live: false,
+      empty: true,
+      dark: false,
+      code: ACT_RECEIPT_TIP_EMPTY,
+      status: "slot",
+      genesis: hash === ZERO_HASH,
+    };
+  }
+  if (dark) {
+    return {
+      live: false,
+      empty: false,
+      dark: true,
+      code: ACT_RECEIPT_TIP_DARK,
+      status: "slot",
+    };
+  }
+  return {
+    live: true,
+    empty: false,
+    dark: false,
+    code: "ACT-RECEIPT-TIP",
+    status: "live",
   };
 }
 
@@ -405,6 +461,9 @@ export function actReceiptStatus(extra = {}) {
     software_tab: false,
     fraggate_slug: false,
     fail_open: true,
+    fail_open_means: "append-skip only — empty or dark public tip is not success",
+    empty_tip_is_not_success: true,
+    public_tip_status: extra.public_tip_status || "slot",
     public_chain: LIBRARY_RECEIPTS_PUBLIC,
     append: LIBRARY_RECEIPTS,
     tip: extra.tip || null,
@@ -412,6 +471,8 @@ export function actReceiptStatus(extra = {}) {
     proxy_path: "/v1/receipts/proxy",
     fields: ["hash", "request", "output", "event"],
     event_fields: ["surface", "path", "method", "status", "tool", "spec", "runtime_version"],
+    content_addressed: true,
+    forgereceipts: "isolate hash store — not this public ACT tip",
     no_user_ip_geo: true,
     token_configured: extra.token_configured === true,
     paper: RECEIPTS_PAPER,
@@ -450,32 +511,66 @@ export async function proxyCorpusReceipts(env, kind = "tip", fetchImpl = fetch) 
     });
     if (!res || !res.ok) {
       return {
-        ok: true,
+        ok: false,
         proxied: false,
+        dark: true,
+        empty: true,
+        live_tip: false,
         status: res ? res.status : 0,
         public_chain: LIBRARY_RECEIPTS_PUBLIC,
         note: ACT_RECEIPT_NOTE,
         tip: null,
+        hash: null,
+        fail_open: false,
+        fail_open_append: true,
+        code: ACT_RECEIPT_TIP_DARK,
+        tip_status: "slot",
+        zero_hash_is_not_a_tip: true,
+        content_addressed: true,
+        forgereceipts: "isolate hash store — not this public ACT tip",
       };
     }
     const json = await res.json().catch(() => ({}));
+    const hash = peekJsonHash(json) || "";
+    const empty = isEmptyActTipHash(hash);
     return {
-      ok: true,
+      ok: !empty,
       proxied: true,
+      dark: false,
+      empty,
+      live_tip: !empty,
       status: res.status,
       public_chain: LIBRARY_RECEIPTS_PUBLIC,
       note: ACT_RECEIPT_NOTE,
       tip: json,
-      hash: peekJsonHash(json) || null,
+      hash: empty ? null : hash,
+      genesis_zero: hash === ZERO_HASH,
+      zero_hash_is_not_a_tip: true,
+      fail_open: false,
+      fail_open_append: true,
+      code: empty ? ACT_RECEIPT_TIP_EMPTY : "ACT-RECEIPT-TIP",
+      tip_status: empty ? "slot" : "live",
+      content_addressed: true,
+      forgereceipts: "isolate hash store — not this public ACT tip",
     };
   } catch {
     return {
-      ok: true,
+      ok: false,
       proxied: false,
-      fail_open: true,
+      dark: true,
+      empty: true,
+      live_tip: false,
+      fail_open: false,
+      fail_open_append: true,
       public_chain: LIBRARY_RECEIPTS_PUBLIC,
       note: ACT_RECEIPT_NOTE,
       tip: null,
+      hash: null,
+      code: ACT_RECEIPT_TIP_DARK,
+      tip_status: "slot",
+      zero_hash_is_not_a_tip: true,
+      content_addressed: true,
+      forgereceipts: "isolate hash store — not this public ACT tip",
     };
   }
 }
@@ -491,11 +586,38 @@ export async function dispatchActReceiptHttp(method, pathname, env, fetchImpl = 
   if (verb === "GET" || verb === "HEAD") {
     if (tail === "tip" || tail === "proxy") {
       const proxied = await proxyCorpusReceipts(env, "tip", fetchImpl);
-      return { status: 200, body: { ...actReceiptStatus({ token_configured: !!receiptAppendToken(env) }), ...proxied } };
+      const classified = classifyPublicActTip(proxied);
+      const cite = actReceiptStatus({
+        token_configured: !!receiptAppendToken(env),
+        public_tip_status: classified.status,
+        tip: proxied.tip || null,
+      });
+      const body = {
+        ...cite,
+        ...proxied,
+        ok: classified.live,
+        code: classified.live ? "ACT-RECEIPT-OK" : classified.code,
+        tip_status: classified.status,
+        success: classified.live,
+        empty: classified.empty,
+        dark: classified.dark,
+        live_tip: classified.live,
+        fail_open: false,
+        fail_open_append: true,
+        empty_tip_is_not_success: true,
+        public_tip_status: classified.status,
+        content_addressed: true,
+        forgereceipts: "isolate hash store — not this public ACT tip",
+        hash: classified.live ? proxied.hash : null,
+        message: classified.live
+          ? "Public ACT tip is content-addressed."
+          : "Public ACT tip is empty or unreachable. SLOT cite — not a live receipt. Fail-open applies to append-skip only.",
+      };
+      return { status: 200, body };
     }
     return {
       status: 200,
-      body: actReceiptStatus({ token_configured: !!receiptAppendToken(env) }),
+      body: actReceiptStatus({ token_configured: !!receiptAppendToken(env), public_tip_status: "slot" }),
     };
   }
 
@@ -518,9 +640,9 @@ ${ACT_RECEIPT_NOTE}
 
 Fields: **hash** (SHA-256 including previous_hash), one-sentence **request**, one-sentence **output**, **event** metadata (surface / path / method / status / tool / spec / runtime version). No user, IP, or geo.
 
-Runtime appends after FragGate list/call, POST /mcp, and significant POST /v1/* when \`RECEIPT_APPEND_TOKEN\` is set (header \`${RECEIPTS_HEADER}\`). MESH-VAULT lite may mint catalog / download / mesh events. Missing token is fail-open — engines still work.
+Runtime appends after FragGate list/call, POST /mcp, and significant POST /v1/* when \`RECEIPT_APPEND_TOKEN\` is set (header \`${RECEIPTS_HEADER}\`). MESH-VAULT lite may mint catalog / download / mesh events. Missing token is fail-open append-skip — engines still work. Empty or dark public tip is SLOT (\`ACT-RECEIPT-TIP-EMPTY\` / \`ACT-RECEIPT-TIP-DARK\`) — not success.
 
-Read: \`GET /v1/receipts\` (cite) · \`GET /v1/receipts/tip\` / \`GET /v1/receipts/proxy\` (corpus tip).
+Read: \`GET /v1/receipts\` (cite) · \`GET /v1/receipts/tip\` / \`GET /v1/receipts/proxy\` (corpus tip; empty tip is not a live receipt).
 
 Not a Softwares-tab product. Not a FragGate slug. Remain-OFF untouched. Author: Aziel Eliab only.
 `;

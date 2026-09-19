@@ -63,11 +63,15 @@ carries the token. MESH-VAULT lite may mint catalog / download / mesh events.
 4. Fail-open
 If the token is missing, skip append. If corpus is dark or times out, skip append.
 Engines still return. GET /v1/receipts still cites the public chain.
+Fail-open is **append-skip only**. It is not a live tip and not a success receipt.
 
 5. Optional read
 GET /v1/receipts cites this paper and names the corpus origin.
-GET /v1/receipts/tip and GET /v1/receipts/proxy are best-effort tip proxies.
-They document that the public chain lives on corpus /receipts.
+GET /v1/receipts/tip and GET /v1/receipts/proxy are corpus tip proxies.
+An empty tip (64-zero genesis / null hash) or a dark corpus is **SLOT**
+(`ACT-RECEIPT-TIP-EMPTY` / `ACT-RECEIPT-TIP-DARK`) — honest refuse/cite, not
+`ok: true` success. Do not treat ZERO_HASH as a live content-addressed tip.
+ForgeReceipts is the isolate hash store; it is not this public ACT tip.
 
 6. MESH-VAULT lite
 Catalog GET /v1/software, pull / download, and POST /v1/mesh/* may mint an ACT
