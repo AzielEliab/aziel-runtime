@@ -539,9 +539,9 @@ AZL-VOL-1.0                                                                     
 
 
 SpectralLock · spectrallock · 0.3.0 · live
-Overlay preview modes. 256px hosted preview, not a spectrometer.
+Overlay preview modes. 256px hosted preview, not a spectrometer. Leftover-bytes recover is honest; opaque refuse is SL-UNREDACT-OPAQUE; never invent letters.
 
-How. Overlay preview modes. 256px hosted preview, not a spectrometer.
+How. Overlay preview modes. 256px hosted preview, not a spectrometer. Locate / lift / recover / refuse live in the vendored overlay and the product Worker /v1/unredact — not a catalog FragGate door op. Heatmaps are not transcripts.
 Live ops. modes, overlay, health, skill
 Stub-refused ops. —
 GitHub. https://github.com/AzielEliab/spectrallock
