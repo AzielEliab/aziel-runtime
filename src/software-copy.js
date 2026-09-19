@@ -195,7 +195,7 @@ export const SOFTWARE_COPY = Object.freeze({
   spectrallock: {
     one_line: "Preview a small overlay on an image in one of the listed modes.",
     description:
-      "Use SpectralLock for a 256-pixel overlay preview and a metadata-hash check. It exists as a hosted preview, not a spectrometer or forensic instrument.",
+      "Use SpectralLock for a 256-pixel overlay preview with an optional inject true|false color switch, plus a metadata-hash check. Inject ON paints membership; it does not recover pigment. It exists as a hosted preview, not a spectrometer or forensic instrument.",
   },
   temporallock: {
     one_line: "Build and verify a hash-chained receipt timeline you keep on the client.",
