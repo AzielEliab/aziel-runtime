@@ -23,6 +23,7 @@ export const CAP7_SHUFFLE_REFUSE = Object.freeze({
   HARDCODE_HOST: "BAN-NO-HARDCODE-CAP7-HOST",
   FAKE_PUBLIC_SHUFFLE: "BAN-NO-FAKE-SHUFFLE-LIVE",
   LOCALHOST_UPDATE: "BAN-NO-LOCALHOST-CAP7-UPDATE",
+  FAKE_HOSTED_MCP: "BAN-NO-FAKE-CAP7-HOST",
 });
 
 /** Factory is the single name SoT. Former in-process cap7-loom… labels are heritage, not a second live set. */
@@ -178,6 +179,9 @@ export function cap7ShuffleLayout() {
     public_worker_bridge: "live",
     public_worker_shuffle: "slot",
     hosted_update: "slot",
+    hosted_mcp: "slot",
+    hosted_land: "slot",
+    attested: false,
     site_count: CAP7_SITES.length,
     name_set_sot: CAP7_NAME_SOT,
     factory_labels: CAP7_FACTORY_LABELS.slice(),
@@ -228,6 +232,9 @@ export function cap7ShuffleCite() {
     public_worker_bridge: layout.public_worker_bridge,
     public_worker_shuffle: layout.public_worker_shuffle,
     hosted_update: layout.hosted_update,
+    hosted_mcp: "slot",
+    hosted_land: "slot",
+    attested: false,
     path: CAP7_SHUFFLE_PATH,
     distinct_mesh_names: true,
     name_may_change: true,
@@ -288,7 +295,11 @@ export function fakePublicShuffleAttempt(payload) {
   if (
     truthyFlag(src.public_shuffle_live) ||
     truthyFlag(src.miragegrid_worker_shuffle_live) ||
-    src.public_worker_shuffle === "live"
+    src.public_worker_shuffle === "live" ||
+    src.hosted_mcp === "live" ||
+    src.hosted_land === "live" ||
+    truthyFlag(src.hosted_mcp_live) ||
+    truthyFlag(src.cap7_hosted_mcp_live)
   ) {
     return "fake_public_shuffle";
   }
@@ -359,6 +370,9 @@ export function shuffleRefuse(code, message, extra = {}) {
     public_worker_bridge: "live",
     public_worker_shuffle: "slot",
     hosted_update: "slot",
+    hosted_mcp: "slot",
+    hosted_land: "slot",
+    attested: false,
     localhost_pool_is_not_public_update: true,
     message,
     handoff: CAP7_SHUFFLE_HANDOFF,
@@ -411,6 +425,10 @@ export async function landCap7Shuffle(payload = {}) {
     public_worker_bridge: "live",
     public_worker_shuffle: "slot",
     hosted_update: "slot",
+    hosted_mcp: "slot",
+    hosted_land: "slot",
+    attested: false,
+    name_set_sot: CAP7_NAME_SOT,
     localhost_pool_is_not_public_update: true,
     ping: {
       factory: "miragegrid",
@@ -428,18 +446,24 @@ export async function landCap7Shuffle(payload = {}) {
       mesh_name_icann: "slot",
       surface: site.surface,
       hosted_status: "slot",
+      hosted_mcp: "slot",
+      hosted_land: "slot",
+      attested: false,
       factory_honesty_public: site.factory_honesty_public,
       name_may_change: true,
       resolves_to_hub: false,
       inherit: "designs",
       design_of: "hub_designs",
       public_icann: false,
+      name_set_sot: CAP7_NAME_SOT,
     },
     update: {
       that_round_endpoint: site.mesh_name,
       factory_label: site.id,
       hosted_url: null,
       status: "slot",
+      hosted_mcp: "slot",
+      attested: false,
       is_live_door: false,
       mesh_name_icann: "slot",
       surface: site.surface,

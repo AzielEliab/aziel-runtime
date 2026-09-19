@@ -329,6 +329,13 @@ assert.deepEqual(cite.shelves.archive_org_tip_packs, [
   "https://archive.org/details/aziel-lockset-tip",
   "https://archive.org/details/aziel-lockset-tip_202609",
 ]);
+assert.equal(cite.shelves.plane_b.honesty.hash_verify_pass_is_not_live, true);
+assert.equal(cite.shelves.plane_b.honesty.do_not_paint_slot_as_live, true);
+assert.equal(cite.shelves.plane_b.honesty.framagit_url, null);
+assert.equal(cite.shelves.plane_b.honesty.zenodo_live, false);
+assert.equal(cite.shelves.plane_b.codeberg.hash_verify_pass_is_not_live, true);
+assert.equal(cite.shelves.plane_c.honesty.do_not_paint_slot_as_live, true);
+assert.equal(cite.shelves.plane_c.honesty.attested, false);
 assert.equal(cite.shelves.plane_b.framagit.url, null);
 assert.equal(cite.shelves.plane_b.framagit.hash_verify, null);
 assert.equal(cite.shelves.plane_b.framagit.refuse, REFUSE.NO_FORGE);

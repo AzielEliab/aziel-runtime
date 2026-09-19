@@ -2,7 +2,8 @@
  * F05 — honest durable-commit labels.
  * FragGate ledger public window is ephemeral (cap 64).
  * ChainLock / SESSION Durable Objects are durable commits when bound.
- * MemoryStore is never durable. AKM memory is belief, not a commit.
+ * MemoryStore is never durable. AKM isolate index is derived belief, not a commit.
+ * Recollection authority is the append-only ChainLock learn chain (rebuildable).
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
 
@@ -105,7 +106,17 @@ export function durabilityLabels(env) {
     akm_memory: {
       durable: false,
       durable_commit: false,
-      note: "AKM-TRIAD memory is derived belief, not a durable commit and not ChainLock. Posterior ≠ truth.",
+      isolate_index: true,
+      ledger: "chainlock-learn",
+      ledger_durable: chainlock,
+      rebuildable: true,
+      rebuild_on_get_miss: true,
+      belief_is_not_truth: true,
+      memory_delete: false,
+      memory_update_overwrite: false,
+      http_dry_run_writes: false,
+      note:
+        "AKM-TRIAD Belief List is derived from the append-only ChainLock learn ledger. Isolate MemoryStore is a cache, never the durable source. GET/resolve/recall rebuild from learn on a cold isolate. Posterior ≠ truth. HTTP dry_run does not write.",
     },
   };
 }

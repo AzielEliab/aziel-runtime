@@ -12,6 +12,8 @@ import { RUNTIME_VERSION } from "../src/runtime-api.js";
 import { ZERO_HASH } from "../src/session-core.js";
 import {
   ACT_RECEIPT_NOTE,
+  ACT_RECEIPT_TIP_DARK,
+  ACT_RECEIPT_TIP_EMPTY,
   LIBRARY_RECEIPTS,
   LIBRARY_RECEIPTS_PUBLIC,
   RECEIPTS_HEADER,
@@ -160,7 +162,12 @@ assert.equal(cite.fraggate_slug, false);
 assert.equal(cite.public_chain, LIBRARY_RECEIPTS_PUBLIC);
 assert.deepEqual(cite.fields, ["hash", "request", "output", "event"]);
 assert.equal(cite.no_user_ip_geo, true);
+assert.equal(cite.empty_tip_is_not_success, true);
+assert.equal(cite.fail_open_means.includes("append-skip"), true);
+assert.equal(cite.content_addressed, true);
+assert.match(cite.forgereceipts, /not this public ACT tip/);
 assert.equal(actReceiptHint().software_tab, false);
+assert.equal(actReceiptHint().empty_tip_is_not_success, true);
 
 const postRefuse = await dispatchActReceiptHttp("POST", "/v1/receipts", {});
 assert.equal(postRefuse.status, 405);
@@ -218,8 +225,27 @@ const darkTip = await dispatchActReceiptHttp("GET", "/v1/receipts/tip", {}, asyn
   throw new Error("dark");
 });
 assert.equal(darkTip.status, 200);
-assert.equal(darkTip.body.fail_open, true);
+assert.equal(darkTip.body.ok, false);
+assert.equal(darkTip.body.success, false);
+assert.equal(darkTip.body.fail_open, false);
+assert.equal(darkTip.body.fail_open_append, true);
+assert.equal(darkTip.body.code, ACT_RECEIPT_TIP_DARK);
+assert.equal(darkTip.body.tip_status, "slot");
 assert.equal(darkTip.body.public_chain, LIBRARY_RECEIPTS_PUBLIC);
+assert.equal(darkTip.body.hash, null);
+assert.equal(darkTip.body.empty_tip_is_not_success, true);
+
+const emptyTip = await dispatchActReceiptHttp("GET", "/v1/receipts/tip", {}, async () => {
+  return new Response(JSON.stringify({ ok: true, hash: ZERO_HASH, receipts: [] }), { status: 200 });
+});
+assert.equal(emptyTip.status, 200);
+assert.equal(emptyTip.body.ok, false);
+assert.equal(emptyTip.body.success, false);
+assert.equal(emptyTip.body.code, ACT_RECEIPT_TIP_EMPTY);
+assert.equal(emptyTip.body.tip_status, "slot");
+assert.equal(emptyTip.body.hash, null);
+assert.equal(emptyTip.body.live_tip, false);
+assert.equal(emptyTip.body.fail_open, false);
 
 const engine = await postJson("/v1/fraggate/call", { slug: "peacelock", op: "health" });
 assert.equal(engine.status, 200);
