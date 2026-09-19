@@ -169,7 +169,6 @@ export function limitationCite() {
     honesty_labels: {
       suite: "REAL",
       run_case: "REAL",
-      : "SLOT",
       live_remote_harness: "SLOT",
     },
     out_of_scope: STUB_REFUSE.slice(),

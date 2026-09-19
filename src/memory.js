@@ -612,6 +612,7 @@ export async function adaptiveRecall(storeOrEnv, input = {}) {
             channel_scores: node.channel_scores,
             index_hash: node.index_hash,
           }
+        : null,
       score: scored.score,
       retrieval: scored,
       belief_is_not_truth: true,
