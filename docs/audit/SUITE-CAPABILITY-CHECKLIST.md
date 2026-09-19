@@ -68,7 +68,7 @@ Measurable new public verbs (FragGate `LIVE_OPS` + catalog `ops[]` + engine). `h
 | **staticclock** | `advisory`, `anchors`, `click`, `verify`, `timeslate`, `import_export`, `doctor` | `rollback`, `remote_shell`, `scheduler` | Gear-click + timeslate already existed in-process; public door only listed `advise`. Forward-only. Neighbors: TemporalLock, ChronoLock, 4DMap T. |
 | **chronolock** | `advise` (alias), `window`, `doctor` | `scheduler`, `targeting`, `virality`, `cron` | Temporal Neutral Window report. Distinct from TemporalLock. No chain to export. Neighbors: StaticClock, TemporalLock, 4DMap T. |
 | **trajectorylock** | `verify`, `schema`, `import_export`, `doctor` | `certified`, `shooter`, `intent`, `guilt`, `store_media`, `face` | Recompute `result_sha256`. Schema lists observation types. Export/import is small JSON only — never media. Neighbors: 4DMap Π/Δ, SpectralLock. |
-| **spectrallock** | `targets`, `verify`, `doctor` | `spectrometer`, `forensic`, `invent_mark` | Overlay metadata hash, not a forensic claim. Overlay accepts `inject` true\|false (paint ≠ pigment). Reports `tazel_inband_pct` / `vyrn_inband_pct`. No hosted media store. Neighbors: 4DMap Γ, TrajectoryLock, Aziel Corpus. |
+| **spectrallock** | `targets`, `verify`, `doctor` | `spectrometer`, `forensic`, `invent_mark` | Overlay metadata hash, not a forensic claim. Overlay accepts `inject` true\|false (paint ≠ pigment). Reports `tazel_inband_pct` / `vyrn_inband_pct`. Vendored overlay carries leftover-bytes unredact (locate/lift/recover/refuse) — **not** a catalog FragGate door op. Leftover recover is honest; opaque refuse is `SL-UNREDACT-OPAQUE`; never OCR-from-black-box. No hosted media store. Neighbors: 4DMap Γ, TrajectoryLock, Aziel Corpus. |
 
 ---
 
