@@ -4,6 +4,7 @@
  * Worker deploy uses CHAINLOCK Durable Object (chain name "fraggate").
  * In-process queue alone does not serialize cross-isolate writes.
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 import { AsyncLocalStorage } from "node:async_hooks";

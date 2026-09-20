@@ -2,6 +2,7 @@
  * Discoverability for Aziel Eliab Runtime (catalog hub) and GitBaby product Workers.
  * Public identity: Aziel Eliab (primary). Aziel Elroi Eliab is alternateName/aka only.
  * Do not invent DOIs. Do not invent hosts — worker origins come from the catalog.
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 import { socialStatusField } from "./social-status.js";
@@ -69,7 +70,7 @@ export const RUNTIME_ONE_LINE =
  * Never replace the abstract with a changelog. Never mash "runtime 1.9 FragGate".
  */
 export const RUNTIME_ABSTRACT =
-  "Aziel Runtime is a node-meshed orchestration suite of MCP-connected software designed to coordinate specialized tools through a shared, security-gated runtime while preserving provenance, chain-of-custody, temporal integrity, and auditable execution. It is designed so MCP Softwares run through the FragGate door, mint receipts, and coordinate on the mesh as separate products with designed compartmentalization. Individual engines analyze evidence, validate records, inspect trajectories and patterns, track lineage, enforce capability boundaries, generate receipts, and exchange structured results. Its architecture emphasizes compartmentalization, deterministic routing, explicit refusal states, append-only evidence handling, and machine-readable metadata, making it suitable for distributed analysis workflows where trust, reproducibility, attribution, and post-hoc auditability matter as much as the result itself.";
+  "Aziel Runtime is a node-meshed orchestration suite of MCP-connected software designed to coordinate specialized tools through a shared, security-gated runtime while preserving provenance, chain-of-custody, temporal integrity, and auditable execution. It is designed so MCP Softwares run through the FragGate door, mint receipts, and coordinate on the mesh as separate products with designed compartmentalization. Individual engines analyze evidence, validate records, inspect trajectories and patterns, track lineage, enforce capability boundaries, generate receipts, and exchange structured results. Checkable surfaces: FragGate list, describe, and call (GET /v1/fraggate, POST /v1/fraggate/call, POST /mcp); hashed catalog GET /v1/software; in-process engines that report SHA-256 engine_digest; session receipts whose hash is SHA-256 of canonical JSON without that field; typed refuse codes including FG-STUB and FG-HALLUC-TOOL. Reviewed source is the unminified src/ tree in this repository. Its architecture emphasizes compartmentalization, deterministic routing, explicit refusal states, append-only evidence handling, and machine-readable metadata, making it suitable for distributed analysis workflows where trust, reproducibility, attribution, and post-hoc auditability matter as much as the result itself.";
 
 /** Heritage list — do not publish on llms / cite / about. Positive definition lives in RUNTIME_ABSTRACT. */
 export const RUNTIME_NOT = Object.freeze([]);

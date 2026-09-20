@@ -1,6 +1,6 @@
 # aziel-runtime
 
-**Aziel Runtime** (`aziel-runtime`) is a node-meshed orchestration suite of MCP-connected software designed to coordinate specialized tools through a shared, security-gated runtime while preserving provenance, chain-of-custody, temporal integrity, and auditable execution. It is designed so MCP Softwares run through the FragGate door, mint receipts, and coordinate on the mesh as separate products with designed compartmentalization. Individual engines analyze evidence, validate records, inspect trajectories and patterns, track lineage, enforce capability boundaries, generate receipts, and exchange structured results. Its architecture emphasizes compartmentalization, deterministic routing, explicit refusal states, append-only evidence handling, and machine-readable metadata, making it suitable for distributed analysis workflows where trust, reproducibility, attribution, and post-hoc auditability matter as much as the result itself.
+**Aziel Runtime** (`aziel-runtime`) is a node-meshed orchestration suite of MCP-connected software designed to coordinate specialized tools through a shared, security-gated runtime while preserving provenance, chain-of-custody, temporal integrity, and auditable execution. It is designed so MCP Softwares run through the FragGate door, mint receipts, and coordinate on the mesh as separate products with designed compartmentalization. Individual engines analyze evidence, validate records, inspect trajectories and patterns, track lineage, enforce capability boundaries, generate receipts, and exchange structured results. Checkable surfaces: FragGate list, describe, and call (`GET /v1/fraggate`, `POST /v1/fraggate/call`, `POST /mcp`); hashed catalog `GET /v1/software`; in-process engines that report SHA-256 `engine_digest`; session receipts whose `hash` is SHA-256 of canonical JSON without that field; typed refuse codes including `FG-STUB` and `FG-HALLUC-TOOL`. Reviewed source is the unminified `src/` tree in this repository. Its architecture emphasizes compartmentalization, deterministic routing, explicit refusal states, append-only evidence handling, and machine-readable metadata, making it suitable for distributed analysis workflows where trust, reproducibility, attribution, and post-hoc auditability matter as much as the result itself.
 
 Softwares purpose copy (`one_line` + `description`) is the designed-to-do addendum on `GET /v1/software` (`src/software-copy.js`). Hubs refresh from that route.
 
@@ -48,6 +48,18 @@ Any OpenAPI-, MCP-, or HTTP-tool-capable assistant imports **this** OpenAPI file
 
 **Forks are welcome and always allowed.** Do not invent Zenodo DOIs.
 
+## Inspect the code (not the crawler files)
+
+| Behavior | Source | Tests |
+|----------|--------|-------|
+| FragGate list / describe / call | [`src/fraggate/door.js`](src/fraggate/door.js), [`registry.js`](src/fraggate/registry.js) | `scripts/verify-fraggate.mjs` |
+| MCP `tools/list` + `tools/call` | [`src/mcp-surface.js`](src/mcp-surface.js), [`mcp-schema.js`](src/mcp-schema.js) | `scripts/verify-mcp-tdqs.mjs` |
+| Session open → policy → exec → receipt → close | [`src/session-core.js`](src/session-core.js) | `scripts/verify-session.mjs` |
+| Software catalog | [`src/software-catalog.js`](src/software-catalog.js), [`software-copy.js`](src/software-copy.js) | `scripts/verify-software.mjs` |
+| Offline receipt hash | fixture [`fixtures/session-receipt-chain.json`](fixtures/session-receipt-chain.json) | `node scripts/verify-receipt-fixture.mjs` |
+
+Full path map: [`docs/2.0/INSPECT.md`](docs/2.0/INSPECT.md). How to run tests: [`docs/2.0/TESTS.md`](docs/2.0/TESTS.md). Privacy: [`docs/DATA.md`](docs/DATA.md). Review / agent-assisted commits: [`docs/GOVERNANCE.md`](docs/GOVERNANCE.md). `wrangler.toml` `main` is `src/index.js` (unminified). Cloudflare may bundle that same module for deploy — the reviewed artifact is this tree.
+
 ## Compatible AI clients
 
 Assistants / clients that can call OpenAPI, MCP, or HTTP tools:
@@ -74,7 +86,7 @@ Practical Add-to steps below cover ChatGPT, Grok, Venice, Claude Desktop, and Gl
 
 Crawl / SEO Allow set on `robots.txt`: GPTBot/ChatGPT, Venice, Grok, Google-Extended, GoogleOther, Google-CloudVertexBot, Claude(+Search/User), anthropic-ai, Perplexity(+User), bingbot, Meta-External*, Applebot(+Extended), Amazonbot, DuckDuck/DuckAssist, MistralAI-User, YouBot, CCBot, cohere-ai, cohere-training-data-crawler, Diffbot, AI2Bot(+Dolma), Timpibot, Petalbot, Bytespider, Omgili(+bot), FirecrawlAgent, ImagesiftBot, Cloudflare-AI-Search, FacebookBot, TikTokSpider, Baiduspider*, Yandex.
 
-GitHub About (description / homepage / topics) is documented in [docs/GITHUB.md](docs/GITHUB.md) so Google + AI indexes see MCP, OpenAPI, FragGate, and digital forensics. Coordinator applies `gh repo edit` from that lock.
+GitHub About (description / homepage / topics) is documented in [docs/GITHUB.md](docs/GITHUB.md) so indexes see MCP, OpenAPI, and FragGate. Coordinator applies `gh repo edit` from that lock.
 
 ## Websites / Live sites
 

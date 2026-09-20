@@ -6,6 +6,7 @@
  * HTTP /p/{slug}/{op} stays a proxy and is not exec.
  *
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 import {

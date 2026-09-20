@@ -65,6 +65,14 @@ Hash is SHA-256 of `canonicalize(unsigned)` where `unsigned` is the receipt **wi
 
 A prior receipt is **not** a skip ticket. Passing a receipt into `fraggate_call` still runs FragGate.
 
+Offline re-check (no Worker):
+
+```bash
+node scripts/verify-receipt-fixture.mjs
+```
+
+Fixture: [`fixtures/session-receipt-chain.json`](../../fixtures/session-receipt-chain.json). Same algorithm as `signReceipt`.
+
 ---
 
 ## 2. FragGate result envelope

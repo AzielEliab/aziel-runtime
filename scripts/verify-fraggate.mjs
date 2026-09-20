@@ -579,6 +579,12 @@ assert.ok(!tools.some((n) => n.endsWith("_health") && n !== "runtime_health"));
 const byName = Object.fromEntries(mcpList.result.tools.map((t) => [t.name, t]));
 assert.match(byName.runtime_run.description, /\[advanced\/internal\]/);
 assert.doesNotMatch(byName.fraggate_call.description, /\[advanced\/internal\]/);
+for (const tool of mcpList.result.tools) {
+  assert.equal(tool.inputSchema && tool.inputSchema.type, "object", `${tool.name} inputSchema.type`);
+  assert.equal(typeof tool.description, "string");
+  assert.ok(tool.description.length > 12, `${tool.name} description`);
+}
+assert.ok(byName.fraggate_call.inputSchema.properties.op || byName.fraggate_call.inputSchema.properties.slug || byName.fraggate_call.inputSchema.properties.name);
 
 const foldMcp = await mcp("tools/call", {
   name: "fraggate_call",

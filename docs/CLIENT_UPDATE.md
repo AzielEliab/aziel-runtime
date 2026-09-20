@@ -94,14 +94,30 @@ curl -s -A 'Mozilla/5.0' https://aziel-runtime.vibelock.workers.dev/v1/update/ma
 
 ## install.sh / local UI / mobile
 
+This **runtime** has no pipe installer and no counted tarball. `aziel-runtime`
+`download_url` is null — clone GitHub or redeploy the Worker.
+
+Product Workers may publish `/install.sh` and counted `/download`. Those scripts
+are **not vendored in this repo**. Do not `curl … | bash`. Download, read, then run:
+
+```bash
+# example: FoldLock product Worker
+curl -fsSL -A 'Mozilla/5.0' -o install.sh \
+  https://foldlock-download-tracker.vibelock.workers.dev/install.sh
+# inspect install.sh — what URL it fetches (usually same-host /download),
+# where it writes, whether a checksum is present
+bash install.sh
+```
+
+Typical download: that product's counted `/download` package on the same hostname.
+This Worker only **cites** those URLs (`GET /v1/pull/{slug}` `install` /
+`install_inspect`). Always send `User-Agent: Mozilla/5.0`.
+
 1. Read installed version (`foldlock --version`, app settings, or package.json).
 2. `GET /v1/update/check?slug=<product>&version=<installed>`.
 3. If `update_available`, fetch `download_url` (counted Worker `/download`) or
    point the user at `github`.
-4. Aziel Eliab Runtime itself has no counted tarball — `download_url` is null;
-   pull GitHub or redeploy the Worker.
-
-Always send `User-Agent: Mozilla/5.0`.
+4. If an `install.sh` URL is present, download it first and inspect it.
 
 ## Ban / blocked-endpoint failover (BAN-SURVIVAL-1.0)
 

@@ -2,6 +2,7 @@
  * FragGate FG-0.1 refuse / result codes.
  * Kernel: https://github.com/AzielEliab/fraggate
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 export const FG_OK = "FG-OK";

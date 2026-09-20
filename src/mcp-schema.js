@@ -4,6 +4,7 @@
  * Descriptions, parameter text, truthful annotations, and output schemas only.
  * Does not change FragGate routing, permissions, refusal semantics, or execution.
  * Author: Aziel Eliab only.
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 export const HINT_READ = Object.freeze({

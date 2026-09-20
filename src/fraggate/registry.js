@@ -7,6 +7,7 @@
  * (scorch / wipe / send / vpn / mesh / inject / blend / exec) refuse
  * forever. Not the old 5-only cut, and not a dump of destructive fantasies.
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 import { CATALOG_ALIASES } from "../catalog-meta.js";

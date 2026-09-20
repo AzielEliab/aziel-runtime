@@ -16,6 +16,7 @@
  * honesty (HTTPS/WS REAL; WireGuard/OpenVPN/L3 SLOT — placement docs only).
  *
  * Author: Aziel Eliab.
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 export const SOFTWARE_COPY = Object.freeze({

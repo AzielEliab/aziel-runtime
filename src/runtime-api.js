@@ -19,6 +19,7 @@
  * 1.6.6 adds AZBrowser (AZB-1.0) as a FragGate-live engine (Lamb Lens ethical research browser). AZNet is a separate product.
  * 1.6.5 adds AZMail (APP 1.0) as a FragGate-live engine (mesh default off).
  * Public identity: Aziel Eliab only. Forks welcome. Do not invent DOIs.
+ * SPDX-License-Identifier: Apache-2.0
  */
 import { CATALOG_ALIASES, CATALOG_EXTRAS_NOTE, catalogExtraCards, FRAGGATE_GITHUB, fraggateHubCard } from "./catalog-meta.js";
 import { honestyFields, trueEngineSlugs } from "./engines/registry.js";
@@ -685,6 +686,27 @@ function installUrl(product) {
   return workerHostOf(product) + "/install.sh";
 }
 
+/** Download-then-inspect. Never advertise curl|bash as the reviewed path. */
+export function auditableInstallRecipe(installHref) {
+  if (!installHref) {
+    return { install: null, install_sh: null, install_inspect: null };
+  }
+  return {
+    install: installHref,
+    install_sh: `curl -fsSL -A 'Mozilla/5.0' -o install.sh ${installHref}`,
+    install_inspect: {
+      url: installHref,
+      downloads:
+        "That product Worker's install.sh. Typical next fetch is the counted /download on the same hostname. Not aziel-runtime. This runtime has no pipe installer.",
+      steps: [
+        `curl -fsSL -A 'Mozilla/5.0' -o install.sh ${installHref}`,
+        "Inspect install.sh (URLs, write paths, checksums if present).",
+        "bash install.sh",
+      ],
+    },
+  };
+}
+
 function productUrlsSkill(product) {
   return workerHostOf(product) + "/v1/skill";
 }
@@ -716,8 +738,7 @@ export function pullRecord(product, origin, skillText, extra = {}) {
     llms: host ? host + "/llms.txt" : `${base}/llms.txt`,
     sitemap: host ? host + "/sitemap.xml" : `${base}/sitemap.xml`,
     count: host ? host + "/count" : null,
-    install: host ? host + "/install.sh" : null,
-    install_sh: host ? `curl -fsSL ${host}/install.sh | bash` : null,
+    ...auditableInstallRecipe(host ? host + "/install.sh" : null),
     update_check: `${base}/v1/update/check?slug=${encodeURIComponent(product.slug)}${product.version ? `&version=${encodeURIComponent(product.version)}` : ""}`,
     software: `${base}/v1/software`,
     openapi: host ? host + "/openapi.json" : base + "/openapi.json",
@@ -777,7 +798,7 @@ This skill was served from **aziel-runtime** because the product Worker \`/v1/sk
 - Skill: \`${base}/v1/pull/${product.slug}/skill\`
 - Invoke prefix: \`${base}/p/${product.slug}\`
 - Worker: ${host ? `${host}/` : "in-runtime (no separate product Worker)"}
-${host ? `- Counted download: ${host}/download\n- Install: \`curl -fsSL ${host}/install.sh | bash\`` : "- Counted download: none (in-runtime placement)"}
+${host ? `- Counted download: ${host}/download\n- Install script (download, inspect, then run): \`${host}/install.sh\`` : "- Counted download: none (in-runtime placement)"}
 - GitHub: ${product.github}
 
 ## Ops

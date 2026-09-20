@@ -128,6 +128,17 @@ assert.ok(
       s.download_url === "https://embryolock-download-tracker.vibelock.workers.dev/download",
   ),
 );
+for (const card of catalog.software) {
+  assert.equal(typeof card.slug, "string", "catalog card slug");
+  assert.equal(typeof card.name, "string", `${card.slug} name`);
+  assert.match(String(card.bucket), /^(plain|gate|lock)$/, `${card.slug} bucket`);
+  assert.match(String(card.status), /^(live|stub|local_only)$/, `${card.slug} status`);
+  assert.equal(typeof card.one_line, "string", `${card.slug} one_line`);
+  assert.ok(card.one_line.length > 8, `${card.slug} one_line too thin`);
+  assert.equal(typeof card.description, "string", `${card.slug} description`);
+  assert.doesNotMatch(card.one_line, /THIS IS NOT:/);
+  assert.doesNotMatch(card.description, /THIS IS NOT:/);
+}
 const fold = catalog.software.find((s) => s.slug === "foldlock");
 assert.equal(fold.bucket, "lock");
 assert.equal(fold.status, "live");

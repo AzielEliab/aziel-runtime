@@ -10,6 +10,7 @@
  * --local (or AZIEL_RUNTIME_MCP=local) runs the Worker /mcp handler in-process.
  *
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
+ * SPDX-License-Identifier: Apache-2.0
  */
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";

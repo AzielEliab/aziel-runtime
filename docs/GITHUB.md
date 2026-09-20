@@ -2,20 +2,20 @@
 
 Public identity: **Aziel Eliab** only. Aka / `alternateName` only: **Aziel Elroi Eliab**.
 
-This file locks the **GitHub repository About box** (description, homepage, topics) so Google, GitHub search, and AI indexes pick up **MCP, OpenAPI, FragGate, and digital forensics**. Applying the About box (`gh repo edit`) does not deploy the Worker. Worker HTML is unchanged. The About **homepage** must be the live MCP endpoint (not a directory listing) so registry validators do not skip initialize.
+This file locks the **GitHub repository About box** (description, homepage, topics) so Google, GitHub search, and AI indexes pick up **MCP, OpenAPI, and FragGate**. Applying the About box (`gh repo edit`) does not deploy the Worker. Worker HTML is unchanged. The About **homepage** must be the live MCP endpoint (not a directory listing) so registry validators do not skip initialize.
 
 Coordinator applies the live box with `gh repo edit` (this file is the source of truth; PRs cannot patch About via git).
 
 ## Lead abstract (do not weaken)
 
-NodeMesh'd MCP Softwares suite for digital forensics/auditing. FragGate is THE single public door.
+FragGate MCP + OpenAPI door over hashed catalog engines and SHA-256 session receipts.
 
 Canonical crawler paragraph stays `RUNTIME_ABSTRACT` in `src/seo.js` (README lead, `/llms.txt`, `/cite.json`, Worker meta). Version **2.0.0-rc1** stays **below** that abstract.
 
 ## Description (≤350 characters)
 
 ```text
-NodeMesh'd MCP Softwares suite for digital forensics and auditing. FragGate door, OpenAPI + MCP, provenance and chain-of-custody. Aziel Runtime 2.0.0-rc1 by Aziel Eliab. Try on Glama.
+FragGate MCP + OpenAPI door over hashed catalog engines and SHA-256 session receipts. Aziel Runtime 2.0.0-rc1 by Aziel Eliab. Try on Glama.
 ```
 
 ## Homepage
@@ -32,7 +32,7 @@ Worker origin (`https://aziel-runtime.vibelock.workers.dev/`) stays the executio
 
 `aziel-eliab`, `cloudflare-workers`, `mcp`, `mcp-server`, `openapi`, `fraggate`, `glama`, `nodemesh`, `runtime`, `agent-orchestration`, `ai-agents`, `auditing`, `digital-forensics`, `chain-of-custody`, `model-context-protocol`, `provenance`, `security`, `software-architecture`, `cloudflare`, `workers`
 
-Required discovery terms: **mcp**, **openapi**, **fraggate**, **digital-forensics**.
+Required discovery terms: **mcp**, **openapi**, **fraggate**. `digital-forensics` may stay as a topic (evidence products exist); it is not the product definition.
 
 ## Entity graph (locked)
 
@@ -65,7 +65,7 @@ Full client set (ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copil
 
 ```bash
 gh repo edit AzielEliab/aziel-runtime \
-  --description "NodeMesh'd MCP Softwares suite for digital forensics and auditing. FragGate door, OpenAPI + MCP, provenance and chain-of-custody. Aziel Runtime 2.0.0-rc1 by Aziel Eliab. Try on Glama." \
+  --description "FragGate MCP + OpenAPI door over hashed catalog engines and SHA-256 session receipts. Aziel Runtime 2.0.0-rc1 by Aziel Eliab. Try on Glama." \
   --homepage "https://aziel-runtime.vibelock.workers.dev/mcp" \
   --add-topic openapi --add-topic fraggate --add-topic glama \
   --add-topic mcp-server --add-topic nodemesh --add-topic cloudflare --add-topic workers
