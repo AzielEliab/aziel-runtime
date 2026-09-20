@@ -12,7 +12,7 @@ This repo ships:
 
 | File | Role |
 |------|------|
-| [`glama.json`](../glama.json) | Claim file. Schema requires `maintainers` (GitHub username `AzielEliab`). Listing `name`, `version` (`2.0.0-rc1`), `description` (FragGate MCP + OpenAPI door over hashed catalog engines and SHA-256 session receipts; `1.6.2` is superseded heritage; current server `2.0.0-rc1`), `keywords` (includes mcp / openapi / fraggate), and `categories` are additional properties. |
+| [`glama.json`](../glama.json) | Claim file. Schema requires `maintainers` (GitHub username `AzielEliab`). Listing `name`, `version` (`2.0.0-rc1`), `description` (MCP Softwares suite — FragGate door, receipts, mesh; `1.6.2` is superseded heritage; current server `2.0.0-rc1`), `keywords` (includes mcp / openapi / fraggate), and `categories` are additional properties. |
 | [`cli/mcp-stdio.mjs`](../cli/mcp-stdio.mjs) | Stdio MCP server. Default **bridges** to the hosted Worker `/mcp`. |
 | [`Dockerfile`](../Dockerfile) | Local / “from Dockerfile” image. Glama admin often **generates** its own image from CMD args — still ship this file. |
 | [`src/mcp-stdio.js`](../src/mcp-stdio.js) | Framing + bridge / in-process dispatch. |

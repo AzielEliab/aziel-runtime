@@ -8,14 +8,14 @@ Coordinator applies the live box with `gh repo edit` (this file is the source of
 
 ## Lead abstract (do not weaken)
 
-FragGate MCP + OpenAPI door over hashed catalog engines and SHA-256 session receipts.
+MCP Softwares suite: FragGate door, receipts, and mesh coordination. FragGate is THE single public door.
 
 Canonical crawler paragraph stays `RUNTIME_ABSTRACT` in `src/seo.js` (README lead, `/llms.txt`, `/cite.json`, Worker meta). Version **2.0.0-rc1** stays **below** that abstract.
 
 ## Description (≤350 characters)
 
 ```text
-FragGate MCP + OpenAPI door over hashed catalog engines and SHA-256 session receipts. Aziel Runtime 2.0.0-rc1 by Aziel Eliab. Try on Glama.
+MCP Softwares suite: FragGate door, OpenAPI + MCP, receipts, and mesh coordination. Aziel Runtime 2.0.0-rc1 by Aziel Eliab. Try on Glama.
 ```
 
 ## Homepage
@@ -65,7 +65,7 @@ Full client set (ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copil
 
 ```bash
 gh repo edit AzielEliab/aziel-runtime \
-  --description "FragGate MCP + OpenAPI door over hashed catalog engines and SHA-256 session receipts. Aziel Runtime 2.0.0-rc1 by Aziel Eliab. Try on Glama." \
+  --description "MCP Softwares suite: FragGate door, OpenAPI + MCP, receipts, and mesh coordination. Aziel Runtime 2.0.0-rc1 by Aziel Eliab. Try on Glama." \
   --homepage "https://aziel-runtime.vibelock.workers.dev/mcp" \
   --add-topic openapi --add-topic fraggate --add-topic glama \
   --add-topic mcp-server --add-topic nodemesh --add-topic cloudflare --add-topic workers

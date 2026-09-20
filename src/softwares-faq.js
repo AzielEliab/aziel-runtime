@@ -149,7 +149,7 @@ export function softwaresAddendum(origin) {
   return (
     `Softwares (FragGate catalog; Softwares-tab / machine cite): ${peers}. ` +
     `${ark.name} is a local deniable vault — ${ark.one_line} ${ark.url} (${ark.download_url}). ` +
-    "Full catalog GET /v1/software. Do not invent DOIs."
+    "Full catalog GET /v1/software."
   );
 }
 
@@ -158,7 +158,7 @@ export function softwaresFaqLlmsLines(origin) {
   return [
     "## Softwares (machine cite)",
     "",
-    "Softwares-tab / machine cite only. Locked FAQ Softwares sentence above is unchanged.",
+    "Softwares-tab / machine cite only. FAQ Softwares sentence above is the designed-purpose brief.",
     "Name + one_line + Worker URL (same pattern for every catalog product). GET /v1/software is the hub catalog.",
     "",
     ...items.map((item) => `- ${softwaresFaqLine(item)}`),

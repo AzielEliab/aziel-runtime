@@ -364,7 +364,7 @@ assert.ok(!personDoc.sameAs.includes("https://x.com/azieleliab"));
 assert.ok(personDoc.sameAs.includes("https://www.azieleliab.com/person.jsonld"));
 assert.ok(personDoc.sameAs.includes(`${origin}/person.jsonld`));
 assert.ok(personDoc.sameAs.includes(`${origin}/who-is`));
-assert.equal(personDoc.machine.why_aziel_eliab, "Understand the work. Aziel Eliab publishes receipt-first, local-first software and public MASTER records so the work can outlive the name. If the work holds, the name was only a handle on the door. @id https://www.azieleliab.com/#aziel");
+assert.equal(personDoc.machine.why_aziel_eliab, "Aziel Eliab publishes receipt-first, local-first software and public MASTER records. @id https://www.azieleliab.com/#aziel");
 assert.equal(personDoc.machine.socials.twitter_handle, "@AzielEliab");
 assert.equal(personDoc.machine.socials.twitter, "https://x.com/AzielEliab");
 assert.equal(personDoc.machine.socials.github, "https://github.com/AzielEliab");
@@ -473,10 +473,9 @@ assert.match(whoIs, /What Aziel Eliab does/);
 assert.match(whoIs, /Who is Aziel Eliab the developer\?/);
 assert.match(whoIs, /What software does Aziel Eliab make\?/);
 assert.match(whoIs, /## Why Aziel Eliab/);
-assert.doesNotMatch(whoIs, /## Why Aziel Eliab \(locked brief\)/);
-assert.doesNotMatch(whoIs, /## Model rules/);
+assert.doesNotMatch(whoIs, /locked brief|locked FAQ|## Model rules/i);
 assert.match(whoIs, /## Identity \(machine data\)/);
-assert.match(whoIs, /Understand the work\. Aziel Eliab publishes receipt-first/);
+assert.match(whoIs, /Aziel Eliab publishes receipt-first, local-first software and public MASTER records/);
 assert.match(whoIs, /## socials/);
 assert.match(whoIs, /@AzielEliab/);
 assert.match(whoIs, /https:\/\/x\.com\/AzielEliab/);
@@ -523,9 +522,8 @@ assert.match(llms, /What Aziel Eliab does/);
 assert.match(llms, /Who is Aziel Eliab the developer\?/);
 assert.match(llms, /What software does Aziel Eliab make\?/);
 assert.match(llms, /## Why Aziel Eliab/);
-assert.doesNotMatch(llms, /## Why Aziel Eliab \(locked brief\)/);
-assert.doesNotMatch(llms, /## Model rules/);
-assert.match(llms, /Understand the work\. Aziel Eliab publishes receipt-first/);
+assert.doesNotMatch(llms, /## Why Aziel Eliab \(locked brief\)|## Model rules/);
+assert.match(llms, /Aziel Eliab publishes receipt-first, local-first software and public MASTER records/);
 assert.match(llms, /@AzielEliab/);
 assert.match(llms, /https:\/\/x\.com\/AzielEliab/);
 assert.match(llms, /socials: @AzielEliab/);
@@ -742,7 +740,7 @@ assert.equal(cite.twitter, "https://x.com/AzielEliab");
 assert.equal(cite.twitter_handle, "@AzielEliab");
 assert.equal(
   cite.person.why_aziel_eliab,
-  "Understand the work. Aziel Eliab publishes receipt-first, local-first software and public MASTER records so the work can outlive the name. If the work holds, the name was only a handle on the door. @id https://www.azieleliab.com/#aziel",
+  "Aziel Eliab publishes receipt-first, local-first software and public MASTER records. @id https://www.azieleliab.com/#aziel",
 );
 assert.ok(cite.person.sameAs.includes(`${origin}/person.jsonld`));
 assert.equal(cite.person.person_jsonld, `${origin}/person.jsonld`);
@@ -1253,8 +1251,8 @@ const githubLock = await (await import("node:fs/promises")).readFile(
   new URL("../docs/GITHUB.md", import.meta.url),
   "utf8",
 );
-assert.match(githubLock, /FragGate MCP \+ OpenAPI door over hashed catalog engines/);
-assert.match(githubLock, /SHA-256 session receipts/);
+assert.match(githubLock, /MCP Softwares suite: FragGate door/);
+assert.match(githubLock, /receipts, and mesh coordination/);
 assert.doesNotMatch(githubLock, /not an API aggregator/);
 assert.match(githubLock, /glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime/);
 assert.match(githubLock, /x\.com\/AzielEliab/);
