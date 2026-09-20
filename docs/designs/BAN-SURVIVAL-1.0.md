@@ -42,7 +42,7 @@ that name encoded the AZBot misread. Law codes are `BAN-NO-SHELF-ONLY`
 (shelves are not `/mcp`) and `BAN-NO-DOOR-ONLY` (do not drop shelves).
 
 1. Claim
-Zenodo already showed a Plane B death mode (`CNS-ZENODO-IP-BAN`). That
+Zenodo already showed a Plane B death mode (`CNS-ZENODO-NOT-LIVE`). That
 is why live multi-front exists — so a dead shelf does not kill clients
 who can still reach a named door.
 

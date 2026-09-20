@@ -122,7 +122,7 @@ Local historical pack (operator machine, not this repo): `_tippacks/lockset-tip/
 | `CNS-PLANE-B-ALL-TARGETS` | Codeberg + archive.org + Framagit have not all PASS |
 | `CNS-GITFLIC-EMAIL` | GitFlic signup mail blocked — stay refused, not a substitute |
 | `CNS-GITLAB-CF-LOOP` | GitLab.com is not a working path |
-| `CNS-ZENODO-IP-BAN` | Zenodo is not a working path |
+| `CNS-ZENODO-NOT-LIVE` | Zenodo is not a working path |
 | `CNS-NO-TIP-DOI` | lockset / cite `doi` stays null |
 
 ## Do not

@@ -22,8 +22,8 @@ Working targets for Plane B LIVE (all three required):
   [FRAMAGIT-TIP-PACK-CHECKLIST.md](FRAMAGIT-TIP-PACK-CHECKLIST.md)
 
 GitFlic refused (`CNS-GITFLIC-EMAIL`). GitLab refused (`CNS-GITLAB-CF-LOOP`).
-Zenodo refused (`CNS-ZENODO-IP-BAN`). Extra E/F/G slots are not ALL-TARGETS.
+Zenodo tip-pack SLOT (`CNS-ZENODO-NOT-LIVE`). Extra E/F/G slots are not ALL-TARGETS.
 
 Refuse codes: `CNS-NO-FORGE-MIRROR` · `CNS-PLANE-B-ALL-TARGETS` ·
 `CNS-TIP-NOT-ON-DEPOSIT` · `CNS-GITFLIC-EMAIL` · `CNS-GITLAB-CF-LOOP` ·
-`CNS-ZENODO-IP-BAN` · `CNS-NO-TIP-DOI`
+`CNS-ZENODO-NOT-LIVE` · `CNS-NO-TIP-DOI`

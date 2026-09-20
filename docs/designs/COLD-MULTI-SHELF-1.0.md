@@ -36,8 +36,8 @@ https://archive.org/details/aziel-lockset-tip_202609 (same blast_radius
 `archive-org`; pack `b549362c…`) still SLOT; Framagit URL null (third
 ALL-TARGETS). GitFlic refused
 (`CNS-GITFLIC-EMAIL`). GitLab refused (`CNS-GITLAB-CF-LOOP`). LIVE only
-after all three (`CNS-PLANE-B-ALL-TARGETS`). Zenodo refused
-(`CNS-ZENODO-IP-BAN`). `doi` null.
+after all three (`CNS-PLANE-B-ALL-TARGETS`). Zenodo tip-pack SLOT
+(`CNS-ZENODO-NOT-LIVE`). `doi` null.
 Plane C is the USB airgap pack, SLOT until `CNS-OPERATOR-ATTEST`. Survival
 is bytes↔hash. LIVE only after hash verify. Never invent a DOI.
 
@@ -115,7 +115,7 @@ Plane B stays `slot` until **all three** hash-verify (`CNS-PLANE-B-ALL-TARGETS`)
   `tools/cold_shelf/FRAMAGIT-TIP-PACK-CHECKLIST.md`.
 - GitFlic is `refused` (`CNS-GITFLIC-EMAIL`). Not a working target.
 - GitLab is `refused` (`CNS-GITLAB-CF-LOOP`). Not a working path.
-- Zenodo tip-pack is `refused` (`CNS-ZENODO-IP-BAN` + `CNS-NO-TIP-DOI`).
+- Zenodo tip-pack stays `slot` (`CNS-ZENODO-NOT-LIVE` + `CNS-NO-TIP-DOI`).
 - Lockset / cite `doi` stays `null`.
 - Existing Aziel Eliab paper deposits are companion paper cites.
   `reuse_as_plane_b: false`. They are not LIVE tip shelves.
@@ -186,7 +186,7 @@ No visible 15:20 chrome. Person `@id` https://www.azieleliab.com/#aziel.
   PASS still SLOT at https://archive.org/details/aziel-lockset-tip and
   https://archive.org/details/aziel-lockset-tip_202609, same blast_radius;
   Framagit URL null + row refuse `CNS-NO-FORGE-MIRROR`; GitFlic
-  `CNS-GITFLIC-EMAIL`; GitLab `CNS-GITLAB-CF-LOOP`; Zenodo refused;
+  `CNS-GITFLIC-EMAIL`; GitLab `CNS-GITLAB-CF-LOOP`; Zenodo tip-pack SLOT;
   Plane C SLOT).
 - `/shelves` (and `/cite.json` `shelves`) carry `redline.spec`
   `REDLINE-2026-09-14`, Cap-7 `design_of: hub_designs` +
@@ -205,6 +205,6 @@ Plane A is one LIVE CF/GitHub tunnel (5 published surfaces / 2 family radii /
 1 independent live). Plane B is an alt independent forge/archive SLOT until
 Codeberg + archive.org + Framagit hash-verify. Codeberg + archive.org PASS
 still SLOT (primary + `aziel-lockset-tip_202609`, same blast_radius). GitFlic refused (`CNS-GITFLIC-EMAIL`). GitLab refused
-(`CNS-GITLAB-CF-LOOP`). Zenodo is refused (`CNS-ZENODO-IP-BAN`). `doi` null.
+(`CNS-GITLAB-CF-LOOP`). Zenodo tip-pack stays SLOT (`CNS-ZENODO-NOT-LIVE`). `doi` null.
 Plane C is the USB airgap pack (SLOT until attested). Survival is
 bytes↔hash. Identity: Aziel Eliab only.
