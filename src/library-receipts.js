@@ -13,6 +13,7 @@
  * Not a Softwares-tab product. Not a FragGate slug. Remain-OFF untouched.
  * MESH-VAULT lite: catalog / download / mesh events may mint when token set.
  * Author: Aziel Eliab only.
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 import { canonicalize, sha256Hex, ZERO_HASH } from "./session-core.js";

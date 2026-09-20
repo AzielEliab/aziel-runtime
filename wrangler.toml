@@ -1,4 +1,6 @@
 name = "aziel-runtime"
+# Reviewed source of truth is unminified src/*.js. Wrangler may bundle this
+# module for deploy; do not treat a minified upload as the reviewed artifact.
 main = "src/index.js"
 compatibility_date = "2026-07-01"
 compatibility_flags = ["nodejs_compat"]

@@ -1,0 +1,193 @@
+{
+  "spec": "aziel-runtime.receipt + ACT-RECEIPT-1.0",
+  "algorithm": "SHA-256 of canonicalize(object without hash)",
+  "source": {
+    "session": "src/session-core.js signReceipt / verifyChainStrict",
+    "act": "src/library-receipts.js hashActReceipt"
+  },
+  "command": "node scripts/verify-receipt-fixture.mjs",
+  "runtime_version": "2.0.0-rc1",
+  "session_id": "sess_abababababababababababababababab",
+  "receipts": [
+    {
+      "kind": "aziel-runtime.receipt",
+      "version": "2.0.0-rc1",
+      "session_id": "sess_abababababababababababababababab",
+      "seq": 1,
+      "event": "open",
+      "ts": "2026-09-20T00:00:00.000Z",
+      "author": "Aziel Eliab",
+      "identity": "Aziel Eliab",
+      "runtime": "aziel-runtime",
+      "owner": "aziel-runtime",
+      "owner_note": "This receipt is owned by the aziel-runtime session process, not by upstream JSON alone.",
+      "payload": {
+        "policy": {
+          "allow_slugs": [
+            "*"
+          ],
+          "allow_ops": [
+            "*"
+          ],
+          "max_payload_bytes": 65536,
+          "max_ops": 64,
+          "kv_increment": false,
+          "identity": "Aziel Eliab",
+          "lamb_banners": true,
+          "isolate_class": "worker-do",
+          "sandbox_kind": "isolate",
+          "wipe_on_close": false,
+          "deny_guest_vm": true,
+          "guest_vm": false,
+          "note": "Download counters stay off unless kv_increment is explicitly true. This Worker has no download KV and still will not increment one. Isolate (Worker/DO) is the jail — not QEMU/KVM."
+        },
+        "source": "fixture"
+      },
+      "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "hash": "8780b1c2912ed290fa0194c5a79642be62cad3761c0efcd741e0dc56b40d9190"
+    },
+    {
+      "kind": "aziel-runtime.receipt",
+      "version": "2.0.0-rc1",
+      "session_id": "sess_abababababababababababababababab",
+      "seq": 2,
+      "event": "policy",
+      "ts": "2026-09-20T00:00:01.000Z",
+      "author": "Aziel Eliab",
+      "identity": "Aziel Eliab",
+      "runtime": "aziel-runtime",
+      "owner": "aziel-runtime",
+      "owner_note": "This receipt is owned by the aziel-runtime session process, not by upstream JSON alone.",
+      "payload": {
+        "before": {
+          "allow_slugs": [
+            "*"
+          ],
+          "allow_ops": [
+            "*"
+          ],
+          "max_payload_bytes": 65536,
+          "max_ops": 64,
+          "kv_increment": false,
+          "identity": "Aziel Eliab",
+          "lamb_banners": true,
+          "isolate_class": "worker-do",
+          "sandbox_kind": "isolate",
+          "wipe_on_close": false,
+          "deny_guest_vm": true,
+          "guest_vm": false,
+          "note": "Download counters stay off unless kv_increment is explicitly true. This Worker has no download KV and still will not increment one. Isolate (Worker/DO) is the jail — not QEMU/KVM."
+        },
+        "after": {
+          "allow_slugs": [
+            "azclce"
+          ],
+          "allow_ops": [
+            "*"
+          ],
+          "max_payload_bytes": 4096,
+          "max_ops": 64,
+          "kv_increment": false,
+          "identity": "Aziel Eliab",
+          "lamb_banners": true,
+          "isolate_class": "worker-do",
+          "sandbox_kind": "isolate",
+          "wipe_on_close": false,
+          "deny_guest_vm": true,
+          "guest_vm": false,
+          "note": "Download counters stay off unless kv_increment is explicitly true. This Worker has no download KV and still will not increment one. Isolate (Worker/DO) is the jail — not QEMU/KVM."
+        }
+      },
+      "prev_hash": "8780b1c2912ed290fa0194c5a79642be62cad3761c0efcd741e0dc56b40d9190",
+      "hash": "6ae44a99d858ddc5264dbce11bdb0a0dcd3f52c06d82674480ed8df5f341e1a5"
+    },
+    {
+      "kind": "aziel-runtime.receipt",
+      "version": "2.0.0-rc1",
+      "session_id": "sess_abababababababababababababababab",
+      "seq": 3,
+      "event": "exec",
+      "ts": "2026-09-20T00:00:03.000Z",
+      "author": "Aziel Eliab",
+      "identity": "Aziel Eliab",
+      "runtime": "aziel-runtime",
+      "owner": "aziel-runtime",
+      "owner_note": "This receipt is owned by the aziel-runtime session process, not by upstream JSON alone.",
+      "payload": {
+        "intent": {
+          "intent_id": "sess_abababababababababababababababab:3",
+          "slug": "azclce",
+          "op": "score",
+          "recorded_at": "2026-09-20T00:00:02.000Z",
+          "payload_digest": "05051053892e0c917f6af578940b2e73132a62ddfb8806c54d2e3a50fbe41fb6",
+          "payload_bytes": 77,
+          "kv_increment_requested": false,
+          "kv_increment_applied": false,
+          "kv_note": "aziel-runtime does not increment product download counters.",
+          "identity": "Aziel Eliab"
+        },
+        "result": {
+          "status": 200,
+          "latency_ms": 3,
+          "request_digest": "05051053892e0c917f6af578940b2e73132a62ddfb8806c54d2e3a50fbe41fb6",
+          "response_digest": "4062edaf750fb8074e7e83e0c9028c94e32468a8b6f1614774328ef045150f93",
+          "response_bytes": 11,
+          "content_type": "application/json",
+          "error": null,
+          "upstream": null,
+          "mode": "local",
+          "true_engine_runtime": false,
+          "engine_digest": null,
+          "engine_slug": "azclce",
+          "engine_op": "score",
+          "ran_in": null
+        }
+      },
+      "prev_hash": "6ae44a99d858ddc5264dbce11bdb0a0dcd3f52c06d82674480ed8df5f341e1a5",
+      "hash": "fbbe8b123b795a9f7eb88887b07c5675d3fd7bae5a01ccc256c2a6f1529f0fba"
+    },
+    {
+      "kind": "aziel-runtime.receipt",
+      "version": "2.0.0-rc1",
+      "session_id": "sess_abababababababababababababababab",
+      "seq": 4,
+      "event": "close",
+      "ts": "2026-09-20T00:00:04.000Z",
+      "author": "Aziel Eliab",
+      "identity": "Aziel Eliab",
+      "runtime": "aziel-runtime",
+      "owner": "aziel-runtime",
+      "owner_note": "This receipt is owned by the aziel-runtime session process, not by upstream JSON alone.",
+      "payload": {
+        "sealed": true,
+        "receipt_count": 4,
+        "wipe_on_close": false,
+        "wiped": false,
+        "sandbox_kind": "isolate",
+        "isolate_class": "worker-do",
+        "guest_vm": false
+      },
+      "prev_hash": "fbbe8b123b795a9f7eb88887b07c5675d3fd7bae5a01ccc256c2a6f1529f0fba",
+      "hash": "744ae017d7f147a42d08d528b43b846df29c712d0dee2e026cf821c7c3f6e83c"
+    }
+  ],
+  "act_receipt": {
+    "hash": "1a115b0ecde54e3f8d3e2353534ca7b3f0166bc88a3a3e3f2e790841f135ac30",
+    "request": "FragGate listed the hashed registry.",
+    "output": "Returned 200 without breaking the engine path.",
+    "event": {
+      "surface": "fraggate",
+      "path": "/v1/fraggate/list",
+      "method": "GET",
+      "status": 200,
+      "tool": "fraggate_list",
+      "spec": "ACT-RECEIPT-1.0",
+      "runtime_version": "2.0.0-rc1"
+    },
+    "previous_hash": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "notes": [
+    "Deterministic timestamps. Re-hash each session receipt without the hash field.",
+    "ACT-RECEIPT hash is SHA-256 of canonicalize({ previous_hash, request, output, event })."
+  ]
+}

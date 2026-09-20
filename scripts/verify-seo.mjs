@@ -472,7 +472,10 @@ assert.match(whoIs, /What does Aziel Eliab do\?/);
 assert.match(whoIs, /What Aziel Eliab does/);
 assert.match(whoIs, /Who is Aziel Eliab the developer\?/);
 assert.match(whoIs, /What software does Aziel Eliab make\?/);
-assert.match(whoIs, /## Why Aziel Eliab \(locked brief\)/);
+assert.match(whoIs, /## Why Aziel Eliab/);
+assert.doesNotMatch(whoIs, /## Why Aziel Eliab \(locked brief\)/);
+assert.doesNotMatch(whoIs, /## Model rules/);
+assert.match(whoIs, /## Identity \(machine data\)/);
 assert.match(whoIs, /Understand the work\. Aziel Eliab publishes receipt-first/);
 assert.match(whoIs, /## socials/);
 assert.match(whoIs, /@AzielEliab/);
@@ -519,7 +522,9 @@ assert.match(llms, /What does Aziel Eliab do\?/);
 assert.match(llms, /What Aziel Eliab does/);
 assert.match(llms, /Who is Aziel Eliab the developer\?/);
 assert.match(llms, /What software does Aziel Eliab make\?/);
-assert.match(llms, /## Why Aziel Eliab \(locked brief\)/);
+assert.match(llms, /## Why Aziel Eliab/);
+assert.doesNotMatch(llms, /## Why Aziel Eliab \(locked brief\)/);
+assert.doesNotMatch(llms, /## Model rules/);
 assert.match(llms, /Understand the work\. Aziel Eliab publishes receipt-first/);
 assert.match(llms, /@AzielEliab/);
 assert.match(llms, /https:\/\/x\.com\/AzielEliab/);
@@ -1248,8 +1253,8 @@ const githubLock = await (await import("node:fs/promises")).readFile(
   new URL("../docs/GITHUB.md", import.meta.url),
   "utf8",
 );
-assert.match(githubLock, /NodeMesh'd MCP Softwares suite for digital forensics/);
-assert.match(githubLock, /NodeMesh'd MCP Softwares suite for digital forensics/);
+assert.match(githubLock, /FragGate MCP \+ OpenAPI door over hashed catalog engines/);
+assert.match(githubLock, /SHA-256 session receipts/);
 assert.doesNotMatch(githubLock, /not an API aggregator/);
 assert.match(githubLock, /glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime/);
 assert.match(githubLock, /x\.com\/AzielEliab/);

@@ -10,6 +10,7 @@
  * Never "separate FragGate engines".
  *
  * Public identity: Aziel Eliab only.
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 import { BUILD_GIT_SHA } from "./build-meta.js";

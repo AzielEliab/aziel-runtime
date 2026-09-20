@@ -11,6 +11,7 @@
  * Lamb Lens is fabric ethics AFTER FragGate — not a second door.
  * LambGate is not a hop. Author: Aziel Eliab. Identity is Aziel Eliab only.
  * Kernel: https://github.com/AzielEliab/fraggate (FG-0.1)
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 import { check as decisiongateCheck } from "../engines/decisiongate/engine.js";

@@ -8,6 +8,7 @@
  * Isolation is Cloudflare's Worker/DO isolate (the jail). Dynamic policy / exec /
  * wipe envelopes are isolate-honest. Full guest VM / QEMU / KVM is SLOT.
  * Author: Aziel Eliab. Identity is Aziel Eliab only. Do not invent DOIs.
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 import { RECEIPT_CAP, SESSION_TTL_MS, isSessionExpired, receiptCapReached, sessionExpiresAt } from "./production.js";

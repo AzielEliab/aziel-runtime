@@ -4,7 +4,7 @@ Author: **Aziel Eliab** only.
 
 This folder is a **public integration path**, not an adoption claim and not an independently validated client. `npm test` in the repo root is a **repo self-check**, not a third-party lab.
 
-Aziel Runtime is not merely an API orchestrator or software aggregator; it is a node-meshed orchestration suite of MCP-connected software for digital forensics and auditing. FragGate is THE single door. `GET /v1/mesh` never enables. Public SMTP stays NOT IMPLEMENTED. Flutter `mobile/` is not vendored.
+Aziel Runtime exposes FragGate list → describe → call, a hashed `GET /v1/software` catalog, in-process engines with SHA-256 `engine_digest`, and hash-chained session receipts. FragGate is THE single door. `GET /v1/mesh` never enables. Public SMTP stays NOT IMPLEMENTED. Flutter `mobile/` is not vendored. Source maps: [`docs/2.0/INSPECT.md`](../../docs/2.0/INSPECT.md).
 
 ## Origin
 

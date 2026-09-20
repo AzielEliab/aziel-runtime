@@ -1,5 +1,6 @@
 /**
  * aziel-runtime 2.0.0-rc1 — certification-point freeze on 1.9.3 heritage. Remain-OFF untouched. Author: Aziel Eliab.
+ * SPDX-License-Identifier: Apache-2.0
  *
  * 1.1.0 was catalog+proxy that called itself a runtime. Useful front doors.
  * 1.2.0 owned open → policy → exec → receipt → close but exec still proxied.
@@ -1693,7 +1694,7 @@ function llmsTxt(origin, env = {}) {
       if (u.has_llms) lines.push(`Worker llms: ${u.llms}`);
       if (u.has_sitemap) lines.push(`Worker sitemap: ${u.sitemap}`);
       lines.push(`Download (counted, gzip 200): ${u.download}`);
-      lines.push(`Install: curl -fsSL ${u.install} | bash`);
+      lines.push(`Install script (download, inspect, then run): ${u.install}`);
     } else {
       lines.push(`Worker: in-runtime (no separate product Worker)`);
     }
