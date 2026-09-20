@@ -46,6 +46,9 @@ export const PERSON_WORK_RULE =
  * Published hub sameAs (azieleliab.com /cite.json). Cross-link these plus
  * this Worker's machine files. Do not invent extra profiles.
  */
+export const X_URL = "https://x.com/AzielEliab";
+export const X_HANDLE = "@AzielEliab";
+
 export const PERSON_SAME_AS = Object.freeze([
   "https://github.com/AzielEliab",
   "https://github.com/azieltherevealerofthesealed-arch",
@@ -54,8 +57,7 @@ export const PERSON_SAME_AS = Object.freeze([
   "https://www.azielcorpuslibrary.net/",
   "https://godlock.uk/",
   "https://www.hedidntjump.com/",
-  "https://x.com/AzielElroiEliab",
-  "https://x.com/azieleliab",
+  X_URL,
 ]);
 
 /** Canonical aka + published onomastic tethers (same Person, not extra identities). */
