@@ -27,11 +27,8 @@ assert.equal(glama.$schema, "https://glama.ai/mcp/schemas/server.json");
 assert.deepEqual(glama.maintainers, ["AzielEliab"]);
 assert.equal(glama.name, "Aziel Runtime");
 assert.equal(glama.version, "2.0.0-rc1");
-assert.match(
-  glama.description,
-  /node-meshed MCP software orchestration suite for digital forensics, auditing, provenance/
-);
-assert.match(glama.description, /NodeMesh'd MCP Softwares suite for digital forensics/);
+assert.match(glama.description, /Route catalog products through the FragGate door/);
+assert.match(glama.description, /mint receipts/);
 assert.doesNotMatch(glama.description, /not an API aggregator/);
 assert.match(glama.description, /2\.0\.0-rc1/);
 assert.match(glama.description, /1\.6\.2 is superseded heritage/);

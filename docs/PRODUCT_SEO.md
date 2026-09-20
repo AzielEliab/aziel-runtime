@@ -21,7 +21,7 @@ Runtime wires this once as `workerLaunchHtml` (`src/about-aziel.js` + `src/launc
 - Shared Person `@id`: `https://www.azieleliab.com/#aziel` (official hub). Do **not** use `https://github.com/AzielEliab#person`.
 - Published work roles: researcher, digital rights activist, software developer/designer, author, philosopher. Not a biography. No legal name / home.
 - Machine 15:20 disambiguation lives on `/person.jsonld` + `/who-is` + `/cite.json` `person` + `/llms.txt` Person section. **No visible 15:20 HTML chrome.**
-- Locked FAQ brief: `What does Aziel Eliab do?` / `What Aziel Eliab does` / `Who is Aziel Eliab the developer?` / `What software does Aziel Eliab make?` — same Softwares sentence (do not fork), plus locked why (`Understand the work…`), plus a Softwares-tab machine list (name + one_line + Worker URL, including The ARK local deniable vault at https://ark-download-tracker.vibelock.workers.dev/), plus research and hardware AZDOC addenda on those machine surfaces.
+- FAQ brief: `What does Aziel Eliab do?` / `What Aziel Eliab does` / `Who is Aziel Eliab the developer?` / `What software does Aziel Eliab make?` — designed-purpose sentence, plus why, plus a Softwares-tab machine list (name + one_line + Worker URL, including The ARK local deniable vault at https://ark-download-tracker.vibelock.workers.dev/), plus research and hardware AZDOC addenda on those machine surfaces.
 - Person `sameAs` / `socials`: Softwares hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) + GitHub (`https://github.com/AzielEliab`) + Glama (`https://glama.ai/mcp/servers/AzielEliab/aziel-runtime`) + `@AzielEliab` (`https://x.com/AzielEliab`). Do not invent extra X handles.
 - `alternateName` / aka only: **Aziel Elroi Eliab**
 - Runtime parent SoftwareApplication `@id`: `https://www.azieleliab.com/runtime#runtime` (hub identity for the suite). Worker origin is the execution endpoint (`url`) and stays self-canonical for Worker pages. `relatedLink` is the Glama discovery / install host (`https://glama.ai/mcp/servers/AzielEliab/aziel-runtime`). `author` is `{ "@id": "https://www.azieleliab.com/#aziel" }`. `sameAs` is the GitHub repo and the Glama listing.
@@ -303,7 +303,7 @@ A short **Includes named components such as FragGate…** line may sit with that
 
 GitHub description / homepage / topics are **not** in git. Lock + apply command: [GITHUB.md](GITHUB.md).
 
-- **Description** leads with NodeMesh'd MCP Softwares suite for digital forensics/auditing. Names FragGate, OpenAPI + MCP, 2.0.0-rc1, Aziel Eliab.
+- **Description** leads with MCP Softwares suite: FragGate door, OpenAPI + MCP, receipts, and mesh coordination. Names 2.0.0-rc1, Aziel Eliab.
 - **Homepage** is the live MCP endpoint (`https://aziel-runtime.vibelock.workers.dev/mcp`) so registry validators do not treat the Glama directory listing as `remote_url`. **Try on Glama** stays the primary Install/distribution door in Description, README table, topics, and cross-links. Worker origin stays the execution / OpenAPI surface.
 - **Topics** must include `mcp`, `openapi`, `fraggate`, `digital-forensics` (plus `glama`, `mcp-server`, `nodemesh`).
 

@@ -209,7 +209,8 @@ assert.equal(glama.name, "Aziel Runtime");
 assert.equal(glama.version, "2.0.0-rc1");
 assert.ok(Array.isArray(glama.keywords) && glama.keywords.length >= 8);
 assert.ok(Array.isArray(glama.categories) && glama.categories.length >= 3);
-assert.match(glama.description, /forensic|audit|provenance/i);
+assert.match(glama.description, /FragGate|MCP|receipt/i);
+assert.doesNotMatch(glama.description, /forensic, investigative|intelligence-support|systems-auditing/i);
 assert.match(glama.description, /2\.0\.0-rc1/);
 assert.match(glama.description, /1\.6\.2 is superseded/i);
 
@@ -220,6 +221,9 @@ assert.match(rootChangelog, /1\.6\.2. is \*\*superseded heritage\*\*/);
 assert.match(RUNTIME_ABSTRACT, /^Aziel Runtime is a node-meshed orchestration suite/);
 assert.equal(RUNTIME_ONE_LINE.startsWith("Aziel Runtime is a node-meshed orchestration suite"), true);
 assert.doesNotMatch(RUNTIME_ABSTRACT, /not merely an API orchestrator|not an API aggregator/);
+assert.doesNotMatch(RUNTIME_ABSTRACT, /forensic, investigative|intelligence-support|systems-auditing|without collapsing/i);
+assert.match(RUNTIME_ABSTRACT, /FragGate door/);
+assert.match(RUNTIME_ABSTRACT, /mint receipts/);
 
 const probe = await runCleanRoomProbe();
 assert.equal(probe.mcp.server_version, "2.0.0-rc1");

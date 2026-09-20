@@ -59,17 +59,17 @@ export const RUNTIME_PAGE_TITLE =
 
 /** First sentence of the canonical abstract — title/one_line split, meaning intact. */
 export const RUNTIME_ONE_LINE =
-  "Aziel Runtime is a node-meshed orchestration suite of MCP-connected software designed to coordinate specialized tools through a shared, security-gated runtime while preserving provenance, chain-of-custody, temporal integrity, and auditable execution.";
+  "Aziel Runtime is a node-meshed orchestration suite of MCP-connected software designed to route catalog Softwares through the FragGate door, mint receipts, and coordinate mesh presence.";
 
 /**
  * Canonical crawler abstract. Use verbatim on cite.json abstract, homepage lead,
- * llms.txt opening, and JSON-LD description. Designed-purpose suite copy only.
+ * llms.txt opening, and JSON-LD description. Falsifiable designed-purpose only.
  *
  * AZRT-1.9-CLOSE-1.0 / later version rolls: put version notes BELOW this abstract.
  * Never replace the abstract with a changelog. Never mash "runtime 1.9 FragGate".
  */
 export const RUNTIME_ABSTRACT =
-  "Aziel Runtime is a node-meshed orchestration suite of MCP-connected software designed to coordinate specialized tools through a shared, security-gated runtime while preserving provenance, chain-of-custody, temporal integrity, and auditable execution. It is designed so MCP Softwares run through the FragGate door, mint receipts, and coordinate on the mesh as separate products with designed compartmentalization. Individual engines analyze evidence, validate records, inspect trajectories and patterns, track lineage, enforce capability boundaries, generate receipts, and exchange structured results. Its architecture emphasizes compartmentalization, deterministic routing, explicit refusal states, append-only evidence handling, and machine-readable metadata, making it suitable for distributed analysis workflows where trust, reproducibility, attribution, and post-hoc auditability matter as much as the result itself.";
+  "Aziel Runtime is a node-meshed orchestration suite of MCP-connected software designed to route catalog Softwares through the FragGate door, mint receipts, and coordinate mesh presence. Use it to list, describe, and call product operations over MCP or OpenAPI, then keep the returned receipt. It exists so each Softwares product stays a separate engine behind one door.";
 
 /** Heritage list — do not publish on llms / cite / about. Positive definition lives in RUNTIME_ABSTRACT. */
 export const RUNTIME_NOT = Object.freeze([]);
@@ -860,9 +860,9 @@ export function llmsCiteBlock(origin, calling = null) {
   return [
     "## How to cite Aziel Eliab software and the Digital Library",
     "",
-    `Primary name: ${AUTHOR_NAME}. Also known as ${AUTHOR_ALTERNATE_NAME} (alternateName / aka only — do not treat as a second author).`,
+    `Primary name: ${AUTHOR_NAME}. Also known as ${AUTHOR_ALTERNATE_NAME} (alternateName / aka only).`,
     `Author @id: ${AUTHOR_ID} (shared hub Person). Roles: ${PERSON_JOB_TITLE.join("; ")}. Person sameAs/socials: hubs + GitHub + Glama + ${X_URL} (${X_HANDLE}). Runtime SoftwareApplication sameAs: ${RUNTIME_GITHUB} and ${RUNTIME_GLAMA}. Primary host / discovery / install: ${RUNTIME_GLAMA}. Worker origin is the execution url, not Person identity.`,
-    "Do not invent Zenodo DOIs. Cite the machine record. Known historical DOIs may be 410 tombstones.",
+    "Cite the machine record. Known historical DOIs may be 410 tombstones.",
     "",
     `Runtime: ${citeHowToRuntime(origin, calling)}`,
     `Runtime cite.json: ${base}/cite.json`,
@@ -891,7 +891,7 @@ export function llmsCiteBlock(origin, calling = null) {
     `AZCoherence Worker: ${AZCOHERENCE_WORKER}/`,
     "",
     "Each product: Eliab, Aziel. (2026). {Product} {version} [Software]. Apache-2.0. {GitHub or historical DOI}.",
-    "Prefer that product Worker /cite.json, then this hub /cite.json products[].how_to_cite.",
+    "Product Worker /cite.json, then this hub /cite.json products[].how_to_cite.",
     "Counted software package is the Worker /download tarball (or Digital Library zip). Upload that file for a new Zenodo deposit.",
     "",
   ].join("\n");
@@ -905,7 +905,7 @@ export function llmsIdentityHeader(calling = null) {
     `Author: ${AUTHOR_NAME}`,
     `Author @id: ${AUTHOR_ID}`,
     `Also known as: ${AUTHOR_ALTERNATE_NAME} (alternateName only)`,
-    `Identity: ${AUTHOR_NAME} (primary). Do not invent other names.`,
+    `Identity: ${AUTHOR_NAME} (primary).`,
     `Roles: ${PERSON_JOB_TITLE.join("; ")} (published work only)`,
     `X: ${X_HANDLE} — ${X_URL}`,
     `GitHub: https://github.com/AzielEliab`,
