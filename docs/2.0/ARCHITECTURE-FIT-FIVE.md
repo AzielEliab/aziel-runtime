@@ -94,8 +94,8 @@ Mutating MCP tools still require `confirm=true` or `dry_run=true` at call (optio
 | Slug | `toolbench` (placement `tool-playground`, domain **null**) |
 | LIVE_OPS | `health`, `skill`, `doctor`, `suite`, `run_case`, `limitation` |
 | REAL | Synthetic cases classify against the live FragGate kind table (`halluc` / `stub` / `live` / `unknown_op`). `scripts/verify-architecture-fit.mjs` hits `POST /v1/fraggate/call` + the suite. |
-| SLOT | ``, `live_remote_harness`, `invent_pass`, `third_party_lab` |
-| OUT OF SCOPE | Inventing a  score, a third-party lab letter, or a remote harness. |
+| SLOT | `invent_completeness`, `live_remote_harness`, `invent_pass`, `third_party_lab` |
+| OUT OF SCOPE | Inventing an invent_completeness pass, a third-party lab letter, or a remote harness. |
 
 Self-test ≠ third-party lab.
 
