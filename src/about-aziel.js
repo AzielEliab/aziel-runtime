@@ -24,6 +24,7 @@ import {
 } from "./launch-parts.js";
 import {
   WHAT_AZIEL_ELIAB_DOES,
+  WHY_AZIEL_ELIAB,
   whatAzielEliabDoesLlmsLines,
   whatAzielEliabDoesMachineField,
 } from "./person-index.js";
@@ -186,6 +187,7 @@ export function aboutAzielLlmsBlock() {
     "",
     `Person @id: ${PERSON_ID}. Identity Aziel Eliab only. GodLock is a product name.`,
     WHAT_AZIEL_ELIAB_DOES,
+    WHY_AZIEL_ELIAB,
     ABOUT_AZIEL.mission[0],
     "The public identity is the published work.",
     ...whatAzielEliabDoesLlmsLines(),
