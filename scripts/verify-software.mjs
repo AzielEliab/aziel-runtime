@@ -337,6 +337,16 @@ assert.ok(
   "Softwares catalog copy has no THIS IS / THIS IS NOT template",
 );
 assert.ok(
+  body.software.every(
+    (s) => !/never invent|this is not|needs verified|\bunverified\b|without inventing/i.test(`${s.one_line} ${s.description}`),
+  ),
+  "Softwares purpose copy has no never-invent / this-is-not / verified-status marketing",
+);
+assert.ok(
+  body.software.every((s) => !/\b(?:SLOT|REAL)\b/.test(`${s.one_line} ${s.description}`)),
+  "Softwares purpose blurbs omit SLOT/REAL status tags",
+);
+assert.ok(
   body.software.every((s) => /\bUse\b/.test(s.description) && /exists/i.test(s.description)),
   "every description names the job (Use) and why it exists",
 );

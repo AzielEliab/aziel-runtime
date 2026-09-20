@@ -5,8 +5,8 @@
  * /help/fraggate.txt, /help/glama.txt. Do not fold this copy into
  * /llms.txt, /ai.txt, or /cite.json.
  *
- * Positive definitions. FragGate is THE single door. Softwares one_line
- * SoT is software-copy.js. LIVE / SLOT honesty. Person @id locked.
+ * Designed-purpose copy. FragGate is THE single door. Softwares one_line
+ * SoT is software-copy.js. Placement honesty stays off Softwares purpose. Person @id locked.
  * Identity: Aziel Eliab only.
  */
 
@@ -90,7 +90,7 @@ export function helpTxt(origin) {
     "## Softwares catalog — one_line SSoT",
     "",
     `GET ${base}/v1/software is the Softwares catalog hubs refresh from.`,
-    "one_line = everyday use-purpose. description = why the software exists.",
+    "one_line = designed action. description = Use X to … It exists so …",
     "Sort: Plain A–Z → Gate A–Z → Lock A–Z.",
     `Full catalog one_lines: ${base}/help/softwares.txt`,
     "",
@@ -112,7 +112,7 @@ export function helpTxt(origin) {
     "",
     "## Honesty",
     "",
-    "LIVE and SLOT labels stay honest. Never invent visits, letters, DOIs, or live doors.",
+    "Cite visits, letters, DOIs, and live doors from published bytes.",
     "engine_digest is required on true engines. Growth-ON crawlers Allow.",
     `Machine cite: ${base}/cite.json · ${base}/llms.txt · ${base}/ai.txt`,
     `Longer addendum: ${base}/addendum.txt`,
@@ -153,7 +153,7 @@ export function addendumTxt(origin) {
     "",
     "## Softwares one_line law",
     "",
-    "one_line names the everyday job. description names the job and why the software exists.",
+    "one_line names the designed action. description is Use X to … It exists so …",
     "Source of truth: src/software-copy.js, served on GET /v1/software.",
     `Plain-text catalog: ${base}/help/softwares.txt`,
     "",

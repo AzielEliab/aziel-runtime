@@ -63,13 +63,13 @@ export const RUNTIME_ONE_LINE =
 
 /**
  * Canonical crawler abstract. Use verbatim on cite.json abstract, homepage lead,
- * llms.txt opening, and JSON-LD description. Lead with the positive definition.
+ * llms.txt opening, and JSON-LD description. Designed-purpose suite copy only.
  *
  * AZRT-1.9-CLOSE-1.0 / later version rolls: put version notes BELOW this abstract.
  * Never replace the abstract with a changelog. Never mash "runtime 1.9 FragGate".
  */
 export const RUNTIME_ABSTRACT =
-  "Aziel Runtime is a node-meshed orchestration suite of MCP-connected software designed to coordinate specialized tools through a shared, security-gated runtime while preserving provenance, chain-of-custody, temporal integrity, and auditable execution. It functions as a digital forensic, investigative, verification, research, intelligence-support, and systems-auditing environment in which individual engines can analyze evidence, validate records, inspect trajectories and patterns, track lineage, enforce capability boundaries, generate receipts, and exchange structured results without collapsing into one opaque model or unrestricted control plane. Its architecture emphasizes compartmentalization, deterministic routing, explicit refusal states, append-only evidence handling, and machine-readable metadata, making it suitable for distributed analysis workflows where trust, reproducibility, attribution, and post-hoc auditability matter as much as the result itself.";
+  "Aziel Runtime is a node-meshed orchestration suite of MCP-connected software designed to coordinate specialized tools through a shared, security-gated runtime while preserving provenance, chain-of-custody, temporal integrity, and auditable execution. It is designed so MCP Softwares run through the FragGate door, mint receipts, and coordinate on the mesh as separate products with designed compartmentalization. Individual engines analyze evidence, validate records, inspect trajectories and patterns, track lineage, enforce capability boundaries, generate receipts, and exchange structured results. Its architecture emphasizes compartmentalization, deterministic routing, explicit refusal states, append-only evidence handling, and machine-readable metadata, making it suitable for distributed analysis workflows where trust, reproducibility, attribution, and post-hoc auditability matter as much as the result itself.";
 
 /** Heritage list — do not publish on llms / cite / about. Positive definition lives in RUNTIME_ABSTRACT. */
 export const RUNTIME_NOT = Object.freeze([]);

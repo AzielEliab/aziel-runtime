@@ -1,19 +1,19 @@
 /**
- * Softwares-tab catalog copy — plain use-purpose + why it exists.
+ * Softwares-tab catalog copy — designed-purpose addendum.
  *
  * SoT for GET /v1/software one_line + description. Hubs refresh from that
  * route. FragGate is THE single public door; Softwares stay separate products.
  * Identity: Aziel Eliab only. GodLock is a product name.
  *
- * one_line: everyday use-purpose (what you use it for).
- * description: 1–3 short sentences — what it is for + why this software exists.
- * Write positive capability. Keep LIVE / SLOT honesty and affirmative refuses
- * (Never invent / opaque refuse). Do not write THIS IS: / THIS IS NOT: or
- * cascade Not-X / trailing ", not a …" in these fields.
+ * one_line: one sentence — designed action.
+ * description: 1–2 sentences — Use X to … It exists so …
+ * Write only what the product is designed to do. Do not define by what it
+ * is not, never-invent bans, verified-status marketing, THIS IS / THIS IS NOT,
+ * or SLOT / REAL / LIVE placement tags.
  *
  * Sort law lives in software-catalog.js (Plain → Gate → Lock; Clock ≠ Lock).
  * Do not invent capabilities, DOIs, or VPN claims beyond AZVPN
- * honesty (HTTPS/WS REAL; WireGuard/OpenVPN/L3 SLOT).
+ * honesty (HTTPS/WS REAL; WireGuard/OpenVPN/L3 SLOT — placement docs only).
  *
  * Author: Aziel Eliab.
  */
@@ -22,7 +22,7 @@ export const SOFTWARE_COPY = Object.freeze({
   "4dmap": {
     one_line: "Inspect the same event on time, change, graph, and place axes at once.",
     description:
-      "Use 4DMap when you need to walk one event across time, change, graph, and place without blending those views. It exists so multi-axis inspection stays a recorded walk.",
+      "Use 4DMap to walk one event across time, change, graph, and place as recorded axes. It exists so multi-axis inspection stays a recorded walk.",
   },
   azclce: {
     one_line: "Score how consistently three written layers agree with each other.",
@@ -45,9 +45,9 @@ export const SOFTWARE_COPY = Object.freeze({
       "Use AZBot to point a question at the matching Aziel product. It exists as a skill router.",
   },
   azbrowser: {
-    one_line: "Browse and search with citations, without inventing visits.",
+    one_line: "Browse and search with citations for ethical research.",
     description:
-      "Use AZBrowser for ethical research search and advisory page metadata. It exists so research stays cited and harvest-refused. Never invent visits.",
+      "Use AZBrowser for ethical research search and advisory page metadata. It exists so research stays cited.",
   },
   azchat: {
     one_line: "Open short-lived rooms and an agent bus with spendable handles.",
@@ -57,12 +57,12 @@ export const SOFTWARE_COPY = Object.freeze({
   azcoherence: {
     one_line: "Review whether a primary score and an alternate hold together.",
     description:
-      "Use AZCoherence for a second look at a posted triad versus an alternate. It exists to review coherence. Never invent evidence.",
+      "Use AZCoherence for a second look at a posted triad versus an alternate. It exists to review coherence.",
   },
   azhub: {
     one_line: "Place and tether modules in a blank spatial container.",
     description:
-      "Use AZHub to put modules in regions and declare links without interpreting them. It exists as a neutral container so placement stays placement.",
+      "Use AZHub to put modules in regions and declare links. It exists as a neutral container so placement stays placement.",
   },
   "aziel-corpus": {
     one_line: "Search the public library and download azcorpus + azlibrary designs.",
@@ -77,7 +77,7 @@ export const SOFTWARE_COPY = Object.freeze({
   azinterface: {
     one_line: "Advance pre-locked page cycles in a custodial operating environment.",
     description:
-      "Use AZInterface to read and step site state through OFF, integrity, ON, FULL SHUTDOWN, and MEMORIAL. It exists so those cycles stay locked in order.",
+      "Use AZInterface to read and step site state through OFF, integrity, ON, FULL SHUTDOWN, and MEMORIAL. It exists so those page cycles stay locked in order.",
   },
   azmail: {
     one_line: "Classify mail text, keep a local mailbox, and optionally use an anonymous ring.",
@@ -85,17 +85,17 @@ export const SOFTWARE_COPY = Object.freeze({
       "Use AZMail for an advisory airlock, a local mailbox, and an anonymous mail ring that starts off. It exists for isolate mail work.",
   },
   aznet: {
-    one_line: "Verify hash continuity on a silent side-net that never hosts files.",
+    one_line: "Check hash continuity on a silent side-net.",
     description:
-      "Use AZNet to stamp and check hash refs in a custodian garden. It exists so integrity can be verified without hosting payloads.",
+      "Use AZNet to stamp and check hash refs in a custodian garden. It exists so integrity can be checked on a side-net.",
   },
   azvpn: {
     one_line: "Open an HTTPS or WebSocket VPN session on the public concentrator.",
     description:
-      "Use AZVPN as the automatic public VPN concentrator for HTTPS and WebSocket tunnels. It exists to concentrate those sessions in-runtime. HTTPS/WS REAL; WireGuard/OpenVPN/L3 SLOT.",
+      "Use AZVPN as the automatic public VPN concentrator for HTTPS and WebSocket tunnels. It exists to concentrate those sessions in-runtime.",
   },
   forgereceipts: {
-    one_line: "Mint, verify, and import or export receipts you keep on the client.",
+    one_line: "Mint, check hashes, and import or export receipts you keep on the client.",
     description:
       "Use ForgeReceipts to package local receipts and check their hashes. It exists so evidence packaging stays client-held.",
   },
@@ -127,17 +127,17 @@ export const SOFTWARE_COPY = Object.freeze({
   ark: {
     one_line: "Keep a local deniable vault; one phrase opens one vault.",
     description:
-      "Use The ARK as a local deniable vault you download and run on your device. It exists so one phrase opens one vault on that machine; hosted doors never unlock or store vaults.",
+      "Use The ARK as a local deniable vault you download and run on your device. It exists so one phrase opens one vault on that machine.",
   },
   toolbench: {
     one_line: "Run synthetic door cases to see how FragGate classifies them.",
     description:
-      "Use ToolBench to play refuse and happy-path cases against the live door table. It exists as a self-test playground.",
+      "Use ToolBench to play closed-path and happy-path cases against the door table. It exists as a self-test playground.",
   },
   zsolver: {
-    one_line: "Score answers against nine ontology nodes, with a hard 75% cap.",
+    one_line: "Score answers against nine ontology nodes, with scores labeled up to 75%.",
     description:
-      "Use ZionPattern Solver to work through the Zioncheck seed nodes. It exists as a capped, assistive scorer.",
+      "Use ZionPattern Solver to work through the Zioncheck seed nodes. It exists as an assistive scorer with scores labeled up to 75%.",
   },
   zkattest: {
     one_line: "Attest a statement with a hash commitment that keeps the witness private.",
@@ -155,7 +155,7 @@ export const SOFTWARE_COPY = Object.freeze({
       "Use ChronoLock for timezone-aware linguistic alignment around the Temporal Neutral Window. It exists as advisory timing.",
   },
   codelock: {
-    one_line: "View source as Canonical or Rosetta HTML without changing its meaning.",
+    one_line: "View source as Canonical or Rosetta HTML while keeping the same meaning.",
     description:
       "Use CodeLock when you want a different view of source. It exists to change perception.",
   },
@@ -165,12 +165,12 @@ export const SOFTWARE_COPY = Object.freeze({
       "Use EmbryoLock to check health, policy, and published hashes for the local vault. It exists so wipe and unlock stay on the device.",
   },
   employeelock: {
-    one_line: "Hash a proposed accountability log row without storing a spreadsheet.",
+    one_line: "Hash a proposed accountability log row on the client.",
     description:
       "Use EmployeeLock as a hash-chained accountability workbook. It exists to preview log integrity.",
   },
   foldlock: {
-    one_line: "Fold UTF-8 text by suppressing tether words, then verify the restore.",
+    one_line: "Fold UTF-8 text by suppressing tether words, then check the restore.",
     description:
       "Use FoldLock to preview small-text folds and check the shipped corpus tip hash. It exists as algorithmic text folding.",
   },
@@ -187,7 +187,7 @@ export const SOFTWARE_COPY = Object.freeze({
   peacelock: {
     one_line: "Record chosen silence or chosen inaction as a hash-chained receipt.",
     description:
-      "Use PeaceLock when the act worth keeping is that someone chose silence or inaction. It exists so silence can be a receipt. Never invent a transcript.",
+      "Use PeaceLock when the act worth keeping is that someone chose silence or inaction. It exists so silence can be a receipt.",
   },
   shadowlock: {
     one_line: "Observe a job list you already have, then discard the observation.",
@@ -195,14 +195,14 @@ export const SOFTWARE_COPY = Object.freeze({
       "Use ShadowLock to wrap an existing job list in a zero-retention observation. It exists as an ethics envelope.",
   },
   spectrallock: {
-    one_line: "Preview a small overlay on an image; leftover container bytes recover honestly, opaque rewrite refuses.",
+    one_line: "Preview a small overlay on an image and recover leftover container bytes.",
     description:
-      "Use SpectralLock for a 256-pixel overlay preview with an optional inject true|false color switch, plus a metadata-hash check. Inject ON paints membership. Locate / lift / recover / refuse live in the vendored overlay (product Worker /v1/unredact) — leftover-bytes recover is honest (object id / offset / stream); opaque replace with no leftover bytes refuses SL-UNREDACT-OPAQUE; never invent letters; never OCR-from-black-box. It exists as a hosted preview.",
+      "Use SpectralLock for a 256-pixel overlay preview with an optional inject true|false color switch, plus a metadata-hash check. Inject ON paints membership. Leftover-bytes recover reads present container bytes (object id / offset / stream) on the product Worker. It exists as a hosted overlay preview.",
   },
   temporallock: {
-    one_line: "Build and verify a hash-chained receipt timeline you keep on the client.",
+    one_line: "Build and check hashes on a receipt timeline you keep on the client.",
     description:
-      "Use TemporalLock to start, append, and verify receipts anyone can recompute. It exists so time-stamped records stay client-held.",
+      "Use TemporalLock to start, append, and check hashes on receipts anyone can recompute. It exists so time-stamped records stay client-held.",
   },
   trajectorylock: {
     one_line: "Test whether observations fit a declared geometric line.",
@@ -212,7 +212,7 @@ export const SOFTWARE_COPY = Object.freeze({
   veillock: {
     one_line: "Follow local camera and screen steps for apps on your own device.",
     description:
-      "Use VeilLock for device-local camera and screen steps in your own apps. It exists only on your device — no public FragGate door.",
+      "Use VeilLock for device-local camera and screen steps in your own apps. It exists for camera and screen work on your own device.",
   },
   vibelock: {
     one_line: "Score speech audio you already have for physical consistency risk.",
@@ -220,15 +220,15 @@ export const SOFTWARE_COPY = Object.freeze({
       "Use VibeLock to assess posted features or limited PCM. It exists as a risk assessment of audio you already hold.",
   },
   whistlelock: {
-    one_line: "Hash a local drop and keep a dead-man copy without publishing a mailbox.",
+    one_line: "Hash a local drop and keep a dead-man copy on the client.",
     description:
-      "Use WhistleLock to hash posted bytes and hold isolate-hash objects without a public URL. It exists as a local drop ledger.",
+      "Use WhistleLock to hash posted bytes and hold isolate-hash objects. It exists as a local drop ledger.",
   },
   whitestone: {
     one_line:
-      "Ephemeral pro se advisor for Criminal, Civil, and Divorce, plus historical as-of and Case Mode (suppression axes, TrajectoryLock-lite, export, confidence ≤75%). Live web app + optional zip. Session-only. https://whitestone.vibelock.workers.dev/",
+      "Advise on short Criminal, Civil, and Divorce questions with historical as-of and Case Mode (suppression axes, TrajectoryLock-lite, export, confidence labeled up to 75%). Session-only web app plus optional zip. https://whitestone.vibelock.workers.dev/",
     description:
-      "Use Whitestone for short Criminal, Civil, or Divorce questions in a live web app, including optional historical as-of evaluation and Case Mode axes (truth_upheld, narrative / systemic / personal-professional suppression, honesty). It exists as an ephemeral pro se advisor: TrajectoryLock-lite is labeled heuristic, Case Mode may export a hash-chain card, and confidence never exceeds 75%. Session-only memory wipes when you close. Optional counted zip is on the download tracker; the live web app stays on the Whitestone Worker. https://whitestone.vibelock.workers.dev/ · https://whitestone-download-tracker.vibelock.workers.dev/download",
+      "Use Whitestone for short Criminal, Civil, or Divorce questions in a web app, including historical as-of evaluation and Case Mode axes (truth_upheld, narrative / systemic / personal-professional suppression, honesty). It exists as an ephemeral pro se advisor: TrajectoryLock-lite is labeled heuristic, Case Mode may export a hash-chain card, and confidence is labeled up to 75%. Session-only memory wipes when you close. Optional counted zip is on the download tracker; the web app stays on the Whitestone Worker. https://whitestone.vibelock.workers.dev/ · https://whitestone-download-tracker.vibelock.workers.dev/download",
   },
 });
 

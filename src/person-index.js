@@ -12,6 +12,7 @@
  * Growth-ON. NO-LIE.
  */
 
+import { SOFTWARE_COPY } from "./software-copy.js";
 import {
   ARK_NAME,
   ARK_ONE_LINE,
@@ -623,8 +624,8 @@ export function whoIsTxt(origin, calling = null) {
   lines.push("## Softwares (what Aziel Eliab makes)");
   lines.push("");
   lines.push(`Authoritative catalog: ${base}/v1/software (Plain → Gate → Lock). Hubs refresh from that Worker SSoT.`);
-  lines.push("The ARK — Keep a local deniable vault; one phrase opens one vault.");
-  lines.push("Whitestone — Ephemeral pro se advisor for Criminal, Civil, and Divorce, plus historical as-of and Case Mode (suppression axes, TrajectoryLock-lite, export, confidence ≤75%). Live web app + optional zip. Session-only. https://whitestone.vibelock.workers.dev/");
+  lines.push(`The ARK — ${ARK_ONE_LINE}`);
+  lines.push(`Whitestone — ${SOFTWARE_COPY.whitestone.one_line}`);
   lines.push("Whitestone web app: https://whitestone.vibelock.workers.dev/");
   lines.push("Whitestone counted download: https://whitestone-download-tracker.vibelock.workers.dev/download");
   lines.push("Whitestone GitHub: https://github.com/AzielEliab/Whitestone");
@@ -717,8 +718,8 @@ export function personLlmsBlock(origin) {
   lines.push("## Softwares (what Aziel Eliab makes)");
   lines.push("");
   lines.push(`Authoritative catalog: ${base}/v1/software. Hubs refresh from that Worker SSoT.`);
-  lines.push("The ARK — Keep a local deniable vault; one phrase opens one vault.");
-  lines.push("Whitestone — Ephemeral pro se advisor for Criminal, Civil, and Divorce, plus historical as-of and Case Mode (suppression axes, TrajectoryLock-lite, export, confidence ≤75%). Live web app + optional zip. Session-only. https://whitestone.vibelock.workers.dev/");
+  lines.push(`The ARK — ${ARK_ONE_LINE}`);
+  lines.push(`Whitestone — ${SOFTWARE_COPY.whitestone.one_line}`);
   lines.push("");
   return lines.join("\n");
 }
