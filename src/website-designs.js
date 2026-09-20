@@ -18,7 +18,7 @@ export const WEBSITE_DESIGN_HUB_ID = "library";
 export const WEBSITE_DESIGN_GITHUB = "https://github.com/AzielEliab/aziel-corpus";
 
 export const WEBSITE_DESIGN_LIMITATION =
-  "THIS IS: mesh-resident website designs azcorpus + azlibrary, named on GET /v1/software and runtime_skill, downloadable to nodes. Download is open for all AI clients (MCP / OpenAPI). azlibrary upload is API token only. THIS IS NOT: a fifth Softwares product; a FragGate slug; an ICANN hostname alias; a secret embedded in catalog/skill/MCP/OpenAPI. Author: Aziel Eliab only.";
+  "THIS IS: mesh-resident website designs azcorpus + azlibrary, named on GET /v1/software and runtime_skill, downloadable to nodes. Download is open for all AI clients (MCP / OpenAPI). azlibrary upload is API token only. Author: Aziel Eliab only.";
 
 function libraryHome() {
   return `${LIBRARY_ORIGIN}/`;
@@ -150,9 +150,9 @@ export function websiteDesignsLlmsBlock(origin) {
     WEBSITE_DESIGN_LIMITATION,
     "",
     `Named on GET /v1/software website_designs and runtime_skill. Hub: ${field.hub}`,
-    "azcorpus: download open. Not a FragGate slug.",
+    "azcorpus: download open. Mesh-resident website design on the library hub.",
     "azlibrary: download open. Upload API token only. Never embed secret.",
-    "Not a fifth Softwares product. Cap-7 inherits these designs on the library hub.",
+    "Cap-7 inherits these designs on the library hub.",
     "",
   ].join("\n");
 }

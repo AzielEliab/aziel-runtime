@@ -257,7 +257,7 @@ const home = await get("/");
 assert.equal(home.status, 200);
 const homeHtml = await home.text();
 assert.match(homeHtml, /Aziel Runtime/);
-assert.match(homeHtml, /not merely an API orchestrator/);
+assert.match(homeHtml, /node-meshed orchestration suite of MCP-connected software/);
 assert.match(homeHtml, /pull/);
 assert.match(homeHtml, /invoke/);
 assert.match(homeHtml, /class="brandrow"/);

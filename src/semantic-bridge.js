@@ -53,7 +53,7 @@ export const CAP7_CANONICAL_HUBS_IMMUTABLE = true;
 export const CAP7_FIFTH_PRODUCT = false;
 
 export const SEMANTIC_BRIDGE_LIMITATION =
-  "THIS IS: Cap-7 mesh-name metadata cite. Factory is MirageGrid only. Names inherit hub designs only (docs/designs/ plus mesh-resident azcorpus + azlibrary on the library hub). Names may change; canonical hubs are immutable. AI pulls metadata from MirageGrid Worker /bridge or GET /v1/mesh/az-generator. Mesh browse is AZNet + AZBrowser via FragGate. Plane A hubs mirror published tips. THIS IS NOT: ICANN DNS; a public .az TLD; an alias of the four ICANN hostnames; a live AZ-GEN registrar; a hostname that resolves to a hub; a fifth Softwares product; radio_phy; visible 15:20 chrome; a GET /v1/mesh radio enable; AZNet payload host. Author: Aziel Eliab only.";
+  "THIS IS: Cap-7 mesh-name metadata cite. Factory is MirageGrid only. Names inherit hub designs only (docs/designs/ plus mesh-resident azcorpus + azlibrary on the library hub). Names may change; canonical hubs are immutable. AI pulls metadata from MirageGrid Worker /bridge or GET /v1/mesh/az-generator. Mesh browse is AZNet + AZBrowser via FragGate. Plane A hubs mirror published tips. GET /v1/mesh never enables. Author: Aziel Eliab only.";
 
 export function miragegridBridgeUrl() {
   return `${MIRAGEGRID_WORKER_ORIGIN}${MIRAGEGRID_BRIDGE_PATH}`;
@@ -92,7 +92,7 @@ export function semanticBridgeCiteField(origin) {
     design_of: CAP7_DESIGN_OF,
     inherit: CAP7_INHERIT,
     inherit_note:
-      "Cap-7 mesh names may change. They map to the original four canonical hubs only (azieleliab.com, azielcorpuslibrary.net with azcorpus+azlibrary designs, godlock.uk, hedidntjump.com). They inherit hub designs only (design_of: hub_designs). They are not aliases of those hostnames and do not resolve to them.",
+      "Cap-7 mesh names may change. They map to the original four canonical hubs only (azieleliab.com, azielcorpuslibrary.net with azcorpus+azlibrary designs, godlock.uk, hedidntjump.com). They inherit hub designs only (design_of: hub_designs).",
     name_may_change: CAP7_NAME_MAY_CHANGE,
     canonical_hubs_immutable: CAP7_CANONICAL_HUBS_IMMUTABLE,
     maps_to_canonical_hubs: true,
@@ -118,7 +118,7 @@ export function semanticBridgeCiteField(origin) {
       door: "fraggate_call",
       pairing_is_tunnel: false,
       channel_plane_is_vpn: false,
-      note: "Mesh browse is AZNet + AZBrowser via FragGate. Pairing ≠ tunnel. Channel plane ≠ VPN. Not ICANN DNS. Not Chromium.",
+      note: "Mesh browse is AZNet + AZBrowser via FragGate.",
     },
     plane_a: {
       local: "qnm-node",

@@ -167,9 +167,10 @@ assert.match(softwareHtml, /data-slug="whitestone"/);
 assert.match(softwareHtml, /whitestone\.vibelock\.workers\.dev/);
 assert.match(softwareHtml, /whitestone-download-tracker\.vibelock\.workers\.dev\/download/);
 assert.doesNotMatch(softwareHtml, /\/p\/whitestone/);
-assert.match(softwareHtml, /not a lawyer/i);
+assert.match(softwareHtml, /whitestone\.vibelock\.workers\.dev/);
 assert.match(softwareHtml, /Case Mode/i);
 assert.match(softwareHtml, /1\.6\.0/);
+assert.doesNotMatch(softwareHtml, /not a lawyer/i);
 
 for (const slug of ["azvpn", "foldlock", "zkattest", "veillock", "azmail"]) {
   const card = await (await get(`/p/${slug}`)).text();

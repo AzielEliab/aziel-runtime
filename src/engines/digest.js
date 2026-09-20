@@ -99,7 +99,7 @@ export const ENGINE_DIGESTS = {
   "azchat": "9b63fc0adcbb65318fbad7fd6aaf39b6f44edc5ff41696571457a5bd765ec5c5",
   "zkattest": "bb3831ed980be81dce15fda1dbb471a7458c91feb907a410a86173003df1c84a",
   "mmconsensus": "9624f144b1eacfc11cf86fe45ed83acb6f65fa324629668510c55f1fcabe6fe7",
-  "toolbench": "d574f04ff13db71378fa4fecc75dc412a4683aa354dad489cd3e52cb019cfda9",
+  "toolbench": "888385a251997a21f07368d71eff0bb56ed5f68871a6f84900ab62f28c8da33c",
   "azvpn": "c79b3feaf8023d6e01a93e90eb473b0b9a02ea2a211d597aaa00c1672947aab5",
 };
 

@@ -26,7 +26,6 @@ import {
   PRODUCT_ALTERNATE_NAME,
   PRODUCT_NAME,
   RUNTIME_ABSTRACT,
-  RUNTIME_NOT,
   RUNTIME_ONE_LINE,
   RUNTIME_PAGE_TITLE,
   RUNTIME_SOFTWARE_ID,
@@ -288,18 +287,14 @@ ${donateFooter()}
 
 /** Homepage definition block — crawlers see this before version history. No CSS changes. */
 export function homepageLeadHtml(calling = null) {
-  const notItems = RUNTIME_NOT.map((line) => `      <li>${escapeHtml(line)}</li>`).join("\n");
   const product = calling && calling.rotated ? calling.calling_name : PRODUCT_NAME;
   const slug = calling && calling.rotated ? calling.calling_slug : "aziel-runtime";
   const abstract = rewriteLiveCallingDisplay(RUNTIME_ABSTRACT, calling);
   return `  <h1>${escapeHtml(product)}</h1>
   <p class="lead">${escapeHtml(abstract)}</p>
-  <p><strong>FragGate</strong> is THE single public executable door (list → describe → call) — not 37 separate APIs. Softwares are Plain → Gate → Lock catalog products with true in-process engines where live. Hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) refresh Softwares tabs from <code>GET /v1/software</code>. Dual-surface: agents use OpenAPI/MCP; humans use Worker UI + counted <code>/download</code>.</p>
-  <p>NodeMesh / QNM read-only suite-presence is ON by default. <code>GET /v1/mesh</code> never enables radios beyond that. Full node process is local <code>qnm-node/</code>. MASTER-33: domains are isolation labels, not extra doors. Lamb Lens is the ethics hop after FragGate.</p>
-  <p>Author / public identity: <strong>${escapeHtml(AUTHOR_NAME)}</strong> (also known as ${escapeHtml(AUTHOR_ALTERNATE_NAME)} — alternateName only). Product: ${escapeHtml(product)} (<code>${escapeHtml(slug)}</code>). Also published as ${escapeHtml(PRODUCT_ALTERNATE_NAME)} (alternateName).</p>
-  <ul>
-${notItems}
-  </ul>`;
+  <p><strong>FragGate</strong> is THE single public executable door (list → describe → call). Softwares are Plain → Gate → Lock catalog products with true in-process engines where live. Hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) refresh Softwares tabs from <code>GET /v1/software</code>. Dual-surface: agents use OpenAPI/MCP; humans use Worker UI + counted <code>/download</code>.</p>
+  <p>NodeMesh / QNM read-only suite-presence is ON by default. <code>GET /v1/mesh</code> never enables radios beyond that. Full node process is local <code>qnm-node/</code>. MASTER-33: domains are isolation labels. FragGate is the single door. Lamb Lens is the ethics hop after FragGate.</p>
+  <p>Author / public identity: <strong>${escapeHtml(AUTHOR_NAME)}</strong> (also known as ${escapeHtml(AUTHOR_ALTERNATE_NAME)} — alternateName only). Product: ${escapeHtml(product)} (<code>${escapeHtml(slug)}</code>). Also published as ${escapeHtml(PRODUCT_ALTERNATE_NAME)} (alternateName). Person <code>@id</code> ${AUTHOR_ID}.</p>`;
 }
 
 export function aboutJsonLd(origin, calling = null) {
@@ -333,7 +328,6 @@ export function aboutPageHtml(origin, css, calling = null) {
   const base = String(origin || "").replace(/\/$/, "");
   const about = runtimeAboutField(origin);
   const product = calling && calling.rotated ? calling.calling_name : PRODUCT_NAME;
-  const notItems = about.not.map((line) => `    <li>${escapeHtml(line)}</li>`).join("\n");
   const inner = `  <p><a href="${base}/">← ${escapeHtml(product)}</a> · <a href="${base}/workspace">Use in browser</a> · <a href="${base}/v1/software">Softwares</a></p>
   <h1>About ${escapeHtml(product)}</h1>
   <p class="lead">${escapeHtml(rewriteLiveCallingDisplay(RUNTIME_ABSTRACT, calling))}</p>
@@ -356,11 +350,7 @@ ${namedComponentsHtml()}
     <li>${escapeHtml(about.architecture.nodemesh)}</li>
     <li>${escapeHtml(about.architecture.master33)}</li>
   </ul>
-  <h2>What it is not</h2>
-  <ul>
-${notItems}
-  </ul>
-  <p class="secondary">Author: <strong>${escapeHtml(AUTHOR_NAME)}</strong> (also known as ${escapeHtml(AUTHOR_ALTERNATE_NAME)}). Machine record: <a href="${base}/cite.json">/cite.json</a> · <a href="${base}/llms.txt">/llms.txt</a>. GET /v1/mesh never enables.</p>
+  <p class="secondary">Author: <strong>${escapeHtml(AUTHOR_NAME)}</strong> (also known as ${escapeHtml(AUTHOR_ALTERNATE_NAME)}). Person <code>@id</code> ${AUTHOR_ID}. Machine record: <a href="${base}/cite.json">/cite.json</a> · <a href="${base}/llms.txt">/llms.txt</a>. GET /v1/mesh never enables.</p>
   <h2>Softwares hubs</h2>
   ${hubListHtml()}`;
   return documentShell(
@@ -409,8 +399,8 @@ ${namedComponentsHtml()}
   <p class="secondary">Author: <strong>${escapeHtml(AUTHOR_NAME)}</strong> (also known as ${escapeHtml(AUTHOR_ALTERNATE_NAME)}). Machine JSON: <a href="${base}/v1/software">GET /v1/software</a> (default). FragGate mirror: <a href="${base}/v1/fraggate/software">/v1/fraggate/software</a>. Cite: <a href="${base}/cite.json">/cite.json</a> · <a href="${base}/llms.txt">/llms.txt</a>. ${escapeHtml(LIBRARY_NAME)}: <a href="${LIBRARY_ORIGIN}/">${LIBRARY_ORIGIN}/</a>. GET /v1/mesh never enables.</p>
   <h2>Softwares hubs</h2>
   ${hubListHtml()}
-  <p>AZCoherence (AZC-0.1): <a href="${base}/v1/fraggate/describe?slug=azcoherence">describe</a> · <a href="${AZCOHERENCE_GITHUB}">GitHub</a> · <a href="${AZCOHERENCE_WORKER}/">Worker</a>. Not AKM-TRIAD.</p>
-  <p>Whitestone 1.6.0 Case Mode: <a href="https://whitestone.vibelock.workers.dev/">live web app</a> · <a href="https://whitestone-download-tracker.vibelock.workers.dev/download">counted zip</a> · <a href="https://whitestone.vibelock.workers.dev/v1/software">product catalog</a> · <a href="https://github.com/AzielEliab/Whitestone">GitHub</a>. Historical as-of + suppression axes + TrajectoryLock-lite + export; confidence ≤75%. Ephemeral pro se advisor. Not a lawyer. Not legal advice. Session-only. Not a FragGate engine.</p>
+  <p>AZCoherence (AZC-0.1): <a href="${base}/v1/fraggate/describe?slug=azcoherence">describe</a> · <a href="${AZCOHERENCE_GITHUB}">GitHub</a> · <a href="${AZCOHERENCE_WORKER}/">Worker</a>. Second-pass triad coherence. Peer AZ-CLCE. Neighbor of AKM-TRIAD fabric.</p>
+  <p>Whitestone 1.6.0 Case Mode: <a href="https://whitestone.vibelock.workers.dev/">live web app</a> · <a href="https://whitestone-download-tracker.vibelock.workers.dev/download">counted zip</a> · <a href="https://whitestone.vibelock.workers.dev/v1/software">product catalog</a> · <a href="https://github.com/AzielEliab/Whitestone">GitHub</a>. Historical as-of + suppression axes + TrajectoryLock-lite + export; confidence ≤75%. Ephemeral pro se advisor. Session-only. FragGate status none.</p>
   <div class="field">
     <label for="software-filter">Search Softwares (name, slug, or task)</label>
     <input id="software-filter" type="search" placeholder="foldlock, receipt, browser…" autocomplete="off">

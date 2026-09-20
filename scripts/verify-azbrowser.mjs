@@ -424,7 +424,7 @@ assert.match(llms, /FragGate/);
 assert.match(llms, /slug=fraggate/);
 assert.match(llms, /catalog.json extras/);
 assert.match(llms, /worker=fraggate-download-tracker/);
-assert.match(llms, /not nested in AZBrowser/);
+assert.match(llms, /FragGate is the kernel door/);
 
 const openapi = await (await handler(new Request(origin + "/openapi.json"), env)).json();
 assert.match(openapi.info.description, /AZBrowser/);
@@ -462,8 +462,8 @@ assert.equal(catalog.fraggate.worker, "fraggate-download-tracker");
 assert.equal(catalog.fraggate.engine, false);
 assert.equal(catalog.fraggate.worker_home, "https://fraggate-download-tracker.vibelock.workers.dev/");
 assert.equal(catalog.fraggate.download, "https://fraggate-download-tracker.vibelock.workers.dev/download");
-assert.match(catalog.fraggate.one_line, /kernel door/);
-assert.match(catalog.fraggate.note, /not nested in AZBrowser/);
+assert.match(catalog.fraggate.one_line, /THE single public executable door/);
+assert.match(catalog.fraggate.note, /FragGate is THE single public executable door/);
 const extraFg = catalog.extras.find((e) => e.slug === "fraggate");
 assert.ok(extraFg, "catalog.extras includes FragGate hub card");
 assert.equal(extraFg.github, "https://github.com/AzielEliab/fraggate");
@@ -485,7 +485,7 @@ assert.match(home, /catalog extras/);
 assert.match(home, /github.com\/AzielEliab\/fraggate/);
 assert.match(home, /fraggate-download-tracker/);
 assert.match(home, /href="https:\/\/fraggate-download-tracker\.vibelock\.workers\.dev\/"/);
-assert.match(home, /not nested in AZBrowser/);
+assert.match(home, /FragGate is the kernel door/);
 
 const uses = await (await handler(new Request(origin + "/v1/uses"), env)).json();
 assert.equal(uses.ok, true);

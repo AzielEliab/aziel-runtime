@@ -156,7 +156,7 @@ export const PLACEMENTS = Object.freeze({
     placement: "pro-se-advisor",
     domain: null,
     domain_id: null,
-    note: "Whitestone is a live Worker-only ephemeral pro se advisor (Criminal, Civil, Divorce) with historical as-of and Case Mode. Catalog software. worker_only. FragGate none — do not invent door ops. Dual-surface AI discovery via GET /v1/software + llms/ai/cite/who-is, plus Whitestone Worker GET /v1/software. Not FragGate kernel. Not an extra door. Not a 34th isolation software. Domain stays null. Not a lawyer / not legal advice. Session-only; optional zip. Author: Aziel Eliab only.",
+    note: "Whitestone is a live Worker-only ephemeral pro se advisor (Criminal, Civil, Divorce) with historical as-of and Case Mode. Catalog software. worker_only. FragGate status none — do not invent door ops. Dual-surface AI discovery via GET /v1/software + llms/ai/cite/who-is, plus Whitestone Worker GET /v1/software. Domain stays null. Session-only; optional zip. Author: Aziel Eliab only.",
   },
 });
 
@@ -195,7 +195,7 @@ export const TAB_PLACEMENT_SLUGS = Object.freeze([
 ]);
 
 export const CATALOG_COUNT_NOTE =
-  "Softwares-tab count includes placements (azinterface / decisiongate / forgereceipts / azcoherence / zkattest / mmconsensus / toolbench / azvpn / whitestone). Isolation domain software_count is 33 (domains_are_doors:false). Do not equate the two. EmbryoLock is live-with-local-destructive-boundary (Vault/Custody with ARK); wipe/unlock stay FG-STUB on the public mesh. AZChat is LIVE+bound (mesh default off; not AZMail). AZVPN is the automatic public VPN concentrator placement (HTTPS/WS REAL; WireGuard/OpenVPN SLOT; auto_use true). Whitestone is a live Worker-only placement (no FragGate engine; Case Mode is a product feature not a door; not a lawyer). VeilLock hub card is local_only (matches FragGate; no public door). Sister products such as trades-runtime are cite-only extras (not isolation-33, not Softwares-tab, not fraggate_call company ops). FragGate remains THE single door.";
+  "Softwares-tab count includes placements (azinterface / decisiongate / forgereceipts / azcoherence / zkattest / mmconsensus / toolbench / azvpn / whitestone). Isolation domain software_count is 33 (domains_are_doors:false). Do not equate the two. EmbryoLock is live-with-local-destructive-boundary (Vault/Custody with ARK); wipe/unlock stay FG-STUB on the public mesh. AZChat is LIVE+bound (mesh default off). AZVPN is the automatic public VPN concentrator placement (HTTPS/WS REAL; WireGuard/OpenVPN SLOT; auto_use true). Whitestone is a live Worker-only placement (FragGate status none; Case Mode is a product feature). VeilLock hub card is local_only (matches FragGate; no public door). Sister products such as trades-runtime are cite-only extras (live_backends false). FragGate remains THE single door.";
 
 export function domainForSlug(slug) {
   const key = String(slug || "")

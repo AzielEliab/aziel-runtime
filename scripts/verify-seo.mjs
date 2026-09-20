@@ -197,7 +197,7 @@ assert.match(robots, /azieleliab\.com\/sitemap\.xml/);
 assert.match(robots, /azielcorpuslibrary\.net\/sitemap\.xml/);
 assert.match(robots, /godlock\.uk\/sitemap\.xml/);
 assert.match(robots, /www\.hedidntjump\.com\/sitemap\.xml/);
-assert.match(robots, /www\.hedidntjump\.com \(sister archive, not a Softwares hub\)/);
+assert.match(robots, /www\.hedidntjump\.com \(sister archive\)/);
 assert.doesNotMatch(robots, /vibelock-download-tracker\.vibelock\.workers\.dev\/sitemap\.xml/);
 
 const siteRes = await get("/sitemap.xml");
@@ -264,7 +264,8 @@ const llms = await llmsRes.text();
 assert.match(llms, /Aziel Eliab/);
 assert.match(llms, /Aziel Elroi Eliab/);
 assert.match(llms, /www\.azieleliab\.com\/#aziel/);
-assert.match(llms, /execution surface, not the identity hub/);
+assert.match(llms, /Runtime is the execution surface/);
+assert.match(llms, /Person @id is https:\/\/www\.azieleliab\.com\/#aziel/);
 assert.match(llms, /Aziel Digital Library/);
 assert.match(llms, /How to cite Aziel Eliab software/);
 assert.match(llms, /www\.azielcorpuslibrary\.net\/cite\.json/);
@@ -283,7 +284,7 @@ assert.match(llms, /SEC-FEAT-1\.0/);
 assert.match(llms, /QNS-CD-1\.0/);
 assert.match(llms, /AZL-WP-1\.1/);
 assert.match(llms, /QNM-WP-1\.0/);
-assert.match(llms, /not Softwares-tab products/);
+assert.match(llms, /Suite software-design papers \(law \/ fabric\)/);
 assert.match(llms, /FEATURE-STATE-2026-09-10/);
 assert.match(llms, /intentional-OFF vs gaps/);
 assert.match(llms, /REMAIN-OFF-BY-DESIGN-2026-09-10/);
@@ -303,7 +304,7 @@ assert.match(llms, /## Ecosystem/);
 assert.match(llms, /www\.hedidntjump\.com/);
 assert.match(llms, /www\.hedidntjump\.com\/sitemap\.xml/);
 assert.match(llms, /www\.hedidntjump\.com\/cite\.json/);
-assert.match(llms, /sister archive, not a Softwares hub/);
+assert.match(llms, /sister archive/);
 assert.match(llms, /hedidntjump sister archive/);
 assert.match(llms, /## Sister products/);
 assert.match(llms, /Trades-Runtime \(trades-runtime\)/);
@@ -311,8 +312,8 @@ assert.match(llms, /Shadow-first local BYO runtime/);
 assert.match(llms, /https:\/\/github\.com\/AzielEliab\/trades-runtime/);
 assert.match(llms, /https:\/\/trades-runtime\.vibelock\.workers\.dev\/mcp/);
 assert.match(llms, /https:\/\/trades-runtime\.vibelock\.workers\.dev\/download/);
-assert.match(llms, /fraggate_call does not execute/);
-assert.match(llms, /sister product trades-runtime \(engine:false; fraggate_call:false/);
+assert.match(llms, /sister product trades-runtime/);
+assert.match(llms, /aziel-runtime fraggate_call executes Aziel Runtime catalog engines/);
 assert.match(llms, /AZCoherence/);
 assert.match(llms, /describe\?slug=azcoherence/);
 assert.match(llms, /suite-presence is ON by default/);
@@ -336,7 +337,8 @@ assert.ok(personDoc.jobTitle.includes("digital rights activist"));
 assert.ok(personDoc.jobTitle.includes("software developer/designer"));
 assert.ok(personDoc.jobTitle.includes("author"));
 assert.ok(personDoc.jobTitle.includes("philosopher"));
-assert.match(personDoc.disambiguatingDescription, /1 Chronicles 15:20/);
+assert.match(personDoc.disambiguatingDescription, /www\.azieleliab\.com\/#aziel/);
+assert.doesNotMatch(personDoc.disambiguatingDescription, /Levitical|euaziel|1 Chronicles/);
 assert.equal(personDoc.machine.chrome_15_20, false);
 assert.equal(personDoc.machine.machine_15_20, true);
 assert.equal(personDoc.machine.legal_name, false);
@@ -348,7 +350,7 @@ assert.ok(personDoc.sameAs.includes(`${origin}/person.jsonld`));
 assert.ok(personDoc.sameAs.includes(`${origin}/who-is`));
 assert.ok(personDoc.machine.sites.some((s) => s.id === "azieleliab" && /Person hub/.test(s.coverage)));
 assert.ok(personDoc.machine.sites.some((s) => s.id === "library" && /Digital Library MASTER/.test(s.coverage)));
-assert.ok(personDoc.machine.sites.some((s) => s.id === "godlock.uk" && /not VPN/.test(s.coverage)));
+assert.ok(personDoc.machine.sites.some((s) => s.id === "godlock.uk" && /challenge\/score/.test(s.coverage)));
 assert.ok(personDoc.machine.sites.some((s) => s.id === "hedidntjump" && /Zioncheck archive sister/.test(s.coverage)));
 assert.ok(personDoc.machine.sites.some((s) => s.id === "aziel-runtime" && /2\.0\.0-rc1/.test(s.coverage)));
 assert.equal(Object.hasOwn(personDoc, "legalName"), false);
@@ -356,7 +358,7 @@ assert.equal(Object.hasOwn(personDoc, "homeLocation"), false);
 assert.equal(Object.hasOwn(personDoc, "birthPlace"), false);
 assert.equal(
   personDoc.machine.what_aziel_eliab_does,
-  "Aziel Eliab builds receipt-first, local-first software and public MASTER records — Softwares through Aziel Runtime (FragGate / MCP), the Aziel Digital Library, GodLock (product, not identity), and the He Didn’t Jump Zioncheck archive. Public identity is the work, not a biography. @id https://www.azieleliab.com/#aziel",
+  "Aziel Eliab builds receipt-first, local-first software and public MASTER records — Softwares through Aziel Runtime (FragGate / MCP), the Aziel Digital Library, GodLock (product), and the He Didn’t Jump Zioncheck archive. Public identity is the published work. @id https://www.azieleliab.com/#aziel",
 );
 assert.deepEqual(personDoc.machine.faq.titles, [
   "What does Aziel Eliab do?",
@@ -424,10 +426,11 @@ const whoIs = await whoRes.text();
 assert.equal(await (await get("/who-is-aziel-eliab.txt")).text(), whoIs);
 assert.match(whoIs, /Who is Aziel Eliab/);
 assert.match(whoIs, /digital rights activist/);
-assert.match(whoIs, /1 Chronicles 15:20/);
+assert.match(whoIs, /www\.azieleliab\.com\/#aziel/);
+assert.doesNotMatch(whoIs, /Levitical|euaziel|1 Chronicles/);
 assert.match(whoIs, /Person hub \+ Softwares \+ research landing/);
 assert.match(whoIs, /Digital Library MASTER/);
-assert.match(whoIs, /GodLock challenge\/score \(not VPN\)/);
+assert.match(whoIs, /GodLock challenge\/score/);
 assert.match(whoIs, /Zioncheck archive sister/);
 assert.match(whoIs, /FragGate engine-runtime \/ MCP Softwares door 2\.0\.0-rc1/);
 assert.match(whoIs, /The ARK/);
@@ -435,7 +438,8 @@ assert.match(whoIs, /deniable vault/);
 assert.match(whoIs, /one phrase opens one vault/);
 assert.match(whoIs, /Whitestone/);
 assert.match(whoIs, /Case Mode/i);
-assert.match(whoIs, /not a lawyer/i);
+assert.match(whoIs, /whitestone\.vibelock\.workers\.dev/);
+assert.doesNotMatch(whoIs, /not a lawyer/i);
 assert.match(whoIs, /www\.azieleliab\.com\/#aziel/);
 assert.doesNotMatch(whoIs, /legal name is/i);
 assert.doesNotMatch(whoIs, /\bhome address\b/i);
@@ -462,22 +466,22 @@ assert.match(whoIs, /TAA-1/);
 assert.match(whoIs, /AEEM HVAC/);
 assert.match(whoIs, /AZ Mandible/);
 assert.match(whoIs, /bone-conduction STL/);
-assert.match(whoIs, /not a storefront/);
+assert.match(whoIs, /public engineering only/);
 assert.doesNotMatch(whoIs, /10\.5281\/zenodo\.\d{5,}/);
 
 assert.match(llms, /## Person \/ who-is \(machine\)/);
 assert.match(llms, /Person hub \+ Softwares \+ research landing/);
 assert.match(llms, /Digital Library MASTER/);
-assert.match(llms, /GodLock challenge\/score \(not VPN\)/);
+assert.match(llms, /GodLock challenge\/score/);
 assert.match(llms, /Zioncheck archive sister/);
 assert.match(llms, /FragGate engine-runtime \/ MCP Softwares door 2\.0\.0-rc1/);
 assert.match(llms, /The ARK/);
 assert.match(llms, /deniable vault/);
 assert.match(llms, /### Whitestone \(whitestone\)/);
 assert.match(llms, /Case Mode/i);
-assert.match(llms, /not a lawyer/i);
-assert.match(llms, /not FragGate kernel/i);
+assert.match(llms, /whitestone\.vibelock\.workers\.dev/);
 assert.match(llms, /whitestone\.vibelock\.workers\.dev\/v1\/software/);
+assert.doesNotMatch(llms, /not a lawyer/i);
 assert.match(llms, /\/person\.jsonld/);
 assert.match(llms, /\/who-is/);
 assert.match(llms, /Aziel Eliab builds receipt-first, local-first software and public MASTER records — Softwares through Aziel Runtime \(FragGate \/ MCP\)/);
@@ -495,14 +499,15 @@ assert.match(llms, /Library live ~326 records/);
 assert.match(llms, /AZDOC-9B0E3D62EDCC/);
 assert.match(llms, /AZDOC-AA8761FE16D0/);
 assert.match(llms, /AZDOC-B2A12FE997A8/);
-assert.match(llms, /not a storefront/);
+assert.match(llms, /public engineering only/);
 {
   const aboutStart = llms.indexOf("## About Aziel");
   const roleAt = llms.indexOf("Role: engine-runtime");
   const personAt = llms.indexOf("## Person / who-is (machine)");
   assert.ok(aboutStart >= 0 && roleAt > aboutStart && personAt > roleAt);
   assert.doesNotMatch(llms.slice(aboutStart, roleAt), /1 Chronicles|Chronicles 15/);
-  assert.match(llms.slice(personAt), /1 Chronicles 15:20/);
+  assert.match(llms.slice(personAt), /www\.azieleliab\.com\/#aziel/);
+  assert.doesNotMatch(llms.slice(personAt), /Levitical|euaziel|1 Chronicles/);
 }
 
 const citeRes = await get("/cite.json");
@@ -520,8 +525,9 @@ assert.match(cite.library_how_to_cite, /Aziel Digital Library/);
 assert.equal(cite.library, "https://www.azielcorpuslibrary.net/");
 assert.ok(cite.products.length === PRODUCTS.length + 1);
 assert.ok(cite.products.some((p) => p.slug === "whitestone" && p.worker_only === true && p.engine === false));
-assert.ok(cite.products.some((p) => p.slug === "whitestone" && /not a lawyer/i.test(p.one_line || "")));
 assert.ok(cite.products.some((p) => p.slug === "whitestone" && /Case Mode/i.test(p.one_line || "")));
+assert.ok(cite.products.some((p) => p.slug === "whitestone" && /whitestone\.vibelock\.workers\.dev/.test(p.one_line || "")));
+assert.ok(cite.products.every((p) => !/not a lawyer/i.test(p.one_line || "")));
 assert.ok(cite.compatible_ai_clients.includes("Claude (Anthropic Desktop / custom tools)"));
 assert.ok(cite.compatible_ai_clients.includes("plus other MCP/OpenAPI-capable assistants"));
 assert.match(cite.crawler_allow, /GPTBot\/ChatGPT/);
@@ -597,7 +603,9 @@ assert.equal(
 );
 assert.match(llms, /CROSS-NETWORK-SURVIVAL-1\.0: someone still has bytes that match the published tip/);
 assert.match(llms, /COLD-MULTI-SHELF-1\.0/);
-assert.match(llms, /CNS-ZENODO-IP-BAN/);
+assert.doesNotMatch(llms, /CNS-ZENODO-IP-BAN|CNS-GITFLIC-EMAIL|CNS-GITLAB-CF-LOOP|Operator IP banned/i);
+assert.match(llms, /Plane B SLOT/);
+assert.match(llms, /doi null/);
 assert.ok(cite.designs.papers.some((p) => p.id === "AZRT-1.9-GAPS-CLOSE" && p.kind === "law"));
 assert.equal(cite.identity, AUTHOR_NAME);
 assert.equal(cite.mesh_get_never_enables, true);
@@ -676,7 +684,7 @@ assert.deepEqual(cite.person.roles, [
 ]);
 assert.ok(cite.person.sites.some((s) => s.id === "azieleliab" && s.coverage.includes("Person hub")));
 assert.ok(cite.person.sites.some((s) => s.id === "library" && s.coverage.includes("Digital Library MASTER")));
-assert.ok(cite.person.sites.some((s) => s.id === "godlock.uk" && s.coverage.includes("not VPN")));
+assert.ok(cite.person.sites.some((s) => s.id === "godlock.uk" && s.coverage.includes("challenge/score")));
 assert.ok(cite.person.sites.some((s) => s.id === "hedidntjump" && s.coverage.includes("Zioncheck archive sister")));
 assert.ok(cite.person.sites.some((s) => s.id === "aziel-runtime" && s.coverage.includes("2.0.0-rc1")));
 assert.ok(cite.person.sameAs.includes("https://www.azieleliab.com/"));
@@ -684,7 +692,7 @@ assert.ok(cite.person.sameAs.includes(`${origin}/person.jsonld`));
 assert.equal(cite.person.person_jsonld, `${origin}/person.jsonld`);
 assert.equal(
   cite.person.what_aziel_eliab_does,
-  "Aziel Eliab builds receipt-first, local-first software and public MASTER records — Softwares through Aziel Runtime (FragGate / MCP), the Aziel Digital Library, GodLock (product, not identity), and the He Didn’t Jump Zioncheck archive. Public identity is the work, not a biography. @id https://www.azieleliab.com/#aziel",
+  "Aziel Eliab builds receipt-first, local-first software and public MASTER records — Softwares through Aziel Runtime (FragGate / MCP), the Aziel Digital Library, GodLock (product), and the He Didn’t Jump Zioncheck archive. Public identity is the published work. @id https://www.azieleliab.com/#aziel",
 );
 assert.deepEqual(cite.person.faq.titles, [
   "What does Aziel Eliab do?",
@@ -784,7 +792,7 @@ assert.equal(catalog.fraggate.worker_home, "https://fraggate-download-tracker.vi
 assert.equal(catalog.fraggate.download, "https://fraggate-download-tracker.vibelock.workers.dev/download");
 assert.ok(!catalog.products.some((p) => p.worker === "fraggate-download-tracker"));
 assert.match(catalog.extras_note, /fraggate-download-tracker/);
-assert.match(catalog.extras_note, /not nested in AZBrowser/);
+assert.match(catalog.extras_note, /FragGate is THE single public executable door/);
 
 const homeRes = await get("/");
 assert.equal(homeRes.status, 200);
@@ -1070,8 +1078,8 @@ function firstVisibleText(html, n = 500) {
 }
 
 const homeLead = firstVisibleText(home, 500);
-assert.match(homeLead, /not merely an API orchestrator or software aggregator/);
 assert.match(homeLead, /node-meshed orchestration suite of MCP-connected software/);
+assert.doesNotMatch(homeLead, /not merely an API orchestrator|not an API aggregator|What this is not/i);
 assert.doesNotMatch(homeLead, CRAWLER_LEAD_VERSION_RE);
 assert.match(home, new RegExp(`<title>${RUNTIME_PAGE_TITLE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}</title>`));
 assert.match(home, new RegExp(`<meta name="description" content="${RUNTIME_ABSTRACT.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`));
@@ -1084,7 +1092,8 @@ assert.match(home, /"name":"FragGate"/);
 const llmsHead = llms.split("\n").slice(0, 30).join("\n");
 assert.match(llmsHead, /## What this is/);
 assert.match(llmsHead, /## How to use/);
-assert.match(llmsHead, /not merely an API orchestrator or software aggregator/);
+assert.match(llmsHead, /node-meshed orchestration suite of MCP-connected software/);
+assert.doesNotMatch(llmsHead, /not merely an API orchestrator|What this is not/i);
 assert.doesNotMatch(llmsHead, CRAWLER_LEAD_VERSION_RE);
 assert.match(llms, /## Version history/);
 assert.ok(llms.indexOf("## What this is") < llms.indexOf("## Version history"));
@@ -1097,7 +1106,8 @@ assert.equal(cite.abstract, RUNTIME_ABSTRACT);
 assert.equal(cite.product, PRODUCT_NAME);
 assert.equal(cite.about.what, RUNTIME_ABSTRACT);
 assert.equal(cite.about.author, AUTHOR_NAME);
-assert.ok(cite.about.not.some((line) => /API orchestrator/.test(line)));
+assert.equal(cite.about.not, undefined);
+assert.doesNotMatch(JSON.stringify(cite.about), /What this is not|Not merely an API/);
 assert.match(cite.about.architecture.fraggate, /single public executable door/);
 assert.match(cite.about.architecture.nodemesh, /GET \/v1\/mesh never enables/);
 assert.match(cite.about.architecture.semantic_bridge, /resolves_to_hub false/);
@@ -1112,7 +1122,8 @@ assert.equal(aboutRes.status, 200);
 mime(aboutRes, /text\/html; charset=utf-8/);
 const aboutHtml = await aboutRes.text();
 assert.match(aboutHtml, new RegExp(`<title>${ABOUT_PAGE_TITLE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}</title>`));
-assert.match(aboutHtml, /not merely an API orchestrator or software aggregator/);
+assert.match(aboutHtml, /node-meshed orchestration suite of MCP-connected software/);
+assert.doesNotMatch(aboutHtml, /not merely an API orchestrator|What it is not/i);
 assert.match(aboutHtml, /www\.azieleliab\.com\/#aziel/);
 assert.doesNotMatch(aboutHtml, /github\.com\/AzielEliab#person/);
 assert.match(aboutHtml, /class="ecosystem"/);
@@ -1123,7 +1134,7 @@ assert.doesNotMatch(firstVisibleText(aboutHtml, 500), CRAWLER_LEAD_VERSION_RE);
 assert.equal(cite.about.changelog_below_abstract, true);
 assert.match(aboutHtml, /How agents call it/);
 assert.match(aboutHtml, /How hubs use it/);
-assert.match(aboutHtml, /What it is not/);
+assert.doesNotMatch(aboutHtml, /What it is not/);
 assert.match(
   aboutHtml,
   /<a href="https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime" class="cta">Try on Glama<\/a>/,
@@ -1143,7 +1154,8 @@ const readme = await (await import("node:fs/promises")).readFile(
   new URL("../README.md", import.meta.url),
   "utf8",
 );
-assert.match(readme, /not merely an API orchestrator or software aggregator/);
+assert.match(readme, /node-meshed orchestration suite of MCP-connected software/);
+assert.doesNotMatch(readme.slice(0, 1200), /not merely an API orchestrator|not an API aggregator/);
 assert.match(readme, /\[Try on Glama\]\(https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime\)/);
 assert.match(readme, /www\.azieleliab\.com\/#aziel/);
 assert.match(readme, /www\.azieleliab\.com\/runtime#runtime/);
@@ -1165,7 +1177,8 @@ const githubLock = await (await import("node:fs/promises")).readFile(
   "utf8",
 );
 assert.match(githubLock, /NodeMesh'd MCP Softwares suite for digital forensics/);
-assert.match(githubLock, /not an API aggregator/);
+assert.match(githubLock, /NodeMesh'd MCP Softwares suite for digital forensics/);
+assert.doesNotMatch(githubLock, /not an API aggregator/);
 assert.match(githubLock, /glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime/);
 assert.match(githubLock, /--homepage "https:\/\/aziel-runtime\.vibelock\.workers\.dev\/mcp"/);
 assert.doesNotMatch(githubLock, /--homepage "https:\/\/glama\.ai/);
@@ -1179,7 +1192,8 @@ const citeDoc = await (await import("node:fs/promises")).readFile(
   new URL("../docs/CITE.md", import.meta.url),
   "utf8",
 );
-assert.match(citeDoc, /not merely an API orchestrator or software aggregator/);
+assert.match(citeDoc, /node-meshed orchestration suite of MCP-connected software/);
+assert.doesNotMatch(citeDoc, /not merely an API orchestrator/);
 assert.match(citeDoc, /2\.0\.0-rc1/);
 assert.match(citeDoc, /www\.azieleliab\.com\/#aziel/);
 assert.match(citeDoc, /www\.azieleliab\.com\/runtime#runtime/);
@@ -1190,5 +1204,40 @@ assert.match(citeDoc, /design_of: hub_designs/);
 assert.match(citeDoc, /inherit hub \*\*designs\*\* only/);
 assert.match(citeDoc, /azcorpus/);
 assert.match(citeDoc, /azlibrary/);
+assert.doesNotMatch(citeDoc, /CNS-ZENODO-IP-BAN|CNS-GITFLIC-EMAIL|CNS-GITLAB-CF-LOOP|Operator IP banned/i);
+assert.doesNotMatch(readme, /CNS-ZENODO-IP-BAN|CNS-GITFLIC-EMAIL|CNS-GITLAB-CF-LOOP|Operator IP banned/i);
+assert.equal(cite.about_aziel.not, undefined);
+assert.doesNotMatch(llms, /About Aziel \(work, not biography\)|Not zip\. Not hosted_store/);
+assert.doesNotMatch(llms, /^Banner:/m);
+assert.doesNotMatch(llms, /Not AKM-TRIAD|What this is not|not a lawyer|Not legal advice|GodLock is not a VPN|is not a gap|does not count as missing/i);
+assert.doesNotMatch(JSON.stringify(cite.azcoherence.note || ""), /Not AKM-TRIAD|not a 34th/i);
+assert.match(cite.azcoherence.note, /Second-pass triad coherence/);
+assert.doesNotMatch(cite.audits.remain_off_by_design.one_line, /is not a gap|does not count as missing/i);
+assert.match(cite.audits.remain_off_by_design.one_line, /stays recorded as OFF/);
+assert.doesNotMatch(aboutHtml, /<h3>Not this<\/h3>/);
+assert.doesNotMatch(home, /user blocked/i);
+assert.equal(cite.zenodo.audit.tombstone_note, "HTTP 410 tombstone");
 
-console.log("ok seo hub: robots, sitemap-index, llms/cite MIME, Person JSON-LD, catalog crawl links, HTML shells, definition-first abstract, GitHub About lock");
+const HELP_PATHS = ["/help.txt", "/addendum.txt", "/help/softwares.txt", "/help/fraggate.txt", "/help/glama.txt"];
+for (const path of HELP_PATHS) {
+  await assertSeoMime(path, /^text\/plain; charset=utf-8$/);
+  assert.match(sitemap, new RegExp(`${path.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}<`));
+  assert.ok(openapi.paths[path], `OpenAPI lists ${path}`);
+}
+const helpTxt = await (await get("/help.txt")).text();
+assert.match(helpTxt, /FragGate is THE single public door/);
+assert.match(helpTxt, /GET https:\/\/aziel-runtime\.example\/v1\/software/);
+assert.match(helpTxt, /Try on Glama/);
+assert.match(helpTxt, /Dual surface/);
+assert.doesNotMatch(helpTxt, /not a lawyer|What this is not|CNS-ZENODO-IP-BAN|THIS IS NOT:/i);
+const helpSoftwares = await (await get("/help/softwares.txt")).text();
+assert.match(helpSoftwares, /Whitestone/);
+assert.match(helpSoftwares, /whitestone\.vibelock\.workers\.dev/);
+assert.doesNotMatch(helpSoftwares, /not a lawyer|not legal advice|not a spectrometer/i);
+const helpFg = await (await get("/help/fraggate.txt")).text();
+assert.match(helpFg, /list → describe → call/);
+const helpGlama = await (await get("/help/glama.txt")).text();
+assert.match(helpGlama, /glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime/);
+assert.match(home, /rel="alternate" type="text\/plain" href="https:\/\/aziel-runtime\.example\/help\.txt"/);
+
+console.log("ok seo hub: robots, sitemap-index, llms/cite MIME, Person JSON-LD, catalog crawl links, HTML shells, definition-first abstract, GitHub About lock, help.txt addenda");

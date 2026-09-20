@@ -1,7 +1,7 @@
 /**
- * About Aziel (work, not biography) + FoldLock corpus-pack human chrome.
+ * About Aziel (published work) + FoldLock corpus-pack human chrome.
  * Published Person / llms / FAQ surfaces only. No legal name / home.
- * No visible 15:20 HTML chrome. GodLock is a product name, not identity.
+ * No visible 15:20 HTML chrome. GodLock is a product name.
  * Author: Aziel Eliab only. Person @id https://www.azieleliab.com/#aziel.
  */
 
@@ -29,10 +29,23 @@ import {
 } from "./person-index.js";
 
 export function aboutAzielCiteField() {
+  const base = aboutAzielBaseCiteField();
+  const { not: _omitNot, ...rest } = base;
+  const status = (rest.status || []).map((line) =>
+    String(line).replace("GodLock (product, not identity)", "GodLock (product)"),
+  );
   return {
-    ...aboutAzielBaseCiteField(),
+    ...rest,
+    public_identity: "The public identity is the published work.",
+    status,
     ...whatAzielEliabDoesMachineField(),
   };
+}
+
+function publishedStatusLines() {
+  return ABOUT_AZIEL.status.map((line) =>
+    String(line).replace("GodLock (product, not identity)", "GodLock (product)"),
+  );
 }
 
 export {
@@ -59,15 +72,15 @@ function listHtml(items) {
 /** Always-visible About Aziel cite on operator panel / dashboard / cards. No 15:20 chrome. */
 export function aboutAzielStripHtml({ id = "about-aziel-strip" } = {}) {
   const attr = id ? ` id="${escapeHtml(id)}"` : "";
-  return `<p class="about-aziel-strip"${attr}>About Aziel · Person <a href="${PERSON_ID}"><span class="hashtag">#aziel</span></a> · identity <strong>${escapeHtml(ABOUT_AZIEL.identity)}</strong> only · published work, not a biography · <a href="#about-aziel">full section</a></p>`;
+  return `<p class="about-aziel-strip"${attr}>About Aziel · Person <a href="${PERSON_ID}"><span class="hashtag">#aziel</span></a> · identity <strong>${escapeHtml(ABOUT_AZIEL.identity)}</strong> only · published work · <a href="#about-aziel">full section</a></p>`;
 }
 
 /** Human About Aziel section. Dashboard + /about. No 15:20 chrome. */
 export function aboutAzielSectionHtml() {
   return `<section class="cite" id="about-aziel">
   <h2>About Aziel <span class="hashtag">#about-aziel</span></h2>
-  <p class="lead">${escapeHtml(ABOUT_AZIEL.mission[0])} ${escapeHtml(ABOUT_AZIEL.public_identity)}</p>
-  <p>Person <code>@id</code> <a href="${PERSON_ID}">${PERSON_ID}</a>. Identity <strong>${escapeHtml(ABOUT_AZIEL.identity)}</strong> only. Also known as ${escapeHtml(ABOUT_AZIEL.aka_only)} (alternateName only). GodLock is a product name, not identity.</p>
+  <p class="lead">${escapeHtml(ABOUT_AZIEL.mission[0])} The public identity is the published work.</p>
+  <p>Person <code>@id</code> <a href="${PERSON_ID}">${PERSON_ID}</a>. Identity <strong>${escapeHtml(ABOUT_AZIEL.identity)}</strong> only. Also known as ${escapeHtml(ABOUT_AZIEL.aka_only)} (alternateName only). GodLock is a product name.</p>
   <h3>Goals</h3>
   <ul>
 ${listHtml(ABOUT_AZIEL.goals)}
@@ -82,13 +95,9 @@ ${listHtml(ABOUT_AZIEL.mission)}
   </ul>
   <h3>Status</h3>
   <ul>
-${listHtml(ABOUT_AZIEL.status)}
+${listHtml(publishedStatusLines())}
   </ul>
-  <h3>Not this</h3>
-  <ul>
-${listHtml(ABOUT_AZIEL.not)}
-  </ul>
-  <p class="secondary">Published machine / Person surfaces only: ${ABOUT_AZIEL_SOURCES.map((u) => `<a href="${escapeHtml(u)}">${escapeHtml(u.replace("https://www.azieleliab.com/", "/"))}</a>`).join(" · ")}. Not a biography.</p>
+  <p class="secondary">Published machine / Person surfaces only: ${ABOUT_AZIEL_SOURCES.map((u) => `<a href="${escapeHtml(u)}">${escapeHtml(u.replace("https://www.azieleliab.com/", "/"))}</a>`).join(" · ")}.</p>
 </section>`;
 }
 
@@ -173,23 +182,22 @@ export function runtimeLaunchHtml(origin) {
 
 export function aboutAzielLlmsBlock() {
   return [
-    "## About Aziel (work, not biography)",
+    "## About Aziel",
     "",
-    `Person @id: ${PERSON_ID}. Identity Aziel Eliab only. GodLock is a product name, not identity.`,
+    `Person @id: ${PERSON_ID}. Identity Aziel Eliab only. GodLock is a product name.`,
     WHAT_AZIEL_ELIAB_DOES,
     ABOUT_AZIEL.mission[0],
-    ABOUT_AZIEL.public_identity,
+    "The public identity is the published work.",
     ...whatAzielEliabDoesLlmsLines(),
     ...ABOUT_AZIEL.goals.map((line) => `- Goal: ${line}`),
     ...ABOUT_AZIEL.mission.slice(1).map((line) => `- Mission: ${line}`),
-    "No legal name / home. No biography chrome. Sources: " + ABOUT_AZIEL_SOURCES.join(" · "),
+    "Published work surfaces only. Sources: " + ABOUT_AZIEL_SOURCES.join(" · "),
     "",
-    "## FoldLock corpus tip (not the full library)",
+    "## FoldLock corpus tip",
     "",
     `${TIP_PACK_SPEC} is a hash-verified in-process tip (label REAL): library index cite + sample-MASTER key artifacts + About Aziel.`,
     `Full library remains LIVE on ${LIVE_LIBRARY_ORIGIN}/ (index ${LIVE_LIBRARY_INDEX}). In-process D1 is SLOT unless CORPUS_D1 is bound.`,
     "Verify: fraggate_call { slug: foldlock, op: pack-verify }. Open: fraggate_call { slug: aziel-corpus, op: tip-pack }.",
-    "Not zip. Not hosted_store. Not an invented DOI / Framagit / Glama UUID / .",
     "",
     "## Worker launch (every surface)",
     "",

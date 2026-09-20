@@ -24,13 +24,13 @@ export const TRADES_RUNTIME_OPENAPI = `${TRADES_RUNTIME_ORIGIN}/openapi.json`;
 export const TRADES_RUNTIME_HEALTH = `${TRADES_RUNTIME_ORIGIN}/v1/health`;
 
 export const TRADES_RUNTIME_ONE_LINE =
-  "Shadow-first local BYO runtime for HVAC/plumbing/electrical/sewer/cross-trades. BYO ServiceTitan+ProBooks. Human authority. Not hosted company OS. live_backends false.";
+  "Shadow-first local BYO runtime for HVAC/plumbing/electrical/sewer/cross-trades. BYO ServiceTitan+ProBooks. Human authority. live_backends false. https://trades-runtime.vibelock.workers.dev/";
 
 export const SISTER_PRODUCTS_NOTE =
-  "Sister products cited honestly. Not Softwares-tab engines. Not FragGate true-engines. Not MASTER-33 isolation software. aziel-runtime fraggate_call does not execute their company ops. Identity Aziel Eliab only.";
+  "Sister products cited honestly. live_backends false. aziel-runtime fraggate_call executes Aziel Runtime catalog engines. Identity Aziel Eliab only.";
 
 export const CATALOG_EXTRAS_SISTER_NOTE =
-  "extras[] may also list cite-only sister products (trades-runtime) that are not kernel doors, not FragGate true-engines, not MASTER-33 isolation software, and not executed by fraggate_call.";
+  "extras[] may also list cite-only sister products (trades-runtime). live_backends false. fraggate_call executes Aziel Runtime catalog engines.";
 
 export function tradesRuntimeRecord() {
   return {
@@ -129,7 +129,7 @@ export function llmsSisterProductsBlock() {
     lines.push(`cite.json: ${p.cite}`);
     lines.push(`llms.txt: ${p.llms}`);
     lines.push(`live_backends: ${p.live_backends}`);
-    lines.push("fraggate_call: false (aziel-runtime does not execute company ops)");
+    lines.push("fraggate_call: false. aziel-runtime fraggate_call executes Aziel Runtime catalog engines.");
     lines.push("");
   }
   return lines.join("\n");

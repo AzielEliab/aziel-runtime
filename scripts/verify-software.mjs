@@ -302,8 +302,9 @@ assert.equal(body.software.length, softwareCopySlugs().length);
   assert.equal(whiteFaq.name, "Whitestone");
   assert.equal(whiteFaq.url, "https://whitestone-download-tracker.vibelock.workers.dev/");
   assert.equal(whiteFaq.download_url, "https://whitestone-download-tracker.vibelock.workers.dev/download");
-  assert.match(whiteFaq.one_line, /not a lawyer/i);
   assert.match(whiteFaq.one_line, /Case Mode/i);
+  assert.match(whiteFaq.one_line, /whitestone\.vibelock\.workers\.dev/);
+  assert.doesNotMatch(whiteFaq.one_line, /not a lawyer/i);
   assert.ok(faqItems.every((s) => s.name && s.one_line && s.url));
 }
 assert.ok(
@@ -340,14 +341,13 @@ const USE_PURPOSE = {
   embryolock: [/offline vault|local vault/i],
   azinterface: [/page cycles/i],
   whitestone: [
-    /not a lawyer/i,
-    /not legal advice/i,
     /ephemeral|session/i,
     /zip/i,
     /Case Mode/i,
     /historical as-of/i,
     /TrajectoryLock/i,
     /75%/,
+    /whitestone\.vibelock\.workers\.dev/,
   ],
 };
 for (const [slug, patterns] of Object.entries(USE_PURPOSE)) {
@@ -366,7 +366,8 @@ const extras = catalogExtraCards(origin);
 const meshExtra = extras.find((e) => e.slug === "mesh" || e.name === "Quantum Node Mesh" || /QNM/.test(e.one_line || ""));
 assert.ok(meshExtra, "mesh extras card exists");
 assert.match(meshExtra.one_line, /worker_hardware:false/);
-assert.match(meshExtra.one_line, /THIS IS NOT: a Softwares-tab product/);
+assert.match(meshExtra.one_line, /QNM-BUILD-1\.0/);
+assert.doesNotMatch(meshExtra.one_line, /THIS IS NOT:/);
 assert.ok(!body.software.some((s) => s.slug === "hedidntjump" || s.slug === "he-didnt-jump"));
 
 const azc = body.software.find((s) => s.slug === "azcoherence");
@@ -397,12 +398,12 @@ assert.equal(whitestone.web_app, "https://whitestone.vibelock.workers.dev/");
 assert.equal(whitestone.github, "https://github.com/AzielEliab/Whitestone");
 assert.equal(whitestone.engine_digest, null);
 assert.equal(whitestone.agent.fraggate_call, null);
-assert.match(whitestone.one_line, /not a lawyer/i);
 assert.match(whitestone.one_line, /Case Mode/i);
-assert.match(whitestone.description, /not legal advice/i);
+assert.match(whitestone.one_line, /whitestone\.vibelock\.workers\.dev/);
 assert.match(whitestone.description, /historical as-of/i);
 assert.match(whitestone.description, /TrajectoryLock/i);
 assert.match(whitestone.note, /Case Mode is a product feature/i);
+assert.doesNotMatch(`${whitestone.one_line} ${whitestone.description}`, /not a lawyer|not legal advice/i);
 assert.doesNotMatch(`${whitestone.one_line} ${whitestone.description}`, /THIS IS:/i);
 
 const whiteCheck = updateCheck({ slug: "whitestone", version: "1.0.0" }, origin, PRODUCTS, {

@@ -166,7 +166,8 @@ assert.match(home, /id="dashboard"/);
 assert.match(home, /id="fg-console"/);
 assert.doesNotMatch(home, /15:20|1 Chronicles/i);
 assert.doesNotMatch(home, /home address|date of birth|county seat/i);
-assert.match(home, /Not a legal name/);
+assert.match(home, /The public identity is the published work/);
+assert.doesNotMatch(home, /<h3>Not this<\/h3>/);
 assert.doesNotMatch(home, /glama\.ai\/mcp\/servers\/[0-9a-f]{8}-[0-9a-f-]{27}/i);
 
 const about = await (await get("/about")).text();
@@ -247,7 +248,8 @@ assert.ok(cite.worker_launch.tags_by_slug.godlock.some((t) => t.startsWith("#god
 assert.notDeepEqual(cite.worker_launch.tags_by_slug.foldlock, cite.worker_launch.tags_by_slug.godlock);
 
 const llms = await (await get("/llms.txt")).text();
-assert.match(llms, /About Aziel \(work, not biography\)/);
+assert.match(llms, /## About Aziel/);
+assert.doesNotMatch(llms, /About Aziel \(work, not biography\)/);
 assert.match(llms, /AZCL-FOLD-TIP-1\.0/);
 assert.match(llms, /pack-verify/);
 const aboutLlmsStart = llms.indexOf("## About Aziel");
