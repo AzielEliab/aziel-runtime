@@ -17,9 +17,11 @@ Mirror (FragGate path):
 curl -s -A 'Mozilla/5.0' https://aziel-runtime.vibelock.workers.dev/v1/fraggate/software
 ```
 
-`one_line` is plain use-purpose (what you use the product for).
-`description` is 1–3 short sentences: the job + why this software exists.
-Do not write `THIS IS:` / `THIS IS NOT:` in those fields. Do not mash
+`one_line` is one designed-action sentence.
+`description` is 1–2 sentences: Use X to … It exists so …
+Write only what the product is designed to do. Do not write `THIS IS:` /
+`THIS IS NOT:`, never-invent bans, verified-status marketing, or SLOT / REAL /
+LIVE placement tags in those fields. Do not mash
 `runtime X.Y` with `FragGate`. Softwares capability checklist:
 `docs/audit/SUITE-CAPABILITY-CHECKLIST.md` (1.7.5 wave 1).
 AKM-TRIAD-1.0 is LIVE fabric (`/v1/memory/*`, MCP `memory_*`), not a
