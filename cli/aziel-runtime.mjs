@@ -33,6 +33,7 @@ import {
 } from "../src/session-core.js";
 import { RUNTIME_VERSION } from "../src/runtime-api.js";
 import { executeLocal, proxyFallbackMeta } from "../src/engines/runner.js";
+import { networkRefuseEnvelope } from "../src/remote-transport.js";
 import { spawn } from "node:child_process";
 
 const DEFAULT_URL = process.env.AZIEL_RUNTIME_URL || "https://aziel-runtime.vibelock.workers.dev";
@@ -138,7 +139,17 @@ function tokenHeaders(flags) {
 
 async function remote(url, path, init = {}, flags = {}) {
   const headers = { "User-Agent": UA, Accept: "application/json", ...tokenHeaders(flags), ...(init.headers || {}) };
-  const res = await fetch(url.replace(/\/$/, "") + path, { ...init, headers });
+  let res;
+  try {
+    res = await fetch(url.replace(/\/$/, "") + path, { ...init, headers });
+  } catch (err) {
+    const envelope = networkRefuseEnvelope({ err, origin: url, path });
+    const fail = new Error(envelope.message);
+    fail.status = 0;
+    fail.body = envelope;
+    fail.code = envelope.code;
+    throw fail;
+  }
   const text = await res.text();
   let body;
   try {
@@ -419,7 +430,11 @@ async function main() {
       process.exit(1);
     }
   } catch (err) {
-    print({ ok: false, error: err.message, status: err.status || 1, body: err.body || null });
+    if (err.body && err.body.fraggate_receipt === false) {
+      print(err.body);
+    } else {
+      print({ ok: false, error: err.message, status: err.status || 1, body: err.body || null });
+    }
     process.exit(1);
   }
 }

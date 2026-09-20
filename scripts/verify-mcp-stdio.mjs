@@ -17,7 +17,9 @@ import {
   parseCliArgs,
   rpcError,
   serializeMessage,
+  usage,
 } from "../src/mcp-stdio.js";
+import { dnsError, looksLikeFraggateExecutionReceipt } from "../src/remote-transport.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const cli = join(root, "cli/mcp-stdio.mjs");
@@ -44,6 +46,8 @@ const dockerfile = await readFile(join(root, "Dockerfile"), "utf8");
 assert.match(dockerfile, /cli\/mcp-stdio\.mjs/);
 assert.match(dockerfile, /AZIEL_RUNTIME_URL/);
 assert.match(dockerfile, /CMD \["node", "cli\/mcp-stdio\.mjs"\]/);
+assert.match(dockerfile, /outbound DNS/);
+assert.match(dockerfile, /vibelock\.workers\.dev/);
 assert.doesNotMatch(dockerfile, /ENTRYPOINT/);
 assert.doesNotMatch(dockerfile, /mcp-proxy/);
 
@@ -58,6 +62,8 @@ assert.equal(pkg.bin["aziel-runtime-mcp"], "./cli/mcp-stdio.mjs");
 const parsed = parseCliArgs(["--local", "--url", "https://example.test"]);
 assert.equal(parsed.flags.local, true);
 assert.equal(parsed.flags.url, "https://example.test");
+assert.match(usage(), /FG-DNS/);
+assert.match(usage(), /outbound DNS \+ HTTPS/);
 
 const buf = new ReadBuffer();
 buf.append(Buffer.from(serializeMessage({ jsonrpc: "2.0", id: 1, method: "ping" })));
@@ -204,6 +210,30 @@ assert.equal(liveHits.length, 1);
 assert.equal(failCtx.url, live.url);
 await new Promise((resolve, reject) => dead.server.close((err) => (err ? reject(err) : resolve())));
 await new Promise((resolve, reject) => live.server.close((err) => (err ? reject(err) : resolve())));
+
+let localHits = 0;
+const dnsFailCtx = createBridgeContext({
+  flags: { url: "https://aziel-runtime.vibelock.workers.dev" },
+  origins: ["https://aziel-runtime.vibelock.workers.dev"],
+  fetchImpl: async () => {
+    throw dnsError("aziel-runtime.vibelock.workers.dev");
+  },
+  localSend: async () => {
+    localHits += 1;
+    throw new Error("must not local-validate a remote DNS miss");
+  },
+  log: () => {},
+});
+const dnsFailed = await dispatchMcp(
+  { jsonrpc: "2.0", id: 11, method: "tools/call", params: { name: "fraggate_call", arguments: { slug: "spectrallock", op: "health", confirm: true } } },
+  dnsFailCtx,
+);
+assert.equal(dnsFailed.error.data.code, "FG-DNS");
+assert.equal(dnsFailed.error.data.remote, false);
+assert.equal(dnsFailed.error.data.fraggate_receipt, false);
+assert.equal(dnsFailed.error.data.local_validation, false);
+assert.equal(looksLikeFraggateExecutionReceipt(dnsFailed), false);
+assert.equal(localHits, 0);
 
 function spawnMcp(args, extraEnv = {}) {
   return spawn(process.execPath, [cli, ...args], {

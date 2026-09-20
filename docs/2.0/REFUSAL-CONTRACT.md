@@ -33,6 +33,15 @@ Pipeline-only (AZPIPE / fabric hops in `door.js`):
 
 Refuse envelopes are `ok: false`, `result: null`, and write an ask/refuse ledger tip. They are not silent 200 success.
 
+Client-transport codes (stdio bridge / session / Docker — the door was **never reached**; not a FragGate execution receipt; not local validation):
+
+| Code | When |
+|------|------|
+| `FG-DNS` | Outbound DNS failed (`ENOTFOUND` / `getaddrinfo` / `EAI_AGAIN`) for `*.vibelock.workers.dev` |
+| `FG-NET` | Other remote transport failure (timeout, connection refused) |
+
+These envelopes set `remote: false`, `fraggate_receipt: false`, `local_validation: false`, `door: null`, `ledger_tip: null`. Source: [`src/remote-transport.js`](../../src/remote-transport.js).
+
 ---
 
 ## 2. Remain-OFF inventory (33) — do not enable

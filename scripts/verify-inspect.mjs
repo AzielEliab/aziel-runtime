@@ -35,6 +35,8 @@ const mapped = [
   "src/software-catalog.js",
   "src/software-copy.js",
   "src/library-receipts.js",
+  "src/remote-transport.js",
+  "src/mcp-stdio.js",
 ];
 const inspect = read("docs/2.0/INSPECT.md");
 for (const rel of mapped) {

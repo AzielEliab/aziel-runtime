@@ -66,6 +66,13 @@ Claude Desktop / Cursor `mcp.json`:
 
 ## Docker
 
+The default CMD **bridges** to `https://aziel-runtime.vibelock.workers.dev/mcp`.
+The container needs **outbound DNS + HTTPS** to `*.vibelock.workers.dev` /
+Cloudflare. If the host resolver is blocked, pass a public resolver
+(`docker run --rm -i --dns 1.1.1.1 aziel-runtime-mcp`). DNS failure is
+`FG-DNS` (`remote:false`) — not a FragGate receipt and not a silent
+`--local` fallback.
+
 ```bash
 docker build -t aziel-runtime-mcp .
 docker run --rm -i aziel-runtime-mcp

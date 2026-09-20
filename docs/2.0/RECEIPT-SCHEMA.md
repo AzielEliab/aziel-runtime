@@ -116,6 +116,25 @@ Present on accepted (and some refuse) envelopes:
 
 UI op aliases may set `canonical_op` + `aliased: true`.
 
+### Client transport refuse (not a FragGate receipt)
+
+When the **stdio bridge**, session CLI, Docker/Glama image, or ToolBench HTTP client cannot reach the Worker (`ENOTFOUND` / `getaddrinfo` / timeout), the client returns this envelope. It is **not** `door.accept`, **not** a ledger tip, and **not** local validation of a remote call.
+
+| Field | Value |
+|-------|-------|
+| `ok` | `false` |
+| `remote` | `false` |
+| `code` | `FG-DNS` (resolution) or `FG-NET` (other transport) |
+| `kind` | `dns` \| `network-error` |
+| `fraggate_receipt` | `false` |
+| `local_validation` | `false` |
+| `fabricated` | `false` |
+| `door` | `null` |
+| `result` | `null` |
+| `ledger_tip` | `null` |
+
+`--local` / `AZIEL_RUNTIME_MCP=local` is the only honest in-process path. A DNS miss must not switch to that path. Source: [`src/remote-transport.js`](../../src/remote-transport.js). How to verify a **real** `fraggate_call` hash: [`INSPECT.md`](INSPECT.md).
+
 ---
 
 ## 3. FragGate ledger tip

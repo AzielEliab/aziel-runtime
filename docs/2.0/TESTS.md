@@ -23,7 +23,8 @@ Clean-room wrapper (clone → test → MCP → receipt): `bash scripts/clean-roo
 | [`scripts/verify-fraggate.mjs`](../../scripts/verify-fraggate.mjs) | Registry counts; HTTP list/describe/call; live `FG-OK` + `engine_digest`; stub `FG-STUB`; unknown `FG-HALLUC-TOOL`; MCP `tools/list` names; MCP `fraggate_call` happy-path and refuse |
 | [`scripts/verify-mcp-tdqs.mjs`](../../scripts/verify-mcp-tdqs.mjs) | Every public tool has `inputSchema` object, descriptions, annotations; names frozen to `PUBLIC_MCP_TOOLS` |
 | [`scripts/verify-mcp-discovery.mjs`](../../scripts/verify-mcp-discovery.mjs) | Well-known MCP server card + OAuth-protected-resource honesty |
-| [`scripts/verify-mcp-stdio.mjs`](../../scripts/verify-mcp-stdio.mjs) | Stdio CLI + `glama.json` listing fields |
+| [`scripts/verify-mcp-stdio.mjs`](../../scripts/verify-mcp-stdio.mjs) | Stdio CLI + `glama.json` listing fields; mocked DNS miss is `FG-DNS` / no local fallback |
+| [`scripts/verify-remote-transport.mjs`](../../scripts/verify-remote-transport.mjs) | Mocked DNS/network refuse (`remote:false`); SpectralLock describe/call in-process; no fake FragGate receipt |
 | [`scripts/verify-mcp-transport.mjs`](../../scripts/verify-mcp-transport.mjs) | HTTP JSON-RPC transport |
 | [`scripts/verify-session.mjs`](../../scripts/verify-session.mjs) | `open → policy → exec → receipt → close`; chain verify; tamper `hash_mismatch`; HTTP 409 after close |
 | [`scripts/verify-receipt-fixture.mjs`](../../scripts/verify-receipt-fixture.mjs) | Offline SHA-256 recompute of a committed fixture (session chain + ACT-RECEIPT) |

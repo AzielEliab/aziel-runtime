@@ -27,7 +27,7 @@ Primary host: [Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runti
 | `USES` KV | API use totals by host / path / day + 100-line ring | Stays on this Worker. `GET /v1/uses` is read-only. |
 | Product `/download` | Counted package downloads on **product** Workers | Not incremented by FragGate call or `/p/{slug}/{op}` proxy. |
 | ACT-RECEIPT append | Four public fields (request, output, event, hashes) | Only when `RECEIPT_APPEND_TOKEN` is set; POST to corpus `/v1/receipts/append`. Fail-open skip if token missing or corpus dark. No user / IP / geo in the receipt. [`src/library-receipts.js`](../src/library-receipts.js) |
-| Stdio MCP default | `cli/mcp-stdio.mjs` **bridges** to the production Worker `/mcp` unless `--local` / `AZIEL_RUNTIME_MCP=local` | That is the published default for Glama Install Server. Clean-room uses local. |
+| Stdio MCP default | `cli/mcp-stdio.mjs` **bridges** to the production Worker `/mcp` unless `--local` / `AZIEL_RUNTIME_MCP=local` | That is the published default for Glama Install Server. Clean-room uses local. **Egress:** outbound DNS + HTTPS to `*.vibelock.workers.dev` / Cloudflare (`/mcp`, `/v1/fraggate/*`). DNS failure is `FG-DNS` (`remote:false`) — no FragGate receipt, no silent local validation. |
 
 ## What this runtime does not do
 
@@ -35,4 +35,4 @@ Primary host: [Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runti
 - `GET /v1/mesh` never enables radios.
 - Remain-OFF items stay refused.
 
-Install / update: product Workers may publish `/install.sh` and counted `/download`. This repo has **no** pipe-to-bash installer. Download, inspect, then run — [`docs/2.0/INSPECT.md`](2.0/INSPECT.md), [`docs/CLIENT_UPDATE.md`](CLIENT_UPDATE.md).
+Install / update: product Workers may publish `/install.sh` and counted `/download`. This repo has **no** pipe-to-bash installer. Download, inspect, then run — [`docs/2.0/INSPECT.md`](2.0/INSPECT.md), [`docs/CLIENT_UPDATE.md`](CLIENT_UPDATE.md). Docker / Glama / ToolBench / session clients that keep the default bridge must allow outbound DNS + HTTPS; verify a real call with `ledger_tip.hash` as in INSPECT.
