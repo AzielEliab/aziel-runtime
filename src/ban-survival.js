@@ -11,7 +11,7 @@
  * Author: Aziel Eliab only.
  */
 
-import { AUTHOR_ID, AUTHOR_NAME, LIBRARY_FRONT_DOOR, LIBRARY_ORIGIN, RUNTIME_GITHUB, RUNTIME_HUB_URL } from "./seo.js";
+import { AUTHOR_ID, AUTHOR_NAME, LIBRARY_MIRROR, LIBRARY_ORIGIN, RUNTIME_GITHUB, RUNTIME_HUB_URL } from "./seo.js";
 import { CROSS_NETWORK_SURVIVAL, SURVIVAL_TIP } from "./cross-network-survival.js";
 import { NO_LIE_SPEC } from "./no-lie.js";
 import {
@@ -169,22 +169,22 @@ export const NAMED_ROUTES = Object.freeze([
     id: "library-runtime",
     kind: "hub-proxy",
     role: "named_hub_front_door",
-    origin: LIBRARY_FRONT_DOOR,
+    origin: LIBRARY_MIRROR,
     prefix: "/runtime",
     status: "live",
     independent: false,
     blast_radius: "cf-github",
     via: "service-binding",
-    exec: Object.freeze([`${LIBRARY_FRONT_DOOR}/mcp`, `${LIBRARY_FRONT_DOOR}/v1/fraggate/call`]),
+    exec: Object.freeze([`${LIBRARY_MIRROR}/mcp`, `${LIBRARY_MIRROR}/v1/fraggate/call`]),
     read: Object.freeze([
-      `${LIBRARY_FRONT_DOOR}/survival`,
-      `${LIBRARY_FRONT_DOOR}/cite.json`,
-      `${LIBRARY_FRONT_DOOR}/llms.txt`,
-      `${LIBRARY_FRONT_DOOR}/v1/mesh`,
-      `${LIBRARY_FRONT_DOOR}/v1/software`,
-      `${LIBRARY_FRONT_DOOR}/v1/health`,
+      `${LIBRARY_MIRROR}/survival`,
+      `${LIBRARY_MIRROR}/cite.json`,
+      `${LIBRARY_MIRROR}/llms.txt`,
+      `${LIBRARY_MIRROR}/v1/mesh`,
+      `${LIBRARY_MIRROR}/v1/software`,
+      `${LIBRARY_MIRROR}/v1/health`,
     ]),
-    note: "Aziel Digital Library /runtime (custom domain). Service binding to this Worker — survives a workers.dev hostname ban. Same FragGate door. Not a second door. Not a sixth shelf.",
+    note: "Aziel Digital Library /runtime library mirror (custom domain reverse-proxy). Service binding to this Worker — survives a workers.dev hostname ban. Same FragGate door. Not a second door. Not a sixth shelf.",
   }),
   Object.freeze({
     id: "author-runtime",
@@ -1050,7 +1050,7 @@ export function survivalCiteField(origin, env) {
     doors: base ? `${base}/doors` : "/doors",
     failover: base ? `${base}/failover` : "/failover",
     primary: PRIMARY_WORKER_ORIGIN,
-    library_runtime: LIBRARY_FRONT_DOOR,
+    library_runtime: LIBRARY_MIRROR,
     author_runtime: RUNTIME_HUB_URL,
     godlock_runtime: GODLOCK_RUNTIME,
     live_doors: liveDoors(env),
@@ -1115,7 +1115,7 @@ ${BAN_SURVIVAL_RULE}
 Machine map: \`GET ${cite.survival}\` / \`GET ${cite.survival_json}\` (aliases \`/doors\` \`/failover\`). Person \`@id\` ${AUTHOR_ID}. Door list = LIVE only. Mutual backup with cold shelves.
 
 1. Try \`${PRIMARY_WORKER_ORIGIN}/mcp\` (or \`POST /v1/fraggate/call\`).
-2. If that hostname or exec path is blocked: try named LIVE hub \`/runtime\` — \`${LIBRARY_FRONT_DOOR}\`, \`${RUNTIME_HUB_URL}\`, \`${GODLOCK_RUNTIME}\` (custom domain + service binding; same FragGate door).
+2. If that hostname or exec path is blocked: try named LIVE hub \`/runtime\` — \`${LIBRARY_MIRROR}\`, \`${RUNTIME_HUB_URL}\`, \`${GODLOCK_RUNTIME}\` (custom domain + service binding; same FragGate door).
 3. If one exec path is quarantined: remaining LIVE exec paths on remaining LIVE fronts still run.
 4. If exec is gone on a front: remaining LIVE read surfaces (\`/survival\` \`/cite.json\` \`/llms.txt\` \`/v1/health\`) still publish this map. Mode **DEGRADED** on the banned front.
 5. Cap-7 cite (\`GET /v1/mesh/az-generator\` / MirageGrid \`/bridge\`) + AZNet \`stamp\` / \`verify_hash\` stay LIVE via FragGate (name metadata + hash continuity). Hosted Cap-7 exec endpoints stay **SLOT**.

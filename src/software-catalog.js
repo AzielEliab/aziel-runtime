@@ -23,7 +23,14 @@ import { qnsHint } from "./qns.js";
 import { actReceiptHint } from "./library-receipts.js";
 import { survivalHint } from "./cross-network-survival.js";
 import { shelvesCiteField } from "./cold-multi-shelf.js";
-import { AUTHOR_ID, azcoherenceCiteField, hubsCiteField, LIBRARY_ORIGIN, sisterProductCiteField } from "./seo.js";
+import {
+  AUTHOR_ID,
+  azcoherenceCiteField,
+  discoveryHostFields,
+  hubsCiteField,
+  LIBRARY_ORIGIN,
+  sisterProductCiteField,
+} from "./seo.js";
 import { socialStatusField } from "./social-status.js";
 import { websiteDesignsField, websiteDesignsOnCorpusCard } from "./website-designs.js";
 import { softwareDescription, softwareOneLine } from "./software-copy.js";
@@ -155,6 +162,7 @@ function catalogDoorLive(slug) {
 export function liveSoftwareCard(product, origin, meta = {}) {
   const base = String(origin || "").replace(/\/$/, "");
   const host = workerHostOf(product);
+  const discovery = discoveryHostFields(base);
   const bucket = softwareBucket(product.name, product.slug);
   const domain = domainFields(product.slug);
   const doorLive = catalogDoorLive(product.slug);
@@ -172,6 +180,9 @@ export function liveSoftwareCard(product, origin, meta = {}) {
     description: softwareDescription(product.slug, product),
     worker_home: host ? `${host}/` : null,
     download_url: host ? `${host}/download` : null,
+    host: discovery.primary_host,
+    homepage: discovery.homepage,
+    primary_host: discovery.primary_host,
     github: product.github || null,
     mcp: `${base}/mcp`,
     agent: agentHints(base, product.slug, "live"),
@@ -204,6 +215,7 @@ export function liveSoftwareCard(product, origin, meta = {}) {
 export function workerOnlySoftwareCard(spec, origin, meta = {}) {
   const base = String(origin || "").replace(/\/$/, "");
   const host = workerHostOf(spec);
+  const discovery = discoveryHostFields(base);
   const bucket = softwareBucket(spec.name, spec.slug);
   const domain = domainFields(spec.slug);
   const oneLine = softwareOneLine(spec.slug, spec.one_line || spec.name);
@@ -221,6 +233,9 @@ export function workerOnlySoftwareCard(spec, origin, meta = {}) {
     description: softwareDescription(spec.slug, spec),
     worker_home: host ? `${host}/` : null,
     download_url: host ? `${host}/download` : null,
+    host: discovery.primary_host,
+    homepage: discovery.homepage,
+    primary_host: discovery.primary_host,
     web_app: spec.web_app || null,
     github: spec.github || null,
     mcp: `${base}/mcp`,
@@ -252,6 +267,7 @@ export function workerOnlySoftwareCard(spec, origin, meta = {}) {
 
 export function stubSoftwareCard(spec, origin, meta = {}) {
   const base = String(origin || "").replace(/\/$/, "");
+  const discovery = discoveryHostFields(base);
   const bucket = softwareBucket(spec.name, spec.slug);
   const domain = domainFields(spec.slug);
   return {
@@ -267,6 +283,9 @@ export function stubSoftwareCard(spec, origin, meta = {}) {
     description: spec.description || spec.one_line || spec.note || spec.name,
     worker_home: null,
     download_url: null,
+    host: discovery.primary_host,
+    homepage: discovery.homepage,
+    primary_host: discovery.primary_host,
     github: spec.github || null,
     mcp: `${base}/mcp`,
     agent: agentHints(base, spec.slug, "stub"),
@@ -326,6 +345,7 @@ export function softwareCatalog(origin, products, extra = {}) {
     isolation_software_count: MASTER_33_SLUGS.length,
     tab_placement_slugs: TAB_PLACEMENT_SLUGS.slice(),
     count_note: CATALOG_COUNT_NOTE,
+    ...discoveryHostFields(base),
     software,
     domains: domainMapView(),
     mcp: `${base}/mcp`,

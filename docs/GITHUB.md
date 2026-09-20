@@ -41,7 +41,7 @@ Required discovery terms: **mcp**, **openapi**, **fraggate**, **digital-forensic
 | Person | `https://www.azieleliab.com/#aziel` |
 | Runtime SoftwareApplication | `https://www.azieleliab.com/runtime#runtime` |
 
-Do **not** use `https://github.com/AzielEliab#person`. Worker origin is `relatedLink` / execution URL, not the identity hub.
+Do **not** use `https://github.com/AzielEliab#person`. Worker origin is the execution URL (`url`). `relatedLink` is the Glama discovery / install host.
 
 COLD-MULTI-SHELF-1.0 honesty (in-repo scrape surfaces: `/cite.json`, `/llms.txt`, `/shelves`, OpenAPI, `docs/CITE.md`) matches live corpus `/shelves`. archive.org PASS is https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609 (same blast_radius). Do not invent a Glama UUID, lockset DOI, Framagit URL, GitFlic URL, or GitLab URL.
 

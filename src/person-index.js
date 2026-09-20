@@ -495,6 +495,7 @@ export function personPageJsonLd() {
     givenName: PERSON_GIVEN,
     familyName: PERSON_FAMILY,
     url: "https://www.azieleliab.com/",
+    relatedLink: PERSON_GLAMA,
     identifier: PERSON_NAME,
     jobTitle: PERSON_JOB_TITLE.slice(),
     description: WHAT_AZIEL_ELIAB_DOES,
@@ -518,6 +519,7 @@ export function personIndexJsonLd(origin, calling = null) {
     givenName: PERSON_GIVEN,
     familyName: PERSON_FAMILY,
     url: "https://www.azieleliab.com/",
+    relatedLink: PERSON_GLAMA,
     identifier: PERSON_NAME,
     jobTitle: PERSON_JOB_TITLE.slice(),
     description:

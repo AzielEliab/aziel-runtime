@@ -36,7 +36,7 @@ export const AUTHOR_SAME_AS = PERSON_SAME_AS.slice();
 /** Shared hub Person @id. Runtime is not the identity hub — do not use GitHub#person. */
 export const AUTHOR_ID = "https://www.azieleliab.com/#aziel";
 
-/** Hub identity for the suite. Worker origin is execution endpoint / relatedLink only. */
+/** Hub identity for the suite. Worker origin is the execution endpoint, not the identity hub. */
 export const RUNTIME_SOFTWARE_ID = "https://www.azieleliab.com/runtime#runtime";
 export const RUNTIME_HUB_URL = "https://www.azieleliab.com/runtime";
 
@@ -50,7 +50,9 @@ export const BRAND_MARK_SRC = "/sigil.png";
 export const BRAND_MARK_ALT = "Rose-star — Aziel Eliab";
 export const BRAND_MARK_STAMP = AUTHOR_NAME;
 export const RUNTIME_GITHUB = "https://github.com/AzielEliab/aziel-runtime";
+/** Primary public host / discovery / install. Worker stays the HTTP/OpenAPI/MCP execution origin. */
 export const RUNTIME_GLAMA = "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime";
+export const RUNTIME_GLAMA_AT = "https://glama.ai/mcp/servers/@AzielEliab/aziel-runtime";
 
 export const RUNTIME_PAGE_TITLE =
   "Aziel Runtime — node-meshed MCP Softwares suite";
@@ -140,7 +142,8 @@ export const LIBRARY_ORIGIN = "https://www.azielcorpuslibrary.net";
 export const LIBRARY_SITEMAP = `${LIBRARY_ORIGIN}/sitemap.xml`;
 export const LIBRARY_CITE = `${LIBRARY_ORIGIN}/cite.json`;
 export const LIBRARY_LLMS = `${LIBRARY_ORIGIN}/llms.txt`;
-export const LIBRARY_FRONT_DOOR = `${LIBRARY_ORIGIN}/runtime`;
+/** Library reverse-proxy / mirror of this Worker. Same FragGate door. */
+export const LIBRARY_MIRROR = `${LIBRARY_ORIGIN}/runtime`;
 
 export const GODLOCK_UK_ORIGIN = "https://godlock.uk";
 export const GODLOCK_UK_SITEMAP = `${GODLOCK_UK_ORIGIN}/sitemap.xml`;
@@ -202,7 +205,7 @@ export function softwareHubCrawl() {
       ai: `${LIBRARY_ORIGIN}/ai.txt`,
       sitemap: LIBRARY_SITEMAP,
       robots: `${LIBRARY_ORIGIN}/robots.txt`,
-      runtime: LIBRARY_FRONT_DOOR,
+      runtime: LIBRARY_MIRROR,
       software_catalog: `${LIBRARY_ORIGIN}/v1/software`,
     },
     {
@@ -669,7 +672,8 @@ export function runtimeHasPart() {
 
 /**
  * Parent Runtime SoftwareApplication — hub @id.
- * Worker origin is the execution endpoint / relatedLink, not the identity @id.
+ * Worker origin is the execution endpoint (`url`). `relatedLink` is the
+ * primary discovery / install host (Glama). Identity `@id` stays the hub.
  */
 export function runtimeSoftwareJsonLd(origin, extra = {}) {
   const base = String(origin || "").replace(/\/$/, "");
@@ -685,7 +689,7 @@ export function runtimeSoftwareJsonLd(origin, extra = {}) {
     name: PRODUCT_NAME,
     alternateName: [PRODUCT_ALTERNATE_NAME],
     url: execution,
-    relatedLink: execution,
+    relatedLink: RUNTIME_GLAMA,
     description: RUNTIME_ABSTRACT,
     applicationCategory: "DeveloperApplication",
     operatingSystem: "Cloudflare Workers",
@@ -703,10 +707,10 @@ export const ECOSYSTEM_HEADING = "Part of the Aziel Eliab ecosystem";
 
 /** Visible + cite ecosystem doors. Do not invent hosts. */
 export const ECOSYSTEM_LINKS = Object.freeze([
+  { label: "Try on Glama (primary host)", url: RUNTIME_GLAMA },
   { label: "Official site", url: `${AUTHOR_SITE_ORIGIN}/` },
   { label: "Aziel Corpus Library", url: `${LIBRARY_ORIGIN}/` },
   { label: "Aziel Runtime on GitHub", url: RUNTIME_GITHUB },
-  { label: "Try on Glama", url: RUNTIME_GLAMA },
   { label: "GodLock", url: `${GODLOCK_UK_ORIGIN}/` },
   { label: HEDIDNTJUMP_NAME, url: HEDIDNTJUMP_HOME },
 ]);
@@ -741,13 +745,32 @@ export function ecosystemJsonLd(origin) {
   };
 }
 
+/**
+ * Discovery / install host fields. `host` stays the Worker execution origin
+ * (NO-LIE: Glama is not the HTTP API). Agents that look for "where to
+ * find/install us" should read `primary_host` / `homepage`.
+ */
+export function discoveryHostFields(origin) {
+  const base = String(origin || "").replace(/\/$/, "");
+  return {
+    primary_host: RUNTIME_GLAMA,
+    primary_host_alias: RUNTIME_GLAMA_AT,
+    homepage: RUNTIME_GLAMA,
+    host: base ? `${base}/` : undefined,
+    library_mirror: LIBRARY_MIRROR,
+    entity_parent: RUNTIME_HUB_URL,
+  };
+}
+
 export function entityGraphCiteField(origin) {
   const base = String(origin || "").replace(/\/$/, "");
   return {
     person: AUTHOR_ID,
     runtime: RUNTIME_SOFTWARE_ID,
     execution_url: `${base}/`,
-    relatedLink: `${base}/`,
+    relatedLink: RUNTIME_GLAMA,
+    primary_host: RUNTIME_GLAMA,
+    primary_host_alias: RUNTIME_GLAMA_AT,
     identity_hub: `${AUTHOR_SITE_ORIGIN}/`,
     sameAs: runtimeSoftwareSameAs(),
     named_tools: NAMED_RUNTIME_TOOLS.map((tool) => ({
@@ -759,7 +782,7 @@ export function entityGraphCiteField(origin) {
     person_jsonld: `${base}/person.jsonld`,
     who_is: `${base}/who-is`,
     who_is_txt: `${base}/who-is-aziel-eliab.txt`,
-    note: "Runtime parent @id is the hub suite node. Worker origin is execution endpoint / relatedLink and stays self-canonical. hasPart is named tools only — not MCP operation names. Person machine files are /person.jsonld and /who-is — not visible HTML chrome.",
+    note: "Runtime parent @id is the hub suite node. Worker origin is the execution endpoint (`url` / `execution_url`) and stays self-canonical. relatedLink is the Glama discovery / install host. hasPart is named tools only — not MCP operation names. Person machine files are /person.jsonld and /who-is — not visible HTML chrome.",
   };
 }
 
@@ -777,7 +800,10 @@ export function catalogHubFields(origin) {
     library_cite: LIBRARY_CITE,
     library_llms: LIBRARY_LLMS,
     library_sitemap: LIBRARY_SITEMAP,
-    library_front_door: LIBRARY_FRONT_DOOR,
+    library_mirror: LIBRARY_MIRROR,
+    primary_host: RUNTIME_GLAMA,
+    primary_host_alias: RUNTIME_GLAMA_AT,
+    homepage: RUNTIME_GLAMA,
     godlock_uk: GODLOCK_UK_ORIGIN + "/",
     godlock_uk_sitemap: GODLOCK_UK_SITEMAP,
     author_site: AUTHOR_SITE_ORIGIN + "/",
@@ -835,7 +861,7 @@ export function llmsCiteBlock(origin, calling = null) {
     "## How to cite Aziel Eliab software and the Digital Library",
     "",
     `Primary name: ${AUTHOR_NAME}. Also known as ${AUTHOR_ALTERNATE_NAME} (alternateName / aka only — do not treat as a second author).`,
-    `Author @id: ${AUTHOR_ID} (shared hub Person). Roles: ${PERSON_JOB_TITLE.join("; ")}. Person sameAs/socials: hubs + GitHub + Glama + ${X_URL} (${X_HANDLE}). Runtime SoftwareApplication sameAs: ${RUNTIME_GITHUB} and ${RUNTIME_GLAMA}. Worker origin is the execution url, not Person identity.`,
+    `Author @id: ${AUTHOR_ID} (shared hub Person). Roles: ${PERSON_JOB_TITLE.join("; ")}. Person sameAs/socials: hubs + GitHub + Glama + ${X_URL} (${X_HANDLE}). Runtime SoftwareApplication sameAs: ${RUNTIME_GITHUB} and ${RUNTIME_GLAMA}. Primary host / discovery / install: ${RUNTIME_GLAMA}. Worker origin is the execution url, not Person identity.`,
     "Do not invent Zenodo DOIs. Cite the machine record. Known historical DOIs may be 410 tombstones.",
     "",
     `Runtime: ${citeHowToRuntime(origin, calling)}`,
@@ -883,6 +909,7 @@ export function llmsIdentityHeader(calling = null) {
     `Roles: ${PERSON_JOB_TITLE.join("; ")} (published work only)`,
     `X: ${X_HANDLE} — ${X_URL}`,
     `GitHub: https://github.com/AzielEliab`,
+    `Primary host (discovery / install): ${RUNTIME_GLAMA}`,
     `Glama: ${RUNTIME_GLAMA}`,
     `Digital Library: ${LIBRARY_NAME} — ${LIBRARY_ORIGIN}/`,
   ];

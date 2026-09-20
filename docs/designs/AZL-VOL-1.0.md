@@ -650,7 +650,7 @@ written beside it so a model has a single cite rule. It is not a 36th software-t
 
   Runtime / MCP / OpenAPI                              https://aziel-runtime.vibelock.workers.dev/
 
-  Library front door                                   https://www.azielcorpuslibrary.net/runtime
+  Library mirror                                       https://www.azielcorpuslibrary.net/runtime
 
   Library MASTER                                       https://www.azielcorpuslibrary.net/
 
