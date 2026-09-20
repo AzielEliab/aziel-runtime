@@ -41,7 +41,7 @@ export const CROSS_NETWORK_SURVIVAL_RULE =
   "If network + live data die tomorrow, the chain still survives via cold copies across independent shelves; survival = bytes↔hash.";
 
 export const NO_LIE_NO_REWRITE_RULE =
-  "receipts that still hash; copies not all on one tunnel; verify without voice; no rewrite key; network never lies even to stay alive.";
+  "NO-LIE-NO-REWRITE-1.0 (docs/designs/NO-LIE-NO-REWRITE-1.0.md) — receipts that still hash; copies not all on one tunnel; rules simple enough others verify without the author's voice; no rewrite key.";
 
 export const USB_ATTEST =
   "USB offline-verify before LIVE: copy the airgap pack off-network, run verify-airgap.sh / sha256sum -c SHA256SUMS against the published tip, then operator attest (CNS-OPERATOR-ATTEST).";
@@ -963,7 +963,7 @@ export function shelvesLlmsBlock(origin) {
     COLD_MULTI_SHELF_RULE,
     "",
     `CROSS-NETWORK-SURVIVAL: ${CROSS_NETWORK_SURVIVAL_RULE}`,
-    `NO-LIE / NO-REWRITE: ${NO_LIE_NO_REWRITE_RULE}`,
+    `Companion law: ${NO_LIE_NO_REWRITE_RULE}`,
     `Person @id: ${AUTHOR_ID}. No visible 15:20 chrome.`,
     `Source of truth (corpus#96): ${CORPUS_SHELVES}`,
     `Runtime cite: ${cite.shelves} · ${cite.shelves_json} · alias ${cite.cold_copy}`,

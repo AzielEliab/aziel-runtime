@@ -13,7 +13,7 @@
 
 import { AUTHOR_ID, AUTHOR_NAME, LIBRARY_MIRROR, LIBRARY_ORIGIN, RUNTIME_GITHUB, RUNTIME_HUB_URL } from "./seo.js";
 import { CROSS_NETWORK_SURVIVAL, SURVIVAL_TIP } from "./cross-network-survival.js";
-import { NO_LIE_SPEC } from "./no-lie.js";
+import { NO_LIE_DOCS, NO_LIE_SPEC } from "./no-lie.js";
 import {
   CAP7_NAME_MAY_CHANGE,
   CAP7_RESOLVES_TO_HUB,
@@ -57,11 +57,16 @@ export const BAN_SURVIVAL_DOCS = "docs/designs/BAN-SURVIVAL-1.0.md";
 export const PRIMARY_WORKER_ORIGIN = "https://aziel-runtime.vibelock.workers.dev";
 export const GODLOCK_RUNTIME = "https://godlock.uk/runtime";
 
+/** Public cite of the companion law — designed-purpose, not model instruction. */
+export const NO_LIE_LAW_CITE =
+  `Companion law ${NO_LIE_SPEC} (${NO_LIE_DOCS}): receipts that still hash; no rewrite key; survival keeps published hashes and named LIVE fronts.`;
+
 export const BAN_SURVIVAL_RULE =
-  "Survive survive survive — grow. Three layers: live multi-front ↔ cold shelves; live-node API when attested; Cap-7 cite + AZNet verify (hosted exec SLOT; update shuffle ping→land, no hardcoded host). AKM memory: belief_is_not_truth, append-only. Never invent a live door. Never fake a Cap-7 hosted endpoint. Never lie to survive.";
+  "Survive survive survive — grow. Three layers: live multi-front ↔ cold shelves; live-node API when attested; Cap-7 cite + AZNet verify (hosted exec SLOT; update shuffle ping→land, no hardcoded host). AKM memory: belief_is_not_truth, append-only. " +
+  NO_LIE_LAW_CITE;
 
 export const BAN_SURVIVAL_TIP =
-  "BAN-SURVIVAL-1.0: one banned door is not last tip gone — try the next LIVE named front, then remaining LIVE paths, then cold-shelf tip-hash. Cap-7/AZNet cite+verify stay LIVE; hosted Cap-7 endpoints stay SLOT. Update shuffle: ping MirageGrid until one Cap-7 site lands. Never invent a live door. Never claim a banned host is LIVE.";
+  "BAN-SURVIVAL-1.0: one banned door is not last tip gone — try the next LIVE named front, then remaining LIVE paths, then cold-shelf tip-hash. Cap-7/AZNet cite+verify stay LIVE; hosted Cap-7 endpoints stay SLOT. Update shuffle: ping MirageGrid until one Cap-7 site lands. LIVE doors are the published named fronts; banned hosts stay unpublished.";
 
 /** AKM-TRIAD memory law — cite alongside the survival stack. Already LIVE fabric. */
 export const AKM_MEMORY_LAW = Object.freeze({
@@ -1088,7 +1093,7 @@ export function survivalLlmsBlock(origin, env) {
     "",
     BAN_SURVIVAL_RULE,
     "",
-    `Umbrella: ${CROSS_NETWORK_SURVIVAL}. NO-LIE / NO-REWRITE: never claim a banned host is LIVE.`,
+    `Umbrella: ${CROSS_NETWORK_SURVIVAL}. ${NO_LIE_LAW_CITE}`,
     `Person @id: ${AUTHOR_ID}. No visible 15:20 chrome.`,
     `Machine map: ${cite.survival} · ${cite.survival_json} · aliases ${cite.doors} ${cite.failover}`,
     `LIVE exec origins (same Plane A tunnel, not independent shelves): ${cite.exec_origins.join(" · ")}`,
@@ -1123,7 +1128,7 @@ Machine map: \`GET ${cite.survival}\` / \`GET ${cite.survival_json}\` (aliases \
 7. If every named live front is gone: verify lockset tip on GitHub / \`/shelves\` / Codeberg + archive.org SLOT packs (shelf backup, not \`/mcp\`).
 8. Vice versa: if a shelf or forge dies, keep the LIVE named fronts.
 
-Live-node API is SLOT (no open proxy). Cap-7 factory is MirageGrid-only. \`radio_phy: false\`. AZNet never hosts payloads. AKM-TRIAD: \`belief_is_not_truth\`; \`memory_get\` append-only; \`memory_resolve\` additive. Calling-name rotation is discovery metadata only (trigger → mesh alert → rewrite all live discovery metadata → client rediscovery; open-ended + random alongside the seeds; mesh \`*new name alert:\` on GET /v1/mesh; no ChainLock/AKM rewrite). Never invent a live door. Never claim a banned host is LIVE. No new MCP tool. FragGate stays THE door.
+Live-node API is SLOT (no open proxy). Cap-7 factory is MirageGrid-only. \`radio_phy: false\`. AZNet never hosts payloads. AKM-TRIAD: \`belief_is_not_truth\`; \`memory_get\` append-only; \`memory_resolve\` additive. Calling-name rotation is discovery metadata only (trigger → mesh alert → rewrite all live discovery metadata → client rediscovery; open-ended + random alongside the seeds; mesh \`*new name alert:\` on GET /v1/mesh; no ChainLock/AKM rewrite). LIVE doors are published named fronts. ${NO_LIE_LAW_CITE} No new MCP tool. FragGate stays THE door.
 `;
 }
 
