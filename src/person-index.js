@@ -573,7 +573,7 @@ export function whoIsTxt(origin, calling = null) {
   lines.push("Whitestone web app: https://whitestone.vibelock.workers.dev/");
   lines.push("Whitestone counted download: https://whitestone-download-tracker.vibelock.workers.dev/download");
   lines.push("Whitestone GitHub: https://github.com/AzielEliab/Whitestone");
-  lines.push("Whitestone product catalog (dual-surface AI discovery, not FragGate): https://whitestone.vibelock.workers.dev/v1/software");
+  lines.push("Whitestone product catalog (dual-surface AI discovery): https://whitestone.vibelock.workers.dev/v1/software");
   lines.push("");
   lines.push("## Model rules");
   lines.push("");
