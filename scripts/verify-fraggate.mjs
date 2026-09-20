@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import { PRODUCTS } from "../src/index.js";
 import { RUNTIME_VERSION } from "../src/runtime-api.js";
 import { existMcpHint, PUBLIC_MCP_TOOLS, PUBLIC_MCP_TOOL_MAX } from "../src/fraggate/codes.js";
+import { ENGINE_DIGESTS } from "../src/engines/digest.js";
 import { LIVE_OPS, NAMED_STUBS, OP_ALIASES, STUB_OPS, buildRegistry, classifyCall, parseTarget, resolveOpAlias } from "../src/fraggate/registry.js";
 import { resetLedger } from "../src/fraggate/ledger.js";
 import { memorySessionNamespace } from "../src/session-do.js";
@@ -237,6 +238,28 @@ assert.equal(described.ok, true);
 assert.equal(described.slug, "foldlock");
 assert.equal(described.status, "live");
 assert.ok(described.ops.includes("fold-preview"));
+
+const spectralDesc = await (await get("/v1/fraggate/describe?slug=spectrallock")).json();
+assert.equal(spectralDesc.ok, true);
+assert.equal(spectralDesc.slug, "spectrallock");
+assert.equal(spectralDesc.status, "live");
+assert.equal(spectralDesc.digest, ENGINE_DIGESTS.spectrallock);
+for (const op of ["health", "skill", "modes", "targets", "overlay", "verify", "doctor"]) {
+  assert.ok(spectralDesc.ops.includes(op), `spectrallock describe lists ${op}`);
+}
+assert.ok(spectralDesc.stub_ops.includes("spectrometer"));
+assert.ok(spectralDesc.stub_ops.includes("forensic"));
+assert.ok(spectralDesc.stub_ops.includes("invent_mark"));
+
+const spectralCall = await (await post("/v1/fraggate/call", { slug: "spectrallock", op: "health" })).json();
+assert.equal(spectralCall.ok, true, JSON.stringify(spectralCall));
+assert.equal(spectralCall.code, "FG-OK");
+assert.equal(spectralCall.door, "fraggate");
+assert.equal(spectralCall.slug, "spectrallock");
+assert.equal(spectralCall.op, "health");
+assert.equal(spectralCall.engine.engine_digest, ENGINE_DIGESTS.spectrallock);
+assert.match(spectralCall.ledger_tip.hash, /^[a-f0-9]{64}$/);
+assert.ok(spectralCall.result && spectralCall.result.product === "spectrallock");
 
 const embryoDesc = await (await get("/v1/fraggate/describe?slug=embryolock")).json();
 assert.equal(embryoDesc.ok, true);

@@ -60,7 +60,7 @@ AZIEL_RUNTIME_MCP=local node cli/mcp-stdio.mjs
 
 Stdio is MCP JSON-RPC (newline-delimited). Logs go to stderr. The clean-room probe uses the same Worker `/mcp` handler **in-process** (`scripts/clean-room-probe.mjs`) so a reviewer does not need a hosted Worker URL.
 
-Default `cli/mcp-stdio.mjs` **bridges** to `https://aziel-runtime.vibelock.workers.dev/mcp`. Clean-room **must** use `--local` / `AZIEL_RUNTIME_MCP=local` so it does not depend on production.
+Default `cli/mcp-stdio.mjs` **bridges** to `https://aziel-runtime.vibelock.workers.dev/mcp` and needs outbound DNS + HTTPS to `*.vibelock.workers.dev` / Cloudflare. A DNS miss is `FG-DNS` (`remote:false`) — not a FragGate receipt. Clean-room **must** use `--local` / `AZIEL_RUNTIME_MCP=local` so it does not depend on production.
 
 ---
 

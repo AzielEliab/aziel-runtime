@@ -97,6 +97,16 @@ curl -s -A 'Mozilla/5.0' https://aziel-runtime.vibelock.workers.dev/v1/update/ma
 This **runtime** has no pipe installer and no counted tarball. `aziel-runtime`
 `download_url` is null — clone GitHub or redeploy the Worker.
 
+Stdio / Docker / Glama default **bridges** to
+`https://aziel-runtime.vibelock.workers.dev/mcp`. Those containers need
+**outbound DNS + HTTPS** to `*.vibelock.workers.dev` / Cloudflare
+(`/mcp`, `/v1/fraggate/list`, `/v1/fraggate/describe`, `/v1/fraggate/call`).
+Example: `docker run --rm -i --dns 1.1.1.1 aziel-runtime-mcp` when the
+host resolver cannot see Cloudflare. A DNS miss is `FG-DNS`
+(`remote:false`, `fraggate_receipt:false`) — not a FragGate execution
+receipt and not local validation. `--local` is explicit. How to check a
+real `fraggate_call` hash: [`docs/2.0/INSPECT.md`](2.0/INSPECT.md).
+
 Product Workers may publish `/install.sh` and counted `/download`. Those scripts
 are **not vendored in this repo**. Do not `curl … | bash`. Download, read, then run:
 

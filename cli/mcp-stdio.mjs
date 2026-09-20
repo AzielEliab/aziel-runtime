@@ -31,6 +31,9 @@ async function main() {
   ctx.log(
     `aziel-runtime-mcp ${ctx.local ? "local" : "bridge"} ${ctx.local ? "in-process" : ctx.url + "/mcp"}`,
   );
+  if (!ctx.local) {
+    ctx.log("aziel-runtime-mcp egress: outbound DNS + HTTPS to *.vibelock.workers.dev / Cloudflare");
+  }
   process.stdin.resume();
   await runStdioLoop({ ctx });
 }

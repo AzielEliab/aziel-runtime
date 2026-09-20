@@ -10,7 +10,7 @@ Aziel Runtime exposes FragGate list → describe → call, a hashed `GET /v1/sof
 
 Default public Worker: `https://aziel-runtime.vibelock.workers.dev`
 
-You can also run the repo locally (`npx wrangler dev` on your machine — this paper does not deploy).
+Containers need **outbound DNS + HTTPS** to `*.vibelock.workers.dev` / Cloudflare (`/mcp`, `/v1/fraggate/*`). If DNS fails the client must refuse `FG-DNS` (`remote:false`) — do not substitute a local-validation receipt. You can also run the repo locally (`npx wrangler dev` on your machine — this paper does not deploy).
 
 ## 1. Catalog (human or script)
 

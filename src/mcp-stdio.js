@@ -5,8 +5,14 @@
  * stay in one place. --local / AZIEL_RUNTIME_MCP=local runs the same
  * Worker fetch handler in-process (vendored engines, no network).
  *
+ * DNS / network failure on the default bridge is FG-DNS / FG-NET
+ * (remote:false). Never fall back to in-process local validation and
+ * never mint a FragGate execution receipt for a call that did not reach
+ * the Worker.
+ *
  * Stdout is MCP only (newline-delimited JSON-RPC, official SDK shape).
  * Logs go to stderr. Author: Aziel Eliab. Identity is Aziel Eliab only.
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 import { MCP_PROTOCOL_PREFERRED } from "./mcp-transport.js";
@@ -16,6 +22,7 @@ import {
   failoverCite,
   shouldFailoverStatus,
 } from "./ban-survival.js";
+import { REQUIRED_EGRESS, networkRefuseEnvelope } from "./remote-transport.js";
 
 export const DEFAULT_RUNTIME_URL = PRIMARY_WORKER_ORIGIN;
 export const DEFAULT_UA = "Mozilla/5.0";
@@ -77,6 +84,9 @@ Env:
 Default (no pinned --url) tries LIVE named fronts: workers.dev, then
 custom-domain hub /runtime (service binding; same FragGate door).
 A custom --url stays pinned. Shelves are not a live door.
+
+Egress (default bridge):
+  ${REQUIRED_EGRESS.note}
 `;
 }
 
@@ -283,6 +293,21 @@ export async function createLocalSend() {
   };
 }
 
+function transportRpcError(id, err, ctx, fallbackMessage) {
+  const envelope = networkRefuseEnvelope({
+    err: err || new Error(fallbackMessage || "remote MCP failed"),
+    origin: ctx && ctx.url,
+    path: "/mcp",
+  });
+  if (ctx && typeof ctx.log === "function") {
+    ctx.log(`aziel-runtime-mcp ${envelope.code} remote=false fraggate_receipt=false local_validation=false`);
+  }
+  return rpcError(id, UPSTREAM_ERROR, fallbackMessage || envelope.message, {
+    ...envelope,
+    ban_survival: failoverCite(ctx && ctx.url, ctx && ctx.env),
+  });
+}
+
 export async function dispatchMcp(message, ctx) {
   if (!message || typeof message !== "object" || Array.isArray(message)) {
     return rpcError(null, INVALID_REQUEST, "Invalid Request");
@@ -318,18 +343,11 @@ export async function dispatchMcp(message, ctx) {
         return responseToRpc(res, message, ctx);
       }
       if (isNotification(message)) return null;
-      return rpcError(message.id, UPSTREAM_ERROR, "All named LIVE exec origins failed", {
-        ban_survival: failoverCite(ctx.url, ctx.env),
-        mutual_backup: true,
-        shelves_are_not_a_live_door: true,
-        last: lastErr && (lastErr.message || String(lastErr)),
-      });
+      return transportRpcError(message.id, lastErr, ctx, "All named LIVE exec origins failed");
     }
   } catch (err) {
     if (isNotification(message)) return null;
-    return rpcError(message.id, UPSTREAM_ERROR, `Upstream MCP failed: ${err && err.message ? err.message : err}`, {
-      ban_survival: failoverCite(ctx.url, ctx.env),
-    });
+    return transportRpcError(message.id, err, ctx, `Upstream MCP failed: ${err && err.message ? err.message : err}`);
   }
   return responseToRpc(res, message, ctx);
 }

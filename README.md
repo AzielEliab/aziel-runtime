@@ -333,7 +333,11 @@ Default mode **bridges** to `POST https://aziel-runtime.vibelock.workers.dev/mcp
 ```bash
 docker build -t aziel-runtime-mcp .
 docker run --rm -i aziel-runtime-mcp
+# if the host resolver cannot see Cloudflare:
+# docker run --rm -i --dns 1.1.1.1 aziel-runtime-mcp
 ```
+
+Default bridge needs outbound **DNS + HTTPS** to `*.vibelock.workers.dev` / Cloudflare. A DNS miss is `FG-DNS` (`remote:false`) — not a FragGate receipt. `--local` is explicit. Verify a real call hash: [docs/2.0/INSPECT.md](docs/2.0/INSPECT.md).
 
 After merge: claim on the Glama Score tab (`glama.json` maintainers = `AzielEliab`), then admin Dockerfile → **Deploy** → **Make Release** so **Install Server** works. Build steps: `npm install --omit=dev`. CMD: `["node", "cli/mcp-stdio.mjs"]`. Full steps: [docs/GLAMA.md](docs/GLAMA.md). Public identity: **Aziel Eliab** only.
 

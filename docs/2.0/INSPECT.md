@@ -34,9 +34,25 @@ Behavioral tests: [`scripts/verify-fraggate.mjs`](../../scripts/verify-fraggate.
 | Tool JSON Schema + TDQS annotations | [`src/mcp-schema.js`](../../src/mcp-schema.js) |
 | HTTP JSON-RPC `POST /mcp` | [`src/mcp-transport.js`](../../src/mcp-transport.js) + [`src/index.js`](../../src/index.js) |
 | Stdio bridge / local handler | [`cli/mcp-stdio.mjs`](../../cli/mcp-stdio.mjs), [`src/mcp-stdio.js`](../../src/mcp-stdio.js) |
+| Remote DNS / HTTPS refuse (not a FragGate receipt) | [`src/remote-transport.js`](../../src/remote-transport.js) |
 | Well-known server card | [`src/mcp-discovery.js`](../../src/mcp-discovery.js) |
 
-Behavioral tests: [`scripts/verify-mcp-tdqs.mjs`](../../scripts/verify-mcp-tdqs.mjs), [`scripts/verify-mcp-discovery.mjs`](../../scripts/verify-mcp-discovery.mjs), [`scripts/verify-mcp-stdio.mjs`](../../scripts/verify-mcp-stdio.mjs), [`scripts/verify-mcp-transport.mjs`](../../scripts/verify-mcp-transport.mjs). Tool names are frozen as `PUBLIC_MCP_TOOLS`.
+Behavioral tests: [`scripts/verify-mcp-tdqs.mjs`](../../scripts/verify-mcp-tdqs.mjs), [`scripts/verify-mcp-discovery.mjs`](../../scripts/verify-mcp-discovery.mjs), [`scripts/verify-mcp-stdio.mjs`](../../scripts/verify-mcp-stdio.mjs), [`scripts/verify-remote-transport.mjs`](../../scripts/verify-remote-transport.mjs), [`scripts/verify-mcp-transport.mjs`](../../scripts/verify-mcp-transport.mjs). Tool names are frozen as `PUBLIC_MCP_TOOLS`.
+
+Default stdio **bridges** to `https://aziel-runtime.vibelock.workers.dev/mcp`. Containers need outbound **DNS + HTTPS** to `*.vibelock.workers.dev` / Cloudflare. If DNS fails the bridge returns `FG-DNS` (`remote:false`, `fraggate_receipt:false`, `local_validation:false`) — it does **not** run `--local` and does **not** mint a FragGate ledger tip. `--local` / `AZIEL_RUNTIME_MCP=local` is explicit in-process only.
+
+### Verify a real `fraggate_call` receipt hash
+
+When the container can resolve the Worker (not a mocked transport):
+
+```bash
+curl -sS -A 'Mozilla/5.0' -X POST \
+  https://aziel-runtime.vibelock.workers.dev/v1/fraggate/call \
+  -H 'content-type: application/json' \
+  -d '{"slug":"spectrallock","op":"health"}'
+```
+
+A real execution receipt has `ok: true`, `code: FG-OK`, `door: fraggate`, `engine.engine_digest` matching `ENGINE_DIGESTS.spectrallock`, and `ledger_tip.hash` (64 hex). Re-check the tip with the same SHA-256 canonicalize used by [`src/fraggate/ledger.js`](../../src/fraggate/ledger.js). If curl/DNS fails, stop — that miss is `FG-DNS` / `FG-NET`, not a substitute local-validation receipt.
 
 ---
 

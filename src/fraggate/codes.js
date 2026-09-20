@@ -12,6 +12,14 @@ export const FG_LOCAL_ONLY = "FG-LOCAL-ONLY";
 export const FG_GATE_REFUSE = "FG-GATE-REFUSE";
 export const FG_UNKNOWN_OP = "FG-UNKNOWN-OP";
 
+/**
+ * Client-transport codes (stdio bridge / session / Docker). The door was
+ * never reached. These are not FragGate execution receipts and must not
+ * be presented as local validation of a remote call.
+ */
+export const FG_DNS = "FG-DNS";
+export const FG_NET = "FG-NET";
+
 export const FRAGGATE_KERNEL = "https://github.com/AzielEliab/fraggate";
 export const FRAGGATE_KERNEL_VERSION = "FG-0.1";
 export const FRAGGATE_DOOR = "fraggate";
