@@ -674,7 +674,7 @@ export function planesDoc() {
         gitflic_live: false,
         slot_until: REFUSE.PLANE_B_ALL_TARGETS,
       },
-      note: "Codeberg + archive.org hash-verify PASS (still SLOT — hash-verify PASS is not Plane B LIVE). archive.org has two items (aziel-lockset-tip + aziel-lockset-tip_202609), same blast_radius — not a second independent shelf. Zip wrap on the 202609 item: flat IA sha256 on the zip may be null; inner aziel-tip-pack.tar hash-verifies. Framagit URL null (CNS-NO-FORGE-MIRROR) until a real project exists and hash-verifies. LIVE only when all three pass (CNS-PLANE-B-ALL-TARGETS). GitFlic refused CNS-GITFLIC-EMAIL. GitLab refused CNS-GITLAB-CF-LOOP. Zenodo deposit not LIVE (zenodo_live:false; doi null; CNS-ZENODO-NOT-LIVE). Do not invent LIVE Zenodo/Framagit/GitLab/GitFlic.",
+      note: "Codeberg + archive.org hash-verify PASS (still SLOT — hash-verify PASS is not Plane B LIVE). archive.org has two items (aziel-lockset-tip + aziel-lockset-tip_202609), same blast_radius — not a second independent shelf. Zip wrap on the 202609 item: flat IA sha256 on the zip may be null; inner aziel-tip-pack.tar hash-verifies. Framagit URL null (CNS-NO-FORGE-MIRROR) until a real project exists and hash-verifies. LIVE only when all three pass (CNS-PLANE-B-ALL-TARGETS). Zenodo deposit not LIVE (zenodo_live:false; doi null; CNS-ZENODO-NOT-LIVE). Do not invent LIVE Zenodo/Framagit/GitLab/GitFlic.",
     },
     C: {
       name: "USB airgap + optional second forge",
@@ -756,7 +756,7 @@ export function shelfRegistryDoc() {
       " Plane A is one CF/GitHub tunnel (5 published surfaces / 2 family radii; independent_live_count stays 1). " +
       "Plane B is alt independent forge/archive SLOT (Codeberg + archive.org PASS; Framagit URL null, CNS-NO-FORGE-MIRROR). " +
       "archive.org items: https://archive.org/details/aziel-lockset-tip and https://archive.org/details/aziel-lockset-tip_202609 (same blast_radius; zip wrap on 202609 — flat IA sha256 may be null; inner tar hash-verifies). Not two independent shelves. " +
-      "GitFlic refused CNS-GITFLIC-EMAIL. GitLab refused CNS-GITLAB-CF-LOOP. Zenodo tip-pack stays SLOT (zenodo_live:false; doi null; CNS-ZENODO-NOT-LIVE). " +
+      "Zenodo tip-pack stays SLOT (zenodo_live:false; doi null; CNS-ZENODO-NOT-LIVE). " +
       "Paper deposits stay paper deposits. Plane C USB stays SLOT until CNS-OPERATOR-ATTEST. " +
       "aziel-runtime Worker cites this registry; it is the same Plane A tunnel.",
   };
@@ -968,8 +968,8 @@ export function shelvesLlmsBlock(origin) {
     `Source of truth (corpus#96): ${CORPUS_SHELVES}`,
     `Runtime cite: ${cite.shelves} · ${cite.shelves_json} · alias ${cite.cold_copy}`,
     `Lockset tip: ${LOCKSET_TIP} (AZLOCK-INGEST-REEXPAND-1.0). doi null. Never invent a DOI.`,
-    "Plane A LIVE: 5 published surfaces (4 CF hubs + GitHub) / 2 family radii (cloudflare + github). One independent live: cf-github. Not five shelves.",
-    `Plane B SLOT: Codeberg ${CODEBERG_TIP_PACK.url} hash-verify PASS pack ${CODEBERG_TIP_PACK.pack_sha256} still SLOT. archive.org PASS primary ${ARCHIVE_ORG_TIP_PACK.url} + secondary ${ARCHIVE_ORG_TIP_PACK_202609.url} (same blast_radius archive-org; pack ${ARCHIVE_ORG_TIP_PACK.pack_sha256}; zip wrap on 202609 — ia_flat_sha256 null; inner tar hash-verifies) still SLOT. Framagit URL null (CNS-NO-FORGE-MIRROR; third ALL-TARGETS). GitFlic refused CNS-GITFLIC-EMAIL. GitLab refused CNS-GITLAB-CF-LOOP. LIVE only after all three (CNS-PLANE-B-ALL-TARGETS). Zenodo tip-pack stays SLOT (zenodo_live:false; doi null; CNS-ZENODO-NOT-LIVE).`,
+    "Plane A LIVE: 5 published surfaces (4 CF hubs + GitHub) / 2 family radii (cloudflare + github). One independent live: cf-github.",
+    `Plane B SLOT: Codeberg ${CODEBERG_TIP_PACK.url} hash-verify PASS pack ${CODEBERG_TIP_PACK.pack_sha256} still SLOT. archive.org PASS primary ${ARCHIVE_ORG_TIP_PACK.url} + secondary ${ARCHIVE_ORG_TIP_PACK_202609.url} (same blast_radius archive-org; pack ${ARCHIVE_ORG_TIP_PACK.pack_sha256}; zip wrap on 202609 — ia_flat_sha256 null; inner tar hash-verifies) still SLOT. Framagit URL null (CNS-NO-FORGE-MIRROR; third ALL-TARGETS). LIVE only after all three (CNS-PLANE-B-ALL-TARGETS). Zenodo tip-pack stays SLOT (zenodo_live:false; doi null; CNS-ZENODO-NOT-LIVE).`,
     "Plane C USB SLOT until CNS-OPERATOR-ATTEST.",
     "aziel-runtime Worker is the same Plane A tunnel.",
     `REDLINE cite: ${REDLINE_SPEC} (${REDLINE_DOCS}). Cap-7 design_of: hub_designs. resolves_to_hub: false.`,
@@ -989,7 +989,7 @@ ${COLD_MULTI_SHELF_RULE}
 Corpus SoT: [${CORPUS_SHELVES}](${CORPUS_SHELVES}). Runtime cite: \`GET ${cite.shelves}\` / \`GET ${cite.shelves_json}\` (alias \`/cold-copy\`). Person \`@id\` ${AUTHOR_ID}.
 
 - **Plane A** LIVE — 5 published surfaces (4 CF hubs + GitHub) / 2 family radii. \`independent_live_count\` stays **1** (\`cf-github\`).
-- **Plane B** SLOT — Codeberg ${CODEBERG_TIP_PACK.url} hash-verify PASS (pack \`${CODEBERG_TIP_PACK.pack_sha256}\`) still SLOT. archive.org PASS primary ${ARCHIVE_ORG_TIP_PACK.url} + secondary ${ARCHIVE_ORG_TIP_PACK_202609.url} (same blast_radius archive-org; not two independent shelves; pack \`${ARCHIVE_ORG_TIP_PACK.pack_sha256}\`; zip wrap on 202609 — ia_flat_sha256 null; inner tar hash-verifies) still SLOT. Framagit URL **null** (\`CNS-NO-FORGE-MIRROR\`; third ALL-TARGETS). GitFlic refused \`CNS-GITFLIC-EMAIL\`. GitLab refused \`CNS-GITLAB-CF-LOOP\`. LIVE only after all three (\`CNS-PLANE-B-ALL-TARGETS\`). Zenodo tip-pack SLOT (\`CNS-ZENODO-NOT-LIVE\`). \`doi\` null — never invent.
+- **Plane B** SLOT — Codeberg ${CODEBERG_TIP_PACK.url} hash-verify PASS (pack \`${CODEBERG_TIP_PACK.pack_sha256}\`) still SLOT. archive.org PASS primary ${ARCHIVE_ORG_TIP_PACK.url} + secondary ${ARCHIVE_ORG_TIP_PACK_202609.url} (same blast_radius archive-org; not two independent shelves; pack \`${ARCHIVE_ORG_TIP_PACK.pack_sha256}\`; zip wrap on 202609 — ia_flat_sha256 null; inner tar hash-verifies) still SLOT. Framagit URL **null** (\`CNS-NO-FORGE-MIRROR\`; third ALL-TARGETS). LIVE only after all three (\`CNS-PLANE-B-ALL-TARGETS\`). Zenodo tip-pack SLOT (\`CNS-ZENODO-NOT-LIVE\`). \`doi\` null — never invent.
 - **Plane C** USB SLOT until \`CNS-OPERATOR-ATTEST\`.
 
 This Worker is the same Plane A tunnel. No new MCP tool. Linked fields: \`redline.spec\` ${REDLINE_SPEC}; Cap-7 \`design_of: hub_designs\` + \`resolves_to_hub: false\`; attack-sim refuse pointer \`${ATTACK_SIM_POINTER}\`. Cap-7 stays \`resolves_to_hub: false\` / \`public_icann: false\`. Growth-ON.
