@@ -48,17 +48,49 @@ export const PERSON_WORK_RULE =
  */
 export const X_URL = "https://x.com/AzielEliab";
 export const X_HANDLE = "@AzielEliab";
+export const PERSON_GITHUB = "https://github.com/AzielEliab";
+export const PERSON_GITHUB_SECONDARY = "https://github.com/azieltherevealerofthesealed-arch";
+export const PERSON_GITHUB_RUNTIME = "https://github.com/AzielEliab/aziel-runtime";
+export const PERSON_GLAMA = "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime";
 
+/** Hub Person sameAs (azieleliab.com /cite.json). Hubs + GitHub + Glama + @AzielEliab. */
 export const PERSON_SAME_AS = Object.freeze([
-  "https://github.com/AzielEliab",
-  "https://github.com/azieltherevealerofthesealed-arch",
-  "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime",
+  PERSON_GITHUB,
+  PERSON_GITHUB_SECONDARY,
+  PERSON_GLAMA,
   "https://www.azieleliab.com/",
   "https://www.azielcorpuslibrary.net/",
   "https://godlock.uk/",
   "https://www.hedidntjump.com/",
   X_URL,
 ]);
+
+/**
+ * Named socials / sameAs doors for machine cite.
+ * Matches hub twitter / twitter_handle / github / glama. Do not invent profiles.
+ */
+export function personSocialsField() {
+  return {
+    twitter: X_URL,
+    twitter_handle: X_HANDLE,
+    x: X_URL,
+    github: PERSON_GITHUB,
+    github_secondary: PERSON_GITHUB_SECONDARY,
+    github_runtime: PERSON_GITHUB_RUNTIME,
+    glama: PERSON_GLAMA,
+    hubs: [
+      "https://www.azieleliab.com/",
+      "https://www.azielcorpuslibrary.net/",
+      "https://godlock.uk/",
+    ],
+    sister_archive: "https://www.hedidntjump.com/",
+    sameAs: PERSON_SAME_AS.slice(),
+  };
+}
+
+export function socialsSitemapUrls() {
+  return [PERSON_GITHUB, PERSON_GLAMA, X_URL];
+}
 
 /** Canonical aka + published onomastic tethers (same Person, not extra identities). */
 export const PERSON_ALTERNATE_NAME = Object.freeze([
@@ -116,6 +148,10 @@ export const PERSON_KNOWS_ABOUT = Object.freeze([
 /** Locked Softwares FAQ brief. Do not fork this sentence. */
 export const WHAT_AZIEL_ELIAB_DOES =
   "Aziel Eliab builds receipt-first, local-first software and public MASTER records — Softwares through Aziel Runtime (FragGate / MCP), the Aziel Digital Library, GodLock (product), and the He Didn’t Jump Zioncheck archive. Public identity is the published work. @id https://www.azieleliab.com/#aziel";
+
+/** Locked why brief from published About. Positive. Do not fork. */
+export const WHY_AZIEL_ELIAB =
+  "Understand the work. Aziel Eliab publishes receipt-first, local-first software and public MASTER records so the work can outlive the name. If the work holds, the name was only a handle on the door. @id https://www.azieleliab.com/#aziel";
 
 export const WHAT_AZIEL_ELIAB_DOES_FAQ_TITLES = Object.freeze([
   "What does Aziel Eliab do?",
@@ -246,6 +282,8 @@ export function whatAzielEliabDoesMachineField(origin, calling = null) {
   const brief = overlayCallingName(WHAT_AZIEL_ELIAB_DOES, calling);
   return {
     what_aziel_eliab_does: brief,
+    why_aziel_eliab: WHY_AZIEL_ELIAB,
+    socials: personSocialsField(),
     faq: {
       "@id": FAQ_PAGE_ID,
       titles: WHAT_AZIEL_ELIAB_DOES_FAQ_TITLES.slice(),
@@ -281,6 +319,10 @@ export function whatAzielEliabDoesLlmsLines(origin) {
     "## What Aziel Eliab does (locked FAQ brief)",
     "",
     WHAT_AZIEL_ELIAB_DOES,
+    "",
+    "## Why Aziel Eliab (locked brief)",
+    "",
+    WHY_AZIEL_ELIAB,
     "",
     ...WHAT_AZIEL_ELIAB_DOES_FAQ_TITLES.map((title) => `- ${title}`),
     "",
@@ -552,6 +594,15 @@ export function whoIsTxt(origin, calling = null) {
     lines.push(`- ${url}`);
   }
   lines.push("");
+  lines.push("## socials");
+  lines.push("");
+  lines.push(`X: ${X_HANDLE} — ${X_URL}`);
+  lines.push(`GitHub: ${PERSON_GITHUB}`);
+  lines.push(`GitHub runtime: ${PERSON_GITHUB_RUNTIME}`);
+  lines.push(`Glama: ${PERSON_GLAMA}`);
+  lines.push("Hubs: https://www.azieleliab.com/ · https://www.azielcorpuslibrary.net/ · https://godlock.uk/");
+  lines.push("Sister archive: https://www.hedidntjump.com/");
+  lines.push("");
   lines.push("## This Worker machine files");
   lines.push("");
   lines.push(`person.jsonld: ${worker.person_jsonld}`);
@@ -618,6 +669,11 @@ export function personCiteField(origin) {
     godlock_is_product: true,
     growth_on: true,
     sameAs: personSameAsForOrigin(origin),
+    socials: personSocialsField(),
+    twitter: X_URL,
+    twitter_handle: X_HANDLE,
+    github: PERSON_GITHUB,
+    glama: PERSON_GLAMA,
     sites: personSitesForOrigin(origin),
     person_jsonld: worker.person_jsonld,
     who_is: worker.who_is,
@@ -654,6 +710,7 @@ export function personLlmsBlock(origin) {
   lines.push(`Hub person.jsonld: https://www.azieleliab.com/person.jsonld`);
   lines.push(`Hub who-is: https://www.azieleliab.com/who-is`);
   lines.push(`sameAs: ${personSameAsForOrigin(origin).join(" · ")}`);
+  lines.push(`socials: ${X_HANDLE} ${X_URL} · ${PERSON_GITHUB} · ${PERSON_GLAMA} · hubs azieleliab.com / azielcorpuslibrary.net / godlock.uk`);
   lines.push("");
   lines.push("## Softwares (what Aziel Eliab makes)");
   lines.push("");
@@ -671,9 +728,14 @@ export function personSitemapUrls(origin) {
 
 export function personCrawlField(origin) {
   const worker = personWorkerMachine(origin);
+  const socials = personSocialsField();
   return {
     person_jsonld: worker.person_jsonld,
     who_is: worker.who_is,
     who_is_txt: worker.who_is_txt,
+    twitter: socials.twitter,
+    twitter_handle: socials.twitter_handle,
+    github: socials.github,
+    glama: socials.glama,
   };
 }

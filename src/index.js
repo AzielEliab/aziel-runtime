@@ -305,7 +305,16 @@ import {
 } from "./seo.js";
 import { aboutAzielCiteField, aboutAzielLlmsBlock, corpusFoldPackCiteField, workerLaunchCiteField, workerLaunchHtml } from "./about-aziel.js";
 import { helpOpenApiPaths, helpSitemapEntries, helpTxtForPath } from "./help-txt.js";
-import { personCiteField, personIndexJsonLd, whoIsTxt } from "./person-index.js";
+import {
+  personCiteField,
+  personIndexJsonLd,
+  personSameAsForOrigin,
+  personSocialsField,
+  socialsSitemapUrls,
+  whoIsTxt,
+  X_HANDLE,
+  X_URL,
+} from "./person-index.js";
 import { launchHashtagChipsHtml } from "./launch-parts.js";
 import {
   aboutPageHtml,
@@ -1451,6 +1460,7 @@ function sitemapXml(origin) {
     { loc: base + "/person.jsonld", priority: "0.9", changefreq: "weekly" },
     { loc: base + "/who-is", priority: "0.85", changefreq: "weekly" },
     { loc: base + "/who-is-aziel-eliab.txt", priority: "0.85", changefreq: "weekly" },
+    ...socialsSitemapUrls().map((loc) => ({ loc, priority: "0.55", changefreq: "weekly", lastmod: null })),
     { loc: base + "/shelves", priority: "0.85", changefreq: "weekly" },
     { loc: base + "/cold-copy", priority: "0.8", changefreq: "weekly" },
     { loc: base + "/v1/shelves", priority: "0.85", changefreq: "weekly" },
@@ -1774,6 +1784,9 @@ function citeJson(origin, env = {}) {
     uses: base + "/v1/uses",
     stats: socialStatusField(origin),
     social_status: socialStatusField(origin),
+    socials: personSocialsField(),
+    twitter: X_URL,
+    twitter_handle: X_HANDLE,
     counted_tarball: false,
     proxy_is_not_exec: true,
     ...citeCompatibleFields(),
@@ -2528,7 +2541,7 @@ function staticPaths(origin, env = {}) {
       get: {
         operationId: "catalog_cite",
         summary:
-          "How to cite Aziel Eliab software and the Digital Library. Aka Aziel Elroi Eliab. No invented DOIs. Cites COLD-MULTI-SHELF-1.0 / corpus#96 shelves honesty. Person @id + site coverage + sameAs.",
+          "How to cite Aziel Eliab software and the Digital Library. Aka Aziel Elroi Eliab. No invented DOIs. Cites COLD-MULTI-SHELF-1.0 / corpus#96 shelves honesty. Person @id + site coverage + sameAs/socials (hubs + GitHub + Glama + @AzielEliab). Locked What Aziel Eliab does / why. Softwares SSoT GET /v1/software.",
         tags: ["catalog"],
         responses: { "200": { description: "Citation JSON" } },
       },
@@ -2537,7 +2550,7 @@ function staticPaths(origin, env = {}) {
       get: {
         operationId: "catalog_person_jsonld",
         summary:
-          "Machine Person JSON-LD for Google AI / LLM profile. @id https://www.azieleliab.com/#aziel. Roles: researcher, digital rights activist, software developer/designer, author, philosopher. Machine 15:20 disambiguation. No visible HTML chrome. No legal name / home.",
+          "Machine Person JSON-LD for Google AI / LLM profile. @id https://www.azieleliab.com/#aziel. Roles: researcher, digital rights activist, software developer/designer, author, philosopher. sameAs/socials: hubs + GitHub + Glama + @AzielEliab. Locked What Aziel Eliab does / why. Machine 15:20 disambiguation. No visible HTML chrome. No legal name / home.",
         tags: ["catalog"],
         responses: { "200": { description: "application/ld+json Person" } },
       },
@@ -2546,7 +2559,7 @@ function staticPaths(origin, env = {}) {
       get: {
         operationId: "catalog_who_is",
         summary:
-          "Machine who-is text for Aziel Eliab. Same Person @id. Site coverage blurbs. Machine 15:20 disambiguation. Alias /who-is-aziel-eliab.txt. Not an HTML page.",
+          "Machine who-is text for Aziel Eliab. Same Person @id. Site coverage + sameAs/socials (hubs + GitHub + Glama + @AzielEliab). Locked What Aziel Eliab does / why. Softwares SSoT. Machine 15:20 disambiguation. Alias /who-is-aziel-eliab.txt. Not an HTML page.",
         tags: ["catalog"],
         responses: { "200": { description: "text/plain who-is" } },
       },
@@ -2827,7 +2840,9 @@ async function combinedOpenApi(request, env) {
         "Aziel Corpus Library is not a private-file search engine, not Zenodo, and not a new Lock engine. " +
         "Forks welcome. Apache-2.0. Author: Aziel Eliab.",
       license: { name: "Apache-2.0", identifier: "Apache-2.0" },
-      contact: { name: "Aziel Eliab", url: "https://github.com/AzielEliab/aziel-runtime" },
+      contact: { name: "Aziel Eliab", url: "https://www.azieleliab.com/" },
+      "x-sameAs": personSameAsForOrigin(origin),
+      "x-socials": personSocialsField(),
       externalDocs: {
         description: "Suite software designs (docs/designs/) — git-hosted. Not Softwares-tab products.",
         url: DESIGNS_GITHUB_TREE,
