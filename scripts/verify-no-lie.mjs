@@ -239,6 +239,9 @@ assert.match(skill, /never allowed to lie/i);
 
 const llms = await (await get("/llms.txt")).text();
 assert.match(llms, /NO-LIE-NO-REWRITE-1\.0/);
+assert.match(llms, /docs\/designs\/NO-LIE-NO-REWRITE-1\.0\.md/);
+assert.doesNotMatch(llms, /Never lie to survive/);
+assert.doesNotMatch(llms, /## Why Aziel Eliab \(locked brief\)|## Model rules/);
 assert.ok(llms.includes(SURVIVAL_TIP));
 
 const sitemap = await (await get("/sitemap.xml")).text();
