@@ -31,7 +31,7 @@ import {
   SESSION_TTL_MS,
 } from "./production.js";
 import { citeCompatibleFields, skillCompatibleSection } from "./ai-clients.js";
-import { auditsSkillMarkdown, designsSkillMarkdown, sisterProductCiteField } from "./seo.js";
+import { auditsSkillMarkdown, designsSkillMarkdown, discoveryHostFields, sisterProductCiteField } from "./seo.js";
 import { dualSurfaceAgentHowTo, semanticBridgeSkillMarkdown } from "./semantic-bridge.js";
 import { websiteDesignsField, websiteDesignsSkillMarkdown } from "./website-designs.js";
 import { COLD_MULTI_SHELF, shelvesSkillMarkdown } from "./cold-multi-shelf.js";
@@ -412,9 +412,10 @@ ${survivalSkillMarkdown(base)}
 | GET | \`/v1/memory/{id}\` | Read-only node / \`/history\` / \`/calibration\`. |
 | POST | \`/v1/memory/rebuild-index\` | OPERATOR / local only. |
 
-Library front door: https://www.azielcorpuslibrary.net/runtime  
+Primary host / discovery / install: https://glama.ai/mcp/servers/AzielEliab/aziel-runtime  
+Library mirror (reverse-proxy): https://www.azielcorpuslibrary.net/runtime  
 Library engine manifest (same as this Worker): https://www.azielcorpuslibrary.net/runtime/v1/runtime.json  
-**Not** the engine manifest: https://www.azielcorpuslibrary.net/v1/runtime is Digital Library package discovery (aziel-corpus), not aziel-runtime.
+Digital Library package discovery (aziel-corpus, separate product): https://www.azielcorpuslibrary.net/v1/runtime
 
 ## Operator token (session mutate)
 
@@ -553,7 +554,7 @@ export function runtimeManifest(origin, products, extra = {}) {
     host: base + "/",
     github: "https://github.com/AzielEliab/aziel-runtime",
     ...citeCompatibleFields(),
-    library_front_door: "https://www.azielcorpuslibrary.net/runtime",
+    ...discoveryHostFields(base),
     sigil: base + "/sigil.png",
     sigil_stamp: "Everblooming",
     user_agent: DEFAULT_UA,

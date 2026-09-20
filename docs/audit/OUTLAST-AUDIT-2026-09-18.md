@@ -69,7 +69,7 @@ Close tests: `verify-akm-triad.mjs` (dry_run + rebuild-from-learn), `verify-act-
 | H1 Cap-7 bridge 404 | **Still closed.** App Worker `/bridge` 200 `BRIDGE-CAP7-SHUFFLE`. Tracker `/bridge` 404. Runtime `miragegrid_bridge` = app Worker. |
 | H2 Cap-7 name-set drift | **Still closed.** Factory labels `azgrid`…`azstandby` are SoT. In-process land used `azgrid`. `mesh_name_icann=SLOT`. |
 | H3 mesh join + no F03 | **Closed in isolate.** `requestLimitKind` has `mesh_mutate` / `memory_mutate`. Live `/v1/mesh` publishes `mesh_mutate_rate_kind`. Join stays presence-only. |
-| H5 corpus root `/survival` 404 | **Closed on live bytes.** Corpus `/survival` and `/v1/survival` are 200 `BAN-SURVIVAL-1.0` (37100 bytes, raw runtime map). Cite in `docs/corpus-runtime-front-door.md` updated. |
+| H5 corpus root `/survival` 404 | **Closed on live bytes.** Corpus `/survival` and `/v1/survival` are 200 `BAN-SURVIVAL-1.0` (37100 bytes, raw runtime map). Cite in `docs/corpus-runtime-mirror.md` updated. |
 | M1 `/p` open factory `/mcp` | **Still closed.** `POST /p/miragegrid/mcp` → `PROXY-OP-REFUSED`. |
 | M3 `neighbor_heal` vs REHEAL | **Still closed.** Live `neighbor_heal_is_cite=true` / `neighbor_heal_exec=false`. |
 
@@ -476,7 +476,7 @@ Do **not** boil the ocean. One loop per row. Rescan live bytes after each. Do no
 ## What this PR changes (safe)
 
 - New audit: `docs/audit/OUTLAST-AUDIT-2026-09-18.md`.
-- H5 cite: `docs/corpus-runtime-front-door.md` records corpus root `/survival` **200** on the OUTLAST rescan.
+- H5 cite: `docs/corpus-runtime-mirror.md` records corpus root `/survival` **200** on the OUTLAST rescan.
 - Refuse-label maps: HTTP `/v1/mesh/rewrite|lie*` → `MESH-NO-REWRITE` / `MESH-NO-LIE`; HTTP `/v1/memory/delete|update|rewrite` → `AKM-STUB`.
 - Close tests in `scripts/verify-no-lie.mjs` and `scripts/verify-akm-triad.mjs`.
 - **GAP harden (rescan):** Belief List rebuild-from-learn; HTTP memory `dry_run` does not write; ACT empty/dark tip SLOT; Plane B/C honesty cites; hosted Cap-7 `/mcp`/land SLOT + factory SoT.

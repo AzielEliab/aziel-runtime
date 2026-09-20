@@ -26,7 +26,7 @@ This report is the written findings package for the next **fix → rescan → pa
 | H2 | Cap-7 name-set drift | **Closed** — runtime `CAP7_SITES` uses factory labels; factory is name SoT | Hosted land / `/mcp` stay SLOT. `*.az` is a mesh string (`mesh_name_icann=slot`). Heritage `cap7-loom…` is not a second live set. `design_of` stays `hub_designs` (factory URL is `factory_design_of` cite only; `resolves_to_hub` false) |
 | H3 / P2 | Unauth mesh join + no F03 kind | **Closed** — `requestLimitKind` `mesh_mutate` (30/min) + `memory_mutate` (60/min); RATE DO when bound | Join stays public presence-only. Not a login mesh. Roster does not publish exec URLs. `MESH-ROSTER-FULL` if a new anonymous join would evict `{slug}-worker` |
 | H4 | Public FragGate without operator token | Unchanged — by design / attest first | No SLOT→LIVE |
-| H5 | Corpus root `/survival` 404 | **Hub follow-on documented** — cannot be fixed from this isolate | Exact GitBaby patch: `docs/corpus-runtime-front-door.md` § Hub follow-on. aziel-corpus#116 only added `/runtime/survival` |
+| H5 | Corpus root `/survival` 404 | **Hub follow-on documented** — cannot be fixed from this isolate | Exact GitBaby patch: `docs/corpus-runtime-mirror.md` § Hub follow-on. aziel-corpus#116 only added `/runtime/survival` |
 | H6 | Factory `design_of` URL vs `hub_designs` | Cite-honest: runtime stays `hub_designs`; factory URL stored as `factory_design_of` | Do not flip `resolves_to_hub` |
 | M1 | `/p` open forward | **Closed (low-risk)** — documented tracker/catalog ops only; `PROXY-OP-REFUSED` for factory `/mcp` | Still PROXY-NOT-EXEC. `MIRAGEGRID` bind stays the download-tracker |
 | M3 | `neighbor_heal: true` vs REHEAL short | **Closed** — `neighbor_heal_is_cite=true`, `neighbor_heal_exec=false` | Operator override cite stays ON. Vote-to-fix still refuses |
@@ -322,7 +322,7 @@ Hub `/runtime` = same isolate (fetched health 200). Product bindings = download-
 | H2 | HIGH | Cap-7 name-set drift | Runtime `cap7-loom…` vs factory `azgrid…` / `*.az` | **Closed on rescan** (factory name SoT; land stays SLOT) |
 | H3 | HIGH | Unauth mesh join + no F03 kind | Live `POST /v1/mesh/join` `MESH-OK`; `requestLimitKind` omits mesh | **Closed on rescan** (`mesh_mutate` / `memory_mutate`) |
 | H4 | HIGH | Public FragGate / MCP exec without operator token | `/mcp` `auth=none`; OpenAPI `fraggate_call_public` | By design; attest before SLOT→LIVE |
-| H5 | HIGH | Corpus hub root `/survival` 404 | Fetched `{error:"not found"}`; `/runtime/survival` 200 | Hub follow-on — exact patch in `docs/corpus-runtime-front-door.md` |
+| H5 | HIGH | Corpus hub root `/survival` 404 | Fetched `{error:"not found"}`; `/runtime/survival` 200 | Hub follow-on — exact patch in `docs/corpus-runtime-mirror.md` |
 | H6 | HIGH | Factory `design_of` URL vs `hub_designs` | Live `/bridge` sites vs runtime REDLINE | Pair-repo follow-on |
 | M1 | MED | `/p/{slug}/{op}` open forward to trackers | `proxy()` + `wrangler.toml` bindings | **Closed on rescan** (documented ops; refuse factory `/mcp`) |
 | M2 | MED | Mesh HTTP skips MASTER-33 | `dispatchMeshHttp` vs memory’s `fraggateCall` | Documented; optional wrap |

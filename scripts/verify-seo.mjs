@@ -272,6 +272,9 @@ assert.match(llms, /www\.azieleliab\.com\/#aziel/);
 assert.match(llms, /Runtime is the execution surface/);
 assert.match(llms, /Person @id is https:\/\/www\.azieleliab\.com\/#aziel/);
 assert.match(llms, /Aziel Digital Library/);
+assert.match(llms, /Primary host \(discovery \/ install\): https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime/);
+assert.match(llms, /Library mirror: https:\/\/www\.azielcorpuslibrary\.net\/runtime/);
+assert.doesNotMatch(llms, /Library front door|Library Runtime front door/);
 assert.match(llms, /How to cite Aziel Eliab software/);
 assert.match(llms, /www\.azielcorpuslibrary\.net\/cite\.json/);
 assert.match(llms, /PRODUCT_SEO\.md/);
@@ -350,6 +353,7 @@ assert.equal(personDoc.machine.legal_name, false);
 assert.equal(personDoc.machine.home, false);
 assert.equal(personDoc.machine.growth_on, true);
 assert.ok(personDoc.sameAs.includes("https://github.com/AzielEliab"));
+assert.equal(personDoc.relatedLink, RUNTIME_GLAMA);
 assert.ok(personDoc.sameAs.includes("https://glama.ai/mcp/servers/AzielEliab/aziel-runtime"));
 assert.ok(personDoc.sameAs.includes("https://www.azieleliab.com/"));
 assert.ok(personDoc.sameAs.includes("https://www.azielcorpuslibrary.net/"));
@@ -554,6 +558,10 @@ assert.match(cite.how_to_cite, /Eliab, Aziel/);
 assert.match(cite.uses, /\/v1\/uses/);
 assert.match(cite.library_how_to_cite, /Aziel Digital Library/);
 assert.equal(cite.library, "https://www.azielcorpuslibrary.net/");
+assert.equal(cite.primary_host, RUNTIME_GLAMA);
+assert.equal(cite.homepage, RUNTIME_GLAMA);
+assert.equal(cite.library_mirror, "https://www.azielcorpuslibrary.net/runtime");
+assert.equal(cite.host, `${origin}/`);
 assert.ok(cite.products.length === PRODUCTS.length + 1);
 assert.ok(cite.products.some((p) => p.slug === "whitestone" && p.worker_only === true && p.engine === false));
 assert.ok(cite.products.some((p) => p.slug === "whitestone" && /Case Mode/i.test(p.one_line || "")));
@@ -658,7 +666,8 @@ assert.equal(cite.entity_graph.person_jsonld, `${origin}/person.jsonld`);
 assert.equal(cite.entity_graph.who_is, `${origin}/who-is`);
 assert.equal(cite.entity_graph.runtime, RUNTIME_SOFTWARE_ID);
 assert.equal(cite.entity_graph.execution_url, `${origin}/`);
-assert.equal(cite.entity_graph.relatedLink, `${origin}/`);
+assert.equal(cite.entity_graph.relatedLink, RUNTIME_GLAMA);
+assert.equal(cite.entity_graph.primary_host, RUNTIME_GLAMA);
 assert.deepEqual(cite.entity_graph.sameAs, runtimeSoftwareSameAs());
 assert.equal(cite.entity_graph.named_tools.length, NAMED_RUNTIME_TOOLS.length);
 assert.ok(cite.entity_graph.named_tools.every((t) => t["@id"] === `https://www.azieleliab.com/runtime#${t.slug}`));
@@ -668,7 +677,7 @@ assert.ok(!cite.entity_graph.named_tools.some((t) => PUBLIC_MCP_TOOLS.includes(t
 assert.ok(cite.entity_graph.ecosystem.some((l) => l.label === "Official site" && l.url === "https://www.azieleliab.com/"));
 assert.ok(cite.entity_graph.ecosystem.some((l) => l.label === "Aziel Corpus Library" && l.url === "https://www.azielcorpuslibrary.net/"));
 assert.ok(cite.entity_graph.ecosystem.some((l) => l.label === "Aziel Runtime on GitHub" && l.url === RUNTIME_GITHUB));
-assert.ok(cite.entity_graph.ecosystem.some((l) => l.label === "Try on Glama" && l.url === RUNTIME_GLAMA));
+assert.ok(cite.entity_graph.ecosystem.some((l) => l.label === "Try on Glama (primary host)" && l.url === RUNTIME_GLAMA));
 assert.ok(cite.entity_graph.ecosystem.some((l) => l.label === "GodLock" && l.url === "https://godlock.uk/"));
 assert.ok(cite.entity_graph.ecosystem.some((l) => l.label === HEDIDNTJUMP_NAME && l.url === HEDIDNTJUMP_HOME));
 assert.equal(cite.hedidntjump, HEDIDNTJUMP_HOME);
@@ -766,6 +775,10 @@ assert.equal(catalog.author, AUTHOR_NAME);
 assert.equal(catalog.author_id, AUTHOR_ID);
 assert.equal(catalog.aka, AUTHOR_ALTERNATE_NAME);
 assert.equal(catalog.library_name, "Aziel Digital Library");
+assert.equal(catalog.primary_host, RUNTIME_GLAMA);
+assert.equal(catalog.homepage, RUNTIME_GLAMA);
+assert.equal(catalog.library_mirror, "https://www.azielcorpuslibrary.net/runtime");
+assert.equal(catalog.library_front_door, undefined);
 assert.equal(catalog.hedidntjump, HEDIDNTJUMP_HOME);
 assert.equal(catalog.hedidntjump_sitemap, HEDIDNTJUMP_SITEMAP);
 assert.equal(catalog.hedidntjump_software_tab, false);
@@ -860,6 +873,7 @@ assert.doesNotMatch(home, /rel="canonical" href="https:\/\/www\.azieleliab\.com/
   assert.equal(person.name, AUTHOR_NAME);
   assert.deepEqual(person.alternateName, [AUTHOR_ALTERNATE_NAME]);
   assert.equal(person.url, "https://www.azieleliab.com/");
+  assert.equal(person.relatedLink, RUNTIME_GLAMA);
   assert.ok(person.jobTitle.includes("researcher"));
   assert.ok(person.jobTitle.includes("digital rights activist"));
   assert.ok(person.sameAs.includes("https://github.com/AzielEliab"));
@@ -873,7 +887,7 @@ assert.doesNotMatch(home, /rel="canonical" href="https:\/\/www\.azieleliab\.com/
   assert.ok(runtimeApp, "runtime SoftwareApplication hub @id");
   assert.equal(runtimeApp.name, PRODUCT_NAME);
   assert.equal(runtimeApp.url, `${origin}/`);
-  assert.equal(runtimeApp.relatedLink, `${origin}/`);
+  assert.equal(runtimeApp.relatedLink, RUNTIME_GLAMA);
   assert.equal(runtimeApp.author["@id"], AUTHOR_ID);
   assert.deepEqual(runtimeApp.sameAs, [RUNTIME_GITHUB, RUNTIME_GLAMA]);
   assert.ok(!runtimeApp.sameAs.includes(AUTHOR_GITHUB));
@@ -1224,9 +1238,11 @@ assert.match(readme, /ChatGPT \(GPT Actions \/ OpenAI\)/);
 assert.match(readme, /plus other MCP\/OpenAPI-capable assistants/);
 assert.match(readme, /Cloudflare-AI-Search/);
 assert.ok(
-  readme.indexOf("Try on Glama") < readme.indexOf("Runtime Worker / MCP / OpenAPI"),
-  "Try on Glama precedes Worker origin in README websites table",
+  readme.indexOf("Primary host / discovery / install") < readme.indexOf("Runtime Worker / MCP / OpenAPI"),
+  "Glama primary host precedes Worker origin in README websites table",
 );
+assert.match(readme, /Library mirror \(reverse-proxy\)/);
+assert.doesNotMatch(readme, /Library Runtime front door|Library front door:/);
 
 const githubLock = await (await import("node:fs/promises")).readFile(
   new URL("../docs/GITHUB.md", import.meta.url),

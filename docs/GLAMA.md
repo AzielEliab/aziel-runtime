@@ -2,6 +2,8 @@
 
 Public identity: **Aziel Eliab** only.
 
+**[Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime)** is the primary public host / discovery / install listing for aziel-runtime (also `https://glama.ai/mcp/servers/@AzielEliab/aziel-runtime`). Worker origin stays the HTTP / OpenAPI / MCP execution surface.
+
 Glama is one of the compatible AI clients (ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants). See the README **Compatible AI clients** section. This page is the practical Install Server / stdio path.
 
 [glama.ai/mcp/servers/AzielEliab/aziel-runtime](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime) indexes this repo. Glama hosting runs a **stdio** MCP process (stdin/stdout JSON-RPC). The Worker already speaks MCP over HTTP at `POST https://aziel-runtime.vibelock.workers.dev/mcp`. Without a stdio entrypoint, `glama.json`, and a Dockerfile, the listing shows **This server cannot be installed**.

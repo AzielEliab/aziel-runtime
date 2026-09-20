@@ -102,6 +102,18 @@ assert.equal(catalog.stats.person_id, "https://www.azieleliab.com/#aziel");
 assert.equal(catalog.social_status.identity, "Aziel Eliab");
 assert.ok(catalog.stats.hubs.some((h) => h.id === "azieleliab"));
 assert.equal(catalog.door, "fraggate");
+assert.equal(catalog.primary_host, "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime");
+assert.equal(catalog.homepage, "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime");
+assert.equal(catalog.host, `${origin}/`);
+assert.equal(catalog.library_mirror, "https://www.azielcorpuslibrary.net/runtime");
+assert.ok(
+  catalog.software.every(
+    (s) =>
+      s.host === catalog.primary_host &&
+      s.homepage === catalog.homepage &&
+      s.primary_host === catalog.primary_host,
+  ),
+);
 assert.equal(catalog.sort_law, SOFTWARE_SORT_LAW);
 assert.match(catalog.framing, /one FragGate door/);
 assert.match(catalog.framing, /Never separate FragGate engines/);
@@ -215,6 +227,11 @@ assert.match(manifest.client_note, /install\.sh/);
 const res = await get("/v1/software");
 assert.equal(res.status, 200);
 const body = await res.json();
+assert.equal(body.primary_host, "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime");
+assert.equal(body.homepage, "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime");
+assert.equal(body.host, `${origin}/`);
+assert.equal(body.library_mirror, "https://www.azielcorpuslibrary.net/runtime");
+assert.ok(body.software.every((s) => s.host === body.primary_host && s.homepage === body.homepage));
 assert.equal(body.software.length, PRODUCTS.length + NAMED_STUBS.length + WORKER_ONLY_PRODUCTS.length);
 assert.ok(body.software.some((s) => s.slug === "azchat" && s.status === "live" && s.domain_id === "07"));
 assert.deepEqual(

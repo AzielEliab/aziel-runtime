@@ -1,6 +1,6 @@
-# Aziel Digital Library `/runtime` front door
+# Aziel Digital Library `/runtime` library mirror
 
-https://www.azielcorpuslibrary.net/runtime already exists (AzielEliab/aziel-corpus `main`, 2026-09-04). It proxies `/runtime/*` to aziel-runtime and falls back locally when the origin Worker is down.
+https://www.azielcorpuslibrary.net/runtime already exists (AzielEliab/aziel-corpus `main`, 2026-09-04). It is a **library reverse-proxy / mirror** of aziel-runtime (same FragGate door). Primary public host / discovery / install is [Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime). The corpus path proxies `/runtime/*` to aziel-runtime and falls back locally when the origin Worker is down.
 
 This runtime adds two routes the library proxy should advertise and fall back:
 
@@ -10,7 +10,7 @@ This runtime adds two routes the library proxy should advertise and fall back:
 | `GET /runtime/v1/pull/{slug}/skill` | `GET https://aziel-runtime.vibelock.workers.dev/v1/pull/{slug}/skill` |
 | `GET /runtime/v1/uses` | `GET https://aziel-runtime.vibelock.workers.dev/v1/uses` |
 
-When proxying API traffic, set `X-Aziel-Runtime-Via: azielcorpuslibrary.net` (or `X-Aziel-Runtime-Host`) so origin `USES` counters keep this door distinct from workers.dev / godlock.uk / azieleliab.com.
+When proxying API traffic, set `X-Aziel-Runtime-Via: azielcorpuslibrary.net` (or `X-Aziel-Runtime-Host`) so origin `USES` counters keep this library mirror distinct from workers.dev / godlock.uk / azieleliab.com.
 
 `destFromRuntimePath` already strips `/runtime`, so those paths proxy once origin is live. Add `fallbackKind` entries so a 404/5xx origin still returns a library-built bundle / skill:
 
@@ -36,9 +36,9 @@ npx wrangler deploy
 
 `GET /runtime/survival` (and `/runtime/v1/survival`) should proxy to origin
 `GET /survival` so a workers.dev hostname ban still advertises the LIVE
-multi-front map from the library custom-domain door (BAN-SURVIVAL-1.0).
-Same FragGate door. Not a second door. Cold shelves remain the death-by-ban
-backup on that same map.
+multi-front map from the library custom-domain mirror (BAN-SURVIVAL-1.0).
+Same FragGate door. Cold shelves remain the death-by-ban backup on that
+same map.
 
 ## Hub follow-on — corpus root `/survival` (H5)
 

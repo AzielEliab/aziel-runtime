@@ -21,7 +21,7 @@ Locked FAQ brief (`What Aziel Eliab does`) is machine-only: exact Softwares sent
 
 Person `sameAs` / `socials`: hubs + GitHub + Glama + `@AzielEliab` (`https://x.com/AzielEliab`). Softwares SSoT is `GET /v1/software`.
 
-Worker origin `https://aziel-runtime.vibelock.workers.dev/` is the execution endpoint / `relatedLink`, not the identity hub. `sameAs`: GitHub repo + [Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime).
+Worker origin `https://aziel-runtime.vibelock.workers.dev/` is the execution endpoint (`url`). `relatedLink` is the Glama discovery / install host. `sameAs`: GitHub repo + [Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime). Primary public host: https://glama.ai/mcp/servers/AzielEliab/aziel-runtime.
 
 ## How to cite
 
@@ -53,7 +53,7 @@ Corpus counters are `GET /stats`, not `/v1/stats`. Corpus version is `GET /v1/he
 - Trades-Runtime (sister product, not a Softwares-tab engine; `fraggate_call` does not execute company ops) → https://github.com/AzielEliab/trades-runtime · Worker https://trades-runtime.vibelock.workers.dev · MCP https://trades-runtime.vibelock.workers.dev/mcp · download https://trades-runtime.vibelock.workers.dev/download
 - FragGate kernel → https://github.com/AzielEliab/fraggate
 - Whitestone (Worker-only Softwares card; FragGate none; Case Mode is a product feature) → https://whitestone.vibelock.workers.dev/ · catalog https://whitestone.vibelock.workers.dev/v1/software · counted zip https://whitestone-download-tracker.vibelock.workers.dev/download · GitHub https://github.com/AzielEliab/Whitestone. Historical as-of + Case Mode (suppression axes, TrajectoryLock-lite, export, confidence ≤75%). Session-only. Not a lawyer / not legal advice. Not FragGate kernel. Placement: `docs/2.0/WHITESTONE-PLACEMENT.md`.
-- Try on Glama (primary MCP) → https://glama.ai/mcp/servers/AzielEliab/aziel-runtime
+- Try on Glama (primary host / discovery / install) → https://glama.ai/mcp/servers/AzielEliab/aziel-runtime
 
 ## Compatible AI clients
 

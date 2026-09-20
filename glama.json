@@ -28,5 +28,7 @@
     "agent-orchestration",
     "security",
     "software-architecture"
-  ]
+  ],
+  "homepage": "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime",
+  "documentation": "https://github.com/AzielEliab/aziel-runtime/blob/main/docs/GLAMA.md"
 }

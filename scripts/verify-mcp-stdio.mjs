@@ -40,6 +40,8 @@ assert.ok(glama.keywords.includes("openapi"));
 assert.ok(glama.keywords.includes("fraggate"));
 assert.ok(glama.keywords.includes("digital-forensics"));
 assert.ok(Array.isArray(glama.categories) && glama.categories.includes("agent-orchestration"));
+assert.equal(glama.homepage, "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime");
+assert.match(glama.documentation, /docs\/GLAMA\.md/);
 
 const dockerfile = await readFile(join(root, "Dockerfile"), "utf8");
 assert.match(dockerfile, /cli\/mcp-stdio\.mjs/);

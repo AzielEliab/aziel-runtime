@@ -8,9 +8,9 @@ FragGate is THE single public executable door (`fraggate_list` → `fraggate_des
 
 Kernel: [AzielEliab/fraggate](https://github.com/AzielEliab/fraggate) (FG-0.1)
 
-**[Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime)** is the primary Install Server / MCP distribution door. Worker origin stays the execution / OpenAPI surface.
+**[Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime)** is the primary public host / discovery / install listing (also `https://glama.ai/mcp/servers/@AzielEliab/aziel-runtime`). Worker origin stays the execution / OpenAPI / MCP HTTP surface.
 
-**Entity graph (locked):** Person `@id` [`https://www.azieleliab.com/#aziel`](https://www.azieleliab.com/#aziel) · Runtime SoftwareApplication `@id` [`https://www.azieleliab.com/runtime#runtime`](https://www.azieleliab.com/runtime#runtime). Worker origin is the execution endpoint / `relatedLink`, not the identity hub. Identity **Aziel Eliab** only.
+**Entity graph (locked):** Person `@id` [`https://www.azieleliab.com/#aziel`](https://www.azieleliab.com/#aziel) · Runtime SoftwareApplication `@id` [`https://www.azieleliab.com/runtime#runtime`](https://www.azieleliab.com/runtime#runtime). Worker origin is the execution endpoint (`url`). `relatedLink` is the Glama discovery / install host. Identity **Aziel Eliab** only.
 
 `open → policy → exec(slug, op, payload) → receipt → close`
 
@@ -37,8 +37,10 @@ Any OpenAPI-, MCP-, or HTTP-tool-capable assistant imports **this** OpenAPI file
 **2.0 pack:** [`docs/2.0/`](docs/2.0/) (contract freeze; self-test ≠ third-party lab)  
 **Role:** `engine-runtime` (layer: `catalog+pull+proxy+session+in-process-engines+fraggate`)  
 **Door:** `fraggate`  
-**Worker:** `aziel-runtime` → https://aziel-runtime.vibelock.workers.dev/  
-**Library front door:** https://www.azielcorpuslibrary.net/runtime  
+**Primary host:** [Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime)  
+**Worker (execution / OpenAPI / MCP HTTP):** `aziel-runtime` → https://aziel-runtime.vibelock.workers.dev/  
+**Entity parent:** https://www.azieleliab.com/runtime  
+**Library mirror:** https://www.azielcorpuslibrary.net/runtime  
 **Rose-star brand mark:** https://aziel-runtime.vibelock.workers.dev/sigil.png  
 **Packaging:** Worker session + in-repo CLI (`node cli/aziel-runtime.mjs`) + stdio MCP (`node cli/mcp-stdio.mjs` / `npm run mcp`). **No counted runtime tarball.**
 
@@ -74,7 +76,7 @@ GitHub About (description / homepage / topics) is documented in [docs/GITHUB.md]
 
 ## Websites / Live sites
 
-This Worker homepage stays the **API / MCP / OpenAPI** execution surface. Human Softwares hubs are **azieleliab.com**, **Aziel Corpus Library**, and **GodLock.uk**. Sister archive: **[He Didn't Jump](https://www.hedidntjump.com/)**. **[Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime)** is the primary MCP install door.
+**[Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime)** is the primary public host / discovery / install listing. This Worker homepage stays the **API / MCP / OpenAPI** execution surface. Human Softwares hubs are **azieleliab.com**, **Aziel Corpus Library**, and **GodLock.uk**. Sister archive: **[He Didn't Jump](https://www.hedidntjump.com/)**.
 
 The Worker ships a FoldLock-packed **library tip** (index cite + sample MASTER + About Aziel) — not the entire live corpus. Verify via FragGate `foldlock/pack-verify`; open via `aziel-corpus/tip-pack`. Honesty: [`docs/corpus-fold-pack.md`](docs/corpus-fold-pack.md).
 
@@ -82,13 +84,13 @@ Every Worker launch (homepage, `/about`, every `/p/{slug}`, HTML Softwares/descr
 
 | Surface | URL |
 |---------|-----|
-| **Try on Glama** (primary MCP) | https://glama.ai/mcp/servers/AzielEliab/aziel-runtime |
+| **Primary host / discovery / install** | https://glama.ai/mcp/servers/AzielEliab/aziel-runtime |
 | Official site | https://www.azieleliab.com/ |
 | Runtime hub (entity parent) | https://www.azieleliab.com/runtime |
 | FragGate kernel | https://github.com/AzielEliab/fraggate |
 | Canonical GitHub | https://github.com/AzielEliab/aziel-runtime |
 | Runtime Worker / MCP / OpenAPI | https://aziel-runtime.vibelock.workers.dev/ |
-| Library Runtime front door | https://www.azielcorpuslibrary.net/runtime |
+| Library mirror (reverse-proxy) | https://www.azielcorpuslibrary.net/runtime |
 | Aziel Corpus Library | https://www.azielcorpuslibrary.net/ |
 | Aziel Eliab (library) | https://www.azielcorpuslibrary.net/AzielEliab |
 | Software page | https://www.azielcorpuslibrary.net/software |
@@ -498,13 +500,14 @@ node scripts/probe-live.mjs
 # confirm POST /v1/session/open → policy → exec each primary op → receipt has engine_digest + ran_in
 ```
 
-## Library `/runtime`
+## Library `/runtime` mirror
 
-https://www.azielcorpuslibrary.net/runtime is the Aziel Digital Library front
-door that points here. After this runtime ships pull APIs, the corpus Worker
-should advertise and reverse-proxy:
+https://www.azielcorpuslibrary.net/runtime is the Aziel Digital Library
+reverse-proxy / mirror of this Worker. Primary public host / discovery is
+[Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime). The
+corpus Worker advertises and reverse-proxies:
 
-- `GET https://www.azielcorpuslibrary.net/runtime` — human front door
+- `GET https://www.azielcorpuslibrary.net/runtime` — library mirror
 - `GET https://www.azielcorpuslibrary.net/runtime/v1/skill` → this `/v1/skill`
 - `GET https://www.azielcorpuslibrary.net/runtime/v1/runtime.json` → this `/v1/runtime.json`
 - `GET https://www.azielcorpuslibrary.net/runtime/v1/software` → this `/v1/software`
