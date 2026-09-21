@@ -109,11 +109,12 @@ export function buildSuitePack({ origin, products, registry, extra = {} } = {}) 
       vpn: publicVpnCite(),
       get_never_enables: true,
       worker_hardware: false,
-      live_nodes_plane: "human-mesh-users",
+      live_nodes_plane: "human-mesh-users-site-viewers",
       nodes_plane: "human-mesh-users-uses",
       software_nodes_plane: "software-worker-fanout",
+      site_live_viewers_plane: "hub-human-page-presence",
       live_nodes_note:
-        "Public Live Nodes count human mesh users (join/heartbeat/presence — human bearers). Isolated humans stay on isolated_nodes. Zero is honest when no human is present.",
+        "Public Live Nodes count human mesh users plus concurrent website viewers (site_live_viewers) on godlock.uk + azieleliab.com + azielcorpuslibrary.net. Isolated humans stay on isolated_nodes. GET never pulls hub /count. Zero is honest when no human is present.",
       nodes_note:
         "Public Nodes count human mesh users plus cited human uses (USES). Uses are interaction counters. Incomplete uses stay honest — do not invent users. This pack download is instance_nodes until a human join/heartbeat.",
       instance_join: {

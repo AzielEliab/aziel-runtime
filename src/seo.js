@@ -95,7 +95,7 @@ export function runtimeAboutField(origin) {
       cold_multi_shelf:
         "COLD-MULTI-SHELF-1.0 cite of corpus#96 /shelves. Plane A = 5 published surfaces / 2 family radii / 1 independent live. Plane B SLOT (Codeberg + archive.org PASS still SLOT at https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius, pack b549362c…; Framagit URL null; doi null). Plane C USB SLOT. Runtime Worker is the same Plane A tunnel.",
       nodemesh:
-        "QNM read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public Nodes (nodes) count human mesh users plus cited human uses (USES). Public Live Nodes (live_nodes) count human mesh users (presence). software_nodes is the {slug}-worker roster. Local qnm-node.",
+        "QNM read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public Nodes (nodes) count human mesh users plus cited human uses (USES). Public Live Nodes (live_nodes) count human mesh users plus concurrent site viewers (site_live_viewers). software_nodes is the {slug}-worker roster. Local qnm-node.",
       master33: "Domains are isolation labels. FragGate is the single door. Lamb Lens ethics hop after FragGate.",
     },
     changelog_below_abstract: true,
@@ -132,7 +132,7 @@ export function llmsWhatThisIsBlock(calling = null) {
     "",
     "FragGate is THE single public executable door (list → describe → call).",
     "Softwares = Plain → Gate → Lock catalog products with true in-process engines where live.",
-    "NodeMesh / QNM read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public Nodes (nodes) count human mesh users plus cited human uses (USES). Public Live Nodes (live_nodes) count human mesh users (presence). software_nodes is the {slug}-worker roster. Local qnm-node.",
+    "NodeMesh / QNM read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public Nodes (nodes) count human mesh users plus cited human uses (USES). Public Live Nodes (live_nodes) count human mesh users plus concurrent site viewers (site_live_viewers). software_nodes is the {slug}-worker roster. Local qnm-node.",
     "MASTER-33: domains are isolation labels. FragGate is the single door. Lamb Lens ethics hop after FragGate.",
     "",
   ].join("\n");

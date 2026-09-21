@@ -86,7 +86,7 @@ export function mcpInitializeInstructions(env = {}) {
     "decisiongate_check gates a proposal without exec. library_lookup is public corpus cite (not memory, not ChainLock). " +
     "ChainLock lifecycle is append-only: append → tip or recall → verify → seal (no chainlock_delete). chainlock_seal writes a local LOCKSET; runtime_session_close seals a raw session — they are not the same. " +
     "Memory lifecycle is append-only belief (≠ truth): observe → resolve → calibrate → recall or get (no memory_delete). " +
-    "QNM mesh lifecycle: mesh_status (counts), mesh_nodes (roster), mesh_enable (optional extra bearer), mesh_disable (refused — public disable of suite-presence), mesh_join/heartbeat/leave (one node), mesh_broadcast (hash receipt, never publish). mesh_join requires product; optional node_id is 8–80 [a-z0-9._-]; presence is live|locked|isolated; additive presence has a strict 5-minute TTL (heartbeat refreshes; else dropped). Join/heartbeat/broadcast refuse MESH-OFF when transmission radios are off. Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public nodes count human mesh users plus cited human uses (USES peek). Public live_nodes count human mesh users (join/heartbeat/presence — human bearers). software_nodes is the {slug}-worker roster. Incomplete uses stay honest — do not invent users. NO-LIE / NO-REWRITE: receipts that still hash; copies not all on one tunnel; no rewrite key; the network is never allowed to lie even to self-preserve. " +
+    "QNM mesh lifecycle: mesh_status (counts), mesh_nodes (roster), mesh_enable (optional extra bearer), mesh_disable (refused — public disable of suite-presence), mesh_join/heartbeat/leave (one node), mesh_broadcast (hash receipt, never publish). mesh_join requires product; optional node_id is 8–80 [a-z0-9._-]; presence is live|locked|isolated; additive presence has a strict 5-minute TTL (heartbeat refreshes; else dropped). Join/heartbeat/broadcast refuse MESH-OFF when transmission radios are off. Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public nodes count human mesh users plus cited human uses (USES peek). Public live_nodes count human mesh users plus concurrent site viewers (site_live_viewers) from hub human-page heartbeats. software_nodes is the {slug}-worker roster. Incomplete uses stay honest — do not invent users. NO-LIE / NO-REWRITE: receipts that still hash; copies not all on one tunnel; no rewrite key; the network is never allowed to lie even to self-preserve. " +
     "Raw session lifecycle (advanced/internal): open → policy → exec → receipt or receipts → close. Prefer fraggate_call. " +
     "Show the user display.title and display.summary, then take the next input. " +
     "runtime_run, runtime_session_*, raw *_health, and runtime_manifest are advanced/internal. " +
@@ -396,13 +396,13 @@ export function runtimeHelperTools() {
       title: "QNM suite rollup",
       description: tdqsDescription({
         action:
-          "Read QNM suite rollup totals (enabled?, bearers, nodes = human mesh users + cited human uses, live_nodes = human mesh users / presence, software_nodes = {slug}-worker roster) — not the node roster. Packet-transfer cite is QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; GET /v1/qns cites only; Worker does not proxy via emit)",
-        when: "you need public Nodes (users + uses), Live Nodes (presence), or software_nodes (product Worker roster)",
+          "Read QNM suite rollup totals (enabled?, bearers, nodes = human mesh users + cited human uses, live_nodes = human mesh users + site_live_viewers, software_nodes = {slug}-worker roster) — not the node roster. Packet-transfer cite is QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; GET /v1/qns cites only; Worker does not proxy via emit)",
+        when: "you need public Nodes (users + uses), Live Nodes (users + site viewers), or software_nodes (product Worker roster)",
         notFor: "listing individual nodes, enabling extra radios, or executing a catalog engine",
         instead: "mesh_nodes, mesh_enable, or fraggate_call",
         effects:
           "Read-only. Never enables radios beyond default suite-presence. Read-only suite-presence is ON by default. Not a login mesh. Views/MCP/downloads do not enter QNM-S. Full node process is local qnm-node/. Kernel-direct fabric wrapper — not MASTER-33; not a second Softwares door. Softwares exec stays fraggate_call",
-        returns: "enabled flag, bearers, nodes (human mesh users + cited uses), live_nodes (human mesh users / presence), human_mesh_users, human_uses, active_nodes, inactive_nodes, isolated_nodes, software_nodes (product Workers), and QNS-CD-1.0 cite",
+        returns: "enabled flag, bearers, nodes (human mesh users + cited uses), live_nodes (human mesh users + site_live_viewers), human_mesh_users, site_live_viewers, human_uses, active_nodes, inactive_nodes, isolated_nodes, software_nodes (product Workers), and QNS-CD-1.0 cite",
       }),
       annotations: mcpAnnotations("QNM suite rollup", HINT_READ),
       inputSchema: emptyArgsSchema("No arguments. Send {}. Never enables radios."),

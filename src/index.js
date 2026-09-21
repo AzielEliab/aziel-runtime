@@ -65,8 +65,9 @@
  * GET  /v1/mesh/status        alias of /v1/mesh
  * POST /v1/mesh/enable        optional extra bearer
  * POST /v1/mesh/disable       refused (MESH-DISABLE-REFUSED)
- * POST /v1/mesh/join|heartbeat|leave
+ * POST /v1/mesh/join|heartbeat|leave|site-presence
  * GET  /v1/mesh/nodes         rollup roster (no scores)
+ * GET  /v1/mesh/site-presence cite hub site-viewer contract (GET never writes / never pulls /count)
  * GET  /v1/mesh/az-generator  Cap-7 semantic-bridge cite (MirageGrid; not ICANN; never enables)
  * POST /v1/mesh/broadcast     SHA-256 hash receipt only (never a publish path)
  * GET  /v1/bundle             compact bootstrap (skill URL + invoke prefix per product)

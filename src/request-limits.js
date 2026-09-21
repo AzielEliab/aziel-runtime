@@ -42,7 +42,15 @@ export function requestLimitKind(pathname, method) {
     if (path === "/v1/fraggate/call" && m === "POST") return "fraggate_call";
     return "fraggate_read";
   }
-  if (m === "POST" && (path === "/v1/mesh/join" || path === "/v1/mesh/heartbeat" || path === "/v1/mesh/broadcast" || path === "/v1/mesh/leave")) {
+  if (
+    m === "POST" &&
+    (path === "/v1/mesh/join" ||
+      path === "/v1/mesh/heartbeat" ||
+      path === "/v1/mesh/broadcast" ||
+      path === "/v1/mesh/leave" ||
+      path === "/v1/mesh/site-presence" ||
+      path === "/v1/mesh/site-heartbeat")
+  ) {
     return "mesh_mutate";
   }
   if (m === "POST" && path.startsWith("/v1/memory/")) {

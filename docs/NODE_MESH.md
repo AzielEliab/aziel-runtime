@@ -39,7 +39,7 @@ This page remains the live **QNM-BUILD-1.0** rollup law. Do not rewrite that law
 - **Default:** read-only **suite-presence is ON** (bearer `suite-presence`). A site ping of `GET /v1/mesh` never enables radios beyond that read-only presence. Do not require `POST /v1/mesh/enable` for public Live Nodes.
 - **Public disable of suite-presence is refused.** `POST /v1/mesh/disable` and suite `mesh_disable` refuse `MESH-DISABLE-REFUSED`. They cannot turn suite-presence off. AZMail `mesh_disable` stays a separate product-local mail ring.
 - **Public Nodes (`nodes` / `rollup.nodes`):** **human mesh users + cited human uses**. This is today’s interaction-inclusive clock (same math as `live_nodes` before the Nodes / Live Nodes split). **`human_uses`** is the USES interaction counter (no PII; peek `total` only — never a full `/v1/uses` walk on this path). Uses are counters, not unique people. Incomplete or unbound telemetry is reported honestly (`0` + `human_uses_complete: false`). Short UI label is **Nodes**. Zero is honest.
-- **Public Live Nodes (`live_nodes` / `rollup.mesh`):** **human mesh users only** (presence). Counted humans are join/heartbeat/presence rows with a **human bearer** (`kind=human`, `bearer=human`, or auto-minted `mesh_*`). Isolated humans stay on `isolated_nodes`. Short UI label is **Live Nodes**. Often **0** unless a live instance is joined. **Do not invent users.** Zero is honest when no human is present.
+- **Public Live Nodes (`live_nodes` / `rollup.mesh`):** **human mesh users + concurrent website viewers**. Counted humans are join/heartbeat/presence rows with a **human bearer** (`kind=human`, `bearer=human`, or auto-minted `mesh_*`). **`site_live_viewers`** is fleet human page presence across **godlock.uk + azieleliab.com + azielcorpuslibrary.net**, reported by hub `POST /v1/mesh/site-presence` (`kind: "human-page"`, 5-minute TTL). Isolated humans stay on `isolated_nodes`. **Exclude** hedidntjump.com, bots, Softwares, and downloads. `GET /v1/mesh` **never pulls** hub `/count`. Missing or expired hub heartbeats are **0**. Short UI label is **Live Nodes**. **Do not invent users or viewers.** Zero is honest when no human is present.
 - **`software_nodes` / `rollup.software`:** while suite-presence is LIVE, this Worker fans out `join` / `heartbeat` for every live Softwares product Worker (`node_id` `{slug}-worker`, no `|`) on cron (`*/2 * * * *`) or request-path. Presence TTL is **5 minutes**. GET still never enables extra radios. That roster is **software_nodes** (plus `software_live_nodes` / `software_locked_nodes` / `software_isolated_nodes`). Downloaded Softwares instances stay **`instance_nodes`**. Hubs may cite `software_nodes` separately. `software_nodes` stays on its own plane.
 - **`mesh_join` contract:** `product` is required (catalog slug). Optional `node_id` must be exactly **8–80** chars matching **`[a-z0-9._-]+`** (full string; no uppercase). `presence` must be **`live`** (default), **`locked`**, or **`isolated`**. Join creates **additive** presence bound to a **strict 5-minute TTL**. `mesh_heartbeat` (or suite fan-out refresh) resets that window. Miss it and the node is **automatically dropped** from the live roster. Direct HTTP join/heartbeat/leave/broadcast share F03 kind **`mesh_mutate`** (30/min, `RATE_LIMIT` 429). Not a login mesh. Roster does not publish exec URLs. `MESH-ROSTER-FULL` if a new anonymous join would evict `{slug}-worker`. When transmission radios are powered down or suite radios are not enabled, join/heartbeat/broadcast refuse **`MESH-OFF`** (same code on HTTP and MCP). Read paths stay honest. Public `mesh_disable` still cannot turn suite-presence off. `neighbor_heal` is an operator-armed **cite** (`neighbor_heal_is_cite: true`, `neighbor_heal_exec: false`). Vote-to-fix still refuses.
 - **NO-LIE / NO-REWRITE:** receipts that still hash; copies not all on one tunnel; rules simple enough others verify without the author's voice; **no rewrite key**. The network is **never allowed to lie** — even to self-preserve, sustain, stay alive, adapt, or prevent death. `GET /v1/mesh` cites `no_lie`, `no_rewrite`, `rewrite_key: false`, `lie_to_survive: false`. Rewrite / lie verbs refuse `MESH-NO-REWRITE` / `MESH-NO-LIE`. Companion under [CROSS-NETWORK-SURVIVAL-1.0](designs/CROSS-NETWORK-SURVIVAL-1.0.md); does not replace the machine tip.
@@ -119,7 +119,7 @@ All paths are on `aziel-runtime` (this Worker). Product Workers **proxy** them v
 
 | Method | Path | Body | Notes |
 | --- | --- | --- | --- |
-| GET | `/v1/mesh` | — | `enabled`, `bearers` (Worker rollup: `suite-presence`), `channel_plane` / `channels` (`wifi` / `bluetooth` / `rf` / `photon` ON as cites), `vpn: true` / `public_vpn: true` / `default_vpn_backend: "azvpn"` (cite-only; never opens), `nodes` / `rollup.nodes` = human mesh users + cited `human_uses`, `live_nodes` / `rollup.mesh` = human mesh users (presence), `human_mesh_users`, `human_uses` / `human_uses_complete`, `active_nodes` / `inactive_nodes`, `isolated_nodes`, `software_nodes` / `rollup.software` = `{slug}-worker` roster, `nodes_note`, `live_nodes_note`, `mesh_default: "on"`. **Never enables extra radios.** Channel plane ≠ kernel VPN. |
+| GET | `/v1/mesh` | — | `enabled`, `bearers` (Worker rollup: `suite-presence`), `channel_plane` / `channels` (`wifi` / `bluetooth` / `rf` / `photon` ON as cites), `vpn: true` / `public_vpn: true` / `default_vpn_backend: "azvpn"` (cite-only; never opens), `nodes` / `rollup.nodes` = human mesh users + cited `human_uses`, `live_nodes` / `rollup.mesh` = human mesh users + `site_live_viewers`, `human_mesh_users`, `site_live_viewers` / components, `human_uses` / `human_uses_complete`, `active_nodes` / `inactive_nodes`, `isolated_nodes`, `software_nodes` / `rollup.software` = `{slug}-worker` roster, `nodes_note`, `live_nodes_note`, `mesh_default: "on"`. **Never enables extra radios. Never pulls hub `/count`.** Channel plane ≠ kernel VPN. |
 | GET | `/v1/mesh/status` | — | Alias of `/v1/mesh` |
 | POST | `/v1/mesh/enable` | `{ bearer }` | Optional extra bearer (example: `suite-presence`). Empty `{}` is refused. Rate-limited. Login/account/recover/gate names refuse. Not required for public Live Nodes. |
 | POST | `/v1/mesh/disable` | `{}` | **Refused** (`MESH-DISABLE-REFUSED`). Suite-presence stays ON. |
@@ -127,6 +127,8 @@ All paths are on `aziel-runtime` (this Worker). Product Workers **proxy** them v
 | POST | `/v1/mesh/heartbeat` | `{ node_id, presence? }` | Refresh the 5-minute TTL. Miss the window → dropped. Radios off → **`MESH-OFF`**. |
 | POST | `/v1/mesh/leave` | `{ node_id }` | Drop presence. Idempotent. No implicit heal. |
 | GET | `/v1/mesh/nodes` | — | Roster with presence. **No scores / leaderboard.** |
+| GET | `/v1/mesh/site-presence` | — | Cite the hub site-viewer contract + current `site_live_viewers`. **Never writes. Never pulls hub `/count`.** |
+| POST | `/v1/mesh/site-presence` | `{ host, viewers, kind: "human-page" }` | Hub fleet heartbeat of concurrent human page sessions. Allowed hosts: `godlock.uk`, `azieleliab.com`, `azielcorpuslibrary.net`. Alias `POST /v1/mesh/site-heartbeat`. Strict **5-minute TTL**. Overwrite per host (latest wins). Fail-closed: excluded host / bot / software / download / non-integer / over-cap refuse and do not store. F03 kind **`mesh_mutate`**. Not a radio join. |
 | POST | `/v1/mesh/broadcast` | `{ sha256, title? }` | Hash receipt only. **Not a publish path.** **No video bytes.** |
 
 Storage: existing **USES** KV under `mesh|` keys, or a dedicated **MESH** binding if present. Never invent placeholder `0000…` namespace ids. Empty or historically disabled KV is treated as default-on (`suite-presence`).
@@ -187,7 +189,8 @@ Hubs must **not** add AnonBroadcast as a Software-tab product from this hint. Th
 3. On the human UI, show a small **QNM rollup** strip (counts only):
    - Poll `GET /v1/mesh/status` (or `/v1/mesh/nodes`) on a gentle interval.
    - Show **Nodes · N** from `nodes` / `rollup.nodes` (human mesh users + cited `human_uses`). Tooltip / note: use `nodes_note` from the same JSON — do not fork copy.
-   - Show **Live Nodes · N** from `live_nodes` / `rollup.mesh` (human mesh users / presence). Tooltip / note: use `live_nodes_note` from the same JSON — do not fork copy.
+   - Show **Live Nodes · N** from `live_nodes` / `rollup.mesh` (human mesh users + `site_live_viewers`). Tooltip / note: use `live_nodes_note` from the same JSON — do not fork copy.
+   - Hubs that already compute concurrent human page presence (GodLock `site_live_nodes`: distinct sessions with a heartbeat inside 5 minutes) **POST** that count to `/v1/mesh/site-presence`. Do **not** wait for runtime to scrape `/count`. If the POST is missing or expired, runtime reports `site_live_viewers: 0`.
    - `software_nodes` / `rollup.software` is the `{slug}-worker` suite roster. Hubs may cite it separately.
    - Do not treat the poll as enable. Do not show suite “mesh off” / “Default OFF” copy.
    - A **human** should `POST /v1/mesh/join` with `{ "product": "<slug>", "kind": "human", "bearer": "human", "presence": "live" }` (optional `node_id`; omit to mint `mesh_*`) then heartbeat about once a minute. Isolated presence does not count as Live Nodes.
@@ -212,8 +215,8 @@ if (url.pathname === "/v1/mesh" || url.pathname.startsWith("/v1/mesh/")) {
 
 ## Honesty
 
-- Read-only suite-presence is **ON by default**. Public Nodes and Live Nodes do not need a manual enable. Live Nodes stay **0** until a human join/heartbeat exists. Nodes add cited `human_uses` when USES reports a total (never invent users). Incomplete USES is `human_uses=0` + `human_uses_complete=false`.
-- `GET /v1/mesh` is a rollup read. It does not enable radios beyond that default presence.
+- Read-only suite-presence is **ON by default**. Public Nodes and Live Nodes do not need a manual enable. Live Nodes stay **0** until a human join/heartbeat exists and/or an unexpired hub site-presence heartbeat reports viewers. Nodes add cited `human_uses` when USES reports a total (never invent users or viewers). Incomplete USES is `human_uses=0` + `human_uses_complete=false` and does **not** enter Live Nodes.
+- `GET /v1/mesh` is a rollup read. It does not enable radios beyond that default presence. It **never pulls** hub `/count`. Missing or expired `site_live_viewers` reports are **0**.
 - `POST /v1/mesh/disable` cannot turn suite-presence off.
 - Library host `www.azielcorpuslibrary.net/runtime/v1/mesh/enable` may return **409** `{ source: "library-default-off", enabled: false }` instead of this Worker's `MESH-NEED-BEARER` / `MESH-BAD-BEARER`. That overlay is **host-side** (aziel-corpus), not a runtime kill switch. Do not treat it as the suite being off.
 - Presence is ephemeral. **`mesh_join` TTL is a strict 5 minutes.** Heartbeat (or fan-out refresh) inside that window keeps the node; otherwise it is dropped from the live roster.
@@ -229,3 +232,13 @@ if (url.pathname === "/v1/mesh" || url.pathname.startsWith("/v1/mesh/")) {
 - Public identity is Aziel Eliab only.
 - Receipts that still hash. No rewrite key. Never lie to stay alive.
 - Forks welcome. Apache-2.0.
+
+## FAQ
+
+**What are Nodes?** `human_mesh_users + human_uses`. Unchanged. Uses are interaction counters, not unique people.
+
+**What are Live Nodes?** `human_mesh_users + site_live_viewers`. Concurrent website viewers are human page presence on godlock.uk + azieleliab.com + azielcorpuslibrary.net. Not hedidntjump.com. Not bots, Softwares, or downloads.
+
+**Does runtime scrape godlock.uk/count?** No. GodLock already computes `site_live_nodes` locally (distinct sessions with a heartbeat inside 5 minutes). Hubs must `POST /v1/mesh/site-presence` `{ host, viewers, kind: "human-page" }`. If they do not, `site_live_viewers` stays 0. Fail-closed.
+
+**Can a hub invent viewers?** The contract refuses excluded hosts, refused kinds, non-integers, and over-cap counts. Runtime does not invent a count when none was stored. Zero is honest.

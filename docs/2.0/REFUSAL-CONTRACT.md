@@ -135,7 +135,7 @@ Refuse objects set `belief_is_not_truth: true` and `authorizes_action: false`.
 | `BODY_TOO_DEEP` | 400 | JSON depth > 12 or nodes > 4096 |
 | `REQUEST_DEADLINE` | 408 | Request exceeded the deadline budget (default 25s) |
 
-`enforcement` is `durable-object` when `RATE` is bound, else `isolate`. Not a second door. Direct mesh join/heartbeat/leave/broadcast use kind `mesh_mutate`. Direct `/v1/memory/*` uses `memory_mutate`. `/p/{slug}/{op}` outside the documented tracker/catalog allowlist (including factory `/mcp`) is `PROXY-OP-REFUSED` (404, still proxy-not-exec).
+`enforcement` is `durable-object` when `RATE` is bound, else `isolate`. Not a second door. Direct mesh join/heartbeat/leave/broadcast/site-presence use kind `mesh_mutate`. Direct `/v1/memory/*` uses `memory_mutate`. `/p/{slug}/{op}` outside the documented tracker/catalog allowlist (including factory `/mcp`) is `PROXY-OP-REFUSED` (404, still proxy-not-exec).
 
 ### Redline (`src/redline.js`)
 

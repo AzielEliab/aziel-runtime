@@ -15,7 +15,7 @@ Covered now:
 | `POST /v1/fraggate/call` | `fraggate_call` | 240 |
 | other `/v1/fraggate*` | `fraggate_read` | 360 |
 | `POST` / `DELETE /mcp` | `mcp` | 240 |
-| `POST /v1/mesh/join\|heartbeat\|leave\|broadcast` | `mesh_mutate` | 30 |
+| `POST /v1/mesh/join\|heartbeat\|leave\|broadcast\|site-presence` | `mesh_mutate` | 30 |
 | `POST /v1/memory/*` | `memory_mutate` | 60 |
 | session open / exec (unchanged isolate) | `session_open` / `session_exec` | 20 / 60 |
 

@@ -49,6 +49,8 @@ const SKIP_GET_READS = new Set([
   "/v1/mesh",
   "/v1/mesh/status",
   "/v1/mesh/nodes",
+  "/v1/mesh/site-presence",
+  "/v1/mesh/site-heartbeat",
   "/v1/mesh/az-generator",
   "/v1/qns",
   "/v1/receipts",
@@ -164,6 +166,7 @@ export function inferProductOp(pathname) {
   if (path === "/v1/mesh/join") return { op: "mesh.join" };
   if (path === "/v1/mesh/heartbeat") return { op: "mesh.heartbeat" };
   if (path === "/v1/mesh/leave") return { op: "mesh.leave" };
+  if (path === "/v1/mesh/site-presence" || path === "/v1/mesh/site-heartbeat") return { op: "mesh.site_presence" };
   if (path === "/v1/mesh/broadcast") return { op: "mesh.broadcast" };
   if (path === "/download" || path === "/v1/download" || path === "/v1/suite/download") {
     return { op: "runtime.suite_download" };
@@ -184,6 +187,7 @@ export function shouldIncrementUse(method, pathname) {
   if (ASSET_EXT.test(path)) return false;
   if (path === "/v1/uses" || path === "/v1/stats" || path === "/v1/stats-rollups") return false;
   if (path === "/v1/receipts" || path.startsWith("/v1/receipts/")) return false;
+  if (path === "/v1/mesh/site-presence" || path === "/v1/mesh/site-heartbeat") return false;
   if (m === "GET" && SKIP_GET_READS.has(path)) return false;
   if (m === "GET" && SKIP_CATALOG_GETS.has(path)) return false;
   if (m === "GET" && path === "/mcp") return false;
