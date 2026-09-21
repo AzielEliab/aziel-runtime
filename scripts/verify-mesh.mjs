@@ -5,6 +5,7 @@
  * Not a login mesh. Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { PRODUCTS } from "../src/index.js";
 import { RUNTIME_VERSION } from "../src/runtime-api.js";
 import { LIVE_OPS, STUB_OPS, buildRegistry, classifyCall, parseTarget } from "../src/fraggate/registry.js";
@@ -52,11 +53,14 @@ import {
 } from "../src/mesh.js";
 import {
   acceptSitePresence,
+  liveNodesTip,
+  mergeSiteViewerRows,
   pruneSiteViewers,
   sanitizeSiteHost,
   sanitizeSiteKind,
   sanitizeSiteViewers,
   siteViewerFleet,
+  siteViewerTuple,
 } from "../src/site-viewers.js";
 
 const handler = (await import("../src/index.js")).default.fetch;
@@ -100,6 +104,12 @@ function assertMeshPills(data, extra = {}) {
   const roster = extra.roster === true;
   const viewers = Number(data.site_live_viewers) || 0;
   assert.equal(typeof data.site_live_viewers, "number", extra.viewersTypeMsg || "site_live_viewers is a count");
+  const parts = data.site_live_viewers_components || {};
+  let componentSum = 0;
+  for (const host of SITE_LIVE_HOSTS) componentSum += Number(parts[host]) || 0;
+  assert.equal(data.site_live_viewers, componentSum, extra.componentMsg || "site_live_viewers is the single-key component sum");
+  assert.equal(data.site_live_viewers_read, "single-key");
+  assert.equal(data.live_nodes_tip, liveNodesTip(data.live_nodes_generation, data.human_mesh_users, parts));
   assert.equal(data.live_nodes, data.human_mesh_users + viewers, extra.liveMsg || "live_nodes === human_mesh_users + site_live_viewers");
   assert.equal(data.live_nodes, data.rollup.mesh, extra.rollupMeshMsg || "rollup.mesh === live_nodes");
   assert.equal(data.rollup.nodes, data.human_mesh_users + data.human_uses, extra.rollupNodesMsg || "rollup.nodes === users+uses");
@@ -852,7 +862,15 @@ resetMeshStore();
   assert.equal(godlock.status, 200, JSON.stringify(godlock.data));
   assert.equal(godlock.data.site_live_viewers, 4);
   assert.equal(godlock.data.site_live_viewers_components["godlock.uk"], 4);
+  assert.equal(godlock.data.live_nodes_generation, 1, "first stored viewer count seals generation 1");
   assert.equal(godlock.data.live_nodes, 4);
+  const godlockAgain = await postJson(siteEnv, "/v1/mesh/site-presence", {
+    host: "godlock.uk",
+    viewers: 4,
+    kind: "human-page",
+  });
+  assert.equal(godlockAgain.data.live_nodes_generation, 1, "TTL-only heartbeat keeps the seal");
+  assert.equal(godlockAgain.data.live_nodes, 4);
   assert.equal(godlock.data.human_mesh_users, 0);
   assert.equal(godlock.data.nodes, godlock.data.human_mesh_users + godlock.data.human_uses);
   assertMeshPills(godlock.data);
@@ -863,6 +881,7 @@ resetMeshStore();
     kind: "human-page",
   });
   assert.equal(corpus.data.site_live_viewers, 6);
+  assert.equal(corpus.data.live_nodes_generation, 2);
   assert.equal(corpus.data.live_nodes, 6);
   assert.equal(corpus.data.nodes, corpus.data.human_mesh_users + corpus.data.human_uses);
 
@@ -896,6 +915,98 @@ resetMeshStore();
   assert.equal(expired.data.live_nodes, expired.data.human_mesh_users);
   resetMeshClock();
   resetMeshStore();
+
+  const fresh = new Date().toISOString();
+  const older = new Date(Date.now() - 1000).toISOString();
+  const merged = mergeSiteViewerRows(
+    {
+      "godlock.uk": { host: "godlock.uk", viewers: 4, kind: "human-page", last_seen: fresh },
+      "azieleliab.com": { host: "azieleliab.com", viewers: 3, kind: "human-page", last_seen: fresh },
+    },
+    {
+      "godlock.uk": { host: "godlock.uk", viewers: 1, kind: "human-page", last_seen: older },
+      "azielcorpuslibrary.net": { host: "azielcorpuslibrary.net", viewers: 2, kind: "human-page", last_seen: fresh },
+    },
+  );
+  assert.equal(merged["godlock.uk"].viewers, 4, "older sibling write does not drop a newer count");
+  assert.equal(merged["azieleliab.com"].viewers, 3);
+  assert.equal(merged["azielcorpuslibrary.net"].viewers, 2);
+  assert.equal(siteViewerTuple(siteViewerFleet(merged).components), "godlock.uk=4,azieleliab.com=3,azielcorpuslibrary.net=2");
+
+  function meshKvWithTrap() {
+    const store = new Map();
+    let trap = null;
+    return {
+      async get(key) {
+        const value = store.has(key) ? store.get(key) : null;
+        if (trap && key === trap.key) {
+          const { wait, entered } = trap;
+          trap = null;
+          entered();
+          await wait;
+        }
+        return value;
+      },
+      async put(key, value) {
+        store.set(key, String(value));
+      },
+      async list() {
+        return { keys: [], list_complete: true };
+      },
+      _store: store,
+      trapSiteViewers() {
+        let release;
+        let entered;
+        const wait = new Promise((resolve) => {
+          release = resolve;
+        });
+        const enteredP = new Promise((resolve) => {
+          entered = resolve;
+        });
+        trap = { key: "mesh|site_viewers", wait, entered };
+        return { release, entered: enteredP };
+      },
+    };
+  }
+
+  const trapKv = meshKvWithTrap();
+  const trapEnv = envWithMesh({ USES: trapKv });
+  const seededGod = await postJson(trapEnv, "/v1/mesh/site-presence", {
+    host: "godlock.uk",
+    viewers: 4,
+    kind: "human-page",
+  });
+  assert.equal(seededGod.data.site_live_viewers, 4);
+  const seededAe = await postJson(trapEnv, "/v1/mesh/site-presence", {
+    host: "azieleliab.com",
+    viewers: 3,
+    kind: "human-page",
+  });
+  assert.equal(seededAe.data.site_live_viewers, 7);
+  const held = trapKv.trapSiteViewers();
+  const fanoutP = meshFanoutSuitePresence(trapEnv, { source: "stale-site-read" });
+  await held.entered;
+  const corpusDuringFanout = await postJson(trapEnv, "/v1/mesh/site-presence", {
+    host: "azielcorpuslibrary.net",
+    viewers: 2,
+    kind: "human-page",
+  });
+  assert.equal(corpusDuringFanout.data.site_live_viewers, 9);
+  held.release();
+  await fanoutP;
+  const afterFanout = await jsonReq(trapEnv, "/v1/mesh");
+  assert.equal(afterFanout.data.site_live_viewers_components["godlock.uk"], 4);
+  assert.equal(afterFanout.data.site_live_viewers_components["azieleliab.com"], 3);
+  assert.equal(afterFanout.data.site_live_viewers_components["azielcorpuslibrary.net"], 2);
+  assert.equal(afterFanout.data.site_live_viewers, 9, "roster fan-out must not clobber an in-flight hub heartbeat");
+  assert.equal(afterFanout.data.live_nodes, afterFanout.data.human_mesh_users + 9);
+  resetMeshStore();
+
+  const meshSrc = readFileSync(new URL("../src/mesh.js", import.meta.url), "utf8");
+  const siteSrc = readFileSync(new URL("../src/site-viewers.js", import.meta.url), "utf8");
+  assert.doesNotMatch(meshSrc, /\bfetch\s*\(/, "GET /v1/mesh path must not fetch hub /count");
+  assert.doesNotMatch(siteSrc, /\bfetch\s*\(/);
+  assert.match(meshSrc, /Does not write the site-viewer aggregate/);
   assert.equal(
     pruneSiteViewers({
       "godlock.uk": { host: "godlock.uk", viewers: 3, kind: "human-page", last_seen: "1999-01-01T00:00:00.000Z" },

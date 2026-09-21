@@ -133,8 +133,12 @@ import {
   SITE_PRESENCE_CONTRACT,
   SITE_VIEWER_CAP,
   acceptSitePresence,
+  liveNodesTip,
+  mergeSiteViewerRows,
   pruneSiteViewers,
   siteViewerFleet,
+  siteViewerTuple,
+  unwrapSiteViewerStore,
 } from "./site-viewers.js";
 
 export {
@@ -170,7 +174,7 @@ export const FANOUT_NODE_SUFFIX = "-worker";
 /** Public Live Nodes = human mesh users + concurrent hub site viewers. */
 export const LIVE_NODES_PLANE = "human-mesh-users-site-viewers";
 export const LIVE_NODES_NOTE =
-  "Public Live Nodes (live_nodes / rollup.mesh) count human mesh users (join/heartbeat/presence with a human bearer) plus concurrent website viewers (site_live_viewers) on godlock.uk + azieleliab.com + azielcorpuslibrary.net. Isolated humans stay on isolated_nodes. hedidntjump.com, bots, Softwares, and downloads are excluded. GET /v1/mesh never pulls hub /count. Missing or expired hub heartbeats are 0. Live Nodes does not invent users. Zero is honest when no human is present.";
+  "Public Live Nodes (live_nodes / rollup.mesh) count human mesh users (join/heartbeat/presence with a human bearer) plus concurrent website viewers (site_live_viewers) on godlock.uk + azieleliab.com + azielcorpuslibrary.net. Isolated humans stay on isolated_nodes. hedidntjump.com, bots, Softwares, and downloads are excluded. GET /v1/mesh never pulls hub /count. Hubs paint live_nodes from this JSON (live_nodes_tip / live_nodes_generation). Do not add a local /count. Missing or expired hub heartbeats are 0. Live Nodes does not invent users. Zero is honest when no human is present.";
 
 /** Public Nodes = human mesh users + cited human uses (today’s interaction-inclusive clock). */
 export const NODES_PLANE = "human-mesh-users-uses";
@@ -343,9 +347,14 @@ const memory = {
   bearers: MESH_DEFAULT_ENABLED ? [EXAMPLE_BEARER] : [],
   nodes: {},
   site_viewers: {},
+  live_nodes_generation: 0,
+  live_nodes_sealed_at: "",
   receipts: [],
   seq: 0,
 };
+
+/** Per-KV highest site-viewer seal this isolate has written or read. Stops a stale KV get from walking the sum backwards. */
+const isolateSiteSeals = new WeakMap();
 
 /** Test / time-travel clock. Null means Date.now(). */
 let injectedNowMs = null;
@@ -401,8 +410,11 @@ export function resetMeshStore() {
   memory.bearers = MESH_DEFAULT_ENABLED ? [EXAMPLE_BEARER] : [];
   memory.nodes = {};
   memory.site_viewers = {};
+  memory.live_nodes_generation = 0;
+  memory.live_nodes_sealed_at = "";
   memory.receipts = [];
   memory.seq = 0;
+  isolateSiteSeals.delete(memory);
   injectedNowMs = null;
   radiosOverride = null;
 }
@@ -882,11 +894,67 @@ function withBearersForLoad(raw) {
   return withDefaultBearers(raw);
 }
 
+function peekSiteSeal(kv) {
+  if (!kv) return null;
+  return isolateSiteSeals.get(kv) || null;
+}
+
+function noteSiteSeal(kv, seal) {
+  if (!kv || !seal) return seal || null;
+  const gen = Number(seal.generation) || 0;
+  const prev = isolateSiteSeals.get(kv);
+  if (prev && gen < prev.generation) return prev;
+  const next = {
+    generation: gen,
+    sealed_at: typeof seal.sealed_at === "string" ? seal.sealed_at : "",
+    hosts: seal.hosts && typeof seal.hosts === "object" ? seal.hosts : {},
+  };
+  isolateSiteSeals.set(kv, next);
+  return next;
+}
+
+function siteAggregateKey(bound) {
+  return `${bound.prefix}site_viewers`;
+}
+
+function siteHostKey(bound, host) {
+  return `${bound.prefix}site_viewer|${host}`;
+}
+
+function chooseSiteSeal(kv, raw, now) {
+  let unwrapped = unwrapSiteViewerStore(raw);
+  const cached = peekSiteSeal(kv);
+  if (cached && cached.generation > unwrapped.generation) {
+    unwrapped = {
+      generation: cached.generation,
+      sealed_at: cached.sealed_at,
+      hosts: cached.hosts,
+    };
+  } else {
+    noteSiteSeal(kv, unwrapped);
+  }
+  return {
+    site_viewers: pruneSiteViewers(unwrapped.hosts, now),
+    live_nodes_generation: unwrapped.generation,
+    live_nodes_sealed_at: unwrapped.sealed_at || "",
+  };
+}
+
 async function loadState(env) {
   const bound = meshKv(env);
+  const now = nowMs();
   if (!bound) {
     memory.nodes = pruneNodes(memory.nodes);
-    memory.site_viewers = pruneSiteViewers(memory.site_viewers, nowMs());
+    const seal = chooseSiteSeal(
+      memory,
+      {
+        generation: memory.live_nodes_generation,
+        sealed_at: memory.live_nodes_sealed_at,
+        hosts: memory.site_viewers,
+      },
+      now,
+    );
+    memory.site_viewers = seal.site_viewers;
     const bearers = withBearersForLoad(memory.bearers);
     memory.enabled = txRadiosLive(bearers, env);
     memory.bearers = bearers;
@@ -896,6 +964,8 @@ async function loadState(env) {
       bearers,
       nodes: { ...memory.nodes },
       site_viewers: { ...memory.site_viewers },
+      live_nodes_generation: seal.live_nodes_generation,
+      live_nodes_sealed_at: seal.live_nodes_sealed_at,
       receipts: Array.isArray(memory.receipts) ? memory.receipts.slice() : [],
       store: "memory",
     };
@@ -903,32 +973,36 @@ async function loadState(env) {
   const lastRaw = await bound.kv.get(`${bound.prefix}last_enable_ms`);
   const bearers = withBearersForLoad(await kvGetJson(bound.kv, `${bound.prefix}bearers`, []));
   const nodes = pruneNodes(await kvGetJson(bound.kv, `${bound.prefix}nodes`, {}));
-  const site_viewers = pruneSiteViewers(await kvGetJson(bound.kv, `${bound.prefix}site_viewers`, {}), nowMs());
+  const siteSeal = chooseSiteSeal(bound.kv, await kvGetJson(bound.kv, siteAggregateKey(bound), {}), now);
   const receipts = await kvGetJson(bound.kv, `${bound.prefix}receipts`, []);
   return {
     enabled: txRadiosLive(bearers, env),
     last_enable_ms: Number(lastRaw) || 0,
     bearers,
     nodes: nodes && typeof nodes === "object" && !Array.isArray(nodes) ? nodes : {},
-    site_viewers: site_viewers && typeof site_viewers === "object" && !Array.isArray(site_viewers) ? site_viewers : {},
+    site_viewers: siteSeal.site_viewers,
+    live_nodes_generation: siteSeal.live_nodes_generation,
+    live_nodes_sealed_at: siteSeal.live_nodes_sealed_at,
     receipts: Array.isArray(receipts) ? receipts : [],
     store: bound.binding,
   };
 }
 
+/**
+ * Roster / bearer / receipt save. Does not write the site-viewer aggregate.
+ * Fan-out and join used to put that key from a stale load and drop in-flight hub heartbeats.
+ */
 async function saveState(env, state) {
   const bound = meshKv(env);
   const bearers = normalizeBearers(state.bearers);
   const enabled = radiosOn(bearers);
   const nodes = pruneNodes(state.nodes);
-  const site_viewers = pruneSiteViewers(state.site_viewers, nowMs());
   const receipts = Array.isArray(state.receipts) ? state.receipts.slice(0, RECEIPT_CAP) : [];
   if (!bound) {
     memory.enabled = enabled;
     memory.last_enable_ms = state.last_enable_ms || 0;
     memory.bearers = bearers;
     memory.nodes = nodes;
-    memory.site_viewers = site_viewers;
     memory.receipts = receipts;
     return "memory";
   }
@@ -936,9 +1010,62 @@ async function saveState(env, state) {
   await bound.kv.put(`${bound.prefix}last_enable_ms`, String(state.last_enable_ms || 0));
   await bound.kv.put(`${bound.prefix}bearers`, JSON.stringify(bearers));
   await bound.kv.put(`${bound.prefix}nodes`, JSON.stringify(nodes));
-  await bound.kv.put(`${bound.prefix}site_viewers`, JSON.stringify(site_viewers));
   await bound.kv.put(`${bound.prefix}receipts`, JSON.stringify(receipts));
   return bound.binding;
+}
+
+/**
+ * One host heartbeat, then one aggregate key. GET reads only that key.
+ * Sibling hosts stay via per-host keys + newest last_seen. Generation bumps only when the viewer tuple changes.
+ */
+async function sealSiteHost(env, record) {
+  const now = nowMs();
+  const bound = meshKv(env);
+  if (!bound) {
+    const prevHosts = memory.site_viewers;
+    const prevGen = Number(memory.live_nodes_generation) || 0;
+    const merged = mergeSiteViewerRows(prevHosts, { [record.host]: record });
+    merged[record.host] = record;
+    const pruned = pruneSiteViewers(merged, now);
+    const same = siteViewerTuple(siteViewerFleet(pruneSiteViewers(prevHosts, now), now).components) === siteViewerTuple(siteViewerFleet(pruned, now).components);
+    const generation = same ? prevGen : prevGen + 1;
+    const sealed_at = nowIso(now);
+    memory.site_viewers = pruned;
+    memory.live_nodes_generation = generation;
+    memory.live_nodes_sealed_at = sealed_at;
+    noteSiteSeal(memory, { generation, sealed_at, hosts: pruned });
+    return { generation, sealed_at, hosts: pruned };
+  }
+  await bound.kv.put(siteHostKey(bound, record.host), JSON.stringify(record));
+  let body = null;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const prev = unwrapSiteViewerStore(await kvGetJson(bound.kv, siteAggregateKey(bound), {}));
+    const fromKeys = {};
+    for (const host of SITE_LIVE_HOSTS) {
+      const row = await kvGetJson(bound.kv, siteHostKey(bound, host), null);
+      if (row && typeof row === "object") fromKeys[host] = row;
+    }
+    fromKeys[record.host] = record;
+    const cached = peekSiteSeal(bound.kv);
+    const merged = mergeSiteViewerRows(mergeSiteViewerRows(prev.hosts, fromKeys), cached && cached.hosts);
+    merged[record.host] = record;
+    const pruned = pruneSiteViewers(merged, now);
+    const baseGen = Math.max(Number(prev.generation) || 0, cached ? Number(cached.generation) || 0 : 0);
+    const baselineHosts = cached && (Number(cached.generation) || 0) >= (Number(prev.generation) || 0) ? cached.hosts : prev.hosts;
+    const same =
+      siteViewerTuple(siteViewerFleet(pruneSiteViewers(baselineHosts, now), now).components) ===
+      siteViewerTuple(siteViewerFleet(pruned, now).components);
+    const generation = same ? baseGen : baseGen + 1;
+    const sealed_at = nowIso(now);
+    body = { generation, sealed_at, hosts: pruned };
+    const again = unwrapSiteViewerStore(await kvGetJson(bound.kv, siteAggregateKey(bound), {}));
+    if ((Number(again.generation) || 0) === (Number(prev.generation) || 0) || attempt === 1) {
+      await bound.kv.put(siteAggregateKey(bound), JSON.stringify(body));
+      break;
+    }
+  }
+  noteSiteSeal(bound.kv, body);
+  return body;
 }
 
 function qnmFrame() {
@@ -1051,6 +1178,8 @@ function statusFieldsSync(state, usesSignal = null, env) {
   const fleet = siteViewerFleet(state.site_viewers, nowMs());
   const site_live_viewers = fleet.site_live_viewers;
   const live_nodes = human_mesh_users + site_live_viewers;
+  const live_nodes_generation = Number(state.live_nodes_generation) || 0;
+  const live_nodes_tip = liveNodesTip(live_nodes_generation, human_mesh_users, fleet.components);
   rollup.mesh = live_nodes;
   rollup.nodes = nodes_count;
   const bearers = normalizeBearers(state.bearers);
@@ -1086,6 +1215,10 @@ function statusFieldsSync(state, usesSignal = null, env) {
     site_live_viewers_pull: false,
     site_live_viewers_complete: fleet.complete === true,
     site_live_viewers_fail_closed: true,
+    site_live_viewers_read: "single-key",
+    live_nodes_generation,
+    live_nodes_tip,
+    live_nodes_sealed_at: state.live_nodes_sealed_at || "",
     site_presence_contract: SITE_PRESENCE_CONTRACT,
     live_nodes_components: {
       human_mesh_users,
@@ -1316,7 +1449,7 @@ Read-only **suite-presence is ON by default**. A site ping of \`GET /v1/mesh\` n
 
 \`mesh_join\` / \`POST /v1/mesh/join\` requires \`product\` (catalog slug). Optional \`node_id\` must be exactly 8–80 chars matching \`[a-z0-9._-]\` (full string). \`presence\` must be \`live\` (default), \`locked\`, or \`isolated\`. Join is additive presence with a **strict 5-minute TTL**. \`mesh_heartbeat\` refreshes that TTL. If no heartbeat (or fan-out refresh) arrives inside the window, the node is **dropped** from the live roster. Direct HTTP join/heartbeat/leave/broadcast share F03 kind \`mesh_mutate\` (default 30/min; \`RATE_LIMIT\` 429). Not a login mesh. Roster does not publish exec URLs. Roster cap \`NODE_CAP\` prefers \`{slug}-worker\` rows; extra anonymous joins refuse \`MESH-ROSTER-FULL\`. When transmission radios are powered down or suite radios are not enabled, join/heartbeat/broadcast refuse **\`MESH-OFF\`**. Read paths stay honest. Do not invent a second refuse spelling.
 
-While radios are LIVE, this Worker fans out join/heartbeat for every live Softwares product Worker (\`node_id\` \`{slug}-worker\`, no \`|\`) on cron (\`*/2 * * * *\`) or request-path. That roster is **software_nodes**. Public **nodes** (Nodes) counts **human mesh users** plus cited **human uses** (\`USES\` / \`human_uses\`). Public **live_nodes** (Live Nodes) counts **human mesh users** plus concurrent website viewers (\`site_live_viewers\`) reported by hub \`POST /v1/mesh/site-presence\` (\`kind: "human-page"\`) for godlock.uk + azieleliab.com + azielcorpuslibrary.net. Downloaded Softwares instances stay \`instance_nodes\`. Isolated humans stay on \`isolated_nodes\`. hedidntjump.com, bots, Softwares, and downloads are excluded. GET never pulls hub \`/count\`. Missing or expired hub heartbeats are 0. Uses are interaction counters, not unique people. Incomplete uses stay honest — do not invent users. Zero is honest. Product Workers proxy \`/v1/mesh/*\` via \`AZIEL_RUNTIME\`. Not a second mesh. Fan-out does not restore godlock.uk or reattach a pulled public hostname.
+While radios are LIVE, this Worker fans out join/heartbeat for every live Softwares product Worker (\`node_id\` \`{slug}-worker\`, no \`|\`) on cron (\`*/2 * * * *\`) or request-path. That roster is **software_nodes**. Public **nodes** (Nodes) counts **human mesh users** plus cited **human uses** (\`USES\` / \`human_uses\`). Public **live_nodes** (Live Nodes) counts **human mesh users** plus concurrent website viewers (\`site_live_viewers\`) reported by hub \`POST /v1/mesh/site-presence\` (\`kind: "human-page"\`) for godlock.uk + azieleliab.com + azielcorpuslibrary.net. Downloaded Softwares instances stay \`instance_nodes\`. Isolated humans stay on \`isolated_nodes\`. hedidntjump.com, bots, Softwares, and downloads are excluded. GET never pulls hub \`/count\`. GET reads the site-viewer aggregate as one key (\`live_nodes_generation\` / \`live_nodes_tip\`). Hubs paint \`live_nodes\` and do not add a local \`/count\`. Fan-out does not rewrite that aggregate. Missing or expired hub heartbeats are 0. Uses are interaction counters, not unique people. Incomplete uses stay honest — do not invent users. Zero is honest. Product Workers proxy \`/v1/mesh/*\` via \`AZIEL_RUNTIME\`. Not a second mesh. Fan-out does not restore godlock.uk or reattach a pulled public hostname.
 
 Phoenix is wait / re-seal after tamper or isolation. It is not “bring the .uk node back.” Sites pulled (token revoked, Worker dropped, DNS killed) die with the pull: public rollup on that hostname is down; a local node may keep verifying and appending. Mesh does not climb back onto the public hostname by itself. A process supervisor restarting cloudflared is operator kit, not this contract.
 
@@ -1720,14 +1853,15 @@ export async function meshSitePresence(payload, env) {
       ...(await statusFields(state, env)),
     });
   }
-  state.site_viewers = pruneSiteViewers(state.site_viewers, nowMs());
-  state.site_viewers[accepted.record.host] = accepted.record;
-  const store = await saveState(env, state);
+  const sealed = await sealSiteHost(env, accepted.record);
+  state.site_viewers = sealed.hosts;
+  state.live_nodes_generation = sealed.generation;
+  state.live_nodes_sealed_at = sealed.sealed_at;
   return baseResult({
     op: "site-presence",
-    ...(await statusFields({ ...state, store }, env)),
+    ...(await statusFields(state, env)),
     site_presence: accepted.record,
-    note: "Hub human-page presence stored. Fail-closed. GET /v1/mesh never pulls hub /count. Expired reports drop to 0 after 5 minutes. Not a mesh radio join.",
+    note: "Hub human-page presence sealed in one aggregate. Fail-closed. GET /v1/mesh reads that key and never pulls hub /count. Paint live_nodes. Expired reports drop to 0 after 5 minutes. Not a mesh radio join.",
   });
 }
 

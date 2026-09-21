@@ -43,7 +43,7 @@ const HOST_ALIASES = Object.freeze({
 });
 
 export const SITE_LIVE_VIEWERS_NOTE =
-  "site_live_viewers is concurrent human page presence across godlock.uk + azieleliab.com + azielcorpuslibrary.net, reported by hub heartbeats (POST /v1/mesh/site-presence). Same 5-minute TTL as mesh presence. GET /v1/mesh never pulls hub /count. hedidntjump.com, bots, Softwares, and downloads are excluded. Missing or expired reports are 0. Do not invent viewers.";
+  "site_live_viewers is concurrent human page presence across godlock.uk + azieleliab.com + azielcorpuslibrary.net, reported by hub heartbeats (POST /v1/mesh/site-presence). Same 5-minute TTL as mesh presence. GET /v1/mesh reads one sealed aggregate (live_nodes_generation / live_nodes_tip) and never pulls hub /count. Hubs paint live_nodes from that JSON — do not add a local /count. hedidntjump.com, bots, Softwares, and downloads are excluded. Missing or expired reports are 0. Do not invent viewers.";
 
 export const SITE_PRESENCE_CONTRACT = Object.freeze({
   method: "POST",
@@ -62,6 +62,9 @@ export const SITE_PRESENCE_CONTRACT = Object.freeze({
   pull_hub_count: false,
   invent: false,
   fail_closed: true,
+  read: "single-key",
+  paint: "live_nodes",
+  local_recompute: false,
   radios: "not required — hub ingest, not a TX join",
   rate_kind: "mesh_mutate",
   note: SITE_LIVE_VIEWERS_NOTE,
@@ -150,6 +153,56 @@ export function pruneSiteViewers(raw, nowMs = Date.now()) {
     };
   }
   return out;
+}
+
+export function unwrapSiteViewerStore(raw) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return { generation: 0, sealed_at: "", hosts: {} };
+  }
+  if (raw.hosts && typeof raw.hosts === "object" && !Array.isArray(raw.hosts)) {
+    const generation = Number(raw.generation);
+    return {
+      generation: Number.isInteger(generation) && generation > 0 ? generation : 0,
+      sealed_at: typeof raw.sealed_at === "string" ? raw.sealed_at : "",
+      hosts: raw.hosts,
+    };
+  }
+  return { generation: 0, sealed_at: "", hosts: raw };
+}
+
+/** Newest last_seen wins per host. A missing side does not delete the other row. */
+export function mergeSiteViewerRows(prev, next) {
+  const left = prev && typeof prev === "object" && !Array.isArray(prev) ? prev : {};
+  const right = next && typeof next === "object" && !Array.isArray(next) ? next : {};
+  const out = {};
+  for (const host of SITE_LIVE_HOSTS) {
+    const a = left[host];
+    const b = right[host];
+    if (!a && !b) continue;
+    if (!a) {
+      out[host] = b;
+      continue;
+    }
+    if (!b) {
+      out[host] = a;
+      continue;
+    }
+    const as = Date.parse(a.last_seen || "") || 0;
+    const bs = Date.parse(b.last_seen || "") || 0;
+    out[host] = bs >= as ? b : a;
+  }
+  return out;
+}
+
+export function siteViewerTuple(components) {
+  const src = components && typeof components === "object" ? components : {};
+  return SITE_LIVE_HOSTS.map((host) => `${host}=${Number.isInteger(src[host]) ? src[host] : Number(src[host]) || 0}`).join(",");
+}
+
+export function liveNodesTip(generation, humanMeshUsers, components) {
+  const gen = Number(generation);
+  const humans = Number(humanMeshUsers);
+  return `${Number.isInteger(gen) && gen > 0 ? gen : 0}:${Number.isInteger(humans) && humans > 0 ? humans : 0}:${siteViewerTuple(components)}`;
 }
 
 export function siteViewerFleet(raw, nowMs = Date.now()) {
