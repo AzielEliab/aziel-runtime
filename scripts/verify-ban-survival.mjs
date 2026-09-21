@@ -438,6 +438,13 @@ assert.equal(http.body.spec, BAN_SURVIVAL);
 assert.equal(http.body.mode, "LIVE");
 assert.equal(http.body.spore.spec, "SPORE-1.0");
 assert.equal(http.body.spore.mode, "live");
+assert.equal(http.body.spore.failsafe, true);
+assert.equal(http.body.spore.replaces_cold_shelves, false);
+assert.equal(http.body.spore_role, "failsafe");
+assert.equal(http.body.mutual_backup, true);
+assert.deepEqual(http.body.survival_stack.map((row) => row.id), ["live-fronts", "cold-shelves", "spore"]);
+assert.equal(http.body.re_cold_store.hook, "RE-COLD-STORE");
+assert.deepEqual(http.body.re_cold_store.destinations, []);
 assert.deepEqual(http.body.spore.faces, ["pause", "preserve", "wait", "physical-wipe-only"]);
 assert.equal(dispatchSurvivalHttp("POST", "/survival", PRIMARY_WORKER_ORIGIN, {}).status, 405);
 

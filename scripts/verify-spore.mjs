@@ -38,6 +38,9 @@ import {
   judgeInventedHeartbeat,
   judgePlaneLie,
   judgePretendMetabolism,
+  judgeReColdStore,
+  reColdStoreCite,
+  survivalStackCite,
   readSporeEnv,
   reconcileForward,
   sporeCite,
@@ -66,6 +69,10 @@ assert.match(paper, /^# SPORE-1\.0/m);
 assert.match(paper, /Author: Aziel Eliab only/);
 assert.match(paper, /pause \/ preserve \/ wait \/ physical-wipe-only/);
 assert.match(paper, /Not a Softwares-tab product/);
+assert.match(paper, /last-resort failsafe/);
+assert.match(paper, /does not replace layer 1 or layer 2/i);
+assert.match(paper, /RE-COLD-STORE/);
+assert.match(paper, /does not mark Plane B\/C failed/);
 assert.match(paper, /No new MCP tool/);
 assert.match(paper, /memory_resolve/);
 assert.match(paper, /BAN-SURVIVAL-1\.0/);
@@ -107,6 +114,23 @@ assert.equal(liveCite.preserve, true);
 assert.equal(liveCite.wait, false);
 assert.equal(liveCite.physical_wipe_only, true);
 assert.equal(liveCite.invented_heartbeats, false);
+assert.equal(liveCite.failsafe, true);
+assert.equal(liveCite.last_resort, true);
+assert.equal(liveCite.replaces_cold_shelves, false);
+assert.equal(liveCite.replaces_ban_survival, false);
+assert.equal(liveCite.cold_shelves_intact, true);
+assert.equal(liveCite.mutual_backup_intact, true);
+assert.deepEqual(liveCite.stack.map((row) => row.id), ["live-fronts", "cold-shelves", "spore"]);
+assert.equal(liveCite.stack[1].failed, false);
+assert.equal(liveCite.stack[1].replaced, false);
+assert.equal(liveCite.stack[2].role, "failsafe");
+assert.equal(liveCite.re_cold_store.hook, "RE-COLD-STORE");
+assert.equal(liveCite.re_cold_store.allowed, true);
+assert.equal(liveCite.re_cold_store.active, false);
+assert.equal(liveCite.re_cold_store.shelves_failed, false);
+assert.equal(liveCite.re_cold_store.invent_destination, false);
+assert.deepEqual(liveCite.re_cold_store.destinations, []);
+assert.equal(liveCite.honesty.shelves_not_replaced, true);
 assert.equal(liveCite.plane_b, "slot");
 assert.equal(liveCite.plane_c, "slot");
 assert.equal(liveCite.doi, null);
@@ -134,6 +158,12 @@ assert.equal(judgeHistoryRewrite({ memory_delete: true }).reason, REFUSE.NO_REWR
 assert.equal(judgePlaneLie({ plane_b_live: true }).reason, REFUSE.NO_LIE_PLANE);
 assert.equal(judgePlaneLie({ plane_c_live: true }).reason, REFUSE.NO_LIE_PLANE);
 assert.equal(judgeElectronicWipe({ power_off_is_wipe: true }).reason, REFUSE.PHYSICAL_WIPE_ONLY);
+assert.equal(judgeReColdStore({ invent_destination: true }).reason, REFUSE.NO_INVENT_STORE);
+assert.equal(judgeReColdStore({ invent_live_store: true }).reason, REFUSE.NO_INVENT_STORE);
+assert.equal(judgeReColdStore({ destinations: ["https://example.invalid"], attested: false }).reason, REFUSE.NO_INVENT_STORE);
+assert.equal(judgeReColdStore({}).accept, true);
+assert.deepEqual(survivalStackCite().map((row) => row.role), ["failover", "mutual-backup", "failsafe"]);
+assert.deepEqual(reColdStoreCite().destinations, []);
 assert.equal(applySpore({}).ok, true);
 assert.equal(applySpore({ dormant: true, invent_live_heartbeat: true, plane_b_live: true }).ok, false);
 
@@ -211,6 +241,15 @@ assert.equal(survival.status, 200);
 assert.equal(survival.body.spore.spec, SPORE);
 assert.equal(survival.body.spore.mode, "live");
 assert.deepEqual(survival.body.spore.faces, SPORE_FACES.slice());
+assert.equal(survival.body.spore.failsafe, true);
+assert.equal(survival.body.spore.replaces_cold_shelves, false);
+assert.equal(survival.body.spore_role, "failsafe");
+assert.equal(survival.body.spore_replaces_cold_shelves, false);
+assert.equal(survival.body.mutual_backup, true);
+assert.deepEqual(survival.body.survival_stack.map((row) => row.id), ["live-fronts", "cold-shelves", "spore"]);
+assert.equal(survival.body.survival_stack[1].failed, false);
+assert.equal(survival.body.re_cold_store.hook, "RE-COLD-STORE");
+assert.deepEqual(survival.body.re_cold_store.destinations, []);
 assert.equal(survival.body.spore.plane_b, "slot");
 assert.equal(survival.body.spore.plane_c, "slot");
 
@@ -226,8 +265,13 @@ const citeRes = await handler(new Request(origin + "/cite.json"), env);
 const cite = await citeRes.json();
 assert.equal(cite.spore.spec, SPORE);
 assert.equal(cite.spore.mode, "live");
+assert.equal(cite.spore.failsafe, true);
+assert.equal(cite.spore.replaces_cold_shelves, false);
 assert.equal(cite.spore.plane_b, "slot");
 assert.equal(cite.spore.software_tab, false);
+assert.equal(cite.ban_survival.spore_role, "failsafe");
+assert.equal(cite.ban_survival.spore_replaces_cold_shelves, false);
+assert.deepEqual(cite.ban_survival.re_cold_store.destinations, []);
 assert.ok(cite.designs.papers.some((p) => p.id === SPORE && p.path === "docs/designs/SPORE-1.0.md" && p.kind === "law"));
 assert.equal(cite.ban_survival.spore.spec, SPORE);
 

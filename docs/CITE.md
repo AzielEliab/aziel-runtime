@@ -121,7 +121,7 @@ Machine map: `GET /survival` · `/cite.json` `ban_survival` · `/llms.txt`. Plat
 
 ## SPORE dormancy (SPORE-1.0)
 
-Power or network loss pauses execution. No pretend-live metabolism. Append-only ChainLock / AKM / receipt DNA stays on cold shelves, local nodes, and tip packs. Resume on power (`memory_resolve` additive). Wipe resistance is multi-plane copies. Plane B/C stay SLOT until attested. Physical wipe only. Faces: pause / preserve / wait / physical-wipe-only.
+Last-resort failsafe after live fronts and cold-shelf mutual backup — not a replacement for those layers. Power or network loss pauses execution. No pretend-live metabolism. Append-only ChainLock / AKM / receipt DNA stays on cold shelves, local nodes, and tip packs. Resume on power (`memory_resolve` additive). Wipe resistance is every remaining copy. Plane B/C stay SLOT until attested. Physical wipe only. Faces: pause / preserve / wait / physical-wipe-only. RE-COLD-STORE is an honest hook (no invented destinations).
 
 Machine field: `/cite.json` `spore` · `GET /survival` `spore` · `GET /v1/mesh` `spore`. Paper: [SPORE-1.0](designs/SPORE-1.0.md).
 

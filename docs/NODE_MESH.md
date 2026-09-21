@@ -19,7 +19,7 @@ Current software designs live in [docs/designs/](designs/). Author: **Aziel Elia
 - [NO-LIE-NO-REWRITE-1.0](designs/NO-LIE-NO-REWRITE-1.0.md) — receipts that still hash; no rewrite key; never lie to survive (companion under the umbrella; does not replace the machine tip)
 - [COLD-MULTI-SHELF-1.0](designs/COLD-MULTI-SHELF-1.0.md) — planes A/B/C matching live corpus `/shelves` (corpus#96); runtime cites, does not invent a sixth surface
 - [BAN-SURVIVAL-1.0](designs/BAN-SURVIVAL-1.0.md) — three layers: live multi-front ↔ cold shelves; live-node API SLOT; Cap-7 cite + AZNet verify LIVE (hosted exec SLOT; update shuffle ping→land)
-- [SPORE-1.0](designs/SPORE-1.0.md) — power-loss face: pause / preserve / wait / physical-wipe-only; no pretend-live metabolism while dormant
+- [SPORE-1.0](designs/SPORE-1.0.md) — last-resort failsafe: pause / preserve / wait / physical-wipe-only; does not replace cold shelves; no pretend-live metabolism while dormant
 
 This page remains the live **QNM-BUILD-1.0** rollup law. Do not rewrite that law from the papers.
 

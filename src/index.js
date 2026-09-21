@@ -36,7 +36,7 @@
  * GET  /cold-copy             alias of /shelves
  * GET  /v1/shelves            machine alias of /shelves
  * GET  /v1/cold-copy          alias of /shelves
- * GET  /survival              BAN-SURVIVAL-1.0 mutual-backup map (live multi-front ↔ cold shelves; LIVE doors only; live-node API SLOT; SPORE-1.0 power-loss face)
+ * GET  /survival              BAN-SURVIVAL-1.0 mutual-backup map (live multi-front ↔ cold shelves; LIVE doors only; live-node API SLOT; SPORE-1.0 last-resort failsafe)
  * GET  /platforms             BAN-PLATFORMS-1.0 — windows/mac/linux/android/ios all LIVE (not SLOT)
  * GET  /v1/survival           machine alias of /survival
  * GET  /v1/platforms          machine alias of /platforms
@@ -2624,7 +2624,7 @@ function staticPaths(origin, env = {}) {
       get: {
         operationId: "catalog_ban_survival",
         summary:
-          "BAN-SURVIVAL-1.0 three-layer map plus SPORE-1.0 power-loss face (pause / preserve / wait / physical-wipe-only). Live multi-front ↔ cold shelves; live-node API SLOT; Cap-7 cite + AZNet verify LIVE (hosted exec SLOT). Client door list = LIVE doors only. Not a second FragGate door.",
+          "BAN-SURVIVAL-1.0 three-layer map plus SPORE-1.0 last-resort failsafe (pause / preserve / wait / physical-wipe-only). Live multi-front ↔ cold shelves stay intact; live-node API SLOT; Cap-7 cite + AZNet verify LIVE (hosted exec SLOT). SPORE does not replace shelves. Client door list = LIVE doors only. Not a second FragGate door.",
         tags: ["catalog"],
         responses: { "200": { description: "BAN-SURVIVAL failover JSON" } },
       },

@@ -448,6 +448,7 @@ export function meshHint(path = "/v1/mesh") {
     qns_cd: qnsHint(),
     survival: survivalHint(),
     ban_survival: "BAN-SURVIVAL-1.0",
+    spore_spec: SPORE,
     ...noLieFrame(),
     no_lie_hint: noLieHint(),
     nine_laws: nineLawsHint(),

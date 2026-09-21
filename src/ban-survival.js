@@ -40,7 +40,7 @@ import {
   judgeTrademarkCallingName,
 } from "./calling-name.js";
 import { platformsCite } from "./platforms.js";
-import { SPORE, sporeCite, sporeLlmsBlock, sporeSkillMarkdown } from "./spore.js";
+import { SPORE, reColdStoreCite, sporeCite, sporeLlmsBlock, sporeSkillMarkdown, survivalStackCite } from "./spore.js";
 
 /** CNS / shelf cite — death-by-ban backup. Not a live exec door. */
 export const COLD_MULTI_SHELF = "COLD-MULTI-SHELF-1.0";
@@ -984,6 +984,10 @@ export function survivalDoc(origin, env) {
     no_lie_spec: NO_LIE_SPEC,
     cold_multi_shelf: COLD_MULTI_SHELF,
     spore_spec: SPORE,
+    spore_role: "failsafe",
+    spore_replaces_cold_shelves: false,
+    survival_stack: survivalStackCite(),
+    re_cold_store: reColdStoreCite(),
     mode,
     lie_to_survive: false,
     rewrite_key: false,
@@ -1036,7 +1040,8 @@ export function survivalDoc(origin, env) {
       "Live-node API is SLOT. Cap-7 cite + AZNet verify are LIVE; hosted Cap-7 endpoints are SLOT. " +
       "Cap-7 update shuffle is ping MirageGrid → land one site → that-round update (no hardcoded host; public shuffle SLOT). " +
       "AKM-TRIAD: belief_is_not_truth; memory_get append-only; memory_resolve additive. " +
-      "SPORE-1.0 is the power-loss face: pause / preserve / wait / physical-wipe-only. " +
+      "SPORE-1.0 is the last-resort failsafe (layer 3) after live fronts and cold-shelf mutual backup: pause / preserve / wait / physical-wipe-only. " +
+      "Does not replace cold shelves or BAN-SURVIVAL. Plane B/C stay SLOT. RE-COLD-STORE is an honest hook (no invented destinations). " +
       "Never claim a banned host is LIVE.",
   };
 }
@@ -1079,6 +1084,10 @@ export function survivalCiteField(origin, env) {
     calling_name: callingNameCite(env),
     platforms: platformsCite(env),
     spore: sporeCite(env),
+    spore_role: "failsafe",
+    spore_replaces_cold_shelves: false,
+    survival_stack: survivalStackCite(),
+    re_cold_store: reColdStoreCite(),
     lie_to_survive: false,
     second_door: false,
     unmarked_hydra: false,
@@ -1112,7 +1121,7 @@ export function survivalLlmsBlock(origin, env) {
     "AKM-TRIAD-1.0: ranked adaptive recall vs verified ChainLock; belief_is_not_truth; memory_get append-only; memory_resolve additive stamps. stub_ops model_update / rollback / rewrite / delete_history / auto_update stay refused.",
     "Calling-name rotation (discovery only): trigger → mesh alert → rewrite all live discovery metadata → client rediscovery. Open-ended + random (no hard cap at 6): Whitestone AI → Bills (Bills Runtime / bills-runtime as needed) → Runtime → Eliab Runtime → Potato Runtime → Elroi Runtime → Softwares-family *-runtime → endless distinct names, including BAN_SURVIVAL_NAME_RANDOM alongside the seeds. Surfaces: OpenAPI info, MCP name/instructions, cite/llms/ai/who-is/person calling strings, /survival live product, Softwares vanity, hub-facing runtime labels. Live mesh nodes pull `*new name alert: <name>` from GET /v1/mesh and /survival (GET never enables; not a publish path). User-uploaded data is ingested as a signal through DecisionGATE check + AKM observe (`belief_is_not_truth`); unmarked uploads are not a ban. Call routes stay POST /mcp and POST /v1/fraggate/call under the new name. Identity Aziel Eliab unchanged. No ChainLock/AKM rewrite. No third-party trademarks.",
     "Platforms LIVE: windows / mac / linux / android / ios via browser + PWA (`/manifest.webmanifest`) + Worker fronts + Softwares /download + MCP/OpenAPI. Dual-surface on each. native_app_store false. Cap-7 in-process shuffle LIVE; public workers.dev shuffle SLOT.",
-    "SPORE-1.0 (power-loss face): pause / preserve / wait / physical-wipe-only. Power or network loss pauses execution. Append-only ChainLock / AKM / receipt DNA stays on cold shelves + local nodes + tip packs. Resume on power. Plane B/C stay SLOT until attested.",
+    "SPORE-1.0 (last-resort failsafe, layer 3): pause / preserve / wait / physical-wipe-only. Does not replace live fronts or cold-shelf mutual backup. Power or network loss pauses execution. Append-only ChainLock / AKM / receipt DNA stays on cold shelves + local nodes + tip packs. Resume on power. Plane B/C stay SLOT until attested. RE-COLD-STORE is an honest hook (no invented destinations).",
     "429 on /mcp or FragGate includes the next LIVE front first. Do not retry-storm the same path.",
     "",
     sporeLlmsBlock().trimEnd(),

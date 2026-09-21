@@ -1,7 +1,9 @@
 /**
- * SPORE-1.0 — power-loss / no-electricity dormancy.
+ * SPORE-1.0 — last-resort failsafe (power-loss / no-electricity dormancy).
  *
- * The power-loss face of BAN-SURVIVAL + COLD-MULTI-SHELF + CROSS-NETWORK-SURVIVAL.
+ * Layer 3 after live fronts (BAN-SURVIVAL / Cap-7 / calling-name /
+ * live-node API) and cold-shelf mutual backup (COLD-MULTI-SHELF).
+ * Does not replace those layers. Does not mark Plane B/C failed.
  * Pause metabolism. Preserve append-only ChainLock / AKM / receipt DNA.
  * Wait. Physical wipe only. Plane B/C stay SLOT until attested.
  *
@@ -24,10 +26,70 @@ export const SPORE_FACES = Object.freeze(["pause", "preserve", "wait", "physical
 export const SPORE_MODES = Object.freeze(["live", "dormant"]);
 
 export const SPORE_RULE =
-  "Power or network loss pauses execution. No pretend-live metabolism. Append-only ChainLock / AKM / receipt DNA stays on cold shelves, local nodes, and tip packs. Resume on power. Wipe resistance is multi-plane copies. Plane B/C stay SLOT until attested. Physical wipe only.";
+  "Last-resort failsafe after live fronts and cold-shelf mutual backup. Power or network loss pauses execution. No pretend-live metabolism. Append-only ChainLock / AKM / receipt DNA stays on cold shelves, local nodes, and tip packs. Resume on power. Wipe resistance is every remaining copy. Plane B/C stay SLOT until attested. Physical wipe only. Does not replace BAN-SURVIVAL or COLD-MULTI-SHELF.";
 
 export const SPORE_TIP =
-  "SPORE-1.0: pause / preserve / wait / physical-wipe-only. No electricity is PAUSE, not death. Dormant nodes do not invent live heartbeats. On restore, reconcile forward — no rewrite of history.";
+  "SPORE-1.0: last-resort failsafe. pause / preserve / wait / physical-wipe-only. Not a replacement for cold shelves. No electricity is PAUSE, not death. Dormant nodes do not invent live heartbeats. On restore, reconcile forward — no rewrite of history.";
+
+export const SURVIVAL_STACK = Object.freeze([
+  {
+    layer: 1,
+    id: "live-fronts",
+    spec: BAN_SURVIVAL,
+    role: "failover",
+    includes: Object.freeze(["cap-7", "calling-name", "live-node-api"]),
+  },
+  {
+    layer: 2,
+    id: "cold-shelves",
+    spec: COLD_MULTI_SHELF,
+    role: "mutual-backup",
+    mutual_backup_with: BAN_SURVIVAL,
+    plane_b: "slot",
+    plane_c: "slot",
+    replaced: false,
+    failed: false,
+  },
+  {
+    layer: 3,
+    id: "spore",
+    spec: SPORE,
+    role: "failsafe",
+    last_resort: true,
+    replaces_cold_shelves: false,
+    replaces_ban_survival: false,
+  },
+]);
+
+export const RE_COLD_STORE = Object.freeze({
+  hook: "RE-COLD-STORE",
+  allowed: true,
+  trigger: "cold-shelves-wiped-or-failed",
+  active: false,
+  shelves_failed: false,
+  shelves_intact: true,
+  invent_live: false,
+  invent_hash: false,
+  invent_receipt: false,
+  invent_destination: false,
+  public_inventory_required: false,
+  destinations: Object.freeze([]),
+  opaque_placement: true,
+  note:
+    "When cold stores are wiped or fail, the mesh may re-cold-store DNA wherever available. Never invent LIVE stores, hashes, receipts, or destinations. No required public inventory. Does not claim a wipe is happening now.",
+});
+
+export function survivalStackCite() {
+  return SURVIVAL_STACK.map((row) => {
+    const out = { ...row };
+    if (row.includes) out.includes = row.includes.slice();
+    return out;
+  });
+}
+
+export function reColdStoreCite() {
+  return { ...RE_COLD_STORE, destinations: RE_COLD_STORE.destinations.slice() };
+}
 
 export const SPORE_DNA = Object.freeze({
   chainlock: "append-only tips; no rewrite key",
@@ -45,6 +107,7 @@ export const REFUSE = Object.freeze({
   NO_PRETEND_METABOLISM: "SPORE-NO-PRETEND-METABOLISM",
   NO_LIE_PLANE: "SPORE-NO-LIE-PLANE",
   PHYSICAL_WIPE_ONLY: "SPORE-PHYSICAL-WIPE-ONLY",
+  NO_INVENT_STORE: "SPORE-NO-INVENT-STORE",
 });
 
 function truthyFlag(raw) {
@@ -115,6 +178,10 @@ export function sporeHint() {
     physical_wipe_only: true,
     invented_heartbeats: false,
     rewrite: false,
+    failsafe: true,
+    last_resort: true,
+    replaces_cold_shelves: false,
+    replaces_ban_survival: false,
     plane_b: "slot",
     plane_c: "slot",
     doi: null,
@@ -148,7 +215,15 @@ export function sporeCite(env, extras = {}) {
     wait: dormant,
     physical_wipe_only: true,
     invented_heartbeats: false,
+    failsafe: true,
+    last_resort: true,
+    replaces_cold_shelves: false,
+    replaces_ban_survival: false,
+    cold_shelves_intact: true,
+    mutual_backup_intact: true,
     faces: SPORE_FACES.slice(),
+    stack: survivalStackCite(),
+    re_cold_store: reColdStoreCite(),
     dna: { ...SPORE_DNA },
     resume: "memory_resolve-additive",
     rewrite: false,
@@ -162,6 +237,8 @@ export function sporeCite(env, extras = {}) {
       invented_live: false,
       zenodo_live: false,
       power_off_is_not_wipe: true,
+      shelves_not_replaced: true,
+      shelves_not_marked_failed: true,
     },
     lamb_lens: sporeLambLens(),
     umbrella: CROSS_NETWORK_SURVIVAL,
@@ -273,6 +350,35 @@ export function judgePlaneLie(input) {
   return { accept: true, action: "ok", plane_b: "slot", plane_c: "slot", doi: null };
 }
 
+export function judgeReColdStore(input) {
+  const src = input && typeof input === "object" ? input : {};
+  if (
+    src.invent_destination === true ||
+    src.invent_live_store === true ||
+    src.invent_hash === true ||
+    src.fake_receipt === true ||
+    src.fabricate_destination === true ||
+    src.public_inventory_required === true ||
+    (Array.isArray(src.destinations) && src.destinations.length > 0 && src.attested !== true)
+  ) {
+    return {
+      accept: false,
+      action: "refuse",
+      reason: REFUSE.NO_INVENT_STORE,
+      destinations: [],
+      invent_destination: false,
+      note: "RE-COLD-STORE is an honest hook. No invented LIVE store, hash, receipt, or destination. Destinations stay empty until attested.",
+    };
+  }
+  return {
+    accept: true,
+    action: "ok",
+    destinations: [],
+    shelves_intact: true,
+    opaque_placement: true,
+  };
+}
+
 export function judgeElectronicWipe(input) {
   const src = input && typeof input === "object" ? input : {};
   if (
@@ -328,6 +434,7 @@ export function applySpore(input) {
     judgeHistoryRewrite(input),
     judgePlaneLie(input),
     judgeElectronicWipe(input),
+    judgeReColdStore(input),
   ];
   const breaks = checks.filter((c) => !c.accept);
   return {
@@ -366,7 +473,7 @@ export function sporeLlmsBlock() {
     "",
     `Umbrella: ${CROSS_NETWORK_SURVIVAL}. Companion ${NO_LIE_SPEC} (${NO_LIE_DOCS}): receipts that still hash; no rewrite key; survival keeps published hashes.`,
     "Faces: pause / preserve / wait / physical-wipe-only.",
-    "Power-loss face of BAN-SURVIVAL + COLD-MULTI-SHELF. Not a Softwares-tab product. Plane B/C stay SLOT until attested. doi null.",
+    "Last-resort failsafe after live fronts (BAN-SURVIVAL / Cap-7 / calling-name / live-node API) and cold-shelf mutual backup. Does not replace those layers. RE-COLD-STORE is an honest hook (no invented destinations). Not a Softwares-tab product. Plane B/C stay SLOT until attested. doi null.",
     `Person @id: ${AUTHOR_ID}. No visible 15:20 chrome.`,
     `Paper: https://github.com/AzielEliab/aziel-runtime/blob/main/${SPORE_DOCS}`,
     "",
@@ -380,10 +487,13 @@ ${SPORE_RULE}
 
 Machine field: \`GET /survival\` / \`GET /v1/survival\` \`spore\`; \`GET /v1/mesh\` \`spore\`. Person \`@id\` ${AUTHOR_ID}.
 
+Last-resort failsafe (layer 3). Does not replace live fronts or cold shelves. Mutual backup stays intact.
+
 - **pause** — power / network loss stops execution. Dormant join/heartbeat refuse invented live beats.
 - **preserve** — ChainLock / AKM / receipts stay on cold shelves + local nodes + tip packs.
 - **wait** — resume on power. Reconcile forward (\`memory_resolve\` additive). No rewrite.
 - **physical-wipe-only** — electronic power-off is not last copy gone. Plane B/C stay SLOT.
+- **RE-COLD-STORE** — if shelves are wiped, re-seed wherever available. No invented LIVE store / hash / receipt / destination.
 
 Lamb Lens after FragGate: Peace, then Clarity, then Service. ${SPORE_TIP} No new MCP tool. FragGate stays THE door.
 `;

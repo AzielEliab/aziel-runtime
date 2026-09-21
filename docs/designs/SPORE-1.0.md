@@ -6,7 +6,10 @@ Status: LIVE law (2026-09-21). Not a Softwares-tab product. Not a FragGate slug.
 
 Companion under the umbrella: [CROSS-NETWORK-SURVIVAL-1.0](CROSS-NETWORK-SURVIVAL-1.0.md) (does not replace the machine tip). Neighbor: [BAN-SURVIVAL-1.0](BAN-SURVIVAL-1.0.md) (door-ban face), [COLD-MULTI-SHELF-1.0](COLD-MULTI-SHELF-1.0.md) (multi-plane DNA copies), [NO-LIE-NO-REWRITE-1.0](NO-LIE-NO-REWRITE-1.0.md), [AKM-TRIAD-1.0](AKM-TRIAD-1.0.md). Mesh rollup: [NODE_MESH](../NODE_MESH.md). Executable: `src/spore.js`.
 
-SPORE is the **power-loss face** of that stack. It is not a replacement Softwares product and not a second door.
+SPORE is the **last-resort failsafe** (power-loss / no-electricity face) of
+that stack. It is **not** a replacement for cold shelves, not a replacement
+for BAN-SURVIVAL mutual backup, not a Softwares product, and not a second
+door. Cold shelves stay intact. Plane B/C stay **SLOT** until attested.
 
 ---
 
@@ -30,13 +33,58 @@ Power or network loss is **PAUSE**, not death and not a pretend-live
 heartbeat. Metabolism stops. Append-only ChainLock / AKM / receipt **DNA**
 stays on cold shelves, local nodes, and tip packs. On power, resume and
 reconcile **forward** (`memory_resolve` style) — no rewrite of history.
-Wipe resistance is multi-plane copies. Plane B / C stay **SLOT** until
-attested. Physical wipe only.
+Wipe resistance is every remaining copy. Plane B / C stay **SLOT** until
+attested. Physical wipe only. SPORE is last-resort failsafe — not a
+replacement for cold shelves.
+
+0.1 Survival stack (order is law)
+
+  Layer  Face                         Role
+
+  1      Live fronts / BAN-SURVIVAL   Failover. Cap-7 cite + AZNet verify
+         / Cap-7 / calling-name /     LIVE; hosted Cap-7 + live-node API
+         live-node API                SLOT. Try the next LIVE named front.
+  2      Cold shelves                 Mutual backup with death-by-ban.
+         (COLD-MULTI-SHELF)           Plane B/C SLOT until attested.
+         BAN-SURVIVAL ↔ shelves       Do **not** mark these failed or
+                                      replaced. Mutual backup stays intact.
+  3      **SPORE**                    Last-resort failsafe. If cold shelves
+                                      fail **and** all else fails **and**
+                                      the world goes dark (no electricity):
+                                      pause metabolism, preserve DNA on
+                                      every local node / hard drive / paper
+                                      / offline shelf that was ever saved,
+                                      wait. Mesh survives by dormancy until
+                                      power returns. True wipe = physically
+                                      destroy every copy.
+
+Cold shelves + BAN-SURVIVAL mutual backup stay intact. This paper
+does not mark Plane B/C failed or replaced. Plane B/C stay SLOT until
+attested.
+
+0.2 RE-COLD-STORE (honest hook, not a live destination list)
+When cold shelves / cold stores are getting wiped (or fail), the mesh is
+**allowed** to re-cold-store: post and save DNA / tip / local node state
+**wherever available** (any reachable shelf, host, peer, tip-pack surface,
+archive, physical media).
+
+Rules:
+
+1. **NO-LIE** — never invent that a store is LIVE. Never invent hashes.
+   Never fake receipts. Never fabricate destinations.
+2. **Opaque / deniable placement is OK** — no required public inventory of
+   what was saved or where (beyond an operator’s own audit if they ask).
+3. Fits under this failsafe + cold-shelf mutual backup: re-cold-store is
+   the adaptive re-seed when shelves are under wipe attack.
+4. This hook does **not** claim a wipe is happening now. `GET /survival`
+   cites `re_cold_store.destinations: []` until an operator attests a real
+   shelf. Plane B/C stay SLOT.
 
 1. Claim
-BAN-SURVIVAL is the door-ban face. COLD-MULTI-SHELF is the copy-plane
-face. CROSS-NETWORK-SURVIVAL is the umbrella. SPORE is what happens when
-the lights go out.
+BAN-SURVIVAL is the door-ban face (layer 1). COLD-MULTI-SHELF is the
+copy-plane face (layer 2). CROSS-NETWORK-SURVIVAL is the umbrella. SPORE
+is the last-resort failsafe when those layers are gone **and** the lights
+go out. It does not replace layer 1 or layer 2.
 
 A Cloudflare isolate that still answers HTTP is powered. That isolate
 cites this law honestly: **this Worker is LIVE metabolism**. A local
@@ -117,6 +165,10 @@ rollback, or sanitize-old-trail.
 - Not a FragGate engine. No `fraggate_call { slug: "spore" }`.
 - Not a new MCP tool. `PUBLIC_MCP_TOOLS` stays frozen.
 - Not a replacement for BAN-SURVIVAL, COLD-MULTI-SHELF, or the umbrella.
+  Last-resort failsafe only. Cold-shelf mutual backup stays intact.
+- Not a claim that Plane B/C failed. Do not paint shelves failed/replaced.
+- Not a fabricated RE-COLD-STORE destination list. Destinations stay empty
+  until attested. No invented LIVE store / hash / receipt.
 - Not a Remain-OFF flip.
 - Not permission to invent a live heartbeat while dormant.
 - Not permission to paint Plane B or Plane C LIVE. `doi` stays null.
@@ -135,6 +187,11 @@ rollback, or sanitize-old-trail.
 
 8. Close tests
 - `/cite.json` `spore.spec` equals `SPORE-1.0`.
+- `/survival` `spore` is last-resort **failsafe**. `replaces_cold_shelves`
+  is false. Mutual backup stays intact. Stack order: live-fronts →
+  cold-shelves → spore.
+- `/survival` `re_cold_store` is an honest hook (`destinations` empty;
+  no invented LIVE store / hash / receipt).
 - `/survival` `spore` faces are pause / preserve / wait / physical-wipe-only.
 - Default powered isolate is `spore.mode` **live**, `metabolism` **on**.
 - Power-loss env or radios off is `spore.mode` **dormant**, `metabolism` **paused**.

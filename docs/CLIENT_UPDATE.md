@@ -180,11 +180,13 @@ verified ChainLock (`belief_is_not_truth`; posterior ≠ truth);
 additive stamps. stub_ops `model_update` / `rollback` / `rewrite` /
 `delete_history` / `auto_update` stay refused.
 
-SPORE-1.0 is the **power-loss face** of this stack. Power or network
-loss pauses execution (`spore.mode=dormant`). Do not invent live
-heartbeats while dormant. On restore, reconcile forward — no rewrite
-of history. Plane B/C stay SLOT until attested. Physical wipe only.
-See [SPORE-1.0](designs/SPORE-1.0.md).
+SPORE-1.0 is the **last-resort failsafe** of this stack (layer 3 after
+live fronts and cold-shelf mutual backup). It does not replace cold
+shelves. Power or network loss pauses execution (`spore.mode=dormant`).
+Do not invent live heartbeats while dormant. On restore, reconcile
+forward — no rewrite of history. Plane B/C stay SLOT until attested.
+Physical wipe only. RE-COLD-STORE is an honest hook (no invented
+destinations). See [SPORE-1.0](designs/SPORE-1.0.md).
 
 Calling-name rotation is **discovery metadata only**. Pipeline:
 trigger → mesh alert → metadata rewrite → client rediscovery. On honest
