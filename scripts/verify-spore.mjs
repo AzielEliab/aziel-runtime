@@ -236,6 +236,8 @@ const mesh = await meshRes.json();
 assert.equal(mesh.spore.spec, SPORE);
 assert.equal(mesh.spore.mode, "live");
 assert.equal(mesh.invented_heartbeats, undefined);
+assert.equal(mesh.spore.honesty.framagit_url, undefined);
+assert.doesNotMatch(JSON.stringify(mesh), /framagit/i);
 
 const healthRes = await handler(new Request(origin + "/v1/health"), env);
 const health = await healthRes.json();

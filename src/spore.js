@@ -160,7 +160,6 @@ export function sporeCite(env, extras = {}) {
       hash_verify_pass_is_not_live: true,
       do_not_paint_slot_as_live: true,
       invented_live: false,
-      framagit_url: null,
       zenodo_live: false,
       power_off_is_not_wipe: true,
     },
