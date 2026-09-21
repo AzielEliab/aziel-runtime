@@ -211,6 +211,11 @@ assert.ok(citeBody.designs.papers.some((p) => p.id === "NO-LIE-NO-REWRITE-1.0" &
 assert.ok(citeBody.designs.papers.some((p) => p.id === "REDLINE-2026-09-14" && p.path === "docs/designs/REDLINE-2026-09-14.md" && p.kind === "law" && p.software_tab === false));
 assert.ok(citeBody.designs.papers.some((p) => p.id === "COLD-MULTI-SHELF-1.0" && p.path === "docs/designs/COLD-MULTI-SHELF-1.0.md" && p.kind === "law" && p.software_tab === false));
 assert.ok(citeBody.designs.papers.some((p) => p.id === "BAN-SURVIVAL-1.0" && p.path === "docs/designs/BAN-SURVIVAL-1.0.md" && p.kind === "law" && p.software_tab === false));
+assert.ok(citeBody.designs.papers.some((p) => p.id === "SPORE-1.0" && p.path === "docs/designs/SPORE-1.0.md" && p.kind === "law" && p.software_tab === false));
+assert.equal(citeBody.spore.spec, "SPORE-1.0");
+assert.equal(citeBody.spore.mode, "live");
+assert.equal(citeBody.spore.plane_b, "slot");
+assert.equal(citeBody.spore.software_tab, false);
 assert.equal(citeBody.ban_survival.spec, "BAN-SURVIVAL-1.0");
 assert.equal(citeBody.ban_survival.second_door, false);
 assert.equal(citeBody.ban_survival.mutual_backup, true);

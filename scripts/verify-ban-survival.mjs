@@ -131,6 +131,7 @@ assert.match(paper, /service binding/);
 assert.match(paper, /Not a Softwares-tab product/);
 assert.match(paper, /No new MCP tool/);
 assert.match(paper, /BAN-NO-LIE/);
+assert.match(paper, /SPORE-1\.0/);
 assert.match(paper, /BAN-NO-HYDRA/);
 assert.match(paper, /BAN-NO-SECOND-DOOR/);
 assert.match(paper, /https:\/\/www\.azieleliab\.com\/#aziel/);
@@ -435,6 +436,9 @@ const http = dispatchSurvivalHttp("GET", "/survival", PRIMARY_WORKER_ORIGIN, {})
 assert.equal(http.status, 200);
 assert.equal(http.body.spec, BAN_SURVIVAL);
 assert.equal(http.body.mode, "LIVE");
+assert.equal(http.body.spore.spec, "SPORE-1.0");
+assert.equal(http.body.spore.mode, "live");
+assert.deepEqual(http.body.spore.faces, ["pause", "preserve", "wait", "physical-wipe-only"]);
 assert.equal(dispatchSurvivalHttp("POST", "/survival", PRIMARY_WORKER_ORIGIN, {}).status, 405);
 
 const failover = rateLimitFailoverCite({ scope: "mcp", limit: 1, retry_after: 2 }, PRIMARY_WORKER_ORIGIN, {});
@@ -457,6 +461,8 @@ assert.doesNotMatch(llms, /NO-LIE \/ NO-REWRITE: never claim/);
 assert.match(llms, /Companion law NO-LIE-NO-REWRITE-1\.0 \(docs\/designs\/NO-LIE-NO-REWRITE-1\.0\.md\)/);
 assert.match(llms, /Three layers/);
 assert.match(llms, /Cap-7/);
+assert.match(llms, /SPORE-1\.0/);
+assert.match(llms, /pause \/ preserve \/ wait \/ physical-wipe-only/);
 assert.match(llms, /shelf tip-hash/);
 assert.match(llms, /shuffle/);
 assert.match(llms, /belief_is_not_truth/);
@@ -504,6 +510,8 @@ assert.equal(citeBody.ban_survival.spec, BAN_SURVIVAL);
 assert.equal(citeBody.ban_survival.mutual_backup, true);
 assert.equal(citeBody.ban_survival.live_node_api.status, "slot");
 assert.equal(citeBody.ban_survival.cap7_aznet.hosted_endpoints.status, "slot");
+assert.equal(citeBody.ban_survival.spore.spec, "SPORE-1.0");
+assert.equal(citeBody.spore.spec, "SPORE-1.0");
 assert.ok(citeBody.ban_survival.live_doors.length >= 3);
 
 const citeBlockedHttp = await get("/cite.json", { BAN_SURVIVAL_BLOCKED: "workers-dev" });

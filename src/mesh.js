@@ -122,6 +122,7 @@ import { publicVpnCite } from "./public-vpn.js";
 import { ensureDefaultVpnSession, vpnAutoCite } from "./azvpn-auto.js";
 import { meshCallingNameAlert } from "./calling-name.js";
 import { HUMAN_USES_NOTE, peekHumanUses } from "./uses.js";
+import { SPORE, dormantRefuse, isSporeDormant, sporeCite } from "./spore.js";
 
 export const MESH_SLUG = "mesh";
 export const MESH_NAME = "Quantum Node Mesh";
@@ -192,6 +193,7 @@ export const MESH_LIMITATION =
   " Nine QNM laws are HARD TRUE on GET /v1/mesh (and status): split-wires, cold-copy, REHEAL isolation, phoenix local-only, die-with-pull (no godlock.uk back). OPERATOR-OVERRIDE 2026-09-17 flipped auto_heal / implicit_heal, node_gate / get_is_node_gate, neighbor_heal, network, and anonymity_network (mode flag only — not Tor/VPN/origin-hiding) from hard-false to ON. Each remaining refuse still uses a published code. GodLock is a product name, not identity. " +
   " Channel plane (QNM-CHANNEL-PLANE-1.0): operator-armed wifi / bluetooth / rf / photon cites are ON. Live OS/hardware bearers run on local qnm-node / qnsd. Worker channel_plane stays cite-only (worker_hardware:false). Worker does not invent RF/BT hardware and does not proxy those vias. suite-presence remains the Worker rollup bearer. Channel plane ≠ VPN. AZNet ↔ AZBrowser pairing is order/token only — pairing ≠ tunnel. " +
   " Public Live Nodes (live_nodes) count human mesh users (join/heartbeat/presence — human bearers) plus cited human uses (USES). Not Softwares catalog. Not downloaded Softwares instances. Not software_nodes. software_nodes is the {slug}-worker roster and never feeds Live Nodes. Uses are counters, not invented users. Zero is honest when no humans are present and uses are 0/unbound. " +
+  " SPORE-1.0: last-resort failsafe after live fronts and cold-shelf mutual backup (does not replace those layers). Power or network loss pauses execution. No pretend-live metabolism. Preserve append-only ChainLock / AKM / receipt DNA on cold shelves + local nodes + tip packs. Resume on power (memory_resolve additive). Wipe resistance is every remaining copy. Plane B/C stay SLOT until attested. Physical wipe only. " +
   " Author: Aziel Eliab only.";
 
 export const MESH_CANONICAL_OPS = Object.freeze([
@@ -491,7 +493,8 @@ export function meshCiteField(origin, env) {
     get_is_node_gate: true,
     qnm_s: false,
     nine_laws: nineLawsHint(),
-    note: "Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public Live Nodes (live_nodes) count human mesh users plus cited human uses (USES). {slug}-worker fan-out is software_nodes and never feeds that pill. Downloaded Softwares instances are instance_nodes, not Live Nodes. Incomplete uses stay honest — do not invent users. Channel plane (wifi / bluetooth / rf / photon) is an operator-armed cite — live hardware runs on local qnm-node. Public VPN auto-binds AZVPN (cite-only on GET; no session open). OPERATOR-OVERRIDE 2026-09-17 armed node_gate / get_is_node_gate, auto_heal / implicit_heal, neighbor_heal, network, anonymity_network (mode flag), and public VPN. Nine QNM laws are hard-true (fields + published refuse codes). Worker-launch cite: hashtag parts #aziel / #runtime and always About Aziel (/about). NO-LIE / NO-REWRITE: no rewrite key; never lie to survive. COLD-MULTI-SHELF-1.0: GET /shelves cites corpus#96 honesty.",
+    note: "Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public Live Nodes (live_nodes) count human mesh users plus cited human uses (USES). {slug}-worker fan-out is software_nodes and never feeds that pill. Downloaded Softwares instances are instance_nodes, not Live Nodes. Incomplete uses stay honest — do not invent users. Channel plane (wifi / bluetooth / rf / photon) is an operator-armed cite — live hardware runs on local qnm-node. Public VPN auto-binds AZVPN (cite-only on GET; no session open). OPERATOR-OVERRIDE 2026-09-17 armed node_gate / get_is_node_gate, auto_heal / implicit_heal, neighbor_heal, network, anonymity_network (mode flag), and public VPN. Nine QNM laws are hard-true (fields + published refuse codes). Worker-launch cite: hashtag parts #aziel / #runtime and always About Aziel (/about). NO-LIE / NO-REWRITE: no rewrite key; never lie to survive. COLD-MULTI-SHELF-1.0: GET /shelves cites corpus#96 honesty. SPORE-1.0: last-resort failsafe after live fronts and cold shelves; power-loss pauses metabolism; preserve DNA; wait; physical-wipe-only; does not replace shelves.",
+    spore: sporeCite(env),
     survival: survivalCiteField(),
     semantic_bridge: semanticBridgeCiteField(base),
     calling_name_alert: nameAlert.alert,
@@ -980,7 +983,7 @@ function liveNodesFromHumanSignal(humanPresence, usesSignal) {
   return users + uses;
 }
 
-function statusFieldsSync(state, usesSignal = null) {
+function statusFieldsSync(state, usesSignal = null, env) {
   const nodes = pruneNodes(state.nodes);
   const list = liveList(nodes);
   const products = productsPresent(nodes);
@@ -996,6 +999,7 @@ function statusFieldsSync(state, usesSignal = null) {
     enabled,
     radios: enabled ? "on" : "off",
     network: true,
+    spore: sporeCite(env, { mesh_enabled: enabled, radios_off: !enabled }),
     network_cite: "on",
     bearers,
     rollup,
@@ -1054,7 +1058,7 @@ function statusFieldsSync(state, usesSignal = null) {
 }
 
 async function statusFields(state, env) {
-  return statusFieldsSync(state, await peekHumanUses(env));
+  return statusFieldsSync(state, await peekHumanUses(env), env);
 }
 
 export async function meshFanoutSuitePresence(env, extra = {}) {
@@ -1072,7 +1076,26 @@ export async function meshFanoutSuitePresence(env, extra = {}) {
       source,
       get_never_enables: true,
       suite_presence: SUITE_PRESENCE,
+      invented_heartbeats: false,
+      spore: sporeCite(env, { mesh_enabled: false, radios_off: true }),
       note: "GET /v1/mesh never enables radios beyond read-only suite-presence. Fan-out runs when suite-presence is LIVE.",
+    };
+  }
+  if (isSporeDormant(env, { mesh_enabled: state.enabled })) {
+    return {
+      ok: true,
+      skipped: true,
+      reason: "spore-dormant",
+      enabled: state.enabled,
+      fanout: false,
+      joined: 0,
+      refreshed: 0,
+      source,
+      get_never_enables: true,
+      suite_presence: SUITE_PRESENCE,
+      invented_heartbeats: false,
+      spore: sporeCite(env, { mesh_enabled: state.enabled, dormant: true }),
+      note: "SPORE-1.0: dormant metabolism is paused. Fan-out would invent live heartbeats. Pause. Preserve DNA. Wait.",
     };
   }
   const targets = suitePresenceTargets(extra.products);
@@ -1183,8 +1206,8 @@ export async function meshStatus(payload, env) {
       mesh_broadcast: false,
     },
     note: state.enabled
-      ? "QNM suite rollup is LIVE. Read-only suite-presence is ON by default. live_nodes counts human mesh users plus cited human uses (USES). software_nodes is the {slug}-worker roster and never feeds Live Nodes. Counts only — no QNM-S, no leaderboard. Downloads are not live. Uses are counters, not invented users."
-      : "QNM suite-presence is not LIVE. GET /v1/mesh never enables radios beyond read-only suite-presence.",
+      ? "QNM suite rollup is LIVE. Read-only suite-presence is ON by default. live_nodes counts human mesh users plus cited human uses (USES). software_nodes is the {slug}-worker roster and never feeds Live Nodes. Counts only — no QNM-S, no leaderboard. Downloads are not live. Uses are counters, not invented users. SPORE-1.0: this isolate is powered unless a power-loss signal pauses metabolism."
+      : "QNM suite-presence is not LIVE. GET /v1/mesh never enables radios beyond read-only suite-presence. SPORE-1.0: radios off is dormant — pause, preserve DNA, wait.",
   });
 }
 
@@ -1343,11 +1366,12 @@ export async function meshDisable(payload, env) {
 async function offRefuse(op, state, env) {
   return refuse(
     "MESH-OFF",
-    "MESH-OFF: transmission radios are powered down or suite radios are not enabled. Software presence is blocked. GET /v1/mesh never enables radios. Read-only suite-presence remains a rollup read.",
+    "MESH-OFF: transmission radios are powered down or suite radios are not enabled. Software presence is blocked. GET /v1/mesh never enables radios. Read-only suite-presence remains a rollup read. SPORE-1.0: radios off is dormant — pause, preserve DNA, wait.",
     {
       op,
       mesh_enabled: false,
       radios: "off",
+      invented_heartbeats: false,
       ...(await statusFields({ ...state, enabled: false }, env)),
     },
   );
@@ -1357,6 +1381,7 @@ export async function meshJoin(payload, env) {
   const src = payload && typeof payload === "object" && !Array.isArray(payload) ? payload : {};
   const state = await loadState(env);
   if (!state.enabled) return offRefuse("join", state, env);
+  if (isSporeDormant(env, { mesh_enabled: state.enabled })) return dormantRefuse("join", env, { mesh_enabled: state.enabled });
   if (!Object.prototype.hasOwnProperty.call(src, "product") || src.product == null || String(src.product).trim() === "") {
     return refuse("MESH-BAD-INPUT", "Pass { product } as a catalog slug (a-z0-9-). product is required. AnonBroadcast is not a product.", {
       op: "join",
@@ -1458,6 +1483,7 @@ export async function meshHeartbeat(payload, env) {
   const src = payload && typeof payload === "object" && !Array.isArray(payload) ? payload : {};
   const state = await loadState(env);
   if (!state.enabled) return offRefuse("heartbeat", state, env);
+  if (isSporeDormant(env, { mesh_enabled: state.enabled })) return dormantRefuse("heartbeat", env, { mesh_enabled: state.enabled });
   const tick = tickAccepts(src);
   if (!tick.ok) {
     return refuse(tick.code, tick.reason === "tip_hash-not-fixed-size" || tick.reason === "prev-not-fixed-size"
@@ -1603,6 +1629,7 @@ export async function meshBroadcast(payload, env) {
   const src = payload && typeof payload === "object" && !Array.isArray(payload) ? payload : {};
   const state = await loadState(env);
   if (!state.enabled) return offRefuse("broadcast", state, env);
+  if (isSporeDormant(env, { mesh_enabled: state.enabled })) return dormantRefuse("broadcast", env, { mesh_enabled: state.enabled });
   if (src.publish === true || String(src.mode || "").toLowerCase() === "publish") {
     return refuse("MESH-NO-PUBLISH", "Anon-broadcast is never a publish path. Local qnm-node/ loopback only.", {
       op: "broadcast",

@@ -36,7 +36,7 @@
  * GET  /cold-copy             alias of /shelves
  * GET  /v1/shelves            machine alias of /shelves
  * GET  /v1/cold-copy          alias of /shelves
- * GET  /survival              BAN-SURVIVAL-1.0 mutual-backup map (live multi-front ↔ cold shelves; LIVE doors only; live-node API SLOT)
+ * GET  /survival              BAN-SURVIVAL-1.0 mutual-backup map (live multi-front ↔ cold shelves; LIVE doors only; live-node API SLOT; SPORE-1.0 power-loss face)
  * GET  /platforms             BAN-PLATFORMS-1.0 — windows/mac/linux/android/ios all LIVE (not SLOT)
  * GET  /v1/survival           machine alias of /survival
  * GET  /v1/platforms          machine alias of /platforms
@@ -164,6 +164,7 @@ import {
   survivalCiteField as banSurvivalCiteField,
   survivalLlmsBlock as banSurvivalLlmsBlock,
 } from "./ban-survival.js";
+import { sporeCite } from "./spore.js";
 import { websiteDesignsField, websiteDesignsLlmsBlock } from "./website-designs.js";
 import {
   catalogCacheHeaders,
@@ -1621,7 +1622,7 @@ function llmsTxt(origin, env = {}) {
     `About: ${base}/about`,
     `Cite: ${base}/cite.json`,
     `Shelves: ${base}/shelves  (COLD-MULTI-SHELF-1.0; corpus SoT ${LIBRARY_ORIGIN}/shelves)`,
-    `Ban survival: ${base}/survival  (BAN-SURVIVAL-1.0; mutual backup: live multi-front ↔ cold shelves; LIVE doors only; live-node API SLOT)`,
+    `Ban survival: ${base}/survival  (BAN-SURVIVAL-1.0; mutual backup: live multi-front ↔ cold shelves; LIVE doors only; live-node API SLOT; SPORE-1.0 pause / preserve / wait / physical-wipe-only)`,
     `Sitemap: ${base}/sitemap.xml`,
     `Sitemap index: ${base}/sitemap-index.xml`,
     `Primary host (discovery / install): ${RUNTIME_GLAMA}`,
@@ -1837,6 +1838,7 @@ function citeJson(origin, env = {}) {
     audits: auditsCiteField(),
     survival: survivalCiteField(),
     ban_survival: banCite,
+    spore: sporeCite(env),
     calling_name: calling,
     platforms: platformsCite(env),
     shelves: shelvesCiteField(origin),
@@ -2622,7 +2624,7 @@ function staticPaths(origin, env = {}) {
       get: {
         operationId: "catalog_ban_survival",
         summary:
-          "BAN-SURVIVAL-1.0 three-layer map. Live multi-front ↔ cold shelves; live-node API SLOT; Cap-7 cite + AZNet verify LIVE (hosted exec SLOT). Client door list = LIVE doors only. Not a second FragGate door. Never invent a live door.",
+          "BAN-SURVIVAL-1.0 three-layer map plus SPORE-1.0 power-loss face (pause / preserve / wait / physical-wipe-only). Live multi-front ↔ cold shelves; live-node API SLOT; Cap-7 cite + AZNet verify LIVE (hosted exec SLOT). Client door list = LIVE doors only. Not a second FragGate door.",
         tags: ["catalog"],
         responses: { "200": { description: "BAN-SURVIVAL failover JSON" } },
       },
@@ -3086,6 +3088,7 @@ function healthBody(origin, env = {}) {
     shelves_json: "/v1/shelves",
     survival: "/survival",
     survival_json: "/v1/survival",
+    spore: sporeCite(env),
     platforms: "/platforms",
     platforms_json: "/v1/platforms",
     sitemap: "/sitemap.xml",
