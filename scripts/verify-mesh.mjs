@@ -112,6 +112,9 @@ function assertMeshPills(data, extra = {}) {
   assert.equal(data.live_nodes_tip, liveNodesTip(data.live_nodes_generation, data.human_mesh_users, parts));
   assert.equal(data.live_nodes, data.human_mesh_users + viewers, extra.liveMsg || "live_nodes === human_mesh_users + site_live_viewers");
   assert.equal(data.live_nodes, data.rollup.mesh, extra.rollupMeshMsg || "rollup.mesh === live_nodes");
+  assert.equal(Object.prototype.hasOwnProperty.call(data.rollup, "live"), false, "rollup.live is not published");
+  assert.equal(data.rollup.public_live_nodes, "mesh");
+  assert.equal(data.rollup.all.live, data.rollup.active);
   assert.equal(data.rollup.nodes, data.human_mesh_users + data.human_uses, extra.rollupNodesMsg || "rollup.nodes === users+uses");
   if (!roster) {
     assert.equal(typeof data.nodes, "number", extra.nodesTypeMsg || "status nodes is a count");
@@ -197,7 +200,8 @@ assert.equal(onStatus.data.rewrite_key, false);
 assert.equal(onStatus.data.lie_to_survive, false);
 assert.equal(onStatus.data.copies_one_tunnel, false);
 assert.equal(onStatus.data.no_lie_spec, "NO-LIE-NO-REWRITE-1.0");
-assert.equal(onStatus.data.rollup.live, 0);
+assert.equal(onStatus.data.rollup.all.live, 0);
+assert.equal(onStatus.data.rollup.live, undefined);
 assert.equal(onStatus.data.rollup.locked, 0);
 assert.equal(onStatus.data.rollup.isolated, 0);
 assert.deepEqual(onStatus.data.rollup.software, { live: 0, locked: 0, isolated: 0 });
@@ -336,7 +340,8 @@ assert.equal(autoJoin.data.software_nodes, PRODUCTS.length, "mesh_* must not inf
 assert.equal(autoJoin.data.ephemeral_nodes, 1);
 assert.equal(autoJoin.data.ephemeral_live_nodes, 1);
 assert.equal(autoJoin.data.instance_live_nodes, 0);
-assert.equal(autoJoin.data.rollup.live, PRODUCTS.length + 1);
+assert.equal(autoJoin.data.rollup.all.live, PRODUCTS.length + 1);
+assert.equal(autoJoin.data.rollup.live, undefined);
 assert.equal(autoJoin.data.rollup.mesh, autoJoin.data.live_nodes);
 assert.equal(autoJoin.data.rollup.software.live, PRODUCTS.length);
 assert.equal(autoJoin.data.rollup.human.live, 1);
@@ -396,7 +401,8 @@ assertMeshPills(joined.data);
 assert.equal(joined.data.software_nodes, PRODUCTS.length);
 assert.equal(joined.data.ephemeral_nodes, 0);
 assert.equal(joined.data.rollup.named.live, 1);
-assert.equal(joined.data.rollup.live, PRODUCTS.length + 1);
+assert.equal(joined.data.rollup.all.live, PRODUCTS.length + 1);
+assert.equal(joined.data.rollup.live, undefined);
 assert.equal(joined.data.rollup.mesh, joined.data.live_nodes);
 assert.equal(joined.data.rollup.all.live, PRODUCTS.length + 1);
 assert.ok(joined.data.products_present.includes("godlock"));
@@ -438,7 +444,8 @@ const isolated = await postJson(env, "/v1/mesh/join", {
   presence: "isolated",
 });
 assert.equal(isolated.status, 200, JSON.stringify(isolated.data));
-assert.equal(isolated.data.rollup.live, PRODUCTS.length + 1, "workers + godlock-uk still active");
+assert.equal(isolated.data.rollup.all.live, PRODUCTS.length + 1, "workers + godlock-uk still active");
+assert.equal(isolated.data.rollup.live, undefined);
 assert.equal(isolated.data.rollup.isolated, 1);
 assert.equal(isolated.data.rollup.named.isolated, 1);
 assert.equal(isolated.data.rollup.locked, 0);
