@@ -998,10 +998,10 @@ function statusFieldsSync(state, usesSignal = null, env) {
   const uses = usesSignal && typeof usesSignal === "object" ? usesSignal : emptyUsesSignal();
   const human_mesh_users = meshSizeFromPresence(rollup.human);
   const human_uses = uses.uses_kv ? Number(uses.uses) || 0 : 0;
-  const nodes = nodesFromHumanSignal(rollup.human, uses);
+  const nodes_count = nodesFromHumanSignal(rollup.human, uses);
   const live_nodes = human_mesh_users;
   rollup.mesh = live_nodes;
-  rollup.nodes = nodes;
+  rollup.nodes = nodes_count;
   const bearers = normalizeBearers(state.bearers);
   const enabled = state.enabled === true;
   return {
@@ -1012,7 +1012,7 @@ function statusFieldsSync(state, usesSignal = null, env) {
     network_cite: "on",
     bearers,
     rollup,
-    nodes,
+    nodes: nodes_count,
     live_nodes,
     live_nodes_plane: LIVE_NODES_PLANE,
     nodes_plane: NODES_PLANE,
