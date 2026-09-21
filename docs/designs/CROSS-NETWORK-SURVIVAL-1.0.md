@@ -70,6 +70,8 @@ hostname resurrection.
 
 **COLD-MULTI-SHELF-1.0** is the executable planes cite under this umbrella: `GET /shelves` matches live corpus `/shelves` (corpus#96). Plane A is one CF/GitHub tunnel (5 surfaces / 2 family radii / 1 independent live). Plane B is alt-forge SLOT. Plane C is USB SLOT. `doi` null. Runtime is not a sixth surface. Paper: [COLD-MULTI-SHELF-1.0](COLD-MULTI-SHELF-1.0.md).
 
+**SPORE-1.0** is the last-resort failsafe under this umbrella (layer 3 after live fronts and cold-shelf mutual backup — not a replacement for those layers): no electricity pauses execution. Metabolism stops. DNA (ChainLock / AKM / receipts) stays on cold shelves + local nodes + tip packs. Resume on power is forward-only. Plane B/C stay SLOT until attested. Physical wipe only. Paper: [SPORE-1.0](SPORE-1.0.md).
+
 Companion papers already on this runtime (cross-link, do not rewrite):
 
 - DIE-WITH-PULL — [TUN-WP-0.1](TUN-WP-0.1.md), [NODE-OPS-1.0](NODE-OPS-1.0.md), [QNM-WP-1.0](QNM-WP-1.0.md)

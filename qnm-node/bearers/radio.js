@@ -137,6 +137,7 @@ export function radioStatus() {
   const bluetooth = liveOrRefuse("bluetooth", probeBluetooth());
   const rf = liveOrRefuse("rf", probeRf());
   const photon = liveOrRefuse("photon", probePhoton());
+  const anyLive = [wifi, bluetooth, rf, photon].some((row) => row.state === "LIVE");
   return {
     spec: RADIO_HOOK_SPEC,
     author: RADIO_HOOK_AUTHOR,
@@ -148,8 +149,17 @@ export function radioStatus() {
     worker_channel_plane: "cite-only",
     law: "LIVE-when-HW-present / refuse-when-absent",
     channels: { wifi, bluetooth, rf, photon },
+    spore: {
+      spec: "SPORE-1.0",
+      mode: anyLive ? "live" : "dormant",
+      metabolism: anyLive ? "on" : "paused",
+      invented_heartbeats: false,
+      note: anyLive
+        ? "Local radio hardware present. Transmission metabolism can run."
+        : "No local radio hardware. SPORE-1.0 dormant — pause, preserve DNA, wait. Do not invent LIVE radios.",
+    },
     note:
-      "Local qnm-node radio hooks. Worker GET /v1/mesh channel_plane stays cite-only (worker_hardware:false). Photon is local qnsd on loopback — not a public via.",
+      "Local qnm-node radio hooks. Worker GET /v1/mesh channel_plane stays cite-only (worker_hardware:false). Photon is local qnsd on loopback — not a public via. SPORE-1.0: hardware absent is dormant, not a mock LIVE beat.",
   };
 }
 

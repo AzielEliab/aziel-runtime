@@ -619,6 +619,10 @@ assert.ok(cite.designs.papers.some((p) => p.id === "NO-LIE-NO-REWRITE-1.0" && p.
 assert.ok(cite.designs.papers.some((p) => p.id === "REDLINE-2026-09-14" && p.kind === "law" && p.software_tab === false));
 assert.ok(cite.designs.papers.some((p) => p.id === "COLD-MULTI-SHELF-1.0" && p.kind === "law" && p.software_tab === false));
 assert.ok(cite.designs.papers.some((p) => p.id === "BAN-SURVIVAL-1.0" && p.kind === "law" && p.software_tab === false));
+assert.ok(cite.designs.papers.some((p) => p.id === "SPORE-1.0" && p.kind === "law" && p.software_tab === false));
+assert.equal(cite.spore.spec, "SPORE-1.0");
+assert.equal(cite.ban_survival.spore.spec, "SPORE-1.0");
+assert.match(llms, /SPORE-1\.0/);
 assert.equal(cite.ban_survival.spec, "BAN-SURVIVAL-1.0");
 assert.equal(cite.ban_survival.second_door, false);
 assert.equal(cite.ban_survival.doi, null);

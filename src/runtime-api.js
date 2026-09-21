@@ -666,6 +666,7 @@ export function bundleJson(origin, products) {
     cite: base + "/cite.json",
     survival: base + "/survival",
     ban_survival: BAN_SURVIVAL,
+    spore: "SPORE-1.0",
     user_agent: DEFAULT_UA,
     true_engine_slugs: honesty.true_engine_slugs,
     proxy_is_not_exec: true,

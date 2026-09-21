@@ -4,7 +4,7 @@ Author: Aziel Eliab only.
 
 Status: LIVE law (2026-09-18). Not a Softwares-tab product. Not a FragGate slug. Remain-OFF untouched.
 
-Companion under the umbrella: [CROSS-NETWORK-SURVIVAL-1.0](CROSS-NETWORK-SURVIVAL-1.0.md) (does not replace the machine tip). Neighbor: [NO-LIE-NO-REWRITE-1.0](NO-LIE-NO-REWRITE-1.0.md), [COLD-MULTI-SHELF-1.0](COLD-MULTI-SHELF-1.0.md). Mesh rollup: [NODE_MESH](../NODE_MESH.md). Executable: `src/ban-survival.js`.
+Companion under the umbrella: [CROSS-NETWORK-SURVIVAL-1.0](CROSS-NETWORK-SURVIVAL-1.0.md) (does not replace the machine tip). Neighbor: [NO-LIE-NO-REWRITE-1.0](NO-LIE-NO-REWRITE-1.0.md), [COLD-MULTI-SHELF-1.0](COLD-MULTI-SHELF-1.0.md), [SPORE-1.0](SPORE-1.0.md) (last-resort failsafe — not a replacement for these shelves). Mesh rollup: [NODE_MESH](../NODE_MESH.md). Executable: `src/ban-survival.js`.
 
 ---
 
@@ -367,7 +367,7 @@ matrix: `/survival` `platforms`, `/v1/software` `platforms`,
 - `GET /survival` · `GET /v1/survival` · aliases `/doors` `/failover`
 - `/cite.json` `ban_survival` (`live_doors` = LIVE only; `shelf_backup`;
   `live_node_api` SLOT; `cap7_aznet` cite+verify LIVE / hosted SLOT /
-  shuffle layout LIVE / public shuffle SLOT; `akm_memory` cite)
+  shuffle layout LIVE / public shuffle SLOT; `akm_memory` cite; `spore`)
 - `/llms.txt` · `/ai.txt`
 - `/openapi.json`
 - MCP `runtime_skill` + stdio bridge failover (no new tool)
@@ -376,6 +376,7 @@ matrix: `/survival` `platforms`, `/v1/software` `platforms`,
 
 9. Close tests
 - `/cite.json` `ban_survival.spec` equals `BAN-SURVIVAL-1.0`.
+- `/cite.json` `spore.spec` equals `SPORE-1.0`. Last-resort failsafe (layer 3): pause / preserve / wait / physical-wipe-only. Does not replace cold shelves. Plane B/C SLOT.
 - `/llms.txt` and `/ai.txt` carry mutual backup (live fronts **and** shelves).
 - OpenAPI documents `GET /survival` and `GET /v1/survival`.
 - Named routes only. Hub `/runtime` is `independent: false`.

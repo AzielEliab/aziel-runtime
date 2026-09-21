@@ -119,4 +119,10 @@ Calling-name rotation is discovery-only: trigger → mesh alert → rewrite all 
 
 Machine map: `GET /survival` · `/cite.json` `ban_survival` · `/llms.txt`. Platforms LIVE: windows / mac / linux / android / ios (`native_app_store` false). Hubs (ae / corpus / godlock / HDJ) pull `/survival` `live_doors` + calling-name alert rather than hardcode (follow-on, not this repo). Paper: [BAN-SURVIVAL-1.0](designs/BAN-SURVIVAL-1.0.md). Client order: [CLIENT_UPDATE.md](CLIENT_UPDATE.md).
 
+## SPORE dormancy (SPORE-1.0)
+
+Last-resort failsafe after live fronts and cold-shelf mutual backup — not a replacement for those layers. Power or network loss pauses execution. No pretend-live metabolism. Append-only ChainLock / AKM / receipt DNA stays on cold shelves, local nodes, and tip packs. Resume on power (`memory_resolve` additive). Wipe resistance is every remaining copy. Plane B/C stay SLOT until attested. Physical wipe only. Faces: pause / preserve / wait / physical-wipe-only. RE-COLD-STORE is an honest hook (no invented destinations).
+
+Machine field: `/cite.json` `spore` · `GET /survival` `spore` · `GET /v1/mesh` `spore`. Paper: [SPORE-1.0](designs/SPORE-1.0.md).
+
 Product Worker template: [PRODUCT_SEO.md](PRODUCT_SEO.md). GitHub About lock: [GITHUB.md](GITHUB.md).
