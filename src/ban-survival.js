@@ -286,7 +286,7 @@ export const LIVE_NODE_API = Object.freeze({
   is_live_door: false,
   mesh_live_nodes_are_api: false,
   note:
-    "QNM live_nodes is mesh size (presence). Nodes do not publish exec URLs. Product Workers proxy /v1/mesh/* only — not /mcp. No submesh/subpipe exec hop. Open proxy to random nodes is refused.",
+    "QNM live_nodes counts human mesh users plus cited human uses (USES). software_nodes is the Softwares roster and never an API. Nodes do not publish exec URLs. Product Workers proxy /v1/mesh/* only — not /mcp. No submesh/subpipe exec hop. Open proxy to random nodes is refused.",
   secure_path: Object.freeze([
     "named origin only (no unmarked hydra)",
     "FragGate is the only exec path (/mcp or /v1/fraggate/call)",

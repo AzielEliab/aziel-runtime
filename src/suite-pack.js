@@ -109,10 +109,10 @@ export function buildSuitePack({ origin, products, registry, extra = {} } = {}) 
       vpn: publicVpnCite(),
       get_never_enables: true,
       worker_hardware: false,
-      live_nodes_plane: "mesh-size",
+      live_nodes_plane: "human-mesh-users-uses",
       software_nodes_plane: "software-worker-fanout",
       live_nodes_note:
-        "Public Live Nodes count mesh size: active + inactive join/heartbeat nodes, excluding isolated. This pack download is not live. A running instance should POST /v1/mesh/join with product + an instance node_id (not {slug}-worker), then heartbeat inside 5 minutes. Isolated presence does not count.",
+        "Public Live Nodes count human mesh users (join/heartbeat/presence — human bearers) plus cited human uses (USES). Not Softwares catalog. Not downloaded instances. Not software_nodes. This pack download is not live. A human should POST /v1/mesh/join with product + kind=human (or omit node_id to mint mesh_*), then heartbeat inside 5 minutes. Isolated humans do not count. Uses are counters — do not invent users.",
       instance_join: {
         path: "/v1/mesh/join",
         heartbeat: "/v1/mesh/heartbeat",

@@ -154,7 +154,7 @@ front first** so clients leave the hot path instead of retry-storming
 cacheable so crawlers can take the map without beating the origin.
 
 6. Live-node API (SLOT — no open proxy)
-QNM `live_nodes` is **mesh size** (presence). The roster has `node_id` +
+QNM `live_nodes` counts **human mesh users** plus cited **human uses** (USES). The roster has `node_id` +
 product + presence + tip-hash. It does **not** publish exec URLs.
 Product Workers proxy `/v1/mesh/*` via `AZIEL_RUNTIME` — not `/mcp`.
 There is no `submesh` / `subpipe` exec hop in this Worker.

@@ -56,12 +56,13 @@
  *   must refuse — they cannot turn suite-presence off.
  * - While suite-presence is LIVE, this Worker fans out join/heartbeat
  *   for every live Softwares product Worker (`{slug}-worker`) on cron
- *   or request-path. That roster is software_nodes — it must not be
- *   used alone as the public Live Nodes number. Public live_nodes is
- *   mesh size: every join/heartbeat node that is active (presence
- *   live) or inactive (presence locked), excluding isolated.
- *   Downloads and catalog size are not live. Product Workers proxy
- *   /v1/mesh/* via AZIEL_RUNTIME — do not invent a second mesh.
+ *   or request-path. That roster is software_nodes — it must never
+ *   feed public Live Nodes. Public live_nodes counts human mesh users
+ *   (join/heartbeat/presence with human bearers) plus the cited human
+ *   uses signal (USES). Not product roster. Not downloaded Softwares
+ *   instances. Not software_nodes. Incomplete uses stay honest (do
+ *   not invent users). Product Workers proxy /v1/mesh/* via
+ *   AZIEL_RUNTIME — do not invent a second mesh.
  * - NO-LIE / NO-REWRITE (NO-LIE-NO-REWRITE-1.0): receipts that still
  *   hash; copies not all on one tunnel; rules simple enough others
  *   verify without the author's voice; no rewrite key. The network is
@@ -120,6 +121,7 @@ import { CHANNEL_PLANE_NOTE, CHANNEL_PLANE_SPEC, channelPlaneFrame, channelPlane
 import { publicVpnCite } from "./public-vpn.js";
 import { ensureDefaultVpnSession, vpnAutoCite } from "./azvpn-auto.js";
 import { meshCallingNameAlert } from "./calling-name.js";
+import { HUMAN_USES_NOTE, peekHumanUses } from "./uses.js";
 
 export const MESH_SLUG = "mesh";
 export const MESH_NAME = "Quantum Node Mesh";
@@ -140,12 +142,16 @@ export const EXAMPLE_BEARER = "suite-presence";
 export const FANOUT_CRON = "*/2 * * * *";
 export const FANOUT_NODE_SUFFIX = "-worker";
 
-/** Public Live Nodes = mesh size: active + inactive, excluding isolated. */
+/** Public Live Nodes = human mesh users + cited human uses. Never Softwares. */
+export const LIVE_NODES_PLANE = "human-mesh-users-uses";
 export const LIVE_NODES_NOTE =
-  "Public Live Nodes (live_nodes / rollup.mesh) count mesh size — how big the node mesh is: every join/heartbeat node that is active (presence live) or inactive (presence locked). Isolated nodes are excluded (see isolated_nodes). Not catalog size. Not cumulative downloads. software_nodes is the {slug}-worker roster and must not be used alone as this pill. Zero is honest when the roster is empty.";
+  "Public Live Nodes (live_nodes / rollup.mesh) count human mesh users (join/heartbeat/presence with human bearers) plus the cited human uses signal (USES / human_uses). Isolated humans stay on isolated_nodes. Not Softwares catalog length. Not downloaded Softwares instances. Not software_nodes. software_nodes is the {slug}-worker roster and never feeds this pill. Uses are interaction counters, not unique people — incomplete or unbound telemetry is reported honestly (0 + complete=false). Live Nodes does not invent users. Zero is honest when no humans are present and uses are 0/unbound.";
 
 export const SOFTWARE_NODES_NOTE =
-  "software_nodes / rollup.software count Softwares product Workers ({slug}-worker) from suite-presence fan-out. They may appear in the mesh roster; they must not be used alone as the public Live Nodes number.";
+  "software_nodes / rollup.software count Softwares product Workers ({slug}-worker) from suite-presence fan-out. They may appear in the mesh roster. They must never feed public Live Nodes.";
+
+export const HUMAN_NODES_NOTE =
+  "human_nodes / rollup.human count humans who exist as mesh users (join/heartbeat/presence — human bearers or kind=human). Auto-minted mesh_* joins are human participants. Named downloaded Softwares instance ids stay instance_nodes.";
 
 export function isLiveMeshPresence(presence) {
   return presence === "live" || presence === "locked";
@@ -185,7 +191,7 @@ export const MESH_LIMITATION =
   " COLD-MULTI-SHELF-1.0: GET /shelves cites corpus#96 honesty — Plane A one CF/GitHub tunnel (5 published surfaces / 2 family radii / 1 independent live); Plane B alt-forge SLOT (Codeberg + archive.org PASS still SLOT at https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius; Framagit URL null Zenodo tip-pack SLOT (zenodo_live:false; CNS-ZENODO-NOT-LIVE); doi null); Plane C USB SLOT until CNS-OPERATOR-ATTEST. Runtime is the same Plane A tunnel. " +
   " Nine QNM laws are HARD TRUE on GET /v1/mesh (and status): split-wires, cold-copy, REHEAL isolation, phoenix local-only, die-with-pull (no godlock.uk back). OPERATOR-OVERRIDE 2026-09-17 flipped auto_heal / implicit_heal, node_gate / get_is_node_gate, neighbor_heal, network, and anonymity_network (mode flag only — not Tor/VPN/origin-hiding) from hard-false to ON. Each remaining refuse still uses a published code. GodLock is a product name, not identity. " +
   " Channel plane (QNM-CHANNEL-PLANE-1.0): operator-armed wifi / bluetooth / rf / photon cites are ON. Live OS/hardware bearers run on local qnm-node / qnsd. Worker channel_plane stays cite-only (worker_hardware:false). Worker does not invent RF/BT hardware and does not proxy those vias. suite-presence remains the Worker rollup bearer. Channel plane ≠ VPN. AZNet ↔ AZBrowser pairing is order/token only — pairing ≠ tunnel. " +
-  " Public Live Nodes (live_nodes) count mesh size: active + inactive join/heartbeat nodes, excluding isolated. Not catalog size. Not downloads. software_nodes is the {slug}-worker roster and must not be used alone as Live Nodes. Zero is honest when the roster is empty. " +
+  " Public Live Nodes (live_nodes) count human mesh users (join/heartbeat/presence — human bearers) plus cited human uses (USES). Not Softwares catalog. Not downloaded Softwares instances. Not software_nodes. software_nodes is the {slug}-worker roster and never feeds Live Nodes. Uses are counters, not invented users. Zero is honest when no humans are present and uses are 0/unbound. " +
   " Author: Aziel Eliab only.";
 
 export const MESH_CANONICAL_OPS = Object.freeze([
@@ -430,10 +436,12 @@ export function meshHint(path = "/v1/mesh") {
     suite_presence: SUITE_PRESENCE,
     get_never_enables: true,
     fanout: "cron-or-request-path",
-    live_nodes_plane: "mesh-size",
+    live_nodes_plane: LIVE_NODES_PLANE,
     software_nodes_plane: "software-worker-fanout",
     live_nodes_note: LIVE_NODES_NOTE,
     software_nodes_note: SOFTWARE_NODES_NOTE,
+    human_nodes_note: HUMAN_NODES_NOTE,
+    human_uses_note: HUMAN_USES_NOTE,
     presence_ttl_ms: PRESENCE_TTL_MS,
     qns_cd: qnsHint(),
     survival: survivalHint(),
@@ -483,7 +491,7 @@ export function meshCiteField(origin, env) {
     get_is_node_gate: true,
     qnm_s: false,
     nine_laws: nineLawsHint(),
-    note: "Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public Live Nodes (live_nodes) are mesh size: active + inactive, excluding isolated. {slug}-worker fan-out is software_nodes and must not be used alone as that pill. Downloads stay off the live_nodes count. Channel plane (wifi / bluetooth / rf / photon) is an operator-armed cite — live hardware runs on local qnm-node. Public VPN auto-binds AZVPN (cite-only on GET; no session open). OPERATOR-OVERRIDE 2026-09-17 armed node_gate / get_is_node_gate, auto_heal / implicit_heal, neighbor_heal, network, anonymity_network (mode flag), and public VPN. Nine QNM laws are hard-true (fields + published refuse codes). Worker-launch cite: hashtag parts #aziel / #runtime and always About Aziel (/about). NO-LIE / NO-REWRITE: no rewrite key; never lie to survive. COLD-MULTI-SHELF-1.0: GET /shelves cites corpus#96 honesty.",
+    note: "Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public Live Nodes (live_nodes) count human mesh users plus cited human uses (USES). {slug}-worker fan-out is software_nodes and never feeds that pill. Downloaded Softwares instances are instance_nodes, not Live Nodes. Incomplete uses stay honest — do not invent users. Channel plane (wifi / bluetooth / rf / photon) is an operator-armed cite — live hardware runs on local qnm-node. Public VPN auto-binds AZVPN (cite-only on GET; no session open). OPERATOR-OVERRIDE 2026-09-17 armed node_gate / get_is_node_gate, auto_heal / implicit_heal, neighbor_heal, network, anonymity_network (mode flag), and public VPN. Nine QNM laws are hard-true (fields + published refuse codes). Worker-launch cite: hashtag parts #aziel / #runtime and always About Aziel (/about). NO-LIE / NO-REWRITE: no rewrite key; never lie to survive. COLD-MULTI-SHELF-1.0: GET /shelves cites corpus#96 honesty.",
     survival: survivalCiteField(),
     semantic_bridge: semanticBridgeCiteField(base),
     calling_name_alert: nameAlert.alert,
@@ -584,26 +592,64 @@ export function sanitizeNodeId(raw) {
   return s;
 }
 
-/** Auto-minted join ids (`mesh_${seq}_…`). Instance plane (downloaded Softwares). */
+/** Auto-minted join ids (`mesh_${seq}_…`). Human-participant plane unless declared instance. */
 export function isEphemeralMeshNodeId(nodeId) {
   return /^mesh_/.test(String(nodeId || ""));
 }
 
-/** Suite-presence fan-out ids (`{slug}-worker`). Counted on software_nodes; not the Live Nodes definition by itself. */
+/** Suite-presence fan-out ids (`{slug}-worker`). Counted on software_nodes; never Live Nodes. */
 export function isSoftwareWorkerNodeId(nodeId) {
   const id = String(nodeId || "");
   return id.endsWith(FANOUT_NODE_SUFFIX) && !isEphemeralMeshNodeId(id);
 }
 
-/** Non-worker join/heartbeat ids (downloaded Softwares instances / named extras). */
+/** Non-worker join/heartbeat ids (downloaded Softwares instances or humans). */
 export function isInstanceMeshNodeId(nodeId) {
   const id = String(nodeId || "");
   if (!id) return false;
   return !isSoftwareWorkerNodeId(id);
 }
 
-export function meshNodePlane(nodeId) {
-  return isSoftwareWorkerNodeId(nodeId) ? "software" : "instance";
+export const MESH_NODE_KINDS = Object.freeze(["human", "instance", "software"]);
+
+export function sanitizeMeshKind(raw) {
+  const s = String(raw || "")
+    .trim()
+    .toLowerCase();
+  return MESH_NODE_KINDS.includes(s) ? s : "";
+}
+
+export function isHumanBearerToken(raw) {
+  return String(raw || "").trim().toLowerCase() === "human";
+}
+
+/**
+ * Human mesh user vs Softwares worker vs downloaded instance.
+ * Software worker ids always win. kind/plane/bearer=human marks a human.
+ * Auto-minted mesh_* without an instance declaration is a human participant.
+ */
+export function inferMeshKind(node = {}) {
+  const id = node && (node.node_id || node.id);
+  if (isSoftwareWorkerNodeId(id)) return "software";
+  const declared = sanitizeMeshKind(node.kind) || sanitizeMeshKind(node.plane);
+  if (declared === "human" || isHumanBearerToken(node.bearer)) return "human";
+  if (declared === "instance") return "instance";
+  if (isEphemeralMeshNodeId(id)) return "human";
+  return "instance";
+}
+
+export function isHumanMeshNode(node) {
+  return inferMeshKind(node) === "human";
+}
+
+export function countsAsLiveNodes(node) {
+  if (!node || typeof node !== "object") return false;
+  return isHumanMeshNode(node) && isLiveMeshPresence(node.presence);
+}
+
+export function meshNodePlane(nodeOrId, extra) {
+  if (nodeOrId && typeof nodeOrId === "object") return inferMeshKind(nodeOrId);
+  return inferMeshKind({ node_id: nodeOrId, ...(extra && typeof extra === "object" ? extra : {}) });
 }
 
 export function sanitizeLabel(raw) {
@@ -709,25 +755,31 @@ function rollupCounts(nodes) {
   const ephemeral = emptyPresence();
   const named = emptyPresence();
   const instances = emptyPresence();
+  const human = emptyPresence();
   const all = emptyPresence();
   for (const node of liveList(nodes)) {
     const p = node && PRESENCE_STATES.includes(node.presence) ? node.presence : "live";
     all[p] += 1;
     const id = node && node.node_id;
+    const kind = inferMeshKind(node);
     if (isEphemeralMeshNodeId(id)) ephemeral[p] += 1;
-    else if (isSoftwareWorkerNodeId(id)) software[p] += 1;
-    else named[p] += 1;
-    if (isInstanceMeshNodeId(id)) instances[p] += 1;
+    if (kind === "software") software[p] += 1;
+    else if (kind === "human") human[p] += 1;
+    else {
+      instances[p] += 1;
+      named[p] += 1;
+    }
   }
   return {
     live: all.live,
     locked: all.locked,
     isolated: all.isolated,
-    mesh: meshSizeFromPresence(all),
+    mesh: meshSizeFromPresence(human),
     active: all.live,
     inactive: all.locked,
     software,
     instances,
+    human,
     ephemeral,
     named,
     all,
@@ -912,11 +964,32 @@ function refuse(code, message, extra = {}) {
   };
 }
 
-function statusFields(state) {
+function emptyUsesSignal() {
+  return {
+    uses: 0,
+    uses_kv: false,
+    complete: false,
+    source: "unbound",
+    note: HUMAN_USES_NOTE,
+  };
+}
+
+function liveNodesFromHumanSignal(humanPresence, usesSignal) {
+  const users = meshSizeFromPresence(humanPresence);
+  const uses = usesSignal && usesSignal.uses_kv ? Number(usesSignal.uses) || 0 : 0;
+  return users + uses;
+}
+
+function statusFieldsSync(state, usesSignal = null) {
   const nodes = pruneNodes(state.nodes);
   const list = liveList(nodes);
   const products = productsPresent(nodes);
   const rollup = rollupCounts(nodes);
+  const uses = usesSignal && typeof usesSignal === "object" ? usesSignal : emptyUsesSignal();
+  const human_mesh_users = meshSizeFromPresence(rollup.human);
+  const human_uses = uses.uses_kv ? Number(uses.uses) || 0 : 0;
+  const live_nodes = liveNodesFromHumanSignal(rollup.human, uses);
+  rollup.mesh = live_nodes;
   const bearers = normalizeBearers(state.bearers);
   const enabled = state.enabled === true;
   return {
@@ -926,13 +999,32 @@ function statusFields(state) {
     network_cite: "on",
     bearers,
     rollup,
-    live_nodes: rollup.mesh,
+    live_nodes,
+    live_nodes_plane: LIVE_NODES_PLANE,
+    human_mesh_users,
+    human_nodes: rollup.human.live + rollup.human.locked + rollup.human.isolated,
+    human_live_nodes: rollup.human.live,
+    human_locked_nodes: rollup.human.locked,
+    human_isolated_nodes: rollup.human.isolated,
+    human_uses,
+    human_uses_kv: uses.uses_kv === true,
+    human_uses_complete: uses.complete === true,
+    human_uses_source: uses.source || "unbound",
+    human_uses_note: uses.note || HUMAN_USES_NOTE,
+    live_nodes_components: {
+      human_mesh_users,
+      human_uses,
+      software_nodes_excluded: true,
+      instance_nodes_excluded: true,
+      invent_users: false,
+    },
     active_nodes: rollup.active,
     inactive_nodes: rollup.inactive,
     locked_nodes: rollup.locked,
     isolated_nodes: rollup.isolated,
     live_nodes_note: LIVE_NODES_NOTE,
     software_nodes_note: SOFTWARE_NODES_NOTE,
+    human_nodes_note: HUMAN_NODES_NOTE,
     ephemeral_nodes: rollup.ephemeral.live + rollup.ephemeral.locked + rollup.ephemeral.isolated,
     ephemeral_live_nodes: rollup.ephemeral.live,
     software_nodes: rollup.software.live + rollup.software.locked + rollup.software.isolated,
@@ -959,6 +1051,10 @@ function statusFields(state) {
     mesh_mutate_rate_kind: "mesh_mutate",
     roster_cap: NODE_CAP,
   };
+}
+
+async function statusFields(state, env) {
+  return statusFieldsSync(state, await peekHumanUses(env));
 }
 
 export async function meshFanoutSuitePresence(env, extra = {}) {
@@ -992,6 +1088,7 @@ export async function meshFanoutSuitePresence(env, extra = {}) {
       product: target.product,
       label: existing && existing.label ? existing.label : target.label,
       presence: "live",
+      kind: "software",
       session_id,
       joined_at: (existing && existing.joined_at) || ts,
       last_seen: ts,
@@ -1014,8 +1111,8 @@ export async function meshFanoutSuitePresence(env, extra = {}) {
     node_ids: targets.map((t) => t.node_id),
     get_never_enables: true,
     suite_presence: SUITE_PRESENCE,
-    ...statusFields({ ...state, store }),
-    note: "Suite-presence refresh of live Softwares product Workers ({slug}-worker → software_nodes). Those nodes are real mesh presence (non-isolated) so they add to mesh-size Live Nodes; software_nodes must not be used alone as that pill. GET never enables radios beyond read-only suite-presence. Not a login mesh.",
+    ...(await statusFields({ ...state, store }, env)),
+    note: "Suite-presence refresh of live Softwares product Workers ({slug}-worker → software_nodes). software_nodes never feeds public Live Nodes. Live Nodes count human mesh users plus cited human uses. GET never enables radios beyond read-only suite-presence. Not a login mesh.",
   });
 }
 
@@ -1035,7 +1132,7 @@ export async function meshVpnCite(payload, env) {
     return {
       ...baseResult({
         op: "vpn",
-        ...statusFields(state),
+        ...(await statusFields(state, env)),
         ...publicVpnCite(),
       }),
       ok: false,
@@ -1051,7 +1148,7 @@ export async function meshVpnCite(payload, env) {
   }
   return baseResult({
     op: "vpn",
-    ...statusFields(state),
+    ...(await statusFields(state, env)),
     ...publicVpnCite(),
     vpn_auto: vpnAutoCite({ open: true, already: auto.already === true }),
     auto: true,
@@ -1075,7 +1172,7 @@ export async function meshStatus(payload, env) {
   const nameAlert = meshCallingNameAlert(env);
   return baseResult({
     op: "status",
-    ...statusFields(state),
+    ...(await statusFields(state, env)),
     calling_name_alert: nameAlert.alert,
     calling_name: {
       rotated: nameAlert.rotated,
@@ -1086,7 +1183,7 @@ export async function meshStatus(payload, env) {
       mesh_broadcast: false,
     },
     note: state.enabled
-      ? "QNM suite rollup is LIVE. Read-only suite-presence is ON by default. live_nodes is mesh size (active + inactive, not isolated). software_nodes is the {slug}-worker roster and must not be used alone as Live Nodes. Counts only — no QNM-S, no leaderboard. Downloads are not live."
+      ? "QNM suite rollup is LIVE. Read-only suite-presence is ON by default. live_nodes counts human mesh users plus cited human uses (USES). software_nodes is the {slug}-worker roster and never feeds Live Nodes. Counts only — no QNM-S, no leaderboard. Downloads are not live. Uses are counters, not invented users."
       : "QNM suite-presence is not LIVE. GET /v1/mesh never enables radios beyond read-only suite-presence.",
   });
 }
@@ -1112,7 +1209,7 @@ Read-only **suite-presence is ON by default**. A site ping of \`GET /v1/mesh\` n
 
 \`mesh_join\` / \`POST /v1/mesh/join\` requires \`product\` (catalog slug). Optional \`node_id\` must be exactly 8–80 chars matching \`[a-z0-9._-]\` (full string). \`presence\` must be \`live\` (default), \`locked\`, or \`isolated\`. Join is additive presence with a **strict 5-minute TTL**. \`mesh_heartbeat\` refreshes that TTL. If no heartbeat (or fan-out refresh) arrives inside the window, the node is **dropped** from the live roster. Direct HTTP join/heartbeat/leave/broadcast share F03 kind \`mesh_mutate\` (default 30/min; \`RATE_LIMIT\` 429). Not a login mesh. Roster does not publish exec URLs. Roster cap \`NODE_CAP\` prefers \`{slug}-worker\` rows; extra anonymous joins refuse \`MESH-ROSTER-FULL\`. When transmission radios are powered down or suite radios are not enabled, join/heartbeat/broadcast refuse **\`MESH-OFF\`**. Read paths stay honest. Do not invent a second refuse spelling.
 
-While radios are LIVE, this Worker fans out join/heartbeat for every live Softwares product Worker (\`node_id\` \`{slug}-worker\`, no \`|\`) on cron (\`*/2 * * * *\`) or request-path. That roster is **software_nodes** — it must not be used alone as public Live Nodes. Public **live_nodes** is mesh size: every join/heartbeat node that is **active** (presence \`live\`) or **inactive** (presence \`locked\`). Isolated nodes are excluded. Downloads and catalog size are not live. Zero is honest when the roster is empty. Product Workers proxy \`/v1/mesh/*\` via \`AZIEL_RUNTIME\`. Not a second mesh. Fan-out does not restore godlock.uk or reattach a pulled public hostname.
+While radios are LIVE, this Worker fans out join/heartbeat for every live Softwares product Worker (\`node_id\` \`{slug}-worker\`, no \`|\`) on cron (\`*/2 * * * *\`) or request-path. That roster is **software_nodes** — it never feeds public Live Nodes. Public **live_nodes** counts **human mesh users** (join/heartbeat/presence — human bearers / \`kind=human\` / auto-minted \`mesh_*\`) plus cited **human uses** (\`USES\` / \`human_uses\`). Downloaded Softwares instances stay \`instance_nodes\`. Isolated humans stay on \`isolated_nodes\`. Uses are interaction counters, not unique people. Incomplete uses stay honest — do not invent users. Zero is honest when no humans are present and uses are 0/unbound. Product Workers proxy \`/v1/mesh/*\` via \`AZIEL_RUNTIME\`. Not a second mesh. Fan-out does not restore godlock.uk or reattach a pulled public hostname.
 
 Phoenix is wait / re-seal after tamper or isolation. It is not “bring the .uk node back.” Sites pulled (token revoked, Worker dropped, DNS killed) die with the pull: public rollup on that hostname is down; a local node may keep verifying and appending. Mesh does not climb back onto the public hostname by itself. A process supervisor restarting cloudflared is operator kit, not this contract.
 
@@ -1126,7 +1223,7 @@ Phoenix is wait / re-seal after tamper or isolation. It is not “bring the .uk 
 
 **CROSS-NETWORK-SURVIVAL-1.0.** ${CROSS_NETWORK_SURVIVAL_SHORT}
 
-Public **live_nodes** is mesh size (\`active_nodes\` + \`inactive_nodes\`, exclude isolated). Presence buckets stay on \`rollup.live\` / \`locked\` / \`isolated\` (all planes). Softwares product Workers stay labeled on \`software_nodes\` / \`rollup.software\`. No average-of-nodes leaderboard. Views / MCP / downloads do not enter QNM-S.
+Public **live_nodes** / \`rollup.mesh\` = \`human_mesh_users\` + cited \`human_uses\` (peek \`USES\` total; never a full \`/v1/uses\` walk). Presence buckets stay on \`rollup.live\` / \`locked\` / \`isolated\` (all planes). Softwares product Workers stay labeled on \`software_nodes\` / \`rollup.software\` and never enter Live Nodes. Downloaded instances stay \`instance_nodes\`. No average-of-nodes leaderboard. Views / MCP / downloads do not enter QNM-S.
 
 Full node process is local \`qnm-node/\` (boot / chain / apg / bearers / outbox / phoenix / score / memorial / tethers). Packet-transfer coding design is **QNS-CD-1.0** (photon QNS1 1.3 on local \`qnsd\`; companion to QNM-BUILD-1.0 / AIH-WP-1.3). This Worker cites only — \`GET /v1/qns\`. It does not proxy local via emit. **Channel plane (${CHANNEL_PLANE_SPEC}):** operator-armed wifi / bluetooth / rf / photon cites are ON. Live OS/hardware bearers run on local qnm-node / qnsd. ${CHANNEL_PLANE_NOTE} Parent will roll that package. Anon-broadcast is a sibling loopback module of that local process only — never a publish path.
 
@@ -1184,7 +1281,7 @@ export async function meshEnable(payload, env) {
       {
         op: "enable",
         mesh_enabled: state.enabled === true,
-        ...statusFields(state),
+        ...(await statusFields(state, env)),
         example_bearer: EXAMPLE_BEARER,
       },
     );
@@ -1222,11 +1319,11 @@ export async function meshEnable(payload, env) {
   const after = await loadState(env);
   return baseResult({
     op: "enable",
-    ...statusFields(after),
+    ...(await statusFields(after, env)),
     fanout: fanout.skipped ? false : true,
     fanout_joined: fanout.joined || 0,
     fanout_refreshed: fanout.refreshed || 0,
-    note: "Operator declared a bearer. Radios LIVE for suite rollup only. Live Softwares product Workers are joined as software_nodes (TTL 5 min). Non-isolated workers count toward mesh-size Live Nodes; software_nodes must not be used alone as that pill. Read-only suite-presence stays ON by default. GET never enables radios beyond that. Not a login mesh.",
+    note: "Operator declared a bearer. Radios LIVE for suite rollup only. Live Softwares product Workers are joined as software_nodes (TTL 5 min) and never feed Live Nodes. Live Nodes count human mesh users plus cited human uses. Read-only suite-presence stays ON by default. GET never enables radios beyond that. Not a login mesh.",
   });
 }
 
@@ -1238,12 +1335,12 @@ export async function meshDisable(payload, env) {
     {
       op: "disable",
       mesh_enabled: true,
-      ...statusFields(state),
+      ...(await statusFields(state, env)),
     },
   );
 }
 
-function offRefuse(op, state) {
+async function offRefuse(op, state, env) {
   return refuse(
     "MESH-OFF",
     "MESH-OFF: transmission radios are powered down or suite radios are not enabled. Software presence is blocked. GET /v1/mesh never enables radios. Read-only suite-presence remains a rollup read.",
@@ -1251,7 +1348,7 @@ function offRefuse(op, state) {
       op,
       mesh_enabled: false,
       radios: "off",
-      ...statusFields({ ...state, enabled: false }),
+      ...(await statusFields({ ...state, enabled: false }, env)),
     },
   );
 }
@@ -1259,7 +1356,7 @@ function offRefuse(op, state) {
 export async function meshJoin(payload, env) {
   const src = payload && typeof payload === "object" && !Array.isArray(payload) ? payload : {};
   const state = await loadState(env);
-  if (!state.enabled) return offRefuse("join", state);
+  if (!state.enabled) return offRefuse("join", state, env);
   if (!Object.prototype.hasOwnProperty.call(src, "product") || src.product == null || String(src.product).trim() === "") {
     return refuse("MESH-BAD-INPUT", "Pass { product } as a catalog slug (a-z0-9-). product is required. AnonBroadcast is not a product.", {
       op: "join",
@@ -1296,11 +1393,19 @@ export async function meshJoin(payload, env) {
   if (!node_id) node_id = newNodeId(now);
   const label = sanitizeLabel(src.label || (existing && existing.label) || product);
   const session_id = (existing && existing.session_id) || newSessionId(node_id);
+  const kind = inferMeshKind({
+    node_id,
+    kind: src.kind || src.plane || (existing && existing.kind),
+    plane: src.plane,
+    bearer: src.bearer || (existing && existing.bearer),
+  });
   const node = {
     node_id,
     product,
     label,
     presence,
+    kind,
+    bearer: isHumanBearerToken(src.bearer) ? "human" : existing && existing.bearer,
     session_id,
     joined_at: (existing && existing.joined_at) || ts,
     last_seen: ts,
@@ -1322,31 +1427,37 @@ export async function meshJoin(payload, env) {
   const store = await saveState(env, state);
   return baseResult({
     op: "join",
-    ...statusFields({ ...state, store }),
+    ...(await statusFields({ ...state, store }, env)),
     session: {
       session_id,
       node_id,
       product,
       label,
       presence,
-      plane: meshNodePlane(node_id),
-      counts_as_live_nodes: isLiveMeshPresence(presence),
+      plane: kind,
+      kind,
+      counts_as_live_nodes: countsAsLiveNodes(node),
       joined_at: node.joined_at,
       presence_ttl_ms: PRESENCE_TTL_MS,
     },
-    plane: meshNodePlane(node_id),
-    counts_as_live_nodes: isLiveMeshPresence(presence),
+    plane: kind,
+    kind,
+    counts_as_live_nodes: countsAsLiveNodes(node),
     node,
-    note: isLiveMeshPresence(presence)
-      ? "Presence registered on the QNM roster. Non-isolated nodes (active live or inactive locked) count toward public Live Nodes (mesh size). Isolated nodes do not. Heartbeat within 5 minutes or the count drops. Downloads are not live. Not an account session."
-      : "Isolated presence registered. Isolated nodes stay out of public Live Nodes (mesh size). See isolated_nodes. Heartbeat within 5 minutes or the count drops. Not an account session.",
+    note: countsAsLiveNodes(node)
+      ? "Human mesh presence registered. Non-isolated human bearers count toward public Live Nodes (human users + cited USES). Softwares workers and downloaded instances do not. Heartbeat within 5 minutes or the human drops. Downloads are not live. Not an account session."
+      : kind === "software"
+        ? "Softwares {slug}-worker presence registered on software_nodes. It does not count toward public Live Nodes."
+        : kind === "instance"
+          ? "Downloaded Softwares instance presence registered on instance_nodes. It does not count toward public Live Nodes."
+          : "Isolated or non-human presence registered. Isolated humans stay out of public Live Nodes. See isolated_nodes. Not an account session.",
   });
 }
 
 export async function meshHeartbeat(payload, env) {
   const src = payload && typeof payload === "object" && !Array.isArray(payload) ? payload : {};
   const state = await loadState(env);
-  if (!state.enabled) return offRefuse("heartbeat", state);
+  if (!state.enabled) return offRefuse("heartbeat", state, env);
   const tick = tickAccepts(src);
   if (!tick.ok) {
     return refuse(tick.code, tick.reason === "tip_hash-not-fixed-size" || tick.reason === "prev-not-fixed-size"
@@ -1402,7 +1513,7 @@ export async function meshHeartbeat(payload, env) {
           op: "heartbeat",
           mesh_enabled: true,
           node,
-          ...statusFields({ ...state, store }),
+          ...(await statusFields({ ...state, store }, env)),
           split_wires: SPLIT_WIRES,
         },
       );
@@ -1418,7 +1529,7 @@ export async function meshHeartbeat(payload, env) {
   const loss = heartbeatLossMeaning({ missed: false });
   return baseResult({
     op: "heartbeat",
-    ...statusFields({ ...state, store }),
+    ...(await statusFields({ ...state, store }, env)),
     node,
     split_wires: SPLIT_WIRES,
     tick_plane: TICK_PLANE,
@@ -1440,7 +1551,7 @@ export async function meshLeave(payload, env) {
   const store = await saveState(env, state);
   return baseResult({
     op: "leave",
-    ...statusFields({ ...state, store }),
+    ...(await statusFields({ ...state, store }, env)),
     node_id,
     left: existed,
     note: existed
@@ -1456,13 +1567,15 @@ export async function meshNodes(payload, env) {
     product: n.product,
     label: n.label,
     presence: PRESENCE_STATES.includes(n.presence) ? n.presence : "live",
+    kind: inferMeshKind(n),
+    plane: inferMeshKind(n),
     last_seen: n.last_seen,
     joined_at: n.joined_at,
   }));
   const nameAlert = meshCallingNameAlert(env);
   return baseResult({
     op: "nodes",
-    ...statusFields(state),
+    ...(await statusFields(state, env)),
     nodes,
     calling_name_alert: nameAlert.alert,
     calling_name: {
@@ -1489,7 +1602,7 @@ function poisonKeys(obj) {
 export async function meshBroadcast(payload, env) {
   const src = payload && typeof payload === "object" && !Array.isArray(payload) ? payload : {};
   const state = await loadState(env);
-  if (!state.enabled) return offRefuse("broadcast", state);
+  if (!state.enabled) return offRefuse("broadcast", state, env);
   if (src.publish === true || String(src.mode || "").toLowerCase() === "publish") {
     return refuse("MESH-NO-PUBLISH", "Anon-broadcast is never a publish path. Local qnm-node/ loopback only.", {
       op: "broadcast",
@@ -1536,7 +1649,7 @@ export async function meshBroadcast(payload, env) {
   const store = await saveState(env, state);
   return baseResult({
     op: "broadcast",
-    ...statusFields({ ...state, store }),
+    ...(await statusFields({ ...state, store }, env)),
     receipt,
     receipts: state.receipts.slice(0, 8),
     render: "local-qnm-node-loopback",

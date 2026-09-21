@@ -200,7 +200,9 @@ assert.equal(firstGet.data.no_lie, true);
 assert.equal(firstGet.data.no_rewrite, true);
 assert.equal(firstGet.data.rewrite_key, false);
 assert.equal(firstGet.data.lie_to_survive, false);
-assert.equal(firstGet.data.live_nodes, 0, "GET without waitUntil must not invent mesh-size Live Nodes");
+assert.equal(firstGet.data.live_nodes, 0, "GET without waitUntil must not invent human Live Nodes");
+assert.equal(firstGet.data.human_mesh_users, 0);
+assert.equal(firstGet.data.live_nodes, firstGet.data.human_mesh_users + firstGet.data.human_uses);
 assert.equal(firstGet.data.software_nodes, 0, "GET without waitUntil must not join Softwares workers in the response");
 assert.doesNotMatch(JSON.stringify(firstGet.data), /oauth|framagit|glama uuid/i);
 
@@ -254,9 +256,10 @@ await waited.flush();
 const afterFanoutGet = await jsonReq(env, "/v1/mesh");
 assert.deepEqual(afterFanoutGet.data.bearers, ["suite-presence"], "fan-out must not declare extra bearers");
 assert.equal(afterFanoutGet.data.get_never_enables, true);
-assert.equal(afterFanoutGet.data.live_nodes, PRODUCTS.length, "non-isolated workers add to mesh size");
 assert.equal(afterFanoutGet.data.software_nodes, PRODUCTS.length);
-assert.equal(afterFanoutGet.data.live_nodes, afterFanoutGet.data.active_nodes + afterFanoutGet.data.inactive_nodes);
+assert.equal(afterFanoutGet.data.human_mesh_users, 0, "fan-out must not create human Live Nodes");
+assert.equal(afterFanoutGet.data.live_nodes, afterFanoutGet.data.human_mesh_users + afterFanoutGet.data.human_uses);
+assert.notEqual(afterFanoutGet.data.live_nodes, afterFanoutGet.data.software_nodes, "Live Nodes must not equal Softwares catalog by coupling");
 assert.equal(afterFanoutGet.data.ephemeral_nodes, 0);
 assert.ok(afterFanoutGet.data.products_present.includes("godlock"));
 const nodesAfterFanout = await jsonReq(env, "/v1/mesh/nodes");
@@ -274,7 +277,9 @@ assert.ok(disabled.data.bearers.includes("suite-presence"));
 const afterDisable = await jsonReq(env, "/v1/mesh");
 assert.equal(afterDisable.data.enabled, true);
 assert.equal(afterDisable.data.software_nodes, PRODUCTS.length, "disable must not wipe software_nodes");
-assert.equal(afterDisable.data.live_nodes, PRODUCTS.length, "disable must not wipe mesh-size Live Nodes");
+assert.equal(afterDisable.data.human_mesh_users, 0);
+assert.equal(afterDisable.data.live_nodes, afterDisable.data.human_mesh_users + afterDisable.data.human_uses);
+assert.notEqual(afterDisable.data.live_nodes, afterDisable.data.software_nodes);
 gate("DISABLE-REFUSED", "POST /v1/mesh/disable is MESH-DISABLE-REFUSED; suite-presence stays ON");
 
 // --- enable needs bearer ---
@@ -364,11 +369,11 @@ assert.deepEqual(
 gate("JOIN-SHAPE", "product required; node_id 8–80 [a-z0-9._-]; presence live|locked|isolated");
 
 // --- MESH-OFF gate remains (latent on default-on public surface) ---
-assert.match(meshSrc, /function offRefuse\(op, state\)/);
+assert.match(meshSrc, /async function offRefuse\(op, state, env\)/);
 assert.match(meshSrc, /"MESH-OFF"/);
-assert.match(meshSrc, /if \(!state\.enabled\) return offRefuse\("join", state\)/);
-assert.match(meshSrc, /if \(!state\.enabled\) return offRefuse\("heartbeat", state\)/);
-assert.match(meshSrc, /if \(!state\.enabled\) return offRefuse\("broadcast", state\)/);
+assert.match(meshSrc, /if \(!state\.enabled\) return offRefuse\("join", state, env\)/);
+assert.match(meshSrc, /if \(!state\.enabled\) return offRefuse\("heartbeat", state, env\)/);
+assert.match(meshSrc, /if \(!state\.enabled\) return offRefuse\("broadcast", state, env\)/);
 assert.doesNotMatch(meshSrc, /MESH_DEFAULT_ENABLED = false/);
 const radiosOffEnv = envWithMesh({ MESH_RADIOS: "off" });
 const joinOff = await postJson(radiosOffEnv, "/v1/mesh/join", { product: "godlock", node_id: "radios-off" });
@@ -440,8 +445,11 @@ const namedJoin = await postJson(mixEnv, "/v1/mesh/join", { product: "godlock", 
 assert.equal(namedJoin.status, 200);
 const fanout1 = await meshFanoutSuitePresence(mixEnv, { source: "ttl-matrix" });
 assert.equal(fanout1.skipped, false);
-assert.equal(fanout1.live_nodes, PRODUCTS.length + 1, "named instance + non-isolated workers = mesh size");
 assert.equal(fanout1.software_nodes, PRODUCTS.length);
+assert.equal(fanout1.human_mesh_users, 0, "named instance must not count as human Live Nodes");
+assert.equal(fanout1.instance_nodes, 1);
+assert.equal(fanout1.live_nodes, fanout1.human_mesh_users + fanout1.human_uses);
+assert.notEqual(fanout1.live_nodes, fanout1.software_nodes);
 assert.equal(fanout1.inactive_nodes, 0);
 const workerId = suitePresenceNodeId("godlock");
 assert.equal(workerId, "godlock-worker");

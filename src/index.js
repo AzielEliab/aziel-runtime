@@ -3867,7 +3867,8 @@ async function handleRequest(request, env, ctx) {
       (url.pathname === "/v1/uses" || url.pathname === "/v1/stats") &&
       (request.method === "GET" || request.method === "HEAD")
     ) {
-      const uses = await readUses(env);
+      const light = url.searchParams.get("light") === "1" || url.searchParams.get("light") === "true";
+      const uses = await readUses(env, { light, budget_ms: 8_000 });
       const body =
         url.pathname === "/v1/stats" ? { ...uses, stats: "uses", alias_of: "/v1/uses" } : uses;
       return asHead(request, json(body, 200, authorityLinkHeaders(origin, url.pathname)));

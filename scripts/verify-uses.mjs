@@ -11,8 +11,10 @@ import {
   inferProductOp,
   memoryUsesKv,
   normalizePath,
+  peekHumanUses,
   peekUsesTotal,
   readUses,
+  USES_READ_BUDGET_MS,
   resolveUseHost,
   sanitizeHostLabel,
   shouldIncrementUse,
@@ -218,7 +220,22 @@ assert.equal(capped.recent.length, 100);
 
 assert.equal((await incrementUse({}, { path: "/v1/skill" })).skipped, "uses_unbound");
 assert.equal((await readUses({})).uses_kv, false);
+assert.equal((await readUses({})).uses_complete, false);
 assert.equal(await peekUsesTotal({}), null);
+const unboundHuman = await peekHumanUses({});
+assert.equal(unboundHuman.uses, 0);
+assert.equal(unboundHuman.complete, false);
+assert.equal(unboundHuman.uses_kv, false);
+const humanPeek = await peekHumanUses(kvEnv);
+assert.equal(humanPeek.uses, 2);
+assert.equal(humanPeek.complete, true);
+assert.equal(humanPeek.source, "uses.total");
+const lightSnap = await readUses(kvEnv, { light: true });
+assert.equal(lightSnap.light, true);
+assert.equal(lightSnap.uses, 2);
+assert.equal(lightSnap.uses_complete, true);
+assert.deepEqual(lightSnap.by_host, {});
+assert.ok(USES_READ_BUDGET_MS <= 8_000);
 
 // --- HTTP: increment API, skip SEO / health / uses ---
 const env = envWithUses();
@@ -252,6 +269,12 @@ assert.ok(usesRes.data.by_host);
 assert.ok(usesRes.data.by_path);
 assert.ok(usesRes.data.by_day);
 assert.ok(Array.isArray(usesRes.data.recent));
+assert.equal(usesRes.data.uses_complete, true);
+const lightHttp = await jsonReq(env, "/v1/uses?light=1");
+assert.equal(lightHttp.status, 200);
+assert.equal(lightHttp.data.light, true);
+assert.equal(lightHttp.data.uses, beforeRead);
+assert.deepEqual(lightHttp.data.by_host, {});
 assert.equal(Number(await env.USES.get("total")), beforeRead, "GET /v1/uses must not increment");
 const blob = JSON.stringify(usesRes.data);
 assert.doesNotMatch(blob, /authorization/i);

@@ -72,7 +72,7 @@ assert.match(home, /<label for="op-fg-payload">Payload JSON<\/label>/);
 assert.match(home, /id="metric-live"/);
 assert.match(home, /id="metric-software"/);
 assert.match(home, />Live Nodes</);
-assert.match(home, /mesh size: active \+ inactive/);
+assert.match(home, /human mesh users/);
 assert.match(home, /id="op-aznet-pair"/);
 assert.match(home, /data-op-pair="pair_status"/);
 assert.match(home, /data-op-pair="pair"/);

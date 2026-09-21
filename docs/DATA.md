@@ -8,7 +8,7 @@ Primary host: [Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runti
 ## Not stored (request bodies / secrets)
 
 - FragGate / MCP handlers do not persist Authorization headers, tokens, or raw request bodies in the API-use log.
-- `GET /v1/uses` counters skip SEO files, health, mesh reads, and catalog GETs. Logged fields are path / host / day — **no PII**. Code: [`src/uses.js`](../src/uses.js).
+- `GET /v1/uses` counters skip SEO files, health, mesh reads, and catalog GETs. Logged fields are path / host / day — **no PII**. Prefix walks are budgeted (8s) so the route stays under the 25s deadline; incomplete maps set `uses_complete: false`. `GET /v1/mesh` peeks only `USES` `total` (`human_uses`) — it never walks `/v1/uses`. Live Nodes does not invent users from missing uses. Code: [`src/uses.js`](../src/uses.js), [`src/mesh.js`](../src/mesh.js).
 - Session mutate may require `RUNTIME_TOKEN` when set. The token is an operator secret (Wrangler), not a user account store.
 
 ## Ephemeral
