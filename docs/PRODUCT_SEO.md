@@ -228,7 +228,7 @@ Cap-7 semantic bridge (below the abstract): MirageGrid-only mesh-name factory. I
 
 Suite mesh is **QNM-BUILD-1.0** on `aziel-runtime`. **Read-only suite-presence is ON by default.** `GET /v1/mesh` never enables radios beyond that. Product Workers must not invent a second mesh.
 
-If the product homepage or hub shows **Nodes** / **Live Nodes**, proxy the runtime kernel and display `nodes` / `rollup.nodes` (human mesh users + cited `human_uses`) and `live_nodes` / `rollup.mesh` (human mesh users + `site_live_viewers`). Tooltips: `nodes_note` and `live_nodes_note`. `software_nodes` is the `{slug}-worker` roster. Hubs that compute concurrent human page presence POST `/v1/mesh/site-presence`; runtime does not scrape `/count`.
+If the product homepage or hub shows **Nodes** / **Live Nodes**, proxy the runtime kernel and display `nodes` / `rollup.nodes` (human mesh users + cited `human_uses`) and `live_nodes` / `rollup.mesh` (human mesh users + `site_live_viewers`). Tooltips: `nodes_note` and `live_nodes_note`. Paint `live_nodes` / `rollup.mesh` only. `live_nodes_tip` is the shared site-viewer seal — do not add a local `/count`. `rollup.live` is not published. Never paint `software_nodes` or `rollup.live` as Live Nodes. `software_nodes` is the `{slug}-worker` roster. Hubs that compute concurrent human page presence POST `/v1/mesh/site-presence`; runtime does not scrape `/count`.
 
 ```js
 if (url.pathname === "/v1/mesh" || url.pathname.startsWith("/v1/mesh/")) {

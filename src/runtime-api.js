@@ -1618,7 +1618,7 @@ export function runtimeStaticPaths() {
     "/v1/mesh/site-presence": {
       get: {
         operationId: "mesh_site_presence_cite",
-        summary: "Cite the hub site-viewer contract and current site_live_viewers. Never writes. Never pulls hub /count. Paint live_nodes. live_nodes_tip is the seal.",
+        summary: "Cite the hub site-viewer contract and current site_live_viewers. Never writes. Never pulls hub /count. Paint live_nodes / rollup.mesh only. Never paint software_nodes or rollup.live. live_nodes_tip is the seal.",
         tags: ["mesh"],
         responses: { "200": { description: "site_live_viewers + contract (fail-closed)" } },
       },

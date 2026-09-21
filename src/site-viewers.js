@@ -43,7 +43,7 @@ const HOST_ALIASES = Object.freeze({
 });
 
 export const SITE_LIVE_VIEWERS_NOTE =
-  "site_live_viewers is concurrent human page presence across godlock.uk + azieleliab.com + azielcorpuslibrary.net, reported by hub heartbeats (POST /v1/mesh/site-presence). Same 5-minute TTL as mesh presence. GET /v1/mesh reads one sealed aggregate (live_nodes_generation / live_nodes_tip) and never pulls hub /count. Hubs paint live_nodes from that JSON — do not add a local /count. hedidntjump.com, bots, Softwares, and downloads are excluded. Missing or expired reports are 0. Do not invent viewers.";
+  "site_live_viewers is concurrent human page presence across godlock.uk + azieleliab.com + azielcorpuslibrary.net, reported by hub heartbeats (POST /v1/mesh/site-presence). Same 5-minute TTL as mesh presence. GET /v1/mesh reads one sealed aggregate (live_nodes_generation / live_nodes_tip) and never pulls hub /count. Hubs paint live_nodes / rollup.mesh from that JSON — do not add a local /count. Never paint software_nodes or rollup.live as Live Nodes. hedidntjump.com, bots, Softwares, and downloads are excluded. Missing or expired reports are 0. Do not invent viewers.";
 
 export const SITE_PRESENCE_CONTRACT = Object.freeze({
   method: "POST",

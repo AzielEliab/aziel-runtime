@@ -114,7 +114,7 @@ export function buildSuitePack({ origin, products, registry, extra = {} } = {}) 
       software_nodes_plane: "software-worker-fanout",
       site_live_viewers_plane: "hub-human-page-presence",
       live_nodes_note:
-        "Public Live Nodes count human mesh users plus concurrent website viewers (site_live_viewers) on godlock.uk + azieleliab.com + azielcorpuslibrary.net. Isolated humans stay on isolated_nodes. GET never pulls hub /count. Zero is honest when no human is present.",
+        "Public Live Nodes count human mesh users plus concurrent website viewers (site_live_viewers) on godlock.uk + azieleliab.com + azielcorpuslibrary.net. Paint live_nodes / rollup.mesh only. live_nodes_tip is the shared site-viewer seal — do not add a local /count. rollup.live is not published. Never paint software_nodes, rollup.all.live, or rollup.software.live as Live Nodes. Isolated humans stay on isolated_nodes. GET never pulls hub /count. Zero is honest when no human is present.",
       nodes_note:
         "Public Nodes count human mesh users plus cited human uses (USES). Uses are interaction counters. Incomplete uses stay honest — do not invent users. This pack download is instance_nodes until a human join/heartbeat.",
       instance_join: {

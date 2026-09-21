@@ -174,7 +174,7 @@ export const FANOUT_NODE_SUFFIX = "-worker";
 /** Public Live Nodes = human mesh users + concurrent hub site viewers. */
 export const LIVE_NODES_PLANE = "human-mesh-users-site-viewers";
 export const LIVE_NODES_NOTE =
-  "Public Live Nodes (live_nodes / rollup.mesh) count human mesh users (join/heartbeat/presence with a human bearer) plus concurrent website viewers (site_live_viewers) on godlock.uk + azieleliab.com + azielcorpuslibrary.net. Isolated humans stay on isolated_nodes. hedidntjump.com, bots, Softwares, and downloads are excluded. GET /v1/mesh never pulls hub /count. Hubs paint live_nodes from this JSON (live_nodes_tip / live_nodes_generation). Do not add a local /count. Missing or expired hub heartbeats are 0. Live Nodes does not invent users. Zero is honest when no human is present.";
+  "Public Live Nodes (live_nodes / rollup.mesh) count human mesh users (join/heartbeat/presence with a human bearer) plus concurrent website viewers (site_live_viewers) on godlock.uk + azieleliab.com + azielcorpuslibrary.net. Isolated humans stay on isolated_nodes. hedidntjump.com, bots, Softwares, and downloads are excluded. GET /v1/mesh never pulls hub /count. Hubs paint live_nodes / rollup.mesh from this JSON (live_nodes_tip / live_nodes_generation). Do not add a local /count. rollup.live is not published. Never paint software_nodes or rollup.live as Live Nodes. Roster presence=live, including {slug}-worker, is rollup.all.live and rollup.software.live — not the Live Nodes pill. Missing or expired hub heartbeats are 0. Live Nodes does not invent users. Zero is honest when no human is present.";
 
 /** Public Nodes = human mesh users + cited human uses (today’s interaction-inclusive clock). */
 export const NODES_PLANE = "human-mesh-users-uses";
@@ -182,7 +182,7 @@ export const NODES_NOTE =
   "Public Nodes (nodes / rollup.nodes) count human mesh users plus the cited human uses signal (USES / human_uses). Uses are interaction counters, not unique people. Incomplete or unbound telemetry is reported honestly (0 + complete=false). Nodes does not invent users. Zero is honest.";
 
 export const SOFTWARE_NODES_NOTE =
-  "software_nodes / rollup.software count Softwares product Workers ({slug}-worker) from suite-presence fan-out. They may appear in the mesh roster. software_nodes stays on its own plane.";
+  "software_nodes / rollup.software count Softwares product Workers ({slug}-worker) from suite-presence fan-out. rollup.software.live is that roster's presence=live count. It is not public Live Nodes. rollup.live is not published.";
 
 export const HUMAN_NODES_NOTE =
   "human_nodes / rollup.human count humans who exist as mesh users (join/heartbeat/presence — human bearers or kind=human). Auto-minted mesh_* joins are human participants. Named downloaded Softwares instance ids stay instance_nodes.";
@@ -835,7 +835,6 @@ function rollupCounts(nodes) {
     }
   }
   return {
-    live: all.live,
     locked: all.locked,
     isolated: all.isolated,
     mesh: meshSizeFromPresence(human),
@@ -847,6 +846,9 @@ function rollupCounts(nodes) {
     ephemeral,
     named,
     all,
+    public_live_nodes: "mesh",
+    roster_presence_note:
+      "Public Live Nodes is rollup.mesh (same number as live_nodes). rollup.live is not published. rollup.all.live and rollup.active count roster rows with presence=live on every plane, including {slug}-worker. That count is not the Live Nodes pill. Softwares presence=live is rollup.software.live.",
   };
 }
 
@@ -1449,7 +1451,7 @@ Read-only **suite-presence is ON by default**. A site ping of \`GET /v1/mesh\` n
 
 \`mesh_join\` / \`POST /v1/mesh/join\` requires \`product\` (catalog slug). Optional \`node_id\` must be exactly 8–80 chars matching \`[a-z0-9._-]\` (full string). \`presence\` must be \`live\` (default), \`locked\`, or \`isolated\`. Join is additive presence with a **strict 5-minute TTL**. \`mesh_heartbeat\` refreshes that TTL. If no heartbeat (or fan-out refresh) arrives inside the window, the node is **dropped** from the live roster. Direct HTTP join/heartbeat/leave/broadcast share F03 kind \`mesh_mutate\` (default 30/min; \`RATE_LIMIT\` 429). Not a login mesh. Roster does not publish exec URLs. Roster cap \`NODE_CAP\` prefers \`{slug}-worker\` rows; extra anonymous joins refuse \`MESH-ROSTER-FULL\`. When transmission radios are powered down or suite radios are not enabled, join/heartbeat/broadcast refuse **\`MESH-OFF\`**. Read paths stay honest. Do not invent a second refuse spelling.
 
-While radios are LIVE, this Worker fans out join/heartbeat for every live Softwares product Worker (\`node_id\` \`{slug}-worker\`, no \`|\`) on cron (\`*/2 * * * *\`) or request-path. That roster is **software_nodes**. Public **nodes** (Nodes) counts **human mesh users** plus cited **human uses** (\`USES\` / \`human_uses\`). Public **live_nodes** (Live Nodes) counts **human mesh users** plus concurrent website viewers (\`site_live_viewers\`) reported by hub \`POST /v1/mesh/site-presence\` (\`kind: "human-page"\`) for godlock.uk + azieleliab.com + azielcorpuslibrary.net. Downloaded Softwares instances stay \`instance_nodes\`. Isolated humans stay on \`isolated_nodes\`. hedidntjump.com, bots, Softwares, and downloads are excluded. GET never pulls hub \`/count\`. GET reads the site-viewer aggregate as one key (\`live_nodes_generation\` / \`live_nodes_tip\`). Hubs paint \`live_nodes\` and do not add a local \`/count\`. Fan-out does not rewrite that aggregate. Missing or expired hub heartbeats are 0. Uses are interaction counters, not unique people. Incomplete uses stay honest — do not invent users. Zero is honest. Product Workers proxy \`/v1/mesh/*\` via \`AZIEL_RUNTIME\`. Not a second mesh. Fan-out does not restore godlock.uk or reattach a pulled public hostname.
+While radios are LIVE, this Worker fans out join/heartbeat for every live Softwares product Worker (\`node_id\` \`{slug}-worker\`, no \`|\`) on cron (\`*/2 * * * *\`) or request-path. That roster is **software_nodes**. Public **nodes** (Nodes) counts **human mesh users** plus cited **human uses** (\`USES\` / \`human_uses\`). Public **live_nodes** (Live Nodes) counts **human mesh users** plus concurrent website viewers (\`site_live_viewers\`) reported by hub \`POST /v1/mesh/site-presence\` (\`kind: "human-page"\`) for godlock.uk + azieleliab.com + azielcorpuslibrary.net. Downloaded Softwares instances stay \`instance_nodes\`. Isolated humans stay on \`isolated_nodes\`. hedidntjump.com, bots, Softwares, and downloads are excluded. GET never pulls hub \`/count\`. GET reads the site-viewer aggregate as one key (\`live_nodes_generation\` / \`live_nodes_tip\`). Hubs paint \`live_nodes\` / \`rollup.mesh\` only and do not add a local \`/count\`. Never paint \`software_nodes\` or \`rollup.live\` as Live Nodes. \`rollup.live\` is not published. Fan-out does not rewrite that aggregate. Missing or expired hub heartbeats are 0. Uses are interaction counters, not unique people. Incomplete uses stay honest — do not invent users. Zero is honest. Product Workers proxy \`/v1/mesh/*\` via \`AZIEL_RUNTIME\`. Not a second mesh. Fan-out does not restore godlock.uk or reattach a pulled public hostname.
 
 Phoenix is wait / re-seal after tamper or isolation. It is not “bring the .uk node back.” Sites pulled (token revoked, Worker dropped, DNS killed) die with the pull: public rollup on that hostname is down; a local node may keep verifying and appending. Mesh does not climb back onto the public hostname by itself. A process supervisor restarting cloudflared is operator kit, not this contract.
 
@@ -1463,7 +1465,7 @@ Phoenix is wait / re-seal after tamper or isolation. It is not “bring the .uk 
 
 **CROSS-NETWORK-SURVIVAL-1.0.** ${CROSS_NETWORK_SURVIVAL_SHORT}
 
-Public **nodes** / \`rollup.nodes\` = \`human_mesh_users\` + cited \`human_uses\` (peek \`USES\` total; never a full \`/v1/uses\` walk). Public **live_nodes** / \`rollup.mesh\` = \`human_mesh_users\` + \`site_live_viewers\`. Presence buckets stay on \`rollup.live\` / \`locked\` / \`isolated\` (all planes). Softwares product Workers stay labeled on \`software_nodes\` / \`rollup.software\`. Downloaded instances stay \`instance_nodes\`. No average-of-nodes leaderboard. Views / MCP / downloads do not enter QNM-S. GET never pulls hub /count.
+Public **nodes** / \`rollup.nodes\` = \`human_mesh_users\` + cited \`human_uses\` (peek \`USES\` total; never a full \`/v1/uses\` walk). Public **live_nodes** / \`rollup.mesh\` = \`human_mesh_users\` + \`site_live_viewers\`. \`rollup.live\` is not published — it used to equal roster presence=live and, after fan-out, the \`{slug}-worker\` count. Roster presence=live is \`rollup.all.live\`. Softwares presence=live is \`rollup.software.live\`. Do not paint either as Live Nodes. Locked / isolated roster buckets stay on \`rollup.locked\` / \`rollup.isolated\` (same numbers as \`rollup.all\`). Downloaded instances stay \`instance_nodes\`. No average-of-nodes leaderboard. Views / MCP / downloads do not enter QNM-S. GET never pulls hub /count.
 
 Full node process is local \`qnm-node/\` (boot / chain / apg / bearers / outbox / phoenix / score / memorial / tethers). Packet-transfer coding design is **QNS-CD-1.0** (photon QNS1 1.3 on local \`qnsd\`; companion to QNM-BUILD-1.0 / AIH-WP-1.3). This Worker cites only — \`GET /v1/qns\`. It does not proxy local via emit. **Channel plane (${CHANNEL_PLANE_SPEC}):** operator-armed wifi / bluetooth / rf / photon cites are ON. Live OS/hardware bearers run on local qnm-node / qnsd. ${CHANNEL_PLANE_NOTE} Parent will roll that package. Anon-broadcast is a sibling loopback module of that local process only — never a publish path.
 
@@ -1861,7 +1863,7 @@ export async function meshSitePresence(payload, env) {
     op: "site-presence",
     ...(await statusFields(state, env)),
     site_presence: accepted.record,
-    note: "Hub human-page presence sealed in one aggregate. Fail-closed. GET /v1/mesh reads that key and never pulls hub /count. Paint live_nodes. Expired reports drop to 0 after 5 minutes. Not a mesh radio join.",
+    note: "Hub human-page presence sealed in one aggregate. Fail-closed. GET /v1/mesh reads that key and never pulls hub /count. Paint live_nodes / rollup.mesh only. Never paint software_nodes or rollup.live as Live Nodes. Expired reports drop to 0 after 5 minutes. Not a mesh radio join.",
   });
 }
 
