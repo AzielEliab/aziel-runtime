@@ -228,7 +228,7 @@ Cap-7 semantic bridge (below the abstract): MirageGrid-only mesh-name factory. I
 
 Suite mesh is **QNM-BUILD-1.0** on `aziel-runtime`. **Read-only suite-presence is ON by default.** `GET /v1/mesh` never enables radios beyond that. Product Workers must not invent a second mesh.
 
-If the product homepage or hub shows **Nodes** / **Live Nodes**, proxy the runtime kernel and display `nodes` / `rollup.nodes` (human mesh users + cited `human_uses`) and `live_nodes` / `rollup.mesh` (human mesh users / presence). Tooltips: `nodes_note` and `live_nodes_note`. `software_nodes` is the `{slug}-worker` roster.
+If the product homepage or hub shows **Nodes** / **Live Nodes**, proxy the runtime kernel and display `nodes` / `rollup.nodes` (human mesh users + cited `human_uses`) and `live_nodes` / `rollup.mesh` (human mesh users + `site_live_viewers`). Tooltips: `nodes_note` and `live_nodes_note`. `software_nodes` is the `{slug}-worker` roster. Hubs that compute concurrent human page presence POST `/v1/mesh/site-presence`; runtime does not scrape `/count`.
 
 ```js
 if (url.pathname === "/v1/mesh" || url.pathname.startsWith("/v1/mesh/")) {
@@ -243,7 +243,7 @@ if (url.pathname === "/v1/mesh" || url.pathname.startsWith("/v1/mesh/")) {
 
 Required aliases: `GET /v1/mesh`, `GET /v1/mesh/status`, `GET /v1/mesh/nodes`. GodLock download-tracker previously 404'd `/v1/mesh/status` — add that proxy. Prefer the `AZIEL_RUNTIME` service binding. Instance joins use a unique `node_id` (not `{slug}-worker`). Avoid `|` in `node_id`.
 
-While suite-presence is LIVE, aziel-runtime fans out join/heartbeat for live Softwares product Workers as **`software_nodes`** (TTL 5 min) on cron or request-path. GET still never enables. Public **Nodes** count human mesh users plus cited human uses (`USES`). Public **Live Nodes** count human mesh users (presence).
+While suite-presence is LIVE, aziel-runtime fans out join/heartbeat for live Softwares product Workers as **`software_nodes`** (TTL 5 min) on cron or request-path. GET still never enables and never pulls hub `/count`. Public **Nodes** count human mesh users plus cited human uses (`USES`). Public **Live Nodes** count human mesh users plus concurrent site viewers (`site_live_viewers`).
 
 ## Hub
 

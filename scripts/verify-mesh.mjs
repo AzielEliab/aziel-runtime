@@ -41,9 +41,23 @@ import {
   sanitizeProduct,
   setMeshNowMs,
   setMeshRadiosEnabled,
+  SITE_LIVE_EXCLUDED_HOSTS,
+  SITE_LIVE_HOSTS,
+  SITE_LIVE_KIND,
+  SITE_LIVE_TTL_MS,
+  SITE_LIVE_VIEWERS_NOTE,
+  SITE_PRESENCE_CONTRACT,
   suitePresenceNodeId,
   suitePresenceTargets,
 } from "../src/mesh.js";
+import {
+  acceptSitePresence,
+  pruneSiteViewers,
+  sanitizeSiteHost,
+  sanitizeSiteKind,
+  sanitizeSiteViewers,
+  siteViewerFleet,
+} from "../src/site-viewers.js";
 
 const handler = (await import("../src/index.js")).default.fetch;
 const origin = "https://aziel-runtime.example";
@@ -81,10 +95,12 @@ async function postJson(env, path, body) {
   });
 }
 
-/** Status JSON: Nodes = users+uses; Live Nodes = users; software_nodes stays off both. */
+/** Status JSON: Nodes = users+uses; Live Nodes = users + site viewers; software_nodes stays off both. */
 function assertMeshPills(data, extra = {}) {
   const roster = extra.roster === true;
-  assert.equal(data.live_nodes, data.human_mesh_users, extra.liveMsg || "live_nodes === human_mesh_users");
+  const viewers = Number(data.site_live_viewers) || 0;
+  assert.equal(typeof data.site_live_viewers, "number", extra.viewersTypeMsg || "site_live_viewers is a count");
+  assert.equal(data.live_nodes, data.human_mesh_users + viewers, extra.liveMsg || "live_nodes === human_mesh_users + site_live_viewers");
   assert.equal(data.live_nodes, data.rollup.mesh, extra.rollupMeshMsg || "rollup.mesh === live_nodes");
   assert.equal(data.rollup.nodes, data.human_mesh_users + data.human_uses, extra.rollupNodesMsg || "rollup.nodes === users+uses");
   if (!roster) {
@@ -178,6 +194,7 @@ assert.deepEqual(onStatus.data.rollup.software, { live: 0, locked: 0, isolated: 
 assert.deepEqual(onStatus.data.rollup.instances, { live: 0, locked: 0, isolated: 0 });
 assert.deepEqual(onStatus.data.rollup.ephemeral, { live: 0, locked: 0, isolated: 0 });
 assert.equal(onStatus.data.live_nodes, 0);
+assert.equal(onStatus.data.site_live_viewers, 0);
 assert.equal(onStatus.data.nodes, 0);
 assert.equal(onStatus.data.software_nodes, 0);
 assert.equal(onStatus.data.instance_nodes, 0);
@@ -187,7 +204,7 @@ assert.match(LIVE_NODES_NOTE, /does not invent users/i);
 assert.match(NODES_NOTE, /does not invent users/i);
 assert.equal(onStatus.data.live_nodes_plane, LIVE_NODES_PLANE);
 assert.equal(onStatus.data.nodes_plane, NODES_PLANE);
-assert.equal(LIVE_NODES_PLANE, "human-mesh-users");
+assert.equal(LIVE_NODES_PLANE, "human-mesh-users-site-viewers");
 assert.equal(NODES_PLANE, "human-mesh-users-uses");
 assert.equal(onStatus.data.human_mesh_users, 0);
 assert.equal(onStatus.data.human_uses, 0);
@@ -556,7 +573,7 @@ assertMeshPills(mcpNodes.result.structuredContent.result, { roster: true });
 const software = await jsonReq(env, "/v1/software");
 assert.ok(software.data.software.every((s) => s.mesh && s.mesh.enabled_default === true));
 assert.ok(software.data.software.every((s) => s.mesh.live_nodes === undefined));
-assert.ok(software.data.software.every((s) => s.mesh.live_nodes_plane === "human-mesh-users"));
+assert.ok(software.data.software.every((s) => s.mesh.live_nodes_plane === "human-mesh-users-site-viewers"));
 assert.ok(software.data.software.every((s) => s.mesh.nodes_plane === "human-mesh-users-uses"));
 assert.ok(software.data.software.every((s) => s.mesh.spec === "QNM-BUILD-1.0"));
 assert.ok(software.data.software.every((s) => s.mesh.qnm_s === false));
@@ -564,7 +581,7 @@ assert.ok(!software.data.software.some((s) => s.slug === "anon-broadcast"));
 assert.ok(!software.data.software.some((s) => s.slug === "mesh"));
 assert.equal(software.data.mesh.spec, "QNM-BUILD-1.0");
 assert.equal(software.data.mesh.qnm_s, false);
-assert.equal(software.data.mesh.live_nodes_plane, "human-mesh-users");
+assert.equal(software.data.mesh.live_nodes_plane, "human-mesh-users-site-viewers");
 assert.equal(software.data.mesh.nodes_plane, "human-mesh-users-uses");
 assert.equal(software.data.mesh.software_nodes_plane, "software-worker-fanout");
 assert.equal(software.data.mesh.live_nodes, undefined, "catalog mesh hint must not publish a live_nodes count");
@@ -762,10 +779,129 @@ resetMeshStore();
   assertMeshPills(usesHuman.data);
   const usesStatus = await jsonReq(usesEnv, "/v1/mesh");
   assert.equal(usesStatus.data.nodes, usesStatus.data.human_mesh_users + usesStatus.data.human_uses);
-  assert.equal(usesStatus.data.live_nodes, usesStatus.data.human_mesh_users);
+  assert.equal(usesStatus.data.live_nodes, usesStatus.data.human_mesh_users + usesStatus.data.site_live_viewers);
   assert.notEqual(usesStatus.data.nodes, usesStatus.data.software_nodes);
   assert.notEqual(usesStatus.data.live_nodes, usesStatus.data.software_nodes);
   resetMeshStore();
+}
+
+{
+  assert.deepEqual(SITE_LIVE_HOSTS.slice(), ["godlock.uk", "azieleliab.com", "azielcorpuslibrary.net"]);
+  assert.deepEqual(SITE_LIVE_EXCLUDED_HOSTS.slice(), ["hedidntjump.com"]);
+  assert.equal(SITE_LIVE_KIND, "human-page");
+  assert.equal(SITE_LIVE_TTL_MS, PRESENCE_TTL_MS);
+  assert.equal(sanitizeSiteHost("https://www.godlock.uk/count").host, "godlock.uk");
+  assert.equal(sanitizeSiteHost("hedidntjump.com").code, "MESH-SITE-HOST-EXCLUDED");
+  assert.equal(sanitizeSiteKind("bot").code, "MESH-SITE-KIND-REFUSED");
+  assert.equal(sanitizeSiteKind("software").code, "MESH-SITE-KIND-REFUSED");
+  assert.equal(sanitizeSiteKind("download").code, "MESH-SITE-KIND-REFUSED");
+  assert.equal(sanitizeSiteViewers(-1).ok, false);
+  assert.equal(acceptSitePresence({ host: "godlock.uk", viewers: 4, kind: "human-page" }).ok, true);
+  assert.equal(siteViewerFleet({}).site_live_viewers, 0);
+  assert.match(SITE_LIVE_VIEWERS_NOTE, /never pulls hub \/count/i);
+  assert.equal(SITE_PRESENCE_CONTRACT.pull_hub_count, false);
+  assert.equal(SITE_PRESENCE_CONTRACT.fail_closed, true);
+  assert.ok(MESH_LIVE_OPS.includes("site-presence"));
+
+  const siteEnv = envWithMesh();
+  const emptyGet = await jsonReq(siteEnv, "/v1/mesh");
+  assert.equal(emptyGet.data.site_live_viewers, 0, "no hub heartbeat stays 0");
+  assert.equal(emptyGet.data.live_nodes, 0);
+  assert.equal(emptyGet.data.site_live_viewers_pull, false);
+  assert.equal(emptyGet.data.live_nodes_components.invent_users, false);
+  const cite = await jsonReq(siteEnv, "/v1/mesh/site-presence");
+  assert.equal(cite.status, 200);
+  assert.equal(cite.data.site_live_viewers, 0);
+  assert.equal(cite.data.site_presence_contract.fail_closed, true);
+
+  const hdj = await postJson(siteEnv, "/v1/mesh/site-presence", {
+    host: "hedidntjump.com",
+    viewers: 9,
+    kind: "human-page",
+  });
+  assert.equal(hdj.status, 400);
+  assert.equal(hdj.data.code, "MESH-SITE-HOST-EXCLUDED");
+  assert.equal((await jsonReq(siteEnv, "/v1/mesh")).data.site_live_viewers, 0);
+
+  const bot = await postJson(siteEnv, "/v1/mesh/site-presence", {
+    host: "godlock.uk",
+    viewers: 9,
+    kind: "bot",
+  });
+  assert.equal(bot.status, 400);
+  assert.equal(bot.data.code, "MESH-SITE-KIND-REFUSED");
+  const software = await postJson(siteEnv, "/v1/mesh/site-presence", {
+    host: "godlock.uk",
+    viewers: 9,
+    kind: "software",
+  });
+  assert.equal(software.data.code, "MESH-SITE-KIND-REFUSED");
+  const download = await postJson(siteEnv, "/v1/mesh/site-presence", {
+    host: "godlock.uk",
+    viewers: 9,
+    kind: "download",
+  });
+  assert.equal(download.data.code, "MESH-SITE-KIND-REFUSED");
+  assert.equal((await jsonReq(siteEnv, "/v1/mesh")).data.live_nodes, 0, "refused reports do not invent viewers");
+
+  const godlock = await postJson(siteEnv, "/v1/mesh/site-presence", {
+    host: "www.godlock.uk",
+    viewers: 4,
+    kind: "human-page",
+  });
+  assert.equal(godlock.status, 200, JSON.stringify(godlock.data));
+  assert.equal(godlock.data.site_live_viewers, 4);
+  assert.equal(godlock.data.site_live_viewers_components["godlock.uk"], 4);
+  assert.equal(godlock.data.live_nodes, 4);
+  assert.equal(godlock.data.human_mesh_users, 0);
+  assert.equal(godlock.data.nodes, godlock.data.human_mesh_users + godlock.data.human_uses);
+  assertMeshPills(godlock.data);
+
+  const corpus = await postJson(siteEnv, "/v1/mesh/site-heartbeat", {
+    host: "azielcorpuslibrary.net",
+    viewers: 2,
+    kind: "human-page",
+  });
+  assert.equal(corpus.data.site_live_viewers, 6);
+  assert.equal(corpus.data.live_nodes, 6);
+  assert.equal(corpus.data.nodes, corpus.data.human_mesh_users + corpus.data.human_uses);
+
+  const human = await postJson(siteEnv, "/v1/mesh/join", { product: "azchat" });
+  assert.equal(human.data.human_mesh_users, 1);
+  assert.equal(human.data.site_live_viewers, 6);
+  assert.equal(human.data.live_nodes, 7);
+  assert.equal(human.data.nodes, human.data.human_mesh_users + human.data.human_uses);
+  assertMeshPills(human.data);
+
+  const zero = await postJson(siteEnv, "/v1/mesh/site-presence", {
+    host: "godlock.uk",
+    viewers: 0,
+    kind: "human-page",
+  });
+  assert.equal(zero.data.site_live_viewers_components["godlock.uk"], 0);
+  assert.equal(zero.data.site_live_viewers, 2);
+  assert.equal(zero.data.live_nodes, 3);
+
+  const tSite = 2_000_000_000_000;
+  setMeshNowMs(tSite);
+  await postJson(siteEnv, "/v1/mesh/site-presence", {
+    host: "azieleliab.com",
+    viewers: 5,
+    kind: "human-page",
+  });
+  setMeshNowMs(tSite + SITE_LIVE_TTL_MS + 1);
+  const expired = await jsonReq(siteEnv, "/v1/mesh");
+  assert.equal(expired.data.site_live_viewers_components["azieleliab.com"], 0);
+  assert.equal(expired.data.site_live_viewers, 0, "expired hub heartbeats are 0");
+  assert.equal(expired.data.live_nodes, expired.data.human_mesh_users);
+  resetMeshClock();
+  resetMeshStore();
+  assert.equal(
+    pruneSiteViewers({
+      "godlock.uk": { host: "godlock.uk", viewers: 3, kind: "human-page", last_seen: "1999-01-01T00:00:00.000Z" },
+    })["godlock.uk"],
+    undefined,
+  );
 }
 
 const joinTool = listed.result.tools.find((t) => t.name === "mesh_join");

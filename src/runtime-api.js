@@ -393,7 +393,7 @@ ${survivalSkillMarkdown(base)}
 | GET | \`/v1/uses\` | API use counters + recent ring log. Does not increment. No PII. |
 | GET | \`/v1/stats\` | Alias of \`/v1/uses\`. |
 | GET | \`/v1/stats-rollups\` | Read-only sibling views/downloads snapshot (best-effort; never invents; omit on error). |
-| GET | \`/v1/mesh\` | QNM rollup: enabled?, bearers, nodes (human mesh users + cited human uses), live_nodes (human mesh users / presence), software_nodes ({slug}-worker roster). Suite-presence ON by default. Never enables extra radios. |
+| GET | \`/v1/mesh\` | QNM rollup: enabled?, bearers, nodes (human mesh users + cited human uses), live_nodes (human mesh users + site_live_viewers), software_nodes ({slug}-worker roster). Suite-presence ON by default. Never enables extra radios. Never pulls hub /count. |
 | GET | \`/v1/mesh/status\` | Alias of \`/v1/mesh\`. |
 | POST | \`/v1/mesh/enable\` | Optional extra bearer. Body \`{bearer}\` required (rate-limited). |
 | POST | \`/v1/mesh/disable\` | Refused (\`MESH-DISABLE-REFUSED\`). Public disable of suite-presence is refused. |
@@ -401,6 +401,8 @@ ${survivalSkillMarkdown(base)}
 | POST | \`/v1/mesh/heartbeat\` | Refresh the strict 5-minute TTL. Body \`{node_id, presence?}\`. F03 \`mesh_mutate\`. \`MESH-OFF\` when radios off. |
 | POST | \`/v1/mesh/leave\` | Drop presence. Body \`{node_id}\`. No implicit heal. |
 | GET | \`/v1/mesh/nodes\` | Rollup roster (no scores / leaderboard). |
+| GET | \`/v1/mesh/site-presence\` | Cite hub site-viewer contract + current \`site_live_viewers\`. Never writes. Never pulls hub /count. |
+| POST | \`/v1/mesh/site-presence\` | Hub fleet heartbeat. Body \`{host, viewers, kind: "human-page"}\`. Allowed: godlock.uk, azieleliab.com, azielcorpuslibrary.net. Alias \`/v1/mesh/site-heartbeat\`. 5-minute TTL. Fail-closed. F03 \`mesh_mutate\`. |
 | GET | \`/v1/mesh/az-generator\` | Cap-7 semantic-bridge cite (MirageGrid factory; inherit designs only including azcorpus + azlibrary; \`design_of: hub_designs\`; \`resolves_to_hub: false\`; \`name_may_change\`; not ICANN). Never enables radios. |
 | POST | \`/v1/mesh/broadcast\` | SHA-256 hash receipt only. Never a publish path. |
 | GET | \`/v1/qns\` | QNS-CD-1.0 cite (photon QNS1 1.3). Local \`qnsd\` in qnm-node. Never a public via proxy. |
@@ -1611,6 +1613,36 @@ export function runtimeStaticPaths() {
           },
         },
         responses: { "200": { description: "Presence refreshed" }, "400": { description: "Unknown node or radios off" } },
+      },
+    },
+    "/v1/mesh/site-presence": {
+      get: {
+        operationId: "mesh_site_presence_cite",
+        summary: "Cite the hub site-viewer contract and current site_live_viewers. Never writes. Never pulls hub /count.",
+        tags: ["mesh"],
+        responses: { "200": { description: "site_live_viewers + contract (fail-closed)" } },
+      },
+      post: {
+        operationId: "mesh_site_presence",
+        summary: "Hub fleet heartbeat of concurrent human page viewers. Body { host, viewers, kind: human-page }. Allowed hosts godlock.uk / azieleliab.com / azielcorpuslibrary.net. hedidntjump.com, bots, Softwares, downloads refuse. 5-minute TTL. Fail-closed.",
+        tags: ["mesh"],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["host", "viewers", "kind"],
+                properties: {
+                  host: { type: "string", description: "godlock.uk | azieleliab.com | azielcorpuslibrary.net" },
+                  viewers: { type: "integer", minimum: 0, maximum: 10000, description: "Concurrent human page sessions. Do not invent." },
+                  kind: { type: "string", enum: ["human-page"] },
+                },
+              },
+            },
+          },
+        },
+        responses: { "200": { description: "Fleet field stored" }, "400": { description: "Excluded host, refused kind, or bad viewers" } },
       },
     },
     "/v1/mesh/leave": {

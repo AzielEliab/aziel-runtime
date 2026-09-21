@@ -80,8 +80,9 @@ function envWithMesh(extra = {}) {
 
 function assertMeshPills(data) {
   assert.equal(typeof data.nodes, "number");
+  assert.equal(typeof data.site_live_viewers, "number");
   assert.equal(data.nodes, data.human_mesh_users + data.human_uses);
-  assert.equal(data.live_nodes, data.human_mesh_users);
+  assert.equal(data.live_nodes, data.human_mesh_users + data.site_live_viewers);
   assert.equal(data.live_nodes, data.rollup.mesh);
   assert.equal(data.nodes, data.rollup.nodes);
   if ((data.software_nodes || 0) > 0) {
@@ -605,6 +606,35 @@ assert.equal(proxyMcp.data.code, "PROXY-OP-REFUSED");
 assert.equal(proxyMcp.data.factory_mcp, false);
 assert.equal(proxyMcp.data.proxy_is_not_exec, true);
 gate("PROXY-ALLOWLIST", " /p never forwards factory /mcp; documented tracker ops only");
+
+{
+  const siteEnv = envWithMesh();
+  const none = await jsonReq(siteEnv, "/v1/mesh");
+  assert.equal(none.data.site_live_viewers, 0);
+  assert.equal(none.data.live_nodes, 0);
+  assert.equal(none.data.site_live_viewers_pull, false);
+  const excluded = await postJson(siteEnv, "/v1/mesh/site-presence", {
+    host: "hedidntjump.com",
+    viewers: 12,
+    kind: "human-page",
+  });
+  assert.equal(excluded.data.ok, false);
+  assert.equal(excluded.data.code, "MESH-SITE-HOST-EXCLUDED");
+  const afterRefuse = await jsonReq(siteEnv, "/v1/mesh");
+  assert.equal(afterRefuse.data.site_live_viewers, 0, "excluded host must not invent viewers");
+  const ok = await postJson(siteEnv, "/v1/mesh/site-presence", {
+    host: "godlock.uk",
+    viewers: 3,
+    kind: "human-page",
+  });
+  assert.equal(ok.status, 200, JSON.stringify(ok.data));
+  assert.equal(ok.data.site_live_viewers, 3);
+  assert.equal(ok.data.live_nodes, 3);
+  assert.equal(ok.data.nodes, ok.data.human_mesh_users + ok.data.human_uses);
+  assertMeshPills(ok.data);
+  resetMeshStore();
+}
+gate("SITE-LIVE-VIEWERS", "Live Nodes add hub site viewers when present; stay 0 when none; HDJ excluded");
 
 console.log(
   `ok mesh-security ${RUNTIME_VERSION}: ${gates.length} gates — ${gates.map((g) => g.id).join(", ")}`,

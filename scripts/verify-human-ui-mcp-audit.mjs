@@ -363,7 +363,7 @@ assert.equal(suitePack.labels.invented_doi, false);
 assert.equal(suitePack.foldlock_tip.full_library_in_process, false);
 assert.ok(Array.isArray(suitePack.catalog.software) && suitePack.catalog.software.length === 42);
 assert.ok(suitePack.catalog.software.some((s) => s.slug === "whitestone" && s.worker_only === true));
-assert.equal(suitePack.mesh.live_nodes_plane, "human-mesh-users");
+assert.equal(suitePack.mesh.live_nodes_plane, "human-mesh-users-site-viewers");
 assert.equal(suitePack.mesh.nodes_plane, "human-mesh-users-uses");
 assert.equal(suitePack.mesh.software_nodes_plane, "software-worker-fanout");
 assert.equal(suitePack.mesh.instance_join.downloads_are_not_live, true);
