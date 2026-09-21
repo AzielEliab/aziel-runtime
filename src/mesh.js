@@ -886,7 +886,7 @@ async function loadState(env) {
   const bound = meshKv(env);
   if (!bound) {
     memory.nodes = pruneNodes(memory.nodes);
-    memory.site_viewers = pruneSiteViewers(memory.site_viewers);
+    memory.site_viewers = pruneSiteViewers(memory.site_viewers, nowMs());
     const bearers = withBearersForLoad(memory.bearers);
     memory.enabled = txRadiosLive(bearers, env);
     memory.bearers = bearers;
@@ -903,7 +903,7 @@ async function loadState(env) {
   const lastRaw = await bound.kv.get(`${bound.prefix}last_enable_ms`);
   const bearers = withBearersForLoad(await kvGetJson(bound.kv, `${bound.prefix}bearers`, []));
   const nodes = pruneNodes(await kvGetJson(bound.kv, `${bound.prefix}nodes`, {}));
-  const site_viewers = pruneSiteViewers(await kvGetJson(bound.kv, `${bound.prefix}site_viewers`, {}));
+  const site_viewers = pruneSiteViewers(await kvGetJson(bound.kv, `${bound.prefix}site_viewers`, {}), nowMs());
   const receipts = await kvGetJson(bound.kv, `${bound.prefix}receipts`, []);
   return {
     enabled: txRadiosLive(bearers, env),
@@ -921,7 +921,7 @@ async function saveState(env, state) {
   const bearers = normalizeBearers(state.bearers);
   const enabled = radiosOn(bearers);
   const nodes = pruneNodes(state.nodes);
-  const site_viewers = pruneSiteViewers(state.site_viewers);
+  const site_viewers = pruneSiteViewers(state.site_viewers, nowMs());
   const receipts = Array.isArray(state.receipts) ? state.receipts.slice(0, RECEIPT_CAP) : [];
   if (!bound) {
     memory.enabled = enabled;
@@ -1048,7 +1048,7 @@ function statusFieldsSync(state, usesSignal = null, env) {
   const human_mesh_users = meshSizeFromPresence(rollup.human);
   const human_uses = uses.uses_kv ? Number(uses.uses) || 0 : 0;
   const nodes_count = nodesFromHumanSignal(rollup.human, uses);
-  const fleet = siteViewerFleet(state.site_viewers);
+  const fleet = siteViewerFleet(state.site_viewers, nowMs());
   const site_live_viewers = fleet.site_live_viewers;
   const live_nodes = human_mesh_users + site_live_viewers;
   rollup.mesh = live_nodes;
@@ -1720,7 +1720,7 @@ export async function meshSitePresence(payload, env) {
       ...(await statusFields(state, env)),
     });
   }
-  state.site_viewers = pruneSiteViewers(state.site_viewers);
+  state.site_viewers = pruneSiteViewers(state.site_viewers, nowMs());
   state.site_viewers[accepted.record.host] = accepted.record;
   const store = await saveState(env, state);
   return baseResult({
