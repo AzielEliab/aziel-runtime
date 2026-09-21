@@ -159,7 +159,7 @@ assert.equal(onStatus.data.live_nodes, 0);
 assert.equal(onStatus.data.software_nodes, 0);
 assert.equal(onStatus.data.instance_nodes, 0);
 assert.match(onStatus.data.live_nodes_note, /human mesh users/i);
-assert.match(LIVE_NODES_NOTE, /do not invent users/i);
+assert.match(LIVE_NODES_NOTE, /does not invent users/i);
 assert.equal(onStatus.data.live_nodes_plane, LIVE_NODES_PLANE);
 assert.equal(onStatus.data.human_mesh_users, 0);
 assert.equal(onStatus.data.human_uses, 0);

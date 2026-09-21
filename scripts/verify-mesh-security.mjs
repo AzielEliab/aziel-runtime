@@ -369,11 +369,11 @@ assert.deepEqual(
 gate("JOIN-SHAPE", "product required; node_id 8–80 [a-z0-9._-]; presence live|locked|isolated");
 
 // --- MESH-OFF gate remains (latent on default-on public surface) ---
-assert.match(meshSrc, /function offRefuse\(op, state\)/);
+assert.match(meshSrc, /async function offRefuse\(op, state, env\)/);
 assert.match(meshSrc, /"MESH-OFF"/);
-assert.match(meshSrc, /if \(!state\.enabled\) return offRefuse\("join", state\)/);
-assert.match(meshSrc, /if \(!state\.enabled\) return offRefuse\("heartbeat", state\)/);
-assert.match(meshSrc, /if \(!state\.enabled\) return offRefuse\("broadcast", state\)/);
+assert.match(meshSrc, /if \(!state\.enabled\) return offRefuse\("join", state, env\)/);
+assert.match(meshSrc, /if \(!state\.enabled\) return offRefuse\("heartbeat", state, env\)/);
+assert.match(meshSrc, /if \(!state\.enabled\) return offRefuse\("broadcast", state, env\)/);
 assert.doesNotMatch(meshSrc, /MESH_DEFAULT_ENABLED = false/);
 const radiosOffEnv = envWithMesh({ MESH_RADIOS: "off" });
 const joinOff = await postJson(radiosOffEnv, "/v1/mesh/join", { product: "godlock", node_id: "radios-off" });
