@@ -519,7 +519,7 @@ export function workspacePaneHtml(origin, products) {
 
   <section class="task" id="mesh-panel" data-kind="mesh" data-origin="${escapeHtml(base)}">
     <h3>Mesh status</h3>
-    <p class="blurb"><strong>Nodes</strong> from <code>nodes</code> / <code>rollup.nodes</code> count human mesh users plus cited human uses (<code>human_uses</code> / USES). <strong>Live Nodes</strong> from <code>live_nodes</code> / <code>rollup.mesh</code> count human mesh users plus concurrent website viewers (<code>site_live_viewers</code>) on godlock.uk + azieleliab.com + azielcorpuslibrary.net. <code>software_nodes</code> is the <code>{slug}-worker</code> roster. hedidntjump.com, bots, Softwares, and downloads are excluded. GET never pulls hub /count and never enables radios. Incomplete uses stay honest (no invented users). Channel plane cites wifi / bluetooth / rf / photon ON (local qnm-node; <code>worker_hardware:false</code> — not live Worker RF). Nine QNM laws stay machine-true on that JSON. Join needs a catalog product. Public VPN auto-binds AZVPN (HTTPS/WS REAL; WireGuard/OpenVPN SLOT).</p>
+    <p class="blurb"><strong>Nodes</strong> from <code>nodes</code> / <code>rollup.nodes</code> count human mesh users plus cited human uses (<code>human_uses</code> / USES). <strong>Live Nodes</strong> from <code>live_nodes</code> / <code>rollup.mesh</code> count human mesh users plus concurrent website viewers (<code>site_live_viewers</code>) on godlock.uk + azieleliab.com + azielcorpuslibrary.net. Paint <code>live_nodes</code> only — do not add a local <code>/count</code>. <code>live_nodes_tip</code> is the seal. <code>software_nodes</code> is the <code>{slug}-worker</code> roster. hedidntjump.com, bots, Softwares, and downloads are excluded. GET never pulls hub /count and never enables radios. Incomplete uses stay honest (no invented users). Channel plane cites wifi / bluetooth / rf / photon ON (local qnm-node; <code>worker_hardware:false</code> — not live Worker RF). Nine QNM laws stay machine-true on that JSON. Join needs a catalog product. Public VPN auto-binds AZVPN (HTTPS/WS REAL; WireGuard/OpenVPN SLOT).</p>
     <p class="ws-status" id="mesh-status-line" data-state="loading" role="status" aria-live="polite">Loading status</p>
     <pre class="ws-out fg-out" id="mesh-out" role="status" aria-live="polite">Loading status…</pre>
     <div class="field">
@@ -900,8 +900,8 @@ export function humanDoorScript() {
       let roll = b.rollup || {};
       let humans = b.human_mesh_users != null ? b.human_mesh_users : (b.human_live_nodes != null ? b.human_live_nodes : 0);
       let humanUses = b.human_uses != null ? b.human_uses : 0;
-      let siteViewers = b.site_live_viewers != null ? b.site_live_viewers : 0;
-      let live = b.live_nodes != null ? b.live_nodes : (roll.mesh != null ? roll.mesh : humans + siteViewers);
+      let live = b.live_nodes != null ? b.live_nodes : (roll.mesh != null ? roll.mesh : null);
+      let tip = b.live_nodes_tip != null ? b.live_nodes_tip : (b.live_nodes_generation != null ? b.live_nodes_generation : "");
       let nodesCount = typeof b.nodes === "number" ? b.nodes : (typeof roll.nodes === "number" ? roll.nodes : humans + humanUses);
       let locked = b.inactive_nodes != null ? b.inactive_nodes : (b.locked_nodes != null ? b.locked_nodes : roll.locked);
       let isolated = b.isolated_nodes != null ? b.isolated_nodes : roll.isolated;
@@ -909,7 +909,7 @@ export function humanDoorScript() {
       let radios = b.radios || (b.enabled ? "on" : "off");
       let ch = b.channel_plane || b.channels || {};
       let channelsOn = (ch.wifi || b.wifi) === "on" && (ch.bluetooth || b.bluetooth) === "on" && (ch.rf || b.rf) === "on" && (ch.photon || b.photon) === "on";
-      let text = "Nodes " + nodesCount + " · Live Nodes " + live + " (human mesh users " + humans + " + site viewers " + siteViewers + ") · software_nodes " + software + " · inactive " + locked + " · isolated " + isolated + " · radios " + radios + " · suite-presence " + (b.suite_presence || "on") + " · GET never enables";
+      let text = "Nodes " + nodesCount + " · Live Nodes " + (live == null ? "—" : live) + " · tip " + tip + " · software_nodes " + software + " · inactive " + locked + " · isolated " + isolated + " · radios " + radios + " · suite-presence " + (b.suite_presence || "on") + " · GET never enables";
       if (channelsOn) text += " · channels wifi/bt/rf/photon cite-on";
       if (b.vpn === true) text += " · public VPN AZVPN auto";
       else if (b.vpn === false) text += " · vpn false";
@@ -928,7 +928,7 @@ export function humanDoorScript() {
         if (el) el.textContent = value == null ? "—" : String(value);
       };
       setMetric("metric-nodes", nodesCount);
-      setMetric("metric-live", live);
+      setMetric("metric-live", live == null ? "—" : live);
       setMetric("metric-locked", locked);
       setMetric("metric-isolated", isolated);
       setMetric("metric-software", software);
