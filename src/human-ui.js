@@ -519,7 +519,7 @@ export function workspacePaneHtml(origin, products) {
 
   <section class="task" id="mesh-panel" data-kind="mesh" data-origin="${escapeHtml(base)}">
     <h3>Mesh status</h3>
-    <p class="blurb"><strong>Live Nodes</strong> from <code>live_nodes</code> / <code>rollup.mesh</code> is mesh size: active + inactive join/heartbeat nodes, excluding isolated — not catalog size, not downloads. <code>software_nodes</code> is the <code>{slug}-worker</code> roster and must not be used alone as this pill. GET never enables radios. Channel plane cites wifi / bluetooth / rf / photon ON (local qnm-node; <code>worker_hardware:false</code> — not live Worker RF). Nine QNM laws stay machine-true on that JSON. Join needs a catalog product. Public VPN auto-binds AZVPN (HTTPS/WS REAL; WireGuard/OpenVPN SLOT).</p>
+    <p class="blurb"><strong>Live Nodes</strong> from <code>live_nodes</code> / <code>rollup.mesh</code> counts human mesh users (join/heartbeat/presence — human bearers) plus cited human uses (<code>human_uses</code> / USES) — not Softwares catalog, not downloaded instances, not <code>software_nodes</code>. <code>software_nodes</code> is the <code>{slug}-worker</code> roster and never feeds this pill. Incomplete uses stay honest (no invented users). GET never enables radios. Channel plane cites wifi / bluetooth / rf / photon ON (local qnm-node; <code>worker_hardware:false</code> — not live Worker RF). Nine QNM laws stay machine-true on that JSON. Join needs a catalog product. Public VPN auto-binds AZVPN (HTTPS/WS REAL; WireGuard/OpenVPN SLOT).</p>
     <p class="ws-status" id="mesh-status-line" data-state="loading" role="status" aria-live="polite">Loading status</p>
     <pre class="ws-out fg-out" id="mesh-out" role="status" aria-live="polite">Loading status…</pre>
     <div class="field">
@@ -904,7 +904,9 @@ export function humanDoorScript() {
       let radios = b.radios || (b.enabled ? "on" : "off");
       let ch = b.channel_plane || b.channels || {};
       let channelsOn = (ch.wifi || b.wifi) === "on" && (ch.bluetooth || b.bluetooth) === "on" && (ch.rf || b.rf) === "on" && (ch.photon || b.photon) === "on";
-      let text = "Live Nodes " + live + " (mesh size) · software_nodes " + software + " · inactive " + locked + " · isolated " + isolated + " · radios " + radios + " · suite-presence " + (b.suite_presence || "on") + " · GET never enables";
+      let humans = b.human_mesh_users != null ? b.human_mesh_users : (b.human_live_nodes != null ? b.human_live_nodes : live);
+      let humanUses = b.human_uses != null ? b.human_uses : 0;
+      let text = "Live Nodes " + live + " (human mesh users " + humans + " + uses " + humanUses + ") · software_nodes " + software + " · inactive " + locked + " · isolated " + isolated + " · radios " + radios + " · suite-presence " + (b.suite_presence || "on") + " · GET never enables";
       if (channelsOn) text += " · channels wifi/bt/rf/photon cite-on";
       if (b.vpn === true) text += " · public VPN AZVPN auto";
       else if (b.vpn === false) text += " · vpn false";
@@ -964,7 +966,7 @@ export function humanDoorScript() {
           return;
         }
         if (!product) { show(out, "Product slug is required. MESH-BAD-INPUT if omitted. AnonBroadcast is not a product.", "error"); return; }
-        let payload = { product: product, presence: presence };
+        let payload = { product: product, presence: presence, kind: "human", bearer: "human" };
         if (node_id) payload.node_id = node_id;
         fraggateCall(origin, "mesh", "join", payload, out, btn).then(function () { refreshMesh(); });
       });
@@ -1053,7 +1055,7 @@ export function humanDoorScript() {
         if (!product) { show(out, "Product slug is required. MESH-BAD-INPUT if omitted. AnonBroadcast is not a product.", "error"); return; }
         let meshProduct = document.getElementById("mesh-product");
         if (meshProduct) meshProduct.value = product;
-        fraggateCall(origin, "mesh", "join", { product: product, presence: "live" }, out, btn).then(function () { refreshMesh(); });
+        fraggateCall(origin, "mesh", "join", { product: product, presence: "live", kind: "human", bearer: "human" }, out, btn).then(function () { refreshMesh(); });
       });
     });
   }

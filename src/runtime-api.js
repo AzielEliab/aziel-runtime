@@ -393,7 +393,7 @@ ${survivalSkillMarkdown(base)}
 | GET | \`/v1/uses\` | API use counters + recent ring log. Does not increment. No PII. |
 | GET | \`/v1/stats\` | Alias of \`/v1/uses\`. |
 | GET | \`/v1/stats-rollups\` | Read-only sibling views/downloads snapshot (best-effort; never invents; omit on error). |
-| GET | \`/v1/mesh\` | QNM rollup: enabled?, bearers, live_nodes (mesh size: active + inactive, exclude isolated), software_nodes ({slug}-worker roster). Suite-presence ON by default. Never enables extra radios. Downloads are not live. |
+| GET | \`/v1/mesh\` | QNM rollup: enabled?, bearers, live_nodes (human mesh users + cited human uses), software_nodes ({slug}-worker roster; never Live Nodes). Suite-presence ON by default. Never enables extra radios. Downloads are not live. |
 | GET | \`/v1/mesh/status\` | Alias of \`/v1/mesh\`. |
 | POST | \`/v1/mesh/enable\` | Optional extra bearer. Body \`{bearer}\` required (rate-limited). |
 | POST | \`/v1/mesh/disable\` | Refused (\`MESH-DISABLE-REFUSED\`). Public disable of suite-presence is refused. |
@@ -1490,7 +1490,7 @@ export function runtimeStaticPaths() {
       get: {
         operationId: "mesh_status",
         summary:
-          "QNM-BUILD-1.0 suite rollup (enabled?, bearers, live_nodes = mesh size active+inactive excluding isolated, software_nodes = {slug}-worker roster). Read-only suite-presence ON by default. GET never enables radios beyond that. Channel plane (wifi / bluetooth / rf / photon) cites ON — live hardware on local qnm-node. Public VPN auto-binds AZVPN (vpn/public_vpn/tunnel_concentrator true; GET cites only). Nine QNM laws are hard-true (clocks_share_socket false, live_body_sync false, restore_godlock_uk false). OPERATOR-OVERRIDE 2026-09-17: node_gate true, get_is_node_gate true, auto_heal / implicit_heal true, neighbor_heal true, network on/true, anonymity_network true (mode flag), public VPN ON. NO-LIE / NO-REWRITE: receipts still hash; no rewrite key; never lie to survive. Not a login mesh. Not a login-recovery IP panel. Channel plane ≠ kernel VPN. Views/MCP/downloads do not enter QNM-S. Packet-transfer coding design is QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; GET /v1/qns cites only).",
+          "QNM-BUILD-1.0 suite rollup (enabled?, bearers, live_nodes = human mesh users + cited human uses, software_nodes = {slug}-worker roster and never feeds Live Nodes). Read-only suite-presence ON by default. GET never enables radios beyond that. Channel plane (wifi / bluetooth / rf / photon) cites ON — live hardware on local qnm-node. Public VPN auto-binds AZVPN (vpn/public_vpn/tunnel_concentrator true; GET cites only). Nine QNM laws are hard-true (clocks_share_socket false, live_body_sync false, restore_godlock_uk false). OPERATOR-OVERRIDE 2026-09-17: node_gate true, get_is_node_gate true, auto_heal / implicit_heal true, neighbor_heal true, network on/true, anonymity_network true (mode flag), public VPN ON. NO-LIE / NO-REWRITE: receipts still hash; no rewrite key; never lie to survive. Not a login mesh. Not a login-recovery IP panel. Channel plane ≠ kernel VPN. Views/MCP/downloads do not enter QNM-S. Packet-transfer coding design is QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; GET /v1/qns cites only).",
         tags: ["mesh"],
         responses: { "200": { description: "QNM rollup JSON" } },
       },

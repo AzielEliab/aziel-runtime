@@ -299,28 +299,13 @@ export async function incrementUse(env, dims = {}) {
   return { ok: true, uses: counts[USES_TOTAL_KEY], entry };
 }
 
-async function collectPrefixed(kv, prefix) {
-  const out = {};
-  if (typeof kv.list === "function") {
-    let cursor;
-    do {
-      const page = await kv.list({ prefix, limit: 1000, cursor });
-      const keys = (page && page.keys) || [];
-      for (const item of keys) {
-        const name = item && item.name;
-        if (!name || name === prefix) continue;
-        const label = name.slice(prefix.length);
-        const n = Number(await kv.get(name)) || 0;
-        out[label] = n;
-      }
-      cursor = page && page.list_complete === false ? page.cursor : undefined;
-    } while (cursor);
-    return out;
-  }
-  return out;
-}
-
-export async function readUses(env) {
+export async function readUses(env, options = {}) {
+  const light = options.light === true;
+  const budgetMs =
+    Number.isFinite(Number(options.budget_ms)) && Number(options.budget_ms) > 0
+      ? Number(options.budget_ms)
+      : USES_READ_BUDGET_MS;
+  const startedAt = Date.now();
   const base = {
     ok: true,
     product: USES_PRODUCT,
@@ -330,9 +315,11 @@ export async function readUses(env) {
     by_path: {},
     by_day: {},
     recent: [],
+    uses_complete: true,
+    uses_note: HUMAN_USES_NOTE,
   };
   const kv = usesKv(env);
-  if (!kv) return { ...base, uses_kv: false };
+  if (!kv) return { ...base, uses_kv: false, uses_complete: false };
   let uses = 0;
   try {
     uses = Number(await kv.get(USES_TOTAL_KEY)) || 0;
@@ -347,23 +334,38 @@ export async function readUses(env) {
   } catch {
     recent = [];
   }
+  if (light) {
+    return {
+      ...base,
+      uses,
+      recent,
+      uses_kv: true,
+      uses_complete: true,
+      light: true,
+    };
+  }
   const [by_host, by_path, by_day, by_method, by_op] = await Promise.all([
-    collectPrefixed(kv, "host|"),
-    collectPrefixed(kv, "path|"),
-    collectPrefixed(kv, "day|"),
-    collectPrefixed(kv, "method|"),
-    collectPrefixed(kv, "op|"),
+    collectPrefixed(kv, "host|", startedAt, budgetMs),
+    collectPrefixed(kv, "path|", startedAt, budgetMs),
+    collectPrefixed(kv, "day|", startedAt, budgetMs),
+    collectPrefixed(kv, "method|", startedAt, budgetMs),
+    collectPrefixed(kv, "op|", startedAt, budgetMs),
   ]);
+  const maps_complete =
+    by_host.complete && by_path.complete && by_day.complete && by_method.complete && by_op.complete;
   return {
     ...base,
     uses,
-    by_host,
-    by_path,
-    by_day,
-    by_method,
-    by_op,
+    by_host: by_host.map,
+    by_path: by_path.map,
+    by_day: by_day.map,
+    by_method: by_method.map,
+    by_op: by_op.map,
     recent,
     uses_kv: true,
+    uses_complete: maps_complete,
+    uses_read_ms: Date.now() - startedAt,
+    uses_read_budget_ms: budgetMs,
   };
 }
 
@@ -376,6 +378,91 @@ export async function peekUsesTotal(env) {
   } catch {
     return null;
   }
+}
+
+/** Live Nodes must never walk GET /v1/uses. One key. Honest 0 if unbound/failed. */
+export const HUMAN_USES_NOTE =
+  "human_uses is the USES interaction counter (no PII), not a unique-user count. Incomplete or unbound telemetry is reported as 0 with complete=false. Live Nodes does not invent users from missing uses.";
+
+export async function peekHumanUses(env) {
+  const kv = usesKv(env);
+  if (!kv) {
+    return {
+      uses: 0,
+      uses_kv: false,
+      complete: false,
+      source: "unbound",
+      note: HUMAN_USES_NOTE,
+    };
+  }
+  try {
+    const raw = await kv.get(USES_TOTAL_KEY);
+    if (raw == null || raw === "") {
+      return {
+        uses: 0,
+        uses_kv: true,
+        complete: true,
+        source: "uses.total",
+        note: HUMAN_USES_NOTE,
+      };
+    }
+    const n = Number(raw);
+    if (!Number.isFinite(n)) {
+      return {
+        uses: 0,
+        uses_kv: true,
+        complete: false,
+        source: "uses.total",
+        note: HUMAN_USES_NOTE,
+      };
+    }
+    return {
+      uses: n,
+      uses_kv: true,
+      complete: true,
+      source: "uses.total",
+      note: HUMAN_USES_NOTE,
+    };
+  } catch {
+    return {
+      uses: 0,
+      uses_kv: true,
+      complete: false,
+      source: "read_failed",
+      note: HUMAN_USES_NOTE,
+    };
+  }
+}
+
+/** Stay under the 25s request deadline. Full prefix walks can exceed it. */
+export const USES_READ_BUDGET_MS = 8_000;
+
+async function collectPrefixed(kv, prefix, startedAt = Date.now(), budgetMs = USES_READ_BUDGET_MS) {
+  const out = {};
+  let complete = true;
+  if (typeof kv.list !== "function") return { map: out, complete: true };
+  let cursor;
+  do {
+    if (Date.now() - startedAt > budgetMs) {
+      complete = false;
+      break;
+    }
+    const page = await kv.list({ prefix, limit: 1000, cursor });
+    const keys = (page && page.keys) || [];
+    for (const item of keys) {
+      if (Date.now() - startedAt > budgetMs) {
+        complete = false;
+        break;
+      }
+      const name = item && item.name;
+      if (!name || name === prefix) continue;
+      const label = name.slice(prefix.length);
+      const n = Number(await kv.get(name)) || 0;
+      out[label] = n;
+    }
+    cursor = page && page.list_complete === false ? page.cursor : undefined;
+  } while (cursor && complete);
+  return { map: out, complete };
 }
 
 export async function recordApiUse(env, request, response) {
