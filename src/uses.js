@@ -382,7 +382,7 @@ export async function peekUsesTotal(env) {
 
 /** Live Nodes must never walk GET /v1/uses. One key. Honest 0 if unbound/failed. */
 export const HUMAN_USES_NOTE =
-  "human_uses is the USES interaction counter (no PII), not a unique-user count. Incomplete or unbound telemetry is reported as 0 with complete=false. Live Nodes does not invent users from missing uses.";
+  "human_uses is the USES interaction counter (no PII), not a unique-user count. Incomplete or unbound telemetry is reported as 0 with complete=false. Nodes and Live Nodes do not invent users from missing uses.";
 
 export async function peekHumanUses(env) {
   const kv = usesKv(env);

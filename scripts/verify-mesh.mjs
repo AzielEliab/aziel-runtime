@@ -27,6 +27,8 @@ import {
   isSoftwareWorkerNodeId,
   LIVE_NODES_NOTE,
   LIVE_NODES_PLANE,
+  NODES_NOTE,
+  NODES_PLANE,
   meshCiteField,
   meshFanoutSuitePresence,
   memoryMeshKv,
@@ -77,6 +79,26 @@ async function postJson(env, path, body) {
     headers: { "content-type": "application/json", "user-agent": "Mozilla/5.0" },
     body: JSON.stringify(body || {}),
   });
+}
+
+/** Status JSON: Nodes = users+uses; Live Nodes = users; software_nodes stays off both. */
+function assertMeshPills(data, extra = {}) {
+  const roster = extra.roster === true;
+  assert.equal(data.live_nodes, data.human_mesh_users, extra.liveMsg || "live_nodes === human_mesh_users");
+  assert.equal(data.live_nodes, data.rollup.mesh, extra.rollupMeshMsg || "rollup.mesh === live_nodes");
+  assert.equal(data.rollup.nodes, data.human_mesh_users + data.human_uses, extra.rollupNodesMsg || "rollup.nodes === users+uses");
+  if (!roster) {
+    assert.equal(typeof data.nodes, "number", extra.nodesTypeMsg || "status nodes is a count");
+    assert.equal(data.nodes, data.human_mesh_users + data.human_uses, extra.nodesMsg || "nodes === human_mesh_users + human_uses");
+    assert.equal(data.nodes, data.rollup.nodes);
+  } else {
+    assert.ok(Array.isArray(data.nodes), extra.rosterMsg || "GET /v1/mesh/nodes.nodes is the roster");
+  }
+  if ((data.software_nodes || 0) > 0) {
+    assert.notEqual(data.live_nodes, data.software_nodes, extra.softLiveMsg || "software_nodes never feeds Live Nodes");
+    const nodesCount = roster ? data.rollup.nodes : data.nodes;
+    assert.notEqual(nodesCount, data.software_nodes, extra.softNodesMsg || "software_nodes never feeds Nodes");
+  }
 }
 
 async function mcp(env, method, params = {}, id = 1) {
@@ -156,14 +178,20 @@ assert.deepEqual(onStatus.data.rollup.software, { live: 0, locked: 0, isolated: 
 assert.deepEqual(onStatus.data.rollup.instances, { live: 0, locked: 0, isolated: 0 });
 assert.deepEqual(onStatus.data.rollup.ephemeral, { live: 0, locked: 0, isolated: 0 });
 assert.equal(onStatus.data.live_nodes, 0);
+assert.equal(onStatus.data.nodes, 0);
 assert.equal(onStatus.data.software_nodes, 0);
 assert.equal(onStatus.data.instance_nodes, 0);
 assert.match(onStatus.data.live_nodes_note, /human mesh users/i);
+assert.match(onStatus.data.nodes_note, /human mesh users plus/i);
 assert.match(LIVE_NODES_NOTE, /does not invent users/i);
+assert.match(NODES_NOTE, /does not invent users/i);
 assert.equal(onStatus.data.live_nodes_plane, LIVE_NODES_PLANE);
+assert.equal(onStatus.data.nodes_plane, NODES_PLANE);
+assert.equal(LIVE_NODES_PLANE, "human-mesh-users");
+assert.equal(NODES_PLANE, "human-mesh-users-uses");
 assert.equal(onStatus.data.human_mesh_users, 0);
 assert.equal(onStatus.data.human_uses, 0);
-assert.equal(onStatus.data.live_nodes, onStatus.data.human_mesh_users + onStatus.data.human_uses);
+assertMeshPills(onStatus.data);
 assert.equal(onStatus.data.active_nodes, 0);
 assert.equal(onStatus.data.inactive_nodes, 0);
 assert.equal(onStatus.data.rollup.mesh, 0);
@@ -200,8 +228,7 @@ assert.equal(defaultJoin.data.ok, true);
 assert.equal(defaultJoin.data.session.product, "godlock");
 assert.equal(defaultJoin.data.session.plane, "instance");
 assert.equal(defaultJoin.data.session.counts_as_live_nodes, false, "downloaded instance is not Live Nodes");
-assert.equal(defaultJoin.data.live_nodes, defaultJoin.data.human_mesh_users + defaultJoin.data.human_uses);
-assert.equal(defaultJoin.data.live_nodes, defaultJoin.data.rollup.mesh);
+assertMeshPills(defaultJoin.data);
 assert.equal(defaultJoin.data.human_mesh_users, 0);
 assert.equal(defaultJoin.data.instance_nodes, 1);
 const leftDefault = await postJson(env, "/v1/mesh/leave", { node_id: "godlock-default-on" });
@@ -247,8 +274,7 @@ assert.equal(defaultFanout.software_live_nodes, PRODUCTS.length);
 assert.equal(defaultFanout.active_nodes, PRODUCTS.length);
 assert.equal(defaultFanout.inactive_nodes, 0);
 assert.equal(defaultFanout.human_mesh_users, 0, "Softwares fan-out must not create human mesh users");
-assert.equal(defaultFanout.live_nodes, defaultFanout.human_mesh_users + defaultFanout.human_uses);
-assert.notEqual(defaultFanout.live_nodes, defaultFanout.software_nodes, "Live Nodes must not equal Softwares catalog by coupling");
+assertMeshPills(defaultFanout);
 
 const enabled = await postJson(env, "/v1/mesh/enable", { bearer: "suite-presence" });
 assert.equal(enabled.status, 200, JSON.stringify(enabled.data));
@@ -262,14 +288,13 @@ assert.equal(enabled.data.human_mesh_users, 0, JSON.stringify(enabled.data.produ
 assert.equal(enabled.data.ephemeral_nodes, 0);
 assert.equal(enabled.data.software_nodes, PRODUCTS.length);
 assert.equal(enabled.data.software_live_nodes, PRODUCTS.length);
-assert.equal(enabled.data.live_nodes, enabled.data.human_mesh_users + enabled.data.human_uses);
-assert.notEqual(enabled.data.live_nodes, enabled.data.software_nodes, "workers must not equal Live Nodes");
+assertMeshPills(enabled.data);
 const workerJoin = await postJson(env, "/v1/mesh/join", { product: "godlock", node_id: "godlock-worker" });
 assert.equal(workerJoin.status, 200, JSON.stringify(workerJoin.data));
 assert.equal(workerJoin.data.session.plane, "software");
 assert.equal(workerJoin.data.session.counts_as_live_nodes, false);
 assert.equal(workerJoin.data.human_mesh_users, 0);
-assert.equal(workerJoin.data.live_nodes, workerJoin.data.human_mesh_users + workerJoin.data.human_uses);
+assertMeshPills(workerJoin.data);
 assert.equal(workerJoin.data.software_nodes, PRODUCTS.length);
 
 const autoJoin = await postJson(env, "/v1/mesh/join", { product: "azchat" });
@@ -279,9 +304,8 @@ assert.equal(isEphemeralMeshNodeId(autoJoin.data.session.node_id), true);
 assert.equal(autoJoin.data.session.plane, "human", "auto-minted mesh_* is a human participant");
 assert.equal(autoJoin.data.session.counts_as_live_nodes, true);
 assert.equal(autoJoin.data.human_mesh_users, 1);
-assert.equal(autoJoin.data.live_nodes, autoJoin.data.human_mesh_users + autoJoin.data.human_uses);
+assertMeshPills(autoJoin.data);
 assert.equal(autoJoin.data.software_nodes, PRODUCTS.length, "mesh_* must not inflate software_nodes");
-assert.notEqual(autoJoin.data.live_nodes, autoJoin.data.software_nodes);
 assert.equal(autoJoin.data.ephemeral_nodes, 1);
 assert.equal(autoJoin.data.ephemeral_live_nodes, 1);
 assert.equal(autoJoin.data.instance_live_nodes, 0);
@@ -293,7 +317,7 @@ assert.equal(autoJoin.data.rollup.all.live, PRODUCTS.length + 1);
 const leftEphem = await postJson(env, "/v1/mesh/leave", { node_id: autoJoin.data.session.node_id });
 assert.equal(leftEphem.data.ephemeral_nodes, 0);
 assert.equal(leftEphem.data.human_mesh_users, 0);
-assert.equal(leftEphem.data.live_nodes, leftEphem.data.human_mesh_users + leftEphem.data.human_uses);
+assertMeshPills(leftEphem.data);
 assert.equal(leftEphem.data.software_nodes, PRODUCTS.length);
 
 const humanNamed = await postJson(env, "/v1/mesh/join", {
@@ -306,9 +330,8 @@ assert.equal(humanNamed.status, 200, JSON.stringify(humanNamed.data));
 assert.equal(humanNamed.data.session.plane, "human");
 assert.equal(humanNamed.data.session.counts_as_live_nodes, true);
 assert.equal(humanNamed.data.human_mesh_users, 1);
-assert.equal(humanNamed.data.live_nodes, humanNamed.data.human_mesh_users + humanNamed.data.human_uses);
+assertMeshPills(humanNamed.data);
 assert.equal(humanNamed.data.software_nodes, PRODUCTS.length);
-assert.notEqual(humanNamed.data.live_nodes, humanNamed.data.software_nodes);
 const isolatedHuman = await postJson(env, "/v1/mesh/join", {
   product: "foldlock",
   node_id: "human-isolated",
@@ -318,7 +341,7 @@ const isolatedHuman = await postJson(env, "/v1/mesh/join", {
 assert.equal(isolatedHuman.data.human_mesh_users, 1, "isolated human excluded from Live Nodes users");
 assert.equal(isolatedHuman.data.human_isolated_nodes, 1);
 assert.equal(isolatedHuman.data.session.counts_as_live_nodes, false);
-assert.equal(isolatedHuman.data.live_nodes, isolatedHuman.data.human_mesh_users + isolatedHuman.data.human_uses);
+assertMeshPills(isolatedHuman.data);
 const leftHuman = await postJson(env, "/v1/mesh/leave", { node_id: "human-aziel01" });
 assert.equal(leftHuman.data.human_mesh_users, 0);
 await postJson(env, "/v1/mesh/leave", { node_id: "human-isolated" });
@@ -342,9 +365,8 @@ assert.equal(joined.data.session.presence, "live");
 assert.equal(joined.data.human_mesh_users, 0, "named downloaded instance is not a human Live Node");
 assert.equal(joined.data.session.plane, "instance");
 assert.equal(joined.data.session.counts_as_live_nodes, false);
-assert.equal(joined.data.live_nodes, joined.data.human_mesh_users + joined.data.human_uses);
+assertMeshPills(joined.data);
 assert.equal(joined.data.software_nodes, PRODUCTS.length);
-assert.notEqual(joined.data.live_nodes, joined.data.software_nodes);
 assert.equal(joined.data.ephemeral_nodes, 0);
 assert.equal(joined.data.rollup.named.live, 1);
 assert.equal(joined.data.rollup.live, PRODUCTS.length + 1);
@@ -394,7 +416,7 @@ assert.equal(isolated.data.rollup.isolated, 1);
 assert.equal(isolated.data.rollup.named.isolated, 1);
 assert.equal(isolated.data.rollup.locked, 0);
 assert.equal(isolated.data.human_mesh_users, 0, "isolated instance excluded from human Live Nodes");
-assert.equal(isolated.data.live_nodes, isolated.data.human_mesh_users + isolated.data.human_uses);
+assertMeshPills(isolated.data);
 assert.equal(isolated.data.isolated_nodes, 1);
 assert.equal(isolated.data.software_nodes, PRODUCTS.length);
 assert.equal(isolated.data.session.counts_as_live_nodes, false);
@@ -412,8 +434,7 @@ assert.equal(lockedBeat.data.rollup.named.locked, 1);
 assert.equal(lockedBeat.data.rollup.isolated, 0);
 assert.equal(lockedBeat.data.inactive_nodes, 1);
 assert.equal(lockedBeat.data.human_mesh_users, 0, "locked instance still not a human Live Node");
-assert.equal(lockedBeat.data.live_nodes, lockedBeat.data.human_mesh_users + lockedBeat.data.human_uses);
-assert.notEqual(lockedBeat.data.live_nodes, lockedBeat.data.software_nodes);
+assertMeshPills(lockedBeat.data);
 assert.equal(lockedBeat.data.software_locked_nodes, 0);
 assert.equal(lockedBeat.data.software_live_nodes, PRODUCTS.length);
 assert.equal(lockedBeat.data.rollup.software.live, PRODUCTS.length);
@@ -425,6 +446,7 @@ assert.equal(nodes.data.qnm_s, false);
 assert.equal(nodes.data.leaderboard, false);
 assert.ok(nodes.data.nodes.every((n) => n.presence === "live" || n.presence === "locked" || n.presence === "isolated"));
 assert.ok(!("score" in nodes.data) || nodes.data.scores === false);
+assertMeshPills(nodes.data, { roster: true });
 
 const badBroadcast = await postJson(env, "/v1/mesh/broadcast", { video: "nope", sha256: "a".repeat(64) });
 assert.equal(badBroadcast.status, 400);
@@ -476,8 +498,7 @@ const afterDisable = await jsonReq(env, "/v1/mesh");
 assert.equal(afterDisable.data.enabled, true);
 assert.equal(afterDisable.data.mesh_default, "on");
 assert.equal(afterDisable.data.software_nodes, PRODUCTS.length, "disable must not wipe software_nodes");
-assert.equal(afterDisable.data.live_nodes, afterDisable.data.human_mesh_users + afterDisable.data.human_uses);
-assert.notEqual(afterDisable.data.live_nodes, afterDisable.data.software_nodes, "disable must not recouple Live Nodes to Softwares");
+assertMeshPills(afterDisable.data);
 assert.ok(afterDisable.data.instance_nodes >= 1, "locked instance remains until TTL");
 
 const doorEnv = envWithMesh();
@@ -525,33 +546,31 @@ const mcpStatus = await mcp(doorEnv, "tools/call", { name: "mesh_status", argume
 assert.equal(mcpStatus.result.isError, false);
 assert.equal(mcpStatus.result.structuredContent.result.enabled, true);
 assert.equal(mcpStatus.result.structuredContent.result.qnm_s, false);
+assertMeshPills(mcpStatus.result.structuredContent.result);
 
 const mcpNodes = await mcp(doorEnv, "tools/call", { name: "mesh_nodes", arguments: {} }, 4);
 assert.ok(mcpNodes.result.structuredContent.result.software_nodes >= 1);
 assert.match(mcpNodes.result.structuredContent.result.live_nodes_note, /human mesh users/i);
-assert.equal(
-  mcpNodes.result.structuredContent.result.live_nodes,
-  mcpNodes.result.structuredContent.result.human_mesh_users + mcpNodes.result.structuredContent.result.human_uses,
-);
-assert.notEqual(
-  mcpNodes.result.structuredContent.result.live_nodes,
-  mcpNodes.result.structuredContent.result.software_nodes,
-);
+assertMeshPills(mcpNodes.result.structuredContent.result, { roster: true });
 
 const software = await jsonReq(env, "/v1/software");
 assert.ok(software.data.software.every((s) => s.mesh && s.mesh.enabled_default === true));
 assert.ok(software.data.software.every((s) => s.mesh.live_nodes === undefined));
-assert.ok(software.data.software.every((s) => s.mesh.live_nodes_plane === "human-mesh-users-uses"));
+assert.ok(software.data.software.every((s) => s.mesh.live_nodes_plane === "human-mesh-users"));
+assert.ok(software.data.software.every((s) => s.mesh.nodes_plane === "human-mesh-users-uses"));
 assert.ok(software.data.software.every((s) => s.mesh.spec === "QNM-BUILD-1.0"));
 assert.ok(software.data.software.every((s) => s.mesh.qnm_s === false));
 assert.ok(!software.data.software.some((s) => s.slug === "anon-broadcast"));
 assert.ok(!software.data.software.some((s) => s.slug === "mesh"));
 assert.equal(software.data.mesh.spec, "QNM-BUILD-1.0");
 assert.equal(software.data.mesh.qnm_s, false);
-assert.equal(software.data.mesh.live_nodes_plane, "human-mesh-users-uses");
+assert.equal(software.data.mesh.live_nodes_plane, "human-mesh-users");
+assert.equal(software.data.mesh.nodes_plane, "human-mesh-users-uses");
 assert.equal(software.data.mesh.software_nodes_plane, "software-worker-fanout");
 assert.equal(software.data.mesh.live_nodes, undefined, "catalog mesh hint must not publish a live_nodes count");
+assert.equal(typeof software.data.mesh.nodes, "string", "catalog mesh hint nodes is the roster URL");
 assert.match(software.data.mesh.live_nodes_note, /human mesh users/i);
+assert.match(software.data.mesh.nodes_note, /human mesh users plus/i);
 assert.equal(software.data.mesh.suite_presence, "on");
 assert.equal(software.data.mesh.enabled_default, true);
 assert.equal(software.data.mesh.mesh_default, "on");
@@ -723,6 +742,31 @@ const droppedAfterKeep = await runMeshOp("nodes", {}, ttlEnv);
 assert.ok(!droppedAfterKeep.nodes.some((n) => n.node_id === "ttl-keep1"), "missed heartbeat after refresh must drop the node");
 resetMeshClock();
 resetMeshStore();
+
+{
+  const usesKv = memoryMeshKv({ total: "7" });
+  const usesEnv = envWithMesh({ USES: usesKv });
+  const usesFanout = await meshFanoutSuitePresence(usesEnv, { source: "test-nodes-vs-live" });
+  assert.equal(usesFanout.human_mesh_users, 0);
+  assert.equal(usesFanout.human_uses, 7);
+  assert.equal(usesFanout.nodes, 7);
+  assert.equal(usesFanout.live_nodes, 0);
+  assert.equal(usesFanout.software_nodes, PRODUCTS.length);
+  assertMeshPills(usesFanout);
+  const usesHuman = await postJson(usesEnv, "/v1/mesh/join", { product: "azchat" });
+  assert.equal(usesHuman.data.human_mesh_users, 1);
+  assert.equal(usesHuman.data.human_uses, 7);
+  assert.equal(usesHuman.data.nodes, 8);
+  assert.equal(usesHuman.data.live_nodes, 1);
+  assert.equal(usesHuman.data.software_nodes, PRODUCTS.length);
+  assertMeshPills(usesHuman.data);
+  const usesStatus = await jsonReq(usesEnv, "/v1/mesh");
+  assert.equal(usesStatus.data.nodes, usesStatus.data.human_mesh_users + usesStatus.data.human_uses);
+  assert.equal(usesStatus.data.live_nodes, usesStatus.data.human_mesh_users);
+  assert.notEqual(usesStatus.data.nodes, usesStatus.data.software_nodes);
+  assert.notEqual(usesStatus.data.live_nodes, usesStatus.data.software_nodes);
+  resetMeshStore();
+}
 
 const joinTool = listed.result.tools.find((t) => t.name === "mesh_join");
 assert.match(joinTool.description, /MESH-OFF/);

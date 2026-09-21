@@ -519,7 +519,7 @@ export function workspacePaneHtml(origin, products) {
 
   <section class="task" id="mesh-panel" data-kind="mesh" data-origin="${escapeHtml(base)}">
     <h3>Mesh status</h3>
-    <p class="blurb"><strong>Live Nodes</strong> from <code>live_nodes</code> / <code>rollup.mesh</code> counts human mesh users (join/heartbeat/presence — human bearers) plus cited human uses (<code>human_uses</code> / USES) — not Softwares catalog, not downloaded instances, not <code>software_nodes</code>. <code>software_nodes</code> is the <code>{slug}-worker</code> roster and never feeds this pill. Incomplete uses stay honest (no invented users). GET never enables radios. Channel plane cites wifi / bluetooth / rf / photon ON (local qnm-node; <code>worker_hardware:false</code> — not live Worker RF). Nine QNM laws stay machine-true on that JSON. Join needs a catalog product. Public VPN auto-binds AZVPN (HTTPS/WS REAL; WireGuard/OpenVPN SLOT).</p>
+    <p class="blurb"><strong>Nodes</strong> from <code>nodes</code> / <code>rollup.nodes</code> count human mesh users plus cited human uses (<code>human_uses</code> / USES). <strong>Live Nodes</strong> from <code>live_nodes</code> / <code>rollup.mesh</code> count human mesh users (join/heartbeat/presence — human bearers). <code>software_nodes</code> is the <code>{slug}-worker</code> roster. Incomplete uses stay honest (no invented users). GET never enables radios. Channel plane cites wifi / bluetooth / rf / photon ON (local qnm-node; <code>worker_hardware:false</code> — not live Worker RF). Nine QNM laws stay machine-true on that JSON. Join needs a catalog product. Public VPN auto-binds AZVPN (HTTPS/WS REAL; WireGuard/OpenVPN SLOT).</p>
     <p class="ws-status" id="mesh-status-line" data-state="loading" role="status" aria-live="polite">Loading status</p>
     <pre class="ws-out fg-out" id="mesh-out" role="status" aria-live="polite">Loading status…</pre>
     <div class="field">
@@ -560,10 +560,11 @@ export function workspacePaneHtml(origin, products) {
     ${aboutAzielStripHtml({ id: "about-aziel-strip" })}
     <p class="hint">Browseable Softwares + live mesh counts + receipts. Metrics come from <code>GET /v1/mesh</code> and <code>GET /v1/receipts</code>. GET never enables radios. Each card has slug-specific <code>#hashtag</code> parts — not one identical blob. Channel plane (wifi / bluetooth / rf / photon) is a cite — live hardware is local qnm-node. Public VPN auto-binds AZVPN (HTTPS/WS; GET cites only).</p>
     <div class="metric-grid" id="dash-metrics">
-      <div class="metric" title="Mesh size: active + inactive join/heartbeat nodes, excluding isolated."><span class="label">Live Nodes</span><span class="value" id="metric-live">—</span></div>
-      <div class="metric" title="Inactive (locked) mesh nodes. Counted in Live Nodes."><span class="label">Inactive</span><span class="value" id="metric-locked">—</span></div>
-      <div class="metric" title="Isolated mesh nodes. Not counted in Live Nodes."><span class="label">Isolated</span><span class="value" id="metric-isolated">—</span></div>
-      <div class="metric" title="Softwares product Workers ({slug}-worker). Not the Live Nodes definition by itself."><span class="label">Software</span><span class="value" id="metric-software">—</span></div>
+      <div class="metric" title="Nodes: human mesh users plus cited human uses (USES)."><span class="label">Nodes</span><span class="value" id="metric-nodes">—</span></div>
+      <div class="metric" title="Live Nodes: human mesh users (join/heartbeat/presence)."><span class="label">Live Nodes</span><span class="value" id="metric-live">—</span></div>
+      <div class="metric" title="Inactive (locked) mesh nodes."><span class="label">Inactive</span><span class="value" id="metric-locked">—</span></div>
+      <div class="metric" title="Isolated mesh nodes. Isolated humans stay on isolated_nodes."><span class="label">Isolated</span><span class="value" id="metric-isolated">—</span></div>
+      <div class="metric" title="Softwares product Workers ({slug}-worker)."><span class="label">Software</span><span class="value" id="metric-software">—</span></div>
       <div class="metric"><span class="label">Radios</span><span class="value" id="metric-radios">—</span></div>
       <div class="metric"><span class="label">VPN</span><span class="value" id="metric-vpn">—</span></div>
       <div class="metric"><span class="label">Hardware</span><span class="value" id="metric-hardware">—</span></div>
@@ -897,16 +898,17 @@ export function humanDoorScript() {
       if (!got || !got.body) return;
       let b = got.body;
       let roll = b.rollup || {};
-      let live = b.live_nodes != null ? b.live_nodes : roll.mesh;
+      let humans = b.human_mesh_users != null ? b.human_mesh_users : (b.human_live_nodes != null ? b.human_live_nodes : 0);
+      let humanUses = b.human_uses != null ? b.human_uses : 0;
+      let live = b.live_nodes != null ? b.live_nodes : (roll.mesh != null ? roll.mesh : humans);
+      let nodesCount = typeof b.nodes === "number" ? b.nodes : (typeof roll.nodes === "number" ? roll.nodes : humans + humanUses);
       let locked = b.inactive_nodes != null ? b.inactive_nodes : (b.locked_nodes != null ? b.locked_nodes : roll.locked);
       let isolated = b.isolated_nodes != null ? b.isolated_nodes : roll.isolated;
       let software = b.software_nodes != null ? b.software_nodes : (roll.software && (roll.software.live + roll.software.locked + roll.software.isolated));
       let radios = b.radios || (b.enabled ? "on" : "off");
       let ch = b.channel_plane || b.channels || {};
       let channelsOn = (ch.wifi || b.wifi) === "on" && (ch.bluetooth || b.bluetooth) === "on" && (ch.rf || b.rf) === "on" && (ch.photon || b.photon) === "on";
-      let humans = b.human_mesh_users != null ? b.human_mesh_users : (b.human_live_nodes != null ? b.human_live_nodes : live);
-      let humanUses = b.human_uses != null ? b.human_uses : 0;
-      let text = "Live Nodes " + live + " (human mesh users " + humans + " + uses " + humanUses + ") · software_nodes " + software + " · inactive " + locked + " · isolated " + isolated + " · radios " + radios + " · suite-presence " + (b.suite_presence || "on") + " · GET never enables";
+      let text = "Nodes " + nodesCount + " · Live Nodes " + live + " (human mesh users " + humans + " + uses " + humanUses + ") · software_nodes " + software + " · inactive " + locked + " · isolated " + isolated + " · radios " + radios + " · suite-presence " + (b.suite_presence || "on") + " · GET never enables";
       if (channelsOn) text += " · channels wifi/bt/rf/photon cite-on";
       if (b.vpn === true) text += " · public VPN AZVPN auto";
       else if (b.vpn === false) text += " · vpn false";
@@ -924,6 +926,7 @@ export function humanDoorScript() {
         let el = document.getElementById(id);
         if (el) el.textContent = value == null ? "—" : String(value);
       };
+      setMetric("metric-nodes", nodesCount);
       setMetric("metric-live", live);
       setMetric("metric-locked", locked);
       setMetric("metric-isolated", isolated);

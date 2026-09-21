@@ -69,8 +69,10 @@ assert.match(home, /Operator control panel/);
 assert.match(home, /<label for="op-fg-name">Name \/ slug<\/label>/);
 assert.match(home, /<label for="op-fg-op">Operation<\/label>/);
 assert.match(home, /<label for="op-fg-payload">Payload JSON<\/label>/);
+assert.match(home, /id="metric-nodes"/);
 assert.match(home, /id="metric-live"/);
 assert.match(home, /id="metric-software"/);
+assert.match(home, />Nodes</);
 assert.match(home, />Live Nodes</);
 assert.match(home, /human mesh users/);
 assert.match(home, /id="op-aznet-pair"/);
@@ -209,6 +211,11 @@ assert.ok(receipts.spec || receipts.public_chain || receipts.path || receipts.ok
 
 const mesh = await (await get("/v1/mesh")).json();
 assert.ok(mesh.rollup || mesh.live_nodes != null);
+assert.equal(typeof mesh.nodes, "number");
+assert.equal(mesh.nodes, mesh.human_mesh_users + mesh.human_uses);
+assert.equal(mesh.live_nodes, mesh.human_mesh_users);
+assert.equal(mesh.live_nodes, mesh.rollup.mesh);
+assert.equal(mesh.nodes, mesh.rollup.nodes);
 assert.equal(mesh.get_never_enables, true);
 assert.equal(mesh.nine_laws && mesh.nine_laws.hard_true, true);
 assert.equal(mesh.vpn, true);

@@ -78,6 +78,18 @@ function envWithMesh(extra = {}) {
   };
 }
 
+function assertMeshPills(data) {
+  assert.equal(typeof data.nodes, "number");
+  assert.equal(data.nodes, data.human_mesh_users + data.human_uses);
+  assert.equal(data.live_nodes, data.human_mesh_users);
+  assert.equal(data.live_nodes, data.rollup.mesh);
+  assert.equal(data.nodes, data.rollup.nodes);
+  if ((data.software_nodes || 0) > 0) {
+    assert.notEqual(data.live_nodes, data.software_nodes, "software_nodes never feeds Live Nodes");
+    assert.notEqual(data.nodes, data.software_nodes, "software_nodes never feeds Nodes");
+  }
+}
+
 function waitUntilCtx() {
   const jobs = [];
   return {
@@ -201,8 +213,9 @@ assert.equal(firstGet.data.no_rewrite, true);
 assert.equal(firstGet.data.rewrite_key, false);
 assert.equal(firstGet.data.lie_to_survive, false);
 assert.equal(firstGet.data.live_nodes, 0, "GET without waitUntil must not invent human Live Nodes");
+assert.equal(firstGet.data.nodes, 0, "GET without waitUntil must not invent Nodes");
 assert.equal(firstGet.data.human_mesh_users, 0);
-assert.equal(firstGet.data.live_nodes, firstGet.data.human_mesh_users + firstGet.data.human_uses);
+assertMeshPills(firstGet.data);
 assert.equal(firstGet.data.software_nodes, 0, "GET without waitUntil must not join Softwares workers in the response");
 assert.doesNotMatch(JSON.stringify(firstGet.data), /oauth|framagit|glama uuid/i);
 
@@ -258,8 +271,7 @@ assert.deepEqual(afterFanoutGet.data.bearers, ["suite-presence"], "fan-out must 
 assert.equal(afterFanoutGet.data.get_never_enables, true);
 assert.equal(afterFanoutGet.data.software_nodes, PRODUCTS.length);
 assert.equal(afterFanoutGet.data.human_mesh_users, 0, "fan-out must not create human Live Nodes");
-assert.equal(afterFanoutGet.data.live_nodes, afterFanoutGet.data.human_mesh_users + afterFanoutGet.data.human_uses);
-assert.notEqual(afterFanoutGet.data.live_nodes, afterFanoutGet.data.software_nodes, "Live Nodes must not equal Softwares catalog by coupling");
+assertMeshPills(afterFanoutGet.data);
 assert.equal(afterFanoutGet.data.ephemeral_nodes, 0);
 assert.ok(afterFanoutGet.data.products_present.includes("godlock"));
 const nodesAfterFanout = await jsonReq(env, "/v1/mesh/nodes");
@@ -278,8 +290,7 @@ const afterDisable = await jsonReq(env, "/v1/mesh");
 assert.equal(afterDisable.data.enabled, true);
 assert.equal(afterDisable.data.software_nodes, PRODUCTS.length, "disable must not wipe software_nodes");
 assert.equal(afterDisable.data.human_mesh_users, 0);
-assert.equal(afterDisable.data.live_nodes, afterDisable.data.human_mesh_users + afterDisable.data.human_uses);
-assert.notEqual(afterDisable.data.live_nodes, afterDisable.data.software_nodes);
+assertMeshPills(afterDisable.data);
 gate("DISABLE-REFUSED", "POST /v1/mesh/disable is MESH-DISABLE-REFUSED; suite-presence stays ON");
 
 // --- enable needs bearer ---
@@ -448,8 +459,7 @@ assert.equal(fanout1.skipped, false);
 assert.equal(fanout1.software_nodes, PRODUCTS.length);
 assert.equal(fanout1.human_mesh_users, 0, "named instance must not count as human Live Nodes");
 assert.equal(fanout1.instance_nodes, 1);
-assert.equal(fanout1.live_nodes, fanout1.human_mesh_users + fanout1.human_uses);
-assert.notEqual(fanout1.live_nodes, fanout1.software_nodes);
+assertMeshPills(fanout1);
 assert.equal(fanout1.inactive_nodes, 0);
 const workerId = suitePresenceNodeId("godlock");
 assert.equal(workerId, "godlock-worker");
