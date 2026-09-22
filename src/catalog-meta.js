@@ -147,7 +147,7 @@ export const VERSIONS = {
   azclce: "0.3.0",
   ark: "0.1.0",
   azai: "0.3.1",
-  spectrallock: "0.3.0",
+  spectrallock: "0.3.1",
   azbot: "0.2.0",
   employeelock: "0.1.0",
   foldlock: "0.8.0",

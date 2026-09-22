@@ -10,29 +10,31 @@ export const LIMITATION =
   "(zero, tazel, vyrn, uv, rosetta, zen, chaos, balance, candle, indent, lemon). " +
   "Synthetic UV is a 365–400 nm look from an ordinary photograph. " +
   "Candlelight is a warm flame-side look from an ordinary photo. " +
-  "Indent is an image-enhancement heuristic for surface relief, not electrostatic detection. " +
+  "Indent is an image-enhancement heuristic for surface relief. " +
   "Lemon enhances heat-/acid-style browning already in the pixels; it never invents marks. " +
   "Balance never invents marks. " +
-  "Inject ON is false-color membership tint (paint), not recovered pigment. " +
+  "Inject ON is false-color membership tint (paint) from the Spectral Harmonic Wheel. " +
   "OFF is luminance of the same gate. Zero ignores the switch. " +
-  "Empty gate ≠ broken lens. Copy-of-copy works only if the hue is still in-band. " +
+  "In-band spectral math keeps Tazel #1EC9A5, Vyrn #C00066, Zero #6F6485. " +
+  "Restore lost pigment estimates faded signal still in the pixels and refuses SL-PIGMENT-GONE when that evidence is gone. " +
+  "An empty gate is a valid reading. Copy-of-copy works only if the hue is still in-band. " +
   "Unredact / lift-overlay locates leftover bytes, historical page revisions, and residual only — never invents letters. " +
   "Opaque replace with no leftover container bytes refuses (SL-UNREDACT-OPAQUE). " +
-  "Heatmaps are not transcripts. OCR only after structural recovery; never reconstructs covered letters from context. " +
-  "Handwriting analysis is synthetic scan heuristics of ink-on-paper photos — not ESDA, not chemical dating, not a court finding, not writer identity. " +
+  "Heatmaps are residual overlays. OCR only after structural recovery; never reconstructs covered letters from context. " +
+  "Handwriting analysis is synthetic scan heuristics of ink-on-paper photos. " +
   "Lamb Lens: Service → Clarity → Peace. " +
   "Hosted overlay is a simplified preview (max 256 px); the full pipeline is the Python package. " +
-  "Does not claim pigment recovery. The human still reads the page. Author Aziel Eliab.";
+  "The human still reads the page. Author Aziel Eliab.";
 
 export const INJECT_NOTE =
   "ON paints membership (false color). OFF is the same gate as gray. " +
-  "ON is not recovered pigment. Zero ignores the switch. " +
-  "Synthetic UV is not a lamp. Balance does not invent marks. " +
+  "Zero ignores the switch. " +
+  "UV is a synthetic 365–400 nm look from an ordinary photograph. Balance never invents marks. " +
   "Report tazel_inband_pct and vyrn_inband_pct before claiming a hit. " +
-  "Empty gate ≠ broken lens. Copy-of-copy works only if the hue is still in-band. " +
+  "An empty gate is a valid reading. Copy-of-copy works only if the hue is still in-band. " +
   "Hosted /v1/overlay is a 256 px preview; prefer spectrallock_inject.py locally.";
 
-export const VERSION = "0.3.0";
+export const VERSION = "0.3.1";
 export const MAX_SIDE = 256;
 export const LIVE = ["zero", "tazel", "vyrn", "uv", "rosetta", "zen", "chaos", "balance", "candle", "indent", "lemon"];
 export const TARGET_IDS = ["ink", "page"];
@@ -58,13 +60,13 @@ export const MODES = [
   { id: "zero", paper: "ZSA-1.0", status: "live", aliases: [], summary: "Equilibrium / geometry (simplified grayscale stretch)." },
   { id: "tazel", paper: "TSA-1.0", status: "live", aliases: [], summary: "Boost green–gold–turquoise (~170°, #1EC9A5)." },
   { id: "vyrn", paper: "VSA-1.0", status: "live", aliases: [], summary: "Boost magenta–red-violet (~350°, #C00066)." },
-  { id: "uv", paper: "UVSA-1.0", status: "live", aliases: ["ultraviolet", "uv-light", "uvsa"], summary: "Ultraviolet light analysis (synthetic). 365–400 nm look from an ordinary photograph. Not a real UV lamp." },
+  { id: "uv", paper: "UVSA-1.0", status: "live", aliases: ["ultraviolet", "uv-light", "uvsa"], summary: "Ultraviolet light analysis (synthetic). 365–400 nm look from an ordinary photograph." },
   { id: "rosetta", paper: "RSA-2.0", status: "live", aliases: [], summary: "Rosetta spectral analysis RSA-2.0 = 0.40·Z′ + 0.35·T′ + 0.25·V′ after normalize." },
   { id: "zen", paper: "ZENA-1.0", status: "live", aliases: [], summary: "(Z′ + T′ + U′ + V′) / 4 after normalize." },
   { id: "chaos", paper: "CSA-1.0", status: "live", aliases: [], summary: "0.40·U′ + 0.35·V′ + 0.20·T′ + 0.05·Z′ after normalize." },
   { id: "balance", paper: "BSA", status: "live", aliases: [], summary: "α·Zen + (1-α)·Chaos. Never invents marks." },
-  { id: "candle", paper: "CLSA-1.0", status: "live", aliases: ["candlelight", "candle-light"], summary: "Candlelight analysis (synthetic). Amber ~1800–2700K flame-side look. Not multispectral capture." },
-  { id: "indent", paper: "ISA-1.0", status: "live", aliases: ["indentation", "suppress-ink", "ink-suppress", "revealer-indent"], preferred_target: "page", summary: "Ink-suppress / indentation reveal (synthetic). Image-enhancement heuristic. Prefer target=page. Not electrostatic detection." },
+  { id: "candle", paper: "CLSA-1.0", status: "live", aliases: ["candlelight", "candle-light"], summary: "Candlelight analysis (synthetic). Amber ~1800–2700K flame-side look." },
+  { id: "indent", paper: "ISA-1.0", status: "live", aliases: ["indentation", "suppress-ink", "ink-suppress", "revealer-indent"], preferred_target: "page", summary: "Ink-suppress / indentation reveal (synthetic). Image-enhancement heuristic. Prefer target=page." },
   { id: "lemon", paper: "LISA-1.0", status: "live", aliases: ["lemon-ink", "hidden-lemon", "invisible-ink-lemon"], summary: "Hidden lemon ink analysis (synthetic). Heat-/acid-style browning from existing pixels. Never invents marks." },
 ];
 
@@ -77,28 +79,48 @@ const ROSETTA_W = { zero: 0.4, tazel: 0.35, vyrn: 0.25 };
 const ZEN_W = { zero: 0.25, tazel: 0.25, uv: 0.25, vyrn: 0.25 };
 const CHAOS_W = { uv: 0.4, vyrn: 0.35, tazel: 0.2, zero: 0.05 };
 const EPS = 1e-6;
-const TAZEL_RGB = [0x1e / 255, 0xc9 / 255, 0xa5 / 255];
-const VYRN_RGB = [0xc0 / 255, 0x00 / 255, 0x66 / 255];
-const ZERO_RGB = [0x6f / 255, 0x64 / 255, 0x85 / 255];
-const UV_RGB = [0.55, 0.45, 0.85];
-const CHAOS_RGB = [0.55, 0.22, 0.38];
+function hexRgb(code) {
+  const h = String(code).replace("#", "");
+  return [parseInt(h.slice(0, 2), 16) / 255, parseInt(h.slice(2, 4), 16) / 255, parseInt(h.slice(4, 6), 16) / 255];
+}
+// Spectral triad — densitometry / in-band. Hue gates stay 170° / 350° / 260°.
+export const SPECTRAL_TRIAD_HEX = { tazel: "#1EC9A5", vyrn: "#C00066", zero: "#6F6485" };
+export const SPECTRAL_TRIAD_RGB = {
+  tazel: hexRgb(SPECTRAL_TRIAD_HEX.tazel),
+  vyrn: hexRgb(SPECTRAL_TRIAD_HEX.vyrn),
+  zero: hexRgb(SPECTRAL_TRIAD_HEX.zero),
+};
+// Spectral Harmonic Wheel — membership paint only (operator lock 2026-09-22).
+export const WHEEL_PAINT_HEX = {
+  zero: "#325767",
+  chaos: "#8D223D",
+  vyrn: "#A22639",
+  uv: "#9F3B2B",
+  tazel: "#797A2D",
+  rosetta: "#467542",
+  zen: "#DFD2B5",
+};
+export const WHEEL_PAINT_RGB = Object.fromEntries(
+  Object.entries(WHEEL_PAINT_HEX).map(([name, code]) => [name, hexRgb(code)]),
+);
+const TAZEL_RGB = SPECTRAL_TRIAD_RGB.tazel;
+const VYRN_RGB = SPECTRAL_TRIAD_RGB.vyrn;
+const ZERO_RGB = SPECTRAL_TRIAD_RGB.zero;
 const CANDLE_RGB = [1.0, 0.62, 0.22];
 const INDENT_RGB = [0.72, 0.68, 0.58];
 const LEMON_RGB = [0.62, 0.38, 0.14];
+const ROSETTA_RGB = WHEEL_PAINT_RGB.rosetta;
+const ZEN_RGB = WHEEL_PAINT_RGB.zen;
+const CHAOS_RGB = WHEEL_PAINT_RGB.chaos;
+const BALANCE_RGB = [
+  (ZEN_RGB[0] + CHAOS_RGB[0]) / 2,
+  (ZEN_RGB[1] + CHAOS_RGB[1]) / 2,
+  (ZEN_RGB[2] + CHAOS_RGB[2]) / 2,
+];
 const TAZEL_INBAND_SIGMA = 24;
 const VYRN_INBAND_SIGMA = 28;
 const INBAND_SAT_MIN = 0.12;
 const INBAND_VAL_MIN = 0.08;
-const ROSETTA_RGB = [
-  0.40 * ZERO_RGB[0] + 0.35 * TAZEL_RGB[0] + 0.25 * VYRN_RGB[0],
-  0.40 * ZERO_RGB[1] + 0.35 * TAZEL_RGB[1] + 0.25 * VYRN_RGB[1],
-  0.40 * ZERO_RGB[2] + 0.35 * TAZEL_RGB[2] + 0.25 * VYRN_RGB[2],
-];
-const ZEN_RGB = [
-  (ZERO_RGB[0] + TAZEL_RGB[0] + VYRN_RGB[0] + UV_RGB[0]) / 4,
-  (ZERO_RGB[1] + TAZEL_RGB[1] + VYRN_RGB[1] + UV_RGB[1]) / 4,
-  (ZERO_RGB[2] + TAZEL_RGB[2] + VYRN_RGB[2] + UV_RGB[2]) / 4,
-];
 
 function luma(r, g, b) {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
@@ -248,9 +270,10 @@ function modeTazel(buf) {
     const mid = 4 * v * (1 - v);
     const v2 = clamp01(v * (1 + 0.28 * w) + 0.06 * w + 0.12 * mid);
     const [nr, ng, nb] = hsvToRgb(h, s2, v2);
-    out[p] = clamp01(nr * (1 - 0.18 * w) + 0x1e / 255 * v2 * 0.18 * w);
-    out[p + 1] = clamp01(ng * (1 - 0.18 * w) + 0xc9 / 255 * v2 * 0.18 * w);
-    out[p + 2] = clamp01(nb * (1 - 0.18 * w) + 0xa5 / 255 * v2 * 0.18 * w);
+    const tint = WHEEL_PAINT_RGB.tazel;
+    out[p] = clamp01(nr * (1 - 0.18 * w) + tint[0] * v2 * 0.18 * w);
+    out[p + 1] = clamp01(ng * (1 - 0.18 * w) + tint[1] * v2 * 0.18 * w);
+    out[p + 2] = clamp01(nb * (1 - 0.18 * w) + tint[2] * v2 * 0.18 * w);
   }
   return out;
 }
@@ -265,9 +288,10 @@ function modeVyrn(buf) {
     const s2 = clamp01(s * (1 + 0.7 * w) * (1 - 0.55 * cyan) + 0.08 * w);
     const v2 = clamp01(v * (1 + 0.22 * w) * (1 - 0.18 * cyan));
     const [nr, ng, nb] = hsvToRgb(h, s2, v2);
-    out[p] = clamp01(nr * (1 - 0.22 * w) + 0xc0 / 255 * v2 * 0.22 * w);
-    out[p + 1] = clamp01(ng * (1 - 0.22 * w) * (1 - 0.25 * cyan) + 0 * v2 * 0.22 * w);
-    out[p + 2] = clamp01(nb * (1 - 0.22 * w) + 0x66 / 255 * v2 * 0.22 * w);
+    const tint = WHEEL_PAINT_RGB.vyrn;
+    out[p] = clamp01(nr * (1 - 0.22 * w) + tint[0] * v2 * 0.22 * w);
+    out[p + 1] = clamp01(ng * (1 - 0.22 * w) * (1 - 0.25 * cyan) + tint[1] * v2 * 0.22 * w);
+    out[p + 2] = clamp01(nb * (1 - 0.22 * w) + tint[2] * v2 * 0.22 * w);
   }
   return out;
 }
@@ -454,8 +478,8 @@ function composeLenses(buf, w, h, lenses, inject = true) {
   const paint = inject && lenses.some((name) => name !== "zero");
   if (!paint) return grayToRgb(mix);
   const palette = {
-    zero: ZERO_RGB, tazel: TAZEL_RGB, vyrn: VYRN_RGB, uv: UV_RGB,
-    rosetta: ROSETTA_RGB, zen: ZEN_RGB, chaos: CHAOS_RGB, balance: ZEN_RGB,
+    zero: WHEEL_PAINT_RGB.zero, tazel: WHEEL_PAINT_RGB.tazel, vyrn: WHEEL_PAINT_RGB.vyrn, uv: WHEEL_PAINT_RGB.uv,
+    rosetta: ROSETTA_RGB, zen: ZEN_RGB, chaos: CHAOS_RGB, balance: BALANCE_RGB,
     candle: CANDLE_RGB, indent: INDENT_RGB, lemon: LEMON_RGB,
   };
   const acc = [0, 0, 0];
@@ -749,7 +773,7 @@ export async function overlayFromB64(b64, mode, extras = {}) {
     png_b64: bytesToB64(png),
     simplified: true,
     max_side: MAX_SIDE,
-    hosted_preview_honesty: "256px preview; inject is paint not pigment; prefer local spectrallock_inject.py",
+    hosted_preview_honesty: "256px preview; inject is false-color membership paint; prefer local spectrallock_inject.py",
     product: "spectrallock",
     version: VERSION,
     rosetta_spectral_analysis: true,
@@ -757,6 +781,224 @@ export async function overlayFromB64(b64, mode, extras = {}) {
     author: "Aziel Eliab",
     advisory: LIMITATION,
   };
+}
+
+export const REFUSE_GONE = "SL-PIGMENT-GONE";
+export const PIGMENT_OPS = ["restore", "estimate", "refuse"];
+export const PIGMENT_FAMILY = ["pigment", "restore-pigment"];
+const PIGMENT_THRESH_FLOOR = 0.045;
+const PIGMENT_NOISE_K = 3;
+const PIGMENT_LUMA_GAP_MAX = 0.22;
+const PIGMENT_LUMA_GAP_MIN = 0.02;
+const PIGMENT_CHROMA_MIN = 0.03;
+const PIGMENT_MIN_PIXELS = 24;
+const PIGMENT_MIN_FRAC = 0.004;
+const PIGMENT_MAX_FRAC = 0.85;
+const PIGMENT_NEIGHBOR_MIN = 3;
+const PIGMENT_GAIN = 1.7;
+
+export const PIGMENT_NOTE =
+  "Restore lost pigment estimates faded signal where pixels still differ from the page in a supported cluster. " +
+  "Visible dark ink is reported separately and is left as already-present pigment. " +
+  "When the faded signal is gone the op refuses " + REFUSE_GONE + " and writes no new marks. " +
+  "Invented marks stay false. " +
+  "pigment_recovery is true on this path because the path ran. " +
+  "Overlay, inject, and unredact receipts keep pigment_recovery false. " +
+  "Lamb Lens: Service → Clarity → Peace. Author Aziel Eliab. NO-LIE.";
+
+export function pigmentModeCard() {
+  return {
+    id: "pigment",
+    paper: "PIGMENT",
+    status: "live",
+    aliases: ["restore-pigment", "lost-pigment", "restore-lost-pigment"],
+    summary: "Restore lost pigment from supported pixel evidence. Refuses " + REFUSE_GONE + " when the signal is gone.",
+    family: PIGMENT_FAMILY.slice(),
+    ops: PIGMENT_OPS.slice(),
+    refuse_code: REFUSE_GONE,
+  };
+}
+
+export function listPigment() {
+  return {
+    family: PIGMENT_FAMILY.slice(),
+    ops: PIGMENT_OPS.slice(),
+    status: "live",
+    refuse_code: REFUSE_GONE,
+    invented_marks: false,
+    note: PIGMENT_NOTE,
+    author: "Aziel Eliab",
+    mode: pigmentModeCard(),
+  };
+}
+
+export function parsePigmentOp(value, fallback = "restore") {
+  const key = String(value || fallback).trim().toLowerCase().replaceAll("_", "-");
+  const aliases = {
+    pigment: "restore",
+    restore: "restore",
+    "restore-pigment": "restore",
+    "lost-pigment": "restore",
+    "restore-lost-pigment": "restore",
+    estimate: "estimate",
+    "estimate-pigment": "estimate",
+    refuse: "refuse",
+  };
+  return aliases[key] || null;
+}
+
+function pigmentEvidence(buf, w, h) {
+  const n = w * h;
+  const L = toLuma(buf, w, h);
+  const sorted = Array.from(L).sort((a, b) => a - b);
+  const q = sorted[Math.max(0, Math.floor(n * 0.8))] || 0;
+  let sr = 0, sg = 0, sb = 0, brightN = 0;
+  const mag = new Float32Array(n);
+  for (let i = 0, p = 0; i < n; i++, p += 3) {
+    if (L[i] >= q) {
+      sr += buf[p]; sg += buf[p + 1]; sb += buf[p + 2]; brightN += 1;
+    }
+  }
+  const parch = brightN ? [sr / brightN, sg / brightN, sb / brightN] : [0.93, 0.88, 0.76];
+  const parchLum = 0.2126 * parch[0] + 0.7152 * parch[1] + 0.0722 * parch[2];
+  let sum = 0, sumSq = 0, samples = 0;
+  const residual = new Float32Array(n * 3);
+  for (let i = 0, p = 0; i < n; i++, p += 3) {
+    const dr = parch[0] - buf[p];
+    const dg = parch[1] - buf[p + 1];
+    const db = parch[2] - buf[p + 2];
+    residual[p] = dr; residual[p + 1] = dg; residual[p + 2] = db;
+    const m = Math.sqrt(dr * dr + dg * dg + db * db);
+    mag[i] = m;
+    if (L[i] >= q) { sum += m; sumSq += m * m; samples += 1; }
+  }
+  const base = samples ? sum / samples : 0;
+  const variance = samples ? Math.max(0, sumSq / samples - base * base) : 0.0004;
+  const noise = samples >= 8 ? Math.sqrt(variance) : 0.02;
+  const thresh = Math.max(PIGMENT_THRESH_FLOOR, base + PIGMENT_NOISE_K * noise);
+  const faded = new Uint8Array(n);
+  let strong = 0;
+  for (let i = 0; i < n; i++) {
+    const gap = parchLum - L[i];
+    const p = i * 3;
+    const hi = Math.max(residual[p], residual[p + 1], residual[p + 2]);
+    const lo = Math.min(residual[p], residual[p + 1], residual[p + 2]);
+    if (gap > PIGMENT_LUMA_GAP_MAX) strong += 1;
+    if (mag[i] >= thresh && gap >= PIGMENT_LUMA_GAP_MIN && gap <= PIGMENT_LUMA_GAP_MAX && (hi - lo) >= PIGMENT_CHROMA_MIN) {
+      faded[i] = 1;
+    }
+  }
+  const support = new Uint8Array(n);
+  let count = 0;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = y * w + x;
+      if (!faded[i]) continue;
+      let acc = 0;
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          const yy = y + dy, xx = x + dx;
+          if (yy < 0 || xx < 0 || yy >= h || xx >= w) continue;
+          acc += faded[yy * w + xx];
+        }
+      }
+      if (acc >= PIGMENT_NEIGHBOR_MIN) { support[i] = 1; count += 1; }
+    }
+  }
+  const frac = n ? count / n : 0;
+  const supported = count >= PIGMENT_MIN_PIXELS && frac >= PIGMENT_MIN_FRAC && frac <= PIGMENT_MAX_FRAC;
+  return { parch, residual, mag, support, thresh, count, frac, supported, strong, parchLum };
+}
+
+export async function analyzePigmentBuf(buf, w, h, extras = {}) {
+  const op = parsePigmentOp(extras.op || "restore");
+  if (!op) {
+    return { error: "unknown pigment op", known: PIGMENT_OPS, advisory: PIGMENT_NOTE };
+  }
+  const ev = pigmentEvidence(buf, w, h);
+  const inject = extras.inject === undefined ? true : parseInject(extras.inject);
+  const recovered = Boolean(ev.supported && op !== "refuse");
+  let mean = [0, 0, 0];
+  let changed = 0;
+  const color = new Float32Array(buf.length);
+  color.set(buf);
+  if (recovered) {
+    let sr = 0, sg = 0, sb = 0;
+    for (let i = 0, p = 0; i < ev.support.length; i++, p += 3) {
+      if (!ev.support[i]) continue;
+      const nr = clamp01(buf[p] - (PIGMENT_GAIN - 1) * ev.residual[p]);
+      const ng = clamp01(buf[p + 1] - (PIGMENT_GAIN - 1) * ev.residual[p + 1]);
+      const nb = clamp01(buf[p + 2] - (PIGMENT_GAIN - 1) * ev.residual[p + 2]);
+      if (Math.abs(nr - buf[p]) > 1e-6 || Math.abs(ng - buf[p + 1]) > 1e-6 || Math.abs(nb - buf[p + 2]) > 1e-6) changed += 1;
+      color[p] = nr; color[p + 1] = ng; color[p + 2] = nb;
+      sr += ev.residual[p]; sg += ev.residual[p + 1]; sb += ev.residual[p + 2];
+    }
+    if (ev.count) mean = [sr / ev.count, sg / ev.count, sb / ev.count];
+  }
+  const did = recovered && changed > 0;
+  const code = did ? null : REFUSE_GONE;
+  let png = null;
+  if (did && op === "estimate") {
+    const dens = new Float32Array(w * h);
+    let peak = 0;
+    for (let i = 0; i < ev.support.length; i++) if (ev.support[i] && ev.mag[i] > peak) peak = ev.mag[i];
+    if (peak > 1e-6) {
+      for (let i = 0; i < ev.support.length; i++) if (ev.support[i]) dens[i] = ev.mag[i] / peak;
+    }
+    png = await encodePng(grayToRgb(dens), w, h);
+  } else if (did) {
+    const visual = inject ? color : grayToRgb(toLuma(color, w, h));
+    png = await encodePng(visual, w, h);
+  }
+  return {
+    product: "spectrallock",
+    version: VERSION,
+    author: "Aziel Eliab",
+    family: "pigment",
+    aliases: PIGMENT_FAMILY.slice(),
+    op,
+    mode: "pigment",
+    status: "live",
+    width: w,
+    height: h,
+    pigment_recovery: true,
+    recovered: did,
+    refuse_code: code,
+    stop: !did,
+    evidence_pixels: op === "refuse" ? 0 : ev.count,
+    evidence_fraction: op === "refuse" ? 0 : ev.frac,
+    visible_ink_pixels: ev.strong,
+    threshold: ev.thresh,
+    parchment_rgb: ev.parch,
+    mean_residual_rgb: mean,
+    pixels_changed: did ? changed : 0,
+    unchanged_outside_support: true,
+    invented_marks: false,
+    wheel_paint_used: false,
+    spectral_triad_used_for_restore: false,
+    inject: Boolean(inject),
+    inject_applied: Boolean(inject) && did,
+    gain: did ? PIGMENT_GAIN : 0,
+    png_b64: png ? bytesToB64(png) : null,
+    simplified: true,
+    max_side: MAX_SIDE,
+    hosted_preview_honesty: "256px preview; restore lost pigment only where pixels still support it",
+    note: PIGMENT_NOTE,
+    advisory: PIGMENT_NOTE,
+    no_lie: true,
+    identity: "Aziel Eliab",
+  };
+}
+
+export async function pigmentFromB64(b64, extras = {}) {
+  let decoded;
+  try {
+    decoded = await decodePng(b64ToBytes(b64));
+  } catch (err) {
+    return { error: "PNG decode failed (hosted preview is PNG only): " + String(err.message || err), advisory: PIGMENT_NOTE };
+  }
+  const capped = capSide(decoded.buf, decoded.w, decoded.h);
+  return analyzePigmentBuf(capped.buf, capped.w, capped.h, extras || {});
 }
 
 export const REFUSE_OPAQUE = "SL-UNREDACT-OPAQUE";
@@ -784,18 +1026,16 @@ export const UNREDACT_NOTE =
   "Locate reports text still in the file, metadata, attachments, twin-page residual, " +
   "leftover container bytes, and historical page revisions (stale /Page, prior streams, " +
   "xref/ObjStm, after-EOF, incremental startxref/Prev revision graph + per-revision tip-cut copies). " +
-  "It does not invent letters. " +
+  "Never invent letters. " +
   "Opaque replace (clipped solid black / true rewrite) with no leftover bytes refuses (" +
   REFUSE_OPAQUE +
   "). That is the only honest switch for visual unredact. " +
   "Non-opaque cover may use contrast / residual with inject OFF. No guessed letters. " +
-  "A heatmap of ghosts is not a transcript. A flattened screenshot of a box is replace. " +
+  "Heatmaps are residual overlays. A flattened screenshot of a box is replace. " +
   "Leftover-bytes recovery reads prior objects / unused streams / attachments / incremental " +
-  "revisions / stale page graphs still in the container — not guessing letters from a black box. " +
+  "revisions / stale page graphs still in the container. " +
   "If the container was rewritten and old bytes are gone, leftover_bytes is false. " +
   "OCR runs only after structural recovery and never reconstructs covered letters from context. " +
-  "Context guesses are not recovery. " +
-  "Never claim pigment recovery, ESDA, chemical, lab, or forensic certification. " +
   "Lamb Lens: Service → Clarity → Peace. Author Aziel Eliab. NO-LIE.";
 
 export function listUnredact() {
@@ -2278,7 +2518,7 @@ export const RECOVER_OPS = [
 ];
 export const RECOVER_NOTE =
   "Universal artifact recovery. Present bytes and documented structure only. " +
-  "Never infer covered letters from context. SLOT parsers are not advertised as LIVE. " +
+  "Never infer covered letters from context. SLOT parsers stay SLOT; LIVE parsers stay LIVE. " +
   "Secrets: secret_material_present + path/offset; values suppressed. " +
   "Lamb Lens: Service → Clarity → Peace. Author Aziel Eliab. NO-LIE.";
 
@@ -2476,11 +2716,9 @@ export const HANDWRITING_NOTE =
   "scan or photo of paper. Stroke weight, speed cues, bleed, erasures, " +
   "tracing, and forgery indicators are heuristics from present pixels. " +
   "They are candidates — human verification required. " +
-  "Not ESDA, not chemical ink dating, not a court-qualified examiner " +
-  "opinion, and not writer identification as an identity fact. " +
-  "Heatmaps are not transcripts and not court findings. " +
+  "Heatmaps are residual overlays. " +
   "Hosted /v1/handwriting is a 256 px PNG preview; the full pipeline is the Python package. " +
-  "Empty gate ≠ broken lens. Balance/lemon never invent marks. " +
+  "An empty gate is a valid reading. Balance/lemon never invent marks. " +
   "Lamb Lens: Service → Clarity → Peace. Author Aziel Eliab. NO-LIE.";
 
 const HANDWRITING_FEATURES = {

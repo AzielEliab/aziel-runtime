@@ -244,9 +244,13 @@ assert.equal(spectralDesc.ok, true);
 assert.equal(spectralDesc.slug, "spectrallock");
 assert.equal(spectralDesc.status, "live");
 assert.equal(spectralDesc.digest, ENGINE_DIGESTS.spectrallock);
-for (const op of ["health", "skill", "modes", "targets", "overlay", "verify", "doctor"]) {
+for (const op of ["health", "skill", "modes", "targets", "overlay", "pigment", "restore-pigment", "verify", "doctor"]) {
   assert.ok(spectralDesc.ops.includes(op), `spectrallock describe lists ${op}`);
 }
+assert.match(String(spectralDesc.note || ""), /Spectral Harmonic Wheel/);
+assert.match(String(spectralDesc.note || ""), /restore lost pigment/i);
+assert.match(String(spectralDesc.note || ""), /AMOE/);
+assert.match(String(spectralDesc.note || ""), /not a live product/);
 assert.ok(spectralDesc.stub_ops.includes("spectrometer"));
 assert.ok(spectralDesc.stub_ops.includes("forensic"));
 assert.ok(spectralDesc.stub_ops.includes("invent_mark"));

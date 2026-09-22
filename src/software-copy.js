@@ -196,9 +196,9 @@ export const SOFTWARE_COPY = Object.freeze({
       "Use ShadowLock to wrap an existing job list in a zero-retention observation. It exists as an ethics envelope.",
   },
   spectrallock: {
-    one_line: "Preview a small overlay on an image and recover leftover container bytes.",
+    one_line: "Preview a 256-pixel overlay, paint membership from the Spectral Harmonic Wheel, and restore faded pigment where the pixels still carry it.",
     description:
-      "Use SpectralLock for a 256-pixel overlay preview with an optional inject true|false color switch, plus a metadata-hash check. Inject ON paints membership. Leftover-bytes recover reads present container bytes (object id / offset / stream) on the product Worker. It exists as a hosted overlay preview.",
+      "Use SpectralLock 0.3.1 for a hosted overlay whose wheel-paint plane is separate from the spectral triad. Restore lost pigment is live under SpectralLock on FragGate ops pigment and restore-pigment. AMOE stays on the suite project map and is not a live product. It exists as a hosted overlay preview.",
   },
   temporallock: {
     one_line: "Build and check hashes on a receipt timeline you keep on the client.",
