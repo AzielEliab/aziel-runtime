@@ -16,13 +16,19 @@ import {
   UNREDACT_NOTE,
   classifyCoverBuf,
   handwritingFromB64,
+  REFUSE_GONE,
+  SPECTRAL_TRIAD_HEX,
+  WHEEL_PAINT_HEX,
   listHandwriting,
+  listPigment,
   listRecover,
   listUnredact,
   locatePdfBytes,
   parseHandwritingOp,
+  parsePigmentOp,
   parseRecoverOp,
   parseUnredactOp,
+  pigmentFromB64,
   recoverFromB64,
   unredactFromB64,
 } from "../src/engines/spectrallock/overlay.js";
@@ -279,8 +285,19 @@ assert.equal(modesBody.pigment_recovery, false);
 assert.equal(modesBody.uv_lamp, false);
 assert.match(modesBody.limitation, /inject/i);
 assert.match(modesBody.limitation, /pigment/);
-assert.match(String(modesBody.inject.note), /UV is not a lamp/);
-assert.match(String(modesBody.inject.note), /Balance does not invent marks/);
+assert.match(modesBody.limitation, /UV is not a lamp/);
+assert.match(String(modesBody.inject.note), /synthetic 365/);
+assert.match(String(modesBody.inject.note), /Balance never invents marks/);
+assert.equal(modesBody.wheel_paint.separate_from_triad, true);
+assert.equal(modesBody.wheel_paint.triad.tazel, SPECTRAL_TRIAD_HEX.tazel);
+assert.equal(modesBody.wheel_paint.paint.tazel, WHEEL_PAINT_HEX.tazel);
+assert.notEqual(modesBody.wheel_paint.triad.tazel, modesBody.wheel_paint.paint.tazel);
+assert.equal(modesBody.wheel_paint.triad.vyrn, "#C00066");
+assert.equal(modesBody.wheel_paint.paint.vyrn, "#A22639");
+assert.equal(modesBody.pigment.catalog_door_op, true);
+assert.equal(modesBody.pigment.status, "live");
+assert.equal(modesBody.pigment.refuse_code, "SL-PIGMENT-GONE");
+assert.equal(modesBody.amoe_live_product, false);
 assert.equal(modesBody.leftover_bytes_recovery, true);
 assert.equal(modesBody.ocr_from_black_box, false);
 assert.equal(modesBody.unredact.leftover_bytes_recovery, true);
@@ -335,7 +352,9 @@ assert.ok(!LIVE_OPS.spectrallock.includes("lift"), "lift is not a catalog LIVE_O
 assert.ok(!LIVE_OPS.spectrallock.includes("recover"), "recover is not a catalog LIVE_OP");
 assert.ok(!LIVE_OPS.spectrallock.includes("handwriting"), "handwriting is not a catalog LIVE_OP");
 assert.ok(!LIVE_OPS.spectrallock.includes("refuse"), "refuse is not a catalog LIVE_OP");
-assert.deepEqual(LIVE_OPS.spectrallock, ["modes", "targets", "overlay", "verify", "doctor", "health", "skill"]);
+assert.ok(LIVE_OPS.spectrallock.includes("pigment"), "pigment is a catalog LIVE_OP");
+assert.ok(LIVE_OPS.spectrallock.includes("restore-pigment"), "restore-pigment is a catalog LIVE_OP");
+assert.deepEqual(LIVE_OPS.spectrallock, ["modes", "targets", "overlay", "pigment", "restore-pigment", "verify", "doctor", "health", "skill"]);
 
 const spSkill = await executeLocal({
   slug: "spectrallock",
@@ -346,6 +365,10 @@ const spSkill = await executeLocal({
 const skillBody = JSON.parse(spSkill.responseText);
 assert.match(String(skillBody.skill || skillBody.markdown), /inject true\|false/);
 assert.match(String(skillBody.skill || skillBody.markdown), /not recovered pigment/);
+assert.match(String(skillBody.skill || skillBody.markdown), /Spectral Harmonic Wheel/);
+assert.match(String(skillBody.skill || skillBody.markdown), /restore lost pigment/i);
+assert.match(String(skillBody.skill || skillBody.markdown), /SL-PIGMENT-GONE/);
+assert.match(String(skillBody.skill || skillBody.markdown), /AMOE/);
 assert.match(String(skillBody.skill || skillBody.markdown), /tazel_inband_pct/);
 assert.match(String(skillBody.skill || skillBody.markdown), /leftover-bytes/);
 assert.match(String(skillBody.skill || skillBody.markdown), /revision_graph/);
@@ -393,6 +416,41 @@ assert.equal(overlayZero.inject, true);
 assert.equal(overlayZero.inject_applied, false);
 assert.equal(overlayZero.inject_ignored, true);
 
+assert.equal(parsePigmentOp("restore-pigment"), "restore");
+assert.equal(parsePigmentOp("estimate-pigment"), "estimate");
+assert.equal(listPigment().status, "live");
+assert.equal(REFUSE_GONE, "SL-PIGMENT-GONE");
+assert.notEqual(SPECTRAL_TRIAD_HEX.tazel, WHEEL_PAINT_HEX.tazel);
+const gonePigment = await pigmentFromB64(TINY_PNG, { op: "restore" });
+assert.equal(gonePigment.pigment_recovery, true);
+assert.equal(gonePigment.recovered, false);
+assert.equal(gonePigment.refuse_code, "SL-PIGMENT-GONE");
+assert.equal(gonePigment.invented_marks, false);
+assert.equal(gonePigment.wheel_paint_used, false);
+assert.equal(gonePigment.spectral_triad_used_for_restore, false);
+const spPigment = await executeLocal({
+  slug: "spectrallock",
+  op: "pigment",
+  payload: {},
+  ranIn: "aziel-runtime",
+});
+const pigmentList = JSON.parse(spPigment.responseText);
+assert.equal(pigmentList.status, "live");
+assert.equal(pigmentList.catalog_door_op, true);
+assert.equal(pigmentList.amoe_live_product, false);
+assert.deepEqual(pigmentList.family, ["pigment", "restore-pigment"]);
+const spRestore = await executeLocal({
+  slug: "spectrallock",
+  op: "restore-pigment",
+  payload: { b64: TINY_PNG, op: "refuse" },
+  ranIn: "aziel-runtime",
+});
+const pigmentRefuse = JSON.parse(spRestore.responseText);
+assert.equal(pigmentRefuse.family, "pigment");
+assert.equal(pigmentRefuse.pigment_recovery, true);
+assert.equal(pigmentRefuse.recovered, false);
+assert.equal(pigmentRefuse.refuse_code, "SL-PIGMENT-GONE");
+assert.equal(pigmentRefuse.amoe_live_product, false);
 assert.equal(parseUnredactOp("redact-locate"), "locate");
 assert.equal(parseUnredactOp("leftover-bytes"), "recover");
 assert.equal(parseRecoverOp("deep"), "deep-recover");
@@ -400,10 +458,10 @@ assert.equal(parseRecoverOp("revision-graph"), "revision-graph");
 assert.equal(parseHandwritingOp("forgery-scan"), "forgery-indicators");
 assert.equal(REFUSE_OPAQUE, "SL-UNREDACT-OPAQUE");
 assert.match(UNREDACT_NOTE, /leftover/);
-assert.match(UNREDACT_NOTE, /not a transcript/);
+assert.match(UNREDACT_NOTE, /Heatmaps are residual overlays/);
 assert.match(UNREDACT_NOTE, /revision graph/);
-assert.match(RECOVER_NOTE, /SLOT parsers are not advertised as LIVE/);
-assert.match(HANDWRITING_NOTE, /Not ESDA/);
+assert.match(RECOVER_NOTE, /SLOT parsers stay SLOT/);
+assert.match(HANDWRITING_NOTE, /human verification required/);
 assert.equal(listUnredact().leftover_bytes_recovery, true);
 assert.equal(listUnredact().revision_graph, true);
 assert.deepEqual(listRecover().slot_kinds, ["7z", "heic", "heif"]);
@@ -478,6 +536,8 @@ assert.equal(classifyCall(registry.bySlug.staticclock, "rollback").kind, "stub")
 assert.equal(classifyCall(registry.bySlug.chronolock, "cron").kind, "stub");
 assert.equal(classifyCall(registry.bySlug.trajectorylock, "store_media").kind, "stub");
 assert.equal(classifyCall(registry.bySlug.spectrallock, "forensic").kind, "stub");
+assert.equal(classifyCall(registry.bySlug.spectrallock, "pigment").kind, "live");
+assert.equal(classifyCall(registry.bySlug.spectrallock, "restore-pigment").kind, "live");
 assert.equal(classifyCall(registry.bySlug.spectrallock, "unredact").kind, "unknown_op");
 assert.equal(classifyCall(registry.bySlug.spectrallock, "locate").kind, "unknown_op");
 assert.equal(classifyCall(registry.bySlug.spectrallock, "lift").kind, "unknown_op");

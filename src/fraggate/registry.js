@@ -68,6 +68,9 @@ export const OP_ALIASES = {
     limitations: "limitation",
     "verify-hash": "verify_hash",
   },
+  spectrallock: {
+    "restore-pigment": "pigment",
+  },
   mesh: { ...MESH_OP_ALIASES },
 };
 
@@ -159,7 +162,7 @@ export const LIVE_OPS = {
   employeelock: ["append-preview", "verify-canonical", "health", "skill", "doctor"],
   whistlelock: ["hash-preview", "canon-preview", "hash_put", "hash_get", "hash_stat", "health", "skill", "doctor"],
   trajectorylock: ["example", "analyze", "verify", "schema", "import_export", "hash_put", "hash_get", "hash_stat", "doctor", "health", "skill"],
-  spectrallock: ["modes", "targets", "overlay", "verify", "doctor", "health", "skill"],
+  spectrallock: ["modes", "targets", "overlay", "pigment", "restore-pigment", "verify", "doctor", "health", "skill"],
   azbot: ["route", "example", "health", "skill", "doctor"],
   azieltether: ["verify", "tip", "dual-chain", "reconcile", "pulse", "peer-preview", "health", "skill", "doctor"],
   peacelock: ["open", "seal", "break", "show", "verify", "stamp", "upload_envelope", "health", "skill", "doctor"],
@@ -602,7 +605,7 @@ export function registryEntry(product) {
       slug === "embryolock"
         ? "Live-with-local-destructive-boundary. Health/skill/doctor/verify-hash/policy cite on the public FragGate door. Wipe/scorch/unlock-after-fail stay local-only — Never execute on the public mesh. Vault/Custody isolation label (with ARK). Author: Aziel Eliab only."
         : slug === "spectrallock"
-          ? "Live on the public FragGate door. Overlay payload accepts inject true|false (ON = false-color membership paint, not recovered pigment; OFF = gray of the same gate; zero ignores the switch). Reports tazel_inband_pct and vyrn_inband_pct. Vendored overlay carries honest leftover-bytes unredact (locate/lift/recover/refuse), incremental PDF revision_graph + per-revision copies, universal recover (SL-RECOVER-*; 7z/HEIC/HEIF SLOT), and handwriting ink-scan heuristics (not ESDA / court cert; hosted JPEG SLOT) — not catalog FragGate door ops. Product Worker doors stay /v1/unredact, /v1/recover, /v1/handwriting. Leftover recover reads present container bytes; opaque replace with no leftover bytes refuses SL-UNREDACT-OPAQUE. Never OCR-from-black-box. UV is not a lamp. Balance/lemon/indent never invent marks. 256px preview. Author: Aziel Eliab only."
+          ? "Live on the public FragGate door. SpectralLock 0.3.1. Wheel paint (Spectral Harmonic Wheel) is a membership-tint plane separate from the spectral triad used for densitometry (Tazel #1EC9A5, Vyrn #C00066, Zero #6F6485). Overlay inject true|false: ON paints wheel membership, not recovered pigment; OFF is gray of the same gate; zero ignores the switch. Reports tazel_inband_pct and vyrn_inband_pct. Restore lost pigment is LIVE on ops pigment and restore-pigment (listPigment / pigmentFromB64). That path estimates faded signal still in the pixels and refuses SL-PIGMENT-GONE when the evidence is gone. pigment_recovery is true only on that path. AMOE stays on the suite project map and is not a live product. Vendored overlay still carries leftover-bytes unredact, revision_graph, universal recover (7z/HEIC/HEIF SLOT), and handwriting — those stay off the FragGate door (product Worker /v1/unredact, /v1/recover, /v1/handwriting). Opaque replace with no leftover bytes refuses SL-UNREDACT-OPAQUE. Never OCR-from-black-box. UV is not a lamp. Balance/lemon/indent never invent marks. 256px preview. Author: Aziel Eliab only."
         : status === "live"
           ? "Live on the public FragGate door."
           : "Named in the registry. Local / in-process engine exists; not live on the public mesh.",

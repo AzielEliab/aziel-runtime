@@ -182,7 +182,7 @@ AZL-VOL-1.0                                                                     
 
   lock             shadowlock                 0.2.0             yes        observe, health, skill
 
-  lock             spectrallock               0.3.0             yes        modes, overlay, health, skill
+  lock             spectrallock               0.3.1             yes        modes, overlay, pigment, restore-pigment, health, skill
 
   lock             temporallock               0.2.0             yes        genesis, append, verify, health, skill
 
@@ -538,11 +538,11 @@ AZL-VOL-1.0                                                                     
 
 
 
-SpectralLock · spectrallock · 0.3.0 · live
-Overlay preview modes. 256px hosted preview, not a spectrometer. Leftover-bytes recover is honest; revision graph is honest; opaque refuse is SL-UNREDACT-OPAQUE; 7z/HEIC/HEIF stay SLOT; handwriting is not ESDA; never invent letters.
+SpectralLock · spectrallock · 0.3.1 · live
+Overlay preview modes. 256px hosted preview, not a spectrometer. Wheel paint is separate from the spectral triad. Restore lost pigment is LIVE on FragGate pigment / restore-pigment and refuses SL-PIGMENT-GONE when the signal is gone. AMOE is not a live product. Leftover-bytes recover is honest; revision graph is honest; opaque refuse is SL-UNREDACT-OPAQUE; 7z/HEIC/HEIF stay SLOT; handwriting is not ESDA; never invent letters.
 
-How. Overlay preview modes. 256px hosted preview, not a spectrometer. Locate / lift / recover / refuse live in the vendored overlay and the product Worker /v1/unredact. Universal recover is /v1/recover (SLOT formats stay SLOT). Handwriting is /v1/handwriting (ink-scan heuristic, not ESDA). None of those three are catalog FragGate door ops. Heatmaps are not transcripts.
-Live ops. modes, overlay, health, skill
+How. Overlay preview modes. 256px hosted preview, not a spectrometer. Wheel paint membership tints are a separate plane from triad densitometry. Restore lost pigment is FragGate ops pigment and restore-pigment. Locate / lift / recover / refuse live in the vendored overlay and the product Worker /v1/unredact. Universal recover is /v1/recover (SLOT formats stay SLOT). Handwriting is /v1/handwriting (ink-scan heuristic, not ESDA). Unredact, recover, and handwriting are not catalog FragGate door ops. Heatmaps are not transcripts.
+Live ops. modes, overlay, pigment, restore-pigment, health, skill
 Stub-refused ops. —
 GitHub. https://github.com/AzielEliab/spectrallock
 

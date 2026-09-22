@@ -29,7 +29,7 @@ const CATALOG = [
   { slug: "azcoherence", keys: ["coherence", "hallucination", "alternate triad", "alternate score", "neutralize", "azcoherence"], op: "coherence_check", banner: "confidence ≠ truth; never invents evidence" },
   { slug: "ark", keys: ["vault", "sweep", "pe", "elf", "powershell"], op: "sweep", banner: "not a kernel" },
   { slug: "azai", keys: ["lamb", "jeeves", "blend", "openai"], op: "lamb-check", banner: "not the local blend" },
-  { slug: "spectrallock", keys: ["overlay", "uv", "rosetta", "spectral", "png", "unredact", "leftover", "recover", "handwriting", "revision"], op: "overlay", banner: "256px preview; leftover-bytes + revision-graph recover honest; handwriting heuristic not ESDA; SLOT 7z/HEIC; never invent letters; not a spectrometer" },
+  { slug: "spectrallock", keys: ["overlay", "uv", "rosetta", "spectral", "png", "unredact", "leftover", "recover", "handwriting", "revision", "pigment", "restore-pigment", "wheel"], op: "overlay", banner: "256px preview; wheel paint is separate from the spectral triad; restore lost pigment is FragGate pigment/restore-pigment; AMOE is not a live product; leftover-bytes recover stays on the product Worker" },
   { slug: "employeelock", keys: ["workbook", "unowned", "xlsx", "log row"], op: "append-preview", banner: "not a court" },
   { slug: "foldlock", keys: ["fold", "compress", "tether", "zip"], op: "fold-preview", banner: "not zip" },
   { slug: "whistlelock", keys: ["whistle", "drop", "mailer", "dead-man"], op: "canon-preview", banner: "not a mailer" },
@@ -86,14 +86,20 @@ export function route(body) {
     jeeves_sovereign: false,
     limitation: LIMITATION,
     query: text,
-    matches: picks.map((p) => ({
-      slug: p.slug,
-      op: p.op,
-      score: p.score,
-      matched: p.matched,
-      banner: p.banner,
-      exec: { slug: p.slug, op: p.op },
-    })),
+    matches: picks.map((p) => {
+      const pigmentHit =
+        p.slug === "spectrallock" &&
+        p.matched.some((key) => key === "pigment" || key === "restore-pigment");
+      const op = pigmentHit ? "pigment" : p.op;
+      return {
+        slug: p.slug,
+        op,
+        score: p.score,
+        matched: p.matched,
+        banner: p.banner,
+        exec: { slug: p.slug, op },
+      };
+    }),
     note: picks.length
       ? "Route only. Call aziel-runtime session exec for the chosen slug. Do not invent scores."
       : "No keyword hit. Open a session and name a catalog slug, or GET /v1/bundle.",
