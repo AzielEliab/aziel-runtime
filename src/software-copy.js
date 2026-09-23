@@ -98,7 +98,7 @@ export const SOFTWARE_COPY = Object.freeze({
   forgereceipts: {
     one_line: "Mint and hash-check client-held receipts so retries of one request stay linked.",
     description:
-      "Use ForgeReceipts to package local receipts and check their hashes. It exists so request_id, attempt_n, parent_receipt_id, and correlation_id sit inside the receipt hash.",
+      "Use ForgeReceipts to package local receipts and check their hashes. It exists so request_id, attempt_n, parent_receipt_id, correlation_id, and outcome are hashed into the receipt. ledger_tip.prev is call-order only (prev_is_retry_parent false).",
   },
   glossafilter: {
     one_line: "Render one intent across the bundled peer phrasings.",
