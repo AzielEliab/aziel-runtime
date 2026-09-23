@@ -47,14 +47,16 @@ export function forgereceiptsHealth() {
 export function forgereceiptsSkill() {
   return capabilitySkill({
     ...envelope(),
-    lead: "Local receipt mint. Recompute hashes. Client-held import/export JSON. Not legal advice. Does not contact courts. Neighbor TemporalLock shares the receipt shape; this engine does not store a chain.",
+    lead:
+      "Local receipt mint. The canonical hash covers timestamp, summary, evidence, confidence, prev_hash, request_id, attempt_n, parent_receipt_id, correlation_id, and outcome. Same note with a different attempt_n is a different hash. parent_receipt_id is the prior attempt's receipt hash (null on the first attempt). correlation_id is an optional client id, sealed as null when omitted. FragGate ledger prev is call order only and is not the retry parent. Receipts sealed before these fields keep the older five-field hash. Client-held import/export JSON. Not legal advice. Does not contact courts. Neighbor TemporalLock shares the older receipt shape; this engine does not store a chain.",
   });
 }
 
 export function forgereceiptsDoctor() {
   return capabilityDoctor({
     ...envelope(),
-    doctor_note: "ForgeReceipts doctor: receipt mint + verify. No court, no Odyssey, no file store.",
+    doctor_note:
+      "ForgeReceipts doctor: receipt mint + verify. request_id, attempt_n, parent_receipt_id, and correlation_id are axes inside the hash. outcome is retry, failed, or completed. No court, no Odyssey, no file store. Not a forensic finding.",
   });
 }
 

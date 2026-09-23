@@ -32,8 +32,13 @@ Hash is SHA-256 of `canonicalize(unsigned)` where `unsigned` is the receipt **wi
 | `owner` | string | `aziel-runtime` |
 | `owner_note` | string | owned by this session process |
 | `payload` | object | event-specific |
-| `prev_hash` | 64 hex | previous receipt hash, or `ZERO_HASH` |
-| `hash` | 64 hex | SHA-256 of canonical unsigned body |
+| `prev_hash` | 64 hex | previous receipt hash in this session chain, or `ZERO_HASH` |
+| `request_id` | string | logical action. Same value across retries. New receipts only |
+| `attempt_n` | integer | 1-based attempt of that `request_id` |
+| `parent_receipt_id` | string or null | prior attempt's receipt `hash`. Null on the first attempt. Not `prev_hash` and not FragGate ledger `prev` |
+| `correlation_id` | string or null | optional client correlation. Sealed on the receipt (null when omitted) |
+| `outcome` | string | `retry`, `failed`, or `completed`. `completed` is the attempt that finished the action |
+| `hash` | 64 hex | SHA-256 of canonical unsigned body, including the attempt fields on new receipts |
 
 ### Exec `payload.result`
 
@@ -174,11 +179,17 @@ Receipt object:
 | `evidence` | composed evidence string |
 | `confidence` | float in `[0.0, 1.0]` |
 | `prev_hash` | genesis prev on local mint |
-| `hash` | SHA-256 of `canonicalBytes(...)` |
+| `hash` | SHA-256 of `canonicalBytes(...)`. New receipts include `request_id`, `attempt_n`, `parent_receipt_id`, `correlation_id`, and `outcome` in that canonical body. Same note with a different `attempt_n` is a different hash. Receipts sealed without integer `attempt_n` keep the older five-field hash (`timestamp`, `summary`, `evidence`, `confidence`, `prev_hash`) |
+| `receipt_id` | this receipt's `hash`. `parent_receipt_id` of the next attempt points here |
+| `request_id` | logical action. Same across retries |
+| `attempt_n` | 1-based integer |
+| `parent_receipt_id` | prior attempt's `hash`, or null on the first. Not FragGate ledger `prev` |
+| `correlation_id` | optional client id. JSON null when omitted, and that null is inside the hash |
+| `outcome` | `retry`, `failed`, or `completed` |
 | `kind` | default `incident` |
 | `child_impact` | context string |
 | `note` | original note |
-| `context` | object |
+| `context` | object. Not a substitute for the hashed attempt fields |
 
 Verify requires `timestamp`, `summary`, `evidence`, `hash`. Tamper → `match: false`. Local mint is `durable: false`, `stored: false`. Not a court filing.
 

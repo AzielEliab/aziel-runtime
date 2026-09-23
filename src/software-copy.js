@@ -96,9 +96,9 @@ export const SOFTWARE_COPY = Object.freeze({
       "Use AZVPN as the automatic public VPN concentrator for HTTPS and WebSocket tunnels. It exists to concentrate those sessions in-runtime.",
   },
   forgereceipts: {
-    one_line: "Mint, check hashes, and import or export receipts you keep on the client.",
+    one_line: "Mint and hash-check client-held receipts so retries of one request stay linked.",
     description:
-      "Use ForgeReceipts to package local receipts and check their hashes. It exists so evidence packaging stays client-held.",
+      "Use ForgeReceipts to package local receipts and check their hashes. It exists so request_id, attempt_n, parent_receipt_id, and correlation_id sit inside the receipt hash.",
   },
   glossafilter: {
     one_line: "Render one intent across the bundled peer phrasings.",

@@ -17,6 +17,7 @@
  */
 
 import { canonicalize, sha256Hex, ZERO_HASH } from "./session-core.js";
+import { actEventAttempt } from "./receipt-attempt.js";
 import { DEFAULT_UA, RUNTIME_VERSION } from "./runtime-api.js";
 
 export const RECEIPTS_SPEC = "ACT-RECEIPT-1.0";
@@ -244,7 +245,7 @@ export function outputSentence(status) {
 }
 
 export function eventMetadata(meta) {
-  return {
+  const event = {
     surface: meta.surface || "http",
     path: meta.path || "/",
     method: meta.method || "GET",
@@ -253,6 +254,9 @@ export function eventMetadata(meta) {
     spec: RECEIPTS_SPEC,
     runtime_version: meta.runtime_version || RUNTIME_VERSION,
   };
+  const attempt = actEventAttempt(meta);
+  if (attempt && !attempt.error) Object.assign(event, attempt);
+  return event;
 }
 
 export async function hashActReceipt(unsigned) {
@@ -365,6 +369,11 @@ export async function publishLibraryReceipt(env, input = {}, fetchImpl = fetch) 
       tool: input.tool || "",
       spec: RECEIPTS_SPEC,
       runtime_version: input.runtime || RUNTIME_VERSION,
+      ...(input.request_id !== undefined ? { request_id: input.request_id } : {}),
+      ...(input.attempt_n !== undefined ? { attempt_n: input.attempt_n } : {}),
+      ...(input.parent_receipt_id !== undefined ? { parent_receipt_id: input.parent_receipt_id } : {}),
+      ...(input.correlation_id !== undefined ? { correlation_id: input.correlation_id } : {}),
+      ...(input.outcome !== undefined ? { outcome: input.outcome } : {}),
     },
   });
   return appendActReceipt(env, receipt, fetchImpl);
@@ -382,7 +391,14 @@ async function parseMintHints(request) {
     const op = (params.arguments && params.arguments.op) || body.op;
     if (name && op) hints.tool = `${name}:${op}`.slice(0, 80);
     else if (name) hints.tool = String(name).slice(0, 80);
-    else if (body.slug && body.op) hints.tool = `${body.slug}:${body.op}`.slice(0, 80);
+    else     if (body.slug && body.op) hints.tool = `${body.slug}:${body.op}`.slice(0, 80);
+    const args = params.arguments && typeof params.arguments === "object" ? params.arguments : {};
+    const payload = body.payload && typeof body.payload === "object" ? body.payload : args.payload;
+    for (const key of ["request_id", "attempt_n", "parent_receipt_id", "correlation_id", "outcome"]) {
+      if (Object.prototype.hasOwnProperty.call(body, key) && body[key] !== undefined) hints[key] = body[key];
+      else if (Object.prototype.hasOwnProperty.call(args, key) && args[key] !== undefined) hints[key] = args[key];
+      else if (payload && Object.prototype.hasOwnProperty.call(payload, key) && payload[key] !== undefined) hints[key] = payload[key];
+    }
   } catch {
     /* body already consumed or not JSON */
   }
@@ -408,6 +424,11 @@ export async function mintFromHttp(request, response, extra = {}) {
       tool,
       spec: RECEIPTS_SPEC,
       runtime_version: RUNTIME_VERSION,
+      ...(extra.request_id !== undefined ? { request_id: extra.request_id } : {}),
+      ...(extra.attempt_n !== undefined ? { attempt_n: extra.attempt_n } : {}),
+      ...(extra.parent_receipt_id !== undefined ? { parent_receipt_id: extra.parent_receipt_id } : {}),
+      ...(extra.correlation_id !== undefined ? { correlation_id: extra.correlation_id } : {}),
+      ...(extra.outcome !== undefined ? { outcome: extra.outcome } : {}),
     },
   });
 }
@@ -472,6 +493,9 @@ export function actReceiptStatus(extra = {}) {
     proxy_path: "/v1/receipts/proxy",
     fields: ["hash", "request", "output", "event"],
     event_fields: ["surface", "path", "method", "status", "tool", "spec", "runtime_version"],
+    event_attempt_fields: ["request_id", "attempt_n", "parent_receipt_id", "correlation_id"],
+    attempt_fields_hashed_inside_event: true,
+    software_slug: false,
     content_addressed: true,
     forgereceipts: "isolate hash store — not this public ACT tip",
     no_user_ip_geo: true,
