@@ -274,4 +274,51 @@ assert.equal(second.ledger_tip.prev_is_retry_parent, false);
 assert.notEqual(second.ledger_tip.prev, second.parent_receipt_id);
 assert.equal((await verifyReceipt({ receipt: second.result.receipt })).match, true);
 
+const handler = (await import("../src/index.js")).default.fetch;
+const origin = "https://aziel-runtime.example";
+const openapi = await (await handler(new Request(origin + "/openapi.json"), {})).json();
+const TOKENS = ["request_id", "attempt_n", "parent_receipt_id", "correlation_id", "outcome"];
+for (const name of ["ForgeReceipt", "SessionReceipt", "ResultEnvelope"]) {
+  const props = openapi.components.schemas[name].properties;
+  for (const token of TOKENS) {
+    assert.ok(props[token], `${name} schema missing ${token}`);
+  }
+}
+assert.equal(openapi.components.schemas.ResultEnvelope.properties.ledger_tip.properties.prev_is_retry_parent.type, "boolean");
+const callSchema = openapi.paths["/v1/fraggate/call"].post.requestBody.content["application/json"].schema.properties;
+for (const token of TOKENS) assert.ok(callSchema[token], `CallEnvelope schema missing ${token}`);
+assert.equal(
+  openapi.paths["/v1/fraggate/call"].post.responses["200"].content["application/json"].schema.$ref,
+  "#/components/schemas/ResultEnvelope",
+);
+assert.equal(
+  openapi.paths["/v1/session/{id}/receipt"].get.responses["200"].content["application/json"].schema.properties.receipt.$ref,
+  "#/components/schemas/SessionReceipt",
+);
+
+const described = await (await handler(new Request(origin + "/v1/fraggate/describe?slug=forgereceipts"), {})).json();
+const software = await (await handler(new Request(origin + "/v1/software"), {})).json();
+const card = software.software.find((s) => s.slug === "forgereceipts");
+assert.equal(described.description, card.description);
+assert.match(described.description, /request_id/);
+assert.match(described.description, /attempt_n/);
+assert.match(described.description, /parent_receipt_id/);
+assert.match(described.description, /correlation_id/);
+assert.match(described.description, /outcome/);
+assert.match(described.description, /hashed into the receipt/);
+assert.match(described.description, /call-order only/);
+assert.match(described.description, /prev_is_retry_parent false/);
+assert.doesNotMatch(described.description, /^Mint and hash-check/);
+
+const skill = await (await handler(new Request(origin + "/v1/skill"), {})).text();
+assert.match(skill, /Attempt linkage \(additive\)/);
+assert.match(skill, /request_id/);
+assert.match(skill, /attempt_n/);
+assert.match(skill, /parent_receipt_id/);
+assert.match(skill, /correlation_id/);
+assert.match(skill, /outcome/);
+assert.match(skill, /not the retry parent/);
+assert.match(skill, /not a forensic finding/);
+assert.match(skill, /prev_is_retry_parent/);
+
 console.log("ok receipt-attempt: hashed request_id / attempt_n / parent_receipt_id / correlation_id");

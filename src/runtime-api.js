@@ -215,6 +215,8 @@ FragGate kernel: https://github.com/AzielEliab/fraggate (FG-0.1)
 4. **Show the output.** Results are \`{ display, result, ledger_tip? }\`. Show \`display\` to the user.
 5. **Take the next input.**
 
+**Attempt linkage (additive).** A call may carry \`request_id\`, \`attempt_n\`, \`parent_receipt_id\`, \`correlation_id\`, and \`outcome\`. Those names are hashed into a new ForgeReceipts receipt, copied onto the FragGate ResultEnvelope, and sealed on a new session receipt. \`parent_receipt_id\` is the prior attempt's receipt hash (null on the first). \`ledger_tip.prev\` is call-order only (\`prev_role\` \`call-order\`, \`prev_is_retry_parent\` false) and is not the retry parent. This is hash linkage, not a forensic finding and not a court filing. Receipts sealed without integer \`attempt_n\` keep the older hash.
+
 Named live modules still on the thin tools/list: \`decisiongate_check\`, \`library_lookup\` (read-only corpus), suite \`mesh_*\` (QNM-BUILD-1.0 rollup; read-only suite-presence ON by default; not a login mesh), plus fabric \`chainlock_*\` (CL-WP-0.4 / LS-WP-0.1 — not Softwares-tab) and \`memory_*\` (AKM-TRIAD-1.0 — not Softwares-tab).
 
 **LIVE fabric** (runtime, not Softwares-tab products): AZPIPE (\`AP-WP-0.2\`, magic FLD3) wraps \`fraggate_call\` so admitted payloads never present raw inbound bytes. **Locked hop order (1.7.0 / MASTER-33):** Human → AZInterface → PUBLIC/UI/AGENT/API → FragGate → Lamb Lens → SweepGate → Sentinel → Provenance/Input Packet → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → optional ASE → RoseClock (forward-only; StaticClock/VECTOR as needed) → TemporalLock → ChainLock-OUT → ForgeReceipts → Return. FragGate is THE single door. Lamb Lens is fabric ethics after FragGate (not Softwares-tab, not a second door). Domains are isolation labels, not doors. RoseClock sequence never decreases. FoldLock fld3-wire is internal to AZPIPE. LambGate is not a hop. Illegal reorder is refused. SweepGate (\`SG-WP-0.1\`) airlocks poison / malware-class / block-keys, and isolates off-origin only when inbound and untrusted; ChainLock (\`CL-WP-0.4\`) append-only stamps (vault \`vault/chains/<name>.jsonl\` on CLI; Worker KV/memory) — ChainLock-IN inbound, ChainLock-OUT outbound receipts; LOCKSET (\`LS-WP-0.1\`) fail-closed seal citing \`https://godlock.uk\` (runtime does not write the public ledger); packed catalog (\`RL-WP-0.1-runtime\`) is a single-key read with edge Cache-Control; **QNS-CD-1.0** is the Quantum Node Signal packet-transfer coding design (photon QNS1 1.3 on local \`qnsd\` in https://github.com/AzielEliab/qnm-node — companion to QNM-BUILD-1.0 / AIH-WP-1.3). \`GET /v1/qns\` cites only; the public Worker does not proxy local via emit and is not a wipe/control plane. qnsd uses the same AZPIPE / SweepGate / APG / ChainLock laws locally. Catalog GET / HTML stay full (200) for humans and SEO; soft caps apply only to expensive fan-out. Donation stays static (no KV). \`GET /v1/mesh\` never enables. Do **not** add QNS, AKM-TRIAD, or ACT-RECEIPT as Softwares-tab product slugs. Adaptive memory is LIVE fabric behind FragGate (\`POST /v1/memory/*\`, MCP \`memory_*\`, FragGate \`slug=memory\`). Bayesian posterior is calibrated belief, not truth. **ACT-RECEIPT-1.0** is the public four-field action-receipt mesh copy. The chain lives on \`https://www.azielcorpuslibrary.net/receipts\`. This runtime appends after FragGate list/call, POST /mcp, and significant POST /v1/* when \`RECEIPT_APPEND_TOKEN\` is set (header \`x-aziel-receipt\`). Missing token is fail-open. \`GET /v1/receipts\` cites; \`GET /v1/receipts/tip\` proxies the corpus tip. No user/IP/geo. MESH-VAULT lite may mint catalog/download/mesh events. **NO-LIE-NO-REWRITE-1.0** is companion law under **CROSS-NETWORK-SURVIVAL-1.0** (does not replace the machine tip): receipts that still hash; copies not all on one tunnel; no rewrite key; the network is never allowed to lie even to self-preserve.
@@ -876,6 +878,129 @@ export function markdownResponse(body, extra = {}) {
   });
 }
 
+const ATTEMPT_FIELD_PROPERTIES = {
+  request_id: {
+    type: "string",
+    description: "Logical original request. The same value groups retries of one action.",
+  },
+  attempt_n: {
+    type: "integer",
+    minimum: 1,
+    description: "1-based attempt of that request_id.",
+  },
+  parent_receipt_id: {
+    type: "string",
+    nullable: true,
+    description:
+      "Prior attempt receipt hash (receipt_id). Null on the first attempt. Not FragGate ledger prev.",
+  },
+  correlation_id: {
+    type: "string",
+    nullable: true,
+    description: "Optional client correlation id. Sealed as null when omitted, and that null is inside the hash.",
+  },
+  outcome: {
+    type: "string",
+    enum: ["retry", "failed", "completed"],
+    description: "Sealed attempt status. completed is the attempt that finished the action.",
+  },
+};
+
+/**
+ * OpenAPI component schemas for the attempt fields sealed by #158.
+ * Property names are the public citation tokens. Ledger prev stays call-order only.
+ */
+export function attemptOpenApiSchemas() {
+  return {
+    ForgeReceipt: {
+      type: "object",
+      description:
+        "ForgeReceipts receipt. New receipts hash request_id, attempt_n, parent_receipt_id, correlation_id, and outcome. Receipts sealed without integer attempt_n keep the older five-field hash. ledger_prev_is_retry_parent is false. Not a forensic finding.",
+      properties: {
+        timestamp: { type: "string", description: "UTC mint time." },
+        summary: { type: "string" },
+        evidence: { type: "string" },
+        confidence: { type: "number", minimum: 0, maximum: 1 },
+        prev_hash: {
+          type: "string",
+          description: "Local mint genesis prev. Not parent_receipt_id and not FragGate ledger prev.",
+        },
+        hash: { type: "string", description: "SHA-256 of the canonical receipt body." },
+        receipt_id: { type: "string", description: "This receipt's hash. The next attempt's parent_receipt_id points here." },
+        ...ATTEMPT_FIELD_PROPERTIES,
+        hash_covers_attempt: {
+          type: "boolean",
+          description: "True when the five attempt fields are inside the canonical hash.",
+        },
+        ledger_prev_is_retry_parent: {
+          type: "boolean",
+          description: "false. FragGate ledger_tip.prev is call-order only.",
+        },
+      },
+    },
+    SessionReceipt: {
+      type: "object",
+      description:
+        "Runtime session receipt. New receipts seal request_id, attempt_n, parent_receipt_id, correlation_id, and outcome inside the hash. parent_receipt_id is the prior attempt hash. FragGate ledger prev is call-order only (prev_is_retry_parent false). Not a forensic finding.",
+      properties: {
+        kind: { type: "string" },
+        session_id: { type: "string" },
+        seq: { type: "integer" },
+        event: { type: "string" },
+        ts: { type: "string" },
+        prev_hash: { type: "string", description: "Prior session receipt hash in this session chain." },
+        hash: { type: "string" },
+        ...ATTEMPT_FIELD_PROPERTIES,
+        ledger_prev_is_retry_parent: {
+          type: "boolean",
+          description: "false. FragGate ledger_tip.prev is call-order only and is not this parent_receipt_id.",
+        },
+      },
+    },
+    ResultEnvelope: {
+      type: "object",
+      description:
+        "FragGate ResultEnvelope. request_id, attempt_n, parent_receipt_id, correlation_id, and outcome are copied onto the envelope and, when ForgeReceipts mints, into that receipt hash. parent_receipt_id is the prior attempt hash. ledger_tip.prev is call-order only and prev_is_retry_parent is false. Not a forensic finding.",
+      properties: {
+        ok: { type: "boolean" },
+        code: { type: "string" },
+        door: { type: "string" },
+        slug: { type: "string" },
+        op: { type: "string" },
+        ...ATTEMPT_FIELD_PROPERTIES,
+        ledger_prev_is_retry_parent: {
+          type: "boolean",
+          description: "false. ledger_tip.prev is call order only.",
+        },
+        ledger_tip: {
+          type: "object",
+          description: "Ask/refuse ledger tip. prev is call order only.",
+          properties: {
+            seq: { type: "integer" },
+            prev: { type: "string", description: "Previous ledger tip. Call order only. Not parent_receipt_id." },
+            prev_role: { type: "string", enum: ["call-order"] },
+            prev_is_retry_parent: { type: "boolean", description: "false." },
+            hash: { type: "string" },
+          },
+        },
+        forgereceipts: {
+          type: "object",
+          description:
+            "AZPIPE ForgeReceipts stamp. hash covers request_id, attempt_n, parent_receipt_id, correlation_id, and outcome on new receipts.",
+          properties: {
+            hash: { type: "string" },
+            ok: { type: "boolean" },
+            ...ATTEMPT_FIELD_PROPERTIES,
+            hash_covers_attempt: { type: "boolean" },
+            ledger_prev_is_retry_parent: { type: "boolean", description: "false." },
+          },
+        },
+        receipt: { $ref: "#/components/schemas/ForgeReceipt" },
+      },
+    },
+  };
+}
+
 export function runtimeStaticPaths() {
   return {
     "/v1/session/open": {
@@ -955,7 +1080,20 @@ export function runtimeStaticPaths() {
           },
         },
         responses: {
-          "200": { description: "Exec receipt" },
+          "200": {
+            description:
+              "Exec receipt. The session receipt schema includes request_id, attempt_n, parent_receipt_id, correlation_id, and outcome.",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    receipt: { $ref: "#/components/schemas/SessionReceipt" },
+                  },
+                },
+              },
+            },
+          },
           "403": { description: "Policy denied" },
           "409": { description: "Session closed" },
         },
@@ -968,7 +1106,23 @@ export function runtimeStaticPaths() {
           "Last runtime-owned receipt. Hash covers request_id, attempt_n, parent_receipt_id, correlation_id, and outcome. parent_receipt_id is the prior attempt hash. FragGate ledger prev is call-order only.",
         tags: ["session"],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
-        responses: { "200": { description: "Last receipt + verified" } },
+        responses: {
+          "200": {
+            description:
+              "Last receipt + verified. SessionReceipt includes request_id, attempt_n, parent_receipt_id, correlation_id, and outcome.",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    receipt: { $ref: "#/components/schemas/SessionReceipt" },
+                    verified: { type: "boolean" },
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     },
     "/v1/session/{id}/receipts": {
@@ -978,7 +1132,26 @@ export function runtimeStaticPaths() {
           "Full hash-chained receipt list for a session. Each new receipt carries request_id, attempt_n, parent_receipt_id, correlation_id, and outcome inside its hash. Shared request_id groups retries. FragGate ledger prev is not the retry parent.",
         tags: ["session"],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
-        responses: { "200": { description: "Receipt chain + verified" } },
+        responses: {
+          "200": {
+            description:
+              "Receipt chain + verified. Each SessionReceipt includes request_id, attempt_n, parent_receipt_id, correlation_id, and outcome.",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    receipts: {
+                      type: "array",
+                      items: { $ref: "#/components/schemas/SessionReceipt" },
+                    },
+                    verified: { type: "boolean" },
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     },
     "/v1/session/{id}/close": {
@@ -1208,7 +1381,7 @@ export function runtimeStaticPaths() {
       post: {
         operationId: "fraggate_call",
         summary:
-          "CallEnvelope in → FragGate → Lamb Lens → SweepGate → Sentinel → Provenance/Input Packet → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → optional ASE → RoseClock → TemporalLock → ChainLock-OUT → ForgeReceipts → Return. FragGate is THE single door. Lamb Lens is fabric after FragGate. Domain softwares execute only after AZPIPE. AZHub LIVE_OPS, AZInterface LIVE_OPS, AZBrowser LIVE_OPS (ethical_search, lamb_lens_search, navigate, airlock_ingest, tab_open, tab_list, receipt_list, verify, receipt_verify, health, skill, vpn) and AZNet LIVE_OPS (health, pair_status, garden_list, stamp, verify_hash, memorial_list, memorial_append, receipt_verify, skill) and AZVPN LIVE_OPS (describe, open, status, list, close) are reached only through this door — same ops as MCP fraggate_call and the Worker UI buttons. AZHub, AZInterface, AZNet, AZBrowser, and AZVPN are separate products. Public VPN auto-binds AZVPN. Optional request_id, attempt_n, parent_receipt_id, and correlation_id on the CallEnvelope are copied onto the ResultEnvelope and into the ForgeReceipts hash. parent_receipt_id is the prior attempt hash. ledger_tip.prev stays call order only.",
+          "CallEnvelope in → FragGate → Lamb Lens → SweepGate → Sentinel → Provenance/Input Packet → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → optional ASE → RoseClock → TemporalLock → ChainLock-OUT → ForgeReceipts → Return. FragGate is THE single door. Lamb Lens is fabric after FragGate. Domain softwares execute only after AZPIPE. AZHub LIVE_OPS, AZInterface LIVE_OPS, AZBrowser LIVE_OPS (ethical_search, lamb_lens_search, navigate, airlock_ingest, tab_open, tab_list, receipt_list, verify, receipt_verify, health, skill, vpn) and AZNet LIVE_OPS (health, pair_status, garden_list, stamp, verify_hash, memorial_list, memorial_append, receipt_verify, skill) and AZVPN LIVE_OPS (describe, open, status, list, close) are reached only through this door — same ops as MCP fraggate_call and the Worker UI buttons. AZHub, AZInterface, AZNet, AZBrowser, and AZVPN are separate products. Public VPN auto-binds AZVPN. Optional request_id, attempt_n, parent_receipt_id, correlation_id, and outcome on the CallEnvelope are copied onto the ResultEnvelope and into the ForgeReceipts hash. parent_receipt_id is the prior attempt hash. ledger_tip.prev stays call order only (prev_is_retry_parent false).",
         tags: ["fraggate"],
         requestBody: {
           required: true,
@@ -1226,6 +1399,11 @@ export function runtimeStaticPaths() {
                   },
                   payload: { type: "object" },
                   claim: { type: "object" },
+                  request_id: ATTEMPT_FIELD_PROPERTIES.request_id,
+                  attempt_n: ATTEMPT_FIELD_PROPERTIES.attempt_n,
+                  parent_receipt_id: ATTEMPT_FIELD_PROPERTIES.parent_receipt_id,
+                  correlation_id: ATTEMPT_FIELD_PROPERTIES.correlation_id,
+                  outcome: ATTEMPT_FIELD_PROPERTIES.outcome,
                 },
               },
               examples: {
@@ -1462,7 +1640,15 @@ export function runtimeStaticPaths() {
           },
         },
         responses: {
-          "200": { description: "ResultEnvelope" },
+          "200": {
+            description:
+              "ResultEnvelope. Includes request_id, attempt_n, parent_receipt_id, correlation_id, and outcome. ledger_tip.prev is call-order only (prev_is_retry_parent false).",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ResultEnvelope" },
+              },
+            },
+          },
           "400": { description: "Refuse (HALLUC / stub / local_only / gate)" },
         },
       },

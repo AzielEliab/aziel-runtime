@@ -596,7 +596,10 @@ export function registryEntry(product) {
     catalog_ops: ops,
     stub_ops: (STUB_OPS[slug] || []).slice(),
     op_aliases: { ...(OP_ALIASES[slug] || {}) },
-    description: product.oneLine || product.name,
+    description:
+      slug === "forgereceipts"
+        ? product.description || product.oneLine || product.name
+        : product.oneLine || product.name,
     domain: domain.domain,
     domain_id: domain.domain_id,
     placement: domain.placement,

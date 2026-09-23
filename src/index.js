@@ -126,6 +126,7 @@ import {
   fetchProductSkill,
   markdownResponse,
   runtimeStaticPaths,
+  attemptOpenApiSchemas,
 } from "./runtime-api.js";
 import { honestyFields } from "./engines/registry.js";
 import {
@@ -2882,6 +2883,7 @@ async function combinedOpenApi(request, env) {
             tokenAuthSentence(),
         },
       },
+      schemas: attemptOpenApiSchemas(),
     },
     paths,
   };
