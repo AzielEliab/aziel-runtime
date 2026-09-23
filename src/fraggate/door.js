@@ -26,6 +26,7 @@ import {
   workspaceRefuseEnvelope,
 } from "../workspace.js";
 import { arch, LOCKED_STRIP, pipeInbound, pipeOutbound, thinPipe } from "../azpipe.js";
+import { attachAttemptEnvelope, normalizeAttemptLink } from "../receipt-attempt.js";
 import { MEMORY_SLUG, runMemoryOp } from "../memory.js";
 import { MESH_SLUG, runMeshOp } from "../mesh.js";
 import { azGeneratorCallRefuse, isAzGeneratorHallucSlug } from "../redline.js";
@@ -370,6 +371,21 @@ export async function admitCall(args, registry, bySlug, opts = {}) {
 }
 
 export async function fraggateCall(args, registry, bySlug, env, request = null) {
+  const attempt = normalizeAttemptLink(args && typeof args === "object" ? args : {}, { generate: true });
+  if (!attempt.ok) {
+    return refuse({
+      code: FG_GATE_REFUSE,
+      name: args && (args.name || args.slug || args.product) ? String(args.name || args.slug || args.product) : null,
+      slug: args && (args.slug || args.name || args.product) ? String(args.slug || args.name || args.product) : null,
+      op: args && args.op ? String(args.op) : null,
+      message: attempt.error,
+    });
+  }
+  const envelope = await fraggateCallBody(args, registry, bySlug, env, request, attempt);
+  return attachAttemptEnvelope(envelope, attempt);
+}
+
+async function fraggateCallBody(args, registry, bySlug, env, request, attempt) {
   const asked = args && typeof args === "object" ? args.slug || args.name || args.product : "";
   if (isAzGeneratorHallucSlug(asked)) {
     return { ...azGeneratorCallRefuse({ slug: String(asked || "") }), door: FRAGGATE_DOOR };
@@ -442,7 +458,17 @@ export async function fraggateCall(args, registry, bySlug, env, request = null) 
               : `AZPIPE ${inbound.refuse || "refuse"} — no handler.`,
     });
   }
-  const payload = inbound.admitted !== undefined ? inbound.admitted : rawPayload;
+  let payload = inbound.admitted !== undefined ? inbound.admitted : rawPayload;
+  if (target.entry.slug === "forgereceipts" && payload && typeof payload === "object" && !Array.isArray(payload)) {
+    payload = {
+      ...payload,
+      request_id: attempt.request_id,
+      attempt_n: attempt.attempt_n,
+      parent_receipt_id: attempt.parent_receipt_id,
+      correlation_id: attempt.correlation_id,
+      outcome: attempt.outcome,
+    };
+  }
   const resolved = resolveOpAlias(target.entry.slug, target.op);
   if (target.entry.slug === MEMORY_SLUG) {
     const result = await runMemoryOp(resolved.op, payload, env, request);
@@ -464,7 +490,7 @@ export async function fraggateCall(args, registry, bySlug, env, request = null) 
       accepted.canonical_op = resolved.op;
       accepted.aliased = true;
     }
-    return decoratePipe(accepted, inbound, result, env, claim);
+    return decoratePipe(accepted, inbound, result, env, claim, attempt);
   }
   if (target.entry.slug === MESH_SLUG) {
     const result = await runMeshOp(resolved.op, payload, env);
@@ -486,7 +512,7 @@ export async function fraggateCall(args, registry, bySlug, env, request = null) 
       accepted.canonical_op = resolved.op;
       accepted.aliased = true;
     }
-    return decoratePipe(accepted, inbound, result, env, claim);
+    return decoratePipe(accepted, inbound, result, env, claim, attempt);
   }
   const local = await executeLocal({
     slug: target.entry.slug,
@@ -533,16 +559,17 @@ export async function fraggateCall(args, registry, bySlug, env, request = null) 
     accepted.canonical_op = resolved.op;
     accepted.aliased = true;
   }
-  return decoratePipe(accepted, inbound, parsed, env, claim);
+  return decoratePipe(accepted, inbound, parsed, env, claim, attempt);
 }
 
-async function decoratePipe(accepted, inbound, parsed, env, claim) {
+async function decoratePipe(accepted, inbound, parsed, env, claim, attempt) {
   const outbound = await pipeOutbound({
     result: parsed,
     env,
     claim,
     slug: accepted && accepted.slug,
     subject: accepted ? `${accepted.slug} ${accepted.op}` : "azpipe",
+    attempt,
   });
   accepted.pipe = thinPipe(outbound.ok ? outbound : inbound);
   accepted.pipeline_strip = LOCKED_STRIP;
@@ -556,7 +583,7 @@ async function decoratePipe(accepted, inbound, parsed, env, claim) {
     accepted.result = null;
     accepted.message = "SweepGate isolate on outbound. Do not merge.";
     accepted.sweep = outbound.sweep;
-    return accepted;
+    return attachAttemptEnvelope(accepted, attempt);
   }
   accepted.isolation = isolationView(env);
   if (inbound && inbound.inner && inbound.inner.entry) accepted.entry = inbound.inner.entry;
@@ -565,7 +592,7 @@ async function decoratePipe(accepted, inbound, parsed, env, claim) {
   if (outbound && outbound.inner && outbound.inner.staticclock) accepted.staticclock = outbound.inner.staticclock;
   if (outbound && outbound.inner && outbound.inner.roseclock) accepted.roseclock = outbound.inner.roseclock;
   if (outbound && outbound.inner && outbound.inner.forgereceipts) accepted.forgereceipts = outbound.inner.forgereceipts;
-  return accepted;
+  return attachAttemptEnvelope(accepted, attempt);
 }
 
 function payloadWithoutMeta(src) {
@@ -584,6 +611,11 @@ function payloadWithoutMeta(src) {
     "id",
     "confirm",
     "dry_run",
+    "request_id",
+    "attempt_n",
+    "parent_receipt_id",
+    "correlation_id",
+    "outcome",
     ...WORKSPACE_SKIP_KEYS,
   ]);
   const out = {};

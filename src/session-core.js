@@ -12,6 +12,7 @@
  */
 
 import { RECEIPT_CAP, SESSION_TTL_MS, isSessionExpired, receiptCapReached, sessionExpiresAt } from "./production.js";
+import { linkSessionAttempt } from "./receipt-attempt.js";
 
 export const ZERO_HASH = "0".repeat(64);
 export const SESSION_ID_RE = /^sess_[a-f0-9]{32}$/;
@@ -118,6 +119,22 @@ export async function signReceipt(partial, prevHash) {
 }
 
 export async function appendReceipt(session, event, payload, nowIso, extra = {}) {
+  const link = linkSessionAttempt(session, extra && extra.attempt_link ? extra.attempt_link : extra, {
+    defaultOutcome: extra && extra.outcome ? extra.outcome : "completed",
+  });
+  if (!link.ok) throw sessionError(link.status || 400, "bad_attempt_link", link.error);
+  const rest = extra && typeof extra === "object" ? { ...extra } : {};
+  for (const key of [
+    "request_id",
+    "attempt_n",
+    "parent_receipt_id",
+    "correlation_id",
+    "outcome",
+    "attempt_link",
+    "context",
+  ]) {
+    delete rest[key];
+  }
   const prev = lastReceipt(session);
   const receipt = await signReceipt(
     {
@@ -133,7 +150,13 @@ export async function appendReceipt(session, event, payload, nowIso, extra = {})
       owner_note:
         "This receipt is owned by the aziel-runtime session process, not by upstream JSON alone.",
       payload,
-      ...extra,
+      request_id: link.request_id,
+      attempt_n: link.attempt_n,
+      parent_receipt_id: link.parent_receipt_id,
+      correlation_id: link.correlation_id,
+      outcome: link.outcome,
+      ledger_prev_is_retry_parent: false,
+      ...rest,
     },
     prev ? prev.hash : ZERO_HASH,
   );
@@ -420,7 +443,7 @@ export async function recordIntent(session, { slug, op, payload, payloadText, kn
   return { intent, payload };
 }
 
-export async function commitExec(session, { intent, status, latencyMs, requestDigest, responseDigest, error, upstream, responseBytes, contentType, engine }, nowIso) {
+export async function commitExec(session, { intent, status, latencyMs, requestDigest, responseDigest, error, upstream, responseBytes, contentType, engine, request_id, attempt_n, parent_receipt_id, correlation_id, outcome }, nowIso) {
   requireOpen(session, nowIso);
   requireReceiptRoom(session);
   if (!session.pending_intent || session.pending_intent.intent_id !== intent.intent_id) {
@@ -447,7 +470,15 @@ export async function commitExec(session, { intent, status, latencyMs, requestDi
       engine_op: eng.engine_op || intent.op,
       ran_in: isLocal ? (eng.ran_in || "aziel-runtime") : null,
     },
-  }, nowIso);
+  }, nowIso, {
+    attempt_link: {
+      request_id,
+      attempt_n,
+      parent_receipt_id,
+      correlation_id,
+      outcome: outcome || (error || Number(status) >= 400 ? "failed" : "completed"),
+    },
+  });
   session.pending_intent = null;
   return receipt;
 }

@@ -59,6 +59,13 @@ carries the token. MESH-VAULT lite may mint catalog / download / mesh events.
 
   event              Metadata only: surface, path, method, status, tool, spec,
                      runtime version. No user / IP / geo.
+                     When the caller sends them, the same event object also
+                     carries request_id, attempt_n, parent_receipt_id, and
+                     correlation_id (plus outcome). Those keys sit inside
+                     event, so they sit inside the four-field hash. Omitting
+                     them leaves the older event hash unchanged. This does
+                     not add a Softwares slug. FragGate ledger prev stays
+                     call order only and is not parent_receipt_id.
 
 4. Fail-open
 If the token is missing, skip append. If corpus is dark or times out, skip append.

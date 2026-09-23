@@ -3,6 +3,7 @@
  * Local-style receipt JSON. Not legal advice. Does not contact courts.
  * Author: Aziel Eliab.
  */
+import { normalizeAttemptLink } from "../../receipt-attempt.js";
 
 export const PRODUCT = "forgereceipts";
 export const NAME = "ForgeReceipts";
@@ -14,7 +15,17 @@ export const BANNER = "Not legal advice. No court filing.";
 export const MOTTO = "Child's Best Interests First. Integrity Over Narrative. Local Control. Always.";
 export const GENESIS_PREV_HASH = "0".repeat(64);
 export const MAX_NOTE = 16384;
-export const AXES = Object.freeze(["kind", "child_impact", "evidence", "confidence", "hash"]);
+export const AXES = Object.freeze([
+  "kind",
+  "child_impact",
+  "evidence",
+  "confidence",
+  "hash",
+  "request_id",
+  "attempt_n",
+  "parent_receipt_id",
+  "correlation_id",
+]);
 export const NEIGHBORS = Object.freeze(["temporallock", "decisiongate"]);
 export const STUB_REFUSE = Object.freeze(["court", "legal_advice", "odyssey", "file_store"]);
 export const LIMITATION =
@@ -61,18 +72,52 @@ export function composeEvidence(body, kind, childImpact) {
   return lines.join("\n");
 }
 
-export function canonicalBytes(timestamp, summary, evidence, confidence, prevHash) {
+/**
+ * Legacy seals (no integer attempt_n) hash timestamp, summary, evidence,
+ * confidence, prev_hash only. New receipts also hash request_id, attempt_n,
+ * parent_receipt_id, correlation_id, and outcome. Changing any of those
+ * changes the hash. correlation_id is JSON null when the caller omitted it,
+ * so a later value cannot be written onto the same seal.
+ * parent_receipt_id is the prior attempt's receipt hash, or null on the first.
+ * FragGate ledger prev is not this field.
+ */
+export function canonicalBytes(timestamp, summary, evidence, confidence, prevHash, attempt = null) {
   const obj = {
-    confidence: "__TL_CONFIDENCE__",
     evidence,
     prev_hash: prevHash,
     summary,
     timestamp,
   };
-  const keys = Object.keys(obj).sort();
-  let raw = "{" + keys.map((k) => JSON.stringify(k) + ":" + JSON.stringify(obj[k])).join(",") + "}";
-  raw = raw.replace('"__TL_CONFIDENCE__"', formatConfidence(confidence));
+  if (attempt && attempt.linked) {
+    obj.attempt_n = attempt.attempt_n;
+    obj.correlation_id = attempt.correlation_id == null ? null : attempt.correlation_id;
+    obj.outcome = attempt.outcome == null ? null : attempt.outcome;
+    obj.parent_receipt_id = attempt.parent_receipt_id == null ? null : attempt.parent_receipt_id;
+    obj.request_id = attempt.request_id == null ? null : attempt.request_id;
+  }
+  const ordered = Object.keys(obj).concat(["confidence"]).sort();
+  const raw =
+    "{" +
+    ordered
+      .map((k) => {
+        if (k === "confidence") return JSON.stringify(k) + ":" + formatConfidence(confidence);
+        return JSON.stringify(k) + ":" + JSON.stringify(obj[k]);
+      })
+      .join(",") +
+    "}";
   return new TextEncoder().encode(raw);
+}
+
+export function storedAttempt(rec) {
+  if (!rec || typeof rec !== "object" || !Number.isInteger(rec.attempt_n)) return null;
+  return {
+    linked: true,
+    request_id: rec.request_id == null || rec.request_id === "" ? null : String(rec.request_id),
+    attempt_n: rec.attempt_n,
+    parent_receipt_id: rec.parent_receipt_id == null || rec.parent_receipt_id === "" ? null : String(rec.parent_receipt_id),
+    correlation_id: rec.correlation_id == null || rec.correlation_id === "" ? null : String(rec.correlation_id),
+    outcome: typeof rec.outcome === "string" && rec.outcome ? rec.outcome : null,
+  };
 }
 
 export async function receipt(body) {
@@ -88,10 +133,12 @@ export async function receipt(body) {
   if (!Number.isFinite(confidence) || confidence < 0 || confidence > 1) {
     return withBanner({ ok: false, error: "confidence must be a float in [0.0, 1.0]", status: 400 });
   }
+  const link = normalizeAttemptLink(body, { generate: true, defaultOutcome: "completed" });
+  if (!link.ok) return withBanner({ ok: false, error: link.error, status: link.status || 400 });
   const timestamp = utcNow();
   const prev = GENESIS_PREV_HASH;
   const evidence = composeEvidence(evidenceBody, kind, childImpact);
-  const bytes = canonicalBytes(timestamp, summary, evidence, confidence, prev);
+  const bytes = canonicalBytes(timestamp, summary, evidence, confidence, prev, link);
   const digest = await sha256Hex(bytes);
   return withBanner({
     ok: true,
@@ -103,16 +150,25 @@ export async function receipt(body) {
       confidence,
       prev_hash: prev,
       hash: digest,
+      receipt_id: digest,
       kind,
       child_impact: childImpact,
       note,
       context: ctx,
+      request_id: link.request_id,
+      attempt_n: link.attempt_n,
+      parent_receipt_id: link.parent_receipt_id,
+      correlation_id: link.correlation_id,
+      outcome: link.outcome,
+      hash_covers_attempt: true,
+      ledger_prev_is_retry_parent: false,
     },
     genesis: true,
     durable: false,
     stored: false,
     true_engine_runtime: true,
-    note_to_caller: "Local-style receipt JSON. Corrections are new receipts. Not legal advice. No court filing. Does not call Odyssey.",
+    note_to_caller:
+      "Local-style receipt JSON. request_id, attempt_n, parent_receipt_id, correlation_id, and outcome are inside the hash. parent_receipt_id is the prior attempt hash, or null on the first. FragGate ledger prev is call order only. Corrections are new receipts. Not legal advice. No court filing. Does not call Odyssey.",
   });
 }
 
@@ -141,7 +197,8 @@ export async function verifyReceipt(body) {
   if (!Number.isFinite(confidence) || confidence < 0 || confidence > 1) {
     return withBanner({ ok: false, product: PRODUCT, match: false, error: "confidence must be a float in [0.0, 1.0]", status: 400 });
   }
-  const bytes = canonicalBytes(timestamp, summary, evidence, confidence, prev);
+  const attempt = storedAttempt(rec);
+  const bytes = canonicalBytes(timestamp, summary, evidence, confidence, prev, attempt);
   const recomputed = await sha256Hex(bytes);
   const match = recomputed === stored;
   return withBanner({

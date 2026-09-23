@@ -22,6 +22,7 @@ import { check as decisiongateCheck } from "./engines/decisiongate/engine.js";
 import { genesis as temporalGenesis } from "./engines/temporallock/engine.js";
 import { appendClick as staticClick } from "./engines/staticclock/engine.js";
 import { receipt as forgeReceipt } from "./engines/forgereceipts/engine.js";
+import { attemptLinkView } from "./receipt-attempt.js";
 import { canonicalize, sha256Hex } from "./session-core.js";
 import { interact } from "./chainlock/ops.js";
 import { storeFor } from "./chainlock/store.js";
@@ -734,11 +735,21 @@ export async function pipeOutbound(input = {}) {
   }
 
   let forged = null;
+  const attempt = src.attempt && src.attempt.ok !== false ? src.attempt : null;
   try {
     forged = await forgeReceipt({
       note: clipFact(src.fact != null ? src.fact : admitted.frozen.fact) || `${src.slug || "azpipe"} return`,
       kind: "runtime-return",
       summary: `FragGate return ${src.slug || "azpipe"} ${src.op || ""}`.trim(),
+      ...(attempt
+        ? {
+            request_id: attempt.request_id,
+            attempt_n: attempt.attempt_n,
+            parent_receipt_id: attempt.parent_receipt_id,
+            correlation_id: attempt.correlation_id,
+            outcome: attempt.outcome,
+          }
+        : {}),
       context: {
         kind: "runtime-return",
         rose_transition_hash: roseHash,
@@ -749,7 +760,22 @@ export async function pipeOutbound(input = {}) {
   } catch {
     forged = { ok: false, refuse: "forge-skip" };
   }
-  env.forgereceipts = forged && forged.ok ? { hash: forged.receipt && forged.receipt.hash, ok: true } : { ok: false };
+  const forgedReceipt = forged && forged.ok && forged.receipt ? forged.receipt : null;
+  const forgedLink = forgedReceipt ? attemptLinkView(forgedReceipt) : null;
+  env.forgereceipts = forgedReceipt
+    ? {
+        hash: forgedReceipt.hash,
+        ok: true,
+        request_id: forgedReceipt.request_id,
+        attempt_n: forgedReceipt.attempt_n,
+        parent_receipt_id: forgedReceipt.parent_receipt_id,
+        correlation_id: forgedReceipt.correlation_id,
+        outcome: forgedReceipt.outcome,
+        hash_covers_attempt: true,
+        ledger_prev_is_retry_parent: false,
+        ...(forgedLink ? { attempt: forgedLink } : {}),
+      }
+    : { ok: false };
 
   env.domain_doors = domainDoorsCite();
   env.domain_layer = domainLayerCite(src.slug);

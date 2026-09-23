@@ -923,6 +923,32 @@ export function runtimeStaticPaths() {
                   slug: { type: "string" },
                   op: { type: "string" },
                   payload: { type: "object" },
+                  request_id: {
+                    type: "string",
+                    description:
+                      "Logical original request. Same value across retries. Omitted mints a new id for this exec.",
+                  },
+                  attempt_n: {
+                    type: "integer",
+                    minimum: 1,
+                    description: "1-based attempt number. Omitted links from the prior session receipt with the same request_id.",
+                  },
+                  parent_receipt_id: {
+                    type: "string",
+                    nullable: true,
+                    description:
+                      "Prior attempt receipt hash. Null on the first attempt. Not FragGate ledger prev (call order only).",
+                  },
+                  correlation_id: {
+                    type: "string",
+                    nullable: true,
+                    description: "Optional client correlation id. Sealed on the session receipt (null when omitted).",
+                  },
+                  outcome: {
+                    type: "string",
+                    enum: ["retry", "failed", "completed"],
+                    description: "Sealed attempt status. completed is the attempt that finished the action.",
+                  },
                 },
               },
             },
@@ -938,7 +964,8 @@ export function runtimeStaticPaths() {
     "/v1/session/{id}/receipt": {
       get: {
         operationId: "runtime_session_receipt",
-        summary: "Last runtime-owned receipt. Hash chain is verifiable locally.",
+        summary:
+          "Last runtime-owned receipt. Hash covers request_id, attempt_n, parent_receipt_id, correlation_id, and outcome. parent_receipt_id is the prior attempt hash. FragGate ledger prev is call-order only.",
         tags: ["session"],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
         responses: { "200": { description: "Last receipt + verified" } },
@@ -947,7 +974,8 @@ export function runtimeStaticPaths() {
     "/v1/session/{id}/receipts": {
       get: {
         operationId: "runtime_session_receipts",
-        summary: "Full hash-chained receipt list for a session.",
+        summary:
+          "Full hash-chained receipt list for a session. Each new receipt carries request_id, attempt_n, parent_receipt_id, correlation_id, and outcome inside its hash. Shared request_id groups retries. FragGate ledger prev is not the retry parent.",
         tags: ["session"],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
         responses: { "200": { description: "Receipt chain + verified" } },
@@ -1180,7 +1208,7 @@ export function runtimeStaticPaths() {
       post: {
         operationId: "fraggate_call",
         summary:
-          "CallEnvelope in → FragGate → Lamb Lens → SweepGate → Sentinel → Provenance/Input Packet → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → optional ASE → RoseClock → TemporalLock → ChainLock-OUT → ForgeReceipts → Return. FragGate is THE single door. Lamb Lens is fabric after FragGate. Domain softwares execute only after AZPIPE. AZHub LIVE_OPS, AZInterface LIVE_OPS, AZBrowser LIVE_OPS (ethical_search, lamb_lens_search, navigate, airlock_ingest, tab_open, tab_list, receipt_list, verify, receipt_verify, health, skill, vpn) and AZNet LIVE_OPS (health, pair_status, garden_list, stamp, verify_hash, memorial_list, memorial_append, receipt_verify, skill) and AZVPN LIVE_OPS (describe, open, status, list, close) are reached only through this door — same ops as MCP fraggate_call and the Worker UI buttons. AZHub, AZInterface, AZNet, AZBrowser, and AZVPN are separate products. Public VPN auto-binds AZVPN.",
+          "CallEnvelope in → FragGate → Lamb Lens → SweepGate → Sentinel → Provenance/Input Packet → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → optional ASE → RoseClock → TemporalLock → ChainLock-OUT → ForgeReceipts → Return. FragGate is THE single door. Lamb Lens is fabric after FragGate. Domain softwares execute only after AZPIPE. AZHub LIVE_OPS, AZInterface LIVE_OPS, AZBrowser LIVE_OPS (ethical_search, lamb_lens_search, navigate, airlock_ingest, tab_open, tab_list, receipt_list, verify, receipt_verify, health, skill, vpn) and AZNet LIVE_OPS (health, pair_status, garden_list, stamp, verify_hash, memorial_list, memorial_append, receipt_verify, skill) and AZVPN LIVE_OPS (describe, open, status, list, close) are reached only through this door — same ops as MCP fraggate_call and the Worker UI buttons. AZHub, AZInterface, AZNet, AZBrowser, and AZVPN are separate products. Public VPN auto-binds AZVPN. Optional request_id, attempt_n, parent_receipt_id, and correlation_id on the CallEnvelope are copied onto the ResultEnvelope and into the ForgeReceipts hash. parent_receipt_id is the prior attempt hash. ledger_tip.prev stays call order only.",
         tags: ["fraggate"],
         requestBody: {
           required: true,

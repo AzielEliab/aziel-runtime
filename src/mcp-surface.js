@@ -267,6 +267,27 @@ export function runtimeHelperTools() {
             description:
               "Optional op payload object. Shape is engine-specific (see fraggate_describe). Malformed fields are refused by the engine, not by this door schema. If omitted, leftover top-level keys are used as the payload.",
           },
+          request_id: {
+            type: "string",
+            description:
+              "Optional logical request id. The same value groups retries of one action on the ResultEnvelope and, for ForgeReceipts, inside the receipt hash.",
+          },
+          attempt_n: {
+            type: "integer",
+            minimum: 1,
+            description: "Optional 1-based attempt number for this call. Omitted means attempt 1 of a new request_id.",
+          },
+          parent_receipt_id: {
+            type: "string",
+            nullable: true,
+            description:
+              "Optional prior attempt receipt hash. Null on the first attempt. This is not FragGate ledger prev, which stays call order only.",
+          },
+          correlation_id: {
+            type: "string",
+            nullable: true,
+            description: "Optional client correlation id. Sealed inside a ForgeReceipts hash when this call mints one.",
+          },
           claim: {
             type: "object",
             additionalProperties: true,

@@ -215,6 +215,11 @@ export class RuntimeSession {
         responseBytes: body.response_bytes,
         contentType: body.content_type,
         engine: body.engine || null,
+        request_id: body.request_id,
+        attempt_n: body.attempt_n,
+        parent_receipt_id: body.parent_receipt_id,
+        correlation_id: body.correlation_id,
+        outcome: body.outcome,
       },
       now,
     );

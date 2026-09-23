@@ -293,6 +293,12 @@ async function handleExec(request, env, id, { json, PRODUCTS, BY_SLUG, upstreamF
       error,
       upstream: engine && engine.mode === "local" ? null : upstream,
       engine,
+      request_id: body.request_id != null ? body.request_id : payload && payload.request_id,
+      attempt_n: body.attempt_n != null ? body.attempt_n : payload && payload.attempt_n,
+      parent_receipt_id:
+        body.parent_receipt_id !== undefined ? body.parent_receipt_id : payload && payload.parent_receipt_id,
+      correlation_id: body.correlation_id != null ? body.correlation_id : payload && payload.correlation_id,
+      outcome: body.outcome != null ? body.outcome : payload && payload.outcome,
     }),
   });
   const commitBody = await commitRes.json();
@@ -463,6 +469,34 @@ export function sessionMcpTools() {
             additionalProperties: true,
             description:
               "Optional op payload object. Engine-specific. Unlike fraggate_call, leftover top-level keys are not used as payload.",
+          },
+          request_id: {
+            type: "string",
+            description:
+              "Optional logical request id shared by retries of one action. Same value across attempts. Omitted mints a new id for this exec.",
+          },
+          attempt_n: {
+            type: "integer",
+            minimum: 1,
+            description:
+              "Optional 1-based attempt number. Omitted increments from the prior session receipt with the same request_id, or 1.",
+          },
+          parent_receipt_id: {
+            type: "string",
+            nullable: true,
+            description:
+              "Optional prior attempt receipt hash. Null on the first attempt. Omitted links to the prior session receipt with the same request_id. Not FragGate ledger prev.",
+          },
+          correlation_id: {
+            type: "string",
+            nullable: true,
+            description: "Optional client correlation id. Sealed on the session receipt. Null when omitted.",
+          },
+          outcome: {
+            type: "string",
+            enum: ["retry", "failed", "completed"],
+            description:
+              "Optional sealed status. completed marks the attempt that finished the action. retry and failed are earlier attempts. Defaults from HTTP status when omitted.",
           },
         },
         required: ["session_id", "slug", "op"],

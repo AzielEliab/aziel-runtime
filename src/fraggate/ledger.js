@@ -82,6 +82,8 @@ export function ledgerTipView(ledger = isolateLedger) {
     name: last ? last.name : null,
     op: last ? last.op : null,
     prev: last ? last.prev : ZERO_HASH,
+    prev_role: "call-order",
+    prev_is_retry_parent: false,
     hash: last ? last.hash : ZERO_HASH,
     window_cap: LEDGER_CAP,
     ephemeral_window: true,
