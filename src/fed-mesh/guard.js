@@ -56,20 +56,23 @@ export async function verifyNamePow(statementHash, sig, pow, minBits = NAME_POW_
 
 /**
  * Blocklist check for one .aziel label (no suffix).
- * Exact label or hyphen-part. Substring only when the token is 4 characters or longer.
+ * Substring tokens match inside the letters-and-digits fold, longest first.
+ * Exact tokens match the whole label or one hyphen-part only.
  */
 export function nameBlockHit(label) {
   const raw = String(label || "").toLowerCase();
   if (!raw) return null;
-  const parts = raw.split("-");
-  for (const row of NAME_BLOCKLIST) {
-    if (raw === row.token || parts.includes(row.token)) {
-      return { token: row.token, reason: row.reason, match: raw === row.token ? "label" : "part" };
+  const folded = raw.replace(/[^a-z0-9]/g, "");
+  const parts = raw.split("-").filter(Boolean);
+  const substrings = NAME_BLOCKLIST.filter((row) => row.scope !== "exact" && row.token.length >= 4).slice().sort((a, b) => b.token.length - a.token.length);
+  for (const row of substrings) {
+    if (folded.includes(row.token) || raw.includes(row.token)) {
+      return { token: row.token, reason: row.reason, match: "substring" };
     }
   }
   for (const row of NAME_BLOCKLIST) {
-    if (row.token.length >= 4 && raw.includes(row.token)) {
-      return { token: row.token, reason: row.reason, match: "substring" };
+    if (raw === row.token || folded === row.token || parts.includes(row.token)) {
+      return { token: row.token, reason: row.reason, match: "label" };
     }
   }
   return null;

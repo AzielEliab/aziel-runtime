@@ -198,6 +198,193 @@
       }
     }
   },
+  "name_csam": {
+    "code": "FED-MESH-NAME-BLOCK",
+    "reason": "CSAM",
+    "evidence_hash": "cbdf94dc14f3b89e2aff8814c7fc61ae89cf9f5968cc5036d03c3bfd92287bc9",
+    "content_stored": false,
+    "name_stored": false,
+    "blocklist": "FED-MESH-BLOCKLIST-1",
+    "record": {
+      "v": "FED-MESH-1.0",
+      "kind": "name",
+      "handle": "#CPV0CWYPXP4",
+      "public_key": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+      "name": "csam.aziel",
+      "owner": "#CPV0CWYPXP4",
+      "target": {
+        "type": "hash",
+        "value": "f56487a629550848508cbd6305d814f6008a1705ab4e215d926f6fda5e9c94dc"
+      },
+      "expires": null,
+      "seq": 2,
+      "prev": "11a622e89de2b80c48ffee9a6f9efe13e857e6643e539617c9dd481c0b36904d",
+      "prev_record": "0000000000000000000000000000000000000000000000000000000000000000",
+      "sig": "R5_BYB1FNm3tI5EJIe3y7PGm0SkKl7UCfhfZNDkuiWqqPw8irgrNkTEtpQRpKASoJfnoPmXpXbtyVAvKatFqAA",
+      "pow": {
+        "nonce": "80",
+        "bits": 8,
+        "digest": "00f3a11bb240190ba0e6fc410b106b4c8cdd991dfb7bd77298cc8bede66e7397"
+      }
+    }
+  },
+  "blocklist": [
+    {
+      "token": "childporn",
+      "reason": "CSAM",
+      "scope": "substring"
+    },
+    {
+      "token": "childsex",
+      "reason": "CSAM",
+      "scope": "substring"
+    },
+    {
+      "token": "jailbait",
+      "reason": "CSAM",
+      "scope": "substring"
+    },
+    {
+      "token": "pedophile",
+      "reason": "CSAM",
+      "scope": "substring"
+    },
+    {
+      "token": "paedophile",
+      "reason": "CSAM",
+      "scope": "substring"
+    },
+    {
+      "token": "underage",
+      "reason": "CSAM",
+      "scope": "substring"
+    },
+    {
+      "token": "preteen",
+      "reason": "CSAM",
+      "scope": "substring"
+    },
+    {
+      "token": "csam",
+      "reason": "CSAM",
+      "scope": "substring"
+    },
+    {
+      "token": "porn",
+      "reason": "NAME-BLOCK",
+      "scope": "substring"
+    },
+    {
+      "token": "porno",
+      "reason": "NAME-BLOCK",
+      "scope": "substring"
+    },
+    {
+      "token": "pornhub",
+      "reason": "NAME-BLOCK",
+      "scope": "substring"
+    },
+    {
+      "token": "hentai",
+      "reason": "NAME-BLOCK",
+      "scope": "substring"
+    },
+    {
+      "token": "onlyfans",
+      "reason": "NAME-BLOCK",
+      "scope": "substring"
+    },
+    {
+      "token": "nsfw",
+      "reason": "NAME-BLOCK",
+      "scope": "substring"
+    },
+    {
+      "token": "sexcam",
+      "reason": "NAME-BLOCK",
+      "scope": "substring"
+    },
+    {
+      "token": "camgirl",
+      "reason": "NAME-BLOCK",
+      "scope": "substring"
+    },
+    {
+      "token": "xvideos",
+      "reason": "NAME-BLOCK",
+      "scope": "substring"
+    },
+    {
+      "token": "xhamster",
+      "reason": "NAME-BLOCK",
+      "scope": "substring"
+    },
+    {
+      "token": "rule34",
+      "reason": "NAME-BLOCK",
+      "scope": "substring"
+    },
+    {
+      "token": "nude",
+      "reason": "NAME-BLOCK",
+      "scope": "substring"
+    },
+    {
+      "token": "nudes",
+      "reason": "NAME-BLOCK",
+      "scope": "substring"
+    },
+    {
+      "token": "sex",
+      "reason": "NAME-BLOCK",
+      "scope": "exact"
+    },
+    {
+      "token": "xxx",
+      "reason": "NAME-BLOCK",
+      "scope": "exact"
+    },
+    {
+      "token": "milf",
+      "reason": "NAME-BLOCK",
+      "scope": "exact"
+    },
+    {
+      "token": "anal",
+      "reason": "NAME-BLOCK",
+      "scope": "exact"
+    },
+    {
+      "token": "nazi",
+      "reason": "HATE",
+      "scope": "substring"
+    },
+    {
+      "token": "nazism",
+      "reason": "HATE",
+      "scope": "substring"
+    },
+    {
+      "token": "whitepower",
+      "reason": "HATE",
+      "scope": "substring"
+    },
+    {
+      "token": "whitesupremac",
+      "reason": "HATE",
+      "scope": "substring"
+    },
+    {
+      "token": "killall",
+      "reason": "HATE",
+      "scope": "substring"
+    },
+    {
+      "token": "kkk",
+      "reason": "HATE",
+      "scope": "exact"
+    }
+  ],
   "isolation": {
     "code": "FED-MESH-OK",
     "reason": "NUDITY",

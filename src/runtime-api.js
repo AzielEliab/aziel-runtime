@@ -1981,7 +1981,7 @@ export function runtimeStaticPaths() {
       },
       post: {
         operationId: "fed_mesh_isolation",
-        summary: "Self-signed isolation for this handle. Reason is NUDITY, CHILD, HATE, or CSAM. Evidence is a hash. A different handle cannot isolate this one.",
+        summary: "Self-signed isolation for this handle. Body fields: v, kind isolation, handle, public_key, subject (same handle), reason (NUDITY, CHILD, HATE, or CSAM), check, model (version or absent), evidence_hash (64 hex), seq, prev, sig. Response: ok, code FED-MESH-OK, op isolation, statement_hash, content_stored false. POST /v1/fedmesh/isolation is the same route. A different handle cannot isolate this one.",
         tags: ["mesh"],
         responses: { "200": { description: "Isolation anchored" }, "400": { description: "FED-MESH-BAD-INPUT" } },
       },

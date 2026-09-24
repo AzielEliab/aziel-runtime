@@ -32,8 +32,16 @@ export function deadlineExceeded(startedAt, now, budgetMs) {
   return t - start >= budget;
 }
 
+function meshRoute(pathname) {
+  const path = String(pathname || "").replace(/\/+$/, "").toLowerCase() || "/";
+  if (path === "/v1/fedmesh" || path.startsWith("/v1/fedmesh/")) {
+    return "/v1/mesh/relay" + path.slice("/v1/fedmesh".length);
+  }
+  return path;
+}
+
 export function requestLimitKind(pathname, method) {
-  const path = String(pathname || "").replace(/\/+$/, "") || "/";
+  const path = meshRoute(pathname);
   const m = String(method || "").toUpperCase();
   if (path === "/mcp") {
     return m === "POST" || m === "DELETE" ? "mcp" : null;

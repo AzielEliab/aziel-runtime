@@ -51,29 +51,44 @@ export const RESERVED_SLOTS = Object.freeze([
 ]);
 export const BLOCKLIST_VERSION = "FED-MESH-BLOCKLIST-1";
 /**
- * Name blocklist. Match is the whole label or a hyphen-part.
- * A token of 4 or more characters also matches inside the label.
- * Shorter tokens do not, so "sex" does not hit "essex" and "kkk" does not hit a longer word.
+ * Union of this relay's tokens and AZN-BLOCK-1.0 (aznet branch
+ * cursor/azn-name-ledger-1dc6; main has no blocklist file).
+ * scope "substring": the folded label contains the token (length >= 4).
+ * scope "exact": the whole label or one hyphen-part only, so "anal" does not hit "analysis" and "sex" does not hit "essex".
  * "child" alone is not listed. The list is not exhaustive.
  */
 export const NAME_BLOCKLIST = Object.freeze([
-  Object.freeze({ token: "childporn", reason: "CSAM" }),
-  Object.freeze({ token: "jailbait", reason: "CSAM" }),
-  Object.freeze({ token: "underage", reason: "CSAM" }),
-  Object.freeze({ token: "porn", reason: "NAME-BLOCK" }),
-  Object.freeze({ token: "porno", reason: "NAME-BLOCK" }),
-  Object.freeze({ token: "xxx", reason: "NAME-BLOCK" }),
-  Object.freeze({ token: "hentai", reason: "NAME-BLOCK" }),
-  Object.freeze({ token: "onlyfans", reason: "NAME-BLOCK" }),
-  Object.freeze({ token: "nsfw", reason: "NAME-BLOCK" }),
-  Object.freeze({ token: "camgirl", reason: "NAME-BLOCK" }),
-  Object.freeze({ token: "nude", reason: "NAME-BLOCK" }),
-  Object.freeze({ token: "nudes", reason: "NAME-BLOCK" }),
-  Object.freeze({ token: "sex", reason: "NAME-BLOCK" }),
-  Object.freeze({ token: "nazi", reason: "HATE" }),
-  Object.freeze({ token: "nazism", reason: "HATE" }),
-  Object.freeze({ token: "whitepower", reason: "HATE" }),
-  Object.freeze({ token: "kkk", reason: "HATE" }),
+  Object.freeze({ token: "childporn", reason: "CSAM", scope: "substring" }),
+  Object.freeze({ token: "childsex", reason: "CSAM", scope: "substring" }),
+  Object.freeze({ token: "jailbait", reason: "CSAM", scope: "substring" }),
+  Object.freeze({ token: "pedophile", reason: "CSAM", scope: "substring" }),
+  Object.freeze({ token: "paedophile", reason: "CSAM", scope: "substring" }),
+  Object.freeze({ token: "underage", reason: "CSAM", scope: "substring" }),
+  Object.freeze({ token: "preteen", reason: "CSAM", scope: "substring" }),
+  Object.freeze({ token: "csam", reason: "CSAM", scope: "substring" }),
+  Object.freeze({ token: "porn", reason: "NAME-BLOCK", scope: "substring" }),
+  Object.freeze({ token: "porno", reason: "NAME-BLOCK", scope: "substring" }),
+  Object.freeze({ token: "pornhub", reason: "NAME-BLOCK", scope: "substring" }),
+  Object.freeze({ token: "hentai", reason: "NAME-BLOCK", scope: "substring" }),
+  Object.freeze({ token: "onlyfans", reason: "NAME-BLOCK", scope: "substring" }),
+  Object.freeze({ token: "nsfw", reason: "NAME-BLOCK", scope: "substring" }),
+  Object.freeze({ token: "sexcam", reason: "NAME-BLOCK", scope: "substring" }),
+  Object.freeze({ token: "camgirl", reason: "NAME-BLOCK", scope: "substring" }),
+  Object.freeze({ token: "xvideos", reason: "NAME-BLOCK", scope: "substring" }),
+  Object.freeze({ token: "xhamster", reason: "NAME-BLOCK", scope: "substring" }),
+  Object.freeze({ token: "rule34", reason: "NAME-BLOCK", scope: "substring" }),
+  Object.freeze({ token: "nude", reason: "NAME-BLOCK", scope: "substring" }),
+  Object.freeze({ token: "nudes", reason: "NAME-BLOCK", scope: "substring" }),
+  Object.freeze({ token: "sex", reason: "NAME-BLOCK", scope: "exact" }),
+  Object.freeze({ token: "xxx", reason: "NAME-BLOCK", scope: "exact" }),
+  Object.freeze({ token: "milf", reason: "NAME-BLOCK", scope: "exact" }),
+  Object.freeze({ token: "anal", reason: "NAME-BLOCK", scope: "exact" }),
+  Object.freeze({ token: "nazi", reason: "HATE", scope: "substring" }),
+  Object.freeze({ token: "nazism", reason: "HATE", scope: "substring" }),
+  Object.freeze({ token: "whitepower", reason: "HATE", scope: "substring" }),
+  Object.freeze({ token: "whitesupremac", reason: "HATE", scope: "substring" }),
+  Object.freeze({ token: "killall", reason: "HATE", scope: "substring" }),
+  Object.freeze({ token: "kkk", reason: "HATE", scope: "exact" }),
 ]);
 /** Reasons a relay will store. MODEL-ABSENT is a node publish refusal, not an isolation reason. */
 export const ISOLATION_REASONS = Object.freeze(["NAME-BLOCK", "NUDITY", "CHILD", "CSAM", "HATE"]);

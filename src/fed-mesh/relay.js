@@ -2219,9 +2219,18 @@ export async function directoryEntry(state, handle) {
   });
 }
 
+/** Daemon paths under /v1/fedmesh/ are the same relay routes. Unknown tails stay refused. */
+export function canonicalRelayPath(pathname) {
+  let path = String(pathname || "").split("?")[0].replace(/\/+$/, "").toLowerCase() || "/";
+  if (path === "/v1/fedmesh" || path.startsWith("/v1/fedmesh/")) {
+    path = "/v1/mesh/relay" + path.slice("/v1/fedmesh".length);
+  }
+  return path;
+}
+
 export async function dispatchRelay(method, pathname, body, state = defaultState, opts = {}) {
   const m = String(method || "GET").toUpperCase();
-  const path = String(pathname || "").split("?")[0].replace(/\/+$/, "").toLowerCase() || "/";
+  const path = canonicalRelayPath(pathname);
   const now = opts.now || Date.now();
   if (path === "/v1/mesh/relay" && (m === "GET" || m === "HEAD")) return relayCite(state);
   if (path === "/v1/mesh/relay/bootstrap" && (m === "GET" || m === "HEAD")) return relayBootstrapRead(state);

@@ -2208,10 +2208,13 @@ export async function runMeshOp(op, payload, env) {
 
 async function dispatchMeshHttpCore(method, pathname, payload, env, origin, searchParams) {
   const m = String(method || "GET").toUpperCase();
-  const path = String(pathname || "")
+  let path = String(pathname || "")
     .split("?")[0]
     .replace(/\/+$/, "")
     .toLowerCase() || "/";
+  if (path === "/v1/fedmesh" || path.startsWith("/v1/fedmesh/")) {
+    path = "/v1/mesh/relay" + path.slice("/v1/fedmesh".length);
+  }
   if (path === "/v1/mesh/az-generator") {
     return dispatchAzGeneratorHttp(m, path, origin, payload, searchParams);
   }

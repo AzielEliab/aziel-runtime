@@ -37,6 +37,7 @@ import {
   relayQuarantine,
   relayRef,
   relayRefsRead,
+  dispatchRelay,
   relayRegister,
   relayRemoteTask,
   relayRollup,
@@ -51,6 +52,7 @@ import {
   AZ_STAR_ALLOWLIST,
   BLOCKLIST_VERSION,
   CAP7_AZ_ALLOWLIST,
+  NAME_BLOCKLIST,
   FED_TITLE,
   HANDLE_RE,
   MAX_OBJECT_BYTES,
@@ -66,6 +68,7 @@ import {
   ZERO_HASH,
 } from "../src/fed-mesh/spec.js";
 import { CAP7_REAL_ALIGNMENT, cap7FactoryMeshNames } from "../src/cap7-shuffle.js";
+import { dispatchMeshHttp } from "../src/mesh.js";
 import { requestLimitKind } from "../src/request-limits.js";
 
 const SEED_A = Uint8Array.from({ length: 32 }, (_, i) => i + 1);
@@ -257,6 +260,30 @@ async function buildVectors() {
   }));
   const blocked = await relayName(blockState, blockedName, nameNow);
   if (blocked.ok) throw new Error("blocked name was accepted");
+  const csamState = createRelayState();
+  const csamReg = await relayRegister(
+    csamState,
+    await signAct(id, "register", {
+      enc_public_key: id.enc_public_key,
+      product: "mesh",
+      presence: "live",
+      relays: [],
+      seq: 1,
+      prev: ZERO_HASH,
+    }),
+    nameNow,
+  );
+  const csamName = await stampPow(await signAct(id, "name", {
+    name: "csam.aziel",
+    owner: id.handle,
+    target: { type: "hash", value: object_hash },
+    expires: null,
+    seq: 2,
+    prev: csamReg.statement_hash,
+    prev_record: ZERO_HASH,
+  }));
+  const csamRefused = await relayName(csamState, csamName, nameNow);
+  if (csamRefused.ok || csamRefused.reason !== "CSAM") throw new Error(csamRefused.message || csamRefused.code);
   const isoId = await person(SEED_B, ENC_B);
   const isoState = createRelayState();
   const isoReg = await relayRegister(
@@ -362,6 +389,16 @@ async function buildVectors() {
       blocklist: blocked.blocklist,
       record: blockedName,
     },
+    name_csam: {
+      code: csamRefused.code,
+      reason: csamRefused.reason,
+      evidence_hash: csamRefused.evidence_hash,
+      content_stored: csamRefused.content_stored,
+      name_stored: csamRefused.name_stored,
+      blocklist: csamRefused.blocklist,
+      record: csamName,
+    },
+    blocklist: NAME_BLOCKLIST.map((row) => ({ token: row.token, reason: row.reason, scope: row.scope })),
     isolation: {
       code: isoOut.code,
       reason: isoOut.reason,
@@ -420,6 +457,12 @@ assert.equal(vectors.slots.user_slot_cap, 3);
 assert.equal(vectors.slots.reserved_slot_cap, 4);
 assert.equal(vectors.name_block.code, "FED-MESH-NAME-BLOCK");
 assert.equal(vectors.name_block.content_stored, false);
+assert.equal(vectors.name_csam.code, "FED-MESH-NAME-BLOCK");
+assert.equal(vectors.name_csam.reason, "CSAM");
+assert.equal(vectors.name_csam.content_stored, false);
+assert.equal(vectors.name_csam.name_stored, false);
+assert.equal(vectors.name_csam.record.name, "csam.aziel");
+assert.ok(vectors.blocklist.some((row) => row.token === "csam" && row.reason === "CSAM"));
 assert.equal(vectors.isolation.content_stored, false);
 assert.equal(vectors.appeal.applied, false);
 assert.equal(vectors.appeal.isolation_remains, true);
@@ -443,6 +486,9 @@ assert.equal(requestLimitKind("/v1/mesh/relay/island", "POST"), "mesh_mutate");
 assert.equal(requestLimitKind("/v1/mesh/relay/airgap", "POST"), "mesh_mutate");
 assert.equal(requestLimitKind("/v1/mesh/relay/restore", "POST"), "mesh_mutate");
 assert.equal(requestLimitKind("/v1/mesh/relay/isolation", "POST"), "mesh_mutate");
+assert.equal(requestLimitKind("/v1/fedmesh/isolation", "POST"), "mesh_mutate");
+assert.equal(requestLimitKind("/v1/fedmesh/isolation", "GET"), null);
+assert.equal(requestLimitKind("/v1/fedmesh", "GET"), null);
 assert.equal(requestLimitKind("/v1/mesh/relay/appeal", "POST"), "mesh_mutate");
 assert.equal(requestLimitKind("/v1/mesh/relay/slot", "GET"), null);
 assert.equal(requestLimitKind("/v1/mesh/relay/isolation", "GET"), null);
@@ -1303,6 +1349,9 @@ assert.notEqual(alice.handle, bob.handle);
   assert.equal(nameBlockHit("sex").reason, "NAME-BLOCK");
   assert.equal(nameBlockHit("porn").reason, "NAME-BLOCK");
   assert.equal(nameBlockHit("childporn").reason, "CSAM");
+  assert.equal(nameBlockHit("csam").reason, "CSAM");
+  assert.equal(nameBlockHit("child-sex").reason, "CSAM");
+  assert.equal(nameBlockHit("analysis"), null);
   assert.equal(nameBlockHit("kkk").reason, "HATE");
   const hash = await sha256HexBytes(utf8("local-first"));
   const clean = createRelayState();
@@ -1327,6 +1376,16 @@ assert.notEqual(alice.handle, bob.handle);
     prev_record: ZERO_HASH,
   })), now);
   assert.equal(childName.ok, true, childName.message);
+  const analysis = await relayName(clean, await stampPow(await signAct(alice, "name", {
+    name: "analysis.aziel",
+    owner: alice.handle,
+    target: { type: "hash", value: hash },
+    expires: null,
+    seq: 4,
+    prev: childName.statement_hash,
+    prev_record: ZERO_HASH,
+  })), now);
+  assert.equal(analysis.ok, true, analysis.message);
 
   const sexState = createRelayState();
   const sexReg = await register(sexState, alice, now);
@@ -1376,6 +1435,26 @@ assert.notEqual(alice.handle, bob.handle);
   assert.equal(csamRead.content_stored, false);
   assert.equal(JSON.stringify(csamRead).includes("childporn"), false);
   assert.equal(csamRead.evidence_hash, csamOut.evidence_hash);
+  const csamLabel = createRelayState();
+  const csamLabelReg = await register(csamLabel, cara, now);
+  const csamLabelOut = await relayName(csamLabel, await stampPow(await signAct(cara, "name", {
+    name: "csam.aziel",
+    owner: cara.handle,
+    target: { type: "hash", value: hash },
+    expires: null,
+    seq: 2,
+    prev: csamLabelReg.prev,
+    prev_record: ZERO_HASH,
+  })), now);
+  assert.equal(csamLabelOut.code, "FED-MESH-NAME-BLOCK");
+  assert.equal(csamLabelOut.reason, "CSAM");
+  assert.equal(csamLabelOut.content_stored, false);
+  assert.equal(csamLabelOut.name_stored, false);
+  assert.equal(JSON.stringify(csamLabelOut).includes("csam.aziel"), false);
+  const csamLabelRead = await relayIsolationRead(csamLabel, cara.handle);
+  assert.equal(csamLabelRead.reason, "CSAM");
+  assert.equal(csamLabelRead.name_stored, false);
+  assert.equal(JSON.stringify(csamLabelRead).includes("csam.aziel"), false);
 
   const isoState = createRelayState();
   const caraReg = await register(isoState, cara, now);
@@ -1539,6 +1618,37 @@ assert.notEqual(alice.handle, bob.handle);
   assert.equal((await relaySlotRead(slotState, alice.handle)).code, "FED-MESH-ISOLATED");
   assert.deepEqual(CAP7_AZ_ALLOWLIST, cap7FactoryMeshNames());
   assert.deepEqual(AZ_STAR_ALLOWLIST, Object.values(CAP7_REAL_ALIGNMENT).map((row) => row.display_name));
+
+  const aliasState = createRelayState();
+  const aliasReg = await register(aliasState, alice, now);
+  const viaDaemon = await dispatchRelay("POST", "/v1/fedmesh/isolation", await signAct(alice, "isolation", {
+    subject: alice.handle,
+    reason: "NUDITY",
+    check: "image-nudity",
+    model: "absent",
+    evidence_hash: hash,
+    seq: 2,
+    prev: aliasReg.prev,
+  }), aliasState, { now });
+  assert.equal(viaDaemon.ok, true, viaDaemon.message);
+  assert.equal(viaDaemon.op, "isolation");
+  assert.equal(viaDaemon.content_stored, false);
+  assert.equal(viaDaemon.reason, "NUDITY");
+  assert.equal(viaDaemon.local_data_deleted, false);
+  assert.equal(viaDaemon.radios_changed, false);
+  const viaRead = await dispatchRelay("GET", "/v1/fedmesh/isolation", {}, aliasState, { handle: alice.handle, now });
+  assert.equal(viaRead.ok, true, viaRead.message);
+  assert.equal(viaRead.content_stored, false);
+  assert.equal(viaRead.statement_hash, viaDaemon.statement_hash);
+  const unknownDaemon = await dispatchRelay("POST", "/v1/fedmesh/send", { v: "FED-MESH-1.0" }, aliasState, { now });
+  assert.equal(unknownDaemon.ok, false);
+  const meshGet = await dispatchMeshHttp("GET", "/v1/fedmesh", {}, {}, "https://example.test", new URLSearchParams());
+  assert.equal(meshGet.status, 200);
+  assert.equal(meshGet.body.get_never_enables, true);
+  assert.equal(meshGet.body.op, "relay-cite");
+  const meshGetAgain = await dispatchMeshHttp("GET", "/v1/fedmesh", {}, {}, "https://example.test", new URLSearchParams());
+  assert.deepEqual(meshGetAgain.body.bearers, meshGet.body.bearers);
+  assert.equal(meshGetAgain.body.enabled, meshGet.body.enabled);
 }
 
 console.log("verify-fed-mesh: ok");

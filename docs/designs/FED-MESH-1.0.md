@@ -6,7 +6,7 @@ This is the shared protocol for a multi-user mesh. The runtime Worker is one rel
 
 FragGate stays the single door. This paper does not add an MCP tool. Relay ops are FragGate ops on slug `mesh` (`relay-register`, `relay-ref`, `relay-sync`, and the rest) and HTTP under `/v1/mesh/relay/`.
 
-Test vectors live in [`fixtures/fed-mesh-vectors.json`](../../fixtures/fed-mesh-vectors.json). `scripts/verify-fed-mesh.mjs` recomputes them, including a name claim, a transfer, a refused fourth user name, a blocklist refusal, a self-signed isolation, an appeal, a reserved-slot restore, an equivocation pair, and an airgap manifest.
+Test vectors live in [`fixtures/fed-mesh-vectors.json`](../../fixtures/fed-mesh-vectors.json). `scripts/verify-fed-mesh.mjs` recomputes them, including a name claim, a transfer, a refused fourth user name, a blocklist refusal, a refused `csam` label, a self-signed isolation, an appeal, a reserved-slot restore, an equivocation pair, and an airgap manifest.
 
 ## 1. Inner core and outer mesh
 
@@ -313,8 +313,8 @@ HTTP:
 | POST | `/v1/mesh/relay/airgap` | Verify a signed sha256 manifest. Bytes are not stored |
 | POST | `/v1/mesh/relay/restore` | Reserved hub-mirror slot. Object must already be hash-verified here |
 | GET | `/v1/mesh/relay/slot?handle=` | The 4 reserved slots for one handle. Never enables |
-| POST | `/v1/mesh/relay/isolation` | Self-signed isolation. Reason and evidence hash. No bytes |
-| GET | `/v1/mesh/relay/isolation?handle=` | Stored isolation record. Never enables |
+| POST | `/v1/mesh/relay/isolation` | Self-signed isolation. Reason and evidence hash. No bytes. `POST /v1/fedmesh/isolation` is the same route |
+| GET | `/v1/mesh/relay/isolation?handle=` | Stored isolation record. Never enables. `GET /v1/fedmesh/isolation?handle=` is the same read |
 | POST | `/v1/mesh/relay/appeal` | Signed appeal. Requests a re-check. Does not clear isolation |
 | POST | `/v1/mesh/relay/sync` | Late sync |
 | POST | `/v1/mesh/relay/object` | Small public object cache |
@@ -528,29 +528,85 @@ Enforcement on this relay is isolation of the handle. Isolation cuts mesh relay,
 
 ### Name blocklist
 
-Version `FED-MESH-BLOCKLIST-1`. Checked on a friendly claim, before the handle sequence advances. A hit isolates the claiming handle from that handle's own signature. The relay does not mint a second signature.
+Version `FED-MESH-BLOCKLIST-1`. It is the union of this relay's tokens and AZN-BLOCK-1.0 from aznet branch `cursor/azn-name-ledger-1dc6`. That repo's `main` branch has no blocklist file. Checked on a friendly claim, before the handle sequence advances. A hit isolates the claiming handle from that handle's own signature. The relay does not mint a second signature.
 
 Match rules:
 
-- the whole label, or one hyphen-separated part, equals a token
-- a token of 4 or more characters also matches inside the label
-- a shorter token does not, so `sex` does not hit `essex` and `kkk` does not hit a longer word
+- a substring token matches inside the label after non-letters and non-digits are removed, longest token first
+- an exact token matches the whole label or one hyphen-part only
+- `sex` does not hit `essex`, `anal` does not hit `analysis`, and `kkk` does not hit a longer word
 - `child` alone is not a token
 - the list is not exhaustive
 
-| Token | Reason |
-| --- | --- |
-| `childporn`, `jailbait`, `underage` | `CSAM` |
-| `porn`, `porno`, `xxx`, `hentai`, `onlyfans`, `nsfw`, `camgirl`, `nude`, `nudes`, `sex` | `NAME-BLOCK` |
-| `nazi`, `nazism`, `whitepower`, `kkk` | `HATE` |
+| Token | Reason | Scope |
+| --- | --- | --- |
+| `childporn`, `childsex`, `jailbait`, `pedophile`, `paedophile`, `underage`, `preteen`, `csam` | `CSAM` | substring |
+| `porn`, `porno`, `pornhub`, `hentai`, `onlyfans`, `nsfw`, `sexcam`, `camgirl`, `xvideos`, `xhamster`, `rule34`, `nude`, `nudes` | `NAME-BLOCK` | substring |
+| `sex`, `xxx`, `milf`, `anal` | `NAME-BLOCK` | exact |
+| `nazi`, `nazism`, `whitepower`, `whitesupremac`, `killall` | `HATE` | substring |
+| `kkk` | `HATE` | exact |
 
 A hit returns `FED-MESH-NAME-BLOCK` and does not store the name as a resolvable record. `content_stored` is false. The evidence is the statement hash of the signed claim.
 
 Pinned `porn.aziel` claim, evidence hash `c73c95876863dff6aa06f98e849e1b565a7f8eede5a9dbfc7ee6afa6a50742c9`, code `FED-MESH-NAME-BLOCK`, reason `NAME-BLOCK`. Signature: `ro20II1C29PMvcoy-3HpcwOAOqJqGGfLHA-2z9HSGP42MB-QN_-3SWIqbsOQzpZ_KZ0g92msKOz1S1hC1oUpAw`.
 
+Pinned `csam` label: code `FED-MESH-NAME-BLOCK`, reason `CSAM`, `content_stored` false, `name_stored` false, evidence hash `cbdf94dc14f3b89e2aff8814c7fc61ae89cf9f5968cc5036d03c3bfd92287bc9`. The relay response omits the label. The signed record is in the fixture.
+
 A `CSAM` hit stores the statement hash only. The response and the stored record omit the name. Operators follow the law in their jurisdiction. In the United States that includes reporting to NCMEC. Bytes are not stored or forwarded as evidence.
 
 The next act from that handle, other than `appeal` and `island`, is `FED-MESH-ISOLATED`.
+
+### Isolation route
+
+qnm-node posts a self-signed isolation to this relay. The canonical path is `POST /v1/mesh/relay/isolation`. `POST /v1/fedmesh/isolation` is the same handler. Other `/v1/fedmesh/<tail>` paths alias `/v1/mesh/relay/<tail>` when that tail exists. An unknown tail is refused. GET on either prefix is a read and does not enable radios.
+
+Body (the signature covers every field except `sig`):
+
+```json
+{
+  "v": "FED-MESH-1.0",
+  "kind": "isolation",
+  "handle": "#4S11EZW09MD",
+  "public_key": "<raw Ed25519 key, base64url>",
+  "subject": "#4S11EZW09MD",
+  "reason": "NUDITY",
+  "check": "image-nudity",
+  "model": "absent",
+  "evidence_hash": "<64 lowercase hex>",
+  "seq": 2,
+  "prev": "<64 lowercase hex, the handle tip>",
+  "sig": "<Ed25519 signature, base64url>"
+}
+```
+
+`subject` must equal `handle`. `reason` is `NUDITY`, `CHILD`, `HATE`, or `CSAM`. `check` is 1 to 64 characters (`[a-z0-9][a-z0-9._-]*`). `model` is a version string or `absent`. `evidence_hash` is the hash only. A byte field such as `body_b64` is `FED-MESH-BAD-INPUT` and is not stored.
+
+Success response (`HTTP 200`):
+
+```json
+{
+  "ok": true,
+  "code": "FED-MESH-OK",
+  "op": "isolation",
+  "subject": "#4S11EZW09MD",
+  "reason": "NUDITY",
+  "check": "image-nudity",
+  "model": "absent",
+  "blocklist": null,
+  "evidence_hash": "<64 lowercase hex>",
+  "content_stored": false,
+  "name_stored": false,
+  "source": "self",
+  "signer": "#4S11EZW09MD",
+  "statement_hash": "<64 lowercase hex>",
+  "local_data_deleted": false,
+  "radios_changed": false,
+  "automatic_lift": false,
+  "chainlock": { "anchored": true }
+}
+```
+
+`GET /v1/mesh/relay/isolation?handle=` and `GET /v1/fedmesh/isolation?handle=` return that record plus `appeals` and `applied: false`. A missing record is `FED-MESH-NO-NAME` (HTTP 404). A later name, object, witness, or restore from that handle is `FED-MESH-ISOLATED`. `appeal` and `island` are still accepted.
 
 ### Isolation record
 
