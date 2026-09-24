@@ -39,6 +39,14 @@ export const OBJECT_CACHE_CAP = 64;
 export const OBJECT_CACHE_BYTES = 64 * 1024;
 export const MAX_SYNC_ACTS = 16;
 export const NAME_CAP = 7;
+/** Leading zero bits of SHA-256 over the signed friendly-name claim. A flood filter, not a Sybil solution. */
+export const NAME_POW_BITS = 8;
+/** A friendly claim stays pending until this age and WITNESS_K co-signs. */
+export const NAME_PENDING_MS = 72 * 60 * 60 * 1000;
+/** Distinct witness handles, other than the claimant. */
+export const WITNESS_K = 2;
+/** Per signing handle on relay routes. One handle does not spend another's window. */
+export const PEER_ROUTE_PER_MIN = 30;
 export const AZIEL_NAME_RE = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.aziel$/;
 export const SELF_LABEL_RE = /^[0-9a-hjkmnp-tv-z]{11}$/;
 /** Factory mesh names. Same set as cap7FactoryMeshNames(). Not FED-MESH records. */
@@ -65,12 +73,12 @@ export const ROLES = Object.freeze({
   admin: Object.freeze({
     name: "Admin",
     is: "node owner",
-    may: Object.freeze(["register", "heartbeat", "leave", "post", "pull", "deliver", "rollup", "peers", "bootstrap", "multisig-policy", "remote-task", "direct", "ref", "sync", "object", "name"]),
+    may: Object.freeze(["register", "heartbeat", "leave", "post", "pull", "deliver", "rollup", "peers", "bootstrap", "multisig-policy", "remote-task", "direct", "ref", "sync", "object", "name", "witness", "vouch", "advisory", "quarantine", "island"]),
   }),
   developer: Object.freeze({
     name: "Developer",
     is: "builder on this node",
-    may: Object.freeze(["post", "pull", "deliver", "rollup", "remote-task", "direct", "ref", "sync", "object", "name"]),
+    may: Object.freeze(["post", "pull", "deliver", "rollup", "remote-task", "direct", "ref", "sync", "object", "name", "witness", "vouch", "advisory", "quarantine", "island"]),
   }),
   guest: Object.freeze({
     name: "Guest",
@@ -96,7 +104,16 @@ export const FED_CITE = Object.freeze({
   content_model: "Content-addressed objects. A signed ref update names the handle, ref name, object hash, previous ref hash, sequence, and signature. This relay stores and serves that index and anchors it. It does not need the object bytes.",
   object_cache: "Optional cache of small public objects. Each object is at most 4096 bytes. The cache holds at most 64 objects and 64KiB. The hash is checked. A mismatch or an oversized body is refused.",
   object_fetch: "A peer asks { v, kind: object-fetch, hash } and answers { v, kind: object, hash, body_b64 } or FED-MESH-NO-OBJECT.",
-  name_records: "Signed .aziel name records. A self-certifying name is the handle body plus .aziel. A friendly name goes to the first valid anchored claim. A handle may hold 7 friendly names. Transfer and release are signed by the current owner. A fork is refused.",
+  name_records: "Signed .aziel name records. A self-certifying name is the handle body plus .aziel and is final immediately. A friendly name carries proof-of-work and stays pending until it has aged 72 hours and 2 other handles have witnessed it. The first valid final claim wins. A handle may hold 7 friendly names. Transfer and release are signed by the current owner. A fork is refused.",
+  mesh_security: "Friendly claims need proof-of-work, a 72 hour age, and 2 witness handles before they are final. Equivocation proofs flag one handle. This relay does not execute peer code, does not rank handles, and does not cut a peer off the whole mesh.",
+  name_pow_bits: NAME_POW_BITS,
+  name_pending_ms: NAME_PENDING_MS,
+  witness_k: WITNESS_K,
+  peer_route_per_min: PEER_ROUTE_PER_MIN,
+  zero_knowledge: false,
+  state_adversary_protection: false,
+  worker_executes_peer_code: false,
+  scanner: "absent",
   az_dns: AZ_DNS_RULE,
   worker_is_one_relay: true,
   protocol_requires_this_worker: false,

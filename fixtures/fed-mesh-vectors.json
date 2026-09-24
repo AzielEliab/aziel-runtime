@@ -63,7 +63,12 @@
     "seq": 2,
     "prev": "11a622e89de2b80c48ffee9a6f9efe13e857e6643e539617c9dd481c0b36904d",
     "prev_record": "0000000000000000000000000000000000000000000000000000000000000000",
-    "sig": "2PLK1U2papMuoD6Ux_SPuWwT_r_nxtKmcLmzAa3aCSLFMvGhp5T2-p2lNavR47MtnoxMmFPITL8yPS1LKu4gBA"
+    "sig": "2PLK1U2papMuoD6Ux_SPuWwT_r_nxtKmcLmzAa3aCSLFMvGhp5T2-p2lNavR47MtnoxMmFPITL8yPS1LKu4gBA",
+    "pow": {
+      "nonce": "7e",
+      "bits": 8,
+      "digest": "0091860bcaeed0c2dbc3520fb74656e8d40045d1c31954108fd7d30e7d9a1a20"
+    }
   },
   "name_claim_statement_hash": "6d38408d305afb2ae562d3c022c3421fc8819c81d61108d3a8b91e2b8dc7ca7c",
   "name_transfer": {
@@ -81,7 +86,12 @@
     "seq": 3,
     "prev": "6d38408d305afb2ae562d3c022c3421fc8819c81d61108d3a8b91e2b8dc7ca7c",
     "prev_record": "6d38408d305afb2ae562d3c022c3421fc8819c81d61108d3a8b91e2b8dc7ca7c",
-    "sig": "Tg6C3jVdCgRXl-yjkFv8WYiAYBLqrawPvy-0YMxvdDBNJOLe__YtJk6VwXPtrQyoImmHoEKQUmdeepdK5P6MAQ"
+    "sig": "Tg6C3jVdCgRXl-yjkFv8WYiAYBLqrawPvy-0YMxvdDBNJOLe__YtJk6VwXPtrQyoImmHoEKQUmdeepdK5P6MAQ",
+    "pow": {
+      "nonce": "10e",
+      "bits": 8,
+      "digest": "00a22679469e3b308bd1d284853c81411f0d24f1f301b9964b461f58880a9d9d"
+    }
   },
   "name_over_cap": {
     "cap": 7,
@@ -101,7 +111,62 @@
       "seq": 9,
       "prev": "a78075c00b23fbe1d7cf2449d7dc4ac3f099bb9fa568719f1e814f5e6566dc2d",
       "prev_record": "0000000000000000000000000000000000000000000000000000000000000000",
-      "sig": "_UUBNgX4qVjQOPWDmf-C-5xT0krP_lB_x8XJbGot5YybugtMnqzODj3ds7ZwxiLkTQbZkMajCYDlIkeqVB21Aw"
+      "sig": "_UUBNgX4qVjQOPWDmf-C-5xT0krP_lB_x8XJbGot5YybugtMnqzODj3ds7ZwxiLkTQbZkMajCYDlIkeqVB21Aw",
+      "pow": {
+        "nonce": "1b9",
+        "bits": 8,
+        "digest": "0045ea16dbf12daf4d61c91a3fa3b188de4e49165efb9569b216da3057312af8"
+      }
     }
-  }
+  },
+  "name_pow_bits": 8,
+  "name_pending_ms": 259200000,
+  "witness_k": 2,
+  "equivocation": {
+    "left": {
+      "v": "FED-MESH-1.0",
+      "kind": "ref",
+      "handle": "#CPV0CWYPXP4",
+      "public_key": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+      "ref": "heads/main",
+      "object_hash": "f56487a629550848508cbd6305d814f6008a1705ab4e215d926f6fda5e9c94dc",
+      "prev_ref": "0000000000000000000000000000000000000000000000000000000000000000",
+      "seq": 4,
+      "prev": "2222222222222222222222222222222222222222222222222222222222222222",
+      "sig": "OnkMvld5JofooG8askpJCNHioSqIbvLJmhsS8CcH1oT0z5YCB1DKwTpPVCDBfqX-qJeFM3wynii0vWTqwvhVAg"
+    },
+    "right": {
+      "v": "FED-MESH-1.0",
+      "kind": "ref",
+      "handle": "#CPV0CWYPXP4",
+      "public_key": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+      "ref": "heads/main",
+      "object_hash": "abababababababababababababababababababababababababababababababab",
+      "prev_ref": "0000000000000000000000000000000000000000000000000000000000000000",
+      "seq": 4,
+      "prev": "2222222222222222222222222222222222222222222222222222222222222222",
+      "sig": "hL_VghAjdp0jR2GizzNxXQwH8NCjRpk9hnNJIMeKWAnIDb8UJdt9wFEzrjpRMmmSSV07lt3vyQjQswdydfB-CQ"
+    },
+    "left_hash": "53cd930e757a6fe087bf8ee1b6cfe2415fae2fd5f6c5d87c26bae805a310bad6",
+    "right_hash": "c83e7f185266b196802c23ece6bc3a138c24016e86d52a4c26cc948460c64d93",
+    "code": "FED-MESH-OK",
+    "network_cutoff": false
+  },
+  "airgap_bundle": {
+    "v": "FED-MESH-1.0",
+    "kind": "airgap-bundle",
+    "handle": "#CPV0CWYPXP4",
+    "public_key": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+    "manifest": {
+      "files": [
+        {
+          "name": "objects/local-first",
+          "sha256": "f56487a629550848508cbd6305d814f6008a1705ab4e215d926f6fda5e9c94dc"
+        }
+      ]
+    },
+    "manifest_sha256": "8bb63ac4cfc5e9906781c09c7eb60e222c5cdd4fecd8d39c6c459b29fa9c2d1a",
+    "sig": "9bMxW9h4PihQzDE5AWWSN9k4UFsGnBIvqA7XYvCCeVKLIuHUXeidBBLJTWLvMd_0UEKynH-ALEFVIKLmVIOTDA"
+  },
+  "airgap_manifest_sha256": "8bb63ac4cfc5e9906781c09c7eb60e222c5cdd4fecd8d39c6c459b29fa9c2d1a"
 }

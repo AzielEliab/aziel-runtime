@@ -9,6 +9,7 @@ import { append as chainlockAppend } from "../chainlock/ops.js";
 import { storeFor } from "../chainlock/store.js";
 import { append as temporalAppend, genesis as temporalGenesis } from "../engines/temporallock/engine.js";
 import { b64urlToBytes, bytesToHex, canonicalHandle, handleBody, hashStatement, isHex64, publicKeyMatchesHandle, sha256Bytes } from "./codec.js";
+import { verifyAirgapBundle, verifyNamePow } from "./guard.js";
 import { verifyObject } from "./identity.js";
 import {
   BATCH_RING,
@@ -30,7 +31,10 @@ import {
   AZIEL_NAME_RE,
   MAX_SYNC_ACTS,
   MSG_PER_MIN,
+  PEER_ROUTE_PER_MIN,
   NAME_CAP,
+  NAME_PENDING_MS,
+  NAME_POW_BITS,
   OBJECT_CACHE_BYTES,
   OBJECT_CACHE_CAP,
   REF_NAME_RE,
@@ -41,6 +45,7 @@ import {
   RATE_WINDOW_MS,
   ROSTER_CAP,
   VERIFIED_HANDLES_NOTE,
+  WITNESS_K,
   ZERO_HASH,
 } from "./spec.js";
 
@@ -62,7 +67,13 @@ const ALLOWED = {
   ref: ["v", "kind", "handle", "public_key", "ref", "object_hash", "prev_ref", "seq", "prev", "sig"],
   sync: ["v", "kind", "handle", "public_key", "act_hashes", "acts", "sig"],
   object: ["v", "kind", "handle", "public_key", "hash", "body_b64", "sig"],
-  name: ["v", "kind", "handle", "public_key", "name", "owner", "target", "expires", "seq", "prev", "prev_record", "sig"],
+  name: ["v", "kind", "handle", "public_key", "name", "owner", "target", "expires", "seq", "prev", "prev_record", "pow", "sig"],
+  witness: ["v", "kind", "handle", "public_key", "subject_hash", "subject_kind", "seq", "prev", "sig"],
+  vouch: ["v", "kind", "handle", "public_key", "subject", "subject_public_key", "seq", "prev", "sig"],
+  advisory: ["v", "kind", "handle", "public_key", "subject", "note", "seq", "prev", "sig"],
+  quarantine: ["v", "kind", "handle", "public_key", "peer", "decision", "seq", "prev", "sig"],
+  island: ["v", "kind", "handle", "public_key", "mode", "seq", "prev", "sig"],
+  "airgap-bundle": ["v", "kind", "handle", "public_key", "manifest", "manifest_sha256", "sig"],
 };
 
 const defaultState = createRelayState(null);
@@ -270,6 +281,15 @@ function statementFor(kind, body) {
       body_b64: body.body_b64,
     };
   }
+  if (kind === "airgap-bundle") {
+    return {
+      v: FED_SPEC,
+      kind: "airgap-bundle",
+      handle: body.handle,
+      public_key: body.public_key,
+      manifest: body.manifest,
+    };
+  }
   if (kind === "name") {
     return {
       v: FED_SPEC,
@@ -353,12 +373,33 @@ export async function fedPublicCounts(env, now = Date.now()) {
   };
 }
 
+async function guardHandle(state, handle, kind) {
+  const flags = (await loadKey(state, "equivocation", {})) || {};
+  if (flags[handle]) {
+    return fail("FED-MESH-EQUIVOCATION", "This handle signed two different acts at one sequence. Later acts from this handle are refused on this relay.", {
+      seq: flags[handle].seq,
+      network_cutoff: false,
+    });
+  }
+  if (kind !== "island") {
+    const islands = (await loadKey(state, "islands", {})) || {};
+    const row = islands[handle];
+    if (row && row.mode === "off") {
+      return fail("FED-MESH-ISLAND", "This handle receipted island mode. The local runtime stays up. This relay accepts an island on receipt, then a sync.");
+    }
+  }
+  return null;
+}
+
 async function chainCheck(record, seq, prev, link) {
   const tipSeq = record && Number.isInteger(record.seq) ? record.seq : 0;
   const tipPrev = record && record.tip ? record.tip : ZERO_HASH;
   const seen = (record && record.seen_seq) || [];
-  if (seen.includes(seq)) {
-    return fail("FED-MESH-REPLAY", `Sequence ${seq} was already accepted for this handle.`);
+  if (seq <= tipSeq) {
+    if (seen.includes(seq)) {
+      return fail("FED-MESH-REPLAY", `Sequence ${seq} was already accepted for this handle.`);
+    }
+    return fail("FED-MESH-ROLLBACK", `Sequence ${seq} is older than anchored sequence ${tipSeq}.`);
   }
   if (seq !== tipSeq + 1) {
     return fail("FED-MESH-GAP", `Sequence ${seq} does not follow ${tipSeq}.`);
@@ -451,6 +492,8 @@ async function prepare(state, body, kind, now) {
     const good = await verifyObject(public_key, statement, body.sig);
     if (!good) return fail("FED-MESH-BAD-SIG", "Signature did not verify. The relay will not treat a changed message as valid.");
   }
+  const guarded = await guardHandle(state, handle, kind);
+  if (guarded) return guarded;
   if (kind !== "pull") {
     const rated = await noteRate(state, handle, now);
     if (rated) return rated;
@@ -517,6 +560,10 @@ export async function relayCite(state = defaultState) {
       object_cache_bytes: OBJECT_CACHE_BYTES,
       max_sync_acts: MAX_SYNC_ACTS,
       name_cap: NAME_CAP,
+      name_pow_bits: NAME_POW_BITS,
+      name_pending_ms: NAME_PENDING_MS,
+      witness_k: WITNESS_K,
+      peer_route_per_min: PEER_ROUTE_PER_MIN,
     },
     routing_metadata: ["handle", "to", "seq", "prev", "public_key", "eph_public_key", "nonce", "ciphertext", "relays"],
   });
@@ -1033,6 +1080,11 @@ export async function relayRef(state, body, now = Date.now()) {
   if (prev_ref !== expected) {
     return fail("FED-MESH-FORK", "prev_ref does not match the stored ref for this name.");
   }
+  const roster = await loadRoster(state);
+  const tipSeq = roster[ready.handle] && Number.isInteger(roster[ready.handle].seq) ? roster[ready.handle].seq : 0;
+  if (body.seq <= tipSeq) {
+    return fail("FED-MESH-ROLLBACK", `Ref sequence ${body.seq} does not extend anchored sequence ${tipSeq}.`);
+  }
   const committed = await commitChain(state, ready.handle, body.seq, body.prev, ready.link, now, { public_key: ready.public_key });
   if (!committed.ok) return committed;
   mine[ref] = {
@@ -1084,12 +1136,16 @@ export async function relayObject(state, body, now = Date.now()) {
     return fail("FED-MESH-TOO-LARGE", `A cached public object is at most ${MAX_OBJECT_BYTES} bytes.`);
   }
   const digest = bytesToHex(await sha256Bytes(bytes));
-  if (digest !== hash) return fail("FED-MESH-HASH-MISMATCH", "The object bytes do not hash to the declared hash.");
+  if (digest !== hash) {
+    return fail("FED-MESH-HASH-MISMATCH", "The object bytes do not hash to the declared hash.", { gate: "FG-GATE-REFUSE", stored: false });
+  }
   const cache = cacheShape(await loadKey(state, "objects", emptyCache()));
   const prior = cache.by_hash[hash];
   if (prior) {
-    if (prior.body_b64 !== body.body_b64) return fail("FED-MESH-HASH-MISMATCH", "This hash is already cached with different bytes.");
-    return ok({ op: "object", hash, bytes: prior.bytes, cached: true, chain_act: false });
+    if (prior.body_b64 !== body.body_b64) {
+      return fail("FED-MESH-HASH-MISMATCH", "This hash is already cached with different bytes.", { gate: "FG-GATE-REFUSE", stored: false });
+    }
+    return ok({ op: "object", hash, bytes: prior.bytes, cached: true, chain_act: false, verified: true, executable: false, scanner: "absent" });
   }
   while (cache.order.length >= OBJECT_CACHE_CAP || cache.total + bytes.length > OBJECT_CACHE_BYTES) {
     const old = cache.order.shift();
@@ -1100,11 +1156,22 @@ export async function relayObject(state, body, now = Date.now()) {
   if (cache.order.length >= OBJECT_CACHE_CAP || cache.total + bytes.length > OBJECT_CACHE_BYTES) {
     return fail("FED-MESH-QUOTA", "The public object cache is full.");
   }
-  cache.by_hash[hash] = { body_b64: body.body_b64, bytes: bytes.length, signer: ready.handle };
+  cache.by_hash[hash] = { body_b64: body.body_b64, bytes: bytes.length, signer: ready.handle, verified: true };
   cache.order.push(hash);
   cache.total += bytes.length;
   await saveKey(state, "objects", cache);
-  return ok({ op: "object", hash, bytes: bytes.length, cached: true, chain_act: false, signer: ready.handle });
+  return ok({
+    op: "object",
+    hash,
+    bytes: bytes.length,
+    cached: true,
+    chain_act: false,
+    signer: ready.handle,
+    verified: true,
+    executable: false,
+    scanner: "absent",
+    promotion: "cache-only",
+  });
 }
 
 export async function relayObjectGet(state, hash) {
@@ -1112,8 +1179,8 @@ export async function relayObjectGet(state, hash) {
   if (!isHex64(id)) return fail("FED-MESH-BAD-INPUT", "Object fetch needs a 64-hex hash.");
   const cache = cacheShape(await loadKey(state, "objects", emptyCache()));
   const row = cache.by_hash[id];
-  if (!row) return fail("FED-MESH-NO-OBJECT", "This relay has no public object for that hash.", { http_status: 404 });
-  return ok({ op: "object-fetch", ...objectFetchResponse(id, row.body_b64), found: true });
+  if (!row || row.verified === false) return fail("FED-MESH-NO-OBJECT", "This relay has no public object for that hash.", { http_status: 404 });
+  return ok({ op: "object-fetch", ...objectFetchResponse(id, row.body_b64), found: true, verified: true, executable: false });
 }
 
 export async function relaySync(state, body, now = Date.now()) {
@@ -1175,19 +1242,52 @@ function parseAzielName(raw) {
   return { ok: true, name, label, self, owner_handle };
 }
 
-function nameLive(row, now) {
+function holdsSlot(row, now) {
   if (!row || row.released || !row.owner || row.target == null) return false;
   if (row.expires != null && Number(row.expires) <= now) return false;
   return true;
 }
 
-function friendlyHeld(names, handle, now) {
-  let n = 0;
-  for (const row of Object.values(names || {})) {
-    if (!row || row.self_certifying) continue;
-    if (row.owner === handle && nameLive(row, now)) n += 1;
+function emptyNameBucket() {
+  return { pending: [], final: null };
+}
+
+function asBucket(raw) {
+  if (!raw) return emptyNameBucket();
+  if (Array.isArray(raw.pending) || raw.final) return { pending: raw.pending || [], final: raw.final || null };
+  if (raw.statement_hash) return { pending: [], final: { ...raw, status: raw.status || "final" } };
+  return emptyNameBucket();
+}
+
+function witnessCount(map, hash, signer) {
+  const rows = (map && map[hash]) || [];
+  const seen = new Set();
+  for (const row of rows) {
+    if (row && row.handle && row.handle !== signer) seen.add(row.handle);
   }
-  return n;
+  return seen.size;
+}
+
+function eligibleFinal(bucket, witnesses, now) {
+  if (bucket.final && holdsSlot(bucket.final, now) && bucket.final.status === "final") return bucket.final;
+  const ready = (bucket.pending || [])
+    .filter((row) => holdsSlot(row, now) && (row.self_certifying || (now - row.accepted_at >= NAME_PENDING_MS && witnessCount(witnesses, row.statement_hash, row.signer) >= WITNESS_K)))
+    .sort((a, b) => a.accepted_at - b.accepted_at || String(a.statement_hash).localeCompare(String(b.statement_hash)));
+  return ready[0] ? { ...ready[0], status: "final" } : null;
+}
+
+function friendlyHeld(names, handle, now) {
+  const held = new Set();
+  for (const raw of Object.values(names || {})) {
+    const bucket = asBucket(raw);
+    const rows = [...(bucket.pending || [])];
+    if (bucket.final) rows.push(bucket.final);
+    for (const row of rows) {
+      if (!row || row.self_certifying || row.owner !== handle || !holdsSlot(row, now)) continue;
+      held.add(row.name);
+    }
+  }
+  return held.size;
 }
 
 function targetError(target) {
@@ -1202,7 +1302,10 @@ function targetError(target) {
   return fail("FED-MESH-BAD-INPUT", "target type is hash (64 hex), ref (a ref name), or handle (a #handle).");
 }
 
-function nameRow(row, now) {
+function nameRow(row, now, witnesses = {}) {
+  const status = row.status === "final" ? "final" : row.released ? "released" : "pending";
+  const witnesses_n = witnessCount(witnesses, row.statement_hash, row.signer);
+  const final = status === "final" && holdsSlot(row, now);
   return {
     name: row.name,
     owner: row.owner || "",
@@ -1213,7 +1316,13 @@ function nameRow(row, now) {
     expires: row.expires == null ? null : row.expires,
     self_certifying: row.self_certifying === true,
     released: row.released === true,
-    live: nameLive(row, now),
+    status: row.released ? "released" : final ? "final" : "pending",
+    final,
+    live: final,
+    accepted_at: row.accepted_at || null,
+    witnesses: witnesses_n,
+    witness_k: WITNESS_K,
+    signer: row.signer || "",
   };
 }
 
@@ -1239,43 +1348,81 @@ export async function relayName(state, body, now = Date.now()) {
   const prev_record = String(body.prev_record || "");
   if (!isHex64(prev_record)) return fail("FED-MESH-BAD-INPUT", "prev_record is 64 lowercase hex characters.");
   const names = (await loadKey(state, "names", {})) || {};
-  const current = names[parsed.name] || null;
-  const expected = current && current.statement_hash ? current.statement_hash : ZERO_HASH;
-  if (prev_record !== expected) {
-    return fail("FED-MESH-FORK", "prev_record does not match the anchored name record.");
+  const witnesses = (await loadKey(state, "witnesses", {})) || {};
+  const bucket = asBucket(names[parsed.name]);
+  const chosen = eligibleFinal(bucket, witnesses, now);
+  if (chosen && (!bucket.final || bucket.final.statement_hash !== chosen.statement_hash)) {
+    bucket.final = { ...chosen, status: "final" };
+    bucket.pending = (bucket.pending || []).filter((row) => row.statement_hash !== chosen.statement_hash);
   }
+  const finalRow = bucket.final || null;
   const releasing = owner === "" && body.target === null;
-  const live = nameLive(current, now);
   if (parsed.self) {
     if (ready.handle !== parsed.owner_handle || owner !== parsed.owner_handle || releasing) {
       return fail("FED-MESH-HANDLE-MISMATCH", "A self-certifying <handle>.aziel name belongs to that handle. It is not transferred or released.");
     }
   }
-  if (live) {
-    if (ready.handle !== current.owner) {
-      return fail("FED-MESH-NAME-TAKEN", "This friendly name already has an anchored owner. The first valid claim wins.");
+  let mode = "claim";
+  if (finalRow && holdsSlot(finalRow, now)) {
+    if (ready.handle !== finalRow.owner) {
+      return fail("FED-MESH-NAME-TAKEN", "This friendly name already has a final owner. The first valid final claim wins.");
     }
-    if (!releasing && !owner) return fail("FED-MESH-BAD-INPUT", "owner is the #handle that holds the name after this act.");
-    if (!releasing && owner !== ready.handle && parsed.self) {
-      return fail("FED-MESH-HANDLE-MISMATCH", "A self-certifying name stays with its handle.");
+    if (prev_record !== finalRow.statement_hash) {
+      return fail("FED-MESH-FORK", "prev_record does not match the final name record.");
     }
-  } else if (releasing || ready.handle !== owner) {
-    return fail("FED-MESH-BAD-INPUT", "A new claim is signed by the owner it names.");
+    mode = "update-final";
+  } else if (finalRow && finalRow.released) {
+    if (prev_record !== finalRow.statement_hash) {
+      return fail("FED-MESH-FORK", "prev_record does not match the released name record.");
+    }
+    if (releasing || ready.handle !== owner) {
+      return fail("FED-MESH-BAD-INPUT", "A new claim is signed by the owner it names.");
+    }
+    mode = "claim";
+  } else {
+    const own = (bucket.pending || []).find((row) => row.statement_hash === prev_record && row.signer === ready.handle);
+    const mine = (bucket.pending || []).find((row) => row.signer === ready.handle && holdsSlot(row, now));
+    if (prev_record === ZERO_HASH) {
+      if (mine) return fail("FED-MESH-FORK", "prev_record does not match this handle's pending name record.");
+      if (releasing || ready.handle !== owner) {
+        return fail("FED-MESH-BAD-INPUT", "A new claim is signed by the owner it names.");
+      }
+      mode = "claim";
+    } else if (own) {
+      mode = "update-pending";
+    } else {
+      return fail("FED-MESH-FORK", "prev_record does not match a pending claim this handle signed.");
+    }
   }
   if (!releasing) {
     const badTarget = targetError(body.target);
     if (badTarget) return badTarget;
   }
-  const gaining = !parsed.self && !releasing && !(current && current.owner === owner && nameLive(current, now));
+  if (!parsed.self) {
+    const pow = await verifyNamePow(ready.link, body.sig, body.pow, NAME_POW_BITS);
+    if (!pow.ok) {
+      return fail("FED-MESH-POW", `A friendly .aziel name needs proof-of-work of ${NAME_POW_BITS} leading zero bits over the signed claim.`, {
+        pow_bits: NAME_POW_BITS,
+      });
+    }
+  }
+  const ownerAlready = [...(bucket.pending || []), finalRow].some((row) => row && row.owner === owner && holdsSlot(row, now) && !row.self_certifying);
+  const gaining = !parsed.self && !releasing && !ownerAlready;
   if (gaining && friendlyHeld(names, owner, now) >= NAME_CAP) {
     return fail("FED-MESH-NAME-CAP", `A handle may hold ${NAME_CAP} friendly .aziel names. The self-certifying name does not count.`, {
       http_status: 429,
       cap: NAME_CAP,
     });
   }
+  const roster = await loadRoster(state);
+  const tipSeq = roster[ready.handle] && Number.isInteger(roster[ready.handle].seq) ? roster[ready.handle].seq : 0;
+  if (body.seq <= tipSeq) {
+    return fail("FED-MESH-ROLLBACK", `Name sequence ${body.seq} does not extend anchored sequence ${tipSeq}.`);
+  }
   const committed = await commitChain(state, ready.handle, body.seq, body.prev, ready.link, now, { public_key: ready.public_key });
   if (!committed.ok) return committed;
-  names[parsed.name] = {
+  const status = parsed.self || mode === "update-final" ? (releasing ? "released" : "final") : releasing ? "released" : "pending";
+  const row = {
     name: parsed.name,
     owner: releasing ? "" : owner,
     target: releasing ? null : { type: body.target.type, value: body.target.type === "handle" ? canonicalHandle(body.target.value) : String(body.target.value) },
@@ -1285,7 +1432,21 @@ export async function relayName(state, body, now = Date.now()) {
     seq: body.seq,
     self_certifying: parsed.self,
     released: releasing,
+    signer: ready.handle,
+    accepted_at: now,
+    status,
   };
+  if (status === "final" || (status === "released" && mode === "update-final")) {
+    bucket.final = row;
+    bucket.pending = (bucket.pending || []).filter((item) => item.statement_hash !== prev_record);
+  } else if (mode === "update-pending") {
+    bucket.pending = (bucket.pending || []).filter((item) => item.statement_hash !== prev_record);
+    bucket.pending.push(row);
+  } else {
+    bucket.pending = bucket.pending || [];
+    bucket.pending.push(row);
+  }
+  names[parsed.name] = bucket;
   await saveKey(state, "names", names);
   const anchored = await anchor(state, {
     handle: ready.handle,
@@ -1296,27 +1457,52 @@ export async function relayName(state, body, now = Date.now()) {
   });
   return ok({
     op: "name",
-    ...nameRow(names[parsed.name], now),
+    ...nameRow(row, now, witnesses),
     signer: ready.handle,
     chainlock: anchored.chainlock,
     timeslate_hash: anchored.timeslate && anchored.timeslate.timeslate_hash,
     click_index: anchored.click_index,
     friendly_cap: NAME_CAP,
+    pow_bits: parsed.self ? 0 : NAME_POW_BITS,
   });
+}
+
+function shownRow(bucket, witnesses, now) {
+  const chosen = eligibleFinal(bucket, witnesses, now);
+  if (chosen) return { ...chosen, status: "final" };
+  if (bucket.final && bucket.final.released) return bucket.final;
+  const pending = [...(bucket.pending || [])].sort((a, b) => (a.accepted_at || 0) - (b.accepted_at || 0));
+  return pending[0] || null;
 }
 
 export async function relayNameRead(state, query = {}, now = Date.now()) {
   const names = (await loadKey(state, "names", {})) || {};
+  const witnesses = (await loadKey(state, "witnesses", {})) || {};
   if (query.name) {
     const parsed = parseAzielName(query.name);
     if (!parsed.ok) return parsed;
-    const row = names[parsed.name];
+    const bucket = asBucket(names[parsed.name]);
+    const row = shownRow(bucket, witnesses, now);
     if (!row) return fail("FED-MESH-NO-NAME", "This relay has no name record.", { http_status: 404 });
-    return ok({ op: "name", record: nameRow(row, now), friendly_cap: NAME_CAP, az_dns: AZ_DNS_RULE });
+    return ok({
+      op: "name",
+      record: nameRow(row, now, witnesses),
+      competing: (bucket.pending || []).length,
+      friendly_cap: NAME_CAP,
+      az_dns: AZ_DNS_RULE,
+    });
   }
   const id = canonicalHandle(query.handle);
   if (!id) return fail("FED-MESH-BAD-HANDLE", "Pass name= or a #handle.");
-  const owned = Object.values(names).filter((row) => row && row.owner === id).map((row) => nameRow(row, now));
+  const owned = [];
+  for (const raw of Object.values(names)) {
+    const bucket = asBucket(raw);
+    const rows = [...(bucket.pending || [])];
+    if (bucket.final) rows.push(bucket.final);
+    for (const row of rows) {
+      if (row && row.owner === id) owned.push(nameRow(row, now, witnesses));
+    }
+  }
   return ok({
     op: "names",
     handle: id,
@@ -1324,6 +1510,283 @@ export async function relayNameRead(state, query = {}, now = Date.now()) {
     friendly_held: friendlyHeld(names, id, now),
     friendly_cap: NAME_CAP,
     az_dns: AZ_DNS_RULE,
+  });
+}
+
+async function verifyLooseAct(body, kinds) {
+  if (!body || typeof body !== "object" || !kinds.includes(body.kind)) {
+    return fail("FED-MESH-BAD-INPUT", "The proof needs two signed name or ref acts.");
+  }
+  if (body.v !== FED_SPEC) return fail("FED-MESH-BAD-INPUT", `v must be ${FED_SPEC}.`);
+  const handle = canonicalHandle(body.handle);
+  if (!handle) return fail("FED-MESH-BAD-HANDLE", "Handle must be # and 11 Crockford characters.");
+  const match = await publicKeyMatchesHandle(body.public_key, handle);
+  if (!match) return fail("FED-MESH-HANDLE-MISMATCH", "Handle does not match the signing key.");
+  if (!Number.isInteger(body.seq) || body.seq < 1) return fail("FED-MESH-BAD-INPUT", "seq must be an integer starting at 1.");
+  const statement = statementFor(body.kind, body);
+  const good = await verifyObject(body.public_key, statement, body.sig);
+  if (!good) return fail("FED-MESH-BAD-SIG", "Signature did not verify.");
+  const link = await hashStatement(statement);
+  return { ok: true, handle, link, seq: body.seq, kind: body.kind };
+}
+
+export async function relayEquivocation(state, body, now = Date.now()) {
+  if (!body || body.v !== FED_SPEC || body.kind !== "equivocation") {
+    return fail("FED-MESH-BAD-INPUT", "An equivocation proof carries two signed acts.");
+  }
+  const left = await verifyLooseAct(body.left, ["name", "ref"]);
+  if (!left.ok) return left;
+  const right = await verifyLooseAct(body.right, ["name", "ref"]);
+  if (!right.ok) return right;
+  if (left.handle !== right.handle || left.seq !== right.seq) {
+    return fail("FED-MESH-BAD-INPUT", "Equivocation is two acts from one handle at one sequence.");
+  }
+  if (left.link === right.link) return fail("FED-MESH-REPLAY", "Both acts are the same statement.");
+  const rated = await noteRate(state, `eq:${left.handle}`, now);
+  if (rated) return rated;
+  const flags = (await loadKey(state, "equivocation", {})) || {};
+  flags[left.handle] = {
+    handle: left.handle,
+    seq: left.seq,
+    left_hash: left.link,
+    right_hash: right.link,
+    left: body.left,
+    right: body.right,
+    accepted_at: now,
+  };
+  await saveKey(state, "equivocation", flags);
+  return ok({
+    op: "equivocation",
+    handle: left.handle,
+    seq: left.seq,
+    left_hash: left.link,
+    right_hash: right.link,
+    flagged: true,
+    network_cutoff: false,
+  });
+}
+
+export async function relayEquivocationRead(state, handle) {
+  const id = canonicalHandle(handle);
+  if (!id) return fail("FED-MESH-BAD-HANDLE", "Pass a #handle.");
+  const flags = (await loadKey(state, "equivocation", {})) || {};
+  const row = flags[id];
+  if (!row) return fail("FED-MESH-NO-NAME", "This relay has no equivocation proof for that handle.", { http_status: 404 });
+  return ok({ op: "equivocation", ...row, network_cutoff: false });
+}
+
+export async function relayWitness(state, body, now = Date.now()) {
+  const ready = await prepare(state, body, "witness", now);
+  if (!ready.ok) return ready;
+  const seqErr = requireSeq(body);
+  if (seqErr) return seqErr;
+  const subject_hash = String(body.subject_hash || "").toLowerCase();
+  if (!isHex64(subject_hash) || body.subject_kind !== "name") {
+    return fail("FED-MESH-BAD-INPUT", "A witness names subject_kind name and a 64-hex subject_hash.");
+  }
+  const names = (await loadKey(state, "names", {})) || {};
+  let claim = null;
+  for (const raw of Object.values(names)) {
+    const bucket = asBucket(raw);
+    const rows = [...(bucket.pending || [])];
+    if (bucket.final) rows.push(bucket.final);
+    claim = rows.find((row) => row && row.statement_hash === subject_hash) || claim;
+  }
+  if (!claim) return fail("FED-MESH-NO-NAME", "This relay has no name record with that hash.", { http_status: 404 });
+  if (claim.signer === ready.handle || claim.self_certifying) {
+    return fail("FED-MESH-WITNESS", "A witness is a different handle. A self-certifying name does not take witnesses.");
+  }
+  const committed = await commitChain(state, ready.handle, body.seq, body.prev, ready.link, now, { public_key: ready.public_key });
+  if (!committed.ok) return committed;
+  const witnesses = (await loadKey(state, "witnesses", {})) || {};
+  const list = Array.isArray(witnesses[subject_hash]) ? witnesses[subject_hash] : [];
+  const duplicate = list.some((row) => row.handle === ready.handle);
+  if (!duplicate) {
+    list.push({ handle: ready.handle, statement_hash: ready.link, accepted_at: now });
+    witnesses[subject_hash] = list;
+    await saveKey(state, "witnesses", witnesses);
+  }
+  const count = witnessCount(witnesses, subject_hash, claim.signer);
+  const anchored = await anchor(state, { handle: ready.handle, kind: "witness", link: ready.link, seq: body.seq, summary: `witness ${subject_hash.slice(0, 12)}` });
+  return ok({
+    op: "witness",
+    handle: ready.handle,
+    statement_hash: ready.link,
+    subject_hash,
+    witnesses: count,
+    witness_k: WITNESS_K,
+    duplicate,
+    chainlock: anchored.chainlock,
+    timeslate_hash: anchored.timeslate && anchored.timeslate.timeslate_hash,
+  });
+}
+
+export async function relayWitnessRead(state, subjectHash) {
+  const subject_hash = String(subjectHash || "").toLowerCase();
+  if (!isHex64(subject_hash)) return fail("FED-MESH-BAD-INPUT", "Pass subject_hash as 64 hex characters.");
+  const witnesses = (await loadKey(state, "witnesses", {})) || {};
+  const list = witnesses[subject_hash] || [];
+  return ok({ op: "witnesses", subject_hash, witnesses: list, count: list.length, witness_k: WITNESS_K });
+}
+
+export async function relayVouch(state, body, now = Date.now()) {
+  const ready = await prepare(state, body, "vouch", now);
+  if (!ready.ok) return ready;
+  const seqErr = requireSeq(body);
+  if (seqErr) return seqErr;
+  const subject = canonicalHandle(body.subject);
+  if (!subject) return fail("FED-MESH-BAD-HANDLE", "subject must be a #handle.");
+  const match = await publicKeyMatchesHandle(body.subject_public_key, subject);
+  if (!match) return fail("FED-MESH-HANDLE-MISMATCH", "subject does not match subject_public_key.");
+  if (subject === ready.handle) return fail("FED-MESH-BAD-INPUT", "A handle does not vouch for itself.");
+  const committed = await commitChain(state, ready.handle, body.seq, body.prev, ready.link, now, { public_key: ready.public_key });
+  if (!committed.ok) return committed;
+  const book = (await loadKey(state, "vouches", {})) || {};
+  const list = Array.isArray(book[subject]) ? book[subject] : [];
+  list.push({ handle: ready.handle, subject, statement_hash: ready.link, accepted_at: now });
+  book[subject] = list;
+  await saveKey(state, "vouches", book);
+  const anchored = await anchor(state, { handle: ready.handle, kind: "vouch", link: ready.link, seq: body.seq, summary: `vouch ${subject}` });
+  return ok({
+    op: "vouch",
+    handle: ready.handle,
+    statement_hash: ready.link,
+    subject,
+    vouches: list.length,
+    local_trust_only: true,
+    chainlock: anchored.chainlock,
+    timeslate_hash: anchored.timeslate && anchored.timeslate.timeslate_hash,
+  });
+}
+
+export async function relayVouchRead(state, handle) {
+  const id = canonicalHandle(handle);
+  if (!id) return fail("FED-MESH-BAD-HANDLE", "Pass a #handle.");
+  const book = (await loadKey(state, "vouches", {})) || {};
+  const list = book[id] || [];
+  return ok({ op: "vouches", handle: id, vouches: list, count: list.length, local_trust_only: true });
+}
+
+export async function relayAdvisory(state, body, now = Date.now()) {
+  const ready = await prepare(state, body, "advisory", now);
+  if (!ready.ok) return ready;
+  const seqErr = requireSeq(body);
+  if (seqErr) return seqErr;
+  const subject = canonicalHandle(body.subject);
+  if (!subject) return fail("FED-MESH-BAD-HANDLE", "subject must be a #handle.");
+  const note = String(body.note || "");
+  if (note.length < 1 || note.length > 160) return fail("FED-MESH-BAD-INPUT", "note is 1 to 160 characters.");
+  const committed = await commitChain(state, ready.handle, body.seq, body.prev, ready.link, now, { public_key: ready.public_key });
+  if (!committed.ok) return committed;
+  const book = (await loadKey(state, "advisories", {})) || {};
+  const list = Array.isArray(book[ready.handle]) ? book[ready.handle] : [];
+  list.push({ handle: ready.handle, subject, note, statement_hash: ready.link, accepted_at: now });
+  book[ready.handle] = list;
+  await saveKey(state, "advisories", book);
+  const anchored = await anchor(state, { handle: ready.handle, kind: "advisory", link: ready.link, seq: body.seq, summary: `advisory ${subject}` });
+  return ok({
+    op: "advisory",
+    handle: ready.handle,
+    statement_hash: ready.link,
+    subject,
+    applied: false,
+    subscribers_only: true,
+    chainlock: anchored.chainlock,
+    timeslate_hash: anchored.timeslate && anchored.timeslate.timeslate_hash,
+  });
+}
+
+export async function relayAdvisoryRead(state, handle) {
+  const id = canonicalHandle(handle);
+  if (!id) return fail("FED-MESH-BAD-HANDLE", "Pass the signing #handle.");
+  const book = (await loadKey(state, "advisories", {})) || {};
+  const list = book[id] || [];
+  return ok({ op: "advisories", handle: id, advisories: list, count: list.length, applied: false });
+}
+
+export async function relayQuarantine(state, body, now = Date.now()) {
+  const ready = await prepare(state, body, "quarantine", now);
+  if (!ready.ok) return ready;
+  const seqErr = requireSeq(body);
+  if (seqErr) return seqErr;
+  const peer = canonicalHandle(body.peer);
+  if (!peer) return fail("FED-MESH-BAD-HANDLE", "peer must be a #handle.");
+  if (body.decision !== "cut" && body.decision !== "clear") {
+    return fail("FED-MESH-BAD-INPUT", "decision is cut or clear.");
+  }
+  const committed = await commitChain(state, ready.handle, body.seq, body.prev, ready.link, now, { public_key: ready.public_key });
+  if (!committed.ok) return committed;
+  const book = (await loadKey(state, "quarantine", {})) || {};
+  const mine = book[ready.handle] && typeof book[ready.handle] === "object" ? book[ready.handle] : {};
+  mine[peer] = { peer, decision: body.decision, statement_hash: ready.link, accepted_at: now };
+  book[ready.handle] = mine;
+  await saveKey(state, "quarantine", book);
+  const anchored = await anchor(state, { handle: ready.handle, kind: "quarantine", link: ready.link, seq: body.seq, summary: `quarantine ${peer}` });
+  return ok({
+    op: "quarantine",
+    handle: ready.handle,
+    statement_hash: ready.link,
+    peer,
+    decision: body.decision,
+    network_cutoff: false,
+    chainlock: anchored.chainlock,
+    timeslate_hash: anchored.timeslate && anchored.timeslate.timeslate_hash,
+  });
+}
+
+export async function relayQuarantineRead(state, handle) {
+  const id = canonicalHandle(handle);
+  if (!id) return fail("FED-MESH-BAD-HANDLE", "Pass a #handle.");
+  const book = (await loadKey(state, "quarantine", {})) || {};
+  const mine = book[id] || {};
+  return ok({ op: "quarantine", handle: id, peers: mine, network_cutoff: false });
+}
+
+export async function relayIsland(state, body, now = Date.now()) {
+  const ready = await prepare(state, body, "island", now);
+  if (!ready.ok) return ready;
+  const seqErr = requireSeq(body);
+  if (seqErr) return seqErr;
+  if (body.mode !== "off" && body.mode !== "on") return fail("FED-MESH-BAD-INPUT", "mode is off or on.");
+  const committed = await commitChain(state, ready.handle, body.seq, body.prev, ready.link, now, { public_key: ready.public_key });
+  if (!committed.ok) return committed;
+  const islands = (await loadKey(state, "islands", {})) || {};
+  islands[ready.handle] = { handle: ready.handle, mode: body.mode, statement_hash: ready.link, accepted_at: now };
+  await saveKey(state, "islands", islands);
+  const anchored = await anchor(state, { handle: ready.handle, kind: "island", link: ready.link, seq: body.seq, summary: `island ${body.mode}` });
+  return ok({
+    op: "island",
+    handle: ready.handle,
+    statement_hash: ready.link,
+    mode: body.mode,
+    radios_changed: false,
+    local_runtime: true,
+    chainlock: anchored.chainlock,
+    timeslate_hash: anchored.timeslate && anchored.timeslate.timeslate_hash,
+  });
+}
+
+export async function relayIslandRead(state, handle) {
+  const id = canonicalHandle(handle);
+  if (!id) return fail("FED-MESH-BAD-HANDLE", "Pass a #handle.");
+  const islands = (await loadKey(state, "islands", {})) || {};
+  const row = islands[id] || { handle: id, mode: "on" };
+  return ok({ op: "island", ...row, radios_changed: false, local_runtime: true });
+}
+
+export async function relayAirgap(state, body) {
+  void state;
+  const checked = await verifyAirgapBundle(body);
+  if (!checked.ok) return fail(checked.code, checked.message, checked.gate ? { gate: checked.gate } : {});
+  return ok({
+    op: "airgap",
+    manifest_sha256: checked.manifest_sha256,
+    statement_hash: checked.statement_hash,
+    files: checked.files,
+    stored: false,
+    executable: false,
+    scanner: "absent",
+    disk_check: checked.disk_check,
   });
 }
 
@@ -1362,6 +1825,12 @@ export async function dispatchRelay(method, pathname, body, state = defaultState
   if (path === "/v1/mesh/relay/name" && (m === "GET" || m === "HEAD")) {
     return relayNameRead(state, { name: opts.name || "", handle: opts.handle || "" }, now);
   }
+  if (path === "/v1/mesh/relay/witness" && (m === "GET" || m === "HEAD")) return relayWitnessRead(state, opts.subject_hash || "");
+  if (path === "/v1/mesh/relay/equivocation" && (m === "GET" || m === "HEAD")) return relayEquivocationRead(state, opts.handle || "");
+  if (path === "/v1/mesh/relay/vouch" && (m === "GET" || m === "HEAD")) return relayVouchRead(state, opts.handle || "");
+  if (path === "/v1/mesh/relay/advisory" && (m === "GET" || m === "HEAD")) return relayAdvisoryRead(state, opts.handle || "");
+  if (path === "/v1/mesh/relay/quarantine" && (m === "GET" || m === "HEAD")) return relayQuarantineRead(state, opts.handle || "");
+  if (path === "/v1/mesh/relay/island" && (m === "GET" || m === "HEAD")) return relayIslandRead(state, opts.handle || "");
   if (m !== "POST") return fail("FED-MESH-BAD-INPUT", "This relay path accepts POST. GET /v1/mesh/relay only cites.", { http_status: 405 });
   if (path.endsWith("/register")) return relayRegister(state, body, now);
   if (path.endsWith("/heartbeat")) return relayHeartbeat(state, body, now);
@@ -1378,6 +1847,13 @@ export async function dispatchRelay(method, pathname, body, state = defaultState
   if (path.endsWith("/sync")) return relaySync(state, body, now);
   if (path.endsWith("/object")) return relayObject(state, body, now);
   if (path.endsWith("/name")) return relayName(state, body, now);
+  if (path.endsWith("/witness")) return relayWitness(state, body, now);
+  if (path.endsWith("/equivocation")) return relayEquivocation(state, body, now);
+  if (path.endsWith("/vouch")) return relayVouch(state, body, now);
+  if (path.endsWith("/advisory")) return relayAdvisory(state, body, now);
+  if (path.endsWith("/quarantine")) return relayQuarantine(state, body, now);
+  if (path.endsWith("/island")) return relayIsland(state, body, now);
+  if (path.endsWith("/airgap")) return relayAirgap(state, body);
   return fail("FED-MESH-BAD-INPUT", "Unknown relay path.");
 }
 
@@ -1406,5 +1882,18 @@ export async function runRelayOp(op, payload, env, opts = {}) {
   if (op === "relay-refs") return relayRefsRead(state, body.handle, body.ref);
   if (op === "relay-name") return relayName(state, body, now);
   if (op === "relay-name-read") return relayNameRead(state, body, now);
+  if (op === "relay-witness") return relayWitness(state, body, now);
+  if (op === "relay-witness-read") return relayWitnessRead(state, body.subject_hash);
+  if (op === "relay-equivocation") return relayEquivocation(state, body, now);
+  if (op === "relay-equivocation-read") return relayEquivocationRead(state, body.handle);
+  if (op === "relay-vouch") return relayVouch(state, body, now);
+  if (op === "relay-vouch-read") return relayVouchRead(state, body.handle);
+  if (op === "relay-advisory") return relayAdvisory(state, body, now);
+  if (op === "relay-advisory-read") return relayAdvisoryRead(state, body.handle);
+  if (op === "relay-quarantine") return relayQuarantine(state, body, now);
+  if (op === "relay-quarantine-read") return relayQuarantineRead(state, body.handle);
+  if (op === "relay-island") return relayIsland(state, body, now);
+  if (op === "relay-island-read") return relayIslandRead(state, body.handle);
+  if (op === "relay-airgap") return relayAirgap(state, body);
   return fail("FED-MESH-BAD-INPUT", "Unknown relay op.");
 }

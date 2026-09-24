@@ -6,7 +6,7 @@ This is the shared protocol for a multi-user mesh. The runtime Worker is one rel
 
 FragGate stays the single door. This paper does not add an MCP tool. Relay ops are FragGate ops on slug `mesh` (`relay-register`, `relay-ref`, `relay-sync`, and the rest) and HTTP under `/v1/mesh/relay/`.
 
-Test vectors live in [`fixtures/fed-mesh-vectors.json`](../../fixtures/fed-mesh-vectors.json). `scripts/verify-fed-mesh.mjs` recomputes them, including a name claim, a transfer, and a refused eighth friendly name.
+Test vectors live in [`fixtures/fed-mesh-vectors.json`](../../fixtures/fed-mesh-vectors.json). `scripts/verify-fed-mesh.mjs` recomputes them, including a name claim, a transfer, a refused eighth friendly name, an equivocation pair, and an airgap manifest.
 
 ## 1. Inner core and outer mesh
 
@@ -175,7 +175,7 @@ ChainLock caller is `fed-` plus the lowercase handle body, chain `mesh`, kind `n
 
 ### Friendly names
 
-The first valid anchored claim on that relay wins. A later signer who is not the live owner receives `FED-MESH-NAME-TAKEN`. The race is per relay. Two relays can anchor two first claims until the holders sync. AZBrowser resolves the ledger it holds.
+A friendly claim is stored as `pending`. It becomes `final` only after the proof-of-work, the age window, and the witness count in section 11. The first valid final claim wins. Until then another valid claim may sit beside it. A later signer against a live final owner receives `FED-MESH-NAME-TAKEN`. The race is per relay. AZBrowser resolves final records from the ledger it holds and shows pending records as pending.
 
 A handle may hold 7 live friendly names. The eighth is `FED-MESH-NAME-CAP` (HTTP 429). An expired row and a released row no longer count. The self-certifying name still fits after the cap is full.
 
@@ -299,8 +299,17 @@ HTTP:
 | POST | `/v1/mesh/relay/rollup` | Signed rollup |
 | POST | `/v1/mesh/relay/remote-task` | Signed task/result hashes. Not execution |
 | POST | `/v1/mesh/relay/ref` | Signed ref update |
-| POST | `/v1/mesh/relay/name` | Signed `.aziel` name record |
-| GET | `/v1/mesh/relay/name?name=` | One name record. `?handle=` lists that owner's names |
+| POST | `/v1/mesh/relay/name` | Signed `.aziel` name record. Friendly claims stay pending |
+| GET | `/v1/mesh/relay/name?name=` | One name record. `?handle=` lists that owner's names. Pending and final are distinct |
+| POST | `/v1/mesh/relay/witness` | Co-sign a pending name. This Worker does not mint the signature |
+| GET | `/v1/mesh/relay/witness?subject_hash=` | Witness list for one statement |
+| POST | `/v1/mesh/relay/equivocation` | Two conflicting signed name or ref acts at one sequence |
+| GET | `/v1/mesh/relay/equivocation?handle=` | The stored proof for one handle |
+| POST | `/v1/mesh/relay/vouch` | Optional co-sign of another handle. Local trust only |
+| POST | `/v1/mesh/relay/advisory` | Signed advisory. Subscribers apply it. This relay does not |
+| POST | `/v1/mesh/relay/quarantine` | Signed local peer cut. `network_cutoff` is false |
+| POST | `/v1/mesh/relay/island` | Signed island off or on. Suite radios stay as they are |
+| POST | `/v1/mesh/relay/airgap` | Verify a signed sha256 manifest. Bytes are not stored |
 | POST | `/v1/mesh/relay/sync` | Late sync |
 | POST | `/v1/mesh/relay/object` | Small public object cache |
 | GET | `/v1/mesh/relay/object?hash=` | Cache read |
@@ -373,7 +382,9 @@ Each instance has its own port, key, handle, and data directory. They speak to r
 - This Worker is not required and is not the only bootstrap. A new node still needs a starting address.
 - The relay never requires plaintext. It also cannot hide routing metadata.
 - Receipts, refs, name records, and digests are signed public copies. They are not end-to-end encrypted.
-- A friendly `.aziel` name goes to the first valid anchored claim on that relay. A handle holds 7. `<handle>.aziel` is self-certifying and stays outside that cap. `.az` stays normal DNS except the Cap-7 and AZ.* allowlist in section 5.1.
+- A friendly `.aziel` name is pending until proof-of-work, 72 hours, and 2 witness handles. The first valid final claim wins. A handle holds 7 friendly names. `<handle>.aziel` is self-certifying and final immediately. `.az` stays normal DNS except the Cap-7 and AZ.* allowlist in section 5.1.
+- Proof-of-work is an 8-bit flood filter. It is not a Sybil solution and not a blockchain. There is no token and no stake.
+- This relay does not execute peer code, does not rank handles, and does not cut one peer off every other peer. Scanners are absent here. Two-hop routing and Tor are node adapters. This relay does not claim zero-knowledge or protection from a state-level adversary.
 - No tenant execution and no private keys on the relay.
 - No worldwide total order. TemporalLock click is per relay.
 - Rate limits are per isolate. The roster key has no compare-and-swap.
@@ -382,3 +393,99 @@ Each instance has its own port, key, handle, and data directory. They speak to r
 - The public object cache is optional, small, and hash-checked. Peers are the object store.
 - GET never enables radios. `mesh_disable` still refuses. Suite-presence stays the QNM rollup.
 - Author identity remains Aziel Eliab only. A handle is not that identity.
+
+## 11. Mesh security
+
+Author: **Aziel Eliab** only. Lamb Lens order stays Service, then Clarity, then Peace.
+
+Every peer is untrusted. A node never executes code received from a peer. Received bytes land in quarantine on the node. Promotion is a local decision after the signature matches, the hash matches, and, where a scanner is installed, the scanner returns a verdict. This Worker has no ClamAV and no YARA rules. Object puts report `scanner: "absent"`, `executable: false`, and `promotion: "cache-only"`. A hash mismatch is `FED-MESH-HASH-MISMATCH` with `gate: "FG-GATE-REFUSE"` and is not stored. The cache serves only entries whose bytes matched the hash. Scanners catch known malware. The capability sandbox on the node is the main defense.
+
+A node's failure or compromise stays on that handle's chain and names. One tenant's key does not open another tenant's ciphertext. Tests check that refusal.
+
+### Proof of work
+
+A friendly `.aziel` act carries `pow` outside the signature:
+
+```json
+{ "nonce": "<1 to 64 lowercase hex>", "bits": 8, "digest": "<64 hex>" }
+```
+
+`digest` is SHA-256 of the UTF-8 bytes of the statement hash, a newline, the signature, a newline, and the nonce. `bits` is at least 8. The digest must have at least that many leading zero bits. A missing or short stamp is `FED-MESH-POW` and does not advance the handle sequence. Self-certifying names skip the stamp. Eight bits is a flood filter. The Sybil control is the pending window below. There is no blockchain consensus and no token stake.
+
+The pinned `library.aziel` claim keeps its signature and adds:
+
+```json
+{ "nonce": "7e", "bits": 8, "digest": "0091860bcaeed0c2dbc3520fb74656e8d40045d1c31954108fd7d30e7d9a1a20" }
+```
+
+Statement hash: `6d38408d305afb2ae562d3c022c3421fc8819c81d61108d3a8b91e2b8dc7ca7c`.
+
+### Pending and final
+
+`NAME_PENDING_MS` is 72 hours (`259200000`). `WITNESS_K` is 2.
+
+A friendly claim is `pending` until both are true: the relay's `accepted_at` is at least 72 hours ago, and at least 2 handles other than the claimant have co-signed that statement hash. The earliest such claim becomes `final`. The first valid final claim wins. A later signer is `FED-MESH-NAME-TAKEN`. Competing pending claims with `prev_record` of 64 zeros are allowed until one is final. The cap of 7 counts pending and final friendly names.
+
+A witness statement is `{ v, kind: "witness", handle, public_key, subject_hash, subject_kind: "name", seq, prev, sig }`. The witness handle is not the claimant. This Worker verifies and stores the co-sign. It has no private key, so it does not mint one. A self-certifying name is final when the key matches the label. It takes no witnesses and does not use the cap.
+
+An owner update of a final name, including transfer and release, stays on that final chain. A transfer of a still-pending name replaces that pending statement. Witnesses do not carry to the new hash.
+
+### Equivocation
+
+Two signed `name` or `ref` acts from one handle at one sequence, with different statement hashes, are an equivocation proof:
+
+```json
+{ "v": "FED-MESH-1.0", "kind": "equivocation", "left": {}, "right": {} }
+```
+
+Pinned pair, both sequence 4, both `prev` of 64 `2` characters. Left object hash is the `local-first` hash. Right object hash is `ab` repeated 32 times.
+
+Left signature: `OnkMvld5JofooG8askpJCNHioSqIbvLJmhsS8CcH1oT0z5YCB1DKwTpPVCDBfqX-qJeFM3wynii0vWTqwvhVAg`. Statement hash: `53cd930e757a6fe087bf8ee1b6cfe2415fae2fd5f6c5d87c26bae805a310bad6`.
+
+Right signature: `hL_VghAjdp0jR2GizzNxXQwH8NCjRpk9hnNJIMeKWAnIDb8UJdt9wFEzrjpRMmmSSV07lt3vyQjQswdydfB-CQ`. Statement hash: `c83e7f185266b196802c23ece6bc3a138c24016e86d52a4c26cc948460c64d93`.
+
+The relay stores the proof and refuses later acts from that handle with `FED-MESH-EQUIVOCATION`. `network_cutoff` is false. Other handles keep working. Already anchored history is not rewritten. Another relay learns the same fact by receiving the same proof.
+
+### Vouch and advisory
+
+A vouch is `{ v, kind: "vouch", handle, public_key, subject, subject_public_key, seq, prev, sig }`. It feeds local trust only. An advisory is `{ v, kind: "advisory", handle, public_key, subject, note, seq, prev, sig }` with `note` of 1 to 160 characters. `applied` is false on this relay. Subscribers decide. There is no public ranking and no use-based number. Public responses do not carry a score field.
+
+Local trust on a node may show handle chain age, heartbeats other handles witnessed, hash-match history, vouches, and an equivocation flag. Those are separate facts.
+
+### Quarantine and island
+
+A quarantine receipt is `{ v, kind: "quarantine", handle, public_key, peer, decision: "cut"|"clear", seq, prev, sig }`. It is stored under the signer. It does not stop the peer from reaching anyone else. `network_cutoff` is false. No single authority cuts a handle off the mesh.
+
+An island receipt is `{ v, kind: "island", handle, public_key, mode: "off"|"on", seq, prev, sig }`. `off` tells this relay to refuse later acts from that handle until `on`. The node keeps its local runtime. `radios_changed` is false: one handle does not disable suite presence. After `on`, a later sync with a valid `prev` is accepted. A fork is still refused.
+
+### Rollback and rate
+
+A ref update or name record with `seq` less than or equal to the handle tip is `FED-MESH-ROLLBACK`. The same sequence submitted again on other acts remains `FED-MESH-REPLAY`. A sequence gap remains `FED-MESH-GAP`.
+
+Each signing handle has its own 30-per-minute window (`PEER_ROUTE_PER_MIN`, the same window as other signed relay acts). One handle filling the window leaves the next handle's window intact. The window is per isolate.
+
+### Transport
+
+Mesh message bodies stay X25519, HKDF-SHA-256, AES-GCM, bound to the handle keys. That cipher is mandatory for message bodies. The relay still sees routing metadata: handles, sequence, sizes, and the next hop.
+
+Two-hop routing is opt-in on the node. The entry hop forwards ciphertext and does not need the destination payload. The exit hop does not need the origin payload. This Worker forwards one hop of ciphertext and does not decrypt a second layer.
+
+Tor is an optional bearer adapter on the node. It is not a network this Worker runs.
+
+This design does not provide zero-knowledge proofs. It does not provide protection against a state-level adversary who can watch every hop. Confidentiality of a body is the body cipher. Metadata is visible to the relays that carry it.
+
+### Airlock and airgap
+
+On the node, every inbound object, module, and file lands in a non-executable quarantine store. Promotion checks the signature, then the hash, then a malware scan when ClamAV and YARA rules are installed. If the scanner is missing, the node reports `scanner: "absent"` and requires an explicit operator override before promotion. The promotion receipt names the object hash, the scanner versions, and the verdict. This Worker does not promote anything to execution.
+
+An airgap bundle is a signed manifest for sneakernet. The signature covers `{ v, kind: "airgap-bundle", handle, public_key, manifest }`. `manifest_sha256` is SHA-256 of the canonical manifest and is checked beside the signature. Each file row is `{ name, sha256 }`. A disconnected machine checks the files with `sha256sum -c`, the same Plane C offline check. This Worker verifies the manifest and stores nothing. `stored` is false.
+
+Pinned manifest hash: `8bb63ac4cfc5e9906781c09c7eb60e222c5cdd4fecd8d39c6c459b29fa9c2d1a`.
+
+Pinned signature: `9bMxW9h4PihQzDE5AWWSN9k4UFsGnBIvqA7XYvCCeVKLIuHUXeidBBLJTWLvMd_0UEKynH-ALEFVIKLmVIOTDA`.
+
+The manifest names `objects/local-first` with the `local-first` object hash.
+
+### What this Worker does not do
+
+qnm-node owns the mandatory body cipher on the daemon, the two-hop opt-in, the Tor bearer, per-peer circuit breakers, enforcement of a local quarantine, the airlock scanner pipeline, airgap file import and export, and the local trust view. AZNet owns claim issuance against this record. AZBrowser resolves final names, shows pending names as pending, and refuses an equivocating handle. Those repos cite this section. The wire formats above are the shared ones.

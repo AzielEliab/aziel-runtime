@@ -415,7 +415,11 @@ ${survivalSkillMarkdown(base)}
 | POST | \`/v1/mesh/relay/post\` | Signed ciphertext envelope. The relay does not need plaintext. |
 | POST | \`/v1/mesh/relay/ref\` | Signed ref update. Anchored. Object bytes stay on peers. |
 | GET | \`/v1/mesh/relay/name\` | Serve one .aziel name record (?name=) or a handle's names (?handle=). |
-| POST | \`/v1/mesh/relay/name\` | Signed name claim, transfer, or release. Anchored. Forks and an 8th friendly name are refused. |
+| POST | \`/v1/mesh/relay/name\` | Signed name claim, transfer, or release. Friendly claims stay pending until proof-of-work, 72 hours, and 2 witnesses. Forks, rollback, and an 8th friendly name are refused. |
+| POST | \`/v1/mesh/relay/witness\` | Co-sign a pending name. The Worker does not mint witness signatures. |
+| POST | \`/v1/mesh/relay/equivocation\` | Two conflicting signed name or ref acts at one sequence. Flags that handle only. |
+| POST | \`/v1/mesh/relay/quarantine\` | Signed local peer cut. No network-wide cutoff. |
+| POST | \`/v1/mesh/relay/island\` | Signed island off or on. Does not change suite radios. |
 | POST | \`/v1/mesh/relay/sync\` | Late offline sync of ref updates and rollups. Valid chains are anchored. Forks are refused. |
 | POST | \`/v1/mesh/relay/object\` | Cache a small public object. Oversized or hash-mismatched bodies are refused. |
 | GET | \`/v1/qns\` | QNS-CD-1.0 cite (photon QNS1 1.3). Local \`qnsd\` in qnm-node. Never a public via proxy. |
@@ -1938,7 +1942,7 @@ export function runtimeStaticPaths() {
       post: {
         operationId: "fed_mesh_name",
         summary:
-          "Signed .aziel name record: name, owner handle, target (hash, ref, or handle), sequence, prev-record hash, expires (null or a future time), signature. First valid anchored friendly claim wins. 7 friendly names per handle. Transfer and release are signed by the current owner. A fork is FED-MESH-FORK. An 8th friendly name is FED-MESH-NAME-CAP. A self-certifying name is the handle body plus .aziel.",
+          "Signed .aziel name record. Friendly claims carry proof-of-work and stay pending until 72 hours and 2 witness handles. The first valid final claim wins. 7 friendly names per handle. Self-certifying <handle>.aziel is final immediately. Forks, rollback, and an 8th friendly name are refused.",
         tags: ["mesh"],
         responses: {
           "200": { description: "Name anchored" },
