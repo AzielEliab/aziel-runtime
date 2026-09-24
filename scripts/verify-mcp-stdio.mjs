@@ -47,6 +47,31 @@ assert.ok(Array.isArray(glama.categories) && glama.categories.includes("agent-or
 assert.equal(glama.homepage, "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime");
 assert.match(glama.documentation, /docs\/GLAMA\.md/);
 
+const registry = JSON.parse(await readFile(join(root, "server.json"), "utf8"));
+const pkg = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
+assert.equal(registry.$schema, "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json");
+assert.equal(registry.name, "io.github.AzielEliab/aziel-runtime");
+assert.match(registry.name, /^[a-zA-Z0-9.-]+\/[a-zA-Z0-9._-]+$/);
+assert.equal(registry.title, "Aziel Runtime");
+assert.equal(registry.version, "2.0.0-rc1");
+assert.equal(registry.version, pkg.version);
+assert.notEqual(registry.version, "2.0.7");
+assert.ok(registry.description.length >= 1 && registry.description.length <= 100);
+assert.match(registry.description, /FragGate/);
+assert.doesNotMatch(registry.description, /2\.0\.7/);
+assert.equal(registry.repository.url, "https://github.com/AzielEliab/aziel-runtime");
+assert.equal(registry.repository.source, "github");
+assert.equal(registry.websiteUrl, "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime");
+assert.equal(registry.packages, undefined);
+assert.deepEqual(registry.remotes, [
+  { type: "streamable-http", url: "https://aziel-runtime.vibelock.workers.dev/mcp" },
+]);
+const glamaDoc = await readFile(join(root, "docs/GLAMA.md"), "utf8");
+assert.match(glamaDoc, /\[`server\.json`\]\(\.\.\/server\.json\)/);
+assert.match(glamaDoc, /mcp-publisher publish/);
+assert.match(glamaDoc, /2\.0\.7/);
+assert.match(glamaDoc, /not `server\.json` `version`/);
+
 const dockerfile = await readFile(join(root, "Dockerfile"), "utf8");
 assert.match(dockerfile, /cli\/mcp-stdio\.mjs/);
 assert.match(dockerfile, /AZIEL_RUNTIME_URL/);
@@ -60,7 +85,6 @@ const dockerignore = await readFile(join(root, ".dockerignore"), "utf8");
 assert.match(dockerignore, /\.git/);
 assert.match(dockerignore, /node_modules/);
 
-const pkg = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
 assert.match(pkg.scripts.mcp, /cli\/mcp-stdio\.mjs/);
 assert.equal(pkg.bin["aziel-runtime-mcp"], "./cli/mcp-stdio.mjs");
 

@@ -11,6 +11,7 @@ Crawler abstract (`RUNTIME_ABSTRACT`) stays the lead on homepage / `/llms.txt` /
 
 Certification point — not a feature dump.
 
+- Official MCP Registry `server.json` (not a new public MCP tool): remotes-only metadata, registry `version` Worker `2.0.0-rc1`, no `packages` entry. Glama release 2.0.7 stays a Glama label. `mcp-publisher publish` is out of band. `tools/list` stays 36. Identity Aziel Eliab only.
 - Glama install conversion (not a new public MCP tool): Install Server → remote `POST /mcp` → local stdio. `tools/list` stays 36. `glama.json` version stays Worker `2.0.0-rc1`; description names Glama Install Server release 2.0.7. Machine cite / llms / well-known / `/help/glama.txt` point Install / Try on Glama. No hub HTML chrome. Identity Aziel Eliab only.
 
 - Additive receipt-attempt surface cite (not a new public MCP tool; engine hash unchanged): OpenAPI schemas `ForgeReceipt`, `SessionReceipt`, and `ResultEnvelope` name `request_id`, `attempt_n`, `parent_receipt_id`, `correlation_id`, and `outcome`. ForgeReceipts `fraggate_describe` matches the Softwares card description (`ledger_tip.prev` call-order only, `prev_is_retry_parent` false). `GET /v1/skill` states the same linkage and does not call ledger `prev` the retry parent. Not a forensic finding. Older seals stay. Identity Aziel Eliab only.

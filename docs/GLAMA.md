@@ -27,6 +27,19 @@ This repo ships:
 | [`Dockerfile`](../Dockerfile) | Local / “from Dockerfile” image. Glama admin often **generates** its own image from CMD args — still ship this file. |
 | [`src/mcp-stdio.js`](../src/mcp-stdio.js) | Framing + bridge / in-process dispatch. |
 | [`docs/GLAMA-TDQS.md`](GLAMA-TDQS.md) | Metadata-only TDQS pass (`tools/list` descriptions, params, annotations, output schemas). Fold into 2.0.0-rc1 Gate 4. |
+| [`server.json`](../server.json) | Official MCP Registry metadata. Remotes only. `version` is Worker `2.0.0-rc1`. |
+
+## Discovery
+
+[`server.json`](../server.json) is the official MCP Registry file (schema `2025-12-11`). Registry name `io.github.AzielEliab/aziel-runtime`. `version` is **2.0.0-rc1**, the same string as `package.json` and Worker health. Remote is `streamable-http` at `https://aziel-runtime.vibelock.workers.dev/mcp`. `websiteUrl` is the Glama listing.
+
+There is no `packages` entry. `package.json` is `private`, so this file is remotes-only.
+
+Glama Deploy / Install Server release **2.0.7** is a Glama label only. It is not `server.json` `version`.
+
+The registry `description` keeps the same claims as the longer sentence (governed MCP, agent audit, provenance, deterministic checks, receipt-backed FragGate execution). The 2025-12-11 schema caps `description` at 100 characters, so the filed string is that sentence trimmed to fit.
+
+`mcp-publisher publish` is out of band (GitHub device login). This repo lands the file. It does not run the publisher. `tools/list` stays 36 names.
 
 ## Why stdio
 
