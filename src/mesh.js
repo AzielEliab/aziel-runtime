@@ -279,6 +279,11 @@ export const MESH_CANONICAL_OPS = Object.freeze([
   "relay-island",
   "relay-island-read",
   "relay-airgap",
+  "relay-restore",
+  "relay-slot-read",
+  "relay-isolation",
+  "relay-isolation-read",
+  "relay-appeal",
 ]);
 
 export const MESH_OP_ALIASES = Object.freeze({
@@ -317,6 +322,9 @@ export const MESH_OP_ALIASES = Object.freeze({
   relay_quarantine: "relay-quarantine",
   relay_island: "relay-island",
   relay_airgap: "relay-airgap",
+  relay_restore: "relay-restore",
+  relay_isolation: "relay-isolation",
+  relay_appeal: "relay-appeal",
 });
 
 export const MESH_LIVE_OPS = Object.freeze([...MESH_CANONICAL_OPS, ...Object.keys(MESH_OP_ALIASES)]);
@@ -1564,7 +1572,7 @@ ${ANON_BROADCAST_NOTE}
 
 NO-LIE / NO-REWRITE (**NO-LIE-NO-REWRITE-1.0**): receipts that still hash; copies not all on one tunnel; rules simple enough others verify without the author's voice; no rewrite key. The network is never allowed to lie — even to self-preserve, sustain, stay alive, adapt, or prevent death. Companion under **CROSS-NETWORK-SURVIVAL-1.0** (does not replace the machine tip). See \`docs/designs/NO-LIE-NO-REWRITE-1.0.md\`. Rewrite / lie verbs refuse \`MESH-NO-REWRITE\` / \`MESH-NO-LIE\`.
 
-**FED-MESH-1.0: Local-First Edge Mesh.** Raw data, signing keys, and heavy compute stay on the local node. By default the mesh carries signed receipts, state digests, and ref updates. Raw data moves only on an explicit end-to-end encrypted share. The Worker relay never requires plaintext. Each node is a \`#handle\` derived from its own Ed25519 key (11 Crockford characters of SHA-256 of the raw public key). The Worker is one relay. Any qnm-node may run the same relay. Message bodies are X25519 + HKDF-SHA-256 + AES-GCM ciphertext. The relay stores that ciphertext and the routing fields (handles, seq, keys, nonce). Receipt sentences stay public. A signed ref update is handle, ref name, object hash, previous ref hash, sequence, and signature. A signed \`.aziel\` name record is name, owner handle, target (content hash, ref, or node handle), sequence, previous record hash, expiry (\`null\` or a future time), and signature. \`<handle>.aziel\` is self-certifying. A friendly name carries proof-of-work and stays pending until 72 hours and 2 witness handles. The first valid final claim wins, with 7 friendly names per handle. Transfer and release are signed by the current owner. The relay stores and serves that index and anchors it with ChainLock and TemporalLock. \`.az\` is normal DNS except the Cap-7 allowlist and the AZ.* hub names, which are cites, not name records. It does not need the object bytes. A small public object cache is capped at 4096 bytes each, 64 objects, and 64KiB, and a hash mismatch is refused. Peers fetch objects by hash. LAN discovery and offline work run on the local node. A later sync of rollups and ref updates is accepted when the chain is valid. A fork is refused. GET \`/v1/mesh/relay\` is the health check and never enables. A new node needs one relay address it already has. A signed bootstrap list on a relay is one source, not the only source. Peers with no public address use a relay. Direct loopback or a configured LAN URL carries the same envelope. Store-and-forward holds ciphertext for 24 hours under a per-handle quota. Tenant tasks and remote execution stay on local nodes. Private keys stay on the node. \`verified_handles\` counts distinct live handles (three keys are three nodes). \`nodes\` and \`live_nodes\` pills stay the suite rollup. \`software_nodes\` and downloads stay separate. Paper: \`docs/designs/FED-MESH-1.0.md\`.
+**FED-MESH-1.0: Local-First Edge Mesh.** Raw data, signing keys, and heavy compute stay on the local node. By default the mesh carries signed receipts, state digests, and ref updates. Raw data moves only on an explicit end-to-end encrypted share. The Worker relay never requires plaintext. Each node is a \`#handle\` derived from its own Ed25519 key (11 Crockford characters of SHA-256 of the raw public key). The Worker is one relay. Any qnm-node may run the same relay. Message bodies are X25519 + HKDF-SHA-256 + AES-GCM ciphertext. The relay stores that ciphertext and the routing fields (handles, seq, keys, nonce). Receipt sentences stay public. A signed ref update is handle, ref name, object hash, previous ref hash, sequence, and signature. A signed \`.aziel\` name record is name, owner handle, target (content hash, ref, or node handle), sequence, previous record hash, expiry (\`null\` or a future time), and signature. \`<handle>.aziel\` is self-certifying. A friendly name carries proof-of-work and stays pending until 72 hours and 2 witness handles. The first valid final claim wins, with 3 user .aziel names per handle and 4 reserved hub-mirror slots. Transfer and release are signed by the current owner. The relay stores and serves that index and anchors it with ChainLock and TemporalLock. \`.az\` is normal DNS except the Cap-7 allowlist and the AZ.* hub names, which are cites, not name records. It does not need the object bytes. A small public object cache is capped at 4096 bytes each, 64 objects, and 64KiB, and a hash mismatch is refused. Peers fetch objects by hash. LAN discovery and offline work run on the local node. A later sync of rollups and ref updates is accepted when the chain is valid. A fork is refused. GET \`/v1/mesh/relay\` is the health check and never enables. A new node needs one relay address it already has. A signed bootstrap list on a relay is one source, not the only source. Peers with no public address use a relay. Direct loopback or a configured LAN URL carries the same envelope. Store-and-forward holds ciphertext for 24 hours under a per-handle quota. Tenant tasks and remote execution stay on local nodes. Private keys stay on the node. \`verified_handles\` counts distinct live handles (three keys are three nodes). \`nodes\` and \`live_nodes\` pills stay the suite rollup. \`software_nodes\` and downloads stay separate. Paper: \`docs/designs/FED-MESH-1.0.md\`.
 
 Author: Aziel Eliab only.
 `;
@@ -2177,7 +2185,7 @@ export async function runMeshOp(op, payload, env) {
   if (resolved === "site-presence") return meshSitePresence(payload, env);
   if (resolved === "broadcast") return meshBroadcast(payload, env);
   if (resolved && resolved.startsWith("relay-")) {
-    const read = resolved === "relay-cite" || resolved === "relay-bootstrap-read" || resolved === "relay-directory" || resolved === "relay-object-read" || resolved === "relay-refs" || resolved === "relay-name-read" || resolved === "relay-witness-read" || resolved === "relay-equivocation-read" || resolved === "relay-vouch-read" || resolved === "relay-advisory-read" || resolved === "relay-quarantine-read" || resolved === "relay-island-read";
+    const read = resolved === "relay-cite" || resolved === "relay-bootstrap-read" || resolved === "relay-directory" || resolved === "relay-object-read" || resolved === "relay-refs" || resolved === "relay-name-read" || resolved === "relay-witness-read" || resolved === "relay-equivocation-read" || resolved === "relay-vouch-read" || resolved === "relay-advisory-read" || resolved === "relay-quarantine-read" || resolved === "relay-island-read" || resolved === "relay-slot-read" || resolved === "relay-isolation-read";
     if (!read) {
       if (!((await loadState(env)).enabled)) {
         const state = await loadState(env);
@@ -2290,7 +2298,9 @@ async function dispatchMeshHttpCore(method, pathname, payload, env, origin, sear
         path === "/v1/mesh/relay/vouch" ||
         path === "/v1/mesh/relay/advisory" ||
         path === "/v1/mesh/relay/quarantine" ||
-        path === "/v1/mesh/relay/island") &&
+        path === "/v1/mesh/relay/island" ||
+        path === "/v1/mesh/relay/slot" ||
+        path === "/v1/mesh/relay/isolation") &&
       (m === "GET" || m === "HEAD")
     ) {
       const readOp = {
@@ -2306,6 +2316,8 @@ async function dispatchMeshHttpCore(method, pathname, payload, env, origin, sear
         "/v1/mesh/relay/advisory": "relay-advisory-read",
         "/v1/mesh/relay/quarantine": "relay-quarantine-read",
         "/v1/mesh/relay/island": "relay-island-read",
+        "/v1/mesh/relay/slot": "relay-slot-read",
+        "/v1/mesh/relay/isolation": "relay-isolation-read",
       };
       const op = readOp[path] || "relay-cite";
       const fed = await runRelayOp(

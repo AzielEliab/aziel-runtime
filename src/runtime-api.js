@@ -415,11 +415,16 @@ ${survivalSkillMarkdown(base)}
 | POST | \`/v1/mesh/relay/post\` | Signed ciphertext envelope. The relay does not need plaintext. |
 | POST | \`/v1/mesh/relay/ref\` | Signed ref update. Anchored. Object bytes stay on peers. |
 | GET | \`/v1/mesh/relay/name\` | Serve one .aziel name record (?name=) or a handle's names (?handle=). |
-| POST | \`/v1/mesh/relay/name\` | Signed name claim, transfer, or release. Friendly claims stay pending until proof-of-work, 72 hours, and 2 witnesses. Forks, rollback, and an 8th friendly name are refused. |
+| POST | \`/v1/mesh/relay/name\` | Signed name claim, transfer, or release. Friendly claims stay pending until proof-of-work, 72 hours, and 2 witnesses. Forks, rollback, and a 4th user name are refused. |
 | POST | \`/v1/mesh/relay/witness\` | Co-sign a pending name. The Worker does not mint witness signatures. |
 | POST | \`/v1/mesh/relay/equivocation\` | Two conflicting signed name or ref acts at one sequence. Flags that handle only. |
 | POST | \`/v1/mesh/relay/quarantine\` | Signed local peer cut. No network-wide cutoff. |
 | POST | \`/v1/mesh/relay/island\` | Signed island off or on. Does not change suite radios. |
+| POST | \`/v1/mesh/relay/restore\` | Restore one reserved hub-mirror slot from an object this relay already hash-verified. |
+| GET | \`/v1/mesh/relay/slot\` | Reserved hub-mirror slots for one handle. GET never enables. |
+| POST | \`/v1/mesh/relay/isolation\` | Self-signed isolation. Reason code and evidence hash only. Bytes are refused. |
+| GET | \`/v1/mesh/relay/isolation\` | Isolation record for one handle. An appeal does not clear it. |
+| POST | \`/v1/mesh/relay/appeal\` | Signed appeal. Requests a re-check. Does not clear isolation. |
 | POST | \`/v1/mesh/relay/sync\` | Late offline sync of ref updates and rollups. Valid chains are anchored. Forks are refused. |
 | POST | \`/v1/mesh/relay/object\` | Cache a small public object. Oversized or hash-mismatched bodies are refused. |
 | GET | \`/v1/qns\` | QNS-CD-1.0 cite (photon QNS1 1.3). Local \`qnsd\` in qnm-node. Never a public via proxy. |
@@ -1942,13 +1947,51 @@ export function runtimeStaticPaths() {
       post: {
         operationId: "fed_mesh_name",
         summary:
-          "Signed .aziel name record. Friendly claims carry proof-of-work and stay pending until 72 hours and 2 witness handles. The first valid final claim wins. 7 friendly names per handle. Self-certifying <handle>.aziel is final immediately. Forks, rollback, and an 8th friendly name are refused.",
+          "Signed .aziel name record. Friendly claims carry proof-of-work and stay pending until 72 hours and 2 witness handles. The first valid final claim wins. 3 user .aziel names per handle, plus 4 reserved hub-mirror slots that are not user-nameable. Self-certifying <handle>.aziel is final immediately. Forks, rollback, and a 4th user name are refused.",
         tags: ["mesh"],
         responses: {
           "200": { description: "Name anchored" },
           "400": { description: "FED-MESH-FORK, FED-MESH-NAME-TAKEN, or FED-MESH-DNS" },
           "429": { description: "FED-MESH-NAME-CAP" },
         },
+      },
+    },
+    "/v1/mesh/relay/restore": {
+      post: {
+        operationId: "fed_mesh_restore",
+        summary: "Restore one reserved hub-mirror slot (ae, corpus, godlock, hdj). The object hash must already be in this relay's verified cache. Bytes are not accepted on this act. Does not change MirageGrid Cap-7 factory names.",
+        tags: ["mesh"],
+        responses: { "200": { description: "Mirror anchored" }, "400": { description: "FED-MESH-BAD-INPUT or FED-MESH-FORK" }, "404": { description: "FED-MESH-NO-OBJECT" } },
+      },
+    },
+    "/v1/mesh/relay/slot": {
+      get: {
+        operationId: "fed_mesh_slot_read",
+        summary: "Reserved hub-mirror slots for one handle (?handle=). Four slots, not user-nameable. GET never enables.",
+        tags: ["mesh"],
+        responses: { "200": { description: "Slot table" }, "400": { description: "FED-MESH-ISOLATED or bad handle" } },
+      },
+    },
+    "/v1/mesh/relay/isolation": {
+      get: {
+        operationId: "fed_mesh_isolation_read",
+        summary: "Isolation record for one handle. Reason code and evidence hash. Content bytes are not stored. GET never enables.",
+        tags: ["mesh"],
+        responses: { "200": { description: "Isolation record" }, "404": { description: "No isolation record" } },
+      },
+      post: {
+        operationId: "fed_mesh_isolation",
+        summary: "Self-signed isolation for this handle. Reason is NUDITY, CHILD, HATE, or CSAM. Evidence is a hash. A different handle cannot isolate this one.",
+        tags: ["mesh"],
+        responses: { "200": { description: "Isolation anchored" }, "400": { description: "FED-MESH-BAD-INPUT" } },
+      },
+    },
+    "/v1/mesh/relay/appeal": {
+      post: {
+        operationId: "fed_mesh_appeal",
+        summary: "Signed appeal. Requests a re-check of the named isolation. applied is false. Isolation remains.",
+        tags: ["mesh"],
+        responses: { "200": { description: "Appeal stored" }, "400": { description: "No isolation record" } },
       },
     },
     "/v1/mesh/relay/ref": {

@@ -94,28 +94,28 @@
     }
   },
   "name_over_cap": {
-    "cap": 7,
+    "cap": 3,
     "code": "FED-MESH-NAME-CAP",
     "record": {
       "v": "FED-MESH-1.0",
       "kind": "name",
       "handle": "#CPV0CWYPXP4",
       "public_key": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
-      "name": "name-8.aziel",
+      "name": "name-4.aziel",
       "owner": "#CPV0CWYPXP4",
       "target": {
         "type": "hash",
         "value": "f56487a629550848508cbd6305d814f6008a1705ab4e215d926f6fda5e9c94dc"
       },
       "expires": null,
-      "seq": 9,
-      "prev": "a78075c00b23fbe1d7cf2449d7dc4ac3f099bb9fa568719f1e814f5e6566dc2d",
+      "seq": 5,
+      "prev": "4ab885ab54ae5c5a26fbb40d9926ca79c35f6378ae997d73901655353bb46576",
       "prev_record": "0000000000000000000000000000000000000000000000000000000000000000",
-      "sig": "_UUBNgX4qVjQOPWDmf-C-5xT0krP_lB_x8XJbGot5YybugtMnqzODj3ds7ZwxiLkTQbZkMajCYDlIkeqVB21Aw",
+      "sig": "_QlyljRmoQCqqovzy5EcvlNeoVnVTCAQGjBAZA98ztfzepMgZ2zrfyocAvcJWhIuLZZKbBaF-Tg6jv85dT87BQ",
       "pow": {
-        "nonce": "1b9",
+        "nonce": "88",
         "bits": 8,
-        "digest": "0045ea16dbf12daf4d61c91a3fa3b188de4e49165efb9569b216da3057312af8"
+        "digest": "002dbf061dd18abda5b2b6dfd0a08a935c2e2ad4a5e40aaff2dafa51539bc6fa"
       }
     }
   },
@@ -168,5 +168,118 @@
     "manifest_sha256": "8bb63ac4cfc5e9906781c09c7eb60e222c5cdd4fecd8d39c6c459b29fa9c2d1a",
     "sig": "9bMxW9h4PihQzDE5AWWSN9k4UFsGnBIvqA7XYvCCeVKLIuHUXeidBBLJTWLvMd_0UEKynH-ALEFVIKLmVIOTDA"
   },
-  "airgap_manifest_sha256": "8bb63ac4cfc5e9906781c09c7eb60e222c5cdd4fecd8d39c6c459b29fa9c2d1a"
+  "airgap_manifest_sha256": "8bb63ac4cfc5e9906781c09c7eb60e222c5cdd4fecd8d39c6c459b29fa9c2d1a",
+  "name_block": {
+    "code": "FED-MESH-NAME-BLOCK",
+    "reason": "NAME-BLOCK",
+    "evidence_hash": "c73c95876863dff6aa06f98e849e1b565a7f8eede5a9dbfc7ee6afa6a50742c9",
+    "content_stored": false,
+    "blocklist": "FED-MESH-BLOCKLIST-1",
+    "record": {
+      "v": "FED-MESH-1.0",
+      "kind": "name",
+      "handle": "#CPV0CWYPXP4",
+      "public_key": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+      "name": "porn.aziel",
+      "owner": "#CPV0CWYPXP4",
+      "target": {
+        "type": "hash",
+        "value": "f56487a629550848508cbd6305d814f6008a1705ab4e215d926f6fda5e9c94dc"
+      },
+      "expires": null,
+      "seq": 2,
+      "prev": "11a622e89de2b80c48ffee9a6f9efe13e857e6643e539617c9dd481c0b36904d",
+      "prev_record": "0000000000000000000000000000000000000000000000000000000000000000",
+      "sig": "ro20II1C29PMvcoy-3HpcwOAOqJqGGfLHA-2z9HSGP42MB-QN_-3SWIqbsOQzpZ_KZ0g92msKOz1S1hC1oUpAw",
+      "pow": {
+        "nonce": "84",
+        "bits": 8,
+        "digest": "00ec35d9298380d3499c89b0d6709e85f1803eb66f714cc0c222bcfc3deab58e"
+      }
+    }
+  },
+  "isolation": {
+    "code": "FED-MESH-OK",
+    "reason": "NUDITY",
+    "content_stored": false,
+    "statement_hash": "19368601e687ba923a76811770d65fb0d2af0c1f14953a94869a1dd9a5d67493",
+    "record": {
+      "v": "FED-MESH-1.0",
+      "kind": "isolation",
+      "handle": "#4S11EZW09MD",
+      "public_key": "uvxxvq06xeS2PpyCFu5xo0quxlci7tvKcotOmzzM45Y",
+      "subject": "#4S11EZW09MD",
+      "reason": "NUDITY",
+      "check": "image-nudity",
+      "model": "absent",
+      "evidence_hash": "f56487a629550848508cbd6305d814f6008a1705ab4e215d926f6fda5e9c94dc",
+      "seq": 2,
+      "prev": "44128acab4947759e6e581661e6e8f056a938ab6639bb1afbbc8e6dbeb7b8904",
+      "sig": "jqZRZDoElZHknWdIGzR7x9X138tL91sJZzbhWLnImLij24-eFjKzdtxIo4rXgDaBf247-NBC7oYy8mwBMeXgDw"
+    }
+  },
+  "appeal": {
+    "applied": false,
+    "isolation_remains": true,
+    "statement_hash": "762a17b6a1e209ddcb6ef0740eede2d89e892217964ae372dcc5628a3b8ddcd8",
+    "record": {
+      "v": "FED-MESH-1.0",
+      "kind": "appeal",
+      "handle": "#4S11EZW09MD",
+      "public_key": "uvxxvq06xeS2PpyCFu5xo0quxlci7tvKcotOmzzM45Y",
+      "isolation_hash": "19368601e687ba923a76811770d65fb0d2af0c1f14953a94869a1dd9a5d67493",
+      "note": "request a re-check",
+      "seq": 3,
+      "prev": "19368601e687ba923a76811770d65fb0d2af0c1f14953a94869a1dd9a5d67493",
+      "sig": "q8Mebxw1F_4ulhPCr_8D5mPR_fDADpSrpF7Xue1Qg_TqEVbSq_YV5nSJ0QbyVDHjx3nc72V9frXHAcFlTPYsDg"
+    }
+  },
+  "restore": {
+    "code": "FED-MESH-OK",
+    "slot": "ae",
+    "hub": "AZ.AzielEliab.AZ",
+    "object_hash": "f56487a629550848508cbd6305d814f6008a1705ab4e215d926f6fda5e9c94dc",
+    "verified": true,
+    "statement_hash": "2c88e4a8b4a1ce633abda1e92ce02b92eab783d02593c358db519a32f77f9f41",
+    "record": {
+      "v": "FED-MESH-1.0",
+      "kind": "restore",
+      "handle": "#CPV0CWYPXP4",
+      "public_key": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+      "slot": "ae",
+      "hub": "AZ.AzielEliab.AZ",
+      "object_hash": "f56487a629550848508cbd6305d814f6008a1705ab4e215d926f6fda5e9c94dc",
+      "prev_slot": "0000000000000000000000000000000000000000000000000000000000000000",
+      "seq": 2,
+      "prev": "11a622e89de2b80c48ffee9a6f9efe13e857e6643e539617c9dd481c0b36904d",
+      "sig": "mBRhUmaRrrv6zEbp94i4tQALJ0CO9VOlnUtKr9yVh95sYT1hRv_5JBzhLjP0lpBSIWkqEs4O5t6bSOcOOsoFCg"
+    }
+  },
+  "slots": {
+    "user_slot_cap": 3,
+    "reserved_slot_cap": 4,
+    "reserved": [
+      {
+        "slot": "ae",
+        "hub": "AZ.AzielEliab.AZ",
+        "origin": "https://www.azieleliab.com/"
+      },
+      {
+        "slot": "corpus",
+        "hub": "AZ.AzielCorpusLibrary.AZ",
+        "origin": "https://www.azielcorpuslibrary.net/"
+      },
+      {
+        "slot": "godlock",
+        "hub": "AZ.Godlock.AZ",
+        "origin": "https://godlock.uk/"
+      },
+      {
+        "slot": "hdj",
+        "hub": "AZ.HeDidntJump.AZ",
+        "origin": "https://www.hedidntjump.com/"
+      }
+    ],
+    "blocklist_version": "FED-MESH-BLOCKLIST-1"
+  }
 }

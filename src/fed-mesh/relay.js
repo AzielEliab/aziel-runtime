@@ -9,7 +9,7 @@ import { append as chainlockAppend } from "../chainlock/ops.js";
 import { storeFor } from "../chainlock/store.js";
 import { append as temporalAppend, genesis as temporalGenesis } from "../engines/temporallock/engine.js";
 import { b64urlToBytes, bytesToHex, canonicalHandle, handleBody, hashStatement, isHex64, publicKeyMatchesHandle, sha256Bytes } from "./codec.js";
-import { verifyAirgapBundle, verifyNamePow } from "./guard.js";
+import { nameBlockHit, verifyAirgapBundle, verifyNamePow } from "./guard.js";
 import { verifyObject } from "./identity.js";
 import {
   BATCH_RING,
@@ -29,12 +29,17 @@ import {
   MAX_ROLLUP_BYTES,
   AZ_DNS_RULE,
   AZIEL_NAME_RE,
+  BLOCKLIST_VERSION,
+  CONTENT_ISOLATION_REASONS,
   MAX_SYNC_ACTS,
   MSG_PER_MIN,
   PEER_ROUTE_PER_MIN,
   NAME_CAP,
   NAME_PENDING_MS,
   NAME_POW_BITS,
+  RESERVED_SLOTS,
+  RESERVED_SLOT_CAP,
+  USER_SLOT_CAP,
   OBJECT_CACHE_BYTES,
   OBJECT_CACHE_CAP,
   REF_NAME_RE,
@@ -74,6 +79,9 @@ const ALLOWED = {
   quarantine: ["v", "kind", "handle", "public_key", "peer", "decision", "seq", "prev", "sig"],
   island: ["v", "kind", "handle", "public_key", "mode", "seq", "prev", "sig"],
   "airgap-bundle": ["v", "kind", "handle", "public_key", "manifest", "manifest_sha256", "sig"],
+  restore: ["v", "kind", "handle", "public_key", "slot", "hub", "object_hash", "prev_slot", "seq", "prev", "sig"],
+  isolation: ["v", "kind", "handle", "public_key", "subject", "reason", "check", "model", "evidence_hash", "seq", "prev", "sig"],
+  appeal: ["v", "kind", "handle", "public_key", "isolation_hash", "note", "seq", "prev", "sig"],
 };
 
 const defaultState = createRelayState(null);
@@ -305,6 +313,47 @@ function statementFor(kind, body) {
       prev_record: body.prev_record,
     };
   }
+  if (kind === "restore") {
+    return {
+      v: FED_SPEC,
+      kind: "restore",
+      handle: body.handle,
+      public_key: body.public_key,
+      slot: body.slot,
+      hub: body.hub,
+      object_hash: body.object_hash,
+      prev_slot: body.prev_slot,
+      seq: body.seq,
+      prev: body.prev,
+    };
+  }
+  if (kind === "isolation") {
+    return {
+      v: FED_SPEC,
+      kind: "isolation",
+      handle: body.handle,
+      public_key: body.public_key,
+      subject: body.subject,
+      reason: body.reason,
+      check: body.check,
+      model: body.model,
+      evidence_hash: body.evidence_hash,
+      seq: body.seq,
+      prev: body.prev,
+    };
+  }
+  if (kind === "appeal") {
+    return {
+      v: FED_SPEC,
+      kind: "appeal",
+      handle: body.handle,
+      public_key: body.public_key,
+      isolation_hash: body.isolation_hash,
+      note: body.note,
+      seq: body.seq,
+      prev: body.prev,
+    };
+  }
   const allow = ALLOWED[kind] || [];
   const out = {};
   for (const key of allow) {
@@ -381,7 +430,21 @@ async function guardHandle(state, handle, kind) {
       network_cutoff: false,
     });
   }
-  if (kind !== "island") {
+  if (kind !== "appeal" && kind !== "island") {
+    const ethics = (await loadKey(state, "ethics", {})) || {};
+    const row = ethics[handle];
+    if (row) {
+      return fail("FED-MESH-ISOLATED", "This handle is isolated on this relay. Names and objects are not relayed. The local node keeps its own data. Appeal and island receipts are still accepted.", {
+        reason: row.reason,
+        check: row.check,
+        evidence_hash: row.evidence_hash,
+        content_stored: false,
+        local_data_deleted: false,
+        radios_changed: false,
+      });
+    }
+  }
+  if (kind !== "island" && kind !== "appeal") {
     const islands = (await loadKey(state, "islands", {})) || {};
     const row = islands[handle];
     if (row && row.mode === "off") {
@@ -560,6 +623,9 @@ export async function relayCite(state = defaultState) {
       object_cache_bytes: OBJECT_CACHE_BYTES,
       max_sync_acts: MAX_SYNC_ACTS,
       name_cap: NAME_CAP,
+      user_slot_cap: USER_SLOT_CAP,
+      reserved_slot_cap: RESERVED_SLOT_CAP,
+      blocklist_version: BLOCKLIST_VERSION,
       name_pow_bits: NAME_POW_BITS,
       name_pending_ms: NAME_PENDING_MS,
       witness_k: WITNESS_K,
@@ -1180,6 +1246,14 @@ export async function relayObjectGet(state, hash) {
   const cache = cacheShape(await loadKey(state, "objects", emptyCache()));
   const row = cache.by_hash[id];
   if (!row || row.verified === false) return fail("FED-MESH-NO-OBJECT", "This relay has no public object for that hash.", { http_status: 404 });
+  const ethics = (await loadKey(state, "ethics", {})) || {};
+  if (row.signer && ethics[row.signer]) {
+    return fail("FED-MESH-ISOLATED", "This relay does not serve objects signed by an isolated handle.", {
+      reason: ethics[row.signer].reason,
+      evidence_hash: ethics[row.signer].evidence_hash,
+      content_stored: false,
+    });
+  }
   return ok({ op: "object-fetch", ...objectFetchResponse(id, row.body_b64), found: true, verified: true, executable: false });
 }
 
@@ -1405,13 +1479,19 @@ export async function relayName(state, body, now = Date.now()) {
         pow_bits: NAME_POW_BITS,
       });
     }
+    const hit = nameBlockHit(parsed.label);
+    if (hit && !releasing) {
+      return refuseBlockedName(state, ready, hit, parsed.name, body.seq, now);
+    }
   }
   const ownerAlready = [...(bucket.pending || []), finalRow].some((row) => row && row.owner === owner && holdsSlot(row, now) && !row.self_certifying);
   const gaining = !parsed.self && !releasing && !ownerAlready;
   if (gaining && friendlyHeld(names, owner, now) >= NAME_CAP) {
-    return fail("FED-MESH-NAME-CAP", `A handle may hold ${NAME_CAP} friendly .aziel names. The self-certifying name does not count.`, {
+    return fail("FED-MESH-NAME-CAP", `A handle may hold ${NAME_CAP} user .aziel names. Four reserved hub-mirror slots are not user-nameable. The self-certifying name does not count.`, {
       http_status: 429,
       cap: NAME_CAP,
+      user_slot_cap: USER_SLOT_CAP,
+      reserved_slot_cap: RESERVED_SLOT_CAP,
     });
   }
   const roster = await loadRoster(state);
@@ -1478,12 +1558,20 @@ function shownRow(bucket, witnesses, now) {
 export async function relayNameRead(state, query = {}, now = Date.now()) {
   const names = (await loadKey(state, "names", {})) || {};
   const witnesses = (await loadKey(state, "witnesses", {})) || {};
+  const ethics = (await loadKey(state, "ethics", {})) || {};
   if (query.name) {
     const parsed = parseAzielName(query.name);
     if (!parsed.ok) return parsed;
     const bucket = asBucket(names[parsed.name]);
     const row = shownRow(bucket, witnesses, now);
     if (!row) return fail("FED-MESH-NO-NAME", "This relay has no name record.", { http_status: 404 });
+    if (row.owner && ethics[row.owner]) {
+      return fail("FED-MESH-ISOLATED", "This relay does not resolve a name held by an isolated handle.", {
+        reason: ethics[row.owner].reason,
+        evidence_hash: ethics[row.owner].evidence_hash,
+        content_stored: false,
+      });
+    }
     return ok({
       op: "name",
       record: nameRow(row, now, witnesses),
@@ -1494,6 +1582,13 @@ export async function relayNameRead(state, query = {}, now = Date.now()) {
   }
   const id = canonicalHandle(query.handle);
   if (!id) return fail("FED-MESH-BAD-HANDLE", "Pass name= or a #handle.");
+  if (ethics[id]) {
+    return fail("FED-MESH-ISOLATED", "This relay does not resolve names held by an isolated handle.", {
+      reason: ethics[id].reason,
+      evidence_hash: ethics[id].evidence_hash,
+      content_stored: false,
+    });
+  }
   const owned = [];
   for (const raw of Object.values(names)) {
     const bucket = asBucket(raw);
@@ -1593,6 +1688,13 @@ export async function relayWitness(state, body, now = Date.now()) {
     claim = rows.find((row) => row && row.statement_hash === subject_hash) || claim;
   }
   if (!claim) return fail("FED-MESH-NO-NAME", "This relay has no name record with that hash.", { http_status: 404 });
+  const ethics = (await loadKey(state, "ethics", {})) || {};
+  if (ethics[claim.signer] || (claim.owner && ethics[claim.owner])) {
+    return fail("FED-MESH-ISOLATED", "This relay does not witness a name from an isolated handle.", {
+      reason: (ethics[claim.signer] || ethics[claim.owner]).reason,
+      content_stored: false,
+    });
+  }
   if (claim.signer === ready.handle || claim.self_certifying) {
     return fail("FED-MESH-WITNESS", "A witness is a different handle. A self-certifying name does not take witnesses.");
   }
@@ -1774,6 +1876,317 @@ export async function relayIslandRead(state, handle) {
   return ok({ op: "island", ...row, radios_changed: false, local_runtime: true });
 }
 
+const CHECK_RE = /^[a-z0-9][a-z0-9._-]{0,63}$/;
+const MODEL_RE = /^[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$/;
+
+function publicIsolation(row) {
+  const out = {
+    subject: row.subject,
+    reason: row.reason,
+    check: row.check,
+    model: row.model,
+    blocklist: row.blocklist || null,
+    evidence_hash: row.evidence_hash,
+    content_stored: false,
+    name_stored: row.name_stored === true,
+    source: row.source,
+    signer: row.signer,
+    statement_hash: row.statement_hash,
+    accepted_at: row.accepted_at,
+    local_data_deleted: false,
+    radios_changed: false,
+    automatic_lift: false,
+  };
+  if (row.name_stored === true && row.reason !== "CSAM" && row.name) out.name = row.name;
+  return out;
+}
+
+async function refuseBlockedName(state, ready, hit, name, seq, now) {
+  const book = (await loadKey(state, "ethics", {})) || {};
+  const csam = hit.reason === "CSAM";
+  if (!book[ready.handle]) {
+    book[ready.handle] = {
+      subject: ready.handle,
+      reason: hit.reason,
+      check: "name-blocklist",
+      model: "absent",
+      blocklist: BLOCKLIST_VERSION,
+      evidence_hash: ready.link,
+      content_stored: false,
+      name_stored: !csam,
+      ...(csam ? {} : { name }),
+      source: "claim",
+      signer: ready.handle,
+      statement_hash: ready.link,
+      accepted_at: now,
+      local_data_deleted: false,
+      radios_changed: false,
+      automatic_lift: false,
+    };
+    await saveKey(state, "ethics", book);
+    await anchor(state, {
+      handle: ready.handle,
+      kind: "isolation",
+      link: ready.link,
+      seq,
+      summary: `isolation ${hit.reason}`,
+    });
+  }
+  const message = csam
+    ? "This name is refused. The relay stores the statement hash only. Operators follow the law in their jurisdiction. In the United States that includes reporting to NCMEC. The name and the bytes are not stored or forwarded."
+    : `This name matches blocklist ${BLOCKLIST_VERSION}. The handle is isolated on this relay. The bytes are not stored.`;
+  return fail("FED-MESH-NAME-BLOCK", message, {
+    reason: hit.reason,
+    check: "name-blocklist",
+    blocklist: BLOCKLIST_VERSION,
+    evidence_hash: ready.link,
+    content_stored: false,
+    name_stored: !csam,
+    isolated: true,
+    local_data_deleted: false,
+    radios_changed: false,
+    ...(csam ? {} : { token: hit.token }),
+  });
+}
+
+export async function relayRestore(state, body, now = Date.now()) {
+  const ready = await prepare(state, body, "restore", now);
+  if (!ready.ok) return ready;
+  const seqErr = requireSeq(body);
+  if (seqErr) return seqErr;
+  const slotId = String(body.slot || "").toLowerCase();
+  const slot = RESERVED_SLOTS.find((row) => row.slot === slotId);
+  if (!slot) {
+    return fail("FED-MESH-BAD-INPUT", "slot is one of ae, corpus, godlock, hdj. Reserved slots are not user-nameable.");
+  }
+  if (String(body.hub || "") !== slot.hub) {
+    return fail("FED-MESH-BAD-INPUT", `slot ${slot.slot} mirrors ${slot.hub}.`);
+  }
+  const object_hash = String(body.object_hash || "").toLowerCase();
+  if (!isHex64(object_hash)) return fail("FED-MESH-BAD-INPUT", "object_hash is 64 lowercase hex characters.");
+  const prev_slot = String(body.prev_slot || "").toLowerCase();
+  if (!isHex64(prev_slot)) return fail("FED-MESH-BAD-INPUT", "prev_slot is 64 lowercase hex characters.");
+  const cache = cacheShape(await loadKey(state, "objects", emptyCache()));
+  const cached = cache.by_hash[object_hash];
+  if (!cached || cached.verified !== true) {
+    return fail("FED-MESH-NO-OBJECT", "Restore needs an object this relay already hash-verified. The bytes are not accepted on this act.", { http_status: 404 });
+  }
+  const ethics = (await loadKey(state, "ethics", {})) || {};
+  if (cached.signer && ethics[cached.signer]) {
+    return fail("FED-MESH-ISOLATED", "This relay does not restore an object signed by an isolated handle.", {
+      reason: ethics[cached.signer].reason,
+      content_stored: false,
+    });
+  }
+  const mirrors = (await loadKey(state, "mirrors", {})) || {};
+  const mine = mirrors[ready.handle] && typeof mirrors[ready.handle] === "object" ? mirrors[ready.handle] : {};
+  const prior = mine[slot.slot] || null;
+  if (prior) {
+    if (prev_slot !== prior.statement_hash) {
+      return fail("FED-MESH-FORK", "prev_slot does not match the stored mirror for this reserved slot.");
+    }
+  } else if (prev_slot !== ZERO_HASH) {
+    return fail("FED-MESH-FORK", "The first mirror for a reserved slot uses 64 zeros as prev_slot.");
+  }
+  const committed = await commitChain(state, ready.handle, body.seq, body.prev, ready.link, now, { public_key: ready.public_key });
+  if (!committed.ok) return committed;
+  mine[slot.slot] = {
+    slot: slot.slot,
+    hub: slot.hub,
+    origin: slot.origin,
+    object_hash,
+    prev_slot,
+    statement_hash: ready.link,
+    signer: ready.handle,
+    object_signer: cached.signer || "",
+    verified: true,
+    executable: false,
+    accepted_at: now,
+    seq: body.seq,
+  };
+  mirrors[ready.handle] = mine;
+  await saveKey(state, "mirrors", mirrors);
+  const anchored = await anchor(state, {
+    handle: ready.handle,
+    kind: "restore",
+    link: ready.link,
+    seq: body.seq,
+    summary: `restore ${slot.slot}`,
+  });
+  return ok({
+    op: "restore",
+    handle: ready.handle,
+    statement_hash: ready.link,
+    slot: slot.slot,
+    hub: slot.hub,
+    origin: slot.origin,
+    object_hash,
+    verified: true,
+    signed: true,
+    executable: false,
+    user_nameable: false,
+    chainlock: anchored.chainlock,
+    timeslate_hash: anchored.timeslate && anchored.timeslate.timeslate_hash,
+  });
+}
+
+export async function relaySlotRead(state, handle) {
+  const id = canonicalHandle(handle);
+  if (!id) return fail("FED-MESH-BAD-HANDLE", "Pass a #handle.");
+  const ethics = (await loadKey(state, "ethics", {})) || {};
+  if (ethics[id]) {
+    return fail("FED-MESH-ISOLATED", "This relay does not serve slot mirrors for an isolated handle.", {
+      reason: ethics[id].reason,
+      evidence_hash: ethics[id].evidence_hash,
+      content_stored: false,
+    });
+  }
+  const mirrors = (await loadKey(state, "mirrors", {})) || {};
+  const mine = mirrors[id] && typeof mirrors[id] === "object" ? mirrors[id] : {};
+  const names = (await loadKey(state, "names", {})) || {};
+  return ok({
+    op: "slots",
+    handle: id,
+    user_slot_cap: USER_SLOT_CAP,
+    reserved_slot_cap: RESERVED_SLOT_CAP,
+    self_certifying_counts: false,
+    reserved: RESERVED_SLOTS.map((slot) => ({
+      slot: slot.slot,
+      hub: slot.hub,
+      origin: slot.origin,
+      user_nameable: false,
+      mirror: mine[slot.slot] || null,
+    })),
+    friendly_held: friendlyHeld(names, id, Date.now()),
+    friendly_cap: NAME_CAP,
+    factory_cap7: "MirageGrid Cap-7 .az factory names are a separate layer. This read does not change them.",
+  });
+}
+
+export async function relayIsolation(state, body, now = Date.now()) {
+  const ready = await prepare(state, body, "isolation", now);
+  if (!ready.ok) return ready;
+  const seqErr = requireSeq(body);
+  if (seqErr) return seqErr;
+  const subject = canonicalHandle(body.subject);
+  if (!subject) return fail("FED-MESH-BAD-HANDLE", "subject must be a #handle.");
+  if (subject !== ready.handle) {
+    return fail("FED-MESH-BAD-INPUT", "This relay does not accept an isolation signed by a different handle. A name-block isolation is recorded from the claimant's own signed name.");
+  }
+  const reason = String(body.reason || "");
+  if (!CONTENT_ISOLATION_REASONS.includes(reason)) {
+    return fail("FED-MESH-BAD-INPUT", "A self-signed isolation reason is NUDITY, CHILD, HATE, or CSAM. NAME-BLOCK comes from the name claim. A missing classifier blocks publish on the node and does not isolate the handle.");
+  }
+  const check = String(body.check || "");
+  if (!CHECK_RE.test(check)) return fail("FED-MESH-BAD-INPUT", "check names the local check that fired, 1 to 64 characters.");
+  const model = String(body.model || "");
+  if (!MODEL_RE.test(model)) return fail("FED-MESH-BAD-INPUT", "model is a version string, or absent when the classifier is missing.");
+  const evidence_hash = String(body.evidence_hash || "").toLowerCase();
+  if (!isHex64(evidence_hash)) return fail("FED-MESH-BAD-INPUT", "evidence_hash is 64 lowercase hex characters. Send the hash, not the bytes.");
+  const committed = await commitChain(state, ready.handle, body.seq, body.prev, ready.link, now, { public_key: ready.public_key });
+  if (!committed.ok) return committed;
+  const book = (await loadKey(state, "ethics", {})) || {};
+  if (!book[ready.handle]) {
+    book[ready.handle] = {
+      subject,
+      reason,
+      check,
+      model,
+      blocklist: null,
+      evidence_hash,
+      content_stored: false,
+      name_stored: false,
+      source: "self",
+      signer: ready.handle,
+      statement_hash: ready.link,
+      accepted_at: now,
+      local_data_deleted: false,
+      radios_changed: false,
+      automatic_lift: false,
+    };
+    await saveKey(state, "ethics", book);
+  }
+  const anchored = await anchor(state, {
+    handle: ready.handle,
+    kind: "isolation",
+    link: ready.link,
+    seq: body.seq,
+    summary: `isolation ${reason}`,
+  });
+  return ok({
+    op: "isolation",
+    ...publicIsolation(book[ready.handle]),
+    chainlock: anchored.chainlock,
+    timeslate_hash: anchored.timeslate && anchored.timeslate.timeslate_hash,
+  });
+}
+
+export async function relayIsolationRead(state, handle) {
+  const id = canonicalHandle(handle);
+  if (!id) return fail("FED-MESH-BAD-HANDLE", "Pass a #handle.");
+  const book = (await loadKey(state, "ethics", {})) || {};
+  const row = book[id];
+  if (!row) return fail("FED-MESH-NO-NAME", "This relay has no isolation record for that handle.", { http_status: 404 });
+  const appeals = (await loadKey(state, "appeals", {})) || {};
+  return ok({
+    op: "isolation",
+    ...publicIsolation(row),
+    appeals: appeals[id] || [],
+    applied: false,
+    automatic_lift: false,
+  });
+}
+
+export async function relayAppeal(state, body, now = Date.now()) {
+  const ready = await prepare(state, body, "appeal", now);
+  if (!ready.ok) return ready;
+  const seqErr = requireSeq(body);
+  if (seqErr) return seqErr;
+  const isolation_hash = String(body.isolation_hash || "").toLowerCase();
+  if (!isHex64(isolation_hash)) return fail("FED-MESH-BAD-INPUT", "isolation_hash is 64 lowercase hex characters.");
+  const note = String(body.note || "");
+  if (note.length < 1 || note.length > 160) return fail("FED-MESH-BAD-INPUT", "note is 1 to 160 characters.");
+  const book = (await loadKey(state, "ethics", {})) || {};
+  const row = book[ready.handle];
+  if (!row) return fail("FED-MESH-BAD-INPUT", "This handle has no isolation record. An appeal does not clear one.");
+  if (isolation_hash !== row.statement_hash && isolation_hash !== row.evidence_hash) {
+    return fail("FED-MESH-BAD-INPUT", "isolation_hash does not match the stored isolation record.");
+  }
+  const committed = await commitChain(state, ready.handle, body.seq, body.prev, ready.link, now, { public_key: ready.public_key });
+  if (!committed.ok) return committed;
+  const appeals = (await loadKey(state, "appeals", {})) || {};
+  const list = Array.isArray(appeals[ready.handle]) ? appeals[ready.handle] : [];
+  list.push({
+    handle: ready.handle,
+    isolation_hash,
+    note,
+    statement_hash: ready.link,
+    accepted_at: now,
+    applied: false,
+  });
+  appeals[ready.handle] = list;
+  await saveKey(state, "appeals", appeals);
+  const anchored = await anchor(state, {
+    handle: ready.handle,
+    kind: "appeal",
+    link: ready.link,
+    seq: body.seq,
+    summary: "appeal",
+  });
+  return ok({
+    op: "appeal",
+    handle: ready.handle,
+    statement_hash: ready.link,
+    isolation_hash,
+    applied: false,
+    isolation_remains: true,
+    recheck_requested: true,
+    automatic_lift: false,
+    chainlock: anchored.chainlock,
+    timeslate_hash: anchored.timeslate && anchored.timeslate.timeslate_hash,
+  });
+}
+
 export async function relayAirgap(state, body) {
   void state;
   const checked = await verifyAirgapBundle(body);
@@ -1831,6 +2244,8 @@ export async function dispatchRelay(method, pathname, body, state = defaultState
   if (path === "/v1/mesh/relay/advisory" && (m === "GET" || m === "HEAD")) return relayAdvisoryRead(state, opts.handle || "");
   if (path === "/v1/mesh/relay/quarantine" && (m === "GET" || m === "HEAD")) return relayQuarantineRead(state, opts.handle || "");
   if (path === "/v1/mesh/relay/island" && (m === "GET" || m === "HEAD")) return relayIslandRead(state, opts.handle || "");
+  if (path === "/v1/mesh/relay/slot" && (m === "GET" || m === "HEAD")) return relaySlotRead(state, opts.handle || "");
+  if (path === "/v1/mesh/relay/isolation" && (m === "GET" || m === "HEAD")) return relayIsolationRead(state, opts.handle || "");
   if (m !== "POST") return fail("FED-MESH-BAD-INPUT", "This relay path accepts POST. GET /v1/mesh/relay only cites.", { http_status: 405 });
   if (path.endsWith("/register")) return relayRegister(state, body, now);
   if (path.endsWith("/heartbeat")) return relayHeartbeat(state, body, now);
@@ -1854,6 +2269,9 @@ export async function dispatchRelay(method, pathname, body, state = defaultState
   if (path.endsWith("/quarantine")) return relayQuarantine(state, body, now);
   if (path.endsWith("/island")) return relayIsland(state, body, now);
   if (path.endsWith("/airgap")) return relayAirgap(state, body);
+  if (path.endsWith("/restore")) return relayRestore(state, body, now);
+  if (path.endsWith("/isolation")) return relayIsolation(state, body, now);
+  if (path.endsWith("/appeal")) return relayAppeal(state, body, now);
   return fail("FED-MESH-BAD-INPUT", "Unknown relay path.");
 }
 
@@ -1895,5 +2313,10 @@ export async function runRelayOp(op, payload, env, opts = {}) {
   if (op === "relay-island") return relayIsland(state, body, now);
   if (op === "relay-island-read") return relayIslandRead(state, body.handle);
   if (op === "relay-airgap") return relayAirgap(state, body);
+  if (op === "relay-restore") return relayRestore(state, body, now);
+  if (op === "relay-slot-read") return relaySlotRead(state, body.handle);
+  if (op === "relay-isolation") return relayIsolation(state, body, now);
+  if (op === "relay-isolation-read") return relayIsolationRead(state, body.handle);
+  if (op === "relay-appeal") return relayAppeal(state, body, now);
   return fail("FED-MESH-BAD-INPUT", "Unknown relay op.");
 }

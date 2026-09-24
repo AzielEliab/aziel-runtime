@@ -6,7 +6,7 @@ This is the shared protocol for a multi-user mesh. The runtime Worker is one rel
 
 FragGate stays the single door. This paper does not add an MCP tool. Relay ops are FragGate ops on slug `mesh` (`relay-register`, `relay-ref`, `relay-sync`, and the rest) and HTTP under `/v1/mesh/relay/`.
 
-Test vectors live in [`fixtures/fed-mesh-vectors.json`](../../fixtures/fed-mesh-vectors.json). `scripts/verify-fed-mesh.mjs` recomputes them, including a name claim, a transfer, a refused eighth friendly name, an equivocation pair, and an airgap manifest.
+Test vectors live in [`fixtures/fed-mesh-vectors.json`](../../fixtures/fed-mesh-vectors.json). `scripts/verify-fed-mesh.mjs` recomputes them, including a name claim, a transfer, a refused fourth user name, a blocklist refusal, a self-signed isolation, an appeal, a reserved-slot restore, an equivocation pair, and an airgap manifest.
 
 ## 1. Inner core and outer mesh
 
@@ -171,13 +171,13 @@ ChainLock caller is `fed-` plus the lowercase handle body, chain `mesh`, kind `n
 
 ### Self-certifying name
 
-`<handle>.aziel` is the handle body in lowercase Crockford, plus `.aziel`. The label matches `^[0-9a-hjkmnp-tv-z]{11}$`. `#CPV0CWYPXP4` owns `cpv0cwypxp4.aziel`. The signer and the owner are that handle. A transfer or a release of that name is `FED-MESH-HANDLE-MISMATCH`. The self-certifying name does not count toward the cap of 7. A label of 11 Crockford characters is that handle's slot.
+`<handle>.aziel` is the handle body in lowercase Crockford, plus `.aziel`. The label matches `^[0-9a-hjkmnp-tv-z]{11}$`. `#CPV0CWYPXP4` owns `cpv0cwypxp4.aziel`. The signer and the owner are that handle. A transfer or a release of that name is `FED-MESH-HANDLE-MISMATCH`. The self-certifying name does not count toward the 3 user slots. A label of 11 Crockford characters is that handle's own name, not one of the 4 reserved hub-mirror slots in section 12.
 
 ### Friendly names
 
 A friendly claim is stored as `pending`. It becomes `final` only after the proof-of-work, the age window, and the witness count in section 11. The first valid final claim wins. Until then another valid claim may sit beside it. A later signer against a live final owner receives `FED-MESH-NAME-TAKEN`. The race is per relay. AZBrowser resolves final records from the ledger it holds and shows pending records as pending.
 
-A handle may hold 7 live friendly names. The eighth is `FED-MESH-NAME-CAP` (HTTP 429). An expired row and a released row no longer count. The self-certifying name still fits after the cap is full.
+A handle may hold 3 live user names. The fourth is `FED-MESH-NAME-CAP` (HTTP 429). An expired row and a released row no longer count. The self-certifying name still fits after the cap is full. The 4 reserved hub-mirror slots in section 12 are not user names and do not count.
 
 ### Transfer and release
 
@@ -253,7 +253,7 @@ The same owner signs `library.aziel` over to `#4S11EZW09MD`. `prev` and `prev_re
 
 ### Refused over-cap vector
 
-On a fresh relay the same handle registers, then claims `name-1.aziel` through `name-7.aziel`. This eighth friendly claim is signed. The relay answers `FED-MESH-NAME-CAP` and does not store it. The handle sequence stays at the tip after `name-7`.
+On a fresh relay the same handle registers, then claims `name-1.aziel` through `name-3.aziel`. This fourth user claim is signed. The relay answers `FED-MESH-NAME-CAP` and does not store it. The handle sequence stays at the tip after `name-3`.
 
 ```json
 {
@@ -261,21 +261,22 @@ On a fresh relay the same handle registers, then claims `name-1.aziel` through `
   "kind": "name",
   "handle": "#CPV0CWYPXP4",
   "public_key": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
-  "name": "name-8.aziel",
+  "name": "name-4.aziel",
   "owner": "#CPV0CWYPXP4",
   "target": {
     "type": "hash",
     "value": "f56487a629550848508cbd6305d814f6008a1705ab4e215d926f6fda5e9c94dc"
   },
   "expires": null,
-  "seq": 9,
-  "prev": "a78075c00b23fbe1d7cf2449d7dc4ac3f099bb9fa568719f1e814f5e6566dc2d",
+  "seq": 5,
+  "prev": "4ab885ab54ae5c5a26fbb40d9926ca79c35f6378ae997d73901655353bb46576",
   "prev_record": "0000000000000000000000000000000000000000000000000000000000000000",
-  "sig": "_UUBNgX4qVjQOPWDmf-C-5xT0krP_lB_x8XJbGot5YybugtMnqzODj3ds7ZwxiLkTQbZkMajCYDlIkeqVB21Aw"
+  "sig": "_QlyljRmoQCqqovzy5EcvlNeoVnVTCAQGjBAZA98ztfzepMgZ2zrfyocAvcJWhIuLZZKbBaF-Tg6jv85dT87BQ",
+  "pow": { "nonce": "88", "bits": 8, "digest": "002dbf061dd18abda5b2b6dfd0a08a935c2e2ad4a5e40aaff2dafa51539bc6fa" }
 }
 ```
 
-Cap: 7. Code: `FED-MESH-NAME-CAP`.
+User slot cap: 3. Code: `FED-MESH-NAME-CAP`.
 
 ## 6. Relay protocol
 
@@ -310,6 +311,11 @@ HTTP:
 | POST | `/v1/mesh/relay/quarantine` | Signed local peer cut. `network_cutoff` is false |
 | POST | `/v1/mesh/relay/island` | Signed island off or on. Suite radios stay as they are |
 | POST | `/v1/mesh/relay/airgap` | Verify a signed sha256 manifest. Bytes are not stored |
+| POST | `/v1/mesh/relay/restore` | Reserved hub-mirror slot. Object must already be hash-verified here |
+| GET | `/v1/mesh/relay/slot?handle=` | The 4 reserved slots for one handle. Never enables |
+| POST | `/v1/mesh/relay/isolation` | Self-signed isolation. Reason and evidence hash. No bytes |
+| GET | `/v1/mesh/relay/isolation?handle=` | Stored isolation record. Never enables |
+| POST | `/v1/mesh/relay/appeal` | Signed appeal. Requests a re-check. Does not clear isolation |
 | POST | `/v1/mesh/relay/sync` | Late sync |
 | POST | `/v1/mesh/relay/object` | Small public object cache |
 | GET | `/v1/mesh/relay/object?hash=` | Cache read |
@@ -342,7 +348,7 @@ Health is GET `/v1/mesh/relay`. Failover is the node trying its next configured 
 
 ### Quotas
 
-Per-handle signed acts: 30 per minute (`FED-MESH-RATE`, HTTP 429). The window is per isolate, not global. Ordinary HTML GETs are not in this bucket. Ciphertext: 4096 bytes. Rollup changes: 16384 bytes, at most 32 rows. Envelope: 20000 bytes. Inbox and object caps are above. Friendly `.aziel` names: 7 per handle (`FED-MESH-NAME-CAP`, HTTP 429). These are the same budget idea as `mesh_mutate` on the HTTP edge.
+Per-handle signed acts: 30 per minute (`FED-MESH-RATE`, HTTP 429). The window is per isolate, not global. Ordinary HTML GETs are not in this bucket. Ciphertext: 4096 bytes. Rollup changes: 16384 bytes, at most 32 rows. Envelope: 20000 bytes. Inbox and object caps are above. User `.aziel` names: 3 per handle (`FED-MESH-NAME-CAP`, HTTP 429). Reserved hub-mirror slots: 4, not user-nameable. These are the same budget idea as `mesh_mutate` on the HTTP edge.
 
 ### Rollups, roles, multisig, remote tasks
 
@@ -382,7 +388,7 @@ Each instance has its own port, key, handle, and data directory. They speak to r
 - This Worker is not required and is not the only bootstrap. A new node still needs a starting address.
 - The relay never requires plaintext. It also cannot hide routing metadata.
 - Receipts, refs, name records, and digests are signed public copies. They are not end-to-end encrypted.
-- A friendly `.aziel` name is pending until proof-of-work, 72 hours, and 2 witness handles. The first valid final claim wins. A handle holds 7 friendly names. `<handle>.aziel` is self-certifying and final immediately. `.az` stays normal DNS except the Cap-7 and AZ.* allowlist in section 5.1.
+- A friendly `.aziel` name is pending until proof-of-work, 72 hours, and 2 witness handles. The first valid final claim wins. A handle holds 3 user names and 4 reserved hub-mirror slots. `<handle>.aziel` is self-certifying and final immediately. `.az` stays normal DNS except the Cap-7 and AZ.* allowlist in section 5.1. MirageGrid factory names are a separate layer (section 12).
 - Proof-of-work is an 8-bit flood filter. It is not a Sybil solution and not a blockchain. There is no token and no stake.
 - This relay does not execute peer code, does not rank handles, and does not cut one peer off every other peer. Scanners are absent here. Two-hop routing and Tor are node adapters. This relay does not claim zero-knowledge or protection from a state-level adversary.
 - No tenant execution and no private keys on the relay.
@@ -424,7 +430,7 @@ Statement hash: `6d38408d305afb2ae562d3c022c3421fc8819c81d61108d3a8b91e2b8dc7ca7
 
 `NAME_PENDING_MS` is 72 hours (`259200000`). `WITNESS_K` is 2.
 
-A friendly claim is `pending` until both are true: the relay's `accepted_at` is at least 72 hours ago, and at least 2 handles other than the claimant have co-signed that statement hash. The earliest such claim becomes `final`. The first valid final claim wins. A later signer is `FED-MESH-NAME-TAKEN`. Competing pending claims with `prev_record` of 64 zeros are allowed until one is final. The cap of 7 counts pending and final friendly names.
+A friendly claim is `pending` until both are true: the relay's `accepted_at` is at least 72 hours ago, and at least 2 handles other than the claimant have co-signed that statement hash. The earliest such claim becomes `final`. The first valid final claim wins. A later signer is `FED-MESH-NAME-TAKEN`. Competing pending claims with `prev_record` of 64 zeros are allowed until one is final. The cap of 3 counts pending and final user names. Reserved hub-mirror slots do not count.
 
 A witness statement is `{ v, kind: "witness", handle, public_key, subject_hash, subject_kind: "name", seq, prev, sig }`. The witness handle is not the claimant. This Worker verifies and stores the co-sign. It has no private key, so it does not mint one. A self-certifying name is final when the key matches the label. It takes no witnesses and does not use the cap.
 
@@ -488,4 +494,84 @@ The manifest names `objects/local-first` with the `local-first` object hash.
 
 ### What this Worker does not do
 
-qnm-node owns the mandatory body cipher on the daemon, the two-hop opt-in, the Tor bearer, per-peer circuit breakers, enforcement of a local quarantine, the airlock scanner pipeline, airgap file import and export, and the local trust view. AZNet owns claim issuance against this record. AZBrowser resolves final names, shows pending names as pending, and refuses an equivocating handle. Those repos cite this section. The wire formats above are the shared ones.
+qnm-node owns the mandatory body cipher on the daemon, the two-hop opt-in, the Tor bearer, per-peer circuit breakers, enforcement of a local quarantine, the airlock scanner pipeline, airgap file import and export, and the local trust view. AZNet owns claim issuance against this record. AZBrowser resolves final names, shows pending names as pending, and refuses an equivocating handle. Content classifiers, design mode, and the browser UI are those repos (sections 12 and 13). The wire formats above are the shared ones.
+
+## 12. Per-node domain slots (section B)
+
+Each handle has 7 slots on its own node. This is the per-node `.aziel` rule. It does not rename the live MirageGrid global Cap-7 factory names.
+
+| Slot | Kind | Hub | Origin |
+| --- | --- | --- | --- |
+| `ae` | reserved | `AZ.AzielEliab.AZ` | `https://www.azieleliab.com/` |
+| `corpus` | reserved | `AZ.AzielCorpusLibrary.AZ` | `https://www.azielcorpuslibrary.net/` |
+| `godlock` | reserved | `AZ.Godlock.AZ` | `https://godlock.uk/` |
+| `hdj` | reserved | `AZ.HeDidntJump.AZ` | `https://www.hedidntjump.com/` |
+| 3 user slots | user | a claimed `.aziel` name | the owner's target |
+
+The 4 reserved slots mirror the four primary hubs. They are not user-nameable. A custom slot such as `mysite` is `FED-MESH-BAD-INPUT`. If a primary site is down, a node that holds the mirror can serve that signed copy and help bring the site back. Restore copies only an object this relay has already hash-verified. The restore act carries the hash, not the bytes.
+
+User slots are the 3 friendly `.aziel` names in section 5.1. Claim rules are unchanged: proof-of-work, pending until 72 hours and 2 witnesses, first valid final claim, equivocation refused. `<handle>.aziel` is automatic and does not use a user slot.
+
+MirageGrid factory names stay a separate layer. Real factory names are `azgrid`, `azcloak`, `azvault`, `azshift`. Decoys are `azbooth`, `azflag`, `azstandby`. Those `.az` cites, and the AZ.* hub display names, are not FED-MESH name records. This section does not edit `src/cap7-shuffle.js`. The operator may revisit that layer later.
+
+A restore statement is `{ v, kind: "restore", handle, public_key, slot, hub, object_hash, prev_slot, seq, prev, sig }`. `hub` must be the slot's canonical hub. `prev_slot` is 64 zeros for the first mirror, then the previous restore statement hash. A mismatch is `FED-MESH-FORK`. A missing cache entry is `FED-MESH-NO-OBJECT`. An isolated signer is `FED-MESH-ISOLATED`. The stored mirror is verified and not executable. It does not count as a user name.
+
+Pinned restore of slot `ae` for `#CPV0CWYPXP4`, object hash `f56487a629550848508cbd6305d814f6008a1705ab4e215d926f6fda5e9c94dc`, statement hash `2c88e4a8b4a1ce633abda1e92ce02b92eab783d02593c358db519a32f77f9f41`. Signature: `mBRhUmaRrrv6zEbp94i4tQALJ0CO9VOlnUtKr9yVh95sYT1hRv_5JBzhLjP0lpBSIWkqEs4O5t6bSOcOOsoFCg`.
+
+AZBrowser displays the slots. qnm-node hosts the mirror bytes on the node. This relay stores the signed slot index.
+
+## 13. Morality and ethics (section D)
+
+Policy, applied to domain names, site designs, and uploads: no pornography, no pictures of children, and no hate content.
+
+Enforcement on this relay is isolation of the handle. Isolation cuts mesh relay, witness, name resolution, and object fetch for that handle. The node keeps running locally. Isolation does not delete the user's machine data. `local_data_deleted` is false. `radios_changed` is false. Suite presence is unchanged. This is not the roster presence value `isolated`, and it is not a quarantine receipt. Quarantine stays a local peer note with `network_cutoff: false`.
+
+### Name blocklist
+
+Version `FED-MESH-BLOCKLIST-1`. Checked on a friendly claim, before the handle sequence advances. A hit isolates the claiming handle from that handle's own signature. The relay does not mint a second signature.
+
+Match rules:
+
+- the whole label, or one hyphen-separated part, equals a token
+- a token of 4 or more characters also matches inside the label
+- a shorter token does not, so `sex` does not hit `essex` and `kkk` does not hit a longer word
+- `child` alone is not a token
+- the list is not exhaustive
+
+| Token | Reason |
+| --- | --- |
+| `childporn`, `jailbait`, `underage` | `CSAM` |
+| `porn`, `porno`, `xxx`, `hentai`, `onlyfans`, `nsfw`, `camgirl`, `nude`, `nudes`, `sex` | `NAME-BLOCK` |
+| `nazi`, `nazism`, `whitepower`, `kkk` | `HATE` |
+
+A hit returns `FED-MESH-NAME-BLOCK` and does not store the name as a resolvable record. `content_stored` is false. The evidence is the statement hash of the signed claim.
+
+Pinned `porn.aziel` claim, evidence hash `c73c95876863dff6aa06f98e849e1b565a7f8eede5a9dbfc7ee6afa6a50742c9`, code `FED-MESH-NAME-BLOCK`, reason `NAME-BLOCK`. Signature: `ro20II1C29PMvcoy-3HpcwOAOqJqGGfLHA-2z9HSGP42MB-QN_-3SWIqbsOQzpZ_KZ0g92msKOz1S1hC1oUpAw`.
+
+A `CSAM` hit stores the statement hash only. The response and the stored record omit the name. Operators follow the law in their jurisdiction. In the United States that includes reporting to NCMEC. Bytes are not stored or forwarded as evidence.
+
+The next act from that handle, other than `appeal` and `island`, is `FED-MESH-ISOLATED`.
+
+### Isolation record
+
+Reason codes: `NAME-BLOCK`, `NUDITY`, `CHILD`, `CSAM`, `HATE`.
+
+`MODEL-ABSENT` is not an isolation reason. On the hosting node, a missing classifier blocks publish and says the model is absent. It does not isolate the handle. This Worker runs no classifier. `classifiers_run_here` is false. `scanner` stays `"absent"`.
+
+A content isolation is self-signed. The signer and the subject are the same handle. A different handle cannot isolate this one: this relay never sees the bytes, and one handle must not be able to ban another. Fields: `{ v, kind: "isolation", handle, public_key, subject, reason, check, model, evidence_hash, seq, prev, sig }`. `reason` is `NUDITY`, `CHILD`, `HATE`, or `CSAM`. `check` names the local check. `model` is a version string, or `absent`. `evidence_hash` is 64 hex. A field that carries bytes (`body_b64` or the same class) is `FED-MESH-BAD-INPUT`. `content_stored` is false. The act is anchored with ChainLock and TemporalLock.
+
+Honest limit: a node that skips its local check and never signs an isolation stays relayable, because the content bytes never arrive here. A name-block is different. The offender's own signed claim is the proof, and this relay records the isolation from that claim.
+
+Pinned self-signed isolation, handle `#4S11EZW09MD`, reason `NUDITY`, check `image-nudity`, model `absent`, evidence hash `f56487a629550848508cbd6305d814f6008a1705ab4e215d926f6fda5e9c94dc`, statement hash `19368601e687ba923a76811770d65fb0d2af0c1f14953a94869a1dd9a5d67493`. Signature: `jqZRZDoElZHknWdIGzR7x9X138tL91sJZzbhWLnImLij24-eFjKzdtxIo4rXgDaBf247-NBC7oYy8mwBMeXgDw`.
+
+### Appeal
+
+`{ v, kind: "appeal", handle, public_key, isolation_hash, note, seq, prev, sig }`. `note` is 1 to 160 characters. `isolation_hash` matches the stored isolation statement hash or its evidence hash. The appeal is stored. `applied` is false. `isolation_remains` is true. There is no automatic lift. Appeal and island are the only acts accepted from an isolated handle, including while island mode is off.
+
+Pinned appeal statement hash `762a17b6a1e209ddcb6ef0740eede2d89e892217964ae372dcc5628a3b8ddcd8`. Signature: `q8Mebxw1F_4ulhPCr_8D5mPR_fDADpSrpF7Xue1Qg_TqEVbSq_YV5nSJ0QbyVDHjx3nc72V9frXHAcFlTPYsDg`. `applied` is false.
+
+Classifiers and this blocklist have false positives and misses. A refused name can be legitimate. A violating name can miss the list. Do not describe this as catching everything.
+
+### Who does what
+
+This relay refuses isolated handles, checks the name blocklist, and restores reserved slots from verified hashes. AZNet checks the same blocklist and the same slot rules on claims. qnm-node runs design mode on localhost only, runs the local image and text classifiers, fails closed when a model is absent, and hosts reserved mirrors. AZBrowser refuses to resolve an isolated handle and shows the policy refusal. Screenshots of the browser belong to that repo.

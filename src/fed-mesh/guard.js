@@ -6,7 +6,7 @@
 
 import { canonicalStatement, hashStatement, isHex64, publicKeyMatchesHandle } from "./codec.js";
 import { verifyObject } from "./identity.js";
-import { FED_SPEC, NAME_POW_BITS } from "./spec.js";
+import { FED_SPEC, NAME_BLOCKLIST, NAME_POW_BITS } from "./spec.js";
 import { sha256Hex } from "../session-core.js";
 
 export function leadingZeroBits(hex) {
@@ -52,6 +52,27 @@ export async function verifyNamePow(statementHash, sig, pow, minBits = NAME_POW_
   if (pow.digest != null && String(pow.digest) !== digest) return { ok: false, reason: "digest", digest };
   if (leadingZeroBits(digest) < bits) return { ok: false, reason: "work", digest };
   return { ok: true, digest, bits };
+}
+
+/**
+ * Blocklist check for one .aziel label (no suffix).
+ * Exact label or hyphen-part. Substring only when the token is 4 characters or longer.
+ */
+export function nameBlockHit(label) {
+  const raw = String(label || "").toLowerCase();
+  if (!raw) return null;
+  const parts = raw.split("-");
+  for (const row of NAME_BLOCKLIST) {
+    if (raw === row.token || parts.includes(row.token)) {
+      return { token: row.token, reason: row.reason, match: raw === row.token ? "label" : "part" };
+    }
+  }
+  for (const row of NAME_BLOCKLIST) {
+    if (row.token.length >= 4 && raw.includes(row.token)) {
+      return { token: row.token, reason: row.reason, match: "substring" };
+    }
+  }
+  return null;
 }
 
 const AIRGAP_NAME = /^[a-z0-9][a-z0-9._/-]{0,127}$/;

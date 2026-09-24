@@ -71,7 +71,10 @@ export function requestLimitKind(pathname, method) {
       path === "/v1/mesh/relay/advisory" ||
       path === "/v1/mesh/relay/quarantine" ||
       path === "/v1/mesh/relay/island" ||
-      path === "/v1/mesh/relay/airgap")
+      path === "/v1/mesh/relay/airgap" ||
+      path === "/v1/mesh/relay/restore" ||
+      path === "/v1/mesh/relay/isolation" ||
+      path === "/v1/mesh/relay/appeal")
   ) {
     return "mesh_mutate";
   }
