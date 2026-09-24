@@ -54,24 +54,68 @@ export async function verifyNamePow(statementHash, sig, pow, minBits = NAME_POW_
   return { ok: true, digest, bits };
 }
 
+/** Digit lookalikes, applied after separators are removed. Same pairs as aznet. */
+export const BLOCKLIST_LOOKALIKES = Object.freeze({
+  0: "o",
+  1: "i",
+  3: "e",
+  4: "a",
+  5: "s",
+  7: "t",
+});
+
+function alnum(text) {
+  return String(text || "").replace(/[^a-z0-9]/g, "");
+}
+
+function leetFold(text) {
+  let out = "";
+  for (const ch of text) out += BLOCKLIST_LOOKALIKES[ch] || ch;
+  return out;
+}
+
+function blockLabel(name) {
+  let text = String(name || "").trim().toLowerCase();
+  if (text.endsWith(".aziel")) text = text.slice(0, -".aziel".length);
+  return text;
+}
+
 /**
- * Blocklist check for one .aziel label (no suffix).
- * Substring tokens match inside the letters-and-digits fold, longest first.
- * Exact tokens match the whole label or one hyphen-part only.
+ * Blocklist check for a label or a mesh name.
+ * The `.aziel` suffix is not part of the label.
+ * Substring tokens match the letters-and-digits fold, its digit-lookalike
+ * reading, or the raw label, longest token first.
+ * Exact tokens match the whole label, that fold, the lookalike reading,
+ * or one hyphen-part (and that part's fold and lookalike reading).
  */
 export function nameBlockHit(label) {
-  const raw = String(label || "").toLowerCase();
+  const raw = blockLabel(label);
   if (!raw) return null;
-  const folded = raw.replace(/[^a-z0-9]/g, "");
+  const folded = alnum(raw);
+  const leet = leetFold(folded);
   const parts = raw.split("-").filter(Boolean);
-  const substrings = NAME_BLOCKLIST.filter((row) => row.scope !== "exact" && row.token.length >= 4).slice().sort((a, b) => b.token.length - a.token.length);
+  const partKeys = [];
+  for (const part of parts) {
+    const partFolded = alnum(part);
+    partKeys.push(partFolded);
+    partKeys.push(leetFold(partFolded));
+  }
+  const substrings = NAME_BLOCKLIST.filter((row) => row.scope !== "exact" && row.token.length >= 4)
+    .slice()
+    .sort((a, b) => b.token.length - a.token.length);
   for (const row of substrings) {
-    if (folded.includes(row.token) || raw.includes(row.token)) {
+    if (folded.includes(row.token) || leet.includes(row.token) || raw.includes(row.token)) {
       return { token: row.token, reason: row.reason, match: "substring" };
     }
   }
   for (const row of NAME_BLOCKLIST) {
-    if (raw === row.token || folded === row.token || parts.includes(row.token)) {
+    if (
+      raw === row.token ||
+      folded === row.token ||
+      leet === row.token ||
+      parts.includes(row.token) ||
+      partKeys.includes(row.token)
+    ) {
       return { token: row.token, reason: row.reason, match: "label" };
     }
   }

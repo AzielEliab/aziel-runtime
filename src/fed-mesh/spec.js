@@ -55,6 +55,7 @@ export const BLOCKLIST_VERSION = "FED-MESH-BLOCKLIST-1";
  * cursor/azn-name-ledger-1dc6; main has no blocklist file).
  * scope "substring": the folded label contains the token (length >= 4).
  * scope "exact": the whole label or one hyphen-part only, so "anal" does not hit "analysis" and "sex" does not hit "essex".
+ * nameBlockHit also reads digit lookalikes 0 1 3 4 5 7 as o i e a s t after separators are removed.
  * "child" alone is not listed. The list is not exhaustive.
  */
 export const NAME_BLOCKLIST = Object.freeze([

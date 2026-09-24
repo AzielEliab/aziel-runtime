@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { readFileSync, writeFileSync } from "node:fs";
 import { bytesToB64url, hashStatement, sha256HexBytes, utf8 } from "../src/fed-mesh/codec.js";
 import { openAct, sealAct, signAct } from "../src/fed-mesh/client.js";
-import { findNamePow, nameBlockHit } from "../src/fed-mesh/guard.js";
+import { BLOCKLIST_LOOKALIKES, findNamePow, nameBlockHit } from "../src/fed-mesh/guard.js";
 import { createIdentity, signObject } from "../src/fed-mesh/identity.js";
 import { mintIdentityReceipt, verifyIdentityChain, verifyIdentityReceipt } from "../src/fed-mesh/receipt.js";
 import {
@@ -111,6 +111,27 @@ async function stampPow(signed) {
   const pow = await findNamePow(link, signed.sig, NAME_POW_BITS);
   if (!pow) throw new Error("proof-of-work search failed");
   return { ...signed, pow };
+}
+
+const FOLD_REFUSED = ["child.porn", "child-porn", "ch1ldp0rn", "child.porn.aziel", "child-porn.aziel", "ch1ldp0rn.aziel"];
+const FOLD_ALLOWED = ["sussex", "analysis", "essex", "sussex.aziel", "analysis.aziel", "child", "childcare"];
+
+function blocklistFoldVector() {
+  const refused = FOLD_REFUSED.map((label) => {
+    const hit = nameBlockHit(label);
+    if (!hit || hit.reason !== "CSAM" || hit.token !== "childporn") {
+      throw new Error(`blocklist fold must refuse ${label} as childporn`);
+    }
+    return { label, reason: hit.reason, token: hit.token, match: hit.match };
+  });
+  for (const label of FOLD_ALLOWED) {
+    if (nameBlockHit(label)) throw new Error(`blocklist fold must allow ${label}`);
+  }
+  return {
+    lookalikes: { ...BLOCKLIST_LOOKALIKES },
+    refused,
+    allowed: FOLD_ALLOWED.slice(),
+  };
 }
 
 async function buildVectors() {
@@ -399,6 +420,7 @@ async function buildVectors() {
       record: csamName,
     },
     blocklist: NAME_BLOCKLIST.map((row) => ({ token: row.token, reason: row.reason, scope: row.scope })),
+    blocklist_fold: blocklistFoldVector(),
     isolation: {
       code: isoOut.code,
       reason: isoOut.reason,
@@ -463,6 +485,29 @@ assert.equal(vectors.name_csam.content_stored, false);
 assert.equal(vectors.name_csam.name_stored, false);
 assert.equal(vectors.name_csam.record.name, "csam.aziel");
 assert.ok(vectors.blocklist.some((row) => row.token === "csam" && row.reason === "CSAM"));
+assert.deepEqual(vectors.blocklist_fold.lookalikes, { 0: "o", 1: "i", 3: "e", 4: "a", 5: "s", 7: "t" });
+assert.deepEqual(
+  vectors.blocklist_fold.refused.map((row) => row.label),
+  ["child.porn", "child-porn", "ch1ldp0rn", "child.porn.aziel", "child-porn.aziel", "ch1ldp0rn.aziel"],
+);
+for (const row of vectors.blocklist_fold.refused) {
+  const hit = nameBlockHit(row.label);
+  assert.equal(hit && hit.reason, row.reason);
+  assert.equal(hit && hit.token, row.token);
+  assert.equal(hit && hit.match, row.match);
+  assert.equal(row.reason, "CSAM");
+  assert.equal(row.token, "childporn");
+}
+assert.deepEqual(vectors.blocklist_fold.allowed, [
+  "sussex",
+  "analysis",
+  "essex",
+  "sussex.aziel",
+  "analysis.aziel",
+  "child",
+  "childcare",
+]);
+for (const label of vectors.blocklist_fold.allowed) assert.equal(nameBlockHit(label), null);
 assert.equal(vectors.isolation.content_stored, false);
 assert.equal(vectors.appeal.applied, false);
 assert.equal(vectors.appeal.isolation_remains, true);
@@ -1353,6 +1398,15 @@ assert.notEqual(alice.handle, bob.handle);
   assert.equal(nameBlockHit("child-sex").reason, "CSAM");
   assert.equal(nameBlockHit("analysis"), null);
   assert.equal(nameBlockHit("kkk").reason, "HATE");
+  assert.equal(nameBlockHit("s3x").reason, "NAME-BLOCK");
+  assert.equal(nameBlockHit("s3x").token, "sex");
+  assert.equal(nameBlockHit("s3x").match, "label");
+  for (const label of FOLD_REFUSED) {
+    const hit = nameBlockHit(label);
+    assert.equal(hit.reason, "CSAM");
+    assert.equal(hit.token, "childporn");
+  }
+  for (const label of FOLD_ALLOWED) assert.equal(nameBlockHit(label), null);
   const hash = await sha256HexBytes(utf8("local-first"));
   const clean = createRelayState();
   const cleanReg = await register(clean, alice, now);
@@ -1455,6 +1509,62 @@ assert.notEqual(alice.handle, bob.handle);
   assert.equal(csamLabelRead.reason, "CSAM");
   assert.equal(csamLabelRead.name_stored, false);
   assert.equal(JSON.stringify(csamLabelRead).includes("csam.aziel"), false);
+
+  for (const blockedName of ["child-porn.aziel", "ch1ldp0rn.aziel"]) {
+    const foldState = createRelayState();
+    const foldReg = await register(foldState, alice, now);
+    const foldOut = await relayName(foldState, await stampPow(await signAct(alice, "name", {
+      name: blockedName,
+      owner: alice.handle,
+      target: { type: "hash", value: hash },
+      expires: null,
+      seq: 2,
+      prev: foldReg.prev,
+      prev_record: ZERO_HASH,
+    })), now);
+    assert.equal(foldOut.code, "FED-MESH-NAME-BLOCK");
+    assert.equal(foldOut.reason, "CSAM");
+    assert.equal(foldOut.content_stored, false);
+    assert.equal(foldOut.name_stored, false);
+    const foldBody = JSON.stringify(foldOut);
+    assert.equal(foldBody.includes(blockedName), false);
+    assert.equal(foldBody.includes("childporn"), false);
+    assert.equal(foldBody.includes("porn"), false);
+    assert.equal(foldBody.includes("child"), false);
+    const foldRead = await relayIsolationRead(foldState, alice.handle);
+    assert.equal(foldRead.reason, "CSAM");
+    assert.equal(foldRead.name_stored, false);
+    assert.equal(foldRead.content_stored, false);
+    const foldStored = JSON.stringify(foldRead);
+    assert.equal(foldStored.includes(blockedName), false);
+    assert.equal(foldStored.includes("porn"), false);
+    assert.equal(foldStored.includes("child"), false);
+  }
+  const dotted = createRelayState();
+  const dottedReg = await register(dotted, alice, now);
+  const dottedOut = await relayName(dotted, await stampPow(await signAct(alice, "name", {
+    name: "child.porn.aziel",
+    owner: alice.handle,
+    target: { type: "hash", value: hash },
+    expires: null,
+    seq: 2,
+    prev: dottedReg.prev,
+    prev_record: ZERO_HASH,
+  })), now);
+  assert.equal(dottedOut.code, "FED-MESH-BAD-INPUT");
+  assert.equal((await directoryEntry(dotted, alice.handle)).seq, 1);
+  const sussexState = createRelayState();
+  const sussexReg = await register(sussexState, alice, now);
+  const sussex = await relayName(sussexState, await stampPow(await signAct(alice, "name", {
+    name: "sussex.aziel",
+    owner: alice.handle,
+    target: { type: "hash", value: hash },
+    expires: null,
+    seq: 2,
+    prev: sussexReg.prev,
+    prev_record: ZERO_HASH,
+  })), now);
+  assert.equal(sussex.ok, true, sussex.message);
 
   const isoState = createRelayState();
   const caraReg = await register(isoState, cara, now);
