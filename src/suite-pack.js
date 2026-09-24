@@ -159,12 +159,26 @@ export function suitePackResponseHeaders(extra = {}) {
   };
 }
 
+/**
+ * Primary one-click control. This Worker ships the suite pack JSON
+ * (no counted runtime tarball). The machine alias is the same file.
+ */
+export function primaryDownloadHtml(origin, { id = "download-primary" } = {}) {
+  const base = String(origin || "").replace(/\/$/, "");
+  const noteId = `${id}-note`;
+  return `<div class="hero-download" id="${id}">
+  <a class="btn block primary" href="${base}/download" download="${SUITE_PACK_FILENAME}" aria-describedby="${noteId}">Download</a>
+  <p class="asset-note" id="${noteId}">${SUITE_PACK_FILENAME} — suite pack JSON: live catalog, FoldLock tip, and mesh cite. One click. Counted on GET /download.</p>
+  <p class="secondary-dl"><a href="${base}/v1/suite/download">Same suite pack for machines · /v1/suite/download</a></p>
+</div>`;
+}
+
 export function suiteDownloadHtml(origin, { id = "suite-download" } = {}) {
   const base = String(origin || "").replace(/\/$/, "");
-  return `<div class="suite-dl" id="${id}" style="border:1px solid #7a6224;background:#1f1a0d;border-radius:10px;padding:.7rem .85rem;margin:.55rem 0 1rem">
-  <p class="hint" style="margin:0 0 .45rem"><strong>One-click suite pack</strong> — REAL catalog + FoldLock tip + mesh cite. Worker wasm / WireGuard / OpenVPN stay <strong>SLOT</strong>. Not . Counted on <code>GET /download</code>.</p>
+  return `<div class="suite-dl" id="${id}">
+  <p class="hint"><strong>One-click suite pack</strong> — REAL catalog + FoldLock tip + mesh cite. Worker wasm / WireGuard / OpenVPN stay <strong>SLOT</strong>. Counted on <code>GET /download</code>.</p>
   <div class="actions">
-    <a class="suite-dl-btn" href="${base}/download" download="${SUITE_PACK_FILENAME}" style="display:inline-block;background:#241c0d;color:#f0d78c;border:1px solid #5c4a1a;border-radius:8px;padding:.45rem .85rem;font-weight:700;text-decoration:none">Download suite pack (JSON)</a>
+    <a class="suite-dl-btn" href="${base}/download" download="${SUITE_PACK_FILENAME}">Download suite pack (JSON)</a>
     <a href="${base}/v1/suite/download">Machine /v1/suite/download</a>
   </div>
 </div>`;

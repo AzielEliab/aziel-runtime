@@ -251,4 +251,40 @@ assert.doesNotMatch(foldlockCard, /\{ q: text, text: text \}/);
 assert.ok(PRODUCTS.some((p) => p.slug === "foldlock"));
 assert.ok(home.includes('data-op="fold-preview"') || ws.includes("fold-preview"));
 
+assert.match(home, /id="download-primary"/);
+assert.match(home, /class="btn block primary"[^>]*>Download</);
+assert.match(home, /aziel-runtime-suite\.json — suite pack JSON/);
+assert.match(home, /Same suite pack for machines/);
+assert.match(home, /prefers-color-scheme: light/);
+assert.match(home, /:focus-visible/);
+assert.match(home, /<footer class="quiet">/);
+assert.match(home, /<footer class="donate">/);
+assert.ok(home.indexOf('id="download-primary"') < home.indexOf('id="workspace"'), "primary Download sits above the workspace");
+assert.match(ws, /id="download-primary"/);
+assert.match(ws, /<footer class="quiet">/);
+
+const dl = await get("/download");
+assert.equal(dl.status, 200);
+assert.match(dl.headers.get("content-type") || "", /application\/json/);
+assert.match(dl.headers.get("content-disposition") || "", /attachment;\s*filename="aziel-runtime-suite\.json"/);
+const dlBody = await dl.json();
+assert.equal(dlBody.filename, "aziel-runtime-suite.json");
+assert.equal(dlBody.spec, "AZRT-SUITE-PACK-1.0");
+
+const fgHtmlRes = await get("/v1/fraggate", { accept: "text/html" });
+assert.equal(fgHtmlRes.status, 200);
+assert.match(fgHtmlRes.headers.get("content-type") || "", /text\/html/);
+const fgPage = await fgHtmlRes.text();
+assert.match(fgPage, /<h1>FragGate<\/h1>/);
+assert.match(fgPage, /class="btn block primary"/);
+assert.match(fgPage, /<footer class="quiet">/);
+assert.match(fgPage, /fraggate-download-tracker\.vibelock\.workers\.dev\/download/);
+assert.match(fgPage, /prefers-color-scheme: light/);
+
+const fgJsonRes = await get("/v1/fraggate");
+assert.match(fgJsonRes.headers.get("content-type") || "", /application\/json/);
+const fgJson = await fgJsonRes.json();
+assert.equal(fgJson.ok, true);
+assert.equal(fgJson.door, "fraggate");
+
 console.log("verify-human-ui: ok");

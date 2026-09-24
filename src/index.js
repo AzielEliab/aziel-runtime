@@ -332,9 +332,11 @@ import {
   describeIndexHtml,
   describeUnknownHtml,
   ecosystemBlockHtml,
+  fraggateDoorPageHtml,
   homepageLeadHtml,
   namedComponentsHtml,
   prefersHtml,
+  quietFooterHtml,
   softwareCatalogHtml,
 } from "./seo-html.js";
 import {
@@ -2034,56 +2036,149 @@ ${platformHeadLinks(base)}`;
 }
 
 const PAGE_CSS = `
-  :root { color-scheme: dark; }
+  :root {
+    color-scheme: dark;
+    --bg: #0e1014;
+    --text: #e8eaef;
+    --muted: #b7c0d0;
+    --hint: #d2c7a8;
+    --panel: #151922;
+    --panel-2: #12151c;
+    --input: #0e1014;
+    --line: #3a4458;
+    --line-warm: #5c4e30;
+    --warm-bg: #16120a;
+    --warm-panel: #1a160c;
+    --chip: #241c0d;
+    --chip-hover: #33280f;
+    --on-chip: #f0d78c;
+    --gold-text: #f0d78c;
+    --mark: #e2c15a;
+    --trim: #8a7040;
+    --trim-strong: #a6853a;
+    --danger: #f3c0c0;
+    --danger-line: #8a3a3a;
+    --link: #d5defa;
+    --nav-link: #f0d78c;
+    --focus: #ffffff;
+    --btn-bg: #f0d78c;
+    --btn-ink: #1a1408;
+    --btn-bg-hover: #ffe7a8;
+    --metric: #f0d78c;
+    --honesty-bg: #241c0d;
+    --honesty-text: #f0d78c;
+    --honesty-line: #8a7040;
+    --banner-bg: #1b160c;
+    --banner-text: #f0d78c;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      color-scheme: light;
+      --bg: #f6f3ec;
+      --text: #1c1915;
+      --muted: #3e3a34;
+      --hint: #3e3a34;
+      --panel: #fffdf8;
+      --panel-2: #fffdf8;
+      --input: #ffffff;
+      --line: #c9c2b6;
+      --line-warm: #cfc4ae;
+      --warm-bg: #fffdf8;
+      --warm-panel: #f3efe4;
+      --chip: #1c1915;
+      --chip-hover: #2c2822;
+      --on-chip: #f6f3ec;
+      --gold-text: #5c4308;
+      --mark: #5c4308;
+      --trim: #b7a56c;
+      --trim-strong: #8d7340;
+      --danger: #7a1f1f;
+      --danger-line: #c47a7a;
+      --link: #1a3d8f;
+      --nav-link: #1c1915;
+      --focus: #1c1915;
+      --btn-bg: #1c1915;
+      --btn-ink: #f6f3ec;
+      --btn-bg-hover: #2c2822;
+      --metric: #1c1915;
+      --honesty-bg: #f3ead0;
+      --honesty-text: #1c1915;
+      --honesty-line: #c4b48a;
+      --banner-bg: #f3ead0;
+      --banner-text: #1c1915;
+    }
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { overflow-x: clip; }
   .brandrow{display:flex;align-items:center;justify-content:flex-start;gap:12px;margin:0 0 1.15rem}
-  .brandmark{width:40px;height:40px;border-radius:10px;object-fit:cover;flex:0 0 auto;box-shadow:0 0 0 1px #d4af3733}
-  .stamp{margin:0;color:#d4af37;font-size:.88rem;letter-spacing:.02em}
-  body { font: 16px/1.45 system-ui, sans-serif; max-width: 52rem; margin: 2.5rem auto; padding: 0 1.25rem 4rem; background: #0e1014; color: #e8eaef; }
+  .brandmark{width:40px;height:40px;max-width:40px;border-radius:10px;object-fit:cover;flex:0 0 auto;box-shadow:0 0 0 1px color-mix(in srgb, var(--mark) 35%, transparent)}
+  .stamp{margin:0;color:var(--mark);font-size:.88rem;letter-spacing:.02em}
+  body { font: 16px/1.5 system-ui, sans-serif; max-width: 52rem; margin: 1.15rem auto; padding: 0 1rem 3rem; background: var(--bg); color: var(--text); overflow-x: clip; }
+  @media (min-width: 40rem) { body { margin: 2.5rem auto; padding: 0 1.25rem 4rem; } }
   body:has(#workspace) { max-width: 72rem; }
-  h1 { font-size: 1.85rem; margin: 0 0 .35rem; }
+  h1 { font-size: 1.85rem; margin: 0 0 .35rem; line-height: 1.15; }
   h2 { font-size: 1.2rem; margin: 0 0 .4rem; }
   h3 { font-size: 1.02rem; margin: .85rem 0 .35rem; }
-  .hashtag { color: #d4af37; font-weight: 600; letter-spacing: .01em; }
+  p, li, a, code { overflow-wrap: break-word; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+  .hashtag { color: var(--mark); font-weight: 600; letter-spacing: .01em; }
   .launch-chips{margin:.35rem 0 .45rem;display:flex;flex-wrap:wrap;gap:.3rem .55rem}
   .launch-chips .hashtag{font-size:.82rem}
-  .about-aziel-strip{margin:.2rem 0 .7rem;padding:.45rem .6rem;border:1px solid #3d3420;border-radius:8px;background:#16120a;color:#e6d19a;font-size:.88rem}
+  .about-aziel-strip{margin:.2rem 0 .7rem;padding:.45rem .6rem;border:1px solid var(--line-warm);border-radius:8px;background:var(--warm-bg);color:var(--gold-text);font-size:.88rem}
   .launch-parts article { margin: .7rem 0 0; }
-  .slug { font-weight: 500; color: #9aa3b2; font-size: .95rem; }
-  a { color: #c9d4ff; }
-  .lead { color: #9aa3b2; margin: 0 0 1.25rem; }
-  .honesty { border: 1px solid #5c4a1a; background: #241c0d; color: #f0d78c; padding: .9rem 1.05rem; border-radius: 10px; margin: 0 0 1.4rem; }
+  .slug { font-weight: 500; color: var(--muted); font-size: .95rem; }
+  a { color: var(--link); }
+  .lead { color: var(--muted); margin: 0 0 1rem; }
+  .hero { margin: 0 0 1.15rem; }
+  .hero h1 { font-size: 2rem; font-weight: 650; letter-spacing: .02em; margin: 0 0 .35rem; }
+  .hero .lead { max-width: 46rem; }
+  .hero-download { margin: .15rem 0 .2rem; }
+  a.btn.block.primary { display: block; width: 100%; max-width: 40rem; margin: .85rem 0 .55rem; padding: 1.05rem 1.2rem; border: 1px solid transparent; border-radius: 9px; background: var(--btn-bg); color: var(--btn-ink); text-align: center; text-decoration: none; font: 700 1.25rem/1.1 ui-monospace, Menlo, Consolas, monospace; letter-spacing: .03em; }
+  a.btn.block.primary:hover { background: var(--btn-bg-hover); }
+  .asset-note { color: var(--muted); font-size: .95rem; margin: 0 0 .35rem; max-width: 40rem; }
+  .secondary-dl { color: var(--muted); font-size: .92rem; margin: 0 0 .85rem; }
+  .features { display: grid; grid-template-columns: 1fr; gap: .45rem 1.2rem; margin: .2rem 0 0; padding: 0; list-style: none; max-width: 46rem; }
+  .features li { margin: 0; }
+  @media (min-width: 52rem) { .features { grid-template-columns: repeat(3, minmax(0, 1fr)); } a.btn.block.primary { max-width: 40rem; } }
+  .honesty { border: 1px solid var(--honesty-line); background: var(--honesty-bg); color: var(--honesty-text); padding: .9rem 1.05rem; border-radius: 10px; margin: 0 0 1.4rem; }
   .honesty ul { margin: .4rem 0 0; padding-left: 1.2rem; }
-  .card { border: 1px solid #2a3140; border-radius: 12px; padding: 1.1rem 1.2rem; background: #151922; margin: 0 0 1rem; }
-  .banner { border: 1px solid #3d3420; background: #1b160c; color: #e6d19a; padding: .55rem .7rem; border-radius: 8px; font-size: .92rem; }
+  .card { border: 1px solid var(--line); border-radius: 12px; padding: 1.1rem 1.2rem; background: var(--panel); margin: 0 0 1rem; min-width: 0; }
+  .banner { border: 1px solid var(--line-warm); background: var(--banner-bg); color: var(--banner-text); padding: .55rem .7rem; border-radius: 8px; font-size: .92rem; }
   .oneline { margin: .2rem 0 .6rem; }
   .meta a { margin-right: .85rem; }
-  pre { background: #0e1014; padding: .75rem .9rem; overflow: auto; border-radius: 8px; font-size: .82rem; }
+  pre { background: var(--input); color: var(--text); padding: .75rem .9rem; overflow: auto; max-width: 100%; border-radius: 8px; font-size: .82rem; }
   code { font-size: .88rem; }
   .doors { display:flex; flex-wrap:wrap; align-items:center; gap:.55rem 1rem; margin:0 0 1.25rem; }
-  .doors a.cta { display:inline-block; background:#241c0d; color:#f0d78c; border:1px solid #5c4a1a; border-radius:8px; padding:.4rem .85rem; font-weight:600; text-decoration:none; }
-  .doors a.cta:hover { background:#33280f; }
-  .doors a.secondary, a.secondary, p.secondary { color:#9aa3b2; font-size:.92rem; }
-  .ecosystem { margin: 0 0 1.25rem; padding: .85rem 1rem; border: 1px solid #2a3140; border-radius: 10px; background: #151922; }
+  .doors a.cta { display:inline-block; background:var(--chip); color:var(--on-chip); border:1px solid var(--trim); border-radius:8px; padding:.4rem .85rem; font-weight:600; text-decoration:none; }
+  .doors a.cta:hover { background:var(--chip-hover); }
+  .doors a.secondary, a.secondary, p.secondary { color:var(--muted); font-size:.92rem; }
+  .ecosystem { margin: 0 0 1.25rem; padding: .85rem 1rem; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
   .ecosystem p { margin: 0 0 .45rem; font-weight: 600; }
   .ecosystem ul { margin: 0; padding-left: 1.2rem; }
   .ecosystem li { margin: .2rem 0; }
-  .named-tools { color:#9aa3b2; margin: 0 0 1.25rem; }
-  .links { color:#9aa3b2; font-size:.92rem; }
-  .links a { margin-right: 1rem; color:#9aa3b2; }
-  .cite { border: 1px solid #2a3140; border-radius: 12px; padding: 1rem 1.15rem; background: #12151c; margin: 0 0 1.4rem; }
-  .fg-door { border: 1px solid #3d3420; background: #16120a; border-radius: 10px; padding: .75rem .85rem; margin: .75rem 0 0; }
-  .fg-door p { margin: 0 0 .55rem; color: #e6d19a; font-size: .92rem; }
+  .named-tools { color:var(--muted); margin: 0 0 1.25rem; }
+  .links { color:var(--muted); font-size:.92rem; }
+  .links a { margin-right: 1rem; color:var(--link); }
+  .cite { border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.15rem; background: var(--panel-2); margin: 0 0 1.4rem; min-width: 0; }
+  .fg-door { border: 1px solid var(--line-warm); background: var(--warm-bg); border-radius: 10px; padding: .75rem .85rem; margin: .75rem 0 0; min-width: 0; }
+  .fg-door p { margin: 0 0 .55rem; color: var(--gold-text); font-size: .92rem; }
   .fg-ops { display: flex; flex-wrap: wrap; gap: .4rem; margin: 0 0 .55rem; }
-  .fg-ops button { background: #241c0d; color: #f0d78c; border: 1px solid #5c4a1a; border-radius: 8px; padding: .35rem .65rem; cursor: pointer; font: inherit; font-size: .82rem; }
-  .fg-ops button:hover { background: #33280f; }
-  .fg-door textarea { width: 100%; min-height: 4.2rem; background: #0e1014; color: #e8eaef; border: 1px solid #2a3140; border-radius: 8px; padding: .5rem .6rem; font: .82rem/1.4 ui-monospace, monospace; box-sizing: border-box; }
-  .fg-out { margin: .55rem 0 0; max-height: 16rem; }
-  footer.donate { margin: 2.2rem 0 0; padding-top: 1rem; border-top: 1px solid #2a3140; }
-  footer.donate p { margin: 0; color: #9aa3b2; }
+  .fg-ops button { background: var(--chip); color: var(--on-chip); border: 1px solid var(--trim); border-radius: 8px; padding: .35rem .65rem; cursor: pointer; font: inherit; font-size: .82rem; }
+  .fg-ops button:hover { background: var(--chip-hover); }
+  .fg-door textarea { width: 100%; max-width: 100%; min-height: 4.2rem; background: var(--input); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: .5rem .6rem; font: .82rem/1.4 ui-monospace, monospace; }
+  .fg-out { margin: .55rem 0 0; max-height: 16rem; max-width: 100%; }
+  footer.quiet { margin: 2.2rem 0 0; padding-top: 1rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .92rem; }
+  footer.quiet p { margin: .35rem 0; }
+  footer.quiet a { color: var(--text); }
+  footer.donate { margin: 2.2rem 0 0; padding-top: 1rem; border-top: 1px solid var(--line); }
+  footer.quiet + footer.donate { border-top: 0; margin-top: .35rem; padding-top: 0; }
+  footer.donate p { margin: 0; color: var(--muted); }
+  footer.donate a { color: var(--text); }
 `;
 
 function donateFooterHtml() {
-  return `<footer class="donate"><p><a href="${DONATE_CANONICAL}">${escapeHtml(DONATE_FOOTER_RUNTIME)}</a></p></footer>`;
+  return `${quietFooterHtml()}
+<footer class="donate"><p><a href="${DONATE_CANONICAL}">${escapeHtml(DONATE_FOOTER_RUNTIME)}</a></p></footer>`;
 }
 
 function doorOnly(p) {
@@ -2180,7 +2275,7 @@ ${headMeta(origin, RUNTIME_PAGE_TITLE, RUNTIME_ABSTRACT, "/", env)}
 </head>
 <body>
 ${brandRow()}
-${homepageLeadHtml(resolveCallingName(env))}
+${homepageLeadHtml(resolveCallingName(env), origin)}
 ${humanNavHtml(origin)}
 ${workspacePaneHtml(origin, PRODUCTS)}
 <p class="docs-after">Cite, architecture, and Softwares cards stay below. Humans start in the workspace; crawlers still see the abstract first.</p>
@@ -3302,6 +3397,9 @@ async function handleFraggateHttp(request, url, origin, env) {
       kernel: "https://github.com/AzielEliab/fraggate",
       durability: durabilityLabels(env),
     };
+    if (prefersHtml(request)) {
+      return asHead(request, html(fraggateDoorPageHtml(origin, PAGE_CSS + HUMAN_UI_CSS), extra));
+    }
     return asHead(request, json(body, 200, extra));
   }
   if (url.pathname === "/v1/fraggate/list" && (request.method === "GET" || request.method === "HEAD")) {

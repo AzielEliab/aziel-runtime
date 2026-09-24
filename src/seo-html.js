@@ -41,7 +41,7 @@ import { distributionDoorsHtml } from "./ai-clients.js";
 import { aboutAzielStripHtml, workerLaunchHtml } from "./about-aziel.js";
 import { launchHashtagChipsHtml } from "./launch-parts.js";
 import { useInBrowserHref } from "./human-hrefs.js";
-import { suiteDownloadHtml } from "./suite-pack.js";
+import { primaryDownloadHtml, suiteDownloadHtml } from "./suite-pack.js";
 import { rewriteLiveCallingDisplay } from "./calling-name.js";
 import { platformHeadLinks } from "./platforms.js";
 
@@ -138,8 +138,17 @@ export function headMeta(origin, title, description, canonicalPath) {
 ${platformHeadLinks(base)}`;
 }
 
+/** Quiet product footer. Donate stays a separate footer so the donate link is unchanged. */
+export function quietFooterHtml() {
+  return `<footer class="quiet">
+  <p>Apache-2.0 · ${escapeHtml(AUTHOR_NAME)} · ${escapeHtml(PRODUCT_NAME)}</p>
+  <p><a href="https://github.com/AzielEliab/aziel-runtime">GitHub</a> · <a href="/openapi.json">OpenAPI</a> · <a href="/mcp">MCP</a> · <a href="/llms.txt">llms.txt</a> · <a href="/cite.json">Cite</a> · <a href="/v1/mesh">Mesh</a></p>
+</footer>`;
+}
+
 function donateFooter() {
-  return `<footer class="donate"><p><a href="${DONATE_CANONICAL}">${escapeHtml(DONATE_FOOTER_RUNTIME)}</a></p></footer>`;
+  return `${quietFooterHtml()}
+<footer class="donate"><p><a href="${DONATE_CANONICAL}">${escapeHtml(DONATE_FOOTER_RUNTIME)}</a></p></footer>`;
 }
 
 /** Concise ecosystem chrome. Safe constants only — labels/URLs are not request data. */
@@ -285,13 +294,22 @@ ${donateFooter()}
 </html>`;
 }
 
-/** Homepage definition block — crawlers see this before version history. No CSS changes. */
-export function homepageLeadHtml(calling = null) {
+/** Homepage definition block — crawlers see the abstract before the download and before version history. */
+export function homepageLeadHtml(calling = null, origin = "") {
+  const base = String(origin || "").replace(/\/$/, "");
   const product = calling && calling.rotated ? calling.calling_name : PRODUCT_NAME;
   const slug = calling && calling.rotated ? calling.calling_slug : "aziel-runtime";
   const abstract = rewriteLiveCallingDisplay(RUNTIME_ABSTRACT, calling);
-  return `  <h1>${escapeHtml(product)}</h1>
+  return `  <header class="hero">
+  <h1>${escapeHtml(product)}</h1>
   <p class="lead">${escapeHtml(abstract)}</p>
+  ${primaryDownloadHtml(base)}
+  <ul class="features">
+    <li>FragGate is the single door: list, describe, then call</li>
+    <li>Humans use the Worker UI; agents use OpenAPI and MCP</li>
+    <li>The counted download is the suite pack: catalog, FoldLock tip, and mesh cite</li>
+  </ul>
+  </header>
   <p><strong>FragGate</strong> is THE single public executable door (list → describe → call). Softwares are Plain → Gate → Lock catalog products with true in-process engines where live. Hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) refresh Softwares tabs from <code>GET /v1/software</code>. Dual-surface: agents use OpenAPI/MCP; humans use Worker UI + counted <code>/download</code>.</p>
   <p>NodeMesh / QNM read-only suite-presence is ON by default. <code>GET /v1/mesh</code> never enables radios beyond that. Full node process is local <code>qnm-node/</code>. MASTER-33: domains are isolation labels. FragGate is the single door. Lamb Lens is the ethics hop after FragGate.</p>
   <p>Author / public identity: <strong>${escapeHtml(AUTHOR_NAME)}</strong> (also known as ${escapeHtml(AUTHOR_ALTERNATE_NAME)} — alternateName only). Product: ${escapeHtml(product)} (<code>${escapeHtml(slug)}</code>). Also published as ${escapeHtml(PRODUCT_ALTERNATE_NAME)} (alternateName). Person <code>@id</code> ${AUTHOR_ID}.</p>`;
@@ -389,9 +407,12 @@ export function softwareCatalogHtml(origin, catalog, css, calling = null) {
     .join("\n");
   const product = calling && calling.rotated ? calling.calling_name : PRODUCT_NAME;
   const inner = `  <p><a href="${base}/">← ${escapeHtml(product)}</a> · <a href="${base}/workspace">Use in browser</a></p>
+  <header class="hero">
   <h1>Softwares</h1>
-  ${aboutAzielStripHtml({ id: "about-aziel-strip-software" })}
   <p class="lead">${escapeHtml(SOFTWARE_PAGE_DESCRIPTION)}</p>
+  ${primaryDownloadHtml(base)}
+  </header>
+  ${aboutAzielStripHtml({ id: "about-aziel-strip-software" })}
   ${suiteDownloadHtml(base, { id: "suite-download-software" })}
 ${distributionDoorsHtml(base)}
 ${ecosystemBlockHtml()}
@@ -460,8 +481,11 @@ export function describeIndexHtml(origin, entries, css) {
     })
     .join("\n");
   const inner = `  <p><a href="${base}/">← ${escapeHtml(PRODUCT_NAME)}</a> · <a href="${base}/v1/software">Softwares</a></p>
+  <header class="hero">
   <h1>FragGate describe</h1>
   <p class="lead">${escapeHtml(DESCRIBE_INDEX_DESCRIPTION)}</p>
+  ${primaryDownloadHtml(base)}
+  </header>
   <p>Author: <strong>${escapeHtml(AUTHOR_NAME)}</strong>. Kernel: <a href="${AUTHOR_GITHUB}/fraggate">fraggate</a>. Pipeline: fraggate_list → fraggate_describe → fraggate_call. JSON: <code>GET /v1/fraggate/describe?slug=</code>.</p>
   <h2>Softwares hubs</h2>
   ${hubListHtml()}
@@ -514,9 +538,12 @@ export function describeDocsHtml(origin, body, css) {
       ? `<p>GitHub: <a href="${escapeHtml(body.cross_map.github)}">${escapeHtml(body.cross_map.github)}</a></p>`
       : "";
   const inner = `  <p><a href="${base}/">← ${escapeHtml(PRODUCT_NAME)}</a> · <a href="${base}/v1/software">Softwares</a> · <a href="${base}/v1/fraggate/describe">describe index</a></p>
+  <header class="hero">
   <h1>${escapeHtml(name)}</h1>
   <p class="slug">${escapeHtml(slug)} · ${escapeHtml(body.status || "")} · door=fraggate</p>
   <p class="lead">${escapeHtml(body.description || body.note || "")}</p>
+  ${primaryDownloadHtml(base, { id: "download-primary" })}
+  </header>
   <p>Author: <strong>${escapeHtml(AUTHOR_NAME)}</strong> (also known as ${escapeHtml(AUTHOR_ALTERNATE_NAME)}). JSON: <a href="${base}${canonical}">${canonical}</a>. Catalog card: ${
     body.stub ? `<a href="${base}${canonical}">stub — describe only</a>` : `<a href="${base}/p/${escapeHtml(slug)}">/p/${escapeHtml(slug)}</a>`
   }. Call: <code>POST ${base}/v1/fraggate/call { slug: "${escapeHtml(slug)}", op }</code>. GET /v1/mesh never enables.</p>
@@ -551,9 +578,62 @@ export function describeDocsHtml(origin, body, css) {
 export function describeUnknownHtml(origin, body, css) {
   const title = `Unknown FragGate name — ${PRODUCT_NAME}`;
   const description = "Unknown FragGate name. Not in the registry. Identity Aziel Eliab only. Do not invent tools.";
-  const inner = `  <p><a href="${origin}/v1/fraggate/describe">← FragGate describe</a></p>
+  const base = String(origin || "").replace(/\/$/, "");
+  const inner = `  <p><a href="${base}/v1/fraggate/describe">← FragGate describe</a></p>
+  <header class="hero">
   <h1>Unknown name</h1>
   <p class="lead">${escapeHtml((body && body.message) || "Not in the FragGate registry.")}</p>
+  ${primaryDownloadHtml(base)}
+  </header>
   <p>Author: ${escapeHtml(AUTHOR_NAME)}. GET /v1/fraggate/list for live names. GET /v1/mesh never enables.</p>`;
   return documentShell(origin, title, description, "/v1/fraggate/describe", describeJsonLd(origin, body || {}), css, inner);
+}
+
+/** Human page for the FragGate door. JSON stays the default for machines. */
+export function fraggateDoorPageHtml(origin, css) {
+  const base = String(origin || "").replace(/\/$/, "");
+  const title = `FragGate — ${PRODUCT_NAME}`;
+  const description =
+    "FragGate is the single public executable door: list, describe, then call. The counted download on this Worker is the suite pack JSON.";
+  const ld = {
+    "@context": "https://schema.org",
+    "@graph": [
+      personJsonLd(),
+      {
+        "@type": "WebPage",
+        "@id": `${base}/v1/fraggate#page`,
+        name: title,
+        url: `${base}/v1/fraggate`,
+        description,
+        author: { "@id": AUTHOR_ID },
+      },
+    ],
+  };
+  const inner = `  <p><a href="${base}/">← ${escapeHtml(PRODUCT_NAME)}</a> · <a href="${base}/workspace#fg-console">FragGate console</a> · <a href="${base}/v1/software">Softwares</a></p>
+  <header class="hero">
+  <h1>FragGate</h1>
+  <p class="lead">FragGate is the single public executable door: list, describe, then call.</p>
+  ${primaryDownloadHtml(base)}
+  <ul class="features">
+    <li>One door for catalog Softwares</li>
+    <li>The console, OpenAPI, and MCP use that same door</li>
+    <li>GET /v1/mesh never enables radios</li>
+  </ul>
+  </header>
+  <p>Kernel: <a href="https://github.com/AzielEliab/fraggate">github.com/AzielEliab/fraggate</a>. <a href="${base}/v1/fraggate/list">List</a> · <a href="${base}/v1/fraggate/describe">Describe</a> · <code>POST ${base}/v1/fraggate/call</code>. Author: <strong>${escapeHtml(AUTHOR_NAME)}</strong>.</p>
+  <p class="secondary-dl">FragGate Worker counted download: <a href="https://fraggate-download-tracker.vibelock.workers.dev/download">fraggate-download-tracker.vibelock.workers.dev/download</a></p>
+${ecosystemBlockHtml()}`;
+  return `<!doctype html>
+<html lang="en">
+<head>
+${headMeta(origin, title, description, "/v1/fraggate")}
+<script type="application/ld+json">${JSON.stringify(ld)}</script>
+<style>${css}</style>
+</head>
+<body>
+${brandRow()}
+${inner}
+${donateFooter()}
+</body>
+</html>`;
 }
