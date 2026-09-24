@@ -19,3 +19,13 @@ node qnm-node/radio.mjs
 ```
 
 Close-test: `scripts/verify-qnm-radio.mjs` (part of `npm test`).
+
+## FED-MESH-1.0 protocol client
+
+`qnm-node/fed-instance.mjs` is a protocol client for the Local-First Edge Mesh, not the sandboxed daemon. The daemon in [AzielEliab/qnm-node](https://github.com/AzielEliab/qnm-node) implements neighborhood discovery, quotas, and object storage. This repo's Worker relay accepts the later sync.
+
+```bash
+node qnm-node/fed-instance.mjs --data ./data/a --port 8781 --relay http://127.0.0.1:8780/v1/mesh/relay
+```
+
+Each instance has its own key, handle, and data directory. Instances talk through a relay. There is no hidden shortcut between ports. Object fetch between peers is `{ "v": "FED-MESH-1.0", "kind": "object-fetch", "hash": "<64 hex>" }` and the answer is `{ "v": "FED-MESH-1.0", "kind": "object", "hash", "body_b64" }` or `FED-MESH-NO-OBJECT`. Spec: [`docs/designs/FED-MESH-1.0.md`](../docs/designs/FED-MESH-1.0.md).

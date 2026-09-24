@@ -243,3 +243,15 @@ Genesis `previous_hash` is `ZERO_HASH` (64 zero hex). Runtime `GET /v1/receipts`
 MESH-VAULT lite may mint catalog / download / mesh events when the token is set. This is not a substitute for session receipts, the FragGate ledger, or ForgeReceipts. Software pull / download is a catalog event, not site resurrection. A pulled site (token revoked, Worker dropped, DNS killed) dies with the pull. Receipts do not restore godlock.uk. Phoenix is wait / re-seal only.
 
 **NO-LIE / NO-REWRITE:** a mutated receipt fails its hash. There is no rewrite key. Fail-open skip is a missing append, not a fake receipt. Law: `docs/designs/NO-LIE-NO-REWRITE-1.0.md`. Does not replace the CROSS-NETWORK-SURVIVAL-1.0 machine tip.
+
+---
+
+## 8. ACT-RECEIPT-1.1 identity anchor (FED-MESH-1.0)
+
+The four-field hash in section 7 stays `ACT-RECEIPT-1.0`. A federated receipt may add `identity_anchor` beside that hash. The anchor is not inside the four-field hash, so a 1.0 receipt with no anchor stays valid.
+
+`identity_anchor` fields: `v` (`FED-MESH-1.0`), `handle` (`#` plus 11 Crockford characters), `public_key` (base64url raw Ed25519), `seq` (per-handle monotonic integer), `prev` (SHA-256 of the previous anchor statement, or 64 zero hex at genesis), `receipt_hash` (the section 7 hash), `sig` (Ed25519 over the anchor statement, signature excluded).
+
+ChainLock keeps one chain per handle (`caller: fed-` + the lowercase handle body, chain `mesh`). TemporalLock timeslates that chain with a per-relay `click_index`. That order is local to the relay. It is not a worldwide total order.
+
+Verification refuses a duplicate sequence, two anchors that claim the same `prev` with different statement hashes, a handle whose key did not sign, a sequence gap, and a mutated receipt. No user geo or personal info. The handle is pseudonymous. Law: `docs/designs/FED-MESH-1.0.md`.

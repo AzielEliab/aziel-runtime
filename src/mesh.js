@@ -121,6 +121,9 @@ import { CHANNEL_PLANE_NOTE, CHANNEL_PLANE_SPEC, channelPlaneFrame, channelPlane
 import { publicVpnCite } from "./public-vpn.js";
 import { ensureDefaultVpnSession, vpnAutoCite } from "./azvpn-auto.js";
 import { meshCallingNameAlert } from "./calling-name.js";
+import { fedPublicCounts, resetFedMesh, runRelayOp } from "./fed-mesh/relay.js";
+import { handleBody } from "./fed-mesh/codec.js";
+import { FED_SPEC, FED_TITLE } from "./fed-mesh/spec.js";
 import { HUMAN_USES_NOTE, peekHumanUses } from "./uses.js";
 import { SPORE, dormantRefuse, isSporeDormant, sporeCite } from "./spore.js";
 import {
@@ -242,6 +245,25 @@ export const MESH_CANONICAL_OPS = Object.freeze([
   "skill",
   "vpn",
   "site-presence",
+  "relay-cite",
+  "relay-register",
+  "relay-heartbeat",
+  "relay-leave",
+  "relay-post",
+  "relay-pull",
+  "relay-deliver",
+  "relay-forward",
+  "relay-peers",
+  "relay-bootstrap",
+  "relay-bootstrap-read",
+  "relay-rollup",
+  "relay-remote-task",
+  "relay-directory",
+  "relay-ref",
+  "relay-sync",
+  "relay-object",
+  "relay-object-read",
+  "relay-refs",
 ]);
 
 export const MESH_OP_ALIASES = Object.freeze({
@@ -258,6 +280,20 @@ export const MESH_OP_ALIASES = Object.freeze({
   site_heartbeat: "site-presence",
   mesh_site_presence: "site-presence",
   mesh_site_heartbeat: "site-presence",
+  relay_cite: "relay-cite",
+  relay_register: "relay-register",
+  relay_post: "relay-post",
+  relay_pull: "relay-pull",
+  relay_deliver: "relay-deliver",
+  relay_forward: "relay-forward",
+  relay_peers: "relay-peers",
+  relay_bootstrap: "relay-bootstrap",
+  relay_rollup: "relay-rollup",
+  relay_remote_task: "relay-remote-task",
+  relay_ref: "relay-ref",
+  relay_sync: "relay-sync",
+  relay_object: "relay-object",
+  relay_refs: "relay-refs",
 });
 
 export const MESH_LIVE_OPS = Object.freeze([...MESH_CANONICAL_OPS, ...Object.keys(MESH_OP_ALIASES)]);
@@ -414,6 +450,7 @@ export function resetMeshStore() {
   memory.live_nodes_sealed_at = "";
   memory.receipts = [];
   memory.seq = 0;
+  resetFedMesh();
   isolateSiteSeals.delete(memory);
   injectedNowMs = null;
   radiosOverride = null;
@@ -444,7 +481,12 @@ export function isMeshReadPath(pathname) {
     path === "/v1/mesh/status" ||
     path === "/v1/mesh/nodes" ||
     path === "/v1/mesh/site-presence" ||
-    path === "/v1/mesh/site-heartbeat"
+    path === "/v1/mesh/site-heartbeat" ||
+    path === "/v1/mesh/relay" ||
+    path === "/v1/mesh/relay/bootstrap" ||
+    path === "/v1/mesh/relay/directory" ||
+    path === "/v1/mesh/relay/refs" ||
+    path === "/v1/mesh/relay/object"
   );
 }
 
@@ -534,6 +576,10 @@ export function meshHint(path = "/v1/mesh") {
     network_cite: "on",
     ...channelPlaneFrame(),
     channel_plane_hint: channelPlaneHint(),
+    federated_mesh: FED_SPEC,
+    federated_mesh_title: FED_TITLE,
+    verified_handles_note:
+      "verified_handles counts distinct #handles with a matching signing key and presence inside 5 minutes. One handle is one node. Three keys are three nodes. software_nodes and instance_nodes stay on their own planes. The nodes and live_nodes pills are unchanged.",
   };
 }
 
@@ -674,7 +720,7 @@ export function isInstanceMeshNodeId(nodeId) {
   return !isSoftwareWorkerNodeId(id);
 }
 
-export const MESH_NODE_KINDS = Object.freeze(["human", "instance", "software"]);
+export const MESH_NODE_KINDS = Object.freeze(["human", "instance", "software", "handle"]);
 
 export function sanitizeMeshKind(raw) {
   const s = String(raw || "")
@@ -698,6 +744,7 @@ export function inferMeshKind(node = {}) {
   const declared = sanitizeMeshKind(node.kind) || sanitizeMeshKind(node.plane);
   if (declared === "human" || isHumanBearerToken(node.bearer)) return "human";
   if (declared === "instance") return "instance";
+  if (declared === "handle") return "handle";
   if (isEphemeralMeshNodeId(id)) return "human";
   return "instance";
 }
@@ -820,6 +867,7 @@ function rollupCounts(nodes) {
   const named = emptyPresence();
   const instances = emptyPresence();
   const human = emptyPresence();
+  const handles = emptyPresence();
   const all = emptyPresence();
   for (const node of liveList(nodes)) {
     const p = node && PRESENCE_STATES.includes(node.presence) ? node.presence : "live";
@@ -829,6 +877,7 @@ function rollupCounts(nodes) {
     if (isEphemeralMeshNodeId(id)) ephemeral[p] += 1;
     if (kind === "software") software[p] += 1;
     else if (kind === "human") human[p] += 1;
+    else if (kind === "handle") handles[p] += 1;
     else {
       instances[p] += 1;
       named[p] += 1;
@@ -843,6 +892,7 @@ function rollupCounts(nodes) {
     software,
     instances,
     human,
+    handles,
     ephemeral,
     named,
     all,
@@ -1277,7 +1327,14 @@ function statusFieldsSync(state, usesSignal = null, env) {
 }
 
 async function statusFields(state, env) {
-  return statusFieldsSync(state, await peekHumanUses(env), env);
+  const base = statusFieldsSync(state, await peekHumanUses(env), env);
+  let fed = {};
+  try {
+    fed = await fedPublicCounts(env);
+  } catch {
+    fed = { verified_handles: 0, handle_nodes: 0, handle_live_nodes: 0 };
+  }
+  return { ...base, ...fed };
 }
 
 export async function meshFanoutSuitePresence(env, extra = {}) {
@@ -1483,6 +1540,8 @@ ${ANON_BROADCAST_NOTE}
 
 NO-LIE / NO-REWRITE (**NO-LIE-NO-REWRITE-1.0**): receipts that still hash; copies not all on one tunnel; rules simple enough others verify without the author's voice; no rewrite key. The network is never allowed to lie — even to self-preserve, sustain, stay alive, adapt, or prevent death. Companion under **CROSS-NETWORK-SURVIVAL-1.0** (does not replace the machine tip). See \`docs/designs/NO-LIE-NO-REWRITE-1.0.md\`. Rewrite / lie verbs refuse \`MESH-NO-REWRITE\` / \`MESH-NO-LIE\`.
 
+**FED-MESH-1.0: Local-First Edge Mesh.** Raw data, signing keys, and heavy compute stay on the local node. By default the mesh carries signed receipts, state digests, and ref updates. Raw data moves only on an explicit end-to-end encrypted share. The Worker relay never requires plaintext. Each node is a \`#handle\` derived from its own Ed25519 key (11 Crockford characters of SHA-256 of the raw public key). The Worker is one relay. Any qnm-node may run the same relay. Message bodies are X25519 + HKDF-SHA-256 + AES-GCM ciphertext. The relay stores that ciphertext and the routing fields (handles, seq, keys, nonce). Receipt sentences stay public. A signed ref update is handle, ref name, object hash, previous ref hash, sequence, and signature. The relay stores and serves that index and anchors it with ChainLock and TemporalLock. It does not need the object bytes. A small public object cache is capped at 4096 bytes each, 64 objects, and 64KiB, and a hash mismatch is refused. Peers fetch objects by hash. LAN discovery and offline work run on the local node. A later sync of rollups and ref updates is accepted when the chain is valid. A fork is refused. GET \`/v1/mesh/relay\` is the health check and never enables. A new node needs one relay address it already has. A signed bootstrap list on a relay is one source, not the only source. Peers with no public address use a relay. Direct loopback or a configured LAN URL carries the same envelope. Store-and-forward holds ciphertext for 24 hours under a per-handle quota. Tenant tasks and remote execution stay on local nodes. Private keys stay on the node. \`verified_handles\` counts distinct live handles (three keys are three nodes). \`nodes\` and \`live_nodes\` pills stay the suite rollup. \`software_nodes\` and downloads stay separate. Paper: \`docs/designs/FED-MESH-1.0.md\`.
+
 Author: Aziel Eliab only.
 `;
 }
@@ -1631,25 +1690,58 @@ export async function meshJoin(payload, env) {
       return refuse("MESH-BAD-INPUT", "node_id must be 8–80 chars matching [a-z0-9._-].", { op: "join", mesh_enabled: true });
     }
   }
+  let fedJoin = null;
+  if (src.handle || src.v === FED_SPEC) {
+    const fed = await runRelayOp(
+      "relay-register",
+      {
+        v: FED_SPEC,
+        kind: "register",
+        handle: src.handle,
+        public_key: src.public_key,
+        enc_public_key: src.enc_public_key,
+        product: src.product,
+        presence: src.presence,
+        relays: src.relays,
+        seq: src.seq,
+        prev: src.prev,
+        sig: src.sig,
+      },
+      env,
+    );
+    if (!fed.ok) {
+      return refuse(fed.code, fed.message, {
+        op: "join",
+        mesh_enabled: true,
+        http_status: fed.http_status,
+        federated: true,
+      });
+    }
+    fedJoin = fed;
+    if (!node_id) node_id = handleBody(fed.handle);
+  }
   const now = nowMs();
   const ts = nowIso(now);
   const existing = node_id ? state.nodes[node_id] : null;
   if (!node_id) node_id = newNodeId(now);
   const label = sanitizeLabel(src.label || (existing && existing.label) || product);
   const session_id = (existing && existing.session_id) || newSessionId(node_id);
-  const kind = inferMeshKind({
-    node_id,
-    kind: src.kind || src.plane || (existing && existing.kind),
-    plane: src.plane,
-    bearer: src.bearer || (existing && existing.bearer),
-  });
+  const kind = fedJoin
+    ? "handle"
+    : inferMeshKind({
+        node_id,
+        kind: src.kind || src.plane || (existing && existing.kind),
+        plane: src.plane,
+        bearer: src.bearer || (existing && existing.bearer),
+      });
   const node = {
     node_id,
     product,
     label,
     presence,
     kind,
-    bearer: isHumanBearerToken(src.bearer) ? "human" : existing && existing.bearer,
+    handle: fedJoin ? fedJoin.handle : undefined,
+    bearer: fedJoin ? "handle" : isHumanBearerToken(src.bearer) ? "human" : existing && existing.bearer,
     session_id,
     joined_at: (existing && existing.joined_at) || ts,
     last_seen: ts,
@@ -1688,7 +1780,10 @@ export async function meshJoin(payload, env) {
     kind,
     counts_as_live_nodes: countsAsLiveNodes(node),
     node,
-    note: countsAsLiveNodes(node)
+    federated: fedJoin || undefined,
+    note: fedJoin
+      ? "Signed #handle registered. verified_handles counts this handle. It does not enter the nodes or live_nodes pills, software_nodes, or instance_nodes."
+      : countsAsLiveNodes(node)
       ? "Human mesh presence registered. Non-isolated human bearers count toward public Live Nodes (human mesh users + site_live_viewers) and Nodes (users + cited USES). Heartbeat within 5 minutes or the human drops. Not an account session."
       : kind === "software"
         ? "Softwares {slug}-worker presence registered on software_nodes."
@@ -1703,6 +1798,37 @@ export async function meshHeartbeat(payload, env) {
   const state = await loadState(env);
   if (!state.enabled) return offRefuse("heartbeat", state, env);
   if (isSporeDormant(env, { mesh_enabled: state.enabled })) return dormantRefuse("heartbeat", env, { mesh_enabled: state.enabled });
+  if (src.v === FED_SPEC || (src.kind === "heartbeat" && src.handle && src.sig)) {
+    const fed = await runRelayOp(
+      "relay-heartbeat",
+      {
+        v: FED_SPEC,
+        kind: "heartbeat",
+        handle: src.handle,
+        public_key: src.public_key,
+        presence: src.presence,
+        seq: src.seq,
+        prev: src.prev,
+        sig: src.sig,
+      },
+      env,
+    );
+    if (!fed.ok) {
+      return refuse(fed.code, fed.message, { op: "heartbeat", mesh_enabled: true, http_status: fed.http_status, federated: true });
+    }
+    const id = handleBody(fed.handle);
+    if (state.nodes[id]) {
+      state.nodes[id].last_seen = nowIso();
+      state.nodes[id].presence = fed.presence || state.nodes[id].presence;
+      await saveState(env, state);
+    }
+    return baseResult({
+      op: "heartbeat",
+      ...(await statusFields(state, env)),
+      federated: fed,
+      note: "Signed handle heartbeat. Presence plus the handle chain tip. No message body on this act.",
+    });
+  }
   const tick = tickAccepts(src);
   if (!tick.ok) {
     return refuse(tick.code, tick.reason === "tip_hash-not-fixed-size" || tick.reason === "prev-not-fixed-size"
@@ -2026,6 +2152,22 @@ export async function runMeshOp(op, payload, env) {
   if (resolved === "nodes") return meshNodes(payload, env);
   if (resolved === "site-presence") return meshSitePresence(payload, env);
   if (resolved === "broadcast") return meshBroadcast(payload, env);
+  if (resolved && resolved.startsWith("relay-")) {
+    const read = resolved === "relay-cite" || resolved === "relay-bootstrap-read" || resolved === "relay-directory" || resolved === "relay-object-read" || resolved === "relay-refs";
+    if (!read) {
+      if (!((await loadState(env)).enabled)) {
+        const state = await loadState(env);
+        return offRefuse(resolved, state, env);
+      }
+      if (isSporeDormant(env, { mesh_enabled: true })) return dormantRefuse(resolved, env, { mesh_enabled: true });
+    }
+    const fed = await runRelayOp(resolved, payload, env, { fetchImpl: globalThis.fetch });
+    if (!fed.ok) {
+      return refuse(fed.code, fed.message, { op: resolved, http_status: fed.http_status, ...fed });
+    }
+    const state = await loadState(env);
+    return baseResult({ ...(await statusFields(state, env)), ...fed, op: resolved });
+  }
   return refuse("MESH-UNKNOWN-OP", `Unknown mesh op ${JSON.stringify(op || "")}.`, {
     op: resolved || op || null,
     ops: MESH_CANONICAL_OPS.slice(),
@@ -2109,7 +2251,46 @@ async function dispatchMeshHttpCore(method, pathname, payload, env, origin, sear
       };
     }
     const body = await runMeshOp(postOps[path], payload, env);
-    return { status: body.ok === false ? 400 : 200, body };
+    return { status: body.ok === false ? body.http_status || 400 : 200, body };
+  }
+  if (path === "/v1/mesh/relay" || path.startsWith("/v1/mesh/relay/")) {
+    if (
+      (path === "/v1/mesh/relay" ||
+        path === "/v1/mesh/relay/bootstrap" ||
+        path === "/v1/mesh/relay/directory" ||
+        path === "/v1/mesh/relay/refs" ||
+        path === "/v1/mesh/relay/object") &&
+      (m === "GET" || m === "HEAD")
+    ) {
+      const op = path.endsWith("/bootstrap")
+        ? "relay-bootstrap-read"
+        : path.endsWith("/directory")
+          ? "relay-directory"
+          : path.endsWith("/refs")
+            ? "relay-refs"
+            : path.endsWith("/object")
+              ? "relay-object-read"
+              : "relay-cite";
+      const fed = await runRelayOp(
+        op,
+        {
+          handle: searchParams && searchParams.get ? searchParams.get("handle") : "",
+          ref: searchParams && searchParams.get ? searchParams.get("ref") : "",
+          hash: searchParams && searchParams.get ? searchParams.get("hash") : "",
+        },
+        env,
+      );
+      const state = await loadState(env);
+      const status = fed.ok === false ? fed.http_status || 400 : 200;
+      return { status, body: baseResult({ ...(await statusFields(state, env)), ...fed, op }) };
+    }
+    if (m !== "POST") {
+      return { status: 405, body: refuse("MESH-METHOD", "POST a signed relay act, or GET /v1/mesh/relay to cite. GET never enables.", { hint: "GET /v1/mesh/relay" }) };
+    }
+    const tail = path.slice("/v1/mesh/relay/".length);
+    const op = `relay-${tail}`;
+    const body = await runMeshOp(op, payload, env);
+    return { status: body.ok === false ? body.http_status || 400 : 200, body };
   }
   return {
     status: 404,

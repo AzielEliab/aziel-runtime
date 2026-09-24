@@ -1,0 +1,51 @@
+{
+  "spec": "FED-MESH-1.0",
+  "title": "FED-MESH-1.0: Local-First Edge Mesh",
+  "author": "Aziel Eliab",
+  "seed_hex": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+  "enc_seed_hex": "404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f",
+  "handle": "#CPV0CWYPXP4",
+  "public_key": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+  "enc_public_key": "eaYx7t4b-cmPEgMs3q3Q56B5OY_HhriMyEbsia-FpRo",
+  "handle_length": 12,
+  "ref_update": {
+    "v": "FED-MESH-1.0",
+    "kind": "ref",
+    "handle": "#CPV0CWYPXP4",
+    "public_key": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+    "ref": "heads/main",
+    "object_hash": "f56487a629550848508cbd6305d814f6008a1705ab4e215d926f6fda5e9c94dc",
+    "prev_ref": "0000000000000000000000000000000000000000000000000000000000000000",
+    "seq": 2,
+    "prev": "1111111111111111111111111111111111111111111111111111111111111111",
+    "sig": "EzHgvUyXbK8lMlwzC_e1DJ-pucqeKC2CQEBCvAhM_Igc2xgD8x32dta2EwmpG5Z2QZFHOsVEd3e-P1ZhlULSCg"
+  },
+  "ref_statement_hash": "06805b89889f62b379ae1dee9a7108f9ad37e23124c3ea111145d27438ceb708",
+  "object": {
+    "text": "local-first",
+    "hash": "f56487a629550848508cbd6305d814f6008a1705ab4e215d926f6fda5e9c94dc",
+    "body_b64": "bG9jYWwtZmlyc3Q"
+  },
+  "object_fetch_request": {
+    "v": "FED-MESH-1.0",
+    "kind": "object-fetch",
+    "hash": "f56487a629550848508cbd6305d814f6008a1705ab4e215d926f6fda5e9c94dc"
+  },
+  "object_fetch_response": {
+    "v": "FED-MESH-1.0",
+    "kind": "object",
+    "hash": "f56487a629550848508cbd6305d814f6008a1705ab4e215d926f6fda5e9c94dc",
+    "body_b64": "bG9jYWwtZmlyc3Q"
+  },
+  "receipt_hash": "49ef88c622177cd9662ea63d147589c9cea6c32adede83b7e7d127f853022dba",
+  "identity_anchor": {
+    "v": "FED-MESH-1.0",
+    "handle": "#CPV0CWYPXP4",
+    "public_key": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+    "seq": 1,
+    "prev": "0000000000000000000000000000000000000000000000000000000000000000",
+    "receipt_hash": "49ef88c622177cd9662ea63d147589c9cea6c32adede83b7e7d127f853022dba",
+    "sig": "0OXT9sIHOYV-ZHvjP-qhLSY-GlVuwlja9UOXhCWV4c2LwEDmU3D5w597xIWdx4LQJgliyU3MJZBaScq4dfU4AQ"
+  },
+  "identity_anchor_ok": true
+}

@@ -49,7 +49,21 @@ export function requestLimitKind(pathname, method) {
       path === "/v1/mesh/broadcast" ||
       path === "/v1/mesh/leave" ||
       path === "/v1/mesh/site-presence" ||
-      path === "/v1/mesh/site-heartbeat")
+      path === "/v1/mesh/site-heartbeat" ||
+      path === "/v1/mesh/relay/register" ||
+      path === "/v1/mesh/relay/heartbeat" ||
+      path === "/v1/mesh/relay/leave" ||
+      path === "/v1/mesh/relay/post" ||
+      path === "/v1/mesh/relay/pull" ||
+      path === "/v1/mesh/relay/deliver" ||
+      path === "/v1/mesh/relay/forward" ||
+      path === "/v1/mesh/relay/peers" ||
+      path === "/v1/mesh/relay/bootstrap" ||
+      path === "/v1/mesh/relay/rollup" ||
+      path === "/v1/mesh/relay/remote-task" ||
+      path === "/v1/mesh/relay/ref" ||
+      path === "/v1/mesh/relay/sync" ||
+      path === "/v1/mesh/relay/object")
   ) {
     return "mesh_mutate";
   }
