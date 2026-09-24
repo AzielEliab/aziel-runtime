@@ -134,7 +134,7 @@ export function runtimeAboutField(origin) {
       softwares: "Plain → Gate → Lock catalog products with true in-process engines where live.",
       dual_surface: "Agents via OpenAPI/MCP; humans via Worker UI + counted /download.",
       semantic_bridge:
-        "Cap-7 mesh names via MirageGrid only. Inherit hub designs only (azcorpus + azlibrary on the library hub). design_of hub_designs. resolves_to_hub false. name_may_change. Canonical hubs immutable. GET /v1/mesh never enables.",
+        "Cap-7 is MirageGrid .az duplication + shift. Inherit hub designs only (azcorpus + azlibrary on the library hub). Standard internet does not reach Cap-7. AZ domains resolve via hub HTTPS (public_icann true, resolves_to_hub true). Three of seven are false sites. design_of hub_designs. Cap-7 resolves_to_hub false. GET /v1/mesh never enables.",
       cold_multi_shelf:
         "COLD-MULTI-SHELF-1.0 cite of corpus#96 /shelves. Plane A = 5 published surfaces / 2 family radii / 1 independent live. Plane B SLOT (Codeberg + archive.org PASS still SLOT at https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius, pack b549362c…; Framagit URL null; doi null). Plane C USB SLOT. Runtime Worker is the same Plane A tunnel.",
       nodemesh:
@@ -1118,7 +1118,7 @@ export const SUITE_DESIGNS = Object.freeze([
     id: "REDLINE-2026-09-14",
     file: "REDLINE-2026-09-14.md",
     one_line:
-      "LIVE law — runtime redline: map public doors; refuse anonymous mutate; operator token header-only; Growth-ON Allow (no GPTBot Disallow); Cloudflare TLS cite; Cap-7 design_of + resolves_to_hub false; attack sims refuse",
+      "LIVE law — runtime redline: map public doors; refuse anonymous mutate; operator token header-only; Growth-ON Allow (no GPTBot Disallow); Cloudflare TLS cite; Cap-7 design_of; Cap-7 resolves_to_hub false; AZ domains resolve via hub HTTPS; attack sims refuse",
     status: "live",
     kind: "law",
   },
@@ -1134,7 +1134,7 @@ export const SUITE_DESIGNS = Object.freeze([
     id: "BAN-SURVIVAL-1.0",
     file: "BAN-SURVIVAL-1.0.md",
     one_line:
-      "LIVE law — three layers: live multi-front ↔ cold shelves; live-node API SLOT; Cap-7 cite + AZNet verify LIVE (hosted exec SLOT; shuffle ping→land); AKM belief_is_not_truth; LIVE doors are published named fronts",
+      "LIVE law — three layers: live multi-front ↔ cold shelves; live-node API SLOT; Cap-7 factory duplication cite LIVE (standard internet does not reach Cap-7; shuffle ping→land) + AZNet verify LIVE; AKM belief_is_not_truth; LIVE doors are published named fronts",
     status: "live",
     kind: "law",
   },
@@ -1238,7 +1238,7 @@ export function designsSkillMarkdown() {
   const lines = [
     "## Designs",
     "",
-    "Suite software-design papers (law / fabric). 4DM-WP-1.0 is the 4DMap product spec (Softwares-tab slug `4dmap`). LIVE fabric modules: ChainLock, AZPIPE, SweepGate, LOCKSET, packed catalog (RL), QNS-CD-1.0 (photon QNS1 1.3; local qnsd; Worker cites only), MASTER-33 (locked hop order; FragGate single door; Lamb Lens after FragGate), AKM-TRIAD-1.0 (adaptive recollection; Bayesian posterior is belief), ACT-RECEIPT-1.0 (public four-field receipts on corpus /receipts; fail-open). CROSS-NETWORK-SURVIVAL-1.0 is the umbrella survival law (if network and data die tomorrow, the chain survives on cold shelves — hosts / DOI / git / vault; matching bytes on an independent shelf). NO-LIE-NO-REWRITE-1.0 is companion law under that umbrella (receipts still hash; no rewrite key; survival keeps published hashes). BAN-SURVIVAL-1.0 is the three-layer companion (live multi-front ↔ cold shelves; live-node API SLOT; Cap-7 cite + AZNet verify LIVE / hosted exec SLOT / shuffle ping→land; AKM belief_is_not_truth; LIVE doors are published named fronts). SPORE-1.0 is the last-resort failsafe after live fronts and cold-shelf mutual backup (pause / preserve / wait / physical-wipe-only; does not replace shelves). REDLINE-2026-09-14 is runtime attack-surface law (header-only operator token; Growth-ON Allow; Cloudflare TLS; Cap-7 design_of + resolves_to_hub false). COLD-MULTI-SHELF-1.0 cites corpus#96 /shelves honesty (Plane A 5/2/1; Plane B SLOT; Plane C USB SLOT; doi null). SUITE-PIPE-1.6.15 is historical. `GET /v1/mesh` never enables. Git-hosted. Public identity Aziel Eliab only.",
+    "Suite software-design papers (law / fabric). 4DM-WP-1.0 is the 4DMap product spec (Softwares-tab slug `4dmap`). LIVE fabric modules: ChainLock, AZPIPE, SweepGate, LOCKSET, packed catalog (RL), QNS-CD-1.0 (photon QNS1 1.3; local qnsd; Worker cites only), MASTER-33 (locked hop order; FragGate single door; Lamb Lens after FragGate), AKM-TRIAD-1.0 (adaptive recollection; Bayesian posterior is belief), ACT-RECEIPT-1.0 (public four-field receipts on corpus /receipts; fail-open). CROSS-NETWORK-SURVIVAL-1.0 is the umbrella survival law (if network and data die tomorrow, the chain survives on cold shelves — hosts / DOI / git / vault; matching bytes on an independent shelf). NO-LIE-NO-REWRITE-1.0 is companion law under that umbrella (receipts still hash; no rewrite key; survival keeps published hashes). BAN-SURVIVAL-1.0 is the three-layer companion (live multi-front ↔ cold shelves; live-node API SLOT; Cap-7 factory duplication cite LIVE (standard internet does not reach Cap-7) / AZNet verify LIVE / shuffle ping→land; AKM belief_is_not_truth; LIVE doors are published named fronts). SPORE-1.0 is the last-resort failsafe after live fronts and cold-shelf mutual backup (pause / preserve / wait / physical-wipe-only; does not replace shelves). REDLINE-2026-09-14 is runtime attack-surface law (header-only operator token; Growth-ON Allow; Cloudflare TLS; Cap-7 design_of; Cap-7 resolves_to_hub false; AZ domains via hub HTTPS). COLD-MULTI-SHELF-1.0 cites corpus#96 /shelves honesty (Plane A 5/2/1; Plane B SLOT; Plane C USB SLOT; doi null). SUITE-PIPE-1.6.15 is historical. `GET /v1/mesh` never enables. Git-hosted. Public identity Aziel Eliab only.",
     "",
   ];
   for (const d of SUITE_DESIGNS) {
@@ -1254,7 +1254,7 @@ export function designsLlmsBlock() {
   const lines = [
     "## Designs",
     "",
-    "Suite software-design papers (law / fabric). 4DM-WP-1.0 is the 4DMap product spec (slug `4dmap`). LIVE fabric: CL-WP-0.4, AP-WP-0.2, SG-WP-0.1, LS-WP-0.1, RL-WP-0.1 (runtime), QNS-CD-1.0 (local qnsd), MASTER-33 (locked hop order; FragGate single door), AKM-TRIAD-1.0 (adaptive recollection), ACT-RECEIPT-1.0 (corpus /receipts). CROSS-NETWORK-SURVIVAL-1.0 is the umbrella survival law (cold shelves hosts / DOI / git / vault; matching bytes on an independent shelf). NO-LIE-NO-REWRITE-1.0 is companion law under that umbrella (receipts that still hash; no rewrite key; survival keeps published hashes). BAN-SURVIVAL-1.0 is the three-layer companion (live multi-front ↔ cold shelves; live-node API SLOT; Cap-7 cite + AZNet verify LIVE / hosted exec SLOT / shuffle ping→land; AKM belief_is_not_truth; LIVE doors are published named fronts). SPORE-1.0 is the last-resort failsafe after live fronts and cold-shelf mutual backup (pause / preserve / wait / physical-wipe-only; does not replace shelves). REDLINE-2026-09-14 is runtime attack-surface law (header-only token; Growth-ON; Cloudflare TLS; Cap-7 design_of). COLD-MULTI-SHELF-1.0 cites corpus#96 /shelves honesty (Plane A 5/2/1; Plane B SLOT; Plane C USB SLOT; doi null). SUITE-PIPE-1.6.15 is historical. GET /v1/mesh never enables. Git-hosted. Author: Aziel Eliab only.",
+    "Suite software-design papers (law / fabric). 4DM-WP-1.0 is the 4DMap product spec (slug `4dmap`). LIVE fabric: CL-WP-0.4, AP-WP-0.2, SG-WP-0.1, LS-WP-0.1, RL-WP-0.1 (runtime), QNS-CD-1.0 (local qnsd), MASTER-33 (locked hop order; FragGate single door), AKM-TRIAD-1.0 (adaptive recollection), ACT-RECEIPT-1.0 (corpus /receipts). CROSS-NETWORK-SURVIVAL-1.0 is the umbrella survival law (cold shelves hosts / DOI / git / vault; matching bytes on an independent shelf). NO-LIE-NO-REWRITE-1.0 is companion law under that umbrella (receipts that still hash; no rewrite key; survival keeps published hashes). BAN-SURVIVAL-1.0 is the three-layer companion (live multi-front ↔ cold shelves; live-node API SLOT; Cap-7 factory duplication cite LIVE (standard internet does not reach Cap-7) / AZNet verify LIVE / shuffle ping→land; AKM belief_is_not_truth; LIVE doors are published named fronts). SPORE-1.0 is the last-resort failsafe after live fronts and cold-shelf mutual backup (pause / preserve / wait / physical-wipe-only; does not replace shelves). REDLINE-2026-09-14 is runtime attack-surface law (header-only token; Growth-ON; Cloudflare TLS; Cap-7 design_of). COLD-MULTI-SHELF-1.0 cites corpus#96 /shelves honesty (Plane A 5/2/1; Plane B SLOT; Plane C USB SLOT; doi null). SUITE-PIPE-1.6.15 is historical. GET /v1/mesh never enables. Git-hosted. Author: Aziel Eliab only.",
     `Index: ${DESIGNS_GITHUB_TREE}`,
     "",
   ];

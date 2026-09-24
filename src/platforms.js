@@ -41,7 +41,7 @@ const SHARED_CLIENTS = Object.freeze({
   survival: true,
   calling_name: true,
   cap7_shuffle_in_process: true,
-  cap7_public_worker_shuffle: "slot",
+  cap7_public_worker_shuffle: "live",
   dual_surface: Object.freeze({
     agents: "mcp_openapi",
     humans: "worker_ui_pwa_download",
@@ -63,7 +63,7 @@ function platformRow(id, label, ua_note) {
       `${PRIMARY_WORKER_ORIGIN}/manifest.webmanifest`,
     ]),
     note:
-      "LIVE via browser + installable PWA + Worker fronts + Softwares /download + MCP/OpenAPI. Not a native store app. Same FragGate door. Cap-7 in-process shuffle is LIVE; public workers.dev shuffle stays SLOT.",
+      "LIVE via browser + installable PWA + Worker fronts + Softwares /download + MCP/OpenAPI. Not a native store app. Same FragGate door. Cap-7 factory shuffle land is LIVE. Standard internet reaches AZ domains via hub HTTPS, not Cap-7 names.",
   });
 }
 

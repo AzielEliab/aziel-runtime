@@ -161,18 +161,19 @@ publishes an attested named FragGate origin. Do not treat `GET /v1/mesh`
 
 Cap-7 cite (`GET /v1/mesh/az-generator` or MirageGrid `/bridge`) and
 AZNet `stamp` / `verify_hash` stay **LIVE** via FragGate (name metadata
-+ hash continuity). Cap-7/AZNet **hosted exec endpoints** stay **SLOT**.
++ hash continuity). Cap-7 is the auto-generate `.az` duplication layer.
+Factory duplication cite is **LIVE** (`mesh_name_icann: live`). Standard
+internet does not reach Cap-7. `resolves_to_hub: false` on that layer.
 Update shuffle: all nodes ping MirageGrid
 (`fraggate_call { slug: "miragegrid", op: "shuffle" }`) until they land
 on **one** distinct-name Cap-7 site — factory SoT labels `azgrid` /
 `azbooth` / `azcloak` / `azvault` / `azshift` / `azflag` / `azstandby`.
-That landed site is the update endpoint for that round. Factory
-`azgrid.az` strings are mesh names (`mesh_name_icann` SLOT), not ICANN.
-Do not hardcode a single Cap-7 host. Public workers.dev shuffle **land**
-and hosted `/mcp` stay **SLOT**. Subset of Cap-7 is browser-reachable
-class (`azgrid` / `azbooth`); remainder is AZNet-side.
-Do not invent a hosted door. Do not claim AZNet hosts payloads.
-`radio_phy: false`. `resolves_to_hub: false`.
+Four are real hub duplications (`azgrid`, `azvault`, `azbooth`, `azflag`).
+Three are false sites (`azcloak`, `azshift`, `azstandby`).
+That landed mesh name is the update endpoint for that round and is not
+a public HTTPS door. Factory land is LIVE. Do not hardcode a single host.
+Internet reaches the AZ domains through the four hub HTTPS links.
+Do not claim AZNet hosts payloads. `radio_phy: false`. `icann_tld_az: false`.
 
 AKM-TRIAD-1.0 stays true on this stack: ranked adaptive recall vs
 verified ChainLock (`belief_is_not_truth`; posterior ≠ truth);
@@ -217,8 +218,8 @@ agents use MCP/OpenAPI; humans use Worker UI + PWA + counted `/download`.
 | `ios` | iPhone | Safari Add to Home Screen PWA + `/download` + `/mcp` |
 
 Each OS can reach `/survival` (name-rotation + live doors), Cap-7
-in-process shuffle (`fraggate_call` `miragegrid`/`shuffle`; public
-workers.dev shuffle stays SLOT), and Softwares download/run. Machine
+factory shuffle (`fraggate_call` `miragegrid`/`shuffle`; land LIVE;
+standard internet does not reach Cap-7), and Softwares download/run. Machine
 matrix: `GET /platforms` (alias `/v1/platforms`), `GET /survival`
 `platforms`, `GET /v1/software` `platforms`, `GET /v1/update/manifest`
 `platforms`, suite pack `/download` `platforms`. `live: true` only when

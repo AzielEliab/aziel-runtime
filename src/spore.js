@@ -97,7 +97,7 @@ export const SPORE_DNA = Object.freeze({
   receipts: "hash still verifies",
   cold_shelves: "COLD-MULTI-SHELF-1.0 planes A/B/C",
   local_nodes: "qnm-node + tip packs; bytes↔hash",
-  cap7_aznet: "cite + verify LIVE; hosted exec SLOT",
+  cap7_aznet: "factory duplication cite LIVE; standard internet does not reach Cap-7",
 });
 
 export const REFUSE = Object.freeze({

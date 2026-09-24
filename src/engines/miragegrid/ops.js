@@ -29,6 +29,11 @@ function envelope() {
       live_registrar: false,
       radio_phy: false,
       resolves_to_hub: false,
+      internet_reachable: false,
+      standard_internet_reaches_cap7: false,
+      az_domains_public_icann: true,
+      az_domains_resolves_to_hub: true,
+      false_site_count: 3,
       name_may_change: true,
       canonical_hubs_immutable: true,
       fifth_product: false,
@@ -43,14 +48,14 @@ export function miragegridHealth() {
 export function miragegridSkill() {
   return capabilitySkill({
     ...envelope(),
-    lead: "Ephemeral session node assignment plus Cap-7 bridge cite and ping→land update shuffle. Not a VPN, not ICANN, not a live registrar. Hosted shuffle SLOT. mesh/hop stay refuse on the public door.",
+    lead: "Ephemeral session node assignment plus Cap-7 bridge cite and ping→land update shuffle. Not a VPN, not ICANN, not a live registrar. Factory shuffle land is LIVE. Standard internet does not reach Cap-7. mesh/hop stay refuse on the public door.",
   });
 }
 
 export function miragegridDoctor() {
   return capabilityDoctor({
     ...envelope(),
-    doctor_note: "MirageGrid doctor: assign / verify-receipt / nodes / bridge cite / shuffle land. vpn-hop stays refuse. Cap-7 names may change; map to the original four hubs only; inherit designs only; resolves_to_hub false; name_may_change; canonical hubs immutable; no fifth product; public_icann false. Shuffle: ping until one site lands; no hardcoded host; public workers.dev shuffle SLOT.",
+    doctor_note: "MirageGrid doctor: assign / verify-receipt / nodes / bridge cite / shuffle land. vpn-hop stays refuse. Cap-7 is .az duplication + shift (StaticClock + cloak + AZVPN). Standard internet does not reach Cap-7. AZ domains resolve via hub HTTPS (public_icann true, resolves_to_hub true). Three of seven are false sites. Factory land is LIVE. radio_phy false.",
   });
 }
 

@@ -382,7 +382,7 @@ ${survivalSkillMarkdown(base)}
 | GET | \`/cite.json\` | How to cite Aziel Eliab software and the Digital Library. Aka Aziel Elroi Eliab. No invented DOIs. Cites COLD-MULTI-SHELF-1.0 / corpus#96 shelves honesty. Person \`@id\` + site coverage + sameAs/socials (hubs + GitHub + Glama + @AzielEliab). Locked What Aziel Eliab does / why. Softwares SSoT \`GET /v1/software\`. |
 | GET | \`/person.jsonld\` | Machine Person JSON-LD (Google AI / LLM profile). \`@id\` https://www.azieleliab.com/#aziel. Roles: researcher, digital rights activist, software developer/designer, author, philosopher. sameAs/socials: hubs + GitHub + Glama + @AzielEliab. Locked What Aziel Eliab does / why. Machine 15:20 disambiguation. No visible HTML chrome. No legal name / home. |
 | GET | \`/who-is\` | Machine who-is text. Same Person \`@id\`. Site coverage + sameAs/socials (hubs + GitHub + Glama + @AzielEliab). Locked What Aziel Eliab does / why. Softwares SSoT. Alias \`/who-is-aziel-eliab.txt\`. Not an HTML page. |
-| GET | \`/shelves\` | COLD-MULTI-SHELF-1.0 registry cite matching live corpus \`/shelves\`. Plane A 5 surfaces / 2 family radii / 1 independent live. Plane B SLOT (Codeberg + archive.org PASS still SLOT at https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius; Framagit URL null). Plane C USB SLOT. \`doi\` null. Linked fields: \`redline.spec\`, Cap-7 \`design_of\` + \`resolves_to_hub: false\`, attack-sim refuse pointer. Runtime Worker is the same Plane A tunnel. |
+| GET | \`/shelves\` | COLD-MULTI-SHELF-1.0 registry cite matching live corpus \`/shelves\`. Plane A 5 surfaces / 2 family radii / 1 independent live. Plane B SLOT (Codeberg + archive.org PASS still SLOT at https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius; Framagit URL null). Plane C USB SLOT. \`doi\` null. Linked fields: \`redline.spec\`, Cap-7 \`design_of\` + \`resolves_to_hub: false\` (AZ domains resolve via hub HTTPS), attack-sim refuse pointer. Runtime Worker is the same Plane A tunnel. |
 | GET | \`/v1/shelves\` | Machine alias of \`/shelves\`. |
 | GET | \`/survival\` | BAN-SURVIVAL-1.0 mutual-backup map. Live multi-front ↔ cold shelves. LIVE doors only. Live-node API SLOT. Not a second door. Never invent a live door. |
 | GET | \`/v1/survival\` | Machine alias of \`/survival\`. |
@@ -1738,7 +1738,7 @@ export function runtimeStaticPaths() {
       get: {
         operationId: "mesh_az_generator",
         summary:
-          "Cap-7 semantic-bridge cite. MirageGrid-only mesh-name factory. Inherit hub designs only (azcorpus + azlibrary on the library hub). design_of hub_designs. resolves_to_hub false. name_may_change. Canonical hubs immutable. Not aliases of the four ICANN hostnames. public_icann false. Not a live AZ-GEN registrar. Not a fifth product. GET never enables radios.",
+          "Cap-7 semantic-bridge cite. MirageGrid .az duplication + shift. Standard internet does not reach Cap-7. AZ domains resolve via the four hub HTTPS links (public_icann true, resolves_to_hub true). Cap-7 resolves_to_hub false. Three of seven are false sites. design_of hub_designs. Factory cite LIVE. icann_tld_az false. Not a live AZ-GEN registrar. GET never enables radios.",
         tags: ["mesh"],
         responses: { "200": { description: "Cap-7 cite JSON (not a registrar)" } },
       },

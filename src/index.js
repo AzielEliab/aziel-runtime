@@ -555,8 +555,8 @@ const PRODUCTS_RAW = [
     ops: [
       { op: "assign", method: "POST", summary: "Assign a session node id. Mapping is ephemeral." },
       { op: "verify-receipt", method: "POST", summary: "Verify a MirageGrid control-plane receipt. Not a VPN hop." },
-      { op: "bridge", method: "GET", summary: "Cap-7 mesh-name metadata cite. Inherit designs only (azcorpus + azlibrary). Not ICANN. resolves_to_hub false. name_may_change." },
-      { op: "shuffle", method: "POST", summary: "Ping MirageGrid until one Cap-7 site lands. That landed mesh name is that-round update. Distinct names. No hardcoded host. Hosted URL SLOT. Public workers.dev shuffle SLOT." },
+      { op: "bridge", method: "GET", summary: "Cap-7 .az duplication cite. Standard internet does not reach Cap-7. AZ domains resolve via hub HTTPS. resolves_to_hub false on Cap-7. Three of seven are false sites." },
+      { op: "shuffle", method: "POST", summary: "Ping MirageGrid until one Cap-7 .az duplication lands. That landed mesh name is that-round update. Distinct names. No hardcoded host. Factory land LIVE. Standard internet does not reach Cap-7. Three of seven are false sites." },
       { op: "nodes", method: "GET", summary: "List ephemeral control-plane node ids. Not a hop mesh." },
       { op: "doctor", method: "GET", summary: "UI alias of health. Same FragGate backend as the Worker UI button." },
     ],
@@ -1623,7 +1623,7 @@ function llmsTxt(origin, env = {}) {
     `Survival tip: ${SURVIVAL_TIP}`,
     `Mesh status: ${base}/v1/mesh/status  (alias; never enables)`,
     `Mesh nodes: ${base}/v1/mesh/nodes  (roster; 5-minute TTL; no scores)`,
-    `Cap-7 semantic bridge: ${base}/v1/mesh/az-generator  (MirageGrid cite; inherit designs only including azcorpus + azlibrary; resolves_to_hub false; name_may_change; not ICANN aliases)`,
+    `Cap-7 semantic bridge: ${base}/v1/mesh/az-generator  (MirageGrid .az duplication; standard internet does not reach Cap-7; AZ domains resolve via hub HTTPS; Cap-7 resolves_to_hub false; 3 of 7 false sites)`,
     `ACT-RECEIPT-1.0: ${base}/v1/receipts  (cite). Public chain lives on https://www.azielcorpuslibrary.net/receipts. Runtime appends after FragGate list/call, POST /mcp, and significant POST /v1/* when RECEIPT_APPEND_TOKEN is set (fail-open). Tip/proxy: ${base}/v1/receipts/tip. Not a Softwares-tab product.`,
     `Agent pipeline: fraggate_list → fraggate_describe → fraggate_call. Prefer ${base}/mcp and ${base}/v1/software.`,
     `About: ${base}/about`,
@@ -2593,7 +2593,7 @@ function staticPaths(origin, env = {}) {
       get: {
         operationId: "catalog_shelves",
         summary:
-          "COLD-MULTI-SHELF-1.0 registry cite matching live corpus /shelves (corpus#96). Plane A = 5 published surfaces / 2 family radii / 1 independent live. Plane B Codeberg + archive.org hash-verify PASS still SLOT (https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius, pack b549362c…); Framagit URL null (third ALL-TARGETS) Zenodo tip-pack SLOT (zenodo_live:false; CNS-ZENODO-NOT-LIVE); doi null. Plane C USB SLOT until CNS-OPERATOR-ATTEST. Linked fields: redline.spec REDLINE-2026-09-14, Cap-7 design_of hub_designs + resolves_to_hub false, attack-sim refuse pointer scripts/verify-redline.mjs. Runtime Worker is the same Plane A tunnel.",
+          "COLD-MULTI-SHELF-1.0 registry cite matching live corpus /shelves (corpus#96). Plane A = 5 published surfaces / 2 family radii / 1 independent live. Plane B Codeberg + archive.org hash-verify PASS still SLOT (https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius, pack b549362c…); Framagit URL null (third ALL-TARGETS) Zenodo tip-pack SLOT (zenodo_live:false; CNS-ZENODO-NOT-LIVE); doi null. Plane C USB SLOT until CNS-OPERATOR-ATTEST. Linked fields: redline.spec REDLINE-2026-09-14, Cap-7 design_of hub_designs + resolves_to_hub false (AZ domains resolve via hub HTTPS), attack-sim refuse pointer scripts/verify-redline.mjs. Runtime Worker is the same Plane A tunnel.",
         tags: ["catalog"],
         responses: { "200": { description: "COLD-MULTI-SHELF registry JSON" } },
       },
@@ -2632,7 +2632,7 @@ function staticPaths(origin, env = {}) {
       get: {
         operationId: "catalog_ban_survival",
         summary:
-          "BAN-SURVIVAL-1.0 three-layer map plus SPORE-1.0 last-resort failsafe (pause / preserve / wait / physical-wipe-only). Live multi-front ↔ cold shelves stay intact; live-node API SLOT; Cap-7 cite + AZNet verify LIVE (hosted exec SLOT). SPORE does not replace shelves. Client door list = LIVE doors only. Not a second FragGate door.",
+          "BAN-SURVIVAL-1.0 three-layer map plus SPORE-1.0 last-resort failsafe (pause / preserve / wait / physical-wipe-only). Live multi-front ↔ cold shelves stay intact; live-node API SLOT; Cap-7 factory duplication cite LIVE (standard internet does not reach Cap-7) + AZNet verify LIVE. SPORE does not replace shelves. Client door list = LIVE doors only. Not a second FragGate door.",
         tags: ["catalog"],
         responses: { "200": { description: "BAN-SURVIVAL failover JSON" } },
       },
@@ -2793,7 +2793,7 @@ async function combinedOpenApi(request, env) {
       summary: rewriteLiveCallingDisplay(RUNTIME_ONE_LINE, resolveCallingName(env)),
       description:
         rewriteLiveCallingDisplay(RUNTIME_ABSTRACT, resolveCallingName(env)) +
-        " FragGate is THE single public executable door (list → describe → call). Softwares catalog Plain→Gate→Lock; hubs refresh from GET /v1/software. Dual-surface: agents MCP/OpenAPI; humans Worker UI + counted /download. Catalog names mesh-resident website designs azcorpus + azlibrary (downloadable to nodes; azlibrary upload is API token only). Cap-7 mesh names via MirageGrid only (inherit hub designs only; resolves_to_hub false; name_may_change; canonical hubs immutable). COLD-MULTI-SHELF-1.0 cite on GET /shelves matches corpus#96 honesty (Plane A 5 surfaces / 2 family radii / 1 independent live; Plane B Codeberg + archive.org PASS still SLOT at https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius; Framagit URL null; doi null; Plane C USB SLOT). NodeMesh/QNM read-only suite-presence is ON by default; GET /v1/mesh never enables radios beyond that. Public VPN auto-binds AZVPN (HTTPS/WS REAL; WireGuard/OpenVPN SLOT). Author Aziel Eliab only. " +
+        " FragGate is THE single public executable door (list → describe → call). Softwares catalog Plain→Gate→Lock; hubs refresh from GET /v1/software. Dual-surface: agents MCP/OpenAPI; humans Worker UI + counted /download. Catalog names mesh-resident website designs azcorpus + azlibrary (downloadable to nodes; azlibrary upload is API token only). Cap-7 mesh names via MirageGrid only ( .az duplication + shift; standard internet does not reach Cap-7; AZ domains resolve via hub HTTPS; Cap-7 resolves_to_hub false; 3 of 7 false sites). COLD-MULTI-SHELF-1.0 cite on GET /shelves matches corpus#96 honesty (Plane A 5 surfaces / 2 family radii / 1 independent live; Plane B Codeberg + archive.org PASS still SLOT at https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius; Framagit URL null; doi null; Plane C USB SLOT). NodeMesh/QNM read-only suite-presence is ON by default; GET /v1/mesh never enables radios beyond that. Public VPN auto-binds AZVPN (HTTPS/WS REAL; WireGuard/OpenVPN SLOT). Author Aziel Eliab only. " +
         CATALOG_CHANGELOG_20 +
         " " +
         CATALOG_CHANGELOG_19 +

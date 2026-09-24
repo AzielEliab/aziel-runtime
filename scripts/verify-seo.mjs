@@ -631,7 +631,7 @@ assert.equal(cite.ban_survival.shelves_are_not_a_live_door, true);
 assert.equal(cite.ban_survival.live_node_api.status, "slot");
 assert.equal(cite.ban_survival.cap7_aznet.cite.status, "live");
 assert.equal(cite.ban_survival.cap7_aznet.aznet_verify.status, "live");
-assert.equal(cite.ban_survival.cap7_aznet.hosted_endpoints.status, "slot");
+assert.equal(cite.ban_survival.cap7_aznet.hosted_endpoints.status, "live");
 assert.equal(cite.ban_survival.cap7_aznet.radio_phy, false);
 assert.ok(Array.isArray(cite.ban_survival.live_doors) && cite.ban_survival.live_doors.length >= 1);
 assert.ok(Array.isArray(cite.ban_survival.exec_origins) && cite.ban_survival.exec_origins.length >= 1);

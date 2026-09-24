@@ -972,9 +972,9 @@ export function shelvesLlmsBlock(origin) {
     `Plane B SLOT: Codeberg ${CODEBERG_TIP_PACK.url} hash-verify PASS pack ${CODEBERG_TIP_PACK.pack_sha256} still SLOT. archive.org PASS primary ${ARCHIVE_ORG_TIP_PACK.url} + secondary ${ARCHIVE_ORG_TIP_PACK_202609.url} (same blast_radius archive-org; pack ${ARCHIVE_ORG_TIP_PACK.pack_sha256}; zip wrap on 202609 — ia_flat_sha256 null; inner tar hash-verifies) still SLOT. Framagit URL null (CNS-NO-FORGE-MIRROR; third ALL-TARGETS). LIVE only after all three (CNS-PLANE-B-ALL-TARGETS). Zenodo tip-pack stays SLOT (zenodo_live:false; doi null; CNS-ZENODO-NOT-LIVE).`,
     "Plane C USB SLOT until CNS-OPERATOR-ATTEST.",
     "aziel-runtime Worker is the same Plane A tunnel.",
-    `REDLINE cite: ${REDLINE_SPEC} (${REDLINE_DOCS}). Cap-7 design_of: hub_designs. resolves_to_hub: false.`,
+    `REDLINE cite: ${REDLINE_SPEC} (${REDLINE_DOCS}). Cap-7 design_of: hub_designs. resolves_to_hub: false. AZ domains resolve via hub HTTPS.`,
     `Attack-sim refuse pointer: ${ATTACK_SIM_POINTER}.`,
-    "Cap-7 names inherit hub designs only. resolves_to_hub: false. public_icann: false. No fifth product.",
+    "Cap-7 is .az duplication. Standard internet does not reach Cap-7. resolves_to_hub: false. public_icann: false on that layer. AZ domains: public_icann true, resolves_to_hub true. Three of seven are false sites.",
     "Growth-ON crawlers Allow. Dual-surface MCP/OpenAPI. Full AI client set.",
     "",
   ].join("\n");
@@ -992,7 +992,7 @@ Corpus SoT: [${CORPUS_SHELVES}](${CORPUS_SHELVES}). Runtime cite: \`GET ${cite.s
 - **Plane B** SLOT — Codeberg ${CODEBERG_TIP_PACK.url} hash-verify PASS (pack \`${CODEBERG_TIP_PACK.pack_sha256}\`) still SLOT. archive.org PASS primary ${ARCHIVE_ORG_TIP_PACK.url} + secondary ${ARCHIVE_ORG_TIP_PACK_202609.url} (same blast_radius archive-org; not two independent shelves; pack \`${ARCHIVE_ORG_TIP_PACK.pack_sha256}\`; zip wrap on 202609 — ia_flat_sha256 null; inner tar hash-verifies) still SLOT. Framagit URL **null** (\`CNS-NO-FORGE-MIRROR\`; third ALL-TARGETS). LIVE only after all three (\`CNS-PLANE-B-ALL-TARGETS\`). Zenodo tip-pack SLOT (\`CNS-ZENODO-NOT-LIVE\`). \`doi\` null — never invent.
 - **Plane C** USB SLOT until \`CNS-OPERATOR-ATTEST\`.
 
-This Worker is the same Plane A tunnel. No new MCP tool. Linked fields: \`redline.spec\` ${REDLINE_SPEC}; Cap-7 \`design_of: hub_designs\` + \`resolves_to_hub: false\`; attack-sim refuse pointer \`${ATTACK_SIM_POINTER}\`. Cap-7 stays \`resolves_to_hub: false\` / \`public_icann: false\`. Growth-ON.
+This Worker is the same Plane A tunnel. No new MCP tool. Linked fields: \`redline.spec\` ${REDLINE_SPEC}; Cap-7 \`design_of: hub_designs\` + \`resolves_to_hub: false\`; attack-sim refuse pointer \`${ATTACK_SIM_POINTER}\`. Cap-7 stays \`resolves_to_hub: false\` / \`public_icann: false\`. AZ domains resolve via hub HTTPS. Growth-ON.
 `;
 }
 
