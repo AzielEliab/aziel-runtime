@@ -63,7 +63,8 @@ export function requestLimitKind(pathname, method) {
       path === "/v1/mesh/relay/remote-task" ||
       path === "/v1/mesh/relay/ref" ||
       path === "/v1/mesh/relay/sync" ||
-      path === "/v1/mesh/relay/object")
+      path === "/v1/mesh/relay/object" ||
+      path === "/v1/mesh/relay/name")
   ) {
     return "mesh_mutate";
   }

@@ -18,4 +18,4 @@ export function roleMay(name, action) {
 }
 
 export const ROLE_NOTE =
-  "Admin is the node owner. Developer may post, pull, roll up, publish ref updates, and submit remote-task receipts for their own handle. Guest may pull their own inbox. The runtime does not keep a role table. Registration, rollup, ref update, delivery, and remote-task receipts must be signed by the handle's key. One handle cannot act as another. Private keys stay on the node.";
+  "Admin is the node owner. Developer may post, pull, roll up, publish ref updates, claim .aziel names, and submit remote-task receipts for their own handle. Guest may pull their own inbox. The runtime does not keep a role table. Registration, rollup, ref update, name record, delivery, and remote-task receipts must be signed by the handle's key. One handle cannot act as another. Private keys stay on the node.";

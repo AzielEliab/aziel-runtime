@@ -25,6 +25,7 @@ export function startRelayServer({ host = "127.0.0.1", port = 0 } = {}) {
       handle: url.searchParams.get("handle") || "",
       ref: url.searchParams.get("ref") || "",
       hash: url.searchParams.get("hash") || "",
+      name: url.searchParams.get("name") || "",
       fetchImpl: fetch,
     });
     const status = out.http_status || (out.ok === false ? 400 : 200);

@@ -26,11 +26,15 @@ import {
   MAX_PEER_LIST_BYTES,
   MAX_PEERS,
   MAX_ROLLUP_BYTES,
+  AZ_DNS_RULE,
+  AZIEL_NAME_RE,
   MAX_SYNC_ACTS,
   MSG_PER_MIN,
+  NAME_CAP,
   OBJECT_CACHE_BYTES,
   OBJECT_CACHE_CAP,
   REF_NAME_RE,
+  SELF_LABEL_RE,
   PREV_WINDOW,
   PRESENCE_TTL_MS,
   PULL_SKEW_MS,
@@ -58,6 +62,7 @@ const ALLOWED = {
   ref: ["v", "kind", "handle", "public_key", "ref", "object_hash", "prev_ref", "seq", "prev", "sig"],
   sync: ["v", "kind", "handle", "public_key", "act_hashes", "acts", "sig"],
   object: ["v", "kind", "handle", "public_key", "hash", "body_b64", "sig"],
+  name: ["v", "kind", "handle", "public_key", "name", "owner", "target", "expires", "seq", "prev", "prev_record", "sig"],
 };
 
 const defaultState = createRelayState(null);
@@ -263,6 +268,21 @@ function statementFor(kind, body) {
       public_key: body.public_key,
       hash: body.hash,
       body_b64: body.body_b64,
+    };
+  }
+  if (kind === "name") {
+    return {
+      v: FED_SPEC,
+      kind: "name",
+      handle: body.handle,
+      public_key: body.public_key,
+      name: body.name,
+      owner: body.owner,
+      target: body.target,
+      expires: body.expires,
+      seq: body.seq,
+      prev: body.prev,
+      prev_record: body.prev_record,
     };
   }
   const allow = ALLOWED[kind] || [];
@@ -496,6 +516,7 @@ export async function relayCite(state = defaultState) {
       object_cache_cap: OBJECT_CACHE_CAP,
       object_cache_bytes: OBJECT_CACHE_BYTES,
       max_sync_acts: MAX_SYNC_ACTS,
+      name_cap: NAME_CAP,
     },
     routing_metadata: ["handle", "to", "seq", "prev", "public_key", "eph_public_key", "nonce", "ciphertext", "relays"],
   });
@@ -1102,13 +1123,13 @@ export async function relaySync(state, body, now = Date.now()) {
     return fail("FED-MESH-BAD-INPUT", "sync carries act_hashes and acts.");
   }
   if (body.acts.length < 1 || body.acts.length > MAX_SYNC_ACTS || body.act_hashes.length !== body.acts.length) {
-    return fail("FED-MESH-BAD-INPUT", `A sync holds 1 to ${MAX_SYNC_ACTS} ref updates or rollups.`);
+    return fail("FED-MESH-BAD-INPUT", `A sync holds 1 to ${MAX_SYNC_ACTS} ref updates, name records, or rollups.`);
   }
   const applied = [];
   for (let i = 0; i < body.acts.length; i++) {
     const act = body.acts[i];
-    if (!act || (act.kind !== "ref" && act.kind !== "rollup")) {
-      return fail("FED-MESH-BAD-INPUT", "A sync carries ref updates and rollups. Raw objects stay on the node.", { applied, stopped_at: i });
+    if (!act || (act.kind !== "ref" && act.kind !== "rollup" && act.kind !== "name")) {
+      return fail("FED-MESH-BAD-INPUT", "A sync carries ref updates, name records, and rollups. Raw objects stay on the node.", { applied, stopped_at: i });
     }
     const actHandle = canonicalHandle(act.kind === "rollup" ? act.handle : act.handle);
     if (actHandle !== ready.handle) {
@@ -1120,7 +1141,7 @@ export async function relaySync(state, body, now = Date.now()) {
     if (link !== claimed) {
       return fail("FED-MESH-TAMPER", "act_hashes does not match the act.", { applied, stopped_at: i });
     }
-    const result = act.kind === "ref" ? await relayRef(state, act, now) : await relayRollup(state, act, now);
+    const result = act.kind === "ref" ? await relayRef(state, act, now) : act.kind === "name" ? await relayName(state, act, now) : await relayRollup(state, act, now);
     if (!result.ok) return { ...result, applied, stopped_at: i, synced: applied.length };
     applied.push({
       kind: act.kind,
@@ -1137,6 +1158,172 @@ export async function relaySync(state, body, now = Date.now()) {
     count: applied.length,
     wrapper_seq: null,
     late: true,
+  });
+}
+
+function parseAzielName(raw) {
+  const name = String(raw || "").trim().toLowerCase();
+  if (name.endsWith(".az") && !name.endsWith(".aziel")) {
+    return fail("FED-MESH-DNS", AZ_DNS_RULE);
+  }
+  if (!AZIEL_NAME_RE.test(name)) {
+    return fail("FED-MESH-BAD-INPUT", "A mesh name is one label plus .aziel. .az is not a mesh name.");
+  }
+  const label = name.slice(0, -".aziel".length);
+  const self = SELF_LABEL_RE.test(label);
+  const owner_handle = self ? canonicalHandle(`#${label}`) : "";
+  return { ok: true, name, label, self, owner_handle };
+}
+
+function nameLive(row, now) {
+  if (!row || row.released || !row.owner || row.target == null) return false;
+  if (row.expires != null && Number(row.expires) <= now) return false;
+  return true;
+}
+
+function friendlyHeld(names, handle, now) {
+  let n = 0;
+  for (const row of Object.values(names || {})) {
+    if (!row || row.self_certifying) continue;
+    if (row.owner === handle && nameLive(row, now)) n += 1;
+  }
+  return n;
+}
+
+function targetError(target) {
+  if (!target || typeof target !== "object" || Array.isArray(target)) {
+    return fail("FED-MESH-BAD-INPUT", "target is { type: hash|ref|handle, value }.");
+  }
+  const type = String(target.type || "");
+  const value = String(target.value || "");
+  if (type === "hash" && isHex64(value)) return null;
+  if (type === "ref" && REF_NAME_RE.test(value)) return null;
+  if (type === "handle" && canonicalHandle(value)) return null;
+  return fail("FED-MESH-BAD-INPUT", "target type is hash (64 hex), ref (a ref name), or handle (a #handle).");
+}
+
+function nameRow(row, now) {
+  return {
+    name: row.name,
+    owner: row.owner || "",
+    target: row.target,
+    seq: row.seq,
+    prev_record: row.prev_record,
+    statement_hash: row.statement_hash,
+    expires: row.expires == null ? null : row.expires,
+    self_certifying: row.self_certifying === true,
+    released: row.released === true,
+    live: nameLive(row, now),
+  };
+}
+
+export async function relayName(state, body, now = Date.now()) {
+  const ready = await prepare(state, body, "name", now);
+  if (!ready.ok) return ready;
+  const seqErr = requireSeq(body);
+  if (seqErr) return seqErr;
+  if (!Object.prototype.hasOwnProperty.call(body, "expires")) {
+    return fail("FED-MESH-BAD-INPUT", "expires is null, or a future unix time in milliseconds.");
+  }
+  if (body.expires !== null && !Number.isInteger(body.expires)) {
+    return fail("FED-MESH-BAD-INPUT", "expires is null, or a future unix time in milliseconds.");
+  }
+  if (body.expires !== null && body.expires <= now) {
+    return fail("FED-MESH-NAME-EXPIRED", "expires is already past. A live claim needs a future time, or null for no expiry.");
+  }
+  const parsed = parseAzielName(body.name);
+  if (!parsed.ok) return parsed;
+  const ownerRaw = body.owner == null ? "" : String(body.owner);
+  const owner = ownerRaw === "" ? "" : canonicalHandle(ownerRaw);
+  if (ownerRaw !== "" && !owner) return fail("FED-MESH-BAD-HANDLE", "owner must be a #handle, or empty on release.");
+  const prev_record = String(body.prev_record || "");
+  if (!isHex64(prev_record)) return fail("FED-MESH-BAD-INPUT", "prev_record is 64 lowercase hex characters.");
+  const names = (await loadKey(state, "names", {})) || {};
+  const current = names[parsed.name] || null;
+  const expected = current && current.statement_hash ? current.statement_hash : ZERO_HASH;
+  if (prev_record !== expected) {
+    return fail("FED-MESH-FORK", "prev_record does not match the anchored name record.");
+  }
+  const releasing = owner === "" && body.target === null;
+  const live = nameLive(current, now);
+  if (parsed.self) {
+    if (ready.handle !== parsed.owner_handle || owner !== parsed.owner_handle || releasing) {
+      return fail("FED-MESH-HANDLE-MISMATCH", "A self-certifying <handle>.aziel name belongs to that handle. It is not transferred or released.");
+    }
+  }
+  if (live) {
+    if (ready.handle !== current.owner) {
+      return fail("FED-MESH-NAME-TAKEN", "This friendly name already has an anchored owner. The first valid claim wins.");
+    }
+    if (!releasing && !owner) return fail("FED-MESH-BAD-INPUT", "owner is the #handle that holds the name after this act.");
+    if (!releasing && owner !== ready.handle && parsed.self) {
+      return fail("FED-MESH-HANDLE-MISMATCH", "A self-certifying name stays with its handle.");
+    }
+  } else if (releasing || ready.handle !== owner) {
+    return fail("FED-MESH-BAD-INPUT", "A new claim is signed by the owner it names.");
+  }
+  if (!releasing) {
+    const badTarget = targetError(body.target);
+    if (badTarget) return badTarget;
+  }
+  const gaining = !parsed.self && !releasing && !(current && current.owner === owner && nameLive(current, now));
+  if (gaining && friendlyHeld(names, owner, now) >= NAME_CAP) {
+    return fail("FED-MESH-NAME-CAP", `A handle may hold ${NAME_CAP} friendly .aziel names. The self-certifying name does not count.`, {
+      http_status: 429,
+      cap: NAME_CAP,
+    });
+  }
+  const committed = await commitChain(state, ready.handle, body.seq, body.prev, ready.link, now, { public_key: ready.public_key });
+  if (!committed.ok) return committed;
+  names[parsed.name] = {
+    name: parsed.name,
+    owner: releasing ? "" : owner,
+    target: releasing ? null : { type: body.target.type, value: body.target.type === "handle" ? canonicalHandle(body.target.value) : String(body.target.value) },
+    expires: body.expires,
+    prev_record,
+    statement_hash: ready.link,
+    seq: body.seq,
+    self_certifying: parsed.self,
+    released: releasing,
+  };
+  await saveKey(state, "names", names);
+  const anchored = await anchor(state, {
+    handle: ready.handle,
+    kind: "name",
+    link: ready.link,
+    seq: body.seq,
+    summary: `name ${parsed.name}`,
+  });
+  return ok({
+    op: "name",
+    ...nameRow(names[parsed.name], now),
+    signer: ready.handle,
+    chainlock: anchored.chainlock,
+    timeslate_hash: anchored.timeslate && anchored.timeslate.timeslate_hash,
+    click_index: anchored.click_index,
+    friendly_cap: NAME_CAP,
+  });
+}
+
+export async function relayNameRead(state, query = {}, now = Date.now()) {
+  const names = (await loadKey(state, "names", {})) || {};
+  if (query.name) {
+    const parsed = parseAzielName(query.name);
+    if (!parsed.ok) return parsed;
+    const row = names[parsed.name];
+    if (!row) return fail("FED-MESH-NO-NAME", "This relay has no name record.", { http_status: 404 });
+    return ok({ op: "name", record: nameRow(row, now), friendly_cap: NAME_CAP, az_dns: AZ_DNS_RULE });
+  }
+  const id = canonicalHandle(query.handle);
+  if (!id) return fail("FED-MESH-BAD-HANDLE", "Pass name= or a #handle.");
+  const owned = Object.values(names).filter((row) => row && row.owner === id).map((row) => nameRow(row, now));
+  return ok({
+    op: "names",
+    handle: id,
+    names: owned,
+    friendly_held: friendlyHeld(names, id, now),
+    friendly_cap: NAME_CAP,
+    az_dns: AZ_DNS_RULE,
   });
 }
 
@@ -1172,6 +1359,9 @@ export async function dispatchRelay(method, pathname, body, state = defaultState
   if (path === "/v1/mesh/relay/object" && (m === "GET" || m === "HEAD")) {
     return relayObjectGet(state, opts.hash || "");
   }
+  if (path === "/v1/mesh/relay/name" && (m === "GET" || m === "HEAD")) {
+    return relayNameRead(state, { name: opts.name || "", handle: opts.handle || "" }, now);
+  }
   if (m !== "POST") return fail("FED-MESH-BAD-INPUT", "This relay path accepts POST. GET /v1/mesh/relay only cites.", { http_status: 405 });
   if (path.endsWith("/register")) return relayRegister(state, body, now);
   if (path.endsWith("/heartbeat")) return relayHeartbeat(state, body, now);
@@ -1187,6 +1377,7 @@ export async function dispatchRelay(method, pathname, body, state = defaultState
   if (path.endsWith("/ref")) return relayRef(state, body, now);
   if (path.endsWith("/sync")) return relaySync(state, body, now);
   if (path.endsWith("/object")) return relayObject(state, body, now);
+  if (path.endsWith("/name")) return relayName(state, body, now);
   return fail("FED-MESH-BAD-INPUT", "Unknown relay path.");
 }
 
@@ -1213,5 +1404,7 @@ export async function runRelayOp(op, payload, env, opts = {}) {
   if (op === "relay-object") return relayObject(state, body, now);
   if (op === "relay-object-read") return relayObjectGet(state, body.hash);
   if (op === "relay-refs") return relayRefsRead(state, body.handle, body.ref);
+  if (op === "relay-name") return relayName(state, body, now);
+  if (op === "relay-name-read") return relayNameRead(state, body, now);
   return fail("FED-MESH-BAD-INPUT", "Unknown relay op.");
 }

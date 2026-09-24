@@ -243,6 +243,8 @@ Raw data, signing keys, and heavy compute stay on the local node. By default the
 
 The Worker is one relay. Any qnm-node may run the same relay. A new node still needs one relay address it already has. GET `/v1/mesh/relay` is the health check and never enables.
 
+`.aziel` name records are signed and anchored like ref updates. `<handle>.aziel` is self-certifying. A friendly name goes to the first valid anchored claim on that relay, with 7 friendly names per handle. `.az` is normal DNS except the Cap-7 factory names and the AZ.* hub names (`AZ.AzielEliab.AZ`, `AZ.Godlock.AZ`, `AZ.AzielCorpusLibrary.AZ`, `AZ.HeDidntJump.AZ`). Those cites are not mesh name records. Standard internet does not reach Cap-7. AZ.* resolves through hub HTTPS.
+
 ## FAQ
 
 **What are Nodes?** `human_mesh_users + human_uses`. Unchanged. Uses are interaction counters, not unique people.

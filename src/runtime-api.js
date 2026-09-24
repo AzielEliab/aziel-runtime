@@ -414,6 +414,8 @@ ${survivalSkillMarkdown(base)}
 | POST | \`/v1/mesh/relay/register\` | Signed handle registration. Private keys are refused. |
 | POST | \`/v1/mesh/relay/post\` | Signed ciphertext envelope. The relay does not need plaintext. |
 | POST | \`/v1/mesh/relay/ref\` | Signed ref update. Anchored. Object bytes stay on peers. |
+| GET | \`/v1/mesh/relay/name\` | Serve one .aziel name record (?name=) or a handle's names (?handle=). |
+| POST | \`/v1/mesh/relay/name\` | Signed name claim, transfer, or release. Anchored. Forks and an 8th friendly name are refused. |
 | POST | \`/v1/mesh/relay/sync\` | Late offline sync of ref updates and rollups. Valid chains are anchored. Forks are refused. |
 | POST | \`/v1/mesh/relay/object\` | Cache a small public object. Oversized or hash-mismatched bodies are refused. |
 | GET | \`/v1/qns\` | QNS-CD-1.0 cite (photon QNS1 1.3). Local \`qnsd\` in qnm-node. Never a public via proxy. |
@@ -1923,6 +1925,26 @@ export function runtimeStaticPaths() {
         summary: "Cache a small public object. Signed. Does not advance the handle chain. Refuses FED-MESH-TOO-LARGE over 4096 bytes and FED-MESH-HASH-MISMATCH when the bytes do not match hash.",
         tags: ["mesh"],
         responses: { "200": { description: "Cached" }, "400": { description: "FED-MESH-HASH-MISMATCH" }, "413": { description: "FED-MESH-TOO-LARGE" } },
+      },
+    },
+    "/v1/mesh/relay/name": {
+      get: {
+        operationId: "fed_mesh_name_read",
+        summary:
+          "Serve one .aziel name record (?name=) or the names held by a handle (?handle=). Self-certifying <handle>.aziel and friendly claims. .az is normal DNS except the Cap-7 allowlist and the AZ.* hub names. GET never enables.",
+        tags: ["mesh"],
+        responses: { "200": { description: "Name record or list" }, "404": { description: "FED-MESH-NO-NAME" } },
+      },
+      post: {
+        operationId: "fed_mesh_name",
+        summary:
+          "Signed .aziel name record: name, owner handle, target (hash, ref, or handle), sequence, prev-record hash, expires (null or a future time), signature. First valid anchored friendly claim wins. 7 friendly names per handle. Transfer and release are signed by the current owner. A fork is FED-MESH-FORK. An 8th friendly name is FED-MESH-NAME-CAP. A self-certifying name is the handle body plus .aziel.",
+        tags: ["mesh"],
+        responses: {
+          "200": { description: "Name anchored" },
+          "400": { description: "FED-MESH-FORK, FED-MESH-NAME-TAKEN, or FED-MESH-DNS" },
+          "429": { description: "FED-MESH-NAME-CAP" },
+        },
       },
     },
     "/v1/mesh/relay/ref": {

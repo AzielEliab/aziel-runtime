@@ -24,6 +24,8 @@ import {
   relayPeers,
   relayPost,
   relayPull,
+  relayName,
+  relayNameRead,
   relayRef,
   relayRefsRead,
   relayRegister,
@@ -33,13 +35,17 @@ import {
 } from "../src/fed-mesh/relay.js";
 import { roleMay } from "../src/fed-mesh/roles.js";
 import {
+  AZ_STAR_ALLOWLIST,
+  CAP7_AZ_ALLOWLIST,
   FED_TITLE,
   HANDLE_RE,
   MAX_OBJECT_BYTES,
   MAX_PEERS,
   MSG_PER_MIN,
+  NAME_CAP,
   ZERO_HASH,
 } from "../src/fed-mesh/spec.js";
+import { CAP7_REAL_ALIGNMENT, cap7FactoryMeshNames } from "../src/cap7-shuffle.js";
 import { requestLimitKind } from "../src/request-limits.js";
 
 const SEED_A = Uint8Array.from({ length: 32 }, (_, i) => i + 1);
@@ -98,6 +104,81 @@ async function buildVectors() {
     previous_hash: ZERO_HASH,
   });
   const checked = await verifyIdentityReceipt(receipt);
+  const bobId = await person(SEED_B, ENC_B);
+  const named = createRelayState();
+  const nameNow = 1_758_000_000_000;
+  const registered = await relayRegister(
+    named,
+    await signAct(id, "register", {
+      enc_public_key: id.enc_public_key,
+      product: "mesh",
+      presence: "live",
+      relays: [],
+      seq: 1,
+      prev: ZERO_HASH,
+    }),
+    nameNow,
+  );
+  const nameClaim = await signAct(id, "name", {
+    name: "library.aziel",
+    owner: id.handle,
+    target: { type: "hash", value: object_hash },
+    expires: null,
+    seq: 2,
+    prev: registered.statement_hash,
+    prev_record: ZERO_HASH,
+  });
+  const nameClaimed = await relayName(named, nameClaim, nameNow);
+  const nameTransfer = await signAct(id, "name", {
+    name: "library.aziel",
+    owner: bobId.handle,
+    target: { type: "handle", value: bobId.handle },
+    expires: null,
+    seq: 3,
+    prev: nameClaimed.statement_hash,
+    prev_record: nameClaimed.statement_hash,
+  });
+  const capped = createRelayState();
+  const capReg = await relayRegister(
+    capped,
+    await signAct(id, "register", {
+      enc_public_key: id.enc_public_key,
+      product: "mesh",
+      presence: "live",
+      relays: [],
+      seq: 1,
+      prev: ZERO_HASH,
+    }),
+    nameNow,
+  );
+  let capPrev = capReg.statement_hash;
+  let capSeq = 1;
+  for (let i = 1; i <= NAME_CAP; i++) {
+    capSeq += 1;
+    const row = await signAct(id, "name", {
+      name: `name-${i}.aziel`,
+      owner: id.handle,
+      target: { type: "ref", value: "heads/main" },
+      expires: null,
+      seq: capSeq,
+      prev: capPrev,
+      prev_record: ZERO_HASH,
+    });
+    const out = await relayName(capped, row, nameNow);
+    if (!out.ok) throw new Error(out.message || out.code);
+    capPrev = out.statement_hash;
+  }
+  capSeq += 1;
+  const overCap = await signAct(id, "name", {
+    name: "name-8.aziel",
+    owner: id.handle,
+    target: { type: "hash", value: object_hash },
+    expires: null,
+    seq: capSeq,
+    prev: capPrev,
+    prev_record: ZERO_HASH,
+  });
+  const overRefused = await relayName(capped, overCap, nameNow);
   return {
     spec: "FED-MESH-1.0",
     title: FED_TITLE,
@@ -120,6 +201,10 @@ async function buildVectors() {
     receipt_hash: receipt.hash,
     identity_anchor: receipt.identity_anchor,
     identity_anchor_ok: checked.ok,
+    name_claim: nameClaim,
+    name_claim_statement_hash: nameClaimed.statement_hash,
+    name_transfer: nameTransfer,
+    name_over_cap: { cap: NAME_CAP, code: overRefused.code, record: overCap },
   };
 }
 
@@ -137,7 +222,16 @@ assert.equal(vectors.object_fetch_request.kind, "object-fetch");
 assert.equal(vectors.object_fetch_response.kind, "object");
 assert.equal(vectors.identity_anchor_ok, true);
 
+assert.equal(roleMay("admin", "name"), true);
+assert.equal(roleMay("developer", "name"), true);
+assert.equal(roleMay("guest", "name"), false);
 assert.equal(roleMay("admin", "ref"), true);
+assert.deepEqual(CAP7_AZ_ALLOWLIST, cap7FactoryMeshNames());
+assert.deepEqual(AZ_STAR_ALLOWLIST, Object.values(CAP7_REAL_ALIGNMENT).map((row) => row.display_name));
+assert.equal(vectors.name_over_cap.code, "FED-MESH-NAME-CAP");
+assert.equal(vectors.name_over_cap.cap, 7);
+assert.equal(requestLimitKind("/v1/mesh/relay/name", "POST"), "mesh_mutate");
+assert.equal(requestLimitKind("/v1/mesh/relay/name", "GET"), null);
 assert.equal(roleMay("developer", "sync"), true);
 assert.equal(roleMay("guest", "ref"), false);
 assert.equal(requestLimitKind("/v1/mesh/relay/ref", "POST"), "mesh_mutate");
@@ -570,6 +664,121 @@ assert.notEqual(alice.handle, bob.handle);
   const mismatch = await relayObject(state, liar, now);
   assert.equal(mismatch.code, "FED-MESH-HASH-MISMATCH");
   assert.equal((await relayObjectGet(state, "ab".repeat(32))).code, "FED-MESH-NO-OBJECT");
+}
+
+{
+  const state = createRelayState();
+  const a = await register(state, alice, now);
+  const hash = await sha256HexBytes(utf8("local-first"));
+  const claim = await signAct(alice, "name", {
+    name: "library.aziel",
+    owner: alice.handle,
+    target: { type: "hash", value: hash },
+    expires: null,
+    seq: 2,
+    prev: a.prev,
+    prev_record: ZERO_HASH,
+  });
+  const claimed = await relayName(state, claim, now);
+  assert.equal(claimed.ok, true, claimed.message);
+  assert.equal(claimed.chainlock.anchored, true);
+  assert.equal(claimed.owner, alice.handle);
+  assert.equal(claimed.live, true);
+  const served = await relayNameRead(state, { name: "library.aziel" }, now);
+  assert.equal(served.record.statement_hash, claimed.statement_hash);
+  const fork = await signAct(alice, "name", {
+    name: "library.aziel",
+    owner: alice.handle,
+    target: { type: "ref", value: "heads/main" },
+    expires: null,
+    seq: 3,
+    prev: claimed.statement_hash,
+    prev_record: ZERO_HASH,
+  });
+  assert.equal((await relayName(state, fork, now)).code, "FED-MESH-FORK");
+  assert.equal((await directoryEntry(state, alice.handle)).seq, 2);
+  const transfer = await signAct(alice, "name", {
+    name: "library.aziel",
+    owner: bob.handle,
+    target: { type: "handle", value: bob.handle },
+    expires: null,
+    seq: 3,
+    prev: claimed.statement_hash,
+    prev_record: claimed.statement_hash,
+  });
+  const moved = await relayName(state, transfer, now);
+  assert.equal(moved.ok, true, moved.message);
+  assert.equal(moved.owner, bob.handle);
+  assert.equal((await relayNameRead(state, { name: "Library.Aziel" }, now)).record.owner, bob.handle);
+  const taken = await signAct(cara, "name", {
+    name: "library.aziel",
+    owner: cara.handle,
+    target: { type: "hash", value: hash },
+    expires: null,
+    seq: 1,
+    prev: ZERO_HASH,
+    prev_record: moved.statement_hash,
+  });
+  assert.equal((await relayName(state, taken, now)).code, "FED-MESH-NAME-TAKEN");
+  let prev = a.prev;
+  const fresh = createRelayState();
+  const reg = await register(fresh, alice, now);
+  prev = reg.prev;
+  let seq = 1;
+  for (let i = 1; i <= NAME_CAP; i++) {
+    seq += 1;
+    const row = await signAct(alice, "name", {
+      name: `cap-${i}.aziel`,
+      owner: alice.handle,
+      target: { type: "hash", value: hash },
+      expires: null,
+      seq,
+      prev,
+      prev_record: ZERO_HASH,
+    });
+    const out = await relayName(fresh, row, now);
+    assert.equal(out.ok, true, out.message);
+    prev = out.statement_hash;
+  }
+  seq += 1;
+  const eighth = await signAct(alice, "name", {
+    name: "cap-8.aziel",
+    owner: alice.handle,
+    target: { type: "hash", value: hash },
+    expires: null,
+    seq,
+    prev,
+    prev_record: ZERO_HASH,
+  });
+  const refused = await relayName(fresh, eighth, now);
+  assert.equal(refused.code, "FED-MESH-NAME-CAP");
+  assert.equal(refused.http_status, 429);
+  assert.equal((await directoryEntry(fresh, alice.handle)).seq, NAME_CAP + 1);
+  const self = await signAct(alice, "name", {
+    name: `${alice.handle.slice(1).toLowerCase()}.aziel`,
+    owner: alice.handle,
+    target: { type: "handle", value: alice.handle },
+    expires: null,
+    seq,
+    prev,
+    prev_record: ZERO_HASH,
+  });
+  const selfOut = await relayName(fresh, self, now);
+  assert.equal(selfOut.ok, true, selfOut.message);
+  assert.equal(selfOut.self_certifying, true);
+  const dns = await signAct(alice, "name", {
+    name: "azgrid.az",
+    owner: alice.handle,
+    target: { type: "hash", value: hash },
+    expires: null,
+    seq: seq + 1,
+    prev: selfOut.statement_hash,
+    prev_record: ZERO_HASH,
+  });
+  const dnsOut = await relayName(fresh, dns, now);
+  assert.equal(dnsOut.code, "FED-MESH-DNS");
+  assert.match(dnsOut.message, /azgrid\.az/);
+  assert.match(dnsOut.message, /AZ\.AzielEliab\.AZ/);
 }
 
 {

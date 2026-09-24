@@ -6,7 +6,7 @@ This is the shared protocol for a multi-user mesh. The runtime Worker is one rel
 
 FragGate stays the single door. This paper does not add an MCP tool. Relay ops are FragGate ops on slug `mesh` (`relay-register`, `relay-ref`, `relay-sync`, and the rest) and HTTP under `/v1/mesh/relay/`.
 
-Test vectors live in [`fixtures/fed-mesh-vectors.json`](../../fixtures/fed-mesh-vectors.json). `scripts/verify-fed-mesh.mjs` recomputes them.
+Test vectors live in [`fixtures/fed-mesh-vectors.json`](../../fixtures/fed-mesh-vectors.json). `scripts/verify-fed-mesh.mjs` recomputes them, including a name claim, a transfer, and a refused eighth friendly name.
 
 ## 1. Inner core and outer mesh
 
@@ -140,7 +140,142 @@ The Worker may cache a small public object. The put is signed (`kind: object`, `
 { "v": "FED-MESH-1.0", "kind": "sync", "handle": "#…", "public_key": "…", "act_hashes": ["…"], "acts": [], "sig": "…" }
 ```
 
-The signature covers `{ v, kind, handle, public_key, act_hashes }`. It does not cover the bulky `acts`. Each hash must equal the statement hash of `acts[i]`. Inner kinds are `ref` and `rollup` only. The signer must be the act's handle. At most 16 acts. A hash mismatch is `FED-MESH-TAMPER`.
+The signature covers `{ v, kind, handle, public_key, act_hashes }`. It does not cover the bulky `acts`. Each hash must equal the statement hash of `acts[i]`. Inner kinds are `ref`, `name`, and `rollup`. The signer must be the act's handle. At most 16 acts. A hash mismatch is `FED-MESH-TAMPER`.
+
+## 5.1 Name records
+
+AZNet is the `.aziel` naming standard. AZBrowser resolves a name from the local ledger. This section is the record those repos share. This relay accepts, anchors, and serves the record the same way it accepts a ref update. It verifies the signature, the handle chain, `prev_record`, and the cap. It refuses a fork. It is the relay, not the naming daemon and not the browser.
+
+A name record statement is:
+
+| Field | Meaning |
+| --- | --- |
+| `v` | `FED-MESH-1.0` |
+| `kind` | `name` |
+| `handle` | signer |
+| `public_key` | raw Ed25519, base64url |
+| `name` | one label plus `.aziel`, stored lowercase. Pattern `^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.aziel$` |
+| `owner` | `#` handle that holds the name after this act. `""` on release |
+| `target` | `{ type, value }`, or `null` on release. `hash` is 64 lowercase hex. `ref` matches the ref-name pattern. `handle` is a `#` handle |
+| `expires` | `null` means no expiry. A future unix time in milliseconds means the record stops being live at that time. The field is required. A past time is `FED-MESH-NAME-EXPIRED` and is not stored |
+| `seq` | handle sequence |
+| `prev` | handle act-chain tip |
+| `prev_record` | previous name-record statement hash for this name, or 64 zeros for the first |
+| `sig` | Ed25519 over the statement. Not hashed |
+
+`prev` links the handle's acts. `prev_record` links one name. The relay checks the signature, `prev_record`, the handle chain, and the cap before `commitChain`. A refusal leaves the handle sequence where it was.
+
+Storage is one JSON object keyed by name. POST `/v1/mesh/relay/name` is a mesh mutation and follows the radio rule for other relay writes. GET `/v1/mesh/relay/name?name=` serves one record. GET `?handle=` serves the names that handle owns, plus `friendly_held` and `friendly_cap`. A missing name is `FED-MESH-NO-NAME` (HTTP 404). The read never enables radios.
+
+ChainLock caller is `fed-` plus the lowercase handle body, chain `mesh`, kind `name`. TemporalLock `click_index` stays per relay.
+
+### Self-certifying name
+
+`<handle>.aziel` is the handle body in lowercase Crockford, plus `.aziel`. The label matches `^[0-9a-hjkmnp-tv-z]{11}$`. `#CPV0CWYPXP4` owns `cpv0cwypxp4.aziel`. The signer and the owner are that handle. A transfer or a release of that name is `FED-MESH-HANDLE-MISMATCH`. The self-certifying name does not count toward the cap of 7. A label of 11 Crockford characters is that handle's slot.
+
+### Friendly names
+
+The first valid anchored claim on that relay wins. A later signer who is not the live owner receives `FED-MESH-NAME-TAKEN`. The race is per relay. Two relays can anchor two first claims until the holders sync. AZBrowser resolves the ledger it holds.
+
+A handle may hold 7 live friendly names. The eighth is `FED-MESH-NAME-CAP` (HTTP 429). An expired row and a released row no longer count. The self-certifying name still fits after the cap is full.
+
+### Transfer and release
+
+The current owner signs a transfer. `owner` becomes the new `#` handle. `target` stays required. The new owner does not have to be registered on this relay. The next act on that name is signed by the new owner.
+
+A release sets `owner` to `""` and `target` to `null`, signed by the current owner. The name is free for a new first claim. That claim sets `prev_record` to the release statement hash.
+
+A new claim is signed by the owner it names. A live name is updated only by its owner.
+
+### Fork
+
+`prev_record` must equal the stored statement hash, or 64 zeros when this relay has no row for that name. Any other value is `FED-MESH-FORK`. Handle `prev` and `seq` still follow section 3. A `name` act may travel inside `sync` with refs and rollups. A fork stops that sync. The valid prefix stays anchored.
+
+### `.az`
+
+A name that ends in `.az` and does not end in `.aziel` is `FED-MESH-DNS`. `.az` is normal DNS. The exception is this allowlist. The names are cites. They are not FED-MESH records, and this relay does not resolve them.
+
+Cap-7 factory names: `azgrid.az`, `azbooth.az`, `azcloak.az`, `azvault.az`, `azshift.az`, `azflag.az`, `azstandby.az`.
+
+AZ.* hub names: `AZ.AzielEliab.AZ`, `AZ.Godlock.AZ`, `AZ.AzielCorpusLibrary.AZ`, `AZ.HeDidntJump.AZ`.
+
+Standard internet does not reach Cap-7. AZ.* resolves through hub HTTPS. `icann_tld_az` is false.
+
+### Name claim vector
+
+Signed by `#CPV0CWYPXP4` after that handle's registration. `prev` is the registration statement hash. `prev_record` is 64 zeros. `expires` is null. Target is the `local-first` object hash.
+
+```json
+{
+  "v": "FED-MESH-1.0",
+  "kind": "name",
+  "handle": "#CPV0CWYPXP4",
+  "public_key": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+  "name": "library.aziel",
+  "owner": "#CPV0CWYPXP4",
+  "target": {
+    "type": "hash",
+    "value": "f56487a629550848508cbd6305d814f6008a1705ab4e215d926f6fda5e9c94dc"
+  },
+  "expires": null,
+  "seq": 2,
+  "prev": "11a622e89de2b80c48ffee9a6f9efe13e857e6643e539617c9dd481c0b36904d",
+  "prev_record": "0000000000000000000000000000000000000000000000000000000000000000",
+  "sig": "2PLK1U2papMuoD6Ux_SPuWwT_r_nxtKmcLmzAa3aCSLFMvGhp5T2-p2lNavR47MtnoxMmFPITL8yPS1LKu4gBA"
+}
+```
+
+Statement hash: `6d38408d305afb2ae562d3c022c3421fc8819c81d61108d3a8b91e2b8dc7ca7c`.
+
+### Transfer vector
+
+The same owner signs `library.aziel` over to `#4S11EZW09MD`. `prev` and `prev_record` are the claim statement hash. Sequence is 3.
+
+```json
+{
+  "v": "FED-MESH-1.0",
+  "kind": "name",
+  "handle": "#CPV0CWYPXP4",
+  "public_key": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+  "name": "library.aziel",
+  "owner": "#4S11EZW09MD",
+  "target": {
+    "type": "handle",
+    "value": "#4S11EZW09MD"
+  },
+  "expires": null,
+  "seq": 3,
+  "prev": "6d38408d305afb2ae562d3c022c3421fc8819c81d61108d3a8b91e2b8dc7ca7c",
+  "prev_record": "6d38408d305afb2ae562d3c022c3421fc8819c81d61108d3a8b91e2b8dc7ca7c",
+  "sig": "Tg6C3jVdCgRXl-yjkFv8WYiAYBLqrawPvy-0YMxvdDBNJOLe__YtJk6VwXPtrQyoImmHoEKQUmdeepdK5P6MAQ"
+}
+```
+
+### Refused over-cap vector
+
+On a fresh relay the same handle registers, then claims `name-1.aziel` through `name-7.aziel`. This eighth friendly claim is signed. The relay answers `FED-MESH-NAME-CAP` and does not store it. The handle sequence stays at the tip after `name-7`.
+
+```json
+{
+  "v": "FED-MESH-1.0",
+  "kind": "name",
+  "handle": "#CPV0CWYPXP4",
+  "public_key": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+  "name": "name-8.aziel",
+  "owner": "#CPV0CWYPXP4",
+  "target": {
+    "type": "hash",
+    "value": "f56487a629550848508cbd6305d814f6008a1705ab4e215d926f6fda5e9c94dc"
+  },
+  "expires": null,
+  "seq": 9,
+  "prev": "a78075c00b23fbe1d7cf2449d7dc4ac3f099bb9fa568719f1e814f5e6566dc2d",
+  "prev_record": "0000000000000000000000000000000000000000000000000000000000000000",
+  "sig": "_UUBNgX4qVjQOPWDmf-C-5xT0krP_lB_x8XJbGot5YybugtMnqzODj3ds7ZwxiLkTQbZkMajCYDlIkeqVB21Aw"
+}
+```
+
+Cap: 7. Code: `FED-MESH-NAME-CAP`.
 
 ## 6. Relay protocol
 
@@ -164,6 +299,8 @@ HTTP:
 | POST | `/v1/mesh/relay/rollup` | Signed rollup |
 | POST | `/v1/mesh/relay/remote-task` | Signed task/result hashes. Not execution |
 | POST | `/v1/mesh/relay/ref` | Signed ref update |
+| POST | `/v1/mesh/relay/name` | Signed `.aziel` name record |
+| GET | `/v1/mesh/relay/name?name=` | One name record. `?handle=` lists that owner's names |
 | POST | `/v1/mesh/relay/sync` | Late sync |
 | POST | `/v1/mesh/relay/object` | Small public object cache |
 | GET | `/v1/mesh/relay/object?hash=` | Cache read |
@@ -196,13 +333,13 @@ Health is GET `/v1/mesh/relay`. Failover is the node trying its next configured 
 
 ### Quotas
 
-Per-handle signed acts: 30 per minute (`FED-MESH-RATE`, HTTP 429). The window is per isolate, not global. Ordinary HTML GETs are not in this bucket. Ciphertext: 4096 bytes. Rollup changes: 16384 bytes, at most 32 rows. Envelope: 20000 bytes. Inbox and object caps are above. These are the same budget idea as `mesh_mutate` on the HTTP edge.
+Per-handle signed acts: 30 per minute (`FED-MESH-RATE`, HTTP 429). The window is per isolate, not global. Ordinary HTML GETs are not in this bucket. Ciphertext: 4096 bytes. Rollup changes: 16384 bytes, at most 32 rows. Envelope: 20000 bytes. Inbox and object caps are above. Friendly `.aziel` names: 7 per handle (`FED-MESH-NAME-CAP`, HTTP 429). These are the same budget idea as `mesh_mutate` on the HTTP edge.
 
 ### Rollups, roles, multisig, remote tasks
 
 A rollup is a batch of `{ handle, op, payload_hash }` rows, co-signers, and signatures. `batch_id` is SHA-256 of canonical `{ changes, co_signers, multisig, submitter }`. The relay verifies every signature and handle, then anchors one upstream receipt. A bad signature, a mismatched handle, or a replayed `batch_id` is refused. `executed` is false. No tenant code runs here. Fields named `code`, `wasm`, `script`, `contract`, `smart_contract`, `bytecode`, or `source` are `FED-MESH-NO-EXEC`.
 
-Roles are node-local. Admin is the node owner. Developer may post, pull, roll up, publish refs, and submit remote-task receipts for their own handle. Guest may pull. This runtime does not store a role registry. It checks that the signing key is the claimed handle. One handle cannot act as another.
+Roles are node-local. Admin is the node owner. Developer may post, pull, roll up, publish refs, claim `.aziel` names, and submit remote-task receipts for their own handle. Guest may pull. This runtime does not store a role registry. It checks that the signing key is the claimed handle. One handle cannot act as another.
 
 Multisig is off when `multisig` is null. When set, it is integer m-of-n. At least m distinct signatures must come from the declared signer list, and every listed co-signer must sign. The submitter is a co-signer. Duplicate handles count once.
 
@@ -235,7 +372,8 @@ Each instance has its own port, key, handle, and data directory. They speak to r
 - No DHT and no transitive gossip. Forwarding is one hop.
 - This Worker is not required and is not the only bootstrap. A new node still needs a starting address.
 - The relay never requires plaintext. It also cannot hide routing metadata.
-- Receipts, refs, and digests are signed public copies. They are not end-to-end encrypted.
+- Receipts, refs, name records, and digests are signed public copies. They are not end-to-end encrypted.
+- A friendly `.aziel` name goes to the first valid anchored claim on that relay. A handle holds 7. `<handle>.aziel` is self-certifying and stays outside that cap. `.az` stays normal DNS except the Cap-7 and AZ.* allowlist in section 5.1.
 - No tenant execution and no private keys on the relay.
 - No worldwide total order. TemporalLock click is per relay.
 - Rate limits are per isolate. The roster key has no compare-and-swap.
