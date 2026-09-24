@@ -407,6 +407,26 @@ ${survivalSkillMarkdown(base)}
 | POST | \`/v1/mesh/site-presence\` | Hub fleet heartbeat. Body \`{host, viewers, kind: "human-page"}\`. Allowed: godlock.uk, azieleliab.com, azielcorpuslibrary.net. Alias \`/v1/mesh/site-heartbeat\`. 5-minute TTL. Fail-closed. F03 \`mesh_mutate\`. |
 | GET | \`/v1/mesh/az-generator\` | Cap-7 semantic-bridge cite (MirageGrid factory; inherit designs only including azcorpus + azlibrary; \`design_of: hub_designs\`; \`resolves_to_hub: false\`; \`name_may_change\`; not ICANN). Never enables radios. |
 | POST | \`/v1/mesh/broadcast\` | SHA-256 hash receipt only. Never a publish path. |
+| GET | \`/v1/mesh/relay\` | FED-MESH-1.0 Local-First Edge Mesh cite and relay health. Never enables. Never requires plaintext. |
+| GET | \`/v1/mesh/relay/bootstrap\` | Signed bootstrap lists this relay has accepted. One source. A node still needs an address it already has. |
+| GET | \`/v1/mesh/relay/refs\` | Ref index for one handle (how objects connect). Does not return object bytes. |
+| GET | \`/v1/mesh/relay/object\` | Fetch one cached public object by hash. \`FED-MESH-NO-OBJECT\` when absent. Hash is checked on store. |
+| POST | \`/v1/mesh/relay/register\` | Signed handle registration. Private keys are refused. |
+| POST | \`/v1/mesh/relay/post\` | Signed ciphertext envelope. The relay does not need plaintext. |
+| POST | \`/v1/mesh/relay/ref\` | Signed ref update. Anchored. Object bytes stay on peers. |
+| GET | \`/v1/mesh/relay/name\` | Serve one .aziel name record (?name=) or a handle's names (?handle=). |
+| POST | \`/v1/mesh/relay/name\` | Signed name claim, transfer, or release. Friendly claims stay pending until proof-of-work, 72 hours, and 2 witnesses. Forks, rollback, and a 4th user name are refused. |
+| POST | \`/v1/mesh/relay/witness\` | Co-sign a pending name. The Worker does not mint witness signatures. |
+| POST | \`/v1/mesh/relay/equivocation\` | Two conflicting signed name or ref acts at one sequence. Flags that handle only. |
+| POST | \`/v1/mesh/relay/quarantine\` | Signed local peer cut. No network-wide cutoff. |
+| POST | \`/v1/mesh/relay/island\` | Signed island off or on. Does not change suite radios. |
+| POST | \`/v1/mesh/relay/restore\` | Restore one reserved hub-mirror slot from an object this relay already hash-verified. |
+| GET | \`/v1/mesh/relay/slot\` | Reserved hub-mirror slots for one handle. GET never enables. |
+| POST | \`/v1/mesh/relay/isolation\` | Self-signed isolation. Reason code and evidence hash only. Bytes are refused. |
+| GET | \`/v1/mesh/relay/isolation\` | Isolation record for one handle. An appeal does not clear it. |
+| POST | \`/v1/mesh/relay/appeal\` | Signed appeal. Requests a re-check. Does not clear isolation. |
+| POST | \`/v1/mesh/relay/sync\` | Late offline sync of ref updates and rollups. Valid chains are anchored. Forks are refused. |
+| POST | \`/v1/mesh/relay/object\` | Cache a small public object. Oversized or hash-mismatched bodies are refused. |
 | GET | \`/v1/qns\` | QNS-CD-1.0 cite (photon QNS1 1.3). Local \`qnsd\` in qnm-node. Never a public via proxy. |
 | GET | \`/v1/receipts\` | ACT-RECEIPT-1.0 cite. Public chain lives on corpus \`/receipts\`. Tip/proxy at \`/v1/receipts/tip\`. Fail-open append when token set. Not a Softwares-tab product. |
 | GET/POST | \`/v1/azpipe/arch\` | MASTER-33 AZPIPE cite (same \`arch()\` payload as FragGate \`pipeline\`). Not a Softwares-tab door. |
@@ -1869,6 +1889,141 @@ export function runtimeStaticPaths() {
           content: { "application/json": { schema: { type: "object", required: ["node_id"], properties: { node_id: { type: "string" } } } } },
         },
         responses: { "200": { description: "Left" } },
+      },
+    },
+    "/v1/mesh/relay": {
+      get: {
+        operationId: "fed_mesh_relay_cite",
+        summary:
+          "FED-MESH-1.0: Local-First Edge Mesh. Health check. Raw data, keys, and heavy compute stay on the local node. This relay carries signed receipts, digests, and ref updates. It never requires plaintext and never enables radios. One relay among many. A new node still needs one starting address.",
+        tags: ["mesh"],
+        responses: { "200": { description: "Relay cite. GET never enables." } },
+      },
+    },
+    "/v1/mesh/relay/bootstrap": {
+      get: {
+        operationId: "fed_mesh_bootstrap_read",
+        summary: "Signed bootstrap lists accepted by this relay. Not the only bootstrap source. Needs a starting address the node already has.",
+        tags: ["mesh"],
+        responses: { "200": { description: "Signed lists. only_source false." } },
+      },
+      post: {
+        operationId: "fed_mesh_bootstrap",
+        summary: "Store one signed bootstrap list. The Worker has no private key and does not invent a signature.",
+        tags: ["mesh"],
+        responses: { "200": { description: "List stored" }, "400": { description: "Unsigned, bad signature, or poison" } },
+      },
+    },
+    "/v1/mesh/relay/refs": {
+      get: {
+        operationId: "fed_mesh_refs",
+        summary: "Serve the signed ref index for one handle (?handle=&ref=). This is how objects connect. Object bytes are not included.",
+        tags: ["mesh"],
+        responses: { "200": { description: "Ref index" }, "404": { description: "FED-MESH-NO-REF" } },
+      },
+    },
+    "/v1/mesh/relay/object": {
+      get: {
+        operationId: "fed_mesh_object_fetch",
+        summary: "Fetch one cached public object by hash (?hash=). Response kind object with body_b64, or FED-MESH-NO-OBJECT. Peers use the same request shape { v, kind: object-fetch, hash }.",
+        tags: ["mesh"],
+        responses: { "200": { description: "Cached object" }, "404": { description: "FED-MESH-NO-OBJECT" } },
+      },
+      post: {
+        operationId: "fed_mesh_object_put",
+        summary: "Cache a small public object. Signed. Does not advance the handle chain. Refuses FED-MESH-TOO-LARGE over 4096 bytes and FED-MESH-HASH-MISMATCH when the bytes do not match hash.",
+        tags: ["mesh"],
+        responses: { "200": { description: "Cached" }, "400": { description: "FED-MESH-HASH-MISMATCH" }, "413": { description: "FED-MESH-TOO-LARGE" } },
+      },
+    },
+    "/v1/mesh/relay/name": {
+      get: {
+        operationId: "fed_mesh_name_read",
+        summary:
+          "Serve one .aziel name record (?name=) or the names held by a handle (?handle=). Self-certifying <handle>.aziel and friendly claims. .az is normal DNS except the Cap-7 allowlist and the AZ.* hub names. GET never enables.",
+        tags: ["mesh"],
+        responses: { "200": { description: "Name record or list" }, "404": { description: "FED-MESH-NO-NAME" } },
+      },
+      post: {
+        operationId: "fed_mesh_name",
+        summary:
+          "Signed .aziel name record. Friendly claims carry proof-of-work and stay pending until 72 hours and 2 witness handles. The first valid final claim wins. 3 user .aziel names per handle, plus 4 reserved hub-mirror slots that are not user-nameable. Self-certifying <handle>.aziel is final immediately. Forks, rollback, and a 4th user name are refused.",
+        tags: ["mesh"],
+        responses: {
+          "200": { description: "Name anchored" },
+          "400": { description: "FED-MESH-FORK, FED-MESH-NAME-TAKEN, or FED-MESH-DNS" },
+          "429": { description: "FED-MESH-NAME-CAP" },
+        },
+      },
+    },
+    "/v1/mesh/relay/restore": {
+      post: {
+        operationId: "fed_mesh_restore",
+        summary: "Restore one reserved hub-mirror slot (ae, corpus, godlock, hdj). The object hash must already be in this relay's verified cache. Bytes are not accepted on this act. Does not change MirageGrid Cap-7 factory names.",
+        tags: ["mesh"],
+        responses: { "200": { description: "Mirror anchored" }, "400": { description: "FED-MESH-BAD-INPUT or FED-MESH-FORK" }, "404": { description: "FED-MESH-NO-OBJECT" } },
+      },
+    },
+    "/v1/mesh/relay/slot": {
+      get: {
+        operationId: "fed_mesh_slot_read",
+        summary: "Reserved hub-mirror slots for one handle (?handle=). Four slots, not user-nameable. GET never enables.",
+        tags: ["mesh"],
+        responses: { "200": { description: "Slot table" }, "400": { description: "FED-MESH-ISOLATED or bad handle" } },
+      },
+    },
+    "/v1/mesh/relay/isolation": {
+      get: {
+        operationId: "fed_mesh_isolation_read",
+        summary: "Isolation record for one handle. Reason code and evidence hash. Content bytes are not stored. GET never enables.",
+        tags: ["mesh"],
+        responses: { "200": { description: "Isolation record" }, "404": { description: "No isolation record" } },
+      },
+      post: {
+        operationId: "fed_mesh_isolation",
+        summary: "Self-signed isolation for this handle. Body fields: v, kind isolation, handle, public_key, subject (same handle), reason (NUDITY, CHILD, HATE, or CSAM), check, model (version or absent), evidence_hash (64 hex), seq, prev, sig. Response: ok, code FED-MESH-OK, op isolation, statement_hash, content_stored false. POST /v1/fedmesh/isolation is the same route. A different handle cannot isolate this one.",
+        tags: ["mesh"],
+        responses: { "200": { description: "Isolation anchored" }, "400": { description: "FED-MESH-BAD-INPUT" } },
+      },
+    },
+    "/v1/mesh/relay/appeal": {
+      post: {
+        operationId: "fed_mesh_appeal",
+        summary: "Signed appeal. Requests a re-check of the named isolation. applied is false. Isolation remains.",
+        tags: ["mesh"],
+        responses: { "200": { description: "Appeal stored" }, "400": { description: "No isolation record" } },
+      },
+    },
+    "/v1/mesh/relay/ref": {
+      post: {
+        operationId: "fed_mesh_ref",
+        summary: "Signed ref update: handle, ref name, object hash, previous ref hash, sequence, signature. Anchored with ChainLock and TemporalLock. A prev_ref that is not the stored ref hash is FED-MESH-FORK. Object bytes are not required.",
+        tags: ["mesh"],
+        responses: { "200": { description: "Ref anchored" }, "400": { description: "FED-MESH-FORK or bad signature" } },
+      },
+    },
+    "/v1/mesh/relay/sync": {
+      post: {
+        operationId: "fed_mesh_sync",
+        summary: "Late sync of ref updates and rollups built offline. Each act is verified in order. A valid prefix is anchored. A fork stops the rest and is refused. The wrapper signature covers act_hashes, not a second sequence.",
+        tags: ["mesh"],
+        responses: { "200": { description: "Chain accepted" }, "400": { description: "FED-MESH-FORK or tampered act_hashes" } },
+      },
+    },
+    "/v1/mesh/relay/register": {
+      post: {
+        operationId: "fed_mesh_register",
+        summary: "Register a #handle. Signed by that handle's Ed25519 key. Private keys are refused (FED-MESH-PRIVATE-KEY).",
+        tags: ["mesh"],
+        responses: { "200": { description: "Registered" }, "400": { description: "Unsigned, bad handle, or bad signature" } },
+      },
+    },
+    "/v1/mesh/relay/post": {
+      post: {
+        operationId: "fed_mesh_post",
+        summary: "Route one signed ciphertext envelope. The relay sees routing metadata and ciphertext. It does not need plaintext.",
+        tags: ["mesh"],
+        responses: { "200": { description: "Stored or forwarded" }, "400": { description: "FED-MESH-NO-ROUTE or bad signature" } },
       },
     },
     "/v1/qns": {

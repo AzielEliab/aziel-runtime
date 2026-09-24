@@ -233,6 +233,18 @@ if (url.pathname === "/v1/mesh" || url.pathname.startsWith("/v1/mesh/")) {
 - Receipts that still hash. No rewrite key. Never lie to stay alive.
 - Forks welcome. Apache-2.0.
 
+## FED-MESH-1.0: Local-First Edge Mesh
+
+This page stays the QNM-BUILD-1.0 suite rollup. The multi-user protocol is a separate layer: [`docs/designs/FED-MESH-1.0.md`](designs/FED-MESH-1.0.md).
+
+Raw data, signing keys, and heavy compute stay on the local node. By default the mesh carries signed receipts, state digests, and ref updates. Raw data moves only on an explicit end-to-end encrypted share. The Worker relay never requires plaintext.
+
+`verified_handles` counts distinct `#handles` with a matching key and presence inside 5 minutes. One handle is one node. Three local instances with three keys are three nodes. That count is handles, not people. It is not added to `nodes`, `live_nodes`, `software_nodes`, or `instance_nodes`. The published pills stay the suite formulas above.
+
+The Worker is one relay. Any qnm-node may run the same relay. A new node still needs one relay address it already has. GET `/v1/mesh/relay` is the health check and never enables.
+
+`.aziel` name records are signed and anchored like ref updates. `<handle>.aziel` is self-certifying and final immediately. A friendly name carries proof-of-work and stays pending until 72 hours and 2 witness handles. The first valid final claim wins, with 3 user .aziel names per handle and 4 reserved hub-mirror slots. Equivocation flags that handle only. This relay does not execute peer code and does not rank handles. `.az` is normal DNS except the Cap-7 factory names and the AZ.* hub names (`AZ.AzielEliab.AZ`, `AZ.Godlock.AZ`, `AZ.AzielCorpusLibrary.AZ`, `AZ.HeDidntJump.AZ`). Those cites are not mesh name records. Standard internet does not reach Cap-7. AZ.* resolves through hub HTTPS.
+
 ## FAQ
 
 **What are Nodes?** `human_mesh_users + human_uses`. Unchanged. Uses are interaction counters, not unique people.

@@ -139,6 +139,8 @@ export function runtimeAboutField(origin) {
         "COLD-MULTI-SHELF-1.0 cite of corpus#96 /shelves. Plane A = 5 published surfaces / 2 family radii / 1 independent live. Plane B SLOT (Codeberg + archive.org PASS still SLOT at https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius, pack b549362c…; Framagit URL null; doi null). Plane C USB SLOT. Runtime Worker is the same Plane A tunnel.",
       nodemesh:
         "QNM read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public Nodes (nodes) count human mesh users plus cited human uses (USES). Public Live Nodes (live_nodes) count human mesh users plus concurrent site viewers (site_live_viewers). software_nodes is the {slug}-worker roster. Local qnm-node.",
+      federated_mesh:
+        "FED-MESH-1.0: Local-First Edge Mesh. Raw data, signing keys, and heavy compute stay on the local node. By default the mesh carries signed receipts, state digests, ref updates, and .aziel name records. Raw data moves only on an explicit end-to-end encrypted share. The Worker relay never requires plaintext. It stores and serves signed ref updates and name records and anchors them. A friendly .aziel name carries proof-of-work and stays pending until 72 hours and 2 witness handles. The first valid final claim wins, with 3 user names per handle and 4 reserved hub-mirror slots. <handle>.aziel is self-certifying. .az is normal DNS except the Cap-7 allowlist and the AZ.* hub names. Full objects stay on peers. A public object cache is size-capped and hash-checked. LAN neighborhood discovery runs on the local node. Late rollups, ref updates, and name records with a valid chain are accepted. Forks are refused. This Worker is one relay. A new node still needs one relay address it already has.",
       master33: "Domains are isolation labels. FragGate is the single door. Lamb Lens ethics hop after FragGate.",
     },
     changelog_below_abstract: true,
@@ -180,6 +182,7 @@ export function llmsWhatThisIsBlock(calling = null) {
     "FragGate is THE single public executable door (list → describe → call).",
     "Softwares = Plain → Gate → Lock catalog products with true in-process engines where live.",
     "NodeMesh / QNM read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public Nodes (nodes) count human mesh users plus cited human uses (USES). Public Live Nodes (live_nodes) count human mesh users plus concurrent site viewers (site_live_viewers). software_nodes is the {slug}-worker roster. Local qnm-node.",
+    "FED-MESH-1.0: Local-First Edge Mesh. Raw data, signing keys, and heavy compute stay on the local node. By default the mesh carries signed receipts, state digests, ref updates, and .aziel name records. Raw data moves only on an explicit end-to-end encrypted share. The Worker relay never requires plaintext. It stores and serves signed ref updates and name records and anchors them. A friendly .aziel name carries proof-of-work and stays pending until 72 hours and 2 witness handles. The first valid final claim wins, with 3 user names per handle and 4 reserved hub-mirror slots. <handle>.aziel is self-certifying. .az is normal DNS except the Cap-7 allowlist and the AZ.* hub names. Full objects stay on peers. A public object cache is size-capped and hash-checked. LAN neighborhood discovery runs on the local node. Late rollups, ref updates, and name records with a valid chain are accepted. Forks are refused. This Worker is one relay. A new node still needs one relay address it already has.",
     "MASTER-33: domains are isolation labels. FragGate is the single door. Lamb Lens ethics hop after FragGate.",
     "",
   ].join("\n");
@@ -1193,6 +1196,14 @@ export const SUITE_DESIGNS = Object.freeze([
       "AZVPN automatic public VPN concentrator — HTTPS/FragGate envelopes REAL; WireGuard/OpenVPN/L3 SLOT; default_vpn_backend azvpn; auto_use true; worker_terminates_tunnels true for app-layer only",
     status: "live",
     kind: "software",
+  },
+  {
+    id: "FED-MESH-1.0",
+    file: "FED-MESH-1.0.md",
+    one_line:
+      "Local-First Edge Mesh — raw data, keys, and heavy compute stay on the node; relays carry signed receipts, digests, and ref updates",
+    status: "live",
+    kind: "law",
   },
 ]);
 

@@ -32,8 +32,16 @@ export function deadlineExceeded(startedAt, now, budgetMs) {
   return t - start >= budget;
 }
 
+function meshRoute(pathname) {
+  const path = String(pathname || "").replace(/\/+$/, "").toLowerCase() || "/";
+  if (path === "/v1/fedmesh" || path.startsWith("/v1/fedmesh/")) {
+    return "/v1/mesh/relay" + path.slice("/v1/fedmesh".length);
+  }
+  return path;
+}
+
 export function requestLimitKind(pathname, method) {
-  const path = String(pathname || "").replace(/\/+$/, "") || "/";
+  const path = meshRoute(pathname);
   const m = String(method || "").toUpperCase();
   if (path === "/mcp") {
     return m === "POST" || m === "DELETE" ? "mcp" : null;
@@ -49,7 +57,32 @@ export function requestLimitKind(pathname, method) {
       path === "/v1/mesh/broadcast" ||
       path === "/v1/mesh/leave" ||
       path === "/v1/mesh/site-presence" ||
-      path === "/v1/mesh/site-heartbeat")
+      path === "/v1/mesh/site-heartbeat" ||
+      path === "/v1/mesh/relay/register" ||
+      path === "/v1/mesh/relay/heartbeat" ||
+      path === "/v1/mesh/relay/leave" ||
+      path === "/v1/mesh/relay/post" ||
+      path === "/v1/mesh/relay/pull" ||
+      path === "/v1/mesh/relay/deliver" ||
+      path === "/v1/mesh/relay/forward" ||
+      path === "/v1/mesh/relay/peers" ||
+      path === "/v1/mesh/relay/bootstrap" ||
+      path === "/v1/mesh/relay/rollup" ||
+      path === "/v1/mesh/relay/remote-task" ||
+      path === "/v1/mesh/relay/ref" ||
+      path === "/v1/mesh/relay/sync" ||
+      path === "/v1/mesh/relay/object" ||
+      path === "/v1/mesh/relay/name" ||
+      path === "/v1/mesh/relay/witness" ||
+      path === "/v1/mesh/relay/equivocation" ||
+      path === "/v1/mesh/relay/vouch" ||
+      path === "/v1/mesh/relay/advisory" ||
+      path === "/v1/mesh/relay/quarantine" ||
+      path === "/v1/mesh/relay/island" ||
+      path === "/v1/mesh/relay/airgap" ||
+      path === "/v1/mesh/relay/restore" ||
+      path === "/v1/mesh/relay/isolation" ||
+      path === "/v1/mesh/relay/appeal")
   ) {
     return "mesh_mutate";
   }
