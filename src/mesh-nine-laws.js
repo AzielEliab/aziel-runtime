@@ -6,7 +6,8 @@
  * slug. Not a new MCP tool. FragGate stays the only public exec door.
  *
  * GodLock is a product name, not identity. Die-with-pull must not
- * resurrect godlock.uk. Cap-7 stays resolves_to_hub false.
+ * resurrect godlock.uk. Cap-7 stays resolves_to_hub false
+ * (standard internet does not reach Cap-7; AZ domains use the hub links).
  *
  * Identity: Aziel Eliab only. Lamb Lens. NO-LIE.
  *

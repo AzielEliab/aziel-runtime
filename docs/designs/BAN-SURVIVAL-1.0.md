@@ -111,9 +111,9 @@ as the death-by-ban backup — they are not mixed into `exec_origins`.
 6. Cap-7 update shuffle: all nodes ping MirageGrid until they land on
    **one** Cap-7 site (distinct mesh names; `name_may_change`). That
    landed site is the update endpoint for that round. Do not hardcode
-   a single Cap-7 host. Hosted update URL stays **SLOT**. Public
-   MirageGrid workers.dev shuffle **land** stays **SLOT**. App-Worker
-   `/bridge` is a LIVE cite surface (not land/exec).
+   a single Cap-7 host. Factory shuffle **land** is **LIVE**. The
+   landed Cap-7 name is not a public HTTPS door. Standard internet
+   does not reach Cap-7. App-Worker `/bridge` is a LIVE cite surface.
 7. If every named live front is gone (death-by-ban of the public door
    set): verify bytes against the published lockset tip on GitHub /
    corpus `/shelves` / Codeberg + archive.org tip-packs (**SLOT**,
@@ -174,13 +174,17 @@ Until that attest exists, `live_node_api.status` is **SLOT**. Follow-on
 work (not this PR): full security audit → attest named node origins →
 rescan → then consider LIVE.
 
-6b. Cap-7 → AZNet (cite + verify LIVE; hosted exec SLOT)
-Cap-7 mesh-name factory is **MirageGrid-only**. Names inherit hub
-**design DNA** only (`design_of: hub_designs`). `resolves_to_hub: false`.
-`name_may_change: true`. Canonical hubs immutable. Not aliases of the
-four ICANN hostnames. Not a fifth product. `radio_phy: false`.
-`GET /v1/mesh/az-generator` and MirageGrid `/bridge` are cite/bridge
-surfaces — not a live AZ-GEN registrar. No fake ICANN `.az`.
+6b. Cap-7 → AZNet (cite + verify LIVE; factory duplication LIVE)
+Cap-7 is the MirageGrid auto-generate `.az` duplication layer. It
+duplicates the four hub sites and shifts with StaticLock (catalog product
+StaticClock, slug `staticclock`) and MirageGrid cloak, paired with AZVPN.
+`design_of: hub_designs`. On Cap-7, `resolves_to_hub: false`. Standard
+internet does not reach Cap-7. Real duplications: `azgrid`, `azcloak`,
+`azvault`, `azshift`. False sites: `azbooth`, `azflag`, `azstandby`.
+`name_may_change: true`. Canonical hubs stay the public HTTPS door for
+the AZ domains while those hubs are up. Not a fifth product.
+`radio_phy: false`. `GET /v1/mesh/az-generator` and MirageGrid `/bridge`
+are cite/bridge surfaces — not an ICANN registrar. `icann_tld_az: false`.
 
 AZNet is a **verification side-net** reached only through FragGate
 (`stamp`, `verify_hash`, `receipt_verify`). Pairing with AZBrowser is
@@ -191,27 +195,32 @@ functional order — not a tunnel. Channel plane is not VPN. AZNet
 Clients can still learn mesh-name metadata and verify tip hashes when
 a public door is banned.
 
-**SLOT (do not fake):** Cap-7 names as hosted `/mcp` endpoints.
-`cap7_aznet.hosted_endpoints.status` is SLOT
-(`BAN-CAP7-HOST-NOT-ATTESTED`). Next concrete step: AZNet `stamp`
-binds a Cap-7 name (design DNA only) to an attested named FragGate
-origin. Only that named origin may later flip hosted_endpoints LIVE.
-Security audit first. Runtime cites the MirageGrid bridge; it does
-not invent a second factory.
+**LIVE (factory cite, not a browser door):** Cap-7 factory duplication
+cite is LIVE. `cap7_aznet.hosted_endpoints.status` is `live`
+(`CAP7-FACTORY-LIVE`). That stamp is the auto-generate `.az` layer,
+not a claim that standard internet reaches Cap-7 and not an ICANN
+ccTLD. AZNet `stamp` binds a Cap-7 mesh name to hash continuity. It
+does not turn a Cap-7 name into a public HTTPS door. The public door
+is the AZ domain hub link. Runtime cites the MirageGrid bridge; it
+does not invent a second factory. AZNet `payload_host` stays stub.
 
-6c. Cap-7 update shuffle (layout LIVE; public / hosted SLOT)
-Cap-7 sites have **different names** — distinct mesh names, not aliases
-of the four ICANN hubs. `name_may_change: true`. Inherit hub **design
-DNA** only. `resolves_to_hub: false`.
+6c. Cap-7 update shuffle (factory land LIVE)
+Cap-7 sites have **different names** — distinct mesh names. Standard
+internet does not reach them. `name_may_change: true`. Inherit hub
+**design DNA** only. `resolves_to_hub: false` on Cap-7. Internet reaches
+the AZ domains via the four hub HTTPS links (`resolves_to_hub: true` on
+that path). False sites are `azbooth`, `azflag`, and `azstandby`. Real
+duplications are `azgrid`, `azcloak`, `azvault`, and `azshift`.
 
 **Update path (exact):** all nodes **ping MirageGrid** until they
 **land on one Cap-7 site in the shuffle**. That landed site is the
 update endpoint for that round. Do not hardcode a single Cap-7 host
 as the only update door.
 
-Typically a **subset** of Cap-7 can be browser-reachable hosted
-servers (class `browser`; hosted URL still SLOT until attested).
-The **remainder** are mesh / AZNet-side. Keep that honesty.
+Real hub duplications are `azgrid`, `azcloak`, `azvault`, and `azshift`.
+False sites are `azbooth`, `azflag`, and `azstandby` (cloak decoys).
+None of the seven is a browser door. Standard internet
+reaches the AZ domains, not these Cap-7 names.
 
 In-process land is `fraggate_call { slug: "miragegrid", op: "shuffle" }`
 (ping control-plane `assign` → land one of seven mesh names). The
@@ -224,18 +233,18 @@ Public MirageGrid **app** Worker `/bridge` and `GET /v1/shuffle` are
 hosted `/mcp` and not a public land/exec door. The counted
 download-tracker `/bridge`
 (`https://miragegrid-download-tracker.vibelock.workers.dev/bridge`)
-is **404** — do not cite it as the factory. Public shuffle **land**
-and hosted update URL stay **SLOT**. Do not invent LIVE public
-shuffle land. In-process land remains
+is **404** — do not cite it as the factory. Factory shuffle **land**
+is **LIVE**. The landed Cap-7 name is still not a public HTTPS door.
+In-process land remains
 `fraggate_call { slug: "miragegrid", op: "shuffle" }`. Name-set SoT
 is the MirageGrid factory (`azgrid` / `azbooth` / `azcloak` /
 `azvault` / `azshift` / `azflag` / `azstandby`). Runtime
 `CAP7_SITES` uses those labels. Factory `mesh_name` strings
-(`azgrid.az` …) are mesh strings — `mesh_name_icann` stays SLOT;
-not ICANN `.az`. Former in-process `cap7-loom`… labels are
-heritage, not a second live set. Factory `honesty_public` LIVE on
-azgrid/azbooth is factory-path cite, not hosted `/mcp`. Do not
-invent LIVE hosted exec.
+(`azgrid.az` …) are the live auto-generate layer (`mesh_name_icann: live`),
+not an ICANN `.az` ccTLD the public types as Cap-7. Former in-process
+`cap7-loom`… labels are heritage, not a second live set. Forcing the
+factory cite back to SLOT, or claiming standard internet reaches Cap-7,
+refuses `BAN-NO-FAKE-SHUFFLE-LIVE` / `BAN-NO-FAKE-CAP7-HOST`.
 
 6d. AKM memory law (cite alongside this stack)
 AKM-TRIAD-1.0 is already LIVE fabric. Survival must not weaken it:
@@ -336,8 +345,8 @@ Worker UI + PWA + counted download. This is not five native App Store
 binaries (`native_app_store: false`). Do **not** mark any of these five
 as SLOT. `GET /platforms` cites `live: true` only because those Worker
 paths exist. Each OS can reach survival doors,
-calling-name discovery, Cap-7 in-process shuffle ping (public
-workers.dev shuffle stays SLOT), and Softwares download/run. Machine
+calling-name discovery, Cap-7 factory shuffle land (LIVE; standard
+internet does not reach Cap-7), and Softwares download/run. Machine
 matrix: `/survival` `platforms`, `/v1/software` `platforms`,
 `/v1/update/manifest` `platforms`.
 
@@ -356,8 +365,8 @@ matrix: `/survival` `platforms`, `/v1/software` `platforms`,
 - Not permission to drop shelves, or to drop live multi-front.
 - Not an open proxy onto the QNM roster.
 - Not a fake Cap-7 hosted endpoint. Not ICANN `.az`. Not AZNet payload host.
-- Not `radio_phy`. Not `resolves_to_hub: true`.
-- Not a hardcoded single Cap-7 update host. Not a LIVE public MirageGrid shuffle invent.
+- Not `radio_phy`. Not Cap-7 `resolves_to_hub: true`. Not a claim that standard internet reaches Cap-7.
+- Not a hardcoded single Cap-7 update host. Not a claim that a Cap-7 mesh name is a public HTTPS door.
 - Not permission to treat AKM posterior as truth or to delete / rewrite memory history.
 - Not a ChainLock / AKM history rewrite when the calling name rotates.
 - Not third-party trademark impersonation as the product identity.
@@ -366,8 +375,9 @@ matrix: `/survival` `platforms`, `/v1/software` `platforms`,
 8. Surfaces
 - `GET /survival` · `GET /v1/survival` · aliases `/doors` `/failover`
 - `/cite.json` `ban_survival` (`live_doors` = LIVE only; `shelf_backup`;
-  `live_node_api` SLOT; `cap7_aznet` cite+verify LIVE / hosted SLOT /
-  shuffle layout LIVE / public shuffle SLOT; `akm_memory` cite; `spore`)
+  `live_node_api` SLOT; `cap7_aznet` factory duplication cite LIVE /
+  shuffle land LIVE; standard internet does not reach Cap-7; 3 of 7
+  false sites; `akm_memory` cite; `spore`)
 - `/llms.txt` · `/ai.txt`
 - `/openapi.json`
 - MCP `runtime_skill` + stdio bridge failover (no new tool)

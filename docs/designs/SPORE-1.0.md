@@ -144,7 +144,7 @@ off — same published radio refuse; do not invent a second spelling).
   Zenodo tip-pack SLOT; `doi` null); Plane C USB SLOT until
   `CNS-OPERATOR-ATTEST`
 - Local nodes + tip packs — bytes↔hash
-- Cap-7 cite + AZNet verify stay the BAN-SURVIVAL layer; hosted exec SLOT
+- Cap-7 factory duplication cite + AZNet verify stay the BAN-SURVIVAL layer (LIVE; standard internet does not reach Cap-7)
 
 5. Resume (power restore)
 When power / network / radios return:

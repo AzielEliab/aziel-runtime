@@ -2,7 +2,8 @@
  * Cap-7 semantic-bridge cite + dual-surface AI upload/download path.
  * NO-FAN: no fake ICANN .az; no AZ-GEN live registrar; no visible 15:20;
  * GET /v1/mesh never enables radios. Cap-7 names inherit designs only;
- * resolves_to_hub: false — not aliases of the four ICANN hostnames.
+ * Cap-7 resolves_to_hub: false — standard internet does not reach Cap-7.
+ * AZ domains resolve via the four hub HTTPS links.
  * Author: Aziel Eliab only.
  */
 import assert from "node:assert/strict";
@@ -105,7 +106,27 @@ assert.match(cite.limitation, /THIS IS:/);
 assert.match(cite.limitation, /MirageGrid only/);
 assert.doesNotMatch(cite.limitation, /THIS IS NOT:/);
 assert.equal(cite.visible_1520, false);
-assert.doesNotMatch(JSON.stringify(cite), /"public_icann":true/);
+assert.equal(cite.internet_reachable, false);
+assert.equal(cite.standard_internet_reaches_cap7, false);
+assert.equal(cite.false_site_count, 3);
+assert.equal(cite.real_duplication_count, 4);
+assert.equal(cite.az_domains.public_icann, true);
+assert.equal(cite.az_domains.resolves_to_hub, true);
+assert.equal(cite.az_domains.internet_reachable, true);
+assert.equal(cite.az_domains.pool_size, 4);
+assert.equal(cite.az_domains.show, 1);
+assert.equal(cite.az_domains.policy, "shuffle-once");
+assert.equal(cite.az_domains.stand_alone, true);
+assert.equal(cite.az_domains.immutable_after_hub_down, true);
+assert.equal(cite.az_domains.anchored_by, "live_nodes");
+assert.equal(cite.az_domains.icann_tld_az, false);
+assert.ok(cite.az_domains.pool.some((row) => row.display_name === "AZ.AzielEliab.AZ" && row.mirrors === "azieleliab.com"));
+assert.ok(cite.az_domains.pool.some((row) => row.display_name === "AZ.AzielCorpusLibrary.AZ"));
+assert.ok(cite.az_domains.pool.some((row) => row.display_name === "AZ.Godlock.AZ"));
+assert.ok(cite.az_domains.pool.some((row) => row.display_name === "AZ.HeDidntJump.AZ"));
+assert.equal(cite.az_domains.pool.filter((row) => cite.az_domains.display.display_name === row.display_name).length, 1);
+assert.doesNotMatch(JSON.stringify(cite), /standard internet reaches Cap-7/i);
+assert.match(cite.limitation, /does not reach Cap-7/);
 
 const gen = dispatchAzGeneratorHttp("GET", "/v1/mesh/az-generator", origin);
 assert.equal(gen.status, 200);
@@ -149,15 +170,31 @@ assert.ok(mg.ops.some((o) => o.op === "bridge"));
 assert.ok(mg.ops.some((o) => o.op === "shuffle"));
 assert.equal(cite.shuffle.layout, "live");
 assert.equal(cite.shuffle.public_worker_bridge, "live");
-assert.equal(cite.shuffle.public_worker_shuffle, "slot");
+assert.equal(cite.shuffle.public_worker_shuffle, "live");
 assert.equal(cite.shuffle.hardcoded_single_host, false);
 assert.equal(cite.shuffle.site_count, 7);
+assert.equal(cite.shuffle.false_site_count, 3);
+assert.deepEqual(cite.shuffle.real_duplications, ["azgrid", "azcloak", "azvault", "azshift"]);
+assert.deepEqual(cite.shuffle.false_sites, ["azbooth", "azflag", "azstandby"]);
+assert.equal(cite.shuffle.shift.staticlock, "staticclock");
+assert.equal(cite.shuffle.shift.invented_software, false);
 assert.equal(cite.shuffle.distinct_mesh_names, true);
 assert.equal(cite.shuffle.name_set_sot, "miragegrid");
 assert.deepEqual(cite.shuffle.factory_labels, ["azgrid", "azbooth", "azcloak", "azvault", "azshift", "azflag", "azstandby"]);
-assert.equal(cite.shuffle.mesh_name_icann, "slot");
+assert.equal(cite.shuffle.mesh_name_icann, "live");
 assert.equal(cite.shuffle.public_icann, false);
-assert.ok(cite.shuffle.sites.every((s) => s.hosted_status === "slot" && s.is_live_door === false && s.design_of === "hub_designs"));
+assert.equal(cite.shuffle.internet_reachable, false);
+assert.deepEqual(
+  cite.shuffle.sites.filter((s) => s.false_site === false).map((s) => s.id),
+  ["azgrid", "azcloak", "azvault", "azshift"],
+);
+assert.deepEqual(
+  cite.shuffle.sites.filter((s) => s.false_site === true).map((s) => s.id),
+  ["azbooth", "azflag", "azstandby"],
+);
+assert.equal(cite.shuffle.sites.find((s) => s.id === "azshift").az_display_name, "AZ.HeDidntJump.AZ");
+assert.match(cite.shuffle.sites.find((s) => s.id === "azshift").aligns_to, /^https:\/\/www\.hedidntjump\.com\/$/);
+assert.ok(cite.shuffle.sites.every((s) => s.hosted_status === "live" && s.is_live_door === false && s.design_of === "hub_designs" && s.internet_reachable === false));
 assert.ok(cite.shuffle.sites.every((s) => s.id.startsWith("az") && s.mesh_name.endsWith(".az")));
 
 const httpCite = await get("/cite.json");
@@ -209,12 +246,17 @@ assert.equal(sh.status, 200);
 const shBody = await sh.json();
 assert.equal(shBody.ok, true);
 assert.equal(shBody.result.ok, true);
-assert.equal(shBody.result.public_worker_shuffle, "slot");
+assert.equal(shBody.result.public_worker_shuffle, "live");
+assert.equal(shBody.result.standard_internet_reaches_cap7, false);
 assert.equal(shBody.result.update.hosted_url, null);
+assert.equal(shBody.result.update.status, "live");
 assert.ok(shBody.result.land.id.startsWith("az"));
 assert.ok(shBody.result.land.mesh_name.endsWith(".az"));
-assert.equal(shBody.result.land.mesh_name_icann, "slot");
-assert.equal(shBody.result.land.hosted_status, "slot");
+assert.equal(shBody.result.land.mesh_name_icann, "live");
+assert.equal(shBody.result.land.hosted_status, "live");
+assert.equal(shBody.result.land.internet_reachable, false);
+assert.equal(shBody.result.az_domains.internet_reachable, true);
+assert.equal(shBody.result.az_domains.show, 1);
 
 const openapi = await (await get("/openapi.json")).json();
 assert.ok(openapi.paths["/v1/mesh/az-generator"]);

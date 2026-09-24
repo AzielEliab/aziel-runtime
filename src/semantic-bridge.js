@@ -1,12 +1,13 @@
 /**
- * Cap-7 semantic-bridge cite — MirageGrid mesh-name factory (not ICANN).
+ * Cap-7 semantic-bridge cite — MirageGrid auto-generate `.az` duplication.
  *
- * Cap-7 names inherit hub **designs** only. resolves_to_hub: false.
- * They are not aliases of the four public ICANN hostnames.
- * Mesh names may change; they map to the original four canonical hubs
- * (library hub carries azcorpus + azlibrary designs). No fifth product.
- * Factory is MirageGrid-only. AZ-GEN is a cite label, not a live registrar.
- * AI pulls name metadata from public bridge URLs. GET /v1/mesh never enables.
+ * Standard internet does not reach Cap-7. It reaches the AZ domains
+ * through the four hub HTTPS links. Cap-7 duplicates those four hubs
+ * and shifts with StaticLock (catalog product StaticClock, slug staticclock)
+ * + MirageGrid cloak + AZVPN. Three of the
+ * seven factory names are false sites. Factory duplication cite is LIVE.
+ * public_icann / resolves_to_hub are the AZ-domain hub path, not a
+ * claim that Cap-7 is an ICANN ccTLD. radio_phy stays false.
  *
  * Author: Aziel Eliab only.
  */
@@ -22,7 +23,7 @@ import {
   softwareHubCrawl,
 } from "./seo.js";
 import { WEBSITE_DESIGN_IDS, websiteDesignsField } from "./website-designs.js";
-import { cap7ShuffleCite } from "./cap7-shuffle.js";
+import { azDomainsCite, cap7ShuffleCite } from "./cap7-shuffle.js";
 
 export const SEMANTIC_BRIDGE_SPEC = "CAP-7";
 export const SEMANTIC_BRIDGE_NAME = "Cap-7 semantic bridge";
@@ -36,7 +37,7 @@ export const MIRAGEGRID_APP_ORIGIN = "https://miragegrid.vibelock.workers.dev";
 export const MIRAGEGRID_WORKER_ORIGIN = MIRAGEGRID_APP_ORIGIN;
 export const MIRAGEGRID_BRIDGE_PATH = "/bridge";
 
-/** Four public ICANN hostnames. Cap-7 names are not aliases of these and do not resolve to them. */
+/** Four public ICANN hub websites. AZ domains are reached here. Cap-7 names are not these hosts. */
 export const ICANN_HUB_HOSTS = Object.freeze([
   `${AUTHOR_SITE_ORIGIN}/`,
   `${LIBRARY_ORIGIN}/`,
@@ -45,15 +46,20 @@ export const ICANN_HUB_HOSTS = Object.freeze([
 ]);
 
 export const CAP7_INHERIT = "designs";
-/** Cap-7 names are designs of hubs — they do not resolve to hub hostnames. */
+/** Cap-7 names are designs of hubs. The Cap-7 layer itself is not the public HTTPS door. */
 export const CAP7_DESIGN_OF = "hub_designs";
+/** Cap-7 mesh names do not take standard-internet resolve. AZ domains do. */
 export const CAP7_RESOLVES_TO_HUB = false;
+export const CAP7_PUBLIC_ICANN = false;
+export const CAP7_INTERNET_REACHABLE = false;
+export const AZ_DOMAIN_RESOLVES_TO_HUB = true;
+export const AZ_DOMAIN_PUBLIC_ICANN = true;
 export const CAP7_NAME_MAY_CHANGE = true;
 export const CAP7_CANONICAL_HUBS_IMMUTABLE = true;
 export const CAP7_FIFTH_PRODUCT = false;
 
 export const SEMANTIC_BRIDGE_LIMITATION =
-  "THIS IS: Cap-7 mesh-name metadata cite. Factory is MirageGrid only. Names inherit hub designs only (docs/designs/ plus mesh-resident azcorpus + azlibrary on the library hub). Names may change; canonical hubs are immutable. AI pulls metadata from MirageGrid Worker /bridge or GET /v1/mesh/az-generator. Mesh browse is AZNet + AZBrowser via FragGate. Plane A hubs mirror published tips. GET /v1/mesh never enables. Author: Aziel Eliab only.";
+  "THIS IS: Cap-7 auto-generates .az duplications of the four hub sites and shifts them with StaticLock (catalog product StaticClock, slug staticclock) and MirageGrid cloak, paired with AZVPN. Factory is MirageGrid only. Four factory names are real duplications (azgrid, azcloak, azvault, azshift); three are false sites (azbooth, azflag, azstandby). Standard internet does not reach Cap-7. Internet reaches the AZ domains through the four hub HTTPS links. Those AZ domains are public_icann and resolves_to_hub, shuffle once to one of four display names, stand alone, and freeze after the hubs go down. Live nodes anchor them. Factory duplication cite is LIVE. Names may change; canonical hubs are immutable while up. AI pulls metadata from MirageGrid Worker /bridge or GET /v1/mesh/az-generator. Mesh browse is AZNet + AZBrowser via FragGate. GET /v1/mesh never enables. radio_phy false. Author: Aziel Eliab only.";
 
 export function miragegridBridgeUrl() {
   return `${MIRAGEGRID_WORKER_ORIGIN}${MIRAGEGRID_BRIDGE_PATH}`;
@@ -72,6 +78,7 @@ export function planeAHubs() {
     software_tab: h.software_tab,
     mirrors_tips: true,
     resolves_cap7: false,
+    internet_reaches_cap7: false,
   }));
 }
 
@@ -84,15 +91,17 @@ export function semanticBridgeCiteField(origin) {
     identity: SEMANTIC_BRIDGE_AUTHOR,
     factory: SEMANTIC_BRIDGE_FACTORY,
     factory_only: SEMANTIC_BRIDGE_FACTORY,
-    public_icann: false,
+    public_icann: CAP7_PUBLIC_ICANN,
     icann_tld_az: false,
     live_registrar: false,
     az_gen_live_registrar: false,
     resolves_to_hub: CAP7_RESOLVES_TO_HUB,
+    internet_reachable: CAP7_INTERNET_REACHABLE,
+    standard_internet_reaches_cap7: false,
     design_of: CAP7_DESIGN_OF,
     inherit: CAP7_INHERIT,
     inherit_note:
-      "Cap-7 mesh names may change. They map to the original four canonical hubs only (azieleliab.com, azielcorpuslibrary.net with azcorpus+azlibrary designs, godlock.uk, hedidntjump.com). They inherit hub designs only (design_of: hub_designs).",
+      "Cap-7 mesh names may change. They map to the original four canonical hubs only (azieleliab.com, azielcorpuslibrary.net with azcorpus+azlibrary designs, godlock.uk, hedidntjump.com) as .az duplications. They inherit hub designs only (design_of: hub_designs). Three names are false sites. Standard internet does not reach Cap-7. Internet reaches the AZ domains via those hub HTTPS links.",
     name_may_change: CAP7_NAME_MAY_CHANGE,
     canonical_hubs_immutable: CAP7_CANONICAL_HUBS_IMMUTABLE,
     maps_to_canonical_hubs: true,
@@ -106,6 +115,9 @@ export function semanticBridgeCiteField(origin) {
       { host: ICANN_HUB_HOSTS[3], designs: [] },
     ],
     website_designs: websiteDesignsField(base),
+    az_domains: azDomainsCite(),
+    false_site_count: 3,
+    real_duplication_count: 4,
     visible_1520: false,
     mesh_get_never_enables: true,
     radio_phy: false,
@@ -124,7 +136,7 @@ export function semanticBridgeCiteField(origin) {
       local: "qnm-node",
       hubs_mirror_tips: true,
       hubs: planeAHubs(),
-      note: "Plane A hubs mirror published mesh-name tips. Mirroring a tip is not hostname aliasing and does not resolve Cap-7 names onto ICANN hosts.",
+      note: "Plane A hubs are the public HTTPS door for the AZ domains. Standard internet does not reach Cap-7 .az names. Live nodes anchor the AZ domains.",
     },
     paths: {
       mesh_az_generator: azGeneratorPath(base),
@@ -158,10 +170,14 @@ export function semanticBridgeRefuse(code, message, extra = {}) {
     author: SEMANTIC_BRIDGE_AUTHOR,
     identity: SEMANTIC_BRIDGE_AUTHOR,
     spec: SEMANTIC_BRIDGE_SPEC,
-    public_icann: false,
+    public_icann: CAP7_PUBLIC_ICANN,
     live_registrar: false,
     az_gen_live_registrar: false,
     resolves_to_hub: CAP7_RESOLVES_TO_HUB,
+    internet_reachable: CAP7_INTERNET_REACHABLE,
+    standard_internet_reaches_cap7: false,
+    az_domains_public_icann: AZ_DOMAIN_PUBLIC_ICANN,
+    az_domains_resolves_to_hub: AZ_DOMAIN_RESOLVES_TO_HUB,
     design_of: CAP7_DESIGN_OF,
     inherit: CAP7_INHERIT,
     name_may_change: CAP7_NAME_MAY_CHANGE,
@@ -184,25 +200,66 @@ function truthyFlag(value) {
   return s === "1" || s === "true" || s === "yes" || s === "on";
 }
 
+function falsyFlag(value) {
+  if (value === false || value === 0) return true;
+  const s = String(value == null ? "" : value)
+    .trim()
+    .toLowerCase();
+  return s === "0" || s === "false" || s === "no" || s === "off";
+}
+
 /**
- * Cap-7 injection: resolves_to_hub true, resolving design_of, or register verbs.
- * Cite fields stay locked. Attack payloads must REFUSE, not echo the injection.
+ * Cap-7 injection. Locked law:
+ * - Cap-7 is not a public internet door (resolves_to_hub stays false on that layer).
+ * - AZ domains stay public_icann / resolves_to_hub / internet-reachable.
+ * - Factory duplication stays LIVE (SLOT overrides refuse).
+ * - Register verbs, ccTLD purchase, radio_phy, and off-pool redirects refuse.
  */
 export function cap7InjectionAttempt(payload, searchParams) {
   const src = payload && typeof payload === "object" && !Array.isArray(payload) ? payload : {};
-  if (src.resolves_to_hub === true || src.resolve_to_hub === true || src.resolves_cap7 === true) {
+  if (
+    src.resolves_to_hub === true ||
+    src.resolve_to_hub === true ||
+    src.resolves_cap7 === true ||
+    src.standard_internet_reaches_cap7 === true ||
+    src.internet_reaches_cap7 === true ||
+    src.cap7_internet_reachable === true
+  ) {
     return "resolves_to_hub";
   }
+  if (src.az_public_icann === false || src.az_resolves_to_hub === false || src.az_internet_reachable === false) {
+    return "az_domain";
+  }
+  if (src.public_worker_shuffle === "slot" || src.hosted_mcp === "slot" || src.mesh_name_icann === "slot") {
+    return "factory_slot";
+  }
+  if (src.all_seven_real === true || src.false_site_count === 0 || src.false_site_count === 7) return "false_site";
+  if (src.icann_tld_az === true || src.bought_az_cctld === true || src.fake_icann_az === true) return "icann_tld";
+  if (src.live_registrar === true || src.az_gen_live_registrar === true) return "register";
+  if (src.radio_phy === true) return "radio_phy";
+  const redirect = src.cname || src.hub_cname || src.redirect || src.hub_redirect;
+  if (redirect && !designedHubPair(redirect)) return "hub_redirect";
   if (searchParams && typeof searchParams.get === "function") {
-    if (truthyFlag(searchParams.get("resolves_to_hub")) || truthyFlag(searchParams.get("resolve_to_hub"))) {
+    if (
+      truthyFlag(searchParams.get("resolves_to_hub")) ||
+      truthyFlag(searchParams.get("resolve_to_hub")) ||
+      truthyFlag(searchParams.get("standard_internet_reaches_cap7"))
+    ) {
       return "resolves_to_hub";
+    }
+    if (falsyFlag(searchParams.get("az_resolves_to_hub")) || falsyFlag(searchParams.get("az_public_icann"))) {
+      return "az_domain";
     }
     const qDesign = searchParams.get("design_of");
     if (qDesign && String(qDesign).trim() && String(qDesign).trim() !== CAP7_DESIGN_OF) {
       return "design_of";
     }
+    const qRedirect = searchParams.get("cname") || searchParams.get("redirect") || searchParams.get("hub_redirect");
+    if (qRedirect && !designedHubPair(qRedirect)) return "hub_redirect";
     const act = String(searchParams.get("op") || searchParams.get("action") || "").toLowerCase();
     if (act === "register" || act === "create" || act === "mint") return "register";
+    if (truthyFlag(searchParams.get("radio_phy"))) return "radio_phy";
+    if (truthyFlag(searchParams.get("icann_tld_az"))) return "icann_tld";
   }
   if (src.design_of != null) {
     const claimed = typeof src.design_of === "string" ? src.design_of.trim() : "";
@@ -216,12 +273,35 @@ export function cap7InjectionAttempt(payload, searchParams) {
   return null;
 }
 
+function designedHubPair(value) {
+  const raw = String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\/$/, "")
+    .replace(/^https?:\/\//, "");
+  const hosts = [
+    "azieleliab.com",
+    "www.azieleliab.com",
+    "azielcorpuslibrary.net",
+    "www.azielcorpuslibrary.net",
+    "godlock.uk",
+    "www.godlock.uk",
+    "hedidntjump.com",
+    "www.hedidntjump.com",
+    "az.azieleliab.az",
+    "az.azielcorpuslibrary.az",
+    "az.godlock.az",
+    "az.hedidntjump.az",
+  ];
+  return hosts.includes(raw);
+}
+
 export function cap7InjectionRefuse(kind, extra = {}) {
   return semanticBridgeRefuse(
     kind === "register" ? "AZ-GEN-CALL-REFUSED" : "CAP7-RESOLVE-INJECT",
     kind === "register"
       ? "AZ Generator is cite-only. Not a live registrar."
-      : "Cap-7 design_of is hub_designs. resolves_to_hub stays false. Injection refused.",
+      : "Cap-7 is not a public internet door. AZ domains stay on the hub HTTPS links. Injection refused.",
     {
       design_of: CAP7_DESIGN_OF,
       resolves_to_hub: CAP7_RESOLVES_TO_HUB,
@@ -273,7 +353,7 @@ export function miragegridBridgeCite(origin, payload) {
     product: "miragegrid",
     op: "bridge",
     true_engine_runtime: true,
-    note: "Cite-only Cap-7 metadata. Not a live AZ-GEN registrar. Not ICANN. design_of hub_designs. resolves_to_hub false.",
+    note: "Cap-7 .az duplication cite. Standard internet does not reach Cap-7. AZ domains resolve through the four hub HTTPS links. design_of hub_designs. Three of seven are false sites.",
   };
 }
 
@@ -284,8 +364,10 @@ export function semanticBridgeLlmsBlock(origin) {
     "",
     SEMANTIC_BRIDGE_LIMITATION,
     "",
-    `Factory: ${cite.factory} only. public_icann: false. design_of: ${cite.design_of}. resolves_to_hub: false. inherit: ${cite.inherit}.`,
-    `Live registrar: false. AZ-GEN live registrar: false. Fake ICANN .az: false. Visible 15:20: false.`,
+    `Factory: ${cite.factory} only. Cap-7 public_icann: false. Cap-7 resolves_to_hub: false. Cap-7 internet_reachable: false. design_of: ${cite.design_of}. inherit: ${cite.inherit}.`,
+    `Standard internet does not reach Cap-7. Internet reaches AZ domains via the four hub HTTPS links. AZ public_icann: true. AZ resolves_to_hub: true. Shuffle once to 1 of 4. Live nodes anchor those names.`,
+    `False sites: azbooth, azflag, azstandby. Real duplications: azgrid, azcloak, azvault, azshift. Shift: StaticLock (catalog product StaticClock, slug staticclock) + MirageGrid cloak + AZVPN. Factory duplication cite: LIVE.`,
+    `Live registrar: false. icann_tld_az: false. Fake ICANN .az: false. Visible 15:20: false. radio_phy: false.`,
     `GET /v1/mesh never enables radios. Growth-ON crawlers Allow.`,
     `Bridge cite: ${cite.paths.miragegrid_bridge}`,
     `Runtime cite: ${cite.paths.mesh_az_generator}`,
@@ -293,7 +375,7 @@ export function semanticBridgeLlmsBlock(origin) {
     `Mesh browse: AZNet + AZBrowser via fraggate_call. Plane A hubs mirror tips; they do not become Cap-7 aliases.`,
     `Four ICANN hosts (not Cap-7 aliases): ${cite.icann_hosts.join(" ")}`,
     `name_may_change: true. canonical_hubs_immutable: true. fifth_product: false.`,
-    `Update shuffle: ping MirageGrid until one Cap-7 site lands. That landed site is that-round update. Distinct mesh names. No hardcoded host. Public workers.dev shuffle SLOT.`,
+    `Update shuffle: ping MirageGrid until one Cap-7 .az name lands. Factory land is LIVE. That mesh name is not a public HTTPS door. Distinct mesh names. No hardcoded host.`,
     `Library hub designs: azcorpus + azlibrary (mesh-resident; downloadable to nodes).`,
     `Designs inherited only: ${cite.designs.folder_github}`,
     "",
@@ -304,18 +386,20 @@ export function semanticBridgeSkillMarkdown(origin) {
   const cite = semanticBridgeCiteField(origin);
   return `## Cap-7 semantic bridge (MirageGrid)
 
-Cap-7 mesh names are **MirageGrid-only**. They inherit hub **designs** only (\`docs/designs/\` plus mesh-resident **azcorpus** + **azlibrary** on the library hub). \`design_of: hub_designs\`. \`resolves_to_hub: false\`. \`name_may_change: true\`. Canonical hubs are immutable. Names may change; they map to the original four hubs only (${cite.icann_hosts.join(", ")}). They are **not** aliases of those hostnames. Not a fifth product. \`public_icann: false\`.
+Cap-7 is the MirageGrid auto-generate **.az duplication** layer. It duplicates the four hub sites and shifts with **StaticLock** (catalog product **StaticClock**, slug \`staticclock\`) and **MirageGrid cloak**, paired with **AZVPN**. Names inherit hub **designs** only (\`docs/designs/\` plus mesh-resident **azcorpus** + **azlibrary** on the library hub). \`design_of: hub_designs\`. On the Cap-7 layer \`resolves_to_hub: false\` and \`internet_reachable: false\` — standard internet does not reach Cap-7. Four factory names are real duplications (\`azgrid\`, \`azcloak\`, \`azvault\`, \`azshift\`); three are false sites (\`azbooth\`, \`azflag\`, \`azstandby\`). \`name_may_change: true\`.
+
+Internet reaches the **AZ domains** through the hub HTTPS links (${cite.icann_hosts.join(", ")}). Those drop-ins are \`public_icann: true\`, \`resolves_to_hub: true\`, shuffle once to one of four display names, stand alone, and become immutable after the hubs go down. Live nodes anchor them. Not an ICANN \`.az\` ccTLD purchase. Not a fifth product.
 
 AI pulls mesh-generated **name metadata** (not a registration) from:
 
 - \`${cite.paths.miragegrid_bridge}\`
 - \`GET ${cite.paths.mesh_az_generator}\`
 - \`fraggate_call\` \`{ slug: "miragegrid", op: "bridge" }\`
-- \`fraggate_call\` \`{ slug: "miragegrid", op: "shuffle" }\` — ping MirageGrid until one distinct-name Cap-7 site lands (that-round update endpoint). Hosted URL SLOT. Public workers.dev shuffle SLOT.
+- \`fraggate_call\` \`{ slug: "miragegrid", op: "shuffle" }\` — ping MirageGrid until one distinct-name Cap-7 .az site lands (that-round mesh update). Factory land is LIVE. The landed name is not a public HTTPS door.
 
-\`public_icann: false\`. No live AZ-GEN registrar. No fake ICANN \`.az\`. No visible 15:20. \`GET /v1/mesh\` never enables radios.
+\`icann_tld_az: false\`. No ICANN registrar purchase. No visible 15:20. \`radio_phy: false\`. \`GET /v1/mesh\` never enables radios.
 
-Mesh browse: **AZNet + AZBrowser** via \`fraggate_call\` (not Chromium, not ICANN DNS). Plane A hubs mirror published tips; mirroring a tip does not resolve a Cap-7 name onto a hub hostname.
+Mesh browse: **AZNet + AZBrowser** via \`fraggate_call\`. Plane A hub websites are the public door for the AZ domains.
 
 ${SEMANTIC_BRIDGE_LIMITATION}
 `;

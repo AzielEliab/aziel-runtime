@@ -67,7 +67,9 @@ Open crawl. Never `Disallow: /` for GPTBot or any listed bot.
 
 ## Cap-7 semantic bridge (MirageGrid — not ICANN)
 
-Cap-7 mesh names are **MirageGrid-only**. They inherit hub **designs** only (`docs/designs/` plus mesh-resident **azcorpus** + **azlibrary** on the library hub). `design_of: hub_designs`. `resolves_to_hub: false`. `name_may_change: true`. Canonical hubs are immutable. Names may change; they map to the original four hubs only (https://www.azieleliab.com/ · https://www.azielcorpuslibrary.net/ with azcorpus+azlibrary designs · https://godlock.uk/ · https://www.hedidntjump.com/). They are **not** aliases of the four ICANN hostnames. Not a fifth product. `public_icann: false`.
+Cap-7 is the MirageGrid auto-generate **.az duplication** layer. Names inherit hub **designs** only (`docs/designs/` plus mesh-resident **azcorpus** + **azlibrary** on the library hub). It duplicates the four hub sites and shifts with StaticLock (catalog product StaticClock, slug `staticclock`) and MirageGrid cloak, paired with AZVPN. Four factory names are real duplications (`azgrid`, `azcloak`, `azvault`, `azshift`). Three are false sites (`azbooth`, `azflag`, `azstandby`). `design_of: hub_designs`. On Cap-7, `resolves_to_hub: false` and `internet_reachable: false`. Standard internet does not reach Cap-7. `name_may_change: true`. Factory duplication cite is LIVE.
+
+Internet reaches the **AZ domains** through the hub HTTPS links (https://www.azieleliab.com/ · https://www.azielcorpuslibrary.net/ with azcorpus+azlibrary designs · https://godlock.uk/ · https://www.hedidntjump.com/). Display names: `AZ.AzielEliab.AZ`, `AZ.AzielCorpusLibrary.AZ`, `AZ.Godlock.AZ`, `AZ.HeDidntJump.AZ`. Those drop-ins are `public_icann: true`, `resolves_to_hub: true`, shuffle once to one of four, stand alone, and freeze after the hubs go down. Live nodes anchor them. Cap-7 names are **not** aliases of the four ICANN hostnames. Not a fifth product. Cap-7 `public_icann: false`. `icann_tld_az: false`.
 
 AI pulls name metadata from:
 
@@ -75,9 +77,9 @@ AI pulls name metadata from:
 - https://miragegrid-download-tracker.vibelock.workers.dev/download (counted download plane; `/bridge` here is 404)
 - https://aziel-runtime.vibelock.workers.dev/v1/mesh/az-generator
 - `fraggate_call` `{ slug: "miragegrid", op: "bridge" }`
-- `fraggate_call` `{ slug: "miragegrid", op: "shuffle" }` — ping MirageGrid until one distinct-name Cap-7 site lands (that-round update). Hosted URL SLOT. Public shuffle land SLOT. App-Worker `/bridge` is a LIVE cite, not land/exec.
+- `fraggate_call` `{ slug: "miragegrid", op: "shuffle" }` — ping MirageGrid until one distinct-name Cap-7 .az site lands (that-round mesh update). Factory land is LIVE. The landed name is not a public HTTPS door. App-Worker `/bridge` is a LIVE cite.
 
-`public_icann: false`. No live AZ-GEN registrar. No fake ICANN `.az`. No visible 15:20. `GET /v1/mesh` never enables radios. Mesh browse: AZNet + AZBrowser via FragGate. Plane A hubs mirror tips; mirroring a tip does not resolve a Cap-7 name onto a hub hostname.
+No live AZ-GEN registrar. No ICANN `.az` ccTLD purchase. No visible 15:20. `radio_phy: false`. `GET /v1/mesh` never enables radios. Mesh browse: AZNet + AZBrowser via FragGate. Plane A hub websites are the public door for the AZ domains.
 
 Machine field: `/cite.json` `semantic_bridge`. `/cite.json` + `GET /v1/software` also name `website_designs` **azcorpus** + **azlibrary**.
 
@@ -113,7 +115,7 @@ If network and data die tomorrow, the chain survives on cold shelves (hosts / DO
 
 ## Ban / blocked-endpoint survival (BAN-SURVIVAL-1.0)
 
-One banned public door (`workers.dev`, `/mcp`, a FragGate path) is a surface death, not last tip gone. Three layers: live multi-front ↔ cold shelves; live-node API SLOT until attest; Cap-7 cite + AZNet verify LIVE (hosted Cap-7 endpoints SLOT; update shuffle ping→land, no hardcoded host; public workers.dev shuffle SLOT). AKM-TRIAD: `belief_is_not_truth`; `memory_get` append-only; `memory_resolve` additive. Door list = LIVE only. Never invent a live door. Never fake a Cap-7 hosted endpoint. Never claim a banned host is LIVE.
+One banned public door (`workers.dev`, `/mcp`, a FragGate path) is a surface death, not last tip gone. Three layers: live multi-front ↔ cold shelves; live-node API SLOT until attest; Cap-7 cite + AZNet verify LIVE (factory duplication cite LIVE; standard internet does not reach Cap-7; update shuffle ping→land, no hardcoded host). AKM-TRIAD: `belief_is_not_truth`; `memory_get` append-only; `memory_resolve` additive. Door list = LIVE only. Never invent a live door. Never claim standard internet reaches Cap-7. Never claim a banned host is LIVE.
 
 Calling-name rotation is discovery-only: trigger → mesh alert → rewrite all live discovery metadata → client rediscovery. Open-ended + random (no hard cap at 6): Whitestone AI → Bills (`bills-runtime` / Bills Runtime as needed) → Runtime → Eliab Runtime (`eliab-runtime`) → Potato Runtime → Elroi Runtime → Softwares-family `*-runtime` → endless, including randomly generated names (`BAN_SURVIVAL_NAME_RANDOM`) alongside the seeds. Surfaces: OpenAPI `info`, MCP name/instructions, cite/llms/ai/who-is/person calling strings, `/survival` live product, Softwares vanity, hub-facing runtime labels. Live mesh pull `*new name alert: <name>` from `GET /v1/mesh` and `/survival`. User-uploaded data is DecisionGATE/AKM observe (unmarked ≠ ban). Call routes stay FragGate. Identity Aziel Eliab unchanged.
 
