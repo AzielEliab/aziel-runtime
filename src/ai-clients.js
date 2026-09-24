@@ -100,7 +100,7 @@ ${compatibleClientsMarkdownList()}
 
 Practical pull + call (do not invent steps for every crawler):
 
-- **Glama** — [${GLAMA_TRY_LABEL}](${GLAMA_LISTING_URL}) — primary Install Server via glama.json + Dockerfile CMD \`["node", "cli/mcp-stdio.mjs"]\`
+- **Glama** — [${GLAMA_TRY_LABEL}](${GLAMA_LISTING_URL}) — one-click Install Server first (Glama release 2.0.7; Worker package 2.0.0-rc1). Then remote \`POST ${host}/mcp\`. Local stdio \`node cli/mcp-stdio.mjs\` is last.
 - **ChatGPT** — GPT Actions → Import from URL → \`${host}/openapi.json\`
 - **Grok** — custom tool / OpenAPI / MCP remote → \`${host}/openapi.json\` or \`POST ${host}/mcp\`
 - **Venice** — custom HTTP tools / OpenAPI → same OpenAPI URL
@@ -113,7 +113,7 @@ Practical pull + call (do not invent steps for every crawler):
 - **Shelves** — \`GET ${host}/shelves\` cites COLD-MULTI-SHELF-1.0 matching corpus \`/shelves\` (Plane A 5/2/1; Plane B SLOT; Plane C USB SLOT; doi null).
 - **Ban survival** — \`GET ${host}/survival\` cites BAN-SURVIVAL-1.0. Live multi-front and cold shelves back each other up. If \`/mcp\` or workers.dev is blocked: try the next LIVE custom-domain hub \`/runtime\`. If every live front is gone: shelf tip-hash. Live-node API is SLOT. SPORE-1.0 is the last-resort failsafe (pause / preserve / wait / physical-wipe-only) — not a replacement for cold shelves.
 
-MCP is a **thin FragGate door**: pipeline \`fraggate_list\` → \`fraggate_describe\` → \`fraggate_call\`, plus \`runtime_skill\`, \`fraggate_verify\`, \`decisiongate_check\`, \`library_lookup\`, suite \`mesh_*\`, and catalog helpers \`runtime_software\` (\`GET /v1/software\`) / \`runtime_bundle\` / \`runtime_pull\`. Advanced/internal: \`runtime_run\`, \`runtime_manifest\`, \`runtime_session_*\`. Flat \`{slug}_{op}\` names are **not** listed. Prefer FragGate, \`GET /v1/software\`, and \`POST /mcp\`. Public, no OAuth.
+MCP \`tools/list\` is **36 live tools**. First call: \`@aziel-runtime\` → \`fraggate_list\` → \`fraggate_describe\` → \`fraggate_call\` (foldlock/fold-preview, or \`decisiongate_check\` with \`dry_run=true\`). ChainLock and memory are append-only. \`runtime_run\`, \`runtime_manifest\`, and \`runtime_session_*\` are advanced/internal. Prefer FragGate, \`GET /v1/software\`, and \`POST /mcp\`. Public, no OAuth.
 `;
 }
 

@@ -21,23 +21,25 @@ curl -sS -H 'User-Agent: Mozilla/5.0' \
   https://aziel-runtime.vibelock.workers.dev/v1/software | head
 ```
 
-## 2. MCP (stdio, no author account)
+## 2. MCP
 
-From a clone of this repository:
+Install order:
+
+1. One-click Install Server on [Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime) (Glama release 2.0.7; Worker package 2.0.0-rc1).
+2. Remote `POST https://aziel-runtime.vibelock.workers.dev/mcp` (`tools/list` / `tools/call`).
+3. Local stdio last, from a clone:
 
 ```bash
 npm run mcp
 ```
 
-That starts `cli/mcp-stdio.mjs`. Point any MCP client (Cursor, Claude, ChatGPT MCP, Copilot, …) at that command. Tools stay the thin FragGate door:
+That starts `cli/mcp-stdio.mjs`. `tools/list` is 36 live tools. First call:
 
 1. `fraggate_list`
 2. `fraggate_describe` one slug
-3. `fraggate_call` `{ "slug": "…", "op": "…", "payload": { } }`
+3. `fraggate_call` `{ "slug": "foldlock", "op": "fold-preview", "payload": { "text": "hello" } }`
 
-Do not call flat `{slug}_{op}` names. Unknown tools refuse. HTTP `POST /p/{slug}/{op}` is a **proxy**, not exec.
-
-Remote MCP over HTTP: `POST {origin}/mcp` with JSON-RPC `tools/list` / `tools/call`.
+or `decisiongate_check` with `dry_run=true`. Unknown tools refuse. HTTP `POST /p/{slug}/{op}` is a proxy.
 
 See `mcp-client.mjs` for a copy-paste caller.
 

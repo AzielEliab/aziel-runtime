@@ -5,6 +5,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { PUBLIC_MCP_TOOLS } from "./fraggate/codes.js";
 import { socialStatusField } from "./social-status.js";
 import { CROSS_NETWORK_SURVIVAL, survivalHint } from "./cross-network-survival.js";
 import {
@@ -54,6 +55,48 @@ export const RUNTIME_GITHUB = "https://github.com/AzielEliab/aziel-runtime";
 /** Primary public host / discovery / install. Worker stays the HTTP/OpenAPI/MCP execution origin. */
 export const RUNTIME_GLAMA = "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime";
 export const RUNTIME_GLAMA_AT = "https://glama.ai/mcp/servers/@AzielEliab/aziel-runtime";
+/** Glama's Install Server release number. Distinct from the Worker package version. */
+export const GLAMA_INSTALL_RELEASE = "2.0.7";
+export const GLAMA_REMOTE_MCP = "https://aziel-runtime.vibelock.workers.dev/mcp";
+
+/**
+ * Machine cite for Install / Try on Glama.
+ * `glama_release` is Glama's listing release. `worker_version` is this package.
+ */
+export function glamaInstallCite(workerVersion = "2.0.0-rc1") {
+  return {
+    label: "Install Server / Try on Glama",
+    try_label: "Try on Glama",
+    listing: RUNTIME_GLAMA,
+    listing_alias: RUNTIME_GLAMA_AT,
+    install_server: true,
+    auto_release: true,
+    glama_release: GLAMA_INSTALL_RELEASE,
+    worker_version: workerVersion,
+    order: ["glama-install-server", "remote-post-mcp", "local-stdio"],
+    remote_mcp: GLAMA_REMOTE_MCP,
+    first_call: "@aziel-runtime → fraggate_list → fraggate_describe → fraggate_call",
+    first_call_examples: [
+      "fraggate_call { slug: foldlock, op: fold-preview }",
+      "decisiongate_check with dry_run=true",
+    ],
+    tools_list_count: PUBLIC_MCP_TOOLS.length,
+  };
+}
+
+export function glamaInstallLlmsLines(workerVersion = "2.0.0-rc1") {
+  const g = glamaInstallCite(workerVersion);
+  return [
+    "## Glama install",
+    "",
+    `Install / Try on Glama: ${g.listing}`,
+    `Glama Install Server release ${g.glama_release} (Install Server ON, Auto-Release ON). Worker / server package ${g.worker_version}.`,
+    `Order: (1) one-click Install Server on Glama (2) remote POST ${g.remote_mcp} (3) local stdio.`,
+    `First call: ${g.first_call} — foldlock/fold-preview, or decisiongate_check with dry_run=true.`,
+    `MCP tools/list count: ${g.tools_list_count}.`,
+    "",
+  ];
+}
 
 export const RUNTIME_PAGE_TITLE =
   "Aziel Runtime — node-meshed MCP Softwares suite";
@@ -129,6 +172,10 @@ export function llmsWhatThisIsBlock(calling = null) {
     "1. Agents: fraggate_list → fraggate_describe → fraggate_call (POST /mcp or POST /v1/fraggate/call).",
     "2. Hubs: GET /v1/software (mirror GET /v1/fraggate/software) on each Softwares-tab refresh.",
     "3. Humans: Worker UI + counted /download — dual-surface. POST /p/{slug}/{op} is proxy. Exec is FragGate.",
+    `Install / Try on Glama: ${RUNTIME_GLAMA}`,
+    `Remote MCP: POST ${GLAMA_REMOTE_MCP}`,
+    "First call: fraggate_list → fraggate_describe → fraggate_call (foldlock/fold-preview, or decisiongate_check with dry_run=true).",
+    `MCP tools/list count: ${PUBLIC_MCP_TOOLS.length}.`,
     "",
     "FragGate is THE single public executable door (list → describe → call).",
     "Softwares = Plain → Gate → Lock catalog products with true in-process engines where live.",

@@ -4,15 +4,25 @@ Public identity: **Aziel Eliab** only.
 
 **[Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime)** is the primary public host / discovery / install listing for aziel-runtime (also `https://glama.ai/mcp/servers/@AzielEliab/aziel-runtime`). Worker origin stays the HTTP / OpenAPI / MCP execution surface.
 
-Glama is one of the compatible AI clients (ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants). See the README **Compatible AI clients** section. This page is the practical Install Server / stdio path.
+**Glama release 2.0.7** is Glama's Install Server release (Deploy Success, Install Server ON, Auto-Release ON). **Worker / server package stays 2.0.0-rc1** (`package.json`, `glama.json` `version`, MCP `serverInfo.version`). Those are different numbers.
 
-[glama.ai/mcp/servers/AzielEliab/aziel-runtime](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime) indexes this repo. Glama hosting runs a **stdio** MCP process (stdin/stdout JSON-RPC). The Worker already speaks MCP over HTTP at `POST https://aziel-runtime.vibelock.workers.dev/mcp`. Without a stdio entrypoint, `glama.json`, and a Dockerfile, the listing shows **This server cannot be installed**.
+Glama is one of the compatible AI clients (ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants). See the README **Compatible AI clients** section.
+
+## Install order
+
+1. **Install Server (live)** — one-click Install Server / Deploy on [Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime).
+2. **Remote MCP** — `POST https://aziel-runtime.vibelock.workers.dev/mcp` (`initialize`, `tools/list`, `tools/call`). User-Agent `Mozilla/5.0`. Public, no OAuth.
+3. **Local stdio (last)** — `node cli/mcp-stdio.mjs` / `npm run mcp` / Docker. The CLI bridges to the Worker `/mcp`.
+
+**First call:** `@aziel-runtime` → `fraggate_list` → `fraggate_describe` → `fraggate_call`. Example: `{ "slug": "foldlock", "op": "fold-preview", "payload": { "text": "the cat and the dog" } }`, or `decisiongate_check` with `dry_run=true`. Show `display.title` and `display.summary`, then take the next input.
+
+`tools/list` is **36 live MCP tools**. Start on the FragGate door. ChainLock and memory are append-only. `runtime_run`, `runtime_manifest`, and `runtime_session_*` are advanced/internal.
 
 This repo ships:
 
 | File | Role |
 |------|------|
-| [`glama.json`](../glama.json) | Claim file. Schema requires `maintainers` (GitHub username `AzielEliab`). Listing `name`, `version` (`2.0.0-rc1`), `description` (MCP Softwares suite — FragGate door, receipts, mesh; `1.6.2` is superseded heritage; current server `2.0.0-rc1`), `keywords` (includes mcp / openapi / fraggate), and `categories` are additional properties. |
+| [`glama.json`](../glama.json) | Claim file. Schema requires `maintainers` (GitHub username `AzielEliab`). `version` stays the Worker truth `2.0.0-rc1` (Glama Install Server release 2.0.7 is named in `description`, not as `version`). Description: MCP Softwares suite — FragGate door, receipts, mesh; `1.6.2` is superseded heritage. Keywords include mcp, openapi, fraggate, softwares, decisiongate, receipts. |
 | [`cli/mcp-stdio.mjs`](../cli/mcp-stdio.mjs) | Stdio MCP server. Default **bridges** to the hosted Worker `/mcp`. |
 | [`Dockerfile`](../Dockerfile) | Local / “from Dockerfile” image. Glama admin often **generates** its own image from CMD args — still ship this file. |
 | [`src/mcp-stdio.js`](../src/mcp-stdio.js) | Framing + bridge / in-process dispatch. |
@@ -20,7 +30,7 @@ This repo ships:
 
 ## Why stdio
 
-Glama wraps the process with `mcp-proxy` and talks MCP on stdin/stdout (newline-delimited JSON-RPC, same as `@modelcontextprotocol/sdk` `StdioServerTransport`). HTTP `POST /mcp` stays the Worker API; this CLI forwards `initialize`, `tools/list`, `tools/call`, `ping`, and notifications so the tool list is not duplicated. `tools/list` is the thin FragGate door (pipeline list → describe → call, plus named live modules including suite `mesh_*`) — not the flat `{slug}_{op}` pile.
+Glama wraps the process with `mcp-proxy` and talks MCP on stdin/stdout (newline-delimited JSON-RPC, same as `@modelcontextprotocol/sdk` `StdioServerTransport`). HTTP `POST /mcp` stays the Worker API; this CLI forwards `initialize`, `tools/list`, `tools/call`, `ping`, and notifications so the tool list is not duplicated. `tools/list` is 36 live MCP tools. First call is `fraggate_list` → `fraggate_describe` → `fraggate_call`.
 
 ## Run locally
 
@@ -87,11 +97,11 @@ docker run --rm -i \
   aziel-runtime-mcp
 ```
 
-## Glama admin — claim, Deploy, Make Release
+## Glama admin — re-claim
 
-After this lands on `main`:
+Install Server and Auto-Release are already ON (Glama release 2.0.7). After a `glama.json` change lands on `main`:
 
-1. Open [Score / claim](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime/score) and claim with `glama.json` maintainers (`AzielEliab`). Re-run claim after any `glama.json` change so Glama re-reads the file.
+1. Open [Score / claim](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime/score) and claim again with `glama.json` maintainers (`AzielEliab`) so Schema and keywords refresh. Git cannot click that button.
 2. Open [admin Dockerfile](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime/admin/dockerfile). Glama generates a container (it does not have to use this repo’s `Dockerfile`). Fill:
    - **Build steps:** `["npm install --omit=dev"]` (or `npm ci --omit=dev` if a lockfile exists)
    - **CMD arguments:** `["node", "cli/mcp-stdio.mjs"]` — this repo’s Dockerfile uses the same CMD. Glama may wrap the process with `mcp-proxy`; our Build Spec / Dockerfile CMD is `node cli/mcp-stdio.mjs` only (not an mcp-proxy wrapper).
@@ -119,10 +129,10 @@ After this lands on `main`:
 ```
 
    - Placeholder parameters: `{}` (the public Worker needs no credentials)
-3. **Deploy** — Glama builds the image and starts the stdio server (`initialize` / `tools/list` must succeed).
-4. **Make Release** from the passing test (version + changelog). A Glama release is what turns **Install Server** on. It is not a GitHub release.
+3. **Deploy** — already succeeded. A later image rebuild still needs `initialize` / `tools/list` (36 tools) to succeed.
+4. **Make Release** — already produced Glama release 2.0.7. A Glama release is the listing release. It is not the Worker package version and not a GitHub release.
 
-No Wrangler deploy is required for the listing. HTTP `/mcp` on the Worker is unchanged.
+No Wrangler deploy is required for the listing. HTTP `/mcp` on the Worker is unchanged. The Connector admin UI (claim, Dockerfile, Deploy, Make Release) stays on Glama. This repo ships the claim file and the stdio bridge.
 
 ## Author
 

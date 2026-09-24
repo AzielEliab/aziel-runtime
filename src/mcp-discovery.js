@@ -18,6 +18,7 @@ import {
   RUNTIME_GITHUB,
   RUNTIME_GLAMA,
   RUNTIME_HUB_URL,
+  glamaInstallCite,
 } from "./seo.js";
 import { MCP_PROTOCOL_PREFERRED, MCP_PROTOCOL_SUPPORTED } from "./mcp-transport.js";
 import { resolveCallingName } from "./calling-name.js";
@@ -135,7 +136,7 @@ export function mcpServerCard(origin, env = {}) {
       door: "fraggate",
       pipeline: PUBLIC_DOOR_TOOLS.slice(),
       summary:
-        "Thin FragGate door matching public POST /mcp tools/list. Pipeline: runtime_skill / fraggate_list → fraggate_describe → fraggate_call. Flat {slug}_{op} names are not listed.",
+        "36 live MCP tools on POST /mcp tools/list. First call: fraggate_list → fraggate_describe → fraggate_call. ChainLock and memory are append-only.",
       names: PUBLIC_MCP_TOOLS.slice(),
       count: PUBLIC_MCP_TOOLS.length,
       pointer: PUBLIC_MCP_POINTER,
@@ -153,7 +154,9 @@ export function mcpServerCard(origin, env = {}) {
       skill: `${base}/v1/skill`,
       software: `${base}/v1/software`,
       install: RUNTIME_GLAMA,
+      try: RUNTIME_GLAMA,
     },
+    install: glamaInstallCite(RUNTIME_VERSION),
   };
 }
 
@@ -179,6 +182,8 @@ export function oauthProtectedResource(origin, env = {}) {
       llms: `${base}/llms.txt`,
       survival: `${base}/survival`,
       server_card: `${base}/.well-known/mcp/server-card.json`,
+      install: RUNTIME_GLAMA,
+      try: RUNTIME_GLAMA,
     },
   };
 }
