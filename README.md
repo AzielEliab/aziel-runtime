@@ -2,6 +2,14 @@
 
 **Aziel Runtime** (`aziel-runtime`) is a node-meshed orchestration suite of MCP-connected software designed to route catalog Softwares through the FragGate door, mint receipts, and coordinate mesh presence. Use it to list, describe, and call product operations over MCP or OpenAPI, then keep the returned receipt. It exists so each Softwares product stays a separate engine behind one door.
 
+## Start
+
+1. `node cli/aziel-runtime.mjs`
+2. `node cli/aziel-runtime.mjs session open --local`
+3. `node cli/aziel-runtime.mjs session status --local`
+
+The terminal prints a short summary. Add `--json` for the machine object. Help: `node cli/aziel-runtime.mjs --help`. The same three steps are in [`RUN.txt`](RUN.txt).
+
 Softwares purpose copy (`one_line` + `description`) is the designed-to-do addendum on `GET /v1/software` (`src/software-copy.js`). Hubs refresh from that route.
 
 FragGate is THE single public executable door (`fraggate_list` → `fraggate_describe` → `fraggate_call`). Softwares catalog is Plain → Gate → Lock; hubs refresh from `GET /v1/software`. Dual-surface: agents via OpenAPI/MCP; humans via Worker UI + counted `/download`. NodeMesh / QNM read-only suite-presence is ON by default; `GET /v1/mesh` never enables radios beyond that.
@@ -176,7 +184,7 @@ curl -s -A 'Mozilla/5.0' -X POST https://aziel-runtime.vibelock.workers.dev/v1/s
 
 A local exec receipt includes `engine_digest`, `engine_slug`, `engine_op`, `ran_in: "aziel-runtime"`, result digests, and latency — not only an upstream HTTP status. `close` seals the chain; further exec is HTTP 409. Sessions expire after 6h (410/auto-close). Receipt cap is 64. Session mutate may require `Authorization: Bearer …` or `X-Aziel-Runtime-Token` when `RUNTIME_TOKEN` is set.
 
-Local CLI (Worker client by default; `--local` writes a session file and prefers vendored engines; `--jail` runs the engine in a child Node process):
+Local CLI (Worker client by default; `--local` writes a session file and prefers vendored engines; `--jail` runs the engine in a child Node process). The terminal prints a short summary. Add `--json` for the machine object:
 
 ```bash
 node cli/aziel-runtime.mjs session open --local

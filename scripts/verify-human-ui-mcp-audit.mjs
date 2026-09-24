@@ -356,6 +356,11 @@ assert.equal(getMcp.durability.production_binds.CHAINLOCK.class_name, "ChainWrit
 const suitePack = await (await get("/download")).json();
 assert.equal(suitePack.ok, true);
 assert.equal(suitePack.spec, "AZRT-SUITE-PACK-1.0");
+assert.match(suitePack.readme, /Aziel Eliab/);
+assert.match(suitePack.readme, /session open --local/);
+assert.equal(suitePack.quickstart.length, 3);
+assert.match(suitePack.quickstart[2], /session open --local/);
+assert.doesNotMatch(suitePack.readme.slice(0, 240), /what this is not/i);
 assert.equal(suitePack.labels.software_catalog, "REAL");
 assert.equal(suitePack.labels.worker_wasm_bundle, "SLOT");
 assert.equal(suitePack.labels.wireguard_openvpn_l3, "SLOT");

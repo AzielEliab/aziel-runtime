@@ -41,35 +41,58 @@ const UA = "Mozilla/5.0";
 const HOME = process.env.AZIEL_RUNTIME_HOME || join(homedir(), ".aziel-runtime");
 
 function usage() {
-  return `aziel-runtime ${RUNTIME_VERSION} — session client (Aziel Eliab)
+  return `aziel-runtime ${RUNTIME_VERSION} — open a session, run one catalog operation, keep the receipt
+
+Author: Aziel Eliab
 
 Usage:
-  aziel-runtime session open [--local] [--url URL] [--token TOKEN]
-  aziel-runtime session policy [--id ID] [--allow-slugs a,b] [--allow-ops x,y] [--max-payload N]
+  aziel-runtime session open [--local]
+  aziel-runtime session status [--local]
+  aziel-runtime session policy [--allow-slugs a,b] [--allow-ops x,y] [--max-payload N]
   aziel-runtime session exec <slug> <op> [payload-json]
-  aziel-runtime session receipt [--id ID] [--all]
+  aziel-runtime session receipt
   aziel-runtime session receipts
   aziel-runtime session close
-  aziel-runtime session status
 
-Default: Worker session at ${DEFAULT_URL}
---local: filesystem session under ${HOME}; prefers vendored engines (in-process)
---jail: run the local engine in a child Node process (ran_in=local-jail)
-1.7.0 locks MASTER-33 (FragGate single door; Lamb Lens after FragGate; RoseClock forward-only).
-1.6.15 locked the suite hop order (SUITE-PIPE-1.6.15; LambGate is not a hop).
-1.6.14 adds 4DMap (4DM-WP-1.0) as a Research-domain inspection frame.
-1.6.12 adds GET /v1/software (hub catalog) and GET /v1/update/check (install.sh / local UI / mobile).
-1.7.9 cross-maps AZCoherence (peers azclce / AZInterface / AKM-TRIAD fabric neighbor; domain stays null).
-1.7.8 lands EmbryoLock as a true in-process engine (live-with-local-destructive-boundary; wipe/unlock stay local-only).
-1.7.7 lands AZCoherence (AZC-0.1) as a true in-process FragGate Softwares engine.
-1.6.11 adds a durable FragGate UI-op alias map.
-1.6.10 sets AZBrowser and AZNet catalog one_line to separate software (not engine).
-1.6.9 frames AZHub and AZInterface as sibling softwares under the same FragGate door.
-1.6.8 adds AZHub and AZInterface as two separate softwares under the same FragGate door (AIH-WP-1.0).
-1.6.7 adds AZNet (AZN-WP-0.1) as a FragGate-live engine (silent verification side-net; never hosts payloads; AZBrowser pair is functional order only).
-1.6.6 adds AZBrowser (AZB-1.0) as a FragGate-live engine (Lamb Lens ethical research browser). AZNet is separate software (same FragGate door; order/token pairing only).
-1.6.5 adds AZMail (APP 1.0) as a FragGate-live engine (mesh default off). 1.6.4 adds PeaceLock (PL-WP-0.1). 1.6.3 adds GET /v1/uses (KV API use trackers). 1.6.2 widens the public door to sensible advisory engines; stubs still refuse. 1.6.0 is the FragGate door cut (discover, route, refuse) on 1.4.1 production gates. Binding-only ops stay per-op proxy_fallback. No counted runtime tarball.
-Proxy /p/{slug}/{op} is not exec. Hosted AZAI is not the local blend.
+Start:
+  aziel-runtime session open --local
+  aziel-runtime session status --local
+
+Flags:
+  --local            Session file under ${HOME}; vendored engines in-process
+  --json             Print the machine object
+  --url <url>        Worker origin (default ${DEFAULT_URL})
+  --id <id>          Session id (default: the current session)
+  -h, --help         Show this help
+  --version          Print the version
+
+More:
+  aziel-runtime session --help
+`;
+}
+
+function sessionUsage() {
+  return `aziel-runtime session — commands
+
+  open [--local] [--url <url>] [--token <token>]
+  status [--local] [--id <id>]
+  policy [--allow-slugs a,b] [--allow-ops x,y] [--max-payload N]
+  exec <slug> <op> [payload-json]
+  receipt [--id <id>] [--all]
+  receipts
+  close
+
+Flags:
+  --local            Session file under ${HOME}; vendored engines in-process
+  --json             Print the machine object
+  --jail             Run the local engine in a child Node process (ran_in=local-jail)
+  --remote           Talk to the Worker
+  --token <token>    Sent as X-Aziel-Runtime-Token
+  --payload <json>   Exec payload, instead of the positional JSON
+  --all              With receipt, print the chain (same as receipts)
+  --url <url>        Worker origin (default ${DEFAULT_URL})
+
+Version history is in CHANGELOG.md.
 `;
 }
 
@@ -81,7 +104,9 @@ function parseArgs(argv) {
     else if (a === "--jail") out.flags.jail = true;
     else if (a === "--remote") out.flags.local = false;
     else if (a === "--all") out.flags.all = true;
+    else if (a === "--json") out.flags.json = true;
     else if (a === "--help" || a === "-h") out.flags.help = true;
+    else if (a === "--version" || a === "-V") out.flags.version = true;
     else if (a === "--url") out.flags.url = argv[++i];
     else if (a === "--token") out.flags.token = argv[++i];
     else if (a === "--id") out.flags.id = argv[++i];
@@ -168,6 +193,232 @@ async function remote(url, path, init = {}, flags = {}) {
 
 function print(obj) {
   process.stdout.write(JSON.stringify(obj, null, 2) + "\n");
+}
+
+function field(label, value) {
+  const shown = value == null || value === "" ? "—" : String(value);
+  return `  ${String(label).padEnd(12)}${shown}`;
+}
+
+function modePhrase(mode) {
+  if (mode === "local") return "on this machine";
+  if (mode === "worker") return "on the Worker";
+  return mode ? String(mode) : "";
+}
+
+function allowPhrase(list) {
+  if (!Array.isArray(list) || list.length === 0) return "none";
+  if (list.length === 1 && list[0] === "*") return "all";
+  return list.join(", ");
+}
+
+function chainPhrase(verified) {
+  if (!verified || typeof verified !== "object") return "";
+  return verified.ok ? "verified" : "check failed";
+}
+
+function nextCommand(command, flags, session) {
+  const local = flags && flags.local ? " --local" : "";
+  if (command === "status" && session && session.closed) return "aziel-runtime session open --local";
+  const map = {
+    open: `aziel-runtime session status${local}`,
+    status: `aziel-runtime session exec <slug> <op>${local}`,
+    policy: `aziel-runtime session exec <slug> <op>${local}`,
+    exec: `aziel-runtime session receipt${local}`,
+    receipt: `aziel-runtime session close${local}`,
+    receipts: `aziel-runtime session close${local}`,
+    close: "aziel-runtime session open --local",
+  };
+  return map[command] || "aziel-runtime --help";
+}
+
+function formatHuman(command, result, flags) {
+  const where = modePhrase(result && result.mode);
+  const session = (result && result.session) || {};
+  const lines = [];
+  const place = where ? ` ${where}` : "";
+  if (command === "open") {
+    lines.push(`Opened a session${place}.`);
+    lines.push(field("id", session.id));
+    lines.push(field("receipts", session.receipt_count));
+    if (result.mode === "local") lines.push(field("saved", HOME));
+  } else if (command === "status") {
+    lines.push(`Session ${session.id || ""}${place}.`.replace(" .", "."));
+    lines.push(field("opened", session.opened_at));
+    lines.push(field("closed", session.closed ? "yes" : "no"));
+    lines.push(field("receipts", `${session.receipt_count} of ${session.receipt_cap}`));
+    lines.push(field("execs", session.exec_count));
+  } else if (command === "policy") {
+    const policy = session.policy || {};
+    lines.push(`Saved the session policy${place}.`);
+    lines.push(field("slugs", allowPhrase(policy.allow_slugs)));
+    lines.push(field("ops", allowPhrase(policy.allow_ops)));
+    lines.push(field("max bytes", policy.max_payload_bytes));
+  } else if (command === "exec") {
+    const ex = result.exec || {};
+    lines.push(`Ran ${ex.slug || ""} ${ex.op || ""}${place}.`.replace("  ", " ").trim());
+    lines.push(field("status", ex.status));
+    lines.push(field("ran in", ex.ran_in || ex.mode || ""));
+    if (ex.engine_digest) lines.push(field("digest", ex.engine_digest));
+    if (ex.error) lines.push(field("error", ex.error));
+    if (result.receipt && result.receipt.hash) lines.push(field("receipt", result.receipt.hash));
+  } else if (command === "receipt") {
+    const rec = result.receipt;
+    lines.push(rec ? `Latest receipt${place}.` : `No receipt on this session${place}.`);
+    if (rec) {
+      lines.push(field("event", rec.event));
+      lines.push(field("seq", rec.seq));
+      lines.push(field("hash", rec.hash));
+    }
+    const chain = chainPhrase(result.verified);
+    if (chain) lines.push(field("chain", chain));
+  } else if (command === "receipts") {
+    const n = Array.isArray(result.receipts) ? result.receipts.length : session.receipt_count;
+    lines.push(`Receipt chain${place}.`);
+    lines.push(field("count", n));
+    const chain = chainPhrase(result.verified);
+    if (chain) lines.push(field("chain", chain));
+  } else if (command === "close") {
+    lines.push(`Sealed the session${place}.`);
+    lines.push(field("id", session.id));
+    lines.push(field("receipts", session.receipt_count));
+    const chain = chainPhrase(result.verified);
+    if (chain) lines.push(field("chain", chain));
+  } else {
+    lines.push(`Done${place}.`);
+  }
+  lines.push("");
+  lines.push(`Next: ${nextCommand(command, flags, session)}`);
+  return lines.join("\n") + "\n";
+}
+
+function dotted(text) {
+  const reason = String(text || "The command failed").replace(/\s+/g, " ").trim();
+  return /[.!?]$/.test(reason) ? reason : `${reason}.`;
+}
+
+async function localSessionId(flags) {
+  if (flags && flags.local) return "";
+  try {
+    const id = (flags && flags.id) || (await readCurrent());
+    if (id && SESSION_ID_RE.test(id)) {
+      await loadLocal(id);
+      return id;
+    }
+  } catch {
+    /* no local file */
+  }
+  return "";
+}
+
+async function humanError(err, flags) {
+  const body = err && err.body && typeof err.body === "object" ? err.body : {};
+  const code = (err && err.code) || body.code || "";
+  const message = (err && err.message) || body.error || body.message || "The command failed";
+  const openLocal = "aziel-runtime session open --local";
+  const localId = await localSessionId(flags);
+  if (code === "ENOENT" || /ENOENT/.test(message)) {
+    return `No saved session file.\nNext: ${openLocal}\n`;
+  }
+  if (/no session id/i.test(message)) {
+    return `No session yet.\nNext: ${openLocal}\n`;
+  }
+  if (code === "session_not_found" || message === "session not found") {
+    if (localId) {
+      return `Session not found on the Worker.\nA local session file exists for ${localId}.\nNext: aziel-runtime session status --local\n`;
+    }
+    return `Session not found.\nNext: ${openLocal}\n`;
+  }
+  if (code === "session_closed" || /sealed/i.test(message)) {
+    return `This session is sealed.\nNext: ${openLocal}\n`;
+  }
+  if (code === "session_expired" || /exceeded 6h/.test(message)) {
+    return `This session has expired (6h).\nNext: ${openLocal}\n`;
+  }
+  const origin = body.origin || (flags && flags.url) || DEFAULT_URL;
+  const localNext = localId ? `aziel-runtime session status --local` : openLocal;
+  if (code === "FG-DNS" || body.code === "FG-DNS") {
+    const where = localId ? `\nA local session file exists for ${localId}.` : "";
+    return `Could not resolve the Worker (FG-DNS). The call did not run.${where}\nNext: check DNS for ${origin}\n      or ${localNext}\n`;
+  }
+  if (code === "FG-NET" || body.code === "FG-NET") {
+    const where = localId ? `\nA local session file exists for ${localId}.` : "";
+    return `Could not reach the Worker (FG-NET). The call did not run.${where}\nNext: check the connection to ${origin}\n      or ${localNext}\n`;
+  }
+  if (err instanceof SyntaxError) {
+    return `That payload is not JSON.\nNext: pass one JSON object, for example '{"text":"hello"}'\n`;
+  }
+  if (code === "unknown_slug") {
+    return `${dotted(message)}\nNext: aziel-runtime session exec <slug> <op> --local\n`;
+  }
+  if (code === "slug_not_allowed" || code === "op_not_allowed") {
+    return `${dotted(message)}\nNext: aziel-runtime session policy --allow-slugs <slug> --local\n`;
+  }
+  return `${dotted(message)}\nNext: aziel-runtime --help\n`;
+}
+
+function emit(flags, command, result) {
+  if (flags && flags.json) print(result);
+  else process.stdout.write(formatHuman(command, result, flags));
+}
+
+async function fail(flags, err) {
+  if (flags && flags.json) {
+    if (err && err.body && err.body.fraggate_receipt === false) print(err.body);
+    else print({ ok: false, error: err && err.message ? err.message : String(err), status: (err && err.status) || 1, body: (err && err.body) || null });
+  } else {
+    process.stderr.write(await humanError(err, flags));
+  }
+  process.exit(1);
+}
+
+function failText(flags, text, jsonError) {
+  if (flags && flags.json) {
+    print({ ok: false, error: jsonError || text, status: 1, body: null });
+  } else {
+    process.stderr.write(text.endsWith("\n") ? text : `${text}\n`);
+  }
+  process.exit(1);
+}
+
+async function welcomeText() {
+  const lines = [
+    `aziel-runtime ${RUNTIME_VERSION}`,
+    "",
+    "Open a session, run one catalog operation, and keep the receipt.",
+    "Author: Aziel Eliab.",
+    "",
+  ];
+  let id = "";
+  try {
+    id = await readCurrent();
+  } catch {
+    id = "";
+  }
+  if (id && SESSION_ID_RE.test(id)) {
+    try {
+      const session = publicSession(await loadLocal(id));
+      lines.push(`Current session on this machine: ${session.id}`);
+      lines.push(field("receipts", session.receipt_count));
+      lines.push(field("closed", session.closed ? "yes" : "no"));
+      lines.push("");
+      lines.push(session.closed ? "Next: aziel-runtime session open --local" : "Next: aziel-runtime session status --local");
+      return `${lines.join("\n")}\n`;
+    } catch {
+      lines.push(`A session id is saved (${id}) and there is no local session file.`);
+      lines.push("");
+      lines.push("Next: aziel-runtime session status");
+      lines.push("      aziel-runtime session open --local");
+      return `${lines.join("\n")}\n`;
+    }
+  }
+  lines.push("Next:");
+  lines.push("  aziel-runtime session open --local");
+  lines.push("");
+  lines.push("Then:");
+  lines.push("  aziel-runtime session status --local");
+  lines.push("  aziel-runtime --help");
+  return `${lines.join("\n")}\n`;
 }
 
 function csv(s) {
@@ -408,34 +659,55 @@ async function cmdStatus(flags) {
 async function main() {
   const argv = process.argv.slice(2);
   const parsed = parseArgs(argv);
-  if (parsed.flags.help || parsed._.length === 0) {
-    process.stdout.write(usage());
-    process.exit(parsed.flags.help || parsed._.length === 0 ? 0 : 1);
-  }
   const [cmd, sub, ...rest] = parsed._;
+  const sessionHelp = cmd === "session" && (parsed.flags.help || sub === "help");
+  if (parsed.flags.help || cmd === "help" || sessionHelp) {
+    process.stdout.write(sessionHelp ? sessionUsage() : usage());
+    process.exit(0);
+  }
+  if (parsed.flags.version) {
+    process.stdout.write(`aziel-runtime ${RUNTIME_VERSION}\n`);
+    process.exit(0);
+  }
+  if (parsed._.length === 0) {
+    process.stdout.write(await welcomeText());
+    process.exit(0);
+  }
   if (cmd !== "session") {
-    process.stderr.write(usage());
-    process.exit(1);
+    failText(parsed.flags, `Unknown command "${cmd}".\nNext: aziel-runtime --help\n`, `Unknown command "${cmd}"`);
+  }
+  if (!sub) {
+    failText(
+      parsed.flags,
+      "Session needs a command.\nNext: aziel-runtime session open --local\n      aziel-runtime session --help\n",
+      "Session needs a command",
+    );
   }
   try {
-    if (sub === "open") print(await cmdOpen(parsed.flags));
-    else if (sub === "policy") print(await cmdPolicy(parsed.flags));
-    else if (sub === "exec") print(await cmdExec(parsed.flags, rest[0], rest[1], rest[2]));
-    else if (sub === "receipt") print(await cmdReceipt(parsed.flags, false));
-    else if (sub === "receipts") print(await cmdReceipt(parsed.flags, true));
-    else if (sub === "close") print(await cmdClose(parsed.flags));
-    else if (sub === "status") print(await cmdStatus(parsed.flags));
+    if (sub === "open") emit(parsed.flags, "open", await cmdOpen(parsed.flags));
+    else if (sub === "policy") emit(parsed.flags, "policy", await cmdPolicy(parsed.flags));
+    else if (sub === "exec") {
+      if (!rest[0] || !rest[1]) {
+        failText(
+          parsed.flags,
+          "session exec needs a slug and an op.\nNext: aziel-runtime session exec foldlock fold-preview '{\"text\":\"hello\"}' --local\n",
+          "session exec needs a slug and an op",
+        );
+      }
+      emit(parsed.flags, "exec", await cmdExec(parsed.flags, rest[0], rest[1], rest[2]));
+    } else if (sub === "receipt") emit(parsed.flags, "receipt", await cmdReceipt(parsed.flags, false));
+    else if (sub === "receipts") emit(parsed.flags, "receipts", await cmdReceipt(parsed.flags, true));
+    else if (sub === "close") emit(parsed.flags, "close", await cmdClose(parsed.flags));
+    else if (sub === "status") emit(parsed.flags, "status", await cmdStatus(parsed.flags));
     else {
-      process.stderr.write(usage());
-      process.exit(1);
+      failText(
+        parsed.flags,
+        `Unknown session command "${sub}".\nNext: aziel-runtime session --help\n`,
+        `Unknown session command "${sub}"`,
+      );
     }
   } catch (err) {
-    if (err.body && err.body.fraggate_receipt === false) {
-      print(err.body);
-    } else {
-      print({ ok: false, error: err.message, status: err.status || 1, body: err.body || null });
-    }
-    process.exit(1);
+    await fail(parsed.flags, err);
   }
 }
 
