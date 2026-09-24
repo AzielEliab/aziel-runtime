@@ -2,8 +2,8 @@
  * Cap-7 update shuffle — ping MirageGrid until one .az duplication lands.
  *
  * Cap-7 is the auto-generate `.az` sites layer: duplication of the four
- * hub sites, shifting with StaticClock (operator shift name StaticLock;
- * catalog slug staticclock — not a new Softwares product) and MirageGrid
+ * hub sites, shifting with StaticLock (catalog product StaticClock, slug
+ * staticclock — not a second Softwares product) and MirageGrid
  * cloak, paired with AZVPN. Standard internet does not reach Cap-7.
  * Internet reaches the AZ domains through the four hub HTTPS links.
  * Exactly three of the seven factory names are false sites (cloak decoys).
@@ -23,7 +23,7 @@ import {
 export const CAP7_SHUFFLE = "CAP7-SHUFFLE-1.0";
 export const CAP7_SHUFFLE_PATH = "ping → land → that-round update";
 export const CAP7_SHUFFLE_HANDOFF =
-  "Name-set SoT is the MirageGrid factory (GET /v1/cap7 + /bridge): azgrid / azbooth / azcloak / azvault / azshift / azflag / azstandby. Four real duplications align with the four hub / AZ-domain pairs. Three names are false sites (azcloak, azshift, azstandby) — MirageGrid cloak decoys under the StaticClock shift. Standard internet does not reach Cap-7. Internet reaches AZ domains via hub HTTPS. Factory duplication, shuffle land, and hosted /mcp cite are LIVE. mesh_name *.az is the live auto-generate layer, not an ICANN ccTLD the public types as Cap-7. Download-tracker /bridge is 404. In-process land is fraggate_call miragegrid/shuffle. radio_phy false. FragGate remains the single door.";
+  "Name-set SoT is the MirageGrid factory (GET /v1/cap7 + /bridge): azgrid / azbooth / azcloak / azvault / azshift / azflag / azstandby. Four real duplications (azgrid, azcloak, azvault, azshift) align with the four hub / AZ-domain pairs. Three names are false sites (azbooth, azflag, azstandby) — MirageGrid cloak decoys under the StaticLock shift (catalog product StaticClock, slug staticclock). Standard internet does not reach Cap-7. Internet reaches AZ domains via hub HTTPS. Factory duplication, shuffle land, and hosted /mcp cite are LIVE. mesh_name *.az is the live auto-generate layer, not an ICANN ccTLD the public types as Cap-7. Download-tracker /bridge is 404. In-process land is fraggate_call miragegrid/shuffle. radio_phy false. FragGate remains the single door.";
 
 export const CAP7_SHUFFLE_REFUSE = Object.freeze({
   HARDCODE_HOST: "BAN-NO-HARDCODE-CAP7-HOST",
@@ -54,32 +54,36 @@ export const CAP7_SITES_HERITAGE = Object.freeze([
   "cap7-vault",
 ]);
 
-/** Four real Cap-7 duplications, one per hub / AZ domain. */
+/**
+ * Four real Cap-7 duplications, one per hub / AZ domain.
+ * Factory SoT (miragegrid cap7.js): azgrid→ae, azcloak→godlock, azvault→corpus, azshift→hdj.
+ * HDJ hub uses HEDIDNTJUMP_ORIGIN because seo.js locks https://www.hedidntjump.com.
+ */
 export const CAP7_REAL_ALIGNMENT = Object.freeze({
   azgrid: Object.freeze({
     display_name: "AZ.AzielEliab.AZ",
     mirrors: "azieleliab.com",
     hub: `${AUTHOR_SITE_ORIGIN}/`,
   }),
+  azcloak: Object.freeze({
+    display_name: "AZ.Godlock.AZ",
+    mirrors: "godlock.uk",
+    hub: `${GODLOCK_UK_ORIGIN}/`,
+  }),
   azvault: Object.freeze({
     display_name: "AZ.AzielCorpusLibrary.AZ",
     mirrors: "azielcorpuslibrary.net",
     hub: `${LIBRARY_ORIGIN}/`,
   }),
-  azbooth: Object.freeze({
-    display_name: "AZ.Godlock.AZ",
-    mirrors: "godlock.uk",
-    hub: `${GODLOCK_UK_ORIGIN}/`,
-  }),
-  azflag: Object.freeze({
+  azshift: Object.freeze({
     display_name: "AZ.HeDidntJump.AZ",
     mirrors: "hedidntjump.com",
     hub: `${HEDIDNTJUMP_ORIGIN}/`,
   }),
 });
 
-/** Intentional mirage/cloak decoys. Not public doors. */
-export const CAP7_FALSE_SITE_IDS = Object.freeze(["azcloak", "azshift", "azstandby"]);
+/** Intentional mirage/cloak decoys. Factory SoT: exactly these three. Not public doors. */
+export const CAP7_FALSE_SITE_IDS = Object.freeze(["azbooth", "azflag", "azstandby"]);
 
 export const CAP7_SHIFT = Object.freeze({
   staticlock: "staticclock",
@@ -91,14 +95,14 @@ export const CAP7_SHIFT = Object.freeze({
   miragegrid_vpn_hop: false,
   radio_phy: false,
   note:
-    "Cap-7 .az duplications shift with StaticClock (operator shift name StaticLock; catalog slug staticclock, not a new product) and MirageGrid cloak, paired with AZVPN. MirageGrid vpn-hop stays refuse. radio_phy stays false.",
+    "Cap-7 .az duplications shift with StaticLock (catalog product StaticClock, slug staticclock, not a second Softwares product) and MirageGrid cloak, paired with AZVPN. MirageGrid vpn-hop stays refuse. radio_phy stays false.",
 });
 
 export const AZ_DOMAIN_POOL = Object.freeze([
   CAP7_REAL_ALIGNMENT.azgrid,
   CAP7_REAL_ALIGNMENT.azvault,
-  CAP7_REAL_ALIGNMENT.azbooth,
-  CAP7_REAL_ALIGNMENT.azflag,
+  CAP7_REAL_ALIGNMENT.azcloak,
+  CAP7_REAL_ALIGNMENT.azshift,
 ]);
 
 const AZ_DISPLAY_INDEX = 0;
@@ -149,13 +153,13 @@ export const CAP7_SITES = Object.freeze([
   ),
   factorySite(
     "azbooth",
-    "real-duplication",
-    "Factory label azbooth. Real duplication of godlock.uk / AZ.Godlock.AZ. Standard internet reaches that AZ domain via the hub HTTPS link, not this Cap-7 name.",
+    "false-site",
+    "Factory label azbooth. False site — MirageGrid cloak decoy. Not a public door. Not one of the four hub duplications.",
   ),
   factorySite(
     "azcloak",
-    "false-site",
-    "Factory label azcloak. False site — MirageGrid cloak decoy. Not a public door. Not one of the four hub duplications.",
+    "real-duplication",
+    "Factory label azcloak. Real duplication of godlock.uk / AZ.Godlock.AZ. Standard internet reaches that AZ domain via the hub HTTPS link, not this Cap-7 name.",
   ),
   factorySite(
     "azvault",
@@ -164,13 +168,13 @@ export const CAP7_SITES = Object.freeze([
   ),
   factorySite(
     "azshift",
-    "false-site",
-    "Factory label azshift. False site — shift decoy under StaticClock + MirageGrid cloak. Not a public door.",
+    "real-duplication",
+    "Factory label azshift. Real duplication of hedidntjump.com / AZ.HeDidntJump.AZ. Standard internet reaches that AZ domain via the hub HTTPS link, not this Cap-7 name. Hub origin follows seo.js (www).",
   ),
   factorySite(
     "azflag",
-    "real-duplication",
-    "Factory label azflag. Real duplication of hedidntjump.com / AZ.HeDidntJump.AZ. Standard internet reaches that AZ domain via the hub HTTPS link, not this Cap-7 name.",
+    "false-site",
+    "Factory label azflag. False site — MirageGrid cloak decoy. Not a public door. Not one of the four hub duplications.",
   ),
   factorySite(
     "azstandby",

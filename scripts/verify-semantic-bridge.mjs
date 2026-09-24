@@ -174,14 +174,26 @@ assert.equal(cite.shuffle.public_worker_shuffle, "live");
 assert.equal(cite.shuffle.hardcoded_single_host, false);
 assert.equal(cite.shuffle.site_count, 7);
 assert.equal(cite.shuffle.false_site_count, 3);
+assert.deepEqual(cite.shuffle.real_duplications, ["azgrid", "azcloak", "azvault", "azshift"]);
+assert.deepEqual(cite.shuffle.false_sites, ["azbooth", "azflag", "azstandby"]);
+assert.equal(cite.shuffle.shift.staticlock, "staticclock");
+assert.equal(cite.shuffle.shift.invented_software, false);
 assert.equal(cite.shuffle.distinct_mesh_names, true);
 assert.equal(cite.shuffle.name_set_sot, "miragegrid");
 assert.deepEqual(cite.shuffle.factory_labels, ["azgrid", "azbooth", "azcloak", "azvault", "azshift", "azflag", "azstandby"]);
 assert.equal(cite.shuffle.mesh_name_icann, "live");
 assert.equal(cite.shuffle.public_icann, false);
 assert.equal(cite.shuffle.internet_reachable, false);
-assert.equal(cite.shuffle.sites.filter((s) => s.false_site === true).length, 3);
-assert.equal(cite.shuffle.sites.filter((s) => s.false_site === false).length, 4);
+assert.deepEqual(
+  cite.shuffle.sites.filter((s) => s.false_site === false).map((s) => s.id),
+  ["azgrid", "azcloak", "azvault", "azshift"],
+);
+assert.deepEqual(
+  cite.shuffle.sites.filter((s) => s.false_site === true).map((s) => s.id),
+  ["azbooth", "azflag", "azstandby"],
+);
+assert.equal(cite.shuffle.sites.find((s) => s.id === "azshift").az_display_name, "AZ.HeDidntJump.AZ");
+assert.match(cite.shuffle.sites.find((s) => s.id === "azshift").aligns_to, /^https:\/\/www\.hedidntjump\.com\/$/);
 assert.ok(cite.shuffle.sites.every((s) => s.hosted_status === "live" && s.is_live_door === false && s.design_of === "hub_designs" && s.internet_reachable === false));
 assert.ok(cite.shuffle.sites.every((s) => s.id.startsWith("az") && s.mesh_name.endsWith(".az")));
 

@@ -3,7 +3,8 @@
  *
  * Standard internet does not reach Cap-7. It reaches the AZ domains
  * through the four hub HTTPS links. Cap-7 duplicates those four hubs
- * and shifts with StaticClock + MirageGrid cloak + AZVPN. Three of the
+ * and shifts with StaticLock (catalog product StaticClock, slug staticclock)
+ * + MirageGrid cloak + AZVPN. Three of the
  * seven factory names are false sites. Factory duplication cite is LIVE.
  * public_icann / resolves_to_hub are the AZ-domain hub path, not a
  * claim that Cap-7 is an ICANN ccTLD. radio_phy stays false.
@@ -58,7 +59,7 @@ export const CAP7_CANONICAL_HUBS_IMMUTABLE = true;
 export const CAP7_FIFTH_PRODUCT = false;
 
 export const SEMANTIC_BRIDGE_LIMITATION =
-  "THIS IS: Cap-7 auto-generates .az duplications of the four hub sites and shifts them with StaticClock (catalog slug staticclock) and MirageGrid cloak, paired with AZVPN. Factory is MirageGrid only. Four factory names are real duplications; three are false sites (cloak decoys). Standard internet does not reach Cap-7. Internet reaches the AZ domains through the four hub HTTPS links. Those AZ domains are public_icann and resolves_to_hub, shuffle once to one of four display names, stand alone, and freeze after the hubs go down. Live nodes anchor them. Factory duplication cite is LIVE. Names may change; canonical hubs are immutable while up. AI pulls metadata from MirageGrid Worker /bridge or GET /v1/mesh/az-generator. Mesh browse is AZNet + AZBrowser via FragGate. GET /v1/mesh never enables. radio_phy false. Author: Aziel Eliab only.";
+  "THIS IS: Cap-7 auto-generates .az duplications of the four hub sites and shifts them with StaticLock (catalog product StaticClock, slug staticclock) and MirageGrid cloak, paired with AZVPN. Factory is MirageGrid only. Four factory names are real duplications (azgrid, azcloak, azvault, azshift); three are false sites (azbooth, azflag, azstandby). Standard internet does not reach Cap-7. Internet reaches the AZ domains through the four hub HTTPS links. Those AZ domains are public_icann and resolves_to_hub, shuffle once to one of four display names, stand alone, and freeze after the hubs go down. Live nodes anchor them. Factory duplication cite is LIVE. Names may change; canonical hubs are immutable while up. AI pulls metadata from MirageGrid Worker /bridge or GET /v1/mesh/az-generator. Mesh browse is AZNet + AZBrowser via FragGate. GET /v1/mesh never enables. radio_phy false. Author: Aziel Eliab only.";
 
 export function miragegridBridgeUrl() {
   return `${MIRAGEGRID_WORKER_ORIGIN}${MIRAGEGRID_BRIDGE_PATH}`;
@@ -365,7 +366,7 @@ export function semanticBridgeLlmsBlock(origin) {
     "",
     `Factory: ${cite.factory} only. Cap-7 public_icann: false. Cap-7 resolves_to_hub: false. Cap-7 internet_reachable: false. design_of: ${cite.design_of}. inherit: ${cite.inherit}.`,
     `Standard internet does not reach Cap-7. Internet reaches AZ domains via the four hub HTTPS links. AZ public_icann: true. AZ resolves_to_hub: true. Shuffle once to 1 of 4. Live nodes anchor those names.`,
-    `False sites: 3 of 7 (cloak decoys). Real duplications: 4. Shift: StaticClock + MirageGrid cloak + AZVPN. Factory duplication cite: LIVE.`,
+    `False sites: azbooth, azflag, azstandby. Real duplications: azgrid, azcloak, azvault, azshift. Shift: StaticLock (catalog product StaticClock, slug staticclock) + MirageGrid cloak + AZVPN. Factory duplication cite: LIVE.`,
     `Live registrar: false. icann_tld_az: false. Fake ICANN .az: false. Visible 15:20: false. radio_phy: false.`,
     `GET /v1/mesh never enables radios. Growth-ON crawlers Allow.`,
     `Bridge cite: ${cite.paths.miragegrid_bridge}`,
@@ -385,7 +386,7 @@ export function semanticBridgeSkillMarkdown(origin) {
   const cite = semanticBridgeCiteField(origin);
   return `## Cap-7 semantic bridge (MirageGrid)
 
-Cap-7 is the MirageGrid auto-generate **.az duplication** layer. It duplicates the four hub sites and shifts with **StaticClock** (catalog slug \`staticclock\`) and **MirageGrid cloak**, paired with **AZVPN**. Names inherit hub **designs** only (\`docs/designs/\` plus mesh-resident **azcorpus** + **azlibrary** on the library hub). \`design_of: hub_designs\`. On the Cap-7 layer \`resolves_to_hub: false\` and \`internet_reachable: false\` — standard internet does not reach Cap-7. Four factory names are real duplications; three are false sites. \`name_may_change: true\`.
+Cap-7 is the MirageGrid auto-generate **.az duplication** layer. It duplicates the four hub sites and shifts with **StaticLock** (catalog product **StaticClock**, slug \`staticclock\`) and **MirageGrid cloak**, paired with **AZVPN**. Names inherit hub **designs** only (\`docs/designs/\` plus mesh-resident **azcorpus** + **azlibrary** on the library hub). \`design_of: hub_designs\`. On the Cap-7 layer \`resolves_to_hub: false\` and \`internet_reachable: false\` — standard internet does not reach Cap-7. Four factory names are real duplications (\`azgrid\`, \`azcloak\`, \`azvault\`, \`azshift\`); three are false sites (\`azbooth\`, \`azflag\`, \`azstandby\`). \`name_may_change: true\`.
 
 Internet reaches the **AZ domains** through the hub HTTPS links (${cite.icann_hosts.join(", ")}). Those drop-ins are \`public_icann: true\`, \`resolves_to_hub: true\`, shuffle once to one of four display names, stand alone, and become immutable after the hubs go down. Live nodes anchor them. Not an ICANN \`.az\` ccTLD purchase. Not a fifth product.
 

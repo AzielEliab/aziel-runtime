@@ -134,7 +134,7 @@ export function runtimeAboutField(origin) {
       softwares: "Plain → Gate → Lock catalog products with true in-process engines where live.",
       dual_surface: "Agents via OpenAPI/MCP; humans via Worker UI + counted /download.",
       semantic_bridge:
-        "Cap-7 is MirageGrid .az duplication + shift. Inherit hub designs only (azcorpus + azlibrary on the library hub). Standard internet does not reach Cap-7. AZ domains resolve via hub HTTPS (public_icann true, resolves_to_hub true). Three of seven are false sites. design_of hub_designs. Cap-7 resolves_to_hub false. GET /v1/mesh never enables.",
+        "Cap-7 is MirageGrid .az duplication + shift (StaticLock; catalog product StaticClock, slug staticclock). Inherit hub designs only (azcorpus + azlibrary on the library hub). Standard internet does not reach Cap-7. AZ domains resolve via hub HTTPS (public_icann true, resolves_to_hub true). Real duplications: azgrid, azcloak, azvault, azshift. False sites: azbooth, azflag, azstandby. design_of hub_designs. Cap-7 resolves_to_hub false. GET /v1/mesh never enables.",
       cold_multi_shelf:
         "COLD-MULTI-SHELF-1.0 cite of corpus#96 /shelves. Plane A = 5 published surfaces / 2 family radii / 1 independent live. Plane B SLOT (Codeberg + archive.org PASS still SLOT at https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius, pack b549362c…; Framagit URL null; doi null). Plane C USB SLOT. Runtime Worker is the same Plane A tunnel.",
       nodemesh:

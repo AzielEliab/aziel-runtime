@@ -55,7 +55,7 @@ export function miragegridSkill() {
 export function miragegridDoctor() {
   return capabilityDoctor({
     ...envelope(),
-    doctor_note: "MirageGrid doctor: assign / verify-receipt / nodes / bridge cite / shuffle land. vpn-hop stays refuse. Cap-7 is .az duplication + shift (StaticClock + cloak + AZVPN). Standard internet does not reach Cap-7. AZ domains resolve via hub HTTPS (public_icann true, resolves_to_hub true). Three of seven are false sites. Factory land is LIVE. radio_phy false.",
+    doctor_note: "MirageGrid doctor: assign / verify-receipt / nodes / bridge cite / shuffle land. vpn-hop stays refuse. Cap-7 is .az duplication + shift (StaticLock; catalog product StaticClock, slug staticclock; cloak + AZVPN). Standard internet does not reach Cap-7. AZ domains resolve via hub HTTPS (public_icann true, resolves_to_hub true). Real duplications: azgrid, azcloak, azvault, azshift. False sites: azbooth, azflag, azstandby. Factory land is LIVE. radio_phy false.",
   });
 }
 

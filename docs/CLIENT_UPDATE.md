@@ -168,8 +168,8 @@ Update shuffle: all nodes ping MirageGrid
 (`fraggate_call { slug: "miragegrid", op: "shuffle" }`) until they land
 on **one** distinct-name Cap-7 site — factory SoT labels `azgrid` /
 `azbooth` / `azcloak` / `azvault` / `azshift` / `azflag` / `azstandby`.
-Four are real hub duplications (`azgrid`, `azvault`, `azbooth`, `azflag`).
-Three are false sites (`azcloak`, `azshift`, `azstandby`).
+Four are real hub duplications (`azgrid`, `azcloak`, `azvault`, `azshift`).
+Three are false sites (`azbooth`, `azflag`, `azstandby`).
 That landed mesh name is the update endpoint for that round and is not
 a public HTTPS door. Factory land is LIVE. Do not hardcode a single host.
 Internet reaches the AZ domains through the four hub HTTPS links.

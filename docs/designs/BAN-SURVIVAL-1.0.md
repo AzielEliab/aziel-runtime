@@ -176,10 +176,11 @@ rescan → then consider LIVE.
 
 6b. Cap-7 → AZNet (cite + verify LIVE; factory duplication LIVE)
 Cap-7 is the MirageGrid auto-generate `.az` duplication layer. It
-duplicates the four hub sites and shifts with StaticClock and MirageGrid
-cloak, paired with AZVPN. `design_of: hub_designs`. On Cap-7,
-`resolves_to_hub: false`. Standard internet does not reach Cap-7.
-Four factory names are real duplications; three are false sites.
+duplicates the four hub sites and shifts with StaticLock (catalog product
+StaticClock, slug `staticclock`) and MirageGrid cloak, paired with AZVPN.
+`design_of: hub_designs`. On Cap-7, `resolves_to_hub: false`. Standard
+internet does not reach Cap-7. Real duplications: `azgrid`, `azcloak`,
+`azvault`, `azshift`. False sites: `azbooth`, `azflag`, `azstandby`.
 `name_may_change: true`. Canonical hubs stay the public HTTPS door for
 the AZ domains while those hubs are up. Not a fifth product.
 `radio_phy: false`. `GET /v1/mesh/az-generator` and MirageGrid `/bridge`
@@ -208,15 +209,17 @@ Cap-7 sites have **different names** — distinct mesh names. Standard
 internet does not reach them. `name_may_change: true`. Inherit hub
 **design DNA** only. `resolves_to_hub: false` on Cap-7. Internet reaches
 the AZ domains via the four hub HTTPS links (`resolves_to_hub: true` on
-that path). Three of seven names are false sites.
+that path). False sites are `azbooth`, `azflag`, and `azstandby`. Real
+duplications are `azgrid`, `azcloak`, `azvault`, and `azshift`.
 
 **Update path (exact):** all nodes **ping MirageGrid** until they
 **land on one Cap-7 site in the shuffle**. That landed site is the
 update endpoint for that round. Do not hardcode a single Cap-7 host
 as the only update door.
 
-Four names are real hub duplications. Three are false sites (cloak
-decoys). None of the seven is a browser door. Standard internet
+Real hub duplications are `azgrid`, `azcloak`, `azvault`, and `azshift`.
+False sites are `azbooth`, `azflag`, and `azstandby` (cloak decoys).
+None of the seven is a browser door. Standard internet
 reaches the AZ domains, not these Cap-7 names.
 
 In-process land is `fraggate_call { slug: "miragegrid", op: "shuffle" }`
