@@ -114,7 +114,7 @@ Every Worker launch (homepage, `/about`, every `/p/{slug}`, HTML Softwares/descr
 | Repos | https://github.com/AzielEliab/aziel-corpus · https://github.com/AzielEliab/godlock · https://github.com/AzielEliab/hedidntjump.com · https://github.com/AzielEliab/trades-runtime |
 | Donate (canonical) | https://www.azieleliab.com/donate |
 
-Glama **Install Server** is stdio via [`glama.json`](glama.json) + [`Dockerfile`](Dockerfile) on `main`. See [docs/GLAMA.md](docs/GLAMA.md).
+Glama **Install Server** is live ([Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime)). Glama release **2.0.7** (Install Server ON, Auto-Release ON). Worker / server package stays **2.0.0-rc1**. Order: one-click Install Server, then remote `POST https://aziel-runtime.vibelock.workers.dev/mcp`, then local stdio. See [docs/GLAMA.md](docs/GLAMA.md).
 
 Public identity: **Aziel Eliab** only. Do not invent Zenodo DOIs.
 
@@ -135,13 +135,13 @@ Cap-7 mesh names are **MirageGrid-only**. They inherit hub **designs** only (inc
 
 ## FragGate door
 
-Public MCP `tools/list` is a **thin FragGate door**: `runtime_skill`, `fraggate_list`, `fraggate_describe`, `fraggate_verify`, `fraggate_call`, `decisiongate_check`, `library_lookup`, suite `mesh_*`, plus catalog helpers. `runtime_run` is advanced/internal.
+Public MCP `tools/list` is **36 live tools**. First call: `@aziel-runtime` → `fraggate_list` → `fraggate_describe` → `fraggate_call` (`foldlock` / `fold-preview`, or `decisiongate_check` with `dry_run=true`). The same list includes `runtime_skill`, `fraggate_verify`, `library_lookup`, suite `mesh_*`, append-only `chainlock_*` and `memory_*`, and catalog helpers. `runtime_run` and `runtime_session_*` are advanced/internal.
 
 Every catalog product is a **hashed registry** entry (`name`, `slug`, `digest`, `status`, public `ops`). Status is `live` | `stub` | `local_only`.
 
 `stub_ops` / `stub_op_count` are named refuse verbs (never hosted), not extra catalog Software engines. `stub_count` is registry entries whose status is `stub` (none after 1.9.0 — **AZChat** is LIVE+bound). EmbryoLock is a live catalog engine (`live-with-local-destructive-boundary`); wipe / scorch / unlock stay `FG-STUB` on the public mesh. FragGate `live_count + local_only_count + stub_count ===` FragGate `product_count`.
 
-**Live on the public mesh** (via `fraggate_call`): every catalog Software product that makes sense on a public agent door — advisory / score / classify / gate / search / preview / render / verify / hash / receipt / game / overlay / route / status, plus the original five (DecisionGATE, GodLock, FoldLock, AZ-CLCE, Aziel Digital Library). VeilLock stays **local_only** (device-local camera/screen). MCP `tools/list` stays the thin FragGate surface.
+**Live on the public mesh** (via `fraggate_call`): every catalog Software product that makes sense on a public agent door — advisory / score / classify / gate / search / preview / render / verify / hash / receipt / game / overlay / route / status, plus the original five (DecisionGATE, GodLock, FoldLock, AZ-CLCE, Aziel Digital Library). VeilLock stays **local_only** (device-local camera/screen). MCP `tools/list` is those 36 names. Start on the FragGate door.
 
 **Stub ops** (named refuse verbs, never execute): EmbryoLock wipe/scorch/unlock/encrypt/decrypt/initialize/login, ARK scorch/wipe/unlock/encrypt, WhistleLock send/mail/release, MirageGrid VPN-hop/hop/tunnel/mesh, AzielTether mesh-join/vpn/arm, VeilLock inject/intercept/facetime, AZ-OS exec/shell/lattice, AZAI blend/complete/chat, EmployeeLock court/judge, PeaceLock transcript/transcribe/motive/counterfactual/invent/waive-duty/bypass-duty, 4DMap truth_score/lumen_panel/invent_mark/backdate_class. Safe hosted ops on those products can still be live; the stub verbs refuse forever.
 
@@ -292,10 +292,9 @@ Current suite software designs (AZL / SEC-FEAT / QNM-WP / NODE-OPS / **AZL-DONAT
 - **Custom tool / OpenAPI:** import `https://aziel-runtime.vibelock.workers.dev/openapi.json`
 - **MCP remote:** `POST https://aziel-runtime.vibelock.workers.dev/mcp`  
   Methods: `initialize`, `tools/list`, `tools/call`.  
-  Default: thin FragGate door (`fraggate_list`, `fraggate_describe`, `fraggate_verify`, `fraggate_call`).  
-  Named live: `decisiongate_check`, `library_lookup`. Catalog/pull: `runtime_skill`, `runtime_bundle`, `runtime_pull`.  
-  Advanced/internal: `runtime_run`, `runtime_manifest`, `runtime_session_*`.  
-  Flat `{product}_{op}` names are **not** listed. HTTP `/p/{product}/{op}` is still a **proxy** (not exec). Public, no OAuth.  
+  `tools/list` is 36 live tools. First call: `fraggate_list` → `fraggate_describe` → `fraggate_call`.  
+  `runtime_run`, `runtime_manifest`, and `runtime_session_*` are advanced/internal.  
+  HTTP `/p/{product}/{op}` stays a proxy. Public, no OAuth.  
   Tool results are `{ display, result, ledger_tip? }` — show `display` to the user.
 
 ## Add to Claude Desktop
@@ -319,27 +318,28 @@ Claude Desktop `claude_desktop_config.json` (same shape as Cursor `mcp.json`):
 
 Restart Claude Desktop after updating. Remote alternative: `POST https://aziel-runtime.vibelock.workers.dev/mcp`. Full stdio notes: [docs/GLAMA.md](docs/GLAMA.md).
 
-## Add to Glama / Cursor MCP (Install Server)
+## Add to Glama
 
-Glama hosts a **stdio** MCP process. HTTP `POST /mcp` on the Worker is not enough — without [`glama.json`](glama.json), [`cli/mcp-stdio.mjs`](cli/mcp-stdio.mjs), and a [`Dockerfile`](Dockerfile), the listing says **This server cannot be installed**.
+Install order:
+
+1. **Install Server (live)** — [Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime) (also `https://glama.ai/mcp/servers/@AzielEliab/aziel-runtime`). One-click Install Server / Deploy. Glama release **2.0.7**. Install Server ON. Auto-Release ON. Worker / server package stays **2.0.0-rc1**.
+2. **Remote MCP** — `POST https://aziel-runtime.vibelock.workers.dev/mcp` (`initialize`, `tools/list`, `tools/call`). User-Agent `Mozilla/5.0`. Public, no OAuth.
+3. **Local stdio (last)** — [`cli/mcp-stdio.mjs`](cli/mcp-stdio.mjs) bridges to that same Worker `/mcp`. [`glama.json`](glama.json) + [`Dockerfile`](Dockerfile) CMD `["node", "cli/mcp-stdio.mjs"]`.
 
 ```bash
 node cli/mcp-stdio.mjs
 npm run mcp
-```
-
-Default mode **bridges** to `POST https://aziel-runtime.vibelock.workers.dev/mcp` (`User-Agent: Mozilla/5.0`). Optional `RUNTIME_TOKEN` / `AZIEL_RUNTIME_TOKEN`. `--local` or `AZIEL_RUNTIME_MCP=local` runs the same `/mcp` handler in-process.
-
-```bash
 docker build -t aziel-runtime-mcp .
 docker run --rm -i aziel-runtime-mcp
 # if the host resolver cannot see Cloudflare:
 # docker run --rm -i --dns 1.1.1.1 aziel-runtime-mcp
 ```
 
-Default bridge needs outbound **DNS + HTTPS** to `*.vibelock.workers.dev` / Cloudflare. A DNS miss is `FG-DNS` (`remote:false`) — not a FragGate receipt. `--local` is explicit. Verify a real call hash: [docs/2.0/INSPECT.md](docs/2.0/INSPECT.md).
+Default bridge needs outbound **DNS + HTTPS** to `*.vibelock.workers.dev` / Cloudflare. A DNS miss is `FG-DNS` (`remote:false`). `--local` or `AZIEL_RUNTIME_MCP=local` is explicit in-process. Optional `RUNTIME_TOKEN` / `AZIEL_RUNTIME_TOKEN` when `REQUIRE_TOKEN=1`. Verify a real call hash: [docs/2.0/INSPECT.md](docs/2.0/INSPECT.md).
 
-After merge: claim on the Glama Score tab (`glama.json` maintainers = `AzielEliab`), then admin Dockerfile → **Deploy** → **Make Release** so **Install Server** works. Build steps: `npm install --omit=dev`. CMD: `["node", "cli/mcp-stdio.mjs"]`. Full steps: [docs/GLAMA.md](docs/GLAMA.md). Public identity: **Aziel Eliab** only.
+**First call** after connect: `@aziel-runtime` → `fraggate_list` → `fraggate_describe` → `fraggate_call`. Example: `{ "slug": "foldlock", "op": "fold-preview", "payload": { "text": "the cat and the dog" } }`, or `decisiongate_check` with `dry_run=true`. `tools/list` is 36 live tools. ChainLock and memory are append-only.
+
+Re-claim on the Glama Score tab after any `glama.json` change (`maintainers` = `AzielEliab`) so Schema and keywords refresh. Full steps: [docs/GLAMA.md](docs/GLAMA.md). Public identity: **Aziel Eliab** only.
 
 ## Add to Venice
 

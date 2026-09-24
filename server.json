@@ -1,0 +1,18 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.AzielEliab/aziel-runtime",
+  "title": "Aziel Runtime",
+  "description": "Governed MCP: agent audit, provenance, deterministic checks, and receipt-backed FragGate execution.",
+  "repository": {
+    "url": "https://github.com/AzielEliab/aziel-runtime",
+    "source": "github"
+  },
+  "websiteUrl": "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime",
+  "version": "2.0.0-rc1",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://aziel-runtime.vibelock.workers.dev/mcp"
+    }
+  ]
+}

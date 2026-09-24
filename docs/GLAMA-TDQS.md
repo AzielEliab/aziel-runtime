@@ -71,17 +71,19 @@ Glama **Build** may still need a healthy **Redeploy** / **Make Release** to resc
 - Handler code paths, allowlists, ledger writes, mesh radios, engine ops.
 - `FRAGGATE_CATALOG_ALLOWLIST` is generated from `LIVE_OPS` plus compact product-verify tokens (`FRAGGATE_CATALOG_VERIFY_HINTS`). The text is **not** the full FragGate door — empty `fraggate_list` is discovery. Product verify scripts still require the azhub / azinterface / azbrowser op-name tokens.
 
-## Glama Tool Schema Changelog still showing v1.6.2
+## Glama release vs Worker package
 
-Live `POST /mcp` initialize already returns `serverInfo.version: "2.0.0-rc1"`. GitHub `package.json` and release tag `v2.0.0-rc1` match.
+Live `POST /mcp` initialize returns `serverInfo.version: "2.0.0-rc1"`. GitHub `package.json` and `glama.json` `version` match that Worker truth.
 
-Glama’s **Tool Schema Changelog** version label is written at **inspection / Make Release** time. Nothing in this repo can rewrite a past Glama snapshot. After merge:
+Glama's **Install Server release is 2.0.7** (Deploy Success, Install Server ON, Auto-Release ON). That number is Glama's listing release. It is not the Worker package. `glama.json` `version` stays `2.0.0-rc1`. The description names Glama release 2.0.7 so a re-claim can refresh Schema and keywords.
+
+Glama’s **Tool Schema Changelog** label is written at **inspection / Make Release** time. Nothing in this repo rewrites a past snapshot. Historical note: an earlier inspection cached `1.6.2`. Current operator-confirmed listing release is **2.0.7**. After a `glama.json` change:
 
 1. Re-claim / re-read `glama.json` on the Score tab.
 2. **Deploy** the stdio image (CMD remains `node cli/mcp-stdio.mjs`; default still bridges to the Worker).
-3. **Make Release** again so a new inspection can tag `2.0.0-rc1`.
+3. **Make Release** only when a new inspection should record the Worker package `2.0.0-rc1` beside the existing Glama release 2.0.7. Do not set `glama.json` `version` to 2.0.7.
 
-If Glama’s parser skips prerelease strings (`2.0.0-rc1`) and keeps the last `X.Y.Z` it cached (`1.6.2`), that is a Glama labeling issue — we cannot legally change `RUNTIME_VERSION` to a non-rc string in this metadata pass.
+If Glama’s parser skips prerelease strings (`2.0.0-rc1`), the listing release can stay an `X.Y.Z` such as 2.0.7 while the Worker package stays `2.0.0-rc1`. Do not change `RUNTIME_VERSION` to a non-rc string to chase that label.
 
 ## Neighbor map (selection)
 
