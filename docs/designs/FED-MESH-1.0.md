@@ -6,7 +6,7 @@ This is the shared protocol for a multi-user mesh. The runtime Worker is one rel
 
 FragGate stays the single door. This paper does not add an MCP tool. Relay ops are FragGate ops on slug `mesh` (`relay-register`, `relay-ref`, `relay-sync`, and the rest) and HTTP under `/v1/mesh/relay/`.
 
-Test vectors live in [`fixtures/fed-mesh-vectors.json`](../../fixtures/fed-mesh-vectors.json). `scripts/verify-fed-mesh.mjs` recomputes them, including a name claim, a transfer, a refused fourth user name, a blocklist refusal, a refused `csam` label, a self-signed isolation, an appeal, a reserved-slot restore, an equivocation pair, and an airgap manifest.
+Test vectors live in [`fixtures/fed-mesh-vectors.json`](../../fixtures/fed-mesh-vectors.json). `scripts/verify-fed-mesh.mjs` recomputes them, including a name claim, a transfer, a refused fourth user name, a blocklist refusal, a refused `csam` label, a blocklist fold vector, a self-signed isolation, an appeal, a reserved-slot restore, an equivocation pair, and an airgap manifest.
 
 ## 1. Inner core and outer mesh
 
@@ -530,13 +530,18 @@ Enforcement on this relay is isolation of the handle. Isolation cuts mesh relay,
 
 Version `FED-MESH-BLOCKLIST-1`. It is the union of this relay's tokens and AZN-BLOCK-1.0 from aznet branch `cursor/azn-name-ledger-1dc6`. That repo's `main` branch has no blocklist file. Checked on a friendly claim, before the handle sequence advances. A hit isolates the claiming handle from that handle's own signature. The relay does not mint a second signature.
 
-Match rules:
+Match rules, the same fold aznet uses:
 
-- a substring token matches inside the label after non-letters and non-digits are removed, longest token first
-- an exact token matches the whole label or one hyphen-part only
-- `sex` does not hit `essex`, `anal` does not hit `analysis`, and `kkk` does not hit a longer word
+- drop a trailing `.aziel`, then remove every character that is not a letter or digit
+- after that fold, read digits `0 1 3 4 5 7` as `o i e a s t`
+- a substring token matches inside the folded string, inside that lookalike reading, or inside the raw label, longest token first
+- an exact token matches the whole label, the fold, the lookalike reading, or one hyphen-part (and that part's fold and lookalike reading)
+- `sex` does not hit `essex` or `sussex`, `anal` does not hit `analysis`, and `kkk` does not hit a longer word
+- `child.porn`, `child-porn`, and `ch1ldp0rn` match `childporn` and are refused; `sussex` and `analysis` are allowed
 - `child` alone is not a token
 - the list is not exhaustive
+
+Those shared cases are pinned as `blocklist_fold` in the fixture: the lookalike map, each refused label with its token and reason, and the allowed labels.
 
 | Token | Reason | Scope |
 | --- | --- | --- |

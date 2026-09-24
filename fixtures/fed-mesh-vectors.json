@@ -385,6 +385,63 @@
       "scope": "exact"
     }
   ],
+  "blocklist_fold": {
+    "lookalikes": {
+      "0": "o",
+      "1": "i",
+      "3": "e",
+      "4": "a",
+      "5": "s",
+      "7": "t"
+    },
+    "refused": [
+      {
+        "label": "child.porn",
+        "reason": "CSAM",
+        "token": "childporn",
+        "match": "substring"
+      },
+      {
+        "label": "child-porn",
+        "reason": "CSAM",
+        "token": "childporn",
+        "match": "substring"
+      },
+      {
+        "label": "ch1ldp0rn",
+        "reason": "CSAM",
+        "token": "childporn",
+        "match": "substring"
+      },
+      {
+        "label": "child.porn.aziel",
+        "reason": "CSAM",
+        "token": "childporn",
+        "match": "substring"
+      },
+      {
+        "label": "child-porn.aziel",
+        "reason": "CSAM",
+        "token": "childporn",
+        "match": "substring"
+      },
+      {
+        "label": "ch1ldp0rn.aziel",
+        "reason": "CSAM",
+        "token": "childporn",
+        "match": "substring"
+      }
+    ],
+    "allowed": [
+      "sussex",
+      "analysis",
+      "essex",
+      "sussex.aziel",
+      "analysis.aziel",
+      "child",
+      "childcare"
+    ]
+  },
   "isolation": {
     "code": "FED-MESH-OK",
     "reason": "NUDITY",
