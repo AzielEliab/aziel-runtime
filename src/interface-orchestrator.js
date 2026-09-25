@@ -904,16 +904,20 @@ export async function orchestrate(input, opts = {}) {
       envelope = { ok: false, code: "IF-DISPATCH-ERROR" };
     }
     const code = envelope && envelope.code ? String(envelope.code) : "";
-    executed = !!(envelope && envelope.ok === true && code === "FG-OK");
+    const engineRefused = !!(envelope && envelope.result && envelope.result.ok === false);
+    executed = !!(envelope && envelope.ok === true && code === "FG-OK" && !engineRefused);
     door = {
       ran: true,
       through: "fraggate",
       slug: dispatchPlan.slug,
       op: dispatchPlan.op,
-      ok: !!(envelope && envelope.ok === true),
+      ok: !!(envelope && envelope.ok === true) && !engineRefused,
       code: code || null,
+      engine_refused: engineRefused,
     };
-    output = `Seal recorded FragGate ${dispatchPlan.slug}/${dispatchPlan.op} as ${code || "no-code"}.`;
+    output = engineRefused
+      ? `Seal recorded FragGate ${dispatchPlan.slug}/${dispatchPlan.op} as an engine refuse. The body was not copied.`
+      : `Seal recorded FragGate ${dispatchPlan.slug}/${dispatchPlan.op} as ${code || "no-code"}.`;
   } else if (slug === "veillock") {
     output = "Seal recorded for a local-only plan. Nothing launched.";
     door = { ran: false, through: null, slug, op, ok: false, code: "IF-LOCAL-ONLY" };

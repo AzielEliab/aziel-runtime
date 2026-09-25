@@ -19,6 +19,7 @@ import {
   shouldMintActReceipt,
 } from "../src/library-receipts.js";
 import { requestLimitKind } from "../src/request-limits.js";
+import { handleAnalyze } from "../src/engines/vibelock/engine.js";
 import { memorySessionNamespace } from "../src/session-do.js";
 
 const handler = (await import("../src/index.js")).default.fetch;
@@ -438,8 +439,40 @@ assert.equal(vibeCite.cites[0].file_decoded, false);
 assert.equal(vibeCite.cites[0].accuracy, null);
 assert.equal(vibeCite.cites[0].contract, "softwares");
 assert.equal(JSON.stringify(vibeCite).includes("0.99"), false);
-assert.match(vibeCite.text, /physics/);
-assert.match(vibeCite.text, /mp4/);
+assert.match(vibeCite.text, /Physics/);
+assert.match(vibeCite.text, /heuristic/);
+assert.match(vibeCite.text, /experimental/);
+assert.match(vibeCite.text, /body-coupled/);
+assert.equal(vibeCite.cites[0].evidence.physics, "heuristic");
+assert.equal(vibeCite.cites[0].evidence.linguistics, "experimental");
+assert.equal(vibeCite.cites[0].evidence.vibration, "body-coupled-track");
+assert.equal(vibeCite.cites[0].evidence.related, "heuristic");
+assert.equal(vibeCite.cites[0].decodes_containers, false);
+assert.equal(vibeCite.cites[0].ffmpeg_for_compressed_local, true);
+
+const boxed = await handleAnalyze({ mp4_b64: "AAAA", features: { rms: 0.1, zcr: 0.1, n_samples: 1000 } });
+assert.equal(boxed.ok, false);
+assert.equal(boxed.decodes_containers, false);
+assert.equal(boxed.accuracy_claim, false);
+assert.equal(JSON.stringify(boxed).includes("AAAA"), false);
+
+const boxedLearn = await orchestrate({
+  call: "learner_learn",
+  vibelock: { file: "clip.mp4", mp4_b64: "AAAA" },
+});
+assert.equal(boxedLearn.status, 400);
+assert.equal(boxedLearn.body.code, "IF-UNCITED");
+assert.equal(JSON.stringify(boxedLearn.body).includes("AAAA"), false);
+
+const engineNo = await orchestrate(
+  { call: "seal", confirm: true, slug: "vibelock", op: "analyze", outcome: "completed" },
+  { dispatch: async () => ({ ok: true, code: "FG-OK", result: { ok: false, error: "container bytes" } }) },
+);
+assert.equal(engineNo.body.executed, false);
+assert.equal(engineNo.body.outcome, "failed");
+assert.equal(engineNo.body.door.engine_refused, true);
+assert.match(engineNo.body.receipt.output, /engine refuse/);
+assert.equal(engineNo.body.receipt.output.includes("container bytes"), false);
 
 const vibeAccuracy = await orchestrate({ call: "learner_learn", vibelock: { accuracy: 0.99, file: "clip.mp4" } });
 assert.equal(vibeAccuracy.status, 400);
