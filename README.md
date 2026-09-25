@@ -1,5 +1,20 @@
 # aziel-runtime
 
+Aziel Runtime lets AI assistants run 40+ research tools through one door. Install on Glama, then list tools, describe one, and call it. Every call can leave a receipt.
+
+## How to use
+
+1. Click **[Install / Add to Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime)** (also `https://glama.ai/mcp/servers/@AzielEliab/aziel-runtime`).
+2. In any MCP client, run: `fraggate_list` → `fraggate_describe {name}` → `fraggate_call {name, op, payload, confirm:true}`
+
+Worker remote: `https://aziel-runtime.vibelock.workers.dev/mcp`
+
+Example first call: `decisiongate_check` with a short proposal and `dry_run:true`, or `forgereceipts` receipt for a completed task.
+
+MCP `tools/list` is **36** tools. FragGate is the single door. Install order stays Install Server on Glama, then this Worker, then local stdio last. Compatible AI clients are listed below. **Author:** Aziel Eliab.
+
+## Designed purpose
+
 **Aziel Runtime** (`aziel-runtime`) is a node-meshed orchestration suite of MCP-connected software designed to route catalog Softwares through the FragGate door, mint receipts, and coordinate mesh presence. Use it to list, describe, and call product operations over MCP or OpenAPI, then keep the returned receipt. It exists so each Softwares product stays a separate engine behind one door.
 
 Softwares purpose copy (`one_line` + `description`) is the designed-to-do addendum on `GET /v1/software` (`src/software-copy.js`). Hubs refresh from that route.

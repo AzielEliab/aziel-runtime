@@ -98,6 +98,21 @@ export function glamaInstallLlmsLines(workerVersion = "2.0.0-rc1") {
   ];
 }
 
+/**
+ * Glama card sentence. Count is live Softwares catalog products behind FragGate
+ * (40), not MCP tools/list (36). Mesh and memory are not Softwares-tab products.
+ */
+export const GLAMA_DISCOVERY_LEAD =
+  "Aziel Runtime lets AI assistants run 40+ research tools through one door. Install on Glama, then list tools, describe one, and call it. Every call can leave a receipt.";
+
+export const GLAMA_HOW_TO_USE = Object.freeze([
+  "1. Click Install / Add to Glama on https://glama.ai/mcp/servers/AzielEliab/aziel-runtime",
+  "2. In any MCP client, run: fraggate_list → fraggate_describe {name} → fraggate_call {name, op, payload, confirm:true}",
+]);
+
+export const GLAMA_EXAMPLE_FIRST_CALL =
+  "Example first call: decisiongate_check with a short proposal and dry_run:true, or forgereceipts receipt for a completed task.";
+
 export const RUNTIME_PAGE_TITLE =
   "Aziel Runtime — node-meshed MCP Softwares suite";
 
@@ -107,7 +122,8 @@ export const RUNTIME_ONE_LINE =
 
 /**
  * Canonical crawler abstract. Use verbatim on cite.json abstract, homepage lead,
- * llms.txt opening, and JSON-LD description. Falsifiable designed-purpose only.
+ * and JSON-LD description. /llms.txt prints GLAMA_DISCOVERY_LEAD first, then this
+ * abstract. Falsifiable designed-purpose only.
  *
  * AZRT-1.9-CLOSE-1.0 / later version rolls: put version notes BELOW this abstract.
  * Never replace the abstract with a changelog. Never mash "runtime 1.9 FragGate".
@@ -162,8 +178,13 @@ export function llmsWhatThisIsBlock(calling = null) {
   const publicName = rotated
     ? `Public calling name: ${calling.calling_name} (${calling.calling_slug}). ${calling.alert}. Author / identity: Aziel Eliab only (@id ${AUTHOR_ID}). Also known as Aziel Elroi Eliab (alternateName only). Runtime is the execution surface. Person @id is ${AUTHOR_ID}. Old name Aziel Runtime may remain on cold shelves as history.`
     : `Public name: Aziel Runtime (aziel-runtime). Author / identity: Aziel Eliab only (@id ${AUTHOR_ID}). Also known as Aziel Elroi Eliab (alternateName only). Runtime is the execution surface. Person @id is ${AUTHOR_ID}.`;
+  const discoveryLead = rotated
+    ? GLAMA_DISCOVERY_LEAD.replace(/\bAziel Runtime\b/g, calling.calling_name)
+    : GLAMA_DISCOVERY_LEAD;
   return [
     "## What this is",
+    "",
+    discoveryLead,
     "",
     abstract,
     "",
@@ -171,13 +192,18 @@ export function llmsWhatThisIsBlock(calling = null) {
     "",
     "## How to use",
     "",
-    "1. Agents: fraggate_list → fraggate_describe → fraggate_call (POST /mcp or POST /v1/fraggate/call).",
-    "2. Hubs: GET /v1/software (mirror GET /v1/fraggate/software) on each Softwares-tab refresh.",
-    "3. Humans: Worker UI + counted /download — dual-surface. POST /p/{slug}/{op} is proxy. Exec is FragGate.",
+    ...GLAMA_HOW_TO_USE,
+    `Worker remote: ${GLAMA_REMOTE_MCP}`,
+    GLAMA_EXAMPLE_FIRST_CALL,
+    `MCP tools/list count: ${PUBLIC_MCP_TOOLS.length}. FragGate is the single door.`,
+    "",
+    "Also:",
+    "Agents: fraggate_list → fraggate_describe → fraggate_call (POST /mcp or POST /v1/fraggate/call).",
+    "Hubs: GET /v1/software (mirror GET /v1/fraggate/software) on each Softwares-tab refresh.",
+    "Humans: Worker UI + counted /download — dual-surface. POST /p/{slug}/{op} is proxy. Exec is FragGate.",
     `Install / Try on Glama: ${RUNTIME_GLAMA}`,
     `Remote MCP: POST ${GLAMA_REMOTE_MCP}`,
     "First call: fraggate_list → fraggate_describe → fraggate_call (foldlock/fold-preview, or decisiongate_check with dry_run=true).",
-    `MCP tools/list count: ${PUBLIC_MCP_TOOLS.length}.`,
     "",
     "FragGate is THE single public executable door (list → describe → call).",
     "Softwares = Plain → Gate → Lock catalog products with true in-process engines where live.",

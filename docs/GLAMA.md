@@ -1,6 +1,19 @@
 # Glama listing — aziel-runtime
 
+Aziel Runtime lets AI assistants run 40+ research tools through one door. Install on Glama, then list tools, describe one, and call it. Every call can leave a receipt.
+
 Public identity: **Aziel Eliab** only.
+
+## How to use
+
+1. Click **Install / Add to Glama** on https://glama.ai/mcp/servers/AzielEliab/aziel-runtime (also `https://glama.ai/mcp/servers/@AzielEliab/aziel-runtime`).
+2. In any MCP client, run: `fraggate_list` → `fraggate_describe {name}` → `fraggate_call {name, op, payload, confirm:true}`
+
+Worker remote: `https://aziel-runtime.vibelock.workers.dev/mcp`
+
+Example first call: `decisiongate_check` with a short proposal and `dry_run:true`, or `forgereceipts` receipt for a completed task.
+
+MCP `tools/list` is **36** tools. FragGate is the single door. Deeper admin, Docker, and local stdio stay below. Install order stays Install Server, then the remote Worker, then local stdio last.
 
 **[Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime)** is the primary public host / discovery / install listing for aziel-runtime (also `https://glama.ai/mcp/servers/@AzielEliab/aziel-runtime`). Worker origin stays the HTTP / OpenAPI / MCP execution surface.
 
@@ -22,7 +35,7 @@ This repo ships:
 
 | File | Role |
 |------|------|
-| [`glama.json`](../glama.json) | Claim file. Schema requires `maintainers` (GitHub username `AzielEliab`). `version` stays the Worker truth `2.0.0-rc1` (Glama Install Server release 2.0.7 is named in `description`, not as `version`). Description: MCP Softwares suite — FragGate door, receipts, mesh; `1.6.2` is superseded heritage. Keywords include mcp, openapi, fraggate, softwares, decisiongate, receipts. |
+| [`glama.json`](../glama.json) | Claim file. Schema requires `maintainers` (GitHub username `AzielEliab`). `version` stays the Worker truth `2.0.0-rc1` (Glama Install Server release 2.0.7 is named in `description`, not as `version`). Description leads with the plain Glama card sentence (40+ research tools, one door, receipt), then FragGate door, receipts, and the 2.0.7 Install Server note. `1.6.2` is superseded heritage. Keywords include mcp, openapi, fraggate, softwares, decisiongate, receipts. |
 | [`cli/mcp-stdio.mjs`](../cli/mcp-stdio.mjs) | Stdio MCP server. Default **bridges** to the hosted Worker `/mcp`. |
 | [`Dockerfile`](../Dockerfile) | Local / “from Dockerfile” image. Glama admin often **generates** its own image from CMD args — still ship this file. |
 | [`src/mcp-stdio.js`](../src/mcp-stdio.js) | Framing + bridge / in-process dispatch. |
