@@ -19,6 +19,7 @@ import {
 import { resolveSlug, RUNTIME_VERSION } from "./runtime-api.js";
 import { callSessionTool } from "./session-http.js";
 import { existMcpHint, FG_HALLUC_TOOL, FRAGGATE_KERNEL, PUBLIC_MCP_TOOL_MAX } from "./fraggate/codes.js";
+import { confirmConsentHonesty, isMutatingMcpTool } from "./mcp-safeguard.js";
 import {
   emptyArgsSchema,
   FRAGGATE_CATALOG_ALLOWLIST,
@@ -51,7 +52,6 @@ const FRAGGATE_CATALOG_DOOR_HINT = fraggateCatalogAllowlistText(LIVE_OPS) || FRA
 import { chainlockMcpTools, isChainlockTool, runChainlockOp } from "./chainlock.js";
 import { isMemoryMcpTool, memoryMcpTools, runMemoryMcp, wrapMemoryDisplay } from "./memory.js";
 import { isMeshMcpTool, runMeshOp } from "./mesh.js";
-import { isMutatingMcpTool } from "./mcp-safeguard.js";
 import { resolveCallingName } from "./calling-name.js";
 
 export { ADVANCED_PREFIX, isAdvancedToolName, PUBLIC_MCP_TOOL_MAX };
@@ -839,6 +839,9 @@ export function mcpCallPayload(name, out, product, op) {
       op,
       extra: out.extra,
     });
+  if (out && out.confirm_consent && envelope && typeof envelope === "object") {
+    Object.assign(envelope, confirmConsentHonesty());
+  }
   return {
     content: [{ type: "text", text: mcpContentText(name, envelope, out.text) }],
     structuredContent: envelope,
@@ -858,9 +861,11 @@ export function wrapFraggateEnvelope(name, body, product, op) {
   });
   if (body && body.ledger_tip && !envelope.ledger_tip) envelope.ledger_tip = body.ledger_tip;
   if (body && body.code) envelope.code = body.code;
+  if (body && body.message) envelope.message = body.message;
   if (body && body.door) envelope.door = body.door;
   if (body && body.mutated !== undefined) envelope.mutated = body.mutated;
   if (body && body.dry_run !== undefined) envelope.dry_run = body.dry_run;
+  if (body && body.ledger_written !== undefined) envelope.ledger_written = body.ledger_written;
   return {
     status,
     text: JSON.stringify(envelope, null, 2),

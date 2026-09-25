@@ -215,6 +215,56 @@ assert.equal(previewBody.result.isError, false);
 assert.equal(previewBody.result.structuredContent.code, MCP_DRY_RUN);
 assert.equal(previewBody.result.structuredContent.mutated, false);
 assert.equal(previewBody.result.structuredContent.dry_run, true);
+assert.equal(previewBody.result.structuredContent.confirm_is_not_auth, true);
+assert.equal(previewBody.result.structuredContent.confirm_is_consent, true);
+assert.equal(previewBody.result.structuredContent.confirm_upgrades_isolation, false);
+assert.equal(previewBody.result.structuredContent.tenant_auth, false);
+assert.match(previewBody.result.structuredContent.confirm_note, /not tenant auth/);
+assert.match(previewBody.result.structuredContent.confirm_note, /does not upgrade shared public-demo isolation/);
+
+async function dryCall(args) {
+  const res = await mcp("tools/call", {
+    name: "fraggate_call",
+    arguments: { ...args, dry_run: true },
+  });
+  return res.json();
+}
+async function confirmCall(args) {
+  const res = await mcp("tools/call", {
+    name: "fraggate_call",
+    arguments: { ...args, confirm: true },
+  });
+  return res.json();
+}
+
+const dryCases = [
+  { slug: "not-a-software", op: "health", code: "FG-HALLUC-TOOL" },
+  { slug: "4dmap", op: "truth_score", code: "FG-STUB" },
+  { slug: "4dmap", op: "area_estimate", code: "FG-UNKNOWN-OP" },
+  { slug: "veillock", op: "apps", code: "FG-LOCAL-ONLY" },
+];
+for (const row of dryCases) {
+  const dry = await dryCall(row);
+  const live = await confirmCall(row);
+  assert.equal(dry.result.isError, true, row.code);
+  assert.equal(dry.result.structuredContent.code, row.code);
+  assert.equal(dry.result.structuredContent.result.code, row.code);
+  assert.equal(dry.result.structuredContent.result.message, live.result.structuredContent.result.message);
+  assert.equal(dry.result.structuredContent.result.mutated, false);
+  assert.equal(dry.result.structuredContent.result.dry_run, true);
+  assert.equal(dry.result.structuredContent.result.ledger_written, false);
+  assert.equal(dry.result.structuredContent.ledger_tip, undefined);
+  assert.ok(live.result.structuredContent.ledger_tip, `${row.code} confirm still stamps a ledger tip`);
+  assert.equal(dry.result.structuredContent.confirm_is_consent, true);
+  assert.match(dry.result.structuredContent.confirm_note, /consent to run this call/);
+}
+
+const dryAllowed = await dryCall({ slug: "foldlock", op: "fold-preview", payload: { text: "preview only" } });
+assert.equal(dryAllowed.result.isError, false);
+assert.equal(dryAllowed.result.structuredContent.code, MCP_DRY_RUN);
+assert.equal(dryAllowed.result.structuredContent.mutated, false);
+assert.equal(dryAllowed.result.structuredContent.ledger_written, false);
+assert.match(dryAllowed.result.structuredContent.confirm_note, /not tenant auth/);
 
 const confirmed = await mcp("tools/call", {
   name: "fraggate_call",
@@ -223,6 +273,12 @@ const confirmed = await mcp("tools/call", {
 const confirmedBody = await confirmed.json();
 assert.equal(confirmedBody.result.isError, false);
 assert.equal(confirmedBody.result.structuredContent.code, "FG-OK");
+assert.equal(confirmedBody.result.structuredContent.confirm_is_not_auth, true);
+assert.equal(confirmedBody.result.structuredContent.confirm_upgrades_isolation, false);
+assert.equal(confirmedBody.result.structuredContent.tenant_auth, false);
+assert.match(confirmedBody.result.structuredContent.confirm_note, /consent to run this call/);
+assert.match(refuseBody.result.structuredContent.confirm_note, /not tenant auth/);
+assert.match(refuseBody.result.structuredContent.message, /consent to run this call/);
 
 const card = await handler(new Request(origin + "/.well-known/mcp/server-card.json"), env);
 const cardBody = await card.json();

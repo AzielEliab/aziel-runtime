@@ -21,6 +21,7 @@ import {
 import { append as chainAppend, recall as chainRecall, verify as chainVerify } from "./chainlock/ops.js";
 import { storeFor } from "./chainlock/store.js";
 import { wrapToolOutput } from "./display.js";
+import { CONFIRM_CONSENT_NOTE, confirmConsentHonesty } from "./mcp-safeguard.js";
 import {
   CONFIRM_PARAM_NOTE,
   FRAGGATE_OUTPUT_SCHEMA,
@@ -198,9 +199,11 @@ export function memoryDryRunPreview(op, src = {}) {
       memory_id: packet.memory_id || packet.id || null,
     },
     ...memoryLedgerHonesty(),
+    ...confirmConsentHonesty(),
     authorizes_action: false,
     note:
-      "Preview only. HTTP dry_run does not write ChainLock learn or the Belief List. Silent write after dry_run:true is refused. MCP dry_run stays MCP-DRY-RUN.",
+      "Preview only. HTTP dry_run does not write ChainLock learn or the Belief List. Silent write after dry_run:true is refused. MCP dry_run returns MCP-DRY-RUN only when the call would have been allowed; FragGate refuse codes still surface. " +
+      CONFIRM_CONSENT_NOTE,
   };
 }
 

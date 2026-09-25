@@ -8,6 +8,7 @@ import { digestText, newSessionId, SESSION_ID_RE } from "./session-core.js";
 import { RUNTIME_VERSION } from "./runtime-api.js";
 import { executeLocal, proxyFallbackMeta } from "./engines/runner.js";
 import { attachExecDisplay } from "./display.js";
+import { confirmConsentHonesty } from "./mcp-safeguard.js";
 import {
   CONFIRM_PARAM_NOTE,
   sessionIdProps,
@@ -49,12 +50,15 @@ async function stubFetch(env, id, path, init) {
   return stub.fetch(new Request("https://session/" + path.replace(/^\//, ""), init));
 }
 
-async function copyJson(res, json) {
+async function copyJson(res, json, { consent = false } = {}) {
   let body;
   try {
     body = await res.json();
   } catch {
     body = { error: "session object returned non-JSON", status: res.status };
+  }
+  if (consent && body && typeof body === "object" && !Array.isArray(body)) {
+    Object.assign(body, confirmConsentHonesty());
   }
   return json(body, res.status);
 }
@@ -93,7 +97,8 @@ function gateSessionMutate(request, env, json) {
         return json(rateLimitFailBody(decision), 429, rateLimitFailHeaders(decision));
       }
     }
-    return json(auth.body, auth.status);
+    const authBody = auth.body && typeof auth.body === "object" ? { ...auth.body, ...confirmConsentHonesty() } : auth.body;
+    return json(authBody, auth.status);
   }
   const kind = url.pathname === "/v1/session/open" ? "open" : url.pathname.endsWith("/exec") ? "exec" : null;
   if (kind) {
@@ -133,7 +138,7 @@ export async function handleSessionRequest(request, env, deps) {
         now: new Date().toISOString(),
       }),
     });
-    return copyJson(res, json);
+    return copyJson(res, json, { consent: true });
   }
 
   const m = path.match(/^\/v1\/session\/(sess_[a-f0-9]{32})(?:\/([a-z]+))?$/i);
@@ -170,13 +175,14 @@ export async function handleSessionRequest(request, env, deps) {
         body: JSON.stringify(body),
       }),
       json,
+      { consent: true },
     );
   }
   if ((action === "receipt" || action === "receipts") && request.method === "GET") {
     return copyJson(await stubFetch(env, id, action, { method: "GET" }), json);
   }
   if (action === "close" && request.method === "POST") {
-    return copyJson(await stubFetch(env, id, "close", { method: "POST" }), json);
+    return copyJson(await stubFetch(env, id, "close", { method: "POST" }), json, { consent: true });
   }
   if (action === "exec" && request.method === "POST") {
     return handleExec(request, env, id, { json, PRODUCTS, BY_SLUG, upstreamFetch });
@@ -214,7 +220,7 @@ async function handleExec(request, env, id, { json, PRODUCTS, BY_SLUG, upstreamF
     }),
   });
   if (!intentRes.ok) {
-    return copyJson(intentRes, json);
+    return copyJson(intentRes, json, { consent: true });
   }
   const intentBody = await intentRes.json();
   const intent = intentBody.intent;
@@ -317,6 +323,7 @@ async function handleExec(request, env, id, { json, PRODUCTS, BY_SLUG, upstreamF
   return json(
     {
       ...commitBody,
+      ...confirmConsentHonesty(),
       display: envelope.display,
       result: parsedBody,
       exec: {

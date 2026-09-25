@@ -108,6 +108,12 @@ assert.equal(demo.workspace.workspace_id, PUBLIC_DEMO_ID);
 assert.equal(demo.workspace.shared, true);
 assert.equal(demo.workspace.isolated, false);
 assert.equal(demo.workspace.confirm_is_not_auth, true);
+assert.equal(demo.workspace.confirm_is_consent, true);
+assert.equal(demo.workspace.confirm_upgrades_isolation, false);
+assert.equal(demo.workspace.tenant_auth, false);
+assert.match(demo.workspace.note, /not tenant auth/);
+assert.match(demo.workspace.note, /does not upgrade shared public-demo isolation/);
+assert.match(demo.workspace.confirm_note, /consent to run this call/);
 
 const mismatch = await resolveCallerWorkspace({
   request: new Request(origin + "/v1/fraggate/call", {
@@ -308,5 +314,8 @@ const readyBody = await ready.json();
 assert.equal(readyBody.fraggate_call_public, true);
 assert.match(readyBody.token_note, /Public FragGate call stays open/);
 assert.equal(readyBody.workspace_isolation.confirm_is_not_auth, true);
+assert.equal(readyBody.workspace_isolation.confirm_is_consent, true);
+assert.equal(readyBody.workspace_isolation.tenant_auth, false);
+assert.match(readyBody.workspace_isolation.confirm_note, /does not upgrade shared public-demo isolation/);
 
 console.log("ok workspace-isolation F02: public-demo labeled; private HTTP+MCP isolated; confirm≠auth");

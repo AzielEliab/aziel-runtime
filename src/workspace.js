@@ -20,6 +20,7 @@ import {
   tokenSecret,
   timingSafeEqualString,
 } from "./production.js";
+import { CONFIRM_CONSENT_NOTE, confirmConsentHonesty } from "./mcp-safeguard.js";
 
 export const PUBLIC_DEMO_ID = "public-demo";
 export const CONTRACT_PUBLIC_DEMO = "public-demo";
@@ -39,16 +40,19 @@ export const WORKSPACE_SKIP_KEYS = Object.freeze([
 const PUBLIC_DEMO_NOTE =
   "Shared public-demo singleton. Ephemeral isolate memory. Not a private workspace. " +
   "Every unauthenticated HTTP / MCP / UI FragGate caller on this isolate sees the same demo state. " +
-  "confirm:true is not authentication.";
+  "confirm:true is not authentication. " +
+  CONFIRM_CONSENT_NOTE;
 
 const OPERATOR_NOTE =
   "Operator private workspace. Shared by every caller who presents the matching runtime token. " +
   "Isolated from public-demo. Bind a verified session_id for per-caller isolation. " +
-  "confirm:true is not authentication.";
+  "confirm:true is not authentication. " +
+  CONFIRM_CONSENT_NOTE;
 
 const SESSION_NOTE =
   "Session-scoped private workspace. Other sessions cannot read or write this state. " +
-  "Isolated from public-demo and from the operator singleton. confirm:true is not authentication.";
+  "Isolated from public-demo and from the operator singleton. confirm:true is not authentication. " +
+  CONFIRM_CONSENT_NOTE;
 
 export function publicDemoWorkspace() {
   return {
@@ -60,7 +64,7 @@ export function publicDemoWorkspace() {
     ephemeral: true,
     durable: false,
     auth: "none",
-    confirm_is_not_auth: true,
+    ...confirmConsentHonesty(),
     owner_string_is_not_auth: true,
     note: PUBLIC_DEMO_NOTE,
   };
@@ -76,7 +80,7 @@ export function operatorWorkspaceView(workspaceId) {
     ephemeral: false,
     durable: false,
     auth: "runtime_token",
-    confirm_is_not_auth: true,
+    ...confirmConsentHonesty(),
     owner_string_is_not_auth: true,
     note: OPERATOR_NOTE,
   };
@@ -93,7 +97,7 @@ export function sessionWorkspaceView(sessionId) {
     ephemeral: false,
     durable: false,
     auth: "session",
-    confirm_is_not_auth: true,
+    ...confirmConsentHonesty(),
     owner_string_is_not_auth: true,
     note: SESSION_NOTE,
   };
@@ -121,7 +125,7 @@ export function isolationView(env, workspace = null) {
     ephemeral: ws.ephemeral === true,
     durable: ws.durable === true,
     auth: ws.auth || "none",
-    confirm_is_not_auth: true,
+    ...confirmConsentHonesty(),
     owner_string_is_not_auth: true,
     note: ws.note,
     ...(ws.session_id ? { session_id: ws.session_id } : {}),
@@ -291,7 +295,7 @@ export function workspaceRefuseEnvelope(fail, extra = {}) {
     message: fail.error || "workspace isolation refused",
     result: null,
     isolation: isolationView(null, publicDemoWorkspace()),
-    confirm_is_not_auth: true,
+    ...confirmConsentHonesty(),
     ...(fail.hint ? { hint: fail.hint } : {}),
     ...(fail.body || {}),
     ...extra,
