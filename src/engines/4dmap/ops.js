@@ -1,11 +1,17 @@
 /**
  * 4dmap in-process ops. Author: Aziel Eliab.
  */
+import { resetLatticeStore, runLatticeOp, wantsLibraryPin } from "./lattice.js";
 import {
-  LIMITATION,
-  VERSION,
-  SPEC,
   AUTHOR,
+  DOMAINS_ARE_DOORS,
+  LAYER,
+  LIMITATION,
+  NAME,
+  PRODUCT,
+  SEQUENTIAL_GATE,
+  SPEC,
+  VERSION,
   fourdmapHealth,
   fourdmapSkill,
   cardNew,
@@ -69,7 +75,45 @@ export const FOURDMAP_OPS = [
   "card_import",
   "verify_chain",
   "neighbor_cite",
+  "memory_cite",
+  "memory_observe",
+  "library_pin",
+  "plot",
+  "possibility",
+  "pattern_recall",
+  "lattice_tip",
+  "poison_refuse",
 ];
+
+const LATTICE_OPS = new Set([
+  "memory_cite",
+  "memory_observe",
+  "library_pin",
+  "plot",
+  "possibility",
+  "pattern_recall",
+  "lattice_tip",
+  "poison_refuse",
+]);
+
+function latticeEnvelope(op, body) {
+  return {
+    product: PRODUCT,
+    name: NAME,
+    version: VERSION,
+    spec: SPEC,
+    true_engine_runtime: true,
+    kv_increment: false,
+    door: "fraggate",
+    sequential_gate: SEQUENTIAL_GATE,
+    domains_are_doors: DOMAINS_ARE_DOORS,
+    not_a_door: true,
+    layer: LAYER,
+    author: AUTHOR,
+    op,
+    ...body,
+  };
+}
 
 export function fourdmapHealthOp() {
   return fourdmapHealth();
@@ -79,9 +123,29 @@ export function fourdmapSkillOp() {
   return fourdmapSkill();
 }
 
+export function resetFourdmapLattice() {
+  resetLatticeStore();
+}
+
 export async function runFourdmap(op, payload) {
   if (op === "health") return fourdmapHealth();
   if (op === "skill") return fourdmapSkill();
+  if (LATTICE_OPS.has(op) || (op === "pin" && wantsLibraryPin(payload))) {
+    try {
+      const ran = op === "pin" ? "library_pin" : op;
+      return latticeEnvelope(ran, await runLatticeOp(ran, payload));
+    } catch (err) {
+      if (err && err.code) {
+        return latticeEnvelope(op, {
+          ok: false,
+          refused: true,
+          code: err.code,
+          message: err.message || String(err),
+        });
+      }
+      throw err;
+    }
+  }
   if (op === "pin") return pin(payload);
   if (op === "span") return span(payload);
   if (op === "stack") return stack(payload);

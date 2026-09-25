@@ -34,7 +34,9 @@ assert.equal(product.name, "AZInterface");
 assert.equal(product.worker, "azinterface-download-tracker");
 assert.equal(product.github, "https://github.com/AzielEliab/azinterface");
 assert.equal(product.version, VERSION);
+assert.match(product.oneLine, /suite shell/i);
 assert.match(product.oneLine, /page cycles/i);
+assert.equal(product.version, "0.1.0");
 assert.doesNotMatch(product.oneLine, /THIS IS:|THIS IS NOT:/i);
 assert.doesNotMatch(product.oneLine, /AZHub \/ AZInterface/);
 assert.doesNotMatch(product.banner, /AZHub \/ AZInterface/);
@@ -84,6 +86,10 @@ assert.equal(classifyCall(registry.bySlug.azinterface, "auto_unlock").kind, "stu
 assert.equal(classifyCall(registry.bySlug.azinterface, "completeness_detect").kind, "stub");
 assert.equal(classifyCall(registry.bySlug.azinterface, "ranking").kind, "stub");
 assert.equal(classifyCall(registry.bySlug.azinterface, "scorch_remote").kind, "stub");
+for (const localOp of ["pipeline_arch", "withdraw", "scorch_local", "pair_offer", "pair_accept", "pair_seal", "pair_cut", "pair_status"]) {
+  assert.equal(classifyCall(registry.bySlug.azinterface, localOp).kind, "unknown_op", `${localOp} stays off the public door`);
+  assert.ok(!live.includes(localOp), `${localOp} is not LIVE_OPS`);
+}
 
 const parsedSlash = parseTarget({ name: "azinterface/page_cycle_status" }, registry);
 assert.equal(parsedSlash.slug, "azinterface");
@@ -253,6 +259,10 @@ const doorRank = await post("/v1/fraggate/call", { slug: "azinterface", op: "ran
 assert.equal(doorRank.code, "FG-STUB");
 const doorScorch = await post("/v1/fraggate/call", { slug: "azinterface", op: "scorch_remote" });
 assert.equal(doorScorch.code, "FG-STUB");
+for (const localOp of ["pipeline_arch", "withdraw", "scorch_local", "pair_offer"]) {
+  const doorLocal = await post("/v1/fraggate/call", { slug: "azinterface", op: localOp, payload: {} });
+  assert.equal(doorLocal.code, "FG-UNKNOWN-OP", `${localOp} stays FG-UNKNOWN-OP on the public door`);
+}
 
 for (const op of expectedLive) {
   const payload = op === "site_state_set" ? { cycle: "OFF" } : op === "integrity_check" ? { witness: "mcp-1" } : {};
@@ -339,6 +349,9 @@ const card = catalog.products.find((p) => p.slug === "azinterface");
 assert.ok(card);
 assert.equal(card.worker, "azinterface-download-tracker");
 assert.equal(card.github, "https://github.com/AzielEliab/azinterface");
+assert.equal(card.version, "0.1.0");
+assert.match(card.one_line, /suite shell/i);
+assert.match(card.one_line, /page cycles/i);
 assert.equal(card.kind, "software");
 assert.equal(card.door, "fraggate");
 assert.equal(card.fraggate_live, true);
@@ -347,6 +360,25 @@ assert.ok(!catalog.products.some((p) => p.slug === "azhub-azinterface"));
 for (const op of expectedLive) {
   assert.ok(card.fraggate_ops.includes(op), `catalog azinterface.fraggate_ops has ${op}`);
 }
+
+const software = await (await handler(new Request(origin + "/v1/software"), env)).json();
+const softCard = software.software.find((row) => row.slug === "azinterface");
+assert.equal(softCard.version, "0.1.0");
+assert.equal(softCard.door, "fraggate");
+assert.equal(softCard.placement, "human-ui");
+assert.match(softCard.one_line, /suite shell/i);
+assert.match(softCard.description, /suite shell/i);
+assert.match(softCard.description, /OFF, integrity, ON/i);
+const mapCard = software.software.find((row) => row.slug === "4dmap");
+assert.equal(mapCard.version, "0.3.0");
+assert.equal(mapCard.door, "fraggate");
+assert.equal(mapCard.domain, "Research");
+assert.equal(mapCard.placement, "domain-software");
+const mapCatalog = catalog.products.find((row) => row.slug === "4dmap");
+assert.ok(mapCatalog.fraggate_ops.includes("library_pin"));
+assert.ok(mapCatalog.fraggate_ops.includes("poison_refuse"));
+assert.ok(!mapCatalog.fraggate_ops.includes("area_estimate"));
+assert.ok(!mapCatalog.fraggate_ops.includes("pipeline_arch"));
 
 const home = await (await handler(new Request(origin + "/"), env)).text();
 assert.match(home, /data-slug="azinterface"/);

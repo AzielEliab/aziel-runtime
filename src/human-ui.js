@@ -171,7 +171,7 @@ export const HUMAN_TASKS = Object.freeze([
     name: "AZInterface",
     op: "genesis_status",
     title: "Genesis status",
-    blurb: "Custodial page cycles: OFF / integrity / ON / FULL SHUTDOWN / MEMORIAL. Sibling of AZHub. Same door.",
+    blurb: "Suite shell for Softwares on this computer. Custodial page cycles: OFF / integrity / ON / FULL SHUTDOWN / MEMORIAL. Sibling of AZHub. Same door.",
     fields: [{ name: "cycle", label: "Cycle (optional)", type: "text", example: "OFF" }],
   },
   {

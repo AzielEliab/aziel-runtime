@@ -66,8 +66,8 @@ assert.ok(product, "4dmap is a catalog product");
 assert.equal(product.name, "4DMap");
 assert.equal(product.worker, "4dmap-download-tracker");
 assert.equal(product.github, "https://github.com/AzielEliab/4dmap");
-assert.equal(product.version, "0.2.0");
-assert.equal(VERSION, "0.2.0");
+assert.equal(product.version, "0.3.0");
+assert.equal(VERSION, "0.3.0");
 assert.match(product.oneLine, /Inspect the same event/i);
 assert.match(product.oneLine, /time, change, graph, and place/i);
 assert.doesNotMatch(product.oneLine, /THIS IS:|THIS IS NOT:/i);
@@ -78,7 +78,8 @@ assert.equal(softwareBucket(product.name, product.slug), "plain");
 const catalogOps = new Set(product.ops.map((o) => o.op));
 const ENHANCED = ["frame_status", "axis_describe", "walk_trace", "card_export", "card_import", "verify_chain", "neighbor_cite"];
 const PRODUCT_02 = ["pin", "span", "stack", "gap", "fork", "walk", "lens", "class", "cohort", "absence", "cap", "join", "list", "example"];
-for (const op of ["card_new", "card_pin", "card_span", "card_join", "card_walk", "card_list", "verify_hash", "health", "skill", ...ENHANCED, ...PRODUCT_02]) {
+const PRODUCT_03 = ["memory_cite", "memory_observe", "library_pin", "plot", "possibility", "pattern_recall", "lattice_tip", "poison_refuse"];
+for (const op of ["card_new", "card_pin", "card_span", "card_join", "card_walk", "card_list", "verify_hash", "health", "skill", ...ENHANCED, ...PRODUCT_02, ...PRODUCT_03]) {
   assert.ok(catalogOps.has(op), `catalog has ${op}`);
 }
 
@@ -110,10 +111,10 @@ assert.equal(CATALOG_ALIASES["4d-map"], "4dmap");
 assert.equal(CATALOG_ALIASES["4dm-wp-1.0"], "4dmap");
 
 const live = LIVE_OPS["4dmap"];
-for (const op of ["health", "skill", "card_new", "card_pin", "card_span", "card_join", "card_walk", "card_list", "verify_hash", ...ENHANCED, ...PRODUCT_02]) {
+for (const op of ["health", "skill", "card_new", "card_pin", "card_span", "card_join", "card_walk", "card_list", "verify_hash", ...ENHANCED, ...PRODUCT_02, ...PRODUCT_03]) {
   assert.ok(live.includes(op), `LIVE_OPS.4dmap has ${op}`);
 }
-for (const alias of ["frame", "axis", "trace", "export", "import", "neighbor"]) {
+for (const alias of ["frame", "axis", "trace", "export", "import", "neighbor", "ingest_pin", "plot_pins", "score_hooks", "possibility_cite", "lattice_tips"]) {
   assert.ok(live.includes(alias), `LIVE_OPS.4dmap has alias ${alias}`);
 }
 for (const op of STUB_OPS["4dmap"]) {
@@ -133,6 +134,8 @@ assert.equal(classifyCall(registry.bySlug["4dmap"], "truth_score").kind, "stub")
 assert.equal(classifyCall(registry.bySlug["4dmap"], "lumen_panel").kind, "stub");
 assert.equal(classifyCall(registry.bySlug["4dmap"], "invent_mark").kind, "stub");
 assert.equal(classifyCall(registry.bySlug["4dmap"], "backdate_class").kind, "stub");
+assert.equal(classifyCall(registry.bySlug["4dmap"], "area_estimate").kind, "unknown_op");
+assert.equal(classifyCall(registry.bySlug["4dmap"], "library_pin").kind, "live");
 
 const parsedSlash = parseTarget({ name: "4dmap/card_new" }, registry);
 assert.equal(parsedSlash.slug, "4dmap");
@@ -445,6 +448,75 @@ assert.equal(doorFrame.ok, true);
 assert.equal(doorFrame.result.domains_are_doors, false);
 assert.equal(doorFrame.result.not_a_door, true);
 assert.equal(doorFrame.result.layer, "inspection_frame");
+
+resetFourdmapStore();
+const paperPin = {
+  event: "paper pin",
+  date: "1914-08-01",
+  lat: 48.85,
+  lon: 2.35,
+  surface: "MOCK",
+};
+const doorLibrary = await (await post("/v1/fraggate/call", { slug: "4dmap", op: "library_pin", payload: paperPin })).json();
+assert.equal(doorLibrary.code, "FG-OK");
+assert.notEqual(doorLibrary.code, "FG-UNKNOWN-OP");
+assert.equal(doorLibrary.ok, true);
+assert.equal(doorLibrary.result.ok, true);
+assert.equal(doorLibrary.result.op, "library_pin");
+assert.equal(doorLibrary.result.surface, "MOCK");
+assert.equal(doorLibrary.result.pin_frame.kind, "4DM-PIN-FRAME");
+assert.equal(doorLibrary.result.collapsed, false);
+assert.equal(doorLibrary.result.ml_store, false);
+assert.match(doorLibrary.result.h, /^[a-f0-9]{64}$/);
+const doorPlot = await (await post("/v1/fraggate/call", { slug: "4dmap", op: "plot", payload: {} })).json();
+assert.equal(doorPlot.code, "FG-OK");
+assert.equal(doorPlot.result.ok, true);
+assert.equal(doorPlot.result.n, 1);
+assert.equal(doorPlot.result.gis, false);
+const doorTips = await (await post("/v1/fraggate/call", { slug: "4dmap", op: "lattice_tip", payload: {} })).json();
+assert.equal(doorTips.code, "FG-OK");
+assert.equal(doorTips.result.n, 1);
+const doorCite = await (await post("/v1/fraggate/call", { slug: "4dmap", op: "memory_cite", payload: { id: doorLibrary.result.id } })).json();
+assert.equal(doorCite.code, "FG-OK");
+assert.equal(doorCite.result.ok, true);
+assert.equal(doorCite.result.cited, true);
+assert.equal(doorCite.result.card_rewritten, false);
+assert.equal(doorCite.result.posterior_is_truth, false);
+assert.equal(doorCite.result.door, false);
+const doorObserve = await (await post("/v1/fraggate/call", { slug: "4dmap", op: "memory_observe", payload: { id: doorLibrary.result.id } })).json();
+assert.equal(doorObserve.code, "FG-OK");
+assert.equal(doorObserve.result.ok, true);
+assert.equal(doorObserve.result.forwarded, false);
+assert.equal(doorObserve.result.observation.fabric, true);
+assert.equal(doorObserve.result.observation.software_tab, false);
+const doorPossibility = await (await post("/v1/fraggate/call", { slug: "4dmap", op: "possibility", payload: { id: doorLibrary.result.id } })).json();
+assert.equal(doorPossibility.code, "FG-OK");
+assert.equal(doorPossibility.result.ok, true);
+assert.equal(doorPossibility.result.collapsed, false);
+assert.equal(doorPossibility.result.possibility.label, "possibility");
+const doorRecall = await (await post("/v1/fraggate/call", { slug: "4dmap", op: "pattern_recall", payload: {} })).json();
+assert.equal(doorRecall.code, "FG-OK");
+assert.equal(doorRecall.result.ok, true);
+assert.equal(doorRecall.result.ml_store, false);
+const doorPoison = await (await post("/v1/fraggate/call", { slug: "4dmap", op: "poison_refuse", payload: paperPin })).json();
+assert.equal(doorPoison.code, "FG-OK");
+assert.equal(doorPoison.result.ok, true);
+assert.equal(doorPoison.result.payload_stored, false);
+const doorPoisoned = await (await post("/v1/fraggate/call", { slug: "4dmap", op: "library_pin", payload: paperPin })).json();
+assert.equal(doorPoisoned.code, "FG-OK");
+assert.equal(doorPoisoned.result.ok, false);
+assert.equal(doorPoisoned.result.code, "POISON_REFUSE");
+const doorIncomplete = await (await post("/v1/fraggate/call", { slug: "4dmap", op: "library_pin", payload: { event: "paper pin" } })).json();
+assert.equal(doorIncomplete.code, "FG-OK");
+assert.equal(doorIncomplete.result.ok, false);
+assert.equal(doorIncomplete.result.code, "CLOCK_REFUSE");
+const doorAlias = await (await post("/v1/fraggate/call", { slug: "4dmap", op: "ingest_pin", payload: { event: "alias pin", date: "1945-05-08", gazetteer_id: "place:rome", surface: "MOCK" } })).json();
+assert.equal(doorAlias.code, "FG-OK");
+assert.equal(doorAlias.result.ok, true);
+assert.equal(doorAlias.result.op, "library_pin");
+assert.equal(doorAlias.aliased, true);
+const doorArea = await (await post("/v1/fraggate/call", { slug: "4dmap", op: "area_estimate", payload: {} })).json();
+assert.equal(doorArea.code, "FG-UNKNOWN-OP");
 
 const skill = await (await handler(new Request(origin + "/v1/skill"), env)).text();
 assert.match(skill, /4DMap \(4DM-WP-1\.0\)/);
