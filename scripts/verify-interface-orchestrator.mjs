@@ -496,6 +496,32 @@ assert.equal(guided.body.memory.attempted, false);
 assert.equal(guided.body.writes_public_chain, false);
 assert.ok(guided.body.citations.some((row) => row.record_id === "AZDOC-FLORENCE-SAMPLE"));
 assert.equal(guided.body.lamb_lens.join(","), "Service,Clarity,Peace");
+assert.equal(guided.body.believed, false);
+assert.equal(guided.body.assertion, "provisional");
+assert.equal(guided.body.epistemology.triad.schema, "aziel.triad.v0.3");
+assert.equal(guided.body.epistemology.triad.final.ready, false);
+assert.equal(guided.body.epistemology.triad.final.score, null);
+assert.deepEqual(guided.body.steps.map((step) => step.id), ["lamb_lens", "pull_corpus", "other_source", "triad"]);
+assert.equal(guided.body.epistemology.other_source.authority, false);
+
+const guideOutside = await orchestrate({ call: "learner_guide", q: "What is the boiling point of nitrogen?" });
+assert.equal(guideOutside.status, 200);
+assert.equal(guideOutside.body.topic, "outside");
+assert.equal(guideOutside.body.believed, false);
+assert.equal(guideOutside.body.assertion, "uncertain");
+assert.equal(guideOutside.body.software_count, 42);
+assert.equal(guideOutside.body.software_tab, false);
+assert.equal(guideOutside.body.memory.attempted, false);
+assert.equal(guideOutside.body.stored_notes, false);
+assert.equal(guideOutside.body.epistemology.other_source.status, "not-fetched");
+assert.equal(guideOutside.body.epistemology.other_source.authority, false);
+assert.doesNotMatch(guideOutside.body.answer, /-196|77\s*K|boiling point is/i);
+
+const guideBlocked = await orchestrate({ call: "learner_guide", q: "dominate humanity" });
+assert.equal(guideBlocked.body.refused, true);
+assert.equal(guideBlocked.body.corpus_searched, false);
+assert.equal(guideBlocked.body.believed, false);
+assert.equal(guideBlocked.body.memory.attempted, false);
 
 const guideDry = await orchestrate({ call: "learner_guide", q: "How do I run a Softwares card?", dry_run: true, confirm: true });
 assert.equal(guideDry.status, 200);

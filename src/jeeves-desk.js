@@ -5,7 +5,7 @@
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
 
-import { jeevesAsk, jeevesShouldRefuse } from "./engines/aziel-corpus/jeeves.js";
+import { jeevesAsk } from "./engines/aziel-corpus/jeeves.js";
 import {
   JEEVES_ASSET_NOTE,
   JEEVES_PUBLIC_FILE_COUNT,
@@ -55,26 +55,11 @@ export function interfaceHelpAnswer(question) {
 export async function askJeevesHelp(input, env) {
   const q = questionOf(input);
   if (!q) return { ok: false, status: 400, error: "question required (q / query / question)" };
-  const gate = jeevesShouldRefuse(q);
-  if (gate.refuse) {
-    return {
-      ok: true,
-      refused: true,
-      answer: gate.reason,
-      citations: [],
-      image: null,
-      blend: false,
-      invented_visits: false,
-      library_search: false,
-      library_http: "not-probed",
-      software_tab: false,
-      assistant: "Ask Jeeves",
-    };
-  }
   const previous = previousOf(input);
   const snake = snakeOf(input);
   const continued = continueJeevesSnake(q, snake);
   const eggs = continued ? [continued] : collectJeevesEasterEggs(q, { previous });
+  // Published corpus triggers stay a map, not a reasoned claim. Guide answers go through reasonGuide (lens first).
   if (eggs.length) {
     const asked = await jeevesAsk({ q, previous, snake }, env);
     return {

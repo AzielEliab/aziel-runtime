@@ -1,20 +1,26 @@
 /**
- * Corpus-first guide for Ask Jeeves and AZAI.
- * Think order: clarify → pull the public shelf → pull this build's
- * Softwares roster and help graph → answer with the next click.
- * An empty or unreachable shelf is said out loud. No Softwares row,
- * version, or version_id is invented.
+ * Epistemic guide for Ask Jeeves and AZAI.
+ * Order is fixed: Lamb Lens (Service → Clarity → Peace) → corpus shelf →
+ * any other source → suite triad (SPRE / CLCE / PhysLing) plus DecisionGATE.
+ * Nothing is believed by default. A missing verifier leaves the triad final null.
+ * No Softwares row, version, or version_id is invented.
  *
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
 
+import { lambCheck } from "./engines/azai/engine.js";
 import { search } from "./engines/aziel-corpus/engine.js";
+import { THRESHOLD, VERY_LOW, score as clceScore } from "./engines/azclce/engine.js";
+import { SCHEMA_TRIAD, assemble, unverified } from "./engines/azclce/triad.js";
+import { check as decisiongateCheck } from "./engines/decisiongate/engine.js";
 import { jeevesShouldRefuse } from "./engines/aziel-corpus/jeeves.js";
+import { lambLensCheck } from "./lamblens.js";
 import { SOFTWARE_COPY } from "./software-copy.js";
 import { UI_DOMAINS } from "./ui-domains.js";
 import { RUNTIME_VERSION } from "./runtime-api.js";
 
-export const GUIDE_SPEC = "GUIDE-REASON-1.0";
+export const GUIDE_SPEC = "GUIDE-REASON-1.1";
+export const EPISTEMIC_ORDER = Object.freeze(["lamb_lens", "corpus", "other_source", "triad"]);
 export const SUITE_SOFTWARE_COUNT = 42;
 
 export const GUIDE_STARTERS = Object.freeze([
@@ -26,6 +32,28 @@ export const GUIDE_STARTERS = Object.freeze([
 ]);
 
 const LAMB = Object.freeze(["Service", "Clarity", "Peace"]);
+
+export function lensFirst(question) {
+  const constitutional = lambCheck(question);
+  const fabric = lambLensCheck({ text: question });
+  const blocked = constitutional.overall === "FAIL" || fabric.decision === "REFUSE";
+  const held = !blocked && (constitutional.overall === "CHECK" || fabric.decision === "HOLD-UNCERTAIN");
+  return {
+    order: LAMB.slice(),
+    service: constitutional.service,
+    clarity: constitutional.clarity,
+    peace: constitutional.peace,
+    overall: constitutional.overall,
+    decision: fabric.decision,
+    notes: constitutional.notes || [],
+    reasons: fabric.reasons || [],
+    prohibition_hits: fabric.prohibition_hits || [],
+    honest: constitutional.honest,
+    blocked,
+    held,
+    believed: false,
+  };
+}
 
 function roster() {
   const rows = [];
@@ -161,7 +189,7 @@ function flowAnswer(intent, cards) {
   if (intent === "intro") {
     return {
       topic: "intro",
-      answer: `Ask Jeeves and AZAI Guide walk this ${RUNTIME_VERSION} build. Click a suggested question, or type your own. Library text is pulled first. Suite clicks come from the ${cards.length} Softwares already on the domain tabs. Author Aziel Eliab only. Lamb Lens is Service, then Clarity, then Peace.`,
+      answer: `Ask Jeeves and AZAI Guide walk this ${RUNTIME_VERSION} build. Lamb Lens runs first (Service, then Clarity, then Peace), then the public shelf, then any other source. The suite triad sets how strongly this is asserted. Nothing is believed by default. Suite clicks come from the ${cards.length} Softwares already on the domain tabs. Author Aziel Eliab only.`,
       actions: GUIDE_STARTERS.map((row) => ({ label: row.label, href: "#elroi-jeeves" })),
     };
   }
@@ -251,61 +279,168 @@ function leadFromCorpus(corpus) {
   return `${shelf} ${lead.title || lead.record_id} — ${lead.snippet}`;
 }
 
+function closedCorpus() {
+  return {
+    ok: true,
+    unreachable: false,
+    live_d1: false,
+    sample_master: true,
+    library_http: "not-consulted",
+    last_known_shelf: "bundled sample MASTER",
+    citations: [],
+    empty: true,
+    consulted: false,
+  };
+}
+
+function whyLine(lens, corpusStatus, other, triad, dg, assertion) {
+  const triple = triad.components.clce.score == null ? "null" : Number(triad.components.clce.score).toFixed(4);
+  const final = triad.final.score == null ? "null" : String(triad.final.score);
+  return `Why: Lamb Lens Service ${lens.service} / Clarity ${lens.clarity} / Peace ${lens.peace} (${lens.decision}). Corpus ${corpusStatus}. Other source ${other.status}, not authority. Triad ${triad.schema} final ${final} (${triad.final.verified_count}/3 verified). CLCE triple ${triple}. DecisionGATE ${dg.final_state}. Assertion ${assertion}. Believed: false.`;
+}
+
 export async function reasonGuide(question, env, { assistant = "Ask Jeeves" } = {}) {
   const q = String(question || "").trim().slice(0, 2000);
+  const cards = roster();
+  const lens = lensFirst(q);
+  const baseFields = {
+    ok: true,
+    assistant,
+    spec: GUIDE_SPEC,
+    believed: false,
+    provisional: true,
+    invented: false,
+    invented_visits: false,
+    software_tab: false,
+    software_count: cards.length,
+    version: RUNTIME_VERSION,
+    image: null,
+    blend: false,
+    dispatched_fraggate: false,
+    second_door: false,
+    writes_public_chain: false,
+    author: "Aziel Eliab",
+    identity: "Aziel Eliab",
+    lamb_lens: LAMB.slice(),
+  };
+
+  if (lens.blocked || lens.held) {
+    const corpus = closedCorpus();
+    const other = { status: "not-consulted", authority: false, kind: "none" };
+    const clce = clceScore(q, "Corpus was not consulted.", "No other source was consulted.");
+    const triad = assemble({ clce: clce.triad_component, spre: unverified("spre"), physling: unverified("physling") });
+    const dg = decisiongateCheck({ statement: q });
+    const assertion = lens.blocked ? "refused" : "held";
+    const answer = lens.blocked
+      ? `Lamb Lens stopped this before the shelf. ${lens.reasons.join(" ") || lens.notes.join(" ")} Nothing after the lens was treated as known.`
+      : `Lamb Lens held this before the shelf (${lens.overall} / ${lens.decision}). ${lens.notes.join(" ")} No later source was treated as known.`;
+    return {
+      ...baseFields,
+      refused: lens.blocked,
+      held: lens.held,
+      assertion,
+      source: "lamb-lens",
+      topic: "lamb_lens",
+      answer: `${whyLine(lens, "not-consulted", other, triad, dg, assertion)}\n\n${answer}`,
+      known: false,
+      grounded: false,
+      citations: [],
+      library_search: false,
+      library_http: "not-consulted",
+      empty: true,
+      live_d1: false,
+      sample_master: true,
+      epistemology: { order: EPISTEMIC_ORDER.slice(), believed: false, lamb_lens: lens, corpus: { status: "not-consulted", hit_count: 0 }, other_source: other, triad, decisiongate: { final_state: dg.final_state, blocked_at: dg.blocked_at, product: dg.product }, clce_triple: clce.triple, assertion },
+      steps: [
+        { id: "lamb_lens", order: LAMB.slice(), decision: lens.decision, overall: lens.overall, blocked: lens.blocked, held: lens.held },
+        { id: "pull_corpus", consulted: false, hit_count: 0, invented: false },
+        { id: "other_source", status: other.status, authority: false },
+        { id: "triad", schema: triad.schema, ready: triad.final.ready, score: triad.final.score, decisiongate: dg.final_state },
+      ],
+      next_actions: [{ label: "Open Ask Jeeves", href: "#elroi-jeeves" }],
+    };
+  }
+
   const gate = jeevesShouldRefuse(q);
   if (gate.refuse) {
     return {
-      ok: true,
+      ...baseFields,
       refused: true,
-      assistant,
-      answer: gate.reason,
+      assertion: "refused",
+      source: "lamb-lens",
+      topic: "refused",
+      answer: `${whyLine(lens, "not-consulted", { status: "not-consulted", authority: false }, assemble({ clce: unverified("clce"), spre: unverified("spre"), physling: unverified("physling") }), decisiongateCheck({ statement: q }), "refused")}\n\n${gate.reason}`,
       citations: [],
-      image: null,
-      blend: false,
-      invented: false,
-      invented_visits: false,
       library_search: false,
-      library_http: "not-probed",
-      software_tab: false,
-      software_count: roster().length,
-      author: "Aziel Eliab",
-      identity: "Aziel Eliab",
-      lamb_lens: LAMB.slice(),
+      library_http: "not-consulted",
+      known: false,
+      grounded: false,
+      steps: [
+        { id: "lamb_lens", order: LAMB.slice(), decision: lens.decision, overall: lens.overall },
+        { id: "pull_corpus", consulted: false, hit_count: 0 },
+        { id: "other_source", status: "not-consulted", authority: false },
+        { id: "triad", schema: SCHEMA_TRIAD, ready: false, score: null },
+      ],
     };
   }
-  const cards = roster();
+
   const clarified = clarify(q);
   const corpus = await pullCorpus(q, env);
+  corpus.consulted = true;
   const flow = flowAnswer(clarified.intent, cards);
   const hits = cardHits(q, cards);
   const card = flow ? null : cardAnswer(hits);
   const suite = flow || card;
+  const outside = !suite && corpus.citations.length === 0;
+  const other = suite
+    ? { status: "suite-help-graph", kind: "this-build", authority: false, topic: suite.topic }
+    : { status: "not-fetched", kind: "outside", authority: false, note: "No outside page was fetched. An outside question is allowed. It is not authority." };
   const shelfLead = leadFromCorpus(corpus);
-  let answer;
+  const corpusText = shelfLead || (corpus.unreachable ? "Live shelf unreachable. Last-known sample MASTER had no row." : "No public shelf row matched.");
+  const otherText = suite ? suite.answer : "No other source was fetched.";
+  const clce = clceScore(q, corpusText, otherText);
+  const triad = assemble({
+    clce: clce.triad_component,
+    spre: unverified("spre"),
+    physling: unverified("physling"),
+  });
+  let answerBody;
   let known;
   if (suite && shelfLead) {
-    answer = `${shelfLead}\n\n${suite.answer}`;
+    answerBody = `${shelfLead}\n\n${suite.answer}`;
     known = corpus.unreachable ? "last-known-shelf-and-suite" : "corpus-and-suite";
   } else if (shelfLead && !suite) {
-    answer = shelfLead;
+    answerBody = `${shelfLead} This cite is provisional. It is not believed.`;
     known = corpus.unreachable ? "last-known-shelf" : "corpus";
   } else if (suite) {
     const shelfNote = corpus.unreachable
       ? "The live shelf was unreachable. Last-known sample MASTER had no matching row. No shelf row was invented."
       : "The public shelf had no matching record. No shelf row was invented.";
-    answer = `${suite.answer} ${shelfNote}`;
+    answerBody = `${suite.answer} ${shelfNote}`;
     known = "suite";
   } else {
     const shelfNote = corpus.unreachable
       ? "The live shelf was unreachable. Last-known sample MASTER had no matching row."
       : "The public shelf had no matching record.";
-    answer = `${shelfNote} This build's help graph has no step for that question. Nothing was invented. Softwares count is ${cards.length}. Ask Jeeves is suite help, software_tab false.`;
+    answerBody = `${shelfNote} Outside questions are allowed. No outside source was fetched, so nothing outside the shelf is asserted. What should be checked on the shelf or on a suite tab? Softwares count is ${cards.length}. Ask Jeeves is suite help, software_tab false.`;
     known = false;
   }
   if (clarified.intent === "version_id" && suite) {
-    answer = suite.answer;
-    if (shelfLead) answer = `${shelfLead}\n\n${answer}`;
+    answerBody = suite.answer;
+    if (shelfLead) answerBody = `${shelfLead}\n\n${answerBody}`;
+  }
+  const conflict = corpus.citations.length > 0 && !!suite && clce.triple < VERY_LOW;
+  let assertion = "provisional";
+  if (conflict) assertion = "conflict";
+  else if (!corpus.citations.length && !suite) assertion = "uncertain";
+  else if (!triad.final.ready) assertion = suite || corpus.citations.length ? "provisional" : "uncertain";
+  const dg = decisiongateCheck({ statement: String(answerBody).slice(0, 800) });
+  if (dg.final_state === "BLOCK") assertion = "refused";
+  else if (dg.final_state !== "PASS" && assertion === "cite") assertion = "provisional";
+  const corpusStatus = corpus.unreachable ? "unreachable" : corpus.citations.length ? "hit" : "miss";
+  const why = whyLine(lens, corpusStatus, other, triad, dg, assertion);
+  if (conflict) {
+    answerBody = `${answerBody}\n\nThe question, the shelf, and the other source do not use the same words (CLCE triple ${clce.triple}). Which one should be checked?`;
   }
   const actions = suite && suite.actions
     ? suite.actions
@@ -319,46 +454,40 @@ export async function reasonGuide(question, env, { assistant = "Ask Jeeves" } = 
           { label: "Open the interface desk", href: "#interface-panel" },
         ];
   const steps = [
-    { id: "clarify", intent: clarified.intent, question: q },
+    { id: "lamb_lens", order: LAMB.slice(), service: lens.service, clarity: lens.clarity, peace: lens.peace, decision: lens.decision, overall: lens.overall },
     {
       id: "pull_corpus",
+      consulted: true,
       library_http: corpus.library_http,
       last_known_shelf: corpus.last_known_shelf,
       hit_count: corpus.citations.length,
       unreachable: corpus.unreachable,
       invented: false,
     },
+    { id: "other_source", status: other.status, kind: other.kind, authority: false },
     {
-      id: "pull_suite",
-      version: RUNTIME_VERSION,
-      software_count: cards.length,
-      software_tab: false,
-      matched_slugs: hits.map((cardRow) => cardRow.slug),
-      invented: false,
+      id: "triad",
+      schema: triad.schema,
+      ready: triad.final.ready,
+      score: triad.final.score,
+      clce_triple: clce.triple,
+      decisiongate: dg.final_state,
+      believed: false,
     },
-    { id: "reason", grounded_on: known },
-    { id: "next", actions },
   ];
   return {
-    ok: true,
-    refused: false,
-    assistant,
-    spec: GUIDE_SPEC,
-    source: known === "suite" || known === false ? (suite ? "interface-facts" : "unknown") : "corpus-first",
-    topic: suite ? suite.topic : known === false ? "unknown" : "library",
-    answer,
+    ...baseFields,
+    refused: assertion === "refused",
+    assertion,
+    source: known === "suite" || known === false ? (suite ? "interface-facts" : outside ? "outside" : "unknown") : "corpus-first",
+    topic: suite ? suite.topic : outside ? "outside" : "library",
+    answer: `${why}\n\n${answerBody}`,
     known,
+    grounded: known !== false,
     steps,
     next_actions: actions,
     domains: suite && suite.domains ? suite.domains : null,
     citations: corpus.citations,
-    version: RUNTIME_VERSION,
-    software_count: cards.length,
-    software_tab: false,
-    image: null,
-    grounded: known !== false,
-    invented: false,
-    invented_visits: false,
     library_search: true,
     library_http: corpus.library_http,
     last_known_shelf: corpus.last_known_shelf,
@@ -366,12 +495,17 @@ export async function reasonGuide(question, env, { assistant = "Ask Jeeves" } = 
     empty: corpus.empty,
     live_d1: corpus.live_d1,
     sample_master: corpus.sample_master,
-    blend: false,
-    dispatched_fraggate: false,
-    second_door: false,
-    writes_public_chain: false,
-    author: "Aziel Eliab",
-    identity: "Aziel Eliab",
-    lamb_lens: LAMB.slice(),
+    epistemology: {
+      order: EPISTEMIC_ORDER.slice(),
+      believed: false,
+      lamb_lens: lens,
+      corpus: { status: corpusStatus, hit_count: corpus.citations.length, library_http: corpus.library_http },
+      other_source: other,
+      triad,
+      decisiongate: { final_state: dg.final_state, blocked_at: dg.blocked_at, product: dg.product, version: dg.version },
+      clce_triple: clce.triple,
+      clce_threshold: THRESHOLD,
+      assertion,
+    },
   };
 }

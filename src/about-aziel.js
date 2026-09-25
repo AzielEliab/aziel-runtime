@@ -308,7 +308,7 @@ function jeevesHelpHtml(origin) {
   ).join("\n");
   return `<section class="dash" id="desk-jeeves" data-origin="${escapeHtml(base)}" data-library="${escapeHtml(LIVE_LIBRARY_ORIGIN)}">
   <h2>Ask Jeeves <span class="hashtag">#ask-jeeves</span></h2>
-  <p>Suite help for this build (<strong>${escapeHtml(RUNTIME_VERSION)}</strong>). A question is clarified, the public shelf is pulled first, then this build's Softwares tabs and desks supply the next click. Corpus op <code>jeeves</code> on <code>aziel-corpus</code> is the shelf. The Softwares card carries <code>suite_help</code> with <code>software_tab</code> false. If the shelf has no row, the reply says so. Last-known easter-egg files: ${JEEVES_PUBLIC_FILE_COUNT} under the corpus Worker public directory. This page does not host the bitmaps.</p>
+  <p>Suite help for this build (<strong>${escapeHtml(RUNTIME_VERSION)}</strong>). Lamb Lens runs first (Service, then Clarity, then Peace). The public shelf is next. Other sources, including these desks, are optional and are not authority. The suite triad and DecisionGATE set how strongly a reply is asserted. Nothing is believed by default. Corpus op <code>jeeves</code> on <code>aziel-corpus</code> is the shelf. Ask Jeeves stays suite help, <code>software_tab</code> false, not a Softwares card. If the shelf has no row, the reply says so. Last-known easter-egg files: ${JEEVES_PUBLIC_FILE_COUNT} under the corpus Worker public directory. This page does not host the bitmaps. Easter-egg phrases are the published corpus map.</p>
   <div class="actions">
 ${starters}
   </div>
@@ -324,7 +324,7 @@ ${starters}
   <img id="jeeves-egg" alt="" hidden>
   <p id="jeeves-egg-miss" class="secondary"></p>
   <ul id="jeeves-next"></ul>
-  <pre class="fg-out" id="jeeves-out" role="status" aria-live="polite">Ask a question. The shelf is checked first. Suggested questions are above.</pre>
+  <pre class="fg-out" id="jeeves-out" role="status" aria-live="polite">Ask a question. Lamb Lens runs first, then the shelf, then the triad. Nothing is believed by default. Suggested questions are above.</pre>
 </section>`;
 }
 

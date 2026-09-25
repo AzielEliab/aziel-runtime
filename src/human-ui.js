@@ -393,7 +393,7 @@ function aiPeerDeskHtml(p, origin) {
     "desk-azai",
     "learner",
     `<h4><a href="${escapeHtml(base)}/p/azai">AZAI</a> <span class="slug">learner</span></h4>
-  <p class="blurb">Learner and guide. Guide pulls the public shelf first, then names the next click on this build. It does not write memory and does not invent a Softwares row. Learn still stores cited notes for a domain, paper, software slug, receipt hash, pin id, or a VibeLock signal channel. VibeLock deepfake notes cite the Softwares contract for mp4, mp3, and other audio and video (physics, linguistics, vibrations, and related signals). A file name does not decode the file. Scores appear only from posted features or an analysis you supply. No accuracy number is stored. 4DMap is not queried. The live mesh roster is not read. A memory write needs the confirm box. Belief is not truth.</p>
+  <p class="blurb">Learner and guide. Guide runs Lamb Lens first (Service, then Clarity, then Peace), then the public shelf, then any other source. The suite triad and DecisionGATE set how strongly the reply is asserted. Nothing is believed by default. It does not write memory and does not invent a Softwares row. Learn still stores cited notes for a domain, paper, software slug, receipt hash, pin id, or a VibeLock signal channel. VibeLock deepfake notes cite the Softwares contract for mp4, mp3, and other audio and video (physics, linguistics, vibrations, and related signals). A file name does not decode the file. Scores appear only from posted features or an analysis you supply. No accuracy number is stored. 4DMap is not queried. The live mesh roster is not read. A memory write needs the confirm box. Belief is not truth.</p>
   <div class="field">
     <label for="ai-guide">Guide question</label>
     <input id="ai-guide" type="text" placeholder="Where do I click to run a card?" autocomplete="off" spellcheck="false">
@@ -425,7 +425,7 @@ function aiPeerDeskHtml(p, origin) {
     <button type="button" data-ai="learn">Learn</button>
     <button type="button" data-ai="recall">Recall</button>
   </div>
-  <pre class="ws-out fg-out" id="azai-out" role="status" aria-live="polite">Guide checks the shelf first. Learn stores cited notes. Nothing stored yet.</pre>`,
+  <pre class="ws-out fg-out" id="azai-out" role="status" aria-live="polite">Guide runs Lamb Lens, then the shelf, then the triad. Nothing is believed by default. Learn stores cited notes. Nothing stored yet.</pre>`,
   );
 }
 
