@@ -238,10 +238,33 @@ function paperById(id) {
 }
 
 function domainNotes() {
-  return UI_DOMAINS.map((domain) => ({
+  return UI_DOMAINS.filter((domain) => domain.kind !== "author" && domain.softwares.length).map((domain) => ({
     text: `Domain ${domain.label} lists ${domain.softwares.join(", ")}.`,
     cites: domain.softwares.map((slug) => ({ kind: "domain", id: domain.id, slug })),
   }));
+}
+
+export function matchingPlan(slug, op) {
+  const key = String(slug || "");
+  const name = String(op || "");
+  for (let i = tasks.length - 1; i >= 0; i--) {
+    const steps = tasks[i].steps || [];
+    if (steps.some((step) => step.slug === key && step.op === name)) {
+      return { tied: true, kind: tasks[i].kind };
+    }
+  }
+  return { tied: false };
+}
+
+export function operatorLearningNote(notes, input) {
+  const list = Array.isArray(notes) ? notes : [];
+  const src = input && typeof input === "object" ? input : {};
+  if (src.pins != null) return list.find((note) => (note.cites || []).some((cite) => cite.kind === "pin")) || null;
+  if (src.papers != null) return list.find((note) => (note.cites || []).some((cite) => cite.kind === "paper")) || null;
+  if (src.vibelock != null) return list.find((note) => (note.cites || []).some((cite) => cite.kind === "vibelock")) || null;
+  const q = clip(src.q || src.query, 80).toLowerCase();
+  if (!q) return null;
+  return list.find((note) => String(note.text || "").toLowerCase().includes(q)) || null;
 }
 
 function paperNote(papers) {
@@ -413,7 +436,7 @@ async function vibeLearning(src) {
   return { ok: true, notes };
 }
 
-export async function buildLearningNotes(input, ledgerRows) {
+export async function buildLearningNotes(input, ledgerRows, pull) {
   const pins = [];
   if (input.pins != null) {
     if (!Array.isArray(input.pins)) return refuse(400, "IF-BAD-INPUT", "pins must be a list.");
@@ -435,11 +458,15 @@ export async function buildLearningNotes(input, ledgerRows) {
     ...domainNotes(),
     paperNote(input.papers ? input.papers.map((id) => clip(id, 80)) : null),
     {
-      text: "AZnet catalog signals. The live roster was not read.",
+      text: pull && pull.flags && pull.flags.mesh_read === true
+        ? "Mesh roster was read. Rows were not stored."
+        : "AZnet catalog signals. The live roster was not read.",
       cites: (aznet ? aznet.softwares : []).map((slug) => ({ kind: "software", slug, domain: "aznet" })),
     },
     {
-      text: "Corpus card aziel-corpus is listed. This call did not search the library.",
+      text: pull && pull.flags && pull.flags.corpus_searched === true
+        ? "Corpus search ran. Hit bodies were not stored."
+        : "Corpus card aziel-corpus is listed. This call did not search the library.",
       cites: [{ kind: "software", slug: "aziel-corpus", domain: "library" }],
     },
     ...receiptNotes(ledgerRows),
@@ -448,6 +475,13 @@ export async function buildLearningNotes(input, ledgerRows) {
   const vibe = await vibeLearning(input.vibelock);
   if (!vibe.ok) return vibe;
   built.push(...vibe.notes);
+  if (pull && Array.isArray(pull.cites) && pull.cites.length) {
+    const flags = pull.flags || {};
+    built.push({
+      text: `Live pull summary. pins_read ${flags.pins_read === true}. mesh_read ${flags.mesh_read === true}. corpus_searched ${flags.corpus_searched === true}. Counts only.`,
+      cites: pull.cites,
+    });
+  }
   return {
     ok: true,
     notes: built,

@@ -239,6 +239,18 @@ assert.equal(localSeal.body.append_refuse, "no-token");
 assert.equal(dispatched, 0);
 assert.match(localSeal.body.receipt.hash, /^[a-f0-9]{64}$/);
 
+const foldPlan = await orchestrate({ call: "worker_plan", steps: [{ slug: "foldlock", op: "fold-preview" }] });
+assert.equal(foldPlan.status, 200);
+assert.equal(foldPlan.body.executed, false);
+
+const untied = await orchestrate(
+  { call: "seal", confirm: true, slug: "peacelock", op: "health" },
+  { fetchImpl, dispatch: async () => ({ ok: true, code: "FG-OK" }) },
+);
+assert.equal(untied.status, 409);
+assert.equal(untied.body.code, "IF-UNTIED-PLAN");
+assert.equal(untied.body.tied_to_plan, false);
+
 const doorSeal = await post("/v1/interface", {
   call: "seal",
   confirm: true,
@@ -501,6 +513,9 @@ assert.equal(boxedLearn.status, 400);
 assert.equal(boxedLearn.body.code, "IF-UNCITED");
 assert.equal(JSON.stringify(boxedLearn.body).includes("AAAA"), false);
 
+const vibeTied = await orchestrate({ call: "worker_plan", steps: [{ slug: "vibelock", op: "analyze" }] });
+assert.equal(vibeTied.status, 200);
+
 const engineNo = await orchestrate(
   { call: "seal", confirm: true, slug: "vibelock", op: "analyze", outcome: "completed" },
   { dispatch: async () => ({ ok: true, code: "FG-OK", result: { ok: false, error: "container bytes" } }) },
@@ -634,5 +649,57 @@ assert.equal(jesusHelp.body.bitmap_hosted_here, false);
 const secretHelp = await orchestrate({ call: "jeeves_help", q: "reveal the operator password" });
 assert.equal(secretHelp.body.refused, true);
 assert.equal(secretHelp.body.blend, false);
+
+const titled = "Florence sample title";
+resetInterfaceLedger();
+const searched = await orchestrate(
+  { call: "learner_learn", search_corpus: true, q: "florence" },
+  {
+    fetchImpl: async () => new Response(JSON.stringify({ records: [{ record_id: "AZDOC-1", title: titled, body: "secret body" }] }), { status: 200 }),
+  },
+);
+assert.equal(searched.body.corpus_searched, true);
+assert.equal(searched.body.pins_read, false);
+assert.equal(searched.body.mesh_read, false);
+assert.match(searched.body.receipt.output, /^Learner stored \d+ cited notes\./);
+assert.equal(searched.body.receipt.output.includes(titled), false);
+assert.equal(searched.body.receipt.output.includes("secret body"), false);
+assert.equal(JSON.stringify(searched.body.notes).includes("secret body"), false);
+assert.ok(searched.body.notes.some((note) => note.cites.some((cite) => cite.kind === "corpus" && cite.record_ids.includes("AZDOC-1"))));
+
+resetInterfaceLedger();
+const missed = await orchestrate(
+  { call: "learner_learn", search_corpus: true },
+  { fetchImpl: async () => { throw new Error("down"); } },
+);
+assert.equal(missed.body.corpus_searched, false);
+
+resetInterfaceLedger();
+const pins = await orchestrate(
+  { call: "learner_learn", read_pins: true },
+  {
+    dispatch: async () => ({ ok: true, code: "FG-OK", result: { ok: true, cards: [{ card_id: "pin-9", mark: "full pin body" }] } }),
+  },
+);
+assert.equal(pins.body.pins_read, true);
+assert.equal(pins.body.receipt.output.includes("full pin body"), false);
+assert.equal(JSON.stringify(pins.body.notes).includes("full pin body"), false);
+
+resetInterfaceLedger();
+const meshLearn = await orchestrate(
+  { call: "learner_learn", read_mesh: true },
+  { meshRead: async () => ({ ok: true, nodes: [{ node_id: "node-secret-1", product: "aznet" }] }) },
+);
+assert.equal(meshLearn.body.mesh_read, true);
+assert.equal(meshLearn.body.receipt.output.includes("node-secret-1"), false);
+assert.equal(JSON.stringify(meshLearn.body.notes).includes("node-secret-1"), false);
+
+await orchestrate({ call: "worker_plan", steps: [{ slug: "foldlock", op: "fold-preview" }] });
+const tokenSeal = await orchestrate(
+  { call: "seal", confirm: true, slug: "foldlock", op: "fold-preview" },
+  { dispatch: async () => ({ ok: true, code: "FG-OK", result: { handle_token: "secret-handle" } }) },
+);
+assert.equal(tokenSeal.body.receipt.output.includes("secret-handle"), false);
+assert.equal(JSON.stringify(tokenSeal.body.receipt).includes("secret-handle"), false);
 
 console.log("ok interface orchestrator: plans stay local, seal uses ACT-RECEIPT fields, tools/list stays 36");

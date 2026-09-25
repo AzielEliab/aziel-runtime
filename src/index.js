@@ -1568,6 +1568,7 @@ function escapeXml(s) {
 function llmsTxt(origin, env = {}) {
   const base = origin.replace(/\/$/, "");
   const calling = resolveCallingName(env);
+  const catalog = softwareCatalogBody(base, env);
   const lines = [
     `# ${calling.calling_name}`,
     "",
@@ -1577,6 +1578,10 @@ function llmsTxt(origin, env = {}) {
     rewriteLiveCallingDisplay(aboutAzielLlmsBlock(), calling).trimEnd(),
     "",
     `Role: engine-runtime (catalog + pull + proxy + session + in-process engines)`,
+    `suite_version: ${catalog.version || RUNTIME_VERSION}`,
+    `git_sha: ${catalog.git_sha || ""}`,
+    `softwares_count: ${catalog.count}`,
+    "version_id: null",
     "",
     rewriteLiveCallingDisplay(personLlmsBlock(origin), calling).trimEnd(),
     "",
@@ -1780,6 +1785,7 @@ function citeJson(origin, env = {}) {
   const base = origin.replace(/\/$/, "");
   const calling = resolveCallingName(env);
   const banCite = banSurvivalCiteField(origin, env);
+  const catalog = softwareCatalogBody(base, env);
   return {
     product: calling.calling_name,
     slug: calling.calling_slug,
@@ -1808,6 +1814,14 @@ function citeJson(origin, env = {}) {
     role: RUNTIME_ROLE,
     layer: RUNTIME_LAYER,
     version: RUNTIME_VERSION,
+    suite_tip: {
+      source: "GET /v1/software",
+      suite_version: catalog.version || RUNTIME_VERSION,
+      git_sha: catalog.git_sha || null,
+      softwares_count: catalog.count,
+      version_id: null,
+      version_id_note: "GET /v1/software does not expose version_id.",
+    },
     uses: base + "/v1/uses",
     stats: socialStatusField(origin),
     social_status: socialStatusField(origin),

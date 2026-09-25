@@ -73,6 +73,7 @@ assert.match(home, /data-domain-tab="elroi"/);
 assert.match(home, /id="sot-desk"/);
 assert.match(home, /data-sot="dry"/);
 assert.doesNotMatch(home, /data-domain-tab="corpus"/);
+assert.doesNotMatch(home, /data-domain-tab="aziel-elroi-eliab"/);
 assert.doesNotMatch(home, /Human side of this runtime/);
 const catalogSlugs = PRODUCTS.map((p) => p.slug).concat(WORKER_ONLY_PRODUCTS.map((p) => p.slug));
 assert.deepEqual(uncoveredUiDomainSlugs(catalogSlugs), []);

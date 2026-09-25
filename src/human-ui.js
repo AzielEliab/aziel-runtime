@@ -223,8 +223,8 @@ export const HUMAN_TASKS = Object.freeze([
 export const HUMAN_UI_CSS = `
   .skip-workspace{position:absolute;left:-999px;top:auto;width:1px;height:1px;overflow:hidden}
   .skip-workspace:focus{position:static;width:auto;height:auto;padding:.35rem .7rem;background:#241c0d;color:#f0d78c}
-  .domain-tabs{display:flex;flex-wrap:wrap;gap:.4rem;margin:0 0 .65rem;padding:.55rem .7rem;border:1px solid #3d3420;border-radius:10px;background:#16120a}
-  .domain-tabs button{background:#241c0d;color:#f0d78c;border:1px solid #5c4a1a;border-radius:8px;padding:.4rem .75rem;cursor:pointer;font:inherit;font-size:.85rem;font-weight:600}
+  .domain-tabs{display:flex;flex-wrap:nowrap;overflow-x:auto;gap:.4rem;margin:0 0 .65rem;padding:.55rem .7rem;border:1px solid #3d3420;border-radius:10px;background:#16120a}
+  .domain-tabs button{background:#241c0d;color:#f0d78c;border:1px solid #5c4a1a;border-radius:8px;padding:.4rem .75rem;cursor:pointer;font:inherit;font-size:.85rem;font-weight:600;white-space:nowrap}
   .domain-tabs button:hover,.domain-tabs button:focus{background:#33280f}
   .domain-tabs button[aria-selected="true"]{background:#33280f;box-shadow:0 0 0 1px #d4af37}
   .dash-card.domain-off{display:none}
@@ -393,7 +393,7 @@ function aiPeerDeskHtml(p, origin) {
     "desk-azai",
     "learner",
     `<h4><a href="${escapeHtml(base)}/p/azai">AZAI</a> <span class="slug">learner</span></h4>
-  <p class="blurb">Learner. Notes cite a domain, paper, software slug, receipt hash, pin id, or a VibeLock signal channel. VibeLock notes keep physics and related signals heuristic, linguistics experimental, and vibration as a measurement only with a body-coupled track. A file name does not decode the file. Raw container bytes are refused. Scores appear only from posted features or an analysis you supply. No accuracy percentage is stored. 4DMap is not queried. The live mesh roster is not read. The library is not searched. A memory write needs the confirm box. Belief is not truth.</p>
+  <p class="blurb">Learner. Notes cite a domain, paper, software slug, receipt hash, pin id, or a VibeLock signal channel. VibeLock notes keep physics and related signals heuristic, linguistics experimental, and vibration as a measurement only with a body-coupled track. A file name does not decode the file. Raw container bytes are refused. Scores appear only from posted features or an analysis you supply. No accuracy percentage is stored. A live 4DMap read, mesh roster read, or corpus search runs only when that pull is asked for, and the flag is true only after the read returns. Pin bodies, roster rows, and corpus hit text stay out of the receipt sentence. A memory write needs the confirm box and an operator subject. Belief is not truth.</p>
   <div class="field">
     <label for="ai-pin">Pin id (optional, operator supplied)</label>
     <input id="ai-pin" type="text" placeholder="pin-1" autocomplete="off" spellcheck="false">
@@ -748,7 +748,7 @@ ${dashCards}
 
   <section class="task" id="sot-desk" data-kind="sot" data-origin="${escapeHtml(base)}">
     <h3>Suite tip sync</h3>
-    <p class="blurb">One source of truth: live <code>GET /v1/software</code> for suite version, git sha, Softwares count, and card versions. <code>version_id</code> stays null. Ask Jeeves is not a Softwares card. Sync is a pull plane (<code>POST /v1/mesh/sot-sync</code>), not <code>mesh_broadcast</code>. Dry run lists every outlet and the fields that would change. Confirm writes an ACT-RECEIPT and updates <code>last_applied</code> only where the write succeeded. An unreachable outlet keeps its last-known inventory.</p>
+    <p class="blurb">One source of truth: live <code>GET /v1/software</code> for suite version, git sha, Softwares count, and card versions. <code>version_id</code> stays null. Ask Jeeves is not a Softwares card. Sync is a pull plane (<code>POST /v1/mesh/sot-sync</code>), not <code>mesh_broadcast</code>. Outlets are read together. A down site stays on screen as last-known inventory plus an unreachable status, and the other outlets still update. Dry run lists every outlet and the fields that would change. Confirm is consent, not a login. It writes an ACT-RECEIPT and updates <code>last_applied</code> only where the write succeeded.</p>
     <p class="ws-status" id="sot-status-line" data-state="ready" role="status" aria-live="polite">Refresh tip to load the outlet matrix</p>
     <pre class="ws-out fg-out" id="sot-out" role="status" aria-live="polite">GET ${escapeHtml(base)}/v1/mesh/sot</pre>
     <label><input id="sot-confirm" type="checkbox"> confirm apply</label>
@@ -767,7 +767,11 @@ ${dashCards}
     var origin = desk.getAttribute("data-origin") || "";
     var out = document.getElementById("sot-out");
     var line = document.getElementById("sot-status-line");
-    function paint(body) {
+    var seq = 0;
+    var last = null;
+    function paint(body, mine) {
+      if (mine !== seq) return;
+      last = body;
       var sot = body && body.sot ? body.sot : body;
       var version = sot && sot.suite_version != null ? sot.suite_version : "—";
       var sha = sot && sot.git_sha != null ? sot.git_sha : "—";
@@ -783,15 +787,21 @@ ${dashCards}
       }
       if (out) out.textContent = JSON.stringify(body, null, 2);
     }
+    function fail(err, mine) {
+      if (mine !== seq) return;
+      if (line) {
+        line.textContent = "Suite tip unreachable. Last-known rows stay on screen. Nothing was invented.";
+        line.setAttribute("data-state", "ready");
+      }
+      if (out && !last) out.textContent = String(err && err.message ? err.message : err);
+    }
     function load(path) {
-      if (line) { line.textContent = "Loading suite tip"; line.setAttribute("data-state", "loading"); }
-      return fetch(origin + path, { headers: { accept: "application/json" } })
+      var mine = ++seq;
+      if (line) { line.textContent = "Loading suite tip. A down site does not stop the others."; line.setAttribute("data-state", "loading"); }
+      return fetch(origin + path, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(8000) })
         .then(function (res) { return res.json(); })
-        .then(paint)
-        .catch(function (err) {
-          if (line) line.textContent = "Suite tip unreachable. Last-known rows were not replaced.";
-          if (out) out.textContent = String(err && err.message ? err.message : err);
-        });
+        .then(function (body) { paint(body, mine); })
+        .catch(function (err) { fail(err, mine); });
     }
     desk.querySelectorAll("[data-sot]").forEach(function (btn) {
       btn.addEventListener("click", function () {
@@ -807,14 +817,14 @@ ${dashCards}
           }
           body = { confirm: true };
         }
-        if (line) { line.textContent = act === "dry" ? "Dry run" : "Applying"; line.setAttribute("data-state", "loading"); }
+        var mine = ++seq;
+        if (line) { line.textContent = act === "dry" ? "Dry run. Other outlets still update if one site is down." : "Applying. A down site keeps its last-known row."; line.setAttribute("data-state", "loading"); }
         fetch(origin + "/v1/mesh/sot-sync", {
           method: "POST",
           headers: { "content-type": "application/json", accept: "application/json" },
-          body: JSON.stringify(body)
-        }).then(function (res) { return res.json(); }).then(paint).catch(function (err) {
-          if (out) out.textContent = String(err && err.message ? err.message : err);
-        });
+          body: JSON.stringify(body),
+          signal: AbortSignal.timeout(8000)
+        }).then(function (res) { return res.json(); }).then(function (payload) { paint(payload, mine); }).catch(function (err) { fail(err, mine); });
       });
     });
   })();
@@ -1558,7 +1568,7 @@ export function humanDoorScript() {
     document.querySelectorAll("[data-dash-slug]").forEach(function (el) {
       let hay = String(el.getAttribute("data-search") || el.textContent || "").toLowerCase();
       let searchMiss = !!(q && hay.indexOf(q) === -1);
-      let domainMiss = !q && el.getAttribute("data-domain") !== activeDomain;
+      let domainMiss = el.getAttribute("data-domain") !== activeDomain;
       el.classList.toggle("task-hidden", searchMiss);
       el.classList.toggle("domain-off", domainMiss);
     });

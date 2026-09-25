@@ -6,9 +6,9 @@
 import assert from "node:assert/strict";
 import { BUILD_GIT_SHA } from "../src/build-meta.js";
 import { PUBLIC_MCP_TOOLS } from "../src/fraggate/codes.js";
-import { orchestrate } from "../src/interface-orchestrator.js";
+import { interfaceLedgerSnapshot, orchestrate } from "../src/interface-orchestrator.js";
 import { meshFanoutSuitePresence, resetMeshStore } from "../src/mesh.js";
-import { resetSotStore, setOutletPushUrl } from "../src/sot-sync.js";
+import { resetSotStore, runSotMeshOp, setOutletPushUrl } from "../src/sot-sync.js";
 
 const handler = (await import("../src/index.js")).default.fetch;
 const origin = "https://aziel-runtime.example";
@@ -208,6 +208,62 @@ assert.equal(viaInterface.status, 200);
 assert.equal(viaInterface.body.code, "SOT-DRY-RUN");
 assert.equal(viaInterface.body.receipt, null);
 assert.equal(viaInterface.body.tools_list_unchanged, true);
+assert.equal(viaInterface.body.confirm_is_consent, true);
+assert.equal(viaInterface.body.tenant_auth, false);
+assert.equal(viaInterface.body.receipt_same_as_http, true);
+
+const viaMissing = await orchestrate({ call: "mesh_sot_sync" }, { fetchImpl: sotFetch });
+assert.equal(viaMissing.body.code, "SOT-CONFIRM-REQUIRED");
+assert.equal(viaMissing.body.receipt, null);
+const viaBearer = await orchestrate({ call: "mesh_sot_sync", confirm: true, authorization: "Bearer not-consent" }, { fetchImpl: sotFetch });
+assert.equal(viaBearer.body.code, "IF-SECRET-REFUSED");
+assert.equal(viaBearer.body.receipt == null, true);
+
+const both = await orchestrate({ call: "mesh_sot_sync", dry_run: true, confirm: true }, { fetchImpl: sotFetch });
+assert.equal(both.body.code, "SOT-DRY-RUN");
+assert.equal(both.body.written, false);
+assert.equal(both.body.receipt, null);
+
+const ledgerBefore = interfaceLedgerSnapshot().length;
+const viaConfirm = await orchestrate({ call: "mesh_sot_sync", confirm: true }, { fetchImpl: sotFetch });
+assert.equal(viaConfirm.status, 200);
+assert.equal(viaConfirm.body.code, "SOT-APPLIED");
+assert.equal(viaConfirm.body.confirm_is_consent, true);
+assert.equal(viaConfirm.body.tenant_auth, false);
+assert.match(viaConfirm.body.receipt.hash, /^[0-9a-f]{64}$/);
+assert.equal(typeof viaConfirm.body.receipt.request, "string");
+assert.equal(typeof viaConfirm.body.receipt.output, "string");
+assert.equal(viaConfirm.body.receipt.event.tool, "sot-sync");
+assert.equal(viaConfirm.body.receipt.previous_hash, again.data.receipt.hash);
+assert.equal(interfaceLedgerSnapshot().length, ledgerBefore);
+
+const slowFetch = (url, init) => {
+  const u = String(url);
+  if (u.includes("azieleliab.com/cite.json") || u.includes("/person.jsonld")) {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => resolve(new Response("late", { status: 200 })), 8000);
+      if (init && init.signal) {
+        init.signal.addEventListener("abort", () => {
+          clearTimeout(timer);
+          reject(new Error("aborted"));
+        });
+      }
+    });
+  }
+  return sotFetch(url, init);
+};
+const slowStart = Date.now();
+const slow = await runSotMeshOp("sot-sync", { dry_run: true, origin }, { sotFetch: slowFetch });
+const slowMs = Date.now() - slowStart;
+assert.ok(slowMs < 4500, `parallel probes took ${slowMs}ms`);
+const slowCite = slow.outlets.find((row) => row.id === "azieleliab-cite");
+const slowGodlock = slow.outlets.find((row) => row.id === "godlock.uk-catalog");
+assert.equal(slowCite.status, "unreachable");
+assert.equal(slowCite.last_known.software_versions.foldlock, "tip-fixture");
+assert.equal(slowCite.invented, false);
+assert.notEqual(slowGodlock.status, "unreachable");
+assert.equal(slow.sot.softwares_count, 42);
+assert.equal(slow.sot.version_id, null);
 
 const openapi = await jsonReq("/openapi.json");
 assert.ok(openapi.data.paths["/v1/mesh/sot"]);

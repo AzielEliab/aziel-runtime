@@ -15,7 +15,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { BUILD_GIT_SHA } from "./build-meta.js";
 import { check as decisiongateCheck } from "./engines/decisiongate/engine.js";
 import { JEEVES_SUITE_HELP } from "./engines/aziel-corpus/jeeves.js";
 import { appendActReceipt, mintActReceipt } from "./library-receipts.js";
@@ -337,7 +336,7 @@ function staticOutlets() {
     in_process: true,
     push_url: null,
     push_contract: null,
-    sister_note: "Compares BUILD_GIT_SHA and RUNTIME_VERSION with the SoT tip. Apply does not rewrite source files.",
+    sister_note: "This process cites the same GET /v1/software projection. Apply does not rewrite source files or invent a sha.",
   });
   rows.push({
     id: "mesh-sot-ledger",
@@ -385,18 +384,19 @@ export function listOutletRecords(nodes) {
 }
 
 function frozenObserved(local) {
+  const tip = projectSot(local, { source: "in-process-get-v1-software" });
   return {
-    suite_version: RUNTIME_VERSION,
-    git_sha: shaOrNull(BUILD_GIT_SHA),
-    softwares_count: Number.isInteger(local && local.count) ? local.count : null,
+    suite_version: tip.suite_version,
+    git_sha: tip.git_sha,
+    softwares_count: tip.softwares_count,
     version_id: null,
-    software_versions: null,
+    software_versions: tip.software_versions,
     exposed: {
-      suite_version: true,
-      git_sha: shaOrNull(BUILD_GIT_SHA) != null,
-      softwares_count: Number.isInteger(local && local.count),
+      suite_version: tip.suite_version != null,
+      git_sha: tip.git_sha != null,
+      softwares_count: tip.softwares_count != null,
       version_id: false,
-      software_versions: false,
+      software_versions: true,
     },
   };
 }
@@ -701,12 +701,11 @@ export async function runSotMeshOp(op, payload, env, ctx = {}) {
   }
   const sot = resolved.sot;
   const outlets = listOutletRecords(nodes);
-  const probed = [];
-  for (const outlet of outlets) {
+  const probed = await Promise.all(outlets.map(async (outlet) => {
     const saved = ledger.outlets[outlet.id] || null;
     const probe = await probeOutlet(outlet, sot, resolved.local, fetchImpl, saved);
-    probed.push({ outlet, saved, probe });
-  }
+    return { outlet, saved, probe };
+  }));
 
   if (op === "outlets" || op === "sot-status") {
     const rows = probed.map(({ outlet, saved, probe }) => publicOutlet(outlet, probe, saved, null));
@@ -727,6 +726,9 @@ export async function runSotMeshOp(op, payload, env, ctx = {}) {
       live_nodes_unchanged: true,
       download_counters_unchanged: true,
       tools_list_unchanged: true,
+      confirm_is_consent: true,
+      tenant_auth: false,
+      probes_parallel: true,
       http_status: 200,
     };
   }
@@ -750,6 +752,8 @@ export async function runSotMeshOp(op, payload, env, ctx = {}) {
       mesh_broadcast: false,
       nodes_unchanged: true,
       live_nodes_unchanged: true,
+      confirm_is_consent: true,
+      tenant_auth: false,
     };
   }
 
@@ -776,7 +780,10 @@ export async function runSotMeshOp(op, payload, env, ctx = {}) {
       live_nodes_unchanged: true,
       download_counters_unchanged: true,
       http_status: 200,
-      note: "Dry run. last_applied was not updated. Unreachable outlets were not filled in.",
+      confirm_is_consent: true,
+      tenant_auth: false,
+      probes_parallel: true,
+      note: "Dry run. last_applied was not updated. Unreachable outlets were not filled in. Confirm is consent, not tenant auth.",
     };
   }
 
@@ -798,11 +805,18 @@ export async function runSotMeshOp(op, payload, env, ctx = {}) {
     };
   }
 
+  const pushed = await Promise.all(probed.map(async ({ outlet, probe }) => {
+    if (outlet.ledger || probe.status === "ok" || !outlet.push_url) return null;
+    if (probe.unreachable && !(outlet.kind === "mesh_hook" && outlet.push_url)) return null;
+    return postHook(outlet, sot, fetchImpl);
+  }));
+
   const rows = [];
   let applied = 0;
   let unreachable = 0;
-  for (const item of probed) {
-    const { outlet, saved, probe } = item;
+  for (let index = 0; index < probed.length; index += 1) {
+    const { outlet, saved, probe } = probed[index];
+    const hook = pushed[index];
     let apply = "not-written";
     let nextApplied = saved && saved.last_applied ? saved.last_applied : null;
     let nextKnown = rememberKnown(saved, probe);
@@ -818,8 +832,7 @@ export async function runSotMeshOp(op, payload, env, ctx = {}) {
       status = "ok";
       applied += 1;
     } else if (outlet.push_url && probe.status !== "ok") {
-      const pushed = await postHook(outlet, sot, fetchImpl);
-      if (pushed.ok) {
+      if (hook && hook.ok) {
         nextApplied = tipFromSot(sot);
         apply = "written";
         status = "ok";
@@ -897,6 +910,10 @@ export async function runSotMeshOp(op, payload, env, ctx = {}) {
     nodes_unchanged: true,
     live_nodes_unchanged: true,
     download_counters_unchanged: true,
+    confirm_is_consent: true,
+    tenant_auth: false,
+    probes_parallel: true,
     http_status: 200,
+    note: "Confirm is operator consent. It is not tenant auth. The ACT receipt is the same object on HTTP, FragGate, and interface/orchestrate.",
   };
 }

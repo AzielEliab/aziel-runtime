@@ -30,7 +30,9 @@ In-process, this Worker is the live catalog. A separate `live_base` pull is used
 | FragGate | `fraggate_call` `{ slug: "mesh", op: "outlets" \| "sot-status" \| "sot-sync" }` |
 | Interface | `POST /v1/interface` calls `mesh_outlets`, `mesh_sot_status`, `mesh_sot_sync` |
 
-Missing `dry_run` and `confirm` returns `SOT-CONFIRM-REQUIRED` and writes nothing. `dry_run` wins when both are set. Confirm runs DecisionGATE on a fixed proposal. A block returns `SOT-GATE-BLOCK` and writes nothing. A pass mints ACT-RECEIPT-1.0 (`hash`, `request`, `output`, `event`) and fail-open appends to the corpus chain when `RECEIPT_APPEND_TOKEN` is set.
+Missing `dry_run` and `confirm` returns `SOT-CONFIRM-REQUIRED` and writes nothing. A bearer or other header is not confirm. Confirm is operator consent, not tenant auth. `dry_run` wins when both are set. Confirm runs DecisionGATE on a fixed proposal. A block returns `SOT-GATE-BLOCK` and writes nothing. A pass mints one ACT-RECEIPT-1.0 (`hash`, `request`, `output`, `event`). HTTP `POST /v1/mesh/sot-sync`, FragGate `sot-sync`, and interface `mesh_sot_sync` return that same receipt. The interface path does not mint a second one. Append to the corpus chain is fail-open when `RECEIPT_APPEND_TOKEN` is set.
+
+Outlet probes run together. A down pull is `unreachable` and keeps `last_known`. The other outlets still update. The desk does not wait on one site before painting the rest, and a failed refresh leaves the last matrix on screen.
 
 `tools/list` stays the 36 `PUBLIC_MCP_TOOLS`. Promoting `mesh_outlets` / `mesh_sot_status` / `mesh_sot_sync` onto that list is a later additive minor (cap 40). This draft does not do that.
 
