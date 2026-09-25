@@ -356,7 +356,65 @@ function doorOpLabel(slug, op) {
   return op;
 }
 
+function aiPeerDeskHtml(p, origin) {
+  const base = String(origin || "").replace(/\/$/, "");
+  const hay = `${p.name} ${p.slug} worker learner intake plan handoff`.toLowerCase();
+  const shell = (id, role, inner) => `<article class="dash-card domain-off" id="${id}" data-desk="${escapeHtml(p.slug)}" data-dash-slug="${escapeHtml(p.slug)}" data-domain="ai" data-role="${role}" data-origin="${escapeHtml(base)}" data-search="${escapeHtml(hay)}">
+  ${inner}
+</article>`;
+  if (p.slug === "azbot") {
+    return shell(
+      "desk-azbot",
+      "worker",
+      `<h4><a href="${escapeHtml(base)}/p/azbot">AZBot</a> <span class="slug">worker</span></h4>
+  <p class="blurb">Worker peer. Task intake, a Software plan, status, and handoff. A plan does not run, merge, or deploy. Seal needs the confirm box. A live step then goes through FragGate. Public receipt append stays on that confirm path.</p>
+  <div class="field">
+    <label for="bot-task">Task</label>
+    <textarea id="bot-task" placeholder="fold this note"></textarea>
+  </div>
+  <div class="field">
+    <label for="bot-handoff">Handoff slug</label>
+    <input id="bot-handoff" type="text" placeholder="foldlock" autocomplete="off" spellcheck="false">
+  </div>
+  <div class="field">
+    <label for="bot-confirm"><input id="bot-confirm" type="checkbox"> Confirm seal (required before a planned step is dispatched)</label>
+  </div>
+  <div class="actions">
+    <button type="button" data-bot="intake">Intake</button>
+    <button type="button" data-bot="plan">Plan</button>
+    <button type="button" data-bot="status">Status</button>
+    <button type="button" data-bot="handoff">Handoff</button>
+    <button type="button" data-bot="seal">Seal</button>
+  </div>
+  <pre class="ws-out fg-out" id="azbot-out" role="status" aria-live="polite">Worker desk. Nothing has run.</pre>`,
+    );
+  }
+  return shell(
+    "desk-azai",
+    "learner",
+    `<h4><a href="${escapeHtml(base)}/p/azai">AZAI</a> <span class="slug">learner</span></h4>
+  <p class="blurb">Learner. Notes cite a domain, paper, software slug, receipt hash, or pin id. 4DMap is not queried. The live mesh roster is not read. The library is not searched. A memory write needs the confirm box. Belief is not truth.</p>
+  <div class="field">
+    <label for="ai-pin">Pin id (optional, operator supplied)</label>
+    <input id="ai-pin" type="text" placeholder="pin-1" autocomplete="off" spellcheck="false">
+  </div>
+  <div class="field">
+    <label for="ai-query">Recall query</label>
+    <input id="ai-query" type="text" placeholder="foldlock" autocomplete="off" spellcheck="false">
+  </div>
+  <div class="field">
+    <label for="ai-confirm"><input id="ai-confirm" type="checkbox"> Confirm memory write (AKM observe). Local notes still cite sources either way.</label>
+  </div>
+  <div class="actions">
+    <button type="button" data-ai="learn">Learn</button>
+    <button type="button" data-ai="recall">Recall</button>
+  </div>
+  <pre class="ws-out fg-out" id="azai-out" role="status" aria-live="polite">Learner desk. No note stored yet.</pre>`,
+  );
+}
+
 function dashCardHtml(p, origin) {
+  if (p && (p.slug === "azbot" || p.slug === "azai")) return aiPeerDeskHtml(p, origin);
   const base = String(origin || "").replace(/\/$/, "");
   const live = hasLiveDoor(p.slug);
   const op = primaryOpFor(p.slug);
@@ -1428,6 +1486,69 @@ export function humanDoorScript() {
   });
   if (dashFilter) dashFilter.addEventListener("input", applyDomain);
   applyDomain();
+  let botPlan = { slug: "", op: "" };
+  let botDesk = document.getElementById("desk-azbot");
+  if (botDesk) {
+    let origin = botDesk.getAttribute("data-origin") || "";
+    let out = document.getElementById("azbot-out");
+    botDesk.querySelectorAll("[data-bot]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        let action = btn.getAttribute("data-bot");
+        let task = (document.getElementById("bot-task") && document.getElementById("bot-task").value) || "";
+        let handoff = (document.getElementById("bot-handoff") && document.getElementById("bot-handoff").value) || "";
+        if (action === "seal") {
+          let box = document.getElementById("bot-confirm");
+          if (!box || !box.checked) {
+            show(out, "Seal needs the confirm box. Nothing was sent.", "error");
+            return;
+          }
+          if (!botPlan.slug) {
+            show(out, "Seal needs a plan. Nothing was sent.", "error");
+            return;
+          }
+          request(origin + "/v1/interface", {
+            method: "POST",
+            headers: { "content-type": "application/json", accept: "application/json" },
+            body: JSON.stringify({ call: "seal", confirm: true, slug: botPlan.slug, op: botPlan.op })
+          }, out, btn);
+          return;
+        }
+        let body = { call: action === "intake" ? "worker_intake" : action === "plan" ? "worker_plan" : action === "status" ? "worker_status" : "worker_handoff" };
+        if (action !== "status") body.task = task;
+        if (action === "handoff") body.handoff = handoff;
+        request(origin + "/v1/interface", {
+          method: "POST",
+          headers: { "content-type": "application/json", accept: "application/json" },
+          body: JSON.stringify(body)
+        }, out, btn).then(function (got) {
+          let steps = got && got.body && got.body.steps;
+          if (steps && steps[0]) botPlan = { slug: steps[0].slug || "", op: steps[0].op || "" };
+        });
+      });
+    });
+  }
+  let aiDesk = document.getElementById("desk-azai");
+  if (aiDesk) {
+    let origin = aiDesk.getAttribute("data-origin") || "";
+    let out = document.getElementById("azai-out");
+    aiDesk.querySelectorAll("[data-ai]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        let action = btn.getAttribute("data-ai");
+        let pin = (document.getElementById("ai-pin") && document.getElementById("ai-pin").value) || "";
+        let query = (document.getElementById("ai-query") && document.getElementById("ai-query").value) || "";
+        let box = document.getElementById("ai-confirm");
+        let body = { call: action === "recall" ? "learner_recall" : "learner_learn" };
+        if (action === "recall") body.q = query;
+        if (pin && String(pin).trim()) body.pins = [{ pin_id: String(pin).trim() }];
+        if (box && box.checked) body.confirm = true;
+        request(origin + "/v1/interface", {
+          method: "POST",
+          headers: { "content-type": "application/json", accept: "application/json" },
+          body: JSON.stringify(body)
+        }, out, btn);
+      });
+    });
+  }
 })();
 </script>`;
 }

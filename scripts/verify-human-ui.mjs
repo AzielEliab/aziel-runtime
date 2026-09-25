@@ -84,6 +84,8 @@ assert.match(home, /data-dash-slug="azbrowser"[^>]*data-domain="aznet"/);
 assert.match(home, /data-dash-slug="4dmap"[^>]*data-domain="forensics"/);
 assert.match(home, /data-dash-slug="postking"[^>]*data-domain="games"/);
 assert.match(home, /data-dash-slug="azchat"[^>]*data-domain="social"/);
+assert.match(home, /id="desk-azbot"[^>]*data-domain="ai"[^>]*data-role="worker"/);
+assert.match(home, /id="desk-azai"[^>]*data-domain="ai"[^>]*data-role="learner"/);
 assert.match(home, /id="dash-receipts"/);
 assert.match(home, /id="mesh-panel"/);
 assert.match(home, /id="session-strip"/);

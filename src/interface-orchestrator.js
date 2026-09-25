@@ -19,6 +19,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import {
+  LEARNER_CALLS,
+  WORKER_CALLS,
+  buildLearningNotes,
+  learnerBody,
+  recallLearningNotes,
+  resetAiDesks,
+  storeLearningNotes,
+  workerHandoff,
+  workerIntake,
+  workerPlan,
+  workerStatus,
+} from "./ai-desks.js";
 import { LIVE_OPS } from "./fraggate/registry.js";
 import { appendActReceipt, mintActReceipt, receiptAppendToken } from "./library-receipts.js";
 import { isTruthyFlag } from "./mcp-safeguard.js";
@@ -42,7 +55,13 @@ export const VEILLOCK_SAFE_CALLS = Object.freeze([
 
 export const HOST_READ_CALLS = Object.freeze(["mesh_awareness", "forensic_tip", "plan"]);
 
-export const INTERFACE_CALLS = Object.freeze([...VEILLOCK_SAFE_CALLS, ...HOST_READ_CALLS, "seal"]);
+export const INTERFACE_CALLS = Object.freeze([
+  ...VEILLOCK_SAFE_CALLS,
+  ...HOST_READ_CALLS,
+  ...WORKER_CALLS,
+  ...LEARNER_CALLS,
+  "seal",
+]);
 
 const LOCAL_COMMANDS = new Set(["wrap", "engulf", "join", "link", "play", "record", "inject", "intercept", "facetime"]);
 
@@ -130,6 +149,7 @@ const ledger = [];
 
 export function resetInterfaceLedger() {
   ledger.length = 0;
+  resetAiDesks();
 }
 
 export function interfaceLedgerSnapshot() {
@@ -469,6 +489,106 @@ function liveDispatch(slug, op) {
   return { ok: true, would: true, local_only: false, slug, op };
 }
 
+async function runAiDesk(call, input, link, opts) {
+  if (isTruthyFlag(input.dry_run)) {
+    return fail(400, "IF-CONFIRM-REQUIRED", "Dry run stored nothing and dispatched nothing.", { call, dry_run: true });
+  }
+  if (WORKER_CALLS.includes(call)) {
+    const built =
+      call === "worker_intake"
+        ? workerIntake(input)
+        : call === "worker_plan"
+          ? workerPlan(input)
+          : call === "worker_status"
+            ? workerStatus()
+            : workerHandoff(input);
+    if (!built.ok) return fail(built.status, built.code, built.error, { call });
+    return finish(call, 200, link, `AZBot ${call}.`, built.output, built.body, opts, false);
+  }
+  if (call === "learner_recall") {
+    const query = input.q || input.query || input.task || "";
+    const found = recallLearningNotes(query);
+    let akm = { attempted: false, reason: "confirm required" };
+    if (isTruthyFlag(input.confirm)) {
+      akm = await recallAkm(opts, query);
+    }
+    return finish(
+      call,
+      200,
+      link,
+      "AZAI recalled local learning notes.",
+      `Learner recall returned ${found.length} cited notes. Belief is not truth.`,
+      learnerBody(call, { query: query || null, notes: found, count: found.length, akm }),
+      opts,
+      false,
+    );
+  }
+  const built = buildLearningNotes(input, interfaceLedgerSnapshot());
+  if (!built.ok) return fail(built.status, built.code, built.error, { call });
+  const stored = await storeLearningNotes(built);
+  if (!stored.ok) return fail(stored.status, stored.code, stored.error, { call });
+  let memory = { attempted: false, reason: "confirm required", writes_public_chain: false };
+  if (isTruthyFlag(input.confirm)) {
+    memory = await observeLearning(opts, stored.notes[0]);
+  }
+  return finish(
+    call,
+    200,
+    link,
+    "AZAI stored cited learning notes.",
+    `Learner stored ${stored.notes.length} cited notes. The public chain was not appended.`,
+    learnerBody(call, {
+      notes: stored.notes,
+      note_count: stored.notes.length,
+      pins_supplied: built.pins_supplied,
+      memory,
+      sources: ["domain", "paper", "software", "receipt", "pin", "aznet"],
+    }),
+    opts,
+    false,
+  );
+}
+
+async function observeLearning(opts, note) {
+  if (!note) return { attempted: false, reason: "no-note", writes_public_chain: false };
+  try {
+    const observe = opts.observeImpl || (await import("./memory.js")).observe;
+    const result = await observe(opts.env || {}, {
+      subject: "azai-learn",
+      fact: String(note.text || "").slice(0, 160),
+      provenance_hash: note.cite_hash,
+    });
+    const code = result && (result.code || result.refuse) ? String(result.code || result.refuse) : null;
+    return {
+      attempted: true,
+      ok: !!(result && result.ok !== false && !result.refuse),
+      code,
+      belief_is_not_truth: true,
+      writes_public_chain: false,
+    };
+  } catch {
+    return { attempted: true, ok: false, code: "IF-MEMORY-REFUSED", writes_public_chain: false };
+  }
+}
+
+async function recallAkm(opts, query) {
+  try {
+    const recall = opts.recallImpl || (await import("./memory.js")).adaptiveRecall;
+    const result = await recall(opts.env || {}, { q: query });
+    const code = result && (result.code || result.refuse) ? String(result.code || result.refuse) : null;
+    return {
+      attempted: true,
+      ok: !!(result && result.ok === true),
+      code,
+      count: result && Number.isFinite(result.count) ? result.count : 0,
+      belief_is_not_truth: true,
+      authorizes_action: false,
+    };
+  } catch {
+    return { attempted: true, ok: false, code: "IF-MEMORY-REFUSED", belief_is_not_truth: true, authorizes_action: false };
+  }
+}
+
 export async function orchestrate(input, opts = {}) {
   if (!input || typeof input !== "object" || Array.isArray(input)) {
     return fail(400, "IF-BAD-INPUT", "Body must be a JSON object.");
@@ -536,6 +656,10 @@ export async function orchestrate(input, opts = {}) {
       opts,
       false,
     );
+  }
+
+  if (WORKER_CALLS.includes(call) || LEARNER_CALLS.includes(call)) {
+    return runAiDesk(call, input, link, opts);
   }
 
   if (call === "describe" || call === "join_plan" || call === "engulf_plan" || call === "status_report") {

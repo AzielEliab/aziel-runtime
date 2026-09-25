@@ -298,12 +298,93 @@ assert.deepEqual(Object.keys(published.body.receipt).filter((key) => ["hash", "r
   "request",
 ]);
 
+resetInterfaceLedger();
+const calls = [];
+const intake = await orchestrate(
+  { call: "worker_intake", task: "fold this note" },
+  { dispatch: async (env) => { calls.push(env); return { ok: true, code: "FG-OK" }; } },
+);
+assert.equal(intake.status, 200);
+assert.equal(intake.body.role, "worker");
+assert.equal(intake.body.executed, false);
+assert.equal(intake.body.merges, false);
+assert.equal(intake.body.deploys, false);
+assert.equal(intake.body.writes_public_chain, false);
+assert.equal(intake.body.steps.some((step) => step.slug === "foldlock" && step.would_dispatch === true && step.executed === false), true);
+assert.equal(calls.length, 0);
+assert.equal(intake.body.receipt.event.spec, "ACT-RECEIPT-1.0");
+
+const workerRefused = await orchestrate({ call: "worker_intake", task: "deploy the site" });
+assert.equal(workerRefused.status, 400);
+assert.equal(workerRefused.body.code, "IF-WORKER-REFUSED");
+assert.equal(workerRefused.body.executed, false);
+
+const handoff = await orchestrate({ call: "worker_handoff", task: "fold this note", handoff: "azmail" });
+assert.equal(handoff.status, 200);
+assert.equal(handoff.body.to, "azmail");
+assert.equal(handoff.body.executed, false);
+assert.equal(handoff.body.domain, "social");
+
+const workerDesk = await orchestrate({ call: "worker_status" });
+assert.equal(workerDesk.body.count, 2);
+assert.equal(workerDesk.body.tasks.every((row) => row.executed === false), true);
+
+let observed = 0;
+const learned = await orchestrate(
+  { call: "learner_learn", pins: [{ pin_id: "pin-1" }] },
+  { observeImpl: async () => { observed += 1; return { ok: true }; } },
+);
+assert.equal(learned.status, 200);
+assert.equal(learned.body.role, "learner");
+assert.equal(learned.body.invented, false);
+assert.equal(learned.body.pins_read, false);
+assert.equal(learned.body.mesh_read, false);
+assert.equal(learned.body.corpus_searched, false);
+assert.equal(learned.body.writes_public_chain, false);
+assert.equal(learned.body.memory.attempted, false);
+assert.equal(observed, 0);
+assert.equal(learned.body.notes.some((note) => note.cites.some((cite) => cite.kind === "domain" && cite.slug === "4dmap")), true);
+assert.equal(learned.body.notes.some((note) => note.cites.some((cite) => cite.kind === "paper" && cite.id === "ACT-RECEIPT-1.0")), true);
+assert.equal(learned.body.notes.some((note) => note.cites.some((cite) => cite.kind === "software" && cite.slug === "aznet")), true);
+assert.equal(learned.body.notes.some((note) => note.cites.some((cite) => cite.kind === "pin" && cite.pin_id === "pin-1" && cite.verified_on_4dmap === false)), true);
+assert.equal(learned.body.notes.some((note) => note.cites.some((cite) => cite.kind === "receipt" && cite.hash === intake.body.receipt.hash)), true);
+
+const uncited = await orchestrate({ call: "learner_learn", papers: ["NOT-A-PAPER"] });
+assert.equal(uncited.status, 400);
+assert.equal(uncited.body.code, "IF-UNCITED");
+
+const remembered = await orchestrate(
+  { call: "learner_learn", confirm: true, papers: ["ACT-RECEIPT-1.0"] },
+  {
+    observeImpl: async (_env, src) => {
+      observed += 1;
+      assert.equal(String(src.fact).includes("secret"), false);
+      assert.equal(typeof src.provenance_hash, "string");
+      return { ok: true, code: "AKM-OK" };
+    },
+  },
+);
+assert.equal(remembered.status, 200);
+assert.equal(remembered.body.memory.attempted, true);
+assert.equal(remembered.body.memory.ok, true);
+assert.equal(remembered.body.memory.writes_public_chain, false);
+assert.equal(observed, 1);
+
+const recalled = await orchestrate({ call: "learner_recall", q: "pin-1" });
+assert.equal(recalled.body.notes.some((note) => note.cites.some((cite) => cite.pin_id === "pin-1")), true);
+assert.equal(recalled.body.akm.attempted, false);
+assert.equal(recalled.body.belief_is_not_truth, true);
+
 const home = await (await get("/workspace")).text();
 assert.match(home, /id="interface-panel"/);
 assert.match(home, /data-if="join_plan"/);
 assert.match(home, /data-if="engulf_plan"/);
 assert.match(home, /Seal needs the confirm box/);
 assert.match(home, /does not launch/);
+assert.match(home, /id="desk-azbot"[^>]*data-role="worker"/);
+assert.match(home, /id="desk-azai"[^>]*data-role="learner"/);
+assert.match(home, /data-bot="intake"/);
+assert.match(home, /data-ai="learn"/);
 const panelStart = home.indexOf('id="interface-panel"');
 const panelEnd = home.indexOf('id="mesh-panel"');
 assert.ok(panelStart > 0 && panelEnd > panelStart);
