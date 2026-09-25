@@ -70,6 +70,7 @@ assert.match(home, /data-domain-tab="forensics"/);
 assert.match(home, /data-domain-tab="games"/);
 assert.match(home, /data-domain-tab="social"/);
 assert.match(home, /data-domain-tab="elroi"/);
+assert.match(home, /Aziel Elroi Eliab/);
 assert.match(home, /id="sot-desk"/);
 assert.match(home, /data-sot="dry"/);
 assert.doesNotMatch(home, /data-domain-tab="corpus"/);

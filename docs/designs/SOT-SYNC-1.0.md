@@ -69,39 +69,50 @@ An unreachable outlet does not get a new inventory. `last_known` stays the previ
 
 ## Push contract (sister repos)
 
-Hubs do not get a push until they serve this hook. The documented URL is `{origin}/v1/mesh/outlet` (not called while `push_url` is null).
+Confirm posts only to a hook that already answers, and only in the shape that hook accepts. A generic tip body is used for a joined `outlet_hook`. The three shipped adapters are different.
+
+Hub `hub-azieleliab` — `POST https://www.azieleliab.com/v1/mesh/outlet/sync`:
+
+```json
+{ "spec": "SOT-SYNC-1.0", "outlet_id": "hub-azieleliab", "author": "Aziel Eliab", "identity": "Aziel Eliab", "confirm": true }
+```
+
+No `sot_sync` object is sent. The hub re-pulls `GET /v1/software` and writes only when that pull is usable. A signature is not a license to invent the tip.
+
+GodLock `godlock-uk` — `POST https://godlock.uk/v1/sot/push`:
 
 ```json
 {
   "spec": "SOT-SYNC-1.0",
-  "outlet_id": "godlock.uk-catalog",
+  "op": "sot_sync",
+  "outlet_id": "godlock-uk",
   "author": "Aziel Eliab",
   "identity": "Aziel Eliab",
-  "live_body_sync": false,
-  "mesh_broadcast": false,
-  "pull": "/v1/software",
-  "version_id": null,
-  "tip": {
-    "suite_version": "2.0.0-rc1",
-    "git_sha": "<catalog git_sha>",
-    "softwares_count": 42,
-    "version_id": null
-  },
-  "software_versions": { "<slug>": "<version>" }
+  "confirm": true,
+  "version": "2.0.0-rc1",
+  "git_sha": "<40 hex from GET /v1/software>",
+  "count": 42,
+  "version_id": null
 }
 ```
 
-Success is HTTP 200 with `ok` not false. The hook should then render cites from that tip, or ignore the body and pull `GET /v1/software` on the runtime. It must not invent a 43rd Softwares card. Ask Jeeves stays off the Softwares tab.
+`software` cards are not sent. `version_id` stays null.
 
-Joined product nodes advertise the same hook with `POST /v1/mesh/join` field `outlet_hook` (https, hub host or `*.vibelock.workers.dev`). Any other host is refused `SOT-HOOK-HOST` and is not fetched. Join still registers presence. Roster pills ignore the hook.
+Corpus — public `GET https://www.azielcorpuslibrary.net/v1/mesh/outlet` is a pull. `POST /v1/mesh/outlet` requires `X-Aziel-Operator-Token`. This runtime does not hold that token and does not send one. `push_url` stays null.
 
-## Sister adapters still required
+Success is HTTP 200, `ok` not false, and `applied` not false. `applied: false` keeps last-known and is not a write.
 
-This repo is the fan-out hub. These surfaces become outlets by implementing the hook (or by pulling `GET /v1/software` on each render and exposing `suite_version`, `git_sha`, and `softwares_count`):
+Joined product nodes advertise a hook with `POST /v1/mesh/join` field `outlet_hook` (https, hub host or `*.vibelock.workers.dev`). Any other host is refused `SOT-HOOK-HOST` and is not fetched. Join still registers presence. Roster pills ignore the hook.
 
-- AzielEliab/azieleliab — draft cite work is PR #81. JSON-LD, `cite.json`, and `llms.txt` on www.azieleliab.com.
-- AzielEliab/godlock — draft cite work is PR #94. Softwares tab and runtime cites on godlock.uk.
-- AzielEliab/aziel-corpus — corpus `/cite.json`, `/llms.txt`, and `/runtime` should read this tip. A down library keeps the last-known shelf. It does not invent rows.
+## Stack
+
+This runtime draft sits on PR #169 (`cursor/audit-stack-5b75`), which sits on PR #168 (`cursor/interface-orchestrator-15a4`). The Aziel Elroi Eliab label is a top-bar domain tab. Corpus is a sub-tab of `#elroi-pane`. It is not a top-bar peer.
+
+## Sister adapters
+
+- AzielEliab/azieleliab #81 is merged. Write outlet `hub-azieleliab`. Cite, llms, catalog, and JSON-LD rows stay pull probes.
+- AzielEliab/godlock #94 is merged. Write outlet `godlock-uk`. Catalog pull `https://godlock.uk/runtime/v1/software` stays a probe.
+- AzielEliab/aziel-corpus #144 is merged. Pull outlet `corpus-mesh-outlet`. POST stays off until an operator token exists outside this fan-out. A down library keeps the last-known shelf and does not invent rows.
 - VeilLock, AZChat, and other product Workers — send `outlet_hook` on mesh join when the product cites the suite sha. No adapter is invented here.
 
 ## Local check

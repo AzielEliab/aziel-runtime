@@ -26,10 +26,15 @@ function jsonResponse(body, status = 200) {
   });
 }
 
+const posts = [];
+
 function sotFetch(url, init = {}) {
   const u = String(url);
   const method = String(init.method || "GET").toUpperCase();
   seen.push(`${method} ${u}`);
+  if (method === "POST") {
+    posts.push({ url: u, body: JSON.parse(String(init.body || "{}")) });
+  }
   assert.equal(u.includes("evil.example"), false, "refused hosts are not fetched");
   if (u.startsWith("https://www.azieleliab.com/cite.json") && method === "GET") {
     if (citeDown) throw new Error("cite down");
@@ -47,7 +52,29 @@ function sotFetch(url, init = {}) {
       software: [{ slug: "foldlock", version: "0.0.1" }],
     });
   }
-  if (method === "POST" && u.endsWith("/v1/mesh/outlet")) return jsonResponse({ ok: true });
+  if (method === "POST" && u.endsWith("/v1/mesh/outlet")) return jsonResponse({ ok: true, applied: true });
+  if (method === "POST" && u === "https://www.azieleliab.com/v1/mesh/outlet/sync") {
+    return jsonResponse({ ok: true, applied: true, outlet_id: "hub-azieleliab" });
+  }
+  if (method === "POST" && u === "https://godlock.uk/v1/sot/push") {
+    return jsonResponse({ ok: true, applied: true, outlet_id: "godlock-uk" });
+  }
+  if (method === "GET" && u === "https://www.azieleliab.com/v1/mesh/outlet") {
+    return jsonResponse({
+      outlet_id: "hub-azieleliab",
+      spec: "SOT-OUTLET-1.0",
+      last_known: { version: "2.0.0-rc1", git_sha: "0123456789abcdef0123456789abcdef01234567", count: 42, version_id: null },
+    });
+  }
+  if (method === "GET" && u === "https://godlock.uk/v1/sot") {
+    return jsonResponse({
+      outlet_id: "godlock-uk",
+      version: "2.0.0-rc1",
+      git_sha: "0123456789abcdef0123456789abcdef01234567",
+      observed_count: 42,
+      version_id: null,
+    });
+  }
   return new Response("absent", { status: 404 });
 }
 
@@ -175,6 +202,25 @@ const dark = applied.data.outlets.find((row) => row.id === "azieleliab-jsonld");
 assert.equal(dark.status, "unreachable");
 assert.equal(dark.last_known, null);
 assert.equal(dark.invented, false);
+const hub = applied.data.outlets.find((row) => row.id === "hub-azieleliab");
+assert.equal(hub.apply, "written");
+assert.equal(hub.last_known.softwares_count, 42);
+assert.equal(hub.last_known.version_id, null);
+const godlockOutlet = applied.data.outlets.find((row) => row.id === "godlock-uk");
+assert.equal(godlockOutlet.apply, "written");
+const corpusOutlet = applied.data.outlets.find((row) => row.id === "corpus-mesh-outlet");
+assert.equal(corpusOutlet.push_url, null);
+assert.equal(posts.some((row) => row.url.includes("azielcorpuslibrary.net")), false);
+const hubPost = posts.find((row) => row.url === "https://www.azieleliab.com/v1/mesh/outlet/sync");
+assert.equal(hubPost.body.outlet_id, "hub-azieleliab");
+assert.equal(hubPost.body.confirm, true);
+assert.equal(hubPost.body.sot_sync, undefined);
+const godlockPost = posts.find((row) => row.url === "https://godlock.uk/v1/sot/push");
+assert.equal(godlockPost.body.outlet_id, "godlock-uk");
+assert.equal(godlockPost.body.confirm, true);
+assert.equal(godlockPost.body.git_sha, BUILD_GIT_SHA);
+assert.equal(godlockPost.body.version_id, null);
+assert.equal(godlockPost.body.count, 42);
 
 citeDown = true;
 const again = await post("/v1/mesh/sot-sync", { confirm: true });

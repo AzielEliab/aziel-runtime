@@ -22,6 +22,7 @@ import { isTruthyFlag } from "./mcp-safeguard.js";
 import { RUNTIME_VERSION } from "./runtime-api.js";
 import {
   AUTHOR_SITE_ORIGIN,
+  GODLOCK_UK_ORIGIN,
   LIBRARY_MIRROR,
   softwareHubCrawl,
 } from "./seo.js";
@@ -205,17 +206,32 @@ function emptySot(source, note) {
   };
 }
 
+function citeLayer(body) {
+  const nested = [body.last_known, body.sot, body.cite, body.frozen].find(
+    (row) => row && typeof row === "object" && !Array.isArray(row) && (row.git_sha || row.gitSha || row.suite_version || row.version),
+  );
+  if (!nested) return body;
+  if (body.git_sha || body.gitSha || body.suite_version) return body;
+  const layer = { ...nested };
+  for (const key of Object.keys(body)) {
+    if (body[key] != null && key !== "last_known" && key !== "sot" && key !== "cite" && key !== "frozen") layer[key] = body[key];
+  }
+  return layer;
+}
+
 function observeJson(body) {
-  const software = Array.isArray(body.software) ? body.software : null;
-  const catalogShaped = software != null || body.git_sha != null || body.gitSha != null;
-  const suite_version = stringOrNull(body.suite_version ?? body.runtime_version ?? (catalogShaped ? body.version : null));
-  const git_sha = shaOrNull(body.git_sha ?? body.gitSha);
+  const doc = citeLayer(body);
+  const software = Array.isArray(doc.software) ? doc.software : null;
+  const catalogShaped = software != null || doc.git_sha != null || doc.gitSha != null;
+  const outletShaped = doc.outlet_id != null || doc.contract != null || doc.spec === SOT_SPEC || doc.spec === "MESH-OUTLET-1.0" || doc.spec === "SOT-OUTLET-1.0";
+  const suite_version = stringOrNull(doc.suite_version ?? doc.runtime_version ?? (catalogShaped ? doc.version : null));
+  const git_sha = shaOrNull(doc.git_sha ?? doc.gitSha);
   const softwares_count = countOrNull(
-    body.softwares_count ?? body.software_count ?? (software ? software.length : null),
+    doc.softwares_count ?? doc.software_count ?? doc.observed_count ?? (software ? software.length : null) ?? (outletShaped ? doc.count : null),
   );
   let version_id = null;
-  if (Object.prototype.hasOwnProperty.call(body, "version_id") && body.version_id != null && String(body.version_id).trim() !== "") {
-    const raw = String(body.version_id).trim();
+  if (Object.prototype.hasOwnProperty.call(doc, "version_id") && doc.version_id != null && String(doc.version_id).trim() !== "") {
+    const raw = String(doc.version_id).trim();
     version_id = raw.toLowerCase() === "null" ? null : raw;
   }
   return {
@@ -268,13 +284,13 @@ export function observeOutletBody(payload) {
 
 function sisterNote(id) {
   if (id === "azieleliab") {
-    return "Hub cite / JSON-LD / llms. Sister adapter: AzielEliab/azieleliab #81. This runtime does not write that site until POST /v1/mesh/outlet exists there.";
+    return "Hub cite / JSON-LD / llms probes. The write hook is outlet hub-azieleliab, POST /v1/mesh/outlet/sync. That hub re-pulls GET /v1/software. Merged adapter: AzielEliab/azieleliab #81.";
   }
   if (id === "godlock.uk") {
-    return "Softwares and runtime cites. Sister adapter: AzielEliab/godlock #94. This runtime does not write that site until the hook exists.";
+    return "Softwares and runtime cite probes. The write hook is outlet godlock-uk, POST /v1/sot/push. Merged adapter: AzielEliab/godlock #94.";
   }
   if (id === "library") {
-    return "Corpus surfaces that cite this runtime. Adapter is not in this repo. Unreachable keeps the last-known inventory.";
+    return "Corpus surfaces that cite this runtime. The write hook is POST /v1/mesh/outlet and requires X-Aziel-Operator-Token. This runtime does not hold that token and does not send one. Public GET stays a pull. Merged adapter: AzielEliab/aziel-corpus #144.";
   }
   return "Registered outlet. Push runs only when push_url is set and the hook answers.";
 }
@@ -318,6 +334,35 @@ function staticOutlets() {
     push_url: null,
     push_contract: `${AUTHOR_SITE_ORIGIN}/v1/mesh/outlet`,
     sister_note: sisterNote("azieleliab"),
+  });
+  rows.push({
+    id: "hub-azieleliab",
+    kind: "hub_outlet",
+    label: "azieleliab.com SoT outlet",
+    pull_url: `${AUTHOR_SITE_ORIGIN}/v1/mesh/outlet`,
+    push_url: `${AUTHOR_SITE_ORIGIN}/v1/mesh/outlet/sync`,
+    push_shape: "hub-sync",
+    push_contract: `${AUTHOR_SITE_ORIGIN}/v1/mesh/outlet/sync`,
+    sister_note: "POST confirm with outlet_id hub-azieleliab. No sot_sync signature. The hub re-pulls live GET /v1/software and writes only when that pull matches. Merged in azieleliab #81.",
+  });
+  rows.push({
+    id: "godlock-uk",
+    kind: "godlock_outlet",
+    label: "godlock.uk SoT outlet",
+    pull_url: `${GODLOCK_UK_ORIGIN}/v1/sot`,
+    push_url: `${GODLOCK_UK_ORIGIN}/v1/sot/push`,
+    push_shape: "godlock-push",
+    push_contract: `${GODLOCK_UK_ORIGIN}/v1/sot/push`,
+    sister_note: "POST confirm with outlet_id godlock-uk, version, 40-hex git_sha, and count. software cards are ignored. version_id stays null. Merged in godlock #94.",
+  });
+  rows.push({
+    id: "corpus-mesh-outlet",
+    kind: "corpus_outlet",
+    label: "azielcorpuslibrary.net SoT outlet",
+    pull_url: `${LIBRARY_MIRROR}/v1/mesh/outlet`,
+    push_url: null,
+    push_contract: `${LIBRARY_MIRROR}/v1/mesh/outlet`,
+    sister_note: "Public GET returns the last-known cite. POST requires X-Aziel-Operator-Token. This runtime does not hold that token and does not send one. Merged in aziel-corpus #144.",
   });
   rows.push({
     id: "corpus-runtime-mirror",
@@ -546,33 +591,68 @@ function publicOutlet(outlet, probe, saved, writing) {
   };
 }
 
+function hookBody(outlet, sot) {
+  if (outlet.push_shape === "hub-sync") {
+    return {
+      spec: SOT_SPEC,
+      outlet_id: "hub-azieleliab",
+      author: SOT_AUTHOR,
+      identity: "Aziel Eliab",
+      confirm: true,
+    };
+  }
+  if (outlet.push_shape === "godlock-push") {
+    return {
+      spec: SOT_SPEC,
+      op: "sot_sync",
+      outlet_id: "godlock-uk",
+      author: SOT_AUTHOR,
+      identity: "Aziel Eliab",
+      confirm: true,
+      version: sot.suite_version,
+      suite_version: sot.suite_version,
+      git_sha: sot.git_sha,
+      count: sot.softwares_count,
+      version_id: null,
+      sot: {
+        version: sot.suite_version,
+        git_sha: sot.git_sha,
+        count: sot.softwares_count,
+        version_id: null,
+      },
+    };
+  }
+  return {
+    spec: SOT_SPEC,
+    outlet_id: outlet.id,
+    author: SOT_AUTHOR,
+    identity: "Aziel Eliab",
+    live_body_sync: false,
+    mesh_broadcast: false,
+    pull: "/v1/software",
+    tip: tipFromSot(sot),
+    software_versions: sot.software_versions,
+    version_id: null,
+    version_id_note: SOT_VERSION_ID_NOTE,
+  };
+}
+
 async function postHook(outlet, sot, fetchImpl) {
   const accepted = acceptOutletHook(outlet.push_url);
   if (!accepted.ok) return { ok: false, code: "SOT-HOOK-HOST" };
-  const tip = tipFromSot(sot);
+  if (outlet.push_shape === "godlock-push" && !sot.git_sha) return { ok: false, code: "SOT-BAD-SHA" };
   try {
     const res = await fetchImpl(accepted.url, {
       method: "POST",
       redirect: "manual",
       headers: { "User-Agent": "Mozilla/5.0", "content-type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({
-        spec: SOT_SPEC,
-        outlet_id: outlet.id,
-        author: SOT_AUTHOR,
-        identity: "Aziel Eliab",
-        live_body_sync: false,
-        mesh_broadcast: false,
-        pull: "/v1/software",
-        tip,
-        software_versions: sot.software_versions,
-        version_id: null,
-        version_id_note: SOT_VERSION_ID_NOTE,
-      }),
+      body: JSON.stringify(hookBody(outlet, sot)),
       signal: AbortSignal.timeout(2500),
     });
     if (!res || res.status < 200 || res.status >= 300) return { ok: false, status: res ? res.status : 0 };
     const json = await res.json().catch(() => ({}));
     if (json && json.ok === false) return { ok: false, status: res.status, code: json.code || "SOT-HOOK-REFUSED" };
+    if (json && json.applied === false) return { ok: false, status: res.status, code: json.code || "SOT-NOT-APPLIED" };
     return { ok: true, status: res.status };
   } catch {
     return { ok: false, status: 0 };

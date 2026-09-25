@@ -903,7 +903,8 @@ export function humanNavHtml(origin, { current } = {}) {
   const home = `${base}/`;
   const tabs = UI_DOMAINS.map((domain) => {
     const on = domain.id === UI_DOMAIN_DEFAULT;
-    return `<button type="button" role="tab" id="domain-tab-${escapeHtml(domain.id)}" data-domain-tab="${escapeHtml(domain.id)}" aria-selected="${on ? "true" : "false"}" aria-controls="dash-softwares">${escapeHtml(domain.label)}</button>`;
+    const controls = "dash-softwares";
+    return `<button type="button" role="tab" id="domain-tab-${escapeHtml(domain.id)}" data-domain-tab="${escapeHtml(domain.id)}" aria-selected="${on ? "true" : "false"}" aria-controls="${controls}">${escapeHtml(domain.label)}</button>`;
   }).join("\n    ");
   const elroiTab = `<button type="button" role="tab" id="domain-tab-elroi" data-domain-tab="elroi" aria-selected="false" aria-controls="elroi-pane">Aziel Elroi Eliab</button>`;
   return `<a class="skip-workspace" href="${current === "workspace" ? "#workspace" : "#workspace"}">Skip to workspace</a>
