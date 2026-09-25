@@ -1,6 +1,6 @@
 /**
- * Aziel Elroi Eliab shelf and the Corpus top-bar tab. Live pulls set
- * flags only after a real read. Receipt output stays a count sentence.
+ * Aziel Elroi Eliab shelf. Corpus is a sub-tab. Live pulls set flags
+ * only after a real read. Receipt output stays a count sentence.
  * Author: Aziel Eliab. Tab name: Aziel Elroi Eliab.
  */
 import assert from "node:assert/strict";
@@ -16,17 +16,25 @@ resetAuthorShelf();
 const home = await (await handler(new Request(origin + "/workspace"), {})).text();
 assert.match(home, /data-domain-tab="aziel-elroi-eliab"/);
 assert.match(home, /id="author-shelf"/);
-assert.match(home, /data-domain-tab="corpus"/);
-assert.match(home, /id="corpus-shelf"/);
-assert.match(home, /data-author-sub="sync"/);
-assert.doesNotMatch(home, /Corpus is a shelf inside this tab/);
+assert.match(home, /data-author-sub="corpus"/);
+assert.match(home, /id="author-panel-corpus"/);
+assert.match(home, /Ask Jeeves is suite help/);
+assert.doesNotMatch(home, /data-domain-tab="corpus"/);
+const software = await (await handler(new Request(origin + "/v1/software"), {})).json();
+assert.equal(software.count, 42);
+assert.equal(software.software.some((row) => row.slug === "jeeves"), false);
+assert.ok(software.software.some((row) => row.slug === "aziel-corpus"));
 
 const dark = await refreshAuthorShelf(async () => {
   throw new Error("down");
 });
 assert.equal(dark.invented, false);
 assert.equal(dark.uploads_pushed, false);
-assert.equal(dark.corpus_is_top_bar_domain, true);
+assert.equal(dark.corpus_is_top_bar_domain, false);
+assert.equal(dark.corpus_is_subtab, true);
+assert.equal(dark.jeeves.software_tab, false);
+assert.equal(dark.jeeves.softwares_card, false);
+assert.equal(dark.jeeves.op, "jeeves");
 assert.equal(dark.frozen, false);
 assert.ok(dark.updated_at);
 assert.equal(dark.corpus_searched, false);
@@ -190,4 +198,4 @@ assert.equal(page.status, 405);
 const refused = await page.json();
 assert.equal(refused.uploads_pushed, false);
 
-console.log("ok author shelf: Corpus is a top-bar tab; down sites still show last-known or local cache");
+console.log("ok author shelf: Corpus is a sub-tab of Aziel Elroi Eliab; down sites still show last-known or local cache");

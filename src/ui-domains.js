@@ -67,12 +67,6 @@ export const UI_DOMAINS = Object.freeze([
     softwares: ["azos", "azinterface", "staticclock", "decisiongate", "mmconsensus"],
   },
   {
-    id: "corpus",
-    label: "Corpus",
-    kind: "corpus",
-    softwares: [],
-  },
-  {
     id: "aziel-elroi-eliab",
     label: "Aziel Elroi Eliab",
     kind: "author",

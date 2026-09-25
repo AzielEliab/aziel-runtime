@@ -2077,7 +2077,7 @@ export function runtimeStaticPaths() {
       get: {
         operationId: "author_shelf",
         summary:
-          "Shared snapshot for the Corpus tab and the Aziel Elroi Eliab tab. Reads cited sites. An unreachable site stays unreachable and the tabs still show the last reading or the local cache. Does not invent rows. Does not upload. Not a tools/list name.",
+          "Aziel Elroi Eliab author shelf. Corpus is a sub-tab inside that tab, not a top-bar domain. Reads cited sites. An unreachable site stays unreachable and the shelf still shows the last reading or the local cache. Does not invent rows. Does not upload. Ask Jeeves stays suite help (software_tab false). Not a tools/list name.",
         tags: ["runtime"],
         responses: { "200": { description: "Shelf snapshot. invented false." } },
       },

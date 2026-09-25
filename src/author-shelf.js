@@ -1,10 +1,12 @@
 /**
  * Aziel Elroi Eliab author shelf.
  *
- * Top-bar tabs. Corpus is its own domain tab. Aziel Elroi Eliab is the
- * author shelf. One snapshot feeds both. A site that does not answer
- * still updates the tabs: last-known or local cache stays on screen,
- * with an unreachable status. Nothing new is invented while a site is down.
+ * Aziel Elroi Eliab is the top-bar tab. Corpus is a sub-tab inside it
+ * (library shelf and site sync). One snapshot feeds every sub-tab.
+ * A site that does not answer still updates the shelf: last-known or
+ * local cache stays on screen, with an unreachable status. Nothing new
+ * is invented while a site is down. Ask Jeeves stays suite help on
+ * Aziel Corpus (software_tab false), not a Softwares card.
  * This shelf does not POST uploads.
  *
  * Author: Aziel Eliab. The tab name is Aziel Elroi Eliab.
@@ -331,7 +333,16 @@ export async function refreshAuthorShelf(fetchImpl = fetch, opts = {}) {
     lamb_lens: ["Service", "Clarity", "Peace"],
     tab: AUTHOR_TAB_ID,
     corpus_tab: "corpus",
-    corpus_is_top_bar_domain: true,
+    corpus_is_top_bar_domain: false,
+    corpus_is_subtab: true,
+    jeeves: {
+      name: "Ask Jeeves",
+      role: "suite-help",
+      host_slug: "aziel-corpus",
+      op: "jeeves",
+      software_tab: false,
+      softwares_card: false,
+    },
     updated_at: new Date().toISOString(),
     frozen: false,
     uploads_pushed: false,
