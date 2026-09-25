@@ -2073,6 +2073,15 @@ export function runtimeStaticPaths() {
         },
       },
     },
+    "/v1/author-shelf": {
+      get: {
+        operationId: "author_shelf",
+        summary:
+          "Aziel Elroi Eliab author shelf. Corpus is a sub-shelf, not a top-bar domain. Reads cited sites. Unreachable sites stay unreachable. Last-known rows are stale. Does not upload. Not a tools/list name.",
+        tags: ["runtime"],
+        responses: { "200": { description: "Shelf snapshot. invented false." } },
+      },
+    },
     "/v1/interface/forensic": {
       get: {
         operationId: "interface_forensic_tip",

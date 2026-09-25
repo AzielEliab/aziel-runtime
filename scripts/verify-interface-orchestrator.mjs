@@ -239,6 +239,18 @@ assert.equal(localSeal.body.append_refuse, "no-token");
 assert.equal(dispatched, 0);
 assert.match(localSeal.body.receipt.hash, /^[a-f0-9]{64}$/);
 
+const foldPlan = await orchestrate({ call: "worker_plan", steps: [{ slug: "foldlock", op: "fold-preview" }] });
+assert.equal(foldPlan.status, 200);
+assert.equal(foldPlan.body.executed, false);
+
+const untied = await orchestrate(
+  { call: "seal", confirm: true, slug: "peacelock", op: "health" },
+  { fetchImpl, dispatch: async () => ({ ok: true, code: "FG-OK" }) },
+);
+assert.equal(untied.status, 409);
+assert.equal(untied.body.code, "IF-UNTIED-PLAN");
+assert.equal(untied.body.tied_to_plan, false);
+
 const doorSeal = await post("/v1/interface", {
   call: "seal",
   confirm: true,
@@ -500,6 +512,9 @@ const boxedLearn = await orchestrate({
 assert.equal(boxedLearn.status, 400);
 assert.equal(boxedLearn.body.code, "IF-UNCITED");
 assert.equal(JSON.stringify(boxedLearn.body).includes("AAAA"), false);
+
+const vibeTied = await orchestrate({ call: "worker_plan", steps: [{ slug: "vibelock", op: "analyze" }] });
+assert.equal(vibeTied.status, 200);
 
 const engineNo = await orchestrate(
   { call: "seal", confirm: true, slug: "vibelock", op: "analyze", outcome: "completed" },

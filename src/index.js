@@ -149,6 +149,7 @@ import {
 } from "./mesh.js";
 import { dispatchQnsHttp, qnsHint } from "./qns.js";
 import { dispatchActReceiptHttp, finishWithActReceipt } from "./library-receipts.js";
+import { refreshAuthorShelf } from "./author-shelf.js";
 import { forensicTip, orchestrate, runtimeUiDocument } from "./interface-orchestrator.js";
 import { SURVIVAL_TIP, survivalCiteField, survivalLlmsBlock } from "./cross-network-survival.js";
 import { semanticBridgeCiteField, semanticBridgeLlmsBlock } from "./semantic-bridge.js";
@@ -1500,6 +1501,7 @@ function sitemapXml(origin) {
     { loc: base + "/v1/qns", priority: "0.65", changefreq: "weekly" },
     { loc: base + "/v1/receipts", priority: "0.6", changefreq: "daily" },
     { loc: base + "/v1/interface", priority: "0.6", changefreq: "weekly" },
+    { loc: base + "/v1/author-shelf", priority: "0.6", changefreq: "weekly" },
     { loc: base + "/v1/interface/forensic", priority: "0.5", changefreq: "weekly" },
     { loc: base + "/v1/azpipe/arch", priority: "0.65", changefreq: "weekly" },
     { loc: base + "/v1/memory", priority: "0.6", changefreq: "weekly" },
@@ -3095,6 +3097,7 @@ function healthBody(origin, env = {}) {
     receipts: "/v1/receipts",
     interface: "/v1/interface",
     interface_forensic: "/v1/interface/forensic",
+    author_shelf: "/v1/author-shelf",
     azpipe_arch: "/v1/azpipe/arch",
     memory: "/v1/memory",
     about: "/about",
@@ -3875,6 +3878,25 @@ async function handleRequest(request, env, ctx) {
         request,
         json(out.body, out.status, authorityLinkHeaders(origin, url.pathname)),
       );
+    }
+
+    if (url.pathname === "/v1/author-shelf") {
+      const extraHeaders = authorityLinkHeaders(origin, url.pathname);
+      if (request.method !== "GET" && request.method !== "HEAD") {
+        return json(
+          {
+            ok: false,
+            code: "AUTHOR-SHELF-READ",
+            error: "GET /v1/author-shelf. This shelf does not upload.",
+            uploads_pushed: false,
+            invented: false,
+          },
+          405,
+          extraHeaders,
+        );
+      }
+      const shelf = await refreshAuthorShelf(fetch, { query: url.searchParams.get("q") || "" });
+      return asHead(request, json(shelf, 200, extraHeaders));
     }
 
     if (url.pathname === "/v1/interface" || url.pathname === "/v1/interface/forensic") {

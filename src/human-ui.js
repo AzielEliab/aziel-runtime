@@ -223,8 +223,15 @@ export const HUMAN_TASKS = Object.freeze([
 export const HUMAN_UI_CSS = `
   .skip-workspace{position:absolute;left:-999px;top:auto;width:1px;height:1px;overflow:hidden}
   .skip-workspace:focus{position:static;width:auto;height:auto;padding:.35rem .7rem;background:#241c0d;color:#f0d78c}
-  .domain-tabs{display:flex;flex-wrap:wrap;gap:.4rem;margin:0 0 .65rem;padding:.55rem .7rem;border:1px solid #3d3420;border-radius:10px;background:#16120a}
-  .domain-tabs button{background:#241c0d;color:#f0d78c;border:1px solid #5c4a1a;border-radius:8px;padding:.4rem .75rem;cursor:pointer;font:inherit;font-size:.85rem;font-weight:600}
+  .domain-tabs{display:flex;flex-wrap:nowrap;overflow-x:auto;gap:.4rem;margin:0 0 .65rem;padding:.55rem .7rem;border:1px solid #3d3420;border-radius:10px;background:#16120a}
+  .domain-tabs button{background:#241c0d;color:#f0d78c;border:1px solid #5c4a1a;border-radius:8px;padding:.4rem .75rem;cursor:pointer;font:inherit;font-size:.85rem;font-weight:600;white-space:nowrap}
+  .author-shelf{border:1px solid #5c4a1a;border-radius:10px;padding:.85rem .95rem;margin:0 0 .9rem;background:#14110a}
+  .author-shelf.domain-off{display:none}
+  .author-sub{display:flex;flex-wrap:wrap;gap:.4rem;margin:.4rem 0 .7rem}
+  .author-sub button{background:#241c0d;color:#f0d78c;border:1px solid #5c4a1a;border-radius:8px;padding:.35rem .7rem;cursor:pointer;font:inherit}
+  .author-sub button[aria-selected="true"]{box-shadow:0 0 0 1px #d4af37}
+  .author-panel{display:none}
+  .author-panel.on{display:block}
   .domain-tabs button:hover,.domain-tabs button:focus{background:#33280f}
   .domain-tabs button[aria-selected="true"]{background:#33280f;box-shadow:0 0 0 1px #d4af37}
   .dash-card.domain-off{display:none}
@@ -393,7 +400,7 @@ function aiPeerDeskHtml(p, origin) {
     "desk-azai",
     "learner",
     `<h4><a href="${escapeHtml(base)}/p/azai">AZAI</a> <span class="slug">learner</span></h4>
-  <p class="blurb">Learner. Notes cite a domain, paper, software slug, receipt hash, pin id, or a VibeLock signal channel. VibeLock notes keep physics and related signals heuristic, linguistics experimental, and vibration as a measurement only with a body-coupled track. A file name does not decode the file. Raw container bytes are refused. Scores appear only from posted features or an analysis you supply. No accuracy percentage is stored. 4DMap is not queried. The live mesh roster is not read. The library is not searched. A memory write needs the confirm box. Belief is not truth.</p>
+  <p class="blurb">Learner. Notes cite a domain, paper, software slug, receipt hash, pin id, or a VibeLock signal channel. VibeLock notes keep physics and related signals heuristic, linguistics experimental, and vibration as a measurement only with a body-coupled track. A file name does not decode the file. Raw container bytes are refused. Scores appear only from posted features or an analysis you supply. No accuracy percentage is stored. A live 4DMap read, mesh roster read, or corpus search runs only when that pull is asked for, and the flag is true only after the read returns. Pin bodies, roster rows, and corpus hit text stay out of the receipt sentence. A memory write needs the confirm box and an operator subject. Belief is not truth.</p>
   <div class="field">
     <label for="ai-pin">Pin id (optional, operator supplied)</label>
     <input id="ai-pin" type="text" placeholder="pin-1" autocomplete="off" spellcheck="false">
@@ -456,6 +463,25 @@ function dashCardHtml(p, origin) {
 </article>`;
 }
 
+function authorShelfHtml(base) {
+  return `<section class="author-shelf domain-off" id="author-shelf" data-origin="${escapeHtml(base)}" aria-labelledby="author-shelf-title">
+  <h3 id="author-shelf-title">Aziel Elroi Eliab</h3>
+  <p class="blurb">Author shelf for papers, uploads, and site surfaces. Corpus is a shelf inside this tab. It is not a domain beside AZnet, Forensics, or Social. Refresh reads the live sites. If a site does not answer, the last reading stays labeled stale and nothing is invented. This shelf does not upload.</p>
+  <div class="author-sub" role="tablist" aria-label="Aziel Elroi Eliab shelves">
+    <button type="button" role="tab" id="author-sub-corpus" data-author-sub="corpus" aria-selected="true" aria-controls="author-panel-corpus">Corpus</button>
+    <button type="button" role="tab" id="author-sub-sites" data-author-sub="sites" aria-selected="false" aria-controls="author-panel-sites">Sites</button>
+    <button type="button" role="tab" id="author-sub-uploads" data-author-sub="uploads" aria-selected="false" aria-controls="author-panel-uploads">Uploads</button>
+    <button type="button" role="tab" id="author-sub-papers" data-author-sub="papers" aria-selected="false" aria-controls="author-panel-papers">Papers</button>
+  </div>
+  <div class="actions"><button type="button" data-author-refresh>Refresh from sites</button></div>
+  <div class="author-panel on" id="author-panel-corpus" data-author-panel="corpus"><p data-author-empty="corpus">Corpus has not been read. Inventory is empty until the library answers.</p><ul data-author-list="corpus"></ul></div>
+  <div class="author-panel" id="author-panel-sites" data-author-panel="sites"><p data-author-empty="sites">Sites have not been read.</p><ul data-author-list="sites"></ul></div>
+  <div class="author-panel" id="author-panel-uploads" data-author-panel="uploads"><p>Uploads are not pushed from here. A hash appears only after a site response includes it.</p><ul data-author-list="uploads"></ul></div>
+  <div class="author-panel" id="author-panel-papers" data-author-panel="papers"><p data-author-empty="papers">Zenodo has not been read. Catalog DOI cites are not a live query.</p><ul data-author-list="papers"></ul></div>
+  <pre class="ws-out fg-out" id="author-out" role="status" aria-live="polite">Not refreshed. Nothing invented.</pre>
+</section>`;
+}
+
 function operatorSoftButtons() {
   return HUMAN_TASKS.map((t) => {
     const label = t.slug === "aznet" ? "AZNet Pair status" : `${t.name} ${t.op}`;
@@ -487,6 +513,7 @@ export function workspacePaneHtml(origin, products) {
     <input id="task-filter" type="search" placeholder="decisiongate, fold, mesh…" autocomplete="off">
   </div>
 
+  ${authorShelfHtml(base)}
   <h3 id="dash-softwares-title">Softwares</h3>
   <div class="field">
     <label for="dash-filter">Search Softwares</label>
@@ -812,7 +839,8 @@ export function humanNavHtml(origin, { current } = {}) {
   const home = `${base}/`;
   const tabs = UI_DOMAINS.map((domain) => {
     const on = domain.id === UI_DOMAIN_DEFAULT;
-    return `<button type="button" role="tab" id="domain-tab-${escapeHtml(domain.id)}" data-domain-tab="${escapeHtml(domain.id)}" aria-selected="${on ? "true" : "false"}" aria-controls="dash-softwares">${escapeHtml(domain.label)}</button>`;
+    const controls = domain.kind === "author" ? "author-shelf" : "dash-softwares";
+    return `<button type="button" role="tab" id="domain-tab-${escapeHtml(domain.id)}" data-domain-tab="${escapeHtml(domain.id)}" aria-selected="${on ? "true" : "false"}" aria-controls="${controls}">${escapeHtml(domain.label)}</button>`;
   }).join("\n    ");
   return `<a class="skip-workspace" href="${current === "workspace" ? "#workspace" : "#workspace"}">Skip to workspace</a>
 <div class="domain-tabs" role="tablist" aria-label="Software domains">
@@ -1474,10 +1502,12 @@ export function humanDoorScript() {
     document.querySelectorAll("[data-dash-slug]").forEach(function (el) {
       let hay = String(el.getAttribute("data-search") || el.textContent || "").toLowerCase();
       let searchMiss = !!(q && hay.indexOf(q) === -1);
-      let domainMiss = !q && el.getAttribute("data-domain") !== activeDomain;
+      let domainMiss = el.getAttribute("data-domain") !== activeDomain;
       el.classList.toggle("task-hidden", searchMiss);
       el.classList.toggle("domain-off", domainMiss);
     });
+    let shelf = document.getElementById("author-shelf");
+    if (shelf) shelf.classList.toggle("domain-off", activeDomain !== "aziel-elroi-eliab");
   }
   document.querySelectorAll("[data-domain-tab]").forEach(function (tab) {
     tab.addEventListener("click", function () {
@@ -1485,11 +1515,68 @@ export function humanDoorScript() {
       if (dashFilter) dashFilter.value = "";
       applyDomain();
       let grid = document.getElementById("dash-softwares");
-      if (grid && grid.scrollIntoView) grid.scrollIntoView({ block: "start" });
+      let shelfEl = document.getElementById("author-shelf");
+      let target = activeDomain === "aziel-elroi-eliab" ? shelfEl : grid;
+      if (target && target.scrollIntoView) target.scrollIntoView({ block: "start" });
     });
   });
   if (dashFilter) dashFilter.addEventListener("input", applyDomain);
   applyDomain();
+  function authorEsc(value) {
+    return String(value == null ? "" : value).replace(/[&<>"']/g, function (ch) {
+      return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\\"": "&quot;", "'": "&#39;" })[ch];
+    });
+  }
+  function authorLine(row) {
+    let status = row.reachable ? "answered " + row.http_status : "unreachable";
+    let count = row.inventory_read ? row.item_count + " items" : "inventory not read";
+    let stale = row.last_known ? "; last known " + row.last_known.item_count + " items" : "";
+    return authorEsc(row.name) + " " + status + ", " + count + stale + (row.home ? " " + authorEsc(row.home) : "");
+  }
+  function paintAuthorList(name, rows) {
+    let list = document.querySelector('[data-author-list="' + name + '"]');
+    let empty = document.querySelector('[data-author-empty="' + name + '"]');
+    if (!list) return;
+    list.innerHTML = rows.map(function (row) { return "<li>" + row + "</li>"; }).join("");
+    if (empty) empty.hidden = rows.length > 0;
+  }
+  function paintAuthorShelf(data) {
+    let surfaces = (data && data.surfaces) || [];
+    paintAuthorList("corpus", surfaces.filter(function (row) { return row.shelf === "corpus"; }).map(authorLine));
+    paintAuthorList("sites", surfaces.map(authorLine));
+    let uploads = (data && data.shelves && data.shelves.uploads) || [];
+    paintAuthorList("uploads", uploads.map(function (row) {
+      return authorEsc(row.hash) + (row.stale ? " stale" : " live") + " from " + authorEsc(row.surface);
+    }));
+    let papers = (data && data.shelves && data.shelves.papers) || {};
+    let live = (papers.live || []).map(authorLine);
+    let cites = (papers.catalog_cites || []).map(function (row) {
+      return authorEsc(row.doi) + " catalog cite, not a live query";
+    });
+    paintAuthorList("papers", live.concat(cites));
+  }
+  document.querySelectorAll("[data-author-sub]").forEach(function (tab) {
+    tab.addEventListener("click", function () {
+      let name = tab.getAttribute("data-author-sub");
+      document.querySelectorAll("[data-author-sub]").forEach(function (btn) {
+        btn.setAttribute("aria-selected", btn === tab ? "true" : "false");
+      });
+      document.querySelectorAll("[data-author-panel]").forEach(function (panel) {
+        panel.classList.toggle("on", panel.getAttribute("data-author-panel") === name);
+      });
+    });
+  });
+  let authorRefresh = document.querySelector("[data-author-refresh]");
+  if (authorRefresh) {
+    authorRefresh.addEventListener("click", function () {
+      let shelfEl = document.getElementById("author-shelf");
+      let origin = shelfEl ? shelfEl.getAttribute("data-origin") || "" : "";
+      let out = document.getElementById("author-out");
+      request(origin + "/v1/author-shelf", { headers: { accept: "application/json" } }, out, authorRefresh).then(function (done) {
+        if (done && done.body) paintAuthorShelf(done.body);
+      });
+    });
+  }
   let botPlan = { slug: "", op: "" };
   let botDesk = document.getElementById("desk-azbot");
   if (botDesk) {

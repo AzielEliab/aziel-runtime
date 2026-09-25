@@ -24,6 +24,8 @@ import {
   WORKER_CALLS,
   buildLearningNotes,
   learnerBody,
+  matchingPlan,
+  operatorLearningNote,
   recallLearningNotes,
   resetAiDesks,
   storeLearningNotes,
@@ -32,6 +34,7 @@ import {
   workerPlan,
   workerStatus,
 } from "./ai-desks.js";
+import { refreshAuthorShelf } from "./author-shelf.js";
 import { LIVE_OPS } from "./fraggate/registry.js";
 import {
   appendActReceipt,
@@ -59,7 +62,7 @@ export const VEILLOCK_SAFE_CALLS = Object.freeze([
   "runtime_ui",
 ]);
 
-export const HOST_READ_CALLS = Object.freeze(["mesh_awareness", "forensic_tip", "plan"]);
+export const HOST_READ_CALLS = Object.freeze(["mesh_awareness", "forensic_tip", "plan", "author_shelf"]);
 
 export const INTERFACE_CALLS = Object.freeze([
   ...VEILLOCK_SAFE_CALLS,
@@ -68,6 +71,13 @@ export const INTERFACE_CALLS = Object.freeze([
   ...LEARNER_CALLS,
   "seal",
 ]);
+
+const VEILLOCK_CALL_PIN = Object.freeze(["wrap", "engulf", "join", "link", "play", "record", "status"]);
+
+function veilContractDrift() {
+  const names = Object.keys(VEILLOCK_RUNTIME_UI.calls);
+  return names.length !== VEILLOCK_CALL_PIN.length || names.some((name, index) => name !== VEILLOCK_CALL_PIN[index]);
+}
 
 const LOCAL_COMMANDS = new Set(["wrap", "engulf", "join", "link", "play", "record", "inject", "intercept", "facetime"]);
 
@@ -291,6 +301,12 @@ function hostOverlay() {
     built: true,
     mcp: true,
     node_mesh: true,
+    node_mesh_means: "awareness-only",
+    mesh_joined: false,
+    roster_read: false,
+    suite_json_pulled: false,
+    remote_contract: "not-fetched",
+    contract_drift: veilContractDrift(),
     forensic: true,
     tools_list_unchanged: true,
     mcp_method: INTERFACE_MCP_METHOD,
@@ -585,13 +601,17 @@ async function runAiDesk(call, input, link, opts) {
       false,
     );
   }
-  const built = await buildLearningNotes(input, interfaceLedgerSnapshot());
+  const pull = await liveLearningPull(input, opts);
+  const built = await buildLearningNotes(input, interfaceLedgerSnapshot(), pull);
   if (!built.ok) return fail(built.status, built.code, built.error, { call });
   const stored = await storeLearningNotes(built);
   if (!stored.ok) return fail(stored.status, stored.code, stored.error, { call });
   let memory = { attempted: false, reason: "confirm required", writes_public_chain: false };
   if (isTruthyFlag(input.confirm)) {
-    memory = await observeLearning(opts, stored.notes[0]);
+    const subject = operatorLearningNote(stored.notes, input);
+    memory = subject
+      ? await observeLearning(opts, subject)
+      : { attempted: false, reason: "no-operator-subject", writes_public_chain: false };
   }
   return finish(
     call,
@@ -604,11 +624,88 @@ async function runAiDesk(call, input, link, opts) {
       note_count: stored.notes.length,
       pins_supplied: built.pins_supplied,
       memory,
+      pins_read: pull.flags.pins_read,
+      mesh_read: pull.flags.mesh_read,
+      corpus_searched: pull.flags.corpus_searched,
+      pull: { attempted: pull.attempted, reasons: pull.reasons },
       sources: ["domain", "paper", "software", "receipt", "pin", "aznet", "vibelock"],
     }),
     opts,
     false,
   );
+}
+
+async function liveLearningPull(input, opts) {
+  const flags = { pins_read: false, mesh_read: false, corpus_searched: false };
+  const cites = [];
+  const reasons = [];
+  const asked = isTruthyFlag(input.read_pins) || isTruthyFlag(input.read_mesh) || isTruthyFlag(input.search_corpus);
+  if (!asked) return { attempted: false, flags, cites, reasons };
+  if (isTruthyFlag(input.read_pins)) {
+    if (typeof opts.dispatch !== "function") {
+      reasons.push("pins-unbound");
+    } else {
+      let envelope = null;
+      try {
+        envelope = await opts.dispatch({ slug: "4dmap", op: "card_list", payload: {} });
+      } catch {
+        envelope = { ok: false, code: "IF-DISPATCH-ERROR" };
+      }
+      const result = envelope && envelope.result && typeof envelope.result === "object" ? envelope.result : null;
+      const ok = !!(envelope && envelope.ok === true && envelope.code === "FG-OK" && result && result.ok !== false);
+      flags.pins_read = ok;
+      const cards = ok && Array.isArray(result.cards) ? result.cards : [];
+      const pinIds = [];
+      for (const card of cards) {
+        if (!card || typeof card !== "object") continue;
+        const id = card.card_id || card.pin_id || card.id;
+        if (typeof id === "string" && id) pinIds.push(id.slice(0, 80));
+        if (pinIds.length >= 8) break;
+      }
+      cites.push({ kind: "4dmap", source: "4dmap/card_list", pins_read: ok, count: ok ? cards.length : 0, pin_ids: ok ? pinIds : [] });
+      if (!ok) reasons.push(envelope && envelope.code ? String(envelope.code) : "pins-unread");
+    }
+  }
+  if (isTruthyFlag(input.read_mesh)) {
+    let roster = null;
+    try {
+      const read = opts.meshRead || (async (env) => {
+        const { meshNodes } = await import("./mesh.js");
+        return meshNodes({}, env || {});
+      });
+      roster = await read(opts.env || {});
+    } catch {
+      roster = null;
+    }
+    const nodes = roster && Array.isArray(roster.nodes) ? roster.nodes : null;
+    const ok = !!(roster && roster.ok !== false && nodes);
+    flags.mesh_read = ok;
+    cites.push({ kind: "mesh", source: "mesh_nodes", mesh_read: ok, count: ok ? nodes.length : 0 });
+    if (!ok) reasons.push("mesh-unread");
+  }
+  if (isTruthyFlag(input.search_corpus)) {
+    const shelf = await refreshAuthorShelf(opts.fetchImpl || fetch, { query: input.q || input.query || "", only: "corpus" });
+    const corpus = shelf.surfaces[0] || null;
+    flags.corpus_searched = !!(corpus && corpus.reachable && corpus.inventory_read);
+    const recordIds = [];
+    if (flags.corpus_searched) {
+      for (const item of corpus.items) {
+        const id = item.record_id || item.id;
+        if (id) recordIds.push(String(id).slice(0, 80));
+        if (recordIds.length >= 8) break;
+      }
+    }
+    cites.push({
+      kind: "corpus",
+      source: corpus ? corpus.probe : "corpus",
+      corpus_searched: flags.corpus_searched,
+      count: corpus ? corpus.item_count : 0,
+      record_ids: recordIds,
+      reason: corpus && corpus.reason ? corpus.reason : null,
+    });
+    if (!flags.corpus_searched) reasons.push(corpus && corpus.reason ? corpus.reason : "corpus-unsearched");
+  }
+  return { attempted: true, flags, cites, reasons };
 }
 
 async function observeLearning(opts, note) {
@@ -720,6 +817,21 @@ export async function orchestrate(input, opts = {}) {
     );
   }
 
+  if (call === "author_shelf") {
+    const shelf = await refreshAuthorShelf(opts.fetchImpl || fetch, { query: input.q || input.query || "" });
+    const answered = shelf.surfaces.filter((row) => row.reachable).length;
+    return finish(
+      call,
+      200,
+      link,
+      "Interface refreshed the Aziel Elroi Eliab shelf.",
+      `Author shelf refreshed. ${answered} surfaces answered. The public chain was not appended.`,
+      shelf,
+      opts,
+      false,
+    );
+  }
+
   if (WORKER_CALLS.includes(call) || LEARNER_CALLS.includes(call)) {
     return runAiDesk(call, input, link, opts);
   }
@@ -818,6 +930,14 @@ export async function orchestrate(input, opts = {}) {
   let door = null;
   let executed = false;
   let output = "Seal recorded. Nothing launched.";
+  if (dispatchPlan.would && !matchingPlan(dispatchPlan.slug, dispatchPlan.op).tied) {
+    return fail(409, "IF-UNTIED-PLAN", "Seal of a live op needs a prior worker plan for that slug and op. FragGate was not called.", {
+      call: "seal",
+      tied_to_plan: false,
+      slug: dispatchPlan.slug,
+      op: dispatchPlan.op,
+    });
+  }
   if (dispatchPlan.would) {
     if (typeof opts.dispatch !== "function") {
       return fail(503, "IF-DISPATCH-UNBOUND", "Live dispatch is unbound. FragGate was not called.", { call: "seal" });
@@ -873,6 +993,7 @@ export async function orchestrate(input, opts = {}) {
     slug: slug,
     op: op,
     door,
+    tied_to_plan: dispatchPlan.would === true,
     note: executed
       ? "FragGate returned FG-OK. The receipt output names that code."
       : actionFailed
