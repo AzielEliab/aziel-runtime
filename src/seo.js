@@ -60,6 +60,22 @@ export const GLAMA_INSTALL_RELEASE = "2.0.7";
 export const GLAMA_REMOTE_MCP = "https://aziel-runtime.vibelock.workers.dev/mcp";
 
 /**
+ * Plain Glama card. Lead sentence for glama.json, README, docs/GLAMA.md,
+ * /help/glama.txt, and the /llms.txt opening. 40+ is the Softwares catalog
+ * behind FragGate (live registry 42, including mesh and memory kernels).
+ * MCP tools/list stays 36. Do not replace RUNTIME_ABSTRACT with this sentence.
+ */
+export const GLAMA_CARD_LEAD =
+  "Aziel Runtime lets AI assistants run 40+ research tools through one door. Install on Glama, then list tools, describe one, and call it. Every call can leave a receipt.";
+
+export function glamaCardLead(calling = null) {
+  if (calling && calling.rotated === true && calling.calling_name) {
+    return GLAMA_CARD_LEAD.replace(/\bAziel Runtime\b/g, calling.calling_name);
+  }
+  return GLAMA_CARD_LEAD;
+}
+
+/**
  * Machine cite for Install / Try on Glama.
  * `glama_release` is Glama's listing release. `worker_version` is this package.
  */
@@ -165,11 +181,20 @@ export function llmsWhatThisIsBlock(calling = null) {
   return [
     "## What this is",
     "",
+    glamaCardLead(calling),
+    "",
     abstract,
     "",
     publicName,
     "",
     "## How to use",
+    "",
+    `1. Click Install / Add to Glama on ${RUNTIME_GLAMA}`,
+    "2. In any MCP client, run: fraggate_list → fraggate_describe {name} → fraggate_call {name, op, payload, confirm:true}",
+    "",
+    `Worker remote: POST ${GLAMA_REMOTE_MCP}`,
+    "Example first call: decisiongate_check with a short proposal and dry_run:true, or forgereceipts receipt for a completed task.",
+    `MCP tools/list count: ${PUBLIC_MCP_TOOLS.length}.`,
     "",
     "1. Agents: fraggate_list → fraggate_describe → fraggate_call (POST /mcp or POST /v1/fraggate/call).",
     "2. Hubs: GET /v1/software (mirror GET /v1/fraggate/software) on each Softwares-tab refresh.",

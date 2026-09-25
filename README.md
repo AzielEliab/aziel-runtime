@@ -1,5 +1,22 @@
 # aziel-runtime
 
+Aziel Runtime lets AI assistants run 40+ research tools through one door. Install on Glama, then list tools, describe one, and call it. Every call can leave a receipt.
+
+## How to use
+
+1. Click **Install / Add to Glama** on https://glama.ai/mcp/servers/AzielEliab/aziel-runtime (also https://glama.ai/mcp/servers/@AzielEliab/aziel-runtime).
+2. In any MCP client, run: `fraggate_list` → `fraggate_describe {name}` → `fraggate_call {name, op, payload, confirm:true}`
+
+Worker remote: https://aziel-runtime.vibelock.workers.dev/mcp
+
+Public MCP `tools/list` is **36** live tools. FragGate is the single door. "40+" counts Softwares catalog products behind that door.
+
+**Example first call:** `decisiongate_check` with a short proposal and `dry_run: true`, or `forgereceipts` `receipt` for a completed task.
+
+**Author:** Aziel Eliab
+
+Install order: Install Server on Glama first, then the remote Worker, then local stdio last. Glama Install Server release **2.0.7** (Install Server ON). Worker / server package stays **2.0.0-rc1**. Steps: [docs/GLAMA.md](docs/GLAMA.md).
+
 **Aziel Runtime** (`aziel-runtime`) is a node-meshed orchestration suite of MCP-connected software designed to route catalog Softwares through the FragGate door, mint receipts, and coordinate mesh presence. Use it to list, describe, and call product operations over MCP or OpenAPI, then keep the returned receipt. It exists so each Softwares product stays a separate engine behind one door.
 
 Softwares purpose copy (`one_line` + `description`) is the designed-to-do addendum on `GET /v1/software` (`src/software-copy.js`). Hubs refresh from that route.
@@ -320,9 +337,14 @@ Restart Claude Desktop after updating. Remote alternative: `POST https://aziel-r
 
 ## Add to Glama
 
-Install order:
+Plain path (same two steps as the top of this file):
 
-1. **Install Server (live)** — [Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime) (also `https://glama.ai/mcp/servers/@AzielEliab/aziel-runtime`). One-click Install Server / Deploy. Glama release **2.0.7**. Install Server ON. Auto-Release ON. Worker / server package stays **2.0.0-rc1**.
+1. Click **Install / Add to Glama** on [Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime).
+2. In any MCP client, run: `fraggate_list` → `fraggate_describe {name}` → `fraggate_call {name, op, payload, confirm:true}`
+
+Install order when you need every path:
+
+1. **Install Server (live)** — [Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime) (also `https://glama.ai/mcp/servers/@AzielEliab/aziel-runtime`). Click Install / Add to Glama. Glama release **2.0.7**. Install Server ON. Auto-Release ON. Worker / server package stays **2.0.0-rc1**.
 2. **Remote MCP** — `POST https://aziel-runtime.vibelock.workers.dev/mcp` (`initialize`, `tools/list`, `tools/call`). User-Agent `Mozilla/5.0`. Public, no OAuth.
 3. **Local stdio (last)** — [`cli/mcp-stdio.mjs`](cli/mcp-stdio.mjs) bridges to that same Worker `/mcp`. [`glama.json`](glama.json) + [`Dockerfile`](Dockerfile) CMD `["node", "cli/mcp-stdio.mjs"]`.
 

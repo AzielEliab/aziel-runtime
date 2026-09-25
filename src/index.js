@@ -260,6 +260,7 @@ import {
   LIBRARY_ORIGIN,
   PRODUCT_ALTERNATE_NAME,
   PRODUCT_NAME,
+  GLAMA_CARD_LEAD,
   RUNTIME_ABSTRACT,
   RUNTIME_GLAMA,
   RUNTIME_ONE_LINE,
@@ -1770,6 +1771,7 @@ function citeJson(origin, env = {}) {
   const calling = resolveCallingName(env);
   const banCite = banSurvivalCiteField(origin, env);
   return {
+    lead: rewriteLiveCallingDisplay(GLAMA_CARD_LEAD, calling),
     product: calling.calling_name,
     slug: calling.calling_slug,
     one_line: RUNTIME_ONE_LINE,

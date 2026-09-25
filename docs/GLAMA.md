@@ -1,8 +1,21 @@
 # Glama listing — aziel-runtime
 
+Aziel Runtime lets AI assistants run 40+ research tools through one door. Install on Glama, then list tools, describe one, and call it. Every call can leave a receipt.
+
 Public identity: **Aziel Eliab** only.
 
-**[Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime)** is the primary public host / discovery / install listing for aziel-runtime (also `https://glama.ai/mcp/servers/@AzielEliab/aziel-runtime`). Worker origin stays the HTTP / OpenAPI / MCP execution surface.
+## How to use
+
+1. Click **Install / Add to Glama** on https://glama.ai/mcp/servers/AzielEliab/aziel-runtime (also https://glama.ai/mcp/servers/@AzielEliab/aziel-runtime).
+2. In any MCP client, run: `fraggate_list` → `fraggate_describe {name}` → `fraggate_call {name, op, payload, confirm:true}`
+
+**Worker remote:** `https://aziel-runtime.vibelock.workers.dev/mcp`
+
+**Example first call:** `decisiongate_check` with a short proposal and `dry_run: true`, or `forgereceipts` `receipt` for a completed task.
+
+`tools/list` is **36** live MCP tools. FragGate is the single door. "40+" counts Softwares catalog products behind that door (live FragGate registry is 42 entries: those catalog products plus the mesh and memory kernels). ChainLock and memory are append-only. `runtime_run`, `runtime_manifest`, and `runtime_session_*` are advanced/internal.
+
+**[Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime)** is the primary public host / discovery / install listing. Worker origin stays the HTTP / OpenAPI / MCP execution surface.
 
 **Glama release 2.0.7** is Glama's Install Server release (Deploy Success, Install Server ON, Auto-Release ON). **Worker / server package stays 2.0.0-rc1** (`package.json`, `glama.json` `version`, MCP `serverInfo.version`). Those are different numbers.
 
@@ -10,19 +23,19 @@ Glama is one of the compatible AI clients (ChatGPT, Grok, Venice, Claude, Cursor
 
 ## Install order
 
-1. **Install Server (live)** — one-click Install Server / Deploy on [Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime).
+Install / Add to Glama is step 1. Remote Worker is next. Local stdio is last.
+
+1. **Install / Add to Glama (live)** — click Install / Add to Glama on [Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime).
 2. **Remote MCP** — `POST https://aziel-runtime.vibelock.workers.dev/mcp` (`initialize`, `tools/list`, `tools/call`). User-Agent `Mozilla/5.0`. Public, no OAuth.
 3. **Local stdio (last)** — `node cli/mcp-stdio.mjs` / `npm run mcp` / Docker. The CLI bridges to the Worker `/mcp`.
 
 **First call:** `@aziel-runtime` → `fraggate_list` → `fraggate_describe` → `fraggate_call`. Example: `{ "slug": "foldlock", "op": "fold-preview", "payload": { "text": "the cat and the dog" } }`, or `decisiongate_check` with `dry_run=true`. Show `display.title` and `display.summary`, then take the next input.
 
-`tools/list` is **36 live MCP tools**. Start on the FragGate door. ChainLock and memory are append-only. `runtime_run`, `runtime_manifest`, and `runtime_session_*` are advanced/internal.
-
 This repo ships:
 
 | File | Role |
 |------|------|
-| [`glama.json`](../glama.json) | Claim file. Schema requires `maintainers` (GitHub username `AzielEliab`). `version` stays the Worker truth `2.0.0-rc1` (Glama Install Server release 2.0.7 is named in `description`, not as `version`). Description: MCP Softwares suite — FragGate door, receipts, mesh; `1.6.2` is superseded heritage. Keywords include mcp, openapi, fraggate, softwares, decisiongate, receipts. |
+| [`glama.json`](../glama.json) | Claim file. Schema requires `maintainers` (GitHub username `AzielEliab`). `version` stays the Worker truth `2.0.0-rc1` (Glama Install Server release 2.0.7 is named in `description`, not as `version`). Description leads with the plain card sentence (40+ Softwares catalog products, Install on Glama, list → describe → call, receipt). `1.6.2` is superseded heritage. Keywords include mcp, openapi, fraggate, softwares, decisiongate, receipts. |
 | [`cli/mcp-stdio.mjs`](../cli/mcp-stdio.mjs) | Stdio MCP server. Default **bridges** to the hosted Worker `/mcp`. |
 | [`Dockerfile`](../Dockerfile) | Local / “from Dockerfile” image. Glama admin often **generates** its own image from CMD args — still ship this file. |
 | [`src/mcp-stdio.js`](../src/mcp-stdio.js) | Framing + bridge / in-process dispatch. |
