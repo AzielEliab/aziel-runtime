@@ -1,14 +1,38 @@
 /**
- * FragGate runs before a Softwares or runtime tool.
- * Callers do not call fraggate_* first. Diagnostic door tools stay available.
+ * FragGate and ChainLock run before a Softwares or runtime tool returns.
+ * Callers do not call fraggate_* or chainlock_* first. Those tools stay for diagnostics.
  * tools/list stays 36. Author: Aziel Eliab only.
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { append, tip } from "./chainlock/ops.js";
 import { check as decisiongateCheck } from "./engines/decisiongate/engine.js";
 import { admitCall, defaultClaim, previewCatalogAdmission, refuseRuntimeGate } from "./fraggate/door.js";
 
 const DOOR_DIAGNOSTIC = new Set(["fraggate_list", "fraggate_describe", "fraggate_verify", "fraggate_call"]);
+
+/** Ledger-bearing tools. A successful body stamps the acts chain. Reads do not. */
+export const CHAINLOCK_LEDGER_TOOLS = new Set([
+  "decisiongate_check",
+  "library_lookup",
+  "memory_observe",
+  "memory_resolve",
+  "memory_calibrate",
+  "mesh_join",
+  "mesh_enable",
+  "mesh_heartbeat",
+  "mesh_leave",
+  "mesh_broadcast",
+  "runtime_run",
+  "runtime_session_exec",
+]);
+
+const HASH_RE = /^[a-f0-9]{64}$/;
+const ZERO_HASH = "0".repeat(64);
+
+export function honestStampHash(value) {
+  return typeof value === "string" && HASH_RE.test(value) && value !== ZERO_HASH;
+}
 
 export function isDoorDiagnostic(name) {
   return DOOR_DIAGNOSTIC.has(String(name || ""));
@@ -105,4 +129,197 @@ export async function enterMeshPost({ pathname, payload, registry, bySlug }) {
   const admission = await admitCall({ slug: "mesh", op, payload }, registry, bySlug);
   if (!admission.admitted) return { proceed: false, envelope: admission.envelope };
   return { proceed: true, role: "catalog" };
+}
+
+export function chainlockNeed(name) {
+  const tool = String(name || "");
+  if (tool === "fraggate_call") return "pipe";
+  if (tool.startsWith("fraggate_") || tool.startsWith("chainlock_")) return "diagnostic";
+  if (CHAINLOCK_LEDGER_TOOLS.has(tool)) return "acts";
+  return "none";
+}
+
+export function peersQuiet(reason = "not on this path") {
+  const one = { ran: false, reason };
+  return {
+    lamb_lens: { ...one },
+    sweepgate: { ...one },
+    sentinel: { ...one },
+    temporallock: { ...one },
+    roseclock: { ...one },
+    forgereceipts: { ...one },
+  };
+}
+
+export function infraStatus({ fraggateRole, chainlock, peerReason }) {
+  return {
+    fraggate: { ran: fraggateRole !== "absent", role: fraggateRole },
+    chainlock,
+    peers: peersQuiet(peerReason || "not on this path"),
+  };
+}
+
+export function previewInfra() {
+  return infraStatus({
+    fraggateRole: "preview",
+    chainlock: { ran: false, reason: "dry_run" },
+    peerReason: "dry_run",
+  });
+}
+
+export function refuseInfra() {
+  return infraStatus({
+    fraggateRole: "refuse",
+    chainlock: { ran: false, reason: "refused" },
+    peerReason: "refused",
+  });
+}
+
+export function runningInfra() {
+  return infraStatus({
+    fraggateRole: "admitted",
+    chainlock: { ran: false, reason: "running" },
+    peerReason: "running",
+  });
+}
+
+/**
+ * Append one acts-chain stamp and verify the tip matches that hash.
+ * A missing or zero hash stays ran:false. dry_run must not call this.
+ */
+export async function stampActs(env, name) {
+  const tool = String(name || "tool");
+  const stamped = await append(env, {
+    c: "acts",
+    k: "admit",
+    subject: tool,
+    fact: `${tool} admitted`,
+  });
+  const hash = stamped && stamped.card && stamped.card.h;
+  if (!(stamped && stamped.ok && honestStampHash(hash))) {
+    return {
+      ran: false,
+      op: "append",
+      chain: "acts",
+      refuse: (stamped && stamped.refuse) || "no-stamp",
+    };
+  }
+  const tipped = await tip(env, "acts");
+  const tipHash = tipped && tipped.tip && tipped.tip.h;
+  return {
+    ran: true,
+    op: "append",
+    chain: "acts",
+    hash,
+    verified: tipHash === hash,
+  };
+}
+
+function doorRecord(body) {
+  if (!body || typeof body !== "object") return null;
+  if (body.entry || body.lamb_lens || body.pipe || body.forgereceipts) return body;
+  if (body.result && typeof body.result === "object") {
+    const inner = body.result;
+    if (inner.entry || inner.lamb_lens || inner.pipe || inner.forgereceipts) return inner;
+  }
+  return body;
+}
+
+/**
+ * Report the pipe stamp only when the door body carries a real card hash.
+ * fraggate_call already stamped ChainLock-IN. This does not append again.
+ */
+export function infraFromDoorBody(body) {
+  const src = doorRecord(body) || {};
+  const hash = src.entry && src.entry.h;
+  const stamped = honestStampHash(hash);
+  const temporalHash = src.temporal && src.temporal.hash;
+  const forgeHash = src.forgereceipts && src.forgereceipts.hash;
+  return {
+    fraggate: { ran: true, role: "door" },
+    chainlock: stamped
+      ? { ran: true, op: "pipe", chain: "session", hash }
+      : { ran: false, op: "pipe", chain: "session", reason: "no stamp" },
+    peers: {
+      lamb_lens: { ran: Boolean(src.lamb_lens) },
+      sweepgate: {
+        ran: stamped,
+        reason: stamped ? "passed before chainlock-in" : "no stamp",
+      },
+      sentinel: { ran: Boolean(src.sentinel) },
+      temporallock: {
+        ran: honestStampHash(temporalHash),
+        ...(honestStampHash(temporalHash) ? { hash: temporalHash } : {}),
+      },
+      roseclock: { ran: Boolean(src.roseclock) },
+      forgereceipts: {
+        ran: Boolean(src.forgereceipts && (src.forgereceipts.ok === true || honestStampHash(forgeHash))),
+        ...(honestStampHash(forgeHash) ? { hash: forgeHash } : {}),
+      },
+    },
+  };
+}
+
+export function attachInfra(out, infra) {
+  if (!out || typeof out !== "object" || !infra) return out;
+  out.infra = infra;
+  if (out.envelope && typeof out.envelope === "object") out.envelope.infra = infra;
+  return out;
+}
+
+export function infraOnResult(out) {
+  if (out && out.infra && out.infra.chainlock) return out.infra;
+  const envelope = out && out.envelope;
+  if (envelope && envelope.infra && envelope.infra.chainlock) return envelope.infra;
+  const nested = envelope && envelope.result;
+  if (nested && nested.infra && nested.infra.chainlock) return nested.infra;
+  if (typeof out?.text === "string") {
+    try {
+      const parsed = JSON.parse(out.text);
+      if (parsed && parsed.infra && parsed.infra.chainlock) return parsed.infra;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+/**
+ * ChainLock after a live tool body.
+ * pipe: report the door card, do not append again.
+ * diagnostic: chainlock_* and fraggate_* are the infrastructure, not a pre-call.
+ * acts: stamp only when the body status is under 400.
+ */
+export async function infraAfterBody(env, name, out) {
+  const prior = infraOnResult(out);
+  if (prior) return prior;
+  const need = chainlockNeed(name);
+  if (need === "pipe") {
+    const record = (out && out.envelope && out.envelope.result) || null;
+    return infraFromDoorBody(record);
+  }
+  if (need === "diagnostic") {
+    return infraStatus({
+      fraggateRole: "diagnostic",
+      chainlock: { ran: false, reason: "diagnostic" },
+      peerReason: "diagnostic",
+    });
+  }
+  if (need === "acts") {
+    if (out && out.status < 400) {
+      return infraStatus({
+        fraggateRole: "gate",
+        chainlock: await stampActs(env, name),
+        peerReason: "acts stamp only",
+      });
+    }
+    return infraStatus({
+      fraggateRole: "gate",
+      chainlock: { ran: false, op: "append", chain: "acts", reason: "not stamped" },
+    });
+  }
+  return infraStatus({
+    fraggateRole: "gate",
+    chainlock: { ran: false, reason: "not a ledger op" },
+  });
 }

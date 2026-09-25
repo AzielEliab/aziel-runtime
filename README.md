@@ -5,7 +5,7 @@ Aziel Runtime lets AI assistants run 40+ research tools through one door. Instal
 ## How to use
 
 1. Click **[Install / Add to Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime)** (also `https://glama.ai/mcp/servers/@AzielEliab/aziel-runtime`).
-2. In any MCP client, call the tool you need. The door runs first, then the tool. `confirm=true` writes. `dry_run=true` previews and writes nothing. `background=true` returns Running until a receipt hash exists. Done only with that hash. `tools/list` stays 36.
+2. In any MCP client, call the Softwares tool. The door runs first. ChainLock stamps when the call needs a ledger. `confirm=true` writes. `dry_run=true` previews and writes nothing. `background=true` returns Running until a receipt hash exists. Done only with that hash. `tools/list` stays 36.
 
 Diagnostics, if needed: `fraggate_list` → `fraggate_describe {name}` → `fraggate_call {name, op, payload, confirm:true}`.
 
@@ -160,7 +160,7 @@ Cap-7 is the MirageGrid auto-generate **.az** layer. It duplicates the four hub 
 
 ## FragGate door
 
-Public MCP `tools/list` is **36 live tools**. First call: `@aziel-runtime` → `fraggate_list` → `fraggate_describe` → `fraggate_call` (`foldlock` / `fold-preview`, or `decisiongate_check` with `dry_run=true`). The same list includes `runtime_skill`, `fraggate_verify`, `library_lookup`, suite `mesh_*`, append-only `chainlock_*` and `memory_*`, and catalog helpers. `runtime_run` and `runtime_session_*` are advanced/internal.
+Public MCP `tools/list` is **36 live tools**. First call: the Softwares tool. The door runs first. ChainLock stamps when the call needs a ledger. Diagnostics stay `fraggate_list` → `fraggate_describe` → `fraggate_call` (`foldlock` / `fold-preview`, or `decisiongate_check` with `dry_run=true`). The same list includes `runtime_skill`, `fraggate_verify`, `library_lookup`, suite `mesh_*`, append-only `chainlock_*` and `memory_*` (diagnostics and belief, not a pre-call), and catalog helpers. `runtime_run` and `runtime_session_*` are advanced/internal. Ledger ops stamp the acts chain. `fraggate_call` stamps the session chain inside the pipe when a real hash exists. Lamb Lens, SweepGate, Sentinel, TemporalLock, RoseClock, and ForgeReceipts run inside that pipe. Reads do not stamp ChainLock.
 
 Every catalog product is a **hashed registry** entry (`name`, `slug`, `digest`, `status`, public `ops`). Status is `live` | `stub` | `local_only`.
 
@@ -310,14 +310,14 @@ Current suite software designs (AZL / SEC-FEAT / QNM-WP / NODE-OPS / **AZL-DONAT
 1. Create a GPT (or open GPT Actions).
 2. **Import from URL** → `https://aziel-runtime.vibelock.workers.dev/openapi.json`
 3. No authentication. CORS `*`.
-4. Ask the GPT to call `fraggate_list`, then `fraggate_call`. Named live modules: `decisiongate_check`, `library_lookup`. Session tools and `runtime_run` are advanced/internal.
+4. Ask the GPT to call the Softwares tool. The door runs first. ChainLock stamps when the call needs a ledger. Named live modules: `decisiongate_check`, `library_lookup`. Diagnostics: `fraggate_list`, then `fraggate_call`. Session tools and `runtime_run` are advanced/internal.
 
 ## Add to Grok
 
 - **Custom tool / OpenAPI:** import `https://aziel-runtime.vibelock.workers.dev/openapi.json`
 - **MCP remote:** `POST https://aziel-runtime.vibelock.workers.dev/mcp`  
   Methods: `initialize`, `tools/list`, `tools/call`.  
-  `tools/list` is 36 live tools. First call: `fraggate_list` → `fraggate_describe` → `fraggate_call`.  
+  `tools/list` is 36 live tools. First call: the Softwares tool. The door runs first. ChainLock stamps when the call needs a ledger. Diagnostics: `fraggate_list` → `fraggate_describe` → `fraggate_call`.  
   `runtime_run`, `runtime_manifest`, and `runtime_session_*` are advanced/internal.  
   HTTP `/p/{product}/{op}` stays a proxy. Public, no OAuth.  
   Tool results are `{ display, result, ledger_tip? }` — show `display` to the user.

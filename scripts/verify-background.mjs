@@ -32,9 +32,14 @@ assert.equal(PUBLIC_MCP_TOOLS.includes("fraggate_background"), false);
 
 const instructions = mcpInitializeInstructions({});
 assert.match(instructions, /Start here/);
-assert.match(instructions, /Tools just work/);
+assert.match(instructions, /Call the Softwares tool/);
 assert.match(instructions, /The door runs before the tool/);
+assert.match(instructions, /stamps chainlock/);
+assert.match(instructions, /Auto-wire/);
+assert.match(instructions, /no chainlock_delete/);
 assert.doesNotMatch(instructions, /Call fraggate_list, then fraggate_describe, then fraggate_call/);
+assert.doesNotMatch(instructions, /append → tip or recall → verify → seal/);
+assert.doesNotMatch(instructions, /call chainlock_append before/);
 assert.match(instructions, /fraggate_call is THE single door/);
 assert.match(instructions, /background=true/);
 assert.match(instructions, /tools\/list stays 36/);
@@ -118,11 +123,33 @@ assert.deepEqual(callTool.inputSchema.required, ["op"]);
 const meshStatus = await mcp("tools/call", { name: "mesh_status", arguments: {} }, 3);
 assert.equal(meshStatus.result.isError, false);
 assert.equal(meshStatus.result.structuredContent.fraggate_entered, true);
+assert.equal(meshStatus.result.structuredContent.infra.fraggate.ran, true);
+assert.equal(meshStatus.result.structuredContent.infra.chainlock.ran, false);
+assert.equal(meshStatus.result.structuredContent.infra.chainlock.reason, "not a ledger op");
 assert.notEqual(meshStatus.result.structuredContent.code, "FG-HALLUC-TOOL");
 
-const chainTip = await mcp("tools/call", { name: "chainlock_tip", arguments: {} }, 4);
+const chainTip = await mcp("tools/call", { name: "chainlock_tip", arguments: { c: "session" } }, 4);
 assert.equal(chainTip.result.isError, false);
 assert.equal(chainTip.result.structuredContent.fraggate_entered, true);
+assert.equal(chainTip.result.structuredContent.infra.chainlock.ran, false);
+assert.equal(chainTip.result.structuredContent.infra.chainlock.reason, "diagnostic");
+
+function sessionSeq(payload) {
+  const body = payload.result.structuredContent.result;
+  if (!body || body.empty || body.tip == null) return -1;
+  return body.seq;
+}
+
+const beforeAppend = sessionSeq(chainTip);
+const appended = await mcp("tools/call", {
+  name: "chainlock_append",
+  arguments: { c: "session", subject: "probe", fact: "one session stamp", confirm: true },
+}, 41);
+assert.equal(appended.result.isError, false);
+assert.equal(appended.result.structuredContent.infra.chainlock.ran, false);
+assert.equal(appended.result.structuredContent.infra.chainlock.reason, "diagnostic");
+const afterTip = await mcp("tools/call", { name: "chainlock_tip", arguments: { c: "session" } }, 42);
+assert.equal(sessionSeq(afterTip), beforeAppend + 1);
 
 const gateCheck = await mcp("tools/call", {
   name: "decisiongate_check",
@@ -130,6 +157,19 @@ const gateCheck = await mcp("tools/call", {
 }, 5);
 assert.equal(gateCheck.result.structuredContent.fraggate_entered, true);
 assert.notEqual(gateCheck.result.structuredContent.code, "FG-HALLUC-TOOL");
+assert.equal(gateCheck.result.structuredContent.infra.chainlock.ran, true);
+assert.equal(gateCheck.result.structuredContent.infra.chainlock.chain, "acts");
+assert.equal(gateCheck.result.structuredContent.infra.chainlock.verified, true);
+assert.match(gateCheck.result.structuredContent.infra.chainlock.hash, /^[a-f0-9]{64}$/);
+assert.notEqual(gateCheck.result.structuredContent.infra.chainlock.hash, "0".repeat(64));
+
+const gateDry = await mcp("tools/call", {
+  name: "decisiongate_check",
+  arguments: { statement: "Preview a short proposal before any write.", dry_run: true },
+}, 51);
+assert.equal(gateDry.result.structuredContent.infra.chainlock.ran, false);
+assert.equal(gateDry.result.structuredContent.infra.chainlock.reason, "dry_run");
+assert.equal(gateDry.result.structuredContent.ledger_written, false);
 
 const stubRun = await mcp("tools/call", {
   name: "runtime_run",
@@ -138,6 +178,7 @@ const stubRun = await mcp("tools/call", {
 assert.equal(stubRun.result.isError, true);
 assert.equal(stubRun.result.structuredContent.code, "FG-STUB");
 assert.equal(stubRun.result.structuredContent.fraggate_entered, true);
+assert.equal(stubRun.result.structuredContent.infra.chainlock.ran, false);
 
 const noConfirm = await mcp("tools/call", {
   name: "fraggate_call",
@@ -160,6 +201,8 @@ assert.equal(dryBg.result.isError, false);
 assert.equal(dryBg.result.structuredContent.code, "MCP-DRY-RUN");
 assert.equal(dryBg.result.structuredContent.mutated, false);
 assert.equal(dryBg.result.structuredContent.ledger_written, false);
+assert.equal(dryBg.result.structuredContent.infra.chainlock.ran, false);
+assert.equal(dryBg.result.structuredContent.infra.chainlock.reason, "dry_run");
 assert.equal(dryBg.result.structuredContent.result && dryBg.result.structuredContent.result.job_id, undefined);
 
 const dryRefuse = await mcp("tools/call", {
@@ -206,6 +249,8 @@ assert.equal(running.ledger_written, false);
 assert.match(running.display.summary, /^Running\./);
 assert.match(running.display.next, /Still running/);
 assert.match(running.result.job_id, /^job_[a-f0-9]{16}$/);
+assert.equal(running.result.infra.chainlock.ran, false);
+assert.equal(running.infra.chainlock.ran, false);
 assert.doesNotMatch(running.display.summary, /Done/);
 
 await drainBackground();
@@ -223,6 +268,9 @@ assert.match(done.result.receipt.hash, /^[a-f0-9]{64}$/);
 assert.notEqual(done.result.receipt.hash, "0".repeat(64));
 assert.match(done.display.summary, /^Done\./);
 assert.equal(done.ledger_written, true);
+assert.equal(done.result.infra.chainlock.ran, true);
+assert.match(done.result.infra.chainlock.hash, /^[a-f0-9]{64}$/);
+assert.equal(done.infra.chainlock.ran, true);
 
 const quietPoll = await mcp("tools/call", {
   name: "fraggate_call",
@@ -233,6 +281,7 @@ assert.equal(quietPoll.result.structuredContent.code, "job_not_found");
 assert.equal(quietPoll.result.structuredContent.result.done, false);
 assert.equal(quietPoll.result.structuredContent.result.status, "quiet");
 assert.match(quietPoll.result.structuredContent.display.summary, /^Quiet\./);
+assert.equal(quietPoll.result.structuredContent.result.infra.chainlock.ran, false);
 assert.doesNotMatch(quietPoll.result.structuredContent.display.summary, /Done/);
 
 resetBackgroundJobs();
@@ -275,6 +324,8 @@ assert.equal(httpDoneBody.done, true);
 assert.equal(httpDoneBody.code, "FG-OK");
 assert.match(httpDoneBody.receipt.hash, /^[a-f0-9]{64}$/);
 assert.match(httpDoneBody.summary, /^Done\./);
+assert.equal(httpDoneBody.infra.chainlock.ran, true);
+assert.match(httpDoneBody.infra.chainlock.hash, /^[a-f0-9]{64}$/);
 
 const missing = await handler(
   new Request(origin + "/v1/fraggate/background/job_fedcba9876543210", {

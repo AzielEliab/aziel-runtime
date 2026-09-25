@@ -75,7 +75,7 @@ export function glamaInstallCite(workerVersion = "2.0.0-rc1") {
     worker_version: workerVersion,
     order: ["glama-install-server", "remote-post-mcp", "local-stdio"],
     remote_mcp: GLAMA_REMOTE_MCP,
-    first_call: "@aziel-runtime → fraggate_list → fraggate_describe → fraggate_call",
+    first_call: "call the Softwares tool — the door runs first; ChainLock stamps when the call needs a ledger",
     first_call_examples: [
       "fraggate_call { slug: foldlock, op: fold-preview }",
       "decisiongate_check with dry_run=true",
@@ -107,7 +107,7 @@ export const GLAMA_DISCOVERY_LEAD =
 
 export const GLAMA_HOW_TO_USE = Object.freeze([
   "1. Click Install / Add to Glama on https://glama.ai/mcp/servers/AzielEliab/aziel-runtime",
-  "2. In any MCP client, call the tool you need. The door runs first, then the tool. confirm=true writes. dry_run=true previews and writes nothing. background=true returns Running until a receipt hash exists. Done only with that hash. tools/list stays 36.",
+  "2. In any MCP client, call the Softwares tool. The door runs first. ChainLock stamps when the call needs a ledger. confirm=true writes. dry_run=true previews and writes nothing. background=true returns Running until a receipt hash exists. Done only with that hash. tools/list stays 36.",
   "Diagnostics, if needed: fraggate_list → fraggate_describe {name} → fraggate_call {name, op, payload, confirm:true}.",
 ]);
 
@@ -199,12 +199,12 @@ export function llmsWhatThisIsBlock(calling = null) {
     `MCP tools/list count: ${PUBLIC_MCP_TOOLS.length}. FragGate is the single door.`,
     "",
     "Also:",
-    "Agents: call the tool you need. The door runs first (POST /mcp). Diagnostics: fraggate_list → fraggate_describe → fraggate_call.",
+    "Agents: call the Softwares tool. The door runs first (POST /mcp). ChainLock stamps when the call needs a ledger. Diagnostics: fraggate_list → fraggate_describe → fraggate_call.",
     "Hubs: GET /v1/software (mirror GET /v1/fraggate/software) on each Softwares-tab refresh.",
     "Humans: Worker UI + counted /download — dual-surface. POST /p/{slug}/{op} is proxy. Exec is FragGate.",
     `Install / Try on Glama: ${RUNTIME_GLAMA}`,
     `Remote MCP: POST ${GLAMA_REMOTE_MCP}`,
-    "First call: the tool you need. The door runs first. Example: decisiongate_check with dry_run=true, or foldlock fold-preview.",
+    "First call: the Softwares tool. The door runs first. ChainLock stamps when the call needs a ledger. Example: decisiongate_check with dry_run=true, or foldlock fold-preview.",
     "",
     "FragGate is THE single public executable door (list → describe → call).",
     "Softwares = Plain → Gate → Lock catalog products with true in-process engines where live.",

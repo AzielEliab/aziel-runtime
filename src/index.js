@@ -249,7 +249,20 @@ import {
 } from "./mcp-transport.js";
 import { confirmConsentHonesty, dryRunAllowedEnvelope, evaluateMutateSafeguard, isTruthyFlag } from "./mcp-safeguard.js";
 import { beginBackground, getJob } from "./background-job.js";
-import { enterFragGate, enterMeshPost, isDoorDiagnostic } from "./auto-gate.js";
+import {
+  attachInfra,
+  chainlockNeed,
+  enterFragGate,
+  enterMeshPost,
+  infraAfterBody,
+  infraFromDoorBody,
+  infraStatus,
+  isDoorDiagnostic,
+  meshHttpOp,
+  previewInfra,
+  refuseInfra,
+  stampActs,
+} from "./auto-gate.js";
 import { describeRegistry, fraggateCall, listRegistry, previewCatalogAdmission, verifyRegistry } from "./fraggate/door.js";
 import { LIVE_OPS, NAMED_STUBS, registryDigest, registrySummary } from "./fraggate/registry.js";
 import {
@@ -1656,7 +1669,7 @@ function llmsTxt(origin, env = {}) {
     `Mesh nodes: ${base}/v1/mesh/nodes  (roster; 5-minute TTL; no scores)`,
     `Cap-7 semantic bridge: ${base}/v1/mesh/az-generator  (MirageGrid .az duplication; standard internet does not reach Cap-7; AZ domains resolve via hub HTTPS; Cap-7 resolves_to_hub false; 3 of 7 false sites)`,
     `ACT-RECEIPT-1.0: ${base}/v1/receipts  (cite). Public chain lives on https://www.azielcorpuslibrary.net/receipts. Runtime appends after FragGate list/call, POST /mcp, and significant POST /v1/* when RECEIPT_APPEND_TOKEN is set (fail-open). Tip/proxy: ${base}/v1/receipts/tip. Not a Softwares-tab product.`,
-    `Agents call the tool they need. The door runs first. Prefer ${base}/mcp and ${base}/v1/software. Diagnostics: fraggate_list → fraggate_describe → fraggate_call.`,
+    `Agents call the Softwares tool. The door runs first. ChainLock stamps when the call needs a ledger. Prefer ${base}/mcp and ${base}/v1/software. Diagnostics: fraggate_list → fraggate_describe → fraggate_call.`,
     `About: ${base}/about`,
     `Cite: ${base}/cite.json`,
     `Shelves: ${base}/shelves  (COLD-MULTI-SHELF-1.0; corpus SoT ${LIBRARY_ORIGIN}/shelves)`,
@@ -1710,7 +1723,7 @@ function llmsTxt(origin, env = {}) {
     `5. GET ${base}/v1/bundle  (or ${base}/v1/pull?all=1)`,
     `6. GET ${base}/v1/pull/{slug}  then GET ${base}/v1/pull/{slug}/skill`,
     `7. GET or POST ${base}/p/{slug}/{op}  (proxy only)`,
-    `Agents: POST ${base}/mcp and call the tool you need. The door runs first. Diagnostics: fraggate_list → fraggate_describe → fraggate_call.`,
+    `Agents: POST ${base}/mcp and call the Softwares tool. The door runs first. ChainLock stamps when the call needs a ledger. Diagnostics: fraggate_list → fraggate_describe → fraggate_call.`,
     "",
     "## Quantum Node Mesh (QNM-BUILD-1.0)",
     "",
@@ -2872,7 +2885,7 @@ async function combinedOpenApi(request, env) {
         "Agent default exec is POST /v1/fraggate/call or MCP fraggate_call (CallEnvelope → FragGate → Lamb Lens → SweepGate → Sentinel → Provenance → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → RoseClock → TemporalLock → ChainLock-OUT → ForgeReceipts → Return). " +
         "Binding-only ops stay per-op proxy_fallback. POST /p/{product}/{op} is a proxy, not exec, and is not the agent default path. " +
         "Cloudflare isolate is the jail. Hosted AZAI is a protocol mirror + Lamb check, not the local blend. Public VPN auto-binds AZVPN (HTTPS/WS REAL; WireGuard/OpenVPN/L3 SLOT; origin-hiding false). GET /v1/mesh cites vpn=true and never opens a session. AZMail anonymous ring is FragGate LIVE_OPS only (default off; not SMTP, not identity). AZBrowser Lamb Lens is FragGate LIVE_OPS only (not Chromium; no invented visits). AZHub Blank Key and AZInterface page cycles are two separate softwares under the same FragGate door (AIH-WP-1.0). " +
-        "Start at GET /v1/skill or GET /v1/software. Agents call the tool they need (POST /mcp). The door runs first. Diagnostics: fraggate_list → fraggate_describe → fraggate_call. " +
+        "Start at GET /v1/skill or GET /v1/software. Agents call the Softwares tool (POST /mcp). The door runs first. ChainLock stamps when the call needs a ledger. Diagnostics: fraggate_list → fraggate_describe → fraggate_call. " +
         "Hubs fetch GET /v1/software (also GET /v1/fraggate/software). Clients check GET /v1/update/check?slug=&version=. " +
         "GET /v1/bundle lists every product skill URL + invoke prefix. " +
         "GET /v1/pull/{slug} and GET /v1/pull/{slug}/skill pull a product without visiting its Worker. " +
@@ -3201,6 +3214,14 @@ function markDoorEntered(out) {
   return out;
 }
 
+function withPreviewInfra(out) {
+  return attachInfra(out, previewInfra());
+}
+
+function withRefuseInfra(out) {
+  return attachInfra(out, refuseInfra());
+}
+
 async function callTool(env, name, args, origin, request, ctx) {
   const safeguard = evaluateMutateSafeguard(name, args);
   if (safeguard.gated) {
@@ -3211,26 +3232,29 @@ async function callTool(env, name, args, origin, request, ctx) {
     const entered = await enterFragGate({ name, args, registry, bySlug: BY_SLUG, dryRun: true });
     if (!entered.proceed) {
       const body = { ...entered.envelope, ...confirmConsentHonesty() };
-      return markDoorEntered(withConfirmConsent(wrapFraggateEnvelope(name, body, null, body.op || (args && args.op) || null)));
+      return withRefuseInfra(
+        markDoorEntered(withConfirmConsent(wrapFraggateEnvelope(name, body, null, body.op || (args && args.op) || null))),
+      );
     }
     const preview = await dryRunCatalogPreview(name, args);
     if (preview && preview.proceed === false) {
       const body = { ...preview.envelope, ...confirmConsentHonesty() };
-      return withConfirmConsent(wrapFraggateEnvelope(name, body, null, body.op || (args && args.op) || null));
+      return withPreviewInfra(withConfirmConsent(wrapFraggateEnvelope(name, body, null, body.op || (args && args.op) || null)));
     }
     const allowed = dryRunAllowedEnvelope(name, args);
-    const wrapped = withConfirmConsent(wrapFraggateEnvelope(name, allowed, null, (args && args.op) || null));
+    const wrapped = withPreviewInfra(withConfirmConsent(wrapFraggateEnvelope(name, allowed, null, (args && args.op) || null)));
     return isDoorDiagnostic(name) ? wrapped : markDoorEntered(wrapped);
   }
   if (!isDoorDiagnostic(name)) {
     const entered = await enterFragGate({ name, args, registry, bySlug: BY_SLUG, dryRun: false });
     if (!entered.proceed) {
       const body = { ...entered.envelope, ...confirmConsentHonesty() };
-      return markDoorEntered(withConfirmConsent(wrapFraggateEnvelope(name, body, null, (args && args.op) || null)));
+      return withRefuseInfra(
+        markDoorEntered(withConfirmConsent(wrapFraggateEnvelope(name, body, null, (args && args.op) || null))),
+      );
     }
   }
   if (name === "fraggate_call" && (isTruthyFlag(args && args.background) || (args && args.job_id))) {
-    const registry = registryFor(PRODUCTS);
     const outcome = await beginBackground({
       env,
       ctx,
@@ -3241,11 +3265,14 @@ async function callTool(env, name, args, origin, request, ctx) {
     });
     const body = outcome.kind === "door" ? outcome.body : outcome.view;
     const product = body && body.slug && BY_SLUG[body.slug] ? BY_SLUG[body.slug] : null;
-    return withConfirmConsent(wrapFraggateEnvelope(name, { ...body, ...confirmConsentHonesty() }, product, body && body.op));
+    const wrapped = withConfirmConsent(wrapFraggateEnvelope(name, { ...body, ...confirmConsentHonesty() }, product, body && body.op));
+    const infra = body && body.infra ? body.infra : infraFromDoorBody(body);
+    return attachInfra(wrapped, infra);
   }
   const local = await callRuntimeTool(env, name, args, origin, request);
   if (local) {
     if (!isDoorDiagnostic(name)) markDoorEntered(local);
+    attachInfra(local, await infraAfterBody(env, name, local));
     return safeguard.confirmed ? withConfirmConsent(local) : local;
   }
   const missing = wrapFraggateEnvelope(name, hallucRefuse(name), null, null);
@@ -3289,7 +3316,7 @@ async function handleMcp(request, env, origin, ctx) {
       auth: "none (public)",
       server_card: "/.well-known/mcp/server-card.json",
       oauth_protected_resource: "/.well-known/oauth-protected-resource",
-      note: "Durable Objects / agents McpAgent not used. Minimal HTTP JSON-RPC. tools/list is 36 live MCP tools. Tools just work. The door runs before the tool. fraggate_list, fraggate_describe, and fraggate_call stay for diagnostics. Install / Try on Glama is the discovery listing. Fabric mesh_* / chainlock_* / memory_* / decisiongate_check / library_lookup are kernel-direct after the door (same kernels; not MASTER-33; not a second Softwares door). Hubs: GET /v1/software. Mutating tools require confirm=true or dry_run=true. This Worker POST /mcp is THE edge MCP gateway — Softwares exec enters FragGate first. Interface plans use JSON-RPC method interface/orchestrate (same body as POST /v1/interface). That method is not a tools/list name.",
+      note: "Durable Objects / agents McpAgent not used. Minimal HTTP JSON-RPC. tools/list is 36 live MCP tools. Call the Softwares tool. The door runs before the tool. ChainLock stamps when the call needs a ledger. fraggate_list, fraggate_describe, fraggate_call, and chainlock tools stay for diagnostics. Install / Try on Glama is the discovery listing. Fabric mesh_* / chainlock_* / memory_* / decisiongate_check / library_lookup are kernel-direct after the door (same kernels; not MASTER-33; not a second Softwares door). Hubs: GET /v1/software. Mutating tools require confirm=true or dry_run=true. This Worker POST /mcp is THE edge MCP gateway — Softwares exec enters FragGate first. Interface plans use JSON-RPC method interface/orchestrate (same body as POST /v1/interface). That method is not a tools/list name.",
       install: RUNTIME_GLAMA,
       glama: glamaInstallCite(RUNTIME_VERSION),
       door: "fraggate",
@@ -3477,9 +3504,9 @@ async function handleFraggateHttp(request, url, origin, env, ctx) {
     if (isTruthyFlag(args.dry_run) && (isTruthyFlag(args.background) || args.job_id)) {
       const preview = previewCatalogAdmission(args, registry, BY_SLUG);
       if (preview && preview.proceed === false) {
-        return json({ ...preview.envelope, ...confirmConsentHonesty() }, 400, extra);
+        return json({ ...preview.envelope, ...confirmConsentHonesty(), infra: previewInfra() }, 400, extra);
       }
-      return json({ ...dryRunAllowedEnvelope("fraggate_call", args) }, 200, extra);
+      return json({ ...dryRunAllowedEnvelope("fraggate_call", args), infra: previewInfra() }, 200, extra);
     }
     if (isTruthyFlag(args.background) || args.job_id) {
       const outcome = await beginBackground({
@@ -3493,11 +3520,12 @@ async function handleFraggateHttp(request, url, origin, env, ctx) {
       const body = outcome.kind === "door" ? outcome.body : outcome.view;
       const status =
         body && body.code === "job_not_found" ? 404 : body && body.ok === false ? Number(body.status) || 400 : 200;
-      return json({ ...body, ...confirmConsentHonesty() }, status, extra);
+      const infra = body && body.infra ? body.infra : infraFromDoorBody(body);
+      return json({ ...body, infra, ...confirmConsentHonesty() }, status, extra);
     }
     const body = await fraggateCall(args, registry, BY_SLUG, env, request);
     const status = body.ok === false ? Number(body.status) || 400 : 200;
-    return json({ ...body, ...confirmConsentHonesty() }, status, extra);
+    return json({ ...body, infra: infraFromDoorBody(body), ...confirmConsentHonesty() }, status, extra);
   }
   return json(
     {
@@ -3926,6 +3954,7 @@ async function handleRequest(request, env, ctx) {
           payload = {};
         }
       }
+      let meshRole = "";
       if (request.method === "POST") {
         const entered = await enterMeshPost({
           pathname: url.pathname,
@@ -3933,11 +3962,12 @@ async function handleRequest(request, env, ctx) {
           registry: registryFor(PRODUCTS),
           bySlug: BY_SLUG,
         });
+        meshRole = entered.role || "";
         if (!entered.proceed) {
           return asHead(
             request,
             json(
-              { ...entered.envelope, ...confirmConsentHonesty(), fraggate_entered: true },
+              { ...entered.envelope, ...confirmConsentHonesty(), fraggate_entered: true, infra: refuseInfra() },
               400,
               authorityLinkHeaders(origin, url.pathname),
             ),
@@ -3947,6 +3977,24 @@ async function handleRequest(request, env, ctx) {
       const out = await dispatchMeshHttp(request.method, url.pathname, payload, env, origin, url.searchParams);
       if (isMeshReadPath(url.pathname)) {
         scheduleSuitePresenceFanout(ctx, env, { source: "request-path" });
+      }
+      const meshTool = `mesh_${meshHttpOp(url.pathname)}`;
+      if (
+        meshRole === "catalog" &&
+        out.status < 400 &&
+        chainlockNeed(meshTool) === "acts" &&
+        out.body &&
+        typeof out.body === "object" &&
+        !Array.isArray(out.body)
+      ) {
+        out.body = {
+          ...out.body,
+          infra: infraStatus({
+            fraggateRole: "catalog",
+            chainlock: await stampActs(env, meshTool),
+            peerReason: "acts stamp only",
+          }),
+        };
       }
       return asHead(
         request,

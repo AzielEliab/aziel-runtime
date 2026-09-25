@@ -11,6 +11,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { previewCatalogAdmission } from "./fraggate/door.js";
 import { backgroundStub } from "./session-do.js";
+import { infraFromDoorBody, peersQuiet, runningInfra } from "./auto-gate.js";
 
 export const FG_BACKGROUND = "FG-BACKGROUND";
 export const JOB_ID_RE = /^job_[a-f0-9]{16}$/;
@@ -50,6 +51,11 @@ export function missingJobView(jobId) {
     ledger_written: false,
     message: "Quiet. No record of that job. Running is not claimed.",
     summary: "Quiet. No record of that job. Running is not claimed.",
+    infra: {
+      fraggate: { ran: false, role: "absent", reason: "no record" },
+      chainlock: { ran: false, reason: "no record" },
+      peers: peersQuiet("no record"),
+    },
   };
 }
 
@@ -69,6 +75,16 @@ export function honestJobView(record) {
     : refused
       ? record.message || "Refused. No completion receipt."
       : "Running. No completion receipt yet.";
+  const stored = record.infra && typeof record.infra === "object" ? record.infra : runningInfra();
+  const infra =
+    status === "running"
+      ? {
+          ...runningInfra(),
+          fraggate: stored.fraggate && stored.fraggate.ran === true ? stored.fraggate : runningInfra().fraggate,
+          chainlock: { ran: false, reason: "running" },
+          peers: peersQuiet("running"),
+        }
+      : stored;
   return {
     ok: status !== "refused",
     code: done ? "FG-OK" : refused ? record.code || "FG-GATE-REFUSE" : FG_BACKGROUND,
@@ -86,6 +102,7 @@ export function honestJobView(record) {
     ledger_written: done,
     message,
     summary: message,
+    infra,
   };
 }
 
@@ -94,6 +111,7 @@ export function sealJob(job, body) {
   const hash = tip && typeof tip.hash === "string" ? tip.hash : "";
   const honest = isReceiptHash(hash);
   const accepted = Boolean(body && body.ok === true && honest);
+  const doorInfra = infraFromDoorBody(body);
   if (body && body.ok === true && !honest) {
     return {
       ...job,
@@ -103,6 +121,11 @@ export function sealJob(job, body) {
       ledger_tip: null,
       result: null,
       message: "Running. No completion receipt yet.",
+      infra: {
+        ...doorInfra,
+        chainlock: { ran: false, reason: "running" },
+        peers: peersQuiet("running"),
+      },
     };
   }
   return {
@@ -114,6 +137,7 @@ export function sealJob(job, body) {
     ledger_tip: honest ? tip : null,
     receipt: accepted ? { hash, event: "exec" } : null,
     result: accepted ? body.result ?? null : null,
+    infra: doorInfra,
   };
 }
 
@@ -222,7 +246,7 @@ export async function beginBackground({ env, ctx, args, registry, bySlug, run })
   const preview = previewCatalogAdmission(src, registry, bySlug);
   if (!preview.proceed) {
     const body = await run();
-    return { kind: "door", body };
+    return { kind: "door", body: { ...body, infra: infraFromDoorBody(body) } };
   }
   const job = {
     job_id: newJobId(),
@@ -232,6 +256,7 @@ export async function beginBackground({ env, ctx, args, registry, bySlug, run })
     ok: false,
     receipt: null,
     started_at: new Date().toISOString(),
+    infra: runningInfra(),
   };
   await putJob(env, job);
   const work = track(
