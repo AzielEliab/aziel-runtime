@@ -13,8 +13,8 @@ import {
   continueJeevesSnake,
   jeevesAssetInventory,
 } from "./engines/aziel-corpus/jeeves-eggs.js";
+import { reasonGuide } from "./guide-reason.js";
 import { RUNTIME_VERSION } from "./runtime-api.js";
-import { UI_DOMAINS } from "./ui-domains.js";
 
 export const JEEVES_HELP_CALL = "jeeves_help";
 
@@ -47,47 +47,6 @@ export function interfaceHelpAnswer(question) {
       assets,
       answer:
         `Last-known Ask Jeeves files: ${JEEVES_PUBLIC_FILE_COUNT} under AzielEliab/aziel-corpus workers/download-tracker/public. ${bound} are bound to a corpus trigger. jeeves-kat-williams.png is a published sibling; the tupac_nobody trigger binds jeeves-kat-williams.gif. branding/ holds 7 of the same names. ${JEEVES_ASSET_NOTE}`,
-    };
-  }
-  if (/\b(domain tabs?|top-?bar|softwares tabs?)\b/.test(n) || (/\bhow do i\b/.test(n) && /\b(tab|software)\b/.test(n))) {
-    const lines = UI_DOMAINS.map((domain) => `${domain.label} (${domain.id}): ${domain.softwares.join(", ")}`);
-    return {
-      topic: "domain_tabs",
-      domains: UI_DOMAINS.map((domain) => ({ id: domain.id, label: domain.label, softwares: domain.softwares.slice() })),
-      answer:
-        `Suite ${RUNTIME_VERSION}. Top-bar domain tabs group Softwares cards. ${lines.join(". ")}. The Library tab groups aziel-corpus and whitestone. Corpus research itself is the Corpus sub-tab under About Aziel. Aziel Elroi Eliab is alternateName only. Those tabs are navigation. FragGate stays the single door.`,
-    };
-  }
-  if (
-    /\b(dry_run|dry run)\b/.test(n) ||
-    (/\bconfirm\b/.test(n) && /\b(seal|receipt|box)\b/.test(n)) ||
-    /\b(act-receipt|receipt fields|public chain)\b/.test(n)
-  ) {
-    return {
-      topic: "receipts",
-      answer:
-        `Suite ${RUNTIME_VERSION}. Interface seal needs confirm true. dry_run stores nothing and does not dispatch. Receipt fields stay hash, request, output, and event, with attempt ids request_id, attempt_n, parent_receipt_id, and correlation_id. A confirmed seal can append the public chain only when RECEIPT_APPEND_TOKEN is set. Ask Jeeves help does not append that chain. A dry_run on this help call returns the reply and skips the local interface ledger.`,
-    };
-  }
-  if (/\b(suite version|runtime version|what version|which version|current build|2\.0\.0)\b/.test(n)) {
-    return {
-      topic: "version",
-      version: RUNTIME_VERSION,
-      answer: `This build is aziel-runtime ${RUNTIME_VERSION}. Ask Jeeves is suite help on aziel-corpus op jeeves, not an extra Softwares card. tools/list stays 36.`,
-    };
-  }
-  if (/\b(elroi|sub-?tab|about aziel)\b/.test(n) && /\b(corpus|library|jeeves|tab)\b/.test(n)) {
-    return {
-      topic: "corpus_subtab",
-      answer:
-        `Aziel Elroi Eliab is alternateName only. The primary name is Aziel Eliab. Under that About section, Corpus is a sub-tab (FoldLock tip and the live library cite). Ask Jeeves is the sibling sub-tab for this build. Neither is a top-bar domain. The Library top-bar tab still groups the Aziel Corpus and Whitestone Softwares cards.`,
-    };
-  }
-  if (/\b(what can you|suite help|how (do i|can i) (use|ask) jeeves|ask jeeves help)\b/.test(n)) {
-    return {
-      topic: "intro",
-      answer:
-        `Ask Jeeves helps with this ${RUNTIME_VERSION} build: domain tabs, the suite version, receipts and dry_run, and the Corpus sub-tab under About Aziel. Library answers use the public corpus engine (sample MASTER, or CORPUS_D1 records when bound) and do not invent shelf rows. Easter eggs are the corpus trigger map. Author Aziel Eliab only.`,
     };
   }
   return null;
@@ -126,8 +85,8 @@ export async function askJeevesHelp(input, env) {
       second_door: false,
     };
   }
-  const help = interfaceHelpAnswer(q);
-  if (help) {
+  if (interfaceHelpAnswer(q)) {
+    const help = interfaceHelpAnswer(q);
     return {
       ok: true,
       refused: false,
@@ -152,35 +111,5 @@ export async function askJeevesHelp(input, env) {
       identity: "Aziel Eliab",
     };
   }
-  let asked;
-  try {
-    asked = await jeevesAsk({ q, previous, snake }, env);
-  } catch (err) {
-    return {
-      ok: true,
-      refused: false,
-      assistant: "Ask Jeeves",
-      source: "last-known",
-      answer:
-        "The library search did not complete. Last-known shelf is the bundled sample MASTER. This reply does not invent shelf rows.",
-      library_http: "unreachable",
-      library_search: false,
-      invented_visits: false,
-      citations: [],
-      image: null,
-      software_tab: false,
-      error: String((err && err.message) || err),
-      author: "Aziel Eliab",
-      identity: "Aziel Eliab",
-    };
-  }
-  return {
-    ...asked,
-    source: asked.live_d1 ? "CORPUS_D1" : "sample_MASTER",
-    library_http: asked.live_d1 ? "CORPUS_D1" : "not-probed",
-    last_known_shelf: asked.live_d1 ? "CORPUS_D1 records" : "bundled sample MASTER",
-    software_tab: false,
-    dispatched_fraggate: false,
-    second_door: false,
-  };
+  return reasonGuide(q, env, { assistant: "Ask Jeeves" });
 }

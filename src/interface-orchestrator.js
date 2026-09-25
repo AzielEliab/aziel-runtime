@@ -21,6 +21,8 @@
 
 import {
   LEARNER_CALLS,
+  LEARNER_GUIDE_CALL,
+  guideAzai,
   WORKER_CALLS,
   buildLearningNotes,
   learnerBody,
@@ -54,7 +56,7 @@ export const VEILLOCK_SAFE_CALLS = Object.freeze([
   "runtime_ui",
 ]);
 
-export const HOST_READ_CALLS = Object.freeze(["mesh_awareness", "forensic_tip", "plan", JEEVES_HELP_CALL]);
+export const HOST_READ_CALLS = Object.freeze(["mesh_awareness", "forensic_tip", "plan", JEEVES_HELP_CALL, LEARNER_GUIDE_CALL]);
 
 export const INTERFACE_CALLS = Object.freeze([
   ...VEILLOCK_SAFE_CALLS,
@@ -657,6 +659,42 @@ export async function orchestrate(input, opts = {}) {
       opts,
       false,
     );
+  }
+
+  if (call === LEARNER_GUIDE_CALL) {
+    const guided = await guideAzai(input, opts.env);
+    if (!guided.ok) return fail(guided.status, guided.code, guided.error, { call });
+    const dry = isTruthyFlag(input.dry_run);
+    const body = closed({
+      ...guided.body,
+      call: LEARNER_GUIDE_CALL,
+      dry_run: dry,
+      confirm_ignored: isTruthyFlag(input.confirm),
+      dispatched_fraggate: false,
+      writes_public_chain: false,
+      stored_notes: false,
+    });
+    if (dry) {
+      return {
+        status: 200,
+        body: {
+          ...body,
+          ok: true,
+          spec: INTERFACE_SPEC,
+          author: INTERFACE_AUTHOR,
+          identity: "Aziel Eliab only",
+          receipt: null,
+          sealed: false,
+          published: false,
+          stored: false,
+          store: "none",
+          durable: false,
+          writes_public_chain: false,
+          note: "Dry run stored nothing.",
+        },
+      };
+    }
+    return finish(call, 200, link, "AZAI guided from the corpus and this build.", guided.output, body, opts, false);
   }
 
   if (call === JEEVES_HELP_CALL) {

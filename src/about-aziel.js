@@ -29,6 +29,7 @@ import {
   whatAzielEliabDoesMachineField,
 } from "./person-index.js";
 import { JEEVES_PUBLIC_FILE_COUNT } from "./engines/aziel-corpus/jeeves-eggs.js";
+import { GUIDE_STARTERS } from "./guide-reason.js";
 import { RUNTIME_VERSION } from "./runtime-api.js";
 
 export function aboutAzielCiteField() {
@@ -238,6 +239,22 @@ ${jeevesHelpHtml(origin)}
     }
     if (miss) miss.textContent = "";
     if (body && body.snake) snake = body.snake;
+    var next = document.getElementById("jeeves-next");
+    if (next) {
+      next.textContent = "";
+      var actions = body && body.next_actions;
+      if (actions && actions.forEach) {
+        actions.forEach(function (action) {
+          if (!action || String(action.href || "").charAt(0) !== "#") return;
+          var li = document.createElement("li");
+          var link = document.createElement("a");
+          link.href = String(action.href);
+          link.textContent = String(action.label || action.href);
+          li.appendChild(link);
+          next.appendChild(li);
+        });
+      }
+    }
   }
   if (img) {
     img.addEventListener("error", function () {
@@ -270,6 +287,7 @@ ${jeevesHelpHtml(origin)}
     btn.addEventListener("click", function () {
       var kind = btn.getAttribute("data-jeeves");
       if (kind === "eggs") ask("list ask jeeves easter eggs");
+      else if (kind === "starter") ask(btn.getAttribute("data-q"));
       else ask(field && field.value);
     });
   });
@@ -285,12 +303,18 @@ ${jeevesHelpHtml(origin)}
 
 function jeevesHelpHtml(origin) {
   const base = String(origin || "").replace(/\/$/, "");
+  const starters = GUIDE_STARTERS.map(
+    (row) => `    <button type="button" data-jeeves="starter" data-q="${escapeHtml(row.q)}">${escapeHtml(row.label)}</button>`,
+  ).join("\n");
   return `<section class="dash" id="desk-jeeves" data-origin="${escapeHtml(base)}" data-library="${escapeHtml(LIVE_LIBRARY_ORIGIN)}">
   <h2>Ask Jeeves <span class="hashtag">#ask-jeeves</span></h2>
-  <p>Suite help for this build (<strong>${escapeHtml(RUNTIME_VERSION)}</strong>). Answers about domain tabs, receipts, and dry_run come from this runtime. Library answers come from corpus op <code>jeeves</code> on <code>aziel-corpus</code>. The Softwares card for that library carries <code>suite_help</code> with <code>software_tab</code> false. Last-known easter-egg files: ${JEEVES_PUBLIC_FILE_COUNT} under the corpus Worker public directory. This page does not host the bitmaps. A live fetch is not attempted until an image tag loads.</p>
+  <p>Suite help for this build (<strong>${escapeHtml(RUNTIME_VERSION)}</strong>). A question is clarified, the public shelf is pulled first, then this build's Softwares tabs and desks supply the next click. Corpus op <code>jeeves</code> on <code>aziel-corpus</code> is the shelf. The Softwares card carries <code>suite_help</code> with <code>software_tab</code> false. If the shelf has no row, the reply says so. Last-known easter-egg files: ${JEEVES_PUBLIC_FILE_COUNT} under the corpus Worker public directory. This page does not host the bitmaps.</p>
+  <div class="actions">
+${starters}
+  </div>
   <div class="field">
     <label for="jeeves-q">Question</label>
-    <input id="jeeves-q" type="text" placeholder="How do the domain tabs work?" autocomplete="off" spellcheck="false">
+    <input id="jeeves-q" type="text" placeholder="Where do I click?" autocomplete="off" spellcheck="false">
   </div>
   <label><input id="jeeves-dry" type="checkbox"> dry_run (store nothing)</label>
   <div class="actions">
@@ -299,7 +323,8 @@ function jeevesHelpHtml(origin) {
   </div>
   <img id="jeeves-egg" alt="" hidden>
   <p id="jeeves-egg-miss" class="secondary"></p>
-  <pre class="fg-out" id="jeeves-out" role="status" aria-live="polite">Ask about this build, or list the corpus easter eggs.</pre>
+  <ul id="jeeves-next"></ul>
+  <pre class="fg-out" id="jeeves-out" role="status" aria-live="polite">Ask a question. The shelf is checked first. Suggested questions are above.</pre>
 </section>`;
 }
 

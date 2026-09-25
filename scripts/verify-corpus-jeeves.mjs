@@ -4,9 +4,10 @@
  */
 import assert from "node:assert/strict";
 import { executeLocal } from "../src/engines/runner.js";
-import { jeevesAsk, jeevesShouldRefuse, isDevilDenial, JEEVES_JESUS_IMAGE } from "../src/engines/aziel-corpus/jeeves.js";
+import { jeevesAsk, jeevesShouldRefuse, isDevilDenial, JEEVES_JESUS_IMAGE, JEEVES_SUITE_HELP } from "../src/engines/aziel-corpus/jeeves.js";
 import { collectJeevesEasterEggs, jeevesAssetInventory, JEEVES_PUBLIC_FILE_COUNT } from "../src/engines/aziel-corpus/jeeves-eggs.js";
 import { askJeevesHelp } from "../src/jeeves-desk.js";
+import { suiteSoftwareRoster, SUITE_SOFTWARE_COUNT } from "../src/guide-reason.js";
 import { mediaRun, NATIVE_OPS, PROXY_OPS, BINDING_GATED_OPS } from "../src/engines/aziel-corpus/engine.js";
 
 assert.ok(NATIVE_OPS.includes("jeeves"));
@@ -176,8 +177,12 @@ const help = await askJeevesHelp({ q: "what version is this build" }, {});
 assert.equal(help.source, "interface-facts");
 assert.equal(help.topic, "version");
 assert.match(help.answer, /2\.0\.0-rc1/);
-assert.equal(help.library_search, false);
+assert.equal(help.library_search, true);
+assert.equal(help.software_count, 42);
+assert.equal(help.software_tab, false);
 assert.equal(help.invented_visits, false);
+assert.equal(help.steps[0].id, "clarify");
+assert.equal(help.steps.some((step) => step.id === "pull_corpus"), true);
 
 const tabs = await askJeevesHelp({ q: "how do the domain tabs work" }, {});
 assert.equal(tabs.topic, "domain_tabs");
@@ -188,5 +193,62 @@ const eggsHelp = await askJeevesHelp({ q: "list ask jeeves easter eggs" }, {});
 assert.equal(eggsHelp.topic, "easter_eggs");
 assert.equal(eggsHelp.asset_count, 33);
 assert.match(eggsHelp.answer, /not attempted|not host/i);
+
+const roster = suiteSoftwareRoster();
+assert.equal(roster.length, SUITE_SOFTWARE_COUNT);
+assert.equal(SUITE_SOFTWARE_COUNT, 42);
+assert.equal(JEEVES_SUITE_HELP.software_tab, false);
+assert.equal(roster.some((row) => row.slug === "jeeves" || row.slug === "askjeeves"), false);
+assert.ok(roster.every((row) => row.one_line));
+
+const florence = await askJeevesHelp({ q: "Where is Florence?" }, {});
+assert.equal(florence.source, "corpus-first");
+assert.equal(florence.topic, "library");
+assert.equal(florence.invented, false);
+assert.ok(florence.citations.some((row) => row.record_id === "AZDOC-FLORENCE-SAMPLE" && row.invented === false));
+assert.match(florence.answer, /Florence/);
+assert.ok(florence.next_actions.some((row) => row.href === "#elroi-corpus"));
+assert.equal(florence.software_tab, false);
+assert.equal(florence.software_count, 42);
+
+const unknown = await askJeevesHelp({ q: "zzzxnotarealrecordzzz" }, {});
+assert.equal(unknown.topic, "unknown");
+assert.equal(unknown.known, false);
+assert.equal(unknown.invented, false);
+assert.equal(unknown.citations.length, 0);
+assert.match(unknown.answer, /no matching record|Nothing was invented/);
+assert.equal(unknown.software_count, 42);
+assert.equal(unknown.software_tab, false);
+
+const versionId = await askJeevesHelp({ q: "what version_id is this runtime" }, {});
+assert.match(versionId.answer, /2\.0\.0-rc1/);
+assert.match(versionId.answer, /No version_id/);
+assert.equal(versionId.invented, false);
+assert.doesNotMatch(versionId.answer, /version_id is [0-9a-f]{8,}/);
+
+const down = await askJeevesHelp(
+  { q: "Where is Florence?" },
+  {
+    CORPUS_D1: {
+      prepare() {
+        throw new Error("shelf down");
+      },
+    },
+  },
+);
+assert.equal(down.library_http, "unreachable");
+assert.equal(down.unreachable, true);
+assert.equal(down.invented, false);
+assert.equal(down.live_d1, false);
+assert.ok(down.citations.some((row) => row.record_id === "AZDOC-FLORENCE-SAMPLE" && row.shelf === "last-known-sample-MASTER"));
+assert.match(down.answer, /unreachable|Last-known/);
+assert.equal(down.software_count, 42);
+
+const clicks = await askJeevesHelp({ q: "Where is the Corpus sub-tab?" }, {});
+assert.equal(clicks.topic, "corpus_subtab");
+assert.equal(clicks.domains, null);
+assert.ok(clicks.next_actions.some((row) => row.href === "#elroi-corpus"));
+assert.match(clicks.answer, /Corpus sub-tab/);
+assert.match(clicks.answer, /Aziel Eliab/);
 
 console.log("ok corpus jeeves isolate + media-run binding-gated");
