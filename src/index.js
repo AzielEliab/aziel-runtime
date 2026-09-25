@@ -397,11 +397,11 @@ const PRODUCTS_RAW = [
     worker: "vibelock-download-tracker",
     github: "https://github.com/AzielEliab/vibelock",
     ops: [
-      { op: "analyze", method: "POST", summary: "Audio forensic risk assessment (JSON metrics)." },
-      { op: "detect", method: "POST", summary: "Alias of analyze on the existing feature path. Not a liveness proof." },
+      { op: "analyze", method: "POST", summary: "Advisory AI deepfake risk on posted features or limited PCM. Physics, linguistics, and vibration design; mp4 and mp3 container decode stays on the local package. No accuracy number." },
+      { op: "detect", method: "POST", summary: "Alias of analyze. Advisory score on the signal channels that ran. No accuracy number." },
       { op: "doctor", method: "GET", summary: "UI alias of health. Same FragGate backend as the Worker UI button." },
     ],
-    example: { summary: "synthetic dual-channel notes; local WAV scoring is in the Python package" },
+    example: { summary: "posted features or limited PCM; mp4 and mp3 container decode stays on the local package; no accuracy number" },
     banner: null,
   },
   {

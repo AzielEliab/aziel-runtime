@@ -393,10 +393,14 @@ function aiPeerDeskHtml(p, origin) {
     "desk-azai",
     "learner",
     `<h4><a href="${escapeHtml(base)}/p/azai">AZAI</a> <span class="slug">learner</span></h4>
-  <p class="blurb">Learner. Notes cite a domain, paper, software slug, receipt hash, or pin id. 4DMap is not queried. The live mesh roster is not read. The library is not searched. A memory write needs the confirm box. Belief is not truth.</p>
+  <p class="blurb">Learner. Notes cite a domain, paper, software slug, receipt hash, pin id, or a VibeLock signal channel. VibeLock deepfake notes cite the Softwares contract for mp4, mp3, and other audio and video (physics, linguistics, vibrations, and related signals). A file name does not decode the file. Scores appear only from posted features or an analysis you supply. No accuracy number is stored. 4DMap is not queried. The live mesh roster is not read. The library is not searched. A memory write needs the confirm box. Belief is not truth.</p>
   <div class="field">
     <label for="ai-pin">Pin id (optional, operator supplied)</label>
     <input id="ai-pin" type="text" placeholder="pin-1" autocomplete="off" spellcheck="false">
+  </div>
+  <div class="field">
+    <label for="ai-vibe">VibeLock file name (optional, not opened)</label>
+    <input id="ai-vibe" type="text" placeholder="clip.mp4" autocomplete="off" spellcheck="false">
   </div>
   <div class="field">
     <label for="ai-query">Recall query</label>
@@ -1535,11 +1539,13 @@ export function humanDoorScript() {
       btn.addEventListener("click", function () {
         let action = btn.getAttribute("data-ai");
         let pin = (document.getElementById("ai-pin") && document.getElementById("ai-pin").value) || "";
+        let vibe = (document.getElementById("ai-vibe") && document.getElementById("ai-vibe").value) || "";
         let query = (document.getElementById("ai-query") && document.getElementById("ai-query").value) || "";
         let box = document.getElementById("ai-confirm");
         let body = { call: action === "recall" ? "learner_recall" : "learner_learn" };
         if (action === "recall") body.q = query;
         if (pin && String(pin).trim()) body.pins = [{ pin_id: String(pin).trim() }];
+        if (vibe && String(vibe).trim()) body.vibelock = { file: String(vibe).trim() };
         if (box && box.checked) body.confirm = true;
         request(origin + "/v1/interface", {
           method: "POST",

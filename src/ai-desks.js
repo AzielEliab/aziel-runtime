@@ -11,6 +11,7 @@
  */
 
 import { route } from "./engines/azbot/engine.js";
+import { handleAnalyze } from "./engines/vibelock/engine.js";
 import { LIVE_OPS } from "./fraggate/registry.js";
 import { SUITE_DESIGNS } from "./seo.js";
 import { sha256Hex } from "./session-core.js";
@@ -24,6 +25,31 @@ const TASK_CAP = 64;
 const NOTE_CAP = 64;
 const FORBIDDEN = /\b(merge|deploy|wrangler|git\s+push|npm\s+publish)\b/i;
 const PIN_RE = /^[a-zA-Z0-9._-]{1,80}$/;
+const FILE_RE = /^[A-Za-z0-9._-]{1,80}$/;
+
+/** Channels the in-process analyze/detect path actually emits. */
+export const VIBELOCK_CHECK_NAMES = Object.freeze([
+  "spectral",
+  "phase_continuity",
+  "formant",
+  "decay",
+  "temporal",
+  "buzz",
+  "pitch",
+  "spatial_freq",
+  "noise",
+  "block",
+  "chroma",
+  "blend",
+  "lighting",
+  "flicker",
+  "motion",
+  "identity",
+  "interp",
+  "av_sync",
+]);
+
+const VIBELOCK_DESIGN_CHANNELS = Object.freeze(["physics", "linguistics", "vibrations"]);
 
 const tasks = [];
 const notes = [];
@@ -69,7 +95,18 @@ function stepFor(slug, op, matched) {
 
 function stepsFromRoute(text) {
   const routed = route({ q: text });
-  return (routed.matches || []).map((row) => stepFor(row.slug, row.op, row.matched));
+  return (routed.matches || []).map((row) => annotateVibelock(stepFor(row.slug, row.op, row.matched)));
+}
+
+function annotateVibelock(step) {
+  if (step.slug !== "vibelock") return step;
+  return {
+    ...step,
+    contract: "softwares",
+    file_decoded: false,
+    accuracy: null,
+    note: "Plan only. Hosted analyze scores posted features or limited PCM. mp4 and mp3 container decode stays on the local package. No accuracy number.",
+  };
 }
 
 function stepsFromList(list) {
@@ -80,7 +117,7 @@ function stepsFromList(list) {
     const slug = clip(row.slug, 64);
     const op = clip(row.op, 80);
     if (!slug || !uiDomainForSlug(slug)) return refuse(400, "IF-UNKNOWN-SOFTWARE", "A plan step must name a catalog Software.");
-    steps.push(stepFor(slug, op, []));
+    steps.push(annotateVibelock(stepFor(slug, op, [])));
   }
   return { ok: true, steps };
 }
@@ -241,7 +278,136 @@ function pinNotes(pins) {
   return out;
 }
 
-export function buildLearningNotes(input, ledgerRows) {
+function vibeContractNote(file) {
+  return {
+    text: file
+      ? `VibeLock Softwares contract names ${file}. Design channels are physics, linguistics, and vibrations, plus related signals, for mp4, mp3, and other audio and video. Container decode did not run. No score and no accuracy number.`
+      : "VibeLock is designed to assess AI deepfake risk in mp4, mp3, and other audio and video using physics, linguistics, vibrations, and related signals. This learn call did not run detect. No score and no accuracy number.",
+    cites: [
+      {
+        kind: "vibelock",
+        slug: "vibelock",
+        domain: "forensics",
+        contract: "softwares",
+        local_only: true,
+        plan: true,
+        file: file,
+        file_kinds: ["mp4", "mp3"],
+        design_channels: VIBELOCK_DESIGN_CHANNELS.slice(),
+        file_decoded: false,
+        detector_ran: false,
+        accuracy: null,
+      },
+    ],
+  };
+}
+
+function vibeFile(src) {
+  if (src.file == null || src.file === "") return { ok: true, file: null };
+  const file = clip(src.file, 80);
+  if (!FILE_RE.test(file)) return refuse(400, "IF-UNCITED", "VibeLock file name must be a short name. Nothing was stored.");
+  return { ok: true, file };
+}
+
+function citedChecks(list) {
+  if (!Array.isArray(list) || list.length === 0) {
+    return refuse(400, "IF-UNCITED", "VibeLock analysis needs named signal channels. Nothing was stored.");
+  }
+  const channels = [];
+  for (const row of list.slice(0, 24)) {
+    if (!row || typeof row !== "object" || Array.isArray(row)) {
+      return refuse(400, "IF-UNCITED", "Each VibeLock channel must be an object. Nothing was stored.");
+    }
+    const name = clip(row.name, 40);
+    if (!VIBELOCK_CHECK_NAMES.includes(name)) {
+      return refuse(400, "IF-UNCITED", "Unknown VibeLock signal channel. Nothing was stored.");
+    }
+    const score = Number(row.score);
+    if (!Number.isFinite(score) || score < 0 || score > 1) {
+      return refuse(400, "IF-UNCITED", "A VibeLock channel score must be a number from the analysis. Nothing was stored.");
+    }
+    channels.push({ name, score, reason_code: row.reason_code ? clip(row.reason_code, 48) : null });
+  }
+  return { ok: true, channels };
+}
+
+async function vibeLearning(src) {
+  if (src == null) return { ok: true, notes: [vibeContractNote(null)] };
+  if (typeof src !== "object" || Array.isArray(src)) return refuse(400, "IF-BAD-INPUT", "vibelock must be an object.");
+  if (src.accuracy != null || src.benchmark != null || src.accuracy_percent != null) {
+    return refuse(400, "IF-UNCITED", "VibeLock accuracy numbers are not stored.");
+  }
+  const named = vibeFile(src);
+  if (!named.ok) return named;
+  const notes = [vibeContractNote(named.file)];
+  const runInput = src.features || src.pcm_b64 || src.visual || src.video || src.av || src.pitch;
+  if (runInput) {
+    const out = await handleAnalyze({
+      features: src.features,
+      pcm_b64: src.pcm_b64,
+      visual: src.visual,
+      video: src.video,
+      av: src.av,
+      pitch: src.pitch,
+      rate: src.rate,
+      sample_rate: src.sample_rate,
+      pcm_dtype: src.pcm_dtype,
+    });
+    if (!out || out.ok === false) return refuse(400, "IF-UNCITED", "VibeLock analyze did not return checks. Nothing was stored.");
+    const checks = citedChecks(out.checks);
+    if (!checks.ok) return checks;
+    notes.push({
+      text: `VibeLock advisory on posted signals. Channels ${checks.channels.map((row) => row.name).join(", ")}. Combined score ${out.score} is advisory. Container decode did not run. No accuracy number.`,
+      cites: [
+        {
+          kind: "vibelock",
+          slug: "vibelock",
+          domain: "forensics",
+          contract: "in-process-advisory",
+          file: named.file,
+          file_decoded: false,
+          detector_ran: true,
+          accuracy: null,
+          score: out.score,
+          score_kind: "advisory",
+          verdict: out.verdict,
+          signals: out.signals || [],
+          channels: checks.channels,
+        },
+      ],
+    });
+    return { ok: true, notes };
+  }
+  if (src.analysis != null) {
+    const analysis = src.analysis;
+    if (!analysis || typeof analysis !== "object" || Array.isArray(analysis)) {
+      return refuse(400, "IF-BAD-INPUT", "vibelock.analysis must be an object.");
+    }
+    if (analysis.accuracy != null) return refuse(400, "IF-UNCITED", "VibeLock accuracy numbers are not stored.");
+    const checks = citedChecks(analysis.checks);
+    if (!checks.ok) return checks;
+    notes.push({
+      text: `Operator supplied VibeLock channel scores for ${checks.channels.map((row) => row.name).join(", ")}. This host did not re-run detect and did not decode a container. No accuracy number.`,
+      cites: [
+        {
+          kind: "vibelock",
+          slug: "vibelock",
+          domain: "forensics",
+          contract: "operator-supplied",
+          file: named.file,
+          file_decoded: false,
+          detector_ran: false,
+          accuracy: null,
+          score_kind: "operator-supplied",
+          channels: checks.channels,
+        },
+      ],
+    });
+  }
+  return { ok: true, notes };
+}
+
+export async function buildLearningNotes(input, ledgerRows) {
   const pins = [];
   if (input.pins != null) {
     if (!Array.isArray(input.pins)) return refuse(400, "IF-BAD-INPUT", "pins must be a list.");
@@ -273,6 +439,9 @@ export function buildLearningNotes(input, ledgerRows) {
     ...receiptNotes(ledgerRows),
     ...pinNotes(pins),
   ];
+  const vibe = await vibeLearning(input.vibelock);
+  if (!vibe.ok) return vibe;
+  built.push(...vibe.notes);
   return {
     ok: true,
     notes: built,
@@ -301,7 +470,7 @@ export function recallLearningNotes(query) {
     : notes.filter((note) => {
         if (note.text.toLowerCase().includes(q)) return true;
         return (note.cites || []).some((cite) =>
-          [cite.id, cite.slug, cite.hash, cite.pin_id, cite.request_id, cite.path, cite.tool]
+          [cite.id, cite.slug, cite.hash, cite.pin_id, cite.request_id, cite.path, cite.tool, cite.file, cite.kind, ...(cite.design_channels || []), ...(cite.channels || []).map((row) => row.name)]
             .filter(Boolean)
             .some((part) => String(part).toLowerCase().includes(q)),
         );

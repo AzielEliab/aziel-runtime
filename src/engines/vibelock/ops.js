@@ -13,7 +13,7 @@ function envelope() {
     product: "vibelock",
     name: "VibeLock",
     version: VERSION,
-    role: "audio forensic risk assessment",
+    role: "media authenticity advisory",
     motto: MOTTO,
     axes: ["features", "pcm", "risk"],
     neighbors: ["spectrallock", "aziel-corpus"],
@@ -31,7 +31,7 @@ export function vibelockHealth() {
 export function vibelockSkill() {
   return capabilitySkill({
     ...envelope(),
-    lead: "Feature / PCM risk assessment. Not a live microphone and not a liveness proof.",
+    lead: "Designed to assess AI deepfake risk in mp4, mp3, and other audio and video using physics, linguistics, vibrations, and related signals. Hosted analyze and detect score posted features or limited PCM and cite the channels that ran. Container decode stays on the local package. No accuracy number.",
   });
 }
 

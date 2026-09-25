@@ -348,6 +348,49 @@ assert.equal(learned.body.notes.some((note) => note.cites.some((cite) => cite.ki
 assert.equal(learned.body.notes.some((note) => note.cites.some((cite) => cite.kind === "software" && cite.slug === "aznet")), true);
 assert.equal(learned.body.notes.some((note) => note.cites.some((cite) => cite.kind === "pin" && cite.pin_id === "pin-1" && cite.verified_on_4dmap === false)), true);
 assert.equal(learned.body.notes.some((note) => note.cites.some((cite) => cite.kind === "receipt" && cite.hash === intake.body.receipt.hash)), true);
+const vibeCite = learned.body.notes.find((note) => note.cites.some((cite) => cite.kind === "vibelock"));
+assert.ok(vibeCite);
+assert.equal(vibeCite.cites[0].detector_ran, false);
+assert.equal(vibeCite.cites[0].file_decoded, false);
+assert.equal(vibeCite.cites[0].accuracy, null);
+assert.equal(vibeCite.cites[0].contract, "softwares");
+assert.equal(JSON.stringify(vibeCite).includes("0.99"), false);
+assert.match(vibeCite.text, /physics/);
+assert.match(vibeCite.text, /mp4/);
+
+const vibeAccuracy = await orchestrate({ call: "learner_learn", vibelock: { accuracy: 0.99, file: "clip.mp4" } });
+assert.equal(vibeAccuracy.status, 400);
+assert.equal(vibeAccuracy.body.code, "IF-UNCITED");
+
+const vibeUnknown = await orchestrate({
+  call: "learner_learn",
+  vibelock: { analysis: { checks: [{ name: "magic-accuracy", score: 0.99 }] } },
+});
+assert.equal(vibeUnknown.status, 400);
+assert.equal(vibeUnknown.body.code, "IF-UNCITED");
+
+const vibeRun = await orchestrate({
+  call: "learner_learn",
+  papers: ["ACT-RECEIPT-1.0"],
+  vibelock: { file: "clip.mp4", features: { rms: 0.1, zcr: 0.08 } },
+});
+assert.equal(vibeRun.status, 200);
+const vibeAdvisory = vibeRun.body.notes.find((note) => note.cites.some((cite) => cite.detector_ran === true));
+assert.ok(vibeAdvisory);
+assert.equal(vibeAdvisory.cites[0].file_decoded, false);
+assert.equal(vibeAdvisory.cites[0].accuracy, null);
+assert.equal(vibeAdvisory.cites[0].score_kind, "advisory");
+assert.equal(vibeAdvisory.cites[0].channels.some((row) => row.name === "spectral" && typeof row.score === "number"), true);
+assert.equal(JSON.stringify(vibeAdvisory).includes("accuracy_percent"), false);
+
+const vibePlan = await orchestrate({ call: "worker_intake", task: "deepfake mp4 physics" });
+assert.equal(vibePlan.status, 200);
+const vibeStep = vibePlan.body.steps.find((step) => step.slug === "vibelock");
+assert.ok(vibeStep);
+assert.equal(vibeStep.executed, false);
+assert.equal(vibeStep.file_decoded, false);
+assert.equal(vibeStep.accuracy, null);
+assert.equal(vibeStep.contract, "softwares");
 
 const uncited = await orchestrate({ call: "learner_learn", papers: ["NOT-A-PAPER"] });
 assert.equal(uncited.status, 400);

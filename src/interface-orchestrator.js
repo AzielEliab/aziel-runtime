@@ -523,7 +523,7 @@ async function runAiDesk(call, input, link, opts) {
       false,
     );
   }
-  const built = buildLearningNotes(input, interfaceLedgerSnapshot());
+  const built = await buildLearningNotes(input, interfaceLedgerSnapshot());
   if (!built.ok) return fail(built.status, built.code, built.error, { call });
   const stored = await storeLearningNotes(built);
   if (!stored.ok) return fail(stored.status, stored.code, stored.error, { call });
@@ -542,7 +542,7 @@ async function runAiDesk(call, input, link, opts) {
       note_count: stored.notes.length,
       pins_supplied: built.pins_supplied,
       memory,
-      sources: ["domain", "paper", "software", "receipt", "pin", "aznet"],
+      sources: ["domain", "paper", "software", "receipt", "pin", "aznet", "vibelock"],
     }),
     opts,
     false,

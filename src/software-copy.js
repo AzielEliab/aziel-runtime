@@ -216,9 +216,10 @@ export const SOFTWARE_COPY = Object.freeze({
       "Use VeilLock for device-local camera and screen steps in your own apps. It exists for camera and screen work on your own device.",
   },
   vibelock: {
-    one_line: "Score speech audio you already have for physical consistency risk.",
+    one_line:
+      "Assess AI deepfake risk in mp4, mp3, and other audio and video from physics, linguistics, vibrations, and related signals.",
     description:
-      "Use VibeLock to assess posted features or limited PCM. It exists as a risk assessment of audio you already hold.",
+      "Use VibeLock to assess AI deepfake risk in mp4, mp3, and other audio and video files using physics, linguistics, vibrations, and related signals. It exists as a media authenticity advisory on files you already hold. Hosted analyze and detect score posted features or limited PCM and cite the signal channels that ran. mp4 and mp3 container decode stays with the local VibeLock package. This card publishes no accuracy number.",
   },
   whistlelock: {
     one_line: "Hash a local drop and keep a dead-man copy on the client.",
