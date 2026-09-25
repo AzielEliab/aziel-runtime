@@ -648,6 +648,13 @@ ${dashCards}
           <button type="button" data-if="forensic_tip">Audit tip</button>
         </div>
       </article>
+      <article class="dash-card" id="desk-jeeves-link" data-desk="jeeves">
+        <h4>Ask Jeeves <span class="slug">suite help</span></h4>
+        <p class="blurb">Help for this build. Corpus op <code>jeeves</code> on the Aziel Corpus card (<code>suite_help</code>, <code>software_tab</code> false). The desk is the Ask Jeeves sub-tab under Aziel Elroi Eliab (alternateName).</p>
+        <div class="actions">
+          <a href="#elroi-jeeves">Open Ask Jeeves</a>
+        </div>
+      </article>
       <article class="dash-card" id="desk-mcp" data-desk="mcp">
         <h4>MCP <span class="slug">interface/orchestrate</span></h4>
         <p class="blurb">Agents and this pane share one planner. tools/list stays 36 names. Live dispatch still goes through FragGate.</p>

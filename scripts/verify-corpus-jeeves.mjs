@@ -5,6 +5,8 @@
 import assert from "node:assert/strict";
 import { executeLocal } from "../src/engines/runner.js";
 import { jeevesAsk, jeevesShouldRefuse, isDevilDenial, JEEVES_JESUS_IMAGE } from "../src/engines/aziel-corpus/jeeves.js";
+import { collectJeevesEasterEggs, jeevesAssetInventory, JEEVES_PUBLIC_FILE_COUNT } from "../src/engines/aziel-corpus/jeeves-eggs.js";
+import { askJeevesHelp } from "../src/jeeves-desk.js";
 import { mediaRun, NATIVE_OPS, PROXY_OPS, BINDING_GATED_OPS } from "../src/engines/aziel-corpus/engine.js";
 
 assert.ok(NATIVE_OPS.includes("jeeves"));
@@ -39,7 +41,12 @@ assert.equal(hit.sample_master, true);
 
 const empty = await jeevesAsk({ q: "zzzxnotarealrecordzzz" }, {});
 assert.equal(empty.empty, true);
-assert.match(empty.answer, /does not invent visits/);
+assert.equal(empty.easter_egg, "briefcase_dont_look");
+assert.equal(empty.image, "/jeeves-briefcase.png");
+assert.match(empty.note, /does not invent visits/);
+assert.equal(empty.invented_visits, false);
+assert.equal(empty.bitmap_hosted_here, false);
+assert.equal(empty.bitmap_probed, false);
 
 const liveDb = {
   prepare() {
@@ -102,5 +109,84 @@ const local = JSON.parse(
 );
 assert.equal(local.assistant, "Ask Jeeves");
 assert.equal(local.blend, false);
+
+const phrases = [
+  ["thats_a_bingo", "Florence", null],
+  ["konami_snake", "up up down down left right left right b a", null],
+  ["pod_bay_doors", "open the pod bay doors", null],
+  ["matrix_system", "is this the matrix", "/jeeves-morpheus.png"],
+  ["hellmo", "god isn't real", "/jeeves-hellmo.png"],
+  ["spirit_endures", "is god real", null],
+  ["devil_not_real_jesus", "there is no devil", "/jeeves-jesus.png"],
+  ["evil_twin", "are you the devil", "/jeeves-evil-twin.png"],
+  ["forgereceipts_snitches", "showing forgereceipts to the judge", null],
+  ["real_jeeves", "the real jeeves", "/jeeves-classic-butler.png"],
+  ["zioncheck_lives", "zioncheck died", null],
+  ["chuck_norris", "where is chuck norris", null],
+  ["aziel_masterpiece", "why did aziel create this library", null],
+  ["ricky_bobby_hands", "how does aziel have so much time", "/jeeves-ricky-bobby-hands.png"],
+  ["scarface_badguy", "is aziel the villain", "/jeeves-scarface-badguy.png"],
+  ["highlander_one", "is aziel one person", "/jeeves-highlander-one.png"],
+  ["sex_bob_omb", "aziel vs the world", "/jeeves-sex-bob-omb.png"],
+  ["billion_cool", "you stole this", "/jeeves-billion-cool.png"],
+  ["aziel_symbol", "who is aziel", "/jeeves-bat-signal.png"],
+  ["ezekiel_2517", "do you trust the government", null],
+  ["zsolver_trust_no_one", "why not 100", "/jeeves-trust-no-one-mask.png"],
+  ["zsolver_doubt", "zsolver 75% is a joke", "/jeeves-matrix-doubt.png"],
+  ["no_tip", "can I get a tip", "/jeeves-mr-pink.png"],
+  ["tupac_nobody", "who killed tupac", "/jeeves-kat-williams.gif"],
+  ["chewbacca_masks", "what do you look like", "/jeeves-chewbacca-masks.png"],
+  ["fuck_shit_up", "what do aziel and jeeves do", "/jeeves-step-brothers-suits.png"],
+  ["godfather_offer", "can I buy this", "/jeeves-godfather-offer.png"],
+  ["facebook_inventors", "this is like facebook", "/jeeves-facebook-inventors.png"],
+  ["high_ground", "I'm your father", "/jeeves-high-ground.png"],
+  ["single_lady", "I'm a single lady", "/jeeves-single-lady.png"],
+  ["contender", "this is a waste of time", "/jeeves-contender.png"],
+  ["stay_golden", "johnny", null],
+  ["make_my_day", "I'm reporting this", "/jeeves-make-my-day.png"],
+  ["come_with_me", "let's change the world", "/jeeves-come-with-me.png"],
+  ["one_more", "this won't change anything", "/jeeves-one-more.png"],
+  ["inglourious_site_purpose", "what is this site for", "/jeeves-inglourious-basterds.png"],
+  ["briefcase_dont_look", "you don't know the answer", "/jeeves-briefcase.png"],
+  ["dumbass_silent_d", "dumbass", null],
+  ["frankly_my_dear", "bitch", "/jeeves-frankly-my-dear.png"],
+  ["talkin_to_me", "cunt", "/jeeves-talkin-to-me.png"],
+  ["django_curiosity", "fuck", "/jeeves-django-curiosity.png"],
+  ["stupid_gump", "this is stupid", "/jeeves-forrest-gump.png"],
+  ["royale_with_cheese", "this is dumb", null],
+  ["red_pill", "this library is a hoax", null],
+  ["empirical_holmes", "empirical is useless", "/jeeves-holmes.png"],
+];
+for (const [id, phrase, image] of phrases) {
+  const extra = id === "thats_a_bingo" ? { previous: phrase } : {};
+  const eggs = collectJeevesEasterEggs(phrase, extra);
+  assert.equal(eggs[0] && eggs[0].id, id, phrase);
+  assert.equal(eggs[0].image || null, image, id);
+}
+const assets = jeevesAssetInventory();
+assert.equal(assets.length, JEEVES_PUBLIC_FILE_COUNT);
+assert.equal(JEEVES_PUBLIC_FILE_COUNT, 33);
+assert.equal(assets.filter((item) => item.trigger_bound).length, 32);
+assert.equal(assets.find((item) => item.file === "jeeves-kat-williams.png").trigger_bound, false);
+assert.equal(assets.find((item) => item.file === "jeeves-kat-williams.gif").egg_id, "tupac_nobody");
+assert.ok(assets.every((item) => item.hosted_here === false && item.probed === false));
+assert.equal(assets.filter((item) => item.branding_path).length, 7);
+
+const help = await askJeevesHelp({ q: "what version is this build" }, {});
+assert.equal(help.source, "interface-facts");
+assert.equal(help.topic, "version");
+assert.match(help.answer, /2\.0\.0-rc1/);
+assert.equal(help.library_search, false);
+assert.equal(help.invented_visits, false);
+
+const tabs = await askJeevesHelp({ q: "how do the domain tabs work" }, {});
+assert.equal(tabs.topic, "domain_tabs");
+assert.ok(tabs.domains.some((d) => d.id === "library" && d.softwares.includes("aziel-corpus")));
+assert.equal(tabs.domains.some((d) => d.id === "corpus"), false);
+
+const eggsHelp = await askJeevesHelp({ q: "list ask jeeves easter eggs" }, {});
+assert.equal(eggsHelp.topic, "easter_eggs");
+assert.equal(eggsHelp.asset_count, 33);
+assert.match(eggsHelp.answer, /not attempted|not host/i);
 
 console.log("ok corpus jeeves isolate + media-run binding-gated");

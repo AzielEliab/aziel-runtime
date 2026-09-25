@@ -959,7 +959,7 @@ const PRODUCTS_RAW = [
       { op: "document-chain", method: "POST", summary: "Client-held document hash chain. Hosted does not store the library." },
       { op: "import_export", method: "POST", summary: "Client-held library JSON. Hosted does not persist MASTER." },
       { op: "tip-pack", method: "POST", summary: "Open the FoldLock-packed library tip (index cite + sample artifacts + About Aziel). Not the full live library on azielcorpuslibrary.net." },
-      { op: "jeeves", method: "POST", summary: "Isolate-safe Ask Jeeves over sample MASTER / CORPUS_D1 records. Refuses secrets and triad-tamper. Not AZAI blend." },
+      { op: "jeeves", method: "POST", summary: "Isolate-safe Ask Jeeves over sample MASTER / CORPUS_D1 records. Corpus easter-egg bitmaps are cited from the corpus Worker public paths and are not hosted here. Refuses secrets and triad-tamper. Not AZAI blend." },
       { op: "media-run", method: "POST", summary: "Binding-gated hash-chained media job. Whisper/vision only when Workers AI is bound. Does not invent transcripts." },
       { op: "doctor", method: "GET", summary: "Richer liveness: native-vs-proxy labels, binding-gated Whisper/OCR. Does not increment download KV." },
     ],

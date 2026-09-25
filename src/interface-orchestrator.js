@@ -36,6 +36,7 @@ import { LIVE_OPS } from "./fraggate/registry.js";
 import { appendActReceipt, mintActReceipt, receiptAppendToken } from "./library-receipts.js";
 import { isTruthyFlag } from "./mcp-safeguard.js";
 import { normalizeAttemptLink } from "./receipt-attempt.js";
+import { askJeevesHelp, JEEVES_HELP_CALL } from "./jeeves-desk.js";
 import { RUNTIME_VERSION } from "./runtime-api.js";
 import { ZERO_HASH } from "./session-core.js";
 
@@ -53,7 +54,7 @@ export const VEILLOCK_SAFE_CALLS = Object.freeze([
   "runtime_ui",
 ]);
 
-export const HOST_READ_CALLS = Object.freeze(["mesh_awareness", "forensic_tip", "plan"]);
+export const HOST_READ_CALLS = Object.freeze(["mesh_awareness", "forensic_tip", "plan", JEEVES_HELP_CALL]);
 
 export const INTERFACE_CALLS = Object.freeze([
   ...VEILLOCK_SAFE_CALLS,
@@ -656,6 +657,43 @@ export async function orchestrate(input, opts = {}) {
       opts,
       false,
     );
+  }
+
+  if (call === JEEVES_HELP_CALL) {
+    const help = await askJeevesHelp(input, opts.env);
+    if (help.status === 400) return fail(400, "IF-BAD-INPUT", help.error || "question required", { call });
+    const dry = isTruthyFlag(input.dry_run);
+    const body = closed({
+      ...help,
+      call: JEEVES_HELP_CALL,
+      dry_run: dry,
+      dispatched_fraggate: false,
+      second_door: false,
+      software_tab: false,
+      writes_public_chain: false,
+    });
+    if (dry) {
+      return {
+        status: 200,
+        body: {
+          ...body,
+          ok: help.ok !== false,
+          spec: INTERFACE_SPEC,
+          author: INTERFACE_AUTHOR,
+          identity: "Aziel Eliab only",
+          receipt: null,
+          sealed: false,
+          published: false,
+          stored: false,
+          store: "none",
+          durable: false,
+          writes_public_chain: false,
+          note: "Dry run stored nothing.",
+        },
+      };
+    }
+    const output = help.answer ? String(help.answer).slice(0, 240) : "Ask Jeeves replied.";
+    return finish(call, 200, link, "Interface asked Jeeves for help on this build.", output, body, opts, false);
   }
 
   if (WORKER_CALLS.includes(call) || LEARNER_CALLS.includes(call)) {

@@ -908,7 +908,7 @@ assert.doesNotMatch(home, /rel="canonical" href="https:\/\/www\.azieleliab\.com/
   const hasPartIds = (runtimeApp.hasPart || []).map((p) => p["@id"]);
   assert.deepEqual(
     hasPartIds,
-    NAMED_RUNTIME_TOOLS.map((t) => `https://www.azieleliab.com/runtime#${t.slug}`),
+    NAMED_RUNTIME_TOOLS.filter((t) => !t.suite_help).map((t) => `https://www.azieleliab.com/runtime#${t.slug}`),
   );
   for (const tool of NAMED_RUNTIME_TOOLS) {
     const child = graph.find((n) => n["@id"] === `https://www.azieleliab.com/runtime#${tool.slug}`);
@@ -916,8 +916,15 @@ assert.doesNotMatch(home, /rel="canonical" href="https:\/\/www\.azieleliab\.com/
     assert.equal(child["@type"], "SoftwareApplication");
     assert.equal(child.name, tool.name);
     assert.equal(child.author["@id"], AUTHOR_ID);
-    assert.equal(child.isPartOf["@id"], RUNTIME_SOFTWARE_ID);
+    const parentId = tool.suite_help ? `https://www.azieleliab.com/runtime#${tool.parent}` : RUNTIME_SOFTWARE_ID;
+    assert.equal(child.isPartOf["@id"], parentId);
+    if (tool.suite_help) {
+      assert.equal(child.software_tab, false);
+      assert.equal(child.suite_help, true);
+    }
   }
+  const corpusNamed = graph.find((n) => n["@id"] === "https://www.azieleliab.com/runtime#aziel-corpus");
+  assert.equal(corpusNamed.hasPart[0]["@id"], "https://www.azieleliab.com/runtime#jeeves");
   const appNames = [];
   const walk = (node) => {
     if (!node || typeof node !== "object") return;
