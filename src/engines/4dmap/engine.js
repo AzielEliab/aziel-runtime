@@ -8,9 +8,11 @@
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
 
+import { resetLatticeStore } from "./lattice.js";
+
 export const PRODUCT = "4dmap";
 export const NAME = "4DMap";
-export const VERSION = "0.2.0";
+export const VERSION = "0.3.0";
 export const SPEC = "4DM-WP-1.0";
 export const AUTHOR = "Aziel Eliab";
 export const MOTTO = "Inspect on four axes. Do not invent a mark. Do not score truth.";
@@ -22,7 +24,7 @@ export const EXPORT_SCHEMA = "4DM-EXPORT-0.1";
 export const PI_EMPTY = "Π-EMPTY";
 export const ZION_CAP = 0.75;
 export const PRODUCT_SYNC_NOTE =
-  "Product repo 4dmap 0.2.0 is merged on main (4DM-WP-1.0). Runtime 1.7.6 hosts the same LIVE_OPS verbs on the in-process multi-axis card store (not a rewrite to product 4DM-CARD receipts). engine_digest is the runtime isolate artifact. GitBaby merges and deploys the product Worker — do not invent a product Worker digest here. FragGate remains THE single door. Mesh stays default-off.";
+  "Product repo 4dmap 0.3.0 is merged on main (4DM-WP-1.0). Public door ops memory_cite, memory_observe, library_pin, plot, possibility, pattern_recall, lattice_tip, and poison_refuse run on an in-process 4DM-CARD lattice. Earlier inspection verbs stay on the multi-axis card store. engine_digest is the runtime isolate artifact. FragGate remains THE single door. Mesh stays default-off.";
 export const CARD_CAP = 64;
 export const WALK_CAP = 32;
 export const MARK_CAP = 240;
@@ -62,7 +64,7 @@ export const AXIS_FRAME = Object.freeze({
     name: "Clock",
     meaning: "time / when a pin sits",
     companions: ["temporallock", "staticclock", "chronolock"],
-    ops: ["pin", "card_pin", "span", "card_span", "walk", "walk_trace"],
+    ops: ["pin", "card_pin", "library_pin", "span", "card_span", "walk", "walk_trace", "plot"],
   },
   Δ: {
     glyph: "Δ",
@@ -76,14 +78,14 @@ export const AXIS_FRAME = Object.freeze({
     name: "Trajectory",
     meaning: "pattern / geometry / stacked or walked motion of pins",
     companions: ["trajectorylock"],
-    ops: ["stack", "walk", "walk_trace", "pin", "card_pin"],
+    ops: ["stack", "walk", "walk_trace", "pin", "card_pin", "plot"],
   },
   Π: {
     glyph: "Π",
     name: "Pattern",
     meaning: "provenance / path / class / cohort / absence / silence",
     companions: ["spectrallock"],
-    ops: ["lens", "class", "cohort", "absence", "pin", "card_pin"],
+    ops: ["lens", "class", "cohort", "absence", "pin", "card_pin", "pattern_recall", "poison_refuse", "possibility"],
   },
 });
 
@@ -183,6 +185,7 @@ export function resetFourdmapStore() {
   memory.cards = new Map();
   memory.walks = new Map();
   memory.seq = 0;
+  resetLatticeStore();
 }
 
 function nowIso() {
@@ -221,8 +224,9 @@ export function joinTypeForOp(op) {
   if (verb === "card_span" || verb === "span" || verb === "gap") return "span";
   if (verb === "card_join" || verb === "join") return "join";
   if (verb === "card_walk" || verb === "walk" || verb === "walk_trace") return "walk";
-  if (verb === "verify_hash" || verb === "verify_chain") return "cite";
+  if (verb === "verify_hash" || verb === "verify_chain" || verb === "memory_cite" || verb === "memory_observe") return "cite";
   if (verb === "neighbor_cite") return "neighbor";
+  if (verb === "library_pin") return "pin";
   return "inspect";
 }
 
@@ -385,9 +389,9 @@ Four-axis inspection frame **T / Δ / Γ / Π**. Inspection frame after AZPIPE (
 - FragGate claims cite join types: pin, span, join, walk, overlay, cite, neighbor, inspect
 - Leftover flat names such as \`4dmap_card_new\` still go through FragGate (\`parseTarget\`) — they are not a side door and are not listed on \`tools/list\`
 
-LIVE_OPS: health, skill, pin, span, stack, gap, fork, walk, lens, class, cohort, absence, cap, join, list, example, card_new, card_pin, card_span, card_join, card_walk, card_list, verify_hash, frame_status, axis_describe, walk_trace, card_export, card_import, verify_chain, neighbor_cite.
+LIVE_OPS: health, skill, pin, span, stack, gap, fork, walk, lens, class, cohort, absence, cap, join, list, example, card_new, card_pin, card_span, card_join, card_walk, card_list, verify_hash, frame_status, axis_describe, walk_trace, card_export, card_import, verify_chain, neighbor_cite, memory_cite, memory_observe, library_pin, plot, possibility, pattern_recall, lattice_tip, poison_refuse.
 
-Stubs (refuse): truth_score, lumen_panel, invent_mark, backdate_class.
+Stubs (refuse): truth_score, lumen_panel, invent_mark, backdate_class. Product 0.3.0.
 
 Product sync: ${PRODUCT_SYNC_NOTE}
 
@@ -400,7 +404,7 @@ Limitation: ${LIMITATION}
 
 Four-axis inspection frame T/Δ/Γ/Π. Inspection frame after AZPIPE, not an extra door. Not a sequential gate.
 
-LIVE_OPS: health, skill, pin, span, stack, gap, fork, walk, lens, class, cohort, absence, cap, join, list, example, card_new, card_pin, card_span, card_join, card_walk, card_list, verify_hash, frame_status, axis_describe, walk_trace, card_export, card_import, verify_chain, neighbor_cite.
+LIVE_OPS: health, skill, pin, span, stack, gap, fork, walk, lens, class, cohort, absence, cap, join, list, example, card_new, card_pin, card_span, card_join, card_walk, card_list, verify_hash, frame_status, axis_describe, walk_trace, card_export, card_import, verify_chain, neighbor_cite, memory_cite, memory_observe, library_pin, plot, possibility, pattern_recall, lattice_tip, poison_refuse.
 Stubs: truth_score, lumen_panel, invent_mark, backdate_class.
 Join types cited on FragGate claims: ${JOIN_TYPES.join(", ")}.
 Neighbors: ${NEIGHBORS.join(", ")}.

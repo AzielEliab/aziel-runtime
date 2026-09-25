@@ -104,6 +104,23 @@ const poison = await inspect("inject-payload jailbreak-ignore");
 assert.equal(poison.isolate, true);
 assert.ok(poison.hits.includes("poison"));
 
+const poisonPayload = await inspect("poison payload");
+assert.equal(poisonPayload.isolate, true);
+assert.ok(poisonPayload.hits.includes("poison"));
+const poisonToken = await inspect({ note: "poison token" });
+assert.equal(poisonToken.isolate, true);
+const poisonInject = await inspect("poison-inject");
+assert.equal(poisonInject.isolate, true);
+
+const refuseReceipt = await inspect({
+  op: "poison_refuse",
+  payload_stored: false,
+  note: "poison feature refuse (hash only)",
+  pi: { kind: "poison", refuse: true },
+});
+assert.equal(refuseReceipt.isolate, false);
+assert.ok(!refuseReceipt.hits.includes("poison"));
+
 // --- AZPIPE locked hop order (MASTER-33 / 1.7.0) ---
 const architecture = arch();
 assert.equal(architecture.magic, "FLD3");

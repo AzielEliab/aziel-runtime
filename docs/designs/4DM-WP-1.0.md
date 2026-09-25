@@ -95,10 +95,18 @@ Reached only via `fraggate_call` / `POST /v1/fraggate/call` with `{ slug: "4dmap
 | card_import | Import a previously exported card. Hash mismatch refuses. |
 | verify_chain | Verify card prev_hash or walk card-hash chain. |
 | neighbor_cite | Cite a neighbor engine on a declared card (`neighbor` or `cite`). |
+| memory_cite | Optional AKM-TRIAD-1.0 fabric cite of a 4DM-CARD. Card hash unchanged. |
+| memory_observe | Observation packet for FragGate `memory_observe`. Not forwarded from this op. |
+| library_pin | 4DM-PIN-FRAME from paper date, event, and lat/lon or gazetteer id. |
+| plot | Inspection plot of lattice pins. REAL and MOCK stay labeled. |
+| possibility | Labeled time×geo possibility and cited bayesian input, kept separate. |
+| pattern_recall | Recurring feature hashes on the hashchain lattice. |
+| lattice_tip | Append-only lattice tips. |
+| poison_refuse | Append a refuse-set card. Feature hash only. |
 
 Stub refuse (never hosted): `truth_score`, `lumen_panel`, `invent_mark`, `backdate_class`.
 
-Runtime 1.7.6 hosts product 0.2.0 LIVE_OPS in-process on the runtime multi-axis card store (not a rewrite to product 4DM-CARD receipts). Catalog version is 0.2.0. `engine_digest` is the runtime isolate artifact. GitBaby merges and deploys the product Worker — do not invent a product Worker digest here.
+Product 0.3.0 public door ops run in-process. Library pin, plot, possibility, pattern recall, lattice tip, poison refuse, memory cite, and memory observe use a 4DM-CARD lattice. Earlier inspection verbs stay on the multi-axis card store. Catalog version is 0.3.0. `engine_digest` is the runtime isolate artifact. Do not invent a product Worker digest here. FragGate remains the single door.
 
 ## 5. Catalog
 
@@ -115,4 +123,4 @@ Runtime 1.7.6 hosts product 0.2.0 LIVE_OPS in-process on the runtime multi-axis 
 
 Eliab, Aziel. (2026). 4DM-WP-1.0 [Design]. https://github.com/AzielEliab/aziel-runtime/blob/main/docs/designs/4DM-WP-1.0.md
 
-Eliab, Aziel. (2026). 4DMap 0.2.0 [Software]. Apache-2.0. https://github.com/AzielEliab/4dmap
+Eliab, Aziel. (2026). 4DMap 0.3.0 [Software]. Apache-2.0. https://github.com/AzielEliab/4dmap

@@ -150,6 +150,13 @@ function malwareHits(text) {
   return hits;
 }
 
+/**
+ * Explicit poison token: the word poison beside payload, token, or inject.
+ * A receipt that names poison_refuse and payload_stored apart is not that token.
+ */
+const POISON_TOKEN_RE =
+  /(?:^|[^a-z])poison[^a-z]{0,3}(?:payload|token|inject)(?:[^a-z]|$)|(?:^|[^a-z])(?:payload|token|inject)[^a-z]{0,3}poison(?:[^a-z]|$)/;
+
 function poisonHits(text) {
   const s = String(text || "").toLowerCase();
   const hits = [];
@@ -159,9 +166,7 @@ function poisonHits(text) {
       break;
     }
   }
-  if (/(^|[^a-z])poison([^a-z]|$)/.test(s) && (s.includes("payload") || s.includes("token") || s.includes("inject"))) {
-    if (!hits.includes("poison")) hits.push("poison");
-  }
+  if (!hits.includes("poison") && POISON_TOKEN_RE.test(s)) hits.push("poison");
   return hits;
 }
 

@@ -274,6 +274,85 @@ function claimFromArgs(args, slug, op) {
 }
 
 /**
+ * Shared allowlist refuse (halluc / stub / unknown op / local-only).
+ * Same code and message for a live call and a dry_run preview.
+ */
+function classificationRefuse(classified, target) {
+  if (classified.kind === "halluc") {
+    return {
+      code: FG_HALLUC_TOOL,
+      name: target.raw,
+      slug: target.slug,
+      op: target.op,
+      message: `FG-HALLUC-TOOL: ${JSON.stringify(target.raw || "")} is not a FragGate registry name. Use fraggate_list.`,
+    };
+  }
+  if (classified.kind === "stub") {
+    return {
+      code: FG_STUB,
+      name: target.entry.name,
+      slug: target.entry.slug,
+      op: target.op,
+      extra: { status: "stub" },
+      message: `${target.entry.name} ${target.op} is stub — local, not hosted. Never execute on the public mesh.`,
+    };
+  }
+  if (classified.kind === "unknown_op") {
+    return {
+      code: FG_UNKNOWN_OP,
+      name: target.entry.name,
+      slug: target.entry.slug,
+      op: target.op,
+      extra: { status: target.entry.status, ops: target.entry.ops },
+      message: target.op
+        ? `${target.entry.name} has no public FragGate op ${JSON.stringify(target.op)}. Live ops: ${(target.entry.ops || []).join(", ") || "(none)"}.`
+        : `${target.entry.name} is in the registry (${target.entry.status}). Pass op.`,
+    };
+  }
+  if (classified.kind === "local_only") {
+    return {
+      code: FG_LOCAL_ONLY,
+      name: target.entry.name,
+      slug: target.entry.slug,
+      op: target.op,
+      extra: { status: "local_only" },
+      message: `${target.entry.name} is named in the registry but local_only — not live on the public FragGate door.`,
+    };
+  }
+  return null;
+}
+
+/**
+ * Catalog preview for MCP dry_run. Same refuse code and message as admitCall.
+ * Does not append a ledger tip and does not execute.
+ */
+export function previewCatalogAdmission(args, registry, bySlug) {
+  const target = parseTarget(args, registry, bySlug);
+  const classified = classifyCall(target.entry, target.op);
+  const spec = classificationRefuse(classified, target);
+  if (!spec) return { proceed: true, target, classified };
+  return {
+    proceed: false,
+    envelope: {
+      ok: false,
+      code: spec.code,
+      door: FRAGGATE_DOOR,
+      kernel: FRAGGATE_KERNEL,
+      name: spec.name || null,
+      slug: spec.slug || null,
+      op: spec.op || null,
+      message: spec.message,
+      result: null,
+      mutated: false,
+      dry_run: true,
+      ledger_written: false,
+      exist: existingTools(),
+      ...(spec.extra || {}),
+    },
+  };
+}
+
+/**
  * Admit or refuse a call. No handler on refuse.
  * Classify (halluc / stub / local_only) always runs at FragGate.
  * DecisionGATE is deferred on the FragGate call path (gate:false) so it
@@ -283,64 +362,11 @@ export async function admitCall(args, registry, bySlug, opts = {}) {
   const target = parseTarget(args, registry, bySlug);
   const classified = classifyCall(target.entry, target.op);
   const deferGate = opts && opts.gate === false;
-
-  if (classified.kind === "halluc") {
+  const spec = classificationRefuse(classified, target);
+  if (spec) {
     return {
       admitted: false,
-      envelope: await refuse({
-        code: FG_HALLUC_TOOL,
-        name: target.raw,
-        slug: target.slug,
-        op: target.op,
-        message: `FG-HALLUC-TOOL: ${JSON.stringify(target.raw || "")} is not a FragGate registry name. Use fraggate_list.`,
-      }),
-      target,
-    };
-  }
-
-  if (classified.kind === "stub") {
-    return {
-      admitted: false,
-      envelope: await refuse({
-        code: FG_STUB,
-        name: target.entry.name,
-        slug: target.entry.slug,
-        op: target.op,
-        extra: { status: "stub" },
-        message: `${target.entry.name} ${target.op} is stub — local, not hosted. Never execute on the public mesh.`,
-      }),
-      target,
-    };
-  }
-
-  if (classified.kind === "unknown_op") {
-    return {
-      admitted: false,
-      envelope: await refuse({
-        code: FG_UNKNOWN_OP,
-        name: target.entry.name,
-        slug: target.entry.slug,
-        op: target.op,
-        extra: { status: target.entry.status, ops: target.entry.ops },
-        message: target.op
-          ? `${target.entry.name} has no public FragGate op ${JSON.stringify(target.op)}. Live ops: ${(target.entry.ops || []).join(", ") || "(none)"}.`
-          : `${target.entry.name} is in the registry (${target.entry.status}). Pass op.`,
-      }),
-      target,
-    };
-  }
-
-  if (classified.kind === "local_only") {
-    return {
-      admitted: false,
-      envelope: await refuse({
-        code: FG_LOCAL_ONLY,
-        name: target.entry.name,
-        slug: target.entry.slug,
-        op: target.op,
-        extra: { status: "local_only" },
-        message: `${target.entry.name} is named in the registry but local_only — not live on the public FragGate door.`,
-      }),
+      envelope: await refuse(spec),
       target,
     };
   }

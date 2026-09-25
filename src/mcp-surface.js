@@ -19,6 +19,7 @@ import {
 import { resolveSlug, RUNTIME_VERSION } from "./runtime-api.js";
 import { callSessionTool } from "./session-http.js";
 import { existMcpHint, FG_HALLUC_TOOL, FRAGGATE_KERNEL, PUBLIC_MCP_TOOL_MAX } from "./fraggate/codes.js";
+import { confirmConsentHonesty, isMutatingMcpTool } from "./mcp-safeguard.js";
 import {
   emptyArgsSchema,
   FRAGGATE_CATALOG_ALLOWLIST,
@@ -51,7 +52,6 @@ const FRAGGATE_CATALOG_DOOR_HINT = fraggateCatalogAllowlistText(LIVE_OPS) || FRA
 import { chainlockMcpTools, isChainlockTool, runChainlockOp } from "./chainlock.js";
 import { isMemoryMcpTool, memoryMcpTools, runMemoryMcp, wrapMemoryDisplay } from "./memory.js";
 import { isMeshMcpTool, runMeshOp } from "./mesh.js";
-import { isMutatingMcpTool } from "./mcp-safeguard.js";
 import { resolveCallingName } from "./calling-name.js";
 
 export { ADVANCED_PREFIX, isAdvancedToolName, PUBLIC_MCP_TOOL_MAX };
@@ -103,6 +103,7 @@ export function mcpInitializeInstructions(env = {}) {
     "1.7.9 cross-maps AZCoherence (peers azclce / AZInterface / AKM-TRIAD fabric neighbor; hubs + Worker URL; domain stays null). " +
     "1.7.8 lands EmbryoLock as a true in-process engine (Vault/Custody with ARK; live-with-local-destructive-boundary). LIVE_OPS health/skill/doctor/verify-hash/policy/limitation. Wipe/scorch/unlock-after-fail stay FG-STUB on the public mesh. Softwares worker_home embryolock-download-tracker. " +
     "1.7.7 lands AZCoherence (AZC-0.1) as a true in-process Softwares engine (second-pass triad coherence; cite https://github.com/AzielEliab/AZCoherence; not AKM-TRIAD). " +
+    "Catalog 4DMap is product 0.3.0: public door adds memory_cite, memory_observe, library_pin, plot, possibility, pattern_recall, lattice_tip, poison_refuse. Inspection frame after AZPIPE, not an extra door. AZInterface card is the suite shell at package 0.1.0; local pipeline_arch, withdraw, scorch_local, and pair_* stay off the public door. " +
     "1.7.6 syncs 4DMap LIVE_OPS with product 0.2.0 (pin/span/stack/gap/fork/walk/lens/class/cohort/absence/cap/join/list/example plus frame_status/axis_describe/walk_trace/card_export/card_import/verify_chain/neighbor_cite; inspection frame after AZPIPE, not an extra door). " +
     "1.7.5 is Softwares capability wave 1 (decisiongate / forgereceipts / temporallock / staticclock / chronolock / trajectorylock / spectrallock). " +
     "1.7.4 enhances 4DMap LIVE_OPS (frame_status/axis_describe/walk_trace/card_export/card_import/verify_chain/neighbor_cite; inspection frame after AZPIPE, not an extra door). " +
@@ -838,6 +839,9 @@ export function mcpCallPayload(name, out, product, op) {
       op,
       extra: out.extra,
     });
+  if (out && out.confirm_consent && envelope && typeof envelope === "object") {
+    Object.assign(envelope, confirmConsentHonesty());
+  }
   return {
     content: [{ type: "text", text: mcpContentText(name, envelope, out.text) }],
     structuredContent: envelope,
@@ -857,9 +861,11 @@ export function wrapFraggateEnvelope(name, body, product, op) {
   });
   if (body && body.ledger_tip && !envelope.ledger_tip) envelope.ledger_tip = body.ledger_tip;
   if (body && body.code) envelope.code = body.code;
+  if (body && body.message) envelope.message = body.message;
   if (body && body.door) envelope.door = body.door;
   if (body && body.mutated !== undefined) envelope.mutated = body.mutated;
   if (body && body.dry_run !== undefined) envelope.dry_run = body.dry_run;
+  if (body && body.ledger_written !== undefined) envelope.ledger_written = body.ledger_written;
   return {
     status,
     text: JSON.stringify(envelope, null, 2),
