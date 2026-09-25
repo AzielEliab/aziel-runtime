@@ -288,7 +288,7 @@ export function helpGlamaTxt(origin) {
     "Show display.title and display.summary, then take the next input.",
     `Softwares cards (one_line) live at GET ${base}/v1/software.`,
     "",
-    "MCP tools/list is 36 live tools. Start on the FragGate door. ChainLock and memory are append-only.",
+    "MCP tools/list is 36 live tools. Call the tool you need. The door runs first. ChainLock and memory are append-only.",
     "",
     "Compatible clients: ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants.",
     "",
