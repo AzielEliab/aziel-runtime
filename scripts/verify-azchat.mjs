@@ -21,7 +21,9 @@ assert.equal(product.name, "AZChat");
 assert.equal(product.worker, "azchat-download-tracker");
 assert.equal(product.version, VERSION);
 assert.equal(MESH_ENABLED_DEFAULT, false);
-assert.match(product.oneLine, /short-lived rooms|spendable handles/i);
+assert.match(product.oneLine, /all-rooms list/);
+assert.match(product.oneLine, /passphrase/);
+assert.match(product.banner, /AZChat product contract/);
 assert.doesNotMatch(product.oneLine, /THIS IS:|THIS IS NOT:/i);
 assert.ok(embeddedDigest("azchat"));
 
@@ -47,6 +49,10 @@ for (const op of expected) {
 }
 for (const op of STUB_OPS.azchat) {
   assert.ok(!live.includes(op), `stub ${op} is not live`);
+}
+for (const op of ["room_list", "rooms_list", "passphrase", "room_join"]) {
+  assert.equal(live.includes(op), false, `${op} is not a runtime room backend`);
+  assert.equal(catalogOps.has(op), false, `${op} is not a catalog op`);
 }
 
 const registry = buildRegistry(PRODUCTS);

@@ -217,6 +217,8 @@ FragGate kernel: https://github.com/AzielEliab/fraggate (FG-0.1)
 
 **Attempt linkage (additive).** A call may carry \`request_id\`, \`attempt_n\`, \`parent_receipt_id\`, \`correlation_id\`, and \`outcome\`. Those names are hashed into a new ForgeReceipts receipt, copied onto the FragGate ResultEnvelope, and sealed on a new session receipt. \`parent_receipt_id\` is the prior attempt's receipt hash (null on the first). \`ledger_tip.prev\` is call-order only (\`prev_role\` \`call-order\`, \`prev_is_retry_parent\` false) and is not the retry parent. This is hash linkage, not a forensic finding and not a court filing. Receipts sealed without integer \`attempt_n\` keep the older hash.
 
+**Interface orchestration (human side).** \`POST /v1/interface\` and MCP method \`interface/orchestrate\` share one planner. It is not a \`tools/list\` name and not a second FragGate door. VeilLock safe calls are \`describe\`, \`join_plan\`, \`engulf_plan\`, \`status_report\`, and \`runtime_ui\` (schema \`veillock-runtime-ui-1\`, \`local_only\`, \`public_door_ops\` empty). Those calls do not launch, join, register a camera, return a key, lift a veil, or append the public receipt chain. \`mesh_awareness\` does not read or change the live roster. \`seal\` requires \`confirm: true\`. A sealed local-only plan stores an ACT-RECEIPT-1.0 row (\`hash\`, \`request\`, \`output\`, \`event\`, plus attempt ids) and appends the public chain only through the existing fail-open path. A sealed live op dispatches through FragGate. The receipt output names the code that came back, and outcome is failed unless that code is FG-OK. The public append is re-hashed from the corpus tip. The isolate ledger hash is not the public previous_hash. Passphrase-shaped fields are refused and are not stored. The local audit store is isolate memory, not a rewrite key, and not a court finding.
+
 MCP \`tools/list\` is 36 live tools. First call: \`fraggate_list\` → \`fraggate_describe\` → \`fraggate_call\` (foldlock/fold-preview, or \`decisiongate_check\` with \`dry_run=true\`). Also on that list: \`runtime_skill\`, \`fraggate_verify\`, \`library_lookup\` (read-only corpus), suite \`mesh_*\` (QNM-BUILD-1.0 rollup; read-only suite-presence ON by default), fabric \`chainlock_*\` (CL-WP-0.4 / LS-WP-0.1; append-only), and \`memory_*\` (AKM-TRIAD-1.0; append-only belief). ChainLock and memory are append-only.
 
 **LIVE fabric** (runtime, not Softwares-tab products): AZPIPE (\`AP-WP-0.2\`, magic FLD3) wraps \`fraggate_call\` so admitted payloads never present raw inbound bytes. **Locked hop order (1.7.0 / MASTER-33):** Human → AZInterface → PUBLIC/UI/AGENT/API → FragGate → Lamb Lens → SweepGate → Sentinel → Provenance/Input Packet → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → optional ASE → RoseClock (forward-only; StaticClock/VECTOR as needed) → TemporalLock → ChainLock-OUT → ForgeReceipts → Return. FragGate is THE single door. Lamb Lens is fabric ethics after FragGate (not Softwares-tab, not a second door). Domains are isolation labels, not doors. RoseClock sequence never decreases. FoldLock fld3-wire is internal to AZPIPE. LambGate is not a hop. Illegal reorder is refused. SweepGate (\`SG-WP-0.1\`) airlocks poison / malware-class / block-keys, and isolates off-origin only when inbound and untrusted; ChainLock (\`CL-WP-0.4\`) append-only stamps (vault \`vault/chains/<name>.jsonl\` on CLI; Worker KV/memory) — ChainLock-IN inbound, ChainLock-OUT outbound receipts; LOCKSET (\`LS-WP-0.1\`) fail-closed seal citing \`https://godlock.uk\` (runtime does not write the public ledger); packed catalog (\`RL-WP-0.1-runtime\`) is a single-key read with edge Cache-Control; **QNS-CD-1.0** is the Quantum Node Signal packet-transfer coding design (photon QNS1 1.3 on local \`qnsd\` in https://github.com/AzielEliab/qnm-node — companion to QNM-BUILD-1.0 / AIH-WP-1.3). \`GET /v1/qns\` cites only; the public Worker does not proxy local via emit and is not a wipe/control plane. qnsd uses the same AZPIPE / SweepGate / APG / ChainLock laws locally. Catalog GET / HTML stay full (200) for humans and SEO; soft caps apply only to expensive fan-out. Donation stays static (no KV). \`GET /v1/mesh\` never enables. Do **not** add QNS, AKM-TRIAD, or ACT-RECEIPT as Softwares-tab product slugs. Adaptive memory is LIVE fabric behind FragGate (\`POST /v1/memory/*\`, MCP \`memory_*\`, FragGate \`slug=memory\`). Bayesian posterior is calibrated belief, not truth. **ACT-RECEIPT-1.0** is the public four-field action-receipt mesh copy. The chain lives on \`https://www.azielcorpuslibrary.net/receipts\`. This runtime appends after FragGate list/call, POST /mcp, and significant POST /v1/* when \`RECEIPT_APPEND_TOKEN\` is set (header \`x-aziel-receipt\`). Missing token is fail-open. \`GET /v1/receipts\` cites; \`GET /v1/receipts/tip\` proxies the corpus tip. No user/IP/geo. MESH-VAULT lite may mint catalog/download/mesh events. **NO-LIE-NO-REWRITE-1.0** is companion law under **CROSS-NETWORK-SURVIVAL-1.0** (does not replace the machine tip): receipts that still hash; copies not all on one tunnel; no rewrite key; the network is never allowed to lie even to self-preserve.
@@ -407,6 +409,9 @@ ${survivalSkillMarkdown(base)}
 | POST | \`/v1/mesh/site-presence\` | Hub fleet heartbeat. Body \`{host, viewers, kind: "human-page"}\`. Allowed: godlock.uk, azieleliab.com, azielcorpuslibrary.net. Alias \`/v1/mesh/site-heartbeat\`. 5-minute TTL. Fail-closed. F03 \`mesh_mutate\`. |
 | GET | \`/v1/mesh/az-generator\` | Cap-7 semantic-bridge cite (MirageGrid factory; inherit designs only including azcorpus + azlibrary; \`design_of: hub_designs\`; \`resolves_to_hub: false\`; \`name_may_change\`; not ICANN). Never enables radios. |
 | POST | \`/v1/mesh/broadcast\` | SHA-256 hash receipt only. Never a publish path. |
+| GET | \`/v1/mesh/sot\` | SOT-SYNC-1.0 suite tip. Authority is GET /v1/software (suite version, git sha, Softwares count, card versions). version_id is null. Does not change Nodes or Live Nodes. |
+| GET | \`/v1/mesh/outlets\` | Outlet registry the mesh can address. Status ok / drifted / unreachable / unexposed. |
+| POST | \`/v1/mesh/sot-sync\` | Pull-plane sync. \`dry_run: true\` previews every outlet and the fields that would change. \`confirm: true\` applies, mints ACT-RECEIPT-1.0, and updates last_applied only where a write succeeded. Unreachable outlets keep last-known inventory. |
 | GET | \`/v1/mesh/relay\` | FED-MESH-1.0 Local-First Edge Mesh cite and relay health. Never enables. Never requires plaintext. |
 | GET | \`/v1/mesh/relay/bootstrap\` | Signed bootstrap lists this relay has accepted. One source. A node still needs an address it already has. |
 | GET | \`/v1/mesh/relay/refs\` | Ref index for one handle (how objects connect). Does not return object bytes. |
@@ -1251,7 +1256,7 @@ export function runtimeStaticPaths() {
                 properties: {
                   jsonrpc: { type: "string", example: "2.0" },
                   id: {},
-                  method: { type: "string", description: "initialize | tools/list | tools/call | ping" },
+                  method: { type: "string", description: "initialize | tools/list | tools/call | ping | interface/orchestrate" },
                   params: { type: "object" },
                 },
               },
@@ -2048,6 +2053,38 @@ export function runtimeStaticPaths() {
         responses: { "405": { description: "QNS-CITE-ONLY" } },
       },
     },
+    "/v1/interface": {
+      get: {
+        operationId: "interface_contract",
+        summary:
+          "Human-side orchestration contract (IFACE-ORCH-1.0). VeilLock schema veillock-runtime-ui-1, local_only, public_door_ops empty. Does not launch, join, register a camera, or append the public receipt chain. Not a tools/list name. Not a separate AZInterface product.",
+        tags: ["runtime"],
+        responses: { "200": { description: "Runtime UI contract plus host overlay" } },
+      },
+      post: {
+        operationId: "interface_orchestrate",
+        summary:
+          "Same planner as MCP method interface/orchestrate. Safe calls: describe, join_plan, engulf_plan, status_report, runtime_ui, mesh_awareness, forensic_tip, plan. seal requires confirm true and then uses ACT-RECEIPT-1.0. The public copy is re-hashed from the corpus tip. Outcome is failed unless FragGate returns FG-OK. Live dispatch goes through FragGate. Passphrase and other secret-shaped fields are refused. tools/list stays 36 names.",
+        tags: ["runtime"],
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { type: "object" } } },
+        },
+        responses: {
+          "200": { description: "Plan or seal. executed is true only when FragGate returned FG-OK." },
+          "400": { description: "IF-BAD-INPUT, IF-SECRET-REFUSED, IF-CONFIRM-REQUIRED, IF-LOCAL-COMMAND, IF-UNKNOWN-CALL" },
+        },
+      },
+    },
+    "/v1/interface/forensic": {
+      get: {
+        operationId: "interface_forensic_tip",
+        summary:
+          "Local interface audit tip. Isolate memory. Empty tip is not success. Does not append the public ACT-RECEIPT chain and does not rewrite prior rows.",
+        tags: ["runtime"],
+        responses: { "200": { description: "tip_hash, count, durable false" } },
+      },
+    },
     "/v1/receipts": {
       get: {
         operationId: "act_receipt_cite",
@@ -2203,6 +2240,50 @@ export function runtimeStaticPaths() {
           },
         },
         responses: { "200": { description: "Local hash receipt" }, "400": { description: "Radios off, bytes refused, publish refused, or bad hash" } },
+      },
+    },
+    "/v1/mesh/sot": {
+      get: {
+        operationId: "mesh_sot_status",
+        summary:
+          "SOT-SYNC-1.0 suite tip from GET /v1/software plus the outlet matrix. version_id is null. Not mesh_broadcast. live_body_sync false. Does not change Nodes or Live Nodes.",
+        tags: ["mesh"],
+        responses: { "200": { description: "Suite tip and outlet status" } },
+      },
+    },
+    "/v1/mesh/outlets": {
+      get: {
+        operationId: "mesh_outlets",
+        summary:
+          "Registered outlets (hub cites, JSON-LD, llms, catalog mirrors, frozen cite, mesh hooks). Status ok, drifted, unreachable, or unexposed.",
+        tags: ["mesh"],
+        responses: { "200": { description: "Outlet registry" } },
+      },
+    },
+    "/v1/mesh/sot-sync": {
+      post: {
+        operationId: "mesh_sot_sync",
+        summary:
+          "Pull-plane sync. dry_run true returns the plan and writes nothing. confirm true applies, mints an ACT-RECEIPT-1.0 receipt, and updates last_applied only for outlets that were written. Unreachable outlets are not invented.",
+        tags: ["mesh"],
+        requestBody: {
+          required: false,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  dry_run: { type: "boolean" },
+                  confirm: { type: "boolean" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "200": { description: "Dry run plan or applied tip" },
+          "400": { description: "SOT-CONFIRM-REQUIRED, SOT-UNREACHABLE, or SOT-GATE-BLOCK" },
+        },
       },
     },
   };

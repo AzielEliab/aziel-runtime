@@ -6,20 +6,40 @@
  */
 
 import { LIMITATION as CORPUS_LIMITATION, SAMPLE_MASTER, search } from "./engine.js";
+import {
+  JEEVES_ASSET_NOTE,
+  JEEVES_JESUS_IMAGE,
+  collectJeevesEasterEggs,
+  continueJeevesSnake,
+  isDevilDenial,
+  isZsolverTopic,
+  jeevesBitmapCite,
+  jeevesEmptyShelfEgg,
+  publicJeevesEgg,
+} from "./jeeves-eggs.js";
+
+export { JEEVES_JESUS_IMAGE, isDevilDenial };
 
 export const JEEVES_NAME = "Ask Jeeves";
-export const JEEVES_JESUS_IMAGE = "/jeeves-jesus.png";
+export const JEEVES_SUITE_HELP = Object.freeze({
+  name: JEEVES_NAME,
+  slug: "jeeves",
+  software_tab: false,
+  kind: "suite_help_assistant",
+  parent_slug: "aziel-corpus",
+  fraggate_slug: "aziel-corpus",
+  fraggate_op: "jeeves",
+  interface_call: "jeeves_help",
+  named_tool: true,
+  isolation_software: false,
+});
 export const JEEVES_LIMITATION =
-  "Ask Jeeves is a research assistant over public library text (sample MASTER, or CORPUS_D1 records when bound). It is not sovereign, not the operator, and cannot change SPRE, CLCE, PhysLing, Bayesian, or triad scores. Not AZAI blend/chat. Does not invent visits. Author: Aziel Eliab only.";
+  "Ask Jeeves is a research assistant over public library text (sample MASTER, or CORPUS_D1 records when bound). It is not sovereign, not the operator, and cannot change SPRE, CLCE, PhysLing, Bayesian, or triad scores. Not AZAI blend/chat. Does not invent visits. Author: Aziel Eliab only. Easter-egg bitmaps are cited from the corpus Worker public paths and are not hosted on this isolate.";
 
 const REFUSE_RE =
   /\b(operator (password|hash|credential|account|secret|cookie)|master password|master hash|password hash|hidden admin|hidden operator|admin route|\/admin\b|superadmin|aziel_session|session token|scrypt|delete[- ]?all|wipe (the )?(corpus|library|ledger)|drop table|bypass quarantine|unquarantine|forge (a )?(score|triad|receipt)|modify (the )?(spre|clce|plr|physling|bayesian|triad|combined)( score)?|change (the )?(triad )?score|set (the )?(triad|score)|exfiltrat|dump (all )?(hashes|credentials|sessions)|reveal (the )?(operator|master))\b/i;
 
 const BLEND_RE = /\b(azai\s+(blend|chat|complete)|blend\s+(azai|models?)|complete\s+chat|host(ed)?\s+blend)\b/i;
-
-function norm(text) {
-  return String(text || "").toLowerCase();
-}
 
 export function jeevesShouldRefuse(text) {
   const t = String(text || "");
@@ -38,13 +58,25 @@ export function jeevesShouldRefuse(text) {
   return { refuse: false };
 }
 
-export function isDevilDenial(text) {
-  const n = norm(text);
-  return (
-    /\b(the\s+)?(devil|satan)s?\s+(isn'?t|aint|ain't|is\s+not|are\s+not)\s+(even\s+)?real\b/.test(n) ||
-    /\b(the\s+)?(devil|satan)s?\s+(doesn'?t|doesnt|don't|dont|does\s+not|do\s+not)\s+exist\b/.test(n) ||
-    /\bthere\s+(is|are)\s+no\s+(devil|satan)\b/.test(n)
-  );
+function eggBody(eggs, extra = {}) {
+  const egg = eggs[0];
+  const cite = jeevesBitmapCite(egg.image || null);
+  return base({
+    refused: false,
+    easter_egg: egg.id,
+    easter_eggs: eggs.map(publicJeevesEgg),
+    answer: egg.answer == null ? "" : String(egg.answer),
+    image: egg.image || null,
+    image_alt: egg.image_alt || null,
+    citations: [],
+    snake: egg.snake || null,
+    bitmap_hosted_here: false,
+    bitmap_probed: false,
+    asset_note: cite.asset_note,
+    asset: cite.asset,
+    eggs_source: "AzielEliab/aziel-corpus workers/download-tracker/src/jeeves.js",
+    ...extra,
+  });
 }
 
 function extractiveAnswer(records, query) {
@@ -114,20 +146,33 @@ export async function jeevesAsk(payload, env) {
       image: null,
     });
   }
-  if (isDevilDenial(q)) {
-    return base({
-      refused: false,
-      easter_egg: "devil_not_real_jesus",
-      answer: "",
-      image: JEEVES_JESUS_IMAGE,
-      image_alt: "classical Jesus portrait (Ask Jeeves easter egg)",
-      citations: [],
-      note: "Jesus-image-only when the user says the devil is not real. Bitmap cite is the corpus Worker path; isolate does not invent a visit.",
+  const snake = continueJeevesSnake(q, src.snake);
+  if (snake) return eggBody([snake], { library_search: false, library_http: "not-probed" });
+  const eggs = collectJeevesEasterEggs(q, {
+    previous: src.previous || src.last_q || src.last || src.previous_question || "",
+  });
+  if (eggs.length) {
+    return eggBody(eggs, {
+      library_search: false,
+      library_http: "not-probed",
+      note: eggs[0].id === "devil_not_real_jesus"
+        ? "Jesus-image-only when the user says the devil is not real. Bitmap cite is the corpus Worker path; isolate does not invent a visit."
+        : JEEVES_ASSET_NOTE,
     });
   }
   const found = await search({ q }, env);
   const records = Array.isArray(found && found.records) ? found.records : [];
   const extracted = extractiveAnswer(records, q);
+  if (extracted.empty && !isZsolverTopic(q)) {
+    const emptyEgg = jeevesEmptyShelfEgg();
+    return eggBody([emptyEgg], {
+      empty: true,
+      live_d1: !!(found && found.live_d1),
+      sample_master: !(found && found.live_d1),
+      library_http: found && found.live_d1 ? "CORPUS_D1" : "not-probed",
+      note: "No public library record matched. Ask Jeeves does not invent visits or shelf rows. Empty-shelf bitmap is the corpus briefcase. Live library HTTP was not probed when CORPUS_D1 is unbound.",
+    });
+  }
   return base({
     refused: false,
     answer: extracted.answer,

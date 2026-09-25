@@ -44,7 +44,7 @@ export const ENGINE_ARTIFACTS = {
   aznet: ["aznet/engine.js"],
   azhub: ["azhub/engine.js"],
   azinterface: ["azinterface/engine.js"],
-  "aziel-corpus": ["aziel-corpus/engine.js", "aziel-corpus/jeeves.js", "aziel-corpus/tip-pack.js"],
+  "aziel-corpus": ["aziel-corpus/engine.js", "aziel-corpus/jeeves.js", "aziel-corpus/jeeves-eggs.js", "aziel-corpus/tip-pack.js"],
   "4dmap": ["4dmap/engine.js", "4dmap/lattice.js", "4dmap/product-card.js"],
   azcoherence: ["azcoherence/engine.js"],
   embryolock: ["embryolock/engine.js"],
@@ -60,7 +60,7 @@ export const ENGINE_ARTIFACTS = {
  * Do not invent a digest — recompute from the files.
  */
 export const ENGINE_DIGESTS = {
-  "vibelock": "12b960bdfe739bad4509fa087932b2f89b39b1eb2d3997b4b646a8f60d13bc9d",
+  "vibelock": "bf35c9e62ae2717bac039d74ff81be7af57be4c454a418b1cc4abffee9d08d5a",
   "veillock": "b7114d83e33d9f3c05427110115b798c23209eb2716a6431b6bcbe4a613fd464",
   "codelock": "cdeacc8ed400760227248c5946d07528e2dfaf4542a40f20cb9961833d199c0b",
   "godlock": "6b9076ca8e4aa63e6c81deb40f102f55f8769a7c10f0b8347605903f7df93f54",
@@ -79,7 +79,7 @@ export const ENGINE_DIGESTS = {
   "ark": "69d29bd079754df6450b8882b6f86c445ac7f1f490e2c150ff4716d00bf6d3b6",
   "azai": "96bd3281c17db65645accde17d1f0ab19be72c58a1ca45a4abd75d28839dc61e",
   "spectrallock": "16281860ab0787f2485ea2530fbbcecf968009da3ae1c4f2b6e689a15a9ad586",
-  "azbot": "7e0843602e8bfed071ab1a20aad32d6f22f8330be3526e29c29ffcfb16892b89",
+  "azbot": "2c7d23d424f5f88de3eeda0097a5f2597e46c1fa3e2e9c57349add942c34112f",
   "employeelock": "886e90395752e7dcb5458a6ee501c34858a18574623b2e542513b4faa96e1d90",
   "foldlock": "1034d5924b88878918986abe260338b0aff0117bc6f9c4d4a01a41d843cfa0a8",
   "whistlelock": "f585b20e1dfc0321e432ba04299d91d1708ae3b6f2ac78c85db5c61a63a4a6f8",
@@ -92,7 +92,7 @@ export const ENGINE_DIGESTS = {
   "aznet": "5af55140c2565d4258e44a8f67bbed0d8dc16ed689245f24e459db515dbddf21",
   "azhub": "dc8848353c0db397b9b0503446ad8dcb14212162776b24278071559bd2e83d81",
   "azinterface": "56d43728d2848503fdca946822de43997b62480a1fc4918f979279e15f5431ef",
-  "aziel-corpus": "3f75e1e94af2ab8b74724e058267e537376162ba3951c15a903c2312da271de2",
+  "aziel-corpus": "6d1cde93a80f6464242fbf8be35c5e9338cf38eae947c277491b764fdc9eb08e",
   "4dmap": "2cb87c2a91e46d0d4330fa81c29b0f04659546c372f0490d575b26107d3e1a28",
   "azcoherence": "f04dfa4af332a1c04bd7319a8f48cee3e9adec3877d198ea703ee6187790cfc5",
   "embryolock": "bc7f6119a4bf6910b5be50cabe19bf4a2e35ac60408b5713e94878bd4e0074f3",

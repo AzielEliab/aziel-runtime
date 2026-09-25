@@ -210,7 +210,15 @@ assert.match(home, /id="suite-download-op"/);
 assert.match(home, /id="suite-download-dash"/);
 assert.match(home, /worker_hardware false/);
 assert.match(script, /fraggateCall\(origin, "aznet", op/);
-assert.doesNotMatch(script, /confirm\s*:/, "human HTTP FragGate path does not send MCP confirm");
+const fraggateFnEnd = script.indexOf("document.querySelectorAll(\".fg-door");
+assert.ok(fraggateFnEnd > 0, "FragGate helper is before the door boxes");
+assert.doesNotMatch(
+  script.slice(0, fraggateFnEnd),
+  /confirm\s*:/,
+  "human HTTP FragGate helper does not send MCP confirm",
+);
+assert.match(script, /origin \+ "\/v1\/interface"/);
+assert.match(script, /call: "seal", confirm: true/, "interface seal sends confirm on /v1/interface, not on FragGate");
 
 const dataAttrs = [...home.matchAll(/data-(op-console|op-soft|op-pair|op-mesh|op-sess|console|mesh|cl|sess|op)="([^"]+)"/g)];
 assert.ok(dataAttrs.length > 20, `expected wired data-* buttons, got ${dataAttrs.length}`);

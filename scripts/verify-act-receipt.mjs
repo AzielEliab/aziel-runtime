@@ -150,6 +150,20 @@ assert.equal(posted.event.runtime_version, RUNTIME_VERSION);
 assert.ok(!JSON.stringify(posted).includes("secret-token"));
 assert.doesNotMatch(JSON.stringify(posted), /"ip"|geo|latitude|user_id|cf-connecting/i);
 
+const darkCalls = [];
+const darkPublish = await publishLibraryReceipt(
+  { RECEIPT_APPEND_TOKEN: "secret-token" },
+  { action: "Ask.", output: "Answer." },
+  async () => {
+    darkCalls.push("tip");
+    throw new Error("dark");
+  },
+);
+assert.equal(darkPublish.published, false);
+assert.equal(darkPublish.skipped, true);
+assert.equal(darkPublish.refuse, "corpus-unreachable");
+assert.equal(darkCalls.length, 1);
+
 const down = await appendActReceipt({ RECEIPT_APPEND_TOKEN: "x" }, minted, async () => {
   throw new Error("network down");
 });

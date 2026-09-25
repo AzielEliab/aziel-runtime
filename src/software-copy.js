@@ -51,9 +51,10 @@ export const SOFTWARE_COPY = Object.freeze({
       "Use AZBrowser for ethical research search and advisory page metadata. It exists so research stays cited.",
   },
   azchat: {
-    one_line: "Open short-lived rooms and an agent bus with spendable handles.",
+    one_line:
+      "Join a room from the all-rooms list, where a hosted room appears, and a private room requires a passphrase.",
     description:
-      "Use AZChat for ephemeral two-handle rooms and agent messages. It exists for isolate chat.",
+      "Use AZChat to join from the all-rooms list, to see a room you host in that list, and to require a passphrase on a private room. It exists for spendable-handle chat and an agent bus. Those room options are the AZChat product contract.",
   },
   azcoherence: {
     one_line: "Review whether a primary score and an alternate hold together.",
@@ -66,9 +67,9 @@ export const SOFTWARE_COPY = Object.freeze({
       "Use AZHub to put modules in regions and declare links. It exists as a neutral container so placement stays placement.",
   },
   "aziel-corpus": {
-    one_line: "Search the public library and download azcorpus + azlibrary designs.",
+    one_line: "Search the public library with Ask Jeeves suite help and download azcorpus + azlibrary designs.",
     description:
-      "Use the Aziel Digital Library to search the public MASTER and take mesh-resident website designs to a node. It exists as a self-contained public library.",
+      "Use the Aziel Digital Library to search the public MASTER and to ask Ask Jeeves on the corpus jeeves operation. It exists as a self-contained public library with that suite help assistant on this card.",
   },
   azieltether: {
     one_line: "Keep downloaded Aziel software in sync when the central Worker is up or down.",
@@ -216,9 +217,10 @@ export const SOFTWARE_COPY = Object.freeze({
       "Use VeilLock for device-local camera and screen steps in your own apps. It exists for camera and screen work on your own device.",
   },
   vibelock: {
-    one_line: "Score speech audio you already have for physical consistency risk.",
+    one_line:
+      "Assess AI deepfake risk in mp4, mp3, and other audio and video. Physics and related signals are heuristic. Linguistics is experimental. Vibration is measured only with a body-coupled track.",
     description:
-      "Use VibeLock to assess posted features or limited PCM. It exists as a risk assessment of audio you already hold.",
+      "Use VibeLock to assess AI deepfake risk in audio and video you already hold. It exists as a media authenticity advisory. Physics and related signals are heuristic. Linguistics is experimental. Vibration is a measurement only when a body-coupled track is present. Hosted analyze and detect score posted features or limited PCM, refuse raw container bytes, and publish no accuracy percentage. Compressed files on the local package need ffmpeg.",
   },
   whistlelock: {
     one_line: "Hash a local drop and keep a dead-man copy on the client.",

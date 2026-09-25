@@ -245,6 +245,11 @@ assert.equal(body.library_mirror, "https://www.azielcorpuslibrary.net/runtime");
 assert.ok(body.software.every((s) => s.host === body.primary_host && s.homepage === body.homepage));
 assert.equal(body.software.length, PRODUCTS.length + NAMED_STUBS.length + WORKER_ONLY_PRODUCTS.length);
 assert.ok(body.software.some((s) => s.slug === "azchat" && s.status === "live" && s.domain_id === "07"));
+const azchatCard = body.software.find((s) => s.slug === "azchat");
+assert.match(azchatCard.one_line, /all-rooms list/);
+assert.match(azchatCard.one_line, /passphrase/);
+assert.match(azchatCard.description, /room you host/);
+assert.match(azchatCard.description, /AZChat product contract/);
 assert.deepEqual(
   body.software.map((s) => s.slug),
   entries.map((s) => s.slug),
@@ -301,6 +306,12 @@ assert.equal(
   "api_token_only",
 );
 assert.match(corpusCard.one_line, /azcorpus \+ azlibrary/);
+assert.match(corpusCard.one_line, /Ask Jeeves/);
+assert.equal(corpusCard.suite_help.software_tab, false);
+assert.equal(corpusCard.suite_help.slug, "jeeves");
+assert.equal(corpusCard.suite_help.fraggate_op, "jeeves");
+assert.equal(body.software.some((s) => s.slug === "jeeves" || s.slug === "askjeeves"), false);
+assert.match(body.count_note, /Ask Jeeves is suite help/);
 assert.ok(body.count !== body.isolation_software_count, "Softwares-tab count is not the isolation 33");
 const fourdLine = body.software.find((s) => s.slug === "4dmap").one_line;
 assert.match(fourdLine, /Inspect the same event/i);

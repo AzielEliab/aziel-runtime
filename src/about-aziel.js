@@ -28,6 +28,8 @@ import {
   whatAzielEliabDoesLlmsLines,
   whatAzielEliabDoesMachineField,
 } from "./person-index.js";
+import { JEEVES_PUBLIC_FILE_COUNT } from "./engines/aziel-corpus/jeeves-eggs.js";
+import { RUNTIME_VERSION } from "./runtime-api.js";
 
 export function aboutAzielCiteField() {
   const base = aboutAzielBaseCiteField();
@@ -160,8 +162,145 @@ export function corpusFoldPackPanelHtml(origin) {
 }
 
 export function aboutAzielAndPackHtml(origin) {
-  return `${aboutAzielSectionHtml()}
-${corpusFoldPackPanelHtml(origin)}`;
+  return `<section id="elroi-pane" class="cite">
+  <h2>Aziel Elroi Eliab <span class="hashtag">#elroi</span></h2>
+  <p>Alternate name only. The primary identity is <strong>Aziel Eliab</strong>. This pane is the Aziel Elroi Eliab domain tab. Corpus and Ask Jeeves are sub-tabs here. Corpus is not its own top-bar domain.</p>
+  <div class="elroi-tabs" role="tablist">
+    <button type="button" data-elroi-tab="published" aria-selected="true">Published work</button>
+    <button type="button" data-elroi-tab="corpus" aria-selected="false">Corpus</button>
+    <button type="button" data-elroi-tab="jeeves" aria-selected="false">Ask Jeeves</button>
+  </div>
+  <div data-elroi-panel="published">
+${aboutAzielSectionHtml()}
+  </div>
+  <div data-elroi-panel="corpus" hidden>
+    <p>Corpus sub-tab under Aziel Elroi Eliab (alternateName). The Library top-bar tab still groups the Aziel Corpus and Whitestone Softwares cards.</p>
+${corpusFoldPackPanelHtml(origin)}
+  </div>
+  <div data-elroi-panel="jeeves" id="elroi-jeeves" hidden>
+${jeevesHelpHtml(origin)}
+  </div>
+  <style>
+    #elroi-pane .elroi-tabs{display:flex;flex-wrap:wrap;gap:.4rem;margin:.4rem 0 .8rem}
+    #elroi-pane .elroi-tabs button{background:#241c0d;color:#f0d78c;border:1px solid #5c4a1a;border-radius:8px;padding:.4rem .75rem;cursor:pointer;font:inherit}
+    #elroi-pane .elroi-tabs button[aria-selected="true"]{box-shadow:0 0 0 1px #d4af37}
+    #jeeves-egg{max-width:280px;display:block;margin:.5rem 0}
+  </style>
+  <script>
+(function () {
+  var root = document.getElementById("elroi-pane");
+  if (!root || root.getAttribute("data-bound") === "1") return;
+  root.setAttribute("data-bound", "1");
+  var tabs = root.querySelectorAll("[data-elroi-tab]");
+  function show(id) {
+    tabs.forEach(function (tab) {
+      tab.setAttribute("aria-selected", tab.getAttribute("data-elroi-tab") === id ? "true" : "false");
+    });
+    root.querySelectorAll("[data-elroi-panel]").forEach(function (panel) {
+      panel.hidden = panel.getAttribute("data-elroi-panel") !== id;
+    });
+  }
+  tabs.forEach(function (tab) {
+    tab.addEventListener("click", function () { show(tab.getAttribute("data-elroi-tab")); });
+  });
+  function fromHash() {
+    var h = location.hash;
+    if (h === "#elroi-jeeves" || h === "#ask-jeeves") show("jeeves");
+    else if (h === "#corpus-fold-pack" || h === "#elroi-corpus") show("corpus");
+  }
+  fromHash();
+  window.addEventListener("hashchange", fromHash);
+  var box = document.getElementById("desk-jeeves");
+  if (!box) return;
+  var origin = box.getAttribute("data-origin") || "";
+  var library = box.getAttribute("data-library") || "";
+  var out = document.getElementById("jeeves-out");
+  var img = document.getElementById("jeeves-egg");
+  var miss = document.getElementById("jeeves-egg-miss");
+  var field = document.getElementById("jeeves-q");
+  var dry = document.getElementById("jeeves-dry");
+  var previous = "";
+  var snake = null;
+  function paint(body) {
+    var answer = body && body.answer != null ? String(body.answer) : "";
+    var head = body && body.display && body.display.summary ? body.display.summary : (body && body.source ? body.source : "");
+    out.textContent = (head ? head + "\\n\\n" : "") + (answer ? answer + "\\n\\n" : "") + JSON.stringify(body, null, 2);
+    var path = body && body.image ? String(body.image) : "";
+    if (img) {
+      if (path) {
+        img.alt = (body && body.image_alt) || "Ask Jeeves easter egg";
+        img.hidden = false;
+        img.src = library.replace(/\\/$/, "") + path;
+      } else {
+        img.removeAttribute("src");
+        img.hidden = true;
+      }
+    }
+    if (miss) miss.textContent = "";
+    if (body && body.snake) snake = body.snake;
+  }
+  if (img) {
+    img.addEventListener("error", function () {
+      img.hidden = true;
+      if (miss) miss.textContent = "Bitmap last-known at " + (img.src || "the corpus public path") + ". This page could not load it (unreachable or blocked). The file list was not invented.";
+    });
+  }
+  function ask(q) {
+    var text = String(q || "").trim();
+    if (!text) {
+      out.textContent = "Type a question. Nothing was sent.";
+      return;
+    }
+    var body = { call: "jeeves_help", q: text, previous: previous };
+    if (dry && dry.checked) body.dry_run = true;
+    if (snake && /^(up|down|left|right|u|d|l|r|quit|exit|stop|end)$/i.test(text)) body.snake = snake;
+    out.textContent = "Asking Jeeves…";
+    fetch(origin + "/v1/interface", {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/json" },
+      body: JSON.stringify(body)
+    }).then(function (res) { return res.json(); }).then(function (payload) {
+      previous = text;
+      paint(payload);
+    }).catch(function (err) {
+      out.textContent = "Ask Jeeves did not answer. " + String(err && err.message ? err.message : err) + " Last-known help is the on-page note. No shelf row was invented.";
+    });
+  }
+  box.querySelectorAll("[data-jeeves]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var kind = btn.getAttribute("data-jeeves");
+      if (kind === "eggs") ask("list ask jeeves easter eggs");
+      else ask(field && field.value);
+    });
+  });
+  if (field) {
+    field.addEventListener("keydown", function (ev) {
+      if (ev.key === "Enter") ask(field.value);
+    });
+  }
+})();
+  </script>
+</section>`;
+}
+
+function jeevesHelpHtml(origin) {
+  const base = String(origin || "").replace(/\/$/, "");
+  return `<section class="dash" id="desk-jeeves" data-origin="${escapeHtml(base)}" data-library="${escapeHtml(LIVE_LIBRARY_ORIGIN)}">
+  <h2>Ask Jeeves <span class="hashtag">#ask-jeeves</span></h2>
+  <p>Suite help for this build (<strong>${escapeHtml(RUNTIME_VERSION)}</strong>). Answers about domain tabs, receipts, and dry_run come from this runtime. Library answers come from corpus op <code>jeeves</code> on <code>aziel-corpus</code>. The Softwares card for that library carries <code>suite_help</code> with <code>software_tab</code> false. Last-known easter-egg files: ${JEEVES_PUBLIC_FILE_COUNT} under the corpus Worker public directory. This page does not host the bitmaps. A live fetch is not attempted until an image tag loads.</p>
+  <div class="field">
+    <label for="jeeves-q">Question</label>
+    <input id="jeeves-q" type="text" placeholder="How do the domain tabs work?" autocomplete="off" spellcheck="false">
+  </div>
+  <label><input id="jeeves-dry" type="checkbox"> dry_run (store nothing)</label>
+  <div class="actions">
+    <button type="button" data-jeeves="ask">Ask</button>
+    <button type="button" data-jeeves="eggs">List easter eggs</button>
+  </div>
+  <img id="jeeves-egg" alt="" hidden>
+  <p id="jeeves-egg-miss" class="secondary"></p>
+  <pre class="fg-out" id="jeeves-out" role="status" aria-live="polite">Ask about this build, or list the corpus easter eggs.</pre>
+</section>`;
 }
 
 /**

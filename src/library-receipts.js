@@ -74,6 +74,8 @@ const SKIP_MINT = new Set([
   "/v1/qns",
   "/v1/azpipe/arch",
   "/v1/azpipe",
+  "/v1/interface",
+  "/v1/interface/forensic",
 ]);
 
 const MESH_VAULT_GET = new Set([
@@ -357,6 +359,15 @@ export async function publishLibraryReceipt(env, input = {}, fetchImpl = fetch) 
   const output = oneSentence(input.output);
   if (!request || !output) return { ok: false, refuse: "need-action-and-output", published: false };
   const tip = await fetchCorpusTip(env, fetchImpl);
+  if (!tip.ok) {
+    return {
+      ok: false,
+      published: false,
+      skipped: true,
+      refuse: tip.status ? "corpus-dark" : "corpus-unreachable",
+      fail_open: true,
+    };
+  }
   const receipt = await mintActReceipt({
     previous_hash: tip.hash,
     request,
@@ -440,7 +451,19 @@ export async function recordActReceipt(env, request, response, fetchImpl = fetch
   if (!shouldMintActReceipt(request.method, path)) return { ok: true, skipped: true };
   try {
     const hints = await parseMintHints(request);
+    if (hints.mcp_method === "interface/orchestrate") {
+      return { ok: true, skipped: true, refuse: "interface-orchestrator-owns-append" };
+    }
     const tip = await fetchCorpusTip(env, fetchImpl);
+    if (!tip.ok) {
+      return {
+        ok: false,
+        published: false,
+        skipped: true,
+        refuse: tip.status ? "corpus-dark" : "corpus-unreachable",
+        fail_open: true,
+      };
+    }
     const receipt = await mintFromHttp(request, response, { ...hints, previous_hash: tip.hash });
     return appendActReceipt(env, receipt, fetchImpl);
   } catch (err) {

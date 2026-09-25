@@ -29,7 +29,10 @@ Clean-room wrapper (clone → test → MCP → receipt): `bash scripts/clean-roo
 | [`scripts/verify-session.mjs`](../../scripts/verify-session.mjs) | `open → policy → exec → receipt → close`; chain verify; tamper `hash_mismatch`; HTTP 409 after close |
 | [`scripts/verify-receipt-fixture.mjs`](../../scripts/verify-receipt-fixture.mjs) | Offline SHA-256 recompute of a committed fixture (session chain + ACT-RECEIPT) |
 | [`scripts/verify-act-receipt.mjs`](../../scripts/verify-act-receipt.mjs) | Four-field mint, hash round-trip, fail-open skip, no token leak |
+| [`scripts/verify-human-ui.mjs`](../../scripts/verify-human-ui.mjs) | Workspace domain tabs cover every catalog Software once (AZnet, Forensics, Games, Social, and the rest) |
+| [`scripts/verify-interface-orchestrator.mjs`](../../scripts/verify-interface-orchestrator.mjs) | Human-side planner on the workspace tiles: VeilLock plans do not launch or append; seal uses ACT-RECEIPT fields; live dispatch is FragGate only; tools/list stays 36 |
 | [`scripts/verify-software.mjs`](../../scripts/verify-software.mjs) | Catalog shape, Plain→Gate→Lock sort, purpose copy, Glama `primary_host` |
+| [`scripts/verify-sot-sync.mjs`](../../scripts/verify-sot-sync.mjs) | SOT-SYNC-1.0 dry_run plan, confirm ACT receipt, unreachable last-known, Softwares 42, version_id null |
 | [`scripts/verify-spore.mjs`](../../scripts/verify-spore.mjs) | SPORE-1.0 last-resort failsafe; dormant vs live honesty; no invented heartbeats; shelves not replaced; RE-COLD-STORE empty destinations; Plane B/C SLOT |
 
 Hash / fork / export neighbors (extend these rather than adding marketing-string tests): `verify-act-receipt.mjs`, `verify-session.mjs`, `verify-4dmap.mjs` (`card_export` / `card_import`), `verify-no-lie.mjs` (hash break), `verify-cite.mjs`.

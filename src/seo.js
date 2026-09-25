@@ -710,7 +710,7 @@ export const NAMED_RUNTIME_TOOLS = Object.freeze([
   { slug: "azcoherence", name: "AZCoherence" },
   { slug: "4dmap", name: "4DMap" },
   { slug: "aziel-corpus", name: "Aziel Corpus" },
-  { slug: "jeeves", name: "Ask Jeeves" },
+  { slug: "jeeves", name: "Ask Jeeves", suite_help: true, parent: "aziel-corpus" },
   { slug: "azbrowser", name: "AZBrowser" },
   { slug: "azmail", name: "AZMail" },
   { slug: "azhub", name: "AZHub" },
@@ -730,13 +730,25 @@ export function namedToolId(slug) {
 }
 
 export function namedToolJsonLd(tool) {
-  return {
+  const node = {
     "@type": "SoftwareApplication",
     "@id": namedToolId(tool.slug),
     name: tool.name,
     author: { "@id": AUTHOR_ID },
-    isPartOf: { "@id": RUNTIME_SOFTWARE_ID },
+    isPartOf: {
+      "@id": tool.suite_help && tool.parent ? namedToolId(tool.parent) : RUNTIME_SOFTWARE_ID,
+    },
   };
+  if (tool.suite_help) {
+    node.software_tab = false;
+    node.suite_help = true;
+    node.parent_slug = tool.parent;
+    node.fraggate_op = "jeeves";
+  }
+  if (tool.slug === "aziel-corpus") {
+    node.hasPart = [{ "@id": namedToolId("jeeves") }];
+  }
+  return node;
 }
 
 export function namedToolsJsonLd() {
@@ -744,7 +756,7 @@ export function namedToolsJsonLd() {
 }
 
 export function runtimeHasPart() {
-  return NAMED_RUNTIME_TOOLS.map((tool) => ({ "@id": namedToolId(tool.slug) }));
+  return NAMED_RUNTIME_TOOLS.filter((tool) => !tool.suite_help).map((tool) => ({ "@id": namedToolId(tool.slug) }));
 }
 
 /**
@@ -854,6 +866,7 @@ export function entityGraphCiteField(origin) {
       slug: tool.slug,
       name: tool.name,
       "@id": namedToolId(tool.slug),
+      ...(tool.suite_help ? { suite_help: true, software_tab: false, parent_slug: tool.parent } : {}),
     })),
     ecosystem: ECOSYSTEM_LINKS.map((link) => ({ ...link })),
     person_jsonld: `${base}/person.jsonld`,

@@ -20,6 +20,8 @@ import { launchHashtagChipsHtml } from "./launch-parts.js";
 import { brandRow, ecosystemBlockHtml, headMeta } from "./seo-html.js";
 import { suiteDownloadHref } from "./human-hrefs.js";
 import { suiteDownloadHtml } from "./suite-pack.js";
+import { softwareOneLine } from "./software-copy.js";
+import { UI_DOMAIN_DEFAULT, UI_DOMAINS, uiDomainForSlug } from "./ui-domains.js";
 
 export const WORKSPACE_PAGE_TITLE = `Workspace — ${PRODUCT_NAME}`;
 export const WORKSPACE_PAGE_DESCRIPTION =
@@ -221,6 +223,11 @@ export const HUMAN_TASKS = Object.freeze([
 export const HUMAN_UI_CSS = `
   .skip-workspace{position:absolute;left:-999px;top:auto;width:1px;height:1px;overflow:hidden}
   .skip-workspace:focus{position:static;width:auto;height:auto;padding:.35rem .7rem;background:#241c0d;color:#f0d78c}
+  .domain-tabs{display:flex;flex-wrap:nowrap;overflow-x:auto;gap:.4rem;margin:0 0 .65rem;padding:.55rem .7rem;border:1px solid #3d3420;border-radius:10px;background:#16120a}
+  .domain-tabs button{background:#241c0d;color:#f0d78c;border:1px solid #5c4a1a;border-radius:8px;padding:.4rem .75rem;cursor:pointer;font:inherit;font-size:.85rem;font-weight:600;white-space:nowrap}
+  .domain-tabs button:hover,.domain-tabs button:focus{background:#33280f}
+  .domain-tabs button[aria-selected="true"]{background:#33280f;box-shadow:0 0 0 1px #d4af37}
+  .dash-card.domain-off{display:none}
   .human-nav{display:flex;flex-wrap:wrap;gap:.45rem .75rem;margin:0 0 1.1rem;padding:.55rem .7rem;border:1px solid #3d3420;border-radius:10px;background:#16120a}
   .human-nav a{color:#f0d78c;font-weight:600;text-decoration:none}
   .human-nav a:hover,.human-nav a:focus{text-decoration:underline}
@@ -279,6 +286,9 @@ export const HUMAN_UI_CSS = `
   .dash-card{border:1px solid #2a3140;border-radius:10px;padding:.7rem .8rem;background:#151922}
   .dash-card h4{margin:.05rem 0 .25rem;font-size:.98rem}
   .dash-card .blurb{min-height:2.4rem}
+  .desk-fields{display:grid;gap:.65rem}
+  @media (min-width:40rem){ .desk-fields{grid-template-columns:1fr 1fr} }
+  .desk-fields .field{margin:0}
   .receipt-board{border:1px solid #2a3140;border-radius:10px;padding:.75rem .85rem;background:#12151c}
   .receipt-log{list-style:none;margin:.4rem 0 0;padding:0}
   .receipt-log li{border-top:1px solid #2a3140;padding:.45rem 0;font-size:.88rem}
@@ -346,14 +356,81 @@ function doorOpLabel(slug, op) {
   return op;
 }
 
+function aiPeerDeskHtml(p, origin) {
+  const base = String(origin || "").replace(/\/$/, "");
+  const hay = `${p.name} ${p.slug} worker learner intake plan handoff`.toLowerCase();
+  const shell = (id, role, inner) => `<article class="dash-card domain-off" id="${id}" data-desk="${escapeHtml(p.slug)}" data-dash-slug="${escapeHtml(p.slug)}" data-domain="ai" data-role="${role}" data-origin="${escapeHtml(base)}" data-search="${escapeHtml(hay)}">
+  ${inner}
+</article>`;
+  if (p.slug === "azbot") {
+    return shell(
+      "desk-azbot",
+      "worker",
+      `<h4><a href="${escapeHtml(base)}/p/azbot">AZBot</a> <span class="slug">worker</span></h4>
+  <p class="blurb">Worker peer. Task intake, a Software plan, status, and handoff. A plan does not run, merge, or deploy. Seal needs the confirm box. A live step then goes through FragGate. Public receipt append stays on that confirm path.</p>
+  <div class="field">
+    <label for="bot-task">Task</label>
+    <textarea id="bot-task" placeholder="fold this note"></textarea>
+  </div>
+  <div class="field">
+    <label for="bot-handoff">Handoff slug</label>
+    <input id="bot-handoff" type="text" placeholder="foldlock" autocomplete="off" spellcheck="false">
+  </div>
+  <div class="field">
+    <label for="bot-confirm"><input id="bot-confirm" type="checkbox"> Confirm seal (required before a planned step is dispatched)</label>
+  </div>
+  <div class="actions">
+    <button type="button" data-bot="intake">Intake</button>
+    <button type="button" data-bot="plan">Plan</button>
+    <button type="button" data-bot="status">Status</button>
+    <button type="button" data-bot="handoff">Handoff</button>
+    <button type="button" data-bot="seal">Seal</button>
+  </div>
+  <pre class="ws-out fg-out" id="azbot-out" role="status" aria-live="polite">Worker desk. Nothing has run.</pre>`,
+    );
+  }
+  return shell(
+    "desk-azai",
+    "learner",
+    `<h4><a href="${escapeHtml(base)}/p/azai">AZAI</a> <span class="slug">learner</span></h4>
+  <p class="blurb">Learner. Notes cite a domain, paper, software slug, receipt hash, pin id, or a VibeLock signal channel. VibeLock notes keep physics and related signals heuristic, linguistics experimental, and vibration as a measurement only with a body-coupled track. A file name does not decode the file. Raw container bytes are refused. Scores appear only from posted features or an analysis you supply. No accuracy percentage is stored. A live 4DMap read, mesh roster read, or corpus search runs only when that pull is asked for, and the flag is true only after the read returns. Pin bodies, roster rows, and corpus hit text stay out of the receipt sentence. A memory write needs the confirm box and an operator subject. Belief is not truth.</p>
+  <div class="field">
+    <label for="ai-pin">Pin id (optional, operator supplied)</label>
+    <input id="ai-pin" type="text" placeholder="pin-1" autocomplete="off" spellcheck="false">
+  </div>
+  <div class="field">
+    <label for="ai-vibe">VibeLock file name (optional, not opened)</label>
+    <input id="ai-vibe" type="text" placeholder="clip.mp4" autocomplete="off" spellcheck="false">
+  </div>
+  <div class="field">
+    <label for="ai-query">Recall query</label>
+    <input id="ai-query" type="text" placeholder="foldlock" autocomplete="off" spellcheck="false">
+  </div>
+  <div class="field">
+    <label for="ai-confirm"><input id="ai-confirm" type="checkbox"> Confirm memory write (AKM observe). Local notes still cite sources either way.</label>
+  </div>
+  <div class="actions">
+    <button type="button" data-ai="learn">Learn</button>
+    <button type="button" data-ai="recall">Recall</button>
+  </div>
+  <pre class="ws-out fg-out" id="azai-out" role="status" aria-live="polite">Learner desk. No note stored yet.</pre>`,
+  );
+}
+
 function dashCardHtml(p, origin) {
+  if (p && (p.slug === "azbot" || p.slug === "azai")) return aiPeerDeskHtml(p, origin);
   const base = String(origin || "").replace(/\/$/, "");
   const live = hasLiveDoor(p.slug);
   const op = primaryOpFor(p.slug);
   const task = HUMAN_TASKS.find((t) => t.slug === p.slug);
-  let door = live
-    ? `<button type="button" class="dash-run" data-slug="${escapeHtml(p.slug)}" data-op="${escapeHtml(op)}">Run ${escapeHtml(doorOpLabel(p.slug, op))}</button>`
-    : `<span class="slug">local only — no public FragGate door</span>`;
+  let door = p.worker_only
+    ? `<span class="slug">worker only — FragGate status none</span>`
+    : live
+      ? `<button type="button" class="dash-run" data-slug="${escapeHtml(p.slug)}" data-op="${escapeHtml(op)}">Run ${escapeHtml(doorOpLabel(p.slug, op))}</button>`
+      : `<span class="slug">local only — no public FragGate door</span>`;
+  if (p.slug === "veillock") {
+    door += ` <a href="#desk-veillock">Open desk</a>`;
+  }
   if (p.slug === "aznet" && live) {
     door = `<button type="button" class="dash-run" data-slug="aznet" data-op="pair_status">Pair status</button>
     <button type="button" class="dash-run" data-slug="aznet" data-op="pair">pair</button>`;
@@ -368,7 +445,9 @@ function dashCardHtml(p, origin) {
     ? `<a href="#task-${escapeHtml(p.slug)}">Labeled fields</a>`
     : `<a href="${escapeHtml(base)}/p/${escapeHtml(p.slug)}">Product card</a>`;
   const hay = `${p.name} ${p.slug} ${p.oneLine || ""} pair aznet azbrowser`.toLowerCase();
-  return `<article class="dash-card" data-dash-slug="${escapeHtml(p.slug)}" data-search="${escapeHtml(hay)}">
+  const domain = uiDomainForSlug(p.slug) || "catalog";
+  const off = domain === UI_DOMAIN_DEFAULT ? "" : " domain-off";
+  return `<article class="dash-card${off}" data-dash-slug="${escapeHtml(p.slug)}" data-domain="${escapeHtml(domain)}" data-search="${escapeHtml(hay)}">
   <h4><a href="${escapeHtml(base)}/p/${escapeHtml(p.slug)}">${escapeHtml(p.name)}</a> <span class="slug">${escapeHtml(p.slug)}</span></h4>
   <p class="blurb">${escapeHtml(p.oneLine || "")}</p>
   ${launchHashtagChipsHtml(p)}
@@ -388,7 +467,18 @@ export function workspacePaneHtml(origin, products) {
   const base = String(origin || "").replace(/\/$/, "");
   const tasks = HUMAN_TASKS.map(taskCardHtml).join("\n");
   const slugs = productOptions(products);
-  const dashCards = (products || []).map((p) => dashCardHtml(p, base)).join("\n");
+  const catalog = (products || []).slice();
+  if (!catalog.some((p) => p.slug === "whitestone")) {
+    catalog.push({
+      slug: "whitestone",
+      name: "Whitestone",
+      oneLine: softwareOneLine("whitestone"),
+      worker_only: true,
+    });
+  }
+  const dashCards = catalog.map((p) => dashCardHtml(p, base)).join("\n");
+  const veilProduct = (products || []).find((p) => p.slug === "veillock");
+  const veilChips = veilProduct ? launchHashtagChipsHtml(veilProduct) : "";
   return `<section class="workspace" id="workspace" aria-labelledby="workspace-title">
   <h2 id="workspace-title">What do you want to do?</h2>
   <p class="hint">Human workspace first. Operator control panel + dashboard below. Same FragGate door as MCP <code>fraggate_call</code> / <code>POST ${escapeHtml(base)}/v1/fraggate/call</code>. Architecture, cite, and version history stay below. Identity ${escapeHtml(AUTHOR_NAME)} only.</p>
@@ -396,6 +486,16 @@ export function workspacePaneHtml(origin, products) {
     <label for="task-filter">Search tasks</label>
     <input id="task-filter" type="search" placeholder="decisiongate, fold, mesh…" autocomplete="off">
   </div>
+
+  <h3 id="dash-softwares-title">Softwares</h3>
+  <div class="field">
+    <label for="dash-filter">Search Softwares</label>
+    <input id="dash-filter" type="search" placeholder="foldlock, receipt, browser…" autocomplete="off">
+  </div>
+  <div class="sw-grid" id="dash-softwares" data-active="${escapeHtml(UI_DOMAIN_DEFAULT)}">
+${dashCards}
+  </div>
+  <pre class="ws-out fg-out" id="dash-out" role="status" aria-live="polite">Pick a Software card. FragGate only.</pre>
 
   <section class="op-panel" id="op-panel" data-origin="${escapeHtml(base)}" aria-labelledby="op-panel-title">
     <h3 id="op-panel-title">Operator control panel</h3>
@@ -517,6 +617,97 @@ export function workspacePaneHtml(origin, products) {
     </article>
   </div>
 
+  <section class="dash" id="interface-panel" data-kind="interface" data-origin="${escapeHtml(base)}">
+    <h3>Interface</h3>
+    <div class="sw-grid" id="interface-desks">
+      <article class="dash-card" id="desk-veillock" data-desk="veillock">
+        <h4><a href="${escapeHtml(base)}/p/veillock">VeilLock</a> <span class="slug">veillock</span></h4>
+        <p class="blurb">local_only. Public door ops stay empty. Schema <code>veillock-runtime-ui-1</code>. A plan does not launch, join, register a camera, return a key, or lift a veil.</p>
+        ${veilChips}
+        <p class="banner">Catalog wrap, engulf, join, link, play, and record stay on the local desk. This host does not run them.</p>
+        <div class="actions">
+          <button type="button" data-if="runtime_ui">Contract</button>
+          <button type="button" data-if="status_report">Status</button>
+          <button type="button" data-if="join_plan">Join plan</button>
+          <button type="button" data-if="engulf_plan">Engulf plan</button>
+          <button type="button" data-if="describe">Describe</button>
+        </div>
+      </article>
+      <article class="dash-card" id="desk-mesh" data-desk="mesh">
+        <h4>Node mesh <span class="slug">awareness</span></h4>
+        <p class="blurb">Same mesh laws as the status panel. This tile does not join, heartbeat, leave, enable radios, or read Live Nodes.</p>
+        <div class="actions">
+          <button type="button" data-if="mesh_awareness">Mesh awareness</button>
+          <a href="#mesh-panel">Mesh status</a>
+        </div>
+      </article>
+      <article class="dash-card" id="desk-forensic" data-desk="forensic">
+        <h4>Forensic <span class="slug">ACT-RECEIPT-1.0</span></h4>
+        <p class="blurb">Fields stay hash, request, output, and event. Attempt ids stay request_id, attempt_n, parent_receipt_id, and correlation_id. Isolate memory. Not a court filing.</p>
+        <div class="actions">
+          <button type="button" data-if="forensic_tip">Audit tip</button>
+        </div>
+      </article>
+      <article class="dash-card" id="desk-jeeves-link" data-desk="jeeves">
+        <h4>Ask Jeeves <span class="slug">suite help</span></h4>
+        <p class="blurb">Help for this build. Corpus op <code>jeeves</code> on the Aziel Corpus card (<code>suite_help</code>, <code>software_tab</code> false). The desk is the Ask Jeeves sub-tab under Aziel Elroi Eliab (alternateName).</p>
+        <div class="actions">
+          <a href="#elroi-jeeves">Open Ask Jeeves</a>
+        </div>
+      </article>
+      <article class="dash-card" id="desk-mcp" data-desk="mcp">
+        <h4>MCP <span class="slug">interface/orchestrate</span></h4>
+        <p class="blurb">Agents and this pane share one planner. tools/list stays 36 names. Live dispatch still goes through FragGate.</p>
+        <div class="actions">
+          <a href="${escapeHtml(base)}/mcp">Connect AI</a>
+        </div>
+      </article>
+    </div>
+    <div class="op-rack" id="interface-rack">
+      <div class="op-row">
+        <p class="hint" style="margin:0">Plan fields. Sent with Join plan, Engulf plan, Status, and Describe. A URL is not fetched and is not stored.</p>
+        <div class="desk-fields">
+          <div class="field">
+            <label for="if-url">Meeting URL (optional, plan only)</label>
+            <input id="if-url" type="text" placeholder="https://teams.microsoft.com/..." autocomplete="off" spellcheck="false">
+          </div>
+          <div class="field">
+            <label for="if-app">App name (optional)</label>
+            <input id="if-app" type="text" placeholder="zoom" autocomplete="off" spellcheck="false">
+          </div>
+          <div class="field">
+            <label for="if-platform">Platform (optional)</label>
+            <input id="if-platform" type="text" placeholder="linux" autocomplete="off" spellcheck="false">
+          </div>
+        </div>
+      </div>
+      <div class="op-row">
+        <p class="hint" style="margin:0">Seal needs the confirm box. An empty slug seals veillock locally and does not launch. A live slug and op still go through FragGate. Passphrase fields are refused and are not a room-join form.</p>
+        <div class="desk-fields">
+          <div class="field">
+            <label for="if-slug">Door slug (seal dispatch only)</label>
+            <input id="if-slug" type="text" placeholder="leave empty for a local seal" autocomplete="off" spellcheck="false">
+          </div>
+          <div class="field">
+            <label for="if-op">Door op (seal dispatch only)</label>
+            <input id="if-op" type="text" placeholder="fold-preview" autocomplete="off" spellcheck="false">
+          </div>
+        </div>
+        <div class="field">
+          <label for="if-confirm"><input id="if-confirm" type="checkbox"> Confirm seal (required before anything is sealed or dispatched)</label>
+        </div>
+        <div class="actions">
+          <button type="button" data-if="seal">Seal</button>
+        </div>
+      </div>
+    </div>
+    <div class="receipt-board" id="interface-receipt">
+      <h3>Desk output</h3>
+      <p class="blurb">Same status line as the other desks. A plan does not append the public receipt chain.</p>
+      <pre class="ws-out fg-out" id="interface-out" role="status" aria-live="polite">GET ${escapeHtml(base)}/v1/interface — plans do not launch</pre>
+    </div>
+  </section>
+
   <section class="task" id="mesh-panel" data-kind="mesh" data-origin="${escapeHtml(base)}">
     <h3>Mesh status</h3>
     <p class="blurb"><strong>Nodes</strong> from <code>nodes</code> / <code>rollup.nodes</code> count human mesh users plus cited human uses (<code>human_uses</code> / USES). <strong>Live Nodes</strong> from <code>live_nodes</code> / <code>rollup.mesh</code> count human mesh users plus concurrent website viewers (<code>site_live_viewers</code>) on godlock.uk + azieleliab.com + azielcorpuslibrary.net. Paint <code>live_nodes</code> / <code>rollup.mesh</code> only — do not add a local <code>/count</code>. <code>live_nodes_tip</code> is the seal. <code>rollup.live</code> is not published. Never paint <code>software_nodes</code>, <code>rollup.live</code>, <code>rollup.all.live</code>, or <code>rollup.software.live</code> as Live Nodes. <code>software_nodes</code> is the <code>{slug}-worker</code> roster. hedidntjump.com, bots, Softwares, and downloads are excluded. GET never pulls hub /count and never enables radios. Incomplete uses stay honest (no invented users). Channel plane cites wifi / bluetooth / rf / photon ON (local qnm-node; <code>worker_hardware:false</code> — not live Worker RF). Nine QNM laws stay machine-true on that JSON. Join needs a catalog product. Public VPN auto-binds AZVPN (HTTPS/WS REAL; WireGuard/OpenVPN SLOT).</p>
@@ -555,6 +746,90 @@ export function workspacePaneHtml(origin, products) {
     </div>
   </section>
 
+  <section class="task" id="sot-desk" data-kind="sot" data-origin="${escapeHtml(base)}">
+    <h3>Suite tip sync</h3>
+    <p class="blurb">One source of truth: live <code>GET /v1/software</code> for suite version, git sha, Softwares count, and card versions. <code>version_id</code> stays null. Ask Jeeves is not a Softwares card. Sync is a pull plane (<code>POST /v1/mesh/sot-sync</code>), not <code>mesh_broadcast</code>. Outlets are read together. A down site stays on screen as last-known inventory plus an unreachable status, and the other outlets still update. Dry run lists every outlet and the fields that would change. Confirm is consent, not a login. It writes an ACT-RECEIPT and updates <code>last_applied</code> only where the write succeeded.</p>
+    <p class="ws-status" id="sot-status-line" data-state="ready" role="status" aria-live="polite">Refresh tip to load the outlet matrix</p>
+    <pre class="ws-out fg-out" id="sot-out" role="status" aria-live="polite">GET ${escapeHtml(base)}/v1/mesh/sot</pre>
+    <label><input id="sot-confirm" type="checkbox"> confirm apply</label>
+    <div class="actions">
+      <button type="button" data-sot="status">Refresh tip</button>
+      <button type="button" data-sot="outlets">Outlets</button>
+      <button type="button" data-sot="dry">Dry run</button>
+      <button type="button" data-sot="apply">Apply</button>
+    </div>
+  </section>
+  <script>
+  (function () {
+    var desk = document.getElementById("sot-desk");
+    if (!desk || desk.getAttribute("data-bound") === "1") return;
+    desk.setAttribute("data-bound", "1");
+    var origin = desk.getAttribute("data-origin") || "";
+    var out = document.getElementById("sot-out");
+    var line = document.getElementById("sot-status-line");
+    var seq = 0;
+    var last = null;
+    function paint(body, mine) {
+      if (mine !== seq) return;
+      last = body;
+      var sot = body && body.sot ? body.sot : body;
+      var version = sot && sot.suite_version != null ? sot.suite_version : "—";
+      var sha = sot && sot.git_sha != null ? sot.git_sha : "—";
+      var count = sot && sot.softwares_count != null ? sot.softwares_count : "—";
+      var outlets = body && body.outlets ? body.outlets : [];
+      var bits = { ok: 0, drifted: 0, unreachable: 0, unexposed: 0 };
+      outlets.forEach(function (row) {
+        if (bits[row.status] != null) bits[row.status] += 1;
+      });
+      if (line) {
+        line.textContent = "SoT " + version + " · sha " + sha + " · Softwares " + count + " · version_id null · ok " + bits.ok + " · drifted " + bits.drifted + " · unreachable " + bits.unreachable + " · unexposed " + bits.unexposed;
+        line.setAttribute("data-state", "ready");
+      }
+      if (out) out.textContent = JSON.stringify(body, null, 2);
+    }
+    function fail(err, mine) {
+      if (mine !== seq) return;
+      if (line) {
+        line.textContent = "Suite tip unreachable. Last-known rows stay on screen. Nothing was invented.";
+        line.setAttribute("data-state", "ready");
+      }
+      if (out && !last) out.textContent = String(err && err.message ? err.message : err);
+    }
+    function load(path) {
+      var mine = ++seq;
+      if (line) { line.textContent = "Loading suite tip. A down site does not stop the others."; line.setAttribute("data-state", "loading"); }
+      return fetch(origin + path, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(8000) })
+        .then(function (res) { return res.json(); })
+        .then(function (body) { paint(body, mine); })
+        .catch(function (err) { fail(err, mine); });
+    }
+    desk.querySelectorAll("[data-sot]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var act = btn.getAttribute("data-sot");
+        if (act === "status") { load("/v1/mesh/sot"); return; }
+        if (act === "outlets") { load("/v1/mesh/outlets"); return; }
+        var body = { dry_run: act === "dry" };
+        if (act === "apply") {
+          var box = document.getElementById("sot-confirm");
+          if (!box || !box.checked) {
+            if (out) out.textContent = "Apply needs the confirm box. Nothing was sent.";
+            return;
+          }
+          body = { confirm: true };
+        }
+        var mine = ++seq;
+        if (line) { line.textContent = act === "dry" ? "Dry run. Other outlets still update if one site is down." : "Applying. A down site keeps its last-known row."; line.setAttribute("data-state", "loading"); }
+        fetch(origin + "/v1/mesh/sot-sync", {
+          method: "POST",
+          headers: { "content-type": "application/json", accept: "application/json" },
+          body: JSON.stringify(body),
+          signal: AbortSignal.timeout(8000)
+        }).then(function (res) { return res.json(); }).then(function (payload) { paint(payload, mine); }).catch(function (err) { fail(err, mine); });
+      });
+    });
+  })();
+  </script>
+
   <section class="dash" id="dashboard" aria-labelledby="dashboard-title">
     <h3 id="dashboard-title">Dashboard</h3>
     ${aboutAzielStripHtml({ id: "about-aziel-strip" })}
@@ -570,15 +845,6 @@ export function workspacePaneHtml(origin, products) {
       <div class="metric"><span class="label">Hardware</span><span class="value" id="metric-hardware">—</span></div>
     </div>
     ${suiteDownloadHtml(base, { id: "suite-download-dash" })}
-    <h3 id="dash-softwares-title">Softwares</h3>
-    <div class="field">
-      <label for="dash-filter">Search Softwares</label>
-      <input id="dash-filter" type="search" placeholder="foldlock, receipt, browser…" autocomplete="off">
-    </div>
-    <div class="sw-grid" id="dash-softwares">
-${dashCards}
-    </div>
-    <pre class="ws-out fg-out" id="dash-out" role="status" aria-live="polite">Pick a Software card. FragGate only.</pre>
     <div class="receipt-board" id="dash-receipts">
       <h3>Receipts</h3>
       <p class="blurb">ACT-RECEIPT-1.0 cite from <code>GET /v1/receipts</code>. Public chain lives on the corpus. Fail-open is append-skip without a token. Empty or dark public tip is SLOT, not success. Local mints from this pane are listed below — hosted never stores files.</p>
@@ -635,14 +901,26 @@ export function humanNavHtml(origin, { current } = {}) {
   const base = String(origin || "").replace(/\/$/, "");
   const ws = current === "workspace" ? `${base}/workspace#workspace` : "#workspace";
   const home = `${base}/`;
+  const tabs = UI_DOMAINS.map((domain) => {
+    const on = domain.id === UI_DOMAIN_DEFAULT;
+    const controls = "dash-softwares";
+    return `<button type="button" role="tab" id="domain-tab-${escapeHtml(domain.id)}" data-domain-tab="${escapeHtml(domain.id)}" aria-selected="${on ? "true" : "false"}" aria-controls="${controls}">${escapeHtml(domain.label)}</button>`;
+  }).join("\n    ");
+  const elroiTab = `<button type="button" role="tab" id="domain-tab-elroi" data-domain-tab="elroi" aria-selected="false" aria-controls="elroi-pane">Aziel Elroi Eliab</button>`;
   return `<a class="skip-workspace" href="${current === "workspace" ? "#workspace" : "#workspace"}">Skip to workspace</a>
+<div class="domain-tabs" role="tablist" aria-label="Software domains">
+    ${tabs}
+    ${elroiTab}
+</div>
 <nav class="human-nav" aria-label="Human workspace">
   <a href="${escapeHtml(ws)}">Workspace</a>
   <a href="#op-panel">Control panel</a>
   <a href="${current === "workspace" ? "#fg-console" : "#fg-console"}">FragGate console</a>
   <a href="${current === "workspace" ? "#tasks" : "#tasks"}">Tasks</a>
   <a href="#dashboard">Dashboard</a>
+  <a href="${current === "workspace" ? "#interface-panel" : "#interface-panel"}">Interface</a>
   <a href="${current === "workspace" ? "#mesh-panel" : "#mesh-panel"}">Mesh</a>
+  <a href="#sot-desk">SoT sync</a>
   <a href="${current === "workspace" ? "#session-strip" : "#session-strip"}">Session</a>
   <a href="${escapeHtml(suiteDownloadHref(base))}" download="aziel-runtime-suite.json">Download suite</a>
   <a href="${escapeHtml(home)}#cite">Cite / docs</a>
@@ -1229,20 +1507,151 @@ export function humanDoorScript() {
   if (filter) {
     filter.addEventListener("input", function () {
       let q = String(filter.value || "").toLowerCase().trim();
-      document.querySelectorAll("#workspace .task, #workspace .az-task, #workspace .op-panel").forEach(function (el) {
+      document.querySelectorAll("#workspace .task, #workspace .az-task, #workspace .op-panel, #interface-panel").forEach(function (el) {
         if (el.id === "workspace") return;
         let hay = (el.textContent || "").toLowerCase();
         el.classList.toggle("task-hidden", !!(q && hay.indexOf(q) === -1));
       });
     });
   }
+  let interfacePanel = document.getElementById("interface-panel");
+  if (interfacePanel) {
+    let origin = interfacePanel.getAttribute("data-origin") || "";
+    let out = document.getElementById("interface-out");
+    interfacePanel.querySelectorAll("[data-if]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        let call = btn.getAttribute("data-if");
+        if (call === "runtime_ui") {
+          request(origin + "/v1/interface", { headers: { accept: "application/json" } }, out, btn);
+          return;
+        }
+        if (call === "forensic_tip") {
+          request(origin + "/v1/interface/forensic", { headers: { accept: "application/json" } }, out, btn);
+          return;
+        }
+        let body = { call: call };
+        let urlEl = document.getElementById("if-url");
+        let appEl = document.getElementById("if-app");
+        let platEl = document.getElementById("if-platform");
+        let slugEl = document.getElementById("if-slug");
+        let opEl = document.getElementById("if-op");
+        if (urlEl && String(urlEl.value || "").trim()) body.url = String(urlEl.value).trim();
+        if (appEl && String(appEl.value || "").trim()) body.app = String(appEl.value).trim();
+        if (platEl && String(platEl.value || "").trim()) body.platform = String(platEl.value).trim();
+        if (call === "seal") {
+          let box = document.getElementById("if-confirm");
+          if (!box || !box.checked) {
+            show(out, "Seal needs the confirm box. Nothing was sent.", "error");
+            return;
+          }
+          body.confirm = true;
+          if (slugEl && String(slugEl.value || "").trim()) body.slug = String(slugEl.value).trim();
+          if (opEl && String(opEl.value || "").trim()) body.op = String(opEl.value).trim();
+          if (!body.slug) body.slug = "veillock";
+        }
+        request(origin + "/v1/interface", {
+          method: "POST",
+          headers: { "content-type": "application/json", accept: "application/json" },
+          body: JSON.stringify(body)
+        }, out, btn);
+      });
+    });
+  }
   let dashFilter = document.getElementById("dash-filter");
-  if (dashFilter) {
-    dashFilter.addEventListener("input", function () {
-      let q = String(dashFilter.value || "").toLowerCase().trim();
-      document.querySelectorAll("[data-dash-slug]").forEach(function (el) {
-        let hay = String(el.getAttribute("data-search") || el.textContent || "").toLowerCase();
-        el.classList.toggle("task-hidden", !!(q && hay.indexOf(q) === -1));
+  let activeDomain = "${UI_DOMAIN_DEFAULT}";
+  function applyDomain() {
+    let q = dashFilter ? String(dashFilter.value || "").toLowerCase().trim() : "";
+    document.querySelectorAll("[data-domain-tab]").forEach(function (tab) {
+      tab.setAttribute("aria-selected", tab.getAttribute("data-domain-tab") === activeDomain ? "true" : "false");
+    });
+    let grid = document.getElementById("dash-softwares");
+    if (grid) grid.setAttribute("data-active", q ? "search" : activeDomain);
+    document.querySelectorAll("[data-dash-slug]").forEach(function (el) {
+      let hay = String(el.getAttribute("data-search") || el.textContent || "").toLowerCase();
+      let searchMiss = !!(q && hay.indexOf(q) === -1);
+      let domainMiss = el.getAttribute("data-domain") !== activeDomain;
+      el.classList.toggle("task-hidden", searchMiss);
+      el.classList.toggle("domain-off", domainMiss);
+    });
+  }
+  document.querySelectorAll("[data-domain-tab]").forEach(function (tab) {
+    tab.addEventListener("click", function () {
+      activeDomain = tab.getAttribute("data-domain-tab") || activeDomain;
+      if (dashFilter) dashFilter.value = "";
+      applyDomain();
+      if (activeDomain === "elroi") {
+        let pane = document.getElementById("elroi-pane");
+        if (pane && pane.scrollIntoView) pane.scrollIntoView({ block: "start" });
+        return;
+      }
+      let grid = document.getElementById("dash-softwares");
+      if (grid && grid.scrollIntoView) grid.scrollIntoView({ block: "start" });
+    });
+  });
+  if (dashFilter) dashFilter.addEventListener("input", applyDomain);
+  applyDomain();
+  let botPlan = { slug: "", op: "" };
+  let botDesk = document.getElementById("desk-azbot");
+  if (botDesk) {
+    let origin = botDesk.getAttribute("data-origin") || "";
+    let out = document.getElementById("azbot-out");
+    botDesk.querySelectorAll("[data-bot]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        let action = btn.getAttribute("data-bot");
+        let task = (document.getElementById("bot-task") && document.getElementById("bot-task").value) || "";
+        let handoff = (document.getElementById("bot-handoff") && document.getElementById("bot-handoff").value) || "";
+        if (action === "seal") {
+          let box = document.getElementById("bot-confirm");
+          if (!box || !box.checked) {
+            show(out, "Seal needs the confirm box. Nothing was sent.", "error");
+            return;
+          }
+          if (!botPlan.slug) {
+            show(out, "Seal needs a plan. Nothing was sent.", "error");
+            return;
+          }
+          request(origin + "/v1/interface", {
+            method: "POST",
+            headers: { "content-type": "application/json", accept: "application/json" },
+            body: JSON.stringify({ call: "seal", confirm: true, slug: botPlan.slug, op: botPlan.op })
+          }, out, btn);
+          return;
+        }
+        let body = { call: action === "intake" ? "worker_intake" : action === "plan" ? "worker_plan" : action === "status" ? "worker_status" : "worker_handoff" };
+        if (action !== "status") body.task = task;
+        if (action === "handoff") body.handoff = handoff;
+        request(origin + "/v1/interface", {
+          method: "POST",
+          headers: { "content-type": "application/json", accept: "application/json" },
+          body: JSON.stringify(body)
+        }, out, btn).then(function (got) {
+          let steps = got && got.body && got.body.steps;
+          if (steps && steps[0]) botPlan = { slug: steps[0].slug || "", op: steps[0].op || "" };
+        });
+      });
+    });
+  }
+  let aiDesk = document.getElementById("desk-azai");
+  if (aiDesk) {
+    let origin = aiDesk.getAttribute("data-origin") || "";
+    let out = document.getElementById("azai-out");
+    aiDesk.querySelectorAll("[data-ai]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        let action = btn.getAttribute("data-ai");
+        let pin = (document.getElementById("ai-pin") && document.getElementById("ai-pin").value) || "";
+        let vibe = (document.getElementById("ai-vibe") && document.getElementById("ai-vibe").value) || "";
+        let query = (document.getElementById("ai-query") && document.getElementById("ai-query").value) || "";
+        let box = document.getElementById("ai-confirm");
+        let body = { call: action === "recall" ? "learner_recall" : "learner_learn" };
+        if (action === "recall") body.q = query;
+        if (pin && String(pin).trim()) body.pins = [{ pin_id: String(pin).trim() }];
+        if (vibe && String(vibe).trim()) body.vibelock = { file: String(vibe).trim() };
+        if (box && box.checked) body.confirm = true;
+        request(origin + "/v1/interface", {
+          method: "POST",
+          headers: { "content-type": "application/json", accept: "application/json" },
+          body: JSON.stringify(body)
+        }, out, btn);
       });
     });
   }

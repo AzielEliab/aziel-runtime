@@ -10,7 +10,7 @@ export const LIMITATION =
   "AZBot is a skill, not a foundation model, not a kernel, not a VPN, and not a paid-key proxy. Jeeves is not sovereign. This in-process op routes a request onto Aziel Eliab catalog engines. It does not invent scores, overlays, or receipts.";
 
 const CATALOG = [
-  { slug: "vibelock", keys: ["audio", "wav", "speech", "deepfake", "liveness", "mic"], op: "analyze", banner: "not courtroom audio proof" },
+  { slug: "vibelock", keys: ["audio", "wav", "speech", "deepfake", "liveness", "mic", "mp3", "mp4", "physics", "linguistics", "vibration", "vibrations"], op: "analyze", banner: "heuristic physics and related signals; experimental linguistics; vibration only with a body-coupled track; hosted analyze refuses raw containers; local compressed files need ffmpeg; no accuracy percentage" },
   { slug: "veillock", keys: ["camera", "veil", "zoom", "facetime", "screen"], op: "apps", banner: "does not inject into FaceTime/Zoom" },
   { slug: "codelock", keys: ["source", "rosetta", "normalize", "render code"], op: "render", banner: "alters perception, not meaning" },
   { slug: "godlock", keys: ["abad", "vpn", "harden", "godlock"], op: "score", banner: "not a VPN" },
