@@ -296,6 +296,15 @@ export const HUMAN_UI_CSS = `
   .launch-chips{margin:.35rem 0 .2rem;display:flex;flex-wrap:wrap;gap:.3rem .55rem}
   .launch-chips .hashtag{color:#d4af37;font-size:.82rem;font-weight:600}
   .about-aziel-strip{margin:.2rem 0 .7rem;padding:.45rem .6rem;border:1px solid #3d3420;border-radius:8px;background:#16120a;color:#e6d19a;font-size:.88rem}
+  .first-hour{border:1px solid #7a6224;background:#1a160c;border-radius:12px;padding:.75rem .9rem;margin:0 0 1rem}
+  .first-hour h3{margin:.05rem 0 .35rem}
+  .first-hour-steps{margin:.2rem 0 .55rem;padding-left:1.2rem;color:#e6d19a}
+  .first-hour-steps li{margin:.28rem 0}
+  .first-hour button{background:#241c0d;color:#f0d78c;border:1px solid #5c4a1a;border-radius:8px;padding:.35rem .7rem;cursor:pointer;font:inherit;font-size:.85rem}
+  .first-hour button:hover,.first-hour button:focus{background:#33280f}
+  .first-hour-tour{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;margin:.2rem 0 0}
+  #first-hour-caption{flex-basis:100%;margin:.35rem 0 0;color:#c9bfa0;font-size:.9rem}
+  .first-hour-mark{outline:2px solid #d4af37;outline-offset:3px;border-radius:8px}
 `;
 
 function fieldHtml(task, field, idx) {
@@ -393,6 +402,7 @@ function aiPeerDeskHtml(p, origin) {
     "desk-azai",
     "learner",
     `<h4><a href="${escapeHtml(base)}/p/azai">AZAI</a> <span class="slug">learner</span></h4>
+  <p class="hint" id="azai-coach">What is this desk: AZAI Guide is the other coach. Ask where to click. Learn still needs the confirm box. The note below is the contract.</p>
   <p class="blurb">Learner and guide. Guide runs Lamb Lens first (Service, then Clarity, then Peace), then the public shelf and the Library tab, then any other source. The suite triad scores every candidate from those layers the same way. A shelf hit is not believed. Nothing is believed by default. It does not write memory and does not invent a Softwares row. Adaptive counts are topic and hash totals, not the question, and a suggested path is not believed. Learn still stores cited notes. VibeLock notes keep physics and related signals heuristic, linguistics experimental, and vibration as a measurement only with a body-coupled track. A file name does not decode the file. Raw container bytes are refused. Scores appear only from posted features or an analysis you supply. No accuracy percentage is stored. A live 4DMap read, mesh roster read, or corpus search on Learn runs only when that pull is asked for, and the flag is true only after the read returns. Pin bodies, roster rows, and corpus hit text stay out of the receipt sentence. A memory write needs the confirm box and an operator subject. Belief is not truth.</p>
   <div class="field">
     <label for="ai-guide">Guide question</label>
@@ -426,7 +436,7 @@ function aiPeerDeskHtml(p, origin) {
     <button type="button" data-ai="learn">Learn</button>
     <button type="button" data-ai="recall">Recall</button>
   </div>
-  <pre class="ws-out fg-out" id="azai-out" role="status" aria-live="polite">Guide runs Lamb Lens, then the shelf, then the triad. Nothing is believed by default. Learn stores cited notes. Nothing stored yet.</pre>`,
+  <pre class="ws-out fg-out" id="azai-out" role="status" aria-live="polite">Start with Guide or a starter button. Guide runs Lamb Lens, then the shelf, then the triad. Nothing is believed by default. Learn stores cited notes only after confirm. Nothing stored yet.</pre>`,
   );
 }
 
@@ -495,12 +505,28 @@ export function workspacePaneHtml(origin, products) {
   return `<section class="workspace" id="workspace" aria-labelledby="workspace-title">
   <h2 id="workspace-title">What do you want to do?</h2>
   <p class="hint">Human workspace first. Operator control panel + dashboard below. Same FragGate door as MCP <code>fraggate_call</code> / <code>POST ${escapeHtml(base)}/v1/fraggate/call</code>. Architecture, cite, and version history stay below. Identity ${escapeHtml(AUTHOR_NAME)} only.</p>
+  <section class="first-hour" id="first-hour" aria-labelledby="first-hour-title">
+    <h3 id="first-hour-title">Start here</h3>
+    <p class="hint">Three steps for the first hour. Tabs, Softwares, receipts, mesh, MCP, and Corpus stay one click away. Nothing below is removed. Corpus is the Elroi sub-tab under Aziel Elroi Eliab, not a top-bar tab. Ask Jeeves and AZAI Guide are the coaches.</p>
+    <ol class="first-hour-steps">
+      <li><a href="#elroi-jeeves">Ask Jeeves</a> — suite help. Use a suggested question or your own words. Lamb Lens runs first, then the shelf, then the triad.</li>
+      <li><button type="button" data-first-hour="ai">Open AZAI Guide</button> — the other coach, on the AI tab. Guide does not write memory. Learn still needs confirm.</li>
+      <li><button type="button" data-first-hour="tabs">Show domain tabs</button> — every Software stays on those tabs. Search still lists matches across tabs.</li>
+    </ol>
+    <div class="first-hour-tour">
+      <button type="button" data-tour="start">Show me around</button>
+      <button type="button" data-tour="next" hidden>Next</button>
+      <button type="button" data-tour="done" hidden>Done</button>
+      <p id="first-hour-caption">The tour scrolls and highlights. It does not cover the desks or turn a tab off.</p>
+    </div>
+  </section>
   <div class="ws-filter field">
     <label for="task-filter">Search tasks</label>
     <input id="task-filter" type="search" placeholder="decisiongate, fold, mesh…" autocomplete="off">
   </div>
 
   <h3 id="dash-softwares-title">Softwares</h3>
+  <p class="hint" id="desk-hint-softwares">What is this desk: the Softwares cards. A domain tab filters the grid. Search shows matches from every tab. Unsure which card? Ask Jeeves or AZAI Guide. The cards stay.</p>
   <div class="field">
     <label for="dash-filter">Search Softwares</label>
     <input id="dash-filter" type="search" placeholder="foldlock, receipt, browser…" autocomplete="off">
@@ -508,11 +534,12 @@ export function workspacePaneHtml(origin, products) {
   <div class="sw-grid" id="dash-softwares" data-active="${escapeHtml(UI_DOMAIN_DEFAULT)}">
 ${dashCards}
   </div>
-  <pre class="ws-out fg-out" id="dash-out" role="status" aria-live="polite">Pick a Software card. FragGate only.</pre>
+  <pre class="ws-out fg-out" id="dash-out" role="status" aria-live="polite">Pick a Software card. FragGate only. New here? Ask Jeeves first. The cards stay.</pre>
 
   <section class="op-panel" id="op-panel" data-origin="${escapeHtml(base)}" aria-labelledby="op-panel-title">
     <h3 id="op-panel-title">Operator control panel</h3>
     ${aboutAzielStripHtml({ id: "about-aziel-strip-op" })}
+    <p class="hint" id="desk-hint-operator">What is this desk: the operator rack. List, describe, call, mesh, and session stay here. Ask Jeeves for the plain version first. This rack stays.</p>
     <p class="blurb">Off-the-shelf rack. FragGate call, Softwares ops, mesh, session. Same door — not a second exec path.</p>
     ${suiteDownloadHtml(base, { id: "suite-download-op" })}
     <div class="op-rack">
@@ -585,6 +612,7 @@ ${dashCards}
 
   <section class="task" id="fg-console" data-kind="console" data-origin="${escapeHtml(base)}">
     <h3>FragGate console</h3>
+    <p class="hint" id="desk-hint-fraggate">What is this desk: list, describe, then call. Everyday questions go to Ask Jeeves. A named slug and op still run here.</p>
     <p class="blurb">List → describe → call. THE single public executable door. Refuse codes stay visible.</p>
     <div class="actions">
       <button type="button" data-console="list">List names</button>
@@ -632,6 +660,7 @@ ${dashCards}
 
   <section class="dash" id="interface-panel" data-kind="interface" data-origin="${escapeHtml(base)}">
     <h3>Interface</h3>
+    <p class="hint" id="desk-hint-interface">What is this desk: plans, receipts, mesh awareness, Ask Jeeves, and MCP. A plan does not launch. Seal still needs confirm.</p>
     <div class="sw-grid" id="interface-desks">
       <article class="dash-card" id="desk-veillock" data-desk="veillock">
         <h4><a href="${escapeHtml(base)}/p/veillock">VeilLock</a> <span class="slug">veillock</span></h4>
@@ -717,12 +746,13 @@ ${dashCards}
     <div class="receipt-board" id="interface-receipt">
       <h3>Desk output</h3>
       <p class="blurb">Same status line as the other desks. A plan does not append the public receipt chain.</p>
-      <pre class="ws-out fg-out" id="interface-out" role="status" aria-live="polite">GET ${escapeHtml(base)}/v1/interface — plans do not launch</pre>
+      <pre class="ws-out fg-out" id="interface-out" role="status" aria-live="polite">GET ${escapeHtml(base)}/v1/interface — plans do not launch. New here? Ask Jeeves. This board stays.</pre>
     </div>
   </section>
 
   <section class="task" id="mesh-panel" data-kind="mesh" data-origin="${escapeHtml(base)}">
     <h3>Mesh status</h3>
+    <p class="hint" id="desk-hint-mesh">What is this desk: who is on the mesh. Refresh reads status. Join needs a product slug. GET does not turn radios on. Ask Jeeves can point here. This panel stays.</p>
     <p class="blurb"><strong>Nodes</strong> from <code>nodes</code> / <code>rollup.nodes</code> count human mesh users plus cited human uses (<code>human_uses</code> / USES). <strong>Live Nodes</strong> from <code>live_nodes</code> / <code>rollup.mesh</code> count human mesh users plus concurrent website viewers (<code>site_live_viewers</code>) on godlock.uk + azieleliab.com + azielcorpuslibrary.net. Paint <code>live_nodes</code> / <code>rollup.mesh</code> only — do not add a local <code>/count</code>. <code>live_nodes_tip</code> is the seal. <code>rollup.live</code> is not published. Never paint <code>software_nodes</code>, <code>rollup.live</code>, <code>rollup.all.live</code>, or <code>rollup.software.live</code> as Live Nodes. <code>software_nodes</code> is the <code>{slug}-worker</code> roster. hedidntjump.com, bots, Softwares, and downloads are excluded. GET never pulls hub /count and never enables radios. Incomplete uses stay honest (no invented users). Channel plane cites wifi / bluetooth / rf / photon ON (local qnm-node; <code>worker_hardware:false</code> — not live Worker RF). Nine QNM laws stay machine-true on that JSON. Join needs a catalog product. Public VPN auto-binds AZVPN (HTTPS/WS REAL; WireGuard/OpenVPN SLOT).</p>
     <p class="ws-status" id="mesh-status-line" data-state="loading" role="status" aria-live="polite">Loading status</p>
     <pre class="ws-out fg-out" id="mesh-out" role="status" aria-live="polite">Loading status…</pre>
@@ -860,6 +890,7 @@ ${dashCards}
     ${suiteDownloadHtml(base, { id: "suite-download-dash" })}
     <div class="receipt-board" id="dash-receipts">
       <h3>Receipts</h3>
+      <p class="hint" id="desk-hint-receipts">What is this desk: the public receipt cite. dry_run stores nothing. A write still needs confirm. Ask Jeeves can explain the fields. This board stays.</p>
       <p class="blurb">ACT-RECEIPT-1.0 cite from <code>GET /v1/receipts</code>. Public chain lives on the corpus. Fail-open is append-skip without a token. Empty or dark public tip is SLOT, not success. Local mints from this pane are listed below — hosted never stores files.</p>
       <p class="ws-status" id="receipt-cite-line" data-state="loading">Loading receipts cite…</p>
       <pre class="ws-out fg-out" id="receipt-cite-out" role="status">GET ${escapeHtml(base)}/v1/receipts</pre>
@@ -1689,6 +1720,78 @@ export function humanDoorScript() {
         }, out, btn);
       });
     });
+  }
+  let hour = document.getElementById("first-hour");
+  if (hour) {
+    let steps = [
+      { id: "elroi-jeeves", caption: "Ask Jeeves answers in plain language. Lamb Lens, then the shelf, then the triad." },
+      { id: "domain-tab-ai", caption: "AZAI Guide is on the AI tab. Open that tab, then Guide. Learn still needs confirm." },
+      { id: "dash-softwares", caption: "Softwares stay on this grid. A domain tab filters it. Search shows every match." },
+      { id: "interface-panel", caption: "Interface holds plans, receipts, Ask Jeeves, and MCP. A plan does not launch." },
+      { id: "mesh-panel", caption: "Mesh status stays on this page. Join needs a product. GET does not turn radios on." },
+      { id: "fg-console", caption: "FragGate is the single door. List, describe, then call." },
+      { id: "dash-receipts", caption: "Receipts stay on the dashboard. dry_run stores nothing. A write still needs confirm." }
+    ];
+    let cursor = -1;
+    let mark = null;
+    let cap = document.getElementById("first-hour-caption");
+    let nextBtn = hour.querySelector("[data-tour='next']");
+    let doneBtn = hour.querySelector("[data-tour='done']");
+    function clearMark() {
+      if (mark) {
+        mark.classList.remove("first-hour-mark");
+        mark = null;
+      }
+    }
+    function showStep(i) {
+      clearMark();
+      cursor = i;
+      let step = steps[i];
+      let el = document.getElementById(step.id);
+      if (cap) cap.textContent = step.caption;
+      if (el) {
+        el.classList.add("first-hour-mark");
+        mark = el;
+        if (el.scrollIntoView) el.scrollIntoView({ block: "nearest" });
+      }
+      if (nextBtn) nextBtn.hidden = false;
+      if (doneBtn) doneBtn.hidden = false;
+    }
+    hour.querySelectorAll("[data-first-hour]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        let kind = btn.getAttribute("data-first-hour");
+        if (kind === "ai") {
+          let tab = document.getElementById("domain-tab-ai");
+          if (tab) tab.click();
+          let desk = document.getElementById("desk-azai");
+          if (desk && desk.scrollIntoView) desk.scrollIntoView({ block: "nearest" });
+        }
+        if (kind === "tabs") {
+          let tabs = document.querySelector("[role='tablist']");
+          if (tabs && tabs.scrollIntoView) tabs.scrollIntoView({ block: "nearest" });
+        }
+      });
+    });
+    let start = hour.querySelector("[data-tour='start']");
+    if (start) start.addEventListener("click", function () { showStep(0); });
+    if (nextBtn) nextBtn.addEventListener("click", function () {
+      let n = cursor + 1;
+      if (n >= steps.length) n = 0;
+      showStep(n);
+    });
+    if (doneBtn) doneBtn.addEventListener("click", function () {
+      clearMark();
+      cursor = -1;
+      if (nextBtn) nextBtn.hidden = true;
+      if (doneBtn) doneBtn.hidden = true;
+      if (cap) cap.textContent = "Tour closed. Tabs, Softwares, receipts, mesh, MCP, Corpus, Ask Jeeves, and AZAI are still on this page.";
+      try { sessionStorage.setItem("aziel-first-hour", "seen"); } catch (err) {}
+    });
+    try {
+      if (sessionStorage.getItem("aziel-first-hour") === "seen" && cap) {
+        cap.textContent = "You have seen the tour. Show me around runs it again. Nothing was hidden.";
+      }
+    } catch (err2) {}
   }
 })();
 </script>`;

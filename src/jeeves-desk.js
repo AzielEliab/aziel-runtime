@@ -19,7 +19,36 @@ import { applyAdaptive } from "./jeeves-adapt.js";
 import { RUNTIME_VERSION } from "./runtime-api.js";
 
 export const JEEVES_HELP_CALL = "jeeves_help";
-export const JEEVES_LAUGH = "Ha! Splendid.";
+export const JEEVES_LAUGH = "Ha! Splendid. 😄";
+
+const JEEVES_MARK = Object.freeze({
+  version: "✨",
+  version_id: "✨",
+  software_count: "✨",
+  domain_tabs: "🗂️",
+  corpus_subtab: "📚",
+  receipts: "🧾",
+  fraggate: "🙂",
+  mesh: "🙂",
+  intro: "👋",
+  "4dmap": "🙂",
+  software_card: "🙂",
+  library: "📖",
+  outside: "🙂",
+  custom: "🙂",
+  easter_eggs: "✨",
+});
+
+function jeevesVoice(answer, topic, refused) {
+  const text = String(answer || "");
+  if (!text || refused) return text;
+  const mark = JEEVES_MARK[topic] || "🙂";
+  const parts = text.split("\n\n");
+  const at = parts.length > 1 ? 1 : 0;
+  if (parts[at].includes(mark)) return text;
+  parts[at] = `${mark} ${parts[at]}`;
+  return parts.join("\n\n");
+}
 
 function withEggLaugh(reasoned, eggs) {
   const egg = eggs[0];
@@ -94,7 +123,7 @@ export async function askJeevesHelp(input, env) {
       assistant: "Ask Jeeves",
       source: "interface-facts",
       topic: help.topic,
-      answer: help.answer,
+      answer: jeevesVoice(help.answer, help.topic, false),
       version: help.version || RUNTIME_VERSION,
       domains: help.domains || null,
       assets: help.assets || null,
@@ -112,7 +141,9 @@ export async function askJeevesHelp(input, env) {
       identity: "Aziel Eliab",
     };
   }
-  const reasoned = await applyAdaptive(await reasonGuide(q, env, { assistant: "Ask Jeeves" }), input, env, "jeeves");
+  const guided = await reasonGuide(q, env, { assistant: "Ask Jeeves" });
+  const voiced = { ...guided, answer: jeevesVoice(guided.answer, guided.topic, guided.refused === true) };
+  const reasoned = await applyAdaptive(voiced, input, env, "jeeves");
   if (eggs.length) return withEggLaugh(reasoned, eggs);
   return reasoned;
 }

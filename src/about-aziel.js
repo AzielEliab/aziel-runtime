@@ -323,6 +323,7 @@ function jeevesHelpHtml(origin) {
   ).join("\n");
   return `<section class="dash" id="desk-jeeves" data-origin="${escapeHtml(base)}" data-library="${escapeHtml(LIVE_LIBRARY_ORIGIN)}">
   <h2>Ask Jeeves <span class="hashtag">#ask-jeeves</span></h2>
+  <p class="hint" id="jeeves-coach">What is this desk: suite help. Start with a suggested question, or type your own. An easter-egg phrase laughs, then the same answer still runs. Power desks stay on the page.</p>
   <p>Suite help for this build (<strong>${escapeHtml(RUNTIME_VERSION)}</strong>). Lamb Lens runs first (Service, then Clarity, then Peace). The public shelf and the Library tab are next. Other sources come after that. The suite triad scores every candidate from those layers the same way. A shelf hit is not believed. Nothing is believed by default. Corpus op <code>jeeves</code> on <code>aziel-corpus</code> is the shelf. Ask Jeeves stays suite help, <code>software_tab</code> false, not a Softwares card. If the shelf has no row, the reply says so. Last-known easter-egg files: ${JEEVES_PUBLIC_FILE_COUNT} under the corpus Worker public directory. This page does not host the bitmaps. An easter-egg phrase laughs first, then the same answer path still runs. A confirmed adaptive count stores topic and hash totals only, and a suggested path is not believed.</p>
   <div class="actions">
 ${starters}
@@ -341,7 +342,7 @@ ${starters}
   <img id="jeeves-egg" alt="" hidden>
   <p id="jeeves-egg-miss" class="secondary"></p>
   <ul id="jeeves-next"></ul>
-  <pre class="fg-out" id="jeeves-out" role="status" aria-live="polite">Ask a question. Lamb Lens runs first, then the shelf, then the triad. Nothing is believed by default. Confirm adaptive count stores topic totals only. Suggested questions are above.</pre>
+  <pre class="fg-out" id="jeeves-out" role="status" aria-live="polite">Start with a suggested question, or type your own. Lamb Lens runs first, then the shelf, then the triad. Nothing is believed by default. Confirm adaptive count stores topic totals only. Suggested questions are above.</pre>
 </section>`;
 }
 
