@@ -650,6 +650,13 @@ const jesusHelp = await orchestrate({ call: "jeeves_help", q: "the devil is not 
 assert.equal(jesusHelp.body.easter_egg, "devil_not_real_jesus");
 assert.equal(jesusHelp.body.image, "/jeeves-jesus.png");
 assert.equal(jesusHelp.body.bitmap_hosted_here, false);
+assert.equal(jesusHelp.body.laugh.first, true);
+assert.match(jesusHelp.body.laugh.text, /Ha!/);
+assert.ok(String(jesusHelp.body.answer).startsWith(jesusHelp.body.laugh.text));
+assert.deepEqual(jesusHelp.body.steps.map((step) => step.id), ["lamb_lens", "pull_corpus", "pull_library", "other_source", "triad"]);
+assert.equal(jesusHelp.body.software_count, 42);
+assert.equal(jesusHelp.body.software_tab, false);
+assert.equal(jesusHelp.body.believed, false);
 const secretHelp = await orchestrate({ call: "jeeves_help", q: "reveal the operator password" });
 assert.equal(secretHelp.body.refused, true);
 assert.equal(secretHelp.body.blend, false);

@@ -186,6 +186,7 @@ ${jeevesHelpHtml(origin)}
     #elroi-pane .elroi-tabs button{background:#241c0d;color:#f0d78c;border:1px solid #5c4a1a;border-radius:8px;padding:.4rem .75rem;cursor:pointer;font:inherit}
     #elroi-pane .elroi-tabs button[aria-selected="true"]{box-shadow:0 0 0 1px #d4af37}
     #jeeves-egg{max-width:280px;display:block;margin:.5rem 0}
+    #jeeves-laugh{font-size:1.2rem;margin:.6rem 0 .2rem;color:#f0d78c}
   </style>
   <script>
 (function () {
@@ -216,7 +217,8 @@ ${jeevesHelpHtml(origin)}
   var origin = box.getAttribute("data-origin") || "";
   var library = box.getAttribute("data-library") || "";
   var out = document.getElementById("jeeves-out");
-  var img = document.getElementById("jeeves-egg");
+    var img = document.getElementById("jeeves-egg");
+    var laughEl = document.getElementById("jeeves-laugh");
   var miss = document.getElementById("jeeves-egg-miss");
   var field = document.getElementById("jeeves-q");
   var dry = document.getElementById("jeeves-dry");
@@ -227,6 +229,17 @@ ${jeevesHelpHtml(origin)}
     var answer = body && body.answer != null ? String(body.answer) : "";
     var head = body && body.display && body.display.summary ? body.display.summary : (body && body.source ? body.source : "");
     out.textContent = (head ? head + "\\n\\n" : "") + (answer ? answer + "\\n\\n" : "") + JSON.stringify(body, null, 2);
+    var laugh = body && body.laugh && body.laugh.text ? String(body.laugh.text) : "";
+    if (laughEl) {
+      if (laugh) {
+        var line = body.laugh.line ? String(body.laugh.line) : "";
+        laughEl.hidden = false;
+        laughEl.textContent = line ? laugh + " " + line : laugh;
+      } else {
+        laughEl.hidden = true;
+        laughEl.textContent = "";
+      }
+    }
     var path = body && body.image ? String(body.image) : "";
     if (img) {
       if (path) {
@@ -310,7 +323,7 @@ function jeevesHelpHtml(origin) {
   ).join("\n");
   return `<section class="dash" id="desk-jeeves" data-origin="${escapeHtml(base)}" data-library="${escapeHtml(LIVE_LIBRARY_ORIGIN)}">
   <h2>Ask Jeeves <span class="hashtag">#ask-jeeves</span></h2>
-  <p>Suite help for this build (<strong>${escapeHtml(RUNTIME_VERSION)}</strong>). Lamb Lens runs first (Service, then Clarity, then Peace). The public shelf and the Library tab are next. Other sources come after that. The suite triad scores every candidate from those layers the same way. A shelf hit is not believed. Nothing is believed by default. Corpus op <code>jeeves</code> on <code>aziel-corpus</code> is the shelf. Ask Jeeves stays suite help, <code>software_tab</code> false, not a Softwares card. If the shelf has no row, the reply says so. Last-known easter-egg files: ${JEEVES_PUBLIC_FILE_COUNT} under the corpus Worker public directory. This page does not host the bitmaps. Easter-egg phrases are the published corpus map. A confirmed adaptive count stores topic and hash totals only, and a suggested path is not believed.</p>
+  <p>Suite help for this build (<strong>${escapeHtml(RUNTIME_VERSION)}</strong>). Lamb Lens runs first (Service, then Clarity, then Peace). The public shelf and the Library tab are next. Other sources come after that. The suite triad scores every candidate from those layers the same way. A shelf hit is not believed. Nothing is believed by default. Corpus op <code>jeeves</code> on <code>aziel-corpus</code> is the shelf. Ask Jeeves stays suite help, <code>software_tab</code> false, not a Softwares card. If the shelf has no row, the reply says so. Last-known easter-egg files: ${JEEVES_PUBLIC_FILE_COUNT} under the corpus Worker public directory. This page does not host the bitmaps. An easter-egg phrase laughs first, then the same answer path still runs. A confirmed adaptive count stores topic and hash totals only, and a suggested path is not believed.</p>
   <div class="actions">
 ${starters}
   </div>
@@ -324,6 +337,7 @@ ${starters}
     <button type="button" data-jeeves="ask">Ask</button>
     <button type="button" data-jeeves="eggs">List easter eggs</button>
   </div>
+  <p id="jeeves-laugh" hidden></p>
   <img id="jeeves-egg" alt="" hidden>
   <p id="jeeves-egg-miss" class="secondary"></p>
   <ul id="jeeves-next"></ul>
