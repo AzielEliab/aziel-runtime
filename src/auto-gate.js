@@ -1,12 +1,15 @@
 /**
- * FragGate and ChainLock run before a Softwares or runtime tool returns.
- * Callers do not call fraggate_* or chainlock_* first. Those tools stay for diagnostics.
- * tools/list stays 36. Author: Aziel Eliab only.
+ * FragGate, ChainLock, TemporalLock, and ForgeReceipts run before a Softwares
+ * or runtime tool returns. Callers do not call those tools first.
+ * Diagnostic tools stay available. tools/list stays 36.
+ * Author: Aziel Eliab only.
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { append, tip } from "./chainlock/ops.js";
 import { check as decisiongateCheck } from "./engines/decisiongate/engine.js";
+import { receipt as forgeReceipt, verifyReceipt } from "./engines/forgereceipts/engine.js";
+import { genesis as temporalGenesis, verify as temporalVerify } from "./engines/temporallock/engine.js";
 import { admitCall, defaultClaim, previewCatalogAdmission, refuseRuntimeGate } from "./fraggate/door.js";
 
 const DOOR_DIAGNOSTIC = new Set(["fraggate_list", "fraggate_describe", "fraggate_verify", "fraggate_call"]);
@@ -215,6 +218,75 @@ export async function stampActs(env, name) {
   };
 }
 
+/**
+ * TemporalLock genesis plus a ForgeReceipts receipt for one admitted tool.
+ * ran is true only with a real hash. verified is true only after a recompute.
+ * dry_run must not call this.
+ */
+export async function stampTimeReceipt(name, chainHash) {
+  const tool = String(name || "tool");
+  const evidence = honestStampHash(chainHash) ? `${tool} admitted chainlock ${chainHash}` : `${tool} admitted`;
+  let temporallock = { ran: false, op: "genesis", reason: "no stamp" };
+  try {
+    const out = await temporalGenesis({ summary: `${tool} admitted`, evidence, confidence: 1 });
+    const rec = out && out.receipt;
+    const hash = rec && rec.hash;
+    if (honestStampHash(hash)) {
+      const checked = await temporalVerify([rec]);
+      temporallock = { ran: true, op: "genesis", hash, verified: Boolean(checked && checked.ok) };
+    }
+  } catch {
+    temporallock = { ran: false, op: "genesis", reason: "no stamp" };
+  }
+  let forgereceipts = { ran: false, op: "receipt", reason: "no stamp" };
+  try {
+    const forged = await forgeReceipt({
+      note: `${tool} admitted`,
+      summary: `${tool} admitted`,
+      kind: "runtime-return",
+      context: {
+        kind: "runtime-return",
+        evidence,
+        temporallock_hash: temporallock.hash || null,
+        chainlock_hash: honestStampHash(chainHash) ? chainHash : null,
+      },
+    });
+    const rec = forged && forged.receipt;
+    const hash = rec && rec.hash;
+    if (forged && forged.ok && honestStampHash(hash)) {
+      const checked = await verifyReceipt({ receipt: rec });
+      forgereceipts = {
+        ran: true,
+        op: "receipt",
+        hash,
+        verified: Boolean(checked && checked.ok && checked.match),
+      };
+    }
+  } catch {
+    forgereceipts = { ran: false, op: "receipt", reason: "no stamp" };
+  }
+  return { temporallock, forgereceipts };
+}
+
+export function withTimeReceipt(peers, time) {
+  return {
+    ...(peers || peersQuiet()),
+    temporallock: time && time.temporallock ? time.temporallock : { ran: false, reason: "no stamp" },
+    forgereceipts: time && time.forgereceipts ? time.forgereceipts : { ran: false, reason: "no stamp" },
+  };
+}
+
+/** ChainLock acts stamp plus TemporalLock and ForgeReceipts for one ledger op. */
+export async function ledgerInfra(env, name, fraggate) {
+  const chainlock = await stampActs(env, name);
+  const time = await stampTimeReceipt(name, chainlock && chainlock.hash);
+  return {
+    fraggate: fraggate || { ran: true, role: "gate" },
+    chainlock,
+    peers: withTimeReceipt(peersQuiet("not on this path"), time),
+  };
+}
+
 function doorRecord(body) {
   if (!body || typeof body !== "object") return null;
   if (body.entry || body.lamb_lens || body.pipe || body.forgereceipts) return body;
@@ -306,13 +378,7 @@ export async function infraAfterBody(env, name, out) {
     });
   }
   if (need === "acts") {
-    if (out && out.status < 400) {
-      return infraStatus({
-        fraggateRole: "gate",
-        chainlock: await stampActs(env, name),
-        peerReason: "acts stamp only",
-      });
-    }
+    if (out && out.status < 400) return ledgerInfra(env, name, { ran: true, role: "gate" });
     return infraStatus({
       fraggateRole: "gate",
       chainlock: { ran: false, op: "append", chain: "acts", reason: "not stamped" },

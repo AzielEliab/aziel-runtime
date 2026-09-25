@@ -7,7 +7,7 @@ Public identity: **Aziel Eliab** only.
 ## How to use
 
 1. Click **Install / Add to Glama** on https://glama.ai/mcp/servers/AzielEliab/aziel-runtime (also `https://glama.ai/mcp/servers/@AzielEliab/aziel-runtime`).
-2. In any MCP client, call the Softwares tool. The door runs first. ChainLock stamps when the call needs a ledger. `confirm=true` writes. `dry_run=true` previews and writes nothing. `background=true` returns Running until a receipt hash exists. Done only with that hash. `tools/list` stays 36.
+2. In any MCP client, call the Softwares tool. The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. `confirm=true` writes. `dry_run=true` previews and writes nothing. `background=true` returns Running until a receipt hash exists. Done only with that hash. `tools/list` stays 36.
 
 Diagnostics, if needed: `fraggate_list` → `fraggate_describe {name}` → `fraggate_call {name, op, payload, confirm:true}`.
 
@@ -29,9 +29,9 @@ Glama is one of the compatible AI clients (ChatGPT, Grok, Venice, Claude, Cursor
 2. **Remote MCP** — `POST https://aziel-runtime.vibelock.workers.dev/mcp` (`initialize`, `tools/list`, `tools/call`). User-Agent `Mozilla/5.0`. Public, no OAuth.
 3. **Local stdio (last)** — `node cli/mcp-stdio.mjs` / `npm run mcp` / Docker. The CLI bridges to the Worker `/mcp`.
 
-**First call:** the Softwares tool. The door runs first. ChainLock stamps when the call needs a ledger. Diagnostics: `fraggate_list` → `fraggate_describe` → `fraggate_call`. Example: `{ "slug": "foldlock", "op": "fold-preview", "payload": { "text": "the cat and the dog" } }`, or `decisiongate_check` with `dry_run=true`. Show `display.title` and `display.summary`, then take the next input.
+**First call:** the Softwares tool. The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. Diagnostics: `fraggate_list` → `fraggate_describe` → `fraggate_call`. Example: `{ "slug": "foldlock", "op": "fold-preview", "payload": { "text": "the cat and the dog" } }`, or `decisiongate_check` with `dry_run=true`. Show `display.title` and `display.summary`, then take the next input.
 
-`tools/list` is **36 live MCP tools**. ChainLock and memory are append-only. Ledger ops stamp the acts chain. `fraggate_call` stamps the session chain when a real hash exists. `runtime_run`, `runtime_manifest`, and `runtime_session_*` are advanced/internal.
+`tools/list` is **36 live MCP tools**. ChainLock and memory are append-only. Ledger ops stamp ChainLock, TemporalLock, and ForgeReceipts. `fraggate_call` reports those three from the pipe when a real hash exists. `runtime_run`, `runtime_manifest`, and `runtime_session_*` are advanced/internal.
 
 This repo ships:
 

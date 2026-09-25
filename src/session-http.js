@@ -9,7 +9,7 @@ import { RUNTIME_VERSION } from "./runtime-api.js";
 import { executeLocal, proxyFallbackMeta } from "./engines/runner.js";
 import { attachExecDisplay } from "./display.js";
 import { confirmConsentHonesty } from "./mcp-safeguard.js";
-import { peersQuiet, stampActs } from "./auto-gate.js";
+import { ledgerInfra } from "./auto-gate.js";
 import {
   CONFIRM_PARAM_NOTE,
   sessionIdProps,
@@ -324,11 +324,11 @@ async function handleExec(request, env, id, { json, PRODUCTS, BY_SLUG, upstreamF
   });
   const infra =
     !callerStamps && commitRes.status < 400
-      ? {
-          fraggate: { ran: false, role: "raw-session", reason: "session file is not the door" },
-          chainlock: await stampActs(env, "runtime_session_exec"),
-          peers: peersQuiet("acts stamp only"),
-        }
+      ? await ledgerInfra(env, "runtime_session_exec", {
+          ran: false,
+          role: "raw-session",
+          reason: "session file is not the door",
+        })
       : null;
   return json(
     {
