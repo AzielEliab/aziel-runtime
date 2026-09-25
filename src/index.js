@@ -1073,7 +1073,7 @@ const PRODUCTS_RAW = [
     ],
     example: { text: "bus frame from agent-a" },
     banner:
-      "AZChat: spendable handles, ephemeral rooms, agent bus. FragGate only. mesh_enabled_default false. Not SMTP. Not AZMail. Do not bridge. Stranger room_pull is 404. Author Aziel Eliab.",
+      "AZChat product contract: join from the all-rooms list; a hosted room appears in that list; a private room requires a passphrase. Those options ship with the AZChat product. This runtime keeps handle, two-handle room, and bus ops. FragGate only. mesh_enabled_default false. Not SMTP. Not AZMail. Do not bridge. Stranger room_pull is 404. Author Aziel Eliab.",
   },
   {
     slug: "zkattest",

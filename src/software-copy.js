@@ -51,9 +51,10 @@ export const SOFTWARE_COPY = Object.freeze({
       "Use AZBrowser for ethical research search and advisory page metadata. It exists so research stays cited.",
   },
   azchat: {
-    one_line: "Open short-lived rooms and an agent bus with spendable handles.",
+    one_line:
+      "Join a room from the all-rooms list, where a hosted room appears, and a private room requires a passphrase.",
     description:
-      "Use AZChat for ephemeral two-handle rooms and agent messages. It exists for isolate chat.",
+      "Use AZChat to join from the all-rooms list, to see a room you host in that list, and to require a passphrase on a private room. It exists for spendable-handle chat and an agent bus. Those room options are the AZChat product contract.",
   },
   azcoherence: {
     one_line: "Review whether a primary score and an alternate hold together.",

@@ -87,6 +87,8 @@ assert.match(home, /AI deepfake risk in mp4, mp3/);
 assert.match(home, /id="ai-vibe"/);
 assert.match(home, /data-dash-slug="postking"[^>]*data-domain="games"/);
 assert.match(home, /data-dash-slug="azchat"[^>]*data-domain="social"/);
+assert.match(home, /data-dash-slug="azchat"[\s\S]{0,900}all-rooms list/);
+assert.match(home, /data-dash-slug="azchat"[\s\S]{0,900}passphrase/);
 assert.match(home, /id="desk-azbot"[^>]*data-domain="ai"[^>]*data-role="worker"/);
 assert.match(home, /id="desk-azai"[^>]*data-domain="ai"[^>]*data-role="learner"/);
 assert.match(home, /id="dash-receipts"/);
