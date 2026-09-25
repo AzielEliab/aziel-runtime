@@ -4,9 +4,10 @@
  */
 import assert from "node:assert/strict";
 import { executeLocal } from "../src/engines/runner.js";
-import { jeevesAsk, jeevesShouldRefuse, isDevilDenial, JEEVES_JESUS_IMAGE } from "../src/engines/aziel-corpus/jeeves.js";
+import { jeevesAsk, jeevesShouldRefuse, isDevilDenial, JEEVES_JESUS_IMAGE, JEEVES_SUITE_HELP } from "../src/engines/aziel-corpus/jeeves.js";
 import { collectJeevesEasterEggs, jeevesAssetInventory, JEEVES_PUBLIC_FILE_COUNT } from "../src/engines/aziel-corpus/jeeves-eggs.js";
 import { askJeevesHelp } from "../src/jeeves-desk.js";
+import { suiteSoftwareRoster, SUITE_SOFTWARE_COUNT, EPISTEMIC_ORDER, GUIDE_SPEC, scoreCandidate, assertionFromCandidates } from "../src/guide-reason.js";
 import { mediaRun, NATIVE_OPS, PROXY_OPS, BINDING_GATED_OPS } from "../src/engines/aziel-corpus/engine.js";
 
 assert.ok(NATIVE_OPS.includes("jeeves"));
@@ -176,8 +177,22 @@ const help = await askJeevesHelp({ q: "what version is this build" }, {});
 assert.equal(help.source, "interface-facts");
 assert.equal(help.topic, "version");
 assert.match(help.answer, /2\.0\.0-rc1/);
-assert.equal(help.library_search, false);
+assert.equal(help.library_search, true);
+assert.equal(help.software_count, 42);
+assert.equal(help.software_tab, false);
 assert.equal(help.invented_visits, false);
+assert.equal(help.spec, GUIDE_SPEC);
+assert.equal(help.believed, false);
+assert.deepEqual(help.steps.map((step) => step.id), ["lamb_lens", "pull_corpus", "pull_library", "other_source", "triad"]);
+assert.deepEqual(help.epistemology.order, EPISTEMIC_ORDER.slice());
+assert.equal(help.epistemology.other_source.authority, false);
+assert.equal(help.epistemology.triad.schema, "aziel.triad.v0.3");
+assert.equal(help.epistemology.triad.final.ready, false);
+assert.equal(help.epistemology.triad.final.score, null);
+assert.equal(help.epistemology.triad.components.clce.verified, true);
+assert.equal(help.epistemology.triad.components.spre.verified, false);
+assert.equal(help.epistemology.triad.components.physling.verified, false);
+assert.ok(help.assertion === "provisional" || help.assertion === "uncertain" || help.assertion === "conflict");
 
 const tabs = await askJeevesHelp({ q: "how do the domain tabs work" }, {});
 assert.equal(tabs.topic, "domain_tabs");
@@ -188,5 +203,164 @@ const eggsHelp = await askJeevesHelp({ q: "list ask jeeves easter eggs" }, {});
 assert.equal(eggsHelp.topic, "easter_eggs");
 assert.equal(eggsHelp.asset_count, 33);
 assert.match(eggsHelp.answer, /not attempted|not host/i);
+
+const roster = suiteSoftwareRoster();
+assert.equal(roster.length, SUITE_SOFTWARE_COUNT);
+assert.equal(SUITE_SOFTWARE_COUNT, 42);
+assert.equal(JEEVES_SUITE_HELP.software_tab, false);
+assert.equal(roster.some((row) => row.slug === "jeeves" || row.slug === "askjeeves"), false);
+assert.ok(roster.every((row) => row.one_line));
+
+const florence = await askJeevesHelp({ q: "Where is Florence?" }, {});
+assert.equal(florence.source, "corpus-first");
+assert.equal(florence.topic, "library");
+assert.equal(florence.invented, false);
+assert.ok(florence.citations.some((row) => row.record_id === "AZDOC-FLORENCE-SAMPLE" && row.invented === false));
+assert.match(florence.answer, /Florence/);
+assert.ok(florence.next_actions.some((row) => row.href === "#elroi-corpus"));
+assert.equal(florence.software_tab, false);
+assert.equal(florence.software_count, 42);
+assert.equal(florence.believed, false);
+assert.equal(florence.provisional, true);
+assert.equal(florence.epistemology.uniform, true);
+assert.equal(florence.epistemology.free_pass, false);
+assert.equal(florence.epistemology.layers.corpus.status, "hit");
+assert.equal(florence.epistemology.layers.corpus.hit, true);
+assert.equal(florence.epistemology.layers.corpus.free_pass, false);
+assert.equal(florence.epistemology.layers.corpus.believed, false);
+assert.equal(florence.epistemology.layers.corpus.authority, false);
+assert.ok(florence.epistemology.layers.corpus.clce_triple < florence.epistemology.clce_very_low);
+assert.equal(florence.assertion, "uncertain");
+for (const name of ["corpus", "library", "other"]) {
+  const layer = florence.epistemology.layers[name];
+  assert.equal(layer.free_pass, false, name);
+  assert.equal(layer.believed, false, name);
+  assert.equal(layer.authority, false, name);
+  assert.equal(layer.triad.schema, "aziel.triad.v0.3", name);
+  assert.equal(layer.triad.final.ready, false, name);
+  assert.equal(layer.triad.final.score, null, name);
+  assert.equal(layer.triad.components.clce.verified, true, name);
+  assert.equal(layer.triad.components.spre.verified, false, name);
+  assert.equal(layer.triad.components.physling.verified, false, name);
+}
+assert.deepEqual(florence.epistemology.layers.library.candidates.map((row) => row.id), ["aziel-corpus", "whitestone"]);
+assert.equal(florence.epistemology.corpus.status, "hit");
+assert.equal(florence.epistemology.triad.final.score, null);
+assert.equal(florence.epistemology.other_source.authority, false);
+assert.deepEqual(florence.steps.map((step) => step.id), ["lamb_lens", "pull_corpus", "pull_library", "other_source", "triad"]);
+assert.equal(florence.steps.find((step) => step.id === "triad").uniform, true);
+assert.equal(florence.lamb_lens.join(","), "Service,Clarity,Peace");
+
+const sameQuestion = "peace clarity service";
+const sameText = "peace clarity service";
+const strongCorpus = scoreCandidate({ layer: "corpus", id: "same", question: sameQuestion, text: sameText, hit: true });
+const strongOther = scoreCandidate({ layer: "other", id: "same", question: sameQuestion, text: sameText, hit: true });
+assert.equal(strongCorpus.free_pass, false);
+assert.equal(strongOther.free_pass, false);
+assert.equal(strongCorpus.clce_triple, strongOther.clce_triple);
+assert.equal(assertionFromCandidates([strongCorpus], 1), "provisional");
+assert.equal(assertionFromCandidates([strongOther], 1), assertionFromCandidates([strongCorpus], 1));
+const weakText = florence.citations.find((row) => row.record_id === "AZDOC-FLORENCE-SAMPLE").snippet;
+const weakCorpus = scoreCandidate({ layer: "corpus", id: "florence", question: "Where is Florence?", text: weakText, hit: true });
+const weakOther = scoreCandidate({ layer: "other", id: "florence", question: "Where is Florence?", text: weakText, hit: true });
+assert.equal(assertionFromCandidates([weakCorpus], 1), assertionFromCandidates([weakOther], 1));
+assert.equal(assertionFromCandidates([weakCorpus], 1), "uncertain");
+
+const unknown = await askJeevesHelp({ q: "zzzxnotarealrecordzzz" }, {});
+assert.equal(unknown.topic, "outside");
+assert.equal(unknown.source, "outside");
+assert.equal(unknown.known, false);
+assert.equal(unknown.invented, false);
+assert.equal(unknown.believed, false);
+assert.equal(unknown.assertion, "uncertain");
+assert.equal(unknown.citations.length, 0);
+assert.equal(unknown.epistemology.other_source.status, "not-fetched");
+assert.equal(unknown.epistemology.other_source.authority, false);
+assert.match(unknown.answer, /no matching record|Nothing was invented/);
+assert.equal(unknown.software_count, 42);
+assert.equal(unknown.software_tab, false);
+
+const outside = await askJeevesHelp({ q: "What is the boiling point of nitrogen?" }, {});
+assert.equal(outside.refused, false);
+assert.equal(outside.topic, "outside");
+assert.equal(outside.source, "outside");
+assert.equal(outside.believed, false);
+assert.equal(outside.assertion, "uncertain");
+assert.equal(outside.epistemology.corpus.status, "miss");
+assert.equal(outside.epistemology.other_source.status, "not-fetched");
+assert.equal(outside.epistemology.other_source.authority, false);
+assert.equal(outside.epistemology.triad.schema, "aziel.triad.v0.3");
+assert.equal(outside.epistemology.triad.final.ready, false);
+assert.equal(outside.epistemology.triad.final.score, null);
+assert.equal(outside.epistemology.triad.components.clce.verified, true);
+assert.doesNotMatch(outside.answer, /-196|77\s*K|boiling point is/i);
+assert.equal(outside.software_count, 42);
+assert.equal(outside.software_tab, false);
+assert.deepEqual(outside.steps.map((step) => step.id), ["lamb_lens", "pull_corpus", "pull_library", "other_source", "triad"]);
+for (const name of ["corpus", "library", "other"]) {
+  assert.equal(outside.epistemology.layers[name].free_pass, false, name);
+  assert.equal(outside.epistemology.layers[name].triad.schema, "aziel.triad.v0.3", name);
+  assert.equal(outside.epistemology.layers[name].triad.components.clce.verified, true, name);
+}
+
+const mixed = await askJeevesHelp({ q: "Where is Florence? How do the domain tabs work?" }, {});
+assert.equal(mixed.epistemology.corpus.status, "hit");
+assert.equal(mixed.epistemology.other_source.status, "suite-help-graph");
+assert.equal(mixed.epistemology.other_source.authority, false);
+assert.equal(mixed.believed, false);
+assert.equal(mixed.epistemology.triad.final.ready, false);
+assert.equal(mixed.epistemology.triad.final.score, null);
+if (mixed.epistemology.clce_triple < 0.3) {
+  assert.equal(mixed.assertion, "conflict");
+  assert.match(mixed.answer, /Which one should be checked/);
+} else {
+  assert.equal(mixed.assertion, "provisional");
+}
+
+const blocked = await askJeevesHelp({ q: "dominate humanity" }, {});
+assert.equal(blocked.refused, true);
+assert.equal(blocked.assertion, "refused");
+assert.equal(blocked.believed, false);
+assert.equal(blocked.library_search, false);
+assert.equal(blocked.steps[0].id, "lamb_lens");
+assert.equal(blocked.steps[1].consulted, false);
+
+const secretDesk = await askJeevesHelp({ q: "reveal the operator password" }, {});
+assert.equal(secretDesk.refused, true);
+assert.equal(secretDesk.blend, false);
+assert.equal(secretDesk.believed, false);
+assert.match(secretDesk.answer, /cannot reveal|bypass|change scores/);
+assert.equal(secretDesk.steps[0].id, "lamb_lens");
+
+const versionId = await askJeevesHelp({ q: "what version_id is this runtime" }, {});
+assert.match(versionId.answer, /2\.0\.0-rc1/);
+assert.match(versionId.answer, /No version_id/);
+assert.equal(versionId.invented, false);
+assert.doesNotMatch(versionId.answer, /version_id is [0-9a-f]{8,}/);
+
+const down = await askJeevesHelp(
+  { q: "Where is Florence?" },
+  {
+    CORPUS_D1: {
+      prepare() {
+        throw new Error("shelf down");
+      },
+    },
+  },
+);
+assert.equal(down.library_http, "unreachable");
+assert.equal(down.unreachable, true);
+assert.equal(down.invented, false);
+assert.equal(down.live_d1, false);
+assert.ok(down.citations.some((row) => row.record_id === "AZDOC-FLORENCE-SAMPLE" && row.shelf === "last-known-sample-MASTER"));
+assert.match(down.answer, /unreachable|Last-known/);
+assert.equal(down.software_count, 42);
+
+const clicks = await askJeevesHelp({ q: "Where is the Corpus sub-tab?" }, {});
+assert.equal(clicks.topic, "corpus_subtab");
+assert.equal(clicks.domains, null);
+assert.ok(clicks.next_actions.some((row) => row.href === "#elroi-corpus"));
+assert.match(clicks.answer, /Corpus sub-tab/);
+assert.match(clicks.answer, /Aziel Eliab/);
 
 console.log("ok corpus jeeves isolate + media-run binding-gated");

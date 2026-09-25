@@ -393,7 +393,19 @@ function aiPeerDeskHtml(p, origin) {
     "desk-azai",
     "learner",
     `<h4><a href="${escapeHtml(base)}/p/azai">AZAI</a> <span class="slug">learner</span></h4>
-  <p class="blurb">Learner. Notes cite a domain, paper, software slug, receipt hash, pin id, or a VibeLock signal channel. VibeLock notes keep physics and related signals heuristic, linguistics experimental, and vibration as a measurement only with a body-coupled track. A file name does not decode the file. Raw container bytes are refused. Scores appear only from posted features or an analysis you supply. No accuracy percentage is stored. A live 4DMap read, mesh roster read, or corpus search runs only when that pull is asked for, and the flag is true only after the read returns. Pin bodies, roster rows, and corpus hit text stay out of the receipt sentence. A memory write needs the confirm box and an operator subject. Belief is not truth.</p>
+  <p class="blurb">Learner and guide. Guide runs Lamb Lens first (Service, then Clarity, then Peace), then the public shelf and the Library tab, then any other source. The suite triad scores every candidate from those layers the same way. A shelf hit is not believed. Nothing is believed by default. It does not write memory and does not invent a Softwares row. Learn still stores cited notes. VibeLock notes keep physics and related signals heuristic, linguistics experimental, and vibration as a measurement only with a body-coupled track. A file name does not decode the file. Raw container bytes are refused. Scores appear only from posted features or an analysis you supply. No accuracy percentage is stored. A live 4DMap read, mesh roster read, or corpus search on Learn runs only when that pull is asked for, and the flag is true only after the read returns. Pin bodies, roster rows, and corpus hit text stay out of the receipt sentence. A memory write needs the confirm box and an operator subject. Belief is not truth.</p>
+  <div class="field">
+    <label for="ai-guide">Guide question</label>
+    <input id="ai-guide" type="text" placeholder="Where do I click to run a card?" autocomplete="off" spellcheck="false">
+  </div>
+  <label for="ai-guide-dry"><input id="ai-guide-dry" type="checkbox"> dry_run guide (store nothing)</label>
+  <div class="actions">
+    <button type="button" data-ai="guide">Guide</button>
+    <button type="button" data-ai="starter" data-q="Where is Florence?">Library: Florence</button>
+    <button type="button" data-ai="starter" data-q="How do I run a Softwares card?">FragGate Run</button>
+    <button type="button" data-ai="starter" data-q="Where is the Corpus sub-tab?">Corpus sub-tab</button>
+  </div>
+  <ul id="azai-next"></ul>
   <div class="field">
     <label for="ai-pin">Pin id (optional, operator supplied)</label>
     <input id="ai-pin" type="text" placeholder="pin-1" autocomplete="off" spellcheck="false">
@@ -407,13 +419,13 @@ function aiPeerDeskHtml(p, origin) {
     <input id="ai-query" type="text" placeholder="foldlock" autocomplete="off" spellcheck="false">
   </div>
   <div class="field">
-    <label for="ai-confirm"><input id="ai-confirm" type="checkbox"> Confirm memory write (AKM observe). Local notes still cite sources either way.</label>
+    <label for="ai-confirm"><input id="ai-confirm" type="checkbox"> Confirm memory write (AKM observe). Local notes still cite sources either way. Guide ignores this box.</label>
   </div>
   <div class="actions">
     <button type="button" data-ai="learn">Learn</button>
     <button type="button" data-ai="recall">Recall</button>
   </div>
-  <pre class="ws-out fg-out" id="azai-out" role="status" aria-live="polite">Learner desk. No note stored yet.</pre>`,
+  <pre class="ws-out fg-out" id="azai-out" role="status" aria-live="polite">Guide runs Lamb Lens, then the shelf, then the triad. Nothing is believed by default. Learn stores cited notes. Nothing stored yet.</pre>`,
   );
 }
 
@@ -1550,6 +1562,33 @@ export function humanDoorScript() {
         let vibe = (document.getElementById("ai-vibe") && document.getElementById("ai-vibe").value) || "";
         let query = (document.getElementById("ai-query") && document.getElementById("ai-query").value) || "";
         let box = document.getElementById("ai-confirm");
+        if (action === "guide" || action === "starter") {
+          let guideQ = action === "starter" ? (btn.getAttribute("data-q") || "") : ((document.getElementById("ai-guide") && document.getElementById("ai-guide").value) || "");
+          let dry = document.getElementById("ai-guide-dry");
+          let guideBody = { call: "learner_guide", q: guideQ };
+          if (dry && dry.checked) guideBody.dry_run = true;
+          request(origin + "/v1/interface", {
+            method: "POST",
+            headers: { "content-type": "application/json", accept: "application/json" },
+            body: JSON.stringify(guideBody)
+          }, out, btn).then(function (got) {
+            let next = document.getElementById("azai-next");
+            if (!next) return;
+            next.textContent = "";
+            let actions = got && got.body && got.body.next_actions;
+            if (!actions || !actions.forEach) return;
+            actions.forEach(function (actionRow) {
+              if (!actionRow || String(actionRow.href || "").charAt(0) !== "#") return;
+              let li = document.createElement("li");
+              let link = document.createElement("a");
+              link.href = String(actionRow.href);
+              link.textContent = String(actionRow.label || actionRow.href);
+              li.appendChild(link);
+              next.appendChild(li);
+            });
+          });
+          return;
+        }
         let body = { call: action === "recall" ? "learner_recall" : "learner_learn" };
         if (action === "recall") body.q = query;
         if (pin && String(pin).trim()) body.pins = [{ pin_id: String(pin).trim() }];

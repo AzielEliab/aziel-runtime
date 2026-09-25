@@ -13,6 +13,7 @@
 import { route } from "./engines/azbot/engine.js";
 import { handleAnalyze } from "./engines/vibelock/engine.js";
 import { LIVE_OPS } from "./fraggate/registry.js";
+import { reasonGuide } from "./guide-reason.js";
 import { SUITE_DESIGNS } from "./seo.js";
 import { sha256Hex } from "./session-core.js";
 import { UI_DOMAINS, uiDomainForSlug } from "./ui-domains.js";
@@ -20,6 +21,7 @@ import { UI_DOMAINS, uiDomainForSlug } from "./ui-domains.js";
 export const AI_DESK_SPEC = "AI-DESK-1.0";
 export const WORKER_CALLS = Object.freeze(["worker_intake", "worker_plan", "worker_status", "worker_handoff"]);
 export const LEARNER_CALLS = Object.freeze(["learner_learn", "learner_recall"]);
+export const LEARNER_GUIDE_CALL = "learner_guide";
 
 const TASK_CAP = 64;
 const NOTE_CAP = 64;
@@ -516,6 +518,26 @@ export function recallLearningNotes(query) {
         );
       });
   return rows.slice(-16);
+}
+
+export async function guideAzai(input, env) {
+  const src = input && typeof input === "object" ? input : {};
+  const raw = src.q != null ? src.q : src.question != null ? src.question : src.query != null ? src.query : src.task;
+  const q = clip(raw, 2000);
+  if (!q) return refuse(400, "IF-BAD-INPUT", "question required (q / query / question)");
+  const reasoned = await reasonGuide(q, env, { assistant: "AZAI" });
+  return {
+    ok: true,
+    body: learnerBody(LEARNER_GUIDE_CALL, {
+      ...reasoned,
+      corpus_searched: reasoned.library_search === true,
+      stored_notes: false,
+      memory: { attempted: false, reason: "guide does not write memory" },
+      pins_read: false,
+      mesh_read: false,
+    }),
+    output: String(reasoned.answer || "AZAI guide replied.").slice(0, 240),
+  };
 }
 
 export function learnerBody(call, extra) {
