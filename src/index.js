@@ -73,6 +73,9 @@
  * GET  /v1/mesh/site-presence cite hub site-viewer contract (GET never writes / never pulls /count)
  * GET  /v1/mesh/az-generator  Cap-7 semantic-bridge cite (MirageGrid; not ICANN; never enables)
  * POST /v1/mesh/broadcast     SHA-256 hash receipt only (never a publish path)
+ * GET  /v1/mesh/sot           SOT-SYNC-1.0 suite tip (GET /v1/software authority; version_id null)
+ * GET  /v1/mesh/outlets       outlet registry (aligned / drifted / unreachable / unexposed)
+ * POST /v1/mesh/sot-sync      dry_run plan, or confirm apply (ACT-RECEIPT-1.0; pull plane)
  * GET  /v1/bundle             compact bootstrap (skill URL + invoke prefix per product)
  * GET  /v1/pull?all=1         alias of /v1/bundle
  * GET  /v1/pull/{slug}        pull record (skill, download, install, ops, aliases)
@@ -147,6 +150,7 @@ import {
   setSuitePresenceCatalog,
   SUITE_PRESENCE,
 } from "./mesh.js";
+import { setSotProducts } from "./sot-sync.js";
 import { dispatchQnsHttp, qnsHint } from "./qns.js";
 import { dispatchActReceiptHttp, finishWithActReceipt } from "./library-receipts.js";
 import { forensicTip, orchestrate, runtimeUiDocument } from "./interface-orchestrator.js";
@@ -1195,6 +1199,7 @@ export const PRODUCTS = PRODUCTS_RAW.map((p) => ({
 }));
 
 setSuitePresenceCatalog(PRODUCTS);
+setSotProducts(PRODUCTS);
 
 const BY_SLUG = Object.fromEntries(PRODUCTS.map((p) => [p.slug, p]));
 
@@ -1576,6 +1581,7 @@ function escapeXml(s) {
 function llmsTxt(origin, env = {}) {
   const base = origin.replace(/\/$/, "");
   const calling = resolveCallingName(env);
+  const catalog = softwareCatalogBody(base, env);
   const lines = [
     `# ${calling.calling_name}`,
     "",
@@ -1585,6 +1591,10 @@ function llmsTxt(origin, env = {}) {
     rewriteLiveCallingDisplay(aboutAzielLlmsBlock(), calling).trimEnd(),
     "",
     `Role: engine-runtime (catalog + pull + proxy + session + in-process engines)`,
+    `suite_version: ${catalog.version || RUNTIME_VERSION}`,
+    `git_sha: ${catalog.git_sha || ""}`,
+    `softwares_count: ${catalog.count}`,
+    "version_id: null",
     "",
     rewriteLiveCallingDisplay(personLlmsBlock(origin), calling).trimEnd(),
     "",
@@ -1788,6 +1798,7 @@ function citeJson(origin, env = {}) {
   const base = origin.replace(/\/$/, "");
   const calling = resolveCallingName(env);
   const banCite = banSurvivalCiteField(origin, env);
+  const catalog = softwareCatalogBody(base, env);
   return {
     product: calling.calling_name,
     slug: calling.calling_slug,
@@ -1816,6 +1827,14 @@ function citeJson(origin, env = {}) {
     role: RUNTIME_ROLE,
     layer: RUNTIME_LAYER,
     version: RUNTIME_VERSION,
+    suite_tip: {
+      source: "GET /v1/software",
+      suite_version: catalog.version || RUNTIME_VERSION,
+      git_sha: catalog.git_sha || null,
+      softwares_count: catalog.count,
+      version_id: null,
+      version_id_note: "GET /v1/software does not expose version_id.",
+    },
     uses: base + "/v1/uses",
     stats: socialStatusField(origin),
     social_status: socialStatusField(origin),

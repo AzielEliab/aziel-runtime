@@ -754,4 +754,12 @@ assert.equal(guideUnknown.body.known, false);
 assert.equal(guideUnknown.body.invented, false);
 assert.equal(guideUnknown.body.software_count, 42);
 
+await orchestrate({ call: "worker_plan", steps: [{ slug: "foldlock", op: "fold-preview" }] });
+const tokenSeal = await orchestrate(
+  { call: "seal", confirm: true, slug: "foldlock", op: "fold-preview" },
+  { dispatch: async () => ({ ok: true, code: "FG-OK", result: { handle_token: "secret-handle" } }) },
+);
+assert.equal(tokenSeal.body.receipt.output.includes("secret-handle"), false);
+assert.equal(JSON.stringify(tokenSeal.body.receipt).includes("secret-handle"), false);
+
 console.log("ok interface orchestrator: plans stay local, seal uses ACT-RECEIPT fields, tools/list stays 36");

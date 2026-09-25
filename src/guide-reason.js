@@ -148,7 +148,7 @@ function flowAnswer(intent, cards) {
     return {
       topic: "corpus_subtab",
       answer:
-        "Click Aziel Elroi Eliab, then the Corpus sub-tab. Aziel Elroi Eliab is alternateName only. The primary name is Aziel Eliab. Corpus holds the FoldLock tip and the live library cite. Ask Jeeves is the sibling sub-tab. Neither is a top-bar domain. The Library top-bar tab still groups the Aziel Corpus and Whitestone cards.",
+        "Open the Aziel Elroi Eliab pane, then the Corpus sub-tab. Aziel Elroi Eliab is alternateName only. The primary name is Aziel Eliab. Corpus holds the FoldLock tip and the live library cite. Ask Jeeves is the sibling sub-tab. Neither is a top-bar domain. The Library top-bar tab still groups the Aziel Corpus and Whitestone cards.",
       actions: [
         { label: "Open the Corpus sub-tab", href: "#elroi-corpus" },
         { label: "Open Ask Jeeves", href: "#elroi-jeeves" },

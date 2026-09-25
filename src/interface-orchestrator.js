@@ -48,6 +48,7 @@ import {
 import { isTruthyFlag } from "./mcp-safeguard.js";
 import { normalizeAttemptLink } from "./receipt-attempt.js";
 import { askJeevesHelp, JEEVES_HELP_CALL } from "./jeeves-desk.js";
+import { runMeshOp } from "./mesh.js";
 import { RUNTIME_VERSION } from "./runtime-api.js";
 import { ZERO_HASH } from "./session-core.js";
 
@@ -67,9 +68,12 @@ export const VEILLOCK_SAFE_CALLS = Object.freeze([
 
 export const HOST_READ_CALLS = Object.freeze(["mesh_awareness", "forensic_tip", "plan", JEEVES_HELP_CALL, LEARNER_GUIDE_CALL]);
 
+export const SOT_CALLS = Object.freeze(["mesh_outlets", "mesh_sot_status", "mesh_sot_sync"]);
+
 export const INTERFACE_CALLS = Object.freeze([
   ...VEILLOCK_SAFE_CALLS,
   ...HOST_READ_CALLS,
+  ...SOT_CALLS,
   ...WORKER_CALLS,
   ...LEARNER_CALLS,
   "seal",
@@ -876,6 +880,31 @@ export async function orchestrate(input, opts = {}) {
       };
     }
     return finish(call, 200, link, "AZAI guided from the corpus and this build.", guided.output, body, opts, false);
+  }
+
+  if (SOT_CALLS.includes(call)) {
+    const env = { ...(opts.env || {}) };
+    if (typeof opts.fetchImpl === "function") env.sotFetch = opts.fetchImpl;
+    const mesh = await runMeshOp(call, { ...input, origin: input.origin }, env);
+    const status = mesh && mesh.ok === false ? mesh.http_status || 400 : 200;
+    return {
+      status,
+      body: {
+        ...mesh,
+        call,
+        spec: INTERFACE_SPEC,
+        author: INTERFACE_AUTHOR,
+        identity: "Aziel Eliab only",
+        tools_list_unchanged: true,
+        second_door: false,
+        writes_public_chain: mesh && mesh.published === true,
+        stored: mesh && mesh.written === true,
+        note: mesh && mesh.note ? mesh.note : "SOT sync is a mesh op. It is not a new tools/list name.",
+        confirm_is_consent: true,
+        tenant_auth: false,
+        receipt_same_as_http: true,
+      },
+    };
   }
 
   if (call === JEEVES_HELP_CALL) {
