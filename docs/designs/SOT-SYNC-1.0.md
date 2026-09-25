@@ -106,7 +106,7 @@ Joined product nodes advertise a hook with `POST /v1/mesh/join` field `outlet_ho
 
 ## Stack
 
-This runtime draft sits on PR #169 (`cursor/audit-stack-5b75`), which sits on PR #168 (`cursor/interface-orchestrator-15a4`). The Aziel Elroi Eliab label is a top-bar domain tab. Corpus is a sub-tab of `#elroi-pane`. It is not a top-bar peer.
+This runtime draft sits on PR #169 (`cursor/audit-stack-5b75`), which sits on PR #168 (`cursor/interface-orchestrator-15a4`). Aziel Elroi Eliab is `#elroi-pane`, not a top-bar domain. Corpus is a sub-tab of that pane. It is not a top-bar peer.
 
 ## Sister adapters
 

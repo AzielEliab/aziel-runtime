@@ -320,7 +320,8 @@ assert.equal(PUBLIC_MCP_TOOLS.includes("mesh_sot_sync"), false);
 
 const home = await handler(new Request(origin + "/", { headers: { "user-agent": "Mozilla/5.0", accept: "text/html" } }), env());
 const html = await home.text();
-assert.match(html, /data-domain-tab="elroi"/);
+assert.match(html, /id="elroi-pane"/);
+assert.doesNotMatch(html, /data-domain-tab="elroi"/);
 assert.match(html, /data-elroi-tab="corpus"/);
 assert.doesNotMatch(html, /data-domain-tab="corpus"/);
 assert.match(html, /id="sot-desk"/);

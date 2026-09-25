@@ -21,6 +21,8 @@
 
 import {
   LEARNER_CALLS,
+  LEARNER_GUIDE_CALL,
+  guideAzai,
   WORKER_CALLS,
   buildLearningNotes,
   learnerBody,
@@ -45,6 +47,7 @@ import {
 } from "./library-receipts.js";
 import { isTruthyFlag } from "./mcp-safeguard.js";
 import { normalizeAttemptLink } from "./receipt-attempt.js";
+import { sealAdaptive } from "./jeeves-adapt.js";
 import { askJeevesHelp, JEEVES_HELP_CALL } from "./jeeves-desk.js";
 import { runMeshOp } from "./mesh.js";
 import { RUNTIME_VERSION } from "./runtime-api.js";
@@ -64,7 +67,7 @@ export const VEILLOCK_SAFE_CALLS = Object.freeze([
   "runtime_ui",
 ]);
 
-export const HOST_READ_CALLS = Object.freeze(["mesh_awareness", "forensic_tip", "plan", JEEVES_HELP_CALL]);
+export const HOST_READ_CALLS = Object.freeze(["mesh_awareness", "forensic_tip", "plan", JEEVES_HELP_CALL, LEARNER_GUIDE_CALL]);
 
 export const SOT_CALLS = Object.freeze(["mesh_outlets", "mesh_sot_status", "mesh_sot_sync"]);
 
@@ -513,6 +516,14 @@ function reconcileSealOutcome(link, door) {
   return "completed";
 }
 
+async function finishAdaptive(done, env) {
+  if (!done || !done.body || !done.body.adaptive || done.body.adaptive.stored !== true) return done;
+  const hash = done.body.receipt && done.body.receipt.hash;
+  const sealed = await sealAdaptive(env, hash);
+  if (sealed.ok) done.body.adaptive.receipt_hash = sealed.receipt_hash;
+  return done;
+}
+
 async function finish(call, status, link, requestSentence, outputSentence, body, opts, sealed) {
   const kept = await remember(call, status, requestSentence, outputSentence, link, sealed);
   if (!kept.ok) return fail(503, kept.code, kept.error);
@@ -844,6 +855,45 @@ export async function orchestrate(input, opts = {}) {
     );
   }
 
+  if (call === LEARNER_GUIDE_CALL) {
+    const guided = await guideAzai(input, opts.env);
+    if (!guided.ok) return fail(guided.status, guided.code, guided.error, { call });
+    const dry = isTruthyFlag(input.dry_run);
+    const body = closed({
+      ...guided.body,
+      call: LEARNER_GUIDE_CALL,
+      dry_run: dry,
+      confirm_ignored: isTruthyFlag(input.confirm),
+      dispatched_fraggate: false,
+      writes_public_chain: false,
+      stored_notes: false,
+    });
+    if (dry) {
+      return {
+        status: 200,
+        body: {
+          ...body,
+          ok: true,
+          spec: INTERFACE_SPEC,
+          author: INTERFACE_AUTHOR,
+          identity: "Aziel Eliab only",
+          receipt: null,
+          sealed: false,
+          published: false,
+          stored: false,
+          store: "none",
+          durable: false,
+          writes_public_chain: false,
+          note: "Dry run stored nothing.",
+        },
+      };
+    }
+    return finishAdaptive(
+      await finish(call, 200, link, "AZAI guided from the corpus and this build.", guided.output, body, opts, false),
+      opts.env,
+    );
+  }
+
   if (SOT_CALLS.includes(call)) {
     const env = { ...(opts.env || {}) };
     if (typeof opts.fetchImpl === "function") env.sotFetch = opts.fetchImpl;
@@ -903,7 +953,10 @@ export async function orchestrate(input, opts = {}) {
       };
     }
     const output = help.answer ? String(help.answer).slice(0, 240) : "Ask Jeeves replied.";
-    return finish(call, 200, link, "Interface asked Jeeves for help on this build.", output, body, opts, false);
+    return finishAdaptive(
+      await finish(call, 200, link, "Interface asked Jeeves for help on this build.", output, body, opts, false),
+      opts.env,
+    );
   }
 
   if (WORKER_CALLS.includes(call) || LEARNER_CALLS.includes(call)) {

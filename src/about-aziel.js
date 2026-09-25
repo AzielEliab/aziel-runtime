@@ -29,6 +29,7 @@ import {
   whatAzielEliabDoesMachineField,
 } from "./person-index.js";
 import { JEEVES_PUBLIC_FILE_COUNT } from "./engines/aziel-corpus/jeeves-eggs.js";
+import { GUIDE_STARTERS } from "./guide-reason.js";
 import { RUNTIME_VERSION } from "./runtime-api.js";
 
 export function aboutAzielCiteField() {
@@ -185,6 +186,7 @@ ${jeevesHelpHtml(origin)}
     #elroi-pane .elroi-tabs button{background:#241c0d;color:#f0d78c;border:1px solid #5c4a1a;border-radius:8px;padding:.4rem .75rem;cursor:pointer;font:inherit}
     #elroi-pane .elroi-tabs button[aria-selected="true"]{box-shadow:0 0 0 1px #d4af37}
     #jeeves-egg{max-width:280px;display:block;margin:.5rem 0}
+    #jeeves-laugh{font-size:1.2rem;margin:.6rem 0 .2rem;color:#f0d78c}
   </style>
   <script>
 (function () {
@@ -215,16 +217,29 @@ ${jeevesHelpHtml(origin)}
   var origin = box.getAttribute("data-origin") || "";
   var library = box.getAttribute("data-library") || "";
   var out = document.getElementById("jeeves-out");
-  var img = document.getElementById("jeeves-egg");
+    var img = document.getElementById("jeeves-egg");
+    var laughEl = document.getElementById("jeeves-laugh");
   var miss = document.getElementById("jeeves-egg-miss");
   var field = document.getElementById("jeeves-q");
   var dry = document.getElementById("jeeves-dry");
+  var adapt = document.getElementById("jeeves-adapt");
   var previous = "";
   var snake = null;
   function paint(body) {
     var answer = body && body.answer != null ? String(body.answer) : "";
     var head = body && body.display && body.display.summary ? body.display.summary : (body && body.source ? body.source : "");
     out.textContent = (head ? head + "\\n\\n" : "") + (answer ? answer + "\\n\\n" : "") + JSON.stringify(body, null, 2);
+    var laugh = body && body.laugh && body.laugh.text ? String(body.laugh.text) : "";
+    if (laughEl) {
+      if (laugh) {
+        var line = body.laugh.line ? String(body.laugh.line) : "";
+        laughEl.hidden = false;
+        laughEl.textContent = line ? laugh + " " + line : laugh;
+      } else {
+        laughEl.hidden = true;
+        laughEl.textContent = "";
+      }
+    }
     var path = body && body.image ? String(body.image) : "";
     if (img) {
       if (path) {
@@ -238,6 +253,22 @@ ${jeevesHelpHtml(origin)}
     }
     if (miss) miss.textContent = "";
     if (body && body.snake) snake = body.snake;
+    var next = document.getElementById("jeeves-next");
+    if (next) {
+      next.textContent = "";
+      var actions = body && body.next_actions;
+      if (actions && actions.forEach) {
+        actions.forEach(function (action) {
+          if (!action || String(action.href || "").charAt(0) !== "#") return;
+          var li = document.createElement("li");
+          var link = document.createElement("a");
+          link.href = String(action.href);
+          link.textContent = String(action.label || action.href);
+          li.appendChild(link);
+          next.appendChild(li);
+        });
+      }
+    }
   }
   if (img) {
     img.addEventListener("error", function () {
@@ -253,6 +284,7 @@ ${jeevesHelpHtml(origin)}
     }
     var body = { call: "jeeves_help", q: text, previous: previous };
     if (dry && dry.checked) body.dry_run = true;
+    if (adapt && adapt.checked && !(dry && dry.checked)) body.confirm = true;
     if (snake && /^(up|down|left|right|u|d|l|r|quit|exit|stop|end)$/i.test(text)) body.snake = snake;
     out.textContent = "Asking Jeeves…";
     fetch(origin + "/v1/interface", {
@@ -270,6 +302,7 @@ ${jeevesHelpHtml(origin)}
     btn.addEventListener("click", function () {
       var kind = btn.getAttribute("data-jeeves");
       if (kind === "eggs") ask("list ask jeeves easter eggs");
+      else if (kind === "starter") ask(btn.getAttribute("data-q"));
       else ask(field && field.value);
     });
   });
@@ -285,21 +318,30 @@ ${jeevesHelpHtml(origin)}
 
 function jeevesHelpHtml(origin) {
   const base = String(origin || "").replace(/\/$/, "");
+  const starters = GUIDE_STARTERS.map(
+    (row) => `    <button type="button" data-jeeves="starter" data-q="${escapeHtml(row.q)}">${escapeHtml(row.label)}</button>`,
+  ).join("\n");
   return `<section class="dash" id="desk-jeeves" data-origin="${escapeHtml(base)}" data-library="${escapeHtml(LIVE_LIBRARY_ORIGIN)}">
   <h2>Ask Jeeves <span class="hashtag">#ask-jeeves</span></h2>
-  <p>Suite help for this build (<strong>${escapeHtml(RUNTIME_VERSION)}</strong>). Answers about domain tabs, receipts, and dry_run come from this runtime. Library answers come from corpus op <code>jeeves</code> on <code>aziel-corpus</code>. The Softwares card for that library carries <code>suite_help</code> with <code>software_tab</code> false. Last-known easter-egg files: ${JEEVES_PUBLIC_FILE_COUNT} under the corpus Worker public directory. This page does not host the bitmaps. A live fetch is not attempted until an image tag loads.</p>
+  <p>Suite help for this build (<strong>${escapeHtml(RUNTIME_VERSION)}</strong>). Lamb Lens runs first (Service, then Clarity, then Peace). The public shelf and the Library tab are next. Other sources come after that. The suite triad scores every candidate from those layers the same way. A shelf hit is not believed. Nothing is believed by default. Corpus op <code>jeeves</code> on <code>aziel-corpus</code> is the shelf. Ask Jeeves stays suite help, <code>software_tab</code> false, not a Softwares card. If the shelf has no row, the reply says so. Last-known easter-egg files: ${JEEVES_PUBLIC_FILE_COUNT} under the corpus Worker public directory. This page does not host the bitmaps. An easter-egg phrase laughs first, then the same answer path still runs. A confirmed adaptive count stores topic and hash totals only, and a suggested path is not believed.</p>
+  <div class="actions">
+${starters}
+  </div>
   <div class="field">
     <label for="jeeves-q">Question</label>
-    <input id="jeeves-q" type="text" placeholder="How do the domain tabs work?" autocomplete="off" spellcheck="false">
+    <input id="jeeves-q" type="text" placeholder="Where do I click?" autocomplete="off" spellcheck="false">
   </div>
   <label><input id="jeeves-dry" type="checkbox"> dry_run (store nothing)</label>
+  <label><input id="jeeves-adapt" type="checkbox"> confirm adaptive count (stores topic counts only, not the question)</label>
   <div class="actions">
     <button type="button" data-jeeves="ask">Ask</button>
     <button type="button" data-jeeves="eggs">List easter eggs</button>
   </div>
+  <p id="jeeves-laugh" hidden></p>
   <img id="jeeves-egg" alt="" hidden>
   <p id="jeeves-egg-miss" class="secondary"></p>
-  <pre class="fg-out" id="jeeves-out" role="status" aria-live="polite">Ask about this build, or list the corpus easter eggs.</pre>
+  <ul id="jeeves-next"></ul>
+  <pre class="fg-out" id="jeeves-out" role="status" aria-live="polite">Ask a question. Lamb Lens runs first, then the shelf, then the triad. Nothing is believed by default. Confirm adaptive count stores topic totals only. Suggested questions are above.</pre>
 </section>`;
 }
 
