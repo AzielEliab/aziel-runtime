@@ -20,6 +20,8 @@ import { launchHashtagChipsHtml } from "./launch-parts.js";
 import { brandRow, ecosystemBlockHtml, headMeta } from "./seo-html.js";
 import { suiteDownloadHref } from "./human-hrefs.js";
 import { suiteDownloadHtml } from "./suite-pack.js";
+import { softwareOneLine } from "./software-copy.js";
+import { UI_DOMAIN_DEFAULT, UI_DOMAINS, uiDomainForSlug } from "./ui-domains.js";
 
 export const WORKSPACE_PAGE_TITLE = `Workspace — ${PRODUCT_NAME}`;
 export const WORKSPACE_PAGE_DESCRIPTION =
@@ -221,6 +223,11 @@ export const HUMAN_TASKS = Object.freeze([
 export const HUMAN_UI_CSS = `
   .skip-workspace{position:absolute;left:-999px;top:auto;width:1px;height:1px;overflow:hidden}
   .skip-workspace:focus{position:static;width:auto;height:auto;padding:.35rem .7rem;background:#241c0d;color:#f0d78c}
+  .domain-tabs{display:flex;flex-wrap:wrap;gap:.4rem;margin:0 0 .65rem;padding:.55rem .7rem;border:1px solid #3d3420;border-radius:10px;background:#16120a}
+  .domain-tabs button{background:#241c0d;color:#f0d78c;border:1px solid #5c4a1a;border-radius:8px;padding:.4rem .75rem;cursor:pointer;font:inherit;font-size:.85rem;font-weight:600}
+  .domain-tabs button:hover,.domain-tabs button:focus{background:#33280f}
+  .domain-tabs button[aria-selected="true"]{background:#33280f;box-shadow:0 0 0 1px #d4af37}
+  .dash-card.domain-off{display:none}
   .human-nav{display:flex;flex-wrap:wrap;gap:.45rem .75rem;margin:0 0 1.1rem;padding:.55rem .7rem;border:1px solid #3d3420;border-radius:10px;background:#16120a}
   .human-nav a{color:#f0d78c;font-weight:600;text-decoration:none}
   .human-nav a:hover,.human-nav a:focus{text-decoration:underline}
@@ -354,9 +361,11 @@ function dashCardHtml(p, origin) {
   const live = hasLiveDoor(p.slug);
   const op = primaryOpFor(p.slug);
   const task = HUMAN_TASKS.find((t) => t.slug === p.slug);
-  let door = live
-    ? `<button type="button" class="dash-run" data-slug="${escapeHtml(p.slug)}" data-op="${escapeHtml(op)}">Run ${escapeHtml(doorOpLabel(p.slug, op))}</button>`
-    : `<span class="slug">local only — no public FragGate door</span>`;
+  let door = p.worker_only
+    ? `<span class="slug">worker only — FragGate status none</span>`
+    : live
+      ? `<button type="button" class="dash-run" data-slug="${escapeHtml(p.slug)}" data-op="${escapeHtml(op)}">Run ${escapeHtml(doorOpLabel(p.slug, op))}</button>`
+      : `<span class="slug">local only — no public FragGate door</span>`;
   if (p.slug === "veillock") {
     door += ` <a href="#desk-veillock">Open desk</a>`;
   }
@@ -374,7 +383,9 @@ function dashCardHtml(p, origin) {
     ? `<a href="#task-${escapeHtml(p.slug)}">Labeled fields</a>`
     : `<a href="${escapeHtml(base)}/p/${escapeHtml(p.slug)}">Product card</a>`;
   const hay = `${p.name} ${p.slug} ${p.oneLine || ""} pair aznet azbrowser`.toLowerCase();
-  return `<article class="dash-card" data-dash-slug="${escapeHtml(p.slug)}" data-search="${escapeHtml(hay)}">
+  const domain = uiDomainForSlug(p.slug) || "catalog";
+  const off = domain === UI_DOMAIN_DEFAULT ? "" : " domain-off";
+  return `<article class="dash-card${off}" data-dash-slug="${escapeHtml(p.slug)}" data-domain="${escapeHtml(domain)}" data-search="${escapeHtml(hay)}">
   <h4><a href="${escapeHtml(base)}/p/${escapeHtml(p.slug)}">${escapeHtml(p.name)}</a> <span class="slug">${escapeHtml(p.slug)}</span></h4>
   <p class="blurb">${escapeHtml(p.oneLine || "")}</p>
   ${launchHashtagChipsHtml(p)}
@@ -394,7 +405,16 @@ export function workspacePaneHtml(origin, products) {
   const base = String(origin || "").replace(/\/$/, "");
   const tasks = HUMAN_TASKS.map(taskCardHtml).join("\n");
   const slugs = productOptions(products);
-  const dashCards = (products || []).map((p) => dashCardHtml(p, base)).join("\n");
+  const catalog = (products || []).slice();
+  if (!catalog.some((p) => p.slug === "whitestone")) {
+    catalog.push({
+      slug: "whitestone",
+      name: "Whitestone",
+      oneLine: softwareOneLine("whitestone"),
+      worker_only: true,
+    });
+  }
+  const dashCards = catalog.map((p) => dashCardHtml(p, base)).join("\n");
   const veilProduct = (products || []).find((p) => p.slug === "veillock");
   const veilChips = veilProduct ? launchHashtagChipsHtml(veilProduct) : "";
   return `<section class="workspace" id="workspace" aria-labelledby="workspace-title">
@@ -404,6 +424,16 @@ export function workspacePaneHtml(origin, products) {
     <label for="task-filter">Search tasks</label>
     <input id="task-filter" type="search" placeholder="decisiongate, fold, mesh…" autocomplete="off">
   </div>
+
+  <h3 id="dash-softwares-title">Softwares</h3>
+  <div class="field">
+    <label for="dash-filter">Search Softwares</label>
+    <input id="dash-filter" type="search" placeholder="foldlock, receipt, browser…" autocomplete="off">
+  </div>
+  <div class="sw-grid" id="dash-softwares" data-active="${escapeHtml(UI_DOMAIN_DEFAULT)}">
+${dashCards}
+  </div>
+  <pre class="ws-out fg-out" id="dash-out" role="status" aria-live="polite">Pick a Software card. FragGate only.</pre>
 
   <section class="op-panel" id="op-panel" data-origin="${escapeHtml(base)}" aria-labelledby="op-panel-title">
     <h3 id="op-panel-title">Operator control panel</h3>
@@ -527,7 +557,6 @@ export function workspacePaneHtml(origin, products) {
 
   <section class="dash" id="interface-panel" data-kind="interface" data-origin="${escapeHtml(base)}">
     <h3>Interface</h3>
-    <p class="honesty">Human side of this runtime, in the same workspace tiles as the Softwares grid, the operator rack, and the receipt board. One door: FragGate. Lamb Lens: Service → Clarity → Peace. MCP method <code>interface/orchestrate</code> is the same body as <code>POST /v1/interface</code> and is not a tools/list name. Node-mesh awareness does not join and does not read Live Nodes. Forensic seal keeps ACT-RECEIPT-1.0 fields <code>hash</code>, <code>request</code>, <code>output</code>, <code>event</code>. AZInterface stays its own Software on the task grid. Identity ${escapeHtml(AUTHOR_NAME)} only. Design: <a href="https://github.com/AzielEliab/aziel-runtime/blob/main/docs/designs/AZL-WP-1.1.md">AZL-WP-1.1</a> · <a href="https://github.com/AzielEliab/aziel-runtime/blob/main/docs/designs/MASTER-33-SOFTWARE.md">MASTER-33</a>.</p>
     <div class="sw-grid" id="interface-desks">
       <article class="dash-card" id="desk-veillock" data-desk="veillock">
         <h4><a href="${escapeHtml(base)}/p/veillock">VeilLock</a> <span class="slug">veillock</span></h4>
@@ -663,15 +692,6 @@ export function workspacePaneHtml(origin, products) {
       <div class="metric"><span class="label">Hardware</span><span class="value" id="metric-hardware">—</span></div>
     </div>
     ${suiteDownloadHtml(base, { id: "suite-download-dash" })}
-    <h3 id="dash-softwares-title">Softwares</h3>
-    <div class="field">
-      <label for="dash-filter">Search Softwares</label>
-      <input id="dash-filter" type="search" placeholder="foldlock, receipt, browser…" autocomplete="off">
-    </div>
-    <div class="sw-grid" id="dash-softwares">
-${dashCards}
-    </div>
-    <pre class="ws-out fg-out" id="dash-out" role="status" aria-live="polite">Pick a Software card. FragGate only.</pre>
     <div class="receipt-board" id="dash-receipts">
       <h3>Receipts</h3>
       <p class="blurb">ACT-RECEIPT-1.0 cite from <code>GET /v1/receipts</code>. Public chain lives on the corpus. Fail-open is append-skip without a token. Empty or dark public tip is SLOT, not success. Local mints from this pane are listed below — hosted never stores files.</p>
@@ -728,7 +748,14 @@ export function humanNavHtml(origin, { current } = {}) {
   const base = String(origin || "").replace(/\/$/, "");
   const ws = current === "workspace" ? `${base}/workspace#workspace` : "#workspace";
   const home = `${base}/`;
+  const tabs = UI_DOMAINS.map((domain) => {
+    const on = domain.id === UI_DOMAIN_DEFAULT;
+    return `<button type="button" role="tab" id="domain-tab-${escapeHtml(domain.id)}" data-domain-tab="${escapeHtml(domain.id)}" aria-selected="${on ? "true" : "false"}" aria-controls="dash-softwares">${escapeHtml(domain.label)}</button>`;
+  }).join("\n    ");
   return `<a class="skip-workspace" href="${current === "workspace" ? "#workspace" : "#workspace"}">Skip to workspace</a>
+<div class="domain-tabs" role="tablist" aria-label="Software domains">
+    ${tabs}
+</div>
 <nav class="human-nav" aria-label="Human workspace">
   <a href="${escapeHtml(ws)}">Workspace</a>
   <a href="#op-panel">Control panel</a>
@@ -1374,15 +1401,33 @@ export function humanDoorScript() {
     });
   }
   let dashFilter = document.getElementById("dash-filter");
-  if (dashFilter) {
-    dashFilter.addEventListener("input", function () {
-      let q = String(dashFilter.value || "").toLowerCase().trim();
-      document.querySelectorAll("[data-dash-slug]").forEach(function (el) {
-        let hay = String(el.getAttribute("data-search") || el.textContent || "").toLowerCase();
-        el.classList.toggle("task-hidden", !!(q && hay.indexOf(q) === -1));
-      });
+  let activeDomain = "${UI_DOMAIN_DEFAULT}";
+  function applyDomain() {
+    let q = dashFilter ? String(dashFilter.value || "").toLowerCase().trim() : "";
+    document.querySelectorAll("[data-domain-tab]").forEach(function (tab) {
+      tab.setAttribute("aria-selected", tab.getAttribute("data-domain-tab") === activeDomain ? "true" : "false");
+    });
+    let grid = document.getElementById("dash-softwares");
+    if (grid) grid.setAttribute("data-active", q ? "search" : activeDomain);
+    document.querySelectorAll("[data-dash-slug]").forEach(function (el) {
+      let hay = String(el.getAttribute("data-search") || el.textContent || "").toLowerCase();
+      let searchMiss = !!(q && hay.indexOf(q) === -1);
+      let domainMiss = !q && el.getAttribute("data-domain") !== activeDomain;
+      el.classList.toggle("task-hidden", searchMiss);
+      el.classList.toggle("domain-off", domainMiss);
     });
   }
+  document.querySelectorAll("[data-domain-tab]").forEach(function (tab) {
+    tab.addEventListener("click", function () {
+      activeDomain = tab.getAttribute("data-domain-tab") || activeDomain;
+      if (dashFilter) dashFilter.value = "";
+      applyDomain();
+      let grid = document.getElementById("dash-softwares");
+      if (grid && grid.scrollIntoView) grid.scrollIntoView({ block: "start" });
+    });
+  });
+  if (dashFilter) dashFilter.addEventListener("input", applyDomain);
+  applyDomain();
 })();
 </script>`;
 }
