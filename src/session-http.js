@@ -9,8 +9,7 @@ import { RUNTIME_VERSION } from "./runtime-api.js";
 import { executeLocal, proxyFallbackMeta } from "./engines/runner.js";
 import { attachExecDisplay } from "./display.js";
 import { confirmConsentHonesty } from "./mcp-safeguard.js";
-import { enterFragGate, infraStatus, refuseInfra, stampActs } from "./auto-gate.js";
-import { buildRegistry } from "./fraggate/registry.js";
+import { peersQuiet, stampActs } from "./auto-gate.js";
 import {
   CONFIRM_PARAM_NOTE,
   sessionIdProps,
@@ -206,17 +205,6 @@ async function handleExec(request, env, id, { json, PRODUCTS, BY_SLUG, upstreamF
   const op = String(body.op || "").trim();
   const payload = body.payload !== undefined ? body.payload : {};
   const callerStamps = String(request.headers.get("x-aziel-auto-infra") || "") === "caller";
-  if (!callerStamps && slug && op) {
-    const entered = await enterFragGate({
-      name: "runtime_session_exec",
-      args: { slug, op, payload },
-      registry: buildRegistry(PRODUCTS),
-      bySlug: BY_SLUG,
-    });
-    if (!entered.proceed) {
-      return json({ ...entered.envelope, ...confirmConsentHonesty(), infra: refuseInfra() }, 400);
-    }
-  }
   const product = BY_SLUG[slug];
   const known = new Set(PRODUCTS.map((p) => p.slug));
   const payloadText = payloadTextOf(payload);
@@ -336,11 +324,11 @@ async function handleExec(request, env, id, { json, PRODUCTS, BY_SLUG, upstreamF
   });
   const infra =
     !callerStamps && commitRes.status < 400
-      ? infraStatus({
-          fraggateRole: "gate",
+      ? {
+          fraggate: { ran: false, role: "raw-session", reason: "session file is not the door" },
           chainlock: await stampActs(env, "runtime_session_exec"),
-          peerReason: "acts stamp only",
-        })
+          peers: peersQuiet("acts stamp only"),
+        }
       : null;
   return json(
     {
