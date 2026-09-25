@@ -279,6 +279,9 @@ export const HUMAN_UI_CSS = `
   .dash-card{border:1px solid #2a3140;border-radius:10px;padding:.7rem .8rem;background:#151922}
   .dash-card h4{margin:.05rem 0 .25rem;font-size:.98rem}
   .dash-card .blurb{min-height:2.4rem}
+  .desk-fields{display:grid;gap:.65rem}
+  @media (min-width:40rem){ .desk-fields{grid-template-columns:1fr 1fr} }
+  .desk-fields .field{margin:0}
   .receipt-board{border:1px solid #2a3140;border-radius:10px;padding:.75rem .85rem;background:#12151c}
   .receipt-log{list-style:none;margin:.4rem 0 0;padding:0}
   .receipt-log li{border-top:1px solid #2a3140;padding:.45rem 0;font-size:.88rem}
@@ -354,6 +357,9 @@ function dashCardHtml(p, origin) {
   let door = live
     ? `<button type="button" class="dash-run" data-slug="${escapeHtml(p.slug)}" data-op="${escapeHtml(op)}">Run ${escapeHtml(doorOpLabel(p.slug, op))}</button>`
     : `<span class="slug">local only — no public FragGate door</span>`;
+  if (p.slug === "veillock") {
+    door += ` <a href="#desk-veillock">Open desk</a>`;
+  }
   if (p.slug === "aznet" && live) {
     door = `<button type="button" class="dash-run" data-slug="aznet" data-op="pair_status">Pair status</button>
     <button type="button" class="dash-run" data-slug="aznet" data-op="pair">pair</button>`;
@@ -389,6 +395,8 @@ export function workspacePaneHtml(origin, products) {
   const tasks = HUMAN_TASKS.map(taskCardHtml).join("\n");
   const slugs = productOptions(products);
   const dashCards = (products || []).map((p) => dashCardHtml(p, base)).join("\n");
+  const veilProduct = (products || []).find((p) => p.slug === "veillock");
+  const veilChips = veilProduct ? launchHashtagChipsHtml(veilProduct) : "";
   return `<section class="workspace" id="workspace" aria-labelledby="workspace-title">
   <h2 id="workspace-title">What do you want to do?</h2>
   <p class="hint">Human workspace first. Operator control panel + dashboard below. Same FragGate door as MCP <code>fraggate_call</code> / <code>POST ${escapeHtml(base)}/v1/fraggate/call</code>. Architecture, cite, and version history stay below. Identity ${escapeHtml(AUTHOR_NAME)} only.</p>
@@ -517,43 +525,89 @@ export function workspacePaneHtml(origin, products) {
     </article>
   </div>
 
-  <section class="task" id="interface-panel" data-kind="interface" data-origin="${escapeHtml(base)}">
-    <h3>Interface — plan / seal</h3>
-    <p class="blurb">Human side of this runtime. VeilLock stays <code>local_only</code> with an empty public door. Safe calls share <code>POST /v1/interface</code> and MCP method <code>interface/orchestrate</code> (not a tools/list name). A plan does not launch, join, register a camera, return a key, lift a veil, or append the public receipt chain. Seal needs the confirm box. Live Software dispatch still goes through FragGate. Mesh awareness does not join and does not read Live Nodes.</p>
-    <div class="field">
-      <label for="if-url">Meeting URL (optional, plan only)</label>
-      <input id="if-url" type="text" placeholder="https://teams.microsoft.com/..." autocomplete="off" spellcheck="false">
+  <section class="dash" id="interface-panel" data-kind="interface" data-origin="${escapeHtml(base)}">
+    <h3>Interface</h3>
+    <p class="honesty">Human side of this runtime, in the same workspace tiles as the Softwares grid, the operator rack, and the receipt board. One door: FragGate. Lamb Lens: Service → Clarity → Peace. MCP method <code>interface/orchestrate</code> is the same body as <code>POST /v1/interface</code> and is not a tools/list name. Node-mesh awareness does not join and does not read Live Nodes. Forensic seal keeps ACT-RECEIPT-1.0 fields <code>hash</code>, <code>request</code>, <code>output</code>, <code>event</code>. AZInterface stays its own Software on the task grid. Identity ${escapeHtml(AUTHOR_NAME)} only. Design: <a href="https://github.com/AzielEliab/aziel-runtime/blob/main/docs/designs/AZL-WP-1.1.md">AZL-WP-1.1</a> · <a href="https://github.com/AzielEliab/aziel-runtime/blob/main/docs/designs/MASTER-33-SOFTWARE.md">MASTER-33</a>.</p>
+    <div class="sw-grid" id="interface-desks">
+      <article class="dash-card" id="desk-veillock" data-desk="veillock">
+        <h4><a href="${escapeHtml(base)}/p/veillock">VeilLock</a> <span class="slug">veillock</span></h4>
+        <p class="blurb">local_only. Public door ops stay empty. Schema <code>veillock-runtime-ui-1</code>. A plan does not launch, join, register a camera, return a key, or lift a veil.</p>
+        ${veilChips}
+        <p class="banner">Catalog wrap, engulf, join, link, play, and record stay on the local desk. This host does not run them.</p>
+        <div class="actions">
+          <button type="button" data-if="runtime_ui">Contract</button>
+          <button type="button" data-if="status_report">Status</button>
+          <button type="button" data-if="join_plan">Join plan</button>
+          <button type="button" data-if="engulf_plan">Engulf plan</button>
+          <button type="button" data-if="describe">Describe</button>
+        </div>
+      </article>
+      <article class="dash-card" id="desk-mesh" data-desk="mesh">
+        <h4>Node mesh <span class="slug">awareness</span></h4>
+        <p class="blurb">Same mesh laws as the status panel. This tile does not join, heartbeat, leave, enable radios, or read Live Nodes.</p>
+        <div class="actions">
+          <button type="button" data-if="mesh_awareness">Mesh awareness</button>
+          <a href="#mesh-panel">Mesh status</a>
+        </div>
+      </article>
+      <article class="dash-card" id="desk-forensic" data-desk="forensic">
+        <h4>Forensic <span class="slug">ACT-RECEIPT-1.0</span></h4>
+        <p class="blurb">Fields stay hash, request, output, and event. Attempt ids stay request_id, attempt_n, parent_receipt_id, and correlation_id. Isolate memory. Not a court filing.</p>
+        <div class="actions">
+          <button type="button" data-if="forensic_tip">Audit tip</button>
+        </div>
+      </article>
+      <article class="dash-card" id="desk-mcp" data-desk="mcp">
+        <h4>MCP <span class="slug">interface/orchestrate</span></h4>
+        <p class="blurb">Agents and this pane share one planner. tools/list stays 36 names. Live dispatch still goes through FragGate.</p>
+        <div class="actions">
+          <a href="${escapeHtml(base)}/mcp">Connect AI</a>
+        </div>
+      </article>
     </div>
-    <div class="field">
-      <label for="if-app">App name (optional)</label>
-      <input id="if-app" type="text" placeholder="zoom" autocomplete="off" spellcheck="false">
+    <div class="op-rack" id="interface-rack">
+      <div class="op-row">
+        <p class="hint" style="margin:0">Plan fields. Sent with Join plan, Engulf plan, Status, and Describe. A URL is not fetched and is not stored.</p>
+        <div class="desk-fields">
+          <div class="field">
+            <label for="if-url">Meeting URL (optional, plan only)</label>
+            <input id="if-url" type="text" placeholder="https://teams.microsoft.com/..." autocomplete="off" spellcheck="false">
+          </div>
+          <div class="field">
+            <label for="if-app">App name (optional)</label>
+            <input id="if-app" type="text" placeholder="zoom" autocomplete="off" spellcheck="false">
+          </div>
+          <div class="field">
+            <label for="if-platform">Platform (optional)</label>
+            <input id="if-platform" type="text" placeholder="linux" autocomplete="off" spellcheck="false">
+          </div>
+        </div>
+      </div>
+      <div class="op-row">
+        <p class="hint" style="margin:0">Seal needs the confirm box. An empty slug seals veillock locally and does not launch. A live slug and op still go through FragGate.</p>
+        <div class="desk-fields">
+          <div class="field">
+            <label for="if-slug">Door slug (seal dispatch only)</label>
+            <input id="if-slug" type="text" placeholder="leave empty for a local seal" autocomplete="off" spellcheck="false">
+          </div>
+          <div class="field">
+            <label for="if-op">Door op (seal dispatch only)</label>
+            <input id="if-op" type="text" placeholder="fold-preview" autocomplete="off" spellcheck="false">
+          </div>
+        </div>
+        <div class="field">
+          <label for="if-confirm"><input id="if-confirm" type="checkbox"> Confirm seal (required before anything is sealed or dispatched)</label>
+        </div>
+        <div class="actions">
+          <button type="button" data-if="seal">Seal</button>
+        </div>
+      </div>
     </div>
-    <div class="field">
-      <label for="if-platform">Platform (optional)</label>
-      <input id="if-platform" type="text" placeholder="linux" autocomplete="off" spellcheck="false">
+    <div class="receipt-board" id="interface-receipt">
+      <h3>Desk output</h3>
+      <p class="blurb">Same status line as the other desks. A plan does not append the public receipt chain.</p>
+      <pre class="ws-out fg-out" id="interface-out" role="status" aria-live="polite">GET ${escapeHtml(base)}/v1/interface — plans do not launch</pre>
     </div>
-    <div class="field">
-      <label for="if-slug">Door slug (seal dispatch only)</label>
-      <input id="if-slug" type="text" placeholder="leave empty for a local seal" autocomplete="off" spellcheck="false">
-    </div>
-    <div class="field">
-      <label for="if-op">Door op (seal dispatch only)</label>
-      <input id="if-op" type="text" placeholder="fold-preview" autocomplete="off" spellcheck="false">
-    </div>
-    <div class="field">
-      <label for="if-confirm"><input id="if-confirm" type="checkbox"> Confirm seal (required before anything is sealed or dispatched)</label>
-    </div>
-    <div class="actions">
-      <button type="button" data-if="runtime_ui">Contract</button>
-      <button type="button" data-if="status_report">Status</button>
-      <button type="button" data-if="join_plan">Join plan</button>
-      <button type="button" data-if="engulf_plan">Engulf plan</button>
-      <button type="button" data-if="describe">Describe</button>
-      <button type="button" data-if="mesh_awareness">Mesh awareness</button>
-      <button type="button" data-if="forensic_tip">Audit tip</button>
-      <button type="button" data-if="seal">Seal</button>
-    </div>
-    <pre class="ws-out fg-out" id="interface-out" role="status" aria-live="polite">GET ${escapeHtml(base)}/v1/interface — plans do not launch</pre>
   </section>
 
   <section class="task" id="mesh-panel" data-kind="mesh" data-origin="${escapeHtml(base)}">
@@ -1269,7 +1323,7 @@ export function humanDoorScript() {
   if (filter) {
     filter.addEventListener("input", function () {
       let q = String(filter.value || "").toLowerCase().trim();
-      document.querySelectorAll("#workspace .task, #workspace .az-task, #workspace .op-panel").forEach(function (el) {
+      document.querySelectorAll("#workspace .task, #workspace .az-task, #workspace .op-panel, #interface-panel").forEach(function (el) {
         if (el.id === "workspace") return;
         let hay = (el.textContent || "").toLowerCase();
         el.classList.toggle("task-hidden", !!(q && hay.indexOf(q) === -1));

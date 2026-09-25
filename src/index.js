@@ -2153,7 +2153,7 @@ function productCardHtml(p, origin, stats) {
   <p>${ops}</p>
   ${invokePre}
   ${fragGateDoorHtml(p, origin)}
-  ${p.slug === "veillock" ? `<p class="hint">VeilLock stays local_only. Public door ops stay empty. Host plans are on <a href="${origin}/workspace#interface-panel">the interface pane</a> (<code>POST /v1/interface</code>, MCP method <code>interface/orchestrate</code>). A plan does not launch, join, register a camera, return a key, or append the public receipt chain.</p>` : ""}
+  ${p.slug === "veillock" ? `<p class="hint">VeilLock stays local_only. Public door ops stay empty. The desk is a workspace tile on <a href="${origin}/workspace#interface-panel">the interface</a> (<code>POST /v1/interface</code>, MCP method <code>interface/orchestrate</code>), the same cards and receipt board as the other Softwares. A plan does not launch, join, register a camera, return a key, or append the public receipt chain.</p>` : ""}
 </article>`;
 }
 
