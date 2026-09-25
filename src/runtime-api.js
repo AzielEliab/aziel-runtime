@@ -204,7 +204,7 @@ FragGate kernel: https://github.com/AzielEliab/fraggate (FG-0.1)
 
 ## Start here
 
-One door. \`confirm=true\` when a call writes. \`dry_run=true\` previews and writes nothing. \`background=true\` on \`fraggate_call\` returns Running until a receipt hash exists. Done only with that hash. \`tools/list\` stays 36.
+Tools just work. The door runs first, then the tool. \`confirm=true\` when a call writes. \`dry_run=true\` previews and writes nothing. \`background=true\` returns Running until a receipt hash exists. Done only with that hash. \`tools/list\` stays 36. \`fraggate_list\`, \`fraggate_describe\`, and \`fraggate_call\` stay for diagnostics.
 
 Terminal: \`aziel-runtime call foldlock fold-preview --local --dry-run\`. A long job: \`aziel-runtime call foldlock fold-preview --background --local\`, then \`aziel-runtime job <id>\`. \`aziel-runtime service status\` reports Running or Quiet and does not call the door.
 
@@ -215,8 +215,8 @@ Terminal: \`aziel-runtime call foldlock fold-preview --local --dry-run\`. A long
 
 ## How an agent uses this like software
 
-1. **Discover.** \`runtime_skill\` or \`fraggate_list\` (hashed registry: live / stub / local_only). \`fraggate_describe\` one name. \`fraggate_verify\` a name or digest.
-2. **Route.** \`fraggate_call\` with a CallEnvelope \`{ name|slug, op, payload, claim? }\`. Locked path (MASTER-33): FragGate → Lamb Lens → SweepGate → Sentinel → Provenance/Input Packet → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → optional ASE → RoseClock → TemporalLock → ChainLock-OUT → ForgeReceipts → Return. FragGate is THE single door. Lamb Lens is fabric after FragGate. Domain softwares execute only after AZPIPE. Live allowlist: every sensible advisory / score / classify / gate / search / preview / render / verify / hash / receipt / game / overlay / route / status engine already hosted in-process. VeilLock stays local_only. Stub verbs still refuse.
+1. **Call the tool.** The door runs first, then the tool. \`confirm=true\` writes. \`dry_run=true\` previews and writes nothing. \`background=true\` returns Running until a receipt hash exists.
+2. **Diagnostics.** \`fraggate_list\`, \`fraggate_describe\`, \`fraggate_verify\`, and \`fraggate_call\` stay available. \`fraggate_call\` is THE single door (CallEnvelope \`{ name|slug, op, payload, claim? }\`). Locked path (MASTER-33): FragGate → Lamb Lens → SweepGate → Sentinel → Provenance/Input Packet → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → optional ASE → RoseClock → TemporalLock → ChainLock-OUT → ForgeReceipts → Return. Lamb Lens is fabric after FragGate. Domain softwares execute only after AZPIPE. Live allowlist: every sensible advisory / score / classify / gate / search / preview / render / verify / hash / receipt / game / overlay / route / status engine already hosted in-process. VeilLock stays local_only. Stub verbs still refuse.
 3. **Refuse.** Unknown names return \`FG-HALLUC-TOOL\`. Stubs and \`local_only\` do not execute on the public mesh. Gate BLOCK/REVISE is ledgered; no handler.
 4. **Show the output.** Results are \`{ display, result, ledger_tip? }\`. Show \`display\` to the user.
 5. **Take the next input.**

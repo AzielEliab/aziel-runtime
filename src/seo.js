@@ -107,8 +107,8 @@ export const GLAMA_DISCOVERY_LEAD =
 
 export const GLAMA_HOW_TO_USE = Object.freeze([
   "1. Click Install / Add to Glama on https://glama.ai/mcp/servers/AzielEliab/aziel-runtime",
-  "2. In any MCP client, run: fraggate_list → fraggate_describe {name} → fraggate_call {name, op, payload, confirm:true}",
-  "Start here: one door. confirm=true writes. dry_run=true previews and writes nothing. background=true on fraggate_call returns Running until a receipt hash exists. Done only with that hash. tools/list stays 36.",
+  "2. In any MCP client, call the tool you need. The door runs first, then the tool. confirm=true writes. dry_run=true previews and writes nothing. background=true returns Running until a receipt hash exists. Done only with that hash. tools/list stays 36.",
+  "Diagnostics, if needed: fraggate_list → fraggate_describe {name} → fraggate_call {name, op, payload, confirm:true}.",
 ]);
 
 export const GLAMA_EXAMPLE_FIRST_CALL =
@@ -199,12 +199,12 @@ export function llmsWhatThisIsBlock(calling = null) {
     `MCP tools/list count: ${PUBLIC_MCP_TOOLS.length}. FragGate is the single door.`,
     "",
     "Also:",
-    "Agents: fraggate_list → fraggate_describe → fraggate_call (POST /mcp or POST /v1/fraggate/call).",
+    "Agents: call the tool you need. The door runs first (POST /mcp). Diagnostics: fraggate_list → fraggate_describe → fraggate_call.",
     "Hubs: GET /v1/software (mirror GET /v1/fraggate/software) on each Softwares-tab refresh.",
     "Humans: Worker UI + counted /download — dual-surface. POST /p/{slug}/{op} is proxy. Exec is FragGate.",
     `Install / Try on Glama: ${RUNTIME_GLAMA}`,
     `Remote MCP: POST ${GLAMA_REMOTE_MCP}`,
-    "First call: fraggate_list → fraggate_describe → fraggate_call (foldlock/fold-preview, or decisiongate_check with dry_run=true).",
+    "First call: the tool you need. The door runs first. Example: decisiongate_check with dry_run=true, or foldlock fold-preview.",
     "",
     "FragGate is THE single public executable door (list → describe → call).",
     "Softwares = Plain → Gate → Lock catalog products with true in-process engines where live.",

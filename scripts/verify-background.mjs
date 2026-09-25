@@ -32,7 +32,10 @@ assert.equal(PUBLIC_MCP_TOOLS.includes("fraggate_background"), false);
 
 const instructions = mcpInitializeInstructions({});
 assert.match(instructions, /Start here/);
-assert.match(instructions, /fraggate_list, then fraggate_describe, then fraggate_call/);
+assert.match(instructions, /Tools just work/);
+assert.match(instructions, /The door runs before the tool/);
+assert.doesNotMatch(instructions, /Call fraggate_list, then fraggate_describe, then fraggate_call/);
+assert.match(instructions, /fraggate_call is THE single door/);
 assert.match(instructions, /background=true/);
 assert.match(instructions, /tools\/list stays 36/);
 assert.doesNotMatch(instructions, /\bthis\b/);
@@ -111,6 +114,30 @@ assert.match(callTool.description, /background=true/);
 assert.equal(callTool.inputSchema.properties.background.type, "boolean");
 assert.match(callTool.inputSchema.properties.job_id.pattern, /job_/);
 assert.deepEqual(callTool.inputSchema.required, ["op"]);
+
+const meshStatus = await mcp("tools/call", { name: "mesh_status", arguments: {} }, 3);
+assert.equal(meshStatus.result.isError, false);
+assert.equal(meshStatus.result.structuredContent.fraggate_entered, true);
+assert.notEqual(meshStatus.result.structuredContent.code, "FG-HALLUC-TOOL");
+
+const chainTip = await mcp("tools/call", { name: "chainlock_tip", arguments: {} }, 4);
+assert.equal(chainTip.result.isError, false);
+assert.equal(chainTip.result.structuredContent.fraggate_entered, true);
+
+const gateCheck = await mcp("tools/call", {
+  name: "decisiongate_check",
+  arguments: { statement: "Preview a short proposal before any write.", confirm: true },
+}, 5);
+assert.equal(gateCheck.result.structuredContent.fraggate_entered, true);
+assert.notEqual(gateCheck.result.structuredContent.code, "FG-HALLUC-TOOL");
+
+const stubRun = await mcp("tools/call", {
+  name: "runtime_run",
+  arguments: { slug: "4dmap", op: "truth_score", confirm: true },
+}, 6);
+assert.equal(stubRun.result.isError, true);
+assert.equal(stubRun.result.structuredContent.code, "FG-STUB");
+assert.equal(stubRun.result.structuredContent.fraggate_entered, true);
 
 const noConfirm = await mcp("tools/call", {
   name: "fraggate_call",

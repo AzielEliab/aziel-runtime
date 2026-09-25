@@ -396,6 +396,17 @@ export async function admitCall(args, registry, bySlug, opts = {}) {
   return { admitted: true, target, gate, claim };
 }
 
+/** DecisionGATE refuse for a runtime tool that has no catalog slug. Writes a ledger tip. */
+export async function refuseRuntimeGate(name, gate) {
+  return refuse({
+    code: FG_GATE_REFUSE,
+    name: name || null,
+    op: name || null,
+    gate,
+    message: `DecisionGATE ${gate && gate.final_state ? gate.final_state : "REFUSE"} — no handler.`,
+  });
+}
+
 export async function fraggateCall(args, registry, bySlug, env, request = null) {
   const attempt = normalizeAttemptLink(args && typeof args === "object" ? args : {}, { generate: true });
   if (!attempt.ok) {

@@ -87,7 +87,7 @@ assert.match(
 );
 assert.match(
   glamaDoc,
-  /2\. In any MCP client, run: `fraggate_list` → `fraggate_describe \{name\}` → `fraggate_call \{name, op, payload, confirm:true\}`/,
+  /2\. In any MCP client, call the tool you need\. The door runs first/,
 );
 assert.match(glamaDoc, /Worker remote: `https:\/\/aziel-runtime\.vibelock\.workers\.dev\/mcp`/);
 assert.match(glamaDoc, /`decisiongate_check` with a short proposal and `dry_run:true`/);

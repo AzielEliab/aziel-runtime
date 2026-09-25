@@ -3,7 +3,7 @@
   "maintainers": ["AzielEliab"],
   "name": "Aziel Runtime",
   "version": "2.0.0-rc1",
-  "description": "Aziel Runtime lets AI assistants run 40+ research tools through one door. Install on Glama, then list tools, describe one, and call it. Every call can leave a receipt. Route catalog products through the FragGate door over OpenAPI + MCP, mint receipts, and coordinate mesh presence. Start here: confirm=true writes, dry_run=true previews, background=true stays Running until a receipt hash exists. tools/list stays 36. Glama Install Server release 2.0.7 (Install Server ON). Worker / server package stays 2.0.0-rc1. 1.6.2 is superseded heritage. Current server is 2.0.0-rc1.",
+  "description": "Aziel Runtime lets AI assistants run 40+ research tools through one door. Install on Glama, then list tools, describe one, and call it. Every call can leave a receipt. Route catalog products through the FragGate door over OpenAPI + MCP, mint receipts, and coordinate mesh presence. Start here: tools just work. The door runs first. confirm=true writes, dry_run=true previews, background=true stays Running until a receipt hash exists. tools/list stays 36. Glama Install Server release 2.0.7 (Install Server ON). Worker / server package stays 2.0.0-rc1. 1.6.2 is superseded heritage. Current server is 2.0.0-rc1.",
   "keywords": [
     "mcp",
     "openapi",
