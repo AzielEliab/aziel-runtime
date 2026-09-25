@@ -238,7 +238,7 @@ function paperById(id) {
 }
 
 function domainNotes() {
-  return UI_DOMAINS.filter((domain) => domain.kind !== "author" && domain.softwares.length).map((domain) => ({
+  return UI_DOMAINS.filter((domain) => domain.kind !== "author" && domain.kind !== "corpus" && domain.softwares.length).map((domain) => ({
     text: `Domain ${domain.label} lists ${domain.softwares.join(", ")}.`,
     cites: domain.softwares.map((slug) => ({ kind: "domain", id: domain.id, slug })),
   }));

@@ -1,10 +1,11 @@
 /**
  * Aziel Elroi Eliab author shelf.
  *
- * Top-bar tab. Corpus is a sub-shelf inside it, not a domain beside
- * AZnet / Forensics / Social. One snapshot feeds every sub-shelf.
- * A site that does not answer stays unreachable. Last-known rows are
- * labeled stale. Empty means empty. This shelf does not POST uploads.
+ * Top-bar tabs. Corpus is its own domain tab. Aziel Elroi Eliab is the
+ * author shelf. One snapshot feeds both. A site that does not answer
+ * still updates the tabs: last-known or local cache stays on screen,
+ * with an unreachable status. Nothing new is invented while a site is down.
+ * This shelf does not POST uploads.
  *
  * Author: Aziel Eliab. The tab name is Aziel Elroi Eliab.
  * SPDX-License-Identifier: Apache-2.0
@@ -24,6 +25,7 @@ import {
   LIBRARY_ORIGIN,
 } from "./seo.js";
 import { LIVE_LIBRARY_INDEX } from "./engines/aziel-corpus/tip-pack.js";
+import { RESEARCH_WORKS } from "./person-index.js";
 
 export const AUTHOR_SHELF_SPEC = "AUTHOR-SHELF-1.0";
 export const AUTHOR_TAB_ID = "aziel-elroi-eliab";
@@ -84,6 +86,59 @@ const lastKnown = new Map();
 
 export function resetAuthorShelf() {
   lastKnown.clear();
+}
+
+function localCorpusItems() {
+  const items = [];
+  for (const row of RESEARCH_WORKS) {
+    if (!row || !row.record_id) continue;
+    const title = clip(row.title);
+    const url = clip(row.url);
+    if (!title && !url) continue;
+    items.push({
+      record_id: String(row.record_id),
+      title: title || undefined,
+      url: url || undefined,
+      source: "local-cache",
+      live: false,
+      invented: false,
+    });
+    if (items.length >= ITEM_CAP) break;
+  }
+  return items;
+}
+
+function localPaperItems() {
+  return PAPER_DEPOSITS.slice(0, ITEM_CAP).map((row) => ({
+    doi: row.doi,
+    title: row.payload,
+    source: "local-cache",
+    live: false,
+    invented: false,
+  }));
+}
+
+function localDoorItem(surface) {
+  return {
+    name: surface.name,
+    url: surface.home,
+    source: "local-cache",
+    live: false,
+    invented: false,
+  };
+}
+
+export function localShelfCache() {
+  return {
+    corpus: localCorpusItems(),
+    papers: localPaperItems(),
+  };
+}
+
+function localItems(surface) {
+  if (surface.id === "corpus") return localCorpusItems();
+  if (surface.id === "zenodo") return localPaperItems();
+  return [localDoorItem(surface)];
 }
 
 function clip(value) {
@@ -164,21 +219,23 @@ async function probeSurface(surface, fetchImpl, query) {
         inventory_read: false,
         items: [],
         last_known: prior,
+        query,
       };
     }
     const json = await res.json().catch(() => null);
     const read = readInventory(json);
-    const items = filterItems(read.items, query);
     if (read.inventory_read) {
-      lastKnown.set(surface.id, { at: new Date().toISOString(), items, http_status: res.status });
+      lastKnown.set(surface.id, { at: new Date().toISOString(), items: read.items, http_status: res.status });
     }
+    const items = read.inventory_read ? filterItems(read.items, query) : [];
     return {
       reachable: true,
       http_status: res.status,
       reason: read.inventory_read ? null : "inventory-unparsed",
       inventory_read: read.inventory_read,
-      items: read.inventory_read ? items : [],
-      last_known: null,
+      items,
+      last_known: read.inventory_read ? null : lastKnown.get(surface.id) || null,
+      query,
     };
   } catch {
     return {
@@ -188,12 +245,23 @@ async function probeSurface(surface, fetchImpl, query) {
       inventory_read: false,
       items: [],
       last_known: prior,
+      query,
     };
   }
 }
 
+function fallbackDisplay(surface, prior, query) {
+  if (prior && Array.isArray(prior.items) && prior.items.length) {
+    return { items: filterItems(prior.items, query), from: "last-known", at: prior.at };
+  }
+  return { items: filterItems(localItems(surface), query), from: "local-cache", at: null };
+}
+
 function viewSurface(surface, probe) {
-  const stale = !probe.reachable && probe.last_known
+  const live = probe.reachable === true && probe.inventory_read === true;
+  const fallback = live ? null : fallbackDisplay(surface, probe.last_known, probe.query || "");
+  const display = live ? probe.items : fallback.items;
+  const stale = !live && probe.last_known
     ? {
         at: probe.last_known.at,
         http_status: probe.last_known.http_status,
@@ -217,7 +285,11 @@ function viewSurface(surface, probe) {
     inventory_read: probe.inventory_read === true,
     item_count: probe.items.length,
     items: probe.items,
+    display_items: display,
+    display_count: display.length,
+    display_from: live ? "live" : fallback.from,
     last_known: stale,
+    frozen: false,
     invented: false,
   };
 }
@@ -258,7 +330,10 @@ export async function refreshAuthorShelf(fetchImpl = fetch, opts = {}) {
     identity: AUTHOR_IDENTITY,
     lamb_lens: ["Service", "Clarity", "Peace"],
     tab: AUTHOR_TAB_ID,
-    corpus_is_top_bar_domain: false,
+    corpus_tab: "corpus",
+    corpus_is_top_bar_domain: true,
+    updated_at: new Date().toISOString(),
+    frozen: false,
     uploads_pushed: false,
     no_double_upload: true,
     hashchain: "cite only; this shelf does not write site bytes",

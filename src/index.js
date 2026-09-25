@@ -3895,7 +3895,12 @@ async function handleRequest(request, env, ctx) {
           extraHeaders,
         );
       }
-      const shelf = await refreshAuthorShelf(fetch, { query: url.searchParams.get("q") || "" });
+      const simulate = url.searchParams.get("simulate") === "unreachable";
+      const fetchImpl = simulate ? async () => {
+        throw new Error("simulated-down");
+      } : fetch;
+      const shelf = await refreshAuthorShelf(fetchImpl, { query: url.searchParams.get("q") || "" });
+      if (simulate) shelf.simulated_down = true;
       return asHead(request, json(shelf, 200, extraHeaders));
     }
 

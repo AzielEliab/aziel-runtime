@@ -1,6 +1,6 @@
 /**
- * Aziel Elroi Eliab shelf. Corpus is a sub-tab. Live pulls set flags
- * only after a real read. Receipt output stays a count sentence.
+ * Aziel Elroi Eliab shelf and the Corpus top-bar tab. Live pulls set
+ * flags only after a real read. Receipt output stays a count sentence.
  * Author: Aziel Eliab. Tab name: Aziel Elroi Eliab.
  */
 import assert from "node:assert/strict";
@@ -16,19 +16,34 @@ resetAuthorShelf();
 const home = await (await handler(new Request(origin + "/workspace"), {})).text();
 assert.match(home, /data-domain-tab="aziel-elroi-eliab"/);
 assert.match(home, /id="author-shelf"/);
-assert.match(home, /data-author-sub="corpus"/);
-assert.match(home, /id="author-sub-corpus"/);
-assert.doesNotMatch(home, /data-domain-tab="corpus"/);
-assert.match(home, /Corpus is a shelf inside this tab/);
+assert.match(home, /data-domain-tab="corpus"/);
+assert.match(home, /id="corpus-shelf"/);
+assert.match(home, /data-author-sub="sync"/);
+assert.doesNotMatch(home, /Corpus is a shelf inside this tab/);
 
 const dark = await refreshAuthorShelf(async () => {
   throw new Error("down");
 });
 assert.equal(dark.invented, false);
 assert.equal(dark.uploads_pushed, false);
-assert.equal(dark.corpus_is_top_bar_domain, false);
+assert.equal(dark.corpus_is_top_bar_domain, true);
+assert.equal(dark.frozen, false);
+assert.ok(dark.updated_at);
 assert.equal(dark.corpus_searched, false);
-assert.ok(dark.surfaces.every((row) => row.reachable === false && row.items.length === 0 && row.last_known == null));
+const darkCorpus = dark.surfaces.find((row) => row.id === "corpus");
+assert.equal(darkCorpus.reachable, false);
+assert.equal(darkCorpus.items.length, 0);
+assert.equal(darkCorpus.display_from, "local-cache");
+assert.ok(darkCorpus.display_count > 0);
+assert.ok(darkCorpus.display_items.every((item) => item.invented === false && item.record_id));
+const darkIds = darkCorpus.display_items.map((item) => item.record_id).join(",");
+const darkAgain = await refreshAuthorShelf(async () => {
+  throw new Error("down");
+});
+const darkCorpusAgain = darkAgain.surfaces.find((row) => row.id === "corpus");
+assert.equal(darkCorpusAgain.display_items.map((item) => item.record_id).join(","), darkIds);
+assert.equal(darkAgain.frozen, false);
+assert.ok(darkAgain.updated_at);
 
 const titled = "Florence sample title";
 const shelfFetch = async (url) => {
@@ -64,9 +79,13 @@ const again = await refreshAuthorShelf(async (url) => {
 const stale = again.surfaces.find((row) => row.id === "corpus");
 assert.equal(stale.reachable, false);
 assert.equal(stale.items.length, 0);
+assert.equal(stale.display_from, "last-known");
+assert.equal(stale.display_count, 1);
+assert.equal(stale.display_items[0].record_id, "AZDOC-1");
 assert.equal(stale.last_known.stale, true);
 assert.equal(stale.last_known.item_count, 1);
 assert.equal(stale.last_known.invented, false);
+assert.equal(again.frozen, false);
 assert.equal(again.corpus_searched, false);
 
 async function freshLearn(input, opts) {
@@ -158,9 +177,17 @@ assert.equal(sealed.body.tied_to_plan, true);
 assert.equal(sealed.body.executed, true);
 assert.equal(sealed.body.receipt.output.includes("spend-me"), false);
 
+const simulated = await (await handler(new Request(origin + "/v1/author-shelf?simulate=unreachable"), {})).json();
+assert.equal(simulated.simulated_down, true);
+assert.equal(simulated.frozen, false);
+const simulatedCorpus = simulated.surfaces.find((row) => row.id === "corpus");
+assert.equal(simulatedCorpus.reachable, false);
+assert.ok(simulatedCorpus.display_count > 0);
+assert.equal(simulatedCorpus.invented, false);
+
 const page = await handler(new Request(origin + "/v1/author-shelf", { method: "POST", body: "{}" }), {});
 assert.equal(page.status, 405);
 const refused = await page.json();
 assert.equal(refused.uploads_pushed, false);
 
-console.log("ok author shelf: Corpus stays inside Aziel Elroi Eliab; live flags follow real reads");
+console.log("ok author shelf: Corpus is a top-bar tab; down sites still show last-known or local cache");
