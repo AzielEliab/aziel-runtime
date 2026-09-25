@@ -425,6 +425,10 @@ assert.equal(learned.body.pins_read, false);
 assert.equal(learned.body.mesh_read, false);
 assert.equal(learned.body.corpus_searched, false);
 assert.equal(learned.body.writes_public_chain, false);
+assert.equal(learned.body.sealed, false);
+assert.match(learned.body.receipt.output, /^Learner stored \d+ cited notes\./);
+assert.equal(learned.body.receipt.output.includes("pin-1"), false);
+assert.equal(learned.body.notes.some((note) => note.cites.some((cite) => cite.pin_id === "pin-1")), true);
 assert.equal(learned.body.memory.attempted, false);
 assert.equal(observed, 0);
 assert.equal(learned.body.notes.some((note) => note.cites.some((cite) => cite.kind === "domain" && cite.slug === "4dmap")), true);
@@ -449,6 +453,39 @@ assert.equal(vibeCite.cites[0].evidence.vibration, "body-coupled-track");
 assert.equal(vibeCite.cites[0].evidence.related, "heuristic");
 assert.equal(vibeCite.cites[0].decodes_containers, false);
 assert.equal(vibeCite.cites[0].ffmpeg_for_compressed_local, true);
+
+let learnFetches = 0;
+const learnSealed = await orchestrate(
+  { call: "learner_recall", q: "pin-1" },
+  {
+    env: { RECEIPT_APPEND_TOKEN: "test-token" },
+    fetchImpl: async () => {
+      learnFetches += 1;
+      return new Response("no", { status: 500 });
+    },
+  },
+);
+assert.equal(learnSealed.status, 200);
+assert.equal(learnFetches, 0);
+assert.equal(learnSealed.body.writes_public_chain, false);
+assert.equal(learnSealed.body.sealed, false);
+assert.match(learnSealed.body.receipt.output, /^Learner recall returned \d+ cited notes\./);
+assert.equal(learnSealed.body.receipt.output.includes("pin-1"), false);
+assert.equal(learnSealed.body.notes.some((note) => note.cites.some((cite) => cite.pin_id === "pin-1")), true);
+
+let deskDispatches = 0;
+const planned = await orchestrate(
+  { call: "worker_plan", task: "fold a preview" },
+  {
+    dispatch: async () => {
+      deskDispatches += 1;
+      return { ok: true, code: "FG-OK" };
+    },
+  },
+);
+assert.equal(planned.status, 200);
+assert.equal(planned.body.executed, false);
+assert.equal(deskDispatches, 0);
 
 const boxed = await handleAnalyze({ mp4_b64: "AAAA", features: { rms: 0.1, zcr: 0.1, n_samples: 1000 } });
 assert.equal(boxed.ok, false);
