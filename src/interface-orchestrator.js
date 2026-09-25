@@ -47,6 +47,7 @@ import {
 } from "./library-receipts.js";
 import { isTruthyFlag } from "./mcp-safeguard.js";
 import { normalizeAttemptLink } from "./receipt-attempt.js";
+import { sealAdaptive } from "./jeeves-adapt.js";
 import { askJeevesHelp, JEEVES_HELP_CALL } from "./jeeves-desk.js";
 import { runMeshOp } from "./mesh.js";
 import { RUNTIME_VERSION } from "./runtime-api.js";
@@ -515,6 +516,14 @@ function reconcileSealOutcome(link, door) {
   return "completed";
 }
 
+async function finishAdaptive(done, env) {
+  if (!done || !done.body || !done.body.adaptive || done.body.adaptive.stored !== true) return done;
+  const hash = done.body.receipt && done.body.receipt.hash;
+  const sealed = await sealAdaptive(env, hash);
+  if (sealed.ok) done.body.adaptive.receipt_hash = sealed.receipt_hash;
+  return done;
+}
+
 async function finish(call, status, link, requestSentence, outputSentence, body, opts, sealed) {
   const kept = await remember(call, status, requestSentence, outputSentence, link, sealed);
   if (!kept.ok) return fail(503, kept.code, kept.error);
@@ -879,7 +888,10 @@ export async function orchestrate(input, opts = {}) {
         },
       };
     }
-    return finish(call, 200, link, "AZAI guided from the corpus and this build.", guided.output, body, opts, false);
+    return finishAdaptive(
+      await finish(call, 200, link, "AZAI guided from the corpus and this build.", guided.output, body, opts, false),
+      opts.env,
+    );
   }
 
   if (SOT_CALLS.includes(call)) {
@@ -941,7 +953,10 @@ export async function orchestrate(input, opts = {}) {
       };
     }
     const output = help.answer ? String(help.answer).slice(0, 240) : "Ask Jeeves replied.";
-    return finish(call, 200, link, "Interface asked Jeeves for help on this build.", output, body, opts, false);
+    return finishAdaptive(
+      await finish(call, 200, link, "Interface asked Jeeves for help on this build.", output, body, opts, false),
+      opts.env,
+    );
   }
 
   if (WORKER_CALLS.includes(call) || LEARNER_CALLS.includes(call)) {

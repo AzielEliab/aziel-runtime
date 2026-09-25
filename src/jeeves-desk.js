@@ -14,6 +14,7 @@ import {
   jeevesAssetInventory,
 } from "./engines/aziel-corpus/jeeves-eggs.js";
 import { reasonGuide } from "./guide-reason.js";
+import { applyAdaptive } from "./jeeves-adapt.js";
 import { RUNTIME_VERSION } from "./runtime-api.js";
 
 export const JEEVES_HELP_CALL = "jeeves_help";
@@ -96,5 +97,5 @@ export async function askJeevesHelp(input, env) {
       identity: "Aziel Eliab",
     };
   }
-  return reasonGuide(q, env, { assistant: "Ask Jeeves" });
+  return applyAdaptive(await reasonGuide(q, env, { assistant: "Ask Jeeves" }), input, env, "jeeves");
 }

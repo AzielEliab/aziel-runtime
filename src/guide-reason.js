@@ -76,6 +76,10 @@ export function suiteSoftwareRoster() {
   return roster();
 }
 
+export function guideIntent(question) {
+  return clarify(question).intent;
+}
+
 function clarify(question) {
   const n = String(question || "").toLowerCase();
   let intent = "custom";

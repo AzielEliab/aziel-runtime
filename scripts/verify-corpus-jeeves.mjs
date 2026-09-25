@@ -8,6 +8,7 @@ import { jeevesAsk, jeevesShouldRefuse, isDevilDenial, JEEVES_JESUS_IMAGE, JEEVE
 import { collectJeevesEasterEggs, jeevesAssetInventory, JEEVES_PUBLIC_FILE_COUNT } from "../src/engines/aziel-corpus/jeeves-eggs.js";
 import { askJeevesHelp } from "../src/jeeves-desk.js";
 import { suiteSoftwareRoster, SUITE_SOFTWARE_COUNT, EPISTEMIC_ORDER, GUIDE_SPEC, scoreCandidate, assertionFromCandidates } from "../src/guide-reason.js";
+import { resetAdaptiveForTests, sharedSnapshot, sessionProfile, ADAPT_KEY, ADAPT_SPEC } from "../src/jeeves-adapt.js";
 import { mediaRun, NATIVE_OPS, PROXY_OPS, BINDING_GATED_OPS } from "../src/engines/aziel-corpus/engine.js";
 
 assert.ok(NATIVE_OPS.includes("jeeves"));
@@ -362,5 +363,119 @@ assert.equal(clicks.domains, null);
 assert.ok(clicks.next_actions.some((row) => row.href === "#elroi-corpus"));
 assert.match(clicks.answer, /Corpus sub-tab/);
 assert.match(clicks.answer, /Aziel Eliab/);
+
+resetAdaptiveForTests();
+const adaptQ = "How do the domain tabs work?";
+const plain = await askJeevesHelp({ q: adaptQ }, {});
+assert.equal(plain.adaptive.stored, false);
+assert.equal(plain.adaptive.shown, false);
+assert.equal(plain.adaptive.raw_text_stored, false);
+assert.equal(plain.adaptive.pii_stored, false);
+assert.equal(plain.software_count, 42);
+assert.equal(plain.software_tab, false);
+assert.deepEqual(plain.epistemology.order, ["lamb_lens", "corpus", "library", "other_source", "triad"]);
+assert.deepEqual(plain.steps.map((step) => step.id), ["lamb_lens", "pull_corpus", "pull_library", "other_source", "triad"]);
+assert.equal(plain.epistemology.free_pass, false);
+assert.equal(plain.believed, false);
+
+const firstAdapt = await askJeevesHelp({ q: adaptQ, confirm: true, helped: "#desk-mesh" }, {});
+assert.equal(firstAdapt.adaptive.stored, true);
+assert.equal(firstAdapt.adaptive.shown, false);
+assert.equal(firstAdapt.adaptive.spec, ADAPT_SPEC);
+assert.equal(firstAdapt.topic, "domain_tabs");
+assert.equal(firstAdapt.software_count, 42);
+assert.equal(firstAdapt.software_tab, false);
+assert.equal(firstAdapt.assertion, plain.assertion);
+
+const secondAdapt = await askJeevesHelp({ q: adaptQ, confirm: true, helped: "#desk-mesh", profile: true, session: "sess-abc12345" }, {});
+assert.equal(secondAdapt.adaptive.stored, true);
+assert.equal(secondAdapt.adaptive.shown, true);
+assert.equal(secondAdapt.adaptive.candidate.free_pass, false);
+assert.equal(secondAdapt.adaptive.candidate.believed, false);
+assert.equal(secondAdapt.adaptive.candidate.authority, false);
+assert.equal(secondAdapt.adaptive.candidate.lens_filtered, true);
+assert.equal(secondAdapt.adaptive.candidate.triad.schema, "aziel.triad.v0.3");
+assert.equal(secondAdapt.adaptive.candidate.triad.final.ready, false);
+assert.equal(secondAdapt.adaptive.candidate.triad.final.score, null);
+assert.match(secondAdapt.adaptive.candidate.text, /#desk-mesh/);
+assert.match(secondAdapt.answer, /Adaptive \(not believed, free_pass false\)/);
+assert.equal(secondAdapt.assertion, plain.assertion);
+assert.deepEqual(secondAdapt.steps.map((step) => step.id), plain.steps.map((step) => step.id));
+assert.equal(sessionProfile("sess-abc12345").topic, "domain_tabs");
+assert.equal(sessionProfile("sess-abc12345").href, "#desk-mesh");
+
+const thirdAdapt = await askJeevesHelp({ q: adaptQ }, {});
+assert.equal(thirdAdapt.adaptive.stored, false);
+assert.equal(thirdAdapt.adaptive.shown, true);
+assert.equal(thirdAdapt.adaptive.candidate.href, "#desk-mesh");
+assert.equal(thirdAdapt.assertion, plain.assertion);
+assert.equal(thirdAdapt.software_count, 42);
+assert.equal(thirdAdapt.next_actions[0].href, "#desk-mesh");
+assert.equal(thirdAdapt.next_actions[0].learned, true);
+assert.equal(thirdAdapt.next_actions[0].believed, false);
+
+const shared = await sharedSnapshot({});
+const sharedJson = JSON.stringify(shared);
+assert.equal(sharedJson.includes(adaptQ), false);
+assert.equal(sharedJson.includes("sess-abc12345"), false);
+assert.equal(shared.raw_text_stored, false);
+assert.equal(shared.pii_stored, false);
+assert.equal(shared.believed, false);
+assert.equal(shared.topics.domain_tabs.asks, 2);
+assert.equal(shared.topics.domain_tabs.helped["#desk-mesh"], 2);
+assert.equal(shared.desks.jeeves, 2);
+
+const dryAdapt = await askJeevesHelp({ q: adaptQ, dry_run: true, confirm: true, helped: "#desk-mesh" }, {});
+assert.equal(dryAdapt.adaptive.stored, false);
+assert.equal(dryAdapt.adaptive.dry_run, true);
+assert.equal((await sharedSnapshot({})).topics.domain_tabs.asks, 2);
+
+const piiAdapt = await askJeevesHelp({ q: "how do the domain tabs work alice@example.com", confirm: true, helped: "#desk-mesh" }, {});
+assert.equal(piiAdapt.adaptive.stored, true);
+assert.equal(piiAdapt.adaptive.withheld, true);
+assert.equal(piiAdapt.adaptive.topic, null);
+assert.equal(piiAdapt.adaptive.shown, false);
+assert.doesNotMatch(piiAdapt.answer, /alice@example.com/);
+assert.equal(piiAdapt.software_count, 42);
+assert.equal(piiAdapt.software_tab, false);
+const afterPii = await sharedSnapshot({});
+const afterPiiJson = JSON.stringify(afterPii);
+assert.equal(afterPiiJson.includes("alice@example.com"), false);
+assert.equal(afterPiiJson.includes("how do the domain tabs work"), false);
+assert.equal(afterPii.withheld, 1);
+assert.equal(afterPii.topics.domain_tabs.asks, 2);
+
+const florenceAfter = await askJeevesHelp({ q: "Where is Florence?" }, {});
+assert.equal(florenceAfter.assertion, "uncertain");
+assert.equal(florenceAfter.epistemology.free_pass, false);
+assert.equal(florenceAfter.epistemology.layers.corpus.free_pass, false);
+assert.equal(florenceAfter.software_count, 42);
+assert.equal(florenceAfter.software_tab, false);
+assert.equal(florenceAfter.believed, false);
+
+resetAdaptiveForTests();
+const bag = new Map();
+const kv = {
+  async get(key) {
+    return bag.has(key) ? bag.get(key) : null;
+  },
+  async put(key, value) {
+    bag.set(key, value);
+  },
+};
+await askJeevesHelp({ q: adaptQ, confirm: true, helped: "#desk-mesh" }, { JEEVES_ADAPT: kv });
+await askJeevesHelp({ q: adaptQ, confirm: true, helped: "#desk-mesh" }, { JEEVES_ADAPT: kv });
+const kvRaw = bag.get(ADAPT_KEY);
+assert.equal(typeof kvRaw, "string");
+assert.equal(kvRaw.includes(adaptQ), false);
+assert.equal(kvRaw.includes("@"), false);
+const kvDoc = JSON.parse(kvRaw);
+assert.equal(kvDoc.spec, ADAPT_SPEC);
+assert.equal(kvDoc.topics.domain_tabs.asks, 2);
+assert.equal(kvDoc.raw_text_stored, false);
+assert.equal(kvDoc.pii_stored, false);
+assert.equal(kvDoc.believed, false);
+assert.equal(SUITE_SOFTWARE_COUNT, 42);
+assert.deepEqual(EPISTEMIC_ORDER, ["lamb_lens", "corpus", "library", "other_source", "triad"]);
 
 console.log("ok corpus jeeves isolate + media-run binding-gated");
