@@ -675,7 +675,7 @@ ${dashCards}
         </div>
       </div>
       <div class="op-row">
-        <p class="hint" style="margin:0">Seal needs the confirm box. An empty slug seals veillock locally and does not launch. A live slug and op still go through FragGate.</p>
+        <p class="hint" style="margin:0">Seal needs the confirm box. An empty slug seals veillock locally and does not launch. A live slug and op still go through FragGate. Passphrase fields are refused and are not a room-join form.</p>
         <div class="desk-fields">
           <div class="field">
             <label for="if-slug">Door slug (seal dispatch only)</label>

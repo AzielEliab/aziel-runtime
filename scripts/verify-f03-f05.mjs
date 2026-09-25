@@ -97,6 +97,7 @@ function assertDurability(block, label, env) {
 
 // --- helpers ---
 assert.equal(requestLimitKind("/v1/fraggate/call", "POST"), "fraggate_call");
+assert.equal(requestLimitKind("/v1/interface", "POST"), "fraggate_call");
 assert.equal(requestLimitKind("/v1/fraggate/list", "GET"), "fraggate_read");
 assert.equal(requestLimitKind("/mcp", "POST"), "mcp");
 assert.equal(requestLimitKind("/v1/session/open", "POST"), null);
