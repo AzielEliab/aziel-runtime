@@ -53,6 +53,7 @@ import { chainlockMcpTools, isChainlockTool, runChainlockOp } from "./chainlock.
 import { isMemoryMcpTool, memoryMcpTools, runMemoryMcp, wrapMemoryDisplay } from "./memory.js";
 import { isMeshMcpTool, runMeshOp } from "./mesh.js";
 import { resolveCallingName } from "./calling-name.js";
+import { START_HERE_MCP } from "./start-here.js";
 
 export { ADVANCED_PREFIX, isAdvancedToolName, PUBLIC_MCP_TOOL_MAX };
 
@@ -74,6 +75,7 @@ export function mcpInitializeInstructions(env = {}) {
     : "";
   return (
     lead +
+    START_HERE_MCP +
     `Current MCP serverInfo.version: ${RUNTIME_VERSION} (same as package.json). 1.6.2 is superseded heritage, not the current server. Author identity is aziel eliab only. ` +
     "This runtime is a node-meshed orchestration suite of MCP-connected software designed to coordinate specialized tools through a shared, security-gated runtime while preserving provenance, chain-of-custody, temporal integrity, and auditable execution. " +
     "Use the author's software in the current chat. One door — discover, route, refuse. " +
@@ -242,7 +244,7 @@ export function runtimeHelperTools() {
           effects:
             "Side effects are operation-dependent (read, write, or refuse). May reach an open world when the target op does (for example AZBrowser ethical_search); many ops stay isolate-local. Unknown names refuse FG-HALLUC-TOOL. Stub, local-only, and Remain-OFF verbs refuse FG-STUB / FG-LOCAL-ONLY / FG-GATE-REFUSE / FG-LAMB-REFUSE. FragGate is THE single door",
           params:
-            "Required: op. Also pass slug or name. Extra top-level keys other than name/slug/product/tool/op/verb/claim/proposal/ground/payload/session_id/id become the op payload when payload is omitted. UI aliases (list_modules, place, genesis_boot, hold, airlock, home, classify, doctor, pair) forward to catalog ops. " +
+            "Required: op, unless job_id is set (that reads a background job and does not start another). Also pass slug or name. Shorthand name foldlock/fold-preview is accepted. Extra top-level keys other than name/slug/product/tool/op/verb/claim/proposal/ground/payload/session_id/id/confirm/dry_run/background/job_id become the op payload when payload is omitted. Example preview: {\"name\":\"foldlock/fold-preview\",\"payload\":{\"text\":\"the cat and the dog\"},\"dry_run\":true}. Optional background=true returns Running and a job_id before the op finishes; Done only after a receipt hash exists. Poll with the same job_id and confirm=true. dry_run does not start a job. UI aliases (list_modules, place, genesis_boot, hold, airlock, home, classify, doctor, pair) forward to catalog ops. " +
             CONFIRM_PARAM_NOTE,
           returns:
             "status, result, receipt, engine_slug, engine_op, engine_digest, ran_in, provenance, refusal, and limitations",
@@ -254,7 +256,7 @@ export function runtimeHelperTools() {
         type: "object",
         additionalProperties: true,
         description:
-          "Required: op. Also pass slug or name. Extra top-level keys other than name/slug/product/tool/op/verb/claim/proposal/ground/payload/session_id/id become the op payload when payload is omitted. Mutation requires confirm=true or dry_run=true.",
+          "Required: op, unless job_id is set. Also pass slug or name. Shorthand foldlock/fold-preview is accepted. Mutation requires confirm=true or dry_run=true. background=true returns Running until a receipt hash exists.",
         properties: {
           ...nameOrSlugProps(),
           op: {
@@ -267,6 +269,17 @@ export function runtimeHelperTools() {
             additionalProperties: true,
             description:
               "Optional op payload object. Shape is engine-specific (see fraggate_describe). Malformed fields are refused by the engine, not by this door schema. If omitted, leftover top-level keys are used as the payload.",
+          },
+          background: {
+            type: "boolean",
+            description:
+              "Optional. When true, FragGate admits the call and returns Running with a job_id before the op finishes. Done is returned only after a receipt hash exists. dry_run does not start a job. A missing job is Quiet, not Done.",
+          },
+          job_id: {
+            type: "string",
+            description:
+              "Optional job id from a background call (job_ + 16 hex). When set, the call reads that job and does not start another. confirm=true is still required. It does not re-run the op.",
+            pattern: "^job_[a-f0-9]{16}$",
           },
           request_id: {
             type: "string",

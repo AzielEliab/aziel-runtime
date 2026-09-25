@@ -248,6 +248,7 @@ import {
   readMcpSessionHeader,
 } from "./mcp-transport.js";
 import { confirmConsentHonesty, dryRunAllowedEnvelope, evaluateMutateSafeguard, isTruthyFlag } from "./mcp-safeguard.js";
+import { beginBackground, getJob } from "./background-job.js";
 import { admitCall, describeRegistry, fraggateCall, listRegistry, previewCatalogAdmission, verifyRegistry } from "./fraggate/door.js";
 import { LIVE_OPS, NAMED_STUBS, registryDigest, registrySummary } from "./fraggate/registry.js";
 import {
@@ -3192,7 +3193,7 @@ async function dryRunCatalogPreview(name, args) {
   return previewCatalogAdmission(args, registryFor(PRODUCTS), BY_SLUG);
 }
 
-async function callTool(env, name, args, origin, request) {
+async function callTool(env, name, args, origin, request, ctx) {
   const safeguard = evaluateMutateSafeguard(name, args);
   if (safeguard.gated) {
     return withConfirmConsent(wrapFraggateEnvelope(name, safeguard.envelope, null, (args && args.op) || null));
@@ -3204,6 +3205,20 @@ async function callTool(env, name, args, origin, request) {
       return withConfirmConsent(wrapFraggateEnvelope(name, body, null, body.op || (args && args.op) || null));
     }
     return withConfirmConsent(wrapFraggateEnvelope(name, dryRunAllowedEnvelope(name, args), null, (args && args.op) || null));
+  }
+  if (name === "fraggate_call" && (isTruthyFlag(args && args.background) || (args && args.job_id))) {
+    const registry = registryFor(PRODUCTS);
+    const outcome = await beginBackground({
+      env,
+      ctx,
+      args,
+      registry,
+      bySlug: BY_SLUG,
+      run: () => fraggateCall(args, registry, BY_SLUG, env, request),
+    });
+    const body = outcome.kind === "door" ? outcome.body : outcome.view;
+    const product = body && body.slug && BY_SLUG[body.slug] ? BY_SLUG[body.slug] : null;
+    return withConfirmConsent(wrapFraggateEnvelope(name, { ...body, ...confirmConsentHonesty() }, product, body && body.op));
   }
   if (name === "runtime_session_exec") {
     const registry = registryFor(PRODUCTS);
@@ -3230,7 +3245,7 @@ function mcpWireHeaders(transport) {
   return mcpTransportHeaders(transport && transport.sessionId, transport && transport.protocolVersion);
 }
 
-async function handleMcp(request, env, origin) {
+async function handleMcp(request, env, origin, ctx) {
   const accept = String(request.headers.get("accept") || "");
   if (request.method === "GET") {
     if (/\btext\/event-stream\b/i.test(accept)) {
@@ -3347,7 +3362,7 @@ async function handleMcp(request, env, origin) {
     const name = params.name;
     const args = params.arguments || params.input || {};
     try {
-      const out = await callTool(env, name, args, origin, request);
+      const out = await callTool(env, name, args, origin, request, ctx);
       const { slug, op } = splitProductToolName(name);
       return rpcResult(id, mcpCallPayload(name, out, out.product || BY_SLUG[slug], out.op || op), wire);
     } catch (err) {
@@ -3359,7 +3374,7 @@ async function handleMcp(request, env, origin) {
 }
 
 
-async function handleFraggateHttp(request, url, origin, env) {
+async function handleFraggateHttp(request, url, origin, env, ctx) {
   const registry = registryFor(PRODUCTS);
   const extra = authorityLinkHeaders(origin, url.pathname);
   if (
@@ -3419,6 +3434,17 @@ async function handleFraggateHttp(request, url, origin, env) {
     const body = await verifyRegistry(args, registry, BY_SLUG);
     return json(body, body.ok === false ? 400 : 200, extra);
   }
+  const backgroundGet = url.pathname.match(/^\/v1\/fraggate\/background\/(job_[a-f0-9]{16})$/);
+  if (backgroundGet && (request.method === "GET" || request.method === "HEAD")) {
+    const view = await getJob(env, backgroundGet[1]);
+    if (prefersHtml(request)) {
+      const sentence = view.summary || view.message || "Running. No completion receipt yet.";
+      const page = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Background job</title></head><body><p>${escapeHtml(sentence)}</p></body></html>`;
+      return asHead(request, html(page, { ...extra, status: view.code === "job_not_found" ? 404 : 200 }));
+    }
+    const status = view.code === "job_not_found" ? 404 : view.status === "refused" ? 400 : 200;
+    return asHead(request, json({ ...view, ...confirmConsentHonesty() }, status, extra));
+  }
   if (url.pathname === "/v1/fraggate/call" && request.method === "POST") {
     let args = {};
     try {
@@ -3428,6 +3454,27 @@ async function handleFraggateHttp(request, url, origin, env) {
     }
     if (isAzGeneratorHallucSlug(args.slug || args.name || args.product)) {
       return json({ ...azGeneratorCallRefuse(), door: "fraggate" }, 400, extra);
+    }
+    if (isTruthyFlag(args.dry_run) && (isTruthyFlag(args.background) || args.job_id)) {
+      const preview = previewCatalogAdmission(args, registry, BY_SLUG);
+      if (preview && preview.proceed === false) {
+        return json({ ...preview.envelope, ...confirmConsentHonesty() }, 400, extra);
+      }
+      return json({ ...dryRunAllowedEnvelope("fraggate_call", args) }, 200, extra);
+    }
+    if (isTruthyFlag(args.background) || args.job_id) {
+      const outcome = await beginBackground({
+        env,
+        ctx,
+        args,
+        registry,
+        bySlug: BY_SLUG,
+        run: () => fraggateCall(args, registry, BY_SLUG, env, request),
+      });
+      const body = outcome.kind === "door" ? outcome.body : outcome.view;
+      const status =
+        body && body.code === "job_not_found" ? 404 : body && body.ok === false ? Number(body.status) || 400 : 200;
+      return json({ ...body, ...confirmConsentHonesty() }, status, extra);
     }
     const body = await fraggateCall(args, registry, BY_SLUG, env, request);
     const status = body.ok === false ? Number(body.status) || 400 : 200;
@@ -3719,7 +3766,7 @@ async function handleRequest(request, env, ctx) {
     }
 
     if (url.pathname === "/v1/fraggate" || url.pathname.startsWith("/v1/fraggate/")) {
-      return handleFraggateHttp(request, url, origin, env);
+      return handleFraggateHttp(request, url, origin, env, ctx);
     }
 
     if (url.pathname === "/v1/bundle" && request.method === "GET") {
@@ -4065,7 +4112,7 @@ async function handleRequest(request, env, ctx) {
     }
 
     if (url.pathname === "/mcp" || url.pathname === "/mcp/") {
-      return handleMcp(request, env, origin);
+      return handleMcp(request, env, origin, ctx);
     }
 
     const card = url.pathname.match(/^\/p\/([a-z0-9-]+)\/?$/i);

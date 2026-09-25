@@ -108,6 +108,7 @@ export const GLAMA_DISCOVERY_LEAD =
 export const GLAMA_HOW_TO_USE = Object.freeze([
   "1. Click Install / Add to Glama on https://glama.ai/mcp/servers/AzielEliab/aziel-runtime",
   "2. In any MCP client, run: fraggate_list → fraggate_describe {name} → fraggate_call {name, op, payload, confirm:true}",
+  "Start here: one door. confirm=true writes. dry_run=true previews and writes nothing. background=true on fraggate_call returns Running until a receipt hash exists. Done only with that hash. tools/list stays 36.",
 ]);
 
 export const GLAMA_EXAMPLE_FIRST_CALL =

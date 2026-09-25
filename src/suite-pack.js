@@ -85,6 +85,8 @@ Then: node cli/aziel-runtime.mjs session status --local
 
 Add --json when a script needs the machine object.
 Catalog calls go through FragGate: fraggate_list, then fraggate_describe, then fraggate_call.
+Start here: confirm=true writes. dry_run=true previews. background=true stays Running until a receipt hash exists. tools/list stays 36.
+Terminal: node cli/aziel-runtime.mjs call foldlock fold-preview --local --dry-run
 `;
 }
 

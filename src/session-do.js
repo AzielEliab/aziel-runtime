@@ -117,6 +117,12 @@ export class RuntimeSession {
       if (action === "close" && request.method === "POST") {
         return await this.close();
       }
+      if (action === "job-put" && request.method === "POST") {
+        return await this.jobPut(await readJson(request));
+      }
+      if (action === "job-get" && request.method === "POST") {
+        return await this.jobGet(await readJson(request));
+      }
       if ((action === "status" || action === "") && request.method === "GET") {
         return await this.status();
       }
@@ -124,6 +130,22 @@ export class RuntimeSession {
     } catch (err) {
       return fail(err);
     }
+  }
+
+  async jobPut(body) {
+    const id = String((body && body.job_id) || "");
+    if (!/^job_[a-f0-9]{16}$/.test(id)) {
+      return json({ ok: false, code: "bad_job_id", message: "job id must match job_ + 16 hex" }, 400);
+    }
+    await this.ctx.storage.put("bgjob:" + id, body.record);
+    return json({ ok: true, job_id: id });
+  }
+
+  async jobGet(body) {
+    const id = String((body && body.job_id) || "");
+    const record = await this.ctx.storage.get("bgjob:" + id);
+    if (!record) return json({ ok: false, code: "job_not_found" }, 404);
+    return json({ ok: true, record });
   }
 
   async open(body) {
@@ -259,6 +281,14 @@ export class RuntimeSession {
 }
 
 /** In-memory Durable Object namespace for tests (and CLI local HTTP adapter). */
+/** One Durable Object holds background job records. Not a second door. */
+export function backgroundStub(env) {
+  if (!env || !env.SESSION || typeof env.SESSION.idFromName !== "function") return null;
+  const id = env.SESSION.idFromName("aziel-background");
+  if (typeof env.SESSION.getByName === "function") return env.SESSION.getByName("aziel-background");
+  return env.SESSION.get(id);
+}
+
 export function memorySessionNamespace(env) {
   const objects = new Map();
   function idFromName(name) {

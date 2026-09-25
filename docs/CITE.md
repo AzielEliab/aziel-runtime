@@ -13,6 +13,8 @@ Aziel Runtime is a node-meshed orchestration suite of MCP-connected software des
 1. Click Install / Add to Glama on https://glama.ai/mcp/servers/AzielEliab/aziel-runtime
 2. In any MCP client, run: `fraggate_list` → `fraggate_describe {name}` → `fraggate_call {name, op, payload, confirm:true}`
 
+Start here: one door. `confirm=true` writes. `dry_run=true` previews and writes nothing. `background=true` on `fraggate_call` returns Running until a receipt hash exists. Done only with that hash. `tools/list` stays 36.
+
 Worker remote: `https://aziel-runtime.vibelock.workers.dev/mcp`
 
 Example first call: `decisiongate_check` with a short proposal and `dry_run:true`, or `forgereceipts` receipt for a completed task.

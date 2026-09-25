@@ -202,6 +202,12 @@ This is software you use in chat. **One door — discover, route, refuse.** Ther
 
 FragGate kernel: https://github.com/AzielEliab/fraggate (FG-0.1)
 
+## Start here
+
+One door. \`confirm=true\` when a call writes. \`dry_run=true\` previews and writes nothing. \`background=true\` on \`fraggate_call\` returns Running until a receipt hash exists. Done only with that hash. \`tools/list\` stays 36.
+
+Terminal: \`aziel-runtime call foldlock fold-preview --local --dry-run\`. A long job: \`aziel-runtime call foldlock fold-preview --background --local\`, then \`aziel-runtime job <id>\`. \`aziel-runtime service status\` reports Running or Quiet and does not call the door.
+
 ## Dual surface (product law)
 
 1. **Agent / MCP** — Software runs 100% through the agent. Display \`display.title\`, \`display.summary\`, and \`display.fields\` in the AI client. Feed the next input back into the same product. Session ids, receipts, OpenAPI, and HTTP stay invisible unless the user asked for them.

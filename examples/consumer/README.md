@@ -39,7 +39,7 @@ That starts `cli/mcp-stdio.mjs`. `tools/list` is 36 live tools. First call:
 2. `fraggate_describe` one slug
 3. `fraggate_call` `{ "slug": "foldlock", "op": "fold-preview", "payload": { "text": "hello" } }`
 
-or `decisiongate_check` with `dry_run=true`. Unknown tools refuse. HTTP `POST /p/{slug}/{op}` is a proxy.
+or `decisiongate_check` with `dry_run=true`. A long job passes `background:true` and stays Running until a receipt hash exists. Unknown tools refuse. HTTP `POST /p/{slug}/{op}` is a proxy. `tools/list` stays 36.
 
 See `mcp-client.mjs` for a copy-paste caller.
 

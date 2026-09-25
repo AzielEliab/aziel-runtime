@@ -227,6 +227,7 @@ export function helpFraggateTxt(origin) {
     "## Pipeline",
     "",
     "list → describe → call.",
+    "Start here: one door. confirm=true writes. dry_run=true previews and writes nothing. background=true returns Running until a receipt hash exists. Done only with that hash. tools/list stays 36.",
     "",
     `- MCP tools: fraggate_list, fraggate_describe, fraggate_verify, fraggate_call`,
     `- HTTP list: GET ${base}/v1/fraggate/list`,

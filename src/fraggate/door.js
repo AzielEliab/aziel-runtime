@@ -637,6 +637,8 @@ function payloadWithoutMeta(src) {
     "id",
     "confirm",
     "dry_run",
+    "background",
+    "job_id",
     "request_id",
     "attempt_n",
     "parent_receipt_id",

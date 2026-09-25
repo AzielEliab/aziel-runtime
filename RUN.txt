@@ -8,6 +8,16 @@ The version is the version field in package.json.
 2. node cli/aziel-runtime.mjs session open --local
 3. node cli/aziel-runtime.mjs session status --local
 
+A single door call, on this machine:
+  node cli/aziel-runtime.mjs call foldlock fold-preview --local --dry-run
+
+A long job returns Running, then a receipt:
+  node cli/aziel-runtime.mjs call foldlock fold-preview --background --local
+  node cli/aziel-runtime.mjs job <job-id>
+
+Listener status does not call the door:
+  node cli/aziel-runtime.mjs service status
+
 Help: node cli/aziel-runtime.mjs --help
 Machine output: add --json
 Agent stdio: node cli/mcp-stdio.mjs
