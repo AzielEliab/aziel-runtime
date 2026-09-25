@@ -409,6 +409,9 @@ ${survivalSkillMarkdown(base)}
 | POST | \`/v1/mesh/site-presence\` | Hub fleet heartbeat. Body \`{host, viewers, kind: "human-page"}\`. Allowed: godlock.uk, azieleliab.com, azielcorpuslibrary.net. Alias \`/v1/mesh/site-heartbeat\`. 5-minute TTL. Fail-closed. F03 \`mesh_mutate\`. |
 | GET | \`/v1/mesh/az-generator\` | Cap-7 semantic-bridge cite (MirageGrid factory; inherit designs only including azcorpus + azlibrary; \`design_of: hub_designs\`; \`resolves_to_hub: false\`; \`name_may_change\`; not ICANN). Never enables radios. |
 | POST | \`/v1/mesh/broadcast\` | SHA-256 hash receipt only. Never a publish path. |
+| GET | \`/v1/mesh/sot\` | SOT-SYNC-1.0 suite tip. Authority is GET /v1/software (suite version, git sha, Softwares count, card versions). version_id is null. Does not change Nodes or Live Nodes. |
+| GET | \`/v1/mesh/outlets\` | Outlet registry the mesh can address. Status ok / drifted / unreachable / unexposed. |
+| POST | \`/v1/mesh/sot-sync\` | Pull-plane sync. \`dry_run: true\` previews every outlet and the fields that would change. \`confirm: true\` applies, mints ACT-RECEIPT-1.0, and updates last_applied only where a write succeeded. Unreachable outlets keep last-known inventory. |
 | GET | \`/v1/mesh/relay\` | FED-MESH-1.0 Local-First Edge Mesh cite and relay health. Never enables. Never requires plaintext. |
 | GET | \`/v1/mesh/relay/bootstrap\` | Signed bootstrap lists this relay has accepted. One source. A node still needs an address it already has. |
 | GET | \`/v1/mesh/relay/refs\` | Ref index for one handle (how objects connect). Does not return object bytes. |
@@ -2237,6 +2240,50 @@ export function runtimeStaticPaths() {
           },
         },
         responses: { "200": { description: "Local hash receipt" }, "400": { description: "Radios off, bytes refused, publish refused, or bad hash" } },
+      },
+    },
+    "/v1/mesh/sot": {
+      get: {
+        operationId: "mesh_sot_status",
+        summary:
+          "SOT-SYNC-1.0 suite tip from GET /v1/software plus the outlet matrix. version_id is null. Not mesh_broadcast. live_body_sync false. Does not change Nodes or Live Nodes.",
+        tags: ["mesh"],
+        responses: { "200": { description: "Suite tip and outlet status" } },
+      },
+    },
+    "/v1/mesh/outlets": {
+      get: {
+        operationId: "mesh_outlets",
+        summary:
+          "Registered outlets (hub cites, JSON-LD, llms, catalog mirrors, frozen cite, mesh hooks). Status ok, drifted, unreachable, or unexposed.",
+        tags: ["mesh"],
+        responses: { "200": { description: "Outlet registry" } },
+      },
+    },
+    "/v1/mesh/sot-sync": {
+      post: {
+        operationId: "mesh_sot_sync",
+        summary:
+          "Pull-plane sync. dry_run true returns the plan and writes nothing. confirm true applies, mints an ACT-RECEIPT-1.0 receipt, and updates last_applied only for outlets that were written. Unreachable outlets are not invented.",
+        tags: ["mesh"],
+        requestBody: {
+          required: false,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  dry_run: { type: "boolean" },
+                  confirm: { type: "boolean" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "200": { description: "Dry run plan or applied tip" },
+          "400": { description: "SOT-CONFIRM-REQUIRED, SOT-UNREACHABLE, or SOT-GATE-BLOCK" },
+        },
       },
     },
   };

@@ -80,7 +80,7 @@ export function interfaceHelpAnswer(question) {
     return {
       topic: "corpus_subtab",
       answer:
-        `Aziel Elroi Eliab is alternateName only. The primary name is Aziel Eliab. Under that About section, Corpus is a sub-tab (FoldLock tip and the live library cite). Ask Jeeves is the sibling sub-tab for this build. Neither is a top-bar domain. The Library top-bar tab still groups the Aziel Corpus and Whitestone Softwares cards.`,
+        `Aziel Elroi Eliab is alternateName only. The primary name is Aziel Eliab. That name is a top-bar domain tab. Corpus is a sub-tab on it (FoldLock tip and the live library cite), not its own top-bar domain. Ask Jeeves is the sibling sub-tab for this build. The Library top-bar tab still groups the Aziel Corpus and Whitestone Softwares cards.`,
     };
   }
   if (/\b(what can you|suite help|how (do i|can i) (use|ask) jeeves|ask jeeves help)\b/.test(n)) {

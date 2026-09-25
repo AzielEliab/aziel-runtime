@@ -164,7 +164,7 @@ export function corpusFoldPackPanelHtml(origin) {
 export function aboutAzielAndPackHtml(origin) {
   return `<section id="elroi-pane" class="cite">
   <h2>Aziel Elroi Eliab <span class="hashtag">#elroi</span></h2>
-  <p>Alternate name only. The primary identity is <strong>Aziel Eliab</strong>. Corpus and Ask Jeeves are sub-tabs here, not top-bar domains.</p>
+  <p>Alternate name only. The primary identity is <strong>Aziel Eliab</strong>. This pane is the Aziel Elroi Eliab domain tab. Corpus and Ask Jeeves are sub-tabs here. Corpus is not its own top-bar domain.</p>
   <div class="elroi-tabs" role="tablist">
     <button type="button" data-elroi-tab="published" aria-selected="true">Published work</button>
     <button type="button" data-elroi-tab="corpus" aria-selected="false">Corpus</button>

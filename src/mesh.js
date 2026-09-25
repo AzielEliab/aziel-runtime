@@ -241,6 +241,9 @@ export const MESH_CANONICAL_OPS = Object.freeze([
   "leave",
   "nodes",
   "broadcast",
+  "outlets",
+  "sot-status",
+  "sot-sync",
   "health",
   "skill",
   "vpn",
@@ -295,6 +298,11 @@ export const MESH_OP_ALIASES = Object.freeze({
   mesh_leave: "leave",
   mesh_nodes: "nodes",
   mesh_broadcast: "broadcast",
+  mesh_outlets: "outlets",
+  mesh_sot_status: "sot-status",
+  mesh_sot_sync: "sot-sync",
+  "sot_status": "sot-status",
+  "sot_sync": "sot-sync",
   "site_presence": "site-presence",
   "site-heartbeat": "site-presence",
   site_heartbeat: "site-presence",
@@ -511,6 +519,8 @@ export function isMeshReadPath(pathname) {
     path === "/v1/mesh" ||
     path === "/v1/mesh/status" ||
     path === "/v1/mesh/nodes" ||
+    path === "/v1/mesh/outlets" ||
+    path === "/v1/mesh/sot" ||
     path === "/v1/mesh/site-presence" ||
     path === "/v1/mesh/site-heartbeat" ||
     path === "/v1/mesh/relay" ||
@@ -1558,7 +1568,7 @@ Public **nodes** / \`rollup.nodes\` = \`human_mesh_users\` + cited \`human_uses\
 
 Full node process is local \`qnm-node/\` (boot / chain / apg / bearers / outbox / phoenix / score / memorial / tethers). Packet-transfer coding design is **QNS-CD-1.0** (photon QNS1 1.3 on local \`qnsd\`; companion to QNM-BUILD-1.0 / AIH-WP-1.3). This Worker cites only — \`GET /v1/qns\`. It does not proxy local via emit. **Channel plane (${CHANNEL_PLANE_SPEC}):** operator-armed wifi / bluetooth / rf / photon cites are ON. Live OS/hardware bearers run on local qnm-node / qnsd. ${CHANNEL_PLANE_NOTE} Parent will roll that package. Anon-broadcast is a sibling loopback module of that local process only — never a publish path.
 
-HTTP: \`GET /v1/mesh\` · \`GET /v1/mesh/status\` · \`POST /v1/mesh/enable\` (optional extra bearer) · \`POST /v1/mesh/disable\` (refused) · \`POST /v1/mesh/join|heartbeat|leave\` · \`GET /v1/mesh/nodes\` · \`POST /v1/mesh/site-presence\` (hub human-page fleet heartbeat) · \`POST /v1/mesh/broadcast\` (hash receipt only; not a publish path)
+HTTP: \`GET /v1/mesh\` · \`GET /v1/mesh/status\` · \`POST /v1/mesh/enable\` (optional extra bearer) · \`POST /v1/mesh/disable\` (refused) · \`POST /v1/mesh/join|heartbeat|leave\` · \`GET /v1/mesh/nodes\` · \`POST /v1/mesh/site-presence\` (hub human-page fleet heartbeat) · \`POST /v1/mesh/broadcast\` (hash receipt only; not a publish path) · \`GET /v1/mesh/sot\` · \`GET /v1/mesh/outlets\` · \`POST /v1/mesh/sot-sync\` (SOT-SYNC-1.0 pull plane; dry_run then confirm; not a body fan-out; live_body_sync false)
 
 FragGate: \`fraggate_list\` → \`fraggate_describe\` slug=mesh → \`fraggate_call { slug: "mesh", op }\`
 
@@ -1752,6 +1762,14 @@ export async function meshJoin(payload, env) {
     fedJoin = fed;
     if (!node_id) node_id = handleBody(fed.handle);
   }
+  let outletHook = "";
+  let outletHookRefused = null;
+  if (src.outlet_hook != null && String(src.outlet_hook).trim() !== "") {
+    const { acceptOutletHook } = await import("./sot-sync.js");
+    const accepted = acceptOutletHook(src.outlet_hook);
+    if (accepted.ok) outletHook = accepted.url;
+    else outletHookRefused = accepted.code || "SOT-HOOK-HOST";
+  }
   const now = nowMs();
   const ts = nowIso(now);
   const existing = node_id ? state.nodes[node_id] : null;
@@ -1777,6 +1795,7 @@ export async function meshJoin(payload, env) {
     session_id,
     joined_at: (existing && existing.joined_at) || ts,
     last_seen: ts,
+    ...(outletHook ? { outlet_hook: outletHook } : {}),
   };
   state.nodes[node_id] = node;
   if (Object.keys(state.nodes).length > NODE_CAP) {
@@ -1812,6 +1831,8 @@ export async function meshJoin(payload, env) {
     kind,
     counts_as_live_nodes: countsAsLiveNodes(node),
     node,
+    ...(outletHook ? { outlet_hook: outletHook, outlet_hook_stored: true } : {}),
+    ...(outletHookRefused ? { outlet_hook_stored: false, outlet_hook_refused: outletHookRefused } : {}),
     federated: fedJoin || undefined,
     note: fedJoin
       ? "Signed #handle registered. verified_handles counts this handle. It does not enter the nodes or live_nodes pills, software_nodes, or instance_nodes."
@@ -2184,6 +2205,11 @@ export async function runMeshOp(op, payload, env) {
   if (resolved === "nodes") return meshNodes(payload, env);
   if (resolved === "site-presence") return meshSitePresence(payload, env);
   if (resolved === "broadcast") return meshBroadcast(payload, env);
+  if (resolved === "outlets" || resolved === "sot-status" || resolved === "sot-sync") {
+    const state = await loadState(env);
+    const { runSotMeshOp } = await import("./sot-sync.js");
+    return runSotMeshOp(resolved, src, env, { nodes: state.nodes, origin: src.origin || "" });
+  }
   if (resolved && resolved.startsWith("relay-")) {
     const read = resolved === "relay-cite" || resolved === "relay-bootstrap-read" || resolved === "relay-directory" || resolved === "relay-object-read" || resolved === "relay-refs" || resolved === "relay-name-read" || resolved === "relay-witness-read" || resolved === "relay-equivocation-read" || resolved === "relay-vouch-read" || resolved === "relay-advisory-read" || resolved === "relay-quarantine-read" || resolved === "relay-island-read" || resolved === "relay-slot-read" || resolved === "relay-isolation-read";
     if (!read) {
@@ -2288,6 +2314,21 @@ async function dispatchMeshHttpCore(method, pathname, payload, env, origin, sear
     const body = await runMeshOp(postOps[path], payload, env);
     return { status: body.ok === false ? body.http_status || 400 : 200, body };
   }
+  if (path === "/v1/mesh/outlets" || path === "/v1/mesh/sot") {
+    if (m !== "GET" && m !== "HEAD") {
+      return { status: 405, body: refuse("MESH-METHOD", `GET ${path}.`, { hint: `GET ${path}` }) };
+    }
+    const op = path === "/v1/mesh/outlets" ? "outlets" : "sot-status";
+    const body = await runMeshOp(op, { ...payload, origin }, env);
+    return { status: body.ok === false ? body.http_status || 400 : 200, body };
+  }
+  if (path === "/v1/mesh/sot-sync") {
+    if (m !== "POST") {
+      return { status: 405, body: refuse("MESH-METHOD", "POST /v1/mesh/sot-sync.", { hint: "POST /v1/mesh/sot-sync" }) };
+    }
+    const body = await runMeshOp("sot-sync", { ...payload, origin }, env);
+    return { status: body.ok === false ? body.http_status || 400 : 200, body };
+  }
   if (path === "/v1/mesh/relay" || path.startsWith("/v1/mesh/relay/")) {
     if (
       (path === "/v1/mesh/relay" ||
@@ -2349,7 +2390,7 @@ async function dispatchMeshHttpCore(method, pathname, payload, env, origin, sear
   return {
     status: 404,
     body: refuse("MESH-NOT-FOUND", "Unknown mesh path.", {
-      hint: "GET /v1/mesh /status /nodes /site-presence /az-generator  POST /v1/mesh/enable|join|heartbeat|leave|site-presence|broadcast  POST /v1/mesh/disable (refused)  POST /v1/mesh/rewrite|lie (MESH-NO-REWRITE / MESH-NO-LIE)",
+      hint: "GET /v1/mesh /status /nodes /outlets /sot /site-presence /az-generator  POST /v1/mesh/enable|join|heartbeat|leave|site-presence|broadcast|sot-sync  POST /v1/mesh/disable (refused)  POST /v1/mesh/rewrite|lie (MESH-NO-REWRITE / MESH-NO-LIE)",
     }),
   };
 }

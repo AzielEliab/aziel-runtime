@@ -245,6 +245,18 @@ The Worker is one relay. Any qnm-node may run the same relay. A new node still n
 
 `.aziel` name records are signed and anchored like ref updates. `<handle>.aziel` is self-certifying and final immediately. A friendly name carries proof-of-work and stays pending until 72 hours and 2 witness handles. The first valid final claim wins, with 3 user .aziel names per handle and 4 reserved hub-mirror slots. Equivocation flags that handle only. This relay does not execute peer code and does not rank handles. `.az` is normal DNS except the Cap-7 factory names and the AZ.* hub names (`AZ.AzielEliab.AZ`, `AZ.Godlock.AZ`, `AZ.AzielCorpusLibrary.AZ`, `AZ.HeDidntJump.AZ`). Those cites are not mesh name records. Standard internet does not reach Cap-7. AZ.* resolves through hub HTTPS.
 
+## SOT-SYNC-1.0
+
+`mesh_broadcast` stays a hash receipt. Suite tip fan-out is a separate pull plane. Paper: [`docs/designs/SOT-SYNC-1.0.md`](designs/SOT-SYNC-1.0.md).
+
+- `GET /v1/mesh/sot` — tip from `GET /v1/software` (suite version, git sha, Softwares count, card versions). `version_id` is null.
+- `GET /v1/mesh/outlets` — registry (hub cite, JSON-LD, llms, catalog mirrors, frozen cite, joined `outlet_hook`).
+- `POST /v1/mesh/sot-sync` — `dry_run: true` previews every outlet. `confirm: true` writes the ledger, mints ACT-RECEIPT-1.0, and updates `last_applied` only where a write succeeded.
+
+FragGate: `fraggate_call` `{ slug: "mesh", op: "sot-sync", payload: { dry_run: true } }`. Interface: `mesh_outlets`, `mesh_sot_status`, `mesh_sot_sync` on `POST /v1/interface`. Those names are not in `tools/list` (still 36).
+
+Unreachable outlets keep last-known inventory. Nodes and Live Nodes are not this plane.
+
 ## FAQ
 
 **What are Nodes?** `human_mesh_users + human_uses`. Unchanged. Uses are interaction counters, not unique people.

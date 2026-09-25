@@ -73,6 +73,9 @@
  * GET  /v1/mesh/site-presence cite hub site-viewer contract (GET never writes / never pulls /count)
  * GET  /v1/mesh/az-generator  Cap-7 semantic-bridge cite (MirageGrid; not ICANN; never enables)
  * POST /v1/mesh/broadcast     SHA-256 hash receipt only (never a publish path)
+ * GET  /v1/mesh/sot           SOT-SYNC-1.0 suite tip (GET /v1/software authority; version_id null)
+ * GET  /v1/mesh/outlets       outlet registry (aligned / drifted / unreachable / unexposed)
+ * POST /v1/mesh/sot-sync      dry_run plan, or confirm apply (ACT-RECEIPT-1.0; pull plane)
  * GET  /v1/bundle             compact bootstrap (skill URL + invoke prefix per product)
  * GET  /v1/pull?all=1         alias of /v1/bundle
  * GET  /v1/pull/{slug}        pull record (skill, download, install, ops, aliases)
@@ -147,6 +150,7 @@ import {
   setSuitePresenceCatalog,
   SUITE_PRESENCE,
 } from "./mesh.js";
+import { setSotProducts } from "./sot-sync.js";
 import { dispatchQnsHttp, qnsHint } from "./qns.js";
 import { dispatchActReceiptHttp, finishWithActReceipt } from "./library-receipts.js";
 import { forensicTip, orchestrate, runtimeUiDocument } from "./interface-orchestrator.js";
@@ -1182,6 +1186,7 @@ export const PRODUCTS = PRODUCTS_RAW.map((p) => ({
 }));
 
 setSuitePresenceCatalog(PRODUCTS);
+setSotProducts(PRODUCTS);
 
 const BY_SLUG = Object.fromEntries(PRODUCTS.map((p) => [p.slug, p]));
 

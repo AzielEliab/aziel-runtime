@@ -746,6 +746,80 @@ ${dashCards}
     </div>
   </section>
 
+  <section class="task" id="sot-desk" data-kind="sot" data-origin="${escapeHtml(base)}">
+    <h3>Suite tip sync</h3>
+    <p class="blurb">One source of truth: live <code>GET /v1/software</code> for suite version, git sha, Softwares count, and card versions. <code>version_id</code> stays null. Ask Jeeves is not a Softwares card. Sync is a pull plane (<code>POST /v1/mesh/sot-sync</code>), not <code>mesh_broadcast</code>. Dry run lists every outlet and the fields that would change. Confirm writes an ACT-RECEIPT and updates <code>last_applied</code> only where the write succeeded. An unreachable outlet keeps its last-known inventory.</p>
+    <p class="ws-status" id="sot-status-line" data-state="ready" role="status" aria-live="polite">Refresh tip to load the outlet matrix</p>
+    <pre class="ws-out fg-out" id="sot-out" role="status" aria-live="polite">GET ${escapeHtml(base)}/v1/mesh/sot</pre>
+    <label><input id="sot-confirm" type="checkbox"> confirm apply</label>
+    <div class="actions">
+      <button type="button" data-sot="status">Refresh tip</button>
+      <button type="button" data-sot="outlets">Outlets</button>
+      <button type="button" data-sot="dry">Dry run</button>
+      <button type="button" data-sot="apply">Apply</button>
+    </div>
+  </section>
+  <script>
+  (function () {
+    var desk = document.getElementById("sot-desk");
+    if (!desk || desk.getAttribute("data-bound") === "1") return;
+    desk.setAttribute("data-bound", "1");
+    var origin = desk.getAttribute("data-origin") || "";
+    var out = document.getElementById("sot-out");
+    var line = document.getElementById("sot-status-line");
+    function paint(body) {
+      var sot = body && body.sot ? body.sot : body;
+      var version = sot && sot.suite_version != null ? sot.suite_version : "—";
+      var sha = sot && sot.git_sha != null ? sot.git_sha : "—";
+      var count = sot && sot.softwares_count != null ? sot.softwares_count : "—";
+      var outlets = body && body.outlets ? body.outlets : [];
+      var bits = { ok: 0, drifted: 0, unreachable: 0, unexposed: 0 };
+      outlets.forEach(function (row) {
+        if (bits[row.status] != null) bits[row.status] += 1;
+      });
+      if (line) {
+        line.textContent = "SoT " + version + " · sha " + sha + " · Softwares " + count + " · version_id null · ok " + bits.ok + " · drifted " + bits.drifted + " · unreachable " + bits.unreachable + " · unexposed " + bits.unexposed;
+        line.setAttribute("data-state", "ready");
+      }
+      if (out) out.textContent = JSON.stringify(body, null, 2);
+    }
+    function load(path) {
+      if (line) { line.textContent = "Loading suite tip"; line.setAttribute("data-state", "loading"); }
+      return fetch(origin + path, { headers: { accept: "application/json" } })
+        .then(function (res) { return res.json(); })
+        .then(paint)
+        .catch(function (err) {
+          if (line) line.textContent = "Suite tip unreachable. Last-known rows were not replaced.";
+          if (out) out.textContent = String(err && err.message ? err.message : err);
+        });
+    }
+    desk.querySelectorAll("[data-sot]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var act = btn.getAttribute("data-sot");
+        if (act === "status") { load("/v1/mesh/sot"); return; }
+        if (act === "outlets") { load("/v1/mesh/outlets"); return; }
+        var body = { dry_run: act === "dry" };
+        if (act === "apply") {
+          var box = document.getElementById("sot-confirm");
+          if (!box || !box.checked) {
+            if (out) out.textContent = "Apply needs the confirm box. Nothing was sent.";
+            return;
+          }
+          body = { confirm: true };
+        }
+        if (line) { line.textContent = act === "dry" ? "Dry run" : "Applying"; line.setAttribute("data-state", "loading"); }
+        fetch(origin + "/v1/mesh/sot-sync", {
+          method: "POST",
+          headers: { "content-type": "application/json", accept: "application/json" },
+          body: JSON.stringify(body)
+        }).then(function (res) { return res.json(); }).then(paint).catch(function (err) {
+          if (out) out.textContent = String(err && err.message ? err.message : err);
+        });
+      });
+    });
+  })();
+  </script>
+
   <section class="dash" id="dashboard" aria-labelledby="dashboard-title">
     <h3 id="dashboard-title">Dashboard</h3>
     ${aboutAzielStripHtml({ id: "about-aziel-strip" })}
@@ -821,9 +895,11 @@ export function humanNavHtml(origin, { current } = {}) {
     const on = domain.id === UI_DOMAIN_DEFAULT;
     return `<button type="button" role="tab" id="domain-tab-${escapeHtml(domain.id)}" data-domain-tab="${escapeHtml(domain.id)}" aria-selected="${on ? "true" : "false"}" aria-controls="dash-softwares">${escapeHtml(domain.label)}</button>`;
   }).join("\n    ");
+  const elroiTab = `<button type="button" role="tab" id="domain-tab-elroi" data-domain-tab="elroi" aria-selected="false" aria-controls="elroi-pane">Aziel Elroi Eliab</button>`;
   return `<a class="skip-workspace" href="${current === "workspace" ? "#workspace" : "#workspace"}">Skip to workspace</a>
 <div class="domain-tabs" role="tablist" aria-label="Software domains">
     ${tabs}
+    ${elroiTab}
 </div>
 <nav class="human-nav" aria-label="Human workspace">
   <a href="${escapeHtml(ws)}">Workspace</a>
@@ -833,6 +909,7 @@ export function humanNavHtml(origin, { current } = {}) {
   <a href="#dashboard">Dashboard</a>
   <a href="${current === "workspace" ? "#interface-panel" : "#interface-panel"}">Interface</a>
   <a href="${current === "workspace" ? "#mesh-panel" : "#mesh-panel"}">Mesh</a>
+  <a href="#sot-desk">SoT sync</a>
   <a href="${current === "workspace" ? "#session-strip" : "#session-strip"}">Session</a>
   <a href="${escapeHtml(suiteDownloadHref(base))}" download="aziel-runtime-suite.json">Download suite</a>
   <a href="${escapeHtml(home)}#cite">Cite / docs</a>
@@ -1491,6 +1568,11 @@ export function humanDoorScript() {
       activeDomain = tab.getAttribute("data-domain-tab") || activeDomain;
       if (dashFilter) dashFilter.value = "";
       applyDomain();
+      if (activeDomain === "elroi") {
+        let pane = document.getElementById("elroi-pane");
+        if (pane && pane.scrollIntoView) pane.scrollIntoView({ block: "start" });
+        return;
+      }
       let grid = document.getElementById("dash-softwares");
       if (grid && grid.scrollIntoView) grid.scrollIntoView({ block: "start" });
     });
