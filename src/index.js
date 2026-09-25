@@ -58,6 +58,9 @@
  * GET  /v1/mesh               QNM rollup (live/locked/isolated; suite-presence ON by default; GET never enables extra radios)
  * GET  /v1/qns                QNS-CD-1.0 cite (photon QNS1 1.3; local qnsd; never a proxy)
  * GET  /v1/receipts           ACT-RECEIPT-1.0 cite (public chain on corpus /receipts; tip/proxy)
+ * GET  /v1/interface         human-side orchestration contract (VeilLock plans do not launch)
+ * POST /v1/interface         same body as MCP method interface/orchestrate (not a tools/list name)
+ * GET  /v1/interface/forensic  local audit tip (isolate memory; not the public chain)
  * GET  /v1/azpipe/arch        MASTER-33 AZPIPE cite (same pipeline payload as GET /v1/fraggate; not a Softwares door)
  * POST /v1/memory/observe|resolve|calibrate|recall  AKM-TRIAD-1.0 (behind FragGate)
  * GET  /v1/memory/{id}[+history|+calibration]
@@ -91,7 +94,7 @@
  * GET  /v1/health
  * GET  /.well-known/mcp/server-card.json          honest MCP server card (also /mcp/.well-known/…)
  * GET  /.well-known/oauth-protected-resource      RFC 9728 public MCP (no auth server; also /mcp path)
- * POST /mcp                   JSON-RPC MCP-over-HTTP (initialize, tools/list, tools/call)
+ * POST /mcp                   JSON-RPC MCP-over-HTTP (initialize, tools/list, tools/call, interface/orchestrate)
  *
  * Product download-KV is not incremented here. API uses go to binding USES.
  * CORS *. Apache-2.0. Forks welcome.
@@ -146,6 +149,7 @@ import {
 } from "./mesh.js";
 import { dispatchQnsHttp, qnsHint } from "./qns.js";
 import { dispatchActReceiptHttp, finishWithActReceipt } from "./library-receipts.js";
+import { forensicTip, orchestrate, runtimeUiDocument } from "./interface-orchestrator.js";
 import { SURVIVAL_TIP, survivalCiteField, survivalLlmsBlock } from "./cross-network-survival.js";
 import { semanticBridgeCiteField, semanticBridgeLlmsBlock } from "./semantic-bridge.js";
 import {
@@ -1495,6 +1499,8 @@ function sitemapXml(origin) {
     { loc: base + "/v1/mesh/az-generator", priority: "0.6", changefreq: "weekly" },
     { loc: base + "/v1/qns", priority: "0.65", changefreq: "weekly" },
     { loc: base + "/v1/receipts", priority: "0.6", changefreq: "daily" },
+    { loc: base + "/v1/interface", priority: "0.6", changefreq: "weekly" },
+    { loc: base + "/v1/interface/forensic", priority: "0.5", changefreq: "weekly" },
     { loc: base + "/v1/azpipe/arch", priority: "0.65", changefreq: "weekly" },
     { loc: base + "/v1/memory", priority: "0.6", changefreq: "weekly" },
     { loc: base + "/v1/ready", priority: "0.7", changefreq: "daily" },
@@ -2147,6 +2153,7 @@ function productCardHtml(p, origin, stats) {
   <p>${ops}</p>
   ${invokePre}
   ${fragGateDoorHtml(p, origin)}
+  ${p.slug === "veillock" ? `<p class="hint">VeilLock stays local_only. Public door ops stay empty. Host plans are on <a href="${origin}/workspace#interface-panel">the interface pane</a> (<code>POST /v1/interface</code>, MCP method <code>interface/orchestrate</code>). A plan does not launch, join, register a camera, return a key, or append the public receipt chain.</p>` : ""}
 </article>`;
 }
 
@@ -3086,6 +3093,8 @@ function healthBody(origin, env = {}) {
     mesh_nodes: "/v1/mesh/nodes",
     qns: "/v1/qns",
     receipts: "/v1/receipts",
+    interface: "/v1/interface",
+    interface_forensic: "/v1/interface/forensic",
     azpipe_arch: "/v1/azpipe/arch",
     memory: "/v1/memory",
     about: "/about",
@@ -3172,7 +3181,7 @@ async function handleMcp(request, env, origin) {
       transport: "streamable-http",
       encoding: "JSON-RPC MCP-over-HTTP",
       endpoint: "POST /mcp",
-      methods: ["initialize", "tools/list", "tools/call", "ping"],
+      methods: ["initialize", "tools/list", "tools/call", "ping", "interface/orchestrate"],
       mcp_session: "Mcp-Session-Id issued on initialize and echoed on every POST. DELETE /mcp tears down. Reuse of a closed id is 404.",
       protocol_versions: MCP_PROTOCOL_SUPPORTED.slice(),
       protocol_preferred: MCP_PROTOCOL_PREFERRED,
@@ -3180,7 +3189,7 @@ async function handleMcp(request, env, origin) {
       auth: "none (public)",
       server_card: "/.well-known/mcp/server-card.json",
       oauth_protected_resource: "/.well-known/oauth-protected-resource",
-      note: "Durable Objects / agents McpAgent not used. Minimal HTTP JSON-RPC. tools/list is 36 live MCP tools. First call: fraggate_list → fraggate_describe → fraggate_call. Install / Try on Glama is the discovery listing. Fabric mesh_* / chainlock_* / memory_* / decisiongate_check / library_lookup are kernel-direct (same kernels; not MASTER-33; not a second Softwares door). Hubs: GET /v1/software. Mutating tools require confirm=true or dry_run=true. This Worker POST /mcp is THE edge MCP gateway — Softwares exec terminates into FragGate.",
+      note: "Durable Objects / agents McpAgent not used. Minimal HTTP JSON-RPC. tools/list is 36 live MCP tools. First call: fraggate_list → fraggate_describe → fraggate_call. Install / Try on Glama is the discovery listing. Fabric mesh_* / chainlock_* / memory_* / decisiongate_check / library_lookup are kernel-direct (same kernels; not MASTER-33; not a second Softwares door). Hubs: GET /v1/software. Mutating tools require confirm=true or dry_run=true. This Worker POST /mcp is THE edge MCP gateway — Softwares exec terminates into FragGate. Interface plans use JSON-RPC method interface/orchestrate (same body as POST /v1/interface). That method is not a tools/list name.",
       install: RUNTIME_GLAMA,
       glama: glamaInstallCite(RUNTIME_VERSION),
       door: "fraggate",
@@ -3257,6 +3266,13 @@ async function handleMcp(request, env, origin) {
   }
   if (method === "ping") {
     return rpcResult(id, {}, wire);
+  }
+  if (method === "interface/orchestrate") {
+    const out = await orchestrate(params, {
+      env,
+      dispatch: (args) => fraggateCall(args, registryFor(PRODUCTS), BY_SLUG, env, request),
+    });
+    return rpcResult(id, out.body, wire);
   }
   if (method === "tools/list") {
     return rpcResult(id, { tools: toolList() }, wire);
@@ -3861,6 +3877,36 @@ async function handleRequest(request, env, ctx) {
       );
     }
 
+    if (url.pathname === "/v1/interface" || url.pathname === "/v1/interface/forensic") {
+      const extraHeaders = authorityLinkHeaders(origin, url.pathname);
+      if (request.method === "GET" || request.method === "HEAD") {
+        const body = url.pathname === "/v1/interface/forensic" ? forensicTip() : runtimeUiDocument();
+        return asHead(request, json(body, 200, extraHeaders));
+      }
+      if (request.method !== "POST" || url.pathname !== "/v1/interface") {
+        return json(
+          { ok: false, code: "IF-METHOD", error: "POST /v1/interface, or GET the contract or forensic tip.", executed: false, writes_public_chain: false },
+          405,
+          extraHeaders,
+        );
+      }
+      let payload = {};
+      try {
+        payload = await request.json();
+      } catch {
+        return json(
+          { ok: false, code: "IF-BAD-JSON", error: "Invalid JSON — not sent.", executed: false, writes_public_chain: false },
+          400,
+          extraHeaders,
+        );
+      }
+      const out = await orchestrate(payload, {
+        env,
+        dispatch: (args) => fraggateCall(args, registryFor(PRODUCTS), BY_SLUG, env, request),
+      });
+      return json(out.body, out.status, extraHeaders);
+    }
+
     if (url.pathname === "/v1/receipts" || url.pathname.startsWith("/v1/receipts/")) {
       const out = await dispatchActReceiptHttp(request.method, url.pathname, env);
       return asHead(
@@ -3992,7 +4038,7 @@ async function handleRequest(request, env, ctx) {
     return json(
       {
         error: "not found",
-        hint: "POST /v1/fraggate/call  GET /v1/fraggate  GET /v1/azpipe/arch  GET /v1/software  GET /v1/mesh  GET /v1/qns  GET /v1/receipts  POST /v1/memory/observe  GET /v1/update/check  GET /v1/skill  POST /v1/session/open  POST /v1/session/{id}/exec  GET /v1/ready  GET /v1/uses  GET /v1/runtime.json  GET /v1/bundle  GET /v1/pull/{slug}  GET /v1/catalog.json  GET /openapi.json  POST /p/{product}/{op} (proxy, not exec)  POST /mcp",
+        hint: "POST /v1/fraggate/call  GET /v1/fraggate  GET /v1/azpipe/arch  GET /v1/software  GET /v1/mesh  GET /v1/qns  GET /v1/receipts  GET /v1/interface  POST /v1/interface  POST /v1/memory/observe  GET /v1/update/check  GET /v1/skill  POST /v1/session/open  POST /v1/session/{id}/exec  GET /v1/ready  GET /v1/uses  GET /v1/runtime.json  GET /v1/bundle  GET /v1/pull/{slug}  GET /v1/catalog.json  GET /openapi.json  POST /p/{product}/{op} (proxy, not exec)  POST /mcp",
       },
       404,
     );

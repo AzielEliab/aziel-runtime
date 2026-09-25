@@ -50,6 +50,7 @@ export function requestLimitKind(pathname, method) {
     if (path === "/v1/fraggate/call" && m === "POST") return "fraggate_call";
     return "fraggate_read";
   }
+  if (path === "/v1/interface" && m === "POST") return "fraggate_read";
   if (
     m === "POST" &&
     (path === "/v1/mesh/join" ||

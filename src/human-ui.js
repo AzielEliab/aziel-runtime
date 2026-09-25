@@ -517,6 +517,45 @@ export function workspacePaneHtml(origin, products) {
     </article>
   </div>
 
+  <section class="task" id="interface-panel" data-kind="interface" data-origin="${escapeHtml(base)}">
+    <h3>Interface — plan / seal</h3>
+    <p class="blurb">Human side of this runtime. VeilLock stays <code>local_only</code> with an empty public door. Safe calls share <code>POST /v1/interface</code> and MCP method <code>interface/orchestrate</code> (not a tools/list name). A plan does not launch, join, register a camera, return a key, lift a veil, or append the public receipt chain. Seal needs the confirm box. Live Software dispatch still goes through FragGate. Mesh awareness does not join and does not read Live Nodes.</p>
+    <div class="field">
+      <label for="if-url">Meeting URL (optional, plan only)</label>
+      <input id="if-url" type="text" placeholder="https://teams.microsoft.com/..." autocomplete="off" spellcheck="false">
+    </div>
+    <div class="field">
+      <label for="if-app">App name (optional)</label>
+      <input id="if-app" type="text" placeholder="zoom" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="field">
+      <label for="if-platform">Platform (optional)</label>
+      <input id="if-platform" type="text" placeholder="linux" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="field">
+      <label for="if-slug">Door slug (seal dispatch only)</label>
+      <input id="if-slug" type="text" placeholder="leave empty for a local seal" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="field">
+      <label for="if-op">Door op (seal dispatch only)</label>
+      <input id="if-op" type="text" placeholder="fold-preview" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="field">
+      <label for="if-confirm"><input id="if-confirm" type="checkbox"> Confirm seal (required before anything is sealed or dispatched)</label>
+    </div>
+    <div class="actions">
+      <button type="button" data-if="runtime_ui">Contract</button>
+      <button type="button" data-if="status_report">Status</button>
+      <button type="button" data-if="join_plan">Join plan</button>
+      <button type="button" data-if="engulf_plan">Engulf plan</button>
+      <button type="button" data-if="describe">Describe</button>
+      <button type="button" data-if="mesh_awareness">Mesh awareness</button>
+      <button type="button" data-if="forensic_tip">Audit tip</button>
+      <button type="button" data-if="seal">Seal</button>
+    </div>
+    <pre class="ws-out fg-out" id="interface-out" role="status" aria-live="polite">GET ${escapeHtml(base)}/v1/interface — plans do not launch</pre>
+  </section>
+
   <section class="task" id="mesh-panel" data-kind="mesh" data-origin="${escapeHtml(base)}">
     <h3>Mesh status</h3>
     <p class="blurb"><strong>Nodes</strong> from <code>nodes</code> / <code>rollup.nodes</code> count human mesh users plus cited human uses (<code>human_uses</code> / USES). <strong>Live Nodes</strong> from <code>live_nodes</code> / <code>rollup.mesh</code> count human mesh users plus concurrent website viewers (<code>site_live_viewers</code>) on godlock.uk + azieleliab.com + azielcorpuslibrary.net. Paint <code>live_nodes</code> / <code>rollup.mesh</code> only — do not add a local <code>/count</code>. <code>live_nodes_tip</code> is the seal. <code>rollup.live</code> is not published. Never paint <code>software_nodes</code>, <code>rollup.live</code>, <code>rollup.all.live</code>, or <code>rollup.software.live</code> as Live Nodes. <code>software_nodes</code> is the <code>{slug}-worker</code> roster. hedidntjump.com, bots, Softwares, and downloads are excluded. GET never pulls hub /count and never enables radios. Incomplete uses stay honest (no invented users). Channel plane cites wifi / bluetooth / rf / photon ON (local qnm-node; <code>worker_hardware:false</code> — not live Worker RF). Nine QNM laws stay machine-true on that JSON. Join needs a catalog product. Public VPN auto-binds AZVPN (HTTPS/WS REAL; WireGuard/OpenVPN SLOT).</p>
@@ -642,6 +681,7 @@ export function humanNavHtml(origin, { current } = {}) {
   <a href="${current === "workspace" ? "#fg-console" : "#fg-console"}">FragGate console</a>
   <a href="${current === "workspace" ? "#tasks" : "#tasks"}">Tasks</a>
   <a href="#dashboard">Dashboard</a>
+  <a href="${current === "workspace" ? "#interface-panel" : "#interface-panel"}">Interface</a>
   <a href="${current === "workspace" ? "#mesh-panel" : "#mesh-panel"}">Mesh</a>
   <a href="${current === "workspace" ? "#session-strip" : "#session-strip"}">Session</a>
   <a href="${escapeHtml(suiteDownloadHref(base))}" download="aziel-runtime-suite.json">Download suite</a>
@@ -1233,6 +1273,49 @@ export function humanDoorScript() {
         if (el.id === "workspace") return;
         let hay = (el.textContent || "").toLowerCase();
         el.classList.toggle("task-hidden", !!(q && hay.indexOf(q) === -1));
+      });
+    });
+  }
+  let interfacePanel = document.getElementById("interface-panel");
+  if (interfacePanel) {
+    let origin = interfacePanel.getAttribute("data-origin") || "";
+    let out = document.getElementById("interface-out");
+    interfacePanel.querySelectorAll("[data-if]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        let call = btn.getAttribute("data-if");
+        if (call === "runtime_ui") {
+          request(origin + "/v1/interface", { headers: { accept: "application/json" } }, out, btn);
+          return;
+        }
+        if (call === "forensic_tip") {
+          request(origin + "/v1/interface/forensic", { headers: { accept: "application/json" } }, out, btn);
+          return;
+        }
+        let body = { call: call };
+        let urlEl = document.getElementById("if-url");
+        let appEl = document.getElementById("if-app");
+        let platEl = document.getElementById("if-platform");
+        let slugEl = document.getElementById("if-slug");
+        let opEl = document.getElementById("if-op");
+        if (urlEl && String(urlEl.value || "").trim()) body.url = String(urlEl.value).trim();
+        if (appEl && String(appEl.value || "").trim()) body.app = String(appEl.value).trim();
+        if (platEl && String(platEl.value || "").trim()) body.platform = String(platEl.value).trim();
+        if (call === "seal") {
+          let box = document.getElementById("if-confirm");
+          if (!box || !box.checked) {
+            show(out, "Seal needs the confirm box. Nothing was sent.", "error");
+            return;
+          }
+          body.confirm = true;
+          if (slugEl && String(slugEl.value || "").trim()) body.slug = String(slugEl.value).trim();
+          if (opEl && String(opEl.value || "").trim()) body.op = String(opEl.value).trim();
+          if (!body.slug) body.slug = "veillock";
+        }
+        request(origin + "/v1/interface", {
+          method: "POST",
+          headers: { "content-type": "application/json", accept: "application/json" },
+          body: JSON.stringify(body)
+        }, out, btn);
       });
     });
   }
