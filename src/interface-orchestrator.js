@@ -34,7 +34,7 @@ import {
   workerPlan,
   workerStatus,
 } from "./ai-desks.js";
-import { refreshAuthorShelf } from "./author-shelf.js";
+import { LIVE_LIBRARY_INDEX } from "./engines/aziel-corpus/tip-pack.js";
 import { LIVE_OPS } from "./fraggate/registry.js";
 import {
   appendActReceipt,
@@ -45,6 +45,7 @@ import {
 } from "./library-receipts.js";
 import { isTruthyFlag } from "./mcp-safeguard.js";
 import { normalizeAttemptLink } from "./receipt-attempt.js";
+import { askJeevesHelp, JEEVES_HELP_CALL } from "./jeeves-desk.js";
 import { RUNTIME_VERSION } from "./runtime-api.js";
 import { ZERO_HASH } from "./session-core.js";
 
@@ -62,7 +63,7 @@ export const VEILLOCK_SAFE_CALLS = Object.freeze([
   "runtime_ui",
 ]);
 
-export const HOST_READ_CALLS = Object.freeze(["mesh_awareness", "forensic_tip", "plan", "author_shelf"]);
+export const HOST_READ_CALLS = Object.freeze(["mesh_awareness", "forensic_tip", "plan", JEEVES_HELP_CALL]);
 
 export const INTERFACE_CALLS = Object.freeze([
   ...VEILLOCK_SAFE_CALLS,
@@ -635,6 +636,37 @@ async function runAiDesk(call, input, link, opts) {
   );
 }
 
+async function searchCorpusIndex(fetchImpl, query) {
+  const source = LIVE_LIBRARY_INDEX;
+  try {
+    const res = await fetchImpl(source, {
+      method: "GET",
+      headers: { "User-Agent": "Mozilla/5.0", Accept: "application/json" },
+      signal: AbortSignal.timeout(2500),
+    });
+    if (!res || !res.ok) return { corpus_searched: false, count: 0, record_ids: [], reason: "http-error", source };
+    const json = await res.json().catch(() => null);
+    const bucket = Array.isArray(json)
+      ? json
+      : json && (json.records || json.items || json.documents || json.entries || (Array.isArray(json.hits) ? json.hits : json.hits && json.hits.hits));
+    if (!Array.isArray(bucket)) return { corpus_searched: false, count: 0, record_ids: [], reason: "inventory-unparsed", source };
+    const q = String(query || "").trim().toLowerCase();
+    const record_ids = [];
+    let count = 0;
+    for (const row of bucket) {
+      if (!row || typeof row !== "object" || Array.isArray(row)) continue;
+      const id = row.record_id || row.id;
+      const title = typeof row.title === "string" ? row.title : "";
+      if (q && !`${id || ""} ${title}`.toLowerCase().includes(q)) continue;
+      count += 1;
+      if (id && record_ids.length < 8) record_ids.push(String(id).slice(0, 80));
+    }
+    return { corpus_searched: true, count, record_ids, reason: null, source };
+  } catch {
+    return { corpus_searched: false, count: 0, record_ids: [], reason: "unreachable", source };
+  }
+}
+
 async function liveLearningPull(input, opts) {
   const flags = { pins_read: false, mesh_read: false, corpus_searched: false };
   const cites = [];
@@ -684,26 +716,17 @@ async function liveLearningPull(input, opts) {
     if (!ok) reasons.push("mesh-unread");
   }
   if (isTruthyFlag(input.search_corpus)) {
-    const shelf = await refreshAuthorShelf(opts.fetchImpl || fetch, { query: input.q || input.query || "", only: "corpus" });
-    const corpus = shelf.surfaces[0] || null;
-    flags.corpus_searched = !!(corpus && corpus.reachable && corpus.inventory_read);
-    const recordIds = [];
-    if (flags.corpus_searched) {
-      for (const item of corpus.items) {
-        const id = item.record_id || item.id;
-        if (id) recordIds.push(String(id).slice(0, 80));
-        if (recordIds.length >= 8) break;
-      }
-    }
+    const corpus = await searchCorpusIndex(opts.fetchImpl || fetch, input.q || input.query || "");
+    flags.corpus_searched = corpus.corpus_searched;
     cites.push({
       kind: "corpus",
-      source: corpus ? corpus.probe : "corpus",
-      corpus_searched: flags.corpus_searched,
-      count: corpus ? corpus.item_count : 0,
-      record_ids: recordIds,
-      reason: corpus && corpus.reason ? corpus.reason : null,
+      source: corpus.source,
+      corpus_searched: corpus.corpus_searched,
+      count: corpus.count,
+      record_ids: corpus.record_ids,
+      reason: corpus.reason,
     });
-    if (!flags.corpus_searched) reasons.push(corpus && corpus.reason ? corpus.reason : "corpus-unsearched");
+    if (!flags.corpus_searched) reasons.push(corpus.reason || "corpus-unsearched");
   }
   return { attempted: true, flags, cites, reasons };
 }
@@ -817,19 +840,41 @@ export async function orchestrate(input, opts = {}) {
     );
   }
 
-  if (call === "author_shelf") {
-    const shelf = await refreshAuthorShelf(opts.fetchImpl || fetch, { query: input.q || input.query || "" });
-    const answered = shelf.surfaces.filter((row) => row.reachable).length;
-    return finish(
-      call,
-      200,
-      link,
-      "Interface refreshed the Aziel Elroi Eliab shelf.",
-      `Author shelf refreshed. ${answered} surfaces answered. The public chain was not appended.`,
-      shelf,
-      opts,
-      false,
-    );
+  if (call === JEEVES_HELP_CALL) {
+    const help = await askJeevesHelp(input, opts.env);
+    if (help.status === 400) return fail(400, "IF-BAD-INPUT", help.error || "question required", { call });
+    const dry = isTruthyFlag(input.dry_run);
+    const body = closed({
+      ...help,
+      call: JEEVES_HELP_CALL,
+      dry_run: dry,
+      dispatched_fraggate: false,
+      second_door: false,
+      software_tab: false,
+      writes_public_chain: false,
+    });
+    if (dry) {
+      return {
+        status: 200,
+        body: {
+          ...body,
+          ok: help.ok !== false,
+          spec: INTERFACE_SPEC,
+          author: INTERFACE_AUTHOR,
+          identity: "Aziel Eliab only",
+          receipt: null,
+          sealed: false,
+          published: false,
+          stored: false,
+          store: "none",
+          durable: false,
+          writes_public_chain: false,
+          note: "Dry run stored nothing.",
+        },
+      };
+    }
+    const output = help.answer ? String(help.answer).slice(0, 240) : "Ask Jeeves replied.";
+    return finish(call, 200, link, "Interface asked Jeeves for help on this build.", output, body, opts, false);
   }
 
   if (WORKER_CALLS.includes(call) || LEARNER_CALLS.includes(call)) {

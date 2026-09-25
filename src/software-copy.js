@@ -67,9 +67,9 @@ export const SOFTWARE_COPY = Object.freeze({
       "Use AZHub to put modules in regions and declare links. It exists as a neutral container so placement stays placement.",
   },
   "aziel-corpus": {
-    one_line: "Search the public library and download azcorpus + azlibrary designs.",
+    one_line: "Search the public library with Ask Jeeves suite help and download azcorpus + azlibrary designs.",
     description:
-      "Use the Aziel Digital Library to search the public MASTER and take mesh-resident website designs to a node. It exists as a self-contained public library.",
+      "Use the Aziel Digital Library to search the public MASTER and to ask Ask Jeeves on the corpus jeeves operation. It exists as a self-contained public library with that suite help assistant on this card.",
   },
   azieltether: {
     one_line: "Keep downloaded Aziel software in sync when the central Worker is up or down.",

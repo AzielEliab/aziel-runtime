@@ -18,6 +18,7 @@ import { CATALOG_ALIASES, VERSIONS } from "./catalog-meta.js";
 import { SOFTWARE_HUBS as CROSS_MAP_HUBS, crossMapFields } from "./cross-map.js";
 import { CATALOG_COUNT_NOTE, MASTER_33_SLUGS, TAB_PLACEMENT_SLUGS, domainFields, domainMapView } from "./domain-map.js";
 import { embeddedDigest } from "./engines/digest.js";
+import { JEEVES_SUITE_HELP } from "./engines/aziel-corpus/jeeves.js";
 import { LIVE_OPS, NAMED_STUBS } from "./fraggate/registry.js";
 import { meshHint } from "./mesh.js";
 import { qnsHint } from "./qns.js";
@@ -210,6 +211,7 @@ export function liveSoftwareCard(product, origin, meta = {}) {
         }
       : {}),
     ...(product.slug === "aziel-corpus" ? websiteDesignsOnCorpusCard(base) : {}),
+    ...(product.slug === "aziel-corpus" ? { suite_help: JEEVES_SUITE_HELP } : {}),
   };
 }
 

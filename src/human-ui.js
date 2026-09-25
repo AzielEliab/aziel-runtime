@@ -21,7 +21,6 @@ import { brandRow, ecosystemBlockHtml, headMeta } from "./seo-html.js";
 import { suiteDownloadHref } from "./human-hrefs.js";
 import { suiteDownloadHtml } from "./suite-pack.js";
 import { softwareOneLine } from "./software-copy.js";
-import { localShelfCache } from "./author-shelf.js";
 import { UI_DOMAIN_DEFAULT, UI_DOMAINS, uiDomainForSlug } from "./ui-domains.js";
 
 export const WORKSPACE_PAGE_TITLE = `Workspace — ${PRODUCT_NAME}`;
@@ -226,13 +225,6 @@ export const HUMAN_UI_CSS = `
   .skip-workspace:focus{position:static;width:auto;height:auto;padding:.35rem .7rem;background:#241c0d;color:#f0d78c}
   .domain-tabs{display:flex;flex-wrap:nowrap;overflow-x:auto;gap:.4rem;margin:0 0 .65rem;padding:.55rem .7rem;border:1px solid #3d3420;border-radius:10px;background:#16120a}
   .domain-tabs button{background:#241c0d;color:#f0d78c;border:1px solid #5c4a1a;border-radius:8px;padding:.4rem .75rem;cursor:pointer;font:inherit;font-size:.85rem;font-weight:600;white-space:nowrap}
-  .author-shelf{border:1px solid #5c4a1a;border-radius:10px;padding:.85rem .95rem;margin:0 0 .9rem;background:#14110a}
-  .author-shelf.domain-off{display:none}
-  .author-sub{display:flex;flex-wrap:wrap;gap:.4rem;margin:.4rem 0 .7rem}
-  .author-sub button{background:#241c0d;color:#f0d78c;border:1px solid #5c4a1a;border-radius:8px;padding:.35rem .7rem;cursor:pointer;font:inherit}
-  .author-sub button[aria-selected="true"]{box-shadow:0 0 0 1px #d4af37}
-  .author-panel{display:none}
-  .author-panel.on{display:block}
   .domain-tabs button:hover,.domain-tabs button:focus{background:#33280f}
   .domain-tabs button[aria-selected="true"]{background:#33280f;box-shadow:0 0 0 1px #d4af37}
   .dash-card.domain-off{display:none}
@@ -464,46 +456,6 @@ function dashCardHtml(p, origin) {
 </article>`;
 }
 
-function shelfRowsHtml(items) {
-  return items
-    .map((item) => {
-      const label = item.record_id || item.doi || item.name || item.title || item.url || "";
-      const extra = item.title && item.title !== label ? ` ${item.title}` : "";
-      return `<li>${escapeHtml(String(label))}${escapeHtml(extra)} <span class="slug">local cache</span></li>`;
-    })
-    .join("");
-}
-
-function authorShelfHtml(base) {
-  const cache = localShelfCache();
-  return `<section class="author-shelf domain-off" id="author-shelf" data-origin="${escapeHtml(base)}" aria-labelledby="author-shelf-title">
-  <h3 id="author-shelf-title">Aziel Elroi Eliab</h3>
-  <p class="blurb">Author shelf for papers, uploads, and site surfaces. Corpus is a sub-tab inside this tab: the library shelf and the same site snapshot. If a site is down, these lists still update from the last reading or the local cache, and the status says unreachable. This shelf does not upload.</p>
-  <div class="author-sub" role="tablist" aria-label="Aziel Elroi Eliab shelves">
-    <button type="button" role="tab" id="author-sub-corpus" data-author-sub="corpus" aria-selected="true" aria-controls="author-panel-corpus">Corpus</button>
-    <button type="button" role="tab" id="author-sub-sites" data-author-sub="sites" aria-selected="false" aria-controls="author-panel-sites">Sites</button>
-    <button type="button" role="tab" id="author-sub-uploads" data-author-sub="uploads" aria-selected="false" aria-controls="author-panel-uploads">Uploads</button>
-    <button type="button" role="tab" id="author-sub-papers" data-author-sub="papers" aria-selected="false" aria-controls="author-panel-papers">Papers</button>
-  </div>
-  <div class="actions">
-    <button type="button" data-shelf-refresh="live">Refresh from sites</button>
-    <button type="button" data-shelf-refresh="down">Refresh as unreachable</button>
-  </div>
-  <p id="author-status" data-shelf-status="author">Local cache. Reachability has not been probed.</p>
-  <div class="author-panel on" id="author-panel-corpus" data-author-panel="corpus">
-    <p>Library shelf for azielcorpuslibrary.net, plus the site snapshot. Ask Jeeves is suite help on Aziel Corpus (op jeeves). software_tab is false. It is not a Softwares card.</p>
-    <p id="corpus-status" data-shelf-status="corpus">Local cache. Reachability has not been probed.</p>
-    <ul data-shelf-list="corpus">${shelfRowsHtml(cache.corpus)}</ul>
-    <p>Site sync. Same doors as the Sites sub-tab.</p>
-    <ul data-shelf-list="site-sync"></ul>
-  </div>
-  <div class="author-panel" id="author-panel-sites" data-author-panel="sites"><p data-author-empty="sites">Site doors are the cited hubs. A refresh fills reachability.</p><ul data-shelf-list="sites"></ul></div>
-  <div class="author-panel" id="author-panel-uploads" data-author-panel="uploads"><p>Uploads are not pushed from here. A hash appears only after a site response includes it. While a site is down, only hashes already read stay listed.</p><ul data-shelf-list="uploads"></ul></div>
-  <div class="author-panel" id="author-panel-papers" data-author-panel="papers"><ul data-shelf-list="papers">${shelfRowsHtml(cache.papers)}</ul></div>
-  <pre class="ws-out fg-out" id="author-out" role="status" aria-live="polite">Local cache is on screen. A refresh updates this shelf even when a site is down.</pre>
-</section>`;
-}
-
 function operatorSoftButtons() {
   return HUMAN_TASKS.map((t) => {
     const label = t.slug === "aznet" ? "AZNet Pair status" : `${t.name} ${t.op}`;
@@ -535,7 +487,6 @@ export function workspacePaneHtml(origin, products) {
     <input id="task-filter" type="search" placeholder="decisiongate, fold, mesh…" autocomplete="off">
   </div>
 
-  ${authorShelfHtml(base)}
   <h3 id="dash-softwares-title">Softwares</h3>
   <div class="field">
     <label for="dash-filter">Search Softwares</label>
@@ -695,6 +646,13 @@ ${dashCards}
         <p class="blurb">Fields stay hash, request, output, and event. Attempt ids stay request_id, attempt_n, parent_receipt_id, and correlation_id. Isolate memory. Not a court filing.</p>
         <div class="actions">
           <button type="button" data-if="forensic_tip">Audit tip</button>
+        </div>
+      </article>
+      <article class="dash-card" id="desk-jeeves-link" data-desk="jeeves">
+        <h4>Ask Jeeves <span class="slug">suite help</span></h4>
+        <p class="blurb">Help for this build. Corpus op <code>jeeves</code> on the Aziel Corpus card (<code>suite_help</code>, <code>software_tab</code> false). The desk is the Ask Jeeves sub-tab under Aziel Elroi Eliab (alternateName).</p>
+        <div class="actions">
+          <a href="#elroi-jeeves">Open Ask Jeeves</a>
         </div>
       </article>
       <article class="dash-card" id="desk-mcp" data-desk="mcp">
@@ -861,7 +819,7 @@ export function humanNavHtml(origin, { current } = {}) {
   const home = `${base}/`;
   const tabs = UI_DOMAINS.map((domain) => {
     const on = domain.id === UI_DOMAIN_DEFAULT;
-    const controls = domain.kind === "author" ? "author-shelf" : "dash-softwares";
+    const controls = "dash-softwares";
     return `<button type="button" role="tab" id="domain-tab-${escapeHtml(domain.id)}" data-domain-tab="${escapeHtml(domain.id)}" aria-selected="${on ? "true" : "false"}" aria-controls="${controls}">${escapeHtml(domain.label)}</button>`;
   }).join("\n    ");
   return `<a class="skip-workspace" href="${current === "workspace" ? "#workspace" : "#workspace"}">Skip to workspace</a>
@@ -1528,8 +1486,6 @@ export function humanDoorScript() {
       el.classList.toggle("task-hidden", searchMiss);
       el.classList.toggle("domain-off", domainMiss);
     });
-    let shelf = document.getElementById("author-shelf");
-    if (shelf) shelf.classList.toggle("domain-off", activeDomain !== "aziel-elroi-eliab");
   }
   document.querySelectorAll("[data-domain-tab]").forEach(function (tab) {
     tab.addEventListener("click", function () {
@@ -1537,94 +1493,11 @@ export function humanDoorScript() {
       if (dashFilter) dashFilter.value = "";
       applyDomain();
       let grid = document.getElementById("dash-softwares");
-      let shelfEl = document.getElementById("author-shelf");
-      let target = activeDomain === "aziel-elroi-eliab" ? shelfEl : grid;
-      if (target && target.scrollIntoView) target.scrollIntoView({ block: "start" });
-      if (activeDomain === "aziel-elroi-eliab") refreshShelves(false);
+      if (grid && grid.scrollIntoView) grid.scrollIntoView({ block: "start" });
     });
   });
   if (dashFilter) dashFilter.addEventListener("input", applyDomain);
   applyDomain();
-  function authorEsc(value) {
-    return String(value == null ? "" : value).replace(/[&<>"']/g, function (ch) {
-      return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\\"": "&quot;", "'": "&#39;" })[ch];
-    });
-  }
-  function authorLine(row) {
-    let status = row.reachable ? "answered " + row.http_status : "unreachable";
-    let shown = row.display_from ? row.display_from + " " + row.display_count : "no rows";
-    return authorEsc(row.name) + " " + status + ", showing " + shown + (row.home ? " " + authorEsc(row.home) : "");
-  }
-  function itemLine(item) {
-    let label = item.record_id || item.doi || item.name || item.title || item.url || "";
-    let extra = item.title && item.title !== label ? " " + item.title : "";
-    let mark = item.source === "local-cache" || item.live === false ? " local cache" : "";
-    return authorEsc(label) + authorEsc(extra) + mark;
-  }
-  function paintShelfList(name, rows) {
-    document.querySelectorAll('[data-shelf-list="' + name + '"]').forEach(function (list) {
-      list.innerHTML = rows.map(function (row) { return "<li>" + row + "</li>"; }).join("");
-    });
-  }
-  function paintAuthorShelf(data) {
-    let surfaces = (data && data.surfaces) || [];
-    let corpus = null;
-    for (let i = 0; i < surfaces.length; i++) if (surfaces[i].id === "corpus") corpus = surfaces[i];
-    let corpusRows = ((corpus && corpus.display_items) || []).map(itemLine);
-    let siteRows = surfaces.map(authorLine);
-    paintShelfList("corpus", corpusRows);
-    paintShelfList("sites", siteRows);
-    paintShelfList("site-sync", siteRows);
-    let uploads = (data && data.shelves && data.shelves.uploads) || [];
-    paintShelfList("uploads", uploads.map(function (row) {
-      return authorEsc(row.hash) + (row.stale ? " stale" : " live") + " from " + authorEsc(row.surface);
-    }));
-    let papers = (data && data.shelves && data.shelves.papers) || {};
-    let paperRows = ((papers.live && papers.live[0] && papers.live[0].display_items) || []).map(itemLine);
-    if (!paperRows.length) {
-      paperRows = (papers.catalog_cites || []).map(function (row) {
-        return authorEsc(row.doi) + " catalog cite, not a live query";
-      });
-    }
-    paintShelfList("papers", paperRows);
-    let when = data && data.updated_at ? data.updated_at : "";
-    let prefix = data && data.simulated_down ? "Simulated down. " : "";
-    let corpusStatus = document.getElementById("corpus-status");
-    let authorStatus = document.getElementById("author-status");
-    let corpusText = corpus
-      ? (corpus.reachable && corpus.inventory_read
-        ? "Live. " + corpus.display_count + " items."
-        : "Unreachable (" + (corpus.reason || "down") + "). Showing " + corpus.display_from + " (" + corpus.display_count + " items).")
-      : "Corpus surface missing.";
-    if (corpusStatus) corpusStatus.textContent = prefix + corpusText + " Updated " + when + ".";
-    if (authorStatus) authorStatus.textContent = prefix + "Shelf updated " + when + ". Corpus is a sub-tab of this shelf.";
-  }
-  document.querySelectorAll("[data-author-sub]").forEach(function (tab) {
-    tab.addEventListener("click", function () {
-      let name = tab.getAttribute("data-author-sub");
-      document.querySelectorAll("[data-author-sub]").forEach(function (btn) {
-        btn.setAttribute("aria-selected", btn === tab ? "true" : "false");
-      });
-      document.querySelectorAll("[data-author-panel]").forEach(function (panel) {
-        panel.classList.toggle("on", panel.getAttribute("data-author-panel") === name);
-      });
-    });
-  });
-  function refreshShelves(simulate) {
-    let shelfEl = document.getElementById("author-shelf");
-    let origin = shelfEl ? shelfEl.getAttribute("data-origin") || "" : "";
-    let out = document.getElementById("author-out");
-    let url = origin + "/v1/author-shelf" + (simulate ? "?simulate=unreachable" : "");
-    return request(url, { headers: { accept: "application/json" } }, out, null).then(function (done) {
-      if (done && done.body) paintAuthorShelf(done.body);
-      return done;
-    });
-  }
-  document.querySelectorAll("[data-shelf-refresh]").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      refreshShelves(btn.getAttribute("data-shelf-refresh") === "down");
-    });
-  });
   let botPlan = { slug: "", op: "" };
   let botDesk = document.getElementById("desk-azbot");
   if (botDesk) {

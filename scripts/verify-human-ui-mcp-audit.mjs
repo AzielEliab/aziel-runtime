@@ -218,7 +218,7 @@ assert.doesNotMatch(
   "human HTTP FragGate helper does not send MCP confirm",
 );
 assert.match(script, /origin \+ "\/v1\/interface"/);
-assert.match(script, /confirm: true/, "interface seal sends confirm on /v1/interface, not on FragGate");
+assert.match(script, /call: "seal", confirm: true/, "interface seal still sends confirm on its own call");
 
 const dataAttrs = [...home.matchAll(/data-(op-console|op-soft|op-pair|op-mesh|op-sess|console|mesh|cl|sess|op)="([^"]+)"/g)];
 assert.ok(dataAttrs.length > 20, `expected wired data-* buttons, got ${dataAttrs.length}`);

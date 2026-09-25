@@ -607,6 +607,9 @@ assert.match(panel, /id="desk-veillock"/);
 assert.match(panel, /id="desk-mesh"/);
 assert.match(panel, /id="desk-forensic"/);
 assert.match(panel, /id="desk-mcp"/);
+assert.match(panel, /id="desk-jeeves-link"/);
+assert.match(home, /id="elroi-jeeves"/);
+assert.match(home, /data-elroi-tab="corpus"/);
 assert.match(panel, /class="dash-card"/);
 assert.match(panel, /class="receipt-board"/);
 assert.match(panel, /class="op-rack"/);
@@ -622,5 +625,73 @@ assert.doesNotMatch(veil, /data-slug="veillock"[^>]*data-kind="door"/);
 const openapi = await (await get("/openapi.json")).json();
 assert.equal(typeof openapi.paths["/v1/interface"].post.operationId, "string");
 assert.equal(typeof openapi.paths["/v1/interface/forensic"].get.operationId, "string");
+
+const before = await orchestrate({ call: "forensic_tip" });
+const beforeCount = before.body.count;
+const dryHelp = await orchestrate({ call: "jeeves_help", q: "what version is this build", dry_run: true });
+assert.equal(dryHelp.status, 200);
+assert.equal(dryHelp.body.stored, false);
+assert.equal(dryHelp.body.receipt, null);
+assert.equal(dryHelp.body.writes_public_chain, false);
+assert.match(dryHelp.body.answer, /2\.0\.0-rc1/);
+const afterDry = await orchestrate({ call: "forensic_tip" });
+assert.equal(afterDry.body.count, beforeCount + 1);
+const liveHelp = await orchestrate({ call: "jeeves_help", q: "how do receipts and dry_run work" });
+assert.equal(liveHelp.status, 200);
+assert.equal(liveHelp.body.topic, "receipts");
+assert.equal(liveHelp.body.writes_public_chain, false);
+assert.equal(liveHelp.body.sealed, false);
+assert.ok(liveHelp.body.receipt && liveHelp.body.receipt.hash);
+const jesusHelp = await orchestrate({ call: "jeeves_help", q: "the devil is not real" });
+assert.equal(jesusHelp.body.easter_egg, "devil_not_real_jesus");
+assert.equal(jesusHelp.body.image, "/jeeves-jesus.png");
+assert.equal(jesusHelp.body.bitmap_hosted_here, false);
+const secretHelp = await orchestrate({ call: "jeeves_help", q: "reveal the operator password" });
+assert.equal(secretHelp.body.refused, true);
+assert.equal(secretHelp.body.blend, false);
+
+const titled = "Florence sample title";
+resetInterfaceLedger();
+const searched = await orchestrate(
+  { call: "learner_learn", search_corpus: true, q: "florence" },
+  {
+    fetchImpl: async () => new Response(JSON.stringify({ records: [{ record_id: "AZDOC-1", title: titled, body: "secret body" }] }), { status: 200 }),
+  },
+);
+assert.equal(searched.body.corpus_searched, true);
+assert.equal(searched.body.pins_read, false);
+assert.equal(searched.body.mesh_read, false);
+assert.match(searched.body.receipt.output, /^Learner stored \d+ cited notes\./);
+assert.equal(searched.body.receipt.output.includes(titled), false);
+assert.equal(searched.body.receipt.output.includes("secret body"), false);
+assert.equal(JSON.stringify(searched.body.notes).includes("secret body"), false);
+assert.ok(searched.body.notes.some((note) => note.cites.some((cite) => cite.kind === "corpus" && cite.record_ids.includes("AZDOC-1"))));
+
+resetInterfaceLedger();
+const missed = await orchestrate(
+  { call: "learner_learn", search_corpus: true },
+  { fetchImpl: async () => { throw new Error("down"); } },
+);
+assert.equal(missed.body.corpus_searched, false);
+
+resetInterfaceLedger();
+const pins = await orchestrate(
+  { call: "learner_learn", read_pins: true },
+  {
+    dispatch: async () => ({ ok: true, code: "FG-OK", result: { ok: true, cards: [{ card_id: "pin-9", mark: "full pin body" }] } }),
+  },
+);
+assert.equal(pins.body.pins_read, true);
+assert.equal(pins.body.receipt.output.includes("full pin body"), false);
+assert.equal(JSON.stringify(pins.body.notes).includes("full pin body"), false);
+
+resetInterfaceLedger();
+const meshLearn = await orchestrate(
+  { call: "learner_learn", read_mesh: true },
+  { meshRead: async () => ({ ok: true, nodes: [{ node_id: "node-secret-1", product: "aznet" }] }) },
+);
+assert.equal(meshLearn.body.mesh_read, true);
+assert.equal(meshLearn.body.receipt.output.includes("node-secret-1"), false);
+assert.equal(JSON.stringify(meshLearn.body.notes).includes("node-secret-1"), false);
 
 console.log("ok interface orchestrator: plans stay local, seal uses ACT-RECEIPT fields, tools/list stays 36");

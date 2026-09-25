@@ -66,12 +66,6 @@ export const UI_DOMAINS = Object.freeze([
     label: "System",
     softwares: ["azos", "azinterface", "staticclock", "decisiongate", "mmconsensus"],
   },
-  {
-    id: "aziel-elroi-eliab",
-    label: "Aziel Elroi Eliab",
-    kind: "author",
-    softwares: [],
-  },
 ]);
 
 const BY_SLUG = (() => {

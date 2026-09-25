@@ -2073,15 +2073,6 @@ export function runtimeStaticPaths() {
         },
       },
     },
-    "/v1/author-shelf": {
-      get: {
-        operationId: "author_shelf",
-        summary:
-          "Aziel Elroi Eliab author shelf. Corpus is a sub-tab inside that tab, not a top-bar domain. Reads cited sites. An unreachable site stays unreachable and the shelf still shows the last reading or the local cache. Does not invent rows. Does not upload. Ask Jeeves stays suite help (software_tab false). Not a tools/list name.",
-        tags: ["runtime"],
-        responses: { "200": { description: "Shelf snapshot. invented false." } },
-      },
-    },
     "/v1/interface/forensic": {
       get: {
         operationId: "interface_forensic_tip",
