@@ -1181,6 +1181,10 @@ assert.match(home, /"name":"FragGate"/);
 const llmsHead = llms.split("\n").slice(0, 30).join("\n");
 assert.match(llmsHead, /## What this is/);
 assert.match(llmsHead, /## How to use/);
+assert.match(llmsHead, /Aziel Runtime lets AI assistants run 40\+ research tools through one door/);
+assert.match(llmsHead, /Click Install \/ Add to Glama on https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime/);
+assert.match(llmsHead, /fraggate_describe \{name\}/);
+assert.match(llmsHead, /MCP tools\/list count: 36/);
 assert.match(llmsHead, /node-meshed orchestration suite of MCP-connected software/);
 assert.doesNotMatch(llmsHead, /not merely an API orchestrator|What this is not/i);
 assert.doesNotMatch(llmsHead, CRAWLER_LEAD_VERSION_RE);
@@ -1243,6 +1247,15 @@ const readme = await (await import("node:fs/promises")).readFile(
   new URL("../README.md", import.meta.url),
   "utf8",
 );
+assert.match(readme, /^# aziel-runtime\n\nAziel Runtime lets AI assistants run 40\+ research tools through one door/);
+assert.match(readme, /## How to use/);
+assert.match(
+  readme,
+  /1\. Click \*\*\[Install \/ Add to Glama\]\(https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime\)\*\*/,
+);
+assert.match(readme, /fraggate_call \{name, op, payload, confirm:true\}/);
+assert.match(readme, /Worker remote: `https:\/\/aziel-runtime\.vibelock\.workers\.dev\/mcp`/);
+assert.match(readme, /MCP `tools\/list` is \*\*36\*\* tools/);
 assert.match(readme, /node-meshed orchestration suite of MCP-connected software/);
 assert.doesNotMatch(readme.slice(0, 1200), /not merely an API orchestrator|not an API aggregator/);
 assert.match(readme, /\[Try on Glama\]\(https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime\)/);
@@ -1285,6 +1298,11 @@ const citeDoc = await (await import("node:fs/promises")).readFile(
   new URL("../docs/CITE.md", import.meta.url),
   "utf8",
 );
+assert.match(citeDoc, /Aziel Runtime lets AI assistants run 40\+ research tools through one door/);
+assert.match(citeDoc, /## How to use/);
+assert.match(citeDoc, /Click Install \/ Add to Glama on https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime/);
+assert.match(citeDoc, /fraggate_describe \{name\}/);
+assert.match(citeDoc, /MCP `tools\/list` is 36 tools/);
 assert.match(citeDoc, /node-meshed orchestration suite of MCP-connected software/);
 assert.doesNotMatch(citeDoc, /not merely an API orchestrator/);
 assert.match(citeDoc, /2\.0\.0-rc1/);
@@ -1330,6 +1348,12 @@ assert.doesNotMatch(helpSoftwares, /not a lawyer|not legal advice|not a spectrom
 const helpFg = await (await get("/help/fraggate.txt")).text();
 assert.match(helpFg, /list → describe → call/);
 const helpGlama = await (await get("/help/glama.txt")).text();
+assert.match(helpGlama, /Aziel Runtime lets AI assistants run 40\+ research tools through one door/);
+assert.match(helpGlama, /## How to use/);
+assert.match(helpGlama, /1\. Click Install \/ Add to Glama on https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime/);
+assert.match(helpGlama, /fraggate_describe \{name\}/);
+assert.match(helpGlama, /Worker remote: https:\/\/aziel-runtime\.vibelock\.workers\.dev\/mcp/);
+assert.match(helpGlama, /forgereceipts receipt for a completed task/);
 assert.match(helpGlama, /glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime/);
 assert.match(helpGlama, /One-click Install Server on Glama/);
 assert.match(helpGlama, /Remote MCP: POST https:\/\/aziel-runtime\.example\/mcp/);

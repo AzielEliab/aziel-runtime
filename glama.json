@@ -3,7 +3,7 @@
   "maintainers": ["AzielEliab"],
   "name": "Aziel Runtime",
   "version": "2.0.0-rc1",
-  "description": "Aziel Runtime 2.0.0-rc1 — MCP Softwares suite. Route catalog products through the FragGate door over OpenAPI + MCP, mint receipts, and coordinate mesh presence. Glama Install Server release 2.0.7 (Install Server ON). Worker / server package stays 2.0.0-rc1. 1.6.2 is superseded heritage. Current server is 2.0.0-rc1.",
+  "description": "Aziel Runtime lets AI assistants run 40+ research tools through one door. Install on Glama, then list tools, describe one, and call it. Every call can leave a receipt. Route catalog products through the FragGate door over OpenAPI + MCP, mint receipts, and coordinate mesh presence. Glama Install Server release 2.0.7 (Install Server ON). Worker / server package stays 2.0.0-rc1. 1.6.2 is superseded heritage. Current server is 2.0.0-rc1.",
   "keywords": [
     "mcp",
     "openapi",

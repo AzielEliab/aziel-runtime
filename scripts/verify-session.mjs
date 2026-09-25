@@ -243,7 +243,7 @@ assert.ok(manifest.endpoints.session_exec.includes("/v1/session/{id}/exec"));
 const home = await mkdtemp(join(tmpdir(), "aziel-runtime-"));
 function runCli(args) {
   return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [join(root, "cli/aziel-runtime.mjs"), "--local", ...args], {
+    const child = spawn(process.execPath, [join(root, "cli/aziel-runtime.mjs"), "--json", "--local", ...args], {
       env: { ...process.env, AZIEL_RUNTIME_HOME: home },
       cwd: root,
     });
@@ -283,6 +283,69 @@ const cliClose = await runCli(["session", "close"]);
 assert.equal(cliClose.session.closed, true);
 assert.equal(cliClose.verified.ok, true);
 await rm(home, { recursive: true, force: true });
+
+const humanHome = await mkdtemp(join(tmpdir(), "aziel-runtime-human-"));
+function runCliRaw(args) {
+  return new Promise((resolve) => {
+    const child = spawn(process.execPath, [join(root, "cli/aziel-runtime.mjs"), ...args], {
+      env: { ...process.env, AZIEL_RUNTIME_HOME: humanHome },
+      cwd: root,
+    });
+    let out = "";
+    let err = "";
+    child.stdout.on("data", (d) => {
+      out += d;
+    });
+    child.stderr.on("data", (d) => {
+      err += d;
+    });
+    child.on("close", (code) => resolve({ code, out, err }));
+  });
+}
+const bare = await runCliRaw([]);
+assert.equal(bare.code, 0);
+assert.match(bare.out, /session open --local/);
+assert.match(bare.out, /Aziel Eliab/);
+assert.doesNotMatch(bare.out, /1\.7\.0 locks MASTER-33/);
+assert.doesNotMatch(bare.out, /^\{/);
+const helped = await runCliRaw(["--help"]);
+assert.equal(helped.code, 0);
+assert.match(helped.out, /Usage:/);
+assert.match(helped.out, /--json/);
+assert.doesNotMatch(helped.out, /1\.6\.15 locked/);
+const sessionHelp = await runCliRaw(["session", "--help"]);
+assert.equal(sessionHelp.code, 0);
+assert.match(sessionHelp.out, /--jail/);
+assert.doesNotMatch(sessionHelp.out, /1\.7\.0 locks/);
+const bogus = await runCliRaw(["bogus"]);
+assert.equal(bogus.code, 1);
+assert.match(bogus.err, /Unknown command "bogus"/);
+assert.match(bogus.err, /aziel-runtime --help/);
+assert.doesNotMatch(bogus.err, /1\.7\.0 locks/);
+const missing = await runCliRaw(["session", "status", "--local"]);
+assert.equal(missing.code, 1);
+assert.match(missing.err, /No session yet/);
+assert.match(missing.err, /session open --local/);
+assert.doesNotMatch(missing.out, /^\{/);
+const humanOpen = await runCliRaw(["session", "open", "--local"]);
+assert.equal(humanOpen.code, 0);
+assert.match(humanOpen.out, /Opened a session on this machine/);
+assert.match(humanOpen.out, /sess_[a-f0-9]{32}/);
+assert.doesNotMatch(humanOpen.out, /^\{/);
+const humanJson = await runCliRaw(["--json", "session", "open", "--local"]);
+const humanObj = JSON.parse(humanJson.out);
+assert.equal(humanObj.mode, "local");
+assert.match(humanObj.session.id, /^sess_/);
+const badPayload = await runCliRaw(["session", "exec", "foldlock", "fold-preview", "not-json", "--local"]);
+assert.equal(badPayload.code, 1);
+assert.match(badPayload.err, /not JSON/);
+assert.match(badPayload.err, /Next:/);
+const badJson = await runCliRaw(["--json", "session", "exec", "foldlock", "fold-preview", "not-json", "--local"]);
+assert.equal(badJson.code, 1);
+const badObj = JSON.parse(badJson.out);
+assert.equal(badObj.ok, false);
+assert.match(badObj.error, /JSON|Unexpected/);
+await rm(humanHome, { recursive: true, force: true });
 
 assert.ok(PRODUCTS.length >= 20);
 console.log(`ok session ${RUNTIME_VERSION}: core chain, HTTP open→policy→exec→receipt→close, 409 after close, MCP, CLI --local`);

@@ -1,6 +1,29 @@
 # aziel-runtime
 
+Aziel Runtime lets AI assistants run 40+ research tools through one door. Install on Glama, then list tools, describe one, and call it. Every call can leave a receipt.
+
+## How to use
+
+1. Click **[Install / Add to Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime)** (also `https://glama.ai/mcp/servers/@AzielEliab/aziel-runtime`).
+2. In any MCP client, run: `fraggate_list` → `fraggate_describe {name}` → `fraggate_call {name, op, payload, confirm:true}`
+
+Worker remote: `https://aziel-runtime.vibelock.workers.dev/mcp`
+
+Example first call: `decisiongate_check` with a short proposal and `dry_run:true`, or `forgereceipts` receipt for a completed task.
+
+MCP `tools/list` is **36** tools. FragGate is the single door. Install order stays Install Server on Glama, then this Worker, then local stdio last. Compatible AI clients are listed below. **Author:** Aziel Eliab.
+
+## Designed purpose
+
 **Aziel Runtime** (`aziel-runtime`) is a node-meshed orchestration suite of MCP-connected software designed to route catalog Softwares through the FragGate door, mint receipts, and coordinate mesh presence. Use it to list, describe, and call product operations over MCP or OpenAPI, then keep the returned receipt. It exists so each Softwares product stays a separate engine behind one door.
+
+## Start
+
+1. `node cli/aziel-runtime.mjs`
+2. `node cli/aziel-runtime.mjs session open --local`
+3. `node cli/aziel-runtime.mjs session status --local`
+
+The terminal prints a short summary. Add `--json` for the machine object. Help: `node cli/aziel-runtime.mjs --help`. The same three steps are in [`RUN.txt`](RUN.txt).
 
 Softwares purpose copy (`one_line` + `description`) is the designed-to-do addendum on `GET /v1/software` (`src/software-copy.js`). Hubs refresh from that route.
 
@@ -176,7 +199,7 @@ curl -s -A 'Mozilla/5.0' -X POST https://aziel-runtime.vibelock.workers.dev/v1/s
 
 A local exec receipt includes `engine_digest`, `engine_slug`, `engine_op`, `ran_in: "aziel-runtime"`, result digests, and latency — not only an upstream HTTP status. `close` seals the chain; further exec is HTTP 409. Sessions expire after 6h (410/auto-close). Receipt cap is 64. Session mutate may require `Authorization: Bearer …` or `X-Aziel-Runtime-Token` when `RUNTIME_TOKEN` is set.
 
-Local CLI (Worker client by default; `--local` writes a session file and prefers vendored engines; `--jail` runs the engine in a child Node process):
+Local CLI (Worker client by default; `--local` writes a session file and prefers vendored engines; `--jail` runs the engine in a child Node process). The terminal prints a short summary. Add `--json` for the machine object:
 
 ```bash
 node cli/aziel-runtime.mjs session open --local
@@ -407,9 +430,9 @@ Pull via `GET /v1/bundle` / `GET /v1/pull/{slug}`. Session exec is
 | azbrowser | azbrowser-download-tracker | ethical_search, lamb_lens_search, navigate, airlock_ingest, tab_*, receipt_list, verify | **in-process** (FragGate only; Lamb Lens; not Chromium) |
 | aznet | aznet-download-tracker | pair_status, garden_list, stamp, verify_hash, memorial_*, receipt_verify | **in-process** (FragGate only; never hosts payloads; AZBrowser pair required) |
 | azhub | azhub-download-tracker | region_list, place_module, remove_module, tether_*, blank_key_status | **in-process** (FragGate only; Blank Key; not AZInterface; no auto-unlock) |
-| azinterface | azinterface-download-tracker | genesis_status, site_state_*, integrity_check, witness_list, page_cycle_status | **in-process** (FragGate only; pre-locked page cycles; not AZHub) |
+| azinterface | azinterface-download-tracker | genesis_status, site_state_*, integrity_check, witness_list, page_cycle_status | **in-process** (FragGate only; suite shell, package 0.1.0; pre-locked page cycles; local pipeline_arch / withdraw / scorch_local / pair_* stay off the public door) |
 | aziel-corpus | aziel-corpus-download-tracker (www.azielcorpuslibrary.net) | health, search, example, skill | **in-process** (sample MASTER; live D1/Whisper/OCR per-op proxy) |
-| 4dmap | 4dmap-download-tracker | health, skill, pin, span, stack, gap, fork, walk, lens, class, cohort, absence, cap, join, list, example, card_new, card_pin, card_span, card_join, card_walk, card_list, verify_hash, frame_status, axis_describe, walk_trace, card_export, card_import, verify_chain, neighbor_cite | **in-process** (4DM-WP-1.0 / 0.2.0; inspection frame after AZPIPE; not an extra door; not a sequential gate) |
+| 4dmap | 4dmap-download-tracker | health, skill, pin, span, stack, gap, fork, walk, lens, class, cohort, absence, cap, join, list, example, card_new, card_pin, card_span, card_join, card_walk, card_list, verify_hash, frame_status, axis_describe, walk_trace, card_export, card_import, verify_chain, neighbor_cite, memory_cite, memory_observe, library_pin, plot, possibility, pattern_recall, lattice_tip, poison_refuse | **in-process** (4DM-WP-1.0 / 0.3.0; inspection frame after AZPIPE; not an extra door; not a sequential gate) |
 
 Catalog aliases (also accepted on `/v1/pull/{slug}`): `az-clce` → azclce,
 `zion-pattern-solver` → zsolver, `postking-chess` → postking,
@@ -499,9 +522,9 @@ only when the SESSION Durable Object binding is up, and **503** when
 Receipts cap at 64. Sessions expire after 6h. Per-IP: 20 opens / minute, 60
 execs / minute (HTTP 429 JSON).
 
-Push to `main` runs `.github/workflows/deploy.yml` (`npx wrangler deploy`) only
+Push to `main` runs `.github/workflows/deploy.yml` (`npx wrangler deploy --keep-vars --var GIT_SHA:<sha>`) only
 when repo secret `CLOUDFLARE_API_TOKEN` is set. Missing token skips the job
-(does not fail). Primary deploy is Cursor/wrangler OAuth (Aziel Eliab).
+(does not fail). `--keep-vars` leaves existing Worker vars in place. Primary deploy is Cursor/wrangler OAuth (Aziel Eliab).
 Account `ac575a9b822bea2bed97d0ab73aed238` is the non-secret default. Do not
 put tokens in the repo. `workflow_dispatch` is also enabled. The Action passes
 `GIT_SHA` so `/v1/software` can stamp `git_sha`.

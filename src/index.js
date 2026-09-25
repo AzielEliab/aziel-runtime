@@ -247,8 +247,8 @@ import {
   readMcpProtocolHeader,
   readMcpSessionHeader,
 } from "./mcp-transport.js";
-import { evaluateMutateSafeguard, isTruthyFlag } from "./mcp-safeguard.js";
-import { admitCall, describeRegistry, fraggateCall, listRegistry, verifyRegistry } from "./fraggate/door.js";
+import { confirmConsentHonesty, dryRunAllowedEnvelope, evaluateMutateSafeguard, isTruthyFlag } from "./mcp-safeguard.js";
+import { admitCall, describeRegistry, fraggateCall, listRegistry, previewCatalogAdmission, verifyRegistry } from "./fraggate/door.js";
 import { LIVE_OPS, NAMED_STUBS, registryDigest, registrySummary } from "./fraggate/registry.js";
 import {
   AUTHOR_ALTERNATE_NAME,
@@ -944,7 +944,7 @@ const PRODUCTS_RAW = [
     ],
     example: { cycle: "OFF" },
     banner:
-      "AZInterface (AIH-WP-1.0): custodial operating environment. Reached only via FragGate (POST /v1/fraggate/call { slug: \"azinterface\", op }). Page cycles are pre-locked (OFF / integrity / ON / FULL SHUTDOWN / MEMORIAL). AZHub is sibling software under the same FragGate door. scorch_remote / auto_unlock / ranking / completeness_detect stay stub. Author Aziel Eliab.",
+      "AZInterface (AIH-WP-1.0): the suite shell that opens Softwares on this computer, and a custodial operating environment. Reached only via FragGate (POST /v1/fraggate/call { slug: \"azinterface\", op }). Page cycles are pre-locked (OFF / integrity / ON / FULL SHUTDOWN / MEMORIAL). AZHub is sibling software under the same FragGate door. Package version 0.1.0. Local pipeline_arch, withdraw, scorch_local, and pair_* stay on the package. scorch_remote / auto_unlock / ranking / completeness_detect stay stub. Author Aziel Eliab.",
   },
   {
     slug: "aziel-corpus",
@@ -1010,10 +1010,23 @@ const PRODUCTS_RAW = [
       { op: "export", method: "POST", summary: "UI alias of card_export. Same FragGate backend as the Worker UI button." },
       { op: "import", method: "POST", summary: "UI alias of card_import. Same FragGate backend as the Worker UI button." },
       { op: "neighbor", method: "POST", summary: "UI alias of neighbor_cite. Same FragGate backend as the Worker UI button." },
+      { op: "memory_cite", method: "POST", summary: "Optional AKM-TRIAD-1.0 fabric cite of a 4DM-CARD. Card hash unchanged. Posterior is not truth." },
+      { op: "memory_observe", method: "POST", summary: "Build an observation packet for FragGate memory_observe. Not forwarded from this op. Not a second door." },
+      { op: "library_pin", method: "POST", summary: "Pin a 4DM-PIN-FRAME from paper date, event, and lat/lon or gazetteer id." },
+      { op: "plot", method: "POST", summary: "Inspection plot of lattice pins. REAL and MOCK stay labeled." },
+      { op: "possibility", method: "POST", summary: "Labeled time×geo possibility and cited bayesian input. They stay separate numbers." },
+      { op: "pattern_recall", method: "POST", summary: "Count recurring feature hashes on the hashchain lattice." },
+      { op: "lattice_tip", method: "POST", summary: "List append-only lattice tips." },
+      { op: "poison_refuse", method: "POST", summary: "Append a refuse-set card. Feature hash only." },
+      { op: "ingest_pin", method: "POST", summary: "Alias of library_pin." },
+      { op: "plot_pins", method: "POST", summary: "Alias of plot." },
+      { op: "score_hooks", method: "POST", summary: "Alias of possibility." },
+      { op: "possibility_cite", method: "POST", summary: "Alias of possibility." },
+      { op: "lattice_tips", method: "POST", summary: "Alias of lattice_tip." },
     ],
     example: { label: "inspect-1" },
     banner:
-      "4DMap (4DM-WP-1.0): four-axis inspection frame T/Δ/Γ/Π. Inspection frame after AZPIPE routes to isolated engines — not an extra door (domains_are_doors:false). Not a sequential gate. Not a truth score. Not a Lumen panel. Does not invent marks or backdate class. Neighbors TemporalLock / StaticClock / ChronoLock / TrajectoryLock / SpectralLock. FragGate claims cite join types. ChainLock may stamp walks. Author Aziel Eliab.",
+      "4DMap (4DM-WP-1.0 / 0.3.0): four-axis inspection frame T/Δ/Γ/Π. Inspection frame after AZPIPE routes to isolated engines — not an extra door (domains_are_doors:false). Library pin frames and hashchain lattice memory are public door ops. Not a sequential gate. Not a truth score. Not a Lumen panel. Does not invent marks or backdate class. Neighbors TemporalLock / StaticClock / ChronoLock / TrajectoryLock / SpectralLock. FragGate claims cite join types. ChainLock may stamp walks. Author Aziel Eliab.",
   },
   {
     slug: "azcoherence",
@@ -1596,8 +1609,8 @@ function llmsTxt(origin, env = {}) {
     `AZMail: FragGate only. POST /v1/fraggate/call { slug: "azmail", op }. Host /runtime proxies that same FragGate door. Mesh default off. SMTP / deanonymize / harvest stay stub. DecisionGATE / FragGate ledger still apply before exec.`,
     `AZBrowser: FragGate only. POST /v1/fraggate/call { slug: "azbrowser", op }. MCP fraggate_list / fraggate_call and Worker UI buttons share LIVE_OPS.azbrowser (ethical_search, lamb_lens_search, navigate, airlock_ingest, tab_open, tab_list, receipt_list, verify, receipt_verify, sandbox_status, sandbox_render, health, skill). Lamb Lens cites; refuses harmful harvest; never invents visit results. Chromium stays DEFERRED unless Browser Rendering is bound. tor_exit / phoenix_wipe / unrestricted proxy stay stub.`,
     `AZHub: FragGate only. POST /v1/fraggate/call { slug: "azhub", op }. Blank Key / neutral spatial container (AIH-WP-1.0). Does not interpret meaning. Refuses auto-unlock and completeness events. AZInterface is sibling software under the same FragGate door.`,
-    `AZInterface: FragGate only. POST /v1/fraggate/call { slug: "azinterface", op }. Custodial operating environment (AIH-WP-1.0). Pre-locked page cycles OFF / integrity / ON / FULL SHUTDOWN / MEMORIAL. AZHub is sibling software under the same FragGate door.`,
-    `4DMap: FragGate only. POST /v1/fraggate/call { slug: "4dmap", op }. Four-axis inspection frame T/Δ/Γ/Π (4DM-WP-1.0 / product 0.2.0). Research-domain inspection frame inside Internal Domain Layer after AZPIPE. LIVE_OPS match product 0.2 (pin/span/stack/gap/fork/walk/lens/class/cohort/absence/cap/join/list/example plus card_* / frame_status / axis_describe / walk_trace / card_export / card_import / verify_chain / neighbor_cite). Cited on the locked MASTER-33 pipeline. truth_score / lumen_panel / invent_mark / backdate_class stay stub. FragGate claims cite join types.`,
+    `AZInterface: FragGate only. POST /v1/fraggate/call { slug: "azinterface", op }. Suite shell (AIH-WP-1.0, package 0.1.0) that opens Softwares on this computer and keeps custodial page cycles OFF / integrity / ON / FULL SHUTDOWN / MEMORIAL. AZHub is sibling software under the same FragGate door. Local pipeline_arch, withdraw, scorch_local, and pair_* stay off this public door.`,
+    `4DMap: FragGate only. POST /v1/fraggate/call { slug: "4dmap", op }. Four-axis inspection frame T/Δ/Γ/Π (4DM-WP-1.0 / product 0.3.0). Research-domain inspection frame inside Internal Domain Layer after AZPIPE. LIVE_OPS match product 0.3.0 (pin/span/stack/gap/fork/walk/lens/class/cohort/absence/cap/join/list/example plus card_* / frame_status / axis_describe / walk_trace / card_export / card_import / verify_chain / neighbor_cite / memory_cite / memory_observe / library_pin / plot / possibility / pattern_recall / lattice_tip / poison_refuse). Cited on the locked MASTER-33 pipeline. truth_score / lumen_panel / invent_mark / backdate_class stay stub. FragGate claims cite join types.`,
     `AZCoherence: FragGate only. POST /v1/fraggate/call { slug: "azcoherence", op }. Second-pass triad coherence reviewer (AZC-0.1). Peer AZ-CLCE detects R/D/P inconsistency; AZCoherence reviews primary vs alternate → PASS / FLAG / NEUTRALIZE / REFUSE. Never invents evidence. Confidence ≠ truth. Cross-map peers: azclce (peer scorer), azinterface (human UI), AKM-TRIAD (fabric neighbor). Hubs: azieleliab.com, azielcorpuslibrary.net, godlock.uk. Worker: https://azcoherence-download-tracker.vibelock.workers.dev/. Domain stays null (scoring-review placement). Product cite https://github.com/AzielEliab/AZCoherence.`,
     `ZKAttest: FragGate only. POST /v1/fraggate/call { slug: "zkattest", op }. Hash-commitment attest (ZK-ATTEST-0.1). commit / attest / open / verify are REAL SHA-256 commitments. groth16 / snark / stark / plonk stay FG-STUB. In-runtime placement (no invented product Worker). Domain stays null (receipt-attest placement).`,
     `MMConsensus: FragGate only. POST /v1/fraggate/call { slug: "mmconsensus", op }. Posted-opinion tally (MM-CONSENSUS-0.1). Adjacent to DecisionGATE. live_model_call stays FG-STUB. In-runtime placement. Domain stays null (consensus-review placement).`,
@@ -3154,21 +3167,55 @@ function splitProductToolName(name) {
   return { slug: n.slice(0, idx), op: n.slice(idx + 1) };
 }
 
+function withConfirmConsent(out) {
+  if (out && typeof out === "object") out.confirm_consent = true;
+  return out;
+}
+
+async function dryRunCatalogPreview(name, args) {
+  if (name !== "fraggate_call" && name !== "runtime_run" && name !== "runtime_session_exec") {
+    return { proceed: true };
+  }
+  if (name === "fraggate_call" && isAzGeneratorHallucSlug((args && (args.slug || args.name || args.product)) || "")) {
+    const asked = String((args && (args.slug || args.name || args.product)) || "");
+    return {
+      proceed: false,
+      envelope: {
+        ...azGeneratorCallRefuse({ slug: asked }),
+        door: "fraggate",
+        dry_run: true,
+        mutated: false,
+        ledger_written: false,
+      },
+    };
+  }
+  return previewCatalogAdmission(args, registryFor(PRODUCTS), BY_SLUG);
+}
+
 async function callTool(env, name, args, origin, request) {
   const safeguard = evaluateMutateSafeguard(name, args);
   if (safeguard.gated) {
-    return wrapFraggateEnvelope(name, safeguard.envelope, null, (args && args.op) || null);
+    return withConfirmConsent(wrapFraggateEnvelope(name, safeguard.envelope, null, (args && args.op) || null));
+  }
+  if (safeguard.dry_run) {
+    const preview = await dryRunCatalogPreview(name, args);
+    if (preview && preview.proceed === false) {
+      const body = { ...preview.envelope, ...confirmConsentHonesty() };
+      return withConfirmConsent(wrapFraggateEnvelope(name, body, null, body.op || (args && args.op) || null));
+    }
+    return withConfirmConsent(wrapFraggateEnvelope(name, dryRunAllowedEnvelope(name, args), null, (args && args.op) || null));
   }
   if (name === "runtime_session_exec") {
     const registry = registryFor(PRODUCTS);
     const admission = await admitCall(args, registry, BY_SLUG);
     if (!admission.admitted) {
-      return wrapFraggateEnvelope(name, admission.envelope, null, (args && args.op) || null);
+      return withConfirmConsent(wrapFraggateEnvelope(name, admission.envelope, null, (args && args.op) || null));
     }
   }
   const local = await callRuntimeTool(env, name, args, origin, request);
-  if (local) return local;
-  return wrapFraggateEnvelope(name, hallucRefuse(name), null, null);
+  if (local) return safeguard.confirmed ? withConfirmConsent(local) : local;
+  const missing = wrapFraggateEnvelope(name, hallucRefuse(name), null, null);
+  return safeguard.confirmed ? withConfirmConsent(missing) : missing;
 }
 
 function rpcResult(id, result, extra = {}) {
@@ -3384,7 +3431,7 @@ async function handleFraggateHttp(request, url, origin, env) {
     }
     const body = await fraggateCall(args, registry, BY_SLUG, env, request);
     const status = body.ok === false ? Number(body.status) || 400 : 200;
-    return json(body, status, extra);
+    return json({ ...body, ...confirmConsentHonesty() }, status, extra);
   }
   return json(
     {
@@ -4002,7 +4049,7 @@ async function handleRequest(request, env, ctx) {
         workspace_isolation: {
           public_demo: "shared ephemeral isolate memory — labeled, not private",
           private_workspace: "session-scoped or operator-token-scoped; two callers cannot read or overwrite each other",
-          confirm_is_not_auth: true,
+          ...confirmConsentHonesty(),
           owner_string_is_not_auth: true,
         },
         durability: durabilityLabels(env),

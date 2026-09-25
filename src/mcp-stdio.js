@@ -65,28 +65,41 @@ export function parseCliArgs(argv) {
 }
 
 export function usage() {
-  return `aziel-runtime-mcp — stdio MCP (Aziel Eliab)
+  return `aziel-runtime-mcp — stdio MCP for agents (Aziel Eliab)
 
-Glama and Claude Desktop need a stdio process. This CLI speaks MCP
-JSON-RPC on stdin/stdout and bridges to the hosted Worker by default.
+Speaks MCP JSON-RPC on stdin and stdout. Logs stay on stderr.
+The default bridges to the Worker. --local runs the same /mcp handler in-process.
 
 Usage:
-  node cli/mcp-stdio.mjs
-  node cli/mcp-stdio.mjs --local
-  node cli/mcp-stdio.mjs --url https://aziel-runtime.vibelock.workers.dev
+  aziel-runtime-mcp
+  aziel-runtime-mcp --local
+  aziel-runtime-mcp --url <url>
+  aziel-runtime-mcp --help
+
+For a person, run: aziel-runtime
+
+Flags:
+  --local            In-process /mcp (no network)
+  --url <url>        Worker origin (default ${DEFAULT_RUNTIME_URL})
+  --token <token>    Optional bearer (also RUNTIME_TOKEN / AZIEL_RUNTIME_TOKEN)
+  -h, --help         Show this help
 
 Env:
-  AZIEL_RUNTIME_URL                 Worker origin (default ${DEFAULT_RUNTIME_URL})
-  AZIEL_RUNTIME_MCP=local           same as --local (in-process Worker /mcp)
-  AZIEL_RUNTIME_FAILOVER=0          disable named hub /runtime failover
-  RUNTIME_TOKEN / AZIEL_RUNTIME_TOKEN   optional; sent as Bearer + X-Aziel-Runtime-Token
+  AZIEL_RUNTIME_URL
+  AZIEL_RUNTIME_MCP=local          same as --local
+  AZIEL_RUNTIME_FAILOVER=0         skip named hub /runtime failover
 
-Default (no pinned --url) tries LIVE named fronts: workers.dev, then
-custom-domain hub /runtime (service binding; same FragGate door).
-A custom --url stays pinned. Shelves are not a live door.
-
-Egress (default bridge):
+Notes:
+  With no pinned --url, the bridge tries the Worker, then the hub /runtime path.
+  A custom --url stays pinned.
   ${REQUIRED_EGRESS.note}
+`;
+}
+
+export function interactiveHint() {
+  return `aziel-runtime-mcp is waiting for MCP JSON-RPC on stdin.
+For a person, run: node cli/aziel-runtime.mjs
+Help: aziel-runtime-mcp --help
 `;
 }
 
