@@ -367,7 +367,7 @@ function openapiDoc() {
       "/v1/analyze": {
         post: {
           operationId: "vibelockAnalyze",
-          summary: "Multi-signal deepfake risk assessment (audio features/PCM + visual + pitch + A/V)",
+          summary: "Advisory deepfake risk on posted features or limited PCM. Physics and related signals are heuristic. Linguistics is experimental. Vibration needs a body-coupled track. Raw container bytes are refused. No accuracy percentage.",
           requestBody: {
             required: true,
             content: {
@@ -404,8 +404,20 @@ function openapiDoc() {
   };
 }
 
+const CONTAINER_KEYS = ["container_b64", "file_b64", "mp4_b64", "mp3_b64", "media_b64"];
+
 export async function handleAnalyze(body) {
   body = body || {};
+  if (CONTAINER_KEYS.some((key) => body[key])) {
+    return runtimeJson({
+      ok: false,
+      error: "Hosted analyze does not decode container bytes. Nothing was scored.",
+      label: LABEL,
+      hosted_mic: false,
+      decodes_containers: false,
+      accuracy_claim: false,
+    }, 400);
+  }
   let features = body.features && typeof body.features === "object" ? { ...body.features } : null;
   let n_samples = num(features && features.n_samples, 0);
   let sr = num(body.rate, num(body.sample_rate, num(features && features.sample_rate, 16000))) | 0;

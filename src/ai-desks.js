@@ -49,7 +49,7 @@ export const VIBELOCK_CHECK_NAMES = Object.freeze([
   "av_sync",
 ]);
 
-const VIBELOCK_DESIGN_CHANNELS = Object.freeze(["physics", "linguistics", "vibrations"]);
+const VIBELOCK_DESIGN_CHANNELS = Object.freeze(["physics", "linguistics", "vibration", "related"]);
 
 const tasks = [];
 const notes = [];
@@ -281,8 +281,8 @@ function pinNotes(pins) {
 function vibeContractNote(file) {
   return {
     text: file
-      ? `VibeLock Softwares contract names ${file}. Design channels are physics, linguistics, and vibrations, plus related signals, for mp4, mp3, and other audio and video. Container decode did not run. No score and no accuracy number.`
-      : "VibeLock is designed to assess AI deepfake risk in mp4, mp3, and other audio and video using physics, linguistics, vibrations, and related signals. This learn call did not run detect. No score and no accuracy number.",
+      ? `VibeLock Softwares contract names ${file}. Physics and related signals are heuristic. Linguistics is experimental. Vibration is a measurement only with a body-coupled track. This call did not decode a container. Compressed local files need ffmpeg. No accuracy percentage.`
+      : "VibeLock assesses AI deepfake risk in audio and video. Physics and related signals are heuristic. Linguistics is experimental. Vibration is a measurement only with a body-coupled track. This learn call did not run detect. No accuracy percentage.",
     cites: [
       {
         kind: "vibelock",
@@ -294,7 +294,10 @@ function vibeContractNote(file) {
         file: file,
         file_kinds: ["mp4", "mp3"],
         design_channels: VIBELOCK_DESIGN_CHANNELS.slice(),
+        evidence: { physics: "heuristic", linguistics: "experimental", vibration: "body-coupled-track", related: "heuristic" },
         file_decoded: false,
+        decodes_containers: false,
+        ffmpeg_for_compressed_local: true,
         detector_ran: false,
         accuracy: null,
       },
@@ -336,6 +339,9 @@ async function vibeLearning(src) {
   if (typeof src !== "object" || Array.isArray(src)) return refuse(400, "IF-BAD-INPUT", "vibelock must be an object.");
   if (src.accuracy != null || src.benchmark != null || src.accuracy_percent != null) {
     return refuse(400, "IF-UNCITED", "VibeLock accuracy numbers are not stored.");
+  }
+  if (src.container_b64 || src.file_b64 || src.mp4_b64 || src.mp3_b64 || src.media_b64) {
+    return refuse(400, "IF-UNCITED", "VibeLock container bytes are not decoded here. Nothing was stored.");
   }
   const named = vibeFile(src);
   if (!named.ok) return named;

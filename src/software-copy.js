@@ -218,9 +218,9 @@ export const SOFTWARE_COPY = Object.freeze({
   },
   vibelock: {
     one_line:
-      "Assess AI deepfake risk in mp4, mp3, and other audio and video from physics, linguistics, vibrations, and related signals.",
+      "Assess AI deepfake risk in mp4, mp3, and other audio and video. Physics and related signals are heuristic. Linguistics is experimental. Vibration is measured only with a body-coupled track.",
     description:
-      "Use VibeLock to assess AI deepfake risk in mp4, mp3, and other audio and video files using physics, linguistics, vibrations, and related signals. It exists as a media authenticity advisory on files you already hold. Hosted analyze and detect score posted features or limited PCM and cite the signal channels that ran. mp4 and mp3 container decode stays with the local VibeLock package. This card publishes no accuracy number.",
+      "Use VibeLock to assess AI deepfake risk in audio and video you already hold. It exists as a media authenticity advisory. Physics and related signals are heuristic. Linguistics is experimental. Vibration is a measurement only when a body-coupled track is present. Hosted analyze and detect score posted features or limited PCM, refuse raw container bytes, and publish no accuracy percentage. Compressed files on the local package need ffmpeg.",
   },
   whistlelock: {
     one_line: "Hash a local drop and keep a dead-man copy on the client.",

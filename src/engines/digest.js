@@ -60,7 +60,7 @@ export const ENGINE_ARTIFACTS = {
  * Do not invent a digest — recompute from the files.
  */
 export const ENGINE_DIGESTS = {
-  "vibelock": "12b960bdfe739bad4509fa087932b2f89b39b1eb2d3997b4b646a8f60d13bc9d",
+  "vibelock": "bf35c9e62ae2717bac039d74ff81be7af57be4c454a418b1cc4abffee9d08d5a",
   "veillock": "b7114d83e33d9f3c05427110115b798c23209eb2716a6431b6bcbe4a613fd464",
   "codelock": "cdeacc8ed400760227248c5946d07528e2dfaf4542a40f20cb9961833d199c0b",
   "godlock": "6b9076ca8e4aa63e6c81deb40f102f55f8769a7c10f0b8347605903f7df93f54",
@@ -79,7 +79,7 @@ export const ENGINE_DIGESTS = {
   "ark": "69d29bd079754df6450b8882b6f86c445ac7f1f490e2c150ff4716d00bf6d3b6",
   "azai": "96bd3281c17db65645accde17d1f0ab19be72c58a1ca45a4abd75d28839dc61e",
   "spectrallock": "16281860ab0787f2485ea2530fbbcecf968009da3ae1c4f2b6e689a15a9ad586",
-  "azbot": "43c29690f76b0c4651325b0a2da0a68ba47f708b03b7d38ce08c128575945c65",
+  "azbot": "2c7d23d424f5f88de3eeda0097a5f2597e46c1fa3e2e9c57349add942c34112f",
   "employeelock": "886e90395752e7dcb5458a6ee501c34858a18574623b2e542513b4faa96e1d90",
   "foldlock": "1034d5924b88878918986abe260338b0aff0117bc6f9c4d4a01a41d843cfa0a8",
   "whistlelock": "f585b20e1dfc0321e432ba04299d91d1708ae3b6f2ac78c85db5c61a63a4a6f8",

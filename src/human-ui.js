@@ -393,7 +393,7 @@ function aiPeerDeskHtml(p, origin) {
     "desk-azai",
     "learner",
     `<h4><a href="${escapeHtml(base)}/p/azai">AZAI</a> <span class="slug">learner</span></h4>
-  <p class="blurb">Learner. Notes cite a domain, paper, software slug, receipt hash, pin id, or a VibeLock signal channel. VibeLock deepfake notes cite the Softwares contract for mp4, mp3, and other audio and video (physics, linguistics, vibrations, and related signals). A file name does not decode the file. Scores appear only from posted features or an analysis you supply. No accuracy number is stored. 4DMap is not queried. The live mesh roster is not read. The library is not searched. A memory write needs the confirm box. Belief is not truth.</p>
+  <p class="blurb">Learner. Notes cite a domain, paper, software slug, receipt hash, pin id, or a VibeLock signal channel. VibeLock notes keep physics and related signals heuristic, linguistics experimental, and vibration as a measurement only with a body-coupled track. A file name does not decode the file. Raw container bytes are refused. Scores appear only from posted features or an analysis you supply. No accuracy percentage is stored. 4DMap is not queried. The live mesh roster is not read. The library is not searched. A memory write needs the confirm box. Belief is not truth.</p>
   <div class="field">
     <label for="ai-pin">Pin id (optional, operator supplied)</label>
     <input id="ai-pin" type="text" placeholder="pin-1" autocomplete="off" spellcheck="false">
