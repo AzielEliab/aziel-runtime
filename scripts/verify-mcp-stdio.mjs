@@ -4,7 +4,7 @@
  */
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -17,6 +17,7 @@ import {
   parseCliArgs,
   rpcError,
   serializeMessage,
+  interactiveHint,
   usage,
 } from "../src/mcp-stdio.js";
 import { dnsError, looksLikeFraggateExecutionReceipt } from "../src/remote-transport.js";
@@ -114,6 +115,17 @@ assert.equal(parsed.flags.local, true);
 assert.equal(parsed.flags.url, "https://example.test");
 assert.match(usage(), /FG-DNS/);
 assert.match(usage(), /outbound DNS \+ HTTPS/);
+assert.match(usage(), /--help/);
+assert.match(interactiveHint(), /aziel-runtime\.mjs/);
+assert.doesNotMatch(usage(), /1\.7\.0 locks MASTER/);
+const mcpHelp = spawnSync(process.execPath, [cli, "--help"], { encoding: "utf8" });
+assert.equal(mcpHelp.status, 0);
+assert.match(mcpHelp.stdout, /Usage:/);
+assert.match(mcpHelp.stdout, /FG-DNS/);
+const mcpBogus = spawnSync(process.execPath, [cli, "bogus"], { encoding: "utf8" });
+assert.equal(mcpBogus.status, 1);
+assert.match(mcpBogus.stderr, /Unknown argument "bogus"/);
+assert.match(mcpBogus.stderr, /aziel-runtime-mcp --help/);
 
 const buf = new ReadBuffer();
 buf.append(Buffer.from(serializeMessage({ jsonrpc: "2.0", id: 1, method: "ping" })));

@@ -16,16 +16,24 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   createBridgeContext,
+  interactiveHint,
   parseCliArgs,
   runStdioLoop,
   usage,
 } from "../src/mcp-stdio.js";
 
 async function main() {
-  const { flags } = parseCliArgs(process.argv.slice(2));
+  const { flags, rest } = parseCliArgs(process.argv.slice(2));
   if (flags.help) {
-    process.stderr.write(usage());
+    process.stdout.write(usage());
     process.exit(0);
+  }
+  if (rest.length) {
+    process.stderr.write(`Unknown argument "${rest[0]}".\nNext: aziel-runtime-mcp --help\n`);
+    process.exit(1);
+  }
+  if (process.stdin.isTTY) {
+    process.stderr.write(interactiveHint());
   }
   const ctx = createBridgeContext({ flags });
   ctx.log(

@@ -67,15 +67,45 @@ export function suitePackPaths(origin) {
   };
 }
 
+export function suitePackReadme(version = "2.0.0-rc1") {
+  return `# Aziel Runtime suite pack
+
+Author: Aziel Eliab
+Version: ${version}
+
+This file is the suite catalog: software cards, the FragGate door cite, and the mesh cite.
+
+## Start
+
+1. git clone https://github.com/AzielEliab/aziel-runtime
+2. node cli/aziel-runtime.mjs
+3. node cli/aziel-runtime.mjs session open --local
+
+Then: node cli/aziel-runtime.mjs session status --local
+
+Add --json when a script needs the machine object.
+Catalog calls go through FragGate: fraggate_list, then fraggate_describe, then fraggate_call.
+`;
+}
+
+export const SUITE_PACK_QUICKSTART = Object.freeze([
+  "git clone https://github.com/AzielEliab/aziel-runtime",
+  "node cli/aziel-runtime.mjs",
+  "node cli/aziel-runtime.mjs session open --local",
+]);
+
 export function buildSuitePack({ origin, products, registry, extra = {} } = {}) {
   const base = String(origin || "").replace(/\/$/, "");
   const catalog = softwareCatalog(base, products || [], extra);
+  const version = extra.runtimeVersion || extra.version || "2.0.0-rc1";
   const entries = (registry && registry.entries) || [];
   const live = entries.filter((e) => e.status === "live").map((e) => e.slug);
   const localOnly = entries.filter((e) => e.status === "local_only").map((e) => e.slug);
   const fold = corpusFoldPackCiteField();
   return {
     ok: true,
+    readme: suitePackReadme(version),
+    quickstart: SUITE_PACK_QUICKSTART.slice(),
     spec: SUITE_PACK_SPEC,
     id: SUITE_PACK_ID,
     kind: SUITE_PACK_KIND,
@@ -84,7 +114,7 @@ export function buildSuitePack({ origin, products, registry, extra = {} } = {}) 
     identity: SUITE_PACK_IDENTITY,
     author_id: AUTHOR_ID,
     product: PRODUCT_NAME,
-    version: extra.runtimeVersion || extra.version || "2.0.0-rc1",
+    version,
     git_sha: extra.git_sha || extra.gitSha || catalog.git_sha || null,
     door: "fraggate",
     counted: true,
