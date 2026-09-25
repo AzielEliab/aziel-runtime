@@ -9,6 +9,7 @@ import { PUBLIC_MCP_TOOLS } from "../src/fraggate/codes.js";
 import {
   INTERFACE_MCP_METHOD,
   VEILLOCK_UI_SCHEMA,
+  interfaceLedgerSnapshot,
   orchestrate,
   resetInterfaceLedger,
 } from "../src/interface-orchestrator.js";
@@ -17,6 +18,7 @@ import {
   recordActReceipt,
   shouldMintActReceipt,
 } from "../src/library-receipts.js";
+import { requestLimitKind } from "../src/request-limits.js";
 import { memorySessionNamespace } from "../src/session-do.js";
 
 const handler = (await import("../src/index.js")).default.fetch;
@@ -91,6 +93,7 @@ assert.equal(tip.court_filing, false);
 assert.equal(tip.empty_tip_is_not_success, true);
 assert.equal(tip.roster_read, undefined);
 
+assert.equal(requestLimitKind("/v1/interface", "POST"), "fraggate_call");
 assert.equal(shouldMintActReceipt("POST", "/v1/interface"), false);
 assert.equal(shouldMintActReceipt("GET", "/v1/interface"), false);
 assert.equal(shouldMintActReceipt("POST", "/mcp"), true);
@@ -106,6 +109,26 @@ assert.equal(refused.status, 400);
 assert.equal(refused.body.code, "IF-SECRET-REFUSED");
 assert.equal(JSON.stringify(refused.body).includes(secret), false);
 assert.equal(fetches, 0);
+
+const phrase = "room-phrase-should-not-land";
+const beforePhrase = interfaceLedgerSnapshot().length;
+let phraseDispatch = 0;
+const phraseRefuse = await orchestrate(
+  { call: "seal", confirm: true, slug: "azchat", op: "room_join", payload: { passphrase: phrase } },
+  {
+    fetchImpl,
+    dispatch: async () => {
+      phraseDispatch += 1;
+      return { ok: true, code: "FG-OK" };
+    },
+  },
+);
+assert.equal(phraseRefuse.status, 400);
+assert.equal(phraseRefuse.body.code, "IF-SECRET-REFUSED");
+assert.equal(phraseRefuse.body.sealed, false);
+assert.equal(JSON.stringify(phraseRefuse.body).includes(phrase), false);
+assert.equal(phraseDispatch, 0);
+assert.equal(interfaceLedgerSnapshot().length, beforePhrase);
 
 const shell = await orchestrate({ call: "engulf_plan", app: "zoom;id" }, { fetchImpl });
 assert.equal(shell.status, 400);
@@ -271,17 +294,23 @@ assert.equal(skipped.skipped, true);
 assert.equal(skipped.refuse, "interface-orchestrator-owns-append");
 assert.equal(fetches, 0);
 
+const publicTip = "cd".repeat(32);
 let appended = 0;
+let sentPublic = null;
 const sealedFetch = async (url, init) => {
+  const target = String(url);
+  if (target.endsWith("/v1/receipts/tip")) {
+    return new Response(JSON.stringify({ hash: publicTip }), { status: 200 });
+  }
   appended += 1;
-  assert.equal(String(url), "https://www.azielcorpuslibrary.net/v1/receipts/append");
-  const sent = JSON.parse(init.body);
-  assert.equal(typeof sent.hash, "string");
-  assert.equal(typeof sent.request, "string");
-  assert.equal(typeof sent.output, "string");
-  assert.equal(typeof sent.event, "object");
-  assert.equal(JSON.stringify(sent).includes(secret), false);
-  return new Response(JSON.stringify({ ok: true, receipt: sent }), { status: 201 });
+  assert.equal(target, "https://www.azielcorpuslibrary.net/v1/receipts/append");
+  sentPublic = JSON.parse(init.body);
+  assert.equal(typeof sentPublic.hash, "string");
+  assert.equal(typeof sentPublic.request, "string");
+  assert.equal(typeof sentPublic.output, "string");
+  assert.equal(typeof sentPublic.event, "object");
+  assert.equal(JSON.stringify(sentPublic).includes(secret), false);
+  return new Response(JSON.stringify({ ok: true, receipt: sentPublic }), { status: 201 });
 };
 const published = await orchestrate(
   { call: "seal", confirm: true, slug: "veillock" },
@@ -291,12 +320,66 @@ assert.equal(published.body.published, true);
 assert.equal(published.body.writes_public_chain, true);
 assert.equal(published.body.executed, false);
 assert.equal(appended, 1);
+assert.equal(sentPublic.previous_hash, publicTip);
+assert.notEqual(sentPublic.previous_hash, published.body.receipt.previous_hash);
+assert.equal(sentPublic.hash, published.body.public_receipt.hash);
+assert.equal(published.body.receipt.chain, "isolate-memory");
+assert.equal(published.body.receipt.writes_public_chain, false);
+assert.equal(published.body.public_receipt.chain, "act-public");
+assert.equal(published.body.public_receipt.writes_public_chain, true);
+assert.equal(published.body.public_receipt.event.parent_receipt_id, null);
 assert.deepEqual(Object.keys(published.body.receipt).filter((key) => ["hash", "request", "output", "event"].includes(key)).sort(), [
   "event",
   "hash",
   "output",
   "request",
 ]);
+
+const failedTip = "ab".repeat(32);
+let failedSent = null;
+const failedFetch = async (url, init) => {
+  const target = String(url);
+  if (target.endsWith("/v1/receipts/tip")) {
+    return new Response(JSON.stringify({ hash: failedTip }), { status: 200 });
+  }
+  failedSent = JSON.parse(init.body);
+  return new Response(JSON.stringify({ ok: true }), { status: 201 });
+};
+const failedDoor = await orchestrate(
+  { call: "seal", confirm: true, slug: "foldlock", op: "fold-preview", outcome: "completed" },
+  {
+    env: { RECEIPT_APPEND_TOKEN: "test-token" },
+    fetchImpl: failedFetch,
+    dispatch: async () => ({ ok: false, code: "FG-LAMB-REFUSE" }),
+  },
+);
+assert.equal(failedDoor.status, 200);
+assert.equal(failedDoor.body.ok, false);
+assert.equal(failedDoor.body.executed, false);
+assert.equal(failedDoor.body.outcome, "failed");
+assert.equal(failedDoor.body.receipt.event.outcome, "failed");
+assert.equal(failedDoor.body.receipt.output.includes("FG-LAMB-REFUSE"), true);
+assert.equal(failedSent.previous_hash, failedTip);
+assert.notEqual(failedSent.previous_hash, failedDoor.body.receipt.previous_hash);
+assert.equal(failedSent.event.outcome, "failed");
+assert.equal(failedSent.event.parent_receipt_id, null);
+
+let darkFetches = 0;
+const darkDoor = await orchestrate(
+  { call: "seal", confirm: true, slug: "veillock" },
+  {
+    env: { RECEIPT_APPEND_TOKEN: "test-token" },
+    fetchImpl: async () => {
+      darkFetches += 1;
+      return new Response("down", { status: 503 });
+    },
+  },
+);
+assert.equal(darkDoor.body.published, false);
+assert.equal(darkDoor.body.writes_public_chain, false);
+assert.equal(darkDoor.body.append_refuse, "corpus-dark");
+assert.equal(darkDoor.body.public_receipt, null);
+assert.equal(darkFetches, 1);
 
 resetInterfaceLedger();
 const calls = [];
