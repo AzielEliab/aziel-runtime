@@ -3,7 +3,7 @@
 **Author / identity:** **Aziel Eliab** only  
 **Kind:** contract freeze. **No intentional behavioral breaks.**
 
-Crawler abstract (`RUNTIME_ABSTRACT`) stays the lead on homepage / `/llms.txt` / `/cite.json` / `/about` / OpenAPI `info.description` — positive node-meshed suite definition. These notes belong **below** that abstract.
+Crawler abstract (`RUNTIME_ABSTRACT`) stays the lead on the homepage, `/cite.json` `abstract`, `/about`, and OpenAPI `info.description`. `/llms.txt` and `docs/CITE.md` print the plain Glama discovery sentence first, then that same abstract. These notes belong **below** that abstract.
 
 ---
 
@@ -11,6 +11,7 @@ Crawler abstract (`RUNTIME_ABSTRACT`) stays the lead on homepage / `/llms.txt` /
 
 Certification point — not a feature dump.
 
+- Glama discovery copy (not a new public MCP tool, not a Worker deploy): `glama.json` description leads with the plain card sentence (40+ research tools, one door, receipt). How to use is Install / Add to Glama, then `fraggate_list` → `fraggate_describe {name}` → `fraggate_call`. `tools/list` stays 36. Install order stays Install Server → remote Worker → local stdio. `version` stays Worker `2.0.0-rc1`; Glama Install Server release 2.0.7 stays a label in the description. Identity Aziel Eliab only.
 - Official MCP Registry `server.json` (not a new public MCP tool): remotes-only metadata, registry `version` Worker `2.0.0-rc1`, no `packages` entry. Glama release 2.0.7 stays a Glama label. `mcp-publisher publish` is out of band. `tools/list` stays 36. Identity Aziel Eliab only.
 - Glama install conversion (not a new public MCP tool): Install Server → remote `POST /mcp` → local stdio. `tools/list` stays 36. `glama.json` version stays Worker `2.0.0-rc1`; description names Glama Install Server release 2.0.7. Machine cite / llms / well-known / `/help/glama.txt` point Install / Try on Glama. No hub HTML chrome. Identity Aziel Eliab only.
 

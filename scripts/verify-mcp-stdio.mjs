@@ -30,6 +30,10 @@ assert.equal(glama.$schema, "https://glama.ai/mcp/schemas/server.json");
 assert.deepEqual(glama.maintainers, ["AzielEliab"]);
 assert.equal(glama.name, "Aziel Runtime");
 assert.equal(glama.version, "2.0.0-rc1");
+assert.match(
+  glama.description,
+  /^Aziel Runtime lets AI assistants run 40\+ research tools through one door\. Install on Glama, then list tools, describe one, and call it\. Every call can leave a receipt\./,
+);
 assert.match(glama.description, /Route catalog products through the FragGate door/);
 assert.match(glama.description, /mint receipts/);
 assert.doesNotMatch(glama.description, /not an API aggregator/);
@@ -72,6 +76,23 @@ assert.match(glamaDoc, /\[`server\.json`\]\(\.\.\/server\.json\)/);
 assert.match(glamaDoc, /mcp-publisher publish/);
 assert.match(glamaDoc, /2\.0\.7/);
 assert.match(glamaDoc, /not `server\.json` `version`/);
+assert.match(
+  glamaDoc,
+  /Aziel Runtime lets AI assistants run 40\+ research tools through one door/,
+);
+assert.match(glamaDoc, /## How to use/);
+assert.match(
+  glamaDoc,
+  /1\. Click \*\*Install \/ Add to Glama\*\* on https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime/,
+);
+assert.match(
+  glamaDoc,
+  /2\. In any MCP client, run: `fraggate_list` → `fraggate_describe \{name\}` → `fraggate_call \{name, op, payload, confirm:true\}`/,
+);
+assert.match(glamaDoc, /Worker remote: `https:\/\/aziel-runtime\.vibelock\.workers\.dev\/mcp`/);
+assert.match(glamaDoc, /`decisiongate_check` with a short proposal and `dry_run:true`/);
+assert.match(glamaDoc, /`forgereceipts` receipt for a completed task/);
+assert.match(glamaDoc, /MCP `tools\/list` is \*\*36\*\* tools/);
 
 const dockerfile = await readFile(join(root, "Dockerfile"), "utf8");
 assert.match(dockerfile, /cli\/mcp-stdio\.mjs/);
