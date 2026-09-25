@@ -203,17 +203,17 @@ export const CONFIRM_PROPS = Object.freeze({
   confirm: {
     type: "boolean",
     description:
-      "Documented confirmation flag. Optional in inputSchema.required (connector refresh must not break). tools/call still refuses MCP-CONFIRM-REQUIRED when confirm is missing or false unless dry_run=true (preview, no write).",
+      "Documented confirmation flag. Optional in inputSchema.required (connector refresh must not break). tools/call still refuses MCP-CONFIRM-REQUIRED when confirm is missing or false unless dry_run=true. confirm is consent to run the call. It is not tenant auth and it does not upgrade shared public-demo isolation.",
   },
   dry_run: {
     type: "boolean",
     description:
-      "Optional preview flag. When true, return a would-mutate preview and do not write. Alternative to confirm=true. Does not mutate.",
+      "Optional preview flag. When true, do not write and do not stamp a ledger tip. Allowlist, hallucination, stub, and local-only checks still run and return the same FragGate refuse code a confirm call would get. MCP-DRY-RUN is returned only when that call would have been allowed to proceed. confirm is consent, not tenant auth, and it does not upgrade shared public-demo isolation.",
   },
 });
 
 export const CONFIRM_PARAM_NOTE =
-  "Mutation requires confirm=true (runtime gate) or dry_run=true (preview only, no write). confirm and dry_run stay optional on inputSchema.required.";
+  "Mutation requires confirm=true (runtime gate) or dry_run=true (preview only, no write). confirm and dry_run stay optional on inputSchema.required. dry_run still returns FG-HALLUC-TOOL, FG-STUB, FG-UNKNOWN-OP, or FG-LOCAL-ONLY when a confirm call would refuse. confirm is consent, not tenant auth, and it does not upgrade shared public-demo isolation.";
 
 /**
  * Document confirm / dry_run on mutating tools. Do not add them to required[] —

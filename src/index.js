@@ -239,8 +239,8 @@ import {
   readMcpProtocolHeader,
   readMcpSessionHeader,
 } from "./mcp-transport.js";
-import { evaluateMutateSafeguard, isTruthyFlag } from "./mcp-safeguard.js";
-import { admitCall, describeRegistry, fraggateCall, listRegistry, verifyRegistry } from "./fraggate/door.js";
+import { confirmConsentHonesty, dryRunAllowedEnvelope, evaluateMutateSafeguard, isTruthyFlag } from "./mcp-safeguard.js";
+import { admitCall, describeRegistry, fraggateCall, listRegistry, previewCatalogAdmission, verifyRegistry } from "./fraggate/door.js";
 import { LIVE_OPS, NAMED_STUBS, registryDigest, registrySummary } from "./fraggate/registry.js";
 import {
   AUTHOR_ALTERNATE_NAME,
@@ -3139,21 +3139,55 @@ function splitProductToolName(name) {
   return { slug: n.slice(0, idx), op: n.slice(idx + 1) };
 }
 
+function withConfirmConsent(out) {
+  if (out && typeof out === "object") out.confirm_consent = true;
+  return out;
+}
+
+async function dryRunCatalogPreview(name, args) {
+  if (name !== "fraggate_call" && name !== "runtime_run" && name !== "runtime_session_exec") {
+    return { proceed: true };
+  }
+  if (name === "fraggate_call" && isAzGeneratorHallucSlug((args && (args.slug || args.name || args.product)) || "")) {
+    const asked = String((args && (args.slug || args.name || args.product)) || "");
+    return {
+      proceed: false,
+      envelope: {
+        ...azGeneratorCallRefuse({ slug: asked }),
+        door: "fraggate",
+        dry_run: true,
+        mutated: false,
+        ledger_written: false,
+      },
+    };
+  }
+  return previewCatalogAdmission(args, registryFor(PRODUCTS), BY_SLUG);
+}
+
 async function callTool(env, name, args, origin, request) {
   const safeguard = evaluateMutateSafeguard(name, args);
   if (safeguard.gated) {
-    return wrapFraggateEnvelope(name, safeguard.envelope, null, (args && args.op) || null);
+    return withConfirmConsent(wrapFraggateEnvelope(name, safeguard.envelope, null, (args && args.op) || null));
+  }
+  if (safeguard.dry_run) {
+    const preview = await dryRunCatalogPreview(name, args);
+    if (preview && preview.proceed === false) {
+      const body = { ...preview.envelope, ...confirmConsentHonesty() };
+      return withConfirmConsent(wrapFraggateEnvelope(name, body, null, body.op || (args && args.op) || null));
+    }
+    return withConfirmConsent(wrapFraggateEnvelope(name, dryRunAllowedEnvelope(name, args), null, (args && args.op) || null));
   }
   if (name === "runtime_session_exec") {
     const registry = registryFor(PRODUCTS);
     const admission = await admitCall(args, registry, BY_SLUG);
     if (!admission.admitted) {
-      return wrapFraggateEnvelope(name, admission.envelope, null, (args && args.op) || null);
+      return withConfirmConsent(wrapFraggateEnvelope(name, admission.envelope, null, (args && args.op) || null));
     }
   }
   const local = await callRuntimeTool(env, name, args, origin, request);
-  if (local) return local;
-  return wrapFraggateEnvelope(name, hallucRefuse(name), null, null);
+  if (local) return safeguard.confirmed ? withConfirmConsent(local) : local;
+  const missing = wrapFraggateEnvelope(name, hallucRefuse(name), null, null);
+  return safeguard.confirmed ? withConfirmConsent(missing) : missing;
 }
 
 function rpcResult(id, result, extra = {}) {
@@ -3362,7 +3396,7 @@ async function handleFraggateHttp(request, url, origin, env) {
     }
     const body = await fraggateCall(args, registry, BY_SLUG, env, request);
     const status = body.ok === false ? Number(body.status) || 400 : 200;
-    return json(body, status, extra);
+    return json({ ...body, ...confirmConsentHonesty() }, status, extra);
   }
   return json(
     {
@@ -3950,7 +3984,7 @@ async function handleRequest(request, env, ctx) {
         workspace_isolation: {
           public_demo: "shared ephemeral isolate memory — labeled, not private",
           private_workspace: "session-scoped or operator-token-scoped; two callers cannot read or overwrite each other",
-          confirm_is_not_auth: true,
+          ...confirmConsentHonesty(),
           owner_string_is_not_auth: true,
         },
         durability: durabilityLabels(env),
