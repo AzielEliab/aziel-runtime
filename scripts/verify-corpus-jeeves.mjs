@@ -7,7 +7,7 @@ import { executeLocal } from "../src/engines/runner.js";
 import { jeevesAsk, jeevesShouldRefuse, isDevilDenial, JEEVES_JESUS_IMAGE, JEEVES_SUITE_HELP } from "../src/engines/aziel-corpus/jeeves.js";
 import { collectJeevesEasterEggs, jeevesAssetInventory, JEEVES_PUBLIC_FILE_COUNT } from "../src/engines/aziel-corpus/jeeves-eggs.js";
 import { askJeevesHelp } from "../src/jeeves-desk.js";
-import { suiteSoftwareRoster, SUITE_SOFTWARE_COUNT, EPISTEMIC_ORDER, GUIDE_SPEC } from "../src/guide-reason.js";
+import { suiteSoftwareRoster, SUITE_SOFTWARE_COUNT, EPISTEMIC_ORDER, GUIDE_SPEC, scoreCandidate, assertionFromCandidates } from "../src/guide-reason.js";
 import { mediaRun, NATIVE_OPS, PROXY_OPS, BINDING_GATED_OPS } from "../src/engines/aziel-corpus/engine.js";
 
 assert.ok(NATIVE_OPS.includes("jeeves"));
@@ -183,7 +183,7 @@ assert.equal(help.software_tab, false);
 assert.equal(help.invented_visits, false);
 assert.equal(help.spec, GUIDE_SPEC);
 assert.equal(help.believed, false);
-assert.deepEqual(help.steps.map((step) => step.id), ["lamb_lens", "pull_corpus", "other_source", "triad"]);
+assert.deepEqual(help.steps.map((step) => step.id), ["lamb_lens", "pull_corpus", "pull_library", "other_source", "triad"]);
 assert.deepEqual(help.epistemology.order, EPISTEMIC_ORDER.slice());
 assert.equal(help.epistemology.other_source.authority, false);
 assert.equal(help.epistemology.triad.schema, "aziel.triad.v0.3");
@@ -222,12 +222,49 @@ assert.equal(florence.software_tab, false);
 assert.equal(florence.software_count, 42);
 assert.equal(florence.believed, false);
 assert.equal(florence.provisional, true);
-assert.equal(florence.assertion, "provisional");
+assert.equal(florence.epistemology.uniform, true);
+assert.equal(florence.epistemology.free_pass, false);
+assert.equal(florence.epistemology.layers.corpus.status, "hit");
+assert.equal(florence.epistemology.layers.corpus.hit, true);
+assert.equal(florence.epistemology.layers.corpus.free_pass, false);
+assert.equal(florence.epistemology.layers.corpus.believed, false);
+assert.equal(florence.epistemology.layers.corpus.authority, false);
+assert.ok(florence.epistemology.layers.corpus.clce_triple < florence.epistemology.clce_very_low);
+assert.equal(florence.assertion, "uncertain");
+for (const name of ["corpus", "library", "other"]) {
+  const layer = florence.epistemology.layers[name];
+  assert.equal(layer.free_pass, false, name);
+  assert.equal(layer.believed, false, name);
+  assert.equal(layer.authority, false, name);
+  assert.equal(layer.triad.schema, "aziel.triad.v0.3", name);
+  assert.equal(layer.triad.final.ready, false, name);
+  assert.equal(layer.triad.final.score, null, name);
+  assert.equal(layer.triad.components.clce.verified, true, name);
+  assert.equal(layer.triad.components.spre.verified, false, name);
+  assert.equal(layer.triad.components.physling.verified, false, name);
+}
+assert.deepEqual(florence.epistemology.layers.library.candidates.map((row) => row.id), ["aziel-corpus", "whitestone"]);
 assert.equal(florence.epistemology.corpus.status, "hit");
 assert.equal(florence.epistemology.triad.final.score, null);
 assert.equal(florence.epistemology.other_source.authority, false);
-assert.deepEqual(florence.steps.map((step) => step.id), ["lamb_lens", "pull_corpus", "other_source", "triad"]);
+assert.deepEqual(florence.steps.map((step) => step.id), ["lamb_lens", "pull_corpus", "pull_library", "other_source", "triad"]);
+assert.equal(florence.steps.find((step) => step.id === "triad").uniform, true);
 assert.equal(florence.lamb_lens.join(","), "Service,Clarity,Peace");
+
+const sameQuestion = "peace clarity service";
+const sameText = "peace clarity service";
+const strongCorpus = scoreCandidate({ layer: "corpus", id: "same", question: sameQuestion, text: sameText, hit: true });
+const strongOther = scoreCandidate({ layer: "other", id: "same", question: sameQuestion, text: sameText, hit: true });
+assert.equal(strongCorpus.free_pass, false);
+assert.equal(strongOther.free_pass, false);
+assert.equal(strongCorpus.clce_triple, strongOther.clce_triple);
+assert.equal(assertionFromCandidates([strongCorpus], 1), "provisional");
+assert.equal(assertionFromCandidates([strongOther], 1), assertionFromCandidates([strongCorpus], 1));
+const weakText = florence.citations.find((row) => row.record_id === "AZDOC-FLORENCE-SAMPLE").snippet;
+const weakCorpus = scoreCandidate({ layer: "corpus", id: "florence", question: "Where is Florence?", text: weakText, hit: true });
+const weakOther = scoreCandidate({ layer: "other", id: "florence", question: "Where is Florence?", text: weakText, hit: true });
+assert.equal(assertionFromCandidates([weakCorpus], 1), assertionFromCandidates([weakOther], 1));
+assert.equal(assertionFromCandidates([weakCorpus], 1), "uncertain");
 
 const unknown = await askJeevesHelp({ q: "zzzxnotarealrecordzzz" }, {});
 assert.equal(unknown.topic, "outside");
@@ -259,7 +296,12 @@ assert.equal(outside.epistemology.triad.components.clce.verified, true);
 assert.doesNotMatch(outside.answer, /-196|77\s*K|boiling point is/i);
 assert.equal(outside.software_count, 42);
 assert.equal(outside.software_tab, false);
-assert.deepEqual(outside.steps.map((step) => step.id), ["lamb_lens", "pull_corpus", "other_source", "triad"]);
+assert.deepEqual(outside.steps.map((step) => step.id), ["lamb_lens", "pull_corpus", "pull_library", "other_source", "triad"]);
+for (const name of ["corpus", "library", "other"]) {
+  assert.equal(outside.epistemology.layers[name].free_pass, false, name);
+  assert.equal(outside.epistemology.layers[name].triad.schema, "aziel.triad.v0.3", name);
+  assert.equal(outside.epistemology.layers[name].triad.components.clce.verified, true, name);
+}
 
 const mixed = await askJeevesHelp({ q: "Where is Florence? How do the domain tabs work?" }, {});
 assert.equal(mixed.epistemology.corpus.status, "hit");

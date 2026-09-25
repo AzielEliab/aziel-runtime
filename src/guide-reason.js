@@ -1,8 +1,8 @@
 /**
  * Epistemic guide for Ask Jeeves and AZAI.
  * Order is fixed: Lamb Lens (Service → Clarity → Peace) → corpus shelf →
- * any other source → suite triad (SPRE / CLCE / PhysLing) plus DecisionGATE.
- * Nothing is believed by default. A missing verifier leaves the triad final null.
+ * Library tab cards → any other source. The suite triad scores every candidate
+ * from every layer. A shelf hit is not a free pass. Nothing is believed by default.
  * No Softwares row, version, or version_id is invented.
  *
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
@@ -11,7 +11,7 @@
 import { lambCheck } from "./engines/azai/engine.js";
 import { search } from "./engines/aziel-corpus/engine.js";
 import { THRESHOLD, VERY_LOW, score as clceScore } from "./engines/azclce/engine.js";
-import { SCHEMA_TRIAD, assemble, unverified } from "./engines/azclce/triad.js";
+import { assemble, unverified } from "./engines/azclce/triad.js";
 import { check as decisiongateCheck } from "./engines/decisiongate/engine.js";
 import { jeevesShouldRefuse } from "./engines/aziel-corpus/jeeves.js";
 import { lambLensCheck } from "./lamblens.js";
@@ -19,8 +19,8 @@ import { SOFTWARE_COPY } from "./software-copy.js";
 import { UI_DOMAINS } from "./ui-domains.js";
 import { RUNTIME_VERSION } from "./runtime-api.js";
 
-export const GUIDE_SPEC = "GUIDE-REASON-1.1";
-export const EPISTEMIC_ORDER = Object.freeze(["lamb_lens", "corpus", "other_source", "triad"]);
+export const GUIDE_SPEC = "GUIDE-REASON-1.2";
+export const EPISTEMIC_ORDER = Object.freeze(["lamb_lens", "corpus", "library", "other_source", "triad"]);
 export const SUITE_SOFTWARE_COUNT = 42;
 
 export const GUIDE_STARTERS = Object.freeze([
@@ -189,7 +189,7 @@ function flowAnswer(intent, cards) {
   if (intent === "intro") {
     return {
       topic: "intro",
-      answer: `Ask Jeeves and AZAI Guide walk this ${RUNTIME_VERSION} build. Lamb Lens runs first (Service, then Clarity, then Peace), then the public shelf, then any other source. The suite triad sets how strongly this is asserted. Nothing is believed by default. Suite clicks come from the ${cards.length} Softwares already on the domain tabs. Author Aziel Eliab only.`,
+      answer: `Ask Jeeves and AZAI Guide walk this ${RUNTIME_VERSION} build. Lamb Lens runs first (Service, then Clarity, then Peace), then the public shelf and the Library tab, then any other source. The suite triad scores every candidate from those layers the same way. Nothing is believed by default. Suite clicks come from the ${cards.length} Softwares already on the domain tabs. Author Aziel Eliab only.`,
       actions: GUIDE_STARTERS.map((row) => ({ label: row.label, href: "#elroi-jeeves" })),
     };
   }
@@ -279,24 +279,168 @@ function leadFromCorpus(corpus) {
   return `${shelf} ${lead.title || lead.record_id} — ${lead.snippet}`;
 }
 
-function closedCorpus() {
+function triadFor(question, text) {
+  const clce = clceScore(question, text, text);
   return {
-    ok: true,
-    unreachable: false,
-    live_d1: false,
-    sample_master: true,
-    library_http: "not-consulted",
-    last_known_shelf: "bundled sample MASTER",
-    citations: [],
-    empty: true,
-    consulted: false,
+    clce_triple: clce.triple,
+    triad: assemble({
+      clce: clce.triad_component,
+      spre: unverified("spre"),
+      physling: unverified("physling"),
+    }),
   };
 }
 
-function whyLine(lens, corpusStatus, other, triad, dg, assertion) {
-  const triple = triad.components.clce.score == null ? "null" : Number(triad.components.clce.score).toFixed(4);
-  const final = triad.final.score == null ? "null" : String(triad.final.score);
-  return `Why: Lamb Lens Service ${lens.service} / Clarity ${lens.clarity} / Peace ${lens.peace} (${lens.decision}). Corpus ${corpusStatus}. Other source ${other.status}, not authority. Triad ${triad.schema} final ${final} (${triad.final.verified_count}/3 verified). CLCE triple ${triple}. DecisionGATE ${dg.final_state}. Assertion ${assertion}. Believed: false.`;
+/** One candidate, any layer. Corpus, library, and other use this same call. */
+export function scoreCandidate({ layer, id, question, text, hit }) {
+  const scored = triadFor(question, text || "");
+  return {
+    layer,
+    id: id || layer,
+    hit: Boolean(hit),
+    believed: false,
+    authority: false,
+    free_pass: false,
+    lens_filtered: true,
+    clce_triple: scored.clce_triple,
+    triad: scored.triad,
+  };
+}
+
+/**
+ * Assertion from scored candidates. The layer name is not an input.
+ * A hit below VERY_LOW does not support an assertion. Two hits that
+ * do not share words, or that sit on different sides of VERY_LOW, conflict.
+ * A supportive hit still stays provisional: SPRE and PhysLing are unverified,
+ * so the triad final stays null.
+ */
+export function assertionFromCandidates(candidates, crossTriple) {
+  const hits = (candidates || []).filter((row) => row && row.hit);
+  if (hits.length >= 2 && Number(crossTriple) < VERY_LOW) return "conflict";
+  if (!hits.length) return "uncertain";
+  const supportive = hits.filter((row) => Number(row.clce_triple) >= VERY_LOW);
+  if (!supportive.length) return "uncertain";
+  if (supportive.length !== hits.length) return "conflict";
+  return "provisional";
+}
+
+function layerView(status, candidates) {
+  const rows = candidates.length ? candidates : [];
+  const lead = rows.find((row) => row.hit) || rows[0] || null;
+  return {
+    status,
+    hit: rows.some((row) => row.hit),
+    hit_count: rows.filter((row) => row.hit).length,
+    believed: false,
+    authority: false,
+    free_pass: false,
+    clce_triple: lead ? lead.clce_triple : null,
+    triad: lead ? lead.triad : null,
+    candidates: rows,
+  };
+}
+
+function libraryRows(cards) {
+  return cards.filter((card) => card.domain === "library");
+}
+
+function libraryCardHit(question, card) {
+  const n = String(question || "").toLowerCase();
+  if (n.includes(card.slug)) return true;
+  const spaced = card.slug.replace(/-/g, " ");
+  return spaced !== card.slug && n.includes(spaced);
+}
+
+function whyLine(lens, layers, crossTriad, dg, assertion) {
+  const triple = (layer) => (layer.clce_triple == null ? "null" : Number(layer.clce_triple).toFixed(4));
+  const final = crossTriad.final.score == null ? "null" : String(crossTriad.final.score);
+  return `Why: Lamb Lens Service ${lens.service} / Clarity ${lens.clarity} / Peace ${lens.peace} (${lens.decision}). Corpus ${layers.corpus.status} CLCE ${triple(layers.corpus)} free_pass false. Library ${layers.library.status} CLCE ${triple(layers.library)} free_pass false. Other ${layers.other.status} CLCE ${triple(layers.other)} free_pass false. Each layer is triad-scored (${crossTriad.schema}); none is authority. Triad final ${final} (${crossTriad.final.verified_count}/3 verified). DecisionGATE ${dg.final_state}. Assertion ${assertion}. Believed: false.`;
+}
+
+function closedLayers(question) {
+  const corpus = layerView("not-consulted", [
+    scoreCandidate({ layer: "corpus", id: "not-consulted", question, text: "Corpus was not consulted.", hit: false }),
+  ]);
+  const library = layerView("not-consulted", [
+    scoreCandidate({ layer: "library", id: "not-consulted", question, text: "Library cards were not consulted.", hit: false }),
+  ]);
+  const other = layerView("not-consulted", [
+    scoreCandidate({ layer: "other", id: "not-consulted", question, text: "No other source was consulted.", hit: false }),
+  ]);
+  return { corpus, library, other };
+}
+
+function packEpistemology(lens, layers, other, triad, dg, crossTriple, assertion) {
+  return {
+    order: EPISTEMIC_ORDER.slice(),
+    believed: false,
+    uniform: true,
+    free_pass: false,
+    lamb_lens: lens,
+    layers,
+    corpus: layers.corpus,
+    library: layers.library,
+    other_source: {
+      ...other,
+      authority: false,
+      believed: false,
+      free_pass: false,
+      clce_triple: layers.other.clce_triple,
+      triad: layers.other.triad,
+    },
+    triad,
+    decisiongate: { final_state: dg.final_state, blocked_at: dg.blocked_at, product: dg.product, version: dg.version },
+    clce_triple: crossTriple,
+    clce_threshold: THRESHOLD,
+    clce_very_low: VERY_LOW,
+    assertion,
+  };
+}
+
+function layerSteps(lens, corpusStep, libraryStep, other, triad, dg) {
+  return [
+    {
+      id: "lamb_lens",
+      order: LAMB.slice(),
+      service: lens.service,
+      clarity: lens.clarity,
+      peace: lens.peace,
+      decision: lens.decision,
+      overall: lens.overall,
+      blocked: Boolean(lens.blocked),
+      held: Boolean(lens.held),
+    },
+    {
+      id: "pull_corpus",
+      consulted: corpusStep.consulted !== false,
+      library_http: corpusStep.library_http || null,
+      last_known_shelf: corpusStep.last_known_shelf || null,
+      hit_count: corpusStep.hit_count || 0,
+      unreachable: Boolean(corpusStep.unreachable),
+      invented: false,
+      free_pass: false,
+    },
+    {
+      id: "pull_library",
+      consulted: libraryStep.consulted !== false,
+      hit_count: libraryStep.hit_count || 0,
+      slugs: libraryStep.slugs || [],
+      invented: false,
+      free_pass: false,
+    },
+    { id: "other_source", status: other.status, kind: other.kind || null, authority: false, free_pass: false },
+    {
+      id: "triad",
+      schema: triad.schema,
+      ready: triad.final.ready,
+      score: triad.final.score,
+      uniform: true,
+      free_pass: false,
+      layers: ["corpus", "library", "other"],
+      decisiongate: dg.final_state,
+      believed: false,
+    },
+  ];
 }
 
 export async function reasonGuide(question, env, { assistant = "Ask Jeeves" } = {}) {
@@ -325,10 +469,9 @@ export async function reasonGuide(question, env, { assistant = "Ask Jeeves" } = 
   };
 
   if (lens.blocked || lens.held) {
-    const corpus = closedCorpus();
-    const other = { status: "not-consulted", authority: false, kind: "none" };
-    const clce = clceScore(q, "Corpus was not consulted.", "No other source was consulted.");
-    const triad = assemble({ clce: clce.triad_component, spre: unverified("spre"), physling: unverified("physling") });
+    const layers = closedLayers(q);
+    const cross = clceScore(q, "Corpus was not consulted.", "No other source was consulted.");
+    const triad = assemble({ clce: cross.triad_component, spre: unverified("spre"), physling: unverified("physling") });
     const dg = decisiongateCheck({ statement: q });
     const assertion = lens.blocked ? "refused" : "held";
     const answer = lens.blocked
@@ -341,7 +484,7 @@ export async function reasonGuide(question, env, { assistant = "Ask Jeeves" } = 
       assertion,
       source: "lamb-lens",
       topic: "lamb_lens",
-      answer: `${whyLine(lens, "not-consulted", other, triad, dg, assertion)}\n\n${answer}`,
+      answer: `${whyLine(lens, layers, triad, dg, assertion)}\n\n${answer}`,
       known: false,
       grounded: false,
       citations: [],
@@ -350,37 +493,31 @@ export async function reasonGuide(question, env, { assistant = "Ask Jeeves" } = 
       empty: true,
       live_d1: false,
       sample_master: true,
-      epistemology: { order: EPISTEMIC_ORDER.slice(), believed: false, lamb_lens: lens, corpus: { status: "not-consulted", hit_count: 0 }, other_source: other, triad, decisiongate: { final_state: dg.final_state, blocked_at: dg.blocked_at, product: dg.product }, clce_triple: clce.triple, assertion },
-      steps: [
-        { id: "lamb_lens", order: LAMB.slice(), decision: lens.decision, overall: lens.overall, blocked: lens.blocked, held: lens.held },
-        { id: "pull_corpus", consulted: false, hit_count: 0, invented: false },
-        { id: "other_source", status: other.status, authority: false },
-        { id: "triad", schema: triad.schema, ready: triad.final.ready, score: triad.final.score, decisiongate: dg.final_state },
-      ],
+      epistemology: packEpistemology(lens, layers, { status: "not-consulted", authority: false, kind: "none" }, triad, dg, cross.triple, assertion),
+      steps: layerSteps(lens, { consulted: false, hit_count: 0 }, { consulted: false, hit_count: 0 }, { status: "not-consulted" }, triad, dg),
       next_actions: [{ label: "Open Ask Jeeves", href: "#elroi-jeeves" }],
     };
   }
 
   const gate = jeevesShouldRefuse(q);
   if (gate.refuse) {
+    const layers = closedLayers(q);
+    const triad = assemble({ clce: unverified("clce"), spre: unverified("spre"), physling: unverified("physling") });
+    const dg = decisiongateCheck({ statement: q });
     return {
       ...baseFields,
       refused: true,
       assertion: "refused",
       source: "lamb-lens",
       topic: "refused",
-      answer: `${whyLine(lens, "not-consulted", { status: "not-consulted", authority: false }, assemble({ clce: unverified("clce"), spre: unverified("spre"), physling: unverified("physling") }), decisiongateCheck({ statement: q }), "refused")}\n\n${gate.reason}`,
+      answer: `${whyLine(lens, layers, triad, dg, "refused")}\n\n${gate.reason}`,
       citations: [],
       library_search: false,
       library_http: "not-consulted",
       known: false,
       grounded: false,
-      steps: [
-        { id: "lamb_lens", order: LAMB.slice(), decision: lens.decision, overall: lens.overall },
-        { id: "pull_corpus", consulted: false, hit_count: 0 },
-        { id: "other_source", status: "not-consulted", authority: false },
-        { id: "triad", schema: SCHEMA_TRIAD, ready: false, score: null },
-      ],
+      epistemology: packEpistemology(lens, layers, { status: "not-consulted", authority: false, kind: "none" }, triad, dg, null, "refused"),
+      steps: layerSteps(lens, { consulted: false, hit_count: 0 }, { consulted: false, hit_count: 0 }, { status: "not-consulted" }, triad, dg),
     };
   }
 
@@ -396,21 +533,71 @@ export async function reasonGuide(question, env, { assistant = "Ask Jeeves" } = 
     ? { status: "suite-help-graph", kind: "this-build", authority: false, topic: suite.topic }
     : { status: "not-fetched", kind: "outside", authority: false, note: "No outside page was fetched. An outside question is allowed. It is not authority." };
   const shelfLead = leadFromCorpus(corpus);
-  const corpusText = shelfLead || (corpus.unreachable ? "Live shelf unreachable. Last-known sample MASTER had no row." : "No public shelf row matched.");
+  const corpusCandidates = corpus.citations.length
+    ? corpus.citations.map((rec) =>
+        scoreCandidate({
+          layer: "corpus",
+          id: rec.record_id || rec.title || "shelf",
+          question: q,
+          text: `${rec.title || ""} ${rec.snippet || ""}`.trim(),
+          hit: true,
+        }),
+      )
+    : [
+        scoreCandidate({
+          layer: "corpus",
+          id: corpus.unreachable ? "unreachable" : "miss",
+          question: q,
+          text: corpus.unreachable
+            ? "Live shelf unreachable. Last-known sample MASTER had no row."
+            : "No public shelf row matched.",
+          hit: false,
+        }),
+      ];
+  const libCards = libraryRows(cards);
+  const libraryCandidates = (libCards.length ? libCards : [{ slug: "library", one_line: "No library card is on this build." }]).map((card) =>
+    scoreCandidate({
+      layer: "library",
+      id: card.slug,
+      question: q,
+      text: `${card.slug}. ${card.one_line || ""}`.trim(),
+      hit: libraryCardHit(q, card),
+    }),
+  );
   const otherText = suite ? suite.answer : "No other source was fetched.";
-  const clce = clceScore(q, corpusText, otherText);
+  const otherCandidate = scoreCandidate({
+    layer: "other",
+    id: suite ? suite.topic : "outside",
+    question: q,
+    text: otherText,
+    hit: Boolean(suite),
+  });
+  const corpusStatus = corpus.unreachable ? "unreachable" : corpus.citations.length ? "hit" : "miss";
+  const layers = {
+    corpus: layerView(corpusStatus, corpusCandidates),
+    library: layerView(libraryCandidates.some((row) => row.hit) ? "hit" : "miss", libraryCandidates),
+    other: layerView(other.status, [otherCandidate]),
+  };
+  const corpusText = corpus.citations.length
+    ? `${corpus.citations[0].title || ""} ${corpus.citations[0].snippet || ""}`.trim()
+    : corpusCandidates[0] && corpus.unreachable
+      ? "Live shelf unreachable. Last-known sample MASTER had no row."
+      : "No public shelf row matched.";
+  const cross = clceScore(q, corpusText, otherText);
   const triad = assemble({
-    clce: clce.triad_component,
+    clce: cross.triad_component,
     spre: unverified("spre"),
     physling: unverified("physling"),
   });
+  const allCandidates = [...corpusCandidates, ...libraryCandidates, otherCandidate];
+  let assertion = assertionFromCandidates(allCandidates, cross.triple);
   let answerBody;
   let known;
   if (suite && shelfLead) {
     answerBody = `${shelfLead}\n\n${suite.answer}`;
     known = corpus.unreachable ? "last-known-shelf-and-suite" : "corpus-and-suite";
   } else if (shelfLead && !suite) {
-    answerBody = `${shelfLead} This cite is provisional. It is not believed.`;
+    answerBody = `${shelfLead} This cite is triad-scored the same way as any other source. Assertion ${assertion}. It is not believed.`;
     known = corpus.unreachable ? "last-known-shelf" : "corpus";
   } else if (suite) {
     const shelfNote = corpus.unreachable
@@ -429,19 +616,12 @@ export async function reasonGuide(question, env, { assistant = "Ask Jeeves" } = 
     answerBody = suite.answer;
     if (shelfLead) answerBody = `${shelfLead}\n\n${answerBody}`;
   }
-  const conflict = corpus.citations.length > 0 && !!suite && clce.triple < VERY_LOW;
-  let assertion = "provisional";
-  if (conflict) assertion = "conflict";
-  else if (!corpus.citations.length && !suite) assertion = "uncertain";
-  else if (!triad.final.ready) assertion = suite || corpus.citations.length ? "provisional" : "uncertain";
   const dg = decisiongateCheck({ statement: String(answerBody).slice(0, 800) });
   if (dg.final_state === "BLOCK") assertion = "refused";
-  else if (dg.final_state !== "PASS" && assertion === "cite") assertion = "provisional";
-  const corpusStatus = corpus.unreachable ? "unreachable" : corpus.citations.length ? "hit" : "miss";
-  const why = whyLine(lens, corpusStatus, other, triad, dg, assertion);
-  if (conflict) {
-    answerBody = `${answerBody}\n\nThe question, the shelf, and the other source do not use the same words (CLCE triple ${clce.triple}). Which one should be checked?`;
+  if (assertion === "conflict") {
+    answerBody = `${answerBody}\n\nThese candidates do not use the same words (cross-layer CLCE triple ${cross.triple}). Corpus, the Library tab, and the other source were scored the same way. Which one should be checked?`;
   }
+  const why = whyLine(lens, layers, triad, dg, assertion);
   const actions = suite && suite.actions
     ? suite.actions
     : corpus.citations.length
@@ -453,28 +633,20 @@ export async function reasonGuide(question, env, { assistant = "Ask Jeeves" } = 
           { label: "Open Ask Jeeves", href: "#elroi-jeeves" },
           { label: "Open the interface desk", href: "#interface-panel" },
         ];
-  const steps = [
-    { id: "lamb_lens", order: LAMB.slice(), service: lens.service, clarity: lens.clarity, peace: lens.peace, decision: lens.decision, overall: lens.overall },
+  const steps = layerSteps(
+    lens,
     {
-      id: "pull_corpus",
       consulted: true,
       library_http: corpus.library_http,
       last_known_shelf: corpus.last_known_shelf,
       hit_count: corpus.citations.length,
       unreachable: corpus.unreachable,
-      invented: false,
     },
-    { id: "other_source", status: other.status, kind: other.kind, authority: false },
-    {
-      id: "triad",
-      schema: triad.schema,
-      ready: triad.final.ready,
-      score: triad.final.score,
-      clce_triple: clce.triple,
-      decisiongate: dg.final_state,
-      believed: false,
-    },
-  ];
+    { consulted: true, hit_count: layers.library.hit_count, slugs: libCards.map((card) => card.slug) },
+    other,
+    triad,
+    dg,
+  );
   return {
     ...baseFields,
     refused: assertion === "refused",
@@ -495,17 +667,6 @@ export async function reasonGuide(question, env, { assistant = "Ask Jeeves" } = 
     empty: corpus.empty,
     live_d1: corpus.live_d1,
     sample_master: corpus.sample_master,
-    epistemology: {
-      order: EPISTEMIC_ORDER.slice(),
-      believed: false,
-      lamb_lens: lens,
-      corpus: { status: corpusStatus, hit_count: corpus.citations.length, library_http: corpus.library_http },
-      other_source: other,
-      triad,
-      decisiongate: { final_state: dg.final_state, blocked_at: dg.blocked_at, product: dg.product, version: dg.version },
-      clce_triple: clce.triple,
-      clce_threshold: THRESHOLD,
-      assertion,
-    },
+    epistemology: packEpistemology(lens, layers, other, triad, dg, cross.triple, assertion),
   };
 }
