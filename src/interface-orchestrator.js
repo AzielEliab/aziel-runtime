@@ -26,6 +26,8 @@ import {
   WORKER_CALLS,
   buildLearningNotes,
   learnerBody,
+  matchingPlan,
+  operatorLearningNote,
   recallLearningNotes,
   resetAiDesks,
   storeLearningNotes,
@@ -34,8 +36,15 @@ import {
   workerPlan,
   workerStatus,
 } from "./ai-desks.js";
+import { LIVE_LIBRARY_INDEX } from "./engines/aziel-corpus/tip-pack.js";
 import { LIVE_OPS } from "./fraggate/registry.js";
-import { appendActReceipt, mintActReceipt, receiptAppendToken } from "./library-receipts.js";
+import {
+  appendActReceipt,
+  fetchCorpusTip,
+  isEmptyActTipHash,
+  mintActReceipt,
+  receiptAppendToken,
+} from "./library-receipts.js";
 import { isTruthyFlag } from "./mcp-safeguard.js";
 import { normalizeAttemptLink } from "./receipt-attempt.js";
 import { askJeevesHelp, JEEVES_HELP_CALL } from "./jeeves-desk.js";
@@ -66,6 +75,13 @@ export const INTERFACE_CALLS = Object.freeze([
   "seal",
 ]);
 
+const VEILLOCK_CALL_PIN = Object.freeze(["wrap", "engulf", "join", "link", "play", "record", "status"]);
+
+function veilContractDrift() {
+  const names = Object.keys(VEILLOCK_RUNTIME_UI.calls);
+  return names.length !== VEILLOCK_CALL_PIN.length || names.some((name, index) => name !== VEILLOCK_CALL_PIN[index]);
+}
+
 const LOCAL_COMMANDS = new Set(["wrap", "engulf", "join", "link", "play", "record", "inject", "intercept", "facetime"]);
 
 const PLATFORMS = new Set(["linux", "windows", "darwin", "ios", "android", "chromium", "firefox", "safari"]);
@@ -76,7 +92,7 @@ const VIDEO = /^\/dev\/video[0-9]{1,3}$/;
 const SLUG_RE = /^[a-z0-9-]{1,64}$/;
 const OP_RE = /^[a-z0-9_-]{1,80}$/;
 
-const SECRET_KEY = /^(key|keys|secret|secrets|token|password|private_key|argv|env|authorization|api_key|session_key|call_key)$/i;
+const SECRET_KEY = /^(key|keys|secret|secrets|token|password|passphrase|passcode|passwd|pwd|private_key|argv|env|authorization|api_key|session_key|call_key|credential|credentials|bearer)$/i;
 
 /** Software contract as handed off. Host overlay is applied on read. */
 export const VEILLOCK_RUNTIME_UI = Object.freeze({
@@ -149,9 +165,12 @@ export const VEILLOCK_RUNTIME_UI = Object.freeze({
 });
 
 const ledger = [];
+/** request_id → last ACT hash actually appended to the public chain. */
+const publishedByRequest = new Map();
 
 export function resetInterfaceLedger() {
   ledger.length = 0;
+  publishedByRequest.clear();
   resetAiDesks();
 }
 
@@ -285,6 +304,12 @@ function hostOverlay() {
     built: true,
     mcp: true,
     node_mesh: true,
+    node_mesh_means: "awareness-only",
+    mesh_joined: false,
+    roster_read: false,
+    suite_json_pulled: false,
+    remote_contract: "not-fetched",
+    contract_drift: veilContractDrift(),
     forensic: true,
     tools_list_unchanged: true,
     mcp_method: INTERFACE_MCP_METHOD,
@@ -422,7 +447,7 @@ function attemptFrom(input, outcome) {
   return norm;
 }
 
-function receiptView(row, published) {
+function receiptView(row, published, chain) {
   if (!row) return null;
   return {
     hash: row.hash,
@@ -431,6 +456,7 @@ function receiptView(row, published) {
     event: row.event,
     previous_hash: row.previous_hash,
     spec: "ACT-RECEIPT-1.0",
+    chain: chain || "isolate-memory",
     sealed: row.sealed === true,
     writes_public_chain: published === true,
     published: published === true,
@@ -440,15 +466,64 @@ function receiptView(row, published) {
   };
 }
 
+/**
+ * Public ACT copy. previous_hash is the corpus tip, never the isolate ledger.
+ * parent_receipt_id is the last public hash for this request_id, or null.
+ * A plan row that was not appended is not named as a public parent.
+ */
+async function publishSealedReceipt(env, localReceipt, fetchImpl) {
+  const tip = await fetchCorpusTip(env, fetchImpl);
+  if (!tip.ok) {
+    return {
+      published: false,
+      appendRefuse: tip.fail_open ? "corpus-unreachable" : "corpus-dark",
+      publicReceipt: null,
+      publicTipEmpty: true,
+    };
+  }
+  const event = { ...(localReceipt.event || {}) };
+  const priorPublic = event.request_id ? publishedByRequest.get(event.request_id) : null;
+  event.parent_receipt_id = priorPublic || null;
+  const publicReceipt = await mintActReceipt({
+    previous_hash: tip.hash,
+    request: localReceipt.request,
+    output: localReceipt.output,
+    event,
+  });
+  const appended = await appendActReceipt(env, publicReceipt, fetchImpl);
+  const published = appended.published === true;
+  if (published && event.request_id) publishedByRequest.set(event.request_id, publicReceipt.hash);
+  return {
+    published,
+    appendRefuse: published ? null : appended.refuse || "append-skipped",
+    publicReceipt: published ? publicReceipt : null,
+    publicTipEmpty: isEmptyActTipHash(tip.hash),
+  };
+}
+
+function reconcileSealOutcome(link, door) {
+  if (door && door.ran) {
+    const honest = door.ok === true && door.code === "FG-OK" ? "completed" : "failed";
+    if (honest === "failed" && link.outcome === "retry") return "retry";
+    return honest;
+  }
+  if (link.outcome_supplied && (link.outcome === "failed" || link.outcome === "retry")) return link.outcome;
+  return "completed";
+}
+
 async function finish(call, status, link, requestSentence, outputSentence, body, opts, sealed) {
   const kept = await remember(call, status, requestSentence, outputSentence, link, sealed);
   if (!kept.ok) return fail(503, kept.code, kept.error);
   let published = false;
   let appendRefuse = null;
+  let publicReceipt = null;
+  let publicTipEmpty = null;
   if (sealed && receiptAppendToken(opts.env)) {
-    const appended = await appendActReceipt(opts.env, kept.receipt, opts.fetchImpl || fetch);
-    published = appended.published === true;
-    appendRefuse = appended.refuse || null;
+    const pub = await publishSealedReceipt(opts.env, kept.receipt, opts.fetchImpl || fetch);
+    published = pub.published === true;
+    appendRefuse = pub.appendRefuse;
+    publicReceipt = pub.publicReceipt;
+    publicTipEmpty = pub.publicTipEmpty === true;
   } else if (sealed) {
     appendRefuse = "no-token";
   }
@@ -466,11 +541,14 @@ async function finish(call, status, link, requestSentence, outputSentence, body,
       parent_receipt_id: link.parent_receipt_id,
       correlation_id: link.correlation_id,
       outcome: link.outcome,
-      receipt: receiptView(kept.receipt, published),
+      receipt: receiptView(kept.receipt, false, "isolate-memory"),
+      public_receipt: publicReceipt ? receiptView(publicReceipt, true, "act-public") : null,
       sealed: sealed === true,
       published,
       writes_public_chain: published === true,
       append_refuse: appendRefuse,
+      public_tip_empty: publicTipEmpty,
+      parent_on_public_chain: !!(publicReceipt && publicReceipt.event && publicReceipt.event.parent_receipt_id),
       audit_trail: true,
       forensic_finding: false,
       court_filing: false,
@@ -526,13 +604,17 @@ async function runAiDesk(call, input, link, opts) {
       false,
     );
   }
-  const built = await buildLearningNotes(input, interfaceLedgerSnapshot());
+  const pull = await liveLearningPull(input, opts);
+  const built = await buildLearningNotes(input, interfaceLedgerSnapshot(), pull);
   if (!built.ok) return fail(built.status, built.code, built.error, { call });
   const stored = await storeLearningNotes(built);
   if (!stored.ok) return fail(stored.status, stored.code, stored.error, { call });
   let memory = { attempted: false, reason: "confirm required", writes_public_chain: false };
   if (isTruthyFlag(input.confirm)) {
-    memory = await observeLearning(opts, stored.notes[0]);
+    const subject = operatorLearningNote(stored.notes, input);
+    memory = subject
+      ? await observeLearning(opts, subject)
+      : { attempted: false, reason: "no-operator-subject", writes_public_chain: false };
   }
   return finish(
     call,
@@ -545,11 +627,110 @@ async function runAiDesk(call, input, link, opts) {
       note_count: stored.notes.length,
       pins_supplied: built.pins_supplied,
       memory,
+      pins_read: pull.flags.pins_read,
+      mesh_read: pull.flags.mesh_read,
+      corpus_searched: pull.flags.corpus_searched,
+      pull: { attempted: pull.attempted, reasons: pull.reasons },
       sources: ["domain", "paper", "software", "receipt", "pin", "aznet", "vibelock"],
     }),
     opts,
     false,
   );
+}
+
+async function searchCorpusIndex(fetchImpl, query) {
+  const source = LIVE_LIBRARY_INDEX;
+  try {
+    const res = await fetchImpl(source, {
+      method: "GET",
+      headers: { "User-Agent": "Mozilla/5.0", Accept: "application/json" },
+      signal: AbortSignal.timeout(2500),
+    });
+    if (!res || !res.ok) return { corpus_searched: false, count: 0, record_ids: [], reason: "http-error", source };
+    const json = await res.json().catch(() => null);
+    const bucket = Array.isArray(json)
+      ? json
+      : json && (json.records || json.items || json.documents || json.entries || (Array.isArray(json.hits) ? json.hits : json.hits && json.hits.hits));
+    if (!Array.isArray(bucket)) return { corpus_searched: false, count: 0, record_ids: [], reason: "inventory-unparsed", source };
+    const q = String(query || "").trim().toLowerCase();
+    const record_ids = [];
+    let count = 0;
+    for (const row of bucket) {
+      if (!row || typeof row !== "object" || Array.isArray(row)) continue;
+      const id = row.record_id || row.id;
+      const title = typeof row.title === "string" ? row.title : "";
+      if (q && !`${id || ""} ${title}`.toLowerCase().includes(q)) continue;
+      count += 1;
+      if (id && record_ids.length < 8) record_ids.push(String(id).slice(0, 80));
+    }
+    return { corpus_searched: true, count, record_ids, reason: null, source };
+  } catch {
+    return { corpus_searched: false, count: 0, record_ids: [], reason: "unreachable", source };
+  }
+}
+
+async function liveLearningPull(input, opts) {
+  const flags = { pins_read: false, mesh_read: false, corpus_searched: false };
+  const cites = [];
+  const reasons = [];
+  const asked = isTruthyFlag(input.read_pins) || isTruthyFlag(input.read_mesh) || isTruthyFlag(input.search_corpus);
+  if (!asked) return { attempted: false, flags, cites, reasons };
+  if (isTruthyFlag(input.read_pins)) {
+    if (typeof opts.dispatch !== "function") {
+      reasons.push("pins-unbound");
+    } else {
+      let envelope = null;
+      try {
+        envelope = await opts.dispatch({ slug: "4dmap", op: "card_list", payload: {} });
+      } catch {
+        envelope = { ok: false, code: "IF-DISPATCH-ERROR" };
+      }
+      const result = envelope && envelope.result && typeof envelope.result === "object" ? envelope.result : null;
+      const ok = !!(envelope && envelope.ok === true && envelope.code === "FG-OK" && result && result.ok !== false);
+      flags.pins_read = ok;
+      const cards = ok && Array.isArray(result.cards) ? result.cards : [];
+      const pinIds = [];
+      for (const card of cards) {
+        if (!card || typeof card !== "object") continue;
+        const id = card.card_id || card.pin_id || card.id;
+        if (typeof id === "string" && id) pinIds.push(id.slice(0, 80));
+        if (pinIds.length >= 8) break;
+      }
+      cites.push({ kind: "4dmap", source: "4dmap/card_list", pins_read: ok, count: ok ? cards.length : 0, pin_ids: ok ? pinIds : [] });
+      if (!ok) reasons.push(envelope && envelope.code ? String(envelope.code) : "pins-unread");
+    }
+  }
+  if (isTruthyFlag(input.read_mesh)) {
+    let roster = null;
+    try {
+      const read = opts.meshRead || (async (env) => {
+        const { meshNodes } = await import("./mesh.js");
+        return meshNodes({}, env || {});
+      });
+      roster = await read(opts.env || {});
+    } catch {
+      roster = null;
+    }
+    const nodes = roster && Array.isArray(roster.nodes) ? roster.nodes : null;
+    const ok = !!(roster && roster.ok !== false && nodes);
+    flags.mesh_read = ok;
+    cites.push({ kind: "mesh", source: "mesh_nodes", mesh_read: ok, count: ok ? nodes.length : 0 });
+    if (!ok) reasons.push("mesh-unread");
+  }
+  if (isTruthyFlag(input.search_corpus)) {
+    const corpus = await searchCorpusIndex(opts.fetchImpl || fetch, input.q || input.query || "");
+    flags.corpus_searched = corpus.corpus_searched;
+    cites.push({
+      kind: "corpus",
+      source: corpus.source,
+      corpus_searched: corpus.corpus_searched,
+      count: corpus.count,
+      record_ids: corpus.record_ids,
+      reason: corpus.reason,
+    });
+    if (!flags.corpus_searched) reasons.push(corpus.reason || "corpus-unsearched");
+  }
+  return { attempted: true, flags, cites, reasons };
 }
 
 async function observeLearning(opts, note) {
@@ -832,12 +1013,20 @@ export async function orchestrate(input, opts = {}) {
   let door = null;
   let executed = false;
   let output = "Seal recorded. Nothing launched.";
+  if (dispatchPlan.would && !matchingPlan(dispatchPlan.slug, dispatchPlan.op).tied) {
+    return fail(409, "IF-UNTIED-PLAN", "Seal of a live op needs a prior worker plan for that slug and op. FragGate was not called.", {
+      call: "seal",
+      tied_to_plan: false,
+      slug: dispatchPlan.slug,
+      op: dispatchPlan.op,
+    });
+  }
   if (dispatchPlan.would) {
     if (typeof opts.dispatch !== "function") {
       return fail(503, "IF-DISPATCH-UNBOUND", "Live dispatch is unbound. FragGate was not called.", { call: "seal" });
     }
     const payload = input.payload && typeof input.payload === "object" && !Array.isArray(input.payload) ? input.payload : {};
-    const envelope = await opts.dispatch({
+    const doorArgs = {
       slug: dispatchPlan.slug,
       op: dispatchPlan.op,
       payload,
@@ -845,19 +1034,29 @@ export async function orchestrate(input, opts = {}) {
       attempt_n: link.attempt_n,
       parent_receipt_id: link.parent_receipt_id,
       correlation_id: link.correlation_id,
-      outcome: link.outcome,
-    });
+    };
+    if (link.outcome_supplied) doorArgs.outcome = link.outcome;
+    let envelope = null;
+    try {
+      envelope = await opts.dispatch(doorArgs);
+    } catch {
+      envelope = { ok: false, code: "IF-DISPATCH-ERROR" };
+    }
     const code = envelope && envelope.code ? String(envelope.code) : "";
-    executed = !!(envelope && envelope.ok === true && code === "FG-OK");
+    const engineRefused = !!(envelope && envelope.result && envelope.result.ok === false);
+    executed = !!(envelope && envelope.ok === true && code === "FG-OK" && !engineRefused);
     door = {
       ran: true,
       through: "fraggate",
       slug: dispatchPlan.slug,
       op: dispatchPlan.op,
-      ok: !!(envelope && envelope.ok === true),
+      ok: !!(envelope && envelope.ok === true) && !engineRefused,
       code: code || null,
+      engine_refused: engineRefused,
     };
-    output = `Seal recorded FragGate ${dispatchPlan.slug}/${dispatchPlan.op} as ${code || "no-code"}.`;
+    output = engineRefused
+      ? `Seal recorded FragGate ${dispatchPlan.slug}/${dispatchPlan.op} as an engine refuse. The body was not copied.`
+      : `Seal recorded FragGate ${dispatchPlan.slug}/${dispatchPlan.op} as ${code || "no-code"}.`;
   } else if (slug === "veillock") {
     output = "Seal recorded for a local-only plan. Nothing launched.";
     door = { ran: false, through: null, slug, op, ok: false, code: "IF-LOCAL-ONLY" };
@@ -866,8 +1065,10 @@ export async function orchestrate(input, opts = {}) {
     door = { ran: false, through: null, slug, op, ok: false, code: "IF-NOT-DISPATCHED" };
   }
 
+  link.outcome = reconcileSealOutcome(link, door);
+  const actionFailed = !!(door && door.ran && !executed);
   const body = closed({
-    ok: true,
+    ok: !actionFailed,
     call: "seal",
     executed,
     action_ok: executed,
@@ -875,7 +1076,12 @@ export async function orchestrate(input, opts = {}) {
     slug: slug,
     op: op,
     door,
-    note: executed ? "FragGate returned FG-OK. The receipt output names that code." : "Seal stored the attempt. A local desk command did not run.",
+    tied_to_plan: dispatchPlan.would === true,
+    note: executed
+      ? "FragGate returned FG-OK. The receipt output names that code."
+      : actionFailed
+        ? "FragGate did not return FG-OK. The receipt outcome is failed. A local desk command did not run."
+        : "Seal stored the attempt. A local desk command did not run.",
   });
   const requestSentence = slug
     ? `Operator sealed interface action ${slug}${op ? "/" + op : ""}.`

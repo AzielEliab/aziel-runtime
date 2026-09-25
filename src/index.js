@@ -397,11 +397,11 @@ const PRODUCTS_RAW = [
     worker: "vibelock-download-tracker",
     github: "https://github.com/AzielEliab/vibelock",
     ops: [
-      { op: "analyze", method: "POST", summary: "Advisory AI deepfake risk on posted features or limited PCM. Physics, linguistics, and vibration design; mp4 and mp3 container decode stays on the local package. No accuracy number." },
-      { op: "detect", method: "POST", summary: "Alias of analyze. Advisory score on the signal channels that ran. No accuracy number." },
+      { op: "analyze", method: "POST", summary: "Advisory AI deepfake risk on posted features or limited PCM. Physics and related signals are heuristic. Linguistics is experimental. Vibration is a measurement only with a body-coupled track. Raw container bytes are refused. Local compressed files need ffmpeg. No accuracy percentage." },
+      { op: "detect", method: "POST", summary: "Alias of analyze. Advisory score on the signal channels that ran. Raw container bytes are refused. No accuracy percentage." },
       { op: "doctor", method: "GET", summary: "UI alias of health. Same FragGate backend as the Worker UI button." },
     ],
-    example: { summary: "posted features or limited PCM; mp4 and mp3 container decode stays on the local package; no accuracy number" },
+    example: { summary: "posted features or limited PCM; raw containers refused; local compressed files need ffmpeg; no accuracy percentage" },
     banner: null,
   },
   {

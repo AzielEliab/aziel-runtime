@@ -223,8 +223,8 @@ export const HUMAN_TASKS = Object.freeze([
 export const HUMAN_UI_CSS = `
   .skip-workspace{position:absolute;left:-999px;top:auto;width:1px;height:1px;overflow:hidden}
   .skip-workspace:focus{position:static;width:auto;height:auto;padding:.35rem .7rem;background:#241c0d;color:#f0d78c}
-  .domain-tabs{display:flex;flex-wrap:wrap;gap:.4rem;margin:0 0 .65rem;padding:.55rem .7rem;border:1px solid #3d3420;border-radius:10px;background:#16120a}
-  .domain-tabs button{background:#241c0d;color:#f0d78c;border:1px solid #5c4a1a;border-radius:8px;padding:.4rem .75rem;cursor:pointer;font:inherit;font-size:.85rem;font-weight:600}
+  .domain-tabs{display:flex;flex-wrap:nowrap;overflow-x:auto;gap:.4rem;margin:0 0 .65rem;padding:.55rem .7rem;border:1px solid #3d3420;border-radius:10px;background:#16120a}
+  .domain-tabs button{background:#241c0d;color:#f0d78c;border:1px solid #5c4a1a;border-radius:8px;padding:.4rem .75rem;cursor:pointer;font:inherit;font-size:.85rem;font-weight:600;white-space:nowrap}
   .domain-tabs button:hover,.domain-tabs button:focus{background:#33280f}
   .domain-tabs button[aria-selected="true"]{background:#33280f;box-shadow:0 0 0 1px #d4af37}
   .dash-card.domain-off{display:none}
@@ -393,7 +393,7 @@ function aiPeerDeskHtml(p, origin) {
     "desk-azai",
     "learner",
     `<h4><a href="${escapeHtml(base)}/p/azai">AZAI</a> <span class="slug">learner</span></h4>
-  <p class="blurb">Learner and guide. Guide runs Lamb Lens first (Service, then Clarity, then Peace), then the public shelf and the Library tab, then any other source. The suite triad scores every candidate from those layers the same way. A shelf hit is not believed. Nothing is believed by default. It does not write memory and does not invent a Softwares row. Learn still stores cited notes for a domain, paper, software slug, receipt hash, pin id, or a VibeLock signal channel. VibeLock deepfake notes cite the Softwares contract for mp4, mp3, and other audio and video (physics, linguistics, vibrations, and related signals). A file name does not decode the file. Scores appear only from posted features or an analysis you supply. No accuracy number is stored. 4DMap is not queried. The live mesh roster is not read. A memory write needs the confirm box. Belief is not truth.</p>
+  <p class="blurb">Learner and guide. Guide runs Lamb Lens first (Service, then Clarity, then Peace), then the public shelf and the Library tab, then any other source. The suite triad scores every candidate from those layers the same way. A shelf hit is not believed. Nothing is believed by default. It does not write memory and does not invent a Softwares row. Learn still stores cited notes. VibeLock notes keep physics and related signals heuristic, linguistics experimental, and vibration as a measurement only with a body-coupled track. A file name does not decode the file. Raw container bytes are refused. Scores appear only from posted features or an analysis you supply. No accuracy percentage is stored. A live 4DMap read, mesh roster read, or corpus search on Learn runs only when that pull is asked for, and the flag is true only after the read returns. Pin bodies, roster rows, and corpus hit text stay out of the receipt sentence. A memory write needs the confirm box and an operator subject. Belief is not truth.</p>
   <div class="field">
     <label for="ai-guide">Guide question</label>
     <input id="ai-guide" type="text" placeholder="Where do I click to run a card?" autocomplete="off" spellcheck="false">
@@ -694,7 +694,7 @@ ${dashCards}
         </div>
       </div>
       <div class="op-row">
-        <p class="hint" style="margin:0">Seal needs the confirm box. An empty slug seals veillock locally and does not launch. A live slug and op still go through FragGate.</p>
+        <p class="hint" style="margin:0">Seal needs the confirm box. An empty slug seals veillock locally and does not launch. A live slug and op still go through FragGate. Passphrase fields are refused and are not a room-join form.</p>
         <div class="desk-fields">
           <div class="field">
             <label for="if-slug">Door slug (seal dispatch only)</label>
@@ -831,7 +831,8 @@ export function humanNavHtml(origin, { current } = {}) {
   const home = `${base}/`;
   const tabs = UI_DOMAINS.map((domain) => {
     const on = domain.id === UI_DOMAIN_DEFAULT;
-    return `<button type="button" role="tab" id="domain-tab-${escapeHtml(domain.id)}" data-domain-tab="${escapeHtml(domain.id)}" aria-selected="${on ? "true" : "false"}" aria-controls="dash-softwares">${escapeHtml(domain.label)}</button>`;
+    const controls = "dash-softwares";
+    return `<button type="button" role="tab" id="domain-tab-${escapeHtml(domain.id)}" data-domain-tab="${escapeHtml(domain.id)}" aria-selected="${on ? "true" : "false"}" aria-controls="${controls}">${escapeHtml(domain.label)}</button>`;
   }).join("\n    ");
   return `<a class="skip-workspace" href="${current === "workspace" ? "#workspace" : "#workspace"}">Skip to workspace</a>
 <div class="domain-tabs" role="tablist" aria-label="Software domains">
@@ -1493,7 +1494,7 @@ export function humanDoorScript() {
     document.querySelectorAll("[data-dash-slug]").forEach(function (el) {
       let hay = String(el.getAttribute("data-search") || el.textContent || "").toLowerCase();
       let searchMiss = !!(q && hay.indexOf(q) === -1);
-      let domainMiss = !q && el.getAttribute("data-domain") !== activeDomain;
+      let domainMiss = el.getAttribute("data-domain") !== activeDomain;
       el.classList.toggle("task-hidden", searchMiss);
       el.classList.toggle("domain-off", domainMiss);
     });

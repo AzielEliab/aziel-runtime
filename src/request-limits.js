@@ -50,7 +50,8 @@ export function requestLimitKind(pathname, method) {
     if (path === "/v1/fraggate/call" && m === "POST") return "fraggate_call";
     return "fraggate_read";
   }
-  if (path === "/v1/interface" && m === "POST") return "fraggate_read";
+  // Seal on this path can dispatch a live FragGate op. Bill it as a call, not a read.
+  if (path === "/v1/interface" && m === "POST") return "fraggate_call";
   if (
     m === "POST" &&
     (path === "/v1/mesh/join" ||

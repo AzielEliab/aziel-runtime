@@ -31,7 +31,7 @@ export function vibelockHealth() {
 export function vibelockSkill() {
   return capabilitySkill({
     ...envelope(),
-    lead: "Designed to assess AI deepfake risk in mp4, mp3, and other audio and video using physics, linguistics, vibrations, and related signals. Hosted analyze and detect score posted features or limited PCM and cite the channels that ran. Container decode stays on the local package. No accuracy number.",
+    lead: "Designed to assess AI deepfake risk in audio and video. Physics and related signals are heuristic. Linguistics is experimental. Vibration is a measurement only with a body-coupled track. Hosted analyze and detect score posted features or limited PCM and refuse raw container bytes. Compressed files on the local package need ffmpeg. No accuracy percentage.",
   });
 }
 

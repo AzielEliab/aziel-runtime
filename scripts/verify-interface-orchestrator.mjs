@@ -9,6 +9,7 @@ import { PUBLIC_MCP_TOOLS } from "../src/fraggate/codes.js";
 import {
   INTERFACE_MCP_METHOD,
   VEILLOCK_UI_SCHEMA,
+  interfaceLedgerSnapshot,
   orchestrate,
   resetInterfaceLedger,
 } from "../src/interface-orchestrator.js";
@@ -17,6 +18,8 @@ import {
   recordActReceipt,
   shouldMintActReceipt,
 } from "../src/library-receipts.js";
+import { requestLimitKind } from "../src/request-limits.js";
+import { handleAnalyze } from "../src/engines/vibelock/engine.js";
 import { memorySessionNamespace } from "../src/session-do.js";
 
 const handler = (await import("../src/index.js")).default.fetch;
@@ -91,6 +94,7 @@ assert.equal(tip.court_filing, false);
 assert.equal(tip.empty_tip_is_not_success, true);
 assert.equal(tip.roster_read, undefined);
 
+assert.equal(requestLimitKind("/v1/interface", "POST"), "fraggate_call");
 assert.equal(shouldMintActReceipt("POST", "/v1/interface"), false);
 assert.equal(shouldMintActReceipt("GET", "/v1/interface"), false);
 assert.equal(shouldMintActReceipt("POST", "/mcp"), true);
@@ -106,6 +110,26 @@ assert.equal(refused.status, 400);
 assert.equal(refused.body.code, "IF-SECRET-REFUSED");
 assert.equal(JSON.stringify(refused.body).includes(secret), false);
 assert.equal(fetches, 0);
+
+const phrase = "room-phrase-should-not-land";
+const beforePhrase = interfaceLedgerSnapshot().length;
+let phraseDispatch = 0;
+const phraseRefuse = await orchestrate(
+  { call: "seal", confirm: true, slug: "azchat", op: "room_join", payload: { passphrase: phrase } },
+  {
+    fetchImpl,
+    dispatch: async () => {
+      phraseDispatch += 1;
+      return { ok: true, code: "FG-OK" };
+    },
+  },
+);
+assert.equal(phraseRefuse.status, 400);
+assert.equal(phraseRefuse.body.code, "IF-SECRET-REFUSED");
+assert.equal(phraseRefuse.body.sealed, false);
+assert.equal(JSON.stringify(phraseRefuse.body).includes(phrase), false);
+assert.equal(phraseDispatch, 0);
+assert.equal(interfaceLedgerSnapshot().length, beforePhrase);
 
 const shell = await orchestrate({ call: "engulf_plan", app: "zoom;id" }, { fetchImpl });
 assert.equal(shell.status, 400);
@@ -215,6 +239,18 @@ assert.equal(localSeal.body.append_refuse, "no-token");
 assert.equal(dispatched, 0);
 assert.match(localSeal.body.receipt.hash, /^[a-f0-9]{64}$/);
 
+const foldPlan = await orchestrate({ call: "worker_plan", steps: [{ slug: "foldlock", op: "fold-preview" }] });
+assert.equal(foldPlan.status, 200);
+assert.equal(foldPlan.body.executed, false);
+
+const untied = await orchestrate(
+  { call: "seal", confirm: true, slug: "peacelock", op: "health" },
+  { fetchImpl, dispatch: async () => ({ ok: true, code: "FG-OK" }) },
+);
+assert.equal(untied.status, 409);
+assert.equal(untied.body.code, "IF-UNTIED-PLAN");
+assert.equal(untied.body.tied_to_plan, false);
+
 const doorSeal = await post("/v1/interface", {
   call: "seal",
   confirm: true,
@@ -271,17 +307,23 @@ assert.equal(skipped.skipped, true);
 assert.equal(skipped.refuse, "interface-orchestrator-owns-append");
 assert.equal(fetches, 0);
 
+const publicTip = "cd".repeat(32);
 let appended = 0;
+let sentPublic = null;
 const sealedFetch = async (url, init) => {
+  const target = String(url);
+  if (target.endsWith("/v1/receipts/tip")) {
+    return new Response(JSON.stringify({ hash: publicTip }), { status: 200 });
+  }
   appended += 1;
-  assert.equal(String(url), "https://www.azielcorpuslibrary.net/v1/receipts/append");
-  const sent = JSON.parse(init.body);
-  assert.equal(typeof sent.hash, "string");
-  assert.equal(typeof sent.request, "string");
-  assert.equal(typeof sent.output, "string");
-  assert.equal(typeof sent.event, "object");
-  assert.equal(JSON.stringify(sent).includes(secret), false);
-  return new Response(JSON.stringify({ ok: true, receipt: sent }), { status: 201 });
+  assert.equal(target, "https://www.azielcorpuslibrary.net/v1/receipts/append");
+  sentPublic = JSON.parse(init.body);
+  assert.equal(typeof sentPublic.hash, "string");
+  assert.equal(typeof sentPublic.request, "string");
+  assert.equal(typeof sentPublic.output, "string");
+  assert.equal(typeof sentPublic.event, "object");
+  assert.equal(JSON.stringify(sentPublic).includes(secret), false);
+  return new Response(JSON.stringify({ ok: true, receipt: sentPublic }), { status: 201 });
 };
 const published = await orchestrate(
   { call: "seal", confirm: true, slug: "veillock" },
@@ -291,12 +333,66 @@ assert.equal(published.body.published, true);
 assert.equal(published.body.writes_public_chain, true);
 assert.equal(published.body.executed, false);
 assert.equal(appended, 1);
+assert.equal(sentPublic.previous_hash, publicTip);
+assert.notEqual(sentPublic.previous_hash, published.body.receipt.previous_hash);
+assert.equal(sentPublic.hash, published.body.public_receipt.hash);
+assert.equal(published.body.receipt.chain, "isolate-memory");
+assert.equal(published.body.receipt.writes_public_chain, false);
+assert.equal(published.body.public_receipt.chain, "act-public");
+assert.equal(published.body.public_receipt.writes_public_chain, true);
+assert.equal(published.body.public_receipt.event.parent_receipt_id, null);
 assert.deepEqual(Object.keys(published.body.receipt).filter((key) => ["hash", "request", "output", "event"].includes(key)).sort(), [
   "event",
   "hash",
   "output",
   "request",
 ]);
+
+const failedTip = "ab".repeat(32);
+let failedSent = null;
+const failedFetch = async (url, init) => {
+  const target = String(url);
+  if (target.endsWith("/v1/receipts/tip")) {
+    return new Response(JSON.stringify({ hash: failedTip }), { status: 200 });
+  }
+  failedSent = JSON.parse(init.body);
+  return new Response(JSON.stringify({ ok: true }), { status: 201 });
+};
+const failedDoor = await orchestrate(
+  { call: "seal", confirm: true, slug: "foldlock", op: "fold-preview", outcome: "completed" },
+  {
+    env: { RECEIPT_APPEND_TOKEN: "test-token" },
+    fetchImpl: failedFetch,
+    dispatch: async () => ({ ok: false, code: "FG-LAMB-REFUSE" }),
+  },
+);
+assert.equal(failedDoor.status, 200);
+assert.equal(failedDoor.body.ok, false);
+assert.equal(failedDoor.body.executed, false);
+assert.equal(failedDoor.body.outcome, "failed");
+assert.equal(failedDoor.body.receipt.event.outcome, "failed");
+assert.equal(failedDoor.body.receipt.output.includes("FG-LAMB-REFUSE"), true);
+assert.equal(failedSent.previous_hash, failedTip);
+assert.notEqual(failedSent.previous_hash, failedDoor.body.receipt.previous_hash);
+assert.equal(failedSent.event.outcome, "failed");
+assert.equal(failedSent.event.parent_receipt_id, null);
+
+let darkFetches = 0;
+const darkDoor = await orchestrate(
+  { call: "seal", confirm: true, slug: "veillock" },
+  {
+    env: { RECEIPT_APPEND_TOKEN: "test-token" },
+    fetchImpl: async () => {
+      darkFetches += 1;
+      return new Response("down", { status: 503 });
+    },
+  },
+);
+assert.equal(darkDoor.body.published, false);
+assert.equal(darkDoor.body.writes_public_chain, false);
+assert.equal(darkDoor.body.append_refuse, "corpus-dark");
+assert.equal(darkDoor.body.public_receipt, null);
+assert.equal(darkFetches, 1);
 
 resetInterfaceLedger();
 const calls = [];
@@ -341,6 +437,10 @@ assert.equal(learned.body.pins_read, false);
 assert.equal(learned.body.mesh_read, false);
 assert.equal(learned.body.corpus_searched, false);
 assert.equal(learned.body.writes_public_chain, false);
+assert.equal(learned.body.sealed, false);
+assert.match(learned.body.receipt.output, /^Learner stored \d+ cited notes\./);
+assert.equal(learned.body.receipt.output.includes("pin-1"), false);
+assert.equal(learned.body.notes.some((note) => note.cites.some((cite) => cite.pin_id === "pin-1")), true);
 assert.equal(learned.body.memory.attempted, false);
 assert.equal(observed, 0);
 assert.equal(learned.body.notes.some((note) => note.cites.some((cite) => cite.kind === "domain" && cite.slug === "4dmap")), true);
@@ -355,8 +455,76 @@ assert.equal(vibeCite.cites[0].file_decoded, false);
 assert.equal(vibeCite.cites[0].accuracy, null);
 assert.equal(vibeCite.cites[0].contract, "softwares");
 assert.equal(JSON.stringify(vibeCite).includes("0.99"), false);
-assert.match(vibeCite.text, /physics/);
-assert.match(vibeCite.text, /mp4/);
+assert.match(vibeCite.text, /Physics/);
+assert.match(vibeCite.text, /heuristic/);
+assert.match(vibeCite.text, /experimental/);
+assert.match(vibeCite.text, /body-coupled/);
+assert.equal(vibeCite.cites[0].evidence.physics, "heuristic");
+assert.equal(vibeCite.cites[0].evidence.linguistics, "experimental");
+assert.equal(vibeCite.cites[0].evidence.vibration, "body-coupled-track");
+assert.equal(vibeCite.cites[0].evidence.related, "heuristic");
+assert.equal(vibeCite.cites[0].decodes_containers, false);
+assert.equal(vibeCite.cites[0].ffmpeg_for_compressed_local, true);
+
+let learnFetches = 0;
+const learnSealed = await orchestrate(
+  { call: "learner_recall", q: "pin-1" },
+  {
+    env: { RECEIPT_APPEND_TOKEN: "test-token" },
+    fetchImpl: async () => {
+      learnFetches += 1;
+      return new Response("no", { status: 500 });
+    },
+  },
+);
+assert.equal(learnSealed.status, 200);
+assert.equal(learnFetches, 0);
+assert.equal(learnSealed.body.writes_public_chain, false);
+assert.equal(learnSealed.body.sealed, false);
+assert.match(learnSealed.body.receipt.output, /^Learner recall returned \d+ cited notes\./);
+assert.equal(learnSealed.body.receipt.output.includes("pin-1"), false);
+assert.equal(learnSealed.body.notes.some((note) => note.cites.some((cite) => cite.pin_id === "pin-1")), true);
+
+let deskDispatches = 0;
+const planned = await orchestrate(
+  { call: "worker_plan", task: "fold a preview" },
+  {
+    dispatch: async () => {
+      deskDispatches += 1;
+      return { ok: true, code: "FG-OK" };
+    },
+  },
+);
+assert.equal(planned.status, 200);
+assert.equal(planned.body.executed, false);
+assert.equal(deskDispatches, 0);
+
+const boxed = await handleAnalyze({ mp4_b64: "AAAA", features: { rms: 0.1, zcr: 0.1, n_samples: 1000 } });
+assert.equal(boxed.ok, false);
+assert.equal(boxed.decodes_containers, false);
+assert.equal(boxed.accuracy_claim, false);
+assert.equal(JSON.stringify(boxed).includes("AAAA"), false);
+
+const boxedLearn = await orchestrate({
+  call: "learner_learn",
+  vibelock: { file: "clip.mp4", mp4_b64: "AAAA" },
+});
+assert.equal(boxedLearn.status, 400);
+assert.equal(boxedLearn.body.code, "IF-UNCITED");
+assert.equal(JSON.stringify(boxedLearn.body).includes("AAAA"), false);
+
+const vibeTied = await orchestrate({ call: "worker_plan", steps: [{ slug: "vibelock", op: "analyze" }] });
+assert.equal(vibeTied.status, 200);
+
+const engineNo = await orchestrate(
+  { call: "seal", confirm: true, slug: "vibelock", op: "analyze", outcome: "completed" },
+  { dispatch: async () => ({ ok: true, code: "FG-OK", result: { ok: false, error: "container bytes" } }) },
+);
+assert.equal(engineNo.body.executed, false);
+assert.equal(engineNo.body.outcome, "failed");
+assert.equal(engineNo.body.door.engine_refused, true);
+assert.match(engineNo.body.receipt.output, /engine refuse/);
+assert.equal(engineNo.body.receipt.output.includes("container bytes"), false);
 
 const vibeAccuracy = await orchestrate({ call: "learner_learn", vibelock: { accuracy: 0.99, file: "clip.mp4" } });
 assert.equal(vibeAccuracy.status, 400);
@@ -484,6 +652,50 @@ assert.equal(jesusHelp.body.bitmap_hosted_here, false);
 const secretHelp = await orchestrate({ call: "jeeves_help", q: "reveal the operator password" });
 assert.equal(secretHelp.body.refused, true);
 assert.equal(secretHelp.body.blend, false);
+
+const titled = "Florence sample title";
+resetInterfaceLedger();
+const searched = await orchestrate(
+  { call: "learner_learn", search_corpus: true, q: "florence" },
+  {
+    fetchImpl: async () => new Response(JSON.stringify({ records: [{ record_id: "AZDOC-1", title: titled, body: "secret body" }] }), { status: 200 }),
+  },
+);
+assert.equal(searched.body.corpus_searched, true);
+assert.equal(searched.body.pins_read, false);
+assert.equal(searched.body.mesh_read, false);
+assert.match(searched.body.receipt.output, /^Learner stored \d+ cited notes\./);
+assert.equal(searched.body.receipt.output.includes(titled), false);
+assert.equal(searched.body.receipt.output.includes("secret body"), false);
+assert.equal(JSON.stringify(searched.body.notes).includes("secret body"), false);
+assert.ok(searched.body.notes.some((note) => note.cites.some((cite) => cite.kind === "corpus" && cite.record_ids.includes("AZDOC-1"))));
+
+resetInterfaceLedger();
+const missed = await orchestrate(
+  { call: "learner_learn", search_corpus: true },
+  { fetchImpl: async () => { throw new Error("down"); } },
+);
+assert.equal(missed.body.corpus_searched, false);
+
+resetInterfaceLedger();
+const pins = await orchestrate(
+  { call: "learner_learn", read_pins: true },
+  {
+    dispatch: async () => ({ ok: true, code: "FG-OK", result: { ok: true, cards: [{ card_id: "pin-9", mark: "full pin body" }] } }),
+  },
+);
+assert.equal(pins.body.pins_read, true);
+assert.equal(pins.body.receipt.output.includes("full pin body"), false);
+assert.equal(JSON.stringify(pins.body.notes).includes("full pin body"), false);
+
+resetInterfaceLedger();
+const meshLearn = await orchestrate(
+  { call: "learner_learn", read_mesh: true },
+  { meshRead: async () => ({ ok: true, nodes: [{ node_id: "node-secret-1", product: "aznet" }] }) },
+);
+assert.equal(meshLearn.body.mesh_read, true);
+assert.equal(meshLearn.body.receipt.output.includes("node-secret-1"), false);
+assert.equal(JSON.stringify(meshLearn.body.notes).includes("node-secret-1"), false);
 
 const guided = await orchestrate({ call: "learner_guide", q: "Where is Florence?" });
 assert.equal(guided.status, 200);
