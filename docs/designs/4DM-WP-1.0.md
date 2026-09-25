@@ -123,4 +123,4 @@ Product 0.3.0 public door ops run in-process. Library pin, plot, possibility, pa
 
 Eliab, Aziel. (2026). 4DM-WP-1.0 [Design]. https://github.com/AzielEliab/aziel-runtime/blob/main/docs/designs/4DM-WP-1.0.md
 
-Eliab, Aziel. (2026). 4DMap 0.2.0 [Software]. Apache-2.0. https://github.com/AzielEliab/4dmap
+Eliab, Aziel. (2026). 4DMap 0.3.0 [Software]. Apache-2.0. https://github.com/AzielEliab/4dmap
