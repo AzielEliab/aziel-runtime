@@ -393,12 +393,13 @@ function aiPeerDeskHtml(p, origin) {
     "desk-azai",
     "learner",
     `<h4><a href="${escapeHtml(base)}/p/azai">AZAI</a> <span class="slug">learner</span></h4>
-  <p class="blurb">Learner and guide. Guide runs Lamb Lens first (Service, then Clarity, then Peace), then the public shelf and the Library tab, then any other source. The suite triad scores every candidate from those layers the same way. A shelf hit is not believed. Nothing is believed by default. It does not write memory and does not invent a Softwares row. Learn still stores cited notes. VibeLock notes keep physics and related signals heuristic, linguistics experimental, and vibration as a measurement only with a body-coupled track. A file name does not decode the file. Raw container bytes are refused. Scores appear only from posted features or an analysis you supply. No accuracy percentage is stored. A live 4DMap read, mesh roster read, or corpus search on Learn runs only when that pull is asked for, and the flag is true only after the read returns. Pin bodies, roster rows, and corpus hit text stay out of the receipt sentence. A memory write needs the confirm box and an operator subject. Belief is not truth.</p>
+  <p class="blurb">Learner and guide. Guide runs Lamb Lens first (Service, then Clarity, then Peace), then the public shelf and the Library tab, then any other source. The suite triad scores every candidate from those layers the same way. A shelf hit is not believed. Nothing is believed by default. It does not write memory and does not invent a Softwares row. Adaptive counts are topic and hash totals, not the question, and a suggested path is not believed. Learn still stores cited notes. VibeLock notes keep physics and related signals heuristic, linguistics experimental, and vibration as a measurement only with a body-coupled track. A file name does not decode the file. Raw container bytes are refused. Scores appear only from posted features or an analysis you supply. No accuracy percentage is stored. A live 4DMap read, mesh roster read, or corpus search on Learn runs only when that pull is asked for, and the flag is true only after the read returns. Pin bodies, roster rows, and corpus hit text stay out of the receipt sentence. A memory write needs the confirm box and an operator subject. Belief is not truth.</p>
   <div class="field">
     <label for="ai-guide">Guide question</label>
     <input id="ai-guide" type="text" placeholder="Where do I click to run a card?" autocomplete="off" spellcheck="false">
   </div>
   <label for="ai-guide-dry"><input id="ai-guide-dry" type="checkbox"> dry_run guide (store nothing)</label>
+  <label for="ai-guide-adapt"><input id="ai-guide-adapt" type="checkbox"> confirm adaptive count (topic counts only, not the question)</label>
   <div class="actions">
     <button type="button" data-ai="guide">Guide</button>
     <button type="button" data-ai="starter" data-q="Where is Florence?">Library: Florence</button>
@@ -1565,8 +1566,10 @@ export function humanDoorScript() {
         if (action === "guide" || action === "starter") {
           let guideQ = action === "starter" ? (btn.getAttribute("data-q") || "") : ((document.getElementById("ai-guide") && document.getElementById("ai-guide").value) || "");
           let dry = document.getElementById("ai-guide-dry");
+          let adapt = document.getElementById("ai-guide-adapt");
           let guideBody = { call: "learner_guide", q: guideQ };
           if (dry && dry.checked) guideBody.dry_run = true;
+          if (adapt && adapt.checked && !(dry && dry.checked)) guideBody.confirm = true;
           request(origin + "/v1/interface", {
             method: "POST",
             headers: { "content-type": "application/json", accept: "application/json" },

@@ -220,6 +220,7 @@ ${jeevesHelpHtml(origin)}
   var miss = document.getElementById("jeeves-egg-miss");
   var field = document.getElementById("jeeves-q");
   var dry = document.getElementById("jeeves-dry");
+  var adapt = document.getElementById("jeeves-adapt");
   var previous = "";
   var snake = null;
   function paint(body) {
@@ -270,6 +271,7 @@ ${jeevesHelpHtml(origin)}
     }
     var body = { call: "jeeves_help", q: text, previous: previous };
     if (dry && dry.checked) body.dry_run = true;
+    if (adapt && adapt.checked && !(dry && dry.checked)) body.confirm = true;
     if (snake && /^(up|down|left|right|u|d|l|r|quit|exit|stop|end)$/i.test(text)) body.snake = snake;
     out.textContent = "Asking Jeeves…";
     fetch(origin + "/v1/interface", {
@@ -308,7 +310,7 @@ function jeevesHelpHtml(origin) {
   ).join("\n");
   return `<section class="dash" id="desk-jeeves" data-origin="${escapeHtml(base)}" data-library="${escapeHtml(LIVE_LIBRARY_ORIGIN)}">
   <h2>Ask Jeeves <span class="hashtag">#ask-jeeves</span></h2>
-  <p>Suite help for this build (<strong>${escapeHtml(RUNTIME_VERSION)}</strong>). Lamb Lens runs first (Service, then Clarity, then Peace). The public shelf and the Library tab are next. Other sources come after that. The suite triad scores every candidate from those layers the same way. A shelf hit is not believed. Nothing is believed by default. Corpus op <code>jeeves</code> on <code>aziel-corpus</code> is the shelf. Ask Jeeves stays suite help, <code>software_tab</code> false, not a Softwares card. If the shelf has no row, the reply says so. Last-known easter-egg files: ${JEEVES_PUBLIC_FILE_COUNT} under the corpus Worker public directory. This page does not host the bitmaps. Easter-egg phrases are the published corpus map.</p>
+  <p>Suite help for this build (<strong>${escapeHtml(RUNTIME_VERSION)}</strong>). Lamb Lens runs first (Service, then Clarity, then Peace). The public shelf and the Library tab are next. Other sources come after that. The suite triad scores every candidate from those layers the same way. A shelf hit is not believed. Nothing is believed by default. Corpus op <code>jeeves</code> on <code>aziel-corpus</code> is the shelf. Ask Jeeves stays suite help, <code>software_tab</code> false, not a Softwares card. If the shelf has no row, the reply says so. Last-known easter-egg files: ${JEEVES_PUBLIC_FILE_COUNT} under the corpus Worker public directory. This page does not host the bitmaps. Easter-egg phrases are the published corpus map. A confirmed adaptive count stores topic and hash totals only, and a suggested path is not believed.</p>
   <div class="actions">
 ${starters}
   </div>
@@ -317,6 +319,7 @@ ${starters}
     <input id="jeeves-q" type="text" placeholder="Where do I click?" autocomplete="off" spellcheck="false">
   </div>
   <label><input id="jeeves-dry" type="checkbox"> dry_run (store nothing)</label>
+  <label><input id="jeeves-adapt" type="checkbox"> confirm adaptive count (stores topic counts only, not the question)</label>
   <div class="actions">
     <button type="button" data-jeeves="ask">Ask</button>
     <button type="button" data-jeeves="eggs">List easter eggs</button>
@@ -324,7 +327,7 @@ ${starters}
   <img id="jeeves-egg" alt="" hidden>
   <p id="jeeves-egg-miss" class="secondary"></p>
   <ul id="jeeves-next"></ul>
-  <pre class="fg-out" id="jeeves-out" role="status" aria-live="polite">Ask a question. Lamb Lens runs first, then the shelf, then the triad. Nothing is believed by default. Suggested questions are above.</pre>
+  <pre class="fg-out" id="jeeves-out" role="status" aria-live="polite">Ask a question. Lamb Lens runs first, then the shelf, then the triad. Nothing is believed by default. Confirm adaptive count stores topic totals only. Suggested questions are above.</pre>
 </section>`;
 }
 

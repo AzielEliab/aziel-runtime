@@ -14,6 +14,7 @@ import { route } from "./engines/azbot/engine.js";
 import { handleAnalyze } from "./engines/vibelock/engine.js";
 import { LIVE_OPS } from "./fraggate/registry.js";
 import { reasonGuide } from "./guide-reason.js";
+import { applyAdaptive } from "./jeeves-adapt.js";
 import { SUITE_DESIGNS } from "./seo.js";
 import { sha256Hex } from "./session-core.js";
 import { UI_DOMAINS, uiDomainForSlug } from "./ui-domains.js";
@@ -525,7 +526,7 @@ export async function guideAzai(input, env) {
   const raw = src.q != null ? src.q : src.question != null ? src.question : src.query != null ? src.query : src.task;
   const q = clip(raw, 2000);
   if (!q) return refuse(400, "IF-BAD-INPUT", "question required (q / query / question)");
-  const reasoned = await reasonGuide(q, env, { assistant: "AZAI" });
+  const reasoned = await applyAdaptive(await reasonGuide(q, env, { assistant: "AZAI" }), input, env, "azai");
   return {
     ok: true,
     body: learnerBody(LEARNER_GUIDE_CALL, {
