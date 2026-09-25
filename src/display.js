@@ -530,6 +530,15 @@ export function fieldsFromResult(result) {
 
 export function summaryFromResult(result, fallbackText, product) {
   if (result && typeof result === "object") {
+    if (result.background === true) {
+      const hash = result.receipt && result.receipt.hash;
+      const honest = typeof hash === "string" && /^[a-f0-9]{64}$/.test(hash) && !/^0{64}$/.test(hash);
+      if (result.done === true && honest) return "Done. Receipt is ready.";
+      if (result.status === "refused" || result.code === "job_not_found" || result.status === "quiet") {
+        return result.message || result.summary || "Refused. No completion receipt.";
+      }
+      return "Running. No completion receipt yet.";
+    }
     if (typeof result.summary === "string" && result.summary.trim()) return clip(result.summary, 360);
     if (typeof result.note === "string" && result.note.trim()) return clip(result.note, 360);
     if (typeof result.limitation === "string" && result.limitation.trim()) return clip(result.limitation, 360);
@@ -601,9 +610,12 @@ export function wrapToolOutput({ name, text, status, product, op, extra }) {
   const title = product
     ? productVerbTitle(product, op)
     : titleFromToolName(name);
-  const next = product
-    ? `Show this ${product.name} output to the user, then take the next input.`
-    : "Show this output to the user, then take the next input.";
+  const running = parsed && parsed.background === true && parsed.done !== true;
+  const next = running
+    ? "Still running. Ask again with the same job_id. Done only when a receipt hash is present."
+    : product
+      ? `Show this ${product.name} output to the user, then take the next input.`
+      : "Show this output to the user, then take the next input.";
   return displayEnvelope({
     title: status >= 400 ? `${title} (error)` : title,
     summary: summaryFromResult(parsed, text, product),

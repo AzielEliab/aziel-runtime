@@ -106,14 +106,14 @@ Practical pull + call (do not invent steps for every crawler):
 - **Venice** — custom HTTP tools / OpenAPI → same OpenAPI URL
 - **Claude Desktop** — MCP stdio \`node cli/mcp-stdio.mjs\` (see docs/GLAMA.md) or remote \`POST ${host}/mcp\`
 - **Cursor (MCP)** — same stdio config or remote \`POST ${host}/mcp\`
-- **Any installer / agent** — \`GET ${host}/v1/skill\` or \`GET ${host}/v1/software\`, then \`fraggate_list\` → \`fraggate_describe\` → \`fraggate_call\`. Session tools and \`runtime_run\` are advanced/internal. \`/p/{slug}/{op}\` is proxy only.
+- **Any installer / agent** — \`GET ${host}/v1/skill\` or \`GET ${host}/v1/software\`, then call the Softwares tool. The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. Diagnostics: \`fraggate_list\` → \`fraggate_describe\` → \`fraggate_call\`. Session tools and \`runtime_run\` are advanced/internal. \`/p/{slug}/{op}\` is proxy only.
 - **Download** — \`GET ${host}/v1/update/check?slug=&version=\` then fetch \`download_url\` (counted Worker \`/download\`), or \`GET ${host}/v1/pull/{slug}\`. Mesh-resident **azcorpus** + **azlibrary** website designs download from catalog \`website_designs\` (open for all AI clients).
 - **Upload / ingest / receipt** — \`fraggate_call\` (azbrowser \`airlock_ingest\`, peacelock \`upload_envelope\`, forgereceipts \`verify\`, miragegrid \`verify-receipt\` / \`bridge\` / \`shuffle\`). Same ops on OpenAPI as proxy paths. **azlibrary upload** is API token only — never embed the secret.
 - **Cap-7 names** — \`GET ${host}/v1/mesh/az-generator\` or MirageGrid \`bridge\`. .az duplication + shift. Standard internet does not reach Cap-7. AZ domains resolve via hub HTTPS. \`resolves_to_hub: false\` on Cap-7. Three of seven are false sites.
 - **Shelves** — \`GET ${host}/shelves\` cites COLD-MULTI-SHELF-1.0 matching corpus \`/shelves\` (Plane A 5/2/1; Plane B SLOT; Plane C USB SLOT; doi null).
 - **Ban survival** — \`GET ${host}/survival\` cites BAN-SURVIVAL-1.0. Live multi-front and cold shelves back each other up. If \`/mcp\` or workers.dev is blocked: try the next LIVE custom-domain hub \`/runtime\`. If every live front is gone: shelf tip-hash. Live-node API is SLOT. SPORE-1.0 is the last-resort failsafe (pause / preserve / wait / physical-wipe-only) — not a replacement for cold shelves.
 
-MCP \`tools/list\` is **36 live tools**. First call: \`@aziel-runtime\` → \`fraggate_list\` → \`fraggate_describe\` → \`fraggate_call\` (foldlock/fold-preview, or \`decisiongate_check\` with \`dry_run=true\`). ChainLock and memory are append-only. \`runtime_run\`, \`runtime_manifest\`, and \`runtime_session_*\` are advanced/internal. Prefer FragGate, \`GET /v1/software\`, and \`POST /mcp\`. Public, no OAuth.
+MCP \`tools/list\` is **36 live tools**. First call: the Softwares tool. The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. Diagnostics: \`fraggate_list\` → \`fraggate_describe\` → \`fraggate_call\` (foldlock/fold-preview, or \`decisiongate_check\` with \`dry_run=true\`). ChainLock and memory are append-only. \`runtime_run\`, \`runtime_manifest\`, and \`runtime_session_*\` are advanced/internal. Prefer the Softwares tool, \`GET /v1/software\`, and \`POST /mcp\`. Public, no OAuth.
 `;
 }
 

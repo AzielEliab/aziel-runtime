@@ -53,6 +53,7 @@ import { chainlockMcpTools, isChainlockTool, runChainlockOp } from "./chainlock.
 import { isMemoryMcpTool, memoryMcpTools, runMemoryMcp, wrapMemoryDisplay } from "./memory.js";
 import { isMeshMcpTool, runMeshOp } from "./mesh.js";
 import { resolveCallingName } from "./calling-name.js";
+import { START_HERE_MCP } from "./start-here.js";
 
 export { ADVANCED_PREFIX, isAdvancedToolName, PUBLIC_MCP_TOOL_MAX };
 
@@ -74,20 +75,24 @@ export function mcpInitializeInstructions(env = {}) {
     : "";
   return (
     lead +
+    START_HERE_MCP +
     `Current MCP serverInfo.version: ${RUNTIME_VERSION} (same as package.json). 1.6.2 is superseded heritage, not the current server. Author identity is aziel eliab only. ` +
     "This runtime is a node-meshed orchestration suite of MCP-connected software designed to coordinate specialized tools through a shared, security-gated runtime while preserving provenance, chain-of-custody, temporal integrity, and auditable execution. " +
     "Use the author's software in the current chat. One door — discover, route, refuse. " +
-    "Pipeline: (1) fraggate_list or GET /v1/software (2) fraggate_describe one name (3) fraggate_call. " +
-    "Prefer fraggate_call, GET /v1/software, and POST /mcp. Hubs refresh Software tabs from /v1/software. " +
-    "Start with runtime_skill or fraggate_list. Describe a name with fraggate_describe. " +
-    "Execute only through fraggate_call (CallEnvelope → the door → Lamb Lens → SweepGate → Sentinel → Provenance → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → RoseClock → TemporalLock → ChainLock-OUT → ForgeReceipts → Return). Mutating tools require confirm=true or dry_run=true. " +
-    "Fabric MCP names mesh_* chainlock_* memory_* decisiongate_check library_lookup are kernel-direct wrappers (same kernels the door mesh/memory/chainlock use). Not MASTER-33. Not a second Softwares door. Softwares exec stays fraggate_call only. " +
+    "Call the Softwares tool. The door runs before the tool. Callers do not start with a door tool, chainlock_append, temporallock, or forgereceipts. " +
+    "fraggate_call is THE single door. Every other tool enters that door first, then runs. " +
+    "Diagnostics stay available: fraggate_list, fraggate_describe, fraggate_verify, fraggate_call. " +
+    "Prefer the tool that does the work, GET /v1/software, and POST /mcp. Hubs refresh Software tabs from /v1/software. " +
+    "Mutating tools require confirm=true or dry_run=true. " +
+    "A call still walks CallEnvelope → the door → Lamb Lens → SweepGate → Sentinel → Provenance → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → RoseClock → TemporalLock → ChainLock-OUT → ForgeReceipts → Return. " +
+    "Fabric MCP names mesh_* chainlock_* memory_* decisiongate_check library_lookup are kernel-direct wrappers after the door (same kernels the door mesh/memory/chainlock use). Not MASTER-33. Not a second Softwares door. " +
     "Neighbor map (do not confuse siblings): runtime_skill = how-to markdown; runtime_manifest = machine JSON (advanced/internal); runtime_software = hub Software-tab cards; runtime_bundle = skill-URL bootstrap; runtime_pull = one product card; fraggate_list = hashed live/stub/digest roster; fraggate_describe = one registry card; fraggate_verify = digest proof; fraggate_call = default exec. " +
     "decisiongate_check gates a proposal without exec. library_lookup is public corpus cite (not memory, not ChainLock). " +
-    "ChainLock lifecycle is append-only: append → tip or recall → verify → seal (no chainlock_delete). chainlock_seal writes a local LOCKSET; runtime_session_close seals a raw session — they are not the same. " +
+    "ChainLock is append-only (no chainlock_delete). A ledger-bearing tool stamps chainlock on its own. chainlock_append, chainlock_tip, chainlock_recall, chainlock_verify, and chainlock_seal stay for diagnostics. chainlock_seal writes a local LOCKSET; runtime_session_close seals a raw session — they are not the same. " +
+    "Auto-wire: every tool enters the door. Ledger ops stamp chainlock, temporallock, and forgereceipts: decisiongate_check, library_lookup, memory_observe, memory_resolve, memory_calibrate, mesh_join, mesh_enable, mesh_heartbeat, mesh_leave, mesh_broadcast, runtime_run, runtime_session_exec. fraggate_call stamps chainlock, temporallock, and forgereceipts inside the pipe when a real hash exists. Lamb Lens, SweepGate, Sentinel, and RoseClock run inside that pipe. Reads do not stamp chainlock, temporallock, or forgereceipts. " +
     "Memory lifecycle is append-only belief (≠ truth): observe → resolve → calibrate → recall or get (no memory_delete). " +
     "QNM mesh lifecycle: mesh_status (counts), mesh_nodes (roster), mesh_enable (optional extra bearer), mesh_disable (refused — public disable of suite-presence), mesh_join/heartbeat/leave (one node), mesh_broadcast (hash receipt, never publish). mesh_join requires product; optional node_id is 8–80 [a-z0-9._-]; presence is live|locked|isolated; additive presence has a strict 5-minute TTL (heartbeat refreshes; else dropped). Join/heartbeat/broadcast refuse MESH-OFF when transmission radios are off. Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public nodes count human mesh users plus cited human uses (USES peek). Public live_nodes count human mesh users plus concurrent site viewers (site_live_viewers) from hub human-page heartbeats. software_nodes is the {slug}-worker roster. Incomplete uses stay honest — do not invent users. NO-LIE / NO-REWRITE: receipts that still hash; copies not all on one tunnel; no rewrite key; the network is never allowed to lie even to self-preserve. " +
-    "Raw session lifecycle (advanced/internal): open → policy → exec → receipt or receipts → close. Prefer fraggate_call. " +
+    "Raw session lifecycle (advanced/internal): open → policy → exec → receipt or receipts → close. The door runs first. " +
     "Show the user display.title and display.summary, then take the next input. " +
     "runtime_run, runtime_session_*, raw *_health, and runtime_manifest are advanced/internal. " +
     "Do not invoke former {slug}_{op} names — they are not in tools/list. Unknown names refuse FG-HALLUC-TOOL. " +
@@ -242,7 +247,7 @@ export function runtimeHelperTools() {
           effects:
             "Side effects are operation-dependent (read, write, or refuse). May reach an open world when the target op does (for example AZBrowser ethical_search); many ops stay isolate-local. Unknown names refuse FG-HALLUC-TOOL. Stub, local-only, and Remain-OFF verbs refuse FG-STUB / FG-LOCAL-ONLY / FG-GATE-REFUSE / FG-LAMB-REFUSE. FragGate is THE single door",
           params:
-            "Required: op. Also pass slug or name. Extra top-level keys other than name/slug/product/tool/op/verb/claim/proposal/ground/payload/session_id/id become the op payload when payload is omitted. UI aliases (list_modules, place, genesis_boot, hold, airlock, home, classify, doctor, pair) forward to catalog ops. " +
+            "Required: op, unless job_id is set (that reads a background job and does not start another). Also pass slug or name. Shorthand name foldlock/fold-preview is accepted. Extra top-level keys other than name/slug/product/tool/op/verb/claim/proposal/ground/payload/session_id/id/confirm/dry_run/background/job_id become the op payload when payload is omitted. Example preview: {\"name\":\"foldlock/fold-preview\",\"payload\":{\"text\":\"the cat and the dog\"},\"dry_run\":true}. Optional background=true returns Running and a job_id before the op finishes; Done only after a receipt hash exists. Poll with the same job_id and confirm=true. dry_run does not start a job. UI aliases (list_modules, place, genesis_boot, hold, airlock, home, classify, doctor, pair) forward to catalog ops. " +
             CONFIRM_PARAM_NOTE,
           returns:
             "status, result, receipt, engine_slug, engine_op, engine_digest, ran_in, provenance, refusal, and limitations",
@@ -254,7 +259,7 @@ export function runtimeHelperTools() {
         type: "object",
         additionalProperties: true,
         description:
-          "Required: op. Also pass slug or name. Extra top-level keys other than name/slug/product/tool/op/verb/claim/proposal/ground/payload/session_id/id become the op payload when payload is omitted. Mutation requires confirm=true or dry_run=true.",
+          "Required: op, unless job_id is set. Also pass slug or name. Shorthand foldlock/fold-preview is accepted. Mutation requires confirm=true or dry_run=true. background=true returns Running until a receipt hash exists.",
         properties: {
           ...nameOrSlugProps(),
           op: {
@@ -267,6 +272,17 @@ export function runtimeHelperTools() {
             additionalProperties: true,
             description:
               "Optional op payload object. Shape is engine-specific (see fraggate_describe). Malformed fields are refused by the engine, not by this door schema. If omitted, leftover top-level keys are used as the payload.",
+          },
+          background: {
+            type: "boolean",
+            description:
+              "Optional. When true, FragGate admits the call and returns Running with a job_id before the op finishes. Done is returned only after a receipt hash exists. dry_run does not start a job. A missing job is Quiet, not Done.",
+          },
+          job_id: {
+            type: "string",
+            description:
+              "Optional job id from a background call (job_ + 16 hex). When set, the call reads that job and does not start another. confirm=true is still required. It does not re-run the op.",
+            pattern: "^job_[a-f0-9]{16}$",
           },
           request_id: {
             type: "string",
@@ -841,6 +857,12 @@ export function mcpCallPayload(name, out, product, op) {
     });
   if (out && out.confirm_consent && envelope && typeof envelope === "object") {
     Object.assign(envelope, confirmConsentHonesty());
+  }
+  if (out && out.fraggate_entered && envelope && typeof envelope === "object") {
+    envelope.fraggate_entered = true;
+  }
+  if (out && out.infra && envelope && typeof envelope === "object") {
+    envelope.infra = out.infra;
   }
   return {
     content: [{ type: "text", text: mcpContentText(name, envelope, out.text) }],

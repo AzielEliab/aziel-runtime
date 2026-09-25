@@ -35,6 +35,17 @@ import { RUNTIME_VERSION } from "../src/runtime-api.js";
 import { executeLocal, proxyFallbackMeta } from "../src/engines/runner.js";
 import { networkRefuseEnvelope } from "../src/remote-transport.js";
 import { spawn } from "node:child_process";
+import { PRODUCTS } from "../src/index.js";
+import { buildRegistry } from "../src/fraggate/registry.js";
+import { fraggateCall, previewCatalogAdmission } from "../src/fraggate/door.js";
+import {
+  humanJobLines,
+  newJobId,
+  readJobFile,
+  sealJob,
+  writeJobFile,
+} from "../src/background-job.js";
+import { probeListener, quietText, runningText, SERVICE_PORT, startRuntimeService } from "../src/runtime-service.js";
 
 const DEFAULT_URL = process.env.AZIEL_RUNTIME_URL || "https://aziel-runtime.vibelock.workers.dev";
 const UA = "Mozilla/5.0";
@@ -46,23 +57,31 @@ function usage() {
 Author: Aziel Eliab
 
 Usage:
+  aziel-runtime call <slug> <op> [payload-json] [--local] [--dry-run] [--background]
+  aziel-runtime job <job-id>
+  aziel-runtime service
+  aziel-runtime service status
   aziel-runtime session open [--local]
   aziel-runtime session status [--local]
   aziel-runtime session policy [--allow-slugs a,b] [--allow-ops x,y] [--max-payload N]
-  aziel-runtime session exec <slug> <op> [payload-json]
+  aziel-runtime session exec <slug> <op> [payload-json] [--background]
   aziel-runtime session receipt
   aziel-runtime session receipts
   aziel-runtime session close
 
 Start:
+  aziel-runtime call foldlock fold-preview --local --dry-run
   aziel-runtime session open --local
-  aziel-runtime session status --local
+  aziel-runtime service status
 
 Flags:
-  --local            Session file under ${HOME}; vendored engines in-process
+  --local            Session file or door call on this machine
+  --dry-run          Preview a call. Writes nothing
+  --background       Return Running now. Done only after a receipt hash
   --json             Print the machine object
   --url <url>        Worker origin (default ${DEFAULT_URL})
   --id <id>          Session id (default: the current session)
+  --port <n>         Listener port for service (default ${SERVICE_PORT})
   -h, --help         Show this help
   --version          Print the version
 
@@ -105,6 +124,10 @@ function parseArgs(argv) {
     else if (a === "--remote") out.flags.local = false;
     else if (a === "--all") out.flags.all = true;
     else if (a === "--json") out.flags.json = true;
+    else if (a === "--dry-run") out.flags.dry_run = true;
+    else if (a === "--background") out.flags.background = true;
+    else if (a === "--finish-job") out.flags.finish_job = argv[++i];
+    else if (a === "--port") out.flags.port = argv[++i];
     else if (a === "--help" || a === "-h") out.flags.help = true;
     else if (a === "--version" || a === "-V") out.flags.version = true;
     else if (a === "--url") out.flags.url = argv[++i];
@@ -413,6 +436,7 @@ async function welcomeText() {
     }
   }
   lines.push("Next:");
+  lines.push("  aziel-runtime call foldlock fold-preview --local --dry-run");
   lines.push("  aziel-runtime session open --local");
   lines.push("");
   lines.push("Then:");
@@ -656,6 +680,152 @@ async function cmdStatus(flags) {
   return { ok: true, mode: "worker", ...(await remote(url, `/v1/session/${id}`, {}, flags)) };
 }
 
+const BY_SLUG = Object.fromEntries(PRODUCTS.map((p) => [p.slug, p]));
+
+function doorRegistry() {
+  return buildRegistry(PRODUCTS);
+}
+
+async function localDoorCall(args) {
+  return fraggateCall(args, doorRegistry(), BY_SLUG, {}, null);
+}
+
+function parsePayload(flags, payloadArg) {
+  const raw = flags.payload != null ? flags.payload : payloadArg;
+  if (raw == null || !String(raw).trim()) return {};
+  return JSON.parse(raw);
+}
+
+function printJob(flags, view, next) {
+  if (flags && flags.json) {
+    print(view);
+    return;
+  }
+  const lines = humanJobLines(view);
+  lines.push("");
+  lines.push(`Next: ${next}`);
+  process.stdout.write(lines.join("\n") + "\n");
+}
+
+function spawnFinish(args) {
+  const child = spawn(process.execPath, [fileURLToPath(import.meta.url), ...args], {
+    detached: true,
+    stdio: "ignore",
+    env: process.env,
+  });
+  child.unref();
+}
+
+async function cmdCall(flags, slug, op, payloadArg) {
+  const payload = parsePayload(flags, payloadArg);
+  const args = { slug, op, payload, dry_run: flags.dry_run === true, background: flags.background === true };
+  if (flags.finish_job) {
+    const body = await localDoorCall({ slug, op, payload });
+    const sealed = sealJob({ job_id: flags.finish_job, slug, op, phase: "running", receipt: null }, body);
+    await writeJobFile(HOME, sealed);
+    return honestFromFile(flags.finish_job);
+  }
+  if (flags.dry_run) {
+    const preview = previewCatalogAdmission(args, doorRegistry(), BY_SLUG);
+    if (!preview.proceed) {
+      const err = new Error((preview.envelope && preview.envelope.message) || "Refused");
+      err.code = preview.envelope && preview.envelope.code;
+      err.body = preview.envelope;
+      throw err;
+    }
+    return {
+      ok: true,
+      dry_run: true,
+      mutated: false,
+      ledger_written: false,
+      code: "MCP-DRY-RUN",
+      slug,
+      op,
+      message: "Preview only. Nothing was written.",
+      summary: "Preview only. Nothing was written.",
+    };
+  }
+  if (flags.background && !flags.local) {
+    const url = flags.url || DEFAULT_URL;
+    return remote(
+      url,
+      "/v1/fraggate/call",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ slug, op, payload, background: true }),
+      },
+      flags,
+    );
+  }
+  if (flags.background) {
+    const job = { job_id: newJobId(), slug, op, phase: "running", ok: false, receipt: null };
+    await writeJobFile(HOME, job);
+    const payloadText = JSON.stringify(payload);
+    spawnFinish(["call", slug, op, payloadText, "--local", "--finish-job", job.job_id]);
+    return readJobFile(HOME, job.job_id);
+  }
+  if (flags.local) return localDoorCall({ slug, op, payload });
+  const url = flags.url || DEFAULT_URL;
+  return remote(
+    url,
+    "/v1/fraggate/call",
+    { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ slug, op, payload }) },
+    flags,
+  );
+}
+
+async function honestFromFile(jobId) {
+  return readJobFile(HOME, jobId);
+}
+
+async function cmdJob(flags, jobId) {
+  if (!jobId || !/^job_[a-f0-9]{16}$/.test(jobId)) {
+    const err = new Error("job id must match job_ + 16 hex");
+    err.code = "bad_job_id";
+    throw err;
+  }
+  const local = await readJobFile(HOME, jobId);
+  if (flags.local || local.code !== "job_not_found") return local;
+  const url = flags.url || DEFAULT_URL;
+  return remote(url, `/v1/fraggate/background/${jobId}`, {}, flags);
+}
+
+async function cmdService(flags, sub) {
+  const port = Number(flags.port || SERVICE_PORT);
+  if (sub === "status") {
+    const running = await probeListener(port);
+    const payload = { name: "aziel-runtime", status: running ? "running" : "quiet", port, door_called: false };
+    if (flags.json) print(payload);
+    else process.stdout.write(running ? runningText(port) : quietText(port));
+    return null;
+  }
+  const server = await startRuntimeService({
+    port,
+    onCall: (args) => localDoorCall(args),
+    onJob: (id) => readJobFile(HOME, id),
+    onBackground: async (args) => {
+      if (args.job_id) return readJobFile(HOME, args.job_id);
+      const slug = String(args.slug || args.name || "");
+      const op = String(args.op || "");
+      const payload = args.payload && typeof args.payload === "object" ? args.payload : {};
+      const job = { job_id: newJobId(), slug, op, phase: "running", ok: false, receipt: null };
+      await writeJobFile(HOME, job);
+      spawnFinish(["call", slug, op, JSON.stringify(payload), "--local", "--finish-job", job.job_id]);
+      return readJobFile(HOME, job.job_id);
+    },
+  });
+  const bound = server.address().port;
+  if (flags.json) print({ name: "aziel-runtime", status: "running", port: bound, door_called: false });
+  else process.stdout.write(runningText(bound));
+  await new Promise((resolve) => {
+    process.once("SIGINT", () => {
+      server.close(() => resolve());
+    });
+  });
+  return null;
+}
+
 async function main() {
   const argv = process.argv.slice(2);
   const parsed = parseArgs(argv);
@@ -672,6 +842,55 @@ async function main() {
   if (parsed._.length === 0) {
     process.stdout.write(await welcomeText());
     process.exit(0);
+  }
+  if (cmd === "call") {
+    const [slug, op, payloadArg] = [sub, ...rest];
+    if (!slug || !op) {
+      failText(
+        parsed.flags,
+        "call needs a slug and an op.\nNext: aziel-runtime call foldlock fold-preview --local --dry-run\n",
+        "call needs a slug and an op",
+      );
+    }
+    try {
+      const result = await cmdCall(parsed.flags, slug, op, payloadArg);
+      if (parsed.flags.dry_run && !parsed.flags.json) {
+        process.stdout.write(`Preview only. Nothing was written.\n  ${"slug".padEnd(12)}${slug}\n  ${"op".padEnd(12)}${op}\n\nNext: aziel-runtime call ${slug} ${op} --local\n`);
+      } else if (parsed.flags.background || parsed.flags.finish_job) {
+        printJob(parsed.flags, result, `aziel-runtime job ${result.job_id}`);
+      } else if (parsed.flags.json) print(result);
+      else {
+        const hash = result && result.ledger_tip && result.ledger_tip.hash;
+        const lines = [`Called ${slug} ${op}.`, `  ${"code".padEnd(12)}${result.code || "—"}`];
+        if (hash && result.ok === true) lines.push(`  ${"receipt".padEnd(12)}${hash}`);
+        else lines.push(`  ${"receipt".padEnd(12)}—`);
+        if (result.ok === false) lines[0] = `Refused. ${result.message || result.code || "The door refused the call."}`;
+        lines.push("", `Next: aziel-runtime call <slug> <op> --local`);
+        process.stdout.write(lines.join("\n") + "\n");
+        if (result.ok === false) process.exit(1);
+      }
+    } catch (err) {
+      await fail(parsed.flags, err);
+    }
+    return;
+  }
+  if (cmd === "job") {
+    try {
+      const view = await cmdJob(parsed.flags, sub);
+      printJob(parsed.flags, view, view && view.job_id ? `aziel-runtime job ${view.job_id}` : "aziel-runtime --help");
+      if (view && view.code === "job_not_found") process.exit(1);
+    } catch (err) {
+      await fail(parsed.flags, err);
+    }
+    return;
+  }
+  if (cmd === "service") {
+    try {
+      await cmdService(parsed.flags, sub);
+    } catch (err) {
+      await fail(parsed.flags, err);
+    }
+    return;
   }
   if (cmd !== "session") {
     failText(parsed.flags, `Unknown command "${cmd}".\nNext: aziel-runtime --help\n`, `Unknown command "${cmd}"`);
@@ -694,7 +913,34 @@ async function main() {
           "session exec needs a slug and an op",
         );
       }
-      emit(parsed.flags, "exec", await cmdExec(parsed.flags, rest[0], rest[1], rest[2]));
+      if (parsed.flags.background && !parsed.flags.finish_job) {
+        const id = await resolveId(parsed.flags);
+        await loadLocal(id);
+        const job = { job_id: newJobId(), slug: rest[0], op: rest[1], phase: "running", ok: false, receipt: null, session_id: id };
+        await writeJobFile(HOME, job);
+        const payloadText = rest[2] != null ? rest[2] : parsed.flags.payload != null ? parsed.flags.payload : "{}";
+        spawnFinish(["session", "exec", rest[0], rest[1], String(payloadText), "--local", "--finish-job", job.job_id]);
+        printJob(parsed.flags, await readJobFile(HOME, job.job_id), `aziel-runtime job ${job.job_id}`);
+      } else {
+        const result = await cmdExec(parsed.flags, rest[0], rest[1], rest[2]);
+        if (parsed.flags.finish_job) {
+          const hash = result && result.receipt && result.receipt.hash;
+          const honest = typeof hash === "string" && /^[a-f0-9]{64}$/.test(hash) && !/^0{64}$/.test(hash);
+          await writeJobFile(HOME, {
+            job_id: parsed.flags.finish_job,
+            slug: rest[0],
+            op: rest[1],
+            phase: honest ? "complete" : "running",
+            ok: honest,
+            receipt: honest ? { hash, event: result.receipt.event || "exec" } : null,
+            ledger_tip: honest ? { hash } : null,
+            result: honest ? result.result || null : null,
+            code: honest ? "FG-OK" : "FG-ERR",
+            message: honest ? "Done. Receipt is ready." : "Running. No completion receipt yet.",
+          });
+        }
+        if (!parsed.flags.finish_job) emit(parsed.flags, "exec", result);
+      }
     } else if (sub === "receipt") emit(parsed.flags, "receipt", await cmdReceipt(parsed.flags, false));
     else if (sub === "receipts") emit(parsed.flags, "receipts", await cmdReceipt(parsed.flags, true));
     else if (sub === "close") emit(parsed.flags, "close", await cmdClose(parsed.flags));

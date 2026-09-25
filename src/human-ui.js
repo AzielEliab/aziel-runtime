@@ -507,7 +507,7 @@ export function workspacePaneHtml(origin, products) {
   <p class="hint">Human workspace first. Operator control panel + dashboard below. Same FragGate door as MCP <code>fraggate_call</code> / <code>POST ${escapeHtml(base)}/v1/fraggate/call</code>. Architecture, cite, and version history stay below. Identity ${escapeHtml(AUTHOR_NAME)} only.</p>
   <section class="first-hour" id="first-hour" aria-labelledby="first-hour-title">
     <h3 id="first-hour-title">Start here</h3>
-    <p class="hint">Three steps for the first hour. Tabs, Softwares, receipts, mesh, MCP, and Corpus stay one click away. Nothing below is removed. Corpus is the Elroi sub-tab under Aziel Elroi Eliab, not a top-bar tab. Ask Jeeves and AZAI Guide are the coaches.</p>
+    <p class="hint">Three steps for the first hour. Call the Softwares tool. The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. confirm when a call writes, dry_run to preview, background for a long job. The reply says Running until a receipt exists. Tabs, Softwares, receipts, mesh, MCP, and Corpus stay one click away. Nothing below is removed. Corpus is the Elroi sub-tab under Aziel Elroi Eliab, not a top-bar tab. Ask Jeeves and AZAI Guide are the coaches.</p>
     <ol class="first-hour-steps">
       <li><a href="#elroi-jeeves">Ask Jeeves</a> — suite help. Use a suggested question or your own words. Lamb Lens runs first, then the shelf, then the triad.</li>
       <li><button type="button" data-first-hour="ai">Open AZAI Guide</button> — the other coach, on the AI tab. Guide does not write memory. Learn still needs confirm.</li>

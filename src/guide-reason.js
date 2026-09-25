@@ -164,7 +164,7 @@ function flowAnswer(intent, cards) {
     return {
       topic: "fraggate",
       answer:
-        "Click the domain tab for the Software, then Run on its card. That posts to POST /v1/fraggate/call with that card's slug and op. Agents use the same door: fraggate_list, then fraggate_describe, then fraggate_call. Seal on the interface desk and the AZBot Seal button still need the confirm box. This guide does not dispatch.",
+        "Click the domain tab for the Software, then Run on its card. Call the Softwares tool. The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. confirm=true writes. dry_run=true previews and writes nothing. background=true returns Running until a receipt hash exists. fraggate_list, fraggate_describe, fraggate_call, and chainlock tools stay for diagnostics. Seal on the interface desk and the AZBot Seal button still need the confirm box. This guide does not dispatch.",
       actions: [
         { label: "Open the interface desk", href: "#interface-panel" },
         { label: "Open the AI tab", href: "#domain-tab-ai" },

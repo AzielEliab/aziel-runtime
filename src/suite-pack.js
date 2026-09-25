@@ -84,7 +84,9 @@ This file is the suite catalog: software cards, the FragGate door cite, and the 
 Then: node cli/aziel-runtime.mjs session status --local
 
 Add --json when a script needs the machine object.
-Catalog calls go through FragGate: fraggate_list, then fraggate_describe, then fraggate_call.
+Start here: call the Softwares tool. The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. confirm=true writes. dry_run=true previews. background=true stays Running until a receipt hash exists. tools/list stays 36.
+Diagnostics: fraggate_list, fraggate_describe, fraggate_call.
+Terminal: node cli/aziel-runtime.mjs call foldlock fold-preview --local --dry-run
 `;
 }
 

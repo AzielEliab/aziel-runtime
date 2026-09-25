@@ -10,6 +10,7 @@
  * Identity: Aziel Eliab only.
  */
 
+import { START_HERE_LINE } from "./start-here.js";
 import { SOFTWARE_COPY, softwareCopySlugs } from "./software-copy.js";
 import { softwareBucket } from "./software-catalog.js";
 import { SOFTWARE_FAQ_NAMES } from "./softwares-faq.js";
@@ -226,7 +227,8 @@ export function helpFraggateTxt(origin) {
     "",
     "## Pipeline",
     "",
-    "list → describe → call.",
+    "list → describe → call. That pipeline is the diagnostic door. Callers do not start there.",
+    START_HERE_LINE,
     "",
     `- MCP tools: fraggate_list, fraggate_describe, fraggate_verify, fraggate_call`,
     `- HTTP list: GET ${base}/v1/fraggate/list`,
@@ -282,12 +284,12 @@ export function helpGlamaTxt(origin) {
     "",
     "## First call",
     "",
-    "@aziel-runtime → fraggate_list → fraggate_describe → fraggate_call.",
+    "Call the Softwares tool. The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. Diagnostics: fraggate_list → fraggate_describe → fraggate_call.",
     "Example: fraggate_call { slug: foldlock, op: fold-preview }, or decisiongate_check with dry_run=true.",
     "Show display.title and display.summary, then take the next input.",
     `Softwares cards (one_line) live at GET ${base}/v1/software.`,
     "",
-    "MCP tools/list is 36 live tools. Start on the FragGate door. ChainLock and memory are append-only.",
+    "MCP tools/list is 36 live tools. Call the Softwares tool. The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. Memory stays append-only.",
     "",
     "Compatible clients: ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants.",
     "",
