@@ -1,0 +1,13 @@
+Aziel Runtime
+Author: Aziel Eliab
+
+Open a session, run one catalog operation, and keep the receipt.
+The version is the version field in package.json.
+
+1. node cli/aziel-runtime.mjs
+2. node cli/aziel-runtime.mjs session open --local
+3. node cli/aziel-runtime.mjs session status --local
+
+Help: node cli/aziel-runtime.mjs --help
+Machine output: add --json
+Agent stdio: node cli/mcp-stdio.mjs
