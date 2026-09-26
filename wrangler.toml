@@ -172,6 +172,10 @@ service = "azchat-download-tracker"
 REQUIRE_TOKEN = "1"
 # GIT_SHA is injected at deploy (`wrangler deploy --var GIT_SHA:$(git rev-parse HEAD)`).
 # Actions already passes github.sha. Catalog falls back to src/build-meta.js when unbound.
+# version_id is NOT a [vars] constant. Serve time reads CF_VERSION_METADATA.id
+# (the binding below). Optional --var VERSION_ID:<uuid> is only for an operator
+# who already has that Worker version id. Do not invent one. The binding wins
+# when both are set.
 
 [version_metadata]
 binding = "CF_VERSION_METADATA"

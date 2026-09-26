@@ -296,7 +296,11 @@ assert.equal(registry.bySlug.embryolock.status, "live");
 assert.equal(registry.bySlug.embryolock.local_destructive_boundary, true);
 assert.equal(registry.stub_count, NAMED_STUBS.length);
 assert.equal(classifyCall(registry.bySlug.embryolock, "arm").kind, "stub");
+assert.equal(classifyCall(registry.bySlug.embryolock, "wipe").kind, "stub");
 assert.equal(classifyCall(registry.bySlug.embryolock, "health").kind, "live");
+assert.equal(classifyCall(registry.bySlug.veillock, "inject").kind, "local_only");
+assert.equal(classifyCall(registry.bySlug.veillock, "intercept").kind, "local_only");
+assert.equal(classifyCall(registry.bySlug.veillock, "facetime").kind, "local_only");
 assert.ok(PRODUCTS.some((p) => p.slug === "embryolock"), "embryolock is a catalog Software engine");
 
 for (const [slug, aliases] of Object.entries(OP_ALIASES)) {
@@ -338,7 +342,12 @@ assert.equal(localOnly.ok, false);
 assert.equal(localOnly.code, "FG-LOCAL-ONLY");
 
 const veilInject = await (await post("/v1/fraggate/call", { slug: "veillock", op: "inject" })).json();
-assert.equal(veilInject.code, "FG-STUB");
+assert.equal(veilInject.ok, false);
+assert.equal(veilInject.code, "FG-LOCAL-ONLY");
+assert.match(veilInject.message, /device-local, not hosted/);
+assert.equal(veilInject.result, null);
+const embryoWipe = await (await post("/v1/fraggate/call", { slug: "embryolock", op: "wipe" })).json();
+assert.equal(embryoWipe.code, "FG-STUB");
 
 const whistleSend = await (await post("/v1/fraggate/call", { slug: "whistlelock", op: "send" })).json();
 assert.equal(whistleSend.code, "FG-STUB");

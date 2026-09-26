@@ -797,7 +797,7 @@ ${dashCards}
 
   <section class="task" id="sot-desk" data-kind="sot" data-origin="${escapeHtml(base)}">
     <h3>Suite tip sync</h3>
-    <p class="blurb">One source of truth: live <code>GET /v1/software</code> for suite version, git sha, Softwares count, and card versions. <code>version_id</code> stays null. Ask Jeeves is not a Softwares card. Sync is a pull plane (<code>POST /v1/mesh/sot-sync</code>), not <code>mesh_broadcast</code>. Outlets are read together. A down site stays on screen as last-known inventory plus an unreachable status, and the other outlets still update. Dry run lists every outlet and the fields that would change. Confirm is consent, not a login. It writes an ACT-RECEIPT and updates <code>last_applied</code> only where the write succeeded.</p>
+    <p class="blurb">One source of truth: live <code>GET /v1/software</code> for suite version, git sha, Softwares count, and card versions. <code>version_id</code> is the Cloudflare Worker version id when <code>CF_VERSION_METADATA</code> is bound, otherwise null. Ask Jeeves is not a Softwares card. Sync is a pull plane (<code>POST /v1/mesh/sot-sync</code>), not <code>mesh_broadcast</code>. Outlets are read together. A down site stays on screen as last-known inventory plus an unreachable status, and the other outlets still update. Dry run lists every outlet and the fields that would change. Confirm is consent, not a login. It writes an ACT-RECEIPT and updates <code>last_applied</code> only where the write succeeded.</p>
     <p class="ws-status" id="sot-status-line" data-state="ready" role="status" aria-live="polite">Refresh tip to load the outlet matrix</p>
     <pre class="ws-out fg-out" id="sot-out" role="status" aria-live="polite">GET ${escapeHtml(base)}/v1/mesh/sot</pre>
     <label><input id="sot-confirm" type="checkbox"> confirm apply</label>
@@ -831,7 +831,8 @@ ${dashCards}
         if (bits[row.status] != null) bits[row.status] += 1;
       });
       if (line) {
-        line.textContent = "SoT " + version + " · sha " + sha + " · Softwares " + count + " · version_id null · ok " + bits.ok + " · drifted " + bits.drifted + " · unreachable " + bits.unreachable + " · unexposed " + bits.unexposed;
+        var vid = sot && sot.version_id != null ? sot.version_id : "null";
+        line.textContent = "SoT " + version + " · sha " + sha + " · Softwares " + count + " · version_id " + vid + " · ok " + bits.ok + " · drifted " + bits.drifted + " · unreachable " + bits.unreachable + " · unexposed " + bits.unexposed;
         line.setAttribute("data-state", "ready");
       }
       if (out) out.textContent = JSON.stringify(body, null, 2);

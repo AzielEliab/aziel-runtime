@@ -18,6 +18,7 @@ import { lambLensCheck } from "./lamblens.js";
 import { SOFTWARE_COPY } from "./software-copy.js";
 import { UI_DOMAINS } from "./ui-domains.js";
 import { RUNTIME_VERSION } from "./runtime-api.js";
+import { softwareMeta } from "./software-catalog.js";
 
 export const GUIDE_SPEC = "GUIDE-REASON-1.2";
 export const EPISTEMIC_ORDER = Object.freeze(["lamb_lens", "corpus", "library", "other_source", "triad"]);
@@ -106,7 +107,7 @@ function cardHits(question, cards) {
   }).slice(0, 3);
 }
 
-function flowAnswer(intent, cards) {
+function flowAnswer(intent, cards, versionMeta) {
   const lines = UI_DOMAINS.map((domain) => `${domain.label} (${domain.id}): ${domain.softwares.join(", ")}`);
   if (intent === "domain_tabs") {
     return {
@@ -131,9 +132,12 @@ function flowAnswer(intent, cards) {
     };
   }
   if (intent === "version" || intent === "version_id") {
+    const published = versionMeta && versionMeta.version_id;
     const versionId =
       intent === "version_id"
-        ? " No version_id is published on this help path. This reply does not invent one."
+        ? published
+          ? ` version_id is ${published} (${versionMeta.version_id_source}). This reply does not invent one.`
+          : " No version_id is published on this help path. This reply does not invent one."
         : "";
     return {
       topic: "version",
@@ -528,7 +532,7 @@ export async function reasonGuide(question, env, { assistant = "Ask Jeeves" } = 
   const clarified = clarify(q);
   const corpus = await pullCorpus(q, env);
   corpus.consulted = true;
-  const flow = flowAnswer(clarified.intent, cards);
+  const flow = flowAnswer(clarified.intent, cards, softwareMeta(env || {}));
   const hits = cardHits(q, cards);
   const card = flow ? null : cardAnswer(hits);
   const suite = flow || card;

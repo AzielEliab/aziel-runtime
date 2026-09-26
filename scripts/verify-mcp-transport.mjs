@@ -242,6 +242,8 @@ const dryCases = [
   { slug: "4dmap", op: "truth_score", code: "FG-STUB" },
   { slug: "4dmap", op: "area_estimate", code: "FG-UNKNOWN-OP" },
   { slug: "veillock", op: "apps", code: "FG-LOCAL-ONLY" },
+  { slug: "veillock", op: "inject", code: "FG-LOCAL-ONLY" },
+  { slug: "embryolock", op: "wipe", code: "FG-STUB" },
 ];
 for (const row of dryCases) {
   const dry = await dryCall(row);

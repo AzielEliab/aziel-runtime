@@ -531,6 +531,19 @@ Account `ac575a9b822bea2bed97d0ab73aed238` is the non-secret default. Do not
 put tokens in the repo. `workflow_dispatch` is also enabled. The Action passes
 `GIT_SHA` so `/v1/software` can stamp `git_sha`.
 
+`/llms.txt` `version_id` is the Cloudflare Worker version id from the
+`CF_VERSION_METADATA` binding (`wrangler.toml` `[version_metadata]`), read when
+the response is served. It is not a UUID stored in this repo. An isolate
+without that binding, and without `VERSION_ID`, publishes `version_id: null`.
+Box deploy (OAuth wrangler, no API token in the environment):
+
+```bash
+env -u CLOUDFLARE_API_TOKEN npx wrangler deploy --keep-vars --var GIT_SHA:$(git rev-parse HEAD)
+```
+
+Add `--var VERSION_ID:<worker-version-id>` only when that id is already known.
+Do not invent one. When the binding is present it wins over `VERSION_ID`.
+
 If this checkout has no wrangler credentials, deploy from the author's machine:
 
 ```bash

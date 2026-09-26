@@ -73,7 +73,7 @@
  * GET  /v1/mesh/site-presence cite hub site-viewer contract (GET never writes / never pulls /count)
  * GET  /v1/mesh/az-generator  Cap-7 semantic-bridge cite (MirageGrid; not ICANN; never enables)
  * POST /v1/mesh/broadcast     SHA-256 hash receipt only (never a publish path)
- * GET  /v1/mesh/sot           SOT-SYNC-1.0 suite tip (GET /v1/software authority; version_id null)
+ * GET  /v1/mesh/sot           SOT-SYNC-1.0 suite tip (GET /v1/software authority; version_id from CF_VERSION_METADATA or null)
  * GET  /v1/mesh/outlets       outlet registry (aligned / drifted / unreachable / unexposed)
  * POST /v1/mesh/sot-sync      dry_run plan, or confirm apply (ACT-RECEIPT-1.0; pull plane)
  * GET  /v1/bundle             compact bootstrap (skill URL + invoke prefix per product)
@@ -1616,7 +1616,8 @@ function llmsTxt(origin, env = {}) {
     `suite_version: ${catalog.version || RUNTIME_VERSION}`,
     `git_sha: ${catalog.git_sha || ""}`,
     `softwares_count: ${catalog.count}`,
-    "version_id: null",
+    `version_id: ${catalog.version_id || "null"}`,
+    `version_id_source: ${catalog.version_id_source || "unbound"}`,
     "",
     rewriteLiveCallingDisplay(personLlmsBlock(origin), calling).trimEnd(),
     "",
@@ -1854,8 +1855,9 @@ function citeJson(origin, env = {}) {
       suite_version: catalog.version || RUNTIME_VERSION,
       git_sha: catalog.git_sha || null,
       softwares_count: catalog.count,
-      version_id: null,
-      version_id_note: "GET /v1/software does not expose version_id.",
+      version_id: catalog.version_id || null,
+      version_id_source: catalog.version_id_source || null,
+      version_id_note: catalog.version_id_note || "GET /v1/software does not expose version_id.",
     },
     uses: base + "/v1/uses",
     stats: socialStatusField(origin),

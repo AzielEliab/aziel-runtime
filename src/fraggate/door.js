@@ -316,7 +316,7 @@ function classificationRefuse(classified, target) {
       slug: target.entry.slug,
       op: target.op,
       extra: { status: "local_only" },
-      message: `${target.entry.name} is named in the registry but local_only — not live on the public FragGate door.`,
+      message: `${target.entry.name}${target.op ? ` ${target.op}` : ""} is local_only — device-local, not hosted. Not live on the public FragGate door.`,
     };
   }
   return null;

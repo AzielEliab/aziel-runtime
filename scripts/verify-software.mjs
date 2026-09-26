@@ -17,8 +17,10 @@ import {
   WORKER_ONLY_PRODUCTS,
   compareVersions,
   listSoftwareEntries,
+  sanitizeVersionId,
   softwareBucket,
   softwareCatalog,
+  softwareMeta,
   sortSoftwareEntries,
   updateCheck,
   updateManifest,
@@ -27,8 +29,8 @@ import {
 const handler = (await import("../src/index.js")).default.fetch;
 const origin = "https://aziel-runtime.example";
 
-async function get(path) {
-  return handler(new Request(origin + path), {});
+async function get(path, env = {}) {
+  return handler(new Request(origin + path), env);
 }
 
 assert.equal(softwareBucket("StaticClock", "staticclock"), "plain", "Clock ≠ Lock");
@@ -258,6 +260,28 @@ assert.equal(body.software[0].bucket, "plain");
 assert.equal(body.software[body.software.length - 1].bucket, "lock");
 assert.ok(body.software.some((s) => s.slug === "embryolock"));
 assert.equal(body.git_sha, BUILD_GIT_SHA);
+assert.equal(body.count, 42);
+assert.equal(body.software.some((card) => card.slug === "jeeves" || card.slug === "ask-jeeves"), false);
+assert.equal(body.version_id, null);
+assert.equal(body.version_id_source, null);
+assert.match(body.version_id_note, /does not expose version_id/);
+assert.equal(sanitizeVersionId("ffd469b4-2d65-47f7-948e-04a0be007caf"), "ffd469b4-2d65-47f7-948e-04a0be007caf");
+assert.equal(sanitizeVersionId(BUILD_GIT_SHA), null);
+assert.equal(sanitizeVersionId("not-a-version"), null);
+const liveVersion = "11111111-2222-4333-8444-555555555555";
+const staleVersion = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
+const boundMeta = softwareMeta({
+  CF_VERSION_METADATA: { id: liveVersion, tag: BUILD_GIT_SHA, timestamp: "2026-09-26T00:00:00.000Z" },
+  VERSION_ID: staleVersion,
+});
+assert.equal(boundMeta.version_id, liveVersion);
+assert.equal(boundMeta.version_id_source, "cf_version_metadata");
+assert.equal(boundMeta.git_sha, BUILD_GIT_SHA);
+const varOnly = softwareMeta({ VERSION_ID: staleVersion });
+assert.equal(varOnly.version_id, staleVersion);
+assert.equal(varOnly.version_id_source, "version_id_var");
+assert.equal(softwareMeta({ VERSION_ID: "invented" }).version_id, null);
+assert.equal(softwareMeta({}).version_id, null);
 const liveCards = body.software.filter((s) => s.status === "live");
 const localOnlyCards = body.software.filter((s) => s.status === "local_only");
 const workerOnlyCards = body.software.filter((s) => s.worker_only);
@@ -569,6 +593,29 @@ const llms = await (await get("/llms.txt")).text();
 assert.match(llms, /\/v1\/software/);
 assert.match(llms, /update\/check/);
 assert.match(llms, /tools\/list name Softwares/);
+assert.match(llms, /^version_id: null$/m);
+assert.match(llms, /^version_id_source: unbound$/m);
+const cite = await (await get("/cite.json")).json();
+assert.equal(cite.suite_tip.version_id, null);
+assert.match(cite.suite_tip.version_id_note, /does not expose version_id/);
+const boundEnv = {
+  CF_VERSION_METADATA: { id: liveVersion, tag: "not-a-sha", timestamp: "2026-09-26T00:00:00.000Z" },
+  VERSION_ID: staleVersion,
+  GIT_SHA: BUILD_GIT_SHA,
+};
+const boundSoftware = await (await get("/v1/software", boundEnv)).json();
+assert.equal(boundSoftware.count, 42);
+assert.equal(boundSoftware.version_id, liveVersion);
+assert.equal(boundSoftware.version_id_source, "cf_version_metadata");
+assert.equal(boundSoftware.software.some((card) => card.slug === "jeeves" || card.slug === "ask-jeeves"), false);
+const boundLlms = await (await get("/llms.txt", boundEnv)).text();
+assert.match(boundLlms, new RegExp(`^version_id: ${liveVersion}$`, "m"));
+assert.match(boundLlms, /^version_id_source: cf_version_metadata$/m);
+assert.doesNotMatch(boundLlms, new RegExp(staleVersion));
+const boundCite = await (await get("/cite.json", boundEnv)).json();
+assert.equal(boundCite.suite_tip.version_id, liveVersion);
+assert.equal(boundCite.suite_tip.softwares_count, 42);
+assert.equal(boundCite.suite_tip.version_id_source, "cf_version_metadata");
 
 const openapi = await (await get("/openapi.json")).json();
 assert.ok(openapi.paths["/v1/software"]);

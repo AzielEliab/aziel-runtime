@@ -125,6 +125,16 @@ function sanitizeGitSha(raw) {
   return s.toLowerCase();
 }
 
+/** Cloudflare Worker version ids are UUIDs. Anything else is not published. */
+const VERSION_ID_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function sanitizeVersionId(raw) {
+  const s = String(raw == null ? "" : raw).trim();
+  if (!s || /^null$/i.test(s)) return null;
+  if (!VERSION_ID_UUID.test(s)) return null;
+  return s.toLowerCase();
+}
+
 export function softwareMeta(env, extras = {}) {
   const meta = env && env.CF_VERSION_METADATA && typeof env.CF_VERSION_METADATA === "object" ? env.CF_VERSION_METADATA : {};
   const sha =
@@ -139,7 +149,22 @@ export function softwareMeta(env, extras = {}) {
     extras.updated_at ||
     (meta.timestamp && String(meta.timestamp).trim()) ||
     null;
-  return { git_sha: sha, updated_at: updated };
+  const fromBinding = sanitizeVersionId(meta.id);
+  const fromVar = sanitizeVersionId(env && env.VERSION_ID);
+  const fromExtra = sanitizeVersionId(extras.version_id);
+  const version_id = fromBinding || fromVar || fromExtra || null;
+  let version_id_source = null;
+  if (fromBinding) version_id_source = "cf_version_metadata";
+  else if (fromVar) version_id_source = "version_id_var";
+  else if (fromExtra) version_id_source = "catalog_extra";
+  const version_id_note = version_id
+    ? version_id_source === "cf_version_metadata"
+      ? "version_id is env.CF_VERSION_METADATA.id, read at serve time. It is not a baked constant."
+      : version_id_source === "version_id_var"
+        ? "version_id is the VERSION_ID deploy var. The Cloudflare version metadata binding was unset. It is not a baked constant."
+        : "version_id was supplied with this catalog read. It is not a baked constant."
+    : "GET /v1/software does not expose version_id. Cloudflare Worker version metadata (CF_VERSION_METADATA.id) is unbound in this isolate, and VERSION_ID is unset. No version_id was invented.";
+  return { git_sha: sha, updated_at: updated, version_id, version_id_source, version_id_note };
 }
 
 function doorHonesty(slug, kind) {
@@ -381,6 +406,7 @@ export function softwareCatalog(origin, products, extra = {}) {
     updated_at: extra.updated_at || extra.updatedAt || null,
     git_sha: extra.git_sha || extra.gitSha || null,
   };
+  const versionMeta = softwareMeta(extra.env || {}, { version_id: extra.version_id || null });
   const software = listSoftwareEntries(products, base, meta);
   return {
     ok: true,
@@ -398,6 +424,9 @@ export function softwareCatalog(origin, products, extra = {}) {
     sort_law: SOFTWARE_SORT_LAW,
     updated_at: meta.updated_at,
     git_sha: meta.git_sha,
+    version_id: versionMeta.version_id,
+    version_id_source: versionMeta.version_id_source,
+    version_id_note: versionMeta.version_id_note,
     count: software.length,
     live_count: software.filter((s) => s.status === "live").length,
     local_only_count: software.filter((s) => s.status === "local_only").length,

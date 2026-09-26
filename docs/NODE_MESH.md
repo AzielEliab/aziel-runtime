@@ -249,7 +249,7 @@ The Worker is one relay. Any qnm-node may run the same relay. A new node still n
 
 `mesh_broadcast` stays a hash receipt. Suite tip fan-out is a separate pull plane. Paper: [`docs/designs/SOT-SYNC-1.0.md`](designs/SOT-SYNC-1.0.md).
 
-- `GET /v1/mesh/sot` — tip from `GET /v1/software` (suite version, git sha, Softwares count, card versions). `version_id` is null.
+- `GET /v1/mesh/sot` — tip from `GET /v1/software` (suite version, git sha, Softwares count, card versions). `version_id` is `CF_VERSION_METADATA.id` when that binding is present, otherwise null.
 - `GET /v1/mesh/outlets` — registry (hub cite, JSON-LD, llms, catalog mirrors, frozen cite, joined `outlet_hook`).
 - `POST /v1/mesh/sot-sync` — `dry_run: true` previews every outlet. `confirm: true` writes the ledger, mints ACT-RECEIPT-1.0, and updates `last_applied` only where a write succeeded.
 

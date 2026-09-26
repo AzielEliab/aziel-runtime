@@ -56,7 +56,7 @@ Modes: **OFF** (GET/status never arms), **REFUSE** (named stub / halluc / lamb /
 | 4 | WhistleLock send / mail / release | REFUSE | stub `send` / `mail` / `release` |
 | 5 | MirageGrid VPN-hop / tunnel / mesh | REFUSE | stub `vpn-hop` / `hop` / `tunnel` / `mesh` |
 | 6 | AzielTether VPN / arm / mesh-join | REFUSE | stub `vpn` / `arm` / `mesh-join` |
-| 7 | VeilLock remote surveillance | REFUSE | stub `inject` / `intercept` / `facetime` |
+| 7 | VeilLock remote surveillance | REFUSE | local_only `inject` / `intercept` / `facetime` → `FG-LOCAL-ONLY` |
 | 8 | AZ-OS exec / shell / lattice | REFUSE | stub `exec` / `shell` / `lattice` (session VFS is ethics-only) |
 | 9 | AZMail deanonymize | REFUSE | stub `deanonymize` / `unmask` / `identify` / `harvest` / SMTP family |
 | 10 | PeaceLock fabricate | REFUSE | stub `transcript` / `motive` / `counterfactual` / `invent` |
