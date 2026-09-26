@@ -136,6 +136,13 @@ assert.match(about, /#aziel/);
 assert.doesNotMatch(about, /id="op-panel"/, "/about is cite/launch, not the operator rack");
 
 assert.match(softwareHtml, /Use in browser/);
+assert.match(softwareHtml, /data-slug="veillock"[^>]*data-public-door="false"/);
+assert.match(softwareHtml, /workspace#desk-veillock">Open local desk/);
+assert.match(softwareHtml, /data-cite-only/);
+assert.match(softwareHtml, /data-slug="trades-runtime"/);
+assert.match(softwareHtml, /live_backends false/);
+assert.doesNotMatch(softwareHtml, /data-software-row[^>]*trades-runtime/);
+assert.equal((softwareHtml.match(/<li data-software-row/g) || []).length, 42);
 assert.match(softwareHtml, /data-software-row/);
 assert.match(softwareHtml, /data-slug="azvpn"/);
 assert.match(softwareHtml, /href="https:\/\/aziel-runtime\.example\/workspace#task-azvpn"/);
@@ -149,7 +156,21 @@ assert.match(azvpnCard, /data-slug="azvpn"/);
 assert.doesNotMatch(azvpnCard, /href="null"/, "in-runtime AZVPN card must not emit Download desktop href=null");
 assert.match(azvpnCard, /no counted Worker tarball \(in-runtime\)/);
 assert.doesNotMatch(veillockCard, /data-slug="veillock"[^>]*data-kind="door"/, "VeilLock has no public FragGate button rack");
+assert.match(veillockCard, /Open local desk/);
+assert.match(veillockCard, /FG-LOCAL-ONLY/);
+assert.match(veillockCard, /proxy health is not a public door/);
+assert.doesNotMatch(veillockCard, /curl -X POST/);
 assert.match(veillockCard, /id="fold-pack-verify"/, "every /p/{slug} still ships FoldLock corpus-tip door");
+const embryoPage = await (await get("/p/embryolock")).text();
+assert.match(embryoPage, /data-stub="wipe"/);
+assert.match(embryoPage, /data-stub="unlock"/);
+assert.match(embryoPage, /disabled/);
+assert.doesNotMatch(embryoPage, /data-op="wipe"/);
+assert.match(embryoPage, /data-op="limitation"|data-op="doctor"|data-op="policy"/);
+const veilDescribe = await (await get("/v1/fraggate/describe?slug=veillock", { accept: "text/html" })).text();
+assert.match(veilDescribe, /product door=none/);
+assert.match(veilDescribe, /FG-LOCAL-ONLY/);
+assert.doesNotMatch(veilDescribe, /door=fraggate/);
 assert.match(foldCard, /data-op="fold-preview"/);
 
 for (const p of PRODUCTS) {

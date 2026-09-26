@@ -52,9 +52,9 @@ export const SOFTWARE_COPY = Object.freeze({
   },
   azchat: {
     one_line:
-      "Join a room from the all-rooms list, where a hosted room appears, and a private room requires a passphrase.",
+      "Join a room from the all-rooms list, where a hosted room appears, and a private room requires a passphrase. The product mesh hop starts off.",
     description:
-      "Use AZChat to join from the all-rooms list, to see a room you host in that list, and to require a passphrase on a private room. It exists for spendable-handle chat and an agent bus. Those room options are the AZChat product contract.",
+      "Use AZChat to join from the all-rooms list, to see a room you host in that list, and to require a passphrase on a private room. The product mesh hop starts off. It exists for spendable-handle chat and an agent bus. Those room options are the AZChat product contract.",
   },
   azcoherence: {
     one_line: "Review whether a primary score and an alternate hold together.",

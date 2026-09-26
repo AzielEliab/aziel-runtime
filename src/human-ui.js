@@ -7,7 +7,7 @@
  * Author: Aziel Eliab only.
  */
 
-import { LIVE_OPS } from "./fraggate/registry.js";
+import { LIVE_OPS, STUB_OPS } from "./fraggate/registry.js";
 import {
   AUTHOR_ALTERNATE_NAME,
   AUTHOR_NAME,
@@ -253,6 +253,8 @@ export const HUMAN_UI_CSS = `
   .actions button,.fg-ops button{background:#241c0d;color:#f0d78c;border:1px solid #5c4a1a;border-radius:8px;padding:.4rem .75rem;cursor:pointer;font:inherit;font-size:.85rem}
   .actions button:hover,.fg-ops button:hover{background:#33280f}
   .actions button:disabled,.fg-ops button:disabled{opacity:.55;cursor:wait}
+  .fg-ops button.fg-stub:disabled{opacity:.85;cursor:not-allowed;background:#12100c;color:#9aa3b2;border-color:#3d3420}
+  .fg-ops button.fg-stub:disabled:hover{background:#12100c}
   .fg-out,.ws-out{margin:.55rem 0 0;max-height:18rem;overflow:auto;background:#0e1014;padding:.7rem .8rem;border-radius:8px;font-size:.8rem;white-space:pre-wrap;word-break:break-word}
   .ws-out[data-kind="error"]{border:1px solid #6b2a2a;color:#f3c0c0}
   .ws-status{color:#9aa3b2;font-size:.88rem;margin:.25rem 0 .5rem}
@@ -463,7 +465,11 @@ function dashCardHtml(p, origin) {
       ? `<p class="hint">pairs with AZNet (order/token) — separate software; not a VPN; pairing ≠ tunnel</p>`
       : p.slug === "aznet"
         ? `<p class="hint">pairs with AZBrowser (order/token) — hash continuity / side-net; pairing ≠ tunnel</p>`
-        : "";
+        : p.slug === "embryolock"
+          ? `<p class="hint">Public door is health, policy, and hash cite. wipe, scorch, and unlock stay disabled on this mesh.</p>`
+          : p.slug === "azchat"
+            ? `<p class="hint">LIVE+bound. Product mesh hop starts off. Suite mesh is a separate surface.</p>`
+            : "";
   const fields = task
     ? `<a href="#task-${escapeHtml(p.slug)}">Labeled fields</a>`
     : `<a href="${escapeHtml(base)}/p/${escapeHtml(p.slug)}">Product card</a>`;
@@ -1012,11 +1018,29 @@ export function fragGateDoorHtml(p, origin) {
     .filter((op, i, all) => all.indexOf(op) === i)
     .map((op) => `<button type="button" data-op="${escapeHtml(op)}">${escapeHtml(doorOpLabel(p.slug, op))}</button>`)
     .join("");
+  const stubs = (STUB_OPS[p.slug] || []).slice();
+  const stubButtons = stubs
+    .map(
+      (op) =>
+        `<button type="button" class="fg-stub" disabled data-stub="${escapeHtml(op)}" title="FG-STUB — not on the public door">${escapeHtml(op)} — stub</button>`,
+    )
+    .join("");
+  const stubBlock = stubs.length
+    ? `<p class="hint">Disabled verbs refuse FG-STUB. They stay named and are not a live public door.</p><div class="fg-ops fg-stubs">${stubButtons}</div>`
+    : "";
+  const boundNote =
+    p.slug === "azchat"
+      ? `<p class="hint">LIVE+bound. Product mesh hop starts off. Suite mesh is a separate surface.</p>`
+      : p.slug === "embryolock"
+        ? `<p class="hint">wipe, scorch, and unlock stay on the device. The disabled verbs do not run on this public mesh.</p>`
+        : "";
   const example = JSON.stringify(p.example || {}, null, 2);
   const areaId = `fg-payload-${p.slug}`;
   return `<div class="fg-door" data-slug="${escapeHtml(p.slug)}" data-origin="${escapeHtml(origin)}" data-kind="door">
   <p>FragGate only — same LIVE_OPS as MCP <code>fraggate_call</code> / <code>POST /v1/fraggate/call</code>. One backend, two surfaces.</p>
+  ${boundNote}
   <div class="fg-ops">${buttons}</div>
+  ${stubBlock}
   <div class="field">
     <label for="${escapeHtml(areaId)}">Payload JSON for ${escapeHtml(p.name)}</label>
     <textarea id="${escapeHtml(areaId)}" class="fg-payload" name="payload">${escapeHtml(example)}</textarea>

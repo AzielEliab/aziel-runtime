@@ -19,7 +19,7 @@ import { SOFTWARE_HUBS as CROSS_MAP_HUBS, crossMapFields } from "./cross-map.js"
 import { CATALOG_COUNT_NOTE, MASTER_33_SLUGS, TAB_PLACEMENT_SLUGS, domainFields, domainMapView } from "./domain-map.js";
 import { embeddedDigest } from "./engines/digest.js";
 import { JEEVES_SUITE_HELP } from "./engines/aziel-corpus/jeeves.js";
-import { LIVE_OPS, NAMED_STUBS } from "./fraggate/registry.js";
+import { LIVE_OPS, NAMED_STUBS, STUB_OPS } from "./fraggate/registry.js";
 import { meshHint } from "./mesh.js";
 import { qnsHint } from "./qns.js";
 import { actReceiptHint } from "./library-receipts.js";
@@ -142,17 +142,65 @@ export function softwareMeta(env, extras = {}) {
   return { git_sha: sha, updated_at: updated };
 }
 
+function doorHonesty(slug, kind) {
+  const stubs = (STUB_OPS[slug] || []).slice();
+  if (kind === "worker_only") {
+    return {
+      public_door: false,
+      public_door_ops: [],
+      stub_ops: stubs,
+      door_label: "worker only — FragGate status none",
+      open_live_door: false,
+    };
+  }
+  if (kind === "stub") {
+    return {
+      public_door: false,
+      public_door_ops: [],
+      stub_ops: stubs,
+      door_label: "stub — refuse on the public door",
+      open_live_door: false,
+    };
+  }
+  const ops = Array.isArray(LIVE_OPS[slug]) ? LIVE_OPS[slug].slice() : [];
+  if (!ops.length) {
+    return {
+      public_door: false,
+      public_door_ops: [],
+      stub_ops: stubs,
+      door_label: "local only — no public FragGate door",
+      open_live_door: false,
+    };
+  }
+  return {
+    public_door: true,
+    public_door_ops: ops,
+    stub_ops: stubs,
+    door_label: stubs.length ? "live FragGate door — named stub ops refuse" : "live FragGate door",
+    open_live_door: true,
+  };
+}
+
 function agentHints(base, slug, status) {
   const root = String(base || "").replace(/\/$/, "");
+  const executes = status === "live";
+  let pipeline = "fraggate_list → fraggate_describe → fraggate_call";
+  if (status === "local_only") {
+    pipeline = "fraggate_list → fraggate_describe. fraggate_call refuses FG-LOCAL-ONLY. No public door.";
+  } else if (status === "stub") {
+    pipeline = "fraggate_list → fraggate_describe. fraggate_call refuses FG-STUB. Not a live public door.";
+  }
   return {
     mcp: `${root}/mcp`,
     skill: `${root}/v1/skill`,
     fraggate_list: `${root}/v1/fraggate/list`,
     fraggate_describe: `${root}/v1/fraggate/describe?slug=${encodeURIComponent(slug)}`,
     fraggate_call: `${root}/v1/fraggate/call`,
+    fraggate_call_executes: executes,
+    open_live_door: executes,
     software: `${root}/v1/software`,
     pull: status === "stub" ? null : `${root}/v1/pull/${slug}`,
-    pipeline: "fraggate_list → fraggate_describe → fraggate_call",
+    pipeline,
   };
 }
 
@@ -168,6 +216,7 @@ export function liveSoftwareCard(product, origin, meta = {}) {
   const bucket = softwareBucket(product.name, product.slug);
   const domain = domainFields(product.slug);
   const doorLive = catalogDoorLive(product.slug);
+  const honesty = doorHonesty(product.slug, doorLive ? "live" : "local_only");
   return {
     slug: product.slug,
     name: product.name,
@@ -177,6 +226,7 @@ export function liveSoftwareCard(product, origin, meta = {}) {
     placement: domain.placement,
     status: doorLive ? "live" : "local_only",
     fraggate_status: doorLive ? "live" : "local_only",
+    ...honesty,
     version: product.version || null,
     one_line: product.oneLine || product.one_line || product.name,
     description: softwareDescription(product.slug, product),
@@ -187,7 +237,7 @@ export function liveSoftwareCard(product, origin, meta = {}) {
     primary_host: discovery.primary_host,
     github: product.github || null,
     mcp: `${base}/mcp`,
-    agent: agentHints(base, product.slug, "live"),
+    agent: agentHints(base, product.slug, doorLive ? "live" : "local_only"),
     engine_digest: embeddedDigest(product.slug) || null,
     updated_at: meta.updated_at || null,
     git_sha: meta.git_sha || null,
@@ -212,6 +262,13 @@ export function liveSoftwareCard(product, origin, meta = {}) {
       : {}),
     ...(product.slug === "aziel-corpus" ? websiteDesignsOnCorpusCard(base) : {}),
     ...(product.slug === "aziel-corpus" ? { suite_help: JEEVES_SUITE_HELP } : {}),
+    ...(product.slug === "azchat"
+      ? {
+          mesh_default: "off",
+          product_mesh: "default_off",
+          suite_mesh_is_separate: true,
+        }
+      : {}),
   };
 }
 
@@ -222,6 +279,7 @@ export function workerOnlySoftwareCard(spec, origin, meta = {}) {
   const bucket = softwareBucket(spec.name, spec.slug);
   const domain = domainFields(spec.slug);
   const oneLine = softwareOneLine(spec.slug, spec.one_line || spec.name);
+  const honesty = doorHonesty(spec.slug, "worker_only");
   return {
     slug: spec.slug,
     name: spec.name,
@@ -231,6 +289,7 @@ export function workerOnlySoftwareCard(spec, origin, meta = {}) {
     placement: domain.placement,
     status: "live",
     fraggate_status: "none",
+    ...honesty,
     version: spec.version || VERSIONS[spec.slug] || null,
     one_line: oneLine,
     description: softwareDescription(spec.slug, spec),
@@ -250,6 +309,8 @@ export function workerOnlySoftwareCard(spec, origin, meta = {}) {
       fraggate_call: null,
       software: `${base}/v1/software`,
       pull: null,
+      fraggate_call_executes: false,
+      open_live_door: false,
       pipeline: "Live Worker only. FragGate status is none. Do not invent fraggate_call ops.",
     },
     engine_digest: null,
@@ -273,6 +334,7 @@ export function stubSoftwareCard(spec, origin, meta = {}) {
   const discovery = discoveryHostFields(base);
   const bucket = softwareBucket(spec.name, spec.slug);
   const domain = domainFields(spec.slug);
+  const honesty = doorHonesty(spec.slug, "stub");
   return {
     slug: spec.slug,
     name: spec.name,
@@ -281,6 +343,7 @@ export function stubSoftwareCard(spec, origin, meta = {}) {
     domain_id: domain.domain_id,
     placement: domain.placement,
     status: "stub",
+    ...honesty,
     version: spec.version || null,
     one_line: spec.one_line || spec.description || spec.note || spec.name,
     description: spec.description || spec.one_line || spec.note || spec.name,
