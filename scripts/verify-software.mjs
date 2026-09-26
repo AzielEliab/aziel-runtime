@@ -518,15 +518,28 @@ const mcp = await handler(
   new Request(origin + "/mcp", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "runtime_software", arguments: {} } }),
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "Softwares", arguments: {} } }),
   }),
   {},
 );
 const mcpBody = await mcp.json();
 assert.ok(mcpBody.result);
+assert.notEqual(mcpBody.result.isError, true);
 assert.match(JSON.stringify(mcpBody.result), /embryolock/);
 assert.match(JSON.stringify(mcpBody.result), /azcorpus/);
 assert.match(JSON.stringify(mcpBody.result), /azlibrary/);
+
+const softwareAlias = await handler(
+  new Request(origin + "/mcp", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 11, method: "tools/call", params: { name: "runtime_software", arguments: {} } }),
+  }),
+  {},
+);
+const softwareAliasBody = await softwareAlias.json();
+assert.notEqual(softwareAliasBody.result.isError, true);
+assert.match(JSON.stringify(softwareAliasBody.result), /embryolock/);
 
 const list = await handler(
   new Request(origin + "/mcp", {
@@ -538,7 +551,9 @@ const list = await handler(
 );
 const tools = (await list.json()).result.tools;
 const byName = Object.fromEntries(tools.map((t) => [t.name, t]));
-assert.ok(byName.runtime_software);
+assert.ok(byName.Softwares);
+assert.equal(byName.runtime_software, undefined);
+assert.equal(tools.length, 36);
 assert.match(byName.fraggate_list.title, /Step 1/);
 assert.match(byName.fraggate_describe.title, /Step 2/);
 assert.match(byName.fraggate_call.title, /Step 3/);
@@ -553,6 +568,7 @@ assert.match(sitemap, /\/v1\/fraggate\/software/);
 const llms = await (await get("/llms.txt")).text();
 assert.match(llms, /\/v1\/software/);
 assert.match(llms, /update\/check/);
+assert.match(llms, /tools\/list name Softwares/);
 
 const openapi = await (await get("/openapi.json")).json();
 assert.ok(openapi.paths["/v1/software"]);

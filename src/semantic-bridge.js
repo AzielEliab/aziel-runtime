@@ -413,7 +413,7 @@ Agents (MCP / OpenAPI in AI clients) and humans (Worker UI + counted \`/download
 
 ### Download (agent)
 
-1. \`GET ${host}/v1/software\` or MCP \`runtime_software\` — catalog cards include \`download_url\`. The same JSON names mesh-resident website designs **azcorpus** + **azlibrary** (\`website_designs\`).
+1. \`GET ${host}/v1/software\` or MCP \`Softwares\` (\`runtime_software\` remains a tools/call alias) — catalog cards include \`download_url\`. The same JSON names mesh-resident website designs **azcorpus** + **azlibrary** (\`website_designs\`).
 2. \`GET ${host}/v1/update/check?slug={slug}&version={installed}\` — if \`update_available\`, fetch \`download_url\` (counted product Worker \`/download\`).
 3. \`GET ${host}/v1/pull/{slug}\` — pull record with \`download\`, skill, ops. MCP \`runtime_pull\`.
 4. \`GET ${host}/v1/update/manifest\` — latest versions.

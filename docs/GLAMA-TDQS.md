@@ -18,7 +18,7 @@ MCP `tools/list` is built by `buildMcpToolList` in [`src/mcp-surface.js`](../src
 | Advanced session | `sessionMcpTools()` in `src/session-http.js` (titles/annotations via `annotateSessionTool`) |
 | Shared annotations / output schema / description template | `src/mcp-schema.js` |
 
-Live name inventory is `PUBLIC_MCP_TOOLS` in `src/fraggate/codes.js` (36 names). `scripts/verify-mcp-tdqs.mjs` asserts that list is unchanged.
+Live name inventory is `PUBLIC_MCP_TOOLS` in `src/fraggate/codes.js` (36 names). The hub catalog name on that list is `Softwares`. `runtime_software` is a tools/call alias and is not a 37th name. `scripts/verify-mcp-tdqs.mjs` asserts that list.
 
 ## Observed Glama card (2026-09-12)
 
@@ -43,7 +43,7 @@ This follow-up keeps the same 36 names and the same handlers. It adds refuse cod
 |---------|-------------|---------------------------------------------------------------|
 | LOCKSET / ChainLock write+tip | `chainlock_seal` 4.1, `chainlock_append` 4.2, `chainlock_tip` 4.2 | seal ≠ `runtime_session_close`; empty-vault; `ts` never backdates; omit `c`/`chain` defaults to **session** on append/tip; `no-fact` / `unknown-chain` / `card-cap`; empty tip is `tip=null`/`empty=true` |
 | Session plumbing | `runtime_session_*` 4.2–4.3 | `session_id`/`id` aliases; 6h TTL; receipt cap 64; `session_closed` / `session_not_found` / `session_expired`; exec does not auto-open and does not treat leftover keys as payload |
-| Hub catalog | `runtime_software` 4.1, `runtime_pull` 4.2 | Software-tab JSON ≠ hashed registry; never enables mesh; pull `product` alias; unknown slug is `unknown product` (not `FG-HALLUC-TOOL`) |
+| Hub catalog | `Softwares` (was scored as `runtime_software`) 4.1, `runtime_pull` 4.2 | Software-tab JSON ≠ hashed registry; never enables mesh; pull `product` alias; unknown slug is `unknown product` (not `FG-HALLUC-TOOL`) |
 | FragGate proof/list | `fraggate_list` 4.3, `fraggate_verify` 4.3 | empty `{}` on verify refuses `FG-HALLUC-TOOL`; digest-only = whole registry hash; **LIVE_OPS token strings kept** on list/call for azhub/azinterface/azbrowser verify scripts |
 | Memory / library | `memory_recall` 4.2, `memory_get` 4.3, `library_lookup` 4.3 | recall default depth **5** + `CHAIN_VERIFY_FAIL`; get `AKM-NOT-FOUND`; library `q` is corpus text, extra keys ride as payload |
 
@@ -90,12 +90,12 @@ If Glama’s parser skips prerelease strings (`2.0.0-rc1`), the listing release 
 | If you want… | Use | Not |
 |--------------|-----|-----|
 | How to use this software | `runtime_skill` | `runtime_manifest` |
-| Discovery first (hashed) | `fraggate_list` | `fraggate_describe`, `runtime_software` |
+| Discovery first (hashed) | `fraggate_list` | `fraggate_describe`, `Softwares` |
 | Inspect one known name | `fraggate_describe` | `fraggate_call`, `runtime_pull` |
 | Prove a digest | `fraggate_verify` | `fraggate_describe` |
 | Execute slug+op | `fraggate_call` | `runtime_run`, `runtime_session_exec` |
-| Hub Software tab | `runtime_software` (GET `/v1/software`) | `fraggate_list` |
-| Skill URL bootstrap | `runtime_bundle` | `runtime_software` |
+| Hub Software tab | `Softwares` (GET `/v1/software`; `runtime_software` is a tools/call alias) | `fraggate_list` |
+| Skill URL bootstrap | `runtime_bundle` | `Softwares` |
 | Gate a proposal without exec | `decisiongate_check` | `fraggate_call` |
 | Public corpus cite | `library_lookup` | `memory_recall`, `chainlock_recall` |
 | Grounded stamps | `chainlock_recall` | `memory_recall` |

@@ -8,7 +8,7 @@ import { buildMcpToolList, mcpInitializeInstructions } from "../src/mcp-surface.
 import { RUNTIME_VERSION } from "../src/runtime-api.js";
 import { sessionMcpTools } from "../src/session-http.js";
 
-/** Pre-change inventory from main (1.9.3). Do not add or rename tools in a metadata pass. */
+/** Frozen tools/list names. Count stays 36. Hub catalog public name is Softwares. */
 const PRE_CHANGE_TOOL_NAMES = Object.freeze([
   "runtime_skill",
   "fraggate_list",
@@ -35,7 +35,7 @@ const PRE_CHANGE_TOOL_NAMES = Object.freeze([
   "memory_calibrate",
   "memory_recall",
   "memory_get",
-  "runtime_software",
+  "Softwares",
   "runtime_bundle",
   "runtime_pull",
   "runtime_run",
@@ -133,7 +133,7 @@ assert.match(instructions, new RegExp(`Current version remains ${RUNTIME_VERSION
 
 const firstSentence = (text) => String(text || "").split(/(?<=\.)\s+/)[0];
 const pairs = [
-  ["fraggate_list", "runtime_software"],
+  ["fraggate_list", "Softwares"],
   ["fraggate_describe", "runtime_pull"],
   ["fraggate_call", "runtime_run"],
   ["chainlock_recall", "memory_recall"],
@@ -166,8 +166,13 @@ assert.match(byName.memory_observe.description, /no memory_delete|Append-only/);
 assert.match(byName.memory_recall.description, /CHAIN_VERIFY_FAIL/);
 assert.match(byName.memory_recall.description, /defaults to 1|default depth is 5|Omit depth to rank at 5/);
 assert.match(byName.memory_get.description, /AKM-NOT-FOUND/);
-assert.match(byName.runtime_software.description, /Not the hashed/);
-assert.match(byName.runtime_software.description, /Never enables mesh|never enables mesh/i);
+assert.match(byName.Softwares.description, /Not the hashed/);
+assert.match(byName.Softwares.description, /Never enables mesh|never enables mesh/i);
+assert.match(byName.Softwares.description, /runtime_software is a tools\/call alias/);
+assert.equal(byName.runtime_software, undefined);
+assert.equal(names.includes("Softwares"), true);
+assert.equal(names.includes("runtime_software"), false);
+assert.equal(names.length, 36);
 assert.match(byName.runtime_bundle.description, /not Software-tab/);
 assert.match(byName.runtime_pull.description, /unknown product/);
 assert.match(byName.runtime_pull.inputSchema.properties.product.description, /Alias of slug/);
@@ -218,5 +223,7 @@ for (const name of [
   assert.match(byName[name].description, /confirm=true/);
 }
 assert.match(instructions, /chainlock_seal writes a local LOCKSET/);
+assert.match(instructions, /Call Softwares \(tools\/list name Softwares\)/);
+assert.match(instructions, /runtime_software remains a tools\/call alias/);
 
 console.log(`ok mcp-tdqs ${names.length} tools, names frozen, schema coverage complete`);
