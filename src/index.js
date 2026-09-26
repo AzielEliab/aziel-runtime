@@ -2128,6 +2128,8 @@ const PAGE_CSS = `
   .fg-ops { display: flex; flex-wrap: wrap; gap: .4rem; margin: 0 0 .55rem; }
   .fg-ops button { background: #241c0d; color: #f0d78c; border: 1px solid #5c4a1a; border-radius: 8px; padding: .35rem .65rem; cursor: pointer; font: inherit; font-size: .82rem; }
   .fg-ops button:hover { background: #33280f; }
+  .fg-ops button.fg-stub:disabled { opacity: .85; cursor: not-allowed; background: #12100c; color: #9aa3b2; border-color: #3d3420; }
+  .fg-ops button.fg-stub:disabled:hover { background: #12100c; }
   .fg-door textarea { width: 100%; min-height: 4.2rem; background: #0e1014; color: #e8eaef; border: 1px solid #2a3140; border-radius: 8px; padding: .5rem .6rem; font: .82rem/1.4 ui-monospace, monospace; box-sizing: border-box; }
   .fg-out { margin: .55rem 0 0; max-height: 16rem; }
   footer.donate { margin: 2.2rem 0 0; padding-top: 1rem; border-top: 1px solid #2a3140; }
@@ -2144,23 +2146,26 @@ function doorOnly(p) {
 
 function productCardHtml(p, origin, stats) {
   const u = productUrls(p, origin);
-  const ops = doorOnly(p)
+  const onDoor = doorOnly(p);
+  const ops = onDoor
     ? p.ops
         .map((o) => `<code>POST /v1/fraggate/call { slug: "${p.slug}", op: "${o.op}" }</code> — ${escapeHtml(o.summary)}`)
         .join("<br>")
     : p.ops
-        .map((o) => `<code>${o.method} /p/${p.slug}/${o.op}</code> — ${escapeHtml(o.summary)}`)
+        .map((o) => `<code>${escapeHtml(o.op)}</code> — ${escapeHtml(o.summary)} Local catalog step. Not a public FragGate op.`)
         .join("<br>");
   const banner = p.banner ? `<p class="banner">${escapeHtml(p.banner)}</p>` : "";
-  const example = JSON.stringify(p.example, null, 2);
   const firstPost = p.ops.find((o) => o.method === "POST") || p.ops[0];
-  const invokePre = doorOnly(p)
+  const invokePre = onDoor
     ? `<pre>curl -s -A 'Mozilla/5.0' -X POST ${origin}/v1/fraggate/call \\
   -H 'content-type: application/json' \\
   -d '${JSON.stringify({ slug: p.slug, op: firstPost.op, payload: p.example || {} }).replace(/'/g, "’")}'</pre>`
-    : `<pre>curl -X ${firstPost.method} ${origin}/p/${p.slug}/${firstPost.op} \\
-  -H 'content-type: application/json' \\
-  -d '${example.replace(/'/g, "’")}'</pre>`;
+    : `<pre>No public FragGate door for ${escapeHtml(p.slug)}.
+fraggate_call refuses FG-LOCAL-ONLY.
+Local desk: ${origin}/workspace#desk-${escapeHtml(p.slug)}
+GET or POST ${origin}/p/${escapeHtml(p.slug)}/${escapeHtml(firstPost.op)} is proxy-not-exec and does not open that door.</pre>`;
+  const useHref = onDoor ? useInBrowserHref(origin, p.slug) : `${origin}/workspace#desk-${p.slug}`;
+  const useLabel = onDoor ? "Use in browser" : "Open local desk";
   const count =
     stats && typeof stats.downloads === "number"
       ? ` <span class="count">(${stats.downloads} counted)</span>`
@@ -2179,7 +2184,7 @@ function productCardHtml(p, origin, stats) {
   ${launchHashtagChipsHtml(p)}
   ${banner}
   <p class="meta">
-    <a href="${useInBrowserHref(origin, p.slug)}">Use in browser</a>
+    <a href="${useHref}">${useLabel}</a>
     ${u.download ? `<a href="${u.download}">Download desktop</a>` : `<span class="slug">no counted Worker tarball (in-runtime)</span>`}
     <a href="${origin}/mcp">Connect AI</a>
     <a href="${p.github}">GitHub</a>
@@ -2191,7 +2196,7 @@ function productCardHtml(p, origin, stats) {
     <a href="${u.skill}">/v1/skill</a>
     <a href="${u.pull}">pull</a>
     <a href="${u.pull_skill}">pull skill</a>
-    <a href="${origin}/p/${p.slug}/health">catalog proxy health</a>${doi}${tarball}
+    ${onDoor ? `<a href="${origin}/p/${p.slug}/health">catalog proxy health</a>` : `<span class="slug">proxy health is not a public door</span>`}${doi}${tarball}
   </p>
   <p>${u.worker_home ? `Worker: <a href="${u.worker_home}">${escapeHtml(u.worker_home)}</a>` : "In-runtime engine (no separate product Worker)."}
      · <a href="${u.openapi}">${u.worker_home ? "product OpenAPI" : "runtime OpenAPI"}</a>

@@ -41,6 +41,7 @@ import { distributionDoorsHtml } from "./ai-clients.js";
 import { aboutAzielStripHtml, workerLaunchHtml } from "./about-aziel.js";
 import { launchHashtagChipsHtml } from "./launch-parts.js";
 import { useInBrowserHref } from "./human-hrefs.js";
+import { sisterProductCiteField } from "./sister-products.js";
 import { suiteDownloadHtml } from "./suite-pack.js";
 import { rewriteLiveCallingDisplay } from "./calling-name.js";
 import { platformHeadLinks } from "./platforms.js";
@@ -380,11 +381,19 @@ export function softwareCatalogHtml(origin, catalog, css, calling = null) {
         : "";
       const gh = s.github ? ` · <a href="${escapeHtml(s.github)}">GitHub</a>` : "";
       const useHref = s.worker_only ? s.web_app || s.worker_home || card : useInBrowserHref(base, s.slug);
-      const use = ` · <a href="${escapeHtml(useHref)}">Use in browser</a>`;
+      const use =
+        s.status === "local_only"
+          ? ` · <a href="${escapeHtml(base)}/workspace#desk-${escapeHtml(s.slug)}">Open local desk</a>`
+          : s.status === "stub"
+            ? ` · <span class="slug">stub — describe only, no live door</span>`
+            : s.worker_only || s.public_door === false
+              ? ` · <a href="${escapeHtml(useHref)}">Open Worker app</a>`
+              : ` · <a href="${escapeHtml(useHref)}">Use in browser</a>`;
       const download = s.download_url ? ` · <a href="${escapeHtml(s.download_url)}">${s.worker_only ? "optional zip" : "Download desktop"}</a>` : "";
-      const hay = `${s.name} ${s.slug} ${s.bucket} ${s.status} ${s.one_line || ""}`.toLowerCase();
+      const hay = `${s.name} ${s.slug} ${s.bucket} ${s.status} ${s.door_label || ""} ${s.one_line || ""}`.toLowerCase();
       const describeLink = s.worker_only ? "" : ` · <a href="${escapeHtml(describe)}">describe</a>`;
-      return `    <li data-software-row data-slug="${escapeHtml(s.slug)}" data-bucket="${escapeHtml(s.bucket || "")}" data-search="${escapeHtml(hay)}"><a href="${escapeHtml(card)}">${escapeHtml(s.name)}</a> <span class="slug">${escapeHtml(s.bucket)} · ${escapeHtml(s.status)}</span> — ${escapeHtml(s.one_line || "")}${launchHashtagChipsHtml({ slug: s.slug, name: s.name, oneLine: s.one_line })}${use}${download} · <a href="${escapeHtml(base)}/mcp">Connect AI</a>${describeLink}${home}${gh}</li>`;
+      const badge = s.door_label || s.status;
+      return `    <li data-software-row data-slug="${escapeHtml(s.slug)}" data-bucket="${escapeHtml(s.bucket || "")}" data-public-door="${s.public_door === true ? "true" : "false"}" data-search="${escapeHtml(hay)}"><a href="${escapeHtml(card)}">${escapeHtml(s.name)}</a> <span class="slug">${escapeHtml(s.bucket)} · ${escapeHtml(badge)}</span> — ${escapeHtml(s.one_line || "")}${launchHashtagChipsHtml({ slug: s.slug, name: s.name, oneLine: s.one_line })}${use}${download} · <a href="${escapeHtml(base)}/mcp">Connect AI</a>${describeLink}${home}${gh}</li>`;
     })
     .join("\n");
   const product = calling && calling.rotated ? calling.calling_name : PRODUCT_NAME;
@@ -418,6 +427,15 @@ ${namedComponentsHtml()}
   <ol>
 ${rows}
   </ol>
+  <h2>Cite only</h2>
+  <ul>
+${(sisterProductCiteField().products || [])
+  .map(
+    (p) =>
+      `    <li data-cite-only data-slug="${escapeHtml(p.slug)}"><strong>${escapeHtml(p.name)}</strong> <span class="slug">cite only · live_backends ${p.live_backends === true ? "true" : "false"} · not a Softwares card · no FragGate door</span> — ${escapeHtml(p.one_line || "")}</li>`,
+  )
+  .join("\n")}
+  </ul>
   <script>
 (function () {
   var input = document.getElementById("software-filter");
@@ -496,11 +514,19 @@ export function describeDocsHtml(origin, body, css) {
   const title = `${name} — FragGate describe — ${PRODUCT_NAME}`;
   const description = `${name}: ${(body && (body.description || body.note)) || "FragGate describe."} Author Aziel Eliab. Apache-2.0.`;
   const canonical = `/v1/fraggate/describe?slug=${encodeURIComponent(slug)}`;
+  const localOnly = body.local_only === true || body.status === "local_only";
+  const stub = body.stub === true || body.status === "stub";
+  const productDoor = localOnly || stub ? "none" : "fraggate";
   const ops = Array.isArray(body.ops) && body.ops.length ? body.ops.map((o) => `<code>${escapeHtml(o)}</code>`).join(" ") : "<em>none</em>";
   const stubs =
     Array.isArray(body.stub_ops) && body.stub_ops.length
       ? body.stub_ops.map((o) => `<code>${escapeHtml(o)}</code>`).join(" ")
       : "<em>none listed</em>";
+  const callLine = localOnly
+    ? `Call refuses <code>FG-LOCAL-ONLY</code>. Public door ops are empty. FragGate stays the registry and does not execute this Software.`
+    : stub
+      ? `Call refuses <code>FG-STUB</code>. This name is not a live public door.`
+      : `Call: <code>POST ${base}/v1/fraggate/call { slug: "${escapeHtml(slug)}", op }</code>.`;
   const peers = Array.isArray(body.peers)
     ? body.peers
         .map((p) => `<li>${escapeHtml(p.name || p.slug)} (${escapeHtml(p.role || p.kind || "peer")})</li>`)
@@ -515,17 +541,26 @@ export function describeDocsHtml(origin, body, css) {
       : "";
   const inner = `  <p><a href="${base}/">← ${escapeHtml(PRODUCT_NAME)}</a> · <a href="${base}/v1/software">Softwares</a> · <a href="${base}/v1/fraggate/describe">describe index</a></p>
   <h1>${escapeHtml(name)}</h1>
-  <p class="slug">${escapeHtml(slug)} · ${escapeHtml(body.status || "")} · door=fraggate</p>
+  <p class="slug">${escapeHtml(slug)} · ${escapeHtml(body.status || "")} · product door=${escapeHtml(productDoor)} · registry is FragGate</p>
   <p class="lead">${escapeHtml(body.description || body.note || "")}</p>
   <p>Author: <strong>${escapeHtml(AUTHOR_NAME)}</strong> (also known as ${escapeHtml(AUTHOR_ALTERNATE_NAME)}). JSON: <a href="${base}${canonical}">${canonical}</a>. Catalog card: ${
-    body.stub ? `<a href="${base}${canonical}">stub — describe only</a>` : `<a href="${base}/p/${escapeHtml(slug)}">/p/${escapeHtml(slug)}</a>`
-  }. Call: <code>POST ${base}/v1/fraggate/call { slug: "${escapeHtml(slug)}", op }</code>. GET /v1/mesh never enables.</p>
+    body.stub || localOnly
+      ? localOnly
+        ? `<a href="${base}/workspace#desk-${escapeHtml(slug)}">local desk — no public door</a>`
+        : `<a href="${base}${canonical}">stub — describe only</a>`
+      : `<a href="${base}/p/${escapeHtml(slug)}">/p/${escapeHtml(slug)}</a>`
+  }. ${callLine} GET /v1/mesh never enables.</p>
   ${worker}
   ${gh}
   <h2>LIVE_OPS</h2>
   <p>${ops}</p>
   <h2>Stub ops (refuse)</h2>
   <p>${stubs}</p>
+  ${
+    Array.isArray(body.stub_ops) && body.stub_ops.length
+      ? `<p class="hint">Those stub names refuse FG-STUB. They are not a live public door.</p>`
+      : ""
+  }
   ${peers ? `<h2>Peers</h2><ul>${peers}</ul>` : ""}
   <h2>Softwares hubs</h2>
   ${hubListHtml()}

@@ -407,8 +407,31 @@ for (const [slug, patterns] of Object.entries(USE_PURPOSE)) {
     assert.match(hay, re, `${slug} must keep use-purpose ${re}`);
   }
 }
-assert.equal(body.software.find((s) => s.slug === "veillock").local_only, true);
-assert.equal(body.software.find((s) => s.slug === "veillock").door, "none");
+const veilCard = body.software.find((s) => s.slug === "veillock");
+assert.equal(veilCard.local_only, true);
+assert.equal(veilCard.door, "none");
+assert.equal(veilCard.public_door, false);
+assert.deepEqual(veilCard.public_door_ops, []);
+assert.equal(veilCard.open_live_door, false);
+assert.equal(veilCard.agent.open_live_door, false);
+assert.equal(veilCard.agent.fraggate_call_executes, false);
+assert.match(veilCard.agent.pipeline, /FG-LOCAL-ONLY/);
+assert.match(veilCard.door_label, /no public FragGate door/);
+const embryoCard = body.software.find((s) => s.slug === "embryolock");
+assert.equal(embryoCard.public_door, true);
+assert.equal(embryoCard.open_live_door, true);
+assert.ok(embryoCard.public_door_ops.includes("limitation"));
+assert.ok(embryoCard.stub_ops.includes("wipe"));
+assert.ok(embryoCard.stub_ops.includes("unlock"));
+assert.ok(!embryoCard.public_door_ops.includes("wipe"));
+assert.match(azchatCard.one_line, /mesh hop starts off/);
+assert.equal(azchatCard.mesh_default, "off");
+assert.equal(azchatCard.public_door, true);
+const whiteCard = body.software.find((s) => s.slug === "whitestone");
+assert.equal(whiteCard.public_door, false);
+assert.equal(whiteCard.open_live_door, false);
+assert.match(whiteCard.door_label, /FragGate status none/);
+assert.equal(body.count, 42);
 assert.match(body.mesh.note, /worker_hardware:false/);
 assert.match(SOFTWARE_COPY.godlock.description, /Aziel Eliab only/);
 const extras = catalogExtraCards(origin);
