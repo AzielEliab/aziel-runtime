@@ -32,7 +32,7 @@ assert.equal(PUBLIC_MCP_TOOLS.includes("fraggate_background"), false);
 
 const instructions = mcpInitializeInstructions({});
 assert.match(instructions, /Start here/);
-assert.match(instructions, /Call the Softwares tool/);
+assert.match(instructions, /Call Softwares \(tools\/list name Softwares\)/);
 assert.match(instructions, /The door runs before the tool/);
 assert.match(instructions, /stamps chainlock, temporallock, and forgereceipts/);
 assert.match(instructions, /Auto-wire/);

@@ -61,8 +61,24 @@ export const PUBLIC_FABRIC_TOOLS = [
   "memory_get",
 ];
 
+export const PUBLIC_SOFTWARE_TOOL = "Softwares";
+
+/**
+ * tools/call aliases for the Softwares catalog. Not extra tools/list names.
+ * runtime_software is the previous public name. softwares is the lowercase
+ * form agents extract from "call Softwares".
+ */
+export const SOFTWARE_TOOL_ALIASES = Object.freeze(["runtime_software", "softwares"]);
+
+export function resolvePublicToolName(name) {
+  const raw = String(name || "").trim();
+  if (raw === PUBLIC_SOFTWARE_TOOL) return raw;
+  if (SOFTWARE_TOOL_ALIASES.includes(raw)) return PUBLIC_SOFTWARE_TOOL;
+  return raw;
+}
+
 export const PUBLIC_HELPER_TOOLS = [
-  "runtime_software",
+  PUBLIC_SOFTWARE_TOOL,
   "runtime_bundle",
   "runtime_pull",
   "runtime_run",

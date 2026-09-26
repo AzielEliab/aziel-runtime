@@ -134,7 +134,7 @@ export function websiteDesignsSkillMarkdown(origin) {
 
 **azcorpus** and **azlibrary** are mesh-resident website designs on the library hub (\`${field.hub}\`). They are **downloadable to nodes**. They are **not** Softwares-tab products, **not** FragGate slugs, and **not** a fifth product.
 
-- Download is **open** for all AI clients (MCP \`runtime_software\` / \`GET /v1/software\`, OpenAPI, counted \`${field.hub}download\`).
+- Download is **open** for all AI clients (MCP \`Softwares\` / \`GET /v1/software\`, OpenAPI, counted \`${field.hub}download\`).
 - **azlibrary upload** is **API token only**. Never embed the secret in catalog, skill, MCP schema, OpenAPI examples, or cite.
 - Dual-surface: agents stay in MCP / OpenAPI; humans use the library Worker UI + counted \`/download\`.
 

@@ -87,7 +87,7 @@ assert.match(
 );
 assert.match(
   glamaDoc,
-  /2\. In any MCP client, call the Softwares tool\. The door runs first/,
+  /2\. In any MCP client, call Softwares \(tools\/list name Softwares\)\. The door runs first/,
 );
 assert.match(glamaDoc, /Worker remote: `https:\/\/aziel-runtime\.vibelock\.workers\.dev\/mcp`/);
 assert.match(glamaDoc, /`decisiongate_check` with a short proposal and `dry_run:true`/);

@@ -79,14 +79,14 @@ export function mcpInitializeInstructions(env = {}) {
     `Current MCP serverInfo.version: ${RUNTIME_VERSION} (same as package.json). 1.6.2 is superseded heritage, not the current server. Author identity is aziel eliab only. ` +
     "This runtime is a node-meshed orchestration suite of MCP-connected software designed to coordinate specialized tools through a shared, security-gated runtime while preserving provenance, chain-of-custody, temporal integrity, and auditable execution. " +
     "Use the author's software in the current chat. One door — discover, route, refuse. " +
-    "Call the Softwares tool. The door runs before the tool. Callers do not start with a door tool, chainlock_append, temporallock, or forgereceipts. " +
+    "tools/list name Softwares is the catalog. runtime_software remains a tools/call alias and is not a second listed name. Callers do not start with a door tool, chainlock_append, temporallock, or forgereceipts. " +
     "fraggate_call is THE single door. Every other tool enters that door first, then runs. " +
     "Diagnostics stay available: fraggate_list, fraggate_describe, fraggate_verify, fraggate_call. " +
     "Prefer the tool that does the work, GET /v1/software, and POST /mcp. Hubs refresh Software tabs from /v1/software. " +
     "Mutating tools require confirm=true or dry_run=true. " +
     "A call still walks CallEnvelope → the door → Lamb Lens → SweepGate → Sentinel → Provenance → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → RoseClock → TemporalLock → ChainLock-OUT → ForgeReceipts → Return. " +
     "Fabric MCP names mesh_* chainlock_* memory_* decisiongate_check library_lookup are kernel-direct wrappers after the door (same kernels the door mesh/memory/chainlock use). Not MASTER-33. Not a second Softwares door. " +
-    "Neighbor map (do not confuse siblings): runtime_skill = how-to markdown; runtime_manifest = machine JSON (advanced/internal); runtime_software = hub Software-tab cards; runtime_bundle = skill-URL bootstrap; runtime_pull = one product card; fraggate_list = hashed live/stub/digest roster; fraggate_describe = one registry card; fraggate_verify = digest proof; fraggate_call = default exec. " +
+    "Neighbor map (do not confuse siblings): runtime_skill = how-to markdown; runtime_manifest = machine JSON (advanced/internal); Softwares = hub Software-tab cards (runtime_software is a tools/call alias, not a second tools/list name); runtime_bundle = skill-URL bootstrap; runtime_pull = one product card; fraggate_list = hashed live/stub/digest roster; fraggate_describe = one registry card; fraggate_verify = digest proof; fraggate_call = default exec. " +
     "decisiongate_check gates a proposal without exec. library_lookup is public corpus cite (not memory, not ChainLock). " +
     "ChainLock is append-only (no chainlock_delete). A ledger-bearing tool stamps chainlock on its own. chainlock_append, chainlock_tip, chainlock_recall, chainlock_verify, and chainlock_seal stay for diagnostics. chainlock_seal writes a local LOCKSET; runtime_session_close seals a raw session — they are not the same. " +
     "Auto-wire: every tool enters the door. Ledger ops stamp chainlock, temporallock, and forgereceipts: decisiongate_check, library_lookup, memory_observe, memory_resolve, memory_calibrate, mesh_join, mesh_enable, mesh_heartbeat, mesh_leave, mesh_broadcast, runtime_run, runtime_session_exec. fraggate_call stamps chainlock, temporallock, and forgereceipts inside the pipe when a real hash exists. Lamb Lens, SweepGate, Sentinel, and RoseClock run inside that pipe. Reads do not stamp chainlock, temporallock, or forgereceipts. " +
@@ -149,7 +149,7 @@ export function runtimeHelperTools() {
           "Read the agent how-to (one door — discover, route, refuse; pipeline fraggate_list → fraggate_describe → fraggate_call). This is playbook markdown, not a catalog and not a machine manifest",
         when: "starting a session or choosing the door before any catalog call",
         notFor: "listing hashed registry names, hub Software-tab cards, or executing an engine",
-        instead: "fraggate_list, runtime_software, or fraggate_call",
+        instead: "fraggate_list, Softwares, or fraggate_call",
         effects:
           "Dual surface: agent chat has no technical UI chrome; Worker / Flutter / local install stay complete human software. Does not list slugs or run ops",
         returns: "skill markdown plus display.title / display.summary",
@@ -167,7 +167,7 @@ export function runtimeHelperTools() {
             "List the hashed FragGate registry (live / stub / local_only + digests) so you can discover names. Discovery first — not a hub Software tab and not exec",
           when: "you do not yet know the catalog name or slug",
           notFor: "hub Software-tab refresh, inspecting one known capability, or executing an op",
-          instead: "runtime_software (GET /v1/software), fraggate_describe, or fraggate_call",
+          instead: "Softwares (GET /v1/software), fraggate_describe, or fraggate_call",
           effects:
             "Empty {} only. Never enables mesh radios. Never invents tools or ops. Compact LIVE_OPS tokens below are discovery hints required by product verify scripts — they are not exec. Call fraggate_describe for the live card; later unknown names refuse FG-HALLUC-TOOL",
           returns: "registry entries, allowlists, digests, and the MASTER-33 pipeline cite",
@@ -666,7 +666,7 @@ export function runtimeHelperTools() {
     ...chainlockMcpTools(),
     ...memoryMcpTools(),
     {
-      name: "runtime_software",
+      name: "Softwares",
       title: "Authoritative software catalog",
       description: tdqsDescription({
         action:
@@ -675,7 +675,7 @@ export function runtimeHelperTools() {
         notFor: "agent discovery of hashed registry status, compact skill URLs, or executing an op",
         instead: "fraggate_list, runtime_bundle, or fraggate_call",
         effects:
-          "Empty {} only. Never enables mesh radios and never execs. Same JSON as GET /v1/software (also /v1/fraggate/software). Cards carry name, slug, ops, worker_home — not live/stub/digest hashes. EmbryoLock is live-with-local-destructive-boundary (worker_home embryolock-download-tracker). Agent exec still uses fraggate_list → fraggate_describe → fraggate_call",
+          "Empty {} only. Never enables mesh radios and never execs. tools/list name is Softwares. runtime_software is a tools/call alias and is not a second listed tool. Same JSON as GET /v1/software (also /v1/fraggate/software). Cards carry name, slug, ops, worker_home — not live/stub/digest hashes. EmbryoLock is live-with-local-destructive-boundary (worker_home embryolock-download-tracker). Agent exec still uses fraggate_list → fraggate_describe → fraggate_call",
         returns: "sorted software cards (name, slug, ops, worker_home) matching GET /v1/software",
       }),
       annotations: mcpAnnotations("Authoritative software catalog", HINT_READ),
@@ -691,7 +691,7 @@ export function runtimeHelperTools() {
         action: "Read a compact bootstrap of every product skill URL and invoke prefix — not Software-tab cards and not the hashed registry",
         when: "a client needs skill URLs in one shot",
         notFor: "Software-tab refresh, hashed registry discovery, or exec",
-        instead: "runtime_software, fraggate_list, or fraggate_call",
+        instead: "Softwares, fraggate_list, or fraggate_call",
         effects: "Prefer GET /v1/software for hub Software tabs. This helper is URL bootstrap only",
         returns: "compact product list with skill URLs",
       }),

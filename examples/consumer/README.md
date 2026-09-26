@@ -33,7 +33,7 @@ Install order:
 npm run mcp
 ```
 
-That starts `cli/mcp-stdio.mjs`. `tools/list` is 36 live tools. Call the Softwares tool. The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger.
+That starts `cli/mcp-stdio.mjs`. `tools/list` is 36 live tools. Call Softwares (tools/list name Softwares). The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger.
 
 Example: `decisiongate_check` with `dry_run=true`. A long job passes `background:true` and stays Running until a receipt hash exists. Diagnostics: `fraggate_list`, `fraggate_describe`, `fraggate_call`. Unknown tools refuse. HTTP `POST /p/{slug}/{op}` is a proxy. `tools/list` stays 36.
 

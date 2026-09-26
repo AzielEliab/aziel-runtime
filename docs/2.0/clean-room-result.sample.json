@@ -47,7 +47,7 @@
       "memory_calibrate",
       "memory_recall",
       "memory_get",
-      "runtime_software",
+      "Softwares",
       "runtime_bundle",
       "runtime_pull",
       "runtime_run",

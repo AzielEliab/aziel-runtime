@@ -64,13 +64,13 @@ Source of truth: `PUBLIC_MCP_TOOLS` in `src/fraggate/codes.js`. Live `POST /mcp`
 
 ### Helper (`PUBLIC_HELPER_TOOLS`) — advanced / internal
 
-`runtime_software`, `runtime_bundle`, `runtime_pull` (**`slug` required**), `runtime_run` (**`slug` + `op` required**), `runtime_manifest`
+`Softwares` (hub catalog; `runtime_software` remains a tools/call alias and is not a second `tools/list` name), `runtime_bundle`, `runtime_pull` (**`slug` required**), `runtime_run` (**`slug` + `op` required**), `runtime_manifest`
 
 ### Session (`PUBLIC_SESSION_TOOLS`) — advanced / internal
 
 `runtime_session_open`, `runtime_session_policy` (**`session_id`**), `runtime_session_exec` (**`session_id`, `slug`, `op`**), `runtime_session_receipt` (**`session_id`**), `runtime_session_receipts` (**`session_id`**), `runtime_session_close` (**`session_id`**)
 
-Unknown MCP names refuse `FG-HALLUC-TOOL`. Flat `{slug}_{op}` names are **not** listed. `exist.mcp` on a refuse envelope is a hint, not an exec allowlist (`existMcpHint()`).
+Unknown MCP names refuse `FG-HALLUC-TOOL`. `runtime_software` and `softwares` are call aliases of `Softwares` and are not extra `tools/list` names. Flat `{slug}_{op}` names are **not** listed. `exist.mcp` on a refuse envelope is a hint, not an exec allowlist (`existMcpHint()`).
 
 Tool **names** are the contract (`PUBLIC_MCP_TOOLS`). `tools/list` **descriptions** follow the Glama TDQS 5.0 template (purpose / when / when-not / alternative / side-effects / returns / refusals). Parameter text, truthful MCP annotations (`readOnlyHint` / `destructiveHint` / `idempotentHint` / `openWorldHint`), and `outputSchema` may be enriched the same way without renaming tools or changing exec. That is metadata only — **names and routing stay frozen**. `fraggate_call` is **not** globally `readOnlyHint` or `idempotentHint` (side effects are operation-dependent). See `docs/GLAMA-TDQS.md`.
 

@@ -7,7 +7,7 @@ Public identity: **Aziel Eliab** only.
 ## How to use
 
 1. Click **Install / Add to Glama** on https://glama.ai/mcp/servers/AzielEliab/aziel-runtime (also `https://glama.ai/mcp/servers/@AzielEliab/aziel-runtime`).
-2. In any MCP client, call the Softwares tool. The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. `confirm=true` writes. `dry_run=true` previews and writes nothing. `background=true` returns Running until a receipt hash exists. Done only with that hash. `tools/list` stays 36.
+2. In any MCP client, call Softwares (tools/list name Softwares). The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. `confirm=true` writes. `dry_run=true` previews and writes nothing. `background=true` returns Running until a receipt hash exists. Done only with that hash. `tools/list` stays 36.
 
 Diagnostics, if needed: `fraggate_list` → `fraggate_describe {name}` → `fraggate_call {name, op, payload, confirm:true}`.
 
@@ -29,7 +29,9 @@ Glama is one of the compatible AI clients (ChatGPT, Grok, Venice, Claude, Cursor
 2. **Remote MCP** — `POST https://aziel-runtime.vibelock.workers.dev/mcp` (`initialize`, `tools/list`, `tools/call`). User-Agent `Mozilla/5.0`. Public, no OAuth.
 3. **Local stdio (last)** — `node cli/mcp-stdio.mjs` / `npm run mcp` / Docker. The CLI bridges to the Worker `/mcp`.
 
-**First call:** the Softwares tool. The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. Diagnostics: `fraggate_list` → `fraggate_describe` → `fraggate_call`. Example: `{ "slug": "foldlock", "op": "fold-preview", "payload": { "text": "the cat and the dog" } }`, or `decisiongate_check` with `dry_run=true`. Show `display.title` and `display.summary`, then take the next input.
+**First call:** `Softwares` (tools/list name Softwares). The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. `runtime_software` remains a tools/call alias and is not a second tools/list name. Diagnostics: `fraggate_list` → `fraggate_describe` → `fraggate_call`. Example: `{ "slug": "foldlock", "op": "fold-preview", "payload": { "text": "the cat and the dog" } }`, or `decisiongate_check` with `dry_run=true`. Show `display.title` and `display.summary`, then take the next input.
+
+A successful `tools/call` posts usage to `https://glama.ai/api/mcp/v1/telemetry/usage` with `server` `AzielEliab/aziel-runtime`, `tool` set to the called name, and `client` set to the request User-Agent or `https://aziel-runtime.vibelock.workers.dev`. The post does not block and does not fail the MCP response when telemetry fails. The stdio bridge posts the same body when it returns a successful `tools/call` that the Worker did not already mark with `X-Aziel-Glama-Telemetry: worker`.
 
 `tools/list` is **36 live MCP tools**. ChainLock and memory are append-only. Ledger ops stamp ChainLock, TemporalLock, and ForgeReceipts. `fraggate_call` reports those three from the pipe when a real hash exists. `runtime_run`, `runtime_manifest`, and `runtime_session_*` are advanced/internal.
 
@@ -58,7 +60,7 @@ The registry `description` keeps the same claims as the longer sentence (governe
 
 ## Why stdio
 
-Glama wraps the process with `mcp-proxy` and talks MCP on stdin/stdout (newline-delimited JSON-RPC, same as `@modelcontextprotocol/sdk` `StdioServerTransport`). HTTP `POST /mcp` stays the Worker API; this CLI forwards `initialize`, `tools/list`, `tools/call`, `ping`, and notifications so the tool list is not duplicated. `tools/list` is 36 live MCP tools. First call is `fraggate_list` → `fraggate_describe` → `fraggate_call`.
+Glama wraps the process with `mcp-proxy` and talks MCP on stdin/stdout (newline-delimited JSON-RPC, same as `@modelcontextprotocol/sdk` `StdioServerTransport`). HTTP `POST /mcp` stays the Worker API; this CLI forwards `initialize`, `tools/list`, `tools/call`, `ping`, and notifications so the tool list is not duplicated. `tools/list` is 36 live MCP tools. First call is `Softwares` (tools/list name Softwares). Diagnostics stay `fraggate_list` → `fraggate_describe` → `fraggate_call`.
 
 ## Run locally
 

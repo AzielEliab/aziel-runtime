@@ -220,6 +220,14 @@ import {
   redlineCiteField,
   tokenQueryRefuse,
 } from "./redline.js";
+import { resolvePublicToolName } from "./fraggate/codes.js";
+import {
+  GLAMA_TELEMETRY_RESPONSE_HEADER,
+  GLAMA_TELEMETRY_RESPONSE_WORKER,
+  emitGlamaToolTelemetry,
+  glamaClientLabel,
+  workerEmitsGlamaTelemetry,
+} from "./glama-telemetry.js";
 import {
   buildMcpToolList,
   callFraggateTool,
@@ -1668,7 +1676,7 @@ function llmsTxt(origin, env = {}) {
     `Mesh nodes: ${base}/v1/mesh/nodes  (roster; 5-minute TTL; no scores)`,
     `Cap-7 semantic bridge: ${base}/v1/mesh/az-generator  (MirageGrid .az duplication; standard internet does not reach Cap-7; AZ domains resolve via hub HTTPS; Cap-7 resolves_to_hub false; 3 of 7 false sites)`,
     `ACT-RECEIPT-1.0: ${base}/v1/receipts  (cite). Public chain lives on https://www.azielcorpuslibrary.net/receipts. Runtime appends after FragGate list/call, POST /mcp, and significant POST /v1/* when RECEIPT_APPEND_TOKEN is set (fail-open). Tip/proxy: ${base}/v1/receipts/tip. Not a Softwares-tab product.`,
-    `Agents call the Softwares tool. The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. Prefer ${base}/mcp and ${base}/v1/software. Diagnostics: fraggate_list → fraggate_describe → fraggate_call.`,
+    `Agents call Softwares (tools/list name Softwares). The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. runtime_software remains a tools/call alias. Prefer ${base}/mcp and ${base}/v1/software. Diagnostics: fraggate_list → fraggate_describe → fraggate_call.`,
     `About: ${base}/about`,
     `Cite: ${base}/cite.json`,
     `Shelves: ${base}/shelves  (COLD-MULTI-SHELF-1.0; corpus SoT ${LIBRARY_ORIGIN}/shelves)`,
@@ -1722,7 +1730,7 @@ function llmsTxt(origin, env = {}) {
     `5. GET ${base}/v1/bundle  (or ${base}/v1/pull?all=1)`,
     `6. GET ${base}/v1/pull/{slug}  then GET ${base}/v1/pull/{slug}/skill`,
     `7. GET or POST ${base}/p/{slug}/{op}  (proxy only)`,
-    `Agents: POST ${base}/mcp and call the Softwares tool. The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. Diagnostics: fraggate_list → fraggate_describe → fraggate_call.`,
+    `Agents: POST ${base}/mcp and call Softwares (tools/list name Softwares). The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. Diagnostics: fraggate_list → fraggate_describe → fraggate_call.`,
     "",
     "## Quantum Node Mesh (QNM-BUILD-1.0)",
     "",
@@ -2889,7 +2897,7 @@ async function combinedOpenApi(request, env) {
         "Agent default exec is POST /v1/fraggate/call or MCP fraggate_call (CallEnvelope → FragGate → Lamb Lens → SweepGate → Sentinel → Provenance → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → RoseClock → TemporalLock → ChainLock-OUT → ForgeReceipts → Return). " +
         "Binding-only ops stay per-op proxy_fallback. POST /p/{product}/{op} is a proxy, not exec, and is not the agent default path. " +
         "Cloudflare isolate is the jail. Hosted AZAI is a protocol mirror + Lamb check, not the local blend. Public VPN auto-binds AZVPN (HTTPS/WS REAL; WireGuard/OpenVPN/L3 SLOT; origin-hiding false). GET /v1/mesh cites vpn=true and never opens a session. AZMail anonymous ring is FragGate LIVE_OPS only (default off; not SMTP, not identity). AZBrowser Lamb Lens is FragGate LIVE_OPS only (not Chromium; no invented visits). AZHub Blank Key and AZInterface page cycles are two separate softwares under the same FragGate door (AIH-WP-1.0). " +
-        "Start at GET /v1/skill or GET /v1/software. Agents call the Softwares tool (POST /mcp). The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. Diagnostics: fraggate_list → fraggate_describe → fraggate_call. " +
+        "Start at GET /v1/skill or GET /v1/software. Agents call Softwares (tools/list name Softwares) on POST /mcp. The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. Diagnostics: fraggate_list → fraggate_describe → fraggate_call. " +
         "Hubs fetch GET /v1/software (also GET /v1/fraggate/software). Clients check GET /v1/update/check?slug=&version=. " +
         "GET /v1/bundle lists every product skill URL + invoke prefix. " +
         "GET /v1/pull/{slug} and GET /v1/pull/{slug}/skill pull a product without visiting its Worker. " +
@@ -3077,7 +3085,7 @@ async function callRuntimeTool(env, name, args, origin, request) {
       target: base + "/v1/runtime.json",
     };
   }
-  if (name === "runtime_software") {
+  if (name === "Softwares" || name === "runtime_software" || name === "softwares") {
     return {
       status: 200,
       text: JSON.stringify((await readPackedCatalog(env, base, PRODUCTS, softwareExtra(env))).catalog, null, 2),
@@ -3227,6 +3235,7 @@ function withRefuseInfra(out) {
 }
 
 async function callTool(env, name, args, origin, request, ctx) {
+  name = resolvePublicToolName(name);
   const safeguard = evaluateMutateSafeguard(name, args);
   if (safeguard.gated) {
     return withConfirmConsent(wrapFraggateEnvelope(name, safeguard.envelope, null, (args && args.op) || null));
@@ -3320,7 +3329,7 @@ async function handleMcp(request, env, origin, ctx) {
       auth: "none (public)",
       server_card: "/.well-known/mcp/server-card.json",
       oauth_protected_resource: "/.well-known/oauth-protected-resource",
-      note: "Durable Objects / agents McpAgent not used. Minimal HTTP JSON-RPC. tools/list is 36 live MCP tools. Call the Softwares tool. The door runs before the tool. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. fraggate_list, fraggate_describe, fraggate_call, and chainlock tools stay for diagnostics. Install / Try on Glama is the discovery listing. Fabric mesh_* / chainlock_* / memory_* / decisiongate_check / library_lookup are kernel-direct after the door (same kernels; not MASTER-33; not a second Softwares door). Hubs: GET /v1/software. Mutating tools require confirm=true or dry_run=true. This Worker POST /mcp is THE edge MCP gateway — Softwares exec enters FragGate first. Interface plans use JSON-RPC method interface/orchestrate (same body as POST /v1/interface). That method is not a tools/list name.",
+      note: "Durable Objects / agents McpAgent not used. Minimal HTTP JSON-RPC. tools/list is 36 live MCP tools. Call Softwares (tools/list name Softwares). The door runs before the tool. runtime_software remains a tools/call alias and is not a second listed name. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. fraggate_list, fraggate_describe, fraggate_call, and chainlock tools stay for diagnostics. Install / Try on Glama is the discovery listing. Fabric mesh_* / chainlock_* / memory_* / decisiongate_check / library_lookup are kernel-direct after the door (same kernels; not MASTER-33; not a second Softwares door). Hubs: GET /v1/software. Mutating tools require confirm=true or dry_run=true. This Worker POST /mcp is THE edge MCP gateway — Softwares exec enters FragGate first. Interface plans use JSON-RPC method interface/orchestrate (same body as POST /v1/interface). That method is not a tools/list name.",
       install: RUNTIME_GLAMA,
       glama: glamaInstallCite(RUNTIME_VERSION),
       door: "fraggate",
@@ -3413,8 +3422,18 @@ async function handleMcp(request, env, origin, ctx) {
     const args = params.arguments || params.input || {};
     try {
       const out = await callTool(env, name, args, origin, request, ctx);
-      const { slug, op } = splitProductToolName(name);
-      return rpcResult(id, mcpCallPayload(name, out, out.product || BY_SLUG[slug], out.op || op), wire);
+      const { slug, op } = splitProductToolName(resolvePublicToolName(name));
+      const payload = mcpCallPayload(name, out, out.product || BY_SLUG[slug], out.op || op);
+      const telemetryHeaders = {};
+      if (!payload.isError && workerEmitsGlamaTelemetry(env, request)) {
+        emitGlamaToolTelemetry({
+          tool: name,
+          client: glamaClientLabel(request),
+          ctx,
+        });
+        telemetryHeaders[GLAMA_TELEMETRY_RESPONSE_HEADER] = GLAMA_TELEMETRY_RESPONSE_WORKER;
+      }
+      return rpcResult(id, payload, { ...wire, ...telemetryHeaders });
     } catch (err) {
       const text = JSON.stringify({ error: String(err.message || err) });
       return rpcResult(id, mcpCallPayload(name, { status: 400, text }, null, null), wire);

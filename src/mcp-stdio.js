@@ -23,6 +23,7 @@ import {
   shouldFailoverStatus,
 } from "./ban-survival.js";
 import { REQUIRED_EGRESS, networkRefuseEnvelope } from "./remote-transport.js";
+import { scheduleStdioGlamaTelemetry } from "./glama-telemetry.js";
 
 export const DEFAULT_RUNTIME_URL = PRIMARY_WORKER_ORIGIN;
 export const DEFAULT_UA = "Mozilla/5.0";
@@ -321,6 +322,15 @@ function transportRpcError(id, err, ctx, fallbackMessage) {
   });
 }
 
+function finishBridge(message, rpc, res, ctx) {
+  try {
+    scheduleStdioGlamaTelemetry(message, rpc, ctx, res);
+  } catch {
+    /* telemetry must not fail the MCP response */
+  }
+  return rpc;
+}
+
 export async function dispatchMcp(message, ctx) {
   if (!message || typeof message !== "object" || Array.isArray(message)) {
     return rpcError(null, INVALID_REQUEST, "Invalid Request");
@@ -353,16 +363,16 @@ export async function dispatchMcp(message, ctx) {
           ctx.log(`BAN-SURVIVAL failover: ${origins[i]} HTTP ${res.status}; trying ${origins[i + 1]}`);
           continue;
         }
-        return responseToRpc(res, message, ctx);
+        return finishBridge(message, await responseToRpc(res, message, ctx), res, ctx);
       }
       if (isNotification(message)) return null;
-      return transportRpcError(message.id, lastErr, ctx, "All named LIVE exec origins failed");
+      return finishBridge(message, transportRpcError(message.id, lastErr, ctx, "All named LIVE exec origins failed"), null, ctx);
     }
   } catch (err) {
     if (isNotification(message)) return null;
-    return transportRpcError(message.id, err, ctx, `Upstream MCP failed: ${err && err.message ? err.message : err}`);
+    return finishBridge(message, transportRpcError(message.id, err, ctx, `Upstream MCP failed: ${err && err.message ? err.message : err}`), null, ctx);
   }
-  return responseToRpc(res, message, ctx);
+  return finishBridge(message, await responseToRpc(res, message, ctx), res, ctx);
 }
 
 export function parseIncoming(raw) {
