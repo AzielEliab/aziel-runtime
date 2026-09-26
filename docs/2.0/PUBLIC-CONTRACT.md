@@ -195,10 +195,10 @@ Appears as:
 | `kind` | Meaning | FragGate code |
 |--------|---------|---------------|
 | `live` | slug in `LIVE_OPS` and op allowlisted (including UI aliases) | `FG-OK` on accept |
-| `stub` | product-level stub **or** op in `STUB_OPS[slug]` | `FG-STUB` |
+| `stub` | product-level stub, **or** op in `STUB_OPS[slug]` on a live or stub entry | `FG-STUB` |
 | `unknown_op` | live slug, op not allowlisted | `FG-UNKNOWN-OP` |
 | `halluc` | name not in registry | `FG-HALLUC-TOOL` |
-| `local_only` | named entry, not live | `FG-LOCAL-ONLY` |
+| `local_only` | registry status `local_only`, including named stub verbs on that entry | `FG-LOCAL-ONLY` |
 
 At freeze `NAMED_STUBS = []`. VeilLock is `local_only`. EmbryoLock is `live` with a local destructive boundary (wipe/scorch/unlock stay `FG-STUB`).
 

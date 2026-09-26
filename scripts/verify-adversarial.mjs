@@ -147,7 +147,7 @@ for (const row of conc) {
 
 // --- cross-domain isolation ---
 const veilInject = await jsonPost("/v1/fraggate/call", { slug: "veillock", op: "inject" });
-assert.ok(veilInject.data.code === "FG-STUB" || veilInject.data.code === "FG-LOCAL-ONLY");
+assert.equal(veilInject.data.code, "FG-LOCAL-ONLY");
 const mailExec = await jsonPost("/v1/fraggate/call", { slug: "azmail", op: "exec" });
 assert.equal(mailExec.data.ok, false);
 const chatBridge = await jsonPost("/v1/fraggate/call", { slug: "azchat", op: "bridge_azmail" });

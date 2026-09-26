@@ -415,7 +415,7 @@ ${survivalSkillMarkdown(base)}
 | POST | \`/v1/mesh/site-presence\` | Hub fleet heartbeat. Body \`{host, viewers, kind: "human-page"}\`. Allowed: godlock.uk, azieleliab.com, azielcorpuslibrary.net. Alias \`/v1/mesh/site-heartbeat\`. 5-minute TTL. Fail-closed. F03 \`mesh_mutate\`. |
 | GET | \`/v1/mesh/az-generator\` | Cap-7 semantic-bridge cite (MirageGrid factory; inherit designs only including azcorpus + azlibrary; \`design_of: hub_designs\`; \`resolves_to_hub: false\`; \`name_may_change\`; not ICANN). Never enables radios. |
 | POST | \`/v1/mesh/broadcast\` | SHA-256 hash receipt only. Never a publish path. |
-| GET | \`/v1/mesh/sot\` | SOT-SYNC-1.0 suite tip. Authority is GET /v1/software (suite version, git sha, Softwares count, card versions). version_id is null. Does not change Nodes or Live Nodes. |
+| GET | \`/v1/mesh/sot\` | SOT-SYNC-1.0 suite tip. Authority is GET /v1/software (suite version, git sha, Softwares count, card versions). version_id is the Cloudflare Worker version id when bound, otherwise null. Does not change Nodes or Live Nodes. |
 | GET | \`/v1/mesh/outlets\` | Outlet registry the mesh can address. Status ok / drifted / unreachable / unexposed. |
 | POST | \`/v1/mesh/sot-sync\` | Pull-plane sync. \`dry_run: true\` previews every outlet and the fields that would change. \`confirm: true\` applies, mints ACT-RECEIPT-1.0, and updates last_applied only where a write succeeded. Unreachable outlets keep last-known inventory. |
 | GET | \`/v1/mesh/relay\` | FED-MESH-1.0 Local-First Edge Mesh cite and relay health. Never enables. Never requires plaintext. |
@@ -2252,7 +2252,7 @@ export function runtimeStaticPaths() {
       get: {
         operationId: "mesh_sot_status",
         summary:
-          "SOT-SYNC-1.0 suite tip from GET /v1/software plus the outlet matrix. version_id is null. Not mesh_broadcast. live_body_sync false. Does not change Nodes or Live Nodes.",
+          "SOT-SYNC-1.0 suite tip from GET /v1/software plus the outlet matrix. version_id is the Cloudflare Worker version id when bound, otherwise null. Not mesh_broadcast. live_body_sync false. Does not change Nodes or Live Nodes.",
         tags: ["mesh"],
         responses: { "200": { description: "Suite tip and outlet status" } },
       },

@@ -789,6 +789,13 @@ export function classifyCall(entry, op) {
   if (!entry) {
     return { kind: "halluc", status: null };
   }
+  // Registry status wins over a named stub verb. VeilLock inject stays a
+  // refuse, and the code is FG-LOCAL-ONLY. Live products (EmbryoLock wipe)
+  // are not local_only, so they still hit STUB_OPS below.
+  if (entry.status === "local_only") {
+    if (!action) return { kind: "unknown_op", status: entry.status };
+    return { kind: "local_only", status: "local_only" };
+  }
   if (entry.status === "stub") {
     return { kind: "stub", status: "stub" };
   }

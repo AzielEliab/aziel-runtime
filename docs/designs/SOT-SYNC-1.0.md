@@ -15,7 +15,7 @@ The live Worker `GET /v1/software` is the source of truth for:
 - Softwares count (`count`)
 - card versions (`software[].slug` + `software[].version`)
 
-`GET /v1/health` publishes the same suite version constant. It does not publish `version_id`. This plane cites `version_id: null` and does not invent one.
+`GET /v1/health` publishes the same suite version constant. It does not publish `version_id`. This plane copies `version_id` only when `GET /v1/software` exposes a Cloudflare Worker version id (`CF_VERSION_METADATA.id`, or `VERSION_ID` when that deploy var is set and the binding is unset). An unbound isolate cites `version_id: null` and does not invent one.
 
 Ask Jeeves is suite help on Aziel Corpus (`software_tab: false`, FragGate op `jeeves`, interface `jeeves_help`). It is not a Softwares card and it is not counted in `count`.
 
@@ -96,7 +96,7 @@ GodLock `godlock-uk` — `POST https://godlock.uk/v1/sot/push`:
 }
 ```
 
-`software` cards are not sent. `version_id` stays null.
+`software` cards are not sent. `version_id` is the catalog Worker version id. The example stays null because this paper does not bake a UUID. A live deploy fills it from the version metadata binding.
 
 Corpus — public `GET https://www.azielcorpuslibrary.net/v1/mesh/outlet` is a pull. `POST /v1/mesh/outlet` requires `X-Aziel-Operator-Token`. This runtime does not hold that token and does not send one. `push_url` stays null.
 
@@ -121,6 +121,6 @@ This runtime draft sits on PR #169 (`cursor/audit-stack-5b75`), which sits on PR
 npm test
 ```
 
-`scripts/verify-sot-sync.mjs` covers the dry run, the confirm receipt, an unreachable outlet that keeps a one-card last-known inventory, Softwares count 42, and `version_id` null.
+`scripts/verify-sot-sync.mjs` covers the dry run, the confirm receipt, an unreachable outlet that keeps a one-card last-known inventory, Softwares count 42, and `version_id` null when the Worker version binding is unbound.
 
 This change is draft-only. It is not merged and not deployed.

@@ -8,7 +8,7 @@
  * the mesh ledger and a push hook only when that hook answers.
  *
  * An unreachable outlet keeps its last-known inventory. Missing fields stay
- * null. version_id stays null when the live catalog does not expose it.
+ * null. version_id is the catalog Worker version id when that body exposes one.
  * Ask Jeeves is suite help, not a Softwares card.
  *
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
@@ -26,7 +26,7 @@ import {
   LIBRARY_MIRROR,
   softwareHubCrawl,
 } from "./seo.js";
-import { softwareCatalog, softwareMeta } from "./software-catalog.js";
+import { sanitizeVersionId, softwareCatalog, softwareMeta } from "./software-catalog.js";
 import { ZERO_HASH } from "./session-core.js";
 
 export const SOT_SPEC = "SOT-SYNC-1.0";
@@ -125,6 +125,7 @@ function localCatalog(origin, env) {
     version: RUNTIME_VERSION,
     git_sha: meta.git_sha,
     updated_at: meta.updated_at,
+    version_id: meta.version_id,
     env,
   });
 }
@@ -143,7 +144,7 @@ function tipFromSot(sot) {
     suite_version: sot.suite_version,
     git_sha: sot.git_sha,
     softwares_count: sot.softwares_count,
-    version_id: null,
+    version_id: sot.version_id ?? null,
   };
 }
 
@@ -165,8 +166,10 @@ export function projectSot(catalog, extra = {}) {
     suite_version: catalog && catalog.version ? String(catalog.version) : null,
     git_sha: shaOrNull(catalog && catalog.git_sha),
     softwares_count: Number.isInteger(catalog && catalog.count) ? catalog.count : null,
-    version_id: null,
-    version_id_note: SOT_VERSION_ID_NOTE,
+    version_id: sanitizeVersionId(catalog && catalog.version_id),
+    version_id_note: sanitizeVersionId(catalog && catalog.version_id)
+      ? catalog.version_id_note || "version_id is the serve-time Cloudflare Worker version id on GET /v1/software. No version_id was invented."
+      : (catalog && catalog.version_id_note) || SOT_VERSION_ID_NOTE,
     software_versions: versionsFromCards(cards),
     software_slugs: slugs,
     ask_jeeves: {
@@ -178,7 +181,11 @@ export function projectSot(catalog, extra = {}) {
     nodes_unchanged: true,
     live_nodes_unchanged: true,
     download_counters_unchanged: true,
-    note: extra.note || "Suite tip from the catalog GET /v1/software serves. version_id is null.",
+    note:
+      extra.note ||
+      (sanitizeVersionId(catalog && catalog.version_id)
+        ? "Suite tip from the catalog GET /v1/software serves. version_id is the serve-time Cloudflare Worker version id."
+        : "Suite tip from the catalog GET /v1/software serves. version_id is null."),
   };
 }
 
@@ -353,7 +360,7 @@ function staticOutlets() {
     push_url: `${GODLOCK_UK_ORIGIN}/v1/sot/push`,
     push_shape: "godlock-push",
     push_contract: `${GODLOCK_UK_ORIGIN}/v1/sot/push`,
-    sister_note: "POST confirm with outlet_id godlock-uk, version, 40-hex git_sha, and count. software cards are ignored. version_id stays null. Merged in godlock #94.",
+    sister_note: "POST confirm with outlet_id godlock-uk, version, 40-hex git_sha, and count. software cards are ignored. version_id is the catalog Worker version id, or null when unbound. Merged in godlock #94.",
   });
   rows.push({
     id: "corpus-mesh-outlet",
@@ -434,6 +441,7 @@ function frozenObserved(local) {
     suite_version: tip.suite_version,
     git_sha: tip.git_sha,
     softwares_count: tip.softwares_count,
+    // Stamped source files do not carry the Cloudflare Worker version id.
     version_id: null,
     software_versions: tip.software_versions,
     exposed: {
@@ -462,13 +470,17 @@ function diffFields(sot, observed) {
       note: exposed ? null : "Outlet did not expose this field. It was not filled from the SoT.",
     });
   }
+  const versionExposed = !!(observed && observed.exposed && observed.exposed.version_id);
+  const sotVersion = sot.version_id ?? null;
   fields.push({
     field: "version_id",
-    sot: null,
-    observed: observed && observed.exposed && observed.exposed.version_id ? observed.version_id : null,
-    exposed: !!(observed && observed.exposed && observed.exposed.version_id),
-    would_change: false,
-    note: SOT_VERSION_ID_NOTE,
+    sot: sotVersion,
+    observed: versionExposed ? observed.version_id : null,
+    exposed: versionExposed,
+    would_change: versionExposed && observed.version_id !== sotVersion,
+    note: sotVersion
+      ? "SoT version_id is the serve-time Cloudflare Worker version id when GET /v1/software exposes one."
+      : SOT_VERSION_ID_NOTE,
   });
   const versionsExposed = !!(observed && observed.exposed && observed.exposed.software_versions);
   const changes = [];
@@ -520,13 +532,13 @@ async function probeOutlet(outlet, sot, local, fetchImpl, saved) {
       suite_version: saved && saved.last_applied ? saved.last_applied.suite_version : null,
       git_sha: saved && saved.last_applied ? saved.last_applied.git_sha : null,
       softwares_count: saved && saved.last_applied ? saved.last_applied.softwares_count : null,
-      version_id: null,
+      version_id: saved && saved.last_applied ? saved.last_applied.version_id ?? null : null,
       software_versions: null,
       exposed: {
         suite_version: !!(saved && saved.last_applied && saved.last_applied.suite_version != null),
         git_sha: !!(saved && saved.last_applied && saved.last_applied.git_sha),
         softwares_count: !!(saved && saved.last_applied && saved.last_applied.softwares_count != null),
-        version_id: false,
+        version_id: !!(saved && saved.last_applied && saved.last_applied.version_id),
         software_versions: false,
       },
     };
@@ -613,12 +625,12 @@ function hookBody(outlet, sot) {
       suite_version: sot.suite_version,
       git_sha: sot.git_sha,
       count: sot.softwares_count,
-      version_id: null,
+      version_id: sot.version_id ?? null,
       sot: {
         version: sot.suite_version,
         git_sha: sot.git_sha,
         count: sot.softwares_count,
-        version_id: null,
+        version_id: sot.version_id ?? null,
       },
     };
   }
@@ -632,8 +644,8 @@ function hookBody(outlet, sot) {
     pull: "/v1/software",
     tip: tipFromSot(sot),
     software_versions: sot.software_versions,
-    version_id: null,
-    version_id_note: SOT_VERSION_ID_NOTE,
+    version_id: sot.version_id ?? null,
+    version_id_note: sot.version_id_note || SOT_VERSION_ID_NOTE,
   };
 }
 
@@ -690,7 +702,9 @@ async function resolveSot(origin, env, fetchImpl, payload) {
     const sot = projectSot(local, {
       source: "in-process-get-v1-software",
       endpoints_read: ["GET /v1/software"],
-      note: "This Worker serves GET /v1/software. suite_version is that catalog version (the same RUNTIME_VERSION GET /v1/health publishes). version_id is absent on both. git_sha is the catalog git_sha.",
+      note: local.version_id
+        ? "This Worker serves GET /v1/software. suite_version is that catalog version (the same RUNTIME_VERSION GET /v1/health publishes). version_id is the serve-time Cloudflare Worker version id on that catalog. git_sha is the catalog git_sha."
+        : "This Worker serves GET /v1/software. suite_version is that catalog version (the same RUNTIME_VERSION GET /v1/health publishes). version_id is absent on both. git_sha is the catalog git_sha.",
     });
     return { sot, local, blocked: false };
   }
@@ -719,13 +733,9 @@ async function resolveSot(origin, env, fetchImpl, payload) {
       source: "live-pull",
       endpoints_read: health.ok ? ["GET /v1/software", "GET /v1/health"] : ["GET /v1/software"],
       note: healthVersion && healthVersion !== parsed.version
-        ? `Catalog version is ${parsed.version}. GET /v1/health version is ${healthVersion}. The catalog version is the suite tip. version_id was not in the catalog body.`
-        : "Live GET /v1/software is the tip. version_id is null unless that body exposed it, and this projection still cites null because the contract field is absent.",
+        ? `Catalog version is ${parsed.version}. GET /v1/health version is ${healthVersion}. The catalog version is the suite tip.`
+        : "Live GET /v1/software is the tip. version_id is copied only when that body exposes a Worker version id.",
     });
-    if (parsed && Object.prototype.hasOwnProperty.call(parsed, "version_id") && parsed.version_id != null && String(parsed.version_id).trim()) {
-      sot.version_id = null;
-      sot.version_id_note = `${SOT_VERSION_ID_NOTE} The live body included version_id and it was not copied.`;
-    }
     return { sot, local, blocked: false };
   } catch {
     if (ledger.last_sot) {
@@ -907,7 +917,7 @@ export async function runSotMeshOp(op, payload, env, ctx = {}) {
       status = "unreachable";
     } else if (outlet.ledger) {
       nextApplied = tipFromSot(sot);
-      nextKnown = { ...nextApplied, software_versions: sot.software_versions, version_id: null };
+      nextKnown = { ...nextApplied, software_versions: sot.software_versions };
       apply = "written";
       status = "ok";
       applied += 1;
