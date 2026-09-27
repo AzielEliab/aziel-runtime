@@ -166,7 +166,12 @@ assert.ok(catalogBody.extras.some((e) => e.slug === "trades-runtime" && e.kind =
 assert.ok(citeBody.extras.some((e) => e.slug === "fraggate"));
 assert.ok(citeBody.extras.some((e) => e.slug === "mesh"));
 assert.ok(citeBody.extras.some((e) => e.slug === "trades-runtime" && e.kind === "cite_only"));
-assert.ok(citeBody.sister_products.products.some((p) => p.slug === "trades-runtime" && p.live_backends === false));
+assert.ok(citeBody.sister_products.products.some((p) => p.slug === "trades-runtime" && p.live_backends === false && p.version === "0.4.9"));
+assert.equal(citeBody.trades_runtime_version, "0.4.9");
+assert.equal(citeBody.suite_tip.sets_equate, false);
+assert.equal(citeBody.catalog_sets.equate, false);
+assert.deepEqual(citeBody.catalog_sets.softwares_not_on_allowlist, ["veillock", "whitestone"]);
+assert.deepEqual(citeBody.catalog_sets.allowlist_not_on_softwares, ["memory", "mesh"]);
 assert.ok(!citeBody.products.some((p) => p.slug === "trades-runtime"));
 assert.ok(!catalogBody.products.some((p) => p.slug === "trades-runtime"));
 assert.ok(citeBody.semantic_bridge);

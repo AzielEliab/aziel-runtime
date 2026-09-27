@@ -185,7 +185,7 @@ export const NODES_NOTE =
   "Public Nodes (nodes / rollup.nodes) count human mesh users plus the cited human uses signal (USES / human_uses). Uses are interaction counters, not unique people. Incomplete or unbound telemetry is reported honestly (0 + complete=false). Nodes does not invent users. Zero is honest.";
 
 export const SOFTWARE_NODES_NOTE =
-  "software_nodes / rollup.software count Softwares product Workers ({slug}-worker) from suite-presence fan-out. rollup.software.live is that roster's presence=live count. It is not public Live Nodes. rollup.live is not published.";
+  "software_nodes / rollup.software count in-process catalog product Workers ({slug}-worker) from suite-presence fan-out. That roster is not the Softwares-tab count. Whitestone is a Softwares card and is absent (worker_only; FragGate status none). memory and mesh are FragGate kernel entries and are not software_nodes rows. VeilLock is in this fan-out and is not on the public FragGate allowlist. Do not equate software_nodes with Softwares slugs, FragGate product_count, or the FragGate allowlist. rollup.software.live is that roster's presence=live count. It is not public Live Nodes. rollup.live is not published.";
 
 export const HUMAN_NODES_NOTE =
   "human_nodes / rollup.human count humans who exist as mesh users (join/heartbeat/presence — human bearers or kind=human). Auto-minted mesh_* joins are human participants. Named downloaded Softwares instance ids stay instance_nodes.";

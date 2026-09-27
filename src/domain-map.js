@@ -194,8 +194,14 @@ export const TAB_PLACEMENT_SLUGS = Object.freeze([
   "whitestone",
 ]);
 
+/**
+ * Softwares-tab cards with no FragGate registry row.
+ * Must match WORKER_ONLY_PRODUCTS slugs. Not an allowlist add.
+ */
+export const WORKER_ONLY_TAB_SLUGS = Object.freeze(["whitestone"]);
+
 export const CATALOG_COUNT_NOTE =
-  "Softwares-tab count includes placements (azinterface / decisiongate / forgereceipts / azcoherence / zkattest / mmconsensus / toolbench / azvpn / whitestone). Isolation domain software_count is 33 (domains_are_doors:false). Do not equate the two. Ask Jeeves is suite help on the aziel-corpus card (FragGate op jeeves; software_tab false; named tool isPartOf Aziel Corpus). EmbryoLock is live-with-local-destructive-boundary (Vault/Custody with ARK); wipe/unlock stay FG-STUB on the public mesh. AZChat is LIVE+bound (mesh default off). AZVPN is the automatic public VPN concentrator placement (HTTPS/WS REAL; WireGuard/OpenVPN SLOT; auto_use true). Whitestone is a live Worker-only placement (FragGate status none; Case Mode is a product feature). VeilLock hub card is local_only (matches FragGate; no public door). Sister products such as trades-runtime are cite-only extras (live_backends false). FragGate remains THE single door.";
+  "Softwares-tab count includes placements (azinterface / decisiongate / forgereceipts / azcoherence / zkattest / mmconsensus / toolbench / azvpn / whitestone). Isolation domain software_count is 33 (domains_are_doors:false). Do not equate the two. Ask Jeeves is suite help on the aziel-corpus card (FragGate op jeeves; software_tab false; named tool isPartOf Aziel Corpus). EmbryoLock is live-with-local-destructive-boundary (Vault/Custody with ARK); wipe/unlock stay FG-STUB on the public mesh. AZChat is LIVE+bound (mesh default off). AZVPN is the automatic public VPN concentrator placement (HTTPS/WS REAL; WireGuard/OpenVPN SLOT; auto_use true). Whitestone is a live Worker-only placement (FragGate status none; Case Mode is a product feature). VeilLock hub card is local_only (matches FragGate registry status; no public door). Sister products such as trades-runtime are cite-only extras (live_backends false; version cite is the live sister /v1/health). FragGate remains THE single door. catalog_sets.equate is false: Softwares slugs are not the FragGate allowlist, not FragGate product_count, and not mesh software_nodes. Softwares has veillock and whitestone; the FragGate allowlist has memory and mesh instead. Whitestone is absent from software_nodes. Equal counts are not equal sets. Do not invent Softwares rows to close the split.";
 
 export function domainForSlug(slug) {
   const key = String(slug || "")

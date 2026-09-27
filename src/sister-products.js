@@ -11,7 +11,8 @@ export const AUTHOR_NAME = "Aziel Eliab";
 
 export const TRADES_RUNTIME_SLUG = "trades-runtime";
 export const TRADES_RUNTIME_NAME = "Trades-Runtime";
-export const TRADES_RUNTIME_VERSION = "0.3.3";
+/** Live cite. Observed GET /v1/health on trades-runtime.vibelock.workers.dev (2026-09-27). */
+export const TRADES_RUNTIME_VERSION = "0.4.9";
 export const TRADES_RUNTIME_GITHUB = "https://github.com/AzielEliab/trades-runtime";
 export const TRADES_RUNTIME_ORIGIN = "https://trades-runtime.vibelock.workers.dev";
 export const TRADES_RUNTIME_HOME = `${TRADES_RUNTIME_ORIGIN}/`;
@@ -37,6 +38,7 @@ export function tradesRuntimeRecord() {
     slug: TRADES_RUNTIME_SLUG,
     name: TRADES_RUNTIME_NAME,
     version: TRADES_RUNTIME_VERSION,
+    version_source: TRADES_RUNTIME_HEALTH,
     author: AUTHOR_NAME,
     identity: AUTHOR_NAME,
     github: TRADES_RUNTIME_GITHUB,

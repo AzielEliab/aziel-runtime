@@ -210,6 +210,10 @@ assert.equal(door.stub_count, registry.stub_count);
 assert.equal(door.stub_op_count, registry.stub_op_count);
 assert.equal(door.local_only_count, registry.local_only_count);
 assert.equal(door.live_count + door.local_only_count + door.stub_count, door.product_count);
+assert.equal(door.sets_equate, false);
+assert.equal(door.product_count_is_softwares_count, false);
+assert.equal(door.allowlist_is_softwares_slugs, false);
+assert.match(door.set_note, /not the same set/);
 assert.equal(door.stub_ops.length, door.stub_op_count);
 assert.ok(door.kernel.includes("fraggate"));
 

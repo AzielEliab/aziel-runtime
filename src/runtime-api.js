@@ -21,7 +21,9 @@
  * Public identity: Aziel Eliab only. Forks welcome. Do not invent DOIs.
  * SPDX-License-Identifier: Apache-2.0
  */
+import { catalogSetsFromParts } from "./catalog-sets.js";
 import { CATALOG_ALIASES, CATALOG_EXTRAS_NOTE, catalogExtraCards, FRAGGATE_GITHUB, fraggateHubCard } from "./catalog-meta.js";
+import { WORKER_ONLY_TAB_SLUGS } from "./domain-map.js";
 import { honestyFields, trueEngineSlugs } from "./engines/registry.js";
 import { FRAGGATE_KERNEL, FRAGGATE_KERNEL_VERSION } from "./fraggate/codes.js";
 import { LIVE_OPS, buildRegistry } from "./fraggate/registry.js";
@@ -329,7 +331,7 @@ node cli/aziel-runtime.mjs session close
    Also \`GET ${base}/v1/ready\` (200 only if SESSION binding is up; 503 if \`REQUIRE_TOKEN=1\` and \`RUNTIME_TOKEN\` is missing).
    API uses: \`GET ${base}/v1/uses\` (no increment).
 3. \`GET ${base}/v1/software\` — authoritative hub catalog (Plain → Gate → Lock; EmbryoLock live-with-local-destructive-boundary; AZChat LIVE+bound). Mirror: \`GET ${base}/v1/fraggate/software\`.
-   Softwares-tab \`count\` includes placements (\`azinterface\` / \`decisiongate\` / \`forgereceipts\`). Isolation \`domains.software_count\` is **33** (\`domains_are_doors:false\`). See \`count_note\`. Do not equate the two.
+   Softwares-tab \`count\` includes placements (\`azinterface\` / \`decisiongate\` / \`forgereceipts\`). Isolation \`domains.software_count\` is **33** (\`domains_are_doors:false\`). See \`count_note\` and \`catalog_sets\`. Do not equate Softwares slugs, the FragGate allowlist, FragGate \`product_count\`, or mesh \`software_nodes\`. \`catalog_sets.equate\` is false.
    \`website_designs\` names mesh-resident **azcorpus** + **azlibrary** (downloadable to nodes; not extra Softwares; azlibrary upload is API token only).
    Client updates: \`GET ${base}/v1/update/check?slug={slug}&version={installed}\` · \`GET ${base}/v1/update/manifest\`.
 4. \`GET ${base}/v1/bundle\` — every product skill URL + invoke prefix.
@@ -576,6 +578,7 @@ export function runtimeManifest(origin, products, extra = {}) {
       author: "Aziel Eliab",
     },
     registry_digest: extra.registry_digest || fraggate.registry_digest || null,
+    catalog_sets: catalogSetsFromParts(products, buildRegistry(products).entries, Object.keys(LIVE_OPS), WORKER_ONLY_TAB_SLUGS),
     fraggate: { ...fraggateHubCard(base), ...fraggate },
     author: "Aziel Eliab",
     identity: "Aziel Eliab",

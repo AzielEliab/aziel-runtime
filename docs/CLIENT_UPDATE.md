@@ -44,7 +44,7 @@ Softwares-tab `count` includes placements (`azinterface`, `decisiongate`,
 `forgereceipts`, `azcoherence`, `zkattest`, `mmconsensus`, `toolbench`,
 `azvpn`, `whitestone`).
 Isolation `domains.software_count` is **33**
-(`domains_are_doors: false`). See `count_note`. Do not equate the two.
+(`domains_are_doors: false`). See `count_note` and `catalog_sets`. Do not equate Softwares slugs with the FragGate allowlist, FragGate `product_count`, or mesh `software_nodes`. `catalog_sets.equate` is false. Softwares has `veillock` and `whitestone`; the allowlist has `memory` and `mesh` instead. Whitestone is absent from `software_nodes`. Equal counts are not equal sets. Do not invent Softwares rows.
 In-runtime placements have `worker_home` null — do not invent a download-tracker.
 Whitestone is Worker-only. Counted package is
 `https://whitestone-download-tracker.vibelock.workers.dev/download`
