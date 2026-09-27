@@ -674,13 +674,13 @@ const PRODUCTS_RAW = [
     github: "https://github.com/AzielEliab/azai",
     ops: [
       { op: "health", method: "GET", summary: "Liveness. Protocol mirror. Not a provider proxy." },
-      { op: "lamb-check", method: "POST", summary: "Run Lamb Lens (peace/clarity/service) on {text}. No provider call." },
+      { op: "lamb-check", method: "POST", summary: "Run Lamb Lens (Service → Clarity → Peace) on {text}. No provider call." },
       { op: "lamb_check", method: "POST", summary: "Alias of lamb-check for MCP azai_lamb_check." },
       { op: "models", method: "GET", summary: "Protocol-mirror model list metadata only. Not a blend. Not a chat runner." },
       { op: "doctor", method: "GET", summary: "UI alias of health. Same FragGate backend as the Worker UI button." },
     ],
     example: { text: "hello" },
-    banner: "AZAI is a local OpenAI-compatible runtime, not a new foundation model. Hosted /v1 is a protocol mirror + Lamb check, NOT a proxy that spends the author's paid keys. Jeeves is not sovereign. Live blend is local azai serve.",
+    banner: "AZAI is a standalone local core, not a new foundation model and not an Ollama identity. Ollama is optional SLOT. Hosted /v1 is a protocol mirror + Lamb check (Service → Clarity → Peace), NOT a proxy that spends the author's paid keys. Jeeves is not sovereign.",
   },
   {
     slug: "spectrallock",

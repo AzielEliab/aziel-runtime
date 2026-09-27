@@ -53,7 +53,7 @@ For **every catalog slug** `session exec` loads a vendored module, computes `eng
 
 Cloudflare’s Worker / Durable Object isolate **is** the jail. No extra guest isolate is claimed. `engine_digest` is still required.
 
-Hosted / in-process AZAI is still protocol mirror + Lamb check, **not** the local blend (`azai serve`).
+Hosted / in-process AZAI is still protocol mirror + Lamb check (Service → Clarity → Peace). The local core is standalone. Ollama is optional SLOT, not the identity.
 
 Any OpenAPI-, MCP-, or HTTP-tool-capable assistant imports **this** OpenAPI file — then use `fraggate_call`. Session tools and `runtime_run` are advanced/internal. `/p/{slug}/{op}` is proxy only and is not the agent default path.
 
@@ -383,7 +383,7 @@ Pull via `GET /v1/bundle` / `GET /v1/pull/{slug}`. Session exec is
 - **AZ-CLCE** detects inconsistency, not intent. Type D is a label, not a finding of malice.
 - **ChronoLock** is advisory only — not a scheduler, not targeting, not virality. 08:30–10:30 local. Distinct from TemporalLock.
 - **The ARK** is not a kernel. Hosted API never unlocks or encrypts with a passphrase and never stores vaults. Sweep is Mode E heuristics only.
-- **AZAI** is a local OpenAI-compatible runtime, not a new foundation model. Hosted / in-process `/v1` is a protocol mirror + Lamb check, not a provider proxy. Jeeves is not sovereign. Live blend is local `azai serve`.
+- **AZAI** is a standalone local core with an OpenAI-compatible API, not a new foundation model and not an Ollama identity. Ollama is optional SLOT. Hosted / in-process `/v1` is a protocol mirror + Lamb check (Service → Clarity → Peace), not a provider proxy. Jeeves is not sovereign.
 - **SpectralLock 0.3.1** hosted overlay is a 256px preview, not a spectrometer, not forensic. Wheel paint is a membership-tint plane separate from the spectral triad. Inject ON is paint, not pigment recovery. Restore lost pigment is LIVE on FragGate ops `pigment` and `restore-pigment` (`listPigment` / `pigmentFromB64`) and refuses `SL-PIGMENT-GONE` when the faded signal is gone. AMOE is not a live product. Leftover-bytes recover is honest (present container bytes only); incremental PDF revision graphs + per-revision copies are honest; opaque refuse is honest; universal recover marks 7z / HEIC / HEIF SLOT; handwriting is a 256px PNG ink-scan heuristic (not ESDA / court cert; hosted JPEG SLOT); never OCR-from-black-box. Unredact / recover / handwriting stay on spectrallock-download-tracker (`/v1/unredact`, `/v1/recover`, `/v1/handwriting`) — not FragGate door ops. UV is not a lamp. Balance/lemon/indent never invent marks. Full pipeline is the Python package.
 - **EmployeeLock** is not a court, not UL, not a truth score. Hosted never stores xlsx. Demo rows are format proof, not case facts.
 - **FoldLock** is not zip. Hosted / in-process preview is tether-suppression on small UTF-8 text. Ratios are receipts, not trophies. Short strings can grow.
