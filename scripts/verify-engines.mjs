@@ -320,8 +320,29 @@ assert.doesNotMatch(azaiSkill.markdown, /Ollama base/i);
 const azaiDoctor = JSON.parse(
   (await executeLocal({ slug: "azai", op: "doctor", payload: {}, ranIn: "aziel-runtime" })).responseText,
 );
+
 assert.match(azaiDoctor.note, /optional SLOT/);
 assert.doesNotMatch(azaiDoctor.note, /Live blend is Ollama/i);
+
+const azaiGuide = JSON.parse(
+  (await executeLocal({ slug: "azai", op: "guide", payload: { q: "Where is Florence?" }, ranIn: "aziel-runtime" })).responseText,
+);
+assert.equal(azaiGuide.ok, true);
+assert.equal(azaiGuide.call, "learner_guide");
+assert.equal(azaiGuide.product, "azai");
+assert.equal(azaiGuide.blend, false);
+assert.equal(azaiGuide.lamb_lens.join(","), "Service,Clarity,Peace");
+assert.equal(typeof azaiGuide.answer, "string");
+assert.ok(azaiGuide.answer.length > 0);
+assert.equal(azaiGuide.software_count, 42);
+assert.equal(azaiGuide.software_tab, false);
+assert.equal(azaiGuide.invented, false);
+
+const azaiGuideMissing = JSON.parse(
+  (await executeLocal({ slug: "azai", op: "guide", payload: {}, ranIn: "aziel-runtime" })).responseText,
+);
+assert.equal(azaiGuideMissing.code, "IF-BAD-INPUT");
+
 
 const skill = await (await handler(new Request(origin + "/v1/skill"), env)).text();
 assert.match(skill, /1\.4\.0/);
