@@ -93,7 +93,7 @@ export function mcpInitializeInstructions(env = {}) {
     "Memory lifecycle is append-only belief (≠ truth): observe → resolve → calibrate → recall or get (no memory_delete). " +
     "QNM mesh lifecycle: mesh_status (counts), mesh_nodes (roster), mesh_enable (optional extra bearer), mesh_disable (refused — public disable of suite-presence), mesh_join/heartbeat/leave (one node), mesh_broadcast (hash receipt, never publish). mesh_join requires product; optional node_id is 8–80 [a-z0-9._-]; presence is live|locked|isolated; additive presence has a strict 5-minute TTL (heartbeat refreshes; else dropped). Join/heartbeat/broadcast refuse MESH-OFF when transmission radios are off. Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public nodes count human mesh users plus cited human uses (USES peek). Public live_nodes count human mesh users plus concurrent site viewers (site_live_viewers) from hub human-page heartbeats. software_nodes is the {slug}-worker roster. Incomplete uses stay honest — do not invent users. NO-LIE / NO-REWRITE: receipts that still hash; copies not all on one tunnel; no rewrite key; the network is never allowed to lie even to self-preserve. " +
     "Raw session lifecycle (advanced/internal): open → policy → exec → receipt or receipts → close. The door runs first. " +
-    "Show the user display.title and display.summary, then take the next input. " +
+    "Never echo raw tool names to humans. Show display.action, display.title, and display.summary, then take the next input. Human-visible framing is Run aziel runtime plus the product verb title. " +
     "runtime_run, runtime_session_*, raw *_health, and runtime_manifest are advanced/internal. " +
     "Do not invoke former {slug}_{op} names — they are not in tools/list. Unknown names refuse FG-HALLUC-TOOL. " +
     "HTTP /p/{slug}/{op} is a proxy and is not exec. " +
@@ -864,8 +864,17 @@ export function mcpCallPayload(name, out, product, op) {
   if (out && out.infra && envelope && typeof envelope === "object") {
     envelope.infra = out.infra;
   }
+  const content = [{ type: "text", text: mcpContentText(name, envelope, out.text) }];
+  const image = envelope && envelope.display && envelope.display.image;
+  if (image && typeof image.data === "string" && image.data) {
+    content.push({
+      type: "image",
+      mimeType: String(image.mimeType || "image/png"),
+      data: image.data,
+    });
+  }
   return {
-    content: [{ type: "text", text: mcpContentText(name, envelope, out.text) }],
+    content,
     structuredContent: envelope,
     isError: out.status >= 400,
   };

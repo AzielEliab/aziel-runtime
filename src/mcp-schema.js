@@ -131,15 +131,51 @@ export function toolEnvelopeOutputSchema(resultDescription) {
     type: "object",
     additionalProperties: true,
     description:
-      "Display envelope shown to the user (display.title / display.summary) plus the machine result. Extra engine fields may appear.",
+      "Display envelope shown to the user (display.action / display.title / display.summary) plus the machine result. Extra engine fields may appear. Do not echo raw tool names.",
     properties: {
       display: {
         type: "object",
         additionalProperties: true,
-        description: "Human-facing envelope. Show title and summary, then take the next input.",
+        description:
+          "Human-facing envelope. Show display.action, title, and summary, then take the next input. Never echo raw tool names.",
         properties: {
-          title: { type: "string", description: "Short result title for the AI client." },
+          action: {
+            type: "string",
+            description:
+              'Human-visible run frame. Always "Run aziel runtime". Product verb titles stay on title. Not a tool name.',
+          },
+          title: { type: "string", description: "Product verb title for the AI client. Not a raw tool name." },
           summary: { type: "string", description: "One-line outcome or refuse reason." },
+          image: {
+            type: "object",
+            additionalProperties: true,
+            description:
+              "Present only when a real production included png_b64, jpeg_b64 (or the same byte family), or a cited http(s) image URL. No invented thumbs. Omitted on dry_run. reviewed is true only when executed production bytes are attached; a dry_run never mints reviewed.",
+            properties: {
+              mimeType: {
+                type: "string",
+                description: "Sniffed image media type (image/png, image/jpeg, image/webp, or image/gif).",
+              },
+              data: {
+                type: "string",
+                description:
+                  "Base64 image bytes copied from the production. Omitted for a URL-only cite. Never present on dry_run.",
+              },
+              url: {
+                type: "string",
+                description: "Cited http(s) image URL when the production named one. Not invented.",
+              },
+              source: {
+                type: "string",
+                description: "Production field the image was taken from (for example png_b64, jpeg_b64, or image_url).",
+              },
+              reviewed: {
+                type: "boolean",
+                description:
+                  "True only when data came from an executed production. False for a URL cite without bytes. Never true on dry_run.",
+              },
+            },
+          },
           fields: {
             type: "array",
             description: "Optional labeled scalars copied from the result for display.",
