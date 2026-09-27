@@ -402,7 +402,7 @@ assert.ok(body.software.every((s) => !/are separate FragGate engines/i.test(s.de
 
 const USE_PURPOSE = {
   azos: [/ethics status|ethics workspace/i],
-  azai: [/local chat runtime|OpenAI-compatible/i],
+  azai: [/OpenAI-compatible|Lamb Lens|adaptive Guide|Lamb ethics/i],
   azbot: [/skill router/i],
   azieltether: [/downloaded packages|central Worker/i],
   staticclock: [/gear-click|plain clock/i],

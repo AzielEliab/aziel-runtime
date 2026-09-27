@@ -18,6 +18,7 @@ import { MEMORY_CANONICAL_OPS, MEMORY_SLUG, MEMORY_STUB_OPS, memoryKernelEntry }
 import { MESH_LIVE_OPS, MESH_OP_ALIASES, MESH_SLUG, MESH_STUB_OPS, meshKernelEntry } from "../mesh.js";
 import { canonicalize, sha256Hex } from "../session-core.js";
 import { FRAGGATE_DOOR, FRAGGATE_KERNEL, FRAGGATE_KERNEL_VERSION } from "./codes.js";
+import { resolveAzaiOp as resolveAzaiOpSync } from "../engines/azai/ops.js";
 
 /**
  * Worker UI button names that agents copy into FragGate.
@@ -26,6 +27,10 @@ import { FRAGGATE_DOOR, FRAGGATE_KERNEL, FRAGGATE_KERNEL_VERSION } from "./codes
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
 export const OP_ALIASES = {
+  azai: {
+    learner_guide: "guide",
+    ask: "guide",
+  },
   azos: {
     session: "session_open",
     close: "session_close",
@@ -160,7 +165,7 @@ export const LIVE_OPS = {
     "session",
     "close",
   ],
-  azai: ["lamb-check", "lamb_check", "models", "health", "skill", "doctor"],
+  azai: ["guide", "learner_guide", "ask", "lamb-check", "lamb_check", "models", "health", "skill", "doctor"],
   postking: ["new", "move", "status", "health", "skill", "doctor"],
   shadowlock: ["observe", "hook", "health", "skill", "doctor"],
   temporallock: ["genesis", "append", "verify", "timeslate", "gate", "import_export", "doctor", "health", "skill"],
@@ -776,6 +781,11 @@ export function parseTarget(args, registry, bySlug) {
   }
 
   const entry = resolveRegistryName(rawName, registry, bySlug);
+  // AZAI MCP/LLM callers often omit op. Prefer guide (question) or lamb-check
+  // over skill/doctor info dumps. Explicit skill/chat stay as classified.
+  if (entry && entry.slug === "azai") {
+    op = resolveAzaiOpSync(op, src);
+  }
   return {
     raw: rawName,
     op,

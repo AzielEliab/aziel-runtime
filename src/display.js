@@ -66,9 +66,15 @@ const TITLE_OVERRIDES = {
   "azcoherence:alternate_score": "Score an alternate triad path",
   "azcoherence:coherence_check": "Check triad coherence with AZCoherence",
   "azcoherence:neutralize_hallucination": "Neutralize a scoring hallucination (advisory)",
+  "azai:guide": "Ask AZAI Guide",
+  "azai:learner_guide": "Ask AZAI Guide",
+  "azai:ask": "Ask AZAI Guide",
   "azai:lamb-check": "Run an AZAI Lamb check",
   "azai:lamb_check": "Run an AZAI Lamb check",
   "azai:models": "List AZAI protocol-mirror models",
+  "azai:skill": "Read how to use AZAI",
+  "azai:doctor": "Check liveness of AZAI",
+  "azai:health": "Check liveness of AZAI",
   "azos:invite": "Read the AZ-OS invite",
   "azos:principles": "Read AZ-OS principles",
   "codelock:gate-status": "Read CodeLock gate status",
@@ -425,9 +431,18 @@ const OP_VERBS = {
   receipt_verify: "Verify a receipt chain in",
   health: "Check liveness of",
   skill: "Read how to use",
+  guide: "Ask",
+  ask: "Ask",
+  learner_guide: "Ask",
 };
 
 const PREFERRED_FIELD_KEYS = [
+  "answer",
+  "overall",
+  "service",
+  "clarity",
+  "peace",
+  "assertion",
   "score",
   "triple",
   "type",
@@ -576,14 +591,25 @@ export function summaryFromResult(result, fallbackText, product) {
       }
       return "Running. No completion receipt yet.";
     }
+    if (typeof result.answer === "string" && result.answer.trim()) return clip(result.answer, 360);
+    if (typeof result.output === "string" && result.output.trim()) return clip(result.output, 360);
+    if (result.overall && result.service && result.clarity && result.peace) {
+      return clip(
+        `Lamb Lens ${result.overall}: Service ${result.service}, Clarity ${result.clarity}, Peace ${result.peace}.`,
+        360,
+      );
+    }
     if (typeof result.summary === "string" && result.summary.trim()) return clip(result.summary, 360);
     if (typeof result.note === "string" && result.note.trim()) return clip(result.note, 360);
-    if (typeof result.limitation === "string" && result.limitation.trim()) return clip(result.limitation, 360);
     if (typeof result.markdown === "string" && result.markdown.trim()) return firstMarkdownLead(result.markdown);
     if (result.error) return clip(String(result.error), 360);
     if (result.ok === false) return product ? `${product.name} returned an error.` : "The software returned an error.";
     if (result.score != null) return `${product ? product.name + " score: " : "Score: "}${stringifyField(result.score)}`;
     if (result.triple != null) return `${product ? product.name + " triple: " : "Triple: "}${stringifyField(result.triple)}`;
+    // limitation is honesty prose — never the primary summary when a useful result exists
+    if (typeof result.limitation === "string" && result.limitation.trim() && result.ok !== true) {
+      return clip(result.limitation, 360);
+    }
     if (result.ok === true && product) return `${product.name} finished. Show this output, then take the next input.`;
   }
   if (typeof fallbackText === "string" && fallbackText.trim() && !fallbackText.trim().startsWith("{")) {
@@ -653,15 +679,35 @@ export function wrapToolOutput({ name, text, status, product, op, extra }) {
     : product
       ? `Show this ${product.name} output to the user, then take the next input.`
       : "Show this output to the user, then take the next input.";
+  const view = displayViewForProduct(parsed, product);
   return displayEnvelope({
     title: status >= 400 ? `${title} (error)` : title,
-    summary: summaryFromResult(parsed, text, product),
-    fields: fieldsFromResult(parsed),
+    summary: summaryFromResult(view, text, product),
+    fields: fieldsFromResult(view),
     result: parsed !== null ? parsed : { text: text == null ? "" : String(text) },
     receipt: extra && extra.receipt,
     session_id: extra && extra.session_id,
     next,
   });
+}
+
+/** AZAI MCP replies bury the useful Guide/Lamb body under result.result — lift it for display. */
+function displayViewForProduct(parsed, product) {
+  if (!parsed || typeof parsed !== "object") return parsed;
+  const slug = product && product.slug ? product.slug : "";
+  if (slug !== "azai") return parsed;
+  const inner = parsed.result;
+  if (!inner || typeof inner !== "object" || Array.isArray(inner)) return parsed;
+  if (
+    typeof inner.answer === "string" ||
+    inner.overall != null ||
+    inner.service != null ||
+    typeof inner.output === "string" ||
+    typeof inner.markdown === "string"
+  ) {
+    return inner;
+  }
+  return parsed;
 }
 
 export function formatDisplayText(envelope) {

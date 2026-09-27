@@ -654,3 +654,21 @@ assert.equal(openapi.paths["/p/azmail/deanonymize"], undefined);
 assert.match(openapi.info.description, /FragGate/);
 
 console.log(`ok fraggate ${RUNTIME_VERSION}: door, registry, HALLUC/stub/local_only, gate ledger, live allowlist, thin MCP`);
+
+{
+  const emptyQ = parseTarget({ slug: "azai", q: "How do receipts work?" }, registry, registry.bySlug);
+  assert.equal(emptyQ.op, "guide");
+  assert.equal(classifyCall(emptyQ.entry, emptyQ.op).kind, "live");
+  const emptyPlain = parseTarget({ slug: "azai" }, registry, registry.bySlug);
+  assert.equal(emptyPlain.op, "lamb-check");
+  assert.equal(classifyCall(emptyPlain.entry, emptyPlain.op).kind, "live");
+  const skillKeep = parseTarget({ slug: "azai", op: "skill" }, registry, registry.bySlug);
+  assert.equal(skillKeep.op, "skill");
+  const chatStub = parseTarget({ slug: "azai", op: "chat" }, registry, registry.bySlug);
+  assert.equal(classifyCall(chatStub.entry, chatStub.op).kind, "stub");
+  assert.ok((LIVE_OPS.azai || []).includes("guide"));
+  assert.ok((registry.bySlug.azai.ops || []).includes("guide"));
+  assert.equal(OP_ALIASES.azai.learner_guide, "guide");
+  assert.equal(OP_ALIASES.azai.ask, "guide");
+}
+

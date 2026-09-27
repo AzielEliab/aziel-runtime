@@ -36,9 +36,9 @@ export const SOFTWARE_COPY = Object.freeze({
       "Use AZ-OS to read its principles and open a short isolate ethics session. It exists as a local ethics workspace.",
   },
   azai: {
-    one_line: "Run a local OpenAI-compatible stack or a hosted Lamb ethics check.",
+    one_line: "Run a Lamb Lens check (Service → Clarity → Peace) or the adaptive AZAI Guide.",
     description:
-      "Use AZAI when you want a local chat runtime, or a hosted check of text against Lamb Lens. It exists as a local stack plus a protocol mirror.",
+      "Use AZAI for a hosted Lamb ethics check or the adaptive Guide (Lamb Lens first). It exists as a local OpenAI-compatible stack plus a protocol mirror — prefer op=guide with q; skill and doctor stay diagnostics; chat/blend/complete stay refuse on the Worker.",
   },
   azbot: {
     one_line: "Route a request onto the matching catalog product and operation.",
