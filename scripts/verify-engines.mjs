@@ -286,6 +286,43 @@ assert.ok(!health.data.proxy_fallback_ops["aziel-corpus"].includes("document-cha
 assert.equal(health.data.proxy_is_not_exec, true);
 assert.equal(manifest.data.hosted_azai_is_not_the_blend, true);
 
+const azaiCheck = await executeLocal({ slug: "azai", op: "lamb-check", payload: { text: "hello" }, ranIn: "aziel-runtime" });
+const azaiBody = JSON.parse(azaiCheck.responseText);
+assert.equal(azaiBody.constitution, "Lamb Lens v1.0 — Service → Clarity → Peace");
+assert.equal(azaiBody.service, "PASS");
+assert.equal(azaiBody.clarity, "PASS");
+assert.equal(azaiBody.peace, "PASS");
+assert.match(azaiBody.limitation, /standalone local core/);
+assert.match(azaiBody.limitation, /optional SLOT/);
+assert.doesNotMatch(azaiBody.limitation, /Ollama base/i);
+assert.doesNotMatch(azaiBody.limitation, /Live blend is Ollama/i);
+
+const azaiModels = JSON.parse(
+  (await executeLocal({ slug: "azai", op: "models", payload: {}, ranIn: "aziel-runtime" })).responseText,
+);
+const localModel = azaiModels.data.find((row) => row.id === "local");
+const ollamaModel = azaiModels.data.find((row) => row.id === "ollama");
+assert.match(localModel.note, /Standalone local core/);
+assert.equal(ollamaModel.optional, true);
+assert.equal(ollamaModel.slot, true);
+assert.match(ollamaModel.note, /Optional SLOT/);
+assert.doesNotMatch(ollamaModel.note, /Live Ollama/i);
+assert.ok(azaiModels.data.findIndex((row) => row.id === "local") < azaiModels.data.findIndex((row) => row.id === "ollama"));
+
+const azaiSkill = JSON.parse(
+  (await executeLocal({ slug: "azai", op: "skill", payload: {}, ranIn: "aziel-runtime" })).responseText,
+);
+assert.match(azaiSkill.markdown, /Service → Clarity → Peace/);
+assert.match(azaiSkill.markdown, /optional SLOT/);
+assert.doesNotMatch(azaiSkill.markdown, /Live blend is Ollama/i);
+assert.doesNotMatch(azaiSkill.markdown, /Ollama base/i);
+
+const azaiDoctor = JSON.parse(
+  (await executeLocal({ slug: "azai", op: "doctor", payload: {}, ranIn: "aziel-runtime" })).responseText,
+);
+assert.match(azaiDoctor.note, /optional SLOT/);
+assert.doesNotMatch(azaiDoctor.note, /Live blend is Ollama/i);
+
 const skill = await (await handler(new Request(origin + "/v1/skill"), env)).text();
 assert.match(skill, /1\.4\.0/);
 assert.match(skill, /1\.3\.0/);

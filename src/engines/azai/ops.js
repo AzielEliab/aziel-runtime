@@ -35,14 +35,14 @@ export function azaiHealth() {
 export function azaiSkill() {
   return capabilitySkill({
     ...envelope(),
-    lead: "Protocol mirror + Lamb Lens. Live blend is local `azai serve`. blend/chat stay refuse.",
+    lead: "Protocol mirror + Lamb Lens (Service → Clarity → Peace). Standalone local core. Ollama is optional SLOT, not the identity. blend/chat stay refuse.",
   });
 }
 
 export function azaiDoctor() {
   return capabilityDoctor({
     ...envelope(),
-    doctor_note: "AZAI doctor: lamb-check + models metadata. blend/complete/chat stay refuse.",
+    doctor_note: "AZAI doctor: lamb-check + models metadata. Standalone local core. Ollama is optional SLOT. blend/complete/chat stay refuse.",
   });
 }
 
