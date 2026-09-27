@@ -25,6 +25,8 @@ import {
   LIBRARY_ORIGIN,
   PRODUCT_ALTERNATE_NAME,
   PRODUCT_NAME,
+  HUMAN_DUAL_SURFACE,
+  HUMAN_USE_SENTENCE,
   RUNTIME_ABSTRACT,
   RUNTIME_ONE_LINE,
   RUNTIME_PAGE_TITLE,
@@ -293,7 +295,7 @@ export function homepageLeadHtml(calling = null) {
   const abstract = rewriteLiveCallingDisplay(RUNTIME_ABSTRACT, calling);
   return `  <h1>${escapeHtml(product)}</h1>
   <p class="lead">${escapeHtml(abstract)}</p>
-  <p><strong>FragGate</strong> is THE single public executable door (list → describe → call). Softwares are Plain → Gate → Lock catalog products with true in-process engines where live. Hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) refresh Softwares tabs from <code>GET /v1/software</code>. Dual-surface: agents use OpenAPI/MCP; humans use Worker UI + counted <code>/download</code>.</p>
+  <p><strong>FragGate</strong> is THE single public executable door (list → describe → call). Softwares are Plain → Gate → Lock catalog products with true in-process engines where live. Hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) refresh Softwares tabs from <code>GET /v1/software</code>. ${escapeHtml(HUMAN_DUAL_SURFACE)}</p>
   <p>NodeMesh / QNM read-only suite-presence is ON by default. <code>GET /v1/mesh</code> never enables radios beyond that. Full node process is local <code>qnm-node/</code>. MASTER-33: domains are isolation labels. FragGate is the single door. Lamb Lens is the ethics hop after FragGate.</p>
   <p>Author / public identity: <strong>${escapeHtml(AUTHOR_NAME)}</strong> (also known as ${escapeHtml(AUTHOR_ALTERNATE_NAME)} — alternateName only). Product: ${escapeHtml(product)} (<code>${escapeHtml(slug)}</code>). Also published as ${escapeHtml(PRODUCT_ALTERNATE_NAME)} (alternateName). Person <code>@id</code> ${AUTHOR_ID}.</p>`;
 }
@@ -329,7 +331,9 @@ export function aboutPageHtml(origin, css, calling = null) {
   const base = String(origin || "").replace(/\/$/, "");
   const about = runtimeAboutField(origin);
   const product = calling && calling.rotated ? calling.calling_name : PRODUCT_NAME;
-  const inner = `  <p><a href="${base}/">← ${escapeHtml(product)}</a> · <a href="${base}/workspace">Use in browser</a> · <a href="${base}/v1/software">Softwares</a></p>
+  const inner = `  <p class="human-cta"><a class="cta" href="${base}/workspace#workspace">Use Softwares</a> <a class="cta" href="${base}/workspace#workspace">Open workspace</a></p>
+  <p class="hint">${escapeHtml(HUMAN_USE_SENTENCE)}</p>
+  <p><a href="${base}/">← ${escapeHtml(product)}</a> · <a href="${base}/workspace">Use in browser</a> · <a href="${base}/v1/software">Softwares</a></p>
   <h1>About ${escapeHtml(product)}</h1>
   <p class="lead">${escapeHtml(rewriteLiveCallingDisplay(RUNTIME_ABSTRACT, calling))}</p>
 ${distributionDoorsHtml(base)}
@@ -389,7 +393,9 @@ export function softwareCatalogHtml(origin, catalog, css, calling = null) {
             : s.worker_only || s.public_door === false
               ? ` · <a href="${escapeHtml(useHref)}">Open Worker app</a>`
               : ` · <a href="${escapeHtml(useHref)}">Use in browser</a>`;
-      const download = s.download_url ? ` · <a href="${escapeHtml(s.download_url)}">${s.worker_only ? "optional zip" : "Download desktop"}</a>` : "";
+      const download = s.download_url
+        ? ` · <a class="secondary" href="${escapeHtml(s.download_url)}">${s.worker_only ? "optional zip" : "Download desktop"}</a>`
+        : "";
       const hay = `${s.name} ${s.slug} ${s.bucket} ${s.status} ${s.door_label || ""} ${s.one_line || ""}`.toLowerCase();
       const describeLink = s.worker_only ? "" : ` · <a href="${escapeHtml(describe)}">describe</a>`;
       const badge = s.door_label || s.status;
@@ -397,10 +403,12 @@ export function softwareCatalogHtml(origin, catalog, css, calling = null) {
     })
     .join("\n");
   const product = calling && calling.rotated ? calling.calling_name : PRODUCT_NAME;
-  const inner = `  <p><a href="${base}/">← ${escapeHtml(product)}</a> · <a href="${base}/workspace">Use in browser</a></p>
+  const inner = `  <p class="human-cta"><a class="cta" href="${base}/workspace#workspace">Use Softwares</a> <a class="cta" href="${base}/workspace#workspace">Open workspace</a></p>
+  <p><a href="${base}/">← ${escapeHtml(product)}</a> · <a href="${base}/workspace">Use in browser</a></p>
   <h1>Softwares</h1>
   ${aboutAzielStripHtml({ id: "about-aziel-strip-software" })}
   <p class="lead">${escapeHtml(SOFTWARE_PAGE_DESCRIPTION)}</p>
+  <p class="hint">${escapeHtml(HUMAN_DUAL_SURFACE)}</p>
   ${suiteDownloadHtml(base, { id: "suite-download-software" })}
 ${distributionDoorsHtml(base)}
 ${ecosystemBlockHtml()}

@@ -28,6 +28,7 @@ import { survivalHint } from "./cross-network-survival.js";
 import { shelvesCiteField } from "./cold-multi-shelf.js";
 import {
   AUTHOR_ID,
+  HUMAN_USE_SENTENCE,
   azcoherenceCiteField,
   discoveryHostFields,
   hubsCiteField,
@@ -460,7 +461,9 @@ export function softwareCatalog(origin, products, extra = {}) {
     suite_download: `${base}/download`,
     suite_download_v1: `${base}/v1/suite/download`,
     suite_download_note:
-      "One-click suite pack JSON (REAL catalog + FoldLock tip + mesh cite). Worker wasm / WireGuard / OpenVPN SLOT. Counted GET /download. LIVE on Windows / Mac / Linux / Android / iPhone via browser + PWA + Worker UI (native_app_store false). Not .",
+      "One-click suite pack JSON (REAL catalog + FoldLock tip + mesh cite). Worker wasm / WireGuard / OpenVPN SLOT. Counted GET /download. LIVE on Windows / Mac / Linux / Android / iPhone via browser + PWA + Worker UI (native_app_store false). Not . " +
+      HUMAN_USE_SENTENCE +
+      " Optional suite pack JSON remains at /download.",
     platforms: platformsCite(extra.env),
     isolation_software_count: MASTER_33_SLUGS.length,
     tab_placement_slugs: TAB_PLACEMENT_SLUGS.slice(),

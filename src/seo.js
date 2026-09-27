@@ -132,6 +132,13 @@ export const RUNTIME_ONE_LINE =
 export const RUNTIME_ABSTRACT =
   "Aziel Runtime is a node-meshed orchestration suite of MCP-connected software designed to route catalog Softwares through the FragGate door, mint receipts, and coordinate mesh presence. Use it to list, describe, and call product operations over MCP or OpenAPI, then keep the returned receipt. It exists so each Softwares product stays a separate engine behind one door.";
 
+/** Human front door: Worker UI on this VibeLock host. /download stays optional and real. */
+export const HUMAN_USE_SENTENCE =
+  "Humans use Softwares in the Worker UI on this VibeLock host (browser / PWA) — no download required.";
+
+export const HUMAN_DUAL_SURFACE =
+  "Humans use Softwares in the Worker UI on this VibeLock host (browser / PWA) — no download required. Agents use OpenAPI/MCP. Optional suite pack JSON remains at /download.";
+
 /** Heritage list — do not publish on llms / cite / about. Positive definition lives in RUNTIME_ABSTRACT. */
 export const RUNTIME_NOT = Object.freeze([]);
 
@@ -141,15 +148,14 @@ export function runtimeAboutField(origin) {
     what: RUNTIME_ABSTRACT,
     product: PRODUCT_NAME,
     slug: PRODUCT_SLUG,
-    for_whom:
-      "Agents (OpenAPI / MCP in chat) and humans (Worker UI + counted /download). Hubs refresh Softwares tabs from GET /v1/software.",
+    for_whom: `${HUMAN_DUAL_SURFACE} Hubs refresh Softwares tabs from GET /v1/software.`,
     how_agents: `FragGate list → describe → call. Prefer ${base}/mcp and ${base}/v1/software. POST ${base}/v1/fraggate/call.`,
     how_hubs:
       "Hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) fetch GET /v1/software on each Softwares-tab request.",
     architecture: {
       fraggate: "THE single public executable door (list → describe → call).",
       softwares: "Plain → Gate → Lock catalog products with true in-process engines where live.",
-      dual_surface: "Agents via OpenAPI/MCP; humans via Worker UI + counted /download.",
+      dual_surface: HUMAN_DUAL_SURFACE,
       semantic_bridge:
         "Cap-7 is MirageGrid .az duplication + shift (StaticLock; catalog product StaticClock, slug staticclock). Inherit hub designs only (azcorpus + azlibrary on the library hub). Standard internet does not reach Cap-7. AZ domains resolve via hub HTTPS (public_icann true, resolves_to_hub true). Real duplications: azgrid, azcloak, azvault, azshift. False sites: azbooth, azflag, azstandby. design_of hub_designs. Cap-7 resolves_to_hub false. GET /v1/mesh never enables.",
       cold_multi_shelf:
@@ -201,7 +207,7 @@ export function llmsWhatThisIsBlock(calling = null) {
     "Also:",
     "Agents: call Softwares (tools/list name Softwares). The door runs first (POST /mcp). ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. Diagnostics: fraggate_list → fraggate_describe → fraggate_call.",
     "Hubs: GET /v1/software (mirror GET /v1/fraggate/software) on each Softwares-tab refresh.",
-    "Humans: Worker UI + counted /download — dual-surface. POST /p/{slug}/{op} is proxy. Exec is FragGate.",
+    `${HUMAN_DUAL_SURFACE} POST /p/{slug}/{op} is proxy. Exec is FragGate.`,
     `Install / Try on Glama: ${RUNTIME_GLAMA}`,
     `Remote MCP: POST ${GLAMA_REMOTE_MCP}`,
     "First call: Softwares (tools/list name Softwares). The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. Example: decisiongate_check with dry_run=true, or foldlock fold-preview.",

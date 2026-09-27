@@ -231,6 +231,69 @@ assert.match(softwareHtml, /viewport-fit=cover/);
 assert.match(softwareHtml, /<label for="software-filter">Search Softwares/);
 assert.match(softwareHtml, /Use in browser/);
 assert.match(softwareHtml, /id="suite-download-software"/);
+assert.match(softwareHtml, /no download required/);
+assert.ok(
+  softwareHtml.indexOf(">Use Softwares<") < softwareHtml.indexOf('id="suite-download-software"'),
+  "Softwares HTML leads with Use Softwares, then the optional pack",
+);
+
+function humanNavSlice(html) {
+  const start = html.indexOf('<nav class="human-nav"');
+  const end = html.indexOf("</nav>", start);
+  assert.ok(start >= 0 && end > start, "human-nav present");
+  return html.slice(start, end);
+}
+
+function assertUseBeforeDownload(html, label) {
+  const nav = humanNavSlice(html);
+  const useAt = nav.indexOf(">Use Softwares<");
+  const openAt = nav.indexOf(">Open workspace<");
+  const citeAt = nav.indexOf(">Cite / docs<");
+  const dlAt = nav.indexOf(">Download suite<");
+  assert.ok(useAt >= 0 && useAt < dlAt, `${label}: Use Softwares before Download suite`);
+  assert.ok(openAt >= 0 && openAt < dlAt, `${label}: Open workspace before Download suite`);
+  assert.ok(citeAt >= 0 && citeAt < dlAt, `${label}: Cite / docs before Download suite`);
+  assert.match(nav, /class="nav-primary"[^>]*>Use Softwares</);
+  assert.match(nav, /class="nav-primary"[^>]*>Open workspace</);
+  assert.match(nav, /class="nav-secondary"[^>]*download="aziel-runtime-suite\.json"[^>]*>Download suite</);
+  assert.doesNotMatch(nav, /class="nav-primary"[^>]*>Download suite</);
+}
+
+assertUseBeforeDownload(home, "home");
+assertUseBeforeDownload(ws, "workspace");
+assert.match(
+  home,
+  /Humans use Softwares in the Worker UI on this VibeLock host \(browser \/ PWA\) — no download required/,
+);
+assert.match(ws, /no download required/);
+assert.match(ws, /Worker UI on this VibeLock host/);
+assert.doesNotMatch(home, /humans use Worker UI \+ counted/i);
+assert.match(home, /class="dash-card/);
+assert.match(home, /id="dash-softwares"/);
+
+const foldPage = await (await get("/p/foldlock")).text();
+assert.match(foldPage, /class="cta"[^>]*>Use on Worker</);
+assert.match(foldPage, /workspace#workspace">Open workspace</);
+assert.match(foldPage, /no download required/);
+assert.match(foldPage, /id="fg-door-foldlock"/);
+assert.ok(foldPage.indexOf(">Use on Worker<") < foldPage.indexOf(">Download desktop<"), "product page Use on Worker before Download desktop");
+assert.match(foldPage, /class="secondary"[^>]*>Download desktop</);
+
+const veilPage = await (await get("/p/veillock")).text();
+assert.match(veilPage, />Open local desk</);
+assert.match(veilPage, />Open workspace</);
+assert.doesNotMatch(veilPage, />Use on Worker</);
+assert.match(veilPage, /no download required/);
+
+const aboutPage = await (await get("/about")).text();
+assert.match(aboutPage, /no download required/);
+assert.match(aboutPage, />Use Softwares</);
+assert.match(aboutPage, />Open workspace</);
+
+const packRes = await get("/download");
+assert.equal(packRes.status, 200);
+assert.match(packRes.headers.get("content-type") || "", /json/);
+assert.match(packRes.headers.get("content-disposition") || "", /aziel-runtime-suite\.json/);
 assert.match(ws, /id="suite-download-op"/);
 assert.match(ws, /data-mesh="vpn"/);
 assert.match(ws, /data-mesh="heartbeat"/);

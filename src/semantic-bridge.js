@@ -19,6 +19,8 @@ import {
   DESIGNS_GITHUB_TREE,
   GODLOCK_UK_ORIGIN,
   HEDIDNTJUMP_HOME,
+  HUMAN_DUAL_SURFACE,
+  HUMAN_USE_SENTENCE,
   LIBRARY_ORIGIN,
   softwareHubCrawl,
 } from "./seo.js";
@@ -409,7 +411,7 @@ export function dualSurfaceAgentHowTo(origin) {
   const host = String(origin || "").replace(/\/$/, "");
   return `## Dual surface — upload / download / invoke
 
-Agents (MCP / OpenAPI in AI clients) and humans (Worker UI + counted \`/download\`) share one backend. FragGate is THE executable door. \`POST /p/{slug}/{op}\` is **proxy**, not exec.
+Agents (MCP / OpenAPI in AI clients) and humans share one backend. ${HUMAN_USE_SENTENCE} Optional suite pack JSON remains at \`/download\`. FragGate is THE executable door. \`POST /p/{slug}/{op}\` is **proxy**, not exec.
 
 ### Download (agent)
 
@@ -437,6 +439,6 @@ Call \`POST ${host}/v1/fraggate/call\` or MCP \`fraggate_call\` with \`{ slug, o
 
 **azlibrary upload** is API token only (operator \`Authorization: Bearer\` / env / keychain at call time). Never embed the secret in catalog, skill, MCP schema, or OpenAPI examples. Download of azcorpus + azlibrary stays open.
 
-Humans use the product Worker UI and counted \`/download\`. Agents stay in chat: show \`display.title\` / \`display.summary\`, then take the next input.
+${HUMAN_DUAL_SURFACE} Agents stay in chat: show \`display.title\` / \`display.summary\`, then take the next input.
 `;
 }

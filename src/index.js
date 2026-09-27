@@ -291,6 +291,8 @@ import {
   LIBRARY_NAME,
   LIBRARY_ORIGIN,
   PRODUCT_ALTERNATE_NAME,
+  HUMAN_DUAL_SURFACE,
+  HUMAN_USE_SENTENCE,
   PRODUCT_NAME,
   RUNTIME_ABSTRACT,
   RUNTIME_GLAMA,
@@ -2136,9 +2138,10 @@ const PAGE_CSS = `
   .meta a { margin-right: .85rem; }
   pre { background: #0e1014; padding: .75rem .9rem; overflow: auto; border-radius: 8px; font-size: .82rem; max-width: 100%; }
   code { font-size: .88rem; }
-  .doors { display:flex; flex-wrap:wrap; align-items:center; gap:.55rem 1rem; margin:0 0 1.25rem; }
-  .doors a.cta { display:inline-block; background:#241c0d; color:#f0d78c; border:1px solid #5c4a1a; border-radius:8px; padding:.4rem .85rem; font-weight:600; text-decoration:none; }
-  .doors a.cta:hover { background:#33280f; }
+  .doors, .human-cta { display:flex; flex-wrap:wrap; align-items:center; gap:.55rem 1rem; margin:0 0 1.25rem; }
+  .doors a.cta, .human-cta a.cta, .product-use a.cta { display:inline-block; background:#241c0d; color:#f0d78c; border:1px solid #5c4a1a; border-radius:8px; padding:.4rem .85rem; font-weight:600; text-decoration:none; }
+  .human-cta a.cta, .product-use a.cta { border-color:#d4af37; font-weight:700; }
+  .doors a.cta:hover, .human-cta a.cta:hover, .product-use a.cta:hover { background:#33280f; }
   .doors a.secondary, a.secondary, p.secondary { color:#9aa3b2; font-size:.92rem; }
   .ecosystem { margin: 0 0 1.25rem; padding: .85rem 1rem; border: 1px solid #2a3140; border-radius: 10px; background: #151922; }
   .ecosystem p { margin: 0 0 .45rem; font-weight: 600; }
@@ -2179,7 +2182,7 @@ const PAGE_CSS = `
     .field input, .field select, .field textarea, .fg-door textarea, input[type="text"], input[type="search"], input[type="password"], input[type="url"], select, textarea { font-size: 16px; }
     .field input, .field select, input[type="text"], input[type="search"], input[type="password"], select { min-height: 44px; }
     .field textarea, .fg-door textarea, textarea { min-height: 6.5rem; }
-    .doors a.cta, .fg-ops button {
+    .doors a.cta, .human-cta a.cta, .product-use a.cta, .fg-ops button {
       min-height: 44px; padding: .55rem .9rem; display: inline-flex; align-items: center; justify-content: center;
     }
     .meta, ol, ul { line-height: 1.7; }
@@ -2189,7 +2192,7 @@ const PAGE_CSS = `
     }
   }
   @media (hover: none) {
-    .doors a.cta:hover, .fg-ops button:hover { background: #241c0d; }
+    .doors a.cta:hover, .human-cta a.cta:hover, .product-use a.cta:hover, .fg-ops button:hover { background: #241c0d; }
     .fg-ops button.fg-stub:disabled:hover { background: #12100c; }
   }
 `;
@@ -2243,14 +2246,14 @@ GET or POST ${origin}/p/${escapeHtml(p.slug)}/${escapeHtml(firstPost.op)} is pro
   ${banner}
   <p class="meta">
     <a href="${useHref}">${useLabel}</a>
-    ${u.download ? `<a href="${u.download}">Download desktop</a>` : `<span class="slug">no counted Worker tarball (in-runtime)</span>`}
+    ${u.download ? `<a class="secondary" href="${u.download}">Download desktop</a>` : `<span class="slug">no counted Worker tarball (in-runtime)</span>`}
     <a href="${origin}/mcp">Connect AI</a>
     <a href="${p.github}">GitHub</a>
     ${u.worker_home ? `<a href="${u.worker_home}">Worker /</a>` : `<span class="slug">in-runtime</span>`}
     ${u.cite ? `<a href="${u.cite}">/cite.json</a>` : ""}
     ${u.has_llms ? `<a href="${u.llms}">/llms.txt</a>` : ""}
-    ${u.download ? `<a href="${u.download}">counted /download</a>${count}` : ""}
-    ${u.install ? `<a href="${u.install}" class="copy-install">Copy install command</a>` : ""}
+    ${u.download ? `<a class="secondary" href="${u.download}">counted /download</a>${count}` : ""}
+    ${u.install ? `<a class="secondary copy-install" href="${u.install}">Copy install command</a>` : ""}
     <a href="${u.skill}">/v1/skill</a>
     <a href="${u.pull}">pull</a>
     <a href="${u.pull_skill}">pull skill</a>
@@ -2464,6 +2467,17 @@ ${donateFooterHtml()}
 </html>`;
 }
 
+function productHumanUseHtml(p, origin) {
+  const onDoor = doorOnly(p);
+  const runHref = onDoor ? `#fg-door-${p.slug}` : `${origin}/workspace#desk-${p.slug}`;
+  const runLabel = onDoor ? "Use on Worker" : "Open local desk";
+  return `<p class="doors product-use">
+    <a class="cta" href="${escapeHtml(runHref)}">${escapeHtml(runLabel)}</a>
+    <a class="cta" href="${escapeHtml(origin)}/workspace#workspace">Open workspace</a>
+  </p>
+  <p class="hint">${escapeHtml(HUMAN_USE_SENTENCE)} Agents use OpenAPI/MCP. Optional suite pack JSON remains at <a class="secondary" href="${escapeHtml(origin)}/download"><code>/download</code></a>.</p>`;
+}
+
 function productPageHtml(p, origin, stats) {
   const u = productUrls(p, origin);
   const title = `${p.name} — ${CATALOG_TITLE}`;
@@ -2496,7 +2510,8 @@ ${headMeta(origin, title, description, `/p/${p.slug}`)}
 </head>
 <body>
 ${brandRow()}
-  <p><a href="${origin}/">← ${escapeHtml(PRODUCT_NAME)}</a> · <a href="${origin}/workspace">Workspace</a></p>
+${productHumanUseHtml(p, origin)}
+  <p><a href="${origin}/">← ${escapeHtml(PRODUCT_NAME)}</a> · <a href="${origin}/workspace#workspace">Workspace</a></p>
   ${productCardHtml(p, origin, stats)}
   ${workerLaunchHtml(origin, p)}
 ${humanDoorScript()}
@@ -2909,7 +2924,9 @@ async function combinedOpenApi(request, env) {
       summary: rewriteLiveCallingDisplay(RUNTIME_ONE_LINE, resolveCallingName(env)),
       description:
         rewriteLiveCallingDisplay(RUNTIME_ABSTRACT, resolveCallingName(env)) +
-        " FragGate is THE single public executable door (list → describe → call). Softwares catalog Plain→Gate→Lock; hubs refresh from GET /v1/software. Dual-surface: agents MCP/OpenAPI; humans Worker UI + counted /download. Catalog names mesh-resident website designs azcorpus + azlibrary (downloadable to nodes; azlibrary upload is API token only). Cap-7 mesh names via MirageGrid only ( .az duplication + shift; standard internet does not reach Cap-7; AZ domains resolve via hub HTTPS; Cap-7 resolves_to_hub false; 3 of 7 false sites). COLD-MULTI-SHELF-1.0 cite on GET /shelves matches corpus#96 honesty (Plane A 5 surfaces / 2 family radii / 1 independent live; Plane B Codeberg + archive.org PASS still SLOT at https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius; Framagit URL null; doi null; Plane C USB SLOT). NodeMesh/QNM read-only suite-presence is ON by default; GET /v1/mesh never enables radios beyond that. FED-MESH-1.0 is a Local-First Edge Mesh: raw data, keys, and heavy compute stay on the local node; this Worker is one relay and carries signed receipts, state digests, ref updates, and .aziel name records. A friendly name carries proof-of-work and stays pending until 72 hours and 2 witness handles. The first valid final claim wins (3 user .aziel names per handle, plus 4 reserved hub-mirror slots). <handle>.aziel is self-certifying. .az is normal DNS except the Cap-7 allowlist and the AZ.* hub names. It never requires plaintext. Full objects stay on peers. A new node still needs one relay address it already has. Public VPN auto-binds AZVPN (HTTPS/WS REAL; WireGuard/OpenVPN SLOT). Author Aziel Eliab only. " +
+        " FragGate is THE single public executable door (list → describe → call). Softwares catalog Plain→Gate→Lock; hubs refresh from GET /v1/software. " +
+        HUMAN_DUAL_SURFACE +
+        " Catalog names mesh-resident website designs azcorpus + azlibrary (downloadable to nodes; azlibrary upload is API token only). Cap-7 mesh names via MirageGrid only ( .az duplication + shift; standard internet does not reach Cap-7; AZ domains resolve via hub HTTPS; Cap-7 resolves_to_hub false; 3 of 7 false sites). COLD-MULTI-SHELF-1.0 cite on GET /shelves matches corpus#96 honesty (Plane A 5 surfaces / 2 family radii / 1 independent live; Plane B Codeberg + archive.org PASS still SLOT at https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius; Framagit URL null; doi null; Plane C USB SLOT). NodeMesh/QNM read-only suite-presence is ON by default; GET /v1/mesh never enables radios beyond that. FED-MESH-1.0 is a Local-First Edge Mesh: raw data, keys, and heavy compute stay on the local node; this Worker is one relay and carries signed receipts, state digests, ref updates, and .aziel name records. A friendly name carries proof-of-work and stays pending until 72 hours and 2 witness handles. The first valid final claim wins (3 user .aziel names per handle, plus 4 reserved hub-mirror slots). <handle>.aziel is self-certifying. .az is normal DNS except the Cap-7 allowlist and the AZ.* hub names. It never requires plaintext. Full objects stay on peers. A new node still needs one relay address it already has. Public VPN auto-binds AZVPN (HTTPS/WS REAL; WireGuard/OpenVPN SLOT). Author Aziel Eliab only. " +
         CATALOG_CHANGELOG_20 +
         " " +
         CATALOG_CHANGELOG_19 +
