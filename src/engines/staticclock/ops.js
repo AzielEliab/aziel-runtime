@@ -66,7 +66,7 @@ export async function runStaticclock(op, payload, scratch) {
   if (op === "skill") return staticclockSkill();
   if (op === "doctor") return staticclockDoctor();
   if (op === "advise" || op === "advisory") {
-    return { ...(await advise((payload && payload.geo) || "Indiana", payload && payload.language, payload && payload.dialect)), true_engine_runtime: true, limitation: LIMITATION };
+    return { ...(await advise((payload && payload.geo) || "United States", payload && payload.language, payload && payload.dialect)), true_engine_runtime: true, limitation: LIMITATION };
   }
   if (op === "anchors") return { ...listAnchors(), true_engine_runtime: true };
   if (op === "click") {

@@ -63,7 +63,7 @@ export async function runChronolock(op, payload, scratch) {
   if (op === "skill") return chronolockSkill();
   if (op === "doctor") return chronolockDoctor();
   if (op === "advisory" || op === "advise") {
-    return { ...(await advise((payload && payload.geo) || "Indiana", payload && payload.language, payload && payload.dialect)), true_engine_runtime: true, limitation: LIMITATION };
+    return { ...(await advise((payload && payload.geo) || "United States", payload && payload.language, payload && payload.dialect)), true_engine_runtime: true, limitation: LIMITATION };
   }
   if (op === "anchors") return { ...listAnchors(), true_engine_runtime: true };
   if (op === "window") return { ...advisoryWindow(payload && payload.geo), true_engine_runtime: true };

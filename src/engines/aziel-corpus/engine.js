@@ -77,7 +77,7 @@ export const SAMPLE_MASTER = [
 /** Gazetteer used by verify-geo. Sample only — not a live geocoder. */
 export const SAMPLE_GEO = Object.freeze({
   florence: { place: "Florence", country: "Italy", lat: 43.7696, lon: 11.2558 },
-  indiana: { place: "Indiana", country: "United States", lat: 39.7684, lon: -86.1581 },
+  united_states: { place: "United States", country: "United States", lat: 39.8283, lon: -98.5795 },
 });
 
 function tokensOf(text) {
@@ -325,7 +325,7 @@ export function verifyGeo(body) {
     return baseResult({
       op: "verify-geo",
       ok: false,
-      error: "Pass a sample gazetteer place (Florence or Indiana). Not a live geocoder.",
+      error: "Pass a sample gazetteer place (Florence or United States). Not a live geocoder.",
       status: 400,
       geocoder: false,
     });
