@@ -185,7 +185,10 @@ ${jeevesHelpHtml(origin)}
     #elroi-pane .elroi-tabs{display:flex;flex-wrap:wrap;gap:.4rem;margin:.4rem 0 .8rem}
     #elroi-pane .elroi-tabs button{background:#241c0d;color:#f0d78c;border:1px solid #5c4a1a;border-radius:8px;padding:.4rem .75rem;cursor:pointer;font:inherit}
     #elroi-pane .elroi-tabs button[aria-selected="true"]{box-shadow:0 0 0 1px #d4af37}
-    #jeeves-egg{max-width:280px;display:block;margin:.5rem 0}
+    #jeeves-egg{max-width:min(100%,280px);display:block;margin:.5rem 0}
+    @media (max-width:64rem){
+      #elroi-pane .elroi-tabs button{min-height:44px;padding:.65rem .9rem}
+    }
     #jeeves-laugh{font-size:1.2rem;margin:.6rem 0 .2rem;color:#f0d78c}
   </style>
   <script>

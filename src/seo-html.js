@@ -111,7 +111,7 @@ export function headMeta(origin, title, description, canonicalPath) {
   const canonical = base + path;
   const image = `${base}/sigil.png`;
   return `<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>${escapeHtml(title)}</title>
 <meta name="description" content="${escapeHtml(description)}">
 <meta name="author" content="${escapeHtml(AUTHOR_NAME)}">
