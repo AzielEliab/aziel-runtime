@@ -256,6 +256,8 @@ import {
   readMcpSessionHeader,
 } from "./mcp-transport.js";
 import { confirmConsentHonesty, dryRunAllowedEnvelope, evaluateMutateSafeguard, isTruthyFlag } from "./mcp-safeguard.js";
+import { explicitRouteTarget, meshPreviewEnvelope, meshQuestionOf, routeMesh } from "./mesh-router.js";
+import { rememberReviewed } from "./reviewed-copies.js";
 import { beginBackground, getJob } from "./background-job.js";
 import {
   attachInfra,
@@ -3239,8 +3241,90 @@ function withRefuseInfra(out) {
   return attachInfra(out, refuseInfra());
 }
 
+async function meshAdaptMcp(env, name, args, origin, request) {
+  const question = meshQuestionOf(args);
+  const confirm = isTruthyFlag(args && args.confirm);
+  const dryRun = isTruthyFlag(args && args.dry_run);
+  const decision = routeMesh({
+    question,
+    catalog: listSoftwareEntries(PRODUCTS, origin),
+    confirm,
+    dry_run: dryRun,
+    payload: args && args.payload && typeof args.payload === "object" && !Array.isArray(args.payload) ? args.payload : null,
+  });
+  const mayExec = decision.dispatch === true && confirm && !dryRun;
+  if (!mayExec) {
+    const envelope = meshPreviewEnvelope(decision);
+    const status = envelope.ok === false ? 400 : 200;
+    return {
+      status,
+      text: JSON.stringify(envelope, null, 2),
+      envelope,
+      target: "mesh-router",
+    };
+  }
+  if (name === "runtime_session_exec" && !(args && (args.session_id || args.id))) {
+    const envelope = meshPreviewEnvelope(decision);
+    envelope.ok = false;
+    envelope.code = "MR-SESSION";
+    if (envelope.display) envelope.display.summary = "That route needs an open session id. Nothing ran.";
+    return { status: 400, text: JSON.stringify(envelope, null, 2), envelope, target: "mesh-router" };
+  }
+  const next = {
+    ...(args && typeof args === "object" ? args : {}),
+    slug: decision.slug,
+    op: decision.op,
+    payload: decision.payload,
+    confirm: true,
+  };
+  const deps = sessionDeps(env, origin, request);
+  const out =
+    name === "runtime_run"
+      ? await callRuntimeRun(env, next, origin, deps)
+      : await callSessionTool(env, name, next, origin, deps);
+  if (!out) return out;
+  let parsed = out.envelope || null;
+  if (!parsed && typeof out.text === "string") {
+    try {
+      parsed = JSON.parse(out.text);
+    } catch {
+      parsed = null;
+    }
+  }
+  const copies =
+    out.status >= 400
+      ? null
+      : rememberReviewed({
+          sessionId: (out.envelope && out.envelope.session_id) || (args && (args.session_id || args.id)) || "mcp",
+          production: parsed,
+          slug: decision.slug,
+          op: decision.op,
+          dryRun: false,
+        });
+  const route = { spec: "MESH-ADAPT-1.0", slug: decision.slug, op: decision.op, invented: false };
+  if (out.envelope && out.envelope.display) {
+    const fields = Array.isArray(out.envelope.display.fields) ? out.envelope.display.fields : [];
+    const lensFields = (decision.display && decision.display.fields) || [];
+    out.envelope.display.fields = fields.concat(lensFields);
+    if (decision.display && decision.display.title) {
+      out.envelope.display.title = out.status >= 400 ? `${decision.display.title} (error)` : decision.display.title;
+    }
+    out.envelope.route = route;
+    if (copies) out.envelope.reviewed_copies = copies;
+    out.text = JSON.stringify(out.envelope, null, 2);
+  } else if (parsed && typeof parsed === "object") {
+    parsed.route = route;
+    if (copies) parsed.reviewed_copies = copies;
+    out.text = JSON.stringify(parsed);
+  }
+  return out;
+}
+
 async function callTool(env, name, args, origin, request, ctx) {
   name = resolvePublicToolName(name);
+  if ((name === "runtime_run" || name === "runtime_session_exec") && meshQuestionOf(args) && !explicitRouteTarget(args)) {
+    return meshAdaptMcp(env, name, args, origin, request);
+  }
   const safeguard = evaluateMutateSafeguard(name, args);
   if (safeguard.gated) {
     return withConfirmConsent(wrapFraggateEnvelope(name, safeguard.envelope, null, (args && args.op) || null));
@@ -3415,6 +3499,7 @@ async function handleMcp(request, env, origin, ctx) {
   if (method === "interface/orchestrate") {
     const out = await orchestrate(params, {
       env,
+      products: PRODUCTS,
       dispatch: (args) => fraggateCall(args, registryFor(PRODUCTS), BY_SLUG, env, request),
     });
     return rpcResult(id, out.body, wire);
@@ -4124,6 +4209,7 @@ async function handleRequest(request, env, ctx) {
       }
       const out = await orchestrate(payload, {
         env,
+        products: PRODUCTS,
         dispatch: (args) => fraggateCall(args, registryFor(PRODUCTS), BY_SLUG, env, request),
       });
       return json(out.body, out.status, extraHeaders);

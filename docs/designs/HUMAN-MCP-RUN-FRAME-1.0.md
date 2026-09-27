@@ -30,8 +30,7 @@ A cited `http` or `https` URL on `image_url`, `png_url`, `jpeg_url`, `jpg_url`, 
 3. What this slice does not do
 - Does not change the Softwares desk, cards, grid, domain tabs, or `#dash-out`.
 - Does not add a Softwares row. Softwares stay 42. Ask Jeeves stays suite help (`software_tab` false).
-- Does not paint `<img>` in the human UI. That paint is deferred.
-- Does not build an "all reviewed copies" gallery.
+- Does not paint `<img>` in this slice. Interface chat paint and the reviewed-copies gallery are MESH-ADAPT-1.0 (`#interface-chat`, `#reviewed-gallery`), not this MCP envelope.
 - Does not add, remove, or rename an MCP tool. `tools/list` stays 36.
 - Does not change the door. Exec is still `fraggate_call`, the Softwares catalog, or `runtime_run` under the hood.
 - Does not deploy.

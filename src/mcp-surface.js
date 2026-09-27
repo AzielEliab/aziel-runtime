@@ -746,7 +746,9 @@ export function runtimeHelperTools() {
           instead: "fraggate_call (default) or runtime_session_exec (existing session_id)",
           effects:
             "Side effects are operation-dependent. Not a backdoor past FragGate. Opens a session when session_id is omitted",
-          params: "slug and op are required. session_id optional; omit to auto-open. Extra keys other than payload/session_id may be treated as payload. " + CONFIRM_PARAM_NOTE,
+          params:
+            "slug and op are required for an explicit run. A question in q, question, or text with slug omitted asks the mesh router to pick one live Softwares slug and op. That pick does not exec unless confirm=true. dry_run=true returns the pick and writes nothing. session_id optional; omit to auto-open. Extra keys other than payload/session_id may be treated as payload. " +
+            CONFIRM_PARAM_NOTE,
           returns: "exec display envelope with session_id, result, engine_digest, ran_in, and refusal when gated",
         }),
       ),

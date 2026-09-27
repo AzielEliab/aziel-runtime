@@ -8,7 +8,9 @@ import { digestText, newSessionId, SESSION_ID_RE } from "./session-core.js";
 import { RUNTIME_VERSION } from "./runtime-api.js";
 import { executeLocal, proxyFallbackMeta } from "./engines/runner.js";
 import { attachExecDisplay } from "./display.js";
-import { confirmConsentHonesty } from "./mcp-safeguard.js";
+import { confirmConsentHonesty, isTruthyFlag } from "./mcp-safeguard.js";
+import { meshQuestionOf, routeMesh } from "./mesh-router.js";
+import { listSoftwareEntries } from "./software-catalog.js";
 import { ledgerInfra } from "./auto-gate.js";
 import {
   CONFIRM_PARAM_NOTE,
@@ -201,9 +203,26 @@ async function handleExec(request, env, id, { json, PRODUCTS, BY_SLUG, upstreamF
     return json({ error: "invalid JSON", code: "bad_json" }, 400);
   }
   if (bodyHasOperatorToken(body) || bodyHasOperatorToken(body.payload)) return bodyTokenRefuse(json);
-  const slug = String(body.slug || body.product || "").trim().toLowerCase();
-  const op = String(body.op || "").trim();
-  const payload = body.payload !== undefined ? body.payload : {};
+  let slug = String(body.slug || body.product || "").trim().toLowerCase();
+  let op = String(body.op || "").trim();
+  let payload = body.payload !== undefined ? body.payload : {};
+  const routeQuestion = meshQuestionOf(body);
+  if (!slug && routeQuestion) {
+    const decision = routeMesh({
+      question: routeQuestion,
+      catalog: listSoftwareEntries(PRODUCTS, ""),
+      confirm: isTruthyFlag(body.confirm),
+      dry_run: isTruthyFlag(body.dry_run),
+      payload: payload && typeof payload === "object" && !Array.isArray(payload) ? payload : null,
+    });
+    const mayExec = decision.dispatch === true && isTruthyFlag(body.confirm) && !isTruthyFlag(body.dry_run);
+    if (!mayExec) {
+      return json({ ...decision, executed: false, mutated: false }, decision.ok === false || decision.needs_confirm ? 400 : 200);
+    }
+    slug = decision.slug;
+    op = decision.op;
+    payload = decision.payload || {};
+  }
   const callerStamps = String(request.headers.get("x-aziel-auto-infra") || "") === "caller";
   const product = BY_SLUG[slug];
   const known = new Set(PRODUCTS.map((p) => p.slug));
@@ -458,7 +477,7 @@ export function sessionMcpTools() {
         effects:
           "Side effects are operation-dependent (read, write, or refuse). Does not mint a session_id — missing id fails before admit. Sealed sessions refuse session_closed (409); TTL 6h refuses session_expired (410); receipt cap 64 refuses receipt_cap (409). Rate-limited (exec). Binding-only ops stay per-op proxy_fallback. Prefer fraggate_call",
         params:
-          "session_id or id, plus slug and op, are required. payload is optional and engine-specific; leftover keys are not auto-payload the way fraggate_call leftover keys are. Unknown slugs refuse FG-HALLUC-TOOL; stubs refuse FG-STUB. " +
+          "session_id or id, plus slug and op, are required for an explicit exec. A question in q, question, or text with slug omitted asks the mesh router to pick one live Softwares slug and op. That pick does not exec unless confirm=true. dry_run=true returns the pick and writes nothing. payload is optional and engine-specific; leftover keys are not auto-payload the way fraggate_call leftover keys are. Unknown slugs refuse FG-HALLUC-TOOL; stubs refuse FG-STUB. " +
           CONFIRM_PARAM_NOTE,
         returns: "exec result with engine_slug, engine_op, engine_digest, ran_in, receipt, and refusal when gated",
       }),

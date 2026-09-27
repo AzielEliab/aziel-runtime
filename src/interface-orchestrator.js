@@ -45,7 +45,10 @@ import {
   mintActReceipt,
   receiptAppendToken,
 } from "./library-receipts.js";
+import { displayEnvelope } from "./display.js";
+import { MESH_ROUTER_SPEC, meshQuestionOf, routeMesh } from "./mesh-router.js";
 import { isTruthyFlag } from "./mcp-safeguard.js";
+import { listReviewedCopies, rememberReviewed } from "./reviewed-copies.js";
 import { normalizeAttemptLink } from "./receipt-attempt.js";
 import { sealAdaptive } from "./jeeves-adapt.js";
 import { askJeevesHelp, JEEVES_HELP_CALL } from "./jeeves-desk.js";
@@ -71,12 +74,15 @@ export const HOST_READ_CALLS = Object.freeze(["mesh_awareness", "forensic_tip", 
 
 export const SOT_CALLS = Object.freeze(["mesh_outlets", "mesh_sot_status", "mesh_sot_sync"]);
 
+export const MESH_ROUTE_CALLS = Object.freeze(["route", "reviewed_copies"]);
+
 export const INTERFACE_CALLS = Object.freeze([
   ...VEILLOCK_SAFE_CALLS,
   ...HOST_READ_CALLS,
   ...SOT_CALLS,
   ...WORKER_CALLS,
   ...LEARNER_CALLS,
+  ...MESH_ROUTE_CALLS,
   "seal",
 ]);
 
@@ -786,6 +792,152 @@ async function recallAkm(opts, query) {
   }
 }
 
+async function catalogFor(opts) {
+  if (Array.isArray(opts.catalog)) return opts.catalog;
+  const { listSoftwareEntries } = await import("./software-catalog.js");
+  if (Array.isArray(opts.products)) return listSoftwareEntries(opts.products, "");
+  const mod = await import("./index.js");
+  return listSoftwareEntries(mod.PRODUCTS, "");
+}
+
+async function handleMeshRoute(call, input, link, opts) {
+  const sessionId = typeof input.session_id === "string" && input.session_id.trim() ? input.session_id.trim() : "interface";
+  if (call === "reviewed_copies") {
+    const copies = listReviewedCopies(sessionId);
+    return finish(
+      call,
+      200,
+      link,
+      "Interface listed reviewed copies.",
+      copies.length ? `${copies.length} reviewed copies.` : "No reviewed copies in this session yet.",
+      {
+        ok: true,
+        call,
+        session_id: sessionId,
+        reviewed_copies: copies,
+        invented: false,
+        dispatched: false,
+        executed: false,
+        display: {
+          action: "Run aziel runtime",
+          title: "Reviewed copies",
+          summary: copies.length
+            ? `${copies.length} reviewed copies from this session.`
+            : "No reviewed copies in this session yet.",
+        },
+      },
+      opts,
+      false,
+    );
+  }
+
+  const catalog = await catalogFor(opts);
+  const decision = routeMesh({
+    question: meshQuestionOf(input),
+    catalog,
+    confirm: isTruthyFlag(input.confirm),
+    dry_run: isTruthyFlag(input.dry_run),
+    payload: input.payload && typeof input.payload === "object" && !Array.isArray(input.payload) ? input.payload : null,
+  });
+  if (decision.code === "MR-QUESTION") {
+    return fail(400, "MR-QUESTION", decision.display.summary, { call, display: decision.display });
+  }
+  if (decision.code === "MR-LENS-REFUSE") {
+    return fail(400, "MR-LENS-REFUSE", decision.display.summary, { call, lens: decision.lens, display: decision.display });
+  }
+  if (!decision.dispatch) {
+    const body = {
+      ...decision,
+      call,
+      session_id: sessionId,
+      reviewed_copies: listReviewedCopies(sessionId),
+      dispatched: false,
+      executed: false,
+      spec_router: MESH_ROUTER_SPEC,
+    };
+    if (isTruthyFlag(input.dry_run)) {
+      return {
+        status: 200,
+        body: {
+          ...body,
+          ok: true,
+          spec: INTERFACE_SPEC,
+          author: INTERFACE_AUTHOR,
+          identity: "Aziel Eliab only",
+          receipt: null,
+          sealed: false,
+          published: false,
+          stored: false,
+          store: "none",
+          durable: false,
+          writes_public_chain: false,
+          note: "Dry run stored nothing.",
+        },
+      };
+    }
+    return finish(call, 200, link, "Interface routed a question without running.", decision.display.summary, body, opts, false);
+  }
+  if (typeof opts.dispatch !== "function") {
+    return fail(503, "IF-DISPATCH-UNBOUND", "Live dispatch is unbound. Nothing ran.", {
+      call,
+      slug: decision.slug,
+      op: decision.op,
+      display: decision.display,
+    });
+  }
+  let envelope = null;
+  try {
+    envelope = await opts.dispatch({
+      slug: decision.slug,
+      op: decision.op,
+      payload: decision.payload,
+      confirm: true,
+      request_id: link.request_id,
+      attempt_n: link.attempt_n,
+      parent_receipt_id: link.parent_receipt_id,
+      correlation_id: link.correlation_id,
+    });
+  } catch {
+    envelope = { ok: false, code: "IF-DISPATCH-ERROR" };
+  }
+  const code = envelope && envelope.code ? String(envelope.code) : "";
+  const engineRefused = !!(envelope && envelope.result && envelope.result.ok === false);
+  const executed = !!(envelope && envelope.ok === true && code === "FG-OK" && !engineRefused);
+  const viewed = displayEnvelope({
+    title: decision.display.title,
+    summary: executed
+      ? decision.display.summary
+      : `${decision.display.title} did not finish. No reviewed copy was stored.`,
+    fields: decision.display.fields,
+    result: executed ? envelope : decision,
+    dryRun: !executed,
+  });
+  const copies = executed
+    ? rememberReviewed({ sessionId, production: envelope, slug: decision.slug, op: decision.op, dryRun: false })
+    : listReviewedCopies(sessionId);
+  return finish(
+    call,
+    executed ? 200 : 400,
+    link,
+    `Interface ran ${decision.name || decision.slug}.`,
+    viewed.display.summary,
+    {
+      ...decision,
+      call,
+      session_id: sessionId,
+      dispatched: true,
+      executed,
+      door: { through: "fraggate", slug: decision.slug, op: decision.op, ok: executed, code: code || null },
+      result: envelope && envelope.result !== undefined ? envelope.result : null,
+      display: viewed.display,
+      reviewed_copies: copies,
+      spec_router: MESH_ROUTER_SPEC,
+    },
+    opts,
+    false,
+  );
+}
+
 export async function orchestrate(input, opts = {}) {
   if (!input || typeof input !== "object" || Array.isArray(input)) {
     return fail(400, "IF-BAD-INPUT", "Body must be a JSON object.");
@@ -853,6 +1005,10 @@ export async function orchestrate(input, opts = {}) {
       opts,
       false,
     );
+  }
+
+  if (MESH_ROUTE_CALLS.includes(call)) {
+    return handleMeshRoute(call, input, link, opts);
   }
 
   if (call === LEARNER_GUIDE_CALL) {

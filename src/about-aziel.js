@@ -252,6 +252,39 @@ ${jeevesHelpHtml(origin)}
       }
     }
     if (miss) miss.textContent = "";
+    var produced = document.getElementById("jeeves-productions");
+    if (produced) {
+      produced.textContent = "";
+      var card = body && body.display && body.display.image;
+      var src = "";
+      if (card && typeof card.data === "string" && /^(iVBORw0KGgo|\\/9j\\/|R0lGOD|UklGR)/.test(card.data)) {
+        src = "data:" + (card.mimeType || "image/png") + ";base64," + card.data;
+      } else if (card && typeof card.url === "string" && /^https?:\\/\\//.test(card.url)) {
+        src = card.url;
+      }
+      if (src) {
+        var fig = document.createElement("figure");
+        var shot = document.createElement("img");
+        shot.alt = card.reviewed ? "Reviewed copy" : "Cited image";
+        shot.src = src;
+        fig.appendChild(shot);
+        produced.appendChild(fig);
+      }
+    }
+    if (body && body.reviewed_copies && document.getElementById("reviewed-copies")) {
+      var gallery = document.getElementById("reviewed-copies");
+      gallery.textContent = "";
+      body.reviewed_copies.forEach(function (copy) {
+        if (!copy || copy.reviewed !== true || typeof copy.data !== "string") return;
+        if (!/^(iVBORw0KGgo|\\/9j\\/|R0lGOD|UklGR)/.test(copy.data)) return;
+        var item = document.createElement("figure");
+        var pic = document.createElement("img");
+        pic.alt = (copy.slug || "Software") + (copy.op ? " / " + copy.op : "");
+        pic.src = "data:" + (copy.mimeType || "image/png") + ";base64," + copy.data;
+        item.appendChild(pic);
+        gallery.appendChild(item);
+      });
+    }
     if (body && body.snake) snake = body.snake;
     var next = document.getElementById("jeeves-next");
     if (next) {
@@ -341,6 +374,7 @@ ${starters}
   <p id="jeeves-laugh" hidden></p>
   <img id="jeeves-egg" alt="" hidden>
   <p id="jeeves-egg-miss" class="secondary"></p>
+  <div id="jeeves-productions"></div>
   <ul id="jeeves-next"></ul>
   <pre class="fg-out" id="jeeves-out" role="status" aria-live="polite">Start with a suggested question, or type your own. Lamb Lens runs first, then the shelf, then the triad. Nothing is believed by default. Confirm adaptive count stores topic totals only. Suggested questions are above.</pre>
 </section>`;
