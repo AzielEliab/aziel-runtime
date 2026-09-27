@@ -269,10 +269,11 @@ export const HUMAN_UI_CSS = `
   .op-panel h3{margin:.05rem 0 .35rem}
   .op-rack{display:flex;flex-direction:column;gap:.65rem}
   .op-row{display:grid;gap:.45rem .55rem;align-items:end;border:1px solid #3d3420;border-radius:10px;padding:.55rem .65rem;background:#14110a}
-  @media (min-width:56rem){
-    .op-row.fg{grid-template-columns:minmax(7rem,1fr) minmax(6rem,.8fr) minmax(8rem,1.4fr) auto}
-    .op-row.mesh{grid-template-columns:auto auto auto minmax(7rem,1fr) auto auto}
-    .op-row.sess{grid-template-columns:minmax(8rem,1fr) minmax(8rem,1fr) auto}
+  .op-row > *{min-width:0;max-width:100%}
+  @media (min-width:64rem){
+    .op-row.fg{grid-template-columns:minmax(0,1fr) minmax(0,.8fr) minmax(0,1.4fr) minmax(0,auto)}
+    .op-row.mesh{grid-template-columns:minmax(0,auto) minmax(7rem,1fr) minmax(0,1.5fr)}
+    .op-row.sess{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,auto)}
   }
   .op-row .field{margin:0}
   .op-soft{display:flex;flex-wrap:wrap;gap:.35rem}
@@ -283,6 +284,7 @@ export const HUMAN_UI_CSS = `
   .metric .value{display:block;font-size:1.45rem;font-weight:700;color:#f0d78c;margin:.15rem 0 0}
   .dash{margin:1.2rem 0 0}
   .sw-grid{display:grid;gap:.7rem;margin:.5rem 0 1rem}
+  .sw-grid > *,.ws-grid > *,.metric-grid > *{min-width:0}
   @media (min-width:40rem){ .sw-grid{grid-template-columns:1fr 1fr} }
   @media (min-width:64rem){ .sw-grid{grid-template-columns:1fr 1fr 1fr} }
   .dash-card{border:1px solid #2a3140;border-radius:10px;padding:.7rem .8rem;background:#151922}
@@ -311,7 +313,46 @@ export const HUMAN_UI_CSS = `
   #interface-thread article{margin:.6rem 0;padding:.5rem .6rem;border:1px solid #2a3140;border-radius:8px;background:#12160e}
   #interface-thread img,#reviewed-copies img,#jeeves-productions img,.gen-image img{max-width:min(100%,28rem);height:auto;display:block;background:#0e1116;border:1px solid #2a3140;border-radius:8px}
   #interface-thread figure,#reviewed-copies figure,#jeeves-productions figure{margin:.4rem 0}
-  #reviewed-copies{display:flex;flex-wrap:wrap;gap:.6rem}
+  #reviewed-copies{display:flex;flex-wrap:wrap;gap:.6rem;max-width:100%}
+  #reviewed-copies figure,#interface-thread figure,#jeeves-productions figure,.gen-image{max-width:100%;min-width:0}
+  #interface-thread,#interface-chat,#reviewed-gallery,#jeeves-productions{max-width:100%;min-width:0;overflow-wrap:anywhere}
+  .field input[type="checkbox"],.field input[type="radio"]{width:1.25rem;height:1.25rem;min-height:1.25rem;max-width:1.25rem}
+  /* Phone and small-tablet pass. Softwares card markup stays as written. */
+  @media (max-width:47.99rem){
+    .sw-grid{grid-template-columns:1fr}
+    .metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .desk-fields{grid-template-columns:1fr}
+  }
+  @media (max-width:64rem){
+    html{scroll-padding-top:calc(4.5rem + env(safe-area-inset-top))}
+    .domain-tabs{
+      position:sticky;top:env(safe-area-inset-top);z-index:30;
+      -webkit-overflow-scrolling:touch;scroll-snap-type:x proximity;overscroll-behavior-x:contain;scrollbar-width:thin
+    }
+    .domain-tabs button{scroll-snap-align:start;min-height:44px;padding:.65rem .9rem}
+    [id]{scroll-margin-top:calc(4.5rem + env(safe-area-inset-top))}
+    .human-nav{gap:.5rem}
+    .human-nav a{
+      display:inline-flex;align-items:center;min-height:44px;padding:.4rem .7rem;
+      background:#241c0d;color:#f0d78c;border:1px solid #5c4a1a;border-radius:8px
+    }
+    .actions,.fg-ops,.op-soft,.first-hour-tour{gap:.5rem;align-items:center}
+    .actions button,.fg-ops button,.first-hour button,.suite-dl-btn{min-height:44px;padding:.55rem .9rem}
+    .actions a{display:inline-flex;align-items:center;min-height:44px;padding:.35rem .45rem}
+    .field input,.field select,.field textarea,.fg-door textarea{font-size:16px}
+    .field textarea,.fg-door textarea{min-height:6.5rem}
+    .field input[type="checkbox"],.field input[type="radio"]{width:1.25rem;height:1.25rem;min-height:1.25rem;max-width:1.25rem}
+    #reviewed-copies{flex-direction:column}
+    #reviewed-copies figure,.gen-image{width:100%}
+    #interface-thread img,#reviewed-copies img,#jeeves-productions img,.gen-image img{max-width:100%}
+    .ws-out,.fg-out,pre{max-width:100%}
+  }
+  @media (hover:none){
+    .domain-tabs button:hover,.actions button:hover,.fg-ops button:hover,.first-hour button:hover,.suite-dl-btn:hover{background:#241c0d}
+    .domain-tabs button[aria-selected="true"]:hover{background:#33280f}
+    .fg-ops button.fg-stub:disabled:hover{background:#12100c}
+    .human-nav a:hover{text-decoration:none}
+  }
 `;
 
 function fieldHtml(task, field, idx) {

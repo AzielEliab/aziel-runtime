@@ -58,6 +58,17 @@ assert.equal(homeRes.headers.get("referrer-policy"), "no-referrer");
 assert.match(homeRes.headers.get("strict-transport-security") || "", /max-age=31536000/);
 
 const home = await homeRes.text();
+assert.match(home, /name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/);
+assert.match(home, /@media \(max-width:64rem\)/);
+assert.match(home, /@media \(max-width:47\.99rem\)/);
+assert.match(home, /min-height:44px/);
+assert.match(home, /env\(safe-area-inset-top\)/);
+assert.match(home, /@media \(hover:none\)/);
+const foldCard = home.slice(home.indexOf('data-dash-slug="foldlock"'), home.indexOf('data-dash-slug="foldlock"') + 1400);
+assert.match(foldCard, /class="dash-card/);
+assert.match(foldCard, /<div class="actions">/);
+assert.match(foldCard, /class="dash-run"/);
+assert.doesNotMatch(foldCard, /software-drawer|dash-run-mobile/);
 assert.match(home, /id="workspace"/);
 assert.match(home, /id="op-panel"/);
 assert.match(home, /id="fg-console"/);
@@ -211,9 +222,12 @@ const sitemap = await (await get("/sitemap.xml")).text();
 assert.match(sitemap, /\/workspace</);
 assert.match(sitemap, /\/download</);
 
+const softwareJson = await (await get("/v1/software")).json();
+assert.equal(softwareJson.count, 42, "GET /v1/software count stays 42");
 const softwareHtml = await (
   await get("/v1/software", { accept: "text/html" })
 ).text();
+assert.match(softwareHtml, /viewport-fit=cover/);
 assert.match(softwareHtml, /<label for="software-filter">Search Softwares/);
 assert.match(softwareHtml, /Use in browser/);
 assert.match(softwareHtml, /id="suite-download-software"/);

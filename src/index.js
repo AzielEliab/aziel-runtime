@@ -2075,7 +2075,7 @@ function headMeta(origin, title, description, canonicalPath, env = {}) {
   const image = base + "/sigil.png";
   const calling = resolveCallingName(env);
   return `<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>${escapeHtml(rewriteLiveCallingDisplay(title, calling))}</title>
 <meta name="description" content="${escapeHtml(rewriteLiveCallingDisplay(description, calling))}">
 <meta name="author" content="${escapeHtml(AUTHOR_NAME)}">
@@ -2109,10 +2109,13 @@ ${platformHeadLinks(base)}`;
 
 const PAGE_CSS = `
   :root { color-scheme: dark; }
-  .brandrow{display:flex;align-items:center;justify-content:flex-start;gap:12px;margin:0 0 1.15rem}
+  html { box-sizing: border-box; }
+  *, *::before, *::after { box-sizing: inherit; }
+  .brandrow{display:flex;align-items:center;justify-content:flex-start;gap:12px;margin:0 0 1.15rem;min-width:0}
   .brandmark{width:40px;height:40px;border-radius:10px;object-fit:cover;flex:0 0 auto;box-shadow:0 0 0 1px #d4af3733}
-  .stamp{margin:0;color:#d4af37;font-size:.88rem;letter-spacing:.02em}
-  body { font: 16px/1.45 system-ui, sans-serif; max-width: 52rem; margin: 2.5rem auto; padding: 0 1.25rem 4rem; background: #0e1014; color: #e8eaef; }
+  .stamp{margin:0;color:#d4af37;font-size:.88rem;letter-spacing:.02em;min-width:0}
+  img, svg, video { max-width: 100%; height: auto; }
+  body { font: 16px/1.45 system-ui, sans-serif; max-width: 52rem; margin: 2.5rem auto; padding: 0 1.25rem 4rem; background: #0e1014; color: #e8eaef; overflow-wrap: break-word; }
   body:has(#workspace) { max-width: 72rem; }
   h1 { font-size: 1.85rem; margin: 0 0 .35rem; }
   h2 { font-size: 1.2rem; margin: 0 0 .4rem; }
@@ -2131,7 +2134,7 @@ const PAGE_CSS = `
   .banner { border: 1px solid #3d3420; background: #1b160c; color: #e6d19a; padding: .55rem .7rem; border-radius: 8px; font-size: .92rem; }
   .oneline { margin: .2rem 0 .6rem; }
   .meta a { margin-right: .85rem; }
-  pre { background: #0e1014; padding: .75rem .9rem; overflow: auto; border-radius: 8px; font-size: .82rem; }
+  pre { background: #0e1014; padding: .75rem .9rem; overflow: auto; border-radius: 8px; font-size: .82rem; max-width: 100%; }
   code { font-size: .88rem; }
   .doors { display:flex; flex-wrap:wrap; align-items:center; gap:.55rem 1rem; margin:0 0 1.25rem; }
   .doors a.cta { display:inline-block; background:#241c0d; color:#f0d78c; border:1px solid #5c4a1a; border-radius:8px; padding:.4rem .85rem; font-weight:600; text-decoration:none; }
@@ -2156,6 +2159,39 @@ const PAGE_CSS = `
   .fg-out { margin: .55rem 0 0; max-height: 16rem; }
   footer.donate { margin: 2.2rem 0 0; padding-top: 1rem; border-top: 1px solid #2a3140; }
   footer.donate p { margin: 0; color: #9aa3b2; }
+  button, a, summary, [role="tab"] { touch-action: manipulation; }
+  button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus-visible {
+    outline: 2px solid #d4af37; outline-offset: 2px;
+  }
+  input[type="checkbox"], input[type="radio"] { width: 1.25rem; height: 1.25rem; accent-color: #d4af37; flex: 0 0 auto; }
+  .card, .cite, .honesty, .fg-door, .ecosystem, article, section { max-width: 100%; min-width: 0; }
+  @media (max-width: 64rem) {
+    body {
+      margin: .75rem auto 0;
+      padding-top: env(safe-area-inset-top);
+      padding-left: max(1rem, env(safe-area-inset-left));
+      padding-right: max(1rem, env(safe-area-inset-right));
+      padding-bottom: max(2.5rem, calc(1.5rem + env(safe-area-inset-bottom)));
+    }
+    h1 { font-size: 1.45rem; }
+    p, li, code, .meta, .links, .stamp { overflow-wrap: anywhere; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+    .field input, .field select, .field textarea, .fg-door textarea, input[type="text"], input[type="search"], input[type="password"], input[type="url"], select, textarea { font-size: 16px; }
+    .field input, .field select, input[type="text"], input[type="search"], input[type="password"], select { min-height: 44px; }
+    .field textarea, .fg-door textarea, textarea { min-height: 6.5rem; }
+    .doors a.cta, .fg-ops button {
+      min-height: 44px; padding: .55rem .9rem; display: inline-flex; align-items: center; justify-content: center;
+    }
+    .meta, ol, ul { line-height: 1.7; }
+    summary { min-height: 44px; padding: .65rem 0; cursor: pointer; }
+    label:has(> input[type="checkbox"]), label:has(> input[type="radio"]) {
+      display: flex; align-items: center; gap: .65rem; min-height: 44px;
+    }
+  }
+  @media (hover: none) {
+    .doors a.cta:hover, .fg-ops button:hover { background: #241c0d; }
+    .fg-ops button.fg-stub:disabled:hover { background: #12100c; }
+  }
 `;
 
 function donateFooterHtml() {
