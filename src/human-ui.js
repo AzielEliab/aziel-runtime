@@ -307,6 +307,11 @@ export const HUMAN_UI_CSS = `
   .first-hour-tour{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;margin:.2rem 0 0}
   #first-hour-caption{flex-basis:100%;margin:.35rem 0 0;color:#c9bfa0;font-size:.9rem}
   .first-hour-mark{outline:2px solid #d4af37;outline-offset:3px;border-radius:8px}
+  #interface-chat,#reviewed-gallery{margin:1rem 0 0}
+  #interface-thread article{margin:.6rem 0;padding:.5rem .6rem;border:1px solid #2a3140;border-radius:8px;background:#12160e}
+  #interface-thread img,#reviewed-copies img,#jeeves-productions img,.gen-image img{max-width:min(100%,28rem);height:auto;display:block;background:#0e1116;border:1px solid #2a3140;border-radius:8px}
+  #interface-thread figure,#reviewed-copies figure,#jeeves-productions figure{margin:.4rem 0}
+  #reviewed-copies{display:flex;flex-wrap:wrap;gap:.6rem}
 `;
 
 function fieldHtml(task, field, idx) {
@@ -666,7 +671,7 @@ ${dashCards}
 
   <section class="dash" id="interface-panel" data-kind="interface" data-origin="${escapeHtml(base)}">
     <h3>Interface</h3>
-    <p class="hint" id="desk-hint-interface">What is this desk: plans, receipts, mesh awareness, Ask Jeeves, and MCP. A plan does not launch. Seal still needs confirm.</p>
+    <p class="hint" id="desk-hint-interface">What is this desk: plans, receipts, mesh awareness, Ask Jeeves, and MCP. A plan does not launch. Seal still needs confirm. A question below can run one catalog Software. An unclear question stays with AZAI Guide.</p>
     <div class="sw-grid" id="interface-desks">
       <article class="dash-card" id="desk-veillock" data-desk="veillock">
         <h4><a href="${escapeHtml(base)}/p/veillock">VeilLock</a> <span class="slug">veillock</span></h4>
@@ -748,6 +753,26 @@ ${dashCards}
           <button type="button" data-if="seal">Seal</button>
         </div>
       </div>
+    </div>
+    <div class="receipt-board" id="interface-chat">
+      <h3>Ask the suite</h3>
+      <p class="blurb">One question. Lamb Lens runs first (Service, then Clarity, then Peace). A clear match runs that Software. An unclear question stays with AZAI Guide. A write waits for confirm. Dry run writes nothing.</p>
+      <div class="field">
+        <label for="if-ask">Question</label>
+        <textarea id="if-ask" placeholder="Is FoldLock healthy?"></textarea>
+      </div>
+      <label><input id="if-ask-dry" type="checkbox"> dry run</label>
+      <label><input id="if-ask-confirm" type="checkbox"> confirm a write</label>
+      <div class="actions">
+        <button type="button" data-if="route">Ask</button>
+        <button type="button" data-if="reviewed_copies">Reviewed copies</button>
+      </div>
+      <div id="interface-thread"></div>
+    </div>
+    <div class="receipt-board" id="reviewed-gallery">
+      <h3>Reviewed copies</h3>
+      <p class="blurb">Images from executed productions in this page session. A dry run does not add a copy. Cited links stay out of this gallery.</p>
+      <div id="reviewed-copies"><p id="reviewed-empty">No reviewed copies in this session yet.</p></div>
     </div>
     <div class="receipt-board" id="interface-receipt">
       <h3>Desk output</h3>
@@ -1092,6 +1117,96 @@ export function humanDoorScript() {
       return { ok: false, error: "Invalid JSON — not sent. " + String(err && err.message ? err.message : err) };
     }
   }
+  function reviewedSession() {
+    try {
+      let id = sessionStorage.getItem("aziel-route-session");
+      if (!id) {
+        id = "page-" + Date.now().toString(36);
+        sessionStorage.setItem("aziel-route-session", id);
+      }
+      return id;
+    } catch (err) {
+      return "page";
+    }
+  }
+  function imageSrc(image) {
+    if (!image || typeof image !== "object") return "";
+    let data = typeof image.data === "string" ? image.data : "";
+    if (data && /^(iVBORw0KGgo|\\/9j\\/|R0lGOD|UklGR)/.test(data)) {
+      return "data:" + (image.mimeType || "image/png") + ";base64," + data;
+    }
+    let url = typeof image.url === "string" ? image.url : "";
+    if (/^https?:\\/\\//.test(url)) return url;
+    return "";
+  }
+  function appendFigure(parent, image, caption) {
+    let src = imageSrc(image);
+    if (!parent || !src) return;
+    let fig = document.createElement("figure");
+    fig.className = "gen-image";
+    let img = document.createElement("img");
+    img.alt = caption || (image.reviewed ? "Reviewed copy" : "Cited image");
+    img.src = src;
+    fig.appendChild(img);
+    if (caption) {
+      let cap = document.createElement("figcaption");
+      cap.textContent = caption;
+      fig.appendChild(cap);
+    }
+    parent.appendChild(fig);
+  }
+  function paintGallery(copies) {
+    let gallery = document.getElementById("reviewed-copies");
+    if (!gallery) return;
+    gallery.textContent = "";
+    if (!copies || !copies.length) {
+      let empty = document.createElement("p");
+      empty.id = "reviewed-empty";
+      empty.textContent = "No reviewed copies in this session yet.";
+      gallery.appendChild(empty);
+      return;
+    }
+    copies.forEach(function (copy) {
+      if (!copy || copy.reviewed !== true) return;
+      appendFigure(gallery, copy, (copy.slug || "Software") + (copy.op ? " / " + copy.op : ""));
+    });
+  }
+  function paintThread(body) {
+    let thread = document.getElementById("interface-thread");
+    if (!thread || !body) return;
+    let block = document.createElement("article");
+    let title = document.createElement("p");
+    let action = body.display && body.display.action ? body.display.action : "Run aziel runtime";
+    let heading = body.display && body.display.title ? body.display.title : "Reply";
+    title.textContent = action + " — " + heading;
+    block.appendChild(title);
+    if (body.display && body.display.summary) {
+      let summary = document.createElement("p");
+      summary.textContent = body.display.summary;
+      block.appendChild(summary);
+    }
+    if (body.display && body.display.image) appendFigure(block, body.display.image, body.display.image.reviewed ? "Reviewed copy" : "Cited image");
+    thread.appendChild(block);
+    if (body.reviewed_copies) paintGallery(body.reviewed_copies);
+  }
+  function surfaceGenerative(out, body) {
+    if (!body || typeof body !== "object") return;
+    let image = body.display && body.display.image;
+    if (image && out) {
+      let host = out.nextElementSibling;
+      if (!host || !host.classList || !host.classList.contains("gen-image-strip")) {
+        host = document.createElement("div");
+        host.className = "gen-image-strip";
+        if (out.parentNode) out.parentNode.insertBefore(host, out.nextSibling);
+      }
+      appendFigure(host, image, image.reviewed ? "Reviewed copy" : "Cited image");
+    }
+    if (out && out.id === "azai-out" && (image || body.reviewed_copies)) {
+      paintThread(body);
+    } else if (body.reviewed_copies && !(out && out.id === "interface-out")) {
+      paintGallery(body.reviewed_copies);
+    }
+  }
   function show(out, text, kind) {
     if (!out) return;
     out.textContent = text;
@@ -1139,6 +1254,7 @@ export function humanDoorScript() {
         let body = text;
         try { body = text ? JSON.parse(text) : {}; } catch (e) { body = { ok: false, error: "Response was not JSON", raw: text, parse_error: String(e && e.message ? e.message : e) }; }
         show(out, formatBody(res, body), res.ok && body && body.ok !== false ? "" : "error");
+        surfaceGenerative(out, body);
         return { res: res, body: body };
       });
     }).catch(function (err) {
@@ -1588,6 +1704,25 @@ export function humanDoorScript() {
     interfacePanel.querySelectorAll("[data-if]").forEach(function (btn) {
       btn.addEventListener("click", function () {
         let call = btn.getAttribute("data-if");
+        if (call === "route" || call === "reviewed_copies") {
+          let body = { call: call, session_id: reviewedSession() };
+          if (call === "route") {
+            let ask = document.getElementById("if-ask");
+            body.q = ask ? String(ask.value || "") : "";
+            let dry = document.getElementById("if-ask-dry");
+            let box = document.getElementById("if-ask-confirm");
+            if (dry && dry.checked) body.dry_run = true;
+            if (box && box.checked) body.confirm = true;
+          }
+          request(origin + "/v1/interface", {
+            method: "POST",
+            headers: { "content-type": "application/json", accept: "application/json" },
+            body: JSON.stringify(body)
+          }, out, btn).then(function (got) {
+            if (got && got.body) paintThread(got.body);
+          });
+          return;
+        }
         if (call === "runtime_ui") {
           request(origin + "/v1/interface", { headers: { accept: "application/json" } }, out, btn);
           return;
