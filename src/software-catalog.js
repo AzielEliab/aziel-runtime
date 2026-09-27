@@ -16,10 +16,11 @@
 import { BUILD_GIT_SHA } from "./build-meta.js";
 import { CATALOG_ALIASES, VERSIONS } from "./catalog-meta.js";
 import { SOFTWARE_HUBS as CROSS_MAP_HUBS, crossMapFields } from "./cross-map.js";
-import { CATALOG_COUNT_NOTE, MASTER_33_SLUGS, TAB_PLACEMENT_SLUGS, domainFields, domainMapView } from "./domain-map.js";
+import { catalogSetsFromParts } from "./catalog-sets.js";
+import { CATALOG_COUNT_NOTE, MASTER_33_SLUGS, TAB_PLACEMENT_SLUGS, WORKER_ONLY_TAB_SLUGS, domainFields, domainMapView } from "./domain-map.js";
 import { embeddedDigest } from "./engines/digest.js";
 import { JEEVES_SUITE_HELP } from "./engines/aziel-corpus/jeeves.js";
-import { LIVE_OPS, NAMED_STUBS, STUB_OPS } from "./fraggate/registry.js";
+import { LIVE_OPS, NAMED_STUBS, STUB_OPS, buildRegistry } from "./fraggate/registry.js";
 import { meshHint } from "./mesh.js";
 import { qnsHint } from "./qns.js";
 import { actReceiptHint } from "./library-receipts.js";
@@ -400,6 +401,30 @@ export function listSoftwareEntries(products, origin, meta = {}) {
   return sortSoftwareEntries(live.concat(stubs, workerOnly));
 }
 
+function assertWorkerOnlyTabSlugs() {
+  const fromCards = (WORKER_ONLY_PRODUCTS || []).map((s) => s.slug).slice().sort();
+  const fromMap = WORKER_ONLY_TAB_SLUGS.slice().sort();
+  if (fromCards.join("\0") !== fromMap.join("\0")) {
+    throw new Error("WORKER_ONLY_PRODUCTS slugs must match WORKER_ONLY_TAB_SLUGS");
+  }
+}
+
+/** Softwares tab vs FragGate registry/allowlist vs software_nodes fan-out. Membership is not merged. */
+export function catalogSetsFor(products, softwareEntries) {
+  assertWorkerOnlyTabSlugs();
+  const software = Array.isArray(softwareEntries) ? softwareEntries : listSoftwareEntries(products, "https://catalog-sets.invalid");
+  const expected = (products || [])
+    .map((p) => p.slug)
+    .concat(WORKER_ONLY_TAB_SLUGS)
+    .slice()
+    .sort();
+  const actual = software.map((s) => s.slug).slice().sort();
+  if (expected.join("\0") !== actual.join("\0")) {
+    throw new Error("Softwares slugs must stay PRODUCTS plus WORKER_ONLY_TAB_SLUGS");
+  }
+  return catalogSetsFromParts(products, buildRegistry(products).entries, Object.keys(LIVE_OPS), WORKER_ONLY_TAB_SLUGS);
+}
+
 export function softwareCatalog(origin, products, extra = {}) {
   const base = String(origin || "").replace(/\/$/, "");
   const meta = {
@@ -440,6 +465,7 @@ export function softwareCatalog(origin, products, extra = {}) {
     isolation_software_count: MASTER_33_SLUGS.length,
     tab_placement_slugs: TAB_PLACEMENT_SLUGS.slice(),
     count_note: CATALOG_COUNT_NOTE,
+    catalog_sets: catalogSetsFor(products, software),
     ...discoveryHostFields(base),
     software,
     domains: domainMapView(),

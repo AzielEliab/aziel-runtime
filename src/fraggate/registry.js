@@ -17,6 +17,7 @@ import { embeddedDigest } from "../engines/digest.js";
 import { MEMORY_CANONICAL_OPS, MEMORY_SLUG, MEMORY_STUB_OPS, memoryKernelEntry } from "../memory.js";
 import { MESH_LIVE_OPS, MESH_OP_ALIASES, MESH_SLUG, MESH_STUB_OPS, meshKernelEntry } from "../mesh.js";
 import { canonicalize, sha256Hex } from "../session-core.js";
+import { CATALOG_SET_NOTE } from "../catalog-sets.js";
 import { FRAGGATE_DOOR, FRAGGATE_KERNEL, FRAGGATE_KERNEL_VERSION } from "./codes.js";
 import { resolveAzaiOp as resolveAzaiOpSync } from "../engines/azai/ops.js";
 
@@ -838,6 +839,10 @@ export function registrySummary(registry, digest) {
     stub_op_count: registry.stub_op_count,
     local_only_count: registry.local_only_count,
     product_count: (registry.entries || []).length,
+    product_count_is_softwares_count: false,
+    allowlist_is_softwares_slugs: false,
+    sets_equate: false,
+    set_note: CATALOG_SET_NOTE,
     allowlist: LIVE_OPS,
     live_ops: liveOpList(),
     op_aliases: OP_ALIASES,

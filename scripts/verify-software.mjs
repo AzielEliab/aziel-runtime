@@ -4,7 +4,7 @@
  */
 import assert from "node:assert/strict";
 import { PRODUCTS } from "../src/index.js";
-import { RUNTIME_VERSION } from "../src/runtime-api.js";
+import { RUNTIME_VERSION, runtimeManifest } from "../src/runtime-api.js";
 import { BUILD_GIT_SHA } from "../src/build-meta.js";
 import { embeddedDigest, trueEngineSlugs } from "../src/engines/digest.js";
 import { NAMED_STUBS } from "../src/fraggate/registry.js";
@@ -162,6 +162,24 @@ assert.ok(!catalog.software.some((s) => s.slug === "anon-broadcast"), "anon-broa
 assert.ok(!catalog.software.some((s) => s.slug === "trades-runtime"), "trades-runtime is cite-only, not a Softwares-tab card");
 assert.ok(catalog.sister_products.products.some((p) => p.slug === "trades-runtime" && p.engine === false && p.fraggate_call === false));
 assert.match(catalog.count_note, /trades-runtime/);
+assert.equal(catalog.count, 42);
+assert.equal(catalog.catalog_sets.equate, false);
+assert.equal(catalog.catalog_sets.intentional_split, true);
+assert.equal(catalog.catalog_sets.same_count_not_same_set, true);
+assert.equal(catalog.catalog_sets.softwares_count, 42);
+assert.equal(catalog.catalog_sets.fraggate_product_count, 43);
+assert.equal(catalog.catalog_sets.software_nodes_fanout_count, PRODUCTS.length);
+assert.equal(catalog.catalog_sets.fraggate_allowlist_count, catalog.catalog_sets.softwares_count);
+assert.deepEqual(catalog.catalog_sets.softwares_not_on_allowlist, ["veillock", "whitestone"]);
+assert.deepEqual(catalog.catalog_sets.allowlist_not_on_softwares, ["memory", "mesh"]);
+assert.deepEqual(catalog.catalog_sets.softwares_not_in_registry, ["whitestone"]);
+assert.deepEqual(catalog.catalog_sets.registry_not_on_softwares, ["memory", "mesh"]);
+assert.deepEqual(catalog.catalog_sets.softwares_not_in_software_nodes, ["whitestone"]);
+assert.deepEqual(catalog.catalog_sets.software_nodes_not_on_softwares, []);
+assert.match(catalog.count_note, /catalog_sets\.equate is false/);
+assert.match(catalog.mesh.software_nodes_note, /Whitestone is a Softwares card and is absent/);
+assert.equal(catalog.sister_products.products.find((p) => p.slug === "trades-runtime").version, "0.4.9");
+assert.deepEqual(catalog.catalog_sets, runtimeManifest(origin, PRODUCTS).catalog_sets);
 assert.equal(catalog.mesh.enabled_default, true);
 assert.equal(catalog.mesh.mesh_default, "on");
 assert.equal(catalog.mesh.suite_presence, "on");

@@ -135,7 +135,7 @@ Every Worker launch (homepage, `/about`, every `/p/{slug}`, HTML Softwares/descr
 | Software page | https://www.azielcorpuslibrary.net/software |
 | GodLock.uk | https://godlock.uk — https://godlock.uk/AzielEliab — https://godlock.uk/software |
 | He Didn't Jump (sister archive) | https://www.hedidntjump.com/ |
-| Trades-Runtime (sister product, cite-only) | https://github.com/AzielEliab/trades-runtime — Worker https://trades-runtime.vibelock.workers.dev — MCP `/mcp` — download `/download`. Not a FragGate true-engine. `fraggate_call` does not execute company ops. |
+| Trades-Runtime (sister product, cite-only) | Version **0.4.9** (live `GET /v1/health`). https://github.com/AzielEliab/trades-runtime — Worker https://trades-runtime.vibelock.workers.dev — MCP `/mcp` — download `/download`. Not a FragGate true-engine. `fraggate_call` does not execute company ops. |
 | Repos | https://github.com/AzielEliab/aziel-corpus · https://github.com/AzielEliab/godlock · https://github.com/AzielEliab/hedidntjump.com · https://github.com/AzielEliab/trades-runtime |
 | Donate (canonical) | https://www.azieleliab.com/donate |
 
@@ -164,7 +164,7 @@ Public MCP `tools/list` is **36 live tools**. First call: `Softwares` (tools/lis
 
 Every catalog product is a **hashed registry** entry (`name`, `slug`, `digest`, `status`, public `ops`). Status is `live` | `stub` | `local_only`.
 
-`stub_ops` / `stub_op_count` are named refuse verbs (never hosted), not extra catalog Software engines. `stub_count` is registry entries whose status is `stub` (none after 1.9.0 — **AZChat** is LIVE+bound). EmbryoLock is a live catalog engine (`live-with-local-destructive-boundary`); wipe / scorch / unlock stay `FG-STUB` on the public mesh. FragGate `live_count + local_only_count + stub_count ===` FragGate `product_count`.
+`stub_ops` / `stub_op_count` are named refuse verbs (never hosted), not extra catalog Software engines. `stub_count` is registry entries whose status is `stub` (none after 1.9.0 — **AZChat** is LIVE+bound). EmbryoLock is a live catalog engine (`live-with-local-destructive-boundary`); wipe / scorch / unlock stay `FG-STUB` on the public mesh. FragGate `live_count + local_only_count + stub_count ===` FragGate `product_count`. That `product_count` is registry entries, not the Softwares-tab count. Softwares includes `veillock` and `whitestone`. The public allowlist includes `memory` and `mesh` instead. `software_nodes` is the in-process product Worker fan-out (whitestone absent). `GET /v1/software` `catalog_sets.equate` is false. Do not equate those sets.
 
 **Live on the public mesh** (via `fraggate_call`): every catalog Software product that makes sense on a public agent door — advisory / score / classify / gate / search / preview / render / verify / hash / receipt / game / overlay / route / status, plus the original five (DecisionGATE, GodLock, FoldLock, AZ-CLCE, Aziel Digital Library). VeilLock stays **local_only** (device-local camera/screen). MCP `tools/list` is those 36 names. Start on the FragGate door.
 

@@ -100,7 +100,7 @@ Machine field: `/cite.json` `semantic_bridge`. `/cite.json` + `GET /v1/software`
 
 ## Sister products (cite-only)
 
-Trades-Runtime 0.3.3 is a sister product, not a FragGate true-engine and not nested Softwares suite exec. Machine fields: `/cite.json` `sister_products` / `trades_runtime_*`, `/v1/catalog.json` `extras[]` kind `cite_only`, `/v1/software` `sister_products`, `/llms.txt` **Sister products**. `fraggate_call` does **not** execute Trades-Runtime company ops. `live_backends` false. Not a hosted company OS. Identity Aziel Eliab only.
+Trades-Runtime 0.4.9 is a sister product, not a FragGate true-engine and not nested Softwares suite exec. The version cite is the live sister `GET /v1/health` (earlier machine cite was 0.3.3). Machine fields: `/cite.json` `sister_products` / `trades_runtime_*`, `/v1/catalog.json` `extras[]` kind `cite_only`, `/v1/software` `sister_products`, `/llms.txt` **Sister products**. `fraggate_call` does **not** execute Trades-Runtime company ops. `live_backends` false. Not a hosted company OS. Identity Aziel Eliab only.
 
 - GitHub → https://github.com/AzielEliab/trades-runtime
 - Worker → https://trades-runtime.vibelock.workers.dev

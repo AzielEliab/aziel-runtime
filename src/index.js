@@ -344,6 +344,7 @@ import {
   sitemapIndexXml,
   SUITE_DESIGNS,
 } from "./seo.js";
+import { llmsCatalogSetsBlock } from "./catalog-sets.js";
 import { aboutAzielCiteField, aboutAzielLlmsBlock, corpusFoldPackCiteField, workerLaunchCiteField, workerLaunchHtml } from "./about-aziel.js";
 import { helpOpenApiPaths, helpSitemapEntries, helpTxtForPath } from "./help-txt.js";
 import {
@@ -413,7 +414,7 @@ const CATALOG_TITLE = PRODUCT_NAME;
 /** Bound to the canonical abstract. Version rolls (1.9+) go in #version-history, not here. */
 const CATALOG_DESCRIPTION = RUNTIME_ABSTRACT;
 const CATALOG_CHANGELOG_20 =
-  "2.0.0-rc1 SpectralLock 0.3.1: wheel paint is separate from the spectral triad; FragGate ops pigment and restore-pigment restore lost pigment and refuse SL-PIGMENT-GONE when the signal is gone; AMOE is not a live product. 2.0.0-rc1 is the certification-point freeze: public contract, compatibility, receipt schema, refusal contract, and breaking-change policy under docs/2.0/. Clean-room reproducibility + external adversarial pack for independent reviewers. Gate 4 includes Glama TDQS 5.0 tools/list metadata (no rename; no behavior change) plus existing glama.json / GitHub topics. Read-only QNM suite-presence is ON by default; POST /v1/mesh/disable refuses MESH-DISABLE-REFUSED. Additive COLD-MULTI-SHELF-1.0 cite (GET /shelves) matches corpus#96 /shelves honesty: Plane A = 5 published surfaces / 2 family radii / 1 independent live; Plane B Codeberg + archive.org PASS still SLOT (https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius); Framagit URL null Zenodo tip-pack SLOT (zenodo_live:false; CNS-ZENODO-NOT-LIVE); doi null; Plane C USB SLOT. Additive Trades-Runtime 0.3.3 machine cite (sister_products / extras cite_only; live_backends false). Remain-OFF untouched. FragGate remains THE single door. Architecture-fit placements zkattest / mmconsensus / toolbench are in-runtime engines behind FragGate (isolation 33 unchanged; no new MCP tool). Crawler abstract stays lead copy. Identity Aziel Eliab only.";
+  "2.0.0-rc1 SpectralLock 0.3.1: wheel paint is separate from the spectral triad; FragGate ops pigment and restore-pigment restore lost pigment and refuse SL-PIGMENT-GONE when the signal is gone; AMOE is not a live product. 2.0.0-rc1 is the certification-point freeze: public contract, compatibility, receipt schema, refusal contract, and breaking-change policy under docs/2.0/. Clean-room reproducibility + external adversarial pack for independent reviewers. Gate 4 includes Glama TDQS 5.0 tools/list metadata (no rename; no behavior change) plus existing glama.json / GitHub topics. Read-only QNM suite-presence is ON by default; POST /v1/mesh/disable refuses MESH-DISABLE-REFUSED. Additive COLD-MULTI-SHELF-1.0 cite (GET /shelves) matches corpus#96 /shelves honesty: Plane A = 5 published surfaces / 2 family radii / 1 independent live; Plane B Codeberg + archive.org PASS still SLOT (https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius); Framagit URL null Zenodo tip-pack SLOT (zenodo_live:false; CNS-ZENODO-NOT-LIVE); doi null; Plane C USB SLOT. Sister product Trades-Runtime machine cite is 0.4.9 (live GET /v1/health; sister_products / extras cite_only; live_backends false; earlier cite 0.3.3). Remain-OFF untouched. FragGate remains THE single door. Architecture-fit placements zkattest / mmconsensus / toolbench are in-runtime engines behind FragGate (isolation 33 unchanged; no new MCP tool). Crawler abstract stays lead copy. Identity Aziel Eliab only.";
 const CATALOG_CHANGELOG_19 =
     "1.9.3 closes the remaining AZRT-1.9-GAPS-CLOSE items: isolate-native AZ-OS session_open/status/close (prefab ethics VFS; exec/shell/lattice stay refuse); isolate-safe Ask Jeeves over sample MASTER / CORPUS_D1 records; binding-gated media-run when env.AI is present (no fake OCR); published independent-validation attestation path. Remain-OFF untouched. 1.9.2 binds Workers Browser Rendering (BROWSER) and live D1 MASTER (CORPUS_D1 → aziel-digital-library records). Whisper/OCR Workers-AI-bound. Sample MASTER remains the unbound fallback. Chromium product UI stays unbound; Tor/phoenix stay refuse. Remain-OFF untouched. 1.9.1 closes AZRT-1.9-GAPS-CLOSE isolate-safe corpus verify; Whisper/OCR Workers-AI-gated; AZBrowser sandbox_status; AZMail transport_status; wave 2–3 doctor; adversarial self-check + Actions npm test. Remain-OFF untouched. 1.9.0 closed AZRT-1.9-CLOSE-1.0. Chromium product UI stays unbound. Remain-OFF untouched.";
 const LASTMOD = "2026-09-14";
@@ -1621,6 +1622,8 @@ function llmsTxt(origin, env = {}) {
     `suite_version: ${catalog.version || RUNTIME_VERSION}`,
     `git_sha: ${catalog.git_sha || ""}`,
     `softwares_count: ${catalog.count}`,
+    "catalog_sets.equate: false",
+    "Do not equate Softwares slugs, the FragGate allowlist, FragGate product_count, or mesh software_nodes.",
     `version_id: ${catalog.version_id || "null"}`,
     `version_id_source: ${catalog.version_id_source || "unbound"}`,
     "",
@@ -1714,6 +1717,8 @@ function llmsTxt(origin, env = {}) {
     llmsHubsBlock().trimEnd(),
     "",
     llmsEcosystemBlock().trimEnd(),
+    "",
+    llmsCatalogSetsBlock(catalog.catalog_sets).trimEnd(),
     "",
     llmsSisterProductsBlock().trimEnd(),
     "",
@@ -1860,6 +1865,7 @@ function citeJson(origin, env = {}) {
       suite_version: catalog.version || RUNTIME_VERSION,
       git_sha: catalog.git_sha || null,
       softwares_count: catalog.count,
+      sets_equate: false,
       version_id: catalog.version_id || null,
       version_id_source: catalog.version_id_source || null,
       version_id_note: catalog.version_id_note || "GET /v1/software does not expose version_id.",
@@ -1899,6 +1905,7 @@ function citeJson(origin, env = {}) {
     hubs: hubsCiteField(),
     sister_archives: sisterArchiveCiteField(),
     sister_products: sisterProductCiteField(),
+    catalog_sets: catalog.catalog_sets,
     ...sisterProductHubFields(),
     hedidntjump: HEDIDNTJUMP_HOME,
     hedidntjump_name: HEDIDNTJUMP_NAME,
