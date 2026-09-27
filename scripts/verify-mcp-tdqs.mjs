@@ -4,7 +4,9 @@
  */
 import assert from "node:assert/strict";
 import { PUBLIC_MCP_TOOLS } from "../src/fraggate/codes.js";
-import { buildMcpToolList, mcpInitializeInstructions } from "../src/mcp-surface.js";
+import { imageFromProduction, productVerbTitle, RUN_ACTION, wrapToolOutput } from "../src/display.js";
+import { MCP_OUTPUT_SCHEMA } from "../src/mcp-schema.js";
+import { buildMcpToolList, mcpCallPayload, mcpInitializeInstructions } from "../src/mcp-surface.js";
 import { RUNTIME_VERSION } from "../src/runtime-api.js";
 import { sessionMcpTools } from "../src/session-http.js";
 
@@ -225,5 +227,106 @@ for (const name of [
 assert.match(instructions, /chainlock_seal writes a local LOCKSET/);
 assert.match(instructions, /Call Softwares \(tools\/list name Softwares\)/);
 assert.match(instructions, /runtime_software remains a tools\/call alias/);
+assert.match(instructions, /Never echo raw tool names to humans/);
+assert.match(instructions, /Show display\.action, display\.title, and display\.summary/);
+assert.match(instructions, /Run aziel runtime/);
+assert.doesNotMatch(instructions, /\bthis\b/);
+assert.doesNotMatch(instructions, /\bAziel\b/);
+
+const displayProps = MCP_OUTPUT_SCHEMA.properties.display.properties;
+assert.equal(displayProps.action.type, "string");
+assert.match(displayProps.action.description, /Run aziel runtime/);
+assert.equal(displayProps.image.type, "object");
+assert.match(displayProps.image.description, /dry_run/);
+assert.match(displayProps.image.properties.reviewed.description, /Never true on dry_run/);
+
+const PNG =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+const JPEG = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xd9]), Buffer.alloc(64, 7)]).toString("base64");
+assert.match(JPEG, /^\/9j\//);
+const spectral = { slug: "spectrallock", name: "SpectralLock", ops: [{ op: "overlay" }] };
+
+const produced = wrapToolOutput({
+  name: "fraggate_call",
+  text: JSON.stringify({
+    ok: true,
+    slug: "spectrallock",
+    op: "overlay",
+    result: { mode: "rosetta", png_b64: PNG, width: 1 },
+  }),
+  status: 200,
+  product: spectral,
+  op: "overlay",
+});
+assert.equal(produced.display.action, RUN_ACTION);
+assert.equal(produced.display.title, productVerbTitle(spectral, "overlay"));
+assert.match(produced.display.title, /SpectralLock/);
+assert.equal(produced.display.image.mimeType, "image/png");
+assert.equal(produced.display.image.data, PNG);
+assert.equal(produced.display.image.source, "png_b64");
+assert.equal(produced.display.image.reviewed, true);
+assert.ok(!(produced.display.fields || []).some((field) => /b64/.test(field.label)));
+
+const jpegCard = imageFromProduction({ result: { jpeg_b64: JPEG, note: "plate" } });
+assert.equal(jpegCard.mimeType, "image/jpeg");
+assert.equal(jpegCard.reviewed, true);
+assert.equal(jpegCard.source, "jpeg_b64");
+assert.equal(imageFromProduction({ jpeg_b64: "a".repeat(80) }), undefined);
+assert.equal(imageFromProduction({ png_b64: null }), undefined);
+assert.equal(imageFromProduction({ payload: { png_b64: PNG }, result: { mode: "rosetta" } }), undefined);
+assert.equal(imageFromProduction({ would: { png_b64: PNG }, ok: true }), undefined);
+
+const cited = wrapToolOutput({
+  name: "fraggate_call",
+  text: JSON.stringify({ ok: true, result: { image_url: "https://example.com/plate.png" } }),
+  status: 200,
+  product: spectral,
+  op: "overlay",
+});
+assert.equal(cited.display.image.reviewed, false);
+assert.equal(cited.display.image.data, undefined);
+assert.equal(cited.display.image.url, "https://example.com/plate.png");
+assert.equal(cited.display.image.mimeType, "image/png");
+assert.match(cited.display.summary, /SpectralLock|finished|Show/i);
+
+const dry = wrapToolOutput({
+  name: "fraggate_call",
+  text: JSON.stringify({
+    ok: true,
+    dry_run: true,
+    code: "MCP-DRY-RUN",
+    would: { png_b64: PNG },
+    result: { png_b64: PNG },
+  }),
+  status: 200,
+  product: spectral,
+  op: "overlay",
+});
+assert.equal(dry.display.action, RUN_ACTION);
+assert.equal(dry.display.title, productVerbTitle(spectral, "overlay"));
+assert.equal(dry.display.image, undefined);
+
+const shown = mcpCallPayload(
+  "fraggate_call",
+  { text: JSON.stringify({ ok: true, result: { png_b64: `data:image/png;base64,${PNG}` } }), status: 200 },
+  spectral,
+  "overlay",
+);
+assert.equal(shown.content[0].type, "text");
+assert.match(shown.content[0].text, /Run aziel runtime/);
+assert.match(shown.content[0].text, /Image: image\/png \(reviewed\)/);
+assert.equal(shown.content[1].type, "image");
+assert.equal(shown.content[1].mimeType, "image/png");
+assert.equal(shown.content[1].data, PNG);
+assert.equal(shown.structuredContent.display.image.reviewed, true);
+const citedCall = mcpCallPayload(
+  "fraggate_call",
+  { text: JSON.stringify({ ok: true, result: { cited_image_url: "https://example.com/cite.jpg" } }), status: 200 },
+  spectral,
+  "overlay",
+);
+assert.equal(citedCall.content.length, 1);
+assert.equal(citedCall.structuredContent.display.image.reviewed, false);
+assert.equal(citedCall.content.some((part) => part.type === "image"), false);
 
 console.log(`ok mcp-tdqs ${names.length} tools, names frozen, schema coverage complete`);

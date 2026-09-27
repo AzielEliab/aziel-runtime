@@ -1,14 +1,48 @@
 /**
  * Display-ready result envelope for the agent software surface.
  *
- * Agents show display.title / display.summary / display.fields in the AI client,
- * then take the next input. Structured `result` stays for machines.
+ * Agents show display.action / display.title / display.summary / display.fields
+ * in the AI client, then take the next input. Human framing is
+ * "Run aziel runtime" plus the product verb title. Do not echo raw tool names.
+ * Structured `result` stays for machines. Image cards come only from real
+ * productions (png_b64 / jpeg_b64 / a cited image URL). dry_run does not
+ * mint a reviewed image.
  * Receipts stay optional — session plumbing is invisible unless asked for.
  *
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
 
 export const ADVANCED_PREFIX = "[advanced/internal]";
+
+/** Human-visible run frame. Product verb titles stay on display.title. */
+export const RUN_ACTION = "Run aziel runtime";
+
+const IMAGE_BYTE_KEYS = ["png_b64", "residual_png_b64", "jpeg_b64", "jpg_b64", "webp_b64", "gif_b64"];
+
+const IMAGE_URL_KEYS = {
+  image_url: "",
+  png_url: "image/png",
+  jpeg_url: "image/jpeg",
+  jpg_url: "image/jpeg",
+  cited_image_url: "",
+  image_href: "",
+};
+
+/** Request echoes and prose. Never treat these as a production image. */
+const IMAGE_SKIP_WALK = new Set([
+  "payload",
+  "would",
+  "args",
+  "arguments",
+  "input",
+  "claim",
+  "proposal",
+  "ground",
+  "display",
+  "markdown",
+  "skill",
+  "html",
+]);
 
 const TITLE_OVERRIDES = {
   "godlock:score": "Score a GodLock submission",
@@ -482,11 +516,14 @@ export function productInputHint(product, opSpec) {
   return limit ? `${pass} ${limit}` : pass;
 }
 
-export function displayEnvelope({ title, summary, fields, result, receipt, session_id, next }) {
+export function displayEnvelope({ title, summary, fields, result, receipt, session_id, next, dryRun }) {
   const display = {
+    action: RUN_ACTION,
     title: title || "Result",
     summary: summary == null ? "" : String(summary),
   };
+  const image = imageFromProduction(result, { dryRun: dryRun === true });
+  if (image) display.image = image;
   if (fields && fields.length) display.fields = fields;
   if (next) display.next = next;
   const out = {
@@ -521,7 +558,7 @@ export function fieldsFromResult(result) {
   for (const [key, value] of Object.entries(result)) {
     if (fields.length >= 8) break;
     if (seen.has(key)) continue;
-    if (key === "markdown" || key === "skill" || key === "html" || key === "png_b64" || key === "b64") continue;
+    if (key === "markdown" || key === "skill" || key === "html" || key === "b64" || key.endsWith("_b64")) continue;
     if (!isDisplayable(value)) continue;
     fields.push({ label: labelize(key), value: stringifyField(value) });
   }
@@ -580,7 +617,7 @@ export function wrapToolOutput({ name, text, status, product, op, extra }) {
       parsed = null;
     }
   }
-  if (looksLikeEnvelope(parsed)) return parsed;
+  if (looksLikeEnvelope(parsed)) return ensureRunFrame(parsed);
   if (parsed && parsed.exec && (parsed.receipt || (parsed.exec && parsed.exec.result !== undefined))) {
     const slug = (parsed.exec && parsed.exec.slug) || (product && product.slug);
     const action = (parsed.exec && parsed.exec.op) || op;
@@ -630,8 +667,11 @@ export function wrapToolOutput({ name, text, status, product, op, extra }) {
 export function formatDisplayText(envelope) {
   const d = (envelope && envelope.display) || {};
   const lines = [];
+  if (d.action) lines.push(d.action, "");
   if (d.title) lines.push(d.title, "");
   if (d.summary) lines.push(d.summary, "");
+  const caption = imageCaption(d.image);
+  if (caption) lines.push(caption, "");
   if (Array.isArray(d.fields)) {
     for (const field of d.fields) {
       lines.push(`${field.label}: ${field.value}`);
@@ -646,9 +686,148 @@ export function formatDisplayText(envelope) {
 export function mcpContentText(name, envelope, rawText) {
   if (name === "runtime_skill" || (typeof name === "string" && name.endsWith("_skill"))) {
     const md = (envelope.result && envelope.result.markdown) || rawText || "";
-    return `${(envelope.display && envelope.display.title) || "Skill"}\n\n${md}`;
+    const action = (envelope.display && envelope.display.action) || RUN_ACTION;
+    const title = (envelope.display && envelope.display.title) || "Skill";
+    return `${action}\n\n${title}\n\n${md}`;
   }
   return formatDisplayText(envelope);
+}
+
+/**
+ * Image card from a real production only.
+ * Byte fields (png_b64 / jpeg_b64 and the same family) become display.image.data
+ * when the bytes sniff as that image. A cited http(s) image URL is recorded
+ * without inventing bytes. dry_run returns nothing — a preview is not sealed.
+ * Request echoes (payload / would / args) are not productions.
+ */
+export function imageFromProduction(result, opts = {}) {
+  if (!result || typeof result !== "object") return undefined;
+  if (opts.dryRun === true || result.dry_run === true) return undefined;
+  const found = { byte: null, url: null };
+  walkProductionImage(result, 0, found);
+  if (!found.byte && !found.url) return undefined;
+  if (found.byte) {
+    const image = {
+      mimeType: found.byte.mimeType,
+      data: found.byte.data,
+      source: found.byte.source,
+      reviewed: true,
+    };
+    if (found.url) image.url = found.url.url;
+    return image;
+  }
+  const image = {
+    url: found.url.url,
+    source: found.url.source,
+    reviewed: false,
+  };
+  if (found.url.mimeType) image.mimeType = found.url.mimeType;
+  return image;
+}
+
+function ensureRunFrame(envelope) {
+  if (!envelope || typeof envelope !== "object" || !envelope.display) return envelope;
+  if (!envelope.display.action) envelope.display.action = RUN_ACTION;
+  if (!envelope.display.image) {
+    const image = imageFromProduction(envelope.result, { dryRun: envelope.dry_run === true });
+    if (image) envelope.display.image = image;
+  }
+  return envelope;
+}
+
+function imageCaption(image) {
+  if (!image || typeof image !== "object") return "";
+  if (image.data && image.reviewed === true) return `Image: ${image.mimeType || "image"} (reviewed)`;
+  if (image.url && !image.data) return `Image cite: ${image.url}`;
+  if (image.data) return `Image: ${image.mimeType || "image"} (not sealed)`;
+  return "";
+}
+
+function walkProductionImage(node, depth, found) {
+  if (!node || typeof node !== "object" || depth > 6) return;
+  if (Array.isArray(node)) {
+    const limit = Math.min(node.length, 8);
+    for (let i = 0; i < limit; i++) {
+      walkProductionImage(node[i], depth + 1, found);
+      if (found.byte && found.url) return;
+    }
+    return;
+  }
+  if (!found.byte) {
+    for (const key of IMAGE_BYTE_KEYS) {
+      if (!Object.prototype.hasOwnProperty.call(node, key)) continue;
+      const bytes = imageBytes(node[key]);
+      if (!bytes) continue;
+      found.byte = { ...bytes, source: key };
+      break;
+    }
+  }
+  if (!found.url) {
+    for (const [key, declared] of Object.entries(IMAGE_URL_KEYS)) {
+      if (!Object.prototype.hasOwnProperty.call(node, key)) continue;
+      const url = citedImageUrl(node[key]);
+      if (!url) continue;
+      const mimeType = declared || mimeFromUrl(url);
+      found.url = { url, source: key, ...(mimeType ? { mimeType } : {}) };
+      break;
+    }
+  }
+  if (found.byte && found.url) return;
+  for (const [key, value] of Object.entries(node)) {
+    if (IMAGE_SKIP_WALK.has(key)) continue;
+    if (!value || typeof value !== "object") continue;
+    walkProductionImage(value, depth + 1, found);
+    if (found.byte && found.url) return;
+  }
+}
+
+function imageBytes(value) {
+  if (typeof value !== "string") return null;
+  let raw = value.trim();
+  if (!raw || raw === "null" || raw.length > 1500000) return null;
+  const dataUrl = raw.match(/^data:(image\/[a-z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)$/i);
+  if (dataUrl) raw = dataUrl[2].replace(/\s/g, "");
+  else raw = raw.replace(/\s/g, "");
+  if (raw.length < 64 || raw.length > 1500000) return null;
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(raw)) return null;
+  const sniffed = sniffImageMime(raw);
+  if (!sniffed) return null;
+  return { mimeType: sniffed, data: raw };
+}
+
+function sniffImageMime(b64) {
+  if (b64.startsWith("iVBORw0KGgo")) return "image/png";
+  if (b64.startsWith("/9j/")) return "image/jpeg";
+  if (b64.startsWith("R0lGOD")) return "image/gif";
+  if (b64.startsWith("UklGR")) return "image/webp";
+  return null;
+}
+
+function citedImageUrl(value) {
+  if (typeof value !== "string") return null;
+  const text = value.trim();
+  if (!/^https?:\/\//i.test(text) || text.length > 2000) return null;
+  try {
+    const url = new URL(text);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+function mimeFromUrl(url) {
+  let path = "";
+  try {
+    path = new URL(url).pathname.toLowerCase();
+  } catch {
+    return "";
+  }
+  if (path.endsWith(".png")) return "image/png";
+  if (path.endsWith(".jpg") || path.endsWith(".jpeg")) return "image/jpeg";
+  if (path.endsWith(".webp")) return "image/webp";
+  if (path.endsWith(".gif")) return "image/gif";
+  return "";
 }
 
 function titleFromToolName(name) {

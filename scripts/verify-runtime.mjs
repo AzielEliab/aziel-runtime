@@ -416,8 +416,13 @@ const foldCall = await mcpCall("fraggate_call", {
 assert.equal(foldCall.result.isError, false);
 assert.ok(foldCall.result.structuredContent);
 assert.ok(foldCall.result.structuredContent.display);
+assert.equal(foldCall.result.structuredContent.display.action, "Run aziel runtime");
+assert.match(foldCall.result.structuredContent.display.title, /Fold/);
+assert.equal(foldCall.result.structuredContent.display.image, undefined);
 assert.ok(foldCall.result.structuredContent.result);
+assert.match(foldCall.result.content[0].text, /Run aziel runtime/);
 assert.match(foldCall.result.content[0].text, /FoldLock|the cat|FragGate/i);
+assert.equal(foldCall.result.content.some((part) => part.type === "image"), false);
 
 const runCall = await mcpCall("runtime_run", {
   slug: "azclce",
