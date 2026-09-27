@@ -24,6 +24,7 @@ import { suiteDownloadHref } from "./human-hrefs.js";
 import { suiteDownloadHtml } from "./suite-pack.js";
 import { softwareOneLine } from "./software-copy.js";
 import { UI_DOMAIN_DEFAULT, UI_DOMAINS, uiDomainForSlug } from "./ui-domains.js";
+import { GUIDE_STARTERS } from "./guide-reason.js";
 
 export const WORKSPACE_PAGE_TITLE = `Workspace — ${PRODUCT_NAME}`;
 export const WORKSPACE_PAGE_DESCRIPTION =
@@ -37,6 +38,15 @@ function escapeHtml(s) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+function commandStarterButtons(kind) {
+  return GUIDE_STARTERS.map((row) => {
+    const q = escapeHtml(row.q);
+    const label = escapeHtml(row.label);
+    if (kind === "ai") return `<button type="button" data-ai="starter" data-q="${q}">${label}</button>`;
+    return `<button type="button" data-if="route" data-q="${q}">${label}</button>`;
+  }).join("\n");
 }
 
 /**
@@ -315,6 +325,8 @@ export const HUMAN_UI_CSS = `
   .first-hour-mark{outline:2px solid #d4af37;outline-offset:3px;border-radius:8px}
   #interface-chat,#reviewed-gallery{margin:1rem 0 0}
   #interface-thread article{margin:.6rem 0;padding:.5rem .6rem;border:1px solid #2a3140;border-radius:8px;background:#12160e}
+  #interface-thread ul{margin:.35rem 0 .35rem 1.1rem;padding:0}
+  #interface-thread li{margin:.15rem 0}
   #interface-thread img,#reviewed-copies img,#jeeves-productions img,.gen-image img{max-width:min(100%,28rem);height:auto;display:block;background:#0e1116;border:1px solid #2a3140;border-radius:8px}
   #interface-thread figure,#reviewed-copies figure,#jeeves-productions figure{margin:.4rem 0}
   #reviewed-copies{display:flex;flex-wrap:wrap;gap:.6rem;max-width:100%}
@@ -465,9 +477,7 @@ function aiPeerDeskHtml(p, origin) {
   <label for="ai-guide-adapt"><input id="ai-guide-adapt" type="checkbox"> confirm adaptive count (topic counts only, not the question)</label>
   <div class="actions">
     <button type="button" data-ai="guide">Guide</button>
-    <button type="button" data-ai="starter" data-q="Where is Florence?">Library: Florence</button>
-    <button type="button" data-ai="starter" data-q="How do I run a Softwares card?">FragGate Run</button>
-    <button type="button" data-ai="starter" data-q="Where is the Corpus sub-tab?">Corpus sub-tab</button>
+    ${commandStarterButtons("ai")}
   </div>
   <ul id="azai-next"></ul>
   <div class="field">
@@ -802,10 +812,13 @@ ${dashCards}
     </div>
     <div class="receipt-board" id="interface-chat">
       <h3>Ask the suite</h3>
-      <p class="blurb">One question. Lamb Lens runs first (Service, then Clarity, then Peace). A clear match runs that Software. An unclear question stays with AZAI Guide. A write waits for confirm. Dry run writes nothing.</p>
+      <p class="blurb">One question. Lamb Lens runs first (Service, then Clarity, then Peace). Type help for every command prompt. Type softwares for every Software. A clear match runs that Software. An unclear question stays with AZAI Guide. A write waits for confirm. Dry run writes nothing.</p>
+      <div class="actions" id="suite-commands">
+        ${commandStarterButtons("if")}
+      </div>
       <div class="field">
         <label for="if-ask">Question</label>
-        <textarea id="if-ask" placeholder="Is FoldLock healthy?"></textarea>
+        <textarea id="if-ask" placeholder="help, softwares, or Is FoldLock healthy?"></textarea>
       </div>
       <label><input id="if-ask-dry" type="checkbox"> dry run</label>
       <label><input id="if-ask-confirm" type="checkbox"> confirm a write</label>
@@ -1219,6 +1232,20 @@ export function humanDoorScript() {
       appendFigure(gallery, copy, (copy.slug || "Software") + (copy.op ? " / " + copy.op : ""));
     });
   }
+  function appendCommandLines(parent, rows, className) {
+    if (!rows || !rows.length) return;
+    let list = document.createElement("ul");
+    list.className = className;
+    rows.forEach(function (row) {
+      if (!row) return;
+      let li = document.createElement("li");
+      if (row.command) li.textContent = row.command + " — " + (row.does || "");
+      else if (row.slug) li.textContent = (row.name || row.slug) + " (" + row.slug + ")" + (row.domain_label ? " — " + row.domain_label : "") + (row.one_line ? " — " + row.one_line : "");
+      else return;
+      list.appendChild(li);
+    });
+    if (list.childNodes.length) parent.appendChild(list);
+  }
   function paintThread(body) {
     let thread = document.getElementById("interface-thread");
     if (!thread || !body) return;
@@ -1228,11 +1255,14 @@ export function humanDoorScript() {
     let heading = body.display && body.display.title ? body.display.title : "Reply";
     title.textContent = action + " — " + heading;
     block.appendChild(title);
-    if (body.display && body.display.summary) {
+    let listed = (body.command_prompts && body.command_prompts.length) || (body.softwares && body.softwares.length);
+    if (body.display && body.display.summary && !listed) {
       let summary = document.createElement("p");
       summary.textContent = body.display.summary;
       block.appendChild(summary);
     }
+    appendCommandLines(block, body.command_prompts, "command-prompts");
+    appendCommandLines(block, body.softwares, "command-softwares");
     if (body.display && body.display.image) appendFigure(block, body.display.image, body.display.image.reviewed ? "Reviewed copy" : "Cited image");
     thread.appendChild(block);
     if (body.reviewed_copies) paintGallery(body.reviewed_copies);
@@ -1755,8 +1785,9 @@ export function humanDoorScript() {
         if (call === "route" || call === "reviewed_copies") {
           let body = { call: call, session_id: reviewedSession() };
           if (call === "route") {
+            let prompted = btn.getAttribute("data-q");
             let ask = document.getElementById("if-ask");
-            body.q = ask ? String(ask.value || "") : "";
+            body.q = prompted ? String(prompted) : (ask ? String(ask.value || "") : "");
             let dry = document.getElementById("if-ask-dry");
             let box = document.getElementById("if-ask-confirm");
             if (dry && dry.checked) body.dry_run = true;

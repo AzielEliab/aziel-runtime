@@ -11,7 +11,7 @@
  */
 
 import { RUN_ACTION, displayEnvelope, productVerbTitle } from "./display.js";
-import { guideIntent, lensFirst } from "./guide-reason.js";
+import { guideFlow, guideIntent, lensFirst } from "./guide-reason.js";
 
 export const MESH_ROUTER_SPEC = "MESH-ADAPT-1.0";
 
@@ -295,19 +295,22 @@ function base(question, cards, lens, extra) {
   };
 }
 
-function clarify(question, cards, lens, summary, candidates, dryRun) {
+function clarify(question, cards, lens, summary, candidates, dryRun, flow) {
   const names = (candidates || []).map((row) => row.slug).filter(Boolean);
   const which = names.length ? ` Name one of ${names.join(", ")}.` : "";
   const ask = `Ask AZAI Guide. That question does not pick one Software.${which}`;
   return base(question, cards, lens, {
     ok: true,
     dry_run: dryRun,
-    title: "Ask AZAI Guide",
+    title: (flow && flow.title) || "Ask AZAI Guide",
     summary,
     rest: {
       clarify: true,
       clarify_question: ask,
       candidates: candidates || [],
+      suite_command: flow && flow.command ? flow.command : null,
+      command_prompts: flow && flow.prompts ? flow.prompts : null,
+      softwares: flow && flow.softwares ? flow.softwares : null,
     },
   });
 }
@@ -362,10 +365,19 @@ export function routeMesh({ question, catalog, confirm = false, dry_run = false,
   const hay = text.toLowerCase();
   const named = namesSlug(hay, cards);
   if (lens.held || (/\bjeeves\b/.test(hay) && !named) || (guideIntent(text) !== "custom" && !named)) {
-    const summary = /\bjeeves\b/.test(hay)
-      ? "Ask Jeeves is suite help, not a Softwares card. Nothing ran."
-      : "That question stays with AZAI Guide. Nothing ran.";
-    return clarify(text, cards, lens, summary, [], dry_run === true);
+    const flow = lens.held ? null : guideFlow(text, cards, null);
+    let summary;
+    if (flow && flow.answer) {
+      const tail = /\bjeeves\b/.test(hay)
+        ? "Ask Jeeves is suite help, software_tab false. Nothing ran."
+        : "Nothing ran.";
+      summary = `${flow.answer}\n\n${tail}`;
+    } else if (/\bjeeves\b/.test(hay)) {
+      summary = "Ask Jeeves is suite help, not a Softwares card. Nothing ran.";
+    } else {
+      summary = "That question stays with AZAI Guide. Nothing ran.";
+    }
+    return clarify(text, cards, lens, summary, [], dry_run === true, flow);
   }
 
   const ranked = cards

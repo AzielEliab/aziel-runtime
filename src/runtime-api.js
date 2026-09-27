@@ -41,6 +41,7 @@ import { COLD_MULTI_SHELF, shelvesSkillMarkdown } from "./cold-multi-shelf.js";
 import { BAN_SURVIVAL, survivalSkillMarkdown } from "./ban-survival.js";
 import { resolveCallingName, rewriteLiveCallingDisplay } from "./calling-name.js";
 import { LOCKED_STRIP } from "./azpipe.js";
+import { commandPromptsBlock } from "./command-prompts.js";
 
 export const RUNTIME_VERSION = "2.0.0-rc1";
 export const RUNTIME_ROLE = "engine-runtime";
@@ -211,6 +212,7 @@ Call Softwares (tools/list name Softwares). The door runs first. ChainLock, Temp
 
 Terminal: \`aziel-runtime call foldlock fold-preview --local --dry-run\`. A long job: \`aziel-runtime call foldlock fold-preview --background --local\`, then \`aziel-runtime job <id>\`. \`aziel-runtime service status\` reports Running or Quiet and does not call the door.
 
+${commandPromptsBlock()}
 ## Dual surface (product law)
 
 1. **Agent / MCP** — Software runs 100% through the agent. Display \`display.title\`, \`display.summary\`, and \`display.fields\` in the AI client. Feed the next input back into the same product. Session ids, receipts, OpenAPI, and HTTP stay invisible unless the user asked for them.

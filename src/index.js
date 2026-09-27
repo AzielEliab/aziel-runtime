@@ -349,6 +349,7 @@ import {
 import { llmsCatalogSetsBlock } from "./catalog-sets.js";
 import { aboutAzielCiteField, aboutAzielLlmsBlock, corpusFoldPackCiteField, workerLaunchCiteField, workerLaunchHtml } from "./about-aziel.js";
 import { helpOpenApiPaths, helpSitemapEntries, helpTxtForPath } from "./help-txt.js";
+import { commandPromptsBlock } from "./command-prompts.js";
 import {
   personCiteField,
   personIndexJsonLd,
@@ -1688,6 +1689,9 @@ function llmsTxt(origin, env = {}) {
     `Cap-7 semantic bridge: ${base}/v1/mesh/az-generator  (MirageGrid .az duplication; standard internet does not reach Cap-7; AZ domains resolve via hub HTTPS; Cap-7 resolves_to_hub false; 3 of 7 false sites)`,
     `ACT-RECEIPT-1.0: ${base}/v1/receipts  (cite). Public chain lives on https://www.azielcorpuslibrary.net/receipts. Runtime appends after FragGate list/call, POST /mcp, and significant POST /v1/* when RECEIPT_APPEND_TOKEN is set (fail-open). Tip/proxy: ${base}/v1/receipts/tip. Not a Softwares-tab product.`,
     `Agents call Softwares (tools/list name Softwares). The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. runtime_software remains a tools/call alias. Prefer ${base}/mcp and ${base}/v1/software. Diagnostics: fraggate_list → fraggate_describe → fraggate_call.`,
+    "",
+    commandPromptsBlock().trimEnd(),
+    "",
     `About: ${base}/about`,
     `Cite: ${base}/cite.json`,
     `Shelves: ${base}/shelves  (COLD-MULTI-SHELF-1.0; corpus SoT ${LIBRARY_ORIGIN}/shelves)`,
