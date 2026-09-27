@@ -163,8 +163,9 @@ description: >-
   provenance, chain-of-custody, temporal integrity, and auditable execution.
   One door — discover, route, refuse. FragGate over the catalog: hashed
   registry, DecisionGATE after ChainLock-IN, ask/refuse ledger. Dual surface —
-  agent/MCP has no technical UI chrome; Worker UI, Flutter mobile/, local
-  install, and counted /download stay complete human software. Flutter mobile/ is not vendored in this repo. 2.0.0-rc1 is the certification-point freeze (docs/2.0/; no intentional behavioral breaks; remain-OFF untouched). 1.9.3 closes remaining AZRT-1.9-GAPS-CLOSE items (isolate AZ-OS session VFS; isolate-safe jeeves; binding-gated media-run; published attestation path). 1.9.2 binds Workers Browser Rendering and live D1 MASTER (records). 1.9.1 closes AZRT-1.9-GAPS-CLOSE. 1.9.0 closed AZRT-1.9-CLOSE-1.0. 1.7.10 makes QNM Live Nodes durable
+  agent/MCP has no technical UI chrome. Humans use Softwares in the Worker UI
+  on this VibeLock host (browser / PWA) — no download required. Optional suite
+  pack JSON remains at /download. Flutter mobile/ is not vendored in this repo. 2.0.0-rc1 is the certification-point freeze (docs/2.0/; no intentional behavioral breaks; remain-OFF untouched). 1.9.3 closes remaining AZRT-1.9-GAPS-CLOSE items (isolate AZ-OS session VFS; isolate-safe jeeves; binding-gated media-run; published attestation path). 1.9.2 binds Workers Browser Rendering and live D1 MASTER (records). 1.9.1 closes AZRT-1.9-GAPS-CLOSE. 1.9.0 closed AZRT-1.9-CLOSE-1.0. 1.7.10 makes QNM Live Nodes durable
   (read-only suite-presence is ON by default; GET /v1/mesh never enables radios beyond that; cron or request-path fans out live Softwares product Workers; TTL 5 min). 1.7.9 cross-maps
   AZCoherence (peers azclce / AZInterface / AKM-TRIAD fabric neighbor; hubs + Worker URL; domain stays null). 1.7.8 lands
   EmbryoLock as a true in-process engine (live-with-local-destructive-boundary; wipe/unlock stay FG-STUB; worker_home embryolock-download-tracker). 1.7.7 lands
@@ -213,7 +214,7 @@ Terminal: \`aziel-runtime call foldlock fold-preview --local --dry-run\`. A long
 ## Dual surface (product law)
 
 1. **Agent / MCP** — Software runs 100% through the agent. Display \`display.title\`, \`display.summary\`, and \`display.fields\` in the AI client. Feed the next input back into the same product. Session ids, receipts, OpenAPI, and HTTP stay invisible unless the user asked for them.
-2. **Human software** — Unchanged and required. Worker homepage, Flutter \`mobile/\`, local install, and counted \`/download\` remain complete developed software. Do not gut human UIs.
+2. **Human software** — Humans use Softwares in the Worker UI on this VibeLock host (browser / PWA) — no download required. Agents use OpenAPI/MCP. Optional suite pack JSON remains at \`/download\`. Do not gut the Worker UI. Flutter \`mobile/\` is not vendored here.
 
 ## How an agent uses this like software
 

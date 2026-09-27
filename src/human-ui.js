@@ -13,6 +13,8 @@ import {
   AUTHOR_NAME,
   DONATE_CANONICAL,
   DONATE_FOOTER_RUNTIME,
+  HUMAN_DUAL_SURFACE,
+  HUMAN_USE_SENTENCE,
   PRODUCT_NAME,
 } from "./seo.js";
 import { aboutAzielStripHtml, workerLaunchHtml } from "./about-aziel.js";
@@ -231,6 +233,8 @@ export const HUMAN_UI_CSS = `
   .human-nav{display:flex;flex-wrap:wrap;gap:.45rem .75rem;margin:0 0 1.1rem;padding:.55rem .7rem;border:1px solid #3d3420;border-radius:10px;background:#16120a}
   .human-nav a{color:#f0d78c;font-weight:600;text-decoration:none}
   .human-nav a:hover,.human-nav a:focus{text-decoration:underline}
+  .human-nav a.nav-primary{display:inline-flex;align-items:center;min-height:44px;background:#241c0d;color:#f0d78c;border:1px solid #d4af37;border-radius:8px;padding:.5rem .9rem;font-weight:700}
+  .human-nav a.nav-secondary{display:inline-flex;align-items:center;min-height:44px;background:transparent;color:#9aa3b2;border:1px solid #3d3420;border-radius:8px;padding:.35rem .65rem;font-weight:500;font-size:.82rem}
   .workspace{border:1px solid #5c4a1a;background:#14110a;border-radius:12px;padding:1rem 1.1rem 1.2rem;margin:0 0 1.5rem}
   .workspace h2{margin-top:0}
   .workspace .hint{color:#c9bfa0;font-size:.92rem;margin:.2rem 0 .85rem}
@@ -245,10 +249,10 @@ export const HUMAN_UI_CSS = `
   .field input,.field select,.field textarea{width:100%;background:#0e1014;color:#e8eaef;border:1px solid #2a3140;border-radius:8px;padding:.45rem .55rem;font:inherit;box-sizing:border-box}
   .field textarea{min-height:4.2rem;font:.82rem/1.4 ui-monospace,monospace}
   .field input,.field select{font-size:.95rem}
-  .suite-dl{border:1px solid #7a6224;background:#1f1a0d;border-radius:10px;padding:.7rem .85rem;margin:.55rem 0 1rem}
-  .suite-dl .hint{margin:0 0 .45rem}
-  .suite-dl-btn{display:inline-block;background:#241c0d;color:#f0d78c;border:1px solid #5c4a1a;border-radius:8px;padding:.45rem .85rem;font-weight:700;text-decoration:none}
-  .suite-dl-btn:hover,.suite-dl-btn:focus{background:#33280f;text-decoration:underline}
+  .suite-dl{border:1px solid #3d3420;background:transparent;border-radius:10px;padding:.45rem .65rem;margin:.35rem 0 .85rem}
+  .suite-dl .hint{margin:0 0 .45rem;color:#9aa3b2;font-size:.88rem}
+  .suite-dl-btn{display:inline-block;background:transparent;color:#9aa3b2;border:1px solid #3d3420;border-radius:8px;padding:.35rem .65rem;font-weight:500;font-size:.82rem;text-decoration:none}
+  .suite-dl-btn:hover,.suite-dl-btn:focus{background:#16120a;text-decoration:underline}
   .actions{display:flex;flex-wrap:wrap;gap:.4rem;margin:.35rem 0}
   .actions button,.fg-ops button{background:#241c0d;color:#f0d78c;border:1px solid #5c4a1a;border-radius:8px;padding:.4rem .75rem;cursor:pointer;font:inherit;font-size:.85rem}
   .actions button:hover,.fg-ops button:hover{background:#33280f}
@@ -348,10 +352,11 @@ export const HUMAN_UI_CSS = `
     .ws-out,.fg-out,pre{max-width:100%}
   }
   @media (hover:none){
-    .domain-tabs button:hover,.actions button:hover,.fg-ops button:hover,.first-hour button:hover,.suite-dl-btn:hover{background:#241c0d}
+    .domain-tabs button:hover,.actions button:hover,.fg-ops button:hover,.first-hour button:hover{background:#241c0d}
     .domain-tabs button[aria-selected="true"]:hover{background:#33280f}
     .fg-ops button.fg-stub:disabled:hover{background:#12100c}
     .human-nav a:hover{text-decoration:none}
+    .suite-dl-btn:hover{background:transparent}
   }
 `;
 
@@ -556,7 +561,7 @@ export function workspacePaneHtml(origin, products) {
   const veilChips = veilProduct ? launchHashtagChipsHtml(veilProduct) : "";
   return `<section class="workspace" id="workspace" aria-labelledby="workspace-title">
   <h2 id="workspace-title">What do you want to do?</h2>
-  <p class="hint">Human workspace first. Operator control panel + dashboard below. Same FragGate door as MCP <code>fraggate_call</code> / <code>POST ${escapeHtml(base)}/v1/fraggate/call</code>. Architecture, cite, and version history stay below. Identity ${escapeHtml(AUTHOR_NAME)} only.</p>
+  <p class="hint">${escapeHtml(HUMAN_USE_SENTENCE)} Human workspace on this host. Operator control panel + dashboard below. Same FragGate door as MCP <code>fraggate_call</code> / <code>POST ${escapeHtml(base)}/v1/fraggate/call</code>. Architecture, cite, and version history stay below. Identity ${escapeHtml(AUTHOR_NAME)} only.</p>
   <section class="first-hour" id="first-hour" aria-labelledby="first-hour-title">
     <h3 id="first-hour-title">Start here</h3>
     <p class="hint">Three steps for the first hour. Call Softwares (tools/list name Softwares). The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. confirm when a call writes, dry_run to preview, background for a long job. The reply says Running until a receipt exists. Tabs, Softwares, receipts, mesh, MCP, and Corpus stay one click away. Nothing below is removed. Corpus is the Elroi sub-tab under Aziel Elroi Eliab, not a top-bar tab. Ask Jeeves and AZAI Guide are the coaches.</p>
@@ -1016,29 +1021,31 @@ ${dashCards}
 
 export function humanNavHtml(origin, { current } = {}) {
   const base = String(origin || "").replace(/\/$/, "");
-  const ws = current === "workspace" ? `${base}/workspace#workspace` : "#workspace";
+  const useSoftwares = "#workspace";
+  const openWorkspace = current === "workspace" ? "#workspace" : `${base}/workspace#workspace`;
   const home = `${base}/`;
   const tabs = UI_DOMAINS.map((domain) => {
     const on = domain.id === UI_DOMAIN_DEFAULT;
     const controls = "dash-softwares";
     return `<button type="button" role="tab" id="domain-tab-${escapeHtml(domain.id)}" data-domain-tab="${escapeHtml(domain.id)}" aria-selected="${on ? "true" : "false"}" aria-controls="${controls}">${escapeHtml(domain.label)}</button>`;
   }).join("\n    ");
-  return `<a class="skip-workspace" href="${current === "workspace" ? "#workspace" : "#workspace"}">Skip to workspace</a>
+  return `<a class="skip-workspace" href="#workspace">Skip to workspace</a>
 <div class="domain-tabs" role="tablist" aria-label="Software domains">
     ${tabs}
 </div>
 <nav class="human-nav" aria-label="Human workspace">
-  <a href="${escapeHtml(ws)}">Workspace</a>
+  <a class="nav-primary" href="${escapeHtml(useSoftwares)}">Use Softwares</a>
+  <a class="nav-primary" href="${escapeHtml(openWorkspace)}">Open workspace</a>
   <a href="#op-panel">Control panel</a>
-  <a href="${current === "workspace" ? "#fg-console" : "#fg-console"}">FragGate console</a>
-  <a href="${current === "workspace" ? "#tasks" : "#tasks"}">Tasks</a>
+  <a href="#fg-console">FragGate console</a>
+  <a href="#tasks">Tasks</a>
   <a href="#dashboard">Dashboard</a>
-  <a href="${current === "workspace" ? "#interface-panel" : "#interface-panel"}">Interface</a>
-  <a href="${current === "workspace" ? "#mesh-panel" : "#mesh-panel"}">Mesh</a>
+  <a href="#interface-panel">Interface</a>
+  <a href="#mesh-panel">Mesh</a>
   <a href="#sot-desk">SoT sync</a>
-  <a href="${current === "workspace" ? "#session-strip" : "#session-strip"}">Session</a>
-  <a href="${escapeHtml(suiteDownloadHref(base))}" download="aziel-runtime-suite.json">Download suite</a>
+  <a href="#session-strip">Session</a>
   <a href="${escapeHtml(home)}#cite">Cite / docs</a>
+  <a class="nav-secondary" href="${escapeHtml(suiteDownloadHref(base))}" download="aziel-runtime-suite.json">Download suite</a>
   <a href="${escapeHtml(base)}/v1/software">Softwares</a>
 </nav>`;
 }
@@ -1064,7 +1071,7 @@ ${headMeta(origin, WORKSPACE_PAGE_TITLE, WORKSPACE_PAGE_DESCRIPTION, "/workspace
 ${brandRow()}
 ${humanNavHtml(origin, { current: "workspace" })}
   <h1>${escapeHtml(PRODUCT_NAME)} workspace</h1>
-  <p class="lead">Human pane. ${escapeHtml(WORKSPACE_PAGE_DESCRIPTION)}</p>
+  <p class="lead">${escapeHtml(HUMAN_DUAL_SURFACE)} ${escapeHtml(WORKSPACE_PAGE_DESCRIPTION)}</p>
   <p class="hint">Author: <strong>${escapeHtml(AUTHOR_NAME)}</strong> (also known as ${escapeHtml(AUTHOR_ALTERNATE_NAME)}). Crawler abstract and machine surfaces stay on <a href="${escapeHtml(base)}/">the homepage</a>.</p>
 ${workspacePaneHtml(origin, products)}
 ${workerLaunchHtml(origin, { slug: "aziel-runtime", name: "Aziel Runtime" })}
@@ -1103,7 +1110,7 @@ export function fragGateDoorHtml(p, origin) {
         : "";
   const example = JSON.stringify(p.example || {}, null, 2);
   const areaId = `fg-payload-${p.slug}`;
-  return `<div class="fg-door" data-slug="${escapeHtml(p.slug)}" data-origin="${escapeHtml(origin)}" data-kind="door">
+  return `<div class="fg-door" id="fg-door-${escapeHtml(p.slug)}" data-slug="${escapeHtml(p.slug)}" data-origin="${escapeHtml(origin)}" data-kind="door">
   <p>FragGate only — same LIVE_OPS as MCP <code>fraggate_call</code> / <code>POST /v1/fraggate/call</code>. One backend, two surfaces.</p>
   ${boundNote}
   <div class="fg-ops">${buttons}</div>

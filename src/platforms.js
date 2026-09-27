@@ -1,8 +1,8 @@
 /**
  * BAN-SURVIVAL platform reachability — Windows, Mac, Linux, Android, iPhone.
  *
- * LIVE path on each OS is the same public Worker: browser / PWA / counted
- * Softwares download / MCP+OpenAPI. Not a native App Store binary.
+ * LIVE path on each OS is the same public Worker: browser / PWA / Worker UI.
+ * Counted /download and the suite pack stay optional. Not a native App Store binary.
  * Operator override 2026-09-18: all five are LIVE via those paths.
  *
  * Author: Aziel Eliab only.
@@ -114,7 +114,7 @@ export function platformsCite(env = {}) {
       pwa: "/manifest.webmanifest",
     }),
     note:
-      "Windows, Mac, Linux, Android, and iPhone are LIVE on the public Worker (browser / PWA / download / MCP). Dual-surface: agents MCP/OpenAPI; humans Worker UI + PWA + counted /download. Not five native store binaries. Do not mark any of these five as SLOT. Hubs pull /survival.",
+      "Windows, Mac, Linux, Android, and iPhone are LIVE on the public Worker (browser / PWA / MCP). Humans use Softwares in the Worker UI on this VibeLock host (browser / PWA) — no download required. Agents use OpenAPI/MCP. Optional suite pack JSON remains at /download. Not five native store binaries. Do not mark any of these five as SLOT. Hubs pull /survival.",
   };
 }
 

@@ -16,7 +16,7 @@ import { aboutAzielCiteField, corpusFoldPackCiteField } from "./about-aziel.js";
 import { channelPlaneCite } from "./mesh-channel-plane.js";
 import { nineLawsHint } from "./mesh-nine-laws.js";
 import { publicVpnCite } from "./public-vpn.js";
-import { AUTHOR_ID, PRODUCT_NAME } from "./seo.js";
+import { AUTHOR_ID, HUMAN_USE_SENTENCE, PRODUCT_NAME } from "./seo.js";
 import { softwareCatalog } from "./software-catalog.js";
 
 export const SUITE_PACK_SPEC = "AZRT-SUITE-PACK-1.0";
@@ -193,11 +193,8 @@ export function suitePackResponseHeaders(extra = {}) {
 
 export function suiteDownloadHtml(origin, { id = "suite-download" } = {}) {
   const base = String(origin || "").replace(/\/$/, "");
-  return `<div class="suite-dl" id="${id}" style="border:1px solid #7a6224;background:#1f1a0d;border-radius:10px;padding:.7rem .85rem;margin:.55rem 0 1rem">
-  <p class="hint" style="margin:0 0 .45rem"><strong>One-click suite pack</strong> — REAL catalog + FoldLock tip + mesh cite. Worker wasm / WireGuard / OpenVPN stay <strong>SLOT</strong>. Not . Counted on <code>GET /download</code>.</p>
-  <div class="actions">
-    <a class="suite-dl-btn" href="${base}/download" download="${SUITE_PACK_FILENAME}" style="display:inline-block;background:#241c0d;color:#f0d78c;border:1px solid #5c4a1a;border-radius:8px;padding:.45rem .85rem;font-weight:700;text-decoration:none">Download suite pack (JSON)</a>
-    <a href="${base}/v1/suite/download">Machine /v1/suite/download</a>
-  </div>
+  return `<div class="suite-dl" id="${id}">
+  <p class="hint">${HUMAN_USE_SENTENCE} Optional suite pack JSON (REAL catalog + FoldLock tip + mesh cite) remains at <a href="${base}/download"><code>/download</code></a>. Worker wasm / WireGuard / OpenVPN stay <strong>SLOT</strong>. Not . Counted when someone fetches the pack.</p>
+  <p class="secondary"><a class="suite-dl-btn" href="${base}/download" download="${SUITE_PACK_FILENAME}">Download suite</a> · <a href="${base}/v1/suite/download">Machine /v1/suite/download</a></p>
 </div>`;
 }
