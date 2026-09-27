@@ -33,6 +33,7 @@ const JEEVES_MARK = Object.freeze({
   intro: "👋",
   "4dmap": "🙂",
   help: "👋",
+  jeeves: "👋",
   softwares: "🗂️",
   start: "👋",
   skill: "📖",

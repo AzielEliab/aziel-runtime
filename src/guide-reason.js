@@ -23,6 +23,7 @@ import {
   commandPromptAnswer,
   commandPromptViews,
   guideCommandAnswer,
+  jeevesCommandAnswer,
   matchCommand,
   mcpCommandAnswer,
   skillCommandAnswer,
@@ -131,9 +132,17 @@ function flowAnswer(intent, cards, versionMeta) {
       answer: commandPromptAnswer(),
       prompts: commandPromptViews(),
       actions: [
-        { label: "Open Ask Jeeves", href: "#elroi-jeeves" },
+        { label: "Open the suite ask bar", href: "#interface-chat" },
         { label: "Open the Softwares desk", href: "#dash-softwares" },
       ],
+    };
+  }
+  if (intent === "jeeves") {
+    return {
+      topic: "jeeves",
+      title: "Ask Jeeves",
+      answer: jeevesCommandAnswer(),
+      actions: [{ label: "Open Ask Jeeves", href: "#elroi-jeeves" }],
     };
   }
   if (intent === "softwares") {

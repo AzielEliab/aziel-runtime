@@ -25,7 +25,7 @@ export const COMMAND_PROMPTS = Object.freeze([
     id: "help",
     command: "help",
     aliases: ["commands", "?"],
-    does: "List every common command prompt and what it does.",
+    does: "List every common command prompt and what it does. This prompt is not Ask Jeeves suite_help.",
     intent: "help",
     starter: true,
     label: "help",
@@ -115,14 +115,21 @@ export const COMMAND_PROMPTS = Object.freeze([
     id: "count",
     command: "count",
     aliases: [],
-    does: "State the Softwares count. Ask Jeeves stays suite help.",
+    does: "State the Softwares count. Ask Jeeves is not one of those cards.",
     intent: "software_count",
   },
   {
     id: "jeeves",
     command: "jeeves",
-    aliases: ["intro"],
-    does: "Explain Ask Jeeves suite help.",
+    aliases: [],
+    does: "Explain Ask Jeeves suite help on the Aziel Digital Library card only.",
+    intent: "jeeves",
+  },
+  {
+    id: "intro",
+    command: "intro",
+    aliases: [],
+    does: "Walk the first clicks. Ask Jeeves and AZAI Guide are the coaches.",
     intent: "intro",
   },
   {
@@ -221,7 +228,9 @@ export function commandPromptAnswer() {
     "Common command prompts:",
     ...lines,
     "A question that names one Software still routes to that Software. These commands answer in place.",
-    `Softwares count is ${count}. Ask Jeeves stays suite help, software_tab false. tools/list stays 36. Author Aziel Eliab only.`,
+    `Softwares count is ${count}. This list is the command prompt set. It is not Ask Jeeves suite_help.`,
+    "Ask Jeeves suite_help stays on the Aziel Digital Library card only (aziel-corpus, software_tab false). The jeeves prompt explains that card.",
+    "MCP Softwares {} and GET /v1/software stay the 42-card catalog. They do not include this list. tools/list stays 36. Author Aziel Eliab only.",
   ].join("\n");
 }
 
@@ -232,9 +241,10 @@ export function softwareCommandAnswer(rows) {
     return `${row.name} (${row.slug}) — ${row.domain_label} — ${purpose}`;
   });
   return [
-    `Softwares on this build: ${list.length}. Ask Jeeves stays suite help, software_tab false.`,
+    `Softwares on this build: ${list.length}. Ask Jeeves is not one of them.`,
     ...lines,
-    "Open the domain tab, then the card. FragGate stays the single door. Author Aziel Eliab only.",
+    "Open the domain tab, then the card. FragGate stays the single door.",
+    "MCP Softwares {} and GET /v1/software return these same cards and do not include command prompts. Author Aziel Eliab only.",
   ].join("\n");
 }
 
@@ -250,6 +260,15 @@ export function mcpCommandAnswer() {
   return "MCP is POST /mcp. tools/list stays 36. First call is Softwares (tools/list name Softwares). The door runs first. Diagnostics stay fraggate_list, fraggate_describe, and fraggate_call. Author Aziel Eliab only.";
 }
 
+export function jeevesCommandAnswer() {
+  return [
+    "Ask Jeeves is suite help on the Aziel Digital Library card only (slug aziel-corpus, software_tab false, FragGate op jeeves).",
+    "That field is not the help command and it is not a Softwares card.",
+    "help lists every command prompt. softwares lists every Software.",
+    "Author Aziel Eliab only.",
+  ].join(" ");
+}
+
 export function guideCommandAnswer(version) {
   const build = version ? ` ${version}` : "";
   return `AZAI Guide is the coach on the AI tab for this${build} build. Lamb Lens runs first (Service, then Clarity, then Peace), then the public shelf and the Library tab. Guide does not write memory. Learn still needs the confirm box. Ask Jeeves is the other coach and stays suite help, software_tab false. Author Aziel Eliab only.`;
@@ -263,8 +282,10 @@ export function commandPromptsBlock() {
     `Spec: ${COMMAND_PROMPT_SPEC}`,
     "One set for Ask Jeeves, AZAI Guide, the suite ask bar, FragGate help, /llms.txt, and the runtime skill.",
     "help lists every command below. softwares lists every Software with a one-line identity.",
+    "help is this command list. It is not Ask Jeeves suite_help.",
+    "Ask Jeeves suite_help stays on the Aziel Digital Library card (aziel-corpus) only.",
     "A question that names one Software still routes to that Software.",
-    "GET /v1/software stays the Softwares catalog.",
+    "MCP Softwares {} and GET /v1/software stay the Softwares catalog. They do not include this list.",
     "",
   ];
   for (const row of COMMAND_PROMPTS) {

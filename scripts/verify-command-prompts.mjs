@@ -72,6 +72,9 @@ for (const prompt of COMMAND_PROMPTS) {
   assert.match(helpRoute.display.summary, new RegExp(prompt.does.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 }
 assert.match(helpRoute.display.summary, /A question that names one Software still routes/);
+assert.match(helpRoute.display.summary, /not Ask Jeeves suite_help/);
+assert.match(helpRoute.display.summary, /Aziel Digital Library card only/);
+assert.match(helpRoute.display.summary, /do not include this list/);
 
 const softRoute = routeMesh({ question: "softwares", catalog });
 assert.equal(softRoute.dispatch, false);
@@ -101,6 +104,21 @@ assert.equal(florence.dispatch, true);
 const named = routeMesh({ question: "4dmap", catalog });
 assert.equal(named.slug, "4dmap");
 assert.equal(named.invented, false);
+
+const jeevesCmd = routeMesh({ question: "jeeves", catalog });
+assert.equal(jeevesCmd.dispatch, false);
+assert.equal(jeevesCmd.slug, null);
+assert.equal(jeevesCmd.suite_command, "jeeves");
+assert.equal(jeevesCmd.invented, false);
+assert.match(jeevesCmd.display.summary, /Aziel Digital Library card only/);
+assert.match(jeevesCmd.display.summary, /aziel-corpus/);
+assert.match(jeevesCmd.display.summary, /software_tab false/);
+assert.doesNotMatch(jeevesCmd.display.summary, /Common command prompts:/);
+
+const intro = routeMesh({ question: "intro", catalog });
+assert.equal(intro.suite_command, "intro");
+assert.equal(intro.dispatch, false);
+assert.match(intro.display.summary, /Ask Jeeves and AZAI Guide/);
 
 const run = routeMesh({ question: "run", catalog });
 assert.equal(run.dispatch, false);
@@ -148,6 +166,21 @@ assert.equal(software.count, 42);
 assert.equal(software.command_prompts, undefined);
 assert.equal(software.suite_command, undefined);
 assert.equal(software.software.length, 42);
+const library = software.software.find((card) => card.slug === "aziel-corpus");
+assert.equal(library.name, "Aziel Digital Library");
+assert.equal(library.suite_help.software_tab, false);
+assert.equal(library.suite_help.slug, "jeeves");
+assert.equal(library.suite_help.parent_slug, "aziel-corpus");
+assert.equal(software.software.filter((card) => card.suite_help).length, 1);
+assert.equal(software.software.some((card) => card.command_prompts || card.suite_command), false);
+
+const mirrorRes = await get("/v1/fraggate/software");
+const mirror = await mirrorRes.json();
+assert.equal(mirror.count, 42);
+assert.equal(mirror.software.length, 42);
+assert.equal(mirror.command_prompts, undefined);
+assert.equal(mirror.suite_command, undefined);
+assert.equal(mirror.software.filter((card) => card.suite_help).map((card) => card.slug).join(","), "aziel-corpus");
 
 assert.equal(PUBLIC_MCP_TOOLS.length, 36);
 
