@@ -366,7 +366,7 @@ ${starters}
   </div>
   <div class="field">
     <label for="jeeves-q">Question</label>
-    <input id="jeeves-q" type="text" placeholder="Where do I click?" autocomplete="off" spellcheck="false">
+    <input id="jeeves-q" type="text" placeholder="help, softwares, or Where do I click?" autocomplete="off" spellcheck="false">
   </div>
   <label><input id="jeeves-dry" type="checkbox"> dry_run (store nothing)</label>
   <label><input id="jeeves-adapt" type="checkbox"> confirm adaptive count (stores topic counts only, not the question)</label>

@@ -19,18 +19,30 @@ import { SOFTWARE_COPY } from "./software-copy.js";
 import { UI_DOMAINS } from "./ui-domains.js";
 import { RUNTIME_VERSION } from "./runtime-api.js";
 import { softwareMeta } from "./software-catalog.js";
+import {
+  commandPromptAnswer,
+  commandPromptViews,
+  guideCommandAnswer,
+  jeevesCommandAnswer,
+  matchCommand,
+  mcpCommandAnswer,
+  skillCommandAnswer,
+  softwareCommandAnswer,
+  softwareCommandRows,
+  startCommandAnswer,
+  COMMAND_PROMPTS,
+} from "./command-prompts.js";
 
 export const GUIDE_SPEC = "GUIDE-REASON-1.2";
 export const EPISTEMIC_ORDER = Object.freeze(["lamb_lens", "corpus", "library", "other_source", "triad"]);
 export const SUITE_SOFTWARE_COUNT = 42;
 
-export const GUIDE_STARTERS = Object.freeze([
-  { q: "Where is Florence?", label: "Library: Florence" },
-  { q: "How do the domain tabs work?", label: "Domain tabs" },
-  { q: "Where is the Corpus sub-tab?", label: "Corpus sub-tab" },
-  { q: "How do receipts and dry_run work?", label: "Receipts" },
-  { q: "How do I run a Softwares card?", label: "FragGate Run" },
-]);
+export const GUIDE_STARTERS = Object.freeze(
+  COMMAND_PROMPTS.filter((row) => row.starter).map((row) => ({
+    q: row.q || row.command,
+    label: row.label || row.command,
+  })),
+);
 
 const LAMB = Object.freeze(["Service", "Clarity", "Peace"]);
 
@@ -82,6 +94,10 @@ export function guideIntent(question) {
 }
 
 function clarify(question) {
+  const command = matchCommand(question);
+  if (command && command.intercept !== false && command.intent) {
+    return { question, intent: command.intent, command: command.id };
+  }
   const n = String(question || "").toLowerCase();
   let intent = "custom";
   if (/\bversion_id\b/.test(n)) intent = "version_id";
@@ -94,7 +110,7 @@ function clarify(question) {
   else if (/\b(mesh|live nodes)\b/.test(n)) intent = "mesh";
   else if (/\b(ask jeeves|azai|onboarding|learning curve|where do i click|walkthrough)\b/.test(n)) intent = "intro";
   else if (/\b4dmap|pin\b/.test(n)) intent = "4dmap";
-  return { question, intent };
+  return { question, intent, command: null };
 }
 
 function cardHits(question, cards) {
@@ -109,6 +125,74 @@ function cardHits(question, cards) {
 
 function flowAnswer(intent, cards, versionMeta) {
   const lines = UI_DOMAINS.map((domain) => `${domain.label} (${domain.id}): ${domain.softwares.join(", ")}`);
+  if (intent === "help") {
+    return {
+      topic: "help",
+      title: "Command prompts",
+      answer: commandPromptAnswer(),
+      prompts: commandPromptViews(),
+      actions: [
+        { label: "Open the suite ask bar", href: "#interface-chat" },
+        { label: "Open the Softwares desk", href: "#dash-softwares" },
+      ],
+    };
+  }
+  if (intent === "jeeves") {
+    return {
+      topic: "jeeves",
+      title: "Ask Jeeves",
+      answer: jeevesCommandAnswer(),
+      actions: [{ label: "Open Ask Jeeves", href: "#elroi-jeeves" }],
+    };
+  }
+  if (intent === "softwares") {
+    const rows = softwareCommandRows();
+    return {
+      topic: "softwares",
+      title: "Softwares",
+      answer: softwareCommandAnswer(rows),
+      softwares: rows,
+      actions: [
+        { label: "Open the Softwares desk", href: "#dash-softwares" },
+        { label: "Open Ask Jeeves", href: "#elroi-jeeves" },
+      ],
+    };
+  }
+  if (intent === "start") {
+    return {
+      topic: "start",
+      title: "Start here",
+      answer: startCommandAnswer(),
+      actions: [{ label: "Open Ask Jeeves", href: "#elroi-jeeves" }],
+    };
+  }
+  if (intent === "skill") {
+    return {
+      topic: "skill",
+      title: "Runtime skill",
+      answer: skillCommandAnswer(),
+      actions: [{ label: "Open Ask Jeeves", href: "#elroi-jeeves" }],
+    };
+  }
+  if (intent === "mcp") {
+    return {
+      topic: "mcp",
+      title: "MCP",
+      answer: mcpCommandAnswer(),
+      actions: [{ label: "Open the interface desk", href: "#interface-panel" }],
+    };
+  }
+  if (intent === "guide") {
+    return {
+      topic: "guide",
+      title: "AZAI Guide",
+      answer: guideCommandAnswer(RUNTIME_VERSION),
+      actions: [
+        { label: "Open AZAI Guide", href: "#domain-tab-ai" },
+        { label: "Open Ask Jeeves", href: "#elroi-jeeves" },
+      ],
+    };
+  }
   if (intent === "domain_tabs") {
     return {
       topic: "domain_tabs",
@@ -202,6 +286,13 @@ function flowAnswer(intent, cards, versionMeta) {
     };
   }
   return null;
+}
+
+export function guideFlow(question, cards, versionMeta) {
+  const clarified = clarify(question);
+  const flow = flowAnswer(clarified.intent, Array.isArray(cards) ? cards : roster(), versionMeta);
+  if (!flow) return null;
+  return { ...flow, command: clarified.command || null };
 }
 
 function cardAnswer(hits) {
@@ -667,6 +758,9 @@ export async function reasonGuide(question, env, { assistant = "Ask Jeeves" } = 
     steps,
     next_actions: actions,
     domains: suite && suite.domains ? suite.domains : null,
+    suite_command: clarified.command || null,
+    command_prompts: suite && suite.prompts ? suite.prompts : null,
+    softwares: suite && suite.softwares ? suite.softwares : null,
     citations: corpus.citations,
     library_search: true,
     library_http: corpus.library_http,

@@ -10,6 +10,7 @@
  * Identity: Aziel Eliab only.
  */
 
+import { commandPromptsBlock } from "./command-prompts.js";
 import { START_HERE_LINE } from "./start-here.js";
 import { SOFTWARE_COPY, softwareCopySlugs } from "./software-copy.js";
 import { softwareBucket } from "./software-catalog.js";
@@ -100,6 +101,8 @@ export function helpTxt(origin) {
     "one_line = designed action. description = Use X to … It exists so …",
     "Sort: Plain A–Z → Gate A–Z → Lock A–Z.",
     `Full catalog one_lines: ${base}/help/softwares.txt`,
+    "",
+    commandPromptsBlock().trimEnd(),
     "",
     "## Dual surface",
     "",
@@ -244,6 +247,12 @@ export function helpFraggateTxt(origin) {
     "",
     "Read display.title and display.summary on the return, then take the next input.",
     "",
+    "## Command prompts",
+    "",
+    "run and fraggate explain this door on Ask Jeeves, AZAI Guide, and the suite ask bar.",
+    "help lists every command prompt. softwares lists every Software.",
+    "list → describe → call stays the diagnostic door.",
+    "",
     "## Catalog vs door",
     "",
     `GET ${base}/v1/software is the Softwares-tab catalog (one_line SSoT).`,
@@ -289,6 +298,7 @@ export function helpGlamaTxt(origin) {
     "Call Softwares (tools/list name Softwares). The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. Diagnostics: fraggate_list → fraggate_describe → fraggate_call.",
     "Example: fraggate_call { slug: foldlock, op: fold-preview }, or decisiongate_check with dry_run=true.",
     "Show display.title and display.summary, then take the next input.",
+    "In chat, help lists every command prompt. softwares lists every Software.",
     `Softwares cards (one_line) live at GET ${base}/v1/software.`,
     "",
     "MCP tools/list is 36 live tools. Call Softwares (tools/list name Softwares). The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. Memory stays append-only.",
