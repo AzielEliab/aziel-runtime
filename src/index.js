@@ -610,7 +610,7 @@ const PRODUCTS_RAW = [
       { op: "import_export", method: "POST", summary: "Export or import a client-held click chain. Hosted does not store." },
       { op: "doctor", method: "GET", summary: "Richer liveness: forward-only clicks. Does not increment download KV." },
     ],
-    example: { geo: "Indiana" },
+    example: { geo: "United States" },
     banner: "StaticClock is not a scheduler and not a clock you set. Advisory fields only.",
   },
   {
@@ -625,7 +625,7 @@ const PRODUCTS_RAW = [
       { op: "window", method: "POST", summary: "Report the Temporal Neutral Window for a geo. Not a cron." },
       { op: "doctor", method: "GET", summary: "Richer liveness: advisory window only. Does not increment download KV." },
     ],
-    example: { geo: "Indiana" },
+    example: { geo: "United States" },
     banner: "ChronoLock is advisory only — not a scheduler, not targeting, not virality. Temporal Neutral Window 08:30–10:30 local. Distinct from TemporalLock.",
   },
   {
@@ -986,7 +986,7 @@ const PRODUCTS_RAW = [
       { op: "review", method: "POST", summary: "Rules review over posted or sample MASTER JSON. Not live D1 ingest." },
       { op: "score", method: "POST", summary: "Deterministic field completeness + sample overlap. Not a court score." },
       { op: "verify-backfill", method: "POST", summary: "Recompute canonical hashes against the bundled sample MASTER." },
-      { op: "verify-geo", method: "POST", summary: "Sample gazetteer check (Florence / Indiana). Not a live geocoder." },
+      { op: "verify-geo", method: "POST", summary: "Sample gazetteer check (Florence). Not a live geocoder." },
       { op: "document-chain", method: "POST", summary: "Client-held document hash chain. Hosted does not store the library." },
       { op: "import_export", method: "POST", summary: "Client-held library JSON. Hosted does not persist MASTER." },
       { op: "tip-pack", method: "POST", summary: "Open the FoldLock-packed library tip (index cite + sample artifacts + About Aziel). Not the full live library on azielcorpuslibrary.net." },

@@ -230,7 +230,7 @@ assert.equal(JSON.parse(scV.responseText).ok, true);
 const cl = await executeLocal({
   slug: "chronolock",
   op: "window",
-  payload: { geo: "Indiana" },
+  payload: { geo: "United States" },
   ranIn: "aziel-runtime",
 });
 const win = JSON.parse(cl.responseText);
