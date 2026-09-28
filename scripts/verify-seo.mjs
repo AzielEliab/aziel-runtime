@@ -1187,7 +1187,9 @@ assert.match(home, /"name":"FragGate"/);
 const llmsHead = llms.split("\n").slice(0, 30).join("\n");
 assert.match(llmsHead, /## What this is/);
 assert.match(llmsHead, /## How to use/);
-assert.match(llmsHead, /Aziel Runtime lets AI assistants run 40\+ research tools through one door/);
+assert.match(llmsHead, /Aziel Runtime starts at Softwares, FragGate, and the library/);
+assert.match(llmsHead, /library_lookup searches library papers and cites/);
+assert.match(llmsHead, /Pick a slug, then fraggate_call/);
 assert.match(llmsHead, /Click Install \/ Add to Glama on https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime/);
 assert.match(llmsHead, /fraggate_describe \{name\}/);
 assert.match(llmsHead, /MCP tools\/list count: 36/);
@@ -1253,7 +1255,7 @@ const readme = await (await import("node:fs/promises")).readFile(
   new URL("../README.md", import.meta.url),
   "utf8",
 );
-assert.match(readme, /^# aziel-runtime\n\nAziel Runtime lets AI assistants run 40\+ research tools through one door/);
+assert.match(readme, /^# aziel-runtime\n\nAziel Runtime starts at Softwares, FragGate, and the library/);
 assert.match(readme, /## How to use/);
 assert.match(
   readme,
@@ -1304,7 +1306,7 @@ const citeDoc = await (await import("node:fs/promises")).readFile(
   new URL("../docs/CITE.md", import.meta.url),
   "utf8",
 );
-assert.match(citeDoc, /Aziel Runtime lets AI assistants run 40\+ research tools through one door/);
+assert.match(citeDoc, /Aziel Runtime starts at Softwares, FragGate, and the library/);
 assert.match(citeDoc, /## How to use/);
 assert.match(citeDoc, /Click Install \/ Add to Glama on https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime/);
 assert.match(citeDoc, /fraggate_describe \{name\}/);
@@ -1354,7 +1356,8 @@ assert.doesNotMatch(helpSoftwares, /not a lawyer|not legal advice|not a spectrom
 const helpFg = await (await get("/help/fraggate.txt")).text();
 assert.match(helpFg, /list → describe → call/);
 const helpGlama = await (await get("/help/glama.txt")).text();
-assert.match(helpGlama, /Aziel Runtime lets AI assistants run 40\+ research tools through one door/);
+assert.match(helpGlama, /Aziel Runtime starts at Softwares, FragGate, and the library/);
+assert.match(helpGlama, /library_lookup for library papers and cites/);
 assert.match(helpGlama, /## How to use/);
 assert.match(helpGlama, /1\. Click Install \/ Add to Glama on https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime/);
 assert.match(helpGlama, /fraggate_describe \{name\}/);

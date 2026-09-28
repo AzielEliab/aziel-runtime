@@ -9,7 +9,7 @@
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
 
-import { START_HERE_LINE } from "./start-here.js";
+import { FIRST_CALL_PATH, START_HERE_LINE } from "./start-here.js";
 import { SOFTWARE_COPY } from "./software-copy.js";
 import { SOFTWARE_FAQ_NAMES } from "./softwares-faq.js";
 import { UI_DOMAINS } from "./ui-domains.js";
@@ -25,7 +25,7 @@ export const COMMAND_PROMPTS = Object.freeze([
     id: "help",
     command: "help",
     aliases: ["commands", "?"],
-    does: "List every common command prompt and what it does. This prompt is not Ask Jeeves suite_help.",
+    does: "List every common command prompt and the first-call path (Softwares, then FragGate, then library_lookup). This prompt is not Ask Jeeves suite_help.",
     intent: "help",
     starter: true,
     label: "help",
@@ -228,6 +228,8 @@ export function commandPromptAnswer() {
     "Common command prompts:",
     ...lines,
     "A question that names one Software still routes to that Software. These commands answer in place.",
+    FIRST_CALL_PATH,
+    "That path is help text. It is not written onto Softwares desk cards and it is not a field on GET /v1/software.",
     `Softwares count is ${count}. This list is the command prompt set. It is not Ask Jeeves suite_help.`,
     "Ask Jeeves suite_help stays on the Aziel Digital Library card only (aziel-corpus, software_tab false). The jeeves prompt explains that card.",
     "MCP Softwares {} and GET /v1/software stay the 42-card catalog. They do not include this list. tools/list stays 36. Author Aziel Eliab only.",
@@ -244,6 +246,7 @@ export function softwareCommandAnswer(rows) {
     `Softwares on this build: ${list.length}. Ask Jeeves is not one of them.`,
     ...lines,
     "Open the domain tab, then the card. FragGate stays the single door.",
+    "Next call is fraggate_call with the slug. library_lookup is for library papers and cites.",
     "MCP Softwares {} and GET /v1/software return these same cards and do not include command prompts. Author Aziel Eliab only.",
   ].join("\n");
 }
@@ -257,7 +260,7 @@ export function skillCommandAnswer() {
 }
 
 export function mcpCommandAnswer() {
-  return "MCP is POST /mcp. tools/list stays 36. First call is Softwares (tools/list name Softwares). The door runs first. Diagnostics stay fraggate_list, fraggate_describe, and fraggate_call. Author Aziel Eliab only.";
+  return "MCP is POST /mcp. tools/list stays 36. First call is Softwares (pick a slug), then fraggate_call. library_lookup is for library papers and cites. The door runs first. Diagnostics stay fraggate_list, fraggate_describe, and fraggate_call. Author Aziel Eliab only.";
 }
 
 export function jeevesCommandAnswer() {
@@ -282,6 +285,8 @@ export function commandPromptsBlock() {
     `Spec: ${COMMAND_PROMPT_SPEC}`,
     "One set for Ask Jeeves, AZAI Guide, the suite ask bar, FragGate help, /llms.txt, and the runtime skill.",
     "help lists every command below. softwares lists every Software with a one-line identity.",
+    FIRST_CALL_PATH,
+    "That path is help text. It is not written onto Softwares desk cards and it is not a field on GET /v1/software.",
     "help is this command list. It is not Ask Jeeves suite_help.",
     "Ask Jeeves suite_help stays on the Aziel Digital Library card (aziel-corpus) only.",
     "A question that names one Software still routes to that Software.",

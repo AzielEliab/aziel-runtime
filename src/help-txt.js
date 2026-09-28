@@ -11,7 +11,7 @@
  */
 
 import { commandPromptsBlock } from "./command-prompts.js";
-import { START_HERE_LINE } from "./start-here.js";
+import { FIRST_CALL_PATH, START_HERE_LINE } from "./start-here.js";
 import { SOFTWARE_COPY, softwareCopySlugs } from "./software-copy.js";
 import { softwareBucket } from "./software-catalog.js";
 import { SOFTWARE_FAQ_NAMES } from "./softwares-faq.js";
@@ -83,6 +83,12 @@ export function helpTxt(origin) {
     "",
     RUNTIME_ABSTRACT,
     "",
+    "## First call",
+    "",
+    FIRST_CALL_PATH,
+    "Softwares is the catalog (GET /v1/software). FragGate fraggate_call is the single exec door. library_lookup searches the Aziel Digital Library for papers and cites.",
+    "Diagnostics stay list → describe → call. This path is help text. It is not a Softwares desk card.",
+    "",
     "## FragGate — THE single public door",
     "",
     "FragGate is THE single public door.",
@@ -150,11 +156,13 @@ export function addendumTxt(origin) {
     "",
     "## How agents start",
     "",
+    FIRST_CALL_PATH,
     `1. Install MCP at ${base}/mcp or import OpenAPI at ${base}/openapi.json.`,
-    "2. Call fraggate_list (or GET /v1/fraggate/list).",
-    "3. Call fraggate_describe for one slug.",
-    "4. Call fraggate_call with { slug, op, payload }.",
-    "5. Show display.title and display.summary, then take the next input.",
+    "2. Call Softwares and pick a slug (or GET /v1/software).",
+    "3. Call fraggate_call with { slug, op, payload }.",
+    '4. For library papers and cites, call library_lookup with { q, op: "search" }.',
+    "5. Diagnostics, if needed: fraggate_list, then fraggate_describe.",
+    "6. Show display.title and display.summary, then take the next input.",
     "",
     "## How humans start",
     "",
@@ -217,7 +225,13 @@ export function helpSoftwaresTxt(origin) {
     }
     lines.push(`- ${row.name} (${row.slug}) — ${row.one_line}`);
   }
-  lines.push("", `Door: FragGate list → describe → call. See ${base}/help/fraggate.txt.`, "");
+  lines.push(
+    "",
+    FIRST_CALL_PATH,
+    "That path is help text. It is not a field on GET /v1/software and it is not a Softwares desk card.",
+    `Diagnostics: FragGate list → describe → call. See ${base}/help/fraggate.txt.`,
+    "",
+  );
   return lines.join("\n");
 }
 
@@ -295,6 +309,7 @@ export function helpGlamaTxt(origin) {
     "",
     "## First call",
     "",
+    FIRST_CALL_PATH,
     "Call Softwares (tools/list name Softwares). The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. Diagnostics: fraggate_list → fraggate_describe → fraggate_call.",
     "Example: fraggate_call { slug: foldlock, op: fold-preview }, or decisiongate_check with dry_run=true.",
     "Show display.title and display.summary, then take the next input.",

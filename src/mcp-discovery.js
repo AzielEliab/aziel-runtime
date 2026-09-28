@@ -107,8 +107,8 @@ export function mcpServerCard(origin, env = {}) {
     title: calling.calling_name,
     version: RUNTIME_VERSION,
     description: calling.rotated
-      ? `${calling.calling_name} — MCP Softwares suite. FragGate door over streamable HTTP JSON-RPC; mint receipts; coordinate mesh presence.`
-      : "MCP Softwares suite. FragGate door over streamable HTTP JSON-RPC; mint receipts; coordinate mesh presence.",
+      ? `${calling.calling_name} — Softwares, FragGate, and the library. FragGate is the single exec door over streamable HTTP JSON-RPC; mint receipts; coordinate mesh presence.`
+      : "Softwares, FragGate, and the library. FragGate is the single exec door over streamable HTTP JSON-RPC; mint receipts; coordinate mesh presence.",
     abstract: calling.rotated ? RUNTIME_ABSTRACT.replace(/\bAziel Runtime\b/g, calling.calling_name) : RUNTIME_ABSTRACT,
     author: AUTHOR_NAME,
     identity: AUTHOR_NAME,
@@ -136,7 +136,7 @@ export function mcpServerCard(origin, env = {}) {
       door: "fraggate",
       pipeline: PUBLIC_DOOR_TOOLS.slice(),
       summary:
-        "36 live MCP tools on POST /mcp tools/list. First call: Softwares (tools/list name Softwares). The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. Diagnostics: fraggate_list → fraggate_describe → fraggate_call. ChainLock and memory are append-only.",
+        "36 live MCP tools on POST /mcp tools/list. First call: Softwares (pick a slug), then fraggate_call. library_lookup searches library papers and cites. The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. Diagnostics: fraggate_list → fraggate_describe → fraggate_call. FragGate stays the single exec door. ChainLock and memory are append-only.",
       names: PUBLIC_MCP_TOOLS.slice(),
       count: PUBLIC_MCP_TOOLS.length,
       pointer: PUBLIC_MCP_POINTER,

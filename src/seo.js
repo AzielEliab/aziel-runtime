@@ -75,7 +75,8 @@ export function glamaInstallCite(workerVersion = "2.0.0-rc1") {
     worker_version: workerVersion,
     order: ["glama-install-server", "remote-post-mcp", "local-stdio"],
     remote_mcp: GLAMA_REMOTE_MCP,
-    first_call: "call Softwares (tools/list name Softwares) — the door runs first; ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger",
+    first_call:
+      "Softwares (pick a slug), then fraggate_call; library_lookup searches library papers and cites. The door runs first; ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger",
     first_call_examples: [
       "fraggate_call { slug: foldlock, op: fold-preview }",
       "decisiongate_check with dry_run=true",
@@ -103,16 +104,20 @@ export function glamaInstallLlmsLines(workerVersion = "2.0.0-rc1") {
  * (40), not MCP tools/list (36). Mesh and memory are not Softwares-tab products.
  */
 export const GLAMA_DISCOVERY_LEAD =
-  "Aziel Runtime lets AI assistants run 40+ research tools through one door. Install on Glama, then list tools, describe one, and call it. Every call can leave a receipt.";
+  "Aziel Runtime starts at Softwares, FragGate, and the library. Softwares picks a slug. FragGate is the single exec door. library_lookup searches library papers and cites. Install on Glama, then call Softwares, pick a slug, and fraggate_call. 40+ research tools run through that one door. Every call can leave a receipt.";
 
 export const GLAMA_HOW_TO_USE = Object.freeze([
   "1. Click Install / Add to Glama on https://glama.ai/mcp/servers/AzielEliab/aziel-runtime",
-  "2. In any MCP client, call Softwares (tools/list name Softwares). The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. confirm=true writes. dry_run=true previews and writes nothing. background=true returns Running until a receipt hash exists. Done only with that hash. tools/list stays 36.",
+  "2. In any MCP client, call Softwares (tools/list name Softwares). The door runs first. Pick a slug, then fraggate_call. library_lookup searches library papers and cites. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. confirm=true writes. dry_run=true previews and writes nothing. background=true returns Running until a receipt hash exists. Done only with that hash. tools/list stays 36.",
   "Diagnostics, if needed: fraggate_list → fraggate_describe {name} → fraggate_call {name, op, payload, confirm:true}.",
 ]);
 
 export const GLAMA_EXAMPLE_FIRST_CALL =
-  "Example first call: decisiongate_check with a short proposal and dry_run:true, or forgereceipts receipt for a completed task.";
+  "Example first call: Softwares {}, pick a slug, then fraggate_call { slug: foldlock, op: fold-preview }. library_lookup { q: Florence, op: search } is a library paper or cite. Also: decisiongate_check with dry_run=true, or forgereceipts receipt for a completed task.";
+
+/** OpenAPI operation lead for the same five entry tools. Not a Softwares card field. */
+export const OPENAPI_FIRST_CALL_PREFIX =
+  "First call: Softwares (pick a slug), then FragGate fraggate_call. library_lookup searches library papers and cites. FragGate stays the single exec door.";
 
 export const RUNTIME_PAGE_TITLE =
   "Aziel Runtime — node-meshed MCP Softwares suite";
@@ -205,12 +210,12 @@ export function llmsWhatThisIsBlock(calling = null) {
     `MCP tools/list count: ${PUBLIC_MCP_TOOLS.length}. FragGate is the single door.`,
     "",
     "Also:",
-    "Agents: call Softwares (tools/list name Softwares). The door runs first (POST /mcp). ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. Diagnostics: fraggate_list → fraggate_describe → fraggate_call.",
+    "Agents: call Softwares (tools/list name Softwares), pick a slug, then fraggate_call. library_lookup searches library papers and cites. The door runs first (POST /mcp). ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. Diagnostics: fraggate_list → fraggate_describe → fraggate_call.",
     "Hubs: GET /v1/software (mirror GET /v1/fraggate/software) on each Softwares-tab refresh.",
     `${HUMAN_DUAL_SURFACE} POST /p/{slug}/{op} is proxy. Exec is FragGate.`,
     `Install / Try on Glama: ${RUNTIME_GLAMA}`,
     `Remote MCP: POST ${GLAMA_REMOTE_MCP}`,
-    "First call: Softwares (tools/list name Softwares). The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. Example: decisiongate_check with dry_run=true, or foldlock fold-preview.",
+    "First call: Softwares (pick a slug) → fraggate_call → library_lookup for library papers and cites. The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. Example: decisiongate_check with dry_run=true, or foldlock fold-preview.",
     "",
     "FragGate is THE single public executable door (list → describe → call).",
     "Softwares = Plain → Gate → Lock catalog products with true in-process engines where live.",

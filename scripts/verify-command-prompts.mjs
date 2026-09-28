@@ -75,6 +75,9 @@ assert.match(helpRoute.display.summary, /A question that names one Software stil
 assert.match(helpRoute.display.summary, /not Ask Jeeves suite_help/);
 assert.match(helpRoute.display.summary, /Aziel Digital Library card only/);
 assert.match(helpRoute.display.summary, /do not include this list/);
+assert.match(helpRoute.display.summary, /First call: Softwares \(pick a slug\)/);
+assert.match(helpRoute.display.summary, /library_lookup for library papers and cites/);
+assert.match(helpRoute.display.summary, /not written onto Softwares desk cards/);
 
 const softRoute = routeMesh({ question: "softwares", catalog });
 assert.equal(softRoute.dispatch, false);
@@ -165,6 +168,8 @@ const software = await softwareRes.json();
 assert.equal(software.count, 42);
 assert.equal(software.command_prompts, undefined);
 assert.equal(software.suite_command, undefined);
+assert.equal(software.first_call, undefined);
+assert.equal(software.software.some((card) => card.first_call || card.command_prompts), false);
 assert.equal(software.software.length, 42);
 const library = software.software.find((card) => card.slug === "aziel-corpus");
 assert.equal(library.name, "Aziel Digital Library");

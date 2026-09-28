@@ -87,7 +87,7 @@ export function mcpInitializeInstructions(env = {}) {
     "A call still walks CallEnvelope → the door → Lamb Lens → SweepGate → Sentinel → Provenance → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → RoseClock → TemporalLock → ChainLock-OUT → ForgeReceipts → Return. " +
     "Fabric MCP names mesh_* chainlock_* memory_* decisiongate_check library_lookup are kernel-direct wrappers after the door (same kernels the door mesh/memory/chainlock use). Not MASTER-33. Not a second Softwares door. " +
     "Neighbor map (do not confuse siblings): runtime_skill = how-to markdown; runtime_manifest = machine JSON (advanced/internal); Softwares = hub Software-tab cards (runtime_software is a tools/call alias, not a second tools/list name); runtime_bundle = skill-URL bootstrap; runtime_pull = one product card; fraggate_list = hashed live/stub/digest roster; fraggate_describe = one registry card; fraggate_verify = digest proof; fraggate_call = default exec. " +
-    "decisiongate_check gates a proposal without exec. library_lookup is public corpus cite (not memory, not ChainLock). " +
+    "decisiongate_check gates a proposal without exec. library_lookup is the library paper and cite (public corpus; not memory, not ChainLock). " +
     "ChainLock is append-only (no chainlock_delete). A ledger-bearing tool stamps chainlock on its own. chainlock_append, chainlock_tip, chainlock_recall, chainlock_verify, and chainlock_seal stay for diagnostics. chainlock_seal writes a local LOCKSET; runtime_session_close seals a raw session — they are not the same. " +
     "Auto-wire: every tool enters the door. Ledger ops stamp chainlock, temporallock, and forgereceipts: decisiongate_check, library_lookup, memory_observe, memory_resolve, memory_calibrate, mesh_join, mesh_enable, mesh_heartbeat, mesh_leave, mesh_broadcast, runtime_run, runtime_session_exec. fraggate_call stamps chainlock, temporallock, and forgereceipts inside the pipe when a real hash exists. Lamb Lens, SweepGate, Sentinel, and RoseClock run inside that pipe. Reads do not stamp chainlock, temporallock, or forgereceipts. " +
     "Memory lifecycle is append-only belief (≠ truth): observe → resolve → calibrate → recall or get (no memory_delete). " +
@@ -164,9 +164,9 @@ export function runtimeHelperTools() {
       description:
         tdqsDescription({
           action:
-            "List the hashed FragGate registry (live / stub / local_only + digests) so you can discover names. Discovery first — not a hub Software tab and not exec",
-          when: "you do not yet know the catalog name or slug",
-          notFor: "hub Software-tab refresh, inspecting one known capability, or executing an op",
+            "List hashed FragGate names and digests after Softwares so you can discover names. Discovery first — not the Softwares catalog and not exec",
+          when: "Softwares already returned a slug and you need live, stub, local_only, or digest status",
+          notFor: "the first catalog read, inspecting one known card, or executing an op",
           instead: "Softwares (GET /v1/software), fraggate_describe, or fraggate_call",
           effects:
             "Empty {} only. Never enables mesh radios. Never invents tools or ops. Compact LIVE_OPS tokens below are discovery hints required by product verify scripts — they are not exec. Call fraggate_describe for the live card; later unknown names refuse FG-HALLUC-TOOL",
@@ -180,11 +180,11 @@ export function runtimeHelperTools() {
     },
     {
       name: "fraggate_describe",
-      title: "Step 2 — Describe one registry name",
+      title: "Step 2 — Describe the slug you picked",
       description: tdqsDescription({
         action:
-          "Inspect one known FragGate card (live vs stub vs local_only, public ops, engine_digest). Not execute and not a digest-only proof",
-        when: "you already have a name or slug from fraggate_list or GET /v1/software",
+          "Inspect one FragGate card for the slug you picked from Softwares (live vs stub vs local_only, public ops, engine_digest). Not execute and not a digest-only proof",
+        when: "you already have a name or slug from Softwares, fraggate_list, or GET /v1/software",
         notFor: "discovering the full registry, proving a digest, pulling a hub product card, or executing an op",
         instead: "fraggate_list, fraggate_verify, runtime_pull, or fraggate_call",
         effects:
@@ -192,7 +192,7 @@ export function runtimeHelperTools() {
         params: "Pass name or slug — one is enough. Combined name/op forms such as foldlock/fold-preview are accepted",
         returns: "one registry card (ops, stub_ops, digest, status, aliases)",
       }),
-      annotations: mcpAnnotations("Step 2 — Describe one registry name", HINT_READ),
+      annotations: mcpAnnotations("Step 2 — Describe the slug you picked", HINT_READ),
       inputSchema: {
         type: "object",
         additionalProperties: false,
@@ -236,14 +236,14 @@ export function runtimeHelperTools() {
     },
     {
       name: "fraggate_call",
-      title: "Step 3 — Call through FragGate",
+      title: "Step 3 — Call the picked slug through FragGate",
       description:
         tdqsDescription({
           action:
-            "Execute a known catalog slug+op through the FragGate single door (CallEnvelope → FragGate → Lamb Lens → SweepGate → Sentinel → Provenance → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → optional ASE → RoseClock → TemporalLock → ChainLock-OUT → ForgeReceipts → Return). Default exec path — not discovery and not a raw session",
-          when: "fraggate_list and fraggate_describe already identified a live allowlisted op",
-          notFor: "discovering names, inspecting one capability without exec, or raw session plumbing",
-          instead: "fraggate_list, fraggate_describe, or (only if asked) runtime_run / runtime_session_exec",
+            "Execute the slug you picked from Softwares through the FragGate single door (CallEnvelope → FragGate → Lamb Lens → SweepGate → Sentinel → Provenance → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → optional ASE → RoseClock → TemporalLock → ChainLock-OUT → ForgeReceipts → Return). Default exec path — not the catalog and not a raw session",
+          when: "Softwares already returned a slug and a live allowlisted op is known",
+          notFor: "picking the catalog slug, searching library papers, or raw session plumbing",
+          instead: "Softwares, library_lookup, or (only if asked) runtime_run / runtime_session_exec",
           effects:
             "Side effects are operation-dependent (read, write, or refuse). May reach an open world when the target op does (for example AZBrowser ethical_search); many ops stay isolate-local. Unknown names refuse FG-HALLUC-TOOL. Stub, local-only, and Remain-OFF verbs refuse FG-STUB / FG-LOCAL-ONLY / FG-GATE-REFUSE / FG-LAMB-REFUSE. FragGate is THE single door",
           params:
@@ -254,7 +254,7 @@ export function runtimeHelperTools() {
         }) +
         " " +
         FRAGGATE_CATALOG_DOOR_HINT,
-      annotations: mcpAnnotations("Step 3 — Call through FragGate", HINT_EXEC),
+      annotations: mcpAnnotations("Step 3 — Call the picked slug through FragGate", HINT_EXEC),
       inputSchema: withConfirmProperties({
         type: "object",
         additionalProperties: true,
@@ -397,19 +397,20 @@ export function runtimeHelperTools() {
     },
     {
       name: "library_lookup",
-      title: "Search the Aziel Digital Library",
+      title: "Library papers and cites",
       description: tdqsDescription({
-        action: "Search the public Aziel Digital Library (aziel-corpus search / example / skill) — cites, not beliefs and not vault stamps",
-        when: "you need a public corpus cite, example record, or library skill",
-        notFor: "adaptive memory belief, ChainLock facts, or private-file search",
-        instead: "memory_recall, chainlock_recall, or fraggate_call slug=aziel-corpus",
+        action:
+          "Search the Aziel Digital Library for papers and cites (aziel-corpus search, example, or skill) — cites, not beliefs and not vault stamps",
+        when: "you need a library paper, cite, example record, or library skill after Softwares and fraggate_call",
+        notFor: "running a Softwares slug, adaptive memory belief, ChainLock facts, or private-file search",
+        instead: "fraggate_call for a catalog slug, memory_recall, or chainlock_recall",
         effects:
           "Not a private-file search engine and not AKM/ChainLock. Empty q does not invent a cite. Unknown ops refuse FG-UNKNOWN-OP (allowed: search, example, skill, health). Named corpus wrapper — not MASTER-33; full aziel-corpus LIVE_OPS stay on fraggate_call",
         params:
           "q is public corpus text — not memory_recall q and not ChainLock q. Omit op to search. Extra keys besides q/op/payload ride along as aziel-corpus payload (same as passing payload{})",
         returns: "search, example, skill, or health payload inside the display envelope",
       }),
-      annotations: mcpAnnotations("Search the Aziel Digital Library", HINT_READ),
+      annotations: mcpAnnotations("Library papers and cites", HINT_READ),
       inputSchema: {
         type: "object",
         additionalProperties: true,
@@ -667,19 +668,21 @@ export function runtimeHelperTools() {
     ...memoryMcpTools(),
     {
       name: "Softwares",
-      title: "Authoritative software catalog",
+      title: "First call — pick a Softwares slug",
       description: tdqsDescription({
         action:
-          "Read hub Software-tab cards (GET /v1/software): every product including AZChat LIVE+bound, sorted Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock). Not the hashed live/stub registry",
-        when: "a hub or client refreshes the Software tab",
-        notFor: "agent discovery of hashed registry status, compact skill URLs, or executing an op",
-        instead: "fraggate_list, runtime_bundle, or fraggate_call",
+          "Read the Softwares catalog and pick a slug (first call). Not the hashed live/stub registry",
+        when: "an agent starts, or a hub refreshes the Software tab, and a slug is needed before fraggate_call",
+        notFor: "executing that slug, hashed live/stub discovery, or library papers",
+        instead: "fraggate_call after the slug is picked, fraggate_list for hashes, or library_lookup for papers",
         effects:
-          "Empty {} only. Never enables mesh radios and never execs. tools/list name is Softwares. runtime_software is a tools/call alias and is not a second listed tool. Same JSON as GET /v1/software (also /v1/fraggate/software). Cards carry name, slug, ops, worker_home — not live/stub/digest hashes. EmbryoLock is live-with-local-destructive-boundary (worker_home embryolock-download-tracker). Agent exec still uses fraggate_list → fraggate_describe → fraggate_call",
+          "Empty {} only. Never enables mesh radios and never execs. tools/list name is Softwares. runtime_software is a tools/call alias and is not a second listed tool. Same JSON as GET /v1/software (also /v1/fraggate/software). Cards carry name, slug, ops, worker_home — not live/stub/digest hashes. EmbryoLock is live-with-local-destructive-boundary (worker_home embryolock-download-tracker). Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock), including AZChat LIVE+bound. After this catalog, pick a slug and call fraggate_call. library_lookup is for library papers and cites",
         returns: "sorted software cards (name, slug, ops, worker_home) matching GET /v1/software",
       }),
-      annotations: mcpAnnotations("Authoritative software catalog", HINT_READ),
-      inputSchema: emptyArgsSchema("No arguments. Send {}. Hub/client helper — not exec and not fraggate_list."),
+      annotations: mcpAnnotations("First call — pick a Softwares slug", HINT_READ),
+      inputSchema: emptyArgsSchema(
+        "No arguments. Send {}. First call — pick a slug, then fraggate_call. Not exec and not fraggate_list.",
+      ),
       outputSchema: toolEnvelopeOutputSchema(
         "Software-tab catalog JSON (products/cards with name, slug, ops, worker_home, sort lanes Plain→Gate→Lock). Not a hashed registry roster.",
       ),

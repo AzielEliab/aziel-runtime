@@ -2,7 +2,7 @@
   "name": "aziel-runtime",
   "version": "2.0.0-rc1",
   "private": true,
-  "description": "Aziel Runtime is a node-meshed orchestration suite of MCP-connected software designed to route catalog Softwares through the FragGate door, mint receipts, and coordinate mesh presence. Author: Aziel Eliab.",
+  "description": "Aziel Runtime: Softwares (pick a slug), FragGate (the single exec door), and the library (papers and cites). Author: Aziel Eliab.",
   "license": "Apache-2.0",
   "type": "module",
   "bin": {

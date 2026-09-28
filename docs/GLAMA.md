@@ -1,19 +1,19 @@
 # Glama listing — aziel-runtime
 
-Aziel Runtime lets AI assistants run 40+ research tools through one door. Install on Glama, then list tools, describe one, and call it. Every call can leave a receipt.
+Aziel Runtime starts at Softwares, FragGate, and the library. Softwares picks a slug. FragGate is the single exec door. library_lookup searches library papers and cites. Install on Glama, then call Softwares, pick a slug, and fraggate_call. 40+ research tools run through that one door. Every call can leave a receipt.
 
 Public identity: **Aziel Eliab** only.
 
 ## How to use
 
 1. Click **Install / Add to Glama** on https://glama.ai/mcp/servers/AzielEliab/aziel-runtime (also `https://glama.ai/mcp/servers/@AzielEliab/aziel-runtime`).
-2. In any MCP client, call Softwares (tools/list name Softwares). The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. `confirm=true` writes. `dry_run=true` previews and writes nothing. `background=true` returns Running until a receipt hash exists. Done only with that hash. `tools/list` stays 36.
+2. In any MCP client, call Softwares (tools/list name Softwares). The door runs first. Pick a slug, then `fraggate_call`. `library_lookup` searches library papers and cites. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. `confirm=true` writes. `dry_run=true` previews and writes nothing. `background=true` returns Running until a receipt hash exists. Done only with that hash. `tools/list` stays 36.
 
 Diagnostics, if needed: `fraggate_list` → `fraggate_describe {name}` → `fraggate_call {name, op, payload, confirm:true}`.
 
 Worker remote: `https://aziel-runtime.vibelock.workers.dev/mcp`
 
-Example first call: `decisiongate_check` with a short proposal and `dry_run:true`, or `forgereceipts` receipt for a completed task.
+Example first call: Softwares `{}`, pick a slug, then `fraggate_call` `{ "slug": "foldlock", "op": "fold-preview" }`. `library_lookup` `{ "q": "Florence", "op": "search" }` is a library paper or cite. Also: `decisiongate_check` with a short proposal and `dry_run:true`, or `forgereceipts` receipt for a completed task.
 
 MCP `tools/list` is **36** tools. FragGate is the single door. Deeper admin, Docker, and local stdio stay below. Install order stays Install Server, then the remote Worker, then local stdio last.
 
@@ -29,7 +29,7 @@ Glama is one of the compatible AI clients (ChatGPT, Grok, Venice, Claude, Cursor
 2. **Remote MCP** — `POST https://aziel-runtime.vibelock.workers.dev/mcp` (`initialize`, `tools/list`, `tools/call`). User-Agent `Mozilla/5.0`. Public, no OAuth.
 3. **Local stdio (last)** — `node cli/mcp-stdio.mjs` / `npm run mcp` / Docker. The CLI bridges to the Worker `/mcp`.
 
-**First call:** `Softwares` (tools/list name Softwares). The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. `runtime_software` remains a tools/call alias and is not a second tools/list name. Diagnostics: `fraggate_list` → `fraggate_describe` → `fraggate_call`. Example: `{ "slug": "foldlock", "op": "fold-preview", "payload": { "text": "the cat and the dog" } }`, or `decisiongate_check` with `dry_run=true`. Show `display.title` and `display.summary`, then take the next input.
+**First call:** `Softwares` (pick a slug) → `fraggate_call` → `library_lookup` for library papers and cites. FragGate stays the single exec door. The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. `runtime_software` remains a tools/call alias and is not a second tools/list name. Diagnostics: `fraggate_list` → `fraggate_describe` → `fraggate_call`. Example: `{ "slug": "foldlock", "op": "fold-preview", "payload": { "text": "the cat and the dog" } }`, or `decisiongate_check` with `dry_run=true`. Show `display.title` and `display.summary`, then take the next input.
 
 A successful `tools/call` posts usage to `https://glama.ai/api/mcp/v1/telemetry/usage` with `server` `AzielEliab/aziel-runtime`, `tool` set to the called name, and `client` set to the request User-Agent or `https://aziel-runtime.vibelock.workers.dev`. The post does not block and does not fail the MCP response when telemetry fails. The stdio bridge posts the same body when it returns a successful `tools/call` that the Worker did not already mark with `X-Aziel-Glama-Telemetry: worker`.
 
@@ -39,7 +39,7 @@ This repo ships:
 
 | File | Role |
 |------|------|
-| [`glama.json`](../glama.json) | Claim file. Schema requires `maintainers` (GitHub username `AzielEliab`). `version` stays the Worker truth `2.0.0-rc1` (Glama Install Server release 2.0.7 is named in `description`, not as `version`). Description leads with the plain Glama card sentence (40+ research tools, one door, receipt), then FragGate door, receipts, and the 2.0.7 Install Server note. `1.6.2` is superseded heritage. Keywords include mcp, openapi, fraggate, softwares, decisiongate, receipts. |
+| [`glama.json`](../glama.json) | Claim file. Schema requires `maintainers` (GitHub username `AzielEliab`). `version` stays the Worker truth `2.0.0-rc1` (Glama Install Server release 2.0.7 is named in `description`, not as `version`). Description leads with Softwares, FragGate, and the library (FragGate stays the single exec door), then receipts, and the 2.0.7 Install Server note. `1.6.2` is superseded heritage. Keywords include mcp, openapi, fraggate, softwares, library, decisiongate, receipts. Persistent Deploy is not a field in this file. |
 | [`cli/mcp-stdio.mjs`](../cli/mcp-stdio.mjs) | Stdio MCP server. Default **bridges** to the hosted Worker `/mcp`. |
 | [`Dockerfile`](../Dockerfile) | Local / “from Dockerfile” image. Glama admin often **generates** its own image from CMD args — still ship this file. |
 | [`src/mcp-stdio.js`](../src/mcp-stdio.js) | Framing + bridge / in-process dispatch. |
@@ -54,7 +54,7 @@ There is no `packages` entry. `package.json` is `private`, so this file is remot
 
 Glama Deploy / Install Server release **2.0.7** is a Glama label only. It is not `server.json` `version`.
 
-The registry `description` keeps the same claims as the longer sentence (governed MCP, agent audit, provenance, deterministic checks, receipt-backed FragGate execution). The 2025-12-11 schema caps `description` at 100 characters, so the filed string is that sentence trimmed to fit.
+The registry `description` names the three entry tools and stays inside the 2025-12-11 100-character cap: Softwares, FragGate, library. Catalog, single exec door, papers. FragGate stays the single exec door.
 
 `mcp-publisher publish` is out of band (GitHub device login). This repo lands the file. It does not run the publisher. `tools/list` stays 36 names.
 

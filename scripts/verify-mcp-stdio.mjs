@@ -32,8 +32,14 @@ assert.equal(glama.name, "Aziel Runtime");
 assert.equal(glama.version, "2.0.0-rc1");
 assert.match(
   glama.description,
-  /^Aziel Runtime lets AI assistants run 40\+ research tools through one door\. Install on Glama, then list tools, describe one, and call it\. Every call can leave a receipt\./,
+  /^Aziel Runtime starts at Softwares, FragGate, and the library\. Softwares picks a slug\. FragGate is the single exec door\. library_lookup searches library papers and cites\./,
 );
+assert.match(glama.description, /40\+ research tools run through that one door/);
+assert.match(glama.description, /pick a slug, and fraggate_call/);
+assert.equal(glama.persistentDeploy, undefined);
+assert.equal(glama.persistent, undefined);
+assert.doesNotMatch(JSON.stringify(glama), /persistentDeploy|persistent_deploy|Persistent Deploy/i);
+assert.ok(glama.keywords.includes("library"));
 assert.match(glama.description, /Route catalog products through the FragGate door/);
 assert.match(glama.description, /mint receipts/);
 assert.doesNotMatch(glama.description, /not an API aggregator/);
@@ -63,6 +69,8 @@ assert.equal(registry.version, pkg.version);
 assert.notEqual(registry.version, "2.0.7");
 assert.ok(registry.description.length >= 1 && registry.description.length <= 100);
 assert.match(registry.description, /FragGate/);
+assert.match(registry.description, /Softwares, FragGate, library/);
+assert.match(pkg.description, /Softwares \(pick a slug\), FragGate \(the single exec door\), and the library/);
 assert.doesNotMatch(registry.description, /2\.0\.7/);
 assert.equal(registry.repository.url, "https://github.com/AzielEliab/aziel-runtime");
 assert.equal(registry.repository.source, "github");
@@ -78,7 +86,7 @@ assert.match(glamaDoc, /2\.0\.7/);
 assert.match(glamaDoc, /not `server\.json` `version`/);
 assert.match(
   glamaDoc,
-  /Aziel Runtime lets AI assistants run 40\+ research tools through one door/,
+  /Aziel Runtime starts at Softwares, FragGate, and the library/,
 );
 assert.match(glamaDoc, /## How to use/);
 assert.match(
