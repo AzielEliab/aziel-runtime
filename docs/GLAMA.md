@@ -4,6 +4,15 @@ Aziel Runtime starts at Softwares, FragGate, and the library. Softwares picks a 
 
 Public identity: **Aziel Eliab** only.
 
+## Instructions
+
+Start here (two steps). Public Softwares, FragGate, and library need no API key.
+
+1. Add the remote MCP URL in the client (Streamable HTTP, no auth): `https://aziel-runtime.vibelock.workers.dev/mcp`
+2. Call in order: Softwares / `fraggate_list` → `fraggate_describe` with a slug → `fraggate_call` with `confirm: true` when mutating.
+
+Glama Install Server is optional. Its hosted-tool meters stay separate from Worker `GET /v1/uses`. Local stdio ([`cli/mcp-stdio.mjs`](../cli/mcp-stdio.mjs)) is the dev path after the remote URL. Full client recipes: [`AGENTS.md`](AGENTS.md).
+
 ## How to use
 
 1. Click **Install / Add to Glama** on https://glama.ai/mcp/servers/AzielEliab/aziel-runtime (also `https://glama.ai/mcp/servers/@AzielEliab/aziel-runtime`).
@@ -15,7 +24,7 @@ Worker remote: `https://aziel-runtime.vibelock.workers.dev/mcp`
 
 Example first call: Softwares `{}`, pick a slug, then `fraggate_call` `{ "slug": "foldlock", "op": "fold-preview" }`. `library_lookup` `{ "q": "Florence", "op": "search" }` is a library paper or cite. Also: `decisiongate_check` with a short proposal and `dry_run:true`, or `forgereceipts` receipt for a completed task.
 
-MCP `tools/list` is **36** tools. FragGate is the single door. Deeper admin, Docker, and local stdio stay below. Install order stays Install Server, then the remote Worker, then local stdio last.
+MCP `tools/list` is **36** tools. FragGate is the single door. Deeper admin, Docker, and local stdio stay below. Public connect is the remote URL in [Instructions](#instructions). Glama Install Server is optional; its hosted meters stay separate from Worker `GET /v1/uses`. Local stdio stays last.
 
 **[Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime)** is the primary public host / discovery / install listing for aziel-runtime (also `https://glama.ai/mcp/servers/@AzielEliab/aziel-runtime`). Worker origin stays the HTTP / OpenAPI / MCP execution surface.
 
@@ -25,8 +34,8 @@ Glama is one of the compatible AI clients (ChatGPT, Grok, Venice, Claude, Cursor
 
 ## Install order
 
-1. **Install Server (live)** — one-click Install Server / Deploy on [Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime).
-2. **Remote MCP** — `POST https://aziel-runtime.vibelock.workers.dev/mcp` (`initialize`, `tools/list`, `tools/call`). User-Agent `Mozilla/5.0`. Public, no OAuth.
+1. **Remote MCP** — `https://aziel-runtime.vibelock.workers.dev/mcp` (Streamable HTTP; `POST` `initialize`, `tools/list`, `tools/call`). User-Agent `Mozilla/5.0`. Public, no OAuth.
+2. **Install Server (optional)** — one-click Install Server / Deploy on [Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime). Hosted-tool meters stay on Glama, separate from Worker `GET /v1/uses`.
 3. **Local stdio (last)** — `node cli/mcp-stdio.mjs` / `npm run mcp` / Docker. The CLI bridges to the Worker `/mcp`.
 
 **First call:** `Softwares` (pick a slug) → `fraggate_call` → `library_lookup` for library papers and cites. FragGate stays the single exec door. The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. `runtime_software` remains a tools/call alias and is not a second tools/list name. Diagnostics: `fraggate_list` → `fraggate_describe` → `fraggate_call`. Example: `{ "slug": "foldlock", "op": "fold-preview", "payload": { "text": "the cat and the dog" } }`, or `decisiongate_check` with `dry_run=true`. Show `display.title` and `display.summary`, then take the next input.

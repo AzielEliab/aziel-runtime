@@ -34,5 +34,6 @@
     "software-architecture"
   ],
   "homepage": "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime",
-  "documentation": "https://github.com/AzielEliab/aziel-runtime/blob/main/docs/GLAMA.md"
+  "documentation": "https://github.com/AzielEliab/aziel-runtime/blob/main/docs/GLAMA.md",
+  "instructions": "Start here: add https://aziel-runtime.vibelock.workers.dev/mcp (Streamable HTTP, no auth). Then call Softwares or fraggate_list, fraggate_describe with a slug, then fraggate_call with confirm true when mutating. Glama hosted-tool meters stay separate from Worker GET /v1/uses. Local stdio is the dev path after the remote URL."
 }
