@@ -132,6 +132,197 @@ export function sanitizeToken(raw) {
   return s;
 }
 
+/** Fragment of an additive by_op key. Letters, digits, hyphen, underscore. */
+export const USE_OP_TOKEN_MAX = 48;
+/** Full additive by_op label, including the mcp. / fraggate.call. prefix. */
+export const USE_OP_KEY_MAX = 80;
+
+/**
+ * Safe tool or slug fragment for an op key.
+ * Slugs pass lower:true (catalog slugs are lowercase).
+ * MCP tool names pass lower:false so Softwares and the softwares alias stay distinct.
+ * Over-long values are rejected, not truncated. Dots, slashes, pipes, and spaces fail.
+ */
+export function sanitizeUseOpToken(raw, opts = {}) {
+  if (typeof raw !== "string") return "";
+  const lower = opts.lower !== false;
+  const s = (lower ? raw.trim().toLowerCase() : raw.trim());
+  if (!s || s.length > USE_OP_TOKEN_MAX) return "";
+  if (!/^[A-Za-z0-9][A-Za-z0-9_-]*$/.test(s)) return "";
+  return s;
+}
+
+/** Full additive by_op key we built. Case preserved. Rejects pipes and other injection. */
+export function sanitizeUseOpKey(raw) {
+  if (typeof raw !== "string") return "";
+  const s = raw.trim();
+  if (!s || s.length > USE_OP_KEY_MAX) return "";
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(s)) return "";
+  return s;
+}
+
+/**
+ * Slug the FragGate door would read: name, then slug, then product.
+ * `name/op` shorthand splits only when op is absent (same rule as parseTarget).
+ * An unsafe chosen token is dropped. A later field is not substituted.
+ * Softwares has no slug — callers must not use this for that tool.
+ */
+export function slugTokenFromArgs(args) {
+  if (!args || typeof args !== "object" || Array.isArray(args)) return "";
+  let raw = "";
+  if (typeof args.name === "string" && args.name) raw = args.name;
+  else if (typeof args.slug === "string" && args.slug) raw = args.slug;
+  else if (typeof args.product === "string" && args.product) raw = args.product;
+  else return "";
+  const op = (typeof args.op === "string" && args.op.trim()) || (typeof args.verb === "string" && args.verb.trim()) || "";
+  const head = !op && raw.includes("/") ? raw.split("/")[0] : raw;
+  return sanitizeUseOpToken(head, { lower: true });
+}
+
+function slugFromDescribeSearch(search) {
+  let params;
+  try {
+    params = new URLSearchParams(String(search || "").replace(/^\?/, ""));
+  } catch {
+    return "";
+  }
+  let raw = "";
+  const name = params.get("name");
+  const slug = params.get("slug");
+  if (typeof name === "string" && name) raw = name;
+  else if (typeof slug === "string" && slug) raw = slug;
+  else return "";
+  const head = raw.includes("/") ? raw.split("/")[0] : raw;
+  return sanitizeUseOpToken(head, { lower: true });
+}
+
+function pushOp(ops, key) {
+  const safe = sanitizeUseOpKey(key);
+  if (!safe || ops.includes(safe)) return;
+  ops.push(safe);
+}
+
+/**
+ * Additive by_op labels for one already-counted request.
+ * Generic mcp / fraggate.call / fraggate.describe stay on inferProductOp.
+ * These extras do not add a second uses total.
+ * Softwares (and runtime_software) never gain a slug key.
+ */
+export function detailOpsForUse({ method, path, search = "", body = null } = {}) {
+  const m = String(method || "GET").toUpperCase();
+  const p = normalizePath(path);
+  const ops = [];
+  let product = "";
+
+  if (p === "/mcp" && m === "POST") {
+    if (!body || typeof body !== "object" || Array.isArray(body) || body.method !== "tools/call") {
+      return { ops, product };
+    }
+    const params = body.params && typeof body.params === "object" && !Array.isArray(body.params) ? body.params : {};
+    const tool = sanitizeUseOpToken(params.name, { lower: false });
+    if (tool) pushOp(ops, `mcp.${tool}`);
+    if (tool === "fraggate_call" || tool === "fraggate_describe") {
+      const args =
+        params.arguments && typeof params.arguments === "object" && !Array.isArray(params.arguments)
+          ? params.arguments
+          : params.input;
+      const slug = slugTokenFromArgs(args);
+      if (slug) {
+        const kind = tool === "fraggate_call" ? "fraggate.call" : "fraggate.describe";
+        pushOp(ops, `${kind}.${slug}`);
+        product = slug;
+      }
+    }
+    return { ops, product };
+  }
+
+  if (p === "/v1/fraggate/call" && m === "POST") {
+    const slug = slugTokenFromArgs(body);
+    if (slug) {
+      pushOp(ops, `fraggate.call.${slug}`);
+      product = slug;
+    }
+    return { ops, product };
+  }
+
+  if (p === "/v1/fraggate/describe" && (m === "GET" || m === "HEAD")) {
+    const slug = slugFromDescribeSearch(search);
+    if (slug) {
+      pushOp(ops, `fraggate.describe.${slug}`);
+      product = slug;
+    }
+    return { ops, product };
+  }
+
+  return { ops, product };
+}
+
+async function readJsonObject(request) {
+  try {
+    if (!request || typeof request.json !== "function") return null;
+    const source = typeof request.clone === "function" ? request.clone() : request;
+    const body = await source.json();
+    if (!body || typeof body !== "object" || Array.isArray(body)) return null;
+    return body;
+  } catch {
+    return null;
+  }
+}
+
+export async function detailOpsFromRequest(request) {
+  let pathname = "/";
+  let search = "";
+  try {
+    const url = new URL(request.url);
+    pathname = url.pathname;
+    search = url.search || "";
+  } catch {
+    pathname = "/";
+  }
+  const method = String((request && request.method) || "GET").toUpperCase();
+  const path = normalizePath(pathname);
+  let body = null;
+  if (method === "POST" && (path === "/mcp" || path === "/v1/fraggate/call")) {
+    body = await readJsonObject(request);
+  }
+  return detailOpsForUse({ method, path, search, body });
+}
+
+/**
+ * Clone POST /mcp and POST /v1/fraggate/call before the handler reads the body.
+ * Other requests are returned as-is. A failed clone still counts the generic op.
+ */
+export function requestForUseCount(request) {
+  const method = String((request && request.method) || "GET").toUpperCase();
+  if (method !== "POST" || !request) return request;
+  let path = "/";
+  try {
+    path = normalizePath(new URL(request.url).pathname);
+  } catch {
+    return request;
+  }
+  if (path !== "/mcp" && path !== "/v1/fraggate/call") return request;
+  try {
+    return typeof request.clone === "function" ? request.clone() : request;
+  } catch {
+    return request;
+  }
+}
+
+function normalizeExtraOps(raw, primary) {
+  const list = Array.isArray(raw) ? raw : [];
+  const out = [];
+  const seen = new Set();
+  if (primary) seen.add(primary);
+  for (const item of list) {
+    const key = sanitizeUseOpKey(item);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(key);
+  }
+  return out;
+}
+
 export function inferProductOp(pathname) {
   const path = normalizePath(pathname);
   const proxy = path.match(/^\/p\/([a-z0-9-]+)\/([a-z0-9_-]+)$/);
@@ -172,6 +363,7 @@ export function inferProductOp(pathname) {
     return { op: "runtime.suite_download" };
   }
   if (path === "/v1/azpipe/arch") return { op: "azpipe.arch" };
+  // Generic key only. tools/call and FragGate slug detail are additive in detailOpsForUse.
   if (path === "/mcp") return { op: "mcp" };
   if (path === "/v1/receipts") return { op: "act_receipt.cite" };
   if (path === "/v1/receipts/tip" || path === "/v1/receipts/proxy") return { op: "act_receipt.tip" };
@@ -281,6 +473,7 @@ export async function incrementUse(env, dims = {}) {
   const day = /^\d{4}-\d{2}-\d{2}$/.test(String(dims.day || "")) ? String(dims.day) : utcDay();
   const product = sanitizeToken(dims.product);
   const op = sanitizeToken(dims.op);
+  const extraOps = normalizeExtraOps(dims.extra_ops, op);
   const via = dims.via ? sanitizeHostLabel(dims.via) : "";
   const status = Number(dims.status);
   const keys = [USES_TOTAL_KEY, `host|${host}`, `method|${method}`, `path|${path}`, `day|${day}`];
@@ -288,6 +481,10 @@ export async function incrementUse(env, dims = {}) {
   const counts = {};
   for (const key of keys) {
     counts[key] = await bumpKey(kv, key);
+  }
+  // Detail keys are additive on by_op only. They do not add another total, host, path, or day hit.
+  for (const extra of extraOps) {
+    counts[`op|${extra}`] = await bumpKey(kv, `op|${extra}`);
   }
   const entry = {
     at: typeof dims.at === "string" && dims.at ? dims.at : new Date().toISOString(),
@@ -298,6 +495,7 @@ export async function incrementUse(env, dims = {}) {
   };
   if (product) entry.product = product;
   if (op) entry.op = op;
+  if (extraOps.length) entry.ops = op ? [op, ...extraOps] : extraOps.slice();
   if (via && via !== "unknown") entry.via = via;
   await appendLog(kv, entry);
   return { ok: true, uses: counts[USES_TOTAL_KEY], entry };
@@ -472,7 +670,12 @@ async function collectPrefixed(kv, prefix, startedAt = Date.now(), budgetMs = US
 export async function recordApiUse(env, request, response) {
   const dims = useDimsFromRequest(request, response);
   if (!shouldIncrementUse(dims.method, dims.path)) return { ok: true, skipped: true };
-  return incrementUse(env, dims);
+  const detail = await detailOpsFromRequest(request);
+  return incrementUse(env, {
+    ...dims,
+    product: dims.product || detail.product || undefined,
+    extra_ops: detail.ops,
+  });
 }
 
 export async function finishWithUse(request, env, ctx, response) {

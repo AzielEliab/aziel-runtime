@@ -7,6 +7,7 @@ import { PRODUCTS } from "../src/index.js";
 import { RUNTIME_VERSION } from "../src/runtime-api.js";
 import { memorySessionNamespace } from "../src/session-do.js";
 import {
+  detailOpsForUse,
   incrementUse,
   inferProductOp,
   memoryUsesKv,
@@ -17,7 +18,10 @@ import {
   USES_READ_BUDGET_MS,
   resolveUseHost,
   sanitizeHostLabel,
+  sanitizeUseOpKey,
+  sanitizeUseOpToken,
   shouldIncrementUse,
+  slugTokenFromArgs,
 } from "../src/uses.js";
 
 const handler = (await import("../src/index.js")).default.fetch;
@@ -332,4 +336,219 @@ const sitemap = await (await req(env, "/sitemap.xml")).text();
 assert.match(sitemap, /\/v1\/uses/);
 
 assert.ok(PRODUCTS.length >= 27);
-console.log(`ok uses ${RUNTIME_VERSION}: normalize, skip, mock KV increment/read, GET /v1/uses no increment`);
+
+// --- additive by_op: tool name and slug, no second total, no Softwares×slug ---
+assert.equal(sanitizeUseOpToken("Softwares", { lower: false }), "Softwares");
+assert.equal(sanitizeUseOpToken("softwares", { lower: false }), "softwares");
+assert.equal(sanitizeUseOpToken("FoldLock"), "foldlock");
+assert.equal(sanitizeUseOpToken("aziel-corpus"), "aziel-corpus");
+assert.equal(sanitizeUseOpToken("4dmap"), "4dmap");
+assert.equal(sanitizeUseOpToken("fraggate_call", { lower: false }), "fraggate_call");
+assert.equal(sanitizeUseOpToken("mcp.Softwares", { lower: false }), "");
+assert.equal(sanitizeUseOpToken("foldlock/fold-preview"), "");
+assert.equal(sanitizeUseOpToken("../etc/passwd"), "");
+assert.equal(sanitizeUseOpToken("<script>alert(1)</script>"), "");
+assert.equal(sanitizeUseOpToken("slug|total"), "");
+assert.equal(sanitizeUseOpToken("has space"), "");
+assert.equal(sanitizeUseOpToken("a".repeat(49)), "");
+assert.equal(sanitizeUseOpToken("a".repeat(48)), "a".repeat(48));
+assert.equal(sanitizeUseOpToken(12), "");
+assert.equal(sanitizeUseOpToken(""), "");
+assert.equal(sanitizeUseOpKey("mcp.Softwares"), "mcp.Softwares");
+assert.equal(sanitizeUseOpKey("fraggate.call.foldlock"), "fraggate.call.foldlock");
+assert.equal(sanitizeUseOpKey("op|injected"), "");
+assert.equal(sanitizeUseOpKey("fraggate.call.<script>"), "");
+
+assert.equal(slugTokenFromArgs({ slug: "AZMail", op: "health" }), "azmail");
+assert.equal(slugTokenFromArgs({ name: "foldlock/fold-preview" }), "foldlock");
+assert.equal(slugTokenFromArgs({ name: "foldlock/fold-preview", op: "health" }), "");
+assert.equal(slugTokenFromArgs({ name: "<script>", slug: "foldlock" }), "");
+assert.equal(slugTokenFromArgs({ product: "spectrallock" }), "spectrallock");
+assert.equal(slugTokenFromArgs({}), "");
+
+const softwaresDetail = detailOpsForUse({
+  method: "POST",
+  path: "/mcp",
+  body: { jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "Softwares", arguments: { slug: "foldlock" } } },
+});
+assert.deepEqual(softwaresDetail.ops, ["mcp.Softwares"]);
+assert.equal(softwaresDetail.product, "");
+
+const aliasDetail = detailOpsForUse({
+  method: "POST",
+  path: "/mcp",
+  body: { method: "tools/call", params: { name: "runtime_software", arguments: {} } },
+});
+assert.deepEqual(aliasDetail.ops, ["mcp.runtime_software"]);
+assert.equal(aliasDetail.product, "");
+
+const listDetail = detailOpsForUse({
+  method: "POST",
+  path: "/mcp",
+  body: { method: "tools/list" },
+});
+assert.deepEqual(listDetail.ops, []);
+
+const callDetail = detailOpsForUse({
+  method: "POST",
+  path: "/mcp",
+  body: {
+    method: "tools/call",
+    params: { name: "fraggate_call", arguments: { slug: "foldlock", op: "health" } },
+  },
+});
+assert.deepEqual(callDetail.ops, ["mcp.fraggate_call", "fraggate.call.foldlock"]);
+assert.equal(callDetail.product, "foldlock");
+
+const describeMcp = detailOpsForUse({
+  method: "POST",
+  path: "/mcp",
+  body: { method: "tools/call", params: { name: "fraggate_describe", arguments: { name: "SpectralLock" } } },
+});
+assert.deepEqual(describeMcp.ops, ["mcp.fraggate_describe", "fraggate.describe.spectrallock"]);
+
+const badTool = detailOpsForUse({
+  method: "POST",
+  path: "/mcp",
+  body: { method: "tools/call", params: { name: "mcp.Softwares", arguments: {} } },
+});
+assert.deepEqual(badTool.ops, []);
+
+const httpCall = detailOpsForUse({
+  method: "POST",
+  path: "/v1/fraggate/call",
+  body: { name: "azmail/health" },
+});
+assert.deepEqual(httpCall.ops, ["fraggate.call.azmail"]);
+
+const badSlug = detailOpsForUse({
+  method: "POST",
+  path: "/v1/fraggate/call",
+  body: { slug: "<script>alert(1)</script>", op: "health" },
+});
+assert.deepEqual(badSlug.ops, []);
+
+const describeGet = detailOpsForUse({
+  method: "GET",
+  path: "/v1/fraggate/describe",
+  search: "?slug=spectrallock",
+});
+assert.deepEqual(describeGet.ops, ["fraggate.describe.spectrallock"]);
+assert.equal(describeGet.product, "spectrallock");
+
+const describeXss = detailOpsForUse({
+  method: "GET",
+  path: "/v1/fraggate/describe",
+  search: "?slug=%3Cscript%3E",
+});
+assert.deepEqual(describeXss.ops, []);
+
+const describeName = detailOpsForUse({
+  method: "GET",
+  path: "/v1/fraggate/describe",
+  search: "?name=foldlock/fold-preview",
+});
+assert.deepEqual(describeName.ops, ["fraggate.describe.foldlock"]);
+
+const detailEnv = { USES: memoryUsesKv() };
+const detailInc = await incrementUse(detailEnv, {
+  host: "origin",
+  method: "POST",
+  path: "/mcp",
+  status: 200,
+  op: "mcp",
+  extra_ops: ["mcp.Softwares", "mcp", "not safe", "mcp.Softwares", "op|injected"],
+});
+assert.equal(detailInc.uses, 1);
+assert.equal(detailInc.entry.op, "mcp");
+assert.deepEqual(detailInc.entry.ops, ["mcp", "mcp.Softwares"]);
+assert.equal(detailInc.entry.product, undefined);
+const detailSnap = await readUses(detailEnv);
+assert.equal(detailSnap.uses, 1);
+assert.equal(detailSnap.by_op.mcp, 1);
+assert.equal(detailSnap.by_op["mcp.Softwares"], 1);
+assert.equal(detailSnap.by_path["/mcp"], 1);
+assert.equal(Object.keys(detailSnap.by_op).length, 2);
+
+const detailHttp = envWithUses();
+const beforeDetail = Number(await detailHttp.USES.get("total")) || 0;
+const softwaresCall = await jsonReq(detailHttp, "/mcp", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({
+    jsonrpc: "2.0",
+    id: 1,
+    method: "tools/call",
+    params: { name: "Softwares", arguments: { slug: "foldlock" } },
+  }),
+});
+assert.equal(softwaresCall.status, 200);
+assert.equal(softwaresCall.data.result.isError, false);
+const softwaresText = softwaresCall.data.result.content[0].text;
+assert.match(softwaresText, /"count": 42/);
+
+await jsonReq(detailHttp, "/mcp", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({
+    jsonrpc: "2.0",
+    id: 2,
+    method: "tools/call",
+    params: { name: "fraggate_call", arguments: { slug: "foldlock", op: "health", dry_run: true } },
+  }),
+});
+await jsonReq(detailHttp, "/mcp", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({
+    jsonrpc: "2.0",
+    id: 3,
+    method: "tools/call",
+    params: { name: "fraggate_describe", arguments: { slug: "azhub" } },
+  }),
+});
+await jsonReq(detailHttp, "/mcp", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({ jsonrpc: "2.0", id: 4, method: "tools/list" }),
+});
+await jsonReq(detailHttp, "/v1/fraggate/call", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({ slug: "azmail", op: "health", dry_run: true }),
+});
+await jsonReq(detailHttp, "/v1/fraggate/call", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({ slug: "<script>alert(1)</script>", op: "health" }),
+});
+await jsonReq(detailHttp, "/v1/fraggate/describe?slug=spectrallock");
+await jsonReq(detailHttp, "/v1/fraggate/describe?slug=%3Cimg%20src=x%3E");
+const softwareGet = await jsonReq(detailHttp, "/v1/software");
+assert.equal(softwareGet.status, 200);
+assert.equal(softwareGet.data.count, 42);
+
+const detailUses = await readUses(detailHttp);
+assert.equal(detailUses.uses, beforeDetail + 8, `detail uses total ${detailUses.uses}`);
+assert.equal(detailUses.by_op.mcp, 4);
+assert.equal(detailUses.by_op["mcp.Softwares"], 1);
+assert.equal(detailUses.by_op["mcp.fraggate_call"], 1);
+assert.equal(detailUses.by_op["mcp.fraggate_describe"], 1);
+assert.equal(detailUses.by_op["fraggate.call"], 2);
+assert.equal(detailUses.by_op["fraggate.call.foldlock"], 1);
+assert.equal(detailUses.by_op["fraggate.call.azmail"], 1);
+assert.equal(detailUses.by_op["fraggate.describe"], 2);
+assert.equal(detailUses.by_op["fraggate.describe.spectrallock"], 1);
+assert.equal(detailUses.by_op["fraggate.describe.azhub"], 1);
+assert.equal(detailUses.by_op["fraggate.call.foldlock"], 1);
+const opBlob = JSON.stringify(detailUses.by_op);
+assert.doesNotMatch(opBlob, /script/i);
+assert.doesNotMatch(opBlob, /<img/i);
+assert.equal(detailUses.by_op["fraggate.call.softwares"], undefined);
+assert.equal(detailUses.by_path["/v1/software"], undefined);
+const softwaresRecent = detailUses.recent.find((row) => row.op === "mcp" && Array.isArray(row.ops) && row.ops.includes("mcp.Softwares"));
+assert.ok(softwaresRecent);
+assert.equal(softwaresRecent.product, undefined);
+assert.equal(Number(await detailHttp.USES.get("total")), detailUses.uses);
+
+console.log(`ok uses ${RUNTIME_VERSION}: normalize, skip, mock KV increment/read, GET /v1/uses no increment, by_op tool/slug detail`);
