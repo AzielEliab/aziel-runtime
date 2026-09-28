@@ -1,17 +1,17 @@
 # aziel-runtime
 
-Aziel Runtime lets AI assistants run 40+ research tools through one door. Install on Glama, then list tools, describe one, and call it. Every call can leave a receipt.
+Aziel Runtime starts at Softwares, FragGate, and the library. Softwares picks a slug. FragGate is the single exec door. library_lookup searches library papers and cites. Install on Glama, then call Softwares, pick a slug, and fraggate_call. 40+ research tools run through that one door. Every call can leave a receipt.
 
 ## How to use
 
 1. Click **[Install / Add to Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime)** (also `https://glama.ai/mcp/servers/@AzielEliab/aziel-runtime`).
-2. In any MCP client, call Softwares (tools/list name Softwares). The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. `confirm=true` writes. `dry_run=true` previews and writes nothing. `background=true` returns Running until a receipt hash exists. Done only with that hash. `tools/list` stays 36.
+2. In any MCP client, call Softwares (tools/list name Softwares). The door runs first. Pick a slug, then `fraggate_call`. `library_lookup` searches library papers and cites. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. `confirm=true` writes. `dry_run=true` previews and writes nothing. `background=true` returns Running until a receipt hash exists. Done only with that hash. `tools/list` stays 36.
 
 Diagnostics, if needed: `fraggate_list` → `fraggate_describe {name}` → `fraggate_call {name, op, payload, confirm:true}`.
 
 Worker remote: `https://aziel-runtime.vibelock.workers.dev/mcp`
 
-Example first call: `decisiongate_check` with a short proposal and `dry_run:true`, or `forgereceipts` receipt for a completed task.
+Example first call: Softwares `{}`, pick a slug, then `fraggate_call` with `{ "slug": "foldlock", "op": "fold-preview" }`. `library_lookup` with `{ "q": "Florence", "op": "search" }` is a library paper or cite. Also: `decisiongate_check` with a short proposal and `dry_run:true`, or `forgereceipts` receipt for a completed task.
 
 MCP `tools/list` is **36** tools. FragGate is the single door. Install order stays Install Server on Glama, then this Worker, then local stdio last. Compatible AI clients are listed below. **Author:** Aziel Eliab.
 
@@ -362,7 +362,7 @@ docker run --rm -i aziel-runtime-mcp
 
 Default bridge needs outbound **DNS + HTTPS** to `*.vibelock.workers.dev` / Cloudflare. A DNS miss is `FG-DNS` (`remote:false`). `--local` or `AZIEL_RUNTIME_MCP=local` is explicit in-process. Optional `RUNTIME_TOKEN` / `AZIEL_RUNTIME_TOKEN` when `REQUIRE_TOKEN=1`. Verify a real call hash: [docs/2.0/INSPECT.md](docs/2.0/INSPECT.md).
 
-**First call** after connect: `@aziel-runtime` → `fraggate_list` → `fraggate_describe` → `fraggate_call`. Example: `{ "slug": "foldlock", "op": "fold-preview", "payload": { "text": "the cat and the dog" } }`, or `decisiongate_check` with `dry_run=true`. `tools/list` is 36 live tools. ChainLock and memory are append-only.
+**First call** after connect: `Softwares` (pick a slug) → `fraggate_call` → `library_lookup` for library papers and cites. FragGate stays the single exec door. Diagnostics: `fraggate_list` → `fraggate_describe` → `fraggate_call`. Example: `{ "slug": "foldlock", "op": "fold-preview", "payload": { "text": "the cat and the dog" } }`, or `decisiongate_check` with `dry_run=true`. `tools/list` is 36 live tools. ChainLock and memory are append-only.
 
 Re-claim on the Glama Score tab after any `glama.json` change (`maintainers` = `AzielEliab`) so Schema and keywords refresh. Full steps: [docs/GLAMA.md](docs/GLAMA.md). Public identity: **Aziel Eliab** only.
 

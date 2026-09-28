@@ -15,7 +15,7 @@ Canonical crawler paragraph stays `RUNTIME_ABSTRACT` in `src/seo.js` (README lea
 ## Description (≤350 characters)
 
 ```text
-MCP Softwares suite: FragGate door, OpenAPI + MCP, receipts, and mesh coordination. Aziel Runtime 2.0.0-rc1 by Aziel Eliab. Try on Glama.
+MCP Softwares suite: FragGate door, Softwares catalog, library cites, OpenAPI + MCP, receipts, and mesh coordination. Aziel Runtime 2.0.0-rc1 by Aziel Eliab. Try on Glama.
 ```
 
 ## Homepage
@@ -65,7 +65,7 @@ Full client set (ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copil
 
 ```bash
 gh repo edit AzielEliab/aziel-runtime \
-  --description "MCP Softwares suite: FragGate door, OpenAPI + MCP, receipts, and mesh coordination. Aziel Runtime 2.0.0-rc1 by Aziel Eliab. Try on Glama." \
+  --description "MCP Softwares suite: FragGate door, Softwares catalog, library cites, OpenAPI + MCP, receipts, and mesh coordination. Aziel Runtime 2.0.0-rc1 by Aziel Eliab. Try on Glama." \
   --homepage "https://aziel-runtime.vibelock.workers.dev/mcp" \
   --add-topic openapi --add-topic fraggate --add-topic glama \
   --add-topic mcp-server --add-topic nodemesh --add-topic cloudflare --add-topic workers
