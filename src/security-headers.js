@@ -7,7 +7,7 @@
 
 export const CSP_HTML =
   "default-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'; " +
-  "script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' https: data:; " +
+  "script-src 'unsafe-inline'; worker-src 'self'; style-src 'unsafe-inline'; img-src 'self' https: data:; " +
   "connect-src 'self' https:; font-src 'self'";
 
 export const CSP_API = "default-src 'none'; base-uri 'none'; frame-ancestors 'none'";

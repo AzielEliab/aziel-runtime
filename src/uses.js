@@ -62,6 +62,8 @@ const SKIP_GET_READS = new Set([
   "/v1/failover",
   "/v1/azpipe/arch",
   "/v1/memory",
+  "/v1/ui/hold",
+  "/v1/ui/resume",
 ]);
 
 /** Hub / SEO catalog doors — full body, no USES get+put walk. */

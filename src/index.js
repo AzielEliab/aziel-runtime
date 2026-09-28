@@ -15,6 +15,11 @@
  *
  * GET  /                      HTML (indexable) + rose-star brand mark + human workspace pane
  * GET  /workspace             Human task pane (FragGate console, labeled ops, live mesh)
+ * POST /v1/ui/detach         Close UI hold. Does not seal a session or leave the mesh.
+ * POST /v1/ui/attach         Shell open again. Does not seal or leave.
+ * GET  /v1/ui/resume         Same hold if it is still live. Does not cold-start a session.
+ * GET  /v1/ui/hold           Hold contract. browser_timer false.
+ * GET  /sw.js                Shell service worker. Does not run the runtime.
  * GET  /download              One-click suite pack JSON (REAL catalog+tip+cite; SLOT wasm/WG)
  * GET  /v1/download           alias of /download
  * GET  /v1/suite/download     alias of /download
@@ -146,10 +151,12 @@ import {
   dispatchMeshHttp,
   isMeshReadPath,
   meshCiteField,
+  meshFanoutSuitePresence,
   scheduleSuitePresenceFanout,
   setSuitePresenceCatalog,
   SUITE_PRESENCE,
 } from "./mesh.js";
+import { dispatchUiHold, refreshUiHolds, uiShellBootHtml, uiStandbyHtml } from "./ui-hold.js";
 import { setSotProducts } from "./sot-sync.js";
 import { dispatchQnsHttp, qnsHint } from "./qns.js";
 import { dispatchActReceiptHttp, finishWithActReceipt } from "./library-receipts.js";
@@ -2298,10 +2305,12 @@ function catalogHtml(origin, statsMap, env = {}) {
 <html lang="en">
 <head>
 ${headMeta(origin, RUNTIME_PAGE_TITLE, RUNTIME_ABSTRACT, "/", env)}
+${uiShellBootHtml()}
 <script type="application/ld+json">${ld}</script>
 <style>${PAGE_CSS}${HUMAN_UI_CSS}</style>
 </head>
 <body>
+${uiStandbyHtml(origin)}
 ${brandRow()}
 ${homepageLeadHtml(resolveCallingName(env))}
 ${humanNavHtml(origin)}
@@ -3997,6 +4006,26 @@ async function handleRequest(request, env, ctx) {
       return json(bundleJson(origin, PRODUCTS), 200, extra("/v1/bundle"));
     }
 
+    if (url.pathname === "/sw.js" || url.pathname.startsWith("/v1/ui/")) {
+      const held = await dispatchUiHold(request, url, env);
+      if (held && held.kind === "script") {
+        return asHead(
+          request,
+          new Response(held.body, {
+            status: held.status,
+            headers: {
+              "Content-Type": "application/javascript; charset=utf-8",
+              "Cache-Control": "no-cache",
+              "Service-Worker-Allowed": "/",
+              "Content-Security-Policy": "default-src 'none'; connect-src 'self'",
+              "X-Content-Type-Options": "nosniff",
+            },
+          }),
+        );
+      }
+      if (held) return asHead(request, json(held.body, held.status || 200, extra(url.pathname)));
+    }
+
     if (url.pathname === "/v1/session/open" || url.pathname.startsWith("/v1/session/")) {
       return handleSessionRequest(request, env, { json, extra, PRODUCTS, BY_SLUG, upstreamFetch });
     }
@@ -4439,5 +4468,14 @@ export default {
 };
 
 export async function meshScheduled(env, ctx, source = "cron") {
-  return scheduleSuitePresenceFanout(ctx, env, { source });
+  const work = (async () => {
+    const fanout = await meshFanoutSuitePresence(env, { source });
+    const holds = await refreshUiHolds(env);
+    return { ...fanout, ui_holds: holds };
+  })();
+  if (ctx && typeof ctx.waitUntil === "function") {
+    ctx.waitUntil(work);
+    return { scheduled: true, source };
+  }
+  return work;
 }

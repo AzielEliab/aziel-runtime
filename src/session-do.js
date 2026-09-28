@@ -126,6 +126,16 @@ export class RuntimeSession {
       if ((action === "status" || action === "") && request.method === "GET") {
         return await this.status();
       }
+      if (action === "ui-hold-get" && request.method === "GET") {
+        const holds = (await this.ctx.storage.get("ui-holds")) || {};
+        return json({ ok: true, holds });
+      }
+      if (action === "ui-hold-put" && request.method === "POST") {
+        const body = await readJson(request);
+        const holds = body && body.holds && typeof body.holds === "object" && !Array.isArray(body.holds) ? body.holds : {};
+        await this.ctx.storage.put("ui-holds", holds);
+        return json({ ok: true });
+      }
       return json({ error: "unknown session action", action }, 404);
     } catch (err) {
       return fail(err);

@@ -4,6 +4,7 @@
  * Addresses audit F06–F08 (task-first, labels, live mesh).
  * HTML security headers live in security-headers.js (F03–F05 / #111).
  * Does not add, remove, or rename MCP tools.
+ * Close UI hides the shell. It does not seal a session or leave the mesh.
  * Author: Aziel Eliab only.
  */
 
@@ -25,6 +26,7 @@ import { suiteDownloadHtml } from "./suite-pack.js";
 import { softwareOneLine } from "./software-copy.js";
 import { UI_DOMAIN_DEFAULT, UI_DOMAINS, uiDomainForSlug } from "./ui-domains.js";
 import { GUIDE_STARTERS } from "./guide-reason.js";
+import { UI_SHELL_CSS, uiShellBootHtml, uiShellClientScript, uiStandbyHtml } from "./ui-hold.js";
 
 export const WORKSPACE_PAGE_TITLE = `Workspace — ${PRODUCT_NAME}`;
 export const WORKSPACE_PAGE_DESCRIPTION =
@@ -244,7 +246,7 @@ export const HUMAN_UI_CSS = `
   .human-nav a{color:#f0d78c;font-weight:600;text-decoration:none}
   .human-nav a:hover,.human-nav a:focus{text-decoration:underline}
   .human-nav a.nav-primary{display:inline-flex;align-items:center;min-height:44px;background:#241c0d;color:#f0d78c;border:1px solid #d4af37;border-radius:8px;padding:.5rem .9rem;font-weight:700}
-  .human-nav a.nav-secondary{display:inline-flex;align-items:center;min-height:44px;background:transparent;color:#9aa3b2;border:1px solid #3d3420;border-radius:8px;padding:.35rem .65rem;font-weight:500;font-size:.82rem}
+  .human-nav a.nav-secondary,.human-nav button.nav-secondary{display:inline-flex;align-items:center;min-height:44px;background:transparent;color:#9aa3b2;border:1px solid #3d3420;border-radius:8px;padding:.35rem .65rem;font:inherit;font-weight:500;font-size:.82rem;cursor:pointer}
   .workspace{border:1px solid #5c4a1a;background:#14110a;border-radius:12px;padding:1rem 1.1rem 1.2rem;margin:0 0 1.5rem}
   .workspace h2{margin-top:0}
   .workspace .hint{color:#c9bfa0;font-size:.92rem;margin:.2rem 0 .85rem}
@@ -348,7 +350,7 @@ export const HUMAN_UI_CSS = `
     .domain-tabs button{scroll-snap-align:start;min-height:44px;padding:.65rem .9rem}
     [id]{scroll-margin-top:calc(4.5rem + env(safe-area-inset-top))}
     .human-nav{gap:.5rem}
-    .human-nav a{
+    .human-nav a,.human-nav button{
       display:inline-flex;align-items:center;min-height:44px;padding:.4rem .7rem;
       background:#241c0d;color:#f0d78c;border:1px solid #5c4a1a;border-radius:8px
     }
@@ -370,7 +372,7 @@ export const HUMAN_UI_CSS = `
     .human-nav a:hover{text-decoration:none}
     .suite-dl-btn:hover{background:transparent}
   }
-`;
+` + UI_SHELL_CSS;
 
 function fieldHtml(task, field, idx) {
   const id = `task-${task.slug}-${field.name}-${idx}`;
@@ -670,7 +672,7 @@ ${dashCards}
         <div class="actions">
           <button type="button" data-op-sess="open">Open</button>
           <button type="button" data-op-sess="receipt">Receipt</button>
-          <button type="button" data-op-sess="close">Close</button>
+          <button type="button" data-op-sess="close">Seal session</button>
         </div>
       </div>
     </div>
@@ -993,8 +995,8 @@ ${dashCards}
   </section>
 
   <details class="task" id="session-strip">
-    <summary><strong>Session strip (advanced)</strong> — open / policy / exec / receipt / close</summary>
-    <p class="blurb">Optional. Public FragGate call stays open — the tasks above do not need a session. When <code>REQUIRE_TOKEN=1</code>, mutate needs a header-only operator token (<code>Authorization: Bearer</code> or <code>X-Aziel-Runtime-Token</code>). Never put the token in the query string or JSON body.</p>
+    <summary><strong>Session strip (advanced)</strong> — open / policy / exec / receipt / seal</summary>
+    <p class="blurb">Optional. Public FragGate call stays open — the tasks above do not need a session. Seal session shuts that session. Close UI in the nav does not. When <code>REQUIRE_TOKEN=1</code>, mutate needs a header-only operator token (<code>Authorization: Bearer</code> or <code>X-Aziel-Runtime-Token</code>). Never put the token in the query string or JSON body.</p>
     <p class="ws-status" id="session-gate" data-state="loading">Loading token-gate status…</p>
     <div class="field">
       <label for="sess-token">Operator token (header only)</label>
@@ -1025,7 +1027,7 @@ ${dashCards}
       <button type="button" data-sess="policy">Policy</button>
       <button type="button" data-sess="exec">Exec</button>
       <button type="button" data-sess="receipt">Receipt</button>
-      <button type="button" data-sess="close">Close</button>
+      <button type="button" data-sess="close">Seal session</button>
     </div>
     <pre class="ws-out fg-out" id="sess-out" role="status" aria-live="polite">Advanced session. Prefer FragGate for everyday tasks.</pre>
   </details>
@@ -1060,6 +1062,7 @@ export function humanNavHtml(origin, { current } = {}) {
   <a href="${escapeHtml(home)}#cite">Cite / docs</a>
   <a class="nav-secondary" href="${escapeHtml(suiteDownloadHref(base))}" download="aziel-runtime-suite.json">Download suite</a>
   <a href="${escapeHtml(base)}/v1/software">Softwares</a>
+  <button type="button" id="ui-close" class="nav-secondary" title="Hides this shell. Does not seal the session or leave the mesh.">Close UI</button>
 </nav>`;
 }
 
@@ -1077,10 +1080,12 @@ export function workspacePageHtml(origin, products, css) {
 <html lang="en">
 <head>
 ${headMeta(origin, WORKSPACE_PAGE_TITLE, WORKSPACE_PAGE_DESCRIPTION, "/workspace")}
+${uiShellBootHtml()}
 <script type="application/ld+json">${ld}</script>
 <style>${css}${HUMAN_UI_CSS}</style>
 </head>
 <body>
+${uiStandbyHtml(origin)}
 ${brandRow()}
 ${humanNavHtml(origin, { current: "workspace" })}
   <h1>${escapeHtml(PRODUCT_NAME)} workspace</h1>
@@ -1505,13 +1510,17 @@ export function humanDoorScript() {
         if (act === "heartbeat" || act === "leave") {
           if (!node_id) { show(out, "Node id is required for heartbeat / leave.", "error"); return; }
           let payload = act === "leave" ? { node_id: node_id } : { node_id: node_id, presence: presence };
-          fraggateCall(origin, "mesh", act, payload, out, btn).then(function () { refreshMesh(); });
+          fraggateCall(origin, "mesh", act, payload, out, btn).then(function (got) {
+            if (act === "leave") noteMeshLeave(got);
+            else keepJoinedNode(got);
+            refreshMesh();
+          });
           return;
         }
         if (!product) { show(out, "Product slug is required. MESH-BAD-INPUT if omitted. AnonBroadcast is not a product.", "error"); return; }
         let payload = { product: product, presence: presence, kind: "human", bearer: "human" };
         if (node_id) payload.node_id = node_id;
-        fraggateCall(origin, "mesh", "join", payload, out, btn).then(function () { refreshMesh(); });
+        fraggateCall(origin, "mesh", "join", payload, out, btn).then(function (got) { keepJoinedNode(got); refreshMesh(); });
       });
     });
     refreshMesh();
@@ -1592,13 +1601,16 @@ export function humanDoorScript() {
         if (act === "heartbeat" || act === "leave") {
           if (!node_id) { show(out, "Node id is required for heartbeat / leave (use the mesh panel field).", "error"); return; }
           let payload = act === "leave" ? { node_id: node_id } : { node_id: node_id, presence: "live" };
-          fraggateCall(origin, "mesh", act, payload, out, btn).then(function () { refreshMesh(); });
+          fraggateCall(origin, "mesh", act, payload, out, btn).then(function (got) {
+            if (act === "leave") noteMeshLeave(got);
+            refreshMesh();
+          });
           return;
         }
         if (!product) { show(out, "Product slug is required. MESH-BAD-INPUT if omitted. AnonBroadcast is not a product.", "error"); return; }
         let meshProduct = document.getElementById("mesh-product");
         if (meshProduct) meshProduct.value = product;
-        fraggateCall(origin, "mesh", "join", { product: product, presence: "live", kind: "human", bearer: "human" }, out, btn).then(function () { refreshMesh(); });
+        fraggateCall(origin, "mesh", "join", { product: product, presence: "live", kind: "human", bearer: "human" }, out, btn).then(function (got) { keepJoinedNode(got); refreshMesh(); });
       });
     });
   }
@@ -1618,6 +1630,9 @@ export function humanDoorScript() {
     let b = document.getElementById("op-sess-id");
     if (sid && a) a.value = sid;
     if (sid && b) b.value = sid;
+    if (sid && /^sess_[a-f0-9]{32}$/.test(sid)) {
+      try { localStorage.setItem("aziel-ui-session", sid); } catch (err) {}
+    }
   }
   function loadReady() {
     let origin = (document.getElementById("fg-console") && document.getElementById("fg-console").getAttribute("data-origin")) || "";
@@ -2032,6 +2047,7 @@ export function humanDoorScript() {
       }
     } catch (err2) {}
   }
+${uiShellClientScript()}
 })();
 </script>`;
 }
