@@ -37,7 +37,12 @@ for (const html of [home, workspace]) {
   assert.match(html, /id="ui-close"/);
   assert.match(html, />Close UI</);
   assert.match(html, />Seal session</);
-  assert.match(html, /id="ui-reopen"/);
+  assert.match(html, /ui-reopen/);
+  const scraped = html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ");
+  assert.doesNotMatch(scraped, /UI closed/);
+  assert.doesNotMatch(scraped, /id="ui-standby"/);
   assert.match(html, /addEventListener\("pagehide"/);
   assert.match(html, /\/v1\/ui\/detach/);
   assert.match(html, /Hold is on the Worker/);

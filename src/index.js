@@ -156,7 +156,7 @@ import {
   setSuitePresenceCatalog,
   SUITE_PRESENCE,
 } from "./mesh.js";
-import { dispatchUiHold, refreshUiHolds, uiShellBootHtml, uiStandbyHtml } from "./ui-hold.js";
+import { dispatchUiHold, refreshUiHolds, uiShellBootHtml } from "./ui-hold.js";
 import { setSotProducts } from "./sot-sync.js";
 import { dispatchQnsHttp, qnsHint } from "./qns.js";
 import { dispatchActReceiptHttp, finishWithActReceipt } from "./library-receipts.js";
@@ -2310,7 +2310,6 @@ ${uiShellBootHtml()}
 <style>${PAGE_CSS}${HUMAN_UI_CSS}</style>
 </head>
 <body>
-${uiStandbyHtml(origin)}
 ${brandRow()}
 ${homepageLeadHtml(resolveCallingName(env))}
 ${humanNavHtml(origin)}

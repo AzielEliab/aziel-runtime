@@ -26,7 +26,7 @@ import { suiteDownloadHtml } from "./suite-pack.js";
 import { softwareOneLine } from "./software-copy.js";
 import { UI_DOMAIN_DEFAULT, UI_DOMAINS, uiDomainForSlug } from "./ui-domains.js";
 import { GUIDE_STARTERS } from "./guide-reason.js";
-import { UI_SHELL_CSS, uiShellBootHtml, uiShellClientScript, uiStandbyHtml } from "./ui-hold.js";
+import { UI_SHELL_CSS, uiShellBootHtml, uiShellClientScript } from "./ui-hold.js";
 
 export const WORKSPACE_PAGE_TITLE = `Workspace — ${PRODUCT_NAME}`;
 export const WORKSPACE_PAGE_DESCRIPTION =
@@ -1085,7 +1085,6 @@ ${uiShellBootHtml()}
 <style>${css}${HUMAN_UI_CSS}</style>
 </head>
 <body>
-${uiStandbyHtml(origin)}
 ${brandRow()}
 ${humanNavHtml(origin, { current: "workspace" })}
   <h1>${escapeHtml(PRODUCT_NAME)} workspace</h1>

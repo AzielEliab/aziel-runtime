@@ -383,29 +383,10 @@ export async function dispatchUiHold(request, url, env) {
   return { kind: "json", status: 404, body: { ok: false, code: "UI-UNKNOWN", error: "not a ui hold route", session_sealed_by_ui: false, mesh_left_by_ui: false } };
 }
 
-function esc(s) {
-  return String(s)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
 export function uiShellBootHtml() {
   return `<script>
 try { if (localStorage.getItem("aziel-ui-shell") === "closed") document.documentElement.setAttribute("data-ui-shell", "closed"); } catch (e) {}
 </script>`;
-}
-
-export function uiStandbyHtml(origin) {
-  const base = esc(String(origin || "").replace(/\/$/, ""));
-  return `<div id="ui-standby" data-origin="${base}" hidden>
-  <p><strong>UI closed.</strong> The Worker is still running.</p>
-  <p>Close UI does not seal the session, leave the mesh, or stop FragGate, library sync, or MCP.</p>
-  <p class="hint">This browser cannot keep a timer after the tab is gone. The Worker refreshes a held mesh node on its 2-minute cron while radios are live. A refused heartbeat stays refused. A dropped node is not rejoined.</p>
-  <p id="ui-resume-line">Checking the background hold…</p>
-  <button type="button" id="ui-reopen">Reopen UI</button>
-</div>`;
 }
 
 export const UI_SHELL_CSS = `
@@ -503,12 +484,57 @@ export function uiShellClientScript() {
     var field = document.getElementById("mesh-node");
     if (field) field.value = "";
   }
+  function uiAddText(parent, tag, text, className) {
+    var el = document.createElement(tag);
+    if (className) el.className = className;
+    el.textContent = text;
+    parent.appendChild(el);
+    return el;
+  }
+  function uiOnReopen() {
+    uiSetShell(false);
+    fetch(uiOrigin() + "/v1/ui/attach", {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/json" },
+      body: JSON.stringify({ client_key: uiClientKey() }),
+      keepalive: true
+    }).then(function () { uiResume(); }).catch(function () { uiResume(); });
+  }
+  function uiEnsureStandby() {
+    var standby = document.getElementById("ui-standby");
+    if (standby) return standby;
+    standby = document.createElement("div");
+    standby.id = "ui-standby";
+    standby.setAttribute("data-origin", uiOrigin());
+    var headline = document.createElement("p");
+    var strong = document.createElement("strong");
+    strong.textContent = "UI closed.";
+    headline.appendChild(strong);
+    headline.appendChild(document.createTextNode(" The Worker is still running."));
+    standby.appendChild(headline);
+    uiAddText(standby, "p", "Close UI does not seal the session, leave the mesh, or stop FragGate, library sync, or MCP.");
+    uiAddText(standby, "p", "This browser cannot keep a timer after the tab is gone. The Worker refreshes a held mesh node on its 2-minute cron while radios are live. A refused heartbeat stays refused. A dropped node is not rejoined.", "hint");
+    var line = uiAddText(standby, "p", "Checking the background hold…");
+    line.id = "ui-resume-line";
+    var button = document.createElement("button");
+    button.type = "button";
+    button.id = "ui-reopen";
+    button.textContent = "Reopen UI";
+    button.addEventListener("click", uiOnReopen);
+    standby.appendChild(button);
+    if (document.body.firstChild) document.body.insertBefore(standby, document.body.firstChild);
+    else document.body.appendChild(standby);
+    return standby;
+  }
   function uiSetShell(closed) {
+    if (closed) uiEnsureStandby();
     if (closed) document.documentElement.setAttribute("data-ui-shell", "closed");
     else document.documentElement.removeAttribute("data-ui-shell");
     uiStorageSet("aziel-ui-shell", closed ? "closed" : "open");
     var standby = document.getElementById("ui-standby");
-    if (standby) standby.hidden = !closed;
+    if (!standby) return;
+    if (closed) standby.hidden = false;
+    else if (standby.parentNode) standby.parentNode.removeChild(standby);
   }
   function uiPostDetach(mode) {
     var url = uiOrigin() + "/v1/ui/detach";
@@ -576,18 +602,6 @@ export function uiShellClientScript() {
       if (navigator.serviceWorker && navigator.serviceWorker.controller) {
         navigator.serviceWorker.controller.postMessage({ type: "ui-detach", url: uiOrigin() + "/v1/ui/detach", body: uiRemember() });
       }
-    });
-  }
-  var uiReopen = document.getElementById("ui-reopen");
-  if (uiReopen) {
-    uiReopen.addEventListener("click", function () {
-      uiSetShell(false);
-      fetch(uiOrigin() + "/v1/ui/attach", {
-        method: "POST",
-        headers: { "content-type": "application/json", accept: "application/json" },
-        body: JSON.stringify({ client_key: uiClientKey() }),
-        keepalive: true
-      }).then(function () { uiResume(); }).catch(function () { uiResume(); });
     });
   }
   window.addEventListener("pagehide", function () {
