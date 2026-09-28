@@ -395,7 +395,7 @@ import {
   openApiImportSentence,
   tokenAuthSentence,
 } from "./ai-clients.js";
-import { finishWithUse, peekUsesTotal, readUses } from "./uses.js";
+import { finishWithUse, peekUsesTotal, readUses, requestForUseCount } from "./uses.js";
 import {
   SOFTWARE_FRAMING,
   WORKER_ONLY_PRODUCTS,
@@ -4423,8 +4423,9 @@ export default {
       const peek = String(request.method || "GET").toUpperCase() === "POST" ? request.clone() : request;
       const inbound = await gateInbound(request, env, json);
       if (inbound.response) return inbound.response;
+      const counted = requestForUseCount(inbound.request);
       const response = await handleRequest(inbound.request, env, ctx);
-      const used = await finishWithUse(inbound.request, env, ctx, response);
+      const used = await finishWithUse(counted, env, ctx, response);
       return finishWithActReceipt(peek, env, ctx, used);
     };
     const execute = () => (env && env.CHAINLOCK ? runWithLedgerStore(storeFor(env), run) : run());
