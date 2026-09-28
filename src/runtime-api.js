@@ -1201,6 +1201,49 @@ export function runtimeStaticPaths() {
         responses: { "200": { description: "Final receipt" }, "409": { description: "Already closed" } },
       },
     },
+    "/v1/ui/detach": {
+      post: {
+        operationId: "runtime_ui_detach",
+        summary:
+          "Close UI hold. Records the shell as detached. Does not seal a session, leave the mesh, or stop FragGate, library sync, or MCP. browser_timer is false.",
+        tags: ["runtime"],
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { type: "object" } } },
+        },
+        responses: { "200": { description: "Hold recorded. Runtime still running." } },
+      },
+    },
+    "/v1/ui/attach": {
+      post: {
+        operationId: "runtime_ui_attach",
+        summary: "Mark the shell open again. Does not seal a session or leave the mesh.",
+        tags: ["runtime"],
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { type: "object" } } },
+        },
+        responses: { "200": { description: "Shell marked open. Hold kept." } },
+      },
+    },
+    "/v1/ui/resume": {
+      get: {
+        operationId: "runtime_ui_resume",
+        summary:
+          "Read the background hold for client_key. Same session if it is still live. Does not open a new session. browser_timer is false.",
+        tags: ["runtime"],
+        parameters: [{ name: "client_key", in: "query", required: true, schema: { type: "string" } }],
+        responses: { "200": { description: "Hold, or an honest empty hold." } },
+      },
+    },
+    "/v1/ui/hold": {
+      get: {
+        operationId: "runtime_ui_hold",
+        summary: "Cite the Close UI hold. The service worker does not run the runtime.",
+        tags: ["runtime"],
+        responses: { "200": { description: "Hold contract" } },
+      },
+    },
     "/v1/skill": {
       get: {
         operationId: "runtime_skill",
