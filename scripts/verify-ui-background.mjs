@@ -40,6 +40,7 @@ for (const html of [home, workspace]) {
   assert.match(html, /id="ui-reopen"/);
   assert.match(html, /addEventListener\("pagehide"/);
   assert.match(html, /\/v1\/ui\/detach/);
+  assert.match(html, /Hold is on the Worker/);
   assert.doesNotMatch(html, /beforeunload/);
   const hideAt = html.indexOf('addEventListener("pagehide"');
   const hide = html.slice(hideAt, hideAt + 180);

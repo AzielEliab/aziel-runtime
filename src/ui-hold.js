@@ -510,23 +510,27 @@ export function uiShellClientScript() {
     var standby = document.getElementById("ui-standby");
     if (standby) standby.hidden = !closed;
   }
-  function uiPostDetach(keepalive) {
+  function uiPostDetach(mode) {
     var url = uiOrigin() + "/v1/ui/detach";
     var body = JSON.stringify(uiRemember());
-    if (keepalive && navigator.sendBeacon) {
+    if (mode === "beacon" && navigator.sendBeacon) {
       try {
         var blob = new Blob([body], { type: "application/json" });
         if (navigator.sendBeacon(url, blob)) return;
       } catch (err) {}
     }
-    try {
-      fetch(url, {
-        method: "POST",
-        headers: { "content-type": "application/json", accept: "application/json" },
-        body: body,
-        keepalive: true
+    var req = fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/json" },
+      body: body,
+      keepalive: true
+    });
+    if (mode === "paint") {
+      req.then(function (res) { return res.json(); }).then(uiPaintResume).catch(function () {
+        var line = document.getElementById("ui-resume-line");
+        if (line) line.textContent = "Hold was sent. The reply did not come back. This page did not seal the session.";
       });
-    } catch (err2) {}
+    }
   }
   function uiPaintResume(body) {
     var line = document.getElementById("ui-resume-line");
@@ -545,7 +549,8 @@ export function uiShellClientScript() {
       if (field && !field.value) field.value = node;
     }
     if (!line) return;
-    if (body && body.session_live === true) line.textContent = "Reconnected. The same session is still open on the Worker.";
+    if (body && body.ui === "detached") line.textContent = "Hold is on the Worker. Close UI did not seal a session or leave the mesh.";
+    else if (body && body.session_live === true) line.textContent = "Reconnected. The same session is still open on the Worker.";
     else if (body && body.session_id && body.session_live === false) line.textContent = body.session_note || "That session is not live. Reopen did not start a new one.";
     else if (body && body.hold === true) line.textContent = "Runtime hold is on the Worker. Close UI did not seal it.";
     else line.textContent = "No background hold yet. Close UI leaves the Worker running.";
@@ -565,7 +570,9 @@ export function uiShellClientScript() {
     uiClose.addEventListener("click", function () {
       uiRemember();
       uiSetShell(true);
-      uiPostDetach(true);
+      var pending = document.getElementById("ui-resume-line");
+      if (pending) pending.textContent = "Sending the hold to the Worker…";
+      uiPostDetach("paint");
       if (navigator.serviceWorker && navigator.serviceWorker.controller) {
         navigator.serviceWorker.controller.postMessage({ type: "ui-detach", url: uiOrigin() + "/v1/ui/detach", body: uiRemember() });
       }
@@ -585,7 +592,7 @@ export function uiShellClientScript() {
   }
   window.addEventListener("pagehide", function () {
     uiRemember();
-    uiPostDetach(true);
+    uiPostDetach("beacon");
   });
   document.addEventListener("visibilitychange", function () {
     if (document.visibilityState === "hidden") uiRemember();
