@@ -2,6 +2,28 @@
 
 Aziel Runtime starts at Softwares, FragGate, and the library. Softwares picks a slug. FragGate is the single exec door. library_lookup searches library papers and cites. Install on Glama, then call Softwares, pick a slug, and fraggate_call. 40+ research tools run through that one door. Every call can leave a receipt.
 
+## Install (remote first)
+
+Public MCP — **no API key**:
+
+```text
+https://aziel-runtime.vibelock.workers.dev/mcp
+```
+
+Transport: **Streamable HTTP**. Full client recipes: [`docs/AGENTS.md`](docs/AGENTS.md).
+
+Registry: `io.github.AzielEliab/aziel-runtime` · Glama: [Install](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime)
+
+### Access
+- **Public:** Softwares, FragGate list/describe/call, library lookup — no auth
+- **Glama hosted:** optional Install Server. Glama hosted-tool meters stay separate from Worker `GET /v1/uses`
+- **Local stdio:** clone + [`cli/mcp-stdio.mjs`](cli/mcp-stdio.mjs) (dev path; keep below the remote URL)
+
+### First tools
+1. Softwares / `fraggate_list`
+2. `fraggate_describe` → pick a slug
+3. `fraggate_call` (use `confirm: true` when required)
+
 ## How to use
 
 1. Click **[Install / Add to Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime)** (also `https://glama.ai/mcp/servers/@AzielEliab/aziel-runtime`).
@@ -13,7 +35,7 @@ Worker remote: `https://aziel-runtime.vibelock.workers.dev/mcp`
 
 Example first call: Softwares `{}`, pick a slug, then `fraggate_call` with `{ "slug": "foldlock", "op": "fold-preview" }`. `library_lookup` with `{ "q": "Florence", "op": "search" }` is a library paper or cite. Also: `decisiongate_check` with a short proposal and `dry_run:true`, or `forgereceipts` receipt for a completed task.
 
-MCP `tools/list` is **36** tools. FragGate is the single door. Install order stays Install Server on Glama, then this Worker, then local stdio last. Compatible AI clients are listed below. **Author:** Aziel Eliab.
+MCP `tools/list` is **36** tools. FragGate is the single door. Public connect is the remote URL in [Install (remote first)](#install-remote-first) (Streamable HTTP, no API key). Glama Install Server is optional and meters separately from Worker `GET /v1/uses`. Local stdio stays last. Compatible AI clients are listed below. **Author:** Aziel Eliab.
 
 ## Designed purpose
 
@@ -139,7 +161,7 @@ Every Worker launch (homepage, `/about`, every `/p/{slug}`, HTML Softwares/descr
 | Repos | https://github.com/AzielEliab/aziel-corpus · https://github.com/AzielEliab/godlock · https://github.com/AzielEliab/hedidntjump.com · https://github.com/AzielEliab/trades-runtime |
 | Donate (canonical) | https://www.azieleliab.com/donate |
 
-Glama **Install Server** is live ([Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime)). Glama release **2.0.7** (Install Server ON, Auto-Release ON). Worker / server package stays **2.0.0-rc1**. Order: one-click Install Server, then remote `POST https://aziel-runtime.vibelock.workers.dev/mcp`, then local stdio. See [docs/GLAMA.md](docs/GLAMA.md).
+Glama **Install Server** is live ([Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime)). Glama release **2.0.7** (Install Server ON, Auto-Release ON). Worker / server package stays **2.0.0-rc1**. Public connect is remote `POST https://aziel-runtime.vibelock.workers.dev/mcp` first. Glama Install Server is optional; its hosted meters stay separate from Worker `GET /v1/uses`. Local stdio stays last. See [docs/GLAMA.md](docs/GLAMA.md).
 
 Public identity: **Aziel Eliab** only. Do not invent Zenodo DOIs.
 
@@ -324,7 +346,13 @@ Current suite software designs (AZL / SEC-FEAT / QNM-WP / NODE-OPS / **AZL-DONAT
 
 ## Add to Claude Desktop
 
-Claude Desktop `claude_desktop_config.json` (same shape as Cursor `mcp.json`):
+Public connect is Streamable HTTP, no API key:
+
+```text
+https://aziel-runtime.vibelock.workers.dev/mcp
+```
+
+Local stdio is the dev path after that remote URL. Claude Desktop `claude_desktop_config.json` (same shape as Cursor `mcp.json`):
 
 ```json
 {
@@ -341,14 +369,14 @@ Claude Desktop `claude_desktop_config.json` (same shape as Cursor `mcp.json`):
 }
 ```
 
-Restart Claude Desktop after updating. Remote alternative: `POST https://aziel-runtime.vibelock.workers.dev/mcp`. Full stdio notes: [docs/GLAMA.md](docs/GLAMA.md).
+Restart Claude Desktop after updating the local config. Full client recipes: [docs/AGENTS.md](docs/AGENTS.md). Full stdio notes: [docs/GLAMA.md](docs/GLAMA.md).
 
 ## Add to Glama
 
-Install order:
+Public remote URL first. Glama hosted meters stay separate from Worker `GET /v1/uses`. Local stdio last.
 
-1. **Install Server (live)** — [Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime) (also `https://glama.ai/mcp/servers/@AzielEliab/aziel-runtime`). One-click Install Server / Deploy. Glama release **2.0.7**. Install Server ON. Auto-Release ON. Worker / server package stays **2.0.0-rc1**.
-2. **Remote MCP** — `POST https://aziel-runtime.vibelock.workers.dev/mcp` (`initialize`, `tools/list`, `tools/call`). User-Agent `Mozilla/5.0`. Public, no OAuth.
+1. **Remote MCP** — `POST https://aziel-runtime.vibelock.workers.dev/mcp` (`initialize`, `tools/list`, `tools/call`). User-Agent `Mozilla/5.0`. Public, no OAuth. Transport: Streamable HTTP.
+2. **Install Server (optional)** — [Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime) (also `https://glama.ai/mcp/servers/@AzielEliab/aziel-runtime`). One-click Install Server / Deploy. Glama release **2.0.7**. Install Server ON. Auto-Release ON. Worker / server package stays **2.0.0-rc1**. Hosted-tool meters are Glama's, not Worker `/v1/uses`.
 3. **Local stdio (last)** — [`cli/mcp-stdio.mjs`](cli/mcp-stdio.mjs) bridges to that same Worker `/mcp`. [`glama.json`](glama.json) + [`Dockerfile`](Dockerfile) CMD `["node", "cli/mcp-stdio.mjs"]`.
 
 ```bash
