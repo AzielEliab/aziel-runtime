@@ -79,6 +79,22 @@ This is a stack. It is not a fork. Unconfigured clients stay on L0.
 
 `peer_bearers.layers.default` is `L0`. `layers.fork` is false. `layers.L1.opt_in` is true. `layers.L1.replaces_l0` is false. `layers.sidenet_replaces_internet` is false. A sidenet does not replace the internet. `GET /v1/mesh` never enables. Softwares stay frozen.
 
+### Survival methods
+
+`GET /v1/mesh` carries `survival_methods`. The same object is `peer_bearers.survival`. None of these replace L0. SLOT is not painted LIVE. `doi` is null. `cid` is null. No fan of a fake deposit.
+
+| # | Method | Layer | Status on the public Worker |
+| --- | --- | --- | --- |
+| 1 | Cloudflare Worker edge | L0 | LIVE. Default path. |
+| 2 | Multi-relay QNM | L1 | LIVE only when more than one relay URL is named. Otherwise `live-when-configured`. |
+| 3 | Direct / LAN peer bearer | L1 | LIVE only when a direct URL classifies. NAT punch stays `FED-MESH-NAT-REFUSE`. |
+| 4 | Cap-7 mesh DNS / AZNet | L2 | SLOT. Mesh-only. Not ICANN. Not this implementation. |
+| 5 | Home-origin / mini-PC behind the edge | L3 | SLOT. Later. |
+| 6 | Cold shelves (re-expand) | L3 | SLOT. Codeberg and archive.org hash-verify PASS still SLOT. Framagit URL null. GitFlic refused (`CNS-GITFLIC-EMAIL`). USB SLOT until `CNS-OPERATOR-ATTEST`. Zenodo stays `CNS-ZENODO-NOT-LIVE`. |
+| 7 | Phoenix | REHEAL | LIVE as local wait / re-seal. No controller hunt. No neighbor vote-to-fix. |
+
+Plane A is still one CF/GitHub tunnel. `independent_requirement_met` is false. Naming the other methods does not make them a second live shelf.
+
 ### Bearer modes
 
 Three modes. Nothing else is claimed. L1 advertises them. L0 does not require the direct or multi-relay paths.

@@ -10,7 +10,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import http from "node:http";
 import { dirname, join } from "node:path";
-import { classifyPeerUrl, natPunchRequest } from "./bearers.js";
+import { classifyPeerUrl, natPunchRequest, survivalMethods } from "./bearers.js";
 import { actHash, openAct, sealAct, signAct } from "./client.js";
 import { createIdentity } from "./identity.js";
 import { FED_SPEC, ZERO_HASH } from "./spec.js";
@@ -403,6 +403,7 @@ export async function openInstance({ dataDir, relays = [] }) {
 
   node.directInbox = () => loadJson(directPath, []);
   node.onDirect = onDirect;
+  node.survival = () => survivalMethods({ relays: node.relays });
   return node;
 }
 
@@ -423,7 +424,14 @@ export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", rel
     const url = new URL(req.url || "/", "http://127.0.0.1");
     let out = { ok: false, code: "FED-MESH-BAD-INPUT", message: "Unknown local path." };
     if (req.method === "GET" && url.pathname === "/health") {
-      out = { ok: true, handle: node.identity.handle, spec: FED_SPEC, direct: true };
+      out = {
+        ok: true,
+        handle: node.identity.handle,
+        spec: FED_SPEC,
+        direct: true,
+        default_layer: "L0",
+        survival: node.survival(),
+      };
     } else if (req.method === "POST" && url.pathname === "/v1/fed-mesh/direct") {
       out = await node.onDirect(body);
     }

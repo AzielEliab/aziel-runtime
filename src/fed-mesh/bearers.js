@@ -7,6 +7,12 @@
  * Author: Aziel Eliab only.
  */
 
+import {
+  ARCHIVE_ORG_TIP_PACK,
+  COLD_MULTI_SHELF,
+  CODEBERG_TIP_PACK,
+  REFUSE,
+} from "../cold-multi-shelf.js";
 import { FED_SPEC } from "./spec.js";
 
 export const NAT_REFUSE_CODE = "FED-MESH-NAT-REFUSE";
@@ -149,7 +155,196 @@ export function peerBearerCite() {
     health_check: "GET /v1/mesh/relay",
     direct_transport: "same signed envelope on loopback or a configured LAN URL; relay is the fallback",
     modes: PEER_BEARER_MODES.map((mode) => ({ ...mode })),
-    note: "L0 is the public path and stays the default. L1 peer bearers (relay HTTPS, a configured direct or LAN URL, loopback, extra relays) are opt-in. A peer with no public address and no configured direct URL uses the relay. This protocol does not punch holes through NAT. The Worker does not publish ICANN DNS and does not claim radio PHY without hardware. GET /v1/mesh never enables. A sidenet does not replace the internet.",
+    survival: survivalMethods(),
+    note: "L0 is the public path and stays the default. L1 peer bearers (relay HTTPS, a configured direct or LAN URL, loopback, extra relays) are opt-in. A peer with no public address and no configured direct URL uses the relay. This protocol does not punch holes through NAT. The Worker does not publish ICANN DNS and does not claim radio PHY without hardware. GET /v1/mesh never enables. A sidenet does not replace the internet. Survival methods are named beside L0. Only the Worker edge is LIVE by default. Cold shelves stay SLOT. doi is null.",
+  };
+}
+
+/**
+ * Named survival methods. A stack beside L0, not a second internet.
+ * Public cite (no config) keeps L1 dark. LIVE for L1 only when the caller
+ * names extra relays or a direct URL. SLOT stays SLOT. No invented CID or DOI.
+ */
+export function survivalMethods(config = {}) {
+  const relays = Array.isArray(config.relays) ? config.relays.filter((url) => String(url || "").trim()) : [];
+  const multiConfigured = relays.length > 1;
+  const directRaw = String(config.directUrl || config.direct || "").trim();
+  let directLive = false;
+  let directMode = null;
+  if (directRaw) {
+    const classified = classifyPeerUrl(directRaw, { role: "direct" });
+    directLive =
+      classified.ok === true &&
+      classified.hole_punch !== true &&
+      (classified.mode === "direct-lan" || classified.mode === "loopback");
+    directMode = classified.ok === true ? classified.mode : null;
+  }
+  const methods = [
+    {
+      n: 1,
+      id: "cf-worker-edge",
+      layer: "L0",
+      status: "live",
+      live: true,
+      configured: true,
+      implemented: true,
+      opt_in: false,
+      this_pr: false,
+      replaces_l0: false,
+      probed: false,
+      reachability_claimed: false,
+      note: "Cloudflare Worker edge. FragGate, MCP/OpenAPI/Glama, Softwares 42, the HTTPS relay, and the human UI. This is the default path.",
+    },
+    {
+      n: 2,
+      id: "multi-relay",
+      layer: "L1",
+      status: multiConfigured ? "live" : "live-when-configured",
+      live: multiConfigured,
+      configured: multiConfigured,
+      implemented: true,
+      opt_in: true,
+      this_pr: true,
+      replaces_l0: false,
+      probed: false,
+      reachability_claimed: false,
+      relay_count: relays.length,
+      note: "Extra QNM relays. LIVE only when more than one relay URL is named. One relay stays L0. Each relay keeps that handle's sequence. Naming a URL is not a probe.",
+    },
+    {
+      n: 3,
+      id: "direct-lan",
+      layer: "L1",
+      status: directLive ? "live" : "live-when-configured",
+      live: directLive,
+      configured: directLive,
+      implemented: true,
+      opt_in: true,
+      this_pr: true,
+      mode: directMode,
+      nat_punch: "refuse",
+      nat_refuse: NAT_REFUSE_CODE,
+      hole_punch: false,
+      replaces_l0: false,
+      probed: false,
+      reachability_claimed: false,
+      note: "Configured direct or LAN URL, or loopback. LIVE only when that URL is named and classifies. NAT hole-punch is refused. The Worker does not discover a LAN. Classification is not a reachability claim.",
+    },
+    {
+      n: 4,
+      id: "cap7-mesh-dns",
+      layer: "L2",
+      status: "slot",
+      live: false,
+      configured: false,
+      implemented: false,
+      this_pr: false,
+      replaces_l0: false,
+      public_icann: false,
+      icann_dns: false,
+      resolves_to_hub: false,
+      mesh_only: true,
+      note: "Cap-7 mesh DNS / AZNet pairing. Later. Mesh-only. Not ICANN. Not this surface.",
+    },
+    {
+      n: 5,
+      id: "home-origin",
+      layer: "L3",
+      status: "slot",
+      live: false,
+      configured: false,
+      implemented: false,
+      this_pr: false,
+      replaces_l0: false,
+      note: "Home-origin / mini-PC behind the edge. Later. Not this surface.",
+    },
+    {
+      n: 6,
+      id: "cold-shelves",
+      layer: "L3",
+      status: "slot",
+      live: false,
+      configured: false,
+      implemented: false,
+      code_ready: true,
+      this_pr: false,
+      replaces_l0: false,
+      re_expand: true,
+      doi: null,
+      cid: null,
+      invented_doi: false,
+      invented_cid: false,
+      no_fan: true,
+      zenodo_live: false,
+      zenodo_refuse: REFUSE.ZENODO_NOT_LIVE,
+      doi_refuse: REFUSE.NO_TIP_DOI,
+      cid_refuse: REFUSE.NO_CID,
+      plane_b: "slot",
+      plane_c: "slot",
+      hash_verify_pass_is_not_live: true,
+      codeberg: {
+        url: CODEBERG_TIP_PACK.url,
+        hash_verify: "pass",
+        status: "slot",
+        live: false,
+      },
+      archive_org: {
+        url: ARCHIVE_ORG_TIP_PACK.url,
+        hash_verify: "pass",
+        status: "slot",
+        live: false,
+        same_blast_radius: "archive-org",
+      },
+      third_forge: { url: null, status: "slot", live: false, refuse: REFUSE.NO_FORGE },
+      gitflic: { url: null, status: "refused", live: false, refuse: REFUSE.GITFLIC_EMAIL },
+      usb: { status: "slot", live: false, refuse: REFUSE.OPERATOR_ATTEST },
+      note: "Cold shelves for chain re-expand. Codeberg and archive.org hash-verify PASS still SLOT. Third forge URL null (CNS-NO-FORGE-MIRROR). GitFlic refused. USB SLOT. Zenodo is not LIVE. doi null. No invented CID.",
+    },
+    {
+      n: 7,
+      id: "phoenix",
+      layer: "law",
+      spec: "REHEAL-1.0",
+      status: "live",
+      live: true,
+      replaces_l0: false,
+      this_pr: false,
+      controller_hunt: false,
+      vote_to_fix: false,
+      neighbor_vote: false,
+      public_hostname_resurrection: false,
+      note: "Phoenix is local wait / re-seal. No controller hunt. No neighbor vote-to-fix. Isolation is the cure. Not public hostname resurrection.",
+    },
+  ];
+  return {
+    spec: "CROSS-NETWORK-SURVIVAL-1.0",
+    cold_multi_shelf: COLD_MULTI_SHELF,
+    reheal: "REHEAL-1.0",
+    model: "stack",
+    fork: false,
+    single_method: false,
+    plane_a_is_one_tunnel: true,
+    independent_requirement_met: false,
+    do_not_paint_slot_as_live: true,
+    replaces_l0: false,
+    default: "L0",
+    default_live: "cf-worker-edge",
+    l0_live: true,
+    l1_live: multiConfigured || directLive,
+    sidenet_replaces_internet: false,
+    not_a_second_internet: true,
+    get_never_enables: true,
+    softwares_frozen: true,
+    softwares_count: 42,
+    no_fan: true,
+    doi: null,
+    cid: null,
+    invented_doi: false,
+    invented_cid: false,
+    zenodo_live: false,
+    runtime_is_shelf: false,
+    methods,
+    note: "Methods are named so survival is not one unnamed tunnel. L0 stays the only default LIVE path. L1 is LIVE only when configured. Cap-7, home-origin, and cold shelves stay SLOT. Phoenix does not replace L0. A sidenet does not replace the internet.",
   };
 }
 
