@@ -130,7 +130,12 @@ assert.equal(mesh.body.aznet_layers.L4.full_os, false);
 assert.equal(mesh.body.aznet_layers.L4.softwares_ui, false);
 assert.equal(mesh.body.peer_bearers.survival.runtime.default, "L0");
 assert.equal(JSON.stringify(mesh.body).includes("framagit"), false);
-assert.equal(JSON.stringify(mesh.body).toLowerCase().includes("sidenet"), false);
+assert.equal(mesh.body.spore.naming_lock.sidenet, "aznet");
+assert.equal(mesh.body.spore.naming_lock.separate_brand, false);
+assert.equal(mesh.body.spore.naming_lock.display, "AZNet");
+const withoutLock = JSON.stringify(mesh.body).replace('"sidenet":"aznet"', '"slug":"aznet"');
+assert.equal(withoutLock.toLowerCase().includes("sidenet"), false);
+assert.equal(JSON.stringify(mesh.body.aznet_layers).toLowerCase().includes("sidenet"), false);
 assert.equal(mesh.body.aznet_layers.name, "AZnet");
 
 const cards = listSoftwareEntries(PRODUCTS, "https://example.test");
