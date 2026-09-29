@@ -13,6 +13,7 @@ import {
   CODEBERG_TIP_PACK,
   REFUSE,
 } from "../cold-multi-shelf.js";
+import { sidenetLayerCite } from "./sidenet-layers.js";
 import { FED_SPEC } from "./spec.js";
 
 export const NAT_REFUSE_CODE = "FED-MESH-NAT-REFUSE";
@@ -109,24 +110,31 @@ export function layerStack() {
     },
     L2: {
       id: "L2",
-      role: "later",
-      this_pr: false,
+      role: "cite",
+      this_pr: true,
       replaces_l0: false,
-      adds: "Cap-7 mesh DNS / AZNet pairing",
+      dns_publish: false,
+      public_icann: false,
+      adds: "Cap-7 cite/refuse stamps and the AZNet/AZBrowser pair hook",
+      note: "Not a public resolver. public_icann stays false.",
     },
     L3: {
       id: "L3",
-      role: "later",
-      this_pr: false,
+      role: "registry",
+      this_pr: true,
       replaces_l0: false,
-      adds: "home-origin",
+      home_origin: "slot",
+      cold_shelves: "slot",
+      adds: "home-origin and cold-shelf registry; phoenix stays local wait / re-seal",
     },
     L4: {
       id: "L4",
-      role: "later",
-      this_pr: false,
+      role: "stub",
+      this_pr: true,
       replaces_l0: false,
-      adds: "AZ-OS offline",
+      full_os: false,
+      softwares_ui: false,
+      adds: "AZ-OS three layers by need and an offline stub that uses L0 when a relay is configured",
     },
   };
 }
@@ -238,13 +246,15 @@ export function survivalMethods(config = {}) {
       live: false,
       configured: false,
       implemented: false,
-      this_pr: false,
+      this_pr: true,
       replaces_l0: false,
+      dns_publish: false,
       public_icann: false,
       icann_dns: false,
       resolves_to_hub: false,
       mesh_only: true,
-      note: "Cap-7 mesh DNS / AZNet pairing. Later. Mesh-only. Not ICANN. Not this surface.",
+      cite_status: "live",
+      note: "Cap-7 mesh DNS stays SLOT. The cite and the ICANN refuse are LIVE stamps. AZNet pairs with AZBrowser through FragGate. Not a public resolver.",
     },
     {
       n: 5,
@@ -254,9 +264,10 @@ export function survivalMethods(config = {}) {
       live: false,
       configured: false,
       implemented: false,
-      this_pr: false,
+      this_pr: true,
       replaces_l0: false,
-      note: "Home-origin / mini-PC behind the edge. Later. Not this surface.",
+      cutover: false,
+      note: "Home-origin / mini-PC behind the edge stays SLOT. No cutover. The edge stays L0.",
     },
     {
       n: 6,
@@ -267,7 +278,7 @@ export function survivalMethods(config = {}) {
       configured: false,
       implemented: false,
       code_ready: true,
-      this_pr: false,
+      this_pr: true,
       replaces_l0: false,
       re_expand: true,
       doi: null,
@@ -344,7 +355,8 @@ export function survivalMethods(config = {}) {
     zenodo_live: false,
     runtime_is_shelf: false,
     methods,
-    note: "Methods are named so survival is not one unnamed tunnel. L0 stays the only default LIVE path. L1 is LIVE only when configured. Cap-7, home-origin, and cold shelves stay SLOT. Phoenix does not replace L0. A sidenet does not replace the internet.",
+    runtime: sidenetLayerCite(),
+    note: "Methods are named so survival is not one unnamed tunnel. L0 stays the only default LIVE path. L1 is LIVE only when configured. Cap-7 DNS, home-origin, and cold shelves stay SLOT. Phoenix does not replace L0. A sidenet does not replace the internet.",
   };
 }
 

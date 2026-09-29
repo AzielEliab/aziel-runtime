@@ -73,9 +73,9 @@ This is a stack. It is not a fork. Unconfigured clients stay on L0.
 | --- | --- | --- |
 | L0 | Default public path. Cloudflare Worker, FragGate as the single door, MCP / OpenAPI / Glama, Softwares 42, the HTTPS relay, and the human UI. | Must keep working. Not replaced. |
 | L1 | Optional peer bearers. A configured direct or LAN URL, extra relays, and `FED-MESH-NAT-REFUSE`. | Opt-in. Used when configured. Default behavior stays L0. |
-| L2 | Cap-7 mesh DNS / AZNet pairing. | Later. Not this paper's implementation. |
-| L3 | Home-origin. | Later. Additive. |
-| L4 | AZ-OS offline. | Later. Additive. |
+| L2 | Cap-7 mesh DNS / AZNet pairing. | Cite and refuse only. `dns_publish` false. `public_icann` false. AZNet/AZBrowser pair through FragGate. |
+| L3 | Home-origin and cold shelves. | Registry. Home-origin SLOT. Cold shelves SLOT. Phoenix is local wait / re-seal. |
+| L4 | AZ-OS offline. | Three layers by need (read / reach / execute). Offline stub uses L0 when a relay is configured. Not a full OS. Softwares UI untouched. |
 
 `peer_bearers.layers.default` is `L0`. `layers.fork` is false. `layers.L1.opt_in` is true. `layers.L1.replaces_l0` is false. `layers.sidenet_replaces_internet` is false. A sidenet does not replace the internet. `GET /v1/mesh` never enables. Softwares stay frozen.
 
@@ -94,6 +94,18 @@ This is a stack. It is not a fork. Unconfigured clients stay on L0.
 | 7 | Phoenix | REHEAL | LIVE as local wait / re-seal. No controller hunt. No neighbor vote-to-fix. |
 
 Plane A is still one CF/GitHub tunnel. `independent_requirement_met` is false. Naming the other methods does not make them a second live shelf.
+
+`sidenet_layers` on `GET /v1/mesh` is the runtime-side stamp for L2–L4.
+
+AZ-OS by need, on the offline stub only:
+
+| Need | What it does |
+| --- | --- |
+| read | Principles and status with no network. |
+| reach | When `--relay` is set, register on that L0 HTTPS path. GET never enables. |
+| execute | Refused. `exec`, `shell`, and `lattice` stay refuse. |
+
+The stub does not draw the Softwares desk.
 
 ### Bearer modes
 

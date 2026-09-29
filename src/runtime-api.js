@@ -408,7 +408,7 @@ ${survivalSkillMarkdown(base)}
 | GET | \`/v1/uses\` | API use counters + recent ring log. Does not increment. No PII. by_op also records mcp.<tool> and fraggate.call.<slug> / fraggate.describe.<slug> when those tokens are safe. Softwares has no slug. |
 | GET | \`/v1/stats\` | Alias of \`/v1/uses\`. |
 | GET | \`/v1/stats-rollups\` | Read-only sibling views/downloads snapshot (best-effort; never invents; omit on error). |
-| GET | \`/v1/mesh\` | QNM rollup: enabled?, bearers, nodes (human mesh users + cited human uses), live_nodes (human mesh users + site_live_viewers), software_nodes ({slug}-worker roster). Suite-presence ON by default. Never enables extra radios. Never pulls hub /count. \`survival_methods\`: L0 Worker edge LIVE; L1 multi-relay and direct/LAN live only when configured; Cap-7, home-origin, and cold shelves SLOT (doi null); Phoenix is local wait / re-seal. None replace L0. |
+| GET | \`/v1/mesh\` | QNM rollup: enabled?, bearers, nodes (human mesh users + cited human uses), live_nodes (human mesh users + site_live_viewers), software_nodes ({slug}-worker roster). Suite-presence ON by default. Never enables extra radios. Never pulls hub /count. \`survival_methods\`: L0 Worker edge LIVE; L1 multi-relay and direct/LAN live only when configured; Cap-7, home-origin, and cold shelves SLOT (doi null); Phoenix is local wait / re-seal. \`sidenet_layers\`: L2 cite (no DNS publish), L3 SLOT registry, L4 offline stub that uses L0 when a relay is set. None replace L0. |
 | GET | \`/v1/mesh/status\` | Alias of \`/v1/mesh\`. |
 | POST | \`/v1/mesh/enable\` | Optional extra bearer. Body \`{bearer}\` required (rate-limited). |
 | POST | \`/v1/mesh/disable\` | Refused (\`MESH-DISABLE-REFUSED\`). Public disable of suite-presence is refused. |
