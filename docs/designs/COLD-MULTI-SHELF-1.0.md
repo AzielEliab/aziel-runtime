@@ -169,6 +169,7 @@ No visible 15:20 chrome. Person `@id` https://www.azieleliab.com/#aziel.
 - Not a FragGate engine. No `fraggate_call { slug: "shelves" }`.
 - Not a new MCP tool. `PUBLIC_MCP_TOOLS` stays frozen.
 - Not a sixth published surface. Runtime is Plane A tunnel.
+- Not a live home-origin. ORIGIN-CUTOVER-1.0 (Sidenet P3) mini-PC path stays SLOT until a hash-verified deposit. It does not rent DNS and does not change live Cloudflare DNS.
 - Not five independent shelves. Not four independent CF hosts.
 - Not a live AZ-GEN / Cap-7 ICANN publish.
 - Not an invented DOI, CID, Framagit URL, GitFlic URL, or GitLab URL.

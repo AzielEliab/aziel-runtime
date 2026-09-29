@@ -12,6 +12,8 @@
  */
 
 import { AUTHOR_ID, AUTHOR_NAME, LIBRARY_MIRROR, LIBRARY_ORIGIN, RUNTIME_GITHUB, RUNTIME_HUB_URL } from "./seo.js";
+import { SHELF_REGISTRY } from "./cold-multi-shelf.js";
+import { PHOENIX_REHEAL_CITE, originCutoverCite, survivalRegistry } from "./origin-cutover.js";
 import { CROSS_NETWORK_SURVIVAL, SURVIVAL_TIP } from "./cross-network-survival.js";
 import { NO_LIE_DOCS, NO_LIE_SPEC } from "./no-lie.js";
 import {
@@ -1029,6 +1031,9 @@ export function survivalDoc(origin, env) {
     named_hosts_only: true,
     unmarked_hydra: false,
     public_hostname_resurrection: false,
+    origin_cutover: originCutoverCite(),
+    survival_registry: survivalRegistry(SHELF_REGISTRY),
+    phoenix_reheal: PHOENIX_REHEAL_CITE,
     independent: false,
     blast_radius: "cf-github",
     runtime_is_shelf: false,
@@ -1124,6 +1129,9 @@ export function survivalCiteField(origin, env) {
     second_door: false,
     unmarked_hydra: false,
     public_hostname_resurrection: false,
+    origin_cutover: originCutoverCite(),
+    survival_registry: survivalRegistry(SHELF_REGISTRY),
+    phoenix_reheal: PHOENIX_REHEAL_CITE,
     runtime_is_shelf: false,
     software_tab: false,
     fraggate_slug: false,
@@ -1154,6 +1162,7 @@ export function survivalLlmsBlock(origin, env) {
     "Calling-name rotation (discovery only): trigger → mesh alert → rewrite all live discovery metadata → client rediscovery. Open-ended + random (no hard cap at 6): Whitestone AI → Bills (Bills Runtime / bills-runtime as needed) → Runtime → Eliab Runtime → Potato Runtime → Elroi Runtime → Softwares-family *-runtime → endless distinct names, including BAN_SURVIVAL_NAME_RANDOM alongside the seeds. Surfaces: OpenAPI info, MCP name/instructions, cite/llms/ai/who-is/person calling strings, /survival live product, Softwares vanity, hub-facing runtime labels. Live mesh nodes pull `*new name alert: <name>` from GET /v1/mesh and /survival (GET never enables; not a publish path). User-uploaded data is ingested as a signal through DecisionGATE check + AKM observe (`belief_is_not_truth`); unmarked uploads are not a ban. Call routes stay POST /mcp and POST /v1/fraggate/call under the new name. Identity Aziel Eliab unchanged. No ChainLock/AKM rewrite. No third-party trademarks.",
     "Platforms LIVE: windows / mac / linux / android / ios via browser + PWA (`/manifest.webmanifest`) + Worker fronts + Softwares /download + MCP/OpenAPI. Dual-surface on each. native_app_store false. Cap-7 factory shuffle land is LIVE. Standard internet reaches AZ domains via hub HTTPS, not Cap-7 names.",
     "SPORE-1.0 (last-resort failsafe, layer 3): pause / preserve / wait / physical-wipe-only. Does not replace live fronts or cold-shelf mutual backup. Power or network loss pauses execution. Append-only ChainLock / AKM / receipt DNA stays on cold shelves + local nodes + tip packs. Resume on power. Plane B/C stay SLOT until attested. RE-COLD-STORE is an honest hook (no invented destinations).",
+    "ORIGIN-CUTOVER-1.0 (Sidenet P3): home-origin / mini-PC path is SLOT. No rented DNS. No live DNS change. Not deposited. Does not break live CF hubs. Phoenix / REHEAL-1.0: phoenix-WAIT is local. neighbor_phoenix false. Not public hostname resurrection.",
     "429 on /mcp or FragGate includes the next LIVE front first. Do not retry-storm the same path.",
     "",
     sporeLlmsBlock().trimEnd(),
