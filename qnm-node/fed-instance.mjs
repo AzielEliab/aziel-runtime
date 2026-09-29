@@ -3,6 +3,7 @@
  * The daemon in AzielEliab/qnm-node can speak this same protocol.
  * Author: Aziel Eliab only.
  *
+ * L0 (default): one --relay. L1 (opt-in): --relays with more than one URL.
  *   node qnm-node/fed-instance.mjs --data ./data/a --port 8781 --relay http://127.0.0.1:8780/v1/mesh/relay
  *   node qnm-node/fed-instance.mjs --data ./data/b --port 8782 --relays http://127.0.0.1:8780/v1/mesh/relay,http://127.0.0.1:8783/v1/mesh/relay
  */

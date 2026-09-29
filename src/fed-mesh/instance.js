@@ -1,6 +1,9 @@
 /**
  * One local node: own key, own data directory, own port.
  * Talks to relays with the same envelopes as every other node.
+ * L0: one relay URL, register + send + pull. That path stays the default.
+ * L1: registerAll, selectRelay, sendDirect, and sendReachable run only when
+ * the caller configures extra relays or a direct URL. They do not replace L0.
  * Author: Aziel Eliab only.
  */
 

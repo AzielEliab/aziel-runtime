@@ -866,7 +866,7 @@ ${dashCards}
       </select>
     </div>
     <p class="hint">Join is first presence. Heartbeat / Leave need a node id. Heartbeat refreshes the 5-minute TTL. MESH-OFF refuses join/heartbeat/broadcast when transmission radios are not LIVE — GET will not turn them on. Channel plane is CITE-only. AnonBroadcast is not a product. VPN cite is FragGate <code>mesh/vpn</code> (AZVPN auto; never fake connected). Extra bearer is rate-limited; GET still never enables.</p>
-    <p class="hint" id="mesh-bearer-note">Peer bearers: relay HTTPS, a configured direct or LAN URL, and loopback. NAT hole-punch is refused (<code>FED-MESH-NAT-REFUSE</code>). Not public ICANN DNS. Not radio PHY. This Worker is one relay. GET <code>/v1/mesh/relay</code> is the health check and never enables.</p>
+    <p class="hint" id="mesh-bearer-note">L0 stays the public path: this Worker, FragGate, and the HTTPS relay. Optional L1 peer bearers (a configured direct or LAN URL, and extra relays) run only when configured. NAT hole-punch is refused (<code>FED-MESH-NAT-REFUSE</code>). L1 does not replace L0. Not a second internet. Not public ICANN DNS. Not radio PHY. GET <code>/v1/mesh/relay</code> is the health check and never enables.</p>
     <div class="field">
       <label for="mesh-bearer">Extra bearer (optional; GET never enables)</label>
       <input id="mesh-bearer" name="bearer" type="text" value="suite-presence" autocomplete="off" spellcheck="false">
@@ -1466,6 +1466,8 @@ export function humanDoorScript() {
         if (peers.radio_phy === false) text += " · not radio PHY";
         if (peers.worker_is_one_relay === true) text += " · one relay";
         if (peers.not_a_second_internet === true) text += " · not a second internet";
+        if (peers.layers && peers.layers.default === "L0") text += " · L0 default";
+        if (peers.layers && peers.layers.L1 && peers.layers.L1.opt_in === true && peers.layers.L1.replaces_l0 === false) text += " · L1 opt-in";
       }
       if (b.nine_laws && b.nine_laws.hard_true === true) text += " · nine laws hard-true";
       if (line) {

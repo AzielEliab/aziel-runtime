@@ -1,7 +1,9 @@
 /**
- * FED-MESH-1.0 peer bearers. Not a second internet.
- * Relay HTTPS, a configured direct or LAN URL, and loopback.
- * NAT hole-punch is refused. No public ICANN DNS. No radio PHY.
+ * FED-MESH-1.0 peer bearers. Layer L1. Opt-in. Does not replace L0.
+ * L0 is the public path: Cloudflare Worker, FragGate, MCP/OpenAPI/Glama,
+ * Softwares 42, the HTTPS relay, and the human UI.
+ * L1 adds a configured direct/LAN URL and extra relays, and refuses NAT punch.
+ * A sidenet does not replace the internet. No public ICANN DNS. No radio PHY.
  * Author: Aziel Eliab only.
  */
 
@@ -68,11 +70,72 @@ const PUNCH_OPS = new Set([
 
 const PUNCH_SCHEMES = new Set(["stun:", "stuns:", "turn:", "turns:", "nat:", "ice:"]);
 
+/** Stack, not a fork. Default clients stay on L0. L1 runs only when configured. */
+export function layerStack() {
+  return {
+    model: "stack",
+    fork: false,
+    default: "L0",
+    this_pr: "L1",
+    sidenet_replaces_internet: false,
+    not_a_second_internet: true,
+    get_never_enables: true,
+    softwares_frozen: true,
+    softwares_count: 42,
+    L0: {
+      id: "L0",
+      role: "default",
+      must_keep: true,
+      replaces: false,
+      opt_in: false,
+      path: "Cloudflare Worker, FragGate single door, MCP/OpenAPI/Glama, Softwares 42, HTTPS relay, human UI",
+      note: "Current public path. Unconfigured clients stay here. A direct URL and extra relays are not required.",
+    },
+    L1: {
+      id: "L1",
+      role: "optional",
+      opt_in: true,
+      default: false,
+      replaces_l0: false,
+      when: "configured",
+      adds: ["direct-lan", "loopback", "multi-relay", "FED-MESH-NAT-REFUSE"],
+      note: "Optional peer bearers. Used when a direct URL or an extra relay is configured. NAT hole-punch is refused. Default behavior stays L0.",
+    },
+    L2: {
+      id: "L2",
+      role: "later",
+      this_pr: false,
+      replaces_l0: false,
+      adds: "Cap-7 mesh DNS / AZNet pairing",
+    },
+    L3: {
+      id: "L3",
+      role: "later",
+      this_pr: false,
+      replaces_l0: false,
+      adds: "home-origin",
+    },
+    L4: {
+      id: "L4",
+      role: "later",
+      this_pr: false,
+      replaces_l0: false,
+      adds: "AZ-OS offline",
+    },
+  };
+}
+
 export function peerBearerCite() {
   return {
     spec: FED_SPEC,
+    layer: "L1",
+    default_layer: "L0",
+    opt_in: true,
+    replaces_l0: false,
+    layers: layerStack(),
     not_a_second_internet: true,
     sidenet: false,
+    sidenet_replaces_internet: false,
     public_icann: false,
     icann_dns: false,
     radio_phy: false,
@@ -86,7 +149,7 @@ export function peerBearerCite() {
     health_check: "GET /v1/mesh/relay",
     direct_transport: "same signed envelope on loopback or a configured LAN URL; relay is the fallback",
     modes: PEER_BEARER_MODES.map((mode) => ({ ...mode })),
-    note: "Peer bearers are relay HTTPS, a configured direct or LAN URL, and loopback. A peer with no public address and no configured direct URL uses a relay. This protocol does not punch holes through NAT. The Worker does not publish ICANN DNS and does not claim radio PHY without hardware. GET /v1/mesh never enables. This is not a second internet.",
+    note: "L0 is the public path and stays the default. L1 peer bearers (relay HTTPS, a configured direct or LAN URL, loopback, extra relays) are opt-in. A peer with no public address and no configured direct URL uses the relay. This protocol does not punch holes through NAT. The Worker does not publish ICANN DNS and does not claim radio PHY without hardware. GET /v1/mesh never enables. A sidenet does not replace the internet.",
   };
 }
 
@@ -116,6 +179,9 @@ export function natRefuse(message, extra = {}) {
     public_icann: false,
     radio_phy: false,
     not_a_second_internet: true,
+    sidenet_replaces_internet: false,
+    replaces_l0: false,
+    default_layer: "L0",
   };
 }
 

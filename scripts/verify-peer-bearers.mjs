@@ -72,10 +72,16 @@ assert.match(html, /id="dash-softwares-title"/);
 assert.match(html, /id="mesh-bearer-note"/);
 assert.match(html, /FED-MESH-NAT-REFUSE/);
 assert.match(html, /Not radio PHY/);
+assert.match(html, /L0 stays the public path/);
+assert.match(html, /data-mesh="status"/);
+assert.match(html, /data-mesh="join"/);
+assert.match(html, /L1 does not replace L0/);
 const script = humanDoorScript();
 assert.match(script, /peer_bearers/);
 assert.match(script, /NAT hole-punch refused/);
 assert.match(script, /not a second internet/);
+assert.match(script, /L0 default/);
+assert.match(script, /L1 opt-in/);
 const handler = (await import("../src/index.js")).default.fetch;
 const pageRes = await handler(new Request("https://example.test/workspace"));
 assert.equal(pageRes.status, 200);
@@ -91,6 +97,27 @@ assert.equal(meshBody.hole_punch, false);
 assert.equal(meshBody.peer_bearers.not_a_second_internet, true);
 assert.equal(meshBody.peer_bearers.public_icann, false);
 assert.equal(meshBody.peer_bearers.radio_phy, false);
+assert.equal(meshBody.peer_bearers.default_layer, "L0");
+assert.equal(meshBody.peer_bearers.opt_in, true);
+assert.equal(meshBody.peer_bearers.replaces_l0, false);
+assert.equal(meshBody.peer_bearers.sidenet_replaces_internet, false);
+assert.equal(meshBody.peer_bearers.layers.fork, false);
+assert.equal(meshBody.peer_bearers.layers.default, "L0");
+assert.equal(meshBody.peer_bearers.layers.L0.must_keep, true);
+assert.equal(meshBody.peer_bearers.layers.L1.opt_in, true);
+assert.equal(meshBody.peer_bearers.layers.L1.default, false);
+assert.equal(meshBody.peer_bearers.layers.L1.replaces_l0, false);
+assert.equal(meshBody.peer_bearers.layers.L2.this_pr, false);
+assert.equal(meshBody.peer_bearers.layers.L3.this_pr, false);
+assert.equal(meshBody.peer_bearers.layers.L4.this_pr, false);
+assert.equal(meshBody.peer_bearers.layers.sidenet_replaces_internet, false);
+assert.equal(meshBody.peer_bearers.layers.softwares_frozen, true);
+assert.equal(meshBody.peer_bearers.layers.softwares_count, 42);
+assert.equal(meshBody.enabled, true);
+assert.deepEqual(meshBody.bearers, ["suite-presence"]);
+assert.equal(meshBody.suite_presence, "on");
+assert.equal(meshBody.op, "status");
+assert.equal(meshBody.code, "MESH-OK");
 assert.equal(requestLimitKind("/v1/mesh/hole-punch", "POST"), "mesh_mutate");
 
 const before = await dispatchMeshHttp("GET", "/v1/mesh", {}, {}, "https://example.test", new URLSearchParams());
@@ -100,6 +127,11 @@ assert.equal(before.body.hole_punch, false);
 assert.equal(before.body.not_a_second_internet, true);
 assert.equal(before.body.worker_is_one_relay, true);
 assert.equal(before.body.peer_bearers.sidenet, false);
+assert.equal(before.body.peer_bearers.layers.default, "L0");
+assert.equal(before.body.peer_bearers.layers.L1.replaces_l0, false);
+assert.equal(before.body.peer_bearers.sidenet_replaces_internet, false);
+assert.equal(before.body.enabled, true);
+assert.deepEqual(before.body.bearers, ["suite-presence"]);
 assert.equal(before.body.peer_bearers.public_icann, false);
 assert.equal(before.body.peer_bearers.radio_phy, false);
 assert.deepEqual(
@@ -113,6 +145,9 @@ assert.equal(punched.body.code, NAT_REFUSE_CODE);
 assert.equal(punched.body.hole_punch, false);
 assert.equal(punched.body.get_never_enables, true);
 assert.equal(punched.body.public_icann, false);
+assert.equal(punched.body.replaces_l0, false);
+assert.equal(punched.body.sidenet_replaces_internet, false);
+assert.equal(punched.body.default_layer, "L0");
 
 const queried = await dispatchMeshHttp("GET", "/v1/mesh", {}, {}, "https://example.test", new URLSearchParams("hole_punch=1"));
 assert.equal(queried.status, 403);
@@ -126,6 +161,19 @@ assert.equal(after.body.get_never_enables, true);
 const door = await runMeshOp("hole-punch", {}, {});
 assert.equal(door.code, NAT_REFUSE_CODE);
 assert.equal(door.hole_punch, false);
+assert.equal(door.replaces_l0, false);
+assert.equal(door.sidenet_replaces_internet, false);
+const l0status = await runMeshOp("status", {}, {});
+assert.equal(l0status.code, "MESH-OK");
+assert.equal(l0status.op, "status");
+assert.equal(l0status.enabled, true);
+assert.deepEqual(l0status.bearers, ["suite-presence"]);
+assert.equal(l0status.get_never_enables, true);
+assert.equal(l0status.peer_bearers.layers.default, "L0");
+const l0enable = await runMeshOp("enable", { bearer: "suite-presence" }, {});
+assert.equal(l0enable.code, "MESH-OK");
+assert.equal(l0enable.op, "enable");
+assert.ok(l0enable.bearers.includes("suite-presence"));
 const armed = await runMeshOp("enable", { bearer: "suite-presence", hole_punch: true }, {});
 assert.equal(armed.code, NAT_REFUSE_CODE);
 
@@ -142,6 +190,33 @@ const cite = await relayCite();
 assert.equal(cite.health, "up");
 assert.equal(cite.peer_bearers.relay_fallback, true);
 assert.equal(cite.relay_sees_plaintext, false);
+
+const l0relay = await startRelayServer();
+const l0root = await mkdtemp(join(tmpdir(), "peer-bearers-l0-"));
+const l0alice = await startInstance({ dataDir: join(l0root, "alice"), relays: [l0relay.url] });
+const l0bob = await startInstance({ dataDir: join(l0root, "bob"), relays: [l0relay.url] });
+try {
+  const regA = await l0alice.register(l0relay.url);
+  const regB = await l0bob.register(l0relay.url);
+  assert.equal(regA.ok, true, regA.message);
+  assert.equal(regB.ok, true, regB.message);
+  assert.equal(regA.seq, 1);
+  const sent = await l0alice.send(l0relay.url, {
+    to: l0bob.handle,
+    enc_public_key: l0bob.enc_public_key,
+    plaintext: "l0-relay",
+  });
+  assert.equal(sent.ok, true, sent.message);
+  assert.equal(sent.hole_punch, false);
+  const pulled = await l0bob.pull(l0relay.url);
+  assert.equal(pulled.messages.length, 1);
+  assert.equal(await l0bob.open(pulled.messages[0].envelope), "l0-relay");
+} finally {
+  await l0alice.stop();
+  await l0bob.stop();
+  await l0relay.stop();
+  await rm(l0root, { recursive: true, force: true });
+}
 
 const down = "http://127.0.0.1:1/v1/mesh/relay";
 const relayA = await startRelayServer();

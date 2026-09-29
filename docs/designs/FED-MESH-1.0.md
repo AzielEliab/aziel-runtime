@@ -65,9 +65,23 @@ This Worker does not discover a LAN and does not run that grid. It accepts the l
 
 Direct transport on loopback or a configured LAN URL uses the same signed envelope as the relay. The relay is the fallback. This protocol does not punch holes through NAT. A peer with no public address uses a relay.
 
+### Layers
+
+This is a stack. It is not a fork. Unconfigured clients stay on L0.
+
+| Layer | Role | This change |
+| --- | --- | --- |
+| L0 | Default public path. Cloudflare Worker, FragGate as the single door, MCP / OpenAPI / Glama, Softwares 42, the HTTPS relay, and the human UI. | Must keep working. Not replaced. |
+| L1 | Optional peer bearers. A configured direct or LAN URL, extra relays, and `FED-MESH-NAT-REFUSE`. | Opt-in. Used when configured. Default behavior stays L0. |
+| L2 | Cap-7 mesh DNS / AZNet pairing. | Later. Not this paper's implementation. |
+| L3 | Home-origin. | Later. Additive. |
+| L4 | AZ-OS offline. | Later. Additive. |
+
+`peer_bearers.layers.default` is `L0`. `layers.fork` is false. `layers.L1.opt_in` is true. `layers.L1.replaces_l0` is false. `layers.sidenet_replaces_internet` is false. A sidenet does not replace the internet. `GET /v1/mesh` never enables. Softwares stay frozen.
+
 ### Bearer modes
 
-Three modes. Nothing else is claimed.
+Three modes. Nothing else is claimed. L1 advertises them. L0 does not require the direct or multi-relay paths.
 
 | Mode | When |
 | --- | --- |
