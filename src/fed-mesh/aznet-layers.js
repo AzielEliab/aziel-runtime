@@ -175,13 +175,19 @@ export function offlineNodePlan({ relay = "", online } = {}) {
   };
 }
 
-export function sidenetLayerCite() {
+export const AZNET_NAME = "AZnet";
+
+export function aznetLayerCite() {
   return {
+    name: AZNET_NAME,
+    slug: "aznet",
+    catalog_label: "AZNet",
+    same_software: true,
     model: "stack",
     fork: false,
     default: "L0",
     replaces_l0: false,
-    sidenet_replaces_internet: false,
+    aznet_replaces_internet: false,
     not_a_second_internet: true,
     public_icann: false,
     radio_phy: false,

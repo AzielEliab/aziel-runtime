@@ -7,7 +7,7 @@
  *   node qnm-node/offline-node.mjs --relay http://127.0.0.1:8780/v1/mesh/relay --data ./data/offline
  */
 
-import { offlineNodePlan } from "../src/fed-mesh/sidenet-layers.js";
+import { offlineNodePlan } from "../src/fed-mesh/aznet-layers.js";
 import { startInstance } from "../src/fed-mesh/instance.js";
 
 function arg(name, fallback = "") {

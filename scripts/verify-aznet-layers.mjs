@@ -8,18 +8,22 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { PUBLIC_MCP_TOOLS } from "../src/fraggate/codes.js";
-import { l2Cap7Stamp, l3Registry, l4AzosLayers, offlineNodePlan, sidenetLayerCite } from "../src/fed-mesh/sidenet-layers.js";
+import { l2Cap7Stamp, l3Registry, l4AzosLayers, offlineNodePlan, aznetLayerCite } from "../src/fed-mesh/aznet-layers.js";
 import { startRelayServer } from "../src/fed-mesh/local-http.js";
 import { PRODUCTS } from "../src/index.js";
 import { dispatchMeshHttp } from "../src/mesh.js";
 import { listSoftwareEntries } from "../src/software-catalog.js";
 
-const cite = sidenetLayerCite();
+const cite = aznetLayerCite();
 assert.equal(cite.default, "L0");
 assert.equal(cite.fork, false);
 assert.equal(cite.replaces_l0, false);
 assert.equal(cite.public_icann, false);
-assert.equal(cite.sidenet_replaces_internet, false);
+assert.equal(cite.name, "AZnet");
+assert.equal(cite.slug, "aznet");
+assert.equal(cite.catalog_label, "AZNet");
+assert.equal(cite.same_software, true);
+assert.equal(cite.aznet_replaces_internet, false);
 assert.equal(cite.get_never_enables, true);
 assert.equal(cite.softwares_count, 42);
 assert.equal(cite.doi, null);
@@ -105,19 +109,21 @@ assert.equal(mesh.body.code, "MESH-OK");
 assert.equal(mesh.body.enabled, true);
 assert.deepEqual(mesh.body.bearers, ["suite-presence"]);
 assert.equal(mesh.body.get_never_enables, true);
-assert.equal(mesh.body.sidenet_layers.default, "L0");
-assert.equal(mesh.body.sidenet_layers.L2.dns_publish, false);
-assert.equal(mesh.body.sidenet_layers.L2.public_icann, false);
-assert.equal(mesh.body.sidenet_layers.L3.home_origin.status, "slot");
-assert.equal(mesh.body.sidenet_layers.L3.cold_shelves.zenodo.doi, null);
-assert.equal(mesh.body.sidenet_layers.L4.full_os, false);
-assert.equal(mesh.body.sidenet_layers.L4.softwares_ui, false);
+assert.equal(mesh.body.aznet_layers.default, "L0");
+assert.equal(mesh.body.aznet_layers.L2.dns_publish, false);
+assert.equal(mesh.body.aznet_layers.L2.public_icann, false);
+assert.equal(mesh.body.aznet_layers.L3.home_origin.status, "slot");
+assert.equal(mesh.body.aznet_layers.L3.cold_shelves.zenodo.doi, null);
+assert.equal(mesh.body.aznet_layers.L4.full_os, false);
+assert.equal(mesh.body.aznet_layers.L4.softwares_ui, false);
 assert.equal(mesh.body.peer_bearers.survival.runtime.default, "L0");
 assert.equal(JSON.stringify(mesh.body).includes("framagit"), false);
+assert.equal(JSON.stringify(mesh.body).toLowerCase().includes("sidenet"), false);
+assert.equal(mesh.body.aznet_layers.name, "AZnet");
 
 const cards = listSoftwareEntries(PRODUCTS, "https://example.test");
 assert.equal(cards.length, 42);
-assert.equal(cards.every((card) => card.mesh && card.mesh.sidenet_layers == null), true);
+assert.equal(cards.every((card) => card.mesh && card.mesh.aznet_layers == null), true);
 assert.equal(PUBLIC_MCP_TOOLS.length, 36);
 
 const relay = await startRelayServer();
@@ -151,4 +157,4 @@ try {
   await rm(dir, { recursive: true, force: true });
 }
 
-console.log("verify-sidenet-layers: ok");
+console.log("verify-aznet-layers: ok");

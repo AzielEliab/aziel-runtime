@@ -3,7 +3,7 @@
  * L0 is the public path: Cloudflare Worker, FragGate, MCP/OpenAPI/Glama,
  * Softwares 42, the HTTPS relay, and the human UI.
  * L1 adds a configured direct/LAN URL and extra relays, and refuses NAT punch.
- * A sidenet does not replace the internet. No public ICANN DNS. No radio PHY.
+ * The product name is AZnet. AZnet does not replace the internet. No public ICANN DNS. No radio PHY.
  * Author: Aziel Eliab only.
  */
 
@@ -13,7 +13,7 @@ import {
   CODEBERG_TIP_PACK,
   REFUSE,
 } from "../cold-multi-shelf.js";
-import { sidenetLayerCite } from "./sidenet-layers.js";
+import { AZNET_NAME, aznetLayerCite } from "./aznet-layers.js";
 import { FED_SPEC } from "./spec.js";
 
 export const NAT_REFUSE_CODE = "FED-MESH-NAT-REFUSE";
@@ -84,7 +84,8 @@ export function layerStack() {
     fork: false,
     default: "L0",
     this_pr: "L1",
-    sidenet_replaces_internet: false,
+    name: AZNET_NAME,
+    aznet_replaces_internet: false,
     not_a_second_internet: true,
     get_never_enables: true,
     softwares_frozen: true,
@@ -147,9 +148,9 @@ export function peerBearerCite() {
     opt_in: true,
     replaces_l0: false,
     layers: layerStack(),
+    name: AZNET_NAME,
     not_a_second_internet: true,
-    sidenet: false,
-    sidenet_replaces_internet: false,
+    aznet_replaces_internet: false,
     public_icann: false,
     icann_dns: false,
     radio_phy: false,
@@ -164,7 +165,7 @@ export function peerBearerCite() {
     direct_transport: "same signed envelope on loopback or a configured LAN URL; relay is the fallback",
     modes: PEER_BEARER_MODES.map((mode) => ({ ...mode })),
     survival: survivalMethods(),
-    note: "L0 is the public path and stays the default. L1 peer bearers (relay HTTPS, a configured direct or LAN URL, loopback, extra relays) are opt-in. A peer with no public address and no configured direct URL uses the relay. This protocol does not punch holes through NAT. The Worker does not publish ICANN DNS and does not claim radio PHY without hardware. GET /v1/mesh never enables. A sidenet does not replace the internet. Survival methods are named beside L0. Only the Worker edge is LIVE by default. Cold shelves stay SLOT. doi is null.",
+    note: "L0 is the public path and stays the default. L1 peer bearers (relay HTTPS, a configured direct or LAN URL, loopback, extra relays) are opt-in. A peer with no public address and no configured direct URL uses the relay. This protocol does not punch holes through NAT. The Worker does not publish ICANN DNS and does not claim radio PHY without hardware. GET /v1/mesh never enables. AZnet does not replace the internet. Survival methods are named beside L0. Only the Worker edge is LIVE by default. Cold shelves stay SLOT. doi is null.",
   };
 }
 
@@ -342,7 +343,8 @@ export function survivalMethods(config = {}) {
     default_live: "cf-worker-edge",
     l0_live: true,
     l1_live: multiConfigured || directLive,
-    sidenet_replaces_internet: false,
+    name: AZNET_NAME,
+    aznet_replaces_internet: false,
     not_a_second_internet: true,
     get_never_enables: true,
     softwares_frozen: true,
@@ -355,8 +357,8 @@ export function survivalMethods(config = {}) {
     zenodo_live: false,
     runtime_is_shelf: false,
     methods,
-    runtime: sidenetLayerCite(),
-    note: "Methods are named so survival is not one unnamed tunnel. L0 stays the only default LIVE path. L1 is LIVE only when configured. Cap-7 DNS, home-origin, and cold shelves stay SLOT. Phoenix does not replace L0. A sidenet does not replace the internet.",
+    runtime: aznetLayerCite(),
+    note: "Methods are named so survival is not one unnamed tunnel. L0 stays the only default LIVE path. L1 is LIVE only when configured. Cap-7 DNS, home-origin, and cold shelves stay SLOT. Phoenix does not replace L0. AZnet does not replace the internet.",
   };
 }
 
@@ -371,8 +373,9 @@ export function natRefuse(message, extra = {}) {
     icann_dns: false,
     radio_phy: false,
     worker_hardware: false,
+    name: AZNET_NAME,
     not_a_second_internet: true,
-    sidenet: false,
+    aznet_replaces_internet: false,
     worker_is_one_relay: true,
     relay_fallback: true,
     get_never_enables: true,
@@ -386,7 +389,8 @@ export function natRefuse(message, extra = {}) {
     public_icann: false,
     radio_phy: false,
     not_a_second_internet: true,
-    sidenet_replaces_internet: false,
+    name: AZNET_NAME,
+    aznet_replaces_internet: false,
     replaces_l0: false,
     default_layer: "L0",
   };
@@ -502,8 +506,9 @@ function modeBody(mode, url, extra) {
     icann_dns: false,
     radio_phy: false,
     worker_hardware: false,
+    name: AZNET_NAME,
     not_a_second_internet: true,
-    sidenet: false,
+    aznet_replaces_internet: false,
     get_never_enables: true,
     ...extra,
   };
