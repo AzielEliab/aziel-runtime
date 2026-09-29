@@ -53,6 +53,7 @@ import {
   WITNESS_K,
   ZERO_HASH,
 } from "./spec.js";
+import { isNatPath, natRefuse, peerBearerCite } from "./bearers.js";
 
 const SECRET_KEYS = new Set(["private_key", "privatekey", "secret", "secret_key", "seed", "pkcs8", "enc_private_key"]);
 const EXEC_KEYS = new Set(["code", "wasm", "script", "contract", "smart_contract", "bytecode", "source"]);
@@ -610,6 +611,11 @@ export async function relayCite(state = defaultState) {
     ...FED_CITE,
     health: "up",
     health_check: "GET /v1/mesh/relay",
+    hole_punch: false,
+    public_icann: false,
+    radio_phy: false,
+    not_a_second_internet: true,
+    peer_bearers: peerBearerCite(),
     bootstrap_lists: Array.isArray(boot) ? boot.length : 0,
     limits: {
       msg_per_min: MSG_PER_MIN,
@@ -2232,6 +2238,10 @@ export async function dispatchRelay(method, pathname, body, state = defaultState
   const m = String(method || "GET").toUpperCase();
   const path = canonicalRelayPath(pathname);
   const now = opts.now || Date.now();
+  if (isNatPath(path)) {
+    const nat = natRefuse("This relay does not punch holes through NAT.");
+    return fail(nat.code, nat.message, nat);
+  }
   if (path === "/v1/mesh/relay" && (m === "GET" || m === "HEAD")) return relayCite(state);
   if (path === "/v1/mesh/relay/bootstrap" && (m === "GET" || m === "HEAD")) return relayBootstrapRead(state);
   if (path === "/v1/mesh/relay/directory" && (m === "GET" || m === "HEAD")) {
@@ -2288,6 +2298,10 @@ export async function runRelayOp(op, payload, env, opts = {}) {
   const state = opts.state || relayStateFor(env);
   const now = opts.now || Date.now();
   const body = payload && typeof payload === "object" ? payload : {};
+  if (op === "relay-hole-punch" || op === "relay-nat" || op === "relay-stun" || op === "relay-ice") {
+    const nat = natRefuse("This relay does not punch holes through NAT.");
+    return fail(nat.code, nat.message, nat);
+  }
   if (op === "relay-cite" || op === "relay") return relayCite(state);
   if (op === "relay-register") return relayRegister(state, body, now);
   if (op === "relay-heartbeat") return relayHeartbeat(state, body, now);

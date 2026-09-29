@@ -866,6 +866,7 @@ ${dashCards}
       </select>
     </div>
     <p class="hint">Join is first presence. Heartbeat / Leave need a node id. Heartbeat refreshes the 5-minute TTL. MESH-OFF refuses join/heartbeat/broadcast when transmission radios are not LIVE — GET will not turn them on. Channel plane is CITE-only. AnonBroadcast is not a product. VPN cite is FragGate <code>mesh/vpn</code> (AZVPN auto; never fake connected). Extra bearer is rate-limited; GET still never enables.</p>
+    <p class="hint" id="mesh-bearer-note">Peer bearers: relay HTTPS, a configured direct or LAN URL, and loopback. NAT hole-punch is refused (<code>FED-MESH-NAT-REFUSE</code>). Not public ICANN DNS. Not radio PHY. This Worker is one relay. GET <code>/v1/mesh/relay</code> is the health check and never enables.</p>
     <div class="field">
       <label for="mesh-bearer">Extra bearer (optional; GET never enables)</label>
       <input id="mesh-bearer" name="bearer" type="text" value="suite-presence" autocomplete="off" spellcheck="false">
@@ -1457,6 +1458,15 @@ export function humanDoorScript() {
       if (b.vpn === true) text += " · public VPN AZVPN auto";
       else if (b.vpn === false) text += " · vpn false";
       if (b.worker_hardware === false || (b.channel_plane && b.channel_plane.worker_hardware === false)) text += " · worker_hardware false";
+      let peers = b.peer_bearers;
+      if (peers && peers.hole_punch === false) {
+        text += " · bearers relay-https / direct-lan / loopback";
+        text += " · NAT hole-punch refused";
+        if (peers.public_icann === false) text += " · not ICANN DNS";
+        if (peers.radio_phy === false) text += " · not radio PHY";
+        if (peers.worker_is_one_relay === true) text += " · one relay";
+        if (peers.not_a_second_internet === true) text += " · not a second internet";
+      }
       if (b.nine_laws && b.nine_laws.hard_true === true) text += " · nine laws hard-true";
       if (line) {
         line.textContent = text;

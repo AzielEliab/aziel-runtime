@@ -423,7 +423,8 @@ ${survivalSkillMarkdown(base)}
 | GET | \`/v1/mesh/sot\` | SOT-SYNC-1.0 suite tip. Authority is GET /v1/software (suite version, git sha, Softwares count, card versions). version_id is the Cloudflare Worker version id when bound, otherwise null. Does not change Nodes or Live Nodes. |
 | GET | \`/v1/mesh/outlets\` | Outlet registry the mesh can address. Status ok / drifted / unreachable / unexposed. |
 | POST | \`/v1/mesh/sot-sync\` | Pull-plane sync. \`dry_run: true\` previews every outlet and the fields that would change. \`confirm: true\` applies, mints ACT-RECEIPT-1.0, and updates last_applied only where a write succeeded. Unreachable outlets keep last-known inventory. |
-| GET | \`/v1/mesh/relay\` | FED-MESH-1.0 Local-First Edge Mesh cite and relay health. Never enables. Never requires plaintext. |
+| GET | \`/v1/mesh/relay\` | FED-MESH-1.0 Local-First Edge Mesh cite and relay health. Peer bearers: relay HTTPS, direct/LAN URL, loopback. Never enables. Never requires plaintext. NAT hole-punch is refused. |
+| GET, POST | \`/v1/mesh/hole-punch\` | Refused \`FED-MESH-NAT-REFUSE\`. This protocol does not punch holes through NAT. GET never enables. Not public ICANN DNS. Not radio PHY. |
 | GET | \`/v1/mesh/relay/bootstrap\` | Signed bootstrap lists this relay has accepted. One source. A node still needs an address it already has. |
 | GET | \`/v1/mesh/relay/refs\` | Ref index for one handle (how objects connect). Does not return object bytes. |
 | GET | \`/v1/mesh/relay/object\` | Fetch one cached public object by hash. \`FED-MESH-NO-OBJECT\` when absent. Hash is checked on store. |
@@ -1789,7 +1790,7 @@ export function runtimeStaticPaths() {
       get: {
         operationId: "mesh_status",
         summary:
-          "QNM-BUILD-1.0 suite rollup (enabled?, bearers, nodes = human mesh users + cited human uses, live_nodes = human mesh users / presence, software_nodes = {slug}-worker roster). Read-only suite-presence ON by default. GET never enables radios beyond that. Channel plane (wifi / bluetooth / rf / photon) cites ON — live hardware on local qnm-node. Public VPN auto-binds AZVPN (vpn/public_vpn/tunnel_concentrator true; GET cites only). Nine QNM laws are hard-true (clocks_share_socket false, live_body_sync false, restore_godlock_uk false). OPERATOR-OVERRIDE 2026-09-17: node_gate true, get_is_node_gate true, auto_heal / implicit_heal true, neighbor_heal true, network on/true, anonymity_network true (mode flag), public VPN ON. NO-LIE / NO-REWRITE: receipts still hash; no rewrite key; never lie to survive. Not a login mesh. Not a login-recovery IP panel. Channel plane ≠ kernel VPN. Views/MCP/downloads do not enter QNM-S. Packet-transfer coding design is QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; GET /v1/qns cites only).",
+          "QNM-BUILD-1.0 suite rollup (enabled?, bearers, nodes = human mesh users + cited human uses, live_nodes = human mesh users / presence, software_nodes = {slug}-worker roster). Read-only suite-presence ON by default. GET never enables radios beyond that. Channel plane (wifi / bluetooth / rf / photon) cites ON — live hardware on local qnm-node. Public VPN auto-binds AZVPN (vpn/public_vpn/tunnel_concentrator true; GET cites only). Nine QNM laws are hard-true (clocks_share_socket false, live_body_sync false, restore_godlock_uk false). OPERATOR-OVERRIDE 2026-09-17: node_gate true, get_is_node_gate true, auto_heal / implicit_heal true, neighbor_heal true, network on/true, anonymity_network true (mode flag), public VPN ON. NO-LIE / NO-REWRITE: receipts still hash; no rewrite key; never lie to survive. Not a login mesh. Not a login-recovery IP panel. Channel plane ≠ kernel VPN. Views/MCP/downloads do not enter QNM-S. Packet-transfer coding design is QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; GET /v1/qns cites only). Peer bearers: relay-https, direct-lan, loopback. NAT hole-punch refuses FED-MESH-NAT-REFUSE. Not public ICANN DNS. Not radio PHY. Worker is one relay. Not a second internet.",
         tags: ["mesh"],
         responses: { "200": { description: "QNM rollup JSON" } },
       },
@@ -1957,9 +1958,23 @@ export function runtimeStaticPaths() {
       get: {
         operationId: "fed_mesh_relay_cite",
         summary:
-          "FED-MESH-1.0: Local-First Edge Mesh. Health check. Raw data, keys, and heavy compute stay on the local node. This relay carries signed receipts, digests, and ref updates. It never requires plaintext and never enables radios. One relay among many. A new node still needs one starting address.",
+          "FED-MESH-1.0: Local-First Edge Mesh. Health check. Raw data, keys, and heavy compute stay on the local node. This relay carries signed receipts, digests, and ref updates. It never requires plaintext and never enables radios. One relay among many. A new node still needs one starting address. Peer bearers: relay HTTPS, direct/LAN URL, loopback. NAT hole-punch refuses FED-MESH-NAT-REFUSE. Not public ICANN DNS. Not radio PHY.",
         tags: ["mesh"],
         responses: { "200": { description: "Relay cite. GET never enables." } },
+      },
+    },
+    "/v1/mesh/hole-punch": {
+      get: {
+        operationId: "mesh_hole_punch_get",
+        summary: "Refused FED-MESH-NAT-REFUSE. This protocol does not punch holes through NAT. GET never enables. Not public ICANN DNS. Not radio PHY. Not a second internet.",
+        tags: ["mesh"],
+        responses: { "403": { description: "NAT hole-punch refused." } },
+      },
+      post: {
+        operationId: "mesh_hole_punch_post",
+        summary: "Refused FED-MESH-NAT-REFUSE. Relay HTTPS, a configured direct or LAN URL, or loopback. The Worker is one relay.",
+        tags: ["mesh"],
+        responses: { "403": { description: "NAT hole-punch refused." } },
       },
     },
     "/v1/mesh/relay/bootstrap": {

@@ -121,6 +121,7 @@ import { CHANNEL_PLANE_NOTE, CHANNEL_PLANE_SPEC, channelPlaneFrame, channelPlane
 import { publicVpnCite } from "./public-vpn.js";
 import { ensureDefaultVpnSession, vpnAutoCite } from "./azvpn-auto.js";
 import { meshCallingNameAlert } from "./calling-name.js";
+import { isNatPath, natPunchRequest, natRefuse, peerBearerCite } from "./fed-mesh/bearers.js";
 import { fedPublicCounts, resetFedMesh, runRelayOp } from "./fed-mesh/relay.js";
 import { handleBody } from "./fed-mesh/codec.js";
 import { FED_SPEC, FED_TITLE } from "./fed-mesh/spec.js";
@@ -1230,6 +1231,37 @@ function baseResult(extra) {
   };
 }
 
+function natQueryRequest(searchParams) {
+  if (!searchParams || typeof searchParams.get !== "function") return null;
+  const q = {};
+  const hole = searchParams.get("hole_punch") || searchParams.get("nat_punch") || searchParams.get("punch");
+  if (hole != null && hole !== "" && hole !== "0" && hole !== "false") q.hole_punch = true;
+  const transport = searchParams.get("transport") || searchParams.get("bearer_mode");
+  if (transport) q.transport = transport;
+  const url = searchParams.get("url") || searchParams.get("direct");
+  if (url) q.url = url;
+  return natPunchRequest("", q);
+}
+
+function meshNatRefuse(op, nat) {
+  const body = nat && typeof nat === "object" ? nat : natRefuse();
+  return refuse(body.code || "FED-MESH-NAT-REFUSE", body.message, {
+    op: op || null,
+    hole_punch: false,
+    public_icann: false,
+    icann_dns: false,
+    radio_phy: false,
+    worker_hardware: false,
+    not_a_second_internet: true,
+    sidenet: false,
+    worker_is_one_relay: true,
+    relay_fallback: true,
+    get_never_enables: true,
+    peer_bearers: peerBearerCite(),
+    http_status: 403,
+  });
+}
+
 function refuse(code, message, extra = {}) {
   return {
     ok: false,
@@ -1359,6 +1391,11 @@ function statusFieldsSync(state, usesSignal = null, env) {
       "AZMail mesh_* stays product-local (anonymous mail ring). This surface is QNM rollup + read-only suite-presence, not that ring and not an account mesh.",
     suite_presence: SUITE_PRESENCE,
     get_never_enables: true,
+    peer_bearers: peerBearerCite(),
+    hole_punch: false,
+    nat_refuse: "FED-MESH-NAT-REFUSE",
+    worker_is_one_relay: true,
+    not_a_second_internet: true,
     fanout: "cron-or-request-path",
     join_is_presence_only: true,
     join_is_not_login: true,
@@ -1582,7 +1619,7 @@ ${ANON_BROADCAST_NOTE}
 
 NO-LIE / NO-REWRITE (**NO-LIE-NO-REWRITE-1.0**): receipts that still hash; copies not all on one tunnel; rules simple enough others verify without the author's voice; no rewrite key. The network is never allowed to lie — even to self-preserve, sustain, stay alive, adapt, or prevent death. Companion under **CROSS-NETWORK-SURVIVAL-1.0** (does not replace the machine tip). See \`docs/designs/NO-LIE-NO-REWRITE-1.0.md\`. Rewrite / lie verbs refuse \`MESH-NO-REWRITE\` / \`MESH-NO-LIE\`.
 
-**FED-MESH-1.0: Local-First Edge Mesh.** Raw data, signing keys, and heavy compute stay on the local node. By default the mesh carries signed receipts, state digests, and ref updates. Raw data moves only on an explicit end-to-end encrypted share. The Worker relay never requires plaintext. Each node is a \`#handle\` derived from its own Ed25519 key (11 Crockford characters of SHA-256 of the raw public key). The Worker is one relay. Any qnm-node may run the same relay. Message bodies are X25519 + HKDF-SHA-256 + AES-GCM ciphertext. The relay stores that ciphertext and the routing fields (handles, seq, keys, nonce). Receipt sentences stay public. A signed ref update is handle, ref name, object hash, previous ref hash, sequence, and signature. A signed \`.aziel\` name record is name, owner handle, target (content hash, ref, or node handle), sequence, previous record hash, expiry (\`null\` or a future time), and signature. \`<handle>.aziel\` is self-certifying. A friendly name carries proof-of-work and stays pending until 72 hours and 2 witness handles. The first valid final claim wins, with 3 user .aziel names per handle and 4 reserved hub-mirror slots. Transfer and release are signed by the current owner. The relay stores and serves that index and anchors it with ChainLock and TemporalLock. \`.az\` is normal DNS except the Cap-7 allowlist and the AZ.* hub names, which are cites, not name records. It does not need the object bytes. A small public object cache is capped at 4096 bytes each, 64 objects, and 64KiB, and a hash mismatch is refused. Peers fetch objects by hash. LAN discovery and offline work run on the local node. A later sync of rollups and ref updates is accepted when the chain is valid. A fork is refused. GET \`/v1/mesh/relay\` is the health check and never enables. A new node needs one relay address it already has. A signed bootstrap list on a relay is one source, not the only source. Peers with no public address use a relay. Direct loopback or a configured LAN URL carries the same envelope. Store-and-forward holds ciphertext for 24 hours under a per-handle quota. Tenant tasks and remote execution stay on local nodes. Private keys stay on the node. \`verified_handles\` counts distinct live handles (three keys are three nodes). \`nodes\` and \`live_nodes\` pills stay the suite rollup. \`software_nodes\` and downloads stay separate. Paper: \`docs/designs/FED-MESH-1.0.md\`.
+**FED-MESH-1.0: Local-First Edge Mesh.** Raw data, signing keys, and heavy compute stay on the local node. By default the mesh carries signed receipts, state digests, and ref updates. Raw data moves only on an explicit end-to-end encrypted share. The Worker relay never requires plaintext. Each node is a \`#handle\` derived from its own Ed25519 key (11 Crockford characters of SHA-256 of the raw public key). The Worker is one relay. Any qnm-node may run the same relay. Message bodies are X25519 + HKDF-SHA-256 + AES-GCM ciphertext. The relay stores that ciphertext and the routing fields (handles, seq, keys, nonce). Receipt sentences stay public. A signed ref update is handle, ref name, object hash, previous ref hash, sequence, and signature. A signed \`.aziel\` name record is name, owner handle, target (content hash, ref, or node handle), sequence, previous record hash, expiry (\`null\` or a future time), and signature. \`<handle>.aziel\` is self-certifying. A friendly name carries proof-of-work and stays pending until 72 hours and 2 witness handles. The first valid final claim wins, with 3 user .aziel names per handle and 4 reserved hub-mirror slots. Transfer and release are signed by the current owner. The relay stores and serves that index and anchors it with ChainLock and TemporalLock. \`.az\` is normal DNS except the Cap-7 allowlist and the AZ.* hub names, which are cites, not name records. It does not need the object bytes. A small public object cache is capped at 4096 bytes each, 64 objects, and 64KiB, and a hash mismatch is refused. Peers fetch objects by hash. LAN discovery and offline work run on the local node. A later sync of rollups and ref updates is accepted when the chain is valid. A fork is refused. GET \`/v1/mesh/relay\` is the health check and never enables. A new node needs one relay address it already has. A signed bootstrap list on a relay is one source, not the only source. Peers with no public address use a relay. Direct loopback or a configured LAN URL carries the same envelope. Peer bearer modes are relay HTTPS, direct/LAN URL, and loopback. NAT hole-punch refuses \`FED-MESH-NAT-REFUSE\`. Not public ICANN DNS. Not radio PHY. Not a second internet. A node may register with more than one relay; each relay keeps that handle's own sequence. A failed health check selects the next configured relay. Store-and-forward holds ciphertext for 24 hours under a per-handle quota. Tenant tasks and remote execution stay on local nodes. Private keys stay on the node. \`verified_handles\` counts distinct live handles (three keys are three nodes). \`nodes\` and \`live_nodes\` pills stay the suite rollup. \`software_nodes\` and downloads stay separate. Paper: \`docs/designs/FED-MESH-1.0.md\`.
 
 Author: Aziel Eliab only.
 `;
@@ -2186,6 +2223,8 @@ export async function runMeshOp(op, payload, env) {
   if (noLie) {
     return { ...refuse(noLie.code, noLie.message, { op: resolved }), ...noLie };
   }
+  const nat = natPunchRequest(resolved, src);
+  if (nat) return meshNatRefuse(resolved, nat);
   if (MESH_STUB_OPS.includes(resolved)) {
     return refuse(
       "MESH-STUB",
@@ -2253,6 +2292,8 @@ async function dispatchMeshHttpCore(method, pathname, payload, env, origin, sear
       if (nineGet) {
         return { status: 405, body: refuse(nineGet.code, nineGet.message, { path, method: m, law: nineGet.law, reason: nineGet.reason }) };
       }
+      const natQuery = natQueryRequest(searchParams);
+      if (natQuery) return { status: 403, body: meshNatRefuse("status", natQuery) };
       const body = await meshStatus(payload, env);
       return { status: 200, body };
     }
@@ -2328,6 +2369,9 @@ async function dispatchMeshHttpCore(method, pathname, payload, env, origin, sear
     }
     const body = await runMeshOp("sot-sync", { ...payload, origin }, env);
     return { status: body.ok === false ? body.http_status || 400 : 200, body };
+  }
+  if (isNatPath(path)) {
+    return { status: 403, body: meshNatRefuse(path, natRefuse()) };
   }
   if (path === "/v1/mesh/relay" || path.startsWith("/v1/mesh/relay/")) {
     if (

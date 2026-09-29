@@ -65,6 +65,24 @@ This Worker does not discover a LAN and does not run that grid. It accepts the l
 
 Direct transport on loopback or a configured LAN URL uses the same signed envelope as the relay. The relay is the fallback. This protocol does not punch holes through NAT. A peer with no public address uses a relay.
 
+### Bearer modes
+
+Three modes. Nothing else is claimed.
+
+| Mode | When |
+| --- | --- |
+| `relay-https` | An `https` relay URL the node already has. This Worker is one such relay. |
+| `direct-lan` | A configured LAN URL (`10/8`, `172.16/12`, `192.168/16`, link-local, `.local`) or a configured `https` direct URL the node already has. This Worker does not discover a LAN. |
+| `loopback` | `127.0.0.1`, `localhost`, or `::1`. Tests and a local node. The Worker never fetches `127.0.0.1`. |
+
+`GET /v1/mesh` and `GET /v1/mesh/relay` expose `peer_bearers`. `hole_punch` is false. `public_icann` is false. `radio_phy` is false. `not_a_second_internet` is true. `GET` never enables.
+
+An ask to punch (op or path `hole-punch` / `nat` / `stun`, body `hole_punch: true`, or a `stun:` / `turn:` / `nat:` URL) refuses `FED-MESH-NAT-REFUSE`. Cleartext to a public host refuses the same way. That refusal does not open a bearer and does not turn radios on.
+
+A node may register with more than one relay. Each relay keeps that handle's own sequence. `GET /v1/mesh/relay` is the health check. A failed check selects the next configured relay. Direct delivery is tried first when a direct URL is configured; a down direct URL falls back to the next healthy relay. A NAT refusal does not fall back into a pretend path.
+
+This is not public ICANN DNS and not radio PHY. Cap-7 publish stays out of this layer.
+
 ## 5. Git-like content model
 
 Objects are content-addressed. The object hash is SHA-256 of the raw bytes, lowercase hex.
