@@ -866,6 +866,7 @@ ${dashCards}
       </select>
     </div>
     <p class="hint">Join is first presence. Heartbeat / Leave need a node id. Heartbeat refreshes the 5-minute TTL. MESH-OFF refuses join/heartbeat/broadcast when transmission radios are not LIVE — GET will not turn them on. Channel plane is CITE-only. AnonBroadcast is not a product. VPN cite is FragGate <code>mesh/vpn</code> (AZVPN auto; never fake connected). Extra bearer is rate-limited; GET still never enables.</p>
+    <p class="hint" id="mesh-bearer-note">L0 stays the public path: this Worker, FragGate, and the HTTPS relay. Optional L1 peer bearers (a configured direct or LAN URL, and extra relays) run only when configured. NAT hole-punch is refused (<code>FED-MESH-NAT-REFUSE</code>). L1 does not replace L0. Survival methods are named on status: L0 is LIVE; L1 is LIVE only when configured; Cap-7, home-origin, and cold shelves stay SLOT. Phoenix is local wait / re-seal. No invented DOI. AZnet does not replace the internet. Not public ICANN DNS. Not radio PHY. L2–L4 are cites and do not replace L0. GET <code>/v1/mesh/relay</code> is the health check and never enables.</p>
     <div class="field">
       <label for="mesh-bearer">Extra bearer (optional; GET never enables)</label>
       <input id="mesh-bearer" name="bearer" type="text" value="suite-presence" autocomplete="off" spellcheck="false">
@@ -1457,6 +1458,25 @@ export function humanDoorScript() {
       if (b.vpn === true) text += " · public VPN AZVPN auto";
       else if (b.vpn === false) text += " · vpn false";
       if (b.worker_hardware === false || (b.channel_plane && b.channel_plane.worker_hardware === false)) text += " · worker_hardware false";
+      let peers = b.peer_bearers;
+      if (peers && peers.hole_punch === false) {
+        text += " · bearers relay-https / direct-lan / loopback";
+        text += " · NAT hole-punch refused";
+        if (peers.public_icann === false) text += " · not ICANN DNS";
+        if (peers.radio_phy === false) text += " · not radio PHY";
+        if (peers.worker_is_one_relay === true) text += " · one relay";
+        if (peers.name === "AZnet" && peers.aznet_replaces_internet === false) text += " · AZnet";
+        if (peers.not_a_second_internet === true) text += " · not a second internet";
+        if (peers.layers && peers.layers.default === "L0") text += " · L0 default";
+        if (peers.layers && peers.layers.L1 && peers.layers.L1.opt_in === true && peers.layers.L1.replaces_l0 === false) text += " · L1 opt-in";
+        let menu = peers.survival;
+        if (menu && menu.l0_live === true && menu.l1_live === false && menu.doi === null && menu.do_not_paint_slot_as_live === true) {
+          text += " · survival L0 live, L1 when configured, shelves SLOT, doi null";
+        }
+        if (peers.layers && peers.layers.L2 && peers.layers.L2.dns_publish === false && peers.layers.L4 && peers.layers.L4.full_os === false) {
+          text += " · L2–L4 cite only";
+        }
+      }
       if (b.nine_laws && b.nine_laws.hard_true === true) text += " · nine laws hard-true";
       if (line) {
         line.textContent = text;

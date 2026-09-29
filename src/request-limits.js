@@ -84,7 +84,13 @@ export function requestLimitKind(pathname, method) {
       path === "/v1/mesh/relay/airgap" ||
       path === "/v1/mesh/relay/restore" ||
       path === "/v1/mesh/relay/isolation" ||
-      path === "/v1/mesh/relay/appeal")
+      path === "/v1/mesh/relay/appeal" ||
+      path === "/v1/mesh/hole-punch" ||
+      path === "/v1/mesh/nat" ||
+      path === "/v1/mesh/stun" ||
+      path === "/v1/mesh/relay/hole-punch" ||
+      path === "/v1/mesh/relay/nat" ||
+      path === "/v1/mesh/relay/stun")
   ) {
     return "mesh_mutate";
   }
