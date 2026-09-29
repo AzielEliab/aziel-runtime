@@ -1185,6 +1185,14 @@ export const SUITE_DESIGNS = Object.freeze([
     kind: "law",
   },
   {
+    id: "ORIGIN-CUTOVER-1.0",
+    file: "ORIGIN-CUTOVER-1.0.md",
+    one_line:
+      "Home-origin / mini-PC path stays SLOT and serves AZNet (sidenet is AZNet, not a separate brand; L0 unbroken; no rented DNS, no live DNS change, not deposited). Live CF hubs stay. Phoenix is local wait / REHEAL-1.0. Independent live count stays 1",
+    status: "live",
+    kind: "law",
+  },
+  {
     id: "BAN-SURVIVAL-1.0",
     file: "BAN-SURVIVAL-1.0.md",
     one_line:

@@ -72,6 +72,8 @@ hostname resurrection.
 
 **SPORE-1.0** is the last-resort failsafe under this umbrella (layer 3 after live fronts and cold-shelf mutual backup — not a replacement for those layers): no electricity pauses execution. Metabolism stops. DNA (ChainLock / AKM / receipts) stays on cold shelves + local nodes + tip packs. Resume on power is forward-only. Plane B/C stay SLOT until attested. Physical wipe only. Paper: [SPORE-1.0](SPORE-1.0.md).
 
+**ORIGIN-CUTOVER-1.0** is the AZNet home-origin cite under this umbrella: a mini-PC path layered beside the live Cloudflare hubs. Survival layers serve AZNet (AZN-WP-0.1). sidenet means AZNet; there is no separate sidenet brand. L0 stays unbroken. The path stays SLOT (no rented DNS, no live DNS change, not deposited). It is not a sixth published surface and does not meet the ≥3 independent-shelf requirement. Phoenix stays local wait / REHEAL-1.0, not public hostname resurrection. Paper: [ORIGIN-CUTOVER-1.0](ORIGIN-CUTOVER-1.0.md).
+
 Companion papers already on this runtime (cross-link, do not rewrite):
 
 - DIE-WITH-PULL — [TUN-WP-0.1](TUN-WP-0.1.md), [NODE-OPS-1.0](NODE-OPS-1.0.md), [QNM-WP-1.0](QNM-WP-1.0.md)

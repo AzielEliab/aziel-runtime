@@ -15,6 +15,7 @@ import { AUTHOR_ID, AUTHOR_NAME } from "./seo.js";
 import { CROSS_NETWORK_SURVIVAL, SURVIVAL_TIP } from "./cross-network-survival.js";
 import { NO_LIE_DOCS, NO_LIE_SPEC } from "./no-lie.js";
 import { LAMB_LENS_AUTHOR, LAMB_LENS_POLICY, LAMB_LENS_VERSION } from "./lamblens.js";
+import { AZNET_SLUG, L0, NAMING_LOCK } from "./origin-cutover.js";
 
 export const SPORE = "SPORE-1.0";
 export const SPORE_AUTHOR = AUTHOR_NAME;
@@ -81,7 +82,7 @@ export const RE_COLD_STORE = Object.freeze({
 
 export function survivalStackCite() {
   return SURVIVAL_STACK.map((row) => {
-    const out = { ...row };
+    const out = { ...row, serves: AZNET_SLUG };
     if (row.includes) out.includes = row.includes.slice();
     return out;
   });
@@ -222,6 +223,9 @@ export function sporeCite(env, extras = {}) {
     cold_shelves_intact: true,
     mutual_backup_intact: true,
     faces: SPORE_FACES.slice(),
+    serves: AZNET_SLUG,
+    naming_lock: NAMING_LOCK,
+    l0: L0,
     stack: survivalStackCite(),
     re_cold_store: reColdStoreCite(),
     dna: { ...SPORE_DNA },
