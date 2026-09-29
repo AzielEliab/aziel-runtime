@@ -178,7 +178,7 @@ Plane A LIVE: 5 published surfaces (4 CF hubs + GitHub) / 2 family radii. One in
 
 ### Home origin (ORIGIN-CUTOVER-1.0)
 
-Sidenet P3. A mini-PC path beside the live Cloudflare hubs. Status SLOT: no rented DNS, no live DNS change, no deposited bytes, no invented hostname or IP. Phoenix is local wait (REHEAL-1.0), not a public hostname coming back. Independent live count stays 1. Softwares stay frozen. Paper: [ORIGIN-CUTOVER-1.0](docs/designs/ORIGIN-CUTOVER-1.0.md).
+AZNet P3. Survival layers serve AZNet (`aznet`, AZN-WP-0.1). sidenet is that side-net, not a separate brand. L0 stays unbroken. A mini-PC path beside the live Cloudflare hubs stays SLOT: no rented DNS, no live DNS change, no deposited bytes, no invented hostname or IP. Phoenix is local wait (REHEAL-1.0), not a public hostname coming back. Independent live count stays 1. Softwares stay frozen. Paper: [ORIGIN-CUTOVER-1.0](docs/designs/ORIGIN-CUTOVER-1.0.md).
 
 ### Cap-7 semantic bridge (not ICANN)
 

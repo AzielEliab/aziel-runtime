@@ -1,5 +1,5 @@
 /**
- * ORIGIN-CUTOVER-1.0: Sidenet P3 home-origin stays SLOT.
+ * ORIGIN-CUTOVER-1.0: home-origin stays SLOT and serves AZNet.
  * Live CF hubs are not retargeted. Phoenix is local. REHEAL is cited.
  * Author: Aziel Eliab only.
  */
@@ -8,9 +8,14 @@ import { readFileSync } from "node:fs";
 import { PUBLIC_MCP_TOOLS } from "../src/fraggate/codes.js";
 import { SUITE_DESIGNS } from "../src/seo.js";
 import { REHEAL } from "../src/reheal.js";
+import { SPEC as AZNET_ENGINE_SPEC, ROLE as AZNET_ROLE } from "../src/engines/aznet/engine.js";
+import { survivalStackCite } from "../src/spore.js";
 import {
+  AZNET_SLUG,
   HOME_ORIGIN_ID,
   HOME_ORIGIN_SHELF,
+  L0,
+  NAMING_LOCK,
   ORIGIN_CUTOVER,
   ORIGIN_CUTOVER_DOCS,
   PHOENIX_REHEAL_CITE,
@@ -37,6 +42,12 @@ const survivalPaper = readFileSync(new URL("../docs/designs/CROSS-NETWORK-SURVIV
 
 assert.equal(ORIGIN_CUTOVER, "ORIGIN-CUTOVER-1.0");
 assert.match(paper, /^# ORIGIN-CUTOVER-1\.0/m);
+assert.match(paper, /sidenet means AZNet/);
+assert.match(paper, /no separate sidenet brand/);
+assert.match(paper, /L0/);
+assert.match(paper, /unbroken/);
+assert.match(paper, /AZN-WP-0\.1/);
+assert.doesNotMatch(paper, /Sidenet P3/);
 assert.match(paper, /Author: Aziel Eliab only/);
 assert.match(paper, /https:\/\/www\.azieleliab\.com\/#aziel/);
 assert.match(paper, /REHEAL-1\.0/);
@@ -72,6 +83,18 @@ assert.equal(HOME_ORIGIN_SHELF.doi, null);
 assert.equal(HOME_ORIGIN_SHELF.breaks_live_cf_hubs, false);
 assert.equal(HOME_ORIGIN_SHELF.published_surface, false);
 assert.equal(HOME_ORIGIN_SHELF.software_tab, false);
+assert.equal(NAMING_LOCK.sidenet, AZNET_SLUG);
+assert.equal(NAMING_LOCK.separate_brand, false);
+assert.equal(NAMING_LOCK.serves, "aznet");
+assert.equal(L0.status, "unbroken");
+assert.equal(L0.spec, "AZN-WP-0.1");
+assert.equal(L0.hosts_payloads, false);
+assert.equal(L0.changed_by_origin_cutover, false);
+assert.equal(AZNET_ENGINE_SPEC, "AZN-WP-0.1");
+assert.equal(AZNET_ROLE, "silent verification side-net");
+assert.equal(HOME_ORIGIN_SHELF.serves, "aznet");
+assert.equal(HOME_ORIGIN_SHELF.layer, "aznet-p3");
+assert.equal(HOME_ORIGIN_SHELF.l0, "unbroken");
 assert.equal(HOME_ORIGIN_SHELF.reheal, REHEAL);
 assert.equal(HOME_ORIGIN_SHELF.neighbor_phoenix, false);
 assert.equal(HOME_ORIGIN_SHELF.phoenix_local_only, true);
@@ -107,6 +130,10 @@ assert.equal(registry.breaks_live_cf_hubs, false);
 assert.equal(PHOENIX_REHEAL_CITE.reheal, REHEAL);
 
 const cite = originCutoverCite();
+assert.equal(cite.serves, "aznet");
+assert.equal(cite.naming_lock.sidenet, "aznet");
+assert.equal(cite.naming_lock.separate_brand, false);
+assert.equal(cite.l0.status, "unbroken");
 assert.equal(cite.status, "slot");
 assert.equal(cite.dns_rented, false);
 assert.equal(cite.deposited, false);
@@ -135,6 +162,9 @@ assert.equal(judgeHomeOrigin({ neighbor_phoenix: true }).reason, REFUSE.PHOENIX_
 assert.equal(judgeHomeOrigin({ resurrect_hostname: true }).phoenix_local_only, true);
 assert.equal(judgeHomeOrigin({ vote_to_fix: true }).reason, REFUSE.NO_NEIGHBOR_HEAL);
 assert.equal(judgeHomeOrigin({ vote_to_fix: true }).reheal, REHEAL);
+assert.equal(judgeHomeOrigin({ separate_sidenet_brand: true }).reason, REFUSE.NO_SIDENET_BRAND);
+assert.equal(judgeHomeOrigin({ break_l0: true }).reason, REFUSE.L0_UNBROKEN);
+assert.equal(judgeHomeOrigin({ rename_aznet: true }).breaks_live_cf_hubs, false);
 
 const origin = "https://aziel-runtime.example";
 const shelves = shelvesDoc(origin);
@@ -171,6 +201,19 @@ assert.equal(httpShelves.registry.planes.C.status, "slot");
 
 const httpSurvival = await (await get("/survival")).json();
 assert.equal(httpSurvival.origin_cutover.status, "slot");
+assert.equal(httpSurvival.origin_cutover.serves, "aznet");
+assert.equal(httpSurvival.origin_cutover.l0.status, "unbroken");
+assert.equal(httpSurvival.spore.l0.status, "unbroken");
+assert.equal(httpSurvival.spore.naming_lock.separate_brand, false);
+assert.deepEqual(
+  httpSurvival.survival_stack.map((row) => row.id),
+  ["live-fronts", "cold-shelves", "spore"],
+);
+assert.ok(httpSurvival.survival_stack.every((row) => row.serves === "aznet"));
+assert.deepEqual(
+  survivalStackCite().map((row) => row.id),
+  ["live-fronts", "cold-shelves", "spore"],
+);
 assert.equal(httpSurvival.origin_cutover.breaks_live_cf_hubs, false);
 assert.equal(httpSurvival.survival_registry.honest, true);
 assert.equal(httpSurvival.survival_registry.independent_requirement_met, false);
@@ -186,11 +229,14 @@ assert.ok(citeJson.designs.papers.some((p) => p.id === ORIGIN_CUTOVER && p.kind 
 
 const software = await (await get("/v1/software")).json();
 assert.equal(software.count, 42);
+assert.ok(software.software.some((p) => p.slug === "aznet"));
 assert.ok(!software.software.some((p) => p.slug === "origin-cutover" || p.slug === "sidenet" || p.slug === "home-origin"));
 
 const llms = await (await get("/llms.txt")).text();
 assert.match(llms, /ORIGIN-CUTOVER-1\.0/);
 assert.match(llms, /home-origin/);
+assert.match(llms, /sidenet means AZNet/);
+assert.match(llms, /L0 stays unbroken/);
 assert.match(llms, /SLOT/);
 assert.match(llms, /REHEAL-1\.0/);
 assert.match(llms, /phoenix-WAIT/);

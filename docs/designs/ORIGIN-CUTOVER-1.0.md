@@ -1,4 +1,4 @@
-# ORIGIN-CUTOVER-1.0 — Sidenet P3 home-origin / mini-PC
+# ORIGIN-CUTOVER-1.0 — AZNet home-origin / mini-PC
 
 Author: Aziel Eliab only.
 
@@ -12,7 +12,9 @@ Aziel Eliab · law · layered · no DNS rent
 
 
     ORIGIN-CUTOVER-1.0
-    Sidenet P3. Home-origin / mini-PC path stays SLOT.
+    AZNet P3. Home-origin / mini-PC path stays SLOT.
+    sidenet means AZNet. Survival layers serve AZNet.
+    No separate sidenet brand. L0 stays unbroken.
     Live Cloudflare hubs stay. LIVE only after hash verify.
     SLOT when not deposited. Phoenix is local wait.
 
@@ -22,10 +24,16 @@ Aziel Eliab · law · layered · no DNS rent
 
 
 0. Sentence
-Sidenet P3 is a layered home-origin path for a mini-PC. It does not replace
-the live Cloudflare hubs, does not rent DNS, and does not change live DNS.
-The path is SLOT until bytes are deposited and hash-verify. Phoenix does not
-bring a public hostname back.
+Naming lock: sidenet means AZNet (AZN-WP-0.1, slug `aznet`). Survival layers
+serve AZNet. There is no separate sidenet brand. L0 is that existing AZNet
+side-net and stays unbroken: silent verification, hashes only, no payload
+host. This paper does not rename L0, replace its Softwares card, or change
+its FragGate ops.
+
+AZNet P3 is a layered home-origin path for a mini-PC that serves AZNet. It
+does not replace the live Cloudflare hubs, does not rent DNS, and does not
+change live DNS. The path is SLOT until bytes are deposited and hash-verify.
+Phoenix does not bring a public hostname back.
 
 1. What was investigated
 Hub and corpus trees were checked for `docs/origin-cutover` and
@@ -106,7 +114,8 @@ the mini-PC. Die-with-pull still stands: a pulled name has nowhere legal
 to land. Pointing DNS at a house to “bring the hub back” is refused.
 
 5. What this is not
-- Not a Softwares-tab product. Do not add slug `origin-cutover` or `sidenet`.
+- Not a Softwares-tab product. Do not add slug `origin-cutover` or `sidenet`. AZNet (`aznet`) stays the existing side-net card.
+- Not a break of L0. AZNet AZN-WP-0.1 stays unbroken.
 - Not a FragGate engine. No `fraggate_call` for this paper.
 - Not a new MCP tool. `PUBLIC_MCP_TOOLS` stays frozen. Softwares stay frozen.
 - Not a DNS change. Not a rented domain. Not a home IP publish.
@@ -128,6 +137,8 @@ This runtime cites that registry and adds the SLOT home-origin row. It does
 not invent a second tip.
 
 7. Close tests
+- Naming lock: sidenet means AZNet (`aznet`, AZN-WP-0.1). `separate_brand` is false.
+- L0 status is `unbroken`. AZNet still does not host payloads.
 - Home-origin status is `slot`. `hash_verify` is null. `deposited` is false.
 - `dns_rented` is false. `live_dns_changed` is false. `hostname` and `ip` are null.
 - `breaks_live_cf_hubs` is false. `published_surface` is false.

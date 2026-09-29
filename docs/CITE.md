@@ -124,7 +124,7 @@ This Worker is the same Plane A tunnel. Paper: [COLD-MULTI-SHELF-1.0](designs/CO
 
 ## Home origin (ORIGIN-CUTOVER-1.0)
 
-Sidenet P3 home-origin / mini-PC path is SLOT. No rented DNS. No live DNS change. No hostname or IP is on file. Not deposited (`hash_verify` null). Live Cloudflare hubs stay. Phoenix is local wait (REHEAL-1.0), not public hostname resurrection. ≥3 independent shelves stays unmet. Machine fields: `/cite.json` `shelves.origin_cutover` · `shelves.survival_registry` · `GET /shelves` · `GET /survival`. Paper: [ORIGIN-CUTOVER-1.0](designs/ORIGIN-CUTOVER-1.0.md). Checklist: [`tools/cold_shelf/HOME-ORIGIN-MINI-PC.md`](../tools/cold_shelf/HOME-ORIGIN-MINI-PC.md). Softwares stay frozen. No new MCP tool.
+AZNet P3 home-origin / mini-PC path is SLOT and serves AZNet (`aznet`, AZN-WP-0.1). Naming lock: sidenet means AZNet; there is no separate sidenet brand. L0 stays unbroken. No rented DNS. No live DNS change. No hostname or IP is on file. Not deposited (`hash_verify` null). Live Cloudflare hubs stay. Phoenix is local wait (REHEAL-1.0), not public hostname resurrection. ≥3 independent shelves stays unmet. Machine fields: `/cite.json` `shelves.origin_cutover` · `shelves.survival_registry` · `GET /shelves` · `GET /survival`. Paper: [ORIGIN-CUTOVER-1.0](designs/ORIGIN-CUTOVER-1.0.md). Checklist: [`tools/cold_shelf/HOME-ORIGIN-MINI-PC.md`](../tools/cold_shelf/HOME-ORIGIN-MINI-PC.md). Softwares stay frozen. No new MCP tool.
 
 ## Survival tip (CROSS-NETWORK-SURVIVAL-1.0)
 

@@ -1,7 +1,8 @@
-# Sidenet P3 — home-origin / mini-PC (SLOT)
+# AZNet P3 — home-origin / mini-PC (SLOT)
 
 Author: Aziel Eliab only.
-Spec: ORIGIN-CUTOVER-1.0 · COLD-MULTI-SHELF-1.0 · CROSS-NETWORK-SURVIVAL-1.0 · REHEAL-1.0
+Spec: ORIGIN-CUTOVER-1.0 · AZN-WP-0.1 · COLD-MULTI-SHELF-1.0 · CROSS-NETWORK-SURVIVAL-1.0 · REHEAL-1.0
+Serves: **AZNet** (`aznet`). sidenet means AZNet. There is no separate sidenet brand. L0 stays unbroken.
 Status: **SLOT**. Not deposited. No operator facts on file.
 
 This checklist scaffolds a later mini-PC copy. It does not rent DNS, does not

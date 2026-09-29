@@ -1,5 +1,9 @@
 /**
- * ORIGIN-CUTOVER-1.0 — Sidenet P3 home-origin / mini-PC path.
+ * ORIGIN-CUTOVER-1.0 — AZNet home-origin / mini-PC path (phase P3).
+ *
+ * Naming lock: sidenet means AZNet (AZN-WP-0.1, slug aznet). Survival
+ * layers serve that product. There is no separate sidenet brand.
+ * L0 is the existing AZNet side-net and stays unbroken.
  *
  * Layered beside the live Cloudflare hubs. This module does not rent DNS,
  * does not change live DNS, and does not mark a shelf LIVE without a
@@ -8,7 +12,7 @@
  * Phoenix is local wait / re-seal (REHEAL-1.0). It does not resurrect a
  * pulled public hostname and neighbors do not phoenix because a neighbor did.
  *
- * Author: Aziel Eliab only. Not a Softwares-tab product. Not a FragGate slug.
+ * Author: Aziel Eliab only. Not a second Softwares card. Not a FragGate slug.
  */
 
 import { REHEAL, REHEAL_ALLOWED, REHEAL_LAW } from "./reheal.js";
@@ -17,8 +21,36 @@ export const ORIGIN_CUTOVER = "ORIGIN-CUTOVER-1.0";
 export const ORIGIN_CUTOVER_AUTHOR = "Aziel Eliab";
 export const ORIGIN_CUTOVER_DOCS = "docs/designs/ORIGIN-CUTOVER-1.0.md";
 export const HOME_ORIGIN_CHECKLIST = "tools/cold_shelf/HOME-ORIGIN-MINI-PC.md";
-export const SIDENET_PHASE = "P3";
+export const AZNET_SPEC = "AZN-WP-0.1";
+export const AZNET_SLUG = "aznet";
+export const AZNET_DISPLAY = "AZNet";
+export const AZNET_PHASE = "P3";
 export const HOME_ORIGIN_ID = "home-origin-mini-pc";
+
+/** sidenet is AZNet. Not a second product name. */
+export const NAMING_LOCK = Object.freeze({
+  sidenet: AZNET_SLUG,
+  display: AZNET_DISPLAY,
+  spec: AZNET_SPEC,
+  separate_brand: false,
+  serves: AZNET_SLUG,
+  phase: AZNET_PHASE,
+});
+
+/** L0 is the live AZNet side-net. Survival layers serve it and do not replace it. */
+export const L0 = Object.freeze({
+  layer: 0,
+  id: AZNET_SLUG,
+  spec: AZNET_SPEC,
+  display: AZNET_DISPLAY,
+  role: "silent verification side-net",
+  status: "unbroken",
+  hosts_payloads: false,
+  software_tab: true,
+  changed_by_origin_cutover: false,
+  note:
+    "L0 is the existing AZNet product (AZN-WP-0.1). Survival layers serve it. This cite does not rename, replace, or retarget L0.",
+});
 
 export const REFUSE = Object.freeze({
   NO_DNS_RENT: "OC-NO-DNS-RENT",
@@ -31,6 +63,8 @@ export const REFUSE = Object.freeze({
   NO_NEIGHBOR_HEAL: "MESH-NO-NEIGHBOR-HEAL",
   ZENODO_NOT_LIVE: "CNS-ZENODO-NOT-LIVE",
   NO_TIP_DOI: "CNS-NO-TIP-DOI",
+  NO_SIDENET_BRAND: "OC-NO-SIDENET-BRAND",
+  L0_UNBROKEN: "OC-L0-UNBROKEN",
 });
 
 export const PHOENIX_REHEAL_CITE = Object.freeze({
@@ -52,7 +86,10 @@ export const PHOENIX_REHEAL_CITE = Object.freeze({
 export const HOME_ORIGIN_SHELF = Object.freeze({
   id: HOME_ORIGIN_ID,
   plane: null,
-  layer: "sidenet-p3",
+  layer: "aznet-p3",
+  serves: AZNET_SLUG,
+  naming_lock: NAMING_LOCK,
+  l0: "unbroken",
   kind: "other",
   status: "slot",
   url: null,
@@ -81,7 +118,7 @@ export const HOME_ORIGIN_SHELF = Object.freeze({
   also: Object.freeze([REFUSE.NOT_DEPOSITED, REFUSE.NO_OPERATOR_FACTS, REFUSE.NO_DNS_RENT, REFUSE.NO_LIVE_DNS_CHANGE]),
   checklist: HOME_ORIGIN_CHECKLIST,
   reason:
-    "Sidenet P3 home-origin / mini-PC path is SLOT. No operator hostname, no home IP, no rented DNS, no live DNS change, and no deposited bytes in this repo. " +
+    "AZNet P3 home-origin / mini-PC path is SLOT and serves AZNet. sidenet is not a separate brand. L0 stays unbroken. No operator hostname, no home IP, no rented DNS, no live DNS change, and no deposited bytes in this repo. " +
     "LIVE only after hash verify. Does not replace or retarget the live Cloudflare hubs. Not a sixth published surface.",
 });
 
@@ -170,6 +207,12 @@ export function judgeHomeOrigin(input) {
       vote_to_fix: false,
     };
   }
+  if (flagOn(src, ["separate_sidenet_brand", "sidenet_brand", "new_sidenet_product"])) {
+    return refused(REFUSE.NO_SIDENET_BRAND, "sidenet means AZNet. Survival layers serve AZNet. Do not mint a second brand.");
+  }
+  if (flagOn(src, ["break_l0", "replace_aznet", "rename_aznet"])) {
+    return refused(REFUSE.L0_UNBROKEN, "AZNet L0 stays unbroken. Survival layers serve it and do not replace it.");
+  }
   if (src.status === "live" || flagOn(src, ["claim_live", "mark_live", "promote_live"])) {
     return refused(
       REFUSE.HOME_ORIGIN_SLOT,
@@ -202,7 +245,10 @@ export function originCutoverCite() {
     spec: ORIGIN_CUTOVER,
     author: ORIGIN_CUTOVER_AUTHOR,
     identity: ORIGIN_CUTOVER_AUTHOR,
-    sidenet: SIDENET_PHASE,
+    serves: AZNET_SLUG,
+    naming_lock: NAMING_LOCK,
+    l0: L0,
+    phase: AZNET_PHASE,
     layer: "home-origin",
     status: "slot",
     paper: ORIGIN_CUTOVER_DOCS,
@@ -230,7 +276,7 @@ export function originCutoverCite() {
     zenodo_live: false,
     phoenix_reheal: PHOENIX_REHEAL_CITE,
     note:
-      "Sidenet P3 home-origin / mini-PC path is SLOT. No hub docs/origin-cutover deposit was found, and this repo holds no operator hostname, IP, tunnel token, or rented DNS name. " +
+      "AZNet P3 home-origin / mini-PC path is SLOT and serves AZNet (AZN-WP-0.1). sidenet means AZNet; there is no separate sidenet brand. L0 stays unbroken. No hub docs/origin-cutover deposit was found, and this repo holds no operator hostname, IP, tunnel token, or rented DNS name. " +
       "Live Cloudflare hubs stay the public origins. LIVE only after hash verify. SLOT when not deposited.",
   };
 }
@@ -242,7 +288,10 @@ export function originCutoverCite() {
 export function homeOriginScaffold() {
   return {
     spec: ORIGIN_CUTOVER,
-    sidenet: SIDENET_PHASE,
+    serves: AZNET_SLUG,
+    naming_lock: NAMING_LOCK,
+    l0: L0,
+    phase: AZNET_PHASE,
     status: "slot",
     layered: true,
     breaks_live_cf_hubs: false,
@@ -354,6 +403,9 @@ export function survivalRegistry(rows) {
     zenodo_plane_b_blocked: true,
     zenodo_live: false,
     doi: null,
+    serves: AZNET_SLUG,
+    naming_lock: NAMING_LOCK,
+    l0: L0,
     home_origin: originCutoverCite(),
     phoenix_reheal: PHOENIX_REHEAL_CITE,
     breaks_live_cf_hubs: false,

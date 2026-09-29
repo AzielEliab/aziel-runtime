@@ -711,7 +711,7 @@ export function verifyHowTo() {
     reexpand: "original receipts + prev-hash; not index→mesh (RE-EXPAND-FROM-ARCHIVE-1.0)",
     reheal: "self tip + trusted pull or phoenix-WAIT; never neighbor vote",
     phoenix: "phoenix-WAIT local to the failed node; neighbors do not phoenix; not public hostname resurrection",
-    origin_cutover: "Sidenet P3 home-origin / mini-PC stays SLOT (ORIGIN-CUTOVER-1.0). No DNS rent. No live DNS change.",
+    origin_cutover: "AZNet P3 home-origin / mini-PC stays SLOT (ORIGIN-CUTOVER-1.0) and serves AZNet. sidenet is not a separate brand. L0 stays unbroken. No DNS rent. No live DNS change.",
     crawlers: "extra shelves, not re-expand",
     training_residue: "rumor",
   };
@@ -769,7 +769,7 @@ export function shelfRegistryDoc() {
       "Zenodo tip-pack stays SLOT (zenodo_live:false; doi null; CNS-ZENODO-NOT-LIVE). " +
       "Paper deposits stay paper deposits. Plane C USB stays SLOT until CNS-OPERATOR-ATTEST. " +
       "aziel-runtime Worker cites this registry; it is the same Plane A tunnel. " +
-      "ORIGIN-CUTOVER-1.0 home-origin / mini-PC stays SLOT (not deposited; no DNS rent; no live DNS change). " +
+      "ORIGIN-CUTOVER-1.0 home-origin / mini-PC stays SLOT and serves AZNet (not deposited; no DNS rent; no live DNS change; L0 unbroken). " +
       "Phoenix is local wait (REHEAL-1.0). Live Cloudflare hubs stay.",
   };
 }
@@ -990,7 +990,7 @@ export function shelvesLlmsBlock(origin) {
     "Plane A LIVE: 5 published surfaces (4 CF hubs + GitHub) / 2 family radii (cloudflare + github). One independent live: cf-github.",
     `Plane B SLOT: Codeberg ${CODEBERG_TIP_PACK.url} hash-verify PASS pack ${CODEBERG_TIP_PACK.pack_sha256} still SLOT. archive.org PASS primary ${ARCHIVE_ORG_TIP_PACK.url} + secondary ${ARCHIVE_ORG_TIP_PACK_202609.url} (same blast_radius archive-org; pack ${ARCHIVE_ORG_TIP_PACK.pack_sha256}; zip wrap on 202609 — ia_flat_sha256 null; inner tar hash-verifies) still SLOT. Framagit URL null (CNS-NO-FORGE-MIRROR; third ALL-TARGETS). LIVE only after all three (CNS-PLANE-B-ALL-TARGETS). Zenodo tip-pack stays SLOT (zenodo_live:false; doi null; CNS-ZENODO-NOT-LIVE).`,
     "Plane C USB SLOT until CNS-OPERATOR-ATTEST.",
-    "ORIGIN-CUTOVER-1.0 (Sidenet P3): home-origin / mini-PC path is SLOT. No rented DNS. No live DNS change. Not deposited. hash_verify null. Does not break live CF hubs. Not a sixth published surface.",
+    "ORIGIN-CUTOVER-1.0 serves AZNet (AZN-WP-0.1). sidenet means AZNet; there is no separate sidenet brand. L0 stays unbroken. home-origin / mini-PC path is SLOT. No rented DNS. No live DNS change. Not deposited. hash_verify null. Does not break live CF hubs. Not a sixth published surface.",
     "Phoenix / REHEAL-1.0: phoenix-WAIT is local to the failed node. neighbor_phoenix false. public hostname resurrection false.",
     "aziel-runtime Worker is the same Plane A tunnel.",
     `REDLINE cite: ${REDLINE_SPEC} (${REDLINE_DOCS}). Cap-7 design_of: hub_designs. resolves_to_hub: false. AZ domains resolve via hub HTTPS.`,
@@ -1012,7 +1012,7 @@ Corpus SoT: [${CORPUS_SHELVES}](${CORPUS_SHELVES}). Runtime cite: \`GET ${cite.s
 - **Plane A** LIVE — 5 published surfaces (4 CF hubs + GitHub) / 2 family radii. \`independent_live_count\` stays **1** (\`cf-github\`).
 - **Plane B** SLOT — Codeberg ${CODEBERG_TIP_PACK.url} hash-verify PASS (pack \`${CODEBERG_TIP_PACK.pack_sha256}\`) still SLOT. archive.org PASS primary ${ARCHIVE_ORG_TIP_PACK.url} + secondary ${ARCHIVE_ORG_TIP_PACK_202609.url} (same blast_radius archive-org; not two independent shelves; pack \`${ARCHIVE_ORG_TIP_PACK.pack_sha256}\`; zip wrap on 202609 — ia_flat_sha256 null; inner tar hash-verifies) still SLOT. Framagit URL **null** (\`CNS-NO-FORGE-MIRROR\`; third ALL-TARGETS). LIVE only after all three (\`CNS-PLANE-B-ALL-TARGETS\`). Zenodo tip-pack SLOT (\`CNS-ZENODO-NOT-LIVE\`). \`doi\` null — never invent.
 - **Plane C** USB SLOT until \`CNS-OPERATOR-ATTEST\`.
-- **Home origin** SLOT — ORIGIN-CUTOVER-1.0 Sidenet P3 mini-PC path. No DNS rent. No live DNS change. Not deposited. Phoenix is local wait (REHEAL-1.0). Live CF hubs stay.
+- **Home origin** SLOT — ORIGIN-CUTOVER-1.0 serves AZNet. sidenet is not a separate brand. L0 stays unbroken. No DNS rent. No live DNS change. Not deposited. Phoenix is local wait (REHEAL-1.0). Live CF hubs stay.
 
 This Worker is the same Plane A tunnel. No new MCP tool. Linked fields: \`redline.spec\` ${REDLINE_SPEC}; Cap-7 \`design_of: hub_designs\` + \`resolves_to_hub: false\`; attack-sim refuse pointer \`${ATTACK_SIM_POINTER}\`. Cap-7 stays \`resolves_to_hub: false\` / \`public_icann: false\`. AZ domains resolve via hub HTTPS. Growth-ON.
 `;
