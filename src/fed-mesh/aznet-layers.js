@@ -13,6 +13,13 @@ import {
 import { PAIR_FLAG, PAIR_KIND, PAIR_NOTE, PAIR_PEER, SPEC as AZNET_SPEC } from "../engines/aznet/engine.js";
 import { MOTTO, PRINCIPLES, PRODUCT as AZOS_PRODUCT } from "../engines/azos/engine.js";
 import { ARCHIVE_ORG_TIP_PACK, CODEBERG_TIP_PACK, REFUSE } from "../cold-multi-shelf.js";
+import {
+  AZNET_DISPLAY,
+  AZNET_SLUG,
+  HOME_ORIGIN_ID,
+  HOME_ORIGIN_SHELF,
+  ORIGIN_CUTOVER,
+} from "../origin-cutover.js";
 
 export const AZBROWSER_GITHUB = "https://github.com/AzielEliab/azbrowser";
 export const AZNET_GITHUB = "https://github.com/AzielEliab/aznet";
@@ -72,13 +79,31 @@ export function l3Registry() {
     no_fan: true,
     zenodo_live: false,
     home_origin: {
-      id: "home-origin",
-      status: "slot",
+      id: HOME_ORIGIN_ID,
+      spec: ORIGIN_CUTOVER,
+      status: HOME_ORIGIN_SHELF.status,
       live: false,
       configured: false,
       cutover: false,
       replaces_l0: false,
-      note: "No mini-PC origin is bound on this Worker. The edge stays L0.",
+      deposited: HOME_ORIGIN_SHELF.deposited === true,
+      hash_verify: HOME_ORIGIN_SHELF.hash_verify,
+      hostname: HOME_ORIGIN_SHELF.hostname,
+      ip: HOME_ORIGIN_SHELF.ip,
+      url: HOME_ORIGIN_SHELF.url,
+      dns_rented: HOME_ORIGIN_SHELF.dns_rented === true,
+      live_dns_changed: HOME_ORIGIN_SHELF.live_dns_changed === true,
+      doi: null,
+      breaks_live_cf_hubs: false,
+      published_surface: false,
+      software_tab: false,
+      serves: AZNET_SLUG,
+      display: AZNET_DISPLAY,
+      separate_brand: false,
+      aznet_side_net: "unbroken",
+      public_path_default: "L0",
+      refuse: HOME_ORIGIN_SHELF.refuse,
+      note: "No mini-PC origin is bound. No rented DNS, no live DNS change, no deposited bytes. The public path stays L0. The AZNet side-net stays unbroken. Live Cloudflare hubs stay.",
     },
     cold_shelves: {
       status: "slot",

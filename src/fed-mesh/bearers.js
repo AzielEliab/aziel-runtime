@@ -268,7 +268,12 @@ export function survivalMethods(config = {}) {
       this_pr: true,
       replaces_l0: false,
       cutover: false,
-      note: "Home-origin / mini-PC behind the edge stays SLOT. No cutover. The edge stays L0.",
+      shelf_id: "home-origin-mini-pc",
+      spec: "ORIGIN-CUTOVER-1.0",
+      dns_rented: false,
+      live_dns_changed: false,
+      deposited: false,
+      note: "Home-origin / mini-PC behind the edge stays SLOT (ORIGIN-CUTOVER-1.0). No rented DNS, no live DNS change, no deposited bytes. The public path stays L0. The AZNet side-net stays unbroken.",
     },
     {
       n: 6,

@@ -52,9 +52,21 @@ assert.match(cap7.aznet_azbrowser.repos.aznet, /^https:\/\/github\.com\/AzielEli
 assert.match(cap7.aznet_azbrowser.repos.azbrowser, /^https:\/\/github\.com\/AzielEliab\/azbrowser$/);
 
 const shelf = l3Registry();
+assert.equal(shelf.home_origin.id, "home-origin-mini-pc");
+assert.equal(shelf.home_origin.spec, "ORIGIN-CUTOVER-1.0");
 assert.equal(shelf.home_origin.status, "slot");
 assert.equal(shelf.home_origin.cutover, false);
 assert.equal(shelf.home_origin.live, false);
+assert.equal(shelf.home_origin.dns_rented, false);
+assert.equal(shelf.home_origin.live_dns_changed, false);
+assert.equal(shelf.home_origin.deposited, false);
+assert.equal(shelf.home_origin.hash_verify, null);
+assert.equal(shelf.home_origin.serves, "aznet");
+assert.equal(shelf.home_origin.display, "AZNet");
+assert.equal(shelf.home_origin.separate_brand, false);
+assert.equal(shelf.home_origin.aznet_side_net, "unbroken");
+assert.equal(shelf.home_origin.public_path_default, "L0");
+assert.equal(shelf.home_origin.refuse, "OC-HOME-ORIGIN-SLOT");
 assert.equal(shelf.cold_shelves.status, "slot");
 assert.equal(shelf.cold_shelves.live, false);
 assert.equal(shelf.cold_shelves.codeberg.hash_verify, "pass");
