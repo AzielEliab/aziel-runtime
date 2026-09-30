@@ -498,6 +498,7 @@ assert.match(mgCard.description, /not a public ICANN registrar/);
 assert.match(mgCard.description, /LIVE on the Cap-7 plane/);
 assert.match(mgCard.description, /not a public egress IP/);
 assert.match(mgCard.description, /AZVPN/);
+assert.match(mgCard.description, /public MirageGrid Worker stays unclaimed/);
 assert.doesNotMatch(`${mgCard.one_line} ${mgCard.description}`, /node-mesh VPN|anonymity network|packet mesh|SOCKS5|hosted VPN/i);
 assert.deepEqual(mgCard.public_door_ops, [
   "assign",
@@ -537,6 +538,10 @@ assert.equal(mgHealthBody.cap7_plane.status, "live");
 assert.equal(mgHealthBody.cap7_plane.public_egress_ip, false);
 assert.equal(mgHealthBody.cap7_plane.public_icann, false);
 assert.equal(mgHealthBody.cap7_plane.azvpn, false);
+assert.equal(mgHealthBody.cap7_plane.worker_live, false);
+assert.equal(mgHealthBody.cap7_plane.hosted, false);
+assert.equal(mgHealthBody.cap7_plane.miragegrid_pr_landed, false);
+assert.equal(mgHealthBody.cap7_plane.factory_exec, true);
 assert.equal(mgHealthBody.hub_mirror_count, 4);
 assert.equal(mgHealthBody.decoy_count, 3);
 assert.equal(mgHealthBody.per_node_aziel_slots, false);
@@ -574,6 +579,9 @@ assert.equal(geo.azvpn, false);
 assert.equal(geo.geo_applied, false);
 assert.equal(geo.packet_forwarding, false);
 assert.equal(geo.hosted_vpn, false);
+assert.equal(geo.worker_live, false);
+assert.equal(geo.hosted, false);
+assert.equal(geo.miragegrid_pr_landed, false);
 const geoIp = JSON.parse(
   (await executeLocal({ slug: "miragegrid", op: "geo-target", payload: { region: "203.0.113.8" }, ranIn: "aziel-runtime" })).responseText,
 );
