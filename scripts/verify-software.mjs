@@ -7,7 +7,7 @@ import { PRODUCTS } from "../src/index.js";
 import { RUNTIME_VERSION, runtimeManifest } from "../src/runtime-api.js";
 import { BUILD_GIT_SHA } from "../src/build-meta.js";
 import { embeddedDigest, trueEngineSlugs } from "../src/engines/digest.js";
-import { NAMED_STUBS } from "../src/fraggate/registry.js";
+import { LIVE_OPS, NAMED_STUBS, STUB_OPS, buildRegistry, classifyCall } from "../src/fraggate/registry.js";
 import { SOFTWARE_COPY, softwareCopySlugs } from "../src/software-copy.js";
 import { executeLocal } from "../src/engines/runner.js";
 import { CATALOG_ALIASES, catalogExtraCards } from "../src/catalog-meta.js";
@@ -466,6 +466,65 @@ assert.ok(embryoCard.public_door_ops.includes("limitation"));
 assert.ok(embryoCard.stub_ops.includes("wipe"));
 assert.ok(embryoCard.stub_ops.includes("unlock"));
 assert.ok(!embryoCard.public_door_ops.includes("wipe"));
+const mgCard = body.software.find((s) => s.slug === "miragegrid");
+assert.equal(mgCard.slug, "miragegrid");
+assert.match(mgCard.one_line, /short-lived session node/);
+assert.match(mgCard.one_line, /Cap-7 mesh-name metadata/);
+assert.match(mgCard.one_line, /not a public ICANN registrar/);
+assert.match(mgCard.one_line, /Egress-style geo\/sticky\/rotation planned; stub refuse today\./);
+assert.match(mgCard.description, /not a public ICANN registrar/);
+assert.match(mgCard.description, /planned/);
+assert.match(mgCard.description, /AZVPN/);
+assert.doesNotMatch(`${mgCard.one_line} ${mgCard.description}`, /node-mesh VPN|anonymity network|packet mesh|SOCKS5/i);
+assert.deepEqual(mgCard.public_door_ops, [
+  "assign",
+  "verify-receipt",
+  "nodes",
+  "bridge",
+  "shuffle",
+  "health",
+  "skill",
+  "doctor",
+]);
+const mgStubs = ["vpn-hop", "hop", "tunnel", "mesh", "geo-target", "session-stick", "egress-rotate"];
+assert.deepEqual(STUB_OPS.miragegrid.slice(), mgStubs);
+assert.deepEqual(LIVE_OPS.miragegrid.slice(), mgCard.public_door_ops);
+for (const op of mgStubs) {
+  assert.ok(mgCard.stub_ops.includes(op), `miragegrid stub ${op}`);
+  assert.ok(!mgCard.public_door_ops.includes(op), `miragegrid live must omit ${op}`);
+  assert.equal(classifyCall(buildRegistry(PRODUCTS).bySlug.miragegrid, op).kind, "stub", op);
+}
+const mgHealth = await executeLocal({ slug: "miragegrid", op: "health", payload: {}, ranIn: "aziel-runtime" });
+const mgHealthBody = JSON.parse(mgHealth.responseText);
+assert.equal(mgHealthBody.public_icann_registrar, false);
+assert.equal(mgHealthBody.vpn, false);
+assert.equal(mgHealthBody.anonymity_network, false);
+assert.equal(mgHealthBody.packet_mesh, false);
+assert.equal(mgHealthBody.planned.live, false);
+assert.equal(mgHealthBody.planned.status, "planned");
+assert.equal(mgHealthBody.hub_mirror_count, 4);
+assert.equal(mgHealthBody.decoy_count, 3);
+assert.equal(mgHealthBody.per_node_aziel_slots, false);
+assert.equal(mgHealthBody.author, "Aziel Eliab");
+const mgSkill = await executeLocal({ slug: "miragegrid", op: "skill", payload: {}, ranIn: "aziel-runtime" });
+const mgSkillBody = JSON.parse(mgSkill.responseText);
+assert.match(mgSkillBody.markdown, /not a public ICANN registrar/);
+assert.match(mgSkillBody.markdown, /geo-target, session-stick, and egress-rotate are planned/);
+assert.match(mgSkillBody.markdown, /FG-STUB/);
+assert.match(mgSkillBody.markdown, /not the QNM suite mesh/);
+assert.match(mgSkillBody.markdown, /Aziel Eliab only/);
+assert.doesNotMatch(mgSkillBody.markdown, /true node-mesh VPN|SOCKS5/);
+assert.ok(!mgSkillBody.live_ops.includes("geo-target"));
+assert.ok(mgSkillBody.stub_ops.includes("egress-rotate"));
+const mgAssign = await executeLocal({ slug: "miragegrid", op: "assign", payload: {}, ranIn: "aziel-runtime" });
+const mgAssignBody = JSON.parse(mgAssign.responseText);
+assert.equal(mgAssignBody.kind, "control-plane-assign");
+assert.match(mgAssignBody.banner, /not a public ICANN registrar/);
+assert.match(mgAssignBody.banner, /planned and refuse today/);
+assert.doesNotMatch(mgAssignBody.banner, /true node-mesh VPN|anonymity network|SOCKS5/);
+const runtimeSkill = await (await get("/v1/skill")).text();
+assert.match(runtimeSkill, /not a public ICANN registrar/);
+assert.match(runtimeSkill, /geo-target, session-stick, egress-rotate/);
 assert.match(azchatCard.one_line, /mesh hop starts off/);
 assert.equal(azchatCard.mesh_default, "off");
 assert.equal(azchatCard.public_door, true);
@@ -613,6 +672,10 @@ assert.match(llms, /update\/check/);
 assert.match(llms, /tools\/list name Softwares/);
 assert.match(llms, /^version_id: null$/m);
 assert.match(llms, /^version_id_source: unbound$/m);
+assert.match(llms, /not a public ICANN registrar/);
+assert.match(llms, /geo-target, session-stick, and egress-rotate are planned/);
+assert.match(llms, /Egress-style geo\/sticky\/rotation planned; stub refuse today\./);
+assert.doesNotMatch(llms, /true node-mesh VPN|userspace SOCKS5/);
 const cite = await (await get("/cite.json")).json();
 assert.equal(cite.suite_tip.version_id, null);
 assert.match(cite.suite_tip.version_id_note, /does not expose version_id/);

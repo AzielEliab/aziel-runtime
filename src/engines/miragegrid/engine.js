@@ -1,12 +1,13 @@
 /**
  * MirageGrid engine (port of workers/download-tracker/src/runtime.js control-plane).
- * Ephemeral session node assignment. Not a live VPN. Author: Aziel Eliab.
+ * Ephemeral session node assignment and Cap-7 mesh-name metadata.
+ * Not a public ICANN registrar. Not a VPN. Author: Aziel Eliab.
  */
 export const PRODUCT = "miragegrid";
 export const VERSION = "0.2.0";
-export const MOTTO = "You enter the booth. The mesh selects a booth and builds a circuit. You leave with no persistent booth identity.";
-export const BANNER = "MirageGrid is a true node-mesh VPN and anonymity network. Persistent 25-node peer mesh, onion circuits, userspace SOCKS5. Lawful privacy tool. Author Aziel Eliab.";
-export const LIMITATION = "THIS IS: ephemeral control-plane node/circuit assignment. THIS IS NOT: a hosted VPN hop, a guarantee against a global adversary, or packet forwarding. Packet forwarding runs in the local package.";
+export const MOTTO = "You enter the booth. A short-lived session node is assigned. You leave with no persistent booth identity.";
+export const BANNER = "Assign a short-lived session node and cite Cap-7 mesh-name metadata. The Cap-7 factory is not a public ICANN registrar. AZVPN is the suite VPN. Geo, sticky session, and egress-style rotation are planned and refuse today. Author Aziel Eliab.";
+export const LIMITATION = "THIS IS: ephemeral control-plane node assignment and Cap-7 mesh-name metadata. THIS IS NOT: a public ICANN registrar, a hosted VPN, an anonymity network, or packet forwarding. Geo, sticky session, and egress-style rotation are planned and refuse until real.";
 const POOL_SIZE = 25;
 const PEER_OFFSETS = [1, 2, 5, 20, 23, 24];
 function nodeIdFor(index) {
@@ -263,7 +264,7 @@ export async function assign(body) {
     version: VERSION,
     motto: MOTTO,
     banner: BANNER,
-    kind: "mesh-vpn-circuit",
+    kind: "control-plane-assign",
     session_id,
     node_id: node.id,
     node_label: node.label,
@@ -271,7 +272,7 @@ export async function assign(body) {
     timestamp,
     circuit,
     receipt,
-    note: "Control-plane assignment. Circuit mapping is in-request only. Packet forwarding runs in the local package (miragegrid vpn).",
+    note: "Control-plane assignment. In-request circuit mapping is metadata only. Packet forwarding is not on this door. AZVPN is the suite VPN concentrator.",
   };
 }
 

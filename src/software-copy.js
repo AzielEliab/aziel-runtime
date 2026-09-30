@@ -107,9 +107,10 @@ export const SOFTWARE_COPY = Object.freeze({
       "Use Glossa Filter when you need the same intent spoken in several peer styles. It exists for deterministic mediation.",
   },
   miragegrid: {
-    one_line: "Assign a short-lived session node and cite mesh-name metadata.",
+    one_line:
+      "Assign a short-lived session node and cite Cap-7 mesh-name metadata from a factory that is not a public ICANN registrar. Egress-style geo/sticky/rotation planned; stub refuse today.",
     description:
-      "Use MirageGrid to get a short-lived node id and Cap-7 name metadata. It exists for control-plane assignment.",
+      "Use MirageGrid to assign a short-lived session node and cite Cap-7 mesh-name metadata. The Cap-7 factory is not a public ICANN registrar. It exists for control-plane assignment. Egress-style geo, sticky session, and rotation stay planned and refuse until a real op exists. AZVPN remains the suite VPN.",
   },
   mmconsensus: {
     one_line: "Tally consensus from opinions you already posted.",
