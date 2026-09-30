@@ -95,7 +95,7 @@ export const CAP7_SHIFT = Object.freeze({
   miragegrid_vpn_hop: false,
   radio_phy: false,
   note:
-    "Cap-7 .az duplications shift with StaticLock (catalog product StaticClock, slug staticclock, not a second Softwares product) and MirageGrid cloak, paired with AZVPN. The Cap-7 factory is not a public ICANN registrar. Four hub mirrors and three decoys are not per-node .aziel slots. MirageGrid vpn-hop, hop, tunnel, and mesh stay refuse. geo-target, session-stick, and egress-rotate are planned and stay refuse. radio_phy stays false.",
+    "Cap-7 .az duplications shift with StaticLock (catalog product StaticClock, slug staticclock, not a second Softwares product) and MirageGrid cloak, paired with AZVPN. The Cap-7 factory is not a public ICANN registrar. Four hub mirrors and three decoys are not per-node .aziel slots. MirageGrid vpn-hop, hop, tunnel, and mesh stay refuse. geo-target, session-stick, and egress-rotate are LIVE on the Cap-7 plane and are not a public egress IP. radio_phy stays false.",
 });
 
 export const AZ_DOMAIN_POOL = Object.freeze([

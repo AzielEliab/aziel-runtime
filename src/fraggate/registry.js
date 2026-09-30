@@ -280,7 +280,7 @@ export const LIVE_OPS = {
   memory: MEMORY_CANONICAL_OPS.slice(),
   vibelock: ["analyze", "detect", "health", "skill", "doctor"],
   ark: ["sweep", "levels", "health", "skill", "doctor"],
-  miragegrid: ["assign", "verify-receipt", "nodes", "bridge", "shuffle", "health", "skill", "doctor"],
+  miragegrid: ["assign", "verify-receipt", "nodes", "bridge", "shuffle", "health", "skill", "doctor", "geo-target", "session-stick", "egress-rotate"],
   mialock: ["map", "search-options", "queries", "doe-match", "coverage", "example", "health", "skill", "doctor"],
   "4dmap": [
     "health",
@@ -406,7 +406,7 @@ export const STUB_OPS = {
   ],
   ark: ["scorch", "wipe", "unlock", "encrypt"],
   whistlelock: ["send", "mail", "release"],
-  miragegrid: ["vpn-hop", "hop", "tunnel", "mesh", "geo-target", "session-stick", "egress-rotate"],
+  miragegrid: ["vpn-hop", "hop", "tunnel", "mesh"],
   azieltether: ["mesh-join", "vpn", "arm"],
   azmail: [
     "smtp",
@@ -600,6 +600,12 @@ function publicOps(slug, productOps) {
     if (allow.has(alias) && !seen.has(alias)) {
       out.push(alias);
       seen.add(alias);
+    }
+  }
+  for (const op of LIVE_OPS[slug] || []) {
+    if (!seen.has(op)) {
+      out.push(op);
+      seen.add(op);
     }
   }
   return out;
