@@ -182,7 +182,7 @@ AZNet P3. Survival layers serve AZNet (`aznet`, AZN-WP-0.1). sidenet is that sid
 
 ### Cap-7 semantic bridge (not ICANN)
 
-Cap-7 is the MirageGrid auto-generate **.az** layer. It duplicates the four hub sites and shifts with StaticLock (catalog product StaticClock, slug `staticclock`) and MirageGrid cloak, paired with AZVPN. `design_of: hub_designs`. `resolves_to_hub: false` on Cap-7. Standard internet does not reach Cap-7. Real duplications: `azgrid`, `azcloak`, `azvault`, `azshift`. False sites: `azbooth`, `azflag`, `azstandby`. Factory duplication cite is LIVE. Internet reaches the AZ domains (`AZ.AzielEliab.AZ`, `AZ.AzielCorpusLibrary.AZ`, `AZ.Godlock.AZ`, `AZ.HeDidntJump.AZ`) through azieleliab.com, azielcorpuslibrary.net, godlock.uk, and hedidntjump.com. Those drop-ins are `public_icann: true` and `resolves_to_hub: true`, shuffle once to one of four, stand alone, and freeze after the hubs go down. Live nodes anchor them. Cap-7 `public_icann: false`. Not a fifth product. AI pulls metadata from MirageGrid Worker `/bridge` or `GET /v1/mesh/az-generator`. Update shuffle: `fraggate_call { slug: "miragegrid", op: "shuffle" }` lands one mesh name (factory land LIVE; not a public HTTPS door). No live AZ-GEN registrar. No ICANN `.az` ccTLD purchase. No visible 15:20. `GET /v1/mesh` never enables radios. Mesh browse: AZNet + AZBrowser via FragGate.
+Cap-7 is the MirageGrid auto-generate **.az** layer. It duplicates the four hub sites and shifts with StaticLock (catalog product StaticClock, slug `staticclock`) and MirageGrid cloak, paired with AZVPN. `design_of: hub_designs`. `resolves_to_hub: false` on Cap-7. Standard internet does not reach Cap-7. Real duplications: `azgrid`, `azcloak`, `azvault`, `azshift`. False sites: `azbooth`, `azflag`, `azstandby`. Factory duplication cite is LIVE. Internet reaches the AZ domains (`AZ.AzielEliab.AZ`, `AZ.AzielCorpusLibrary.AZ`, `AZ.Godlock.AZ`, `AZ.HeDidntJump.AZ`) through azieleliab.com, azielcorpuslibrary.net, godlock.uk, and hedidntjump.com. Those drop-ins are `public_icann: true` and `resolves_to_hub: true`, shuffle once to one of four, stand alone, and freeze after the hubs go down. Live nodes anchor them. Cap-7 `public_icann: false`. The Cap-7 factory is not a public ICANN registrar. Four hub mirrors and three decoys are not per-node `.aziel` slots. Geo, sticky session, and egress-style rotation are planned and stay stub (`geo-target`, `session-stick`, `egress-rotate`). Not a fifth product. AI pulls metadata from MirageGrid Worker `/bridge` or `GET /v1/mesh/az-generator`. Update shuffle: `fraggate_call { slug: "miragegrid", op: "shuffle" }` lands one mesh name (factory land LIVE; not a public HTTPS door). No live AZ-GEN registrar. No ICANN `.az` ccTLD purchase. No visible 15:20. `GET /v1/mesh` never enables radios. Mesh browse: AZNet + AZBrowser via FragGate.
 
 ## FragGate door
 
@@ -194,7 +194,7 @@ Every catalog product is a **hashed registry** entry (`name`, `slug`, `digest`, 
 
 **Live on the public mesh** (via `fraggate_call`): every catalog Software product that makes sense on a public agent door — advisory / score / classify / gate / search / preview / render / verify / hash / receipt / game / overlay / route / status, plus the original five (DecisionGATE, GodLock, FoldLock, AZ-CLCE, Aziel Digital Library). VeilLock stays **local_only** (device-local camera/screen). MCP `tools/list` is those 36 names. Start on the FragGate door.
 
-**Stub ops** (named refuse verbs, never execute): EmbryoLock wipe/scorch/unlock/encrypt/decrypt/initialize/login, ARK scorch/wipe/unlock/encrypt, WhistleLock send/mail/release, MirageGrid VPN-hop/hop/tunnel/mesh, AzielTether mesh-join/vpn/arm, VeilLock inject/intercept/facetime, AZ-OS exec/shell/lattice, AZAI blend/complete/chat, EmployeeLock court/judge, PeaceLock transcript/transcribe/motive/counterfactual/invent/waive-duty/bypass-duty, 4DMap truth_score/lumen_panel/invent_mark/backdate_class. Safe hosted ops on those products can still be live; the stub verbs refuse forever.
+**Stub ops** (named refuse verbs, never execute): EmbryoLock wipe/scorch/unlock/encrypt/decrypt/initialize/login, ARK scorch/wipe/unlock/encrypt, WhistleLock send/mail/release, MirageGrid VPN-hop/hop/tunnel/mesh plus planned geo-target/session-stick/egress-rotate, AzielTether mesh-join/vpn/arm, VeilLock inject/intercept/facetime, AZ-OS exec/shell/lattice, AZAI blend/complete/chat, EmployeeLock court/judge, PeaceLock transcript/transcribe/motive/counterfactual/invent/waive-duty/bypass-duty, 4DMap truth_score/lumen_panel/invent_mark/backdate_class. Safe hosted ops on those products can still be live; the stub verbs refuse forever.
 
 Unknown names refuse `FG-HALLUC-TOOL` and list the tools that *do* exist. DecisionGATE runs before any exec side effect; refuse is a typed ResultEnvelope + ledger tip (TemporalLock-shaped hash chain). Mesh is not claimed on this public surface.
 
@@ -408,7 +408,7 @@ Pull via `GET /v1/bundle` / `GET /v1/pull/{slug}`. Session exec is
 ## Honesty banners
 
 - **Every catalog Software slug is in-process.** `engine_slugs` equals `true_engine_slugs` on `/v1/health` and `/v1/runtime.json`. Binding-only ops stay per-op `proxy_fallback`.
-- **GodLock** and **MirageGrid** are not VPNs and not anonymity networks.
+- **GodLock** and **MirageGrid** are not VPNs and not anonymity networks. MirageGrid Cap-7 is a mesh-name factory and is not a public ICANN registrar. Geo, sticky session, and egress-style rotation are planned and refuse today. AZVPN stays the suite VPN concentrator.
 - **ForgeReceipts** is not legal advice and does not contact courts.
 - **ZionPattern Solver** never claims more than 75% confidence. It does not solve cases.
 - **VeilLock** does not inject into FaceTime or any calling app. YOUR camera/screen only.
@@ -444,7 +444,7 @@ Pull via `GET /v1/bundle` / `GET /v1/pull/{slug}`. Session exec is
 | zsolver | zsolver-download-tracker | patterns, score, session | **in-process** |
 | azos | azos-download-tracker | status | **in-process** (session/exec/lattice per-op proxy) |
 | glossafilter | glossafilter-download-tracker | render | **in-process** |
-| miragegrid | miragegrid-download-tracker | assign | **in-process** (control-plane; not a hosted VPN hop) |
+| miragegrid | miragegrid-download-tracker | assign | **in-process** (control-plane assign + Cap-7 mesh-name metadata; factory is not a public ICANN registrar; not a hosted VPN hop; geo/sticky/egress planned and stub) |
 | staticclock | staticclock-download-tracker | advise | **in-process** |
 | chronolock | chronolock-download-tracker | advisory, anchors | **in-process** |
 | postking | postking-download-tracker | new, move, status | **in-process** |

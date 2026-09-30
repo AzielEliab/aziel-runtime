@@ -406,7 +406,7 @@ export const STUB_OPS = {
   ],
   ark: ["scorch", "wipe", "unlock", "encrypt"],
   whistlelock: ["send", "mail", "release"],
-  miragegrid: ["vpn-hop", "hop", "tunnel", "mesh"],
+  miragegrid: ["vpn-hop", "hop", "tunnel", "mesh", "geo-target", "session-stick", "egress-rotate"],
   azieltether: ["mesh-join", "vpn", "arm"],
   azmail: [
     "smtp",
