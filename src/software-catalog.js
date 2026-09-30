@@ -137,6 +137,22 @@ export function sanitizeVersionId(raw) {
   return s.toLowerCase();
 }
 
+/** Cite shape. Bare GET /v1/update/check is not a check (slug required). */
+export const UPDATE_CHECK_CITE = "/v1/update/check?slug={slug}&version={installed}";
+
+export function updateCheckUrl(base) {
+  const root = String(base || "").replace(/\/$/, "");
+  return root ? `${root}${UPDATE_CHECK_CITE}` : UPDATE_CHECK_CITE;
+}
+
+/** Human catalog date. ISO timestamps collapse to YYYY-MM-DD. Other strings pass through. */
+export function catalogDate(raw) {
+  const s = String(raw == null ? "" : raw).trim();
+  if (!s) return null;
+  const day = /^(\d{4}-\d{2}-\d{2})(?:$|T)/.exec(s);
+  return day ? day[1] : s;
+}
+
 export function softwareMeta(env, extras = {}) {
   const meta = env && env.CF_VERSION_METADATA && typeof env.CF_VERSION_METADATA === "object" ? env.CF_VERSION_METADATA : {};
   const sha =
@@ -146,10 +162,13 @@ export function softwareMeta(env, extras = {}) {
     sanitizeGitSha(meta.id) ||
     sanitizeGitSha(BUILD_GIT_SHA) ||
     null;
+  // Live deploy stamp beats the baked LASTMOD fallback (extras.updated_at)
+  // so a tip deploy does not leave Softwares updated_at on an older wave.
+  // env.UPDATED_AT stays an explicit operator override.
   const updated =
-    (env && env.UPDATED_AT && String(env.UPDATED_AT).trim()) ||
-    extras.updated_at ||
-    (meta.timestamp && String(meta.timestamp).trim()) ||
+    catalogDate(env && env.UPDATED_AT) ||
+    catalogDate(meta.timestamp) ||
+    catalogDate(extras.updated_at) ||
     null;
   const fromBinding = sanitizeVersionId(meta.id);
   const fromVar = sanitizeVersionId(env && env.VERSION_ID);
@@ -478,7 +497,7 @@ export function softwareCatalog(origin, products, extra = {}) {
     catalog: `${base}/v1/catalog.json`,
     stats: socialStatusField(base),
     social_status: socialStatusField(base),
-    update_check: `${base}/v1/update/check`,
+    update_check: updateCheckUrl(base),
     update_manifest: `${base}/v1/update/manifest`,
     hubs: SOFTWARE_HUBS.slice(),
     hubs_crawl: hubsCiteField(),
@@ -568,7 +587,18 @@ function updateAvailable(current, latest) {
 
 export function updateCheck({ slug, version, current } = {}, origin, products, extra = {}) {
   const installed = version != null && version !== "" ? version : current;
-  const key = resolveSoftwareSlug(slug, products, extra);
+  const raw = slug == null ? "" : String(slug).trim();
+  if (!raw) {
+    return {
+      ok: false,
+      error: "slug required",
+      slug: null,
+      hint: `GET ${UPDATE_CHECK_CITE}`,
+      example: "GET /v1/update/check?slug=aziel-runtime",
+      status: 400,
+    };
+  }
+  const key = resolveSoftwareSlug(raw, products, extra);
   if (!key) {
     return {
       ok: false,

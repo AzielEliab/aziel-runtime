@@ -328,7 +328,7 @@ node cli/aziel-runtime.mjs session close
 ## Bootstrap (front doors — still useful)
 
 1. \`GET ${base}/v1/skill\` — this markdown.
-2. \`GET ${base}/v1/runtime.json\` — machine manifest (\`version=${RUNTIME_VERSION}\`, \`role=engine-runtime\`, \`door=fraggate\`, every catalog slug in \`engine_slugs\` / \`true_engine_slugs\`, \`authoritySnapshot\` + \`version_history\`). Same JSON: \`GET ${base}/v1/runtime\`.
+2. \`GET ${base}/v1/runtime.json\` — machine manifest (\`version=${RUNTIME_VERSION}\`, \`role=engine-runtime\`, \`door=fraggate\`, every catalog slug in \`engine_slugs\` / \`true_engine_slugs\`, \`authoritySnapshot\` + \`version_history\`). Same JSON: \`GET ${base}/v1/runtime\`. Public \`GET /v1/manifest\` is not a path. MCP \`runtime_manifest\` returns this JSON.
    FragGate: \`GET ${base}/v1/fraggate\` · \`GET ${base}/v1/fraggate/list\` · \`POST ${base}/v1/fraggate/call\`.
    MASTER-33 cite: \`GET ${base}/v1/azpipe/arch\` (same \`pipeline\` payload; not a Softwares door).
    Also \`GET ${base}/v1/ready\` (200 only if SESSION binding is up; 503 if \`REQUIRE_TOKEN=1\` and \`RUNTIME_TOKEN\` is missing).
@@ -368,7 +368,7 @@ ${survivalSkillMarkdown(base)}
 | GET | \`/v1/session/{id}/receipts\` | Full receipt chain. |
 | POST | \`/v1/session/{id}/close\` | Seal session. |
 | GET | \`/v1/skill\` | This markdown. Does not increment downloads. |
-| GET | \`/v1/runtime.json\` | Machine manifest. Authority with health: version=${RUNTIME_VERSION}, role=engine-runtime, door=fraggate, top-level registry_digest, all catalog slugs are true engines. |
+| GET | \`/v1/runtime.json\` | Machine manifest. Authority with health: version=${RUNTIME_VERSION}, role=engine-runtime, door=fraggate, top-level registry_digest, all catalog slugs are true engines. Public \`GET /v1/manifest\` is not a path. MCP \`runtime_manifest\` returns this JSON. |
 | GET | \`/v1/fraggate\` | FragGate door summary (registry_digest; live / stub / local_only product counts; stub_op_count). |
 | GET | \`/v1/fraggate/list\` | Hashed registry entries. |
 | GET | \`/v1/fraggate/describe\` | Describe one name (\`?name=\` / \`?slug=\`). HTML shell when Accept prefers text/html. |
@@ -386,7 +386,7 @@ ${survivalSkillMarkdown(base)}
 | GET | \`/download\` | One-click suite pack JSON (REAL catalog + FoldLock tip + mesh cite). Worker wasm / WireGuard / OpenVPN SLOT. Counted when USES is bound. Aliases: \`/v1/download\`, \`/v1/suite/download\`. Not . Not exec. |
 | GET | \`/v1/software\` | Authoritative hub software catalog (Plain→Gate→Lock; EmbryoLock live-with-local-destructive-boundary; AZChat LIVE+bound). VeilLock card is \`local_only\` (matches FragGate). Names mesh-resident **azcorpus** + **azlibrary** website designs (downloadable to nodes; not extra Softwares). JSON default; HTML shell when Accept prefers text/html. |
 | GET | \`/v1/fraggate/software\` | FragGate-path mirror of \`/v1/software\`. |
-| GET | \`/v1/update/check\` | Client update check (\`?slug=&version=\`). For install.sh / local UI / mobile. |
+| GET | \`/v1/update/check?slug={slug}&version={installed}\` | Client update check. \`slug\` is required. Bare \`GET /v1/update/check\` is not a check. For install.sh / local UI / mobile. |
 | GET | \`/v1/update/manifest\` | Latest versions for every product + runtime. |
 | GET/POST | \`/p/{slug}/{op}\` | **Proxy only** — not exec. Service binding preferred. |
 | GET | \`/openapi.json\` | Combined OpenAPI 3.1. |
@@ -622,7 +622,7 @@ export function runtimeManifest(origin, products, extra = {}) {
       discover: base + "/v1/catalog.json",
       software: base + "/v1/software",
       fraggate_software: base + "/v1/fraggate/software",
-      update_check: base + "/v1/update/check",
+      update_check: base + "/v1/update/check?slug={slug}&version={installed}",
       update_manifest: base + "/v1/update/manifest",
       pull: base + "/v1/pull/{slug}",
       pull_skill: base + "/v1/pull/{slug}/skill",
@@ -1363,13 +1363,17 @@ export function runtimeStaticPaths() {
     "/v1/update/check": {
       get: {
         operationId: "runtime_update_check",
-        summary: "Client update check for install.sh / local UI / mobile. Query slug + version.",
+        summary: "Client update check for install.sh / local UI / mobile. Query slug is required. Optional version. Bare GET without slug is not a check.",
         tags: ["software"],
         parameters: [
-          { name: "slug", in: "query", required: true, schema: { type: "string" } },
+          { name: "slug", in: "query", required: true, schema: { type: "string" }, description: "Product slug or aziel-runtime. Required." },
           { name: "version", in: "query", schema: { type: "string" } },
         ],
-        responses: { "200": { description: "Update check JSON" }, "404": { description: "Unknown slug" } },
+        responses: {
+          "200": { description: "Update check JSON" },
+          "400": { description: "slug query is required. Bare GET is not a check." },
+          "404": { description: "Unknown slug" },
+        },
       },
     },
     "/v1/update/manifest": {

@@ -248,6 +248,11 @@ const missing = updateCheck({ slug: "not-a-product", version: "1.0.0" }, origin,
 });
 assert.equal(missing.ok, false);
 assert.equal(missing.status, 404);
+const bareCheck = updateCheck({}, origin, PRODUCTS, { runtimeVersion: RUNTIME_VERSION });
+assert.equal(bareCheck.ok, false);
+assert.equal(bareCheck.status, 400);
+assert.equal(bareCheck.error, "slug required");
+assert.match(bareCheck.hint, /slug=\{slug\}/);
 
 const manifest = updateManifest(origin, PRODUCTS, { runtimeVersion: RUNTIME_VERSION });
 assert.ok(manifest.latest.some((r) => r.slug === "foldlock" && r.latest === "0.8.0"));
@@ -278,6 +283,9 @@ assert.equal(body.software[0].bucket, "plain");
 assert.equal(body.software[body.software.length - 1].bucket, "lock");
 assert.ok(body.software.some((s) => s.slug === "embryolock"));
 assert.equal(body.git_sha, BUILD_GIT_SHA);
+assert.equal(body.updated_at, "2026-09-30");
+assert.ok(body.software.every((s) => s.updated_at === "2026-09-30"));
+assert.match(body.update_check, /\/v1\/update\/check\?slug=\{slug\}&version=\{installed\}$/);
 assert.equal(body.count, 42);
 assert.equal(body.software.some((card) => card.slug === "jeeves" || card.slug === "ask-jeeves"), false);
 assert.equal(body.version_id, null);
@@ -295,6 +303,18 @@ const boundMeta = softwareMeta({
 assert.equal(boundMeta.version_id, liveVersion);
 assert.equal(boundMeta.version_id_source, "cf_version_metadata");
 assert.equal(boundMeta.git_sha, BUILD_GIT_SHA);
+assert.equal(boundMeta.updated_at, "2026-09-26");
+assert.equal(
+  softwareMeta(
+    {
+      UPDATED_AT: "2026-09-30T12:29:07Z",
+      CF_VERSION_METADATA: { timestamp: "2026-09-26T00:00:00.000Z" },
+    },
+    { updated_at: "2026-09-14" },
+  ).updated_at,
+  "2026-09-30",
+);
+assert.equal(softwareMeta({}, { updated_at: "2026-09-14" }).updated_at, "2026-09-14");
 const varOnly = softwareMeta({ VERSION_ID: staleVersion });
 assert.equal(varOnly.version_id, staleVersion);
 assert.equal(varOnly.version_id_source, "version_id_var");
@@ -663,12 +683,13 @@ assert.ok(tools.length <= 40);
 
 const sitemap = await (await get("/sitemap.xml")).text();
 assert.match(sitemap, /\/v1\/software/);
-assert.match(sitemap, /\/v1\/update\/check/);
+assert.match(sitemap, /\/v1\/update\/check\?slug=aziel-runtime/);
 assert.match(sitemap, /\/v1\/fraggate\/software/);
 
 const llms = await (await get("/llms.txt")).text();
 assert.match(llms, /\/v1\/software/);
-assert.match(llms, /update\/check/);
+assert.match(llms, /update\/check\?slug=\{slug\}/);
+assert.match(llms, /public GET \/v1\/manifest is not a path/);
 assert.match(llms, /tools\/list name Softwares/);
 assert.match(llms, /^version_id: null$/m);
 assert.match(llms, /^version_id_source: unbound$/m);
@@ -679,6 +700,7 @@ assert.doesNotMatch(llms, /true node-mesh VPN|userspace SOCKS5/);
 const cite = await (await get("/cite.json")).json();
 assert.equal(cite.suite_tip.version_id, null);
 assert.match(cite.suite_tip.version_id_note, /does not expose version_id/);
+assert.match(cite.update_check, /slug=\{slug\}/);
 const boundEnv = {
   CF_VERSION_METADATA: { id: liveVersion, tag: "not-a-sha", timestamp: "2026-09-26T00:00:00.000Z" },
   VERSION_ID: staleVersion,
@@ -688,6 +710,9 @@ const boundSoftware = await (await get("/v1/software", boundEnv)).json();
 assert.equal(boundSoftware.count, 42);
 assert.equal(boundSoftware.version_id, liveVersion);
 assert.equal(boundSoftware.version_id_source, "cf_version_metadata");
+assert.equal(boundSoftware.updated_at, "2026-09-26");
+assert.ok(boundSoftware.software.every((s) => s.updated_at === "2026-09-26"));
+assert.match(boundSoftware.update_check, /slug=\{slug\}/);
 assert.equal(boundSoftware.software.some((card) => card.slug === "jeeves" || card.slug === "ask-jeeves"), false);
 const boundLlms = await (await get("/llms.txt", boundEnv)).text();
 assert.match(boundLlms, new RegExp(`^version_id: ${liveVersion}$`, "m"));
@@ -701,7 +726,37 @@ assert.equal(boundCite.suite_tip.version_id_source, "cf_version_metadata");
 const openapi = await (await get("/openapi.json")).json();
 assert.ok(openapi.paths["/v1/software"]);
 assert.ok(openapi.paths["/v1/update/check"]);
+assert.equal(openapi.paths["/v1/update/check"].get.parameters.find((p) => p.name === "slug").required, true);
+assert.ok(openapi.paths["/v1/update/check"].get.responses["400"]);
+assert.equal(openapi.paths["/v1/manifest"], undefined);
 assert.ok(openapi.paths["/v1/update/manifest"]);
+assert.ok(openapi.paths["/v1/runtime.json"]);
+
+const bareHttp = await get("/v1/update/check");
+assert.equal(bareHttp.status, 400);
+const bareBody = await bareHttp.json();
+assert.equal(bareBody.error, "slug required");
+assert.match(bareBody.hint, /slug=\{slug\}/);
+const knownCheck = await get("/v1/update/check?slug=aziel-runtime");
+assert.equal(knownCheck.status, 200);
+const knownBody = await knownCheck.json();
+assert.equal(knownBody.ok, true);
+assert.equal(knownBody.slug, "aziel-runtime");
+
+const manifestGone = await get("/v1/manifest");
+assert.equal(manifestGone.status, 404);
+const goneBody = await manifestGone.json();
+assert.equal(goneBody.ok, false);
+assert.equal(goneBody.live, false);
+assert.equal(goneBody.error, "not a public path");
+assert.match(goneBody.machine_manifest, /\/v1\/runtime\.json$/);
+assert.match(goneBody.hint, /runtime_manifest/);
+assert.match(goneBody.hint, /\/v1\/software/);
+
+const health = await (await get("/v1/health")).json();
+assert.match(health.update_check, /slug=\{slug\}/);
+const mcpCard = await (await get("/mcp")).json();
+assert.match(mcpCard.update_check, /slug=\{slug\}/);
 
 for (const payload of [{}, { text: "" }, { text: "   " }, { text: null }]) {
   const refused = await executeLocal({ slug: "godlock", op: "submit", payload, ranIn: "aziel-runtime" });

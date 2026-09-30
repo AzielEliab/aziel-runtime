@@ -88,7 +88,7 @@
  * GET  /v1/catalog.json       machine-readable full product list
  * GET  /v1/software           authoritative hub software catalog (Plain→Gate→Lock; EmbryoLock live-with-local-destructive-boundary)
  * GET  /v1/fraggate/software  FragGate-path mirror of /v1/software
- * GET  /v1/update/check       client update check (?slug=&version=)
+ * GET  /v1/update/check       client update check (slug required: ?slug=&version=)
  * GET  /v1/update/manifest    latest versions for install.sh / local UI / mobile
  * GET  /openapi.json          combined OpenAPI 3.1 (session + /p/{product}/{op} + pull)
  * POST /v1/session/open       create session + genesis receipt
@@ -410,6 +410,7 @@ import {
   softwareCatalog,
   softwareMeta,
   updateCheck,
+  updateCheckUrl,
   updateManifest,
   workerHostOf,
 } from "./software-catalog.js";
@@ -427,7 +428,8 @@ const CATALOG_CHANGELOG_20 =
   "2.0.0-rc1 SpectralLock 0.3.1: wheel paint is separate from the spectral triad; FragGate ops pigment and restore-pigment restore lost pigment and refuse SL-PIGMENT-GONE when the signal is gone; AMOE is not a live product. 2.0.0-rc1 is the certification-point freeze: public contract, compatibility, receipt schema, refusal contract, and breaking-change policy under docs/2.0/. Clean-room reproducibility + external adversarial pack for independent reviewers. Gate 4 includes Glama TDQS 5.0 tools/list metadata (no rename; no behavior change) plus existing glama.json / GitHub topics. Read-only QNM suite-presence is ON by default; POST /v1/mesh/disable refuses MESH-DISABLE-REFUSED. Additive COLD-MULTI-SHELF-1.0 cite (GET /shelves) matches corpus#96 /shelves honesty: Plane A = 5 published surfaces / 2 family radii / 1 independent live; Plane B Codeberg + archive.org PASS still SLOT (https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius); Framagit URL null Zenodo tip-pack SLOT (zenodo_live:false; CNS-ZENODO-NOT-LIVE); doi null; Plane C USB SLOT. Sister product Trades-Runtime machine cite is 0.4.9 (live GET /v1/health; sister_products / extras cite_only; live_backends false; earlier cite 0.3.3). Remain-OFF untouched. FragGate remains THE single door. Architecture-fit placements zkattest / mmconsensus / toolbench are in-runtime engines behind FragGate (isolation 33 unchanged; no new MCP tool). Crawler abstract stays lead copy. Identity Aziel Eliab only.";
 const CATALOG_CHANGELOG_19 =
     "1.9.3 closes the remaining AZRT-1.9-GAPS-CLOSE items: isolate-native AZ-OS session_open/status/close (prefab ethics VFS; exec/shell/lattice stay refuse); isolate-safe Ask Jeeves over sample MASTER / CORPUS_D1 records; binding-gated media-run when env.AI is present (no fake OCR); published independent-validation attestation path. Remain-OFF untouched. 1.9.2 binds Workers Browser Rendering (BROWSER) and live D1 MASTER (CORPUS_D1 → aziel-digital-library records). Whisper/OCR Workers-AI-bound. Sample MASTER remains the unbound fallback. Chromium product UI stays unbound; Tor/phoenix stay refuse. Remain-OFF untouched. 1.9.1 closes AZRT-1.9-GAPS-CLOSE isolate-safe corpus verify; Whisper/OCR Workers-AI-gated; AZBrowser sandbox_status; AZMail transport_status; wave 2–3 doctor; adversarial self-check + Actions npm test. Remain-OFF untouched. 1.9.0 closed AZRT-1.9-CLOSE-1.0. Chromium product UI stays unbound. Remain-OFF untouched.";
-const LASTMOD = "2026-09-14";
+/** Unbound-catalog and sitemap date. Live Workers prefer CF_VERSION_METADATA.timestamp via softwareMeta. */
+const LASTMOD = "2026-09-30";
 
 const PRODUCTS_RAW = [
   {
@@ -1519,7 +1521,7 @@ function sitemapXml(origin) {
     { loc: base + "/v1/catalog.json", priority: "0.9", changefreq: "daily" },
     { loc: base + "/v1/software", priority: "0.95", changefreq: "daily" },
     { loc: base + "/v1/fraggate/software", priority: "0.9", changefreq: "daily" },
-    { loc: base + "/v1/update/check", priority: "0.7", changefreq: "daily" },
+    { loc: base + "/v1/update/check?slug=aziel-runtime", priority: "0.7", changefreq: "daily" },
     { loc: base + "/v1/update/manifest", priority: "0.8", changefreq: "daily" },
     { loc: base + "/v1/skill", priority: "0.95", changefreq: "daily" },
     { loc: base + "/v1/runtime.json", priority: "0.95", changefreq: "daily" },
@@ -1670,7 +1672,7 @@ function llmsTxt(origin, env = {}) {
     `Primary host (discovery / install): ${RUNTIME_GLAMA}`,
     ...glamaInstallLlmsLines(RUNTIME_VERSION),
     `Skill: ${base}/v1/skill`,
-    `Manifest: ${base}/v1/runtime.json`,
+    `Manifest: ${base}/v1/runtime.json  (public GET /v1/manifest is not a path; MCP runtime_manifest returns this JSON)`,
     `Session open: POST ${base}/v1/session/open`,
     `Bundle: ${base}/v1/bundle`,
     `OpenAPI: ${base}/openapi.json`,
@@ -1912,7 +1914,7 @@ function citeJson(origin, env = {}) {
     fraggate: fraggateHubCard(origin),
     extras: catalogExtraCards(origin),
     software: base + "/v1/software",
-    update_check: base + "/v1/update/check",
+    update_check: updateCheckUrl(base),
     update_manifest: base + "/v1/update/manifest",
     mcp: base + "/mcp",
     azpipe_arch: base + "/v1/azpipe/arch",
@@ -2340,7 +2342,7 @@ ${workerLaunchHtml(origin, { slug: resolveCallingName(env).calling_slug, name: r
     <a href="${origin}/about">/about</a>
     <a href="${origin}/v1/about">/v1/about</a>
     <a href="${origin}/v1/software">/v1/software</a>
-    <a href="${origin}/v1/update/check">/v1/update/check</a>
+    <a href="${origin}/v1/update/check?slug=aziel-runtime">/v1/update/check?slug=aziel-runtime</a>
     <a href="${origin}/cite.json">/cite.json</a>
     <a href="${origin}/shelves">/shelves</a>
     <a href="${origin}/llms.txt">/llms.txt</a>
@@ -2625,14 +2627,15 @@ function staticPaths(origin, env = {}) {
       get: {
         operationId: "update_check",
         summary:
-          "Client update check for install.sh, local UIs, and mobile. Query slug (product or aziel-runtime) and version (installed). Returns {slug, current, latest, update_available, download_url, notes}.",
+          "Client update check for install.sh, local UIs, and mobile. Query slug is required (product or aziel-runtime) plus optional version (installed). Bare GET without slug is not a check. Returns {slug, current, latest, update_available, download_url, notes}.",
         tags: ["software"],
         parameters: [
-          { name: "slug", in: "query", required: true, schema: { type: "string" }, description: "Product slug or aziel-runtime" },
+          { name: "slug", in: "query", required: true, schema: { type: "string" }, description: "Product slug or aziel-runtime. Required." },
           { name: "version", in: "query", required: false, schema: { type: "string" }, description: "Installed version" },
         ],
         responses: {
           "200": { description: "Update check JSON" },
+          "400": { description: "slug query is required. Bare GET is not a check." },
           "404": { description: "Unknown slug" },
         },
       },
@@ -2978,7 +2981,7 @@ async function combinedOpenApi(request, env) {
         "Binding-only ops stay per-op proxy_fallback. POST /p/{product}/{op} is a proxy, not exec, and is not the agent default path. " +
         "Cloudflare isolate is the jail. Hosted AZAI is a protocol mirror + Lamb check, not the local blend. Public VPN auto-binds AZVPN (HTTPS/WS REAL; WireGuard/OpenVPN/L3 SLOT; origin-hiding false). GET /v1/mesh cites vpn=true and never opens a session. AZMail anonymous ring is FragGate LIVE_OPS only (default off; not SMTP, not identity). AZBrowser Lamb Lens is FragGate LIVE_OPS only (not Chromium; no invented visits). AZHub Blank Key and AZInterface page cycles are two separate softwares under the same FragGate door (AIH-WP-1.0). " +
         "Start at GET /v1/skill or GET /v1/software. Agents call Softwares (tools/list name Softwares) on POST /mcp, pick a slug, then fraggate_call. library_lookup searches library papers and cites. FragGate stays the single exec door. The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. Diagnostics: fraggate_list → fraggate_describe → fraggate_call. " +
-        "Hubs fetch GET /v1/software (also GET /v1/fraggate/software). Clients check GET /v1/update/check?slug=&version=. " +
+        "Hubs fetch GET /v1/software (also GET /v1/fraggate/software). Clients check GET /v1/update/check?slug={slug}&version={installed} (slug required; bare GET is not a check). Public GET /v1/manifest is not a path; machine manifest is GET /v1/runtime.json (MCP runtime_manifest). " +
         "GET /v1/bundle lists every product skill URL + invoke prefix. " +
         "GET /v1/pull/{slug} and GET /v1/pull/{slug}/skill pull a product without visiting its Worker. " +
         "Suite design papers live at docs/designs/ (git-hosted; not Softwares-tab products, not a FragGate slug). " +
@@ -3222,7 +3225,7 @@ function healthBody(origin, env = {}) {
     openapi: "/openapi.json",
     catalog: "/v1/catalog.json",
     software: "/v1/software",
-    update_check: "/v1/update/check",
+    update_check: updateCheckUrl(""),
     update_manifest: "/v1/update/manifest",
     uses: "/v1/uses",
     stats: "/v1/stats",
@@ -3502,7 +3505,7 @@ async function handleMcp(request, env, origin, ctx) {
       runtime: "/v1/runtime.json",
       fraggate: "/v1/fraggate",
       software: "/v1/software",
-      update_check: "/v1/update/check",
+      update_check: updateCheckUrl(""),
       bundle: "/v1/bundle",
       session: "/v1/session/open",
     });
@@ -4126,7 +4129,7 @@ async function handleRequest(request, env, ctx) {
           extras_note: CATALOG_EXTRAS_NOTE,
           software: origin.replace(/\/$/, "") + "/v1/software",
           fraggate_software: origin.replace(/\/$/, "") + "/v1/fraggate/software",
-          update_check: origin.replace(/\/$/, "") + "/v1/update/check",
+          update_check: updateCheckUrl(origin),
           update_manifest: origin.replace(/\/$/, "") + "/v1/update/manifest",
           semantic_bridge: semanticBridgeCiteField(origin),
           redline: redlineCiteField(),
@@ -4436,10 +4439,32 @@ async function handleRequest(request, env, ctx) {
       }
     }
 
+    if (url.pathname === "/v1/manifest" && (request.method === "GET" || request.method === "HEAD")) {
+      const root = origin.replace(/\/$/, "");
+      return asHead(
+        request,
+        json(
+          {
+            ok: false,
+            error: "not a public path",
+            path: "/v1/manifest",
+            live: false,
+            machine_manifest: root + "/v1/runtime.json",
+            machine_manifest_alias: root + "/v1/runtime",
+            software: root + "/v1/software",
+            update_manifest: root + "/v1/update/manifest",
+            mcp: "runtime_manifest",
+            hint: "Public GET /v1/manifest is not a path. Machine manifest is GET /v1/runtime.json (alias GET /v1/runtime). MCP runtime_manifest returns that JSON. Hub catalog is GET /v1/software. Client versions are GET /v1/update/manifest.",
+          },
+          404,
+        ),
+      );
+    }
+
     return json(
       {
         error: "not found",
-        hint: "POST /v1/fraggate/call  GET /v1/fraggate  GET /v1/azpipe/arch  GET /v1/software  GET /v1/mesh  GET /v1/qns  GET /v1/receipts  GET /v1/interface  POST /v1/interface  POST /v1/memory/observe  GET /v1/update/check  GET /v1/skill  POST /v1/session/open  POST /v1/session/{id}/exec  GET /v1/ready  GET /v1/uses  GET /v1/runtime.json  GET /v1/bundle  GET /v1/pull/{slug}  GET /v1/catalog.json  GET /openapi.json  POST /p/{product}/{op} (proxy, not exec)  POST /mcp",
+        hint: "POST /v1/fraggate/call  GET /v1/fraggate  GET /v1/azpipe/arch  GET /v1/software  GET /v1/mesh  GET /v1/qns  GET /v1/receipts  GET /v1/interface  POST /v1/interface  POST /v1/memory/observe  GET /v1/update/check?slug={slug}  GET /v1/skill  POST /v1/session/open  POST /v1/session/{id}/exec  GET /v1/ready  GET /v1/uses  GET /v1/runtime.json  GET /v1/bundle  GET /v1/pull/{slug}  GET /v1/catalog.json  GET /openapi.json  POST /p/{product}/{op} (proxy, not exec)  POST /mcp",
       },
       404,
     );
