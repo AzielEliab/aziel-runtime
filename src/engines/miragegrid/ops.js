@@ -5,10 +5,11 @@ import { capabilityDoctor, capabilityHealth, capabilitySkill } from "../capabili
 import { miragegridBridgeCite } from "../../semantic-bridge.js";
 import { landCap7Shuffle } from "../../cap7-shuffle.js";
 import { LIMITATION, MOTTO, VERSION, assign, listNodes, meshView, routeView, buildCircuit, verifyReceipt, makePool } from "./engine.js";
+import { egressRotate, geoTarget, sessionStick } from "./cap7-plane.js";
 
-const LIVE = ["health", "skill", "assign", "verify-receipt", "nodes", "bridge", "shuffle", "doctor"];
-const STUB = ["vpn-hop", "hop", "tunnel", "mesh", "geo-target", "session-stick", "egress-rotate"];
-export const MIRAGEGRID_OPS = ["health", "skill", "assign", "route", "circuit", "verify-receipt", "nodes", "bridge", "shuffle", "mesh", "doctor"];
+const LIVE = ["health", "skill", "assign", "verify-receipt", "nodes", "bridge", "shuffle", "doctor", "geo-target", "session-stick", "egress-rotate"];
+const STUB = ["vpn-hop", "hop", "tunnel", "mesh"];
+export const MIRAGEGRID_OPS = ["health", "skill", "assign", "route", "circuit", "verify-receipt", "nodes", "bridge", "shuffle", "mesh", "doctor", "geo-target", "session-stick", "egress-rotate"];
 
 function envelope() {
   return {
@@ -46,12 +47,18 @@ function envelope() {
       canonical_hubs_immutable: true,
       fifth_product: false,
       suite_vpn: "azvpn",
-      planned: {
+      cap7_plane: {
         geo: "geo-target",
         sticky_session: "session-stick",
         egress_rotation: "egress-rotate",
-        status: "planned",
-        live: false,
+        status: "live",
+        live: true,
+        plane: "cap7",
+        factory_exec: true,
+        public_egress_ip: false,
+        packet_forwarding: false,
+        public_icann: false,
+        azvpn: false,
       },
     },
   };
@@ -64,14 +71,14 @@ export function miragegridHealth() {
 export function miragegridSkill() {
   return capabilitySkill({
     ...envelope(),
-    lead: "Ephemeral session node assignment plus Cap-7 mesh-name metadata. The Cap-7 factory is a mesh-name factory and is not a public ICANN registrar: four hub mirrors (azgrid, azcloak, azvault, azshift) and three decoys (azbooth, azflag, azstandby), distinct from per-node .aziel slots. Factory shuffle land is LIVE. Standard internet does not reach Cap-7. AZVPN is the suite VPN concentrator. MirageGrid is not a VPN, not an anonymity network, and not a packet mesh. vpn-hop, hop, tunnel, and mesh stay FG-STUB. The MirageGrid mesh op is not the QNM suite mesh. geo-target, session-stick, and egress-rotate are planned and stay FG-STUB until real. Author Aziel Eliab only.",
+    lead: "Ephemeral session node assignment plus Cap-7 mesh-name metadata. The Cap-7 factory is a mesh-name factory and is not a public ICANN registrar: four hub mirrors (azgrid, azcloak, azvault, azshift) and three decoys (azbooth, azflag, azstandby), distinct from per-node .aziel slots. Factory shuffle land is LIVE. geo-target, session-stick, and egress-rotate are LIVE on the Cap-7 plane (metadata and session land). They are not a public egress IP. Standard internet does not reach Cap-7. AZVPN is the suite VPN concentrator. MirageGrid is not a VPN, not an anonymity network, and not a packet mesh. vpn-hop, hop, tunnel, and mesh stay FG-STUB. The MirageGrid mesh op is not the QNM suite mesh. Author Aziel Eliab only.",
   });
 }
 
 export function miragegridDoctor() {
   return capabilityDoctor({
     ...envelope(),
-    doctor_note: "MirageGrid doctor: assign / verify-receipt / nodes / bridge cite / shuffle land. vpn-hop, hop, tunnel, and mesh stay FG-STUB. geo-target, session-stick, and egress-rotate are planned and stay FG-STUB until real. The MirageGrid mesh op is not the QNM suite mesh. Cap-7 is a mesh-name factory, not a public ICANN registrar: four hub mirrors azgrid, azcloak, azvault, azshift and three decoys azbooth, azflag, azstandby (not per-node .aziel slots). Shift is StaticLock; catalog product StaticClock, slug staticclock; cloak + AZVPN. AZVPN is the suite VPN concentrator. Standard internet does not reach Cap-7. AZ domains resolve via hub HTTPS (public_icann true, resolves_to_hub true). Factory land is LIVE. radio_phy false. Author Aziel Eliab only.",
+    doctor_note: "MirageGrid doctor: assign / verify-receipt / nodes / bridge cite / shuffle land / geo-target / session-stick / egress-rotate. Those three are LIVE on the Cap-7 plane and are not a public egress IP. vpn-hop, hop, tunnel, and mesh stay FG-STUB. The MirageGrid mesh op is not the QNM suite mesh. Cap-7 is a mesh-name factory, not a public ICANN registrar: four hub mirrors azgrid, azcloak, azvault, azshift and three decoys azbooth, azflag, azstandby (not per-node .aziel slots). Shift is StaticLock; catalog product StaticClock, slug staticclock; cloak + AZVPN. AZVPN is the suite VPN concentrator. Standard internet does not reach Cap-7. AZ domains resolve via hub HTTPS (public_icann true, resolves_to_hub true). Factory land is LIVE. radio_phy false. Author Aziel Eliab only.",
   });
 }
 
@@ -98,5 +105,8 @@ export async function runMiragegrid(op, payload, scratch) {
   if (op === "shuffle") {
     return landCap7Shuffle(payload || {});
   }
+  if (op === "geo-target") return geoTarget(payload || {});
+  if (op === "session-stick") return sessionStick(payload || {});
+  if (op === "egress-rotate") return egressRotate(payload || {});
   return { unsupported: true };
 }

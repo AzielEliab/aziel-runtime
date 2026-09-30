@@ -31,8 +31,10 @@ assert.equal(cite.cid, null);
 
 const cap7 = l2Cap7Stamp();
 assert.equal(cap7.dns_publish, false);
-assert.equal(cap7.status, "slot");
-assert.equal(cap7.live, false);
+assert.equal(cap7.status, "live");
+assert.equal(cap7.live, true);
+assert.equal(cap7.factory_exec, true);
+assert.equal(cap7.public_egress_ip, false);
 assert.equal(cap7.public_icann, false);
 assert.equal(cap7.resolves_to_hub, false);
 assert.equal(cap7.internet_reachable, false);

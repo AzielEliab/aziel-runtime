@@ -6,8 +6,8 @@
 export const PRODUCT = "miragegrid";
 export const VERSION = "0.2.0";
 export const MOTTO = "You enter the booth. A short-lived session node is assigned. You leave with no persistent booth identity.";
-export const BANNER = "Assign a short-lived session node and cite Cap-7 mesh-name metadata. The Cap-7 factory is not a public ICANN registrar. AZVPN is the suite VPN. Geo, sticky session, and egress-style rotation are planned and refuse today. Author Aziel Eliab.";
-export const LIMITATION = "THIS IS: ephemeral control-plane node assignment and Cap-7 mesh-name metadata. THIS IS NOT: a public ICANN registrar, a hosted VPN, an anonymity network, or packet forwarding. Geo, sticky session, and egress-style rotation are planned and refuse until real.";
+export const BANNER = "Assign a short-lived session node and cite Cap-7 mesh-name metadata. The Cap-7 factory is not a public ICANN registrar. AZVPN is the suite VPN. Cap-7 geo, sticky session, and land rotation are LIVE on the Cap-7 plane, not a public egress IP. Author Aziel Eliab.";
+export const LIMITATION = "THIS IS: ephemeral control-plane node assignment, Cap-7 mesh-name metadata, and Cap-7 geo / sticky session / land rotation. THIS IS NOT: a public ICANN registrar, a hosted VPN, an anonymity network, packet forwarding, or a public egress IP.";
 const POOL_SIZE = 25;
 const PEER_OFFSETS = [1, 2, 5, 20, 23, 24];
 function nodeIdFor(index) {

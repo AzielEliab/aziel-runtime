@@ -54,7 +54,7 @@ Modes: **OFF** (GET/status never arms), **REFUSE** (named stub / halluc / lamb /
 | 2 | QNS public proxy | OFF | `POST /v1/qns/via` → `QNS-NO-PROXY` |
 | 3 | Vault/Custody destructive / hosted unlock | REFUSE / LOCAL-ONLY | ARK `scorch`/`wipe`/`unlock`/`encrypt`; EmbryoLock wipe/scorch `FG-STUB` |
 | 4 | WhistleLock send / mail / release | REFUSE | stub `send` / `mail` / `release` |
-| 5 | MirageGrid VPN-hop / tunnel / mesh | REFUSE | stub `vpn-hop` / `hop` / `tunnel` / `mesh`; planned `geo-target` / `session-stick` / `egress-rotate` also refuse |
+| 5 | MirageGrid VPN-hop / tunnel / mesh | REFUSE | stub `vpn-hop` / `hop` / `tunnel` / `mesh`. `geo-target` / `session-stick` / `egress-rotate` are LIVE on the Cap-7 plane and are not a public egress IP |
 | 6 | AzielTether VPN / arm / mesh-join | REFUSE | stub `vpn` / `arm` / `mesh-join` |
 | 7 | VeilLock remote surveillance | REFUSE | local_only `inject` / `intercept` / `facetime` → `FG-LOCAL-ONLY` |
 | 8 | AZ-OS exec / shell / lattice | REFUSE | stub `exec` / `shell` / `lattice` (session VFS is ethics-only) |

@@ -21,7 +21,7 @@ const CATALOG = [
   { slug: "zsolver", keys: ["zion", "pattern", "case", "ontology"], op: "score", banner: "75% cap; does not solve cases" },
   { slug: "azos", keys: ["shell", "azos", "principles", "invite"], op: "status", banner: "not a kernel; ethics session VFS is isolate-native; exec/shell stay refuse" },
   { slug: "glossafilter", keys: ["peer", "language", "glossa", "intent"], op: "render", banner: "tools remain tools" },
-  { slug: "miragegrid", keys: ["mesh", "circuit", "anonymity", "socks"], op: "assign", banner: "Cap-7 mesh-name factory, not a public ICANN registrar; not a hosted VPN; geo/sticky/egress planned and refuse" },
+  { slug: "miragegrid", keys: ["mesh", "circuit", "anonymity", "socks"], op: "assign", banner: "Cap-7 mesh-name factory, not a public ICANN registrar; not a hosted VPN; Cap-7 geo/sticky/rotate are the Cap-7 plane, not a public egress IP" },
   { slug: "staticclock", keys: ["gear", "click", "staticclock", "advise"], op: "advise", banner: "not a scheduler" },
   { slug: "chronolock", keys: ["window", "08:30", "advisory", "chrono"], op: "advisory", banner: "advisory only" },
   { slug: "postking", keys: ["chess", "king", "fen", "uci", "continuity"], op: "new", banner: "the goal is to remain" },

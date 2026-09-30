@@ -8,6 +8,7 @@ import { RUNTIME_VERSION, runtimeManifest } from "../src/runtime-api.js";
 import { BUILD_GIT_SHA } from "../src/build-meta.js";
 import { embeddedDigest, trueEngineSlugs } from "../src/engines/digest.js";
 import { LIVE_OPS, NAMED_STUBS, STUB_OPS, buildRegistry, classifyCall } from "../src/fraggate/registry.js";
+import { previewCatalogAdmission } from "../src/fraggate/door.js";
 import { SOFTWARE_COPY, softwareCopySlugs } from "../src/software-copy.js";
 import { executeLocal } from "../src/engines/runner.js";
 import { CATALOG_ALIASES, catalogExtraCards } from "../src/catalog-meta.js";
@@ -491,11 +492,13 @@ assert.equal(mgCard.slug, "miragegrid");
 assert.match(mgCard.one_line, /short-lived session node/);
 assert.match(mgCard.one_line, /Cap-7 mesh-name metadata/);
 assert.match(mgCard.one_line, /not a public ICANN registrar/);
-assert.match(mgCard.one_line, /Egress-style geo\/sticky\/rotation planned; stub refuse today\./);
+assert.match(mgCard.one_line, /Cap-7 geo, sticky session, and land rotation are LIVE on the Cap-7 plane, not a public egress IP\./);
+assert.doesNotMatch(mgCard.one_line, /stub refuse today|planned; stub refuse/);
 assert.match(mgCard.description, /not a public ICANN registrar/);
-assert.match(mgCard.description, /planned/);
+assert.match(mgCard.description, /LIVE on the Cap-7 plane/);
+assert.match(mgCard.description, /not a public egress IP/);
 assert.match(mgCard.description, /AZVPN/);
-assert.doesNotMatch(`${mgCard.one_line} ${mgCard.description}`, /node-mesh VPN|anonymity network|packet mesh|SOCKS5/i);
+assert.doesNotMatch(`${mgCard.one_line} ${mgCard.description}`, /node-mesh VPN|anonymity network|packet mesh|SOCKS5|hosted VPN/i);
 assert.deepEqual(mgCard.public_door_ops, [
   "assign",
   "verify-receipt",
@@ -505,8 +508,12 @@ assert.deepEqual(mgCard.public_door_ops, [
   "health",
   "skill",
   "doctor",
+  "geo-target",
+  "session-stick",
+  "egress-rotate",
 ]);
-const mgStubs = ["vpn-hop", "hop", "tunnel", "mesh", "geo-target", "session-stick", "egress-rotate"];
+const mgStubs = ["vpn-hop", "hop", "tunnel", "mesh"];
+const mgLivePlane = ["geo-target", "session-stick", "egress-rotate"];
 assert.deepEqual(STUB_OPS.miragegrid.slice(), mgStubs);
 assert.deepEqual(LIVE_OPS.miragegrid.slice(), mgCard.public_door_ops);
 for (const op of mgStubs) {
@@ -514,14 +521,22 @@ for (const op of mgStubs) {
   assert.ok(!mgCard.public_door_ops.includes(op), `miragegrid live must omit ${op}`);
   assert.equal(classifyCall(buildRegistry(PRODUCTS).bySlug.miragegrid, op).kind, "stub", op);
 }
+for (const op of mgLivePlane) {
+  assert.ok(mgCard.public_door_ops.includes(op), `miragegrid live ${op}`);
+  assert.ok(!mgCard.stub_ops.includes(op), `miragegrid stub must omit ${op}`);
+  assert.equal(classifyCall(buildRegistry(PRODUCTS).bySlug.miragegrid, op).kind, "live", op);
+}
 const mgHealth = await executeLocal({ slug: "miragegrid", op: "health", payload: {}, ranIn: "aziel-runtime" });
 const mgHealthBody = JSON.parse(mgHealth.responseText);
 assert.equal(mgHealthBody.public_icann_registrar, false);
 assert.equal(mgHealthBody.vpn, false);
 assert.equal(mgHealthBody.anonymity_network, false);
 assert.equal(mgHealthBody.packet_mesh, false);
-assert.equal(mgHealthBody.planned.live, false);
-assert.equal(mgHealthBody.planned.status, "planned");
+assert.equal(mgHealthBody.cap7_plane.live, true);
+assert.equal(mgHealthBody.cap7_plane.status, "live");
+assert.equal(mgHealthBody.cap7_plane.public_egress_ip, false);
+assert.equal(mgHealthBody.cap7_plane.public_icann, false);
+assert.equal(mgHealthBody.cap7_plane.azvpn, false);
 assert.equal(mgHealthBody.hub_mirror_count, 4);
 assert.equal(mgHealthBody.decoy_count, 3);
 assert.equal(mgHealthBody.per_node_aziel_slots, false);
@@ -529,19 +544,78 @@ assert.equal(mgHealthBody.author, "Aziel Eliab");
 const mgSkill = await executeLocal({ slug: "miragegrid", op: "skill", payload: {}, ranIn: "aziel-runtime" });
 const mgSkillBody = JSON.parse(mgSkill.responseText);
 assert.match(mgSkillBody.markdown, /not a public ICANN registrar/);
-assert.match(mgSkillBody.markdown, /geo-target, session-stick, and egress-rotate are planned/);
+assert.match(mgSkillBody.markdown, /geo-target, session-stick, and egress-rotate are LIVE on the Cap-7 plane/);
+assert.match(mgSkillBody.markdown, /not a public egress IP/);
 assert.match(mgSkillBody.markdown, /FG-STUB/);
 assert.match(mgSkillBody.markdown, /not the QNM suite mesh/);
 assert.match(mgSkillBody.markdown, /Aziel Eliab only/);
 assert.doesNotMatch(mgSkillBody.markdown, /true node-mesh VPN|SOCKS5/);
-assert.ok(!mgSkillBody.live_ops.includes("geo-target"));
-assert.ok(mgSkillBody.stub_ops.includes("egress-rotate"));
+assert.ok(mgSkillBody.live_ops.includes("geo-target"));
+assert.ok(mgSkillBody.live_ops.includes("session-stick"));
+assert.ok(mgSkillBody.live_ops.includes("egress-rotate"));
+assert.ok(mgSkillBody.stub_ops.includes("vpn-hop"));
+assert.ok(!mgSkillBody.stub_ops.includes("egress-rotate"));
 const mgAssign = await executeLocal({ slug: "miragegrid", op: "assign", payload: {}, ranIn: "aziel-runtime" });
 const mgAssignBody = JSON.parse(mgAssign.responseText);
 assert.equal(mgAssignBody.kind, "control-plane-assign");
 assert.match(mgAssignBody.banner, /not a public ICANN registrar/);
-assert.match(mgAssignBody.banner, /planned and refuse today/);
+assert.match(mgAssignBody.banner, /LIVE on the Cap-7 plane, not a public egress IP/);
+assert.doesNotMatch(mgAssignBody.banner, /stub refuse today/);
 assert.doesNotMatch(mgAssignBody.banner, /true node-mesh VPN|anonymity network|SOCKS5/);
+const geo = JSON.parse(
+  (await executeLocal({ slug: "miragegrid", op: "geo-target", payload: { region: "booth-east" }, ranIn: "aziel-runtime" })).responseText,
+);
+assert.equal(geo.ok, true);
+assert.equal(geo.code, "CAP7-GEO-TARGET");
+assert.equal(geo.public_egress_ip, false);
+assert.equal(geo.egress_ip, null);
+assert.equal(geo.public_icann, false);
+assert.equal(geo.azvpn, false);
+assert.equal(geo.geo_applied, false);
+assert.equal(geo.packet_forwarding, false);
+assert.equal(geo.hosted_vpn, false);
+const geoIp = JSON.parse(
+  (await executeLocal({ slug: "miragegrid", op: "geo-target", payload: { region: "203.0.113.8" }, ranIn: "aziel-runtime" })).responseText,
+);
+assert.equal(geoIp.ok, false);
+assert.equal(geoIp.code, "MG-NOT-PUBLIC-EGRESS");
+assert.notEqual(geoIp.code, "FG-STUB");
+const stick = JSON.parse(
+  (await executeLocal({ slug: "miragegrid", op: "session-stick", payload: { sticky_key: "booth-1" }, ranIn: "aziel-runtime" })).responseText,
+);
+assert.equal(stick.ok, true);
+assert.equal(stick.node_id, "node-21");
+assert.equal(stick.sticky_ip, false);
+assert.equal(stick.egress_ip, null);
+assert.equal(stick.public_icann, false);
+const stickAgain = JSON.parse(
+  (await executeLocal({ slug: "miragegrid", op: "session-stick", payload: { sticky_key: "booth-1" }, ranIn: "aziel-runtime" })).responseText,
+);
+assert.equal(stickAgain.node_id, stick.node_id);
+assert.equal(stickAgain.land.id, stick.land.id);
+const stickIp = JSON.parse(
+  (await executeLocal({ slug: "miragegrid", op: "session-stick", payload: { sticky_key: "booth-1", sticky_ip: true }, ranIn: "aziel-runtime" })).responseText,
+);
+assert.equal(stickIp.code, "MG-NOT-PUBLIC-EGRESS");
+const rot = JSON.parse(
+  (await executeLocal({ slug: "miragegrid", op: "egress-rotate", payload: { prev: "azgrid" }, ranIn: "aziel-runtime" })).responseText,
+);
+assert.equal(rot.ok, true);
+assert.equal(rot.from, "azgrid");
+assert.equal(rot.land.id, "azbooth");
+assert.equal(rot.public_egress_ip, false);
+assert.equal(rot.icann_publish, false);
+assert.equal(rot.packet_forwarding, false);
+const mgRegistry = buildRegistry(PRODUCTS);
+const dryGeo = previewCatalogAdmission({ slug: "miragegrid", op: "geo-target", dry_run: true }, mgRegistry, mgRegistry.bySlug);
+assert.equal(dryGeo.proceed, true);
+const dryStick = previewCatalogAdmission({ slug: "miragegrid", op: "session-stick", dry_run: true }, mgRegistry, mgRegistry.bySlug);
+assert.equal(dryStick.proceed, true);
+const dryRot = previewCatalogAdmission({ slug: "miragegrid", op: "egress-rotate", dry_run: true }, mgRegistry, mgRegistry.bySlug);
+assert.equal(dryRot.proceed, true);
+const dryHop = previewCatalogAdmission({ slug: "miragegrid", op: "vpn-hop", dry_run: true }, mgRegistry, mgRegistry.bySlug);
+assert.equal(dryHop.proceed, false);
+assert.equal(dryHop.envelope.code, "FG-STUB");
 const runtimeSkill = await (await get("/v1/skill")).text();
 assert.match(runtimeSkill, /not a public ICANN registrar/);
 assert.match(runtimeSkill, /geo-target, session-stick, egress-rotate/);
@@ -694,8 +768,10 @@ assert.match(llms, /tools\/list name Softwares/);
 assert.match(llms, /^version_id: null$/m);
 assert.match(llms, /^version_id_source: unbound$/m);
 assert.match(llms, /not a public ICANN registrar/);
-assert.match(llms, /geo-target, session-stick, and egress-rotate are planned/);
-assert.match(llms, /Egress-style geo\/sticky\/rotation planned; stub refuse today\./);
+assert.match(llms, /geo-target, session-stick, egress-rotate/);
+assert.match(llms, /LIVE on the Cap-7 plane/);
+assert.match(llms, /not a public egress IP/);
+assert.doesNotMatch(llms, /stub refuse today/);
 assert.doesNotMatch(llms, /true node-mesh VPN|userspace SOCKS5/);
 const cite = await (await get("/cite.json")).json();
 assert.equal(cite.suite_tip.version_id, null);
