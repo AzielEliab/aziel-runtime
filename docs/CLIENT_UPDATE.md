@@ -88,6 +88,8 @@ catalog (e.g. `az-clce`, `embryo-lock`) resolve.
 
 ## Manifest (all latest versions)
 
+This list is `GET /v1/update/manifest`. Public `GET /v1/manifest` is not a path. The machine manifest is `GET /v1/runtime.json` (alias `GET /v1/runtime`). MCP `runtime_manifest` returns that JSON. The hub catalog is `GET /v1/software`.
+
 ```bash
 curl -s -A 'Mozilla/5.0' https://aziel-runtime.vibelock.workers.dev/v1/update/manifest
 ```

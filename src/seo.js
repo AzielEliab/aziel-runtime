@@ -938,7 +938,7 @@ export function catalogHubFields(origin) {
       catalog: base + "/v1/catalog.json",
       software: base + "/v1/software",
       fraggate_software: base + "/v1/fraggate/software",
-      update_check: base + "/v1/update/check",
+      update_check: base + "/v1/update/check?slug={slug}&version={installed}",
       update_manifest: base + "/v1/update/manifest",
       mcp: base + "/mcp",
       mesh_az_generator: base + "/v1/mesh/az-generator",

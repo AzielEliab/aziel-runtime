@@ -99,9 +99,9 @@ Other public HTTP surfaces that stay in the contract:
 |--------|------|------|
 | GET | `/v1/health` | Authority snapshot + honesty |
 | GET | `/v1/ready` | Same snapshot + SESSION / token gate |
-| GET | `/v1/runtime.json` (`/v1/runtime`) | Machine manifest |
+| GET | `/v1/runtime.json` (`/v1/runtime`) | Machine manifest. Public `GET /v1/manifest` is not a path. MCP `runtime_manifest` returns this JSON. |
 | GET | `/v1/software` | Hub catalog |
-| GET | `/v1/update/check`, `/v1/update/manifest` | Client update |
+| GET | `/v1/update/check?slug={slug}&version={installed}`, `/v1/update/manifest` | Client update. `slug` is required. Bare `GET /v1/update/check` is not a check. |
 | POST | `/v1/session/open` | Session open |
 | POST | `/v1/session/{id}/policy\|exec\|close` | Session mutate |
 | GET | `/v1/session/{id}/receipt\|receipts` | Receipts |

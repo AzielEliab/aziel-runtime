@@ -110,7 +110,7 @@ Trades-Runtime 0.4.9 is a sister product, not a FragGate true-engine and not nes
 
 ## Dual surface (upload / download / invoke)
 
-Agents use FragGate MCP + OpenAPI (`fraggate_call`, `GET /v1/update/check`, `GET /v1/pull/{slug}`, catalog `website_designs`). Humans use Worker UI + counted `/download`. Upload/ingest/receipt ops (azbrowser `airlock_ingest`, peacelock `upload_envelope`, forgereceipts `verify`, miragegrid `verify-receipt` / `bridge`) are the same door. **azlibrary upload** is API token only — never embed the secret. Download of azcorpus + azlibrary is open for all AI clients. `POST /p/{slug}/{op}` is proxy, not exec.
+Agents use FragGate MCP + OpenAPI (`fraggate_call`, `GET /v1/update/check?slug={slug}&version={installed}`, `GET /v1/pull/{slug}`, catalog `website_designs`). Bare `GET /v1/update/check` is not a check. Public `GET /v1/manifest` is not a path; the machine manifest is `GET /v1/runtime.json` (MCP `runtime_manifest`). Humans use Worker UI + counted `/download`. Upload/ingest/receipt ops (azbrowser `airlock_ingest`, peacelock `upload_envelope`, forgereceipts `verify`, miragegrid `verify-receipt` / `bridge`) are the same door. **azlibrary upload** is API token only — never embed the secret. Download of azcorpus + azlibrary is open for all AI clients. `POST /p/{slug}/{op}` is proxy, not exec.
 
 ## Cold multi-shelf (COLD-MULTI-SHELF-1.0)
 

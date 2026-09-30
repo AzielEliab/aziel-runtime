@@ -167,7 +167,7 @@ Public identity: **Aziel Eliab** only. Do not invent Zenodo DOIs.
 
 ## Dual surface (product law)
 
-1. **Agent / MCP** — Software runs through the agent. Show `display.title` / `display.summary` / `display.fields`, then take the next input. Session, OpenAPI, and HTTP plumbing stay invisible unless asked for. **One door — discover, route, refuse.** Download via `GET /v1/update/check` → `download_url` or `GET /v1/pull/{slug}`. Mesh-resident **azcorpus** + **azlibrary** website designs download from `GET /v1/software` `website_designs` (open for all AI clients). Upload/ingest/receipt via `fraggate_call` (azbrowser `airlock_ingest`, peacelock `upload_envelope`, forgereceipts `verify`, miragegrid `verify-receipt` / `bridge`). **azlibrary upload** is API token only — never embed the secret. Same ops on `/openapi.json`.
+1. **Agent / MCP** — Software runs through the agent. Show `display.title` / `display.summary` / `display.fields`, then take the next input. Session, OpenAPI, and HTTP plumbing stay invisible unless asked for. **One door — discover, route, refuse.** Download via `GET /v1/update/check?slug={slug}&version={installed}` → `download_url` or `GET /v1/pull/{slug}`. Bare `GET /v1/update/check` is not a check. Mesh-resident **azcorpus** + **azlibrary** website designs download from `GET /v1/software` `website_designs` (open for all AI clients). Upload/ingest/receipt via `fraggate_call` (azbrowser `airlock_ingest`, peacelock `upload_envelope`, forgereceipts `verify`, miragegrid `verify-receipt` / `bridge`). **azlibrary upload** is API token only — never embed the secret. Same ops on `/openapi.json`.
 2. **Human software** — This Worker UI, local install, and counted `/download` remain complete developed software. Flutter `mobile/` is not vendored in this repo.
 
 ### Cold multi-shelf (COLD-MULTI-SHELF-1.0)
@@ -270,7 +270,7 @@ Always send `User-Agent: Mozilla/5.0`.
 | FragGate door | https://aziel-runtime.vibelock.workers.dev/v1/fraggate |
 | FragGate Worker UI + counted download | https://fraggate-download-tracker.vibelock.workers.dev/ |
 | FragGate kernel | https://github.com/AzielEliab/fraggate |
-| Machine manifest (`role=engine-runtime`) | https://aziel-runtime.vibelock.workers.dev/v1/runtime.json |
+| Machine manifest (`role=engine-runtime`) | https://aziel-runtime.vibelock.workers.dev/v1/runtime.json (public `GET /v1/manifest` is not a path; MCP `runtime_manifest` returns this JSON) |
 | Session open | `POST` https://aziel-runtime.vibelock.workers.dev/v1/session/open |
 | Session exec | `POST` https://aziel-runtime.vibelock.workers.dev/v1/session/{id}/exec |
 | Session receipt(s) | https://aziel-runtime.vibelock.workers.dev/v1/session/{id}/receipt |
@@ -599,7 +599,7 @@ corpus Worker advertises and reverse-proxies:
 - `GET https://www.azielcorpuslibrary.net/runtime/v1/skill` → this `/v1/skill`
 - `GET https://www.azielcorpuslibrary.net/runtime/v1/runtime.json` → this `/v1/runtime.json`
 - `GET https://www.azielcorpuslibrary.net/runtime/v1/software` → this `/v1/software`
-- `GET https://www.azielcorpuslibrary.net/runtime/v1/update/check` → this `/v1/update/check`
+- `GET https://www.azielcorpuslibrary.net/runtime/v1/update/check?slug={slug}&version={installed}` → this `/v1/update/check?slug={slug}&version={installed}` (slug required)
 - `GET https://www.azielcorpuslibrary.net/runtime/v1/bundle` → this `/v1/bundle`
 - `GET https://www.azielcorpuslibrary.net/runtime/v1/pull/{slug}` → this `/v1/pull/{slug}`
 - `POST https://www.azielcorpuslibrary.net/runtime/v1/session/open` → this session object

@@ -110,7 +110,7 @@ export function platformsCite(env = {}) {
     download_run: Object.freeze({
       suite_pack: "/download",
       update_manifest: "/v1/update/manifest",
-      update_check: "/v1/update/check",
+      update_check: "/v1/update/check?slug={slug}&version={installed}",
       pwa: "/manifest.webmanifest",
     }),
     note:
