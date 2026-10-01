@@ -30,7 +30,8 @@ const relays = relaysArg
   : relay
     ? [relay]
     : [];
-const node = await startInstance({ dataDir: data, port, host, advertise, relays });
+const passphrase = arg("--passphrase", "");
+const node = await startInstance({ dataDir: data, port, host, advertise, relays, passphrase });
 console.log(JSON.stringify({
   handle: node.handle,
   listen_host: node.listenHost,

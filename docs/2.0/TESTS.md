@@ -57,6 +57,10 @@ Fixture: [`fixtures/session-receipt-chain.json`](../../fixtures/session-receipt-
 - INSPECT.md links those paths
 - advertised `install_sh` is not `curl … | bash`
 
+## AZP-NS-1.0 gates
+
+`scripts/verify-keystore.mjs` (A), `scripts/verify-envelope-v2.mjs` and `scripts/verify-replay.mjs` (B), `scripts/verify-relay.mjs` (C), `scripts/verify-checkpoint.mjs` (D), `scripts/verify-replication.mjs`, `scripts/verify-provider-loss.mjs`, and `scripts/verify-disaster-recovery.mjs` (E, fixture or SKIP), `scripts/verify-privacy-metadata.mjs` (F and G). Paper: [`docs/designs/AZP-NS-1.0.md`](../designs/AZP-NS-1.0.md). These scripts do not destroy a live provider. They do not change DNS.
+
 ## Other suites
 
 The rest of `scripts/verify-*.mjs` cover mesh laws, Remain-OFF, engines, SEO MIME, and 2.0 pack gates. They are listed in `package.json` `scripts.test`. Do not treat a green run as an external lab letter.

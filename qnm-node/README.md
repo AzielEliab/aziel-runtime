@@ -47,6 +47,8 @@ node qnm-node/fed-instance.mjs --data ./data/b --port 8782 --host 192.168.1.20 \
 
 One `--relay` stays L0. `--relays` with more than one URL makes that node's `GET /health` show `survival.methods` multi-relay `live: true`. Binding the socket does not do that, and it does not paint public `GET /v1/mesh` `l1_live`. Unconfigured public mesh stays `l1_live=false`, `aznet_replaces_internet=false`, Softwares 42.
 
+`--passphrase` opts this data directory into an AZKS-1 keystore (`keystore.json`). The public `identity.json` then has no seed. Without `--passphrase`, L0 still writes `identity.json` seed fields so existing nodes keep their handles. That plaintext file is not encrypted storage. The passphrase is not printed.
+
 Local multi-relay smoke (start two relays first; the canonical pack is `node scripts/verify-peer-bearers.mjs`):
 
 ```bash
