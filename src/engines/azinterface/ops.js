@@ -49,6 +49,7 @@ export async function meshRadios(payload, env) {
     door: "fraggate",
     op: "mesh_radios",
     radios: status.radios,
+    open_world_awareness: status.open_world_awareness,
     enabled: status.enabled === true,
     suite_presence: status.suite_presence,
     get_never_enables: true,
@@ -72,7 +73,7 @@ export async function meshRadios(payload, env) {
       stayed,
       mutated: false,
       message:
-        "Mesh radios do not arm Cap-7 egress, ICANN, Mirage vpn-hop, AZVPN kernel transports, or AZNet payload hosting.",
+        "Mesh radios do not arm Cap-7 egress, ICANN, Mirage vpn-hop, AZVPN kernel transports, AZNet payload hosting, or a loopback fence. forced_loopback and loopback_isolation are not the mesh fence. Open-world awareness stays the 0.0.0.0 bind.",
     };
   }
   if (src.confirm !== true || src.dry_run === true) {
@@ -83,7 +84,7 @@ export async function meshRadios(payload, env) {
       needs_confirm: true,
       dry_run: src.dry_run === true,
       message:
-        "Status only. confirm true calls FragGate mesh enable for the suite-presence bearer. GET never enables. MESH_RADIOS=off stays MESH-OFF. Isolation is single-node security-awareness. Phoenix is local wait / re-seal.",
+        "Status only. confirm true calls FragGate mesh enable for the suite-presence bearer. GET never enables. MESH_RADIOS=off stays MESH-OFF. Isolation is single-node security-awareness. Phoenix is local wait / re-seal. Open-world awareness binds 0.0.0.0. The Worker does not open that socket.",
     };
   }
   if (readMeshRadioEnv(env) === false) {
@@ -122,7 +123,7 @@ export async function meshRadios(payload, env) {
     message:
       enabled.ok === false
         ? enabled.message
-        : "FragGate mesh enable accepted. Suite-presence radios follow the declared bearer. GET still never enables. Isolation is single-node security-awareness. Phoenix is local wait / re-seal.",
+        : "FragGate mesh enable accepted. Suite-presence radios follow the declared bearer. GET still never enables. Isolation is single-node security-awareness. Phoenix is local wait / re-seal. Open-world awareness stays the 0.0.0.0 bind beside those radios.",
   };
 }
 

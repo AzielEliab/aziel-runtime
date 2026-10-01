@@ -1045,14 +1045,29 @@ assert.deepEqual(joinTool.inputSchema.properties.presence.enum, ["live", "locked
   assert.match(skill, /single-node security-awareness/i);
   assert.match(skill, /not a loopback fence|not a fence of the mesh/i);
   assert.equal(meshSecurityCite().mesh_fenced_to_loopback, false);
+  assert.equal(meshSecurityCite().forced_loopback, false);
+  assert.equal(meshSecurityCite().loopback_isolation, false);
+  assert.equal(meshSecurityCite().forced_loopback_is_mesh_fence, false);
+  assert.equal(meshSecurityCite().loopback_isolation_is_mesh_fence, false);
   assert.equal(meshSecurityCite().phoenix_lock, true);
   assert.equal(meshSecurityCite().public_hostname_resurrection, false);
+  assert.equal(meshSecurityCite().open_world_awareness.bind, "0.0.0.0");
+  assert.equal(meshSecurityCite().open_world_awareness.law, "LIVE");
+  assert.equal(meshSecurityCite().open_world_awareness.worker_socket, false);
+  assert.equal(meshSecurityCite().open_world_awareness.status, "live-when-configured");
+  assert.equal(meshSecurityCite().open_world_awareness.public_egress_ip, false);
+  assert.equal(meshSecurityCite().open_world_awareness.not_a_second_internet, true);
+  assert.match(skill, /0\.0\.0\.0/);
+  assert.match(skill, /forced_loopback and loopback_isolation are not the mesh fence/);
 
   const nodeMesh = readFileSync(new URL("../docs/NODE_MESH.md", import.meta.url), "utf8");
   const fedPaper = readFileSync(new URL("../docs/designs/FED-MESH-1.0.md", import.meta.url), "utf8");
   assert.doesNotMatch(nodeMesh, /sibling loopback module/);
   assert.match(nodeMesh, /single-node security-awareness/);
   assert.match(nodeMesh, /does not fence the mesh to 127\.0\.0\.1/);
+  assert.match(nodeMesh, /0\.0\.0\.0/);
+  assert.match(nodeMesh, /forced_loopback/);
+  assert.match(fedPaper, /0\.0\.0\.0/);
   assert.match(nodeMesh, /home-origin SLOT/);
   assert.match(nodeMesh, /LIVE on the Cap-7 plane/);
   assert.doesNotMatch(fedPaper, /SLOT\. Mesh-only/);
@@ -1070,12 +1085,20 @@ assert.deepEqual(joinTool.inputSchema.properties.presence.enum, ["live", "locked
 
   const statusSec = await jsonReq(envWithMesh(), "/v1/mesh");
   assert.equal(statusSec.data.security.mesh_fenced_to_loopback, false);
+  assert.equal(statusSec.data.open_world_awareness.bind, "0.0.0.0");
+  assert.equal(statusSec.data.open_world_awareness.law, "LIVE");
+  assert.equal(statusSec.data.open_world_awareness.worker_socket, false);
+  assert.equal(statusSec.data.open_world_awareness.status, "live-when-configured");
+  assert.equal(statusSec.data.radios === "on" || statusSec.data.radios === "off", true);
   assert.equal(statusSec.data.get_never_enables, true);
 
   const radiosTile = await meshRadios({}, envWithMesh());
   assert.equal(radiosTile.needs_confirm, true);
   assert.equal(radiosTile.mutated, false);
   assert.equal(radiosTile.security.mesh_fenced_to_loopback, false);
+  assert.equal(radiosTile.open_world_awareness.bind, "0.0.0.0");
+  assert.equal(radiosTile.open_world_awareness.law, "LIVE");
+  assert.equal(radiosTile.open_world_awareness.worker_socket, false);
 
   const radiosOffTile = await meshRadios({ confirm: true }, envWithMesh({ MESH_RADIOS: "off" }));
   assert.equal(radiosOffTile.ok, false);
@@ -1085,6 +1108,10 @@ assert.deepEqual(joinTool.inputSchema.properties.presence.enum, ["live", "locked
   const radiosStay = await meshRadios({ confirm: true, public_egress_ip: true }, envWithMesh({ MESH_RADIOS: "on" }));
   assert.equal(radiosStay.ok, false);
   assert.equal(radiosStay.code, "MESH-STAY-OFF");
+  const radiosFence = await meshRadios({ confirm: true, forced_loopback: true }, envWithMesh({ MESH_RADIOS: "on" }));
+  assert.equal(radiosFence.ok, false);
+  assert.equal(radiosFence.code, "MESH-STAY-OFF");
+  assert.equal(radiosFence.mutated, false);
 
   const radiosOn = envWithMesh({ MESH_RADIOS: "on" });
   const radiosEnabled = await meshRadios({ confirm: true, bearer: "human" }, radiosOn);

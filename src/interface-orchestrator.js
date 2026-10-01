@@ -53,6 +53,7 @@ import { normalizeAttemptLink } from "./receipt-attempt.js";
 import { sealAdaptive } from "./jeeves-adapt.js";
 import { askJeevesHelp, JEEVES_HELP_CALL } from "./jeeves-desk.js";
 import { runMeshOp } from "./mesh.js";
+import { openWorldAwarenessCite } from "./open-world-awareness.js";
 import { RUNTIME_VERSION } from "./runtime-api.js";
 import { ZERO_HASH } from "./session-core.js";
 
@@ -399,7 +400,8 @@ function meshAwarenessBody() {
     presence: ["live", "locked", "isolated"],
     ttl_ms: 5 * 60 * 1000,
     product_required_to_join: true,
-    note: "Awareness only. This call did not join, heartbeat, leave, enable, or read the live roster. Live Nodes math is unchanged.",
+    open_world_awareness: openWorldAwarenessCite(),
+    note: "Awareness only. This call did not join, heartbeat, leave, enable, or read the live roster. Live Nodes math is unchanged. Open-world awareness is the 0.0.0.0 bind. This call does not open that socket.",
   });
 }
 

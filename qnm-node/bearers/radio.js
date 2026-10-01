@@ -104,7 +104,7 @@ export function probeRf() {
   return { present: false, kind: null };
 }
 
-/** Local qnsd binds 127.0.0.1. That bind is not a mesh-wide loopback fence. Never fetch 127.0.0.1 from the Worker. */
+/** Local qnsd binds 127.0.0.1. That bind is not a mesh-wide loopback fence and is not open-world awareness. Open-world awareness binds 0.0.0.0. Never fetch 127.0.0.1 from the Worker. */
 export function probePhoton() {
   if (qnsdLoopbackPresent()) {
     return { present: true, kind: "qnsd-loopback" };
@@ -159,7 +159,7 @@ export function radioStatus() {
         : "No local radio hardware. SPORE-1.0 dormant — pause, preserve DNA, wait. Do not invent LIVE radios.",
     },
     note:
-      "Local qnm-node radio hooks. Worker GET /v1/mesh channel_plane stays cite-only (worker_hardware:false). Photon is local qnsd on loopback — not a public via. SPORE-1.0: hardware absent is dormant, not a mock LIVE beat.",
+      "Local qnm-node radio hooks. Worker GET /v1/mesh channel_plane stays cite-only (worker_hardware:false). Photon is local qnsd on loopback — not a public via and not the open-world awareness bind (0.0.0.0). forced_loopback and loopback_isolation are not the mesh fence. SPORE-1.0: hardware absent is dormant, not a mock LIVE beat.",
   };
 }
 
