@@ -10,6 +10,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import http from "node:http";
 import { dirname, join } from "node:path";
+import { createKeystore, exportPublicIdentity, identityFromUnlocked, unlockKeystore } from "../security/keystore.js";
 import { classifyPeerUrl, natPunchRequest, survivalMethods } from "./bearers.js";
 import { actHash, openAct, sealAct, signAct } from "./client.js";
 import { createIdentity } from "./identity.js";
@@ -64,30 +65,117 @@ function readChainFile(chainFile) {
   return { chains, directChain, chain, legacyUnbound };
 }
 
-export async function openInstance({ dataDir, relays = [] }) {
-  await mkdir(dataDir, { recursive: true });
+async function readText(path) {
+  try {
+    return await readFile(path, "utf8");
+  } catch {
+    return "";
+  }
+}
+
+function refuseIdentity(result) {
+  const err = new Error(result && result.message ? result.message : "Identity refused. Fail closed.");
+  err.code = result && result.code ? result.code : "AZKS-REFUSE";
+  return err;
+}
+
+/**
+ * Default (no passphrase) keeps the FED-MESH L0 identity.json seed file so
+ * existing nodes and tests keep their handles. That file is not AZKS-1.
+ * A passphrase writes keystore.json and a public identity.json with no seeds.
+ */
+async function loadNodeIdentity(dataDir, passphrase, iterations) {
   const idPath = join(dataDir, "identity.json");
-  let stored = await loadJson(idPath, null);
-  let identity;
+  const ksPath = join(dataDir, "keystore.json");
+  const stored = await loadJson(idPath, null);
+  const ksText = await readText(ksPath);
+  const secret = String(passphrase || "");
+  if (secret) {
+    if (ksText) {
+      let document;
+      try {
+        document = JSON.parse(ksText);
+      } catch {
+        throw refuseIdentity({ code: "AZKS-CORRUPT", message: "Keystore file is not JSON. Fail closed." });
+      }
+      const opened = await unlockKeystore(document, secret);
+      if (!opened.ok) throw refuseIdentity(opened);
+      const identity = await identityFromUnlocked(opened);
+      if (!identity.ok) throw refuseIdentity(identity);
+      return identity;
+    }
+    let signingSeed = null;
+    let encryptionSeed = null;
+    if (stored && stored.seed_b64 && stored.enc_seed_b64) {
+      signingSeed = new Uint8Array(Buffer.from(stored.seed_b64, "base64url"));
+      encryptionSeed = new Uint8Array(Buffer.from(stored.enc_seed_b64, "base64url"));
+    }
+    const created = await createKeystore({
+      passphrase: secret,
+      signingSeed,
+      encryptionSeed,
+      ...(Number.isInteger(iterations) ? { iterations } : {}),
+    });
+    if (signingSeed) signingSeed.fill(0);
+    if (encryptionSeed) encryptionSeed.fill(0);
+    if (!created.ok) throw refuseIdentity(created);
+    await writeFile(ksPath, `${JSON.stringify(created.document, null, 2)}\n`);
+    const pub = exportPublicIdentity(created);
+    if (!pub.ok) throw refuseIdentity(pub);
+    await writeFile(
+      idPath,
+      `${JSON.stringify(
+        {
+          spec: FED_SPEC,
+          handle: pub.handle,
+          public_key: pub.node_public_key,
+          enc_public_key: pub.enc_public_key,
+          keystore: "AZKS-1",
+        },
+        null,
+        2,
+      )}\n`,
+    );
+    const identity = await identityFromUnlocked(created);
+    if (!identity.ok) throw refuseIdentity(identity);
+    return identity;
+  }
+  if (ksText && !(stored && stored.seed_b64 && stored.enc_seed_b64)) {
+    throw refuseIdentity({
+      code: "AZKS-UNLOCK",
+      message: "This node stores an encrypted keystore. A passphrase is required. Fail closed.",
+    });
+  }
   if (stored && stored.seed_b64 && stored.enc_seed_b64) {
-    identity = await createIdentity({
+    return createIdentity({
       seed: Buffer.from(stored.seed_b64, "base64url"),
       encSeed: Buffer.from(stored.enc_seed_b64, "base64url"),
     });
-  } else {
-    const seed = crypto.getRandomValues(new Uint8Array(32));
-    const encSeed = crypto.getRandomValues(new Uint8Array(32));
-    identity = await createIdentity({ seed, encSeed });
-    stored = {
-      spec: FED_SPEC,
-      handle: identity.handle,
-      public_key: identity.public_key,
-      enc_public_key: identity.enc_public_key,
-      seed_b64: Buffer.from(seed).toString("base64url"),
-      enc_seed_b64: Buffer.from(encSeed).toString("base64url"),
-    };
-    await writeFile(idPath, JSON.stringify(stored, null, 2));
   }
+  const seed = crypto.getRandomValues(new Uint8Array(32));
+  const encSeed = crypto.getRandomValues(new Uint8Array(32));
+  const identity = await createIdentity({ seed, encSeed });
+  await writeFile(
+    idPath,
+    `${JSON.stringify(
+      {
+        spec: FED_SPEC,
+        handle: identity.handle,
+        public_key: identity.public_key,
+        enc_public_key: identity.enc_public_key,
+        seed_b64: Buffer.from(seed).toString("base64url"),
+        enc_seed_b64: Buffer.from(encSeed).toString("base64url"),
+      },
+      null,
+      2,
+    )}\n`,
+  );
+  return identity;
+}
+
+export async function openInstance({ dataDir, relays = [], passphrase = "", iterations } = {}) {
+  await mkdir(dataDir, { recursive: true });
+  const identity = await loadNodeIdentity(dataDir, passphrase, iterations);
   const chainPath = join(dataDir, "chain.json");
   const loaded = readChainFile(await loadJson(chainPath, { seq: 0, prev: ZERO_HASH }));
   const directPath = join(dataDir, "direct-inbox.json");
@@ -414,8 +502,8 @@ function bracketHost(host) {
   return text;
 }
 
-export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", advertise = "", relays = [] }) {
-  const node = await openInstance({ dataDir, relays });
+export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", advertise = "", relays = [], passphrase = "" }) {
+  const node = await openInstance({ dataDir, relays, passphrase });
   const listenHost = String(host || "127.0.0.1").trim() || "127.0.0.1";
   const share = {
     listenHost,
@@ -510,6 +598,7 @@ export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", adv
 export function instancePaths(dataDir) {
   return {
     identity: join(dataDir, "identity.json"),
+    keystore: join(dataDir, "keystore.json"),
     chain: join(dataDir, "chain.json"),
     parent: dirname(dataDir),
   };

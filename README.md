@@ -608,6 +608,20 @@ corpus Worker advertises and reverse-proxies:
 
 See the companion PR on [AzielEliab/aziel-corpus](https://github.com/AzielEliab/aziel-corpus).
 
+## Network security claims (AZP-NS-1.0)
+
+The protocol modules under `src/security/`, `src/transport/`, `src/checkpoints/`, and `src/replication/` are specified in [`docs/designs/AZP-NS-1.0.md`](docs/designs/AZP-NS-1.0.md).
+
+Records are tamper-evident: hash-linked and signed. Independent replication is fixture-tested. This is not a claim of immutability.
+
+Payloads are privacy-preserving: encrypted end to end, with node identity separated from session identity. This is not anonymity.
+
+Checkpoints are survivable and federated in the fixture model. This is not an unkillable network.
+
+Relays are untrusted transport. They cannot decrypt payloads. That design rule is not a production zero-trust certification.
+
+Cap-7 is not public ICANN and is not a public egress IP. Mirage is not AZVPN. `aznet_replaces_internet` is false. Tor, UDP, radio, and sandbox bearers are refused and are not LIVE. Softwares stay 42. `tools/list` stays 36. Live multi-provider recovery and Plane B Framagit are operator work, not a result of these scripts.
+
 ## License
 
 Apache License 2.0. Copyright 2026 Aziel Eliab.
