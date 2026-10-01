@@ -1,0 +1,160 @@
+/**
+ * AZP-NS-1.0 fixture reproduction.
+ * Runs the gate scripts in order. Exits non-zero if a fixture gate fails.
+ * SKIP and SLOT rows are not passes. Live provider destruction stays SKIP.
+ * Author: Aziel Eliab only.
+ */
+import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { PUBLIC_MCP_TOOLS } from "../src/fraggate/codes.js";
+import { PRODUCTS } from "../src/index.js";
+import { CLAIM_LIMITS } from "../src/security/claims.js";
+import { softwareCatalog } from "../src/software-catalog.js";
+
+const root = fileURLToPath(new URL("..", import.meta.url));
+
+const GATES = [
+  "scripts/verify-keystore.mjs",
+  "scripts/verify-envelope-v2.mjs",
+  "scripts/verify-replay.mjs",
+  "scripts/verify-relay.mjs",
+  "scripts/verify-checkpoint.mjs",
+  "scripts/verify-checkpoint-quorum.mjs",
+  "scripts/verify-replication.mjs",
+  "scripts/verify-provider-loss.mjs",
+  "scripts/verify-disaster-recovery.mjs",
+  "scripts/verify-transport-adversarial.mjs",
+  "scripts/verify-key-compromise.mjs",
+  "scripts/verify-privacy-metadata.mjs",
+];
+
+const REQUIRED_HONESTY = [
+  {
+    id: "live-vps",
+    why: "Node B, an independent VPS, is not provisioned. OPERATOR. SKIP until that host exists.",
+  },
+  {
+    id: "plane-b-framagit",
+    why: "Plane B Framagit URL is null. SLOT until a real deposit exists. Do not invent a URL.",
+  },
+  {
+    id: "live-multi-provider",
+    why: "No second live provider. live_multi_provider stays false. Do not paint this PASS.",
+  },
+  {
+    id: "destroy-live-provider",
+    why: "Live destruction of Cloudflare, a VPS, or a home node is operator work. SKIP.",
+  },
+];
+
+assert.equal(PUBLIC_MCP_TOOLS.length, 36);
+assert.equal(softwareCatalog("https://aziel-runtime.example", PRODUCTS).count, 42);
+assert.equal(CLAIM_LIMITS.anonymous, false);
+assert.equal(CLAIM_LIMITS.unkillable, false);
+assert.equal(CLAIM_LIMITS.live_multi_provider, false);
+assert.equal(CLAIM_LIMITS.encryption_addressed_is_anonymity, false);
+assert.equal(CLAIM_LIMITS.plane_b_framagit, "SLOT");
+
+const paper = readFileSync(new URL("../docs/designs/AZP-NS-1.0.md", import.meta.url), "utf8");
+const repro = readFileSync(new URL("../docs/designs/AZP-NS-REPRO-1.0.md", import.meta.url), "utf8");
+assert.match(paper, /What's left/);
+assert.match(paper, /OPERATOR/);
+assert.match(paper, /FIXTURE/);
+assert.match(paper, /SKIP/);
+assert.match(paper, /Framagit URL is null/);
+assert.match(paper, /Encryption of the payload is not anonymity/);
+assert.match(paper, /Softwares stay 42/);
+assert.match(repro, /npm install/);
+assert.match(repro, /node scripts\/verify-azp-ns-repro\.mjs/);
+assert.match(repro, /Softwares stay 42/);
+assert.match(repro, /tools\/list` stays 36/);
+for (const gate of GATES) assert.match(repro, new RegExp(gate.replace(/[.]/g, "\\.")));
+for (const row of REQUIRED_HONESTY) assert.match(repro, new RegExp(row.id));
+
+function reportsFrom(text) {
+  const reports = [];
+  let start = -1;
+  let depth = 0;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === "{") {
+      if (depth === 0) start = i;
+      depth += 1;
+    } else if (ch === "}") {
+      depth -= 1;
+      if (depth === 0 && start >= 0) {
+        try {
+          const value = JSON.parse(text.slice(start, i + 1));
+          if (value && Array.isArray(value.report)) reports.push(value);
+        } catch {
+          /* prose around the JSON is ignored */
+        }
+        start = -1;
+      }
+    }
+  }
+  return reports;
+}
+
+const results = [];
+const honesty = [];
+let failed = 0;
+for (const gate of GATES) {
+  const child = spawnSync(process.execPath, [gate], { cwd: root, encoding: "utf8" });
+  const ok = child.status === 0;
+  if (!ok) failed += 1;
+  results.push({ gate, status: child.status, ok });
+  process.stdout.write(`\n----- ${gate} exit ${child.status} -----\n`);
+  if (child.stdout) process.stdout.write(child.stdout);
+  if (child.stderr) process.stderr.write(child.stderr);
+  for (const report of reportsFrom(`${child.stdout || ""}\n${child.stderr || ""}`)) {
+    for (const row of report.report) {
+      if (row.mode === "LIVE") {
+        failed += 1;
+        results.push({ gate, status: 1, ok: false, note: `painted LIVE: ${row.id}` });
+      }
+      if (row.mode === "SKIP" || row.mode === "SLOT") honesty.push({ script: report.script, ...row });
+    }
+  }
+}
+
+for (const required of REQUIRED_HONESTY) {
+  const found = honesty.filter((row) => row.id === required.id);
+  if (!found.length) {
+    failed += 1;
+    console.error(`missing honesty row ${required.id}`);
+    continue;
+  }
+  for (const row of found) {
+    if (row.ok !== false || (row.mode !== "SKIP" && row.mode !== "SLOT")) {
+      failed += 1;
+      console.error(`honesty row ${required.id} was painted as a pass`);
+    }
+  }
+}
+
+console.log(JSON.stringify({
+  script: "verify-azp-ns-repro",
+  softwares: 42,
+  tools: 36,
+  live_multi_provider: false,
+  anonymous: false,
+  unkillable: false,
+  gates: results,
+  honesty: honesty.map((row) => ({
+    id: row.id,
+    mode: row.mode,
+    ok: row.ok,
+    script: row.script,
+    why: REQUIRED_HONESTY.find((item) => item.id === row.id)?.why || row.note || "",
+  })),
+  required_honesty: REQUIRED_HONESTY,
+}, null, 2));
+
+if (failed) {
+  console.error(`verify-azp-ns-repro: ${failed} failure(s)`);
+  process.exit(1);
+}
+console.log("verify-azp-ns-repro: fixture gates ok; SKIP/SLOT rows stayed honest");

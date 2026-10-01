@@ -37,7 +37,7 @@ Use **tamper-evident** until independent replication is more than a fixture. Use
 | 5.8 recovery | `src/replication/recovery.js` | E |
 | sync | `src/replication/sync.js` | E |
 
-Scripts: `scripts/verify-keystore.mjs`, `scripts/verify-envelope-v2.mjs`, `scripts/verify-replay.mjs`, `scripts/verify-relay.mjs`, `scripts/verify-checkpoint.mjs`, `scripts/verify-replication.mjs`, `scripts/verify-provider-loss.mjs`, `scripts/verify-disaster-recovery.mjs`, `scripts/verify-privacy-metadata.mjs`.
+Scripts: `scripts/verify-keystore.mjs`, `scripts/verify-envelope-v2.mjs`, `scripts/verify-replay.mjs`, `scripts/verify-relay.mjs`, `scripts/verify-checkpoint.mjs`, `scripts/verify-checkpoint-quorum.mjs`, `scripts/verify-replication.mjs`, `scripts/verify-provider-loss.mjs`, `scripts/verify-disaster-recovery.mjs`, `scripts/verify-transport-adversarial.mjs`, `scripts/verify-key-compromise.mjs`, `scripts/verify-privacy-metadata.mjs`. One command runs that list: `node scripts/verify-azp-ns-repro.mjs`. The steps are in [`AZP-NS-REPRO-1.0.md`](AZP-NS-REPRO-1.0.md).
 
 ## Identity
 
@@ -55,7 +55,7 @@ Tor, UDP, radio, and sandbox bearers return `AZP-BEARER-REFUSE` with `live: fals
 
 ## Ledger
 
-ChainLock sequence and previous-hash behavior is unchanged. A checkpoint is a signed Merkle root over protocol records derived from stamps. Those records store stamp hashes and fact hashes. They do not copy the fact text. A checkpoint that conflicts with an accepted tip is `AZP-ROLLBACK` unless a threshold of the roster signs an `azp-fork` statement. The checkpoint hash includes the handoff fields (chain id, start and end sequence, start and end hash, Merkle root) plus `protocol_version`, `network_id`, and `signer_set_hash`.
+ChainLock sequence and previous-hash behavior is unchanged. A checkpoint is a signed Merkle root over protocol records derived from stamps. Those records store stamp hashes and fact hashes. They do not copy the fact text. A checkpoint that conflicts with an accepted tip is `AZP-ROLLBACK` unless a threshold of the already accepted roster signs an `azp-fork` statement. The incoming checkpoint's own roster cannot authorize that fork. A continuation that changes the signer set or the threshold needs the same prior quorum. One signer cannot force accept. A new checkpoint whose roster still lists a revoked public key is refused. Already accepted checkpoints are not rewritten, and they keep verifying under the keys that signed them. The checkpoint hash includes the handoff fields (chain id, start and end sequence, start and end hash, Merkle root) plus `protocol_version`, `network_id`, and `signer_set_hash`.
 
 Hash inputs are length-prefixed fields (`AZP-CANON-1` / `domainHash`) or the existing `canonicalize` function. They are not `JSON.stringify` of an unsorted object.
 
@@ -72,7 +72,47 @@ Operator-only work that this repository does not claim:
 - Plane B Framagit: still SLOT. The Framagit URL is null. Do not invent a deposit.
 - No DNS change. No Cap-7 egress. No automatic self-propagation.
 
-A relay network does not make traffic anonymous. An observer can still see timing, size, recipient hint, and the path to the relay.
+A relay network does not make traffic anonymous. Encryption of the payload is not anonymity. An observer can still see timing, IP and connection frequency, message size, relay relationships, and node uptime. Those classes are leakage. They are not necessary routing fields. `ENVELOPE_METADATA` lists the outer fields a relay must see to forward an envelope. `OBSERVER_LEAKAGE` lists the classes encryption does not remove. `encryption_addressed_is_anonymity` is false. `live_multi_provider` stays false.
+
+## What's left
+
+Operator checklist after the AZP-NS-1.0 layer. Items 1 and 2 need machines this repository does not have. The scripts keep those rows `SKIP` or `SLOT`. Items 3 through 7 are fixture gates. A fixture pass is not a live multi-provider claim.
+
+| Item | Work | Status | Where |
+|---|---|---|---|
+| 1 | Independent nodes A–E | A is already LIVE production. B, C, and D are OPERATOR `SKIP`. E is `SLOT` | Map below. `verify-provider-loss.mjs` |
+| 2 | Live provider destruction | `SKIP` | `verify-disaster-recovery.mjs` row `destroy-live-provider`. In-memory kill of provider A is `FIXTURE` and stays a fixture |
+| 3 | Checkpoint quorum | `FIXTURE` | `scripts/verify-checkpoint-quorum.mjs` |
+| 4 | Adversarial transport | `FIXTURE`, live remote destroy `SKIP` | `scripts/verify-transport-adversarial.mjs` |
+| 5 | Metadata leakage | `FIXTURE` | `scripts/verify-privacy-metadata.mjs` |
+| 6 | Key compromise and recovery | `FIXTURE` | `scripts/verify-key-compromise.mjs` |
+| 7 | Independent reproduction | `FIXTURE` | [`AZP-NS-REPRO-1.0.md`](AZP-NS-REPRO-1.0.md), `scripts/verify-azp-ns-repro.mjs` |
+
+### Nodes A–E
+
+| Node | What it is | Status |
+|---|---|---|
+| A | Cloudflare Worker at `aziel-runtime.vibelock.workers.dev` | LIVE production already. These scripts do not deploy it and do not destroy it |
+| B | Independent VPS | OPERATOR. `live-vps` is `SKIP` until that host exists |
+| C | Separate provider | OPERATOR. `node-c-separate-provider` is `SKIP` |
+| D | Self-hosted node | OPERATOR. `node-d-self-hosted` is `SKIP`. The fixture row `lose-one-node` removes an in-memory replica, not a home machine |
+| E | Offline / cold copy | Codeberg and archive.org tip-pack hash PASS is an operator record: pack `b549362c0736ddb54ddc488812327c464e0da1167281f92fd1a4263eedf5df37`, lockset tip `c831429befc221bd41caeb0a6d1c5361602db5684abab7af6d39714084b6b245`. Plane B remains SLOT. The Framagit URL is null. This tree does not invent a Framagit, VPS, or Zenodo URL |
+
+`archive-e-cold` is `SLOT` in `verify-provider-loss.mjs` because this script does not fetch those bytes. Hash PASS on Codeberg and archive.org does not paint Plane B LIVE. `plane-b-framagit` stays `SKIP`. `live_multi_provider` stays false.
+
+Item 2 stays `SKIP` for a live destroy. The fixture that deletes provider A from an in-memory set is `kill-primary-provider` and is `FIXTURE`. That row is not a destroyed Cloudflare account.
+
+Item 3 requires a threshold of independent signers. A reused signature, a wrong Merkle root, a roster below the threshold, and a conflicting tip are refused. A fork or a roster change counts signatures from the accepted roster. One signer cannot force accept.
+
+Item 4 refuses replay, a forged signature, the wrong recipient, an expired session, a swapped session key, a swapped node key, a swapped encryption key, `AZP-DOWNGRADE`, and a relay that mutates outer bytes. The relay still cannot decrypt. A partition reconciles only from verifiable checkpoints. `destroy-live-provider` in that script is `SKIP`.
+
+Item 5 writes a machine-readable report with `fields`, `observer`, `reveals`, `necessary`, and `claim_limits`. Routing fields are necessary. Timing, IP and connection frequency, message size, relay relationships, and node uptime are leakage. The anonymity claim stays false.
+
+Item 6 refuses a keystore opened without the passphrase. Destroying or expiring a session key makes old envelopes fail. A new session still seals and opens. `rotateKey` leaves historical signatures verifiable under the retired public key. New tips use the new key. A revoked public key cannot sit on a new roster. Accepted history is not rewritten.
+
+Item 7 is the reproduction document and `scripts/verify-azp-ns-repro.mjs`. The wrapper exits non-zero when a fixture gate fails. It does not mark `live-vps`, `plane-b-framagit`, `live-multi-provider`, or `destroy-live-provider` as pass.
+
+Softwares stay 42. `tools/list` stays 36. No new Softwares card. No new MCP tool.
 
 ## Preserved
 

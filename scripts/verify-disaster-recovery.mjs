@@ -85,9 +85,13 @@ const report = [
   { id: "partition-network", mode: "FIXTURE", ok: rightRecover.ok === true, note: "Uncheckpointed local records are not network state." },
   { id: "malicious-peer", mode: "FIXTURE", ok: kept.providers.includes("malicious-peer") === false },
   { id: "recover-independent-checkpoints", mode: "FIXTURE", ok: kept.ok === true },
-  { id: "destroy-live-provider", mode: "SKIP", ok: false, note: "CI cannot destroy Cloudflare, a VPS, or a home node. Operator work." },
+  { id: "destroy-live-provider", mode: "SKIP", ok: false, note: "Live destruction of provider A (Cloudflare Worker), B (VPS), C, or D is operator work. This script does not destroy a live host. Fixture kill-primary stays in verify-provider-loss.mjs." },
 ];
-for (const row of report) assert.ok(row.mode === "FIXTURE" || row.mode === "SKIP");
+for (const row of report) {
+  assert.ok(row.mode === "FIXTURE" || row.mode === "SKIP", row.id);
+  if (row.mode === "FIXTURE") assert.equal(row.ok, true, row.id);
+  if (row.mode === "SKIP") assert.equal(row.ok, false, row.id);
+}
 assert.equal(report.some((row) => row.mode === "LIVE"), false);
 
 console.log(JSON.stringify({ script: "verify-disaster-recovery", live_multi_provider: false, report }, null, 2));
