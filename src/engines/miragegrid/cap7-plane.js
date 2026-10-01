@@ -5,9 +5,10 @@
  * Author: Aziel Eliab only.
  */
 import { CAP7_FACTORY_LABELS, CAP7_SITES, siteForMirageNode } from "../../cap7-shuffle.js";
+import { CAP7_WORKER_FLAGS, MIRAGEGRID_WORKER_PR } from "./cap7-public.js";
 
 export const CAP7_PLANE = "CAP7-PLANE-1.0";
-export const MIRAGEGRID_WORKER_PR = "https://github.com/AzielEliab/miragegrid/pull/28";
+export { MIRAGEGRID_WORKER_PR };
 export const STICKY_PREFIX = "mg-sticky-v1|";
 const POOL_SIZE = 25;
 const LABEL_RE = /^[A-Za-z0-9._-]{1,80}$/;
@@ -60,10 +61,7 @@ export function cap7PlaneHonesty() {
     plane: "cap7",
     live: true,
     factory_exec: true,
-    worker_live: false,
-    hosted: false,
-    miragegrid_worker_pr: MIRAGEGRID_WORKER_PR,
-    miragegrid_pr_landed: false,
+    ...CAP7_WORKER_FLAGS,
     public_icann: false,
     public_icann_registrar: false,
     resolves_to_hub: false,

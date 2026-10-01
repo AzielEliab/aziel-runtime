@@ -15,6 +15,7 @@ import {
 } from "../cold-multi-shelf.js";
 import { AZNET_NAME, aznetLayerCite } from "./aznet-layers.js";
 import { FED_SPEC } from "./spec.js";
+import { CAP7_PLANE_BOUNDARY, CAP7_PUBLIC_WORKER_LIVE, CAP7_WORKER_FLAGS } from "../engines/miragegrid/cap7-public.js";
 
 export const NAT_REFUSE_CODE = "FED-MESH-NAT-REFUSE";
 
@@ -267,10 +268,18 @@ export function survivalMethods(config = {}) {
       not_a_second_internet: true,
       cite_status: "live",
       ops: ["geo-target", "session-stick", "egress-rotate"],
-      worker_live: false,
-      hosted: false,
-      miragegrid_pr_landed: false,
-      note: "Cap-7 mesh-name factory exec is LIVE on FragGate. geo-target, session-stick, and egress-rotate run on the Cap-7 plane (metadata and session land). cite_status alone is not this factory status. The public MirageGrid Worker stays unclaimed until MirageGrid pull request 28 lands. Not a public resolver. Not ICANN DNS. Not a public egress IP. Not AZVPN. AZNet pairs with AZBrowser through FragGate.",
+      worker_live: CAP7_WORKER_FLAGS.worker_live,
+      hosted: CAP7_WORKER_FLAGS.hosted,
+      hosted_vpn: CAP7_WORKER_FLAGS.hosted_vpn,
+      miragegrid_pr_landed: CAP7_WORKER_FLAGS.miragegrid_pr_landed,
+      worker_egress: CAP7_WORKER_FLAGS.worker_egress,
+      worker_planned: CAP7_WORKER_FLAGS.worker_planned,
+      residential: CAP7_WORKER_FLAGS.residential,
+      cf_geo_exit_pool: CAP7_WORKER_FLAGS.cf_geo_exit_pool,
+      sticky_public_ip: CAP7_WORKER_FLAGS.sticky_public_ip,
+      packet_forwarding: CAP7_WORKER_FLAGS.packet_forwarding,
+      azvpn: CAP7_WORKER_FLAGS.azvpn,
+      note: `Cap-7 mesh-name factory exec is LIVE on FragGate. geo-target, session-stick, and egress-rotate run on the Cap-7 plane (region label, sticky mesh node and factory land, land rotate among 7 sites). cite_status alone is not this factory status. ${CAP7_PUBLIC_WORKER_LIVE} ${CAP7_PLANE_BOUNDARY} Not a public resolver. AZNet pairs with AZBrowser through FragGate.`,
     },
     {
       n: 5,

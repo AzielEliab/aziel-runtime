@@ -19,6 +19,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { CAP7_PLANE_BOUNDARY, CAP7_PUBLIC_WORKER_LIVE } from "./engines/miragegrid/cap7-public.js";
+
 export const SOFTWARE_COPY = Object.freeze({
   "4dmap": {
     one_line: "Inspect the same event on time, change, graph, and place axes at once.",
@@ -108,9 +110,9 @@ export const SOFTWARE_COPY = Object.freeze({
   },
   miragegrid: {
     one_line:
-      "Assign a short-lived session node and cite Cap-7 mesh-name metadata from a factory that is not a public ICANN registrar. Cap-7 geo, sticky session, and land rotation are LIVE on the Cap-7 plane, not a public egress IP.",
+      "Assign a short-lived session node and cite Cap-7 mesh-name metadata from a factory that is not a public ICANN registrar. Cap-7 geo, sticky session, and land rotation are LIVE on the Cap-7 plane, not a public egress IP, not a residential IP, and not AZVPN.",
     description:
-      "Use MirageGrid to assign a short-lived session node and cite Cap-7 mesh-name metadata. The Cap-7 factory is not a public ICANN registrar. It exists for Cap-7 control-plane assignment. geo-target, session-stick, and egress-rotate are LIVE on the Cap-7 plane (metadata and session land). They are not a public egress IP, not ICANN DNS, and not AZVPN. The public MirageGrid Worker stays unclaimed until MirageGrid pull request 28 lands. vpn-hop, hop, tunnel, and mesh stay stub. AZVPN remains the suite VPN.",
+      `Use MirageGrid to assign a short-lived session node and cite Cap-7 mesh-name metadata. The Cap-7 factory is not a public ICANN registrar. It exists for Cap-7 control-plane assignment. geo-target, session-stick, and egress-rotate are LIVE on the Cap-7 plane (region label, sticky mesh node and factory land, land rotate among 7 sites). ${CAP7_PLANE_BOUNDARY} ${CAP7_PUBLIC_WORKER_LIVE} vpn-hop, hop, tunnel, and mesh stay stub. AZVPN remains the suite VPN.`,
   },
   mmconsensus: {
     one_line: "Tally consensus from opinions you already posted.",
