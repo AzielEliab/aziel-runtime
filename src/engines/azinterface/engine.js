@@ -233,7 +233,7 @@ Custodial operating environment. Page cycles are **pre-locked** at genesis:
 
 LIVE_OPS: health, skill, genesis_status, site_state_get, site_state_set, integrity_check, witness_list, page_cycle_status, mesh_radios.
 
-\`mesh_radios\` reads the suite radio tile. \`confirm: true\` calls FragGate mesh enable (bearer \`suite-presence\` unless another bearer is named). \`MESH_RADIOS=off\` stays \`MESH-OFF\`. GET never enables. Isolation is single-node security-awareness (a bad peer or self), not a fence of the mesh to 127.0.0.1. Phoenix is a local reboot loop (wait / re-seal, phoenix_lock), not public hostname resurrection.
+\`mesh_radios\` reads the suite radio tile. \`confirm: true\` calls FragGate mesh enable (bearer \`suite-presence\` unless another bearer is named). \`MESH_RADIOS=off\` stays \`MESH-OFF\`. GET never enables. Isolation is single-node security-awareness (a bad peer or self), not a fence of the mesh to 127.0.0.1. Phoenix is a local reboot loop (wait / re-seal, phoenix_lock), not public hostname resurrection. Open-world awareness is the outward bind \`0.0.0.0\` beside those radios. The operator lock is LIVE. The Worker socket stays live-when-configured. \`forced_loopback\` and \`loopback_isolation\` are not the mesh fence. Cap-7 public egress, residential, geo-exit, sticky public IP, and packet forward stay off.
 
 Stubs (refuse): scorch_remote, auto_unlock, ranking, completeness_detect.
 

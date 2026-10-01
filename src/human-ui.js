@@ -746,7 +746,7 @@ ${dashCards}
       </article>
       <article class="dash-card" id="desk-mesh" data-desk="mesh">
         <h4>Node mesh <span class="slug">awareness</span></h4>
-        <p class="blurb">Suite-presence radios are on by default. GET never enables extra radios. Confirm calls FragGate <code>azinterface</code> <code>mesh_radios</code>, which calls mesh enable. <code>MESH_RADIOS=off</code> stays <code>MESH-OFF</code>. Isolation is single-node security-awareness, not a loopback fence. Phoenix is local wait / re-seal.</p>
+        <p class="blurb">Suite-presence radios are on by default. GET never enables extra radios. Confirm calls FragGate <code>azinterface</code> <code>mesh_radios</code>, which calls mesh enable. <code>MESH_RADIOS=off</code> stays <code>MESH-OFF</code>. Isolation is single-node security-awareness, not a loopback fence. Phoenix is local wait / re-seal. Open-world awareness binds <code>0.0.0.0</code>. <code>forced_loopback</code> and <code>loopback_isolation</code> are not the mesh fence.</p>
         <label><input id="mesh-radios-confirm" data-radios-confirm type="checkbox"> confirm mesh radios</label>
         <div class="actions">
           <button type="button" data-if="mesh_awareness">Mesh awareness</button>

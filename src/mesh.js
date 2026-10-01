@@ -77,10 +77,12 @@
  *
  * Full node process is local `qnm-node/` (boot/chain/apg/bearers/outbox/
  * phoenix/score/memorial/tethers). Anon-broadcast is a local sibling of
- * that process and is never a publish path. Isolation is single-node
- * security-awareness (a bad peer or self), not a fence of the mesh to
- * 127.0.0.1. Phoenix is a local reboot loop (wait / re-seal, phoenix_lock),
- * not public hostname resurrection. Loopback is an optional L1 peer bearer.
+ * that process and is never a publish path. Operator lock stack:
+ * (1) single-node security-awareness (a bad peer or self), not a fence of
+ * the mesh to 127.0.0.1; (2) phoenix reboot loop (wait / re-seal,
+ * phoenix_lock), not public hostname resurrection; (3) open-world awareness
+ * bound as 0.0.0.0 (all interfaces). forced_loopback and loopback_isolation
+ * are not the mesh fence. Loopback is an optional L1 peer bearer.
  * Packet-transfer coding design is QNS-CD-1.0 (photon QNS1 1.3 on local
  * qnsd; Worker cites only).
  *
@@ -126,6 +128,7 @@ import { publicVpnCite } from "./public-vpn.js";
 import { ensureDefaultVpnSession, vpnAutoCite } from "./azvpn-auto.js";
 import { meshCallingNameAlert } from "./calling-name.js";
 import { isNatPath, natPunchRequest, natRefuse, peerBearerCite, survivalMethods } from "./fed-mesh/bearers.js";
+import { openWorldAwarenessCite } from "./open-world-awareness.js";
 import { aznetLayerCite } from "./fed-mesh/aznet-layers.js";
 import { fedPublicCounts, resetFedMesh, runRelayOp } from "./fed-mesh/relay.js";
 import { handleBody } from "./fed-mesh/codec.js";
@@ -217,20 +220,47 @@ export const QNM_LOCAL_NODE =
 export const QNM_S_NOTE = "Views, MCP, and downloads do not enter QNM-S.";
 
 export const MESH_SECURITY_MODEL =
-  "Single-node security-awareness isolation: a node isolates a bad peer or itself. That does not fence the whole mesh to 127.0.0.1. Phoenix is a local reboot loop (wait / re-seal, phoenix_lock). It does not resurrect a public hostname. Loopback is an optional L1 peer bearer for a local node, not the mesh security model.";
+  "Operator lock stack: (1) single-node security-awareness isolation — a node isolates a bad peer or itself, and that does not fence the whole mesh to 127.0.0.1; (2) phoenix reboot loop — local wait / re-seal, phoenix_lock, not public hostname resurrection; (3) open-world awareness bound as 0.0.0.0 — all-interfaces awareness bind, not a loopback fence, not a Cap-7 public egress IP, not a replacement for the ICANN internet. forced_loopback and loopback_isolation are not the mesh fence. Open-world awareness is the outward awareness bind. The operator lock is LIVE. The Worker does not open that socket. A local qnm-node listen on 0.0.0.0 is LIVE; until that process binds, the socket stays live-when-configured. Loopback remains an optional L1 peer bearer.";
 
 export const ANON_BROADCAST_NOTE =
   "Anon-broadcast is a local sibling of qnm-node/ (text→TTS→desk MP4→metadata-culled file + SHA-256). Style tool. Never a publish path. Not an upload proxy. Not origin-hiding. Operator keeps the file. Not a Softwares-tab product. Not a QNM publish channel. Not a loopback fence of the mesh.";
 
 export function meshSecurityCite() {
+  const awareness = openWorldAwarenessCite();
   return {
     model: "single-node-security-awareness",
     isolates: "bad-peer-or-self",
     mesh_fenced_to_loopback: false,
+    forced_loopback: false,
+    loopback_isolation: false,
+    forced_loopback_is_mesh_fence: false,
+    loopback_isolation_is_mesh_fence: false,
     phoenix: "local-wait-reseal",
     phoenix_lock: true,
     public_hostname_resurrection: false,
     loopback_bearer: "L1-optional",
+    operator_locks: [
+      { n: 1, id: "single-node-security-awareness", status: "LIVE", mesh_fenced_to_loopback: false },
+      {
+        n: 2,
+        id: "phoenix-reboot-loop",
+        status: "LIVE",
+        phoenix: "local-wait-reseal",
+        phoenix_lock: true,
+        public_hostname_resurrection: false,
+      },
+      {
+        n: 3,
+        id: "open-world-awareness",
+        status: awareness.status,
+        law: awareness.law,
+        bind: awareness.bind,
+        worker_socket: false,
+        forced_loopback_is_mesh_fence: false,
+        loopback_isolation_is_mesh_fence: false,
+      },
+    ],
+    open_world_awareness: awareness,
     note: MESH_SECURITY_MODEL,
   };
 }
@@ -1352,6 +1382,7 @@ function statusFieldsSync(state, usesSignal = null, env) {
   return {
     enabled,
     radios: enabled ? "on" : "off",
+    open_world_awareness: openWorldAwarenessCite(),
     network: true,
     spore: sporeCite(env, { mesh_enabled: enabled, radios_off: !enabled }),
     network_cite: "on",
@@ -2208,6 +2239,7 @@ const FED_MESH_NAME_OPS = Object.freeze({
 const MESH_STAY_OFF_TRUE_KEYS = Object.freeze([
   "public_egress_ip",
   "residential",
+  "cf_geo_exit",
   "cf_geo_exit_pool",
   "sticky_public_ip",
   "packet_forward",
@@ -2217,6 +2249,7 @@ const MESH_STAY_OFF_TRUE_KEYS = Object.freeze([
   "vpn_hop",
   "wireguard",
   "openvpn",
+  "l3_exit",
   "payload_host",
   "origin_hiding",
   "public_icann",
@@ -2225,12 +2258,16 @@ const MESH_STAY_OFF_TRUE_KEYS = Object.freeze([
   "resolves_to_hub",
   "dns_publish",
   "register",
+  "forced_loopback",
+  "loopback_isolation",
+  "loopback_fence",
 ]);
 
 /** True when a caller asks to arm a must-stay-off surface. */
 export function meshStayOffHit(src) {
   if (!src || typeof src !== "object" || Array.isArray(src)) return null;
   if (src.not_a_second_internet === false || src.aznet_replaces_internet === true) return "not_a_second_internet";
+  if (src.open_world_awareness === false) return "open_world_awareness";
   for (const key of MESH_STAY_OFF_TRUE_KEYS) {
     if (src[key] === true) return key;
   }

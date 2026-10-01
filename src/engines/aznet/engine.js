@@ -756,7 +756,7 @@ Live ops: \`health\`, \`pair_status\`, \`garden_list\`, \`stamp\`, \`verify_hash
 
 Garden ops require **pairing token AND flag with azbrowser** (both required). Missing pair refuses. \`pair_status\` (alias \`pair\`) reports functional-order pair state — order/token only, hash continuity / side-net. **Pairing ≠ tunnel.** Public VPN auto-binds **AZVPN**. Products stay separate.
 
-FED-MESH name ops (\`name_claim\`, \`name_read\`, \`name_resolve\`, \`slot_read\`, \`witness\`, \`witness_read\`) sit on this slug and call the existing relay. Claim and witness write only with \`confirm: true\` and anchor ChainLock. They do not require the garden pair and they do not host payloads. The mesh name plane is not ICANN and does not replace the public internet. \`tools/list\` stays 36. Isolation is single-node security-awareness, not a loopback fence. Phoenix is a local reboot loop.
+FED-MESH name ops (\`name_claim\`, \`name_read\`, \`name_resolve\`, \`slot_read\`, \`witness\`, \`witness_read\`) sit on this slug and call the existing relay. Claim and witness write only with \`confirm: true\` and anchor ChainLock. They do not require the garden pair and they do not host payloads. The mesh name plane is not ICANN and does not replace the public internet. \`tools/list\` stays 36. Isolation is single-node security-awareness, not a loopback fence. Phoenix is a local reboot loop. Open-world awareness binds \`0.0.0.0\`. \`forced_loopback\` and \`loopback_isolation\` are not the mesh fence. Cap-7 is not a public egress IP. WireGuard, OpenVPN, and L3 stay off.
 
 **Never hosts payloads.** payload_host / serve_content_for_peer / analytics / ranking / repair_integrity_bypass / interface / lumen / hub stay **stub**.
 
