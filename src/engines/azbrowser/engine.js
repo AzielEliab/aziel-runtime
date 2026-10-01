@@ -22,7 +22,7 @@ export const KV_KEY = "azbrowser";
 export const GENESIS_PREV = "0".repeat(64);
 
 export const LIMITATION =
-  "THIS IS: AZBrowser (AZB-1.0) — Lamb Lens ethical research browser: sandboxed advisory navigate (metadata only; no raw HTML), Lamb Lens ethical search (cite; refuse harmful harvest; never invent visit results), airlock ingest, in-memory/KV tabs, hash-chained receipts, plus an honest Browser Rendering status (sandbox_status / sandbox_render). Reached only through the aziel-runtime FragGate door (POST /v1/fraggate/call or MCP fraggate_call). AZNet is separate software (same FragGate door); pairing is order/token only, not a shared app. THIS IS NOT: Chromium unless Workers Browser Rendering is bound and a real page session ran; a Tor exit; phoenix wipe; an unrestricted proxy; a keylogger; clipboard harvest; surveillance. tor_exit / phoenix_wipe / chromium / proxy / harvest stay stub. Hosted never claims a visit it did not fetch, and never returns raw HTML. Author: Aziel Eliab only.";
+  "THIS IS: AZBrowser (AZB-1.0) — Lamb Lens ethical research browser: sandboxed advisory navigate (metadata only; no raw HTML), Lamb Lens ethical search (cite; refuse harmful harvest; never invent visit results), airlock ingest, in-memory/KV tabs, hash-chained receipts, plus an honest Browser Rendering status (sandbox_status / sandbox_render). Reached only through the aziel-runtime FragGate door (POST /v1/fraggate/call or MCP fraggate_call). AZNet is separate software (same FragGate door); pairing is order/token only, not a shared app. THIS IS NOT: Chromium unless Workers Browser Rendering is bound and a real page session ran; a Tor exit; phoenix wipe; an unrestricted proxy; a keylogger; clipboard harvest; surveillance. tor_exit / phoenix_wipe / chromium / proxy / harvest stay stub. Hosted never claims a visit it did not fetch, and never returns raw HTML. Worker https navigate stays advisory metadata. A .aziel or aziel:// name is a mesh name-read against a posted ledger or relay snapshot only: a miss or hash mismatch is FG-GATE-REFUSE, nothing is sent to DNS, and this Worker does not dial a LAN peer. Page bytes and the owner-key check stay on the local AZBrowser shell. .aziel is not claimed LIVE on this Worker. Author: Aziel Eliab only.";
 
 const HARVEST =
   /\b(harvest|scrape (all )?(emails?|contacts?|phones?)|dump (passwords?|credentials?|cookies?)|steal (cookies?|sessions?|tokens?)|keylog(ger)?|clipboard (monitor|steal|harvest)|doxx|ssn|social security|credit card dump|mass scrape|email list|phone dump|credential (dump|harvest)|wiretap|stalk|track (this )?(person|user|phone)|surveillance kit|malware kit|exploit kit|0-?day)\b/i;
@@ -314,6 +314,8 @@ export function sandboxStatus(env) {
 
 export async function sandboxRender(payload, env) {
   const src = payload && typeof payload === "object" ? payload : {};
+  const meshAnswer = await answerMeshName("sandbox_render", src, env);
+  if (meshAnswer) return meshAnswer;
   const status = browserRenderingStatus(env);
   const parsed = parseAdvisoryUrl(src.url);
   if (!parsed.ok) {
@@ -540,8 +542,396 @@ export async function ethicalSearch(payload, env, op = "ethical_search") {
   });
 }
 
+const MESH_LABEL = /^[a-z0-9](?:[a-z0-9._-]{0,62}[a-z0-9])?$/;
+const HEX64 = /^[0-9a-f]{64}$/;
+const SECRET_FIELDS = new Set([
+  "private_key",
+  "privatekey",
+  "secret_key",
+  "secretkey",
+  "signing_key",
+  "signingkey",
+  "seed",
+  "seed_b64",
+  "enc_seed",
+  "enc_seed_b64",
+  "priv",
+  "privkey",
+  "ed25519_secret",
+  "sk",
+  "secret",
+]);
+
+function labelOk(label) {
+  return Boolean(label) && MESH_LABEL.test(label) && !String(label).includes("..");
+}
+
+function meshClass(name, handle, path, raw) {
+  const safePath = path && String(path).startsWith("/") ? String(path) : `/${path || ""}`;
+  return {
+    mesh: true,
+    ok: true,
+    plane: "mesh",
+    name,
+    handle,
+    path: safePath || "/",
+    url: `aziel://${handle}${safePath === "/" ? "/" : safePath}`,
+    display_url: name + (safePath === "/" ? "" : safePath),
+    raw,
+    dns: false,
+    icann: false,
+    ca: false,
+  };
+}
+
+/** Classify a mesh name. Does not contact DNS or a LAN peer. */
+export function classifyAzielDestination(raw) {
+  const text = String(raw == null ? "" : raw).trim();
+  if (!text || /\s/.test(text)) return { mesh: false };
+  const lower = text.toLowerCase();
+  if (/^(javascript|data|file|vbscript|blob|about):/.test(lower)) return { mesh: false };
+  if (lower.startsWith("aziel:")) {
+    let parsed;
+    try {
+      parsed = new URL(text);
+    } catch {
+      return { mesh: true, ok: false, reason: "bad_handle", url: text, name: "", handle: "" };
+    }
+    const handle = String(parsed.hostname || "").toLowerCase();
+    if (!labelOk(handle)) return { mesh: true, ok: false, reason: "bad_handle", url: text, name: "", handle };
+    return meshClass(`${handle}.aziel`, handle, parsed.pathname || "/", text);
+  }
+  let parsed;
+  const candidate = /^[a-z][a-z0-9+.-]*:/i.test(text) ? text : `https://${text}`;
+  try {
+    parsed = new URL(candidate);
+  } catch {
+    return { mesh: false };
+  }
+  const scheme = String(parsed.protocol || "").replace(/:$/, "").toLowerCase();
+  if (scheme !== "https" && scheme !== "http") return { mesh: false };
+  const host = String(parsed.hostname || "").toLowerCase().replace(/\.$/, "");
+  if (!host.endsWith(".aziel")) return { mesh: false };
+  const labels = host.split(".");
+  if (labels.length < 2 || labels[labels.length - 1] !== "aziel") {
+    return { mesh: true, ok: false, reason: "bad_handle", url: text, name: host, handle: "" };
+  }
+  const handle = labels[labels.length - 2];
+  if (!labelOk(handle) || !labels.slice(0, -1).every((part) => labelOk(part))) {
+    return { mesh: true, ok: false, reason: "bad_handle", url: text, name: host, handle };
+  }
+  return meshClass(host, handle, parsed.pathname || "/", text);
+}
+
+function hex64(value) {
+  const text = String(value || "").trim().toLowerCase();
+  return HEX64.test(text) ? text : "";
+}
+
+function localObjectHash(record) {
+  const ref = record && typeof record === "object" ? record.ref : null;
+  if (!ref || typeof ref !== "object" || Array.isArray(ref)) return "";
+  return hex64(ref.object);
+}
+
+function relayTargetHash(row) {
+  const target = row && typeof row === "object" ? row.target : null;
+  if (!target || typeof target !== "object" || String(target.type || "") !== "hash") return "";
+  return hex64(target.value);
+}
+
+function relayStatementHash(row) {
+  if (!row || typeof row !== "object") return "";
+  return hex64(row.statement_hash);
+}
+
+function ledgerHashConflict(record, row, expectHash) {
+  const local = localObjectHash(record);
+  const relay = relayTargetHash(row);
+  const statement = relayStatementHash(row);
+  const expect = hex64(expectHash);
+  if (local && relay && local !== relay) return "hash_mismatch";
+  if (!expect || expect === statement) return "";
+  if (local && expect !== local) return "hash_mismatch";
+  if (!local && relay && expect !== relay) return "hash_mismatch";
+  if (!local && !relay && row) return "hash_mismatch";
+  return "";
+}
+
+function containsSecret(value, depth = 0) {
+  if (depth > 12 || value == null || typeof value !== "object") return false;
+  if (Array.isArray(value)) return value.some((item) => containsSecret(item, depth + 1));
+  for (const [key, child] of Object.entries(value)) {
+    const norm = String(key).toLowerCase().replace(/-/g, "_");
+    if (SECRET_FIELDS.has(norm)) return true;
+    if (containsSecret(child, depth + 1)) return true;
+  }
+  return false;
+}
+
+function asRecords(value) {
+  if (Array.isArray(value)) return value.filter((row) => row && typeof row === "object" && !Array.isArray(row));
+  if (value && typeof value === "object") {
+    if (Array.isArray(value.records)) return asRecords(value.records);
+    if (value.name) return [value];
+  }
+  return [];
+}
+
+function normalizeRelay(doc) {
+  if (!doc || typeof doc !== "object" || Array.isArray(doc)) return { found: false };
+  if (doc.found === true && doc.row && typeof doc.row === "object") return doc;
+  if (doc.found === false && (doc.unread || doc.isolated || doc.code)) return doc;
+  const code = String(doc.code || "");
+  if (code === "FED-MESH-ISOLATED") {
+    return {
+      found: false,
+      isolated: true,
+      code,
+      reason: String(doc.reason || "unspecified"),
+      evidence_hash: String(doc.evidence_hash || ""),
+    };
+  }
+  let row = doc.record && typeof doc.record === "object" ? doc.record : null;
+  if (!row && doc.name && (doc.statement_hash || doc.status || doc.owner)) row = doc;
+  if (!row || !row.name) {
+    if (code === "FED-MESH-NO-NAME" || doc.ok === false) return { found: false, code: code || "FED-MESH-NO-NAME" };
+    return { found: false };
+  }
+  return { found: true, row, source: "fed-mesh-relay" };
+}
+
+function meshRaw(src) {
+  if (!src || typeof src !== "object") return "";
+  if (src.url != null) return src.url;
+  if (src.href != null) return src.href;
+  if (src.name != null) return src.name;
+  if (src.q != null) return src.q;
+  return "";
+}
+
+function snapshotOf(src) {
+  const body = src && typeof src === "object" ? src : {};
+  const ledger = body.ledger != null ? body.ledger : body.ledger_snapshot != null ? body.ledger_snapshot : body.records;
+  const relay = body.relay != null ? body.relay : body.relay_snapshot != null ? body.relay_snapshot : body.relay_row;
+  return {
+    records: asRecords(ledger),
+    relay: relay == null ? null : relay,
+    relayPosted: body.relay != null || body.relay_snapshot != null || body.relay_row != null,
+    expectHash: body.expect_hash != null ? body.expect_hash : body.expectHash,
+  };
+}
+
+const MESH_NOTES = {
+  bad_handle: "That string is not a .aziel mesh name. It was not sent to DNS.",
+  name_not_in_ledger: "This .aziel name is not in the posted ledger or relay snapshot. It was not sent to DNS. This Worker does not dial a LAN peer.",
+  hash_mismatch: "The posted ledger and relay snapshot disagree on the object hash. Refused. Not sent to DNS.",
+  object_missing: "The relay snapshot names this .aziel record. Page bytes are not on this Worker. Not sent to DNS. Browse it in the local AZBrowser shell.",
+  keys_must_stay_on_node: "A private key was in the posted snapshot. Keys stay on the node.",
+  handle_isolated: "This handle is isolated on the posted relay snapshot. Not sent to DNS.",
+  mesh_browse_local_shell: "Workers Browser Rendering does not render a .aziel name. navigate can name-read a posted snapshot. The local AZBrowser shell browses the page. This call did not dial a LAN peer and did not use DNS.",
+};
+
+function meshFields(extra = {}) {
+  return {
+    plane: "mesh",
+    dns: false,
+    icann: false,
+    ca: false,
+    dialed_lan: false,
+    fetched: false,
+    visited: false,
+    navigable: false,
+    html: null,
+    raw_html: false,
+    regular_browsers_resolve_aziel: false,
+    keys_leave_node: false,
+    worker_name_read: "posted-snapshot",
+    mesh_browse: "local-azbrowser-shell",
+    signature_checked: false,
+    verified_owner: false,
+    ...extra,
+  };
+}
+
+/**
+ * Name-read from a posted ledger and/or relay snapshot.
+ * The Worker does not dial LAN and does not query DNS.
+ */
+export function resolveAzielNameRead(classified, src) {
+  if (!classified || classified.mesh !== true) {
+    return meshFields({ ok: false, reason: "bad_handle", error: MESH_NOTES.bad_handle });
+  }
+  if (classified.ok !== true) {
+    const reason = classified.reason || "bad_handle";
+    return meshFields({
+      ok: false,
+      reason,
+      error: MESH_NOTES[reason] || MESH_NOTES.bad_handle,
+      name: classified.name || null,
+      url: classified.url || classified.raw || "",
+    });
+  }
+  const snap = snapshotOf(src);
+  if (snap.records.some((row) => containsSecret(row)) || (snap.relayPosted && containsSecret(snap.relay))) {
+    return meshFields({
+      ok: false,
+      reason: "keys_must_stay_on_node",
+      error: MESH_NOTES.keys_must_stay_on_node,
+      name: classified.name,
+    });
+  }
+  const record = snap.records.find((row) => String(row.name || "").trim().toLowerCase() === classified.name) || null;
+  const relayDoc = snap.relayPosted ? normalizeRelay(snap.relay) : { found: false, unread: true };
+  const relayRow = relayDoc.found === true && relayDoc.row && typeof relayDoc.row === "object" ? relayDoc.row : null;
+  if (ledgerHashConflict(record, relayRow, snap.expectHash)) {
+    return meshFields({
+      ok: false,
+      reason: "hash_mismatch",
+      error: MESH_NOTES.hash_mismatch,
+      name: classified.name,
+      owner_handle: (record && record.handle) || classified.handle,
+    });
+  }
+  if (!record && relayDoc.isolated === true) {
+    return meshFields({
+      ok: false,
+      reason: "handle_isolated",
+      error: MESH_NOTES.handle_isolated,
+      name: classified.name,
+      owner_handle: classified.handle,
+    });
+  }
+  if (!record && relayRow) {
+    const status = String(relayRow.status || "").toLowerCase();
+    const released = relayRow.released === true || status === "released";
+    const final = !released && (relayRow.final === true || status === "final");
+    if (released) {
+      return meshFields({
+        ok: false,
+        reason: "name_not_in_ledger",
+        error: "The relay snapshot released this name. It was not sent to DNS.",
+        name: relayRow.name || classified.name,
+        name_resolved: false,
+        relay_unread: false,
+      });
+    }
+    if (!final) {
+      return meshFields({
+        ok: true,
+        action: "name_pending",
+        reason: "name_pending",
+        error: "",
+        name: relayRow.name || classified.name,
+        name_status: "PENDING",
+        owner_handle: String(relayRow.owner || classified.handle || ""),
+        statement_hash: String(relayRow.statement_hash || ""),
+        target: relayRow.target || null,
+        ledger_source: "posted-relay-snapshot",
+        note: "Pending name on the posted relay snapshot. Not a verified site. Not sent to DNS. This Worker did not dial a LAN peer.",
+      });
+    }
+    return meshFields({
+      ok: false,
+      reason: "object_missing",
+      error: MESH_NOTES.object_missing,
+      name: relayRow.name || classified.name,
+      name_status: "FINAL",
+      owner_handle: String(relayRow.owner || classified.handle || ""),
+      statement_hash: String(relayRow.statement_hash || ""),
+      target: relayRow.target || null,
+      ledger_source: "posted-relay-snapshot",
+    });
+  }
+  if (!record) {
+    return meshFields({
+      ok: false,
+      reason: "name_not_in_ledger",
+      error: MESH_NOTES.name_not_in_ledger,
+      name: classified.name,
+      owner_handle: classified.handle,
+      relay_unread: relayDoc.unread === true,
+    });
+  }
+  const local = localObjectHash(record);
+  const relay = relayTargetHash(relayRow);
+  return meshFields({
+    ok: true,
+    action: "name_read",
+    reason: "posted_snapshot",
+    error: "",
+    found: true,
+    name: classified.name,
+    owner_handle: String(record.handle || classified.handle || ""),
+    target_hash: local,
+    relay_statement_hash: relayStatementHash(relayRow),
+    hash_agreement: Boolean(local && relay && local === relay),
+    ledger_source: relayRow ? "posted-ledger+relay-snapshot" : "posted-ledger",
+    note: "The posted snapshot matched this .aziel name. This Worker did not check the owner key, did not fetch page bytes, did not dial a LAN peer, and did not query DNS. Browse the name in the local AZBrowser shell.",
+  });
+}
+
+async function answerMeshName(op, src, env) {
+  const classified = classifyAzielDestination(meshRaw(src));
+  if (!classified.mesh) return null;
+  const state = await loadState(env);
+  let decision;
+  if (op === "sandbox_render") {
+    decision = meshFields({
+      ok: false,
+      reason: "mesh_browse_local_shell",
+      error: MESH_NOTES.mesh_browse_local_shell,
+      name: classified.ok ? classified.name : classified.name || null,
+      chromium: false,
+      implemented: false,
+    });
+  } else {
+    decision = resolveAzielNameRead(classified, src);
+  }
+  const refused = decision.ok !== true;
+  const receipt = await mintReceipt(state, {
+    op,
+    kind: refused ? "refuse" : decision.action || "name_read",
+    refused,
+    url: classified.url || String(meshRaw(src) || ""),
+    visited: false,
+    cited: decision.ok === true,
+  });
+  if (op === "tab_open" && decision.ok === true) {
+    state.tabs.unshift({
+      id: `tab_${state.seq.toString(36)}`,
+      url: classified.url,
+      host: classified.name,
+      title: classified.name,
+      opened_at: receipt.ts,
+      receipt_id: receipt.id,
+      visited: false,
+      mesh: true,
+    });
+    if (state.tabs.length > TAB_CAP) state.tabs.length = TAB_CAP;
+  }
+  const store = await saveState(env, state);
+  const { ok, error, ...rest } = decision;
+  const common = {
+    op,
+    receipt,
+    receipt_required: true,
+    store,
+    store_note: storeHonesty(store),
+    scheme: "aziel",
+    host: classified.name || null,
+    url: classified.url || null,
+    ...rest,
+    ok,
+  };
+  if (!ok) return refuse("FG-GATE-REFUSE", error || MESH_NOTES.name_not_in_ledger, common);
+  return baseResult({ ...common, code: "AZB-OK" });
+}
+
 export async function navigate(payload, env) {
   const src = payload && typeof payload === "object" ? payload : {};
+  const meshAnswer = await answerMeshName("navigate", src, env);
+  if (meshAnswer) return meshAnswer;
   const parsed = parseAdvisoryUrl(src.url != null ? src.url : src.href != null ? src.href : src.q);
   const state = await loadState(env);
   if (!parsed.ok) {
@@ -599,6 +989,39 @@ export async function airlockIngest(payload, env) {
   const src = payload && typeof payload === "object" ? payload : {};
   const text = clipText(src.text != null ? src.text : src.url != null ? src.url : src.body != null ? src.body : src.q);
   const state = await loadState(env);
+  const mesh = classifyAzielDestination(text.trim());
+  if (mesh.mesh) {
+    const receipt = await mintReceipt(state, {
+      op: "airlock_ingest",
+      kind: "airlock",
+      query: text,
+      url: mesh.url || "",
+      refused: false,
+      visited: false,
+      cited: false,
+    });
+    const store = await saveState(env, state);
+    return baseResult({
+      op: "airlock_ingest",
+      code: "AZB-OK",
+      label: "mesh_name",
+      signals: ["mesh_name"],
+      advisory: true,
+      visited: false,
+      fetched: false,
+      dialed_lan: false,
+      dns: false,
+      icann: false,
+      raw_html: false,
+      html: null,
+      name: mesh.name || null,
+      receipt,
+      receipt_required: true,
+      store,
+      store_note: storeHonesty(store),
+      note: "Posted text is a .aziel mesh name. Airlock did not resolve it, did not query DNS, and did not dial a LAN peer. navigate name-reads a posted ledger or relay snapshot. Page browse stays on the local AZBrowser shell.",
+    });
+  }
   if (!text.trim()) {
     const receipt = await mintReceipt(state, { op: "airlock_ingest", kind: "refuse", refused: true });
     const store = await saveState(env, state);
@@ -667,6 +1090,8 @@ export async function airlockIngest(payload, env) {
 
 export async function tabOpen(payload, env) {
   const src = payload && typeof payload === "object" ? payload : {};
+  const meshAnswer = await answerMeshName("tab_open", src, env);
+  if (meshAnswer) return meshAnswer;
   const parsed = parseAdvisoryUrl(src.url != null ? src.url : src.href != null ? src.href : src.q);
   const state = await loadState(env);
   if (!parsed.ok) {
@@ -821,6 +1246,9 @@ export function azbrowserHealth(env) {
   return baseResult({
     ok: true,
     mesh: false,
+    dials_lan: false,
+    aziel_dns: false,
+    aziel_on_worker: "name-read-from-posted-snapshot",
     chromium: false,
     tor: false,
     receipt_count: memory.receipts.length,
@@ -844,7 +1272,9 @@ AZBrowser (AZB-1.0) is the Lamb Lens ethical research browser. AZNet is separate
 
 Live ops: \`ethical_search\`, \`lamb_lens_search\`, \`navigate\`, \`airlock_ingest\`, \`tab_open\`, \`tab_list\`, \`receipt_list\`, \`verify\`, \`receipt_verify\`, \`sandbox_status\`, \`sandbox_render\`, \`health\`, \`skill\`, \`vpn\` (auto-binds AZVPN).
 
-Lamb Lens **cites**. It **refuses harmful harvest**. It **does not invent visit results**. \`navigate\` returns advisory metadata only — never raw HTML.
+Lamb Lens **cites**. It **refuses harmful harvest**. It **does not invent visit results**. \`navigate\` returns advisory metadata for ordinary https hosts — never raw HTML.
+
+A \`.aziel\` or \`aziel://\` name is not an https visit and is not ICANN DNS. \`navigate\` name-reads a posted \`ledger\` / \`relay\` snapshot. A miss or a hash mismatch returns \`FG-GATE-REFUSE\` (\`name_not_in_ledger\` or \`hash_mismatch\`). This Worker does not dial a LAN peer. The owner-key check and the page bytes stay on the local AZBrowser shell. \`.aziel\` is not LIVE on this Worker.
 
 \`sandbox_status\` / \`sandbox_render\` report Workers Browser Rendering honestly. Chromium stays DEFERRED unless a real binding launches. Private / onion / Tor targets refuse.
 

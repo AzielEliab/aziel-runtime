@@ -172,6 +172,83 @@ assert.equal(navRefuse.ok, false);
 assert.equal(navRefuse.raw_html, false);
 assert.ok(navRefuse.receipt);
 
+const objectHash = "ab".repeat(32);
+const otherHash = "cd".repeat(32);
+const statementHash = "11".repeat(32);
+let meshFetched = false;
+const meshMiss = await navigate({
+  url: "https://library.aziel/",
+  fetcher() {
+    meshFetched = true;
+    throw new Error("dns");
+  },
+});
+assert.equal(meshFetched, false);
+assert.equal(meshMiss.ok, false);
+assert.equal(meshMiss.code, "FG-GATE-REFUSE");
+assert.equal(meshMiss.reason, "name_not_in_ledger");
+assert.equal(meshMiss.dns, false);
+assert.equal(meshMiss.icann, false);
+assert.equal(meshMiss.dialed_lan, false);
+assert.equal(meshMiss.visited, false);
+assert.equal(meshMiss.fetched, false);
+assert.equal(meshMiss.html, null);
+const schemeMiss = await navigate({ url: "aziel://library" });
+assert.equal(schemeMiss.code, "FG-GATE-REFUSE");
+assert.equal(schemeMiss.reason, "name_not_in_ledger");
+assert.equal(schemeMiss.dns, false);
+const meshHit = await navigate({
+  url: "https://library.aziel/shelf",
+  ledger: [{ name: "library.aziel", handle: "library", ref: { object: objectHash } }],
+  relay: {
+    found: true,
+    row: {
+      name: "library.aziel",
+      owner: "library",
+      status: "final",
+      statement_hash: statementHash,
+      target: { type: "hash", value: objectHash },
+    },
+  },
+  fetcher() {
+    throw new Error("must-not-fetch");
+  },
+});
+assert.equal(meshHit.ok, true, JSON.stringify(meshHit));
+assert.equal(meshHit.code, "AZB-OK");
+assert.equal(meshHit.action, "name_read");
+assert.equal(meshHit.visited, false);
+assert.equal(meshHit.navigable, false);
+assert.equal(meshHit.dialed_lan, false);
+assert.equal(meshHit.dns, false);
+assert.equal(meshHit.icann, false);
+assert.equal(meshHit.signature_checked, false);
+assert.equal(meshHit.verified_owner, false);
+assert.equal(meshHit.hash_agreement, true);
+assert.equal(meshHit.html, null);
+const meshMismatch = await navigate({
+  name: "library.aziel",
+  ledger: [{ name: "library.aziel", handle: "library", ref: { object: objectHash } }],
+  relay_snapshot: {
+    name: "library.aziel",
+    owner: "library",
+    status: "final",
+    statement_hash: statementHash,
+    target: { type: "hash", value: otherHash },
+  },
+});
+assert.equal(meshMismatch.ok, false);
+assert.equal(meshMismatch.code, "FG-GATE-REFUSE");
+assert.equal(meshMismatch.reason, "hash_mismatch");
+assert.equal(meshMismatch.dns, false);
+assert.equal(meshMismatch.dialed_lan, false);
+const meshKeys = await navigate({
+  url: "aziel://library",
+  ledger: [{ name: "library.aziel", handle: "library", seed_b64: "secret" }],
+});
+assert.equal(meshKeys.code, "FG-GATE-REFUSE");
+assert.equal(meshKeys.reason, "keys_must_stay_on_node");
+
 const nav = await navigate({ url: "https://www.w3.org/TR/ethical-web-principles/" });
 assert.equal(nav.ok, true, JSON.stringify(nav));
 assert.equal(nav.raw_html, false);
@@ -236,6 +313,9 @@ const productSkill = await executeLocal({ slug: "azbrowser", op: "skill", payloa
 const productSkillText = JSON.parse(productSkill.responseText).markdown || JSON.parse(productSkill.responseText).skill || "";
 assert.match(productSkillText, /separate software/);
 assert.match(productSkillText, /same FragGate door/);
+assert.match(productSkillText, /FG-GATE-REFUSE/);
+assert.match(productSkillText, /does not dial a LAN peer/);
+assert.match(productSkillText, /local AZBrowser shell/);
 assert.doesNotMatch(productSkillText, /separate engine/i);
 assert.doesNotMatch(productSkillText, /product\/engine/);
 
@@ -291,6 +371,17 @@ const doorNavigate = await post("/v1/fraggate/call", {
 assert.equal(doorNavigate.ok, true);
 assert.equal(doorNavigate.result.raw_html, false);
 assert.ok(doorNavigate.result.receipt);
+
+const doorAziel = await post("/v1/fraggate/call", {
+  slug: "azbrowser",
+  op: "navigate",
+  payload: { url: "https://library.aziel/" },
+});
+assert.equal(doorAziel.result.code, "FG-GATE-REFUSE");
+assert.equal(doorAziel.result.reason, "name_not_in_ledger");
+assert.equal(doorAziel.result.dns, false);
+assert.equal(doorAziel.result.visited, false);
+assert.equal(doorAziel.result.dialed_lan, false);
 
 const doorAirlock = await post("/v1/fraggate/call", {
   slug: "azbrowser",

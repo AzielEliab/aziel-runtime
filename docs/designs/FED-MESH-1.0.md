@@ -457,7 +457,7 @@ Verification catches duplicate sequence, two receipts claiming the same prev, a 
 
 ## 9. Several instances on one computer
 
-Each instance has its own port, key, handle, and data directory. They speak to relays the same way any other node does. There is no hidden local shortcut. `qnm-node/fed-instance.mjs` in this repo is the protocol client used by the end-to-end test. Sandboxed tenant tasks, quotas, and LAN discovery belong to the qnm-node daemon.
+Each instance has its own port, key, handle, and data directory. They speak to relays the same way any other node does. There is no hidden local shortcut. `qnm-node/fed-instance.mjs` in this repo is the protocol client used by the end-to-end test. It listens on `127.0.0.1` unless `--host` is `0.0.0.0` or a LAN address. `0.0.0.0` is a listen bind for `/v1/fed-mesh/direct`, not a peer URL, and not the open-world awareness socket (`qnm-node/awareness.mjs` also binds `0.0.0.0` and does not carry these envelopes). Share `http://<lan-ip>:<port>/v1/fed-mesh/direct`. A peer that names that URL classifies it as `direct-lan`. The listen does not paint public `GET /v1/mesh` L1 LIVE. No STUN, no TURN, no NAT punch. Sandboxed tenant tasks, quotas, and LAN discovery belong to the qnm-node daemon.
 
 ## 10. Limits, stated plainly
 

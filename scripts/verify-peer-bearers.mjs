@@ -36,6 +36,9 @@ assert.equal(lan.ok, true);
 assert.equal(lan.mode, "direct-lan");
 assert.equal(lan.lan, true);
 assert.equal(lan.hole_punch, false);
+const wildcardPeer = classifyPeerUrl("http://0.0.0.0:8781/v1/fed-mesh/direct", { role: "direct" });
+assert.equal(wildcardPeer.ok, false);
+assert.equal(wildcardPeer.code, NAT_REFUSE_CODE);
 
 const lanAsRelay = classifyPeerUrl("http://10.1.2.3/v1/mesh/relay", { role: "relay" });
 assert.equal(lanAsRelay.ok, false);
@@ -447,4 +450,39 @@ try {
   await relayA.stop();
   await relayB.stop();
   await rm(root, { recursive: true, force: true });
+}
+
+const bindRoot = await mkdtemp(join(tmpdir(), "peer-bearers-lan-"));
+const bound = await startInstance({
+  dataDir: join(bindRoot, "lan"),
+  host: "0.0.0.0",
+  advertise: "192.168.1.20",
+  port: 0,
+  relays: [],
+});
+try {
+  assert.equal(bound.listenHost, "0.0.0.0");
+  assert.equal(bound.awarenessSocket, false);
+  assert.match(bound.directUrl, /^http:\/\/192\.168\.1\.20:\d+\/v1\/fed-mesh\/direct$/);
+  assert.equal(classifyPeerUrl(bound.directUrl, { role: "direct" }).mode, "direct-lan");
+  const boundHealth = await (await fetch(bound.base + "/health")).json();
+  assert.equal(boundHealth.listen_host, "0.0.0.0");
+  assert.equal(boundHealth.awareness_socket, false);
+  assert.equal(boundHealth.direct_mode, "direct-lan");
+  assert.equal(boundHealth.survival.l1_live, false);
+  assert.equal(boundHealth.survival.aznet_replaces_internet, false);
+  assert.equal(boundHealth.survival.softwares_count, 42);
+  assert.equal(boundHealth.survival.methods.find((method) => method.id === "direct-lan").live, false);
+  assert.equal(boundHealth.survival.methods.find((method) => method.id === "multi-relay").live, false);
+  const bare = await startInstance({ dataDir: join(bindRoot, "bare"), host: "0.0.0.0", port: 0, relays: [] });
+  try {
+    assert.equal(bare.directUrl, null);
+    assert.match(bare.directNote, /0\.0\.0\.0 is not a peer URL/);
+    assert.equal(bare.awarenessSocket, false);
+  } finally {
+    await bare.stop();
+  }
+} finally {
+  await bound.stop();
+  await rm(bindRoot, { recursive: true, force: true });
 }
