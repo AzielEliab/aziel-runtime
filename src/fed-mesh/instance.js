@@ -407,8 +407,22 @@ export async function openInstance({ dataDir, relays = [] }) {
   return node;
 }
 
-export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", relays = [] }) {
+function bracketHost(host) {
+  const text = String(host || "").trim();
+  if (text.startsWith("[") && text.endsWith("]")) return text;
+  if (text.includes(":")) return `[${text}]`;
+  return text;
+}
+
+export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", advertise = "", relays = [] }) {
   const node = await openInstance({ dataDir, relays });
+  const listenHost = String(host || "127.0.0.1").trim() || "127.0.0.1";
+  const share = {
+    listenHost,
+    directUrl: null,
+    directMode: null,
+    directNote: "",
+  };
   const server = http.createServer(async (req, res) => {
     const chunks = [];
     for await (const chunk of req) chunks.push(chunk);
@@ -429,8 +443,15 @@ export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", rel
         handle: node.identity.handle,
         spec: FED_SPEC,
         direct: true,
+        listen_host: share.listenHost,
+        direct_url: share.directUrl,
+        direct_mode: share.directMode,
+        awareness_socket: false,
         default_layer: "L0",
         survival: node.survival(),
+        hole_punch: false,
+        public_icann: false,
+        aznet_replaces_internet: false,
       };
     } else if (req.method === "POST" && url.pathname === "/v1/fed-mesh/direct") {
       out = await node.onDirect(body);
@@ -438,16 +459,48 @@ export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", rel
     res.writeHead(out.ok === false ? 400 : 200, { "content-type": "application/json" });
     res.end(JSON.stringify(out));
   });
-  await new Promise((resolve) => server.listen(port, host, resolve));
+  await new Promise((resolve, reject) => {
+    const onError = (err) => reject(err);
+    server.once("error", onError);
+    server.listen(port, listenHost, () => {
+      server.removeListener("error", onError);
+      resolve();
+    });
+  });
   const addr = server.address();
-  const base = `http://${host}:${addr.port}`;
+  const portNum = addr && typeof addr === "object" ? addr.port : port;
+  const wildcard = listenHost === "0.0.0.0" || listenHost === "::" || listenHost === "[::]";
+  const healthHost = wildcard ? "127.0.0.1" : bracketHost(listenHost);
+  const base = `http://${healthHost}:${portNum}`;
+  const advertised = String(advertise || "").trim();
+  const shareHost = advertised || (wildcard ? "" : listenHost);
+  if (shareHost) {
+    const candidate = `http://${bracketHost(shareHost)}:${portNum}/v1/fed-mesh/direct`;
+    const classified = classifyPeerUrl(candidate, { role: "direct" });
+    if (classified.ok) {
+      share.directUrl = classified.url;
+      share.directMode = classified.mode;
+      share.directNote = classified.note || "";
+    } else {
+      share.directUrl = null;
+      share.directMode = null;
+      share.directNote = classified.message || "That address is not a direct or LAN peer URL. 0.0.0.0 is a listen bind, not a peer URL.";
+    }
+  } else {
+    share.directNote =
+      "Listen bind is all interfaces. Pass --advertise with the LAN IP. 0.0.0.0 is not a peer URL. No STUN and no TURN. This socket is not open-world awareness.";
+  }
   return {
     ...node,
     handle: node.identity.handle,
     public_key: node.identity.public_key,
     enc_public_key: node.identity.enc_public_key,
+    listenHost,
     base,
-    directUrl: `${base}/v1/fed-mesh/direct`,
+    directUrl: share.directUrl,
+    directMode: share.directMode,
+    directNote: share.directNote,
+    awarenessSocket: false,
     stop() {
       return new Promise((done) => server.close(() => done()));
     },

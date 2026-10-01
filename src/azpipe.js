@@ -205,9 +205,27 @@ function clipFact(value) {
   return s.length > 160 ? s.slice(0, 160) : s;
 }
 
+/** A .aziel or aziel:// literal. Not an allowlisted fetch origin. The browser engine name-reads it and does not dial. */
+function meshNameLiteral(value) {
+  const text = String(value || "").trim();
+  if (/^aziel:\/\//i.test(text)) return true;
+  let url;
+  try {
+    url = new URL(text);
+  } catch {
+    return false;
+  }
+  if (url.protocol !== "https:" && url.protocol !== "http:") return false;
+  return String(url.hostname || "")
+    .toLowerCase()
+    .replace(/\.$/, "")
+    .endsWith(".aziel");
+}
+
 function foldString(text) {
   return String(text || "").replace(URL_RE, (m) => {
     const cleaned = m.replace(/[),.;]+$/, "");
+    if (meshNameLiteral(cleaned)) return m;
     return originAllowed(cleaned) ? m : "[FLD3:url]";
   });
 }
@@ -216,7 +234,9 @@ export function fld3Wire(value, key) {
   if (key && BLOCK_KEY_SET.has(String(key).toLowerCase())) return "[FLD3:block]";
   if (value == null) return value;
   if (typeof value === "string") {
-    if (/^https?:\/\//i.test(value.trim()) && !originAllowed(value.trim())) return "[FLD3:url]";
+    const trimmed = value.trim();
+    if (meshNameLiteral(trimmed)) return value;
+    if (/^https?:\/\//i.test(trimmed) && !originAllowed(trimmed)) return "[FLD3:url]";
     return foldString(value);
   }
   if (typeof value === "number" || typeof value === "boolean") return value;
