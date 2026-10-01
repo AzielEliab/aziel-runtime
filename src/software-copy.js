@@ -110,7 +110,7 @@ export const SOFTWARE_COPY = Object.freeze({
     one_line:
       "Assign a short-lived session node and cite Cap-7 mesh-name metadata from a factory that is not a public ICANN registrar. Cap-7 geo, sticky session, and land rotation are LIVE on the Cap-7 plane, not a public egress IP.",
     description:
-      "Use MirageGrid to assign a short-lived session node and cite Cap-7 mesh-name metadata. The Cap-7 factory is not a public ICANN registrar. It exists for Cap-7 control-plane assignment. geo-target, session-stick, and egress-rotate are LIVE on the Cap-7 plane (metadata and session land). They are not a public egress IP, not ICANN DNS, and not AZVPN. The public MirageGrid Worker stays unclaimed until MirageGrid pull request 28 lands. vpn-hop, hop, tunnel, and mesh stay stub. AZVPN remains the suite VPN.",
+      "Use MirageGrid to assign a short-lived session node and cite Cap-7 mesh-name metadata. The Cap-7 factory is not a public ICANN registrar. It exists for Cap-7 control-plane assignment. geo-target, session-stick, and egress-rotate are LIVE on the Cap-7 plane (metadata and session land). They are not a public egress IP, not ICANN DNS, and not AZVPN. MirageGrid pull request 28 has landed (merge 6d0bd3471e29af5ad8ab37573bb4ac9ff0b21dcb). Public Worker doors for those three ops are live on the Cap-7 plane. This FragGate response stays the in-process engine. vpn-hop, hop, tunnel, and mesh stay stub. AZVPN remains the suite VPN.",
   },
   mmconsensus: {
     one_line: "Tally consensus from opinions you already posted.",

@@ -498,7 +498,10 @@ assert.match(mgCard.description, /not a public ICANN registrar/);
 assert.match(mgCard.description, /LIVE on the Cap-7 plane/);
 assert.match(mgCard.description, /not a public egress IP/);
 assert.match(mgCard.description, /AZVPN/);
-assert.match(mgCard.description, /public MirageGrid Worker stays unclaimed/);
+assert.match(mgCard.description, /MirageGrid pull request 28 has landed/);
+assert.match(mgCard.description, /6d0bd3471e29af5ad8ab37573bb4ac9ff0b21dcb/);
+assert.match(mgCard.description, /in-process engine/);
+assert.doesNotMatch(mgCard.description, /stays unclaimed/);
 assert.doesNotMatch(`${mgCard.one_line} ${mgCard.description}`, /node-mesh VPN|anonymity network|packet mesh|SOCKS5|hosted VPN/i);
 assert.deepEqual(mgCard.public_door_ops, [
   "assign",
@@ -539,8 +542,10 @@ assert.equal(mgHealthBody.cap7_plane.public_egress_ip, false);
 assert.equal(mgHealthBody.cap7_plane.public_icann, false);
 assert.equal(mgHealthBody.cap7_plane.azvpn, false);
 assert.equal(mgHealthBody.cap7_plane.worker_live, false);
+assert.equal(mgHealthBody.cap7_plane.worker_doors_live, true);
 assert.equal(mgHealthBody.cap7_plane.hosted, false);
-assert.equal(mgHealthBody.cap7_plane.miragegrid_pr_landed, false);
+assert.equal(mgHealthBody.cap7_plane.miragegrid_pr_landed, true);
+assert.equal(mgHealthBody.cap7_plane.miragegrid_pr_merge, "6d0bd3471e29af5ad8ab37573bb4ac9ff0b21dcb");
 assert.equal(mgHealthBody.cap7_plane.factory_exec, true);
 assert.equal(mgHealthBody.hub_mirror_count, 4);
 assert.equal(mgHealthBody.decoy_count, 3);
@@ -580,8 +585,10 @@ assert.equal(geo.geo_applied, false);
 assert.equal(geo.packet_forwarding, false);
 assert.equal(geo.hosted_vpn, false);
 assert.equal(geo.worker_live, false);
+assert.equal(geo.worker_doors_live, true);
 assert.equal(geo.hosted, false);
-assert.equal(geo.miragegrid_pr_landed, false);
+assert.equal(geo.miragegrid_pr_landed, true);
+assert.equal(geo.miragegrid_pr_merge, "6d0bd3471e29af5ad8ab37573bb4ac9ff0b21dcb");
 const geoIp = JSON.parse(
   (await executeLocal({ slug: "miragegrid", op: "geo-target", payload: { region: "203.0.113.8" }, ranIn: "aziel-runtime" })).responseText,
 );

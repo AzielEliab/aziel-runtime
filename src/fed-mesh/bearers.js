@@ -268,9 +268,11 @@ export function survivalMethods(config = {}) {
       cite_status: "live",
       ops: ["geo-target", "session-stick", "egress-rotate"],
       worker_live: false,
+      worker_doors_live: true,
       hosted: false,
-      miragegrid_pr_landed: false,
-      note: "Cap-7 mesh-name factory exec is LIVE on FragGate. geo-target, session-stick, and egress-rotate run on the Cap-7 plane (metadata and session land). cite_status alone is not this factory status. The public MirageGrid Worker stays unclaimed until MirageGrid pull request 28 lands. Not a public resolver. Not ICANN DNS. Not a public egress IP. Not AZVPN. AZNet pairs with AZBrowser through FragGate.",
+      miragegrid_pr_landed: true,
+      miragegrid_pr_merge: "6d0bd3471e29af5ad8ab37573bb4ac9ff0b21dcb",
+      note: "Cap-7 mesh-name factory exec is LIVE on FragGate. geo-target, session-stick, and egress-rotate run on the Cap-7 plane (metadata and session land). cite_status alone is not this factory status. MirageGrid pull request 28 has landed (merge 6d0bd3471e29af5ad8ab37573bb4ac9ff0b21dcb). Public Worker doors for those three ops are live on the Cap-7 plane. This FragGate response stays the in-process engine. Not a public resolver. Not ICANN DNS. Not a public egress IP. Not AZVPN. AZNet pairs with AZBrowser through FragGate.",
     },
     {
       n: 5,
