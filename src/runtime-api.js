@@ -253,7 +253,7 @@ Every catalog slug is a true engine. Cloudflare isolate is the jail. Hosted AZAI
 **1.7.0 = MASTER-33.** FragGate is THE single door. Public hop list: Human → AZInterface → PUBLIC/UI/AGENT/API → FragGate → Lamb Lens → SweepGate → Sentinel → Provenance/Input Packet → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → optional ASE → RoseClock (forward-only; StaticClock/VECTOR as needed) → TemporalLock → ChainLock-OUT → ForgeReceipts → Return. Lamb Lens is fabric ethics after FragGate (not Softwares-tab, not a second door). 11 domains / 33 softwares are isolation labels. AZChat is a name-only stub. ASE/VECTOR cite + refuse until armed. RoseClock sequence never decreases. Overrides MASTER-ARCHITECTURE-2.0 §4.2. No ZD30. No rollback. Identity Aziel Eliab only.
 **1.6.15 = locked suite pipeline (SUITE-PIPE-1.6.15).** Historical public hop list: PUBLIC/UI/Agents → FragGate → SweepGate → ChainLock-IN → DecisionGATE → AZPIPE → Domain Doors (4DMap inspection) → TemporalLock → StaticClock → ChainLock-OUT → Response/Receipt. Kept live; 1.7.0 extends it. FragGate \`fraggate_call\` aligns. DecisionGATE after ChainLock-IN, before domain exec. 4DMap stays the inspection frame — not a sequential gate. TemporalLock + StaticClock are advisory stamps on the envelope (existing engines). LambGate is not a hop. FoldLock fld3-wire stays internal. Illegal reorder is refused. Identity Aziel Eliab only.
 **1.6.14 = 4DMap (4DM-WP-1.0)** as a true in-process engine: four-axis inspection frame T/Δ/Γ/Π. Domain Door / inspection layer after AZPIPE routes to isolated engines — not a sequential gate. LIVE_OPS health/skill/card_new/card_pin/card_span/card_join/card_walk/card_list/verify_hash. truth_score/lumen_panel/invent_mark/backdate_class stay stub. Plain bucket. FragGate claims cite join types. ChainLock may stamp walks. Neighbors TemporalLock/StaticClock/ChronoLock/TrajectoryLock/SpectralLock. EmbryoLock stays stub. GET /v1/mesh never enables. RL packed catalog stays 0-KV hot path.
-**1.6.13 = QNM-BUILD-1.0 suite rollup** (companion to AIH-WP-1.1): \`GET /v1/mesh\` / \`/status\` (live/locked/isolated; never enables extra radios). Current law: read-only suite-presence ON by default; \`POST /v1/mesh/disable\` refuses \`MESH-DISABLE-REFUSED\`. Plus join/heartbeat/leave/nodes and optional hash-only broadcast (never a publish path). Not a login mesh. Full node process is local \`qnm-node/\`. Anon-broadcast is that process's sibling loopback module only. MCP \`mesh_*\` + FragGate \`slug=mesh\`. Each software card has \`mesh: { path, enabled_default: true, spec, companion, rollup_only, qnm_s: false }\` and \`qns_cd: { spec: "QNS-CD-1.0", local: "https://github.com/AzielEliab/qnm-node", note: "Photon vias on local qnsd; Worker cites only" }\`. AZMail mesh stays product-local. See \`docs/NODE_MESH.md\`. Designs: \`docs/designs/\` (AZL / SEC-FEAT / QNM-WP / NODE-OPS plus LIVE fabric CL-WP-0.4 / AP-WP-0.2 / SG-WP-0.1 / LS-WP-0.1 / RL-WP-0.1-runtime / QNS-CD-1.0 / SUITE-PIPE-1.6.15 plus product spec 4DM-WP-1.0).
+**1.6.13 = QNM-BUILD-1.0 suite rollup** (companion to AIH-WP-1.1): \`GET /v1/mesh\` / \`/status\` (live/locked/isolated; never enables extra radios). Current law: read-only suite-presence ON by default; \`POST /v1/mesh/disable\` refuses \`MESH-DISABLE-REFUSED\`. Plus join/heartbeat/leave/nodes and optional hash-only broadcast (never a publish path). Not a login mesh. Full node process is local \`qnm-node/\`. Anon-broadcast is a local sibling of that process, not a loopback fence of the mesh. MCP \`mesh_*\` + FragGate \`slug=mesh\`. Each software card has \`mesh: { path, enabled_default: true, spec, companion, rollup_only, qnm_s: false }\` and \`qns_cd: { spec: "QNS-CD-1.0", local: "https://github.com/AzielEliab/qnm-node", note: "Photon vias on local qnsd; Worker cites only" }\`. AZMail mesh stays product-local. See \`docs/NODE_MESH.md\`. Designs: \`docs/designs/\` (AZL / SEC-FEAT / QNM-WP / NODE-OPS plus LIVE fabric CL-WP-0.4 / AP-WP-0.2 / SG-WP-0.1 / LS-WP-0.1 / RL-WP-0.1-runtime / QNS-CD-1.0 / SUITE-PIPE-1.6.15 plus product spec 4DM-WP-1.0).
 **1.6.12 = live software catalog + client updates:** \`GET /v1/software\` (mirror \`GET /v1/fraggate/software\`) is the authoritative hub catalog — every product plus EmbryoLock stub, sorted Plain A–Z → Gate A–Z → Lock A–Z (Clock ≠ Lock). \`GET /v1/update/check?slug=&version=\` and \`GET /v1/update/manifest\` for install.sh / local UIs / mobile. GitHub Action deploys on push to main. Agents prefer FragGate / \`/v1/software\` / \`/mcp\` (list → describe → call). Sibling software under one FragGate door — never separate FragGate engines.
 **1.6.11 = dual-surface op aliases:** Worker UI button names resolve to catalog LIVE_OPS (forward to the real engine method). EmbryoLock is named stub / local-not-hosted (describe?slug=embryolock; not a Worker; not a FragGate engine).
 **1.6.10 = framing: AZBrowser and AZNet catalog one_line say separate software, not separate engine.** Same FragGate door. Two catalog slugs stay.
@@ -1615,6 +1615,30 @@ export function runtimeStaticPaths() {
                   summary: "AZNet skill",
                   value: { slug: "aznet", op: "skill", payload: {} },
                 },
+                aznet_name_claim: {
+                  summary: "AZNet name_claim (confirm writes a signed .aziel record; not ICANN)",
+                  value: { slug: "aznet", op: "name_claim", payload: { confirm: true } },
+                },
+                aznet_name_read: {
+                  summary: "AZNet name_read",
+                  value: { slug: "aznet", op: "name_read", payload: { name: "library.aziel" } },
+                },
+                aznet_name_resolve: {
+                  summary: "AZNet name_resolve",
+                  value: { slug: "aznet", op: "name_resolve", payload: { name: "library.aziel" } },
+                },
+                aznet_slot_read: {
+                  summary: "AZNet slot_read",
+                  value: { slug: "aznet", op: "slot_read", payload: {} },
+                },
+                aznet_witness: {
+                  summary: "AZNet witness (confirm anchors a witness act)",
+                  value: { slug: "aznet", op: "witness", payload: { confirm: true } },
+                },
+                aznet_witness_read: {
+                  summary: "AZNet witness_read",
+                  value: { slug: "aznet", op: "witness_read", payload: {} },
+                },
                 azhub_blank_key: {
                   summary: "AZHub Blank Key status",
                   value: { slug: "azhub", op: "blank_key_status", payload: {} },
@@ -1682,6 +1706,10 @@ export function runtimeStaticPaths() {
                 azinterface_skill: {
                   summary: "AZInterface skill",
                   value: { slug: "azinterface", op: "skill", payload: {} },
+                },
+                azinterface_mesh_radios: {
+                  summary: "AZInterface mesh radios (confirm calls mesh enable; MESH_RADIOS=off stays MESH-OFF)",
+                  value: { slug: "azinterface", op: "mesh_radios", payload: { confirm: true, bearer: "suite-presence" } },
                 },
                 azhub_list_modules: {
                   summary: "AZHub UI alias of region_list",
@@ -2299,7 +2327,7 @@ export function runtimeStaticPaths() {
       post: {
         operationId: "mesh_broadcast",
         summary:
-          "Register a SHA-256 hash receipt of a local communique. Never a publish path. Does not accept video bytes. Anon-broadcast is a sibling loopback of local qnm-node/ only.",
+          "Register a SHA-256 hash receipt of a local communique. Never a publish path. Does not accept video bytes. Anon-broadcast is a local sibling of qnm-node/. It is not a loopback fence of the mesh.",
         tags: ["mesh"],
         requestBody: {
           required: true,

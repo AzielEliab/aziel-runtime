@@ -746,9 +746,12 @@ ${dashCards}
       </article>
       <article class="dash-card" id="desk-mesh" data-desk="mesh">
         <h4>Node mesh <span class="slug">awareness</span></h4>
-        <p class="blurb">Same mesh laws as the status panel. This tile does not join, heartbeat, leave, enable radios, or read Live Nodes.</p>
+        <p class="blurb">Suite-presence radios are on by default. GET never enables extra radios. Confirm calls FragGate <code>azinterface</code> <code>mesh_radios</code>, which calls mesh enable. <code>MESH_RADIOS=off</code> stays <code>MESH-OFF</code>. Isolation is single-node security-awareness, not a loopback fence. Phoenix is local wait / re-seal.</p>
+        <label><input id="mesh-radios-confirm" data-radios-confirm type="checkbox"> confirm mesh radios</label>
         <div class="actions">
           <button type="button" data-if="mesh_awareness">Mesh awareness</button>
+          <button type="button" data-mesh-radios="status">Radios status</button>
+          <button type="button" data-mesh-radios="enable">Enable radios</button>
           <a href="#mesh-panel">Mesh status</a>
         </div>
       </article>
@@ -879,6 +882,9 @@ ${dashCards}
       <button type="button" data-mesh="leave">Leave</button>
       <button type="button" data-mesh="vpn">VPN cite (AZVPN auto)</button>
       <button type="button" data-mesh="enable">Enable extra bearer</button>
+      <label><input id="mesh-panel-radios-confirm" data-radios-confirm type="checkbox"> confirm mesh radios</label>
+      <button type="button" data-mesh-radios="status">Radios status</button>
+      <button type="button" data-mesh-radios="enable">Mesh radios (confirm)</button>
     </div>
   </section>
 
@@ -1505,7 +1511,28 @@ export function humanDoorScript() {
       setMetric("metric-hardware", hw === false ? "cite only" : (hw == null ? "—" : String(hw)));
     });
   }
-  if (mesh) {
+    function meshRadiosCall(act, btn, outEl, origin) {
+      let section = btn && btn.closest ? btn.closest("section") : null;
+      let box = (section && section.querySelector("[data-radios-confirm]")) || document.getElementById("mesh-radios-confirm");
+      let payload = { bearer: "suite-presence" };
+      if (act === "enable") {
+        if (!box || !box.checked) {
+          show(outEl || document.getElementById("mesh-out") || document.getElementById("interface-out"), "Mesh radios enable needs the confirm box. Nothing was written. GET never enables.", "error");
+          return;
+        }
+        payload.confirm = true;
+      }
+      let target = outEl || document.getElementById("mesh-out") || document.getElementById("interface-out");
+      fraggateCall(origin, "azinterface", "mesh_radios", payload, target, btn);
+    }
+    document.querySelectorAll("[data-mesh-radios]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        let origin = (mesh && mesh.getAttribute("data-origin")) || (document.getElementById("interface-panel") && document.getElementById("interface-panel").getAttribute("data-origin")) || "";
+        let outEl = btn.closest("#interface-panel") ? document.getElementById("interface-out") : document.getElementById("mesh-out");
+        meshRadiosCall(btn.getAttribute("data-mesh-radios"), btn, outEl, origin);
+      });
+    });
+    if (mesh) {
     let origin = mesh.getAttribute("data-origin") || "";
     let out = document.getElementById("mesh-out");
     mesh.querySelectorAll("[data-mesh]").forEach(function (btn) {

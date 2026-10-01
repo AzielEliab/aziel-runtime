@@ -104,7 +104,7 @@ export function probeRf() {
   return { present: false, kind: null };
 }
 
-/** Local qnsd on loopback only. Never fetch 127.0.0.1 from the Worker. */
+/** Local qnsd binds 127.0.0.1. That bind is not a mesh-wide loopback fence. Never fetch 127.0.0.1 from the Worker. */
 export function probePhoton() {
   if (qnsdLoopbackPresent()) {
     return { present: true, kind: "qnsd-loopback" };

@@ -11,8 +11,10 @@ account_id = "ac575a9b822bea2bed97d0ab73aed238"
 enabled = true
 head_sampling_rate = 1
 
-# QNM suite-presence fan-out while operator-enabled. GET /v1/mesh never enables.
-# Refresh is well under the 5-minute presence TTL. Radios stay OFF until a bearer.
+# QNM suite-presence fan-out. Read-only suite-presence is ON by default (bearer suite-presence).
+# GET /v1/mesh never enables extra radios (get_never_enables). MESH_RADIOS=off forces TX off
+# (MESH-OFF). MESH_RADIOS=on forces TX on. A missing env follows declared bearers.
+# Refresh is well under the 5-minute presence TTL.
 [triggers]
 crons = ["*/2 * * * *"]
 

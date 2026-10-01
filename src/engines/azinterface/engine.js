@@ -231,7 +231,9 @@ Custodial operating environment. Page cycles are **pre-locked** at genesis:
 - HTTP: \`POST /v1/fraggate/call\` with the same envelope
 - Leftover flat names such as \`azinterface_page_cycle_status\` still go through FragGate (\`parseTarget\`) — they are not a side door and are not listed on \`tools/list\`
 
-LIVE_OPS: health, skill, genesis_status, site_state_get, site_state_set, integrity_check, witness_list, page_cycle_status.
+LIVE_OPS: health, skill, genesis_status, site_state_get, site_state_set, integrity_check, witness_list, page_cycle_status, mesh_radios.
+
+\`mesh_radios\` reads the suite radio tile. \`confirm: true\` calls FragGate mesh enable (bearer \`suite-presence\` unless another bearer is named). \`MESH_RADIOS=off\` stays \`MESH-OFF\`. GET never enables. Isolation is single-node security-awareness (a bad peer or self), not a fence of the mesh to 127.0.0.1. Phoenix is a local reboot loop (wait / re-seal, phoenix_lock), not public hostname resurrection.
 
 Stubs (refuse): scorch_remote, auto_unlock, ranking, completeness_detect.
 

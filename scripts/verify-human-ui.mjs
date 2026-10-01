@@ -299,6 +299,8 @@ assert.match(ws, /data-mesh="vpn"/);
 assert.match(ws, /data-mesh="heartbeat"/);
 assert.match(ws, /data-mesh="enable"/);
 assert.match(ws, /id="mesh-bearer"/);
+assert.match(ws, /id="mesh-radios-confirm"/);
+assert.match(ws, /data-mesh-radios/);
 assert.match(ws, /id="task-azmail"/);
 assert.match(ws, /id="task-embryolock"/);
 assert.match(softwareHtml, /Connect AI/);

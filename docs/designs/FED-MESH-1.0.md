@@ -73,7 +73,7 @@ This is a stack. It is not a fork. Unconfigured clients stay on L0.
 | --- | --- | --- |
 | L0 | Default public path. Cloudflare Worker, FragGate as the single door, MCP / OpenAPI / Glama, Softwares 42, the HTTPS relay, and the human UI. | Must keep working. Not replaced. |
 | L1 | Optional peer bearers. A configured direct or LAN URL, extra relays, and `FED-MESH-NAT-REFUSE`. | Opt-in. Used when configured. Default behavior stays L0. |
-| L2 | Cap-7 mesh DNS / AZNet pairing. | Cite and refuse only. `dns_publish` false. `public_icann` false. AZNet/AZBrowser pair through FragGate. |
+| L2 | Cap-7 mesh DNS / AZNet pairing. | Cap-7 factory exec is LIVE on the Cap-7 plane (geo-target, session-stick, egress-rotate as metadata and session land). Not a public egress IP. Not ICANN. `dns_publish` false. `public_icann` false. AZNet/AZBrowser pair through FragGate. AZNet does not host payloads. Mirage `vpn-hop` / `hop` / `tunnel` / `mesh` stay FG-STUB and are not AZVPN. |
 | L3 | Home-origin and cold shelves. | Registry. Home-origin SLOT. Cold shelves SLOT. Phoenix is local wait / re-seal. |
 | L4 | AZ-OS offline. | Three layers by need (read / reach / execute). Offline stub uses L0 when a relay is configured. Not a full OS. Softwares UI untouched. |
 
@@ -88,7 +88,7 @@ This is a stack. It is not a fork. Unconfigured clients stay on L0.
 | 1 | Cloudflare Worker edge | L0 | LIVE. Default path. |
 | 2 | Multi-relay QNM | L1 | LIVE only when more than one relay URL is named. Otherwise `live-when-configured`. |
 | 3 | Direct / LAN peer bearer | L1 | LIVE only when a direct URL classifies. NAT punch stays `FED-MESH-NAT-REFUSE`. |
-| 4 | Cap-7 mesh DNS / AZNet | L2 | SLOT. Mesh-only. Not ICANN. Not this implementation. |
+| 4 | Cap-7 mesh DNS / AZNet | L2 | LIVE factory exec on the Cap-7 plane. Not a public egress IP. Not ICANN. Not this Worker's public DNS. Home-origin and cold shelves stay SLOT. |
 | 5 | Home-origin / mini-PC behind the edge | L3 | SLOT. Later. |
 | 6 | Cold shelves (re-expand) | L3 | SLOT. Codeberg and archive.org hash-verify PASS still SLOT. Framagit URL null. GitFlic refused (`CNS-GITFLIC-EMAIL`). USB SLOT until `CNS-OPERATOR-ATTEST`. Zenodo stays `CNS-ZENODO-NOT-LIVE`. |
 | 7 | Phoenix | REHEAL | LIVE as local wait / re-seal. No controller hunt. No neighbor vote-to-fix. |
@@ -115,15 +115,32 @@ Three modes. Nothing else is claimed. L1 advertises them. L0 does not require th
 | --- | --- |
 | `relay-https` | An `https` relay URL the node already has. This Worker is one such relay. |
 | `direct-lan` | A configured LAN URL (`10/8`, `172.16/12`, `192.168/16`, link-local, `.local`) or a configured `https` direct URL the node already has. This Worker does not discover a LAN. |
-| `loopback` | `127.0.0.1`, `localhost`, or `::1`. Tests and a local node. The Worker never fetches `127.0.0.1`. |
+| `loopback` | `127.0.0.1`, `localhost`, or `::1`. Optional L1 bearer for tests and a local node. The Worker never fetches `127.0.0.1`. This mode is not a mesh-wide fence. |
 
-`GET /v1/mesh` and `GET /v1/mesh/relay` expose `peer_bearers`. `hole_punch` is false. `public_icann` is false. `radio_phy` is false. `not_a_second_internet` is true. `GET` never enables.
+`loopback` does not fence the mesh to 127.0.0.1. Isolation is single-node security-awareness: a node isolates a bad peer or itself. Phoenix is a local reboot loop (wait / re-seal, `phoenix_lock`). It does not resurrect a public hostname. Local `qnsd` may bind 127.0.0.1. That bind is a process bind, not the mesh security model.
+
+`GET /v1/mesh` and `GET /v1/mesh/relay` expose `peer_bearers`. `hole_punch` is false. `public_icann` is false. `radio_phy` is false. `not_a_second_internet` is true. `GET` never enables (`get_never_enables`). Read-only suite-presence is ON by default. `MESH_RADIOS=off` forces transmission off (`MESH-OFF` on join, heartbeat, and broadcast). `MESH_RADIOS=on` forces transmission on. A missing env follows declared bearers. Public disable of suite-presence refuses `MESH-DISABLE-REFUSED`. AZInterface `mesh_radios` with payload `confirm: true` calls mesh enable and does not override `MESH_RADIOS=off`.
 
 An ask to punch (op or path `hole-punch` / `nat` / `stun`, body `hole_punch: true`, or a `stun:` / `turn:` / `nat:` URL) refuses `FED-MESH-NAT-REFUSE`. Cleartext to a public host refuses the same way. That refusal does not open a bearer and does not turn radios on.
 
 A node may register with more than one relay. Each relay keeps that handle's own sequence. `GET /v1/mesh/relay` is the health check. A failed check selects the next configured relay. Direct delivery is tried first when a direct URL is configured; a down direct URL falls back to the next healthy relay. A NAT refusal does not fall back into a pretend path.
 
-This is not public ICANN DNS and not radio PHY. Cap-7 publish stays out of this layer.
+This is not public ICANN DNS and not radio PHY. Cap-7 DNS publish stays out of this layer (`dns_publish` false). Factory exec on the Cap-7 plane is LIVE and is not a public egress IP and not AZVPN.
+
+### Must stay off
+
+| Surface | Law |
+| --- | --- |
+| `public_egress_ip`, residential, Cloudflare geo-exit, sticky public IP, packet forward | Cap-7 is not public egress. |
+| `public_icann`, ICANN `.az`, `dns_publish`, registrar | Cap-7 is not ICANN. |
+| Mirage `vpn-hop`, `hop`, `tunnel`, `mesh` | FG-STUB. Mirage is not AZVPN. |
+| AZVPN WireGuard, OpenVPN, L3 | SLOT. |
+| AZNet `payload_host` | `AZN-NO-PAYLOAD`. |
+| `not_a_second_internet: false` or `aznet_replaces_internet: true` | Refused `MESH-STAY-OFF`. The mesh name plane does not replace the public internet. |
+
+### Name door
+
+FragGate ops `name_claim`, `name_read`, `name_resolve`, `slot_read`, `witness`, and `witness_read` sit on slug `mesh` and on Softwares slug `aznet`. They call the existing relay (`relay-name`, `relay-name-read`, `relay-slot-read`, `relay-witness`, `relay-witness-read`). Claim and witness write only with payload `confirm: true` and anchor ChainLock when the act is valid. Garden pair is not required for these name ops. No new MCP tool. `tools/list` stays 36.
 
 ## 5. Git-like content model
 

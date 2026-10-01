@@ -944,6 +944,12 @@ const PRODUCTS_RAW = [
       { op: "memorial_list", method: "POST", summary: "List the memorial ledger. Terminal / append-only. Requires AZBrowser pair." },
       { op: "memorial_append", method: "POST", summary: "Append a terminal memorial for a garden hash. No rewrite. Requires AZBrowser pair." },
       { op: "receipt_verify", method: "POST", summary: "Verify TemporalLock-style receipt + StaticClock timeslate fields." },
+      { op: "name_claim", method: "POST", summary: "Claim a signed .aziel name on the FED-MESH relay. confirm true anchors ChainLock. Not ICANN. Not a payload host." },
+      { op: "name_read", method: "POST", summary: "Read a .aziel name record or the names held by a handle." },
+      { op: "name_resolve", method: "POST", summary: "Resolve a .aziel name to its target. Mesh name plane, not a second internet." },
+      { op: "slot_read", method: "POST", summary: "Read reserved hub-mirror slots and friendly-name count for a handle." },
+      { op: "witness", method: "POST", summary: "Witness a name statement. confirm true anchors ChainLock." },
+      { op: "witness_read", method: "POST", summary: "Read witnesses for a name statement hash." },
       { op: "doctor", method: "POST", summary: "UI alias of health. Same FragGate backend as the Worker UI button." },
       { op: "pair", method: "POST", summary: "UI alias of pair_status. Reports functional-order pairing; does not invent a tunnel or unlock." },
     ],
@@ -985,6 +991,7 @@ const PRODUCTS_RAW = [
       { op: "page_cycle_status", method: "POST", summary: "Pre-locked cycles: OFF / integrity / ON / FULL SHUTDOWN / MEMORIAL." },
       { op: "genesis_boot", method: "POST", summary: "UI alias of genesis_status. Genesis is already sealed; no invented boot." },
       { op: "hold", method: "POST", summary: "UI alias of page_cycle_status. Reports the current pre-locked cycle." },
+      { op: "mesh_radios", method: "POST", summary: "Mesh radios tile. confirm true calls FragGate mesh enable. MESH_RADIOS=off stays MESH-OFF. GET never enables." },
     ],
     example: { cycle: "OFF" },
     banner:
@@ -2470,7 +2477,7 @@ ${distributionDoorsHtml(origin)}
       <li>AzielTether is <em>not</em> a VPN. Prefer-central mesh for downloaded Aziel Eliab software; public HTTPS stays mesh-free.</li>
       <li>PeaceLock is chosen silence / chosen inaction as a receipt (PL-WP-0.1). It is <em>not</em> a transcript, not a counterfactual, not a motive score, and not a HARD_DUTY waiver. Hosted never invents speech or stores files.</li>
       <li>AZMail is an anonymous MCP mesh + advisory airlock (APP 1.0). It is <em>not</em> a full internet MTA, not SMTP, not identity. Mesh default off. Reached only via FragGate. VPN/hop mesh is still not claimed on this public surface. AZMail <code>mesh_*</code> stays product-local; the suite QNM surface is rollup + operator enable, not that ring.</li>
-      <li>The suite QNM surface is <code>QNM-BUILD-1.0</code> rollup (live/locked/isolated) plus read-only suite-presence ON by default. It is <em>not</em> a login mesh, not login-recovery, not an IP panel, not AnonBroadcast as a Softwares-tab product, not an upload proxy, not origin-hiding, not QNM-S. OPERATOR-OVERRIDE 2026-09-17 armed <code>node_gate</code> / <code>get_is_node_gate</code>, <code>auto_heal</code>, <code>neighbor_heal</code>, <code>network</code>, and <code>anonymity_network</code> (mode flag only). Public disable of suite-presence is refused. Full node process is local <code>qnm-node/</code>. Anon-broadcast is that process's sibling loopback only — never a publish path. <code>azieleliab.com</code> hosts published software/runtime only.</li>
+      <li>The suite QNM surface is <code>QNM-BUILD-1.0</code> rollup (live/locked/isolated) plus read-only suite-presence ON by default. It is <em>not</em> a login mesh, not login-recovery, not an IP panel, not AnonBroadcast as a Softwares-tab product, not an upload proxy, not origin-hiding, not QNM-S. OPERATOR-OVERRIDE 2026-09-17 armed <code>node_gate</code> / <code>get_is_node_gate</code>, <code>auto_heal</code>, <code>neighbor_heal</code>, <code>network</code>, and <code>anonymity_network</code> (mode flag only). Public disable of suite-presence is refused. Full node process is local <code>qnm-node/</code>. Anon-broadcast is a local sibling of that process — never a publish path, and not a loopback fence of the mesh. Isolation is single-node security-awareness. Phoenix is a local reboot loop. <code>azieleliab.com</code> hosts published software/runtime only.</li>
       <li>AZBrowser is the Lamb Lens ethical research browser (AZB-1.0). It is <em>not</em> Chromium, not a Tor exit, not an unrestricted proxy, and not surveillance. Lamb Lens cites; refuses harmful harvest; never invents visit results. Reached only via FragGate. AZNet is separate software (same FragGate door) — pairing is order/token only, not a shared Phase-1 UI.</li>
       <li>AZNet is a silent verification side-net (AZN-WP-0.1). It is <em>not</em> a payload host, not a CDN, not analytics, not an integrity-repair bypass. Own Worker / own UI. Garden / stamp / memorial ops require AZBrowser pairing token AND flag (functional order only). Hosted never stores payloads.</li>
       <li>AZHub is a Blank Key / neutral spatial container (AIH-WP-1.0). It does <em>not</em> interpret meaning, does <em>not</em> auto-unlock, and does <em>not</em> fire completeness events. AZInterface is a <em>separate</em> product.</li>

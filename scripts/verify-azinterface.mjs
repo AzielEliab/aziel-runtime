@@ -67,6 +67,7 @@ const expectedLive = [
   "integrity_check",
   "witness_list",
   "page_cycle_status",
+  "mesh_radios",
 ];
 for (const op of expectedLive) {
   assert.ok(live.includes(op), `LIVE_OPS.azinterface has ${op}`);
