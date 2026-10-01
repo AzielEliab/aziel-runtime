@@ -13,6 +13,7 @@
  */
 
 import { assign } from "./engines/miragegrid/engine.js";
+import { CAP7_PUBLIC_WORKER_LIVE } from "./engines/miragegrid/cap7-public.js";
 import {
   AUTHOR_SITE_ORIGIN,
   GODLOCK_UK_ORIGIN,
@@ -95,7 +96,7 @@ export const CAP7_SHIFT = Object.freeze({
   miragegrid_vpn_hop: false,
   radio_phy: false,
   note:
-    "Cap-7 .az duplications shift with StaticLock (catalog product StaticClock, slug staticclock, not a second Softwares product) and MirageGrid cloak, paired with AZVPN. The Cap-7 factory is not a public ICANN registrar. Four hub mirrors and three decoys are not per-node .aziel slots. MirageGrid vpn-hop, hop, tunnel, and mesh stay refuse. geo-target, session-stick, and egress-rotate are LIVE on the Cap-7 plane and are not a public egress IP. radio_phy stays false.",
+    `Cap-7 .az duplications shift with StaticLock (catalog product StaticClock, slug staticclock, not a second Softwares product) and MirageGrid cloak, paired with AZVPN. The Cap-7 factory is not a public ICANN registrar. Four hub mirrors and three decoys are not per-node .aziel slots. MirageGrid vpn-hop, hop, tunnel, and mesh stay refuse. geo-target, session-stick, and egress-rotate are LIVE on the Cap-7 plane (region label, sticky mesh node and factory land, land rotate among 7 sites) and are not a public egress IP, not a residential IP, and not AZVPN. ${CAP7_PUBLIC_WORKER_LIVE} radio_phy stays false.`,
 });
 
 export const AZ_DOMAIN_POOL = Object.freeze([

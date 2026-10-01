@@ -140,7 +140,7 @@ export const VERSIONS = {
   zsolver: "0.2.0",
   azos: "0.3.0",
   glossafilter: "0.1.0",
-  miragegrid: "0.2.0",
+  miragegrid: "0.3.0",
   staticclock: "0.2.0",
   chronolock: "0.1.0",
   postking: "0.1.0",

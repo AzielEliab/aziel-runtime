@@ -20,6 +20,7 @@ import {
   HOME_ORIGIN_SHELF,
   ORIGIN_CUTOVER,
 } from "../origin-cutover.js";
+import { CAP7_PUBLIC_WORKER_LIVE, CAP7_WORKER_FLAGS } from "../engines/miragegrid/cap7-public.js";
 
 export const AZBROWSER_GITHUB = "https://github.com/AzielEliab/azbrowser";
 export const AZNET_GITHUB = "https://github.com/AzielEliab/aznet";
@@ -37,9 +38,15 @@ export function l2Cap7Stamp() {
     factory_exec: true,
     factory_status: "live",
     plane: "cap7",
-    worker_live: false,
-    hosted: false,
-    miragegrid_pr_landed: false,
+    worker_live: CAP7_WORKER_FLAGS.worker_live,
+    hosted: CAP7_WORKER_FLAGS.hosted,
+    hosted_vpn: CAP7_WORKER_FLAGS.hosted_vpn,
+    miragegrid_pr_landed: CAP7_WORKER_FLAGS.miragegrid_pr_landed,
+    worker_egress: CAP7_WORKER_FLAGS.worker_egress,
+    worker_planned: CAP7_WORKER_FLAGS.worker_planned,
+    residential: CAP7_WORKER_FLAGS.residential,
+    cf_geo_exit_pool: CAP7_WORKER_FLAGS.cf_geo_exit_pool,
+    sticky_public_ip: CAP7_WORKER_FLAGS.sticky_public_ip,
     public_egress_ip: false,
     packet_egress: false,
     public_icann: CAP7_PUBLIC_ICANN,
@@ -53,7 +60,7 @@ export function l2Cap7Stamp() {
       status: "live",
       path: "/v1/mesh/az-generator",
       code: "CAP7-CITE",
-      note: "Factory duplication cite stays LIVE. Factory exec is a separate stamp (geo-target, session-stick, egress-rotate). Not a public resolver. Not a public egress IP.",
+      note: `Factory duplication cite stays LIVE. Factory exec is a separate stamp (geo-target, session-stick, egress-rotate). ${CAP7_PUBLIC_WORKER_LIVE} Not a public resolver. Not a public egress IP. Not a residential IP. Not AZVPN.`,
     },
     refuse: {
       icann: { ok: false, code: icann.code, public_icann: icann.public_icann === true ? true : false },

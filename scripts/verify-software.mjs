@@ -3,6 +3,9 @@
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
 import assert from "node:assert/strict";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { PRODUCTS } from "../src/index.js";
 import { RUNTIME_VERSION, runtimeManifest } from "../src/runtime-api.js";
 import { BUILD_GIT_SHA } from "../src/build-meta.js";
@@ -492,13 +495,21 @@ assert.equal(mgCard.slug, "miragegrid");
 assert.match(mgCard.one_line, /short-lived session node/);
 assert.match(mgCard.one_line, /Cap-7 mesh-name metadata/);
 assert.match(mgCard.one_line, /not a public ICANN registrar/);
-assert.match(mgCard.one_line, /Cap-7 geo, sticky session, and land rotation are LIVE on the Cap-7 plane, not a public egress IP\./);
+assert.equal(mgCard.version, "0.3.0");
+assert.match(mgCard.one_line, /Cap-7 geo, sticky session, and land rotation are LIVE on the Cap-7 plane, not a public egress IP, not a residential IP, and not AZVPN\./);
 assert.doesNotMatch(mgCard.one_line, /stub refuse today|planned; stub refuse/);
 assert.match(mgCard.description, /not a public ICANN registrar/);
 assert.match(mgCard.description, /LIVE on the Cap-7 plane/);
+assert.match(mgCard.description, /region label, sticky mesh node and factory land, land rotate among 7 sites/);
 assert.match(mgCard.description, /not a public egress IP/);
-assert.match(mgCard.description, /AZVPN/);
-assert.match(mgCard.description, /public MirageGrid Worker stays unclaimed/);
+assert.match(mgCard.description, /not a residential IP/);
+assert.match(mgCard.description, /not a Cloudflare geo-exit pool/);
+assert.match(mgCard.description, /not a sticky public IP/);
+assert.match(mgCard.description, /not packet forwarding/);
+assert.match(mgCard.description, /not AZVPN/);
+assert.match(mgCard.description, /public MirageGrid Worker Cap-7 control plane is LIVE/);
+assert.match(mgCard.description, /https:\/\/miragegrid\.vibelock\.workers\.dev\/v1\/egress/);
+assert.match(mgCard.description, /https:\/\/miragegrid\.vibelock\.workers\.dev\/v1\/planned/);
 assert.doesNotMatch(`${mgCard.one_line} ${mgCard.description}`, /node-mesh VPN|anonymity network|packet mesh|SOCKS5|hosted VPN/i);
 assert.deepEqual(mgCard.public_door_ops, [
   "assign",
@@ -538,9 +549,15 @@ assert.equal(mgHealthBody.cap7_plane.status, "live");
 assert.equal(mgHealthBody.cap7_plane.public_egress_ip, false);
 assert.equal(mgHealthBody.cap7_plane.public_icann, false);
 assert.equal(mgHealthBody.cap7_plane.azvpn, false);
-assert.equal(mgHealthBody.cap7_plane.worker_live, false);
-assert.equal(mgHealthBody.cap7_plane.hosted, false);
-assert.equal(mgHealthBody.cap7_plane.miragegrid_pr_landed, false);
+assert.equal(mgHealthBody.cap7_plane.worker_live, true);
+assert.equal(mgHealthBody.cap7_plane.hosted, true);
+assert.equal(mgHealthBody.cap7_plane.hosted_vpn, false);
+assert.equal(mgHealthBody.cap7_plane.residential, false);
+assert.equal(mgHealthBody.cap7_plane.cf_geo_exit_pool, false);
+assert.equal(mgHealthBody.cap7_plane.sticky_public_ip, false);
+assert.equal(mgHealthBody.cap7_plane.miragegrid_pr_landed, true);
+assert.match(mgHealthBody.cap7_plane.worker_egress, /\/v1\/egress$/);
+assert.match(mgHealthBody.cap7_plane.worker_planned, /\/v1\/planned$/);
 assert.equal(mgHealthBody.cap7_plane.factory_exec, true);
 assert.equal(mgHealthBody.hub_mirror_count, 4);
 assert.equal(mgHealthBody.decoy_count, 3);
@@ -551,6 +568,8 @@ const mgSkillBody = JSON.parse(mgSkill.responseText);
 assert.match(mgSkillBody.markdown, /not a public ICANN registrar/);
 assert.match(mgSkillBody.markdown, /geo-target, session-stick, and egress-rotate are LIVE on the Cap-7 plane/);
 assert.match(mgSkillBody.markdown, /not a public egress IP/);
+assert.match(mgSkillBody.markdown, /public MirageGrid Worker Cap-7 control plane is LIVE/);
+assert.match(mgSkillBody.markdown, /not a residential IP/);
 assert.match(mgSkillBody.markdown, /FG-STUB/);
 assert.match(mgSkillBody.markdown, /not the QNM suite mesh/);
 assert.match(mgSkillBody.markdown, /Aziel Eliab only/);
@@ -579,9 +598,11 @@ assert.equal(geo.azvpn, false);
 assert.equal(geo.geo_applied, false);
 assert.equal(geo.packet_forwarding, false);
 assert.equal(geo.hosted_vpn, false);
-assert.equal(geo.worker_live, false);
-assert.equal(geo.hosted, false);
-assert.equal(geo.miragegrid_pr_landed, false);
+assert.equal(geo.worker_live, true);
+assert.equal(geo.hosted, true);
+assert.equal(geo.hosted_vpn, false);
+assert.equal(geo.residential, false);
+assert.equal(geo.miragegrid_pr_landed, true);
 const geoIp = JSON.parse(
   (await executeLocal({ slug: "miragegrid", op: "geo-target", payload: { region: "203.0.113.8" }, ranIn: "aziel-runtime" })).responseText,
 );
@@ -627,6 +648,9 @@ assert.equal(dryHop.envelope.code, "FG-STUB");
 const runtimeSkill = await (await get("/v1/skill")).text();
 assert.match(runtimeSkill, /not a public ICANN registrar/);
 assert.match(runtimeSkill, /geo-target, session-stick, egress-rotate/);
+assert.match(runtimeSkill, /public MirageGrid Worker Cap-7 control plane is LIVE/);
+assert.match(runtimeSkill, /not a residential IP/);
+assert.match(runtimeSkill, /not AZVPN/);
 assert.match(azchatCard.one_line, /mesh hop starts off/);
 assert.equal(azchatCard.mesh_default, "off");
 assert.equal(azchatCard.public_door, true);
@@ -779,6 +803,8 @@ assert.match(llms, /not a public ICANN registrar/);
 assert.match(llms, /geo-target, session-stick, egress-rotate/);
 assert.match(llms, /LIVE on the Cap-7 plane/);
 assert.match(llms, /not a public egress IP/);
+assert.match(llms, /public MirageGrid Worker Cap-7 control plane is LIVE/);
+assert.match(llms, /miragegrid\.vibelock\.workers\.dev\/v1\/egress/);
 assert.doesNotMatch(llms, /stub refuse today/);
 assert.doesNotMatch(llms, /true node-mesh VPN|userspace SOCKS5/);
 const cite = await (await get("/cite.json")).json();
@@ -849,6 +875,34 @@ for (const payload of [{}, { text: "" }, { text: "   " }, { text: null }]) {
   assert.equal(refusedBody.ok, false);
   assert.ok(refusedBody.receipt == null, "empty/null GodLock submit mints no receipt");
 }
+
+const staleNeedles = [
+  ["pull request", "28"].join(" "),
+  ["unclaimed", "until"].join(" "),
+  ["PR", "28 lands"].join(" "),
+];
+const scanRoot = fileURLToPath(new URL("..", import.meta.url));
+const scanSkip = new Set(["node_modules", ".git", "coverage", "dist"]);
+const staleHits = [];
+function scanStale(dir) {
+  for (const name of readdirSync(dir)) {
+    if (scanSkip.has(name)) continue;
+    const path = join(dir, name);
+    const info = statSync(path);
+    if (info.isDirectory()) {
+      scanStale(path);
+      continue;
+    }
+    if (!/\.(js|mjs|md|json|txt|html|toml)$/.test(name)) continue;
+    const text = readFileSync(path, "utf8");
+    for (const needle of staleNeedles) {
+      if (text.includes(needle)) staleHits.push(`${path} :: ${needle}`);
+    }
+  }
+}
+scanStale(scanRoot);
+assert.deepEqual(staleHits, [], `stale MirageGrid unclaimed claim\n${staleHits.join("\n")}`);
+assert.equal(body.count, 42);
 
 console.log(
   `ok software catalog: ${body.software.length} entries, sort ${SOFTWARE_SORT_LAW}, update check foldlock 0.7.0→0.8.0`,
