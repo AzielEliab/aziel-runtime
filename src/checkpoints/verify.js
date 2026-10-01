@@ -1,6 +1,8 @@
 /**
  * Verify checkpoint signatures, continuity, sequence, and Merkle inclusion.
- * A conflicting checkpoint is refused unless a signed fork statement is present.
+ * A conflicting checkpoint is refused unless the already accepted roster
+ * signs a fork statement. The incoming roster cannot authorize itself.
+ * A continuation that changes the signer set needs that same prior quorum.
  * Author: Aziel Eliab only.
  */
 
@@ -92,21 +94,34 @@ export async function forkStatement(opts) {
   });
 }
 
-async function forkAuthorized(checkpoint, fork, fromHash) {
+function sameRoster(prior, checkpoint) {
+  return (
+    JSON.stringify(prior.signer_set) === JSON.stringify(checkpoint.signer_set) &&
+    prior.threshold === checkpoint.threshold
+  );
+}
+
+/**
+ * Fork and roster-change authorization counts signatures from the accepted
+ * tip's roster. A checkpoint does not get to lower its own threshold and
+ * then approve the replacement.
+ */
+async function forkAuthorized(prior, incoming, fork) {
+  if (!prior || !Array.isArray(prior.signer_set) || !Number.isInteger(prior.threshold)) return false;
   if (!fork || !fork.reason || !Array.isArray(fork.authorizations)) return false;
   const statement = await forkStatement({
-    network_id: checkpoint.network_id,
-    chain_id: checkpoint.chain_id,
-    from_hash: fromHash,
-    to_hash: checkpoint.checkpoint_hash,
+    network_id: incoming.network_id,
+    chain_id: incoming.chain_id,
+    from_hash: prior.checkpoint_hash,
+    to_hash: incoming.checkpoint_hash,
     reason: fork.reason,
   });
   const seen = new Set();
   for (const auth of fork.authorizations) {
-    if (!auth || !checkpoint.signer_set.includes(auth.public_key) || seen.has(auth.public_key)) continue;
+    if (!auth || !prior.signer_set.includes(auth.public_key) || seen.has(auth.public_key)) continue;
     if (await verifyBytes(auth.public_key, utf8(statement), auth.sig)) seen.add(auth.public_key);
   }
-  return seen.size >= checkpoint.threshold;
+  return seen.size >= prior.threshold;
 }
 
 export async function acceptCheckpoint(log, checkpoint, records, opts = {}) {
@@ -120,13 +135,41 @@ export async function acceptCheckpoint(log, checkpoint, records, opts = {}) {
   if (prior && checkpoint.checkpoint_hash === prior.checkpoint_hash) {
     return { ok: true, checkpoint_hash: checkpoint.checkpoint_hash, replayed: true };
   }
+  const revoked = new Set((opts.revokedPublicKeys || []).map(String));
+  if ((checkpoint.signer_set || []).some((key) => revoked.has(key))) {
+    const event = {
+      code: "AZP-THRESHOLD",
+      checkpoint_hash: checkpoint.checkpoint_hash,
+      prior_hash: prior ? prior.checkpoint_hash : "",
+      message: "A revoked signer is in the roster. New checkpoint refused. Accepted history is unchanged.",
+    };
+    log.audit.push(event);
+    return fail("AZP-THRESHOLD", event.message, { audit: event });
+  }
   if (prior) {
     const continues = checkpoint.start_seq === prior.end_seq + 1 && records[0].previous_hash === prior.end_hash;
-    const same = checkpoint.checkpoint_hash === prior.checkpoint_hash;
-    if (!continues && !same) {
+    if (continues && !sameRoster(prior, checkpoint)) {
+      const allowed = await forkAuthorized(prior, checkpoint, opts.fork);
+      if (!allowed) {
+        const event = {
+          code: "AZP-THRESHOLD",
+          checkpoint_hash: checkpoint.checkpoint_hash,
+          prior_hash: prior.checkpoint_hash,
+          message: "Signer roster changed without a quorum of the accepted roster. One signer cannot force accept.",
+        };
+        log.audit.push(event);
+        return fail("AZP-THRESHOLD", event.message, { audit: event });
+      }
+      log.audit.push({
+        code: "AZP-FORK",
+        checkpoint_hash: checkpoint.checkpoint_hash,
+        prior_hash: prior.checkpoint_hash,
+        reason: opts.fork.reason,
+      });
+    } else if (!continues) {
       const conflict = checkpoint.end_seq <= prior.end_seq || overlaps(checkpoint, prior) || records[0].previous_hash !== prior.end_hash;
       if (conflict) {
-        const allowed = await forkAuthorized(checkpoint, opts.fork, prior.checkpoint_hash);
+        const allowed = await forkAuthorized(prior, checkpoint, opts.fork);
         if (!allowed) {
           const event = {
             code: "AZP-ROLLBACK",

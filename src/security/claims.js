@@ -33,4 +33,48 @@ export const CLAIM_LIMITS = Object.freeze({
   sandbox_live: false,
   live_multi_provider: false,
   plane_b_framagit: "SLOT",
+  encryption_addressed_is_anonymity: false,
 });
+
+/**
+ * Observer-visible classes that encryption does not remove.
+ * necessary false: the protocol does not need to publish these as fields.
+ * A network observer can still infer them. This is not an anonymity claim.
+ */
+export const OBSERVER_LEAKAGE = Object.freeze([
+  Object.freeze({
+    field: "timing",
+    observer: "network",
+    reveals: "send time and inter-message gaps",
+    necessary: false,
+    class: "leakage",
+  }),
+  Object.freeze({
+    field: "ip_connection_frequency",
+    observer: "network",
+    reveals: "source address and how often a node connects",
+    necessary: false,
+    class: "leakage",
+  }),
+  Object.freeze({
+    field: "message_size",
+    observer: "relay",
+    reveals: "ciphertext and envelope byte length",
+    necessary: false,
+    class: "leakage",
+  }),
+  Object.freeze({
+    field: "relay_relationships",
+    observer: "relay",
+    reveals: "which relay carried which recipient hint",
+    necessary: false,
+    class: "leakage",
+  }),
+  Object.freeze({
+    field: "node_uptime",
+    observer: "network",
+    reveals: "when a node is reachable",
+    necessary: false,
+    class: "leakage",
+  }),
+]);

@@ -77,19 +77,22 @@ const withoutNode = await recoverFromReplicas(nodeLost, { minReplicas: 2 });
 assert.equal(withoutNode.ok, true, withoutNode.message);
 
 const report = [
-  { id: "kill-primary-provider", mode: "FIXTURE", ok: recovered.ok, note: "Provider A removed from the fixture set. B/C/D/E still verify." },
+  { id: "kill-primary-provider", mode: "FIXTURE", ok: recovered.ok, note: "In-memory provider A removed. The production Cloudflare Worker is already deployed. This script does not contact it and does not destroy it." },
   { id: "remove-primary-dns", mode: "FIXTURE", ok: true, note: "Directory drop is a string filter. No DNS record was changed." },
   { id: "remove-github-repository", mode: "FIXTURE", ok: true, note: "Recovery reads replica objects in memory. It does not fetch GitHub." },
   { id: "lose-one-relay", mode: "FIXTURE", ok: viaB.ok, note: "Two local relays. Clearing A leaves B." },
-  { id: "lose-one-node", mode: "FIXTURE", ok: withoutNode.ok, note: "Node D removed from the fixture set." },
-  { id: "live-vps", mode: "SKIP", ok: false, note: "No second provider in CI. Operator work: an ordinary VPS." },
-  { id: "plane-b-framagit", mode: "SKIP", ok: false, note: "Plane B Framagit URL is null (CNS-ZENODO / FRAMAGIT checklist). Operator-only. Not LIVE." },
-  { id: "live-multi-provider", mode: "SKIP", ok: false, note: "Independent cloud providers are not provisioned here." },
+  { id: "lose-one-node", mode: "FIXTURE", ok: withoutNode.ok, note: "In-memory node D removed. This is not a self-hosted machine." },
+  { id: "live-vps", mode: "SKIP", ok: false, note: "OPERATOR node B. No independent VPS is provisioned. SKIP until that host exists." },
+  { id: "node-c-separate-provider", mode: "SKIP", ok: false, note: "OPERATOR node C. A separate cloud provider is not provisioned." },
+  { id: "node-d-self-hosted", mode: "SKIP", ok: false, note: "OPERATOR node D. No self-hosted node is provisioned. The lose-one-node row is a fixture." },
+  { id: "archive-e-cold", mode: "SLOT", ok: false, note: "Node E offline copy. Codeberg and archive.org tip-pack hash PASS is an operator record, not a fetch in this script. Plane B stays SLOT until a real Framagit URL. The URL is null. Not LIVE." },
+  { id: "plane-b-framagit", mode: "SKIP", ok: false, note: "Plane B Framagit URL is null. Do not invent a Framagit, VPS, or Zenodo URL. Not LIVE." },
+  { id: "live-multi-provider", mode: "SKIP", ok: false, note: "Independent cloud providers are not provisioned here. live_multi_provider stays false." },
 ];
 for (const row of report) {
-  assert.ok(row.mode === "FIXTURE" || row.mode === "SKIP");
+  assert.ok(row.mode === "FIXTURE" || row.mode === "SKIP" || row.mode === "SLOT", row.id);
   if (row.mode === "FIXTURE") assert.equal(row.ok, true, row.id);
-  if (row.mode === "SKIP") assert.equal(row.ok, false);
+  if (row.mode === "SKIP" || row.mode === "SLOT") assert.equal(row.ok, false, row.id);
 }
 assert.equal(report.some((row) => row.mode === "LIVE"), false);
 

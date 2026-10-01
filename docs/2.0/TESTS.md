@@ -59,7 +59,7 @@ Fixture: [`fixtures/session-receipt-chain.json`](../../fixtures/session-receipt-
 
 ## AZP-NS-1.0 gates
 
-`scripts/verify-keystore.mjs` (A), `scripts/verify-envelope-v2.mjs` and `scripts/verify-replay.mjs` (B), `scripts/verify-relay.mjs` (C), `scripts/verify-checkpoint.mjs` (D), `scripts/verify-replication.mjs`, `scripts/verify-provider-loss.mjs`, and `scripts/verify-disaster-recovery.mjs` (E, fixture or SKIP), `scripts/verify-privacy-metadata.mjs` (F and G). Paper: [`docs/designs/AZP-NS-1.0.md`](../designs/AZP-NS-1.0.md). These scripts do not destroy a live provider. They do not change DNS.
+`scripts/verify-keystore.mjs` (A), `scripts/verify-envelope-v2.mjs` and `scripts/verify-replay.mjs` (B), `scripts/verify-relay.mjs` (C), `scripts/verify-checkpoint.mjs` and `scripts/verify-checkpoint-quorum.mjs` (D), `scripts/verify-replication.mjs`, `scripts/verify-provider-loss.mjs`, and `scripts/verify-disaster-recovery.mjs` (E, fixture, SKIP, or SLOT), `scripts/verify-transport-adversarial.mjs` (B and C, live destroy SKIP), `scripts/verify-key-compromise.mjs` (A), `scripts/verify-privacy-metadata.mjs` (F and G). Paper: [`docs/designs/AZP-NS-1.0.md`](../designs/AZP-NS-1.0.md). Reproduction: [`docs/designs/AZP-NS-REPRO-1.0.md`](../designs/AZP-NS-REPRO-1.0.md) and `npm run test:azp-ns`. These scripts do not destroy a live provider. They do not change DNS. `live-vps`, `plane-b-framagit`, `live-multi-provider`, and `destroy-live-provider` stay SKIP or SLOT.
 
 ## Other suites
 
