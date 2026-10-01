@@ -76,9 +76,13 @@
  * Frame as QNM rollup + read-only suite presence — not account mesh.
  *
  * Full node process is local `qnm-node/` (boot/chain/apg/bearers/outbox/
- * phoenix/score/memorial/tethers). Anon-broadcast is a sibling loopback
- * module of that local process only. Packet-transfer coding design is
- * QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; Worker cites only).
+ * phoenix/score/memorial/tethers). Anon-broadcast is a local sibling of
+ * that process and is never a publish path. Isolation is single-node
+ * security-awareness (a bad peer or self), not a fence of the mesh to
+ * 127.0.0.1. Phoenix is a local reboot loop (wait / re-seal, phoenix_lock),
+ * not public hostname resurrection. Loopback is an optional L1 peer bearer.
+ * Packet-transfer coding design is QNS-CD-1.0 (photon QNS1 1.3 on local
+ * qnsd; Worker cites only).
  *
  * Not a Softwares-tab product. Not AZMail's product-local ring.
  * Do not invent arming / wipe / VPN-hop internals.
@@ -212,8 +216,24 @@ export const QNM_LOCAL_NODE =
 
 export const QNM_S_NOTE = "Views, MCP, and downloads do not enter QNM-S.";
 
+export const MESH_SECURITY_MODEL =
+  "Single-node security-awareness isolation: a node isolates a bad peer or itself. That does not fence the whole mesh to 127.0.0.1. Phoenix is a local reboot loop (wait / re-seal, phoenix_lock). It does not resurrect a public hostname. Loopback is an optional L1 peer bearer for a local node, not the mesh security model.";
+
 export const ANON_BROADCAST_NOTE =
-  "Anon-broadcast is a sibling loopback module of local qnm-node/ only (text→TTS→desk MP4→metadata-culled file + SHA-256). Style tool. Never a publish path. Not an upload proxy. Not origin-hiding. Operator keeps the file. Not a Softwares-tab product. Not a QNM publish channel.";
+  "Anon-broadcast is a local sibling of qnm-node/ (text→TTS→desk MP4→metadata-culled file + SHA-256). Style tool. Never a publish path. Not an upload proxy. Not origin-hiding. Operator keeps the file. Not a Softwares-tab product. Not a QNM publish channel. Not a loopback fence of the mesh.";
+
+export function meshSecurityCite() {
+  return {
+    model: "single-node-security-awareness",
+    isolates: "bad-peer-or-self",
+    mesh_fenced_to_loopback: false,
+    phoenix: "local-wait-reseal",
+    phoenix_lock: true,
+    public_hostname_resurrection: false,
+    loopback_bearer: "L1-optional",
+    note: MESH_SECURITY_MODEL,
+  };
+}
 
 export const MESH_LIMITATION =
   "THIS IS: QNM-BUILD-1.0 suite rollup on aziel-runtime — companion to AIH-WP-1.1. Packet-transfer coding design is QNS-CD-1.0 (companion to QNM-BUILD-1.0 / AIH-WP-1.3; photon QNS1 1.3 on local qnsd; Worker cites only). Public surface is live/locked/isolated counts plus read-only suite-presence ON by default (bearer suite-presence). GET /v1/mesh never enables radios beyond that read-only presence. POST /v1/mesh/disable refuses MESH-DISABLE-REFUSED — public disable of suite-presence is refused. While LIVE, cron or request-path fans out join/heartbeat for live Softwares product Workers (node_id {slug}-worker; no '|'; TTL 5 min). Product Workers proxy /v1/mesh/* via AZIEL_RUNTIME. Phoenix is wait/re-seal after tamper or isolation, not public hostname resurrection. Sites pulled (token revoked, Worker dropped, DNS killed) die with the pull — public rollup on that hostname is down; local node may keep verifying/appending; mesh does not climb back onto the public hostname by itself. A process supervisor restarting cloudflared is operator kit, not this contract. Split the wires: 0.5–1s tick is presence + tip hash only (fixed-size; no body, no diff, no file). Payload is receiver-pull, never a sender fan-out. Update is a proof, not a timer. 777s is dwell after a valid cite, not wait-then-take. Clock desync is not a yes. Ambiguous tip is isolate, not merge. Equivocation ends that peer. Quorum cannot outvote a broken hash. Emit last, locally. Neighbors do not phoenix because a neighbor phoenix’d. Split brain does not auto-splice. Heartbeat loss is not isolate-by-timer and does not apply last packet. The 1s loop and the 777s gate never share a socket. " +
@@ -273,6 +293,12 @@ export const MESH_CANONICAL_OPS = Object.freeze([
   "relay-name-read",
   "relay-witness",
   "relay-witness-read",
+  "name_claim",
+  "name_read",
+  "name_resolve",
+  "slot_read",
+  "witness",
+  "witness_read",
   "relay-equivocation",
   "relay-equivocation-read",
   "relay-vouch",
@@ -326,6 +352,12 @@ export const MESH_OP_ALIASES = Object.freeze({
   relay_refs: "relay-refs",
   relay_name: "relay-name",
   relay_witness: "relay-witness",
+  "name-claim": "name_claim",
+  "name-read": "name_read",
+  "name-resolve": "name_resolve",
+  "slot-read": "slot_read",
+  witness_claim: "witness",
+  "witness-read": "witness_read",
   relay_equivocation: "relay-equivocation",
   relay_vouch: "relay-vouch",
   relay_advisory: "relay-advisory",
@@ -578,6 +610,7 @@ export function meshHint(path = "/v1/mesh") {
     qnm_s: false,
     suite_presence: SUITE_PRESENCE,
     get_never_enables: true,
+    security: meshSecurityCite(),
     fanout: "cron-or-request-path",
     live_nodes_plane: LIVE_NODES_PLANE,
     nodes_plane: NODES_PLANE,
@@ -1397,6 +1430,7 @@ function statusFieldsSync(state, usesSignal = null, env) {
       "AZMail mesh_* stays product-local (anonymous mail ring). This surface is QNM rollup + read-only suite-presence, not that ring and not an account mesh.",
     suite_presence: SUITE_PRESENCE,
     get_never_enables: true,
+    security: meshSecurityCite(),
     peer_bearers: peerBearerCite(),
     survival_methods: survivalMethods(),
     aznet_layers: aznetLayerCite(),
@@ -1611,7 +1645,7 @@ Phoenix is wait / re-seal after tamper or isolation. It is not “bring the .uk 
 
 Public **nodes** / \`rollup.nodes\` = \`human_mesh_users\` + cited \`human_uses\` (peek \`USES\` total; never a full \`/v1/uses\` walk). Public **live_nodes** / \`rollup.mesh\` = \`human_mesh_users\` + \`site_live_viewers\`. \`rollup.live\` is not published — it used to equal roster presence=live and, after fan-out, the \`{slug}-worker\` count. Roster presence=live is \`rollup.all.live\`. Softwares presence=live is \`rollup.software.live\`. Do not paint either as Live Nodes. Locked / isolated roster buckets stay on \`rollup.locked\` / \`rollup.isolated\` (same numbers as \`rollup.all\`). Downloaded instances stay \`instance_nodes\`. No average-of-nodes leaderboard. Views / MCP / downloads do not enter QNM-S. GET never pulls hub /count.
 
-Full node process is local \`qnm-node/\` (boot / chain / apg / bearers / outbox / phoenix / score / memorial / tethers). Packet-transfer coding design is **QNS-CD-1.0** (photon QNS1 1.3 on local \`qnsd\`; companion to QNM-BUILD-1.0 / AIH-WP-1.3). This Worker cites only — \`GET /v1/qns\`. It does not proxy local via emit. **Channel plane (${CHANNEL_PLANE_SPEC}):** operator-armed wifi / bluetooth / rf / photon cites are ON. Live OS/hardware bearers run on local qnm-node / qnsd. ${CHANNEL_PLANE_NOTE} Parent will roll that package. Anon-broadcast is a sibling loopback module of that local process only — never a publish path.
+Full node process is local \`qnm-node/\` (boot / chain / apg / bearers / outbox / phoenix / score / memorial / tethers). Packet-transfer coding design is **QNS-CD-1.0** (photon QNS1 1.3 on local \`qnsd\`; companion to QNM-BUILD-1.0 / AIH-WP-1.3). This Worker cites only — \`GET /v1/qns\`. It does not proxy local via emit. **Channel plane (${CHANNEL_PLANE_SPEC}):** operator-armed wifi / bluetooth / rf / photon cites are ON. Live OS/hardware bearers run on local qnm-node / qnsd. ${CHANNEL_PLANE_NOTE} Parent will roll that package. Anon-broadcast is a local sibling of that process — never a publish path. ${MESH_SECURITY_MODEL}
 
 HTTP: \`GET /v1/mesh\` · \`GET /v1/mesh/status\` · \`POST /v1/mesh/enable\` (optional extra bearer) · \`POST /v1/mesh/disable\` (refused) · \`POST /v1/mesh/join|heartbeat|leave\` · \`GET /v1/mesh/nodes\` · \`POST /v1/mesh/site-presence\` (hub human-page fleet heartbeat) · \`POST /v1/mesh/broadcast\` (hash receipt only; not a publish path) · \`GET /v1/mesh/sot\` · \`GET /v1/mesh/outlets\` · \`POST /v1/mesh/sot-sync\` (SOT-SYNC-1.0 pull plane; dry_run then confirm; not a body fan-out; live_body_sync false)
 
@@ -1627,7 +1661,7 @@ ${ANON_BROADCAST_NOTE}
 
 NO-LIE / NO-REWRITE (**NO-LIE-NO-REWRITE-1.0**): receipts that still hash; copies not all on one tunnel; rules simple enough others verify without the author's voice; no rewrite key. The network is never allowed to lie — even to self-preserve, sustain, stay alive, adapt, or prevent death. Companion under **CROSS-NETWORK-SURVIVAL-1.0** (does not replace the machine tip). See \`docs/designs/NO-LIE-NO-REWRITE-1.0.md\`. Rewrite / lie verbs refuse \`MESH-NO-REWRITE\` / \`MESH-NO-LIE\`.
 
-**FED-MESH-1.0: Local-First Edge Mesh.** Raw data, signing keys, and heavy compute stay on the local node. By default the mesh carries signed receipts, state digests, and ref updates. Raw data moves only on an explicit end-to-end encrypted share. The Worker relay never requires plaintext. Each node is a \`#handle\` derived from its own Ed25519 key (11 Crockford characters of SHA-256 of the raw public key). The Worker is one relay. Any qnm-node may run the same relay. Message bodies are X25519 + HKDF-SHA-256 + AES-GCM ciphertext. The relay stores that ciphertext and the routing fields (handles, seq, keys, nonce). Receipt sentences stay public. A signed ref update is handle, ref name, object hash, previous ref hash, sequence, and signature. A signed \`.aziel\` name record is name, owner handle, target (content hash, ref, or node handle), sequence, previous record hash, expiry (\`null\` or a future time), and signature. \`<handle>.aziel\` is self-certifying. A friendly name carries proof-of-work and stays pending until 72 hours and 2 witness handles. The first valid final claim wins, with 3 user .aziel names per handle and 4 reserved hub-mirror slots. Transfer and release are signed by the current owner. The relay stores and serves that index and anchors it with ChainLock and TemporalLock. \`.az\` is normal DNS except the Cap-7 allowlist and the AZ.* hub names, which are cites, not name records. It does not need the object bytes. A small public object cache is capped at 4096 bytes each, 64 objects, and 64KiB, and a hash mismatch is refused. Peers fetch objects by hash. LAN discovery and offline work run on the local node. A later sync of rollups and ref updates is accepted when the chain is valid. A fork is refused. GET \`/v1/mesh/relay\` is the health check and never enables. A new node needs one relay address it already has. A signed bootstrap list on a relay is one source, not the only source. Peers with no public address use a relay. Direct loopback or a configured LAN URL carries the same envelope. Peer bearer modes are relay HTTPS, direct/LAN URL, and loopback. That set is L1 and opt-in. L0 (this Worker, FragGate, the HTTPS relay, Softwares 42, the human UI) stays the default and is not replaced. NAT hole-punch refuses \`FED-MESH-NAT-REFUSE\`. Not public ICANN DNS. Not radio PHY. AZnet does not replace the internet. A node may register with more than one relay when those relays are configured; each relay keeps that handle's own sequence. A failed health check selects the next configured relay. L2–L4 are cites on this surface and do not replace L0. Cap-7 refuse stamps and the AZNet/AZBrowser pair hook stay mesh-only (\`public_icann\` false, no DNS publish). Home-origin and cold shelves stay SLOT (\`doi\` null). Phoenix stays local wait / re-seal. The AZ-OS offline stub reads with no network and uses this L0 relay when one is configured. Softwares UI stays untouched. \`survival_methods\` on GET \`/v1/mesh\` names seven paths. L0 Worker edge is LIVE. L1 multi-relay and direct/LAN are LIVE only when configured. Cap-7, home-origin, and cold shelves stay SLOT (Codeberg and archive.org hash-verify PASS is not LIVE; GitFlic is refused; Zenodo is not LIVE; doi null; no invented CID). Phoenix is local wait / re-seal: no controller hunt and no neighbor vote-to-fix. None of those methods replace L0. Store-and-forward holds ciphertext for 24 hours under a per-handle quota. Tenant tasks and remote execution stay on local nodes. Private keys stay on the node. \`verified_handles\` counts distinct live handles (three keys are three nodes). \`nodes\` and \`live_nodes\` pills stay the suite rollup. \`software_nodes\` and downloads stay separate. Paper: \`docs/designs/FED-MESH-1.0.md\`.
+**FED-MESH-1.0: Local-First Edge Mesh.** Raw data, signing keys, and heavy compute stay on the local node. By default the mesh carries signed receipts, state digests, and ref updates. Raw data moves only on an explicit end-to-end encrypted share. The Worker relay never requires plaintext. Each node is a \`#handle\` derived from its own Ed25519 key (11 Crockford characters of SHA-256 of the raw public key). The Worker is one relay. Any qnm-node may run the same relay. Message bodies are X25519 + HKDF-SHA-256 + AES-GCM ciphertext. The relay stores that ciphertext and the routing fields (handles, seq, keys, nonce). Receipt sentences stay public. A signed ref update is handle, ref name, object hash, previous ref hash, sequence, and signature. A signed \`.aziel\` name record is name, owner handle, target (content hash, ref, or node handle), sequence, previous record hash, expiry (\`null\` or a future time), and signature. \`<handle>.aziel\` is self-certifying. A friendly name carries proof-of-work and stays pending until 72 hours and 2 witness handles. The first valid final claim wins, with 3 user .aziel names per handle and 4 reserved hub-mirror slots. Transfer and release are signed by the current owner. The relay stores and serves that index and anchors it with ChainLock and TemporalLock. \`.az\` is normal DNS except the Cap-7 allowlist and the AZ.* hub names, which are cites, not name records. It does not need the object bytes. A small public object cache is capped at 4096 bytes each, 64 objects, and 64KiB, and a hash mismatch is refused. Peers fetch objects by hash. LAN discovery and offline work run on the local node. A later sync of rollups and ref updates is accepted when the chain is valid. A fork is refused. GET \`/v1/mesh/relay\` is the health check and never enables. A new node needs one relay address it already has. A signed bootstrap list on a relay is one source, not the only source. Peers with no public address use a relay. Direct loopback or a configured LAN URL carries the same envelope. Peer bearer modes are relay HTTPS, direct/LAN URL, and loopback. That set is L1 and opt-in. L0 (this Worker, FragGate, the HTTPS relay, Softwares 42, the human UI) stays the default and is not replaced. NAT hole-punch refuses \`FED-MESH-NAT-REFUSE\`. Not public ICANN DNS. Not radio PHY. AZnet does not replace the internet. A node may register with more than one relay when those relays are configured; each relay keeps that handle's own sequence. A failed health check selects the next configured relay. L2–L4 do not replace L0. Cap-7 factory exec is LIVE on the Cap-7 plane (\`public_icann\` false, no DNS publish, not a public egress IP). The AZNet/AZBrowser pair hook stays mesh-only. Home-origin and cold shelves stay SLOT (\`doi\` null). Phoenix is a local reboot loop. The AZ-OS offline stub reads with no network and uses this L0 relay when one is configured. Softwares stay 42. \`tools/list\` stays 36. Loopback in that L1 set is a peer bearer, not a fence of the mesh. \`survival_methods\` on GET \`/v1/mesh\` names seven paths. L0 Worker edge is LIVE. L1 multi-relay and direct/LAN are LIVE only when configured. \`cap7-mesh-dns\` factory exec is LIVE on the Cap-7 plane (metadata and session land; \`public_icann\` false; not a public egress IP; not AZVPN; not a second internet). Home-origin and cold shelves stay SLOT (Codeberg and archive.org hash-verify PASS is not LIVE; GitFlic is refused; Zenodo is not LIVE; doi null; no invented CID). Phoenix is a local reboot loop (wait / re-seal, phoenix_lock): no controller hunt, no neighbor vote-to-fix, and no public hostname resurrection. None of those methods replace L0. FragGate name door on Softwares \`aznet\` (and \`slug=mesh\`): \`name_claim\`, \`name_read\`, \`name_resolve\`, \`slot_read\`, \`witness\`, \`witness_read\` over the existing relay. Claim and witness write only with \`confirm: true\` and anchor ChainLock. \`tools/list\` stays 36. Radios: read-only suite-presence is ON by default; \`GET /v1/mesh\` never enables (\`get_never_enables\`); \`MESH_RADIOS=off\` forces \`MESH-OFF\`; \`MESH_RADIOS=on\` forces TX on; a missing env follows declared bearers. AZInterface \`mesh_radios\` with \`confirm: true\` calls mesh enable. Must stay off: Cap-7 public egress / residential / CF geo-exit / sticky public IP / packet forward, Cap-7 ICANN, Mirage vpn-hop/hop/tunnel/mesh, AZVPN WireGuard/OpenVPN/L3, AZNet payload_host, and any claim that the mesh name plane replaces the public internet. Store-and-forward holds ciphertext for 24 hours under a per-handle quota. Tenant tasks and remote execution stay on local nodes. Private keys stay on the node. \`verified_handles\` counts distinct live handles (three keys are three nodes). \`nodes\` and \`live_nodes\` pills stay the suite rollup. \`software_nodes\` and downloads stay separate. Paper: \`docs/designs/FED-MESH-1.0.md\`.
 
 Author: Aziel Eliab only.
 `;
@@ -2107,7 +2141,7 @@ export async function meshBroadcast(payload, env) {
   if (!state.enabled) return offRefuse("broadcast", state, env);
   if (isSporeDormant(env, { mesh_enabled: state.enabled })) return dormantRefuse("broadcast", env, { mesh_enabled: state.enabled });
   if (src.publish === true || String(src.mode || "").toLowerCase() === "publish") {
-    return refuse("MESH-NO-PUBLISH", "Anon-broadcast is never a publish path. Local qnm-node/ loopback only.", {
+    return refuse("MESH-NO-PUBLISH", "Anon-broadcast is never a publish path. It stays a local sibling of qnm-node. That is not a loopback fence of the mesh.", {
       op: "broadcast",
       mesh_enabled: true,
       anon_broadcast: ANON_BROADCAST_NOTE,
@@ -2160,6 +2194,124 @@ export async function meshBroadcast(payload, env) {
     anon_broadcast: ANON_BROADCAST_NOTE,
     note: "Local hash receipt only. Never a publish path. File stays on the operator disk.",
   });
+}
+
+const FED_MESH_NAME_OPS = Object.freeze({
+  name_claim: { relay: "relay-name", mutate: true },
+  name_read: { relay: "relay-name-read", mutate: false },
+  name_resolve: { relay: "relay-name-read", mutate: false, resolve: true },
+  slot_read: { relay: "relay-slot-read", mutate: false },
+  witness: { relay: "relay-witness", mutate: true },
+  witness_read: { relay: "relay-witness-read", mutate: false },
+});
+
+const MESH_STAY_OFF_TRUE_KEYS = Object.freeze([
+  "public_egress_ip",
+  "residential",
+  "cf_geo_exit_pool",
+  "sticky_public_ip",
+  "packet_forward",
+  "packet_forwarding",
+  "packet_egress",
+  "hosted_vpn",
+  "vpn_hop",
+  "wireguard",
+  "openvpn",
+  "payload_host",
+  "origin_hiding",
+  "public_icann",
+  "icann_tld_az",
+  "standard_internet_reaches_cap7",
+  "resolves_to_hub",
+  "dns_publish",
+  "register",
+]);
+
+/** True when a caller asks to arm a must-stay-off surface. */
+export function meshStayOffHit(src) {
+  if (!src || typeof src !== "object" || Array.isArray(src)) return null;
+  if (src.not_a_second_internet === false || src.aznet_replaces_internet === true) return "not_a_second_internet";
+  for (const key of MESH_STAY_OFF_TRUE_KEYS) {
+    if (src[key] === true) return key;
+  }
+  return null;
+}
+
+function nameDoorLaw(extra = {}) {
+  return {
+    ...extra,
+    not_a_second_internet: true,
+    aznet_replaces_internet: false,
+    public_icann: false,
+    payload_host: false,
+    icann_register: false,
+    tools_list_count: 36,
+    security: meshSecurityCite(),
+  };
+}
+
+/**
+ * FED-MESH name plane over the existing relay (name / slot / witness).
+ * Claim and witness write only with confirm true. ChainLock is the relay anchor.
+ * The name plane is not ICANN and does not replace the public internet.
+ */
+export async function fedMeshNameDoor(op, payload, env) {
+  const spec = FED_MESH_NAME_OPS[op];
+  if (!spec) {
+    return refuse("MESH-UNKNOWN-OP", `Unknown mesh name op ${JSON.stringify(op || "")}.`, { op: op || null });
+  }
+  const src = payload && typeof payload === "object" && !Array.isArray(payload) ? payload : {};
+  const stayed = meshStayOffHit(src);
+  if (stayed) {
+    return refuse(
+      "MESH-STAY-OFF",
+      "That surface stays off. Cap-7 is not a public egress IP or ICANN registrar. Mirage vpn-hop stays stub. AZNet does not host payloads. The mesh name plane does not replace the public internet.",
+      nameDoorLaw({ op, stayed, mutated: false }),
+    );
+  }
+  if (spec.mutate && src.confirm !== true) {
+    return baseResult(
+      nameDoorLaw({
+        op,
+        relay_op: spec.relay,
+        needs_confirm: true,
+        mutated: false,
+        dry_run: src.dry_run === true,
+        note: "confirm true writes this relay act and anchors ChainLock when the act is valid. GET never enables radios. The mesh name plane is not a second internet.",
+      }),
+    );
+  }
+  const body = { ...src };
+  delete body.confirm;
+  delete body.dry_run;
+  const fed = await runMeshOp(spec.relay, body, env);
+  if (!fed || fed.ok === false) {
+    return { ...fed, ...nameDoorLaw({ op, relay_op: spec.relay, mutated: false }) };
+  }
+  const record = fed.record && typeof fed.record === "object" ? fed.record : null;
+  const resolved = spec.resolve
+    ? {
+        resolved: Boolean(record && record.target != null && record.status !== "released"),
+        name: record ? record.name : null,
+        owner: record ? record.owner : "",
+        target: record ? record.target : null,
+        status: record ? record.status : null,
+        final: record ? record.final === true : false,
+      }
+    : {};
+  return baseResult(
+    nameDoorLaw({
+      ...fed,
+      ...resolved,
+      op,
+      relay_op: spec.relay,
+      mutated: spec.mutate === true,
+      chainlock: fed.chainlock || null,
+      note: spec.mutate
+        ? "Relay act accepted. ChainLock anchors the statement when a real hash exists. Not ICANN. Not a payload host."
+        : "Relay read. Not ICANN. Not a second internet.",
+    }),
+  );
 }
 
 export async function runMeshOp(op, payload, env) {
@@ -2252,6 +2404,7 @@ export async function runMeshOp(op, payload, env) {
   if (resolved === "nodes") return meshNodes(payload, env);
   if (resolved === "site-presence") return meshSitePresence(payload, env);
   if (resolved === "broadcast") return meshBroadcast(payload, env);
+  if (FED_MESH_NAME_OPS[resolved]) return fedMeshNameDoor(resolved, payload, env);
   if (resolved === "outlets" || resolved === "sot-status" || resolved === "sot-sync") {
     const state = await loadState(env);
     const { runSotMeshOp } = await import("./sot-sync.js");

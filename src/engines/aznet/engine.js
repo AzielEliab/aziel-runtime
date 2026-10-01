@@ -752,9 +752,11 @@ AZNet (AZN-WP-0.1) is the silent verification side-net: hash stamps, a custodian
 - HTTP: \`POST /v1/fraggate/call\` with the same CallEnvelope
 - Leftover flat names such as \`aznet_stamp\` still go through FragGate (\`parseTarget\`) — they are not a side door and are not listed on \`tools/list\`
 
-Live ops: \`health\`, \`pair_status\`, \`garden_list\`, \`stamp\`, \`verify_hash\`, \`memorial_list\`, \`memorial_append\` (terminal only), \`receipt_verify\`, \`skill\`.
+Live ops: \`health\`, \`pair_status\`, \`garden_list\`, \`stamp\`, \`verify_hash\`, \`memorial_list\`, \`memorial_append\` (terminal only), \`receipt_verify\`, \`skill\`, \`name_claim\`, \`name_read\`, \`name_resolve\`, \`slot_read\`, \`witness\`, \`witness_read\`.
 
-Garden / mesh ops require **pairing token AND flag with azbrowser** (both required). Missing pair refuses. \`pair_status\` (alias \`pair\`) reports functional-order pair state — order/token only, hash continuity / side-net. **Pairing ≠ tunnel.** Public VPN auto-binds **AZVPN**. Products stay separate.
+Garden ops require **pairing token AND flag with azbrowser** (both required). Missing pair refuses. \`pair_status\` (alias \`pair\`) reports functional-order pair state — order/token only, hash continuity / side-net. **Pairing ≠ tunnel.** Public VPN auto-binds **AZVPN**. Products stay separate.
+
+FED-MESH name ops (\`name_claim\`, \`name_read\`, \`name_resolve\`, \`slot_read\`, \`witness\`, \`witness_read\`) sit on this slug and call the existing relay. Claim and witness write only with \`confirm: true\` and anchor ChainLock. They do not require the garden pair and they do not host payloads. The mesh name plane is not ICANN and does not replace the public internet. \`tools/list\` stays 36. Isolation is single-node security-awareness, not a loopback fence. Phoenix is a local reboot loop.
 
 **Never hosts payloads.** payload_host / serve_content_for_peer / analytics / ranking / repair_integrity_bypass / interface / lumen / hub stay **stub**.
 

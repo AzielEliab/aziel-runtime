@@ -67,6 +67,12 @@ const expectedLive = [
   "memorial_list",
   "memorial_append",
   "receipt_verify",
+  "name_claim",
+  "name_read",
+  "name_resolve",
+  "slot_read",
+  "witness",
+  "witness_read",
   "skill",
 ];
 for (const op of expectedLive) {

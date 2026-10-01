@@ -632,7 +632,7 @@ export function runtimeHelperTools() {
         action: "Register the SHA-256 of a local file as a hash receipt — never a publish or upload path",
         when: "the operator already holds a local file and wants only its hash recorded",
         notFor: "uploading bytes, publishing video, sending mail, or joining a mesh node",
-        instead: "local qnm-node/ anon-broadcast loopback, AZMail via fraggate_call, or mesh_join",
+        instead: "local qnm-node/ anon-broadcast (local sibling, not a loopback fence of the mesh), AZMail via fraggate_call, or mesh_join",
         effects:
           "Write: stores a hash receipt only. Does NOT accept video bytes. Operator keeps the file. Malformed sha256 refuses MESH-BAD-INPUT; publish-shaped keys refuse MESH-NO-PUBLISH",
         params: "sha256 is required (64 hex). title and product are optional labels, not file contents. " + CONFIRM_PARAM_NOTE,

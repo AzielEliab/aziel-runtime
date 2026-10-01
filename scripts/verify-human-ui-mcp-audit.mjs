@@ -220,6 +220,8 @@ assert.match(home, /data-mesh="leave"/);
 assert.match(home, /data-mesh="vpn"/);
 assert.match(home, /data-mesh="enable"/);
 assert.match(home, /id="mesh-bearer"/);
+assert.match(home, /id="mesh-radios-confirm"/);
+assert.match(home, /data-mesh-radios/);
 assert.match(home, /id="task-azmail"/);
 assert.match(home, /id="task-azhub"/);
 assert.match(home, /id="task-azinterface"/);

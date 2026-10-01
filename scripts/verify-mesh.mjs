@@ -42,6 +42,8 @@ import {
   sanitizeProduct,
   setMeshNowMs,
   setMeshRadiosEnabled,
+  meshSecurityCite,
+  meshSkillText,
   SITE_LIVE_EXCLUDED_HOSTS,
   SITE_LIVE_HOSTS,
   SITE_LIVE_KIND,
@@ -62,6 +64,11 @@ import {
   siteViewerFleet,
   siteViewerTuple,
 } from "../src/site-viewers.js";
+import { createIdentity } from "../src/fed-mesh/identity.js";
+import { signAct } from "../src/fed-mesh/client.js";
+import { ZERO_HASH } from "../src/fed-mesh/spec.js";
+import { meshRadios } from "../src/engines/azinterface/ops.js";
+import { runAznet } from "../src/engines/aznet/ops.js";
 
 const handler = (await import("../src/index.js")).default.fetch;
 const origin = "https://aziel-runtime.example";
@@ -570,6 +577,7 @@ assert.equal(doorJoin.data.result.session.product, "foldlock");
 
 const listed = await mcp(doorEnv, "tools/list", {}, 2);
 const tools = listed.result.tools.map((t) => t.name);
+assert.equal(tools.length, 36, "tools/list stays 36");
 for (const name of MESH_MCP_TOOLS) {
   assert.ok(tools.includes(name), `tools/list missing ${name}`);
 }
@@ -1029,6 +1037,161 @@ assert.equal(joinTool.inputSchema.required.includes("product"), true);
 assert.equal(joinTool.inputSchema.properties.node_id.pattern, "^[a-z0-9._-]+$");
 assert.deepEqual(joinTool.inputSchema.properties.presence.enum, ["live", "locked", "isolated"]);
 
+{
+  const skill = meshSkillText();
+  assert.doesNotMatch(skill, /Cap-7, home-origin, and cold shelves stay SLOT/);
+  assert.match(skill, /cap7-mesh-dns/);
+  assert.match(skill, /factory exec is LIVE on the Cap-7 plane/);
+  assert.match(skill, /single-node security-awareness/i);
+  assert.match(skill, /not a loopback fence|not a fence of the mesh/i);
+  assert.equal(meshSecurityCite().mesh_fenced_to_loopback, false);
+  assert.equal(meshSecurityCite().phoenix_lock, true);
+  assert.equal(meshSecurityCite().public_hostname_resurrection, false);
+
+  const nodeMesh = readFileSync(new URL("../docs/NODE_MESH.md", import.meta.url), "utf8");
+  const fedPaper = readFileSync(new URL("../docs/designs/FED-MESH-1.0.md", import.meta.url), "utf8");
+  assert.doesNotMatch(nodeMesh, /sibling loopback module/);
+  assert.match(nodeMesh, /single-node security-awareness/);
+  assert.match(nodeMesh, /does not fence the mesh to 127\.0\.0\.1/);
+  assert.match(nodeMesh, /home-origin SLOT/);
+  assert.match(nodeMesh, /LIVE on the Cap-7 plane/);
+  assert.doesNotMatch(fedPaper, /SLOT\. Mesh-only/);
+  assert.doesNotMatch(fedPaper, /Cite and refuse only/);
+  assert.match(fedPaper, /LIVE factory exec on the Cap-7 plane/);
+  assert.match(fedPaper, /single-node security-awareness/);
+  assert.match(fedPaper, /Mirage is not AZVPN/);
+  assert.match(fedPaper, /optional L1 bearer/i);
+
+  const ui = readFileSync(new URL("../src/human-ui.js", import.meta.url), "utf8");
+  assert.match(ui, /data-mesh="enable"/);
+  assert.match(ui, /id="mesh-bearer"/);
+  assert.match(ui, /id="mesh-radios-confirm"/);
+  assert.match(ui, /data-mesh-radios/);
+
+  const statusSec = await jsonReq(envWithMesh(), "/v1/mesh");
+  assert.equal(statusSec.data.security.mesh_fenced_to_loopback, false);
+  assert.equal(statusSec.data.get_never_enables, true);
+
+  const radiosTile = await meshRadios({}, envWithMesh());
+  assert.equal(radiosTile.needs_confirm, true);
+  assert.equal(radiosTile.mutated, false);
+  assert.equal(radiosTile.security.mesh_fenced_to_loopback, false);
+
+  const radiosOffTile = await meshRadios({ confirm: true }, envWithMesh({ MESH_RADIOS: "off" }));
+  assert.equal(radiosOffTile.ok, false);
+  assert.equal(radiosOffTile.code, "MESH-OFF");
+  assert.equal(radiosOffTile.mutated, false);
+
+  const radiosStay = await meshRadios({ confirm: true, public_egress_ip: true }, envWithMesh({ MESH_RADIOS: "on" }));
+  assert.equal(radiosStay.ok, false);
+  assert.equal(radiosStay.code, "MESH-STAY-OFF");
+
+  const radiosOn = envWithMesh({ MESH_RADIOS: "on" });
+  const radiosEnabled = await meshRadios({ confirm: true, bearer: "human" }, radiosOn);
+  assert.equal(radiosEnabled.ok, true, JSON.stringify(radiosEnabled));
+  assert.equal(radiosEnabled.mutated, true);
+  assert.equal(radiosEnabled.receipt.op, "enable");
+  const radiosJoin = await postJson(radiosOn, "/v1/mesh/join", { product: "foldlock" });
+  assert.equal(radiosJoin.data.ok, true, JSON.stringify(radiosJoin.data));
+  assert.ok(radiosJoin.data.human_mesh_users >= 1);
+  const radiosBeat = await postJson(radiosOn, "/v1/mesh/heartbeat", { node_id: radiosJoin.data.session.node_id });
+  assert.equal(radiosBeat.data.ok, true, JSON.stringify(radiosBeat.data));
+
+  const nameEnv = envWithMesh();
+  const id = await createIdentity({
+    seed: Uint8Array.from({ length: 32 }, (_, i) => i + 1),
+    encSeed: Uint8Array.from({ length: 32 }, (_, i) => i + 64),
+  });
+  const registered = await runMeshOp(
+    "relay-register",
+    await signAct(id, "register", {
+      enc_public_key: id.enc_public_key,
+      product: "mesh",
+      presence: "live",
+      relays: [],
+      seq: 1,
+      prev: ZERO_HASH,
+    }),
+    nameEnv,
+  );
+  assert.equal(registered.ok, true, JSON.stringify(registered));
+  const selfName = `${id.handle.slice(1).toLowerCase()}.aziel`;
+  const claimBody = await signAct(id, "name", {
+    name: selfName,
+    owner: id.handle,
+    target: { type: "hash", value: "ab".repeat(32) },
+    expires: null,
+    seq: 2,
+    prev: registered.statement_hash,
+    prev_record: ZERO_HASH,
+  });
+  const dryClaim = await runMeshOp("name_claim", { ...claimBody }, nameEnv);
+  assert.equal(dryClaim.ok, true);
+  assert.equal(dryClaim.needs_confirm, true);
+  assert.equal(dryClaim.mutated, false);
+  const stayClaim = await runMeshOp("name_claim", { ...claimBody, confirm: true, public_egress_ip: true }, nameEnv);
+  assert.equal(stayClaim.ok, false);
+  assert.equal(stayClaim.code, "MESH-STAY-OFF");
+  assert.equal(stayClaim.mutated, false);
+  const claimed = await runMeshOp("name_claim", { ...claimBody, confirm: true }, nameEnv);
+  assert.equal(claimed.ok, true, JSON.stringify(claimed));
+  assert.equal(claimed.mutated, true);
+  assert.equal(claimed.chainlock.anchored, true);
+  assert.equal(claimed.public_icann, false);
+  assert.equal(claimed.not_a_second_internet, true);
+  assert.equal(claimed.security.mesh_fenced_to_loopback, false);
+  assert.equal(claimed.target.value, "ab".repeat(32));
+  const readName = await runMeshOp("name_read", { name: selfName }, nameEnv);
+  assert.equal(readName.ok, true, JSON.stringify(readName));
+  assert.equal(readName.record.target.value, "ab".repeat(32));
+  const resolvedName = await runMeshOp("name_resolve", { name: selfName }, nameEnv);
+  assert.equal(resolvedName.ok, true, JSON.stringify(resolvedName));
+  assert.equal(resolvedName.resolved, true);
+  assert.equal(resolvedName.target.value, "ab".repeat(32));
+  assert.equal(resolvedName.owner, id.handle);
+  const slots = await runMeshOp("slot_read", { handle: id.handle }, nameEnv);
+  assert.equal(slots.ok, true, JSON.stringify(slots));
+  assert.equal(slots.handle, id.handle);
+  assert.equal(slots.user_slot_cap, 3);
+  const witnessDry = await runMeshOp("witness", { subject_kind: "name", subject_hash: claimed.statement_hash }, nameEnv);
+  assert.equal(witnessDry.needs_confirm, true);
+  assert.equal(witnessDry.mutated, false);
+  const bob = await createIdentity({
+    seed: Uint8Array.from({ length: 32 }, (_, i) => 255 - i),
+    encSeed: Uint8Array.from({ length: 32 }, (_, i) => 128 + (i % 64)),
+  });
+  const bobReg = await runMeshOp(
+    "relay-register",
+    await signAct(bob, "register", {
+      enc_public_key: bob.enc_public_key,
+      product: "mesh",
+      presence: "live",
+      relays: [],
+      seq: 1,
+      prev: ZERO_HASH,
+    }),
+    nameEnv,
+  );
+  assert.equal(bobReg.ok, true, JSON.stringify(bobReg));
+  const witnessBody = await signAct(bob, "witness", {
+    subject_kind: "name",
+    subject_hash: claimed.statement_hash,
+    seq: 2,
+    prev: bobReg.statement_hash,
+  });
+  const witnessLive = await runMeshOp("witness", { ...witnessBody, confirm: true }, nameEnv);
+  assert.equal(witnessLive.ok, false, JSON.stringify(witnessLive));
+  assert.equal(witnessLive.code, "FED-MESH-WITNESS");
+  assert.equal(witnessLive.mutated, false);
+  const aznetDry = await runAznet("name_read", { name: selfName }, null, nameEnv);
+  assert.equal(aznetDry.ok, true, JSON.stringify(aznetDry));
+  assert.equal(aznetDry.pair_required, false);
+  assert.equal(aznetDry.payload_host, false);
+  const aznetHost = await runAznet("name_claim", { ...claimBody, confirm: true, host_payload: true }, null, nameEnv);
+  assert.equal(aznetHost.ok, false);
+  assert.equal(aznetHost.code, "AZN-NO-PAYLOAD");
+}
+
 console.log(
-  `ok mesh ${RUNTIME_VERSION}: QNM-BUILD-1.0 rollup, suite-presence ON by default, disable refused, live/locked/isolated, join TTL/MESH-OFF/validation, MCP ${MESH_MCP_TOOLS.length} tools, FragGate slug=mesh`,
+  `ok mesh ${RUNTIME_VERSION}: QNM-BUILD-1.0 rollup, suite-presence ON by default, disable refused, live/locked/isolated, join TTL/MESH-OFF/validation, name door, radios tile, MCP ${MESH_MCP_TOOLS.length} tools, FragGate slug=mesh`,
 );
