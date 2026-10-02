@@ -22,7 +22,7 @@ Track 2 needs multiple independently deployed nodes actually operating together,
 
 ## Plane names
 
-Track 1 is **Plane N** (Cap-7 / `.aziel` names). Track 2 is **Plane P** (node-mesh packet path, devices as nodes). The sketch, the carrier prefer order (LAN, Wi-Fi, Bluetooth, RF, photon), and the hardware-absent codes are [`PLANE-P-D2D-1.0.md`](PLANE-P-D2D-1.0.md). That paper does not close WARN-5 and does not edit Softwares. Softwares catalog honesty and FG-STUB D2D mesh ops are AZBot Phase A (`bc-c5243c31-a34c-5ed5-80a9-186f7d8f9297`).
+Track 1 is **Plane N** (Cap-7 / `.aziel` names). Track 2 is **Plane P** (node-mesh packet path, devices as nodes). The sketch, the carrier prefer order (LAN, Wi-Fi, Bluetooth, RF, photon), and the hardware-absent codes are [`PLANE-P-D2D-1.0.md`](PLANE-P-D2D-1.0.md). That paper does not close WARN-5 and does not edit Softwares. Softwares catalog honesty and FG-STUB D2D mesh ops are AZBot Phase A (`bc-c5243c31-a34c-5ed5-80a9-186f7d8f9297`). The landed scaffold is [`D2D-CARRIERS-1.0.md`](D2D-CARRIERS-1.0.md): NOT-READY, FG-STUB, `alt_internet_live` false. It does not close WARN-5 and is not a LIVE public egress.
 
 ## Claim limits
 

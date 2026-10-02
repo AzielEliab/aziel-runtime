@@ -4,14 +4,14 @@
 **Phase:** A (honesty + scaffolding).  
 **Version:** runtime stays `2.0.0-rc1`. Not a new MCP tool. Softwares stay 42. `tools/list` stays 36.
 
-This plane is device-to-device packet reachability. It is separate from Cap-7.
+This plane is device-to-device packet reachability. It is separate from Cap-7. Design names: the name plane is **Plane N** and the packet plane is **Plane P** ([`PLANE-P-D2D-1.0.md`](PLANE-P-D2D-1.0.md)). That sketch is not a LIVE public packet egress. This scaffold does not build the prefer-order selector, does not forward packets, and does not close WARN-5.
 
 ## Two planes
 
 | Plane | What it is | This cut |
 |---|---|---|
-| Name | Cap-7 / MirageGrid land-region metadata and `.aziel` records | Cap-7 factory exec stays on that plane. Not an ICANN registrar. Not a public egress IP. Not AZVPN. |
-| Packet | Node-mesh hops between devices | Scaffold only. `status` NOT-READY. FragGate code `FG-STUB`. `packet_path_live` false. `alt_internet_live` false. |
+| Plane N (name) | Cap-7 / MirageGrid land-region metadata and `.aziel` records | Cap-7 factory exec stays on that plane. Not an ICANN registrar. Not a public egress IP. Not AZVPN. Cap-7 is not the public Internet. |
+| Plane P (packet) | Node-mesh hops between devices | Scaffold only. `status` NOT-READY. FragGate code `FG-STUB`. `packet_path_live` false. `alt_internet_live` false. Not a LIVE public packet egress. |
 
 `not_a_second_internet` stays true. `aznet_replaces_internet` stays false. WARN-5 stays `STANDS-until-demonstrated`. That status is not a permanent stay-off. Field 1.0 is not claimed.
 

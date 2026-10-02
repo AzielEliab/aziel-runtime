@@ -152,7 +152,7 @@ Track 1 is the Cap-7 and `.aziel` mesh name plane as it ships today. AZBrowser #
 
 Track 2 is a separate node-mesh internet with its own addressing and routing. WARN-5 is STANDS-until-demonstrated. BY-DESIGN that internet stays separate from ICANN. It is not BGP. It is not demonstrated here. `not_a_second_internet` stays true for Track 1. This cite does not paint Cap-7 as that internet and does not mark a multi-node PASS.
 
-Track 1 is Plane N (names). Track 2 is Plane P (packet path). Carrier prefer order and hardware-absent refuse codes are [`PLANE-P-D2D-1.0.md`](PLANE-P-D2D-1.0.md). That sketch is not a LIVE hop and does not edit Softwares.
+Track 1 is Plane N (names). Track 2 is Plane P (packet path). Carrier prefer order and hardware-absent refuse codes are [`PLANE-P-D2D-1.0.md`](PLANE-P-D2D-1.0.md). That sketch is not a LIVE hop and does not edit Softwares. The Phase A scaffold is [`D2D-CARRIERS-1.0.md`](D2D-CARRIERS-1.0.md). It stays NOT-READY / FG-STUB. `alt_internet_live` is false. It is not a LIVE public egress.
 
 Paper: [`MESH-INTERNET-WARNS-1.0.md`](MESH-INTERNET-WARNS-1.0.md).
 
