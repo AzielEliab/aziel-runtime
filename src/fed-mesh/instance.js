@@ -15,6 +15,7 @@ import { classifyPeerUrl, natPunchRequest, survivalMethods } from "./bearers.js"
 import { actHash, openAct, sealAct, signAct } from "./client.js";
 import { createIdentity } from "./identity.js";
 import { FED_SPEC, ZERO_HASH } from "./spec.js";
+import { createTrack2 } from "./track2.js";
 
 async function loadJson(path, fallback) {
   try {
@@ -502,8 +503,16 @@ function bracketHost(host) {
   return text;
 }
 
-export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", advertise = "", relays = [], passphrase = "" }) {
+export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", advertise = "", relays = [], passphrase = "", fixture = false }) {
   const node = await openInstance({ dataDir, relays, passphrase });
+  const track2 = createTrack2({
+    identity: node.identity,
+    tipHash: node.directChain.prev || ZERO_HASH,
+    dataDir,
+    fixture: fixture === true,
+  });
+  await track2.loadOutbox();
+  node.track2 = track2;
   const listenHost = String(host || "127.0.0.1").trim() || "127.0.0.1";
   const share = {
     listenHost,
@@ -540,7 +549,22 @@ export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", adv
         hole_punch: false,
         public_icann: false,
         aznet_replaces_internet: false,
+        track2: node.track2.summary(),
+        worker_hardware: false,
       };
+    } else if (req.method === "GET" && url.pathname === "/v1/fed-mesh/discover") {
+      out = node.track2.status();
+    } else if (req.method === "POST" && url.pathname === "/v1/fed-mesh/discover") {
+      out = await node.track2.ingest(body);
+    } else if (req.method === "GET" && (url.pathname === "/v1/fed-mesh/arm" || url.pathname === "/local/arm")) {
+      out = await node.track2.arm(url.searchParams.get("carriers") || "", "GET");
+    } else if (req.method === "POST" && (url.pathname === "/v1/fed-mesh/arm" || url.pathname === "/local/arm")) {
+      const names = body.order === true || body.order === "order" ? "order" : body.carriers || body.carrier || "";
+      out = await node.track2.arm(names, "operator");
+    } else if (req.method === "POST" && url.pathname === "/v1/fed-mesh/peer-session") {
+      out = body && body.kind === "peer-session" ? await node.track2.accept(body) : await node.track2.offer(body.peer_handle || body.peer, body);
+    } else if (req.method === "POST" && url.pathname === "/v1/fed-mesh/peer") {
+      out = await node.track2.recv(body);
     } else if (req.method === "POST" && url.pathname === "/v1/fed-mesh/direct") {
       out = await node.onDirect(body);
     }
@@ -578,6 +602,7 @@ export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", adv
     share.directNote =
       "Listen bind is all interfaces. Pass --advertise with the LAN IP. 0.0.0.0 is not a peer URL. No STUN and no TURN. This socket is not open-world awareness.";
   }
+  track2.state.direct_url = share.directUrl || "";
   return {
     ...node,
     handle: node.identity.handle,
@@ -589,6 +614,7 @@ export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", adv
     directMode: share.directMode,
     directNote: share.directNote,
     awarenessSocket: false,
+    track2,
     stop() {
       return new Promise((done) => server.close(() => done()));
     },

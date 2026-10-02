@@ -2,10 +2,10 @@
 
 **Author:** Aziel Eliab only.  
 **Operator lock:** Aziel Eliab, 2026-10-02, via AZBot.  
-**Kind:** design sketch and honesty notes. This paper does not implement hops, does not deploy, and does not edit Softwares.  
+**Kind:** design sketch and honesty notes. Phase B and C below name the local node path that landed after this sketch. This paper does not deploy and does not add a Softwares card.  
 **Not a Softwares card. No new MCP tool.** Softwares stay 42. `tools/list` stays 36.
 
-Plane P is the device-to-device packet path: a node-mesh alternative internet, separate from ICANN. This repository does not have that path in operation. This paper is not a LIVE public packet egress, not a multi-node PASS, and not an Internet-comparable BGP claim. It is not BGP.
+Plane P is the device-to-device packet path: a node-mesh alternative internet, separate from ICANN. This repository does not operate that path as a public packet egress. This paper is not a LIVE public packet egress, not a multi-node PASS, and not an Internet-comparable BGP claim. It is not BGP.
 
 WARN-5 is **STANDS-until-demonstrated**. Operator lock 2026-10-02: that status is not a permanent ceiling and is not a permanent stay-off. BY-DESIGN the mesh internet stays separate from ICANN. The missing demonstration is not a refusal to build. Map: [`MESH-INTERNET-WARNS-1.0.md`](MESH-INTERNET-WARNS-1.0.md).
 
@@ -62,9 +62,9 @@ Split the wires still holds when a real hop exists: the fast tick is presence an
 
 ## Carriers (prefer order)
 
-Functional carriers, in the order a device should prefer once a real selector exists. **This cut does not implement that selector.** `qnm-node/bearers/radio.js` probes each local carrier on its own. FED-MESH uses a configured direct URL or the relay. Neither path walks this list, and neither path is public packet egress.
+Functional carriers, in the order a device should prefer. The local node walks this list when the operator arms it (Phase B below). `qnm-node/bearers/radio.js` still probes each local carrier on its own. FED-MESH still uses a configured direct URL or the relay. Neither the probe nor the Worker path is public packet egress.
 
-A packet is for a peer the device already knows (a configured URL or prior local presence). This paper does not add LAN discovery, STUN, TURN, or NAT punch.
+A packet is for a peer the device already knows, or a peer that answered a LAN beacon after the operator armed discovery. STUN, TURN, and NAT punch stay refused.
 
 | Order | Carrier | Kind | Present means | Absent or not configured | Code already in the tree |
 |---|---|---|---|---|---|
@@ -78,14 +78,14 @@ Worker channel cites stay `"on"` for Wi-Fi, Bluetooth, RF, and photon whether or
 
 SPORE-1.0 on the local radio hook: if no local radio hardware is present, mode is dormant (pause, preserve, wait). Do not invent a LIVE beat.
 
-## Designed hop (not built)
+## Designed hop
 
-This is the sketch. It is not a backend.
+This is the sketch the local node now follows for LAN discovery and a sealed session. It is not a public packet egress, and it is not WARN-5 demonstrated.
 
 1. The device is the node (own key, own handle).
 2. Awareness may listen on `0.0.0.0` and answer GET. It does not forward.
 3. The node addresses a peer it already knows. Plane N may supply a name. A name miss is `FG-GATE-REFUSE` and does not open a hop. Cap-7 land is not an egress IP.
-4. A future selector walks the table above and uses the first carrier that is configured or has hardware. Each miss returns that row's code and stays `live: false`.
+4. The local selector walks the table above when the operator arms it. LAN can complete a beacon exchange. Wi-Fi and Bluetooth record hardware. RF and photon refuse when absent. Each miss stays `live: false`.
 5. The body stays off the presence tick.
 6. A bad peer or a failed seal isolates that node, then phoenix waits and re-seals locally.
 
@@ -110,8 +110,27 @@ AZBot Phase A (cloud agent `bc-c5243c31-a34c-5ed5-80a9-186f7d8f9297`) owns Softw
 - The photon **flash hop** in that scaffold is camera and flash or LED. Absent hardware is `QNM-RADIO-ABSENT`. Local `qnsd` stays the QNS cite (`QNS-CITE-ONLY`, `QNS-NO-PROXY`). It is not that flash path. A local radio-hook reading of `qnsd` stays hardware presence (`packet_hop` false). It is not a packet hop and not mock LIVE.
 - The RF **hop** in that scaffold is the dedicated carrier beyond Wi-Fi and Bluetooth (cellular / ModemManager when that radio is present). Absent is `QNM-RADIO-ABSENT`. The SDR row in the table above stays a local hardware-presence hook. It is not a LIVE packet hop.
 - `track2CarrierProbe()` may report `HW-PRESENT` or `REFUSE`. It never reports `LIVE`.
-- The prefer-order selector that would open a hop is still not built. Phase A does not implement it and does not forward packets.
+- Phase A did not open a hop. Phase B/C on the local node opens LAN discovery and a sealed session. The public door still does not. Packets are not forwarded as an alt-internet.
 - This Plane P paper still does not edit the Softwares catalog. Catalog strings and the FG-STUB op tables live in the Phase A scaffold. Softwares stay 42. `tools/list` stays 36.
+
+## Phase B and C exit (local node, WARN-5 still open)
+
+The local node now walks the carrier order when the operator arms it (`src/fed-mesh/track2.js`, `qnm-node/fed-instance.mjs`). The public Worker still does not discover a LAN and still returns `FG-STUB` for `mesh_discover` and `peer_session_*`.
+
+Exit criteria for this slice:
+
+- LAN beacon is presence plus tip hash. A body on that tick is `MESH-NO-BYTES`.
+- Discovery is LIVE only after two peers have verified each other on LAN. Otherwise the row is `MESH-OFF`, `QNM-RADIO-ABSENT`, or fixture.
+- The roster is local. It is not `live_nodes` and it is not a `{slug}-worker` row.
+- GET does not arm radios.
+- The peer session uses a session key that is not the long-term node key. `direct-lan` prefers route class `direct`. An admitted relay is route class `relay`.
+- Poison isolates that peer. Equivocation isolates that peer. Phoenix stays local wait / re-seal.
+- RF and photon stay `QNM-RADIO-ABSENT` without hardware, and stay not LIVE without a demonstrated exchange on that carrier. No mock LIVE.
+- `alt_internet_live` stays false.
+
+Phase D store-forward is a bounded outbox scaffold in the same module. It does not set `alt_internet_live`.
+
+WARN-5 stays STANDS-until-demonstrated until a stranger can recompute a real multi-node Track 2 path, Cap-7 is still not the public Internet, and `negotiateBearer` still refuses `icann` and `cap7-egress`. Wi-Fi, Bluetooth, RF, and photon exchanges are not demonstrated by a LAN fixture. Softwares stay 42. `tools/list` stays 36. This section does not add a Softwares card.
 
 ## What this cut does not do
 
