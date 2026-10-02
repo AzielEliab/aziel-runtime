@@ -10,6 +10,8 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import http from "node:http";
 import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { D2D_MOBILE_CLIENT } from "../d2d-carriers.js";
 import { createKeystore, exportPublicIdentity, identityFromUnlocked, unlockKeystore } from "../security/keystore.js";
 import { classifyPeerUrl, natPunchRequest, survivalMethods } from "./bearers.js";
 import { actHash, openAct, sealAct, signAct } from "./client.js";
@@ -496,6 +498,43 @@ export async function openInstance({ dataDir, relays = [], passphrase = "", iter
   return node;
 }
 
+const MOBILE_ROOT = join(dirname(fileURLToPath(import.meta.url)), "../../qnm-node/mobile");
+const MOBILE_CSP =
+  "default-src 'self'; connect-src 'self'; img-src 'self'; style-src 'self'; script-src 'self'; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'";
+
+const MOBILE_FILES = [
+  ["index.html", "text/html; charset=utf-8", true],
+  ["page.css", "text/css; charset=utf-8", false],
+  ["page.mjs", "text/javascript; charset=utf-8", false],
+  ["join.mjs", "text/javascript; charset=utf-8", false],
+  ["sw.js", "text/javascript; charset=utf-8", false],
+  ["manifest.webmanifest", "application/manifest+json; charset=utf-8", false],
+  ["icon.svg", "image/svg+xml", false],
+];
+
+let mobileRoutesPromise;
+
+function mobileRoutes() {
+  if (!mobileRoutesPromise) {
+    mobileRoutesPromise = (async () => {
+      const byName = new Map();
+      for (const [file, type, html] of MOBILE_FILES) {
+        byName.set(file, { type, html, body: await readFile(join(MOBILE_ROOT, file)) });
+      }
+      const routes = new Map();
+      const bind = (path, file) => routes.set(path, byName.get(file));
+      bind("/mobile", "index.html");
+      bind("/mobile/", "index.html");
+      bind("/mobile/index.html", "index.html");
+      for (const [file] of MOBILE_FILES) {
+        if (file !== "index.html") bind(`/mobile/${file}`, file);
+      }
+      return routes;
+    })();
+  }
+  return mobileRoutesPromise;
+}
+
 function bracketHost(host) {
   const text = String(host || "").trim();
   if (text.startsWith("[") && text.endsWith("]")) return text;
@@ -513,6 +552,7 @@ export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", adv
   });
   await track2.loadOutbox();
   node.track2 = track2;
+  const mobile = await mobileRoutes();
   const listenHost = String(host || "127.0.0.1").trim() || "127.0.0.1";
   const share = {
     listenHost,
@@ -533,6 +573,20 @@ export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", adv
       }
     }
     const url = new URL(req.url || "/", "http://127.0.0.1");
+    if (req.method === "GET" || req.method === "HEAD") {
+      const asset = mobile.get(url.pathname);
+      if (asset) {
+        const headers = {
+          "content-type": asset.type,
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff",
+        };
+        if (asset.html) headers["content-security-policy"] = MOBILE_CSP;
+        res.writeHead(200, headers);
+        res.end(req.method === "HEAD" ? undefined : asset.body);
+        return;
+      }
+    }
     let out = { ok: false, code: "FED-MESH-BAD-INPUT", message: "Unknown local path." };
     if (req.method === "GET" && url.pathname === "/health") {
       out = {
@@ -550,6 +604,9 @@ export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", adv
         public_icann: false,
         aznet_replaces_internet: false,
         track2: node.track2.summary(),
+        mobile_client: D2D_MOBILE_CLIENT,
+        mobile_join: "/mobile/",
+        app_store_release: false,
         worker_hardware: false,
       };
     } else if (req.method === "GET" && url.pathname === "/v1/fed-mesh/discover") {
@@ -626,6 +683,8 @@ export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", adv
     directMode: share.directMode,
     directNote: share.directNote,
     awarenessSocket: false,
+    mobileJoin: `${base}/mobile/`,
+    mobile_client: D2D_MOBILE_CLIENT,
     track2,
     stop() {
       return new Promise((done) => server.close(() => done()));

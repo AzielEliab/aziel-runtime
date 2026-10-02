@@ -25,6 +25,9 @@ export const D2D_PLANE = "track2-reachability";
 export const D2D_PAPER = "docs/designs/D2D-CARRIERS-1.0.md";
 /** Local three-node path. Public door stays FG-STUB. Not a second physical device. */
 export const D2D_STORE_FORWARD = "LIVE-when-three-local-nodes / fixture";
+/** Phone client of the local node. Shipping the client is not a demonstrated device. */
+export const D2D_MOBILE_CLIENT = "present-not-demonstrated";
+export const D2D_MOBILE_PAPER = "docs/designs/TRACK2-MOBILE-JOIN-1.0.md";
 
 export const D2D_CARRIERS = Object.freeze([
   Object.freeze({
@@ -57,7 +60,7 @@ export const D2D_CARRIERS = Object.freeze([
     absent_code: "QNM-RADIO-ABSENT",
     hw: "wifi-nm",
     discovery: "ARMED-when-HW",
-    note: "Second preference. Arm records real Wi-Fi hardware. A LAN beacon is not a Wi-Fi exchange. Absent radio refuses QNM-RADIO-ABSENT. No mock LIVE.",
+    note: "Second preference. Arm records real Wi-Fi hardware. A LAN beacon is not a Wi-Fi exchange. A phone that reaches the LAN beacon over Wi-Fi is still the LAN client. That path does not set peer_exchange_demonstrated. Absent radio refuses QNM-RADIO-ABSENT. No mock LIVE.",
   }),
   Object.freeze({
     order: 3,
@@ -203,6 +206,10 @@ export function d2dCarrierCite() {
     store_forward_public: "FG-STUB",
     worker_runs_store_forward: false,
     second_device: false,
+    mobile_client: D2D_MOBILE_CLIENT,
+    mobile_demonstrated: false,
+    app_store_release: false,
+    mobile_paper: D2D_MOBILE_PAPER,
     bootstrap_list: "scaffold",
     needs_starting_address: true,
     shelf_cite: "scaffold",
@@ -255,7 +262,7 @@ export function d2dCarrierCite() {
       loopback_isolation: false,
     },
     paper: D2D_PAPER,
-    note: `Track 2 node-mesh packet reachability stays ${D2D_STATUS} on the public Worker (${D2D_CODE}). Local LAN discovery is LIVE-when-armed. The peer tunnel is LIVE-when-session. Local store-forward is ${D2D_STORE_FORWARD}: three in-process nodes can deliver a sealed object, second_device is false, and that fixture does not close WARN-5. Wi-Fi and Bluetooth arm when that hardware is present and do not inherit a LAN beacon. RF and photon light flashes refuse QNM-RADIO-ABSENT without hardware, and there is no mock LIVE. peer_exchange_demonstrated stays false on those carriers. Phase E bootstrap lists and shelf cites stay scaffold. live_multi_provider stays false. Cold shelves stay SLOT. Failover is ${D2D_ORDER_ARROW}. Cap-7 / .aziel stay Track 1 name-plane metadata. MirageGrid is not AZVPN. AZNet is the hash-continuity side-net and does not host payloads. Isolation is single-node security-awareness. Phoenix is local wait / re-seal. WARN-5 stays STANDS-until-demonstrated. alt_internet_live is false.`,
+    note: `Track 2 node-mesh packet reachability stays ${D2D_STATUS} on the public Worker (${D2D_CODE}). Local LAN discovery is LIVE-when-armed. The peer tunnel is LIVE-when-session. Local store-forward is ${D2D_STORE_FORWARD}: three in-process nodes can deliver a sealed object, second_device is false, and that fixture does not close WARN-5. Wi-Fi and Bluetooth arm when that hardware is present and do not inherit a LAN beacon. The mobile join client speaks the local LAN beacon and sealed peer session. mobile_client stays present-not-demonstrated. A phone on Wi-Fi is that LAN path, not a Wi-Fi carrier exchange, and not an app-store release. RF and photon light flashes refuse QNM-RADIO-ABSENT without hardware, and there is no mock LIVE. peer_exchange_demonstrated stays false on those carriers. Phase E bootstrap lists and shelf cites stay scaffold. live_multi_provider stays false. Cold shelves stay SLOT. Failover is ${D2D_ORDER_ARROW}. Cap-7 / .aziel stay Track 1 name-plane metadata. MirageGrid is not AZVPN. AZNet is the hash-continuity side-net and does not host payloads. Isolation is single-node security-awareness. Phoenix is local wait / re-seal. WARN-5 stays STANDS-until-demonstrated. alt_internet_live is false.`,
   };
 }
 
