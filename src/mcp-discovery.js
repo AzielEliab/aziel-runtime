@@ -32,6 +32,12 @@ export const MCP_SERVER_CARD_PATHS = Object.freeze([
   "/mcp/.well-known/mcp/server-card.json",
 ]);
 
+/** Same server-card body. Not a second card and not /.well-known/mcp/server.json. */
+export const MCP_SERVER_CARD_ALIAS_PATHS = Object.freeze([
+  "/mcp.json",
+  "/.well-known/mcp.json",
+]);
+
 export const OAUTH_PROTECTED_RESOURCE_PATHS = Object.freeze([
   "/.well-known/oauth-protected-resource",
   "/.well-known/oauth-protected-resource/mcp",
@@ -48,7 +54,7 @@ function normalizeDiscoveryPath(pathname) {
 
 export function mcpDiscoveryKind(pathname) {
   const path = normalizeDiscoveryPath(pathname);
-  if (MCP_SERVER_CARD_PATHS.includes(path)) return "server-card";
+  if (MCP_SERVER_CARD_PATHS.includes(path) || MCP_SERVER_CARD_ALIAS_PATHS.includes(path)) return "server-card";
   if (OAUTH_PROTECTED_RESOURCE_PATHS.includes(path)) return "oauth-protected-resource";
   return null;
 }
