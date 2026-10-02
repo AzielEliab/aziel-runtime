@@ -39,6 +39,10 @@ assert.equal(product.worker, "aznet-download-tracker");
 assert.equal(product.github, "https://github.com/AzielEliab/aznet");
 assert.equal(product.version, VERSION);
 assert.match(product.oneLine, /Check hash continuity/i);
+assert.match(product.oneLine, /NOT-READY/);
+assert.match(product.oneLine, /LAN, Wi-Fi, Bluetooth, RF, photon light flashes/);
+assert.match(product.description, /FG-STUB/);
+assert.match(product.description, /name and land-region metadata/);
 assert.doesNotMatch(product.oneLine, /THIS IS:|THIS IS NOT:/i);
 assert.match(product.description, /hash refs|side-net/i);
 assert.match(product.banner, /FragGate/);
@@ -97,6 +101,10 @@ assert.equal(classifyCall(registry.bySlug.aznet, "repair_integrity_bypass").kind
 assert.equal(classifyCall(registry.bySlug.aznet, "interface").kind, "stub");
 assert.equal(classifyCall(registry.bySlug.aznet, "lumen").kind, "stub");
 assert.equal(classifyCall(registry.bySlug.aznet, "hub").kind, "stub");
+for (const op of ["d2d_discover", "d2d_tunnel", "d2d_multi_hop", "d2d_lan", "d2d_wifi", "d2d_bluetooth", "d2d_rf", "d2d_photon", "alt_internet"]) {
+  assert.equal(classifyCall(registry.bySlug.aznet, op).kind, "stub", op);
+  assert.equal(classifyCall(registry.bySlug.mesh, op).kind, "stub", `mesh ${op}`);
+}
 
 const parsedSlash = parseTarget({ name: "aznet/stamp" }, registry);
 assert.equal(parsedSlash.slug, "aznet");

@@ -161,6 +161,7 @@ A local simulation is FIXTURE. It is not the real-world half of this WARN.
 | `mesh-router.js` | Softwares slug router | MESH-ADAPT free text to a catalog op. Not packet routing. |
 | Home-origin / cold-shelf origins | SLOT | ORIGIN-CUTOVER. L3 registry. |
 | Track 2 node-mesh internet | missing | Own addressing and routing, separate from ICANN, not BGP. Not demonstrated. Multi-node operation is still WARN-1. |
+| Phase A packet scaffold | NOT-READY | [D2D-CARRIERS-1.0](D2D-CARRIERS-1.0.md). Failover LAN, Wi-Fi, Bluetooth, RF, photon light flashes. Each hop FG-STUB. `alt_internet_live` false. This row does not close WARN-5. |
 
 Honest close, later, not in this cut: show Track 2 on real nodes (the WARN-1 hosts) with mesh addressing and routing that a stranger can recompute, while Cap-7 remains not the public Internet and `negotiateBearer` still refuses `icann` and `cap7-egress`. Painting Cap-7, `.aziel`, or today's route classes as Internet-comparable BGP would be a lie. The design sketch for that later path is [`PLANE-P-D2D-1.0.md`](PLANE-P-D2D-1.0.md). It does not mark this WARN closed.
 

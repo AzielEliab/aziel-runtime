@@ -31,6 +31,8 @@ assert.equal(status.invented_hardware, false);
 assert.equal(status.mock, false);
 assert.equal(status.public_proxy, false);
 assert.equal(status.worker_channel_plane, "cite-only");
+assert.equal(status.packet_hop, false);
+assert.equal(status.d2d_packet_status, "NOT-READY");
 assert.equal(status.spore.spec, "SPORE-1.0");
 assert.equal(status.spore.invented_heartbeats, false);
 assert.ok(status.spore.mode === "live" || status.spore.mode === "dormant");

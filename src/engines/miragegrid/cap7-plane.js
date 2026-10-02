@@ -102,7 +102,7 @@ function siteStamp(site) {
 }
 
 function refuse(op, code, message) {
-  return {
+  const body = {
     ok: false,
     code,
     op,
@@ -112,6 +112,8 @@ function refuse(op, code, message) {
     live: true,
     factory_exec: true,
   };
+  if (code === "MG-NOT-PUBLIC-EGRESS") body.honesty_class = "MG-NO-IP-EXIT";
+  return body;
 }
 
 function packetAsked(fields) {

@@ -20,6 +20,7 @@
  */
 
 import { CAP7_PLANE_BOUNDARY, CAP7_PUBLIC_WORKER_LIVE } from "./engines/miragegrid/cap7-public.js";
+import { D2D_ORDER_ARROW, D2D_ORDER_LABEL } from "./d2d-carriers.js";
 
 export const SOFTWARE_COPY = Object.freeze({
   "4dmap": {
@@ -89,14 +90,13 @@ export const SOFTWARE_COPY = Object.freeze({
       "Use AZMail for an advisory airlock, a local mailbox, and an anonymous mail ring that starts off. It exists for isolate mail work.",
   },
   aznet: {
-    one_line: "Check hash continuity on a silent side-net.",
-    description:
-      "Use AZNet to stamp and check hash refs in a custodian garden. It exists so integrity can be checked on a side-net.",
+    one_line: `Check hash continuity on the Cap-7 and .aziel name plane. Track 2 packet reachability stays NOT-READY (STANDS-until-demonstrated) in failover order ${D2D_ORDER_LABEL}.`,
+    description: `Use AZNet to stamp and check hash refs in a custodian garden on the name plane. It exists so integrity can be checked on a side-net while Cap-7 and MirageGrid stay name and land-region metadata (not an ICANN registrar, not a public egress IP, and not AZVPN). Track 2 device-to-device carriers fail over ${D2D_ORDER_ARROW}. RF and photon light flashes are functional carriers and stay FG-STUB until a real peer exchange works. The packet path stays short of a live alternative internet.`,
   },
   azvpn: {
     one_line: "Open an HTTPS or WebSocket VPN session on the public concentrator.",
     description:
-      "Use AZVPN as the automatic public VPN concentrator for HTTPS and WebSocket tunnels. It exists to concentrate those sessions in-runtime.",
+      "Use AZVPN as the automatic public VPN concentrator for HTTPS and WebSocket tunnels. It exists to concentrate those sessions in-runtime. Track 2 device-to-device reachability stays a separate NOT-READY plane.",
   },
   forgereceipts: {
     one_line: "Mint and hash-check client-held receipts so retries of one request stay linked.",
@@ -112,7 +112,7 @@ export const SOFTWARE_COPY = Object.freeze({
     one_line:
       "Assign a short-lived session node and cite Cap-7 mesh-name metadata from a factory that is not a public ICANN registrar. Cap-7 geo, sticky session, and land rotation are LIVE on the Cap-7 plane, not a public egress IP, not a residential IP, and not AZVPN.",
     description:
-      `Use MirageGrid to assign a short-lived session node and cite Cap-7 mesh-name metadata. The Cap-7 factory is not a public ICANN registrar. It exists for Cap-7 control-plane assignment. geo-target, session-stick, and egress-rotate are LIVE on the Cap-7 plane (region label, sticky mesh node and factory land, land rotate among 7 sites). ${CAP7_PLANE_BOUNDARY} ${CAP7_PUBLIC_WORKER_LIVE} vpn-hop, hop, tunnel, and mesh stay stub. AZVPN remains the suite VPN.`,
+      `Use MirageGrid to assign a short-lived session node and cite Cap-7 mesh-name metadata. The Cap-7 factory is not a public ICANN registrar. It exists for Cap-7 control-plane assignment. geo-target, session-stick, and egress-rotate are LIVE on the Cap-7 plane (region label, sticky mesh node and factory land, land rotate among 7 sites). ${CAP7_PLANE_BOUNDARY} ${CAP7_PUBLIC_WORKER_LIVE} vpn-hop, hop, tunnel, and mesh stay stub. AZVPN remains the suite VPN. Track 2 carriers (${D2D_ORDER_ARROW}) stay NOT-READY and FG-STUB.`,
   },
   mmconsensus: {
     one_line: "Tally consensus from opinions you already posted.",

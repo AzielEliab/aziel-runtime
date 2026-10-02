@@ -147,6 +147,8 @@ export function radioStatus() {
     mock: false,
     public_proxy: false,
     worker_channel_plane: "cite-only",
+    packet_hop: false,
+    d2d_packet_status: "NOT-READY",
     law: "LIVE-when-HW-present / refuse-when-absent",
     channels: { wifi, bluetooth, rf, photon },
     spore: {
@@ -159,7 +161,104 @@ export function radioStatus() {
         : "No local radio hardware. SPORE-1.0 dormant — pause, preserve DNA, wait. Do not invent LIVE radios.",
     },
     note:
-      "Local qnm-node radio hooks. Worker GET /v1/mesh channel_plane stays cite-only (worker_hardware:false). Photon is local qnsd on loopback — not a public via and not the open-world awareness bind (0.0.0.0). forced_loopback and loopback_isolation are not the mesh fence. SPORE-1.0: hardware absent is dormant, not a mock LIVE beat.",
+      "Local qnm-node radio hooks. Worker GET /v1/mesh channel_plane stays cite-only (worker_hardware:false). A channel state of LIVE means host hardware or local qnsd is present. It is not a device-to-device packet hop (packet_hop false, d2d_packet_status NOT-READY). Photon here is local qnsd on loopback — not a camera/flash LiFi hop and not the open-world awareness bind (0.0.0.0). Dedicated RF packet hops and photon flashes stay on the D2D carrier plane. forced_loopback and loopback_isolation are not the mesh fence. SPORE-1.0: hardware absent is dormant, not a mock LIVE beat.",
+  };
+}
+
+function probeLan() {
+  try {
+    if (!existsSync(NET)) return { present: false, kind: null };
+    for (const name of readdirSync(NET)) {
+      if (!name || name === "lo" || name === "." || name === "..") continue;
+      return { present: true, kind: name };
+    }
+  } catch {
+    /* no sysfs */
+  }
+  return { present: false, kind: null };
+}
+
+function probeModem() {
+  if (dirHasEntries("/sys/class/wwan") || existsSync("/dev/cdc-wdm0")) {
+    return { present: true, kind: "modem" };
+  }
+  try {
+    if (!existsSync(NET)) return { present: false, kind: null };
+    for (const name of readdirSync(NET)) {
+      if (/^wwan|^rmnet|^cdc-wdm/i.test(name)) return { present: true, kind: name };
+    }
+  } catch {
+    /* no sysfs */
+  }
+  return { present: false, kind: null };
+}
+
+function probeFlashCamera() {
+  if (existsSync("/dev/video0")) return { present: true, kind: "camera" };
+  const leds = "/sys/class/leds";
+  try {
+    if (!existsSync(leds)) return { present: false, kind: null };
+    for (const name of readdirSync(leds)) {
+      if (/flash|torch/i.test(name)) return { present: true, kind: name };
+    }
+  } catch {
+    /* no leds */
+  }
+  return { present: false, kind: null };
+}
+
+/**
+ * Track 2 carrier probe. Functional carriers in failover order.
+ * Hardware absence is QNM-RADIO-ABSENT. Hardware presence is HW-PRESENT.
+ * Neither state is a LIVE packet hop. No mock LIVE.
+ */
+export function track2CarrierProbe() {
+  const rfHw = probeRf();
+  const modem = probeModem();
+  const rf = rfHw.present ? rfHw : modem;
+  const rows = [
+    ["lan", probeLan()],
+    ["wifi", probeWifi()],
+    ["bluetooth", probeBluetooth()],
+    ["rf", rf],
+    ["photon", probeFlashCamera()],
+  ];
+  const carriers = {};
+  for (const [id, probe] of rows) {
+    carriers[id] = probe.present
+      ? {
+          id,
+          state: "HW-PRESENT",
+          hardware: probe.kind,
+          code: null,
+          packet_live: false,
+          mock: false,
+          peer_exchange_demonstrated: false,
+          note: "Hardware seen. Peer exchange is not demonstrated. Not a LIVE packet hop.",
+        }
+      : {
+          id,
+          state: "REFUSE",
+          hardware: false,
+          code: RADIO_ABSENT,
+          packet_live: false,
+          mock: false,
+          peer_exchange_demonstrated: false,
+          note: `${id} hardware absent. Refuse ${RADIO_ABSENT}. No mock LIVE.`,
+        };
+  }
+  return {
+    spec: "D2D-CARRIERS-1.0",
+    plane: "track2-reachability",
+    author: RADIO_HOOK_AUTHOR,
+    order: ["lan", "wifi", "bluetooth", "rf", "photon"],
+    order_arrow: "LAN → Wi-Fi → Bluetooth → RF → Photon light flashes",
+    packet_live: false,
+    alt_internet_live: false,
+    mock: false,
+    functional: true,
+    carriers,
+    note: "RF is beyond Wi-Fi and Bluetooth. Photon flashes are camera or flash, not qnsd. No carrier here is LIVE.",
   };
 }
 

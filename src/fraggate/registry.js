@@ -15,6 +15,7 @@ import { crossMapFields } from "../cross-map.js";
 import { domainFields } from "../domain-map.js";
 import { embeddedDigest } from "../engines/digest.js";
 import { MEMORY_CANONICAL_OPS, MEMORY_SLUG, MEMORY_STUB_OPS, memoryKernelEntry } from "../memory.js";
+import { D2D_STUB_OPS } from "../d2d-carriers.js";
 import { MESH_LIVE_OPS, MESH_OP_ALIASES, MESH_SLUG, MESH_STUB_OPS, meshKernelEntry } from "../mesh.js";
 import { canonicalize, sha256Hex } from "../session-core.js";
 import { CATALOG_SET_NOTE } from "../catalog-sets.js";
@@ -491,6 +492,7 @@ export const STUB_OPS = {
     "interface_hook",
     "lumen_hook",
     "hub_hook",
+    ...D2D_STUB_OPS,
   ],
   azhub: [
     "scorch_remote",

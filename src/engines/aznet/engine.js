@@ -8,6 +8,8 @@
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
 
+import { D2D_ORDER_ARROW, D2D_ORDER_LABEL, D2D_PLANE, D2D_SPEC, D2D_STATUS } from "../../d2d-carriers.js";
+
 export const PRODUCT = "aznet";
 export const NAME = "AZNet";
 export const VERSION = "0.1.0";
@@ -732,6 +734,10 @@ export function aznetHealth() {
     pairing: "order/token",
     tunnel: false,
     vpn: false,
+    packet_path_live: false,
+    alt_internet_live: false,
+    d2d_status: D2D_STATUS,
+    d2d_spec: D2D_SPEC,
     garden_count: memory.garden.length,
     memorial_count: memory.memorials.length,
     isolated_count: memory.isolated.length,
@@ -756,7 +762,9 @@ Live ops: \`health\`, \`pair_status\`, \`garden_list\`, \`stamp\`, \`verify_hash
 
 Garden ops require **pairing token AND flag with azbrowser** (both required). Missing pair refuses. \`pair_status\` (alias \`pair\`) reports functional-order pair state — order/token only, hash continuity / side-net. **Pairing ≠ tunnel.** Public VPN auto-binds **AZVPN**. Products stay separate.
 
-FED-MESH name ops (\`name_claim\`, \`name_read\`, \`name_resolve\`, \`slot_read\`, \`witness\`, \`witness_read\`) sit on this slug and call the existing relay. Claim and witness write only with \`confirm: true\` and anchor ChainLock. They do not require the garden pair and they do not host payloads. The mesh name plane is not ICANN and does not replace the public internet. \`tools/list\` stays 36. Isolation is single-node security-awareness, not a loopback fence. Phoenix is a local reboot loop. Open-world awareness binds \`0.0.0.0\`. \`forced_loopback\` and \`loopback_isolation\` are not the mesh fence. Cap-7 is not a public egress IP. WireGuard, OpenVPN, and L3 stay off.
+FED-MESH name ops (\`name_claim\`, \`name_read\`, \`name_resolve\`, \`slot_read\`, \`witness\`, \`witness_read\`) sit on this slug and call the existing relay. Claim and witness write only with \`confirm: true\` and anchor ChainLock. They do not require the garden pair and they do not host payloads. That name plane is Cap-7 and \`.aziel\` metadata. Cap-7 is not an ICANN registrar and not a public egress IP. It is not AZVPN. The name plane does not replace the public internet. \`tools/list\` stays 36. Isolation is single-node security-awareness, not a loopback fence. Phoenix is a local reboot loop. Open-world awareness binds \`0.0.0.0\`. \`forced_loopback\` and \`loopback_isolation\` are not the mesh fence. WireGuard, OpenVPN, and L3 stay off.
+
+**Track 2 packet plane (${D2D_SPEC}, \`${D2D_PLANE}\`):** device-to-device reachability, separate from Cap-7 names. Failover is ${D2D_ORDER_ARROW} (${D2D_ORDER_LABEL}). RF and photon light flashes are functional carriers. Dedicated RF is the hop beyond Wi-Fi and Bluetooth (cellular / ModemManager when that radio is present; \`QNM-RADIO-ABSENT\` when absent). Photon flashes need camera and flash or LED (\`QNM-RADIO-ABSENT\` when absent; qnsd is not this path; no mock LIVE). Each carrier is ${D2D_STATUS} until a peer exchange is demonstrated. FragGate returns FG-STUB for \`mesh_discover\`, \`peer_advertise\`, \`peer_list\`, \`peer_session_open\`, \`peer_send\`, \`peer_recv\`, \`store_forward\`, \`path_probe\`, discovery, tunnel, multi-hop, and each carrier op. A missing path cites MESH-NO-ROUTE. Cap-7 public egress cites MG-NO-IP-EXIT. alt_internet_live is false. WARN-5 stays STANDS-until-demonstrated.
 
 **Never hosts payloads.** payload_host / serve_content_for_peer / analytics / ranking / repair_integrity_bypass / interface / lumen / hub stay **stub**.
 
