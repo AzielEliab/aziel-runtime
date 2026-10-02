@@ -101,8 +101,20 @@ AZVPN is the suite VPN concentrator (HTTPS and WebSocket on the public concentra
 
 AZBot Phase A (cloud agent `bc-c5243c31-a34c-5ed5-80a9-186f7d8f9297`) owns Softwares catalog honesty and FG-STUB D2D mesh ops on this repository. This paper does not edit the Softwares catalog, a Softwares engine, or FragGate stub tables. Front-door packet, hop, tunnel, and mesh-internet verbs stay out of this pull request. They stay SLOT or refused until real hops exist. They must not be painted as LIVE public egress.
 
+## Phase A scaffold (landed, still not a hop)
+
+[`D2D-CARRIERS-1.0.md`](D2D-CARRIERS-1.0.md) is the Phase A honesty scaffold this sketch pointed at. It is on the tree. It is not a LIVE public packet egress.
+
+- Status stays `NOT-READY`. FragGate on `mesh` and `aznet` returns `FG-STUB`. `alt_internet_live` stays false. `packet_path_live` stays false. WARN-5 stays STANDS-until-demonstrated. This scaffold does not close it.
+- Carrier order matches this paper: LAN, Wi-Fi, Bluetooth, RF, then photon light flashes.
+- The photon **flash hop** in that scaffold is camera and flash or LED. Absent hardware is `QNM-RADIO-ABSENT`. Local `qnsd` stays the QNS cite (`QNS-CITE-ONLY`, `QNS-NO-PROXY`). It is not that flash path. A local radio-hook reading of `qnsd` stays hardware presence (`packet_hop` false). It is not a packet hop and not mock LIVE.
+- The RF **hop** in that scaffold is the dedicated carrier beyond Wi-Fi and Bluetooth (cellular / ModemManager when that radio is present). Absent is `QNM-RADIO-ABSENT`. The SDR row in the table above stays a local hardware-presence hook. It is not a LIVE packet hop.
+- `track2CarrierProbe()` may report `HW-PRESENT` or `REFUSE`. It never reports `LIVE`.
+- The prefer-order selector that would open a hop is still not built. Phase A does not implement it and does not forward packets.
+- This Plane P paper still does not edit the Softwares catalog. Catalog strings and the FG-STUB op tables live in the Phase A scaffold. Softwares stay 42. `tools/list` stays 36.
+
 ## What this cut does not do
 
 No Worker deploy. No DNS change. No NAT punch. No new hop process. No mock RF. No mock photon. No claim that channel-plane `"on"` is hardware. No claim that open-world awareness forwards packets. No claim that Plane P is LIVE. No Internet-comparable BGP. No new Softwares card. No new MCP tool. No merge of AZVPN and MirageGrid.
 
-Cross-links: [`MESH-INTERNET-WARNS-1.0.md`](MESH-INTERNET-WARNS-1.0.md), [`FED-MESH-1.0.md`](FED-MESH-1.0.md), [`QNM-CHANNEL-PLANE-1.0.md`](QNM-CHANNEL-PLANE-1.0.md), [`QNS-CD-1.0.md`](QNS-CD-1.0.md), [`NODE_MESH.md`](../NODE_MESH.md).
+Cross-links: [`D2D-CARRIERS-1.0.md`](D2D-CARRIERS-1.0.md), [`MESH-INTERNET-WARNS-1.0.md`](MESH-INTERNET-WARNS-1.0.md), [`FED-MESH-1.0.md`](FED-MESH-1.0.md), [`QNM-CHANNEL-PLANE-1.0.md`](QNM-CHANNEL-PLANE-1.0.md), [`QNS-CD-1.0.md`](QNS-CD-1.0.md), [`NODE_MESH.md`](../NODE_MESH.md).

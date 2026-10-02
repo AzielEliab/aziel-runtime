@@ -186,7 +186,7 @@ Cap-7 is the MirageGrid auto-generate **.az** layer. It duplicates the four hub 
 
 ### Plane N and Plane P
 
-Plane N is this Cap-7 / `.aziel` name plane. It is not an ICANN registrar and not a public egress IP. Plane P is the separate node-mesh packet path (devices as nodes). WARN-5 is STANDS-until-demonstrated, not a permanent ceiling. Carrier prefer order on that path is LAN, Wi-Fi, Bluetooth, RF, then photon light flashes. RF and photon refuse when the hardware is absent. No mock LIVE. Plane P is not claimed as LIVE public egress. AZVPN stays the suite VPN and is not MirageGrid. Paper: [PLANE-P-D2D-1.0](docs/designs/PLANE-P-D2D-1.0.md).
+Plane N is this Cap-7 / `.aziel` name plane. It is not an ICANN registrar and not a public egress IP. Plane P is the separate node-mesh packet path (devices as nodes). WARN-5 is STANDS-until-demonstrated, not a permanent ceiling. Carrier prefer order on that path is LAN, Wi-Fi, Bluetooth, RF, then photon light flashes. RF and photon refuse when the hardware is absent. No mock LIVE. Plane P is not claimed as LIVE public egress. The Phase A scaffold stays NOT-READY / FG-STUB and `alt_internet_live` is false. AZVPN stays the suite VPN and is not MirageGrid. Papers: [PLANE-P-D2D-1.0](docs/designs/PLANE-P-D2D-1.0.md), [D2D-CARRIERS-1.0](docs/designs/D2D-CARRIERS-1.0.md).
 
 ## FragGate door
 
