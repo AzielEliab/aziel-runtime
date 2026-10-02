@@ -21,6 +21,7 @@ Current software designs live in [docs/designs/](designs/). Author: **Aziel Elia
 - [ORIGIN-CUTOVER-1.0](designs/ORIGIN-CUTOVER-1.0.md) — AZNet home-origin / mini-PC path stays SLOT; sidenet means AZNet; L0 unbroken; no DNS rent; no live DNS change; phoenix local-only / REHEAL-1.0
 - [BAN-SURVIVAL-1.0](designs/BAN-SURVIVAL-1.0.md) — three layers: live multi-front ↔ cold shelves; live-node API SLOT; Cap-7 factory duplication cite LIVE + AZNet verify LIVE (standard internet does not reach Cap-7; update shuffle ping→land)
 - [SPORE-1.0](designs/SPORE-1.0.md) — last-resort failsafe: pause / preserve / wait / physical-wipe-only; does not replace cold shelves; no pretend-live metabolism while dormant
+- [MESH-INTERNET-WARNS-1.0](designs/MESH-INTERNET-WARNS-1.0.md) — WARN-1 through WARN-4 stay STANDS. WARN-5 is STANDS-until-demonstrated: Track 2 is a separate node-mesh internet, BY-DESIGN separate from ICANN, not BGP, not demonstrated. Track 1 Cap-7 / `.aziel` stays the mesh name plane. Cap-7 is not the public Internet.
 
 This page remains the live **QNM-BUILD-1.0** rollup law. Do not rewrite that law from the papers.
 
@@ -256,6 +257,8 @@ Must stay off: Cap-7 public egress / residential / Cloudflare geo-exit / sticky 
 FragGate name ops `name_claim`, `name_read`, `name_resolve`, `slot_read`, `witness`, and `witness_read` sit on slug `mesh` and Softwares slug `aznet`. They call the existing relay. Claim and witness write only with payload `confirm: true` and anchor ChainLock. No new MCP tool. `tools/list` stays 36.
 
 `.aziel` name records are signed and anchored like ref updates. `<handle>.aziel` is self-certifying and final immediately. A friendly name carries proof-of-work and stays pending until 72 hours and 2 witness handles. The first valid final claim wins, with 3 user .aziel names per handle and 4 reserved hub-mirror slots. Equivocation flags that handle only. This relay does not execute peer code and does not rank handles. `.az` is normal DNS except the Cap-7 factory names and the AZ.* hub names (`AZ.AzielEliab.AZ`, `AZ.Godlock.AZ`, `AZ.AzielCorpusLibrary.AZ`, `AZ.HeDidntJump.AZ`). Those cites are not mesh name records. Standard internet does not reach Cap-7. AZ.* resolves through hub HTTPS.
+
+Cap-7 factory exec is LIVE on the Cap-7 plane. That plane is not a public egress IP and not an ICANN registrar. Cap-7 is not the public Internet. Track 1 is the Cap-7 and `.aziel` mesh name plane as it ships today. AZBrowser #17 resolves `.aziel` from the local ledger plus the relay. Runtime #201 name-reads a posted ledger or relay snapshot. A miss or a hash mismatch is `FG-GATE-REFUSE`. That path does not query ICANN DNS. `negotiateBearer` refuses `icann` and `cap7-egress`. Track 2 is a separate node-mesh internet with its own addressing and routing. WARN-5 is STANDS-until-demonstrated. BY-DESIGN that internet stays separate from ICANN. It is not BGP. It is not demonstrated here. Paper: [MESH-INTERNET-WARNS-1.0](designs/MESH-INTERNET-WARNS-1.0.md).
 
 ## SOT-SYNC-1.0
 

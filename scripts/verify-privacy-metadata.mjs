@@ -92,10 +92,12 @@ assert.equal(cache.entries.size, 1);
 sweepReplay(cache, now + 1_000);
 assert.equal(cache.entries.size, 0);
 
-for (const bearer of ["tor", "udp", "radio", "sandbox"]) {
+for (const bearer of ["tor", "udp", "radio", "sandbox", "icann", "cap7-egress"]) {
   const refused = negotiateBearer(bearer);
   assert.equal(refused.live, false);
   assert.equal(refused.code, "AZP-BEARER-REFUSE");
+  assert.equal(refused.public_icann, false);
+  assert.equal(refused.cap7_public_egress, false);
 }
 assert.equal(CLAIM_LIMITS.anonymous, false);
 assert.equal(CLAIM_LIMITS.unkillable, false);
@@ -119,6 +121,46 @@ assert.match(paper, /Encryption of the payload is not anonymity/);
 assert.match(paper, /not an unkillable network/);
 assert.match(paper, /Plane B Framagit/);
 assert.match(paper, /Softwares stay 42/);
+assert.match(paper, /FIXTURE-MEASURE/);
+assert.match(paper, /not an anonymity PASS/);
+
+const warnsPaper = readFileSync(new URL("../docs/designs/MESH-INTERNET-WARNS-1.0.md", import.meta.url), "utf8");
+assert.match(warnsPaper, /WARN-4/);
+assert.match(warnsPaper, /FIXTURE-MEASURE/);
+assert.match(warnsPaper, /not an anonymity PASS/);
+assert.match(warnsPaper, /encryption_addressed_is_anonymity/);
+
+const samples = [];
+for (let i = 0; i < 8; i += 1) {
+  const payload = `measure-${i}-${"x".repeat(i)}`;
+  const t0 = performance.now();
+  const sample = await sealEnvelope({
+    keystore: aliceKs,
+    session: alice.session,
+    recipientEncPublicKey: bob.session.ephemeral_enc_public_key,
+    payload,
+    now: now + i,
+    ttlMs: 5_000,
+  });
+  const sealMs = performance.now() - t0;
+  assert.equal(sample.ok, true, sample.message);
+  const bytes = Buffer.byteLength(JSON.stringify(sample.envelope), "utf8");
+  assert.equal(bytes > payload.length, true);
+  assert.equal(Number.isFinite(sealMs), true);
+  samples.push({ index: i, bytes, seal_ms: Math.round(sealMs * 1000) / 1000 });
+}
+const fixtureMeasure = {
+  label: "FIXTURE-MEASURE",
+  warn_id: "WARN-4",
+  anonymity_pass: false,
+  n: samples.length,
+  samples,
+  note: "Fixture envelope size and seal-timing samples. Not an anonymity test. Not an anonymity PASS.",
+};
+assert.equal(fixtureMeasure.label, "FIXTURE-MEASURE");
+assert.equal(fixtureMeasure.anonymity_pass, false);
+assert.equal(fixtureMeasure.n, 8);
+assert.equal(fixtureMeasure.samples.every((row) => row.bytes > 0 && row.seal_ms >= 0), true);
 
 assert.equal(PUBLIC_MCP_TOOLS.length, 36);
 assert.equal(softwareCatalog("https://aziel-runtime.example", PRODUCTS).count, 42);
@@ -148,6 +190,7 @@ assert.equal(report.claim_limits.unkillable, false);
 assert.equal(report.claim_limits.live_multi_provider, false);
 assert.equal(report.claim_limits.encryption_addressed_is_anonymity, false);
 assert.equal(report.fields.some((row) => row.reveals.toLowerCase().includes("anonymous")), false);
+assert.equal(fixtureMeasure.anonymity_pass, false);
 console.log(JSON.stringify({
   script: report.script,
   fields: report.fields,
@@ -155,8 +198,10 @@ console.log(JSON.stringify({
   reveals: report.reveals,
   necessary: report.necessary,
   claim_limits: report.claim_limits,
+  fixture_measure: fixtureMeasure,
   anonymous: false,
   unkillable: false,
   live_multi_provider: false,
+  anonymity_pass: false,
 }, null, 2));
-console.log("verify-privacy-metadata: GATE F/G ok");
+console.log("verify-privacy-metadata: GATE F/G ok; FIXTURE-MEASURE is not an anonymity PASS");

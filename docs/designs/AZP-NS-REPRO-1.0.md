@@ -19,7 +19,7 @@ node scripts/verify-azp-ns-repro.mjs
 
 `npm run test:azp-ns` is the same command. `npm test` also runs each gate once, later in the full suite.
 
-The wrapper exits non-zero if any fixture gate exits non-zero, if a row is painted `LIVE`, or if a required honesty row is missing or marked pass.
+The wrapper exits non-zero if any fixture gate exits non-zero, if a row is painted `LIVE`, or if a required honesty row is missing or marked pass. A green run still prints `WARN STANDS` for WARN-1 through WARN-4. WARN-5 prints `STANDS-until-demonstrated`. Those lines are not passes.
 
 ## Gate order
 
@@ -61,12 +61,27 @@ Related rows in `verify-provider-loss.mjs`, also not passes:
 
 Node A is the production Cloudflare Worker. It is already deployed. These scripts do not contact it and do not destroy it. `kill-primary-provider` only deletes an in-memory replica.
 
+## Mesh-internet WARNs
+
+The map is [`MESH-INTERNET-WARNS-1.0.md`](MESH-INTERNET-WARNS-1.0.md). The wrapper prints `warns` with `id` and `status`. SKIP and SLOT rows above stay fail-closed. A STANDS row is not a PASS.
+
+| Id | Status | Why |
+|---|---|---|
+| WARN-1 | STANDS | One LIVE production edge plus same-host fixtures. Nodes B, C, and D are OPERATOR SKIP. Software-workers are not independent hosts. `live_multi_provider` stays false. |
+| WARN-2 | STANDS | Fixture kill and rebuild only. `destroy-live-provider` stays SKIP. Plane B stays SLOT. Survivable in fixtures is not unkillable. |
+| WARN-3 | STANDS | Fixture adversarial coverage is real. A live partition between independent hosts is missing. Self-test is not a third-party lab. |
+| WARN-4 | STANDS | Metadata inventory is fixture-LIVE. `FIXTURE-MEASURE` in `verify-privacy-metadata.mjs` is envelope size and seal timing. It is not an anonymity PASS. `anonymous` stays false. |
+| WARN-5 | STANDS-until-demonstrated | Two tracks. Track 1 is the Cap-7 and `.aziel` mesh name plane as it ships today. Cap-7 is not the public Internet. Track 2 is a separate node-mesh internet with its own addressing and routing. BY-DESIGN that internet stays separate from ICANN. It is not BGP. It is not demonstrated. This is not a refusal to build. |
+
+`negotiateBearer` refuses `icann` and `cap7-egress`. AZBrowser #17 resolves `.aziel` from the local ledger plus the relay. Runtime #201 name-reads a posted ledger or relay snapshot. A miss or a hash mismatch is `FG-GATE-REFUSE`.
+
 ## What a stranger should see
 
 - Each fixture script prints a closing `ok` line.
 - Scripts that carry a report print JSON with `report[]` entries of `FIXTURE`, `SKIP`, or `SLOT`.
-- `verify-privacy-metadata.mjs` prints `fields`, `observer`, `reveals`, `necessary`, and `claim_limits`. `anonymous` is false. `encryption_addressed_is_anonymity` is false.
+- `verify-privacy-metadata.mjs` prints `fields`, `observer`, `reveals`, `necessary`, and `claim_limits`. `anonymous` is false. `encryption_addressed_is_anonymity` is false. It also prints `fixture_measure` with label `FIXTURE-MEASURE`. That block is not an anonymity PASS.
 - The wrapper prints `softwares: 42` and `tools: 36`.
+- The wrapper prints `WARN STANDS` for WARN-1 through WARN-4, and `STANDS-until-demonstrated` for WARN-5, inside `warns`.
 - No row uses mode `LIVE`.
 
 ## Operator work this file does not do

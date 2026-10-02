@@ -142,6 +142,18 @@ This is not public ICANN DNS and not radio PHY. Cap-7 DNS publish stays out of t
 
 FragGate ops `name_claim`, `name_read`, `name_resolve`, `slot_read`, `witness`, and `witness_read` sit on slug `mesh` and on Softwares slug `aznet`. They call the existing relay (`relay-name`, `relay-name-read`, `relay-slot-read`, `relay-witness`, `relay-witness-read`). Claim and witness write only with payload `confirm: true` and anchor ChainLock when the act is valid. Garden pair is not required for these name ops. No new MCP tool. `tools/list` stays 36.
 
+### Routing cite (MESH-INTERNET-WARNS-1.0)
+
+Cap-7 factory exec is LIVE on the Cap-7 plane. That plane is not a public egress IP and not an ICANN registrar. Cap-7 is not the public Internet.
+
+Track 1 is the Cap-7 and `.aziel` mesh name plane as it ships today. AZBrowser #17 resolves `.aziel` from the local ledger plus the relay. Runtime #201 name-reads a posted ledger or relay snapshot. A miss or a hash mismatch is `FG-GATE-REFUSE`. That path does not query ICANN DNS and does not dial a LAN peer.
+
+`negotiateBearer` refuses `icann` and `cap7-egress`. Admitted AZP route classes stay `direct` and `relay`. `src/mesh-router.js` routes free text to a Softwares catalog op. It is not packet routing.
+
+Track 2 is a separate node-mesh internet with its own addressing and routing. WARN-5 is STANDS-until-demonstrated. BY-DESIGN that internet stays separate from ICANN. It is not BGP. It is not demonstrated here. `not_a_second_internet` stays true for Track 1. This cite does not paint Cap-7 as that internet and does not mark a multi-node PASS.
+
+Paper: [`MESH-INTERNET-WARNS-1.0.md`](MESH-INTERNET-WARNS-1.0.md).
+
 ## 5. Git-like content model
 
 Objects are content-addressed. The object hash is SHA-256 of the raw bytes, lowercase hex.
