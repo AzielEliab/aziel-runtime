@@ -16,9 +16,10 @@ import { SESSION_ID_RE } from "./session-core.js";
 
 export const UI_HOLD_NOTE =
   "Close UI detached the shell. The Worker still holds the session and the mesh record. " +
-  "This is not a browser timer. Mesh presence still expires after 5 minutes unless the Worker cron refreshes a held node. " +
-  "The cron runs every 2 minutes and only heartbeats a node that is already on the roster. " +
-  "A refused heartbeat stays refused. A dropped node is not rejoined. " +
+  "This is not a browser timer. A held non-worker mesh session stays registered until leave or 14 days after the last beat. " +
+  "The cron runs every 2 minutes and only heartbeats a node that is already on the roster, which keeps that row in the live class. " +
+  "Missed beats mark the row stale. They do not delete it. {slug}-worker suite-presence still drops after 5 minutes. " +
+  "A refused heartbeat stays refused. A row past grace is not rejoined. " +
   "FragGate, library sync, and MCP are not stopped by this hold.";
 
 const CLIENT_RE = /^[a-z0-9._-]{8,80}$/;

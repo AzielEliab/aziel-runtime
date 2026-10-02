@@ -23,7 +23,8 @@ Primary host: [Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runti
 |---------|----------|--------|
 | Session object + receipt chain | 6 hours or `close`; cap 64 receipts | Durable Object `SESSION` ([`src/session-do.js`](../src/session-do.js), [`src/production.js`](../src/production.js)) |
 | FragGate DecisionGATE ledger tip | in-isolate ring; not a user dossier | [`src/fraggate/ledger.js`](../src/fraggate/ledger.js) |
-| Mesh join / heartbeat presence | 5-minute TTL | [`src/mesh.js`](../src/mesh.js) |
+| Mesh `{slug}-worker` suite-presence | 5-minute TTL, no user heartbeat | [`src/mesh.js`](../src/mesh.js) |
+| Mesh human / site registration | Registered until leave or 14 days after the last beat. Miss 3 adaptive beats → stale, not deleted. Stale is not Live. | [`src/mesh-membership.js`](../src/mesh-membership.js) |
 | AZBrowser tabs / AZMail mesh KV | product-scoped Worker KV when those ops run | bindings in `wrangler.toml` |
 
 ## Stored / counted (published)
