@@ -130,7 +130,7 @@ Exit criteria for this slice:
 
 Phase D store-forward on the local node delivers a sealed object A→B→C in one process. Receipts recompute. `second_device` stays false. The public door stays FG-STUB. It does not set `alt_internet_live`. Phase E bootstrap lists and shelf cites stay scaffold. `live_multi_provider` stays false. Cold shelves stay SLOT.
 
-WARN-5 stays STANDS-until-demonstrated until a stranger can recompute a real multi-host Track 2 path, Cap-7 is still not the public Internet, and `negotiateBearer` still refuses `icann` and `cap7-egress`. The in-process A→B→C fixture does not close WARN-5. Wi-Fi, Bluetooth, RF, and photon exchanges are not demonstrated by a LAN fixture. Softwares stay 42. `tools/list` stays 36. This section does not add a Softwares card.
+WARN-5 stays STANDS-until-demonstrated until a stranger can recompute a real multi-host Track 2 path, Cap-7 is still not the public Internet, and `negotiateBearer` still refuses `icann` and `cap7-egress`. The in-process A→B→C fixture does not close WARN-5. Wi-Fi, Bluetooth, RF, and photon exchanges are not demonstrated by a LAN fixture. The mobile join client ([`TRACK2-MOBILE-JOIN-1.0.md`](TRACK2-MOBILE-JOIN-1.0.md)) is a client of the local node. `mobile_client` stays `present-not-demonstrated`. It is not an app-store release and it does not set `alt_internet_live`. Softwares stay 42. `tools/list` stays 36. This section does not add a Softwares card.
 
 ## What this cut does not do
 

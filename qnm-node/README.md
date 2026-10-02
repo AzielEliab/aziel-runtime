@@ -13,6 +13,7 @@ Parent still owns that package: [AzielEliab/qnm-node](https://github.com/AzielEl
 - **No mock LIVE.**
 - Plane P carrier prefer order is LAN, then Wi-Fi, Bluetooth, RF, photon. The operator arms that order on the local node (`--arm` or `POST /v1/fed-mesh/arm`). GET never arms it. RF and photon stay real carriers. Absent hardware refuses `QNM-RADIO-ABSENT`. No mock LIVE. Paper: [PLANE-P-D2D-1.0](../docs/designs/PLANE-P-D2D-1.0.md). Cap-7 / `.aziel` stay names, not carriers.
 - `track2CarrierProbe()` reports `HW-PRESENT` or `REFUSE` (`QNM-RADIO-ABSENT`). It never reports `LIVE`. LAN discovery is LIVE only after two peers verify beacons. A peer session is LIVE-when-session. Store-forward is LIVE-when-three-local-nodes / fixture. `alt_internet_live` stays false. WARN-5 is not closed. Paper: [D2D-CARRIERS-1.0](../docs/designs/D2D-CARRIERS-1.0.md).
+- The mobile join client is `qnm-node/mobile/`, served at `/mobile/` by this process. It discovers the LAN beacon (presence and tip hash) and opens the sealed peer session this node already speaks. `mobile_client` stays `present-not-demonstrated`. It is a client of the local node, not an app-store release, and not alt-internet LIVE. A phone on Wi-Fi is the path to that LAN socket. It does not mark Wi-Fi, RF, or photon live. Paper: [TRACK2-MOBILE-JOIN-1.0](../docs/designs/TRACK2-MOBILE-JOIN-1.0.md).
 - The public Worker `GET /v1/mesh` `channel_plane` stays **cite-only** (`worker_hardware: false`).
 - Photon vias run on local `qnsd`, which binds `127.0.0.1`. That bind is not a fence of the mesh. Isolation is single-node security-awareness (a bad peer or self). Phoenix is a local reboot loop (`phoenix_lock`: wait / re-seal), not public hostname resurrection. Open-world awareness is a separate listen on `0.0.0.0` (`node qnm-node/awareness.mjs`). The operator lock is LIVE. This process is LIVE only while it is listening; otherwise the socket stays `live-when-configured`. `forced_loopback` and `loopback_isolation` are not the mesh fence. The listen does not forward packets and is not a Cap-7 public egress IP. The Worker never fetches `127.0.0.1`.
 
@@ -46,6 +47,17 @@ node qnm-node/fed-instance.mjs --data ./data/a --port 8781 --host 0.0.0.0 --adve
 node qnm-node/fed-instance.mjs --data ./data/b --port 8782 --host 192.168.1.20 \
   --relays http://127.0.0.1:8780/v1/mesh/relay,http://127.0.0.1:8783/v1/mesh/relay
 ```
+
+### Phone client
+
+`/mobile/` is the Track 2 join page for a phone on the same LAN. It is a client of this process. `mobile_client` stays `present-not-demonstrated`. It is not an app-store release. `--fixture` keeps the roster honest when there is no second physical device. `--arm lan` is the operator arm. GET does not arm.
+
+```bash
+node qnm-node/fed-instance.mjs --data ./data/phone --port 8781 --host 0.0.0.0 \
+  --advertise 192.168.1.10 --arm lan --fixture
+```
+
+Open `http://192.168.1.10:8781/mobile/` in Android Chrome or iPhone Safari. Add to Home Screen saves the shell. Wi-Fi on the phone is the path to that LAN socket. Paper: [TRACK2-MOBILE-JOIN-1.0](../docs/designs/TRACK2-MOBILE-JOIN-1.0.md).
 
 One `--relay` stays L0. `--relays` with more than one URL makes that node's `GET /health` show `survival.methods` multi-relay `live: true`. Binding the socket does not do that, and it does not paint public `GET /v1/mesh` `l1_live`. Unconfigured public mesh stays `l1_live=false`, `aznet_replaces_internet=false`, Softwares 42.
 
