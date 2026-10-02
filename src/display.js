@@ -589,6 +589,11 @@ export function fieldsFromResult(result) {
 
 export function summaryFromResult(result, fallbackText, product) {
   if (result && typeof result === "object") {
+    if (typeof result.count === "number" && Array.isArray(result.software)) {
+      return result.git_sha_tracks_deployed_tip === true
+        ? `Softwares ${result.count}. Deployed tip.`
+        : `Softwares ${result.count}. deploy lag.`;
+    }
     if (result.background === true) {
       const hash = result.receipt && result.receipt.hash;
       const honest = typeof hash === "string" && /^[a-f0-9]{64}$/.test(hash) && !/^0{64}$/.test(hash);
@@ -717,6 +722,64 @@ function displayViewForProduct(parsed, product) {
   return parsed;
 }
 
+/** Plain lines for a human. Machines keep the envelope on structuredContent. */
+export function plainConsumerText(body, res) {
+  if (body == null) return res && res.status != null ? "HTTP " + res.status : "No reply.";
+  if (typeof body === "string") return body;
+  if (typeof body !== "object") return String(body);
+  const lines = [];
+  const http = res && res.status != null ? "HTTP " + res.status : "";
+  const code = body.code || body.refuse || (body.error && typeof body.error === "object" && body.error.code) || "";
+  const display = body.display && typeof body.display === "object" ? body.display : null;
+  const title = display && display.title ? display.title : "";
+  const head = [http, code, title].filter(Boolean).join(" · ");
+  if (head) lines.push(head);
+  if (
+    body.visited === false ||
+    body.advisory === true ||
+    (body.note && /advisory|visited=false|sealed index/i.test(String(body.note)))
+  ) {
+    lines.push("Advisory citations. Not retrieved article evidence.");
+  }
+  if (display && display.action) lines.push(display.action);
+  const inner = body.result && typeof body.result === "object" && !Array.isArray(body.result) ? body.result : null;
+  const src = inner || body;
+  if (display && display.summary) lines.push(display.summary);
+  else if (typeof body.summary === "string" && body.summary.trim()) lines.push(body.summary);
+  else if (typeof src.plain_status === "string" && src.plain_status.trim()) lines.push(src.plain_status);
+  else if (typeof body.plain === "string" && body.plain.trim()) lines.push(body.plain);
+  else if (typeof src.count === "number" && Array.isArray(src.software)) {
+    lines.push(src.git_sha_tracks_deployed_tip === true ? "Softwares " + src.count + ". Deployed tip." : "Softwares " + src.count + ". deploy lag.");
+  } else if (typeof src.note === "string" && src.note.trim()) lines.push(src.note);
+  else if (typeof body.message === "string" && body.message.trim()) lines.push(body.message);
+  else if (typeof body.error === "string" && body.error.trim()) lines.push(body.error);
+  else if (body.ok === true || src.ok === true) lines.push("Finished.");
+  else if (body.ok === false || src.ok === false) lines.push("Refused.");
+  const answer = typeof body.answer === "string" && body.answer.trim()
+    ? body.answer.trim()
+    : typeof src.answer === "string" && src.answer.trim()
+      ? src.answer.trim()
+      : "";
+  if (answer && lines.indexOf(answer) < 0) lines.push(answer);
+  if (src.page_cycle && typeof src.page_cycle === "object" && src.page_cycle.current) {
+    lines.push("Page cycle: " + src.page_cycle.current);
+  }
+  const vpnOn = src.vpn === true || body.vpn === true;
+  const azvpn = src.product === "azvpn" || src.concentrator_slug === "azvpn" || body.slug === "azvpn" || src.default_vpn_backend === "azvpn";
+  if (vpnOn && azvpn) lines.push("VPN on at boot.");
+  if (src.deploy_lag) lines.push(String(src.deploy_lag));
+  else if (body.deploy_lag) lines.push(String(body.deploy_lag));
+  if (display && Array.isArray(display.fields)) {
+    for (let i = 0; i < display.fields.length; i++) {
+      const field = display.fields[i];
+      if (!field || field.value == null) continue;
+      lines.push(String(field.label || "Field") + ": " + String(field.value));
+    }
+  }
+  if (display && display.next) lines.push(display.next);
+  return lines.filter(Boolean).join("\n") || "Finished.";
+}
+
 export function formatDisplayText(envelope) {
   const d = (envelope && envelope.display) || {};
   const lines = [];
@@ -732,8 +795,7 @@ export function formatDisplayText(envelope) {
     if (d.fields.length) lines.push("");
   }
   if (d.next) lines.push(d.next, "");
-  lines.push(JSON.stringify(envelope, null, 2));
-  return lines.join("\n");
+  return lines.join("\n").trim() || "Finished.";
 }
 
 export function mcpContentText(name, envelope, rawText) {

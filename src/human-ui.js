@@ -27,6 +27,7 @@ import { softwareOneLine } from "./software-copy.js";
 import { UI_DOMAIN_DEFAULT, UI_DOMAINS, uiDomainForSlug } from "./ui-domains.js";
 import { GUIDE_STARTERS } from "./guide-reason.js";
 import { UI_SHELL_CSS, uiShellBootHtml, uiShellClientScript } from "./ui-hold.js";
+import { plainConsumerText } from "./display.js";
 
 export const WORKSPACE_PAGE_TITLE = `Workspace — ${PRODUCT_NAME}`;
 export const WORKSPACE_PAGE_DESCRIPTION =
@@ -132,7 +133,7 @@ export const HUMAN_TASKS = Object.freeze([
     name: "AZVPN",
     op: "describe",
     title: "Describe concentrator",
-    blurb: "Automatic public VPN backend. HTTPS/WS REAL. WireGuard/OpenVPN SLOT. Callers do not name software=azvpn on auto paths.",
+    blurb: "VPN on at boot. This desk has no off switch. HTTPS/WS is on. WireGuard and OpenVPN stay unavailable.",
     fields: [{ name: "kind", label: "Kind (https_ws)", type: "text", example: "https_ws" }],
   },
   {
@@ -409,7 +410,7 @@ function taskCardHtml(task) {
     ${task.slug === "aznet" ? `<button type="button" class="run-task" data-op="pair">pair</button>` : ""}
     ${task.slug === "embryolock" ? `<button type="button" class="run-task" data-op="doctor">doctor</button><button type="button" class="run-task" data-op="verify_hash">verify_hash</button>` : ""}
   </div>
-  <pre class="ws-out fg-out" role="status" aria-live="polite">Ready. Same door: POST /v1/fraggate/call { slug: "${escapeHtml(task.slug)}", op: "${escapeHtml(task.op)}" }</pre>
+  <pre class="ws-out fg-out" role="status" aria-live="polite">Ready. ${escapeHtml(task.name)}. ${escapeHtml(doorOpLabel(task.slug, task.op))}.</pre>
 </article>`;
 }
 
@@ -429,6 +430,8 @@ function primaryOpFor(slug) {
 function doorOpLabel(slug, op) {
   if (slug === "aznet" && op === "pair_status") return "Pair status";
   if (slug === "aznet" && op === "pair") return "pair";
+  if (slug === "azvpn" && op === "describe") return "VPN status";
+  if (slug === "azvpn" && op === "close") return "Close one session";
   return op;
 }
 
@@ -530,9 +533,11 @@ function dashCardHtml(p, origin) {
         ? `<p class="hint">pairs with AZBrowser (order/token) — hash continuity / side-net; pairing ≠ tunnel</p>`
         : p.slug === "embryolock"
           ? `<p class="hint">Public door is health, policy, and hash cite. wipe, scorch, and unlock stay disabled on this mesh.</p>`
-          : p.slug === "azchat"
+            : p.slug === "azchat"
             ? `<p class="hint">LIVE+bound. Product mesh hop starts off. Suite mesh is a separate surface.</p>`
-            : "";
+            : p.slug === "azvpn"
+              ? `<p class="hint" id="azvpn-always-on" data-azvpn-desk="always-on">VPN on at boot. This desk has no off switch.</p>`
+              : "";
   const fields = task
     ? `<a href="#task-${escapeHtml(p.slug)}">Labeled fields</a>`
     : `<a href="${escapeHtml(base)}/p/${escapeHtml(p.slug)}">Product card</a>`;
@@ -656,7 +661,7 @@ ${dashCards}
           <button type="button" data-op-mesh="join">Join</button>
           <button type="button" data-op-mesh="heartbeat">Heartbeat</button>
           <button type="button" data-op-mesh="leave">Leave</button>
-          <button type="button" data-op-mesh="vpn">VPN cite</button>
+          <button type="button" data-op-mesh="vpn">VPN on at boot</button>
           <button type="button" data-op-mesh="enable">Enable extra bearer</button>
         </div>
       </div>
@@ -848,7 +853,7 @@ ${dashCards}
   <section class="task" id="mesh-panel" data-kind="mesh" data-origin="${escapeHtml(base)}">
     <h3>Mesh status</h3>
     <p class="hint" id="desk-hint-mesh">What is this desk: who is on the mesh. Refresh reads status. Join needs a product slug. GET does not turn radios on. Ask Jeeves can point here. This panel stays.</p>
-    <p class="blurb"><strong>Nodes</strong> from <code>nodes</code> / <code>rollup.nodes</code> count human mesh users plus cited human uses (<code>human_uses</code> / USES). <strong>Live Nodes</strong> from <code>live_nodes</code> / <code>rollup.mesh</code> count human mesh users plus concurrent website viewers (<code>site_live_viewers</code>) on godlock.uk + azieleliab.com + azielcorpuslibrary.net. Paint <code>live_nodes</code> / <code>rollup.mesh</code> only — do not add a local <code>/count</code>. <code>live_nodes_tip</code> is the seal. <code>rollup.live</code> is not published. Never paint <code>software_nodes</code>, <code>rollup.live</code>, <code>rollup.all.live</code>, or <code>rollup.software.live</code> as Live Nodes. <code>software_nodes</code> is the <code>{slug}-worker</code> roster. hedidntjump.com, bots, Softwares, and downloads are excluded. GET never pulls hub /count and never enables radios. Incomplete uses stay honest (no invented users). Channel plane cites wifi / bluetooth / rf / photon ON (local qnm-node; <code>worker_hardware:false</code> — not live Worker RF). Nine QNM laws stay machine-true on that JSON. Join needs a catalog product. Public VPN auto-binds AZVPN (HTTPS/WS REAL; WireGuard/OpenVPN SLOT).</p>
+    <p class="blurb"><strong>Nodes</strong> from <code>nodes</code> / <code>rollup.nodes</code> count human mesh users plus cited human uses (<code>human_uses</code> / USES). <strong>Live Nodes</strong> from <code>live_nodes</code> / <code>rollup.mesh</code> count human mesh users plus concurrent website viewers (<code>site_live_viewers</code>) on godlock.uk + azieleliab.com + azielcorpuslibrary.net. Paint <code>live_nodes</code> / <code>rollup.mesh</code> only — do not add a local <code>/count</code>. <code>live_nodes_tip</code> is the seal. <code>rollup.live</code> is not published. Never paint <code>software_nodes</code>, <code>rollup.live</code>, <code>rollup.all.live</code>, or <code>rollup.software.live</code> as Live Nodes. <code>software_nodes</code> is the <code>{slug}-worker</code> roster. hedidntjump.com, bots, Softwares, and downloads are excluded. GET never pulls hub /count and never enables radios. Incomplete uses stay honest (no invented users). Channel plane cites wifi / bluetooth / rf / photon ON (local qnm-node; <code>worker_hardware:false</code> — not live Worker RF). Nine QNM laws stay machine-true on that JSON. Join needs a catalog product. VPN on at boot. This desk has no off switch. WireGuard and OpenVPN stay unavailable.</p>
     <p class="ws-status" id="mesh-status-line" data-state="loading" role="status" aria-live="polite">Loading status</p>
     <pre class="ws-out fg-out" id="mesh-out" role="status" aria-live="polite">Loading status…</pre>
     <div class="field">
@@ -876,7 +881,7 @@ ${dashCards}
         <option value="asleep">asleep (15–30 min)</option>
       </select>
     </div>
-    <p class="hint">Join is a durable session. Heartbeat / Leave need a node id. Miss 3 beats and the class is stale, not deleted. One beat restores live. Leave, or 14 days after the last beat, deletes the row. <code>{slug}-worker</code> still drops after 5 minutes and is not a user heartbeat. Stale does not count as Live Nodes. MESH-OFF refuses join/heartbeat/broadcast when transmission radios are not LIVE — GET will not turn them on. Channel plane is CITE-only. AnonBroadcast is not a product. VPN cite is FragGate <code>mesh/vpn</code> (AZVPN auto; never fake connected). Extra bearer is rate-limited; GET still never enables.</p>
+    <p class="hint">Join is a durable session. Heartbeat / Leave need a node id. Miss 3 beats and the class is stale, not deleted. One beat restores live. Leave, or 14 days after the last beat, deletes the row. <code>{slug}-worker</code> still drops after 5 minutes and is not a user heartbeat. Stale does not count as Live Nodes. MESH-OFF refuses join/heartbeat/broadcast when transmission radios are not LIVE — GET will not turn them on. Channel plane is CITE-only. AnonBroadcast is not a product. VPN on at boot. FragGate <code>mesh/vpn</code> cites it and does not turn it off. Extra bearer is rate-limited; GET still never enables.</p>
     <p class="hint" id="mesh-bearer-note">L0 stays the public path: this Worker, FragGate, and the HTTPS relay. Optional L1 peer bearers (a configured direct or LAN URL, and extra relays) run only when configured. NAT hole-punch is refused (<code>FED-MESH-NAT-REFUSE</code>). L1 does not replace L0. Survival methods are named on status: L0 is LIVE; L1 is LIVE only when configured; Cap-7 factory exec is LIVE on the Cap-7 plane (not a public egress IP, not ICANN); home-origin and cold shelves stay SLOT. Phoenix is local wait / re-seal. No invented DOI. AZnet does not replace the internet. Not public ICANN DNS. Not radio PHY. L2 does not replace L0. GET <code>/v1/mesh/relay</code> is the health check and never enables.</p>
     <div class="field">
       <label for="mesh-bearer">Extra bearer (optional; GET never enables)</label>
@@ -888,7 +893,7 @@ ${dashCards}
       <button type="button" data-mesh="join">Join (product required)</button>
       <button type="button" data-mesh="heartbeat">Heartbeat</button>
       <button type="button" data-mesh="leave">Leave</button>
-      <button type="button" data-mesh="vpn">VPN cite (AZVPN auto)</button>
+      <button type="button" data-mesh="vpn">VPN on at boot</button>
       <button type="button" data-mesh="enable">Enable extra bearer</button>
       <label><input id="mesh-panel-radios-confirm" data-radios-confirm type="checkbox"> confirm mesh radios</label>
       <button type="button" data-mesh-radios="status">Radios status</button>
@@ -936,7 +941,14 @@ ${dashCards}
         line.textContent = "SoT " + version + " · sha " + sha + " · Softwares " + count + " · version_id " + vid + " · ok " + bits.ok + " · drifted " + bits.drifted + " · unreachable " + bits.unreachable + " · unexposed " + bits.unexposed;
         line.setAttribute("data-state", "ready");
       }
-      if (out) out.textContent = JSON.stringify(body, null, 2);
+      if (out) {
+        var tipLine = sot && sot.git_sha_tracks_deployed_tip === true ? "Deployed tip." : (sot && sot.deploy_lag ? String(sot.deploy_lag) : "deploy lag");
+        var note = sot && sot.deploy_lag_note ? String(sot.deploy_lag_note) : "";
+        var lines = ["Suite " + version, "git sha " + sha, "Softwares " + count, tipLine];
+        if (note && tipLine !== "Deployed tip.") lines.push(note);
+        lines.push("ok " + bits.ok + ". drifted " + bits.drifted + ". unreachable " + bits.unreachable + ". unexposed " + bits.unexposed + ".");
+        out.textContent = lines.join("\\n");
+      }
     }
     function fail(err, mine) {
       if (mine !== seq) return;
@@ -994,7 +1006,7 @@ ${dashCards}
       <div class="metric" title="Isolated mesh nodes. Isolated humans stay on isolated_nodes."><span class="label">Isolated</span><span class="value" id="metric-isolated">—</span></div>
       <div class="metric" title="Softwares product Workers ({slug}-worker)."><span class="label">Software</span><span class="value" id="metric-software">—</span></div>
       <div class="metric"><span class="label">Radios</span><span class="value" id="metric-radios">—</span></div>
-      <div class="metric"><span class="label">VPN</span><span class="value" id="metric-vpn">—</span></div>
+      <div class="metric"><span class="label">VPN</span><span class="value" id="metric-vpn">VPN on at boot</span></div>
       <div class="metric"><span class="label">Hardware</span><span class="value" id="metric-hardware">—</span></div>
     </div>
     ${suiteDownloadHtml(base, { id: "suite-download-dash" })}
@@ -1120,7 +1132,8 @@ ${humanDoorScript()}
 export function fragGateDoorHtml(p, origin) {
   if (!p || !hasLiveDoor(p.slug)) return "";
   const live = (LIVE_OPS[p.slug] || [])
-    .filter((op) => op !== "health" && op !== "skill");
+    .filter((op) => op !== "health" && op !== "skill")
+    .filter((op) => !(p.slug === "azvpn" && /disable|opt-out|opt_out|turn_off|vpn_off/i.test(op)));
   const extras = p.slug === "aznet" && !live.includes("pair") ? ["pair"] : [];
   const buttons = [...live, ...extras, "health", "skill"]
     .filter((op, i, all) => all.indexOf(op) === i)
@@ -1139,9 +1152,11 @@ export function fragGateDoorHtml(p, origin) {
   const boundNote =
     p.slug === "azchat"
       ? `<p class="hint">LIVE+bound. Product mesh hop starts off. Suite mesh is a separate surface.</p>`
-      : p.slug === "embryolock"
+        : p.slug === "embryolock"
         ? `<p class="hint">wipe, scorch, and unlock stay on the device. The disabled verbs do not run on this public mesh.</p>`
-        : "";
+        : p.slug === "azvpn"
+          ? `<p class="hint" id="azvpn-door-always-on">VPN on at boot. This desk has no off switch. Close one session leaves VPN on. WireGuard and OpenVPN stay unavailable.</p>`
+          : "";
   const example = JSON.stringify(p.example || {}, null, 2);
   const areaId = `fg-payload-${p.slug}`;
   return `<div class="fg-door" id="fg-door-${escapeHtml(p.slug)}" data-slug="${escapeHtml(p.slug)}" data-origin="${escapeHtml(origin)}" data-kind="door">
@@ -1153,8 +1168,7 @@ export function fragGateDoorHtml(p, origin) {
     <label for="${escapeHtml(areaId)}">Payload JSON for ${escapeHtml(p.name)}</label>
     <textarea id="${escapeHtml(areaId)}" class="fg-payload" name="payload">${escapeHtml(example)}</textarea>
   </div>
-  <pre class="fg-out ws-out" role="status" aria-live="polite">POST ${escapeHtml(origin)}/v1/fraggate/call
-{ "slug": "${escapeHtml(p.slug)}", "op": "${escapeHtml(live[0] || "health")}", "payload": ${example} }</pre>
+  <pre class="fg-out ws-out" role="status" aria-live="polite">Ready. ${escapeHtml(p.name)}. The reply stays in plain language.</pre>
 </div>`;
 }
 
@@ -1183,9 +1197,11 @@ export function catalogFilterScript() {
 }
 
 export function humanDoorScript() {
+  const painter = plainConsumerText.toString();
   return `<script>
 (function () {
   let TIMEOUT_MS = ${CALL_TIMEOUT_MS};
+  ${painter}
   function parsePayload(raw) {
     let text = String(raw == null ? "" : raw).trim();
     if (!text) return { ok: true, value: {} };
@@ -1332,16 +1348,7 @@ export function humanDoorScript() {
     return payload;
   }
   function formatBody(res, body) {
-    let title = body && body.display && body.display.title ? body.display.title : "";
-    let summary = body && body.display && body.display.summary ? body.display.summary : "";
-    let code = (body && (body.code || body.refuse || (body.error && body.error.code))) || "";
-    let http = res ? ("HTTP " + res.status) : "";
-    let head = [http, code, title].filter(Boolean).join(" · ");
-    let note = "";
-    if (body && (body.visited === false || body.advisory === true || (body.note && /advisory|visited=false|sealed index/i.test(String(body.note))))) {
-      note = "Advisory citations / metadata — not retrieved article evidence.\\n";
-    }
-    return (head ? head + "\\n" : "") + note + (summary ? summary + "\\n\\n" : "") + JSON.stringify(body, null, 2);
+    return plainConsumerText(body, res);
   }
   function request(url, init, out, btn) {
     let ctrl = new AbortController();
@@ -1519,7 +1526,7 @@ export function humanDoorScript() {
       setMetric("metric-isolated", isolated);
       setMetric("metric-software", software);
       setMetric("metric-radios", radios);
-      setMetric("metric-vpn", b.vpn === true ? "AZVPN auto" : (b.vpn === false ? "false" : "—"));
+      setMetric("metric-vpn", b.vpn === false ? "VPN cite is off. This desk has no off switch." : "VPN on at boot");
       let hw = b.worker_hardware;
       if (hw == null && b.channel_plane) hw = b.channel_plane.worker_hardware;
       setMetric("metric-hardware", hw === false ? "cite only" : (hw == null ? "—" : String(hw)));

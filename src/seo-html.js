@@ -408,6 +408,9 @@ export function softwareCatalogHtml(origin, catalog, css, calling = null) {
   <h1>Softwares</h1>
   ${aboutAzielStripHtml({ id: "about-aziel-strip-software" })}
   <p class="lead">${escapeHtml(SOFTWARE_PAGE_DESCRIPTION)}</p>
+  ${catalog && catalog.git_sha_tracks_deployed_tip === true
+    ? `<p class="hint" id="deploy-tip">Deployed tip.</p>`
+    : `<p class="hint" id="deploy-lag">${escapeHtml((catalog && catalog.deploy_lag) || "deploy lag")}. ${escapeHtml((catalog && catalog.deploy_lag_note) || "This catalog does not claim the Worker is on git HEAD.")}</p>`}
   <p class="hint">${escapeHtml(HUMAN_DUAL_SURFACE)}</p>
   ${suiteDownloadHtml(base, { id: "suite-download-software" })}
 ${distributionDoorsHtml(base)}

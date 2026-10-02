@@ -576,11 +576,12 @@ env -u CLOUDFLARE_API_TOKEN npx wrangler deploy --keep-vars --var GIT_SHA:$(git 
 Add `--var VERSION_ID:<worker-version-id>` only when that id is already known.
 Do not invent one. When the binding is present it wins over `VERSION_ID`.
 
-If this checkout has no wrangler credentials, deploy from the author's machine:
+If this checkout has no wrangler credentials, deploy from the author's machine.
+Pass `GIT_SHA`. Omitting it leaves the catalog on `deploy lag` and does not claim git HEAD:
 
 ```bash
 npx wrangler secret put RUNTIME_TOKEN
-npx wrangler deploy
+npx wrangler deploy --keep-vars --var GIT_SHA:$(git rev-parse HEAD)
 node scripts/probe-live.mjs
 # confirm GET /v1/health and /v1/ready and /v1/runtime.json version=1.7.0 role=engine-runtime door=fraggate
 # confirm GET /v1/uses returns uses / by_host / by_path / by_day / recent (no increment)

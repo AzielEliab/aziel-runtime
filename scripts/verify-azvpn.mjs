@@ -11,6 +11,7 @@ import { resetAzvpnStore, openTunnel, describeConcentrator } from "../src/engine
 import { ensureDefaultVpnSession, vpnArmed, vpnAutoCite } from "../src/azvpn-auto.js";
 import { publicVpnCite } from "../src/public-vpn.js";
 import { launchHashtagParts } from "../src/launch-parts.js";
+import { BUILD_GIT_SHA } from "../src/build-meta.js";
 
 resetAzvpnStore();
 
@@ -92,5 +93,50 @@ const tags = launchHashtagParts(product).map((p) => p.tag);
 assert.ok(tags.includes("#azvpn"));
 assert.ok(tags.includes("#azvpn-concentrator"));
 assert.ok(tags.includes("#azvpn-session"));
+
+const handler = (await import("../src/index.js")).default.fetch;
+const origin = "https://aziel-runtime.example";
+async function get(path, env = {}) {
+  return handler(
+    new Request(origin + path, { headers: { accept: "application/json", "user-agent": "Mozilla/5.0" } }),
+    env,
+  );
+}
+
+const catalog = await (await get("/v1/software")).json();
+const card = catalog.software.find((s) => s.slug === "azvpn");
+assert.equal(card.worker_home, null);
+assert.match(card.worker_home_note, /Do not invent a download-tracker/);
+assert.equal(card.in_repo_home, `${origin}/p/azvpn`);
+assert.equal(card.plain_status, "VPN on at boot");
+assert.equal(card.opt_out, false);
+assert.equal(catalog.git_sha, BUILD_GIT_SHA);
+assert.equal(catalog.git_sha_source, "build_meta");
+assert.equal(catalog.git_sha_tracks_deployed_tip, false);
+assert.equal(catalog.deploy_lag, "deploy lag");
+
+const health = await get("/p/azvpn/health");
+assert.equal(health.status, 200);
+const healthBody = await health.json();
+assert.equal(healthBody.ok, false);
+assert.equal(healthBody.code, "PROXY-NOT-EXEC");
+assert.equal(healthBody.in_repo_door, true);
+assert.equal(healthBody.worker_home, null);
+assert.equal(healthBody.plain, "VPN on at boot.");
+
+const tipped = await (await get("/v1/software", { GIT_SHA: "468a80fd4dc98726ee9586056fbc83029ce3fc16" })).json();
+assert.equal(tipped.git_sha, "468a80fd4dc98726ee9586056fbc83029ce3fc16");
+assert.equal(tipped.git_sha_source, "deploy_var");
+assert.equal(tipped.git_sha_tracks_deployed_tip, true);
+assert.equal(tipped.deploy_lag, null);
+
+const page = await (
+  await handler(new Request(origin + "/p/azvpn", { headers: { accept: "text/html", "user-agent": "Mozilla/5.0" } }), {})
+).text();
+assert.match(page, /id="azvpn-always-on"/);
+assert.match(page, /VPN on at boot/);
+assert.match(page, /In-runtime door/);
+assert.doesNotMatch(page, /\/p\/azvpn\/health/);
+assert.doesNotMatch(page, /Turn VPN off|Disable AZVPN|data-azvpn="opt-out"/);
 
 console.log("ok azvpn: catalog AZVPN, REAL https_ws, SLOT wireguard/openvpn, auto-bind reuse, hashtags");

@@ -29,8 +29,12 @@ Softwares-tab card — do not invent an `akm` product on hubs.
 
 Each entry: `slug`, `name`, `bucket` (`plain` | `gate` | `lock`), `status`
 (`live` | `stub` | `local_only`), `version`, `one_line`, `description`, `worker_home`, `download_url`,
-`github`, `mcp` / `agent` path hints, `updated_at`, `git_sha` when the deploy
-Action stamped one. Whitestone is `status: "live"` with `worker_only: true` and
+`github`, `mcp` / `agent` path hints, `updated_at`, `git_sha` when a stamp exists.
+`git_sha_tracks_deployed_tip` is true only when `git_sha_source` is `deploy_var`
+(`GIT_SHA` passed at deploy). Every other source, including the baked build
+meta sha, is `deploy lag` and is not a claim the Worker is on git HEAD.
+
+Whitestone is `status: "live"` with `worker_only: true` and
 `fraggate_status: "none"` (live Worker, not a FragGate engine). Version **1.6.0**
 adds historical as-of + **Case Mode** (suppression axes, TrajectoryLock-lite,
 hash-chain export, confidence ≤75%). Not legal advice. Session-only. Placement
@@ -45,7 +49,11 @@ Softwares-tab `count` includes placements (`azinterface`, `decisiongate`,
 `azvpn`, `whitestone`).
 Isolation `domains.software_count` is **33**
 (`domains_are_doors: false`). See `count_note` and `catalog_sets`. Do not equate Softwares slugs with the FragGate allowlist, FragGate `product_count`, or mesh `software_nodes`. `catalog_sets.equate` is false. Softwares has `veillock` and `whitestone`; the allowlist has `memory` and `mesh` instead. Whitestone is absent from `software_nodes`. Equal counts are not equal sets. Do not invent Softwares rows.
-In-runtime placements have `worker_home` null — do not invent a download-tracker.
+In-runtime placements have `worker_home` null and `in_repo_home` on this runtime
+(`/p/{slug}`). Do not invent a download-tracker. `GET` or `POST /p/{slug}/{op}`
+stays proxy-not-exec. A live in-repo op returns `PROXY-NOT-EXEC` with
+`in_repo_door: true` and does not run the op. AZVPN `plain_status` is
+`VPN on at boot` and `opt_out` is false.
 Whitestone is Worker-only. Counted package is
 `https://whitestone-download-tracker.vibelock.workers.dev/download`
 (`worker_home` `https://whitestone-download-tracker.vibelock.workers.dev/`,

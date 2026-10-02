@@ -485,7 +485,11 @@ const softwaresCall = await jsonReq(detailHttp, "/mcp", {
 assert.equal(softwaresCall.status, 200);
 assert.equal(softwaresCall.data.result.isError, false);
 const softwaresText = softwaresCall.data.result.content[0].text;
-assert.match(softwaresText, /"count": 42/);
+const softwaresBody = softwaresCall.data.result.structuredContent;
+assert.equal(softwaresBody.result.count, 42);
+assert.match(softwaresText, /Softwares 42/);
+assert.match(softwaresText, /deploy lag/);
+assert.doesNotMatch(softwaresText, /"count": 42/);
 
 await jsonReq(detailHttp, "/mcp", {
   method: "POST",
