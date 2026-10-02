@@ -92,7 +92,7 @@ Modes: **OFF** (GET/status never arms), **REFUSE** (named stub / halluc / lamb /
 
 ### Mesh (`src/mesh.js`)
 
-`MESH-OK`, `MESH-NEED-BEARER`, `MESH-BAD-BEARER`, `MESH-ENABLE-RATE`, `MESH-DISABLE-REFUSED`, `MESH-OFF`, `MESH-BAD-INPUT`, `MESH-UNKNOWN-NODE`, `MESH-ROSTER-FULL`, `MESH-NO-PUBLISH`, `MESH-NO-BYTES`, `MESH-EQUIVOCATION`, `MESH-NO-INDEX`, `MESH-NO-NEIGHBOR-HEAL`, `MESH-NO-LIVE-SHELF`, `MESH-POISON`, `MESH-STUB`, `MESH-UNKNOWN-OP`, `MESH-METHOD`, `MESH-NOT-FOUND`, `MESH-NO-REWRITE`, `MESH-NO-LIE`
+`MESH-OK`, `MESH-NEED-BEARER`, `MESH-BAD-BEARER`, `MESH-ENABLE-RATE`, `MESH-DISABLE-REFUSED`, `MESH-OFF`, `MESH-BAD-INPUT`, `MESH-UNKNOWN-NODE`, `MESH-SESSION-SEAL`, `MESH-ROSTER-FULL`, `MESH-NO-PUBLISH`, `MESH-NO-BYTES`, `MESH-EQUIVOCATION`, `MESH-NO-INDEX`, `MESH-NO-NEIGHBOR-HEAL`, `MESH-NO-LIVE-SHELF`, `MESH-POISON`, `MESH-STUB`, `MESH-UNKNOWN-OP`, `MESH-METHOD`, `MESH-NOT-FOUND`, `MESH-NO-REWRITE`, `MESH-NO-LIE`
 
 `MESH-GET-NEVER-ENABLES` refuses enable-via-GET (`?enable=true` / `op=enable`). `MESH-NO-REWRITE` / `MESH-NO-LIE` refuse rewrite-key and lie-to-survive verbs. Receipts that still hash. Copies not all on one tunnel. The network is never allowed to lie — even to self-preserve. Law paper: `docs/designs/NO-LIE-NO-REWRITE-1.0.md`. Does not replace the CROSS-NETWORK-SURVIVAL-1.0 machine tip.
 
@@ -100,7 +100,7 @@ Nine QNM laws are hard-true on `GET /v1/mesh` (and status). OPERATOR-OVERRIDE 20
 
 `POST /v1/mesh/disable` / suite `mesh_disable` return **`MESH-DISABLE-REFUSED`**. Read-only suite-presence stays ON. Library host overlay may return **409** `library-default-off` instead of Worker `MESH-NEED-BEARER`. That overlay is host-side. GET never enables extra radios.
 
-`mesh_join` / `mesh_heartbeat` / `mesh_broadcast` (HTTP + MCP) return **`MESH-OFF`** when transmission radios are powered down or suite radios are not enabled. Software presence is blocked. Do not invent a second spelling. Missing `product`, `node_id` outside 8–80 `[a-z0-9._-]`, or a `presence` other than `live`/`locked`/`isolated` is **`MESH-BAD-INPUT`**. Presence TTL is a strict 5 minutes; no heartbeat (or fan-out refresh) inside that window drops the node from the live roster.
+`mesh_join` / `mesh_heartbeat` / `mesh_broadcast` (HTTP + MCP) return **`MESH-OFF`** when transmission radios are powered down or suite radios are not enabled. Software presence is blocked. Do not invent a second spelling. Missing `product`, `node_id` outside 8–80 `[a-z0-9._-]`, a `presence` other than `live`/`locked`/`isolated`, or a `heartbeat_mode` other than `active`/`idle`/`asleep` is **`MESH-BAD-INPUT`**. A non-worker session stays registered until explicit leave or 14 days after the last beat. Miss 3 adaptive beats and the class is **stale** (not deleted, not Live). One beat restores the declared presence. `{slug}-worker` presence TTL is a strict 5 minutes; no suite refresh inside that window drops that worker. A stored seal that does not match the session fields is **`MESH-SESSION-SEAL`** and does not count as live. Past grace, or a node that was never joined, is **`MESH-UNKNOWN-NODE`**.
 
 ### QNS (`src/qns.js`)
 

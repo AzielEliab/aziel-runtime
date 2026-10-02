@@ -26,6 +26,8 @@ import {
   MESH_SLUG,
   MESH_SPEC,
   PRESENCE_TTL_MS,
+  REGISTERED_GRACE_MS,
+  staleAfterMs,
   PRESENCE_STATES,
   SUITE_PRESENCE,
   isEphemeralMeshNodeId,
@@ -353,7 +355,10 @@ const liveJoin = await postJson(env, "/v1/mesh/join", {
 assert.equal(liveJoin.status, 200, JSON.stringify(liveJoin.data));
 assert.equal(liveJoin.data.session.presence, "live");
 assert.equal(liveJoin.data.session.node_id, "oknode08");
-assert.equal(liveJoin.data.session.presence_ttl_ms, PRESENCE_TTL_MS);
+assert.equal(liveJoin.data.session.membership, "registered");
+assert.equal(liveJoin.data.session.session_sealed, true);
+assert.equal(liveJoin.data.session.presence_ttl_ms, null);
+assert.equal(liveJoin.data.session.registered_grace_ms, REGISTERED_GRACE_MS);
 assert.equal(liveJoin.data.join_is_presence_only, true);
 assert.equal(liveJoin.data.join_is_not_login, true);
 assert.equal(liveJoin.data.roster_publishes_exec_urls, false);
@@ -399,19 +404,26 @@ const offRead = await jsonReq(radiosOffEnv, "/v1/mesh");
 assert.equal(offRead.data.get_never_enables, true);
 gate("MESH-OFF-GUARD", "MESH_RADIOS=off refuses join/heartbeat/broadcast with MESH-OFF; GET still never enables");
 
-// --- 5-minute TTL drop for non-fanout joins; heartbeat refreshes ---
+// --- durable registration; stale is not a delete; grace and software TTL still fail closed ---
 const ttlEnv = envWithMesh();
 const ttlJoin = await postJson(ttlEnv, "/v1/mesh/join", { product: "godlock", node_id: "ttl-peer-1" });
 assert.equal(ttlJoin.status, 200, JSON.stringify(ttlJoin.data));
 const ttlKv = ttlEnv.USES;
 assert.ok(await readLastSeen(ttlKv, "ttl-peer-1"));
 
-await ageNode(ttlKv, "ttl-peer-1", PRESENCE_TTL_MS + 1000);
-const expired = await rosterOp(ttlEnv);
-assert.ok(!rosterIds(expired).includes("ttl-peer-1"), "non-fanout join must drop after 5 min without heartbeat");
-const expiredBeat = await runMeshOp("heartbeat", { node_id: "ttl-peer-1" }, ttlEnv);
-assert.equal(expiredBeat.ok, false);
-assert.equal(expiredBeat.code, "MESH-UNKNOWN-NODE");
+await ageNode(ttlKv, "ttl-peer-1", staleAfterMs("idle") + 1000);
+const staleRoster = await rosterOp(ttlEnv);
+assert.ok(rosterIds(staleRoster).includes("ttl-peer-1"), "non-fanout join stays registered after missed beats");
+assert.equal(staleRoster.nodes.find((n) => n.node_id === "ttl-peer-1").presence_class, "stale");
+const staleBeat = await runMeshOp("heartbeat", { node_id: "ttl-peer-1" }, ttlEnv);
+assert.equal(staleBeat.ok, true, JSON.stringify(staleBeat));
+assert.equal(staleBeat.presence_class, "live");
+await ageNode(ttlKv, "ttl-peer-1", REGISTERED_GRACE_MS + 1000);
+const graceRoster = await rosterOp(ttlEnv);
+assert.ok(!rosterIds(graceRoster).includes("ttl-peer-1"), "grace deletes a non-fanout row");
+const graceBeat = await runMeshOp("heartbeat", { node_id: "ttl-peer-1" }, ttlEnv);
+assert.equal(graceBeat.ok, false);
+assert.equal(graceBeat.code, "MESH-UNKNOWN-NODE");
 
 const beatJoin = await postJson(ttlEnv, "/v1/mesh/join", { product: "godlock", node_id: "ttl-beat-1" });
 assert.equal(beatJoin.status, 200);
@@ -423,32 +435,36 @@ const afterBeat = await readLastSeen(ttlKv, "ttl-beat-1");
 assert.ok(afterBeat, "heartbeat must persist last_seen");
 assert.ok(Date.parse(afterBeat) > Date.parse(agedSeen), "heartbeat must refresh last_seen past the aged stamp");
 assert.ok(Date.parse(afterBeat) > Date.now() - 5000, "heartbeat last_seen must be fresh");
-await ageNode(ttlKv, "ttl-beat-1", PRESENCE_TTL_MS - 15_000);
+await ageNode(ttlKv, "ttl-beat-1", staleAfterMs("idle") - 15_000);
 const stillLive = await rosterOp(ttlEnv);
-assert.ok(rosterIds(stillLive).includes("ttl-beat-1"), "node inside TTL after heartbeat must remain");
-await ageNode(ttlKv, "ttl-beat-1", PRESENCE_TTL_MS + 1000);
-const droppedAfter = await rosterOp(ttlEnv);
-assert.ok(!rosterIds(droppedAfter).includes("ttl-beat-1"), "aged past TTL after last heartbeat must drop");
+assert.equal(stillLive.nodes.find((n) => n.node_id === "ttl-beat-1").presence_class, "live");
+await ageNode(ttlKv, "ttl-beat-1", staleAfterMs("idle") + 1000);
+const staleAfter = await rosterOp(ttlEnv);
+assert.equal(staleAfter.nodes.find((n) => n.node_id === "ttl-beat-1").presence_class, "stale");
+assert.ok(rosterIds(staleAfter).includes("ttl-beat-1"), "aged past the beat window stays registered");
 resetMeshClock();
 const clockEnv = envWithMesh();
 const t0 = 1_700_000_000_000;
 setMeshNowMs(t0);
 const clockJoin = await runMeshOp("join", { product: "godlock", node_id: "ttl-clock-1" }, clockEnv);
 assert.equal(clockJoin.ok, true, JSON.stringify(clockJoin));
-setMeshNowMs(t0 + PRESENCE_TTL_MS + 1);
+setMeshNowMs(t0 + staleAfterMs("idle") + 1);
+const clockStale = await rosterOp(clockEnv);
+assert.equal(clockStale.nodes.find((n) => n.node_id === "ttl-clock-1").presence_class, "stale");
+setMeshNowMs(t0 + REGISTERED_GRACE_MS + 1);
 const clockExpired = await rosterOp(clockEnv);
-assert.ok(!rosterIds(clockExpired).includes("ttl-clock-1"), "clock-inject past TTL must drop the node");
-setMeshNowMs(t0 + PRESENCE_TTL_MS + 2);
+assert.ok(!rosterIds(clockExpired).includes("ttl-clock-1"), "clock-inject past grace must drop the node");
+setMeshNowMs(t0 + REGISTERED_GRACE_MS + 2);
 const clockJoin2 = await runMeshOp("join", { product: "godlock", node_id: "ttl-clock-2" }, clockEnv);
 assert.equal(clockJoin2.ok, true);
-setMeshNowMs(t0 + PRESENCE_TTL_MS + 2 + (PRESENCE_TTL_MS - 1_000));
+setMeshNowMs(t0 + REGISTERED_GRACE_MS + 2 + (staleAfterMs("idle") - 1_000));
 const clockBeat = await runMeshOp("heartbeat", { node_id: "ttl-clock-2" }, clockEnv);
 assert.equal(clockBeat.ok, true, JSON.stringify(clockBeat));
-setMeshNowMs(t0 + PRESENCE_TTL_MS + 2 + PRESENCE_TTL_MS + 500);
+setMeshNowMs(t0 + REGISTERED_GRACE_MS + 2 + staleAfterMs("idle") + 500);
 const clockKept = await rosterOp(clockEnv);
-assert.ok(rosterIds(clockKept).includes("ttl-clock-2"), "heartbeat inside the window must keep the node");
+assert.equal(clockKept.nodes.find((n) => n.node_id === "ttl-clock-2").presence_class, "live");
 resetMeshClock();
-gate("TTL-NON-FANOUT", "non-fanout joins expire at 5 min; heartbeat refreshes last_seen");
+gate("TTL-NON-FANOUT", "non-fanout joins stay registered until grace; missed beats are stale; heartbeat restores live");
 
 // fan-out workers refresh; named nodes still expire even if GET fans out
 const mixKv = memoryMeshKv();
@@ -464,14 +480,20 @@ assertMeshPills(fanout1);
 assert.equal(fanout1.inactive_nodes, 0);
 const workerId = suitePresenceNodeId("godlock");
 assert.equal(workerId, "godlock-worker");
-await ageNode(mixKv, "named-ttl-1", PRESENCE_TTL_MS + 2000);
+await ageNode(mixKv, "named-ttl-1", staleAfterMs("idle") + 2000);
 await ageNode(mixKv, workerId, PRESENCE_TTL_MS + 2000);
+const namedAged = await readLastSeen(mixKv, "named-ttl-1");
 const mixWait = waitUntilCtx();
 await jsonReq(mixEnv, "/v1/mesh", {}, mixWait.ctx);
 await mixWait.flush();
 const mixNodes = await jsonReq(mixEnv, "/v1/mesh/nodes");
-assert.ok(!rosterIds(mixNodes.data).includes("named-ttl-1"), "GET fan-out must not keep an expired named node");
+const namedAfter = mixNodes.data.nodes.find((n) => n.node_id === "named-ttl-1");
+assert.ok(namedAfter, "GET fan-out must not delete a stale named node");
+assert.equal(namedAfter.presence_class, "stale");
+assert.equal(namedAfter.user_heartbeat, true);
 assert.ok(rosterIds(mixNodes.data).includes(workerId), "GET fan-out may refresh {slug}-worker");
+const namedSeen = await readLastSeen(mixKv, "named-ttl-1");
+assert.equal(namedSeen, namedAged, "fan-out must not refresh a named node's last_seen");
 assert.deepEqual((await jsonReq(mixEnv, "/v1/mesh")).data.bearers.filter((b) => b !== "suite-presence"), []);
 gate("TTL-VS-FANOUT", "expired named nodes drop; suite-presence workers may refresh on GET fan-out");
 

@@ -152,6 +152,22 @@ import {
   siteViewerTuple,
   unwrapSiteViewerStore,
 } from "./site-viewers.js";
+import {
+  DEFAULT_HEARTBEAT_MODE,
+  HEARTBEAT_INTERVAL_MS,
+  HEARTBEAT_MISS_N,
+  JOIN_SESSION_SEAL_V,
+  PRESENCE_TTL_MS,
+  REGISTERED_GRACE_MS,
+  heartbeatBand,
+  joinSessionCanonical,
+  membershipCite,
+  membershipClass,
+  sanitizeHeartbeatMode,
+  sealJoinSession,
+  sha256Hex,
+  staleAfterMs,
+} from "./mesh-membership.js";
 
 export {
   SITE_LIVE_EXCLUDED_HOSTS,
@@ -172,7 +188,17 @@ export const MESH_AUTHOR = "Aziel Eliab";
 export const MESH_DEFAULT = "on";
 export const MESH_DEFAULT_ENABLED = true;
 export const SUITE_PRESENCE = "on";
-export const PRESENCE_TTL_MS = 5 * 60 * 1000;
+export {
+  PRESENCE_TTL_MS,
+  REGISTERED_GRACE_MS,
+  HEARTBEAT_MISS_N,
+  HEARTBEAT_INTERVAL_MS,
+  DEFAULT_HEARTBEAT_MODE,
+  JOIN_SESSION_SEAL_V,
+  staleAfterMs,
+  sanitizeHeartbeatMode,
+  membershipCite,
+};
 export const ENABLE_COOLDOWN_MS = 60_000;
 export const RECEIPT_CAP = 32;
 export const NODE_CAP = 256;
@@ -186,7 +212,7 @@ export const FANOUT_NODE_SUFFIX = "-worker";
 /** Public Live Nodes = human mesh users + concurrent hub site viewers. */
 export const LIVE_NODES_PLANE = "human-mesh-users-site-viewers";
 export const LIVE_NODES_NOTE =
-  "Public Live Nodes (live_nodes / rollup.mesh) count human mesh users (join/heartbeat/presence with a human bearer) plus concurrent website viewers (site_live_viewers) on godlock.uk + azieleliab.com + azielcorpuslibrary.net. Isolated humans stay on isolated_nodes. hedidntjump.com, bots, Softwares, and downloads are excluded. GET /v1/mesh never pulls hub /count. Hubs paint live_nodes / rollup.mesh from this JSON (live_nodes_tip / live_nodes_generation). Do not add a local /count. rollup.live is not published. Never paint software_nodes or rollup.live as Live Nodes. Roster presence=live, including {slug}-worker, is rollup.all.live and rollup.software.live — not the Live Nodes pill. Missing or expired hub heartbeats are 0. Live Nodes does not invent users. Zero is honest when no human is present.";
+  "Public Live Nodes (live_nodes / rollup.mesh) count human mesh users with a recent beat (presence class live or locked, not stale, not isolated) plus concurrent website viewers (site_live_viewers) on godlock.uk + azieleliab.com + azielcorpuslibrary.net. registered_humans and site_registered_viewers are the durable counts and are not Live Nodes. Isolated humans stay on isolated_nodes. Stale humans stay registered and do not count. hedidntjump.com, bots, Softwares, and downloads are excluded. GET /v1/mesh never pulls hub /count. Hubs paint live_nodes / rollup.mesh from this JSON (live_nodes_tip / live_nodes_generation). Do not add a local /count. rollup.live is not published. Never paint software_nodes, registered_nodes, or rollup.live as Live Nodes. Roster presence=live, including {slug}-worker, is rollup.all.live and rollup.software.live — not the Live Nodes pill. A stale hub report is 0 on Live Nodes. Live Nodes does not invent users. Zero is honest when no human is present.";
 
 /** Public Nodes = human mesh users + cited human uses (today’s interaction-inclusive clock). */
 export const NODES_PLANE = "human-mesh-users-uses";
@@ -266,7 +292,7 @@ export function meshSecurityCite() {
 }
 
 export const MESH_LIMITATION =
-  "THIS IS: QNM-BUILD-1.0 suite rollup on aziel-runtime — companion to AIH-WP-1.1. Packet-transfer coding design is QNS-CD-1.0 (companion to QNM-BUILD-1.0 / AIH-WP-1.3; photon QNS1 1.3 on local qnsd; Worker cites only). Public surface is live/locked/isolated counts plus read-only suite-presence ON by default (bearer suite-presence). GET /v1/mesh never enables radios beyond that read-only presence. POST /v1/mesh/disable refuses MESH-DISABLE-REFUSED — public disable of suite-presence is refused. While LIVE, cron or request-path fans out join/heartbeat for live Softwares product Workers (node_id {slug}-worker; no '|'; TTL 5 min). Product Workers proxy /v1/mesh/* via AZIEL_RUNTIME. Phoenix is wait/re-seal after tamper or isolation, not public hostname resurrection. Sites pulled (token revoked, Worker dropped, DNS killed) die with the pull — public rollup on that hostname is down; local node may keep verifying/appending; mesh does not climb back onto the public hostname by itself. A process supervisor restarting cloudflared is operator kit, not this contract. Split the wires: 0.5–1s tick is presence + tip hash only (fixed-size; no body, no diff, no file). Payload is receiver-pull, never a sender fan-out. Update is a proof, not a timer. 777s is dwell after a valid cite, not wait-then-take. Clock desync is not a yes. Ambiguous tip is isolate, not merge. Equivocation ends that peer. Quorum cannot outvote a broken hash. Emit last, locally. Neighbors do not phoenix because a neighbor phoenix’d. Split brain does not auto-splice. Heartbeat loss is not isolate-by-timer and does not apply last packet. The 1s loop and the 777s gate never share a socket. " +
+  "THIS IS: QNM-BUILD-1.0 suite rollup on aziel-runtime — companion to AIH-WP-1.1. Packet-transfer coding design is QNS-CD-1.0 (companion to QNM-BUILD-1.0 / AIH-WP-1.3; photon QNS1 1.3 on local qnsd; Worker cites only). Public surface is live/locked/isolated counts plus read-only suite-presence ON by default (bearer suite-presence). GET /v1/mesh never enables radios beyond that read-only presence. POST /v1/mesh/disable refuses MESH-DISABLE-REFUSED — public disable of suite-presence is refused. While LIVE, cron or request-path fans out join/heartbeat for live Softwares product Workers (node_id {slug}-worker; no '|'; TTL 5 min; no user heartbeat). Human and other non-worker join sessions stay registered until explicit leave or 14 days after the last beat. Miss 3 adaptive beats (active 15–30s, idle 2–5 min, asleep 15–30 min) and the class is stale, not deleted. Stale does not count as Live Nodes. One beat restores the declared presence. The join session seal is SHA-256. This Worker holds no mesh-join signing key. Product Workers proxy /v1/mesh/* via AZIEL_RUNTIME. Phoenix is wait/re-seal after tamper or isolation, not public hostname resurrection. Sites pulled (token revoked, Worker dropped, DNS killed) die with the pull — public rollup on that hostname is down; local node may keep verifying/appending; mesh does not climb back onto the public hostname by itself. A process supervisor restarting cloudflared is operator kit, not this contract. Split the wires: 0.5–1s tick is presence + tip hash only (fixed-size; no body, no diff, no file). Payload is receiver-pull, never a sender fan-out. Update is a proof, not a timer. 777s is dwell after a valid cite, not wait-then-take. Clock desync is not a yes. Ambiguous tip is isolate, not merge. Equivocation ends that peer. Quorum cannot outvote a broken hash. Emit last, locally. Neighbors do not phoenix because a neighbor phoenix’d. Split brain does not auto-splice. Heartbeat loss is not isolate-by-timer and does not apply last packet. The 1s loop and the 777s gate never share a socket. " +
   SPLIT_WIRES_SHORT +
   " Cold-copy survival: " +
   COLD_COPY_SHORT +
@@ -862,7 +888,9 @@ export function isHumanMeshNode(node) {
 
 export function countsAsLiveNodes(node) {
   if (!node || typeof node !== "object") return false;
-  return isHumanMeshNode(node) && isLiveMeshPresence(node.presence);
+  if (!isHumanMeshNode(node)) return false;
+  const klass = node.presence_class || node.presence;
+  return klass === "live" || klass === "locked";
 }
 
 export function meshNodePlane(nodeOrId, extra) {
@@ -928,14 +956,60 @@ async function kvGetJson(kv, key, fallback) {
   }
 }
 
+function nodeSeenMs(node) {
+  return Date.parse((node && (node.last_seen || node.joined_at)) || "") || 0;
+}
+
+function annotateNode(node, now = nowMs()) {
+  const software = isSoftwareWorkerNodeId(node.node_id);
+  const mode = sanitizeHeartbeatMode(node.heartbeat_mode, DEFAULT_HEARTBEAT_MODE) || DEFAULT_HEARTBEAT_MODE;
+  const presence_class = membershipClass({
+    lastSeenMs: nodeSeenMs(node),
+    now,
+    mode: software ? DEFAULT_HEARTBEAT_MODE : mode,
+    declared: node.presence,
+    durable: !software,
+  });
+  if (presence_class === "dropped") return null;
+  const unsealed = !software && node.session_sealed === false;
+  return {
+    ...node,
+    presence_class: unsealed ? "stale" : presence_class,
+    membership: software ? "suite-presence" : "registered",
+    heartbeat_mode: software ? undefined : mode,
+    user_heartbeat: software ? false : true,
+    session_sealed: software ? false : node.session_sealed === true,
+  };
+}
+
 function pruneNodes(nodes, now = nowMs()) {
   const live = {};
   for (const [id, node] of Object.entries(nodes || {})) {
     if (!node || typeof node !== "object") continue;
-    const seen = Date.parse(node.last_seen || node.joined_at || "") || 0;
-    if (seen && now - seen <= PRESENCE_TTL_MS) live[id] = node;
+    const next = annotateNode(node, now);
+    if (next) live[id] = next;
   }
   return live;
+}
+
+async function stampRoster(nodes) {
+  const out = {};
+  for (const [id, node] of Object.entries(nodes || {})) {
+    if (!node) continue;
+    if (isSoftwareWorkerNodeId(id)) {
+      out[id] = { ...node, session_sealed: false, user_heartbeat: false };
+      continue;
+    }
+    const seal = String(node.session_seal || "");
+    const expected = /^[a-f0-9]{64}$/.test(seal) ? await sha256Hex(joinSessionCanonical(node)) : "";
+    const sealed = Boolean(expected) && expected === seal;
+    if (!sealed) {
+      out[id] = { ...node, presence_class: "stale", session_sealed: false, counts_as_live_nodes: false };
+      continue;
+    }
+    out[id] = { ...node, session_sealed: true };
+  }
+  return out;
 }
 
 function liveList(nodes) {
@@ -965,7 +1039,12 @@ function productsPresent(nodes) {
 }
 
 function emptyPresence() {
-  return { live: 0, locked: 0, isolated: 0 };
+  return { live: 0, locked: 0, isolated: 0, stale: 0 };
+}
+
+function registeredTotal(bucket) {
+  const src = bucket && typeof bucket === "object" ? bucket : {};
+  return (Number(src.live) || 0) + (Number(src.locked) || 0) + (Number(src.isolated) || 0) + (Number(src.stale) || 0);
 }
 
 function rollupCounts(nodes) {
@@ -977,7 +1056,11 @@ function rollupCounts(nodes) {
   const handles = emptyPresence();
   const all = emptyPresence();
   for (const node of liveList(nodes)) {
-    const p = node && PRESENCE_STATES.includes(node.presence) ? node.presence : "live";
+    const p = node && node.presence_class === "stale"
+      ? "stale"
+      : node && PRESENCE_STATES.includes(node.presence)
+        ? node.presence
+        : "live";
     all[p] += 1;
     const id = node && node.node_id;
     const kind = inferMeshKind(node);
@@ -1103,7 +1186,7 @@ async function loadState(env) {
   const bound = meshKv(env);
   const now = nowMs();
   if (!bound) {
-    memory.nodes = pruneNodes(memory.nodes);
+    memory.nodes = await stampRoster(pruneNodes(memory.nodes));
     const seal = chooseSiteSeal(
       memory,
       {
@@ -1131,7 +1214,7 @@ async function loadState(env) {
   }
   const lastRaw = await bound.kv.get(`${bound.prefix}last_enable_ms`);
   const bearers = withBearersForLoad(await kvGetJson(bound.kv, `${bound.prefix}bearers`, []));
-  const nodes = pruneNodes(await kvGetJson(bound.kv, `${bound.prefix}nodes`, {}));
+  const nodes = await stampRoster(pruneNodes(await kvGetJson(bound.kv, `${bound.prefix}nodes`, {})));
   const siteSeal = chooseSiteSeal(bound.kv, await kvGetJson(bound.kv, siteAggregateKey(bound), {}), now);
   const receipts = await kvGetJson(bound.kv, `${bound.prefix}receipts`, []);
   return {
@@ -1290,6 +1373,10 @@ function baseResult(extra) {
     kernel: MESH_SLUG,
     mesh_default: MESH_DEFAULT,
     presence_ttl_ms: PRESENCE_TTL_MS,
+    presence_ttl_applies_to: "{slug}-worker",
+    software_presence_ttl_ms: PRESENCE_TTL_MS,
+    software_user_heartbeat: false,
+    membership: membershipCite(),
     ...qnmFrame(),
     ...extra,
   };
@@ -1372,6 +1459,10 @@ function statusFieldsSync(state, usesSignal = null, env) {
   const nodes_count = nodesFromHumanSignal(rollup.human, uses);
   const fleet = siteViewerFleet(state.site_viewers, nowMs());
   const site_live_viewers = fleet.site_live_viewers;
+  const site_registered_viewers = Number(fleet.site_registered_viewers) || 0;
+  const registered_humans = registeredTotal(rollup.human);
+  const registered_nodes = registeredTotal(rollup.human) + registeredTotal(rollup.instances) + registeredTotal(rollup.handles);
+  const stale_nodes = (Number(rollup.human.stale) || 0) + (Number(rollup.instances.stale) || 0) + (Number(rollup.handles.stale) || 0);
   const live_nodes = human_mesh_users + site_live_viewers;
   const live_nodes_generation = Number(state.live_nodes_generation) || 0;
   const live_nodes_tip = liveNodesTip(live_nodes_generation, human_mesh_users, fleet.components);
@@ -1393,7 +1484,13 @@ function statusFieldsSync(state, usesSignal = null, env) {
     live_nodes_plane: LIVE_NODES_PLANE,
     nodes_plane: NODES_PLANE,
     human_mesh_users,
-    human_nodes: rollup.human.live + rollup.human.locked + rollup.human.isolated,
+    registered_humans,
+    registered_nodes,
+    stale_nodes,
+    stale_humans: rollup.human.stale,
+    registered_note:
+      "registered_nodes and registered_humans count durable non-worker sessions inside the grace window, including stale. They are not Live Nodes. live_nodes counts recent human beats (live or locked, not stale, not isolated) plus site_live_viewers. {slug}-worker rows are software_nodes and are not registered_nodes. Do not invent users.",
+    human_nodes: registeredTotal(rollup.human),
     human_live_nodes: rollup.human.live,
     human_locked_nodes: rollup.human.locked,
     human_isolated_nodes: rollup.human.isolated,
@@ -1403,6 +1500,10 @@ function statusFieldsSync(state, usesSignal = null, env) {
     human_uses_source: uses.source || "unbound",
     human_uses_note: uses.note || HUMAN_USES_NOTE,
     site_live_viewers,
+    site_registered_viewers,
+    site_registered_viewers_components: fleet.registered_components,
+    site_registered_viewers_note:
+      "site_registered_viewers is the last hub-reported count still inside the grace window, including stale hosts. It is not Live Nodes. site_live_viewers counts only a fresh beat. A stale host contributes 0 to Live Nodes. Do not invent viewers.",
     site_live_viewers_plane: SITE_LIVE_VIEWERS_PLANE,
     site_live_viewers_components: fleet.components,
     site_live_viewers_hosts: fleet.hosts,
@@ -1425,6 +1526,8 @@ function statusFieldsSync(state, usesSignal = null, env) {
       bots_excluded: true,
       downloads_excluded: true,
       hedidntjump_excluded: true,
+      stale_excluded: true,
+      registered_excluded: true,
       invent_users: false,
     },
     nodes_components: {
@@ -1442,13 +1545,13 @@ function statusFieldsSync(state, usesSignal = null, env) {
     nodes_note: NODES_NOTE,
     software_nodes_note: SOFTWARE_NODES_NOTE,
     human_nodes_note: HUMAN_NODES_NOTE,
-    ephemeral_nodes: rollup.ephemeral.live + rollup.ephemeral.locked + rollup.ephemeral.isolated,
+    ephemeral_nodes: registeredTotal(rollup.ephemeral),
     ephemeral_live_nodes: rollup.ephemeral.live,
-    software_nodes: rollup.software.live + rollup.software.locked + rollup.software.isolated,
+    software_nodes: registeredTotal(rollup.software),
     software_live_nodes: rollup.software.live,
     software_locked_nodes: rollup.software.locked,
     software_isolated_nodes: rollup.software.isolated,
-    instance_nodes: rollup.instances.live + rollup.instances.locked + rollup.instances.isolated,
+    instance_nodes: registeredTotal(rollup.instances),
     instance_live_nodes: rollup.instances.live,
     instance_locked_nodes: rollup.instances.locked,
     instance_isolated_nodes: rollup.instances.isolated,
@@ -1658,7 +1761,7 @@ ${MESH_LIMITATION}
 
 Read-only **suite-presence is ON by default**. A site ping of \`GET /v1/mesh\` never enables radios beyond that read-only presence. Public \`POST /v1/mesh/disable\` / \`mesh_disable\` refuses \`MESH-DISABLE-REFUSED\` — it cannot turn suite-presence off.
 
-\`mesh_join\` / \`POST /v1/mesh/join\` requires \`product\` (catalog slug). Optional \`node_id\` must be exactly 8–80 chars matching \`[a-z0-9._-]\` (full string). \`presence\` must be \`live\` (default), \`locked\`, or \`isolated\`. Join is additive presence with a **strict 5-minute TTL**. \`mesh_heartbeat\` refreshes that TTL. If no heartbeat (or fan-out refresh) arrives inside the window, the node is **dropped** from the live roster. Direct HTTP join/heartbeat/leave/broadcast share F03 kind \`mesh_mutate\` (default 30/min; \`RATE_LIMIT\` 429). Not a login mesh. Roster does not publish exec URLs. Roster cap \`NODE_CAP\` prefers \`{slug}-worker\` rows; extra anonymous joins refuse \`MESH-ROSTER-FULL\`. When transmission radios are powered down or suite radios are not enabled, join/heartbeat/broadcast refuse **\`MESH-OFF\`**. Read paths stay honest. Do not invent a second refuse spelling.
+\`mesh_join\` / \`POST /v1/mesh/join\` requires \`product\` (catalog slug). Optional \`node_id\` must be exactly 8–80 chars matching \`[a-z0-9._-]\` (full string). \`presence\` must be \`live\` (default), \`locked\`, or \`isolated\`. Optional \`heartbeat_mode\` is \`active\` (15–30s), \`idle\` (2–5 min, default), or \`asleep\` (15–30 min). A non-worker join is a durable hash-sealed session. It stays registered until explicit \`mesh_leave\` or 14 days after the last beat. Miss 3 beats and \`presence_class\` is **stale**, not deleted. One beat restores the declared presence. Stale does not count as Live Nodes. \`{slug}-worker\` suite-presence still drops after a **strict 5-minute TTL** and does not take a user heartbeat. Direct HTTP join/heartbeat/leave/broadcast share F03 kind \`mesh_mutate\` (default 30/min; \`RATE_LIMIT\` 429). Not a login mesh. Roster does not publish exec URLs. Roster cap \`NODE_CAP\` prefers \`{slug}-worker\` rows; extra anonymous joins refuse \`MESH-ROSTER-FULL\`. When transmission radios are powered down or suite radios are not enabled, join/heartbeat/broadcast refuse **\`MESH-OFF\`**. A seal mismatch refuses **\`MESH-SESSION-SEAL\`** and does not count as live. Read paths stay honest. Do not invent a second refuse spelling.
 
 While radios are LIVE, this Worker fans out join/heartbeat for every live Softwares product Worker (\`node_id\` \`{slug}-worker\`, no \`|\`) on cron (\`*/2 * * * *\`) or request-path. That roster is **software_nodes**. Public **nodes** (Nodes) counts **human mesh users** plus cited **human uses** (\`USES\` / \`human_uses\`). Public **live_nodes** (Live Nodes) counts **human mesh users** plus concurrent website viewers (\`site_live_viewers\`) reported by hub \`POST /v1/mesh/site-presence\` (\`kind: "human-page"\`) for godlock.uk + azieleliab.com + azielcorpuslibrary.net. Downloaded Softwares instances stay \`instance_nodes\`. Isolated humans stay on \`isolated_nodes\`. hedidntjump.com, bots, Softwares, and downloads are excluded. GET never pulls hub \`/count\`. GET reads the site-viewer aggregate as one key (\`live_nodes_generation\` / \`live_nodes_tip\`). Hubs paint \`live_nodes\` / \`rollup.mesh\` only and do not add a local \`/count\`. Never paint \`software_nodes\` or \`rollup.live\` as Live Nodes. \`rollup.live\` is not published. Fan-out does not rewrite that aggregate. Missing or expired hub heartbeats are 0. Uses are interaction counters, not unique people. Incomplete uses stay honest — do not invent users. Zero is honest. Product Workers proxy \`/v1/mesh/*\` via \`AZIEL_RUNTIME\`. Not a second mesh. Fan-out does not restore godlock.uk or reattach a pulled public hostname.
 
@@ -1776,7 +1879,7 @@ export async function meshEnable(payload, env) {
     fanout: fanout.skipped ? false : true,
     fanout_joined: fanout.joined || 0,
     fanout_refreshed: fanout.refreshed || 0,
-    note: "Operator declared a bearer. Radios LIVE for suite rollup only. Live Softwares product Workers are joined as software_nodes (TTL 5 min). Nodes count human mesh users plus cited human uses. Live Nodes count human mesh users plus site_live_viewers. Read-only suite-presence stays ON by default. GET never enables radios and never pulls hub /count. Not a login mesh.",
+    note: "Operator declared a bearer. Radios LIVE for suite rollup only. Live Softwares product Workers are joined as software_nodes (TTL 5 min, no user heartbeat). Nodes count recent human mesh users plus cited human uses. Live Nodes count recent human beats plus site_live_viewers. Registered is the durable count and is not Live Nodes. Read-only suite-presence stays ON by default. GET never enables radios and never pulls hub /count. Not a login mesh.",
   });
 }
 
@@ -1805,6 +1908,92 @@ async function offRefuse(op, state, env) {
       ...(await statusFields({ ...state, enabled: false }, env)),
     },
   );
+}
+
+function readHeartbeatMode(src, existing, software) {
+  if (software) return { ok: true, mode: "" };
+  const raw = src && src.heartbeat_mode != null ? src.heartbeat_mode : src && src.cadence;
+  if (raw == null || raw === "") {
+    return {
+      ok: true,
+      mode: sanitizeHeartbeatMode(existing && existing.heartbeat_mode, DEFAULT_HEARTBEAT_MODE) || DEFAULT_HEARTBEAT_MODE,
+    };
+  }
+  const mode = sanitizeHeartbeatMode(raw, "");
+  if (!mode) return { ok: false, mode: "" };
+  return { ok: true, mode };
+}
+
+async function durableSealOk(node) {
+  if (!node || isSoftwareWorkerNodeId(node.node_id)) return true;
+  const seal = String(node.session_seal || "");
+  if (!/^[a-f0-9]{64}$/.test(seal)) return false;
+  return (await sha256Hex(joinSessionCanonical(node))) === seal;
+}
+
+async function withSessionSeal(node, now = nowMs()) {
+  const software = isSoftwareWorkerNodeId(node.node_id);
+  if (software) {
+    const next = { ...node };
+    delete next.session_seal;
+    delete next.heartbeat_mode;
+    next.membership = "suite-presence";
+    next.user_heartbeat = false;
+    next.session_sealed = false;
+    next.presence_class = membershipClass({
+      lastSeenMs: nodeSeenMs(next),
+      now,
+      declared: next.presence,
+      durable: false,
+    });
+    return next;
+  }
+  const mode = sanitizeHeartbeatMode(node.heartbeat_mode, DEFAULT_HEARTBEAT_MODE) || DEFAULT_HEARTBEAT_MODE;
+  const sealed = await sealJoinSession({ ...node, heartbeat_mode: mode });
+  return {
+    ...node,
+    heartbeat_mode: mode,
+    ...sealed,
+    membership: "registered",
+    user_heartbeat: true,
+    session_sealed: true,
+    presence_class: membershipClass({
+      lastSeenMs: nodeSeenMs(node),
+      now,
+      mode,
+      declared: node.presence,
+      durable: true,
+    }),
+  };
+}
+
+function sessionView(node) {
+  const software = isSoftwareWorkerNodeId(node.node_id);
+  const mode = node.heartbeat_mode || DEFAULT_HEARTBEAT_MODE;
+  const klass = node.presence_class || node.presence || "live";
+  return {
+    session_id: node.session_id,
+    session_seal: software ? undefined : node.session_seal,
+    session_seal_v: software ? undefined : JOIN_SESSION_SEAL_V,
+    session_sealed: software ? false : node.session_sealed === true,
+    membership: software ? "suite-presence" : "registered",
+    node_id: node.node_id,
+    product: node.product,
+    label: node.label,
+    presence: node.presence,
+    presence_class: klass,
+    plane: node.kind,
+    kind: node.kind,
+    heartbeat_mode: software ? null : mode,
+    heartbeat_interval_ms: software ? null : heartbeatBand(mode),
+    stale_after_ms: software ? null : staleAfterMs(mode),
+    registered_grace_ms: software ? null : REGISTERED_GRACE_MS,
+    presence_ttl_ms: software ? PRESENCE_TTL_MS : null,
+    counts_as_live_nodes: countsAsLiveNodes(node),
+    counts_as_registered: !software && klass !== "dropped",
+    joined_at: node.joined_at,
+    user_heartbeat: !software,
+  };
 }
 
 export async function meshJoin(payload, env) {
@@ -1884,6 +2073,11 @@ export async function meshJoin(payload, env) {
   const ts = nowIso(now);
   const existing = node_id ? state.nodes[node_id] : null;
   if (!node_id) node_id = newNodeId(now);
+  const software = isSoftwareWorkerNodeId(node_id);
+  const modeRead = readHeartbeatMode(src, existing, software);
+  if (!modeRead.ok) {
+    return refuse("MESH-BAD-INPUT", "heartbeat_mode must be active, idle, or asleep.", { op: "join", mesh_enabled: true });
+  }
   const label = sanitizeLabel(src.label || (existing && existing.label) || product);
   const session_id = (existing && existing.session_id) || newSessionId(node_id);
   const kind = fedJoin
@@ -1894,7 +2088,7 @@ export async function meshJoin(payload, env) {
         plane: src.plane,
         bearer: src.bearer || (existing && existing.bearer),
       });
-  const node = {
+  const node = await withSessionSeal({
     node_id,
     product,
     label,
@@ -1903,15 +2097,16 @@ export async function meshJoin(payload, env) {
     handle: fedJoin ? fedJoin.handle : undefined,
     bearer: fedJoin ? "handle" : isHumanBearerToken(src.bearer) ? "human" : existing && existing.bearer,
     session_id,
+    heartbeat_mode: software ? undefined : modeRead.mode,
     joined_at: (existing && existing.joined_at) || ts,
     last_seen: ts,
     ...(outletHook ? { outlet_hook: outletHook } : {}),
-  };
+  }, now);
   state.nodes[node_id] = node;
   if (Object.keys(state.nodes).length > NODE_CAP) {
     state.nodes = trimRoster(state.nodes);
     if (!state.nodes[node_id] && !isSoftwareWorkerNodeId(node_id)) {
-      return refuse("MESH-ROSTER-FULL", "Presence roster is at cap. Rate-limited join is presence-only; not a login mesh. Retry after TTL drop or heartbeat an existing node_id.", {
+      return refuse("MESH-ROSTER-FULL", "Presence roster is at cap. Rate-limited join is presence-only; not a login mesh. Retry after leave, grace, or heartbeat an existing node_id.", {
         op: "join",
         mesh_enabled: true,
         roster_cap: NODE_CAP,
@@ -1922,37 +2117,25 @@ export async function meshJoin(payload, env) {
     }
   }
   const store = await saveState(env, state);
+  const counted = countsAsLiveNodes(node);
   return baseResult({
     op: "join",
     ...(await statusFields({ ...state, store }, env)),
-    session: {
-      session_id,
-      node_id,
-      product,
-      label,
-      presence,
-      plane: kind,
-      kind,
-      counts_as_live_nodes: countsAsLiveNodes(node),
-      joined_at: node.joined_at,
-      presence_ttl_ms: PRESENCE_TTL_MS,
-    },
+    session: sessionView(node),
     plane: kind,
     kind,
-    counts_as_live_nodes: countsAsLiveNodes(node),
+    counts_as_live_nodes: counted,
     node,
     ...(outletHook ? { outlet_hook: outletHook, outlet_hook_stored: true } : {}),
     ...(outletHookRefused ? { outlet_hook_stored: false, outlet_hook_refused: outletHookRefused } : {}),
     federated: fedJoin || undefined,
     note: fedJoin
-      ? "Signed #handle registered. verified_handles counts this handle. It does not enter the nodes or live_nodes pills, software_nodes, or instance_nodes."
-      : countsAsLiveNodes(node)
-      ? "Human mesh presence registered. Non-isolated human bearers count toward public Live Nodes (human mesh users + site_live_viewers) and Nodes (users + cited USES). Heartbeat within 5 minutes or the human drops. Not an account session."
-      : kind === "software"
-        ? "Softwares {slug}-worker presence registered on software_nodes."
-        : kind === "instance"
-          ? "Downloaded Softwares instance presence registered on instance_nodes."
-          : "Isolated or non-human presence registered. Isolated humans stay on isolated_nodes. Not an account session.",
+      ? "Signed #handle registered. verified_handles counts this handle. It does not enter the nodes or live_nodes pills, software_nodes, or instance_nodes. The suite session seal is SHA-256, not a second signing key."
+      : software
+        ? "Softwares {slug}-worker presence registered on software_nodes. Suite-presence still drops after 5 minutes. No user heartbeat."
+        : counted
+          ? "Durable join session registered (SHA-256 seal; this Worker holds no mesh-join signing key). A recent beat counts toward public Live Nodes. Miss 3 adaptive beats and the class is stale, not deleted. Stale does not count as Live Nodes. One beat restores live. Explicit leave or 14 days after the last beat deletes the row. Not an account session."
+          : "Durable join session registered. Isolated or non-human presence does not count as Live Nodes. Stale is not deleted. Not an account session.",
   });
 }
 
@@ -1981,8 +2164,19 @@ export async function meshHeartbeat(payload, env) {
     }
     const id = handleBody(fed.handle);
     if (state.nodes[id]) {
-      state.nodes[id].last_seen = nowIso();
-      state.nodes[id].presence = fed.presence || state.nodes[id].presence;
+      const prior = state.nodes[id];
+      if (!isSoftwareWorkerNodeId(id) && prior.session_seal && !(await durableSealOk(prior))) {
+        return refuse(
+          "MESH-SESSION-SEAL",
+          "Join session seal does not match the stored session. That row does not count as live. Join again. No account resurrection.",
+          { op: "heartbeat", mesh_enabled: true, node_id: id, presence_class: "stale", counts_as_live_nodes: false },
+        );
+      }
+      state.nodes[id] = await withSessionSeal({
+        ...prior,
+        last_seen: nowIso(),
+        presence: fed.presence || prior.presence,
+      });
       await saveState(env, state);
     }
     return baseResult({
@@ -2010,11 +2204,30 @@ export async function meshHeartbeat(payload, env) {
   }
   const node = state.nodes[node_id];
   if (!node) {
-    return refuse("MESH-UNKNOWN-NODE", "Unknown or expired node. Join again. No account resurrection.", {
-      op: "heartbeat",
-      mesh_enabled: true,
-      node_id,
-    });
+    return refuse(
+      "MESH-UNKNOWN-NODE",
+      "Unknown node, or the registration grace has ended. A stale node is still registered — one beat restores live. Join again only after leave or grace. No account resurrection.",
+      { op: "heartbeat", mesh_enabled: true, node_id },
+    );
+  }
+  const software = isSoftwareWorkerNodeId(node_id);
+  const modeRead = readHeartbeatMode(src, node, software);
+  if (!modeRead.ok) {
+    return refuse("MESH-BAD-INPUT", "heartbeat_mode must be active, idle, or asleep.", { op: "heartbeat", mesh_enabled: true });
+  }
+  if (!software && node.session_seal && !(await durableSealOk(node))) {
+    return refuse(
+      "MESH-SESSION-SEAL",
+      "Join session seal does not match the stored session. That row does not count as live. Join again. No account resurrection.",
+      {
+        op: "heartbeat",
+        mesh_enabled: true,
+        node_id,
+        presence_class: "stale",
+        counts_as_live_nodes: false,
+        session_sealed: false,
+      },
+    );
   }
   if (Object.prototype.hasOwnProperty.call(src, "presence")) {
     const presence = sanitizePresence(src.presence, "");
@@ -2058,18 +2271,26 @@ export async function meshHeartbeat(payload, env) {
     node.tip_hash = tick.tip_hash;
   }
   node.last_seen = nowIso();
-  state.nodes[node_id] = node;
+  if (!software) node.heartbeat_mode = modeRead.mode;
+  const restored = node.presence_class === "stale";
+  const sealed = await withSessionSeal(node);
+  state.nodes[node_id] = sealed;
   const store = await saveState(env, state);
   const loss = heartbeatLossMeaning({ missed: false });
   return baseResult({
     op: "heartbeat",
     ...(await statusFields({ ...state, store }, env)),
-    node,
+    node: sealed,
+    session: sessionView(sealed),
+    presence_class: sealed.presence_class,
+    restored_from_stale: restored && sealed.presence_class !== "stale",
     split_wires: SPLIT_WIRES,
     tick_plane: TICK_PLANE,
     heartbeat_loss_isolates: loss.poison,
     apply_last_packet: loss.apply_last_packet,
-    note: "Presence + optional tip hash only. 5-minute rollup TTL. No body on this plane. No implicit heal. Isolation is the cure. Heartbeat loss is not isolate-by-timer and does not apply last packet.",
+    note: software
+      ? "Suite-presence refresh. {slug}-worker still drops after 5 minutes. No user heartbeat. No body on this plane. Heartbeat loss is not isolate-by-timer and does not apply last packet."
+      : "Durable session beat. One beat restores the declared presence from stale. Miss 3 adaptive beats and the class is stale, not deleted. Stale does not count as Live Nodes. Explicit leave or 14 days after the last beat deletes the row. No body on this plane. Heartbeat loss is not isolate-by-timer and does not apply last packet.",
   });
 }
 
@@ -2089,7 +2310,7 @@ export async function meshLeave(payload, env) {
     node_id,
     left: existed,
     note: existed
-      ? "Presence dropped. OPERATOR-OVERRIDE 2026-09-17 armed implicit_heal / auto_heal cites; leave does not invent a packet replay."
+      ? "Registration deleted. Leave is the explicit end of a durable session. A stale row is not deleted by a missed beat. OPERATOR-OVERRIDE 2026-09-17 armed implicit_heal / auto_heal cites; leave does not invent a packet replay."
       : "Node was not in the rollup; leave is idempotent.",
   });
 }
@@ -2101,10 +2322,16 @@ export async function meshNodes(payload, env) {
     product: n.product,
     label: n.label,
     presence: PRESENCE_STATES.includes(n.presence) ? n.presence : "live",
+    presence_class: n.presence_class || n.presence,
+    membership: n.membership || (isSoftwareWorkerNodeId(n.node_id) ? "suite-presence" : "registered"),
+    heartbeat_mode: isSoftwareWorkerNodeId(n.node_id) ? null : n.heartbeat_mode || DEFAULT_HEARTBEAT_MODE,
+    user_heartbeat: isSoftwareWorkerNodeId(n.node_id) ? false : true,
+    session_sealed: n.session_sealed === true,
     kind: inferMeshKind(n),
     plane: inferMeshKind(n),
     last_seen: n.last_seen,
     joined_at: n.joined_at,
+    counts_as_live_nodes: countsAsLiveNodes(n),
   }));
   const nameAlert = meshCallingNameAlert(env);
   return baseResult({
@@ -2119,7 +2346,7 @@ export async function meshNodes(payload, env) {
       publish: false,
       mesh_broadcast: false,
     },
-    note: "QNM rollup roster (live/locked/isolated). No scores. No leaderboard. Views/MCP/downloads do not enter QNM-S.",
+    note: "QNM rollup roster. Durable rows stay until leave or grace and may be presence_class stale. {slug}-worker rows still drop after 5 minutes. No scores. No leaderboard. Views/MCP/downloads do not enter QNM-S.",
   });
 }
 
@@ -2152,7 +2379,7 @@ export async function meshSitePresence(payload, env) {
     op: "site-presence",
     ...(await statusFields(state, env)),
     site_presence: accepted.record,
-    note: "Hub human-page presence sealed in one aggregate. Fail-closed. GET /v1/mesh reads that key and never pulls hub /count. Paint live_nodes / rollup.mesh only. Never paint software_nodes or rollup.live as Live Nodes. Expired reports drop to 0 after 5 minutes. Not a mesh radio join.",
+    note: "Hub human-page presence sealed in one aggregate. A fresh beat counts as site_live_viewers. Miss 3 adaptive beats and the host is stale: Live Nodes drop that host to 0, and site_registered_viewers keeps the last count until viewers 0 or 14 days. Fail-closed. GET /v1/mesh reads that key and never pulls hub /count. Paint live_nodes / rollup.mesh only. Never paint software_nodes, site_registered_viewers, or rollup.live as Live Nodes. Not a mesh radio join. Not a per-person session.",
   });
 }
 

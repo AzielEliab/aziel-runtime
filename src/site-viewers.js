@@ -1,10 +1,12 @@
 /**
  * Fleet site-viewer presence for public Live Nodes.
  *
- * GodLock computes site_live_nodes locally (distinct human page sessions
- * with a heartbeat inside 5 minutes — see godlock workers/godlock-uk
- * presence.js). Runtime does not scrape hub /count. Hubs POST a fail-closed
- * heartbeat here. Missing, expired, or refused reports are 0.
+ * Hubs POST a fail-closed count here. Runtime does not scrape hub /count
+ * and does not invent per-viewer sessions from that count. A fresh beat
+ * is live. Miss N adaptive beats and the host row is stale: the last
+ * reported count stays registered, and Live Nodes drop that host to 0.
+ * Explicit viewers:0 clears the count. The row itself stays until leave
+ * is not a separate route — grace deletes a host that never beats again.
  *
  * Allowed: godlock.uk + azieleliab.com + azielcorpuslibrary.net.
  * Excluded: hedidntjump.com. Bots, Softwares, downloads are refused.
@@ -13,7 +15,17 @@
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
 
-export const SITE_LIVE_TTL_MS = 5 * 60 * 1000;
+import {
+  DEFAULT_HEARTBEAT_MODE,
+  REGISTERED_GRACE_MS,
+  heartbeatBand,
+  membershipClass,
+  sanitizeHeartbeatMode,
+  staleAfterMs,
+} from "./mesh-membership.js";
+
+/** Default idle live window (3 missed beats × 5 min). Not the software-worker TTL. */
+export const SITE_LIVE_TTL_MS = staleAfterMs(DEFAULT_HEARTBEAT_MODE);
 export const SITE_VIEWER_CAP = 10_000;
 export const SITE_LIVE_KIND = "human-page";
 export const SITE_LIVE_VIEWERS_PLANE = "hub-human-page-presence";
@@ -43,7 +55,7 @@ const HOST_ALIASES = Object.freeze({
 });
 
 export const SITE_LIVE_VIEWERS_NOTE =
-  "site_live_viewers is concurrent human page presence across godlock.uk + azieleliab.com + azielcorpuslibrary.net, reported by hub heartbeats (POST /v1/mesh/site-presence). Same 5-minute TTL as mesh presence. GET /v1/mesh reads one sealed aggregate (live_nodes_generation / live_nodes_tip) and never pulls hub /count. Hubs paint live_nodes / rollup.mesh from that JSON — do not add a local /count. Never paint software_nodes or rollup.live as Live Nodes. hedidntjump.com, bots, Softwares, and downloads are excluded. Missing or expired reports are 0. Do not invent viewers.";
+  "site_live_viewers is concurrent human page presence across godlock.uk + azieleliab.com + azielcorpuslibrary.net, reported by hub heartbeats (POST /v1/mesh/site-presence). A fresh beat counts. Miss 3 adaptive beats (default idle: 15 minutes) and that host is stale: site_live_viewers drops it to 0, and site_registered_viewers keeps the last reported count until explicit viewers 0 or 14 days after the last beat. GET /v1/mesh reads one sealed aggregate (live_nodes_generation / live_nodes_tip) and never pulls hub /count. Hubs paint live_nodes / rollup.mesh from that JSON — do not add a local /count. Never paint software_nodes, site_registered_viewers, or rollup.live as Live Nodes. hedidntjump.com, bots, Softwares, and downloads are excluded. Missing reports are 0. Do not invent viewers.";
 
 export const SITE_PRESENCE_CONTRACT = Object.freeze({
   method: "POST",
@@ -56,6 +68,11 @@ export const SITE_PRESENCE_CONTRACT = Object.freeze({
     kind: SITE_LIVE_KIND,
   }),
   ttl_ms: SITE_LIVE_TTL_MS,
+  registered_grace_ms: REGISTERED_GRACE_MS,
+  default_heartbeat_mode: DEFAULT_HEARTBEAT_MODE,
+  heartbeat_mode: "active | idle | asleep",
+  stale_keeps_registered: true,
+  stale_counts_as_live: false,
   allowed_hosts: SITE_LIVE_HOSTS.slice(),
   excluded_hosts: SITE_LIVE_EXCLUDED_HOSTS.slice(),
   refused_kinds: SITE_LIVE_REFUSED_KINDS.slice(),
@@ -132,6 +149,19 @@ export function sanitizeSiteViewers(raw) {
   return { ok: true, viewers: n };
 }
 
+export function siteRowClass(row, nowMs = Date.now()) {
+  if (!row || typeof row !== "object") return "dropped";
+  const seen = Date.parse(row.last_seen || "") || 0;
+  const mode = sanitizeHeartbeatMode(row.heartbeat_mode, DEFAULT_HEARTBEAT_MODE) || DEFAULT_HEARTBEAT_MODE;
+  return membershipClass({
+    lastSeenMs: seen,
+    now: nowMs,
+    mode,
+    declared: "live",
+    durable: true,
+  });
+}
+
 export function pruneSiteViewers(raw, nowMs = Date.now()) {
   const src = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
   const now = Number(nowMs);
@@ -140,16 +170,20 @@ export function pruneSiteViewers(raw, nowMs = Date.now()) {
   for (const host of SITE_LIVE_HOSTS) {
     const row = src[host];
     if (!row || typeof row !== "object") continue;
-    const seen = Date.parse(row.last_seen || "") || 0;
     const viewers = Number(row.viewers);
-    if (!seen || t - seen > SITE_LIVE_TTL_MS) continue;
     if (!Number.isInteger(viewers) || viewers < 0) continue;
     if (row.kind !== SITE_LIVE_KIND) continue;
+    const presence_class = siteRowClass(row, t);
+    if (presence_class === "dropped") continue;
+    const mode = sanitizeHeartbeatMode(row.heartbeat_mode, DEFAULT_HEARTBEAT_MODE) || DEFAULT_HEARTBEAT_MODE;
     out[host] = {
       host,
       viewers: Math.min(viewers, SITE_VIEWER_CAP),
       kind: SITE_LIVE_KIND,
       last_seen: row.last_seen,
+      heartbeat_mode: mode,
+      presence_class,
+      membership: "registered",
     };
   }
   return out;
@@ -206,25 +240,38 @@ export function liveNodesTip(generation, humanMeshUsers, components) {
 }
 
 export function siteViewerFleet(raw, nowMs = Date.now()) {
-  const live = pruneSiteViewers(raw, nowMs);
+  const kept = pruneSiteViewers(raw, nowMs);
   const components = emptySiteViewerComponents();
+  const registered_components = emptySiteViewerComponents();
   let total = 0;
+  let registered = 0;
   for (const host of SITE_LIVE_HOSTS) {
-    const n = live[host] && Number.isInteger(live[host].viewers) ? live[host].viewers : 0;
-    components[host] = n;
-    total += n;
+    const row = kept[host];
+    const n = row && Number.isInteger(row.viewers) ? row.viewers : 0;
+    const fresh = row && row.presence_class === "live";
+    components[host] = fresh ? n : 0;
+    if (fresh) total += n;
+    if (row) {
+      registered_components[host] = n;
+      registered += n;
+    }
   }
   return {
     site_live_viewers: total,
+    site_registered_viewers: registered,
     components,
+    registered_components,
     hosts: SITE_LIVE_HOSTS.slice(),
     excluded_hosts: SITE_LIVE_EXCLUDED_HOSTS.slice(),
     complete: true,
     pull: false,
     invent: false,
     fail_closed: true,
+    stale_counts_as_live: false,
     plane: SITE_LIVE_VIEWERS_PLANE,
     ttl_ms: SITE_LIVE_TTL_MS,
+    registered_grace_ms: REGISTERED_GRACE_MS,
+    default_heartbeat_mode: DEFAULT_HEARTBEAT_MODE,
     note: SITE_LIVE_VIEWERS_NOTE,
   };
 }
@@ -266,6 +313,15 @@ export function acceptSitePresence(payload, nowMs = Date.now()) {
       cap: viewers.cap,
     };
   }
+  const modeRaw = src.heartbeat_mode != null ? src.heartbeat_mode : src.cadence;
+  const heartbeat_mode = sanitizeHeartbeatMode(modeRaw, modeRaw == null || modeRaw === "" ? DEFAULT_HEARTBEAT_MODE : "");
+  if (!heartbeat_mode) {
+    return {
+      ok: false,
+      code: "MESH-BAD-INPUT",
+      message: "heartbeat_mode must be active, idle, or asleep.",
+    };
+  }
   const now = Number(nowMs);
   const ts = new Date(Number.isFinite(now) ? now : Date.now()).toISOString();
   return {
@@ -275,6 +331,10 @@ export function acceptSitePresence(payload, nowMs = Date.now()) {
       viewers: viewers.viewers,
       kind: kind.kind,
       last_seen: ts,
+      heartbeat_mode,
+      heartbeat_interval_ms: heartbeatBand(heartbeat_mode),
+      presence_class: "live",
+      membership: "registered",
     },
   };
 }

@@ -91,7 +91,7 @@ export function mcpInitializeInstructions(env = {}) {
     "ChainLock is append-only (no chainlock_delete). A ledger-bearing tool stamps chainlock on its own. chainlock_append, chainlock_tip, chainlock_recall, chainlock_verify, and chainlock_seal stay for diagnostics. chainlock_seal writes a local LOCKSET; runtime_session_close seals a raw session — they are not the same. " +
     "Auto-wire: every tool enters the door. Ledger ops stamp chainlock, temporallock, and forgereceipts: decisiongate_check, library_lookup, memory_observe, memory_resolve, memory_calibrate, mesh_join, mesh_enable, mesh_heartbeat, mesh_leave, mesh_broadcast, runtime_run, runtime_session_exec. fraggate_call stamps chainlock, temporallock, and forgereceipts inside the pipe when a real hash exists. Lamb Lens, SweepGate, Sentinel, and RoseClock run inside that pipe. Reads do not stamp chainlock, temporallock, or forgereceipts. " +
     "Memory lifecycle is append-only belief (≠ truth): observe → resolve → calibrate → recall or get (no memory_delete). " +
-    "QNM mesh lifecycle: mesh_status (counts), mesh_nodes (roster), mesh_enable (optional extra bearer), mesh_disable (refused — public disable of suite-presence), mesh_join/heartbeat/leave (one node), mesh_broadcast (hash receipt, never publish). mesh_join requires product; optional node_id is 8–80 [a-z0-9._-]; presence is live|locked|isolated; additive presence has a strict 5-minute TTL (heartbeat refreshes; else dropped). Join/heartbeat/broadcast refuse MESH-OFF when transmission radios are off. Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Open-world awareness binds 0.0.0.0 beside those radios (operator lock LIVE; Worker socket live-when-configured; forced_loopback and loopback_isolation are not the mesh fence; not a Cap-7 public egress IP; not ICANN). Public nodes count human mesh users plus cited human uses (USES peek). Public live_nodes count human mesh users plus concurrent site viewers (site_live_viewers) from hub human-page heartbeats. software_nodes is the {slug}-worker roster. Incomplete uses stay honest — do not invent users. NO-LIE / NO-REWRITE: receipts that still hash; copies not all on one tunnel; no rewrite key; the network is never allowed to lie even to self-preserve. " +
+    "QNM mesh lifecycle: mesh_status (counts), mesh_nodes (roster), mesh_enable (optional extra bearer), mesh_disable (refused — public disable of suite-presence), mesh_join/heartbeat/leave (one node), mesh_broadcast (hash receipt, never publish). mesh_join requires product; optional node_id is 8–80 [a-z0-9._-]; presence is live|locked|isolated; non-worker sessions stay registered until leave or 14 days after the last beat; heartbeat_mode is active (15–30s), idle (2–5 min), or asleep (15–30 min); miss 3 beats and the class is stale, not deleted; one beat restores live; stale does not count as Live Nodes; {slug}-worker suite-presence keeps a strict 5-minute TTL and is not a user heartbeat. Join/heartbeat/broadcast refuse MESH-OFF when transmission radios are off. Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Open-world awareness binds 0.0.0.0 beside those radios (operator lock LIVE; Worker socket live-when-configured; forced_loopback and loopback_isolation are not the mesh fence; not a Cap-7 public egress IP; not ICANN). Public nodes count human mesh users plus cited human uses (USES peek). Public live_nodes count human mesh users plus concurrent site viewers (site_live_viewers) from hub human-page heartbeats. software_nodes is the {slug}-worker roster. Incomplete uses stay honest — do not invent users. NO-LIE / NO-REWRITE: receipts that still hash; copies not all on one tunnel; no rewrite key; the network is never allowed to lie even to self-preserve. " +
     "Raw session lifecycle (advanced/internal): open → policy → exec → receipt or receipts → close. The door runs first. " +
     "Never echo raw tool names to humans. Show display.action, display.title, and display.summary, then take the next input. Human-visible framing is Run aziel runtime plus the product verb title. " +
     "runtime_run, runtime_session_*, raw *_health, and runtime_manifest are advanced/internal. " +
@@ -502,9 +502,9 @@ export function runtimeHelperTools() {
         notFor: "refreshing an existing node, reading the roster, enabling radios, or opening an account session",
         instead: "mesh_heartbeat, mesh_nodes, mesh_enable, or runtime_session_open",
         effects:
-          "Write: additive presence with a strict 5-minute TTL. Human bearers (kind=human, bearer=human, or auto-minted mesh_*) count toward public Live Nodes when not isolated. Softwares {slug}-worker rows are software_nodes and never feed Live Nodes. Downloaded instance ids stay instance_nodes. Isolated humans do not count. No heartbeat (or fan-out refresh) inside that window drops the node from the roster. Radios off refuses MESH-OFF. Missing product / bad node_id / bad presence refuse MESH-BAD-INPUT. Downloads are not live. Read-only suite-presence is ON by default. Not an account session. AnonBroadcast is not a product. Kernel-direct fabric wrapper — same mesh kernel as FragGate mesh/join; not MASTER-33; human Join uses fraggate_call",
-        params: "product is required (catalog slug). node_id optional 8–80 [a-z0-9._-]. presence is live|locked|isolated (default live). kind/plane may be human|instance. bearer=human marks a human mesh user. " + CONFIRM_PARAM_NOTE,
-        returns: "node_id, presence, presence_ttl_ms (300000), and TTL note. MESH-OFF when radios are off",
+          "Write: durable hash-sealed join session for non-worker nodes. Stay registered until explicit leave or 14 days after the last beat. heartbeat_mode active (15–30s), idle (2–5 min, default), or asleep (15–30 min). Miss 3 beats and presence_class is stale, not deleted. One beat restores the declared presence. Stale does not count as Live Nodes. Human bearers (kind=human, bearer=human, or auto-minted mesh_*) count toward public Live Nodes only while the class is live or locked. Softwares {slug}-worker rows are software_nodes, keep a strict 5-minute TTL, and never take a user heartbeat. Downloaded instance ids stay instance_nodes. Isolated humans do not count. Radios off refuses MESH-OFF. A seal mismatch refuses MESH-SESSION-SEAL. Missing product / bad node_id / bad presence / bad heartbeat_mode refuse MESH-BAD-INPUT. Downloads are not live. Read-only suite-presence is ON by default. Not an account session. AnonBroadcast is not a product. Kernel-direct fabric wrapper — same mesh kernel as FragGate mesh/join; not MASTER-33; human Join uses fraggate_call",
+        params: "product is required (catalog slug). node_id optional 8–80 [a-z0-9._-]. presence is live|locked|isolated (default live). heartbeat_mode is active|idle|asleep (default idle). kind/plane may be human|instance. bearer=human marks a human mesh user. " + CONFIRM_PARAM_NOTE,
+        returns: "node_id, presence_class, session_seal (sha256), registered_grace_ms, and the software 5-minute TTL note. MESH-OFF when radios are off",
       }),
       annotations: mcpAnnotations("Register QNM rollup presence", HINT_ADDITIVE),
       inputSchema: withConfirmProperties({
@@ -534,6 +534,12 @@ export function runtimeHelperTools() {
             enum: ["live", "locked", "isolated"],
             description: "Optional rollup class. live (default), locked, or isolated. No scores. Other values refuse MESH-BAD-INPUT.",
           },
+          heartbeat_mode: {
+            type: "string",
+            enum: ["active", "idle", "asleep"],
+            description:
+              "Optional adaptive beat. active is 15–30s, idle is 2–5 min (default), asleep is 15–30 min. Miss 3 beats and the class is stale, not deleted. Ignored for {slug}-worker.",
+          },
         },
         required: ["product"],
       }),
@@ -543,16 +549,16 @@ export function runtimeHelperTools() {
       name: "mesh_heartbeat",
       title: "Refresh QNM rollup presence",
       description: tdqsDescription({
-        action: "Refresh one existing node's 5-minute QNM TTL (POST /v1/mesh/heartbeat) — not a first join",
+        action: "Beat one registered node (POST /v1/mesh/heartbeat) — restores live from stale; not a first join",
         when: "you already have a node_id from mesh_join and transmission radios are LIVE",
         notFor: "first-time registration or dropping the node",
         instead: "mesh_join or mesh_leave",
         effects:
-          "Write: refreshes the strict 5-minute TTL (not idempotent). Miss the window and the node is dropped from the live roster. Radios off refuses MESH-OFF. Unknown or expired node_id refuses MESH-UNKNOWN-NODE — join again; no account resurrection",
+          "Write: one beat on a durable session. Restores presence_class live (or locked/isolated if that was declared) from stale. Does not delete a stale row. {slug}-worker refresh still uses the strict 5-minute TTL and is not a user heartbeat. Radios off refuses MESH-OFF. A seal mismatch refuses MESH-SESSION-SEAL and does not count as live. Unknown node_id, or a row past the 14-day grace, refuses MESH-UNKNOWN-NODE — join again; no account resurrection",
         params:
-          "node_id is required. presence may replace the class (live|locked|isolated). Optional tip_hash and prev are 64 hex only (Split the wires + REHEAL: presence + tip hash; no body/diff/vote-to-fix). OPERATOR-OVERRIDE 2026-09-17 armed neighbor_heal. " +
+          "node_id is required. presence may replace the declared class (live|locked|isolated). heartbeat_mode may switch active|idle|asleep. Optional tip_hash and prev are 64 hex only (Split the wires + REHEAL: presence + tip hash; no body/diff/vote-to-fix). OPERATOR-OVERRIDE 2026-09-17 armed neighbor_heal. " +
           CONFIRM_PARAM_NOTE,
-        returns: "updated presence and TTL. Body on this plane refuses MESH-NO-BYTES. Same prev + two tips refuses MESH-EQUIVOCATION. Vote-to-fix still refuses MESH-NO-NEIGHBOR-HEAL",
+        returns: "updated presence_class. Stale becomes the declared presence. Body on this plane refuses MESH-NO-BYTES. Same prev + two tips refuses MESH-EQUIVOCATION. Vote-to-fix still refuses MESH-NO-NEIGHBOR-HEAL",
       }),
       annotations: mcpAnnotations("Refresh QNM rollup presence", HINT_ADDITIVE),
       inputSchema: withConfirmProperties({
@@ -568,6 +574,11 @@ export function runtimeHelperTools() {
             type: "string",
             enum: ["live", "locked", "isolated"],
             description: "Optional replacement presence class. Other values refuse MESH-BAD-INPUT.",
+          },
+          heartbeat_mode: {
+            type: "string",
+            enum: ["active", "idle", "asleep"],
+            description: "Optional adaptive beat. active 15–30s, idle 2–5 min, asleep 15–30 min. One beat restores live from stale.",
           },
           tip_hash: {
             type: "string",
@@ -614,7 +625,7 @@ export function runtimeHelperTools() {
       name: "mesh_nodes",
       title: "List QNM rollup nodes",
       description: tdqsDescription({
-        action: "List the QNM node roster (node_id + presence + 5-minute TTL) — not suite totals",
+        action: "List the QNM node roster (node_id + presence_class; durable rows stay, {slug}-worker keeps a 5-minute TTL) — not suite totals",
         when: "you need the current node list after mesh_status",
         notFor: "suite counts without the roster, or mutating presence",
         instead: "mesh_status, mesh_join, or mesh_leave",

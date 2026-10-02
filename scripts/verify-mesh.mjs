@@ -34,6 +34,10 @@ import {
   meshFanoutSuitePresence,
   memoryMeshKv,
   PRESENCE_TTL_MS,
+  REGISTERED_GRACE_MS,
+  HEARTBEAT_MISS_N,
+  HEARTBEAT_INTERVAL_MS,
+  staleAfterMs,
   resetMeshClock,
   resetMeshStore,
   runMeshOp,
@@ -211,9 +215,9 @@ assert.equal(onStatus.data.rollup.all.live, 0);
 assert.equal(onStatus.data.rollup.live, undefined);
 assert.equal(onStatus.data.rollup.locked, 0);
 assert.equal(onStatus.data.rollup.isolated, 0);
-assert.deepEqual(onStatus.data.rollup.software, { live: 0, locked: 0, isolated: 0 });
-assert.deepEqual(onStatus.data.rollup.instances, { live: 0, locked: 0, isolated: 0 });
-assert.deepEqual(onStatus.data.rollup.ephemeral, { live: 0, locked: 0, isolated: 0 });
+assert.deepEqual(onStatus.data.rollup.software, { live: 0, locked: 0, isolated: 0, stale: 0 });
+assert.deepEqual(onStatus.data.rollup.instances, { live: 0, locked: 0, isolated: 0, stale: 0 });
+assert.deepEqual(onStatus.data.rollup.ephemeral, { live: 0, locked: 0, isolated: 0, stale: 0 });
 assert.equal(onStatus.data.live_nodes, 0);
 assert.equal(onStatus.data.site_live_viewers, 0);
 assert.equal(onStatus.data.nodes, 0);
@@ -759,31 +763,103 @@ setMeshNowMs(t0);
 const ttlJoin = await runMeshOp("join", { product: "godlock", node_id: "ttl-node1" }, ttlEnv);
 assert.equal(ttlJoin.ok, true, JSON.stringify(ttlJoin));
 assert.equal(ttlJoin.session.node_id, "ttl-node1");
-assert.equal(ttlJoin.session.presence_ttl_ms, PRESENCE_TTL_MS);
+assert.equal(ttlJoin.session.membership, "registered");
+assert.equal(ttlJoin.session.session_sealed, true);
+assert.equal(ttlJoin.session.presence_ttl_ms, null);
+assert.equal(ttlJoin.session.registered_grace_ms, REGISTERED_GRACE_MS);
+assert.equal(ttlJoin.session.heartbeat_mode, "idle");
+assert.equal(ttlJoin.session.presence_class, "live");
+assert.equal(ttlJoin.session.stale_after_ms, staleAfterMs("idle"));
+assert.equal(HEARTBEAT_MISS_N, 3);
+assert.equal(HEARTBEAT_INTERVAL_MS.active.min_ms, 15_000);
+assert.equal(HEARTBEAT_INTERVAL_MS.active.max_ms, 30_000);
+assert.equal(HEARTBEAT_INTERVAL_MS.idle.min_ms, 2 * 60 * 1000);
+assert.equal(HEARTBEAT_INTERVAL_MS.idle.max_ms, 5 * 60 * 1000);
+assert.equal(HEARTBEAT_INTERVAL_MS.asleep.min_ms, 15 * 60 * 1000);
+assert.equal(HEARTBEAT_INTERVAL_MS.asleep.max_ms, 30 * 60 * 1000);
 const rosterLive = await runMeshOp("nodes", {}, ttlEnv);
 assert.ok(rosterLive.nodes.some((n) => n.node_id === "ttl-node1"), "joined node must appear on roster");
 
-setMeshNowMs(t0 + PRESENCE_TTL_MS + 1);
-const rosterExpired = await runMeshOp("nodes", {}, ttlEnv);
-assert.ok(!rosterExpired.nodes.some((n) => n.node_id === "ttl-node1"), "node must drop after 5 minutes without heartbeat");
-const expiredBeat = await runMeshOp("heartbeat", { node_id: "ttl-node1" }, ttlEnv);
-assert.equal(expiredBeat.ok, false);
-assert.equal(expiredBeat.code, "MESH-UNKNOWN-NODE");
+const idleStale = staleAfterMs("idle");
+setMeshNowMs(t0 + idleStale + 1);
+const rosterStale = await runMeshOp("nodes", {}, ttlEnv);
+const staleRow = rosterStale.nodes.find((n) => n.node_id === "ttl-node1");
+assert.ok(staleRow, "missed beats must keep the node registered");
+assert.equal(staleRow.presence_class, "stale");
+assert.equal(rosterStale.live_nodes, rosterStale.human_mesh_users + rosterStale.site_live_viewers);
+assert.ok(rosterStale.registered_nodes >= 1);
+const staleBeat = await runMeshOp("heartbeat", { node_id: "ttl-node1" }, ttlEnv);
+assert.equal(staleBeat.ok, true, JSON.stringify(staleBeat));
+assert.equal(staleBeat.presence_class, "live");
+assert.equal(staleBeat.restored_from_stale, true);
 
-setMeshNowMs(t0 + PRESENCE_TTL_MS + 2);
-const ttlJoin2 = await runMeshOp("join", { product: "godlock", node_id: "ttl-keep1" }, ttlEnv);
-assert.equal(ttlJoin2.ok, true, JSON.stringify(ttlJoin2));
-setMeshNowMs(t0 + PRESENCE_TTL_MS + 2 + (PRESENCE_TTL_MS - 1_000));
-const keptBeat = await runMeshOp("heartbeat", { node_id: "ttl-keep1" }, ttlEnv);
-assert.equal(keptBeat.ok, true, JSON.stringify(keptBeat));
-setMeshNowMs(t0 + PRESENCE_TTL_MS + 2 + PRESENCE_TTL_MS + 500);
-const stillKept = await runMeshOp("nodes", {}, ttlEnv);
-assert.ok(stillKept.nodes.some((n) => n.node_id === "ttl-keep1"), "heartbeat inside the window must keep the node");
-setMeshNowMs(t0 + PRESENCE_TTL_MS + 2 + PRESENCE_TTL_MS + 500 + PRESENCE_TTL_MS + 1);
-const droppedAfterKeep = await runMeshOp("nodes", {}, ttlEnv);
-assert.ok(!droppedAfterKeep.nodes.some((n) => n.node_id === "ttl-keep1"), "missed heartbeat after refresh must drop the node");
+setMeshNowMs(t0 + idleStale + 1 + REGISTERED_GRACE_MS + 1);
+const rosterGrace = await runMeshOp("nodes", {}, ttlEnv);
+assert.ok(!rosterGrace.nodes.some((n) => n.node_id === "ttl-node1"), "grace deletes a row that never beats again");
+const graceBeat = await runMeshOp("heartbeat", { node_id: "ttl-node1" }, ttlEnv);
+assert.equal(graceBeat.ok, false);
+assert.equal(graceBeat.code, "MESH-UNKNOWN-NODE");
+
+setMeshNowMs(t0 + idleStale + 2);
+const humanJoin = await runMeshOp("join", {
+  product: "godlock",
+  node_id: "human-ttl-1",
+  kind: "human",
+  bearer: "human",
+  heartbeat_mode: "active",
+}, ttlEnv);
+assert.equal(humanJoin.ok, true, JSON.stringify(humanJoin));
+assert.equal(humanJoin.human_mesh_users, 1);
+assert.equal(humanJoin.live_nodes, humanJoin.human_mesh_users + humanJoin.site_live_viewers);
+setMeshNowMs(t0 + idleStale + 2 + staleAfterMs("active") + 1);
+const humanStale = await runMeshOp("nodes", {}, ttlEnv);
+const humanRow = humanStale.nodes.find((n) => n.node_id === "human-ttl-1");
+assert.equal(humanRow.presence_class, "stale");
+assert.equal(humanStale.human_mesh_users, 0, "stale human must not count as Live Nodes");
+assert.equal(humanStale.registered_humans, 1);
+assert.equal(humanStale.live_nodes, humanStale.site_live_viewers);
+const humanBack = await runMeshOp("heartbeat", { node_id: "human-ttl-1", heartbeat_mode: "active" }, ttlEnv);
+assert.equal(humanBack.ok, true, JSON.stringify(humanBack));
+assert.equal(humanBack.human_mesh_users, 1);
+assert.equal(humanBack.presence_class, "live");
+
+const suiteJoin = await runMeshOp("join", { product: "godlock", node_id: "godlock-worker" }, ttlEnv);
+assert.equal(suiteJoin.ok, true, JSON.stringify(suiteJoin));
+assert.equal(suiteJoin.session.membership, "suite-presence");
+assert.equal(suiteJoin.session.user_heartbeat, false);
+assert.equal(suiteJoin.session.presence_ttl_ms, PRESENCE_TTL_MS);
+setMeshNowMs(t0 + idleStale + 2 + staleAfterMs("active") + 1 + PRESENCE_TTL_MS + 1);
+const workerRoster = await runMeshOp("nodes", {}, ttlEnv);
+assert.ok(!workerRoster.nodes.some((n) => n.node_id === "godlock-worker"), "{slug}-worker still drops after 5 minutes");
+const workerBeat = await runMeshOp("heartbeat", { node_id: "godlock-worker" }, ttlEnv);
+assert.equal(workerBeat.code, "MESH-UNKNOWN-NODE");
 resetMeshClock();
 resetMeshStore();
+
+{
+  const sealKv = memoryMeshKv();
+  const sealEnv = envWithMesh({ USES: sealKv });
+  const joined = await runMeshOp("join", {
+    product: "azchat",
+    node_id: "seal-human1",
+    kind: "human",
+    bearer: "human",
+  }, sealEnv);
+  assert.equal(joined.ok, true, JSON.stringify(joined));
+  assert.equal(joined.human_mesh_users, 1);
+  const raw = JSON.parse(await sealKv.get("mesh|nodes"));
+  raw["seal-human1"].session_seal = "ab".repeat(32);
+  await sealKv.put("mesh|nodes", JSON.stringify(raw));
+  const lied = await runMeshOp("status", {}, sealEnv);
+  assert.equal(lied.human_mesh_users, 0, "a mismatched session seal does not count as Live");
+  assert.equal(lied.registered_humans, 1, "a mismatched seal stays registered and is not a ghost Live Node");
+  const beat = await runMeshOp("heartbeat", { node_id: "seal-human1" }, sealEnv);
+  assert.equal(beat.ok, false);
+  assert.equal(beat.code, "MESH-SESSION-SEAL");
+  const still = await runMeshOp("status", {}, sealEnv);
+  assert.equal(still.human_mesh_users, 0, "a refused beat does not restore live");
+  resetMeshStore();
+}
 
 {
   const usesKv = memoryMeshKv({ total: "7" });
@@ -814,7 +890,8 @@ resetMeshStore();
   assert.deepEqual(SITE_LIVE_HOSTS.slice(), ["godlock.uk", "azieleliab.com", "azielcorpuslibrary.net"]);
   assert.deepEqual(SITE_LIVE_EXCLUDED_HOSTS.slice(), ["hedidntjump.com"]);
   assert.equal(SITE_LIVE_KIND, "human-page");
-  assert.equal(SITE_LIVE_TTL_MS, PRESENCE_TTL_MS);
+  assert.equal(SITE_LIVE_TTL_MS, staleAfterMs("idle"));
+  assert.notEqual(SITE_LIVE_TTL_MS, PRESENCE_TTL_MS);
   assert.equal(sanitizeSiteHost("https://www.godlock.uk/count").host, "godlock.uk");
   assert.equal(sanitizeSiteHost("hedidntjump.com").code, "MESH-SITE-HOST-EXCLUDED");
   assert.equal(sanitizeSiteKind("bot").code, "MESH-SITE-KIND-REFUSED");
@@ -926,8 +1003,13 @@ resetMeshStore();
   setMeshNowMs(tSite + SITE_LIVE_TTL_MS + 1);
   const expired = await jsonReq(siteEnv, "/v1/mesh");
   assert.equal(expired.data.site_live_viewers_components["azieleliab.com"], 0);
-  assert.equal(expired.data.site_live_viewers, 0, "expired hub heartbeats are 0");
+  assert.equal(expired.data.site_live_viewers, 0, "stale hub heartbeats are 0 on Live Nodes");
+  assert.equal(expired.data.site_registered_viewers_components["azieleliab.com"], 5);
+  assert.equal(expired.data.site_registered_viewers, 5, "stale hub count stays registered");
   assert.equal(expired.data.live_nodes, expired.data.human_mesh_users);
+  setMeshNowMs(tSite + SITE_LIVE_TTL_MS + 1 + REGISTERED_GRACE_MS + 1);
+  const siteGone = await jsonReq(siteEnv, "/v1/mesh");
+  assert.equal(siteGone.data.site_registered_viewers, 0, "grace deletes a hub row that never beats again");
   resetMeshClock();
   resetMeshStore();
 

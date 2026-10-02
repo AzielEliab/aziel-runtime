@@ -413,12 +413,12 @@ ${survivalSkillMarkdown(base)}
 | GET | \`/v1/mesh/status\` | Alias of \`/v1/mesh\`. |
 | POST | \`/v1/mesh/enable\` | Optional extra bearer. Body \`{bearer}\` required (rate-limited). |
 | POST | \`/v1/mesh/disable\` | Refused (\`MESH-DISABLE-REFUSED\`). Public disable of suite-presence is refused. |
-| POST | \`/v1/mesh/join\` | Register rollup presence. Body \`{product, node_id?, label?, presence?}\`. product required. node_id 8–80 \`[a-z0-9._-]\`. presence live\\|locked\\|isolated. Strict 5-minute TTL. F03 \`mesh_mutate\` (30/min). Presence-only — not a login mesh. \`MESH-OFF\` when radios off. \`MESH-ROSTER-FULL\` at cap. |
-| POST | \`/v1/mesh/heartbeat\` | Refresh the strict 5-minute TTL. Body \`{node_id, presence?}\`. F03 \`mesh_mutate\`. \`MESH-OFF\` when radios off. |
+| POST | \`/v1/mesh/join\` | Register a durable hash-sealed session. Body \`{product, node_id?, label?, presence?, heartbeat_mode?}\`. product required. node_id 8–80 \`[a-z0-9._-]\`. presence live\\|locked\\|isolated. heartbeat_mode active\\|idle\\|asleep (default idle). Stay registered until leave or 14 days after the last beat. Miss 3 beats and the class is stale, not deleted. \`{slug}-worker\` still drops after 5 minutes. F03 \`mesh_mutate\` (30/min). Presence-only — not a login mesh. \`MESH-OFF\` when radios off. \`MESH-ROSTER-FULL\` at cap. |
+| POST | \`/v1/mesh/heartbeat\` | One beat. Restores live from stale. Body \`{node_id, presence?, heartbeat_mode?}\`. Does not delete a stale row. Grace expiry is \`MESH-UNKNOWN-NODE\`. F03 \`mesh_mutate\`. \`MESH-OFF\` when radios off. |
 | POST | \`/v1/mesh/leave\` | Drop presence. Body \`{node_id}\`. No implicit heal. |
 | GET | \`/v1/mesh/nodes\` | Rollup roster (no scores / leaderboard). |
 | GET | \`/v1/mesh/site-presence\` | Cite hub site-viewer contract + current \`site_live_viewers\`. Never writes. Never pulls hub /count. |
-| POST | \`/v1/mesh/site-presence\` | Hub fleet heartbeat. Body \`{host, viewers, kind: "human-page"}\`. Allowed: godlock.uk, azieleliab.com, azielcorpuslibrary.net. Alias \`/v1/mesh/site-heartbeat\`. 5-minute TTL. Fail-closed. F03 \`mesh_mutate\`. |
+| POST | \`/v1/mesh/site-presence\` | Hub fleet heartbeat. Body \`{host, viewers, kind: "human-page", heartbeat_mode?}\`. Allowed: godlock.uk, azieleliab.com, azielcorpuslibrary.net. Alias \`/v1/mesh/site-heartbeat\`. Fresh beat counts as site_live_viewers. Miss 3 adaptive beats and the host is stale: Live Nodes drop it to 0; site_registered_viewers keeps the last count until viewers 0 or 14 days. Fail-closed. F03 \`mesh_mutate\`. |
 | GET | \`/v1/mesh/az-generator\` | Cap-7 semantic-bridge cite (MirageGrid factory; inherit designs only including azcorpus + azlibrary; \`design_of: hub_designs\`; \`resolves_to_hub: false\`; \`name_may_change\`; not ICANN). Never enables radios. |
 | POST | \`/v1/mesh/broadcast\` | SHA-256 hash receipt only. Never a publish path. |
 | GET | \`/v1/mesh/sot\` | SOT-SYNC-1.0 suite tip. Authority is GET /v1/software (suite version, git sha, Softwares count, card versions). version_id is the Cloudflare Worker version id when bound, otherwise null. Does not change Nodes or Live Nodes. |
@@ -1903,7 +1903,7 @@ export function runtimeStaticPaths() {
     "/v1/mesh/join": {
       post: {
         operationId: "mesh_join",
-        summary: "Register rollup presence. Body { product, node_id?, label?, presence? }. product required. node_id 8–80 [a-z0-9._-]. presence live|locked|isolated. Strict 5-minute TTL. MESH-OFF when radios off.",
+        summary: "Register a durable hash-sealed session. Body { product, node_id?, label?, presence?, heartbeat_mode? }. product required. node_id 8–80 [a-z0-9._-]. presence live|locked|isolated. heartbeat_mode active|idle|asleep. Stay registered until leave or 14 days. Miss 3 beats and the class is stale. {slug}-worker still drops after 5 minutes. MESH-OFF when radios off.",
         tags: ["mesh"],
         requestBody: {
           required: true,
@@ -1917,18 +1917,19 @@ export function runtimeStaticPaths() {
                   node_id: { type: "string", minLength: 8, maxLength: 80, pattern: "^[a-z0-9._-]+$", description: "Optional. Exactly 8–80 chars [a-z0-9._-]." },
                   label: { type: "string" },
                   presence: { type: "string", enum: ["live", "locked", "isolated"], description: "live | locked | isolated" },
+                  heartbeat_mode: { type: "string", enum: ["active", "idle", "asleep"], description: "active 15–30s, idle 2–5 min, asleep 15–30 min. Default idle." },
                 },
               },
             },
           },
         },
-        responses: { "200": { description: "Session + node (presence_ttl_ms 300000)" }, "400": { description: "MESH-OFF, MESH-BAD-INPUT, or radios off" } },
+        responses: { "200": { description: "Sealed session. Software workers still report presence_ttl_ms 300000. Durable rows report registered_grace_ms." }, "400": { description: "MESH-OFF, MESH-BAD-INPUT, or radios off" } },
       },
     },
     "/v1/mesh/heartbeat": {
       post: {
         operationId: "mesh_heartbeat",
-        summary: "Refresh the strict 5-minute presence TTL. Body { node_id, presence? }. MESH-OFF when radios off. Expired node is MESH-UNKNOWN-NODE.",
+        summary: "One adaptive beat. Restores live from stale. Body { node_id, presence?, heartbeat_mode? }. MESH-OFF when radios off. Past grace is MESH-UNKNOWN-NODE. Seal mismatch is MESH-SESSION-SEAL.",
         tags: ["mesh"],
         requestBody: {
           required: true,
@@ -1937,7 +1938,11 @@ export function runtimeStaticPaths() {
               schema: {
                 type: "object",
                 required: ["node_id"],
-                properties: { node_id: { type: "string" }, presence: { type: "string" } },
+                properties: {
+                  node_id: { type: "string" },
+                  presence: { type: "string" },
+                  heartbeat_mode: { type: "string", enum: ["active", "idle", "asleep"] },
+                },
               },
             },
           },
@@ -1954,7 +1959,7 @@ export function runtimeStaticPaths() {
       },
       post: {
         operationId: "mesh_site_presence",
-        summary: "Hub fleet heartbeat of concurrent human page viewers. Body { host, viewers, kind: human-page }. Allowed hosts godlock.uk / azieleliab.com / azielcorpuslibrary.net. hedidntjump.com, bots, Softwares, downloads refuse. 5-minute TTL. Fail-closed.",
+        summary: "Hub fleet heartbeat of concurrent human page viewers. Body { host, viewers, kind: human-page, heartbeat_mode? }. Allowed hosts godlock.uk / azieleliab.com / azielcorpuslibrary.net. hedidntjump.com, bots, Softwares, downloads refuse. Fresh beat is live. Miss 3 beats and the host is stale (registered count kept, Live Nodes 0). Fail-closed.",
         tags: ["mesh"],
         requestBody: {
           required: true,
@@ -1967,6 +1972,7 @@ export function runtimeStaticPaths() {
                   host: { type: "string", description: "godlock.uk | azieleliab.com | azielcorpuslibrary.net" },
                   viewers: { type: "integer", minimum: 0, maximum: 10000, description: "Concurrent human page sessions. Do not invent." },
                   kind: { type: "string", enum: ["human-page"] },
+                  heartbeat_mode: { type: "string", enum: ["active", "idle", "asleep"], description: "Optional. Default idle." },
                 },
               },
             },

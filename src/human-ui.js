@@ -868,7 +868,15 @@ ${dashCards}
         <option value="isolated">isolated</option>
       </select>
     </div>
-    <p class="hint">Join is first presence. Heartbeat / Leave need a node id. Heartbeat refreshes the 5-minute TTL. MESH-OFF refuses join/heartbeat/broadcast when transmission radios are not LIVE — GET will not turn them on. Channel plane is CITE-only. AnonBroadcast is not a product. VPN cite is FragGate <code>mesh/vpn</code> (AZVPN auto; never fake connected). Extra bearer is rate-limited; GET still never enables.</p>
+    <div class="field">
+      <label for="mesh-heartbeat-mode">Heartbeat</label>
+      <select id="mesh-heartbeat-mode" name="heartbeat_mode">
+        <option value="active">active (15–30s)</option>
+        <option value="idle" selected>idle (2–5 min)</option>
+        <option value="asleep">asleep (15–30 min)</option>
+      </select>
+    </div>
+    <p class="hint">Join is a durable session. Heartbeat / Leave need a node id. Miss 3 beats and the class is stale, not deleted. One beat restores live. Leave, or 14 days after the last beat, deletes the row. <code>{slug}-worker</code> still drops after 5 minutes and is not a user heartbeat. Stale does not count as Live Nodes. MESH-OFF refuses join/heartbeat/broadcast when transmission radios are not LIVE — GET will not turn them on. Channel plane is CITE-only. AnonBroadcast is not a product. VPN cite is FragGate <code>mesh/vpn</code> (AZVPN auto; never fake connected). Extra bearer is rate-limited; GET still never enables.</p>
     <p class="hint" id="mesh-bearer-note">L0 stays the public path: this Worker, FragGate, and the HTTPS relay. Optional L1 peer bearers (a configured direct or LAN URL, and extra relays) run only when configured. NAT hole-punch is refused (<code>FED-MESH-NAT-REFUSE</code>). L1 does not replace L0. Survival methods are named on status: L0 is LIVE; L1 is LIVE only when configured; Cap-7 factory exec is LIVE on the Cap-7 plane (not a public egress IP, not ICANN); home-origin and cold shelves stay SLOT. Phoenix is local wait / re-seal. No invented DOI. AZnet does not replace the internet. Not public ICANN DNS. Not radio PHY. L2 does not replace L0. GET <code>/v1/mesh/relay</code> is the health check and never enables.</p>
     <div class="field">
       <label for="mesh-bearer">Extra bearer (optional; GET never enables)</label>
@@ -979,7 +987,9 @@ ${dashCards}
     <p class="hint">Browseable Softwares + live mesh counts + receipts. Metrics come from <code>GET /v1/mesh</code> and <code>GET /v1/receipts</code>. GET never enables radios. Each card has slug-specific <code>#hashtag</code> parts — not one identical blob. Channel plane (wifi / bluetooth / rf / photon) is a cite — live hardware is local qnm-node. Public VPN auto-binds AZVPN (HTTPS/WS; GET cites only).</p>
     <div class="metric-grid" id="dash-metrics">
       <div class="metric" title="Nodes: human mesh users plus cited human uses (USES)."><span class="label">Nodes</span><span class="value" id="metric-nodes">—</span></div>
-      <div class="metric" title="Live Nodes: human mesh users plus concurrent website viewers (site_live_viewers)."><span class="label">Live Nodes</span><span class="value" id="metric-live">—</span></div>
+      <div class="metric" title="Live Nodes: recent human beats plus concurrent website viewers (site_live_viewers). Stale rows are not included."><span class="label">Live Nodes</span><span class="value" id="metric-live">—</span></div>
+      <div class="metric" title="Registered: durable non-worker sessions, including stale. Not Live Nodes."><span class="label">Registered</span><span class="value" id="metric-registered">—</span></div>
+      <div class="metric" title="Stale: registered rows that missed 3 adaptive beats. One beat restores live."><span class="label">Stale</span><span class="value" id="metric-stale">—</span></div>
       <div class="metric" title="Inactive (locked) mesh nodes."><span class="label">Inactive</span><span class="value" id="metric-locked">—</span></div>
       <div class="metric" title="Isolated mesh nodes. Isolated humans stay on isolated_nodes."><span class="label">Isolated</span><span class="value" id="metric-isolated">—</span></div>
       <div class="metric" title="Softwares product Workers ({slug}-worker)."><span class="label">Software</span><span class="value" id="metric-software">—</span></div>
@@ -1459,7 +1469,9 @@ export function humanDoorScript() {
       let radios = b.radios || (b.enabled ? "on" : "off");
       let ch = b.channel_plane || b.channels || {};
       let channelsOn = (ch.wifi || b.wifi) === "on" && (ch.bluetooth || b.bluetooth) === "on" && (ch.rf || b.rf) === "on" && (ch.photon || b.photon) === "on";
-      let text = "Nodes " + nodesCount + " · Live Nodes " + (live == null ? "—" : live) + " · tip " + tip + " · software_nodes " + software + " · inactive " + locked + " · isolated " + isolated + " · radios " + radios + " · suite-presence " + (b.suite_presence || "on") + " · GET never enables";
+      let registered = b.registered_nodes != null ? b.registered_nodes : null;
+      let stale = b.stale_nodes != null ? b.stale_nodes : null;
+      let text = "Nodes " + nodesCount + " · Live Nodes " + (live == null ? "—" : live) + " · registered " + (registered == null ? "—" : registered) + " · stale " + (stale == null ? "—" : stale) + " · tip " + tip + " · software_nodes " + software + " · inactive " + locked + " · isolated " + isolated + " · radios " + radios + " · suite-presence " + (b.suite_presence || "on") + " · GET never enables";
       if (channelsOn) text += " · channels wifi/bt/rf/photon cite-on";
       if (b.vpn === true) text += " · public VPN AZVPN auto";
       else if (b.vpn === false) text += " · vpn false";
@@ -1501,6 +1513,8 @@ export function humanDoorScript() {
       };
       setMetric("metric-nodes", nodesCount);
       setMetric("metric-live", live == null ? "—" : live);
+      setMetric("metric-registered", registered == null ? "—" : registered);
+      setMetric("metric-stale", stale == null ? "—" : stale);
       setMetric("metric-locked", locked);
       setMetric("metric-isolated", isolated);
       setMetric("metric-software", software);
@@ -1556,9 +1570,10 @@ export function humanDoorScript() {
         let product = String(document.getElementById("mesh-product").value || "").trim();
         let node_id = String(document.getElementById("mesh-node").value || "").trim();
         let presence = String(document.getElementById("mesh-presence").value || "live");
+        let heartbeat_mode = String(document.getElementById("mesh-heartbeat-mode") && document.getElementById("mesh-heartbeat-mode").value || "idle");
         if (act === "heartbeat" || act === "leave") {
           if (!node_id) { show(out, "Node id is required for heartbeat / leave.", "error"); return; }
-          let payload = act === "leave" ? { node_id: node_id } : { node_id: node_id, presence: presence };
+          let payload = act === "leave" ? { node_id: node_id } : { node_id: node_id, presence: presence, heartbeat_mode: heartbeat_mode };
           fraggateCall(origin, "mesh", act, payload, out, btn).then(function (got) {
             if (act === "leave") noteMeshLeave(got);
             else keepJoinedNode(got);
@@ -1567,7 +1582,7 @@ export function humanDoorScript() {
           return;
         }
         if (!product) { show(out, "Product slug is required. MESH-BAD-INPUT if omitted. AnonBroadcast is not a product.", "error"); return; }
-        let payload = { product: product, presence: presence, kind: "human", bearer: "human" };
+        let payload = { product: product, presence: presence, kind: "human", bearer: "human", heartbeat_mode: heartbeat_mode };
         if (node_id) payload.node_id = node_id;
         fraggateCall(origin, "mesh", "join", payload, out, btn).then(function (got) { keepJoinedNode(got); refreshMesh(); });
       });
@@ -1647,9 +1662,10 @@ export function humanDoorScript() {
         let product = String(document.getElementById("op-mesh-product") && document.getElementById("op-mesh-product").value || "").trim();
         let nodeEl = document.getElementById("mesh-node");
         let node_id = String(nodeEl && nodeEl.value || "").trim();
+        let heartbeat_mode = String(document.getElementById("mesh-heartbeat-mode") && document.getElementById("mesh-heartbeat-mode").value || "idle");
         if (act === "heartbeat" || act === "leave") {
           if (!node_id) { show(out, "Node id is required for heartbeat / leave (use the mesh panel field).", "error"); return; }
-          let payload = act === "leave" ? { node_id: node_id } : { node_id: node_id, presence: "live" };
+          let payload = act === "leave" ? { node_id: node_id } : { node_id: node_id, presence: "live", heartbeat_mode: heartbeat_mode };
           fraggateCall(origin, "mesh", act, payload, out, btn).then(function (got) {
             if (act === "leave") noteMeshLeave(got);
             refreshMesh();
@@ -1659,7 +1675,7 @@ export function humanDoorScript() {
         if (!product) { show(out, "Product slug is required. MESH-BAD-INPUT if omitted. AnonBroadcast is not a product.", "error"); return; }
         let meshProduct = document.getElementById("mesh-product");
         if (meshProduct) meshProduct.value = product;
-        fraggateCall(origin, "mesh", "join", { product: product, presence: "live", kind: "human", bearer: "human" }, out, btn).then(function (got) { keepJoinedNode(got); refreshMesh(); });
+        fraggateCall(origin, "mesh", "join", { product: product, presence: "live", kind: "human", bearer: "human", heartbeat_mode: heartbeat_mode }, out, btn).then(function (got) { keepJoinedNode(got); refreshMesh(); });
       });
     });
   }
