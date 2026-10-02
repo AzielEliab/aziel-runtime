@@ -28,7 +28,9 @@ The Worker rollup bearer stays **`suite-presence`**. Do not invent a second Work
 - Invented live OS/hardware on this isolate
 - A tunnel that merges AZNet and AZBrowser
 
-**Channel plane ≠ kernel VPN.** Public VPN auto-binds **AZVPN** (HTTPS/WS REAL). `GET /v1/mesh` cites `vpn: true` and never opens a concentrator session.
+**Channel plane ≠ kernel VPN.** Public VPN auto-binds **AZVPN** (HTTPS/WS REAL). `GET /v1/mesh` cites `vpn: true` and never opens a concentrator session. AZVPN is not MirageGrid Cap-7.
+
+`wifi` / `bluetooth` / `rf` / `photon` = `"on"` is this cite. It is not a LIVE packet hop and not public egress. `worker_hardware` stays false. Local hooks refuse `QNM-RADIO-ABSENT` when the hardware or `qnsd` is absent. No mock LIVE. Plane P prefer order (LAN, then Wi-Fi, Bluetooth, RF, photon) is [`PLANE-P-D2D-1.0.md`](PLANE-P-D2D-1.0.md). Cap-7 / `.aziel` stay names (Plane N), not carriers.
 
 **AZNet ↔ AZBrowser pairing ≠ tunnel.** Pairing is functional order / token (hash continuity, silent side-net). Products stay separate. FragGate stays THE single public door.
 

@@ -103,6 +103,7 @@ for (const bearer of ["icann", "cap7-egress"]) {
 }
 
 const paper = readFileSync(new URL("../docs/designs/AZP-NS-1.0.md", import.meta.url), "utf8");
+const planeP = readFileSync(new URL("../docs/designs/PLANE-P-D2D-1.0.md", import.meta.url), "utf8");
 const repro = readFileSync(new URL("../docs/designs/AZP-NS-REPRO-1.0.md", import.meta.url), "utf8");
 const warnsPaper = readFileSync(new URL("../docs/designs/MESH-INTERNET-WARNS-1.0.md", import.meta.url), "utf8");
 const fedPaper = readFileSync(new URL("../docs/designs/FED-MESH-1.0.md", import.meta.url), "utf8");
@@ -129,6 +130,42 @@ for (const warn of MESH_WARNS) {
 }
 assert.match(warnsPaper, /Track 1/);
 assert.match(warnsPaper, /Track 2/);
+assert.match(warnsPaper, /Plane N/);
+assert.match(warnsPaper, /Plane P/);
+assert.match(warnsPaper, /PLANE-P-D2D-1\.0/);
+assert.match(planeP, /Plane N/);
+assert.match(planeP, /Plane P/);
+assert.match(planeP, /Cap-7 is not the public Internet/);
+assert.match(planeP, /STANDS-until-demonstrated/);
+assert.match(planeP, /not a permanent ceiling/);
+assert.match(planeP, /not BGP/);
+assert.match(planeP, /No mock LIVE/);
+assert.match(planeP, /QNM-RADIO-ABSENT/);
+assert.match(planeP, /FED-MESH-NAT-REFUSE/);
+assert.match(planeP, /QNS-CITE-ONLY/);
+assert.match(planeP, /QNS-NO-PROXY/);
+assert.match(planeP, /QNM-AWARENESS-BIND/);
+assert.match(planeP, /0\.0\.0\.0/);
+assert.match(planeP, /phoenix_lock/);
+assert.match(planeP, /single-node security-awareness/);
+assert.match(planeP, /AZVPN is the suite VPN concentrator/);
+assert.match(planeP, /Mirage is not AZVPN/);
+assert.match(planeP, /bc-c5243c31-a34c-5ed5-80a9-186f7d8f9297/);
+assert.match(planeP, /does not edit the Softwares catalog/);
+assert.match(planeP, /Softwares stay 42/);
+assert.match(planeP, /tools\/list` stays 36/);
+assert.match(planeP, /not a LIVE public packet egress/);
+{
+  const order = ["1 | LAN", "2 | Wi-Fi", "3 | Bluetooth", "4 | RF", "5 | Photon"];
+  let at = -1;
+  for (const label of order) {
+    const next = planeP.indexOf(label);
+    assert.ok(next > at, label);
+    at = next;
+  }
+}
+assert.match(nodeMesh, /PLANE-P-D2D-1\.0/);
+assert.match(fedPaper, /PLANE-P-D2D-1\.0/);
 assert.match(warnsPaper, /separate from ICANN/);
 assert.match(warnsPaper, /not a refusal to build/);
 assert.match(warnsPaper, /Cap-7 is not the public Internet/);
