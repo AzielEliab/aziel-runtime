@@ -6,6 +6,8 @@
  * L0 (default): one --relay. L1 (opt-in): --relays with more than one URL.
  * Listen defaults to 127.0.0.1. --host 0.0.0.0 or a LAN IP opens /v1/fed-mesh/direct
  * for a second machine. That socket is not qnm-node/awareness.mjs.
+ * --arm lan (or --arm order) arms Track 2 carriers. GET never arms them.
+ * --fixture is the no-second-device LAN beacon mode. alt_internet_live stays false.
  *   node qnm-node/fed-instance.mjs --data ./data/a --port 8781 --relay http://127.0.0.1:8780/v1/mesh/relay
  *   node qnm-node/fed-instance.mjs --data ./data/b --port 8782 --relays http://127.0.0.1:8780/v1/mesh/relay,http://127.0.0.1:8783/v1/mesh/relay
  *   node qnm-node/fed-instance.mjs --data ./data/a --port 8781 --host 0.0.0.0 --advertise 192.168.1.10 --relay http://127.0.0.1:8780/v1/mesh/relay
@@ -31,7 +33,9 @@ const relays = relaysArg
     ? [relay]
     : [];
 const passphrase = arg("--passphrase", "");
-const node = await startInstance({ dataDir: data, port, host, advertise, relays, passphrase });
+const armArg = arg("--arm", "");
+const fixture = process.argv.includes("--fixture");
+const node = await startInstance({ dataDir: data, port, host, advertise, relays, passphrase, fixture });
 console.log(JSON.stringify({
   handle: node.handle,
   listen_host: node.listenHost,
@@ -46,7 +50,13 @@ console.log(JSON.stringify({
   public_icann: false,
   radio_phy: false,
   awareness_socket: false,
+  track2: node.track2.summary(),
+  alt_internet_live: false,
 }));
+if (armArg) {
+  const armed = await node.track2.arm(armArg === "order" ? "order" : armArg.split(","), "operator");
+  console.log(JSON.stringify({ arm: armed.ok === true, code: armed.code, results: armed.results || [], armed: armed.armed || [], alt_internet_live: false, get_never_enables: true }));
+}
 if (relays.length > 1) {
   const registered = await node.registerAll();
   console.log(JSON.stringify({

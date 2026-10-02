@@ -91,7 +91,7 @@ export const SOFTWARE_COPY = Object.freeze({
   },
   aznet: {
     one_line: `Check hash continuity on the Cap-7 and .aziel name plane. Track 2 packet reachability stays NOT-READY (STANDS-until-demonstrated) in failover order ${D2D_ORDER_LABEL}.`,
-    description: `Use AZNet to stamp and check hash refs in a custodian garden on the name plane. It exists so integrity can be checked on a side-net while Cap-7 and MirageGrid stay name and land-region metadata (not an ICANN registrar, not a public egress IP, and not AZVPN). Track 2 device-to-device carriers fail over ${D2D_ORDER_ARROW}. RF and photon light flashes are functional carriers and stay FG-STUB until a real peer exchange works. The packet path stays short of a live alternative internet.`,
+    description: `Use AZNet to stamp and check hash refs in a custodian garden on the name plane. It exists so integrity can be checked on a side-net while Cap-7 and MirageGrid stay name and land-region metadata (not an ICANN registrar, not a public egress IP, and not AZVPN). Track 2 device-to-device carriers fail over ${D2D_ORDER_ARROW}. Local LAN discovery is LIVE-when-armed and the peer tunnel is LIVE-when-session on the node. The public door stays FG-STUB. RF and photon light flashes stay refused without hardware. The packet path stays short of a live alternative internet.`,
   },
   azvpn: {
     one_line: "Open an HTTPS or WebSocket VPN session on the public concentrator.",
@@ -112,7 +112,7 @@ export const SOFTWARE_COPY = Object.freeze({
     one_line:
       "Assign a short-lived session node and cite Cap-7 mesh-name metadata from a factory that is not a public ICANN registrar. Cap-7 geo, sticky session, and land rotation are LIVE on the Cap-7 plane, not a public egress IP, not a residential IP, and not AZVPN.",
     description:
-      `Use MirageGrid to assign a short-lived session node and cite Cap-7 mesh-name metadata. The Cap-7 factory is not a public ICANN registrar. It exists for Cap-7 control-plane assignment. geo-target, session-stick, and egress-rotate are LIVE on the Cap-7 plane (region label, sticky mesh node and factory land, land rotate among 7 sites). ${CAP7_PLANE_BOUNDARY} ${CAP7_PUBLIC_WORKER_LIVE} vpn-hop, hop, tunnel, and mesh stay stub. AZVPN remains the suite VPN. Track 2 carriers (${D2D_ORDER_ARROW}) stay NOT-READY and FG-STUB.`,
+      `Use MirageGrid to assign a short-lived session node and cite Cap-7 mesh-name metadata. The Cap-7 factory is not a public ICANN registrar. It exists for Cap-7 control-plane assignment. geo-target, session-stick, and egress-rotate are LIVE on the Cap-7 plane (region label, sticky mesh node and factory land, land rotate among 7 sites). ${CAP7_PLANE_BOUNDARY} ${CAP7_PUBLIC_WORKER_LIVE} vpn-hop, hop, tunnel, and mesh stay stub. AZVPN remains the suite VPN. Track 2 carriers (${D2D_ORDER_ARROW}) stay NOT-READY and FG-STUB on this public door. Local LAN discovery is a separate node path.`,
   },
   mmconsensus: {
     one_line: "Tally consensus from opinions you already posted.",
