@@ -1,7 +1,7 @@
 # D2D-CARRIERS-1.0 — device-to-device packet carriers
 
 **Author:** Aziel Eliab only.  
-**Phase:** A landed. B and C run on the local node. D is a scaffold.  
+**Phase:** A landed. B and C run on the local node. D is LIVE-when-three-local-nodes / fixture. E is scaffold.  
 **Version:** runtime stays `2.0.0-rc1`. Not a new MCP tool. Softwares stay 42. `tools/list` stays 36.
 
 This plane is device-to-device packet reachability. It is separate from Cap-7. Design names: the name plane is **Plane N** and the packet plane is **Plane P** ([`PLANE-P-D2D-1.0.md`](PLANE-P-D2D-1.0.md)). The public Worker door stays NOT-READY / FG-STUB. `alt_internet_live` stays false. WARN-5 stays STANDS-until-demonstrated.
@@ -11,7 +11,7 @@ This plane is device-to-device packet reachability. It is separate from Cap-7. D
 | Plane | What it is | This cut |
 |---|---|---|
 | Plane N (name) | Cap-7 / MirageGrid land-region metadata and `.aziel` records | Cap-7 factory exec stays on that plane. Not an ICANN registrar. Not a public egress IP. Not AZVPN. Cap-7 is not the public Internet. |
-| Plane P (packet) | Node-mesh hops between devices | Public door `status` NOT-READY / `FG-STUB`. Local LAN discovery is LIVE-when-armed. Peer tunnel is LIVE-when-session. `packet_path_live` false. `alt_internet_live` false. Not a LIVE public packet egress. |
+| Plane P (packet) | Node-mesh hops between devices | Public door `status` NOT-READY / `FG-STUB`. Local LAN discovery is LIVE-when-armed. Peer tunnel is LIVE-when-session. Local store-forward is LIVE-when-three-local-nodes / fixture. `packet_path_live` false. `alt_internet_live` false. Not a LIVE public packet egress. WARN-5 is not closed. |
 
 `not_a_second_internet` stays true. `aznet_replaces_internet` stays false. WARN-5 stays `STANDS-until-demonstrated`. That status is not a permanent stay-off. Field 1.0 is not claimed.
 
@@ -44,7 +44,7 @@ Direct `runMeshOp` on those names returns `MESH-STUB` with `door_code` `FG-STUB`
 - Channel-plane cites (`wifi` / `bluetooth` / `rf` / `photon` = `on`) stay cites. `worker_hardware` stays false.
 - Local `qnm-node/bearers/radio.js` may read hardware presence as LIVE. `packet_hop` stays false. That reading is not a packet hop.
 - Isolation is single-node security-awareness. Phoenix is local wait / re-seal. `mesh_fenced_to_loopback` stays false.
-- No live DNS change. No origin cutover. No merge of MirageGrid with AZVPN. No Wi-Fi Direct, Bluetooth, or multi-hop WAN implementation in this phase.
+- No live DNS change. No origin cutover. No merge of MirageGrid with AZVPN. No Wi-Fi Direct or Bluetooth exchange. No multi-hop WAN. The local three-node path is an in-process fixture.
 
 `GET /v1/mesh` publishes `d2d_carriers`. AZNet `one_line` names the name plane and the NOT-READY public door. Close-test: `node scripts/verify-d2d-carriers.mjs`. Local discovery and session close-test: `node scripts/verify-track2-d2d.mjs`.
 
@@ -69,20 +69,30 @@ The prefer-order walk and the peer session live in `src/fed-mesh/track2.js`, on 
 
 Operator arm is `POST /v1/fed-mesh/arm` or `--arm lan` / `--arm order`. `GET /v1/fed-mesh/arm` returns `MESH-OFF`.
 
-### Phase D scaffold (not LIVE)
+### Phase D (local three-node fixture)
 
-`enqueue` writes `track2-outbox.json` with ciphertext only. `forward` admits a roster handle or an explicit allow list and keeps the hop counter below 3 (`MESH-NO-ROUTE`, `FED-MESH-NO-ROUTE`). `path_probe` is tip hash only. `alt_internet_live` stays false. This does not close WARN-5.
+`enqueue` writes `track2-outbox.json` with ciphertext only. A tick stays presence and tip hash (`MESH-NO-BYTES`). The next node pulls the sealed share. `forward` admits a roster handle or an explicit allow list. The hop counter stays below 3. A→B→C is the exit (`MESH-NO-ROUTE`, `FED-MESH-NO-ROUTE`). No DHT. No BGP. Cap-7 is not a forward bearer. STUN and TURN stay refused.
+
+Three in-process nodes deliver a sealed object. Each hop signs a receipt. A stranger recomputes the hash and checks the signature. `second_device` stays false. `physical_devices` stays 1. That label is `LIVE-when-three-local-nodes / fixture`. It is not a second physical device.
+
+Partition keeps each island's own tip. Rejoin is a cited tip plus an operator or lockset gate. Vote-to-heal is `MESH-NO-NEIGHBOR-HEAL`. Equivocation isolates that peer. Phoenix stays local wait / re-seal.
+
+Public FragGate `store_forward` and multi-hop names stay `FG-STUB`. The Worker does not invent peers and does not paint `live_nodes` from this path. `packet_path_live` stays false. `alt_internet_live` stays false. WARN-5 is not closed.
+
+### Phase E (scaffold only)
+
+A signed bootstrap peer list may be empty. `needs_starting_address` stays true. Shelf cite slots name Plane A as cite and Plane B and Plane C as SLOT. `live_multi_provider` stays false. Cold shelves are not painted LIVE. This phase does not cut DNS and does not touch origin cutover. AZNet stamp and verify stay hash continuity. AZNet does not host payloads.
 
 ### What remains before WARN-5 can move
 
 WARN-5 stays `STANDS-until-demonstrated`. Still required, and not claimed here:
 
-- A second physical device on LAN, then a demonstrated exchange on Wi-Fi, Bluetooth, RF, or photon. RF and photon stay refused until that hardware and that exchange exist.
-- Three nodes A→B→C delivering a sealed object a stranger can recompute. The outbox scaffold is not that delivery.
+- A second physical device on LAN, then a demonstrated exchange on Wi-Fi, Bluetooth, RF, or photon. RF and photon stay refused until that hardware and that exchange exist. `peer_exchange_demonstrated` stays false on those carriers.
+- Track 2 addressing on separate hosts, not three peers in one process. The fixture receipts do not close WARN-5.
 - Track 2 addressing that is not Cap-7 and not ICANN. `negotiateBearer` still refuses `icann` and `cap7-egress`.
 - `live_multi_provider` stays false. `{slug}-worker` rows stay software workers, not device peers.
 
-Exit for this slice: two local peers list each other and open a sealed session. That is not alt-internet LIVE.
+Exit for this slice: three local nodes deliver a sealed object a stranger can recompute, labeled fixture. That is not alt-internet LIVE. WARN-5 is not closed.
 
 ## GitBaby deploy notes
 

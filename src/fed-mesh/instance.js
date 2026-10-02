@@ -565,6 +565,18 @@ export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", adv
       out = body && body.kind === "peer-session" ? await node.track2.accept(body) : await node.track2.offer(body.peer_handle || body.peer, body);
     } else if (req.method === "POST" && url.pathname === "/v1/fed-mesh/peer") {
       out = await node.track2.recv(body);
+    } else if (req.method === "GET" && (url.pathname === "/v1/fed-mesh/outbox" || url.pathname === "/local/outbox")) {
+      out = node.track2.tickets();
+    } else if (req.method === "POST" && (url.pathname === "/v1/fed-mesh/outbox" || url.pathname === "/local/outbox")) {
+      out = await node.track2.enqueue(body);
+    } else if (req.method === "POST" && (url.pathname === "/v1/fed-mesh/outbox/pull" || url.pathname === "/local/outbox/pull")) {
+      out = await node.track2.exportPull(body.id, body.puller);
+    } else if (req.method === "POST" && (url.pathname === "/v1/fed-mesh/forward" || url.pathname === "/local/forward")) {
+      out = await node.track2.forward(body.to, body.allow || [], body);
+    } else if (req.method === "GET" && (url.pathname === "/v1/fed-mesh/bootstrap" || url.pathname === "/local/bootstrap")) {
+      out = await node.track2.bootstrapList([]);
+    } else if (req.method === "GET" && (url.pathname === "/v1/fed-mesh/shelves" || url.pathname === "/local/shelves")) {
+      out = node.track2.shelves();
     } else if (req.method === "POST" && url.pathname === "/v1/fed-mesh/direct") {
       out = await node.onDirect(body);
     }

@@ -91,7 +91,7 @@ export const SOFTWARE_COPY = Object.freeze({
   },
   aznet: {
     one_line: `Check hash continuity on the Cap-7 and .aziel name plane. Track 2 packet reachability stays NOT-READY (STANDS-until-demonstrated) in failover order ${D2D_ORDER_LABEL}.`,
-    description: `Use AZNet to stamp and check hash refs in a custodian garden on the name plane. It exists so integrity can be checked on a side-net while Cap-7 and MirageGrid stay name and land-region metadata (not an ICANN registrar, not a public egress IP, and not AZVPN). Track 2 device-to-device carriers fail over ${D2D_ORDER_ARROW}. Local LAN discovery is LIVE-when-armed and the peer tunnel is LIVE-when-session on the node. The public door stays FG-STUB. RF and photon light flashes stay refused without hardware. The packet path stays short of a live alternative internet.`,
+    description: `Use AZNet to stamp and check hash refs in a custodian garden on the name plane. It exists so integrity can be checked on a side-net while Cap-7 and MirageGrid stay name and land-region metadata (not an ICANN registrar, not a public egress IP, and not AZVPN). Track 2 device-to-device carriers fail over ${D2D_ORDER_ARROW}. Local LAN discovery is LIVE-when-armed and the peer tunnel is LIVE-when-session on the node. Local store-forward is LIVE-when-three-local-nodes / fixture. The public door stays FG-STUB. RF and photon light flashes stay refused without hardware. WARN-5 stays open. The packet path stays short of a live alternative internet.`,
   },
   azvpn: {
     one_line: "Open an HTTPS or WebSocket VPN session on the public concentrator.",

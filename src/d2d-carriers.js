@@ -4,9 +4,12 @@
  * Separate from the Cap-7 / MirageGrid name plane.
  * Failover order is LAN, Wi-Fi, Bluetooth, RF, then photon light flashes.
  * Phase B/C run on the local node: LAN discovery is LIVE-when-armed,
- * and the peer tunnel is LIVE-when-session. The public Worker door stays
+ * and the peer tunnel is LIVE-when-session. Phase D store-forward is
+ * LIVE-when-three-local-nodes / fixture on that local node. Phase E
+ * bootstrap and shelf cites stay scaffold. The public Worker door stays
  * FG-STUB. RF and photon refuse without hardware. No mock LIVE.
- * alt_internet_live stays false. WARN-5 stays STANDS-until-demonstrated.
+ * alt_internet_live stays false. WARN-5 stays STANDS-until-demonstrated
+ * and is not closed by the fixture.
  *
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
  * SPDX-License-Identifier: Apache-2.0
@@ -20,6 +23,8 @@ export const D2D_ORDER_LABEL = "LAN, Wi-Fi, Bluetooth, RF, photon light flashes"
 export const D2D_ORDER_ARROW = "LAN → Wi-Fi → Bluetooth → RF → Photon light flashes";
 export const D2D_PLANE = "track2-reachability";
 export const D2D_PAPER = "docs/designs/D2D-CARRIERS-1.0.md";
+/** Local three-node path. Public door stays FG-STUB. Not a second physical device. */
+export const D2D_STORE_FORWARD = "LIVE-when-three-local-nodes / fixture";
 
 export const D2D_CARRIERS = Object.freeze([
   Object.freeze({
@@ -180,12 +185,13 @@ export function d2dCarrierCite() {
     author: D2D_AUTHOR,
     identity: D2D_AUTHOR,
     plane: D2D_PLANE,
-    phase: "B+C",
+    phase: "B+C+D",
     phases: {
       A: "landed",
       B: "LIVE-when-armed",
       C: "LIVE-when-session",
-      D: "scaffold",
+      D: D2D_STORE_FORWARD,
+      E: "scaffold",
     },
     lan_discovery: "LIVE-when-armed",
     wifi_discovery: "ARMED-when-HW",
@@ -193,7 +199,18 @@ export function d2dCarrierCite() {
     rf_discovery: "REFUSE-without-HW",
     photon_discovery: "REFUSE-without-HW",
     peer_tunnel: "LIVE-when-session",
-    store_forward: "scaffold",
+    store_forward: D2D_STORE_FORWARD,
+    store_forward_public: "FG-STUB",
+    worker_runs_store_forward: false,
+    second_device: false,
+    bootstrap_list: "scaffold",
+    needs_starting_address: true,
+    shelf_cite: "scaffold",
+    live_multi_provider: false,
+    cold_shelf_live: false,
+    dns_cut: false,
+    origin_cutover: false,
+    warn5_closed: false,
     worker_door: "FG-STUB",
     worker_hardware: false,
     local_node: "qnm-node",
@@ -238,7 +255,7 @@ export function d2dCarrierCite() {
       loopback_isolation: false,
     },
     paper: D2D_PAPER,
-    note: `Track 2 node-mesh packet reachability stays ${D2D_STATUS} on the public Worker (${D2D_CODE}). Local LAN discovery is LIVE-when-armed. The peer tunnel is LIVE-when-session. Wi-Fi and Bluetooth arm when that hardware is present and do not inherit a LAN beacon. RF and photon light flashes refuse QNM-RADIO-ABSENT without hardware, and there is no mock LIVE. Store-forward is a scaffold. Failover is ${D2D_ORDER_ARROW}. Cap-7 / .aziel stay Track 1 name-plane metadata. MirageGrid is not AZVPN. AZNet is the hash-continuity side-net and does not host payloads. Isolation is single-node security-awareness. Phoenix is local wait / re-seal. WARN-5 stays STANDS-until-demonstrated. alt_internet_live is false.`,
+    note: `Track 2 node-mesh packet reachability stays ${D2D_STATUS} on the public Worker (${D2D_CODE}). Local LAN discovery is LIVE-when-armed. The peer tunnel is LIVE-when-session. Local store-forward is ${D2D_STORE_FORWARD}: three in-process nodes can deliver a sealed object, second_device is false, and that fixture does not close WARN-5. Wi-Fi and Bluetooth arm when that hardware is present and do not inherit a LAN beacon. RF and photon light flashes refuse QNM-RADIO-ABSENT without hardware, and there is no mock LIVE. peer_exchange_demonstrated stays false on those carriers. Phase E bootstrap lists and shelf cites stay scaffold. live_multi_provider stays false. Cold shelves stay SLOT. Failover is ${D2D_ORDER_ARROW}. Cap-7 / .aziel stay Track 1 name-plane metadata. MirageGrid is not AZVPN. AZNet is the hash-continuity side-net and does not host payloads. Isolation is single-node security-awareness. Phoenix is local wait / re-seal. WARN-5 stays STANDS-until-demonstrated. alt_internet_live is false.`,
   };
 }
 
