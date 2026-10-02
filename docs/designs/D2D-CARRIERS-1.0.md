@@ -94,6 +94,14 @@ WARN-5 stays `STANDS-until-demonstrated`. Still required, and not claimed here:
 
 Exit for this slice: three local nodes deliver a sealed object a stranger can recompute, labeled fixture. That is not alt-internet LIVE. WARN-5 is not closed.
 
+## Mobile join client
+
+`qnm-node/mobile/` is a client of this local node. It is served at `/mobile/` by `qnm-node/fed-instance.mjs`. The page discovers the existing LAN beacon (presence and tip hash only) and opens the sealed peer session `src/fed-mesh/track2.js` already speaks. There is no second protocol. Paper: [`TRACK2-MOBILE-JOIN-1.0.md`](TRACK2-MOBILE-JOIN-1.0.md).
+
+`mobile_client` stays `present-not-demonstrated`. `mobile_demonstrated` stays false. `app_store_release` stays false. `second_device` stays false. A phone on Wi-Fi is the path to the LAN socket. That path does not set `peer_exchange_demonstrated` on Wi-Fi, Bluetooth, RF, or photon. RF and photon stay refuse-without-hardware. The public FragGate door stays FG-STUB. GET never arms radios. The Worker does not invent peers. `alt_internet_live` stays false.
+
+Android and iPhone both open `http://<lan-ip>:<port>/mobile/` on the same LAN as the node. Add to Home Screen saves the shell. It is not a store listing. Close-test: `node scripts/verify-track2-mobile.mjs`. That test is the protocol. It is not a pretended phone.
+
 ## GitBaby deploy notes
 
 Version stays `2.0.0-rc1`. Do not invent a `version_id`.

@@ -8,6 +8,8 @@
  * for a second machine. That socket is not qnm-node/awareness.mjs.
  * --arm lan (or --arm order) arms Track 2 carriers. GET never arms them.
  * --fixture is the no-second-device LAN beacon mode. alt_internet_live stays false.
+ * The phone client is GET /mobile/ on this same process. mobile_client stays
+ * present-not-demonstrated. That page is not an app-store release.
  *   node qnm-node/fed-instance.mjs --data ./data/a --port 8781 --relay http://127.0.0.1:8780/v1/mesh/relay
  *   node qnm-node/fed-instance.mjs --data ./data/b --port 8782 --relays http://127.0.0.1:8780/v1/mesh/relay,http://127.0.0.1:8783/v1/mesh/relay
  *   node qnm-node/fed-instance.mjs --data ./data/a --port 8781 --host 0.0.0.0 --advertise 192.168.1.10 --relay http://127.0.0.1:8780/v1/mesh/relay
@@ -51,6 +53,9 @@ console.log(JSON.stringify({
   radio_phy: false,
   awareness_socket: false,
   track2: node.track2.summary(),
+  mobile_join: `${node.base}/mobile/`,
+  mobile_client: node.mobile_client,
+  app_store_release: false,
   alt_internet_live: false,
 }));
 if (armArg) {

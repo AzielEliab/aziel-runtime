@@ -371,6 +371,10 @@ try {
   const health = await (await fetch(`${left.base}/health`)).json();
   assert.equal(health.worker_hardware, false);
   assert.equal(health.track2.alt_internet_live, false);
+  assert.equal(health.track2.mobile_client, "present-not-demonstrated");
+  assert.equal(health.track2.mobile_demonstrated, false);
+  assert.equal(health.mobile_client, "present-not-demonstrated");
+  assert.equal(health.app_store_release, false);
   assert.equal(health.track2.public_live_nodes, false);
   assert.equal(health.awareness_socket, false);
 
