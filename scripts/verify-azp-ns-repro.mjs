@@ -11,6 +11,7 @@ import { fileURLToPath } from "node:url";
 import { PUBLIC_MCP_TOOLS } from "../src/fraggate/codes.js";
 import { PRODUCTS } from "../src/index.js";
 import { CLAIM_LIMITS } from "../src/security/claims.js";
+import { negotiateBearer } from "../src/transport/routing.js";
 import { softwareCatalog } from "../src/software-catalog.js";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
@@ -49,6 +50,37 @@ const REQUIRED_HONESTY = [
   },
 ];
 
+/** Operator lock 2026-10-02: WARN-5 is STANDS-until-demonstrated, not a permanent ceiling. */
+const MESH_WARNS = [
+  {
+    id: "WARN-1",
+    status: "STANDS",
+    why: "One LIVE production edge plus same-host fixtures. Nodes B, C, and D are OPERATOR SKIP. Software-workers are not independent hosts. live_multi_provider stays false.",
+  },
+  {
+    id: "WARN-2",
+    status: "STANDS",
+    why: "Fixture kill and rebuild only. destroy-live-provider stays SKIP. Plane B stays SLOT. Survivable in fixtures is not unkillable.",
+  },
+  {
+    id: "WARN-3",
+    status: "STANDS",
+    why: "Fixture adversarial coverage is real. A live partition between independent hosts is missing.",
+  },
+  {
+    id: "WARN-4",
+    status: "STANDS",
+    why: "Metadata inventory is fixture-LIVE. FIXTURE-MEASURE is not an anonymity PASS. anonymous stays false.",
+  },
+  {
+    id: "WARN-5",
+    status: "STANDS-until-demonstrated",
+    until: "demonstrated",
+    by_design: "separate-from-icann",
+    why: "Track 1 is the Cap-7 and .aziel mesh name plane. Cap-7 is not the public Internet. Track 2 is a separate node-mesh internet. BY-DESIGN it stays separate from ICANN. It is not BGP. It is not demonstrated. This is not a refusal to build.",
+  },
+];
+
 assert.equal(PUBLIC_MCP_TOOLS.length, 36);
 assert.equal(softwareCatalog("https://aziel-runtime.example", PRODUCTS).count, 42);
 assert.equal(CLAIM_LIMITS.anonymous, false);
@@ -56,9 +88,25 @@ assert.equal(CLAIM_LIMITS.unkillable, false);
 assert.equal(CLAIM_LIMITS.live_multi_provider, false);
 assert.equal(CLAIM_LIMITS.encryption_addressed_is_anonymity, false);
 assert.equal(CLAIM_LIMITS.plane_b_framagit, "SLOT");
+assert.equal(CLAIM_LIMITS.cap7_public_icann, false);
+assert.equal(CLAIM_LIMITS.cap7_public_egress, false);
+assert.equal(CLAIM_LIMITS.mirage_is_azvpn, false);
+assert.equal(CLAIM_LIMITS.aznet_replaces_internet, false);
+
+for (const bearer of ["icann", "cap7-egress"]) {
+  const refused = negotiateBearer(bearer);
+  assert.equal(refused.ok, false, bearer);
+  assert.equal(refused.live, false, bearer);
+  assert.equal(refused.code, "AZP-BEARER-REFUSE", bearer);
+  assert.equal(refused.public_icann, false, bearer);
+  assert.equal(refused.cap7_public_egress, false, bearer);
+}
 
 const paper = readFileSync(new URL("../docs/designs/AZP-NS-1.0.md", import.meta.url), "utf8");
 const repro = readFileSync(new URL("../docs/designs/AZP-NS-REPRO-1.0.md", import.meta.url), "utf8");
+const warnsPaper = readFileSync(new URL("../docs/designs/MESH-INTERNET-WARNS-1.0.md", import.meta.url), "utf8");
+const fedPaper = readFileSync(new URL("../docs/designs/FED-MESH-1.0.md", import.meta.url), "utf8");
+const nodeMesh = readFileSync(new URL("../docs/NODE_MESH.md", import.meta.url), "utf8");
 assert.match(paper, /What's left/);
 assert.match(paper, /OPERATOR/);
 assert.match(paper, /FIXTURE/);
@@ -72,6 +120,41 @@ assert.match(repro, /Softwares stay 42/);
 assert.match(repro, /tools\/list` stays 36/);
 for (const gate of GATES) assert.match(repro, new RegExp(gate.replace(/[.]/g, "\\.")));
 for (const row of REQUIRED_HONESTY) assert.match(repro, new RegExp(row.id));
+for (const warn of MESH_WARNS) {
+  assert.equal(warn.status === "PASS" || warn.status === "STAY-OFF" || warn.status === "LIVE", false, warn.id);
+  assert.match(repro, new RegExp(warn.id));
+  assert.match(repro, new RegExp(warn.status.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.match(warnsPaper, new RegExp(warn.id));
+  assert.match(warnsPaper, new RegExp(warn.status.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+}
+assert.match(warnsPaper, /Track 1/);
+assert.match(warnsPaper, /Track 2/);
+assert.match(warnsPaper, /separate from ICANN/);
+assert.match(warnsPaper, /not a refusal to build/);
+assert.match(warnsPaper, /Cap-7 is not the public Internet/);
+assert.match(warnsPaper, /not BGP/);
+assert.match(warnsPaper, /FIXTURE-MEASURE/);
+assert.match(warnsPaper, /not an anonymity PASS/);
+assert.match(warnsPaper, /live_multi_provider/);
+assert.match(warnsPaper, /Softwares stay 42/);
+assert.match(warnsPaper, /tools\/list` stays 36/);
+assert.equal(warnsPaper.includes("STAY-OFF"), false);
+for (const cite of [fedPaper, nodeMesh]) {
+  assert.match(cite, /MESH-INTERNET-WARNS-1\.0/);
+  assert.match(cite, /Cap-7 is not the public Internet/);
+  assert.match(cite, /AZBrowser #17/);
+  assert.match(cite, /Runtime #201/);
+  assert.match(cite, /negotiateBearer/);
+  assert.match(cite, /cap7-egress/);
+  assert.match(cite, /STANDS-until-demonstrated/);
+  assert.match(cite, /separate from ICANN/);
+  assert.match(cite, /Track 1/);
+  assert.match(cite, /Track 2/);
+  assert.match(cite, /not BGP/);
+}
+assert.equal(MESH_WARNS.filter((warn) => warn.status === "STANDS").map((warn) => warn.id).join(","), "WARN-1,WARN-2,WARN-3,WARN-4");
+assert.equal(MESH_WARNS.find((warn) => warn.id === "WARN-5").until, "demonstrated");
+assert.equal(MESH_WARNS.find((warn) => warn.id === "WARN-5").by_design, "separate-from-icann");
 
 function reportsFrom(text) {
   const reports = [];
@@ -135,6 +218,23 @@ for (const required of REQUIRED_HONESTY) {
   }
 }
 
+const warns = MESH_WARNS.map((warn) => ({
+  id: warn.id,
+  status: warn.status,
+  ...(warn.until ? { until: warn.until } : {}),
+  ...(warn.by_design ? { by_design: warn.by_design } : {}),
+}));
+for (const warn of warns) {
+  if (warn.status === "PASS" || warn.status === "STAY-OFF" || warn.status === "LIVE") {
+    failed += 1;
+    console.error(`warn ${warn.id} was painted ${warn.status}`);
+  }
+}
+for (const warn of MESH_WARNS.filter((row) => row.status === "STANDS")) {
+  console.log(`WARN STANDS ${warn.id}`);
+}
+console.log("WARN-5 STANDS-until-demonstrated BY-DESIGN separate from ICANN");
+
 console.log(JSON.stringify({
   script: "verify-azp-ns-repro",
   softwares: 42,
@@ -143,6 +243,7 @@ console.log(JSON.stringify({
   anonymous: false,
   unkillable: false,
   gates: results,
+  warns,
   honesty: honesty.map((row) => ({
     id: row.id,
     mode: row.mode,

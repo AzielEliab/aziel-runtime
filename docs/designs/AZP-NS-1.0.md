@@ -106,11 +106,11 @@ Item 3 requires a threshold of independent signers. A reused signature, a wrong 
 
 Item 4 refuses replay, a forged signature, the wrong recipient, an expired session, a swapped session key, a swapped node key, a swapped encryption key, `AZP-DOWNGRADE`, and a relay that mutates outer bytes. The relay still cannot decrypt. A partition reconciles only from verifiable checkpoints. `destroy-live-provider` in that script is `SKIP`.
 
-Item 5 writes a machine-readable report with `fields`, `observer`, `reveals`, `necessary`, and `claim_limits`. Routing fields are necessary. Timing, IP and connection frequency, message size, relay relationships, and node uptime are leakage. The anonymity claim stays false.
+Item 5 writes a machine-readable report with `fields`, `observer`, `reveals`, `necessary`, and `claim_limits`. Routing fields are necessary. Timing, IP and connection frequency, message size, relay relationships, and node uptime are leakage. The anonymity claim stays false. The same script prints `fixture_measure` with label `FIXTURE-MEASURE`. Those size and seal-timing samples are not an anonymity PASS.
 
 Item 6 refuses a keystore opened without the passphrase. Destroying or expiring a session key makes old envelopes fail. A new session still seals and opens. `rotateKey` leaves historical signatures verifiable under the retired public key. New tips use the new key. A revoked public key cannot sit on a new roster. Accepted history is not rewritten.
 
-Item 7 is the reproduction document and `scripts/verify-azp-ns-repro.mjs`. The wrapper exits non-zero when a fixture gate fails. It does not mark `live-vps`, `plane-b-framagit`, `live-multi-provider`, or `destroy-live-provider` as pass.
+Item 7 is the reproduction document and `scripts/verify-azp-ns-repro.mjs`. The wrapper exits non-zero when a fixture gate fails. It does not mark `live-vps`, `plane-b-framagit`, `live-multi-provider`, or `destroy-live-provider` as pass. It prints WARN-1 through WARN-4 as STANDS and WARN-5 as STANDS-until-demonstrated. The map is [`MESH-INTERNET-WARNS-1.0.md`](MESH-INTERNET-WARNS-1.0.md). Track 1 is the Cap-7 and `.aziel` name plane. Cap-7 is not the public Internet. Track 2 is a separate node-mesh internet and is not demonstrated.
 
 Softwares stay 42. `tools/list` stays 36. No new Softwares card. No new MCP tool.
 

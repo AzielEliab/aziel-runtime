@@ -49,9 +49,10 @@ assert.equal(badVersion.ok, false);
 assert.equal(badVersion.fail_closed, true);
 assert.equal(badVersion.privateKey, undefined);
 
+const head = created.document.ciphertext[0] === "A" ? "B" : "A";
 const flipped = {
   ...created.document,
-  ciphertext: `${created.document.ciphertext.slice(0, -1)}${created.document.ciphertext.endsWith("A") ? "B" : "A"}`,
+  ciphertext: `${head}${created.document.ciphertext.slice(1)}`,
 };
 const tampered = await unlockKeystore(flipped, PASSPHRASE);
 assert.equal(tampered.ok, false);
