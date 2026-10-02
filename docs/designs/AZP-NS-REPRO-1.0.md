@@ -73,7 +73,7 @@ The map is [`MESH-INTERNET-WARNS-1.0.md`](MESH-INTERNET-WARNS-1.0.md). The wrapp
 | WARN-4 | STANDS | Metadata inventory is fixture-LIVE. `FIXTURE-MEASURE` in `verify-privacy-metadata.mjs` is envelope size and seal timing. It is not an anonymity PASS. `anonymous` stays false. |
 | WARN-5 | STANDS-until-demonstrated | Two tracks. Track 1 is the Cap-7 and `.aziel` mesh name plane as it ships today. Cap-7 is not the public Internet. Track 2 is a separate node-mesh internet with its own addressing and routing. BY-DESIGN that internet stays separate from ICANN. It is not BGP. It is not demonstrated. This is not a refusal to build. |
 
-`negotiateBearer` refuses `icann` and `cap7-egress`. AZBrowser #17 resolves `.aziel` from the local ledger plus the relay. Runtime #201 name-reads a posted ledger or relay snapshot. A miss or a hash mismatch is `FG-GATE-REFUSE`.
+`negotiateBearer` refuses `icann` and `cap7-egress`. AZBrowser #17 resolves `.aziel` from the local ledger plus the relay. Runtime #201 name-reads a posted ledger or relay snapshot. A miss or a hash mismatch is `FG-GATE-REFUSE`. Track 1 is Plane N and Track 2 is Plane P in [`PLANE-P-D2D-1.0.md`](PLANE-P-D2D-1.0.md). That paper is a design sketch. It is not a WARN-5 close and not a LIVE packet path.
 
 ## What a stranger should see
 
