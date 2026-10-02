@@ -29,6 +29,14 @@
  * GET  /sitemap-index.xml     catalog sitemap + corpus + godlock.uk + hedidntjump sister archive + live product Worker sitemaps
  * GET  /llms.txt              plain-text catalog + how to cite Aziel Eliab + Digital Library
  * GET  /ai.txt                same as /llms.txt
+ * GET  /.well-known/llms.txt  alias of /llms.txt
+ * GET  /adopt.json            compact AI adopt card (suite tip, first call, client class ids)
+ * GET  /openapi/adopt-actions.json  slim Actions OpenAPI (Softwares, fraggate call, skill, health)
+ * GET  /install/cursor.json   Cursor remote MCP paste snippet
+ * GET  /install/claude-desktop.json  Claude Desktop remote MCP paste snippet
+ * GET  /v1/clients.json       client class → transport → snippet matrix
+ * GET  /mcp.json              alias of the MCP server card
+ * GET  /glama.json            in-repo glama.json (withheld if a UUID or DOI appears)
  * GET  /help.txt              additive human help (FragGate / Softwares / Glama / dual-surface)
  * GET  /addendum.txt          longer human addendum (does not replace /llms.txt)
  * GET  /help/softwares.txt    Softwares one_line catalog (SSoT)
@@ -252,6 +260,11 @@ import {
   mcpServerCard,
   oauthProtectedResource,
 } from "./mcp-discovery.js";
+import { adoptCard, llmsBodyCanonical } from "./adopt-card.js";
+import { clientMatrix } from "./client-matrix.js";
+import { claudeDesktopInstallSnippet, cursorInstallSnippet } from "./install-snippets.js";
+import { adoptActionsOpenApi } from "./openapi-adopt-slim.js";
+import { glamaStaticCard } from "./glama-static.js";
 import { resolveCallingName, rewriteLiveCallingDisplay, rewriteLiveCallingKeywords } from "./calling-name.js";
 import { dispatchPlatformsHttp, isManifestPath, isPlatformPath, platformHeadLinks, platformsCite, webManifest } from "./platforms.js";
 import {
@@ -1563,6 +1576,15 @@ function sitemapXml(origin) {
     { loc: base + "/failover", priority: "0.7", changefreq: "weekly" },
     { loc: base + "/llms.txt", priority: "0.9", changefreq: "weekly" },
     { loc: base + "/ai.txt", priority: "0.9", changefreq: "weekly" },
+    { loc: base + "/.well-known/llms.txt", priority: "0.75", changefreq: "weekly" },
+    { loc: base + "/adopt.json", priority: "0.95", changefreq: "daily" },
+    { loc: base + "/openapi/adopt-actions.json", priority: "0.85", changefreq: "weekly" },
+    { loc: base + "/install/cursor.json", priority: "0.8", changefreq: "weekly" },
+    { loc: base + "/install/claude-desktop.json", priority: "0.8", changefreq: "weekly" },
+    { loc: base + "/v1/clients.json", priority: "0.8", changefreq: "weekly" },
+    { loc: base + "/mcp.json", priority: "0.7", changefreq: "weekly" },
+    { loc: base + "/.well-known/mcp.json", priority: "0.65", changefreq: "weekly" },
+    { loc: base + "/glama.json", priority: "0.6", changefreq: "weekly" },
     ...helpSitemapEntries(base),
     { loc: base + "/sitemap-index.xml", priority: "0.85", changefreq: "weekly" },
     { loc: base + "/v1/health", priority: "0.5", changefreq: "daily" },
@@ -3893,8 +3915,11 @@ async function handleRequest(request, env, ctx) {
       }
     }
 
-    if (url.pathname === "/" && request.method === "GET") {
-      return html(catalogHtml(origin, {}, env), { ...extra("/"), ...catalogCacheHeaders() });
+    if (url.pathname === "/" && (request.method === "GET" || request.method === "HEAD")) {
+      return asHead(
+        request,
+        html(catalogHtml(origin, {}, env), { ...extra("/"), ...catalogCacheHeaders() }),
+      );
     }
 
     if ((url.pathname === "/workspace" || url.pathname === "/workspace/") && (request.method === "GET" || request.method === "HEAD")) {
@@ -3942,8 +3967,37 @@ async function handleRequest(request, env, ctx) {
       return asHead(request, xml(sitemapIndexXml(origin, PRODUCTS, LASTMOD), extra("/sitemap-index.xml")));
     }
 
-    if ((url.pathname === "/llms.txt" || url.pathname === "/ai.txt") && (request.method === "GET" || request.method === "HEAD")) {
-      return asHead(request, text(llmsTxt(origin, env), extra(url.pathname)));
+    {
+      const llmsCanon = llmsBodyCanonical(url.pathname);
+      if (llmsCanon && (request.method === "GET" || request.method === "HEAD")) {
+        return asHead(request, text(llmsTxt(origin, env), extra(llmsCanon)));
+      }
+    }
+
+    if (url.pathname === "/adopt.json" && (request.method === "GET" || request.method === "HEAD")) {
+      const catalog = softwareCatalogBody(origin, env);
+      return asHead(request, json(adoptCard({ origin, env, catalog }), 200, extra("/adopt.json")));
+    }
+
+    if (url.pathname === "/openapi/adopt-actions.json" && (request.method === "GET" || request.method === "HEAD")) {
+      return asHead(request, json(adoptActionsOpenApi(origin), 200, extra("/openapi/adopt-actions.json")));
+    }
+
+    if (url.pathname === "/install/cursor.json" && (request.method === "GET" || request.method === "HEAD")) {
+      return asHead(request, json(cursorInstallSnippet(origin), 200, extra("/install/cursor.json")));
+    }
+
+    if (url.pathname === "/install/claude-desktop.json" && (request.method === "GET" || request.method === "HEAD")) {
+      return asHead(request, json(claudeDesktopInstallSnippet(origin), 200, extra("/install/claude-desktop.json")));
+    }
+
+    if (url.pathname === "/v1/clients.json" && (request.method === "GET" || request.method === "HEAD")) {
+      return asHead(request, json(clientMatrix(origin), 200, extra("/v1/clients.json")));
+    }
+
+    if (url.pathname === "/glama.json" && (request.method === "GET" || request.method === "HEAD")) {
+      const served = glamaStaticCard();
+      return asHead(request, json(served.body, served.status, extra("/glama.json")));
     }
 
     {
@@ -4042,8 +4096,8 @@ async function handleRequest(request, env, ctx) {
       return handleFraggateHttp(request, url, origin, env, ctx);
     }
 
-    if (url.pathname === "/v1/bundle" && request.method === "GET") {
-      return json(bundleJson(origin, PRODUCTS), 200, extra("/v1/bundle"));
+    if (url.pathname === "/v1/bundle" && (request.method === "GET" || request.method === "HEAD")) {
+      return asHead(request, json(bundleJson(origin, PRODUCTS), 200, extra("/v1/bundle")));
     }
 
     if (url.pathname === "/sw.js" || url.pathname.startsWith("/v1/ui/")) {
@@ -4137,8 +4191,8 @@ async function handleRequest(request, env, ctx) {
       return asHead(request, json(payload, status, catalogLinkHeaders(origin, "/v1/update/check")));
     }
 
-    if (url.pathname === "/v1/catalog.json" && request.method === "GET") {
-      return json(
+    if (url.pathname === "/v1/catalog.json" && (request.method === "GET" || request.method === "HEAD")) {
+      return asHead(request, json(
         {
           ok: true,
           role: RUNTIME_ROLE,
@@ -4179,11 +4233,11 @@ async function handleRequest(request, env, ctx) {
         },
         200,
         authorityLinkHeaders(origin, "/v1/catalog.json"),
-      );
+      ));
     }
 
-    if (url.pathname === "/openapi.json" && request.method === "GET") {
-      return json(await combinedOpenApi(request, env), 200, extra("/openapi.json"));
+    if (url.pathname === "/openapi.json" && (request.method === "GET" || request.method === "HEAD")) {
+      return asHead(request, json(await combinedOpenApi(request, env), 200, extra("/openapi.json")));
     }
 
     if (url.pathname === "/v1/azvpn/ws") {
@@ -4501,7 +4555,7 @@ async function handleRequest(request, env, ctx) {
     return json(
       {
         error: "not found",
-        hint: "POST /v1/fraggate/call  GET /v1/fraggate  GET /v1/azpipe/arch  GET /v1/software  GET /v1/mesh  GET /v1/qns  GET /v1/receipts  GET /v1/interface  POST /v1/interface  POST /v1/memory/observe  GET /v1/update/check?slug={slug}  GET /v1/skill  POST /v1/session/open  POST /v1/session/{id}/exec  GET /v1/ready  GET /v1/uses  GET /v1/runtime.json  GET /v1/bundle  GET /v1/pull/{slug}  GET /v1/catalog.json  GET /openapi.json  POST /p/{product}/{op} (proxy, not exec)  POST /mcp",
+        hint: "GET /adopt.json  GET /v1/clients.json  POST /v1/fraggate/call  GET /v1/fraggate  GET /v1/azpipe/arch  GET /v1/software  GET /v1/mesh  GET /v1/qns  GET /v1/receipts  GET /v1/interface  POST /v1/interface  POST /v1/memory/observe  GET /v1/update/check?slug={slug}  GET /v1/skill  POST /v1/session/open  POST /v1/session/{id}/exec  GET /v1/ready  GET /v1/uses  GET /v1/runtime.json  GET /v1/bundle  GET /v1/pull/{slug}  GET /v1/catalog.json  GET /openapi.json  POST /p/{product}/{op} (proxy, not exec)  POST /mcp",
       },
       404,
     );

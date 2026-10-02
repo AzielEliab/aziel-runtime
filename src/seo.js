@@ -208,6 +208,7 @@ export function llmsWhatThisIsBlock(calling = null) {
     `Worker remote: ${GLAMA_REMOTE_MCP}`,
     GLAMA_EXAMPLE_FIRST_CALL,
     `MCP tools/list count: ${PUBLIC_MCP_TOOLS.length}. FragGate is the single door.`,
+    "Compact adopt card: /adopt.json (suite tip, first call, client class ids). Install matrix: /v1/clients.json.",
     "",
     "Also:",
     "Agents: call Softwares (tools/list name Softwares), pick a slug, then fraggate_call. library_lookup searches library papers and cites. The door runs first (POST /mcp). ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. Diagnostics: fraggate_list → fraggate_describe → fraggate_call.",

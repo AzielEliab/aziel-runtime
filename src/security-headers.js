@@ -14,6 +14,12 @@ export const CSP_API = "default-src 'none'; base-uri 'none'; frame-ancestors 'no
 
 export const HSTS = "max-age=31536000; includeSubDomains";
 
+/** Growth-ON. Same value as the robots.txt Content-Signal line and the Person hub header. */
+export const CONTENT_SIGNAL = "search=yes, ai-input=yes, ai-train=yes";
+
+const DISCOVERY_CONTENT_TYPE =
+  /(?:text\/html|text\/plain|text\/markdown|application\/json|application\/ld\+json|application\/manifest\+json|application\/xml|text\/xml)\b/i;
+
 export function securityHeaders(kind = "api") {
   return {
     "Content-Security-Policy": kind === "html" ? CSP_HTML : CSP_API,
@@ -32,6 +38,9 @@ export function applySecurityHeaders(response) {
   const add = securityHeaders(kind);
   for (const [key, value] of Object.entries(add)) {
     if (!next.has(key)) next.set(key, value);
+  }
+  if (DISCOVERY_CONTENT_TYPE.test(ct) && !next.has("Content-Signal")) {
+    next.set("Content-Signal", CONTENT_SIGNAL);
   }
   return new Response(response.body, {
     status: response.status,
