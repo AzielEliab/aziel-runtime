@@ -420,6 +420,7 @@ import { finishWithUse, peekUsesTotal, readUses, requestForUseCount } from "./us
 import {
   SOFTWARE_FRAMING,
   WORKER_ONLY_PRODUCTS,
+  applyCatalogGitHonesty,
   listSoftwareEntries,
   softwareCatalog,
   softwareMeta,
@@ -1300,7 +1301,8 @@ function catalogLinkHeaders(origin, path) {
 
 async function servePackedSoftware(request, env, origin, extra = {}) {
   const packed = await readPackedCatalog(env, origin, PRODUCTS, softwareExtra(env));
-  const body = { ...packed.catalog, rl: packed.rl, donation: donationStatic(), ...extra };
+  const stamped = applyCatalogGitHonesty(packed.catalog, softwareMeta(env, { updated_at: LASTMOD }));
+  const body = { ...stamped, rl: packed.rl, donation: donationStatic(), ...extra };
   const path = extra.mirror_of || "/v1/software";
   if (prefersHtml(request)) {
     return asHead(
@@ -1462,6 +1464,10 @@ function softwareExtra(env) {
     version: RUNTIME_VERSION,
     updated_at: meta.updated_at || LASTMOD,
     git_sha: meta.git_sha,
+    git_sha_source: meta.git_sha_source,
+    git_sha_tracks_deployed_tip: meta.git_sha_tracks_deployed_tip,
+    deploy_lag: meta.deploy_lag,
+    deploy_lag_note: meta.deploy_lag_note,
     calling_name: calling.calling_name,
     calling_slug: calling.calling_slug,
     calling_name_alert: calling.alert,
@@ -1666,6 +1672,10 @@ function llmsTxt(origin, env = {}) {
     `Role: engine-runtime (catalog + pull + proxy + session + in-process engines)`,
     `suite_version: ${catalog.version || RUNTIME_VERSION}`,
     `git_sha: ${catalog.git_sha || ""}`,
+    `git_sha_source: ${catalog.git_sha_source || ""}`,
+    `git_sha_tracks_deployed_tip: ${catalog.git_sha_tracks_deployed_tip === true}`,
+    `deploy_lag: ${catalog.deploy_lag || ""}`,
+    catalog.deploy_lag_note || "",
     `softwares_count: ${catalog.count}`,
     "catalog_sets.equate: false",
     "Do not equate Softwares slugs, the FragGate allowlist, FragGate product_count, or mesh software_nodes.",
@@ -1913,6 +1923,10 @@ function citeJson(origin, env = {}) {
       source: "GET /v1/software",
       suite_version: catalog.version || RUNTIME_VERSION,
       git_sha: catalog.git_sha || null,
+      git_sha_source: catalog.git_sha_source || null,
+      git_sha_tracks_deployed_tip: catalog.git_sha_tracks_deployed_tip === true,
+      deploy_lag: catalog.deploy_lag || null,
+      deploy_lag_note: catalog.deploy_lag_note || null,
       softwares_count: catalog.count,
       sets_equate: false,
       version_id: catalog.version_id || null,
@@ -2304,9 +2318,10 @@ GET or POST ${origin}/p/${escapeHtml(p.slug)}/${escapeHtml(firstPost.op)} is pro
     <a href="${u.skill}">/v1/skill</a>
     <a href="${u.pull}">pull</a>
     <a href="${u.pull_skill}">pull skill</a>
-    ${onDoor ? `<a href="${origin}/p/${p.slug}/health">catalog proxy health</a>` : `<span class="slug">proxy health is not a public door</span>`}${doi}${tarball}
+    ${u.worker_home && onDoor ? `<a href="${origin}/p/${p.slug}/health">catalog proxy health</a>` : onDoor ? `<a href="#fg-door-${escapeHtml(p.slug)}">In-runtime door</a>` : `<span class="slug">proxy health is not a public door</span>`}${doi}${tarball}
   </p>
-  <p>${u.worker_home ? `Worker: <a href="${u.worker_home}">${escapeHtml(u.worker_home)}</a>` : "In-runtime engine (no separate product Worker)."}
+  ${p.slug === "azvpn" ? `<p class="hint" id="azvpn-always-on">VPN on at boot. This desk has no off switch. WireGuard and OpenVPN stay unavailable.</p>` : ""}
+  <p>${u.worker_home ? `Worker: <a href="${u.worker_home}">${escapeHtml(u.worker_home)}</a>` : "In-runtime engine (no separate product Worker). No download-tracker URL was invented."}
      · <a href="${u.openapi}">${u.worker_home ? "product OpenAPI" : "runtime OpenAPI"}</a>
      ${u.has_sitemap ? `· <a href="${u.sitemap}">Worker sitemap</a>` : ""}</p>
   <p>${ops}</p>
@@ -3140,18 +3155,29 @@ async function proxy(product, op, request, env) {
   try {
     const { res, target, in_runtime } = await upstreamFetch(env, product, targetPath, init);
     if (in_runtime || !res) {
+      const liveDoor = Array.isArray(LIVE_OPS[product.slug]) && LIVE_OPS[product.slug].includes(op);
       return json(
         {
+          ok: false,
           error: "proxy is not exec",
           code: "PROXY-NOT-EXEC",
           product: product.slug,
           op,
           in_runtime: true,
+          in_repo_door: liveDoor,
           worker: null,
-          hint: `Use POST /v1/fraggate/call with { slug: "${product.slug}", op: "${op}" }. No separate product Worker.`,
+          worker_home: null,
+          worker_home_note: liveDoor
+            ? "No separate product Worker. The in-repo door is POST /v1/fraggate/call. Do not invent a download-tracker URL."
+            : "SLOT. No product Worker and this op is not an in-repo public door. Nothing was invented.",
+          door: liveDoor ? "fraggate" : "none",
+          hint: liveDoor
+            ? `Use POST /v1/fraggate/call with { slug: "${product.slug}", op: "${op}" }. This /p path does not run it.`
+            : "No in-repo public door for this op.",
           proxy_is_not_exec: true,
+          plain: product.slug === "azvpn" ? "VPN on at boot." : liveDoor ? "In-runtime door. This path does not run it." : "SLOT. No separate Worker.",
         },
-        404,
+        liveDoor ? 200 : 404,
       );
     }
     const buf = await res.arrayBuffer();

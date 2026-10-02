@@ -20,6 +20,10 @@ Track 2 needs multiple independently deployed nodes actually operating together,
 
 `not_a_second_internet` stays true on Track 1: the Cap-7 / AZNet name plane does not replace the ICANN internet. `aznet_replaces_internet` stays false. Track 2 is a different goal. It is not a claim that Cap-7 already is that internet.
 
+## Plane names
+
+Track 1 is **Plane N** (Cap-7 / `.aziel` names). Track 2 is **Plane P** (node-mesh packet path, devices as nodes). The sketch, the carrier prefer order (LAN, Wi-Fi, Bluetooth, RF, photon), and the hardware-absent codes are [`PLANE-P-D2D-1.0.md`](PLANE-P-D2D-1.0.md). That paper does not close WARN-5 and does not edit Softwares. Softwares catalog honesty and FG-STUB D2D mesh ops are AZBot Phase A (`bc-c5243c31-a34c-5ed5-80a9-186f7d8f9297`).
+
 ## Claim limits
 
 Copied from `src/security/claims.js` `CLAIM_LIMITS`. These values are unchanged.
@@ -158,7 +162,7 @@ A local simulation is FIXTURE. It is not the real-world half of this WARN.
 | Home-origin / cold-shelf origins | SLOT | ORIGIN-CUTOVER. L3 registry. |
 | Track 2 node-mesh internet | missing | Own addressing and routing, separate from ICANN, not BGP. Not demonstrated. Multi-node operation is still WARN-1. |
 
-Honest close, later, not in this cut: show Track 2 on real nodes (the WARN-1 hosts) with mesh addressing and routing that a stranger can recompute, while Cap-7 remains not the public Internet and `negotiateBearer` still refuses `icann` and `cap7-egress`. Painting Cap-7, `.aziel`, or today's route classes as Internet-comparable BGP would be a lie.
+Honest close, later, not in this cut: show Track 2 on real nodes (the WARN-1 hosts) with mesh addressing and routing that a stranger can recompute, while Cap-7 remains not the public Internet and `negotiateBearer` still refuses `icann` and `cap7-egress`. Painting Cap-7, `.aziel`, or today's route classes as Internet-comparable BGP would be a lie. The design sketch for that later path is [`PLANE-P-D2D-1.0.md`](PLANE-P-D2D-1.0.md). It does not mark this WARN closed.
 
 Softwares skill text already says the Track 1 boundary (MirageGrid `one_line`, AZBrowser `skill`, AZNet `skill`). This cut does not rewrite those strings and does not rehash an engine digest.
 

@@ -110,7 +110,7 @@ Item 5 writes a machine-readable report with `fields`, `observer`, `reveals`, `n
 
 Item 6 refuses a keystore opened without the passphrase. Destroying or expiring a session key makes old envelopes fail. A new session still seals and opens. `rotateKey` leaves historical signatures verifiable under the retired public key. New tips use the new key. A revoked public key cannot sit on a new roster. Accepted history is not rewritten.
 
-Item 7 is the reproduction document and `scripts/verify-azp-ns-repro.mjs`. The wrapper exits non-zero when a fixture gate fails. It does not mark `live-vps`, `plane-b-framagit`, `live-multi-provider`, or `destroy-live-provider` as pass. It prints WARN-1 through WARN-4 as STANDS and WARN-5 as STANDS-until-demonstrated. The map is [`MESH-INTERNET-WARNS-1.0.md`](MESH-INTERNET-WARNS-1.0.md). Track 1 is the Cap-7 and `.aziel` name plane. Cap-7 is not the public Internet. Track 2 is a separate node-mesh internet and is not demonstrated.
+Item 7 is the reproduction document and `scripts/verify-azp-ns-repro.mjs`. The wrapper exits non-zero when a fixture gate fails. It does not mark `live-vps`, `plane-b-framagit`, `live-multi-provider`, or `destroy-live-provider` as pass. It prints WARN-1 through WARN-4 as STANDS and WARN-5 as STANDS-until-demonstrated. The map is [`MESH-INTERNET-WARNS-1.0.md`](MESH-INTERNET-WARNS-1.0.md). Track 1 is the Cap-7 and `.aziel` name plane. Cap-7 is not the public Internet. Track 2 is a separate node-mesh internet and is not demonstrated. Those tracks are Plane N (names) and Plane P (packet path) in [`PLANE-P-D2D-1.0.md`](PLANE-P-D2D-1.0.md). That sketch does not paint a LIVE public egress.
 
 Softwares stay 42. `tools/list` stays 36. No new Softwares card. No new MCP tool.
 

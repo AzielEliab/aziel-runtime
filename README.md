@@ -184,6 +184,10 @@ AZNet P3. Survival layers serve AZNet (`aznet`, AZN-WP-0.1). sidenet is that sid
 
 Cap-7 is the MirageGrid auto-generate **.az** layer. It duplicates the four hub sites and shifts with StaticLock (catalog product StaticClock, slug `staticclock`) and MirageGrid cloak, paired with AZVPN. `design_of: hub_designs`. `resolves_to_hub: false` on Cap-7. Standard internet does not reach Cap-7. Real duplications: `azgrid`, `azcloak`, `azvault`, `azshift`. False sites: `azbooth`, `azflag`, `azstandby`. Factory duplication cite is LIVE. Internet reaches the AZ domains (`AZ.AzielEliab.AZ`, `AZ.AzielCorpusLibrary.AZ`, `AZ.Godlock.AZ`, `AZ.HeDidntJump.AZ`) through azieleliab.com, azielcorpuslibrary.net, godlock.uk, and hedidntjump.com. Those drop-ins are `public_icann: true` and `resolves_to_hub: true`, shuffle once to one of four, stand alone, and freeze after the hubs go down. Live nodes anchor them. Cap-7 `public_icann: false`. The Cap-7 factory is not a public ICANN registrar. Four hub mirrors and three decoys are not per-node `.aziel` slots. `geo-target`, `session-stick`, and `egress-rotate` are LIVE on the Cap-7 control plane (region label, sticky mesh node and factory land, land rotate among 7 sites). They are not a public egress IP, not a residential IP, not a Cloudflare geo-exit pool, not a sticky public IP, not packet forwarding, and not AZVPN. The public MirageGrid Worker Cap-7 control plane is LIVE ([/v1/egress](https://miragegrid.vibelock.workers.dev/v1/egress) and [/v1/planned](https://miragegrid.vibelock.workers.dev/v1/planned)). `vpn-hop`, `hop`, `tunnel`, and `mesh` stay stub. Not a fifth product. AI pulls metadata from MirageGrid Worker `/bridge` or `GET /v1/mesh/az-generator`. Update shuffle: `fraggate_call { slug: "miragegrid", op: "shuffle" }` lands one mesh name (factory land LIVE; not a public HTTPS door). No live AZ-GEN registrar. No ICANN `.az` ccTLD purchase. No visible 15:20. `GET /v1/mesh` never enables radios. Mesh browse: AZNet + AZBrowser via FragGate.
 
+### Plane N and Plane P
+
+Plane N is this Cap-7 / `.aziel` name plane. It is not an ICANN registrar and not a public egress IP. Plane P is the separate node-mesh packet path (devices as nodes). WARN-5 is STANDS-until-demonstrated, not a permanent ceiling. Carrier prefer order on that path is LAN, Wi-Fi, Bluetooth, RF, then photon light flashes. RF and photon refuse when the hardware is absent. No mock LIVE. Plane P is not claimed as LIVE public egress. AZVPN stays the suite VPN and is not MirageGrid. Paper: [PLANE-P-D2D-1.0](docs/designs/PLANE-P-D2D-1.0.md).
+
 ## FragGate door
 
 Public MCP `tools/list` is **36 live tools**. First call: `Softwares` (tools/list name Softwares). The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. Diagnostics stay `fraggate_list` → `fraggate_describe` → `fraggate_call` (`foldlock` / `fold-preview`, or `decisiongate_check` with `dry_run=true`). The same list includes `runtime_skill`, `fraggate_verify`, `library_lookup`, suite `mesh_*`, append-only `chainlock_*` and `memory_*` (diagnostics and belief, not a pre-call), and catalog helpers. `runtime_run` and `runtime_session_*` are advanced/internal. Ledger ops stamp ChainLock on the acts chain, then TemporalLock and ForgeReceipts. `fraggate_call` reports those three from the pipe when a real hash exists. Lamb Lens, SweepGate, Sentinel, and RoseClock run inside that pipe. Reads do not stamp ChainLock, TemporalLock, or ForgeReceipts.
@@ -576,11 +580,12 @@ env -u CLOUDFLARE_API_TOKEN npx wrangler deploy --keep-vars --var GIT_SHA:$(git 
 Add `--var VERSION_ID:<worker-version-id>` only when that id is already known.
 Do not invent one. When the binding is present it wins over `VERSION_ID`.
 
-If this checkout has no wrangler credentials, deploy from the author's machine:
+If this checkout has no wrangler credentials, deploy from the author's machine.
+Pass `GIT_SHA`. Omitting it leaves the catalog on `deploy lag` and does not claim git HEAD:
 
 ```bash
 npx wrangler secret put RUNTIME_TOKEN
-npx wrangler deploy
+npx wrangler deploy --keep-vars --var GIT_SHA:$(git rev-parse HEAD)
 node scripts/probe-live.mjs
 # confirm GET /v1/health and /v1/ready and /v1/runtime.json version=1.7.0 role=engine-runtime door=fraggate
 # confirm GET /v1/uses returns uses / by_host / by_path / by_day / recent (no increment)

@@ -398,4 +398,18 @@ assert.doesNotMatch(foldlockCard, /\{ q: text, text: text \}/);
 assert.ok(PRODUCTS.some((p) => p.slug === "foldlock"));
 assert.ok(home.includes('data-op="fold-preview"') || ws.includes("fold-preview"));
 
+assert.match(home, /VPN on at boot/);
+assert.match(home, /id="azvpn-always-on"/);
+assert.match(home, /data-azvpn-desk="always-on"/);
+assert.match(home, /function plainConsumerText/);
+assert.doesNotMatch(home, /JSON\.stringify\(body, null, 2\)/);
+assert.doesNotMatch(ws, /JSON\.stringify\(body, null, 2\)/);
+assert.doesNotMatch(home, /Turn VPN off|Disable AZVPN|data-azvpn="opt-out"/);
+assert.match(softwareHtml, /id="deploy-lag"/);
+assert.match(softwareHtml, /deploy lag/);
+const azvpnPage = await (await get("/p/azvpn")).text();
+assert.match(azvpnPage, /VPN on at boot/);
+assert.match(azvpnPage, /In-runtime door/);
+assert.doesNotMatch(azvpnPage, /\/p\/azvpn\/health/);
+
 console.log("verify-human-ui: ok");

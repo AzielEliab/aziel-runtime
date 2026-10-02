@@ -243,6 +243,12 @@ assert.equal(firstGet.data.clocks_share_socket, false);
 assert.equal(firstGet.data.live_body_sync, false);
 assert.equal(firstGet.data.isolation_is_the_cure, true);
 assert.equal(firstGet.data.phoenix_local_only, true);
+assert.equal(firstGet.data.security.model, "single-node-security-awareness");
+assert.equal(firstGet.data.security.mesh_fenced_to_loopback, false);
+assert.equal(firstGet.data.security.forced_loopback_is_mesh_fence, false);
+assert.equal(firstGet.data.security.phoenix, "local-wait-reseal");
+assert.equal(firstGet.data.security.phoenix_lock, true);
+assert.equal(firstGet.data.security.public_hostname_resurrection, false);
 assert.equal(firstGet.data.restore_godlock_uk, false);
 assert.equal(firstGet.data.neighbor_heal, true);
 assert.equal(firstGet.data.neighbor_heal_is_cite, true);
@@ -657,6 +663,18 @@ gate("PROXY-ALLOWLIST", " /p never forwards factory /mcp; documented tracker ops
   resetMeshStore();
 }
 gate("SITE-LIVE-VIEWERS", "Live Nodes add hub site viewers when present; stay 0 when none; HDJ excluded");
+
+const warnDoc = readFileSync(new URL("../docs/designs/MESH-INTERNET-WARNS-1.0.md", import.meta.url), "utf8");
+assert.match(warnDoc, /\| WARN-1 \|[^\n]*\| STANDS \|/);
+assert.match(warnDoc, /\| WARN-2 \|[^\n]*\| STANDS \|/);
+assert.match(warnDoc, /\| WARN-3 \|[^\n]*\| STANDS \|/);
+assert.match(warnDoc, /\| WARN-4 \|[^\n]*\| STANDS \|/);
+assert.match(warnDoc, /\| WARN-5 \|[^\n]*\| STANDS-until-demonstrated \|/);
+assert.doesNotMatch(warnDoc, /\| WARN-[1-5] \|[^\n]*\| PASS \|/);
+assert.equal(azGen.data.public_icann, false);
+assert.notEqual(azGen.data.public_egress_ip, true);
+assert.notEqual(azGen.data.public_egress, true);
+gate("MESH-LOCKS", "single-node security-awareness, phoenix local-wait-reseal, Cap-7 not ICANN egress, WARNs stay WARN");
 
 console.log(
   `ok mesh-security ${RUNTIME_VERSION}: ${gates.length} gates — ${gates.map((g) => g.id).join(", ")}`,

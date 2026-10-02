@@ -155,13 +155,34 @@ export function catalogDate(raw) {
 
 export function softwareMeta(env, extras = {}) {
   const meta = env && env.CF_VERSION_METADATA && typeof env.CF_VERSION_METADATA === "object" ? env.CF_VERSION_METADATA : {};
-  const sha =
-    sanitizeGitSha(env && env.GIT_SHA) ||
-    sanitizeGitSha(extras.git_sha) ||
-    sanitizeGitSha(meta.tag) ||
-    sanitizeGitSha(meta.id) ||
-    sanitizeGitSha(BUILD_GIT_SHA) ||
-    null;
+  const fromVar = sanitizeGitSha(env && env.GIT_SHA);
+  const fromExtra = sanitizeGitSha(extras.git_sha);
+  const fromTag = sanitizeGitSha(meta.tag);
+  const fromId = sanitizeGitSha(meta.id);
+  const fromBuild = sanitizeGitSha(BUILD_GIT_SHA);
+  let sha = null;
+  let git_sha_source = null;
+  if (fromVar) {
+    sha = fromVar;
+    git_sha_source = "deploy_var";
+  } else if (fromExtra) {
+    sha = fromExtra;
+    git_sha_source = "catalog_extra";
+  } else if (fromTag) {
+    sha = fromTag;
+    git_sha_source = "cf_version_metadata";
+  } else if (fromId) {
+    sha = fromId;
+    git_sha_source = "cf_version_metadata";
+  } else if (fromBuild) {
+    sha = fromBuild;
+    git_sha_source = "build_meta";
+  }
+  const git_sha_tracks_deployed_tip = git_sha_source === "deploy_var";
+  const deploy_lag = git_sha_tracks_deployed_tip ? null : "deploy lag";
+  const deploy_lag_note = git_sha_tracks_deployed_tip
+    ? "Deployed tip. GIT_SHA was set when this Worker was deployed. That sha is the deploy stamp. It is not a claim that a newer git commit is already running."
+    : "deploy lag. This git sha is not a live deploy stamp, so the catalog does not claim the Worker is on git HEAD.";
   // Live deploy stamp beats the baked LASTMOD fallback (extras.updated_at)
   // so a tip deploy does not leave Softwares updated_at on an older wave.
   // env.UPDATED_AT stays an explicit operator override.
@@ -171,13 +192,13 @@ export function softwareMeta(env, extras = {}) {
     catalogDate(extras.updated_at) ||
     null;
   const fromBinding = sanitizeVersionId(meta.id);
-  const fromVar = sanitizeVersionId(env && env.VERSION_ID);
-  const fromExtra = sanitizeVersionId(extras.version_id);
-  const version_id = fromBinding || fromVar || fromExtra || null;
+  const versionFromVar = sanitizeVersionId(env && env.VERSION_ID);
+  const versionFromExtra = sanitizeVersionId(extras.version_id);
+  const version_id = fromBinding || versionFromVar || versionFromExtra || null;
   let version_id_source = null;
   if (fromBinding) version_id_source = "cf_version_metadata";
-  else if (fromVar) version_id_source = "version_id_var";
-  else if (fromExtra) version_id_source = "catalog_extra";
+  else if (versionFromVar) version_id_source = "version_id_var";
+  else if (versionFromExtra) version_id_source = "catalog_extra";
   const version_id_note = version_id
     ? version_id_source === "cf_version_metadata"
       ? "version_id is env.CF_VERSION_METADATA.id, read at serve time. It is not a baked constant."
@@ -185,7 +206,69 @@ export function softwareMeta(env, extras = {}) {
         ? "version_id is the VERSION_ID deploy var. The Cloudflare version metadata binding was unset. It is not a baked constant."
         : "version_id was supplied with this catalog read. It is not a baked constant."
     : "GET /v1/software does not expose version_id. Cloudflare Worker version metadata (CF_VERSION_METADATA.id) is unbound in this isolate, and VERSION_ID is unset. No version_id was invented.";
-  return { git_sha: sha, updated_at: updated, version_id, version_id_source, version_id_note };
+  return {
+    git_sha: sha,
+    git_sha_source,
+    git_sha_tracks_deployed_tip,
+    deploy_lag,
+    deploy_lag_note,
+    updated_at: updated,
+    version_id,
+    version_id_source,
+    version_id_note,
+  };
+}
+
+/** Stamp a catalog body with the live deploy-sha cite. A baked pin is deploy lag, not git HEAD. */
+export function applyCatalogGitHonesty(catalog, honesty) {
+  if (!catalog || typeof catalog !== "object") return catalog;
+  const git_sha = honesty && honesty.git_sha ? honesty.git_sha : catalog.git_sha || null;
+  const tracks = honesty && honesty.git_sha_tracks_deployed_tip === true;
+  const deploy_lag = tracks ? null : (honesty && honesty.deploy_lag) || "deploy lag";
+  const deploy_lag_note = tracks
+    ? (honesty && honesty.deploy_lag_note) || null
+    : (honesty && honesty.deploy_lag_note) ||
+      "deploy lag. This git sha is not a live deploy stamp, so the catalog does not claim the Worker is on git HEAD.";
+  const software = Array.isArray(catalog.software)
+    ? catalog.software.map((card) =>
+        card && typeof card === "object" ? { ...card, git_sha, git_sha_tracks_deployed_tip: tracks } : card,
+      )
+    : catalog.software;
+  return {
+    ...catalog,
+    git_sha,
+    git_sha_source: (honesty && honesty.git_sha_source) || null,
+    git_sha_tracks_deployed_tip: tracks,
+    deploy_lag,
+    deploy_lag_note,
+    software,
+  };
+}
+
+function catalogGitCite(extra = {}) {
+  if (extra && extra.git_sha_source) {
+    const tracks = extra.git_sha_tracks_deployed_tip === true;
+    return {
+      git_sha: sanitizeGitSha(extra.git_sha || extra.gitSha) || null,
+      git_sha_source: extra.git_sha_source,
+      git_sha_tracks_deployed_tip: tracks,
+      deploy_lag: tracks ? null : extra.deploy_lag || "deploy lag",
+      deploy_lag_note:
+        extra.deploy_lag_note ||
+        (tracks
+          ? "Deployed tip. GIT_SHA was set when this Worker was deployed. That sha is the deploy stamp. It is not a claim that a newer git commit is already running."
+          : "deploy lag. This git sha is not a live deploy stamp, so the catalog does not claim the Worker is on git HEAD."),
+    };
+  }
+  if (extra && extra.env) return softwareMeta(extra.env, { updated_at: extra.updated_at, version_id: extra.version_id });
+  if (extra && (extra.git_sha || extra.gitSha)) return softwareMeta({}, { git_sha: extra.git_sha || extra.gitSha });
+  return {
+    git_sha: null,
+    git_sha_source: null,
+    git_sha_tracks_deployed_tip: false,
+    deploy_lag: "deploy lag",
+    deploy_lag_note: "deploy lag. No deploy stamp was passed. This catalog does not claim the Worker is on git HEAD.",
+  };
 }
 
 function doorHonesty(slug, kind) {
@@ -263,6 +346,11 @@ export function liveSoftwareCard(product, origin, meta = {}) {
   const domain = domainFields(product.slug);
   const doorLive = catalogDoorLive(product.slug);
   const honesty = doorHonesty(product.slug, doorLive ? "live" : "local_only");
+  const worker_home_note = host
+    ? null
+    : doorLive
+      ? "No separate product Worker. The in-repo door is FragGate on this runtime. Do not invent a download-tracker URL."
+      : "SLOT. No product Worker and no public FragGate door. Nothing was invented.";
   return {
     slug: product.slug,
     name: product.name,
@@ -277,6 +365,8 @@ export function liveSoftwareCard(product, origin, meta = {}) {
     one_line: product.oneLine || product.one_line || product.name,
     description: softwareDescription(product.slug, product),
     worker_home: host ? `${host}/` : null,
+    worker_home_note,
+    ...(host ? {} : doorLive ? { in_repo_home: `${base}/p/${product.slug}` } : {}),
     download_url: host ? `${host}/download` : null,
     host: discovery.primary_host,
     homepage: discovery.homepage,
@@ -287,6 +377,8 @@ export function liveSoftwareCard(product, origin, meta = {}) {
     engine_digest: embeddedDigest(product.slug) || null,
     updated_at: meta.updated_at || null,
     git_sha: meta.git_sha || null,
+    git_sha_tracks_deployed_tip: meta.git_sha_tracks_deployed_tip === true,
+    ...(product.slug === "azvpn" ? { plain_status: "VPN on at boot", opt_out: false } : {}),
     door: doorLive ? "fraggate" : "none",
     kind: "software",
     mesh: meshHint("/v1/mesh"),
@@ -447,9 +539,11 @@ export function catalogSetsFor(products, softwareEntries) {
 
 export function softwareCatalog(origin, products, extra = {}) {
   const base = String(origin || "").replace(/\/$/, "");
+  const git = catalogGitCite(extra);
   const meta = {
     updated_at: extra.updated_at || extra.updatedAt || null,
-    git_sha: extra.git_sha || extra.gitSha || null,
+    git_sha: git.git_sha,
+    git_sha_tracks_deployed_tip: git.git_sha_tracks_deployed_tip === true,
   };
   const versionMeta = softwareMeta(extra.env || {}, { version_id: extra.version_id || null });
   const software = listSoftwareEntries(products, base, meta);
@@ -468,7 +562,11 @@ export function softwareCatalog(origin, products, extra = {}) {
     framing: SOFTWARE_FRAMING,
     sort_law: SOFTWARE_SORT_LAW,
     updated_at: meta.updated_at,
-    git_sha: meta.git_sha,
+    git_sha: git.git_sha,
+    git_sha_source: git.git_sha_source,
+    git_sha_tracks_deployed_tip: git.git_sha_tracks_deployed_tip === true,
+    deploy_lag: git.deploy_lag,
+    deploy_lag_note: git.deploy_lag_note,
     version_id: versionMeta.version_id,
     version_id_source: versionMeta.version_id_source,
     version_id_note: versionMeta.version_id_note,
