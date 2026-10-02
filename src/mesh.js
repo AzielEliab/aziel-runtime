@@ -124,7 +124,7 @@ import { dispatchAzGeneratorHttp, semanticBridgeCiteField } from "./semantic-bri
 import { durabilityLabels } from "./durability-labels.js";
 import { nineLawsFrame, nineLawsHint, nineLawsLaunchCite, refuseNineLawGet, refuseNineLawViolation } from "./mesh-nine-laws.js";
 import { CHANNEL_PLANE_NOTE, CHANNEL_PLANE_SPEC, channelPlaneFrame, channelPlaneHint } from "./mesh-channel-plane.js";
-import { D2D_ORDER_LABEL, D2D_SPEC, D2D_STUB_OPS, d2dCarrierFrame, d2dStubMessage, isD2dStubOp } from "./d2d-carriers.js";
+import { D2D_ORDER_ARROW, D2D_ORDER_LABEL, D2D_PLANE, D2D_SPEC, D2D_STUB_OPS, d2dCarrierFrame, d2dStubMessage, isD2dRouteOp, isD2dStubOp } from "./d2d-carriers.js";
 import { publicVpnCite } from "./public-vpn.js";
 import { ensureDefaultVpnSession, vpnAutoCite } from "./azvpn-auto.js";
 import { meshCallingNameAlert } from "./calling-name.js";
@@ -1787,7 +1787,7 @@ Public **nodes** / \`rollup.nodes\` = \`human_mesh_users\` + cited \`human_uses\
 
 Full node process is local \`qnm-node/\` (boot / chain / apg / bearers / outbox / phoenix / score / memorial / tethers). Packet-transfer coding design is **QNS-CD-1.0** (photon QNS1 1.3 on local \`qnsd\`; companion to QNM-BUILD-1.0 / AIH-WP-1.3). This Worker cites only — \`GET /v1/qns\`. It does not proxy local via emit. **Channel plane (${CHANNEL_PLANE_SPEC}):** operator-armed wifi / bluetooth / rf / photon cites are ON. Live OS/hardware bearers run on local qnm-node / qnsd. ${CHANNEL_PLANE_NOTE} A channel cite or a local radio-hook presence reading is not a device-to-device packet hop.
 
-**Packet plane (${D2D_SPEC}):** separate from Cap-7 / MirageGrid names. Failover order is ${D2D_ORDER_LABEL}. LAN first, then Wi-Fi, Bluetooth, dedicated RF (cellular / ModemManager when that radio is present; beyond Wi-Fi and Bluetooth; refuse when absent), then photon light flashes (camera or flash; refuse when absent; qnsd is not this flash path). Each layer is NOT-READY. FragGate returns FG-STUB. alt_internet_live is false. WARN-5 stays STANDS-until-demonstrated and is not a permanent stay-off. Isolation is single-node security-awareness. Phoenix is local wait / re-seal. Neither fences the mesh to loopback.
+**Packet plane (${D2D_SPEC}, plane ${D2D_PLANE}):** Track 2 node-mesh reachability, separate from Cap-7 / .aziel names. Failover is ${D2D_ORDER_ARROW}. RF is the dedicated hop beyond Wi-Fi and Bluetooth (cellular / ModemManager when that radio is present; refuse QNM-RADIO-ABSENT when absent). Photon light flashes are the last resort (camera and flash or LED; refuse when absent; qnsd is not this flash path). No mock LIVE. Discovery, peer session, and store-forward names (\`mesh_discover\`, \`peer_advertise\`, \`peer_list\`, \`peer_session_open\`, \`peer_send\`, \`store_forward\`, \`path_probe\`) stay NOT-READY. FragGate returns FG-STUB. A missing path also cites MESH-NO-ROUTE. Cap-7 public egress cites MG-NO-IP-EXIT. alt_internet_live is false. WARN-5 stays STANDS-until-demonstrated and is not a permanent stay-off. Isolation is single-node security-awareness. Phoenix is local wait / re-seal. Neither fences the mesh to loopback.
 
 Parent will roll that package. Anon-broadcast is a local sibling of that process — never a publish path. ${MESH_SECURITY_MODEL}
 
@@ -2662,10 +2662,14 @@ export async function runMeshOp(op, payload, env) {
   if (isD2dStubOp(resolved)) {
     return refuse("MESH-STUB", d2dStubMessage(resolved), {
       op: resolved,
+      plane: D2D_PLANE,
       door_code: "FG-STUB",
       status: "NOT-READY",
       packet_path_live: false,
       alt_internet_live: false,
+      cap7_egress_code: "MG-NO-IP-EXIT",
+      radio_absent_code: "QNM-RADIO-ABSENT",
+      route_code: isD2dRouteOp(resolved) ? "MESH-NO-ROUTE" : null,
       ...d2dCarrierFrame(),
     });
   }

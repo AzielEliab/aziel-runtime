@@ -16,12 +16,15 @@ import { meshStatus, resetMeshStore, runMeshOp } from "../src/mesh.js";
 import {
   D2D_CARRIERS,
   D2D_CODE,
+  D2D_ORDER_ARROW,
   D2D_ORDER_LABEL,
+  D2D_PLANE,
   D2D_SPEC,
   D2D_STATUS,
   D2D_STUB_OPS,
   isD2dStubOp,
 } from "../src/d2d-carriers.js";
+import { track2CarrierProbe } from "../qnm-node/bearers/radio.js";
 
 resetLedger();
 resetMeshStore();
@@ -35,6 +38,8 @@ assert.deepEqual(
   ["lan", "wifi", "bluetooth", "rf", "photon"],
 );
 assert.equal(D2D_ORDER_LABEL, "LAN, Wi-Fi, Bluetooth, RF, photon light flashes");
+assert.equal(D2D_ORDER_ARROW, "LAN → Wi-Fi → Bluetooth → RF → Photon light flashes");
+assert.equal(D2D_PLANE, "track2-reachability");
 for (const row of D2D_CARRIERS) {
   assert.equal(row.status, D2D_STATUS);
   assert.equal(row.code, D2D_CODE);
@@ -44,7 +49,7 @@ for (const row of D2D_CARRIERS) {
 }
 assert.match(D2D_CARRIERS[3].note, /ModemManager/);
 assert.match(D2D_CARRIERS[3].note, /beyond Wi-Fi and Bluetooth/);
-assert.match(D2D_CARRIERS[4].note, /camera or flash/);
+assert.match(D2D_CARRIERS[4].note, /camera and flash/);
 assert.match(D2D_CARRIERS[4].note, /No mock LIVE/);
 
 const copy = `${SOFTWARE_COPY.aznet.one_line} ${SOFTWARE_COPY.aznet.description}`;
@@ -81,6 +86,22 @@ const packetOps = [
   "photon",
   "alt_internet",
   "packet_forward",
+  "mesh_discover",
+  "peer_advertise",
+  "peer_list",
+  "peer_session_open",
+  "peer_session_status",
+  "peer_session_close",
+  "peer_send",
+  "peer_recv",
+  "outbox_enqueue",
+  "outbox_cut",
+  "store_forward",
+  "path_probe",
+  "bootstrap_list",
+  "shelf_cite",
+  "tip_pull",
+  "origin_status",
 ];
 for (const op of packetOps) {
   assert.ok(D2D_STUB_OPS.includes(op), op);
@@ -93,7 +114,7 @@ for (const op of packetOps) {
 }
 
 for (const slug of ["mesh", "aznet"]) {
-  for (const op of ["d2d_discover", "d2d_rf", "d2d_photon", "alt_internet"]) {
+  for (const op of ["d2d_discover", "d2d_rf", "d2d_photon", "alt_internet", "peer_session_open", "mesh_discover"]) {
     const preview = previewCatalogAdmission({ slug, op, confirm: true, dry_run: true, payload: {} }, registry, null);
     assert.equal(preview.proceed, false, `${slug} ${op} dry_run`);
     assert.equal(preview.envelope.code, "FG-STUB");
@@ -113,6 +134,18 @@ assert.equal(kernel.door_code, "FG-STUB");
 assert.equal(kernel.status, "NOT-READY");
 assert.equal(kernel.packet_path_live, false);
 assert.equal(kernel.alt_internet_live, false);
+assert.equal(kernel.plane, "track2-reachability");
+assert.equal(kernel.cap7_egress_code, "MG-NO-IP-EXIT");
+assert.equal(kernel.d2d_carriers.order_arrow, D2D_ORDER_ARROW);
+assert.equal(kernel.d2d_carriers.refuse.cap7_egress, "MG-NO-IP-EXIT");
+assert.equal(kernel.d2d_carriers.refuse.radio_absent, "QNM-RADIO-ABSENT");
+const routed = await runMeshOp("store_forward", {}, {});
+assert.equal(routed.code, "MESH-STUB");
+assert.equal(routed.door_code, "FG-STUB");
+assert.equal(routed.route_code, "MESH-NO-ROUTE");
+assert.equal(routed.packet_path_live, false);
+assert.equal(isD2dStubOp("relay_forward"), false);
+assert.equal(classifyCall(registry.bySlug.mesh, "relay_forward").kind, "live");
 assert.equal(kernel.d2d_carriers.cap7_public_egress, false);
 assert.equal(kernel.d2d_carriers.cap7_public_icann, false);
 assert.equal(kernel.d2d_carriers.mirage_is_azvpn, false);
@@ -140,6 +173,22 @@ assert.match(skill.markdown, /FG-STUB/);
 assert.match(skill.markdown, /photon light flashes/);
 assert.match(skill.markdown, /ModemManager/);
 assert.match(skill.markdown, /STANDS-until-demonstrated/);
+assert.match(skill.markdown, /LAN → Wi-Fi → Bluetooth → RF → Photon light flashes/);
+assert.match(skill.markdown, /peer_session_open/);
+assert.match(SOFTWARE_COPY.miragegrid.description, /FG-STUB/);
+assert.match(SOFTWARE_COPY.azvpn.description, /NOT-READY/);
+const probe = track2CarrierProbe();
+assert.equal(probe.packet_live, false);
+assert.equal(probe.alt_internet_live, false);
+assert.deepEqual(probe.order, ["lan", "wifi", "bluetooth", "rf", "photon"]);
+for (const id of probe.order) {
+  const row = probe.carriers[id];
+  assert.notEqual(row.state, "LIVE", id);
+  assert.equal(row.packet_live, false);
+  assert.equal(row.mock, false);
+  if (row.state === "REFUSE") assert.equal(row.code, "QNM-RADIO-ABSENT", id);
+  if (row.state === "HW-PRESENT") assert.equal(row.peer_exchange_demonstrated, false);
+}
 assert.match(skill.markdown, /single-node security-awareness/);
 assert.doesNotMatch(skill.markdown, /packet path is LIVE|alt_internet_live is true/);
 

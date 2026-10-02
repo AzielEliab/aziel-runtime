@@ -15,6 +15,8 @@ export const D2D_AUTHOR = "Aziel Eliab";
 export const D2D_STATUS = "NOT-READY";
 export const D2D_CODE = "FG-STUB";
 export const D2D_ORDER_LABEL = "LAN, Wi-Fi, Bluetooth, RF, photon light flashes";
+export const D2D_ORDER_ARROW = "LAN → Wi-Fi → Bluetooth → RF → Photon light flashes";
+export const D2D_PLANE = "track2-reachability";
 export const D2D_PAPER = "docs/designs/D2D-CARRIERS-1.0.md";
 
 export const D2D_CARRIERS = Object.freeze([
@@ -27,8 +29,11 @@ export const D2D_CARRIERS = Object.freeze([
     code: D2D_CODE,
     packet_live: false,
     mock: false,
+    functional: true,
+    peer_exchange_demonstrated: false,
+    absent_code: "QNM-RADIO-ABSENT",
     hw: "lan-interface",
-    note: "First preference. A named LAN interface is not a live packet hop in this phase.",
+    note: "First preference. Wired or same-L2 ethernet. Hardware absent refuses. A named interface is not a demonstrated peer hop.",
   }),
   Object.freeze({
     order: 2,
@@ -39,8 +44,11 @@ export const D2D_CARRIERS = Object.freeze([
     code: D2D_CODE,
     packet_live: false,
     mock: false,
+    functional: true,
+    peer_exchange_demonstrated: false,
+    absent_code: "QNM-RADIO-ABSENT",
     hw: "wifi-nm",
-    note: "Second preference. NetworkManager / Wi-Fi Direct stays NOT-READY until the hop works. A channel-plane cite is not this hop.",
+    note: "Second preference. Infrastructure Wi-Fi and Wi-Fi Direct when armed. Absent radio refuses. A channel-plane cite is not this hop.",
   }),
   Object.freeze({
     order: 3,
@@ -51,8 +59,11 @@ export const D2D_CARRIERS = Object.freeze([
     code: D2D_CODE,
     packet_live: false,
     mock: false,
+    functional: true,
+    peer_exchange_demonstrated: false,
+    absent_code: "QNM-RADIO-ABSENT",
     hw: "bluez",
-    note: "Third preference. BlueZ presence is not a live hop.",
+    note: "Third preference. Bluetooth or BLE when the radio is present. Absent radio refuses. BlueZ presence is not a demonstrated hop.",
   }),
   Object.freeze({
     order: 4,
@@ -63,8 +74,11 @@ export const D2D_CARRIERS = Object.freeze([
     code: D2D_CODE,
     packet_live: false,
     mock: false,
+    functional: true,
+    peer_exchange_demonstrated: false,
+    absent_code: "QNM-RADIO-ABSENT",
     hw: "rf-beyond-wifi-bt",
-    note: "Fourth preference. Dedicated RF mesh hop beyond Wi-Fi and Bluetooth. Prefer cellular / ModemManager when that radio is present. Refuse when it is absent. No fake LIVE.",
+    note: "Fourth preference. Dedicated RF mesh hop beyond Wi-Fi and Bluetooth. Prefer cellular / ModemManager when that radio is present. Refuse when it is absent. No mock LIVE.",
   }),
   Object.freeze({
     order: 5,
@@ -75,8 +89,11 @@ export const D2D_CARRIERS = Object.freeze([
     code: D2D_CODE,
     packet_live: false,
     mock: false,
+    functional: true,
+    peer_exchange_demonstrated: false,
+    absent_code: "QNM-RADIO-ABSENT",
     hw: "camera-flash",
-    note: "Last resort. Optical / LiFi-style light-flash encoding. Refuse when camera or flash hardware is absent. Local qnsd is not this flash path. No mock LIVE.",
+    note: "Last resort. Optical / LiFi-style light-flash encoding on camera and flash or LED. Refuse when that hardware is absent. Local qnsd is not this flash path. No mock LIVE.",
   }),
 ]);
 
@@ -95,7 +112,41 @@ const D2D_EXTRA_OPS = Object.freeze([
   "d2d_packet",
   "alt_internet",
   "packet_forward",
+  "mesh_discover",
+  "peer_advertise",
+  "peer_list",
+  "peer_session_open",
+  "peer_session_status",
+  "peer_session_close",
+  "peer_send",
+  "peer_recv",
+  "outbox_enqueue",
+  "outbox_cut",
+  "store_forward",
+  "path_probe",
+  "bootstrap_list",
+  "shelf_cite",
+  "tip_pull",
+  "origin_status",
 ]);
+
+/** Route-shaped Track 2 names. Door stays FG-STUB. Kernel also cites MESH-NO-ROUTE. */
+export const D2D_ROUTE_OPS = Object.freeze([
+  "store_forward",
+  "path_probe",
+  "d2d_multi_hop",
+  "d2d-multi-hop",
+  "multi_hop",
+  "multi-hop",
+  "multihop",
+  "packet_forward",
+]);
+
+const D2D_ROUTE_SET = new Set(D2D_ROUTE_OPS);
+
+export function isD2dRouteOp(op) {
+  return D2D_ROUTE_SET.has(String(op || "").trim().toLowerCase());
+}
 
 function carrierOpNames(row) {
   return [row.op, row.id, row.op.split("_").join("-")];
@@ -113,7 +164,7 @@ export function isD2dStubOp(op) {
 
 export function d2dStubMessage(op) {
   const name = String(op || "d2d").trim() || "d2d";
-  return `${name} stays NOT-READY on the device-to-device packet plane. FragGate returns FG-STUB. Failover order is ${D2D_ORDER_LABEL}. No hop is live. Cap-7 remains name and land-region metadata. alt_internet_live is false.`;
+  return `${name} stays NOT-READY on Track 2 packet reachability (${D2D_ORDER_ARROW}). FragGate returns FG-STUB. WARN-5 is STANDS-until-demonstrated. Cap-7 stays the name plane (MG-NO-IP-EXIT). alt_internet_live is false.`;
 }
 
 export function d2dCarrierCite() {
@@ -121,7 +172,7 @@ export function d2dCarrierCite() {
     spec: D2D_SPEC,
     author: D2D_AUTHOR,
     identity: D2D_AUTHOR,
-    plane: "packet",
+    plane: D2D_PLANE,
     phase: "A",
     separate_from: "cap7-name",
     cap7_is_name_plane: true,
@@ -138,8 +189,22 @@ export function d2dCarrierCite() {
     preference: "failover",
     order: D2D_CARRIERS.map((row) => row.id),
     order_label: D2D_ORDER_LABEL,
+    order_arrow: D2D_ORDER_ARROW,
     status: D2D_STATUS,
     code: D2D_CODE,
+    warn5_until: "demonstrated",
+    warn5_by_design: "separate-from-icann",
+    refuse: {
+      packet: D2D_CODE,
+      radio_absent: "QNM-RADIO-ABSENT",
+      cap7_egress: "MG-NO-IP-EXIT",
+      cap7_egress_engine: "MG-NOT-PUBLIC-EGRESS",
+      bearer: "AZP-BEARER-REFUSE",
+      payload: "AZN-NO-PAYLOAD",
+      route: "MESH-NO-ROUTE",
+      stay_off: "MESH-STAY-OFF",
+      nat: "FED-MESH-NAT-REFUSE",
+    },
     carriers: D2D_CARRIERS.map((row) => ({ ...row })),
     security: {
       isolation: "single-node security-awareness",
@@ -149,7 +214,7 @@ export function d2dCarrierCite() {
       loopback_isolation: false,
     },
     paper: D2D_PAPER,
-    note: `Packet plane is device-to-device reachability, separate from Cap-7 names. Carriers fail over ${D2D_ORDER_LABEL}. Each layer is ${D2D_STATUS} / ${D2D_CODE} until a real hop works. Channel-plane cites and local radio-hook presence are not this path. No live alternative internet. No public IP egress.`,
+    note: `Track 2 node-mesh packet reachability stays ${D2D_STATUS} / STANDS-until-demonstrated. Failover is ${D2D_ORDER_ARROW}. RF and photon light flashes are functional carriers: refuse QNM-RADIO-ABSENT when that hardware is absent, and do not paint LIVE without a demonstrated peer exchange. Cap-7 / .aziel stay Track 1 name-plane metadata. MirageGrid is not AZVPN. AZNet is the hash-continuity side-net and does not host payloads. Isolation is single-node security-awareness. Phoenix is local wait / re-seal. alt_internet_live is false.`,
   };
 }
 

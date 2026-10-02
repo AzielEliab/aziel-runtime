@@ -19,13 +19,21 @@ This plane is device-to-device packet reachability. It is separate from Cap-7.
 
 Order is fixed. A later carrier is the fallback when the earlier path is absent or not yet a real hop. Phase A does not open any of them.
 
+Operator lock: **LAN → Wi-Fi → Bluetooth → RF → Photon light flashes**.
+
 | Order | Carrier | Hop | Honesty |
 |---|---|---|---|
-| 1 | LAN | `d2d_lan` | NOT-READY / FG-STUB |
-| 2 | Wi-Fi | `d2d_wifi` | NOT-READY / FG-STUB. NetworkManager / Wi-Fi Direct is the intended binding. A channel-plane cite is not this hop. |
-| 3 | Bluetooth | `d2d_bluetooth` | NOT-READY / FG-STUB. BlueZ is the intended binding. |
-| 4 | RF | `d2d_rf` | Dedicated RF mesh hop beyond Wi-Fi and Bluetooth. Prefer cellular / ModemManager when that radio is present. Refuse when it is absent. No fake LIVE. |
-| 5 | Photon | `d2d_photon` | Last resort. Optical / LiFi-style light-flash encoding. Refuse when camera or flash hardware is absent. Local `qnsd` is not this flash path. No mock LIVE. |
+| 1 | LAN | `d2d_lan` | NOT-READY / FG-STUB. Wired or same-L2 when the interface exists. |
+| 2 | Wi-Fi | `d2d_wifi` | NOT-READY / FG-STUB. Infrastructure and Wi-Fi Direct when armed. A channel-plane cite is not this hop. |
+| 3 | Bluetooth | `d2d_bluetooth` | NOT-READY / FG-STUB. BlueZ when the radio is present. |
+| 4 | RF | `d2d_rf` | Functional carrier. Dedicated hop beyond Wi-Fi and Bluetooth. Cellular / ModemManager when that radio is present. `QNM-RADIO-ABSENT` when it is absent. No mock LIVE. |
+| 5 | Photon | `d2d_photon` | Functional carrier. Last resort. Camera and flash or LED. `QNM-RADIO-ABSENT` when that hardware is absent. Local `qnsd` is not this flash path. No mock LIVE. |
+
+Plane tag on receipts: `track2-reachability`.
+
+FragGate names that stay `FG-STUB` on `mesh` and `aznet` until a real path works: `mesh_discover`, `peer_advertise`, `peer_list`, `peer_session_open`, `peer_session_status`, `peer_session_close`, `peer_send`, `peer_recv`, `outbox_enqueue`, `outbox_cut`, `store_forward`, `path_probe`, `bootstrap_list`, `shelf_cite`, `tip_pull`, `origin_status`, plus discovery, tunnel, and multi-hop. `store_forward` and `path_probe` also cite `MESH-NO-ROUTE`. `relay_forward` stays the existing FED-MESH op and is not this stub. Cap-7 painted as a public egress IP stays `MG-NOT-PUBLIC-EGRESS` on the engine, classed `MG-NO-IP-EXIT`. `negotiateBearer` still refuses `icann` and `cap7-egress` with `AZP-BEARER-REFUSE`.
+
+Local `track2CarrierProbe()` may report `HW-PRESENT` or `REFUSE`. It never reports `LIVE`. A LIVE packet hop needs a demonstrated peer exchange, which this phase does not have.
 
 Discovery (`d2d_discover`), tunnel (`d2d_tunnel`), and multi-hop (`d2d_multi_hop`) use the same refuse. `confirm: true` does not promote a stub. `dry_run` returns the same `FG-STUB` and writes no ledger.
 
