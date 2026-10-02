@@ -287,6 +287,10 @@ assert.equal(body.software[0].bucket, "plain");
 assert.equal(body.software[body.software.length - 1].bucket, "lock");
 assert.ok(body.software.some((s) => s.slug === "embryolock"));
 assert.equal(body.git_sha, BUILD_GIT_SHA);
+assert.equal(body.git_sha_source, "build_meta");
+assert.equal(body.git_sha_tracks_deployed_tip, false);
+assert.equal(body.deploy_lag, "deploy lag");
+assert.match(body.deploy_lag_note, /does not claim the Worker is on git HEAD/);
 assert.equal(body.updated_at, "2026-09-30");
 assert.ok(body.software.every((s) => s.updated_at === "2026-09-30"));
 assert.match(body.update_check, /\/v1\/update\/check\?slug=\{slug\}&version=\{installed\}$/);
@@ -307,6 +311,9 @@ const boundMeta = softwareMeta({
 assert.equal(boundMeta.version_id, liveVersion);
 assert.equal(boundMeta.version_id_source, "cf_version_metadata");
 assert.equal(boundMeta.git_sha, BUILD_GIT_SHA);
+assert.equal(boundMeta.git_sha_source, "cf_version_metadata");
+assert.equal(boundMeta.git_sha_tracks_deployed_tip, false);
+assert.equal(boundMeta.deploy_lag, "deploy lag");
 assert.equal(boundMeta.updated_at, "2026-09-26");
 assert.equal(
   softwareMeta(
@@ -818,6 +825,10 @@ const boundEnv = {
 };
 const boundSoftware = await (await get("/v1/software", boundEnv)).json();
 assert.equal(boundSoftware.count, 42);
+assert.equal(boundSoftware.git_sha, BUILD_GIT_SHA);
+assert.equal(boundSoftware.git_sha_source, "deploy_var");
+assert.equal(boundSoftware.git_sha_tracks_deployed_tip, true);
+assert.equal(boundSoftware.deploy_lag, null);
 assert.equal(boundSoftware.version_id, liveVersion);
 assert.equal(boundSoftware.version_id_source, "cf_version_metadata");
 assert.equal(boundSoftware.updated_at, "2026-09-26");

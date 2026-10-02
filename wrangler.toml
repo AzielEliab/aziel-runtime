@@ -172,8 +172,9 @@ service = "azchat-download-tracker"
 # Softwares-tab product. Do not put the token in [vars].
 [vars]
 REQUIRE_TOKEN = "1"
-# GIT_SHA is injected at deploy (`wrangler deploy --var GIT_SHA:$(git rev-parse HEAD)`).
-# Actions already passes github.sha. Catalog falls back to src/build-meta.js when unbound.
+# GIT_SHA is injected at deploy (`wrangler deploy --keep-vars --var GIT_SHA:$(git rev-parse HEAD)`).
+# Actions already passes github.sha. That var is the only stamp that tracks the deployed tip.
+# A fallback to src/build-meta.js, CF_VERSION_METADATA, or a catalog extra is deploy lag, not git HEAD.
 # version_id is NOT a [vars] constant. Serve time reads CF_VERSION_METADATA.id
 # (the binding below). Optional --var VERSION_ID:<uuid> is only for an operator
 # who already has that Worker version id. Do not invent one. The binding wins

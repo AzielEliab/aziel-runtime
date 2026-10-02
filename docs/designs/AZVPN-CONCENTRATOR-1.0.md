@@ -43,6 +43,12 @@ Launch hashtags: `#azvpn`, `#azvpn-concentrator`, `#azvpn-session`, `#azvpn-auto
 
 AZBrowser, AZNet, FragGate, and AZVPN are sibling software under the same FragGate door. AZNet pairing remains order/token (pairing ≠ tunnel). AZBrowser `vpn` auto-binds AZVPN; it does not merge products.
 
+## Consumer desk
+
+`auto_use` is already true. The human desk says **VPN on at boot** and has no off switch. `close` closes one session. It does not disable AZVPN. WireGuard and OpenVPN buttons stay SLOT.
+
+`worker_home` is null. No download-tracker URL is invented. The product page is `GET /p/azvpn`. Exec is `POST /v1/fraggate/call`. `GET /p/azvpn/health` returns HTTP 200, `ok: false`, `code: PROXY-NOT-EXEC`, `in_repo_door: true`, and plain `VPN on at boot.` That path does not run the op.
+
 ## This is not
 
 - A kernel VPN product

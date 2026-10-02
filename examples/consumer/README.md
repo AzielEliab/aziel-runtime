@@ -12,6 +12,10 @@ Default public Worker: `https://aziel-runtime.vibelock.workers.dev`
 
 Containers need **outbound DNS + HTTPS** to `*.vibelock.workers.dev` / Cloudflare (`/mcp`, `/v1/fraggate/*`). If DNS fails the client must refuse `FG-DNS` (`remote:false`) — do not substitute a local-validation receipt. You can also run the repo locally (`npx wrangler dev` on your machine — this paper does not deploy).
 
+## Catalog honesty
+
+`GET /v1/software` `git_sha_tracks_deployed_tip` is true only when the Worker was deployed with `GIT_SHA`. Otherwise the page says `deploy lag` and does not claim git HEAD. AZVPN is on at boot. The human desk has no off switch. `worker_home` for that card stays null. Mesh is single-node security-awareness plus a local phoenix wait / re-seal. It is not a loopback fence. Cap-7 is not ICANN and not a public egress IP. Mesh-internet WARNs stay WARN.
+
 ## 1. Catalog (human or script)
 
 Open `index.html` and load `GET /v1/software`, or:

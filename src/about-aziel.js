@@ -149,9 +149,17 @@ export function corpusFoldPackPanelHtml(origin) {
         headers: { "content-type": "application/json", accept: "application/json" },
         body: JSON.stringify({ slug: callSlug, op: op, payload: payload })
       }).then(function (res) { return res.json(); }).then(function (body) {
-        var title = body && body.display && body.display.title ? body.display.title : (callSlug + "/" + op);
-        var summary = body && body.display && body.display.summary ? body.display.summary : "";
-        out.textContent = title + (summary ? "\\n" + summary : "") + "\\n\\n" + JSON.stringify(body, null, 2);
+        var display = body && body.display && typeof body.display === "object" ? body.display : null;
+        var lines = [];
+        if (display && display.title) lines.push(String(display.title));
+        else lines.push(callSlug + "/" + op);
+        if (display && display.summary) lines.push(String(display.summary));
+        else if (body && body.summary) lines.push(String(body.summary));
+        else if (body && body.plain) lines.push(String(body.plain));
+        else if (body && body.ok === false) lines.push("Refused.");
+        else lines.push("Finished.");
+        if (display && display.next) lines.push(String(display.next));
+        out.textContent = lines.filter(Boolean).join("\\n");
       }).catch(function (err) {
         out.textContent = String(err && err.message ? err.message : err);
       });
@@ -231,7 +239,11 @@ ${jeevesHelpHtml(origin)}
   function paint(body) {
     var answer = body && body.answer != null ? String(body.answer) : "";
     var head = body && body.display && body.display.summary ? body.display.summary : (body && body.source ? body.source : "");
-    out.textContent = (head ? head + "\\n\\n" : "") + (answer ? answer + "\\n\\n" : "") + JSON.stringify(body, null, 2);
+    var lines = [];
+    if (head) lines.push(String(head));
+    if (answer) lines.push(answer);
+    if (body && body.laugh && body.laugh.text) lines.push(String(body.laugh.text));
+    out.textContent = lines.filter(Boolean).join("\\n") || "Finished.";
     var laugh = body && body.laugh && body.laugh.text ? String(body.laugh.text) : "";
     if (laughEl) {
       if (laugh) {

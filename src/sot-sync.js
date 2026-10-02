@@ -165,6 +165,10 @@ export function projectSot(catalog, extra = {}) {
     endpoints_read: extra.endpoints_read || ["GET /v1/software"],
     suite_version: catalog && catalog.version ? String(catalog.version) : null,
     git_sha: shaOrNull(catalog && catalog.git_sha),
+    git_sha_source: catalog && catalog.git_sha_source ? String(catalog.git_sha_source) : null,
+    git_sha_tracks_deployed_tip: catalog && catalog.git_sha_tracks_deployed_tip === true,
+    deploy_lag: catalog && catalog.git_sha_tracks_deployed_tip === true ? null : (catalog && catalog.deploy_lag) || "deploy lag",
+    deploy_lag_note: catalog && catalog.deploy_lag_note ? String(catalog.deploy_lag_note) : null,
     softwares_count: Number.isInteger(catalog && catalog.count) ? catalog.count : null,
     version_id: sanitizeVersionId(catalog && catalog.version_id),
     version_id_note: sanitizeVersionId(catalog && catalog.version_id)
