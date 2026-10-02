@@ -171,8 +171,22 @@ assert.equal(live.d2d_carriers.wifi_discovery, "ARMED-when-HW");
 assert.equal(live.d2d_carriers.bluetooth_discovery, "ARMED-when-HW");
 assert.equal(live.d2d_carriers.worker_hardware, false);
 assert.equal(live.d2d_carriers.get_never_enables, true);
-assert.equal(live.d2d_carriers.store_forward, "scaffold");
-assert.equal(live.d2d_carriers.phase, "B+C");
+assert.equal(live.d2d_carriers.store_forward, "LIVE-when-three-local-nodes / fixture");
+assert.equal(live.d2d_carriers.store_forward_public, "FG-STUB");
+assert.equal(live.d2d_carriers.worker_runs_store_forward, false);
+assert.equal(live.d2d_carriers.phase, "B+C+D");
+assert.equal(live.d2d_carriers.phases.E, "scaffold");
+assert.equal(live.d2d_carriers.needs_starting_address, true);
+assert.equal(live.d2d_carriers.live_multi_provider, false);
+assert.equal(live.d2d_carriers.cold_shelf_live, false);
+assert.equal(live.d2d_carriers.dns_cut, false);
+assert.equal(live.d2d_carriers.origin_cutover, false);
+assert.equal(live.d2d_carriers.warn5_closed, false);
+assert.equal(live.d2d_carriers.second_device, false);
+for (const id of ["wifi", "bluetooth", "rf", "photon"]) {
+  const row = live.d2d_carriers.carriers.find((carrier) => carrier.id === id);
+  assert.equal(row.peer_exchange_demonstrated, false, id);
+}
 assert.equal(live.d2d_carriers.peers, undefined);
 assert.equal(live.not_a_second_internet, true);
 assert.equal(live.channel_plane.wifi, "on");

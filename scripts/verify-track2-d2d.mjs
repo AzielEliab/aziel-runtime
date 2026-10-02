@@ -1,6 +1,8 @@
 /**
- * Track 2 Phase B/C local discovery and peer session.
+ * Track 2 Phase B/C local discovery and peer session, Phase D three-node
+ * store-forward, and Phase E scaffold cites.
  * Fixture mode when there is no second device. Public door stays FG-STUB.
+ * WARN-5 stays open.
  * Author: Aziel Eliab.
  */
 import assert from "node:assert/strict";
@@ -12,9 +14,19 @@ import { SUITE_SOFTWARE_COUNT } from "../src/guide-reason.js";
 import { PUBLIC_MCP_TOOLS } from "../src/fraggate/codes.js";
 import { buildRegistry, classifyCall } from "../src/fraggate/registry.js";
 import { sealPlaintext } from "../src/fed-mesh/e2e.js";
-import { createIdentity, signObject } from "../src/fed-mesh/identity.js";
+import { createIdentity, signObject, verifyObject } from "../src/fed-mesh/identity.js";
 import { startInstance } from "../src/fed-mesh/instance.js";
-import { createTrack2, openPeerSession, TRACK2_ORDER } from "../src/fed-mesh/track2.js";
+import { hashStatement } from "../src/fed-mesh/codec.js";
+import { locksetHash } from "../src/lockset.js";
+import {
+  createTrack2,
+  deliverThreeLocal,
+  openPeerSession,
+  shelfCiteSlots,
+  TRACK2_ORDER,
+  verifyBootstrapPeerList,
+  verifyForwardReceipt,
+} from "../src/fed-mesh/track2.js";
 import { meshStatus, resetMeshStore, runMeshOp } from "../src/mesh.js";
 import { negotiateBearer } from "../src/transport/routing.js";
 
@@ -51,7 +63,16 @@ assert.equal(kernel.d2d_carriers.wifi_discovery, "ARMED-when-HW");
 assert.equal(kernel.d2d_carriers.bluetooth_discovery, "ARMED-when-HW");
 assert.equal(kernel.d2d_carriers.worker_hardware, false);
 assert.equal(kernel.d2d_carriers.get_never_enables, true);
-assert.equal(kernel.d2d_carriers.store_forward, "scaffold");
+assert.equal(kernel.d2d_carriers.store_forward, "LIVE-when-three-local-nodes / fixture");
+assert.equal(kernel.d2d_carriers.store_forward_public, "FG-STUB");
+assert.equal(kernel.d2d_carriers.worker_runs_store_forward, false);
+assert.equal(kernel.d2d_carriers.phases.D, "LIVE-when-three-local-nodes / fixture");
+assert.equal(kernel.d2d_carriers.phases.E, "scaffold");
+assert.equal(kernel.d2d_carriers.needs_starting_address, true);
+assert.equal(kernel.d2d_carriers.live_multi_provider, false);
+assert.equal(kernel.d2d_carriers.cold_shelf_live, false);
+assert.equal(kernel.d2d_carriers.warn5_closed, false);
+assert.equal(kernel.d2d_carriers.second_device, false);
 assert.equal(kernel.d2d_carriers.cap7_public_egress, false);
 
 const live = await meshStatus({}, {});
@@ -247,6 +268,9 @@ assert.equal(fork.code, "FED-MESH-FORK");
 assert.equal(fork.neighbor_phoenix, false);
 assert.equal(fork.mesh_fenced_to_loopback, false);
 assert.equal(forkNode.status().peers.find((peer) => peer.handle === cara.state.identity.handle), undefined);
+const isolatedForward = await forkNode.forward(alice.state.identity.handle, []);
+assert.equal(isolatedForward.code, "FED-MESH-NO-ROUTE");
+assert.equal(isolatedForward.alt_internet_live, false);
 
 const tipBefore = cara.state.tip_hash;
 const resealed = await bob.phoenixLocal();
@@ -270,9 +294,12 @@ const disk = createTrack2({
 await disk.arm(["lan"]);
 const queued = await disk.enqueue({ to: bob.state.identity.handle, ciphertext: "c2VhbGVk", hops: 0 });
 assert.equal(queued.ok, true);
-assert.equal(queued.scaffold, true);
+assert.equal(queued.scaffold, false);
+assert.equal(queued.stored, true);
+assert.equal(queued.delivered, false);
 assert.equal(queued.alt_internet_live, false);
 assert.equal(queued.live, false);
+assert.equal(queued.item.hops, 0);
 const stored = JSON.parse(await readFile(join(root, "track2-outbox.json"), "utf8"));
 assert.equal(stored[0].ciphertext, "c2VhbGVk");
 assert.equal(stored[0].plaintext, undefined);
@@ -280,9 +307,15 @@ assert.equal(stored[0].body, undefined);
 const forwarded = await disk.forward(bob.state.identity.handle, [bob.state.identity.handle]);
 assert.equal(forwarded.ok, true);
 assert.equal(forwarded.moved, 1);
-assert.equal(forwarded.scaffold, true);
+assert.equal(forwarded.delivered, false);
+assert.equal(forwarded.scaffold, false);
 assert.equal(forwarded.alt_internet_live, false);
+assert.equal(forwarded.packet_path_live, false);
 assert.equal(forwarded.warn5, "STANDS-until-demonstrated");
+assert.equal(forwarded.warn5_closed, false);
+assert.equal(forwarded.tickets[0].ciphertext, undefined);
+assert.equal(forwarded.tickets[0].body, undefined);
+assert.equal(disk.state.outbox[0].hops, 0);
 const bounded = await disk.enqueue({ to: bob.state.identity.handle, ciphertext: "aa", hops: 3 });
 assert.equal(bounded.code, "MESH-NO-ROUTE");
 const missing = await disk.forward("#NOTADMITTED");
@@ -293,6 +326,34 @@ const clean = disk.probe({ presence: "live", tip_hash: "cd".repeat(32) });
 assert.equal(clean.ok, true);
 assert.equal(clean.body, false);
 assert.equal(clean.alt_internet_live, false);
+const cap7Forward = await disk.forward(bob.state.identity.handle, [bob.state.identity.handle], { bearer: "cap7-egress" });
+assert.equal(cap7Forward.code, "MG-NO-IP-EXIT");
+assert.equal(cap7Forward.cap7_public_egress, false);
+const stunForward = await disk.forward(bob.state.identity.handle, [bob.state.identity.handle], { transport: "stun" });
+assert.equal(stunForward.code, "AZP-BEARER-REFUSE");
+const turnForward = await disk.forward(bob.state.identity.handle, [bob.state.identity.handle], { direct_url: "turn:203.0.113.9:3478" });
+assert.equal(turnForward.code, "FED-MESH-NAT-REFUSE");
+const dhtForward = await disk.forward(bob.state.identity.handle, [bob.state.identity.handle], { bearer: "dht" });
+assert.equal(dhtForward.code, "MESH-NO-ROUTE");
+assert.equal(dhtForward.dht, false);
+const reloaded = createTrack2({
+  identity: disk.state.identity,
+  fixture: true,
+  tipHash: disk.state.tip_hash,
+  dataDir: root,
+});
+await reloaded.loadOutbox();
+assert.equal(reloaded.state.outbox[0].ciphertext, "c2VhbGVk");
+assert.equal(reloaded.state.outbox[0].plaintext, undefined);
+assert.equal(reloaded.state.outbox[0].body, undefined);
+assert.equal(reloaded.state.receipts.length > 0, true);
+const cut = await disk.cut();
+assert.equal(cut.ok, true);
+assert.equal(cut.bundle.plaintext, undefined);
+assert.equal(cut.bundle.items[0].ciphertext, "c2VhbGVk");
+assert.equal(cut.bundle.items[0].plaintext, undefined);
+const { sig: cutSig, ...cutStatement } = cut.bundle;
+assert.equal(await verifyObject(disk.state.identity.public_key, cutStatement, cutSig), true);
 await rm(root, { recursive: true, force: true });
 
 const httpRoot = await mkdtemp(join(tmpdir(), "track2-http-"));
@@ -335,10 +396,176 @@ try {
   assert.equal(rightStatus.peers.some((peer) => peer.handle === left.handle), true);
   assert.equal(left.track2.status().peers.some((peer) => peer.handle === right.handle), true);
   assert.equal(live.d2d_carriers.peers, undefined);
+  const boot = await (await fetch(`${left.base}/v1/fed-mesh/bootstrap`)).json();
+  assert.equal(boot.ok, true);
+  assert.equal(boot.needs_starting_address, true);
+  assert.equal(boot.live_multi_provider, false);
+  assert.equal(boot.scaffold, true);
+  assert.equal(boot.live, false);
+  assert.equal(boot.list.peers.length, 0);
+  const shelves = await (await fetch(`${left.base}/v1/fed-mesh/shelves`)).json();
+  assert.equal(shelves.cold_shelf_live, false);
+  assert.equal(shelves.live_multi_provider, false);
+  assert.equal(shelves.dns_cut, false);
+  assert.equal(shelves.origin_cutover, false);
+  assert.equal(shelves.slots.find((row) => row.plane === "B").status, "SLOT");
+  assert.equal(shelves.slots.find((row) => row.plane === "B").live, false);
+  assert.equal(shelves.slots.find((row) => row.plane === "C").live, false);
+  const tickets = await (await fetch(`${left.base}/v1/fed-mesh/outbox`)).json();
+  assert.equal(tickets.ciphertext, false);
+  assert.equal(tickets.tickets.every((row) => row.ciphertext === undefined && row.body === undefined), true);
 } finally {
   await left.stop();
   await right.stop();
   await rm(httpRoot, { recursive: true, force: true });
 }
+
+const hopRoot = await mkdtemp(join(tmpdir(), "track2-hops-"));
+const nodeA = createTrack2({ identity: await createIdentity(), fixture: true, tipHash: "a1".repeat(32), dataDir: join(hopRoot, "a") });
+const nodeB = createTrack2({ identity: await createIdentity(), fixture: true, tipHash: "b2".repeat(32), dataDir: join(hopRoot, "b") });
+const nodeC = createTrack2({ identity: await createIdentity(), fixture: true, tipHash: "c3".repeat(32), dataDir: join(hopRoot, "c") });
+const nodeD = createTrack2({ identity: await createIdentity(), fixture: true, tipHash: "d4".repeat(32), dataDir: join(hopRoot, "d") });
+for (const hop of [nodeA, nodeB, nodeC, nodeD]) await hop.arm(["lan"]);
+assert.equal((await nodeA.exchange(nodeB)).ok, true);
+assert.equal((await nodeB.exchange(nodeC)).ok, true);
+assert.equal((await nodeC.exchange(nodeD)).ok, true);
+assert.equal(nodeA.status().carriers.wifi.peer_exchange_demonstrated, false);
+assert.equal(nodeA.status().carriers.rf.peer_exchange_demonstrated, false);
+assert.equal(nodeA.status().carriers.photon.peer_exchange_demonstrated, false);
+assert.equal(nodeA.status().carriers.bluetooth.peer_exchange_demonstrated, false);
+
+const delivered = await deliverThreeLocal(nodeA, nodeB, nodeC, "sealed-object-for-c");
+assert.equal(delivered.ok, true);
+assert.equal(delivered.store_forward, "LIVE-when-three-local-nodes / fixture");
+assert.equal(delivered.local_delivery, true);
+assert.equal(delivered.plaintext, "sealed-object-for-c");
+assert.equal(delivered.nodes, 3);
+assert.equal(delivered.hops, 2);
+assert.equal(delivered.hops < 3, true);
+assert.equal(delivered.fixture, true);
+assert.equal(delivered.second_device, false);
+assert.equal(delivered.physical_devices, 1);
+assert.equal(delivered.in_process, true);
+assert.equal(delivered.alt_internet_live, false);
+assert.equal(delivered.packet_path_live, false);
+assert.equal(delivered.public_door, "FG-STUB");
+assert.equal(delivered.warn5, "STANDS-until-demonstrated");
+assert.equal(delivered.warn5_closed, false);
+assert.equal(delivered.peer_exchange_demonstrated, false);
+assert.equal(delivered.dht, false);
+assert.equal(delivered.bgp, false);
+assert.equal(delivered.mid_opened, false);
+assert.equal(delivered.mid_code, "FED-MESH-PRIVATE-KEY");
+assert.equal(delivered.mid_plaintext, null);
+assert.equal(delivered.path.join(">"), `${nodeA.state.identity.handle}>${nodeB.state.identity.handle}>${nodeC.state.identity.handle}`);
+assert.equal(nodeB.state.outbox.some((row) => row.object_hash === delivered.object_hash && row.plaintext), false);
+assert.equal(nodeA.state.outbox.find((row) => row.object_hash === delivered.object_hash).hops, 0);
+assert.equal(nodeB.state.outbox.find((row) => row.object_hash === delivered.object_hash).hops, 1);
+assert.equal(nodeC.state.outbox.find((row) => row.object_hash === delivered.object_hash).hops, 2);
+assert.equal(nodeC.summary().store_forward, "LIVE-when-three-local-nodes / fixture");
+assert.equal(nodeC.summary().store_forward_demonstrated, true);
+assert.equal(nodeA.summary().second_device, false);
+assert.equal(nodeA.summary().alt_internet_live, false);
+
+let receiptPrev = "0".repeat(64);
+for (const receipt of delivered.receipts) {
+  assert.equal(receipt.plaintext, undefined);
+  assert.equal(receipt.object_hash, delivered.object_hash);
+  assert.equal(receipt.prev_receipt, receiptPrev);
+  const { sig, ...signed } = receipt;
+  const { receipt_hash, ...unsigned } = signed;
+  assert.equal(await hashStatement(unsigned), receipt_hash);
+  assert.equal(await verifyObject(receipt.hop_public_key, signed, sig), true);
+  const checked = await verifyForwardReceipt(receipt);
+  assert.equal(checked.ok, true);
+  assert.equal(checked.receipt_hash, receipt_hash);
+  receiptPrev = receipt_hash;
+}
+assert.deepEqual(delivered.receipts.map((row) => row.hop), [
+  nodeA.state.identity.handle,
+  nodeB.state.identity.handle,
+  nodeC.state.identity.handle,
+  nodeC.state.identity.handle,
+]);
+
+const held = nodeC.state.outbox.find((row) => row.object_hash === delivered.object_hash);
+held.via = nodeD.state.identity.handle;
+held.offered_to = nodeD.state.identity.handle;
+const fourth = await nodeD.pull(nodeC, held.id);
+assert.equal(fourth.code, "MESH-NO-ROUTE");
+assert.equal(fourth.alt_internet_live, false);
+const noRoute = await nodeA.forward("#NOT-A-HOP");
+assert.equal(noRoute.code, "FED-MESH-NO-ROUTE");
+
+const hopTipA = nodeA.state.tip_hash;
+const hopTipC = nodeC.state.tip_hash;
+const island = nodeA.partition();
+assert.equal(island.partitioned, true);
+assert.equal(island.merged, false);
+const blockedPull = await nodeB.pull(nodeA, nodeA.state.outbox[0].id);
+assert.equal(blockedPull.code, "FED-MESH-NO-ROUTE");
+assert.equal(nodeA.state.tip_hash, hopTipA);
+assert.equal(nodeC.state.tip_hash, hopTipC);
+const vote = await nodeA.rejoin({ cite: hopTipC, operator: true, vote_to_heal: true });
+assert.equal(vote.code, "MESH-NO-NEIGHBOR-HEAL");
+assert.equal(vote.merged, false);
+assert.equal(nodeA.state.tip_hash, hopTipA);
+assert.equal(nodeC.state.tip_hash, hopTipC);
+const resealTip = nodeC.state.tip_hash;
+const localPhoenix = await nodeA.phoenixLocal();
+assert.equal(localPhoenix.phoenix_local_only, true);
+assert.equal(localPhoenix.neighbor_phoenix, false);
+assert.notEqual(nodeA.state.tip_hash, hopTipA);
+assert.equal(nodeC.state.tip_hash, resealTip);
+const cited = nodeC.state.tip_hash;
+const rejoined = await nodeA.rejoin({ cite: cited, operator: true });
+assert.equal(rejoined.ok, true);
+assert.equal(rejoined.merged, false);
+assert.equal(rejoined.chains_spliced, false);
+assert.equal(nodeA.state.tip_hash === cited, false);
+assert.equal(nodeC.state.tip_hash, cited);
+nodeB.partition();
+const gateDoc = { v: "cite", tip: nodeA.state.tip_hash };
+const gateHash = await locksetHash(gateDoc);
+const byLockset = await nodeB.rejoin({ cite: nodeA.state.tip_hash, lockset: gateDoc, lockset_sha256: gateHash });
+assert.equal(byLockset.ok, true);
+assert.equal(byLockset.merged, false);
+assert.equal(nodeB.state.tip_hash === nodeA.state.tip_hash, false);
+const bare = await nodeC.partition();
+assert.equal(bare.partitioned, true);
+const noGate = await nodeC.rejoin({ cite: nodeA.state.tip_hash });
+assert.equal(noGate.code, "MESH-NO-NEIGHBOR-HEAL");
+assert.equal(nodeC.state.partition.partitioned, true);
+
+const emptyList = await nodeA.bootstrapList([]);
+assert.equal(emptyList.needs_starting_address, true);
+assert.equal(emptyList.live_multi_provider, false);
+assert.equal(emptyList.scaffold, true);
+assert.equal(emptyList.live, false);
+assert.equal(emptyList.list.peers.length, 0);
+const emptyChecked = await verifyBootstrapPeerList(emptyList.list);
+assert.equal(emptyChecked.ok, true);
+assert.equal(emptyChecked.needs_starting_address, true);
+const named = await nodeA.bootstrapList([{ handle: nodeB.state.identity.handle, public_key: nodeB.state.identity.public_key }]);
+assert.equal(named.ok, true);
+assert.equal(named.needs_starting_address, true);
+assert.equal(named.live_multi_provider, false);
+assert.equal(named.live, false);
+const shelvesLocal = shelfCiteSlots();
+assert.equal(shelvesLocal.live_multi_provider, false);
+assert.equal(shelvesLocal.cold_shelf_live, false);
+assert.equal(shelvesLocal.dns_cut, false);
+assert.equal(shelvesLocal.origin_cutover, false);
+assert.equal(shelvesLocal.aznet_hosts_payloads, false);
+assert.equal(shelvesLocal.slots.filter((row) => row.live === true).length, 0);
+
+const poisonedHop = await deliverThreeLocal(nodeA, nodeB, nodeC, "inject-payload");
+assert.equal(poisonedHop.code, "FED-MESH-POISON");
+assert.equal(poisonedHop.sent, false);
+
+assert.equal(live.d2d_carriers.peers, undefined);
+assert.equal(nodeA.summary().public_live_nodes, false);
+assert.notEqual(typeof live.live_nodes, "undefined");
+await rm(hopRoot, { recursive: true, force: true });
 
 console.log("verify-track2-d2d: ok");
