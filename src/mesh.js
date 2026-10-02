@@ -124,6 +124,7 @@ import { dispatchAzGeneratorHttp, semanticBridgeCiteField } from "./semantic-bri
 import { durabilityLabels } from "./durability-labels.js";
 import { nineLawsFrame, nineLawsHint, nineLawsLaunchCite, refuseNineLawGet, refuseNineLawViolation } from "./mesh-nine-laws.js";
 import { CHANNEL_PLANE_NOTE, CHANNEL_PLANE_SPEC, channelPlaneFrame, channelPlaneHint } from "./mesh-channel-plane.js";
+import { D2D_ORDER_LABEL, D2D_SPEC, D2D_STUB_OPS, d2dCarrierFrame, d2dStubMessage, isD2dStubOp } from "./d2d-carriers.js";
 import { publicVpnCite } from "./public-vpn.js";
 import { ensureDefaultVpnSession, vpnAutoCite } from "./azvpn-auto.js";
 import { meshCallingNameAlert } from "./calling-name.js";
@@ -448,6 +449,7 @@ export const MESH_STUB_OPS = Object.freeze([
   "heal",
   "controller",
   ...MESH_NO_LIE_REWRITE_OPS,
+  ...D2D_STUB_OPS,
 ]);
 
 export const MESH_MCP_TOOLS = Object.freeze([
@@ -709,6 +711,8 @@ export function meshHint(path = "/v1/mesh") {
     network_cite: "on",
     ...channelPlaneFrame(),
     channel_plane_hint: channelPlaneHint(),
+    ...d2dCarrierFrame(),
+    d2d_spec: D2D_SPEC,
     federated_mesh: FED_SPEC,
     federated_mesh_title: FED_TITLE,
     verified_handles_note:
@@ -761,7 +765,7 @@ export function meshKernelEntry() {
     stub_ops: MESH_STUB_OPS.slice(),
     op_aliases: { ...MESH_OP_ALIASES },
     description:
-      "QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1). Packet-transfer coding design QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; Worker cites only). Channel plane QNM-CHANNEL-PLANE-1.0: operator-armed wifi / bluetooth / rf / photon cites ON; live hardware on local qnm-node. Public VPN auto-binds AZVPN (HTTPS/WS REAL; WireGuard/OpenVPN SLOT; GET cites only). live/locked/isolated counts. Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public disable of suite-presence is refused. Nine QNM laws are hard-true on GET /v1/mesh. OPERATOR-OVERRIDE 2026-09-17 armed auto_heal / node_gate / neighbor_heal / network / anonymity_network (mode flag) / public VPN. Phoenix is wait/re-seal, not public hostname resurrection. Pulled sites die with the pull — godlock.uk does not come back. Split the wires: presence + tip hash on the 1s tick; pull-only payloads; hash-absolute ingest; equivocation isolates that peer. Cold-copy survival: multiply cold copies; no live body sync; named hosts only. REHEAL: isolation is the cure. Not a login-recovery IP panel. Not a live Tor fabric. Channel plane ≠ kernel VPN. Pairing ≠ tunnel. CROSS-NETWORK-SURVIVAL-1.0: if network and data die tomorrow, the chain survives on cold shelves (hosts / DOI / git / vault). NO-LIE-NO-REWRITE-1.0: no rewrite key; never lie to survive. COLD-MULTI-SHELF-1.0: GET /shelves cites corpus#96 honesty. Not a login mesh. Not a Softwares-tab product.",
+      `QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1). Packet-transfer coding design QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; Worker cites only). Channel plane QNM-CHANNEL-PLANE-1.0: operator-armed wifi / bluetooth / rf / photon cites ON; live hardware on local qnm-node. ${D2D_SPEC} packet plane is separate from Cap-7 names: failover ${D2D_ORDER_LABEL}; each hop NOT-READY / FG-STUB; alt_internet_live false. Public VPN auto-binds AZVPN (HTTPS/WS REAL; WireGuard/OpenVPN SLOT; GET cites only). live/locked/isolated counts. Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public disable of suite-presence is refused. Nine QNM laws are hard-true on GET /v1/mesh. OPERATOR-OVERRIDE 2026-09-17 armed auto_heal / node_gate / neighbor_heal / network / anonymity_network (mode flag) / public VPN. Phoenix is wait/re-seal, not public hostname resurrection. Pulled sites die with the pull — godlock.uk does not come back. Split the wires: presence + tip hash on the 1s tick; pull-only payloads; hash-absolute ingest; equivocation isolates that peer. Cold-copy survival: multiply cold copies; no live body sync; named hosts only. REHEAL: isolation is the cure. Not a login-recovery IP panel. Not a live Tor fabric. Channel plane ≠ kernel VPN. Pairing ≠ tunnel. CROSS-NETWORK-SURVIVAL-1.0: if network and data die tomorrow, the chain survives on cold shelves (hosts / DOI / git / vault). NO-LIE-NO-REWRITE-1.0: no rewrite key; never lie to survive. COLD-MULTI-SHELF-1.0: GET /shelves cites corpus#96 honesty. Not a login mesh. Not a Softwares-tab product.`,
     note: MESH_LIMITATION,
     kind: "kernel",
     engine: false,
@@ -786,7 +790,7 @@ export function nodeMeshHubCard(origin) {
     version: MESH_SPEC,
     door: "fraggate",
     one_line:
-      "QNM-BUILD-1.0 suite rollup (live/locked/isolated). Read-only suite-presence is ON by default. GET never enables radios beyond that. Channel plane: wifi / bluetooth / rf / photon cites ON (local qnm-node hardware). Worker channel_plane stays cite-only (worker_hardware:false). Public disable of suite-presence is refused. Nine QNM laws are hard-true on GET /v1/mesh. OPERATOR-OVERRIDE 2026-09-17 armed auto_heal / node_gate / neighbor_heal / network / anonymity_network (mode flag). Phoenix is wait/re-seal. Pulled sites die with the pull. Split the wires: tick is presence + tip hash; payloads are pull-only. Cold-copy survival: named hosts only. REHEAL: isolation is the cure. CROSS-NETWORK-SURVIVAL-1.0: chain survives on cold shelves (hosts / DOI / git / vault). NO-LIE / NO-REWRITE. COLD-MULTI-SHELF-1.0: GET /shelves cites corpus#96 honesty. Full node is local qnm-node/. Packet transfer: QNS-CD-1.0 on local qnsd (Worker cites only).",
+      `QNM-BUILD-1.0 suite rollup (live/locked/isolated). Read-only suite-presence is ON by default. GET never enables radios beyond that. Channel plane: wifi / bluetooth / rf / photon cites ON (local qnm-node hardware). Worker channel_plane stays cite-only (worker_hardware:false). ${D2D_SPEC}: device-to-device packet carriers fail over ${D2D_ORDER_LABEL} and stay NOT-READY / FG-STUB. Cap-7 is the name plane, not a public egress IP. alt_internet_live false. Public disable of suite-presence is refused. Nine QNM laws are hard-true on GET /v1/mesh. OPERATOR-OVERRIDE 2026-09-17 armed auto_heal / node_gate / neighbor_heal / network / anonymity_network (mode flag). Phoenix is wait/re-seal. Pulled sites die with the pull. Split the wires: tick is presence + tip hash; payloads are pull-only. Cold-copy survival: named hosts only. REHEAL: isolation is the cure. CROSS-NETWORK-SURVIVAL-1.0: chain survives on cold shelves (hosts / DOI / git / vault). NO-LIE / NO-REWRITE. COLD-MULTI-SHELF-1.0: GET /shelves cites corpus#96 honesty. Full node is local qnm-node/. Packet transfer: QNS-CD-1.0 on local qnsd (Worker cites only).`,
     path: "/v1/mesh",
     enabled_default: MESH_DEFAULT_ENABLED,
     rollup_only: true,
@@ -1361,6 +1365,8 @@ function qnmFrame() {
     ...nineLawsFrame(),
     ...channelPlaneFrame(),
     channel_plane_spec: CHANNEL_PLANE_SPEC,
+    ...d2dCarrierFrame(),
+    d2d_spec: D2D_SPEC,
   };
 }
 
@@ -1779,7 +1785,11 @@ Phoenix is wait / re-seal after tamper or isolation. It is not “bring the .uk 
 
 Public **nodes** / \`rollup.nodes\` = \`human_mesh_users\` + cited \`human_uses\` (peek \`USES\` total; never a full \`/v1/uses\` walk). Public **live_nodes** / \`rollup.mesh\` = \`human_mesh_users\` + \`site_live_viewers\`. \`rollup.live\` is not published — it used to equal roster presence=live and, after fan-out, the \`{slug}-worker\` count. Roster presence=live is \`rollup.all.live\`. Softwares presence=live is \`rollup.software.live\`. Do not paint either as Live Nodes. Locked / isolated roster buckets stay on \`rollup.locked\` / \`rollup.isolated\` (same numbers as \`rollup.all\`). Downloaded instances stay \`instance_nodes\`. No average-of-nodes leaderboard. Views / MCP / downloads do not enter QNM-S. GET never pulls hub /count.
 
-Full node process is local \`qnm-node/\` (boot / chain / apg / bearers / outbox / phoenix / score / memorial / tethers). Packet-transfer coding design is **QNS-CD-1.0** (photon QNS1 1.3 on local \`qnsd\`; companion to QNM-BUILD-1.0 / AIH-WP-1.3). This Worker cites only — \`GET /v1/qns\`. It does not proxy local via emit. **Channel plane (${CHANNEL_PLANE_SPEC}):** operator-armed wifi / bluetooth / rf / photon cites are ON. Live OS/hardware bearers run on local qnm-node / qnsd. ${CHANNEL_PLANE_NOTE} Parent will roll that package. Anon-broadcast is a local sibling of that process — never a publish path. ${MESH_SECURITY_MODEL}
+Full node process is local \`qnm-node/\` (boot / chain / apg / bearers / outbox / phoenix / score / memorial / tethers). Packet-transfer coding design is **QNS-CD-1.0** (photon QNS1 1.3 on local \`qnsd\`; companion to QNM-BUILD-1.0 / AIH-WP-1.3). This Worker cites only — \`GET /v1/qns\`. It does not proxy local via emit. **Channel plane (${CHANNEL_PLANE_SPEC}):** operator-armed wifi / bluetooth / rf / photon cites are ON. Live OS/hardware bearers run on local qnm-node / qnsd. ${CHANNEL_PLANE_NOTE} A channel cite or a local radio-hook presence reading is not a device-to-device packet hop.
+
+**Packet plane (${D2D_SPEC}):** separate from Cap-7 / MirageGrid names. Failover order is ${D2D_ORDER_LABEL}. LAN first, then Wi-Fi, Bluetooth, dedicated RF (cellular / ModemManager when that radio is present; beyond Wi-Fi and Bluetooth; refuse when absent), then photon light flashes (camera or flash; refuse when absent; qnsd is not this flash path). Each layer is NOT-READY. FragGate returns FG-STUB. alt_internet_live is false. WARN-5 stays STANDS-until-demonstrated and is not a permanent stay-off. Isolation is single-node security-awareness. Phoenix is local wait / re-seal. Neither fences the mesh to loopback.
+
+Parent will roll that package. Anon-broadcast is a local sibling of that process — never a publish path. ${MESH_SECURITY_MODEL}
 
 HTTP: \`GET /v1/mesh\` · \`GET /v1/mesh/status\` · \`POST /v1/mesh/enable\` (optional extra bearer) · \`POST /v1/mesh/disable\` (refused) · \`POST /v1/mesh/join|heartbeat|leave\` · \`GET /v1/mesh/nodes\` · \`POST /v1/mesh/site-presence\` (hub human-page fleet heartbeat) · \`POST /v1/mesh/broadcast\` (hash receipt only; not a publish path) · \`GET /v1/mesh/sot\` · \`GET /v1/mesh/outlets\` · \`POST /v1/mesh/sot-sync\` (SOT-SYNC-1.0 pull plane; dry_run then confirm; not a body fan-out; live_body_sync false)
 
@@ -2649,6 +2659,16 @@ export async function runMeshOp(op, payload, env) {
   }
   const nat = natPunchRequest(resolved, src);
   if (nat) return meshNatRefuse(resolved, nat);
+  if (isD2dStubOp(resolved)) {
+    return refuse("MESH-STUB", d2dStubMessage(resolved), {
+      op: resolved,
+      door_code: "FG-STUB",
+      status: "NOT-READY",
+      packet_path_live: false,
+      alt_internet_live: false,
+      ...d2dCarrierFrame(),
+    });
+  }
   if (MESH_STUB_OPS.includes(resolved)) {
     return refuse(
       "MESH-STUB",

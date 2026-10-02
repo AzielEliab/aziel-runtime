@@ -20,6 +20,7 @@
  */
 
 import { CAP7_PLANE_BOUNDARY, CAP7_PUBLIC_WORKER_LIVE } from "./engines/miragegrid/cap7-public.js";
+import { D2D_ORDER_LABEL } from "./d2d-carriers.js";
 
 export const SOFTWARE_COPY = Object.freeze({
   "4dmap": {
@@ -89,9 +90,8 @@ export const SOFTWARE_COPY = Object.freeze({
       "Use AZMail for an advisory airlock, a local mailbox, and an anonymous mail ring that starts off. It exists for isolate mail work.",
   },
   aznet: {
-    one_line: "Check hash continuity on a silent side-net.",
-    description:
-      "Use AZNet to stamp and check hash refs in a custodian garden. It exists so integrity can be checked on a side-net.",
+    one_line: `Check hash continuity on the Cap-7 and .aziel name plane; device-to-device packet carriers stay NOT-READY in failover order ${D2D_ORDER_LABEL}.`,
+    description: `Use AZNet to stamp and check hash refs in a custodian garden on the name plane. It exists so integrity can be checked on a side-net while Cap-7 and MirageGrid stay name and land-region metadata (not an ICANN registrar, not a public egress IP, and not AZVPN). The separate packet plane fails over ${D2D_ORDER_LABEL}. Each carrier is FG-STUB and NOT-READY until a real hop works. The packet path stays short of a live alternative internet.`,
   },
   azvpn: {
     one_line: "Open an HTTPS or WebSocket VPN session on the public concentrator.",

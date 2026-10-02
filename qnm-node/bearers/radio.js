@@ -147,6 +147,8 @@ export function radioStatus() {
     mock: false,
     public_proxy: false,
     worker_channel_plane: "cite-only",
+    packet_hop: false,
+    d2d_packet_status: "NOT-READY",
     law: "LIVE-when-HW-present / refuse-when-absent",
     channels: { wifi, bluetooth, rf, photon },
     spore: {
@@ -159,7 +161,7 @@ export function radioStatus() {
         : "No local radio hardware. SPORE-1.0 dormant — pause, preserve DNA, wait. Do not invent LIVE radios.",
     },
     note:
-      "Local qnm-node radio hooks. Worker GET /v1/mesh channel_plane stays cite-only (worker_hardware:false). Photon is local qnsd on loopback — not a public via and not the open-world awareness bind (0.0.0.0). forced_loopback and loopback_isolation are not the mesh fence. SPORE-1.0: hardware absent is dormant, not a mock LIVE beat.",
+      "Local qnm-node radio hooks. Worker GET /v1/mesh channel_plane stays cite-only (worker_hardware:false). A channel state of LIVE means host hardware or local qnsd is present. It is not a device-to-device packet hop (packet_hop false, d2d_packet_status NOT-READY). Photon here is local qnsd on loopback — not a camera/flash LiFi hop and not the open-world awareness bind (0.0.0.0). Dedicated RF packet hops and photon flashes stay on the D2D carrier plane. forced_loopback and loopback_isolation are not the mesh fence. SPORE-1.0: hardware absent is dormant, not a mock LIVE beat.",
   };
 }
 

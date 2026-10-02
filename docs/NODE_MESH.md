@@ -23,6 +23,7 @@ Current software designs live in [docs/designs/](designs/). Author: **Aziel Elia
 - [SPORE-1.0](designs/SPORE-1.0.md) — last-resort failsafe: pause / preserve / wait / physical-wipe-only; does not replace cold shelves; no pretend-live metabolism while dormant
 - [MESH-INTERNET-WARNS-1.0](designs/MESH-INTERNET-WARNS-1.0.md) — WARN-1 through WARN-4 stay STANDS. WARN-5 is STANDS-until-demonstrated: Track 2 is a separate node-mesh internet, BY-DESIGN separate from ICANN, not BGP, not demonstrated. Track 1 Cap-7 / `.aziel` stays the mesh name plane. Cap-7 is not the public Internet.
 - [PLANE-P-D2D-1.0](designs/PLANE-P-D2D-1.0.md) — Plane N is Cap-7 / `.aziel` names. Plane P is the node-mesh packet path (devices as nodes). Designed, not a LIVE public egress. Carrier prefer order: LAN, Wi-Fi, Bluetooth, RF, photon. RF and photon refuse `QNM-RADIO-ABSENT` when hardware is absent. No mock LIVE. Softwares FG-STUB follow-on is AZBot Phase A, not this cite.
+- [D2D-CARRIERS-1.0](designs/D2D-CARRIERS-1.0.md) — Phase A packet plane. Failover LAN, Wi-Fi, Bluetooth, RF, photon light flashes. Each hop NOT-READY / FG-STUB. Not a live alternative internet.
 
 This page remains the live **QNM-BUILD-1.0** rollup law. Do not rewrite that law from the papers.
 
@@ -110,7 +111,9 @@ The **full node process** is local:
 
 `qnm-node/` → `boot` / `chain` / `apg` / `bearers` / `outbox` / `phoenix` / `score` / `memorial` / `tethers` / `qnsd`
 
-**Radio hooks in this repo:** `qnm-node/bearers/radio.js` (`QNM-RADIO-HOOKS-1.0`). wifi / bluetooth / rf / photon are **LIVE** only when host hardware or local `qnsd` is present; otherwise they refuse `QNM-RADIO-ABSENT`. **No mock LIVE.** The Worker `channel_plane` stays cite-only (`worker_hardware: false`). Close-test: `scripts/verify-qnm-radio.mjs`.
+**Radio hooks in this repo:** `qnm-node/bearers/radio.js` (`QNM-RADIO-HOOKS-1.0`). wifi / bluetooth / rf / photon are **LIVE** only when host hardware or local `qnsd` is present; otherwise they refuse `QNM-RADIO-ABSENT`. **No mock LIVE.** That LIVE bit is hardware presence. It is not a device-to-device packet hop (`packet_hop: false`). The Worker `channel_plane` stays cite-only (`worker_hardware: false`). Close-test: `scripts/verify-qnm-radio.mjs`.
+
+**Packet carriers (D2D-CARRIERS-1.0, Phase A).** Separate from Cap-7 names. Failover order: LAN, Wi-Fi, Bluetooth, RF (dedicated radio beyond Wi-Fi and Bluetooth; cellular / ModemManager when that hardware is present; refuse when absent), photon light flashes (camera or flash; refuse when absent; qnsd is not this flash path). Each layer is **NOT-READY**. FragGate returns **FG-STUB** for discovery, tunnel, multi-hop, and each carrier. `alt_internet_live` is false. WARN-5 stays STANDS-until-demonstrated and is not a permanent stay-off. Close-test: `scripts/verify-d2d-carriers.mjs`. Paper: [D2D-CARRIERS-1.0](designs/D2D-CARRIERS-1.0.md).
 
 **QNS-CD-1.0** is the packet-transfer coding design (photon QNS1 1.3). Local process `qnsd` lives in [AzielEliab/qnm-node](https://github.com/AzielEliab/qnm-node) and binds **127.0.0.1** only. Companion to QNM-BUILD-1.0 / AIH-WP-1.3. This Worker cites it at `GET /v1/qns` and as `qns_cd` on every software card — it does **not** proxy local via emit and is **not** a remote wipe/control plane.
 
