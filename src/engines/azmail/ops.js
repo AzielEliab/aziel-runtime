@@ -28,6 +28,7 @@ import {
   mailboxImportExport,
   transportStatus,
 } from "./engine.js";
+import { runFeature } from "../../operator-surfaces.js";
 
 export const AZMAIL_OPS = [
   "health",
@@ -52,6 +53,8 @@ export const AZMAIL_OPS = [
   "import_export",
   "transport_status",
   "doctor",
+  "malware_sweep",
+  "airgap",
 ];
 
 export function azmailHealthOp() {
@@ -63,6 +66,8 @@ export function azmailSkillOp() {
 }
 
 export async function runAzmail(op, payload, scratch, env) {
+  const feature = await runFeature("azmail", op, payload, env);
+  if (feature) return feature;
   if (op === "health") return azmailHealth();
   if (op === "skill") return azmailSkill();
   if (op === "doctor") return { ...azmailHealth(), op: "doctor", doctor: true };

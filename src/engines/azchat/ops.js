@@ -21,10 +21,13 @@ import {
   verifyReceipt,
   importExport,
 } from "./engine.js";
+import { runFeature } from "../../operator-surfaces.js";
 
-export const AZCHAT_OPS = LIVE_CANON.slice();
+export const AZCHAT_OPS = [...LIVE_CANON, "channel_seal", "bridge_status", "malware_sweep", "airgap"];
 
-export async function runAzchat(op, payload) {
+export async function runAzchat(op, payload, _scratch, env) {
+  const feature = await runFeature("azchat", op, payload, env);
+  if (feature) return feature;
   if (op === "health") return azchatHealth();
   if (op === "skill") return azchatSkill();
   if (op === "doctor") return azchatDoctor();

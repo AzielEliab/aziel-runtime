@@ -2,8 +2,9 @@
  * veillock in-process ops. Author: Aziel Eliab.
  */
 import { LIMITATION, VERSION, apps, pulse, consentDecision, obfuscateRecipe } from "./engine.js";
+import { runFeature } from "../../operator-surfaces.js";
 
-export const VEILLOCK_OPS = ["health", "skill", "apps", "pulse", "consent", "obfuscate-preview", "azos-hook", "call-accept"];
+export const VEILLOCK_OPS = ["health", "skill", "apps", "pulse", "consent", "obfuscate-preview", "azos-hook", "call-accept", "veil_status", "camera", "screen_share"];
 
 export function veillockHealth() {
   return {
@@ -31,7 +32,9 @@ Limitation: ${LIMITATION}
   };
 }
 
-export async function runVeillock(op, payload, scratch) {
+export async function runVeillock(op, payload, scratch, env) {
+  const feature = await runFeature("veillock", op, payload, env);
+  if (feature) return feature;
   if (op === "health") return veillockHealth();
   if (op === "skill") return veillockSkill();
   if (op === "apps") return apps(payload);

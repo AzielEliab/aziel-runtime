@@ -4,8 +4,31 @@
 import { capabilityDoctor, capabilityHealth, capabilitySkill } from "../capability.js";
 import { LIMITATION, MOTTO, VERSION, statusPayload, invitePayload, principlesPayload } from "./engine.js";
 import { sessionClose, sessionOpen, sessionStatus } from "./session.js";
+import { runFeature } from "../../operator-surfaces.js";
 
-const LIVE = ["health", "skill", "status", "invite", "principles", "doctor", "session_open", "session_status", "session_close"];
+const LIVE = [
+  "health",
+  "skill",
+  "status",
+  "invite",
+  "principles",
+  "doctor",
+  "session_open",
+  "session_status",
+  "session_close",
+  "mode_list",
+  "download_list",
+  "download_check",
+  "phone_path",
+  "sim_lockout",
+  "cellular",
+  "ip_mask",
+  "azcall",
+  "veillock",
+  "malware_sweep",
+  "airgap",
+  "human_check",
+];
 const STUB = ["exec", "shell", "lattice"];
 export const AZOS_OPS = LIVE.slice();
 
@@ -44,6 +67,8 @@ export function azosDoctor() {
 }
 
 export async function runAzos(op, payload, scratch, env) {
+  const feature = await runFeature("azos", op, payload, env);
+  if (feature) return feature;
   if (op === "health") return azosHealth();
   if (op === "skill") return azosSkill();
   if (op === "doctor") return azosDoctor();
