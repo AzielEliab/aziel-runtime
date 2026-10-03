@@ -14,6 +14,15 @@ npm test
 
 `package.json` `test` runs engine digest hashing, then the `scripts/verify-*.mjs` probes in order. No Cloudflare credentials. No `wrangler deploy`. Optional live probe: `npm run probe:live` (hits production; not required for CI).
 
+Local mesh handle (same Ed25519 identity as [`docs/designs/FED-MESH-1.0.md`](../designs/FED-MESH-1.0.md) section 2):
+
+```bash
+node cli/aziel-runtime.mjs handle generate
+node scripts/verify-local-handle.mjs
+```
+
+The command signs and verifies a short statement on this machine. The private seed stays here. Every run prints that this is not a government ID, not Sign in with Google or Apple, not an OAuth network, not an ICANN registrar, not Cap-7 public DNS, and that the alternative mesh internet is not live.
+
 Clean-room wrapper (clone → test → MCP → receipt): `bash scripts/clean-room-2.0.sh` — see [CLEAN-ROOM.md](CLEAN-ROOM.md).
 
 ## Suites that cover FragGate / MCP / receipts / catalog
