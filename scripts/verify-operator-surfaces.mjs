@@ -11,7 +11,7 @@ import { LIVE_OPS, STUB_OPS, buildRegistry, classifyCall } from "../src/fraggate
 import { executeLocal } from "../src/engines/runner.js";
 import { softwareCatalog } from "../src/software-catalog.js";
 import { operatorPageHtml } from "../src/operator-ui.js";
-import { fixtureLabeledScanner } from "../src/engines/azmail/guard.js";
+import { fixtureLabeledScanner, listenSmtpSink } from "../src/engines/azmail/guard.js";
 import {
   resetOperatorSurfaces,
   withReceipt,
@@ -94,6 +94,44 @@ assert.equal(page.includes("15:20"), false);
 assert.ok(page.includes("Receipt: missing"));
 assert.ok(page.includes("Author: Aziel Eliab"));
 assert.equal(page.includes("captcha solver"), false);
+assert.equal((page.match(/class="primary"/g) || []).length, 1);
+assert.ok(page.includes("IP: <strong>Not masked</strong>"));
+assert.ok(page.includes("No radio reads as Absent."));
+assert.ok(page.includes("<strong>pending</strong>"));
+assert.ok(page.includes("Human check: <strong>Stop</strong>. This site wants to check that you're a person. Please do this part yourself."));
+assert.ok(page.includes("<strong>Not an OS yet</strong>"));
+assert.ok(page.includes("A browser tab is not the OS"));
+assert.ok(page.includes("Guardian: <strong>On</strong>"));
+assert.ok(page.includes("Internet base: <strong>present, not live</strong>"));
+assert.ok(page.includes("Mail send base: <strong>present</strong>. Public send stays refused."));
+assert.ok(page.includes("Kernel base: <strong>present, not booted</strong>"));
+assert.ok(page.includes("Internet base"));
+assert.ok(page.includes("Mail send base"));
+assert.equal(page.includes("Turn Guardian off"), false);
+assert.equal(page.includes("guardian_off"), false);
+assert.ok(page.includes("Boot path"));
+const started = operatorPageHtml("https://aziel-runtime.example", {
+  op: "mode_list",
+  line: "Not an OS yet",
+  modes: [
+    { id: "server", line: "Run AZOS as a service on a computer you already have." },
+    { id: "bootstrap", line: "Start AZOS from a USB drive or SD card without changing your computer." },
+    { id: "install", line: "Install AZOS as the main system on a device. This replaces what is there." },
+  ],
+  lattice_receipt: { present: true, chained: true, missing: false },
+});
+assert.ok(started.includes("Run AZOS as a service on a computer you already have."));
+assert.ok(started.includes("Receipt: present, chained"));
+const absentPage = operatorPageHtml("https://aziel-runtime.example", {
+  op: "cellular",
+  status: "Absent",
+  line: "Cellular: Absent. This device has no cellular radio we can use.",
+  lattice_receipt: { present: true, chained: true, missing: false },
+});
+assert.ok(absentPage.includes("Cellular: <strong>Absent</strong>"));
+assert.ok(absentPage.includes("IP: <strong>Not masked</strong>"));
+assert.ok(absentPage.includes("<strong>pending</strong>"));
+assert.equal(absentPage.includes("15:20"), false);
 
 const sealed = await withReceipt("azai", "note", { ok: true, _seal_note: "PLAINTEXT-NOTE-XYZ" }, {});
 assertLattice(sealed);
@@ -189,6 +227,8 @@ assert.equal(classifyCall(registry.bySlug.azos, "sim_wipe").kind, "stub");
 assert.equal(classifyCall(registry.bySlug.azbrowser, "solve_captcha").kind, "stub");
 assert.equal(classifyCall(registry.bySlug.veillock, "veil_status").kind, "local_only");
 assert.equal(classifyCall(registry.bySlug.azos, "download_list").kind, "live");
+assert.equal(classifyCall(registry.bySlug.azos, "boot_path").kind, "live");
+assert.equal(classifyCall(registry.bySlug.azos, "guardian").kind, "live");
 assert.equal(classifyCall(registry.bySlug.azai, "conversation").kind, "live");
 assert.equal(classifyCall(registry.bySlug.azchat, "channel_seal").kind, "live");
 assert.equal(classifyCall(registry.bySlug.azbrowser, "jeeves_site").kind, "live");
@@ -204,35 +244,109 @@ assert.equal(channel.gmail_e2e, false);
 assert.equal(channel.bridges_live, false);
 
 const serverList = await local("azos", "download_list", { mode: "server" }, dead);
-assert.equal(serverList.files.length, 1);
 assert.equal(serverList.everything_bundle, false);
-assert.equal(serverList.files[0].name, "azos-server-note.txt");
-const bad = await local("azos", "download_check", { mode: "server", files: { "azos-server-note.txt": "00" } }, dead);
+assert.equal(serverList.os_yet, false);
+assert.equal(serverList.is_os, false);
+assert.equal(serverList.complete, false);
+assert.equal(serverList.browser_tab_is_os, false);
+assert.equal(serverList.line, "Not an OS yet");
+assert.ok(serverList.files.some((row) => row.name === "azos-kernel" && row.present === false));
+assert.ok(serverList.files.some((row) => row.name === "azos-userspace" && row.present === false));
+const bad = await local("azos", "download_check", { mode: "server", files: { "azos-kernel": "00" } }, dead);
 assert.equal(bad.complete, false);
 assert.equal(bad.continue_enabled, false);
+assert.equal(bad.line, "Not an OS yet");
 const good = await local(
   "azos",
   "download_check",
-  { mode: "server", files: { "azos-server-note.txt": serverList.files[0].sha256 } },
+  { mode: "server", files: { "azos-kernel": "ff".repeat(32), "azos-userspace": "aa".repeat(32) } },
   dead,
 );
-assert.equal(good.complete, true);
-assert.equal(good.continue_enabled, true);
+assert.equal(good.complete, false);
+assert.equal(good.continue_enabled, false);
+assert.equal(good.os_yet, false);
+assert.equal(good.line, "Not an OS yet");
 const bootList = await local("azos", "download_list", { mode: "bootstrap" }, dead);
+assert.equal(bootList.os_yet, false);
+assert.equal(bootList.wrap_is_os, false);
 assert.equal(bootList.files.some((row) => row.name === "azos-server-note.txt"), false);
 const installList = await local("azos", "download_list", { mode: "install" }, dead);
-assert.equal(installList.files[0].name, "azos-install-note.txt");
+assert.equal(installList.complete, false);
+assert.equal(installList.line, "Not an OS yet");
 const phoneList = await local("azos", "download_list", { mode: "phone" }, dead);
 assert.equal(phoneList.files[0].name, "azos-web-app.txt");
+assert.equal(phoneList.web_app_is_os, false);
+assert.equal(phoneList.browser_tab_is_os, false);
+assert.equal(phoneList.complete, false);
+assert.match(phoneList.line, /Not an OS yet/);
 const noList = await local("azos", "download_list", { mode: "everything" }, dead);
 assert.equal(noList.code, "AZOS-NO-LIST");
 assert.match(noList.line, /Nothing has been downloaded/);
+const boot = await local("azos", "boot_path", { os_yet: true, bootable: true }, dead);
+assert.equal(boot.os_yet, false);
+assert.equal(boot.bootable, false);
+assert.equal(boot.is_os, false);
+assert.equal(boot.browser_tab_is_os, false);
+assert.equal(boot.phone_flash_is_os, false);
+assert.equal(boot.line, "Not an OS yet");
+assert.equal(boot.complete, false);
+assert.equal(boot.booted, false);
+assert.equal(boot.installed, false);
+assert.equal(boot.stay_off, false);
+assert.equal(boot.userspace_base, true);
+assert.equal(boot.userspace_format, "cpio-newc");
+assert.equal(boot.kernel_base, false);
+assert.ok(boot.userspace_bytes >= 512);
+assert.equal(typeof boot.userspace_sha256, "string");
+const injected = new Uint8Array(600);
+injected[0x202] = 0x48;
+injected[0x203] = 0x64;
+injected[0x204] = 0x72;
+injected[0x205] = 0x53;
+const injectedBoot = await local("azos", "boot_path", {}, { ...dead, AZOS_BOOT: { real: true, mock: false, kind: "kernel", bytes: injected } });
+assert.equal(injectedBoot.os_yet, false);
+assert.equal(injectedBoot.line, "Not an OS yet");
+markPending("machine-boot", "The kernel base is present. No machine has booted it");
+const guard = await local("azos", "guardian", {}, dead);
+assert.equal(guard.guardian, "On");
+assert.equal(guard.enabled, true);
+assert.equal(guard.can_disable, false);
+assert.equal(guard.always_on, true);
+assert.equal(guard.observed, true);
+assert.equal(guard.watched_others, false);
+assert.equal(guard.score_is_source, false);
+assert.equal(guard.claim_allowed, true);
+assert.equal(guard.field_1_0, false);
+assert.equal(guard.lattice_receipt.chained, true);
+const guardRead = await azaiReadReceipt(guard.lattice_receipt.sealed_sha256);
+assert.equal(guardRead.guardian, "On");
+assert.equal(guardRead.guardian_can_disable, false);
+assert.equal(guardRead.watched_others, false);
+assert.match(guardRead.note, /guardian on/);
+const guardOff = await local("azos", "guardian", { off: true }, dead);
+assert.equal(guardOff.guardian, "On");
+assert.equal(guardOff.enabled, true);
+assert.equal(guardOff.can_disable, false);
+assert.equal(guardOff.code, "GUARDIAN-ALWAYS-ON");
+const guardSpy = await local("azos", "guardian", { watch_other: true, text: "OTHER-PRIVATE-DATA", camera_other: true, off_machine: true }, dead);
+assert.equal(guardSpy.observed, false);
+assert.equal(guardSpy.watched_others, false);
+assert.equal(guardSpy.off_machine, false);
+assert.equal(guardSpy.camera_other, false);
+assert.equal(guardSpy.code, "GUARDIAN-NOT-SURVEILLANCE");
+assert.equal(guardSpy.guardian, "On");
+assert.equal(JSON.stringify(guardSpy).includes("OTHER-PRIVATE-DATA"), false);
 
 const phone = await local("azos", "phone_path", { model: "unlocked", bootloader: "unlocked" }, dead);
 assert.equal(phone.path, "bootstrap");
 assert.equal(phone.flash_executed, false);
 assert.equal(phone.sim_wiped, false);
 assert.equal(phone.esim_wiped, false);
+assert.equal(phone.is_os, false);
+assert.equal(phone.browser_tab_is_os, false);
+assert.equal(phone.wrap_is_os, false);
+assert.equal(phone.phone_flash_is_os, false);
+assert.match(phone.line, /Not an OS yet/);
 assert.equal(phone.bootloader, "unknown");
 const unlockedNoImage = await local(
   "azos",
@@ -277,6 +391,57 @@ assert.equal(cellMock.live, false);
 assert.equal(cellMock.packet_path_live, false);
 assert.equal(cellMock.alt_internet_live, false);
 markPending("cellular-live", "No cellular radio is present");
+
+const net = await local("azos", "internet_base", { alt_internet_live: true, alt_internet_earned: true }, dead);
+assert.equal(net.base, true);
+assert.equal(net.stay_off, false);
+assert.equal(net.live, false);
+assert.equal(net.alt_internet_live, false);
+assert.equal(net.packet_path_live, false);
+assert.equal(net.public_door, "FG-STUB");
+assert.equal(net.installed, false);
+assert.ok(net.carriers.some((row) => row.id === "lan" && row.packet_live === false));
+assert.equal(net.line, "Internet base is present. Not live.");
+const netMock = await local(
+  "azos",
+  "internet_base",
+  {},
+  { ...dead, CELL_RADIO: { real: true, mock: false, present: true, roundTrip: async () => ({ ok: true, mock: true }) } },
+);
+assert.equal(netMock.alt_internet_live, false);
+assert.equal(netMock.packet_path_live, false);
+markPending("alt-internet-live", "Internet base is present. No real packet round trip has happened");
+
+const mailHeld = await local("azmail", "mail_send_base", { confirm: true, from: "operator@azmail.local", to: "friend@example.com", text: "hello" }, dead);
+assert.equal(mailHeld.base, true);
+assert.equal(mailHeld.sent, false);
+assert.equal(mailHeld.live, false);
+assert.equal(mailHeld.public_live, false);
+assert.equal(mailHeld.public_smtp_send, "FG-STUB");
+assert.equal(mailHeld.e2e, false);
+assert.equal(classifyCall(registry.bySlug.azmail, "smtp_send").kind, "stub");
+const sink = await listenSmtpSink();
+const mailSent = await local(
+  "azmail",
+  "mail_send_base",
+  { confirm: true, from: "operator@azmail.local", to: "friend@example.com", subject: "base", text: "hello base" },
+  {
+    ...dead,
+    AZMAIL_SCANNER: fixtureLabeledScanner(),
+    AZMAIL_SMTP_HOST: sink.host,
+    AZMAIL_SMTP_PORT: sink.port,
+    AZMAIL_SMTP_ALLOW_CLEARTEXT: true,
+  },
+);
+await sink.close();
+assert.equal(mailSent.sent, true, JSON.stringify(mailSent));
+assert.equal(mailSent.public_smtp_send, "FG-STUB");
+assert.equal(mailSent.public_live, false);
+assert.equal(mailSent.live, false);
+assert.equal(mailSent.e2e, false);
+assert.equal(mailSent.external_smtp_e2e, false);
+assert.equal(sink.messages.length, 1);
+markPending("public-smtp-send", "Mail send base can queue on a local transport. Public smtp_send stays refused");
 
 const directMask = await local("azos", "ip_mask", { mode: "server", direct: true }, dead);
 assert.equal(directMask.masked, false);
@@ -491,7 +656,9 @@ assert.equal(posted.status, 200);
 const postedHtml = await posted.text();
 assert.ok(postedHtml.includes("Receipt: present, chained"));
 assert.equal(postedHtml.includes("PLAINTEXT-NOTE"), false);
-assert.ok(postedHtml.includes("Run AZOS as a service"));
+assert.ok(postedHtml.includes("Not an OS yet"));
+assert.ok(postedHtml.includes("Guardian: On"));
+assert.equal(postedHtml.includes("Turn Guardian off"), false);
 
 for (const row of pending) {
   assert.equal(row.status, "pending", row.name);

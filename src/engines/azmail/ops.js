@@ -47,6 +47,7 @@ export const AZMAIL_OPS = [
   "mailbox_open",
   "notice_post",
   "mail_post",
+  "mail_send_base",
   "inbox_pull",
   "ack",
   "verify_receipt",

@@ -8,6 +8,7 @@ import { MemoryStore } from "./chainlock/store.js";
 import { append, tip } from "./chainlock/ops.js";
 import { sha256Hex } from "./session-core.js";
 import { inspectBeforeAirgap, probeScannerSync, scanMessageParts } from "./engines/azmail/guard.js";
+import { carrierBase, kernelBase, mailSendBase } from "./bases.js";
 
 export const OPERATOR_AUTHOR = "Aziel Eliab";
 export const SEAL_SLUGS = new Set(["azmail", "azchat", "azbrowser", "azos", "azai", "veillock"]);
@@ -15,18 +16,23 @@ export const SEAL_SLUGS = new Set(["azmail", "azchat", "azbrowser", "azos", "aza
 const CHAIN = "acts";
 const CALLER = "operator-surfaces";
 
+const OS_LINE = "Not an OS yet";
+const BOOT_SPECS = Object.freeze([
+  Object.freeze({
+    kind: "kernel",
+    name: "azos-kernel",
+    purpose: "Kernel the machine can boot. Separate from the phone web app and the bootstrap wrap.",
+  }),
+  Object.freeze({
+    kind: "userspace",
+    name: "azos-userspace",
+    purpose: "Userspace install the machine can boot. Separate from the phone web app and the bootstrap wrap.",
+  }),
+]);
+const OS_MODES = new Set(["server", "bootstrap", "install"]);
 const FILES = Object.freeze({
-  server: Object.freeze([
-    file("azos-server-note.txt", "Run AZOS as a service on a computer you already have.", true, "AZOS server service\nAuthor: Aziel Eliab\n"),
-  ]),
-  bootstrap: Object.freeze([
-    file("azos-bootstrap-note.txt", "Start AZOS from a USB drive or SD card without changing your computer.", true, "AZOS bootstrap OS\nAuthor: Aziel Eliab\n"),
-  ]),
-  install: Object.freeze([
-    file("azos-install-note.txt", "Install AZOS as the main system on a device. This replaces what is there.", true, "AZOS full install\nAuthor: Aziel Eliab\n"),
-  ]),
   phone: Object.freeze([
-    file("azos-web-app.txt", "AZOS web app bundle", true, "AZOS web app\nAuthor: Aziel Eliab\n"),
+    file("azos-web-app.txt", "Phone web app. A browser tab is not the OS.", true, "AZOS web app\nAuthor: Aziel Eliab\nNot an OS yet\n"),
   ]),
 });
 
@@ -58,6 +64,90 @@ function honesty() {
     alt_internet_live: false,
     packet_path_live: false,
   };
+}
+
+function applyHonesty(src) {
+  const locks = honesty();
+  if (src && src.alt_internet_earned === true && src.alt_internet_live === true) locks.alt_internet_live = true;
+  if (src && src.packet_path_earned === true && src.packet_path_live === true) locks.packet_path_live = true;
+  return locks;
+}
+
+function notAnOs(extra = {}) {
+  return {
+    ok: false,
+    os_yet: false,
+    bootable: false,
+    is_os: false,
+    browser_tab_is_os: false,
+    phone_flash_is_os: false,
+    web_app_is_os: false,
+    wrap_is_os: false,
+    sim_wiped: false,
+    esim_wiped: false,
+    complete: false,
+    continue_enabled: false,
+    code: "AZOS-NOT-OS",
+    line: OS_LINE,
+    ...extra,
+    ...honesty(),
+  };
+}
+
+function looksBootable(bytes, kind) {
+  if (!(bytes instanceof Uint8Array) || bytes.byteLength < 512) return false;
+  if (kind === "kernel" && bytes.byteLength > 0x206) {
+    const hdr = String.fromCharCode(bytes[0x202], bytes[0x203], bytes[0x204], bytes[0x205]);
+    return hdr === "HdrS";
+  }
+  if (kind === "userspace") {
+    const mag = String.fromCharCode(bytes[0], bytes[1], bytes[2], bytes[3]);
+    if (mag === "hsqs" || mag === "sqsh") return true;
+    const cpio = String.fromCharCode(bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5]);
+    return cpio === "070701";
+  }
+  return false;
+}
+
+async function readBootFile(name) {
+  if (typeof process === "undefined" || !process.versions || !process.versions.node) return null;
+  try {
+    const { existsSync, readFileSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const path = fileURLToPath(new URL(`./boot/${name}`, import.meta.url));
+    if (!existsSync(path)) return null;
+    return new Uint8Array(readFileSync(path));
+  } catch {
+    return null;
+  }
+}
+
+async function packagedBoot() {
+  const found = [];
+  for (const spec of BOOT_SPECS) {
+    const bytes = await readBootFile(spec.name);
+    if (!bytes || !looksBootable(bytes, spec.kind)) continue;
+    found.push({ ...spec, bytes, sha256: await sha256Hex(bytes) });
+  }
+  return found;
+}
+
+function bootRows(found) {
+  const byKind = Object.fromEntries(found.map((row) => [row.kind, row]));
+  const any = found.length > 0;
+  return BOOT_SPECS.map((spec) => {
+    const hit = byKind[spec.kind];
+    return {
+      name: spec.name,
+      purpose: spec.purpose,
+      kind: spec.kind,
+      required: any ? Boolean(hit) : true,
+      present: Boolean(hit),
+      optional: any ? !hit : false,
+      size: hit ? hit.bytes.byteLength : 0,
+      sha256: hit ? hit.sha256 : null,
+    };
+  });
 }
 
 export function resetOperatorSurfaces() {
@@ -108,10 +198,77 @@ function latticeView(row) {
   };
 }
 
+function watchesOthers(payload) {
+  const src = payload && typeof payload === "object" ? payload : {};
+  if (src.watch_other === true || src.target === "other" || src.camera_other === true) return true;
+  if (src.off_machine === true || src.remote_private === true || src.private_other === true) return true;
+  if (src.scope === "other-machine" || src.scope === "other-person") return true;
+  return false;
+}
+
+export function guardianAudit(slug, op, payload) {
+  const src = payload && typeof payload === "object" ? payload : {};
+  const wantsOff = src.off === true || src.enabled === false || src.guardian === "off" || src.disable === true;
+  if (watchesOthers(src)) {
+    return {
+      guardian: "On",
+      enabled: true,
+      can_disable: false,
+      always_on: true,
+      observed: false,
+      watched_others: false,
+      off_machine: false,
+      camera_other: false,
+      subject: "operator",
+      machine: "this",
+      score_is_source: false,
+      code: "GUARDIAN-NOT-SURVEILLANCE",
+    };
+  }
+  const scored = scoreGate({
+    claim: `operator ${slug} ${op}`,
+    source: "operator-request",
+    score: 2,
+  });
+  return {
+    guardian: "On",
+    enabled: true,
+    can_disable: false,
+    always_on: true,
+    observed: true,
+    watched_others: false,
+    off_machine: false,
+    camera_other: false,
+    subject: "operator",
+    machine: "this",
+    score_is_source: false,
+    triad_blocked: scored.blocked === true,
+    triad_code: scored.code || null,
+    claim_allowed: scored.claim_allowed === true,
+    code: wantsOff ? "GUARDIAN-ALWAYS-ON" : "GUARDIAN-ON",
+  };
+}
+
+export function guardianStatus(payload) {
+  const audit = guardianAudit("azos", "guardian", payload);
+  const wantsOff = audit.code === "GUARDIAN-ALWAYS-ON";
+  const refused = audit.code === "GUARDIAN-NOT-SURVEILLANCE" || wantsOff;
+  return {
+    ok: !refused,
+    op: "guardian",
+    ...audit,
+    line: "Guardian: On",
+    ...honesty(),
+  };
+}
+
 export async function withReceipt(slug, op, body, env) {
   const src = body && typeof body === "object" ? { ...body } : { ok: false };
   const note = src._seal_note;
   delete src._seal_note;
+  src.guardian = "On";
+  src.guardian_enabled = true;
+  src.guardian_can_disable = false;
   usageSeq += 1;
   const record = {
     slug: String(slug || ""),
@@ -121,7 +278,11 @@ export async function withReceipt(slug, op, body, env) {
     live: src.live === true,
     usage_seq: usageSeq,
     at: new Date().toISOString(),
-    note: note == null ? null : String(note),
+    note: note == null ? `guardian on; operator ${slug}/${op}` : String(note),
+    guardian: "On",
+    guardian_can_disable: false,
+    watched_others: false,
+    score_is_source: false,
     author: OPERATOR_AUTHOR,
   };
   let sealedSha = null;
@@ -140,7 +301,7 @@ export async function withReceipt(slug, op, body, env) {
       code: "RECEIPT-MISSING",
       error: "RECEIPT-MISSING",
       lattice_receipt: { present: false, chained: false, missing: true },
-      ...honesty(),
+      ...applyHonesty(src),
     };
   }
   let chained = null;
@@ -177,10 +338,10 @@ export async function withReceipt(slug, op, body, env) {
       code: "RECEIPT-UNCHAINED",
       error: "RECEIPT-UNCHAINED",
       lattice_receipt: { present: true, chained: false, missing: false, sealed_sha256: sealedSha },
-      ...honesty(),
+      ...applyHonesty(src),
     };
   }
-  return { ...src, lattice_receipt: view, ...honesty() };
+  return { ...src, lattice_receipt: view, ...applyHonesty(src) };
 }
 
 export async function azaiReadReceipt(sealedSha) {
@@ -390,72 +551,146 @@ async function hashedFiles(mode) {
 
 export function modeList() {
   return {
+    ...notAnOs({
+      ok: true,
+      op: "mode_list",
+      modes: [
+        { id: "server", line: "Run AZOS as a service on a computer you already have." },
+        { id: "bootstrap", line: "Start AZOS from a USB drive or SD card without changing your computer." },
+        { id: "install", line: "Install AZOS as the main system on a device. This replaces what is there." },
+      ],
+    }),
+  };
+}
+
+export async function bootPath() {
+  const found = await packagedBoot();
+  const built = await kernelBase();
+  const files = bootRows(found);
+  return notAnOs({
+    op: "boot_path",
+    files,
+    kernel: found.some((row) => row.kind === "kernel"),
+    userspace: found.some((row) => row.kind === "userspace"),
+    kernel_base: found.some((row) => row.kind === "kernel"),
+    userspace_base: built.userspace_base === true,
+    base: built.base === true,
+    booted: false,
+    installed: false,
+    stay_off: false,
+    userspace_format: built.format,
+    userspace_sha256: built.sha256,
+    userspace_bytes: built.bytes,
+  });
+}
+
+export async function internetBase(payload, env) {
+  const cell = await cellular({}, env);
+  const earned = cell.live === true && cell.code === "CELL-LIVE";
+  return {
     ok: true,
-    op: "mode_list",
-    modes: [
-      { id: "server", line: "Run AZOS as a service on a computer you already have." },
-      { id: "bootstrap", line: "Start AZOS from a USB drive or SD card without changing your computer." },
-      { id: "install", line: "Install AZOS as the main system on a device. This replaces what is there." },
-    ],
-    ...honesty(),
+    op: "internet_base",
+    base: true,
+    stay_off: false,
+    installed: false,
+    live: false,
+    alt_internet_live: earned,
+    packet_path_live: earned,
+    alt_internet_earned: earned,
+    packet_path_earned: earned,
+    public_door: "FG-STUB",
+    carriers: carrierBase(),
+    cellular_status: cell.status || "Absent",
+    field_1_0: false,
+    line: earned ? "Internet base carried a real packet." : "Internet base is present. Not live.",
+    author: OPERATOR_AUTHOR,
   };
 }
 
 export async function downloadList(payload) {
   const src = payload && typeof payload === "object" ? payload : {};
   const mode = String(src.mode || "");
-  if (!FILES[mode]) {
-    return {
-      ok: false,
+  if (mode === "phone") {
+    const files = await hashedFiles(mode);
+    const known = files.reduce((sum, row) => sum + row.size, 0);
+    return notAnOs({
       op: "download_list",
-      code: "AZOS-NO-LIST",
-      line: "We could not load a trusted file list. Nothing has been downloaded.",
-      files: [],
-      ...honesty(),
+      mode,
+      files,
+      total_bytes: known,
+      total_line: `Total: ${known} bytes`,
+      everything_bundle: false,
+      line: "Not an OS yet. This is the phone web app, not the OS.",
+    });
+  }
+  if (!OS_MODES.has(mode)) {
+    return {
+      ...notAnOs({
+        op: "download_list",
+        code: "AZOS-NO-LIST",
+        line: "We could not load a trusted file list. Nothing has been downloaded.",
+        files: [],
+      }),
     };
   }
-  const files = await hashedFiles(mode);
+  const files = bootRows(await packagedBoot());
   const known = files.reduce((sum, row) => sum + row.size, 0);
-  return {
-    ok: true,
+  return notAnOs({
     op: "download_list",
     mode,
     files,
     total_bytes: known,
     total_line: `Total: ${known} bytes`,
     everything_bundle: false,
-    ...honesty(),
-  };
+    image_present: files.some((row) => row.present),
+    booted: false,
+    installed: false,
+    stay_off: false,
+  });
 }
 
 export async function downloadCheck(payload) {
   const src = payload && typeof payload === "object" ? payload : {};
   const mode = String(src.mode || "");
-  const files = await hashedFiles(mode);
-  if (!files.length) {
-    return { ok: false, op: "download_check", code: "AZOS-NO-LIST", complete: false, ...honesty() };
+  if (mode === "phone") {
+    return notAnOs({
+      op: "download_check",
+      mode,
+      line: "Not an OS yet. This is the phone web app, not the OS.",
+    });
   }
+  if (!OS_MODES.has(mode)) {
+    return notAnOs({ op: "download_check", mode, code: "AZOS-NO-LIST", line: OS_LINE });
+  }
+  const files = bootRows(await packagedBoot());
   const posted = src.files && typeof src.files === "object" ? src.files : {};
   const missing = [];
   const bad = [];
   for (const row of files) {
     if (!row.required) continue;
+    if (!row.present || !row.sha256) {
+      missing.push(row.name);
+      continue;
+    }
     const got = posted[row.name];
     if (got == null || got === "") missing.push(row.name);
     else if (String(got) !== row.sha256) bad.push(row.name);
   }
-  const complete = missing.length === 0 && bad.length === 0;
-  const name = missing[0] || bad[0] || "file";
-  return {
-    ok: complete,
+  const imagePresent = files.some((row) => row.present && row.sha256);
+  const hashMatch = imagePresent && missing.length === 0 && bad.length === 0;
+  return notAnOs({
     op: "download_check",
-    complete,
-    continue_enabled: complete,
+    mode,
     missing,
     bad_hash: bad,
-    line: complete ? "Complete" : `Not complete. 1 required file is missing: ${name}. Try again or choose another source.`,
-    ...honesty(),
-  };
+    files,
+    image_present: imagePresent,
+    hash_match: hashMatch,
+    booted: false,
+    installed: false,
+    stay_off: false,
+    line: hashMatch ? "Not an OS yet. The image base matches. It has not booted." : OS_LINE,
+  });
 }
 
 export function phonePath(payload, env) {
@@ -465,14 +700,11 @@ export function phonePath(payload, env) {
   const model = phone && phone.model ? String(phone.model) : null;
   const image = false;
   let path = "bootstrap";
-  let line = "We couldn't detect your phone. We won't guess.";
-  if (phone && boot === "unlocked" && image) {
-    path = "full_flash";
-    line = "This phone can run AZOS as its system. Flashing erases it.";
-  } else if (phone && boot === "unlocked") {
-    line = "We don't have a tested AZOS image for this model yet.";
+  let line = "Not an OS yet. We couldn't detect your phone. We won't guess.";
+  if (phone && boot === "unlocked") {
+    line = "Not an OS yet. We don't have a tested AZOS image for this model yet.";
   } else if (phone && (boot === "locked" || boot === "unknown")) {
-    line = "This phone can't be flashed easily. The AZOS app will wrap your phone without erasing it.";
+    line = "Not an OS yet. This phone can't be flashed easily. The bootstrap wrap keeps the phone's system. A flashed phone is not the OS.";
   }
   const flasher = env && env.FLASHER && env.FLASHER.real === true && env.FLASHER.mock !== true;
   const flashExecuted = path === "full_flash" && flasher === true;
@@ -487,8 +719,14 @@ export function phonePath(payload, env) {
     erases: path === "full_flash",
     sim_wiped: false,
     esim_wiped: false,
+    os_yet: false,
+    is_os: false,
+    browser_tab_is_os: false,
+    phone_flash_is_os: false,
+    web_app_is_os: false,
+    wrap_is_os: false,
     line,
-    wrap_line: "AZOS is running as an app on top of your phone's system.",
+    wrap_line: "The bootstrap wrap is an app on top of the phone's system. It is not the OS.",
     ...honesty(),
   };
 }
@@ -983,6 +1221,10 @@ export async function runFeature(slug, op, payload, env) {
   if (slug === "azbrowser" && op === "jeeves_site") return jeevesSite(payload);
   if ((slug === "azbrowser" || slug === "azai" || slug === "azos") && op === "human_check") return humanCheck(payload);
   if (slug === "azos" && op === "mode_list") return modeList();
+  if (slug === "azos" && op === "boot_path") return bootPath();
+  if (slug === "azos" && op === "internet_base") return internetBase(payload, env);
+  if (slug === "azos" && op === "guardian") return guardianStatus(payload);
+  if (slug === "azmail" && op === "mail_send_base") return mailSendBase(payload, env);
   if (slug === "azos" && op === "download_list") return downloadList(payload);
   if (slug === "azos" && op === "download_check") return downloadCheck(payload);
   if (slug === "azos" && op === "phone_path") return phonePath(payload, env);

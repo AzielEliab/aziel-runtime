@@ -6,7 +6,7 @@
 import { digestText } from "../session-core.js";
 import { resolveOpAlias } from "../fraggate/registry.js";
 import { embeddedDigest, ENGINE_RUNNERS, isTrueEngineSlug } from "./registry.js";
-import { SEAL_SLUGS, withReceipt } from "../operator-surfaces.js";
+import { SEAL_SLUGS, guardianAudit, withReceipt } from "../operator-surfaces.js";
 
 export function wipeScratch(scratch) {
   if (!scratch || !scratch.length) return;
@@ -44,6 +44,14 @@ export async function executeLocal({ slug, op, payload, ranIn, env }) {
       return { unsupported: true, slug: key, op: action, engine_digest: digest };
     }
     if (body && SEAL_SLUGS.has(key)) {
+      const audit = guardianAudit(key, action, payload);
+      body = {
+        ...body,
+        guardian: "On",
+        guardian_enabled: true,
+        guardian_can_disable: false,
+        guardian_audit: audit,
+      };
       body = await withReceipt(key, action, body, env);
     }
     if (body && body.code === "RECEIPT-UNCHAINED") {
