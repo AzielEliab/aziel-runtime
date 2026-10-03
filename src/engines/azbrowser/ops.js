@@ -20,6 +20,7 @@ import {
   tabOpen,
   azbrowserVpn,
 } from "./engine.js";
+import { runFeature } from "../../operator-surfaces.js";
 
 export const AZBROWSER_OPS = [
   "health",
@@ -37,6 +38,10 @@ export const AZBROWSER_OPS = [
   "sandbox_render",
   "doctor",
   "vpn",
+  "malware_sweep",
+  "airgap",
+  "jeeves_site",
+  "human_check",
 ];
 
 export function azbrowserHealthOp(env) {
@@ -48,6 +53,8 @@ export function azbrowserSkillOp() {
 }
 
 export async function runAzbrowser(op, payload, scratch, env) {
+  const feature = await runFeature("azbrowser", op, payload, env);
+  if (feature) return feature;
   if (op === "health") return azbrowserHealth(env);
   if (op === "skill") return azbrowserSkill();
   if (op === "doctor") return { ...azbrowserHealth(env), op: "doctor", doctor: true };
