@@ -172,7 +172,7 @@ export const HUMAN_TASKS = Object.freeze([
     name: "AZMail",
     op: "airlock_classify",
     title: "Airlock classify",
-    blurb: "Advisory APP 1.0 airlock. Not an MTA. SMTP / deanonymize stay stub. Mesh default off.",
+    blurb: "Advisory airlock. Scan is LIVE-when-scanner-present. Airgap present. Mailbox encrypted-to-user. External SMTP is not end-to-end. Mesh default off.",
     fields: [{ name: "text", label: "Text to classify", type: "textarea", example: "hello from the anonymous ring" }],
   },
   {

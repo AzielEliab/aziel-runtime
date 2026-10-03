@@ -1,10 +1,27 @@
 /**
  * AZMail engine (APP 1.0).
  * Anonymous MCP mesh mailer + advisory anti-phishing airlock.
+ * Mailbox path: scan, airgap, seal to the user key. See guard.js.
  * Independent of AZ-OS / Lumen. Not a full internet MTA.
  * Mesh default OFF. Reached only via FragGate LIVE_OPS.
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
+
+import {
+  AIRGAP_BOUNDARY,
+  AZMAIL_HONESTY,
+  buildExternalMime,
+  deliverExternal,
+  domainOf,
+  externalNote,
+  headerSafe,
+  inspectBeforeAirgap,
+  isEmailAddress,
+  normalizePublicJwk,
+  openMailboxObject,
+  probeScannerSync,
+  sealMailboxObject,
+} from "./guard.js";
 
 export const PRODUCT = "azmail";
 export const NAME = "AZMail";
@@ -22,7 +39,7 @@ export const ENABLE_COOLDOWN_MS = 60_000;
 export const KV_KEY = "ring";
 
 export const LIMITATION =
-  "THIS IS: AZMail APP 1.0 — advisory anti-phishing airlock (classify / scrub / trust_score), a local isolate mailbox (notice_post / mail_post / inbox_pull), plus an anonymous in-process MCP mesh ring (default OFF). Independent of AZ-OS / Lumen / interface / AZChat. Reached only through the aziel-runtime FragGate door (POST /v1/fraggate/call or MCP fraggate_call). THIS IS NOT: a full internet MTA; SMTP / IMAP / POP3; a side door past FragGate; identity; deanonymization; credential harvest; a VPN; WhistleLock; AZChat. SMTP / send / smtp_send / deliver / identify / deanonymize / harvest stay stub. No public MTA. Author: Aziel Eliab only.";
+  "THIS IS: AZMail APP 1.0 — advisory anti-phishing airlock (classify / scrub / trust_score), a local isolate mailbox (notice_post / mail_post / inbox_pull) encrypted to the user key, plus an anonymous in-process MCP mesh ring (default OFF). Scan is LIVE-when-scanner-present (ClamAV). Absent scanner refuses AZM-SCAN-ABSENT and does not invent a clean verdict. Airgap is present: body, links, videos, docs, images, zips, and other files are parsed and scanned on the dirty side; only a scanned sealed object enters the mailbox; attachments are never executed. AZMail-to-AZMail is sealed end-to-end to the user key. Mail to @gmail, @live, @yahoo, and other SMTP domains is a normal MIME message over opportunistic TLS and is not end-to-end. Independent of AZ-OS / Lumen / interface / AZChat. Reached only through the aziel-runtime FragGate door (POST /v1/fraggate/call or MCP fraggate_call). THIS IS NOT: a full internet MTA; a public SMTP door; a Proton clone claim; Field 1.0; identity; deanonymization; credential harvest; a VPN; WhistleLock; AZChat. Public smtp / send / smtp_send / deliver / identify / deanonymize / harvest stay stub. No public MTA. field_1_0 false. proton_clone_live false. Author: Aziel Eliab only.";
 
 export const IDENTITY_KEYS = Object.freeze([
   "from",
@@ -587,24 +604,116 @@ async function mailboxReceipt(fields) {
   return { ...fields, receipt_sha256: hash, author: AUTHOR };
 }
 
+function findBoxByAddress(addr) {
+  const want = String(addr || "").trim().toLowerCase();
+  if (!want) return null;
+  for (const box of Object.values(memory.boxes)) {
+    if (box.address === want) return box;
+  }
+  return null;
+}
+
+function sawPrivateMaterial(src) {
+  if (!src || typeof src !== "object") return false;
+  if (src.user_private_key || src.private_jwk || src.private_key) return true;
+  const pub = src.user_public_key || src.public_jwk;
+  return Boolean(pub && typeof pub === "object" && pub.d);
+}
+
 export async function mailboxOpen(payload) {
-  const id = callerId(payload);
+  const src = payload && typeof payload === "object" ? payload : {};
+  const id = callerId(src);
   const box = boxOf(id);
+  const droppedPrivate = sawPrivateMaterial(src);
+  if (src.user_public_key || src.public_jwk) {
+    const pub = normalizePublicJwk(src.user_public_key || src.public_jwk);
+    if (!pub) {
+      return refuse("AZM-BAD-KEY", "user_public_key must be an X25519 OKP JWK. The private key is not stored.", {
+        op: "mailbox_open",
+        private_key_stored: false,
+      });
+    }
+    box.public_jwk = pub;
+  }
+  if (src.address) {
+    const address = String(src.address).trim().toLowerCase();
+    if (!isEmailAddress(address)) {
+      return refuse("AZM-BAD-INPUT", "address must be an email-shaped mailbox label.", { op: "mailbox_open" });
+    }
+    const taken = findBoxByAddress(address);
+    if (taken && taken.id !== id) {
+      return refuse("AZM-ADDRESS-TAKEN", "That address is already registered on another AZMail mailbox.", {
+        op: "mailbox_open",
+      });
+    }
+    box.address = address;
+  }
   const receipt = await mailboxReceipt({ op: "mailbox_open", mailbox_id: id, ts: box.opened });
   return baseResult({
     op: "mailbox_open",
     mailbox_id: id,
     opened: box.opened,
     count: box.items.length,
+    address: box.address || null,
+    public_key_registered: Boolean(box.public_jwk),
+    private_key_stored: false,
+    dropped_private_key: droppedPrivate,
+    provider_can_read: false,
+    at_rest: "sealed-to-user",
     mta: false,
     smtp: false,
     mesh_enabled_default: false,
     receipt,
-    note: "Local isolate mailbox. Not SMTP. Not a public MTA.",
+    ...AZMAIL_HONESTY,
+    note: "Local isolate mailbox. The user public key may be registered. The private key is never stored. Not a public MTA.",
   });
 }
 
-export async function noticePost(payload) {
+function publicScan(scan) {
+  if (!scan) return null;
+  return {
+    code: scan.code,
+    verdict: scan.verdict,
+    clean: scan.clean === true,
+    live: scan.live === true,
+    fixture_labeled: scan.fixture_labeled === true,
+    scanner: scan.scanner || null,
+    signature: scan.signature || null,
+    parts: Array.isArray(scan.parts) ? scan.parts : [],
+    note: scan.note || "",
+  };
+}
+
+async function storeSealed(box, fields, publicJwk, object, scan, e2e) {
+  const sealed = await sealMailboxObject(publicJwk, object);
+  if (!sealed) return null;
+  memory.seq += 1;
+  const item = {
+    id: `${fields.kind === "notice" ? "n" : "m"}_${memory.seq.toString(36)}`,
+    kind: fields.kind,
+    class: fields.class || null,
+    from: fields.from || null,
+    to: fields.to,
+    ts: nowIso(),
+    acked: false,
+    airgap: "crossed",
+    plaintext_crossed: false,
+    exec: false,
+    e2e: e2e === true,
+    end_to_end: e2e === true,
+    external_smtp_e2e: false,
+    at_rest: "sealed-to-user",
+    provider_can_read: false,
+    sealed,
+    scan: publicScan(scan),
+    carried: (object.parts || []).map((part) => ({ kind: part.kind, name: part.name, sha256: part.sha256 })),
+  };
+  box.items.unshift(item);
+  if (box.items.length > MAILBOX_CAP) box.items.length = MAILBOX_CAP;
+  return item;
+}
+
+export async function noticePost(payload, env) {
   const src = payload && typeof payload === "object" ? payload : {};
   const klass = String(src.class || src.kind || "").toLowerCase();
   if (!NOTICE_CLASSES.has(klass)) {
@@ -615,17 +724,32 @@ export async function noticePost(payload) {
   }
   const to = callerId({ mailbox_id: src.to || src.mailbox_id || "worker" });
   const box = boxOf(to);
-  memory.seq += 1;
-  const item = {
-    id: `n_${memory.seq.toString(36)}`,
-    kind: "notice",
-    class: klass,
-    text: clipText(src.text != null ? src.text : src.body),
-    ts: nowIso(),
-    acked: false,
-  };
-  box.items.unshift(item);
-  if (box.items.length > MAILBOX_CAP) box.items.length = MAILBOX_CAP;
+  if (!box.public_jwk) {
+    return refuse("AZM-NO-USER-KEY", "Register the user public key with mailbox_open before posting. No shared demo key is used.", {
+      op: "notice_post",
+      private_key_stored: false,
+    });
+  }
+  const inspected = await inspectBeforeAirgap(src, env);
+  if (!inspected.ok) {
+    return refuse(inspected.code, inspected.error || "Notice did not cross the airgap.", {
+      op: "notice_post",
+      scan: publicScan(inspected.scan),
+      crossed: false,
+      exec: false,
+      plaintext_crossed: false,
+      e2e: false,
+      external_smtp_e2e: false,
+    });
+  }
+  const item = await storeSealed(
+    box,
+    { kind: "notice", class: klass, to },
+    box.public_jwk,
+    { v: 1, body: inspected.body, parts: inspected.parts, exec: false },
+    inspected.scan,
+    true,
+  );
   const receipt = await mailboxReceipt({ op: "notice_post", mailbox_id: to, item_id: item.id, class: klass });
   return baseResult({
     op: "notice_post",
@@ -634,58 +758,213 @@ export async function noticePost(payload) {
     receipt,
     mta: false,
     smtp: false,
-    note: "Agent→user notice on the Worker inbox. Not SMTP.",
+    e2e: true,
+    external_smtp_e2e: false,
+    airgap: "crossed",
+    exec: false,
+    ...AZMAIL_HONESTY,
+    note: "Agent→user notice sealed to the user key after the airgap. Not SMTP.",
   });
 }
 
-export async function mailPost(payload) {
+function localFromId(src) {
+  if (isEmailAddress(src.from)) return String(src.from).trim().toLowerCase();
+  return callerId({ mailbox_id: src.from || src.caller });
+}
+
+export async function mailPost(payload, env) {
   const src = payload && typeof payload === "object" ? payload : {};
-  const from = callerId({ mailbox_id: src.from || src.caller });
-  const to = String(src.to || "")
-    .toLowerCase()
-    .replace(/[^a-z0-9_-]/g, "")
-    .slice(0, 48);
-  if (!to) {
-    return refuse("AZM-BAD-INPUT", "mail_post needs { from, to } local mailbox ids. Not email.", { op: "mail_post" });
+  const toRaw = String(src.to || "").trim();
+  if (!toRaw || !headerSafe(toRaw) || !headerSafe(src.from || "") || !headerSafe(src.subject || "")) {
+    return refuse("AZM-BAD-INPUT", "mail_post needs a from and a to without header breaks.", { op: "mail_post" });
   }
-  const box = boxOf(to);
-  memory.seq += 1;
-  const item = {
-    id: `m_${memory.seq.toString(36)}`,
-    kind: "mail",
-    from,
-    to,
-    text: clipText(src.text != null ? src.text : src.body),
-    ts: nowIso(),
-    acked: false,
-  };
-  box.items.unshift(item);
-  if (box.items.length > MAILBOX_CAP) box.items.length = MAILBOX_CAP;
-  const receipt = await mailboxReceipt({ op: "mail_post", from, to, item_id: item.id });
+  const inspected = await inspectBeforeAirgap(src, env);
+  if (!inspected.ok) {
+    return refuse(inspected.code, inspected.error || "Mail did not cross the airgap.", {
+      op: "mail_post",
+      scan: publicScan(inspected.scan),
+      crossed: false,
+      exec: false,
+      plaintext_crossed: false,
+      sent: false,
+      e2e: false,
+      external_smtp_e2e: false,
+    });
+  }
+  if (isEmailAddress(toRaw)) {
+    const local = findBoxByAddress(toRaw);
+    if (local && local.public_jwk) {
+      return deliverAzmail(src, inspected, local, toRaw.toLowerCase());
+    }
+    return deliverOrdinarySmtp(src, inspected, toRaw.toLowerCase(), env);
+  }
+  const to = toRaw.toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 48);
+  if (!to) {
+    return refuse("AZM-BAD-INPUT", "mail_post needs a mailbox id or an email address.", { op: "mail_post" });
+  }
+  return deliverAzmail(src, inspected, boxOf(to), to);
+}
+
+async function deliverAzmail(src, inspected, box, toLabel) {
+  if (!box.public_jwk) {
+    return refuse("AZM-NO-USER-KEY", "The recipient has no user public key. AZMail does not fall back to a shared demo key.", {
+      op: "mail_post",
+      private_key_stored: false,
+      e2e: false,
+      external_smtp_e2e: false,
+      sent: false,
+    });
+  }
+  const from = localFromId(src);
+  const object = { v: 1, body: inspected.body, parts: inspected.parts, exec: false };
+  const item = await storeSealed(box, { kind: "mail", from, to: toLabel }, box.public_jwk, object, inspected.scan, true);
+  const sender = isEmailAddress(from) ? findBoxByAddress(from) : memory.boxes[from];
+  if (sender && sender.public_jwk && sender.id !== box.id) {
+    await storeSealed(sender, { kind: "mail", from, to: toLabel }, sender.public_jwk, object, inspected.scan, true);
+  }
+  const receipt = await mailboxReceipt({ op: "mail_post", from, to: toLabel, item_id: item.id });
   return baseResult({
     op: "mail_post",
     from,
-    to,
+    to: toLabel,
     item,
     receipt,
     mta: false,
     smtp: false,
-    note: "User→user local isolate mail. Not SMTP. Not deanonymize.",
+    public_mta: false,
+    sent: true,
+    ...AZMAIL_HONESTY,
+    e2e: true,
+    end_to_end: true,
+    external_smtp_e2e: false,
+    azmail_to_azmail: true,
+    airgap: "crossed",
+    plaintext_crossed: false,
+    exec: false,
+    provider_can_read: false,
+    scan: publicScan(inspected.scan),
+    note: "AZMail-to-AZMail. Body, links, and files are sealed to the recipient user key. The provider cannot read them.",
   });
 }
 
-export function inboxPull(payload) {
-  const id = callerId(payload);
+async function deliverOrdinarySmtp(src, inspected, to, env) {
+  const domain = domainOf(to);
+  const from = isEmailAddress(src.from) ? String(src.from).trim() : `${localFromId(src)}@azmail.local`;
+  const mime = buildExternalMime({
+    from,
+    to,
+    subject: src.subject || "(no subject)",
+    body: inspected.body,
+    parts: inspected.parts,
+  });
+  const wire = await deliverExternal({ from, to, mime, env });
+  if (!wire.ok) {
+    return refuse(wire.code || "AZM-SMTP-ABSENT", wire.note || wire.error || "External SMTP was not sent.", {
+      op: "mail_post",
+      from,
+      to,
+      recipient_domain: domain,
+      sent: false,
+      tls: wire.tls === true,
+      wire: wire.wire || null,
+      e2e: false,
+      end_to_end: false,
+      external_smtp_e2e: false,
+      gmail_e2e: false,
+      public_mta: false,
+      smtp: false,
+      airgap: "held",
+      exec: false,
+      scan: publicScan(inspected.scan),
+      field_1_0: false,
+      proton_clone_live: false,
+    });
+  }
+  const sender = isEmailAddress(from) ? findBoxByAddress(from) : memory.boxes[localFromId(src)];
+  let senderItem = null;
+  if (sender && sender.public_jwk) {
+    senderItem = await storeSealed(
+      sender,
+      { kind: "mail", from, to },
+      sender.public_jwk,
+      { v: 1, body: inspected.body, parts: inspected.parts, exec: false, wire: "external-smtp" },
+      inspected.scan,
+      false,
+    );
+    if (senderItem) senderItem.e2e = false;
+    if (senderItem) senderItem.end_to_end = false;
+  }
+  return baseResult({
+    op: "mail_post",
+    from,
+    to,
+    recipient_domain: domain,
+    item: senderItem,
+    sent: true,
+    tls: wire.tls === true,
+    tls_peer_verified: wire.tls_peer_verified === true,
+    wire: wire.wire,
+    transport: wire.transport,
+    mta: false,
+    smtp: false,
+    public_mta: false,
+    local_smtp: true,
+    e2e: false,
+    end_to_end: false,
+    external_smtp_e2e: false,
+    gmail_e2e: false,
+    live_e2e: false,
+    yahoo_e2e: false,
+    outlook_e2e: false,
+    azmail_to_azmail: false,
+    airgap: "crossed",
+    plaintext_crossed: false,
+    exec: false,
+    provider_can_read_mailbox: senderItem ? false : null,
+    scan: publicScan(inspected.scan),
+    field_1_0: false,
+    proton_clone_live: false,
+    note: externalNote(domain, wire.tls === true),
+  });
+}
+
+export async function inboxPull(payload) {
+  const src = payload && typeof payload === "object" ? payload : {};
+  const id = callerId(src);
   const box = boxOf(id);
-  const limit = Math.min(32, Math.max(1, Number(payload && payload.limit) || 16));
+  const limit = Math.min(32, Math.max(1, Number(src.limit) || 16));
+  const items = box.items.slice(0, limit);
+  let opened = null;
+  if (src.user_private_key || src.private_jwk) {
+    const privateJwk = src.user_private_key || src.private_jwk;
+    opened = [];
+    for (const item of items) {
+      const object = await openMailboxObject(privateJwk, item.sealed);
+      if (!object) {
+        opened.push({ id: item.id, opened: false, code: "AZM-SEAL-CLOSED" });
+      } else {
+        opened.push({
+          id: item.id,
+          opened: true,
+          body: object.body,
+          parts: object.parts || [],
+        });
+      }
+    }
+  }
   return baseResult({
     op: "inbox_pull",
     mailbox_id: id,
-    count: Math.min(limit, box.items.length),
-    items: box.items.slice(0, limit),
+    count: items.length,
+    items,
+    opened,
+    private_key_stored: false,
+    provider_can_read: false,
+    at_rest: "sealed-to-user",
     mta: false,
     smtp: false,
-    note: "Caller inbox only. Not a public MTA.",
+    ...AZMAIL_HONESTY,
+    note: "Caller inbox only. Stored items are ciphertext sealed to the user key. The private key is not stored.",
   });
 }
 
@@ -732,11 +1011,12 @@ export function mailboxImportExport(payload) {
     stored: false,
     mta: false,
     smtp: false,
-    note: "Client-held JSON. Hosted mailbox is isolate-local, not an MTA.",
+    note: "Client-held ciphertext JSON. Plaintext is not exported. Hosted mailbox is isolate-local, not an MTA.",
   });
 }
 
-export function transportStatus() {
+export function transportStatus(env) {
+  const probe = probeScannerSync(env);
   return {
     public_mta: false,
     smtp: false,
@@ -745,9 +1025,30 @@ export function transportStatus() {
     mx: false,
     gated: true,
     public_send: false,
+    smtp_send: "FG-STUB",
     local_mailbox: true,
+    local_smtp: "LIVE-when-transport-present",
+    scan: AZMAIL_HONESTY.scan,
+    scan_live: probe.live === true,
+    scanner: probe.live ? "clamav" : null,
+    scan_absent_code: "AZM-SCAN-ABSENT",
+    airgap: AIRGAP_BOUNDARY.present ? "present" : "absent",
+    airgap_boundary: AIRGAP_BOUNDARY,
+    mailbox_at_rest: AZMAIL_HONESTY.mailbox_at_rest,
+    provider_can_read_mailbox: false,
+    external_smtp_e2e: false,
+    gmail_e2e: false,
+    live_e2e: false,
+    yahoo_e2e: false,
+    outlook_e2e: false,
+    azmail_to_azmail: "sealed-e2e",
+    carried: AZMAIL_HONESTY.carried,
+    attachment_exec: false,
+    links_fetched: false,
+    field_1_0: false,
+    proton_clone_live: false,
     next_step:
-      "Public mesh MTA stays NOT IMPLEMENTED. A local operator transport, if ever added, must stay gated off this public mesh and refuse smtp_send here. Do not open public send.",
+      "Public smtp_send stays FG-STUB. mail_post scans body, links, videos, docs, images, zips, and other files before the airgap. AZMail-to-AZMail is sealed to the user key. Ordinary SMTP (@gmail, @live, @yahoo, and other domains) is normal MIME over opportunistic TLS and is not end-to-end. A missing scanner refuses AZM-SCAN-ABSENT.",
   };
 }
 
@@ -764,6 +1065,8 @@ export function azmailHealth() {
     object_store: "isolate-hash",
     mailbox: true,
     azchat_bridge: false,
+    ...AZMAIL_HONESTY,
+    airgap_boundary: AIRGAP_BOUNDARY,
     transport: transportStatus(),
   });
 }
@@ -784,7 +1087,15 @@ Live ops: \`airlock_classify\`, \`scrub\`, \`trust_score\`, \`mesh_post\`, \`mes
 
 Mesh default: **off**. \`mesh_disable\` is always allowed. \`mesh_enable\` is rate-limited. Posts store no identity fields.
 
-SMTP / send / mail / deliver / identify / deanonymize / harvest stay **stub**. Not a full internet MTA. Independent of AZ-OS / Lumen.
+## Honesty
+
+- Scan: LIVE-when-scanner-present. If ClamAV (\`clamscan\` or \`clamdscan\`) is absent, mail refuses \`AZM-SCAN-ABSENT\`. No clean verdict is invented.
+- Airgap: present. Body, links, videos, docs, images, zips, and other files are parsed and scanned on the dirty side. Only a scanned sealed object enters the mailbox. Attachments are never executed. Links are not fetched.
+- Mailbox: encrypted-to-user. The provider does not hold the user private key.
+- AZMail-to-AZMail: sealed end-to-end to the user key, including those attachments.
+- External SMTP (@gmail, @live, @yahoo, and other ordinary domains): normal MIME over opportunistic TLS. Not end-to-end.
+- \`field_1_0\`: false. \`proton_clone_live\`: false.
+- Public \`smtp_send\` stays stub. Not a full internet MTA.
 
 This op ran inside aziel-runtime's Worker isolate (or a local CLI jail).
 
@@ -796,5 +1107,7 @@ Limitation: ${LIMITATION}
     door: "fraggate",
     door_only: true,
     mesh_default: MESH_DEFAULT,
+    ...AZMAIL_HONESTY,
+    airgap_boundary: AIRGAP_BOUNDARY,
   };
 }
