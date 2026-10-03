@@ -22,9 +22,14 @@ export const HANDLE_HONESTY_LINES = Object.freeze([
 
 export const STATEMENT_TEXT_MAX = 512;
 
+/** Existing everblooming sigil. Same bytes as godlock.uk/sigil.png and www.azieleliab.com/sigil.png. */
+export const HANDLE_SIGIL_PATH = "public/sigil.png";
+export const HANDLE_SIGIL_SHA256 = "af095e8b0916a7262860a53619c7110f25539988806775b1c7bff8df7b0ee848";
+
 function honestyFields() {
   return {
     honesty: [...HANDLE_HONESTY_LINES],
+    sigil: HANDLE_SIGIL_PATH,
     stored: false,
     uploaded: false,
     registered: false,

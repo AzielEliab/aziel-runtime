@@ -4,6 +4,7 @@
  * Author: Aziel Eliab only.
  */
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { spawn } from "node:child_process";
 import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -12,6 +13,8 @@ import { fileURLToPath } from "node:url";
 import { PUBLIC_MCP_TOOLS } from "../src/fraggate/codes.js";
 import {
   HANDLE_HONESTY_LINES,
+  HANDLE_SIGIL_PATH,
+  HANDLE_SIGIL_SHA256,
   generateHandle,
   signHandleStatement,
   verifyHandleStatement,
@@ -38,6 +41,24 @@ const paper = await readFile(new URL("../docs/designs/FED-MESH-1.0.md", import.m
 assert.match(paper, /aziel-runtime handle/);
 assert.match(paper, /handle generate/);
 for (const line of HANDLE_HONESTY_LINES) assert.ok(paper.includes(line), line);
+assert.equal(HANDLE_SIGIL_PATH, "public/sigil.png");
+assert.match(paper, /public\/sigil\.png/);
+assert.match(paper, /https:\/\/godlock\.uk\/sigil\.png/);
+assert.match(paper, /https:\/\/www\.azieleliab\.com\/sigil\.png/);
+assert.match(paper, /af095e8b0916a7262860a53619c7110f25539988806775b1c7bff8df7b0ee848/);
+const sigilBytes = await readFile(new URL(`../${HANDLE_SIGIL_PATH}`, import.meta.url));
+assert.equal(createHash("sha256").update(sigilBytes).digest("hex"), HANDLE_SIGIL_SHA256);
+assert.deepEqual(
+  [...HANDLE_HONESTY_LINES],
+  [
+    "This is not a government ID.",
+    "This is not Sign in with Google or Apple.",
+    "This is not an OAuth network.",
+    "This is not an ICANN registrar.",
+    "This is not Cap-7 public DNS.",
+    "The alternative mesh internet is not live.",
+  ],
+);
 
 const vector = await signHandleStatement(VECTOR_SEED, "vector");
 assert.equal(vector.ok, true);
@@ -114,6 +135,7 @@ try {
   assert.match(help.out, /generate/);
   assert.match(help.out, /sign --seed/);
   assert.match(help.out, /verify --handle/);
+  assert.match(help.out, /public\/sigil\.png/);
 
   const bare = await runCli(["handle"]);
   assert.equal(bare.code, 0);
@@ -125,6 +147,7 @@ try {
   assert.match(human.out, /Minted a mesh handle on this machine/);
   assert.match(human.out, /#[0-9A-HJKMNP-TV-Z]{11}/);
   assert.match(human.out, /Key file: none/);
+  assert.match(human.out, /public\/sigil\.png/);
 
   const mintedAlias = await runCli(["--json", "handle", "mint"]);
   assert.equal(mintedAlias.code, 0, mintedAlias.err);
@@ -144,6 +167,7 @@ try {
   assert.equal(minted.registered, false);
   assert.equal(minted.alt_internet_live, false);
   assert.equal(minted.public_icann_registrar, false);
+  assert.equal(minted.sigil, "public/sigil.png");
   assert.deepEqual(minted.honesty, [...HANDLE_HONESTY_LINES]);
   assert.equal(typeof minted.seed, "string");
   assert.equal(minted.seed.length > 0, true);

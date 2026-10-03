@@ -50,6 +50,12 @@ node cli/aziel-runtime.mjs handle verify --handle <#handle> --public-key <key> -
 
 `generate` mints a keypair and prints the handle. `sign` signs a short statement. `verify` checks that signature against the handle. The private seed stays on the operator machine. The command writes no key file in this repo, uploads nothing, and registers no name on a relay.
 
+The mark is the existing everblooming sigil, [`public/sigil.png`](../../public/sigil.png). This command uses that file.
+
+![Everblooming sigil](../../public/sigil.png)
+
+`public/sigil.png` is the same file as <https://godlock.uk/sigil.png> and <https://www.azieleliab.com/sigil.png> (SHA-256 `af095e8b0916a7262860a53619c7110f25539988806775b1c7bff8df7b0ee848`). This runtime stamps that file `X-Aziel-Sigil: Everblooming`. <https://www.azielcorpuslibrary.net/sigil.png> is a separate 40×40 PNG (SHA-256 `f62e5fa2b8db5b5a077dc6850e512c63f762512630eff28692349cdd9836ee97`). The handle command uses `public/sigil.png`.
+
 Every run prints this block:
 
 ```text

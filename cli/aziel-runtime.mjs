@@ -52,6 +52,7 @@ import {
 import { probeListener, quietText, runningText, SERVICE_PORT, startRuntimeService } from "../src/runtime-service.js";
 import {
   HANDLE_HONESTY_LINES,
+  HANDLE_SIGIL_PATH,
   generateHandle,
   signHandleStatement,
   verifyHandleStatement,
@@ -143,6 +144,8 @@ It stays on this machine. This command writes no key file, uploads nothing,
 and registers no name on a relay.
 
 Same identity as src/fed-mesh/identity.js.
+Mark: ${HANDLE_SIGIL_PATH}
+Same file as https://godlock.uk/sigil.png and https://www.azieleliab.com/sigil.png.
 `;
 }
 
@@ -189,6 +192,7 @@ function formatHandle(result) {
     lines.push("");
     lines.push("Next: aziel-runtime handle --help");
   }
+  lines.push(field("sigil", (result && result.sigil) || HANDLE_SIGIL_PATH));
   return `${lines.join("\n")}\n`;
 }
 
