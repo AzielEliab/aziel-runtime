@@ -38,6 +38,31 @@ The node also generates an X25519 key bound to that handle and publishes `enc_pu
 
 Vector seed `0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20` produces handle `#CPV0CWYPXP4` and public key `ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ`.
 
+### Local command
+
+`aziel-runtime handle` is the local command. The same entry is `node cli/aziel-runtime.mjs handle`. It reuses this Ed25519 handle (`generateEd25519`, `signObject`, `verifyObject`, and the handle from the public key in `src/fed-mesh/identity.js`).
+
+```bash
+node cli/aziel-runtime.mjs handle generate
+node cli/aziel-runtime.mjs handle sign --seed <seed> --text "short statement"
+node cli/aziel-runtime.mjs handle verify --handle <#handle> --public-key <key> --sig <sig> --text "short statement"
+```
+
+`generate` mints a keypair and prints the handle. `sign` signs a short statement. `verify` checks that signature against the handle. The private seed stays on the operator machine. The command writes no key file in this repo, uploads nothing, and registers no name on a relay.
+
+Every run prints this block:
+
+```text
+This is not a government ID.
+This is not Sign in with Google or Apple.
+This is not an OAuth network.
+This is not an ICANN registrar.
+This is not Cap-7 public DNS.
+The alternative mesh internet is not live.
+```
+
+`alt_internet_live` stays false. `public_icann_registrar` stays false. This command is a local check, not a Cap-7 public DNS door. Softwares stay 42. `tools/list` stays 36.
+
 ## 3. One sequence per handle
 
 Every signed relay act except `pull`, `object`, and the `sync` wrapper consumes one monotonic sequence.
