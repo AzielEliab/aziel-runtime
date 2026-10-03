@@ -38,6 +38,37 @@ The node also generates an X25519 key bound to that handle and publishes `enc_pu
 
 Vector seed `0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20` produces handle `#CPV0CWYPXP4` and public key `ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ`.
 
+### Local command
+
+`aziel-runtime handle` is the local command. The same entry is `node cli/aziel-runtime.mjs handle`. It reuses this Ed25519 handle (`generateEd25519`, `signObject`, `verifyObject`, and the handle from the public key in `src/fed-mesh/identity.js`).
+
+```bash
+node cli/aziel-runtime.mjs handle generate
+node cli/aziel-runtime.mjs handle sign --seed <seed> --text "short statement"
+node cli/aziel-runtime.mjs handle verify --handle <#handle> --public-key <key> --sig <sig> --text "short statement"
+```
+
+`generate` mints a keypair and prints the handle. `sign` signs a short statement. `verify` checks that signature against the handle. The private seed stays on the operator machine. The command writes no key file in this repo, uploads nothing, and registers no name on a relay.
+
+The mark is the existing everblooming sigil, [`public/sigil.png`](../../public/sigil.png). This command uses that file.
+
+![Everblooming sigil](../../public/sigil.png)
+
+`public/sigil.png` is the same file as <https://godlock.uk/sigil.png> and <https://www.azieleliab.com/sigil.png> (SHA-256 `af095e8b0916a7262860a53619c7110f25539988806775b1c7bff8df7b0ee848`). This runtime stamps that file `X-Aziel-Sigil: Everblooming`. <https://www.azielcorpuslibrary.net/sigil.png> is a separate 40×40 PNG (SHA-256 `f62e5fa2b8db5b5a077dc6850e512c63f762512630eff28692349cdd9836ee97`). The handle command uses `public/sigil.png`.
+
+Every run prints this block:
+
+```text
+This is not a government ID.
+This is not Sign in with Google or Apple.
+This is not an OAuth network.
+This is not an ICANN registrar.
+This is not Cap-7 public DNS.
+The alternative mesh internet is not live.
+```
+
+`alt_internet_live` stays false. `public_icann_registrar` stays false. This command is a local check, not a Cap-7 public DNS door. Softwares stay 42. `tools/list` stays 36.
+
 ## 3. One sequence per handle
 
 Every signed relay act except `pull`, `object`, and the `sync` wrapper consumes one monotonic sequence.

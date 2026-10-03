@@ -7,9 +7,13 @@
  *   node cli/aziel-runtime.mjs session exec azclce score '{"r":"...","d":"...","p":"..."}'
  *   node cli/aziel-runtime.mjs session receipt
  *   node cli/aziel-runtime.mjs session close
+ *   node cli/aziel-runtime.mjs handle generate
+ *   node cli/aziel-runtime.mjs handle sign --seed <seed> --text "short statement"
+ *   node cli/aziel-runtime.mjs handle verify --handle <#handle> --public-key <key> --sig <sig> --text "short statement"
  *
  * Default talks to the Worker. --local writes an equivalent session file
  * and prefers vendored engine modules (optional --jail child process).
+ * `handle` stays on this machine. It does not talk to the Worker.
  *
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
@@ -46,6 +50,13 @@ import {
   writeJobFile,
 } from "../src/background-job.js";
 import { probeListener, quietText, runningText, SERVICE_PORT, startRuntimeService } from "../src/runtime-service.js";
+import {
+  HANDLE_HONESTY_LINES,
+  HANDLE_SIGIL_PATH,
+  generateHandle,
+  signHandleStatement,
+  verifyHandleStatement,
+} from "../src/fed-mesh/local-handle.js";
 
 const DEFAULT_URL = process.env.AZIEL_RUNTIME_URL || "https://aziel-runtime.vibelock.workers.dev";
 const UA = "Mozilla/5.0";
@@ -68,6 +79,9 @@ Usage:
   aziel-runtime session receipt
   aziel-runtime session receipts
   aziel-runtime session close
+  aziel-runtime handle generate
+  aziel-runtime handle sign --seed <seed> --text <statement>
+  aziel-runtime handle verify --handle <#handle> --public-key <key> --sig <sig> --text <statement>
 
 Start:
   aziel-runtime call foldlock fold-preview --local --dry-run
@@ -87,6 +101,7 @@ Flags:
 
 More:
   aziel-runtime session --help
+  aziel-runtime handle --help
 `;
 }
 
@@ -113,6 +128,128 @@ Flags:
 
 Version history is in CHANGELOG.md.
 `;
+}
+
+function handleUsage() {
+  return `aziel-runtime handle — local Ed25519 mesh handle
+
+  generate
+  mint                 same as generate
+  sign --seed <seed> --text <statement>
+  sign --seed-file <path> --text <statement>
+  verify --handle <#handle> --public-key <key> --sig <sig> --text <statement>
+
+The seed is the 32-byte Ed25519 private seed, hex or base64url.
+It stays on this machine. This command writes no key file, uploads nothing,
+and registers no name on a relay.
+
+Same identity as src/fed-mesh/identity.js.
+Mark: ${HANDLE_SIGIL_PATH}
+Same file as https://godlock.uk/sigil.png and https://www.azieleliab.com/sigil.png.
+`;
+}
+
+function writeHandleHonesty() {
+  process.stdout.write(`${HANDLE_HONESTY_LINES.join("\n")}\n\n`);
+}
+
+function emitHandle(flags, result) {
+  if (flags && flags.json) print(result);
+  else process.stdout.write(formatHandle(result));
+  if (!result || result.ok === false) process.exit(1);
+}
+
+function formatHandle(result) {
+  const lines = [];
+  if (result && result.command === "generate" && result.ok) {
+    lines.push("Minted a mesh handle on this machine.");
+    lines.push("The seed is the private key. It stays on this machine.");
+    lines.push("Key file: none. Upload: none. Relay registration: none.");
+    lines.push("");
+    lines.push(field("handle", result.handle));
+    lines.push(field("public_key", result.public_key));
+    lines.push(field("seed", result.seed));
+    lines.push("");
+    lines.push('Next: aziel-runtime handle sign --seed <seed> --text "short statement"');
+  } else if (result && result.command === "sign" && result.ok) {
+    lines.push("Signed a statement on this machine.");
+    lines.push("");
+    lines.push(field("handle", result.handle));
+    lines.push(field("public_key", result.public_key));
+    lines.push(field("sig", result.sig));
+    lines.push(field("text", result.text));
+    lines.push("");
+    lines.push("Next: aziel-runtime handle verify --handle <handle> --public-key <key> --sig <sig> --text <statement>");
+  } else if (result && result.command === "verify" && result.ok) {
+    lines.push("Signature verified for this handle.");
+    lines.push("");
+    lines.push(field("handle", result.handle));
+    lines.push(field("ok", "yes"));
+  } else {
+    lines.push((result && result.message) || "The handle command failed.");
+    lines.push("");
+    lines.push(field("ok", "no"));
+    lines.push("");
+    lines.push("Next: aziel-runtime handle --help");
+  }
+  lines.push(field("sigil", (result && result.sigil) || HANDLE_SIGIL_PATH));
+  return `${lines.join("\n")}\n`;
+}
+
+async function seedTextFromFlags(flags) {
+  const file = flags && flags["seed-file"];
+  if (file) {
+    let raw;
+    try {
+      raw = await readFile(String(file), "utf8");
+    } catch {
+      return { ok: false, message: "The seed file could not be read." };
+    }
+    if (raw.length > 4096) return { ok: false, message: "The seed file is too large." };
+    return { ok: true, seed: raw.trim().split(/\s+/)[0] || "" };
+  }
+  if (flags && flags.seed) return { ok: true, seed: String(flags.seed) };
+  return { ok: false, message: "Sign needs a --seed or a --seed-file on this machine." };
+}
+
+async function cmdHandle(flags, sub) {
+  if (!sub || sub === "help") {
+    process.stdout.write(handleUsage());
+    return;
+  }
+  if (sub === "generate" || sub === "mint") {
+    emitHandle(flags, await generateHandle());
+    return;
+  }
+  if (sub === "sign") {
+    const seed = await seedTextFromFlags(flags);
+    if (!seed.ok) {
+      emitHandle(flags, { ok: false, command: "sign", message: seed.message, honesty: [...HANDLE_HONESTY_LINES] });
+      return;
+    }
+    const text = flags.text != null ? String(flags.text) : "";
+    emitHandle(flags, await signHandleStatement(seed.seed, text));
+    return;
+  }
+  if (sub === "verify") {
+    const sig = flags.sig != null ? flags.sig : flags.signature;
+    emitHandle(
+      flags,
+      await verifyHandleStatement({
+        handle: flags.handle,
+        public_key: flags["public-key"],
+        sig,
+        text: flags.text != null ? String(flags.text) : "",
+      }),
+    );
+    return;
+  }
+  emitHandle(flags, {
+    ok: false,
+    command: "handle",
+    message: `Unknown handle command "${sub}".`,
+    honesty: [...HANDLE_HONESTY_LINES],
+  });
 }
 
 function parseArgs(argv) {
@@ -438,6 +575,7 @@ async function welcomeText() {
   lines.push("Next:");
   lines.push("  aziel-runtime call foldlock fold-preview --local --dry-run");
   lines.push("  aziel-runtime session open --local");
+  lines.push("  aziel-runtime handle generate");
   lines.push("");
   lines.push("Then:");
   lines.push("  aziel-runtime session status --local");
@@ -831,7 +969,8 @@ async function main() {
   const parsed = parseArgs(argv);
   const [cmd, sub, ...rest] = parsed._;
   const sessionHelp = cmd === "session" && (parsed.flags.help || sub === "help");
-  if (parsed.flags.help || cmd === "help" || sessionHelp) {
+  const handleHelp = cmd === "handle" && parsed.flags.help;
+  if ((parsed.flags.help || cmd === "help" || sessionHelp) && !handleHelp) {
     process.stdout.write(sessionHelp ? sessionUsage() : usage());
     process.exit(0);
   }
@@ -889,6 +1028,20 @@ async function main() {
       await cmdService(parsed.flags, sub);
     } catch (err) {
       await fail(parsed.flags, err);
+    }
+    return;
+  }
+  if (cmd === "handle") {
+    writeHandleHonesty();
+    try {
+      await cmdHandle(parsed.flags, handleHelp ? "help" : sub);
+    } catch (err) {
+      emitHandle(parsed.flags, {
+        ok: false,
+        command: sub || "handle",
+        message: err && err.message ? err.message : String(err),
+        honesty: [...HANDLE_HONESTY_LINES],
+      });
     }
     return;
   }
