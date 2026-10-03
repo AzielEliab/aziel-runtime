@@ -32,6 +32,7 @@ import {
   verifyChainStrict,
 } from "../src/session-core.js";
 import { RUNTIME_VERSION } from "../src/runtime-api.js";
+import { githubIdentityLog, githubIdentityLogLine, readCheckoutGitSha } from "../src/version-log.js";
 import { executeLocal, proxyFallbackMeta } from "../src/engines/runner.js";
 import { networkRefuseEnvelope } from "../src/remote-transport.js";
 import { spawn } from "node:child_process";
@@ -836,7 +837,12 @@ async function main() {
     process.exit(0);
   }
   if (parsed.flags.version) {
-    process.stdout.write(`aziel-runtime ${RUNTIME_VERSION}\n`);
+    const identity = githubIdentityLog({
+      git_sha: readCheckoutGitSha(),
+      git_sha_source: "git_head",
+    });
+    if (parsed.flags.json) print(identity);
+    else process.stdout.write(`${githubIdentityLogLine(identity)}\n`);
     process.exit(0);
   }
   if (parsed._.length === 0) {
