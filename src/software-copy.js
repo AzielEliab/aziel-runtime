@@ -85,9 +85,10 @@ export const SOFTWARE_COPY = Object.freeze({
       "Use AZInterface as the suite shell that opens Softwares that can run on this computer, and to read and step site state through OFF, integrity, ON, FULL SHUTDOWN, and MEMORIAL. It exists so the desk and those page cycles stay in one custodial shell.",
   },
   azmail: {
-    one_line: "Classify mail text, keep a local mailbox, and optionally use an anonymous ring.",
+    one_line:
+      "Classify mail text and keep a local mailbox sealed to the user key, including links and files. Scan is LIVE-when-scanner-present. The airgap is present. Ordinary SMTP is not end-to-end.",
     description:
-      "Use AZMail for an advisory airlock, a local mailbox, and an anonymous mail ring that starts off. It exists for isolate mail work.",
+      "Use AZMail for an advisory airlock and a local mailbox encrypted to the user key. It exists so untrusted mail is scanned and sealed before it reaches the user. Body, links, videos, docs, images, zips, and other files cross an airgap only after a scan. The scan is LIVE-when-scanner-present (ClamAV). An absent scanner refuses AZM-SCAN-ABSENT and returns no clean verdict. Attachments stay inert. AZMail-to-AZMail seals those parts end-to-end to the user key. Mail to @gmail, @live, @yahoo, and other SMTP domains is a normal MIME message over opportunistic TLS and is not end-to-end. Public smtp_send stays stub. Field 1.0 is false. A Proton-clone claim is false. The anonymous ring still starts off.",
   },
   aznet: {
     one_line: `Check hash continuity on the Cap-7 and .aziel name plane. Track 2 packet reachability stays NOT-READY (STANDS-until-demonstrated) in failover order ${D2D_ORDER_LABEL}.`,

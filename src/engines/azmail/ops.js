@@ -78,8 +78,8 @@ export async function runAzmail(op, payload, scratch, env) {
   if (op === "keyword_alert_list") return keywordAlertList(payload, env);
   if (op === "keyword_alert_check") return keywordAlertCheck(payload, env);
   if (op === "mailbox_open") return mailboxOpen(payload);
-  if (op === "notice_post") return noticePost(payload);
-  if (op === "mail_post") return mailPost(payload);
+  if (op === "notice_post") return noticePost(payload, env);
+  if (op === "mail_post") return mailPost(payload, env);
   if (op === "inbox_pull") return inboxPull(payload);
   if (op === "ack") return mailboxAck(payload);
   if (op === "verify_receipt") return mailboxVerifyReceipt(payload);
@@ -92,7 +92,7 @@ export async function runAzmail(op, payload, scratch, env) {
       true_engine_runtime: true,
       limitation: LIMITATION,
       author: AUTHOR,
-      ...transportStatus(),
+      ...transportStatus(env),
     };
   }
   return { unsupported: true };

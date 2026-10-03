@@ -10,6 +10,7 @@ import { engineOps } from "../src/engines/registry.js";
 import { executeLocal } from "../src/engines/runner.js";
 import { resetHashStore } from "../src/engines/hash-store.js";
 import { resetAzmailStore } from "../src/engines/azmail/engine.js";
+import { fixtureLabeledScanner, generateUserKeyPair } from "../src/engines/azmail/guard.js";
 import { RUNTIME_VERSION } from "../src/runtime-api.js";
 import { D1_SEARCH_SQL, search } from "../src/engines/aziel-corpus/engine.js";
 
@@ -60,51 +61,43 @@ for (const [slug, op] of remain) {
 }
 
 resetAzmailStore();
-const notice = JSON.parse(
-  (
-    await executeLocal({
-      slug: "azmail",
-      op: "notice_post",
-      payload: { class: "update", text: "worker inbox", to: "worker" },
-      ranIn: "aziel-runtime",
-    })
-  ).responseText,
-);
-assert.equal(notice.ok, true);
+const sealEnv = { AZMAIL_SCANNER: fixtureLabeledScanner() };
+const workerKey = await generateUserKeyPair();
+const aliceKey = await generateUserKeyPair();
+const bobKey = await generateUserKeyPair();
+async function azmailLocal(op, payload) {
+  return JSON.parse(
+    (
+      await executeLocal({
+        slug: "azmail",
+        op,
+        payload,
+        env: sealEnv,
+        ranIn: "aziel-runtime",
+      })
+    ).responseText,
+  );
+}
+assert.equal((await azmailLocal("mailbox_open", { mailbox_id: "worker", user_public_key: workerKey.public_jwk })).public_key_registered, true);
+assert.equal((await azmailLocal("mailbox_open", { mailbox_id: "alice", user_public_key: aliceKey.public_jwk })).private_key_stored, false);
+assert.equal((await azmailLocal("mailbox_open", { mailbox_id: "bob", user_public_key: bobKey.public_jwk })).ok, true);
+const notice = await azmailLocal("notice_post", { class: "update", text: "worker inbox", to: "worker" });
+assert.equal(notice.ok, true, JSON.stringify(notice));
 assert.equal(notice.smtp, false);
-const inbox = JSON.parse(
-  (
-    await executeLocal({
-      slug: "azmail",
-      op: "inbox_pull",
-      payload: { mailbox_id: "worker" },
-      ranIn: "aziel-runtime",
-    })
-  ).responseText,
-);
-assert.ok(inbox.items.some((i) => i.text === "worker inbox"));
-const mailed = JSON.parse(
-  (
-    await executeLocal({
-      slug: "azmail",
-      op: "mail_post",
-      payload: { from: "alice", to: "bob", text: "local only" },
-      ranIn: "aziel-runtime",
-    })
-  ).responseText,
-);
-assert.equal(mailed.ok, true);
-const bob = JSON.parse(
-  (
-    await executeLocal({
-      slug: "azmail",
-      op: "inbox_pull",
-      payload: { mailbox_id: "bob" },
-      ranIn: "aziel-runtime",
-    })
-  ).responseText,
-);
-assert.ok(bob.items.some((i) => i.text === "local only"));
+assert.equal(notice.e2e, true);
+assert.equal(notice.item.plaintext_crossed, false);
+assert.equal(notice.item.text, undefined);
+const inbox = await azmailLocal("inbox_pull", { mailbox_id: "worker", user_private_key: workerKey.private_jwk });
+assert.equal(inbox.private_key_stored, false);
+assert.equal(inbox.items.some((i) => i.text === "worker inbox"), false);
+assert.ok(inbox.opened.some((row) => row.body === "worker inbox"));
+const mailed = await azmailLocal("mail_post", { from: "alice", to: "bob", text: "local only" });
+assert.equal(mailed.ok, true, JSON.stringify(mailed));
+assert.equal(mailed.e2e, true);
+assert.equal(mailed.external_smtp_e2e, false);
+const bob = await azmailLocal("inbox_pull", { mailbox_id: "bob", user_private_key: bobKey.private_jwk });
+assert.equal(bob.items.some((i) => i.text === "local only"), false);
+assert.ok(bob.opened.some((row) => row.body === "local only"));
 
 resetHashStore();
 const put = JSON.parse(
