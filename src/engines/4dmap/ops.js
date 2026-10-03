@@ -83,6 +83,9 @@ export const FOURDMAP_OPS = [
   "pattern_recall",
   "lattice_tip",
   "poison_refuse",
+  "news_status",
+  "news_pin",
+  "news_open",
 ];
 
 const LATTICE_OPS = new Set([
@@ -94,6 +97,9 @@ const LATTICE_OPS = new Set([
   "pattern_recall",
   "lattice_tip",
   "poison_refuse",
+  "news_status",
+  "news_pin",
+  "news_open",
 ]);
 
 function latticeEnvelope(op, body) {

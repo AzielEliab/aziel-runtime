@@ -103,6 +103,11 @@ Reached only via `fraggate_call` / `POST /v1/fraggate/call` with `{ slug: "4dmap
 | pattern_recall | Recurring feature hashes on the hashchain lattice. |
 | lattice_tip | Append-only lattice tips. |
 | poison_refuse | Append a refuse-set card. Feature hash only. |
+| news_status | Read the AZNews join. Names the absent news source. merged and live stay false. |
+| news_pin | Land one news item as a date × event × place pin. Refuses when no news source is present. |
+| news_open | Open the news item that matches a pin. Refuses when no news source is present. |
+
+AZNews is not a Softwares card and not an MCP tool. The corpus library map cite (`https://www.azielcorpuslibrary.net/map`, cite only, merged false) is not this join. No news source module and no public Aziel news feed are in this tree, so production merged and live stay false. A labeled fixture may prove the pin and open path without flipping those flags. Receipts this join writes use a primary hash chain and a secondary hash chain. When the user is offline, the secondary hash is that document's primary hash plus the username, so the document is not written twice. That lattice is not marked live.
 
 Stub refuse (never hosted): `truth_score`, `lumen_panel`, `invent_mark`, `backdate_class`.
 

@@ -156,7 +156,7 @@ export const STUB_REFUSE = Object.freeze([
 ]);
 
 export const LIMITATION =
-  "THIS IS: 4DMap 4DM-WP-1.0 — a four-axis inspection frame T/Δ/Γ/Π. Inspection frame after AZPIPE routes to isolated engines (not an extra door; domains_are_doors:false). Cards pin, span, join, and walk declared marks. FragGate claims cite join types. ChainLock may stamp walks. THIS IS NOT: a sequential gate (DecisionGATE is); a truth score; a Lumen panel; an invented mark; a backdated class; TemporalLock; StaticClock; ChronoLock; TrajectoryLock; SpectralLock; AZ-OS / Lumen. Mesh default off. GET /v1/mesh never enables. EmbryoLock stays stub. Author: Aziel Eliab only.";
+  "THIS IS: 4DMap 4DM-WP-1.0 — a four-axis inspection frame T/Δ/Γ/Π. Inspection frame after AZPIPE routes to isolated engines (not an extra door; domains_are_doors:false). Cards pin, span, join, and walk declared marks. FragGate claims cite join types. ChainLock may stamp walks. AZNews is joined here only as a pin and open path. No news source is present, so that join stays refused, unmerged, and not live. THIS IS NOT: a sequential gate (DecisionGATE is); a truth score; a Lumen panel; an invented mark; a backdated class; a live news product; Field 1.0; an installed app; TemporalLock; StaticClock; ChronoLock; TrajectoryLock; SpectralLock; AZ-OS / Lumen. Mesh default off. GET /v1/mesh never enables. EmbryoLock stays stub. Author: Aziel Eliab only.";
 
 const FORBIDDEN_KEYS = Object.freeze({
   truth_score: { kind: "truth_score", code: "4DM-TRUTH-REFUSE" },
@@ -226,7 +226,7 @@ export function joinTypeForOp(op) {
   if (verb === "card_walk" || verb === "walk" || verb === "walk_trace") return "walk";
   if (verb === "verify_hash" || verb === "verify_chain" || verb === "memory_cite" || verb === "memory_observe") return "cite";
   if (verb === "neighbor_cite") return "neighbor";
-  if (verb === "library_pin") return "pin";
+  if (verb === "library_pin" || verb === "news_pin") return "pin";
   return "inspect";
 }
 
@@ -389,7 +389,9 @@ Four-axis inspection frame **T / Δ / Γ / Π**. Inspection frame after AZPIPE (
 - FragGate claims cite join types: pin, span, join, walk, overlay, cite, neighbor, inspect
 - Leftover flat names such as \`4dmap_card_new\` still go through FragGate (\`parseTarget\`) — they are not a side door and are not listed on \`tools/list\`
 
-LIVE_OPS: health, skill, pin, span, stack, gap, fork, walk, lens, class, cohort, absence, cap, join, list, example, card_new, card_pin, card_span, card_join, card_walk, card_list, verify_hash, frame_status, axis_describe, walk_trace, card_export, card_import, verify_chain, neighbor_cite, memory_cite, memory_observe, library_pin, plot, possibility, pattern_recall, lattice_tip, poison_refuse.
+LIVE_OPS: health, skill, pin, span, stack, gap, fork, walk, lens, class, cohort, absence, cap, join, list, example, card_new, card_pin, card_span, card_join, card_walk, card_list, verify_hash, frame_status, axis_describe, walk_trace, card_export, card_import, verify_chain, neighbor_cite, memory_cite, memory_observe, library_pin, plot, possibility, pattern_recall, lattice_tip, poison_refuse, news_status, news_pin, news_open.
+
+AZNews is not a Softwares card and not an MCP tool. news_pin lands a news item as a date × event × place pin. news_open opens the matching item from the map. With no news source, both refuse and name the missing module. A labeled fixture can prove the path and does not set merged or live. The library map cite is not this join.
 
 Stubs (refuse): truth_score, lumen_panel, invent_mark, backdate_class. Product 0.3.0.
 
@@ -404,7 +406,8 @@ Limitation: ${LIMITATION}
 
 Four-axis inspection frame T/Δ/Γ/Π. Inspection frame after AZPIPE, not an extra door. Not a sequential gate.
 
-LIVE_OPS: health, skill, pin, span, stack, gap, fork, walk, lens, class, cohort, absence, cap, join, list, example, card_new, card_pin, card_span, card_join, card_walk, card_list, verify_hash, frame_status, axis_describe, walk_trace, card_export, card_import, verify_chain, neighbor_cite, memory_cite, memory_observe, library_pin, plot, possibility, pattern_recall, lattice_tip, poison_refuse.
+LIVE_OPS: health, skill, pin, span, stack, gap, fork, walk, lens, class, cohort, absence, cap, join, list, example, card_new, card_pin, card_span, card_join, card_walk, card_list, verify_hash, frame_status, axis_describe, walk_trace, card_export, card_import, verify_chain, neighbor_cite, memory_cite, memory_observe, library_pin, plot, possibility, pattern_recall, lattice_tip, poison_refuse, news_status, news_pin, news_open.
+AZNews stays inside 4DMap. No news source, so merged and live stay false.
 Stubs: truth_score, lumen_panel, invent_mark, backdate_class.
 Join types cited on FragGate claims: ${JOIN_TYPES.join(", ")}.
 Neighbors: ${NEIGHBORS.join(", ")}.
