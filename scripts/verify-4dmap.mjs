@@ -4,7 +4,21 @@
  * Author: Aziel Eliab.
  */
 import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
 import { PRODUCTS } from "../src/index.js";
+import { plainConsumerText, summaryFromResult } from "../src/display.js";
+import { PUBLIC_MCP_TOOLS } from "../src/fraggate/codes.js";
+import { softwareCatalog } from "../src/software-catalog.js";
+import { canonicalize, sha256Hex } from "../src/session-core.js";
+import {
+  AZNEWS_ABSENT_MODULE,
+  AZNEWS_ABSENT_SOURCE,
+  LIBRARY_MAP,
+  offlineSecondaryHash,
+  onlineSecondaryHash,
+  primaryChainHash,
+} from "../src/engines/4dmap/aznews.js";
+import { GENESIS_PREV } from "../src/engines/4dmap/product-card.js";
 import { CATALOG_ALIASES } from "../src/catalog-meta.js";
 import { LIVE_OPS, STUB_OPS, buildRegistry, classifyCall, parseTarget } from "../src/fraggate/registry.js";
 import { softwareBucket } from "../src/software-catalog.js";
@@ -546,4 +560,262 @@ assert.match(home, /frame_status/);
 assert.doesNotMatch(product.banner, /Domain Door/);
 
 void claimJoin;
+
+resetFourdmapStore();
+const catalog = softwareCatalog(origin, PRODUCTS);
+assert.equal(catalog.count, 42);
+assert.equal(catalog.software.some((row) => row.slug === "aznews"), false);
+assert.equal(PUBLIC_MCP_TOOLS.length, 36);
+assert.equal(PUBLIC_MCP_TOOLS.includes("news_pin"), false);
+assert.equal(PUBLIC_MCP_TOOLS.includes("aznews"), false);
+assert.equal(existsSync(new URL("../src/engines/4dmap/aznews-source.js", import.meta.url)), false);
+assert.equal(joinTypeForOp("news_pin"), "pin");
+assert.ok(live.includes("news_pin"));
+assert.ok(live.includes("news_open"));
+assert.ok(catalogOps.has("news_status"));
+
+const newsProduct = { name: "4DMap", slug: "4dmap" };
+function humanLines(body) {
+  const plain = plainConsumerText(body, null);
+  const summary = summaryFromResult(body, null, newsProduct);
+  assert.doesNotMatch(plain, /\{/);
+  assert.doesNotMatch(summary, /\{/);
+  assert.doesNotMatch(plain, /15:20/);
+  assert.doesNotMatch(summary, /15:20/);
+  return { plain, summary };
+}
+
+const absentPin = await (await post("/v1/fraggate/call", { slug: "4dmap", op: "news_pin", payload: {} })).json();
+assert.equal(absentPin.code, "FG-OK");
+assert.equal(absentPin.result.ok, false);
+assert.equal(absentPin.result.code, "AZNEWS-SOURCE-ABSENT");
+assert.equal(absentPin.result.merged, false);
+assert.equal(absentPin.result.live, false);
+assert.equal(absentPin.result.source_present, false);
+assert.equal(absentPin.result.lattice_live, false);
+assert.equal(absentPin.result.aznews.merged, false);
+assert.equal(absentPin.result.aznews.live, false);
+assert.equal(absentPin.result.absent_module, AZNEWS_ABSENT_MODULE);
+assert.match(absentPin.result.note, new RegExp(AZNEWS_ABSENT_MODULE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+assert.match(absentPin.result.note, new RegExp(AZNEWS_ABSENT_SOURCE));
+const absentHuman = humanLines(absentPin);
+assert.match(absentHuman.summary, /refused/i);
+assert.match(absentHuman.plain, /src\/engines\/4dmap\/aznews-source\.js/);
+
+const libraryAsNews = await (
+  await post("/v1/fraggate/call", { slug: "4dmap", op: "news_pin", payload: { map: LIBRARY_MAP, event: "library map" } })
+).json();
+assert.equal(libraryAsNews.result.code, "AZNEWS-NOT-LIBRARY");
+assert.equal(libraryAsNews.result.merged, false);
+assert.equal(libraryAsNews.result.live, false);
+assert.match(libraryAsNews.result.note, /not AZNews/i);
+
+const fixture = {
+  fixture: true,
+  fixture_label: "test-fixture",
+  offline: true,
+  username: "fixture-reader",
+  merged: true,
+  live: true,
+  item: {
+    id: "fixture-item-1",
+    date: "1999-12-31",
+    event: "fixture desk note",
+    lat: 0,
+    lon: 0,
+    headline: "Labeled fixture item. Not a published article.",
+  },
+};
+const pinned = await (await post("/v1/fraggate/call", { slug: "4dmap", op: "news_pin", payload: fixture })).json();
+assert.equal(pinned.code, "FG-OK");
+assert.equal(pinned.result.ok, true);
+assert.equal(pinned.result.op, "news_pin");
+assert.equal(pinned.result.merged, false);
+assert.equal(pinned.result.live, false);
+assert.equal(pinned.result.source_present, false);
+assert.equal(pinned.result.fixture_is_source, false);
+assert.equal(pinned.result.surface, "MOCK");
+assert.equal(pinned.result.lattice_live, false);
+assert.equal(pinned.result.field_1_0, false);
+assert.equal(pinned.result.installed_app, false);
+assert.equal(pinned.result.aznews.live, false);
+assert.equal(pinned.result.aznews.merged, false);
+assert.equal(pinned.result.date, "1999-12-31T00:00:00Z");
+assert.equal(pinned.result.event, "fixture desk note");
+assert.equal(pinned.result.pin_frame.lat, 0);
+assert.equal(pinned.result.pin_frame.lon, 0);
+assert.deepEqual(pinned.result.receipt.lattices, ["primary", "secondary"]);
+assert.equal(pinned.result.receipt.lattice_live, false);
+assert.equal(pinned.result.receipt.offline, true);
+assert.equal(pinned.result.receipt.primary_prev, GENESIS_PREV);
+assert.equal(pinned.result.receipt.secondary_prev, GENESIS_PREV);
+assert.equal(
+  pinned.result.receipt.primary,
+  await primaryChainHash(pinned.result.document_hash, GENESIS_PREV),
+);
+assert.equal(
+  pinned.result.receipt.secondary,
+  await offlineSecondaryHash(pinned.result.document_hash, "fixture-reader"),
+);
+const independentSecondary = await sha256Hex(
+  canonicalize({ primary: pinned.result.document_hash, username: "fixture-reader" }),
+);
+assert.equal(pinned.result.receipt.secondary, independentSecondary);
+const pinHuman = humanLines(pinned);
+assert.match(pinHuman.summary, /fixture item was pinned/i);
+assert.match(pinHuman.summary, /not live/i);
+assert.doesNotMatch(pinHuman.summary, /Field 1\.0 is live|installed as an app/i);
+
+const doubled = await (await post("/v1/fraggate/call", { slug: "4dmap", op: "news_pin", payload: fixture })).json();
+assert.equal(doubled.result.ok, false);
+assert.equal(doubled.result.code, "AZNEWS-DOUBLE");
+assert.equal(doubled.result.merged, false);
+assert.equal(doubled.result.live, false);
+assert.match(doubled.result.note, /not written again/i);
+
+const otherUser = {
+  ...fixture,
+  username: "fixture-reader-2",
+  merged: true,
+  live: true,
+};
+const secondUser = await (await post("/v1/fraggate/call", { slug: "4dmap", op: "news_pin", payload: otherUser })).json();
+assert.equal(secondUser.result.ok, true);
+assert.equal(secondUser.result.live, false);
+assert.equal(secondUser.result.merged, false);
+assert.equal(secondUser.result.document_hash, pinned.result.document_hash);
+assert.notEqual(secondUser.result.receipt.secondary, pinned.result.receipt.secondary);
+assert.equal(
+  secondUser.result.receipt.secondary,
+  await offlineSecondaryHash(secondUser.result.document_hash, "fixture-reader-2"),
+);
+assert.equal(secondUser.result.receipt.primary_prev, pinned.result.receipt.primary);
+
+const openedNews = await (
+  await post("/v1/fraggate/call", {
+    slug: "4dmap",
+    op: "news_open",
+    payload: { id: "fixture-item-1", offline: true, username: "fixture-reader" },
+  })
+).json();
+assert.equal(openedNews.result.ok, true);
+assert.equal(openedNews.result.op, "news_open");
+assert.equal(openedNews.result.headline, "Labeled fixture item. Not a published article.");
+assert.equal(openedNews.result.merged, false);
+assert.equal(openedNews.result.live, false);
+assert.equal(openedNews.result.fixture_is_source, false);
+assert.equal(openedNews.result.already_on_chain, false);
+assert.deepEqual(openedNews.result.receipt.lattices, ["primary", "secondary"]);
+assert.equal(openedNews.result.receipt.lattice_live, false);
+assert.equal(
+  openedNews.result.receipt.secondary,
+  await offlineSecondaryHash(openedNews.result.document_hash, "fixture-reader"),
+);
+const openHuman = humanLines(openedNews);
+assert.match(openHuman.plain, /Labeled fixture item/);
+assert.match(openHuman.summary, /opened the matching fixture item/i);
+
+const openedAgain = await (
+  await post("/v1/fraggate/call", {
+    slug: "4dmap",
+    op: "news_open",
+    payload: { item_id: "fixture-item-1", offline: true, username: "fixture-reader" },
+  })
+).json();
+assert.equal(openedAgain.result.ok, true);
+assert.equal(openedAgain.result.already_on_chain, true);
+assert.equal(openedAgain.result.receipt.secondary, openedNews.result.receipt.secondary);
+assert.equal(openedAgain.result.live, false);
+assert.match(openedAgain.result.note, /not written again/i);
+
+const byPlace = await (
+  await post("/v1/fraggate/call", {
+    slug: "4dmap",
+    op: "news_open",
+    payload: {
+      offline: true,
+      username: "fixture-reader-2",
+      date: "1999-12-31",
+      event: "fixture desk note",
+      lat: 0,
+      lon: 0,
+    },
+  })
+).json();
+assert.equal(byPlace.result.ok, true);
+assert.equal(byPlace.result.item_id, "fixture-item-1");
+assert.equal(byPlace.result.live, false);
+
+const plotted = await (await post("/v1/fraggate/call", { slug: "4dmap", op: "plot", payload: {} })).json();
+assert.equal(plotted.result.ok, true);
+assert.ok(plotted.result.pins.some((pin) => pin.event === "fixture desk note" && pin.surface === "MOCK"));
+
+const online = await (
+  await post("/v1/fraggate/call", {
+    slug: "4dmap",
+    op: "news_pin",
+    payload: {
+      fixture: true,
+      fixture_label: "test-fixture",
+      offline: false,
+      live: true,
+      merged: true,
+      item: {
+        id: "fixture-item-online",
+        date: "2001-01-01",
+        event: "fixture online note",
+        lat: 1,
+        lon: 2,
+        headline: "Labeled fixture item for the online chain. Not a published article.",
+      },
+    },
+  })
+).json();
+assert.equal(online.result.ok, true);
+assert.equal(online.result.live, false);
+assert.equal(online.result.merged, false);
+assert.equal(online.result.receipt.offline, false);
+assert.equal(
+  online.result.receipt.secondary,
+  await onlineSecondaryHash(online.result.receipt.primary, online.result.receipt.secondary_prev),
+);
+assert.notEqual(
+  online.result.receipt.secondary,
+  await offlineSecondaryHash(online.result.document_hash, "fixture-reader"),
+);
+assert.equal(online.result.receipt.lattice_live, false);
+
+const after = await (await post("/v1/fraggate/call", { slug: "4dmap", op: "news_status", payload: {} })).json();
+assert.equal(after.result.ok, true);
+assert.equal(after.result.joined, true);
+assert.equal(after.result.source_present, false);
+assert.equal(after.result.merged, false);
+assert.equal(after.result.live, false);
+assert.equal(after.result.lattice_live, false);
+assert.equal(after.result.code, "AZNEWS-SOURCE-ABSENT");
+assert.ok(after.result.fixture_pins >= 1);
+assert.equal(after.result.fixture_is_source, false);
+assert.match(after.result.note, /not a news source/i);
+const statusHuman = humanLines(after);
+assert.match(statusHuman.summary, /No news source is present/i);
+
+const libraryStill = await (
+  await post("/v1/fraggate/call", {
+    slug: "4dmap",
+    op: "library_pin",
+    payload: { event: "paper pin", date: "1914-08-01", lat: 48.85, lon: 2.35, surface: "MOCK" },
+  })
+).json();
+assert.equal(libraryStill.result.ok, true);
+assert.equal(libraryStill.result.op, "library_pin");
+assert.equal(libraryStill.result.library.cite_only, true);
+assert.equal(libraryStill.result.library.merged, false);
+assert.equal(libraryStill.result.library.slug, "aziel-corpus");
+assert.equal(libraryStill.result.library.map, LIBRARY_MAP);
+assert.notEqual(libraryStill.result.library.software, "AZNews");
+
+const softwareAgain = await (await handler(new Request(origin + "/v1/software"), env)).json();
+assert.equal(softwareAgain.count, 42);
+assert.equal(softwareAgain.software.some((row) => row.slug === "aznews"), false);
+
 console.log(`ok 4dmap ${product.version}: LIVE_OPS=${live.join(",")} stub=${STUB_OPS["4dmap"].join(",")} axes=${AXES.join("/")}`);

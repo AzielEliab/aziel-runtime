@@ -204,7 +204,7 @@ export const HUMAN_TASKS = Object.freeze([
     name: "4DMap",
     op: "pin",
     title: "Pin a declared mark",
-    blurb: "Inspection frame T/Δ/Γ/Π after AZPIPE. Not a sequential gate. Not a truth score. Not a Lumen panel.",
+    blurb: "Inspection frame T/Δ/Γ/Π after AZPIPE. Not a sequential gate. Not a truth score. Not a Lumen panel. AZNews can pin or open an item here, and refuses while no news source is present.",
     fields: [{ name: "label", label: "Declared mark label", type: "text", example: "inspect-1" }],
   },
   {
