@@ -85,6 +85,8 @@ Glama’s **Tool Schema Changelog** label is written at **inspection / Make Rele
 
 If Glama’s parser skips prerelease strings (`2.0.0-rc1`), the listing release can stay an `X.Y.Z` such as 2.0.7 while the Worker package stays `2.0.0-rc1`. Do not change `RUNTIME_VERSION` to a non-rc string to chase that label.
 
+Checked 2026-10-03: `package.json` and `glama.json` `version` are `2.0.0-rc1`. GitHub `GET /repos/AzielEliab/aziel-runtime/releases/latest` is 404 because the only release is prerelease tag `v2.0.0-rc1` (commit `a02b58d`, 2026-09-10). The public Glama page `latestRelease.version` was `2.0.10` with no git SHA, while the page copy still said Version `2.0.0-rc1` and Glama release `2.0.7`. The Tool Schema Changelog’s oldest stored `releaseVersion` was `1.6.2` (2026-09-12), a strict semver that appears in the server description as superseded heritage. A parser that keeps only `X.Y.Z` skips `2.0.0-rc1` and can log that heritage number, or Glama’s own counter, instead of the GitHub version. This repo’s logger (`src/version-log.js`) records `2.0.0-rc1` and the real git sha. It does not write `2.0.10`, `2.0.7`, or `1.6.2` as the version.
+
 ## Neighbor map (selection)
 
 | If you want… | Use | Not |

@@ -21,6 +21,7 @@ import {
   runStdioLoop,
   usage,
 } from "../src/mcp-stdio.js";
+import { githubIdentityLog, githubIdentityLogLine, readCheckoutGitSha } from "../src/version-log.js";
 
 async function main() {
   const { flags, rest } = parseCliArgs(process.argv.slice(2));
@@ -36,6 +37,11 @@ async function main() {
     process.stderr.write(interactiveHint());
   }
   const ctx = createBridgeContext({ flags });
+  const identity = githubIdentityLog({
+    git_sha: readCheckoutGitSha(),
+    git_sha_source: "git_head",
+  });
+  ctx.log(githubIdentityLogLine(identity));
   ctx.log(
     `aziel-runtime-mcp ${ctx.local ? "local" : "bridge"} ${ctx.local ? "in-process" : ctx.url + "/mcp"}`,
   );

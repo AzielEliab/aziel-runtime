@@ -7,6 +7,8 @@
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
 
+import { githubIdentityFromEnv } from "./version-log.js";
+
 export const USES_PRODUCT = "aziel-runtime";
 export const USES_AUTHOR = "Aziel Eliab";
 export const USES_LOG_KEY = "log";
@@ -499,8 +501,21 @@ export async function incrementUse(env, dims = {}) {
   if (op) entry.op = op;
   if (extraOps.length) entry.ops = op ? [op, ...extraOps] : extraOps.slice();
   if (via && via !== "unknown") entry.via = via;
+  stampGithubIdentity(env, entry);
   await appendLog(kv, entry);
   return { ok: true, uses: counts[USES_TOTAL_KEY], entry };
+}
+
+/** Ring row and GET /v1/uses cite. Repo version, prerelease kept. Sha only when one was given. */
+export function stampGithubIdentity(env, entry) {
+  const id = githubIdentityFromEnv(env);
+  const target = entry && typeof entry === "object" ? entry : {};
+  target.version = id.version;
+  if (id.git_sha) {
+    target.git_sha = id.git_sha;
+    target.git_sha_source = id.git_sha_source;
+  }
+  return id;
 }
 
 export async function readUses(env, options = {}) {
@@ -510,10 +525,14 @@ export async function readUses(env, options = {}) {
       ? Number(options.budget_ms)
       : USES_READ_BUDGET_MS;
   const startedAt = Date.now();
+  const identity = {};
+  stampGithubIdentity(env, identity);
   const base = {
     ok: true,
     product: USES_PRODUCT,
     author: USES_AUTHOR,
+    version: identity.version,
+    ...(identity.git_sha ? { git_sha: identity.git_sha, git_sha_source: identity.git_sha_source } : {}),
     uses: 0,
     by_host: {},
     by_path: {},

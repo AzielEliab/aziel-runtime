@@ -8,6 +8,7 @@ Primary host: [Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runti
 ## Not stored (request bodies / secrets)
 
 - FragGate / MCP handlers do not persist Authorization headers, tokens, or raw request bodies in the API-use log.
+- The ring row and `GET /v1/uses` record `version` `2.0.0-rc1` (prerelease kept). `git_sha` is set only from `GIT_SHA` or `GITHUB_SHA`. The baked `src/build-meta.js` pin is not written as that commit. A Glama listing counter is not the version.
 - `GET /v1/uses` counters skip SEO files, health, mesh reads, and catalog GETs (`SKIP_CATALOG_GETS`, including `GET /v1/software`). Logged fields are path / host / day / op — **no PII**, no raw body. Prefix walks are budgeted (8s) so the route stays under the 25s deadline; incomplete maps set `uses_complete: false`. `GET /v1/mesh` peeks only `USES` `total` (`human_uses`) — it never walks `/v1/uses`. Live Nodes does not invent users from missing uses. Code: [`src/uses.js`](../src/uses.js), [`src/mesh.js`](../src/mesh.js).
 - `by_op` detail is additive and does not add a second hit to `uses`. The generic key stays so older totals stay comparable:
   - `POST /mcp` still records `mcp`. A JSON-RPC `tools/call` also records `mcp.<toolName>` when the name is a safe token (letters, digits, hyphen, underscore; max 48; case kept). Examples: `mcp.Softwares`, `mcp.fraggate_call`, `mcp.runtime_software`. `tools/list` and other methods stay `mcp` only.

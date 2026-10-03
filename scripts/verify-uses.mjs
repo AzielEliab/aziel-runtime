@@ -187,6 +187,8 @@ assert.equal(first.entry.host, "origin");
 assert.equal(first.entry.op, "fraggate.call");
 assert.equal(first.entry.via, "azieleliab.com");
 assert.equal(first.entry.method, "POST");
+assert.equal(first.entry.version, "2.0.0-rc1");
+assert.equal(first.entry.git_sha, undefined);
 assert.ok(!("authorization" in first.entry));
 assert.ok(!("body" in first.entry));
 assert.ok(!("token" in first.entry));

@@ -406,7 +406,7 @@ ${survivalSkillMarkdown(base)}
 | GET | \`/sitemap.xml\` | Catalog urlset. |
 | GET | \`/sitemap-index.xml\` | Catalog + azieleliab.com + Digital Library + godlock.uk + He Didn't Jump sister archive + live product Worker sitemaps. |
 | GET | \`/v1/health\` | Liveness. Optional \`uses_total\` when USES KV is bound. Does not increment. |
-| GET | \`/v1/uses\` | API use counters + recent ring log. Does not increment. No PII. by_op also records mcp.<tool> and fraggate.call.<slug> / fraggate.describe.<slug> when those tokens are safe. Softwares has no slug. |
+| GET | \`/v1/uses\` | API use counters + recent ring log. Does not increment. No PII. The ring records repo version 2.0.0-rc1 (prerelease kept) and git_sha when GIT_SHA or GITHUB_SHA is set. by_op also records mcp.<tool> and fraggate.call.<slug> / fraggate.describe.<slug> when those tokens are safe. Softwares has no slug. |
 | GET | \`/v1/stats\` | Alias of \`/v1/uses\`. |
 | GET | \`/v1/stats-rollups\` | Read-only sibling views/downloads snapshot (best-effort; never invents; omit on error). |
 | GET | \`/v1/mesh\` | QNM rollup: enabled?, bearers, nodes (human mesh users + cited human uses), live_nodes (human mesh users + site_live_viewers), software_nodes ({slug}-worker roster). Suite-presence ON by default. Never enables extra radios. Never pulls hub /count. \`survival_methods\`: L0 Worker edge LIVE; L1 multi-relay and direct/LAN live only when configured; Cap-7 factory exec LIVE on the Cap-7 plane (not ICANN, not a public egress IP); home-origin and cold shelves SLOT (doi null); Phoenix is local wait / re-seal. \`aznet_layers\`: L2 Cap-7 factory exec (no DNS publish), L3 SLOT registry, L4 offline stub that uses L0 when a relay is set. None replace L0. |
@@ -1773,7 +1773,7 @@ export function runtimeStaticPaths() {
       get: {
         operationId: "runtime_uses",
         summary:
-          "API use counters + recent ring log (no PII). Does not increment. Distinct from product download-trackers and the FragGate ledger. by_op keeps mcp, fraggate.call, and fraggate.describe, and adds mcp.<tool>, fraggate.call.<slug>, and fraggate.describe.<slug> when the token is safe. Extra keys do not add a second total. Softwares has no slug.",
+          "API use counters + recent ring log (no PII). Does not increment. Distinct from product download-trackers and the FragGate ledger. Each ring row records repo version 2.0.0-rc1 (prerelease kept) and git_sha when GIT_SHA or GITHUB_SHA is set. A Glama listing counter is not that version. by_op keeps mcp, fraggate.call, and fraggate.describe, and adds mcp.<tool>, fraggate.call.<slug>, and fraggate.describe.<slug> when the token is safe. Extra keys do not add a second total. Softwares has no slug.",
         tags: ["runtime"],
         responses: { "200": { description: "Uses JSON: uses, by_host, by_path, by_day, by_op, recent" } },
       },
