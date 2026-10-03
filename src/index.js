@@ -594,7 +594,7 @@ const PRODUCTS_RAW = [
       { op: "close", method: "POST", summary: "Alias of session_close. Seals the ethics session." },
       { op: "mode_list", method: "POST", summary: "Server, Bootstrap OS, and Full install. Not an OS yet without a kernel or userspace the machine can boot." },
       { op: "boot_path", method: "POST", summary: "Kernel base from the AZOS principles, plus any packaged boot image. Not booted, so this is not an OS yet. A browser tab is not the OS." },
-      { op: "internet_base", method: "POST", summary: "Internet base on the existing carriers. Not live until a real packet round trip. The public door stays FG-STUB." },
+      { op: "internet_base", method: "POST", summary: "Internet base on LAN, then Wi-Fi, then Bluetooth, then RF, then photon. Not live until a real packet on one of those carriers. Cellular is optional and refuses when no radio is present. The public door stays FG-STUB." },
       { op: "guardian", method: "POST", summary: "Digital Guardian stays on. It audits this operator's own requests on this machine and seals a lattice receipt. It cannot be turned off. It does not watch other people." },
       { op: "download_list", method: "POST", summary: "File list for one mode. Without a boot image the download stays incomplete. The phone web app is not the OS." },
       { op: "download_check", method: "POST", summary: "Complete only when a real kernel or userspace hash matches. A note is not an OS. A missing image stays not complete." },

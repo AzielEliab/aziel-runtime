@@ -400,8 +400,21 @@ assert.equal(net.alt_internet_live, false);
 assert.equal(net.packet_path_live, false);
 assert.equal(net.public_door, "FG-STUB");
 assert.equal(net.installed, false);
-assert.ok(net.carriers.some((row) => row.id === "lan" && row.packet_live === false));
+assert.deepEqual(net.carrier_order, ["lan", "wifi", "bluetooth", "rf", "photon"]);
+assert.ok(net.carriers.every((row) => row.packet_live === false && row.packet_counted !== true));
+assert.equal(net.cellular_counts, false);
+assert.equal(net.cellular_optional, true);
 assert.equal(net.line, "Internet base is present. Not live.");
+const netCell = await local(
+  "azos",
+  "internet_base",
+  {},
+  { ...dead, CELL_RADIO: { real: true, mock: false, present: true, roundTrip: async () => ({ ok: true, mock: false }) } },
+);
+assert.equal(netCell.cellular_status, "Live");
+assert.equal(netCell.cellular_counts, false);
+assert.equal(netCell.alt_internet_live, false);
+assert.equal(netCell.packet_path_live, false);
 const netMock = await local(
   "azos",
   "internet_base",
@@ -410,7 +423,8 @@ const netMock = await local(
 );
 assert.equal(netMock.alt_internet_live, false);
 assert.equal(netMock.packet_path_live, false);
-markPending("alt-internet-live", "Internet base is present. No real packet round trip has happened");
+assert.equal(netMock.cellular_status, "No service");
+markPending("alt-internet-live", "Internet base is present. No real packet on LAN, Wi-Fi, Bluetooth, RF, or photon. Cellular does not count");
 
 const mailHeld = await local("azmail", "mail_send_base", { confirm: true, from: "operator@azmail.local", to: "friend@example.com", text: "hello" }, dead);
 assert.equal(mailHeld.base, true);

@@ -58,6 +58,41 @@ export function carrierBase() {
   }));
 }
 
+function packetCounted(row) {
+  return Boolean(
+    row &&
+      row.packet_live === true &&
+      row.peer_exchange_demonstrated === true &&
+      row.mock !== true,
+  );
+}
+
+export async function probeCarrierOrder() {
+  let probed = null;
+  if (typeof process !== "undefined" && process.versions && process.versions.node) {
+    try {
+      const { track2CarrierProbe } = await import("../qnm-node/bearers/radio.js");
+      probed = track2CarrierProbe();
+    } catch {
+      probed = null;
+    }
+  }
+  const seen = probed && probed.carriers ? probed.carriers : {};
+  return carrierBase().map((row) => {
+    const hit = seen[row.id] || null;
+    return {
+      ...row,
+      state: hit ? hit.state : "REFUSE",
+      hardware: hit ? hit.hardware : false,
+      code: hit && hit.code ? hit.code : null,
+      packet_live: false,
+      packet_counted: packetCounted(hit),
+      peer_exchange_demonstrated: Boolean(hit && hit.peer_exchange_demonstrated === true),
+      mock: Boolean(hit && hit.mock === true),
+    };
+  });
+}
+
 export async function kernelBase() {
   const note = [
     "AZOS kernel base.",

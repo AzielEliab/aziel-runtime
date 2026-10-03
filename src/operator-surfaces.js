@@ -8,7 +8,7 @@ import { MemoryStore } from "./chainlock/store.js";
 import { append, tip } from "./chainlock/ops.js";
 import { sha256Hex } from "./session-core.js";
 import { inspectBeforeAirgap, probeScannerSync, scanMessageParts } from "./engines/azmail/guard.js";
-import { carrierBase, kernelBase, mailSendBase } from "./bases.js";
+import { kernelBase, mailSendBase, probeCarrierOrder } from "./bases.js";
 
 export const OPERATOR_AUTHOR = "Aziel Eliab";
 export const SEAL_SLUGS = new Set(["azmail", "azchat", "azbrowser", "azos", "azai", "veillock"]);
@@ -586,7 +586,8 @@ export async function bootPath() {
 
 export async function internetBase(payload, env) {
   const cell = await cellular({}, env);
-  const earned = cell.live === true && cell.code === "CELL-LIVE";
+  const carriers = await probeCarrierOrder();
+  const earned = carriers.some((row) => row.packet_counted === true);
   return {
     ok: true,
     op: "internet_base",
@@ -599,8 +600,12 @@ export async function internetBase(payload, env) {
     alt_internet_earned: earned,
     packet_path_earned: earned,
     public_door: "FG-STUB",
-    carriers: carrierBase(),
+    carrier_order: carriers.map((row) => row.id),
+    carriers,
+    cellular_optional: true,
+    cellular_counts: false,
     cellular_status: cell.status || "Absent",
+    cellular_code: cell.code || null,
     field_1_0: false,
     line: earned ? "Internet base carried a real packet." : "Internet base is present. Not live.",
     author: OPERATOR_AUTHOR,
