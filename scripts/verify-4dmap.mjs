@@ -17,6 +17,7 @@ import {
   offlineSecondaryHash,
   onlineSecondaryHash,
   primaryChainHash,
+  runAznews,
 } from "../src/engines/4dmap/aznews.js";
 import { GENESIS_PREV } from "../src/engines/4dmap/product-card.js";
 import { CATALOG_ALIASES } from "../src/catalog-meta.js";
@@ -552,6 +553,8 @@ assert.match(llms, /1\.7\.4/);
 
 const home = await (await handler(new Request(origin + "/"), env)).text();
 assert.match(home, /data-slug="4dmap"/);
+assert.match(home, /id="desk-aznews"/);
+assert.match(home, /news_ingest/);
 assert.match(home, /4DM-WP-1\.0/);
 assert.match(home, /not a sequential gate/i);
 assert.match(home, /1\.7\.6/);
@@ -568,7 +571,7 @@ assert.equal(catalog.software.some((row) => row.slug === "aznews"), false);
 assert.equal(PUBLIC_MCP_TOOLS.length, 36);
 assert.equal(PUBLIC_MCP_TOOLS.includes("news_pin"), false);
 assert.equal(PUBLIC_MCP_TOOLS.includes("aznews"), false);
-assert.equal(existsSync(new URL("../src/engines/4dmap/aznews-source.js", import.meta.url)), false);
+assert.equal(existsSync(new URL("../src/engines/4dmap/aznews-source.js", import.meta.url)), true);
 assert.equal(joinTypeForOp("news_pin"), "pin");
 assert.ok(live.includes("news_pin"));
 assert.ok(live.includes("news_open"));
@@ -817,5 +820,206 @@ assert.notEqual(libraryStill.result.library.software, "AZNews");
 const softwareAgain = await (await handler(new Request(origin + "/v1/software"), env)).json();
 assert.equal(softwareAgain.count, 42);
 assert.equal(softwareAgain.software.some((row) => row.slug === "aznews"), false);
+
+const imageBytes = new TextEncoder().encode("aznews-image-bytes");
+const imageHash = await sha256Hex(imageBytes);
+const imageB64 = Buffer.from(imageBytes).toString("base64");
+const standalone = await (
+  await post("/v1/fraggate/call", {
+    slug: "4dmap",
+    op: "news_ingest",
+    payload: {
+      fixture: true,
+      fixture_label: "standalone-fixture",
+      offline: true,
+      username: "fixture-reader",
+      live: true,
+      merged: true,
+      item: {
+        id: "fixture-standalone-1",
+        date: "1998-01-02",
+        event: "fixture standalone note",
+        lat: 3,
+        lon: 4,
+        headline: "Standalone fixture headline.",
+        wording: "Full standalone fixture wording. Not a published article.",
+        score: 0.25,
+        image: { b64: imageB64, url: "https://github.com/AzielEliab/aziel-runtime" },
+      },
+    },
+  })
+).json();
+assert.equal(standalone.result.ok, true);
+assert.equal(standalone.result.path, "standalone");
+assert.equal(standalone.result.on_map, false);
+assert.equal(standalone.result.live, false);
+assert.equal(standalone.result.merged, false);
+assert.equal(standalone.result.item_live, false);
+assert.equal(standalone.result.installed_app, false);
+assert.equal(standalone.result.wording, "Full standalone fixture wording. Not a published article.");
+assert.equal(standalone.result.score, 0.25);
+assert.equal(standalone.result.images[0].sha256, imageHash);
+assert.equal(standalone.result.images[0].dropped, false);
+assert.equal(standalone.result.images[0].fetch_url, "https://github.com/AzielEliab/aziel-runtime");
+assert.deepEqual(standalone.result.receipt.lattices, ["primary", "secondary"]);
+assert.equal(standalone.result.receipt.wording, standalone.result.wording);
+assert.equal(standalone.result.receipt.score, 0.25);
+assert.equal(standalone.result.receipt.images[0].sha256, imageHash);
+assert.equal(standalone.result.receipt.azos.updated, false);
+assert.equal(standalone.result.receipt.azos.slug, "azos");
+assert.equal(
+  standalone.result.receipt.secondary,
+  await offlineSecondaryHash(standalone.result.document_hash, "fixture-reader"),
+);
+const plotAfterStandalone = await (await post("/v1/fraggate/call", { slug: "4dmap", op: "plot", payload: {} })).json();
+assert.equal(
+  plotAfterStandalone.result.pins.some((pin) => pin.event === "fixture standalone note"),
+  false,
+);
+
+const realItem = await (
+  await post("/v1/fraggate/call", {
+    slug: "4dmap",
+    op: "news_pin",
+    payload: {
+      real: true,
+      offline: true,
+      username: "real-reader",
+      live: true,
+      merged: true,
+      installed: true,
+      item: {
+        id: "real-item-1",
+        date: "2026-10-03",
+        event: "supplied real desk item",
+        lat: 51.5,
+        lon: -0.12,
+        headline: "Supplied real item",
+        wording: "Full wording of the supplied real item. It was not fetched from a wire.",
+        score: 0.5,
+        image: { b64: imageB64, url: "https://github.com/AzielEliab/aziel-runtime", sha256: imageHash },
+      },
+    },
+  })
+).json();
+assert.equal(realItem.result.ok, true);
+assert.equal(realItem.result.path, "joined");
+assert.equal(realItem.result.on_map, true);
+assert.equal(realItem.result.item_live, true);
+assert.equal(realItem.result.live, false);
+assert.equal(realItem.result.aznews.live, false);
+assert.equal(realItem.result.merged, true);
+assert.equal(realItem.result.installed, false);
+assert.equal(realItem.result.installed_app, false);
+assert.equal(realItem.result.mesh_node, false);
+assert.equal(realItem.result.field_1_0, false);
+assert.equal(realItem.result.office_1_0, false);
+assert.equal(realItem.result.pilot_started, false);
+assert.equal(realItem.result.alt_internet_live, false);
+assert.equal(realItem.result.images[0].sha256, imageHash);
+assert.equal(realItem.result.images[0].dropped, false);
+assert.equal(realItem.result.receipt.score, 0.5);
+assert.equal(realItem.result.receipt.wording, realItem.result.wording);
+assert.equal(realItem.result.receipt.azos.updated, false);
+
+const sources = await (await post("/v1/fraggate/call", { slug: "4dmap", op: "news_sources", payload: {} })).json();
+assert.equal(sources.result.ok, true);
+assert.equal(sources.result.count, 50);
+assert.equal(sources.result.live, false);
+assert.equal(sources.result.sources_live, false);
+assert.equal(sources.result.outlets.length, 50);
+assert.ok(sources.result.outlets.every((row) => row.live === false && row.status === "configured-but-not-live"));
+assert.match(sources.result.ranking.article, /pressgazette\.co\.uk/);
+assert.match(sources.result.ranking.scope, /English-language/);
+assert.ok(sources.result.outlets.some((row) => row.access === "public-rss" && row.feed_url));
+assert.ok(sources.result.outlets.some((row) => row.access === "paid-or-blocked"));
+assert.ok(sources.result.outlets.some((row) => row.access === "unwired"));
+
+const weatherQuiet = await (await post("/v1/fraggate/call", { slug: "4dmap", op: "news_weather", payload: {} })).json();
+assert.equal(weatherQuiet.result.ok, true);
+assert.equal(weatherQuiet.result.weather_live, false);
+assert.equal(weatherQuiet.result.live, false);
+assert.ok(weatherQuiet.result.gaps >= 1);
+assert.ok(weatherQuiet.result.regions.every((row) => row.reading == null && row.gap === true && row.live === false));
+
+const weatherOne = await (
+  await post("/v1/fraggate/call", {
+    slug: "4dmap",
+    op: "news_weather",
+    payload: {
+      region: "northern-europe",
+      real: true,
+      observation: { temperature_2m: 9.5, observed_at: "2026-10-03T12:00:00Z" },
+    },
+  })
+).json();
+assert.equal(weatherOne.result.ok, true);
+assert.equal(weatherOne.result.weather_live, false);
+assert.equal(weatherOne.result.live, false);
+assert.equal(weatherOne.result.region.live, true);
+assert.equal(weatherOne.result.region.origin, "supplied");
+assert.equal(weatherOne.result.region.reading.temperature_2m, 9.5);
+assert.ok(weatherOne.result.regions.filter((row) => row.id !== "northern-europe").every((row) => row.gap === true && row.reading == null));
+assert.equal(weatherOne.result.receipt ? weatherOne.result.region.score : weatherOne.result.region.score, 1);
+
+const swans = await (await post("/v1/fraggate/call", { slug: "4dmap", op: "news_black_swan", payload: {} })).json();
+assert.equal(swans.result.ok, true);
+assert.equal(swans.result.live, false);
+assert.ok(swans.result.count >= 10);
+assert.ok(swans.result.events.every((row) => Array.isArray(row.cites) && row.cites.length >= 1 && row.score === 1));
+assert.ok(swans.result.events.some((row) => row.pinnable === false && row.date == null));
+
+const swanPin = await (
+  await post("/v1/fraggate/call", {
+    slug: "4dmap",
+    op: "news_black_swan",
+    payload: { id: "september-11-2001", pin: true, offline: true, username: "fixture-reader" },
+  })
+).json();
+assert.equal(swanPin.result.ok, true);
+assert.equal(swanPin.result.on_map, true);
+assert.equal(swanPin.result.item_live, false);
+assert.equal(swanPin.result.live, false);
+assert.equal(swanPin.result.merged, true);
+assert.match(swanPin.result.wording, /9\/11/);
+assert.equal(swanPin.result.score, 1);
+assert.equal(swanPin.result.image_gap, true);
+assert.deepEqual(swanPin.result.receipt.lattices, ["primary", "secondary"]);
+assert.equal(swanPin.result.receipt.azos.updated, false);
+assert.equal(
+  swanPin.result.receipt.secondary,
+  await offlineSecondaryHash(swanPin.result.document_hash, "fixture-reader"),
+);
+
+const swanGap = await (
+  await post("/v1/fraggate/call", {
+    slug: "4dmap",
+    op: "news_black_swan",
+    payload: { id: "rise-of-the-internet", pin: true },
+  })
+).json();
+assert.equal(swanGap.result.ok, false);
+assert.equal(swanGap.result.code, "AZNEWS-DATE-GAP");
+assert.equal(swanGap.result.live, false);
+
+const liveWeather = await runAznews("news_weather", { fetch: true, region: "northern-europe" });
+assert.equal(liveWeather.weather_live, false);
+assert.equal(liveWeather.live, false);
+assert.equal(liveWeather.installed_app, false);
+if (liveWeather.region.gap) {
+  assert.equal(liveWeather.region.reading, null);
+  assert.equal(liveWeather.region.live, false);
+} else {
+  assert.equal(liveWeather.region.origin, "open-meteo");
+  assert.equal(typeof liveWeather.region.reading.temperature_2m, "number");
+  assert.equal(liveWeather.region.live, true);
+}
+assert.ok(liveWeather.regions.some((row) => row.id !== "northern-europe" && row.gap === true && row.reading == null));
+
+const fetchedMiss = await runAznews("news_sources", { fetch: true, id: "bbc" }, { fetchImpl: async () => { throw new Error("offline"); } });
+assert.equal(fetchedMiss.outlet.live, false);
+assert.equal(fetchedMiss.outlet.status, "configured-but-not-live");
+assert.equal(fetchedMiss.live, false);
+assert.match(fetchedMiss.note, /not-live/i);
 
 console.log(`ok 4dmap ${product.version}: LIVE_OPS=${live.join(",")} stub=${STUB_OPS["4dmap"].join(",")} axes=${AXES.join("/")}`);
