@@ -800,7 +800,15 @@ export async function runLatticeOp(op, payload = {}) {
       note: "optional AKM-TRIAD-1.0 fabric cite. Inspection card unchanged. Posterior ≠ truth.",
     };
   }
-  if (op === "news_status" || op === "news_pin" || op === "news_open") {
+  if (
+    op === "news_status" ||
+    op === "news_pin" ||
+    op === "news_open" ||
+    op === "news_ingest" ||
+    op === "news_sources" ||
+    op === "news_weather" ||
+    op === "news_black_swan"
+  ) {
     const tips = tipsOf(cards);
     const prev = tips.length ? tips[tips.length - 1].h : GENESIS_PREV;
     const out = await runAznews(op, payload, { prev });
