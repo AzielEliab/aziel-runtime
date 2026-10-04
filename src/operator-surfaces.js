@@ -9,6 +9,7 @@ import { append, tip } from "./chainlock/ops.js";
 import { sha256Hex } from "./session-core.js";
 import { inspectBeforeAirgap, probeScannerSync, scanMessageParts } from "./engines/azmail/guard.js";
 import { bootHandoff, carryOnFirstCarrier, kernelBase, mailSendBase, probeCarrierOrder, secondDevice } from "./bases.js";
+import { HONESTY_SENTENCES, SURFACE_HONESTY, sharedFactBlock } from "./surface-honesty.js";
 
 export const OPERATOR_AUTHOR = "Aziel Eliab";
 export const SEAL_SLUGS = new Set(["azmail", "azchat", "azbrowser", "azos", "azai", "veillock"]);
@@ -67,10 +68,28 @@ function honesty() {
 }
 
 function applyHonesty(src) {
-  const locks = honesty();
-  if (src && src.alt_internet_earned === true && src.alt_internet_live === true) locks.alt_internet_live = true;
-  if (src && src.packet_path_earned === true && src.packet_path_live === true) locks.packet_path_live = true;
-  return locks;
+  void src;
+  return honesty();
+}
+
+function quietCarry(carried) {
+  if (!carried || typeof carried !== "object") return carried;
+  const refused = Array.isArray(carried.refused)
+    ? carried.refused.map((row) => ({ ...row, packet_live: false, alt_internet_live: false }))
+    : carried.refused;
+  return {
+    ...carried,
+    packet_live: false,
+    alt_internet_live: false,
+    peer_exchange_demonstrated: false,
+    public_smtp_send: false,
+    booted: false,
+    installed: false,
+    kernel_base: false,
+    os_yet: false,
+    public_door: "FG-STUB",
+    refused,
+  };
 }
 
 function notAnOs(extra = {}) {
@@ -586,16 +605,42 @@ export async function bootPath(payload) {
   };
   if (payload && payload.handoff === true) {
     const hand = await bootHandoff();
-    return notAnOs({
-      ...body,
-      ...hand,
+    return {
+      ...notAnOs({
+        ...body,
+        os_yet: false,
+        host_replaced: false,
+        stay_off: false,
+        booted: false,
+        installed: false,
+        kernel_base: false,
+        userspace_base: body.userspace_base,
+        handoff_code: hand && hand.code ? hand.code : null,
+        handoff_guest_log: hand && hand.guest_log ? hand.guest_log : "",
+        handoff_image_sha256: hand && hand.image_sha256 ? hand.image_sha256 : null,
+        handoff_boot_signature: Boolean(hand && hand.boot_signature === true),
+        handoff_hdrs: Boolean(hand && hand.hdrs === true),
+        handoff_install_flag: hand && hand.install_flag != null ? hand.install_flag : null,
+      }),
+      ...sharedFactBlock(),
+      booted: false,
+      installed: false,
+      kernel_base: false,
       os_yet: false,
-      host_replaced: false,
-      stay_off: false,
-      userspace_base: body.userspace_base,
-    });
+      line: OS_LINE,
+      kernel_line: HONESTY_SENTENCES.kernel,
+    };
   }
-  return notAnOs(body);
+  return {
+    ...notAnOs(body),
+    ...sharedFactBlock(),
+    booted: false,
+    installed: false,
+    kernel_base: false,
+    os_yet: false,
+    line: OS_LINE,
+    kernel_line: HONESTY_SENTENCES.kernel,
+  };
 }
 
 export async function internetBase(payload, env) {
@@ -603,36 +648,20 @@ export async function internetBase(payload, env) {
   const carriers = await probeCarrierOrder();
   const asked = payload && payload.carry === true;
   const carried = asked ? await carryOnFirstCarrier(carriers) : null;
-  const earned = Boolean(
-    carried &&
-      carried.ok === true &&
-      carried.packet_live === true &&
-      carried.peer_exchange_demonstrated === true &&
-      carried.mock !== true &&
-      carried.bytes_match === true &&
-      carried.public_icann !== true &&
-      carried.bgp !== true,
+  const quiet = quietCarry(carried);
+  const device = Boolean(
+    quiet &&
+      quiet.mesh === true &&
+      quiet.bytes_match === true &&
+      secondDevice(quiet.local_host, quiet.remote_host),
   );
-  const meshEarned = Boolean(
-    earned &&
-      carried.mesh === true &&
-      carried.alt_internet_live === true &&
-      carried.src_node &&
-      carried.dst_node &&
-      carried.src_node !== carried.dst_node,
-  );
-  const device = Boolean(meshEarned && secondDevice(carried.local_host, carried.remote_host));
-  const shown = carriers.map((row) => {
-    if (!earned || !carried || row.id !== carried.carrier) return row;
-    return {
-      ...row,
-      hardware: carried.interface || row.hardware,
-      packet_live: true,
-      peer_exchange_demonstrated: true,
-      packet_counted: true,
-      mock: false,
-    };
-  });
+  const shown = carriers.map((row) => ({
+    ...row,
+    packet_live: false,
+    peer_exchange_demonstrated: false,
+    packet_counted: false,
+    alt_internet_live: false,
+  }));
   return {
     ok: true,
     op: "internet_base",
@@ -641,26 +670,32 @@ export async function internetBase(payload, env) {
     installed: false,
     live: false,
     booted: false,
-    alt_internet_live: meshEarned,
-    packet_path_live: earned,
-    alt_internet_earned: meshEarned,
-    packet_path_earned: earned,
+    kernel_base: false,
+    os_yet: false,
+    alt_internet_live: false,
+    packet_path_live: false,
+    alt_internet_earned: false,
+    packet_path_earned: false,
     second_device: device,
     public_icann: false,
     bgp: false,
     cap7_name_only: true,
     public_door: "FG-STUB",
+    d2d_status: SURFACE_HONESTY.d2d_status,
+    warn5: SURFACE_HONESTY.warn5,
     carrier_order: shown.map((row) => row.id),
     carriers: shown,
-    carry: carried,
+    carry: quiet,
     cellular_optional: true,
     cellular_counts: false,
     cellular_status: cell.status || "Absent",
     cellular_code: cell.code || null,
     field_1_0: false,
-    line: meshEarned
-      ? "A node-mesh frame moved on the LAN carrier. This is not ICANN and not BGP."
-      : "Internet base is present. Not live.",
+    line: HONESTY_SENTENCES.internet,
+    packet_line: HONESTY_SENTENCES.packet,
+    alt_line: HONESTY_SENTENCES.alt,
+    d2d_line: HONESTY_SENTENCES.d2d,
+    warn5_line: HONESTY_SENTENCES.warn5,
     author: OPERATOR_AUTHOR,
   };
 }

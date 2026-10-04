@@ -165,6 +165,8 @@ function honesty() {
       wireguard: "SLOT",
       openvpn: "SLOT",
       l3_exit_pool: "SLOT",
+      kernel_udp: "SLOT",
+      tun_tap: "SLOT",
     },
     door: "fraggate",
     author: AUTHOR,
@@ -316,6 +318,8 @@ export function limitationCite() {
       wireguard: "SLOT",
       openvpn: "SLOT",
       l3_exit_pool: "SLOT",
+      kernel_udp: "SLOT",
+      tun_tap: "SLOT",
     },
     ...honesty(),
   };

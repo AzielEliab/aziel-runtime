@@ -65,12 +65,9 @@ assert.equal(meshDisableBody.code, "MESH-DISABLE-REFUSED");
 assert.equal(meshDisableBody.enabled, true);
 
 const smtp = await jsonPost("/v1/fraggate/call", { slug: "azmail", op: "smtp_send", payload: { to: "a@b.c", text: "no" } });
-assert.equal(smtp.data.code, "FG-OK");
-assert.equal(smtp.data.ok, true);
-assert.equal(smtp.data.result.ok, false);
-assert.equal(smtp.data.result.sent, false);
-assert.equal(smtp.data.result.public_smtp_send, false);
-assert.notEqual(smtp.data.result.code, "FG-STUB");
+assert.equal(smtp.data.code, "FG-STUB");
+assert.equal(smtp.data.ok, false);
+assert.equal(smtp.data.result, null);
 
 const chrome = await jsonPost("/v1/fraggate/call", { slug: "azbrowser", op: "chromium" });
 assert.equal(chrome.data.code, "FG-STUB");

@@ -231,7 +231,6 @@ export const LIVE_OPS = {
     "notice_post",
     "mail_post",
     "mail_send_base",
-    "smtp_send",
     "inbox_pull",
     "ack",
     "verify_receipt",
@@ -474,6 +473,7 @@ export const STUB_OPS = {
   azieltether: ["mesh-join", "vpn", "arm"],
   azmail: [
     "smtp",
+    "smtp_send",
     "send",
     "mail",
     "deliver",

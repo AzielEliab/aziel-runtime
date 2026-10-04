@@ -88,7 +88,7 @@ export const SOFTWARE_COPY = Object.freeze({
     one_line:
       "Classify mail text and keep a local mailbox sealed to the user key, including links and files. Scan is LIVE-when-scanner-present. The airgap is present. Ordinary SMTP is not end-to-end.",
     description:
-      "Use AZMail for an advisory airlock and a local mailbox encrypted to the user key. It exists so untrusted mail is scanned and sealed before it reaches the user. Body, links, videos, docs, images, zips, and other files cross an airgap only after a scan. The scan is LIVE-when-scanner-present (ClamAV). An absent scanner refuses AZM-SCAN-ABSENT and returns no clean verdict. Attachments stay inert. AZMail-to-AZMail seals those parts end-to-end to the user key. Mail to @gmail, @live, @yahoo, and other SMTP domains is a normal MIME message over opportunistic TLS and is not end-to-end. smtp_send queues when a local SMTP transport accepts the message. It is not a public MTA. Field 1.0 is false. A Proton-clone claim is false. The anonymous ring still starts off.",
+      "Use AZMail for an advisory airlock and a local mailbox encrypted to the user key. It exists so untrusted mail is scanned and sealed before it reaches the user. Body, links, videos, docs, images, zips, and other files cross an airgap only after a scan. The scan is LIVE-when-scanner-present (ClamAV). An absent scanner refuses AZM-SCAN-ABSENT and returns no clean verdict. Attachments stay inert. AZMail-to-AZMail seals those parts end-to-end to the user key. Mail to @gmail, @live, @yahoo, and other SMTP domains is a normal MIME message over opportunistic TLS and is not end-to-end. Public smtp_send stays refused. It is not a public MTA. Field 1.0 is false. A Proton-clone claim is false. The anonymous ring still starts off.",
   },
   aznet: {
     one_line: `Check hash continuity on the Cap-7 and .aziel name plane. Track 2 packet reachability stays NOT-READY (STANDS-until-demonstrated) in failover order ${D2D_ORDER_LABEL}.`,
@@ -218,7 +218,7 @@ export const SOFTWARE_COPY = Object.freeze({
   veillock: {
     one_line: "Follow local camera and screen steps for apps on your own device.",
     description:
-      "Use VeilLock for device-local camera and screen steps in your own apps. It exists for camera and screen work on your own device.",
+      "Use VeilLock for device-local camera and screen steps in your own apps. VeilLock stays local_only. It exists for camera and screen work on your own device.",
   },
   vibelock: {
     one_line:
@@ -235,7 +235,7 @@ export const SOFTWARE_COPY = Object.freeze({
     one_line:
       "Advise on short Criminal, Civil, and Divorce questions with historical as-of and Case Mode (suppression axes, TrajectoryLock-lite, export, confidence labeled up to 75%). Session-only web app plus optional zip. https://whitestone.vibelock.workers.dev/",
     description:
-      "Use Whitestone for short Criminal, Civil, or Divorce questions in a web app, including historical as-of evaluation and Case Mode axes (truth_upheld, narrative / systemic / personal-professional suppression, honesty). It exists as an ephemeral pro se advisor: TrajectoryLock-lite is labeled heuristic, Case Mode may export a hash-chain card, and confidence is labeled up to 75%. Session-only memory wipes when you close. Optional counted zip is on the download tracker; the web app stays on the Whitestone Worker. https://whitestone.vibelock.workers.dev/ · https://whitestone-download-tracker.vibelock.workers.dev/download",
+      "Whitestone is worker-only and has no public door. Use Whitestone for short Criminal, Civil, or Divorce questions in a web app, including historical as-of evaluation and Case Mode axes (truth_upheld, narrative / systemic / personal-professional suppression, honesty). It exists as an ephemeral pro se advisor: TrajectoryLock-lite is labeled heuristic, Case Mode may export a hash-chain card, and confidence is labeled up to 75%. Session-only memory wipes when you close. Optional counted zip is on the download tracker; the web app stays on the Whitestone Worker. https://whitestone.vibelock.workers.dev/ · https://whitestone-download-tracker.vibelock.workers.dev/download",
   },
 });
 

@@ -502,10 +502,12 @@ export async function carryOnFirstCarrier(carriers) {
         carrier: "lan",
         interface: used.name,
         mock: false,
-        packet_live: true,
-        peer_exchange_demonstrated: true,
+        packet_live: false,
+        peer_exchange_demonstrated: false,
         second_device: trip.second_device === true && distinct,
-        alt_internet_live: trip.alt_internet_live === true && trip.public_icann !== true && trip.bgp !== true,
+        alt_internet_live: false,
+        public_door: "FG-STUB",
+        note: "A node-mesh frame moved on this machine. It is not the public packet path and not an alternative internet.",
         public_icann: false,
         bgp: false,
         cap7_name_only: true,
@@ -830,7 +832,7 @@ export async function mailSendBase(payload, env) {
     sent: queued,
     live: false,
     public_live: false,
-    public_smtp_send: queued,
+    public_smtp_send: false,
     e2e: false,
     end_to_end: false,
     external_smtp_e2e: false,
@@ -838,8 +840,8 @@ export async function mailSendBase(payload, env) {
     ok: queued,
     code: queued ? "MAIL-BASE-QUEUED" : (posted && posted.code) || "MAIL-BASE-NOT-SENT",
     line: queued
-      ? "Mail send base queued on the local transport."
-      : "Mail send base is present. Nothing was sent.",
+      ? "Mail send base queued on the local transport. Public send stays refused."
+      : "Mail send base is present. Nothing was sent. Public send stays refused.",
     author: AUTHOR,
   };
 }

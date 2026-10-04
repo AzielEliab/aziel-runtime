@@ -39,7 +39,7 @@ export const ENABLE_COOLDOWN_MS = 60_000;
 export const KV_KEY = "ring";
 
 export const LIMITATION =
-  "THIS IS: AZMail APP 1.0 — advisory anti-phishing airlock (classify / scrub / trust_score), a local isolate mailbox (notice_post / mail_post / inbox_pull) encrypted to the user key, plus an anonymous in-process MCP mesh ring (default OFF). Scan is LIVE-when-scanner-present (ClamAV). Absent scanner refuses AZM-SCAN-ABSENT and does not invent a clean verdict. Airgap is present: body, links, videos, docs, images, zips, and other files are parsed and scanned on the dirty side; only a scanned sealed object enters the mailbox; attachments are never executed. AZMail-to-AZMail is sealed end-to-end to the user key. Mail to @gmail, @live, @yahoo, and other SMTP domains is a normal MIME message over opportunistic TLS and is not end-to-end. Independent of AZ-OS / Lumen / interface / AZChat. Reached only through the aziel-runtime FragGate door (POST /v1/fraggate/call or MCP fraggate_call). THIS IS NOT: a full internet MTA; a Proton clone claim; Field 1.0; identity; deanonymization; credential harvest; a VPN; WhistleLock; AZChat. smtp_send queues on the FragGate door only when a local SMTP transport accepts the message. smtp / send / deliver / identify / deanonymize / harvest stay stub. No public MTA. field_1_0 false. proton_clone_live false. Author: Aziel Eliab only.";
+  "THIS IS: AZMail APP 1.0 — advisory anti-phishing airlock (classify / scrub / trust_score), a local isolate mailbox (notice_post / mail_post / inbox_pull) encrypted to the user key, plus an anonymous in-process MCP mesh ring (default OFF). Scan is LIVE-when-scanner-present (ClamAV). Absent scanner refuses AZM-SCAN-ABSENT and does not invent a clean verdict. Airgap is present: body, links, videos, docs, images, zips, and other files are parsed and scanned on the dirty side; only a scanned sealed object enters the mailbox; attachments are never executed. AZMail-to-AZMail is sealed end-to-end to the user key. Mail to @gmail, @live, @yahoo, and other SMTP domains is a normal MIME message over opportunistic TLS and is not end-to-end. Independent of AZ-OS / Lumen / interface / AZChat. Reached only through the aziel-runtime FragGate door (POST /v1/fraggate/call or MCP fraggate_call). THIS IS NOT: a full internet MTA; a Proton clone claim; Field 1.0; identity; deanonymization; credential harvest; a VPN; WhistleLock; AZChat. Public smtp_send stays refused. smtp / smtp_send / send / deliver / identify / deanonymize / harvest stay stub. No public MTA. field_1_0 false. proton_clone_live false. Author: Aziel Eliab only.";
 
 export const IDENTITY_KEYS = Object.freeze([
   "from",
@@ -1024,8 +1024,8 @@ export function transportStatus(env) {
     pop3: false,
     mx: false,
     gated: true,
-    public_send: "LIVE-when-transport-present",
-    smtp_send: "LIVE-when-transport-present",
+    public_send: "FG-STUB",
+    smtp_send: "FG-STUB",
     local_mailbox: true,
     local_smtp: "LIVE-when-transport-present",
     scan: AZMAIL_HONESTY.scan,
@@ -1048,7 +1048,7 @@ export function transportStatus(env) {
     field_1_0: false,
     proton_clone_live: false,
     next_step:
-      "smtp_send queues when a local SMTP transport accepts the message. Health is not a send. mail_post scans body, links, videos, docs, images, zips, and other files before the airgap. AZMail-to-AZMail is sealed to the user key. Ordinary SMTP (@gmail, @live, @yahoo, and other domains) is normal MIME over opportunistic TLS and is not end-to-end. A missing scanner refuses AZM-SCAN-ABSENT. A missing transport refuses AZM-SMTP-ABSENT.",
+      "Public smtp_send stays refused. Public send stays refused. Health is not a send. mail_post scans body, links, videos, docs, images, zips, and other files before the airgap. AZMail-to-AZMail is sealed to the user key. Ordinary SMTP (@gmail, @live, @yahoo, and other domains) is normal MIME over opportunistic TLS and is not end-to-end. A missing scanner refuses AZM-SCAN-ABSENT. A missing transport refuses AZM-SMTP-ABSENT.",
   };
 }
 
@@ -1083,7 +1083,7 @@ AZMail (APP 1.0) is the anonymous MCP mesh mailer + advisory anti-phishing airlo
 - HTTP: \`POST /v1/fraggate/call\` with the same CallEnvelope
 - Leftover flat names such as \`azmail_mesh_post\` still go through FragGate (\`parseTarget\`) — they are not a side door and are not listed on \`tools/list\`
 
-Live ops: \`airlock_classify\`, \`scrub\`, \`trust_score\`, \`mesh_post\`, \`mesh_poll\`, \`mesh_listen\`, \`mesh_enable\`, \`mesh_disable\`, \`keyword_alert_set\`, \`keyword_alert_list\`, \`keyword_alert_check\`, \`mailbox_open\`, \`notice_post\`, \`mail_post\`, \`mail_send_base\`, \`smtp_send\`, \`inbox_pull\`, \`ack\`, \`verify_receipt\`, \`import_export\`, \`transport_status\`, \`health\`, \`skill\`.
+Live ops: \`airlock_classify\`, \`scrub\`, \`trust_score\`, \`mesh_post\`, \`mesh_poll\`, \`mesh_listen\`, \`mesh_enable\`, \`mesh_disable\`, \`keyword_alert_set\`, \`keyword_alert_list\`, \`keyword_alert_check\`, \`mailbox_open\`, \`notice_post\`, \`mail_post\`, \`mail_send_base\`, \`inbox_pull\`, \`ack\`, \`verify_receipt\`, \`import_export\`, \`transport_status\`, \`health\`, \`skill\`.
 
 Mesh default: **off**. \`mesh_disable\` is always allowed. \`mesh_enable\` is rate-limited. Posts store no identity fields.
 
@@ -1095,7 +1095,7 @@ Mesh default: **off**. \`mesh_disable\` is always allowed. \`mesh_enable\` is ra
 - AZMail-to-AZMail: sealed end-to-end to the user key, including those attachments.
 - External SMTP (@gmail, @live, @yahoo, and other ordinary domains): normal MIME over opportunistic TLS. Not end-to-end.
 - \`field_1_0\`: false. \`proton_clone_live\`: false.
-- \`smtp_send\` queues when a local SMTP transport accepts the message. It is not a full internet MTA. \`smtp\`, \`send\`, \`deliver\`, and \`deanonymize\` stay stub.
+- Public \`smtp_send\` stays refused. It is not a full internet MTA. \`smtp\`, \`smtp_send\`, \`send\`, \`deliver\`, and \`deanonymize\` stay stub.
 
 This op ran inside aziel-runtime's Worker isolate (or a local CLI jail).
 

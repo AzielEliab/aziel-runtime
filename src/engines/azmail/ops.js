@@ -48,7 +48,6 @@ export const AZMAIL_OPS = [
   "notice_post",
   "mail_post",
   "mail_send_base",
-  "smtp_send",
   "inbox_pull",
   "ack",
   "verify_receipt",
@@ -88,23 +87,18 @@ export async function runAzmail(op, payload, scratch, env) {
   if (op === "notice_post") return noticePost(payload, env);
   if (op === "mail_post") return mailPost(payload, env);
   if (op === "smtp_send") {
-    const posted = await mailPost(payload, env);
-    const sent = Boolean(posted && posted.sent === true && posted.local_smtp === true);
     return {
-      ...(posted && typeof posted === "object" ? posted : {}),
+      ok: false,
       op: "smtp_send",
-      sent,
+      code: "FG-STUB",
+      sent: false,
       live: false,
       public_live: false,
-      public_smtp_send: sent,
+      public_smtp_send: false,
       public_mta: false,
       installed: false,
       booted: false,
-      e2e: false,
-      end_to_end: false,
-      external_smtp_e2e: false,
-      field_1_0: false,
-      proton_clone_live: false,
+      line: "Public smtp_send stays refused.",
     };
   }
   if (op === "inbox_pull") return inboxPull(payload);

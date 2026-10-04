@@ -69,7 +69,7 @@ export const ENGINE_DIGESTS = {
   "forgereceipts": "c72efccfedd1411bef4ee8637f409c31580aaae46515ca64770648d4d01b99ed",
   "decisiongate": "4e86778de3d0d7795611a7b3d29d7c734fa808a03e1e22e93bc3b694910bf172",
   "zsolver": "8667a3d95f6063b77cb0ab0ff629192b6c5036d95762adb20f3c90f4b73a977f",
-  "azos": "08e81ae35ecb512f8125de5ea1109cacbbc9b3af05d25433b282d4b3fea93ef4",
+  "azos": "fe93fd4c3d6a656998ef22a964b55b277699458ff747387fa2f1e47144055eb4",
   "glossafilter": "4d876f57934277eb56119a8041f2787fee45121b87eeb9c1f054b1d05b8dd3e3",
   "miragegrid": "cea1854f20a807360d68c3b223343088abe09941ae77e406fd45ee4fe1d1126c",
   "staticclock": "7d6da0f2ef3fdbeedc2e96f5676a58847a8cd09dc94053009814dfa4fd282fb3",
@@ -87,7 +87,7 @@ export const ENGINE_DIGESTS = {
   "mialock": "d65c53dbc46d500f6d02c8975e42bf95a22000c15db4776d5fdef58904d32a5c",
   "azieltether": "adb57573ee23e7c97567fc05f916f1fd65f2265128bd9ec3d1dca08e47c2d791",
   "peacelock": "291437f64ba15338d6358e6d2e657870619b19133430be3574d458b8db469a66",
-  "azmail": "bbd500ad2a981e555ff4fb46e572ee3ab11392408f2a2b7d2ea91f21d3313322",
+  "azmail": "06a6cba66c12090415cec91a06890de0b32edfa86e5631bcd2a78d0f9b5d27ec",
   "azbrowser": "f27b40c284a748de8c290742bf9aa3deda716893af8963d97707dca28dd65b48",
   "aznet": "d089fb7636b27186ee5f3ec2468cc20d74ca5e5af65e77ebaa3492788b1751cf",
   "azhub": "dc8848353c0db397b9b0503446ad8dcb14212162776b24278071559bd2e83d81",
@@ -100,7 +100,7 @@ export const ENGINE_DIGESTS = {
   "zkattest": "bb3831ed980be81dce15fda1dbb471a7458c91feb907a410a86173003df1c84a",
   "mmconsensus": "9624f144b1eacfc11cf86fe45ed83acb6f65fa324629668510c55f1fcabe6fe7",
   "toolbench": "888385a251997a21f07368d71eff0bb56ed5f68871a6f84900ab62f28c8da33c",
-  "azvpn": "c79b3feaf8023d6e01a93e90eb473b0b9a02ea2a211d597aaa00c1672947aab5",
+  "azvpn": "2d3d27cf49df95d5a041a55d4fd75d20c65ed167a5c170ef6f363ec15599b776",
 };
 
 export function trueEngineSlugs() {

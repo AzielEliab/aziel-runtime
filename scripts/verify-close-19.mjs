@@ -40,6 +40,7 @@ for (const [slug, ops] of Object.entries(STUB_OPS)) {
 }
 
 const remain = [
+  ["azmail", "smtp_send"],
   ["azmail", "deanonymize"],
   ["azchat", "bridge_azmail"],
   ["whistlelock", "send"],
@@ -220,9 +221,9 @@ assert.ok(openapi.info.description.indexOf("Aziel Runtime is a node-meshed") < o
 assert.ok(openapi.info.description.indexOf("Aziel Runtime is a node-meshed") < openapi.info.description.indexOf("1.9.3"));
 assert.doesNotMatch(openapi.info.description, /not merely an API orchestrator|CNS-ZENODO-IP-BAN/);
 const pathKeys = Object.keys(openapi.paths).join(" ");
-assert.match(pathKeys, /\/p\/azmail\/smtp_send/);
+assert.equal(openapi.paths["/p/azmail/smtp_send"], undefined);
+assert.doesNotMatch(pathKeys, /smtp_send/);
 assert.doesNotMatch(pathKeys, /deanonymize/);
-assert.match(openapi.paths["/p/azmail/smtp_send"].post.description, /PROXY path only/);
 assert.ok(openapi.paths["/p/azchat/handle_new"]);
 assert.ok(openapi.paths["/p/azmail/notice_post"]);
 
