@@ -103,6 +103,15 @@ Reached only via `fraggate_call` / `POST /v1/fraggate/call` with `{ slug: "4dmap
 | pattern_recall | Recurring feature hashes on the hashchain lattice. |
 | lattice_tip | Append-only lattice tips. |
 | poison_refuse | Append a refuse-set card. Feature hash only. |
+| news_status | Read standalone AZNews and the 4DMap join. An empty source stays AZNEWS-SOURCE-ABSENT. The global live flag stays false. |
+| news_pin | Land one news item as a date × event × place pin. Refuses AZNEWS-SOURCE-ABSENT when no item was fetched or supplied. |
+| news_open | Open the news item that matches a pin, or a stored item when path is standalone. Refuses when nothing is stored. |
+| news_ingest | Standalone AZNews store. Wording, images, and score go on both hash chains. Does not pin the map. |
+| news_sources | Press Gazette English-language top 50 (August 2026, Similarweb via Press Gazette). A row stays configured-but-not-live until a fetch stores an item. |
+| news_weather | Open-Meteo by UN M49 subregion. A missing observation is a gap. Weather is not marked live globally unless every region was fetched. |
+| news_black_swan | Cited historical black-swan rows. A row with a date can pin. A missing day stays unpinned. |
+
+AZNews is not a Softwares card and not an MCP tool. It is callable on its own (`news_ingest`) and as a 4DMap join (`news_pin`, `news_open`). The corpus library map cite (`https://www.azielcorpuslibrary.net/map`, cite only, merged false) is not this join. No public Aziel news feed is configured. An empty pin refuses `AZNEWS-SOURCE-ABSENT`. A labeled fixture may prove the path and does not set merged or the global live flag. A caller-supplied real item can mark that item live and, once it is on a pin or opened from the map, mark the join merged. The global live flag stays false. Installed stays false. Receipts use a primary hash chain and a secondary hash chain. When the user is offline, the secondary hash is that document's primary hash plus the username, so the document is not written twice. That lattice is not marked live. Cross-tether with AZ-OS is a comment on the receipt. This repository does not update AZ-OS.
 
 Stub refuse (never hosted): `truth_score`, `lumen_panel`, `invent_mark`, `backdate_class`.
 

@@ -283,6 +283,13 @@ const TITLE_OVERRIDES = {
   "4dmap:pattern_recall": "Recall 4DMap lattice patterns",
   "4dmap:lattice_tip": "Read 4DMap lattice tips",
   "4dmap:poison_refuse": "Refuse a 4DMap feature hash",
+  "4dmap:news_status": "Read AZNews and the 4DMap join",
+  "4dmap:news_pin": "Pin a news item on 4DMap",
+  "4dmap:news_open": "Open a news item from 4DMap",
+  "4dmap:news_ingest": "Store a news item on standalone AZNews",
+  "4dmap:news_sources": "Read the AZNews source list",
+  "4dmap:news_weather": "Read AZNews weather by region",
+  "4dmap:news_black_swan": "Read or pin a cited black-swan event",
   "4dmap:ingest_pin": "Pin a 4DMap library frame",
   "4dmap:plot_pins": "Plot 4DMap lattice pins",
   "4dmap:score_hooks": "Score a labeled 4DMap possibility",
@@ -621,6 +628,11 @@ export function summaryFromResult(result, fallbackText, product) {
     // limitation is honesty prose — never the primary summary when a useful result exists
     if (typeof result.limitation === "string" && result.limitation.trim() && result.ok !== true) {
       return clip(result.limitation, 360);
+    }
+    if (product && product.slug === "4dmap" && result.result && typeof result.result === "object" && !Array.isArray(result.result)) {
+      const inner = result.result;
+      if (typeof inner.summary === "string" && inner.summary.trim()) return clip(inner.summary, 360);
+      if (typeof inner.note === "string" && inner.note.trim()) return clip(inner.note, 360);
     }
     if (result.ok === true && product) return `${product.name} finished. Show this output, then take the next input.`;
   }

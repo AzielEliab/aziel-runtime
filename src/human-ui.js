@@ -204,7 +204,7 @@ export const HUMAN_TASKS = Object.freeze([
     name: "4DMap",
     op: "pin",
     title: "Pin a declared mark",
-    blurb: "Inspection frame T/Δ/Γ/Π after AZPIPE. Not a sequential gate. Not a truth score. Not a Lumen panel.",
+    blurb: "Inspection frame T/Δ/Γ/Π after AZPIPE. Not a sequential gate. Not a truth score. Not a Lumen panel. AZNews can store an item on its own, or pin and open it here. An empty pin stays refused.",
     fields: [{ name: "label", label: "Declared mark label", type: "text", example: "inspect-1" }],
   },
   {
@@ -409,6 +409,7 @@ function taskCardHtml(task) {
     <button type="button" class="run-task" data-op="${escapeHtml(task.op)}">Run ${escapeHtml(doorOpLabel(task.slug, task.op))}</button>
     ${task.slug === "aznet" ? `<button type="button" class="run-task" data-op="pair">pair</button>` : ""}
     ${task.slug === "embryolock" ? `<button type="button" class="run-task" data-op="doctor">doctor</button><button type="button" class="run-task" data-op="verify_hash">verify_hash</button>` : ""}
+    ${task.slug === "4dmap" ? `<button type="button" class="run-task" data-op="news_status">AZNews status</button><button type="button" class="run-task" data-op="news_sources">AZNews sources</button><button type="button" class="run-task" data-op="news_weather">AZNews weather</button><button type="button" class="run-task" data-op="news_black_swan">Black swans</button><button type="button" class="run-task" data-op="news_pin">Pin news</button><button type="button" class="run-task" data-op="news_ingest">Standalone AZNews</button>` : ""}
   </div>
   <pre class="ws-out fg-out" role="status" aria-live="polite">Ready. ${escapeHtml(task.name)}. ${escapeHtml(doorOpLabel(task.slug, task.op))}.</pre>
 </article>`;
@@ -716,6 +717,20 @@ ${dashCards}
   <p class="hint">Labeled fields. Bad JSON is shown as an error — it is not rewritten to <code>{q,text}</code>.</p>
   <div class="ws-grid tasks">
     ${tasks}
+    <article class="task az-task" id="desk-aznews" data-slug="4dmap" data-op="news_status" data-kind="fraggate">
+      <h3>AZNews — standalone</h3>
+      <p class="blurb">AZNews is its own desk and also joins 4DMap. It is not a Softwares card and not an MCP tool. news_ingest stores wording, an image hash, and a score on a primary chain and a secondary chain. news_pin and news_open are the map. An empty call stays refused. Outlets from the Press Gazette English-language top 50 stay configured until a fetch stores an item. Weather uses Open-Meteo and records a gap when a region has no observation. Black-swan rows are cited history. The global live flag stays false. Field 1.0 and Office 1.0 stay false. This desk does not update AZ-OS.</p>
+      <div class="actions">
+        <button type="button" class="run-task" data-op="news_status">news_status</button>
+        <button type="button" class="run-task" data-op="news_sources">news_sources</button>
+        <button type="button" class="run-task" data-op="news_weather">news_weather</button>
+        <button type="button" class="run-task" data-op="news_black_swan">news_black_swan</button>
+        <button type="button" class="run-task" data-op="news_ingest">news_ingest</button>
+        <button type="button" class="run-task" data-op="news_pin">news_pin</button>
+        <button type="button" class="run-task" data-op="news_open">news_open</button>
+      </div>
+      <pre class="ws-out fg-out" role="status" aria-live="polite">Ready. AZNews. news_status.</pre>
+    </article>
 
     <article class="task az-task" id="task-chainlock" data-kind="chainlock" data-origin="${escapeHtml(base)}">
       <h3>ChainLock — tip / verify</h3>

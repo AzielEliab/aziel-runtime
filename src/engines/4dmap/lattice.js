@@ -5,6 +5,7 @@
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
 import { canonicalize, sha256Hex } from "../../session-core.js";
+import { resetAznewsStore, runAznews } from "./aznews.js";
 import {
   AKM,
   AXIS_GLYPH,
@@ -33,6 +34,7 @@ const store = [];
 
 export function resetLatticeStore() {
   store.length = 0;
+  resetAznewsStore();
 }
 
 export function wantsLibraryPin(payload) {
@@ -797,6 +799,21 @@ export async function runLatticeOp(op, payload = {}) {
       akm: AKM,
       note: "optional AKM-TRIAD-1.0 fabric cite. Inspection card unchanged. Posterior ≠ truth.",
     };
+  }
+  if (
+    op === "news_status" ||
+    op === "news_pin" ||
+    op === "news_open" ||
+    op === "news_ingest" ||
+    op === "news_sources" ||
+    op === "news_weather" ||
+    op === "news_black_swan"
+  ) {
+    const tips = tipsOf(cards);
+    const prev = tips.length ? tips[tips.length - 1].h : GENESIS_PREV;
+    const out = await runAznews(op, payload, { prev });
+    if (out && out.card) remember(out.card);
+    return out;
   }
   if (op === "memory_observe") {
     refuseAkmAbuse(payload);

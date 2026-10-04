@@ -26,7 +26,7 @@ export const SOFTWARE_COPY = Object.freeze({
   "4dmap": {
     one_line: "Inspect the same event on time, change, graph, and place axes at once.",
     description:
-      "Use 4DMap to walk one event across time, change, graph, and place as recorded axes, including a library pin when the paper gives a date and a place. It exists so multi-axis inspection stays a recorded walk.",
+      "Use 4DMap to walk one event across time, change, graph, and place as recorded axes, including a library pin when the paper gives a date and a place. AZNews can store an item on its own, or pin that item here and open it from the map. An empty pin stays refused until a real item is stored. It exists so multi-axis inspection stays a recorded walk.",
   },
   azclce: {
     one_line: "Score how consistently three written layers agree with each other.",
