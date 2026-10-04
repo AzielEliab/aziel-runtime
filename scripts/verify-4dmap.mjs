@@ -611,6 +611,9 @@ const libraryAsNews = await (
 assert.equal(libraryAsNews.result.code, "AZNEWS-NOT-LIBRARY");
 assert.equal(libraryAsNews.result.merged, false);
 assert.equal(libraryAsNews.result.live, false);
+assert.equal(libraryAsNews.result.joined, false);
+assert.equal(libraryAsNews.result.lattice_live, false);
+assert.equal(libraryAsNews.result.installed, false);
 assert.match(libraryAsNews.result.note, /not AZNews/i);
 
 const fixture = {
@@ -638,7 +641,7 @@ assert.equal(pinned.result.live, false);
 assert.equal(pinned.result.source_present, false);
 assert.equal(pinned.result.fixture_is_source, false);
 assert.equal(pinned.result.surface, "MOCK");
-assert.equal(pinned.result.lattice_live, false);
+assert.equal(pinned.result.lattice_live, true);
 assert.equal(pinned.result.field_1_0, false);
 assert.equal(pinned.result.installed_app, false);
 assert.equal(pinned.result.aznews.live, false);
@@ -648,7 +651,9 @@ assert.equal(pinned.result.event, "fixture desk note");
 assert.equal(pinned.result.pin_frame.lat, 0);
 assert.equal(pinned.result.pin_frame.lon, 0);
 assert.deepEqual(pinned.result.receipt.lattices, ["primary", "secondary"]);
-assert.equal(pinned.result.receipt.lattice_live, false);
+assert.equal(pinned.result.receipt.lattice_live, true);
+assert.match(pinned.result.receipt.primary, /^[a-f0-9]{64}$/);
+assert.match(pinned.result.receipt.secondary, /^[a-f0-9]{64}$/);
 assert.equal(pinned.result.receipt.offline, true);
 assert.equal(pinned.result.receipt.primary_prev, GENESIS_PREV);
 assert.equal(pinned.result.receipt.secondary_prev, GENESIS_PREV);
@@ -674,6 +679,12 @@ assert.equal(doubled.result.ok, false);
 assert.equal(doubled.result.code, "AZNEWS-DOUBLE");
 assert.equal(doubled.result.merged, false);
 assert.equal(doubled.result.live, false);
+assert.equal(doubled.result.joined, false);
+assert.equal(doubled.result.lattice_live, false);
+assert.equal(doubled.result.aznews.live, false);
+assert.equal(doubled.result.aznews.lattice_live, false);
+assert.equal(doubled.result.installed, false);
+assert.equal(doubled.result.booted, false);
 assert.match(doubled.result.note, /not written again/i);
 
 const otherUser = {
@@ -709,7 +720,8 @@ assert.equal(openedNews.result.live, false);
 assert.equal(openedNews.result.fixture_is_source, false);
 assert.equal(openedNews.result.already_on_chain, false);
 assert.deepEqual(openedNews.result.receipt.lattices, ["primary", "secondary"]);
-assert.equal(openedNews.result.receipt.lattice_live, false);
+assert.equal(openedNews.result.lattice_live, true);
+assert.equal(openedNews.result.receipt.lattice_live, true);
 assert.equal(
   openedNews.result.receipt.secondary,
   await offlineSecondaryHash(openedNews.result.document_hash, "fixture-reader"),
@@ -786,7 +798,8 @@ assert.notEqual(
   online.result.receipt.secondary,
   await offlineSecondaryHash(online.result.document_hash, "fixture-reader"),
 );
-assert.equal(online.result.receipt.lattice_live, false);
+assert.equal(online.result.lattice_live, true);
+assert.equal(online.result.receipt.lattice_live, true);
 
 const after = await (await post("/v1/fraggate/call", { slug: "4dmap", op: "news_status", payload: {} })).json();
 assert.equal(after.result.ok, true);
@@ -794,7 +807,10 @@ assert.equal(after.result.joined, true);
 assert.equal(after.result.source_present, false);
 assert.equal(after.result.merged, false);
 assert.equal(after.result.live, false);
-assert.equal(after.result.lattice_live, false);
+assert.equal(after.result.lattice_live, true);
+assert.equal(after.result.live, false);
+assert.equal(after.result.aznews.live, false);
+assert.equal(after.result.aznews.lattice_live, true);
 assert.equal(after.result.code, "AZNEWS-SOURCE-ABSENT");
 assert.ok(after.result.fixture_pins >= 1);
 assert.equal(after.result.fixture_is_source, false);
@@ -861,6 +877,8 @@ assert.equal(standalone.result.score, 0.25);
 assert.equal(standalone.result.images[0].sha256, imageHash);
 assert.equal(standalone.result.images[0].dropped, false);
 assert.equal(standalone.result.images[0].fetch_url, "https://github.com/AzielEliab/aziel-runtime");
+assert.equal(standalone.result.lattice_live, true);
+assert.equal(standalone.result.receipt.lattice_live, true);
 assert.deepEqual(standalone.result.receipt.lattices, ["primary", "secondary"]);
 assert.equal(standalone.result.receipt.wording, standalone.result.wording);
 assert.equal(standalone.result.receipt.score, 0.25);
@@ -912,6 +930,8 @@ assert.equal(realItem.result.merged, true);
 assert.equal(realItem.result.installed, false);
 assert.equal(realItem.result.installed_app, false);
 assert.equal(realItem.result.mesh_node, false);
+assert.equal(realItem.result.lattice_live, true);
+assert.equal(realItem.result.receipt.lattice_live, true);
 assert.equal(realItem.result.field_1_0, false);
 assert.equal(realItem.result.office_1_0, false);
 assert.equal(realItem.result.pilot_started, false);
@@ -1001,6 +1021,9 @@ const swanGap = await (
 assert.equal(swanGap.result.ok, false);
 assert.equal(swanGap.result.code, "AZNEWS-DATE-GAP");
 assert.equal(swanGap.result.live, false);
+assert.equal(swanGap.result.joined, false);
+assert.equal(swanGap.result.lattice_live, false);
+assert.equal(swanGap.result.installed, false);
 
 const liveWeather = await runAznews("news_weather", { fetch: true, region: "northern-europe" });
 assert.equal(liveWeather.weather_live, false);
@@ -1021,5 +1044,148 @@ assert.equal(fetchedMiss.outlet.live, false);
 assert.equal(fetchedMiss.outlet.status, "configured-but-not-live");
 assert.equal(fetchedMiss.live, false);
 assert.match(fetchedMiss.note, /not-live/i);
+
+resetFourdmapStore();
+const fetchedImage = new TextEncoder().encode("fetched-desk-image");
+const fetchedImageUrl = "https://feeds.bbci.co.uk/news/desk.jpg";
+const fetchedRss = `<?xml version="1.0"?><rss version="2.0"><channel><item><title>Fetched desk item</title><description>Full wording of the fetched desk item from the wire.</description><pubDate>Sat, 03 Oct 2026 10:00:00 +0200</pubDate><link>https://www.bbc.com/news/fetched-desk-item</link><enclosure url="${fetchedImageUrl}" type="image/jpeg" /></item></channel></rss>`;
+const bareRss = `<?xml version="1.0"?><rss version="2.0"><channel><item><title>Undated bare item</title><description>Wording without an image.</description><pubDate>Sat, 03 Oct 2026 08:00:00 GMT</pubDate><link>https://www.cnn.com/bare</link></item></channel></rss>`;
+function feedFetch(map) {
+  return async (url) => {
+    const hit = map[url];
+    if (hit == null) {
+      return { ok: false, status: 404, text: async () => "", arrayBuffer: async () => new ArrayBuffer(0) };
+    }
+    const bytes = typeof hit === "string" ? new TextEncoder().encode(hit) : hit;
+    const copy = new Uint8Array(bytes.byteLength);
+    copy.set(bytes);
+    return {
+      ok: true,
+      status: 200,
+      text: async () => new TextDecoder().decode(copy),
+      arrayBuffer: async () => copy.buffer,
+    };
+  };
+}
+const absentFetch = await runAznews(
+  "news_pin",
+  { fetch: true, id: "bbc", live: true, merged: true },
+  { fetchImpl: async () => { throw new Error("offline"); } },
+);
+assert.equal(absentFetch.ok, false);
+assert.equal(absentFetch.code, "AZNEWS-SOURCE-ABSENT");
+assert.equal(absentFetch.live, false);
+assert.equal(absentFetch.joined, false);
+assert.equal(absentFetch.merged, false);
+assert.equal(absentFetch.lattice_live, false);
+assert.equal(absentFetch.aznews.live, false);
+assert.equal(absentFetch.installed, false);
+assert.equal(absentFetch.booted, false);
+assert.equal(absentFetch.mesh_node, false);
+
+const incompleteFetch = await runAznews(
+  "news_pin",
+  { fetch: true, id: "cnn", live: true },
+  { fetchImpl: feedFetch({ "http://rss.cnn.com/rss/edition.rss": bareRss }) },
+);
+assert.equal(incompleteFetch.ok, true);
+assert.equal(incompleteFetch.item_live, false);
+assert.equal(incompleteFetch.on_map, false);
+assert.equal(incompleteFetch.live, false);
+assert.equal(incompleteFetch.joined, false);
+assert.equal(incompleteFetch.installed, false);
+
+const fetchImpl = feedFetch({
+  "https://feeds.bbci.co.uk/news/rss.xml": fetchedRss,
+  [fetchedImageUrl]: fetchedImage,
+});
+const standaloneFetch = await runAznews(
+  "news_ingest",
+  { fetch: true, id: "bbc", offline: true, username: "fetch-reader", live: true, merged: true },
+  { fetchImpl },
+);
+assert.equal(standaloneFetch.ok, true);
+assert.equal(standaloneFetch.path, "standalone");
+assert.equal(standaloneFetch.on_map, false);
+assert.equal(standaloneFetch.live, false);
+assert.equal(standaloneFetch.joined, false);
+assert.equal(standaloneFetch.item_live, true);
+assert.equal(standaloneFetch.source_present, true);
+assert.equal(standaloneFetch.lattice_live, true);
+assert.equal(standaloneFetch.receipt.lattice_live, true);
+assert.equal(standaloneFetch.date, "2026-10-03T08:00:00Z");
+assert.equal(standaloneFetch.installed, false);
+assert.equal(standaloneFetch.mesh_node, false);
+assert.equal(standaloneFetch.booted, false);
+assert.equal(
+  standaloneFetch.receipt.secondary,
+  await offlineSecondaryHash(standaloneFetch.document_hash, "fetch-reader"),
+);
+assert.doesNotMatch(standaloneFetch.summary, /\{/);
+
+const fetchedPin = await runAznews(
+  "news_pin",
+  { fetch: true, id: "bbc", offline: true, username: "fetch-reader", live: true, merged: true, installed: true },
+  { fetchImpl },
+);
+assert.equal(fetchedPin.ok, true);
+assert.equal(fetchedPin.path, "joined");
+assert.equal(fetchedPin.on_map, true);
+assert.equal(fetchedPin.item_live, true);
+assert.equal(fetchedPin.live, true);
+assert.equal(fetchedPin.joined, true);
+assert.equal(fetchedPin.aznews.live, true);
+assert.equal(fetchedPin.merged, true);
+assert.equal(fetchedPin.fixture, false);
+assert.equal(fetchedPin.surface, "REAL");
+assert.equal(fetchedPin.installed, false);
+assert.equal(fetchedPin.installed_app, false);
+assert.equal(fetchedPin.booted, false);
+assert.equal(fetchedPin.mesh_node, false);
+assert.equal(fetchedPin.alt_internet_live, false);
+assert.equal(fetchedPin.lattice_live, true);
+assert.equal(fetchedPin.receipt.lattice_live, true);
+assert.match(fetchedPin.receipt.primary, /^[a-f0-9]{64}$/);
+assert.match(fetchedPin.receipt.secondary, /^[a-f0-9]{64}$/);
+assert.equal(fetchedPin.date, "2026-10-03T08:00:00Z");
+assert.equal(fetchedPin.images[0].verified, true);
+assert.equal(
+  fetchedPin.receipt.secondary,
+  await offlineSecondaryHash(fetchedPin.document_hash, "fetch-reader"),
+);
+assert.match(fetchedPin.summary, /join is live for this item/i);
+assert.doesNotMatch(fetchedPin.summary, /\{/);
+assert.doesNotMatch(fetchedPin.summary, /15:20/);
+if (fetchedPin.live === true) {
+  assert.equal(fetchedPin.ok, true);
+  assert.equal(fetchedPin.on_map, true);
+  assert.equal(fetchedPin.path, "joined");
+  assert.notEqual(fetchedPin.code, "AZNEWS-SOURCE-ABSENT");
+}
+
+const fetchedDouble = await runAznews(
+  "news_pin",
+  { fetch: true, id: "bbc", offline: true, username: "fetch-reader" },
+  { fetchImpl },
+);
+assert.equal(fetchedDouble.ok, false);
+assert.equal(fetchedDouble.code, "AZNEWS-DOUBLE");
+assert.equal(fetchedDouble.live, false);
+assert.equal(fetchedDouble.joined, false);
+assert.equal(fetchedDouble.lattice_live, false);
+assert.equal(fetchedDouble.aznews.live, false);
+assert.equal(fetchedDouble.aznews.lattice_live, false);
+
+const fetchedStatus = await runAznews("news_status", {});
+assert.equal(fetchedStatus.ok, true);
+assert.equal(fetchedStatus.live, true);
+assert.equal(fetchedStatus.joined, true);
+assert.equal(fetchedStatus.lattice_live, true);
+assert.equal(fetchedStatus.installed, false);
+assert.equal(fetchedStatus.mesh_node, false);
+assert.match(fetchedStatus.note, /join is live/i);
+assert.doesNotMatch(fetchedStatus.note, /\{/);
+assert.equal(softwareCatalog(origin, PRODUCTS).count, 42);
+assert.equal(PUBLIC_MCP_TOOLS.length, 36);
 
 console.log(`ok 4dmap ${product.version}: LIVE_OPS=${live.join(",")} stub=${STUB_OPS["4dmap"].join(",")} axes=${AXES.join("/")}`);

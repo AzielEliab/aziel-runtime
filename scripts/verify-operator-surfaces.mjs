@@ -5,10 +5,13 @@
  */
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
+import os from "node:os";
 import { PRODUCTS } from "../src/index.js";
 import { PUBLIC_MCP_TOOLS } from "../src/fraggate/codes.js";
 import { LIVE_OPS, STUB_OPS, buildRegistry, classifyCall } from "../src/fraggate/registry.js";
+import { fraggateCall } from "../src/fraggate/door.js";
 import { executeLocal } from "../src/engines/runner.js";
+import { kernelBase, parseCpioNewc } from "../src/bases.js";
 import { softwareCatalog } from "../src/software-catalog.js";
 import { operatorPageHtml } from "../src/operator-ui.js";
 import { fixtureLabeledScanner, listenSmtpSink } from "../src/engines/azmail/guard.js";
@@ -298,6 +301,23 @@ assert.equal(boot.userspace_format, "cpio-newc");
 assert.equal(boot.kernel_base, false);
 assert.ok(boot.userspace_bytes >= 512);
 assert.equal(typeof boot.userspace_sha256, "string");
+assert.ok(boot.handoff_names.includes("usr/azos/principles.txt"));
+assert.ok(boot.handoff_names.includes("TRAILER!!!"));
+if (boot.userspace_base === true) {
+  const built = await kernelBase();
+  const parsed = parseCpioNewc(built.archive);
+  assert.deepEqual(parsed.names, built.names);
+  assert.ok(parsed.names.includes("TRAILER!!!"));
+  assert.match(parsed.files["usr/azos/principles.txt"], /Integrity precedes execution/);
+  assert.equal(built.kernel_base, false);
+  assert.equal(built.booted, false);
+  assert.equal(built.installed, false);
+} else {
+  assert.fail("userspace handoff was marked present without a parsed cpio");
+}
+if (boot.booted === true || boot.kernel_base === true || boot.installed === true) {
+  assert.fail("boot flags are true while no machine image booted");
+}
 const injected = new Uint8Array(600);
 injected[0x202] = 0x48;
 injected[0x203] = 0x64;
@@ -424,7 +444,75 @@ const netMock = await local(
 assert.equal(netMock.alt_internet_live, false);
 assert.equal(netMock.packet_path_live, false);
 assert.equal(netMock.cellular_status, "No service");
-markPending("alt-internet-live", "Internet base is present. No real packet on LAN, Wi-Fi, Bluetooth, RF, or photon. Cellular does not count");
+const lanCandidates = [];
+for (const [name, rows] of Object.entries(os.networkInterfaces())) {
+  if (name === "lo") continue;
+  for (const row of rows || []) {
+    if ((row.family === "IPv4" || row.family === 4) && row.internal !== true) lanCandidates.push({ name, address: row.address });
+  }
+}
+const netCarry = await local(
+  "azos",
+  "internet_base",
+  { carry: true, alt_internet_live: true, alt_internet_earned: true, second_device: true, packet_path_live: true, booted: true, installed: true },
+  dead,
+);
+assert.equal(netCarry.base, true);
+assert.equal(netCarry.live, false);
+assert.equal(netCarry.booted, false);
+assert.equal(netCarry.installed, false);
+assert.equal(netCarry.alt_internet_live, false);
+assert.equal(netCarry.alt_internet_earned, false);
+assert.equal(netCarry.second_device, false);
+assert.equal(netCarry.public_icann, false);
+assert.equal(netCarry.bgp, false);
+assert.equal(netCarry.cap7_name_only, true);
+assert.equal(netCarry.public_door, "FG-STUB");
+assert.deepEqual(netCarry.carrier_order, ["lan", "wifi", "bluetooth", "rf", "photon"]);
+for (const id of ["wifi", "bluetooth", "rf", "photon"]) {
+  const row = netCarry.carriers.find((item) => item.id === id);
+  assert.equal(row.packet_live, false, id);
+  assert.notEqual(row.packet_counted, true, id);
+  assert.notEqual(row.mock, true, id);
+  if (row.state !== "HW-PRESENT") {
+    assert.equal(row.code, "QNM-RADIO-ABSENT", id);
+    assert.equal(row.packet_live, false, id);
+  }
+}
+if (lanCandidates.length) {
+  assert.equal(netCarry.packet_path_live, true, JSON.stringify(netCarry.carry));
+  assert.equal(netCarry.packet_path_earned, true);
+  assert.equal(netCarry.carry.ok, true);
+  assert.equal(netCarry.carry.code, "PACKET-CARRIED");
+  assert.equal(netCarry.carry.carrier, "lan");
+  assert.equal(netCarry.carry.bytes_match, true);
+  assert.equal(netCarry.carry.mock, false);
+  assert.equal(netCarry.carry.second_device, false);
+  assert.equal(netCarry.carry.alt_internet_live, false);
+  assert.equal(netCarry.carry.public_icann, false);
+  assert.equal(netCarry.carry.bgp, false);
+  assert.equal(netCarry.carry.bytes, 16);
+  assert.match(netCarry.carry.sent_sha256, /^[a-f0-9]{64}$/);
+  assert.equal(netCarry.carry.sent_sha256, netCarry.carry.received_sha256);
+  assert.ok(lanCandidates.some((row) => row.address === netCarry.carry.address && row.name === netCarry.carry.interface));
+  assert.notEqual(netCarry.carry.interface, "lo");
+  const lan = netCarry.carriers.find((item) => item.id === "lan");
+  assert.equal(lan.packet_live, true);
+  assert.equal(lan.packet_counted, true);
+  assert.equal(lan.mock, false);
+  assert.equal(lan.hardware, netCarry.carry.interface);
+  assert.match(netCarry.line, /packet moved on the LAN carrier/);
+  assert.match(netCarry.line, /not an alternative internet/);
+} else {
+  assert.equal(netCarry.packet_path_live, false);
+  assert.equal(netCarry.packet_path_earned, false);
+  assert.equal(netCarry.carry.ok, false);
+  assert.ok(netCarry.carriers.every((row) => row.packet_live === false));
+}
+if (netCarry.packet_path_live === true && netCarry.carry.ok !== true) {
+  assert.fail("packet_path_live is true while the carry path refused");
+}
+markPending("alt-internet-live", "A proved LAN datagram is not an alternative internet. No ICANN, no BGP, Cap-7 stays a name");
 
 const mailHeld = await local("azmail", "mail_send_base", { confirm: true, from: "operator@azmail.local", to: "friend@example.com", text: "hello" }, dead);
 assert.equal(mailHeld.base, true);
@@ -455,7 +543,56 @@ assert.equal(mailSent.live, false);
 assert.equal(mailSent.e2e, false);
 assert.equal(mailSent.external_smtp_e2e, false);
 assert.equal(sink.messages.length, 1);
-markPending("public-smtp-send", "Mail send base can queue on a local transport. Public smtp_send stays refused");
+const smtpHeld = await fraggateCall(
+  { slug: "azmail", op: "smtp_send", payload: { from: "operator@azmail.local", to: "friend@example.com", subject: "held", text: "not sent" } },
+  registry,
+  registry.bySlug,
+  dead,
+);
+assert.equal(smtpHeld.ok, false);
+assert.equal(smtpHeld.code, "FG-STUB");
+assert.equal(smtpHeld.result, null);
+assert.notEqual(smtpHeld.sent, true);
+const doorSink = await listenSmtpSink();
+const smtpSent = await fraggateCall(
+  {
+    slug: "azmail",
+    op: "smtp_send",
+    payload: { from: "operator@azmail.local", to: "friend@example.com", subject: "door", text: "hello door" },
+  },
+  registry,
+  registry.bySlug,
+  {
+    ...dead,
+    AZMAIL_SCANNER: fixtureLabeledScanner(),
+    AZMAIL_SMTP_HOST: doorSink.host,
+    AZMAIL_SMTP_PORT: doorSink.port,
+    AZMAIL_SMTP_ALLOW_CLEARTEXT: true,
+  },
+);
+await doorSink.close();
+assert.equal(smtpSent.ok, true, JSON.stringify(smtpSent));
+assert.equal(smtpSent.result.op, "smtp_send");
+assert.equal(smtpSent.result.sent, true);
+assert.equal(smtpSent.result.local_smtp, true);
+assert.equal(smtpSent.result.public_smtp_send, "FG-STUB");
+assert.equal(smtpSent.result.public_live, false);
+assert.equal(smtpSent.result.live, false);
+assert.equal(smtpSent.result.e2e, false);
+assert.equal(smtpSent.result.external_smtp_e2e, false);
+assert.equal(smtpSent.result.installed, false);
+assert.equal(smtpSent.result.booted, false);
+assert.equal(smtpSent.result.public_mta, false);
+assert.equal(doorSink.messages.length, 1);
+assert.match(String(doorSink.messages[0] || ""), /hello door/);
+assert.equal(classifyCall(registry.bySlug.azmail, "smtp_send").kind, "stub");
+if (smtpSent.result.sent === true && doorSink.messages.length !== 1) {
+  assert.fail("sent is true while the local transport has no message");
+}
+if (smtpHeld.code === "FG-STUB" && smtpHeld.result && smtpHeld.result.sent === true) {
+  assert.fail("smtp_send refused and still reported sent");
+}
+markPending("public-smtp-send", "A local SMTP sink can queue smtp_send. Public smtp_send stays FG-STUB. live and public_live stay false");
 
 const directMask = await local("azos", "ip_mask", { mode: "server", direct: true }, dead);
 assert.equal(directMask.masked, false);

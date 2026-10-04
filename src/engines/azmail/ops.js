@@ -86,6 +86,26 @@ export async function runAzmail(op, payload, scratch, env) {
   if (op === "mailbox_open") return mailboxOpen(payload);
   if (op === "notice_post") return noticePost(payload, env);
   if (op === "mail_post") return mailPost(payload, env);
+  if (op === "smtp_send") {
+    const posted = await mailPost(payload, env);
+    const sent = Boolean(posted && posted.sent === true && posted.local_smtp === true);
+    return {
+      ...(posted && typeof posted === "object" ? posted : {}),
+      op: "smtp_send",
+      sent,
+      live: false,
+      public_live: false,
+      public_smtp_send: "FG-STUB",
+      public_mta: false,
+      installed: false,
+      booted: false,
+      e2e: false,
+      end_to_end: false,
+      external_smtp_e2e: false,
+      field_1_0: false,
+      proton_clone_live: false,
+    };
+  }
   if (op === "inbox_pull") return inboxPull(payload);
   if (op === "ack") return mailboxAck(payload);
   if (op === "verify_receipt") return mailboxVerifyReceipt(payload);

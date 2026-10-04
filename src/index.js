@@ -1119,7 +1119,7 @@ const PRODUCTS_RAW = [
       { op: "pattern_recall", method: "POST", summary: "Count recurring feature hashes on the hashchain lattice." },
       { op: "lattice_tip", method: "POST", summary: "List append-only lattice tips." },
       { op: "poison_refuse", method: "POST", summary: "Append a refuse-set card. Feature hash only." },
-      { op: "news_status", method: "POST", summary: "Read standalone AZNews and the 4DMap join. An empty source stays refused. The global live flag stays false." },
+      { op: "news_status", method: "POST", summary: "Read standalone AZNews and the 4DMap join. An empty source stays refused. The join is live only when a fetched news item is pinned." },
       { op: "news_pin", method: "POST", summary: "Land a news item as a 4DMap pin (date, event, and place). Refuses AZNEWS-SOURCE-ABSENT when no item was fetched or supplied." },
       { op: "news_open", method: "POST", summary: "Open the news item that matches a 4DMap pin. Refuses AZNEWS-SOURCE-ABSENT when no item is stored." },
       { op: "news_ingest", method: "POST", summary: "Standalone AZNews store. Wording, image hash, and score go on both hash chains. Does not pin the map." },

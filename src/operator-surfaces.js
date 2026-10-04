@@ -8,7 +8,7 @@ import { MemoryStore } from "./chainlock/store.js";
 import { append, tip } from "./chainlock/ops.js";
 import { sha256Hex } from "./session-core.js";
 import { inspectBeforeAirgap, probeScannerSync, scanMessageParts } from "./engines/azmail/guard.js";
-import { kernelBase, mailSendBase, probeCarrierOrder } from "./bases.js";
+import { carryOnFirstCarrier, kernelBase, mailSendBase, probeCarrierOrder } from "./bases.js";
 
 export const OPERATOR_AUTHOR = "Aziel Eliab";
 export const SEAL_SLUGS = new Set(["azmail", "azchat", "azbrowser", "azos", "azai", "veillock"]);
@@ -581,13 +581,35 @@ export async function bootPath() {
     userspace_format: built.format,
     userspace_sha256: built.sha256,
     userspace_bytes: built.bytes,
+    handoff_names: built.names || [],
   });
 }
 
 export async function internetBase(payload, env) {
   const cell = await cellular({}, env);
   const carriers = await probeCarrierOrder();
-  const earned = carriers.some((row) => row.packet_counted === true);
+  const asked = payload && payload.carry === true;
+  const carried = asked ? await carryOnFirstCarrier(carriers) : null;
+  const earned = Boolean(
+    carried &&
+      carried.ok === true &&
+      carried.packet_live === true &&
+      carried.peer_exchange_demonstrated === true &&
+      carried.mock !== true &&
+      carried.second_device !== true &&
+      carried.bytes_match === true,
+  );
+  const shown = carriers.map((row) => {
+    if (!earned || !carried || row.id !== carried.carrier) return row;
+    return {
+      ...row,
+      hardware: carried.interface || row.hardware,
+      packet_live: true,
+      peer_exchange_demonstrated: true,
+      packet_counted: true,
+      mock: false,
+    };
+  });
   return {
     ok: true,
     op: "internet_base",
@@ -595,19 +617,27 @@ export async function internetBase(payload, env) {
     stay_off: false,
     installed: false,
     live: false,
-    alt_internet_live: earned,
+    booted: false,
+    alt_internet_live: false,
     packet_path_live: earned,
-    alt_internet_earned: earned,
+    alt_internet_earned: false,
     packet_path_earned: earned,
+    second_device: false,
+    public_icann: false,
+    bgp: false,
+    cap7_name_only: true,
     public_door: "FG-STUB",
-    carrier_order: carriers.map((row) => row.id),
-    carriers,
+    carrier_order: shown.map((row) => row.id),
+    carriers: shown,
+    carry: carried,
     cellular_optional: true,
     cellular_counts: false,
     cellular_status: cell.status || "Absent",
     cellular_code: cell.code || null,
     field_1_0: false,
-    line: earned ? "Internet base carried a real packet." : "Internet base is present. Not live.",
+    line: earned
+      ? "A packet moved on the LAN carrier. This is not an alternative internet."
+      : "Internet base is present. Not live.",
     author: OPERATOR_AUTHOR,
   };
 }

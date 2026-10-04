@@ -286,7 +286,7 @@ export function probeScannerSync(env) {
   if (env && env.AZMAIL_FORCE_SCANNER_ABSENT === true) {
     return { present: false, live: false, kind: "absent", code: "AZM-SCAN-ABSENT" };
   }
-  if (env && Object.prototype.hasOwnProperty.call(env, "AZMAIL_SCANNER")) {
+  if (env && "AZMAIL_SCANNER" in env) {
     const scanner = env.AZMAIL_SCANNER;
     if (
       scanner &&

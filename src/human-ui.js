@@ -719,7 +719,7 @@ ${dashCards}
     ${tasks}
     <article class="task az-task" id="desk-aznews" data-slug="4dmap" data-op="news_status" data-kind="fraggate">
       <h3>AZNews — standalone</h3>
-      <p class="blurb">AZNews is its own desk and also joins 4DMap. It is not a Softwares card and not an MCP tool. news_ingest stores wording, an image hash, and a score on a primary chain and a secondary chain. news_pin and news_open are the map. An empty call stays refused. Outlets from the Press Gazette English-language top 50 stay configured until a fetch stores an item. Weather uses Open-Meteo and records a gap when a region has no observation. Black-swan rows are cited history. The global live flag stays false. Field 1.0 and Office 1.0 stay false. This desk does not update AZ-OS.</p>
+      <p class="blurb">AZNews is its own desk and also joins 4DMap. It is not a Softwares card and not an MCP tool. news_ingest stores wording, an image hash, and a score on a primary chain and a secondary chain. news_pin and news_open are the map. An empty call stays refused. Outlets from the Press Gazette English-language top 50 stay configured until a fetch stores an item. Weather uses Open-Meteo and records a gap when a region has no observation. Black-swan rows are cited history. The join is live only when a fetched news item is pinned. Field 1.0 and Office 1.0 stay false. This desk does not update AZ-OS.</p>
       <div class="actions">
         <button type="button" class="run-task" data-op="news_status">news_status</button>
         <button type="button" class="run-task" data-op="news_sources">news_sources</button>
