@@ -28,6 +28,7 @@ import { UI_DOMAIN_DEFAULT, UI_DOMAINS, uiDomainForSlug } from "./ui-domains.js"
 import { GUIDE_STARTERS } from "./guide-reason.js";
 import { UI_SHELL_CSS, uiShellBootHtml, uiShellClientScript } from "./ui-hold.js";
 import { plainConsumerText } from "./display.js";
+import { carrierSentences } from "./human-pages.js";
 
 export const WORKSPACE_PAGE_TITLE = `Workspace — ${PRODUCT_NAME}`;
 export const WORKSPACE_PAGE_DESCRIPTION =
@@ -428,6 +429,14 @@ function primaryOpFor(slug) {
   return ops.find((op) => op !== "health" && op !== "skill") || ops[0] || "health";
 }
 
+function meshHonestyHtml() {
+  const lines = [
+    "This desk shows who is counted on the mesh. Reading it does not turn radios on, and it does not start a live mesh node.",
+    ...carrierSentences(),
+  ];
+  return lines.map((line) => `<p>${escapeHtml(line)}</p>`).join("\n");
+}
+
 function doorOpLabel(slug, op) {
   if (slug === "aznet" && op === "pair_status") return "Pair status";
   if (slug === "aznet" && op === "pair") return "pair";
@@ -651,6 +660,7 @@ ${dashCards}
         </div>
       </div>
       <div class="op-row mesh">
+        ${meshHonestyHtml()}
         <p class="ws-status" id="op-mesh-line" data-state="loading">Loading status</p>
         <div class="field">
           <label for="op-mesh-product">Product slug</label>
@@ -868,7 +878,12 @@ ${dashCards}
   <section class="task" id="mesh-panel" data-kind="mesh" data-origin="${escapeHtml(base)}">
     <h3>Mesh status</h3>
     <p class="hint" id="desk-hint-mesh">What is this desk: who is on the mesh. Refresh reads status. Join needs a product slug. GET does not turn radios on. Ask Jeeves can point here. This panel stays.</p>
-    <p class="blurb"><strong>Nodes</strong> from <code>nodes</code> / <code>rollup.nodes</code> count human mesh users plus cited human uses (<code>human_uses</code> / USES). <strong>Live Nodes</strong> from <code>live_nodes</code> / <code>rollup.mesh</code> count human mesh users plus concurrent website viewers (<code>site_live_viewers</code>) on godlock.uk + azieleliab.com + azielcorpuslibrary.net. Paint <code>live_nodes</code> / <code>rollup.mesh</code> only — do not add a local <code>/count</code>. <code>live_nodes_tip</code> is the seal. <code>rollup.live</code> is not published. Never paint <code>software_nodes</code>, <code>rollup.live</code>, <code>rollup.all.live</code>, or <code>rollup.software.live</code> as Live Nodes. <code>software_nodes</code> is the <code>{slug}-worker</code> roster. hedidntjump.com, bots, Softwares, and downloads are excluded. GET never pulls hub /count and never enables radios. Incomplete uses stay honest (no invented users). Channel plane cites wifi / bluetooth / rf / photon ON (local qnm-node; <code>worker_hardware:false</code> — not live Worker RF). Nine QNM laws stay machine-true on that JSON. Join needs a catalog product. VPN on at boot. This desk has no off switch. WireGuard and OpenVPN stay unavailable.</p>
+    ${meshHonestyHtml()}
+    <details>
+      <summary>Counts behind those sentences</summary>
+      <p class="blurb"><strong>Nodes</strong> from <code>nodes</code> / <code>rollup.nodes</code> count human mesh users plus cited human uses (<code>human_uses</code> / USES). <strong>Live Nodes</strong> from <code>live_nodes</code> / <code>rollup.mesh</code> count human mesh users plus concurrent website viewers (<code>site_live_viewers</code>) on godlock.uk + azieleliab.com + azielcorpuslibrary.net. Paint <code>live_nodes</code> / <code>rollup.mesh</code> only — do not add a local <code>/count</code>. <code>live_nodes_tip</code> is the seal. <code>rollup.live</code> is not published. Never paint <code>software_nodes</code>, <code>rollup.live</code>, <code>rollup.all.live</code>, or <code>rollup.software.live</code> as Live Nodes. <code>software_nodes</code> is the <code>{slug}-worker</code> roster. hedidntjump.com, bots, Softwares, and downloads are excluded. GET never pulls hub /count and never enables radios. Incomplete uses stay honest (no invented users). Channel plane cites wifi / bluetooth / rf / photon ON (local qnm-node; <code>worker_hardware:false</code> — not live Worker RF). Nine QNM laws stay machine-true on that JSON. Join needs a catalog product. VPN on at boot. This desk has no off switch. WireGuard and OpenVPN stay unavailable.</p>
+      <p id="mesh-engineer"></p>
+    </details>
     <p class="ws-status" id="mesh-status-line" data-state="loading" role="status" aria-live="polite">Loading status</p>
     <pre class="ws-out fg-out" id="mesh-out" role="status" aria-live="polite">Loading status…</pre>
     <div class="field">
@@ -1468,6 +1483,31 @@ export function humanDoorScript() {
     });
   }
   let mesh = document.getElementById("mesh-panel");
+  function meshPlainSentence(b) {
+    if (!b) return "No mesh reply.";
+    if (b.ok === false || (b.code && b.code !== "MESH-OK")) {
+      return "The mesh refused. Code: " + (b.code || "refused") + ". Reading this page does not turn radios on.";
+    }
+    var d2d = b.d2d_carriers || {};
+    var live = b.live_nodes == null ? "unknown" : b.live_nodes;
+    var alt = b.alt_internet_live === true || d2d.alt_internet_live === true;
+    var packet = b.packet_path_live === true || d2d.packet_path_live === true;
+    var field = b.field_1_0 === true || d2d.field_1_0 === true;
+    var second = b.second_device === true || d2d.second_device === true;
+    var door = d2d.worker_door || "FG-STUB";
+    var parts = [];
+    parts.push("The live count is " + live + ". That count is people and site viewers. It is not a live mesh node.");
+    parts.push("Software workers are not people.");
+    parts.push("Reading this does not turn radios on.");
+    parts.push(alt ? "An alternative internet is marked live (alt_internet_live is true)." : "An alternative internet is not live (alt_internet_live is false).");
+    parts.push(packet ? "A packet path is marked live (packet_path_live is true)." : "A packet path is not live (packet_path_live is false).");
+    parts.push(field ? "Field 1.0 is marked live (field_1_0 is true)." : "Field 1.0 is not live (field_1_0 is false).");
+    parts.push(second ? "A second device is marked present (second_device is true)." : "There is no second device (second_device is false).");
+    parts.push("The public worker door stays " + door + ".");
+    if (b.vpn === true) parts.push("VPN on at boot.");
+    parts.push("Code: " + (b.code || "MESH-OK") + ".");
+    return parts.join(" ");
+  }
   function refreshMesh(btn) {
     if (!mesh) return;
     let origin = mesh.getAttribute("data-origin") || "";
@@ -1521,14 +1561,17 @@ export function humanDoorScript() {
         }
       }
       if (b.nine_laws && b.nine_laws.hard_true === true) text += " · nine laws hard-true";
+      var sentence = meshPlainSentence(b);
       if (line) {
-        line.textContent = text;
+        line.textContent = sentence;
         line.setAttribute("data-state", "ready");
       }
       if (opLine) {
-        opLine.textContent = text;
+        opLine.textContent = sentence;
         opLine.setAttribute("data-state", "ready");
       }
+      var engineer = document.getElementById("mesh-engineer");
+      if (engineer) engineer.textContent = text;
       let setMetric = function (id, value) {
         let el = document.getElementById(id);
         if (el) el.textContent = value == null ? "—" : String(value);

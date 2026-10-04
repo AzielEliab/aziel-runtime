@@ -22,7 +22,7 @@
 
   <section>
     <h2>This page</h2>
-    <dl id="self"></dl>
+    <div id="self"></div>
   </section>
 
   <section>
@@ -39,7 +39,7 @@
   <section>
     <h2>Node beacon</h2>
     <p class="hint">Presence and tip hash only.</p>
-    <dl id="beacon"></dl>
+    <div id="beacon"></div>
   </section>
 
   <section>
@@ -50,7 +50,7 @@
 
   <section>
     <h2>Sealed session</h2>
-    <dl id="session-out"></dl>
+    <div id="session-out"></div>
   </section>
 
   <section>
@@ -65,7 +65,7 @@
     <p class="hint">Wi-Fi on the phone is how it reaches the LAN socket. That is not a Wi-Fi carrier exchange. RF and photon stay refused without that hardware. <code>alt_internet_live</code> stays false. <code>mobile_client</code> stays present-not-demonstrated. Opening this page does not record a second device.</p>
   </section>
 
-  <pre id="log"></pre>
+  <div id="log" class="log"></div>
   <script type="module" src="/mobile/page.mjs"></script>
 </body>
 </html>
