@@ -404,6 +404,7 @@ import {
   workspacePaneHtml,
 } from "./human-ui.js";
 import { operatorPageHtml, operatorPayload } from "./operator-ui.js";
+import { humanCiteHtml, humanCiteKind } from "./human-pages.js";
 import { executeLocal } from "./engines/runner.js";
 import { useInBrowserHref } from "./human-hrefs.js";
 import { buildSuitePack, suitePackResponseHeaders } from "./suite-pack.js";
@@ -1382,6 +1383,21 @@ function json(body, status = 200, extra = {}) {
   });
 }
 
+function respondHumanOrJson(request, pathname, out, headerExtra = {}) {
+  if (!out) return null;
+  const kind = humanCiteKind(pathname);
+  if (kind && prefersHtml(request)) {
+    return asHead(
+      request,
+      html(humanCiteHtml({ kind, body: out.body, origin: new URL(request.url).origin, pathname }), {
+        status: out.status,
+        ...headerExtra,
+      }),
+    );
+  }
+  return asHead(request, json(out.body, out.status, headerExtra));
+}
+
 function html(body, extra = {}) {
   const { status, ...headers } = extra;
   return new Response(body, {
@@ -2317,7 +2333,10 @@ function doorOnly(p) {
 function productCardHtml(p, origin, stats) {
   const u = productUrls(p, origin);
   const onDoor = doorOnly(p);
-  const ops = onDoor
+  const opSentences = p.ops
+    .map((o) => `<p>${escapeHtml(o.summary)} The machine name for that step is <code>${escapeHtml(o.op)}</code>.</p>`)
+    .join("");
+  const machineOps = onDoor
     ? p.ops
         .map((o) => `<code>POST /v1/fraggate/call { slug: "${p.slug}", op: "${o.op}" }</code> — ${escapeHtml(o.summary)}`)
         .join("<br>")
@@ -2372,8 +2391,12 @@ GET or POST ${origin}/p/${escapeHtml(p.slug)}/${escapeHtml(firstPost.op)} is pro
   <p>${u.worker_home ? `Worker: <a href="${u.worker_home}">${escapeHtml(u.worker_home)}</a>` : "In-runtime engine (no separate product Worker). No download-tracker URL was invented."}
      · <a href="${u.openapi}">${u.worker_home ? "product OpenAPI" : "runtime OpenAPI"}</a>
      ${u.has_sitemap ? `· <a href="${u.sitemap}">Worker sitemap</a>` : ""}</p>
-  <p>${ops}</p>
-  ${invokePre}
+  ${opSentences}
+  <details>
+    <summary>Machine call</summary>
+    <p>${machineOps}</p>
+    ${invokePre}
+  </details>
   ${fragGateDoorHtml(p, origin)}
   ${p.slug === "veillock" ? `<p class="hint">VeilLock stays local_only. Public door ops stay empty. The desk is a workspace tile on <a href="${origin}/workspace#interface-panel">the interface</a> (<code>POST /v1/interface</code>, MCP method <code>interface/orchestrate</code>), the same cards and receipt board as the other Softwares. A plan does not launch, join, register a camera, return a key, or append the public receipt chain.</p>` : ""}
 </article>`;
@@ -4123,7 +4146,7 @@ async function handleRequest(request, env, ctx) {
     if (isShelvesPath(url.pathname)) {
       const out = dispatchShelvesHttp(request.method, url.pathname, origin);
       if (out) {
-        return asHead(request, json(out.body, out.status, extra(url.pathname)));
+        return respondHumanOrJson(request, url.pathname, out, extra(url.pathname));
       }
     }
 
@@ -4140,17 +4163,17 @@ async function handleRequest(request, env, ctx) {
     if (isSurvivalPath(url.pathname)) {
       const out = dispatchSurvivalHttp(request.method, url.pathname, origin, env);
       if (out) {
-        return asHead(
-          request,
-          json(out.body, out.status, { ...extra(url.pathname), ...(out.status === 200 ? survivalCacheHeaders() : {}) }),
-        );
+        return respondHumanOrJson(request, url.pathname, out, {
+          ...extra(url.pathname),
+          ...(out.status === 200 ? survivalCacheHeaders() : {}),
+        });
       }
     }
 
     if (isPlatformPath(url.pathname)) {
       const out = dispatchPlatformsHttp(request.method, url.pathname, origin, env);
       if (out) {
-        return asHead(request, json(out.body, out.status, extra(url.pathname)));
+        return respondHumanOrJson(request, url.pathname, out, extra(url.pathname));
       }
     }
 

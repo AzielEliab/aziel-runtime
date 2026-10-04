@@ -406,6 +406,7 @@ export function softwareCatalogHtml(origin, catalog, css, calling = null) {
   const inner = `  <p class="human-cta"><a class="cta" href="${base}/workspace#workspace">Use Softwares</a> <a class="cta" href="${base}/workspace#workspace">Open workspace</a></p>
   <p><a href="${base}/">← ${escapeHtml(product)}</a> · <a href="${base}/workspace">Use in browser</a></p>
   <h1>Softwares</h1>
+  <p>Pick a Software and open it in the browser. A stub is not a live door. Programs still receive JSON from /v1/software.</p>
   ${aboutAzielStripHtml({ id: "about-aziel-strip-software" })}
   <p class="lead">${escapeHtml(SOFTWARE_PAGE_DESCRIPTION)}</p>
   ${catalog && catalog.git_sha_tracks_deployed_tip === true
@@ -552,6 +553,13 @@ export function describeDocsHtml(origin, body, css) {
       : "";
   const inner = `  <p><a href="${base}/">← ${escapeHtml(PRODUCT_NAME)}</a> · <a href="${base}/v1/software">Softwares</a> · <a href="${base}/v1/fraggate/describe">describe index</a></p>
   <h1>${escapeHtml(name)}</h1>
+  <p>${
+    localOnly
+      ? `${escapeHtml(name)} stays on this computer. The public door does not run it. Code: FG-LOCAL-ONLY.`
+      : stub
+        ? `${escapeHtml(name)} is not a live public door. A call refuses. Code: FG-STUB.`
+        : `${escapeHtml(name)} runs through the same FragGate door as the machine call.`
+  }</p>
   <p class="slug">${escapeHtml(slug)} · ${escapeHtml(body.status || "")} · product door=${escapeHtml(productDoor)} · registry is FragGate</p>
   <p class="lead">${escapeHtml(body.description || body.note || "")}</p>
   <p>Author: <strong>${escapeHtml(AUTHOR_NAME)}</strong> (also known as ${escapeHtml(AUTHOR_ALTERNATE_NAME)}). JSON: <a href="${base}${canonical}">${canonical}</a>. Catalog card: ${

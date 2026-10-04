@@ -263,6 +263,17 @@ assert.equal(shelves.registry.planes.B.working_targets.filter((t) => t === "arch
 assert.match(shelves.registry.planes.B.note, /aziel-lockset-tip_202609/);
 assert.match(shelves.registry.note, /aziel-lockset-tip_202609/);
 assert.equal(shelves.source_of_truth, CORPUS_SHELVES);
+const htmlShelves = await handler(new Request(origin + "/shelves", { headers: { accept: "text/html" } }), {});
+assert.match(htmlShelves.headers.get("content-type") || "", /text\/html/);
+const htmlShelvesText = await htmlShelves.text();
+assert.match(htmlShelvesText, /Plane A is live/);
+assert.match(htmlShelvesText, /doi is null/);
+assert.match(htmlShelvesText, /CNS-OPERATOR-ATTEST/);
+assert.match(htmlShelvesText, /zenodo_live is false/);
+assert.doesNotMatch(htmlShelvesText.trim(), /^\{/);
+const v1Shelves = await handler(new Request(origin + "/v1/shelves", { headers: { accept: "text/html" } }), {});
+assert.match(v1Shelves.headers.get("content-type") || "", /application\/json/);
+assert.equal((await v1Shelves.json()).spec, COLD_MULTI_SHELF);
 assert.equal(shelves.visible_1520, false);
 assert.equal(shelves.person_id, "https://www.azieleliab.com/#aziel");
 assert.equal(shelves.runtime.published_surface, false);

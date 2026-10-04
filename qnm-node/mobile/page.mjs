@@ -1,6 +1,6 @@
 /**
  * Page controller for the Track 2 LAN join shell.
- * Protocol lives in join.mjs. This file paints what the node returned.
+ * Protocol lives in join.mjs. This file paints sentences from what the node returned.
  * Author: Aziel Eliab only.
  */
 
@@ -16,36 +16,43 @@ const sessionList = document.querySelector("#session-out");
 const log = document.querySelector("#log");
 const buttons = [...document.querySelectorAll("button")];
 
-banner.textContent = `mobile_client: ${MOBILE_CLIENT}. alt_internet_live: false. Not an app-store release. The public Worker stays FG-STUB.`;
+banner.textContent = `This phone page is present and has not been demonstrated (mobile_client is ${MOBILE_CLIENT}). An alternative internet is not live (alt_internet_live is false). This is not an app-store release. The public Worker stays FG-STUB.`;
 
 const client = await createMobileJoinClient();
 baseInput.value = location.origin && location.origin !== "null" ? location.origin : "";
 
-fill(selfList, [
-  ["handle", client.handle],
-  ["carrier", "lan"],
-  ["mobile_client", MOBILE_CLIENT],
-  ["keys", "Held in this page only. A reload makes a new handle. That is not a demonstrated device."],
+say(selfList, [
+  `The handle on this page is ${client.handle}.`,
+  "The carrier for this page is the local network.",
+  `mobile_client is ${MOBILE_CLIENT}.`,
+  "Keys stay in this page only. A reload makes a new handle. That is not a demonstrated device.",
 ]);
 
-function fill(list, rows) {
+function say(list, sentences) {
   list.replaceChildren();
-  for (const [name, value] of rows) {
-    const dt = document.createElement("dt");
-    const dd = document.createElement("dd");
-    dt.textContent = name;
-    dd.textContent = value == null || value === "" ? "—" : String(value);
-    list.append(dt, dd);
+  for (const sentence of sentences) {
+    const p = document.createElement("p");
+    p.textContent = sentence;
+    list.append(p);
   }
+}
+
+function yesNo(value) {
+  if (value === true) return "true";
+  if (value === false) return "false";
+  return "not reported";
 }
 
 function paintRoster(peers, discovery) {
   rosterOut.replaceChildren();
+  const fixture = discovery && Object.prototype.hasOwnProperty.call(discovery, "fixture") ? discovery.fixture : null;
+  const second = discovery && Object.prototype.hasOwnProperty.call(discovery, "second_device") ? discovery.second_device : false;
   const summary = document.createElement("p");
   summary.className = "hint";
-  const fixture = discovery && Object.prototype.hasOwnProperty.call(discovery, "fixture") ? discovery.fixture : "—";
-  const second = discovery && Object.prototype.hasOwnProperty.call(discovery, "second_device") ? discovery.second_device : false;
-  summary.textContent = `fixture: ${fixture}. second_device: ${second}.`;
+  summary.textContent =
+    fixture === true
+      ? "This roster is a fixture. There is no second device (second_device is false)."
+      : `fixture is ${yesNo(fixture)}. second_device is ${yesNo(second)}.`;
   rosterOut.append(summary);
   if (!peers || peers.length === 0) {
     const empty = document.createElement("p");
@@ -53,30 +60,47 @@ function paintRoster(peers, discovery) {
     rosterOut.append(empty);
     return;
   }
-  const table = document.createElement("table");
-  const head = document.createElement("tr");
-  for (const name of ["handle", "carrier", "fixture", "second_device", "verified", "mutual"]) {
-    const th = document.createElement("th");
-    th.textContent = name;
-    head.append(th);
-  }
-  table.append(head);
   for (const peer of peers) {
-    const tr = document.createElement("tr");
-    for (const key of ["handle", "carrier", "fixture", "second_device", "verified", "mutual"]) {
-      const td = document.createElement("td");
-      td.textContent = peer[key] == null ? "—" : String(peer[key]);
-      tr.append(td);
-    }
-    table.append(tr);
+    const p = document.createElement("p");
+    const handle = peer.handle == null ? "unnamed" : String(peer.handle);
+    p.textContent = `${handle} is on carrier ${peer.carrier == null ? "unreported" : peer.carrier}. fixture is ${yesNo(peer.fixture)}. second_device is ${yesNo(peer.second_device)}. verified is ${yesNo(peer.verified)}. mutual is ${yesNo(peer.mutual)}.`;
+    rosterOut.append(p);
   }
-  rosterOut.append(table);
+}
+
+function sentencesFor(result) {
+  if (!result) return ["No reply."];
+  const lines = [];
+  const code = result.code || (result.ok === false ? "error" : "");
+  if (result.ok === false) {
+    const message = result.message ? ` ${result.message}` : "";
+    lines.push(`The node refused. Code: ${code || "error"}.${message} Reading this page does not turn radios on.`);
+  } else if (code) {
+    lines.push(`The node answered. Code: ${code}.`);
+  } else {
+    lines.push("The node answered.");
+  }
+  const fixture =
+    result.fixture === true ||
+    (result.discovery && result.discovery.fixture === true) ||
+    (result.node && result.node.carriers && result.node.carriers.lan && result.node.carriers.lan.fixture === true);
+  const second =
+    result.second_device === true || (result.node && result.node.second_device === true) || (result.discovery && result.discovery.second_device === true);
+  if (fixture && second) lines.push("This is a fixture. The node says a second device is present (second_device is true).");
+  else if (fixture) lines.push("This is a fixture. There is no second device (second_device is false).");
+  else if (second) lines.push("The node says a second device is present (second_device is true).");
+  else lines.push("There is no second device (second_device is false).");
+  if (result.alt_internet_live === true) lines.push("An alternative internet is marked live (alt_internet_live is true).");
+  else lines.push("An alternative internet is not live (alt_internet_live is false).");
+  lines.push("The public worker door stays FG-STUB.");
+  lines.push(`This phone page is present and has not been demonstrated (mobile_client is ${result.mobile_client || MOBILE_CLIENT}).`);
+  return lines;
 }
 
 function show(result) {
-  log.textContent = JSON.stringify(result, null, 2);
-  if (!result) return;
-  status.textContent = result.ok === true ? result.code || "MESH-OK" : `${result.code || "error"}: ${result.message || ""}`;
+  const sentences = sentencesFor(result);
+  log.textContent = sentences.join("\n\n");
+  status.textContent = sentences[0] || "No reply.";
 }
 
 async function run(task) {
@@ -102,13 +126,15 @@ document.querySelector("#roster").addEventListener("click", () => {
     const result = await client.readRoster(baseInput.value);
     const node = result.node || {};
     paintRoster(result.peers || node.peers || [], node.carriers ? node.carriers.lan : null);
-    fill(beaconList, [
-      ["roster", result.roster_code || (result.ok ? "read" : result.code)],
-      ["armed", Array.isArray(result.armed) ? result.armed.join(", ") || "none" : "none"],
-      ["fixture", String(result.fixture === true)],
-      ["second_device", String(node.second_device === true)],
-      ["mobile_client", result.mobile_client],
-      ["alt_internet_live", String(result.alt_internet_live)],
+    say(beaconList, [
+      `Roster result: ${result.roster_code || (result.ok ? "read" : result.code || "refused")}.`,
+      `Armed carriers: ${Array.isArray(result.armed) && result.armed.length ? result.armed.join(", ") : "none"}.`,
+      `fixture is ${yesNo(result.fixture === true)}.`,
+      `second_device is ${yesNo(node.second_device === true)}.`,
+      `mobile_client is ${result.mobile_client || MOBILE_CLIENT}.`,
+      result.alt_internet_live === true
+        ? "An alternative internet is marked live (alt_internet_live is true)."
+        : "An alternative internet is not live (alt_internet_live is false).",
     ]);
     return result;
   });
@@ -118,14 +144,14 @@ document.querySelector("#discover").addEventListener("click", () => {
   run(async () => {
     const result = await client.discover(baseInput.value);
     const view = result.beacon || {};
-    fill(beaconList, [
-      ["presence", view.presence || "—"],
-      ["tip_hash", view.tip_hash || "—"],
-      ["node", result.node_handle || "—"],
-      ["fixture", String(result.fixture === true)],
-      ["second_device", String(result.second_device === true)],
-      ["wifi_peer_exchange_demonstrated", String(result.wifi_peer_exchange_demonstrated)],
-      ["mobile_client", result.mobile_client],
+    say(beaconList, [
+      `Presence is ${view.presence || "not reported"}.`,
+      `The tip hash is ${view.tip_hash || "not reported"}.`,
+      `The node handle is ${result.node_handle || "not reported"}.`,
+      `fixture is ${yesNo(result.fixture === true)}.`,
+      `second_device is ${yesNo(result.second_device === true)}.`,
+      `wifi_peer_exchange_demonstrated is ${yesNo(result.wifi_peer_exchange_demonstrated)}.`,
+      `mobile_client is ${result.mobile_client || MOBILE_CLIENT}.`,
     ]);
     paintRoster(result.peers || [], result.discovery);
     return result;
@@ -136,26 +162,30 @@ document.querySelector("#session").addEventListener("click", () => {
   run(async () => {
     const opened = await client.openSession(baseInput.value);
     if (!opened.ok) {
-      fill(sessionList, [
-        ["code", opened.code],
-        ["mobile_client", opened.mobile_client],
-        ["alt_internet_live", String(opened.alt_internet_live)],
+      say(sessionList, [
+        `The session was refused. Code: ${opened.code || "refused"}.`,
+        `mobile_client is ${opened.mobile_client || MOBILE_CLIENT}.`,
+        opened.alt_internet_live === true
+          ? "An alternative internet is marked live (alt_internet_live is true)."
+          : "An alternative internet is not live (alt_internet_live is false).",
       ]);
       return opened;
     }
     const sent = await client.send(baseInput.value, "lan-join");
-    fill(sessionList, [
-      ["peer_tunnel", opened.peer_tunnel],
-      ["route_class", opened.route_class],
-      ["bearer_mode", opened.bearer_mode],
-      ["session_identity_is_node_key", String(opened.session_identity_is_node_key)],
-      ["opened_plaintext", sent.ok ? sent.plaintext : sent.code],
-      ["wifi_peer_exchange_demonstrated", String(opened.wifi_peer_exchange_demonstrated)],
-      ["rf_live", String(opened.rf_live)],
-      ["photon_live", String(opened.photon_live)],
-      ["second_device", String(opened.second_device)],
-      ["mobile_client", opened.mobile_client],
-      ["alt_internet_live", String(opened.alt_internet_live)],
+    say(sessionList, [
+      `The peer tunnel is ${opened.peer_tunnel || "not reported"}.`,
+      `The route class is ${opened.route_class || "not reported"}.`,
+      `The bearer mode is ${opened.bearer_mode || "not reported"}.`,
+      `session_identity_is_node_key is ${yesNo(opened.session_identity_is_node_key)}.`,
+      sent.ok ? `The sealed session opened. The share is ${sent.plaintext}.` : `The share was refused. Code: ${sent.code || "refused"}.`,
+      `wifi_peer_exchange_demonstrated is ${yesNo(opened.wifi_peer_exchange_demonstrated)}.`,
+      `rf_live is ${yesNo(opened.rf_live)}.`,
+      `photon_live is ${yesNo(opened.photon_live)}.`,
+      `second_device is ${yesNo(opened.second_device)}.`,
+      `mobile_client is ${opened.mobile_client || MOBILE_CLIENT}.`,
+      opened.alt_internet_live === true
+        ? "An alternative internet is marked live (alt_internet_live is true)."
+        : "An alternative internet is not live (alt_internet_live is false).",
     ]);
     return sent.ok ? { ...opened, share: sent.plaintext, share_ok: true } : sent;
   });
