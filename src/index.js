@@ -403,6 +403,8 @@ import {
   workspacePageHtml,
   workspacePaneHtml,
 } from "./human-ui.js";
+import { operatorPageHtml, operatorPayload } from "./operator-ui.js";
+import { executeLocal } from "./engines/runner.js";
 import { useInBrowserHref } from "./human-hrefs.js";
 import { buildSuitePack, suitePackResponseHeaders } from "./suite-pack.js";
 import { LOCKED_STRIP, arch as azpipeArch, dispatchAzpipeArchHttp } from "./azpipe.js";
@@ -590,6 +592,21 @@ const PRODUCTS_RAW = [
       { op: "session_close", method: "POST", summary: "Seal the ethics session. exec/shell stay refuse." },
       { op: "session", method: "POST", summary: "Alias of session_open. Isolate ethics VFS, not a remote shell." },
       { op: "close", method: "POST", summary: "Alias of session_close. Seals the ethics session." },
+      { op: "mode_list", method: "POST", summary: "Server, Bootstrap OS, and Full install. Not an OS yet without a kernel or userspace the machine can boot." },
+      { op: "boot_path", method: "POST", summary: "Kernel base from the AZOS principles, plus any packaged boot image. Not booted, so this is not an OS yet. A browser tab is not the OS." },
+      { op: "internet_base", method: "POST", summary: "Internet base on LAN, then Wi-Fi, then Bluetooth, then RF, then photon. Not live until a real packet on one of those carriers. Cellular is optional and refuses when no radio is present. The public door stays FG-STUB." },
+      { op: "guardian", method: "POST", summary: "Digital Guardian stays on. It audits this operator's own requests on this machine and seals a lattice receipt. It cannot be turned off. It does not watch other people." },
+      { op: "download_list", method: "POST", summary: "File list for one mode. Without a boot image the download stays incomplete. The phone web app is not the OS." },
+      { op: "download_check", method: "POST", summary: "Complete only when a real kernel or userspace hash matches. A note is not an OS. A missing image stays not complete." },
+      { op: "phone_path", method: "POST", summary: "Phone web app or bootstrap wrap. Neither is the OS. Flash stays unexecuted without a tested image. SIM is not wiped." },
+      { op: "sim_lockout", method: "POST", summary: "SIM lockout is off by default. It never erases a SIM or eSIM." },
+      { op: "cellular", method: "POST", summary: "Cellular is a packet carrier. Absent when no radio is present. No mock live." },
+      { op: "ip_mask", method: "POST", summary: "IP masking across AZOS modes. Not masked when no checked mask path exists." },
+      { op: "azcall", method: "POST", summary: "A changeable number with no fee is designed only. No call path." },
+      { op: "veillock", method: "POST", summary: "Camera and screen share stay off unless the person turns them on for a task they asked for." },
+      { op: "malware_sweep", method: "POST", summary: "Scan with the AZMail scanner. Live only when ClamAV is present. Never a mock clean." },
+      { op: "airgap", method: "POST", summary: "Airgap before use. Same scanner honesty as AZMail." },
+      { op: "human_check", method: "POST", summary: "Stop at a human check. No solver." },
     ],
     example: {},
     banner: "AZ-OS does not grant remote shell. Invite prints principles; exec requires a local token.",
@@ -714,6 +731,18 @@ const PRODUCTS_RAW = [
       { op: "models", method: "GET", summary: "Protocol-mirror model list metadata only. Not a blend. Not a chat runner." },
       { op: "health", method: "GET", summary: "Liveness. Protocol mirror. Not a provider proxy." },
       { op: "doctor", method: "GET", summary: "UI alias of health. Same FragGate backend as the Worker UI button." },
+      { op: "engine_status", method: "POST", summary: "Show the active AZAI engine. Mesh when a measured mesh is answering. Ollama only as fallback. Absent engines refuse." },
+      { op: "conversation", method: "POST", summary: "AZAI chat turn. Ollama answers only when it is the engine. Mesh is not claimed while Ollama answers." },
+      { op: "agent", method: "POST", summary: "AZAI agent turn. Drafts only. Does not send mail or messages." },
+      { op: "azclicker", method: "POST", summary: "AZclicker coding turn. A failed check stays failed. No captcha solver." },
+      { op: "attach", method: "POST", summary: "Accept images, video, documents, archives, links, and other files. Scan and airgap before use." },
+      { op: "crawl", method: "POST", summary: "Crawl or index only when the person asks. Records what was fetched. Does not rewrite published papers." },
+      { op: "human_check", method: "POST", summary: "Stop at a captcha or are-you-a-robot check and leave it to the person." },
+      { op: "cap7_lookup", method: "POST", summary: "Cap-7 and .aziel names only. A found name is not the public site being up." },
+      { op: "score_gate", method: "POST", summary: "Triad, physics, math, and geometry scores can block a claim. A score is not a source." },
+      { op: "corpus_note", method: "POST", summary: "Keep a note beside a published paper. The published text is not rewritten." },
+      { op: "receipt_learn", method: "POST", summary: "Score and rank sealed receipts and keep their original usage order." },
+      { op: "receipt_status", method: "POST", summary: "Receipt present, chained, or missing. The body stays sealed." },
     ],
     example: { q: "Where is Florence?", text: "hello" },
     banner: "AZAI is a standalone local core, not a new foundation model and not an Ollama identity. Ollama is optional SLOT. Hosted /v1 is Guide + Lamb check (Service → Clarity → Peace), NOT a proxy that spends the author's paid keys. Prefer op=guide for questions. skill/doctor are diagnostics. chat/blend/complete stay refuse. Jeeves is not sovereign.",
@@ -905,6 +934,7 @@ const PRODUCTS_RAW = [
       { op: "mailbox_open", method: "POST", summary: "Open a local isolate mailbox. Not SMTP. Not a public MTA." },
       { op: "notice_post", method: "POST", summary: "Agent→user notice sealed to the user key after scan and airgap. Not SMTP." },
       { op: "mail_post", method: "POST", summary: "Scan body, links, and files, then seal AZMail-to-AZMail to the user key. Ordinary SMTP is normal MIME, not end-to-end." },
+      { op: "mail_send_base", method: "POST", summary: "Mail send base on the existing AZMail transport. Public smtp_send stays refused. Nothing is sent until a real transport accepts it." },
       { op: "inbox_pull", method: "POST", summary: "Pull ciphertext sealed to the user key. Open only with the caller private key, which is not stored." },
       { op: "ack", method: "POST", summary: "Acknowledge a local mailbox item. Not a release valve." },
       { op: "verify_receipt", method: "POST", summary: "Recompute a mailbox receipt hash. Not SMTP." },
@@ -914,6 +944,8 @@ const PRODUCTS_RAW = [
       { op: "mailbox", method: "POST", summary: "UI alias of mailbox_open." },
       { op: "notice", method: "POST", summary: "UI alias of notice_post." },
       { op: "inbox", method: "POST", summary: "UI alias of inbox_pull." },
+      { op: "malware_sweep", method: "POST", summary: "Same scanner as mailbox airgap. Live only when ClamAV is present." },
+      { op: "airgap", method: "POST", summary: "Dirty-side scan before a sealed object. Absent scanner is not clean." },
     ],
     example: { text: "hello from the anonymous ring" },
     banner:
@@ -940,6 +972,10 @@ const PRODUCTS_RAW = [
       { op: "airlock", method: "POST", summary: "UI alias of airlock_ingest. Same FragGate backend as the Worker UI button." },
       { op: "home", method: "POST", summary: "UI alias of health. Same FragGate backend as the Worker UI button." },
       { op: "vpn", method: "POST", summary: "Auto-bind AZVPN concentrator session. AZBrowser is not a VPN product. HTTPS/WS REAL; WireGuard/OpenVPN SLOT." },
+      { op: "malware_sweep", method: "POST", summary: "Scan before use. Live only with the AZMail scanner. Never a mock clean." },
+      { op: "airgap", method: "POST", summary: "Airgap a page or file before use. Same honesty as AZMail." },
+      { op: "jeeves_site", method: "POST", summary: "Jeeves may build or change a page only when the person asks. Jeeves is not sovereign." },
+      { op: "human_check", method: "POST", summary: "Stop at a captcha or are-you-a-robot check. No solver." },
     ],
     example: { q: "ethical web principles" },
     banner:
@@ -1159,6 +1195,10 @@ const PRODUCTS_RAW = [
       { op: "bus_poll", method: "POST", summary: "Poll the agent bus. Not a mesh hop." },
       { op: "verify_receipt", method: "POST", summary: "Recompute an AZChat receipt hash." },
       { op: "import_export", method: "POST", summary: "Client-held JSON. Hosted does not store a chat archive." },
+      { op: "channel_seal", method: "POST", summary: "Seal AZChat-to-AZChat in this channel only. Outside bridges are not end-to-end." },
+      { op: "bridge_status", method: "POST", summary: "WhatsApp, Facebook, Gmail, Outlook, and Yahoo bridges are not live and not end-to-end." },
+      { op: "malware_sweep", method: "POST", summary: "Scan a chat part. Live only when the AZMail scanner is present." },
+      { op: "airgap", method: "POST", summary: "Airgap a chat part before use. Never a mock clean." },
     ],
     example: { text: "bus frame from agent-a" },
     banner:
@@ -1550,6 +1590,7 @@ function sitemapXml(origin) {
   const urls = [
     { loc: base + "/", priority: "1.0", changefreq: "daily" },
     { loc: base + "/workspace", priority: "0.96", changefreq: "daily" },
+    { loc: base + "/operator", priority: "0.9", changefreq: "daily" },
     { loc: base + "/download", priority: "0.88", changefreq: "daily" },
     { loc: base + "/v1/suite/download", priority: "0.86", changefreq: "daily" },
     { loc: base + "/about", priority: "0.95", changefreq: "weekly" },
@@ -2710,6 +2751,20 @@ function staticPaths(origin, env = {}) {
           "Human workspace HTML: operator panel, dashboard, FragGate console, mesh panel. Same FragGate door as MCP. Not a second exec path.",
         tags: ["catalog"],
         responses: { "200": { description: "Workspace HTML" } },
+      },
+    },
+    "/operator": {
+      get: {
+        operationId: "operator_ui",
+        summary: "AZOS and runtime operator UI. Plain buttons and text inputs. Receipts show present, chained, or missing.",
+        tags: ["catalog"],
+        responses: { "200": { description: "Operator HTML" } },
+      },
+      post: {
+        operationId: "operator_act",
+        summary: "Run one operator action through the same in-process doors. Receipt body stays sealed.",
+        tags: ["catalog"],
+        responses: { "200": { description: "Operator HTML with receipt status" } },
       },
     },
     "/download": {
@@ -3934,6 +3989,26 @@ async function handleRequest(request, env, ctx) {
         request,
         html(workspacePageHtml(origin, PRODUCTS, PAGE_CSS), { ...extra("/workspace"), ...catalogCacheHeaders() }),
       );
+    }
+
+    if (url.pathname === "/operator" || url.pathname === "/operator/") {
+      let result = null;
+      if (request.method === "POST") {
+        const form = await request.formData();
+        const slug = String(form.get("slug") || "").trim().toLowerCase();
+        const op = String(form.get("op") || "").trim();
+        const ran = await executeLocal({
+          slug,
+          op,
+          payload: operatorPayload(form),
+          ranIn: "aziel-runtime",
+          env,
+        });
+        result = ran && ran.responseText ? JSON.parse(ran.responseText) : { code: "AZOS-UNKNOWN", lattice_receipt: { present: false, chained: false, missing: true } };
+      } else if (request.method !== "GET" && request.method !== "HEAD") {
+        return json({ ok: false, code: "AZOS-METHOD" }, 405, extra(url.pathname));
+      }
+      return asHead(request, html(operatorPageHtml(origin, result), extra("/operator")));
     }
 
     if (

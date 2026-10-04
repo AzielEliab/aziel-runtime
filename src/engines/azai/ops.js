@@ -4,8 +4,31 @@
  */
 import { capabilityDoctor, capabilityHealth, capabilitySkill, ensureThisIs } from "../capability.js";
 import { LIMITATION, lambCheck, models } from "./engine.js";
+import { runFeature } from "../../operator-surfaces.js";
 
-const LIVE = ["guide", "learner_guide", "ask", "lamb-check", "lamb_check", "models", "health", "skill", "doctor"];
+const LIVE = [
+  "guide",
+  "learner_guide",
+  "ask",
+  "lamb-check",
+  "lamb_check",
+  "models",
+  "health",
+  "skill",
+  "doctor",
+  "engine_status",
+  "conversation",
+  "agent",
+  "azclicker",
+  "attach",
+  "crawl",
+  "human_check",
+  "cap7_lookup",
+  "score_gate",
+  "corpus_note",
+  "receipt_learn",
+  "receipt_status",
+];
 const STUB = ["blend", "complete", "chat"];
 export const AZAI_OPS = LIVE.slice();
 
@@ -116,6 +139,8 @@ async function azaiGuide(payload, env) {
 }
 
 export async function runAzai(op, payload, _scratch, env) {
+  const feature = await runFeature("azai", op, payload, env);
+  if (feature) return feature;
   if (op === "health") return azaiHealth();
   if (op === "skill") return azaiSkill();
   if (op === "doctor") return azaiDoctor();
