@@ -427,7 +427,7 @@ async function fraggateCallBody(args, registry, bySlug, env, request, attempt) {
   if (isAzGeneratorHallucSlug(asked)) {
     return { ...azGeneratorCallRefuse({ slug: String(asked || "") }), door: FRAGGATE_DOOR };
   }
-  const admission = await admitCall(args, registry, bySlug, { gate: false });
+  const admission = await admitCall(args, registry, bySlug, { gate: false, env });
   if (!admission.admitted) return admission.envelope;
 
   const { target, claim } = admission;

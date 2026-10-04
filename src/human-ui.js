@@ -134,7 +134,7 @@ export const HUMAN_TASKS = Object.freeze([
     name: "AZVPN",
     op: "describe",
     title: "Describe concentrator",
-    blurb: "VPN on at boot. This desk has no off switch. HTTPS/WS is on. WireGuard and OpenVPN stay unavailable.",
+    blurb: "VPN on at boot. This desk has no off switch. HTTPS/WS is on. WireGuard, OpenVPN, L3, kernel UDP, and TUN-TAP stay SLOT.",
     fields: [{ name: "kind", label: "Kind (https_ws)", type: "text", example: "https_ws" }],
   },
   {
@@ -173,7 +173,7 @@ export const HUMAN_TASKS = Object.freeze([
     name: "AZMail",
     op: "airlock_classify",
     title: "Airlock classify",
-    blurb: "Advisory airlock. Scan is LIVE-when-scanner-present. Airgap present. Mailbox encrypted-to-user. External SMTP is not end-to-end. Mesh default off.",
+    blurb: "Advisory airlock. Scan is LIVE-when-scanner-present. Airgap present. Mailbox encrypted-to-user. External SMTP is not end-to-end. Public smtp_send stays refused. Mesh default off.",
     fields: [{ name: "text", label: "Text to classify", type: "textarea", example: "hello from the anonymous ring" }],
   },
   {
@@ -729,7 +729,7 @@ ${dashCards}
     ${tasks}
     <article class="task az-task" id="desk-aznews" data-slug="4dmap" data-op="news_status" data-kind="fraggate">
       <h3>AZNews — standalone</h3>
-      <p class="blurb">AZNews is its own desk and also joins 4DMap. It is not a Softwares card and not an MCP tool. news_ingest stores wording, an image hash, and a score on a primary chain and a secondary chain. news_pin and news_open are the map. An empty call stays refused. Outlets from the Press Gazette English-language top 50 stay configured until a fetch stores an item. Weather uses Open-Meteo and records a gap when a region has no observation. Black-swan rows are cited history. The global live flag stays false. Field 1.0 and Office 1.0 stay false. This desk does not update AZ-OS.</p>
+      <p class="blurb">AZNews is its own desk and also joins 4DMap. It is not a Softwares card and not an MCP tool. news_ingest stores wording, an image hash, and a score on a primary chain and a secondary chain. news_pin and news_open are the map. An empty call stays refused. Outlets from the Press Gazette English-language top 50 stay configured until a fetch stores an item. Weather uses Open-Meteo and records a gap when a region has no observation. Black-swan rows are cited history. The join is live only when a fetched news item is pinned. Field 1.0 and Office 1.0 stay false. This desk does not update AZ-OS.</p>
       <div class="actions">
         <button type="button" class="run-task" data-op="news_status">news_status</button>
         <button type="button" class="run-task" data-op="news_sources">news_sources</button>
@@ -879,9 +879,10 @@ ${dashCards}
     <h3>Mesh status</h3>
     <p class="hint" id="desk-hint-mesh">What is this desk: who is on the mesh. Refresh reads status. Join needs a product slug. GET does not turn radios on. Ask Jeeves can point here. This panel stays.</p>
     ${meshHonestyHtml()}
+    <p>The packet path is not live. The alternative internet is not live. Device-to-device packet carriers stay NOT-READY. WARN-5 stands. WireGuard, OpenVPN, L3, kernel UDP, and TUN-TAP stay SLOT. VeilLock stays local_only. Whitestone is worker-only and has no public door. Public smtp_send stays refused. Internet base is present. Not live. Public send stays refused. Not an OS yet. The kernel base is present. It has not booted a machine.</p>
     <details>
       <summary>Counts behind those sentences</summary>
-      <p class="blurb"><strong>Nodes</strong> from <code>nodes</code> / <code>rollup.nodes</code> count human mesh users plus cited human uses (<code>human_uses</code> / USES). <strong>Live Nodes</strong> from <code>live_nodes</code> / <code>rollup.mesh</code> count human mesh users plus concurrent website viewers (<code>site_live_viewers</code>) on godlock.uk + azieleliab.com + azielcorpuslibrary.net. Paint <code>live_nodes</code> / <code>rollup.mesh</code> only — do not add a local <code>/count</code>. <code>live_nodes_tip</code> is the seal. <code>rollup.live</code> is not published. Never paint <code>software_nodes</code>, <code>rollup.live</code>, <code>rollup.all.live</code>, or <code>rollup.software.live</code> as Live Nodes. <code>software_nodes</code> is the <code>{slug}-worker</code> roster. hedidntjump.com, bots, Softwares, and downloads are excluded. GET never pulls hub /count and never enables radios. Incomplete uses stay honest (no invented users). Channel plane cites wifi / bluetooth / rf / photon ON (local qnm-node; <code>worker_hardware:false</code> — not live Worker RF). Nine QNM laws stay machine-true on that JSON. Join needs a catalog product. VPN on at boot. This desk has no off switch. WireGuard and OpenVPN stay unavailable.</p>
+      <p class="blurb"><strong>Nodes</strong> from <code>nodes</code> / <code>rollup.nodes</code> count human mesh users plus cited human uses (<code>human_uses</code> / USES). <strong>Live Nodes</strong> from <code>live_nodes</code> / <code>rollup.mesh</code> count human mesh users plus concurrent website viewers (<code>site_live_viewers</code>) on godlock.uk + azieleliab.com + azielcorpuslibrary.net. Paint <code>live_nodes</code> / <code>rollup.mesh</code> only — do not add a local <code>/count</code>. <code>live_nodes_tip</code> is the seal. <code>rollup.live</code> is not published. Never paint <code>software_nodes</code>, <code>rollup.live</code>, <code>rollup.all.live</code>, or <code>rollup.software.live</code> as Live Nodes. <code>software_nodes</code> is the <code>{slug}-worker</code> roster. hedidntjump.com, bots, Softwares, and downloads are excluded. GET never pulls hub /count and never enables radios. Incomplete uses stay honest (no invented users). Channel plane cites wifi / bluetooth / rf / photon ON (local qnm-node; <code>worker_hardware:false</code> — not live Worker RF). Nine QNM laws stay machine-true on that JSON. Join needs a catalog product. VPN on at boot. This desk has no off switch. WireGuard, OpenVPN, L3, kernel UDP, and TUN-TAP stay SLOT.</p>
       <p id="mesh-engineer"></p>
     </details>
     <p class="ws-status" id="mesh-status-line" data-state="loading" role="status" aria-live="polite">Loading status</p>
@@ -1185,7 +1186,7 @@ export function fragGateDoorHtml(p, origin) {
         : p.slug === "embryolock"
         ? `<p class="hint">wipe, scorch, and unlock stay on the device. The disabled verbs do not run on this public mesh.</p>`
         : p.slug === "azvpn"
-          ? `<p class="hint" id="azvpn-door-always-on">VPN on at boot. This desk has no off switch. Close one session leaves VPN on. WireGuard and OpenVPN stay unavailable.</p>`
+          ? `<p class="hint" id="azvpn-door-always-on">VPN on at boot. This desk has no off switch. Close one session leaves VPN on. WireGuard, OpenVPN, L3, kernel UDP, and TUN-TAP stay SLOT.</p>`
           : "";
   const example = JSON.stringify(p.example || {}, null, 2);
   const areaId = `fg-payload-${p.slug}`;

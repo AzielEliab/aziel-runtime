@@ -156,7 +156,7 @@ export const STUB_REFUSE = Object.freeze([
 ]);
 
 export const LIMITATION =
-  "THIS IS: 4DMap 4DM-WP-1.0 — a four-axis inspection frame T/Δ/Γ/Π. Inspection frame after AZPIPE routes to isolated engines (not an extra door; domains_are_doors:false). Cards pin, span, join, and walk declared marks. FragGate claims cite join types. ChainLock may stamp walks. AZNews is a standalone path (news_ingest) and a join (news_pin, news_open). Both are callable. An empty pin refuses AZNEWS-SOURCE-ABSENT. live, merged, and installed stay false until a real item is on a pin or the map opens it. The global live flag stays false. THIS IS NOT: a sequential gate (DecisionGATE is); a truth score; a Lumen panel; an invented mark; a backdated class; a globally live news product; Field 1.0; Office 1.0; an installed app; TemporalLock; StaticClock; ChronoLock; TrajectoryLock; SpectralLock; AZ-OS / Lumen. Mesh default off. GET /v1/mesh never enables. EmbryoLock stays stub. Author: Aziel Eliab only.";
+  "THIS IS: 4DMap 4DM-WP-1.0 — a four-axis inspection frame T/Δ/Γ/Π. Inspection frame after AZPIPE routes to isolated engines (not an extra door; domains_are_doors:false). Cards pin, span, join, and walk declared marks. FragGate claims cite join types. ChainLock may stamp walks. AZNews is a standalone path (news_ingest) and a join (news_pin, news_open). Both are callable. An empty pin refuses AZNEWS-SOURCE-ABSENT. The join live flag stays false until a fetched news item is stored on a pin. A supplied item can be item-live without marking the join live. A fixture cannot. THIS IS NOT: a sequential gate (DecisionGATE is); a truth score; a Lumen panel; an invented mark; a backdated class; a globally live news product; Field 1.0; Office 1.0; an installed app; TemporalLock; StaticClock; ChronoLock; TrajectoryLock; SpectralLock; AZ-OS / Lumen. Mesh default off. GET /v1/mesh never enables. EmbryoLock stays stub. Author: Aziel Eliab only.";
 
 const FORBIDDEN_KEYS = Object.freeze({
   truth_score: { kind: "truth_score", code: "4DM-TRUTH-REFUSE" },
@@ -391,7 +391,7 @@ Four-axis inspection frame **T / Δ / Γ / Π**. Inspection frame after AZPIPE (
 
 LIVE_OPS: health, skill, pin, span, stack, gap, fork, walk, lens, class, cohort, absence, cap, join, list, example, card_new, card_pin, card_span, card_join, card_walk, card_list, verify_hash, frame_status, axis_describe, walk_trace, card_export, card_import, verify_chain, neighbor_cite, memory_cite, memory_observe, library_pin, plot, possibility, pattern_recall, lattice_tip, poison_refuse, news_status, news_pin, news_open, news_ingest, news_sources, news_weather, news_black_swan.
 
-AZNews is not a Softwares card and not an MCP tool. news_ingest is the standalone path. news_pin lands a news item as a date × event × place pin. news_open opens the matching item from the map. With no fetched item, news_pin and news_open refuse AZNEWS-SOURCE-ABSENT. A labeled fixture can prove the path and does not set merged or live. A real item can be live by itself. The global live flag stays false. The library map cite is not this join.
+AZNews is not a Softwares card and not an MCP tool. news_ingest is the standalone path. news_pin lands a news item as a date × event × place pin. news_open opens the matching item from the map. With no fetched item, news_pin and news_open refuse AZNEWS-SOURCE-ABSENT. A labeled fixture can prove the path and does not set merged or the join live flag. A fetched item on a pin marks the join live. A supplied item can be item-live without that. The library map cite is not this join.
 
 Stubs (refuse): truth_score, lumen_panel, invent_mark, backdate_class. Product 0.3.0.
 
@@ -407,7 +407,7 @@ Limitation: ${LIMITATION}
 Four-axis inspection frame T/Δ/Γ/Π. Inspection frame after AZPIPE, not an extra door. Not a sequential gate.
 
 LIVE_OPS: health, skill, pin, span, stack, gap, fork, walk, lens, class, cohort, absence, cap, join, list, example, card_new, card_pin, card_span, card_join, card_walk, card_list, verify_hash, frame_status, axis_describe, walk_trace, card_export, card_import, verify_chain, neighbor_cite, memory_cite, memory_observe, library_pin, plot, possibility, pattern_recall, lattice_tip, poison_refuse, news_status, news_pin, news_open, news_ingest, news_sources, news_weather, news_black_swan.
-AZNews is standalone (news_ingest) and joined (news_pin, news_open). No fetched item, so an empty pin refuses. Merged and the global live flag stay false for a fixture.
+AZNews is standalone (news_ingest) and joined (news_pin, news_open). No fetched item, so an empty pin refuses. A fixture does not mark the join live.
 Stubs: truth_score, lumen_panel, invent_mark, backdate_class.
 Join types cited on FragGate claims: ${JOIN_TYPES.join(", ")}.
 Neighbors: ${NEIGHBORS.join(", ")}.

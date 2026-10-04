@@ -390,6 +390,8 @@ assert.equal(healthOp.gmail_e2e, false);
 assert.equal(healthOp.field_1_0, false);
 assert.equal(healthOp.proton_clone_live, false);
 assert.equal(healthOp.transport.smtp_send, "FG-STUB");
+assert.equal(healthOp.transport.public_send, "FG-STUB");
+assert.equal(healthOp.transport.public_mta, false);
 assert.equal(healthOp.transport.local_smtp, "LIVE-when-transport-present");
 assert.equal(healthOp.transport.scan_live, probeScannerSync().live === true);
 

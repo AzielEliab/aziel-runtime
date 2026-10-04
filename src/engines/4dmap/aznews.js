@@ -3,7 +3,8 @@
  * news_ingest is the standalone path. news_pin and news_open are the joined path.
  * Not a Softwares card. Not an MCP tool. Not Field 1.0. Not an installed app.
  * live, merged, and installed stay false until a real item is on a pin or the map opens it.
- * The global live flag stays false. Only that item is marked live.
+ * The join live flag stays false until a fetched news item is stored on a pin.
+ * A supplied item can be item-live without marking the join live. A fixture cannot.
  * Receipts use a primary hash chain and a secondary hash chain.
  * Offline, the secondary hash is that document's primary hash plus the username,
  * so the same document is not written twice for that user.
@@ -50,20 +51,38 @@ const USER_RE = /^[a-zA-Z0-9._-]{1,80}$/;
 const records = [];
 const chain = [];
 let realOnMap = false;
+let fetchedOnMap = false;
 let fetchedStored = false;
 
 export function resetAznewsStore() {
   records.length = 0;
   chain.length = 0;
   realOnMap = false;
+  fetchedOnMap = false;
   fetchedStored = false;
+}
+
+function latticesReal() {
+  return (
+    chain.length > 0 &&
+    chain.every(
+      (row) =>
+        typeof row.primary === "string" &&
+        /^[a-f0-9]{64}$/.test(row.primary) &&
+        typeof row.secondary === "string" &&
+        /^[a-f0-9]{64}$/.test(row.secondary) &&
+        Array.isArray(row.lattices) &&
+        row.lattices.includes("primary") &&
+        row.lattices.includes("secondary"),
+    )
+  );
 }
 
 function productState() {
   return {
     joined: records.some((row) => row.on_map),
     merged: realOnMap,
-    live: false,
+    live: fetchedOnMap,
     installed: false,
     installed_app: false,
     source_present: fetchedStored,
@@ -73,7 +92,7 @@ function productState() {
     live_backends: false,
     alt_internet_live: false,
     mesh_node: false,
-    lattice_live: false,
+    lattice_live: latticesReal(),
     software_tab: false,
     mcp_tool: false,
   };
@@ -89,7 +108,7 @@ export function aznewsJoinCard() {
     mcp_tool: false,
     catalog_slug: null,
     merged: state.merged,
-    live: false,
+    live: state.live,
     joined: state.joined,
     field_1_0: false,
     office_1_0: false,
@@ -109,7 +128,7 @@ export function aznewsJoinCard() {
     lamb_lens: "Service → Clarity → Peace",
     author: "Aziel Eliab",
     hash_lattices: ["primary", "secondary"],
-    lattice_live: false,
+    lattice_live: latticesReal(),
     paths: {
       standalone: { callable: true, op: "news_ingest" },
       joined: { callable: true, ops: ["news_pin", "news_open"] },
@@ -121,11 +140,18 @@ export function aznewsJoinCard() {
 
 function lockFlags(extra) {
   const state = productState();
+  const refused = Boolean(extra && extra.ok === false);
+  const card = aznewsJoinCard();
+  if (refused) {
+    card.live = false;
+    card.joined = false;
+    card.lattice_live = false;
+  }
   return {
     ...extra,
     merged: state.merged,
-    live: false,
-    joined: state.joined,
+    live: refused ? false : state.live,
+    joined: refused ? false : state.joined,
     source_present: state.source_present,
     field_1_0: false,
     office_1_0: false,
@@ -135,11 +161,12 @@ function lockFlags(extra) {
     installed: false,
     installed_app: false,
     mesh_node: false,
+    booted: false,
     software_tab: false,
     mcp_tool: false,
-    lattice_live: false,
+    lattice_live: refused ? false : latticesReal(),
     azos_updated: false,
-    aznews: aznewsJoinCard(),
+    aznews: card,
   };
 }
 
@@ -178,12 +205,49 @@ function tips() {
   };
 }
 
+const RFC_MONTHS = {
+  jan: 1,
+  feb: 2,
+  mar: 3,
+  apr: 4,
+  may: 5,
+  jun: 6,
+  jul: 7,
+  aug: 8,
+  sep: 9,
+  oct: 10,
+  nov: 11,
+  dec: 12,
+};
+
 function clockOf(value) {
   if (value == null || value === "") return null;
   const text = String(value).trim();
-  if (!text || !DATE_RE.test(text)) return null;
-  if (!text.includes("T") && !text.includes(" ")) return `${text}T00:00:00Z`;
-  return text.replace(" ", "T");
+  if (!text) return null;
+  if (DATE_RE.test(text)) {
+    if (!text.includes("T") && !text.includes(" ")) return `${text}T00:00:00Z`;
+    return text.replace(" ", "T");
+  }
+  const rfc = /^(?:[A-Za-z]{3},\s+)?(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})(?:\s+(\d{2}):(\d{2})(?::(\d{2}))?)?(?:\s+(?:GMT|UTC|Z|([+-]\d{4})))?/.exec(text);
+  if (!rfc) return null;
+  const month = RFC_MONTHS[rfc[2].slice(0, 3).toLowerCase()];
+  const day = Number(rfc[1]);
+  const year = Number(rfc[3]);
+  if (!month || day < 1 || day > 31 || year < 1600) return null;
+  const hour = Number(rfc[4] || "0");
+  const minute = Number(rfc[5] || "0");
+  const second = Number(rfc[6] || "0");
+  const zone = rfc[7] || "";
+  let utc = Date.UTC(year, month - 1, day, hour, minute, second);
+  if (/^[+-]\d{4}$/.test(zone)) {
+    const sign = zone[0] === "-" ? -1 : 1;
+    const zh = Number(zone.slice(1, 3));
+    const zm = Number(zone.slice(3, 5));
+    utc -= sign * (zh * 60 + zm) * 60000;
+  }
+  const stamped = new Date(utc);
+  if (Number.isNaN(stamped.getTime())) return null;
+  return stamped.toISOString().replace(/\.\d{3}Z$/, "Z");
 }
 
 function asNum(raw, name) {
@@ -323,7 +387,7 @@ async function planReceipt(doc, pack) {
     offline: pack.offline === true,
     username: pack.offline ? username : null,
     lattices: ["primary", "secondary"],
-    lattice_live: false,
+    lattice_live: /^[a-f0-9]{64}$/.test(primary) && /^[a-f0-9]{64}$/.test(secondary),
     wording: doc.wording,
     images: doc.images,
     score: doc.score,
@@ -467,6 +531,7 @@ async function storeItem(pack, doc, card, onMap) {
   };
   records.push(row);
   if (onMap && pack.item.live) realOnMap = true;
+  if (onMap && pack.item.origin === "fetch" && pack.item.live) fetchedOnMap = true;
   if (pack.item.origin === "fetch" && pack.item.live) fetchedStored = true;
   return { receipt, row };
 }
@@ -491,22 +556,25 @@ async function pinSupplied(pack, cardPrev, path) {
         join: "aznews",
         live_article: item.live === true,
       },
-      src: item.fixture ? "aznews-fixture" : "aznews-supplied",
-      note: item.fixture ? `Fixture pin ${item.event}` : `Supplied pin ${item.event}`,
+      src: item.fixture ? "aznews-fixture" : item.origin === "fetch" ? "aznews-fetch" : "aznews-supplied",
+      note: item.fixture ? `Fixture pin ${item.event}` : item.origin === "fetch" ? `Fetched pin ${item.event}` : `Supplied pin ${item.event}`,
       prev: cardPrev || GENESIS_PREV,
       pi: PI_EMPTY,
     });
   }
   const stored = await storeItem(pack, doc, card, onMap);
   const receipt = stored.receipt;
+  const fetchedPin = item.origin === "fetch" && onMap && item.live === true;
   const summary = item.fixture
       ? sentence(
         `A labeled fixture item was pinned on 4DMap by date, event, and place. Date ${item.date}, event ${item.event}, ${placeWords(item)}. It is not a live article and it is not a news source. AZNews stays unmerged and not live. The adapter ${AZNEWS_ABSENT_MODULE} did not return a live article, and no ${AZNEWS_ABSENT_SOURCE} is configured. Lamb Lens order is Service, then Clarity, then Peace.`,
       )
     : sentence(
-        onMap
-          ? `A supplied item is on a 4DMap pin. Date ${item.date}, event ${item.event}, ${placeWords(item)}. The wording and the image hash are on both hash chains. ${item.live ? "Only this item is live." : "This item is not live."} The global live flag stays false. AZNews is not an installed app. Lamb Lens order is Service, then Clarity, then Peace.`
-          : `A supplied item was stored on the AZNews standalone path. It is not on a 4DMap pin. ${item.live ? "Only this item is live." : "This item is not live."} The global live flag stays false. AZNews is not merged and not installed.`,
+        fetchedPin
+          ? `A fetched news item is pinned on 4DMap. Date ${item.date}, event ${item.event}, ${placeWords(item)}. The wording, the image hash, and the score are on both hash chains. The join is live for this item. The catalog is not globally live. AZNews is not an installed app.`
+          : onMap
+          ? `A supplied item is on a 4DMap pin. Date ${item.date}, event ${item.event}, ${placeWords(item)}. The wording and the image hash are on both hash chains. ${item.live ? "Only this item is live." : "This item is not live."} The join stays not live until a fetched item is pinned. AZNews is not an installed app. Lamb Lens order is Service, then Clarity, then Peace.`
+          : `A supplied item was stored on the AZNews standalone path. It is not on a 4DMap pin. ${item.live ? "Only this item is live." : "This item is not live."} The join stays not live. AZNews is not merged and not installed.`,
       );
   if (!onMap && item.fixture) {
     return lockFlags({
@@ -670,8 +738,8 @@ async function openItem(payload, path) {
       )
     : sentence(
         path === "joined"
-          ? `4DMap opened the supplied item. The words are: ${item.wording}. ${item.live ? "Only this item is live." : "This item is not a live article."} The global live flag stays false.`
-          : `AZNews opened the stored item on the standalone path. The words are: ${item.wording}. It was not opened from a map pin. ${item.live ? "Only this item is live." : "This item is not a live article."} The global live flag stays false.`,
+          ? `4DMap opened the stored item. The words are: ${item.wording}. ${item.live ? "Only this item is live." : "This item is not a live article."} ${fetchedOnMap ? "The join is live for a fetched pin." : "The join stays not live."}`
+          : `AZNews opened the stored item on the standalone path. The words are: ${item.wording}. It was not opened from a map pin. ${item.live ? "Only this item is live." : "This item is not a live article."} ${fetchedOnMap ? "The join is live for a fetched pin." : "The join stays not live."}`,
       );
   return lockFlags({
     ok: true,
@@ -701,7 +769,9 @@ async function openItem(payload, path) {
 function status() {
   const outlets = newsOutlets();
   const summary = sentence(
-    `No news source is present, so live news is refused. AZNews standalone (news_ingest) and the 4DMap join (news_pin, news_open) are both callable. The adapter ${AZNEWS_ABSENT_MODULE} is in this tree. No ${AZNEWS_ABSENT_SOURCE} is configured. ${outlets.length} outlets from the Press Gazette English-language top 50 are configured and not live until a fetch stores an item. Labeled fixture pins are not a news source. The global live flag stays false. Receipts use a primary hash chain and a secondary hash chain. That lattice is not marked live. Lamb Lens order is Service, then Clarity, then Peace.`,
+    fetchedOnMap
+      ? `A fetched news item is pinned, so the 4DMap join is live for that item. Catalog outlets stay configured and are not all live. Stored documents sit on a primary hash chain and a secondary hash chain. Lamb Lens order is Service, then Clarity, then Peace.`
+      : `No news source is present, so live news is refused. AZNews standalone (news_ingest) and the 4DMap join (news_pin, news_open) are both callable. The adapter ${AZNEWS_ABSENT_MODULE} is in this tree. No ${AZNEWS_ABSENT_SOURCE} is configured. ${outlets.length} outlets from the Press Gazette English-language top 50 are configured and not live until a fetch stores an item. Labeled fixture pins are not a news source. The global live flag stays false. Stored documents sit on a primary hash chain and a secondary hash chain. Lamb Lens order is Service, then Clarity, then Peace.`,
   );
   return lockFlags({
     ok: true,

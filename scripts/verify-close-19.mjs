@@ -221,7 +221,9 @@ assert.ok(openapi.info.description.indexOf("Aziel Runtime is a node-meshed") < o
 assert.ok(openapi.info.description.indexOf("Aziel Runtime is a node-meshed") < openapi.info.description.indexOf("1.9.3"));
 assert.doesNotMatch(openapi.info.description, /not merely an API orchestrator|CNS-ZENODO-IP-BAN/);
 const pathKeys = Object.keys(openapi.paths).join(" ");
-assert.doesNotMatch(pathKeys, /smtp_send|deanonymize/);
+assert.equal(openapi.paths["/p/azmail/smtp_send"], undefined);
+assert.doesNotMatch(pathKeys, /smtp_send/);
+assert.doesNotMatch(pathKeys, /deanonymize/);
 assert.ok(openapi.paths["/p/azchat/handle_new"]);
 assert.ok(openapi.paths["/p/azmail/notice_post"]);
 

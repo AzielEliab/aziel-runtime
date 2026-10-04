@@ -224,8 +224,15 @@ export function operatorPageHtml(origin, result) {
     <p><strong>Not an OS yet</strong>. A browser tab is not the OS. The phone web app and the bootstrap wrap are not the OS.</p>
     <p>Guardian: <strong>On</strong>. It audits this operator's own requests on this machine. It cannot be turned off.</p>
     <p>Internet base: <strong>present, not live</strong></p>
+    <p>Internet base is present. Not live.</p>
     <p>Mail send base: <strong>present</strong>. Public send stays refused.</p>
     <p>Kernel base: <strong>present, not booted</strong></p>
+    <p>The kernel base is present. It has not booted a machine.</p>
+    <p>The packet path is not live. The alternative internet is not live.</p>
+    <p>Device-to-device packet carriers stay NOT-READY. WARN-5 stands.</p>
+    <p>WireGuard, OpenVPN, L3, kernel UDP, and TUN-TAP stay SLOT.</p>
+    <p>VeilLock stays local_only. Whitestone is worker-only and has no public door.</p>
+    <p>Public smtp_send stays refused.</p>
     <p>IP: <strong>${ip}</strong></p>
     <p>Cellular: <strong>${cellular}</strong>. No radio reads as Absent.</p>
     <p>Scanner, mesh, flash, and camera: <strong>pending</strong></p>

@@ -286,7 +286,7 @@ export function probeScannerSync(env) {
   if (env && env.AZMAIL_FORCE_SCANNER_ABSENT === true) {
     return { present: false, live: false, kind: "absent", code: "AZM-SCAN-ABSENT" };
   }
-  if (env && Object.prototype.hasOwnProperty.call(env, "AZMAIL_SCANNER")) {
+  if (env && "AZMAIL_SCANNER" in env) {
     const scanner = env.AZMAIL_SCANNER;
     if (
       scanner &&
@@ -866,7 +866,7 @@ export async function deliverExternal({ from, to, mime, env }) {
       wire: null,
       transport: null,
       ...NOT_E2E,
-      note: "No local SMTP transport. Public smtp_send stays stub. Nothing was sent.",
+      note: "No local SMTP transport. Nothing was sent.",
     };
   }
   const delivered = await smtpDeliver({

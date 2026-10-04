@@ -86,6 +86,21 @@ export async function runAzmail(op, payload, scratch, env) {
   if (op === "mailbox_open") return mailboxOpen(payload);
   if (op === "notice_post") return noticePost(payload, env);
   if (op === "mail_post") return mailPost(payload, env);
+  if (op === "smtp_send") {
+    return {
+      ok: false,
+      op: "smtp_send",
+      code: "FG-STUB",
+      sent: false,
+      live: false,
+      public_live: false,
+      public_smtp_send: false,
+      public_mta: false,
+      installed: false,
+      booted: false,
+      line: "Public smtp_send stays refused.",
+    };
+  }
   if (op === "inbox_pull") return inboxPull(payload);
   if (op === "ack") return mailboxAck(payload);
   if (op === "verify_receipt") return mailboxVerifyReceipt(payload);

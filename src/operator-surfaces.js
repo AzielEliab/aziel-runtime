@@ -8,7 +8,8 @@ import { MemoryStore } from "./chainlock/store.js";
 import { append, tip } from "./chainlock/ops.js";
 import { sha256Hex } from "./session-core.js";
 import { inspectBeforeAirgap, probeScannerSync, scanMessageParts } from "./engines/azmail/guard.js";
-import { kernelBase, mailSendBase, probeCarrierOrder } from "./bases.js";
+import { bootHandoff, carryOnFirstCarrier, kernelBase, mailSendBase, probeCarrierOrder, secondDevice } from "./bases.js";
+import { HONESTY_SENTENCES, SURFACE_HONESTY, sharedFactBlock } from "./surface-honesty.js";
 
 export const OPERATOR_AUTHOR = "Aziel Eliab";
 export const SEAL_SLUGS = new Set(["azmail", "azchat", "azbrowser", "azos", "azai", "veillock"]);
@@ -67,10 +68,28 @@ function honesty() {
 }
 
 function applyHonesty(src) {
-  const locks = honesty();
-  if (src && src.alt_internet_earned === true && src.alt_internet_live === true) locks.alt_internet_live = true;
-  if (src && src.packet_path_earned === true && src.packet_path_live === true) locks.packet_path_live = true;
-  return locks;
+  void src;
+  return honesty();
+}
+
+function quietCarry(carried) {
+  if (!carried || typeof carried !== "object") return carried;
+  const refused = Array.isArray(carried.refused)
+    ? carried.refused.map((row) => ({ ...row, packet_live: false, alt_internet_live: false }))
+    : carried.refused;
+  return {
+    ...carried,
+    packet_live: false,
+    alt_internet_live: false,
+    peer_exchange_demonstrated: false,
+    public_smtp_send: false,
+    booted: false,
+    installed: false,
+    kernel_base: false,
+    os_yet: false,
+    public_door: "FG-STUB",
+    refused,
+  };
 }
 
 function notAnOs(extra = {}) {
@@ -563,11 +582,11 @@ export function modeList() {
   };
 }
 
-export async function bootPath() {
+export async function bootPath(payload) {
   const found = await packagedBoot();
   const built = await kernelBase();
   const files = bootRows(found);
-  return notAnOs({
+  const body = {
     op: "boot_path",
     files,
     kernel: found.some((row) => row.kind === "kernel"),
@@ -578,16 +597,71 @@ export async function bootPath() {
     booted: false,
     installed: false,
     stay_off: false,
+    host_replaced: false,
     userspace_format: built.format,
     userspace_sha256: built.sha256,
     userspace_bytes: built.bytes,
-  });
+    handoff_names: built.names || [],
+  };
+  if (payload && payload.handoff === true) {
+    const hand = await bootHandoff();
+    return {
+      ...notAnOs({
+        ...body,
+        os_yet: false,
+        host_replaced: false,
+        stay_off: false,
+        booted: false,
+        installed: false,
+        kernel_base: false,
+        userspace_base: body.userspace_base,
+        handoff_code: hand && hand.code ? hand.code : null,
+        handoff_guest_log: hand && hand.guest_log ? hand.guest_log : "",
+        handoff_image_sha256: hand && hand.image_sha256 ? hand.image_sha256 : null,
+        handoff_boot_signature: Boolean(hand && hand.boot_signature === true),
+        handoff_hdrs: Boolean(hand && hand.hdrs === true),
+        handoff_install_flag: hand && hand.install_flag != null ? hand.install_flag : null,
+      }),
+      ...sharedFactBlock(),
+      booted: false,
+      installed: false,
+      kernel_base: false,
+      os_yet: false,
+      line: OS_LINE,
+      kernel_line: HONESTY_SENTENCES.kernel,
+    };
+  }
+  return {
+    ...notAnOs(body),
+    ...sharedFactBlock(),
+    booted: false,
+    installed: false,
+    kernel_base: false,
+    os_yet: false,
+    line: OS_LINE,
+    kernel_line: HONESTY_SENTENCES.kernel,
+  };
 }
 
 export async function internetBase(payload, env) {
   const cell = await cellular({}, env);
   const carriers = await probeCarrierOrder();
-  const earned = carriers.some((row) => row.packet_counted === true);
+  const asked = payload && payload.carry === true;
+  const carried = asked ? await carryOnFirstCarrier(carriers) : null;
+  const quiet = quietCarry(carried);
+  const device = Boolean(
+    quiet &&
+      quiet.mesh === true &&
+      quiet.bytes_match === true &&
+      secondDevice(quiet.local_host, quiet.remote_host),
+  );
+  const shown = carriers.map((row) => ({
+    ...row,
+    packet_live: false,
+    peer_exchange_demonstrated: false,
+    packet_counted: false,
+    alt_internet_live: false,
+  }));
   return {
     ok: true,
     op: "internet_base",
@@ -595,19 +669,33 @@ export async function internetBase(payload, env) {
     stay_off: false,
     installed: false,
     live: false,
-    alt_internet_live: earned,
-    packet_path_live: earned,
-    alt_internet_earned: earned,
-    packet_path_earned: earned,
+    booted: false,
+    kernel_base: false,
+    os_yet: false,
+    alt_internet_live: false,
+    packet_path_live: false,
+    alt_internet_earned: false,
+    packet_path_earned: false,
+    second_device: device,
+    public_icann: false,
+    bgp: false,
+    cap7_name_only: true,
     public_door: "FG-STUB",
-    carrier_order: carriers.map((row) => row.id),
-    carriers,
+    d2d_status: SURFACE_HONESTY.d2d_status,
+    warn5: SURFACE_HONESTY.warn5,
+    carrier_order: shown.map((row) => row.id),
+    carriers: shown,
+    carry: quiet,
     cellular_optional: true,
     cellular_counts: false,
     cellular_status: cell.status || "Absent",
     cellular_code: cell.code || null,
     field_1_0: false,
-    line: earned ? "Internet base carried a real packet." : "Internet base is present. Not live.",
+    line: HONESTY_SENTENCES.internet,
+    packet_line: HONESTY_SENTENCES.packet,
+    alt_line: HONESTY_SENTENCES.alt,
+    d2d_line: HONESTY_SENTENCES.d2d,
+    warn5_line: HONESTY_SENTENCES.warn5,
     author: OPERATOR_AUTHOR,
   };
 }
@@ -1226,7 +1314,7 @@ export async function runFeature(slug, op, payload, env) {
   if (slug === "azbrowser" && op === "jeeves_site") return jeevesSite(payload);
   if ((slug === "azbrowser" || slug === "azai" || slug === "azos") && op === "human_check") return humanCheck(payload);
   if (slug === "azos" && op === "mode_list") return modeList();
-  if (slug === "azos" && op === "boot_path") return bootPath();
+  if (slug === "azos" && op === "boot_path") return bootPath(payload);
   if (slug === "azos" && op === "internet_base") return internetBase(payload, env);
   if (slug === "azos" && op === "guardian") return guardianStatus(payload);
   if (slug === "azmail" && op === "mail_send_base") return mailSendBase(payload, env);

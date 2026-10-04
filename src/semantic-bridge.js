@@ -435,7 +435,7 @@ Call \`POST ${host}/v1/fraggate/call\` or MCP \`fraggate_call\` with \`{ slug, o
 | miragegrid | verify-receipt, bridge, shuffle | Verify a control-plane receipt; Cap-7 name-metadata cite; ping→land update shuffle (hosted URL SLOT) |
 | aznet | stamp, verify_hash, receipt_verify | Side-net hash stamp / verify (never hosts payloads) |
 | azchat | verify_receipt, import_export | Chat receipt verify; client-held JSON |
-| azmail | verify_receipt, import_export, mail_post | Mail receipt verify. Scan and airgap before seal. External SMTP is not end-to-end. Public smtp_send stays stub. |
+| azmail | verify_receipt, import_export, mail_post | Mail receipt verify. Scan and airgap before seal. External SMTP is not end-to-end. Public smtp_send stays refused. |
 
 **azlibrary upload** is API token only (operator \`Authorization: Bearer\` / env / keychain at call time). Never embed the secret in catalog, skill, MCP schema, or OpenAPI examples. Download of azcorpus + azlibrary stays open.
 
