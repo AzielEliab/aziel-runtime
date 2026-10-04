@@ -324,7 +324,8 @@ assert.ok(openapi.paths["/v1/stats"]);
 assert.ok(openapi.paths["/v1/stats-rollups"]);
 assert.ok(openapi.paths["/p/foldlock/fold-preview"], "OpenAPI documents catalog proxy paths");
 assert.match(openapi.paths["/p/foldlock/fold-preview"].post.description, /PROXY path only/);
-assert.equal(openapi.paths["/p/azmail/smtp_send"], undefined);
+assert.ok(openapi.paths["/p/azmail/smtp_send"]);
+assert.match(openapi.paths["/p/azmail/smtp_send"].post.description, /PROXY path only/);
 assert.equal(openapi.paths["/p/azmail/deanonymize"], undefined);
 
 const mcpInit = await handler(

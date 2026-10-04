@@ -277,12 +277,6 @@ function claimFromArgs(args, slug, op) {
  * Shared allowlist refuse (halluc / stub / unknown op / local-only).
  * Same code and message for a live call and a dry_run preview.
  */
-function azmailSmtpReady(env) {
-  if (!env || typeof env !== "object") return false;
-  if (env.AZMAIL_SMTP && typeof env.AZMAIL_SMTP.send === "function") return true;
-  return typeof env.AZMAIL_SMTP_HOST === "string" && env.AZMAIL_SMTP_HOST.length > 0;
-}
-
 function classificationRefuse(classified, target) {
   if (classified.kind === "halluc") {
     return {
@@ -368,13 +362,7 @@ export async function admitCall(args, registry, bySlug, opts = {}) {
   const target = parseTarget(args, registry, bySlug);
   const classified = classifyCall(target.entry, target.op);
   const deferGate = opts && opts.gate === false;
-  const smtpReady =
-    classified.kind === "stub" &&
-    target.entry &&
-    target.entry.slug === "azmail" &&
-    target.op === "smtp_send" &&
-    azmailSmtpReady(opts && opts.env);
-  const spec = smtpReady ? null : classificationRefuse(classified, target);
+  const spec = classificationRefuse(classified, target);
   if (spec) {
     return {
       admitted: false,

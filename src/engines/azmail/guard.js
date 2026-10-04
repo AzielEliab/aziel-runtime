@@ -866,7 +866,7 @@ export async function deliverExternal({ from, to, mime, env }) {
       wire: null,
       transport: null,
       ...NOT_E2E,
-      note: "No local SMTP transport. Public smtp_send stays stub. Nothing was sent.",
+      note: "No local SMTP transport. Nothing was sent.",
     };
   }
   const delivered = await smtpDeliver({

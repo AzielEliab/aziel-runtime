@@ -157,7 +157,7 @@ export function honestyFields(productSlugs) {
     named_fallback_inventory: {
       note: "Universal local execution is not complete. These named ops stay per-op proxy_fallback. Do not invent a silent unknown-tool fallback.",
       proxy_fallback_ops: perOp,
-      refused: ["exec", "shell", "blend", "chat", "smtp_send", "deanonymize", "unknown-tool"],
+      refused: ["exec", "shell", "blend", "chat", "deanonymize", "unknown-tool"],
     },
     isolate_note:
       "Cloudflare's Worker / Durable Object isolate is the jail for Worker-side engines. The receipt carries that engine's digest, not only an upstream HTTP status.",

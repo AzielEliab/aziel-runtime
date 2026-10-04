@@ -679,7 +679,8 @@ assert.ok(openapi.paths["/v1/fraggate"]);
 assert.ok(openapi.paths["/v1/fraggate/call"]);
 assert.ok(openapi.paths["/mcp"]);
 assert.ok(openapi.paths["/p/foldlock/fold-preview"], "OpenAPI documents catalog proxy paths");
-assert.equal(openapi.paths["/p/azmail/smtp_send"], undefined);
+assert.ok(openapi.paths["/p/azmail/smtp_send"]);
+assert.match(openapi.paths["/p/azmail/smtp_send"].post.description, /PROXY path only/);
 assert.equal(openapi.paths["/p/azmail/deanonymize"], undefined);
 assert.match(openapi.info.description, /FragGate/);
 

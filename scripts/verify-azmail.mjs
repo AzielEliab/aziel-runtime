@@ -82,6 +82,7 @@ const expectedLive = [
   "mailbox_open",
   "notice_post",
   "mail_post",
+  "smtp_send",
   "inbox_pull",
   "ack",
   "verify_receipt",
@@ -105,7 +106,7 @@ for (const op of expectedLive) {
   assert.equal(classifyCall(registry.bySlug.azmail, op).kind, "live", `${op} is live`);
 }
 assert.equal(classifyCall(registry.bySlug.azmail, "smtp").kind, "stub");
-assert.equal(classifyCall(registry.bySlug.azmail, "smtp_send").kind, "stub");
+assert.equal(classifyCall(registry.bySlug.azmail, "smtp_send").kind, "live");
 assert.equal(classifyCall(registry.bySlug.azmail, "send").kind, "stub");
 assert.equal(classifyCall(registry.bySlug.azmail, "mail").kind, "stub");
 assert.equal(classifyCall(registry.bySlug.azmail, "deliver").kind, "stub");
@@ -389,7 +390,8 @@ assert.equal(healthOp.external_smtp_e2e, false);
 assert.equal(healthOp.gmail_e2e, false);
 assert.equal(healthOp.field_1_0, false);
 assert.equal(healthOp.proton_clone_live, false);
-assert.equal(healthOp.transport.smtp_send, "FG-STUB");
+assert.equal(healthOp.transport.smtp_send, "LIVE-when-transport-present");
+assert.equal(healthOp.transport.public_mta, false);
 assert.equal(healthOp.transport.local_smtp, "LIVE-when-transport-present");
 assert.equal(healthOp.transport.scan_live, probeScannerSync().live === true);
 

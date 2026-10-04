@@ -8,7 +8,7 @@ import { MemoryStore } from "./chainlock/store.js";
 import { append, tip } from "./chainlock/ops.js";
 import { sha256Hex } from "./session-core.js";
 import { inspectBeforeAirgap, probeScannerSync, scanMessageParts } from "./engines/azmail/guard.js";
-import { carryOnFirstCarrier, kernelBase, mailSendBase, probeCarrierOrder } from "./bases.js";
+import { bootHandoff, carryOnFirstCarrier, kernelBase, mailSendBase, probeCarrierOrder, secondDevice } from "./bases.js";
 
 export const OPERATOR_AUTHOR = "Aziel Eliab";
 export const SEAL_SLUGS = new Set(["azmail", "azchat", "azbrowser", "azos", "azai", "veillock"]);
@@ -563,11 +563,11 @@ export function modeList() {
   };
 }
 
-export async function bootPath() {
+export async function bootPath(payload) {
   const found = await packagedBoot();
   const built = await kernelBase();
   const files = bootRows(found);
-  return notAnOs({
+  const body = {
     op: "boot_path",
     files,
     kernel: found.some((row) => row.kind === "kernel"),
@@ -578,11 +578,24 @@ export async function bootPath() {
     booted: false,
     installed: false,
     stay_off: false,
+    host_replaced: false,
     userspace_format: built.format,
     userspace_sha256: built.sha256,
     userspace_bytes: built.bytes,
     handoff_names: built.names || [],
-  });
+  };
+  if (payload && payload.handoff === true) {
+    const hand = await bootHandoff();
+    return notAnOs({
+      ...body,
+      ...hand,
+      os_yet: false,
+      host_replaced: false,
+      stay_off: false,
+      userspace_base: body.userspace_base,
+    });
+  }
+  return notAnOs(body);
 }
 
 export async function internetBase(payload, env) {
@@ -596,9 +609,19 @@ export async function internetBase(payload, env) {
       carried.packet_live === true &&
       carried.peer_exchange_demonstrated === true &&
       carried.mock !== true &&
-      carried.second_device !== true &&
-      carried.bytes_match === true,
+      carried.bytes_match === true &&
+      carried.public_icann !== true &&
+      carried.bgp !== true,
   );
+  const meshEarned = Boolean(
+    earned &&
+      carried.mesh === true &&
+      carried.alt_internet_live === true &&
+      carried.src_node &&
+      carried.dst_node &&
+      carried.src_node !== carried.dst_node,
+  );
+  const device = Boolean(meshEarned && secondDevice(carried.local_host, carried.remote_host));
   const shown = carriers.map((row) => {
     if (!earned || !carried || row.id !== carried.carrier) return row;
     return {
@@ -618,11 +641,11 @@ export async function internetBase(payload, env) {
     installed: false,
     live: false,
     booted: false,
-    alt_internet_live: false,
+    alt_internet_live: meshEarned,
     packet_path_live: earned,
-    alt_internet_earned: false,
+    alt_internet_earned: meshEarned,
     packet_path_earned: earned,
-    second_device: false,
+    second_device: device,
     public_icann: false,
     bgp: false,
     cap7_name_only: true,
@@ -635,8 +658,8 @@ export async function internetBase(payload, env) {
     cellular_status: cell.status || "Absent",
     cellular_code: cell.code || null,
     field_1_0: false,
-    line: earned
-      ? "A packet moved on the LAN carrier. This is not an alternative internet."
+    line: meshEarned
+      ? "A node-mesh frame moved on the LAN carrier. This is not ICANN and not BGP."
       : "Internet base is present. Not live.",
     author: OPERATOR_AUTHOR,
   };
@@ -1256,7 +1279,7 @@ export async function runFeature(slug, op, payload, env) {
   if (slug === "azbrowser" && op === "jeeves_site") return jeevesSite(payload);
   if ((slug === "azbrowser" || slug === "azai" || slug === "azos") && op === "human_check") return humanCheck(payload);
   if (slug === "azos" && op === "mode_list") return modeList();
-  if (slug === "azos" && op === "boot_path") return bootPath();
+  if (slug === "azos" && op === "boot_path") return bootPath(payload);
   if (slug === "azos" && op === "internet_base") return internetBase(payload, env);
   if (slug === "azos" && op === "guardian") return guardianStatus(payload);
   if (slug === "azmail" && op === "mail_send_base") return mailSendBase(payload, env);
