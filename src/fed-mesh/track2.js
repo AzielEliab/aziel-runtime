@@ -10,6 +10,8 @@
  *
  * The public Worker cites this plane and does not run it.
  * GET never arms a carrier. RF and photon are not mocked LIVE.
+ * qnm-node/mobile is a client of this beacon and peer session.
+ * mobile_client stays present-not-demonstrated.
  *
  * Author: Aziel Eliab only.
  */
@@ -17,7 +19,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { track2CarrierProbe } from "../../qnm-node/bearers/radio.js";
-import { D2D_STORE_FORWARD } from "../d2d-carriers.js";
+import { D2D_MOBILE_CLIENT, D2D_STORE_FORWARD } from "../d2d-carriers.js";
 import { locksetHash } from "../lockset.js";
 import { judgeEquivocation, neighborPhoenix, partitionRejoin, tickAccepts } from "../split-wires.js";
 import { negotiateBearer, negotiateRouteClass } from "../transport/routing.js";
@@ -560,6 +562,9 @@ export function createTrack2(opts = {}) {
       partitioned: state.partition.partitioned === true,
       fixture: state.fixture === true,
       second_device: false,
+      mobile_client: D2D_MOBILE_CLIENT,
+      mobile_demonstrated: false,
+      app_store_release: false,
       in_process: true,
       needs_starting_address: true,
       live_multi_provider: false,

@@ -183,6 +183,9 @@ assert.equal(live.d2d_carriers.dns_cut, false);
 assert.equal(live.d2d_carriers.origin_cutover, false);
 assert.equal(live.d2d_carriers.warn5_closed, false);
 assert.equal(live.d2d_carriers.second_device, false);
+assert.equal(live.d2d_carriers.mobile_client, "present-not-demonstrated");
+assert.equal(live.d2d_carriers.mobile_demonstrated, false);
+assert.equal(live.d2d_carriers.app_store_release, false);
 for (const id of ["wifi", "bluetooth", "rf", "photon"]) {
   const row = live.d2d_carriers.carriers.find((carrier) => carrier.id === id);
   assert.equal(row.peer_exchange_demonstrated, false, id);

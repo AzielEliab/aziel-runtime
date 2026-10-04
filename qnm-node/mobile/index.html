@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="LAN join">
+  <meta name="theme-color" content="#141910">
+  <title>Track 2 LAN join</title>
+  <link rel="manifest" href="/mobile/manifest.webmanifest">
+  <link rel="icon" href="/mobile/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/mobile/icon.svg">
+  <link rel="stylesheet" href="/mobile/page.css">
+</head>
+<body>
+  <header>
+    <p class="kicker">Track 2 · Plane P · Aziel Eliab</p>
+    <h1>LAN join</h1>
+    <p id="banner" class="banner"></p>
+  </header>
+
+  <section>
+    <h2>This page</h2>
+    <dl id="self"></dl>
+  </section>
+
+  <section>
+    <label for="base">Local node</label>
+    <input id="base" name="base" type="url" inputmode="url" autocomplete="off" spellcheck="false">
+    <div class="actions">
+      <button id="roster" type="button">Read roster</button>
+      <button id="discover" type="button">Discover beacon</button>
+      <button id="session" type="button">Open sealed session</button>
+    </div>
+    <p id="status" class="status" role="status"></p>
+  </section>
+
+  <section>
+    <h2>Node beacon</h2>
+    <p class="hint">Presence and tip hash only.</p>
+    <dl id="beacon"></dl>
+  </section>
+
+  <section>
+    <h2>Roster</h2>
+    <p class="hint">Fixture versus a second device. The node reports the row. This page leaves it there.</p>
+    <div id="roster-out"></div>
+  </section>
+
+  <section>
+    <h2>Sealed session</h2>
+    <dl id="session-out"></dl>
+  </section>
+
+  <section>
+    <h2>Run it on a phone</h2>
+    <p class="hint">Same Wi-Fi as the computer running qnm-node. This page is a client of that node.</p>
+    <ol>
+      <li>On the computer, listen on the LAN address and arm LAN. <code>--fixture</code> when there is no second physical device. GET does not arm radios.</li>
+      <li>Android: open this page in Chrome. iPhone: open it in Safari. Use the LAN address printed by the node, <code>/mobile/</code>.</li>
+      <li>Add to Home Screen. That saves this shell. It is not an app-store release.</li>
+      <li>Read roster, discover the beacon, then open the sealed session.</li>
+    </ol>
+    <p class="hint">Wi-Fi on the phone is how it reaches the LAN socket. That is not a Wi-Fi carrier exchange. RF and photon stay refused without that hardware. <code>alt_internet_live</code> stays false. <code>mobile_client</code> stays present-not-demonstrated. Opening this page does not record a second device.</p>
+  </section>
+
+  <pre id="log"></pre>
+  <script type="module" src="/mobile/page.mjs"></script>
+</body>
+</html>
