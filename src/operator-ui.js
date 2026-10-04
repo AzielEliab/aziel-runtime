@@ -40,11 +40,14 @@ function statusText(result) {
   }
   if (result.line) return String(result.line);
   if (result.banner) return String(result.banner);
-  if (result.code && result.ok === false) return String(result.code);
-  if (result.engine) return String(result.engine);
-  if (result.status) return String(result.status);
-  if (result.ok === false) return "refused";
-  return "ok";
+  if (result.code && result.ok === false) {
+    const message = result.message ? " " + String(result.message) : "";
+    return "This step was refused. Code: " + String(result.code) + "." + message;
+  }
+  if (result.engine) return "Engine: " + String(result.engine) + ".";
+  if (result.status) return "Status: " + String(result.status) + ".";
+  if (result.ok === false) return "This step was refused.";
+  return "That step finished.";
 }
 
 function cellularWord(result) {

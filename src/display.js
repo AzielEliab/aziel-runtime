@@ -739,6 +739,37 @@ export function plainConsumerText(body, res) {
   if (body == null) return res && res.status != null ? "HTTP " + res.status : "No reply.";
   if (typeof body === "string") return body;
   if (typeof body !== "object") return String(body);
+  if (body.code === "MESH-OK" && typeof body.live_nodes === "number") {
+    const d2d = body.d2d_carriers && typeof body.d2d_carriers === "object" ? body.d2d_carriers : {};
+    const software = body.software_nodes;
+    const door = typeof d2d.worker_door === "string" && d2d.worker_door.indexOf("{") < 0 ? d2d.worker_door : "FG-STUB";
+    const alt = body.alt_internet_live === true || d2d.alt_internet_live === true;
+    const packet = body.packet_path_live === true || d2d.packet_path_live === true;
+    const field = body.field_1_0 === true || d2d.field_1_0 === true;
+    const second = body.second_device === true || d2d.second_device === true;
+    const lines = [
+      "The live count is " + body.live_nodes + ". That count is people and site viewers. It is not a live mesh node.",
+      typeof software === "number"
+        ? "Software workers on the roster: " + software + ". Those workers are not people."
+        : "Software workers are not people.",
+      "Reading this status does not turn radios on.",
+      alt
+        ? "An alternative internet is marked live (alt_internet_live is true)."
+        : "An alternative internet is not live (alt_internet_live is false).",
+      packet
+        ? "A packet path is marked live (packet_path_live is true)."
+        : "A packet path is not live (packet_path_live is false).",
+      field ? "Field 1.0 is marked live (field_1_0 is true)." : "Field 1.0 is not live (field_1_0 is false).",
+      second
+        ? "A second device is marked present (second_device is true)."
+        : "There is no second device (second_device is false).",
+      "The public worker door stays " + door + ".",
+    ];
+    if (body.vpn === true) lines.push("VPN on at boot.");
+    else if (body.vpn === false) lines.push("VPN cite is off.");
+    lines.push("Code: MESH-OK.");
+    return lines.join("\n");
+  }
   const lines = [];
   const http = res && res.status != null ? "HTTP " + res.status : "";
   const code = body.code || body.refuse || (body.error && typeof body.error === "object" && body.error.code) || "";
