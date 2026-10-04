@@ -77,6 +77,16 @@ export function resolvePublicToolName(name) {
   return raw;
 }
 
+/**
+ * True when tools/call may run this name.
+ * runtime_software and softwares resolve to Softwares and count.
+ * A missing or non-string name does not. Flat {slug}_{op} does not.
+ */
+export function isListedMcpTool(name) {
+  if (typeof name !== "string") return false;
+  return PUBLIC_MCP_TOOL_SET.has(resolvePublicToolName(name));
+}
+
 export const PUBLIC_HELPER_TOOLS = [
   PUBLIC_SOFTWARE_TOOL,
   "runtime_bundle",
@@ -101,6 +111,8 @@ export const PUBLIC_MCP_TOOLS = Object.freeze([
   ...PUBLIC_HELPER_TOOLS,
   ...PUBLIC_SESSION_TOOLS,
 ]);
+
+const PUBLIC_MCP_TOOL_SET = new Set(PUBLIC_MCP_TOOLS);
 
 /**
  * Refuse-envelope hint. Not an exec allowlist.

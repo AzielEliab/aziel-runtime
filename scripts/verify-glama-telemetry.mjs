@@ -90,8 +90,10 @@ const lower = await mcp("tools/call", { name: "softwares", arguments: {} }, 5, e
 assert.notEqual(lower.body.result.isError, true);
 
 const missing = await mcp("tools/call", { name: "NotATool", arguments: {} }, 6, env, ctx);
-assert.equal(missing.body.result.isError, true);
-assert.equal(missing.body.result.structuredContent.code, "FG-HALLUC-TOOL");
+assert.equal(Object.hasOwn(missing.body, "result"), false);
+assert.equal(missing.body.error.code, -32602);
+assert.equal(missing.body.error.message, "Unknown tool: NotATool");
+assert.equal(missing.body.error.data.code, "FG-HALLUC-TOOL");
 assert.equal(missing.res.headers.get(GLAMA_TELEMETRY_RESPONSE_HEADER), null);
 
 await Promise.all(ctx.pending);
