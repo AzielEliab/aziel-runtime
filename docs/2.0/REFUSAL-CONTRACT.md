@@ -16,7 +16,7 @@ These refusals are **stable boundaries**, not gaps. Enabling any Remain-OFF item
 | Code | When |
 |------|------|
 | `FG-OK` | Allowlisted live op completed the door |
-| `FG-HALLUC-TOOL` | Unknown registry name or unknown MCP tool |
+| `FG-HALLUC-TOOL` | Unknown registry name. Also `error.data.code` when `tools/call` names a tool that is not listed (JSON-RPC `-32602`, not a result with `isError`) |
 | `FG-STUB` | Stub op / named stub verb |
 | `FG-LOCAL-ONLY` | Named local_only entry, or allowlisted op this isolate cannot run |
 | `FG-GATE-REFUSE` | DecisionGATE blocked |

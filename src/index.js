@@ -236,7 +236,7 @@ import {
   redlineCiteField,
   tokenQueryRefuse,
 } from "./redline.js";
-import { resolvePublicToolName } from "./fraggate/codes.js";
+import { isListedMcpTool, resolvePublicToolName } from "./fraggate/codes.js";
 import {
   GLAMA_TELEMETRY_RESPONSE_HEADER,
   GLAMA_TELEMETRY_RESPONSE_WORKER,
@@ -3582,8 +3582,10 @@ function rpcResult(id, result, extra = {}) {
   return json({ jsonrpc: "2.0", id: id ?? null, result }, 200, extra);
 }
 
-function rpcError(id, code, message, extra = {}) {
-  return json({ jsonrpc: "2.0", id: id ?? null, error: { code, message } }, 200, extra);
+function rpcError(id, code, message, extra = {}, data) {
+  const error = { code, message };
+  if (data !== undefined) error.data = data;
+  return json({ jsonrpc: "2.0", id: id ?? null, error }, 200, extra);
 }
 
 function mcpWireHeaders(transport) {
@@ -3707,6 +3709,10 @@ async function handleMcp(request, env, origin, ctx) {
   if (method === "tools/call") {
     const name = params.name;
     const args = params.arguments || params.input || {};
+    if (!isListedMcpTool(name)) {
+      const shown = typeof name === "string" ? name : "";
+      return rpcError(id, -32602, `Unknown tool: ${shown}`, wire, hallucRefuse(shown));
+    }
     try {
       const out = await callTool(env, name, args, origin, request, ctx);
       const { slug, op } = splitProductToolName(resolvePublicToolName(name));

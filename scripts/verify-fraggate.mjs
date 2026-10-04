@@ -646,9 +646,30 @@ const hallucMcp = await mcp("tools/call", {
 assert.equal(hallucMcp.result.isError, true);
 assert.equal(hallucMcp.result.structuredContent.code, "FG-HALLUC-TOOL");
 
-const flatMcp = await mcp("tools/call", { name: "foldlock_fold-preview", arguments: { text: "x" } });
-assert.equal(flatMcp.result.isError, true);
-assert.equal(flatMcp.result.structuredContent.code, "FG-HALLUC-TOOL");
+const flatMcp = await mcp("tools/call", { name: "foldlock_fold-preview", arguments: { text: "x" } }, 70);
+assert.equal(flatMcp.jsonrpc, "2.0");
+assert.equal(flatMcp.id, 70);
+assert.equal(Object.hasOwn(flatMcp, "result"), false);
+assert.equal(flatMcp.error.code, -32602);
+assert.equal(flatMcp.error.message, "Unknown tool: foldlock_fold-preview");
+assert.equal(flatMcp.error.data.code, "FG-HALLUC-TOOL");
+assert.equal(flatMcp.error.data.ok, false);
+
+const missingTool = await mcp("tools/call", { name: "NotATool", arguments: {} }, 71);
+assert.equal(missingTool.id, 71);
+assert.equal(Object.hasOwn(missingTool, "result"), false);
+assert.equal(missingTool.error.code, -32602);
+assert.equal(missingTool.error.message, "Unknown tool: NotATool");
+assert.equal(missingTool.error.data.code, "FG-HALLUC-TOOL");
+assert.equal(missingTool.error.data.ok, false);
+
+const unknownOp = await mcp("tools/call", {
+  name: "fraggate_call",
+  arguments: { slug: "foldlock", op: "not-a-real-op", confirm: true },
+}, 72);
+assert.equal(unknownOp.error, undefined);
+assert.equal(unknownOp.result.isError, true);
+assert.equal(unknownOp.result.structuredContent.code, "FG-UNKNOWN-OP");
 
 const lib = await mcp("tools/call", { name: "library_lookup", arguments: { q: "Florence", op: "search" } });
 assert.equal(lib.result.isError, false);
