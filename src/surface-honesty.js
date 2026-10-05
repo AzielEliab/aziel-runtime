@@ -51,6 +51,10 @@ export function sharedFactBlock() {
   return {
     packet_path_live: fact.packet_path_live === true,
     alt_internet_live: fact.alt_internet_live === true,
+    second_device: fact.second_device === true,
+    watch_qualifies: fact.watch_qualifies === true,
+    confirm_is_authentication: false,
+    public_mta: false,
     missing_line: fact.missing_line,
     not_live_sentence: fact.not_live_sentence,
     missing: fact.missing,

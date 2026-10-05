@@ -239,6 +239,13 @@ const humanPeek = await peekHumanUses(kvEnv);
 assert.equal(humanPeek.uses, 2);
 assert.equal(humanPeek.complete, true);
 assert.equal(humanPeek.source, "uses.total");
+for (const raw of ["-5", "1.5", "1e2", "NaN", "999999999999999999999", "12abc", "1 2"]) {
+  const poisoned = memoryUsesKv({ total: raw });
+  const peek = await peekHumanUses({ USES: poisoned });
+  assert.equal(peek.uses, 0, raw);
+  assert.equal(peek.complete, false, raw);
+  assert.equal(peek.uses_kv, true, raw);
+}
 const lightSnap = await readUses(kvEnv, { light: true });
 assert.equal(lightSnap.light, true);
 assert.equal(lightSnap.uses, 2);

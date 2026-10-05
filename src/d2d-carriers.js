@@ -208,7 +208,7 @@ export function d2dCarrierCite() {
     store_forward: D2D_STORE_FORWARD,
     store_forward_public: "FG-STUB",
     worker_runs_store_forward: false,
-    second_device: false,
+    second_device: fact.second_device === true,
     mobile_client: D2D_MOBILE_CLIENT,
     mobile_demonstrated: false,
     app_store_release: false,
@@ -282,6 +282,7 @@ export function d2dCarrierFrame() {
     d2d_code: D2D_CODE,
     packet_path_live: cite.packet_path_live === true,
     alt_internet_live: cite.alt_internet_live === true,
+    second_device: cite.second_device === true,
     not_live_sentence: cite.not_live_sentence,
     missing_line: cite.missing_line,
   };

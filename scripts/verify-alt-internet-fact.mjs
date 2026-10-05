@@ -9,7 +9,7 @@ import { readFileSync } from "node:fs";
 import { PUBLIC_MCP_TOOLS } from "../src/fraggate/codes.js";
 import { PRODUCTS } from "../src/index.js";
 import { SUITE_SOFTWARE_COUNT } from "../src/guide-reason.js";
-import { currentAltInternetFact, watchQualifies } from "../src/alt-internet-fact.js";
+import { arrivalFlags, carryWatch, currentAltInternetFact, surfaceArrival, watchQualifies } from "../src/alt-internet-fact.js";
 import { hostHardwareVisible, probeLan, readMachineId, track2CarrierProbe } from "../qnm-node/bearers/radio.js";
 import { carrierSentences } from "../src/human-pages.js";
 import { plainConsumerText } from "../src/display.js";
@@ -96,6 +96,60 @@ assert.equal(watchQualifies({ ...sameMachine, left_machine: true, arrived_other_
 assert.equal(watchQualifies({ left_machine: true, arrived_other_machine: true, same_machine_id: false, mock: true, machine_id: "a".repeat(32), peer_machine_id: "b".repeat(32) }), false);
 assert.equal(fact.alt_internet_live, false);
 
+function assertBound(flags, label) {
+  assert.equal(flags.alt_internet_live === true, flags.packet_path_live === true, label);
+  assert.equal(flags.packet_path_live === true, flags.second_device === true, label);
+  assert.equal(flags.second_device === true, flags.watch_qualifies === true, label);
+  if (flags.alt_internet_live === true && flags.packet_path_live !== true) assert.fail(`${label} split alt_internet_live`);
+  if (flags.second_device === true && flags.alt_internet_live !== true) assert.fail(`${label} split second_device`);
+  if (flags.packet_path_live === true && flags.second_device !== true) assert.fail(`${label} split packet_path_live`);
+}
+
+const qualifiedWatch = {
+  mock: false,
+  left_machine: true,
+  arrived_other_machine: true,
+  same_machine_id: false,
+  machine_id: "a".repeat(32),
+  peer_machine_id: "b".repeat(32),
+};
+const qualified = arrivalFlags(qualifiedWatch);
+assert.equal(qualified.watch_qualifies, true);
+assert.equal(qualified.alt_internet_live, true);
+assert.equal(qualified.packet_path_live, true);
+assert.equal(qualified.second_device, true);
+assertBound(qualified, "qualified watch");
+
+const sameId = arrivalFlags(carryWatch({
+  local_host: "a".repeat(32),
+  remote_host: "a".repeat(32),
+  left_machine: true,
+  arrived_other_machine: true,
+  same_machine_id: false,
+  second_device: true,
+  alt_internet_live: true,
+  packet_path_live: true,
+}));
+assert.equal(sameId.second_device, false);
+assert.equal(sameId.alt_internet_live, false);
+assert.equal(sameId.packet_path_live, false);
+assertBound(sameId, "same machine id");
+
+const hostsDiffer = surfaceArrival({
+  local_host: "a".repeat(32),
+  remote_host: "b".repeat(32),
+  left_machine: false,
+  arrived_other_machine: false,
+  same_machine_id: false,
+  second_device: true,
+  alt_internet_live: false,
+  packet_path_live: false,
+});
+assert.equal(hostsDiffer.second_device, false);
+assertBound(hostsDiffer, "different host ids without a foreign arrival");
+assertBound(fact, "standing fact");
+assertBound(surfaceArrival(null), "no watch");
+
 if (hostHardwareVisible()) {
   const lan = probeLan();
   const probe = track2CarrierProbe();
@@ -165,6 +219,13 @@ if (net.result.carry && net.result.carry.code === "PACKET-CARRIED") {
   assert.equal(net.result.carry.same_machine_id, true);
   assert.equal(net.result.carry.second_device, false);
   assert.equal(net.result.second_device, false);
+  assert.equal(net.result.alt_internet_live, net.result.packet_path_live);
+  assert.equal(net.result.packet_path_live, net.result.second_device);
+  assert.equal(net.result.carry.alt_internet_live, net.result.carry.packet_path_live);
+  assert.equal(net.result.carry.packet_path_live, net.result.carry.second_device);
+  if (net.result.carry.same_machine_id === true && net.result.second_device === true) {
+    assert.fail("same machine id set second_device true");
+  }
   assert.equal(net.result.carry.local_host, net.result.carry.remote_host);
   assert.equal(net.result.carry.local_host, fact.machine_id);
   assert.equal(net.result.carry.public_door, "FG-STUB");
@@ -177,11 +238,18 @@ const mesh = await get("/v1/mesh");
 assert.equal(status.result.missing_line, fact.not_live_sentence);
 assert.equal(status.result.alt_internet_live, false);
 assert.equal(status.result.packet_path_live, false);
+assert.equal(status.result.second_device, false);
+assert.equal(status.result.watch_qualifies, false);
+assert.equal(status.result.alt_internet_live, status.result.second_device);
 assert.equal(status.result.kernel, false);
 assert.equal(status.result.booted, false);
 assert.equal(boot.result.missing_line, fact.not_live_sentence);
 assert.equal(boot.result.booted, false);
 assert.equal(boot.result.kernel_base, false);
+assert.equal(boot.result.public_demo_arms_boot, false);
+assert.equal(boot.result.handoff_ran, false);
+assert.equal(boot.result.confirm_is_authentication, false);
+assert.equal(boot.result.second_device, false);
 assert.equal(mesh.body.missing_line, fact.not_live_sentence);
 assert.equal(mesh.body.d2d_carriers.not_live_sentence, fact.not_live_sentence);
 assert.equal(mesh.body.d2d_carriers.alt_internet_live, false);

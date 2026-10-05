@@ -10,10 +10,10 @@ Operator-armed **communication channel cites** on `GET /v1/mesh` (+ status):
 
 | Channel | Cite |
 | --- | --- |
-| Wi-Fi | `wifi: "on"` |
-| Bluetooth | `bluetooth: "on"` |
-| RF | `rf: "on"` |
-| Photon flashes | `photon: "on"` |
+| Wi-Fi | `wifi: "cite"` (`cite/operator-armed`) |
+| Bluetooth | `bluetooth: "cite"` (`cite/operator-armed`) |
+| RF | `rf: "cite"` (`cite/operator-armed`) |
+| Photon flashes | `photon: "cite"` (`cite/operator-armed`) |
 
 They sit on a **channel plane**. Data persist across devices is a local `qnm-node` / `qnsd` process law. The Worker **cites** that plane. `public_proxy` is **false**.
 
@@ -30,7 +30,7 @@ The Worker rollup bearer stays **`suite-presence`**. Do not invent a second Work
 
 **Channel plane ≠ kernel VPN.** Public VPN auto-binds **AZVPN** (HTTPS/WS REAL). `GET /v1/mesh` cites `vpn: true` and never opens a concentrator session. AZVPN is not MirageGrid Cap-7.
 
-`wifi` / `bluetooth` / `rf` / `photon` = `"on"` is this cite. It is not a LIVE packet hop and not public egress. `worker_hardware` stays false. Local hooks refuse `QNM-RADIO-ABSENT` when the hardware or `qnsd` is absent. No mock LIVE. Plane P prefer order (LAN, then Wi-Fi, Bluetooth, RF, photon) is [`PLANE-P-D2D-1.0.md`](PLANE-P-D2D-1.0.md). Cap-7 / `.aziel` stay names (Plane N), not carriers.
+`wifi` / `bluetooth` / `rf` / `photon` = `"cite"` (`cite/operator-armed`) is this cite. It is not a LIVE packet hop and not public egress. `worker_hardware` stays false. A value of `"on"`, `"live"`, or `true` while `worker_hardware` is false is a refused radio claim. Local hooks refuse `QNM-RADIO-ABSENT` when the hardware or `qnsd` is absent. No mock LIVE. Plane P prefer order (LAN, then Wi-Fi, Bluetooth, RF, photon) is [`PLANE-P-D2D-1.0.md`](PLANE-P-D2D-1.0.md). Cap-7 / `.aziel` stay names (Plane N), not carriers.
 
 **AZNet ↔ AZBrowser pairing ≠ tunnel.** Pairing is functional order / token (hash continuity, silent side-net). Products stay separate. FragGate stays THE single public door.
 

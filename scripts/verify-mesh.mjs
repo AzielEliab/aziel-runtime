@@ -131,6 +131,11 @@ function assertMeshPills(data, extra = {}) {
     assert.equal(typeof data.nodes, "number", extra.nodesTypeMsg || "status nodes is a count");
     assert.equal(data.nodes, data.human_mesh_users + data.human_uses, extra.nodesMsg || "nodes === human_mesh_users + human_uses");
     assert.equal(data.nodes, data.rollup.nodes);
+    assert.equal(data.nodes_are_not_unique_humans, true);
+    assert.equal(data.paint_nodes_as_people, false);
+    assert.equal(data.nodes_formula, "human_mesh_users+human_uses");
+    assert.match(data.nodes_note, /nodes_are_not_unique_humans/);
+    assert.match(data.nodes_note, /Do not paint nodes or human_uses as people/);
   } else {
     assert.ok(Array.isArray(data.nodes), extra.rosterMsg || "GET /v1/mesh/nodes.nodes is the roster");
   }
@@ -642,10 +647,17 @@ assert.equal(citeMesh.channel_plane.spec, "QNM-CHANNEL-PLANE-1.0");
 assert.equal(citeMesh.channel_plane.vpn, true);
 assert.equal(citeMesh.channel_plane.concentrator_slug, "azvpn");
 assert.equal(citeMesh.channel_plane.default_vpn_backend, "azvpn");
-assert.equal(citeMesh.wifi, "on");
-assert.equal(citeMesh.bluetooth, "on");
-assert.equal(citeMesh.rf, "on");
-assert.equal(citeMesh.photon, "on");
+assert.equal(citeMesh.wifi, "cite");
+assert.equal(citeMesh.bluetooth, "cite");
+assert.equal(citeMesh.rf, "cite");
+assert.equal(citeMesh.photon, "cite");
+assert.equal(citeMesh.worker_hardware, false);
+assert.equal(citeMesh.channel_plane.worker_radios_live, false);
+for (const name of ["wifi", "bluetooth", "rf", "photon"]) {
+  if (citeMesh.worker_hardware === false && (citeMesh[name] === "on" || citeMesh[name] === true || citeMesh[name] === "live")) {
+    assert.fail(`${name} claims radio hardware the worker cannot see`);
+  }
+}
 assert.equal(citeMesh.no_lie, true);
 assert.equal(citeMesh.no_rewrite, true);
 assert.equal(citeMesh.rewrite_key, false);

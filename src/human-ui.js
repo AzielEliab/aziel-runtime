@@ -882,7 +882,7 @@ ${dashCards}
     <p>The packet path is not live. The alternative internet is not live. Device-to-device packet carriers stay NOT-READY. WARN-5 stands. WireGuard, OpenVPN, L3, kernel UDP, and TUN-TAP stay SLOT. VeilLock stays local_only. Whitestone is worker-only and has no public door. Public smtp_send stays refused. Internet base is present. Not live. Public send stays refused. Not an OS yet. The kernel base is present. It has not booted a machine.</p>
     <details>
       <summary>Counts behind those sentences</summary>
-      <p class="blurb"><strong>Nodes</strong> from <code>nodes</code> / <code>rollup.nodes</code> count human mesh users plus cited human uses (<code>human_uses</code> / USES). <strong>Live Nodes</strong> from <code>live_nodes</code> / <code>rollup.mesh</code> count human mesh users plus concurrent website viewers (<code>site_live_viewers</code>) on godlock.uk + azieleliab.com + azielcorpuslibrary.net. Paint <code>live_nodes</code> / <code>rollup.mesh</code> only — do not add a local <code>/count</code>. <code>live_nodes_tip</code> is the seal. <code>rollup.live</code> is not published. Never paint <code>software_nodes</code>, <code>rollup.live</code>, <code>rollup.all.live</code>, or <code>rollup.software.live</code> as Live Nodes. <code>software_nodes</code> is the <code>{slug}-worker</code> roster. hedidntjump.com, bots, Softwares, and downloads are excluded. GET never pulls hub /count and never enables radios. Incomplete uses stay honest (no invented users). Channel plane cites wifi / bluetooth / rf / photon ON (local qnm-node; <code>worker_hardware:false</code> — not live Worker RF). Nine QNM laws stay machine-true on that JSON. Join needs a catalog product. VPN on at boot. This desk has no off switch. WireGuard, OpenVPN, L3, kernel UDP, and TUN-TAP stay SLOT.</p>
+      <p class="blurb"><strong>Nodes</strong> from <code>nodes</code> / <code>rollup.nodes</code> count human mesh users plus cited human uses (<code>human_uses</code> / USES). <code>nodes_are_not_unique_humans</code>. Do not paint nodes or <code>human_uses</code> as people. Unique humans are <code>human_mesh_users</code> and <code>human_nodes</code>. <strong>Live Nodes</strong> from <code>live_nodes</code> / <code>rollup.mesh</code> count human mesh users plus concurrent website viewers (<code>site_live_viewers</code>) on godlock.uk + azieleliab.com + azielcorpuslibrary.net. Paint <code>live_nodes</code> / <code>rollup.mesh</code> only — do not add a local <code>/count</code>. <code>live_nodes_tip</code> is the seal. <code>rollup.live</code> is not published. Never paint <code>software_nodes</code>, <code>rollup.live</code>, <code>rollup.all.live</code>, or <code>rollup.software.live</code> as Live Nodes. <code>software_nodes</code> is the <code>{slug}-worker</code> roster. hedidntjump.com, bots, Softwares, and downloads are excluded. GET never pulls hub /count and never enables radios. Incomplete uses stay honest (no invented users). Channel plane cites wifi / bluetooth / rf / photon as cite/operator-armed (local qnm-node; <code>worker_hardware:false</code> — not live Worker RF). Nine QNM laws stay machine-true on that JSON. Join needs a catalog product. VPN on at boot. This desk has no off switch. WireGuard, OpenVPN, L3, kernel UDP, and TUN-TAP stay SLOT.</p>
       <p id="mesh-engineer"></p>
     </details>
     <p class="ws-status" id="mesh-status-line" data-state="loading" role="status" aria-live="polite">Loading status</p>
@@ -1029,7 +1029,7 @@ ${dashCards}
     ${aboutAzielStripHtml({ id: "about-aziel-strip" })}
     <p class="hint">Browseable Softwares + live mesh counts + receipts. Metrics come from <code>GET /v1/mesh</code> and <code>GET /v1/receipts</code>. GET never enables radios. Each card has slug-specific <code>#hashtag</code> parts — not one identical blob. Channel plane (wifi / bluetooth / rf / photon) is a cite — live hardware is local qnm-node. Public VPN auto-binds AZVPN (HTTPS/WS; GET cites only).</p>
     <div class="metric-grid" id="dash-metrics">
-      <div class="metric" title="Nodes: human mesh users plus cited human uses (USES)."><span class="label">Nodes</span><span class="value" id="metric-nodes">—</span></div>
+      <div class="metric" title="Nodes: human mesh users plus cited human uses (USES). nodes are not unique humans. Do not paint human_uses as people."><span class="label">Nodes</span><span class="value" id="metric-nodes">—</span></div>
       <div class="metric" title="Live Nodes: recent human beats plus concurrent website viewers (site_live_viewers). Stale rows are not included."><span class="label">Live Nodes</span><span class="value" id="metric-live">—</span></div>
       <div class="metric" title="Registered: durable non-worker sessions, including stale. Not Live Nodes."><span class="label">Registered</span><span class="value" id="metric-registered">—</span></div>
       <div class="metric" title="Stale: registered rows that missed 3 adaptive beats. One beat restores live."><span class="label">Stale</span><span class="value" id="metric-stale">—</span></div>
@@ -1533,11 +1533,17 @@ export function humanDoorScript() {
       let software = b.software_nodes != null ? b.software_nodes : (roll.software && (roll.software.live + roll.software.locked + roll.software.isolated));
       let radios = b.radios || (b.enabled ? "on" : "off");
       let ch = b.channel_plane || b.channels || {};
-      let channelsOn = (ch.wifi || b.wifi) === "on" && (ch.bluetooth || b.bluetooth) === "on" && (ch.rf || b.rf) === "on" && (ch.photon || b.photon) === "on";
+      function channelLive(value) {
+        return value === true || value === "on" || value === "live" || value === "LIVE" || value === "1";
+      }
+      let hardwareFalse = b.worker_hardware === false || (b.channel_plane && b.channel_plane.worker_hardware === false);
+      let claimed = channelLive(ch.wifi) || channelLive(b.wifi) || channelLive(ch.bluetooth) || channelLive(b.bluetooth) || channelLive(ch.rf) || channelLive(b.rf) || channelLive(ch.photon) || channelLive(b.photon);
+      let channelsCite = (ch.wifi || b.wifi) === "cite" && (ch.bluetooth || b.bluetooth) === "cite" && (ch.rf || b.rf) === "cite" && (ch.photon || b.photon) === "cite";
       let registered = b.registered_nodes != null ? b.registered_nodes : null;
       let stale = b.stale_nodes != null ? b.stale_nodes : null;
       let text = "Nodes " + nodesCount + " · Live Nodes " + (live == null ? "—" : live) + " · registered " + (registered == null ? "—" : registered) + " · stale " + (stale == null ? "—" : stale) + " · tip " + tip + " · software_nodes " + software + " · inactive " + locked + " · isolated " + isolated + " · radios " + radios + " · suite-presence " + (b.suite_presence || "on") + " · GET never enables";
-      if (channelsOn) text += " · channels wifi/bt/rf/photon cite-on";
+      if (claimed && hardwareFalse) text += " · channels refused (worker hardware absent)";
+      else if (channelsCite) text += " · channels wifi/bt/rf/photon cite/operator-armed";
       if (b.vpn === true) text += " · public VPN AZVPN auto";
       else if (b.vpn === false) text += " · vpn false";
       if (b.worker_hardware === false || (b.channel_plane && b.channel_plane.worker_hardware === false)) text += " · worker_hardware false";

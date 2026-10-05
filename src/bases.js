@@ -5,6 +5,16 @@
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
 
+import { arrivalFlags, surfaceArrival } from "./alt-internet-fact.js";
+import { PUBLIC_DEMO_ID, workspaceFromEnv } from "./workspace.js";
+
+const UNQUALIFIED_ARRIVAL = arrivalFlags(null);
+
+function onPublicDemo(env) {
+  const ws = workspaceFromEnv(env);
+  if (!ws) return false;
+  return ws.workspace_id === PUBLIC_DEMO_ID || ws.contract === "public-demo";
+}
 import { D2D_CARRIERS } from "./d2d-carriers.js";
 import { LIMITATION, PRINCIPLES } from "./engines/azos/engine.js";
 import { mailPost } from "./engines/azmail/engine.js";
@@ -317,13 +327,13 @@ export function parseMeshFrame(bytes) {
 async function exchangeMesh(address) {
   const localHost = await hostId();
   if (!localHost) {
-    return { ok: false, code: "MESH-HOST-ABSENT", packet_live: false, mock: false, alt_internet_live: false, second_device: false };
+    return { ok: false, code: "MESH-HOST-ABSENT", packet_live: false, mock: false, ...UNQUALIFIED_ARRIVAL };
   }
   let dgram;
   try {
     dgram = await import("node:dgram");
   } catch {
-    return { ok: false, code: "PACKET-NOT-CARRIED", packet_live: false, mock: false };
+    return { ok: false, code: "PACKET-NOT-CARRIED", packet_live: false, mock: false, ...UNQUALIFIED_ARRIVAL };
   }
   const server = dgram.createSocket("udp4");
   const client = dgram.createSocket("udp4");
@@ -383,7 +393,15 @@ async function exchangeMesh(address) {
         sent === received &&
         parsed.payload.byteLength === payload.byteLength,
     );
-    const distinct = secondDevice(localHost, parsed && parsed.host);
+    const remoteHost = parsed ? parsed.host : null;
+    const flags = surfaceArrival({
+      mock: false,
+      local_host: localHost,
+      remote_host: remoteHost,
+      same_machine_id: Boolean(localHost && remoteHost && remoteHost === localHost),
+      left_machine: false,
+      arrived_other_machine: false,
+    });
     return {
       ok: bytes_match,
       code: bytes_match ? "PACKET-CARRIED" : "PACKET-NOT-CARRIED",
@@ -399,13 +417,11 @@ async function exchangeMesh(address) {
       src_node: "az-node-a",
       dst_node: "az-node-b",
       local_host: localHost,
-      remote_host: parsed ? parsed.host : null,
-      second_device: bytes_match && distinct,
-      same_machine_id: Boolean(localHost && parsed && parsed.host === localHost),
+      remote_host: remoteHost,
+      ...flags,
+      same_machine_id: Boolean(localHost && remoteHost && remoteHost === localHost),
       left_machine: false,
       arrived_other_machine: false,
-      alt_internet_live: false,
-      packet_path_live: false,
       public_icann: false,
       bgp: false,
       mock: false,
@@ -418,8 +434,7 @@ async function exchangeMesh(address) {
       code: "PACKET-NOT-CARRIED",
       mock: false,
       packet_live: false,
-      alt_internet_live: false,
-      second_device: false,
+      ...UNQUALIFIED_ARRIVAL,
       error: String(err && err.message ? err.message : err),
     };
   } finally {
@@ -472,7 +487,7 @@ export async function carryOnFirstCarrier(carriers) {
     if (id === "lan") {
       const row = byId.lan;
       if (!row || row.state !== "HW-PRESENT" || row.mock === true) {
-        lanHit = { ok: false, code: "QNM-RADIO-ABSENT", packet_live: false, mock: false, alt_internet_live: false, second_device: false };
+        lanHit = { ok: false, code: "QNM-RADIO-ABSENT", packet_live: false, mock: false, ...UNQUALIFIED_ARRIVAL };
         continue;
       }
       const candidates = lanCandidates(row.hardware, nets);
@@ -491,16 +506,16 @@ export async function carryOnFirstCarrier(carriers) {
           code: (trip && trip.code) || "QNM-RADIO-ABSENT",
           mock: false,
           packet_live: false,
-          alt_internet_live: false,
-          second_device: false,
+          ...UNQUALIFIED_ARRIVAL,
           public_icann: false,
           bgp: false,
         };
         continue;
       }
-      const distinct = secondDevice(trip.local_host, trip.remote_host);
+      const flags = surfaceArrival(trip);
       lanHit = {
         ...trip,
+        ...flags,
         ok: true,
         code: "PACKET-CARRIED",
         carrier: "lan",
@@ -508,8 +523,6 @@ export async function carryOnFirstCarrier(carriers) {
         mock: false,
         packet_live: false,
         peer_exchange_demonstrated: false,
-        second_device: trip.second_device === true && distinct,
-        alt_internet_live: false,
         public_door: "FG-STUB",
         note: "A node-mesh frame moved on this machine. It is not the public packet path and not an alternative internet.",
         public_icann: false,
@@ -528,8 +541,7 @@ export async function carryOnFirstCarrier(carriers) {
         public_icann: false,
         bgp: false,
         cap7_name_only: true,
-        second_device: false,
-        alt_internet_live: false,
+        ...surfaceArrival(hardware),
         refused,
       };
     }
@@ -548,8 +560,7 @@ export async function carryOnFirstCarrier(carriers) {
     mock: false,
     packet_live: false,
     peer_exchange_demonstrated: false,
-    second_device: false,
-    alt_internet_live: false,
+    ...UNQUALIFIED_ARRIVAL,
     public_icann: false,
     bgp: false,
     cap7_name_only: true,
@@ -815,6 +826,12 @@ export async function mailSendBase(payload, env) {
     live: false,
     public_live: false,
     public_smtp_send: false,
+    public_mta: false,
+    catalog_smtp_send: "FG-STUB",
+    sent_paints_public_smtp: false,
+    sent_paints_public_mta: false,
+    public_demo_arms_mail: false,
+    confirm_is_authentication: false,
     e2e: false,
     end_to_end: false,
     external_smtp_e2e: false,
@@ -822,6 +839,16 @@ export async function mailSendBase(payload, env) {
     author: AUTHOR,
     line: "Mail send base is present. Nothing was sent.",
   };
+  if (onPublicDemo(env)) {
+    return {
+      ...refused,
+      code: "MAIL-BASE-PUBLIC-DEMO",
+      sent: false,
+      public_demo_arms_mail: false,
+      confirm_is_authentication: false,
+      line: "Public-demo does not arm mail send. confirm is not authentication. Public send stays refused.",
+    };
+  }
   if (src.confirm !== true) {
     return { ...refused, code: "MAIL-BASE-NEEDS-CONFIRM" };
   }
@@ -837,6 +864,12 @@ export async function mailSendBase(payload, env) {
     live: false,
     public_live: false,
     public_smtp_send: false,
+    public_mta: false,
+    catalog_smtp_send: "FG-STUB",
+    sent_paints_public_smtp: false,
+    sent_paints_public_mta: false,
+    public_demo_arms_mail: false,
+    confirm_is_authentication: false,
     e2e: false,
     end_to_end: false,
     external_smtp_e2e: false,

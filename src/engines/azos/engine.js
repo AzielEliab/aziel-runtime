@@ -5,6 +5,10 @@
  * Author: Aziel Eliab.
  */
 
+import { arrivalFlags } from "../../alt-internet-fact.js";
+
+const UNQUALIFIED_ARRIVAL = arrivalFlags(null);
+
 export const PRODUCT = "azos";
 export const VERSION = "0.3.0";
 export const MOTTO = "Integrity precedes execution.";
@@ -80,9 +84,10 @@ export function scopeMeta(obj) {
     installed: false,
     os_yet: false,
     is_os: false,
-    packet_path_live: false,
-    alt_internet_live: false,
+    ...UNQUALIFIED_ARRIVAL,
     public_smtp_send: false,
+    public_mta: false,
+    confirm_is_authentication: false,
   };
 }
 

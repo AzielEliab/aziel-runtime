@@ -629,8 +629,18 @@ export async function peekHumanUses(env) {
         note: HUMAN_USES_NOTE,
       };
     }
-    const n = Number(raw);
-    if (!Number.isFinite(n)) {
+    const text = String(raw).trim();
+    if (!/^\d+$/.test(text)) {
+      return {
+        uses: 0,
+        uses_kv: true,
+        complete: false,
+        source: "uses.total",
+        note: HUMAN_USES_NOTE,
+      };
+    }
+    const n = Number(text);
+    if (!Number.isSafeInteger(n) || n < 0) {
       return {
         uses: 0,
         uses_kv: true,

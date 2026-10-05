@@ -183,6 +183,11 @@ assert.match(ws, /id="fg-console"/);
 assert.match(ws, /id="op-panel"/);
 assert.match(ws, /id="dashboard"/);
 assert.match(ws, /id="mesh-panel"/);
+assert.match(ws, /nodes_are_not_unique_humans/);
+assert.match(ws, /Do not paint nodes or <code>human_uses<\/code> as people/);
+assert.match(ws, /cite\/operator-armed/);
+assert.match(ws, /channels refused \(worker hardware absent\)/);
+assert.doesNotMatch(ws, /channels wifi\/bt\/rf\/photon cite-on/);
 assert.match(ws, /FragGate console/);
 assert.match(ws, /Operator control panel/);
 assert.match(ws, /id="about-aziel"/);
@@ -369,10 +374,17 @@ assert.equal(mesh.vpn, true);
 assert.equal(mesh.public_vpn, true);
 assert.equal(mesh.default_vpn_backend, "azvpn");
 assert.equal(mesh.origin_hiding, false);
-assert.equal(mesh.wifi, "on");
-assert.equal(mesh.bluetooth, "on");
-assert.equal(mesh.rf, "on");
-assert.equal(mesh.photon, "on");
+assert.equal(mesh.wifi, "cite");
+assert.equal(mesh.bluetooth, "cite");
+assert.equal(mesh.rf, "cite");
+assert.equal(mesh.photon, "cite");
+assert.equal(mesh.worker_hardware, false);
+assert.equal(mesh.nodes_are_not_unique_humans, true);
+for (const name of ["wifi", "bluetooth", "rf", "photon"]) {
+  if (mesh[name] === "on" || mesh[name] === true || mesh[name] === "live" || mesh[name] === "LIVE") {
+    assert.fail(`${name} claims radio hardware the worker cannot see`);
+  }
+}
 assert.equal(mesh.channel_plane && mesh.channel_plane.spec, "QNM-CHANNEL-PLANE-1.0");
 assert.equal(mesh.channel_plane.vpn, true);
 assert.equal(mesh.channel_plane.concentrator_slug, "azvpn");

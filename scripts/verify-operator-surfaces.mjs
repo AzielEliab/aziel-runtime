@@ -27,6 +27,7 @@ import {
 import { softwareCatalog } from "../src/software-catalog.js";
 import { currentAltInternetFact } from "../src/alt-internet-fact.js";
 import { operatorPageHtml } from "../src/operator-ui.js";
+import { attachWorkspace, publicDemoWorkspace } from "../src/workspace.js";
 import { fixtureLabeledScanner, listenSmtpSink } from "../src/engines/azmail/guard.js";
 import {
   resetOperatorSurfaces,
@@ -58,6 +59,9 @@ function assertLattice(body) {
   assert.equal(body.field_1_0, false);
   assert.equal(body.alt_internet_live, false);
   assert.equal(body.packet_path_live, false);
+  assert.equal(body.second_device, false);
+  assert.equal(body.alt_internet_live, body.packet_path_live);
+  assert.equal(body.packet_path_live, body.second_device);
   assert.equal(body.author, "Aziel Eliab");
   assert.equal(body.lattice_receipt.present, true);
   assert.equal(body.lattice_receipt.chained, true);
@@ -586,6 +590,25 @@ if (netCarry.carry && netCarry.carry.packet_live === true) {
 if (netCarry.second_device === true && netCarry.carry.local_host === netCarry.carry.remote_host) {
   assert.fail("second_device is true while both endpoints are this machine");
 }
+assert.equal(netCarry.alt_internet_live, netCarry.packet_path_live);
+assert.equal(netCarry.packet_path_live, netCarry.second_device);
+assert.equal(netCarry.second_device, netCarry.watch_qualifies);
+if (netCarry.carry) {
+  assert.equal(netCarry.carry.alt_internet_live, netCarry.carry.packet_path_live);
+  assert.equal(netCarry.carry.packet_path_live, netCarry.carry.second_device);
+  if (netCarry.carry.same_machine_id === true && netCarry.carry.second_device === true) {
+    assert.fail("same machine id set second_device true");
+  }
+  if (netCarry.carry.local_host && netCarry.carry.local_host === netCarry.carry.remote_host && netCarry.second_device === true) {
+    assert.fail("same machine set second_device true");
+  }
+}
+if (
+  (netCarry.alt_internet_live === true) !== (netCarry.packet_path_live === true) ||
+  (netCarry.packet_path_live === true) !== (netCarry.second_device === true)
+) {
+  assert.fail("arrival flags diverged");
+}
 
 const mailHeld = await local("azmail", "mail_send_base", { confirm: true, from: "operator@azmail.local", to: "friend@example.com", text: "hello" }, dead);
 assert.equal(mailHeld.base, true);
@@ -614,12 +637,40 @@ const mailSent = await local(
 await sink.close();
 assert.equal(mailSent.sent, true, JSON.stringify(mailSent));
 assert.equal(mailSent.public_smtp_send, false);
+assert.equal(mailSent.public_mta, false);
+assert.equal(mailSent.catalog_smtp_send, "FG-STUB");
+assert.equal(mailSent.sent_paints_public_smtp, false);
+assert.equal(mailSent.sent_paints_public_mta, false);
+assert.equal(mailSent.public_demo_arms_mail, false);
+assert.equal(mailSent.confirm_is_authentication, false);
 assert.match(mailSent.line, /Public send stays refused/);
 assert.equal(mailSent.public_live, false);
 assert.equal(mailSent.live, false);
 assert.equal(mailSent.e2e, false);
 assert.equal(mailSent.external_smtp_e2e, false);
 assert.equal(sink.messages.length, 1);
+const demoMail = await local(
+  "azmail",
+  "mail_send_base",
+  { confirm: true, from: "operator@azmail.local", to: "friend@example.com", subject: "demo", text: "no" },
+  attachWorkspace(
+    {
+      ...dead,
+      AZMAIL_SCANNER: fixtureLabeledScanner(),
+      AZMAIL_SMTP_HOST: "127.0.0.1",
+      AZMAIL_SMTP_PORT: 2525,
+      AZMAIL_SMTP_ALLOW_CLEARTEXT: true,
+    },
+    publicDemoWorkspace(),
+  ),
+);
+assert.equal(demoMail.sent, false);
+assert.equal(demoMail.code, "MAIL-BASE-PUBLIC-DEMO");
+assert.equal(demoMail.public_smtp_send, false);
+assert.equal(demoMail.public_mta, false);
+assert.equal(demoMail.live, false);
+assert.equal(demoMail.public_demo_arms_mail, false);
+assert.equal(demoMail.confirm_is_authentication, false);
 const smtpHeld = await fraggateCall(
   { slug: "azmail", op: "smtp_send", payload: { from: "operator@azmail.local", to: "friend@example.com", subject: "held", text: "not sent" } },
   registry,

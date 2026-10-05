@@ -84,10 +84,22 @@ assert.equal(mesh.channel_plane.worker_hardware, false);
 assert.equal(mesh.worker_hardware, false);
 assert.equal(mesh.channel_plane.invented_hardware, false);
 assert.equal(mesh.channel_plane.local_radio_hooks.mock, false);
-assert.equal(mesh.wifi, "on");
-assert.equal(mesh.bluetooth, "on");
-assert.equal(mesh.rf, "on");
-assert.equal(mesh.photon, "on");
+assert.equal(mesh.wifi, "cite");
+assert.equal(mesh.bluetooth, "cite");
+assert.equal(mesh.rf, "cite");
+assert.equal(mesh.photon, "cite");
+assert.equal(mesh.channel_plane.worker_radios_live, false);
+assert.equal(mesh.channel_plane.display, "cite/operator-armed");
+for (const name of ["wifi", "bluetooth", "rf", "photon"]) {
+  assert.notEqual(mesh[name], "on", name);
+  assert.notEqual(mesh[name], true, name);
+  assert.notEqual(mesh.channel_plane[name], "on", name);
+  assert.equal(mesh.channel_plane.rows[name].hardware, false, name);
+  assert.equal(mesh.channel_plane.rows[name].live, false, name);
+  if (mesh.worker_hardware === false && (mesh[name] === "on" || mesh[name] === "live" || mesh[name] === "LIVE" || mesh[name] === true)) {
+    assert.fail(`${name} claims radio hardware the worker cannot see`);
+  }
+}
 
 console.log(
   JSON.stringify(
