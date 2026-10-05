@@ -6,7 +6,7 @@
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { GLAMA_INSTALL_RELEASE } from "../src/seo.js";
+import { GLAMA_INSTALL_RELEASE, glamaInstallCite } from "../src/seo.js";
 import { RUNTIME_VERSION } from "../src/runtime-api.js";
 
 const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
@@ -19,11 +19,13 @@ assert.equal(glama.version, "2.0.0-rc1");
 assert.equal(server.version, "2.0.0-rc1");
 
 assert.equal(GLAMA_INSTALL_RELEASE, "2.0.11");
+assert.equal(glamaInstallCite().glama_release, GLAMA_INSTALL_RELEASE);
 assert.notEqual(GLAMA_INSTALL_RELEASE, pkg.version);
 assert.match(GLAMA_INSTALL_RELEASE, /^\d+\.\d+\.\d+$/);
 
-assert.match(glama.description, /Glama Install Server release 2\.0\.11/);
-assert.doesNotMatch(glama.description, /Glama Install Server release 2\.0\.7\b/);
+const namedRelease = glama.description.match(/Glama Install Server release (\d+\.\d+\.\d+)\b/);
+assert.ok(namedRelease, "glama.json description names the Install Server release");
+assert.equal(namedRelease[1], GLAMA_INSTALL_RELEASE);
 
 console.log(
   "ok glama release: listing",

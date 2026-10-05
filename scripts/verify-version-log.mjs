@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { BUILD_GIT_SHA } from "../src/build-meta.js";
+import { GLAMA_INSTALL_RELEASE } from "../src/seo.js";
 import { RUNTIME_VERSION } from "../src/runtime-api.js";
 import { incrementUse, memoryUsesKv, readUses } from "../src/uses.js";
 import {
@@ -56,9 +57,10 @@ const stripped = githubIdentityLog({ offered_version: "2.0.0" });
 assert.equal(stripped.version, "2.0.0-rc1");
 assert.deepEqual(stripped.rejected_versions, ["2.0.0"]);
 
-const listingLabel = githubIdentityLog({ offered_version: "2.0.11" });
+const listingLabel = githubIdentityLog({ offered_version: GLAMA_INSTALL_RELEASE });
 assert.equal(listingLabel.version, "2.0.0-rc1");
-assert.deepEqual(listingLabel.rejected_versions, ["2.0.11"]);
+assert.notEqual(GLAMA_INSTALL_RELEASE, "2.0.0-rc1");
+assert.deepEqual(listingLabel.rejected_versions, [GLAMA_INSTALL_RELEASE]);
 
 const unbound = githubIdentityFromEnv({});
 assert.equal(unbound.version, "2.0.0-rc1");
