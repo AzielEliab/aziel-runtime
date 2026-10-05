@@ -15,6 +15,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { currentAltInternetFact } from "./alt-internet-fact.js";
+
 export const D2D_SPEC = "D2D-CARRIERS-1.0";
 export const D2D_AUTHOR = "Aziel Eliab";
 export const D2D_STATUS = "NOT-READY";
@@ -183,6 +185,7 @@ export function d2dStubMessage(op) {
 }
 
 export function d2dCarrierCite() {
+  const fact = currentAltInternetFact();
   return {
     spec: D2D_SPEC,
     author: D2D_AUTHOR,
@@ -220,6 +223,11 @@ export function d2dCarrierCite() {
     warn5_closed: false,
     worker_door: "FG-STUB",
     worker_hardware: false,
+    machine_id: fact.machine_id,
+    missing: fact.missing,
+    not_live_sentence: fact.not_live_sentence,
+    missing_line: fact.missing_line,
+    host_hardware_visible: fact.host_hardware_visible,
     local_node: "qnm-node",
     get_never_enables: true,
     separate_from: "cap7-name",
@@ -229,8 +237,8 @@ export function d2dCarrierCite() {
     mirage_is_azvpn: false,
     aznet_replaces_internet: false,
     not_a_second_internet: true,
-    alt_internet_live: false,
-    packet_path_live: false,
+    alt_internet_live: fact.alt_internet_live === true,
+    packet_path_live: fact.packet_path_live === true,
     field_1_0: false,
     warn5: "STANDS-until-demonstrated",
     warn5_permanent_stay_off: false,
@@ -267,11 +275,14 @@ export function d2dCarrierCite() {
 }
 
 export function d2dCarrierFrame() {
+  const cite = d2dCarrierCite();
   return {
-    d2d_carriers: d2dCarrierCite(),
+    d2d_carriers: cite,
     d2d_status: D2D_STATUS,
     d2d_code: D2D_CODE,
-    packet_path_live: false,
-    alt_internet_live: false,
+    packet_path_live: cite.packet_path_live === true,
+    alt_internet_live: cite.alt_internet_live === true,
+    not_live_sentence: cite.not_live_sentence,
+    missing_line: cite.missing_line,
   };
 }

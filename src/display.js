@@ -765,6 +765,12 @@ export function plainConsumerText(body, res) {
         : "There is no second device (second_device is false).",
       "The public worker door stays " + door + ".",
     ];
+    const missingLine = typeof d2d.not_live_sentence === "string" && d2d.not_live_sentence
+      ? d2d.not_live_sentence
+      : typeof body.not_live_sentence === "string"
+        ? body.not_live_sentence
+        : "";
+    if (missingLine) lines.push(missingLine);
     if (body.vpn === true) lines.push("VPN on at boot.");
     else if (body.vpn === false) lines.push("VPN cite is off.");
     lines.push("Code: MESH-OK.");

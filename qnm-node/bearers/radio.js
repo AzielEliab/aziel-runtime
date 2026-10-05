@@ -11,6 +11,7 @@
  */
 
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { networkInterfaces } from "node:os";
 import { join } from "node:path";
 
 export const RADIO_HOOK_SPEC = "QNM-RADIO-HOOKS-1.0";
@@ -165,17 +166,91 @@ export function radioStatus() {
   };
 }
 
-function probeLan() {
+function readText(path) {
   try {
-    if (!existsSync(NET)) return { present: false, kind: null };
-    for (const name of readdirSync(NET)) {
-      if (!name || name === "lo" || name === "." || name === "..") continue;
-      return { present: true, kind: name };
+    return readFileSync(path, "utf8").trim();
+  } catch {
+    return "";
+  }
+}
+
+/** Host sysfs is visible. A Worker isolate does not have this directory. */
+export function hostHardwareVisible() {
+  return existsSync(NET);
+}
+
+/** /etc/machine-id when it is 32 hex chars. Do not invent one. */
+export function readMachineId() {
+  const text = readText("/etc/machine-id");
+  return /^[a-f0-9]{32}$/.test(text) ? text : null;
+}
+
+function lanIpv4(name) {
+  try {
+    const rows = networkInterfaces()[name] || [];
+    const hit = rows.find((addr) => (addr.family === "IPv4" || addr.family === 4) && addr.internal !== true);
+    return hit ? hit.address : null;
+  } catch {
+    return null;
+  }
+}
+
+function ifaceUp(name) {
+  if (readText(join(NET, name, "operstate")) !== "up") return false;
+  const carrierPath = join(NET, name, "carrier");
+  if (!existsSync(carrierPath)) return true;
+  const carrier = readText(carrierPath);
+  return carrier === "1" || carrier === "";
+}
+
+/** Default route with a gateway, else any default route. Loopback is not LAN. */
+function defaultRouteIface() {
+  try {
+    const text = readFileSync("/proc/net/route", "utf8");
+    let fallback = null;
+    for (const line of text.split("\n").slice(1)) {
+      const cols = line.trim().split(/\s+/);
+      if (cols.length < 4) continue;
+      const flags = Number.parseInt(cols[3], 16);
+      if (!Number.isFinite(flags) || (flags & 1) === 0) continue;
+      if (cols[1] !== "00000000") continue;
+      const name = cols[0];
+      if (!name || name === "lo") continue;
+      if (cols[2] && cols[2] !== "00000000") return name;
+      if (!fallback) fallback = name;
+    }
+    return fallback;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Prefer the up default-route interface. A down bridge is not the LAN path.
+ * `up: false` means the only non-loopback interface is down.
+ */
+export function probeLan() {
+  try {
+    if (!existsSync(NET)) return { present: false, kind: null, address: null, up: false };
+    const names = readdirSync(NET).filter((name) => name && name !== "lo" && name !== "." && name !== "..");
+    const preferred = defaultRouteIface();
+    if (preferred && preferred !== "lo" && names.includes(preferred) && ifaceUp(preferred)) {
+      const address = lanIpv4(preferred);
+      if (address) return { present: true, kind: preferred, address, up: true };
+    }
+    for (const name of names) {
+      if (!ifaceUp(name)) continue;
+      const address = lanIpv4(name);
+      if (address) return { present: true, kind: name, address, up: true };
+    }
+    if (names.length) {
+      const name = names[0];
+      return { present: true, kind: name, address: lanIpv4(name), up: false };
     }
   } catch {
     /* no sysfs */
   }
-  return { present: false, kind: null };
+  return { present: false, kind: null, address: null, up: false };
 }
 
 function probeModem() {
@@ -225,27 +300,47 @@ export function track2CarrierProbe() {
   ];
   const carriers = {};
   for (const [id, probe] of rows) {
-    carriers[id] = probe.present
-      ? {
-          id,
-          state: "HW-PRESENT",
-          hardware: probe.kind,
-          code: null,
-          packet_live: false,
-          mock: false,
-          peer_exchange_demonstrated: false,
-          note: "Hardware seen. Peer exchange is not demonstrated. Not a LIVE packet hop.",
-        }
-      : {
-          id,
-          state: "REFUSE",
-          hardware: false,
-          code: RADIO_ABSENT,
-          packet_live: false,
-          mock: false,
-          peer_exchange_demonstrated: false,
-          note: `${id} hardware absent. Refuse ${RADIO_ABSENT}. No mock LIVE.`,
-        };
+    const down = probe.present === true && probe.up === false;
+    if (probe.present && !down) {
+      carriers[id] = {
+        id,
+        state: "HW-PRESENT",
+        hardware: probe.kind,
+        address: probe.address || null,
+        up: true,
+        code: null,
+        packet_live: false,
+        mock: false,
+        peer_exchange_demonstrated: false,
+        note: "Hardware seen. Peer exchange is not demonstrated. Not a LIVE packet hop.",
+      };
+    } else if (down) {
+      carriers[id] = {
+        id,
+        state: "REFUSE",
+        hardware: probe.kind,
+        address: probe.address || null,
+        up: false,
+        code: RADIO_ABSENT,
+        packet_live: false,
+        mock: false,
+        peer_exchange_demonstrated: false,
+        note: `${id} interface ${probe.kind} is not up. Refuse ${RADIO_ABSENT}. No mock LIVE.`,
+      };
+    } else {
+      carriers[id] = {
+        id,
+        state: "REFUSE",
+        hardware: false,
+        address: null,
+        up: false,
+        code: RADIO_ABSENT,
+        packet_live: false,
+        mock: false,
+        peer_exchange_demonstrated: false,
+        note: `${id} hardware absent. Refuse ${RADIO_ABSENT}. No mock LIVE.`,
+      };
+    }
   }
   return {
     spec: "D2D-CARRIERS-1.0",
