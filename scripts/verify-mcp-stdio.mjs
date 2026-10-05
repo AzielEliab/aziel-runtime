@@ -21,6 +21,7 @@ import {
   usage,
 } from "../src/mcp-stdio.js";
 import { dnsError, looksLikeFraggateExecutionReceipt } from "../src/remote-transport.js";
+import { GLAMA_INSTALL_RELEASE, glamaInstallCite } from "../src/seo.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const cli = join(root, "cli/mcp-stdio.mjs");
@@ -52,7 +53,9 @@ assert.ok(glama.keywords.includes("digital-forensics"));
 assert.ok(glama.keywords.includes("softwares"));
 assert.ok(glama.keywords.includes("decisiongate"));
 assert.ok(glama.keywords.includes("receipts"));
-assert.match(glama.description, /Glama Install Server release 2\.0\.7/);
+assert.equal(glamaInstallCite().glama_release, GLAMA_INSTALL_RELEASE);
+const glamaReleaseRe = GLAMA_INSTALL_RELEASE.replace(/[.]/g, "\\.");
+assert.match(glama.description, new RegExp(`Glama Install Server release ${glamaReleaseRe}\\b`));
 assert.match(glama.description, /Worker \/ server package stays 2\.0\.0-rc1/);
 assert.ok(Array.isArray(glama.categories) && glama.categories.includes("agent-orchestration"));
 assert.equal(glama.homepage, "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime");
@@ -66,12 +69,12 @@ assert.match(registry.name, /^[a-zA-Z0-9.-]+\/[a-zA-Z0-9._-]+$/);
 assert.equal(registry.title, "Aziel Runtime");
 assert.equal(registry.version, "2.0.0-rc1");
 assert.equal(registry.version, pkg.version);
-assert.notEqual(registry.version, "2.0.7");
+assert.notEqual(registry.version, GLAMA_INSTALL_RELEASE);
 assert.ok(registry.description.length >= 1 && registry.description.length <= 100);
 assert.match(registry.description, /FragGate/);
 assert.match(registry.description, /Softwares, FragGate, library/);
 assert.match(pkg.description, /Softwares \(pick a slug\), FragGate \(the single exec door\), and the library/);
-assert.doesNotMatch(registry.description, /2\.0\.7/);
+assert.doesNotMatch(registry.description, new RegExp(glamaReleaseRe));
 assert.equal(registry.repository.url, "https://github.com/AzielEliab/aziel-runtime");
 assert.equal(registry.repository.source, "github");
 assert.equal(registry.websiteUrl, "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime");
@@ -82,7 +85,7 @@ assert.deepEqual(registry.remotes, [
 const glamaDoc = await readFile(join(root, "docs/GLAMA.md"), "utf8");
 assert.match(glamaDoc, /\[`server\.json`\]\(\.\.\/server\.json\)/);
 assert.match(glamaDoc, /mcp-publisher publish/);
-assert.match(glamaDoc, /2\.0\.7/);
+assert.match(glamaDoc, new RegExp(`Glama release ${glamaReleaseRe}\\b`));
 assert.match(glamaDoc, /not `server\.json` `version`/);
 assert.match(
   glamaDoc,

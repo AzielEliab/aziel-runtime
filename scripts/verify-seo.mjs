@@ -31,6 +31,8 @@ import {
   RUNTIME_GLAMA,
   RUNTIME_ONE_LINE,
   RUNTIME_PAGE_TITLE,
+  GLAMA_INSTALL_RELEASE,
+  glamaInstallCite,
   hubSitemapList,
   personJsonLd,
   productCrawlUrls,
@@ -1370,17 +1372,20 @@ assert.match(helpGlama, /Local stdio last/);
 assert.match(helpGlama, /fraggate_list → fraggate_describe → fraggate_call/);
 assert.match(helpGlama, /foldlock, op: fold-preview/);
 assert.match(helpGlama, /decisiongate_check with dry_run=true/);
-assert.match(helpGlama, /Glama release 2\.0\.7/);
+const glamaReleaseRe = GLAMA_INSTALL_RELEASE.replace(/[.]/g, "\\.");
+assert.equal(GLAMA_INSTALL_RELEASE, glamaInstallCite().glama_release);
+assert.match(helpGlama, new RegExp(`Glama release ${glamaReleaseRe}\\b`));
 assert.match(helpGlama, /Worker \/ server package stays 2\.0\.0-rc1/);
 assert.match(helpGlama, /MCP tools\/list is 36 live tools/);
 assert.doesNotMatch(helpGlama, /chainlock_delete|memory_delete|memory_update|decisiongate_health|decisiongate_skill|\bmesh_users\b/);
-assert.equal(cite.glama.glama_release, "2.0.7");
+assert.equal(cite.glama.glama_release, GLAMA_INSTALL_RELEASE);
+assert.equal(cite.glama.glama_release, glamaInstallCite(cite.glama.worker_version).glama_release);
 assert.equal(cite.glama.worker_version, "2.0.0-rc1");
 assert.equal(cite.glama.install_server, true);
 assert.deepEqual(cite.glama.order, ["glama-install-server", "remote-post-mcp", "local-stdio"]);
 assert.equal(cite.glama.tools_list_count, 36);
 assert.match(llms, /## Glama install/);
-assert.match(llms, /Glama Install Server release 2\.0\.7/);
+assert.match(llms, new RegExp(`Glama Install Server release ${glamaReleaseRe}\\b`));
 assert.match(llms, /Install \/ Try on Glama: https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime/);
 assert.match(home, /rel="alternate" type="text\/plain" href="https:\/\/aziel-runtime\.example\/help\.txt"/);
 
