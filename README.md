@@ -161,7 +161,7 @@ Every Worker launch (homepage, `/about`, every `/p/{slug}`, HTML Softwares/descr
 | Repos | https://github.com/AzielEliab/aziel-corpus · https://github.com/AzielEliab/godlock · https://github.com/AzielEliab/hedidntjump.com · https://github.com/AzielEliab/trades-runtime |
 | Donate (canonical) | https://www.azieleliab.com/donate |
 
-Glama **Install Server** is live ([Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime)). Glama release **2.0.7** (Install Server ON, Auto-Release ON). Worker / server package stays **2.0.0-rc1**. Public connect is remote `POST https://aziel-runtime.vibelock.workers.dev/mcp` first. Glama Install Server is optional; its hosted meters stay separate from Worker `GET /v1/uses`. Local stdio stays last. See [docs/GLAMA.md](docs/GLAMA.md).
+Glama **Install Server** is live ([Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime)). Glama release **2.0.11** (Install Server ON, Auto-Release ON). Worker / server package stays **2.0.0-rc1**. Public connect is remote `POST https://aziel-runtime.vibelock.workers.dev/mcp` first. Glama Install Server is optional; its hosted meters stay separate from Worker `GET /v1/uses`. Local stdio stays last. See [docs/GLAMA.md](docs/GLAMA.md).
 
 Public identity: **Aziel Eliab** only. Do not invent Zenodo DOIs.
 
@@ -384,7 +384,7 @@ Restart Claude Desktop after updating the local config. Full client recipes: [do
 Public remote URL first. Glama hosted meters stay separate from Worker `GET /v1/uses`. Local stdio last.
 
 1. **Remote MCP** — `POST https://aziel-runtime.vibelock.workers.dev/mcp` (`initialize`, `tools/list`, `tools/call`). User-Agent `Mozilla/5.0`. Public, no OAuth. Transport: Streamable HTTP.
-2. **Install Server (optional)** — [Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime) (also `https://glama.ai/mcp/servers/@AzielEliab/aziel-runtime`). One-click Install Server / Deploy. Glama release **2.0.7**. Install Server ON. Auto-Release ON. Worker / server package stays **2.0.0-rc1**. Hosted-tool meters are Glama's, not Worker `/v1/uses`.
+2. **Install Server (optional)** — [Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime) (also `https://glama.ai/mcp/servers/@AzielEliab/aziel-runtime`). One-click Install Server / Deploy. Glama release **2.0.11**. Install Server ON. Auto-Release ON. Worker / server package stays **2.0.0-rc1**. Hosted-tool meters are Glama's, not Worker `/v1/uses`.
 3. **Local stdio (last)** — [`cli/mcp-stdio.mjs`](cli/mcp-stdio.mjs) bridges to that same Worker `/mcp`. [`glama.json`](glama.json) + [`Dockerfile`](Dockerfile) CMD `["node", "cli/mcp-stdio.mjs"]`.
 
 ```bash

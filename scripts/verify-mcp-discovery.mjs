@@ -67,7 +67,7 @@ for (const path of cardPaths) {
   assert.ok(body.tools.pipeline.includes("fraggate_list"));
   assert.ok(body.tools.pipeline.includes("fraggate_call"));
   assert.equal(body.links.install, "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime");
-  assert.equal(body.install.glama_release, "2.0.7");
+  assert.equal(body.install.glama_release, "2.0.11");
   assert.equal(body.install.worker_version, "2.0.0-rc1");
   assert.equal(body.install.tools_list_count, 36);
   assert.deepEqual(body.install.order, ["glama-install-server", "remote-post-mcp", "local-stdio"]);

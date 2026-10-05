@@ -56,7 +56,7 @@ export const RUNTIME_GITHUB = "https://github.com/AzielEliab/aziel-runtime";
 export const RUNTIME_GLAMA = "https://glama.ai/mcp/servers/AzielEliab/aziel-runtime";
 export const RUNTIME_GLAMA_AT = "https://glama.ai/mcp/servers/@AzielEliab/aziel-runtime";
 /** Glama's Install Server release number. Distinct from the Worker package version. */
-export const GLAMA_INSTALL_RELEASE = "2.0.7";
+export const GLAMA_INSTALL_RELEASE = "2.0.11";
 export const GLAMA_REMOTE_MCP = "https://aziel-runtime.vibelock.workers.dev/mcp";
 
 /**

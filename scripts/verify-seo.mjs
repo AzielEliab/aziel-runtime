@@ -1374,7 +1374,7 @@ assert.match(helpGlama, /Glama release 2\.0\.7/);
 assert.match(helpGlama, /Worker \/ server package stays 2\.0\.0-rc1/);
 assert.match(helpGlama, /MCP tools\/list is 36 live tools/);
 assert.doesNotMatch(helpGlama, /chainlock_delete|memory_delete|memory_update|decisiongate_health|decisiongate_skill|\bmesh_users\b/);
-assert.equal(cite.glama.glama_release, "2.0.7");
+assert.equal(cite.glama.glama_release, "2.0.11");
 assert.equal(cite.glama.worker_version, "2.0.0-rc1");
 assert.equal(cite.glama.install_server, true);
 assert.deepEqual(cite.glama.order, ["glama-install-server", "remote-post-mcp", "local-stdio"]);

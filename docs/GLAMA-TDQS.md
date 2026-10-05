@@ -75,17 +75,17 @@ Glama **Build** may still need a healthy **Redeploy** / **Make Release** to resc
 
 Live `POST /mcp` initialize returns `serverInfo.version: "2.0.0-rc1"`. GitHub `package.json` and `glama.json` `version` match that Worker truth.
 
-Glama's **Install Server release is 2.0.7** (Deploy Success, Install Server ON, Auto-Release ON). That number is Glama's listing release. It is not the Worker package. `glama.json` `version` stays `2.0.0-rc1`. The description names Glama release 2.0.7 so a re-claim can refresh Schema and keywords.
+Glama's **Install Server release is 2.0.11** (Deploy Success, Install Server ON, Auto-Release ON). That number is Glama's listing release. It is not the Worker package. `glama.json` `version` stays `2.0.0-rc1`. The description names Glama release 2.0.11 so a re-claim can refresh Schema and keywords.
 
-Glama’s **Tool Schema Changelog** label is written at **inspection / Make Release** time. Nothing in this repo rewrites a past snapshot. Historical note: an earlier inspection cached `1.6.2`. Current operator-confirmed listing release is **2.0.7**. After a `glama.json` change:
+Glama’s **Tool Schema Changelog** label is written at **inspection / Make Release** time. Nothing in this repo rewrites a past snapshot. Historical note: an earlier inspection cached `1.6.2`. Current operator-confirmed listing release is **2.0.11** (public latestRelease checked 2026-10-05). After a `glama.json` change:
 
 1. Re-claim / re-read `glama.json` on the Score tab.
 2. **Deploy** the stdio image (CMD remains `node cli/mcp-stdio.mjs`; default still bridges to the Worker).
-3. **Make Release** only when a new inspection should record the Worker package `2.0.0-rc1` beside the existing Glama release 2.0.7. Do not set `glama.json` `version` to 2.0.7.
+3. **Make Release** only when a new inspection should record the Worker package `2.0.0-rc1` beside the existing Glama release 2.0.11. Do not set `glama.json` `version` to 2.0.11 (or any Glama listing counter).
 
-If Glama’s parser skips prerelease strings (`2.0.0-rc1`), the listing release can stay an `X.Y.Z` such as 2.0.7 while the Worker package stays `2.0.0-rc1`. Do not change `RUNTIME_VERSION` to a non-rc string to chase that label.
+If Glama’s parser skips prerelease strings (`2.0.0-rc1`), the listing release can stay an `X.Y.Z` such as 2.0.11 while the Worker package stays `2.0.0-rc1`. Do not change `RUNTIME_VERSION` to a non-rc string to chase that label.
 
-Checked 2026-10-03: `package.json` and `glama.json` `version` are `2.0.0-rc1`. GitHub `GET /repos/AzielEliab/aziel-runtime/releases/latest` is 404 because the only release is prerelease tag `v2.0.0-rc1` (commit `a02b58d`, 2026-09-10). The public Glama page `latestRelease.version` was `2.0.10` with no git SHA, while the page copy still said Version `2.0.0-rc1` and Glama release `2.0.7`. The Tool Schema Changelog’s oldest stored `releaseVersion` was `1.6.2` (2026-09-12), a strict semver that appears in the server description as superseded heritage. A parser that keeps only `X.Y.Z` skips `2.0.0-rc1` and can log that heritage number, or Glama’s own counter, instead of the GitHub version. This repo’s logger (`src/version-log.js`) records `2.0.0-rc1` and the real git sha. It does not write `2.0.10`, `2.0.7`, or `1.6.2` as the version.
+Checked 2026-10-03: `package.json` and `glama.json` `version` are `2.0.0-rc1`. GitHub `GET /repos/AzielEliab/aziel-runtime/releases/latest` is 404 because the only release is prerelease tag `v2.0.0-rc1` (commit `a02b58d`, 2026-09-10). Checked 2026-10-05: public Glama page Latest/`latestRelease.version` is `2.0.11` (observedAt 2026-10-04T00:46:10.088153Z), with prior Install Server releases including 2.0.9/2.0.8/2.0.3/2.0.2/2.0.1/1.6.2. Worker package and page Version stay `2.0.0-rc1`. Repo cite must keep `GLAMA_INSTALL_RELEASE` in sync with Latest. The Tool Schema Changelog’s oldest stored `releaseVersion` was `1.6.2` (2026-09-12), a strict semver that appears in the server description as superseded heritage. A parser that keeps only `X.Y.Z` skips `2.0.0-rc1` and can log that heritage number, or Glama's own counter, instead of the GitHub version. This repo’s logger (`src/version-log.js`) records `2.0.0-rc1` and the real git sha. It does not write `2.0.11`, `2.0.10`, `2.0.7`, or `1.6.2` as the version.
 
 ## Neighbor map (selection)
 

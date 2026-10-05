@@ -100,7 +100,7 @@ ${compatibleClientsMarkdownList()}
 
 Practical pull + call (do not invent steps for every crawler):
 
-- **Glama** — [${GLAMA_TRY_LABEL}](${GLAMA_LISTING_URL}) — one-click Install Server first (Glama release 2.0.7; Worker package 2.0.0-rc1). Then remote \`POST ${host}/mcp\`. Local stdio \`node cli/mcp-stdio.mjs\` is last.
+- **Glama** — [${GLAMA_TRY_LABEL}](${GLAMA_LISTING_URL}) — one-click Install Server first (Glama release 2.0.11; Worker package 2.0.0-rc1). Then remote \`POST ${host}/mcp\`. Local stdio \`node cli/mcp-stdio.mjs\` is last.
 - **ChatGPT** — GPT Actions → Import from URL → \`${host}/openapi.json\`
 - **Grok** — custom tool / OpenAPI / MCP remote → \`${host}/openapi.json\` or \`POST ${host}/mcp\`
 - **Venice** — custom HTTP tools / OpenAPI → same OpenAPI URL

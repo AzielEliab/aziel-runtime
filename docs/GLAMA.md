@@ -28,7 +28,7 @@ MCP `tools/list` is **36** tools. FragGate is the single door. Deeper admin, Doc
 
 **[Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime)** is the primary public host / discovery / install listing for aziel-runtime (also `https://glama.ai/mcp/servers/@AzielEliab/aziel-runtime`). Worker origin stays the HTTP / OpenAPI / MCP execution surface.
 
-**Glama release 2.0.7** is Glama's Install Server release (Deploy Success, Install Server ON, Auto-Release ON). **Worker / server package stays 2.0.0-rc1** (`package.json`, `glama.json` `version`, MCP `serverInfo.version`). Those are different numbers.
+**Glama release 2.0.11** is Glama's Install Server release (Deploy Success, Install Server ON, Auto-Release ON). **Worker / server package stays 2.0.0-rc1** (`package.json`, `glama.json` `version`, MCP `serverInfo.version`). Those are different numbers.
 
 Glama is one of the compatible AI clients (ChatGPT, Grok, Venice, Claude, Cursor, Glama, Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence, Amazon Q, DuckAssist, You.com, Cohere, plus other MCP/OpenAPI-capable assistants). See the README **Compatible AI clients** section.
 
@@ -48,7 +48,7 @@ This repo ships:
 
 | File | Role |
 |------|------|
-| [`glama.json`](../glama.json) | Claim file. Schema requires `maintainers` (GitHub username `AzielEliab`). `version` stays the Worker truth `2.0.0-rc1` (Glama Install Server release 2.0.7 is named in `description`, not as `version`). Description leads with Softwares, FragGate, and the library (FragGate stays the single exec door), then receipts, and the 2.0.7 Install Server note. `1.6.2` is superseded heritage. Keywords include mcp, openapi, fraggate, softwares, library, decisiongate, receipts. Persistent Deploy is not a field in this file. |
+| [`glama.json`](../glama.json) | Claim file. Schema requires `maintainers` (GitHub username `AzielEliab`). `version` stays the Worker truth `2.0.0-rc1` (Glama Install Server release 2.0.11 is named in `description`, not as `version`). Description leads with Softwares, FragGate, and the library (FragGate stays the single exec door), then receipts, and the 2.0.11 Install Server note. `1.6.2` is superseded heritage. Keywords include mcp, openapi, fraggate, softwares, library, decisiongate, receipts. Persistent Deploy is not a field in this file. |
 | [`cli/mcp-stdio.mjs`](../cli/mcp-stdio.mjs) | Stdio MCP server. Default **bridges** to the hosted Worker `/mcp`. |
 | [`Dockerfile`](../Dockerfile) | Local / “from Dockerfile” image. Glama admin often **generates** its own image from CMD args — still ship this file. |
 | [`src/mcp-stdio.js`](../src/mcp-stdio.js) | Framing + bridge / in-process dispatch. |
@@ -61,7 +61,7 @@ This repo ships:
 
 There is no `packages` entry. `package.json` is `private`, so this file is remotes-only.
 
-Glama Deploy / Install Server release **2.0.7** is a Glama label only. It is not `server.json` `version`.
+Glama Deploy / Install Server release **2.0.11** is a Glama label only. It is not `server.json` `version`.
 
 The registry `description` names the three entry tools and stays inside the 2025-12-11 100-character cap: Softwares, FragGate, library. Catalog, single exec door, papers. FragGate stays the single exec door.
 
@@ -138,7 +138,7 @@ docker run --rm -i \
 
 ## Glama admin — re-claim
 
-Install Server and Auto-Release are already ON (Glama release 2.0.7). After a `glama.json` change lands on `main`:
+Install Server and Auto-Release are already ON (Glama release 2.0.11). After a `glama.json` change lands on `main`:
 
 1. Open [Score / claim](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime/score) and claim again with `glama.json` maintainers (`AzielEliab`) so Schema and keywords refresh. Git cannot click that button.
 2. Open [admin Dockerfile](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime/admin/dockerfile). Glama generates a container (it does not have to use this repo’s `Dockerfile`). Fill:
@@ -169,7 +169,9 @@ Install Server and Auto-Release are already ON (Glama release 2.0.7). After a `g
 
    - Placeholder parameters: `{}` (the public Worker needs no credentials)
 3. **Deploy** — already succeeded. A later image rebuild still needs `initialize` / `tools/list` (36 tools) to succeed.
-4. **Make Release** — already produced Glama release 2.0.7. A Glama release is the listing release. It is not the Worker package version and not a GitHub release.
+4. **Make Release** — already produced Glama release 2.0.11. A Glama release is the listing release. It is not the Worker package version and not a GitHub release.
+
+5. **Sync `GLAMA_INSTALL_RELEASE`** — after Auto-Release or Make Release moves Latest, set `src/seo.js` `GLAMA_INSTALL_RELEASE` (and the Glama release strings in `docs/GLAMA.md`, README, `glama.json` description) to that new Latest. Worker / `package.json` / `glama.json` `version` stay `2.0.0-rc1`. Git cannot click Glama; the constant sync is the Worker-side honesty fix. Operator probe: `node scripts/check-glama-latest.mjs` (compares public page Latest to the constant).
 
 No Wrangler deploy is required for the listing. HTTP `/mcp` on the Worker is unchanged. The Connector admin UI (claim, Dockerfile, Deploy, Make Release) stays on Glama. This repo ships the claim file and the stdio bridge.
 

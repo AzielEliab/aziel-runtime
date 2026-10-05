@@ -301,7 +301,7 @@ export function helpGlamaTxt(origin) {
     "",
     "## Install",
     "",
-    "1. One-click Install Server on Glama (Deploy is live; Install Server ON; Auto-Release ON). Glama release 2.0.7. Worker / server package stays 2.0.0-rc1.",
+    "1. One-click Install Server on Glama (Deploy is live; Install Server ON; Auto-Release ON). Glama release 2.0.11. Worker / server package stays 2.0.0-rc1.",
     `2. Remote MCP: POST ${base}/mcp`,
     "3. Local stdio last: node cli/mcp-stdio.mjs. Dockerfile CMD is [\"node\", \"cli/mcp-stdio.mjs\"] and bridges to this Worker /mcp.",
     "",

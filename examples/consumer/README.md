@@ -29,7 +29,7 @@ curl -sS -H 'User-Agent: Mozilla/5.0' \
 
 Install order:
 
-1. One-click Install Server on [Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime) (Glama release 2.0.7; Worker package 2.0.0-rc1).
+1. One-click Install Server on [Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime) (Glama release 2.0.11; Worker package 2.0.0-rc1).
 2. Remote `POST https://aziel-runtime.vibelock.workers.dev/mcp` (`tools/list` / `tools/call`).
 3. Local stdio last, from a clone:
 

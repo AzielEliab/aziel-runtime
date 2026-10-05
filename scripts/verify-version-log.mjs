@@ -56,9 +56,9 @@ const stripped = githubIdentityLog({ offered_version: "2.0.0" });
 assert.equal(stripped.version, "2.0.0-rc1");
 assert.deepEqual(stripped.rejected_versions, ["2.0.0"]);
 
-const listingLabel = githubIdentityLog({ offered_version: "2.0.7" });
+const listingLabel = githubIdentityLog({ offered_version: "2.0.11" });
 assert.equal(listingLabel.version, "2.0.0-rc1");
-assert.deepEqual(listingLabel.rejected_versions, ["2.0.7"]);
+assert.deepEqual(listingLabel.rejected_versions, ["2.0.11"]);
 
 const unbound = githubIdentityFromEnv({});
 assert.equal(unbound.version, "2.0.0-rc1");
