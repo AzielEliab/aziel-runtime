@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import { PUBLIC_MCP_TOOLS } from "../src/fraggate/codes.js";
 import { buildRegistry } from "../src/fraggate/registry.js";
 import { PRODUCTS } from "../src/index.js";
+import { currentAltInternetFact } from "../src/alt-internet-fact.js";
 import { HONESTY_SENTENCES, SURFACE_HONESTY } from "../src/surface-honesty.js";
 
 const handler = (await import("../src/index.js")).default.fetch;
@@ -150,5 +151,25 @@ for (const text of surfaces) {
   assert.equal(/"kernel_base":true/.test(text.replaceAll(" ", "")), false);
   assert.equal(/"public_smtp_send":true/.test(text.replaceAll(" ", "")), false);
 }
+
+const fact = currentAltInternetFact();
+assert.equal(fact.alt_internet_live, false);
+assert.equal(fact.packet_path_live, false);
+assert.equal(fact.not_live_sentence, fact.missing_line);
+assert.equal(status.result.missing_line, fact.not_live_sentence);
+assert.equal(status.result.not_live_sentence, fact.not_live_sentence);
+assert.equal(boot.result.missing_line, fact.not_live_sentence);
+assert.equal(net.result.missing_line, fact.not_live_sentence);
+assert.equal(net.result.not_live_sentence, fact.not_live_sentence);
+assert.equal(mesh.body.missing_line, fact.not_live_sentence);
+assert.equal(mesh.body.d2d_carriers.missing_line, fact.not_live_sentence);
+assert.equal(mesh.body.d2d_carriers.not_live_sentence, fact.not_live_sentence);
+assert.ok(operator.body.includes(fact.not_live_sentence), "operator page missing the not-live sentence");
+assert.ok(workspace.body.includes(fact.not_live_sentence), "workspace page missing the not-live sentence");
+assert.equal(net.result.public_mail_send_live, false);
+assert.equal(net.result.kernel_live, false);
+assert.equal(net.result.boot_live, false);
+assert.equal(net.result.kernel_base, false);
+assert.equal(net.result.booted, false);
 
 console.log("ok surface agreement: AI, human, and AZOS share the same stub, slot, and refusal facts");

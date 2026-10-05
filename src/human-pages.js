@@ -43,7 +43,7 @@ function flagLine(name, value, whenFalse, whenTrue) {
 /** Honesty lines read from the live carrier cite. */
 export function carrierSentences() {
   const d = d2dCarrierCite();
-  return [
+  const lines = [
     flagLine(
       "alt_internet_live",
       d.alt_internet_live,
@@ -71,6 +71,8 @@ export function carrierSentences() {
     `The phone page is ${d.mobile_client} (mobile_client). mobile_demonstrated is ${d.mobile_demonstrated === true}. app_store_release is ${d.app_store_release === true}.`,
     `The public worker door stays ${d.worker_door}.`,
   ];
+  if (typeof d.not_live_sentence === "string" && d.not_live_sentence) lines.push(d.not_live_sentence);
+  return lines;
 }
 
 function refusalSentences(body) {

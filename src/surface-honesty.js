@@ -4,6 +4,8 @@
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
 
+import { currentAltInternetFact } from "./alt-internet-fact.js";
+
 export const SURFACE_HONESTY = Object.freeze({
   packet_path_live: false,
   alt_internet_live: false,
@@ -45,9 +47,14 @@ export const HONESTY_SENTENCES = Object.freeze({
 });
 
 export function sharedFactBlock() {
+  const fact = currentAltInternetFact();
   return {
-    packet_path_live: false,
-    alt_internet_live: false,
+    packet_path_live: fact.packet_path_live === true,
+    alt_internet_live: fact.alt_internet_live === true,
+    missing_line: fact.missing_line,
+    not_live_sentence: fact.not_live_sentence,
+    missing: fact.missing,
+    machine_id: fact.machine_id,
     booted: false,
     installed: false,
     os_yet: false,

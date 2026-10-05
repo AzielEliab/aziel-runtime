@@ -25,6 +25,7 @@ import {
   secondDevice,
 } from "../src/bases.js";
 import { softwareCatalog } from "../src/software-catalog.js";
+import { currentAltInternetFact } from "../src/alt-internet-fact.js";
 import { operatorPageHtml } from "../src/operator-ui.js";
 import { fixtureLabeledScanner, listenSmtpSink } from "../src/engines/azmail/guard.js";
 import {
@@ -460,6 +461,12 @@ assert.ok(net.carriers.every((row) => row.packet_live === false && row.packet_co
 assert.equal(net.cellular_counts, false);
 assert.equal(net.cellular_optional, true);
 assert.equal(net.line, "Internet base is present. Not live.");
+const altFact = currentAltInternetFact();
+assert.equal(altFact.alt_internet_live, false);
+assert.equal(altFact.packet_path_live, false);
+assert.equal(net.missing_line, altFact.not_live_sentence);
+assert.equal(net.not_live_sentence, altFact.not_live_sentence);
+assert.ok(page.includes(altFact.not_live_sentence));
 const netCell = await local(
   "azos",
   "internet_base",
@@ -538,6 +545,8 @@ assert.equal(netCarry.packet_path_earned, false);
 assert.equal(netCarry.alt_internet_live, false);
 assert.equal(netCarry.alt_internet_earned, false);
 assert.equal(netCarry.line, "Internet base is present. Not live.");
+assert.equal(netCarry.missing_line, altFact.not_live_sentence);
+assert.equal(netCarry.not_live_sentence, altFact.not_live_sentence);
 assert.equal(netCarry.d2d_status, "NOT-READY");
 assert.equal(netCarry.warn5, "STANDS-until-demonstrated");
 assert.ok(netCarry.carriers.every((row) => row.packet_live === false));

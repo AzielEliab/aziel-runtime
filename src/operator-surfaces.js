@@ -9,6 +9,7 @@ import { append, tip } from "./chainlock/ops.js";
 import { sha256Hex } from "./session-core.js";
 import { inspectBeforeAirgap, probeScannerSync, scanMessageParts } from "./engines/azmail/guard.js";
 import { bootHandoff, carryOnFirstCarrier, kernelBase, mailSendBase, probeCarrierOrder, secondDevice } from "./bases.js";
+import { currentAltInternetFact } from "./alt-internet-fact.js";
 import { HONESTY_SENTENCES, SURFACE_HONESTY, sharedFactBlock } from "./surface-honesty.js";
 
 export const OPERATOR_AUTHOR = "Aziel Eliab";
@@ -649,6 +650,7 @@ export async function internetBase(payload, env) {
   const asked = payload && payload.carry === true;
   const carried = asked ? await carryOnFirstCarrier(carriers) : null;
   const quiet = quietCarry(carried);
+  const fact = currentAltInternetFact();
   const device = Boolean(
     quiet &&
       quiet.mesh === true &&
@@ -672,10 +674,10 @@ export async function internetBase(payload, env) {
     booted: false,
     kernel_base: false,
     os_yet: false,
-    alt_internet_live: false,
-    packet_path_live: false,
-    alt_internet_earned: false,
-    packet_path_earned: false,
+    alt_internet_live: fact.alt_internet_live === true,
+    packet_path_live: fact.packet_path_live === true,
+    alt_internet_earned: fact.alt_internet_live === true,
+    packet_path_earned: fact.packet_path_live === true,
     second_device: device,
     public_icann: false,
     bgp: false,
@@ -692,6 +694,13 @@ export async function internetBase(payload, env) {
     cellular_code: cell.code || null,
     field_1_0: false,
     line: HONESTY_SENTENCES.internet,
+    missing_line: fact.missing_line,
+    not_live_sentence: fact.not_live_sentence,
+    missing: fact.missing,
+    machine_id: fact.machine_id,
+    public_mail_send_live: false,
+    kernel_live: false,
+    boot_live: false,
     packet_line: HONESTY_SENTENCES.packet,
     alt_line: HONESTY_SENTENCES.alt,
     d2d_line: HONESTY_SENTENCES.d2d,

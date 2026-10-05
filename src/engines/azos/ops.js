@@ -4,6 +4,7 @@
 import { capabilityDoctor, capabilityHealth, capabilitySkill } from "../capability.js";
 import { LIMITATION, MOTTO, VERSION, statusPayload, invitePayload, principlesPayload } from "./engine.js";
 import { sessionClose, sessionOpen, sessionStatus } from "./session.js";
+import { currentAltInternetFact } from "../../alt-internet-fact.js";
 import { runFeature } from "../../operator-surfaces.js";
 
 const LIVE = [
@@ -75,7 +76,16 @@ export async function runAzos(op, payload, scratch, env) {
   if (op === "health") return azosHealth();
   if (op === "skill") return azosSkill();
   if (op === "doctor") return azosDoctor();
-  if (op === "status") return statusPayload();
+  if (op === "status") {
+    const fact = currentAltInternetFact();
+    return {
+      ...statusPayload(),
+      missing_line: fact.missing_line,
+      not_live_sentence: fact.not_live_sentence,
+      missing: fact.missing,
+      machine_id: fact.machine_id,
+    };
+  }
   if (op === "invite") return invitePayload();
   if (op === "principles") return principlesPayload();
   if (op === "session_open") return sessionOpen(payload, env);

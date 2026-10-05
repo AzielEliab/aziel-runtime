@@ -1505,6 +1505,8 @@ export function humanDoorScript() {
     parts.push(field ? "Field 1.0 is marked live (field_1_0 is true)." : "Field 1.0 is not live (field_1_0 is false).");
     parts.push(second ? "A second device is marked present (second_device is true)." : "There is no second device (second_device is false).");
     parts.push("The public worker door stays " + door + ".");
+    var missingLine = typeof d2d.not_live_sentence === "string" && d2d.not_live_sentence ? d2d.not_live_sentence : (typeof b.not_live_sentence === "string" ? b.not_live_sentence : "");
+    if (missingLine) parts.push(missingLine);
     if (b.vpn === true) parts.push("VPN on at boot.");
     parts.push("Code: " + (b.code || "MESH-OK") + ".");
     return parts.join(" ");

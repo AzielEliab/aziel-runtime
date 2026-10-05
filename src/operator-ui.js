@@ -1,3 +1,5 @@
+import { currentAltInternetFact } from "./alt-internet-fact.js";
+
 /**
  * Operator UI for AZOS and the runtime doors.
  * One primary action, quiet secondary paths, text inputs only where a person types.
@@ -62,6 +64,7 @@ function ipWord(result) {
 
 export function operatorPageHtml(origin, result) {
   const base = String(origin || "").replace(/\/$/, "");
+  const missingLine = currentAltInternetFact().not_live_sentence;
   const lattice = result && result.lattice_receipt ? result.lattice_receipt : null;
   const receiptLine = !lattice
     ? "Receipt: missing"
@@ -225,6 +228,7 @@ export function operatorPageHtml(origin, result) {
     <p>Guardian: <strong>On</strong>. It audits this operator's own requests on this machine. It cannot be turned off.</p>
     <p>Internet base: <strong>present, not live</strong></p>
     <p>Internet base is present. Not live.</p>
+    <p>${esc(missingLine)}</p>
     <p>Mail send base: <strong>present</strong>. Public send stays refused.</p>
     <p>Kernel base: <strong>present, not booted</strong></p>
     <p>The kernel base is present. It has not booted a machine.</p>
