@@ -9,6 +9,7 @@
 import { boundMemoryMeta } from "../memory/meta.js";
 import { canonicalize, sha256Hex } from "../session-core.js";
 import { chainKey, parseJsonl, storeFor, toJsonl, VAULT_CHAINS_PATH } from "./store.js";
+import { LATTICE_SPEC, LatticeError, latticeDocumentHash, latticeTips, planLattice, verifyLattice } from "../dual-lattice.js";
 
 export const CL_VERSION = "CL-0.4";
 export const CL_SPEC = "CL-WP-0.4";
@@ -84,10 +85,42 @@ export async function saveChain(store, name, rows, caller) {
   await store.put(chainKey(name, caller), toJsonl(rows));
 }
 
-export async function composeChainlockStamp(src, { prev }) {
+/**
+ * Document content for the dual hash lattice. Ids and timestamps are left out,
+ * so the same stamp content hashes the same way twice (offline double refuse).
+ */
+export async function stampDocumentHash(src) {
+  const chain = String((src && (src.c || src.chain)) || "session").trim() || "session";
+  return latticeDocumentHash({
+    c: chain,
+    k: (src && (src.k || src.kind)) || "stamp",
+    subject: clip(src && (src.s || src.subject), SUBJECT_CAP),
+    fact: clip(src && (src.f || src.fact), FACT_CAP),
+  });
+}
+
+function offlineOf(src) {
+  return Boolean(src && (src.offline === true || src.offline === "true"));
+}
+
+/**
+ * Compose one stamp. Every stamp carries the dual hash lattice (primary +
+ * secondary). Give `rows` (existing chain rows) or `latticeTips` plus
+ * `hasOffline` from a writer that keeps lattice tips in its metadata.
+ * Throws LatticeError LATTICE-DOUBLE / LATTICE-USERNAME-ABSENT before any write.
+ */
+export async function composeChainlockStamp(src, { prev, rows = null, latticeTips: tips = null, hasOffline = null } = {}) {
   const chain = String((src && (src.c || src.chain)) || "session").trim() || "session";
   const subject = clip(src && (src.s || src.subject), SUBJECT_CAP);
   const fact = clip(src && (src.f || src.fact), FACT_CAP);
+  const lattice = await planLattice({
+    document_hash: await stampDocumentHash(src),
+    offline: offlineOf(src),
+    username: src && (src.username || src.user),
+    rows: rows || [],
+    tips,
+    hasOffline,
+  });
   const unsigned = {
     v: CL_VERSION,
     id: (src && src.id) || newId(),
@@ -99,6 +132,7 @@ export async function composeChainlockStamp(src, { prev }) {
     fact,
     ns: CL_NAMESPACE,
     author: CL_AUTHOR,
+    lattice,
   };
   if (src && src.r) unsigned.r = String(src.r);
   if (src && src.rose_transition_hash) unsigned.rose_transition_hash = String(src.rose_transition_hash);
@@ -150,8 +184,14 @@ export async function append(storeOrEnv, input = {}) {
   }
   const caller = String(src.caller || src.space || "").trim();
   const idempotencyKey = String(src.idempotency_key || src.idemp || src.id || "").trim();
-  const builder = async ({ prev }) => {
-    const unsigned = await composeChainlockStamp(src, { prev: prev || GENESIS });
+  const builder = async ({ prev, rows }) => {
+    let unsigned;
+    try {
+      unsigned = await composeChainlockStamp(src, { prev: prev || GENESIS, rows: rows || [] });
+    } catch (err) {
+      if (err instanceof LatticeError) return { refuse: err.code === "LATTICE-DOUBLE" ? "lattice-double" : "lattice-username", code: err.code, message: err.message };
+      throw err;
+    }
     const card = toCard(unsigned, { pipe: src.pipe });
     if (!card || cardBytes(card) > CARD_CAP) {
       return { refuse: "card-cap", cap: CARD_CAP };
@@ -173,14 +213,18 @@ export async function append(storeOrEnv, input = {}) {
     );
   } else {
     const rows = await loadChain(store, chain, caller);
-    ack = await builder({ prev: rows.length ? rows[rows.length - 1].stamp_sha256 || GENESIS : GENESIS, seq: rows.length });
+    ack = await builder({ prev: rows.length ? rows[rows.length - 1].stamp_sha256 || GENESIS : GENESIS, seq: rows.length, rows });
     if (ack && ack.refuse) return { ok: false, ...ack };
     rows.push(ack);
     await saveChain(store, chain, rows, caller);
     ack = { ok: true, record: ack, seq: rows.length, prev: ack.prev, replayed: false };
   }
   if (!ack || !ack.ok) {
-    return { ok: false, refuse: (ack && ack.refuse) || "append-failed", cap: ack && ack.cap };
+    const out = { ok: false, refuse: (ack && ack.refuse) || "append-failed", cap: ack && ack.cap };
+    if (ack && ack.code) out.code = ack.code;
+    if (ack && ack.message) out.message = ack.message;
+    if (ack && String(ack.refuse || "").startsWith("lattice-")) out.written = false;
+    return out;
   }
   const unsigned = ack.record;
   const card = toCard(unsigned, { pipe: src.pipe });
@@ -193,6 +237,8 @@ export async function append(storeOrEnv, input = {}) {
     seq: Math.max(0, Number(ack.seq) - 1),
     replayed: Boolean(ack.replayed),
     vault: VAULT_CHAINS_PATH.replace("<name>", chain),
+    lattice: unsigned.lattice || null,
+    lattice_live: Boolean(unsigned.lattice && unsigned.lattice.primary && unsigned.lattice.secondary),
   };
 }
 
@@ -205,12 +251,14 @@ export async function tip(storeOrEnv, chain = "session", caller = "") {
     return { ok: true, chain: name, tip: null, empty: true };
   }
   const last = rows[rows.length - 1];
+  const lt = latticeTips(rows);
   return {
     ok: true,
     chain: name,
     tip: toCard(last),
     stamp: last,
     seq: rows.length - 1,
+    lattice_tips: lt.count ? { primary: lt.primary, secondary: lt.secondary, rows: lt.count } : null,
   };
 }
 
@@ -308,9 +356,27 @@ export async function verify(storeOrEnv, input = {}) {
       }
       prev = stamp.stamp_sha256;
     }
-    chains.push({ c: name, ok, n: rows.length, isolated: !ok });
+    const dual = await verifyLattice(rows.filter((row) => row && !row._broken));
+    if (!dual.ok) {
+      ok = false;
+      for (const br of dual.breaks) breaks.push({ chain: name, seq: br.seq, reason: br.reason });
+    }
+    chains.push({
+      c: name,
+      ok,
+      n: rows.length,
+      isolated: !ok,
+      dual_lattice: {
+        ok: dual.ok,
+        lattice_rows: dual.lattice_rows,
+        legacy_rows: dual.legacy_rows,
+        tips: dual.lattice_rows ? dual.tips : null,
+        lattice_live: dual.lattice_live,
+      },
+    });
   }
   const allOk = breaks.length === 0;
+  const withRows = chains.filter((row) => row.dual_lattice.lattice_rows > 0);
   return {
     ok: allOk,
     v: CL_VERSION,
@@ -318,6 +384,12 @@ export async function verify(storeOrEnv, input = {}) {
     chains,
     breaks,
     fail_closed: true,
+    dual_lattice: {
+      spec: LATTICE_SPEC,
+      lattices: ["primary", "secondary"],
+      chains_with_rows: withRows.length,
+      lattice_live: allOk && withRows.length > 0 && withRows.every((row) => row.dual_lattice.lattice_live),
+    },
   };
 }
 
