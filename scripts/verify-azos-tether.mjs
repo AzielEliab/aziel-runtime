@@ -22,7 +22,9 @@ import {
 } from "../src/azos-tether.js";
 import { LATTICE_GENESIS, verifyLattice } from "../src/dual-lattice.js";
 import { append } from "../src/chainlock/ops.js";
-import { MemoryStore } from "../src/chainlock/store.js";
+import { DurableStore, MemoryStore } from "../src/chainlock/store.js";
+import { memoryChainWriterNamespace } from "../src/chainlock/writer-do.js";
+import { TETHER_CRON } from "../src/azos-tether.js";
 import { STUB_OPS, classifyCall, buildRegistry } from "../src/fraggate/registry.js";
 import { canonicalize } from "../src/session-core.js";
 
@@ -175,6 +177,47 @@ assert.equal(TETHER_FACTS.uses_fraggate_azos_lattice, false);
 assert.equal(TETHER_FACTS.mesh_node, false);
 assert.equal(TETHER_FACTS.second_device, false);
 assert.equal(TETHER_FACTS.alt_internet_live, false);
+
+// --- 7b. Durable writer path: rows after the AZ-OS tip are selected inside the object --------
+{
+  const ns = memoryChainWriterNamespace({});
+  const dstore = new DurableStore(ns);
+  const legacy = [];
+  for (let i = 0; i < 4; i++) legacy.push({ v: "CL-0.4", id: "old" + i, c: "session", k: "out", t: "x", prev: "GENESIS", subject: "s", fact: "legacy " + i, stamp_sha256: String(i).repeat(64), fh: "b".repeat(64) });
+  await dstore.replaceRecords("session", legacy);
+  const noRows = await dstore.latticeSince("session", "");
+  assert.equal(noRows.lt, null, "legacy-only chain has no lattice tip");
+  await append(dstore, { c: "session", k: "in", fact: "door in" });
+  await append(dstore, { c: "session", k: "out", fact: "door out" });
+  const sel = await dstore.latticeSince("session", "");
+  assert.equal(sel.rows.length, 2);
+  assert.equal(sel.rows[0].seq, 4, "seq is the position in the chain, after legacy rows");
+  const dz = mockAzos(key.public_key);
+  const first = await pushAll(env, { store: dstore, fetcher: dz.fetcher, chains: ["session"] });
+  assert.equal(first.azos_updated, true, JSON.stringify(first));
+  await append(dstore, { c: "session", k: "in", fact: "door in 2" });
+  const sel2 = await dstore.latticeSince("session", dz.state.get("session").tips.primary);
+  assert.equal(sel2.rows.length, 1, "only the new row is selected");
+  const second = await pushChain(env, "session", { store: dstore, fetcher: dz.fetcher });
+  assert.equal(second.rows_sent, 1);
+  assert.equal(second.azos_updated, true);
+  const cur = await dstore.latticeSince("session", dz.state.get("session").tips.primary);
+  assert.equal(cur.current, true);
+  const fork = await dstore.latticeSince("session", "9".repeat(64));
+  assert.equal(fork.fork, true);
+}
+
+// --- 7c. The tether runs on its own cron; without the secret it sends nothing ----------------
+{
+  assert.equal(TETHER_CRON, "1-59/2 * * * *");
+  const wrangler = readFileSync(new URL("../wrangler.toml", import.meta.url), "utf8");
+  assert.match(wrangler, /crons = \["\*\/2 \* \* \* \*", "1-59\/2 \* \* \* \*"\]/);
+  const worker = (await import("../src/index.js")).default;
+  let called = 0;
+  const envNoKey = { AZOS: { fetch: async () => { called += 1; return new Response("{}"); } } };
+  await worker.scheduled({ cron: TETHER_CRON }, envNoKey, { waitUntil() {} });
+  assert.equal(called, 0, "no secret: the tether cron sends nothing");
+}
 
 // --- 8. Cross-repo vector (test seed) --------------------------------------------------
 {
