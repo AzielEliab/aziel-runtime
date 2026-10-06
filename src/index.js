@@ -211,6 +211,7 @@ import {
   noStoreHeaders,
   rateLimitFailBody,
   rateLimitFailHeaders,
+  sessionMutateAuth,
   tokenPresentedInQuery,
 } from "./production.js";
 import { applySecurityHeaders, securityHeaders } from "./security-headers.js";
@@ -4513,6 +4514,18 @@ async function handleRequest(request, env, ctx) {
       return json(out.body, out.status, extraHeaders);
     }
 
+    if (url.pathname === "/v1/tether" && (request.method === "GET" || request.method === "HEAD")) {
+      const { tetherStatus } = await import("./azos-tether.js");
+      return asHead(request, json(await tetherStatus(env), 200, authorityLinkHeaders(origin, url.pathname)));
+    }
+
+    if (url.pathname === "/v1/tether/push" && request.method === "POST") {
+      const auth = sessionMutateAuth(request, env);
+      if (!auth.ok) return json(auth.body, auth.status || 401, authorityLinkHeaders(origin, url.pathname));
+      const { pushAll } = await import("./azos-tether.js");
+      return json(await pushAll(env), 200, authorityLinkHeaders(origin, url.pathname));
+    }
+
     if (url.pathname === "/v1/receipts" || url.pathname.startsWith("/v1/receipts/")) {
       const out = await dispatchActReceiptHttp(request.method, url.pathname, env);
       return asHead(
@@ -4691,6 +4704,11 @@ export default {
   async scheduled(controller, env, ctx) {
     const source = controller && controller.cron ? `cron:${controller.cron}` : "cron";
     await meshScheduled(env, ctx, source);
+    // AZ-OS cross-tether: send signed dual-lattice tips only when the signing secret is set.
+    if (env && env.TETHER_SIGNING_SEED && env.AZOS) {
+      const work = import("./azos-tether.js").then(({ pushAll }) => pushAll(env)).catch(() => null);
+      if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(work);
+    }
   },
 };
 
