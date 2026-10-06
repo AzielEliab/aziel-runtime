@@ -156,7 +156,7 @@ assert.equal(kernel.d2d_carriers.security.mesh_fenced_to_loopback, false);
 assert.deepEqual(kernel.d2d_carriers.order, ["lan", "wifi", "bluetooth", "rf", "photon"]);
 
 const live = await meshStatus({}, {});
-assert.equal(live.wifi, "on");
+assert.equal(live.wifi, "cite");
 assert.equal(live.d2d_carriers.spec, D2D_SPEC);
 assert.equal(live.d2d_carriers.status, "NOT-READY");
 assert.equal(live.d2d_carriers.code, "FG-STUB");
@@ -192,8 +192,15 @@ for (const id of ["wifi", "bluetooth", "rf", "photon"]) {
 }
 assert.equal(live.d2d_carriers.peers, undefined);
 assert.equal(live.not_a_second_internet, true);
-assert.equal(live.channel_plane.wifi, "on");
+assert.equal(live.channel_plane.wifi, "cite");
 assert.equal(live.channel_plane.worker_hardware, false);
+assert.equal(live.channel_plane.worker_radios_live, false);
+for (const id of ["wifi", "bluetooth", "rf", "photon"]) {
+  assert.equal(live.channel_plane[id], "cite", id);
+  if (live.worker_hardware === false && (live.channel_plane[id] === "on" || live[id] === "on" || live[id] === true)) {
+    assert.fail(`${id} claims radio hardware the worker cannot see`);
+  }
+}
 
 const skill = aznetSkill();
 assert.match(skill.markdown, /Cap-7/);

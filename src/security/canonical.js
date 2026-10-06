@@ -58,6 +58,7 @@ export function b64urlToBytes(value) {
   return out;
 }
 
+/** Best-effort wipe of a Uint8Array copy. This does not wipe a key. */
 export function zeroize(bytes) {
   if (bytes instanceof Uint8Array) bytes.fill(0);
 }

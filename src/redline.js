@@ -171,13 +171,13 @@ export function meshGetLooksLikeEnable(searchParams, payload) {
     return true;
   }
   if (!searchParams || typeof searchParams.get !== "function") return false;
-  const keys = ["enable", "enabled", "op", "radios", "mesh"];
+  const keys = ["enable", "enabled", "op", "radios", "mesh", "wifi", "bluetooth", "rf", "photon", "lan", "radio"];
   for (const key of keys) {
     const raw = searchParams.get(key);
     if (raw == null || raw === "") continue;
     const v = String(raw).trim().toLowerCase();
     if (key === "op" && v === "enable") return true;
-    if (v === "1" || v === "true" || v === "on" || v === "yes" || v === "enable") return true;
+    if (v === "1" || v === "true" || v === "on" || v === "yes" || v === "enable" || v === "live") return true;
   }
   return false;
 }

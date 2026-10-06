@@ -135,19 +135,29 @@ function channel_plane_cites(live) {
   assert.equal(live.vpn, true);
   assert.equal(live.public_vpn, true);
   assert.equal(live.origin_hiding, false);
-  assert.equal(live.wifi, "on");
-  assert.equal(live.bluetooth, "on");
-  assert.equal(live.rf, "on");
-  assert.equal(live.photon, "on");
-  assert.equal(live.channels.wifi, "on");
-  assert.equal(live.channels.bluetooth, "on");
-  assert.equal(live.channels.rf, "on");
-  assert.equal(live.channels.photon, "on");
+  assert.equal(live.wifi, "cite");
+  assert.equal(live.bluetooth, "cite");
+  assert.equal(live.rf, "cite");
+  assert.equal(live.photon, "cite");
+  assert.equal(live.channels.wifi, "cite");
+  assert.equal(live.channels.bluetooth, "cite");
+  assert.equal(live.channels.rf, "cite");
+  assert.equal(live.channels.photon, "cite");
   assert.equal(live.channel_plane.spec, "QNM-CHANNEL-PLANE-1.0");
-  assert.equal(live.channel_plane.wifi, "on");
-  assert.equal(live.channel_plane.bluetooth, "on");
-  assert.equal(live.channel_plane.rf, "on");
-  assert.equal(live.channel_plane.photon, "on");
+  assert.equal(live.channel_plane.wifi, "cite");
+  assert.equal(live.channel_plane.bluetooth, "cite");
+  assert.equal(live.channel_plane.rf, "cite");
+  assert.equal(live.channel_plane.photon, "cite");
+  assert.equal(live.channel_plane.display, "cite/operator-armed");
+  assert.equal(live.channel_plane.worker_radios_live, false);
+  for (const name of ["wifi", "bluetooth", "rf", "photon"]) {
+    assert.equal(live.channel_plane.rows[name].hardware, false, name);
+    assert.equal(live.channel_plane.rows[name].live, false, name);
+    assert.equal(live.channel_plane.rows[name].code, "QNM-RADIO-ABSENT", name);
+    if (live.worker_hardware === false && (live[name] === "on" || live[name] === true || live[name] === "live")) {
+      assert.fail(`${name} claims radio hardware the worker cannot see`);
+    }
+  }
   assert.equal(live.channel_plane.vpn, true);
   assert.equal(live.channel_plane.concentrator_slug, "azvpn");
   assert.equal(live.channel_plane.public_proxy, false);

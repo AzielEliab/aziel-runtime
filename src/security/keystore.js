@@ -441,7 +441,13 @@ export function destroySessionKey(opened, sessionId) {
   state.records = kept;
   state.sessions.delete(id);
   if (!removed) return fail("AZKS-REFUSE", "Session key was not present. Fail closed.");
-  return { ok: true, destroyed: removed, session_id: id };
+  return {
+    ok: true,
+    destroyed: removed,
+    session_id: id,
+    zeroize_wipes_key: false,
+    zeroize_is_best_effort: true,
+  };
 }
 
 export function assertKeystoreHasNoPlaintextSeeds(document) {

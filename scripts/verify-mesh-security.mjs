@@ -236,6 +236,14 @@ assert.equal(enableViaGet.data.get_never_enables, true);
 assert.equal(enableViaGet.data.enabled_by_get, false);
 const afterEnableGet = await jsonReq(env, "/v1/mesh");
 assert.deepEqual(afterEnableGet.data.bearers, ["suite-presence"]);
+for (const q of ["wifi=on", "bluetooth=live", "rf=true", "photon=1", "lan=enable", "radio=yes"]) {
+  const radioGet = await jsonReq(env, `/v1/mesh?${q}`);
+  assert.equal(radioGet.data.code, "MESH-GET-NEVER-ENABLES", q);
+  assert.equal(radioGet.data.enabled_by_get, false, q);
+}
+const citeGet = await jsonReq(env, "/v1/mesh?wifi=cite");
+assert.notEqual(citeGet.data.code, "MESH-GET-NEVER-ENABLES");
+assert.equal(citeGet.data.wifi, "cite");
 gate("GET-ENABLE-REFUSE", "GET ?enable=true refuses MESH-GET-NEVER-ENABLES");
 
 assert.equal(firstGet.data.nine_laws.hard_true, true);
@@ -313,6 +321,12 @@ const recoverBearer = await postJson(env, "/v1/mesh/enable", { bearer: "account-
 assert.equal(recoverBearer.data.code, "MESH-BAD-BEARER");
 const gateBearer = await postJson(env, "/v1/mesh/enable", { bearer: "node-gate" });
 assert.equal(gateBearer.data.code, "MESH-BAD-BEARER");
+for (const bearer of ["wifi", "bluetooth", "rf", "photon", "lan", "radio"]) {
+  const radioBearer = await postJson(env, "/v1/mesh/enable", { bearer, confirm: true });
+  assert.equal(radioBearer.data.code, "MESH-BAD-BEARER", bearer);
+  assert.equal(radioBearer.data.confirm_is_authentication, false, bearer);
+  assert.equal(radioBearer.data.public_demo_arms_radios, false, bearer);
+}
 const extra = await postJson(env, "/v1/mesh/enable", { bearer: "ops-cell" });
 assert.equal(extra.status, 200, JSON.stringify(extra.data));
 assert.ok(extra.data.bearers.includes("suite-presence"));

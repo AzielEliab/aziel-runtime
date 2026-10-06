@@ -78,6 +78,9 @@ if (boot.result.booted === true && String(boot.result.handoff_guest_log || "").i
 assert.equal(net.ok, true);
 assert.equal(net.result.alt_internet_live, false);
 assert.equal(net.result.packet_path_live, false);
+assert.equal(net.result.second_device, false);
+assert.equal(net.result.alt_internet_live, net.result.second_device);
+assert.equal(net.result.packet_path_live, net.result.second_device);
 assert.equal(net.result.alt_internet_earned, false);
 assert.equal(net.result.packet_path_earned, false);
 assert.equal(net.result.booted, false);

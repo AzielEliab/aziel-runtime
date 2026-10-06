@@ -218,7 +218,7 @@ export const LIVE_NODES_NOTE =
 /** Public Nodes = human mesh users + cited human uses (today’s interaction-inclusive clock). */
 export const NODES_PLANE = "human-mesh-users-uses";
 export const NODES_NOTE =
-  "Public Nodes (nodes / rollup.nodes) count human mesh users plus the cited human uses signal (USES / human_uses). Uses are interaction counters, not unique people. Incomplete or unbound telemetry is reported honestly (0 + complete=false). Nodes does not invent users. Zero is honest.";
+  "Public Nodes (nodes / rollup.nodes) count human mesh users plus the cited human uses signal (USES / human_uses). nodes_are_not_unique_humans. A large nodes number while human_nodes is 0 is uses, not people. Unique humans are human_mesh_users (recent beats) and human_nodes (registered). Do not paint nodes or human_uses as people. Uses are interaction counters, not unique people. Incomplete or unbound telemetry is reported honestly (0 + complete=false) and is not added into nodes. Nodes does not invent users. Zero is honest.";
 
 export const SOFTWARE_NODES_NOTE =
   "software_nodes / rollup.software count in-process catalog product Workers ({slug}-worker) from suite-presence fan-out. That roster is not the Softwares-tab count. Whitestone is a Softwares card and is absent (worker_only; FragGate status none). memory and mesh are FragGate kernel entries and are not software_nodes rows. VeilLock is in this fan-out and is not on the public FragGate allowlist. Do not equate software_nodes with Softwares slugs, FragGate product_count, or the FragGate allowlist. rollup.software.live is that roster's presence=live count. It is not public Live Nodes. rollup.live is not published.";
@@ -487,6 +487,12 @@ const FORBIDDEN_BEARER_TOKENS = Object.freeze([
   "password",
   "session",
   "restore",
+  "wifi",
+  "bluetooth",
+  "rf",
+  "photon",
+  "lan",
+  "radio",
 ]);
 const FORBIDDEN_BROADCAST_KEYS = Object.freeze([
   "video",
@@ -676,6 +682,9 @@ export function meshHint(path = "/v1/mesh") {
     site_live_viewers_plane: SITE_LIVE_VIEWERS_PLANE,
     live_nodes_note: LIVE_NODES_NOTE,
     nodes_note: NODES_NOTE,
+    nodes_are_not_unique_humans: true,
+    paint_nodes_as_people: false,
+    nodes_formula: "human_mesh_users+human_uses",
     site_live_viewers_note: SITE_LIVE_VIEWERS_NOTE,
     site_presence_contract: SITE_PRESENCE_CONTRACT,
     software_nodes_note: SOFTWARE_NODES_NOTE,
@@ -765,7 +774,7 @@ export function meshKernelEntry() {
     stub_ops: MESH_STUB_OPS.slice(),
     op_aliases: { ...MESH_OP_ALIASES },
     description:
-      `QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1). Packet-transfer coding design QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; Worker cites only). Channel plane QNM-CHANNEL-PLANE-1.0: operator-armed wifi / bluetooth / rf / photon cites ON; live hardware on local qnm-node. ${D2D_SPEC} packet plane is separate from Cap-7 names: failover ${D2D_ORDER_LABEL}; each hop NOT-READY / FG-STUB; alt_internet_live false. Public VPN auto-binds AZVPN (HTTPS/WS REAL; WireGuard/OpenVPN SLOT; GET cites only). live/locked/isolated counts. Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public disable of suite-presence is refused. Nine QNM laws are hard-true on GET /v1/mesh. OPERATOR-OVERRIDE 2026-09-17 armed auto_heal / node_gate / neighbor_heal / network / anonymity_network (mode flag) / public VPN. Phoenix is wait/re-seal, not public hostname resurrection. Pulled sites die with the pull — godlock.uk does not come back. Split the wires: presence + tip hash on the 1s tick; pull-only payloads; hash-absolute ingest; equivocation isolates that peer. Cold-copy survival: multiply cold copies; no live body sync; named hosts only. REHEAL: isolation is the cure. Not a login-recovery IP panel. Not a live Tor fabric. Channel plane ≠ kernel VPN. Pairing ≠ tunnel. CROSS-NETWORK-SURVIVAL-1.0: if network and data die tomorrow, the chain survives on cold shelves (hosts / DOI / git / vault). NO-LIE-NO-REWRITE-1.0: no rewrite key; never lie to survive. COLD-MULTI-SHELF-1.0: GET /shelves cites corpus#96 honesty. Not a login mesh. Not a Softwares-tab product.`,
+      `QNM-BUILD-1.0 suite rollup (companion to AIH-WP-1.1). Packet-transfer coding design QNS-CD-1.0 (photon QNS1 1.3 on local qnsd; Worker cites only). Channel plane QNM-CHANNEL-PLANE-1.0: operator-armed wifi / bluetooth / rf / photon are cite/operator-armed; worker_hardware false; live hardware on local qnm-node. ${D2D_SPEC} packet plane is separate from Cap-7 names: failover ${D2D_ORDER_LABEL}; each hop NOT-READY / FG-STUB; alt_internet_live false. Public VPN auto-binds AZVPN (HTTPS/WS REAL; WireGuard/OpenVPN SLOT; GET cites only). live/locked/isolated counts. Read-only suite-presence is ON by default. GET /v1/mesh never enables radios beyond that. Public disable of suite-presence is refused. Nine QNM laws are hard-true on GET /v1/mesh. OPERATOR-OVERRIDE 2026-09-17 armed auto_heal / node_gate / neighbor_heal / network / anonymity_network (mode flag) / public VPN. Phoenix is wait/re-seal, not public hostname resurrection. Pulled sites die with the pull — godlock.uk does not come back. Split the wires: presence + tip hash on the 1s tick; pull-only payloads; hash-absolute ingest; equivocation isolates that peer. Cold-copy survival: multiply cold copies; no live body sync; named hosts only. REHEAL: isolation is the cure. Not a login-recovery IP panel. Not a live Tor fabric. Channel plane ≠ kernel VPN. Pairing ≠ tunnel. CROSS-NETWORK-SURVIVAL-1.0: if network and data die tomorrow, the chain survives on cold shelves (hosts / DOI / git / vault). NO-LIE-NO-REWRITE-1.0: no rewrite key; never lie to survive. COLD-MULTI-SHELF-1.0: GET /shelves cites corpus#96 honesty. Not a login mesh. Not a Softwares-tab product.`,
     note: MESH_LIMITATION,
     kind: "kernel",
     engine: false,
@@ -790,7 +799,7 @@ export function nodeMeshHubCard(origin) {
     version: MESH_SPEC,
     door: "fraggate",
     one_line:
-      `QNM-BUILD-1.0 suite rollup (live/locked/isolated). Read-only suite-presence is ON by default. GET never enables radios beyond that. Channel plane: wifi / bluetooth / rf / photon cites ON (local qnm-node hardware). Worker channel_plane stays cite-only (worker_hardware:false). ${D2D_SPEC}: device-to-device packet carriers fail over ${D2D_ORDER_LABEL} and stay NOT-READY / FG-STUB. Cap-7 is the name plane, not a public egress IP. alt_internet_live false. Public disable of suite-presence is refused. Nine QNM laws are hard-true on GET /v1/mesh. OPERATOR-OVERRIDE 2026-09-17 armed auto_heal / node_gate / neighbor_heal / network / anonymity_network (mode flag). Phoenix is wait/re-seal. Pulled sites die with the pull. Split the wires: tick is presence + tip hash; payloads are pull-only. Cold-copy survival: named hosts only. REHEAL: isolation is the cure. CROSS-NETWORK-SURVIVAL-1.0: chain survives on cold shelves (hosts / DOI / git / vault). NO-LIE / NO-REWRITE. COLD-MULTI-SHELF-1.0: GET /shelves cites corpus#96 honesty. Full node is local qnm-node/. Packet transfer: QNS-CD-1.0 on local qnsd (Worker cites only).`,
+      `QNM-BUILD-1.0 suite rollup (live/locked/isolated). Read-only suite-presence is ON by default. GET never enables radios beyond that. Channel plane: wifi / bluetooth / rf / photon are cite/operator-armed (local qnm-node hardware). Worker channel_plane stays cite-only (worker_hardware:false). ${D2D_SPEC}: device-to-device packet carriers fail over ${D2D_ORDER_LABEL} and stay NOT-READY / FG-STUB. Cap-7 is the name plane, not a public egress IP. alt_internet_live false. Public disable of suite-presence is refused. Nine QNM laws are hard-true on GET /v1/mesh. OPERATOR-OVERRIDE 2026-09-17 armed auto_heal / node_gate / neighbor_heal / network / anonymity_network (mode flag). Phoenix is wait/re-seal. Pulled sites die with the pull. Split the wires: tick is presence + tip hash; payloads are pull-only. Cold-copy survival: named hosts only. REHEAL: isolation is the cure. CROSS-NETWORK-SURVIVAL-1.0: chain survives on cold shelves (hosts / DOI / git / vault). NO-LIE / NO-REWRITE. COLD-MULTI-SHELF-1.0: GET /shelves cites corpus#96 honesty. Full node is local qnm-node/. Packet transfer: QNS-CD-1.0 on local qnsd (Worker cites only).`,
     path: "/v1/mesh",
     enabled_default: MESH_DEFAULT_ENABLED,
     rollup_only: true,
@@ -986,9 +995,24 @@ function annotateNode(node, now = nowMs()) {
   };
 }
 
+function rosterMap(nodes) {
+  if (!nodes || typeof nodes !== "object" || Array.isArray(nodes)) return {};
+  const out = Object.create(null);
+  for (const key of Object.keys(nodes)) {
+    if (key === "__proto__" || key === "constructor" || key === "prototype") continue;
+    if (!NODE_ID_RE.test(key)) continue;
+    const node = nodes[key];
+    if (!node || typeof node !== "object" || Array.isArray(node)) continue;
+    const nodeId = typeof node.node_id === "string" && node.node_id ? node.node_id : key;
+    if (nodeId !== key || !NODE_ID_RE.test(nodeId)) continue;
+    out[key] = node;
+  }
+  return out;
+}
+
 function pruneNodes(nodes, now = nowMs()) {
   const live = {};
-  for (const [id, node] of Object.entries(nodes || {})) {
+  for (const [id, node] of Object.entries(rosterMap(nodes))) {
     if (!node || typeof node !== "object") continue;
     const next = annotateNode(node, now);
     if (next) live[id] = next;
@@ -1448,10 +1472,15 @@ function emptyUsesSignal() {
   };
 }
 
+function countedHumanUses(usesSignal) {
+  if (!usesSignal || usesSignal.uses_kv !== true || usesSignal.complete !== true) return 0;
+  const n = usesSignal.uses;
+  if (typeof n !== "number" || !Number.isSafeInteger(n) || n < 0) return 0;
+  return n;
+}
+
 function nodesFromHumanSignal(humanPresence, usesSignal) {
-  const users = meshSizeFromPresence(humanPresence);
-  const uses = usesSignal && usesSignal.uses_kv ? Number(usesSignal.uses) || 0 : 0;
-  return users + uses;
+  return meshSizeFromPresence(humanPresence) + countedHumanUses(usesSignal);
 }
 
 function statusFieldsSync(state, usesSignal = null, env) {
@@ -1461,7 +1490,7 @@ function statusFieldsSync(state, usesSignal = null, env) {
   const rollup = rollupCounts(nodes);
   const uses = usesSignal && typeof usesSignal === "object" ? usesSignal : emptyUsesSignal();
   const human_mesh_users = meshSizeFromPresence(rollup.human);
-  const human_uses = uses.uses_kv ? Number(uses.uses) || 0 : 0;
+  const human_uses = countedHumanUses(uses);
   const nodes_count = nodesFromHumanSignal(rollup.human, uses);
   const fleet = siteViewerFleet(state.site_viewers, nowMs());
   const site_live_viewers = fleet.site_live_viewers;
@@ -1536,12 +1565,20 @@ function statusFieldsSync(state, usesSignal = null, env) {
       registered_excluded: true,
       invent_users: false,
     },
+    nodes_are_not_unique_humans: true,
+    paint_nodes_as_people: false,
+    nodes_formula: "human_mesh_users+human_uses",
+    nodes_complete: uses.complete === true && uses.uses_kv === true && Number.isSafeInteger(uses.uses) && uses.uses >= 0,
     nodes_components: {
       human_mesh_users,
       human_uses,
+      unique_humans_field: "human_mesh_users",
+      uses_field: "human_uses",
+      registered_humans_field: "human_nodes",
       software_nodes_excluded: true,
       instance_nodes_excluded: true,
       invent_users: false,
+      paint_as_people: false,
     },
     active_nodes: rollup.active,
     inactive_nodes: rollup.inactive,
@@ -1861,6 +1898,8 @@ export async function meshEnable(payload, env) {
         mesh_enabled: state.enabled === true,
         refused_bearers: rejected.slice(0, 8),
         example_bearer: EXAMPLE_BEARER,
+        confirm_is_authentication: false,
+        public_demo_arms_radios: false,
       },
     );
   }
@@ -1889,7 +1928,9 @@ export async function meshEnable(payload, env) {
     fanout: fanout.skipped ? false : true,
     fanout_joined: fanout.joined || 0,
     fanout_refreshed: fanout.refreshed || 0,
-    note: "Operator declared a bearer. Radios LIVE for suite rollup only. Live Softwares product Workers are joined as software_nodes (TTL 5 min, no user heartbeat). Nodes count recent human mesh users plus cited human uses. Live Nodes count recent human beats plus site_live_viewers. Registered is the durable count and is not Live Nodes. Read-only suite-presence stays ON by default. GET never enables radios and never pulls hub /count. Not a login mesh.",
+    confirm_is_authentication: false,
+    public_demo_arms_radios: false,
+    note: "Operator declared a bearer. Radios LIVE for suite rollup only. confirm is not authentication. Radio names (wifi, bluetooth, rf, photon, lan) are not bearers. Live Softwares product Workers are joined as software_nodes (TTL 5 min, no user heartbeat). Nodes count recent human mesh users plus cited human uses. Live Nodes count recent human beats plus site_live_viewers. Registered is the durable count and is not Live Nodes. Read-only suite-presence stays ON by default. GET never enables radios and never pulls hub /count. Not a login mesh.",
   });
 }
 
