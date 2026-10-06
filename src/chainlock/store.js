@@ -434,6 +434,13 @@ export class DurableStore {
     return [...new Set([...fromDo, ...extra])];
   }
 
+  /** Dual-lattice rows after `since` (primary tip), selected inside the ChainWriter. */
+  async latticeSince(name, since) {
+    const n = String(name || "");
+    const writer = n.includes("/") ? n.replace("/", ":") : n;
+    return this._json(writer, `/lattice?since=${encodeURIComponent(String(since || ""))}`);
+  }
+
   async loadRecords(name) {
     const n = String(name || "");
     const writer = n.includes("/") ? n.replace("/", ":") : n;

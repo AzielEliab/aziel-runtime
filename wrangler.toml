@@ -15,8 +15,11 @@ head_sampling_rate = 1
 # GET /v1/mesh never enables extra radios (get_never_enables). MESH_RADIOS=off forces TX off
 # (MESH-OFF). MESH_RADIOS=on forces TX on. A missing env follows declared bearers.
 # Refresh is well under the 5-minute presence TTL.
+# AZRT-AZOS-TETHER-1.0 runs on its own odd-minute cron (TETHER_CRON in src/azos-tether.js)
+# so it does not share the mesh fan-out subrequest budget. It sends only when the
+# TETHER_SIGNING_SEED secret is set. It never execs into AZ-OS.
 [triggers]
-crons = ["*/2 * * * *"]
+crons = ["*/2 * * * *", "1-59/2 * * * *"]
 
 [assets]
 directory = "./public"

@@ -134,6 +134,37 @@ export class ChainWriter {
     return ack;
   }
 
+  /**
+   * Dual-lattice rows after a given primary tip, selected inside the object so
+   * the caller does not pull the whole chain (AZ-OS tether). since = "" or
+   * genesis returns every lattice row. A since that is not on this chain is a fork.
+   */
+  async latticeSince(since) {
+    const meta = await this._meta();
+    const genesis = "0".repeat(64);
+    const want = since && since !== genesis ? String(since) : "";
+    if (meta.lt && want && want === meta.lt.primary) {
+      return { ok: true, lt: meta.lt, rows: [], current: true, fork: false };
+    }
+    const rows = await this._rows();
+    const out = [];
+    let found = !want;
+    rows.forEach((row, i) => {
+      const lat = row && row.lattice;
+      if (!lat || !lat.primary) return;
+      if (found) out.push({ ...lat, seq: i });
+      else if (lat.primary === want) found = true;
+    });
+    const lt = latticeTips(rows);
+    return {
+      ok: true,
+      lt: lt.count ? { primary: lt.primary, secondary: lt.secondary } : null,
+      rows: found ? out : [],
+      current: false,
+      fork: !found,
+    };
+  }
+
   async dump() {
     return { ok: true, rows: await this._rows(), meta: await this._meta() };
   }
@@ -197,6 +228,9 @@ export class ChainWriter {
       const action = url.pathname.replace(/^\//, "") || "dump";
       if (action === "append" && request.method === "POST") {
         return json(await this.append(await readJson(request)));
+      }
+      if (action === "lattice" && request.method === "GET") {
+        return json(await this.latticeSince(url.searchParams.get("since") || ""));
       }
       if (action === "dump" && request.method === "GET") {
         return json(await this.dump());

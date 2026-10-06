@@ -26,6 +26,8 @@ export const TETHER_ROUTE = "/v1/tether/tip";
 export const TETHER_STATUS_ROUTE = "/v1/tether";
 export const TETHER_AZOS_ORIGIN = "https://azos-download-tracker.vibelock.workers.dev";
 export const TETHER_ROW_CAP = 64;
+/** Own cron (odd minutes) so the tether does not share a subrequest budget with the mesh fan-out. */
+export const TETHER_CRON = "1-59/2 * * * *";
 
 const ED_PKCS8_PREFIX = Uint8Array.from([
   0x30, 0x2e, 0x02, 0x01, 0x00, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x04, 0x22, 0x04, 0x20,
@@ -175,18 +177,33 @@ export async function pushChain(env, chain, opts = {}) {
   const fetcher = opts.fetcher || azosFetcher(env);
   if (!fetcher) return { ...base, ok: false, code: "TETHER-AZOS-UNBOUND", azos_updated: false, sent: false };
   const store = opts.store || storeFor(env);
-  const all = await loadChain(store, chain);
-  const local = await verifyLattice(all.filter((row) => row && !row._broken));
-  if (!local.ok) return { ...base, ok: false, code: "TETHER-LOCAL-BROKEN", breaks: local.breaks, azos_updated: false, sent: false };
-  const latticeRows = latticeRowsOf(all);
-  if (!latticeRows.length) return { ...base, ok: true, code: "TETHER-NOTHING", azos_updated: false, sent: false, lattice_rows: 0 };
-  const localTip = { primary: local.tips.primary, secondary: local.tips.secondary };
   const acked = opts.acked !== undefined ? opts.acked : ((await azosTetherState(env, fetcher)).chains[chain] || null);
   const ackedTip = acked && acked.tips ? acked.tips : null;
+  let localTip;
+  let pending;
+  if (typeof store.latticeSince === "function") {
+    // Durable writer: select rows after the AZ-OS tip inside the object (no full chain pull).
+    const sel = await store.latticeSince(chain, ackedTip ? ackedTip.primary : "");
+    if (!sel || sel.ok === false) return { ...base, ok: false, code: "TETHER-LOCAL-READ", azos_updated: false, sent: false };
+    if (!sel.lt) return { ...base, ok: true, code: "TETHER-NOTHING", azos_updated: false, sent: false, lattice_rows: 0 };
+    localTip = { primary: sel.lt.primary, secondary: sel.lt.secondary };
+    if (sel.fork) return { ...base, ok: false, code: "TETHER-FORK", azos_updated: false, sent: false, tip: localTip, azos_tip: ackedTip };
+    pending = (sel.rows || []).map((lat) => rowOf(lat, lat.seq));
+    const anchor = ackedTip || { primary: LATTICE_GENESIS, secondary: LATTICE_GENESIS };
+    const check = await verifyLattice(pending, { pick: (row) => row, anchor, legacyAllowed: false });
+    if (!check.ok) return { ...base, ok: false, code: "TETHER-LOCAL-BROKEN", breaks: check.breaks, azos_updated: false, sent: false };
+  } else {
+    const all = await loadChain(store, chain);
+    const local = await verifyLattice(all.filter((row) => row && !row._broken));
+    if (!local.ok) return { ...base, ok: false, code: "TETHER-LOCAL-BROKEN", breaks: local.breaks, azos_updated: false, sent: false };
+    const latticeRows = latticeRowsOf(all);
+    if (!latticeRows.length) return { ...base, ok: true, code: "TETHER-NOTHING", azos_updated: false, sent: false, lattice_rows: 0 };
+    localTip = { primary: local.tips.primary, secondary: local.tips.secondary };
+    pending = rowsSince(latticeRows, ackedTip);
+  }
   if (ackedTip && ackedTip.primary === localTip.primary && ackedTip.secondary === localTip.secondary && acked.verified === true) {
     return { ...base, ok: true, code: "TETHER-CURRENT", azos_updated: true, sent: false, tip: localTip, azos: acked };
   }
-  const pending = rowsSince(latticeRows, ackedTip);
   if (pending == null) {
     return { ...base, ok: false, code: "TETHER-FORK", azos_updated: false, sent: false, tip: localTip, azos_tip: ackedTip };
   }

@@ -4703,12 +4703,24 @@ export default {
   },
   async scheduled(controller, env, ctx) {
     const source = controller && controller.cron ? `cron:${controller.cron}` : "cron";
-    await meshScheduled(env, ctx, source);
-    // AZ-OS cross-tether: send signed dual-lattice tips only when the signing secret is set.
-    if (env && env.TETHER_SIGNING_SEED && env.AZOS) {
-      const work = import("./azos-tether.js").then(({ pushAll }) => pushAll(env)).catch(() => null);
+    const { TETHER_CRON, pushAll } = await import("./azos-tether.js");
+    if (controller && controller.cron === TETHER_CRON) {
+      // AZ-OS cross-tether on its own cron: send signed dual-lattice tips only when the signing secret is set.
+      if (!(env && env.TETHER_SIGNING_SEED && env.AZOS)) return;
+      const work = pushAll(env)
+        .then((out) => {
+          console.log(JSON.stringify({ tether: out.code, azos_updated: out.azos_updated, chains: (out.chains || []).map((c) => ({ chain: c.chain, code: c.code, rows_sent: c.rows_sent })) }));
+          return out;
+        })
+        .catch((err) => {
+          console.log(JSON.stringify({ tether: "TETHER-ERROR", error: String((err && err.message) || err).slice(0, 200) }));
+          return null;
+        });
       if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(work);
+      else await work;
+      return;
     }
+    await meshScheduled(env, ctx, source);
   },
 };
 
