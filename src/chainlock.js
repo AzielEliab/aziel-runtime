@@ -67,6 +67,15 @@ export async function runChainlockOp(name, args, env) {
       pipe: AZPIPE_VERSION,
       roster: ROSTER.slice(),
       vault: VAULT_NOTE,
+      dual_lattice: {
+        spec: "AZRT-DUAL-LATTICE-1.0",
+        lattices: ["primary", "secondary"],
+        stored_on: ["chainlock stamps", "session receipts", "aznews receipts"],
+        not_stored_on: ["fraggate ledger"],
+        offline_secondary: "H(document primary hash + username)",
+        offline_double: "LATTICE-DOUBLE",
+        lattice_live_rule: "chainlock_verify reports lattice_live per chain only when every lattice row stores both chains and the walk holds.",
+      },
       software_tab: false,
       author: "Aziel Eliab",
     };

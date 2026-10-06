@@ -43,8 +43,28 @@
         },
         "source": "fixture"
       },
+      "request_id": "req_864166226b388bdc751ab070f4abffe4",
+      "attempt_n": 1,
+      "parent_receipt_id": null,
+      "correlation_id": null,
+      "outcome": "completed",
+      "ledger_prev_is_retry_parent": false,
+      "lattice": {
+        "spec": "AZRT-DUAL-LATTICE-1.0",
+        "document_hash": "eb7a2c4122ec93f9d4847d3c332a147c1a780f888cab982d7d646fb2d453c283",
+        "primary": "cbd8872aaa7798fc7f4f9e9823aa3b05a08308801221dd7e1c728677d287fd61",
+        "primary_prev": "0000000000000000000000000000000000000000000000000000000000000000",
+        "secondary": "0a9bc21f618a0a243bf34526bd046c23952e514de59968ddfac46b18bb64d343",
+        "secondary_prev": "0000000000000000000000000000000000000000000000000000000000000000",
+        "offline": false,
+        "username": null,
+        "lattices": [
+          "primary",
+          "secondary"
+        ]
+      },
       "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
-      "hash": "8780b1c2912ed290fa0194c5a79642be62cad3761c0efcd741e0dc56b40d9190"
+      "hash": "12aefdc2a12e2c1374ceaf9d39a6b3aad99cb22b3853f79341d82489424623b1"
     },
     {
       "kind": "aziel-runtime.receipt",
@@ -98,8 +118,28 @@
           "note": "Download counters stay off unless kv_increment is explicitly true. This Worker has no download KV and still will not increment one. Isolate (Worker/DO) is the jail — not QEMU/KVM."
         }
       },
-      "prev_hash": "8780b1c2912ed290fa0194c5a79642be62cad3761c0efcd741e0dc56b40d9190",
-      "hash": "6ae44a99d858ddc5264dbce11bdb0a0dcd3f52c06d82674480ed8df5f341e1a5"
+      "request_id": "req_457c2ba5c76a7134cfed23a53a612bfe",
+      "attempt_n": 1,
+      "parent_receipt_id": null,
+      "correlation_id": null,
+      "outcome": "completed",
+      "ledger_prev_is_retry_parent": false,
+      "lattice": {
+        "spec": "AZRT-DUAL-LATTICE-1.0",
+        "document_hash": "341c762a30353ee712b4fc0e2db47489ffb021915b1c7d4ef2ed0aabc9aa9809",
+        "primary": "327c4125b44d308becd8908b8a19d56f43871866cd738d47a5b646702eb3ef24",
+        "primary_prev": "cbd8872aaa7798fc7f4f9e9823aa3b05a08308801221dd7e1c728677d287fd61",
+        "secondary": "46cad26818750fe6b67908a4bd9862732c898671ba7417f824c5749c44845df9",
+        "secondary_prev": "0a9bc21f618a0a243bf34526bd046c23952e514de59968ddfac46b18bb64d343",
+        "offline": false,
+        "username": null,
+        "lattices": [
+          "primary",
+          "secondary"
+        ]
+      },
+      "prev_hash": "12aefdc2a12e2c1374ceaf9d39a6b3aad99cb22b3853f79341d82489424623b1",
+      "hash": "1b1df17dc835529dfc5b2811f66489be7b5e8733e242220c64ee881870f23636"
     },
     {
       "kind": "aziel-runtime.receipt",
@@ -143,8 +183,28 @@
           "ran_in": null
         }
       },
-      "prev_hash": "6ae44a99d858ddc5264dbce11bdb0a0dcd3f52c06d82674480ed8df5f341e1a5",
-      "hash": "fbbe8b123b795a9f7eb88887b07c5675d3fd7bae5a01ccc256c2a6f1529f0fba"
+      "request_id": "req_d87b3508a8f4c5dae0063b25bcc0fd8a",
+      "attempt_n": 1,
+      "parent_receipt_id": null,
+      "correlation_id": null,
+      "outcome": "completed",
+      "ledger_prev_is_retry_parent": false,
+      "lattice": {
+        "spec": "AZRT-DUAL-LATTICE-1.0",
+        "document_hash": "2ccae8c78fcdbaf39a9b449ed9af20089058bed1cf6c0e355010cef5d11137eb",
+        "primary": "dc058d7777da535e6688ead061c54d6917b660bb428a25789adcdaf55baddaf1",
+        "primary_prev": "327c4125b44d308becd8908b8a19d56f43871866cd738d47a5b646702eb3ef24",
+        "secondary": "3a42e09d59472e70ccc947ae26402003319e599612c98ad09e3b0fccd6d29fbd",
+        "secondary_prev": "46cad26818750fe6b67908a4bd9862732c898671ba7417f824c5749c44845df9",
+        "offline": false,
+        "username": null,
+        "lattices": [
+          "primary",
+          "secondary"
+        ]
+      },
+      "prev_hash": "1b1df17dc835529dfc5b2811f66489be7b5e8733e242220c64ee881870f23636",
+      "hash": "341b3dede33c5c2deb03650f52f005ec952d80cba28dc5bffaa5a62b3dda7701"
     },
     {
       "kind": "aziel-runtime.receipt",
@@ -167,8 +227,28 @@
         "isolate_class": "worker-do",
         "guest_vm": false
       },
-      "prev_hash": "fbbe8b123b795a9f7eb88887b07c5675d3fd7bae5a01ccc256c2a6f1529f0fba",
-      "hash": "744ae017d7f147a42d08d528b43b846df29c712d0dee2e026cf821c7c3f6e83c"
+      "request_id": "req_18c73b39a1ff2c9e43979243eb946332",
+      "attempt_n": 1,
+      "parent_receipt_id": null,
+      "correlation_id": null,
+      "outcome": "completed",
+      "ledger_prev_is_retry_parent": false,
+      "lattice": {
+        "spec": "AZRT-DUAL-LATTICE-1.0",
+        "document_hash": "363f834bc6553f254d89f98b3bcc247b54b7a82bd058a6234da0e3452f37dc63",
+        "primary": "ddfcf724cc1d447e1f7a5d8a9edcbd4b0caa69a6439caceccb3873f03d49196a",
+        "primary_prev": "dc058d7777da535e6688ead061c54d6917b660bb428a25789adcdaf55baddaf1",
+        "secondary": "2cd885aab2804c8b0e185d4d0d2eb029233447b210a7471ce6ce40c0bbcac6f7",
+        "secondary_prev": "3a42e09d59472e70ccc947ae26402003319e599612c98ad09e3b0fccd6d29fbd",
+        "offline": false,
+        "username": null,
+        "lattices": [
+          "primary",
+          "secondary"
+        ]
+      },
+      "prev_hash": "341b3dede33c5c2deb03650f52f005ec952d80cba28dc5bffaa5a62b3dda7701",
+      "hash": "9b3af0b07590fa6c7070a67fb1c0464c81db2fe3b5e30fb331c199494b441a8e"
     }
   ],
   "act_receipt": {

@@ -12,6 +12,7 @@
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
 import { canonicalize, sha256Hex } from "../../session-core.js";
+import { latticeOfflineSecondary, latticeOnlineSecondary, latticePrimary } from "../../dual-lattice.js";
 import {
   blackSwanById,
   blackSwanCatalog,
@@ -178,23 +179,19 @@ export async function documentHash(doc) {
   return sha256Hex(canonicalize(doc));
 }
 
+// The hash rules live in src/dual-lattice.js so ChainLock, session receipts,
+// AZNews, and the AZ-OS tether all use one definition.
 export async function primaryChainHash(docHash, prev) {
-  return sha256Hex(canonicalize({ document: docHash, prev: prev || GENESIS_PREV }));
+  return latticePrimary(docHash, prev || GENESIS_PREV);
 }
 
 /** Offline secondary hash: the document primary hash plus the username. */
 export async function offlineSecondaryHash(docHash, username) {
-  return sha256Hex(canonicalize({ primary: docHash, username: String(username) }));
+  return latticeOfflineSecondary(docHash, username);
 }
 
 export async function onlineSecondaryHash(primaryHash, prev) {
-  return sha256Hex(
-    canonicalize({
-      offline: false,
-      prev: prev || GENESIS_PREV,
-      primary: primaryHash,
-    }),
-  );
+  return latticeOnlineSecondary(primaryHash, prev || GENESIS_PREV);
 }
 
 function tips() {

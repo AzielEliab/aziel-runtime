@@ -136,30 +136,35 @@ export async function appendReceipt(session, event, payload, nowIso, extra = {})
     delete rest[key];
   }
   const prev = lastReceipt(session);
-  const receipt = await signReceipt(
-    {
-      version: session.runtime_version,
-      session_id: session.id,
-      seq: (session.receipts || []).length + 1,
-      event,
-      ts: nowIso,
-      author: "Aziel Eliab",
-      identity: "Aziel Eliab",
-      runtime: "aziel-runtime",
-      owner: "aziel-runtime",
-      owner_note:
-        "This receipt is owned by the aziel-runtime session process, not by upstream JSON alone.",
-      payload,
-      request_id: link.request_id,
-      attempt_n: link.attempt_n,
-      parent_receipt_id: link.parent_receipt_id,
-      correlation_id: link.correlation_id,
-      outcome: link.outcome,
-      ledger_prev_is_retry_parent: false,
-      ...rest,
-    },
-    prev ? prev.hash : ZERO_HASH,
-  );
+  const partial = {
+    version: session.runtime_version,
+    session_id: session.id,
+    seq: (session.receipts || []).length + 1,
+    event,
+    ts: nowIso,
+    author: "Aziel Eliab",
+    identity: "Aziel Eliab",
+    runtime: "aziel-runtime",
+    owner: "aziel-runtime",
+    owner_note:
+      "This receipt is owned by the aziel-runtime session process, not by upstream JSON alone.",
+    payload,
+    request_id: link.request_id,
+    attempt_n: link.attempt_n,
+    parent_receipt_id: link.parent_receipt_id,
+    correlation_id: link.correlation_id,
+    outcome: link.outcome,
+    ledger_prev_is_retry_parent: false,
+    ...rest,
+  };
+  // Dual hash lattice: primary + secondary chain over every session receipt.
+  // Session receipts are written by the online runtime, so the secondary is the online chain.
+  const { latticeDocumentHash, planLattice } = await import("./dual-lattice.js");
+  const lattice = await planLattice({
+    document_hash: await latticeDocumentHash({ kind: RECEIPT_KIND, ...partial }),
+    rows: session.receipts || [],
+  });
+  const receipt = await signReceipt({ ...partial, lattice }, prev ? prev.hash : ZERO_HASH);
   session.receipts.push(receipt);
   session.head_hash = receipt.hash;
   session.updated_at = nowIso;
@@ -189,6 +194,9 @@ export function verifyChain(receipts) {
 export async function verifyChainStrict(receipts) {
   const basic = verifyChain(receipts);
   const errors = [...basic.errors];
+  const { verifyLattice } = await import("./dual-lattice.js");
+  const dual = await verifyLattice((receipts || []).filter(Boolean));
+  for (const br of dual.breaks) errors.push({ seq: br.seq + 1, error: br.reason });
   for (const rec of receipts || []) {
     if (!rec) continue;
     const { hash, ...unsigned } = rec;
@@ -197,7 +205,19 @@ export async function verifyChainStrict(receipts) {
       errors.push({ seq: rec.seq, error: "hash_mismatch", expected, got: hash });
     }
   }
-  return { ok: errors.length === 0, count: (receipts || []).length, errors, head: basic.head };
+  return {
+    ok: errors.length === 0,
+    count: (receipts || []).length,
+    errors,
+    head: basic.head,
+    dual_lattice: {
+      ok: dual.ok,
+      lattice_rows: dual.lattice_rows,
+      legacy_rows: dual.legacy_rows,
+      tips: dual.lattice_rows ? dual.tips : null,
+      lattice_live: dual.lattice_live && errors.length === 0,
+    },
+  };
 }
 
 export function openSession({ id, now, version, source }) {

@@ -8,6 +8,16 @@
 import { composeLedgerEntry } from "../fraggate/ledger.js";
 import { CARD_CAP, CL_VERSION, GENESIS, cardBytes, composeChainlockStamp, toCard } from "./ops.js";
 import { tipOf } from "./store.js";
+import { LatticeError, latticeTips } from "../dual-lattice.js";
+
+function offlineSecondaries(rows) {
+  const out = [];
+  for (const row of rows || []) {
+    const lat = row && row.lattice;
+    if (lat && lat.offline === true && typeof lat.secondary === "string") out.push(lat.secondary);
+  }
+  return out;
+}
 
 function json(body, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -73,7 +83,36 @@ export class ChainWriter {
       record = await composeLedgerEntry(src.input || {}, { seq: seq + 1, prev: prev || genesis });
       if (idempKey) record = { ...record, idemp: idempKey };
     } else {
-      const stamp = await composeChainlockStamp(src.input || {}, { prev: prev || genesis });
+      // Dual hash lattice tips live in meta.lt. A chain written before the
+      // lattice has no meta.lt, so its tips come from a one-time row scan.
+      let tips = meta.lt && meta.lt.primary ? meta.lt : null;
+      let legacyRows = null;
+      if (!tips) {
+        legacyRows = seq > 0 ? await this._rows() : [];
+        const lt = latticeTips(legacyRows);
+        tips = { primary: lt.primary, secondary: lt.secondary };
+      }
+      let stamp;
+      try {
+        stamp = await composeChainlockStamp(src.input || {}, {
+          prev: prev || genesis,
+          rows: legacyRows,
+          latticeTips: tips,
+          hasOffline: async (secondary) => Boolean(await this._get("off:" + secondary)),
+        });
+      } catch (err) {
+        if (err instanceof LatticeError) {
+          return {
+            ok: false,
+            refuse: err.code === "LATTICE-DOUBLE" ? "lattice-double" : "lattice-username",
+            code: err.code,
+            message: err.message,
+            written: false,
+            v: CL_VERSION,
+          };
+        }
+        throw err;
+      }
       const card = toCard(stamp, { pipe: src.input && src.input.pipe });
       if (!card || cardBytes(card) > CARD_CAP) {
         return { ok: false, refuse: "card-cap", cap: CARD_CAP, v: CL_VERSION };
@@ -82,7 +121,14 @@ export class ChainWriter {
     }
     const nextSeq = seq + 1;
     await this._put("e:" + nextSeq, record);
-    await this._put("meta", { seq: nextSeq, tip: tipOf(record, genesis) });
+    const nextMeta = { seq: nextSeq, tip: tipOf(record, genesis) };
+    if (record && record.lattice && record.lattice.primary) {
+      nextMeta.lt = { primary: record.lattice.primary, secondary: record.lattice.secondary };
+      if (record.lattice.offline === true) await this._put("off:" + record.lattice.secondary, nextSeq);
+    } else if (meta.lt) {
+      nextMeta.lt = meta.lt;
+    }
+    await this._put("meta", nextMeta);
     const ack = { ok: true, record, seq: nextSeq, prev: prev || genesis, replayed: false };
     if (idempKey) await this._put("idemp:" + idempKey, { ...ack, replayed: true });
     return ack;
@@ -106,7 +152,11 @@ export class ChainWriter {
       await this._put("e:" + (i + 1), rows[i]);
     }
     const last = rows[rows.length - 1];
-    await this._put("meta", { seq: rows.length, tip: tipOf(last, "") });
+    const lt = latticeTips(rows);
+    const meta = { seq: rows.length, tip: tipOf(last, "") };
+    if (lt.count) meta.lt = { primary: lt.primary, secondary: lt.secondary };
+    for (const secondary of offlineSecondaries(rows)) await this._put("off:" + secondary, 1);
+    await this._put("meta", meta);
     return { ok: true, n: rows.length };
   }
 
