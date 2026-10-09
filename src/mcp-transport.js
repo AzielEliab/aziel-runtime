@@ -103,6 +103,7 @@ function sessionRecord(rec) {
     id: rec.id,
     protocolVersion: rec.protocolVersion || MCP_PROTOCOL_PREFERRED,
     created: rec.created || Date.now(),
+    touched: rec.touched || rec.created || Date.now(),
     dead: rec.dead === true,
   };
 }
@@ -113,12 +114,22 @@ function usesKv(env) {
   return kv;
 }
 
+/** Resume refreshes the stored TTL at most this often, so the 6h window still slides. */
+export const MCP_SESSION_TOUCH_MS = 60 * 60 * 1000;
+
 export async function putMcpSession(env, rec) {
-  const row = sessionRecord(rec);
+  const row = sessionRecord({ ...rec, touched: Date.now() });
   memorySessions.set(row.id, row);
   const kv = usesKv(env);
   if (kv) {
-    await kv.put(KV_PREFIX + row.id, JSON.stringify(row), { expirationTtl: Math.floor(MCP_SESSION_TTL_MS / 1000) });
+    try {
+      await kv.put(KV_PREFIX + row.id, JSON.stringify(row), { expirationTtl: Math.floor(MCP_SESSION_TTL_MS / 1000) });
+    } catch (err) {
+      // A storage write failure (for example the KV daily put quota) must not turn /mcp into HTTP 500.
+      // The session stays in this isolate's memory; persisted is false on the row we hand back.
+      console.log(JSON.stringify({ msg: "mcp_session_persist_failed", detail: String((err && err.message) || err).slice(0, 200) }));
+      return { ...row, persisted: false };
+    }
   }
   return row;
 }
@@ -189,7 +200,13 @@ export async function admitMcpPost(request, env, { method, requestedProtocol, re
       return { ok: false, status: 404, error: "MCP session not found", sessionId: presented };
     }
     const version = requestedProtocol ? negotiated.version : existing.protocolVersion || negotiated.version;
-    const rec = await putMcpSession(env, { ...existing, protocolVersion: version, dead: false });
+    // Resume writes only when the record changes, so a busy session does not spend a storage write per call.
+    const rec =
+      version === existing.protocolVersion &&
+      existing.dead !== true &&
+      Date.now() - (Number(existing.touched) || Number(existing.created) || 0) < MCP_SESSION_TOUCH_MS
+        ? existing
+        : await putMcpSession(env, { ...existing, protocolVersion: version, dead: false });
     return { ok: true, sessionId: rec.id, protocolVersion: rec.protocolVersion, resumed: true };
   }
 

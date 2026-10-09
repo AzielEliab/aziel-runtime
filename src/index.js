@@ -200,6 +200,7 @@ import {
 import { RuntimeSession } from "./session-do.js";
 import { ChainWriter } from "./chainlock/writer-do.js";
 import { TunnelHub } from "./tunnel-hub-do.js";
+import { RuntimeKv, withDurableKv } from "./durable-kv.js";
 import { storeFor } from "./chainlock/store.js";
 import { runWithLedgerStore } from "./fraggate/ledger.js";
 import { callSessionTool, handleSessionRequest, sessionMcpTools } from "./session-http.js";
@@ -436,7 +437,7 @@ import {
 import { softwareDescription, softwareOneLine } from "./software-copy.js";
 import { crossMapFields } from "./cross-map.js";
 
-export { RuntimeSession, ChainWriter, RateQuota, TunnelHub };
+export { RuntimeSession, ChainWriter, RateQuota, TunnelHub, RuntimeKv };
 
 const CATALOG_HOST = "https://aziel-runtime.vibelock.workers.dev";
 const PROTOCOL = MCP_PROTOCOL_PREFERRED;
@@ -4686,7 +4687,9 @@ async function handleRequest(request, env, ctx) {
 }
 
 export default {
-  async fetch(request, env, ctx) {
+  async fetch(request, rawEnv, ctx) {
+    // Hot USES writes go to the RUNTIME_KV Durable Object (KV daily put quota made /mcp throw 1101).
+    const env = withDurableKv(rawEnv);
     const budget = requestDeadlineMs(env);
     const run = async () => {
       const peek = String(request.method || "GET").toUpperCase() === "POST" ? request.clone() : request;
@@ -4701,7 +4704,8 @@ export default {
     const result = await withDeadline(execute(), budget, () => json(deadlineRefuse(budget), 408));
     return applySecurityHeaders(result);
   },
-  async scheduled(controller, env, ctx) {
+  async scheduled(controller, rawEnv, ctx) {
+    const env = withDurableKv(rawEnv);
     const source = controller && controller.cron ? `cron:${controller.cron}` : "cron";
     const { TETHER_CRON, pushAll } = await import("./azos-tether.js");
     if (controller && controller.cron === TETHER_CRON) {
