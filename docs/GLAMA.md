@@ -71,6 +71,23 @@ The registry `description` names the three entry tools and stays inside the 2025
 
 Glama wraps the process with `mcp-proxy` and talks MCP on stdin/stdout (newline-delimited JSON-RPC, same as `@modelcontextprotocol/sdk` `StdioServerTransport`). HTTP `POST /mcp` stays the Worker API; this CLI forwards `initialize`, `tools/list`, `tools/call`, `ping`, and notifications so the tool list is not duplicated. `tools/list` is 36 live MCP tools. First call is `Softwares` (tools/list name Softwares). Diagnostics stay `fraggate_list` → `fraggate_describe` → `fraggate_call`.
 
+## Worker down: discovery still answers (GLAMA-STDIO-DISCOVERY-1.0)
+
+Glama's image is a stdio **bridge** to the Worker. When the Worker failed (Cloudflare 1101 from the KV daily put quota, Oct 2026), the bridge answered Glama's `initialize` / `tools/list` with `Upstream returned non-JSON (HTTP 500)`, so Glama inspection and Auto-Release failed even though the repo and image were fine.
+
+Now, when the bridge itself fails (DNS, network, non-JSON, HTTP error), **only** `initialize` and `tools/list` are answered from the in-process catalog in the image (same 36 tools, `serverInfo.version` 2.0.0-rc1), labeled `result._meta["aziel-runtime/discovery"] = { source: "local-catalog", remote: false, fraggate_receipt: false }` and logged on stderr as `DISCOVERY-LOCAL`. `tools/call`, `ping`, and every other method stay the honest FG-DNS / FG-NET / upstream error: no execution, no receipt, no local validation. A real JSON-RPC answer from the Worker is never replaced. `AZIEL_RUNTIME_DISCOVERY_FALLBACK=0` restores the strict error.
+
+Check it the way Glama does:
+
+```bash
+node scripts/smoke-glama-stdio.mjs                       # --local, Worker-1101 mock, origin refused
+GLAMA_SMOKE_LIVE=1 node scripts/smoke-glama-stdio.mjs    # plus the live Worker
+docker build -t aziel-runtime-mcp .
+node scripts/smoke-glama-stdio.mjs --cmd "docker run --rm -i --network none aziel-runtime-mcp" --expect-fallback
+```
+
+CI runs the same in `.github/workflows/glama-stdio.yml` (Node 20/22/24 production install + Docker build/run).
+
 ## Run locally
 
 ```bash

@@ -10,6 +10,16 @@
  * never mint a FragGate execution receipt for a call that did not reach
  * the Worker.
  *
+ * Discovery exception (GLAMA-STDIO-DISCOVERY-1.0): when the Worker is
+ * unreachable or answers non-JSON / 5xx (for example Cloudflare 1101),
+ * `initialize` and `tools/list` only are answered from the vendored
+ * in-process catalog in this checkout, labeled
+ * _meta["aziel-runtime/discovery"] = { source: "local-catalog", remote: false }.
+ * That lets Glama's Docker inspection (initialize + tools/list) pass while
+ * the Worker is down. tools/call, ping and every other method still return
+ * the honest FG-DNS / FG-NET / upstream error — no execution, no receipt,
+ * no local validation. AZIEL_RUNTIME_DISCOVERY_FALLBACK=0 turns it off.
+ *
  * Stdout is MCP only (newline-delimited JSON-RPC, official SDK shape).
  * Logs go to stderr. Author: Aziel Eliab. Identity is Aziel Eliab only.
  * SPDX-License-Identifier: Apache-2.0
@@ -33,6 +43,26 @@ const PARSE_ERROR = -32700;
 const INVALID_REQUEST = -32600;
 const INTERNAL_ERROR = -32603;
 const UPSTREAM_ERROR = -32000;
+
+/** Methods that may be answered from the in-process catalog when the Worker is down. */
+export const DISCOVERY_FALLBACK_METHODS = Object.freeze(["initialize", "tools/list"]);
+const BRIDGE_FAILURE = Symbol("aziel-runtime.bridge-failure");
+
+function bridgeFailure(rpc) {
+  if (rpc && typeof rpc === "object") {
+    Object.defineProperty(rpc, BRIDGE_FAILURE, { value: true, enumerable: false });
+  }
+  return rpc;
+}
+
+export function isBridgeFailure(rpc) {
+  return Boolean(rpc && typeof rpc === "object" && rpc[BRIDGE_FAILURE] === true);
+}
+
+export function discoveryFallbackEnabled(env = process.env) {
+  const v = String((env && env.AZIEL_RUNTIME_DISCOVERY_FALLBACK) || "").trim().toLowerCase();
+  return !(v === "0" || v === "false" || v === "off" || v === "no");
+}
 
 export function runtimeToken(env = process.env) {
   const token = env.AZIEL_RUNTIME_TOKEN || env.RUNTIME_TOKEN;
@@ -239,7 +269,7 @@ export async function responseToRpc(res, message, ctx) {
   rememberSession(res, ctx);
   if (!res) {
     if (isNotification(message)) return null;
-    return rpcError(message && message.id, UPSTREAM_ERROR, "Upstream MCP returned no response");
+    return bridgeFailure(rpcError(message && message.id, UPSTREAM_ERROR, "Upstream MCP returned no response"));
   }
   if (res.status === 204 || res.status === 202) return null;
   let text = "";
@@ -247,20 +277,22 @@ export async function responseToRpc(res, message, ctx) {
     text = await res.text();
   } catch (err) {
     if (isNotification(message)) return null;
-    return rpcError(message && message.id, UPSTREAM_ERROR, `Upstream read failed: ${err.message || err}`);
+    return bridgeFailure(rpcError(message && message.id, UPSTREAM_ERROR, `Upstream read failed: ${err.message || err}`));
   }
   if (!String(text).trim()) {
     if (isNotification(message) || res.ok) return null;
-    return rpcError(message && message.id, UPSTREAM_ERROR, `Upstream HTTP ${res.status}`);
+    return bridgeFailure(rpcError(message && message.id, UPSTREAM_ERROR, `Upstream HTTP ${res.status}`));
   }
   let body;
   try {
     body = JSON.parse(text);
   } catch {
     if (isNotification(message)) return null;
-    return rpcError(message && message.id, UPSTREAM_ERROR, `Upstream returned non-JSON (HTTP ${res.status})`, {
-      snippet: String(text).slice(0, 200),
-    });
+    return bridgeFailure(
+      rpcError(message && message.id, UPSTREAM_ERROR, `Upstream returned non-JSON (HTTP ${res.status})`, {
+        snippet: String(text).slice(0, 200),
+      }),
+    );
   }
   rememberFromRpc(body, ctx);
   if (body && typeof body === "object" && (body.jsonrpc || "result" in body || "error" in body)) {
@@ -269,7 +301,7 @@ export async function responseToRpc(res, message, ctx) {
   if (!res.ok) {
     if (isNotification(message)) return null;
     const msg = (body && (body.error || body.message)) || `Upstream HTTP ${res.status}`;
-    return rpcError(message && message.id, UPSTREAM_ERROR, String(msg));
+    return bridgeFailure(rpcError(message && message.id, UPSTREAM_ERROR, String(msg)));
   }
   return body;
 }
@@ -316,10 +348,53 @@ function transportRpcError(id, err, ctx, fallbackMessage) {
   if (ctx && typeof ctx.log === "function") {
     ctx.log(`aziel-runtime-mcp ${envelope.code} remote=false fraggate_receipt=false local_validation=false`);
   }
-  return rpcError(id, UPSTREAM_ERROR, fallbackMessage || envelope.message, {
-    ...envelope,
-    ban_survival: failoverCite(ctx && ctx.url, ctx && ctx.env),
-  });
+  return bridgeFailure(
+    rpcError(id, UPSTREAM_ERROR, fallbackMessage || envelope.message, {
+      ...envelope,
+      ban_survival: failoverCite(ctx && ctx.url, ctx && ctx.env),
+    }),
+  );
+}
+
+/**
+ * GLAMA-STDIO-DISCOVERY-1.0: answer initialize / tools/list from the
+ * in-process catalog when the bridge itself failed (transport, non-JSON,
+ * HTTP error). A real JSON-RPC answer from the Worker is never replaced.
+ */
+async function discoveryFallback(message, rpc, ctx) {
+  if (!isBridgeFailure(rpc)) return rpc;
+  if (!message || isNotification(message)) return rpc;
+  if (!DISCOVERY_FALLBACK_METHODS.includes(message.method)) return rpc;
+  if (!discoveryFallbackEnabled(ctx && ctx.env)) return rpc;
+  let local;
+  try {
+    if (!ctx.discoverySend) ctx.discoverySend = ctx.localSend || (await createLocalSend());
+    const discoveryCtx = { ...ctx, sessionId: "", token: "" };
+    local = await responseToRpc(await ctx.discoverySend(message, discoveryCtx), message, discoveryCtx);
+  } catch (err) {
+    if (ctx && typeof ctx.log === "function") {
+      ctx.log(`aziel-runtime-mcp DISCOVERY-LOCAL failed: ${err && err.message ? err.message : err}`);
+    }
+    return rpc;
+  }
+  if (!local || !local.result || typeof local.result !== "object") return rpc;
+  const reason = (rpc.error && rpc.error.message) || "remote MCP failed";
+  local.result._meta = {
+    ...(local.result._meta || {}),
+    "aziel-runtime/discovery": {
+      source: "local-catalog",
+      remote: false,
+      fraggate_receipt: false,
+      reason: String(reason).slice(0, 200),
+      law: "GLAMA-STDIO-DISCOVERY-1.0",
+    },
+  };
+  if (ctx && typeof ctx.log === "function") {
+    ctx.log(
+      `aziel-runtime-mcp DISCOVERY-LOCAL ${message.method} answered from in-process catalog (remote=false fraggate_receipt=false): ${reason}`,
+    );
+  }
+  return local;
 }
 
 function finishBridge(message, rpc, res, ctx) {
@@ -363,14 +438,22 @@ export async function dispatchMcp(message, ctx) {
           ctx.log(`BAN-SURVIVAL failover: ${origins[i]} HTTP ${res.status}; trying ${origins[i + 1]}`);
           continue;
         }
-        return finishBridge(message, await responseToRpc(res, message, ctx), res, ctx);
+        const rpc = await responseToRpc(res, message, ctx);
+        return finishBridge(message, await discoveryFallback(message, rpc, ctx), res, ctx);
       }
       if (isNotification(message)) return null;
-      return finishBridge(message, transportRpcError(message.id, lastErr, ctx, "All named LIVE exec origins failed"), null, ctx);
+      return finishBridge(
+        message,
+        await discoveryFallback(message, transportRpcError(message.id, lastErr, ctx, "All named LIVE exec origins failed"), ctx),
+        null,
+        ctx,
+      );
     }
   } catch (err) {
     if (isNotification(message)) return null;
-    return finishBridge(message, transportRpcError(message.id, err, ctx, `Upstream MCP failed: ${err && err.message ? err.message : err}`), null, ctx);
+    const failed = transportRpcError(message.id, err, ctx, `Upstream MCP failed: ${err && err.message ? err.message : err}`);
+    if (ctx.local) return finishBridge(message, failed, null, ctx);
+    return finishBridge(message, await discoveryFallback(message, failed, ctx), null, ctx);
   }
   return finishBridge(message, await responseToRpc(res, message, ctx), res, ctx);
 }
