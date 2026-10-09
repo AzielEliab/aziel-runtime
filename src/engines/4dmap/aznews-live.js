@@ -1133,8 +1133,15 @@ export async function read(repo, op, payload = {}, { now = Date.now(), auth = fa
     return { ok: true, count: pins.length, pins: pins.slice(0, Number(payload.limit) || 200), last10, colors: PIN_COLORS, era_window_years: 3, match_rule: { spec: MATCH_SPEC, black: BLACK_RULE, white: WHITE_RULE } };
   }
   if (op === "pin") {
-    const m = /^pin-(\d+)$/.exec(String(payload.pin_id || payload.id || ""));
-    const row = m ? await repo.rowGet(Number(m[1])) : null;
+    const asked = String(payload.pin_id || payload.id || "");
+    let row = null;
+    if (asked) {
+      const m = /^pin-(\d+)$/.exec(asked);
+      row = m ? await repo.rowGet(Number(m[1])) : null;
+    } else {
+      const newest = await latestRows(repo, "idx_pins", 1, 1);
+      row = newest[0] || null;
+    }
     if (!row || row.kind !== "pin") return { ok: false, code: "AZNEWS-PIN-ABSENT", message: "No pin has that id." };
     const pin = pinView(row);
     const reportRow = pin.report_seq ? await repo.rowGet(pin.report_seq) : null;
@@ -1213,14 +1220,21 @@ export async function read(repo, op, payload = {}, { now = Date.now(), auth = fa
   }
   if (op === "news_open") {
     // 4DMap joined path, pin -> item. The pin must name the item and carry its hash and pull receipt.
-    const m = /^pin-(\d+)$/.exec(String(payload.pin_id || payload.id || ""));
-    const row = m ? await repo.rowGet(Number(m[1])) : null;
+    const asked = String(payload.pin_id || payload.id || "");
+    let row = null;
+    if (asked) {
+      const m = /^pin-(\d+)$/.exec(asked);
+      row = m ? await repo.rowGet(Number(m[1])) : null;
+    } else {
+      const newest = await latestRows(repo, "idx_pins", 1, 1);
+      row = newest[0] || null;
+    }
     if (!row || row.kind !== "pin") return { ok: false, code: "AZNEWS-PIN-ABSENT", message: "No pin has that id. Pass pin_id like pin-123." };
     const pin = pinView(row);
     const report = pin.report_seq ? await repo.rowGet(pin.report_seq) : null;
     const linked = Boolean(report && report.lattice.document_hash === row.doc.report_document_hash);
     const views = await mintViews(repo, report ? [report.seq] : [], viewOpts);
-    return { ok: Boolean(report), path: "joined", direction: "pin->item", pin, linked, item: report && report.kind === "news" ? newsView(report) : null, report: report && report.kind !== "news" ? { seq: report.seq, kind: report.kind, doc: report.doc } : null, view_receipts: views };
+    return { ok: Boolean(report), path: "joined", direction: "pin->item", picked: asked ? "requested" : "newest stored pin (no pin_id given)", pin, linked, item: report && report.kind === "news" ? newsView(report) : null, report: report && report.kind !== "news" ? { seq: report.seq, kind: report.kind, doc: report.doc } : null, view_receipts: views };
   }
   if (op === "globe") {
     // One read for the globe page: status, pins + last 10, headlines, weather, sky. One view-receipt batch.
