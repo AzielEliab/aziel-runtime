@@ -127,6 +127,7 @@ console.log("ok two pins per report with type and color");
   for (const r of [pull, view]) assert.deepEqual(r.lattice.lattices, ["primary", "secondary"]);
   const again = await read(repo, "item", { item_id: n.doc.item_id }, { now: NOW });
   assert.equal(again.view_receipts[0].minted, false, "one view receipt per item per hour");
+  assert.equal(again.view_receipts[0].pull_receipt_seq, pull.seq, "a repeat view still names its pull receipt");
   // offline view: secondary = H(document hash + username); a second offline write refuses.
   const off = await mintViews(repo, [n.seq], { offline: true, username: "azbot", now: NOW + 3600000 });
   const offRow = ledger.find((r) => r.seq === off[0].view_receipt_seq);

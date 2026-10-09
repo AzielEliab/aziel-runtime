@@ -755,7 +755,8 @@ export async function mintViews(repo, reportSeqs, { via = "fraggate", offline = 
     const key = `v:${seq}:${hour}${offline ? `:${username}` : ""}`;
     const prior = batch.seen[key] || (await repo.seenGet(key));
     if (prior) {
-      out.push({ report_seq: seq, view_receipt_seq: prior.seq, minted: false, reason: "already viewed this hour; the existing view receipt is returned" });
+      const priorRow = prior.seq ? await repo.rowGet(prior.seq) : null;
+      out.push({ report_seq: seq, view_receipt_seq: prior.seq, pull_receipt_seq: (priorRow && priorRow.doc && priorRow.doc.pull_receipt_seq) || null, minted: false, reason: "already viewed this hour; the existing view receipt is returned" });
       continue;
     }
     if (batch.daily.views >= VIEW_RECEIPTS_PER_DAY) {
