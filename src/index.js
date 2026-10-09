@@ -2732,7 +2732,7 @@ function aznewsOpenApiPaths() {
     "/v1/aznews/verify": op("aznews_verify", "Advance the full checkpointed lattice walk from genesis (bounded: at most 600 rows per step, steps 1-3) and run the join check. dry_run persists nothing.", [q("steps", "1-3", { type: "integer" }), q("limit", "tail window rows, 2-300", { type: "integer" })]),
     "/v1/aznews/sources": op("aznews_sources", "The 50 configured outlets with wiring, last fetch status and rolling liveness."),
     "/v1/aznews/globe": op("aznews_globe", "One combined read for the /aznews globe page."),
-    "/v1/4dmap/pins": { get: { operationId: "fourdmap_store_pins", summary: "Standalone 4DMap pins (4DMAP-STORE-1.0, own SQLite object 4dmap-v1, dual lattice): corpus layer (Aziel Corpus /api/events) and reference layer (GeoNames capitals and cities >= 1M). No AZNews needed.", tags: ["4dmap"], parameters: [{ name: "layers", in: "query", required: false, description: "corpus,reference", schema: { type: "string" } }, { name: "limit", in: "query", required: false, schema: { type: "integer" } }], responses: { "200": { description: "pins, last10, colors, layers, lattice_live" } } } },
+    "/v1/4dmap/pins": { get: { operationId: "fourdmap_store_pins", summary: "Standalone 4DMap pins (4DMAP-STORE-1.0, own SQLite object 4dmap-v1, dual lattice): corpus layer (Aziel Corpus /api/events) and reference layer (GeoNames capitals and cities >= 1M). No AZNews needed.", tags: ["4dmap"], parameters: [{ name: "layers", in: "query", required: false, description: "corpus,reference", schema: { type: "string" } }, { name: "limit", in: "query", required: false, schema: { type: "integer" } }, { name: "include_retracted", in: "query", required: false, description: "1 = also list retracted pins (geoparser_junk, duplicate_in_document) with their reason; they stay on the lattice", schema: { type: "string" } }, { name: "links", in: "query", required: false, description: "1 = include the newest 4DMAP-LINK-1.0 links (news x corpus correspondence black/white, news x reference place)", schema: { type: "string" } }], responses: { "200": { description: "pins, last10, colors, layers, retracted, links, lattice_live" } } } },
     "/aznews": { get: { operationId: "aznews_page", summary: "AZNews + 4DMap globe page (HTML).", tags: ["aznews"], responses: { "200": { description: "text/html" } } } },
   };
 }
@@ -4566,7 +4566,7 @@ async function handleRequest(request, env, ctx) {
     if ((url.pathname === "/v1/4dmap/pins" || url.pathname === "/v1/4dmap/pins/") && (request.method === "GET" || request.method === "HEAD")) {
       // 4DMAP-STORE-1.0: standalone 4DMap pins (corpus + reference layers). No AZNews needed.
       const { mapCall } = await import("./aznews-do.js");
-      const out = await mapCall(env, "map_read", { layers: url.searchParams.get("layers") || url.searchParams.get("layer") || "", limit: url.searchParams.get("limit") || "" });
+      const out = await mapCall(env, "map_read", { layers: url.searchParams.get("layers") || url.searchParams.get("layer") || "", limit: url.searchParams.get("limit") || "", include_retracted: url.searchParams.get("include_retracted") === "1", links: url.searchParams.get("links") === "1" });
       return asHead(request, json(out, out && out.ok === false ? 503 : 200, { "access-control-allow-origin": "*", "cache-control": "no-store" }));
     }
 
@@ -4815,6 +4815,11 @@ export default {
           // 4DMAP-STORE-1.0: the 4DMap pin store (its own object) ticks, then sends its own signed copy.
           const { mapCall } = await import("./aznews-do.js");
           const t = await mapCall(env, "map_tick", {});
+          // 4DMAP-LINK-1.0: newest AZNews items (read with dry_run, mints nothing) checked against the map pins.
+          const feed = await aznewsCall(env, "feed", { limit: 50, dry_run: true }, {});
+          const items = feed && Array.isArray(feed.items) ? feed.items.map((i) => ({ item_id: i.item_id, seq: i.seq, document_hash: i.lattice && i.lattice.document_hash, outlet_id: i.outlet_id, outlet: i.outlet, title: i.title, published: i.published, event_location: i.event_location })) : [];
+          const lk = items.length ? await mapCall(env, "map_link", { items }) : null;
+          console.log(JSON.stringify({ fourdmap_links: lk && { checked: lk.checked, correspondence: lk.correspondence, reference_place: lk.reference_place } }));
           console.log(JSON.stringify({ fourdmap: t && t.spec ? "tick" : "4DMAP-TICK-ERROR", rows: t && t.rows_appended, corpus: t && t.corpus, reference: t && t.reference, error: t && t.ok === false ? t.message : undefined }));
           if (!env.TETHER_SIGNING_SEED) return null;
           const p = await mapCall(env, "tether_push", { chain: "4dmap" });
