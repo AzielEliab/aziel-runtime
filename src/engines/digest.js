@@ -93,7 +93,7 @@ export const ENGINE_DIGESTS = {
   "azhub": "dc8848353c0db397b9b0503446ad8dcb14212162776b24278071559bd2e83d81",
   "azinterface": "7418c2bbf3c8fe4921f05f0e9f1aed2d2486f983d8feba985fe462018794972c",
   "aziel-corpus": "e122bae90a8426451861c11e39829f9ed000b0d0793a7e9260e6ee68c93c4ab8",
-  "4dmap": "a12b2e9e258c6a58dfb15eb8bd0d85e40da39c09cf2a6eb094e6ed4a7add21df",
+  "4dmap": "03b5c908434c5f6eb914853eea5426e37892e1edfa7bb8f73b7ebe13eee41641",
   "azcoherence": "f04dfa4af332a1c04bd7319a8f48cee3e9adec3877d198ea703ee6187790cfc5",
   "embryolock": "bc7f6119a4bf6910b5be50cabe19bf4a2e35ac60408b5713e94878bd4e0074f3",
   "azchat": "9b63fc0adcbb65318fbad7fd6aaf39b6f44edc5ff41696571457a5bd765ec5c5",

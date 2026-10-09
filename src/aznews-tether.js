@@ -21,6 +21,22 @@ import { tetherKey, signTetherPacket, TETHER_AZOS_ORIGIN } from "./azos-tether.j
 export const NEWS_TETHER_SPEC = "AZRT-AZOS-NEWS-1.0";
 export const NEWS_TETHER_KIND = "aznews-rows";
 export const NEWS_TETHER_ROUTE = "/v1/tether/aznews";
+export const MAP_TETHER_SPEC = "AZRT-MAP-COPY-1.0";
+export const MAP_TETHER_KIND = "map-rows";
+export const MAP_TETHER_ROUTE = "/v1/tether/4dmap";
+/** Signed copy chains. Each is its own ledger (own Durable Object) and its own route on the receiver. */
+export const COPY_CHAINS = Object.freeze({
+  aznews: { chain: "aznews", spec: NEWS_TETHER_SPEC, kind: NEWS_TETHER_KIND, route: NEWS_TETHER_ROUTE, source: "aziel-runtime AzNewsStore aznews-v1" },
+  "4dmap": { chain: "4dmap", spec: MAP_TETHER_SPEC, kind: MAP_TETHER_KIND, route: MAP_TETHER_ROUTE, source: "aziel-runtime 4DMap store 4dmap-v1" },
+});
+export const AZINTERFACE_ORIGIN = "https://azinterface-download-tracker.vibelock.workers.dev";
+/** Receivers that keep their own verified copy. Service bindings only (no public fetch). */
+export function copyTargets(env) {
+  const out = [];
+  if (env && env.AZOS && typeof env.AZOS.fetch === "function") out.push({ name: "azos", origin: TETHER_AZOS_ORIGIN, fetcher: (u, i) => env.AZOS.fetch(u, i) });
+  if (env && env.AZINTERFACE && typeof env.AZINTERFACE.fetch === "function") out.push({ name: "azinterface", origin: AZINTERFACE_ORIGIN, fetcher: (u, i) => env.AZINTERFACE.fetch(u, i) });
+  return out;
+}
 export const ROWS_PER_PACKET = 150;
 export const BYTES_PER_PACKET = 700000;
 export const PACKETS_PER_PUSH = 3;
@@ -30,7 +46,8 @@ function rowOut(row) {
 }
 
 /** Build one signed packet of rows after `afterSeq` (contiguous, in order). Pure apart from repo reads. */
-export async function buildNewsPacket({ key, repo, afterSeq, expect, gitSha, t, maxRows = ROWS_PER_PACKET, maxBytes = BYTES_PER_PACKET }) {
+export async function buildNewsPacket({ key, repo, afterSeq, expect, gitSha, t, maxRows = ROWS_PER_PACKET, maxBytes = BYTES_PER_PACKET, chain = "aznews" }) {
+  const cc = COPY_CHAINS[chain];
   const total = await repo.count();
   if (afterSeq >= total) return { packet: null, total };
   const rows = await repo.rowRange(afterSeq + 1, Math.min(total, afterSeq + maxRows));
@@ -53,11 +70,11 @@ export async function buildNewsPacket({ key, repo, afterSeq, expect, gitSha, t, 
   const last = out[out.length - 1];
   const tips = (await repo.metaGet("tips")) || null;
   const packet = {
-    spec: NEWS_TETHER_SPEC,
-    kind: NEWS_TETHER_KIND,
+    spec: cc.spec,
+    kind: cc.kind,
     lattice_spec: LATTICE_SPEC,
-    source: "aziel-runtime AzNewsStore aznews-v1",
-    chain: "aznews",
+    source: cc.source,
+    chain: cc.chain,
     after_seq: afterSeq,
     rows: out,
     tips: { primary: last.lattice.primary, secondary: last.lattice.secondary, seq: last.seq },
@@ -75,14 +92,17 @@ async function readJson(res) {
   try { return await res.json(); } catch { return null; }
 }
 
-/** Push the next rows to AZ-OS. Called inside the AzNewsStore object after a tick. */
+/** Push the next rows of one chain to one receiver. Called inside the store object after a tick. */
 export async function pushNewsCopy(env, repo, opts = {}) {
-  const base = { spec: NEWS_TETHER_SPEC, chain: "aznews" };
+  const chain = opts.chain || "aznews";
+  const cc = COPY_CHAINS[chain];
+  const origin = opts.origin || TETHER_AZOS_ORIGIN;
+  const base = { spec: cc.spec, chain, target: opts.target || "azos" };
   const key = opts.key || (await tetherKey(env));
   if (!key) return { ...base, ok: false, code: "NEWS-TETHER-KEY-ABSENT", sent: false };
   const fetcher = opts.fetcher || (env && env.AZOS && typeof env.AZOS.fetch === "function" ? (u, i) => env.AZOS.fetch(u, i) : null);
   if (!fetcher) return { ...base, ok: false, code: "NEWS-TETHER-AZOS-UNBOUND", sent: false };
-  const stRes = await fetcher(TETHER_AZOS_ORIGIN + NEWS_TETHER_ROUTE, { headers: { accept: "application/json" } });
+  const stRes = await fetcher(origin + cc.route, { headers: { accept: "application/json" } });
   const st = await readJson(stRes);
   if (!stRes.ok || !st || st.ok !== true) return { ...base, ok: false, code: "NEWS-TETHER-AZOS-STATUS", status: stRes.status, sent: false };
   let after = Number(st.tip_seq) || 0;
@@ -96,11 +116,11 @@ export async function pushNewsCopy(env, repo, opts = {}) {
   const packets = [];
   let total = await repo.count();
   for (let i = 0; i < (opts.packets || PACKETS_PER_PUSH); i++) {
-    const built = await buildNewsPacket({ key, repo, afterSeq: after, expect, gitSha: env && env.GIT_SHA, t: opts.t, maxRows: opts.maxRows, maxBytes: opts.maxBytes });
+    const built = await buildNewsPacket({ key, repo, afterSeq: after, expect, gitSha: env && env.GIT_SHA, t: opts.t, maxRows: opts.maxRows, maxBytes: opts.maxBytes, chain });
     total = built.total;
     if (built.fork) return { ...base, ok: false, code: "NEWS-TETHER-FORK", sent: packets.length > 0, at_seq: built.at_seq, packets };
     if (!built.packet) break;
-    const res = await fetcher(TETHER_AZOS_ORIGIN + NEWS_TETHER_ROUTE, {
+    const res = await fetcher(origin + cc.route, {
       method: "POST",
       headers: { "content-type": "application/json", accept: "application/json" },
       body: JSON.stringify(built.packet),
@@ -114,4 +134,19 @@ export async function pushNewsCopy(env, repo, opts = {}) {
     expect = { primary: built.packet.tips.primary, secondary: built.packet.tips.secondary };
   }
   return { ...base, ok: true, code: packets.length ? "NEWS-TETHER-STORED" : "NEWS-TETHER-CURRENT", sent: packets.length > 0, packets, azos_tip_seq: after, runtime_tip_seq: total, lag_rows: Math.max(0, total - after) };
+}
+
+/** Push one chain to every bound receiver (AZ-OS, AZInterface). One failure does not stop the other. */
+export async function pushCopies(env, repo, { chain = "aznews", ...opts } = {}) {
+  const targets = opts.targets || copyTargets(env);
+  const key = opts.key || (await tetherKey(env));
+  const out = [];
+  for (const t of targets) {
+    try {
+      out.push(await pushNewsCopy(env, repo, { ...opts, key, chain, target: t.name, origin: t.origin, fetcher: t.fetcher }));
+    } catch (err) {
+      out.push({ chain, target: t.name, ok: false, code: "NEWS-TETHER-ERROR", message: String((err && err.message) || err).slice(0, 160) });
+    }
+  }
+  return { ok: out.length > 0 && out.every((r) => r.ok), chain, targets: out.map((r) => ({ target: r.target, code: r.code, packets: (r.packets || []).length, tip_seq: r.azos_tip_seq, lag_rows: r.lag_rows })) };
 }
