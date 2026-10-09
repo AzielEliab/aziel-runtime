@@ -2732,6 +2732,7 @@ function aznewsOpenApiPaths() {
     "/v1/aznews/verify": op("aznews_verify", "Advance the full checkpointed lattice walk from genesis (bounded: at most 600 rows per step, steps 1-3) and run the join check. dry_run persists nothing.", [q("steps", "1-3", { type: "integer" }), q("limit", "tail window rows, 2-300", { type: "integer" })]),
     "/v1/aznews/sources": op("aznews_sources", "The 50 configured outlets with wiring, last fetch status and rolling liveness."),
     "/v1/aznews/globe": op("aznews_globe", "One combined read for the /aznews globe page."),
+    "/v1/4dmap/pins": { get: { operationId: "fourdmap_store_pins", summary: "Standalone 4DMap pins (4DMAP-STORE-1.0, own SQLite object 4dmap-v1, dual lattice): corpus layer (Aziel Corpus /api/events) and reference layer (GeoNames capitals and cities >= 1M). No AZNews needed.", tags: ["4dmap"], parameters: [{ name: "layers", in: "query", required: false, description: "corpus,reference", schema: { type: "string" } }, { name: "limit", in: "query", required: false, schema: { type: "integer" } }], responses: { "200": { description: "pins, last10, colors, layers, lattice_live" } } } },
     "/aznews": { get: { operationId: "aznews_page", summary: "AZNews + 4DMap globe page (HTML).", tags: ["aznews"], responses: { "200": { description: "text/html" } } } },
   };
 }
@@ -4562,6 +4563,13 @@ async function handleRequest(request, env, ctx) {
       return asHead(request, new Response(aznewsPageHtml(), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "public, max-age=60" } }));
     }
 
+    if ((url.pathname === "/v1/4dmap/pins" || url.pathname === "/v1/4dmap/pins/") && (request.method === "GET" || request.method === "HEAD")) {
+      // 4DMAP-STORE-1.0: standalone 4DMap pins (corpus + reference layers). No AZNews needed.
+      const { mapCall } = await import("./aznews-do.js");
+      const out = await mapCall(env, "map_read", { layers: url.searchParams.get("layers") || url.searchParams.get("layer") || "", limit: url.searchParams.get("limit") || "" });
+      return asHead(request, json(out, out && out.ok === false ? 503 : 200, { "access-control-allow-origin": "*", "cache-control": "no-store" }));
+    }
+
     if ((url.pathname === "/v1/aznews" || url.pathname.startsWith("/v1/aznews/")) && (request.method === "GET" || request.method === "HEAD" || request.method === "OPTIONS")) {
       const cors = { "access-control-allow-origin": "*", "access-control-allow-methods": "GET, HEAD, OPTIONS", "cache-control": "no-store" };
       if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
@@ -4797,11 +4805,21 @@ export default {
         })
         .catch((err) => console.log(JSON.stringify({ aznews: "AZNEWS-TICK-ERROR", error: String((err && err.message) || err).slice(0, 200) })))
         .then(() => {
-          // AZRT-AZOS-NEWS-1.0: after the tick, the object sends its signed rows to AZ-OS's own copy.
-          if (!(env.TETHER_SIGNING_SEED && env.AZOS)) return null;
-          return aznewsCall(env, "tether_push", {}, {}).then((out) => {
-            console.log(JSON.stringify({ aznews_tether: out && out.code, packets: out && out.packets, azos_tip_seq: out && out.azos_tip_seq, lag_rows: out && out.lag_rows }));
+          // Signed copies: after the tick, the AZNews object sends its rows to each receiver's own copy.
+          if (!env.TETHER_SIGNING_SEED) return null;
+          return aznewsCall(env, "tether_push", { chain: "aznews" }, {}).then((out) => {
+            console.log(JSON.stringify({ aznews_tether: out && out.ok, targets: out && out.targets }));
           });
+        })
+        .then(async () => {
+          // 4DMAP-STORE-1.0: the 4DMap pin store (its own object) ticks, then sends its own signed copy.
+          const { mapCall } = await import("./aznews-do.js");
+          const t = await mapCall(env, "map_tick", {});
+          console.log(JSON.stringify({ fourdmap: t && t.spec ? "tick" : "4DMAP-TICK-ERROR", rows: t && t.rows_appended, corpus: t && t.corpus, reference: t && t.reference, error: t && t.ok === false ? t.message : undefined }));
+          if (!env.TETHER_SIGNING_SEED) return null;
+          const p = await mapCall(env, "tether_push", { chain: "4dmap" });
+          console.log(JSON.stringify({ fourdmap_tether: p && p.ok, targets: p && p.targets }));
+          return null;
         })
         .catch((err) => console.log(JSON.stringify({ aznews_tether: "NEWS-TETHER-ERROR", error: String((err && err.message) || err).slice(0, 200) })));
       if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(news);

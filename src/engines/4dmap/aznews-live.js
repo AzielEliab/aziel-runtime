@@ -216,7 +216,7 @@ export function sqlRepo(storage) {
 /* ------------------------------------------------------------- batching */
 
 /** Collects ledger rows for one commit, stamping the dual lattice in order. */
-async function openBatch(repo) {
+export async function openBatch(repo) {
   const tips = (await repo.metaGet("tips")) || { primary: LATTICE_GENESIS, secondary: LATTICE_GENESIS, count: 0 };
   const count = await repo.count();
   const daily = (await repo.metaGet("writes_day")) || { day: utcDay(Date.now()), rows: 0, views: 0 };
