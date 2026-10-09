@@ -39,7 +39,7 @@ export class AzNewsStore {
       const out = await this.serial(async () => {
         const repo = this.repoOf();
         if (op === "tick") return tick(repo, { force: body.force || {} });
-        return read(repo, op, body.payload || {});
+        return read(repo, op, body.payload || {}, { auth: body.auth === true });
       });
       return new Response(JSON.stringify(out), { headers: { "content-type": "application/json" } });
     } catch (err) {

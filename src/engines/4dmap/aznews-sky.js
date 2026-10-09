@@ -17,7 +17,7 @@
  */
 import * as Astronomy from "../../vendor/astronomy-engine/astronomy.js";
 
-export const SKY_SPEC = "AZNEWS-SKY-1.0";
+export const SKY_SPEC = "AZNEWS-SKY-1.1";
 export const SKY_LIBRARY = Object.freeze({ name: "astronomy-engine", version: "2.1.19", license: "MIT", url: "https://github.com/cosinekitty/astronomy" });
 export const MIN_ALTITUDE_DEG = 10;
 
@@ -66,16 +66,45 @@ function signOf(lon) {
   return { sign: SIGNS[idx], degree_in_sign: Number((l - idx * 30).toFixed(3)), ecliptic_longitude_deg: Number(l.toFixed(4)) };
 }
 
-function phaseName(angle) {
-  const a = ((angle % 360) + 360) % 360;
-  if (a < 22.5 || a >= 337.5) return "New Moon";
-  if (a < 67.5) return "Waxing Crescent";
-  if (a < 112.5) return "First Quarter";
-  if (a < 157.5) return "Waxing Gibbous";
-  if (a < 202.5) return "Full Moon";
-  if (a < 247.5) return "Waning Gibbous";
-  if (a < 292.5) return "Last Quarter";
-  return "Waning Crescent";
+const QUARTER_NAMES = ["New Moon", "First Quarter", "Full Moon", "Last Quarter"];
+export const MOON_PHASE_WINDOW_HOURS = 12;
+export const MOON_NAMING_RULE = "A principal phase (New Moon, First Quarter, Full Moon, Last Quarter) is named only within 12 hours of its computed instant. Otherwise the name comes from the illuminated fraction (below 50% crescent, above 50% gibbous) and the trend (waxing while the Sun-Moon elongation angle is below 180 degrees, waning above).";
+
+/** Moon phase by illumination and waxing/waning, with principal phases only near their instants. */
+export function moonPhase(when, phaseAngle, fraction) {
+  const t = when.getTime();
+  let q = Astronomy.SearchMoonQuarter(new Date(t - 9 * 86400000));
+  let nearest = null;
+  const next = {};
+  for (let i = 0; i < 12 && q; i++) {
+    const at = q.time.date.getTime();
+    const d = Math.abs(at - t);
+    if (!nearest || d < nearest.d) nearest = { d, quarter: q.quarter, at };
+    if (at > t && !next[QUARTER_NAMES[q.quarter]]) next[QUARTER_NAMES[q.quarter]] = new Date(at).toISOString();
+    if (at > t + 31 * 86400000) break;
+    q = Astronomy.NextMoonQuarter(q);
+  }
+  const a = ((phaseAngle % 360) + 360) % 360;
+  const waxing = a < 180;
+  let name;
+  let principal = false;
+  if (nearest && nearest.d <= MOON_PHASE_WINDOW_HOURS * 3600000) {
+    name = QUARTER_NAMES[nearest.quarter];
+    principal = true;
+  } else {
+    name = `${waxing ? "Waxing" : "Waning"} ${fraction < 0.5 ? "Crescent" : "Gibbous"}`;
+  }
+  return {
+    phase_name: name,
+    principal_phase: principal,
+    trend: waxing ? "waxing" : "waning",
+    nearest_principal_phase: nearest ? { name: QUARTER_NAMES[nearest.quarter], at: new Date(nearest.at).toISOString(), hours_away: Number(((nearest.at - t) / 3600000).toFixed(2)) } : null,
+    next_new_moon: next["New Moon"] || null,
+    next_first_quarter: next["First Quarter"] || null,
+    next_full_moon: next["Full Moon"] || null,
+    next_last_quarter: next["Last Quarter"] || null,
+    naming_rule: MOON_NAMING_RULE,
+  };
 }
 
 function iso(t) {
@@ -182,8 +211,9 @@ export function skySnapshot(date, anchors = []) {
     },
     moon: {
       phase_angle_deg: Number(phase.toFixed(3)),
-      phase_name: phaseName(phase),
       illuminated_fraction: Number(illum.phase_fraction.toFixed(4)),
+      illuminated_percent: Number((illum.phase_fraction * 100).toFixed(2)),
+      ...moonPhase(when, phase, illum.phase_fraction),
       tropical_sign: moonSign.sign,
       ecliptic_longitude_deg: moonSign.ecliptic_longitude_deg,
       constellation: moonCon.constellation,

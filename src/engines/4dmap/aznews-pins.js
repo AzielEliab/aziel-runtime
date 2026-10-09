@@ -5,7 +5,8 @@
  *
  * Colors (operator palette, 2026-10-09):
  *   RED         news event location
- *   BLUE        news reporting location (dateline or cited origin in the text; outlet HQ only when the text names none)
+ *   BLUE        news reporting location: the dateline in the item text (report_location_source "dateline");
+ *               when the text has no dateline, the outlet HQ, labeled report_location_source "outlet_hq"
  *   PURPLE      Aziel Eliab library (corpus) document event locations
  *   PINK        that library document's origin/report locations as cited IN the document
  *   LIGHT GREEN all other corpus event locations
@@ -41,7 +42,7 @@ export const WHITE_RULE = Object.freeze({ min_shared: 2, max_km: 500, max_years:
 
 export const PIN_COLORS = Object.freeze({
   "news-event": { color: "red", hex: "#e53935", label: "News event location" },
-  "news-report": { color: "blue", hex: "#1e88e5", label: "News reporting location (dateline or cited origin)" },
+  "news-report": { color: "blue", hex: "#1e88e5", label: "News reporting location: the dateline in the item text; outlet HQ only when the text has none (labeled report_location_source: outlet_hq)" },
   "library-aziel-event": { color: "purple", hex: "#8e24aa", label: "Aziel Eliab library document event location" },
   "library-aziel-report": { color: "pink", hex: "#f06292", label: "That library document's origin/report location as cited in the document" },
   "corpus-event": { color: "lightgreen", hex: "#9ccc65", label: "Other corpus event location" },

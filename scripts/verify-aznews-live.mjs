@@ -5,7 +5,7 @@
  * Uses fixture feeds through an injected fetch. No network.
  */
 import assert from "node:assert/strict";
-import { memoryRepo, tick, read, mintViews, CACHE_KEEP } from "../src/engines/4dmap/aznews-live.js";
+import { memoryRepo, tick, read, mintViews, walkStep, joinCheck, viewerHash, CACHE_KEEP, OUTLETS_LIVE_WINDOW_MS } from "../src/engines/4dmap/aznews-live.js";
 import { colorFor, corpusPinType, inEra, matchPins, withinYears, PIN_COLORS } from "../src/engines/4dmap/aznews-pins.js";
 import { skySnapshot } from "../src/engines/4dmap/aznews-sky.js";
 import { eventLocation, reportedLocation } from "../src/engines/4dmap/aznews-geo.js";
@@ -133,8 +133,10 @@ console.log("ok two pins per report with type and color");
   const offRow = ledger.find((r) => r.seq === off[0].view_receipt_seq);
   assert.equal(offRow.lattice.secondary, await latticeOfflineSecondary(offRow.lattice.document_hash, "azbot"));
   const v = await read(repo, "verify", { limit: 300 }, { now: NOW });
-  assert.equal(v.ok, true, JSON.stringify(v.breaks));
-  assert.equal(v.document_hash_misses, 0);
+  assert.equal(v.ok, true, JSON.stringify(v.full_walk.breaks));
+  assert.equal(v.full_walk.document_hash_misses, 0);
+  assert.equal(v.full_walk.from_genesis, true);
+  assert.equal(v.full_walk.verified_through, await repo.count(), "verify walks to the tip");
   console.log("ok pull and view receipts minted, linked, and on both lattices");
 }
 
@@ -259,5 +261,169 @@ console.log("ok two pins per report with type and color");
   assert.equal(st.merged, true);
   assert.equal(st.kv_writes, false);
   console.log("ok flags true only after stored data; weather severe flags");
+}
+
+// --- AZBot 2026-10-09 fixes ---------------------------------------------------
+
+// 1. joined/merged from real pin <-> item links; news_pin / news_open use the store
+{
+  const st = await read(repo, "status", {}, { now: NOW });
+  assert.equal(st.join_check.sample > 0, true);
+  assert.equal(st.join_check.linked, st.join_check.sample);
+  assert.equal(st.joined, true);
+  assert.equal(st.merged, true);
+  const n = ledger.filter((r) => r.kind === "news").at(-1);
+  const viaPin = await read(repo, "news_pin", { item_id: n.doc.item_id }, { now: NOW });
+  assert.equal(viaPin.ok, true);
+  assert.deepEqual(viaPin.pins.map((p) => p.role).sort(), ["event", "report"]);
+  for (const p of viaPin.pins) {
+    const back = await read(repo, "news_open", { pin_id: p.pin_id }, { now: NOW });
+    assert.equal(back.ok, true);
+    assert.equal(back.linked, true);
+    assert.equal(back.item.item_id, n.doc.item_id, "pin -> item round trip");
+  }
+  const byUrl = await read(repo, "news_pin", { url: n.doc.canonical_url + "?utm_source=y" }, { now: NOW });
+  assert.equal(byUrl.item.item_id, n.doc.item_id, "item found by canonical url");
+  const none = await read(repo, "news_pin", { item_id: "n-doesnotexist" }, { now: NOW });
+  assert.equal(none.code, "AZNEWS-NO-MATCH");
+  assert.notEqual(none.code, "AZNEWS-SOURCE-ABSENT");
+  // A broken link fails the join: tamper a pin in a copy of the store.
+  const r2 = memoryRepo();
+  await tick(r2, { fetchImpl: fakeFetch(2), now: NOW });
+  assert.equal((await read(r2, "status", {}, { now: NOW })).joined, true);
+  const victim = r2._ledger.filter((r) => r.kind === "pin" && r.doc.report_kind === "news").at(-1);
+  victim.doc.report_seq = 1;
+  const j = await joinCheck(r2, { now: NOW, verifiedThrough: await r2.count() });
+  assert.equal(j.joined, false);
+  assert.equal(j.merged, false);
+  const st2 = await read(r2, "status", {}, { now: NOW });
+  assert.equal(st2.joined, false);
+  assert.equal(st2.merged, false);
+  assert.match(st2.joined_reason, /Join check failed/);
+  console.log("ok joined/merged come from real pin<->item links; news_pin/news_open read the store");
+}
+
+// 3. lattice_live = full checkpointed walk from genesis, bounded per step; a break is caught
+{
+  const r3 = memoryRepo();
+  await tick(r3, { fetchImpl: fakeFetch(4), now: NOW });
+  const total = await r3.count();
+  assert.ok(total > 60);
+  await r3.commit({ meta: { walk: null } });
+  let w = await walkStep(r3, { now: NOW, maxRows: 25 });
+  assert.equal(w.verified_through, 25, "one bounded step");
+  assert.equal(w.walked_this_step, 25);
+  let st = await read(r3, "status", {}, { now: NOW });
+  assert.equal(st.lattice_live, false, "not live before the walk reaches the tip");
+  assert.equal(st.live, false);
+  while (w.lag_rows > 0) w = await walkStep(r3, { now: NOW, maxRows: 25 });
+  assert.equal(w.verified_through, total);
+  assert.equal(w.breaks.length, 0);
+  st = await read(r3, "status", {}, { now: NOW });
+  assert.equal(st.lattice_live, true);
+  assert.equal(st.lattice_walk.from_genesis, true);
+  // tamper a row the walk has not reached yet
+  await r3.commit({ meta: { walk: null } });
+  r3._ledger[40].doc.title = "tampered";
+  w = await walkStep(r3, { now: NOW, maxRows: 1000 });
+  assert.equal(w.breaks.length, 1);
+  assert.equal(w.breaks[0].reason, "document-hash-mismatch");
+  st = await read(r3, "status", {}, { now: NOW });
+  assert.equal(st.lattice_live, false);
+  assert.equal(st.live, false);
+  assert.equal(st.merged, false);
+  const later = await walkStep(r3, { now: NOW + 60000 });
+  assert.equal(later.verified_through, w.verified_through, "a break is permanent; the walk stops");
+  console.log("ok lattice_live is a full checkpointed walk from genesis; tamper breaks it");
+}
+
+// 4. outlets_live is rolling with a window and timestamp
+{
+  const st = await read(repo, "status", {}, { now: NOW });
+  assert.equal(st.outlets_live_window.kind, "rolling");
+  assert.equal(st.outlets_live_window.minutes, 60);
+  assert.equal(st.outlets_live_window.as_of, new Date(NOW).toISOString());
+  const stale = await read(repo, "status", {}, { now: NOW + OUTLETS_LIVE_WINDOW_MS + 5 * 60000 });
+  assert.equal(stale.outlets_live, 0, "outlets drop out of the rolling window");
+  console.log("ok outlets_live is a rolling 60-minute count with as_of");
+}
+
+// 5. dry_run mints no receipts
+{
+  const before = ledger.filter((r) => r.kind === "view_receipt").length;
+  const later = NOW + 5 * 3600000;
+  for (const op of ["feed", "weather", "sky", "globe", "news_pin"]) {
+    const out = await read(repo, op, { dry_run: true }, { now: later });
+    assert.equal(out.ok, true, op);
+  }
+  const it = await read(repo, "feed", { dry_run: "1", limit: 3 }, { now: later });
+  assert.equal(it.view_receipts.every((v) => v.dry_run === true && v.minted === false), true);
+  const walkBefore = await repo.metaGet("walk");
+  await read(repo, "verify", { dry_run: true }, { now: later });
+  assert.deepEqual(await repo.metaGet("walk"), walkBefore, "dry_run verify persists nothing");
+  assert.equal(ledger.filter((r) => r.kind === "view_receipt").length, before);
+  console.log("ok dry_run on news reads mints no receipts");
+}
+
+// 6. offline/username gate
+{
+  const rows = ledger.length;
+  const refused = await read(repo, "feed", { offline: true, username: "Mallory Chosen Name" }, { now: NOW });
+  assert.equal(refused.code, "AZNEWS-OFFLINE-AUTH-REQUIRED");
+  const refused2 = await read(repo, "feed", { username: "Mallory Chosen Name" }, { now: NOW });
+  assert.equal(refused2.code, "AZNEWS-OFFLINE-AUTH-REQUIRED");
+  assert.equal(ledger.length, rows, "nothing written");
+  const later = NOW + 7 * 3600000;
+  const ok = await read(repo, "item", { item_id: ledger.find((r) => r.kind === "news").doc.item_id, offline: true, username: "Operator Name" }, { now: later, auth: true });
+  assert.equal(ok.view_receipts[0].minted, true);
+  const row = ledger.find((r) => r.seq === ok.view_receipts[0].view_receipt_seq);
+  const vh = await viewerHash("Operator Name");
+  assert.equal(row.doc.viewer, vh);
+  assert.match(vh, /^vh-[0-9a-f]{32}$/);
+  assert.equal(row.lattice.secondary, await latticeOfflineSecondary(row.lattice.document_hash, vh));
+  assert.equal(JSON.stringify(ledger).includes("Operator Name"), false, "the chosen name never reaches the ledger");
+  assert.equal(JSON.stringify(ledger).includes("Mallory"), false);
+  console.log("ok offline views need auth; names are hashed and namespaced");
+}
+
+// 7. blue pins: dateline from the text, outlet HQ labeled outlet_hq
+{
+  const hq = { hq_city: "London", hq_lat: 51.5, hq_lon: -0.12, country: "GB" };
+  for (const [text, name] of [["LONDON, Oct 9 (Reuters) - Shares fell.", "London"], ["NEW DELHI: The ministry said.", "New Delhi"], ["Mumbai, October 9: Markets rose.", "Mumbai"], ["WASHINGTON — The Senate voted.", "Washington"]]) {
+    const r = reportedLocation({ text, outlet: { ...hq, hq_city: "Nowhere", hq_lat: 0, hq_lon: 0 } });
+    assert.equal(r.reported_location.report_location_source, "dateline", text);
+    assert.equal(r.reported_location.name, name);
+  }
+  for (const text of ["Video: Congress leaders clash.", "Watch: crowds gather.", "Markets were calm."]) {
+    const r = reportedLocation({ text, outlet: hq });
+    assert.equal(r.reported_location.report_location_source, "outlet_hq", text);
+  }
+  const reportPins = ledger.filter((r) => r.kind === "pin" && r.doc.role === "report" && r.doc.report_kind === "news");
+  assert.ok(reportPins.every((p) => ["dateline", "outlet_hq"].includes(p.doc.report_location_source)));
+  const p = await read(repo, "pin", { pin_id: `pin-${reportPins[0].seq}` }, { now: NOW });
+  assert.equal(p.pin.report_location_source, "dateline");
+  assert.match(colorFor("news-report").label, /dateline/);
+  assert.match(colorFor("news-report").label, /outlet_hq/);
+  console.log("ok blue pins: dateline from the item text; outlet HQ only as labeled outlet_hq");
+}
+
+// 8. moon phase by illumination and waxing/waning, against known dates
+{
+  const cases = [
+    ["2026-10-09T06:00:00Z", "Waning Crescent"],
+    ["2026-10-10T15:00:00Z", "New Moon"],
+    ["2024-04-08T18:21:00Z", "New Moon"],
+    ["2024-09-18T02:35:00Z", "Full Moon"],
+    ["2024-01-18T04:00:00Z", "First Quarter"],
+    ["2024-02-02T23:00:00Z", "Last Quarter"],
+    ["2024-04-12T00:00:00Z", "Waxing Crescent"],
+    ["2024-09-22T00:00:00Z", "Waning Gibbous"],
+  ];
+  for (const [d, name] of cases) assert.equal(skySnapshot(new Date(d)).moon.phase_name, name, d);
+  const m = skySnapshot(new Date("2026-10-09T06:00:00Z")).moon;
+  assert.equal(m.trend, "waning");
+  assert.ok(m.illuminated_percent > 2 && m.illuminated_percent < 2.5, String(m.illuminated_percent));
+  assert.equal(m.next_new_moon.slice(0, 10), "2026-10-10");
+  console.log("ok moon phase named by illumination and trend; principal phases within 12 h");
 }
 console.log("ok aznews-live");

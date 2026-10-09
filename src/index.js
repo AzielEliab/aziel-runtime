@@ -1124,8 +1124,8 @@ const PRODUCTS_RAW = [
       { op: "lattice_tip", method: "POST", summary: "List append-only lattice tips." },
       { op: "poison_refuse", method: "POST", summary: "Append a refuse-set card. Feature hash only." },
       { op: "news_status", method: "POST", summary: "Read AZNews live status from the AzNewsStore Durable Object: outlets live of configured, stored news / weather / sky counts, full-text coverage, pins, receipts. Flags turn true only from stored data." },
-      { op: "news_pin", method: "POST", summary: "Land a news item as a 4DMap pin (date, event, and place). Refuses AZNEWS-SOURCE-ABSENT when no item was fetched or supplied." },
-      { op: "news_open", method: "POST", summary: "Open the news item that matches a 4DMap pin. Refuses AZNEWS-SOURCE-ABSENT when no item is stored." },
+      { op: "news_pin", method: "POST", summary: "Item -> pins from the AzNewsStore (item_id, url, or newest). Pins are minted at pull time. Refuses AZNEWS-NO-MATCH when the store has no such item; payload.fetch/real keeps the legacy supplied-item path." },
+      { op: "news_open", method: "POST", summary: "Pin -> item from the AzNewsStore (pin_id, or the newest pin), with the pin<->item link check. Refuses AZNEWS-NO-MATCH when the pin is not stored." },
       { op: "news_ingest", method: "POST", summary: "Standalone AZNews store. Wording, image hash, and score go on both hash chains. Does not pin the map." },
       { op: "news_sources", method: "POST", summary: "Press Gazette English-language top 50. Configured outlets stay not live until a fetch stores an item." },
       { op: "news_weather", method: "POST", summary: "Open-Meteo observations by UN M49 region. A missing observation is a gap. Weather is not live globally unless every region was fetched." },
@@ -2704,9 +2704,42 @@ function escapeHtml(s) {
     .replace(/"/g, "&quot;");
 }
 
+/** OpenAPI paths for the AZNews live store (AzNewsStore, Durable Object SQLite). */
+function aznewsOpenApiPaths() {
+  const q = (name, description, schema = { type: "string" }) => ({ name, in: "query", required: false, description, schema });
+  const common = [
+    q("via", "Surface label recorded on view receipts."),
+    q("dry_run", "true/1: serve the read and mint no view receipt."),
+    q("offline", "true: offline view receipt. Requires the runtime token header; refuses AZNEWS-OFFLINE-AUTH-REQUIRED (401) otherwise."),
+    q("username", "Offline viewer name (token only). Stored only as vh-<sha256> (namespaced); the name is never written."),
+  ];
+  const op = (id, summary, extra = []) => ({
+    get: { operationId: id, summary, tags: ["aznews"], parameters: [...extra, ...common], responses: { "200": { description: "JSON" }, "401": { description: "offline/username without the runtime token" }, "503": { description: "AZNEWS store not bound" } } },
+  });
+  const pathParam = (name) => ({ name, in: "path", required: true, schema: { type: "string" } });
+  return {
+    "/v1/aznews": op("aznews_status", "AZNews status: rolling outlets_live (60-minute window with as_of), live, joined/merged from the pin<->item join check (AZNEWS-JOIN-1.0), lattice_live from the full checkpointed walk (AZNEWS-WALK-1.0), weather_live, sky_live."),
+    "/v1/aznews/status": op("aznews_status_alias", "Same as GET /v1/aznews."),
+    "/v1/aznews/feed": op("aznews_feed", "Newest stored real headlines (title, outlet, link, published, wording, full_text, image sha256, triad score, reported and event location).", [q("limit", "1-50", { type: "integer" }), q("outlet", "Outlet id filter.")]),
+    "/v1/aznews/item/{item_id}": { get: { ...op("aznews_item", "One stored item with its pins and pull receipt.").get, parameters: [pathParam("item_id"), ...common] } },
+    "/v1/aznews/link": op("aznews_news_pin", "4DMap joined path item -> pins (FragGate 4dmap news_pin). Pins are minted at pull time; nothing is invented.", [q("item_id", "n-... id"), q("url", "Article URL (canonicalized).")]),
+    "/v1/aznews/open/{pin_id}": { get: { ...op("aznews_news_open", "4DMap joined path pin -> item (FragGate 4dmap news_open), with the link check.").get, parameters: [pathParam("pin_id"), ...common] } },
+    "/v1/aznews/pins": op("aznews_pins", "Colored pins (newest 200), last10 with ?pin= permalinks, color key, AZNEWS-MATCH-1.0 rule.", [q("type", "pin_type filter"), q("era", "Year; pins within ±3 years of the event date.", { type: "integer" })]),
+    "/v1/aznews/pin/{pin_id}": { get: { ...op("aznews_pin", "One pin with its report (FragGate 4dmap news_pin_open).").get, parameters: [pathParam("pin_id"), ...common] } },
+    "/v1/aznews/weather": op("aznews_weather", "Open-Meteo current conditions for 30 anchors (every continent and ocean) with severe flags and attribution."),
+    "/v1/aznews/sky": op("aznews_sky", "Computed sky: tropical sign and IAU constellation, moon phase by illumination and trend, seasons per hemisphere, visible constellations."),
+    "/v1/aznews/receipts": op("aznews_receipts", "Newest pull and view receipts.", [q("limit", "1-50", { type: "integer" })]),
+    "/v1/aznews/verify": op("aznews_verify", "Advance the full checkpointed lattice walk from genesis (bounded: at most 600 rows per step, steps 1-3) and run the join check. dry_run persists nothing.", [q("steps", "1-3", { type: "integer" }), q("limit", "tail window rows, 2-300", { type: "integer" })]),
+    "/v1/aznews/sources": op("aznews_sources", "The 50 configured outlets with wiring, last fetch status and rolling liveness."),
+    "/v1/aznews/globe": op("aznews_globe", "One combined read for the /aznews globe page."),
+    "/aznews": { get: { operationId: "aznews_page", summary: "AZNews + 4DMap globe page (HTML).", tags: ["aznews"], responses: { "200": { description: "text/html" } } } },
+  };
+}
+
 function staticPaths(origin, env = {}) {
   const paths = {
     ...runtimeStaticPaths(),
+    ...aznewsOpenApiPaths(),
     "/v1/health": {
       get: {
         operationId: "catalog_health",
@@ -4534,16 +4567,31 @@ async function handleRequest(request, env, ctx) {
       if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
       const { aznewsCall } = await import("./aznews-do.js");
       const parts = url.pathname.split("/").filter(Boolean).slice(2);
-      const ops = { "": "status", status: "status", feed: "feed", weather: "weather", sky: "sky", pins: "pins", pin: "pin", item: "item", receipts: "receipts", verify: "verify", sources: "sources", globe: "globe" };
+      const ops = { "": "status", status: "status", feed: "feed", weather: "weather", sky: "sky", pins: "pins", pin: "pin", item: "item", receipts: "receipts", verify: "verify", sources: "sources", globe: "globe", link: "news_pin", open: "news_open" };
       const op = ops[parts[0] || ""];
-      if (!op) return json({ ok: false, error: "not found", hint: "GET /v1/aznews/{status,feed,weather,sky,pins,pin/<id>,item/<id>,receipts,verify,sources,globe}" }, 404, cors);
+      if (!op) return json({ ok: false, error: "not found", hint: "GET /v1/aznews/{status,feed,weather,sky,pins,pin/<id>,item/<id>,link?item_id=|url=,open/<pin_id>,receipts,verify,sources,globe}" }, 404, cors);
       const payload = {};
-      for (const k of ["limit", "outlet", "type", "era", "offline", "username"]) if (url.searchParams.has(k)) payload[k] = url.searchParams.get(k);
-      payload.offline = payload.offline === "true";
-      if (parts[1]) payload[op === "pin" ? "pin_id" : "item_id"] = decodeURIComponent(parts[1]);
+      for (const k of ["limit", "outlet", "type", "era", "offline", "username", "dry_run", "steps", "item_id", "url", "pin_id"]) if (url.searchParams.has(k)) payload[k] = url.searchParams.get(k);
+      if (parts[1]) payload[op === "pin" || op === "news_open" ? "pin_id" : "item_id"] = decodeURIComponent(parts[1]);
       payload.via = String(url.searchParams.get("via") || "http:" + url.pathname).slice(0, 40);
-      const out = await aznewsCall(env, op, payload);
-      return asHead(request, json({ ...out, door: "runtime", fraggate_ops: "slug 4dmap: news_status news_feed news_item news_weather news_sky news_pins news_pin_open news_receipts news_verify news_sources news_globe", page: "/aznews" }, out && out.ok === false && out.code === "AZNEWS-STORE-UNBOUND" ? 503 : 200, cors));
+      // Offline view receipts are token-only; anonymous callers never write a chosen name.
+      const wantsOffline = payload.offline === "true" || payload.offline === "1" || (payload.username != null && payload.username !== "");
+      let authed = false;
+      if (wantsOffline) {
+        const { extractRuntimeToken, tokenSecret, timingSafeEqualString, tokenPresentedInQuery } = await import("./production.js");
+        const secret = tokenSecret(env);
+        const presented = tokenPresentedInQuery(request) ? null : extractRuntimeToken(request);
+        authed = Boolean(secret && presented && timingSafeEqualString(presented, secret));
+        if (!authed) {
+          return asHead(request, json({ ok: false, refused: true, code: "AZNEWS-OFFLINE-AUTH-REQUIRED", message: "Offline view receipts need the runtime token in a header (Authorization: Bearer or X-Aziel-Runtime-Token). Nothing was written and no name was stored.", door: "runtime" }, 401, cors));
+        }
+        payload.offline = true;
+      } else {
+        delete payload.offline;
+        delete payload.username;
+      }
+      const out = await aznewsCall(env, op, payload, authed ? { auth: true } : {});
+      return asHead(request, json({ ...out, door: "runtime", fraggate_ops: "slug 4dmap: news_status news_feed news_item news_weather news_sky news_pins news_pin news_open news_pin_open news_receipts news_verify news_sources news_globe", page: "/aznews" }, out && out.ok === false && out.code === "AZNEWS-STORE-UNBOUND" ? 503 : 200, cors));
     }
 
     if (url.pathname === "/v1/tether" && (request.method === "GET" || request.method === "HEAD")) {
