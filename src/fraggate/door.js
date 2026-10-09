@@ -507,6 +507,11 @@ async function fraggateCallBody(args, registry, bySlug, env, request, attempt) {
     };
   }
   const resolved = resolveOpAlias(target.entry.slug, target.op);
+  // AZNews reads honor a top-level dry_run: the flag rides into the payload so no receipt is minted.
+  if (target.entry.slug === "4dmap" && /^news_/.test(String(resolved.op)) && payload && typeof payload === "object" && !Array.isArray(payload)) {
+    const dry = src.dry_run;
+    if (dry === true || dry === 1 || dry === "1" || dry === "true") payload = { ...payload, dry_run: true };
+  }
   if (target.entry.slug === MEMORY_SLUG) {
     const result = await runMemoryOp(resolved.op, payload, env, request);
     const accepted = await accept({

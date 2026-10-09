@@ -179,17 +179,51 @@ export function eventLocation({ title, text, outletName } = {}) {
   };
 }
 
-const DATELINE_RE = /^\s*([A-Z][A-Za-z.'\- ]{1,40}?)(?:,\s*([A-Z][A-Za-z.' ]{1,30}?))?\s*(?:\([^)]{1,40}\))?\s*[\u2014\u2013-]{1,2}\s+\S/;
+const MONTHS = "(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|June?|July?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\.?";
+/**
+ * Datelines (AZNEWS-GEO-1.0), read from the item text, never the title:
+ *   "TOKYO (AP) — ...", "LONDON, Oct 9 (Reuters) - ...", "Kyiv, Ukraine — ...",
+ *   "NEW DELHI: ...", "Mumbai, October 9: ...", "WASHINGTON — ..."
+ * The candidate must resolve to one gazetteer place, so "Video: ..." or "Watch: ..." never count.
+ */
+const DATELINE_RE = new RegExp(
+  "^\\s*(?:\\(?[A-Z][A-Za-z]+\\)?\\s+)?" +
+    "([A-Z][A-Za-z.'\\- ]{1,40}?)" +
+    "(?:,\\s*([A-Z][A-Za-z.' ]{1,30}?))?" +
+    "(?:,?\\s+" + MONTHS + "\\s+\\d{1,2}(?:,\\s*\\d{4})?)?" +
+    "\\s*(?:\\([^)]{1,40}\\))?" +
+    "\\s*(?:[\\u2014\\u2013-]{1,2}|:)\\s+\\S",
+);
+const DATELINE_RE_STRICT = new RegExp(
+  "^\\s*([A-Z][A-Za-z.'\\- ]{1,40}?)" +
+    "(?:,\\s*([A-Z][A-Za-z.' ]{1,30}?))?" +
+    "(?:,?\\s+" + MONTHS + "\\s+\\d{1,2}(?:,\\s*\\d{4})?)?" +
+    "\\s*(?:\\([^)]{1,40}\\))?" +
+    "\\s*(?:[\\u2014\\u2013-]{1,2}|:)\\s+\\S",
+);
 
-/** Reported location: dateline when present and resolvable, otherwise outlet HQ. */
-export function reportedLocation({ text, outlet } = {}) {
-  const m = DATELINE_RE.exec(String(text || ""));
-  if (m) {
-    const raw = m[1].trim();
-    const city = raw === raw.toUpperCase() ? raw.toLowerCase().replace(/\b\p{L}/gu, (c) => c.toUpperCase()) : raw;
-    const hits = placeMentions(`${city}${m[2] ? `, ${m[2]}` : ""}`);
-    const hit = resolveHits(hits, "dateline");
-    if (hit) return { reported_location: { ...hit, dateline: m[0].slice(0, -1).trim().slice(0, 80) }, reason: null };
+function datelineOf(text) {
+  const t = String(text || "").replace(/^\s+/, "");
+  const m = DATELINE_RE_STRICT.exec(t) || DATELINE_RE.exec(t);
+  if (!m) return null;
+  const raw = m[1].trim();
+  if (raw.split(/\s+/).length > 4) return null;
+  const city = raw === raw.toUpperCase() ? raw.toLowerCase().replace(/\b\p{L}/gu, (c) => c.toUpperCase()) : raw;
+  const hits = placeMentions(`${city}${m[2] ? `, ${m[2]}` : ""}`);
+  const hit = resolveHits(hits, "dateline");
+  if (!hit) return null;
+  return { ...hit, dateline: m[0].slice(0, -1).trim().slice(0, 80) };
+}
+
+/**
+ * Reported location: the dateline in the item text (summary, then full text).
+ * Only when the text has no resolvable dateline: the outlet HQ, labeled
+ * report_location_source "outlet_hq" so it is never read as a dateline.
+ */
+export function reportedLocation({ text, fullText, outlet } = {}) {
+  for (const body of [text, fullText]) {
+    const hit = datelineOf(body);
+    if (hit) return { reported_location: { ...hit, report_location_source: "dateline" }, reason: null };
   }
   if (outlet && Number.isFinite(outlet.hq_lat) && Number.isFinite(outlet.hq_lon)) {
     return {
@@ -201,12 +235,13 @@ export function reportedLocation({ text, outlet } = {}) {
         lon: outlet.hq_lon,
         precision: "outlet-hq",
         source: "outlet-config",
+        report_location_source: "outlet_hq",
         geoparser: GEO_SPEC,
       },
-      reason: "No resolvable dateline. The outlet headquarters from the outlet config is the reported location.",
+      reason: "The item text has no resolvable dateline. The outlet headquarters from the outlet config is used and labeled report_location_source: outlet_hq.",
     };
   }
-  return { reported_location: null, reason: "No dateline and no outlet headquarters on record." };
+  return { reported_location: null, reason: "No dateline in the item text and no outlet headquarters on record." };
 }
 
 export { GAZETTEER_SOURCE };

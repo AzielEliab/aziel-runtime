@@ -116,6 +116,9 @@ const LIVE_READS = {
   news_receipts: "receipts",
   news_verify: "verify",
   news_globe: "globe",
+  // 4DMap's own joined path, wired to the AzNewsStore (item -> pins, pin -> item).
+  news_pin: "news_pin",
+  news_open: "news_open",
 };
 
 const LATTICE_OPS = new Set([
@@ -187,7 +190,8 @@ async function runLiveRead(op, payload, env) {
 
 export async function runFourdmap(op, payload, _scratch, env) {
   if (op === "health") return fourdmapHealth();
-  if (LIVE_READS[op] && env && env.AZNEWS && !(payload && (payload.fixture === true || payload.observation))) {
+  const legacyJoin = (op === "news_pin" || op === "news_open") && payload && (payload.fetch === true || payload.real === true);
+  if (LIVE_READS[op] && env && env.AZNEWS && !legacyJoin && !(payload && (payload.fixture === true || payload.observation))) {
     if (op === "news_sources" && payload && payload.fetch === true) {
       // fall through to the legacy single-outlet probe
     } else {

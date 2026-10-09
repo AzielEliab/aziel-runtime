@@ -25,7 +25,7 @@ import { assembleTriadDecision } from "../../memory/triad.js";
 import { score as evidenceScore } from "../../memory/providers/generic-evidence.js";
 import { USE_CASES } from "../../memory/calibration-manifest.js";
 import { OUTLETS, OUTLETS_SPEC, outletConfigById, wiredOutlets } from "./aznews-outlets.js";
-import { FEED_SPEC, parseDate, parseFeed } from "./aznews-feed.js";
+import { FEED_SPEC, canonicalUrl, parseDate, parseFeed } from "./aznews-feed.js";
 import { eventLocation, reportedLocation, GEO_SPEC, GAZETTEER_SOURCE } from "./aznews-geo.js";
 import { OPEN_METEO, WEATHER_ANCHORS, WEATHER_SPEC, parseWeatherBatch, weatherBatchUrl } from "./aznews-weather.js";
 import { SKY_SPEC, skySnapshot } from "./aznews-sky.js";
@@ -45,6 +45,24 @@ export const AZNEWS_DAILY_WRITE_BUDGET = 40000;
 export const VIEW_RECEIPTS_PER_DAY = 3000;
 export const READ_LIMIT = 50;
 export const FRESH_MS = 3 * 3600000;
+export const OUTLETS_LIVE_WINDOW_MS = 60 * 60000;
+export const WALK_SPEC = "AZNEWS-WALK-1.0";
+export const JOIN_SPEC = "AZNEWS-JOIN-1.0";
+export const WALK_ROWS_PER_STEP = 600;
+export const JOIN_SAMPLE = 20;
+export const CHECK_FRESH_MS = 15 * 60000;
+export const OFFLINE_VIEW_RULE = "Offline view receipts (offline secondary = H(document hash + viewer)) are accepted only on the token-authenticated GET /v1/aznews/* route (Authorization: Bearer or X-Aziel-Runtime-Token). The viewer name is never stored: it is replaced by vh-<sha256(\"aznews-viewer-v1:\" + name)[0..32]>. Anonymous or FragGate calls with offline/username refuse AZNEWS-OFFLINE-AUTH-REQUIRED and nothing is written.";
+
+/** Namespaced, hashed viewer id for offline view receipts. The chosen name never reaches the ledger. */
+export async function viewerHash(name) {
+  const clean = String(name == null ? "" : name).trim();
+  if (!clean) return null;
+  return "vh-" + (await sha256Hex("aznews-viewer-v1:" + clean)).slice(0, 32);
+}
+
+function truthy(v) {
+  return v === true || v === 1 || v === "1" || v === "true";
+}
 export const BLACK_SWAN_RULE = Object.freeze({
   spec: "AZNEWS-BLACKSWAN-1.0",
   min_outlets: 5,
@@ -328,6 +346,7 @@ async function addPins(batch, { report, receipt, reportKind, title, date, dateRe
     color_hex: colorFor(reportType).hex,
     geo: reportGeo || null,
     geo_reason: reportGeo ? null : reportReason || "No reported location.",
+    report_location_source: reportGeo ? reportLocationSource({ geo: reportGeo }) : null,
   });
   const event = await batch.add("pin", {
     ...base,
@@ -340,6 +359,17 @@ async function addPins(batch, { report, receipt, reportKind, title, date, dateRe
     geo_reason: eventGeo ? null : eventReason || "No event location.",
   });
   return { reported, event };
+}
+
+/** Where a report pin's place came from. Legacy rows are read from geo.precision. */
+export function reportLocationSource(d) {
+  if (d.report_location_source) return d.report_location_source;
+  const g = d.geo || {};
+  if (g.precision === "outlet-hq" || g.kind === "outlet-hq") return "outlet_hq";
+  if (g.precision === "observation-anchor") return "observation_anchor";
+  if (g.precision === "computation-reference") return "computation_reference";
+  if (d.geo == null) return null;
+  return "dateline";
 }
 
 function pinId(seq) {
@@ -657,9 +687,10 @@ export async function tick(repo, { fetchImpl = typeof fetch === "function" ? fet
       state.last_weather_error = { at: new Date(now).toISOString(), reason: report.weather.reason };
     }
   }
-  if (force.sky || now - (state.last_sky_ms || 0) >= SKY_EVERY_MS) {
+  if (force.sky || state.last_sky_spec !== SKY_SPEC || now - (state.last_sky_ms || 0) >= SKY_EVERY_MS) {
     report.sky = await ingestSky(batch, now);
     state.last_sky_ms = now;
+    state.last_sky_spec = SKY_SPEC;
     state.last_sky_seq = report.sky.seq;
   }
   // Index of the newest news reports and pins (bounded reads; ledger is never scanned).
@@ -689,6 +720,11 @@ export async function tick(repo, { fetchImpl = typeof fetch === "function" ? fet
   report.rows_appended = batch.rows.length;
   report.writes = committed.writes;
   report.cache_trimmed = await repo.cacheTrim(CACHE_KEEP);
+  // Full checkpointed lattice walk, then the pin <-> item join check (both bounded).
+  const w = await walkStep(repo, { now });
+  report.walk = { verified_through: w.verified_through, tip: w.tip, lag_rows: w.lag_rows, breaks: w.breaks.length };
+  const j = await joinCheck(repo, { now, verifiedThrough: w.verified_through });
+  report.join = { joined: j.joined, merged: j.merged, linked: j.linked, sample: j.sample };
   return report;
 }
 
@@ -735,6 +771,7 @@ export function pinView(row) {
     era: d.era,
     geo: d.geo,
     geo_reason: d.geo_reason || null,
+    report_location_source: d.role === "report" ? reportLocationSource(d) : null,
     report_seq: d.report_seq || null,
     report_kind: d.report_kind || null,
     pull_receipt_seq: d.pull_receipt_seq || null,
@@ -747,7 +784,8 @@ export function pinView(row) {
 }
 
 /** Mint view receipts (one per item per UTC hour; daily cap) for rows that were looked at. */
-export async function mintViews(repo, reportSeqs, { via = "fraggate", offline = false, username = null, now = Date.now() } = {}) {
+export async function mintViews(repo, reportSeqs, { via = "fraggate", offline = false, username = null, now = Date.now(), dry = false } = {}) {
+  if (dry) return [...new Set(reportSeqs)].slice(0, 50).map((seq) => ({ report_seq: seq, view_receipt_seq: null, minted: false, dry_run: true, reason: "dry_run: the read was served and no receipt was minted" }));
   const batch = await openBatch(repo);
   const hour = new Date(now).toISOString().slice(0, 13);
   const out = [];
@@ -780,6 +818,7 @@ export async function mintViews(repo, reportSeqs, { via = "fraggate", offline = 
           viewed_at: new Date(now).toISOString(),
           via,
           viewer: offline ? username : null,
+          viewer_basis: offline ? "vh = sha256(\"aznews-viewer-v1:\" + name)[0..32]; the name is not stored" : null,
         },
         { offline, username },
       );
@@ -806,6 +845,154 @@ async function latestRows(repo, idxName, limit, cap = READ_LIMIT) {
   return rows.filter(Boolean);
 }
 
+/* ------------------------------------------------- full lattice walk */
+
+/**
+ * AZNEWS-WALK-1.0: a checkpointed walk of the whole ledger from genesis (seq 1).
+ * Each step reads at most WALK_ROWS_PER_STEP rows after the checkpoint, checks the
+ * sequence is contiguous, checks both lattice links (primary and secondary prev
+ * pointers and recomputed hashes, AZRT-DUAL-LATTICE-1.0), recomputes every document
+ * hash, and only then moves the checkpoint (seq + both expected tips). When the
+ * checkpoint reaches the ledger tip, the tip must equal the stored tips. Any break
+ * is kept forever and stops the walk. Runs after every cron tick and on news_verify.
+ */
+export async function walkStep(repo, { now = Date.now(), maxRows = WALK_ROWS_PER_STEP, persist = true } = {}) {
+  const prev = (await repo.metaGet("walk")) || null;
+  const w = prev
+    ? { ...prev, breaks: [...(prev.breaks || [])] }
+    : { spec: WALK_SPEC, from_genesis: true, next: 1, expect: null, verified_through: 0, rows_walked: 0, document_hash_misses: 0, breaks: [], started_at: new Date(now).toISOString(), caught_up_at: null, steps: 0 };
+  const tip = await repo.count();
+  let walked = 0;
+  if (!w.breaks.length && w.next <= tip) {
+    const to = Math.min(tip, w.next + Math.max(1, maxRows) - 1);
+    const rows = await repo.rowRange(w.next, to);
+    let brk = null;
+    for (let i = 0; i < rows.length; i++) {
+      if (!rows[i] || rows[i].seq !== w.next + i) {
+        brk = { seq: w.next + i, reason: "sequence-gap" };
+        break;
+      }
+    }
+    if (!brk && rows.length !== to - w.next + 1) brk = { seq: w.next + rows.length, reason: "sequence-gap" };
+    let res = null;
+    if (!brk) {
+      res = await verifyLattice(rows, { anchor: w.expect || undefined, legacyAllowed: false });
+      if (!res.ok) brk = { seq: rows[res.breaks[0].seq].seq, reason: res.breaks[0].reason };
+    }
+    if (!brk) {
+      for (const r of rows) {
+        if ((await hashDoc(r.doc)) !== r.lattice.document_hash) {
+          w.document_hash_misses += 1;
+          brk = { seq: r.seq, reason: "document-hash-mismatch" };
+          break;
+        }
+      }
+    }
+    if (brk) {
+      w.breaks.push({ ...brk, at: new Date(now).toISOString() });
+    } else {
+      w.expect = res.tips;
+      w.verified_through = to;
+      w.next = to + 1;
+      w.rows_walked += rows.length;
+      walked = rows.length;
+    }
+  }
+  if (!w.breaks.length && w.verified_through === tip && tip > 0) {
+    const tips = await repo.metaGet("tips");
+    if (!tips || tips.primary !== w.expect.primary || tips.secondary !== w.expect.secondary) {
+      w.breaks.push({ seq: tip, reason: "stored-tips-differ-from-walk", at: new Date(now).toISOString() });
+    } else {
+      w.caught_up_at = new Date(now).toISOString();
+    }
+  }
+  w.steps = (w.steps || 0) + 1;
+  w.checked_at = new Date(now).toISOString();
+  w.tip_at_check = tip;
+  if (persist) await repo.commit({ meta: { walk: w } });
+  return { ...w, tip, lag_rows: tip - w.verified_through, walked_this_step: walked, rows_per_step: maxRows };
+}
+
+export function walkLatticeLive(w, now = Date.now()) {
+  if (!w) return { lattice_live: false, reason: "The full walk has not run yet." };
+  if (!w.from_genesis) return { lattice_live: false, reason: "The walk did not start at genesis." };
+  if ((w.breaks || []).length) return { lattice_live: false, reason: `The walk found a break at seq ${w.breaks[0].seq} (${w.breaks[0].reason}).` };
+  if (!w.caught_up_at) return { lattice_live: false, reason: `The walk from genesis has not reached the tip yet (verified through seq ${w.verified_through}).` };
+  if (now - Date.parse(w.caught_up_at) > CHECK_FRESH_MS) return { lattice_live: false, reason: "The last time the walk reached the tip is older than 15 minutes." };
+  return { lattice_live: true, reason: null };
+}
+
+/* ---------------------------------------------------- pin <-> item join */
+
+/**
+ * AZNEWS-JOIN-1.0: the 4DMap pin <-> AZNews item join, checked on real links.
+ * For each of the newest JOIN_SAMPLE stored items:
+ *   news_pin direction  item -> its pins (index i:<item_id>), both roles (report, event)
+ *   news_open direction each pin -> report_seq == the item, report_document_hash == the item's hash,
+ *                       pull_receipt_seq == the item's pull receipt
+ *   pull receipt        kind pull_receipt, report_seq and document_hash point back at the item
+ *   item                its document hash recomputes
+ * joined: at least one item and every sampled item passes both directions.
+ * merged: joined, and every sampled item, pin and receipt sits at or below the
+ *         full walk's verified_through (on the verified dual lattice).
+ */
+export async function joinCheck(repo, { now = Date.now(), sample = JOIN_SAMPLE, verifiedThrough = 0, persist = true } = {}) {
+  const rows = await latestRows(repo, "idx_news", sample, sample);
+  const results = [];
+  for (const news of rows) {
+    const r = { item_id: news.doc.item_id, report_seq: news.seq, pins: [], pull_receipt_seq: null, ok: false, on_verified_lattice: false, reason: null };
+    const hit = await repo.seenGet(`i:${news.doc.item_id}`);
+    if (!hit || hit.seq !== news.seq) {
+      r.reason = "The item index does not point at this item.";
+      results.push(r);
+      continue;
+    }
+    r.pull_receipt_seq = hit.receipt || null;
+    r.pins = (hit.pins || []).map(pinId);
+    let bad = null;
+    const roles = new Set();
+    for (const s of hit.pins || []) {
+      const p = await repo.rowGet(s);
+      if (!p || p.kind !== "pin") { bad = `pin ${s} is missing`; break; }
+      if (p.doc.report_seq !== news.seq) { bad = `pin ${s} names report ${p.doc.report_seq}`; break; }
+      if (p.doc.report_document_hash !== news.lattice.document_hash) { bad = `pin ${s} carries another report hash`; break; }
+      if (p.doc.pull_receipt_seq !== hit.receipt) { bad = `pin ${s} names another pull receipt`; break; }
+      roles.add(p.doc.role);
+    }
+    const receipt = hit.receipt ? await repo.rowGet(hit.receipt) : null;
+    if (!bad && (!receipt || receipt.kind !== "pull_receipt" || receipt.doc.report_seq !== news.seq || receipt.doc.document_hash !== news.lattice.document_hash)) bad = "The pull receipt does not link back to the item.";
+    if (!bad && !(roles.has("report") && roles.has("event"))) bad = "The report pin or the event pin is missing.";
+    if (!bad && (await hashDoc(news.doc)) !== news.lattice.document_hash) bad = "The item document hash does not recompute.";
+    const maxSeq = Math.max(news.seq, receipt ? receipt.seq : 0, ...(hit.pins || [0]));
+    r.on_verified_lattice = maxSeq <= verifiedThrough;
+    if (bad) r.reason = bad;
+    else r.ok = true;
+    results.push(r);
+  }
+  const linked = results.filter((r) => r.ok).length;
+  const joined = results.length > 0 && linked === results.length;
+  const merged = joined && results.every((r) => r.on_verified_lattice);
+  const out = {
+    spec: JOIN_SPEC,
+    checked_at: new Date(now).toISOString(),
+    sample: results.length,
+    linked,
+    broken: results.filter((r) => !r.ok).slice(0, 5),
+    off_verified_lattice: results.filter((r) => !r.on_verified_lattice).length,
+    verified_through: verifiedThrough,
+    joined,
+    merged,
+    example: results.find((r) => r.ok) || null,
+    rule: "joined: every one of the newest stored items (up to 20) round-trips item -> pins (news_pin) and pin -> item (news_open) with matching report hash and pull receipt. merged: joined, and every sampled item, pin and receipt is inside the full-walk verified range.",
+  };
+  if (persist) await repo.commit({ meta: { join: out } });
+  return out;
+}
+
+function freshCheck(at, now) {
+  return Boolean(at) && now - Date.parse(at) <= CHECK_FRESH_MS;
+}
+
 export async function liveFlags(repo, now = Date.now()) {
   const state = (await repo.metaGet("state")) || {};
   const outlets = (await repo.metaGet("outlets")) || {};
@@ -813,19 +1000,32 @@ export async function liveFlags(repo, now = Date.now()) {
   const wired = wiredOutlets();
   const live = wired.filter((o) => {
     const s = outlets[o.id];
-    return s && s.ok && s.items_returned > 0 && state.cycle != null && s.cycle >= state.cycle - 1;
+    return s && s.ok && s.items_returned > 0 && s.attempted_at && now - Date.parse(s.attempted_at) <= OUTLETS_LIVE_WINDOW_MS;
   });
+  const walk = (await repo.metaGet("walk")) || null;
+  const join = (await repo.metaGet("join")) || null;
+  const lat = walkLatticeLive(walk, now);
+  const joinFresh = Boolean(join) && freshCheck(join.checked_at, now);
+  const joined = joinFresh && join.joined === true;
+  const merged = joined && join.merged === true && lat.lattice_live;
   const lastWeather = state.last_weather || null;
   const weatherFresh = Boolean(state.last_weather_ms && now - state.last_weather_ms <= FRESH_MS);
   const skyFresh = Boolean(state.last_sky_ms && now - state.last_sky_ms <= FRESH_MS);
   const newsFresh = Boolean(state.last_news_ms && now - state.last_news_ms <= FRESH_MS);
-  const newsPins = (counts.pin || 0) > 0 && (counts.news || 0) > 0;
   return {
     outlets_configured: OUTLETS.length,
     outlets_wired: wired.length,
     outlets_live: live.length,
     outlets_live_ids: live.map((o) => o.id),
-    outlets_live_rule: "An outlet is live when its last fetch (this or the previous rotation) returned at least one item.",
+    outlets_live_window: {
+      kind: "rolling",
+      minutes: OUTLETS_LIVE_WINDOW_MS / 60000,
+      as_of: new Date(now).toISOString(),
+      from: new Date(now - OUTLETS_LIVE_WINDOW_MS).toISOString(),
+      rotation_minutes: Math.ceil(wired.length / OUTLETS_PER_TICK) * 2,
+      note: "Rolling count, not a fixed number: it changes every 2-minute tick as outlets are re-fetched.",
+    },
+    outlets_live_rule: "Rolling: an outlet counts when a fetch in the last 60 minutes returned at least one item. One rotation over all wired outlets takes about rotation_minutes.",
     news_items_stored: counts.news || 0,
     news_full_text: counts.news_full_text || 0,
     news_summary_only: (counts.news || 0) - (counts.news_full_text || 0),
@@ -837,25 +1037,41 @@ export async function liveFlags(repo, now = Date.now()) {
     pull_receipts: counts.pull_receipt || 0,
     view_receipts: counts.view_receipt || 0,
     black_swans: counts.black_swan || 0,
-    live: newsFresh && (counts.news || 0) > 0,
+    live: newsFresh && (counts.news || 0) > 0 && lat.lattice_live,
+    live_rule: "live: a real item was stored in the last 3 hours AND lattice_live (full walk from genesis reached the tip in the last 15 minutes, no break).",
     weather_live: weatherFresh && Boolean(lastWeather) && (lastWeather.gaps || []).length === 0,
     weather_areas: lastWeather ? lastWeather.areas : [],
     weather_gaps: lastWeather ? lastWeather.gaps : [],
     sky_live: skyFresh,
-    merged: newsPins,
-    joined: newsPins,
+    joined,
+    merged,
+    join_check: join ? { spec: join.spec, checked_at: join.checked_at, fresh: joinFresh, sample: join.sample, linked: join.linked, broken: join.broken, off_verified_lattice: join.off_verified_lattice, example: join.example, rule: join.rule } : null,
+    joined_reason: joined ? null : !join ? "The pin <-> item join check has not run yet." : !joinFresh ? "The last join check is older than 15 minutes." : `Join check failed: ${join.linked}/${join.sample} items linked.`,
+    merged_reason: merged ? null : !joined ? "Not joined." : !lat.lattice_live ? `lattice_live is false: ${lat.reason}` : `${join.off_verified_lattice} sampled items are not yet inside the verified walk.`,
     source_present: (counts.news || 0) > 0,
-    lattice_live: (counts.news || 0) > 0,
+    lattice_live: lat.lattice_live,
+    lattice_live_reason: lat.reason,
+    lattice_walk: walk ? { spec: walk.spec, from_genesis: walk.from_genesis, verified_through: walk.verified_through, rows_walked: walk.rows_walked, breaks: walk.breaks, document_hash_misses: walk.document_hash_misses, caught_up_at: walk.caught_up_at, checked_at: walk.checked_at, tip_at_check: walk.tip_at_check, started_at: walk.started_at } : null,
     last_tick: state.last_tick || null,
     ticks: state.ticks || 0,
     cycle: state.cycle || 0,
   };
 }
 
-export async function read(repo, op, payload = {}, { now = Date.now() } = {}) {
+export async function read(repo, op, payload = {}, { now = Date.now(), auth = false } = {}) {
   const limit = Math.max(1, Math.min(READ_LIMIT, Number(payload.limit) || 20));
   const via = String(payload.via || "fraggate").slice(0, 40);
-  const viewOpts = { via, offline: payload.offline === true, username: payload.username || null, now };
+  const dry = truthy(payload.dry_run);
+  const wantsOffline = truthy(payload.offline) || (payload.username != null && String(payload.username).trim() !== "");
+  if (wantsOffline && !auth) {
+    return { ok: false, refused: true, code: "AZNEWS-OFFLINE-AUTH-REQUIRED", message: "Offline view receipts need the token-authenticated GET /v1/aznews/* route. Nothing was read into the ledger and no name was written.", rule: OFFLINE_VIEW_RULE };
+  }
+  let viewer = null;
+  if (wantsOffline) {
+    viewer = await viewerHash(payload.username);
+    if (!viewer) return { ok: false, refused: true, code: "AZNEWS-OFFLINE-USERNAME-REQUIRED", message: "An offline view needs a username. Nothing was written.", rule: OFFLINE_VIEW_RULE };
+  }
+  const viewOpts = { via, offline: wantsOffline, username: viewer, now, dry };
   if (op === "status") {
     const flags = await liveFlags(repo, now);
     const tips = (await repo.metaGet("tips")) || null;
@@ -932,17 +1148,79 @@ export async function read(repo, op, payload = {}, { now = Date.now() } = {}) {
     return { ok: true, count: out.length, receipts: out.map((r) => ({ seq: r.seq, kind: r.kind, doc: r.doc, lattice: r.lattice })) };
   }
   if (op === "verify") {
+    // Full checkpointed walk from genesis (AZNEWS-WALK-1.0), bounded per request; then the tail window.
+    const steps = Math.max(1, Math.min(3, Number(payload.steps) || 1));
+    let w = null;
+    for (let i = 0; i < steps; i++) {
+      w = await walkStep(repo, { now, persist: !dry });
+      if (dry || w.breaks.length || w.lag_rows === 0) break;
+    }
+    const lat = walkLatticeLive(w, now);
     const total = await repo.count();
     const n = Math.max(2, Math.min(300, Number(payload.limit) || 200));
     const from = Math.max(1, total - n + 1);
     const rows = await repo.rowRange(from, total);
     const anchor = rows.length ? { primary: rows[0].lattice.primary_prev, secondary: rows[0].lattice.secondary_prev } : null;
-    const walk = await verifyLattice(rows, { anchor, legacyAllowed: false });
-    // Also check each row's document hash against its stored doc.
-    let docMiss = 0;
-    for (const r of rows) if ((await hashDoc(r.doc)) !== r.lattice.document_hash) docMiss += 1;
+    const tail = await verifyLattice(rows, { anchor, legacyAllowed: false });
     const tips = await repo.metaGet("tips");
-    return { ok: walk.ok && docMiss === 0, window: { from, to: total }, ...walk, document_hash_misses: docMiss, tip_matches: Boolean(tips && rows.length && tips.primary === rows[rows.length - 1].lattice.primary) };
+    const join = dry ? (await repo.metaGet("join")) : await joinCheck(repo, { now, verifiedThrough: w.verified_through });
+    return {
+      ok: w.breaks.length === 0 && tail.ok,
+      dry_run: dry,
+      full_walk: {
+        spec: WALK_SPEC,
+        from_genesis: w.from_genesis,
+        verified_through: w.verified_through,
+        tip: w.tip,
+        lag_rows: w.lag_rows,
+        walked_this_request: w.walked_this_step,
+        rows_per_step: w.rows_per_step,
+        rows_walked_total: w.rows_walked,
+        steps_total: w.steps,
+        document_hash_misses: w.document_hash_misses,
+        breaks: w.breaks,
+        started_at: w.started_at,
+        caught_up_at: w.caught_up_at,
+        checkpoint: { next_seq: w.next, expect: w.expect },
+        rule: "Each step reads at most rows_per_step rows after the checkpoint, checks seq contiguity, both lattice links and every document hash, then moves the checkpoint. At the tip, the stored tips must equal the walk. A break is permanent.",
+      },
+      lattice_live: lat.lattice_live,
+      lattice_live_reason: lat.reason,
+      tail_window: { from, to: total, ok: tail.ok, breaks: tail.breaks, tip_matches: Boolean(tips && rows.length && tips.primary === rows[rows.length - 1].lattice.primary) },
+      tips,
+      join,
+    };
+  }
+  if (op === "news_pin") {
+    // 4DMap joined path, item -> pins. Pins are minted at pull time; this reads them, it never invents one.
+    let id = String(payload.item_id || payload.id || (payload.item && payload.item.item_id) || "");
+    const url = String(payload.url || (payload.item && payload.item.url) || "");
+    let hit = null;
+    if (id.startsWith("n-")) hit = await repo.seenGet(`i:${id}`);
+    else if (url) {
+      const u = await repo.seenGet(`u:${await sha256Hex(canonicalUrl(url) || url)}`);
+      if (u) { hit = { seq: u.seq, receipt: u.receipt, pins: u.pins }; id = u.item_id || ""; }
+    } else if (!id) {
+      const newest = await latestRows(repo, "idx_news", 1, 1);
+      if (newest[0]) { id = newest[0].doc.item_id; hit = await repo.seenGet(`i:${id}`); }
+    }
+    if (!hit) return { ok: false, code: "AZNEWS-NO-MATCH", message: "No stored AZNews item matches that item_id or url. 4DMap does not pin an item that was not pulled. Nothing was written." };
+    const row = await repo.rowGet(hit.seq);
+    const pins = [];
+    for (const s2 of hit.pins || []) pins.push(pinView(await repo.rowGet(s2)));
+    const views = await mintViews(repo, [hit.seq], viewOpts);
+    return { ok: true, path: "joined", direction: "item->pins", picked: payload.item_id || payload.url || payload.id ? "requested" : "newest stored item (no id given)", item: newsView(row), pins, pull_receipt_seq: hit.receipt || null, view_receipts: views, join: await repo.metaGet("join") };
+  }
+  if (op === "news_open") {
+    // 4DMap joined path, pin -> item. The pin must name the item and carry its hash and pull receipt.
+    const m = /^pin-(\d+)$/.exec(String(payload.pin_id || payload.id || ""));
+    const row = m ? await repo.rowGet(Number(m[1])) : null;
+    if (!row || row.kind !== "pin") return { ok: false, code: "AZNEWS-PIN-ABSENT", message: "No pin has that id. Pass pin_id like pin-123." };
+    const pin = pinView(row);
+    const report = pin.report_seq ? await repo.rowGet(pin.report_seq) : null;
+    const linked = Boolean(report && report.lattice.document_hash === row.doc.report_document_hash);
+    const views = await mintViews(repo, report ? [report.seq] : [], viewOpts);
+    return { ok: Boolean(report), path: "joined", direction: "pin->item", pin, linked, item: report && report.kind === "news" ? newsView(report) : null, report: report && report.kind !== "news" ? { seq: report.seq, kind: report.kind, doc: report.doc } : null, view_receipts: views };
   }
   if (op === "globe") {
     // One read for the globe page: status, pins + last 10, headlines, weather, sky. One view-receipt batch.
