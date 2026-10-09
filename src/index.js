@@ -4795,7 +4795,15 @@ export default {
         .then((out) => {
           console.log(JSON.stringify({ aznews: out && out.spec ? "tick" : "AZNEWS-TICK-ERROR", rows: out && out.rows_appended, subrequests: out && out.subrequests, outlets: out && (out.outlets || []).map((o) => `${o.id}:${o.ok ? o.new_items : o.reason}`), weather: out && out.weather && (out.weather.ok ? out.weather.stored : out.weather.reason), sky: out && out.sky && out.sky.sun, budget_stop: out && out.budget_stop, error: out && out.ok === false ? out.message : undefined }));
         })
-        .catch((err) => console.log(JSON.stringify({ aznews: "AZNEWS-TICK-ERROR", error: String((err && err.message) || err).slice(0, 200) })));
+        .catch((err) => console.log(JSON.stringify({ aznews: "AZNEWS-TICK-ERROR", error: String((err && err.message) || err).slice(0, 200) })))
+        .then(() => {
+          // AZRT-AZOS-NEWS-1.0: after the tick, the object sends its signed rows to AZ-OS's own copy.
+          if (!(env.TETHER_SIGNING_SEED && env.AZOS)) return null;
+          return aznewsCall(env, "tether_push", {}, {}).then((out) => {
+            console.log(JSON.stringify({ aznews_tether: out && out.code, packets: out && out.packets, azos_tip_seq: out && out.azos_tip_seq, lag_rows: out && out.lag_rows }));
+          });
+        })
+        .catch((err) => console.log(JSON.stringify({ aznews_tether: "NEWS-TETHER-ERROR", error: String((err && err.message) || err).slice(0, 200) })));
       if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(news);
       else await news;
     }
