@@ -1,0 +1,55 @@
+# Glama-style stdio check: build the image Glama builds and run the stdio
+# server the way Glama inspects it (initialize + tools/list = 36).
+# Runs with the Worker down / no network so a Worker outage (e.g. the
+# 2026-10 KV-quota 1101) can no longer fail Glama inspection silently.
+# The live-Worker step is informational (continue-on-error) so a Worker
+# outage never blocks merging a fix.
+# No wrangler deploy here. Package stays 2.0.0-rc1.
+# Author: Aziel Eliab. Identity is Aziel Eliab only.
+name: Glama stdio
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  node:
+    name: stdio under Node ${{ matrix.node }} (production install)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["20", "22", "24"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Production install (as Glama build step)
+        run: npm install --omit=dev --no-audit --no-fund
+      - name: stdio smoke (--local, Worker-1101 mock, refused origin)
+        run: node scripts/smoke-glama-stdio.mjs
+
+  docker:
+    name: Docker build + stdio initialize/tools/list
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: docker build (repo Dockerfile)
+        run: |
+          start=$(date +%s)
+          docker build -t aziel-runtime-mcp .
+          echo "build_seconds=$(( $(date +%s) - start ))"
+          docker image ls aziel-runtime-mcp --format 'image_size={{.Size}}'
+      - name: stdio with no network (discovery from in-process catalog)
+        run: node scripts/smoke-glama-stdio.mjs --cmd "docker run --rm -i --network none aziel-runtime-mcp" --expect-fallback
+      - name: stdio bridged to the live Worker (informational)
+        continue-on-error: true
+        run: node scripts/smoke-glama-stdio.mjs --cmd "docker run --rm -i aziel-runtime-mcp"
