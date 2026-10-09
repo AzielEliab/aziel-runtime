@@ -235,6 +235,13 @@ class_name = "TunnelHub"
 name = "RUNTIME_KV"
 class_name = "RuntimeKv"
 
+# AZNEWS-LIVE-1.0: AZNews news / weather / sky, pull and view receipts, and permanent
+# 4DMap pins, all on the dual lattice. One SQLite object "aznews-v1". No KV or D1 writes.
+# The odd-minute cron sends one tick; the object fetches feeds with its own subrequest budget.
+[[durable_objects.bindings]]
+name = "AZNEWS"
+class_name = "AzNewsStore"
+
 [[kv_namespaces]]
 binding = "USES"
 id = "c1f89ba6f1db47328d36379cdd69b7ab"
@@ -277,3 +284,7 @@ new_sqlite_classes = ["TunnelHub"]
 [[migrations]]
 tag = "v5"
 new_sqlite_classes = ["RuntimeKv"]
+
+[[migrations]]
+tag = "v6"
+new_sqlite_classes = ["AzNewsStore"]

@@ -201,6 +201,7 @@ import { RuntimeSession } from "./session-do.js";
 import { ChainWriter } from "./chainlock/writer-do.js";
 import { TunnelHub } from "./tunnel-hub-do.js";
 import { RuntimeKv, withDurableKv } from "./durable-kv.js";
+import { AzNewsStore } from "./aznews-do.js";
 import { storeFor } from "./chainlock/store.js";
 import { runWithLedgerStore } from "./fraggate/ledger.js";
 import { callSessionTool, handleSessionRequest, sessionMcpTools } from "./session-http.js";
@@ -437,7 +438,7 @@ import {
 import { softwareDescription, softwareOneLine } from "./software-copy.js";
 import { crossMapFields } from "./cross-map.js";
 
-export { RuntimeSession, ChainWriter, RateQuota, TunnelHub, RuntimeKv };
+export { RuntimeSession, ChainWriter, RateQuota, TunnelHub, RuntimeKv, AzNewsStore };
 
 const CATALOG_HOST = "https://aziel-runtime.vibelock.workers.dev";
 const PROTOCOL = MCP_PROTOCOL_PREFERRED;
@@ -1122,13 +1123,21 @@ const PRODUCTS_RAW = [
       { op: "pattern_recall", method: "POST", summary: "Count recurring feature hashes on the hashchain lattice." },
       { op: "lattice_tip", method: "POST", summary: "List append-only lattice tips." },
       { op: "poison_refuse", method: "POST", summary: "Append a refuse-set card. Feature hash only." },
-      { op: "news_status", method: "POST", summary: "Read standalone AZNews and the 4DMap join. An empty source stays refused. The join is live only when a fetched news item is pinned." },
+      { op: "news_status", method: "POST", summary: "Read AZNews live status from the AzNewsStore Durable Object: outlets live of configured, stored news / weather / sky counts, full-text coverage, pins, receipts. Flags turn true only from stored data." },
       { op: "news_pin", method: "POST", summary: "Land a news item as a 4DMap pin (date, event, and place). Refuses AZNEWS-SOURCE-ABSENT when no item was fetched or supplied." },
       { op: "news_open", method: "POST", summary: "Open the news item that matches a 4DMap pin. Refuses AZNEWS-SOURCE-ABSENT when no item is stored." },
       { op: "news_ingest", method: "POST", summary: "Standalone AZNews store. Wording, image hash, and score go on both hash chains. Does not pin the map." },
       { op: "news_sources", method: "POST", summary: "Press Gazette English-language top 50. Configured outlets stay not live until a fetch stores an item." },
       { op: "news_weather", method: "POST", summary: "Open-Meteo observations by UN M49 region. A missing observation is a gap. Weather is not live globally unless every region was fetched." },
       { op: "news_black_swan", method: "POST", summary: "Cited historical black-swan rows. A row with a date can pin on 4DMap. A missing day stays unpinned." },
+      { op: "news_feed", method: "POST", summary: "Latest real headlines from the official public RSS of the top-50 outlets: title, link, wording (feed body or summary, full_text flagged), image sha256, triad score. Mints view receipts." },
+      { op: "news_item", method: "POST", summary: "Open one stored item by item_id with its two pins and pull receipt. Mints a view receipt linked to the pull receipt." },
+      { op: "news_sky", method: "POST", summary: "Computed sky (astronomy-engine): tropical Sun sign, IAU constellation, Moon phase and sign, equinoxes, solstices, season per hemisphere, constellations visible tonight per region." },
+      { op: "news_pins", method: "POST", summary: "4DMap pins with type and color (red event, blue report, black/white correspondence, orange weather, gold sky), era (+-3 years), and the last 10 pins added." },
+      { op: "news_pin_open", method: "POST", summary: "Open one pin by pin_id (permalink /aznews?pin=<id>) with its report and receipts." },
+      { op: "news_receipts", method: "POST", summary: "Latest pull receipts and view receipts on the dual lattice." },
+      { op: "news_verify", method: "POST", summary: "Walk the AZNews dual lattice (primary + secondary) over the latest rows and recheck document hashes. Fail closed." },
+      { op: "news_globe", method: "POST", summary: "One read for the /aznews globe: status, pins, last 10, headlines, weather, sky." },
       { op: "ingest_pin", method: "POST", summary: "Alias of library_pin." },
       { op: "plot_pins", method: "POST", summary: "Alias of plot." },
       { op: "score_hooks", method: "POST", summary: "Alias of possibility." },
@@ -1762,7 +1771,7 @@ function llmsTxt(origin, env = {}) {
     `AZBrowser: FragGate only. POST /v1/fraggate/call { slug: "azbrowser", op }. MCP fraggate_list / fraggate_call and Worker UI buttons share LIVE_OPS.azbrowser (ethical_search, lamb_lens_search, navigate, airlock_ingest, tab_open, tab_list, receipt_list, verify, receipt_verify, sandbox_status, sandbox_render, health, skill). Lamb Lens cites; refuses harmful harvest; never invents visit results. Chromium stays DEFERRED unless Browser Rendering is bound. tor_exit / phoenix_wipe / unrestricted proxy stay stub.`,
     `AZHub: FragGate only. POST /v1/fraggate/call { slug: "azhub", op }. Blank Key / neutral spatial container (AIH-WP-1.0). Does not interpret meaning. Refuses auto-unlock and completeness events. AZInterface is sibling software under the same FragGate door.`,
     `AZInterface: FragGate only. POST /v1/fraggate/call { slug: "azinterface", op }. Suite shell (AIH-WP-1.0, package 0.1.0) that opens Softwares on this computer and keeps custodial page cycles OFF / integrity / ON / FULL SHUTDOWN / MEMORIAL. AZHub is sibling software under the same FragGate door. Local pipeline_arch, withdraw, scorch_local, and pair_* stay off this public door.`,
-    `4DMap: FragGate only. POST /v1/fraggate/call { slug: "4dmap", op }. Four-axis inspection frame T/Δ/Γ/Π (4DM-WP-1.0 / product 0.3.0). Research-domain inspection frame inside Internal Domain Layer after AZPIPE. LIVE_OPS match product 0.3.0 (pin/span/stack/gap/fork/walk/lens/class/cohort/absence/cap/join/list/example plus card_* / frame_status / axis_describe / walk_trace / card_export / card_import / verify_chain / neighbor_cite / memory_cite / memory_observe / library_pin / plot / possibility / pattern_recall / lattice_tip / poison_refuse / news_status / news_pin / news_open / news_ingest / news_sources / news_weather / news_black_swan). AZNews is a standalone path and a 4DMap join, not a Softwares card and not an MCP tool. news_ingest stores an item without a pin. news_pin and news_open refuse AZNEWS-SOURCE-ABSENT when no item was fetched or supplied. A fixture does not set merged or the global live flag. A real item on a pin can be live by itself. The library map cite is not this join. Cited on the locked MASTER-33 pipeline. truth_score / lumen_panel / invent_mark / backdate_class stay stub. FragGate claims cite join types.`,
+    `4DMap: FragGate only. POST /v1/fraggate/call { slug: "4dmap", op }. Four-axis inspection frame T/Δ/Γ/Π (4DM-WP-1.0 / product 0.3.0). Research-domain inspection frame inside Internal Domain Layer after AZPIPE. LIVE_OPS match product 0.3.0 (pin/span/stack/gap/fork/walk/lens/class/cohort/absence/cap/join/list/example plus card_* / frame_status / axis_describe / walk_trace / card_export / card_import / verify_chain / neighbor_cite / memory_cite / memory_observe / library_pin / plot / possibility / pattern_recall / lattice_tip / poison_refuse / news_status / news_pin / news_open / news_ingest / news_sources / news_weather / news_black_swan / news_feed / news_item / news_sky / news_pins / news_pin_open / news_receipts / news_verify / news_globe). AZNews live data (real RSS news, Open-Meteo weather, computed sky) is stored in the AzNewsStore Durable Object on the dual lattice; globe at /aznews. AZNews is a standalone path and a 4DMap join, not a Softwares card and not an MCP tool. news_ingest stores an item without a pin. news_pin and news_open refuse AZNEWS-SOURCE-ABSENT when no item was fetched or supplied. A fixture does not set merged or the global live flag. A real item on a pin can be live by itself. The library map cite is not this join. Cited on the locked MASTER-33 pipeline. truth_score / lumen_panel / invent_mark / backdate_class stay stub. FragGate claims cite join types.`,
     `AZCoherence: FragGate only. POST /v1/fraggate/call { slug: "azcoherence", op }. Second-pass triad coherence reviewer (AZC-0.1). Peer AZ-CLCE detects R/D/P inconsistency; AZCoherence reviews primary vs alternate → PASS / FLAG / NEUTRALIZE / REFUSE. Never invents evidence. Confidence ≠ truth. Cross-map peers: azclce (peer scorer), azinterface (human UI), AKM-TRIAD (fabric neighbor). Hubs: azieleliab.com, azielcorpuslibrary.net, godlock.uk. Worker: https://azcoherence-download-tracker.vibelock.workers.dev/. Domain stays null (scoring-review placement). Product cite https://github.com/AzielEliab/AZCoherence.`,
     `ZKAttest: FragGate only. POST /v1/fraggate/call { slug: "zkattest", op }. Hash-commitment attest (ZK-ATTEST-0.1). commit / attest / open / verify are REAL SHA-256 commitments. groth16 / snark / stark / plonk stay FG-STUB. In-runtime placement (no invented product Worker). Domain stays null (receipt-attest placement).`,
     `MMConsensus: FragGate only. POST /v1/fraggate/call { slug: "mmconsensus", op }. Posted-opinion tally (MM-CONSENSUS-0.1). Adjacent to DecisionGATE. live_model_call stays FG-STUB. In-runtime placement. Domain stays null (consensus-review placement).`,
@@ -4515,6 +4524,28 @@ async function handleRequest(request, env, ctx) {
       return json(out.body, out.status, extraHeaders);
     }
 
+    if ((url.pathname === "/aznews" || url.pathname === "/4dmap/globe") && (request.method === "GET" || request.method === "HEAD")) {
+      const { aznewsPageHtml } = await import("./aznews-page.js");
+      return asHead(request, new Response(aznewsPageHtml(), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "public, max-age=60" } }));
+    }
+
+    if ((url.pathname === "/v1/aznews" || url.pathname.startsWith("/v1/aznews/")) && (request.method === "GET" || request.method === "HEAD" || request.method === "OPTIONS")) {
+      const cors = { "access-control-allow-origin": "*", "access-control-allow-methods": "GET, HEAD, OPTIONS", "cache-control": "no-store" };
+      if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
+      const { aznewsCall } = await import("./aznews-do.js");
+      const parts = url.pathname.split("/").filter(Boolean).slice(2);
+      const ops = { "": "status", status: "status", feed: "feed", weather: "weather", sky: "sky", pins: "pins", pin: "pin", item: "item", receipts: "receipts", verify: "verify", sources: "sources", globe: "globe" };
+      const op = ops[parts[0] || ""];
+      if (!op) return json({ ok: false, error: "not found", hint: "GET /v1/aznews/{status,feed,weather,sky,pins,pin/<id>,item/<id>,receipts,verify,sources,globe}" }, 404, cors);
+      const payload = {};
+      for (const k of ["limit", "outlet", "type", "era", "offline", "username"]) if (url.searchParams.has(k)) payload[k] = url.searchParams.get(k);
+      payload.offline = payload.offline === "true";
+      if (parts[1]) payload[op === "pin" ? "pin_id" : "item_id"] = decodeURIComponent(parts[1]);
+      payload.via = String(url.searchParams.get("via") || "http:" + url.pathname).slice(0, 40);
+      const out = await aznewsCall(env, op, payload);
+      return asHead(request, json({ ...out, door: "runtime", fraggate_ops: "slug 4dmap: news_status news_feed news_item news_weather news_sky news_pins news_pin_open news_receipts news_verify news_sources news_globe", page: "/aznews" }, out && out.ok === false && out.code === "AZNEWS-STORE-UNBOUND" ? 503 : 200, cors));
+    }
+
     if (url.pathname === "/v1/tether" && (request.method === "GET" || request.method === "HEAD")) {
       const { tetherStatus } = await import("./azos-tether.js");
       return asHead(request, json(await tetherStatus(env), 200, authorityLinkHeaders(origin, url.pathname)));
@@ -4708,6 +4739,18 @@ export default {
     const env = withDurableKv(rawEnv);
     const source = controller && controller.cron ? `cron:${controller.cron}` : "cron";
     const { TETHER_CRON, pushAll } = await import("./azos-tether.js");
+    if (controller && controller.cron === TETHER_CRON && env && env.AZNEWS) {
+      // AZNEWS-LIVE-1.0: one tick request to the AzNewsStore object (it fetches with its own budget).
+      // Errors are logged and swallowed so /mcp and health never depend on ingest.
+      const { aznewsCall } = await import("./aznews-do.js");
+      const news = aznewsCall(env, "tick", {}, {})
+        .then((out) => {
+          console.log(JSON.stringify({ aznews: out && out.spec ? "tick" : "AZNEWS-TICK-ERROR", rows: out && out.rows_appended, subrequests: out && out.subrequests, outlets: out && (out.outlets || []).map((o) => `${o.id}:${o.ok ? o.new_items : o.reason}`), weather: out && out.weather && (out.weather.ok ? out.weather.stored : out.weather.reason), sky: out && out.sky && out.sky.sun, budget_stop: out && out.budget_stop, error: out && out.ok === false ? out.message : undefined }));
+        })
+        .catch((err) => console.log(JSON.stringify({ aznews: "AZNEWS-TICK-ERROR", error: String((err && err.message) || err).slice(0, 200) })));
+      if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(news);
+      else await news;
+    }
     if (controller && controller.cron === TETHER_CRON) {
       // AZ-OS cross-tether on its own cron: send signed dual-lattice tips only when the signing secret is set.
       if (!(env && env.TETHER_SIGNING_SEED && env.AZOS)) return;
