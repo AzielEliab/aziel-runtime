@@ -229,6 +229,12 @@ class_name = "TunnelHub"
 # 1.6.13 QNM suite rollup also stores here under mesh| keys when MESH is unbound
 # (never invent placeholder 0000… KV ids).
 # Production namespace on account ac575a9b822bea2bed97d0ab73aed238.
+# Hot USES writes (use counters, MCP sessions, mesh roster). Reads fall back to USES KV.
+# KV's daily put() quota made POST /mcp throw 1101; Durable Object storage carries the writes.
+[[durable_objects.bindings]]
+name = "RUNTIME_KV"
+class_name = "RuntimeKv"
+
 [[kv_namespaces]]
 binding = "USES"
 id = "c1f89ba6f1db47328d36379cdd69b7ab"
@@ -267,3 +273,7 @@ new_sqlite_classes = ["RateQuota"]
 [[migrations]]
 tag = "v4"
 new_sqlite_classes = ["TunnelHub"]
+
+[[migrations]]
+tag = "v5"
+new_sqlite_classes = ["RuntimeKv"]
