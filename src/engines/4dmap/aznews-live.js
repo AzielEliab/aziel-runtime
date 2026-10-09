@@ -724,6 +724,7 @@ export function pinView(row) {
   return {
     pin_id: pinId(row.seq),
     seq: row.seq,
+    added_at: row.at || null,
     pin_type: d.pin_type,
     color: d.color,
     color_hex: d.color_hex,
@@ -911,7 +912,7 @@ export async function read(repo, op, payload = {}, { now = Date.now() } = {}) {
     let pins = rows.map(pinView);
     if (payload.type) pins = pins.filter((p) => p.pin_type === String(payload.type));
     if (payload.era != null && payload.era !== "") pins = pins.filter((p) => inEra(p, payload.era));
-    const last10 = rows.slice(0, 10).map(pinView).map((p) => ({ pin_id: p.pin_id, event: p.event, color: p.color, pin_type: p.pin_type, permalink: p.permalink, date: p.date }));
+    const last10 = rows.slice(0, 10).map(pinView).map((p) => ({ pin_id: p.pin_id, event: p.event, color: p.color, pin_type: p.pin_type, permalink: p.permalink, date: p.date, added_at: p.added_at, geo: p.geo }));
     return { ok: true, count: pins.length, pins: pins.slice(0, Number(payload.limit) || 200), last10, colors: PIN_COLORS, era_window_years: 3, match_rule: { spec: MATCH_SPEC, black: BLACK_RULE, white: WHITE_RULE } };
   }
   if (op === "pin") {
@@ -959,7 +960,7 @@ export async function read(repo, op, payload = {}, { now = Date.now() } = {}) {
       ok: true,
       status: flags,
       pins,
-      last10: pinRows.slice(0, 10).map(pinView).map((p) => ({ pin_id: p.pin_id, event: p.event, color: p.color, pin_type: p.pin_type, permalink: p.permalink, date: p.date })),
+      last10: pinRows.slice(0, 10).map(pinView).map((p) => ({ pin_id: p.pin_id, event: p.event, color: p.color, pin_type: p.pin_type, permalink: p.permalink, date: p.date, added_at: p.added_at, geo: p.geo })),
       colors: PIN_COLORS,
       items: newsRows.map(newsView).map((i) => ({ ...i, wording: String(i.wording || "").slice(0, 600) })),
       weather: { observed_at: state.last_weather ? state.last_weather.at : null, areas: flags.weather_areas, gaps: flags.weather_gaps, regions: wRows.filter(Boolean).map((r) => ({ seq: r.seq, anchor: r.doc.anchor, reading: r.doc.reading, conditions: r.doc.conditions, severe: r.doc.severe })), source: OPEN_METEO.attribution },

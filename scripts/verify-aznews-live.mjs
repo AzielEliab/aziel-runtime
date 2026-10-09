@@ -172,6 +172,7 @@ console.log("ok two pins per report with type and color");
   assert.deepEqual(seqs, seqs.slice().sort((a, b) => b - a));
   assert.equal(seqs[0], Math.max(...ledger.filter((r) => r.kind === "pin").map((r) => r.seq)));
   for (const x of p.last10) assert.match(x.permalink, /^\/aznews\?pin=pin-\d+$/);
+  for (const x of p.last10) assert.ok(Number.isFinite(Date.parse(x.added_at)), "last10 carries added_at");
   console.log("ok last 10 pins added list");
 }
 
