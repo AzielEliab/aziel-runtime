@@ -39,6 +39,11 @@ export class AzNewsStore {
       const out = await this.serial(async () => {
         const repo = this.repoOf();
         if (op === "tick") return tick(repo, { force: body.force || {} });
+        if (op === "tether_push") {
+          // AZRT-AZOS-NEWS-1.0: signed copy of this ledger to AZ-OS (internal; not a public read op).
+          const { pushNewsCopy } = await import("./aznews-tether.js");
+          return pushNewsCopy(this.env, repo);
+        }
         return read(repo, op, body.payload || {}, { auth: body.auth === true });
       });
       return new Response(JSON.stringify(out), { headers: { "content-type": "application/json" } });
