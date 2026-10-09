@@ -6,3 +6,7 @@ See the LICENSE file in the repository root.
 
 Author / identity: Aziel Eliab only. GodLock is a product name.
 Primary public MCP host: https://glama.ai/mcp/servers/AzielEliab/aziel-runtime
+
+astronomy-engine 2.1.19 (MIT, Copyright (c) 2019-2023 Don Cross), vendored at src/vendor/astronomy-engine/ for AZNews sky math.
+GeoNames gazetteer extract (CC BY 4.0, https://www.geonames.org/) at src/engines/4dmap/aznews-gazetteer.js.
+Weather data by Open-Meteo.com (CC BY 4.0).

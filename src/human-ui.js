@@ -738,7 +738,11 @@ ${dashCards}
         <button type="button" class="run-task" data-op="news_ingest">news_ingest</button>
         <button type="button" class="run-task" data-op="news_pin">news_pin</button>
         <button type="button" class="run-task" data-op="news_open">news_open</button>
+        <button type="button" class="run-task" data-op="news_feed">news_feed</button>
+        <button type="button" class="run-task" data-op="news_sky">news_sky</button>
+        <button type="button" class="run-task" data-op="news_pins">news_pins</button>
       </div>
+      <p class="hint"><a href="/aznews">Open the AZNews + 4DMap globe</a> — real headlines, global weather, the sky, colored pins, the last 10 pins added, and the color key.</p>
       <pre class="ws-out fg-out" role="status" aria-live="polite">Ready. AZNews. news_status.</pre>
     </article>
 

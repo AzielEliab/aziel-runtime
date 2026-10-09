@@ -90,7 +90,33 @@ export const FOURDMAP_OPS = [
   "news_sources",
   "news_weather",
   "news_black_swan",
+  "news_feed",
+  "news_item",
+  "news_sky",
+  "news_pins",
+  "news_pin_open",
+  "news_receipts",
+  "news_verify",
+  "news_globe",
 ];
+
+/**
+ * AZNEWS-LIVE-1.0 reads. When the AZNEWS Durable Object is bound, these ops read the
+ * stored real data (and mint view receipts). Unbound, the legacy in-memory path answers.
+ */
+const LIVE_READS = {
+  news_status: "status",
+  news_sources: "sources",
+  news_weather: "weather",
+  news_feed: "feed",
+  news_item: "item",
+  news_sky: "sky",
+  news_pins: "pins",
+  news_pin_open: "pin",
+  news_receipts: "receipts",
+  news_verify: "verify",
+  news_globe: "globe",
+};
 
 const LATTICE_OPS = new Set([
   "memory_cite",
@@ -141,8 +167,36 @@ export function resetFourdmapLattice() {
   resetLatticeStore();
 }
 
-export async function runFourdmap(op, payload) {
+async function runLiveRead(op, payload, env) {
+  const { aznewsCall } = await import("../../aznews-do.js");
+  const body = { ...(payload || {}) };
+  if (!body.via) body.via = "fraggate:4dmap." + op;
+  const out = await aznewsCall(env, LIVE_READS[op], body);
+  return latticeEnvelope(op, {
+    ...out,
+    live_store: "durable-object-sqlite",
+    software_tab: false,
+    mcp_tool: false,
+    installed: false,
+    field_1_0: false,
+    alt_internet_live: false,
+    mesh_node: false,
+    page: "/aznews",
+  });
+}
+
+export async function runFourdmap(op, payload, _scratch, env) {
   if (op === "health") return fourdmapHealth();
+  if (LIVE_READS[op] && env && env.AZNEWS && !(payload && (payload.fixture === true || payload.observation))) {
+    if (op === "news_sources" && payload && payload.fetch === true) {
+      // fall through to the legacy single-outlet probe
+    } else {
+      return runLiveRead(op, payload, env);
+    }
+  }
+  if (["news_feed", "news_item", "news_sky", "news_pins", "news_pin_open", "news_receipts", "news_verify", "news_globe"].includes(op)) {
+    return latticeEnvelope(op, { ok: false, refused: true, code: "AZNEWS-STORE-UNBOUND", message: "The AZNEWS store is not bound in this isolate. Nothing was read." });
+  }
   if (op === "skill") return fourdmapSkill();
   if (LATTICE_OPS.has(op) || (op === "pin" && wantsLibraryPin(payload))) {
     try {
