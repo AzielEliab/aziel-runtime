@@ -205,7 +205,24 @@ export async function runFourdmap(op, payload, _scratch, env) {
   if (LATTICE_OPS.has(op) || (op === "pin" && wantsLibraryPin(payload))) {
     try {
       const ran = op === "pin" ? "library_pin" : op;
-      return latticeEnvelope(ran, await runLatticeOp(ran, payload));
+      const out = await runLatticeOp(ran, payload);
+      // 4DMAP-PLOT-PERSIST-1.0: library_pin cards go to the 4dmap-v1 store (append-only, dual
+      // lattice, tethered to the copies). FragGate already required confirm=true for this op.
+      // dry_run persists nothing. plot also lists the persisted "plotted" layer.
+      const dry = payload && (payload.dry_run === true || payload.dry_run === "1" || payload.dry_run === 1);
+      if (env && env.AZNEWS && ran === "library_pin" && out && out.ok && out.card && !dry) {
+        const { mapCall } = await import("../../aznews-do.js");
+        out.persisted = await mapCall(env, "map_plot", { card: out.card, pin_type: payload && payload.pin_type });
+      } else if (ran === "library_pin" && out && out.ok) {
+        out.persisted = { ok: false, stored: false, reason: dry ? "dry_run: nothing was stored." : "The 4dmap-v1 store is not bound in this isolate; the pin lives in this instance only." };
+      }
+      if (env && env.AZNEWS && ran === "plot" && out && out.ok) {
+        const { mapCall } = await import("../../aznews-do.js");
+        const stored = await mapCall(env, "map_read", { layers: "plotted", limit: 200 });
+        out.persisted_pins = stored && stored.ok ? stored.pins : [];
+        out.persisted_store = stored && stored.ok ? { spec: "4DMAP-PLOT-PERSIST-1.0", count: (stored.pins || []).length, lattice_live: stored.lattice_live } : stored;
+      }
+      return latticeEnvelope(ran, out);
     } catch (err) {
       if (err && err.code) {
         return latticeEnvelope(op, {
