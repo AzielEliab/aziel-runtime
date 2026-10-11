@@ -210,7 +210,10 @@ export async function runFourdmap(op, payload, _scratch, env) {
       // lattice, tethered to the copies). FragGate already required confirm=true for this op.
       // dry_run persists nothing. plot also lists the persisted "plotted" layer.
       const dry = payload && (payload.dry_run === true || payload.dry_run === "1" || payload.dry_run === 1);
-      if (env && env.AZNEWS && ran === "library_pin" && out && out.ok && out.card && !dry) {
+      const confirmed = payload && payload.persist_confirmed === true;
+      if (env && env.AZNEWS && ran === "library_pin" && out && out.ok && out.card && !dry && !confirmed) {
+        out.persisted = { ok: false, stored: false, refused: true, code: "MCP-CONFIRM-REQUIRED", message: "Persisting a pin to the permanent 4dmap-v1 lattice needs confirm=true. Retry the same call with top-level confirm: true. Nothing was stored." };
+      } else if (env && env.AZNEWS && ran === "library_pin" && out && out.ok && out.card && !dry) {
         const { mapCall } = await import("../../aznews-do.js");
         out.persisted = await mapCall(env, "map_plot", { card: out.card, pin_type: payload && payload.pin_type });
       } else if (ran === "library_pin" && out && out.ok) {

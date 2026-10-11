@@ -526,6 +526,11 @@ async function fraggateCallBody(args, registry, bySlug, env, request, attempt) {
     const dry = src.dry_run;
     if (dry === true || dry === 1 || dry === "1" || dry === "true") payload = { ...payload, dry_run: true };
   }
+  // 4DMAP-PLOT-PERSIST-1.0: library_pin persists only with a top-level confirm=true on every door.
+  if (target.entry.slug === "4dmap" && resolved.op === "library_pin" && payload && typeof payload === "object" && !Array.isArray(payload)) {
+    const yes = (v) => v === true || v === 1 || v === "1" || v === "true";
+    payload = { ...payload, persist_confirmed: yes(src.confirm), ...(yes(src.dry_run) ? { dry_run: true } : {}) };
+  }
   if (target.entry.slug === MEMORY_SLUG) {
     const result = await runMemoryOp(resolved.op, payload, env, request);
     const accepted = await accept({

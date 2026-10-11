@@ -16,3 +16,11 @@ assert.equal(bad.code, "4DMAP-PLOT-COORD");
 const r = await mapRead(repo, { layers: "plotted" });
 assert.equal(r.pins.length, 1);
 console.log("verify-4dmap-plot-persist: ok");
+// confirm gate: bound store, no persist_confirmed -> refused, nothing stored.
+const calls = [];
+const env = { AZNEWS: { getByName: () => ({ fetch: async (req) => { calls.push(await req.json()); return new Response(JSON.stringify({ ok: true, stored: true })); } }) } };
+const nc = await runFourdmap("library_pin", { title: "T2", lat: 41.12, lon: -87.21, date: "2026-10-10" }, null, env);
+assert.equal(nc.persisted.code, "MCP-CONFIRM-REQUIRED"); assert.equal(calls.length, 0);
+const yc = await runFourdmap("library_pin", { title: "T3", lat: 41.12, lon: -87.21, date: "2026-10-10", persist_confirmed: true }, null, env);
+assert.equal(yc.persisted.stored, true); assert.equal(calls[0].op, "map_plot");
+console.log("verify-4dmap-plot-persist: confirm gate ok");
