@@ -277,6 +277,12 @@ export async function beginBackground({ env, ctx, args, registry, bySlug, run })
       }
     })(),
   );
-  if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(work);
+  if (ctx && typeof ctx.waitUntil === "function") {
+    ctx.waitUntil(
+      Promise.resolve(work).catch((err) =>
+        console.error(JSON.stringify({ background_job: "FG-JOB-PERSIST-ERROR", error: String((err && err.message) || err).slice(0, 200) })),
+      ),
+    );
+  }
   return { kind: "job", view: honestJobView(job) };
 }

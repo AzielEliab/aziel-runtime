@@ -238,6 +238,7 @@ export function createBridgeContext(options = {}, env = process.env) {
     protocolVersion: options.protocolVersion || PROTOCOL,
     sessionId: options.sessionId || "",
     timeoutMs: Number(options.timeoutMs || env.AZIEL_RUNTIME_MCP_TIMEOUT_MS || 30000),
+    discoveryTimeoutMs: Number(options.discoveryTimeoutMs || env.AZIEL_RUNTIME_MCP_DISCOVERY_TIMEOUT_MS || 4000),
     log: options.log || ((line) => process.stderr.write(String(line) + "\n")),
     fetchImpl: options.fetchImpl || globalThis.fetch.bind(globalThis),
     localSend: options.localSend || null,
@@ -314,8 +315,26 @@ export async function sendBridgeHttp(message, ctx) {
     method: "POST",
     headers,
     body: JSON.stringify(message),
-    signal: AbortSignal.timeout(ctx.timeoutMs),
+    signal: AbortSignal.timeout(bridgeTimeoutMs(message, ctx)),
   });
+}
+
+/**
+ * GLAMA-STDIO-DEADLINE-1.0: discovery (initialize, tools/list) and
+ * notifications get a short per-attempt deadline so a black-holed egress
+ * (SYN dropped, no RST) cannot stall Glama's inspector past its limit.
+ * Discovery then falls back to the in-process catalog (remote=false).
+ * Tool calls keep the full timeout.
+ */
+export function isQuickBridgeMessage(message) {
+  return !!message && (isNotification(message) || DISCOVERY_FALLBACK_METHODS.includes(message.method));
+}
+
+export function bridgeTimeoutMs(message, ctx) {
+  const full = Number(ctx.timeoutMs) > 0 ? Number(ctx.timeoutMs) : 30000;
+  if (!isQuickBridgeMessage(message)) return full;
+  const quick = Number(ctx.discoveryTimeoutMs) > 0 ? Number(ctx.discoveryTimeoutMs) : 4000;
+  return Math.min(full, quick);
 }
 
 export async function createLocalSend() {
@@ -419,6 +438,11 @@ export async function dispatchMcp(message, ctx) {
     } else {
       const origins = ctx.origins && ctx.origins.length ? ctx.origins : [ctx.url];
       let lastErr = null;
+      const quick = isQuickBridgeMessage(message);
+      const startedAt = Date.now();
+      if (quick && Number(ctx.quickSkipUntil) > startedAt) {
+        throw new Error("remote skipped: discovery deadline missed in the last 60s");
+      }
       for (let i = ctx.originIndex || 0; i < origins.length; i++) {
         ctx.originIndex = i;
         ctx.url = origins[i];
@@ -426,6 +450,11 @@ export async function dispatchMcp(message, ctx) {
           res = await sendBridgeHttp(message, ctx);
         } catch (err) {
           lastErr = err;
+          if (quick && Date.now() - startedAt >= bridgeTimeoutMs(message, ctx)) {
+            ctx.originIndex = 0;
+            ctx.quickSkipUntil = Date.now() + 60000;
+            throw err;
+          }
           if (i < origins.length - 1) {
             ctx.sessionId = "";
             ctx.log(`BAN-SURVIVAL failover: ${origins[i]} failed (${err && err.message ? err.message : err}); trying ${origins[i + 1]}`);

@@ -10,7 +10,7 @@ FROM node:22-bookworm-slim
 WORKDIR /app
 COPY package.json package-lock.json* ./
 COPY . .
-RUN npm install --omit=dev
+RUN if [ -f package-lock.json ]; then npm ci --omit=dev --no-audit --no-fund --ignore-scripts; else npm install --omit=dev --no-audit --no-fund --ignore-scripts; fi
 ENV NODE_ENV=production
 ENV AZIEL_RUNTIME_URL=https://aziel-runtime.vibelock.workers.dev
 CMD ["node", "cli/mcp-stdio.mjs"]
