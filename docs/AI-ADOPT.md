@@ -13,7 +13,7 @@ Person `@id` is `https://www.azieleliab.com/#aziel`.
 | `GET /openapi.json` | Full catalog spec. Unchanged. |
 | `GET /install/cursor.json` | Cursor remote MCP paste. `MCP-Protocol-Version: 2025-11-25`. |
 | `GET /install/claude-desktop.json` | Claude Desktop remote HTTP MCP. Same protocol header. |
-| `GET /v1/clients.json` | Client class → transport → snippet URL. `slot` lists what is not live. |
+| `GET /v1/clients.json` | Client class → transport → snippet URL. Per client `status` is `verified` (with an `evidence` file in this repo) or `unverified`; `transport_status: SERVED` only means this Worker serves the transport (CLIENT-EVIDENCE-1.0). `slot` lists what is not live. |
 | `GET /mcp.json` and `GET /.well-known/mcp.json` | Same body as the MCP server card. |
 | `GET /.well-known/llms.txt` | Same body as `/llms.txt`. |
 | `GET /glama.json` | In-repo `glama.json`. Withheld if a UUID or DOI is present. |

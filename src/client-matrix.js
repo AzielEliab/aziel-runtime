@@ -1,6 +1,9 @@
 /**
  * Machine install matrix for the full AI client set.
- * LIVE means a transport this Worker already serves. slot[] names what is not live.
+ * CLIENT-EVIDENCE-1.0: status is "verified" only when the repo holds real end-to-end
+ * evidence (a recorded tools/call from that client against the live Worker); otherwise
+ * "unverified". transport_status "SERVED" only says this Worker serves the transport.
+ * slot[] names what is not live.
  * No plugin-store card, Apple private API, DOI, or OAuth IdP is invented.
  * Author: Aziel Eliab only.
  */
@@ -60,6 +63,11 @@ if (CLIENT_CLASS_IDS.length !== COMPATIBLE_AI_CLIENTS.length + 1) {
   throw new Error("client class ids drifted from the compatible AI client list");
 }
 
+/** Real end-to-end evidence per client id (repo path). Empty today: none is recorded. */
+export const CLIENT_EVIDENCE = Object.freeze({});
+export const CLIENT_EVIDENCE_RULE =
+  "verified only with a recorded end-to-end tools/call from that client against the live Worker, kept in the repo (evidence names the file). Mock tests, crawler fetches, and served transports are not evidence. Everything else is unverified.";
+
 function snippetUrl(id, base) {
   switch (id) {
     case "cursor":
@@ -103,7 +111,9 @@ export function clientMatrix(origin) {
       id,
       name: names[i],
       transport: TRANSPORT[id],
-      status: "LIVE",
+      status: CLIENT_EVIDENCE[id] ? "verified" : "unverified",
+      evidence: CLIENT_EVIDENCE[id] || null,
+      transport_status: "SERVED",
       snippet_url: snippetUrl(id, base),
       also: alsoUrls(id, base),
       slot,
@@ -118,6 +128,8 @@ export function clientMatrix(origin) {
     integrate:
       "Softwares {} → pick a slug → fraggate_call { slug, op, payload?, dry_run|confirm } → show display → keep the receipt hash. Library papers: library_lookup.",
     confirm_is_not_auth: true,
+    evidence_rule: CLIENT_EVIDENCE_RULE,
+    verified_count: clients.filter((c) => c.status === "verified").length,
     clients,
   };
 }

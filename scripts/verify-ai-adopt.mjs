@@ -189,7 +189,11 @@ assert.equal(matrix.auth, "none");
 assert.equal(matrix.clients.length, 17);
 assert.deepEqual(matrix.clients.map((c) => c.id), CLIENT_CLASS_IDS.slice());
 for (const row of matrix.clients) {
-  assert.ok(row.status === "LIVE" || row.status === "SLOT", row.id);
+  assert.ok(row.status === "verified" || row.status === "unverified", row.id);
+  assert.notEqual(row.status, "LIVE", row.id);
+  if (row.status === "verified") assert.ok(typeof row.evidence === "string" && row.evidence.length > 0, row.id);
+  else assert.equal(row.evidence, null, row.id);
+  assert.equal(row.transport_status, "SERVED", row.id);
   assert.ok(row.snippet_url.startsWith("https://"), row.id);
   assert.ok(Array.isArray(row.slot), row.id);
 }
