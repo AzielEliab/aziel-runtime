@@ -567,6 +567,7 @@ export async function readUses(env, options = {}) {
       light: true,
     };
   }
+  if (options.maps === "snapshot") return readUsesSnapshot(kv, base, uses, recent, startedAt, budgetMs);
   const [by_host, by_path, by_day, by_method, by_op] = await Promise.all([
     collectPrefixed(kv, "host|", startedAt, budgetMs),
     collectPrefixed(kv, "path|", startedAt, budgetMs),
@@ -682,16 +683,17 @@ async function collectPrefixed(kv, prefix, startedAt = Date.now(), budgetMs = US
     }
     const page = await kv.list({ prefix, limit: 1000, cursor });
     const keys = (page && page.keys) || [];
-    for (const item of keys) {
+    const names = keys.map((item) => item && item.name).filter((name) => name && name !== prefix);
+    for (let i = 0; i < names.length; i += USES_GET_BATCH) {
       if (Date.now() - startedAt > budgetMs) {
         complete = false;
         break;
       }
-      const name = item && item.name;
-      if (!name || name === prefix) continue;
-      const label = name.slice(prefix.length);
-      const n = Number(await kv.get(name)) || 0;
-      out[label] = n;
+      const batch = names.slice(i, i + USES_GET_BATCH);
+      const vals = await Promise.all(batch.map((name) => kv.get(name)));
+      batch.forEach((name, j) => {
+        out[name.slice(prefix.length)] = Number(vals[j]) || 0;
+      });
     }
     cursor = page && page.list_complete === false ? page.cursor : undefined;
   } while (cursor && complete);
@@ -749,5 +751,96 @@ export function memoryUsesKv(seed = {}) {
       };
     },
     _store: store,
+  };
+}
+
+const USES_GET_BATCH = 50;
+export const USES_SNAPSHOT_KEY = "agg|snapshot";
+export const USES_SNAPSHOT_PROGRESS_KEY = "agg|progress";
+export const USES_SNAPSHOT_SPEC = "USES-SNAPSHOT-1.0";
+export const USES_SNAPSHOT_STALE_S = 30 * 60;
+const SNAPSHOT_PREFIXES = Object.freeze([["by_host", "host|"], ["by_path", "path|"], ["by_day", "day|"], ["by_method", "method|"], ["by_op", "op|"]]);
+
+/**
+ * USES-SNAPSHOT-1.0: the per-host/path/day/method/op maps are aggregated off the request path by
+ * the cron (resumable: progress is saved between runs, so a big KV is finished across several
+ * ticks). /v1/stats then reads three KV keys (total, log, snapshot) instead of scanning.
+ * A snapshot is published only after a full pass, with snapshot_at; nothing is estimated.
+ */
+export async function buildUsesSnapshot(env, { budget_ms = 20_000, now = Date.now() } = {}) {
+  const kv = usesKv(env);
+  if (!kv || typeof kv.list !== "function") return { ok: false, code: "USES-KV-ABSENT" };
+  const startedAt = Date.now();
+  let prog = null;
+  try {
+    prog = JSON.parse((await kv.get(USES_SNAPSHOT_PROGRESS_KEY)) || "null");
+  } catch {
+    prog = null;
+  }
+  if (!prog || typeof prog !== "object" || !prog.maps) prog = { started_at: now, step: 0, cursor: null, maps: {} };
+  while (prog.step < SNAPSHOT_PREFIXES.length) {
+    const [field, prefix] = SNAPSHOT_PREFIXES[prog.step];
+    const map = prog.maps[field] || (prog.maps[field] = {});
+    let cursor = prog.cursor || undefined;
+    do {
+      if (Date.now() - startedAt > budget_ms) {
+        prog.cursor = cursor || null;
+        await kv.put(USES_SNAPSHOT_PROGRESS_KEY, JSON.stringify(prog));
+        return { ok: true, published: false, resumable: true, step: prog.step };
+      }
+      const page = await kv.list({ prefix, limit: 1000, cursor });
+      const names = ((page && page.keys) || []).map((k) => k && k.name).filter((n) => n && n !== prefix);
+      for (let i = 0; i < names.length; i += USES_GET_BATCH) {
+        const batch = names.slice(i, i + USES_GET_BATCH);
+        const vals = await Promise.all(batch.map((n) => kv.get(n)));
+        batch.forEach((n, j) => {
+          map[n.slice(prefix.length)] = Number(vals[j]) || 0;
+        });
+      }
+      cursor = page && page.list_complete === false ? page.cursor : undefined;
+    } while (cursor);
+    prog.step++;
+    prog.cursor = null;
+  }
+  const snap = { spec: USES_SNAPSHOT_SPEC, snapshot_at: new Date(now).toISOString(), started_at: new Date(prog.started_at).toISOString(), complete: true, ...prog.maps };
+  await kv.put(USES_SNAPSHOT_KEY, JSON.stringify(snap));
+  if (typeof kv.delete === "function") await kv.delete(USES_SNAPSHOT_PROGRESS_KEY);
+  else await kv.put(USES_SNAPSHOT_PROGRESS_KEY, "");
+  return { ok: true, published: true, snapshot_at: snap.snapshot_at };
+}
+
+/** USES-SNAPSHOT-1.0 /v1/stats path: total + log + cron snapshot (three KV gets, no scan). */
+async function readUsesSnapshot(kv, base, uses, recent, startedAt, budgetMs) {
+  // USES-SNAPSHOT-1.0: no scan on the request path. The total is live; the maps come from the
+  // cron-built snapshot and say when they were built.
+  let snap = null;
+  try {
+    snap = JSON.parse((await kv.get(USES_SNAPSHOT_KEY)) || "null");
+  } catch {
+    snap = null;
+  }
+  const ageS = snap && snap.snapshot_at ? Math.max(0, Math.round((Date.now() - Date.parse(snap.snapshot_at)) / 1000)) : null;
+  const mapsOk = Boolean(snap && snap.complete === true && ageS != null && ageS <= USES_SNAPSHOT_STALE_S);
+  return {
+    ...base,
+    uses,
+    by_host: (snap && snap.by_host) || {},
+    by_path: (snap && snap.by_path) || {},
+    by_day: (snap && snap.by_day) || {},
+    by_method: (snap && snap.by_method) || {},
+    by_op: (snap && snap.by_op) || {},
+    recent,
+    uses_kv: true,
+    // uses (the total) is a complete live read; the maps are labelled separately.
+    uses_complete: true,
+    maps_source: USES_SNAPSHOT_SPEC,
+    maps_snapshot_at: (snap && snap.snapshot_at) || null,
+    maps_age_s: ageS,
+    maps_complete: mapsOk,
+    maps_note: mapsOk
+      ? "Per-host/path/day/method/op maps are the cron snapshot at maps_snapshot_at (rebuilt about every 2 minutes); uses is live."
+      : "Per-host/path/day/method/op maps are not available yet or are stale (no complete snapshot within 30 minutes); uses is live.",
+    uses_read_ms: Date.now() - startedAt,
+    uses_read_budget_ms: budgetMs,
   };
 }
