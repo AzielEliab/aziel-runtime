@@ -345,7 +345,7 @@ const mcpCallNoConfirm = await post("/mcp", {
 });
 const mcpCallBody = await mcpCallNoConfirm.json();
 const mcpText = JSON.stringify(mcpCallBody);
-assert.match(mcpText, /MCP-CONFIRM-REQUIRED|confirm=true/);
+assert.doesNotMatch(mcpText, /MCP-CONFIRM-REQUIRED/, "read-only fraggate ops run without confirm");
 
 const unlabeled = productSlugs.filter((s) => !taskSlugs.includes(s));
 assert.ok(unlabeled.length >= 20, "remaining Softwares use /p/{slug} instead of a labeled #task-* pane");

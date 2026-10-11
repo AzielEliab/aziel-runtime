@@ -874,6 +874,11 @@ export function mcpCallPayload(name, out, product, op) {
   if (out && out.confirm_consent && envelope && typeof envelope === "object") {
     Object.assign(envelope, confirmConsentHonesty());
   }
+  if (out && out.read_only && envelope && typeof envelope === "object") {
+    envelope.access = "read_only";
+    envelope.mutated = false;
+    envelope.confirm_needed = false;
+  }
   if (out && out.fraggate_entered && envelope && typeof envelope === "object") {
     envelope.fraggate_entered = true;
   }

@@ -198,7 +198,7 @@ assert.equal(gateRefuseBody.result.structuredContent.code, MCP_CONFIRM_REQUIRED)
 
 const refuse = await mcp("tools/call", {
   name: "fraggate_call",
-  arguments: { slug: "foldlock", op: "fold-preview", payload: { text: "confirm gate" } },
+  arguments: { slug: "foldlock", op: "fold-append", payload: { text: "confirm gate" } },
 });
 assert.equal(refuse.status, 200);
 const refuseBody = await refuse.json();

@@ -297,7 +297,7 @@ import {
   refuseInfra,
 } from "./auto-gate.js";
 import { describeRegistry, fraggateCall, listRegistry, previewCatalogAdmission, verifyRegistry } from "./fraggate/door.js";
-import { LIVE_OPS, NAMED_STUBS, registryDigest, registrySummary } from "./fraggate/registry.js";
+import { LIVE_OPS, NAMED_STUBS, registryDigest, registrySummary, resolveOpAlias } from "./fraggate/registry.js";
 import {
   AUTHOR_ALTERNATE_NAME,
   AUTHOR_GITHUB,
@@ -3369,7 +3369,7 @@ async function callRuntimeTool(env, name, args, origin, request) {
   }
   if (name === "runtime_pull") {
     const key = resolveSlug((args && (args.slug || args.product)) || "", BY_SLUG);
-    if (!key) throw new Error(`unknown product: ${(args && args.slug) || ""}`);
+    if (!key) throw new Error(args && args.slug ? `unknown product: ${args.slug}` : "slug required. Pick one from the Softwares tool, e.g. {\"slug\":\"foldlock\"}.");
     const product = BY_SLUG[key];
     const fetched = await fetchProductSkill(env, product, upstreamFetch);
     const skillText = fetched.text || fallbackSkillMarkdown(product, base);
@@ -3590,9 +3590,14 @@ async function callTool(env, name, args, origin, request, ctx) {
   if ((name === "runtime_run" || name === "runtime_session_exec") && meshQuestionOf(args) && !explicitRouteTarget(args)) {
     return meshAdaptMcp(env, name, args, origin, request);
   }
-  const safeguard = evaluateMutateSafeguard(name, args);
+  const safeguard = evaluateMutateSafeguard(name, args, { resolveOp: (slug, op) => resolveOpAlias(slug, op).op });
   if (safeguard.gated) {
     return withConfirmConsent(wrapFraggateEnvelope(name, safeguard.envelope, null, (args && args.op) || null));
+  }
+  if (safeguard.read_only) {
+    const slug = String((args && (args.slug || args.name || args.product)) || "");
+    // AZNews look rule: an unconfirmed read is a preview, never a look. No look receipt is minted.
+    if (slug === "4dmap" && /^news_/.test(String(safeguard.access && safeguard.access.op))) args = { ...args, dry_run: true };
   }
   const registry = registryFor(PRODUCTS);
   if (safeguard.dry_run) {
@@ -3640,6 +3645,7 @@ async function callTool(env, name, args, origin, request, ctx) {
   if (local) {
     if (!isDoorDiagnostic(name)) markDoorEntered(local);
     attachInfra(local, await infraAfterBody(env, name, local));
+    if (safeguard.read_only) local.read_only = true;
     return safeguard.confirmed ? withConfirmConsent(local) : local;
   }
   const missing = wrapFraggateEnvelope(name, hallucRefuse(name), null, null);
