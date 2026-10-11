@@ -367,6 +367,7 @@ assert.match(openapi.info.description, /AZNet/);
 assert.match(openapi.info.description, /fraggate\/call/);
 assert.match(openapi.info.description, /not a payload host/i);
 
+env.CHAINLOCK ??= (await import("../src/chainlock/writer-do.js")).memoryChainWriterNamespace({}); // STATS-FLOOR-1.0
 const uses = await (await handler(new Request(origin + "/v1/uses"), env)).json();
 assert.equal(uses.ok, true);
 assert.equal(uses.uses_kv, true);
