@@ -225,6 +225,15 @@ assert.equal(godlockPost.body.count, 42);
 citeDown = true;
 const again = await post("/v1/mesh/sot-sync", { confirm: true });
 assert.equal(again.status, 200);
+// LATTICE-RECEIPTS-1.0: sot-sync receipts carry the dual lattice, linked receipt to receipt.
+{
+  const { verifyLattice } = await import("../src/dual-lattice.js");
+  const a = applied.data.receipt, b = again.data.receipt;
+  assert.match(a.lattice.primary, /^[0-9a-f]{64}$/); assert.match(b.lattice.secondary, /^[0-9a-f]{64}$/);
+  assert.equal(a.lattice.document_hash, a.hash); assert.equal(b.lattice.primary_prev, a.lattice.primary);
+  assert.equal((await verifyLattice([a, b])).ok, true);
+  console.log("ok sot-sync receipts carry the dual lattice");
+}
 const citeAgain = again.data.outlets.find((row) => row.id === "azieleliab-cite");
 assert.equal(citeAgain.status, "unreachable");
 assert.equal(citeAgain.apply, "unreachable");
