@@ -31,7 +31,7 @@ FragGate stays the single door; no receipt is minted on the local path
 
 - Duplicate object keys removed (earlier occurrence; the later value already won):
   `src/fed-mesh/bearers.js` (9), `ban-survival.js` (2), `cap7-shuffle.js` (2),
-  `display.js` (4), `engines/azos/engine.js` (1). ENGINE_DIGESTS re-hashed.
+  `display.js` (4). The duplicate `kernel` key in `engines/azos/engine.js` is left in place: editing it would change the azos engine digest and the pinned FragGate registry_digest.
 - `package-lock.json` committed and `engines.node >=20` declared so the Glama
   and Docker installs are reproducible; Dockerfile uses `npm ci --omit=dev
   --ignore-scripts` when the lockfile is present.
