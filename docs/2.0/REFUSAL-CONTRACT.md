@@ -175,3 +175,11 @@ New names only; no existing code changed or recycled. All are `ok: false`.
 | `EXPECT-SPEC-INVALID` / `EXPECT-VERDICT-INVALID` | AZRT-EXPECT-SPEC-1.0 | Malformed `expect` on open / `verdict` on close (400) |
 
 Every refusal above and every existing refuse code on `tools/call` / `POST /v1/fraggate/call` additionally returns `refusal_receipt` (AZRT-REFUSAL-RECEIPT-1.0). The code and envelope fields are unchanged.
+
+---
+
+## 5b. Mesh peer sessions (additive, 2.0.x)
+
+| Code | Spec | When |
+|------|------|------|
+| `MESH-PEER-NOT-ALLOWED` | AZRT-MESH-PEER-DENY-1.0 | Local Track 2 node: peer session offer/accept with a handle the operator has not allowed (deny-by-default). The public Worker `peer_session_open` stays `FG-STUB`. |
