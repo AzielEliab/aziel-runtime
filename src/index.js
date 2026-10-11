@@ -4876,10 +4876,6 @@ export default {
   async fetch(request, rawEnv, ctx) {
     // Hot USES writes go to the RUNTIME_KV Durable Object (KV daily put quota made /mcp throw 1101).
     const env = withDurableKv(rawEnv);
-    if (ctx && typeof ctx.waitUntil === "function") {
-      // AZRT-ANCHOR-1.0: refresh the verified witness view off the request path (never blocks a mint).
-      ctx.waitUntil(import("./anchor.js").then((a) => a.refreshAnchorsIfStale(fetch)).catch(() => null));
-    }
     const budget = requestDeadlineMs(env);
     const run = async () => {
       const peek = String(request.method || "GET").toUpperCase() === "POST" ? request.clone() : request;
@@ -4892,6 +4888,11 @@ export default {
     };
     const execute = () => (env && env.CHAINLOCK ? runWithLedgerStore(storeFor(env), run) : run());
     const result = await withDeadline(execute(), budget, () => json(deadlineRefuse(budget), 408));
+    if (ctx && typeof ctx.waitUntil === "function") {
+      // AZRT-ANCHOR-1.0: refresh the verified witness view after the response (never blocks a mint;
+      // registered last so it never reorders other waitUntil work).
+      ctx.waitUntil(import("./anchor.js").then((a) => a.refreshAnchorsIfStale(fetch)).then(() => ({ anchor_refresh: true })).catch(() => null));
+    }
     return applySecurityHeaders(result);
   },
   async scheduled(controller, rawEnv, ctx) {
