@@ -37,3 +37,26 @@ console.log(`ok mesh wording: ${n} checks`);
   assert.ok(!/"id":"phoenix"[^}]*"live":true/.test(body));
   console.log("ok mesh wording: phoenix local_only, L4 read not served, egress-rotate qualified");
 }
+
+// L3 phoenix is the local re-seal loop: never live on the hosted Worker.
+{
+  const found = [];
+  let checked = 0;
+  const walk = (o, path) => {
+    if (!o || typeof o !== "object") return;
+    if (o.id === "phoenix" || /phoenix$/.test(path)) {
+      if (o.live === true || o.status === "live") found.push(path);
+    }
+    for (const [k, v] of Object.entries(o)) walk(v, `${path}.${k}`);
+  };
+  for (const p of ["/v1/mesh", "/v1/mesh/relay", "/v1/mesh/status", "/v1/mesh/nodes"]) {
+    const r = await worker.fetch(new Request("https://x.example" + p), {}, { waitUntil() {} });
+    const ct = r.headers.get("content-type") || "";
+    assert.ok(ct.includes("json"), p + " should be JSON");
+    checked++;
+    walk(await r.json(), p);
+  }
+  assert.equal(checked, 4);
+  assert.deepEqual(found, [], "phoenix must not be live on the Worker: " + found.join(", "));
+  console.log("ok phoenix local_only across /v1/mesh, relay, status, nodes");
+}

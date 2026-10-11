@@ -134,8 +134,9 @@ export function l3Registry() {
     phoenix: {
       id: "phoenix",
       spec: "REHEAL-1.0",
-      status: "live",
-      live: true,
+      status: "local_only",
+      live: false,
+      worker_served: false,
       controller_hunt: false,
       vote_to_fix: false,
       neighbor_vote: false,
