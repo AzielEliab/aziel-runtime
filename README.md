@@ -148,7 +148,7 @@ Every Worker launch (homepage, `/about`, every `/p/{slug}`, HTML Softwares/descr
 | **Primary host / discovery / install** | https://glama.ai/mcp/servers/AzielEliab/aziel-runtime |
 | Official site | https://www.azieleliab.com/ |
 | Runtime hub (entity parent) | https://www.azieleliab.com/runtime |
-| FragGate kernel | https://github.com/AzielEliab/fraggate |
+| FragGate registry | https://github.com/AzielEliab/fraggate |
 | Canonical GitHub | https://github.com/AzielEliab/aziel-runtime |
 | Runtime Worker / MCP / OpenAPI | https://aziel-runtime.vibelock.workers.dev/ |
 | Library mirror (reverse-proxy) | https://www.azielcorpuslibrary.net/runtime |
@@ -273,7 +273,7 @@ Always send `User-Agent: Mozilla/5.0`.
 | Skill | https://aziel-runtime.vibelock.workers.dev/v1/skill |
 | FragGate door | https://aziel-runtime.vibelock.workers.dev/v1/fraggate |
 | FragGate Worker UI + counted download | https://fraggate-download-tracker.vibelock.workers.dev/ |
-| FragGate kernel | https://github.com/AzielEliab/fraggate |
+| FragGate registry | https://github.com/AzielEliab/fraggate |
 | Machine manifest (`role=engine-runtime`) | https://aziel-runtime.vibelock.workers.dev/v1/runtime.json (public `GET /v1/manifest` is not a path; MCP `runtime_manifest` returns this JSON) |
 | Session open | `POST` https://aziel-runtime.vibelock.workers.dev/v1/session/open |
 | Session exec | `POST` https://aziel-runtime.vibelock.workers.dev/v1/session/{id}/exec |

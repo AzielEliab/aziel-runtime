@@ -2764,7 +2764,7 @@ function staticPaths(origin, env = {}) {
       get: {
         operationId: "catalog_list",
         summary:
-          "Machine-readable catalog. products[] are Software engines (slug, worker, github — hubs fetch these). extras[] / fraggate is the FragGate kernel card (github.com/AzielEliab/fraggate; worker fraggate-download-tracker is the separate human UI + counted download). Each product includes door, fraggate_live, fraggate_ops, fraggate_call. Authoritative hub tab list is GET /v1/software (Plain→Gate→Lock; EmbryoLock live-with-local-destructive-boundary; AZChat LIVE+bound).",
+          "Machine-readable catalog. products[] are Software engines (slug, worker, github — hubs fetch these). extras[] / fraggate is the FragGate registry card (github.com/AzielEliab/fraggate; worker fraggate-download-tracker is the separate human UI + counted download). Each product includes door, fraggate_live, fraggate_ops, fraggate_call. Authoritative hub tab list is GET /v1/software (Plain→Gate→Lock; EmbryoLock live-with-local-destructive-boundary; AZChat LIVE+bound).",
         tags: ["runtime"],
         responses: { "200": { description: "Product catalog JSON" } },
       },

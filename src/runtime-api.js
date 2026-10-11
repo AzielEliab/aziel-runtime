@@ -205,7 +205,7 @@ description: >-
 
 This is software you use in chat. **One door — discover, route, refuse.** There is no extra technical UI for the agent surface. Show the user the software output, then take the next input.
 
-FragGate kernel: https://github.com/AzielEliab/fraggate (FG-0.1)
+FragGate gate (registry): https://github.com/AzielEliab/fraggate (FG-0.1)
 
 ## Start here
 
@@ -294,7 +294,7 @@ License: Apache-2.0. Forks are welcome and always allowed.
 Version: ${RUNTIME_VERSION}
 Role: engine-runtime (layer: catalog+pull+proxy+session+in-process-engines+fraggate)
 Door: fraggate
-Kernel: https://github.com/AzielEliab/fraggate
+Registry: https://github.com/AzielEliab/fraggate
 Host: ${base}/
 Everblooming sigil: ${base}/sigil.png
 Products: ${n} (${slugs})

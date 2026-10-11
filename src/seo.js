@@ -691,7 +691,7 @@ export function libraryJsonLd() {
     alternateName: ["Aziel Corpus Library"],
     url: LIBRARY_ORIGIN + "/",
     description:
-      "Self-contained immutable digital library. Public MASTER. Counted package download. Mesh-resident website designs azcorpus + azlibrary downloadable to nodes. Author Aziel Eliab. Not a 26-card software index.",
+      "Self-contained hash-linked, append-only digital library. Public MASTER. Counted package download. Mesh-resident website designs azcorpus + azlibrary downloadable to nodes. Author Aziel Eliab. Not a 26-card software index.",
     applicationCategory: "ReferenceApplication",
     operatingSystem: "Cloudflare Workers",
     license: "https://www.apache.org/licenses/LICENSE-2.0",

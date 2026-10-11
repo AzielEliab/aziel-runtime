@@ -66,8 +66,8 @@ Corpus counters are `GET /stats`, not `/v1/stats`. Corpus version is `GET /v1/he
 - He Didn't Jump (sister archive) → https://www.hedidntjump.com/ · sitemap https://www.hedidntjump.com/sitemap.xml — Zioncheck archive sister
 - This Worker → FragGate engine-runtime / MCP Softwares door 2.0.0-rc1
 - Trades-Runtime (sister product, not a Softwares-tab engine; `fraggate_call` does not execute company ops) → https://github.com/AzielEliab/trades-runtime · Worker https://trades-runtime.vibelock.workers.dev · MCP https://trades-runtime.vibelock.workers.dev/mcp · download https://trades-runtime.vibelock.workers.dev/download
-- FragGate kernel → https://github.com/AzielEliab/fraggate
-- Whitestone (Worker-only Softwares card; FragGate none; Case Mode is a product feature) → https://whitestone.vibelock.workers.dev/ · catalog https://whitestone.vibelock.workers.dev/v1/software · counted zip https://whitestone-download-tracker.vibelock.workers.dev/download · GitHub https://github.com/AzielEliab/Whitestone. Historical as-of + Case Mode (suppression axes, TrajectoryLock-lite, export, confidence ≤75%). Session-only. Not a lawyer / not legal advice. Not FragGate kernel. Placement: `docs/2.0/WHITESTONE-PLACEMENT.md`.
+- FragGate registry → https://github.com/AzielEliab/fraggate
+- Whitestone (Worker-only Softwares card; FragGate none; Case Mode is a product feature) → https://whitestone.vibelock.workers.dev/ · catalog https://whitestone.vibelock.workers.dev/v1/software · counted zip https://whitestone-download-tracker.vibelock.workers.dev/download · GitHub https://github.com/AzielEliab/Whitestone. Historical as-of + Case Mode (suppression axes, TrajectoryLock-lite, export, confidence ≤75%). Session-only. Not a lawyer / not legal advice. Not FragGate registry. Placement: `docs/2.0/WHITESTONE-PLACEMENT.md`.
 - Try on Glama (primary host / discovery / install) → https://glama.ai/mcp/servers/AzielEliab/aziel-runtime
 
 ## Compatible AI clients

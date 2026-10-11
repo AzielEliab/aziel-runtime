@@ -32,7 +32,7 @@ for (const f of ["src/anchor.js", "src/checkpoints/checkpoint.js", "src/azos-tet
   walk(new URL("..", import.meta.url).pathname);
   const bad = [];
   const SIGNED = /(?<!not )\bsigned receipts?\b/i;
-  const IMM = [/\bimmutable\b(?:\s+[\w-]+,?){0,3}?\s+(ledger|receipts?|events?|evidence|stamps?|ingress)\b/i, /\b(state|ledger|receipts?|evidence)\s+(is|are|remains?)\s+(the\s+)?immutable\b/i];
+  const IMM = [/\bimmutable\s+(timeline|timeslate|digital library|lattice)\b/i, /\bFragGate(\s+FG-[\d.]+)?\s+kernel\b/i, /\bimmutable\b(?:\s+[\w-]+,?){0,3}?\s+(ledger|receipts?|events?|evidence|stamps?|ingress)\b/i, /\b(state|ledger|receipts?|evidence)\s+(is|are|remains?)\s+(the\s+)?immutable\b/i];
   for (const f of md) {
     const t = readFileSync(f, "utf8").replace(/\s+/g, " ");
     if (SIGNED.test(t)) bad.push(f + ": signed receipts");
@@ -40,6 +40,7 @@ for (const f of ["src/anchor.js", "src/checkpoints/checkpoint.js", "src/azos-tet
   }
   assert.deepEqual(bad, [], "docs + src wording");
   assert.ok(md.length > 20, "scanned all docs");
+  assert.ok(md.some((f) => /\/src\/engines\/staticclock\//.test(f)) && md.some((f) => /\/src\/engines\/temporallock\//.test(f)), "engines/ scanned");
   n++;
 }
 console.log(`ok signing layers: ${n} checks`);
