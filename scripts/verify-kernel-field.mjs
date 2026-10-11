@@ -20,7 +20,7 @@ const list = await get("/v1/fraggate/list");
 assert.equal(list.kernel, false);
 assert.equal(list.kernel_repo_url, "https://github.com/AzielEliab/fraggate");
 // registry_digest moves with ENGINE_DIGESTS (engine wording changed in DOCS-WORDING-1.0).
-assert.equal(list.registry_digest, "f36bf1f85cb8d4974a5752492ee0390385ad13a29eed338e7560059ee0ee46b8");
+assert.equal(list.registry_digest, "22a61fd4ca47be4516fcb84bdccf6398aaf54942b28df77bd3706720d9aaf375");
 assert.equal(list.stub_op_count, 363);
 assert.equal(list.live_count, 42);
 n += 5;

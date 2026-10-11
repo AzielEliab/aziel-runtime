@@ -457,16 +457,24 @@ async function ingestOutlet(batch, repo, outlet, fetchImpl, now, recent, budget)
   status.ok = items.length > 0;
   if (!items.length) status.reason = "feed had no items";
   const fresh = [];
+  // AZNEWS-FETCH-DEDUPE-1.0: batch.seen is only filled when an item is stored, so a feed that
+  // repeats one link (or one title+wording) in a single fetch must be caught here, per fetch.
+  const fetchUrls = new Set();
+  const fetchContents = new Set();
   for (const it of items) {
     if (!it.canonical_url) continue;
     const published = parseDate(it.published_raw);
     if (published && now - Date.parse(published) > MAX_ITEM_AGE_MS) continue;
     const urlHash = await sha256Hex(it.canonical_url);
+    if (fetchUrls.has(urlHash)) continue;
     if (await repo.seenGet(`u:${urlHash}`)) continue;
     if (batch.seen[`u:${urlHash}`]) continue;
     const contentHash = await hashDoc({ title: it.title, wording: it.wording });
+    if (fetchContents.has(contentHash)) continue;
     if (await repo.seenGet(`c:${contentHash}`)) continue;
     if (batch.seen[`c:${contentHash}`]) continue;
+    fetchUrls.add(urlHash);
+    fetchContents.add(contentHash);
     fresh.push({ ...it, published, urlHash, contentHash });
   }
   fresh.sort((a, b) => (Date.parse(b.published || 0) || 0) - (Date.parse(a.published || 0) || 0));
