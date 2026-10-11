@@ -43,6 +43,59 @@ export const ROSTER = Object.freeze([
 export const INTERNAL_CHAINS = Object.freeze(["refusals"]);
 
 /**
+ * LATTICE-DOC-UNIQUE-1.0: document chains. A document (stampDocumentHash: chain, kind,
+ * subject, fact; no ids or times) may be stored once across every caller and mode.
+ * A second copy online, offline, or under another user is refused LATTICE-DOUBLE-*.
+ * The claim index is checked before the write; if it cannot be read, the write is
+ * refused (fail closed). Event chains (session, acts, mesh, learn, recall, ...) are
+ * not documents and keep their own rules.
+ */
+export const DOCUMENT_CHAINS = Object.freeze(["evidence", "library", "identity"]);
+export const DOC_UNIQUE_SPEC = "LATTICE-DOC-UNIQUE-1.0";
+
+async function claimDocument(store, doc, owner, idemp) {
+  try {
+    if (store && typeof store.docClaim === "function") return await store.docClaim(doc, owner, idemp);
+    if (store && typeof store.get === "function" && typeof store.put === "function") {
+      const key = "docidx/" + doc;
+      const raw = await store.get(key);
+      const hit = raw ? JSON.parse(raw) : null;
+      if (!hit) {
+        await store.put(key, JSON.stringify({ owner, idemp: idemp || "" }));
+        return { ok: true, fresh: true };
+      }
+      if (hit.owner === owner && idemp && hit.idemp === idemp) return { ok: true, fresh: false };
+      return { ok: false, refuse: "lattice-double", code: hit.owner === owner ? "LATTICE-DOUBLE" : "LATTICE-DOUBLE-CROSS" };
+    }
+  } catch {
+    /* fall through: fail closed */
+  }
+  return { ok: false, refuse: "lattice-doc-index", code: "LATTICE-DOC-INDEX-UNAVAILABLE" };
+}
+
+async function releaseDocument(store, doc, owner) {
+  try {
+    if (store && typeof store.docRelease === "function") return await store.docRelease(doc, owner);
+    if (store && typeof store.get === "function" && typeof store.put === "function") {
+      const key = "docidx/" + doc;
+      const raw = await store.get(key);
+      const hit = raw ? JSON.parse(raw) : null;
+      if (hit && hit.owner === owner && typeof store.delete === "function") await store.delete(key);
+      else if (hit && hit.owner === owner) await store.put(key, "");
+    }
+  } catch {
+    /* a stale claim only blocks a retry of the same document; it never allows a double */
+  }
+  return null;
+}
+
+const DOUBLE_MESSAGE = {
+  "LATTICE-DOUBLE": "This document is already stored on this chain. The document hash matched, so it was not written twice.",
+  "LATTICE-DOUBLE-CROSS": "This document is already stored under another user or chain. The document hash matched, so it was not written twice.",
+  "LATTICE-DOC-INDEX-UNAVAILABLE": "The document index could not be read, so the write was refused (fail closed).",
+};
+
+/**
  * Additive optional stamp fields (2.0 additive-only). Present only when given, so
  * every stamp written before them hashes exactly as before.
  * AZRT-ANCHOR-1.0 anchor, AZRT-REFUSAL-RECEIPT-1.0 refusal, AZRT-GOAL-LINK-1.0 follows/goal_key,
@@ -232,6 +285,17 @@ export async function append(storeOrEnv, input = {}, options = {}) {
   }
   const caller = String(src.caller || src.space || "").trim();
   const idempotencyKey = String(src.idempotency_key || src.idemp || src.id || "").trim();
+  let docClaim = null;
+  if (DOCUMENT_CHAINS.includes(chain)) {
+    const doc = await stampDocumentHash(src);
+    const owner = caller + "|" + chain;
+    const got = await claimDocument(store, doc, owner, idempotencyKey);
+    if (!got || !got.ok) {
+      const code = (got && got.code) || "LATTICE-DOC-INDEX-UNAVAILABLE";
+      return { ok: false, refuse: (got && got.refuse) || "lattice-doc-index", code, message: DOUBLE_MESSAGE[code], spec: DOC_UNIQUE_SPEC, document_hash: doc, written: false };
+    }
+    docClaim = got.fresh ? { doc, owner } : null;
+  }
   const builder = async ({ prev, rows }) => {
     let unsigned;
     try {
@@ -262,12 +326,16 @@ export async function append(storeOrEnv, input = {}, options = {}) {
   } else {
     const rows = await loadChain(store, chain, caller);
     ack = await builder({ prev: rows.length ? rows[rows.length - 1].stamp_sha256 || GENESIS : GENESIS, seq: rows.length, rows });
-    if (ack && ack.refuse) return { ok: false, ...ack };
+    if (ack && ack.refuse) {
+      if (docClaim) await releaseDocument(store, docClaim.doc, docClaim.owner);
+      return { ok: false, ...ack };
+    }
     rows.push(ack);
     await saveChain(store, chain, rows, caller);
     ack = { ok: true, record: ack, seq: rows.length, prev: ack.prev, replayed: false };
   }
   if (!ack || !ack.ok) {
+    if (docClaim) await releaseDocument(store, docClaim.doc, docClaim.owner);
     const out = { ok: false, refuse: (ack && ack.refuse) || "append-failed", cap: ack && ack.cap };
     if (ack && ack.code) out.code = ack.code;
     if (ack && ack.message) out.message = ack.message;

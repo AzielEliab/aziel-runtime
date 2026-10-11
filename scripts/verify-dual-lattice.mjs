@@ -86,28 +86,31 @@ async function exerciseStore(label, store) {
   const after = await tip(store, "evidence");
   assert.equal(after.seq, before.seq, `${label}: nothing written on double`);
 
-  // A different user can store the same document.
-  const other = await append(store, { c: "evidence", subject: "field", fact: "offline note", offline: true, username: "seconduser" });
-  assert.equal(other.ok, true);
+  // LATTICE-DOC-UNIQUE-1.0: another user cannot store the same document either.
+  const other = await append(store, { c: "evidence", subject: "field", fact: "offline note", offline: true, username: "seconduser", caller: "seconduser" });
+  assert.equal(other.ok, false);
+  assert.equal(other.code, "LATTICE-DOUBLE-CROSS");
 
   // Offline without a username refuses.
   const nouser = await append(store, { c: "evidence", fact: "no handle", offline: true });
   assert.equal(nouser.ok, false);
   assert.equal(nouser.code, "LATTICE-USERNAME-ABSENT");
 
-  // Online re-append of the same content is allowed (chain order differs).
+  // LATTICE-DOC-UNIQUE-1.0: an online re-append of the same document is refused too.
   const again = await append(store, { c: "evidence", subject: "one", fact: "first fact" });
-  assert.equal(again.ok, true);
-  assert.notEqual(again.stamp.lattice.primary, a.stamp.lattice.primary);
+  assert.equal(again.ok, false);
+  assert.equal(again.code, "LATTICE-DOUBLE");
+  const third = await append(store, { c: "evidence", subject: "three", fact: "third fact" });
+  assert.equal(third.ok, true);
 
   const t = await tip(store, "evidence");
-  assert.equal(t.lattice_tips.primary, again.stamp.lattice.primary);
-  assert.equal(t.lattice_tips.secondary, again.stamp.lattice.secondary);
+  assert.equal(t.lattice_tips.primary, third.stamp.lattice.primary);
+  assert.equal(t.lattice_tips.secondary, third.stamp.lattice.secondary);
 
   const v = await verify(store, { c: "evidence" });
   assert.equal(v.ok, true, `${label}: ${JSON.stringify(v.breaks)}`);
   assert.equal(v.chains[0].dual_lattice.lattice_live, true);
-  assert.equal(v.chains[0].dual_lattice.lattice_rows, 5);
+  assert.equal(v.chains[0].dual_lattice.lattice_rows, 4);
   assert.equal(v.dual_lattice.lattice_live, true);
   return store;
 }
