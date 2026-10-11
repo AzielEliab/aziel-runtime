@@ -172,6 +172,15 @@ if (radioBeacon.code !== "QNM-RADIO-ABSENT") {
   assert.equal(radioBeacon.peer_exchange_demonstrated, false);
 }
 
+// AZRT-MESH-PEER-DENY-1.0: deny by default until each side's operator allows the other.
+const denied = await openPeerSession(alice, bob, { directUrl: "http://192.168.50.2:8781/v1/fed-mesh/direct" });
+assert.equal(denied.ok, false);
+assert.equal(denied.code, "MESH-PEER-NOT-ALLOWED");
+assert.equal(denied.deny_by_default, true);
+alice.allowSession(bob.state.identity.handle);
+const halfDenied = await openPeerSession(alice, bob, { directUrl: "http://192.168.50.2:8781/v1/fed-mesh/direct" });
+assert.equal(halfDenied.code, "MESH-PEER-NOT-ALLOWED", "responder must allow too");
+bob.allowSession(alice.state.identity.handle);
 const opened = await openPeerSession(alice, bob, {
   directUrl: "http://192.168.50.2:8781/v1/fed-mesh/direct",
   relayUrl: "https://relay.example/v1/mesh/relay",

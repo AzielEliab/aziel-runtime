@@ -533,6 +533,9 @@ export function createTrack2(opts = {}) {
     receipts: [],
     receipt_tip: ZERO_HASH,
     allow: new Set(),
+    // AZRT-MESH-PEER-DENY-1.0 (RIB-024): peer sessions are deny-by-default. Only handles the local
+    // operator put on this allowlist may open or accept a session. Discovery alone is not consent.
+    session_allow: new Set((Array.isArray(opts.sessionAllow || opts.session_allow) ? opts.sessionAllow || opts.session_allow : []).map((h) => String(h).trim()).filter(Boolean)),
     partition: { partitioned: false, own_tip: null, rejoined: false, merged: false },
     phoenix: {
       phase: "idle",
@@ -883,8 +886,21 @@ export function createTrack2(opts = {}) {
         peers: [...state.roster.values()].map(publicPeer),
       });
     },
+    /** Local operator step: allow peer sessions with this handle (deny-by-default otherwise). */
+    allowSession(peerHandle) {
+      const handle = String(peerHandle || "").trim();
+      if (!handle) return fail("FED-MESH-BAD-HANDLE", "Give a peer handle to allow.");
+      state.session_allow.add(handle);
+      return ok({ op: "peer_session_allow", handle, allowlist: [...state.session_allow], spec: MESH_PEER_DENY_SPEC });
+    },
+    revokeSession(peerHandle) {
+      const handle = String(peerHandle || "").trim();
+      state.session_allow.delete(handle);
+      return ok({ op: "peer_session_revoke", handle, allowlist: [...state.session_allow], spec: MESH_PEER_DENY_SPEC });
+    },
     async offer(peerHandle, routeOpts = {}) {
       const handle = String(peerHandle || "").trim();
+      if (!state.session_allow.has(handle)) return peerDenied(handle);
       const peer = state.roster.get(handle);
       if (!peer || peer.verified !== true || peer.mutual !== true || peer.presence === "isolated") {
         return fail("MESH-NO-ROUTE", "No admitted discovered peer for that handle.", { handle });
@@ -938,6 +954,7 @@ export function createTrack2(opts = {}) {
       });
     },
     async accept(offer) {
+      if (!offer || !state.session_allow.has(String(offer.handle || "").trim())) return peerDenied(offer && offer.handle);
       const checked = await verifyOffer(state, offer);
       if (!checked.ok) return checked;
       const signing = await generateEd25519();
@@ -1681,6 +1698,18 @@ function pickRoute(directUrl, relayUrl) {
     });
   }
   return fail("FED-MESH-NO-ROUTE", "No direct-lan path and no admitted relay.", { route_class: null });
+}
+
+export const MESH_PEER_DENY_SPEC = "AZRT-MESH-PEER-DENY-1.0";
+export const MESH_PEER_NOT_ALLOWED = "MESH-PEER-NOT-ALLOWED";
+
+function peerDenied(handle) {
+  return fail(MESH_PEER_NOT_ALLOWED, "Peer sessions are deny-by-default. The local operator must allow this handle first (allowSession). Nothing was opened.", {
+    handle: handle ? String(handle) : null,
+    spec: MESH_PEER_DENY_SPEC,
+    deny_by_default: true,
+    live: false,
+  });
 }
 
 async function verifyOffer(state, offer) {

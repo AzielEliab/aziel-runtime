@@ -542,13 +542,17 @@ function bracketHost(host) {
   return text;
 }
 
-export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", advertise = "", relays = [], passphrase = "", fixture = false }) {
+export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", advertise = "", relays = [], passphrase = "", fixture = false, sessionAllow = null }) {
   const node = await openInstance({ dataDir, relays, passphrase });
   const track2 = createTrack2({
     identity: node.identity,
     tipHash: node.directChain.prev || ZERO_HASH,
     dataDir,
     fixture: fixture === true,
+    // AZRT-MESH-PEER-DENY-1.0: empty unless the local operator lists handles (option or FED_MESH_SESSION_ALLOW).
+    sessionAllow: Array.isArray(sessionAllow)
+      ? sessionAllow
+      : String((typeof process !== "undefined" && process.env && process.env.FED_MESH_SESSION_ALLOW) || "").split(",").map((h) => h.trim()).filter(Boolean),
   });
   await track2.loadOutbox();
   node.track2 = track2;
