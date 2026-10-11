@@ -86,7 +86,7 @@ export const LAMB_LENS_CORPUS = Object.freeze([
   {
     title: "FragGate",
     url: "https://github.com/AzielEliab/fraggate",
-    snippet: "FragGate FG-0.1 kernel: hashed registry, DecisionGATE before exec, ask/refuse ledger.",
+    snippet: "FragGate FG-0.1 gate: hashed registry, DecisionGATE before exec, ask/refuse ledger.",
     topics: ["fraggate", "door", "registry", "decisiongate", "kernel"],
   },
   {

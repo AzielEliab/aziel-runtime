@@ -208,7 +208,7 @@ const whitePlace = readFileSync(new URL("../docs/2.0/WHITESTONE-PLACEMENT.md", i
 assert.match(whitePlace, /worker_only/);
 assert.match(whitePlace, /FG-HALLUC-TOOL/);
 assert.match(whitePlace, /Case Mode/);
-assert.match(whitePlace, /not\*\* the FragGate kernel/);
+assert.match(whitePlace, /not\*\* the FragGate registry/);
 assert.match(whitePlace, /Aziel Eliab/);
 assert.doesNotMatch(whitePlace, /fraggate_call ops for Whitestone|invent a FragGate door/i);
 

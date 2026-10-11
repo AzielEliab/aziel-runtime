@@ -109,7 +109,7 @@ export function brierScore(pairs) {
 }
 
 /**
- * Rebuild posterior from immutable resolution events.
+ * Rebuild posterior from hash-linked, append-only resolution events.
  * UNKNOWN outcomes are skipped (not success, not failure).
  * AI-generated conclusions are not independent corroboration.
  */

@@ -2,7 +2,7 @@
 
 **Author / identity:** **Aziel Eliab** only  
 **Product:** Whitestone **1.6.0** (historical as-of + **Case Mode**)  
-**NO-LIE:** Whitestone is **not** the FragGate kernel. Session-only. Author Aziel Eliab.
+**NO-LIE:** Whitestone is **not** the FragGate registry. Session-only. Author Aziel Eliab.
 
 This note is an architecture placement check, not a sixth [ARCHITECTURE-FIT-FIVE](ARCHITECTURE-FIT-FIVE.md) capability. Those five fits (`zkattest` / `mmconsensus` / edge `POST /mcp` / isolate `runtime_session_*` / `toolbench`) stay behind FragGate. Whitestone does **not**.
 
@@ -56,7 +56,7 @@ Same Worker. Same session. Not a fourth practice area and not a FragGate op.
 
 ## NO-LIE placement
 
-- Whitestone is **catalog software**, not FragGate kernel (`https://github.com/AzielEliab/fraggate`).
+- Whitestone is **catalog software**, not FragGate registry (`https://github.com/AzielEliab/fraggate`).
 - Case content is **session-only**. Closing the tab / End & erase wipes chat, uploads, as-of dates, and Case Mode scores. This runtime does not persist case bytes.
 - Identity **Aziel Eliab** only. GodLock remains a product name, not identity.
 - Do not invent court-grade claims, a complete U.S. law corpus since 1776, a FragGate health op, or a durable AKM/ChainLock store on the Whitestone Worker.

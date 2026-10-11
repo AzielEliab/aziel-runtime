@@ -252,7 +252,7 @@ FEATURE-STATE #37.
 
 ## 23. AKM is not a Softwares-tab door — OFF
 
-AKM-TRIAD-1.0 is LIVE fabric behind FragGate (`POST /v1/memory/*`, MCP `memory_*`, `slug=memory`). Not a Softwares-tab product. ChainLock remains the immutable ledger; the adaptive index is derived and rebuildable.
+AKM-TRIAD-1.0 is LIVE fabric behind FragGate (`POST /v1/memory/*`, MCP `memory_*`, `slug=memory`). Not a Softwares-tab product. ChainLock remains the hash-linked, append-only ledger; the adaptive index is derived and rebuildable.
 
 Do not: add `memory` / `akm` to the Softwares-tab.
 

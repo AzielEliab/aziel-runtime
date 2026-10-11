@@ -1,7 +1,7 @@
 /**
  * Derived AdaptiveMemoryNode index.
  *
- * Rebuildable from the immutable ChainLock learn chain.
+ * Rebuildable from the hash-linked, append-only ChainLock learn chain.
  * Never replaces history. Author: Aziel Eliab only.
  */
 

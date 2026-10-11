@@ -307,7 +307,7 @@ GitHub description / homepage / topics are **not** in git. Lock + apply command:
 - **Homepage** is the live MCP endpoint (`https://aziel-runtime.vibelock.workers.dev/mcp`) so registry validators do not treat the Glama directory listing as `remote_url`. **Try on Glama** stays the primary Install/distribution door in Description, README table, topics, and cross-links. Worker origin stays the execution / OpenAPI surface.
 - **Topics** must include `mcp`, `openapi`, `fraggate`, `digital-forensics` (plus `glama`, `mcp-server`, `nodemesh`).
 
-README websites table lists official site, Runtime hub `@id` parent, FragGate kernel, and Try on Glama **above** the Worker origin. Do not drop azieleliab.com / azielcorpuslibrary.net / godlock.uk / hedidntjump.com.
+README websites table lists official site, Runtime hub `@id` parent, FragGate registry, and Try on Glama **above** the Worker origin. Do not drop azieleliab.com / azielcorpuslibrary.net / godlock.uk / hedidntjump.com.
 
 ## llms.txt / cite.json (docs, not handlers)
 

@@ -285,7 +285,7 @@ GitHub. https://github.com/AzielEliab/azhub
 
 
 Aziel Digital Library · aziel-corpus · 2.6.2 · live
-Self-contained immutable digital library. Public MASTER. Not a 26-card index.
+Self-contained append-only digital library. Public MASTER. Not a 26-card index.
 
 How. Content-addressed library. search / example are lookups. The object is the record hash, not a gloss. ZionPattern may be
 empty; then return triad + solver-not-run.

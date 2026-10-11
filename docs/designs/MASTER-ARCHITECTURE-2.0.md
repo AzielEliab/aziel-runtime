@@ -73,7 +73,7 @@ core must remain simple, deterministic where possible, auditable, capability-res
  C1                                                              RoseClock sequence never decreases.
  C2                                                              Every accepted non-genesis action has an explicit causal
                                                                  parent.
- C3                                                              Accepted state is immutable; modification creates a new state.
+ C3                                                              Accepted state is hash-linked and append-only; modification creates a new state.
  C4                                                              Rollback is forbidden as a temporal operation. Restore is a
                                                                  forward action.
  C5                                                              ChainLock appends hashes; it does not rewrite prior stamps.
@@ -140,7 +140,7 @@ time authority.
           |
           v
      [CHAINLOCK-IN]
-   immutable ingress evidence
+   hash-linked, append-only ingress evidence
           |
           v
    [DECISIONGATE]
@@ -212,7 +212,7 @@ Sentinel             Integrity defense                 Poisoning/drift/anomaly  
 Provenance Packet    Source envelope                   Normalize source                   InputPacket
                                                        identity/type/time/trust/tags/c
                                                        ontent hash before execution.
-ChainLock-IN         Ingress seal                      Append immutable ingress           Ingress stamp/hash/card
+ChainLock-IN         Ingress seal                      Append hash-linked ingress           Ingress stamp/hash/card
                                                        stamp linked to prior chain
                                                        tip.
 DecisionGATE         Policy/responsibility             Definition, evidence, impact,      PASS / REVISE / BLOCK
@@ -833,7 +833,7 @@ Persistent state must be namespaced by domain and classified by sensitivity.
     RoseClock tips/transitions              Durable transactional store / DO              Atomic compare-and-swap; no overwrite
                                                                                           of accepted transitions.
     ChainLock                               Append-only durable store                     Verify previous hash on write;
-                                                                                          immutable stamps.
+                                                                                          hash-linked, append-only stamps.
     TemporalLock                            Append-only durable store                     Ordered evidence; stable clock/source
                                                                                           metadata.
     Session state                           Durable Object                                TTL, auth, bounded receipts, private read

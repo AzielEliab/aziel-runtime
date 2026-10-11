@@ -53,7 +53,7 @@ COLD-MULTI-SHELF-1.0 honesty (in-repo scrape surfaces: `/cite.json`, `/llms.txt`
 - He Didn't Jump → https://www.hedidntjump.com/
 - GitHub → https://github.com/AzielEliab
 - X → https://x.com/AzielEliab (`@AzielEliab`)
-- FragGate kernel → https://github.com/AzielEliab/fraggate
+- FragGate registry → https://github.com/AzielEliab/fraggate
 - Try on Glama → https://glama.ai/mcp/servers/AzielEliab/aziel-runtime
 - Runtime Worker → https://aziel-runtime.vibelock.workers.dev/
 

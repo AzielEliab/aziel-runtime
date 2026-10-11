@@ -148,7 +148,7 @@ Every Worker launch (homepage, `/about`, every `/p/{slug}`, HTML Softwares/descr
 | **Primary host / discovery / install** | https://glama.ai/mcp/servers/AzielEliab/aziel-runtime |
 | Official site | https://www.azieleliab.com/ |
 | Runtime hub (entity parent) | https://www.azieleliab.com/runtime |
-| FragGate kernel | https://github.com/AzielEliab/fraggate |
+| FragGate registry | https://github.com/AzielEliab/fraggate |
 | Canonical GitHub | https://github.com/AzielEliab/aziel-runtime |
 | Runtime Worker / MCP / OpenAPI | https://aziel-runtime.vibelock.workers.dev/ |
 | Library mirror (reverse-proxy) | https://www.azielcorpuslibrary.net/runtime |
@@ -273,7 +273,7 @@ Always send `User-Agent: Mozilla/5.0`.
 | Skill | https://aziel-runtime.vibelock.workers.dev/v1/skill |
 | FragGate door | https://aziel-runtime.vibelock.workers.dev/v1/fraggate |
 | FragGate Worker UI + counted download | https://fraggate-download-tracker.vibelock.workers.dev/ |
-| FragGate kernel | https://github.com/AzielEliab/fraggate |
+| FragGate registry | https://github.com/AzielEliab/fraggate |
 | Machine manifest (`role=engine-runtime`) | https://aziel-runtime.vibelock.workers.dev/v1/runtime.json (public `GET /v1/manifest` is not a path; MCP `runtime_manifest` returns this JSON) |
 | Session open | `POST` https://aziel-runtime.vibelock.workers.dev/v1/session/open |
 | Session exec | `POST` https://aziel-runtime.vibelock.workers.dev/v1/session/{id}/exec |
@@ -408,6 +408,14 @@ Custom HTTP tools / OpenAPI: import the same
 `https://aziel-runtime.vibelock.workers.dev/openapi.json`.
 Pull via `GET /v1/bundle` / `GET /v1/pull/{slug}`. Session exec is
 `POST /v1/session/{id}/exec`. Proxy remains `POST /p/{slug}/{op}`.
+
+## Receipts and signing (RECEIPT-SIGNING-LAYERS-1.0)
+
+- **Receipts are hash-linked and sealed, not signed.** ChainLock chains, session receipts (`runtime_session_receipt`), ACT-RECEIPT rows and refusal receipts carry a hash and a link to the previous hash. A seal closes a session. No receipt carries a signature.
+- **RIB-001 external anchor is shipped** ([AZRT-ANCHOR-1.0](docs/designs/AZRT-ANCHOR-1.0.md)). Chain heads are published to [AzielEliab/aziel-anchors](https://github.com/AzielEliab/aziel-anchors), signed there with an Ed25519 key that lives only in that repo's Actions secret, with RFC 3161 and Rekor timestamps. `GET /v1/anchor` verifies fail-closed.
+- **RIB-018 refusal receipts are shipped** ([AZRT-REFUSAL-RECEIPT-1.0](docs/designs/AZRT-REFUSAL-RECEIPT-1.0.md)). A refusal mints its own hash-linked, sealed receipt on the `refusals` chain.
+- **For the receipt chains, signatures exist at three layers only:** the anchor statement (aziel-anchors witness), store checkpoints (AZRT-STORE-CHECKPOINT-1.0, every 1000 rows), and tether packets to AZ-OS / AZInterface (AZRT-AZOS-TETHER-1.0, pinned key).
+- **Separate from receipts:** mesh and federated-mesh peer identity keys sign handshakes and peer traffic (AZP / FED-MESH). Those are transport identity, not receipt signatures.
 
 ## Honesty banners
 

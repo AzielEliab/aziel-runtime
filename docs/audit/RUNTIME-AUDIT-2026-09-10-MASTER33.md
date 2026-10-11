@@ -39,7 +39,7 @@ Status key: **PASS** = live law holds on all four faces (or on the named face) �
 | 3 | Domain map / catalog | 11 domains; azchat stub; 4dmap live; no ZD30 | `domains.spec=MASTER-33`, `domain_count=11`, `software_count=33`, `domains_are_doors=false`. AZChat `status=stub` / `FG-STUB`. 4DMap `status=live` / `FG-OK` / digest `896cf578…`. `describe?slug=zd30` → `FG-HALLUC-TOOL`. Memory not on Softwares-tab. | **PASS** |
 | 4 | AKM-TRIAD | skill/cite mention AKM-TRIAD; `memory_*` on MCP `tools/list`; `POST /v1/memory/*` behind FragGate; auth/refuse without inventing bypass | Skill + `/cite.json` list **AKM-TRIAD-1.0**. MCP tools: `memory_observe`, `memory_resolve`, `memory_calibrate`, `memory_recall`, `memory_get` (36 tools total). HTTP POST observe/resolve/calibrate/recall go through `fraggateCall` (`slug=memory`). `rebuild-index` → `AKM-OPERATOR`. `op=rollback` → `FG-STUB`. Public observe is FragGate-allowlisted (writes a learn stamp; posterior ≠ truth; `authorizes_action=false`). | **PASS** |
 | 5 | Mesh GET never enables; QNS cite-only | GET/status stay OFF; no public via proxy | `GET /v1/mesh` `enabled=false` before and after enable probes. Empty POST enable refused. Login bearer refused. `GET /v1/qns` cite-only (`public_proxy=false`, `emit=false`). `POST /v1/qns/via` → **403 `QNS-NO-PROXY`**. | **PASS** |
-| 6 | Softwares naming | no “runtime X.Y FragGate” mash in `/v1/software` `one_line` for aziel-runtime | `aziel-runtime` is **not** a Softwares-tab card (correct). No `one_line` matches `runtime <ver> FragGate`. Extras: FragGate kernel door copy; mesh QNM rollup copy. Update check notes name “Aziel Eliab Runtime” without a mash. | **PASS** |
+| 6 | Softwares naming | no “runtime X.Y FragGate” mash in `/v1/software` `one_line` for aziel-runtime | `aziel-runtime` is **not** a Softwares-tab card (correct). No `one_line` matches `runtime <ver> FragGate`. Extras: FragGate registry door copy; mesh QNM rollup copy. Update check notes name “Aziel Eliab Runtime” without a mash. | **PASS** |
 | 7 | Security | no public rollback; RoseClock forward-only; Lamb Lens refuse path exists | `/v1/rollback` and `/v1/roseclock/rollback` → 404. Memory rollback `FG-STUB`. Live `fraggate_call` stamps `roseclock.rollback=false`. AZBrowser `ethical_search` “download porn videos” → **`FG-LAMB-REFUSE`**, `lamb_lens.decision=REFUSE`, `prohibition_hits=["porn"]`, `closed_at="lamb-lens"`. | **PASS** |
 
 ### WARN (not law breaks)
@@ -162,7 +162,7 @@ MCP `memory_observe` (display.title **memory observe — Adaptive Knowledge Memo
 - No card `slug=aziel-runtime` (runtime is the host, not a tab product).
 - No `one_line` contains `runtime <digit>.<digit>` mashed with `FragGate`.
 - Product lines that mention FragGate do so as “FragGate only” / “same FragGate door” — product framing, not a runtime-version mash.
-- `catalog.extras[]`: FragGate kernel one_line is the door/Worker-app sentence. Mesh one_line is the QNM rollup sentence.
+- `catalog.extras[]`: FragGate registry one_line is the door/Worker-app sentence. Mesh one_line is the QNM rollup sentence.
 - `GET /v1/update/check?slug=aziel-runtime&version=1.7.0` → `latest=1.7.1`, notes: “Aziel Eliab Runtime has no counted tarball…”
 
 ---

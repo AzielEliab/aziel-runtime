@@ -20,7 +20,7 @@ AZL-ARCH-1.0 · runtime 1.6.13 snapshot · 2026-09-06 · Aziel Eliab · not a ne
 
   Software-tab                      34           plain → gate → lock. 33 live + EmbryoLock stub
 
-  Door extras                       2            FragGate kernel, QNM/mesh kernel
+  Door extras                       2            FragGate registry, QNM/mesh kernel
 
   Runtime host                      1            aziel-runtime (on the landing; not a tab engine)
 
