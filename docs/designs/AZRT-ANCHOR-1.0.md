@@ -46,3 +46,15 @@ Each statement gets an RFC 3161 token from freetsa.org over the canonical statem
 ## 6. Law fit
 
 FragGate stays the single exec door (no new tool, no new slug; GET read paths only). Additive only (BREAKING-CHANGE-POLICY "not breaking": new optional fields; old hashes unchanged, enforced by `fixtures/pre-anchor-receipts.json` in `scripts/verify-anchor.mjs`). NO-LIE / NO-REWRITE: the runtime cannot rewrite the witness log; a rewrite of its own rows is caught by the witness. RoseClock forward-only: append-only logs, no rollback API. Dual lattice and checkpoints unchanged; their tips are what gets anchored. Remain-OFF untouched.
+
+## Key epochs (rotation, 2026-10-11)
+
+The witness and auditor keys were rotated. The new keypairs were generated inside a GitHub Actions run of
+AzielEliab/aziel-anchors (`rotate-keys`, run 38108699312). The private halves were sealed (libsodium sealed box)
+to the repo's Actions-secrets public key and stored through the secrets API, so no machine outside GitHub ever
+held them in the clear. Retired keys stay pinned in `WITNESS_RETIRED_KEYS` / `AUDITOR_RETIRED_KEYS`, and each one
+is accepted only for statements `n` in `[from_n, through_n]` (witness 1..2, auditor 1..2). Historical statements
+verify unchanged, a retired key cannot sign anything new, and every later row must use the current key. Append-only list.
+
+New witness statements also carry a top-level `git_sha` (the runtime's live GIT_SHA, already present under
+`heads.git_sha`). This is additive: older statements omit it and verify byte-for-byte as signed.
