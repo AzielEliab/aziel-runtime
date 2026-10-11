@@ -223,7 +223,8 @@ assert.equal(door.product_count_is_softwares_count, false);
 assert.equal(door.allowlist_is_softwares_slugs, false);
 assert.match(door.set_note, /not the same set/);
 assert.equal(door.stub_ops.length, door.stub_op_count);
-assert.ok(door.kernel.includes("fraggate"));
+assert.equal(door.kernel, false);
+assert.ok(door.kernel_repo_url.includes("fraggate"));
 
 const listed = await (await get("/v1/fraggate/list")).json();
 assert.equal(listed.ok, true);

@@ -514,7 +514,8 @@ ${auditsSkillMarkdown().trimEnd()}
 function extraFraggate(products, extra = {}) {
   const registry = buildRegistry(products);
   return {
-    kernel: FRAGGATE_KERNEL,
+    kernel: false,
+    kernel_repo_url: FRAGGATE_KERNEL,
     kernel_version: FRAGGATE_KERNEL_VERSION,
     pipeline: "MASTER-33",
     pipeline_strip: LOCKED_STRIP,
@@ -544,7 +545,8 @@ export function runtimeManifest(origin, products, extra = {}) {
     runtime_version: RUNTIME_VERSION,
     manifest: "aziel-runtime.manifest.v1.6",
     door: "fraggate",
-    kernel: FRAGGATE_GITHUB,
+    kernel: false,
+    kernel_repo_url: FRAGGATE_GITHUB,
     extras: catalogExtraCards(base),
     sister_products: sisterProductCiteField(),
     website_designs: websiteDesignsField(base),

@@ -742,7 +742,8 @@ export function buildRegistry(products) {
   const stub_ops = Object.entries(STUB_OPS).flatMap(([slug, ops]) => ops.map((op) => ({ slug, op, status: "stub" })));
   return {
     door: FRAGGATE_DOOR,
-    kernel: FRAGGATE_KERNEL,
+    kernel: false,
+    kernel_repo_url: FRAGGATE_KERNEL,
     kernel_version: FRAGGATE_KERNEL_VERSION,
     entries,
     bySlug,
@@ -917,7 +918,8 @@ export function classifyCall(entry, op) {
 export function registrySummary(registry, digest) {
   return {
     door: FRAGGATE_DOOR,
-    kernel: FRAGGATE_KERNEL,
+    kernel: false,
+    kernel_repo_url: FRAGGATE_KERNEL,
     kernel_version: FRAGGATE_KERNEL_VERSION,
     registry_digest: digest,
     live_count: registry.live_count,
