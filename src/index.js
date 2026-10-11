@@ -4806,6 +4806,12 @@ async function handleRequest(request, env, ctx) {
 
     if (url.pathname === "/v1/health" && (request.method === "GET" || request.method === "HEAD")) {
       const body = healthBody(origin, env);
+      // HEALTH-BUILD-STAMP-1.0: same git_sha / version_id as GET /v1/software (read at serve time, never guessed).
+      {
+        const { softwareMeta } = await import("./software-catalog.js");
+        const meta = softwareMeta(env);
+        for (const k of ["git_sha", "git_sha_source", "git_sha_tracks_deployed_tip", "version_id", "version_id_source", "version_id_note"]) body[k] = meta[k] === undefined ? null : meta[k];
+      }
       const usesTotal = await peekUsesTotal(env);
       if (usesTotal != null) body.uses_total = usesTotal;
       return asHead(
