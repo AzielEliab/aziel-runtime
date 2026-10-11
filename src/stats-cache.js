@@ -102,10 +102,12 @@ async function cachedUsesLocal(key, read, { now = Date.now(), cache = defaultCac
  * highest `uses` ever served by any isolate in any colo. Each isolate does at most one DO
  * read+write (a single atomic "raise to max" call) per key per STATS_TTL_S; in between it uses
  * the floor it last got. A served count is lifted to the floor when a read lags it, and the body
- * says so (uses_read keeps the raw read). If the DO cannot be reached the body says
- * floor_shared: false; the local floor still applies.
+ * says so (uses_read keeps the raw read). If the DO cannot be reached the call fails closed
+ * (STATS-FLOOR-UNAVAILABLE -> HTTP 503 + Retry-After); no possibly-lower count is served.
  */
 const floorSync = new Map();
+export const STATS_FLOOR_UNAVAILABLE = "STATS-FLOOR-UNAVAILABLE";
+export const STATS_FLOOR_RETRY_S = 5;
 export async function cachedUses(key, read, { now = Date.now(), cache = defaultCache(), floor = null } = {}) {
   const body = await cachedUsesLocal(key, read, { now, cache });
   let last = floorSync.get(key) || null;
@@ -121,6 +123,11 @@ export async function cachedUses(key, read, { now = Date.now(), cache = defaultC
     }
     if (shared) floorSync.set(key, last);
   } else if (floor && last) shared = true;
+  // Fail closed: a floor is bound but this isolate could not read it. Never serve a count that
+  // might be below what another isolate already served.
+  if (floor && shared === false) {
+    return { ok: false, code: STATS_FLOOR_UNAVAILABLE, retry_after_s: STATS_FLOOR_RETRY_S, message: "The shared stats floor (Durable Object) could not be read, so no count was served. Retry shortly.", spec: "STATS-FLOOR-1.0" };
+  }
   const fl = Math.max(last ? last.floor : -1, countOf((highWater.get(key) || {}).body));
   const out = { ...body, cache: { ...body.cache, floor_spec: "STATS-FLOOR-1.0", floor_shared: shared === true, floor_synced_at: last ? new Date(last.at).toISOString() : null } };
   if (fl > countOf(body)) {

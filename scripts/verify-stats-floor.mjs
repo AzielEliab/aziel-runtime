@@ -33,12 +33,22 @@ assert.equal(fl.calls, 2); n++;
 await cachedUses("other", async () => body(1), { now: T + 2, cache: null, floor: fl });
 assert.equal(fl.calls, 3, "per key"); n++;
 
-// DO unreachable: floor_shared false, local floor still holds.
+// DO unreachable: fail closed (no count served), even for a brand-new isolate.
 clearStatsMemo();
 const down = { raise: async () => { throw new Error("DO down"); } };
-await cachedUses("d", async () => body(40), { now: 0, cache: null, floor: down });
-o = await cachedUses("d", async () => body(30), { now: T + 1, cache: null, floor: down });
-assert.equal(o.cache.floor_shared, false); assert.equal(o.uses, 40); n++;
+o = await cachedUses("d", async () => body(40), { now: 0, cache: null, floor: down });
+assert.equal(o.ok, false); assert.equal(o.code, "STATS-FLOOR-UNAVAILABLE"); assert.equal(o.uses, undefined); assert.ok(o.retry_after_s > 0 && o.retry_after_s <= 30); n++;
+const bad = { raise: async () => ({ ok: false }) };
+assert.equal((await cachedUses("d2", async () => body(1), { now: 0, cache: null, floor: bad })).code, "STATS-FLOOR-UNAVAILABLE"); n++;
+// HTTP: 503 + Retry-After when the CHAINLOCK binding throws.
+{
+  clearStatsMemo();
+  const { default: worker } = await import("../src/index.js");
+  const brokenNs = { idFromName: (x) => x, get: () => ({ fetch: async () => { throw new Error("DO down"); } }) };
+  const res = await worker.fetch(new Request("https://x.example/v1/stats"), { CHAINLOCK: brokenNs }, { waitUntil() {} });
+  assert.equal(res.status, 503); assert.ok(Number(res.headers.get("retry-after")) > 0);
+  const b = await res.json(); assert.equal(b.code, "STATS-FLOOR-UNAVAILABLE"); n++;
+}
 
 // Concurrent raises in the DO end at the max.
 const f = statsFloorFor(env);
