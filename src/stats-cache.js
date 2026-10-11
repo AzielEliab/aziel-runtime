@@ -112,27 +112,71 @@ export const STATS_FLOOR_UNAVAILABLE = "STATS-FLOOR-UNAVAILABLE";
 export const STATS_FLOOR_RETRY_S = 5;
 export const BREAKDOWN_NOTE = "raw, may lag total: per-host/path/day/method/op maps are the KV read at read_at; uses is lifted to the shared floor.";
 export { cachedUsesLocal };
+export const STATS_DO_CAP_PER_MIN = 30;
+export const STATS_CAP_CODE = "STATS-FLOOR-RATE-CAPPED";
+const pending = new Map(); // key -> batch not yet dispatched
+const doWindow = { start: 0, calls: 0 };
+
+/**
+ * STATS-FLOOR-BATCH-1.0: requests that arrive before a floor call is dispatched share it (one DO
+ * request for the batch, raising to the batch max). A request never joins a call that was already
+ * sent, so the floor it gets was read after it arrived: each request is served at least the floor
+ * at serve time. Dispatch is on the next macrotask, so concurrent requests in one isolate batch.
+ * STATS-FLOOR-CAP-1.0: at most STATS_DO_CAP_PER_MIN DO calls per isolate per minute; past the cap
+ * the request gets 503 + Retry-After (seconds to the next window), never an unchecked count.
+ */
+function raiseBatched(floor, key, candidate, now) {
+  let batch = pending.get(key);
+  if (!batch) {
+    if (now - doWindow.start >= 60_000) {
+      doWindow.start = now;
+      doWindow.calls = 0;
+    }
+    if (doWindow.calls >= STATS_DO_CAP_PER_MIN) {
+      return Promise.resolve({ capped: true, retry_after_s: Math.max(1, Math.ceil((doWindow.start + 60_000 - now) / 1000)) });
+    }
+    doWindow.calls++;
+    batch = { candidate, size: 0 };
+    batch.promise = new Promise((resolve) => setTimeout(resolve, 0)).then(() => {
+      pending.delete(key);
+      return floor.raise(key, batch.candidate);
+    });
+    pending.set(key, batch);
+  } else batch.candidate = Math.max(batch.candidate, candidate);
+  batch.size++;
+  return batch.promise.then((got) => ({ got, batch_size: batch.size }));
+}
+
 export async function cachedUses(key, read, { now = Date.now(), cache = defaultCache(), floor = null } = {}) {
   const refuse = (why) => ({ ok: false, code: STATS_FLOOR_UNAVAILABLE, reason: why, retry_after_s: STATS_FLOOR_RETRY_S, message: "The shared stats floor (Durable Object) could not be read, so no count was served. Retry shortly.", spec: "STATS-FLOOR-1.0" });
   if (!floor || typeof floor.raise !== "function") return refuse("unbound");
   const body = await cachedUsesLocal(key, read, { now, cache });
   const candidate = Math.max(0, countOf(body), countOf((highWater.get(key) || {}).body));
   let f;
+  let batchSize = 1;
   try {
-    const got = await floor.raise(key, candidate);
+    const r = await raiseBatched(floor, key, candidate, now);
+    if (r && r.capped) {
+      return { ok: false, code: STATS_CAP_CODE, retry_after_s: r.retry_after_s, message: `Stats floor calls are capped at ${STATS_DO_CAP_PER_MIN} per minute per isolate. No count was served. Retry after ${r.retry_after_s}s.`, spec: "STATS-FLOOR-CAP-1.0" };
+    }
+    const got = r.got;
+    batchSize = r.batch_size;
     f = Number(got && got.floor);
     if (!got || got.ok !== true || !Number.isFinite(f)) return refuse("bad-reply");
   } catch {
     return refuse("unreachable");
   }
   const served = Math.max(f, candidate);
-  const out = { ...body, breakdown: BREAKDOWN_NOTE, cache: { ...body.cache, floor_spec: "STATS-FLOOR-1.0", floor_shared: true, uses_floor_applied: served > countOf(body) } };
+  const out = { ...body, breakdown: BREAKDOWN_NOTE, cache: { ...body.cache, floor_spec: "STATS-FLOOR-1.0", floor_shared: true, floor_batch: batchSize, uses_floor_applied: served > countOf(body) } };
   if (served > countOf(body)) out.uses_read = body.uses;
   out.uses = served;
   return out;
 }
 
 export function clearStatsMemo() {
+  pending.clear();
+  doWindow.start = 0;
+  doWindow.calls = 0;
   memo.clear();
   highWater.clear();
 }

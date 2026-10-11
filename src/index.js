@@ -265,7 +265,7 @@ import {
 } from "./mcp-discovery.js";
 import { adoptCard, llmsBodyCanonical } from "./adopt-card.js";
 import { clientMatrix } from "./client-matrix.js";
-import { cachedUses, statsFloorFor, STATS_FLOOR_UNAVAILABLE } from "./stats-cache.js";
+import { cachedUses, statsFloorFor, STATS_CAP_CODE, STATS_FLOOR_UNAVAILABLE } from "./stats-cache.js";
 import { claudeDesktopInstallSnippet, cursorInstallSnippet } from "./install-snippets.js";
 import { adoptActionsOpenApi } from "./openapi-adopt-slim.js";
 import { glamaStaticCard } from "./glama-static.js";
@@ -4776,7 +4776,7 @@ async function handleRequest(request, env, ctx) {
     ) {
       const light = url.searchParams.get("light") === "1" || url.searchParams.get("light") === "true";
       const uses = await cachedUses(light ? "light" : "full", () => readUses(env, { light, budget_ms: 8_000 }), { floor: statsFloorFor(env) });
-      if (uses && uses.code === STATS_FLOOR_UNAVAILABLE) {
+      if (uses && (uses.code === STATS_FLOOR_UNAVAILABLE || uses.code === STATS_CAP_CODE)) {
         return asHead(request, json(uses, 503, { ...authorityLinkHeaders(origin, url.pathname), "retry-after": String(uses.retry_after_s) }));
       }
       const body =

@@ -1,6 +1,6 @@
 /** STATS-FLOOR-1.0: one shared floor per key in a Durable Object; counts never drop across colos or cold starts. */
 import assert from "node:assert/strict";
-import { cachedUses, clearStatsMemo, statsFloorFor, STATS_TTL_S } from "../src/stats-cache.js";
+import { cachedUses, clearStatsMemo, statsFloorFor, STATS_TTL_S, STATS_DO_CAP_PER_MIN } from "../src/stats-cache.js";
 import { memoryChainWriterNamespace } from "../src/chainlock/writer-do.js";
 let n = 0;
 const T = STATS_TTL_S * 1000;
@@ -80,4 +80,47 @@ for (let i = 0; i < 80; i++) {
   max = Math.max(max, r.uses);
 }
 n++;
+// (1) Batching: 25 concurrent requests in one isolate share one DO call; each gets >= the floor.
+{
+  clearStatsMemo();
+  const envB = { CHAINLOCK: memoryChainWriterNamespace({}) };
+  const fb = statsFloorFor(envB);
+  await fb.raise("b", 700); // another colo already served 700
+  const c = { calls: 0, raise: async (k, u) => { c.calls++; return fb.raise(k, u); } };
+  const outs = await Promise.all(Array.from({ length: 25 }, (_, i) => cachedUses("b", async () => body(100 + i), { now: 5, cache: null, floor: c })));
+  assert.equal(c.calls, 1, "one DO call for the batch");
+  for (const o of outs) { assert.equal(o.ok, true); assert.ok(o.uses >= 700); }
+  assert.equal(outs[0].cache.floor_batch, 25); n++;
+  // A request arriving after the call was sent does not join it: it gets its own call and sees a later raise.
+  clearStatsMemo();
+  const slow = { calls: 0, async raise(k, u) { slow.calls++; await new Promise((r) => setTimeout(r, 20)); return fb.raise(k, u); } };
+  const first = cachedUses("b", async () => body(1), { now: 10, cache: null, floor: slow });
+  await new Promise((r) => setTimeout(r, 5)); // first call is now in flight
+  await fb.raise("b", 900); // a colo serves 900 after the first call was sent
+  const late = await cachedUses("b", async () => body(1), { now: 11, cache: null, floor: slow });
+  await first;
+  assert.equal(slow.calls, 2); assert.ok(late.uses >= 900, "late request sees the floor at its serve time"); n++;
+}
+// (2) Cap: at most STATS_DO_CAP_PER_MIN DO calls per isolate per minute, then 503 + Retry-After.
+{
+  clearStatsMemo();
+  const envC = { CHAINLOCK: memoryChainWriterNamespace({}) };
+  const fc = statsFloorFor(envC);
+  const c = { calls: 0, raise: async (k, u) => { c.calls++; return fc.raise(k, u); } };
+  const base = 10_000_000;
+  for (let i = 0; i < STATS_DO_CAP_PER_MIN; i++) assert.equal((await cachedUses("c", async () => body(i), { now: base + i * 100, cache: null, floor: c })).ok, true);
+  const capped = await cachedUses("c", async () => body(99), { now: base + 30_000, cache: null, floor: c });
+  assert.equal(capped.ok, false); assert.equal(capped.code, "STATS-FLOOR-RATE-CAPPED"); assert.equal(capped.uses, undefined);
+  assert.ok(capped.retry_after_s >= 1 && capped.retry_after_s <= 60); assert.equal(c.calls, STATS_DO_CAP_PER_MIN); n++;
+  const next = await cachedUses("c", async () => body(99), { now: base + 60_001, cache: null, floor: c });
+  assert.equal(next.ok, true, "new window"); n++;
+  // HTTP: capped -> 503 with Retry-After.
+  clearStatsMemo();
+  const { default: worker } = await import("../src/index.js");
+  const envH = { CHAINLOCK: memoryChainWriterNamespace({}) };
+  let last;
+  for (let i = 0; i <= STATS_DO_CAP_PER_MIN; i++) last = await worker.fetch(new Request("https://x.example/v1/stats"), envH, { waitUntil() {} });
+  assert.equal(last.status, 503); assert.ok(Number(last.headers.get("retry-after")) >= 1);
+  assert.equal((await last.json()).code, "STATS-FLOOR-RATE-CAPPED"); n++;
+}
 console.log(`ok stats floor: ${n} checks`);
