@@ -60,7 +60,7 @@ export function l2Cap7Stamp() {
       status: "live",
       path: "/v1/mesh/az-generator",
       code: "CAP7-CITE",
-      note: `Factory duplication cite stays LIVE. Factory exec is a separate stamp (geo-target, session-stick, egress-rotate). ${CAP7_PUBLIC_WORKER_LIVE} Not a public resolver. Not a public egress IP. Not a residential IP. Not AZVPN.`,
+      note: `Factory duplication cite stays LIVE. Factory exec is a separate stamp (geo-target, session-stick, egress-rotate; egress-rotate is Cap-7 name plane only, not public egress or a packet path). ${CAP7_PUBLIC_WORKER_LIVE} Not a public resolver. Not a public egress IP. Not a residential IP. Not AZVPN.`,
     },
     refuse: {
       icann: { ok: false, code: icann.code, public_icann: icann.public_icann === true ? true : false },
@@ -160,10 +160,13 @@ export function l4AzosLayers() {
     by_need: [
       {
         need: "read",
-        status: "live",
+        // MESH-WORDING-1.0: the no-network read is the local AZ-OS offline stub; this Worker does not serve it.
+        status: "local_only",
         network: false,
-        live: true,
-        note: `Principles and status can be read with no network. ${PRINCIPLES[0]}`,
+        live: false,
+        local_only: true,
+        worker_served: false,
+        note: `On the local AZ-OS offline stub, principles and status can be read with no network. This hosted Worker does not serve that offline read. ${PRINCIPLES[0]}`,
       },
       {
         need: "reach",

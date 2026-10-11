@@ -642,7 +642,7 @@ const PRODUCTS_RAW = [
       { op: "nodes", method: "GET", summary: "List ephemeral control-plane node ids. Not a hop mesh." },
       { op: "geo-target", method: "POST", summary: "Cap-7 plane region label on a factory name. Metadata only. Not a public egress IP. Not ICANN. Not AZVPN. Exec is fraggate_call." },
       { op: "session-stick", method: "POST", summary: "Cap-7 plane sticky mesh-node label. Same sticky_key, same node. Not a sticky public IP. Not AZVPN. Exec is fraggate_call." },
-      { op: "egress-rotate", method: "POST", summary: "Rotate the Cap-7 update land among factory names. Not a public egress IP. Not ICANN publish. Not a packet hop. Exec is fraggate_call." },
+      { op: "egress-rotate", method: "POST", summary: "Cap-7 name plane only, not public egress or a packet path. Rotate the Cap-7 update land among factory names. Not a public egress IP. Not ICANN publish. Not a packet hop. Exec is fraggate_call." },
       { op: "doctor", method: "GET", summary: "UI alias of health. Same FragGate backend as the Worker UI button." },
     ],
     example: {},
