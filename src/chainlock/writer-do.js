@@ -207,6 +207,65 @@ export class ChainWriter {
     return { ok: true, from: a, seq, rows };
   }
 
+  /** LATTICE-DOC-UNIQUE-1.0 claim (only used on the "__docindex__" object). */
+  async docClaim(body) {
+    // Atomic: claims on this object run one at a time (read-then-write under one lock).
+    return this._docLocked(() => this._docClaim(body));
+  }
+  _docLocked(fn) {
+    const run = (this._docQueue || Promise.resolve()).then(fn, fn);
+    this._docQueue = run.catch(() => {});
+    return run;
+  }
+  /** DOC-WRITERS-1.0: every (caller|chain) that claimed a document, in first-seen order. */
+  async _registerWriter(owner) {
+    if (!owner || (await this._get("writer:" + owner))) return;
+    const list = (await this._get("writers")) || [];
+    list.push(owner);
+    await this._put("writers", list);
+    await this._put("writer:" + owner, list.length);
+  }
+  async docWriters(cursor, limit) {
+    const list = (await this._get("writers")) || [];
+    const from = Math.max(0, Math.floor(Number(cursor)) || 0);
+    const n = Math.min(Math.max(Math.floor(Number(limit)) || 0, 1), 500);
+    const page = list.slice(from, from + n).map((o) => {
+      const i = o.lastIndexOf("|");
+      return { caller: o.slice(0, i), chain: o.slice(i + 1) };
+    });
+    return { ok: true, writers: page, cursor: from, next_cursor: from + page.length, done: from + page.length >= list.length, total: list.length };
+  }
+  async _docClaim(body) {
+    const doc = String((body && body.doc) || "");
+    const owner = String((body && body.owner) || "");
+    const idemp = String((body && body.idemp) || "");
+    if (!/^[0-9a-f]{64}$/.test(doc)) return { ok: false, refuse: "lattice-doc-index", code: "LATTICE-DOC-INDEX-UNAVAILABLE" };
+    const hit = await this._get("claim:" + doc);
+    if (!hit) {
+      await this._put("claim:" + doc, { owner, idemp });
+      await this._registerWriter(owner);
+      return { ok: true, fresh: true };
+    }
+    if (hit.owner === owner && idemp && hit.idemp === idemp) {
+      await this._registerWriter(owner);
+      return { ok: true, fresh: false };
+    }
+    return { ok: false, refuse: "lattice-double", code: hit.owner === owner ? "LATTICE-DOUBLE" : "LATTICE-DOUBLE-CROSS" };
+  }
+
+  async docRelease(body) {
+    return this._docLocked(() => this._docRelease(body));
+  }
+  async _docRelease(body) {
+    const doc = String((body && body.doc) || "");
+    const hit = doc ? await this._get("claim:" + doc) : null;
+    if (hit && hit.owner === String((body && body.owner) || "") && this.ctx.storage && typeof this.ctx.storage.delete === "function") {
+      await this.ctx.storage.delete("claim:" + doc);
+      return { ok: true, released: true };
+    }
+    return { ok: true, released: false };
+  }
+
   async goalGet(key) {
     const hit = key ? await this._get("goal:" + String(key)) : null;
     return { ok: true, pointer: hit || null };
@@ -287,6 +346,15 @@ export class ChainWriter {
       }
       if (action === "rows" && request.method === "GET") {
         return json(await this.rowsFrom(url.searchParams.get("from"), url.searchParams.get("limit")));
+      }
+      if (action === "writers" && request.method === "GET") {
+        return json(await this.docWriters(url.searchParams.get("cursor"), url.searchParams.get("limit")));
+      }
+      if (action === "claim" && request.method === "POST") {
+        return json(await this.docClaim(await readJson(request)));
+      }
+      if (action === "release" && request.method === "POST") {
+        return json(await this.docRelease(await readJson(request)));
       }
       if (action === "goal" && request.method === "GET") {
         return json(await this.goalGet(url.searchParams.get("key") || ""));

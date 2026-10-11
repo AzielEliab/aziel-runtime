@@ -454,6 +454,19 @@ export class DurableStore {
     return this._json(String(name || ""), `/rows?from=${encodeURIComponent(String(from))}&limit=${encodeURIComponent(String(limit))}`);
   }
 
+  /** LATTICE-DOC-UNIQUE-1.0: one global claim object for document hashes (atomic inside the DO). */
+  async docClaim(doc, owner, idemp) {
+    return this._json("__docindex__", "/claim", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ doc, owner, idemp: idemp || "" }) });
+  }
+
+  async docWriters(cursor, limit) {
+    return this._json("__docindex__", `/writers?cursor=${encodeURIComponent(String(cursor || 0))}&limit=${encodeURIComponent(String(limit || 100))}`);
+  }
+
+  async docRelease(doc, owner) {
+    return this._json("__docindex__", "/release", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ doc, owner }) });
+  }
+
   async goalPointer(name, key) {
     return this._json(String(name || ""), `/goal?key=${encodeURIComponent(String(key || ""))}`);
   }
