@@ -209,6 +209,15 @@ export class ChainWriter {
 
   /** LATTICE-DOC-UNIQUE-1.0 claim (only used on the "__docindex__" object). */
   async docClaim(body) {
+    // Atomic: claims on this object run one at a time (read-then-write under one lock).
+    return this._docLocked(() => this._docClaim(body));
+  }
+  _docLocked(fn) {
+    const run = (this._docQueue || Promise.resolve()).then(fn, fn);
+    this._docQueue = run.catch(() => {});
+    return run;
+  }
+  async _docClaim(body) {
     const doc = String((body && body.doc) || "");
     const owner = String((body && body.owner) || "");
     const idemp = String((body && body.idemp) || "");
@@ -223,6 +232,9 @@ export class ChainWriter {
   }
 
   async docRelease(body) {
+    return this._docLocked(() => this._docRelease(body));
+  }
+  async _docRelease(body) {
     const doc = String((body && body.doc) || "");
     const hit = doc ? await this._get("claim:" + doc) : null;
     if (hit && hit.owner === String((body && body.owner) || "") && this.ctx.storage && typeof this.ctx.storage.delete === "function") {

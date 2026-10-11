@@ -73,7 +73,7 @@ function mockAzos(pinned) {
 
 // --- 1. No secret: nothing is sent, azos_updated false -------------------------
 {
-  const store = new MemoryStore();
+  const store = new DurableStore(memoryChainWriterNamespace({}));
   await append(store, { c: "evidence", fact: "x" });
   const azos = mockAzos("unused");
   const res = await pushChain({}, "evidence", { store, fetcher: azos.fetcher });
@@ -92,7 +92,7 @@ function mockAzos(pinned) {
 const env = { TETHER_SIGNING_SEED: TEST_SEED, GIT_SHA: "a".repeat(40) };
 const key = await tetherKey(env);
 assert.match(key.public_key, /^[A-Za-z0-9_-]{43}$/);
-const store = new MemoryStore();
+const store = new DurableStore(memoryChainWriterNamespace({}));
 await append(store, { c: "evidence", subject: "one", fact: "first" });
 await append(store, { c: "evidence", subject: "two", fact: "second" });
 await append(store, { c: "evidence", subject: "field", fact: "offline note", offline: true, username: "azuser" });
@@ -221,7 +221,7 @@ assert.equal(TETHER_FACTS.alt_internet_live, false);
 
 // --- 8. Cross-repo vector (test seed) --------------------------------------------------
 {
-  const vstore = new MemoryStore();
+  const vstore = new DurableStore(memoryChainWriterNamespace({}));
   await append(vstore, { c: "evidence", id: "cl_vector000000000000000001", t: "2026-10-05T00:00:00.000Z", subject: "vector", fact: "first vector fact" });
   await append(vstore, { c: "evidence", id: "cl_vector000000000000000002", t: "2026-10-05T00:00:01.000Z", subject: "vector", fact: "offline vector fact", offline: true, username: "azuser" });
   await append(vstore, { c: "evidence", id: "cl_vector000000000000000003", t: "2026-10-05T00:00:02.000Z", subject: "vector", fact: "third vector fact" });

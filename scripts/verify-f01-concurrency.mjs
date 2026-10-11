@@ -117,16 +117,16 @@ async function legacyRacyChainAppend(store, input) {
 {
   const store = new MemoryStore();
   const writes = await Promise.all(
-    Array.from({ length: 10 }, (_, i) => append(store, { c: "evidence", fact: `audit fact ${i}` })),
+    Array.from({ length: 10 }, (_, i) => append(store, { c: "acts", fact: `audit fact ${i}` })),
   );
   assert.equal(writes.filter((x) => x.ok).length, 10);
-  const rows = await loadChain(store, "evidence");
+  const rows = await loadChain(store, "acts");
   assert.equal(rows.length, 10);
   assert.equal(new Set(writes.map((w) => w.seq)).size, 10);
   assert.equal(new Set(writes.map((w) => w.stamp.stamp_sha256)).size, 10);
   const facts = new Set(rows.map((r) => r.fact));
   for (let i = 0; i < 10; i++) assert.ok(facts.has(`audit fact ${i}`));
-  const checked = await verify(store, { c: "evidence" });
+  const checked = await verify(store, { c: "acts" });
   assert.equal(checked.ok, true, JSON.stringify(checked.breaks));
   assert.equal(checked.lattice, true);
 }
@@ -195,12 +195,12 @@ async function legacyRacyChainAppend(store, input) {
   };
   const store = new KvStore(kv);
   const writes = await Promise.all(
-    Array.from({ length: 10 }, (_, i) => append(store, { c: "evidence", fact: `kv fact ${i}` })),
+    Array.from({ length: 10 }, (_, i) => append(store, { c: "acts", fact: `kv fact ${i}` })),
   );
   assert.equal(writes.filter((x) => x.ok).length, 10);
-  assert.equal((await loadChain(store, "evidence")).length, 10);
-  assert.ok([...map.keys()].some((k) => /e\/evidence\/1$/.test(k)), "KvStore writes individual records");
-  const checked = await verify(store, { c: "evidence" });
+  assert.equal((await loadChain(store, "acts")).length, 10);
+  assert.ok([...map.keys()].some((k) => /e\/acts\/1$/.test(k)), "KvStore writes individual records");
+  const checked = await verify(store, { c: "acts" });
   assert.equal(checked.ok, true, JSON.stringify(checked.breaks));
 }
 

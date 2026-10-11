@@ -52,8 +52,15 @@ await assert.rejects(() => planLattice({ document_hash: doc, offline: true }), (
 await assert.rejects(() => planLattice({ document_hash: doc, offline: true, username: "Not A Handle!" }), /username/);
 
 // --- 2. ChainLock stamps on every store ------------------------------------
-async function exerciseStore(label, store) {
-  const a = await append(store, { c: "evidence", subject: "one", fact: "first fact" });
+async function exerciseStore(label, store, C = "evidence") {
+  // LATTICE-DOC-UNIQUE-1.0: document chains need the atomic Durable Object index. Without it they fail closed.
+  const docChain = C === "evidence";
+  if (!docChain) {
+    const closed = await append(store, { c: "evidence", subject: "one", fact: "first fact" });
+    assert.equal(closed.ok, false, `${label}: evidence without the DO index fails closed`);
+    assert.equal(closed.code, "LATTICE-DOC-INDEX-UNAVAILABLE");
+  }
+  const a = await append(store, { c: C, subject: "one", fact: "first fact" });
   assert.equal(a.ok, true, label);
   assert.ok(a.stamp.lattice, `${label}: stamp stores the lattice block`);
   assert.match(a.stamp.lattice.primary, HEX);
@@ -62,60 +69,64 @@ async function exerciseStore(label, store) {
   assert.equal(a.stamp.lattice.primary_prev, LATTICE_GENESIS);
   assert.equal(a.stamp.lattice.offline, false);
   assert.equal(a.stamp.lattice.username, null);
-  assert.equal(a.stamp.lattice.document_hash, await stampDocumentHash({ c: "evidence", subject: "one", fact: "first fact" }));
+  assert.equal(a.stamp.lattice.document_hash, await stampDocumentHash({ c: C, subject: "one", fact: "first fact" }));
   assert.equal(a.lattice_live, true);
 
-  const b = await append(store, { c: "evidence", subject: "two", fact: "second fact" });
+  const b = await append(store, { c: C, subject: "two", fact: "second fact" });
   assert.equal(b.stamp.lattice.primary_prev, a.stamp.lattice.primary, `${label}: primary links`);
   assert.equal(b.stamp.lattice.secondary_prev, a.stamp.lattice.secondary, `${label}: secondary links`);
 
   // Offline: secondary is the document hash plus the username.
-  const o = await append(store, { c: "evidence", subject: "field", fact: "offline note", offline: true, username: "azuser" });
+  const o = await append(store, { c: C, subject: "field", fact: "offline note", offline: true, username: "azuser" });
   assert.equal(o.ok, true, `${label}: offline append`);
   assert.equal(o.stamp.lattice.offline, true);
   assert.equal(o.stamp.lattice.username, "azuser");
   assert.equal(o.stamp.lattice.secondary, await latticeOfflineSecondary(o.stamp.lattice.document_hash, "azuser"));
 
   // The same document for the same user offline is refused and nothing is written.
-  const before = await tip(store, "evidence");
-  const doubled = await append(store, { c: "evidence", subject: "field", fact: "offline note", offline: true, username: "azuser" });
+  const before = await tip(store, C);
+  const doubled = await append(store, { c: C, subject: "field", fact: "offline note", offline: true, username: "azuser" });
   assert.equal(doubled.ok, false, `${label}: offline double refused`);
   assert.equal(doubled.refuse, "lattice-double");
   assert.equal(doubled.code, "LATTICE-DOUBLE");
   assert.equal(doubled.written, false);
-  const after = await tip(store, "evidence");
+  const after = await tip(store, C);
   assert.equal(after.seq, before.seq, `${label}: nothing written on double`);
 
   // LATTICE-DOC-UNIQUE-1.0: another user cannot store the same document either.
-  const other = await append(store, { c: "evidence", subject: "field", fact: "offline note", offline: true, username: "seconduser", caller: "seconduser" });
-  assert.equal(other.ok, false);
-  assert.equal(other.code, "LATTICE-DOUBLE-CROSS");
+  const other = await append(store, { c: C, subject: "field", fact: "offline note", offline: true, username: "seconduser", caller: "seconduser" });
+  if (docChain) {
+    assert.equal(other.ok, false);
+    assert.equal(other.code, "LATTICE-DOUBLE-CROSS");
+  } else assert.equal(other.ok, true, `${label}: per-user lattice on an event chain`);
 
   // Offline without a username refuses.
-  const nouser = await append(store, { c: "evidence", fact: "no handle", offline: true });
+  const nouser = await append(store, { c: C, fact: "no handle", offline: true });
   assert.equal(nouser.ok, false);
   assert.equal(nouser.code, "LATTICE-USERNAME-ABSENT");
 
   // LATTICE-DOC-UNIQUE-1.0: an online re-append of the same document is refused too.
-  const again = await append(store, { c: "evidence", subject: "one", fact: "first fact" });
-  assert.equal(again.ok, false);
-  assert.equal(again.code, "LATTICE-DOUBLE");
-  const third = await append(store, { c: "evidence", subject: "three", fact: "third fact" });
+  const again = await append(store, { c: C, subject: "one", fact: "first fact" });
+  if (docChain) {
+    assert.equal(again.ok, false);
+    assert.equal(again.code, "LATTICE-DOUBLE");
+  } else assert.equal(again.ok, true);
+  const third = await append(store, { c: C, subject: "three", fact: "third fact" });
   assert.equal(third.ok, true);
 
-  const t = await tip(store, "evidence");
+  const t = await tip(store, C);
   assert.equal(t.lattice_tips.primary, third.stamp.lattice.primary);
   assert.equal(t.lattice_tips.secondary, third.stamp.lattice.secondary);
 
-  const v = await verify(store, { c: "evidence" });
+  const v = await verify(store, { c: C });
   assert.equal(v.ok, true, `${label}: ${JSON.stringify(v.breaks)}`);
   assert.equal(v.chains[0].dual_lattice.lattice_live, true);
-  assert.equal(v.chains[0].dual_lattice.lattice_rows, 4);
+  assert.equal(v.chains[0].dual_lattice.lattice_rows, docChain ? 4 : 5);
   assert.equal(v.dual_lattice.lattice_live, true);
   return store;
 }
 
-const mem = await exerciseStore("memory", new MemoryStore());
+const mem = await exerciseStore("memory", new MemoryStore(), "session");
 
 const kvMap = new Map();
 const kvBinding = {
@@ -124,7 +135,7 @@ const kvBinding = {
   async delete(k) { kvMap.delete(k); },
   async list() { return { keys: [...kvMap.keys()].map((name) => ({ name })) }; },
 };
-await exerciseStore("kv", new KvStore(kvBinding));
+await exerciseStore("kv", new KvStore(kvBinding), "session");
 
 const doNs = memoryChainWriterNamespace({});
 await exerciseStore("durable", new DurableStore(doNs));
@@ -136,7 +147,7 @@ const doubleAcross = await append(doStore2, { c: "evidence", subject: "field", f
 assert.equal(doubleAcross.code, "LATTICE-DOUBLE");
 
 // --- 3. Tamper and missing-chain checks fail closed --------------------------
-const rows = (await mem.loadRecords("evidence")).map((r) => structuredClone(r));
+const rows = (await mem.loadRecords("session")).map((r) => structuredClone(r));
 {
   const bad = structuredClone(rows);
   bad[1].lattice.secondary = "f".repeat(64);

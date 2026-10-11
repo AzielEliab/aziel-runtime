@@ -53,22 +53,41 @@ export const INTERNAL_CHAINS = Object.freeze(["refusals"]);
 export const DOCUMENT_CHAINS = Object.freeze(["evidence", "library", "identity"]);
 export const DOC_UNIQUE_SPEC = "LATTICE-DOC-UNIQUE-1.0";
 
+/**
+ * Normalize document text for the uniqueness index: Unicode NFC, trim, collapse whitespace,
+ * case-fold. "First fact " and "first  fact" are the same document.
+ */
+export function normalizeDocText(text) {
+  return String(text == null ? "" : text)
+    .normalize("NFC")
+    .replace(/\s+/gu, " ")
+    .trim()
+    .toLowerCase()
+    .normalize("NFC");
+}
+
+/**
+ * Content hash for LATTICE-DOC-UNIQUE-1.0: normalized subject + fact only. Chain and kind are
+ * left out on purpose, so the same text is one document across chains and kinds. (The lattice
+ * document_hash in each stamp is unchanged, so existing rows still verify.)
+ */
+export async function documentContentHash(src) {
+  return latticeDocumentHash({
+    spec: DOC_UNIQUE_SPEC,
+    subject: normalizeDocText(clip(src && (src.s || src.subject), SUBJECT_CAP)),
+    fact: normalizeDocText(clip(src && (src.f || src.fact), FACT_CAP)),
+  });
+}
+
+/** Claim a document hash. Only the Durable Object index is atomic; anything else fails closed. */
 async function claimDocument(store, doc, owner, idemp) {
   try {
-    if (store && typeof store.docClaim === "function") return await store.docClaim(doc, owner, idemp);
-    if (store && typeof store.get === "function" && typeof store.put === "function") {
-      const key = "docidx/" + doc;
-      const raw = await store.get(key);
-      const hit = raw ? JSON.parse(raw) : null;
-      if (!hit) {
-        await store.put(key, JSON.stringify({ owner, idemp: idemp || "" }));
-        return { ok: true, fresh: true };
-      }
-      if (hit.owner === owner && idemp && hit.idemp === idemp) return { ok: true, fresh: false };
-      return { ok: false, refuse: "lattice-double", code: hit.owner === owner ? "LATTICE-DOUBLE" : "LATTICE-DOUBLE-CROSS" };
+    if (store && typeof store.docClaim === "function") {
+      const got = await store.docClaim(doc, owner, idemp);
+      if (got && typeof got.ok === "boolean") return got;
     }
   } catch {
-    /* fall through: fail closed */
+    /* fail closed below */
   }
   return { ok: false, refuse: "lattice-doc-index", code: "LATTICE-DOC-INDEX-UNAVAILABLE" };
 }
@@ -76,17 +95,37 @@ async function claimDocument(store, doc, owner, idemp) {
 async function releaseDocument(store, doc, owner) {
   try {
     if (store && typeof store.docRelease === "function") return await store.docRelease(doc, owner);
-    if (store && typeof store.get === "function" && typeof store.put === "function") {
-      const key = "docidx/" + doc;
-      const raw = await store.get(key);
-      const hit = raw ? JSON.parse(raw) : null;
-      if (hit && hit.owner === owner && typeof store.delete === "function") await store.delete(key);
-      else if (hit && hit.owner === owner) await store.put(key, "");
-    }
   } catch {
     /* a stale claim only blocks a retry of the same document; it never allows a double */
   }
   return null;
+}
+
+/**
+ * Backfill: index document rows written before LATTICE-DOC-UNIQUE-1.0. `targets` is a list of
+ * { chain, caller } (caller "" for the public chain). Each row claims its content hash with the
+ * row id as idempotency key, so re-running is safe. A hash already owned by another user/chain is
+ * reported as a pre-existing double; nothing is deleted or rewritten.
+ */
+export async function backfillDocumentIndex(storeOrEnv, targets = []) {
+  const store = storeFor(storeOrEnv);
+  const out = { ok: true, spec: DOC_UNIQUE_SPEC, indexed: 0, already: 0, doubles: [], unavailable: 0 };
+  for (const t of targets) {
+    const chain = String((t && t.chain) || "").trim();
+    if (!DOCUMENT_CHAINS.includes(chain)) continue;
+    const caller = String((t && t.caller) || "").trim();
+    const rows = await loadChain(store, chain, caller);
+    for (const row of rows) {
+      if (!row || !row.fact) continue;
+      const doc = await documentContentHash(row);
+      const got = await claimDocument(store, doc, caller + "|" + chain, String(row.id || ""));
+      if (got.ok && got.fresh) out.indexed++;
+      else if (got.ok) out.already++;
+      else if (got.code === "LATTICE-DOC-INDEX-UNAVAILABLE") { out.unavailable++; out.ok = false; }
+      else out.doubles.push({ chain, caller, id: row.id || null, document_hash: doc, code: got.code });
+    }
+  }
+  return out;
 }
 
 const DOUBLE_MESSAGE = {
@@ -287,7 +326,7 @@ export async function append(storeOrEnv, input = {}, options = {}) {
   const idempotencyKey = String(src.idempotency_key || src.idemp || src.id || "").trim();
   let docClaim = null;
   if (DOCUMENT_CHAINS.includes(chain)) {
-    const doc = await stampDocumentHash(src);
+    const doc = await documentContentHash(src);
     const owner = caller + "|" + chain;
     const got = await claimDocument(store, doc, owner, idempotencyKey);
     if (!got || !got.ok) {
@@ -311,6 +350,7 @@ export async function append(storeOrEnv, input = {}, options = {}) {
     return unsigned;
   };
   let ack;
+  try {
   if (typeof store.appendAtomic === "function") {
     ack = await store.appendAtomic(
       {
@@ -333,6 +373,11 @@ export async function append(storeOrEnv, input = {}, options = {}) {
     rows.push(ack);
     await saveChain(store, chain, rows, caller);
     ack = { ok: true, record: ack, seq: rows.length, prev: ack.prev, replayed: false };
+  }
+  } catch (err) {
+    // A throw after the claim must not leave the document locked.
+    if (docClaim) await releaseDocument(store, docClaim.doc, docClaim.owner);
+    throw err;
   }
   if (!ack || !ack.ok) {
     if (docClaim) await releaseDocument(store, docClaim.doc, docClaim.owner);
