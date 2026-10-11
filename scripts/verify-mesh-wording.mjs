@@ -1,0 +1,20 @@
+/** MESH-WORDING-1.0: mesh_status does not claim "QNM suite rollup is LIVE" (not backed end to end). */
+import assert from "node:assert/strict";
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { join } from "node:path";
+import { meshStatus } from "../src/mesh.js";
+let n = 0;
+const out = await meshStatus({}, {});
+const text = JSON.stringify(out);
+assert.ok(!/rollup is LIVE/i.test(text), "mesh_status claims rollup LIVE");
+const note = (out && (out.note || (out.result && out.result.note))) || "";
+if (/QNM suite rollup/.test(note)) assert.match(note, /read-only presence counts served by this Worker\. Not a live end-to-end QNM mesh\./);
+n++;
+const { default: worker } = await import("../src/index.js");
+const res = await worker.fetch(new Request("https://x.example/v1/mesh"), {}, { waitUntil() {} });
+assert.ok(!/rollup is LIVE/i.test(await res.text())); n++;
+const hits = [];
+const walk = (d) => { for (const e of readdirSync(d)) { const f = join(d, e); if (statSync(f).isDirectory()) walk(f); else if (f.endsWith(".js") && /rollup is LIVE/i.test(readFileSync(f, "utf8"))) hits.push(f); } };
+walk(new URL("../src", import.meta.url).pathname);
+assert.deepEqual(hits, []); n++;
+console.log(`ok mesh wording: ${n} checks`);
