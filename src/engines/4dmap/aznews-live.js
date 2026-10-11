@@ -33,6 +33,9 @@ import { BLACK_RULE, MATCH_SPEC, PIN_COLORS, PINS_SPEC, WHITE_RULE, colorFor, er
 
 export const LIVE_SPEC = "AZNEWS-LIVE-1.0";
 export const OUTLETS_PER_TICK = 5;
+export const FEED_ATTEMPTS = 2;
+export const FEED_TIMEOUT_MS = 10000;
+export const FEED_BACKOFF_MS = 1500;
 export const NEW_PER_OUTLET = 6;
 export const MAX_ITEM_AGE_MS = 72 * 3600000;
 export const WEATHER_EVERY_MS = 120 * 60000;
@@ -399,17 +402,34 @@ function lexiconHit(title) {
 
 async function ingestOutlet(batch, repo, outlet, fetchImpl, now, recent, budget) {
   const status = { id: outlet.id, name: outlet.name, attempted_at: new Date(now).toISOString(), ok: false, items_returned: 0, new_items: 0, http_status: null, reason: null };
-  let res;
-  try {
-    res = await timedFetch(fetchImpl, outlet.feed_url, { headers: HEADERS });
-  } catch (err) {
-    status.reason = `fetch failed: ${String((err && err.message) || err).slice(0, 120)}`;
-    return { status, subrequests: 1 };
+  // AZNEWS-FEED-RETRY-1.0: at most FEED_ATTEMPTS fetches per outlet per tick. A retry
+  // happens only on a timeout/network error, HTTP 429 or HTTP 5xx, after a short backoff.
+  // Worst case per tick stays inside the 50-subrequest cap (5 feeds x 2 + 30 images + 1 weather).
+  let res = null;
+  let feedSub = 0;
+  const timeoutMs = outlet.timeout_ms || FEED_TIMEOUT_MS;
+  for (let attempt = 1; attempt <= FEED_ATTEMPTS; attempt++) {
+    feedSub += 1;
+    status.attempts = attempt;
+    try {
+      res = await timedFetch(fetchImpl, outlet.feed_url, { headers: HEADERS }, timeoutMs);
+      status.http_status = res ? res.status : null;
+      status.reason = null;
+      if (res && (res.status === 429 || res.status >= 500) && attempt < FEED_ATTEMPTS) {
+        await new Promise((r) => setTimeout(r, FEED_BACKOFF_MS * attempt));
+        continue;
+      }
+      break;
+    } catch (err) {
+      res = null;
+      status.reason = `fetch failed: ${String((err && err.message) || err).slice(0, 120)}`;
+      if (attempt < FEED_ATTEMPTS) await new Promise((r) => setTimeout(r, FEED_BACKOFF_MS * attempt));
+    }
   }
-  status.http_status = res ? res.status : null;
-  if (!res || !res.ok) {
+  if (!res) return { status, subrequests: feedSub };
+  if (!res.ok) {
     status.reason = `HTTP ${status.http_status}`;
-    return { status, subrequests: 1 };
+    return { status, subrequests: feedSub };
   }
   const xml = await res.text();
   const items = parseFeed(xml);
@@ -431,7 +451,7 @@ async function ingestOutlet(batch, repo, outlet, fetchImpl, now, recent, budget)
   }
   fresh.sort((a, b) => (Date.parse(b.published || 0) || 0) - (Date.parse(a.published || 0) || 0));
   const take = fresh.slice(0, Math.min(NEW_PER_OUTLET, budget.items));
-  let subrequests = 1;
+  let subrequests = feedSub;
   const images = await Promise.all(take.map((it) => (it.image_urls[0] && budget.images-- > 0 ? hashImage(fetchImpl, it.image_urls[0]) : null)));
   subrequests += images.filter(Boolean).length;
   for (let i = 0; i < take.length; i++) {
@@ -440,7 +460,7 @@ async function ingestOutlet(batch, repo, outlet, fetchImpl, now, recent, budget)
     const tokens = salientTokens(it.title, outlet.name);
     const corro = corroboration(recent, tokens, outlet.id, now);
     const score = await scoreItem({ title: it.title, wording: it.wording, full_text: it.full_text, link: it.canonical_url, outlet, corroborating_outlets: corro.size });
-    const ev = eventLocation({ title: it.title, text: it.wording, outletName: outlet.name });
+    const ev = eventLocation({ title: it.title, text: it.wording, outletName: outlet.name, outletCountry: outlet.country });
     const rp = reportedLocation({ text: it.wording, outlet });
     const imgRows = it.image_urls.map((url, j) => (j === 0 && images[i] ? images[i] : { url, sha256: null, reason: j === 0 ? "image fetch budget used" : "only the first image is fetched and hashed" }));
     const itemId = `n-${it.urlHash.slice(0, 16)}`;

@@ -10,7 +10,7 @@
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
 export const OUTLETS_SPEC = "AZNEWS-OUTLETS-1.0";
-export const OUTLETS_PROBED = "2026-10-09";
+export const OUTLETS_PROBED = "2026-10-10";
 
 const LONDON = ["London", 51.5072, -0.1276];
 const NYC = ["New York", 40.7128, -74.006];
@@ -48,15 +48,15 @@ const ROWS = [
   [24, "news18", "News18", "news18.com", "IN", "https://www.news18.com/commonfeeds/v1/eng/rss/india.xml", "paid-or-blocked", NOIDA, "The feed answered HTTP 403 on 2026-10-09."],
   [25, "aljazeera", "Al Jazeera", "aljazeera.com", "QA", "https://www.aljazeera.com/xml/rss/all.xml", "public-rss", ["Doha", 25.2854, 51.531]],
   [26, "reuters", "Reuters", "reuters.com", "GB", null, "paid-or-blocked", LONDON, "Reuters retired its public RSS feeds. Third-party mirrors are not used."],
-  [27, "washingtonpost", "The Washington Post", "washingtonpost.com", "US", "https://feeds.washingtonpost.com/rss/world", "public-rss", DC],
+  [27, "washingtonpost", "The Washington Post", "washingtonpost.com", "US", "https://feeds.washingtonpost.com/rss/world", "public-rss", DC, "The feed answers slowly (about 8 s from the box on 2026-10-10); timeout 20 s with one retry.", 20000],
   [28, "telegraph", "The Telegraph", "telegraph.co.uk", "GB", "https://www.telegraph.co.uk/rss.xml", "public-rss", LONDON],
   [29, "forbes", "Forbes", "forbes.com", "US", "https://www.forbes.com/business/feed/", "public-rss", ["Jersey City", 40.7178, -74.0431]],
   [30, "independent", "The Independent", "independent.co.uk", "GB", "https://www.independent.co.uk/rss", "public-rss", LONDON],
-  [31, "india-com", "India.com", "india.com", "IN", "https://www.india.com/feed/", "paid-or-blocked", NOIDA, "The feed answered HTTP 403 on 2026-10-09."],
+  [31, "india-com", "India.com", "india.com", "IN", "https://www.india.com/feed/", "public-rss", NOIDA, "Answered HTTP 403 on 2026-10-09; re-probed 200 with 20 items on 2026-10-10."],
   [32, "cbsnews", "CBS News", "cbsnews.com", "US", "https://www.cbsnews.com/latest/rss/main", "public-rss", NYC],
   [33, "abc-au", "ABC News Australia", "abc.net.au", "AU", "https://www.abc.net.au/news/feed/51120/rss.xml", "public-rss", SYDNEY],
   [34, "thehindu", "The Hindu", "thehindu.com", "IN", "https://www.thehindu.com/feeder/default.rss", "public-rss", ["Chennai", 13.0827, 80.2707]],
-  [35, "cbc", "CBC", "cbc.ca", "CA", "https://rss.cbc.ca/lineup/topstories.xml", "public-rss", ["Ottawa", 45.4215, -75.6972]],
+  [35, "cbc", "CBC", "cbc.ca", "CA", "https://www.cbc.ca/webfeed/rss/rss-topstories", "public-rss", ["Ottawa", 45.4215, -75.6972], "rss.cbc.ca answered 520 from Workers; CBC's own www.cbc.ca/webfeed URL is used (200, 2026-10-10)."],
   [36, "thesun", "The Sun", "thesun.co.uk", "GB", "https://www.thesun.co.uk/feed/", "public-rss", LONDON],
   [37, "news-com-au", "news.com.au", "news.com.au", "AU", null, "unwired", SYDNEY, "The content-feeds URLs return an HTML page, not RSS (2026-10-09)."],
   [38, "npr", "NPR", "npr.org", "US", "https://feeds.npr.org/1001/rss.xml", "public-rss", DC],
@@ -75,8 +75,8 @@ const ROWS = [
 ];
 
 export const OUTLETS = Object.freeze(
-  ROWS.map(([rank, id, name, domain, country, feed_url, access, hq, note]) =>
-    Object.freeze({ rank, id, name, domain, country, feed_url, access, hq_city: hq[0], hq_lat: hq[1], hq_lon: hq[2], note: note || null }),
+  ROWS.map(([rank, id, name, domain, country, feed_url, access, hq, note, timeout_ms]) =>
+    Object.freeze({ rank, id, name, domain, country, feed_url, access, hq_city: hq[0], hq_lat: hq[1], hq_lon: hq[2], note: note || null, timeout_ms: timeout_ms || null }),
   ),
 );
 
