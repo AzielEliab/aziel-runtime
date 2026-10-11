@@ -52,6 +52,21 @@ export class ChainWriter {
     await this.ctx.storage.put(key, value);
   }
 
+  /** STATS-FLOOR-1.0 (only on the "__statsfloor__" object): raise the floor to max(floor, uses). */
+  async statsFloor(body) {
+    const key = String((body && body.key) || "").slice(0, 64);
+    const uses = Math.floor(Number(body && body.uses));
+    if (!key || !Number.isFinite(uses) || uses < 0) return { ok: false, refuse: "bad-floor" };
+    const run = (this._floorQueue || Promise.resolve()).then(async () => {
+      const cur = Number((await this._get("floor:" + key)) || 0);
+      const next = Math.max(cur, uses);
+      if (next !== cur) await this._put("floor:" + key, next);
+      return { ok: true, key, floor: next };
+    });
+    this._floorQueue = run.catch(() => {});
+    return run;
+  }
+
   async _meta() {
     return (await this._get("meta")) || { seq: 0, tip: "" };
   }
@@ -340,6 +355,9 @@ export class ChainWriter {
       }
       if (action === "meta" && request.method === "GET") {
         return json(await this.metaView());
+      }
+      if (action === "floor" && request.method === "POST") {
+        return json(await this.statsFloor(await readJson(request)));
       }
       if (action === "row" && request.method === "GET") {
         return json(await this.rowAt(url.searchParams.get("seq")));

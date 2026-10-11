@@ -579,6 +579,7 @@ assert.match(home, /fraggate-download-tracker/);
 assert.match(home, /href="https:\/\/fraggate-download-tracker\.vibelock\.workers\.dev\/"/);
 assert.match(home, /FragGate is the kernel door/);
 
+env.CHAINLOCK ??= (await import("../src/chainlock/writer-do.js")).memoryChainWriterNamespace({}); // STATS-FLOOR-1.0
 const uses = await (await handler(new Request(origin + "/v1/uses"), env)).json();
 assert.equal(uses.ok, true);
 assert.equal(uses.uses_kv, true);

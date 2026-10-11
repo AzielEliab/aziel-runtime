@@ -387,6 +387,11 @@ export class DurableStore {
     return stub.fetch(new Request(url, init));
   }
 
+  /** STATS-FLOOR-1.0: atomic raise of the shared /v1/stats floor. */
+  async statsFloor(key, uses) {
+    return this._json("__statsfloor__", "/floor", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ key, uses }) });
+  }
+
   async _json(name, path, init) {
     const res = await this._fetch(name, path, init);
     const text = await res.text();

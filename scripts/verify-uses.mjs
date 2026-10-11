@@ -255,6 +255,8 @@ assert.ok(USES_READ_BUDGET_MS <= 8_000);
 
 // --- HTTP: increment API, skip SEO / health / uses ---
 const env = envWithUses();
+// STATS-FLOOR-1.0: /v1/uses and /v1/stats need the shared floor (CHAINLOCK DO).
+env.CHAINLOCK = (await import("../src/chainlock/writer-do.js")).memoryChainWriterNamespace({});
 await jsonReq(env, "/v1/fraggate/list");
 await jsonReq(env, "/v1/bundle");
 await jsonReq(env, "/v1/skill");
