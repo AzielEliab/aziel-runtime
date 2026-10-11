@@ -409,6 +409,14 @@ Custom HTTP tools / OpenAPI: import the same
 Pull via `GET /v1/bundle` / `GET /v1/pull/{slug}`. Session exec is
 `POST /v1/session/{id}/exec`. Proxy remains `POST /p/{slug}/{op}`.
 
+## Receipts and signing (RECEIPT-SIGNING-LAYERS-1.0)
+
+- **Receipts are hash-linked and sealed, not signed.** ChainLock chains, session receipts (`runtime_session_receipt`), ACT-RECEIPT rows and refusal receipts carry a hash and a link to the previous hash. A seal closes a session. No receipt carries a signature.
+- **RIB-001 external anchor is shipped** ([AZRT-ANCHOR-1.0](docs/designs/AZRT-ANCHOR-1.0.md)). Chain heads are published to [AzielEliab/aziel-anchors](https://github.com/AzielEliab/aziel-anchors), signed there with an Ed25519 key that lives only in that repo's Actions secret, with RFC 3161 and Rekor timestamps. `GET /v1/anchor` verifies fail-closed.
+- **RIB-018 refusal receipts are shipped** ([AZRT-REFUSAL-RECEIPT-1.0](docs/designs/AZRT-REFUSAL-RECEIPT-1.0.md)). A refusal mints its own hash-linked, sealed receipt on the `refusals` chain.
+- **For the receipt chains, signatures exist at three layers only:** the anchor statement (aziel-anchors witness), store checkpoints (AZRT-STORE-CHECKPOINT-1.0, every 1000 rows), and tether packets to AZ-OS / AZInterface (AZRT-AZOS-TETHER-1.0, pinned key).
+- **Separate from receipts:** mesh and federated-mesh peer identity keys sign handshakes and peer traffic (AZP / FED-MESH). Those are transport identity, not receipt signatures.
+
 ## Honesty banners
 
 - **Every catalog Software slug is in-process.** `engine_slugs` equals `true_engine_slugs` on `/v1/health` and `/v1/runtime.json`. Binding-only ops stay per-op `proxy_fallback`.
