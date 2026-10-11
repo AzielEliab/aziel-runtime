@@ -53,7 +53,7 @@ function pickEntry(a, b) {
  * the highest count already served per key, and never serve a lower one (KV reads are
  * eventually consistent, so a fresh read can lag a count already shown).
  */
-export async function cachedUses(key, read, { now = Date.now(), cache = defaultCache() } = {}) {
+async function cachedUsesLocal(key, read, { now = Date.now(), cache = defaultCache() } = {}) {
   const fresh = (e) => e && Number.isFinite(e.at) && now - e.at < STATS_TTL_S * 1000 && cacheable(e.body);
   const reqKey = "https://stats-cache.internal/" + encodeURIComponent(key);
   const local = memo.get(key) || null;
@@ -97,11 +97,59 @@ export async function cachedUses(key, read, { now = Date.now(), cache = defaultC
   return stamp(best.body, best.at, best !== entry, now, best !== entry);
 }
 
+/**
+ * STATS-FLOOR-1.0: one shared floor per key in a Durable Object (no KV). The floor is the
+ * highest `uses` ever served by any isolate in any colo. Each isolate does at most one DO
+ * read+write (a single atomic "raise to max" call) per key per STATS_TTL_S; in between it uses
+ * the floor it last got. A served count is lifted to the floor when a read lags it, and the body
+ * says so (uses_read keeps the raw read). If the DO cannot be reached the body says
+ * floor_shared: false; the local floor still applies.
+ */
+const floorSync = new Map();
+export async function cachedUses(key, read, { now = Date.now(), cache = defaultCache(), floor = null } = {}) {
+  const body = await cachedUsesLocal(key, read, { now, cache });
+  let last = floorSync.get(key) || null;
+  let shared = null;
+  if (floor && typeof floor.raise === "function" && (!last || now - last.at >= STATS_TTL_S * 1000)) {
+    try {
+      const got = await floor.raise(key, Math.max(0, countOf(body)));
+      const f = Number(got && got.floor);
+      if (got && got.ok === true && Number.isFinite(f)) shared = true, last = { at: now, floor: f };
+      else shared = false;
+    } catch {
+      shared = false;
+    }
+    if (shared) floorSync.set(key, last);
+  } else if (floor && last) shared = true;
+  const fl = Math.max(last ? last.floor : -1, countOf((highWater.get(key) || {}).body));
+  const out = { ...body, cache: { ...body.cache, floor_spec: "STATS-FLOOR-1.0", floor_shared: shared === true, floor_synced_at: last ? new Date(last.at).toISOString() : null } };
+  if (fl > countOf(body)) {
+    out.uses_read = body.uses;
+    out.uses = fl;
+    out.cache.uses_floor_applied = true;
+  } else out.cache.uses_floor_applied = false;
+  return out;
+}
+
 export function clearStatsMemo() {
+  floorSync.clear();
   memo.clear();
   highWater.clear();
 }
 
 function defaultCache() {
   return typeof caches !== "undefined" && caches && caches.default ? caches.default : null;
+}
+
+/** The shared floor lives on the CHAINLOCK Durable Object namespace ("__statsfloor__"). No KV. */
+export function statsFloorFor(env) {
+  const ns = env && env.CHAINLOCK;
+  if (!ns || typeof ns.idFromName !== "function" || typeof ns.get !== "function") return null;
+  return {
+    async raise(key, uses) {
+      const stub = ns.get(ns.idFromName("__statsfloor__"));
+      const res = await stub.fetch(new Request("https://chainwriter.internal/floor", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ key, uses }) }));
+      return res.json();
+    },
+  };
 }

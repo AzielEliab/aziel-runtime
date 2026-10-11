@@ -265,7 +265,7 @@ import {
 } from "./mcp-discovery.js";
 import { adoptCard, llmsBodyCanonical } from "./adopt-card.js";
 import { clientMatrix } from "./client-matrix.js";
-import { cachedUses } from "./stats-cache.js";
+import { cachedUses, statsFloorFor } from "./stats-cache.js";
 import { claudeDesktopInstallSnippet, cursorInstallSnippet } from "./install-snippets.js";
 import { adoptActionsOpenApi } from "./openapi-adopt-slim.js";
 import { glamaStaticCard } from "./glama-static.js";
@@ -4775,7 +4775,7 @@ async function handleRequest(request, env, ctx) {
       (request.method === "GET" || request.method === "HEAD")
     ) {
       const light = url.searchParams.get("light") === "1" || url.searchParams.get("light") === "true";
-      const uses = await cachedUses(light ? "light" : "full", () => readUses(env, { light, budget_ms: 8_000 }));
+      const uses = await cachedUses(light ? "light" : "full", () => readUses(env, { light, budget_ms: 8_000 }), { floor: statsFloorFor(env) });
       const body =
         url.pathname === "/v1/stats" ? { ...uses, stats: "uses", alias_of: "/v1/uses" } : uses;
       return asHead(request, json(body, 200, authorityLinkHeaders(origin, url.pathname)));
