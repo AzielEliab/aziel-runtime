@@ -4573,6 +4573,52 @@ async function handleRequest(request, env, ctx) {
       return asHead(request, new Response(aznewsPageHtml(), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "public, max-age=60" } }));
     }
 
+    if ((url.pathname === "/v1/anchor" || url.pathname.startsWith("/v1/anchor/")) && (request.method === "GET" || request.method === "HEAD")) {
+      // AZRT-ANCHOR-1.0 / AZRT-INTEGRITY-LEVEL-1.0 / AZRT-AUDITOR-1.0: read-only. Mints nothing.
+      const anchor = await import("./anchor.js");
+      const { aznewsCall, mapCall } = await import("./aznews-do.js");
+      const deps = { storeFor, aznewsCall, mapCall };
+      const hdrs = { "access-control-allow-origin": "*", "cache-control": "no-store" };
+      if (url.pathname === "/v1/anchor/heads") {
+        const heads = await anchor.collectHeads(env, { ...deps, version: RUNTIME_VERSION, gitSha: (env && env.GIT_SHA) || null });
+        return asHead(request, json(heads, 200, hdrs));
+      }
+      if (url.pathname === "/v1/anchor/row") {
+        const c = String(url.searchParams.get("c") || url.searchParams.get("chain") || "");
+        const seq = Number(url.searchParams.get("seq"));
+        if (!anchor.ANCHOR_CHAINS.includes(c) || !Number.isInteger(seq) || seq < 1) {
+          return json({ ok: false, code: "ANCHOR-BAD-QUERY", message: "GET /v1/anchor/row?c=<chain>&seq=<1-based row>.", chains: anchor.ANCHOR_CHAINS }, 400, hdrs);
+        }
+        const out = await anchor.rowIntegrity(env, c, seq, deps);
+        return asHead(request, json({ spec: anchor.ANCHOR_SPEC, fail_closed: true, ...out }, out.ok ? 200 : 409, hdrs));
+      }
+      if (url.pathname === "/v1/anchor" || url.pathname === "/v1/anchor/status" || url.pathname === "/v1/anchor/verify") {
+        const anchors = await anchor.loadAnchors(fetch, { force: url.searchParams.get("fresh") === "1" });
+        const audits = await anchor.loadAudits(fetch);
+        let latest = null;
+        if (anchors.ok) {
+          const check = await anchor.checkStatementAgainstRuntime(env, anchors.latest.statement, deps);
+          latest = { n: anchors.latest.statement.n, statement_hash: anchors.latest.statement_hash, observed_at: anchors.latest.statement.observed_at, rekor: anchors.latest.rekor || null, tsa: anchors.latest.tsa || null, runtime_check: check };
+        }
+        const ok = Boolean(anchors.ok && latest && latest.runtime_check.ok);
+        const body = {
+          spec: anchor.ANCHOR_SPEC,
+          ok,
+          code: ok ? "ANCHOR-OK" : (anchors.ok ? anchor.ANCHOR_CODES.mismatch : anchors.code),
+          fail_closed: true,
+          witness: { repo: anchor.WITNESS_REPO_URL, log: anchor.WITNESS_LOG_URL, public_key: anchor.WITNESS_PUBLIC_KEY, key_outside_runtime: true, key_note: "The private key is an Actions secret of the witness repo. This Worker holds only the public key and cannot sign or write the log.", log_verified: anchors.ok, entries: anchors.n || 0, ...(anchors.ok ? {} : { log_code: anchors.code, at: anchors.at, reason: anchors.reason }) },
+          latest,
+          auditor: { spec: anchor.AUDITOR_SPEC, log: anchor.AUDIT_LOG_URL, public_key: anchor.AUDITOR_PUBLIC_KEY, log_verified: audits.ok, entries: audits.n || 0, latest: audits.ok ? { n: audits.latest.statement.n, verdict: audits.latest.statement.verdict, at: audits.latest.statement.audited_at, statement_hash: audits.latest.statement_hash } : null, ...(audits.ok ? {} : { log_code: audits.code }) },
+          anchor_ref_now: anchor.anchorRefNow(),
+          integrity_levels: anchor.INTEGRITY_LEVELS.slice(1),
+          checks_here: ["witness Ed25519 signature (pinned key)", "statement hash + order chain", "anchored heads still match runtime rows"],
+          checks_elsewhere: ["RFC 3161 token (freetsa.org) and Rekor inclusion are verified by the auditor job, not this Worker"],
+        };
+        return asHead(request, json(body, ok ? 200 : 409, hdrs));
+      }
+      return json({ ok: false, error: "not found", hint: "GET /v1/anchor, /v1/anchor/heads, /v1/anchor/row?c=&seq=" }, 404, hdrs);
+    }
+
     if ((url.pathname === "/v1/4dmap/ledger" || url.pathname === "/v1/4dmap/checkpoints") && (request.method === "GET" || request.method === "HEAD")) {
       // AZRT-STORE-CHECKPOINT-1.0 / AZRT-STORE-SHARD-1.0: total rows, head rows, segments, checkpoint tip.
       const { mapCall } = await import("./aznews-do.js");
@@ -4795,6 +4841,10 @@ export default {
   async fetch(request, rawEnv, ctx) {
     // Hot USES writes go to the RUNTIME_KV Durable Object (KV daily put quota made /mcp throw 1101).
     const env = withDurableKv(rawEnv);
+    if (ctx && typeof ctx.waitUntil === "function") {
+      // AZRT-ANCHOR-1.0: refresh the verified witness view off the request path (never blocks a mint).
+      ctx.waitUntil(import("./anchor.js").then((a) => a.refreshAnchorsIfStale(fetch)).catch(() => null));
+    }
     const budget = requestDeadlineMs(env);
     const run = async () => {
       const peek = String(request.method || "GET").toUpperCase() === "POST" ? request.clone() : request;

@@ -129,6 +129,12 @@ export class ChainWriter {
       nextMeta.lt = meta.lt;
     }
     await this._put("meta", nextMeta);
+    // AZRT-GOAL-LINK-1.0: a refusal (or follow) stamp that names a goal key leaves a pointer
+    // so the agent's next action on the same goal, through any tool, can link back to it.
+    const goalKey = src.input && typeof src.input.goal_key === "string" ? src.input.goal_key : "";
+    if (goalKey && record && (record.k === "refusal" || record.k === "follow")) {
+      await this._put("goal:" + goalKey, { seq: nextSeq, h: record.stamp_sha256, k: record.k, t: record.t, open: record.k === "refusal" });
+    }
     const ack = { ok: true, record, seq: nextSeq, prev: prev || genesis, replayed: false };
     if (idempKey) await this._put("idemp:" + idempKey, { ...ack, replayed: true });
     return ack;
@@ -163,6 +169,25 @@ export class ChainWriter {
       current: false,
       fork: !found,
     };
+  }
+
+  /** AZRT-ANCHOR-1.0: tip metadata without pulling every row. */
+  async metaView() {
+    const meta = await this._meta();
+    return { ok: true, seq: Number(meta.seq) || 0, tip: meta.tip || null, lt: meta.lt || null };
+  }
+
+  /** One row by 1-based seq (anchor / auditor checks). */
+  async rowAt(seq) {
+    const n = Math.floor(Number(seq));
+    if (!Number.isFinite(n) || n < 1) return { ok: false, refuse: "bad-seq" };
+    const row = await this._get("e:" + n);
+    return row ? { ok: true, seq: n, row } : { ok: false, refuse: "no-row", seq: n };
+  }
+
+  async goalGet(key) {
+    const hit = key ? await this._get("goal:" + String(key)) : null;
+    return { ok: true, pointer: hit || null };
   }
 
   async dump() {
@@ -231,6 +256,15 @@ export class ChainWriter {
       }
       if (action === "lattice" && request.method === "GET") {
         return json(await this.latticeSince(url.searchParams.get("since") || ""));
+      }
+      if (action === "meta" && request.method === "GET") {
+        return json(await this.metaView());
+      }
+      if (action === "row" && request.method === "GET") {
+        return json(await this.rowAt(url.searchParams.get("seq")));
+      }
+      if (action === "goal" && request.method === "GET") {
+        return json(await this.goalGet(url.searchParams.get("key") || ""));
       }
       if (action === "dump" && request.method === "GET") {
         return json(await this.dump());

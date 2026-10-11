@@ -118,6 +118,28 @@ export async function signReceipt(partial, prevHash) {
   return { ...unsigned, hash };
 }
 
+/**
+ * Additive optional receipt fields (2.0 additive-only; absent = old hash unchanged).
+ * AZRT-ANCHOR-1.0 anchor; later specs add more names here.
+ */
+export const ADDITIVE_RECEIPT_FIELDS = Object.freeze(["anchor"]);
+
+export function additiveReceiptFields(src) {
+  const out = {};
+  if (!src || typeof src !== "object") return out;
+  for (const key of ADDITIVE_RECEIPT_FIELDS) {
+    const value = src[key];
+    if (value == null) continue;
+    try {
+      const text = JSON.stringify(value);
+      if (text && text.length <= 2048) out[key] = JSON.parse(text);
+    } catch {
+      /* drop unserializable */
+    }
+  }
+  return out;
+}
+
 export async function appendReceipt(session, event, payload, nowIso, extra = {}) {
   const link = linkSessionAttempt(session, extra && extra.attempt_link ? extra.attempt_link : extra, {
     defaultOutcome: extra && extra.outcome ? extra.outcome : "completed",
@@ -205,11 +227,20 @@ export async function verifyChainStrict(receipts) {
       errors.push({ seq: rec.seq, error: "hash_mismatch", expected, got: hash });
     }
   }
+  const hashPresent = (receipts || []).length > 0 && (receipts || []).every((r) => r && typeof r.hash === "string");
   return {
     ok: errors.length === 0,
     count: (receipts || []).length,
     errors,
     head: basic.head,
+    // AZRT-INTEGRITY-LEVEL-1.0 (additive). Session chains are not witnessed, so the ceiling is chain_consistent.
+    integrity: {
+      spec: "AZRT-INTEGRITY-LEVEL-1.0",
+      level: hashPresent ? (errors.length === 0 ? "chain_consistent" : "hash_present") : "none",
+      levels: ["hash_present", "chain_consistent", "externally_anchored"],
+      externally_anchored: false,
+      note: "Session receipts may carry an anchor ref (the newest witness statement at mint time). That proves order after it, not external anchoring of this session.",
+    },
     dual_lattice: {
       ok: dual.ok,
       lattice_rows: dual.lattice_rows,
@@ -415,11 +446,11 @@ export function assertExecAllowed(session, { slug, op, payloadBytes, knownSlugs,
   return { slug: s, op: o };
 }
 
-export async function applyOpen(session, nowIso) {
+export async function applyOpen(session, nowIso, extra = {}) {
   await appendReceipt(session, "open", {
     policy: session.policy,
     source: session.source,
-  }, nowIso);
+  }, nowIso, additiveReceiptFields(extra));
   return session;
 }
 
@@ -463,7 +494,7 @@ export async function recordIntent(session, { slug, op, payload, payloadText, kn
   return { intent, payload };
 }
 
-export async function commitExec(session, { intent, status, latencyMs, requestDigest, responseDigest, error, upstream, responseBytes, contentType, engine, request_id, attempt_n, parent_receipt_id, correlation_id, outcome }, nowIso) {
+export async function commitExec(session, { intent, status, latencyMs, requestDigest, responseDigest, error, upstream, responseBytes, contentType, engine, request_id, attempt_n, parent_receipt_id, correlation_id, outcome, additive }, nowIso) {
   requireOpen(session, nowIso);
   requireReceiptRoom(session);
   if (!session.pending_intent || session.pending_intent.intent_id !== intent.intent_id) {
@@ -491,6 +522,7 @@ export async function commitExec(session, { intent, status, latencyMs, requestDi
       ran_in: isLocal ? (eng.ran_in || "aziel-runtime") : null,
     },
   }, nowIso, {
+    ...additiveReceiptFields(additive),
     attempt_link: {
       request_id,
       attempt_n,

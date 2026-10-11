@@ -197,7 +197,7 @@ export class RuntimeSession {
         honesty: "REAL",
       };
     }
-    await applyOpen(session, now);
+    await applyOpen(session, now, body || {});
     await this.save(session);
     await this.scheduleExpiry();
     return json({ ok: true, session: publicSession(session), receipt: session.receipts[0] });
@@ -252,6 +252,7 @@ export class RuntimeSession {
         parent_receipt_id: body.parent_receipt_id,
         correlation_id: body.correlation_id,
         outcome: body.outcome,
+        additive: body,
       },
       now,
     );

@@ -9,6 +9,7 @@
 import { boundMemoryMeta } from "../memory/meta.js";
 import { canonicalize, sha256Hex } from "../session-core.js";
 import { chainKey, parseJsonl, storeFor, toJsonl, VAULT_CHAINS_PATH } from "./store.js";
+import { anchorRefNow, chainIntegrity } from "../anchor.js";
 import { LATTICE_SPEC, LatticeError, latticeDocumentHash, latticeTips, planLattice, verifyLattice } from "../dual-lattice.js";
 
 export const CL_VERSION = "CL-0.4";
@@ -34,6 +35,43 @@ export const ROSTER = Object.freeze([
   "library",
   "learn",
 ]);
+
+/**
+ * Runtime-internal chains (not on the public ROSTER, so chainlock_append cannot forge into them).
+ * AZRT-REFUSAL-RECEIPT-1.0: sealed policy refusals and the next action after one (append-only).
+ */
+export const INTERNAL_CHAINS = Object.freeze(["refusals"]);
+
+/**
+ * Additive optional stamp fields (2.0 additive-only). Present only when given, so
+ * every stamp written before them hashes exactly as before.
+ * AZRT-ANCHOR-1.0 anchor, AZRT-REFUSAL-RECEIPT-1.0 refusal, AZRT-GOAL-LINK-1.0 follows/goal_key,
+ * AZRT-SCHEMA-PIN-1.0 schema_hash, AZRT-CONTEXT-HASH-1.0 context_hash/node_ids,
+ * AZRT-EXPECT-SPEC-1.0 spec_ref/expect_hash.
+ */
+export const ADDITIVE_STAMP_FIELDS = Object.freeze([
+  "anchor",
+  "refusal",
+  "follows",
+  "goal_key",
+  "schema_hash",
+  "context_hash",
+  "node_ids",
+  "spec_ref",
+  "expect_hash",
+]);
+const ADDITIVE_FIELD_BYTES = 1024;
+
+function additiveValue(value) {
+  if (value == null) return undefined;
+  try {
+    const text = JSON.stringify(value);
+    if (!text || text.length > ADDITIVE_FIELD_BYTES) return undefined;
+    return JSON.parse(text);
+  } catch {
+    return undefined;
+  }
+}
 
 export const VAULT_NOTE =
   "Local CLI vault: vault/chains/<name>.jsonl (source of truth). Worker CHAINLOCK Durable Object is the concurrent writer (individual records, commit-before-ack). USES KV is fallback without CAS. Private SSH keys do not live on the Worker.";
@@ -142,6 +180,10 @@ export async function composeChainlockStamp(src, { prev, rows = null, latticeTip
     const memory = boundMemoryMeta(src.memory);
     if (memory) unsigned.memory = memory;
   }
+  for (const key of ADDITIVE_STAMP_FIELDS) {
+    const value = additiveValue(src && src[key]);
+    if (value !== undefined) unsigned[key] = value;
+  }
   unsigned.fh = await factHash(fact);
   unsigned.stamp_sha256 = await stampSha256(unsigned);
   return unsigned;
@@ -171,11 +213,17 @@ export function cardBytes(card) {
   return new TextEncoder().encode(JSON.stringify(card)).length;
 }
 
-export async function append(storeOrEnv, input = {}) {
+export async function append(storeOrEnv, input = {}, options = {}) {
   const store = storeFor(storeOrEnv);
-  const src = input && typeof input === "object" ? input : {};
+  const src = input && typeof input === "object" ? { ...input } : {};
+  if (src.anchor == null) {
+    // AZRT-ANCHOR-1.0: record the newest verified witness statement (absent when unknown).
+    const anchor = anchorRefNow();
+    if (anchor) src.anchor = anchor;
+  }
   const chain = String(src.c || src.chain || "session").trim() || "session";
-  if (!ROSTER.includes(chain)) {
+  const internal = options && options.internal === true && INTERNAL_CHAINS.includes(chain);
+  if (!ROSTER.includes(chain) && !internal) {
     return { ok: false, refuse: "unknown-chain", chain, roster: ROSTER.slice() };
   }
   const fact = clip(src.f || src.fact, FACT_CAP);
@@ -361,10 +409,17 @@ export async function verify(storeOrEnv, input = {}) {
       ok = false;
       for (const br of dual.breaks) breaks.push({ chain: name, seq: br.seq, reason: br.reason });
     }
+    // AZRT-INTEGRITY-LEVEL-1.0 (additive): level per chain; a witnessed head that moved fails closed.
+    const integrity = chainIntegrity(name, rows.filter((row) => row && !row._broken), ok);
+    if (integrity.mismatch) {
+      ok = false;
+      breaks.push({ chain: name, seq: integrity.mismatch.anchored_seq - 1, reason: "anchor-mismatch", code: integrity.mismatch.code });
+    }
     chains.push({
       c: name,
       ok,
       n: rows.length,
+      integrity,
       isolated: !ok,
       dual_lattice: {
         ok: dual.ok,

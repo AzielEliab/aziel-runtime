@@ -255,3 +255,14 @@ The four-field hash in section 7 stays `ACT-RECEIPT-1.0`. A federated receipt ma
 ChainLock keeps one chain per handle (`caller: fed-` + the lowercase handle body, chain `mesh`). TemporalLock timeslates that chain with a per-relay `click_index`. That order is local to the relay. It is not a worldwide total order.
 
 Verification refuses a duplicate sequence, two anchors that claim the same `prev` with different statement hashes, a handle whose key did not sign, a sequence gap, and a mutated receipt. No user geo or personal info. The handle is pseudonymous. Law: `docs/designs/FED-MESH-1.0.md`.
+
+---
+
+## 9. Additive receipt-integrity fields (2.0.x, optional)
+
+Absent on every receipt minted before them, so old hashes and `verifyChainStrict` results are unchanged (`scripts/verify-anchor.mjs` checks `fixtures/pre-anchor-receipts.json` and `fixtures/session-receipt-chain.json`). When present they are inside the row hash.
+
+| Field | On | Spec |
+|-------|----|------|
+| `anchor` `{spec, log, n, statement_hash}` | ChainLock stamps, FragGate ledger rows, session receipts (open, exec) | [AZRT-ANCHOR-1.0](../designs/AZRT-ANCHOR-1.0.md) |
+| `integrity` `{spec, level, levels}` (verify output, not hashed) | `chainlock_verify` chains, session `verified`, `/v1/anchor/row` | [AZRT-INTEGRITY-LEVEL-1.0](../designs/AZRT-INTEGRITY-LEVEL-1.0.md) |

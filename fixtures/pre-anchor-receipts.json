@@ -1,0 +1,131 @@
+{
+  "spec": "AZRT-ADDITIVE-COMPAT-1.0",
+  "generated_from": "fe00742a (pre-change main)",
+  "chainlock_acts": [
+    {
+      "v": "CL-0.4",
+      "id": "cl_fixture000000000000000",
+      "c": "acts",
+      "k": "stamp",
+      "t": "2026-10-10T00:00:00.000Z",
+      "prev": "GENESIS",
+      "subject": "fixture 0",
+      "fact": "pre-AZRT-ANCHOR fixture stamp 0",
+      "ns": "chainlock@aziel",
+      "author": "Aziel Eliab",
+      "lattice": {
+        "spec": "AZRT-DUAL-LATTICE-1.0",
+        "document_hash": "20a3f6ee44a7258be8ec961937e818207c5655c31ab5732ba8b68c381bf6c8e4",
+        "primary": "864d5d78728d75531434e22cc9d682f2fdfa458c76e7514a593d26036b312af5",
+        "primary_prev": "0000000000000000000000000000000000000000000000000000000000000000",
+        "secondary": "e0d5ecd5be0133347deb4193c75ac95eec56b8031646ae4ebcac7f6f7e1cf3d2",
+        "secondary_prev": "0000000000000000000000000000000000000000000000000000000000000000",
+        "offline": false,
+        "username": null,
+        "lattices": [
+          "primary",
+          "secondary"
+        ]
+      },
+      "fh": "b1cec45a8da3859007c89a75aa7719c850401f78846e9036a6a7b7f4fac80085",
+      "stamp_sha256": "b7db0305c8588f3a072ec745903ee0542b829997432bbb0ceab02b7b9fe34ba3"
+    },
+    {
+      "v": "CL-0.4",
+      "id": "cl_fixture000000000000001",
+      "c": "acts",
+      "k": "stamp",
+      "t": "2026-10-10T00:00:01.000Z",
+      "prev": "b7db0305c8588f3a072ec745903ee0542b829997432bbb0ceab02b7b9fe34ba3",
+      "subject": "fixture 1",
+      "fact": "pre-AZRT-ANCHOR fixture stamp 1",
+      "ns": "chainlock@aziel",
+      "author": "Aziel Eliab",
+      "lattice": {
+        "spec": "AZRT-DUAL-LATTICE-1.0",
+        "document_hash": "63d8a1fa07ec9b19ff7b1db36e69405e028f37f567c9590b89849eb0335a9a51",
+        "primary": "521aab0f0337861cf5a86928cb78400574c3477f4162bf0517287cdb69542c61",
+        "primary_prev": "864d5d78728d75531434e22cc9d682f2fdfa458c76e7514a593d26036b312af5",
+        "secondary": "865e8aa1eca8aa59a132be17a375cca42a6e71ec1335078ca722a2ac17a78ecc",
+        "secondary_prev": "e0d5ecd5be0133347deb4193c75ac95eec56b8031646ae4ebcac7f6f7e1cf3d2",
+        "offline": false,
+        "username": null,
+        "lattices": [
+          "primary",
+          "secondary"
+        ]
+      },
+      "fh": "7cd4932bc8e9046a037e7f89fa7f5c467eb1b2544fd8c9db1abecd8c64f16e0d",
+      "stamp_sha256": "31a9a12fa916d075a6da7dc5a326c5f36d78d319b491c49e57fa7172f9cfec93"
+    },
+    {
+      "v": "CL-0.4",
+      "id": "cl_fixture000000000000002",
+      "c": "acts",
+      "k": "stamp",
+      "t": "2026-10-10T00:00:02.000Z",
+      "prev": "31a9a12fa916d075a6da7dc5a326c5f36d78d319b491c49e57fa7172f9cfec93",
+      "subject": "fixture 2",
+      "fact": "pre-AZRT-ANCHOR fixture stamp 2",
+      "ns": "chainlock@aziel",
+      "author": "Aziel Eliab",
+      "lattice": {
+        "spec": "AZRT-DUAL-LATTICE-1.0",
+        "document_hash": "6d2f06e06d4f029acae0f7e959349999bee6d1e8816c02fbeccb120be0140b55",
+        "primary": "06129b50383c0974d25be3a62c0f3d1973e7ecb08d958ff0d8917fba5331c28f",
+        "primary_prev": "521aab0f0337861cf5a86928cb78400574c3477f4162bf0517287cdb69542c61",
+        "secondary": "8641cdde74dbadf4ecee4af5dddcff58661a76d7043baa2e3ee62c201e7e1a03",
+        "secondary_prev": "865e8aa1eca8aa59a132be17a375cca42a6e71ec1335078ca722a2ac17a78ecc",
+        "offline": false,
+        "username": null,
+        "lattices": [
+          "primary",
+          "secondary"
+        ]
+      },
+      "fh": "566a28d41a78eacd0bc9f2b6021e337ae9849e7dd25e7806dd92d1b534d5b333",
+      "stamp_sha256": "69a35e3c28ee940320152eb286f95c79a757810b367168856302f3a95f079683"
+    }
+  ],
+  "fraggate_ledger": [
+    {
+      "kind": "aziel-runtime.fraggate.ledger",
+      "seq": 1,
+      "prev": "0000000000000000000000000000000000000000000000000000000000000000",
+      "asked": true,
+      "refused": false,
+      "code": "FG-OK",
+      "name": "fixture",
+      "op": "health",
+      "gate": null,
+      "at": "2026-10-10T00:00:01.000Z",
+      "hash": "1e0ac2a0456798121be34c7f42c594cbc7ebec830f50821ad7f833a54bfb69c4"
+    },
+    {
+      "kind": "aziel-runtime.fraggate.ledger",
+      "seq": 2,
+      "prev": "1e0ac2a0456798121be34c7f42c594cbc7ebec830f50821ad7f833a54bfb69c4",
+      "asked": true,
+      "refused": true,
+      "code": "FG-STUB",
+      "name": "fixture",
+      "op": "health",
+      "gate": null,
+      "at": "2026-10-10T00:00:02.000Z",
+      "hash": "0cbcf8b84ab2b89c4b1e50948468d0a2e0305075708a1b3fbde5138f561846fe"
+    },
+    {
+      "kind": "aziel-runtime.fraggate.ledger",
+      "seq": 3,
+      "prev": "0cbcf8b84ab2b89c4b1e50948468d0a2e0305075708a1b3fbde5138f561846fe",
+      "asked": true,
+      "refused": false,
+      "code": "FG-OK",
+      "name": "fixture",
+      "op": "health",
+      "gate": null,
+      "at": "2026-10-10T00:00:03.000Z",
+      "hash": "457f9805135186e400e503b7ff9afde1a0802cf0749f6956e3d5adab26921f1b"
+    }
+  ]
+}

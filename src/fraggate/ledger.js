@@ -9,6 +9,7 @@
 
 import { AsyncLocalStorage } from "node:async_hooks";
 import { canonicalize, sha256Hex, ZERO_HASH } from "../session-core.js";
+import { anchorRefNow } from "../anchor.js";
 
 export const LEDGER_KIND = "aziel-runtime.fraggate.ledger";
 export const LEDGER_CAP = 64;
@@ -116,6 +117,10 @@ export async function composeLedgerEntry(record, { seq, prev }) {
     gate: record && record.gate ? String(record.gate) : null,
     at: (record && record.at) || new Date().toISOString(),
   };
+  // Additive optional fields (2.0 additive-only): absent on old rows, so old hashes are unchanged.
+  for (const key of ["anchor", "goal_key", "refusal_receipt", "context_hash", "schema_hash"]) {
+    if (record && record[key] != null) body[key] = record[key];
+  }
   const hash = await sha256Hex(canonicalize(body));
   return { ...body, hash };
 }
@@ -213,6 +218,11 @@ async function appendIsolate(record, idempotencyKey) {
  * before this function acknowledges the event.
  */
 export async function appendLedger(record, second = isolateLedger) {
+  if (record && typeof record === "object" && record.anchor == null) {
+    // AZRT-ANCHOR-1.0: newest verified witness statement this isolate knows (null = no field).
+    const anchor = anchorRefNow();
+    if (anchor) record = { ...record, anchor };
+  }
   if (isLedgerSnapshot(second) && second !== isolateLedger) {
     return appendToSnapshot(record, second);
   }
