@@ -4974,7 +4974,11 @@ export async function meshScheduled(env, ctx, source = "cron") {
     return { ...fanout, ui_holds: holds };
   })();
   if (ctx && typeof ctx.waitUntil === "function") {
-    ctx.waitUntil(work);
+    ctx.waitUntil(
+      work.catch((err) =>
+        console.error(JSON.stringify({ mesh_background: "MESH-SCHEDULED-ERROR", error: String((err && err.message) || err).slice(0, 200) })),
+      ),
+    );
     return { scheduled: true, source };
   }
   return work;

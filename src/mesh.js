@@ -1713,10 +1713,15 @@ export async function meshFanoutSuitePresence(env, extra = {}) {
   });
 }
 
+function logBackgroundError(code, err) {
+  console.error(JSON.stringify({ mesh_background: code, error: String((err && err.message) || err).slice(0, 200) }));
+  return { ok: false, code };
+}
+
 export function scheduleSuitePresenceFanout(ctx, env, extra = {}) {
   const work = meshFanoutSuitePresence(env, extra);
   if (ctx && typeof ctx.waitUntil === "function") {
-    ctx.waitUntil(work);
+    ctx.waitUntil(work.catch((err) => logBackgroundError("MESH-FANOUT-ERROR", err)));
     return { scheduled: true, source: (extra && extra.source) || "request-path" };
   }
   return work;

@@ -326,8 +326,6 @@ export function cap7ShuffleLayout() {
     hosted_mcp: "live",
     hosted_land: "live",
     attested: true,
-    internet_reachable: false,
-    standard_internet_reaches_cap7: false,
     site_count: CAP7_SITES.length,
     real_duplication_count: 4,
     false_site_count: 3,

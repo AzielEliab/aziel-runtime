@@ -393,21 +393,12 @@ export function survivalMethods(config = {}) {
 
 export function natRefuse(message, extra = {}) {
   return {
-    ok: false,
-    code: NAT_REFUSE_CODE,
     message: message || NAT_REFUSE_MESSAGE,
     spec: FED_SPEC,
-    hole_punch: false,
-    public_icann: false,
     icann_dns: false,
-    radio_phy: false,
     worker_hardware: false,
-    name: AZNET_NAME,
-    not_a_second_internet: true,
-    aznet_replaces_internet: false,
     worker_is_one_relay: true,
     relay_fallback: true,
-    get_never_enables: true,
     http_status: 403,
     peer_bearers: peerBearerCite(),
     ...extra,

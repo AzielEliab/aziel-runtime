@@ -875,8 +875,6 @@ export function cap7AznetCite(origin) {
     standard_internet_reaches_cap7: false,
     name_may_change: true,
     public_icann: false,
-    false_site_count: 3,
-    real_duplication_count: 4,
     live_registrar: false,
     fifth_product: false,
     pairing_is_tunnel: false,

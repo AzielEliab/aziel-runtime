@@ -60,7 +60,6 @@ export function scopeMeta(obj) {
     remote_shell: true,
     ethics_gated: true,
     overlay: true,
-    kernel: false,
     worm: false,
     malware: false,
     ssh: false,
