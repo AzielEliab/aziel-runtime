@@ -54,6 +54,10 @@ export class AzNewsStore {
           const { mapLink } = await import("./engines/4dmap/map-store.js");
           return mapLink(repo, (body.payload && body.payload.items) || []);
         }
+        if (op === "map_plot") {
+          const { mapPlot } = await import("./engines/4dmap/map-store.js");
+          return mapPlot(repo, body.payload || {});
+        }
         if (op === "map_read") {
           const { mapRead } = await import("./engines/4dmap/map-store.js");
           return mapRead(repo, body.payload || {});
@@ -89,7 +93,7 @@ function mapStubOf(ns) {
 
 /** Call the 4DMap store. Only map_tick, map_read and tether_push {chain:"4dmap"} are sent to it. Never throws. */
 export async function mapCall(env, op, payload = {}, extra = {}) {
-  if (!["map_tick", "map_read", "map_link", "tether_push"].includes(op)) return { ok: false, code: "4DMAP-STORE-OP", message: "Unknown 4DMap store op." };
+  if (!["map_tick", "map_read", "map_link", "map_plot", "tether_push"].includes(op)) return { ok: false, code: "4DMAP-STORE-OP", message: "Unknown 4DMap store op." };
   if (op === "tether_push") payload = { chain: "4dmap" };
   const stub = mapStubOf(env && env.AZNEWS);
   if (!stub) return { ok: false, code: "4DMAP-STORE-UNBOUND", message: "The store Durable Object is not bound in this isolate." };
@@ -103,7 +107,7 @@ export async function mapCall(env, op, payload = {}, extra = {}) {
 
 /** Call the store. Never throws: a failure is a refusal body, so /mcp and health stay up. */
 export async function aznewsCall(env, op, payload = {}, extra = {}) {
-  if (op === "map_tick" || op === "map_read" || op === "map_link") return { ok: false, code: "AZNEWS-STORE-OP", message: "4DMap store ops go to the 4dmap-v1 object." };
+  if (op === "map_tick" || op === "map_read" || op === "map_link" || op === "map_plot") return { ok: false, code: "AZNEWS-STORE-OP", message: "4DMap store ops go to the 4dmap-v1 object." };
   if (op === "tether_push") payload = { chain: "aznews" };
   const stub = stubOf(env && env.AZNEWS);
   if (!stub) return { ok: false, code: "AZNEWS-STORE-UNBOUND", message: "The AZNEWS Durable Object is not bound in this isolate. Nothing was read or written." };

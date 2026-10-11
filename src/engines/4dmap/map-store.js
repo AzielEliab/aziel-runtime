@@ -259,6 +259,32 @@ export async function mapRead(repo, payload = {}, { now = Date.now() } = {}) {
   };
 }
 
+export const PLOT_SPEC = "4DMAP-PLOT-PERSIST-1.0";
+const PLOT_TYPES = new Set(["library-aziel-event", "library-aziel-report", "corpus-event", "corpus-report"]);
+
+/**
+ * 4DMAP-PLOT-PERSIST-1.0: a pin made by FragGate 4dmap library_pin (confirm=true) is appended
+ * to this store as layer "plotted", source id "plot:<card hash>". Append-only: the same card
+ * is stored once; nothing is deleted. Coordinates must pass GEO-PIN-QUALITY-1.0, else refused.
+ * MOCK/REAL labels from the card are kept. The row rides the 4dmap tether to every copy.
+ */
+export async function mapPlot(repo, payload = {}) {
+  const card = payload && payload.card;
+  const t = card && card.t;
+  if (!card || !card.h || !t) return { ok: false, refused: true, code: "4DMAP-PLOT-NO-CARD", message: "No library_pin card was handed in. Nothing was stored." };
+  if (!coordinateLooksReal(t.lat, t.lon)) return { ok: false, refused: true, code: "4DMAP-PLOT-COORD", quality_spec: PIN_QUALITY_SPEC, message: "Coordinates (" + t.lat + ", " + t.lon + ") fail " + PIN_QUALITY_SPEC + ". Nothing was stored." };
+  const pin_type = PLOT_TYPES.has(payload.pin_type) ? payload.pin_type : "corpus-event";
+  const source_id = "plot:" + String(card.h).slice(0, 64);
+  const batch = await openBatch(repo);
+  const prior = await repo.seenGet("m:" + source_id);
+  if (prior) return { ok: true, spec: PLOT_SPEC, stored: false, already_stored: true, seq: prior.seq, source_id };
+  const doc = { ...pinDoc({ layer: "plotted", pin_type, event: String(t.event || card.note || card.id).slice(0, 300), date: t.clock ? String(t.clock).slice(0, 40) : null, geo: { name: String(t.place || "").slice(0, 120), lat: Number(t.lat), lon: Number(t.lon), source: "fraggate:4dmap.library_pin" }, source: { op: "library_pin", card_id: card.id, card_h: card.h, surface: t.surface || null, src: card.src || null } }), plot_spec: PLOT_SPEC, quality_spec: PIN_QUALITY_SPEC };
+  const row = await batch.add("map_pin", { ...doc, source_id });
+  batch.seen["m:" + source_id] = { seq: row.seq, h: await sha256Hex(canonicalize(doc)) };
+  await batch.commit();
+  return { ok: true, spec: PLOT_SPEC, stored: true, seq: row.seq, source_id, layer: "plotted", pin_type, append_only: true };
+}
+
 /** Pure: the corpus date as something Date.parse reads ("1101", "2026-07", "1936-08-07"). */
 function corpusDateIso(d) {
   const t = String(d || "").trim();
