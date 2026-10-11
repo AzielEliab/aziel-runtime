@@ -343,6 +343,53 @@ async function recomputeRowHash(row) {
   return null;
 }
 
+export const LEDGER_ROWS_SPEC = "LEDGER-ROWS-1.0";
+export const LEDGER_PAGE_MAX = 100;
+const GENESIS_PREVS = Object.freeze(["GENESIS", "0".repeat(64)]);
+
+/**
+ * LEDGER-ROWS-1.0: public walk from genesis, one page at a time. GET /v1/anchor/rows?c=&from=&limit=.
+ * Every row is recomputed and linked by prev inside the page. The first row of page 1 must link to
+ * genesis (64 zeros). A walker carries `next.expect_prev` into the next page and checks the link
+ * itself, so no page has to be trusted on its own. Fails closed on any break. Read-only.
+ */
+export async function pageRows(env, chain, from, limit, deps = {}) {
+  const store = storeOf(env, deps.storeFor);
+  if (!store || typeof store.chainRows !== "function") return { ok: false, code: "LEDGER-STORE-UNBOUND", chain };
+  const n = Math.min(Math.max(Math.floor(Number(limit)) || 50, 1), LEDGER_PAGE_MAX);
+  const got = await store.chainRows(chain, from, n);
+  if (!got || !got.ok) return { ok: false, code: "LEDGER-NO-ROWS", chain, from, reason: got && got.refuse };
+  const rows = [];
+  const breaks = [];
+  let prevHash = null;
+  for (const { seq, row } of got.rows) {
+    const h = rowHash(row);
+    const recomputed = await recomputeRowHash(row);
+    if (!h || recomputed !== h) breaks.push({ seq, why: "hash does not recompute" });
+    if (seq === 1 && !GENESIS_PREVS.includes(rowPrev(row))) breaks.push({ seq, why: "row 1 does not link to genesis" });
+    if (prevHash !== null && rowPrev(row) !== prevHash) breaks.push({ seq, why: "prev does not link to the row before" });
+    prevHash = h;
+    rows.push({ seq, h, prev: rowPrev(row) || null, lattice: row && row.lattice ? { primary: row.lattice.primary, secondary: row.lattice.secondary } : null, row });
+  }
+  const last = rows.length ? rows[rows.length - 1].seq : Number(from) - 1;
+  const ok = breaks.length === 0;
+  return {
+    spec: LEDGER_ROWS_SPEC,
+    ok,
+    code: ok ? "LEDGER-PAGE-OK" : "LEDGER-PAGE-BROKEN",
+    fail_closed: true,
+    chain,
+    from: Number(from),
+    count: rows.length,
+    head_seq: got.seq,
+    first_prev: rows.length ? rows[0].prev : null,
+    rows,
+    breaks,
+    next: last < got.seq ? { from: last + 1, expect_prev: prevHash, url: `/v1/anchor/rows?c=${chain}&from=${last + 1}&limit=${n}` } : null,
+    walk_rule: "Start at from=1 (first_prev must be \"GENESIS\" or 64 zeros). For each next page, first_prev must equal the expect_prev you were given. Compare the last h with /v1/anchor/heads and the aziel-anchors log.",
+  };
+}
+
 function rowPrev(row) {
   return row ? row.prev : null;
 }

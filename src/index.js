@@ -4630,6 +4630,16 @@ async function handleRequest(request, env, ctx) {
         const out = await anchor.rowIntegrity(env, c, seq, deps);
         return asHead(request, json({ spec: anchor.ANCHOR_SPEC, fail_closed: true, ...out }, out.ok ? 200 : 409, hdrs));
       }
+      if (url.pathname === "/v1/anchor/rows") {
+        const c = String(url.searchParams.get("c") || url.searchParams.get("chain") || "");
+        const from = Number(url.searchParams.get("from") || "1");
+        const limit = Number(url.searchParams.get("limit") || "50");
+        if (!anchor.ANCHOR_CHAINS.includes(c) || !Number.isInteger(from) || from < 1) {
+          return json({ ok: false, code: "LEDGER-BAD-QUERY", message: "GET /v1/anchor/rows?c=<chain>&from=<1-based>&limit=<1..100>.", chains: anchor.ANCHOR_CHAINS }, 400, hdrs);
+        }
+        const out = await anchor.pageRows(env, c, from, limit, deps);
+        return asHead(request, json(out, out.ok ? 200 : 409, hdrs));
+      }
       if (url.pathname === "/v1/anchor" || url.pathname === "/v1/anchor/status" || url.pathname === "/v1/anchor/verify") {
         const anchors = await anchor.loadAnchors(fetch, { force: url.searchParams.get("fresh") === "1" });
         const audits = await anchor.loadAudits(fetch);
@@ -4654,7 +4664,7 @@ async function handleRequest(request, env, ctx) {
         };
         return asHead(request, json(body, ok ? 200 : 409, hdrs));
       }
-      return json({ ok: false, error: "not found", hint: "GET /v1/anchor, /v1/anchor/heads, /v1/anchor/row?c=&seq=" }, 404, hdrs);
+      return json({ ok: false, error: "not found", hint: "GET /v1/anchor, /v1/anchor/heads, /v1/anchor/row?c=&seq=, /v1/anchor/rows?c=&from=&limit=" }, 404, hdrs);
     }
 
     if ((url.pathname === "/v1/4dmap/ledger" || url.pathname === "/v1/4dmap/checkpoints") && (request.method === "GET" || request.method === "HEAD")) {
