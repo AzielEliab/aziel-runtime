@@ -25,9 +25,25 @@ export const WITNESS_REPO_URL = "https://github.com/" + WITNESS_REPO;
 export const WITNESS_LOG_URL = "https://raw.githubusercontent.com/" + WITNESS_REPO + "/main/anchors/log.jsonl";
 export const AUDIT_LOG_URL = "https://raw.githubusercontent.com/" + WITNESS_REPO + "/main/audits/log.jsonl";
 /** Pinned witness key (raw Ed25519, base64url). Private half exists only as an Actions secret of WITNESS_REPO. */
-export const WITNESS_PUBLIC_KEY = "tCPVJRmcKKH6LwEdUfcrzoei_dRxkwKl1BouZ4VB0lo";
-/** Pinned auditor key (separate key, separate Actions secret, separate job). */
-export const AUDITOR_PUBLIC_KEY = "FkI_irqaJPi1smYK1czR0G8TCGiBmmsMC_Eq2I0V6_g";
+/** Rotated 2026-10-11: generated inside a GitHub Actions run (rotate-keys, run 38108699312), never on a shared box. */
+export const WITNESS_PUBLIC_KEY = "7G1g0sBqbrgPoarVni9iEH2k7CfYKookPdSikz7ZoSg";
+/** Pinned auditor key (separate key, separate Actions secret, separate job). Rotated the same run. */
+export const AUDITOR_PUBLIC_KEY = "znL8Y5UCTytkfgpbhZ79zFCLAqw1xXO9HqP2-WYnkYk";
+/**
+ * Retired keys (append-only). Each is accepted ONLY for statements n in [from_n, through_n], so
+ * historical statements verify unchanged and a retired key cannot sign anything new.
+ */
+export const WITNESS_RETIRED_KEYS = Object.freeze([
+  Object.freeze({ public_key: "tCPVJRmcKKH6LwEdUfcrzoei_dRxkwKl1BouZ4VB0lo", from_n: 1, through_n: 2, retired_at: "2026-10-11" }),
+]);
+export const AUDITOR_RETIRED_KEYS = Object.freeze([
+  Object.freeze({ public_key: "FkI_irqaJPi1smYK1czR0G8TCGiBmmsMC_Eq2I0V6_g", from_n: 1, through_n: 2, retired_at: "2026-10-11" }),
+]);
+/** The key that must have signed statement n (retired epoch if n falls in one, else current). */
+export function keyForN(n, current, retired = []) {
+  const ep = (retired || []).find((e) => n >= e.from_n && n <= e.through_n);
+  return ep ? ep.public_key : current;
+}
 export const ANCHOR_CACHE_MS = 120_000;
 export const ANCHOR_FETCH_TIMEOUT_MS = 2500;
 
@@ -95,7 +111,7 @@ export function parseJsonlLines(text) {
  * Verify a witness (or auditor) log: statement hash recompute, pinned-key signature over the
  * canonical statement, contiguous n, prev link. Fails closed on the first break.
  */
-export async function verifySignedLog(entries, { publicKey, statementPrevField = "prev_statement_hash" } = {}) {
+export async function verifySignedLog(entries, { publicKey, retiredKeys = [], statementPrevField = "prev_statement_hash" } = {}) {
   const rows = Array.isArray(entries) ? entries : [];
   if (!rows.length) return { ok: false, code: ANCHOR_CODES.missing, n: 0, latest: null };
   let prev = "0".repeat(64);
@@ -108,8 +124,9 @@ export async function verifySignedLog(entries, { publicKey, statementPrevField =
     if (hash !== row.statement_hash) return { ok: false, code: ANCHOR_CODES.mismatch, at: i + 1, reason: "statement-hash" };
     if (Number(st.n) !== i + 1) return { ok: false, code: ANCHOR_CODES.order, at: i + 1, reason: "n-gap" };
     if (st[statementPrevField] !== prev) return { ok: false, code: ANCHOR_CODES.order, at: i + 1, reason: "prev-link" };
-    if (row.public_key !== publicKey) return { ok: false, code: ANCHOR_CODES.key, at: i + 1, reason: "key-not-pinned" };
-    if (!(await verifyEd25519(publicKey, text, row.sig))) return { ok: false, code: ANCHOR_CODES.sig, at: i + 1, reason: "signature" };
+    const want = keyForN(i + 1, publicKey, retiredKeys);
+    if (row.public_key !== want) return { ok: false, code: ANCHOR_CODES.key, at: i + 1, reason: "key-not-pinned" };
+    if (!(await verifyEd25519(want, text, row.sig))) return { ok: false, code: ANCHOR_CODES.sig, at: i + 1, reason: "signature" };
     prev = hash;
   }
   return { ok: true, n: rows.length, latest: rows[rows.length - 1] };
@@ -136,13 +153,14 @@ async function loadLog(kind, fetchImpl, { force = false, now = Date.now() } = {}
   if (!force && hit && now - hit.at < ANCHOR_CACHE_MS) return hit.state;
   const url = kind === "anchors" ? WITNESS_LOG_URL : AUDIT_LOG_URL;
   const key = kind === "anchors" ? WITNESS_PUBLIC_KEY : AUDITOR_PUBLIC_KEY;
+  const retiredKeys = kind === "anchors" ? WITNESS_RETIRED_KEYS : AUDITOR_RETIRED_KEYS;
   const got = await fetchText(fetchImpl || fetch, url);
   let state;
   if (!got.ok) {
     state = { ok: false, code: got.status === 404 ? ANCHOR_CODES.missing : ANCHOR_CODES.unreachable, url, detail: got.status || got.error };
   } else {
     const entries = parseJsonlLines(got.text);
-    const check = await verifySignedLog(entries, { publicKey: key, statementPrevField: kind === "anchors" ? "prev_statement_hash" : "prev_audit_hash" });
+    const check = await verifySignedLog(entries, { publicKey: key, retiredKeys, statementPrevField: kind === "anchors" ? "prev_statement_hash" : "prev_audit_hash" });
     state = { ...check, url, entries: check.ok ? entries : [] };
   }
   memo[kind] = { at: now, state };

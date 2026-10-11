@@ -51,6 +51,21 @@ assert.equal((await A.verifySignedLog([s1], { publicKey: A.WITNESS_PUBLIC_KEY })
 const forged = { ...s1, sig: s2.sig };
 assert.equal((await A.verifySignedLog([forged], { publicKey: pub })).code, "ANCHOR-SIG-BAD");
 
+// 2b. Key rotation epochs: real historical statements (old keys) verify unchanged under the
+// retired-key list; a retired key cannot sign past its through_n; new rows need the new key.
+const readJl = (f) => fs.readFileSync(new URL("../fixtures/" + f, import.meta.url), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
+const histA = readJl("anchors-epoch1.jsonl");
+const histU = readJl("audits-epoch1.jsonl");
+assert.equal((await A.verifySignedLog(histA, { publicKey: A.WITNESS_PUBLIC_KEY, retiredKeys: A.WITNESS_RETIRED_KEYS })).ok, true, "old witness statements verify after rotation");
+assert.equal((await A.verifySignedLog(histU, { publicKey: A.AUDITOR_PUBLIC_KEY, retiredKeys: A.AUDITOR_RETIRED_KEYS, statementPrevField: "prev_audit_hash" })).ok, true, "old audit statements verify after rotation");
+assert.equal((await A.verifySignedLog(histA, { publicKey: A.WITNESS_PUBLIC_KEY })).code, "ANCHOR-KEY-MISMATCH", "no retired list -> old rows refused");
+const retiredFake = [{ public_key: pub, from_n: 1, through_n: 1 }];
+const newKp = crypto.generateKeyPairSync("ed25519");
+const newPub = newKp.publicKey.export({ type: "spki", format: "der" }).subarray(12).toString("base64url");
+const s2new = (() => { const st = { ...s2.statement, git_sha: "abc" }; const text = canonicalize(st); return { statement: st, statement_hash: crypto.createHash("sha256").update(text).digest("hex"), public_key: newPub, sig: crypto.sign(null, Buffer.from(text), newKp.privateKey).toString("base64url") }; })();
+assert.equal((await A.verifySignedLog([s1, s2new], { publicKey: newPub, retiredKeys: retiredFake })).ok, true, "old epoch + new key row (with additive git_sha)");
+assert.equal((await A.verifySignedLog([s1, s2], { publicKey: newPub, retiredKeys: retiredFake })).code, "ANCHOR-KEY-MISMATCH", "retired key past through_n refused");
+
 // 3. No witness view -> no anchor field (old shape); ChainLock level chain_consistent.
 A.resetAnchorMemo();
 const store = new MemoryStore();
