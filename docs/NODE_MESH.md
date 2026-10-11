@@ -247,7 +247,7 @@ if (url.pathname === "/v1/mesh" || url.pathname.startsWith("/v1/mesh/")) {
 
 This page stays the QNM-BUILD-1.0 suite rollup. The multi-user protocol is a separate layer: [`docs/designs/FED-MESH-1.0.md`](designs/FED-MESH-1.0.md).
 
-Raw data, signing keys, and heavy compute stay on the local node. By default the mesh carries signed receipts, state digests, and ref updates. Raw data moves only on an explicit end-to-end encrypted share. The Worker relay never requires plaintext.
+Raw data, signing keys, and heavy compute stay on the local node. By default the mesh carries hash-linked, sealed receipts (not signed), state digests, and signed ref updates. Raw data moves only on an explicit end-to-end encrypted share. The Worker relay never requires plaintext.
 
 `verified_handles` counts distinct `#handles` with a matching key and presence inside 5 minutes. One handle is one node. Three local instances with three keys are three nodes. That count is handles, not people. It is not added to `nodes`, `live_nodes`, `software_nodes`, or `instance_nodes`. The published pills stay the suite formulas above.
 

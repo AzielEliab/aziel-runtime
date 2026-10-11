@@ -52,7 +52,7 @@ being misapplied to every domain.
 
                Implementation whitepaper v1.0 | Forward-only, Bayesian-calibrated, hash-grounded
                           AZIEL RUNTIME - ADAPTIVE KNOWLEDGE MEMORY / TRIAD CALIBRATION
-     Rule: ChainLock remains the immutable recollection ledger. The adaptive memory index is derived
+     Rule: ChainLock remains the hash-linked, append-only recollection ledger. The adaptive memory index is derived
      state. If the index is lost, it must be reconstructible from hashed events.
 
 
@@ -263,7 +263,7 @@ label this formula as identical to the site unless it verifies the live implemen
  memory_contradiction                                      New evidence conflicts with an existing memory.
  memory_resolution                                         A prediction/claim receives a resolved or graded outcome.
  calibration_update                                        Bayesian posterior and Triad data are recomputed from
-                                                           immutable events.
+                                                           hash-linked, append-only events.
  memory_supersede                                          A newer interpretation becomes preferred while old memory
                                                            remains addressable.
  memory_revoke                                             Authority withdraws operational use; history remains.
@@ -466,7 +466,7 @@ more useful only after enough resolved comparable cases exist.
     Test                                                      Required pass condition
     Append-only                                               Existing learn rows and their hashes are byte-for-byte
                                                               unchanged after calibration.
-    Posterior reconstruction                                  Replaying immutable resolution events reproduces the same
+    Posterior reconstruction                                  Replaying hash-linked, append-only resolution events reproduces the same
                                                               alpha/beta/posterior.
     Evidence weighting                                        Low-quality evidence moves posterior less than high-quality
                                                               evidence.
@@ -576,7 +576,7 @@ consume those outputs as bounded features rather than elevate SPRE to a universa
 AZ-CLCE provides a consistency feature across representation, description, and reality, plus a negative-space
 penalty for missing expected elements. Its stated limitation - inconsistency does not establish intent - should be
 preserved in all memory metadata.
-ZionPattern provides strong design precedents for explicit uncertainty, falsifiability, immutable receipts, and
+ZionPattern provides strong design precedents for explicit uncertainty, falsifiability, hash-linked, append-only receipts, and
 non-adaptive failure avoidance. Its hard 75% cap is domain-specific and should remain binding when results
 originate in ZionPattern rather than being generalized to every Runtime probability.
 
@@ -601,7 +601,7 @@ originate in ZionPattern rather than being generalized to every Runtime probabil
 22. Grok Bot Build Instruction - Copyable
      Implement this specification as an additive upgrade to aziel-runtime. Preserve the current ChainLock
      hash format unless schema versioning is required. Do not mutate any accepted chain history. Build
-     adaptive memory by replaying immutable learn events, add Bayesian outcome calibration, add
+     adaptive memory by replaying hash-linked, append-only learn events, add Bayesian outcome calibration, add
      deterministic 3-of-4 Triad selection, and add explainable adaptive recall. Use SPRE, AZ-CLCE,
      ZionPattern, and other engines only when the use-case manifest says they are relevant. Every
      calibration update must be forward-only, provenance-grounded, capability-bound, reconstructible,
@@ -626,7 +626,7 @@ Appendix A - Source Basis
                                                                        accusatory interpretation.
     AZ-CLCE Whitepaper v1/v2                                           R/D/P consistency model, mismatch scan, negative-space N,
                                                                        explicit limitation that inconsistency does not establish intent.
-    ZionPattern Solver v0.2                                            75% domain confidence cap, 25% uncertainty floor, immutable
+    ZionPattern Solver v0.2                                            75% domain confidence cap, 25% uncertainty floor, hash-linked
                                                                        receipts, falsifiability, pattern evolution from unresolved gaps.
     Aziel Runtime 1.7.0 source                                         MASTER-33 execution order: FragGate -> Lamb Lens ->
                                                                        SweepGate -> Sentinel -> Provenance -> ChainLock-IN ->

@@ -18,7 +18,7 @@ The inner core stays on the local node:
 
 The outer mesh, by default, carries only:
 
-- signed receipts
+- hash-linked, sealed receipts (not signed; peer identity signs the transport envelope)
 - state digests (the same idea as `engine_digest`: a hash, not the bytes)
 - signed ref updates (how objects connect)
 

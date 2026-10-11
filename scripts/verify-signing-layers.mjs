@@ -21,4 +21,25 @@ for (const f of ["src/anchor.js", "src/checkpoints/checkpoint.js", "src/azos-tet
   assert.ok(/Ed25519|signature|\bsig\b/i.test(read(f)), f + " named as a signing layer but shows no signature");
   n++;
 }
+
+// DOCS-WORDING-1.0: scan every Markdown doc. Receipts are hash-linked and sealed, never "signed
+// receipts"; ledgers/receipts/events/evidence/stamps/state are "hash-linked, append-only", never "immutable".
+{
+  const { readdirSync, statSync } = await import("node:fs");
+  const { join: pjoin } = await import("node:path");
+  const md = [];
+  const walk = (d) => { for (const e of readdirSync(d)) { const f = pjoin(d, e); if (e === "node_modules" || e.startsWith(".")) continue; if (statSync(f).isDirectory()) walk(f); else if (f.endsWith(".md")) md.push(f); } };
+  walk(new URL("..", import.meta.url).pathname);
+  const bad = [];
+  const SIGNED = /(?<!not )\bsigned receipts?\b/i;
+  const IMM = [/\bimmutable\b(?:\s+[\w-]+,?){0,3}?\s+(ledger|receipts?|events?|evidence|stamps?|ingress)\b/i, /\b(state|ledger|receipts?|evidence)\s+(is|are|remains?)\s+(the\s+)?immutable\b/i];
+  for (const f of md) {
+    const t = readFileSync(f, "utf8").replace(/\s+/g, " ");
+    if (SIGNED.test(t)) bad.push(f + ": signed receipts");
+    for (const r of IMM) if (r.test(t)) bad.push(f + ": " + t.match(r)[0]);
+  }
+  assert.deepEqual(bad, [], "docs wording");
+  assert.ok(md.length > 20, "scanned all docs");
+  n++;
+}
 console.log(`ok signing layers: ${n} checks`);
