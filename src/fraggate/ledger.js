@@ -11,6 +11,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { canonicalize, sha256Hex, ZERO_HASH } from "../session-core.js";
 import { anchorRefNow } from "../anchor.js";
 import { callMetaLedgerFields } from "../receipt-guard.js";
+import { latticeDocumentHash, planLattice } from "../dual-lattice.js";
 
 export const LEDGER_KIND = "aziel-runtime.fraggate.ledger";
 export const LEDGER_CAP = 64;
@@ -105,7 +106,25 @@ function isAppendOpts(value) {
   );
 }
 
-export async function composeLedgerEntry(record, { seq, prev }) {
+/**
+ * LEDGER-LATTICE-1.0: a FragGate ledger row joins the dual hash lattice when the writer
+ * hands over the chain's lattice tips. Document = the call facts without seq/prev/time,
+ * like ChainLock stamps. The lattice sits inside the hashed body, so the row hash covers it.
+ * Rows written before this carry no lattice and keep their old hashes.
+ */
+export async function ledgerDocumentHash(record) {
+  return latticeDocumentHash({
+    kind: LEDGER_KIND,
+    asked: Boolean(record && record.asked),
+    refused: Boolean(record && record.refused),
+    code: record && record.code ? String(record.code) : null,
+    name: record && record.name ? String(record.name) : null,
+    op: record && record.op ? String(record.op) : null,
+    gate: record && record.gate ? String(record.gate) : null,
+  });
+}
+
+export async function composeLedgerEntry(record, { seq, prev, latticeTips = null }) {
   const body = {
     kind: LEDGER_KIND,
     seq,
@@ -121,6 +140,9 @@ export async function composeLedgerEntry(record, { seq, prev }) {
   // Additive optional fields (2.0 additive-only): absent on old rows, so old hashes are unchanged.
   for (const key of ["anchor", "goal_key", "context_hash", "node_ids", "schema_hash"]) {
     if (record && record[key] != null) body[key] = record[key];
+  }
+  if (latticeTips) {
+    body.lattice = await planLattice({ document_hash: await ledgerDocumentHash(record), tips: latticeTips });
   }
   const hash = await sha256Hex(canonicalize(body));
   return { ...body, hash };
