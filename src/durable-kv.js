@@ -73,6 +73,25 @@ export class RuntimeKv {
     return { names, more };
   }
 
+  /** USES-SNAPSHOT-1.1: names AND values under a prefix in one request (storage.list already returns values). */
+  async kvScan(prefix, limit, startAfter) {
+    const cap = Math.max(1, Math.min(RUNTIME_KV_LIST_CAP, Number(limit) || RUNTIME_KV_LIST_CAP));
+    const opts = { prefix: "k:" + String(prefix || ""), limit: cap + 1 };
+    if (startAfter) opts.startAfter = "k:" + String(startAfter);
+    const rows = await this.ctx.storage.list(opts);
+    const now = nowMs();
+    const entries = [];
+    let more = false;
+    for (const [k, row] of rows) {
+      if (entries.length >= cap) {
+        more = true;
+        break;
+      }
+      if (!liveRow(row, now)) continue;
+      entries.push([k.slice(2), row.v]);
+    }
+    return { entries, more };
+  }
   /** Fetch door (the runtime's Durable Objects are plain classes, so no RPC): POST {op, ...}. */
   async fetch(request) {
     let body = {};
@@ -87,6 +106,7 @@ export class RuntimeKv {
     else if (op === "put") out = { ok: await this.kvPut(body.key, body.value, body.ttl) };
     else if (op === "delete") out = { ok: await this.kvDelete(body.key) };
     else if (op === "list") out = await this.kvList(body.prefix, body.limit, body.after);
+    else if (op === "scan") out = await this.kvScan(body.prefix, body.limit, body.after);
     else return new Response(JSON.stringify({ ok: false, error: "unknown op" }), { status: 400 });
     return new Response(JSON.stringify(out), { headers: { "content-type": "application/json" } });
   }
@@ -151,6 +171,12 @@ export function hybridKv(ns, legacy) {
   const hasLegacy = Boolean(legacy && typeof legacy.get === "function");
   return {
     durable: true,
+    /** Legacy (frozen, never written) namespace, for one-time reads such as the snapshot's legacy base. */
+    legacy: hasLegacy ? legacy : null,
+    /** Durable Object entries (name, value) under a prefix, one request per page of up to 1000. */
+    async scan(prefix, after = "", limit = RUNTIME_KV_LIST_CAP) {
+      return call({ op: "scan", prefix, after, limit });
+    },
     async get(key, opts) {
       const raw = await stub.kvGet(String(key));
       if (raw != null) return decode(raw, opts);

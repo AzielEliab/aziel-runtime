@@ -4950,7 +4950,7 @@ export default {
     const source = controller && controller.cron ? `cron:${controller.cron}` : "cron";
     const { TETHER_CRON, pushAll } = await import("./azos-tether.js");
     // USES-SNAPSHOT-1.0: rebuild the /v1/stats maps off the request path (resumable across ticks).
-    if (ctx && typeof ctx.waitUntil === "function") {
+    if (ctx && typeof ctx.waitUntil === "function" && (await import("./uses.js")).snapshotDue(controller && controller.cron, controller && controller.scheduledTime, TETHER_CRON)) {
       ctx.waitUntil(
         import("./uses.js")
           .then(({ buildUsesSnapshot }) => buildUsesSnapshot(env, { budget_ms: 20_000 }))

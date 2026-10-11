@@ -758,7 +758,11 @@ const USES_GET_BATCH = 50;
 export const USES_SNAPSHOT_KEY = "agg|snapshot";
 export const USES_SNAPSHOT_PROGRESS_KEY = "agg|progress";
 export const USES_SNAPSHOT_SPEC = "USES-SNAPSHOT-1.0";
-export const USES_SNAPSHOT_STALE_S = 30 * 60;
+export const USES_SNAPSHOT_STALE_S = 3 * 60 * 60;
+export const USES_SNAPSHOT_LEGACY_KEY = "agg|legacy";
+// No-change skip: an unchanged snapshot is re-put at most this often (so its age stays meaningful).
+export const USES_SNAPSHOT_REFRESH_MS = 2 * 60 * 60 * 1000;
+export const USES_SNAPSHOT_EVERY_MIN = 30;
 const SNAPSHOT_PREFIXES = Object.freeze([["by_host", "host|"], ["by_path", "path|"], ["by_day", "day|"], ["by_method", "method|"], ["by_op", "op|"]]);
 
 /**
@@ -769,6 +773,7 @@ const SNAPSHOT_PREFIXES = Object.freeze([["by_host", "host|"], ["by_path", "path
  */
 export async function buildUsesSnapshot(env, { budget_ms = 20_000, now = Date.now() } = {}) {
   const kv = usesKv(env);
+  if (kv && typeof kv.scan === "function") return buildSnapshotFromDurable(kv, { now });
   if (!kv || typeof kv.list !== "function") return { ok: false, code: "USES-KV-ABSENT" };
   const startedAt = Date.now();
   let prog = null;
@@ -803,10 +808,92 @@ export async function buildUsesSnapshot(env, { budget_ms = 20_000, now = Date.no
     prog.cursor = null;
   }
   const snap = { spec: USES_SNAPSHOT_SPEC, snapshot_at: new Date(now).toISOString(), started_at: new Date(prog.started_at).toISOString(), complete: true, ...prog.maps };
-  await kv.put(USES_SNAPSHOT_KEY, JSON.stringify(snap));
+  const skipped = await putSnapshotUnlessUnchanged(kv, snap, now);
   if (typeof kv.delete === "function") await kv.delete(USES_SNAPSHOT_PROGRESS_KEY);
   else await kv.put(USES_SNAPSHOT_PROGRESS_KEY, "");
-  return { ok: true, published: true, snapshot_at: snap.snapshot_at };
+  return { ok: true, published: !skipped, skipped_unchanged: skipped, snapshot_at: snap.snapshot_at };
+}
+
+async function mapsDigest(snap) {
+  const body = {};
+  for (const [f] of SNAPSHOT_PREFIXES) body[f] = Object.keys(snap[f] || {}).sort().map((k) => [k, snap[f][k]]);
+  const bytes = new TextEncoder().encode(JSON.stringify(body));
+  const d = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** No-change skip: same maps and the stored snapshot is younger than USES_SNAPSHOT_REFRESH_MS -> no put. */
+async function putSnapshotUnlessUnchanged(kv, snap, now) {
+  snap.maps_digest = await mapsDigest(snap);
+  let prev = null;
+  try {
+    prev = JSON.parse((await kv.get(USES_SNAPSHOT_KEY)) || "null");
+  } catch {
+    prev = null;
+  }
+  if (prev && prev.maps_digest === snap.maps_digest && now - Date.parse(prev.snapshot_at) < USES_SNAPSHOT_REFRESH_MS) return true;
+  await kv.put(USES_SNAPSHOT_KEY, JSON.stringify(snap));
+  return false;
+}
+
+/**
+ * USES-SNAPSHOT-1.1 (RUNTIME_KV Durable Object): the frozen legacy KV namespace is read ONCE and
+ * kept as agg|legacy in the object; each run then reads the live counters with one DO scan per
+ * prefix page (values included), overlays them on the legacy base, and puts only on change.
+ */
+async function buildSnapshotFromDurable(kv, { now }) {
+  let base = null;
+  try {
+    base = JSON.parse((await kv.get(USES_SNAPSHOT_LEGACY_KEY)) || "null");
+  } catch {
+    base = null;
+  }
+  if (!base || base.complete !== true) {
+    base = { complete: true, built_at: new Date(now).toISOString(), maps: {} };
+    const legacy = kv.legacy;
+    for (const [field, prefix] of SNAPSHOT_PREFIXES) {
+      const map = (base.maps[field] = {});
+      if (!legacy || typeof legacy.list !== "function") continue;
+      let cursor;
+      do {
+        const page = await legacy.list({ prefix, limit: 1000, cursor });
+        const names = ((page && page.keys) || []).map((k) => k && k.name).filter((n) => n && n !== prefix);
+        for (let i = 0; i < names.length; i += USES_GET_BATCH) {
+          const batch = names.slice(i, i + USES_GET_BATCH);
+          const vals = await Promise.all(batch.map((n) => legacy.get(n)));
+          batch.forEach((n, j) => {
+            map[n.slice(prefix.length)] = Number(vals[j]) || 0;
+          });
+        }
+        cursor = page && page.list_complete === false ? page.cursor : undefined;
+      } while (cursor);
+    }
+    await kv.put(USES_SNAPSHOT_LEGACY_KEY, JSON.stringify(base));
+  }
+  const maps = {};
+  let scans = 0;
+  for (const [field, prefix] of SNAPSHOT_PREFIXES) {
+    const map = (maps[field] = { ...(base.maps[field] || {}) });
+    let after = "";
+    for (;;) {
+      const page = await kv.scan(prefix, after, 1000);
+      scans += 1;
+      const entries = (page && page.entries) || [];
+      for (const [name, v] of entries) if (name !== prefix) map[name.slice(prefix.length)] = Number(v) || 0;
+      if (!page || !page.more || !entries.length) break;
+      after = entries[entries.length - 1][0];
+    }
+  }
+  const snap = { spec: USES_SNAPSHOT_SPEC, snapshot_at: new Date(now).toISOString(), started_at: new Date(now).toISOString(), complete: true, source: "runtime-kv-do+legacy-base", ...maps };
+  const skipped = await putSnapshotUnlessUnchanged(kv, snap, now);
+  return { ok: true, published: !skipped, skipped_unchanged: skipped, do_scans: scans, snapshot_at: snap.snapshot_at };
+}
+
+/** One cron, every USES_SNAPSHOT_EVERY_MIN minutes (minute 1 and 31 of the odd-minute cron). */
+export function snapshotDue(cron, scheduledTime, tetherCron) {
+  if (cron !== tetherCron) return false;
+  const m = new Date(Number(scheduledTime) || Date.now()).getUTCMinutes();
+  return m % USES_SNAPSHOT_EVERY_MIN === 1;
 }
 
 /** USES-SNAPSHOT-1.0 /v1/stats path: total + log + cron snapshot (three KV gets, no scan). */
@@ -838,8 +925,8 @@ async function readUsesSnapshot(kv, base, uses, recent, startedAt, budgetMs) {
     maps_age_s: ageS,
     maps_complete: mapsOk,
     maps_note: mapsOk
-      ? "Per-host/path/day/method/op maps are the cron snapshot at maps_snapshot_at (rebuilt about every 2 minutes); uses is live."
-      : "Per-host/path/day/method/op maps are not available yet or are stale (no complete snapshot within 30 minutes); uses is live.",
+      ? "Per-host/path/day/method/op maps are the cron snapshot at maps_snapshot_at (checked every 30 minutes; re-stored only on change or every 2 hours); uses is live."
+      : "Per-host/path/day/method/op maps are not available yet or are stale (no complete snapshot within 3 hours); uses is live.",
     uses_read_ms: Date.now() - startedAt,
     uses_read_budget_ms: budgetMs,
   };
