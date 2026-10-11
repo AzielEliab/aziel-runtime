@@ -203,16 +203,33 @@ function pinView(row) {
   return { retracted: d.retracted || null, retract_reason: d.retract_reason || null, pin_id: "map-" + row.seq, seq: row.seq, added_at: row.at, layer: d.layer, pin_type: d.pin_type, color: d.color, color_hex: d.color_hex, event: d.event, date: d.date, geo: d.geo, source: d.source, source_id: d.source_id, supersedes_seq: d.supersedes_seq || null, lattice: { primary: row.lattice.primary, secondary: row.lattice.secondary, document_hash: row.lattice.document_hash } };
 }
 
+/**
+ * Newest row per pin source id, without a full scan: meta "map_live" = { through, live: { source_id: seq } }
+ * is advanced over at most MAP_LIVE_STEP new rows per read and persisted (meta only, never the ledger).
+ * Links stay a newest-3000-rows window. Old pins are read by seq, so they never fall out of the map.
+ */
+export const MAP_LIVE_STEP = 4000;
 async function latestRows(repo) {
   const total = await repo.count();
-  const scan = Math.min(total, 3000);
-  const rows = total ? await repo.rowRange(total - scan + 1, total) : [];
-  const latest = new Map();
-  const links = [];
-  for (const r of rows) {
-    if (r.kind === "map_pin" && r.doc && r.doc.source_id) latest.set(r.doc.source_id, r);
-    else if (r.kind === "map_link") links.push(r);
+  const ml = (await repo.metaGet("map_live")) || { through: 0, live: {} };
+  let moved = false;
+  for (let step = 0; step < 3 && ml.through < total; step++) {
+    const to = Math.min(total, ml.through + MAP_LIVE_STEP);
+    const chunk = await repo.rowRange(ml.through + 1, to);
+    for (const r of chunk) if (r.kind === "map_pin" && r.doc && r.doc.source_id) ml.live[r.doc.source_id] = r.seq;
+    ml.through = to;
+    moved = true;
   }
+  if (moved) await repo.commit({ meta: { map_live: ml } });
+  const scan = Math.min(total, 3000);
+  const window = total ? await repo.rowRange(total - scan + 1, total) : [];
+  const bySeq = new Map(window.map((r) => [r.seq, r]));
+  const latest = new Map();
+  for (const [sid, seq] of Object.entries(ml.live)) {
+    const r = bySeq.get(seq) || (await repo.rowGet(seq));
+    if (r) latest.set(sid, r);
+  }
+  const links = window.filter((r) => r.kind === "map_link");
   return { total, latest, links };
 }
 
