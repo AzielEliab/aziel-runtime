@@ -155,3 +155,19 @@ A **PASS** on Remain-OFF means the item stayed correctly OFF / REFUSED / GATED.
 A **FAIL** means something that must stay off returned success, enabled radios, or invented a fallback.
 
 Self-check (`npm test` / this pack) ≠ third-party lab.
+
+---
+
+## 5. Receipt-integrity codes (additive, 2.0.x)
+
+New names only; no existing code changed or recycled. All are `ok: false`.
+
+| Code | Spec | When |
+|------|------|------|
+| `ANCHOR-MISSING` | AZRT-ANCHOR-1.0 | Witness log empty / 404, or no statement covers the row yet |
+| `ANCHOR-UNREACHABLE` | AZRT-ANCHOR-1.0 | Witness log could not be fetched (fail closed, not "ok") |
+| `ANCHOR-SIG-BAD` | AZRT-ANCHOR-1.0 | Statement signature does not verify with the pinned witness key |
+| `ANCHOR-KEY-MISMATCH` | AZRT-ANCHOR-1.0 | Statement names a key other than the pinned one |
+| `ANCHOR-ORDER-BREAK` | AZRT-ANCHOR-1.0 | Statement `n` gap or `prev_statement_hash` break |
+| `ANCHOR-MISMATCH` | AZRT-ANCHOR-1.0 | Statement hash wrong, or an anchored head is no longer the runtime's row at that seq |
+| `ANCHOR-STORE-UNBOUND` / `ANCHOR-NO-ROW` / `ANCHOR-WALK-TOO-LONG` / `ANCHOR-BAD-QUERY` | AZRT-ANCHOR-1.0 | `/v1/anchor/row` cannot check |

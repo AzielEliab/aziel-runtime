@@ -4,6 +4,7 @@
  * Author: Aziel Eliab.
  */
 
+import { anchorRefNow } from "./anchor.js";
 import { digestText, newSessionId, SESSION_ID_RE } from "./session-core.js";
 import { RUNTIME_VERSION } from "./runtime-api.js";
 import { executeLocal, proxyFallbackMeta } from "./engines/runner.js";
@@ -113,6 +114,12 @@ function gateSessionMutate(request, env, json) {
   return null;
 }
 
+/** Runtime-computed additive receipt fields. Callers never supply the anchor. */
+function additiveForSession(_body) {
+  const anchor = anchorRefNow();
+  return anchor ? { anchor } : {};
+}
+
 export async function handleSessionRequest(request, env, deps) {
   const { json, PRODUCTS, BY_SLUG, upstreamFetch, extra } = deps;
   const url = new URL(request.url);
@@ -139,6 +146,7 @@ export async function handleSessionRequest(request, env, deps) {
         version: RUNTIME_VERSION,
         source: body.source || "worker",
         now: new Date().toISOString(),
+        ...additiveForSession(body),
       }),
     });
     return copyJson(res, json, { consent: true });
@@ -326,6 +334,7 @@ async function handleExec(request, env, id, { json, PRODUCTS, BY_SLUG, upstreamF
         body.parent_receipt_id !== undefined ? body.parent_receipt_id : payload && payload.parent_receipt_id,
       correlation_id: body.correlation_id != null ? body.correlation_id : payload && payload.correlation_id,
       outcome: body.outcome != null ? body.outcome : payload && payload.outcome,
+      ...additiveForSession(body),
     }),
   });
   const commitBody = await commitRes.json();

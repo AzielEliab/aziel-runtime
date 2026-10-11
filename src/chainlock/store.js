@@ -441,6 +441,19 @@ export class DurableStore {
     return this._json(writer, `/lattice?since=${encodeURIComponent(String(since || ""))}`);
   }
 
+  /** AZRT-ANCHOR-1.0 read helpers (DO-side select; no full dump). */
+  async chainMeta(name) {
+    return this._json(String(name || ""), "/meta");
+  }
+
+  async chainRow(name, seq) {
+    return this._json(String(name || ""), `/row?seq=${encodeURIComponent(String(seq))}`);
+  }
+
+  async goalPointer(name, key) {
+    return this._json(String(name || ""), `/goal?key=${encodeURIComponent(String(key || ""))}`);
+  }
+
   async loadRecords(name) {
     const n = String(name || "");
     const writer = n.includes("/") ? n.replace("/", ":") : n;
