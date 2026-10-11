@@ -545,7 +545,8 @@ for (const op of expectedLive) {
 }
 assert.ok(!catalog.products.some((p) => p.slug === "fraggate"), "fraggate is extras, not PRODUCTS");
 assert.equal(catalog.door, "fraggate");
-assert.equal(catalog.kernel, "https://github.com/AzielEliab/fraggate");
+assert.equal(catalog.kernel, false);
+assert.equal(catalog.kernel_repo_url, "https://github.com/AzielEliab/fraggate");
 assert.equal(catalog.fraggate.slug, "fraggate");
 assert.equal(catalog.fraggate.kind, "kernel");
 assert.equal(catalog.fraggate.github, "https://github.com/AzielEliab/fraggate");
