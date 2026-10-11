@@ -11,7 +11,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { canonicalize, sha256Hex, ZERO_HASH } from "../session-core.js";
 import { anchorRefNow } from "../anchor.js";
 import { callMetaLedgerFields } from "../receipt-guard.js";
-import { latticeDocumentHash, planLattice } from "../dual-lattice.js";
+import { latticeDocumentHash, latticeTips, planLattice } from "../dual-lattice.js";
 
 export const LEDGER_KIND = "aziel-runtime.fraggate.ledger";
 export const LEDGER_CAP = 64;
@@ -150,7 +150,9 @@ export async function composeLedgerEntry(record, { seq, prev, latticeTips = null
 
 async function appendToSnapshot(record, ledger) {
   const seq = ledger.seq + 1;
-  const entry = await composeLedgerEntry(record, { seq, prev: ledger.tip });
+  // LEDGER-LATTICE-1.0: every writer path carries the dual lattice, not just the DO.
+  const lt = latticeTips(ledger.entries || []);
+  const entry = await composeLedgerEntry(record, { seq, prev: ledger.tip, latticeTips: { primary: lt.primary, secondary: lt.secondary } });
   const next = {
     kind: LEDGER_KIND,
     seq,
@@ -202,7 +204,10 @@ async function appendOnStore(record, store, idempotencyKey, caller) {
       genesis: ZERO_HASH,
       input: record,
     },
-    async ({ prev, seq }) => composeLedgerEntry(record, { seq: seq + 1, prev: prev || ZERO_HASH }),
+    async ({ prev, seq, rows }) => {
+      const lt = latticeTips(rows || []);
+      return composeLedgerEntry(record, { seq: seq + 1, prev: prev || ZERO_HASH, latticeTips: { primary: lt.primary, secondary: lt.secondary } });
+    },
   );
   if (!ack || !ack.ok) {
     return { ledger: currentLedger(), tip: ledgerTipView(currentLedger()), refuse: ack && ack.refuse };
@@ -226,7 +231,8 @@ async function appendIsolate(record, idempotencyKey) {
   }
   const seq = isolateSeq + 1;
   const prev = isolateTip;
-  const entry = await composeLedgerEntry(record, { seq, prev });
+  const lt = latticeTips([...isolateEntries.values()].sort((a, b) => a.seq - b.seq));
+  const entry = await composeLedgerEntry(record, { seq, prev, latticeTips: { primary: lt.primary, secondary: lt.secondary } });
   if (idempotencyKey) entry.idemp = idempotencyKey;
   isolateEntries.set(seq, entry);
   isolateSeq = seq;
