@@ -28,7 +28,7 @@ for (const f of ["src/anchor.js", "src/checkpoints/checkpoint.js", "src/azos-tet
   const { readdirSync, statSync } = await import("node:fs");
   const { join: pjoin } = await import("node:path");
   const md = [];
-  const walk = (d) => { for (const e of readdirSync(d)) { const f = pjoin(d, e); if (e === "node_modules" || e.startsWith(".")) continue; if (statSync(f).isDirectory()) walk(f); else if (f.endsWith(".md")) md.push(f); } };
+  const walk = (d) => { for (const e of readdirSync(d)) { const f = pjoin(d, e); if (e === "node_modules" || e.startsWith(".")) continue; if (statSync(f).isDirectory()) walk(f); else if (f.endsWith(".md") || (/\/src\//.test(f) && /\.(m?js)$/.test(f))) md.push(f); } };
   walk(new URL("..", import.meta.url).pathname);
   const bad = [];
   const SIGNED = /(?<!not )\bsigned receipts?\b/i;
@@ -38,7 +38,7 @@ for (const f of ["src/anchor.js", "src/checkpoints/checkpoint.js", "src/azos-tet
     if (SIGNED.test(t)) bad.push(f + ": signed receipts");
     for (const r of IMM) if (r.test(t)) bad.push(f + ": " + t.match(r)[0]);
   }
-  assert.deepEqual(bad, [], "docs wording");
+  assert.deepEqual(bad, [], "docs + src wording");
   assert.ok(md.length > 20, "scanned all docs");
   n++;
 }

@@ -154,7 +154,7 @@ export const FED_CITE = Object.freeze({
   author: FED_AUTHOR,
   local_first: true,
   inner_core: "Raw data, signing keys, and heavy compute stay on the local node.",
-  outer_mesh: "By default the mesh carries signed receipts, state digests (engine_digest-style), and ref updates. Raw data moves only on an explicit end-to-end encrypted share.",
+  outer_mesh: "By default the mesh carries handle-signed mesh messages, state digests (engine_digest-style), and ref updates. Raw data moves only on an explicit end-to-end encrypted share.",
   worker_requires_plaintext: false,
   neighborhood: "LAN discovery, preferring cluster peers, and offline work run on the local node. This relay does not discover a LAN. It accepts a later sync of rollups and ref updates whose chains are valid, and it refuses forks.",
   content_model: "Content-addressed objects. A signed ref update names the handle, ref name, object hash, previous ref hash, sequence, and signature. This relay stores and serves that index and anchors it. It does not need the object bytes.",

@@ -2,7 +2,7 @@
  * AKM-TRIAD-1.0 public surface — adaptive knowledge memory.
  *
  * Fabric module. Not a Softwares-tab product. FragGate is THE single door.
- * ChainLock remains the immutable recollection ledger.
+ * ChainLock remains the hash-linked, append-only recollection ledger.
  * Author: Aziel Eliab only.
  */
 
@@ -219,7 +219,7 @@ export function memoryKernelEntry() {
     stub_ops: MEMORY_STUB_OPS.slice(),
     description:
       "AKM-TRIAD-1.0 adaptive knowledge recollection. Bayesian calibration and 3-of-4 triad. Derived index over ChainLock learn. Not a Softwares-tab product.",
-    note: "LIVE fabric. ChainLock remains the immutable ledger. Posterior ≠ truth. FragGate is THE single door. Author: Aziel Eliab only.",
+    note: "LIVE fabric. ChainLock remains the hash-linked, append-only ledger. Posterior ≠ truth. FragGate is THE single door. Author: Aziel Eliab only.",
     kind: "kernel",
     engine: false,
     true_engine_runtime: false,
