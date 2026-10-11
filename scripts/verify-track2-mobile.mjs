@@ -202,6 +202,11 @@ try {
   assert.equal(status.packet_path_live, false);
   assert.equal(status.public_live_nodes, false);
 
+  // AZRT-MESH-PEER-DENY-1.0: the node refuses until its operator allows the phone's handle.
+  const denied = await phone.openSession(node.base);
+  assert.equal(denied.ok, false);
+  assert.equal(denied.code, "MESH-PEER-NOT-ALLOWED");
+  node.track2.allowSession(phone.handle);
   const opened = await phone.openSession(node.base);
   assert.equal(opened.ok, true, opened.message || opened.code);
   assert.equal(opened.peer_tunnel, "LIVE-when-session");
