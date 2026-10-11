@@ -46,7 +46,7 @@ function rowOut(row) {
 }
 
 /** Build one signed packet of rows after `afterSeq` (contiguous, in order). Pure apart from repo reads. */
-export async function buildNewsPacket({ key, repo, afterSeq, expect, gitSha, t, maxRows = ROWS_PER_PACKET, maxBytes = BYTES_PER_PACKET, chain = "aznews" }) {
+export async function buildNewsPacket({ key, repo, afterSeq, expect, gitSha, t, maxRows = ROWS_PER_PACKET, maxBytes = BYTES_PER_PACKET, chain = "aznews", cpAfter = null }) {
   const cc = COPY_CHAINS[chain];
   const total = await repo.count();
   if (afterSeq >= total) return { packet: null, total };
@@ -84,6 +84,12 @@ export async function buildNewsPacket({ key, repo, afterSeq, expect, gitSha, t, 
     public_key: key.public_key,
     author: "Aziel Eliab",
   };
+  if (cpAfter != null) {
+    // AZRT-STORE-CHECKPOINT-1.0: signed checkpoints the receiver does not have yet, up to this packet's last row.
+    const { checkpointsAfter } = await import("./store-durability.js");
+    const cps = await checkpointsAfter(repo, cpAfter, { max: 20, throughSeq: last.seq });
+    if (cps.length) packet.checkpoints = cps;
+  }
   packet.packet_hash = await sha256Hex(canonicalize(packet));
   return { packet: await signTetherPacket(key, packet), total, bytes };
 }
@@ -115,8 +121,9 @@ export async function pushNewsCopy(env, repo, opts = {}) {
   }
   const packets = [];
   let total = await repo.count();
+  let cpAfter = Number.isFinite(Number(st.cp_n)) ? Number(st.cp_n) : null;
   for (let i = 0; i < (opts.packets || PACKETS_PER_PUSH); i++) {
-    const built = await buildNewsPacket({ key, repo, afterSeq: after, expect, gitSha: env && env.GIT_SHA, t: opts.t, maxRows: opts.maxRows, maxBytes: opts.maxBytes, chain });
+    const built = await buildNewsPacket({ key, repo, afterSeq: after, expect, gitSha: env && env.GIT_SHA, t: opts.t, maxRows: opts.maxRows, maxBytes: opts.maxBytes, chain, cpAfter });
     total = built.total;
     if (built.fork) return { ...base, ok: false, code: "NEWS-TETHER-FORK", sent: packets.length > 0, at_seq: built.at_seq, packets };
     if (!built.packet) break;
@@ -129,7 +136,8 @@ export async function pushNewsCopy(env, repo, opts = {}) {
     if (!res.ok || !ack || ack.ok !== true) {
       return { ...base, ok: false, code: (ack && ack.code) || "NEWS-TETHER-AZOS-REFUSED", status: res.status, sent: true, packets, azos: ack };
     }
-    packets.push({ rows: built.packet.rows.length, to_seq: built.packet.tips.seq, bytes: built.bytes });
+    packets.push({ rows: built.packet.rows.length, to_seq: built.packet.tips.seq, bytes: built.bytes, checkpoints: (built.packet.checkpoints || []).length });
+    if (cpAfter != null && built.packet.checkpoints && built.packet.checkpoints.length) cpAfter = built.packet.checkpoints[built.packet.checkpoints.length - 1].n;
     after = built.packet.tips.seq;
     expect = { primary: built.packet.tips.primary, secondary: built.packet.tips.secondary };
   }

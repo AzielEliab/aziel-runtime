@@ -107,7 +107,7 @@ export function memoryRepo() {
       return row ? structuredClone(row) : null;
     },
     async rowRange(from, to) {
-      return ledger.slice(Math.max(0, from - 1), Math.max(0, to)).map((r) => structuredClone(r));
+      return ledger.slice(Math.max(0, from - 1), Math.max(0, to)).filter(Boolean).map((r) => structuredClone(r));
     },
     async count() {
       return ledger.length;
@@ -134,6 +134,14 @@ export function memoryRepo() {
         writes += 1;
       }
       return { writes };
+    },
+    async dropRelocated(from, to) {
+      // Only for rows proven present in their segment object (AZRT-STORE-SHARD-1.0).
+      for (let q = from; q <= to; q++) if (ledger[q - 1]) ledger[q - 1] = null;
+      return to - from + 1;
+    },
+    async headRows() {
+      return ledger.filter(Boolean).length;
     },
     async cacheTrim(keep) {
       const keys = [...cache.keys()].sort((a, b) => a - b);
@@ -203,6 +211,18 @@ export function sqlRepo(storage) {
         }
       });
       return { writes };
+    },
+    async dropRelocated(from, to) {
+      // Only for rows proven present in their segment object (AZRT-STORE-SHARD-1.0).
+      sql.exec("DELETE FROM ledger WHERE seq >= ? AND seq <= ?", Number(from), Number(to));
+      return Number(to) - Number(from) + 1;
+    },
+    async headRows() {
+      const r = one("SELECT COUNT(*) AS n FROM ledger");
+      return r ? Number(r.n) : 0;
+    },
+    dbBytes() {
+      try { return Number(sql.databaseSize) || null; } catch { return null; }
     },
     async cacheTrim(keep) {
       const r = one("SELECT COUNT(*) AS n, MAX(seq) AS hi FROM cache");
@@ -876,6 +896,15 @@ async function latestRows(repo, idxName, limit, cap = READ_LIMIT) {
  * checkpoint reaches the ledger tip, the tip must equal the stored tips. Any break
  * is kept forever and stops the walk. Runs after every cron tick and on news_verify.
  */
+/** Verify a contiguous run of rows from an anchor: both lattice links and every document hash. */
+export async function verifyRowRun(rows, anchor) {
+  for (let i = 1; i < rows.length; i++) if (rows[i].seq !== rows[0].seq + i) return { ok: false, reason: "sequence-gap", seq: rows[0].seq + i };
+  const res = await verifyLattice(rows, { anchor, legacyAllowed: false });
+  if (!res.ok) return { ok: false, reason: res.breaks[0].reason, seq: rows[res.breaks[0].seq] && rows[res.breaks[0].seq].seq };
+  for (const r of rows) if ((await hashDoc(r.doc)) !== r.lattice.document_hash) return { ok: false, reason: "document-hash-mismatch", seq: r.seq };
+  return { ok: true, tips: res.tips };
+}
+
 export async function walkStep(repo, { now = Date.now(), maxRows = WALK_ROWS_PER_STEP, persist = true } = {}) {
   const prev = (await repo.metaGet("walk")) || null;
   const w = prev
