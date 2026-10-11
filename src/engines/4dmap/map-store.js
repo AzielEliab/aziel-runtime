@@ -103,6 +103,35 @@ export function corpusPinDocs(body) {
   return out;
 }
 
+export const CORPUS_ORIGINS_URL = "https://www.azielcorpuslibrary.net/api/origins";
+export const ORIGIN_RESCAN_MS = 24 * 60 * 60 * 1000;
+const ORIGIN_TYPES = new Set(["library-aziel-report", "corpus-report"]);
+
+/**
+ * Pure: corpus /api/origins page (CITED-ORIGIN-1.0) -> report pin docs. The origin is read from the
+ * document's own text by the corpus (never the uploader). Pink = Aziel Library document origin,
+ * dark green = other corpus report location. GEO-PIN-QUALITY-1.0 is re-applied here.
+ */
+export function originPinDocs(body) {
+  const out = [];
+  for (const o of (body && Array.isArray(body.origins) ? body.origins : [])) {
+    if (!o || !o.record_id || !ORIGIN_TYPES.has(o.pin_type)) continue;
+    if (!o.place_name || !coordinateLooksReal(o.lat, o.lon)) continue;
+    out.push({
+      source_id: "origin:" + String(o.record_id).slice(0, 80),
+      doc: { ...pinDoc({
+        layer: "corpus",
+        pin_type: o.pin_type,
+        event: String(o.title || o.record_id).slice(0, 300),
+        date: null,
+        geo: { name: String(o.place_name).slice(0, 120), iso: o.country_code || null, lat: Number(o.lat), lon: Number(o.lon), source: "aziel-corpus cited origin" },
+        source: { api: CORPUS_ORIGINS_URL, record_id: String(o.record_id), method: String(o.method || "").slice(0, 40), evidence: String(o.evidence || "").slice(0, 200), basis: "document text", spec: o.spec || "CITED-ORIGIN-1.0" },
+      }), quality_spec: PIN_QUALITY_SPEC },
+    });
+  }
+  return out;
+}
+
 /** Pure: GeoNames gazetteer -> reference pin docs (capitals, then cities >= 1,000,000). */
 export function referencePinDocs() {
   const out = [];
@@ -188,6 +217,31 @@ export async function mapTick(repo, { fetchImpl = typeof fetch === "function" ? 
       state.last_corpus_error = { at: report.at, reason: report.corpus.reason };
     }
   }
+  // CITED-ORIGIN-1.0: one bounded page of corpus documents per tick; a full pass, then a daily rescan.
+  const os = state.origins || { after: "", pass_started: null, pass_done_ms: 0, pins: 0, scanned: 0, no_origin: 0 };
+  if (room > 0 && fetchImpl && (os.after || now - (os.pass_done_ms || 0) >= ORIGIN_RESCAN_MS)) {
+    report.subrequests += 1;
+    try {
+      const res = await fetchImpl(CORPUS_ORIGINS_URL + "?limit=20&after=" + encodeURIComponent(os.after || ""), { headers: { accept: "application/json", "user-agent": "Mozilla/5.0 (aziel-runtime 4dmap store)" } });
+      if (res.ok) {
+        const body = await res.json();
+        if (!os.after) Object.assign(os, { pass_started: report.at, pass_scanned: 0, pass_origins: 0, pass_no_origin: 0 });
+        const docs = originPinDocs(body);
+        const added = await appendNew(repo, batch, docs, room);
+        os.pass_scanned = (os.pass_scanned || 0) + (Number(body.scanned) || 0);
+        os.pass_origins = (os.pass_origins || 0) + docs.length;
+        os.pass_no_origin = (os.pass_no_origin || 0) + ((body.no_origin || []).length);
+        os.after = body.done ? "" : String(body.next_after || "");
+        if (body.done) Object.assign(os, { pass_done_ms: now, last_pass: { started: os.pass_started, done: report.at, scanned: os.pass_scanned, origins: os.pass_origins, no_origin: os.pass_no_origin } });
+        report.origins = { ok: true, scanned: body.scanned, origins: docs.length, ...added, done: Boolean(body.done) };
+      } else {
+        report.origins = { ok: false, status: res.status };
+      }
+    } catch (err) {
+      report.origins = { ok: false, reason: String((err && err.message) || err).slice(0, 120) };
+    }
+    state.origins = os;
+  }
   state.ticks = (state.ticks || 0) + 1;
   state.last_tick = report.at;
   batch.meta.map_state = state;
@@ -264,6 +318,7 @@ export async function mapRead(repo, payload = {}, { now = Date.now() } = {}) {
     needs_aznews: false,
     retracted: { count: retractedCount, shown: withRetracted, rule: PIN_QUALITY_SPEC, note: "Retracted pins stay on the lattice (append-only); a later row for the same source id marks them retracted. Hidden unless ?include_retracted=1." },
     links: { counts: linkCounts, rule: LINK_RULE, newest: payload.links === true || payload.links === "1" ? links.slice(-200).reverse().map(linkView) : undefined },
+    cited_origins: { spec: "CITED-ORIGIN-1.0", source: CORPUS_ORIGINS_URL, pink: [...latest.values()].filter((p) => !p.doc.retracted && p.doc.pin_type === "library-aziel-report").length, dark_green: [...latest.values()].filter((p) => !p.doc.retracted && p.doc.pin_type === "corpus-report").length, last_pass: (state.origins && state.origins.last_pass) || null, scanning_after: (state.origins && state.origins.after) || null },
     layers: { corpus: { count: counts.corpus || 0, source: CORPUS_EVENTS_URL, last: state.last_corpus || null, last_error: state.last_corpus_error || null }, reference: { count: counts.reference || 0, source: GAZETTEER_SOURCE, complete: Boolean(state.reference_complete) } },
     pins: pins.slice(0, lim),
     last10: pins.filter((p) => p.layer !== "reference").slice(0, 10),
