@@ -143,7 +143,7 @@ assert.equal(byId["cold-shelves"].gitflic.status, "refused");
 assert.equal(byId["cold-shelves"].gitflic.live, false);
 assert.equal(byId["cold-shelves"].gitflic.refuse, "CNS-GITFLIC-EMAIL");
 assert.equal(byId["cold-shelves"].usb.status, "slot");
-assert.equal(byId.phoenix.status, "live");
+assert.equal(byId.phoenix.status, "local_only"); assert.equal(byId.phoenix.live, false); assert.equal(byId.phoenix.worker_live, false);
 assert.equal(byId.phoenix.controller_hunt, false);
 assert.equal(byId.phoenix.vote_to_fix, false);
 assert.equal(byId.phoenix.public_hostname_resurrection, false);

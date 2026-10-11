@@ -1787,7 +1787,7 @@ export async function meshStatus(payload, env) {
       mesh_broadcast: false,
     },
     note: state.enabled
-      ? "QNM suite rollup is LIVE. Read-only suite-presence is ON by default. nodes counts human mesh users plus cited human uses (USES). live_nodes counts human mesh users plus site_live_viewers. software_nodes is the {slug}-worker roster. Counts only — no QNM-S, no leaderboard. GET never pulls hub /count. Uses are counters. SPORE-1.0: this isolate is powered unless a power-loss signal pauses metabolism."
+      ? "QNM suite rollup: read-only presence counts served by this Worker. Not a live end-to-end QNM mesh. Read-only suite-presence is ON by default. nodes counts human mesh users plus cited human uses (USES). live_nodes counts human mesh users plus site_live_viewers. software_nodes is the {slug}-worker roster. Counts only — no QNM-S, no leaderboard. GET never pulls hub /count. Uses are counters. SPORE-1.0: this isolate is powered unless a power-loss signal pauses metabolism."
       : "QNM suite-presence is not LIVE. GET /v1/mesh never enables radios beyond read-only suite-presence. SPORE-1.0: radios off is dormant — pause, preserve DNA, wait.",
   });
 }
