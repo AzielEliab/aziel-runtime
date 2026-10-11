@@ -61,7 +61,7 @@ export const DOC_UNIQUE_SPEC = "LATTICE-DOC-UNIQUE-1.0";
 export function normalizeDocText(text) {
   return String(text == null ? "" : text)
     .normalize("NFKC")
-    .replace(/\p{Cf}/gu, "")
+    .replace(/[\p{Cf}\p{Default_Ignorable_Code_Point}]/gu, "")
     .replace(/\s+/gu, " ")
     .trim()
     .toLowerCase()
@@ -173,6 +173,27 @@ export async function backfillDocumentPage(storeOrEnv, { chain, caller = "", cur
   out.next_cursor = last + 1;
   out.done = last >= out.seq;
   return out;
+}
+
+/**
+ * DOC-WRITERS-1.0: enumerate the (caller, chain) pairs to backfill, paged. The public document
+ * chains are always listed first; then every caller chain registered in the document index.
+ * A caller chain is registered the first time it claims a document (LATTICE-DOC-UNIQUE-1.0 on).
+ */
+export async function listDocumentWriters(storeOrEnv, { cursor = 0, limit = 100 } = {}) {
+  const store = storeFor(storeOrEnv);
+  if (!store || typeof store.docWriters !== "function") return { ok: false, code: "LATTICE-DOC-INDEX-UNAVAILABLE", spec: DOC_UNIQUE_SPEC };
+  let got;
+  try {
+    got = await store.docWriters(cursor, limit);
+  } catch {
+    got = null;
+  }
+  if (!got || got.ok !== true) return { ok: false, code: "LATTICE-DOC-INDEX-UNAVAILABLE", spec: DOC_UNIQUE_SPEC };
+  const first = Math.floor(Number(cursor)) === 0 || !cursor ? DOCUMENT_CHAINS.map((chain) => ({ caller: "", chain })) : [];
+  // Public chains are always on the first page, so registered public entries are skipped.
+  const writers = first.concat(got.writers.filter((w) => w.caller !== "" && DOCUMENT_CHAINS.includes(w.chain)));
+  return { ok: true, spec: "DOC-WRITERS-1.0", writers, next_cursor: got.next_cursor, done: got.done, total_registered: got.total };
 }
 
 const DOUBLE_MESSAGE_UNAVAILABLE = "The document index (CHAINLOCK Durable Object) could not be read, so nothing was indexed (fail closed).";

@@ -5,7 +5,7 @@
  * rows written before the index. Cases include AZBot's probe257.
  */
 import assert from "node:assert/strict";
-import { append, backfillDocumentIndex, backfillDocumentPage, documentContentHash, normalizeDocText, DOCUMENT_CHAINS } from "../src/chainlock/ops.js";
+import { append, backfillDocumentIndex, backfillDocumentPage, listDocumentWriters, documentContentHash, normalizeDocText, DOCUMENT_CHAINS } from "../src/chainlock/ops.js";
 import { memoryChainWriterNamespace } from "../src/chainlock/writer-do.js";
 import { storeFor, MemoryStore } from "../src/chainlock/store.js";
 let n = 0;
@@ -115,6 +115,9 @@ assert.equal(await documentContentHash({ c: "evidence", k: "stamp", subject: "on
     ["fullwidth (NFKC)", { ...base, fact: "ｆirst fact café" }],
     ["fullwidth word", { ...base, subject: "ＯＮＥ", fact: "ＦＩＲＳＴ fact café" }],
     ["nbsp", { ...base, fact: "first\u00A0fact café" }],
+    ["U+034F combining grapheme joiner", { ...base, fact: "fi\u034Frst fact café" }],
+    ["U+FE0F variation selector", { ...base, fact: "first fact\uFE0F café" }],
+    ["U+2060 word joiner", { ...base, fact: "first\u2060 fact café" }],
     ["other kind", { ...base, k: "note" }],
     ["other chain library", { ...base, c: "library" }],
     ["other chain identity", { ...base, c: "identity" }],
@@ -168,9 +171,48 @@ assert.equal(await documentContentHash({ c: "evidence", k: "stamp", subject: "on
   const ok = await worker.fetch(new Request(u, { method: "POST", headers: { authorization: "Bearer " + "t".repeat(40) } }), env, {});
   assert.equal(ok.status, 200); const b = await ok.json(); assert.equal(b.ok, true); assert.equal(b.done, true); n++;
 }
+// DOC-WRITERS-1.0: the backfill enumerates caller chains itself (no hand-made caller list).
+{
+  const s = doStore();
+  await append(s, { c: "evidence", subject: "a", fact: "alice doc", caller: "alice" });
+  await append(s, { c: "library", subject: "b", fact: "bob doc", caller: "bob" });
+  await append(s, { c: "evidence", subject: "p", fact: "public doc" });
+  await append(s, { c: "evidence", subject: "a2", fact: "alice doc 2", caller: "alice" });
+  await append(s, { c: "session", fact: "not a document chain", caller: "carol" });
+  const all = [];
+  let cur = 0;
+  for (;;) {
+    const w = await listDocumentWriters(s, { cursor: cur, limit: 1 });
+    assert.equal(w.ok, true);
+    all.push(...w.writers);
+    if (w.done) break;
+    cur = w.next_cursor;
+  }
+  const keys = all.map((w) => w.caller + "|" + w.chain).sort();
+  assert.deepEqual(keys, ["alice|evidence", "bob|library", "|evidence", "|identity", "|library"]); n++;
+  // Runbook loop: enumerate, then backfill every pair page by page; all done, nothing new left.
+  let pages = 0;
+  for (const w of all) {
+    let c2 = 1;
+    for (;;) {
+      const p = await backfillDocumentPage(s, { chain: w.chain, caller: w.caller, cursor: c2, limit: 1 });
+      assert.equal(p.ok, true); pages++;
+      if (p.done) break;
+      c2 = p.next_cursor;
+    }
+  }
+  assert.ok(pages >= 5); n++;
+  assert.equal((await listDocumentWriters(new MemoryStore())).code, "LATTICE-DOC-INDEX-UNAVAILABLE"); n++;
+  const { default: worker } = await import("../src/index.js");
+  const env = { CHAINLOCK: memoryChainWriterNamespace({}), RUNTIME_TOKEN: "t".repeat(40) };
+  const wu = "https://x.example/v1/admin/doc-index/writers?cursor=0&limit=50";
+  assert.equal((await worker.fetch(new Request(wu), env, {})).status, 401);
+  const ok = await worker.fetch(new Request(wu, { headers: { authorization: "Bearer " + "t".repeat(40) } }), env, {});
+  assert.equal(ok.status, 200); assert.equal((await ok.json()).writers.length, 3); n++;
+}
 {
   const { readFileSync } = await import("node:fs");
   const doc = readFileSync(new URL("../docs/DOC-INDEX-BACKFILL.md", import.meta.url), "utf8");
-  assert.match(doc, /\/v1\/admin\/doc-index\/backfill/); assert.match(doc, /Authorization: Bearer/); assert.match(doc, /next_cursor/); n++;
+  assert.match(doc, /\/v1\/admin\/doc-index\/backfill/); assert.match(doc, /Authorization: Bearer/); assert.match(doc, /next_cursor/); assert.match(doc, /doc-index\/writers/); assert.ok(!/\$CALLERS/.test(doc), "no hand-made caller list"); n++;
 }
 console.log(`ok doc unique: ${n} checks`);

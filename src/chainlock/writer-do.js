@@ -217,6 +217,24 @@ export class ChainWriter {
     this._docQueue = run.catch(() => {});
     return run;
   }
+  /** DOC-WRITERS-1.0: every (caller|chain) that claimed a document, in first-seen order. */
+  async _registerWriter(owner) {
+    if (!owner || (await this._get("writer:" + owner))) return;
+    const list = (await this._get("writers")) || [];
+    list.push(owner);
+    await this._put("writers", list);
+    await this._put("writer:" + owner, list.length);
+  }
+  async docWriters(cursor, limit) {
+    const list = (await this._get("writers")) || [];
+    const from = Math.max(0, Math.floor(Number(cursor)) || 0);
+    const n = Math.min(Math.max(Math.floor(Number(limit)) || 0, 1), 500);
+    const page = list.slice(from, from + n).map((o) => {
+      const i = o.lastIndexOf("|");
+      return { caller: o.slice(0, i), chain: o.slice(i + 1) };
+    });
+    return { ok: true, writers: page, cursor: from, next_cursor: from + page.length, done: from + page.length >= list.length, total: list.length };
+  }
   async _docClaim(body) {
     const doc = String((body && body.doc) || "");
     const owner = String((body && body.owner) || "");
@@ -225,9 +243,13 @@ export class ChainWriter {
     const hit = await this._get("claim:" + doc);
     if (!hit) {
       await this._put("claim:" + doc, { owner, idemp });
+      await this._registerWriter(owner);
       return { ok: true, fresh: true };
     }
-    if (hit.owner === owner && idemp && hit.idemp === idemp) return { ok: true, fresh: false };
+    if (hit.owner === owner && idemp && hit.idemp === idemp) {
+      await this._registerWriter(owner);
+      return { ok: true, fresh: false };
+    }
     return { ok: false, refuse: "lattice-double", code: hit.owner === owner ? "LATTICE-DOUBLE" : "LATTICE-DOUBLE-CROSS" };
   }
 
@@ -324,6 +346,9 @@ export class ChainWriter {
       }
       if (action === "rows" && request.method === "GET") {
         return json(await this.rowsFrom(url.searchParams.get("from"), url.searchParams.get("limit")));
+      }
+      if (action === "writers" && request.method === "GET") {
+        return json(await this.docWriters(url.searchParams.get("cursor"), url.searchParams.get("limit")));
       }
       if (action === "claim" && request.method === "POST") {
         return json(await this.docClaim(await readJson(request)));

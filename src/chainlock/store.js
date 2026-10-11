@@ -459,6 +459,10 @@ export class DurableStore {
     return this._json("__docindex__", "/claim", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ doc, owner, idemp: idemp || "" }) });
   }
 
+  async docWriters(cursor, limit) {
+    return this._json("__docindex__", `/writers?cursor=${encodeURIComponent(String(cursor || 0))}&limit=${encodeURIComponent(String(limit || 100))}`);
+  }
+
   async docRelease(doc, owner) {
     return this._json("__docindex__", "/release", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ doc, owner }) });
   }
