@@ -11,6 +11,7 @@
  */
 
 import { canonicalize, sha256Hex } from "./session-core.js";
+import { planLattice } from "./dual-lattice.js";
 
 export const NO_LIE_SPEC = "NO-LIE-NO-REWRITE-1.0";
 export const NO_LIE_AUTHOR = "Aziel Eliab";
@@ -111,10 +112,16 @@ export async function hashNoLieReceipt(unsigned) {
   return sha256Hex(canonicalize(body));
 }
 
-export async function mintNoLieReceipt({ previous_hash, body, event } = {}) {
+/**
+ * LATTICE-RECEIPTS-1.0: every NO-LIE row carries the dual lattice over its hash. Pass the previous
+ * row's lattice as lattice_tips (genesis when omitted). The lattice is additive: hashNoLieReceipt
+ * and verifyNoLieReceipt are unchanged, so older rows still verify.
+ */
+export async function mintNoLieReceipt({ previous_hash, body, event, lattice_tips = null } = {}) {
   const unsigned = { previous_hash, body, event };
   const hash = await hashNoLieReceipt(unsigned);
-  return { ...unsigned, hash };
+  const lattice = await planLattice({ document_hash: hash, tips: lattice_tips });
+  return { ...unsigned, hash, lattice };
 }
 
 export async function verifyNoLieReceipt(receipt) {

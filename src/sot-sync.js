@@ -28,6 +28,7 @@ import {
 } from "./seo.js";
 import { sanitizeVersionId, softwareCatalog, softwareMeta } from "./software-catalog.js";
 import { ZERO_HASH } from "./session-core.js";
+import { LATTICE_GENESIS, planLattice } from "./dual-lattice.js";
 
 export const SOT_SPEC = "SOT-SYNC-1.0";
 export const SOT_AUTHOR = "Aziel Eliab";
@@ -51,6 +52,8 @@ const ledger = {
   last_sot: null,
   receipts: [],
   tip_hash: ZERO_HASH,
+  // LATTICE-RECEIPTS-1.0: dual-lattice tips over sot-sync receipts (additive; the four-field hash is unchanged).
+  lattice_tips: { primary: LATTICE_GENESIS, secondary: LATTICE_GENESIS },
 };
 
 const pushOverrides = new Map();
@@ -66,6 +69,7 @@ export function resetSotStore() {
   ledger.last_sot = null;
   ledger.receipts = [];
   ledger.tip_hash = ZERO_HASH;
+  ledger.lattice_tips = { primary: LATTICE_GENESIS, secondary: LATTICE_GENESIS };
   pushOverrides.clear();
 }
 
@@ -973,6 +977,8 @@ export async function runSotMeshOp(op, payload, env, ctx = {}) {
       runtime_version: RUNTIME_VERSION,
     },
   });
+  receipt.lattice = await planLattice({ document_hash: receipt.hash, tips: ledger.lattice_tips });
+  ledger.lattice_tips = { primary: receipt.lattice.primary, secondary: receipt.lattice.secondary };
   ledger.tip_hash = receipt.hash;
   ledger.receipts.unshift(receipt);
   ledger.receipts = ledger.receipts.slice(0, RECEIPT_CAP);

@@ -8,6 +8,7 @@ import { RUNTIME_VERSION } from "../runtime-api.js";
 import { hashStatement, isHex64, publicKeyMatchesHandle } from "./codec.js";
 import { verifyObject } from "./identity.js";
 import { FED_RECEIPT_SPEC, FED_SPEC, ZERO_HASH } from "./spec.js";
+import { planLattice } from "../dual-lattice.js";
 
 export function anchorStatement(anchor) {
   return {
@@ -47,7 +48,12 @@ export async function attachIdentityAnchor(receipt, identity, { seq, prev }) {
   };
 }
 
-export async function mintIdentityReceipt({ identity, request, output, event, seq, prev, previous_hash }) {
+/**
+ * LATTICE-RECEIPTS-1.0: the minted receipt also carries the dual lattice over its ACT-RECEIPT hash.
+ * Pass the previous receipt's lattice as lattice_tips (genesis when omitted). Additive: the
+ * four-field hash and the signed identity statement are unchanged.
+ */
+export async function mintIdentityReceipt({ identity, request, output, event, seq, prev, previous_hash, lattice_tips = null }) {
   const four = {
     previous_hash: isHex64(previous_hash) ? previous_hash : ZERO_HASH,
     request: oneSentence(request),
@@ -64,7 +70,9 @@ export async function mintIdentityReceipt({ identity, request, output, event, se
     }),
   };
   four.hash = await hashActReceipt(four);
-  return attachIdentityAnchor(four, identity, { seq, prev });
+  const out = await attachIdentityAnchor(four, identity, { seq, prev });
+  out.lattice = await planLattice({ document_hash: out.hash, tips: lattice_tips });
+  return out;
 }
 
 export async function verifyIdentityReceipt(receipt) {
