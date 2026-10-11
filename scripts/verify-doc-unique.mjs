@@ -5,7 +5,7 @@
  * rows written before the index. Cases include AZBot's probe257.
  */
 import assert from "node:assert/strict";
-import { append, backfillDocumentIndex, documentContentHash, normalizeDocText, DOCUMENT_CHAINS } from "../src/chainlock/ops.js";
+import { append, backfillDocumentIndex, backfillDocumentPage, documentContentHash, normalizeDocText, DOCUMENT_CHAINS } from "../src/chainlock/ops.js";
 import { memoryChainWriterNamespace } from "../src/chainlock/writer-do.js";
 import { storeFor, MemoryStore } from "../src/chainlock/store.js";
 let n = 0;
@@ -96,5 +96,81 @@ assert.equal(await documentContentHash({ c: "evidence", k: "stamp", subject: "on
   assert.equal(b2.indexed, 0); assert.equal(b2.already, 2); n++;
   assert.equal((await append(s, { c: "evidence", subject: "OLD", fact: " legacy  row", caller: "carol" })).code, "LATTICE-DOUBLE-CROSS"); n++;
   assert.equal((await backfillDocumentIndex(new MemoryStore(), [{ chain: "evidence", caller: "" }])).ok, true); n++;
+}
+
+// AZBot probe2: NFKC, \p{Cf} (ZWSP, ZWJ, soft hyphen), fullwidth, NFD, nbsp, case, chains, users.
+{
+  const s = doStore();
+  const base = { c: "evidence", subject: "one", fact: "first fact café" };
+  assert.equal((await append(s, base)).ok, true); n++;
+  const refused = [
+    ["exact same", base],
+    ["trailing space", { ...base, fact: base.fact + " " }],
+    ["case", { ...base, subject: "ONE" }],
+    ["internal ws run", { ...base, fact: "first   fact\tcafé" }],
+    ["NFD", { ...base, fact: base.fact.normalize("NFD") }],
+    ["zero-width space", { ...base, fact: "first \u200Bfact café" }],
+    ["zero-width joiner in word", { ...base, fact: "fi\u200Drst fact café" }],
+    ["soft hyphen", { ...base, fact: "fi\u00ADrst fact café" }],
+    ["fullwidth (NFKC)", { ...base, fact: "ｆirst fact café" }],
+    ["fullwidth word", { ...base, subject: "ＯＮＥ", fact: "ＦＩＲＳＴ fact café" }],
+    ["nbsp", { ...base, fact: "first\u00A0fact café" }],
+    ["other kind", { ...base, k: "note" }],
+    ["other chain library", { ...base, c: "library" }],
+    ["other chain identity", { ...base, c: "identity" }],
+    ["other user", { ...base, caller: "bob" }],
+    ["offline+username", { ...base, offline: true, username: "bob", caller: "bob" }],
+    ["offline same user other case", { ...base, offline: true, username: "BOB", caller: "BOB" }],
+  ];
+  for (const [label, x] of refused) {
+    const o = await append(s, x);
+    assert.equal(o.ok, false, "probe2 " + label); assert.match(o.code, /^LATTICE-DOUBLE/, label); n++;
+  }
+  assert.equal((await append(s, { ...base, fact: "second fact" })).ok, true, "control");
+  assert.equal((await append(s, { ...base, fact: "first fact café." })).ok, true, "punctuation differs"); n++;
+}
+
+// Paged, resumable backfill (operator entry point).
+{
+  const s = doStore();
+  const realClaim = s.docClaim.bind(s);
+  s.docClaim = async () => ({ ok: true, fresh: false }); // rows written before the index
+  for (let i = 0; i < 7; i++) await append(s, { c: "evidence", subject: "legacy", fact: "row " + i, caller: "alice" });
+  await append(s, { c: "library", subject: "legacy", fact: "row 3" }); // a pre-existing cross double
+  s.docClaim = realClaim;
+  let cur = 1, pages = 0, indexed = 0;
+  for (;;) {
+    const p = await backfillDocumentPage(s, { chain: "evidence", caller: "alice", cursor: cur, limit: 3 });
+    assert.equal(p.ok, true); pages++; indexed += p.indexed;
+    if (p.done) break;
+    assert.ok(p.next_cursor > cur); cur = p.next_cursor;
+  }
+  assert.equal(pages, 3); assert.equal(indexed, 7); n++;
+  const again = await backfillDocumentPage(s, { chain: "evidence", caller: "alice", cursor: 4, limit: 100 });
+  assert.equal(again.indexed, 0); assert.equal(again.already, 4); assert.equal(again.done, true); n++; // resumable, idempotent
+  const lib = await backfillDocumentPage(s, { chain: "library", cursor: 1, limit: 10 });
+  assert.equal(lib.doubles.length, 1); assert.equal(lib.doubles[0].code, "LATTICE-DOUBLE-CROSS"); n++;
+  assert.equal((await append(s, { c: "evidence", subject: "LEGACY", fact: "Row 5", caller: "zed" })).code, "LATTICE-DOUBLE-CROSS"); n++;
+  assert.equal((await backfillDocumentPage(s, { chain: "session", cursor: 1 })).code, "DOC-BACKFILL-BAD-QUERY");
+  assert.equal((await backfillDocumentPage(s, { chain: "evidence", cursor: 0 })).code, "DOC-BACKFILL-BAD-QUERY");
+  assert.equal((await backfillDocumentPage(new MemoryStore(), { chain: "evidence" })).code, "LATTICE-DOC-INDEX-UNAVAILABLE"); n++;
+}
+
+// Admin route: token in a header only, POST only.
+{
+  const { default: worker } = await import("../src/index.js");
+  const env = { CHAINLOCK: memoryChainWriterNamespace({}), RUNTIME_TOKEN: "t".repeat(40) };
+  const u = "https://x.example/v1/admin/doc-index/backfill?c=evidence&cursor=1&limit=10";
+  assert.equal((await worker.fetch(new Request(u, { method: "POST" }), env, {})).status, 401);
+  { const q = await worker.fetch(new Request(u + "&token=" + "t".repeat(40), { method: "POST" }), env, {}); assert.ok(q.status === 400 || q.status === 401, "token in query refused"); }
+  assert.equal((await worker.fetch(new Request(u, { method: "POST", headers: { authorization: "Bearer wrong" } }), env, {})).status, 401);
+  assert.equal((await worker.fetch(new Request(u), env, {})).status, 405);
+  const ok = await worker.fetch(new Request(u, { method: "POST", headers: { authorization: "Bearer " + "t".repeat(40) } }), env, {});
+  assert.equal(ok.status, 200); const b = await ok.json(); assert.equal(b.ok, true); assert.equal(b.done, true); n++;
+}
+{
+  const { readFileSync } = await import("node:fs");
+  const doc = readFileSync(new URL("../docs/DOC-INDEX-BACKFILL.md", import.meta.url), "utf8");
+  assert.match(doc, /\/v1\/admin\/doc-index\/backfill/); assert.match(doc, /Authorization: Bearer/); assert.match(doc, /next_cursor/); n++;
 }
 console.log(`ok doc unique: ${n} checks`);

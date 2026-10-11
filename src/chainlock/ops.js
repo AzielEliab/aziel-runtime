@@ -8,7 +8,7 @@
 
 import { boundMemoryMeta } from "../memory/meta.js";
 import { canonicalize, sha256Hex } from "../session-core.js";
-import { chainKey, parseJsonl, storeFor, toJsonl, VAULT_CHAINS_PATH } from "./store.js";
+import { chainKey, parseJsonl, storeFor, toJsonl, VAULT_CHAINS_PATH, writerName } from "./store.js";
 import { anchorRefNow, chainIntegrity } from "../anchor.js";
 import { LATTICE_SPEC, LatticeError, latticeDocumentHash, latticeTips, planLattice, verifyLattice } from "../dual-lattice.js";
 
@@ -54,16 +54,18 @@ export const DOCUMENT_CHAINS = Object.freeze(["evidence", "library", "identity"]
 export const DOC_UNIQUE_SPEC = "LATTICE-DOC-UNIQUE-1.0";
 
 /**
- * Normalize document text for the uniqueness index: Unicode NFC, trim, collapse whitespace,
- * case-fold. "First fact " and "first  fact" are the same document.
+ * Normalize document text for the uniqueness index: Unicode NFKC (fullwidth and compatibility
+ * forms fold), strip format characters \p{Cf} (U+200B, U+200D, U+00AD, ...), collapse
+ * whitespace, trim, case-fold. "ｆirst  fact" and "fi\u00ADrst fact" are the same document.
  */
 export function normalizeDocText(text) {
   return String(text == null ? "" : text)
-    .normalize("NFC")
+    .normalize("NFKC")
+    .replace(/\p{Cf}/gu, "")
     .replace(/\s+/gu, " ")
     .trim()
     .toLowerCase()
-    .normalize("NFC");
+    .normalize("NFKC");
 }
 
 /**
@@ -127,6 +129,53 @@ export async function backfillDocumentIndex(storeOrEnv, targets = []) {
   }
   return out;
 }
+
+export const DOC_BACKFILL_PAGE_MAX = 100;
+
+/**
+ * Paged, resumable backfill (operator entry point). Reads rows [cursor, cursor+limit) of one
+ * document chain from the CHAINLOCK Durable Object and claims each row's content hash (row id as
+ * idempotency key, so re-running a page is safe). Returns next_cursor; done when it reaches the
+ * tip. Fails closed without the DO. Pre-existing doubles are reported, never deleted.
+ */
+export async function backfillDocumentPage(storeOrEnv, { chain, caller = "", cursor = 1, limit = 50 } = {}) {
+  const c = String(chain || "").trim();
+  const who = String(caller || "").trim();
+  const from = Math.floor(Number(cursor));
+  const n = Math.min(Math.max(Math.floor(Number(limit)) || 0, 1), DOC_BACKFILL_PAGE_MAX);
+  if (!DOCUMENT_CHAINS.includes(c) || !Number.isFinite(from) || from < 1) {
+    return { ok: false, code: "DOC-BACKFILL-BAD-QUERY", spec: DOC_UNIQUE_SPEC, chains: DOCUMENT_CHAINS.slice() };
+  }
+  const store = storeFor(storeOrEnv);
+  if (!store || typeof store.chainRows !== "function" || typeof store.docClaim !== "function") {
+    return { ok: false, code: "LATTICE-DOC-INDEX-UNAVAILABLE", spec: DOC_UNIQUE_SPEC, message: DOUBLE_MESSAGE_UNAVAILABLE };
+  }
+  let page;
+  try {
+    page = await store.chainRows(writerName(c, who), from, n);
+  } catch {
+    page = null;
+  }
+  if (!page || page.ok !== true || !Array.isArray(page.rows)) {
+    return { ok: false, code: "LATTICE-DOC-INDEX-UNAVAILABLE", spec: DOC_UNIQUE_SPEC, chain: c, caller: who, cursor: from, message: DOUBLE_MESSAGE_UNAVAILABLE };
+  }
+  const out = { ok: true, spec: DOC_UNIQUE_SPEC, chain: c, caller: who, cursor: from, limit: n, indexed: 0, already: 0, doubles: [], seq: Number(page.seq) || 0 };
+  for (const { seq, row } of page.rows) {
+    if (!row || !row.fact) continue;
+    const doc = await documentContentHash(row);
+    const got = await claimDocument(store, doc, who + "|" + c, String(row.id || ""));
+    if (got.ok && got.fresh) out.indexed++;
+    else if (got.ok) out.already++;
+    else if (got.code === "LATTICE-DOC-INDEX-UNAVAILABLE") return { ...out, ok: false, code: got.code, next_cursor: seq, done: false };
+    else out.doubles.push({ seq, id: row.id || null, document_hash: doc, code: got.code });
+  }
+  const last = page.rows.length ? page.rows[page.rows.length - 1].seq : from - 1;
+  out.next_cursor = last + 1;
+  out.done = last >= out.seq;
+  return out;
+}
+
+const DOUBLE_MESSAGE_UNAVAILABLE = "The document index (CHAINLOCK Durable Object) could not be read, so nothing was indexed (fail closed).";
 
 const DOUBLE_MESSAGE = {
   "LATTICE-DOUBLE": "This document is already stored on this chain. The document hash matched, so it was not written twice.",

@@ -4611,6 +4611,24 @@ async function handleRequest(request, env, ctx) {
       return asHead(request, new Response(aznewsPageHtml(), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "public, max-age=60" } }));
     }
 
+    // LATTICE-DOC-UNIQUE-1.0 backfill: operator-only, paged and resumable (docs/DOC-INDEX-BACKFILL.md).
+    if (url.pathname === "/v1/admin/doc-index/backfill") {
+      const { extractRuntimeToken, tokenSecret, timingSafeEqualString, tokenPresentedInQuery } = await import("./production.js");
+      const secret = tokenSecret(env);
+      const presented = tokenPresentedInQuery(request) ? null : extractRuntimeToken(request);
+      if (request.method !== "POST") return json({ ok: false, code: "DOC-BACKFILL-POST-ONLY", message: "POST /v1/admin/doc-index/backfill?c=<evidence|library|identity>&caller=<handle or empty>&cursor=<1-based>&limit=<1..100>" }, 405);
+      if (!(secret && presented && timingSafeEqualString(presented, secret))) {
+        return json({ ok: false, refused: true, code: "DOC-BACKFILL-AUTH-REQUIRED", message: "Needs the runtime token in a header (Authorization: Bearer or X-Aziel-Runtime-Token). Nothing was indexed." }, 401);
+      }
+      const { backfillDocumentPage } = await import("./chainlock/ops.js");
+      const out = await backfillDocumentPage(env, {
+        chain: url.searchParams.get("c") || url.searchParams.get("chain") || "",
+        caller: url.searchParams.get("caller") || "",
+        cursor: url.searchParams.get("cursor") || "1",
+        limit: url.searchParams.get("limit") || "50",
+      });
+      return json(out, out.ok ? 200 : out.code === "DOC-BACKFILL-BAD-QUERY" ? 400 : 503);
+    }
     if ((url.pathname === "/v1/anchor" || url.pathname.startsWith("/v1/anchor/")) && (request.method === "GET" || request.method === "HEAD")) {
       // AZRT-ANCHOR-1.0 / AZRT-INTEGRITY-LEVEL-1.0 / AZRT-AUDITOR-1.0: read-only. Mints nothing.
       const anchor = await import("./anchor.js");
