@@ -598,7 +598,11 @@ export async function bootPath(payload, env) {
   const body = {
     op: "boot_path",
     files,
-    kernel: found.some((row) => row.kind === "kernel"),
+    // KERNEL-FIELD-1.0: no booted-kernel proof exists in this code (booted is always false), so
+    // kernel stays false. A packaged kernel file is reported as kernel_base / kernel_file_present.
+    kernel: false,
+    kernel_file_present: found.some((row) => row.kind === "kernel"),
+    kernel_note: "A packaged kernel file is not a booted kernel. kernel stays false until a booted-kernel proof exists.",
     userspace: found.some((row) => row.kind === "userspace"),
     kernel_base: found.some((row) => row.kind === "kernel"),
     userspace_base: built.userspace_base === true,
@@ -624,7 +628,7 @@ export async function bootPath(payload, env) {
       confirm_is_authentication: false,
       handoff_ran: false,
       line: OS_LINE,
-      kernel_line: HONESTY_SENTENCES.kernel,
+      kernel_line: HONESTY_SENTENCES.kernel_note,
     };
   }
   if (payload && payload.handoff === true) {
@@ -652,7 +656,7 @@ export async function bootPath(payload, env) {
       kernel_base: false,
       os_yet: false,
       line: OS_LINE,
-      kernel_line: HONESTY_SENTENCES.kernel,
+      kernel_line: HONESTY_SENTENCES.kernel_note,
     };
   }
   return {
@@ -663,7 +667,7 @@ export async function bootPath(payload, env) {
     kernel_base: false,
     os_yet: false,
     line: OS_LINE,
-    kernel_line: HONESTY_SENTENCES.kernel,
+    kernel_line: HONESTY_SENTENCES.kernel_note,
   };
 }
 
