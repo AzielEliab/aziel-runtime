@@ -3338,6 +3338,17 @@ function toolList() {
   return buildMcpToolList({ sessionTools: sessionMcpTools() });
 }
 
+let toolsSchemaHashMemo = null;
+/** AZRT-SCHEMA-PIN-1.0: sha256 of the canonical tools/list (fixed per deploy). */
+async function toolsSchemaHash() {
+  if (!toolsSchemaHashMemo) {
+    const { schemaHashOf, setCurrentSchemaHash } = await import("./receipt-guard.js");
+    toolsSchemaHashMemo = await schemaHashOf(toolList());
+    setCurrentSchemaHash(toolsSchemaHashMemo);
+  }
+  return toolsSchemaHashMemo;
+}
+
 async function callRuntimeTool(env, name, args, origin, request) {
   const base = (origin || CATALOG_HOST).replace(/\/$/, "");
   const fraggate = await callFraggateTool(name, args, PRODUCTS, BY_SLUG, env, request);
@@ -3782,7 +3793,8 @@ async function handleMcp(request, env, origin, ctx) {
     return rpcResult(id, out.body, wire);
   }
   if (method === "tools/list") {
-    return rpcResult(id, { tools: toolList() }, wire);
+    // AZRT-SCHEMA-PIN-1.0: additive _meta. Pin it and pass schema_hash on tools/call to stop on drift.
+    return rpcResult(id, { tools: toolList(), _meta: { "aziel/schema_hash": await toolsSchemaHash(), "aziel/schema_pin": "AZRT-SCHEMA-PIN-1.0" } }, wire);
   }
   if (method === "tools/call") {
     const name = params.name;
@@ -3792,7 +3804,17 @@ async function handleMcp(request, env, origin, ctx) {
       return rpcError(id, -32602, `Unknown tool: ${shown}`, wire, hallucRefuse(shown));
     }
     try {
-      const out = await callTool(env, name, args, origin, request, ctx);
+      // AZRT-REFUSAL-RECEIPT-1.0 / AZRT-GOAL-LINK-1.0 / AZRT-SCHEMA-PIN-1.0 / AZRT-CONTEXT-HASH-1.0:
+      // the same door runs unchanged inside; refusals get a sealed receipt, follow-ups link back.
+      const guard = await import("./receipt-guard.js");
+      const out = await guard.guardToolCall({
+        store: env && env.CHAINLOCK ? storeFor(env) : null,
+        request,
+        name,
+        args,
+        schemaHash: await toolsSchemaHash(),
+        call: () => callTool(env, name, args, origin, request, ctx),
+      });
       const { slug, op } = splitProductToolName(resolvePublicToolName(name));
       const payload = mcpCallPayload(name, out, out.product || BY_SLUG[slug], out.op || op);
       const telemetryHeaders = {};
@@ -3917,8 +3939,20 @@ async function handleFraggateHttp(request, url, origin, env, ctx) {
       const infra = body && body.infra ? body.infra : infraFromDoorBody(body);
       return json({ ...body, infra, ...confirmConsentHonesty() }, status, extra);
     }
-    const body = await fraggateCall(args, registry, BY_SLUG, env, request);
-    const status = body.ok === false ? Number(body.status) || 400 : 200;
+    const guard = await import("./receipt-guard.js");
+    const guarded = await guard.guardToolCall({
+      store: env && env.CHAINLOCK ? storeFor(env) : null,
+      request,
+      name: "fraggate_call",
+      args,
+      schemaHash: await toolsSchemaHash(),
+      call: async () => {
+        const b = await fraggateCall(args, registry, BY_SLUG, env, request);
+        return { envelope: b };
+      },
+    });
+    const body = guarded.envelope;
+    const status = body.ok === false ? Number(body.status) || (body.code === "SCHEMA-DRIFT" ? 409 : 400) : 200;
     return json({ ...body, infra: infraFromDoorBody(body), ...confirmConsentHonesty() }, status, extra);
   }
   return json(
@@ -4287,6 +4321,7 @@ async function handleRequest(request, env, ctx) {
     }
 
     if (url.pathname === "/v1/session/open" || url.pathname.startsWith("/v1/session/")) {
+      await toolsSchemaHash();
       return handleSessionRequest(request, env, { json, extra, PRODUCTS, BY_SLUG, upstreamFetch });
     }
 
@@ -4841,10 +4876,6 @@ export default {
   async fetch(request, rawEnv, ctx) {
     // Hot USES writes go to the RUNTIME_KV Durable Object (KV daily put quota made /mcp throw 1101).
     const env = withDurableKv(rawEnv);
-    if (ctx && typeof ctx.waitUntil === "function") {
-      // AZRT-ANCHOR-1.0: refresh the verified witness view off the request path (never blocks a mint).
-      ctx.waitUntil(import("./anchor.js").then((a) => a.refreshAnchorsIfStale(fetch)).catch(() => null));
-    }
     const budget = requestDeadlineMs(env);
     const run = async () => {
       const peek = String(request.method || "GET").toUpperCase() === "POST" ? request.clone() : request;
@@ -4857,6 +4888,11 @@ export default {
     };
     const execute = () => (env && env.CHAINLOCK ? runWithLedgerStore(storeFor(env), run) : run());
     const result = await withDeadline(execute(), budget, () => json(deadlineRefuse(budget), 408));
+    if (ctx && typeof ctx.waitUntil === "function") {
+      // AZRT-ANCHOR-1.0: refresh the verified witness view after the response (never blocks a mint;
+      // registered last so it never reorders other waitUntil work).
+      ctx.waitUntil(import("./anchor.js").then((a) => a.refreshAnchorsIfStale(fetch)).then(() => ({ anchor_refresh: true })).catch(() => null));
+    }
     return applySecurityHeaders(result);
   },
   async scheduled(controller, rawEnv, ctx) {

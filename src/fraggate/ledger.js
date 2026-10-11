@@ -10,6 +10,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { canonicalize, sha256Hex, ZERO_HASH } from "../session-core.js";
 import { anchorRefNow } from "../anchor.js";
+import { callMetaLedgerFields } from "../receipt-guard.js";
 
 export const LEDGER_KIND = "aziel-runtime.fraggate.ledger";
 export const LEDGER_CAP = 64;
@@ -118,7 +119,7 @@ export async function composeLedgerEntry(record, { seq, prev }) {
     at: (record && record.at) || new Date().toISOString(),
   };
   // Additive optional fields (2.0 additive-only): absent on old rows, so old hashes are unchanged.
-  for (const key of ["anchor", "goal_key", "refusal_receipt", "context_hash", "schema_hash"]) {
+  for (const key of ["anchor", "goal_key", "context_hash", "node_ids", "schema_hash"]) {
     if (record && record[key] != null) body[key] = record[key];
   }
   const hash = await sha256Hex(canonicalize(body));
@@ -222,6 +223,11 @@ export async function appendLedger(record, second = isolateLedger) {
     // AZRT-ANCHOR-1.0: newest verified witness statement this isolate knows (null = no field).
     const anchor = anchorRefNow();
     if (anchor) record = { ...record, anchor };
+  }
+  if (record && typeof record === "object") {
+    // AZRT-GOAL-LINK-1.0 / AZRT-CONTEXT-HASH-1.0 / AZRT-SCHEMA-PIN-1.0: current call's additive fields.
+    const meta = callMetaLedgerFields();
+    for (const [k, v] of Object.entries(meta)) if (record[k] == null) record = { ...record, [k]: v };
   }
   if (isLedgerSnapshot(second) && second !== isolateLedger) {
     return appendToSnapshot(record, second);

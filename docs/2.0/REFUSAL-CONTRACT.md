@@ -171,3 +171,7 @@ New names only; no existing code changed or recycled. All are `ok: false`.
 | `ANCHOR-ORDER-BREAK` | AZRT-ANCHOR-1.0 | Statement `n` gap or `prev_statement_hash` break |
 | `ANCHOR-MISMATCH` | AZRT-ANCHOR-1.0 | Statement hash wrong, or an anchored head is no longer the runtime's row at that seq |
 | `ANCHOR-STORE-UNBOUND` / `ANCHOR-NO-ROW` / `ANCHOR-WALK-TOO-LONG` / `ANCHOR-BAD-QUERY` | AZRT-ANCHOR-1.0 | `/v1/anchor/row` cannot check |
+| `SCHEMA-DRIFT` | AZRT-SCHEMA-PIN-1.0 | Caller or session pinned a `tools/list` schema hash that no longer matches (409, nothing ran) |
+| `EXPECT-SPEC-INVALID` / `EXPECT-VERDICT-INVALID` | AZRT-EXPECT-SPEC-1.0 | Malformed `expect` on open / `verdict` on close (400) |
+
+Every refusal above and every existing refuse code on `tools/call` / `POST /v1/fraggate/call` additionally returns `refusal_receipt` (AZRT-REFUSAL-RECEIPT-1.0). The code and envelope fields are unchanged.
