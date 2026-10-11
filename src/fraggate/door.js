@@ -160,6 +160,10 @@ export async function listRegistry(registry) {
 
 export async function describeRegistry(args, registry, bySlug) {
   const target = parseTarget(args, registry, bySlug);
+  if (!target.raw) {
+    // First call with no name: describe the whole door instead of refusing.
+    return { ...(await listRegistry(registry)), hint: "Pass name or slug (e.g. {\"slug\":\"foldlock\"}) to describe one software." };
+  }
   if (!target.entry) {
     return refuse({
       code: FG_HALLUC_TOOL,
@@ -214,6 +218,16 @@ export async function verifyRegistry(args, registry, bySlug) {
   const wantDigest = src.digest ? String(src.digest).trim().toLowerCase() : "";
   const target = parseTarget(src, registry, bySlug);
   const digest = await registryDigest(registry);
+
+  if (!wantDigest && !target.raw) {
+    return {
+      ok: true,
+      door: FRAGGATE_DOOR,
+      kind: "registry",
+      registry_digest: digest,
+      message: "Registry digest. Pass name or slug to verify one software, or digest to check the registry.",
+    };
+  }
 
   if (wantDigest && !target.raw) {
     const match = digest === wantDigest;

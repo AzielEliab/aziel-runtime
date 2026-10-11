@@ -91,8 +91,45 @@ export function dryRunAllowedEnvelope(name, args) {
   };
 }
 
-export function evaluateMutateSafeguard(name, args) {
+/**
+ * FragGate per-op access class. fraggate_call is one door over many ops; only
+ * ops that change state need confirm. Read-only ops (health, status, describe,
+ * verify, *preview, *feed, *list, get/read) run on a plain first call.
+ * Unknown or write-shaped ops stay mutating (fail safe).
+ */
+const READ_ONLY_EXACT = new Set([
+  "health", "skill", "doctor", "status", "describe", "verify", "read", "get", "list",
+  "info", "help", "version", "manifest", "catalog", "preview", "feed", "tip", "ping",
+]);
+const READ_ONLY_SUFFIX = /(^|[-_])(preview|feed|list|status|health|describe|verify|get|read|info|summary|view)$/;
+const READ_ONLY_PREFIX = /^(get|read|list|describe|verify|preview|view)[-_]/;
+const WRITE_TOKEN =
+  /(^|[-_])(append|seal|mint|send|write|put|set|delete|remove|wipe|scorch|open|close|post|join|leave|pin|plot|sync|record|ingest|place|observe|resolve|calibrate|commit|create|update|register|stamp|sign|broadcast|exec|run|inject|blend|enable|disable|heartbeat|upload|save|store|push|pull|claim|grant|revoke|reset|rotate|approve|publish)([-_]|$)/;
+
+export function fraggateOpAccess(op, resolveOp) {
+  const raw = String(op || "").trim().toLowerCase();
+  if (!raw) return { op: raw, mutating: true, reason: "no op given (unknown ops default to mutating)" };
+  const resolved = String((resolveOp && resolveOp(raw)) || raw).toLowerCase();
+  for (const candidate of new Set([raw, resolved])) {
+    if (WRITE_TOKEN.test(candidate)) return { op: resolved, mutating: true, reason: `op "${candidate}" changes state` };
+  }
+  const readOnly = (o) => READ_ONLY_EXACT.has(o) || READ_ONLY_SUFFIX.test(o) || READ_ONLY_PREFIX.test(o);
+  if (readOnly(raw) && readOnly(resolved)) return { op: resolved, mutating: false, reason: "read-only op" };
+  return { op: resolved, mutating: true, reason: `op "${resolved}" is not on the read-only list (unknown ops default to mutating)` };
+}
+
+export function evaluateMutateSafeguard(name, args, opts = {}) {
   if (!isMutatingMcpTool(name)) return { gated: false };
+  let access = null;
+  if (name === "fraggate_call") {
+    const src = args && typeof args === "object" ? args : {};
+    const slug = String(src.slug || src.name || src.product || "");
+    access = fraggateOpAccess(src.op, opts.resolveOp ? (o) => opts.resolveOp(slug, o) : null);
+    const background = isTruthyFlag(src.background) || Boolean(src.job_id);
+    if (!access.mutating && !background && !isTruthyFlag(src.dry_run) && !isTruthyFlag(src.confirm)) {
+      return { gated: false, read_only: true, access };
+    }
+  }
   const dryRun = isTruthyFlag(args && args.dry_run);
   if (dryRun) {
     return { gated: false, dry_run: true };
@@ -109,8 +146,14 @@ export function evaluateMutateSafeguard(name, args) {
       door: "fraggate",
       tool: name,
       mutated: false,
-      message: `${name} is mutating. Set confirm=true to execute, or dry_run=true for a preview that does not write. ${CONFIRM_CONSENT_NOTE}`,
-      hint: "confirm=true | dry_run=true",
+      message: access
+        ? `fraggate_call op "${access.op || "(none)"}" is mutating: ${access.reason}. Retry with confirm=true to execute, or dry_run=true for a preview that does not write. Read-only ops (health, status, describe, verify, *preview, *feed, *list) need no confirm. ${CONFIRM_CONSENT_NOTE}`
+        : `${name} is mutating. Set confirm=true to execute, or dry_run=true for a preview that does not write. ${CONFIRM_CONSENT_NOTE}`,
+      hint: access
+        ? `Retry: fraggate_call ${JSON.stringify({ ...(args && typeof args === "object" ? args : {}), confirm: true })}`
+        : "confirm=true | dry_run=true",
+      ...(access ? { op: access.op, op_mutating: true } : {}),
+      retry: { name, arguments: { ...(args && typeof args === "object" ? args : {}), confirm: true } },
       ...confirmConsentHonesty(),
     },
   };
