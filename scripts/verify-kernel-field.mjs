@@ -19,7 +19,8 @@ for (const p of ["/v1/fraggate/list", "/v1/fraggate", "/v1/software", "/v1/healt
 const list = await get("/v1/fraggate/list");
 assert.equal(list.kernel, false);
 assert.equal(list.kernel_repo_url, "https://github.com/AzielEliab/fraggate");
-assert.equal(list.registry_digest, "9c4d4a23479f1f0b380295e92895df81971d7a2af5ae11b94c7306dd1399afb7");
+// registry_digest moves with ENGINE_DIGESTS (engine wording changed in DOCS-WORDING-1.0).
+assert.equal(list.registry_digest, "f36bf1f85cb8d4974a5752492ee0390385ad13a29eed338e7560059ee0ee46b8");
 assert.equal(list.stub_op_count, 363);
 assert.equal(list.live_count, 42);
 n += 5;
