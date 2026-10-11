@@ -4775,7 +4775,7 @@ async function handleRequest(request, env, ctx) {
       (request.method === "GET" || request.method === "HEAD")
     ) {
       const light = url.searchParams.get("light") === "1" || url.searchParams.get("light") === "true";
-      const uses = await cachedUses(light ? "light" : "full", () => readUses(env, { light, budget_ms: 8_000 }), { floor: statsFloorFor(env) });
+      const uses = await cachedUses(light ? "light" : "full", () => readUses(env, { light, budget_ms: 8_000, maps: "snapshot" }), { floor: statsFloorFor(env) });
       if (uses && (uses.code === STATS_FLOOR_UNAVAILABLE || uses.code === STATS_CAP_CODE)) {
         return asHead(request, json(uses, 503, { ...authorityLinkHeaders(origin, url.pathname), "retry-after": String(uses.retry_after_s) }));
       }
@@ -4949,6 +4949,15 @@ export default {
     const env = withDurableKv(rawEnv);
     const source = controller && controller.cron ? `cron:${controller.cron}` : "cron";
     const { TETHER_CRON, pushAll } = await import("./azos-tether.js");
+    // USES-SNAPSHOT-1.0: rebuild the /v1/stats maps off the request path (resumable across ticks).
+    if (ctx && typeof ctx.waitUntil === "function" && (await import("./uses.js")).snapshotDue(controller && controller.cron, controller && controller.scheduledTime, TETHER_CRON)) {
+      ctx.waitUntil(
+        import("./uses.js")
+          .then(({ buildUsesSnapshot }) => buildUsesSnapshot(env, { budget_ms: 20_000 }))
+          .then((out) => console.log(JSON.stringify({ uses_snapshot: out })))
+          .catch((err) => console.log(JSON.stringify({ uses_snapshot: "USES-SNAPSHOT-ERROR", error: String((err && err.message) || err).slice(0, 200) }))),
+      );
+    }
     if (controller && controller.cron === TETHER_CRON && env && env.AZNEWS) {
       // AZNEWS-LIVE-1.0: one tick request to the AzNewsStore object (it fetches with its own budget).
       // Errors are logged and swallowed so /mcp and health never depend on ingest.
