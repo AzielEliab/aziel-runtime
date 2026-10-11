@@ -26,9 +26,9 @@ row's content hash in the CHAINLOCK Durable Object index (`__docindex__`).
   time it claims a document (any write to evidence / library / identity after this deploy).
 
 Limit: a caller chain whose only rows were written before this deploy, and that never writes
-again, is not registered, and the Worker cannot list Durable Object names to find it. Its rows
-are still checked whenever that caller writes again (that write registers the chain, and the
-next backfill run picks it up). If an operator knows such a handle, the backfill route still
+again, is not registered, and the Worker cannot list Durable Object names to find it. If that caller
+writes again, the write registers the chain, and its older rows are indexed by the next backfill
+run (not at write time). If an operator knows such a handle, the backfill route still
 accepts it directly (`caller=<handle>`).
 
 ## How Chief runs it on prod
