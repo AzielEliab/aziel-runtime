@@ -1,6 +1,6 @@
 /** STATS-MONOTONIC-1.0: /v1/stats counts never go backwards. */
 import assert from "node:assert/strict";
-import { cachedUses, clearStatsMemo, STATS_TTL_S } from "../src/stats-cache.js";
+import { cachedUsesLocal as cachedUses, clearStatsMemo, STATS_TTL_S } from "../src/stats-cache.js";
 let n = 0;
 const body = (uses, complete = true) => ({ ok: true, uses, uses_complete: complete });
 function fakeCache() {

@@ -23,15 +23,28 @@ clearStatsMemo(); // cold start / other colo
 o = await cachedUses("full", async () => body(90), { now: 10, cache: null, floor: fl });
 assert.equal(o.uses, 100); assert.equal(o.uses_read, 90); assert.equal(o.cache.uses_floor_applied, true); n++;
 
-// At most one DO call per key per 60s per isolate.
+// Every request makes exactly one DO call (no stale window), and serves max(local, DO floor).
 clearStatsMemo();
 fl = counted(env);
-for (let i = 0; i < 30; i++) await cachedUses("light", async () => body(5 + i), { now: i * 1000, cache: null, floor: fl });
-assert.equal(fl.calls, 1); n++;
-await cachedUses("light", async () => body(50), { now: T + 1, cache: null, floor: fl });
-assert.equal(fl.calls, 2); n++;
-await cachedUses("other", async () => body(1), { now: T + 2, cache: null, floor: fl });
-assert.equal(fl.calls, 3, "per key"); n++;
+for (let i = 0; i < 10; i++) await cachedUses("light", async () => body(5 + i), { now: i * 1000, cache: null, floor: fl });
+assert.equal(fl.calls, 10); n++;
+// No window: colo A serves 500 at t=0; colo B (warm, within 60s of its own last read) serves >= 500 at t=1s.
+clearStatsMemo();
+const envW = { CHAINLOCK: memoryChainWriterNamespace({}) };
+const fW = statsFloorFor(envW);
+await cachedUses("w", async () => body(100), { now: 0, cache: null, floor: fW }); // colo B warm at 100
+await fW.raise("w", 500); // colo A served 500
+o = await cachedUses("w", async () => body(100), { now: 1000, cache: null, floor: fW });
+assert.equal(o.uses, 500); assert.equal(o.uses_read, 100); n++;
+// Breakdown is labelled raw.
+assert.match(o.breakdown, /raw, may lag total/); n++;
+// No CHAINLOCK binding: refuse.
+assert.equal((await cachedUses("u", async () => body(1), { now: 0, cache: null, floor: null })).code, "STATS-FLOOR-UNAVAILABLE"); n++;
+{
+  const { default: worker } = await import("../src/index.js");
+  const r = await worker.fetch(new Request("https://x.example/v1/uses"), {}, { waitUntil() {} });
+  assert.equal(r.status, 503); assert.ok(Number(r.headers.get("retry-after")) > 0); n++;
+}
 
 // DO unreachable: fail closed (no count served), even for a brand-new isolate.
 clearStatsMemo();

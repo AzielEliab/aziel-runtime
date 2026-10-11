@@ -98,48 +98,41 @@ async function cachedUsesLocal(key, read, { now = Date.now(), cache = defaultCac
 }
 
 /**
- * STATS-FLOOR-1.0: one shared floor per key in a Durable Object (no KV). The floor is the
- * highest `uses` ever served by any isolate in any colo. Each isolate does at most one DO
- * read+write (a single atomic "raise to max" call) per key per STATS_TTL_S; in between it uses
- * the floor it last got. A served count is lifted to the floor when a read lags it, and the body
- * says so (uses_read keeps the raw read). If the DO cannot be reached the call fails closed
- * (STATS-FLOOR-UNAVAILABLE -> HTTP 503 + Retry-After); no possibly-lower count is served.
+ * STATS-FLOOR-1.0: one shared floor per key in a Durable Object (no KV). The floor is the highest
+ * `uses` ever served by any isolate in any colo.
+ * Every request makes exactly one DO call, raise(key, candidate), which atomically sets the floor
+ * to max(floor, candidate) and returns it (a write only when the count rises). The served count is
+ * that returned max, so no request anywhere can serve below a count already served. Cost: one DO
+ * request per /v1/stats or /v1/uses request (the expensive KV read stays cached for 60s). A
+ * time-throttled floor is cheaper but lets a colo serve a stale lower count, so it is not used.
+ * Fail closed: no CHAINLOCK binding, or the DO call fails -> no count is served (HTTP 503).
+ * by_host/by_path/by_day/by_method/by_op are the raw read and are labelled as such.
  */
-const floorSync = new Map();
 export const STATS_FLOOR_UNAVAILABLE = "STATS-FLOOR-UNAVAILABLE";
 export const STATS_FLOOR_RETRY_S = 5;
+export const BREAKDOWN_NOTE = "raw, may lag total: per-host/path/day/method/op maps are the KV read at read_at; uses is lifted to the shared floor.";
+export { cachedUsesLocal };
 export async function cachedUses(key, read, { now = Date.now(), cache = defaultCache(), floor = null } = {}) {
+  const refuse = (why) => ({ ok: false, code: STATS_FLOOR_UNAVAILABLE, reason: why, retry_after_s: STATS_FLOOR_RETRY_S, message: "The shared stats floor (Durable Object) could not be read, so no count was served. Retry shortly.", spec: "STATS-FLOOR-1.0" });
+  if (!floor || typeof floor.raise !== "function") return refuse("unbound");
   const body = await cachedUsesLocal(key, read, { now, cache });
-  let last = floorSync.get(key) || null;
-  let shared = null;
-  if (floor && typeof floor.raise === "function" && (!last || now - last.at >= STATS_TTL_S * 1000)) {
-    try {
-      const got = await floor.raise(key, Math.max(0, countOf(body)));
-      const f = Number(got && got.floor);
-      if (got && got.ok === true && Number.isFinite(f)) shared = true, last = { at: now, floor: f };
-      else shared = false;
-    } catch {
-      shared = false;
-    }
-    if (shared) floorSync.set(key, last);
-  } else if (floor && last) shared = true;
-  // Fail closed: a floor is bound but this isolate could not read it. Never serve a count that
-  // might be below what another isolate already served.
-  if (floor && shared === false) {
-    return { ok: false, code: STATS_FLOOR_UNAVAILABLE, retry_after_s: STATS_FLOOR_RETRY_S, message: "The shared stats floor (Durable Object) could not be read, so no count was served. Retry shortly.", spec: "STATS-FLOOR-1.0" };
+  const candidate = Math.max(0, countOf(body), countOf((highWater.get(key) || {}).body));
+  let f;
+  try {
+    const got = await floor.raise(key, candidate);
+    f = Number(got && got.floor);
+    if (!got || got.ok !== true || !Number.isFinite(f)) return refuse("bad-reply");
+  } catch {
+    return refuse("unreachable");
   }
-  const fl = Math.max(last ? last.floor : -1, countOf((highWater.get(key) || {}).body));
-  const out = { ...body, cache: { ...body.cache, floor_spec: "STATS-FLOOR-1.0", floor_shared: shared === true, floor_synced_at: last ? new Date(last.at).toISOString() : null } };
-  if (fl > countOf(body)) {
-    out.uses_read = body.uses;
-    out.uses = fl;
-    out.cache.uses_floor_applied = true;
-  } else out.cache.uses_floor_applied = false;
+  const served = Math.max(f, candidate);
+  const out = { ...body, breakdown: BREAKDOWN_NOTE, cache: { ...body.cache, floor_spec: "STATS-FLOOR-1.0", floor_shared: true, uses_floor_applied: served > countOf(body) } };
+  if (served > countOf(body)) out.uses_read = body.uses;
+  out.uses = served;
   return out;
 }
 
 export function clearStatsMemo() {
-  floorSync.clear();
   memo.clear();
   highWater.clear();
 }

@@ -1,6 +1,6 @@
 /** STATS-CACHE-1.0: cached /v1/stats is fast, honest about age, and never caches a partial read. */
 import assert from "node:assert/strict";
-import { cachedUses, clearStatsMemo, STATS_TTL_S } from "../src/stats-cache.js";
+import { cachedUsesLocal as cachedUses, clearStatsMemo, STATS_TTL_S } from "../src/stats-cache.js";
 let n = 0;
 let reads = 0;
 const full = () => { reads++; return { ok: true, uses_complete: true, total: 42 }; };
@@ -28,7 +28,9 @@ assert.equal(b.cache.cached, true); assert.equal(reads, 1); assert.equal(b.total
 // Through the Worker: the second GET is served cached and fast.
 clearStatsMemo();
 const { default: worker } = await import("../src/index.js");
-const g = async () => { const t = Date.now(); const r = await worker.fetch(new Request("https://x.example/v1/stats"), {}); return { body: await r.json(), ms: Date.now() - t }; };
+const { memoryChainWriterNamespace } = await import("../src/chainlock/writer-do.js");
+const wenv = { CHAINLOCK: memoryChainWriterNamespace({}) };
+const g = async () => { const t = Date.now(); const r = await worker.fetch(new Request("https://x.example/v1/stats"), wenv); return { body: await r.json(), ms: Date.now() - t }; };
 const first = await g();
 const second = await g();
 assert.ok(first.body.cache && typeof first.body.cache.cached === "boolean"); n++;
