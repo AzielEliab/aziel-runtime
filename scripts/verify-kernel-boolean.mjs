@@ -34,4 +34,17 @@ const lits = [];
 const walk = (d) => { for (const e of readdirSync(d)) { const f = join(d, e); if (statSync(f).isDirectory()) walk(f); else if (f.endsWith(".js")) readFileSync(f, "utf8").split("\n").forEach((l, i) => { if (/^\s*"?kernel"?\s*:\s*("|'|`|[A-Z_]{3,}\b)/.test(l)) lits.push(f + ":" + (i + 1)); }); } };
 walk(new URL("../src", import.meta.url).pathname);
 assert.deepEqual(lits, [], "string-valued kernel in src"); n++;
+// boot_path: kernel is false (no booted-kernel proof), even when a kernel file is packaged.
+{
+  const { bootPath } = await import("../src/operator-surfaces.js");
+  const out = await bootPath({}, {});
+  const r = out && (out.result || out.body || out);
+  const flat = JSON.stringify(r);
+  assert.ok(/"kernel":false/.test(flat), "boot_path kernel false");
+  assert.ok(!/"kernel":true/.test(flat), "no kernel:true in boot_path");
+  assert.match(flat, /kernel_note/);
+  const src = readFileSync(new URL("../src/operator-surfaces.js", import.meta.url), "utf8");
+  assert.ok(!/\bkernel:\s*found\.some/.test(src), "kernel never derived from a packaged file");
+  n++;
+}
 console.log(`ok kernel boolean: ${n} checks`);
