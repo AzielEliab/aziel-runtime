@@ -26,6 +26,10 @@ export const TETHER_ROUTE = "/v1/tether/tip";
 export const TETHER_STATUS_ROUTE = "/v1/tether";
 export const TETHER_AZOS_ORIGIN = "https://azos-download-tracker.vibelock.workers.dev";
 export const TETHER_ROW_CAP = 64;
+/** Internal refusal chain (RIB-018, receipt-guard REFUSAL_CHAIN). Tethered too: TETHER-REFUSALS-1.0. */
+export const TETHER_REFUSAL_CHAIN = "refusals";
+/** Every chain pushAll sends: the public roster plus the internal refusals chain. */
+export const TETHER_CHAINS = Object.freeze([...ROSTER, TETHER_REFUSAL_CHAIN]);
 /** Own cron (odd minutes) so the tether does not share a subrequest budget with the mesh fan-out. */
 export const TETHER_CRON = "1-59/2 * * * *";
 
@@ -237,7 +241,7 @@ export async function pushChain(env, chain, opts = {}) {
   };
 }
 
-/** Push every roster chain that has lattice rows. Used by cron and POST /v1/tether/push. */
+/** Push every roster chain plus refusals (TETHER_CHAINS) that has lattice rows. Used by cron and POST /v1/tether/push. */
 export async function pushAll(env, opts = {}) {
   const key = opts.key || (await tetherKey(env));
   if (!key) {
@@ -248,7 +252,7 @@ export async function pushAll(env, opts = {}) {
   if (!state.ok) return { ok: false, code: state.code, azos_updated: false, sent: false, chains: [], ...TETHER_FACTS };
   const store = opts.store || storeFor(env);
   const out = [];
-  for (const chain of opts.chains || ROSTER) {
+  for (const chain of opts.chains || TETHER_CHAINS) {
     const res = await pushChain(env, chain, { ...opts, key, fetcher, store, acked: state.chains[chain] || null });
     if (res.code === "TETHER-NOTHING") continue;
     out.push(res);
