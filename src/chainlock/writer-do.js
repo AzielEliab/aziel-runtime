@@ -80,7 +80,13 @@ export class ChainWriter {
     const prev = meta.tip || genesis;
     let record;
     if (kind === "ledger") {
-      record = await composeLedgerEntry(src.input || {}, { seq: seq + 1, prev: prev || genesis });
+      // LEDGER-LATTICE-1.0: FragGate ledger rows join the dual lattice too.
+      let ltips = meta.lt && meta.lt.primary ? meta.lt : null;
+      if (!ltips) {
+        const lt = latticeTips(seq > 0 ? await this._rows() : []);
+        ltips = { primary: lt.primary, secondary: lt.secondary };
+      }
+      record = await composeLedgerEntry(src.input || {}, { seq: seq + 1, prev: prev || genesis, latticeTips: ltips });
       if (idempKey) record = { ...record, idemp: idempKey };
     } else {
       // Dual hash lattice tips live in meta.lt. A chain written before the
