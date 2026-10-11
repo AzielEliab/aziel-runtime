@@ -624,7 +624,7 @@ export async function bootPath(payload, env) {
       confirm_is_authentication: false,
       handoff_ran: false,
       line: OS_LINE,
-      kernel_line: HONESTY_SENTENCES.kernel,
+      kernel_line: HONESTY_SENTENCES.kernel_note,
     };
   }
   if (payload && payload.handoff === true) {
@@ -652,7 +652,7 @@ export async function bootPath(payload, env) {
       kernel_base: false,
       os_yet: false,
       line: OS_LINE,
-      kernel_line: HONESTY_SENTENCES.kernel,
+      kernel_line: HONESTY_SENTENCES.kernel_note,
     };
   }
   return {
@@ -663,7 +663,7 @@ export async function bootPath(payload, env) {
     kernel_base: false,
     os_yet: false,
     line: OS_LINE,
-    kernel_line: HONESTY_SENTENCES.kernel,
+    kernel_line: HONESTY_SENTENCES.kernel_note,
   };
 }
 

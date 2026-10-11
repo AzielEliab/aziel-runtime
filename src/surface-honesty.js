@@ -34,7 +34,7 @@ export const SURFACE_HONESTY = Object.freeze({
 export const HONESTY_SENTENCES = Object.freeze({
   internet: "Internet base is present. Not live.",
   mail: "Public send stays refused.",
-  kernel: "The kernel base is present. It has not booted a machine.",
+  kernel_note: "The kernel base is present. It has not booted a machine.",
   os: "Not an OS yet",
   d2d: "Device-to-device packet carriers stay NOT-READY.",
   warn5: "WARN-5 stands.",
