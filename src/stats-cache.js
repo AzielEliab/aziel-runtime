@@ -112,7 +112,9 @@ export const STATS_FLOOR_UNAVAILABLE = "STATS-FLOOR-UNAVAILABLE";
 export const STATS_FLOOR_RETRY_S = 5;
 export const BREAKDOWN_NOTE = "raw, may lag total: per-host/path/day/method/op maps are the KV read at read_at; uses is lifted to the shared floor.";
 export { cachedUsesLocal };
-export const STATS_DO_CAP_PER_MIN = 30;
+export const STATS_DO_CAP_PER_MIN = 6;
+export const STATS_FLOOR_REUSE_MS = 10_000;
+const lastFloor = new Map(); // key -> { at, candidate, floor } from this isolate's last DO read
 export const STATS_CAP_CODE = "STATS-FLOOR-RATE-CAPPED";
 const pending = new Map(); // key -> batch not yet dispatched
 const doWindow = { start: 0, calls: 0 };
@@ -122,7 +124,7 @@ const doWindow = { start: 0, calls: 0 };
  * request for the batch, raising to the batch max). A request never joins a call that was already
  * sent, so the floor it gets was read after it arrived: each request is served at least the floor
  * at serve time. Dispatch is on the next macrotask, so concurrent requests in one isolate batch.
- * STATS-FLOOR-CAP-1.0: at most STATS_DO_CAP_PER_MIN DO calls per isolate per minute; past the cap
+ * STATS-FLOOR-CAP-1.0 (6/min): at most STATS_DO_CAP_PER_MIN DO calls per isolate per minute; past the cap
  * the request gets 503 + Retry-After (seconds to the next window), never an unchecked count.
  */
 function raiseBatched(floor, key, candidate, now) {
@@ -152,6 +154,16 @@ export async function cachedUses(key, read, { now = Date.now(), cache = defaultC
   if (!floor || typeof floor.raise !== "function") return refuse("unbound");
   const body = await cachedUsesLocal(key, read, { now, cache });
   const candidate = Math.max(0, countOf(body), countOf((highWater.get(key) || {}).body));
+  // STATS-FLOOR-REUSE-1.0: same KV candidate as this isolate's last floor read, and that read is
+  // under 10s old -> serve that floor without a DO call (bounded staleness: 10s).
+  const prev = lastFloor.get(key);
+  if (prev && prev.candidate === candidate && now - prev.at >= 0 && now - prev.at < STATS_FLOOR_REUSE_MS) {
+    const servedR = Math.max(prev.floor, candidate);
+    const outR = { ...body, breakdown: BREAKDOWN_NOTE, cache: { ...body.cache, floor_spec: "STATS-FLOOR-1.0", floor_shared: true, floor_reused: true, floor_read_at: new Date(prev.at).toISOString(), uses_floor_applied: servedR > countOf(body) } };
+    if (servedR > countOf(body)) outR.uses_read = body.uses;
+    outR.uses = servedR;
+    return outR;
+  }
   let f;
   let batchSize = 1;
   try {
@@ -167,13 +179,15 @@ export async function cachedUses(key, read, { now = Date.now(), cache = defaultC
     return refuse("unreachable");
   }
   const served = Math.max(f, candidate);
-  const out = { ...body, breakdown: BREAKDOWN_NOTE, cache: { ...body.cache, floor_spec: "STATS-FLOOR-1.0", floor_shared: true, floor_batch: batchSize, uses_floor_applied: served > countOf(body) } };
+  lastFloor.set(key, { at: now, candidate, floor: served });
+  const out = { ...body, breakdown: BREAKDOWN_NOTE, cache: { ...body.cache, floor_spec: "STATS-FLOOR-1.0", floor_shared: true, floor_reused: false, floor_batch: batchSize, uses_floor_applied: served > countOf(body) } };
   if (served > countOf(body)) out.uses_read = body.uses;
   out.uses = served;
   return out;
 }
 
 export function clearStatsMemo() {
+  lastFloor.clear();
   pending.clear();
   doWindow.start = 0;
   doWindow.calls = 0;

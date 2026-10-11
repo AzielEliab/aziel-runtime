@@ -23,18 +23,18 @@ clearStatsMemo(); // cold start / other colo
 o = await cachedUses("full", async () => body(90), { now: 10, cache: null, floor: fl });
 assert.equal(o.uses, 100); assert.equal(o.uses_read, 90); assert.equal(o.cache.uses_floor_applied, true); n++;
 
-// Every request makes exactly one DO call (no stale window), and serves max(local, DO floor).
+// A request with a new KV candidate makes one DO call (reuse only covers an unchanged candidate < 10s).
 clearStatsMemo();
 fl = counted(env);
-for (let i = 0; i < 10; i++) await cachedUses("light", async () => body(5 + i), { now: i * 1000, cache: null, floor: fl });
+for (let i = 0; i < 10; i++) await cachedUses("light", async () => body(5 + i), { now: i * 61_000, cache: null, floor: fl });
 assert.equal(fl.calls, 10); n++;
-// No window: colo A serves 500 at t=0; colo B (warm, within 60s of its own last read) serves >= 500 at t=1s.
+// Bounded window: colo A serves 500; colo B (warm, same candidate) reflects it once its 10s reuse ends.
 clearStatsMemo();
 const envW = { CHAINLOCK: memoryChainWriterNamespace({}) };
 const fW = statsFloorFor(envW);
 await cachedUses("w", async () => body(100), { now: 0, cache: null, floor: fW }); // colo B warm at 100
 await fW.raise("w", 500); // colo A served 500
-o = await cachedUses("w", async () => body(100), { now: 1000, cache: null, floor: fW });
+o = await cachedUses("w", async () => body(100), { now: 10_001, cache: null, floor: fW }); // past the 10s reuse window
 assert.equal(o.uses, 500); assert.equal(o.uses_read, 100); n++;
 // Breakdown is labelled raw.
 assert.match(o.breakdown, /raw, may lag total/); n++;
@@ -108,19 +108,50 @@ n++;
   const fc = statsFloorFor(envC);
   const c = { calls: 0, raise: async (k, u) => { c.calls++; return fc.raise(k, u); } };
   const base = 10_000_000;
-  for (let i = 0; i < STATS_DO_CAP_PER_MIN; i++) assert.equal((await cachedUses("c", async () => body(i), { now: base + i * 100, cache: null, floor: c })).ok, true);
-  const capped = await cachedUses("c", async () => body(99), { now: base + 30_000, cache: null, floor: c });
+  for (let i = 0; i < STATS_DO_CAP_PER_MIN; i++) assert.equal((await cachedUses("c" + i, async () => body(i), { now: base + i * 100, cache: null, floor: c })).ok, true);
+  const capped = await cachedUses("cx", async () => body(99), { now: base + 30_000, cache: null, floor: c });
   assert.equal(capped.ok, false); assert.equal(capped.code, "STATS-FLOOR-RATE-CAPPED"); assert.equal(capped.uses, undefined);
   assert.ok(capped.retry_after_s >= 1 && capped.retry_after_s <= 60); assert.equal(c.calls, STATS_DO_CAP_PER_MIN); n++;
-  const next = await cachedUses("c", async () => body(99), { now: base + 60_001, cache: null, floor: c });
+  const next = await cachedUses("cy", async () => body(99), { now: base + 60_001, cache: null, floor: c });
   assert.equal(next.ok, true, "new window"); n++;
-  // HTTP: capped -> 503 with Retry-After.
+  // HTTP: capped -> 503 with Retry-After (cap filled by this isolate's other key first).
   clearStatsMemo();
   const { default: worker } = await import("../src/index.js");
   const envH = { CHAINLOCK: memoryChainWriterNamespace({}) };
-  let last;
-  for (let i = 0; i <= STATS_DO_CAP_PER_MIN; i++) last = await worker.fetch(new Request("https://x.example/v1/stats"), envH, { waitUntil() {} });
+  const fh = statsFloorFor(envH);
+  for (let i = 0; i < STATS_DO_CAP_PER_MIN; i++) await cachedUses("h" + i, async () => body(i + 1), { cache: null, floor: fh });
+  const last = await worker.fetch(new Request("https://x.example/v1/stats"), envH, { waitUntil() {} });
   assert.equal(last.status, 503); assert.ok(Number(last.headers.get("retry-after")) >= 1);
   assert.equal((await last.json()).code, "STATS-FLOOR-RATE-CAPPED"); n++;
+}
+// Cap is 6 per isolate per minute.
+assert.equal(STATS_DO_CAP_PER_MIN, 6); n++;
+// (2) Reuse: same candidate, last floor read < 10s old -> no DO call, serve the last floor.
+{
+  clearStatsMemo();
+  const envR = { CHAINLOCK: memoryChainWriterNamespace({}) };
+  const fr = statsFloorFor(envR);
+  const c = { calls: 0, raise: async (k, u) => { c.calls++; return fr.raise(k, u); } };
+  const t0 = 50_000_000;
+  const a = await cachedUses("r", async () => body(40), { now: t0, cache: null, floor: c });
+  assert.equal(c.calls, 1); assert.equal(a.cache.floor_reused, false);
+  const b2 = await cachedUses("r", async () => body(40), { now: t0 + 9_999, cache: null, floor: c });
+  assert.equal(c.calls, 1, "reused"); assert.equal(b2.cache.floor_reused, true); assert.equal(b2.uses, 40); n++;
+  // Changed candidate -> DO call even inside 10s.
+  await cachedUses("r", async () => body(41), { now: t0 + 10_500, cache: null, floor: c });
+  assert.equal(c.calls, 2); n++;
+  // Same candidate but last read >= 10s old -> DO call.
+  await cachedUses("r", async () => body(41), { now: t0 + 20_500, cache: null, floor: c });
+  assert.equal(c.calls, 3); n++;
+  // Reuse never serves below this isolate's last floor (another colo's earlier 500 is kept).
+  await fr.raise("r", 500);
+  const d = await cachedUses("r", async () => body(41), { now: t0 + 31_000, cache: null, floor: c });
+  const e = await cachedUses("r", async () => body(41), { now: t0 + 35_000, cache: null, floor: c });
+  assert.equal(d.uses, 500); assert.equal(e.uses, 500); assert.equal(e.cache.floor_reused, true); n++;
+  // Reuse does not count against the cap: 50 same-candidate hits inside 10s cost one call.
+  clearStatsMemo();
+  const c2 = { calls: 0, raise: async (k, u) => { c2.calls++; return fr.raise(k, u); } };
+  for (let i = 0; i < 50; i++) assert.equal((await cachedUses("q", async () => body(7), { now: t0 + i * 100, cache: null, floor: c2 })).ok, true);
+  assert.equal(c2.calls, 1); n++;
 }
 console.log(`ok stats floor: ${n} checks`);
