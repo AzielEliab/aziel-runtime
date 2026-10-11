@@ -25,7 +25,7 @@ function stamp(body, cachedAt, cached, now, held = false) {
       max_age_s: STATS_TTL_S,
       monotonic: true,
       held_high_water: held,
-      rule: "Counts are a complete read at read_at, at most max_age_s old. Partial reads are never cached. Counts never go backwards: a lower read is not served over a higher count already served.",
+      rule: "Counts are a complete read at read_at, at most max_age_s old. Partial reads are never cached. Floor: across colos the count may lag by up to 10s; within an isolate it never drops.",
     },
   };
 }
@@ -50,7 +50,7 @@ function pickEntry(a, b) {
  * cachedUses(key, read, { now, cache }) -> body. `read()` does the real KV read.
  * `cache` is a Cache API object (caches.default) or null.
  * STATS-MONOTONIC-1.0: serve the newest of the isolate memo and the shared cache entry, track
- * the highest count already served per key, and never serve a lower one (KV reads are
+ * the highest count already served per key in this isolate, and never serve a lower one there (KV reads are
  * eventually consistent, so a fresh read can lag a count already shown).
  */
 async function cachedUsesLocal(key, read, { now = Date.now(), cache = defaultCache() } = {}) {
@@ -102,12 +102,13 @@ async function cachedUsesLocal(key, read, { now = Date.now(), cache = defaultCac
  * `uses` ever served by any isolate in any colo.
  * Every request makes exactly one DO call, raise(key, candidate), which atomically sets the floor
  * to max(floor, candidate) and returns it (a write only when the count rises). The served count is
- * that returned max, so no request anywhere can serve below a count already served. Cost: one DO
+ * that returned max. Floor: across colos the count may lag by up to 10s; within an isolate it never drops. Cost: one DO
  * request per /v1/stats or /v1/uses request (the expensive KV read stays cached for 60s). A
  * time-throttled floor is cheaper but lets a colo serve a stale lower count, so it is not used.
  * Fail closed: no CHAINLOCK binding, or the DO call fails -> no count is served (HTTP 503).
  * by_host/by_path/by_day/by_method/by_op are the raw read and are labelled as such.
  */
+export const FLOOR_NOTE = "across colos the count may lag by up to 10s; within an isolate it never drops.";
 export const STATS_FLOOR_UNAVAILABLE = "STATS-FLOOR-UNAVAILABLE";
 export const STATS_FLOOR_RETRY_S = 5;
 export const BREAKDOWN_NOTE = "raw, may lag total: per-host/path/day/method/op maps are the KV read at read_at; uses is lifted to the shared floor.";
@@ -159,7 +160,7 @@ export async function cachedUses(key, read, { now = Date.now(), cache = defaultC
   const prev = lastFloor.get(key);
   if (prev && prev.candidate === candidate && now - prev.at >= 0 && now - prev.at < STATS_FLOOR_REUSE_MS) {
     const servedR = Math.max(prev.floor, candidate);
-    const outR = { ...body, breakdown: BREAKDOWN_NOTE, cache: { ...body.cache, floor_spec: "STATS-FLOOR-1.0", floor_shared: true, floor_reused: true, floor_read_at: new Date(prev.at).toISOString(), uses_floor_applied: servedR > countOf(body) } };
+    const outR = { ...body, breakdown: BREAKDOWN_NOTE, cache: { ...body.cache, floor_spec: "STATS-FLOOR-1.0", floor_note: FLOOR_NOTE, floor_shared: true, floor_reused: true, floor_read_at: new Date(prev.at).toISOString(), uses_floor_applied: servedR > countOf(body) } };
     if (servedR > countOf(body)) outR.uses_read = body.uses;
     outR.uses = servedR;
     return outR;
@@ -180,7 +181,7 @@ export async function cachedUses(key, read, { now = Date.now(), cache = defaultC
   }
   const served = Math.max(f, candidate);
   lastFloor.set(key, { at: now, candidate, floor: served });
-  const out = { ...body, breakdown: BREAKDOWN_NOTE, cache: { ...body.cache, floor_spec: "STATS-FLOOR-1.0", floor_shared: true, floor_reused: false, floor_batch: batchSize, uses_floor_applied: served > countOf(body) } };
+  const out = { ...body, breakdown: BREAKDOWN_NOTE, cache: { ...body.cache, floor_spec: "STATS-FLOOR-1.0", floor_note: FLOOR_NOTE, floor_shared: true, floor_reused: false, floor_batch: batchSize, uses_floor_applied: served > countOf(body) } };
   if (served > countOf(body)) out.uses_read = body.uses;
   out.uses = served;
   return out;
