@@ -450,6 +450,10 @@ export class DurableStore {
     return this._json(String(name || ""), `/row?seq=${encodeURIComponent(String(seq))}`);
   }
 
+  async chainRows(name, from, limit) {
+    return this._json(String(name || ""), `/rows?from=${encodeURIComponent(String(from))}&limit=${encodeURIComponent(String(limit))}`);
+  }
+
   async goalPointer(name, key) {
     return this._json(String(name || ""), `/goal?key=${encodeURIComponent(String(key || ""))}`);
   }

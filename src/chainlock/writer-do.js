@@ -185,6 +185,22 @@ export class ChainWriter {
     return row ? { ok: true, seq: n, row } : { ok: false, refuse: "no-row", seq: n };
   }
 
+  /** LEDGER-ROWS-1.0: up to `limit` rows from 1-based `from`, read inside the object. */
+  async rowsFrom(from, limit) {
+    const a = Math.floor(Number(from));
+    const n = Math.min(Math.max(Math.floor(Number(limit)) || 0, 1), 100);
+    if (!Number.isFinite(a) || a < 1) return { ok: false, refuse: "bad-from" };
+    const meta = await this._meta();
+    const seq = Number(meta.seq) || 0;
+    const rows = [];
+    for (let i = a; i <= Math.min(seq, a + n - 1); i++) {
+      const row = await this._get("e:" + i);
+      if (!row) return { ok: false, refuse: "no-row", seq: i };
+      rows.push({ seq: i, row });
+    }
+    return { ok: true, from: a, seq, rows };
+  }
+
   async goalGet(key) {
     const hit = key ? await this._get("goal:" + String(key)) : null;
     return { ok: true, pointer: hit || null };
@@ -262,6 +278,9 @@ export class ChainWriter {
       }
       if (action === "row" && request.method === "GET") {
         return json(await this.rowAt(url.searchParams.get("seq")));
+      }
+      if (action === "rows" && request.method === "GET") {
+        return json(await this.rowsFrom(url.searchParams.get("from"), url.searchParams.get("limit")));
       }
       if (action === "goal" && request.method === "GET") {
         return json(await this.goalGet(url.searchParams.get("key") || ""));
