@@ -122,7 +122,17 @@ export async function signReceipt(partial, prevHash) {
  * Additive optional receipt fields (2.0 additive-only; absent = old hash unchanged).
  * AZRT-ANCHOR-1.0 anchor; later specs add more names here.
  */
-export const ADDITIVE_RECEIPT_FIELDS = Object.freeze(["anchor"]);
+export const ADDITIVE_RECEIPT_FIELDS = Object.freeze([
+  "anchor", // AZRT-ANCHOR-1.0
+  "schema_hash", // AZRT-SCHEMA-PIN-1.0
+  "expect", // AZRT-EXPECT-SPEC-1.0 (open receipt only)
+  "expect_hash",
+  "verdict", // AZRT-EXPECT-SPEC-1.0 (close receipt only)
+  "context_hash", // AZRT-CONTEXT-HASH-1.0
+  "context_n",
+  "node_ids",
+  "goal_key", // AZRT-GOAL-LINK-1.0
+]);
 
 export function additiveReceiptFields(src) {
   const out = {};
@@ -158,6 +168,11 @@ export async function appendReceipt(session, event, payload, nowIso, extra = {})
     delete rest[key];
   }
   const prev = lastReceipt(session);
+  // AZRT-EXPECT-SPEC-1.0: once stamp #1 sealed an expected-state spec, every later receipt names it.
+  const first = (session.receipts || [])[0];
+  if (first && first.expect_hash && rest.spec_ref == null) {
+    rest.spec_ref = { spec: "AZRT-EXPECT-SPEC-1.0", receipt_hash: first.hash, expect_hash: first.expect_hash };
+  }
   const partial = {
     version: session.runtime_version,
     session_id: session.id,
@@ -466,9 +481,20 @@ export async function applyPolicy(session, incoming, nowIso) {
   return { session, receipt };
 }
 
-export async function recordIntent(session, { slug, op, payload, payloadText, knownSlugs, banner }, nowIso) {
+export async function recordIntent(session, { slug, op, payload, payloadText, knownSlugs, banner, schemaHash }, nowIso) {
   requireOpen(session, nowIso);
   requireReceiptRoom(session);
+  // AZRT-SCHEMA-PIN-1.0: the open receipt pinned the tools/list schema; drift stops the session.
+  const pinned = (session.receipts || [])[0] && session.receipts[0].schema_hash;
+  if (pinned && schemaHash && pinned !== schemaHash) {
+    throw sessionError(409, "SCHEMA-DRIFT", "The tools/list schema changed since this session opened. Nothing ran. Open a new session to pin the new schema.", {
+      ok: false,
+      spec: "AZRT-SCHEMA-PIN-1.0",
+      pinned_schema_hash: pinned,
+      current_schema_hash: schemaHash,
+      executed: false,
+    });
+  }
   const bytes = new TextEncoder().encode(payloadText).length;
   const allowed = assertExecAllowed(session, { slug, op, payloadBytes: bytes, knownSlugs, nowIso });
   const digest = await digestText(payloadText);
@@ -535,7 +561,7 @@ export async function commitExec(session, { intent, status, latencyMs, requestDi
   return receipt;
 }
 
-export async function applyClose(session, nowIso, { force = false } = {}) {
+export async function applyClose(session, nowIso, { force = false, additive = null } = {}) {
   if (!session) throw sessionError(404, "session_not_found", "session not found");
   if (session.closed) {
     throw sessionError(409, "session_closed", "session is sealed; no further exec or policy", {
@@ -557,7 +583,7 @@ export async function applyClose(session, nowIso, { force = false } = {}) {
     sandbox_kind: SANDBOX_KIND,
     isolate_class: ISOLATE_CLASS,
     guest_vm: false,
-  }, nowIso);
+  }, nowIso, additiveReceiptFields(additive));
   return { session, receipt };
 }
 

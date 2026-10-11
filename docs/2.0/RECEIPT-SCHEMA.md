@@ -266,3 +266,7 @@ Absent on every receipt minted before them, so old hashes and `verifyChainStrict
 |-------|----|------|
 | `anchor` `{spec, log, n, statement_hash}` | ChainLock stamps, FragGate ledger rows, session receipts (open, exec) | [AZRT-ANCHOR-1.0](../designs/AZRT-ANCHOR-1.0.md) |
 | `integrity` `{spec, level, levels}` (verify output, not hashed) | `chainlock_verify` chains, session `verified`, `/v1/anchor/row` | [AZRT-INTEGRITY-LEVEL-1.0](../designs/AZRT-INTEGRITY-LEVEL-1.0.md) |
+| `refusal`, `goal_key`, `follows` | `refusals` chain stamps (internal) | [AZRT-REFUSAL-RECEIPT-1.0](../designs/AZRT-REFUSAL-RECEIPT-1.0.md), [AZRT-GOAL-LINK-1.0](../designs/AZRT-GOAL-LINK-1.0.md) |
+| `goal_key`, `context_hash`, `node_ids`, `schema_hash` | FragGate ledger rows | AZRT-GOAL-LINK-1.0, [AZRT-CONTEXT-HASH-1.0](../designs/AZRT-CONTEXT-HASH-1.0.md), [AZRT-SCHEMA-PIN-1.0](../designs/AZRT-SCHEMA-PIN-1.0.md) |
+| `schema_hash`, `expect`, `expect_hash` (open), `spec_ref` (later), `verdict` (close), `context_hash`, `context_n`, `node_ids` (exec) | session receipts | [AZRT-EXPECT-SPEC-1.0](../designs/AZRT-EXPECT-SPEC-1.0.md), AZRT-SCHEMA-PIN-1.0, AZRT-CONTEXT-HASH-1.0 |
+| `refusal_receipt`, `follows_refusal`, `context` (envelope, not hashed) | tools/call results | AZRT-REFUSAL-RECEIPT-1.0 |

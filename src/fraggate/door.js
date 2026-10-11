@@ -679,6 +679,12 @@ function payloadWithoutMeta(src) {
     "parent_receipt_id",
     "correlation_id",
     "outcome",
+    // receipt-guard arg names (goal_id, context_refs, context_hash, node_ids, schema_hash)
+    "goal_id",
+    "context_refs",
+    "context_hash",
+    "node_ids",
+    "schema_hash",
     ...WORKSPACE_SKIP_KEYS,
   ]);
   const out = {};

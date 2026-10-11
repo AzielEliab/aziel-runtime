@@ -115,7 +115,7 @@ export class RuntimeSession {
         return await this.receipts();
       }
       if (action === "close" && request.method === "POST") {
-        return await this.close();
+        return await this.close(await readJson(request));
       }
       if (action === "job-put" && request.method === "POST") {
         return await this.jobPut(await readJson(request));
@@ -224,6 +224,7 @@ export class RuntimeSession {
         payloadText: body.payload_text,
         knownSlugs: known,
         banner: body.banner || null,
+        schemaHash: body.schema_hash || null,
       },
       now,
     );
@@ -275,10 +276,10 @@ export class RuntimeSession {
     return json({ ok: true, session: publicSession(session), receipts: session.receipts, verified });
   }
 
-  async close() {
+  async close(body = {}) {
     const session = await this.expireIfNeeded(await this.load());
     const now = new Date().toISOString();
-    const out = await applyClose(session, now);
+    const out = await applyClose(session, now, { additive: body });
     await this.save(out.session);
     const verified = await verifyChainStrict(out.session.receipts);
     return json({ ok: true, session: publicSession(out.session), receipt: out.receipt, verified });

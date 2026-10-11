@@ -5,6 +5,7 @@
  */
 
 import { anchorRefNow } from "./anchor.js";
+import { contextOf, currentSchemaHash, expectSpecOf, verdictOf } from "./receipt-guard.js";
 import { digestText, newSessionId, SESSION_ID_RE } from "./session-core.js";
 import { RUNTIME_VERSION } from "./runtime-api.js";
 import { executeLocal, proxyFallbackMeta } from "./engines/runner.js";
@@ -114,10 +115,15 @@ function gateSessionMutate(request, env, json) {
   return null;
 }
 
-/** Runtime-computed additive receipt fields. Callers never supply the anchor. */
+/** Runtime-computed additive receipt fields. Callers never supply the anchor or schema hash. */
 function additiveForSession(_body) {
   const anchor = anchorRefNow();
-  return anchor ? { anchor } : {};
+  const schema_hash = currentSchemaHash();
+  return { ...(anchor ? { anchor } : {}), ...(schema_hash ? { schema_hash } : {}) };
+}
+
+function contextFields(ctx) {
+  return ctx ? { context_hash: ctx.context_hash, context_n: ctx.context_n, node_ids: ctx.node_ids } : {};
 }
 
 export async function handleSessionRequest(request, env, deps) {
@@ -137,6 +143,8 @@ export async function handleSessionRequest(request, env, deps) {
       return json({ error: "invalid JSON", code: "bad_json" }, 400);
     }
     if (bodyHasOperatorToken(body)) return bodyTokenRefuse(json);
+    const expect = await expectSpecOf(body.expect);
+    if (expect && expect.ok === false) return json(expect, 400);
     const id = SESSION_ID_RE.test(String(body.id || "")) ? body.id : newSessionId();
     const res = await stubFetch(env, id, "open", {
       method: "POST",
@@ -147,6 +155,7 @@ export async function handleSessionRequest(request, env, deps) {
         source: body.source || "worker",
         now: new Date().toISOString(),
         ...additiveForSession(body),
+        ...(expect ? { expect: expect.expect, expect_hash: expect.expect_hash } : {}),
       }),
     });
     return copyJson(res, json, { consent: true });
@@ -193,7 +202,24 @@ export async function handleSessionRequest(request, env, deps) {
     return copyJson(await stubFetch(env, id, action, { method: "GET" }), json);
   }
   if (action === "close" && request.method === "POST") {
-    return copyJson(await stubFetch(env, id, "close", { method: "POST" }), json, { consent: true });
+    let closeBody = {};
+    try {
+      const text = await request.text();
+      closeBody = text && text.trim() ? JSON.parse(text) : {};
+    } catch {
+      return json({ error: "invalid JSON", code: "bad_json" }, 400);
+    }
+    const verdict = verdictOf(closeBody.verdict);
+    if (verdict && verdict.ok === false) return json(verdict, 400);
+    return copyJson(
+      await stubFetch(env, id, "close", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(verdict ? { verdict: verdict.verdict } : {}),
+      }),
+      json,
+      { consent: true },
+    );
   }
   if (action === "exec" && request.method === "POST") {
     return handleExec(request, env, id, { json, PRODUCTS, BY_SLUG, upstreamFetch });
@@ -246,6 +272,7 @@ async function handleExec(request, env, id, { json, PRODUCTS, BY_SLUG, upstreamF
       payload_text: payloadText,
       known_slugs: [...known],
       banner: product ? product.banner : null,
+      schema_hash: currentSchemaHash(),
     }),
   });
   if (!intentRes.ok) {
@@ -335,6 +362,7 @@ async function handleExec(request, env, id, { json, PRODUCTS, BY_SLUG, upstreamF
       correlation_id: body.correlation_id != null ? body.correlation_id : payload && payload.correlation_id,
       outcome: body.outcome != null ? body.outcome : payload && payload.outcome,
       ...additiveForSession(body),
+      ...contextFields(await contextOf(body)),
     }),
   });
   const commitBody = await commitRes.json();

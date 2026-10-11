@@ -121,7 +121,7 @@ async function fetchText(fetchImpl, url) {
   const ctl = typeof AbortController === "function" ? new AbortController() : null;
   const timer = ctl ? setTimeout(() => ctl.abort(), ANCHOR_FETCH_TIMEOUT_MS) : null;
   try {
-    const res = await fetchImpl(url, { signal: ctl ? ctl.signal : undefined, headers: { "user-agent": "aziel-runtime-anchor-reader" }, cf: { cacheTtl: 60 } });
+    const res = await fetchImpl(url, { signal: ctl ? ctl.signal : undefined, headers: { "user-agent": "aziel-runtime-anchor-reader" }, cf: { cacheTtl: 0 } });
     if (!res.ok) return { ok: false, status: res.status };
     return { ok: true, text: await res.text() };
   } catch (err) {
