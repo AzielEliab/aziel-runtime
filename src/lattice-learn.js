@@ -89,3 +89,22 @@ async function latticeLearnInner(env, src = {}, deps = {}) {
   }
   return { ok: Boolean(obs && obs.ok !== false), spec: LATTICE_LEARN_SPEC, code: obs && obs.ok !== false ? "LATTICE-LEARN-OK" : "LATTICE-LEARN-OBSERVE-REFUSED", chain, cursor_from: cursor, cursor_to: tip.seq, new_lattice_rows: lat.length, observation: obs, append_only: true, forward_only: true };
 }
+
+/** Cron entry: three chains per tick, rotating by the scheduled minute. Goes through the memory door. */
+export async function scheduledLatticeLearn(env, scheduledTime, deps = {}) {
+  const { ANCHOR_CHAINS } = await import("./anchor.js");
+  const run = deps.run || (async (chain) => (await import("./memory.js")).runMemoryOp("lattice-learn", { chain }, env, null));
+  const minute = Math.floor(Number(scheduledTime || Date.now()) / 60000);
+  const start = (minute * 3) % ANCHOR_CHAINS.length;
+  const picked = [0, 1, 2].map((i) => ANCHOR_CHAINS[(start + i) % ANCHOR_CHAINS.length]);
+  const out = [];
+  for (const chain of picked) {
+    try {
+      const r = await run(chain);
+      out.push({ chain, code: r && r.code, to: r && r.cursor_to });
+    } catch (err) {
+      out.push({ chain, code: "LATTICE-LEARN-THREW" });
+    }
+  }
+  return out;
+}

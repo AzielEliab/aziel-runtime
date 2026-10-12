@@ -47,3 +47,12 @@ console.log("verify-lattice-learn: durable cursor ok");
   assert.equal(r2.code, "LATTICE-LEARN-OK"); assert.equal(r2.cursor_to, 150);
   console.log("verify-lattice-learn: legacy prefix no stall ok");
 }
+{
+  const { scheduledLatticeLearn } = await import("../src/lattice-learn.js");
+  const seen = [];
+  const r = await scheduledLatticeLearn({}, 0, { run: async (c) => { seen.push(c); return { code: "LATTICE-LEARN-OK" }; } });
+  assert.equal(r.length, 3); assert.equal(new Set(seen).size, 3);
+  const r2 = await scheduledLatticeLearn({}, 60000, { run: async (c) => { throw new Error("x"); } });
+  assert.ok(r2.every((x) => x.code === "LATTICE-LEARN-THREW"));
+  console.log("verify-lattice-learn: scheduled ok");
+}
