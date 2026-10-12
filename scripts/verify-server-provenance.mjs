@@ -270,6 +270,24 @@ assert.equal(checkServerDrift([row(1, "TimeLock", a1), row(2, "Other", swapped),
     ["file:///home/aziel/x/cli/mcp-stdio.mjs", "mcp-stdio.mjs"],
     ["../../home/aziel/cli/mcp-stdio.mjs", "mcp-stdio.mjs"],
     ["cli/../../home/aziel/mcp-stdio.mjs", "mcp-stdio.mjs"],
+    // AZBot hardening: encoding, lookalikes, NUL, depth.
+    ["%2e%2e%2Fhome%2Faziel%2Fx.mjs", null],
+    ["cli/%2e%2e/home/x.mjs", "x.mjs"],
+    ["cli%2Fmcp-stdio.mjs", null],
+    ["cli/x%2Fy.mjs", null],
+    ["\u2024\u2024/home/aziel/x.mjs", "x.mjs"],
+    ["cli/\u2024\u2024", null],
+    ["\uff0e\uff0e/home/aziel/x.mjs", "x.mjs"],
+    ["home\u2215aziel\u2215x.mjs", null],
+    ["cli\u2215mcp-stdio.mjs", null],
+    ["cli/mcp-stdio.mjs\u0000.png", null],
+    ["cli\u0000/mcp-stdio.mjs", "mcp-stdio.mjs"],
+    ["src/home/aziel/x.mjs", "x.mjs"],
+    ["cli/sub/mcp-stdio.mjs", "mcp-stdio.mjs"],
+    ["./././cli/mcp-stdio.mjs", "cli/mcp-stdio.mjs"],
+    ["cli/.", null],
+    ["cli/..", null],
+    ["notroot/x.mjs", "x.mjs"],
     ["home/aziel/aziel-runtime/cli/mcp-stdio.mjs", "mcp-stdio.mjs"],
     ["Users/aziel/cli/mcp-stdio.mjs", "mcp-stdio.mjs"],
     ["C:\\Users\\aziel\\cli\\mcp-stdio.mjs", "mcp-stdio.mjs"],
@@ -285,7 +303,7 @@ assert.equal(checkServerDrift([row(1, "TimeLock", a1), row(2, "Other", swapped),
   ];
   for (const [inp, want] of cases) {
     assert.equal(privatePath(inp), want, inp);
-    if (want) assert.doesNotMatch(want, /aziel\/|home|Users|:|\.\./, inp);
+    if (want) { assert.doesNotMatch(want, /aziel\/|home|Users|:|\.\./, inp); for (const seg of want.split("/")) assert.match(seg, /^[A-Za-z0-9._-]+$/, inp); }
   }
   // And through the provenance path that is actually recorded.
   setLocalServerIdentity({ path: "file:///home/aziel/x/cli/mcp-stdio.mjs", sha256: "a".repeat(64) });
