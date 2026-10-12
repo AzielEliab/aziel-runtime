@@ -38,3 +38,12 @@ const viaDo = await latticeLearn(doEnv, { chain: "acts" }, { observe, page });
 assert.equal(viaDo.code, "LATTICE-LEARN-OK");
 assert.equal((await latticeLearn(doEnv, { chain: "acts" }, { observe, page })).code, "LATTICE-LEARN-NOTHING-NEW");
 console.log("verify-lattice-learn: durable cursor ok");
+{
+  const m = new Map(); const k = { get: async (x) => m.get(x) ?? null, put: async (x, v) => { m.set(x, v); } };
+  const legacy = Array.from({ length: 150 }, (_, i) => ({ seq: i + 1, lattice: i === 149 ? { primary: "a".repeat(64), secondary: "b".repeat(64) } : null }));
+  const pg = async (_e, _c, from, n) => { const r = legacy.filter((x) => x.seq >= from).slice(0, n); return r.length ? { ok: true, rows: r, head_seq: 150 } : { ok: false, code: "LEDGER-NO-ROWS" }; };
+  assert.equal((await latticeLearn({}, { chain: "acts" }, { kv: k, observe, page: pg })).code, "LATTICE-LEARN-LEGACY-ONLY");
+  const r2 = await latticeLearn({}, { chain: "acts" }, { kv: k, observe, page: pg });
+  assert.equal(r2.code, "LATTICE-LEARN-OK"); assert.equal(r2.cursor_to, 150);
+  console.log("verify-lattice-learn: legacy prefix no stall ok");
+}
