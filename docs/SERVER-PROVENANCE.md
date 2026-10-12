@@ -6,7 +6,8 @@ duplicate tool name becomes visible.
 | field | meaning |
 |---|---|
 | `server_path` | `worker://aziel-runtime/fraggate/<slug>` on the hosted Worker; `stdio://<resolved module file>#<slug>` for `aziel-runtime-mcp --local`; the upstream URL on proxy fallback |
-| `server_hash` | sha256 of `server_basis` (canonical JSON) |
+| `server_hash` | sha256 of `server_basis` (canonical JSON): recomputing it from the served `server_basis` gives `server_hash` exactly |
+| `server_tool` | the tool name used as the drift key; kept outside `server_basis` so the hash recomputes. Receipts written before this field keep `tool` inside `server_basis` and are still read |
 | `server_basis` | hosted: `version_id` (CF_VERSION_METADATA) + deploy-time `GIT_SHA` + the tool's `engine_digest` (or FragGate `registry_digest`); stdio: sha256 of the resolved module file + tool digest |
 | `server_basis.kind` | `worker`, `stdio`, `upstream` (proxy answered) or `unreached` (failed call, nothing answered) |
 | `server_reason` | why a value is null. Values are never guessed; the baked build-meta sha is not a deploy stamp and is not used |

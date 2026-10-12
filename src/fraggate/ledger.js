@@ -94,6 +94,7 @@ export function ledgerTipView(ledger = isolateLedger) {
     server_hash: last && last.server_hash != null ? last.server_hash : null,
     server_reason: last && last.server_reason != null ? last.server_reason : null,
     server_basis: last && last.server_basis != null ? last.server_basis : null,
+    server_tool: last && last.server_tool != null ? last.server_tool : null,
     window_cap: LEDGER_CAP,
     ephemeral_window: true,
     memory_store_is_durable: false,
@@ -144,7 +145,7 @@ export async function composeLedgerEntry(record, { seq, prev, latticeTips = null
     at: (record && record.at) || new Date().toISOString(),
   };
   // Additive optional fields (2.0 additive-only): absent on old rows, so old hashes are unchanged.
-  for (const key of ["anchor", "goal_key", "context_hash", "node_ids", "schema_hash", "server_path", "server_hash", "server_reason", "server_basis"]) {
+  for (const key of ["anchor", "goal_key", "context_hash", "node_ids", "schema_hash", "server_path", "server_hash", "server_reason", "server_basis", "server_tool"]) {
     if (record && record[key] != null) body[key] = record[key];
   }
   if (latticeTips) {

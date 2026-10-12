@@ -5,7 +5,8 @@
  *   server_path   where the answer came from
  *   server_hash   sha256 of server_basis (deploy identity + tool digest)
  *   server_reason why a value is null (never a guess)
- *   server_basis  the inputs hashed (so a reviewer can see what changed)
+ *   server_basis  exactly the object hashed: server_hash === sha256(canonical(server_basis))
+ *   server_tool   the tool name (drift key); kept outside server_basis so the hash recomputes
  *
  * Hosted Worker: the "binary" is the deployed code, so server_hash covers the deploy identity
  * (CF_VERSION_METADATA.id and a deploy-time GIT_SHA) plus the tool's engine_digest (or the
@@ -23,7 +24,7 @@
 import { canonicalize, sha256Hex } from "./session-core.js";
 
 export const SERVER_PROVENANCE_SPEC = "AZRT-SERVER-PROVENANCE-1.0";
-export const SERVER_FIELDS = Object.freeze(["server_path", "server_hash", "server_reason", "server_basis"]);
+export const SERVER_FIELDS = Object.freeze(["server_path", "server_hash", "server_reason", "server_basis", "server_tool"]);
 const HEX = /^[0-9a-f]{7,40}$/;
 const HASH = /^[0-9a-f]{64}$/;
 
@@ -78,7 +79,8 @@ export async function serverProvenance({ env = null, tool = null, slug = null, e
       server_path: null,
       server_hash: null,
       server_reason: "unreached: " + String(unreached).slice(0, 160),
-      server_basis: { spec: SERVER_PROVENANCE_SPEC, kind: "unreached", tool: tool || null },
+      server_basis: { spec: SERVER_PROVENANCE_SPEC, kind: "unreached" },
+      server_tool: tool || null,
     };
   }
   const tool_digest = engine_digest || registry_digest || null;
@@ -89,7 +91,8 @@ export async function serverProvenance({ env = null, tool = null, slug = null, e
       server_path: String(upstream).slice(0, 300),
       server_hash: null,
       server_reason: "proxy_fallback: the upstream server answered; its code cannot be hashed from this runtime",
-      server_basis: { spec: SERVER_PROVENANCE_SPEC, kind: "upstream", tool: tool || null },
+      server_basis: { spec: SERVER_PROVENANCE_SPEC, kind: "upstream" },
+      server_tool: tool || null,
     };
   }
   if (localIdentity) {
@@ -99,7 +102,7 @@ export async function serverProvenance({ env = null, tool = null, slug = null, e
     if (!tool_digest) reasons.push("no engine_digest or registry_digest for this tool");
     const basis = { spec: SERVER_PROVENANCE_SPEC, kind: "stdio", module_sha256: localIdentity.sha256, tool_digest_kind, tool_digest };
     const hash = localIdentity.sha256 && tool_digest ? await sha256Hex(canonicalize(basis)) : null;
-    return { server_path: path, server_hash: hash, server_reason: reasons.length ? reasons.join("; ") : null, server_basis: { ...basis, tool: tool || null } };
+    return { server_path: path, server_hash: hash, server_reason: reasons.length ? reasons.join("; ") : null, server_basis: basis, server_tool: tool || null };
   }
   const { version_id, git_sha } = deployIdentity(env);
   if (!version_id && !git_sha) reasons.push("no deployed code identity: CF_VERSION_METADATA is unbound and no deploy-time GIT_SHA was set");
@@ -110,14 +113,16 @@ export async function serverProvenance({ env = null, tool = null, slug = null, e
     server_path: `worker://aziel-runtime/fraggate/${slug || tool || "unknown"}`,
     server_hash: hash,
     server_reason: reasons.length ? reasons.join("; ") : null,
-    server_basis: { ...basis, tool: tool || null },
+    server_basis: basis,
+    server_tool: tool || null,
   };
 }
 
 function toolOf(rec) {
   if (!rec || typeof rec !== "object") return null;
   if (rec.name) return String(rec.name); // FragGate ledger: the registered tool name
-  if (rec.server_basis && rec.server_basis.tool) return String(rec.server_basis.tool);
+  if (rec.server_tool) return String(rec.server_tool);
+  if (rec.server_basis && rec.server_basis.tool) return String(rec.server_basis.tool); // receipts before server_tool
   const intent = rec.payload && rec.payload.intent;
   if (intent && intent.slug) return String(intent.slug) + (intent.op ? "." + intent.op : "");
   return null;
