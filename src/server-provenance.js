@@ -31,22 +31,28 @@ const HASH = /^[0-9a-f]{64}$/;
 let localIdentity = null;
 
 /**
- * Privacy: never record a path that can leak the home/account folder. Only a package-relative
- * path under a top-level package folder (cli/, src/, bin/, scripts/, qnm-node/, tools/) is kept.
- * Anything else (absolute, ~, a scheme or drive with ':', any '..', or any other multi-segment
- * path such as home/aziel/...) is cut to the bare file name.
+ * Privacy: never record a path that can leak the home/account folder.
+ * Kept only when ALL hold: exactly two segments `<root>/<file>` with <root> in PACKAGE_DIRS
+ * (depth cap: one file directly under an allowed root, so src/home/aziel/x.mjs is not kept),
+ * and every segment matches SAFE_SEGMENT and is not "." or "..".
+ * Otherwise the result is the bare file name (last "/"- or "\\"-separated segment) if it matches
+ * SAFE_SEGMENT, else null. Percent-encoding, Unicode lookalike dots/slashes, ":" and control
+ * bytes never match SAFE_SEGMENT, so they can only shrink the output, never widen it.
  */
 export const PACKAGE_DIRS = Object.freeze(["cli", "src", "bin", "scripts", "qnm-node", "tools"]);
+export const SAFE_SEGMENT = /^[A-Za-z0-9._-]+$/;
+const okSegment = (x) => SAFE_SEGMENT.test(x) && x !== "." && x !== "..";
 export function privatePath(p) {
-  if (!p) return null;
-  const s = String(p).replace(/\\/g, "/").replace(/^(\.\/)+/, "");
-  const parts = s.split("/").filter(Boolean);
-  const base = parts.length ? parts[parts.length - 1] : null;
-  if (!base || base === ".." || base.includes(":")) return null;
-  const unsafe = s.includes(":") || parts.includes("..") || s.startsWith("/") || s.startsWith("~");
-  if (unsafe) return base;
-  if (parts.length === 1) return base;
-  return PACKAGE_DIRS.includes(parts[0]) ? parts.join("/") : base;
+  if (p == null) return null;
+  const raw = String(p);
+  if (!raw) return null;
+  const parts = raw.split(/[\\/]/);
+  const base = parts[parts.length - 1];
+  const bare = base && okSegment(base) ? base : null;
+  let segs = parts;
+  while (segs.length > 1 && segs[0] === ".") segs = segs.slice(1); // a leading ./ is harmless
+  if (segs.length === 2 && PACKAGE_DIRS.includes(segs[0]) && segs.every(okSegment)) return segs.join("/");
+  return bare;
 }
 
 /** Compare stdio paths by file name + tool, so an old absolute path and its relative/basename form are the same path. */
