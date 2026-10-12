@@ -71,7 +71,12 @@ async function latticeLearnInner(env, src = {}, deps = {}) {
   const lat = (out.rows || []).filter((r) => r.lattice && r.lattice.primary && r.lattice.secondary);
   const last = (out.rows || []).length ? out.rows[out.rows.length - 1].seq : cursor;
   if (!lat.length) {
-    return { ok: true, spec: LATTICE_LEARN_SPEC, code: last > cursor ? "LATTICE-LEARN-LEGACY-ONLY" : "LATTICE-LEARN-NOTHING-NEW", chain, cursor, written: false, note: "Rows without a lattice block do not move the cursor." };
+    // Verified legacy rows: move the cursor past them (forward only) so a long legacy prefix cannot stall learning.
+    if (last > cursor && !src.dry_run) {
+      const again = cursorOf(await kv.get(key));
+      if (again <= last) await kv.put(key, `seq=${last} p=- s=- n=0`);
+    }
+    return { cursor_to: last, ok: true, spec: LATTICE_LEARN_SPEC, code: last > cursor ? "LATTICE-LEARN-LEGACY-ONLY" : "LATTICE-LEARN-NOTHING-NEW", chain, cursor, written: false, note: "Rows without a lattice block are skipped; the cursor moves past them, and nothing is observed." };
   }
   const tip = lat[lat.length - 1];
   const fact = learnFact(tip.seq, tip.lattice.primary, tip.lattice.secondary, lat.length);

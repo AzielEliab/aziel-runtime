@@ -17,8 +17,8 @@ tools/list stays at 36 and Softwares at 42).
 
 ## Fail closed
 These refuse with `written:false`: a bad chain, an unbound KV or store, a broken page, a head behind the
-cursor, or a cursor that another writer moved past this page. Legacy rows without a lattice block
-never move the cursor. `dry_run` previews and does not write.
+cursor, or a cursor that another writer moved past this page. Verified legacy rows without a lattice
+block move the cursor forward and are not observed, so a long legacy prefix cannot stall learning. `dry_run` previews and does not write.
 
 ## Append-only
 It only adds observations. It never supersedes, revokes, rewrites or deletes. The receipt schema is unchanged.
