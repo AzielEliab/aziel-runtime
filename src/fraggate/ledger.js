@@ -89,6 +89,11 @@ export function ledgerTipView(ledger = isolateLedger) {
     prev_role: "call-order",
     prev_is_retry_parent: false,
     hash: last ? last.hash : ZERO_HASH,
+    // RIB-039 (read-only): which server answered the tip call; null when the row carries none.
+    server_path: last && last.server_path != null ? last.server_path : null,
+    server_hash: last && last.server_hash != null ? last.server_hash : null,
+    server_reason: last && last.server_reason != null ? last.server_reason : null,
+    server_basis: last && last.server_basis != null ? last.server_basis : null,
     window_cap: LEDGER_CAP,
     ephemeral_window: true,
     memory_store_is_durable: false,
@@ -302,5 +307,5 @@ export async function verifyLedger(ledger = isolateLedger) {
   }
   // RIB-039: per-tool server path/hash drift over call rows (fail closed on missing after present).
   const server_drift = checkServerDrift(rows);
-  return { ok: breaks.length === 0 && server_drift.ok, breaks, n: rows.length, server_drift };
+  return { ok: breaks.length === 0 && server_drift.ok !== false, breaks, n: rows.length, server_drift };
 }

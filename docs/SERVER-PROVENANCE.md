@@ -35,6 +35,8 @@ Limits: on the Worker the "binary" is the deployed Worker bundle, identified by 
 hash of the bundle bytes. In stdio `--local` mode the hashed file is the resolved entry module
 (cli/mcp-stdio.mjs); imported modules are covered through the tool's engine digest, not by the file hash.
 Upstream (proxy) servers cannot be hashed from here: `server_hash` is null with a reason.
+Read-only exposure: the FragGate call envelope and `ledgerTipView` return the same `server_path` / `server_hash` / `server_reason` / `server_basis` as the stamped row (no extra writes).
+With nothing stamped to compare (for example an empty per-isolate ledger), `server_drift` reports `status:"not_checked"`, `ok:null`, `checked:0` and the receipt count. That is not a pass. A proxied hash that goes from real to null fails closed with `SERVER-PROVENANCE-MISSING`, as local readings do. The FragGate registry is deep-frozen at build, and its digest is cached by object identity.
 A stdio CLI upgrade (a new `aziel-runtime-mcp` version) changes the module file hash, so it is expected to show as `SERVER-DRIFT`; check `server_basis.module_sha256` against the release you installed.
 `server_hash` is the sha256 of `server_basis` (deploy identity + tool digest), not a hash of the code bytes.
 Receipts are hash-linked and sealed, not signed.

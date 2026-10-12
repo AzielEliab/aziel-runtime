@@ -122,22 +122,16 @@ async function refuse({ code, name, slug, op, message, gate, extra }) {
   };
 }
 
-// Keyed on the registry's contents (not object identity), so a mutated registry never reuses a stale digest.
-const registryDigestCache = new Map();
+// Keyed on registry identity: buildRegistry() deep-freezes the registry, so its digest cannot go stale.
+const registryDigestCache = new WeakMap();
 async function cachedRegistryDigest(registry) {
   if (!registry || typeof registry !== "object") return null;
-  let key;
-  try {
-    key = JSON.stringify(registry.entries || []);
-  } catch {
-    return registryDigest(registry);
-  }
-  let d = registryDigestCache.get(key);
+  if (!Object.isFrozen(registry)) return registryDigest(registry); // unfrozen (e.g. a test double): never cache
+  let d = registryDigestCache.get(registry);
   if (!d) {
-    if (registryDigestCache.size >= 4) registryDigestCache.clear();
     d = registryDigest(registry);
-    registryDigestCache.set(key, d);
-    d.catch(() => registryDigestCache.delete(key));
+    registryDigestCache.set(registry, d);
+    d.catch(() => registryDigestCache.delete(registry));
   }
   return d;
 }
@@ -178,6 +172,11 @@ async function accept({ name, slug, op, result, gate, engine, env = null, regist
     gate: gateView(gate),
     ledger_tip: tip,
     engine: engine || null,
+    // RIB-039 (read-only): the same provenance stamped on this call's ledger row.
+    server_path: server.server_path ?? null,
+    server_hash: server.server_hash ?? null,
+    server_reason: server.server_reason ?? null,
+    server_basis: server.server_basis ?? null,
   };
 }
 
