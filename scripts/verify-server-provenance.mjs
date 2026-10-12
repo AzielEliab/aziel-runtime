@@ -30,7 +30,7 @@ assert.equal(proxy.server_path, "https://up.example/v1/x"); assert.equal(proxy.s
 // Local stdio: hash of the resolved module file.
 setLocalServerIdentity({ path: "/opt/aziel/cli/mcp-stdio.mjs", sha256: "a".repeat(64) });
 const loc = await serverProvenance({ env: {}, tool: "TimeLock", slug: "timelock", engine_digest: ED });
-assert.equal(loc.server_path, "stdio:///opt/aziel/cli/mcp-stdio.mjs#timelock"); assert.match(loc.server_hash, HEX); assert.equal(loc.server_basis.module_sha256, "a".repeat(64));
+assert.equal(loc.server_path, "stdio://mcp-stdio.mjs#timelock"); assert.doesNotMatch(JSON.stringify(loc), /\/opt\/aziel/); assert.match(loc.server_hash, HEX); assert.equal(loc.server_basis.module_sha256, "a".repeat(64));
 setLocalServerIdentity({ path: null, sha256: null, reason: "ENOENT" });
 const locBad = await serverProvenance({ env: {}, tool: "TimeLock", slug: "timelock", engine_digest: ED });
 assert.equal(locBad.server_hash, null); assert.equal(locBad.server_path, null); assert.match(locBad.server_reason, /ENOENT/);
@@ -131,8 +131,8 @@ assert.equal(checkServerDrift([row(1, "TimeLock", a1), row(2, "Other", swapped),
   // same hash passes; swap fails with SERVER-DRIFT; null after fails closed
   for (const [label, second, ok, code] of [["same", a2, true, null], ["swap", swapped, false, "SERVER-DRIFT"], ["path", { ...a1, server_path: "x" }, false, "SERVER-DRIFT"], ["null", none, false, "SERVER-PROVENANCE-MISSING"]]) {
     const s = mk();
-    await appendReceipt(s, "exec", exec("timelock"), now, { ...a1, server_basis: { ...a1.server_basis, tool: "timelock.now" } });
-    await appendReceipt(s, "exec", exec("timelock"), now, { ...second, server_basis: { ...(second.server_basis || {}), tool: "timelock.now" } });
+    await appendReceipt(s, "exec", exec("timelock"), now, { ...a1, server_tool: "timelock.now" });
+    await appendReceipt(s, "exec", exec("timelock"), now, { ...second, server_tool: "timelock.now" });
     v = await verifyChainStrict(s.receipts);
     assert.equal(v.ok, ok, label + " " + JSON.stringify(v.errors));
     if (code) assert.equal(v.errors.find((e) => e.error === code).tool, "timelock.now", label);
@@ -141,7 +141,7 @@ assert.equal(checkServerDrift([row(1, "TimeLock", a1), row(2, "Other", swapped),
 }
 // AZBot regression: local -> redeploy -> upstream error -> local must stay ok (session chain too).
 {
-  const tag = (x) => ({ ...x, server_basis: { ...x.server_basis, tool: "timelock.now" } });
+  const tag = (x) => ({ ...x, server_tool: "timelock.now" });
   const un = await serverProvenance({ env: ENV_B, tool: "timelock.now", slug: "timelock", unreached: "upstream timeout" });
   assert.equal(un.server_path, null); assert.equal(un.server_basis.kind, "unreached"); assert.match(un.server_reason, /^unreached: upstream timeout/);
   const now = new Date().toISOString();
@@ -206,6 +206,63 @@ assert.equal(checkServerDrift([row(1, "TimeLock", a1), row(2, "Other", swapped),
   assert.equal(v2.server_drift.status, "not_checked"); assert.equal(v2.server_drift.receipts, 1); assert.equal(v2.ok, true); n++;
   resetLedger();
 }
+// Privacy: no absolute local path is ever recorded; hash still over the real file.
+{
+  const { resolveServerFile } = await import("../cli/mcp-stdio.mjs");
+  const { realpathSync, readFileSync } = await import("node:fs");
+  const { createHash } = await import("node:crypto");
+  const f = await resolveServerFile("cli/mcp-stdio.mjs");
+  assert.equal(f.path, "cli/mcp-stdio.mjs"); assert.ok(!f.path.startsWith("/"));
+  assert.equal(f.sha256, createHash("sha256").update(readFileSync(realpathSync("cli/mcp-stdio.mjs"))).digest("hex"));
+  setLocalServerIdentity(f);
+  const p = await serverProvenance({ env: {}, tool: "T", slug: "timelock", engine_digest: ED });
+  assert.equal(p.server_path, "stdio://cli/mcp-stdio.mjs#timelock");
+  for (const abs of ["/home/someone/x/cli/mcp-stdio.mjs", "C:/Users/someone/cli/mcp-stdio.mjs", "~/cli/mcp-stdio.mjs"]) {
+    setLocalServerIdentity({ path: abs, sha256: f.sha256 });
+    const q = await serverProvenance({ env: {}, tool: "T", slug: "timelock", engine_digest: ED });
+    assert.equal(q.server_path, "stdio://mcp-stdio.mjs#timelock"); assert.doesNotMatch(JSON.stringify(q), /someone/);
+  }
+  setLocalServerIdentity(null); n++;
+  // Old receipt with an absolute path -> new relative path, same file hash: same path, no drift.
+  const oldRow = { ...p, server_path: "stdio:///home/someone/x/cli/mcp-stdio.mjs#timelock" };
+  assert.equal(checkServerDrift([row(1, "T", oldRow), row(2, "T", p)]).ok, true); n++;
+  // A different file name is still a path change.
+  assert.equal(checkServerDrift([row(1, "T", p), row(2, "T", { ...p, server_path: "stdio://evil.mjs#timelock" })]).drifts[0].code, "SERVER-DRIFT"); n++;
+}
+// Summaries lead with server_drift_status + note; not_checked is never presented as verified.
+{
+  resetLedger();
+  const v = await verifyLedger(currentLedger());
+  assert.equal(Object.keys(v)[1], "server_drift_status"); assert.equal(v.server_drift_status, "not_checked"); assert.match(v.server_drift_note, /NOT checked/);
+  const cv = await runChainlockOp("chainlock_verify", {}, {});
+  assert.equal(Object.keys(cv)[0], "server_drift_status"); assert.equal(cv.server_drift_status, "not_checked"); assert.match(cv.server_drift_note, /NOT checked/);
+  await appendLedger({ asked: true, refused: false, code: "FG-OK", name: "TimeLock", op: "now", ...a1 });
+  const v2 = await verifyLedger(currentLedger());
+  assert.equal(v2.server_drift_status, "verified"); assert.match(v2.server_drift_note, /verified over 1/);
+  await appendLedger({ asked: true, refused: false, code: "FG-OK", name: "TimeLock", op: "now", ...swapped });
+  assert.equal((await verifyLedger(currentLedger())).server_drift_status, "drift");
+  resetLedger(); n++;
+}
+// AZBot: sha256 of the served server_basis equals server_hash exactly (worker, stdio, ledger row, envelope).
+{
+  const { sha256Hex, canonicalize } = await import("../src/session-core.js");
+  for (const p of [a1, b1, await (async () => { setLocalServerIdentity({ path: "cli/mcp-stdio.mjs", sha256: "a".repeat(64) }); const x = await serverProvenance({ env: {}, tool: "T", slug: "t", engine_digest: ED }); setLocalServerIdentity(null); return x; })()]) {
+    assert.equal(await sha256Hex(canonicalize(p.server_basis)), p.server_hash); assert.equal("tool" in p.server_basis, false); assert.ok(p.server_tool);
+  }
+  resetLedger();
+  await appendLedger({ asked: true, refused: false, code: "FG-OK", name: "TimeLock", op: "now", ...a1 });
+  const r = currentLedger().entries.at(-1);
+  assert.equal(await sha256Hex(canonicalize(r.server_basis)), r.server_hash); assert.equal(r.server_tool, "TimeLock"); n++;
+  // Old receipts (tool inside server_basis, no server_tool) still verify and still key drift by tool.
+  const oldShape = { ...a1, server_basis: { ...a1.server_basis, tool: "timelock.now" } }; delete oldShape.server_tool;
+  const s = openSession({ id: newSessionId(), now: new Date().toISOString(), version: "test", source: "test" });
+  const ex = { intent: { slug: "timelock", op: "now" }, result: { status: 200 } };
+  await appendReceipt(s, "exec", ex, new Date().toISOString(), oldShape);
+  await appendReceipt(s, "exec", ex, new Date().toISOString(), { ...a2, server_tool: "timelock.now" });
+  const v = await verifyChainStrict(s.receipts);
+  assert.equal(v.ok, true, JSON.stringify(v.errors)); assert.equal(v.server_drift.status, "verified"); n++;
+  resetLedger();
+}
 // End to end: a real FragGate call through the hosted Worker stamps its ledger row.
 {
   resetLedger();
@@ -222,7 +279,7 @@ assert.equal(checkServerDrift([row(1, "TimeLock", a1), row(2, "Other", swapped),
   assert.equal(env1.server_hash, last.server_hash); assert.equal(env1.server_path, last.server_path); assert.equal(env1.server_basis.version_id, "ver-a"); assert.ok("server_reason" in env1);
   const { ledgerTipView } = await import("../src/fraggate/ledger.js");
   const tv = ledgerTipView(currentLedger());
-  assert.equal(tv.server_hash, last.server_hash); assert.equal(tv.server_path, last.server_path); assert.ok("server_reason" in tv && "server_basis" in tv);
+  assert.equal(tv.server_hash, last.server_hash); assert.equal(tv.server_path, last.server_path); assert.ok("server_reason" in tv && "server_basis" in tv && "server_tool" in tv);
   const before = currentLedger().entries.length; ledgerTipView(currentLedger()); assert.equal(currentLedger().entries.length, before); n++;
   // Same deploy again: no drift. A different deploy: drift, shown with both version_ids.
   await call({ ...ENV_A });

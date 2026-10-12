@@ -177,6 +177,7 @@ async function accept({ name, slug, op, result, gate, engine, env = null, regist
     server_hash: server.server_hash ?? null,
     server_reason: server.server_reason ?? null,
     server_basis: server.server_basis ?? null,
+    server_tool: server.server_tool ?? null,
   };
 }
 

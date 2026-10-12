@@ -136,6 +136,7 @@ export const ADDITIVE_RECEIPT_FIELDS = Object.freeze([
   "server_hash",
   "server_reason",
   "server_basis",
+  "server_tool",
 ]);
 
 export function additiveReceiptFields(src) {
