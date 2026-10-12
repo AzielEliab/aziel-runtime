@@ -132,6 +132,10 @@ export const ADDITIVE_RECEIPT_FIELDS = Object.freeze([
   "context_n",
   "node_ids",
   "goal_key", // AZRT-GOAL-LINK-1.0
+  "server_path", // AZRT-SERVER-PROVENANCE-1.0 (RIB-039, exec receipts)
+  "server_hash",
+  "server_reason",
+  "server_basis",
 ]);
 
 export function additiveReceiptFields(src) {
@@ -242,6 +246,10 @@ export async function verifyChainStrict(receipts) {
       errors.push({ seq: rec.seq, error: "hash_mismatch", expected, got: hash });
     }
   }
+  // RIB-039: SERVER-DRIFT per tool name; missing after present fails closed.
+  const { checkServerDrift } = await import("./server-provenance.js");
+  const server_drift = checkServerDrift((receipts || []).filter(Boolean));
+  for (const d of server_drift.drifts) errors.push({ seq: d.seq, error: d.code, tool: d.tool });
   const hashPresent = (receipts || []).length > 0 && (receipts || []).every((r) => r && typeof r.hash === "string");
   return {
     ok: errors.length === 0,
@@ -256,6 +264,7 @@ export async function verifyChainStrict(receipts) {
       externally_anchored: false,
       note: "Session receipts may carry an anchor ref (the newest witness statement at mint time). That proves order after it, not external anchoring of this session.",
     },
+    server_drift,
     dual_lattice: {
       ok: dual.ok,
       lattice_rows: dual.lattice_rows,

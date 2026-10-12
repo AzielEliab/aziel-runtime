@@ -122,7 +122,20 @@ async function refuse({ code, name, slug, op, message, gate, extra }) {
   };
 }
 
-async function accept({ name, slug, op, result, gate, engine }) {
+async function serverProvenance(o) {
+  const m = await import("../server-provenance.js");
+  return m.serverProvenance(o);
+}
+
+async function accept({ name, slug, op, result, gate, engine, env = null, registry = null }) {
+  // RIB-039: which server answered (deployed code + tool digest), null with a reason when unresolved.
+  const server = await serverProvenance({
+    env,
+    tool: name || slug,
+    slug,
+    engine_digest: engine && engine.engine_digest ? engine.engine_digest : null,
+    registry_digest: registry ? await registryDigest(registry) : null,
+  });
   const { tip } = await appendLedger({
     asked: true,
     refused: false,
@@ -130,6 +143,7 @@ async function accept({ name, slug, op, result, gate, engine }) {
     name: name || slug,
     op,
     gate: gate && gate.final_state,
+    ...server,
   });
   return {
     ok: true,
@@ -548,6 +562,8 @@ async function fraggateCallBody(args, registry, bySlug, env, request, attempt) {
       op: target.op,
       result,
       gate: inbound.gate_check || gate,
+      env,
+      registry,
       engine: {
         engine_digest: null,
         ran_in: "aziel-runtime",
@@ -570,6 +586,8 @@ async function fraggateCallBody(args, registry, bySlug, env, request, attempt) {
       op: target.op,
       result,
       gate: inbound.gate_check || gate,
+      env,
+      registry,
       engine: {
         engine_digest: null,
         ran_in: "aziel-runtime",
@@ -617,6 +635,8 @@ async function fraggateCallBody(args, registry, bySlug, env, request, attempt) {
     op: target.op,
     result: parsed,
     gate: inbound.gate_check || gate,
+    env,
+    registry,
     engine: {
       engine_digest: local.engine_digest,
       ran_in: local.ran_in,
@@ -728,6 +748,7 @@ export async function namedDecisiongateCheck(args, env) {
     name: "DecisionGATE",
     op: "check",
     gate: state || null,
+    ...(await serverProvenance({ env, tool: "DecisionGATE", slug: "decisiongate", engine_digest: local && local.engine_digest ? local.engine_digest : null })),
   });
   return {
     ok: true,
@@ -777,6 +798,7 @@ export async function libraryLookup(args, env) {
     name: "Aziel Digital Library",
     op,
     gate: "read-only",
+    ...(await serverProvenance({ env, tool: "Aziel Digital Library", slug: "aziel-corpus", engine_digest: local && local.engine_digest ? local.engine_digest : null })),
   });
   return {
     ok: true,
