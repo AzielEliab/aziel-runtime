@@ -118,6 +118,7 @@ export function checkServerDrift(receipts, { isCall = (r) => stamped(r) || (r &&
   const drifts = [];
   const redeploys = [];
   const info = [];
+  const upLast = new Map(); // separate upstream (proxy) baseline per tool
   let checked = 0;
   for (const rec of receipts || []) {
     if (!rec || !isCall(rec)) continue;
@@ -133,9 +134,22 @@ export function checkServerDrift(receipts, { isCall = (r) => stamped(r) || (r &&
       continue;
     }
     if (kind === "upstream") {
-      // Proxy fallback: another server answered (its code cannot be hashed here). Reported as info;
-      // not compared against the local/worker baseline and does not reset it.
-      if (prior && prior.path !== rec.server_path) info.push({ code: "SERVER-PROXY", tool, seq: rec.seq ?? null, prev_seq: prior.seq, from: prior.path, to: rec.server_path || null });
+      // Proxy fallback: another server answered. Local -> proxy is info (SERVER-PROXY) and leaves the
+      // local baseline alone. Proxy answers have their own baseline: any upstream path change (or hash
+      // change, when both hashes exist) is SERVER-DRIFT, even with no local reading for the tool.
+      checked++;
+      const seq = rec.seq ?? null;
+      const path = rec.server_path ?? null;
+      const hash = rec.server_hash ?? null;
+      const up = upLast.get(tool);
+      if (prior && prior.path !== path) info.push({ code: "SERVER-PROXY", tool, seq, prev_seq: prior.seq, from: prior.path, to: path });
+      if (up) {
+        const changed = [];
+        if (up.path !== path) changed.push({ field: "server_path", from: up.path, to: path });
+        if (up.hash && hash && up.hash !== hash) changed.push({ field: "server_hash", from: up.hash, to: hash });
+        if (changed.length) drifts.push({ code: "SERVER-DRIFT", tool, seq, prev_seq: up.seq, upstream: true, changed });
+      }
+      upLast.set(tool, { path, hash: hash || (up && up.hash) || null, seq });
       continue;
     }
     checked++;

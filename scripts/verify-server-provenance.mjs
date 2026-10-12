@@ -161,6 +161,22 @@ assert.equal(checkServerDrift([row(1, "TimeLock", a1), row(2, "Other", swapped),
   const rp2 = checkServerDrift([row(1, "T", a1), row(2, "T", px), row(3, "T", swapped)]);
   assert.equal(rp2.ok, false); n++;
 }
+// Upstream baseline (AZBot blocker 1): local -> proxy A -> proxy B, and proxy-only A -> B.
+{
+  const pA = await serverProvenance({ env: ENV_A, tool: "T", slug: "t", upstream: "https://a.example/v1/now" });
+  const pB = await serverProvenance({ env: ENV_A, tool: "T", slug: "t", upstream: "https://b.example/v1/now" });
+  const r1 = checkServerDrift([row(1, "T", a1), row(2, "T", pA), row(3, "T", pB)]);
+  assert.equal(r1.ok, false); assert.equal(r1.drifts[0].code, "SERVER-DRIFT"); assert.equal(r1.drifts[0].upstream, true);
+  assert.equal(r1.drifts[0].changed[0].to, "https://b.example/v1/now"); n++;
+  const r2 = checkServerDrift([row(1, "T", pA), row(2, "T", pB)]);
+  assert.equal(r2.ok, false); assert.equal(r2.drifts[0].code, "SERVER-DRIFT"); assert.equal(r2.drifts[0].prev_seq, 1); n++;
+  // Same upstream again passes; upstream hash change (when present) drifts.
+  assert.equal(checkServerDrift([row(1, "T", pA), row(2, "T", pA)]).ok, true);
+  const h1 = { ...pA, server_hash: "1".repeat(64) }, h2 = { ...pA, server_hash: "2".repeat(64) };
+  assert.equal(checkServerDrift([row(1, "T", h1), row(2, "T", h2)]).drifts[0].changed[0].field, "server_hash"); n++;
+  // Local baseline stays separate: local -> proxy A -> local (same) is ok.
+  assert.equal(checkServerDrift([row(1, "T", a1), row(2, "T", pA), row(3, "T", a2), row(4, "T", pA)]).ok, true); n++;
+}
 // End to end: a real FragGate call through the hosted Worker stamps its ledger row.
 {
   resetLedger();

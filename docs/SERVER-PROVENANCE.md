@@ -25,7 +25,7 @@ chain check behind `runtime_session_receipt(s)` walk receipts per tool name and 
   together with `server_basis.version_id` or `git_sha` and the path is unchanged.
 
 - `SERVER-UNREACHED` (info): a failed/unreached call. It names no server, is not compared, and does not reset the baseline, so a timeout never fails the chain.
-- `SERVER-PROXY` (info): a proxy upstream answered instead of the local engine. Not compared against the local/worker baseline and does not reset it.
+- `SERVER-PROXY` (info): a proxy upstream answered instead of the local engine. The local baseline is kept. Proxy answers have their own per-tool upstream baseline: any upstream path change (or hash change when both exist) is `SERVER-DRIFT`, even with no local reading.
 
 `SERVER-DRIFT` and `SERVER-PROVENANCE-MISSING` make the verify `ok:false`; `SERVER-REDEPLOY` alone
 does not. A hash change on the same version_id and git_sha, any path change, and any stdio hash

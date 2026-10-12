@@ -122,14 +122,22 @@ async function refuse({ code, name, slug, op, message, gate, extra }) {
   };
 }
 
-const registryDigestCache = new WeakMap();
+// Keyed on the registry's contents (not object identity), so a mutated registry never reuses a stale digest.
+const registryDigestCache = new Map();
 async function cachedRegistryDigest(registry) {
   if (!registry || typeof registry !== "object") return null;
-  let d = registryDigestCache.get(registry);
+  let key;
+  try {
+    key = JSON.stringify(registry.entries || []);
+  } catch {
+    return registryDigest(registry);
+  }
+  let d = registryDigestCache.get(key);
   if (!d) {
+    if (registryDigestCache.size >= 4) registryDigestCache.clear();
     d = registryDigest(registry);
-    registryDigestCache.set(registry, d);
-    d.catch(() => registryDigestCache.delete(registry));
+    registryDigestCache.set(key, d);
+    d.catch(() => registryDigestCache.delete(key));
   }
   return d;
 }
