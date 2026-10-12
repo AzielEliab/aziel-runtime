@@ -37,11 +37,24 @@ export function learnFact(seq, primary, secondary, count) {
  * page defaults to anchor.pageRows with the CHAINLOCK store.
  */
 export async function latticeLearn(env, src = {}, deps = {}) {
+  try {
+    return await latticeLearnInner(env, src, deps);
+  } catch (err) {
+    return refuse("LATTICE-LEARN-THREW", "Lattice learn hit an error. Nothing was learned.", { reason: String((err && err.message) || err).slice(0, 160) });
+  }
+}
+
+async function latticeLearnInner(env, src = {}, deps = {}) {
   const { pageRows, ANCHOR_CHAINS } = await import("./anchor.js");
   const chain = String(src.chain || src.c || "");
   if (!ANCHOR_CHAINS.includes(chain)) return refuse("LATTICE-LEARN-BAD-CHAIN", "Name one chain.", { chains: ANCHOR_CHAINS.slice() });
   const subject = `lattice:${chain}`;
-  const kv = deps.kv || (env && env.RUNTIME_KV) || null;
+  let kv = deps.kv || null;
+  if (!kv && env && env.USES && env.USES.durable === true) kv = env.USES;
+  if (!kv && env && env.RUNTIME_KV) {
+    const { hybridKv } = await import("./durable-kv.js");
+    kv = hybridKv(env.RUNTIME_KV, env.USES || null);
+  }
   if (!kv) return refuse("LATTICE-LEARN-KV-UNBOUND", "No cursor store. Nothing was learned.");
   const key = `lattice-learn:cursor:${chain}`;
   const cursor = cursorOf(await kv.get(key));
