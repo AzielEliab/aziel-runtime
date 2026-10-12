@@ -535,6 +535,11 @@ async function fraggateCallBody(args, registry, bySlug, env, request, attempt) {
     const yes = (v) => v === true || v === 1 || v === "1" || v === "true";
     payload = { ...payload, persist_confirmed: yes(src.confirm), ...(yes(src.dry_run) ? { dry_run: true } : {}) };
   }
+  // LATTICE-LEARN-1.0: a top-level dry_run rides into lattice-learn so a preview never moves the cursor.
+  if (target.entry.slug === MEMORY_SLUG && /^lattice[-_]learn$/.test(String(resolved.op)) && payload && typeof payload === "object" && !Array.isArray(payload)) {
+    const dry = src.dry_run;
+    if (dry === true || dry === 1 || dry === "1" || dry === "true") payload = { ...payload, dry_run: true };
+  }
   if (target.entry.slug === MEMORY_SLUG) {
     const result = await runMemoryOp(resolved.op, payload, env, request);
     const accepted = await accept({
