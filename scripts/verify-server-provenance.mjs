@@ -139,6 +139,28 @@ assert.equal(checkServerDrift([row(1, "TimeLock", a1), row(2, "Other", swapped),
     n++;
   }
 }
+// AZBot regression: local -> redeploy -> upstream error -> local must stay ok (session chain too).
+{
+  const tag = (x) => ({ ...x, server_basis: { ...x.server_basis, tool: "timelock.now" } });
+  const un = await serverProvenance({ env: ENV_B, tool: "timelock.now", slug: "timelock", unreached: "upstream timeout" });
+  assert.equal(un.server_path, null); assert.equal(un.server_basis.kind, "unreached"); assert.match(un.server_reason, /^unreached: upstream timeout/);
+  const now = new Date().toISOString();
+  const s = openSession({ id: newSessionId(), now, version: "test", source: "test" });
+  const ex = { intent: { slug: "timelock", op: "now" }, result: { status: 200 } };
+  for (const p of [a1, b1, un, b1]) await appendReceipt(s, "exec", ex, now, tag(p));
+  const v = await verifyChainStrict(s.receipts);
+  assert.equal(v.ok, true, JSON.stringify(v.errors)); assert.equal(v.server_drift.drifts.length, 0);
+  assert.equal(v.server_drift.redeploys.length, 1); assert.equal(v.server_drift.info[0].code, "SERVER-UNREACHED"); n++;
+  // Unreached does not reset the baseline: a swap after it is still SERVER-DRIFT.
+  const r = checkServerDrift([row(1, "T", a1), row(2, "T", un), row(3, "T", swapped)]);
+  assert.equal(r.ok, false); assert.equal(r.drifts[0].code, "SERVER-DRIFT"); assert.equal(r.drifts[0].prev_seq, 1); n++;
+  // Local -> proxy -> local: proxy is info, not drift; baseline kept.
+  const px = await serverProvenance({ env: ENV_A, tool: "T", slug: "timelock", upstream: "https://up.example/v1/now" });
+  const rp = checkServerDrift([row(1, "T", a1), row(2, "T", px), row(3, "T", a2)]);
+  assert.equal(rp.ok, true); assert.equal(rp.info[0].code, "SERVER-PROXY"); assert.equal(rp.info[0].to, "https://up.example/v1/now"); n++;
+  const rp2 = checkServerDrift([row(1, "T", a1), row(2, "T", px), row(3, "T", swapped)]);
+  assert.equal(rp2.ok, false); n++;
+}
 // End to end: a real FragGate call through the hosted Worker stamps its ledger row.
 {
   resetLedger();

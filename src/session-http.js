@@ -340,14 +340,15 @@ async function handleExec(request, env, id, { json, PRODUCTS, BY_SLUG, upstreamF
   }
 
   const resDig = await digestText(responseText);
-  // RIB-039: server path + code hash of what answered (null with a reason, never a guess).
+  // RIB-039: server path + sha256 of server_basis (deploy identity + tool digest); null with a reason, never a guess.
   const { serverProvenance } = await import("./server-provenance.js");
   const server = await serverProvenance({
     env,
     tool: slug + "." + op,
     slug,
     engine_digest: engine && engine.mode === "local" ? engine.engine_digest || null : null,
-    upstream: engine && engine.mode === "local" ? null : upstream || (error ? "unreached:" + slug : null),
+    upstream: engine && engine.mode === "local" ? null : error ? null : upstream || null,
+    unreached: engine && engine.mode === "local" ? null : error || !upstream ? String(error || "no upstream answered") : null,
   });
 
   const commitRes = await stubFetch(env, id, "commit", {

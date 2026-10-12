@@ -3,7 +3,7 @@
  *
  * Every call receipt (FragGate ledger row, session exec receipt) records:
  *   server_path   where the answer came from
- *   server_hash   sha256 of the code that answered
+ *   server_hash   sha256 of server_basis (deploy identity + tool digest)
  *   server_reason why a value is null (never a guess)
  *   server_basis  the inputs hashed (so a reviewer can see what changed)
  *
@@ -53,7 +53,16 @@ function deployIdentity(env) {
  * @param {string|null} o.registry_digest
  * @param {string|null} o.upstream  proxy target when the answer came from another server
  */
-export async function serverProvenance({ env = null, tool = null, slug = null, engine_digest = null, registry_digest = null, upstream = null } = {}) {
+export async function serverProvenance({ env = null, tool = null, slug = null, engine_digest = null, registry_digest = null, upstream = null, unreached = null } = {}) {
+  if (unreached) {
+    // Failed / unreached call: nothing answered, so there is no server to name. Excluded from drift.
+    return {
+      server_path: null,
+      server_hash: null,
+      server_reason: "unreached: " + String(unreached).slice(0, 160),
+      server_basis: { spec: SERVER_PROVENANCE_SPEC, kind: "unreached", tool: tool || null },
+    };
+  }
   const tool_digest = engine_digest || registry_digest || null;
   const tool_digest_kind = engine_digest ? "engine_digest" : registry_digest ? "registry_digest" : null;
   const reasons = [];
@@ -108,6 +117,7 @@ export function checkServerDrift(receipts, { isCall = (r) => stamped(r) || (r &&
   const last = new Map();
   const drifts = [];
   const redeploys = [];
+  const info = [];
   let checked = 0;
   for (const rec of receipts || []) {
     if (!rec || !isCall(rec)) continue;
@@ -116,6 +126,18 @@ export function checkServerDrift(receipts, { isCall = (r) => stamped(r) || (r &&
     const prior = last.get(tool);
     const has = stamped(rec);
     if (!has && !prior) continue; // old receipt, nothing to compare yet
+    const kind = has && rec.server_basis && rec.server_basis.kind;
+    if (kind === "unreached") {
+      // Nothing answered: not compared, never resets the baseline.
+      info.push({ code: "SERVER-UNREACHED", tool, seq: rec.seq ?? null, reason: rec.server_reason || null });
+      continue;
+    }
+    if (kind === "upstream") {
+      // Proxy fallback: another server answered (its code cannot be hashed here). Reported as info;
+      // not compared against the local/worker baseline and does not reset it.
+      if (prior && prior.path !== rec.server_path) info.push({ code: "SERVER-PROXY", tool, seq: rec.seq ?? null, prev_seq: prior.seq, from: prior.path, to: rec.server_path || null });
+      continue;
+    }
     checked++;
     const b = has && rec.server_basis && typeof rec.server_basis === "object" ? rec.server_basis : {};
     const cur = { path: has ? rec.server_path ?? null : null, hash: has ? rec.server_hash ?? null : null, seq: rec.seq ?? null, kind: b.kind || null, version_id: b.version_id ?? null, git_sha: b.git_sha ?? null };
@@ -154,6 +176,7 @@ export function checkServerDrift(receipts, { isCall = (r) => stamped(r) || (r &&
     tools: last.size,
     drifts,
     redeploys,
-    rule: "SERVER-DRIFT when server_path or server_hash differs from the previous receipt for the same tool name; SERVER-PROVENANCE-MISSING (fail closed) when a value is null after a prior receipt had one. SERVER-REDEPLOY (informational, does not set ok:false) when a hosted server_hash changed together with server_basis.version_id or git_sha and the path is unchanged; any stdio hash change stays SERVER-DRIFT.",
+    info,
+    rule: "SERVER-DRIFT when server_path or server_hash differs from the previous receipt for the same tool name; SERVER-PROVENANCE-MISSING (fail closed) when a value is null after a prior receipt had one. SERVER-UNREACHED and SERVER-PROXY are informational and never compared or used as the baseline. SERVER-REDEPLOY (informational, does not set ok:false) when a hosted server_hash changed together with server_basis.version_id or git_sha and the path is unchanged; any stdio hash change stays SERVER-DRIFT.",
   };
 }

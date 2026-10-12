@@ -122,6 +122,18 @@ async function refuse({ code, name, slug, op, message, gate, extra }) {
   };
 }
 
+const registryDigestCache = new WeakMap();
+async function cachedRegistryDigest(registry) {
+  if (!registry || typeof registry !== "object") return null;
+  let d = registryDigestCache.get(registry);
+  if (!d) {
+    d = registryDigest(registry);
+    registryDigestCache.set(registry, d);
+    d.catch(() => registryDigestCache.delete(registry));
+  }
+  return d;
+}
+
 async function serverProvenance(o) {
   const m = await import("../server-provenance.js");
   return m.serverProvenance(o);
@@ -134,7 +146,7 @@ async function accept({ name, slug, op, result, gate, engine, env = null, regist
     tool: name || slug,
     slug,
     engine_digest: engine && engine.engine_digest ? engine.engine_digest : null,
-    registry_digest: registry ? await registryDigest(registry) : null,
+    registry_digest: registry ? await cachedRegistryDigest(registry) : null,
   });
   const { tip } = await appendLedger({
     asked: true,
