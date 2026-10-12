@@ -13,7 +13,7 @@ r = await get("/v1/mesh/install?slug=nope-not-real"); assert.equal((await r.json
 r = await get("/v1/mesh/install.sh?slug=vibelock&version=1.2.0");
 const sh = await r.text();
 assert.equal(r.status, 200); assert.match(r.headers.get("content-type"), /shellscript/);
-assert.match(sh, /^#!\/bin\/sh/); assert.match(sh, /\/v1\/mesh\/join/); assert.match(sh, /not live yet/);
+assert.match(sh, /^#!\/bin\/sh/); assert.match(sh, /https:\/\/[a-z0-9-]+\.vibelock\.workers\.dev\/install\.sh/); assert.match(sh, /\/v1\/mesh\/join/); assert.match(sh, /not live yet/);
 r = await get("/v1/mesh/install.sh?slug=bad%27slug"); assert.equal(r.status, 400); assert.match(await r.text(), /exit 1/);
 r = await get("/v1/mesh/bootstrap");
 b = await r.json();

@@ -33,6 +33,17 @@ function honest() {
   return { live: false, alt_internet_live: false, packet_path_live: false, second_device: false, live_multi_provider: false };
 }
 
+/** Same host rule as the catalog (index.js workerHost). */
+export function productHost(product) {
+  if (!product) return null;
+  if (product.slug === "aziel-corpus") return "https://www.azielcorpuslibrary.net";
+  if (!product.worker) return null;
+  const w = String(product.worker).replace(/\/$/, "");
+  if (/^https:\/\//.test(w)) return w;
+  if (!/^[a-z0-9-]{1,63}$/.test(w)) return null;
+  return `https://${w}.vibelock.workers.dev`;
+}
+
 export function installPlan({ origin, slug, version, products = [] }) {
   const s = String(slug || "").toLowerCase();
   if (!SLUG_RE.test(s)) return { ok: false, spec: ONBOARD_SPEC, code: "ONBOARD-BAD-SLUG", message: "GET /v1/mesh/install?slug=<slug>&version=<v>.", fail_closed: true };
@@ -40,7 +51,7 @@ export function installPlan({ origin, slug, version, products = [] }) {
   if (!product) return { ok: false, spec: ONBOARD_SPEC, code: "ONBOARD-UNKNOWN-SLUG", message: "That slug is not in the catalog.", fail_closed: true };
   const v = VER_RE.test(String(version || "")) ? String(version) : "latest";
   const base = String(origin || "").replace(/\/$/, "");
-  const host = product.worker ? String(product.worker).replace(/\/$/, "") : null;
+  const host = productHost(product);
   return {
     ok: true,
     spec: ONBOARD_SPEC,
