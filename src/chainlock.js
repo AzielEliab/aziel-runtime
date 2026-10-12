@@ -86,7 +86,14 @@ export async function runChainlockOp(name, args, env) {
   if (op === "verify") {
     const chains = await verify(store, src);
     const lattice = await verifyLockset(store, src);
-    return { ...lattice, chains: chains.chains, chain_ok: chains.ok };
+    // RIB-039: per-tool server drift over the FragGate call ledger (fail closed).
+    const { currentLedger } = await import("./fraggate/ledger.js");
+    const { checkServerDrift } = await import("./server-provenance.js");
+    const led = currentLedger();
+    const server_drift = checkServerDrift(led && Array.isArray(led.entries) ? led.entries : []);
+    const out = { ...lattice, chains: chains.chains, chain_ok: chains.ok, server_drift };
+    if (!server_drift.ok) out.ok = false;
+    return out;
   }
   if (op === "seal") return seal(store, src);
   if (op === "interact") return interact(store, src);

@@ -11,6 +11,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { canonicalize, sha256Hex, ZERO_HASH } from "../session-core.js";
 import { anchorRefNow } from "../anchor.js";
 import { callMetaLedgerFields } from "../receipt-guard.js";
+import { checkServerDrift } from "../server-provenance.js";
 import { latticeDocumentHash, latticeTips, planLattice } from "../dual-lattice.js";
 
 export const LEDGER_KIND = "aziel-runtime.fraggate.ledger";
@@ -138,7 +139,7 @@ export async function composeLedgerEntry(record, { seq, prev, latticeTips = null
     at: (record && record.at) || new Date().toISOString(),
   };
   // Additive optional fields (2.0 additive-only): absent on old rows, so old hashes are unchanged.
-  for (const key of ["anchor", "goal_key", "context_hash", "node_ids", "schema_hash"]) {
+  for (const key of ["anchor", "goal_key", "context_hash", "node_ids", "schema_hash", "server_path", "server_hash", "server_reason", "server_basis"]) {
     if (record && record[key] != null) body[key] = record[key];
   }
   if (latticeTips) {
@@ -299,5 +300,7 @@ export async function verifyLedger(ledger = isolateLedger) {
     }
     prev = hash;
   }
-  return { ok: breaks.length === 0, breaks, n: rows.length };
+  // RIB-039: per-tool server path/hash drift over call rows (fail closed on missing after present).
+  const server_drift = checkServerDrift(rows);
+  return { ok: breaks.length === 0 && server_drift.ok, breaks, n: rows.length, server_drift };
 }
