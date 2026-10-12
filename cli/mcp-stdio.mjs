@@ -64,8 +64,13 @@ export async function resolveServerFile(file) {
   try {
     const { realpath, readFile } = await import("node:fs/promises");
     const { createHash } = await import("node:crypto");
-    const path = await realpath(resolve(file));
-    const sha256 = createHash("sha256").update(await readFile(path)).digest("hex");
+    const real = await realpath(resolve(file));
+    const sha256 = createHash("sha256").update(await readFile(real)).digest("hex");
+    // Privacy: record a package-relative path (or the bare file name), never the absolute one. Hash is over the real file.
+    const { dirname, relative, basename } = await import("node:path");
+    const root = resolve(dirname(self), "..");
+    const rel = relative(root, real).split("\\").join("/");
+    const path = rel && !rel.startsWith("..") && !rel.startsWith("/") ? rel : basename(real);
     return { path, sha256, reason: null };
   } catch (err) {
     return { path: null, sha256: null, reason: String((err && err.code) || (err && err.message) || err).slice(0, 120) };

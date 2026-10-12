@@ -307,5 +307,5 @@ export async function verifyLedger(ledger = isolateLedger) {
   }
   // RIB-039: per-tool server path/hash drift over call rows (fail closed on missing after present).
   const server_drift = checkServerDrift(rows);
-  return { ok: breaks.length === 0 && server_drift.ok !== false, breaks, n: rows.length, server_drift };
+  return { ok: breaks.length === 0 && server_drift.ok !== false, server_drift_status: server_drift.status, server_drift_note: server_drift.note, breaks, n: rows.length, server_drift };
 }

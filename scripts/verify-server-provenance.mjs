@@ -30,7 +30,7 @@ assert.equal(proxy.server_path, "https://up.example/v1/x"); assert.equal(proxy.s
 // Local stdio: hash of the resolved module file.
 setLocalServerIdentity({ path: "/opt/aziel/cli/mcp-stdio.mjs", sha256: "a".repeat(64) });
 const loc = await serverProvenance({ env: {}, tool: "TimeLock", slug: "timelock", engine_digest: ED });
-assert.equal(loc.server_path, "stdio:///opt/aziel/cli/mcp-stdio.mjs#timelock"); assert.match(loc.server_hash, HEX); assert.equal(loc.server_basis.module_sha256, "a".repeat(64));
+assert.equal(loc.server_path, "stdio://mcp-stdio.mjs#timelock"); assert.doesNotMatch(JSON.stringify(loc), /\/opt\/aziel/); assert.match(loc.server_hash, HEX); assert.equal(loc.server_basis.module_sha256, "a".repeat(64));
 setLocalServerIdentity({ path: null, sha256: null, reason: "ENOENT" });
 const locBad = await serverProvenance({ env: {}, tool: "TimeLock", slug: "timelock", engine_digest: ED });
 assert.equal(locBad.server_hash, null); assert.equal(locBad.server_path, null); assert.match(locBad.server_reason, /ENOENT/);
@@ -205,6 +205,43 @@ assert.equal(checkServerDrift([row(1, "TimeLock", a1), row(2, "Other", swapped),
   const v2 = await verifyLedger(currentLedger());
   assert.equal(v2.server_drift.status, "not_checked"); assert.equal(v2.server_drift.receipts, 1); assert.equal(v2.ok, true); n++;
   resetLedger();
+}
+// Privacy: no absolute local path is ever recorded; hash still over the real file.
+{
+  const { resolveServerFile } = await import("../cli/mcp-stdio.mjs");
+  const { realpathSync, readFileSync } = await import("node:fs");
+  const { createHash } = await import("node:crypto");
+  const f = await resolveServerFile("cli/mcp-stdio.mjs");
+  assert.equal(f.path, "cli/mcp-stdio.mjs"); assert.ok(!f.path.startsWith("/"));
+  assert.equal(f.sha256, createHash("sha256").update(readFileSync(realpathSync("cli/mcp-stdio.mjs"))).digest("hex"));
+  setLocalServerIdentity(f);
+  const p = await serverProvenance({ env: {}, tool: "T", slug: "timelock", engine_digest: ED });
+  assert.equal(p.server_path, "stdio://cli/mcp-stdio.mjs#timelock");
+  for (const abs of ["/home/someone/x/cli/mcp-stdio.mjs", "C:/Users/someone/cli/mcp-stdio.mjs", "~/cli/mcp-stdio.mjs"]) {
+    setLocalServerIdentity({ path: abs, sha256: f.sha256 });
+    const q = await serverProvenance({ env: {}, tool: "T", slug: "timelock", engine_digest: ED });
+    assert.equal(q.server_path, "stdio://mcp-stdio.mjs#timelock"); assert.doesNotMatch(JSON.stringify(q), /someone/);
+  }
+  setLocalServerIdentity(null); n++;
+  // Old receipt with an absolute path -> new relative path, same file hash: same path, no drift.
+  const oldRow = { ...p, server_path: "stdio:///home/someone/x/cli/mcp-stdio.mjs#timelock" };
+  assert.equal(checkServerDrift([row(1, "T", oldRow), row(2, "T", p)]).ok, true); n++;
+  // A different file name is still a path change.
+  assert.equal(checkServerDrift([row(1, "T", p), row(2, "T", { ...p, server_path: "stdio://evil.mjs#timelock" })]).drifts[0].code, "SERVER-DRIFT"); n++;
+}
+// Summaries lead with server_drift_status + note; not_checked is never presented as verified.
+{
+  resetLedger();
+  const v = await verifyLedger(currentLedger());
+  assert.equal(Object.keys(v)[1], "server_drift_status"); assert.equal(v.server_drift_status, "not_checked"); assert.match(v.server_drift_note, /NOT checked/);
+  const cv = await runChainlockOp("chainlock_verify", {}, {});
+  assert.equal(Object.keys(cv)[0], "server_drift_status"); assert.equal(cv.server_drift_status, "not_checked"); assert.match(cv.server_drift_note, /NOT checked/);
+  await appendLedger({ asked: true, refused: false, code: "FG-OK", name: "TimeLock", op: "now", ...a1 });
+  const v2 = await verifyLedger(currentLedger());
+  assert.equal(v2.server_drift_status, "verified"); assert.match(v2.server_drift_note, /verified over 1/);
+  await appendLedger({ asked: true, refused: false, code: "FG-OK", name: "TimeLock", op: "now", ...swapped });
+  assert.equal((await verifyLedger(currentLedger())).server_drift_status, "drift");
+  resetLedger(); n++;
 }
 // End to end: a real FragGate call through the hosted Worker stamps its ledger row.
 {

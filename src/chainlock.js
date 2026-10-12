@@ -91,7 +91,8 @@ export async function runChainlockOp(name, args, env) {
     const { checkServerDrift } = await import("./server-provenance.js");
     const led = currentLedger();
     const server_drift = checkServerDrift(led && Array.isArray(led.entries) ? led.entries : []);
-    const out = { ...lattice, chains: chains.chains, chain_ok: chains.ok, server_drift };
+    // Summary leads with the provenance status so ok:true is never read as "provenance verified".
+    const out = { server_drift_status: server_drift.status, server_drift_note: server_drift.note, ...lattice, chains: chains.chains, chain_ok: chains.ok, server_drift };
     if (server_drift.ok === false) out.ok = false;
     return out;
   }

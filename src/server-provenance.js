@@ -28,9 +28,27 @@ const HEX = /^[0-9a-f]{7,40}$/;
 const HASH = /^[0-9a-f]{64}$/;
 
 let localIdentity = null;
+
+/** Privacy: never record an absolute local path (it leaks the home/account folder). Absolute -> bare file name. */
+export function privatePath(p) {
+  if (!p) return null;
+  const s = String(p).replace(/\\/g, "/");
+  if (s.startsWith("/") || /^[A-Za-z]:\//.test(s) || s.startsWith("~")) return s.split("/").filter(Boolean).pop() || null;
+  return s.replace(/^\.\//, "");
+}
+
+/** Compare stdio paths by file name + tool, so an old absolute path and its relative/basename form are the same path. */
+export function comparablePath(p) {
+  if (typeof p !== "string" || !p.startsWith("stdio://")) return p;
+  const rest = p.slice("stdio://".length);
+  const i = rest.lastIndexOf("#");
+  const file = i >= 0 ? rest.slice(0, i) : rest;
+  const tool = i >= 0 ? rest.slice(i) : "";
+  return "stdio://" + (file.split("/").filter(Boolean).pop() || "") + tool;
+}
 /** Called once by the stdio CLI in --local mode with the resolved module file and its sha256. */
 export function setLocalServerIdentity(id) {
-  localIdentity = id && typeof id === "object" ? { path: id.path || null, sha256: HASH.test(String(id.sha256 || "")) ? id.sha256 : null, reason: id.reason || null } : null;
+  localIdentity = id && typeof id === "object" ? { path: privatePath(id.path), sha256: HASH.test(String(id.sha256 || "")) ? id.sha256 : null, reason: id.reason || null } : null;
 }
 export function localServerIdentity() {
   return localIdentity;
@@ -165,7 +183,7 @@ export function checkServerDrift(receipts, { isCall = (r) => stamped(r) || (r &&
         drifts.push({ code: "SERVER-PROVENANCE-MISSING", tool, seq: cur.seq, prev_seq: prior.seq, missing, reason: has ? rec.server_reason || null : "receipt carries no server_* fields" });
       }
       const changed = [];
-      if (prior.path && cur.path && prior.path !== cur.path) changed.push({ field: "server_path", from: prior.path, to: cur.path });
+      if (prior.path && cur.path && comparablePath(prior.path) !== comparablePath(cur.path)) changed.push({ field: "server_path", from: prior.path, to: cur.path });
       if (prior.hash && cur.hash && prior.hash !== cur.hash) changed.push({ field: "server_hash", from: prior.hash, to: cur.hash });
       // SERVER-REDEPLOY (informational): hosted hash changed and the deploy identity changed with it,
       // path unchanged. Any stdio hash change, any path change, or a hash change on the same deploy is SERVER-DRIFT.
@@ -190,6 +208,7 @@ export function checkServerDrift(receipts, { isCall = (r) => stamped(r) || (r &&
     // Nothing stamped to compare (e.g. an empty per-isolate ledger) is not a pass: ok is null, status not_checked.
     ok: drifts.length ? false : checked ? true : null,
     status: drifts.length ? "drift" : checked ? "verified" : "not_checked",
+    note: drifts.length ? "Server provenance drift found." : checked ? "Server provenance verified over " + checked + " stamped call receipt(s)." : "Server provenance NOT checked: no stamped call receipts to compare (" + (receipts || []).length + " receipt(s) in this window). ok here covers hash-chain integrity only.",
     checked,
     receipts: (receipts || []).length,
     tools: last.size,
