@@ -148,6 +148,8 @@ export function checkServerDrift(receipts, { isCall = (r) => stamped(r) || (r &&
         if (up.path !== path) changed.push({ field: "server_path", from: up.path, to: path });
         if (up.hash && hash && up.hash !== hash) changed.push({ field: "server_hash", from: up.hash, to: hash });
         if (changed.length) drifts.push({ code: "SERVER-DRIFT", tool, seq, prev_seq: up.seq, upstream: true, changed });
+        // Fail closed like local readings: a proxied hash that goes from real to null is missing provenance.
+        if (up.hash && !hash) drifts.push({ code: "SERVER-PROVENANCE-MISSING", tool, seq, prev_seq: up.seq, upstream: true, missing: ["server_hash"], reason: rec.server_reason || null });
       }
       upLast.set(tool, { path, hash: hash || (up && up.hash) || null, seq });
       continue;
@@ -185,8 +187,11 @@ export function checkServerDrift(receipts, { isCall = (r) => stamped(r) || (r &&
   }
   return {
     spec: SERVER_PROVENANCE_SPEC,
-    ok: drifts.length === 0,
+    // Nothing stamped to compare (e.g. an empty per-isolate ledger) is not a pass: ok is null, status not_checked.
+    ok: drifts.length ? false : checked ? true : null,
+    status: drifts.length ? "drift" : checked ? "verified" : "not_checked",
     checked,
+    receipts: (receipts || []).length,
     tools: last.size,
     drifts,
     redeploys,

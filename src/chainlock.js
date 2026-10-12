@@ -92,7 +92,7 @@ export async function runChainlockOp(name, args, env) {
     const led = currentLedger();
     const server_drift = checkServerDrift(led && Array.isArray(led.entries) ? led.entries : []);
     const out = { ...lattice, chains: chains.chains, chain_ok: chains.ok, server_drift };
-    if (!server_drift.ok) out.ok = false;
+    if (server_drift.ok === false) out.ok = false;
     return out;
   }
   if (op === "seal") return seal(store, src);

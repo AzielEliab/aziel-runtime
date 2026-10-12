@@ -177,6 +177,35 @@ assert.equal(checkServerDrift([row(1, "TimeLock", a1), row(2, "Other", swapped),
   // Local baseline stays separate: local -> proxy A -> local (same) is ok.
   assert.equal(checkServerDrift([row(1, "T", a1), row(2, "T", pA), row(3, "T", a2), row(4, "T", pA)]).ok, true); n++;
 }
+// Proxied hash real -> null fails closed (SERVER-PROVENANCE-MISSING), same as local.
+{
+  const pA = await serverProvenance({ env: ENV_A, tool: "T", slug: "t", upstream: "https://a.example/v1/now" });
+  const r = checkServerDrift([row(1, "T", { ...pA, server_hash: "1".repeat(64) }), row(2, "T", pA)]);
+  assert.equal(r.ok, false); assert.equal(r.drifts[0].code, "SERVER-PROVENANCE-MISSING"); assert.equal(r.drifts[0].upstream, true);
+  assert.deepEqual(r.drifts[0].missing, ["server_hash"]); n++;
+  // Never-hashed proxy stays ok.
+  assert.equal(checkServerDrift([row(1, "T", pA), row(2, "T", pA)]).ok, true); n++;
+}
+// Registry is deep-frozen after build.
+{
+  const { buildRegistry } = await import("../src/fraggate/registry.js");
+  const reg = buildRegistry([]);
+  assert.ok(Object.isFrozen(reg) && Object.isFrozen(reg.entries) && Object.isFrozen(reg.entries[0]) && Object.isFrozen(reg.bySlug));
+  assert.throws(() => { "use strict"; reg.entries.push({}); }); n++;
+}
+// Empty ledger: server_drift is not_checked (ok:null), never a fake pass.
+{
+  resetLedger();
+  const v = await verifyLedger(currentLedger());
+  assert.equal(v.server_drift.status, "not_checked"); assert.equal(v.server_drift.ok, null); assert.equal(v.server_drift.checked, 0); assert.equal(v.server_drift.receipts, 0);
+  const cv = await runChainlockOp("chainlock_verify", {}, {});
+  assert.equal(cv.server_drift.status, "not_checked"); assert.equal(cv.server_drift.ok, null); n++;
+  // Old unstamped rows only: still not_checked, with the receipt count.
+  await appendLedger({ asked: true, refused: false, code: "FG-OK", name: "TimeLock", op: "now" });
+  const v2 = await verifyLedger(currentLedger());
+  assert.equal(v2.server_drift.status, "not_checked"); assert.equal(v2.server_drift.receipts, 1); assert.equal(v2.ok, true); n++;
+  resetLedger();
+}
 // End to end: a real FragGate call through the hosted Worker stamps its ledger row.
 {
   resetLedger();
@@ -188,6 +217,13 @@ assert.equal(checkServerDrift([row(1, "TimeLock", a1), row(2, "Other", swapped),
   assert.ok(rows.length >= 1, "a call row");
   const last = rows.at(-1);
   assert.match(last.server_path, /^worker:\/\/aziel-runtime\/fraggate\//); assert.match(last.server_hash, HEX); assert.equal(last.server_basis.version_id, "ver-a");
+  // Read-only exposure: the call envelope and ledgerTipView carry the same provenance.
+  const env1 = await res.json();
+  assert.equal(env1.server_hash, last.server_hash); assert.equal(env1.server_path, last.server_path); assert.equal(env1.server_basis.version_id, "ver-a"); assert.ok("server_reason" in env1);
+  const { ledgerTipView } = await import("../src/fraggate/ledger.js");
+  const tv = ledgerTipView(currentLedger());
+  assert.equal(tv.server_hash, last.server_hash); assert.equal(tv.server_path, last.server_path); assert.ok("server_reason" in tv && "server_basis" in tv);
+  const before = currentLedger().entries.length; ledgerTipView(currentLedger()); assert.equal(currentLedger().entries.length, before); n++;
   // Same deploy again: no drift. A different deploy: drift, shown with both version_ids.
   await call({ ...ENV_A });
   assert.equal((await verifyLedger(currentLedger())).server_drift.ok, true);

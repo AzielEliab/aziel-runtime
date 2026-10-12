@@ -740,7 +740,8 @@ export function buildRegistry(products) {
   // stub_ops are named refuse verbs (may sit on live or local_only products).
   // stub_count is products whose status is "stub" — not the op-list length.
   const stub_ops = Object.entries(STUB_OPS).flatMap(([slug, ops]) => ops.map((op) => ({ slug, op, status: "stub" })));
-  return {
+  // Frozen (deep): nothing may mutate the registry after build, so its digest can be cached by identity.
+  return deepFreeze({
     door: FRAGGATE_DOOR,
     kernel: false,
     kernel_repo_url: FRAGGATE_KERNEL,
@@ -753,7 +754,14 @@ export function buildRegistry(products) {
     stub_op_count: stub_ops.length,
     local_only_count: local_only.length,
     stub_ops,
-  };
+  });
+}
+
+function deepFreeze(o, seen = new WeakSet()) {
+  if (!o || typeof o !== "object" || seen.has(o)) return o;
+  seen.add(o);
+  for (const v of Object.values(o)) deepFreeze(v, seen);
+  return Object.freeze(o);
 }
 
 export async function registryDigest(registry) {
