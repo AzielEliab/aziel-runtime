@@ -85,6 +85,7 @@ export const MEMORY_CANONICAL_OPS = Object.freeze([
   "rebuild-index",
   "health",
   "skill",
+  "lattice-learn",
 ]);
 
 export const MEMORY_STUB_OPS = Object.freeze([
@@ -742,6 +743,10 @@ export async function runMemoryOp(op, payload, env, request = null) {
   if (action === "health") return memoryHealth();
   if (action === "skill") return memorySkill();
   if (action === "observe") return observe(env, src);
+  if (action === "lattice-learn" || action === "lattice_learn") {
+    const { latticeLearn } = await import("./lattice-learn.js");
+    return latticeLearn(env, src, { observe });
+  }
   if (action === "resolve") return resolve(env, src);
   if (action === "calibrate") return calibrate(env, src);
   if (action === "recall") return adaptiveRecall(env, src);
