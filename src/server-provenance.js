@@ -30,12 +30,23 @@ const HASH = /^[0-9a-f]{64}$/;
 
 let localIdentity = null;
 
-/** Privacy: never record an absolute local path (it leaks the home/account folder). Absolute -> bare file name. */
+/**
+ * Privacy: never record a path that can leak the home/account folder. Only a package-relative
+ * path under a top-level package folder (cli/, src/, bin/, scripts/, qnm-node/, tools/) is kept.
+ * Anything else (absolute, ~, a scheme or drive with ':', any '..', or any other multi-segment
+ * path such as home/aziel/...) is cut to the bare file name.
+ */
+export const PACKAGE_DIRS = Object.freeze(["cli", "src", "bin", "scripts", "qnm-node", "tools"]);
 export function privatePath(p) {
   if (!p) return null;
-  const s = String(p).replace(/\\/g, "/");
-  if (s.startsWith("/") || /^[A-Za-z]:\//.test(s) || s.startsWith("~")) return s.split("/").filter(Boolean).pop() || null;
-  return s.replace(/^\.\//, "");
+  const s = String(p).replace(/\\/g, "/").replace(/^(\.\/)+/, "");
+  const parts = s.split("/").filter(Boolean);
+  const base = parts.length ? parts[parts.length - 1] : null;
+  if (!base || base === ".." || base.includes(":")) return null;
+  const unsafe = s.includes(":") || parts.includes("..") || s.startsWith("/") || s.startsWith("~");
+  if (unsafe) return base;
+  if (parts.length === 1) return base;
+  return PACKAGE_DIRS.includes(parts[0]) ? parts.join("/") : base;
 }
 
 /** Compare stdio paths by file name + tool, so an old absolute path and its relative/basename form are the same path. */

@@ -263,6 +263,36 @@ assert.equal(checkServerDrift([row(1, "TimeLock", a1), row(2, "Other", swapped),
   assert.equal(v.ok, true, JSON.stringify(v.errors)); assert.equal(v.server_drift.status, "verified"); n++;
   resetLedger();
 }
+// privatePath: anything with ':' or '..', or a multi-segment path that is not package-relative, -> bare file name.
+{
+  const { privatePath } = await import("../src/server-provenance.js");
+  const cases = [
+    ["file:///home/aziel/x/cli/mcp-stdio.mjs", "mcp-stdio.mjs"],
+    ["../../home/aziel/cli/mcp-stdio.mjs", "mcp-stdio.mjs"],
+    ["cli/../../home/aziel/mcp-stdio.mjs", "mcp-stdio.mjs"],
+    ["home/aziel/aziel-runtime/cli/mcp-stdio.mjs", "mcp-stdio.mjs"],
+    ["Users/aziel/cli/mcp-stdio.mjs", "mcp-stdio.mjs"],
+    ["C:\\Users\\aziel\\cli\\mcp-stdio.mjs", "mcp-stdio.mjs"],
+    ["c:relative/mcp-stdio.mjs", "mcp-stdio.mjs"],
+    ["/home/aziel/cli/mcp-stdio.mjs", "mcp-stdio.mjs"],
+    ["~/cli/mcp-stdio.mjs", "mcp-stdio.mjs"],
+    ["cli/mcp-stdio.mjs", "cli/mcp-stdio.mjs"],
+    ["./cli/mcp-stdio.mjs", "cli/mcp-stdio.mjs"],
+    ["src/mcp-stdio.js", "src/mcp-stdio.js"],
+    ["mcp-stdio.mjs", "mcp-stdio.mjs"],
+    ["..", null],
+    ["", null],
+  ];
+  for (const [inp, want] of cases) {
+    assert.equal(privatePath(inp), want, inp);
+    if (want) assert.doesNotMatch(want, /aziel\/|home|Users|:|\.\./, inp);
+  }
+  // And through the provenance path that is actually recorded.
+  setLocalServerIdentity({ path: "file:///home/aziel/x/cli/mcp-stdio.mjs", sha256: "a".repeat(64) });
+  const p = await serverProvenance({ env: {}, tool: "T", slug: "t", engine_digest: ED });
+  assert.equal(p.server_path, "stdio://mcp-stdio.mjs#t"); assert.doesNotMatch(JSON.stringify(p), /home|aziel\//);
+  setLocalServerIdentity(null); n++;
+}
 // End to end: a real FragGate call through the hosted Worker stamps its ledger row.
 {
   resetLedger();
