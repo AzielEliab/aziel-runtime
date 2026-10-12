@@ -1,0 +1,12 @@
+import assert from "node:assert/strict";
+import { runtimeLatticeTip } from "../src/receipts-lattice-tip.js";
+const P = "a".repeat(64), S = "b".repeat(64);
+assert.equal((await runtimeLatticeTip({}, null)).code, "LATTICE-TIP-STORE-UNBOUND");
+const store = { chainMeta: async (c) => (c === "acts" ? { ok: true, seq: 3, tip: "h", lt: { primary: P, secondary: S } } : { ok: true, seq: 0 }) };
+const ok = await runtimeLatticeTip({}, store);
+assert.equal(ok.code, "LATTICE-TIP-OK"); assert.equal(ok.chains.length, 1); assert.equal(ok.chains[0].primary, P);
+const slow = { chainMeta: () => new Promise(() => {}) };
+assert.equal((await runtimeLatticeTip({}, slow, { timeoutMs: 50 })).code, "LATTICE-TIP-TIMEOUT");
+const bad = { chainMeta: async () => { throw new Error("x"); } };
+assert.equal((await runtimeLatticeTip({}, bad)).ok, false);
+console.log("verify-receipts-lattice-tip: ok");

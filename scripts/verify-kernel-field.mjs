@@ -19,8 +19,9 @@ for (const p of ["/v1/fraggate/list", "/v1/fraggate", "/v1/software", "/v1/healt
 const list = await get("/v1/fraggate/list");
 assert.equal(list.kernel, false);
 assert.equal(list.kernel_repo_url, "https://github.com/AzielEliab/fraggate");
-// registry_digest moves with ENGINE_DIGESTS (engine wording changed in DOCS-WORDING-1.0).
-assert.equal(list.registry_digest, "22a61fd4ca47be4516fcb84bdccf6398aaf54942b28df77bd3706720d9aaf375");
+// registry_digest moves with ENGINE_DIGESTS (engine wording changed in DOCS-WORDING-1.0)
+// and with the memory op list (LATTICE-LEARN-1.0 added lattice-learn, additive).
+assert.equal(list.registry_digest, "c1fcc9d22f1790613cdc7b4b4a6d9920d1a445cc26c5a524994061508dfb16da");
 assert.equal(list.stub_op_count, 363);
 assert.equal(list.live_count, 42);
 n += 5;

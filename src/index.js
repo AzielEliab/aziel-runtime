@@ -4756,6 +4756,12 @@ async function handleRequest(request, env, ctx) {
 
     if (url.pathname === "/v1/receipts" || url.pathname.startsWith("/v1/receipts/")) {
       const out = await dispatchActReceiptHttp(request.method, url.pathname, env);
+      // RECEIPTS-LATTICE-TIP-1.0 (additive): the runtime's own ChainLock lattice tips ride beside the
+      // corpus act-receipt tip. The corpus tip field is untouched; an empty corpus tip stays not-success.
+      if ((url.pathname === "/v1/receipts" || url.pathname === "/v1/receipts/tip") && (request.method === "GET" || request.method === "HEAD") && out && out.body && typeof out.body === "object") {
+        const { runtimeLatticeTip } = await import("./receipts-lattice-tip.js");
+        out.body = { ...out.body, lattice_tip: await runtimeLatticeTip(env, env && env.CHAINLOCK ? storeFor(env) : null) };
+      }
       return asHead(
         request,
         json(out.body, out.status, authorityLinkHeaders(origin, url.pathname)),
@@ -4992,6 +4998,16 @@ export default {
         .catch((err) => console.log(JSON.stringify({ aznews_tether: "NEWS-TETHER-ERROR", error: String((err && err.message) || err).slice(0, 200) })));
       if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(news);
       else await news;
+    }
+    // LATTICE-LEARN-1.0 (scheduled): each tick learns one page on three chains, rotating. Forward-only,
+    // append-only, fails closed; errors are logged and never block the tether or mesh work.
+    if (env && env.CHAINLOCK && ctx && typeof ctx.waitUntil === "function") {
+      ctx.waitUntil(
+        import("./lattice-learn.js")
+          .then(({ scheduledLatticeLearn }) => scheduledLatticeLearn(env, controller && controller.scheduledTime))
+          .then((out) => console.log(JSON.stringify({ lattice_learn: out })))
+          .catch((err) => console.log(JSON.stringify({ lattice_learn: "LATTICE-LEARN-CRON-ERROR", error: String((err && err.message) || err).slice(0, 200) }))),
+      );
     }
     if (controller && controller.cron === TETHER_CRON) {
       // AZ-OS cross-tether on its own cron: send signed dual-lattice tips only when the signing secret is set.

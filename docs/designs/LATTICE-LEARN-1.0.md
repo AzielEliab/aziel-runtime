@@ -22,3 +22,13 @@ block move the cursor forward and are not observed, so a long legacy prefix cann
 
 ## Append-only
 It only adds observations. It never supersedes, revokes, rewrites or deletes. The receipt schema is unchanged.
+
+## Scheduled run (additive)
+On each existing cron tick (`*/2` and `1-59/2`), `scheduledLatticeLearn` runs `lattice-learn` through the
+memory door on three chains, rotating by the minute. It adds no new cron. Errors are logged and swallowed, so they
+never block the tether, AZNews or mesh work.
+
+## RECEIPTS-LATTICE-TIP-1.0 (additive)
+`GET /v1/receipts` and `/v1/receipts/tip` gain a `lattice_tip` block: the runtime's own ChainLock primary
+and secondary tips for each chain. The corpus act-receipt `tip` field is untouched, and an empty corpus tip still
+does not count as success. An unbound store or a 2.5s timeout gives `ok:false` with no tips.
