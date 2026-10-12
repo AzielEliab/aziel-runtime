@@ -107,6 +107,7 @@ function stamped(rec) {
 export function checkServerDrift(receipts, { isCall = (r) => stamped(r) || (r && r.event === "exec") || (r && r.asked === true && r.refused === false) } = {}) {
   const last = new Map();
   const drifts = [];
+  const redeploys = [];
   let checked = 0;
   for (const rec of receipts || []) {
     if (!rec || !isCall(rec)) continue;
@@ -116,7 +117,8 @@ export function checkServerDrift(receipts, { isCall = (r) => stamped(r) || (r &&
     const has = stamped(rec);
     if (!has && !prior) continue; // old receipt, nothing to compare yet
     checked++;
-    const cur = { path: has ? rec.server_path ?? null : null, hash: has ? rec.server_hash ?? null : null, seq: rec.seq ?? null };
+    const b = has && rec.server_basis && typeof rec.server_basis === "object" ? rec.server_basis : {};
+    const cur = { path: has ? rec.server_path ?? null : null, hash: has ? rec.server_hash ?? null : null, seq: rec.seq ?? null, kind: b.kind || null, version_id: b.version_id ?? null, git_sha: b.git_sha ?? null };
     if (prior) {
       const missing = [];
       if (prior.path && !cur.path) missing.push("server_path");
@@ -127,12 +129,22 @@ export function checkServerDrift(receipts, { isCall = (r) => stamped(r) || (r &&
       const changed = [];
       if (prior.path && cur.path && prior.path !== cur.path) changed.push({ field: "server_path", from: prior.path, to: cur.path });
       if (prior.hash && cur.hash && prior.hash !== cur.hash) changed.push({ field: "server_hash", from: prior.hash, to: cur.hash });
-      if (changed.length) drifts.push({ code: "SERVER-DRIFT", tool, seq: cur.seq, prev_seq: prior.seq, changed });
+      // SERVER-REDEPLOY (informational): hosted hash changed and the deploy identity changed with it,
+      // path unchanged. Any stdio hash change, any path change, or a hash change on the same deploy is SERVER-DRIFT.
+      const onlyHash = changed.length === 1 && changed[0].field === "server_hash";
+      const hosted = prior.kind === "worker" && cur.kind === "worker";
+      const deployChanged = prior.version_id !== cur.version_id || prior.git_sha !== cur.git_sha;
+      if (changed.length && onlyHash && hosted && deployChanged) {
+        redeploys.push({ code: "SERVER-REDEPLOY", tool, seq: cur.seq, prev_seq: prior.seq, from: { version_id: prior.version_id, git_sha: prior.git_sha }, to: { version_id: cur.version_id, git_sha: cur.git_sha }, changed });
+      } else if (changed.length) drifts.push({ code: "SERVER-DRIFT", tool, seq: cur.seq, prev_seq: prior.seq, changed });
     }
     last.set(tool, {
       path: cur.path || (prior && prior.path) || null,
       hash: cur.hash || (prior && prior.hash) || null,
       seq: cur.seq,
+      kind: cur.hash ? cur.kind : prior ? prior.kind : cur.kind,
+      version_id: cur.hash ? cur.version_id : prior ? prior.version_id : cur.version_id,
+      git_sha: cur.hash ? cur.git_sha : prior ? prior.git_sha : cur.git_sha,
     });
   }
   return {
@@ -141,6 +153,7 @@ export function checkServerDrift(receipts, { isCall = (r) => stamped(r) || (r &&
     checked,
     tools: last.size,
     drifts,
-    rule: "SERVER-DRIFT when server_path or server_hash differs from the previous receipt for the same tool name; SERVER-PROVENANCE-MISSING (fail closed) when a value is null after a prior receipt had one. A redeploy changes server_hash for every tool, so drift right after a deploy is expected and shows the version_id change in server_basis.",
+    redeploys,
+    rule: "SERVER-DRIFT when server_path or server_hash differs from the previous receipt for the same tool name; SERVER-PROVENANCE-MISSING (fail closed) when a value is null after a prior receipt had one. SERVER-REDEPLOY (informational, does not set ok:false) when a hosted server_hash changed together with server_basis.version_id or git_sha and the path is unchanged; any stdio hash change stays SERVER-DRIFT.",
   };
 }

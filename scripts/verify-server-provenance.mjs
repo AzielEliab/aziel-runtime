@@ -47,8 +47,36 @@ assert.equal(checkServerDrift([row(1, "TimeLock", a1), row(2, "TimeLock", a2)]).
   const r = checkServerDrift([row(1, "TimeLock", a1), row(2, "TimeLock", swapped)]);
   assert.equal(r.ok, false); assert.equal(r.drifts[0].code, "SERVER-DRIFT"); assert.equal(r.drifts[0].tool, "TimeLock");
   assert.equal(r.drifts[0].changed[0].field, "server_hash"); n++;
-  // A redeploy also changes the hash (expected, visible via server_basis.version_id).
-  assert.equal(checkServerDrift([row(1, "TimeLock", a1), row(2, "TimeLock", b1)]).drifts[0].code, "SERVER-DRIFT"); n++;
+  n++;
+}
+// SERVER-REDEPLOY: hosted hash changed with version_id or git_sha -> informational, ok stays true.
+{
+  const rv = checkServerDrift([row(1, "TimeLock", a1), row(2, "TimeLock", b1)]);
+  assert.equal(rv.ok, true); assert.equal(rv.drifts.length, 0);
+  assert.equal(rv.redeploys[0].code, "SERVER-REDEPLOY"); assert.equal(rv.redeploys[0].from.version_id, "ver-a"); assert.equal(rv.redeploys[0].to.version_id, "ver-b"); n++;
+  const g1 = await serverProvenance({ env: { CF_VERSION_METADATA: { id: "ver-a" }, GIT_SHA: "1111111" }, tool: "TimeLock", slug: "timelock", engine_digest: ED });
+  const g2 = await serverProvenance({ env: { CF_VERSION_METADATA: { id: "ver-a" }, GIT_SHA: "2222222" }, tool: "TimeLock", slug: "timelock", engine_digest: ED });
+  const rg = checkServerDrift([row(1, "TimeLock", g1), row(2, "TimeLock", g2)]);
+  assert.equal(rg.ok, true); assert.equal(rg.redeploys.length, 1); n++;
+  // Same version_id and git_sha but a different hash (e.g. swapped engine digest) -> SERVER-DRIFT.
+  const sw = await serverProvenance({ env: ENV_A, tool: "TimeLock", slug: "timelock", engine_digest: "d".repeat(64) });
+  const rs = checkServerDrift([row(1, "TimeLock", a1), row(2, "TimeLock", sw)]);
+  assert.equal(rs.ok, false); assert.equal(rs.drifts[0].code, "SERVER-DRIFT"); assert.equal(rs.redeploys.length, 0); n++;
+  // Redeploy plus a path change -> SERVER-DRIFT (hard).
+  const rp = checkServerDrift([row(1, "TimeLock", a1), row(2, "TimeLock", { ...b1, server_path: "worker://elsewhere/x" })]);
+  assert.equal(rp.ok, false); assert.equal(rp.drifts[0].code, "SERVER-DRIFT"); n++;
+  // Any stdio hash change -> SERVER-DRIFT, even if the basis would otherwise differ.
+  setLocalServerIdentity({ path: "/opt/a/mcp-stdio.mjs", sha256: "a".repeat(64) });
+  const s1 = await serverProvenance({ env: {}, tool: "TimeLock", slug: "timelock", engine_digest: ED });
+  setLocalServerIdentity({ path: "/opt/a/mcp-stdio.mjs", sha256: "b".repeat(64) });
+  const s2 = await serverProvenance({ env: {}, tool: "TimeLock", slug: "timelock", engine_digest: ED });
+  setLocalServerIdentity(null);
+  const rsd = checkServerDrift([row(1, "TimeLock", s1), row(2, "TimeLock", s2)]);
+  assert.equal(rsd.ok, false); assert.equal(rsd.drifts[0].code, "SERVER-DRIFT"); assert.equal(rsd.redeploys.length, 0); n++;
+  // Redeploy that also loses the hash -> SERVER-PROVENANCE-MISSING (hard).
+  const nb = await serverProvenance({ env: ENV_B, tool: "TimeLock", slug: "timelock" });
+  const rm = checkServerDrift([row(1, "TimeLock", a1), row(2, "TimeLock", nb)]);
+  assert.equal(rm.ok, false); assert.equal(rm.drifts[0].code, "SERVER-PROVENANCE-MISSING"); n++;
 }
 // 3. Path change -> SERVER-DRIFT.
 {
@@ -127,7 +155,7 @@ assert.equal(checkServerDrift([row(1, "TimeLock", a1), row(2, "Other", swapped),
   assert.equal((await verifyLedger(currentLedger())).server_drift.ok, true);
   await call({ ...ENV_B });
   const vd = await verifyLedger(currentLedger());
-  assert.equal(vd.server_drift.ok, false); assert.equal(vd.server_drift.drifts[0].code, "SERVER-DRIFT"); n++;
+  assert.equal(vd.ok, true); assert.equal(vd.server_drift.ok, true); assert.equal(vd.server_drift.redeploys[0].code, "SERVER-REDEPLOY"); n++;
   resetLedger();
 }
 // Receipts are hash-linked and sealed, not signed: nothing here claims signing.

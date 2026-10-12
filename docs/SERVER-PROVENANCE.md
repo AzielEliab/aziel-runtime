@@ -20,9 +20,12 @@ chain check behind `runtime_session_receipt(s)` walk receipts per tool name and 
 - `SERVER-DRIFT` when `server_path` or `server_hash` differs from the previous receipt for that tool;
 - `SERVER-PROVENANCE-MISSING` (fail closed) when a value is null or absent after a prior receipt had one.
 
-Either makes the verify `ok:false`; the hash chain itself (`chain_ok`, `breaks`) is reported apart.
-A redeploy changes `server_hash` for every tool, so drift right after a deploy is expected; the
-changed `version_id` is visible in `server_basis`.
+- `SERVER-REDEPLOY` (informational, listed under `redeploys`) when a hosted `server_hash` changed
+  together with `server_basis.version_id` or `git_sha` and the path is unchanged.
+
+`SERVER-DRIFT` and `SERVER-PROVENANCE-MISSING` make the verify `ok:false`; `SERVER-REDEPLOY` alone
+does not. A hash change on the same version_id and git_sha, any path change, and any stdio hash
+change stay `SERVER-DRIFT`. The hash chain itself (`chain_ok`, `breaks`) is reported apart.
 
 Limits: on the Worker the "binary" is the deployed Worker bundle, identified by its version, not a
 hash of the bundle bytes. In stdio `--local` mode the hashed file is the resolved entry module
