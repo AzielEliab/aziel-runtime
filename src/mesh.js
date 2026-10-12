@@ -617,6 +617,9 @@ export function isMeshReadPath(pathname) {
     path === "/v1/mesh" ||
     path === "/v1/mesh/status" ||
     path === "/v1/mesh/nodes" ||
+    path === "/v1/mesh/bootstrap" ||
+    path === "/v1/mesh/install" ||
+    path === "/v1/mesh/install.sh" ||
     path === "/v1/mesh/outlets" ||
     path === "/v1/mesh/sot" ||
     path === "/v1/mesh/site-presence" ||
@@ -2800,6 +2803,18 @@ async function dispatchMeshHttpCore(method, pathname, payload, env, origin, sear
         hint: "GET /v1/mesh/status",
       }),
     };
+  }
+  if (path === "/v1/mesh/bootstrap" || path === "/v1/mesh/install" || path === "/v1/mesh/install.sh") {
+    if (m !== "GET" && m !== "HEAD") return { status: 405, body: refuse("MESH-METHOD", `GET ${path}.`, { hint: `GET ${path}` }) };
+    const onboard = await import("./mesh-onboard.js");
+    if (path === "/v1/mesh/bootstrap") {
+      const roster = await meshNodes(payload, env);
+      return { status: 200, body: onboard.bootstrapList({ origin, nodes: (roster && roster.nodes) || [] }) };
+    }
+    const q = searchParams;
+    const plan = onboard.installPlan({ origin, slug: q && q.get ? q.get("slug") : null, version: q && q.get ? q.get("version") : null, products: getSuitePresenceCatalog() || [] });
+    if (path === "/v1/mesh/install.sh") return { status: plan.ok ? 200 : 400, text: onboard.installScript(plan), body: plan };
+    return { status: plan.ok ? 200 : 400, body: plan };
   }
   if (path === "/v1/mesh/nodes") {
     if (m === "GET" || m === "HEAD") {

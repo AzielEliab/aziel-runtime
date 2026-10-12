@@ -37,6 +37,17 @@ const ED_PKCS8_PREFIX = Uint8Array.from([
   0x30, 0x2e, 0x02, 0x01, 0x00, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x04, 0x22, 0x04, 0x20,
 ]);
 
+/**
+ * TETHER-BASES-1.0 (additive). The three AZOS bases ride the tether status as flags only. Each
+ * names its existing FragGate door (expanded, not replaced). live stays false until the proof
+ * named in proof_required is demonstrated; nothing here sends mail, boots, or carries a packet.
+ */
+export const TETHER_BASES = Object.freeze([
+  Object.freeze({ base: "internet", door: "fraggate azos internet_base", live: false, flag: "alt_internet_live", proof_required: "a real packet carried between two different devices on LAN, Wi-Fi, Bluetooth, RF or photon (second_device true)", paper: "docs/designs/D2D-CARRIERS-1.0.md" }),
+  Object.freeze({ base: "mail_send", door: "fraggate azmail mail_send_base", live: false, flag: "public_mail_send_live", proof_required: "an operator-confirmed send accepted by a real external receiver, end to end", paper: "docs/designs/TETHER-BASES-1.0.md" }),
+  Object.freeze({ base: "kernel", door: "fraggate azos boot_path", live: false, flag: "kernel_live", proof_required: "a booted machine on real hardware, not a browser tab or a userspace archive", paper: "docs/designs/TETHER-BASES-1.0.md" }),
+]);
+
 export const TETHER_FACTS = Object.freeze({
   spec: TETHER_SPEC,
   direction: "runtime-sends, azos-verifies-and-stores",
@@ -292,6 +303,8 @@ export async function tetherStatus(env, opts = {}) {
     azos_chains: chains,
     azos_updated: keyMatches && chains.length > 0 && chains.every((row) => row.verified === true),
     azos_updated_rule: "true only when AZ-OS pins this runtime public key and reports every stored chain tip as verified.",
+    bases: TETHER_BASES,
+    bases_live: false,
     code: key ? (azos.ok ? "TETHER-STATUS" : "TETHER-AZOS-UNREACHABLE") : "TETHER-KEY-ABSENT",
   };
 }

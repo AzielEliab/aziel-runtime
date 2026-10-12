@@ -4480,6 +4480,10 @@ async function handleRequest(request, env, ctx) {
         }
       }
       const out = await dispatchMeshHttp(request.method, url.pathname, payload, env, origin, url.searchParams);
+      // MESH-ONBOARD-1.0: the one-click installer is served as a shell script.
+      if (out && typeof out.text === "string") {
+        return new Response(request.method === "HEAD" ? null : out.text, { status: out.status, headers: { "content-type": "text/x-shellscript; charset=utf-8", "cache-control": "no-store", "access-control-allow-origin": "*" } });
+      }
       if (isMeshReadPath(url.pathname)) {
         scheduleSuitePresenceFanout(ctx, env, { source: "request-path" });
       }
