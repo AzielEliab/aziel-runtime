@@ -28,3 +28,17 @@ await ops.append(s1, { c: "session", f: "three" });
 assert.equal((await R.importBundle(s2, await R.exportBundle(s1, d1))).code, "OFFLINE-FORK");
 assert.equal((await R.verifyAnchorsOffline("", null)).ok, false);
 console.log("verify-offline-records: ok");
+{
+  const home = await mkdtemp(join(tmpdir(), "azmcp-"));
+  process.env.AZIEL_RUNTIME_HOME = home;
+  const { createLocalSend } = await import("../src/mcp-stdio.js");
+  const send = await createLocalSend();
+  const call = async (id, method, params) => (await send({ jsonrpc: "2.0", id, method, params }, {})).json();
+  await call(1, "initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "t", version: "1" } });
+  const r = await call(2, "tools/call", { name: "chainlock_append", arguments: { c: "session", f: "persisted via mcp local", confirm: true } });
+  assert.notEqual(r.result && r.result.isError, true);
+  const again = await R.localStore(join(home, "records"));
+  assert.equal((await ops.loadChain(again, "session", "")).length, 1);
+  delete process.env.AZIEL_RUNTIME_HOME;
+  console.log("verify-offline-records: mcp local persists ok");
+}

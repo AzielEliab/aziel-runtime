@@ -30,3 +30,9 @@ installed. Local-mode ChainLock was in memory only, so records did not survive a
 ## Not covered
 AZNews and 4DMap Durable Object stores and the D1 data are not in `/v1/anchor/rows`, so they are not in the bundle.
 Publishing to Codeberg or archive.org needs the account holder's credentials.
+
+## Follow-up (same day)
+- `aziel-runtime-mcp --local` with `AZIEL_RUNTIME_HOME` set writes local ChainLock to the same persistent store, so MCP
+  appends survive a restart. With it unset, the store stays in memory as before.
+- FileKv batches writes during an import, so rehydrating the full live snapshot of about 4,800 rows takes under a second
+  instead of about 5 minutes.
