@@ -587,6 +587,13 @@ export async function verify(storeOrEnv, input = {}) {
       }
       prev = stamp.stamp_sha256;
     }
+    // RIB-013: a spec sealed as stamp #1 binds every later spec_ref in this chain (fail closed).
+    const { verifyExpectSpec } = await import("../expect-spec-verify.js");
+    const expect_spec = await verifyExpectSpec(rows.filter((row) => row && !row._broken), { hashOf: (r) => r.stamp_sha256, idOf: (r) => r.id });
+    if (!expect_spec.ok) {
+      ok = false;
+      for (const e of expect_spec.errors) breaks.push({ chain: name, seq: (e.seq ?? 1) - 1, reason: e.code });
+    }
     const dual = await verifyLattice(rows.filter((row) => row && !row._broken));
     if (!dual.ok) {
       ok = false;
@@ -603,6 +610,7 @@ export async function verify(storeOrEnv, input = {}) {
       ok,
       n: rows.length,
       integrity,
+      expect_spec: { status: expect_spec.status, spec_hash: expect_spec.spec_hash, errors: expect_spec.errors.length },
       isolated: !ok,
       dual_lattice: {
         ok: dual.ok,

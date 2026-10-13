@@ -251,6 +251,10 @@ export async function verifyChainStrict(receipts) {
   const { checkServerDrift } = await import("./server-provenance.js");
   const server_drift = checkServerDrift((receipts || []).filter(Boolean));
   for (const d of server_drift.drifts) errors.push({ seq: d.seq, error: d.code, tool: d.tool });
+  // RIB-013: the sealed expected-state spec (stamp #1) and every later spec_ref, fail closed.
+  const { verifyExpectSpec } = await import("./expect-spec-verify.js");
+  const expect_spec = await verifyExpectSpec((receipts || []).filter(Boolean), { hashOf: (r) => r.hash, requireRef: true });
+  for (const e of expect_spec.errors) errors.push({ seq: e.seq, error: e.code });
   const hashPresent = (receipts || []).length > 0 && (receipts || []).every((r) => r && typeof r.hash === "string");
   return {
     ok: errors.length === 0,
@@ -266,6 +270,7 @@ export async function verifyChainStrict(receipts) {
       note: "Session receipts may carry an anchor ref (the newest witness statement at mint time). That proves order after it, not external anchoring of this session.",
     },
     server_drift,
+    expect_spec,
     dual_lattice: {
       ok: dual.ok,
       lattice_rows: dual.lattice_rows,
