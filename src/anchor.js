@@ -330,7 +330,7 @@ export function anchoredThrough(entries, chain) {
 
 export const ROW_WALK_MAX = 256;
 
-async function recomputeRowHash(row) {
+export async function recomputeRowHash(row) {
   if (!row) return null;
   if (row.stamp_sha256) {
     const { stampSha256 } = await import("./chainlock/ops.js");
@@ -345,7 +345,7 @@ async function recomputeRowHash(row) {
 
 export const LEDGER_ROWS_SPEC = "LEDGER-ROWS-1.0";
 export const LEDGER_PAGE_MAX = 100;
-const GENESIS_PREVS = Object.freeze(["GENESIS", "0".repeat(64)]);
+export const GENESIS_PREVS = Object.freeze(["GENESIS", "0".repeat(64)]);
 
 /**
  * LEDGER-ROWS-1.0: public walk from genesis, one page at a time. GET /v1/anchor/rows?c=&from=&limit=.
@@ -390,11 +390,11 @@ export async function pageRows(env, chain, from, limit, deps = {}) {
   };
 }
 
-function rowPrev(row) {
+export function rowPrev(row) {
   return row ? row.prev : null;
 }
 
-function rowHash(row) {
+export function rowHash(row) {
   return row ? row.stamp_sha256 || row.hash || null : null;
 }
 
