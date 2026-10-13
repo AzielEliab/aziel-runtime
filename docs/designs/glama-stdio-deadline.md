@@ -40,3 +40,8 @@ FragGate stays the single door; no receipt is minted on the local path
   as an unhandled rejection.
 
 Test: `scripts/verify-glama-deadline.mjs` (npm test + Glama stdio workflow).
+
+## Addendum (2026-10-13 audit)
+`cli/mcp-stdio.mjs` now registers a process-level `unhandledRejection` handler. A stray background rejection is logged to
+stderr, and the stdio server keeps serving. stdout carries only JSON-RPC. The handler is additive and changes no tool,
+version or count.

@@ -77,6 +77,11 @@ export async function resolveServerFile(file) {
   }
 }
 if (process.argv[1] && resolve(process.argv[1]) === self) {
+  // GLAMA-STDIO-DEADLINE-1.0 safety net: a stray background rejection is logged to stderr and never kills
+  // the stdio server (Node 22 would otherwise exit on an unhandled rejection). stdout stays JSON-RPC only.
+  process.on("unhandledRejection", (reason) => {
+    process.stderr.write("aziel-runtime-mcp unhandled rejection (kept running): " + String((reason && reason.message) || reason).slice(0, 200) + "\n");
+  });
   main().catch((err) => {
     process.stderr.write(String(err && err.stack ? err.stack : err) + "\n");
     process.exit(1);
