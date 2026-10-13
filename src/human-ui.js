@@ -21,6 +21,7 @@ import {
 import { aboutAzielStripHtml, workerLaunchHtml } from "./about-aziel.js";
 import { launchHashtagChipsHtml } from "./launch-parts.js";
 import { brandRow, ecosystemBlockHtml, headMeta } from "./seo-html.js";
+import { newUserHintsHtml } from "./mesh-onboard.js";
 import { suiteDownloadHref } from "./human-hrefs.js";
 import { suiteDownloadHtml } from "./suite-pack.js";
 import { softwareOneLine } from "./software-copy.js";
@@ -1160,6 +1161,7 @@ ${workerLaunchHtml(origin, { slug: "aziel-runtime", name: "Aziel Runtime" })}
 ${ecosystemBlockHtml()}
   <footer class="donate"><p><a href="${DONATE_CANONICAL}">${escapeHtml(DONATE_FOOTER_RUNTIME)}</a></p></footer>
 ${humanDoorScript()}
+${newUserHintsHtml()}
 </body>
 </html>`;
 }

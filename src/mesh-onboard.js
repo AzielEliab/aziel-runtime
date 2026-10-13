@@ -115,3 +115,23 @@ export function bootstrapList({ origin, nodes = [] }) {
     ...honest(),
   };
 }
+
+/**
+ * MESH-HINTS-UI-1.0: the first-run hints as a dismissible popup. Remembered only in this
+ * browser (localStorage "azrt.hints.v1"); nothing is sent to the server. No tracking.
+ */
+export function newUserHintsHtml({ when = "first_run" } = {}) {
+  const hints = NEW_USER_HINTS.filter((h) => h.when === when).map((h) => ({ id: h.id, title: h.title, text: h.text }));
+  const data = JSON.stringify(hints).replace(/</g, "\\u003c");
+  return `<div id="azrt-hints" role="dialog" aria-modal="false" aria-labelledby="azrt-hints-title" hidden style="position:fixed;right:1rem;bottom:1rem;max-width:22rem;z-index:50;background:#fff;color:#111;border:1px solid #888;border-radius:10px;padding:.9rem 1rem;box-shadow:0 4px 18px rgba(0,0,0,.25);font:14px/1.4 system-ui,sans-serif">
+<strong id="azrt-hints-title"></strong><p id="azrt-hints-text" style="margin:.4rem 0 .7rem"></p>
+<button type="button" id="azrt-hints-next">Next</button> <button type="button" id="azrt-hints-close">Got it</button>
+<small id="azrt-hints-n" style="float:right;opacity:.7"></small></div>
+<script>(function(){var K="azrt.hints.v1",H=${data},s={};try{s=JSON.parse(localStorage.getItem(K)||"{}")||{}}catch(e){s={}}
+var left=H.filter(function(h){return !s[h.id]});if(!left.length)return;var i=0,el=document.getElementById("azrt-hints");
+function save(){try{localStorage.setItem(K,JSON.stringify(s))}catch(e){}}
+function show(){var h=left[i];document.getElementById("azrt-hints-title").textContent=h.title;document.getElementById("azrt-hints-text").textContent=h.text;document.getElementById("azrt-hints-n").textContent=(i+1)+" / "+left.length;document.getElementById("azrt-hints-next").hidden=i>=left.length-1;el.hidden=false}
+document.getElementById("azrt-hints-next").onclick=function(){s[left[i].id]=1;save();i++;show()};
+document.getElementById("azrt-hints-close").onclick=function(){left.forEach(function(h){s[h.id]=1});save();el.hidden=true};
+document.addEventListener("keydown",function(e){if(e.key==="Escape"&&!el.hidden){document.getElementById("azrt-hints-close").click()}});show()})();</script>`;
+}

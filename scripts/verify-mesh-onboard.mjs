@@ -23,3 +23,11 @@ const bl = bootstrapList({ origin: o, nodes: [{ node_id: "a", presence_class: "l
 assert.equal(bl.peer_count, 1);
 assert.ok(NEW_USER_HINTS.every((h) => !/aziel/i.test(h.text)));
 console.log("verify-mesh-onboard: ok");
+{
+  const r = await worker.fetch(new Request(o + "/workspace"), {}, { waitUntil() {} });
+  const html = await r.text();
+  assert.match(html, /id="azrt-hints"/); assert.match(html, /azrt\.hints\.v1/); assert.match(html, /Got it/);
+  { const { newUserHintsHtml } = await import("../src/mesh-onboard.js"); const h = newUserHintsHtml(); assert.ok(!/fetch\(|XMLHttpRequest|sendBeacon/.test(h)); assert.equal((h.match(/"id":/g) || []).length, 4); }
+  console.log("verify-mesh-onboard: hints popup ok");
+}
+function newUserHintsHtml_() { return ""; }

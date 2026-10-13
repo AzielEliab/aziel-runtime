@@ -44,8 +44,8 @@ const ED_PKCS8_PREFIX = Uint8Array.from([
  */
 export const TETHER_BASES = Object.freeze([
   Object.freeze({ base: "internet", door: "fraggate azos internet_base", live: false, flag: "alt_internet_live", proof_required: "a real packet carried between two different devices on LAN, Wi-Fi, Bluetooth, RF or photon (second_device true)", paper: "docs/designs/D2D-CARRIERS-1.0.md" }),
-  Object.freeze({ base: "mail_send", door: "fraggate azmail mail_send_base", live: false, flag: "public_mail_send_live", proof_required: "an operator-confirmed send accepted by a real external receiver, end to end", paper: "docs/designs/TETHER-BASES-1.0.md" }),
-  Object.freeze({ base: "kernel", door: "fraggate azos boot_path", live: false, flag: "kernel_live", proof_required: "a booted machine on real hardware, not a browser tab or a userspace archive", paper: "docs/designs/TETHER-BASES-1.0.md" }),
+  Object.freeze({ base: "mail_send", door: "fraggate azmail mail_send_base", live: false, flag: "public_mail_send_live", proof_required: "an operator-confirmed send accepted by a real external receiver, end to end", paper: "docs/designs/TETHER-BASES-1.0.md", self_test: Object.freeze({ spec: "BASES-SELFTEST-1.0", what: "mail_send_base -> real SMTP client -> 127.0.0.1 loopback sink, ClamAV scan on", log: "docs/proofs/BASES-SELFTEST.jsonl", proves_live: false }) }),
+  Object.freeze({ base: "kernel", door: "fraggate azos boot_path", live: false, flag: "kernel_live", proof_required: "a booted machine on real hardware, not a browser tab or a userspace archive", paper: "docs/designs/TETHER-BASES-1.0.md", self_test: Object.freeze({ spec: "BASES-SELFTEST-1.0", what: "bootHandoff: boot sector + cpio userspace booted in QEMU (emulated)", log: "docs/proofs/BASES-SELFTEST.jsonl", proves_live: false }) }),
 ]);
 
 export const TETHER_FACTS = Object.freeze({
