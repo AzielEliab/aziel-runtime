@@ -4,7 +4,7 @@
  */
 import assert from "node:assert/strict";
 import * as A from "../src/anchor.js";
-import { PENDING_MAX_MS, checkBuildWitness, liveBuildOf, pendingWindow, witnessedBuildOf } from "../src/build-witness.js";
+import { FUTURE_SKEW_MS, PENDING_MAX_MS, checkBuildWitness, liveBuildOf, pendingWindow, witnessedBuildOf } from "../src/build-witness.js";
 import { softwareMeta } from "../src/software-catalog.js";
 import { memoryChainWriterNamespace } from "../src/chainlock/writer-do.js";
 import { append } from "../src/chainlock/ops.js";
@@ -78,6 +78,12 @@ const chk = (anchors, live) => checkBuildWitness(anchors, live, { now: NOW });
     if (re) assert.match(r2.pending_rejected, re, why);
   }
   assert.equal(PENDING_MAX_MS, 22 * 60_000);
+  // Future skew is tight (5 s): 10 s ahead is not pending; 2 s ahead (clock jitter) still is.
+  assert.equal(FUTURE_SKEW_MS, 5_000);
+  const ahead10 = checkBuildWitness(log(row(1, both())), cfLive(SHA2, VID2, new Date(NOW + 10_000).toISOString()), { now: NOW });
+  assert.equal(ahead10.status, "failed"); assert.match(ahead10.pending_rejected, /future/);
+  const ahead2 = checkBuildWitness(log(row(1, both())), cfLive(SHA2, VID2, new Date(NOW + 2_000).toISOString()), { now: NOW });
+  assert.equal(ahead2.status, "pending");
   const noObs = pendingWindow(cfLive(SHA2, VID2, new Date(NOW).toISOString()), { n: 1 }, NOW);
   assert.equal(noObs.pending, false); n++;
 }

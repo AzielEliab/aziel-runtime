@@ -24,7 +24,7 @@ export const PENDING_GRACE_MS = 5 * 60_000;
 export const LOG_CACHE_MS = 120_000;
 /** Longest a fresh, unwitnessed deploy may report pending: interval + grace + log cache (22 min). */
 export const PENDING_MAX_MS = WITNESS_INTERVAL_MS + PENDING_GRACE_MS + LOG_CACHE_MS;
-const FUTURE_SKEW_MS = 60_000;
+export const FUTURE_SKEW_MS = 5_000;
 
 /** Live build identity, read at serve time (never guessed). */
 export function liveBuildOf(meta = {}, { versionTimestamp = null } = {}) {
