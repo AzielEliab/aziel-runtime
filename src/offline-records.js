@@ -28,7 +28,9 @@ function canon(v) {
 const sha = (s) => createHash("sha256").update(s).digest("hex");
 
 export class FileKv {
-  constructor(file) { this.file = file; this.map = null; }
+  constructor(file) { this.file = file; this.map = null; this.batching = 0; this.dirty = false; }
+  begin() { this.batching += 1; }
+  async commit() { this.batching = Math.max(0, this.batching - 1); if (!this.batching && this.dirty) await this.flush(); }
   async load() {
     if (this.map) return this.map;
     try { this.map = new Map(Object.entries(JSON.parse(await readFile(this.file, "utf8")))); } catch (e) { if (e && e.code !== "ENOENT") throw e; this.map = new Map(); }
@@ -39,10 +41,11 @@ export class FileKv {
     const tmp = this.file + ".tmp";
     await writeFile(tmp, JSON.stringify(Object.fromEntries(this.map)));
     await rename(tmp, this.file);
+    this.dirty = false;
   }
   async get(k) { return (await this.load()).has(k) ? this.map.get(k) : null; }
-  async put(k, v) { (await this.load()).set(k, String(v)); await this.flush(); }
-  async delete(k) { (await this.load()).delete(k); await this.flush(); }
+  async put(k, v) { (await this.load()).set(k, String(v)); this.dirty = true; if (!this.batching) await this.flush(); }
+  async delete(k) { (await this.load()).delete(k); this.dirty = true; if (!this.batching) await this.flush(); }
   async list({ prefix = "" } = {}) { const m = await this.load(); return { keys: [...m.keys()].filter((k) => k.startsWith(prefix)).sort().map((name) => ({ name })), list_complete: true }; }
 }
 
@@ -130,7 +133,13 @@ export async function importBundle(store, bundle, { trustKeys = null } = {}) {
     if (!prefixOk) return { ok: false, code: "OFFLINE-FORK", chain: c, local: local.length, bundle: rows.length, written: false };
     if (rows.length > local.length) plan.push([c, rows]);
   }
-  for (const [c, rows] of plan) await store.replaceRecords(c, rows);
+  const kv = store && store.kv && typeof store.kv.begin === "function" ? store.kv : null;
+  if (kv) kv.begin();
+  try {
+    for (const [c, rows] of plan) await store.replaceRecords(c, rows);
+  } finally {
+    if (kv) await kv.commit();
+  }
   return { ok: true, code: "OFFLINE-IMPORTED", written: plan.length > 0, chains: plan.map(([c, r]) => ({ chain: c, rows: r.length })) };
 }
 

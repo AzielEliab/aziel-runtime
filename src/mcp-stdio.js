@@ -341,6 +341,16 @@ export async function createLocalSend() {
   const { default: worker } = await import("./index.js");
   const { memorySessionNamespace } = await import("./session-do.js");
   const env = { SESSION: memorySessionNamespace({}) };
+  // OFFLINE-RECORDS-1.0: with AZIEL_RUNTIME_HOME set, local ChainLock writes persist to
+  // $AZIEL_RUNTIME_HOME/records (same store as the aziel-records CLI). Unset keeps the in-memory default.
+  if (process.env.AZIEL_RUNTIME_HOME) {
+    try {
+      const { localStore } = await import("./offline-records.js");
+      env.__aziel_chainlock = await localStore(`${process.env.AZIEL_RUNTIME_HOME}/records`);
+    } catch (err) {
+      process.stderr.write("aziel-runtime-mcp records store unavailable, using memory: " + String((err && err.message) || err).slice(0, 160) + "\n");
+    }
+  }
   const token = runtimeToken();
   if (token) env.RUNTIME_TOKEN = token;
   if (process.env.REQUIRE_TOKEN) env.REQUIRE_TOKEN = process.env.REQUIRE_TOKEN;
