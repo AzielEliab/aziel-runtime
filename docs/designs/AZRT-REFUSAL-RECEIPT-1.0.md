@@ -16,3 +16,19 @@ The refuse envelope is unchanged (same `ok`, `code`, `door`, message) plus an ad
 Fail-soft on the write only: if the store is unbound or the write fails, the envelope says `refusal_receipt.sealed: false` with a reason. A refusal never turns into success, and no receipt is invented.
 
 Law fit: FragGate stays the door; no new tool; refuse codes untouched (REFUSAL-CONTRACT §5 adds `SCHEMA-DRIFT`, `EXPECT-*`); additive envelope field; append-only; dual lattice intact.
+
+## Session chain (RIB-018 gap closed)
+
+#247 sealed MCP-door refusals on the internal ChainLock `refusals` chain. Pre-exec policy refusals on
+`/v1/session/{id}/exec` (`slug_not_allowed`, `op_not_allowed`, `payload_too_large`, `max_ops`,
+`unknown_slug`, `bad_exec`, `SCHEMA-DRIFT`) left no session receipt. Now each one appends exactly one
+`event: "refused"` receipt to the session chain before the error returns:
+`outcome: "failed"`, `payload.refusal { code, status, slug, op, payload_digest, payload_bytes, executed:false }`.
+It links by prev_hash and passes verifyChain / verifyChainStrict. The error body carries
+`refused_receipt { sealed:true, seq, hash }`. No exec receipt is written, and `max_ops` refusals do not
+consume an exec.
+
+Closed or expired sessions and receipt-cap refusals stay as they were. They cannot seal, and the error says
+so with `refused_receipt { sealed:false, reason }`. Malformed JSON and operator-token-in-body refusals
+are rejected before the session is touched and are not sealed (no secret material reaches a receipt).
+Receipts are hash-linked and sealed, not signed.
