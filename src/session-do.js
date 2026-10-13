@@ -8,6 +8,7 @@
 import {
   applyClose,
   applyStale,
+  applyRevoke,
   applyOpen,
   applyPolicy,
   commitExec,
@@ -120,6 +121,12 @@ export class RuntimeSession {
       }
       if (action === "stale" && request.method === "POST") {
         return await this.stale(await readJson(request));
+      }
+      if (action === "revoke" && request.method === "POST") {
+        return await this.revoke(await readJson(request));
+      }
+      if (action === "spec" && request.method === "GET") {
+        return await this.specState();
       }
       if (action === "job-put" && request.method === "POST") {
         return await this.jobPut(await readJson(request));
@@ -282,10 +289,28 @@ export class RuntimeSession {
 
   async stale(body = {}) {
     const session = await this.expireIfNeeded(await this.load());
-    const receipt = await applyStale(session, new Date().toISOString(), body);
+    const { issuer_key: issuerKey, ...rest } = body || {};
+    const receipt = await applyStale(session, new Date().toISOString(), rest, { issuerKey });
     await this.save(session);
     const verified = await verifyChainStrict(session.receipts);
     return json({ ok: true, session: publicSession(session), receipt, spec_stale: verified.spec_stale, verified });
+  }
+
+  async revoke(body = {}) {
+    const session = await this.expireIfNeeded(await this.load());
+    const { issuer_key: issuerKey, ...rest } = body || {};
+    const receipt = await applyRevoke(session, new Date().toISOString(), rest, { issuerKey });
+    await this.save(session);
+    const verified = await verifyChainStrict(session.receipts);
+    return json({ ok: true, session: publicSession(session), receipt, verified });
+  }
+
+  async specState() {
+    const session = await this.load();
+    if (!session) return json({ error: "session not found", code: "session_not_found" }, 404);
+    const { specState } = await import("./issuer-append.js");
+    const { specStaleness } = await import("./spec-stale.js");
+    return json({ ok: true, session_id: session.id, state: specState(session.receipts), spec_stale: specStaleness(session.receipts) });
   }
 
   async close(body = {}) {

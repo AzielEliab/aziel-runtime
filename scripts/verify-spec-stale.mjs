@@ -8,6 +8,10 @@ import { expectSpecOf, verdictOf } from "../src/receipt-guard.js";
 import { appendReceipt, applyClose, applyOpen, applyStale, canonicalize, newSessionId, openSession, sha256Hex, verifyChainStrict } from "../src/session-core.js";
 import { specStaleness, staleRequestOf } from "../src/spec-stale.js";
 import { memorySessionNamespace } from "../src/session-do.js";
+import { newIssuerKey } from "../src/issuer-append.js";
+// RIB-015 (stacked): stale stamps are issuer-only, so every test run opens with an issuer key.
+const ISS = await newIssuerKey();
+const K = { issuerKey: ISS.key };
 
 let n = 0;
 const T = "2026-10-12T00:00:00Z";
@@ -16,7 +20,7 @@ const exp = await expectSpecOf({ spec: { state: "foldlock health ok" }, verdict_
 const verdict = verdictOf({ pass: true }).verdict;
 async function run() {
   const s = openSession({ id: newSessionId(), now: T, version: "test" });
-  await applyOpen(s, T, { expect: exp.expect, expect_hash: exp.expect_hash });
+  await applyOpen(s, T, { expect: exp.expect, expect_hash: exp.expect_hash, issuer_key_hash: ISS.key_hash });
   await appendReceipt(s, "exec", ex, T);
   return s;
 }
@@ -40,7 +44,7 @@ const codes = (v) => v.errors.map((e) => e.error);
 {
   const s = await run();
   const before = JSON.stringify(s.receipts[0]);
-  const r = await applyStale(s, T, { new_world_version: "w-2", reason: "upstream schema moved" });
+  const r = await applyStale(s, T, { new_world_version: "w-2", reason: "upstream schema moved" }, K);
   assert.equal(r.event, "stale"); assert.equal(r.seq, 3);
   assert.equal(r.stale.spec_world_version, "w-1"); assert.equal(r.stale.new_world_version, "w-2");
   assert.equal(r.stale.spec_ref.receipt_hash, s.receipts[0].hash);
@@ -58,7 +62,7 @@ const codes = (v) => v.errors.map((e) => e.error);
 // A verdict smuggled in after a stale stamp (bypassing close) fails verify closed.
 {
   const s = await run();
-  await applyStale(s, T, { new_world_version: "w-2", reason: "moved" });
+  await applyStale(s, T, { new_world_version: "w-2", reason: "moved" }, K);
   await appendReceipt(s, "close", { sealed: true }, T, { verdict });
   const v = await verifyChainStrict(s.receipts);
   assert.equal(v.ok, false); assert.ok(codes(v).includes("EXPECT-VERDICT-STALE-SPEC")); assert.equal(v.spec_stale.verdict_valid, false); n++;
@@ -75,13 +79,13 @@ const codes = (v) => v.errors.map((e) => e.error);
 // Refusals: no spec, same version, bad body, forged stale stamps.
 {
   const s = openSession({ id: newSessionId(), now: T, version: "test" });
-  await applyOpen(s, T, {});
-  await assert.rejects(applyStale(s, T, { new_world_version: "w-2", reason: "x" }), (e) => e.code === "SPEC-STALE-NO-SPEC");
+  await applyOpen(s, T, { issuer_key_hash: ISS.key_hash });
+  await assert.rejects(applyStale(s, T, { new_world_version: "w-2", reason: "x" }, K), (e) => e.code === "SPEC-STALE-NO-SPEC");
   const s2 = await run();
-  await assert.rejects(applyStale(s2, T, { new_world_version: "w-1", reason: "x" }), (e) => e.code === "SPEC-STALE-SAME-VERSION");
+  await assert.rejects(applyStale(s2, T, { new_world_version: "w-1", reason: "x" }, K), (e) => e.code === "SPEC-STALE-SAME-VERSION");
   for (const bad of [null, {}, { new_world_version: "" }, { new_world_version: "w", reason: "" }, { new_world_version: { a: 1 }, reason: "r" }]) assert.equal(staleRequestOf(bad).ok, false);
-  await applyStale(s2, T, { new_world_version: "w-2", reason: "a" });
-  await applyStale(s2, T, { new_world_version: "w-3", reason: "b" });
+  await applyStale(s2, T, { new_world_version: "w-2", reason: "a" }, K);
+  await applyStale(s2, T, { new_world_version: "w-3", reason: "b" }, K);
   assert.equal((await verifyChainStrict(s2.receipts)).spec_stale.current_world_version, "w-3"); n++;
   const forged = specStaleness([
     { seq: 1, hash: "h1", expect_hash: "e", expect: { world_version: "w-1" } },
@@ -108,9 +112,12 @@ const codes = (v) => v.errors.map((e) => e.error);
 {
   const handler = (await import("../src/index.js")).default.fetch;
   const env = { SESSION: memorySessionNamespace({}) };
-  const call = (p, body) => handler(new Request("https://rt.example" + p, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }), env);
-  const open = await (await call("/v1/session/open", { expect: { spec: "s", verdict_criteria: "c", world_version: "w-1" } })).json();
+  let key = null;
+  const call = (p, body) => handler(new Request("https://rt.example" + p, { method: "POST", headers: { "content-type": "application/json", ...(key ? { "x-azrt-issuer-key": key } : {}) }, body: JSON.stringify(body) }), env);
+  const openRes = await call("/v1/session/open", { expect: { spec: "s", verdict_criteria: "c", world_version: "w-1" } });
+  const open = await openRes.json();
   const id = open.session.id;
+  key = open.issuer_key;
   const bad = await call(`/v1/session/${id}/stale`, { new_world_version: "" });
   assert.equal(bad.status, 400);
   const ok = await call(`/v1/session/${id}/stale`, { new_world_version: "w-2", reason: "moved" });

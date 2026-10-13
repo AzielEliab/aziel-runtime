@@ -1333,7 +1333,7 @@ function corsHeaders() {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, HEAD, POST, DELETE, OPTIONS",
     "Access-Control-Allow-Headers":
-      "Content-Type, Accept, Authorization, X-Aziel-Runtime-Token, X-Aziel-Runtime-Via, X-Aziel-Runtime-Host, MCP-Protocol-Version, Mcp-Session-Id, mcp-session-id",
+      "Content-Type, Accept, Authorization, X-Aziel-Runtime-Token, X-Aziel-Runtime-Via, X-Aziel-Runtime-Host, X-Azrt-Issuer-Key, MCP-Protocol-Version, Mcp-Session-Id, mcp-session-id",
     "Access-Control-Expose-Headers": `${VERSION_HEADER}, ${ROLE_HEADER}, MCP-Protocol-Version, Mcp-Session-Id`,
   };
 }
