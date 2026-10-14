@@ -259,6 +259,10 @@ export async function verifyChainStrict(receipts) {
   const { specStaleness } = await import("./spec-stale.js");
   const spec_stale = specStaleness(receipts);
   for (const e of spec_stale.errors) errors.push({ seq: e.seq, error: e.code });
+  // RIB-015: control stamps name the genesis issuer; nothing runs or grades after revoke/stale.
+  const { verifyIssuerAppend } = await import("./issuer-append.js");
+  const issuer_append = verifyIssuerAppend(receipts);
+  for (const e of issuer_append.errors) errors.push({ seq: e.seq, error: e.code });
   const hashPresent = (receipts || []).length > 0 && (receipts || []).every((r) => r && typeof r.hash === "string");
   return {
     ok: errors.length === 0,
@@ -276,6 +280,7 @@ export async function verifyChainStrict(receipts) {
     server_drift,
     expect_spec,
     spec_stale,
+    issuer_append,
     dual_lattice: {
       ok: dual.ok,
       lattice_rows: dual.lattice_rows,
@@ -482,10 +487,13 @@ export function assertExecAllowed(session, { slug, op, payloadBytes, knownSlugs,
 }
 
 export async function applyOpen(session, nowIso, extra = {}) {
+  // RIB-015: genesis records the issuer (hash of a Worker-minted key; the key itself is never sealed).
+  const { issuerField } = await import("./issuer-append.js");
+  const issuer = issuerField(extra && extra.issuer_key_hash);
   await appendReceipt(session, "open", {
     policy: session.policy,
     source: session.source,
-  }, nowIso, additiveReceiptFields(extra));
+  }, nowIso, { ...additiveReceiptFields(extra), ...(issuer ? { issuer } : {}) });
   return session;
 }
 
@@ -514,6 +522,15 @@ export async function recordIntent(session, { slug, op, payload, payloadText, kn
       current_schema_hash: schemaHash,
       executed: false,
     });
+  }
+  // RIB-015: the run path only READS spec state; a revoked or stale spec stops it before anything runs.
+  const { specState } = await import("./issuer-append.js");
+  const state = specState(session.receipts);
+  if (state.revoked) {
+    throw sessionError(409, "SPEC-REVOKED", "The issuer revoked this run's spec. Nothing ran.", { executed: false, revoked_at_seq: state.revoked_at_seq });
+  }
+  if (state.stale) {
+    throw sessionError(409, "SPEC-STALE", "The issuer marked this run's spec stale. Nothing ran.", { executed: false, stale_at_seq: state.stale_at_seq });
   }
   const bytes = new TextEncoder().encode(payloadText).length;
   const allowed = assertExecAllowed(session, { slug, op, payloadBytes: bytes, knownSlugs, nowIso });
@@ -585,9 +602,12 @@ export async function commitExec(session, { intent, status, latencyMs, requestDi
  * RIB-014: append a stale stamp against the sealed spec (never edits stamp #1). Event-driven only.
  * Writer authority (issuer-only) is RIB-015.
  */
-export async function applyStale(session, nowIso, raw) {
+export async function applyStale(session, nowIso, raw, { issuerKey = null } = {}) {
   if (!session) throw sessionError(404, "session_not_found", "session not found");
   if (session.closed) throw sessionError(409, "session_closed", "session is sealed; no further stamps", { session_id: session.id });
+  // RIB-015: only the issuer recorded at genesis may append a stale stamp.
+  const { assertIssuer } = await import("./issuer-append.js");
+  const written_by = await assertIssuer(session, issuerKey);
   const { staleRequestOf, specWorldVersion, specStaleness, SPEC_STALE } = await import("./spec-stale.js");
   const req = staleRequestOf(raw);
   if (!req.ok) throw sessionError(400, req.code, req.message);
@@ -605,6 +625,24 @@ export async function applyStale(session, nowIso, raw) {
       new_world_version: req.new_world_version,
       reason: req.reason,
     },
+    written_by,
+  });
+}
+
+/** RIB-015: issuer-only revocation of the run/spec. Append-only; nothing runs or grades after it. */
+export async function applyRevoke(session, nowIso, raw, { issuerKey = null } = {}) {
+  if (!session) throw sessionError(404, "session_not_found", "session not found");
+  if (session.closed) throw sessionError(409, "session_closed", "session is sealed; no further stamps", { session_id: session.id });
+  const { assertIssuer, specState, ISSUER_SPEC } = await import("./issuer-append.js");
+  const written_by = await assertIssuer(session, issuerKey);
+  const reason = raw && raw.reason != null ? String(raw.reason).trim() : "";
+  if (!reason || reason.length > 512) throw sessionError(400, "REVOKE-INVALID", "revoke needs { reason } (1-512 chars).");
+  const st = specState(session.receipts);
+  if (st.revoked) throw sessionError(409, "REVOKE-DUPLICATE", "already revoked", { revoked_at_seq: st.revoked_at_seq });
+  const first = session.receipts[0];
+  return appendReceipt(session, "revoke", {}, nowIso, {
+    revoke: { spec: ISSUER_SPEC, genesis_hash: first.hash, ...(first.expect_hash ? { expect_hash: first.expect_hash } : {}), reason },
+    written_by,
   });
 }
 
@@ -613,6 +651,10 @@ export async function applyClose(session, nowIso, { force = false, additive = nu
   if (additive && additive.verdict != null) {
     const { specStaleness } = await import("./spec-stale.js");
     const st = specStaleness(session.receipts);
+    const { specState } = await import("./issuer-append.js");
+    if (specState(session.receipts).revoked) {
+      throw sessionError(409, "SPEC-REVOKED", "The issuer revoked this spec; no verdict can be graded against it. Close without a verdict.");
+    }
     if (st.status === "stale") {
       throw sessionError(409, "EXPECT-SPEC-STALE", "the sealed spec was marked stale before close; no verdict can be graded against it. Close without a verdict.", { stale_at_seq: st.stale_at_seq, current_world_version: st.current_world_version });
     }

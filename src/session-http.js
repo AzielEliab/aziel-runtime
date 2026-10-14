@@ -55,7 +55,7 @@ async function stubFetch(env, id, path, init) {
   return stub.fetch(new Request("https://session/" + path.replace(/^\//, ""), init));
 }
 
-async function copyJson(res, json, { consent = false } = {}) {
+async function copyJson(res, json, { consent = false, issuerKey = null } = {}) {
   let body;
   try {
     body = await res.json();
@@ -64,6 +64,11 @@ async function copyJson(res, json, { consent = false } = {}) {
   }
   if (consent && body && typeof body === "object" && !Array.isArray(body)) {
     Object.assign(body, confirmConsentHonesty());
+  }
+  // RIB-015: the issuer key is returned once, on a fresh open only; only its hash is sealed.
+  if (issuerKey && res.status === 200 && body && body.ok === true && !body.already) {
+    body.issuer_key = issuerKey;
+    body.issuer_key_note = "Shown once and never stored. Send it as X-Azrt-Issuer-Key to append stale or revoke stamps; anyone else gets CL-NOT-ISSUER.";
   }
   return json(body, res.status);
 }
@@ -146,6 +151,8 @@ export async function handleSessionRequest(request, env, deps) {
     const expect = await expectSpecOf(body.expect);
     if (expect && expect.ok === false) return json(expect, 400);
     const id = SESSION_ID_RE.test(String(body.id || "")) ? body.id : newSessionId();
+    const { newIssuerKey } = await import("./issuer-append.js");
+    const issuer = await newIssuerKey();
     const res = await stubFetch(env, id, "open", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -156,9 +163,10 @@ export async function handleSessionRequest(request, env, deps) {
         now: new Date().toISOString(),
         ...additiveForSession(body),
         ...(expect ? { expect: expect.expect, expect_hash: expect.expect_hash } : {}),
+        issuer_key_hash: issuer.key_hash,
       }),
     });
-    return copyJson(res, json, { consent: true });
+    return copyJson(res, json, { consent: true, issuerKey: issuer.key });
   }
 
   const m = path.match(/^\/v1\/session\/(sess_[a-f0-9]{32})(?:\/([a-z]+))?$/i);
@@ -166,7 +174,7 @@ export async function handleSessionRequest(request, env, deps) {
     return json(
       {
         error: "not a session route",
-        hint: "POST /v1/session/open  POST /v1/session/{id}/policy  POST /v1/session/{id}/exec  GET /v1/session/{id}/receipt  GET /v1/session/{id}/receipts  POST /v1/session/{id}/stale  POST /v1/session/{id}/close",
+        hint: "POST /v1/session/open  POST /v1/session/{id}/policy  POST /v1/session/{id}/exec  GET /v1/session/{id}/receipt  GET /v1/session/{id}/receipts  POST /v1/session/{id}/stale  POST /v1/session/{id}/revoke  GET /v1/session/{id}/spec  POST /v1/session/{id}/close",
       },
       404,
       extra ? extra(path) : {},
@@ -237,11 +245,34 @@ export async function handleSessionRequest(request, env, deps) {
       await stubFetch(env, id, "stale", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ new_world_version: req.new_world_version, reason: req.reason }),
+        body: JSON.stringify({ new_world_version: req.new_world_version, reason: req.reason, issuer_key: request.headers.get("x-azrt-issuer-key") || null }),
       }),
       json,
       { consent: true },
     );
+  }
+  if (action === "revoke" && request.method === "POST") {
+    // RIB-015: issuer-only revocation (X-Azrt-Issuer-Key). Append-only.
+    let rb = {};
+    try {
+      const text = await request.text();
+      rb = text && text.trim() ? JSON.parse(text) : {};
+    } catch {
+      return json({ error: "invalid JSON", code: "bad_json" }, 400);
+    }
+    return copyJson(
+      await stubFetch(env, id, "revoke", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ reason: rb && rb.reason, issuer_key: request.headers.get("x-azrt-issuer-key") || null }),
+      }),
+      json,
+      { consent: true },
+    );
+  }
+  if (action === "spec" && request.method === "GET") {
+    // RIB-015: read-only spec state for the run/deploy path (no write path from here).
+    return copyJson(await stubFetch(env, id, "spec", { method: "GET" }), json);
   }
   if (action === "exec" && request.method === "POST") {
     return handleExec(request, env, id, { json, PRODUCTS, BY_SLUG, upstreamFetch });

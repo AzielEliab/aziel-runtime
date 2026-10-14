@@ -911,7 +911,7 @@ export function markdownResponse(body, extra = {}) {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, HEAD, POST, OPTIONS",
       "Access-Control-Allow-Headers":
-        "Content-Type, Accept, Authorization, X-Aziel-Runtime-Token, X-Aziel-Runtime-Via, X-Aziel-Runtime-Host, MCP-Protocol-Version, mcp-session-id",
+        "Content-Type, Accept, Authorization, X-Aziel-Runtime-Token, X-Aziel-Runtime-Via, X-Aziel-Runtime-Host, X-Azrt-Issuer-Key, MCP-Protocol-Version, mcp-session-id",
       "Access-Control-Expose-Headers": "X-Aziel-Runtime-Version, X-Aziel-Runtime-Role",
       "X-Robots-Tag": "index, follow, max-snippet:-1, max-image-preview:large",
       ...extra,

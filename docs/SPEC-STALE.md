@@ -20,6 +20,6 @@ Rules (fail closed):
 - `stale` is not an additive field, so exec/close callers cannot inject it.
 
 Expiry is a sealed event, not a schedule: no timer, clock or TTL decides staleness.
-Who may write the stale stamp (issuer only, CL-NOT-ISSUER) is RIB-015, not this PR; today any holder
-of the session id can append it, the same as every other session write.
+Only the issuer recorded at genesis may append a stale stamp (RIB-015, docs/ISSUER-APPEND.md):
+send `X-Azrt-Issuer-Key`; anyone else gets 403 CL-NOT-ISSUER.
 Receipts are hash-linked and sealed, not signed. This is a PR, not a live claim.
