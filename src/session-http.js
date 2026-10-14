@@ -166,7 +166,7 @@ export async function handleSessionRequest(request, env, deps) {
     return json(
       {
         error: "not a session route",
-        hint: "POST /v1/session/open  POST /v1/session/{id}/policy  POST /v1/session/{id}/exec  GET /v1/session/{id}/receipt  GET /v1/session/{id}/receipts  POST /v1/session/{id}/close",
+        hint: "POST /v1/session/open  POST /v1/session/{id}/policy  POST /v1/session/{id}/exec  GET /v1/session/{id}/receipt  GET /v1/session/{id}/receipts  POST /v1/session/{id}/stale  POST /v1/session/{id}/close",
       },
       404,
       extra ? extra(path) : {},
@@ -216,6 +216,28 @@ export async function handleSessionRequest(request, env, deps) {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(verdict ? { verdict: verdict.verdict } : {}),
+      }),
+      json,
+      { consent: true },
+    );
+  }
+  if (action === "stale" && request.method === "POST") {
+    // RIB-014: append-only stale stamp against the sealed spec. Issuer-only writing is RIB-015.
+    let staleBody = {};
+    try {
+      const text = await request.text();
+      staleBody = text && text.trim() ? JSON.parse(text) : {};
+    } catch {
+      return json({ error: "invalid JSON", code: "bad_json" }, 400);
+    }
+    const { staleRequestOf } = await import("./spec-stale.js");
+    const req = staleRequestOf(staleBody);
+    if (!req.ok) return json(req, 400);
+    return copyJson(
+      await stubFetch(env, id, "stale", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ new_world_version: req.new_world_version, reason: req.reason }),
       }),
       json,
       { consent: true },

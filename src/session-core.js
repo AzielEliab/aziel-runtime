@@ -255,6 +255,10 @@ export async function verifyChainStrict(receipts) {
   const { verifyExpectSpec } = await import("./expect-spec-verify.js");
   const expect_spec = await verifyExpectSpec((receipts || []).filter(Boolean), { hashOf: (r) => r.hash, requireRef: true });
   for (const e of expect_spec.errors) errors.push({ seq: e.seq, error: e.code });
+  // RIB-014: a verdict sealed after a stale stamp can never be reported valid (fail closed).
+  const { specStaleness } = await import("./spec-stale.js");
+  const spec_stale = specStaleness(receipts);
+  for (const e of spec_stale.errors) errors.push({ seq: e.seq, error: e.code });
   const hashPresent = (receipts || []).length > 0 && (receipts || []).every((r) => r && typeof r.hash === "string");
   return {
     ok: errors.length === 0,
@@ -271,6 +275,7 @@ export async function verifyChainStrict(receipts) {
     },
     server_drift,
     expect_spec,
+    spec_stale,
     dual_lattice: {
       ok: dual.ok,
       lattice_rows: dual.lattice_rows,
@@ -576,8 +581,42 @@ export async function commitExec(session, { intent, status, latencyMs, requestDi
   return receipt;
 }
 
+/**
+ * RIB-014: append a stale stamp against the sealed spec (never edits stamp #1). Event-driven only.
+ * Writer authority (issuer-only) is RIB-015.
+ */
+export async function applyStale(session, nowIso, raw) {
+  if (!session) throw sessionError(404, "session_not_found", "session not found");
+  if (session.closed) throw sessionError(409, "session_closed", "session is sealed; no further stamps", { session_id: session.id });
+  const { staleRequestOf, specWorldVersion, specStaleness, SPEC_STALE } = await import("./spec-stale.js");
+  const req = staleRequestOf(raw);
+  if (!req.ok) throw sessionError(400, req.code, req.message);
+  const first = (session.receipts || [])[0];
+  if (!first || !first.expect_hash) throw sessionError(409, "SPEC-STALE-NO-SPEC", "no expected-state spec was sealed as stamp #1; nothing to mark stale");
+  const current = specStaleness(session.receipts).current_world_version ?? specWorldVersion(session.receipts);
+  if (current != null && current === req.new_world_version) {
+    throw sessionError(409, "SPEC-STALE-SAME-VERSION", "new_world_version equals the version already in force; the world did not move");
+  }
+  return appendReceipt(session, "stale", {}, nowIso, {
+    stale: {
+      spec: SPEC_STALE,
+      spec_ref: { receipt_hash: first.hash, expect_hash: first.expect_hash },
+      spec_world_version: current,
+      new_world_version: req.new_world_version,
+      reason: req.reason,
+    },
+  });
+}
+
 export async function applyClose(session, nowIso, { force = false, additive = null } = {}) {
   if (!session) throw sessionError(404, "session_not_found", "session not found");
+  if (additive && additive.verdict != null) {
+    const { specStaleness } = await import("./spec-stale.js");
+    const st = specStaleness(session.receipts);
+    if (st.status === "stale") {
+      throw sessionError(409, "EXPECT-SPEC-STALE", "the sealed spec was marked stale before close; no verdict can be graded against it. Close without a verdict.", { stale_at_seq: st.stale_at_seq, current_world_version: st.current_world_version });
+    }
+  }
   if (session.closed) {
     throw sessionError(409, "session_closed", "session is sealed; no further exec or policy", {
       session_id: session.id,

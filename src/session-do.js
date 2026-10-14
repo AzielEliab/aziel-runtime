@@ -7,6 +7,7 @@
 
 import {
   applyClose,
+  applyStale,
   applyOpen,
   applyPolicy,
   commitExec,
@@ -116,6 +117,9 @@ export class RuntimeSession {
       }
       if (action === "close" && request.method === "POST") {
         return await this.close(await readJson(request));
+      }
+      if (action === "stale" && request.method === "POST") {
+        return await this.stale(await readJson(request));
       }
       if (action === "job-put" && request.method === "POST") {
         return await this.jobPut(await readJson(request));
@@ -274,6 +278,14 @@ export class RuntimeSession {
     if (!session) return json({ error: "session not found", code: "session_not_found" }, 404);
     const verified = await verifyChainStrict(session.receipts);
     return json({ ok: true, session: publicSession(session), receipts: session.receipts, verified });
+  }
+
+  async stale(body = {}) {
+    const session = await this.expireIfNeeded(await this.load());
+    const receipt = await applyStale(session, new Date().toISOString(), body);
+    await this.save(session);
+    const verified = await verifyChainStrict(session.receipts);
+    return json({ ok: true, session: publicSession(session), receipt, spec_stale: verified.spec_stale, verified });
   }
 
   async close(body = {}) {
