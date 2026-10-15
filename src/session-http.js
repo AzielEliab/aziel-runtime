@@ -274,6 +274,21 @@ export async function handleSessionRequest(request, env, deps) {
     // RIB-015: read-only spec state for the run/deploy path (no write path from here).
     return copyJson(await stubFetch(env, id, "spec", { method: "GET" }), json);
   }
+  if ((action === "pause" || action === "resume") && request.method === "POST") {
+    // RIB-044 / AZRT-RESUME-ANCHOR-1.0: freeze head queued for the witness; resume is anchor-gated.
+    let b = {};
+    try {
+      const text = await request.text();
+      b = text && text.trim() ? JSON.parse(text) : {};
+    } catch {
+      return json({ error: "invalid JSON", code: "bad_json" }, 400);
+    }
+    return copyJson(
+      await stubFetch(env, id, action, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(action === "resume" ? { strict: b.strict === true } : {}) }),
+      json,
+      { consent: true },
+    );
+  }
   if (action === "exec" && request.method === "POST") {
     return handleExec(request, env, id, { json, PRODUCTS, BY_SLUG, upstreamFetch });
   }

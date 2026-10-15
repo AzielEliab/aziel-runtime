@@ -419,6 +419,10 @@ export function mergePolicy(current, incoming) {
     }
     next.require_decision = incoming.require_decision === true;
   }
+  if (incoming.resume_strict !== undefined) {
+    // RIB-044: resume refuses unless a witness statement covers the freeze head.
+    next.resume_strict = incoming.resume_strict === true;
+  }
   if (incoming.kv_increment !== undefined) {
     next.kv_increment = incoming.kv_increment === true;
   }
