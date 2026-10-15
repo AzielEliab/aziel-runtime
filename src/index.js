@@ -4698,13 +4698,20 @@ async function handleRequest(request, env, ctx) {
         const { softwareMeta } = await import("./software-catalog.js");
         const build_witness = checkBuildWitness(anchors, liveBuildOf(softwareMeta(env), { versionTimestamp: env && env.CF_VERSION_METADATA && env.CF_VERSION_METADATA.timestamp }));
         const buildBlocks = build_witness.status === "failed" || build_witness.status === "pending";
-        const ok = Boolean(anchors.ok && latest && latest.runtime_check.ok) && !buildBlocks;
+        // RIB-047 / AZRT-WITNESS-QUORUM-1.0: second independent witness slot + quorum (slot 1 stays required).
+        const { witnessQuorum } = await import("./witness-quorum.js");
+        const rq = url.searchParams.get("require_quorum");
+        const witness_quorum = await witnessQuorum(env, { primary: anchors, primaryCheck: latest && latest.runtime_check, fetchImpl: fetch, deps, requireQuorum: rq === "1" || rq === "true" ? 2 : (rq || null), force: url.searchParams.get("fresh") === "1" });
+        const primaryOk = Boolean(anchors.ok && latest && latest.runtime_check.ok);
+        // All three gates must pass: slot-1 anchor, RIB-041 build witness, RIB-047 quorum.
+        const ok = primaryOk && !buildBlocks && witness_quorum.ok;
         const body = {
           spec: anchor.ANCHOR_SPEC,
           ok,
-          code: ok ? "ANCHOR-OK" : buildBlocks ? build_witness.code : (anchors.ok ? anchor.ANCHOR_CODES.mismatch : anchors.code),
+          code: ok ? "ANCHOR-OK" : !primaryOk ? (anchors.ok ? anchor.ANCHOR_CODES.mismatch : anchors.code) : buildBlocks ? build_witness.code : witness_quorum.code,
           build_witness,
           fail_closed: true,
+          witness_quorum,
           witness: { repo: anchor.WITNESS_REPO_URL, log: anchor.WITNESS_LOG_URL, public_key: anchor.WITNESS_PUBLIC_KEY, retired_keys: anchor.WITNESS_RETIRED_KEYS, key_outside_runtime: true, key_note: "The private key is an Actions secret of the witness repo. This Worker holds only the public key and cannot sign or write the log.", log_verified: anchors.ok, entries: anchors.n || 0, ...(anchors.ok ? {} : { log_code: anchors.code, at: anchors.at, reason: anchors.reason }) },
           latest,
           auditor: { spec: anchor.AUDITOR_SPEC, log: anchor.AUDIT_LOG_URL, public_key: anchor.AUDITOR_PUBLIC_KEY, retired_keys: anchor.AUDITOR_RETIRED_KEYS, log_verified: audits.ok, entries: audits.n || 0, latest: audits.ok ? { n: audits.latest.statement.n, verdict: audits.latest.statement.verdict, at: audits.latest.statement.audited_at, statement_hash: audits.latest.statement_hash } : null, ...(audits.ok ? {} : { log_code: audits.code }) },
