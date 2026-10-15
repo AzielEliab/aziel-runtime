@@ -326,6 +326,9 @@ async function handleExec(request, env, id, { json, PRODUCTS, BY_SLUG, upstreamF
       known_slugs: [...known],
       banner: product ? product.banner : null,
       schema_hash: currentSchemaHash(),
+      // RIB-043: DecisionGATE decision + goal for gated execs (checked and sealed by the session).
+      ...(body.decision && typeof body.decision === "object" ? { decision: body.decision } : {}),
+      ...(body.goal != null || body.goal_id != null ? { goal: String(body.goal ?? body.goal_id) } : {}),
     }),
   });
   if (!intentRes.ok) {

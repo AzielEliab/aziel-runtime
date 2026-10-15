@@ -281,6 +281,10 @@ export async function verifyChainStrict(receipts, { trustedKeys = null } = {}) {
   }
   const receipt_signatures = await rs.verifyReceiptSignatures((receipts || []).filter(Boolean), { trusted });
   for (const e of receipt_signatures.errors) errors.push({ seq: e.seq, error: e.code });
+  // RIB-043: approver bound into gated exec rows; missing/altered fails closed.
+  const { verifyApprover } = await import("./approver.js");
+  const approver = await verifyApprover(receipts);
+  for (const e of approver.errors) errors.push({ seq: e.seq, error: e.code });
   const hashPresent = (receipts || []).length > 0 && (receipts || []).every((r) => r && typeof r.hash === "string");
   return {
     ok: errors.length === 0,
@@ -301,6 +305,7 @@ export async function verifyChainStrict(receipts, { trustedKeys = null } = {}) {
     issuer_append,
     evidence,
     receipt_signatures,
+    approver,
     dual_lattice: {
       ok: dual.ok,
       lattice_rows: dual.lattice_rows,
@@ -405,6 +410,14 @@ export function mergePolicy(current, incoming) {
       throw sessionError(400, "bad_policy", "max_payload_bytes must be an integer 1..1048576");
     }
     next.max_payload_bytes = n;
+  }
+  if (incoming.require_decision !== undefined) {
+    // RIB-043: every exec must carry a DecisionGATE decision bound to the call.
+    // Gating is one-way within a session: true -> anything else is refused (fail closed).
+    if (current && current.require_decision === true && incoming.require_decision !== true) {
+      throw sessionError(409, "APPROVER-POLICY-DOWNGRADE", "This session is DecisionGATE-gated (require_decision:true). Gating cannot be turned off mid-session; open a new session. Policy unchanged.", { spec: "AZRT-APPROVER-1.0" });
+    }
+    next.require_decision = incoming.require_decision === true;
   }
   if (incoming.kv_increment !== undefined) {
     next.kv_increment = incoming.kv_increment === true;
@@ -575,7 +588,7 @@ export async function recordIntent(session, args, nowIso) {
   }
 }
 
-async function recordIntentInner(session, { slug, op, payload, payloadText, knownSlugs, banner, schemaHash }, nowIso) {
+async function recordIntentInner(session, { slug, op, payload, payloadText, knownSlugs, banner, schemaHash, decision = null, goal = null }, nowIso) {
   // AZRT-SCHEMA-PIN-1.0: the open receipt pinned the tools/list schema; drift stops the session.
   const pinned = (session.receipts || [])[0] && session.receipts[0].schema_hash;
   if (pinned && schemaHash && pinned !== schemaHash) {
@@ -599,8 +612,14 @@ async function recordIntentInner(session, { slug, op, payload, payloadText, know
   const bytes = new TextEncoder().encode(payloadText).length;
   const allowed = assertExecAllowed(session, { slug, op, payloadBytes: bytes, knownSlugs, nowIso });
   const digest = await digestText(payloadText);
+  // RIB-043: a DecisionGATE-gated exec binds its approver into this intent (same row hash as the action).
+  const { isGated, approverFor } = await import("./approver.js");
+  const intentId = `${session.id}:${(session.receipts || []).length + 1}`;
+  const approver = isGated(session.policy, decision)
+    ? await approverFor({ decision, slug: allowed.slug, op: allowed.op, payload_digest: digest.sha256, goal, nowIso, session_id: session.id, intent_id: intentId, receipts: session.receipts })
+    : null;
   const intent = {
-    intent_id: `${session.id}:${(session.receipts || []).length + 1}`,
+    intent_id: intentId,
     slug: allowed.slug,
     op: allowed.op,
     recorded_at: nowIso,
@@ -610,6 +629,7 @@ async function recordIntentInner(session, { slug, op, payload, payloadText, know
     kv_increment_applied: false,
     kv_note: "aziel-runtime does not increment product download counters.",
     identity: "Aziel Eliab",
+    ...(approver ? { approver, goal_hash: approver.record.goal_hash } : {}),
     ...(banner && session.policy.lamb_banners ? { banner } : {}),
     ...(allowed.slug === "azai"
       ? { hosted_azai: "protocol mirror + Lamb check, not the local blend (azai serve)" }
@@ -638,8 +658,15 @@ export async function commitExec(session, { intent, status, latencyMs, requestDi
     policy_receipt_ref: policyRef ? policyRef.hash : null,
   };
   const evidence = evidenceOf(additive && additive.evidence);
+  // RIB-043: approved_at is the exec receipt's own ts; restamp the record and its hash at seal time.
+  let sealedIntent = session.pending_intent;
+  if (sealedIntent && sealedIntent.approver) {
+    const { restampApprover } = await import("./approver.js");
+    sealedIntent = { ...sealedIntent, approver: await restampApprover(sealedIntent.approver, nowIso) };
+  }
   const receipt = await appendReceipt(session, "exec", {
-    intent,
+    // Seal the intent the session recorded (incl. any RIB-043 approver), not the caller's echo of it.
+    intent: sealedIntent,
     result: {
       status,
       latency_ms: latencyMs,
