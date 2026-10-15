@@ -206,7 +206,11 @@ export async function appendReceipt(session, event, payload, nowIso, extra = {})
     document_hash: await latticeDocumentHash({ kind: RECEIPT_KIND, ...partial }),
     rows: session.receipts || [],
   });
-  const receipt = await signReceipt({ ...partial, lattice }, prev ? prev.hash : ZERO_HASH);
+  // RIB-042: sig_commit is INSIDE the hash, so stripping or nulling the signature later is detectable.
+  const { signatureFor, sigCommitFor } = await import("./receipt-signing.js");
+  const sealed = await signReceipt({ ...partial, lattice, sig_commit: sigCommitFor() }, prev ? prev.hash : ZERO_HASH);
+  // The signature itself covers the hash and so must sit outside it.
+  const receipt = { ...sealed, signature: await signatureFor(sealed.hash) };
   session.receipts.push(receipt);
   session.head_hash = receipt.hash;
   session.updated_at = nowIso;
@@ -233,7 +237,7 @@ export function verifyChain(receipts) {
   return { ok: errors.length === 0, count: receipts.length, errors, head: prev === ZERO_HASH ? null : prev };
 }
 
-export async function verifyChainStrict(receipts) {
+export async function verifyChainStrict(receipts, { trustedKeys = null } = {}) {
   const basic = verifyChain(receipts);
   const errors = [...basic.errors];
   const { verifyLattice } = await import("./dual-lattice.js");
@@ -241,7 +245,7 @@ export async function verifyChainStrict(receipts) {
   for (const br of dual.breaks) errors.push({ seq: br.seq + 1, error: br.reason });
   for (const rec of receipts || []) {
     if (!rec) continue;
-    const { hash, ...unsigned } = rec;
+    const { hash, signature: _sig, ...unsigned } = rec; // RIB-042: signature sits outside the hash
     const expected = await sha256Hex(canonicalize(unsigned));
     if (hash !== expected) {
       errors.push({ seq: rec.seq, error: "hash_mismatch", expected, got: hash });
@@ -267,6 +271,16 @@ export async function verifyChainStrict(receipts) {
   const { verifyEvidence } = await import("./evidence-fields.js");
   const evidence = await verifyEvidence(receipts);
   for (const e of evidence.errors) errors.push({ seq: e.seq, error: e.code });
+  // RIB-042: receipt signatures (held, never minted key). Bad/untrusted fails closed; unsigned/legacy reported.
+  const rs = await import("./receipt-signing.js");
+  let trusted = trustedKeys;
+  if (!trusted) {
+    trusted = await rs.trustedReceiptKeys(null);
+    const held = rs.activeReceiptSigner();
+    if (held && held.ok && !trusted.some((k) => k.key_id === held.provenance.key_id)) trusted.push({ public_key: held.provenance.public_key, key_id: held.provenance.key_id, source: "published" });
+  }
+  const receipt_signatures = await rs.verifyReceiptSignatures((receipts || []).filter(Boolean), { trusted });
+  for (const e of receipt_signatures.errors) errors.push({ seq: e.seq, error: e.code });
   const hashPresent = (receipts || []).length > 0 && (receipts || []).every((r) => r && typeof r.hash === "string");
   return {
     ok: errors.length === 0,
@@ -286,6 +300,7 @@ export async function verifyChainStrict(receipts) {
     spec_stale,
     issuer_append,
     evidence,
+    receipt_signatures,
     dual_lattice: {
       ok: dual.ok,
       lattice_rows: dual.lattice_rows,
