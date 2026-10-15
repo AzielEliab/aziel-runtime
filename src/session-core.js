@@ -509,9 +509,53 @@ export async function applyPolicy(session, incoming, nowIso) {
   return { session, receipt };
 }
 
-export async function recordIntent(session, { slug, op, payload, payloadText, knownSlugs, banner, schemaHash }, nowIso) {
-  requireOpen(session, nowIso);
-  requireReceiptRoom(session);
+/**
+ * RIB-018 / AZRT-REFUSAL-RECEIPT-1.0 on the session chain: a pre-exec policy refusal appends one
+ * `refused` receipt (outcome=failed, refuse code, slug, op, payload_digest) before the error returns.
+ * Closed-session and receipt-cap refusals cannot append (no room / sealed) and say so
+ * (refused_receipt.sealed:false with the reason). Hash-linked and sealed, not signed.
+ */
+export const SESSION_REFUSAL_SPEC = "AZRT-REFUSAL-RECEIPT-1.0";
+
+async function sealSessionRefusal(session, err, { slug, op, payloadText }, nowIso) {
+  const digest = await digestText(payloadText == null ? "" : String(payloadText));
+  const receipt = await appendReceipt(session, "refused", {
+    refusal: {
+      spec: SESSION_REFUSAL_SPEC,
+      code: err.code || "session_error",
+      status: err.status || 500,
+      slug: String(slug || "").trim().toLowerCase() || null,
+      op: String(op || "").trim() || null,
+      payload_digest: digest.sha256,
+      payload_bytes: digest.bytes,
+      executed: false,
+    },
+  }, nowIso, { attempt_link: { outcome: "failed" } });
+  session.updated_at = nowIso;
+  return receipt;
+}
+
+export async function recordIntent(session, args, nowIso) {
+  // These two cannot seal: the session is sealed/expired, or has no receipt room. They stay as before.
+  try {
+    requireOpen(session, nowIso);
+    requireReceiptRoom(session);
+  } catch (err) {
+    err.extra = { ...(err.extra || {}), refused_receipt: { sealed: false, reason: err.code === "receipt_cap" ? "receipt cap reached; no room to seal" : "session is not open; no receipt possible" } };
+    throw err;
+  }
+  try {
+    return await recordIntentInner(session, args, nowIso);
+  } catch (err) {
+    if (!err || !err.status || err.status >= 500) throw err;
+    const receipt = await sealSessionRefusal(session, err, args || {}, nowIso);
+    err.extra = { ...(err.extra || {}), refused_receipt: { sealed: true, seq: receipt.seq, hash: receipt.hash } };
+    err.sessionDirty = true; // caller must persist the appended refused receipt
+    throw err;
+  }
+}
+
+async function recordIntentInner(session, { slug, op, payload, payloadText, knownSlugs, banner, schemaHash }, nowIso) {
   // AZRT-SCHEMA-PIN-1.0: the open receipt pinned the tools/list schema; drift stops the session.
   const pinned = (session.receipts || [])[0] && session.receipts[0].schema_hash;
   if (pinned && schemaHash && pinned !== schemaHash) {

@@ -57,10 +57,14 @@ for (const [name, fn, body] of [["stale", applyStale, { new_world_version: "w-2"
   const st = specState(s.receipts);
   assert.equal(st.revoked, true); assert.equal(st.exec_allowed, false);
   const len = s.receipts.length;
-  await assert.rejects(intent(s), (e) => e.code === "SPEC-REVOKED" && e.extra.executed === false);
+  // RIB-018 (#284): the SPEC-REVOKED refusal runs inside recordIntentInner, so it seals one `refused` receipt.
+  await assert.rejects(intent(s), (e) => e.code === "SPEC-REVOKED" && e.extra.executed === false && e.extra.refused_receipt.sealed === true);
+  assert.equal(s.receipts.length, len + 1);
+  assert.equal(s.receipts.at(-1).event, "refused");
+  assert.equal(s.receipts.at(-1).payload.refusal.code, "SPEC-REVOKED");
   await assert.rejects(applyClose(s, T, { additive: { verdict } }), (e) => e.code === "SPEC-REVOKED");
   await assert.rejects(applyRevoke(s, T, { reason: "again" }, { issuerKey: ISS.key }), (e) => e.code === "REVOKE-DUPLICATE");
-  assert.equal(s.receipts.length, len);
+  assert.equal(s.receipts.length, len + 1);
   const v = await verifyChainStrict(s.receipts);
   assert.equal(v.ok, true, JSON.stringify(v.errors)); assert.equal(v.issuer_append.revoked_at_seq, r.seq); n++;
 }
@@ -68,7 +72,8 @@ for (const [name, fn, body] of [["stale", applyStale, { new_world_version: "w-2"
 {
   const s = await run();
   await applyStale(s, T, { new_world_version: "w-2", reason: "moved" }, { issuerKey: ISS.key });
-  await assert.rejects(intent(s), (e) => e.code === "SPEC-STALE"); n++;
+  await assert.rejects(intent(s), (e) => e.code === "SPEC-STALE" && e.extra.refused_receipt.sealed === true);
+  assert.equal(s.receipts.at(-1).payload.refusal.code, "SPEC-STALE"); n++;
 }
 // Revocation works without a spec too (issuer owns the run log); refuses empty reason.
 {

@@ -226,7 +226,9 @@ export class RuntimeSession {
     const session = await this.expireIfNeeded(await this.load());
     const now = new Date().toISOString();
     const known = body.known_slugs ? new Set(body.known_slugs) : null;
-    const out = await recordIntent(
+    let out;
+    try {
+      out = await recordIntent(
       session,
       {
         slug: body.slug,
@@ -239,6 +241,11 @@ export class RuntimeSession {
       },
       now,
     );
+    } catch (err) {
+      // RIB-018: a refusal that appended a `refused` receipt is persisted before the error returns.
+      if (err && err.sessionDirty) await this.save(session);
+      throw err;
+    }
     await this.save(session);
     return json({ ok: true, session: publicSession(session), intent: out.intent });
   }
