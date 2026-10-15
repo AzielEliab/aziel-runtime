@@ -247,7 +247,7 @@ function storeOf(env, storeFor) {
 }
 
 /** GET /v1/anchor/heads — what the witness pulls. Read-only; mints nothing. */
-export async function collectHeads(env, { storeFor, aznewsCall, mapCall, version, gitSha, now = new Date() } = {}) {
+export async function collectHeads(env, { storeFor, aznewsCall, mapCall, version, gitSha, versionId = null, now = new Date() } = {}) {
   const store = storeOf(env, storeFor);
   const chains = [];
   if (store && typeof store.chainMeta === "function") {
@@ -277,6 +277,8 @@ export async function collectHeads(env, { storeFor, aznewsCall, mapCall, version
     author: "Aziel Eliab",
     version: version || null,
     git_sha: gitSha || null,
+    // RIB-041 AZRT-BUILD-WITNESS-1.0: build identity for the witness to sign next to the heads.
+    build: { spec: "AZRT-BUILD-WITNESS-1.0", git_sha: gitSha || null, version_id: versionId || null },
     at: now.toISOString(),
     seq_base: 1,
     chains,

@@ -4650,7 +4650,9 @@ async function handleRequest(request, env, ctx) {
       const deps = { storeFor, aznewsCall, mapCall };
       const hdrs = { "access-control-allow-origin": "*", "cache-control": "no-store" };
       if (url.pathname === "/v1/anchor/heads") {
-        const heads = await anchor.collectHeads(env, { ...deps, version: RUNTIME_VERSION, gitSha: (env && env.GIT_SHA) || null });
+        const { softwareMeta } = await import("./software-catalog.js");
+        const meta = softwareMeta(env);
+        const heads = await anchor.collectHeads(env, { ...deps, version: RUNTIME_VERSION, gitSha: meta.git_sha || (env && env.GIT_SHA) || null, versionId: meta.version_id || null });
         return asHead(request, json(heads, 200, hdrs));
       }
       if (url.pathname === "/v1/anchor/row") {
@@ -4680,20 +4682,31 @@ async function handleRequest(request, env, ctx) {
           const check = await anchor.checkStatementAgainstRuntime(env, anchors.latest.statement, deps);
           latest = { n: anchors.latest.statement.n, statement_hash: anchors.latest.statement_hash, observed_at: anchors.latest.statement.observed_at, rekor: anchors.latest.rekor || null, tsa: anchors.latest.tsa || null, runtime_check: check };
         }
-        const ok = Boolean(anchors.ok && latest && latest.runtime_check.ok);
+        // RIB-041: witnessed build vs live build. Mismatch fails closed; no witness -> not_checked (never a pass).
+        const { checkBuildWitness, liveBuildOf } = await import("./build-witness.js");
+        const { softwareMeta } = await import("./software-catalog.js");
+        const build_witness = checkBuildWitness(anchors, liveBuildOf(softwareMeta(env), { versionTimestamp: env && env.CF_VERSION_METADATA && env.CF_VERSION_METADATA.timestamp }));
+        const buildBlocks = build_witness.status === "failed" || build_witness.status === "pending";
+        const ok = Boolean(anchors.ok && latest && latest.runtime_check.ok) && !buildBlocks;
         const body = {
           spec: anchor.ANCHOR_SPEC,
           ok,
-          code: ok ? "ANCHOR-OK" : (anchors.ok ? anchor.ANCHOR_CODES.mismatch : anchors.code),
+          code: ok ? "ANCHOR-OK" : buildBlocks ? build_witness.code : (anchors.ok ? anchor.ANCHOR_CODES.mismatch : anchors.code),
+          build_witness,
           fail_closed: true,
           witness: { repo: anchor.WITNESS_REPO_URL, log: anchor.WITNESS_LOG_URL, public_key: anchor.WITNESS_PUBLIC_KEY, retired_keys: anchor.WITNESS_RETIRED_KEYS, key_outside_runtime: true, key_note: "The private key is an Actions secret of the witness repo. This Worker holds only the public key and cannot sign or write the log.", log_verified: anchors.ok, entries: anchors.n || 0, ...(anchors.ok ? {} : { log_code: anchors.code, at: anchors.at, reason: anchors.reason }) },
           latest,
           auditor: { spec: anchor.AUDITOR_SPEC, log: anchor.AUDIT_LOG_URL, public_key: anchor.AUDITOR_PUBLIC_KEY, retired_keys: anchor.AUDITOR_RETIRED_KEYS, log_verified: audits.ok, entries: audits.n || 0, latest: audits.ok ? { n: audits.latest.statement.n, verdict: audits.latest.statement.verdict, at: audits.latest.statement.audited_at, statement_hash: audits.latest.statement_hash } : null, ...(audits.ok ? {} : { log_code: audits.code }) },
           anchor_ref_now: anchor.anchorRefNow(),
           integrity_levels: anchor.INTEGRITY_LEVELS.slice(1),
-          checks_here: ["witness Ed25519 signature (pinned key)", "statement hash + order chain", "anchored heads still match runtime rows"],
+          checks_here: ["witness Ed25519 signature (pinned key)", "statement hash + order chain", "anchored heads still match runtime rows", "newest witnessed build (git_sha, version_id) equals the live build (RIB-041)"],
           checks_elsewhere: ["RFC 3161 token (freetsa.org) and Rekor inclusion are verified by the auditor job, not this Worker"],
         };
+        // RIB-041: pending (fresh unwitnessed platform deploy) is 503 + Retry-After, never 200; everything else not ok is 409.
+        if (!ok && build_witness.status === "pending" && anchors.ok && latest && latest.runtime_check.ok) {
+          const retry = Math.max(30, Math.min(600, Math.ceil((Date.parse(build_witness.pending_until) - Date.now()) / 1000)));
+          return asHead(request, json(body, 503, { ...hdrs, "retry-after": String(retry) }));
+        }
         return asHead(request, json(body, ok ? 200 : 409, hdrs));
       }
       return json({ ok: false, error: "not found", hint: "GET /v1/anchor, /v1/anchor/heads, /v1/anchor/row?c=&seq=, /v1/anchor/rows?c=&from=&limit=" }, 404, hdrs);
