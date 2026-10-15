@@ -263,6 +263,10 @@ export async function verifyChainStrict(receipts) {
   const { verifyIssuerAppend } = await import("./issuer-append.js");
   const issuer_append = verifyIssuerAppend(receipts);
   for (const e of issuer_append.errors) errors.push({ seq: e.seq, error: e.code });
+  // RIB-016: policy binding fails closed; evidence fields are reported one by one, never from integrity.
+  const { verifyEvidence } = await import("./evidence-fields.js");
+  const evidence = await verifyEvidence(receipts);
+  for (const e of evidence.errors) errors.push({ seq: e.seq, error: e.code });
   const hashPresent = (receipts || []).length > 0 && (receipts || []).every((r) => r && typeof r.hash === "string");
   return {
     ok: errors.length === 0,
@@ -281,6 +285,7 @@ export async function verifyChainStrict(receipts) {
     expect_spec,
     spec_stale,
     issuer_append,
+    evidence,
     dual_lattice: {
       ok: dual.ok,
       lattice_rows: dual.lattice_rows,
@@ -610,6 +615,14 @@ export async function commitExec(session, { intent, status, latencyMs, requestDi
   const eng = engine && typeof engine === "object" ? engine : {};
   const mode = eng.mode || (upstream ? "proxy_fallback" : "local");
   const isLocal = mode === "local" && eng.true_engine_runtime === true && Boolean(eng.engine_digest);
+  // RIB-016: bind the exec to the policy in force and the receipt that set it; seal optional evidence as unchecked.
+  const { policyHashOf, policyReceiptOf, evidenceOf } = await import("./evidence-fields.js");
+  const policyRef = policyReceiptOf(session.receipts);
+  const binding = {
+    policy_hash: await policyHashOf(session.policy),
+    policy_receipt_ref: policyRef ? policyRef.hash : null,
+  };
+  const evidence = evidenceOf(additive && additive.evidence);
   const receipt = await appendReceipt(session, "exec", {
     intent,
     result: {
@@ -630,6 +643,8 @@ export async function commitExec(session, { intent, status, latencyMs, requestDi
     },
   }, nowIso, {
     ...additiveReceiptFields(additive),
+    ...binding,
+    ...(evidence ? { evidence } : {}),
     attempt_link: {
       request_id,
       attempt_n,
