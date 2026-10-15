@@ -96,6 +96,9 @@ export class RuntimeSession {
 
   async fetch(request) {
     try {
+      // RIB-042: use the provisioned receipt key if one is held (never generated here).
+      const { heldSignerFromEnv, setActiveReceiptSigner } = await import("./receipt-signing.js");
+      setActiveReceiptSigner(await heldSignerFromEnv(this.env));
       const url = new URL(request.url);
       const action = url.pathname.replace(/^\//, "") || "status";
       if (action === "open" && request.method === "POST") {

@@ -20,7 +20,8 @@ async function fresh() {
 }
 const reseal = async (receipts) => {
   let prev = "0".repeat(64); const out = [];
-  for (const r of receipts) { const { hash: _h, ...rest } = { ...r, prev_hash: prev }; const hash = await sha256Hex(canonicalize(rest)); out.push({ ...rest, hash }); prev = hash; }
+  // RIB-042: `signature` sits outside the row hash (sig_commit is inside); keep it out of the recompute.
+  for (const r of receipts) { const { hash: _h, signature, ...rest } = { ...r, prev_hash: prev }; const hash = await sha256Hex(canonicalize(rest)); out.push({ ...rest, hash, ...(signature ? { signature } : {}) }); prev = hash; }
   return out;
 };
 const codes = (v) => v.errors.map((e) => e.error);

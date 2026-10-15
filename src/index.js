@@ -4643,6 +4643,17 @@ async function handleRequest(request, env, ctx) {
       });
       return json(out, out.ok ? 200 : out.code === "DOC-BACKFILL-BAD-QUERY" ? 400 : 503);
     }
+    if (url.pathname === "/v1/receipt-key" && (request.method === "GET" || request.method === "HEAD")) {
+      // RIB-042 AZRT-HELD-KEY-1.0: publish the provisioned receipt public key (never the private key).
+      const rs = await import("./receipt-signing.js");
+      const held = await rs.heldSignerFromEnv(env);
+      const body = held.ok
+        ? { spec: rs.HELD_KEY_SPEC, signing: true, alg: "Ed25519", ...held.provenance, sig_domain: rs.SIG_DOMAIN, pinned: (await rs.trustedReceiptKeys(null)).map((k) => k.key_id),
+            ...(await (async () => { const pinnedIds = (await rs.trustedReceiptKeys(null)).map((k) => k.key_id); const isPinned = pinnedIds.includes(held.provenance.key_id); return { trusted: isPinned, key_source: isPinned ? "pinned" : "published (self, unpinned)" }; })()),
+            note: "Receipts minted while this key is held carry an Ed25519 signature over sig_domain + hash. The key was provisioned by the deploy side; the runtime cannot generate, rotate or export it." }
+        : { spec: rs.HELD_KEY_SPEC, signing: false, reason: held.reason, note: "Receipts are hash-linked and sealed, not signed (signature.sig null with this reason)." };
+      return asHead(request, json(body, 200, { "access-control-allow-origin": "*", "cache-control": "no-store" }));
+    }
     if ((url.pathname === "/v1/anchor" || url.pathname.startsWith("/v1/anchor/")) && (request.method === "GET" || request.method === "HEAD")) {
       // AZRT-ANCHOR-1.0 / AZRT-INTEGRITY-LEVEL-1.0 / AZRT-AUDITOR-1.0: read-only. Mints nothing.
       const anchor = await import("./anchor.js");
