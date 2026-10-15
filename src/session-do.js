@@ -241,6 +241,8 @@ export class RuntimeSession {
         knownSlugs: known,
         banner: body.banner || null,
         schemaHash: body.schema_hash || null,
+        decision: body.decision || null,
+        goal: body.goal || null,
       },
       now,
     );
