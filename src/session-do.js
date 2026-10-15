@@ -19,6 +19,9 @@ import {
   verifyChainStrict,
 } from "./session-core.js";
 import { SESSION_TTL_MS, isSessionExpired } from "./production.js";
+import { applyPause, applyResume, freezeHeadOf, queueFreeze, resumeCheck, RESUME_SPEC } from "./resume-anchor.js";
+import { append as chainlockAppend } from "./chainlock/ops.js";
+import { storeFor as chainlockStoreFor } from "./chainlock/store.js";
 import { ensureDefaultVpnSession, vpnArmed } from "./azvpn-auto.js";
 
 function json(body, status = 200) {
@@ -131,6 +134,12 @@ export class RuntimeSession {
       if (action === "spec" && request.method === "GET") {
         return await this.specState();
       }
+      if (action === "pause" && request.method === "POST") {
+        return await this.pause(await readJson(request));
+      }
+      if (action === "resume" && request.method === "POST") {
+        return await this.resume(await readJson(request));
+      }
       if (action === "job-put" && request.method === "POST") {
         return await this.jobPut(await readJson(request));
       }
@@ -228,6 +237,22 @@ export class RuntimeSession {
   async intent(body) {
     const session = await this.expireIfNeeded(await this.load());
     const now = new Date().toISOString();
+    // RIB-044: a paused session runs nothing; a frozen session is re-checked once per (cold) isolate.
+    if (session && session.paused) {
+      return json({ ok: false, error: "session is paused; POST /resume first", code: "SESSION-PAUSED", spec: RESUME_SPEC, executed: false }, 409);
+    }
+    // Checked on every session (not only when session.freeze exists): a deleted session.freeze is caught
+    // from the chain / the session-keyed ChainLock index.
+    if (session && !this.resumeChecked) {
+      try {
+        const chk = await resumeCheck(session, this.env, { strict: session.policy && session.policy.resume_strict === true, allowNoFreeze: true, storeFor: chainlockStoreFor, nowIso: now });
+        this.resumeChecked = true;
+        this.lastResumeCheck = chk;
+      } catch (err) {
+        if (err && err.sessionDirty) await this.save(session);
+        throw err;
+      }
+    }
     const known = body.known_slugs ? new Set(body.known_slugs) : null;
     let out;
     try {
@@ -325,10 +350,38 @@ export class RuntimeSession {
     return json({ ok: true, session_id: session.id, state: specState(session.receipts), spec_stale: specStaleness(session.receipts) });
   }
 
+  async pause() {
+    const session = await this.expireIfNeeded(await this.load());
+    const now = new Date().toISOString();
+    const out = await applyPause(session, now);
+    out.session.freeze.queue = await queueFreeze(this.env, out.session.freeze.freeze_head, { append: chainlockAppend, storeFor: chainlockStoreFor, reason: "pause" });
+    await this.save(out.session);
+    this.resumeChecked = true;
+    return json({ ok: true, session: publicSession(out.session), receipt: out.receipt, freeze: out.session.freeze });
+  }
+
+  async resume(body = {}) {
+    const session = await this.load();
+    const now = new Date().toISOString();
+    try {
+      const out = await applyResume(session, this.env, { strict: body && body.strict === true, storeFor: chainlockStoreFor, nowIso: now });
+      await this.save(out.session);
+      this.resumeChecked = true;
+      return json({ ok: true, session: publicSession(out.session), receipt: out.receipt, resume: out.check });
+    } catch (err) {
+      if (err && err.sessionDirty) await this.save(session);
+      throw err;
+    }
+  }
+
   async close(body = {}) {
     const session = await this.expireIfNeeded(await this.load());
     const now = new Date().toISOString();
+    if (session && session.paused) session.paused = false;
     const out = await applyClose(session, now, { additive: body });
+    // RIB-044: the close receipt is the freeze row; its head is queued for the witness.
+    const fh = freezeHeadOf(out.session);
+    out.session.freeze = { spec: RESUME_SPEC, reason: "close", freeze_head: fh, frozen_at: now, queue: await queueFreeze(this.env, fh, { append: chainlockAppend, storeFor: chainlockStoreFor, reason: "close" }) };
     await this.save(out.session);
     const verified = await verifyChainStrict(out.session.receipts);
     return json({ ok: true, session: publicSession(out.session), receipt: out.receipt, verified });
