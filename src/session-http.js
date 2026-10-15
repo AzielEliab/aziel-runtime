@@ -427,6 +427,7 @@ async function handleExec(request, env, id, { json, PRODUCTS, BY_SLUG, upstreamF
       ...additiveForSession(body),
       ...contextFields(await contextOf(body)),
       ...server,
+      ...(body && body.evidence && typeof body.evidence === "object" ? { evidence: body.evidence } : {}),
     }),
   });
   const commitBody = await commitRes.json();
