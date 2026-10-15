@@ -85,6 +85,9 @@ for (const [name, policy, args, code] of [
   assert.equal(all.receipts.filter((r) => r.event === "refused").length, 1);
   assert.equal(all.receipts.filter((r) => r.event === "exec").length, 0);
   assert.equal(all.verified.ok, true);
-  assert.doesNotMatch(JSON.stringify(all.receipts.at(-1)), /signature|signed_by/i); n++;
+  // Sealed, not signed: with no RIB-042 key provisioned, the refused receipt carries no signature value.
+  const last = all.receipts.at(-1);
+  assert.ok(!last.signature || last.signature.sig === null, JSON.stringify(last.signature));
+  assert.doesNotMatch(JSON.stringify(last), /signed_by/i); n++;
 }
 console.log(`ok session refused receipts (RIB-018): ${n} checks`);
