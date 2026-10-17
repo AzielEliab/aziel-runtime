@@ -55,7 +55,7 @@ function notIssuer(message, extra = {}) {
 /** Write gate for spec-control stamps. Returns the written_by field to seal. */
 export async function assertIssuer(session, key) {
   const issuer = issuerOf(session && session.receipts);
-  if (!issuer) throw notIssuer("This chain recorded no issuer at genesis; no one may append stale or revoke stamps.", { reason: "no_issuer" });
+  if (!issuer) throw notIssuer("This chain recorded no issuer at genesis; no one may append stale, revoke, pause or resume stamps.", { reason: "no_issuer" });
   if (!key || typeof key !== "string") throw notIssuer("Only the issuer recorded at genesis may append this stamp. Send the issuer key in X-Azrt-Issuer-Key.", { reason: "missing_key" });
   const h = await issuerKeyHash(key);
   if (h !== issuer.key_hash) throw notIssuer("Only the issuer recorded at genesis may append this stamp.", { reason: "wrong_key" });

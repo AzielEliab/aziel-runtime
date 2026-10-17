@@ -4,6 +4,7 @@ Idea: @Madeactual. Author: Aziel Eliab.
 
 ## Freeze
 - `POST /v1/session/{id}/pause` appends a `freeze` receipt with `freeze_head {chain:"session:<id>", seq, hash}` pointing at the row before it. The session's freeze head is then the freeze row itself. The session stays paused until it is resumed, and exec returns `SESSION-PAUSED` (409) in the meantime.
+- **Auth.** `pause` and `resume` are session mutations: with `REQUIRE_TOKEN=1` they need the runtime token (`Authorization: Bearer …` or `X-Aziel-Runtime-Token`, else 401), the same gate as `policy`/`exec`/`close`. They are also issuer-only, like `stale` and `revoke`: send the key returned once at open as `X-Azrt-Issuer-Key`, or the call is refused `403 CL-NOT-ISSUER` (`reason` `missing_key`, `wrong_key`, or `no_issuer` for a session sealed without an issuer) and the chain is unchanged. A key in the JSON body is ignored. Before this fix (live 22ba95e) anyone holding a session id could pause or resume.
 - `POST /v1/session/{id}/close`: the close receipt is the freeze row. A receipt can't contain its own hash, so its head is recorded in `session.freeze` and in the queued stamp, not inside the close row.
 - The freeze head is queued as a stamp on the ChainLock `session` chain, with fact `AZRT-RESUME-ANCHOR-1.0 freeze session:<id> seq=<n> h=<hash>`. The witness (AzielEliab/aziel-anchors) already anchors ChainLock chain heads, so the next witness statement covers it. aziel-anchors needs no change, and the runtime still has no write path to the witness log.
 

@@ -11,6 +11,7 @@ returns a key.
 **Issuer-only control stamps.** Send `X-Azrt-Issuer-Key: <issuer_key>`:
 - `POST /v1/session/{id}/stale {new_world_version, reason}` (RIB-014)
 - `POST /v1/session/{id}/revoke {reason}`: appends `event: "revoke"` with `revoke { genesis_hash, expect_hash?, reason }`. Only one is allowed (`REVOKE-DUPLICATE`).
+- `POST /v1/session/{id}/pause` and `/resume` (RIB-044) need the same issuer key (`403 CL-NOT-ISSUER` otherwise, chain unchanged) and, with `REQUIRE_TOKEN=1`, the runtime token. Their rows are `freeze`/`resume` receipts and carry no `written_by`; the gate is at write time.
 
 A missing or wrong key gets 403 `CL-NOT-ISSUER` and leaves the chain unchanged. Chains sealed with no
 issuer (legacy) have no writer for these stamps (fail closed). Each control stamp seals
