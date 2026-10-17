@@ -16,6 +16,25 @@
 export const ANCHORS_REPO = "AzielEliab/aziel-anchors";
 export const WITNESS_WORKFLOW = "witness.yml";
 export const RUNTIME_URL = "https://aziel-runtime.vibelock.workers.dev";
+/** Every network call is bounded: a hung GitHub or runtime fetch aborts instead of blocking forever. */
+export const FETCH_TIMEOUT_MS = 15_000;
+export const TIMEOUT_MIN_MIN = 1;
+export const TIMEOUT_MAX_MIN = 120;
+
+/**
+ * --timeout-min: only a finite number of minutes in [1, 120]. Missing value, NaN, another flag, 0,
+ * negative or >120 throws WITNESS-BAD-TIMEOUT (exit 1). Absent flag -> 20.
+ */
+export function parseTimeoutMin(args = []) {
+  const i = args.indexOf("--timeout-min");
+  if (i < 0) return 20;
+  const raw = args[i + 1];
+  const bad = () => Object.assign(new Error(`--timeout-min must be a number of minutes from ${TIMEOUT_MIN_MIN} to ${TIMEOUT_MAX_MIN}; got ${raw === undefined ? "no value" : JSON.stringify(raw)}`), { code: "WITNESS-BAD-TIMEOUT" });
+  if (raw === undefined || raw.startsWith("--") || !/^\d+(\.\d+)?$/.test(raw.trim())) throw bad();
+  const min = Number(raw);
+  if (!Number.isFinite(min) || min < TIMEOUT_MIN_MIN || min > TIMEOUT_MAX_MIN) throw bad();
+  return min;
+}
 
 export function dispatchRequest({ token, ref = "main", repo = ANCHORS_REPO, workflow = WITNESS_WORKFLOW } = {}) {
   if (!token) throw Object.assign(new Error("GH_TOKEN (or GITHUB_TOKEN) is required; nothing was dispatched"), { code: "WITNESS-DISPATCH-NO-TOKEN" });
@@ -30,9 +49,14 @@ export function dispatchRequest({ token, ref = "main", repo = ANCHORS_REPO, work
   };
 }
 
-export async function dispatchWitness({ token, fetchImpl = fetch, ...rest } = {}) {
+export async function dispatchWitness({ token, fetchImpl = fetch, fetchTimeoutMs = FETCH_TIMEOUT_MS, ...rest } = {}) {
   const { url, init } = dispatchRequest({ token, ...rest });
-  const res = await fetchImpl(url, init);
+  let res;
+  try {
+    res = await fetchImpl(url, { ...init, signal: AbortSignal.timeout(fetchTimeoutMs) });
+  } catch (err) {
+    throw Object.assign(new Error(`witness dispatch did not complete: ${err && err.name === "TimeoutError" ? `no response within ${fetchTimeoutMs} ms` : String(err && err.message ? err.message : err)}`), { code: "WITNESS-DISPATCH-FAILED", status: null });
+  }
   if (res.status !== 204) {
     const text = await res.text().catch(() => "");
     throw Object.assign(new Error(`witness dispatch refused: HTTP ${res.status} ${text.slice(0, 200)}`), { code: "WITNESS-DISPATCH-FAILED", status: res.status });
@@ -41,19 +65,24 @@ export async function dispatchWitness({ token, fetchImpl = fetch, ...rest } = {}
 }
 
 /** Poll /v1/anchor/verify until build_witness is verified. Pending/failed/not_checked never count. */
-export async function waitWitnessed({ runtime = RUNTIME_URL, timeoutMs = 20 * 60_000, intervalMs = 30_000, fetchImpl = fetch, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), now = Date.now } = {}) {
+export async function waitWitnessed({ runtime = RUNTIME_URL, timeoutMs = 20 * 60_000, intervalMs = 30_000, fetchTimeoutMs = FETCH_TIMEOUT_MS, fetchImpl = fetch, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), now = Date.now } = {}) {
+  // Deadline guard: a non-finite or out-of-range timeout never becomes an endless poll.
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0 || timeoutMs > TIMEOUT_MAX_MIN * 60_000) {
+    return { ok: false, code: "WITNESS-BAD-TIMEOUT", build_witness: null, error: `timeoutMs must be finite, > 0 and <= ${TIMEOUT_MAX_MIN} min` };
+  }
   const deadline = now() + timeoutMs;
+  if (!Number.isFinite(deadline)) return { ok: false, code: "WITNESS-BAD-TIMEOUT", build_witness: null };
   let last = null;
   for (;;) {
     try {
-      const res = await fetchImpl(`${runtime}/v1/anchor/verify?fresh=1`, { headers: { accept: "application/json" } });
+      const res = await fetchImpl(`${runtime}/v1/anchor/verify?fresh=1`, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(fetchTimeoutMs) });
       const body = await res.json();
       last = body && body.build_witness ? body.build_witness : null;
       if (last && last.status === "verified" && last.ok === true) return { ok: true, build_witness: last };
     } catch (err) {
       last = { status: "unreadable", error: String(err && err.message ? err.message : err) };
     }
-    if (now() >= deadline) return { ok: false, code: "WITNESS-WAIT-TIMEOUT", build_witness: last };
+    if (!(now() < deadline)) return { ok: false, code: "WITNESS-WAIT-TIMEOUT", build_witness: last };
     await sleep(intervalMs);
   }
 }
@@ -62,9 +91,8 @@ const isMain = import.meta.url === `file://${process.argv[1]}`;
 if (isMain) {
   const args = process.argv.slice(2);
   const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN || "";
-  const timeoutIdx = args.indexOf("--timeout-min");
-  const timeoutMs = (timeoutIdx >= 0 ? Number(args[timeoutIdx + 1]) : 20) * 60_000;
   try {
+    const timeoutMs = parseTimeoutMin(args) * 60_000;
     if (args.includes("--dry-run")) {
       const { url, init } = dispatchRequest({ token: token || "DRY-RUN" });
       console.log(JSON.stringify({ dry_run: true, url, method: init.method, body: JSON.parse(init.body) }));

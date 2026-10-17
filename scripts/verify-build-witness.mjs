@@ -110,7 +110,13 @@ const chk = (anchors, live) => checkBuildWitness(anchors, live, { now: NOW });
   assert.equal(PENDING_MIN_BOUND_MS, 22 * 60_000);
   assert.equal(pendingMaxMsOf({ BUILD_WITNESS_PENDING_MAX_MIN: "0" }).ms, PENDING_MIN_BOUND_MS, "0 never disables the window");
   assert.equal(pendingMaxMsOf({ BUILD_WITNESS_PENDING_MAX_MIN: "999999" }).ms, PENDING_MAX_BOUND_MS);
-  for (const junk of ["abc", "-5", "1.5", "Infinity", " "]) assert.equal(pendingMaxMsOf({ BUILD_WITNESS_PENDING_MAX_MIN: junk }).ms, PENDING_MAX_MS, junk);
+  // A bad value never widens the window to the 4 h default: it clamps to the 22 min minimum.
+  for (const junk of ["abc", "-5", "-300", "NaN", "1e3", "0x10", "1.5", "Infinity", "10m", NaN, -5]) {
+    const r = pendingMaxMsOf({ BUILD_WITNESS_PENDING_MAX_MIN: junk });
+    assert.equal(r.ms, PENDING_MIN_BOUND_MS, String(junk)); assert.match(r.source, /minimum/, String(junk));
+  }
+  for (const unset of [undefined, null, "", " "]) assert.equal(pendingMaxMsOf({ BUILD_WITNESS_PENDING_MAX_MIN: unset }).ms, PENDING_MAX_MS, `unset ${JSON.stringify(unset)}`);
+  assert.equal(pendingMaxMsOf({ BUILD_WITNESS_PENDING_MAX_MIN: 90 }).ms, 90 * 60_000, "numeric var");
   const p60 = pendingMaxMsOf({ BUILD_WITNESS_PENDING_MAX_MIN: "60" });
   assert.equal(at("2026-10-17T01:32:00Z", { pendingMaxMs: p60.ms }).status, "pending");
   assert.equal(at("2026-10-17T02:09:00Z", { pendingMaxMs: p60.ms }).status, "failed");

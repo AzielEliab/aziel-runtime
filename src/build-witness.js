@@ -36,17 +36,20 @@ export const PENDING_MIN_BOUND_MS = WITNESS_INTERVAL_MS + PENDING_GRACE_MS + LOG
 export const PENDING_MAX_BOUND_MS = 12 * 60 * 60_000;
 
 /**
- * Operator override: env.BUILD_WITNESS_PENDING_MAX_MIN (whole minutes). Unset -> 4 h default.
- * Unreadable or out-of-bounds values clamp to the bounds (never disable the window, never unbounded).
+ * Operator override: env.BUILD_WITNESS_PENDING_MAX_MIN (whole minutes). Unset or blank -> 4 h default.
+ * Anything set but not a plain whole number (negative, NaN, 1e3, 0x10, 1.5) clamps to the 22 min minimum,
+ * never to the wider default; in-range numbers are used as is, the rest clamp to [22 min, 12 h].
  */
 export function pendingMaxMsOf(env) {
   const raw = env && env.BUILD_WITNESS_PENDING_MAX_MIN;
   if (raw == null || String(raw).trim() === "") return { ms: PENDING_MAX_MS, source: "default" };
-  const min = Number(String(raw).trim());
-  if (!Number.isFinite(min) || !/^\d+$/.test(String(raw).trim())) return { ms: PENDING_MAX_MS, source: "default (BUILD_WITNESS_PENDING_MAX_MIN unreadable)" };
+  const t = String(raw).trim();
+  if (!/^\d+$/.test(t)) return { ms: PENDING_MIN_BOUND_MS, source: "BUILD_WITNESS_PENDING_MAX_MIN (unreadable; clamped to minimum)" };
+  const min = Number(t);
   const ms = Math.min(PENDING_MAX_BOUND_MS, Math.max(PENDING_MIN_BOUND_MS, min * 60_000));
   return { ms, source: ms === min * 60_000 ? "BUILD_WITNESS_PENDING_MAX_MIN" : "BUILD_WITNESS_PENDING_MAX_MIN (clamped)" };
 }
+
 export const FUTURE_SKEW_MS = 5_000;
 
 /** Live build identity, read at serve time (never guessed). */

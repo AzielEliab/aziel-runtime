@@ -27,7 +27,7 @@ not, that is a mismatch. Once any statement carries a build, an unknown live bui
 rollbacks and old uploads:
 1. version_id comes from `CF_VERSION_METADATA` (`version_id_source: cf_version_metadata`), not the VERSION_ID var;
 2. the metadata timestamp is newer than the newest statement's signed `observed_at`;
-3. now − timestamp ≤ the pending window (default **4 h**; operator var `BUILD_WITNESS_PENDING_MAX_MIN`, whole minutes, clamped to 22 min–12 h, junk falls back to 4 h), and the timestamp is not in the future (5 s skew).
+3. now − timestamp ≤ the pending window (default **4 h**; operator var `BUILD_WITNESS_PENDING_MAX_MIN`, whole minutes, clamped to 22 min–12 h; a set but unreadable value such as `-5`, `NaN`, `1e3` or `0x10` clamps to the 22 min minimum, never to 4 h), and the timestamp is not in the future (5 s skew).
 
 Pending reports `pending_since`, `pending_until`, `pending_max_minutes`, `pending_max_source` and `last_witnessed`.
 Pending is `ok:null`, HTTP 503 with `Retry-After` (30–600 s), never 200 or `ANCHOR-OK`.
@@ -39,6 +39,13 @@ expired") for hours (AZBot live probe of 22ba95e / f50445ee). 4 h covers the usu
 longer than the window is still a 409. A longer window also means a deploy that is never witnessed can
 report pending (503, not a pass) for up to 4 h before it turns into a 409.
 
+**A malicious deploy can sit in pending for up to 4 h.** Whoever deploys controls the build, and pending
+only proves a newer platform deploy exists, not that it is honest. A hostile, never-witnessed deploy
+therefore shows `BUILD-WITNESS-PENDING` (503, `ok:null`) for up to the full window (4 h by default)
+before verify turns it into a 409. Pending is never a pass: treat 503 as "not verified" and do not cite
+the build until `build_witness.status` is `verified`. Running the witness on deploy shortens this for
+honest deploys; it does not shorten it for a deployer who skips the dispatch.
+
 **Witness on deploy.** The fix for freshness is to run the witness right after deploy, not to wait for
 the cron. `aziel-anchors/.github/workflows/witness.yml` already has `workflow_dispatch`, so after a deploy:
 
@@ -47,7 +54,7 @@ GH_TOKEN=<token with actions:write on AzielEliab/aziel-anchors> node scripts/tri
 ```
 
 It dispatches the witness (force=0; a changed build is anchored anyway) and polls `/v1/anchor/verify`
-until `build_witness` is `verified`; pending, failed, unreadable or a timeout exit non-zero. The runtime
+until `build_witness` is `verified`; pending, failed, unreadable or a timeout exit non-zero. `--timeout-min` accepts only 1–120 minutes (anything else exits 1 before dispatching), and every fetch aborts after 15 s. The runtime
 still cannot write the witness log. Wiring this into `.github/workflows/deploy.yml` (and a
 `repository_dispatch` trigger in aziel-anchors) needs a token with the `workflow` scope and a
 cross-repo dispatch secret; neither is in this PR.
