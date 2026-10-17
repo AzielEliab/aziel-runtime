@@ -12,6 +12,7 @@ import { resetAnchorMemo, seedAnchorMemo } from "../src/anchor.js";
 import { newSessionId, verifyChainStrict, appendReceipt } from "../src/session-core.js";
 import { resumeCheck, resumeIndexKey } from "../src/resume-anchor.js";
 import { append as clAppend } from "../src/chainlock/ops.js";
+import { newIssuerKey } from "../src/issuer-append.js";
 
 let n = 0;
 const env = { CHAINLOCK: memoryChainWriterNamespace({}) };
@@ -19,7 +20,11 @@ function storage() {
   const m = new Map();
   return { m, get: async (k) => structuredClone(m.get(k)), put: async (k, v) => { m.set(k, structuredClone(v)); }, setAlarm: async () => {}, deleteAlarm: async () => {} };
 }
+// Pause/resume are issuer-only: every session here opens with an issuer and the helper sends its key.
+const ISS = await newIssuerKey();
 async function call(obj, action, body, method = "POST") {
+  if (action === "open") body = { issuer_key_hash: ISS.key_hash, ...(body || {}) };
+  if ((action === "pause" || action === "resume") && !(body && "issuer_key" in body)) body = { ...(body || {}), issuer_key: ISS.key };
   const res = await obj.fetch(new Request("https://do/" + action, method === "GET" ? { method } : { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body || {}) }));
   return { status: res.status, data: await res.json() };
 }
