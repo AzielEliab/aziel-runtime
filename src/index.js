@@ -4694,9 +4694,10 @@ async function handleRequest(request, env, ctx) {
           latest = { n: anchors.latest.statement.n, statement_hash: anchors.latest.statement_hash, observed_at: anchors.latest.statement.observed_at, rekor: anchors.latest.rekor || null, tsa: anchors.latest.tsa || null, runtime_check: check };
         }
         // RIB-041: witnessed build vs live build. Mismatch fails closed; no witness -> not_checked (never a pass).
-        const { checkBuildWitness, liveBuildOf } = await import("./build-witness.js");
+        const { checkBuildWitness, liveBuildOf, pendingMaxMsOf } = await import("./build-witness.js");
         const { softwareMeta } = await import("./software-catalog.js");
-        const build_witness = checkBuildWitness(anchors, liveBuildOf(softwareMeta(env), { versionTimestamp: env && env.CF_VERSION_METADATA && env.CF_VERSION_METADATA.timestamp }));
+        const pmax = pendingMaxMsOf(env);
+        const build_witness = checkBuildWitness(anchors, liveBuildOf(softwareMeta(env), { versionTimestamp: env && env.CF_VERSION_METADATA && env.CF_VERSION_METADATA.timestamp }), { pendingMaxMs: pmax.ms, pendingMaxSource: pmax.source });
         const buildBlocks = build_witness.status === "failed" || build_witness.status === "pending";
         // RIB-047 / AZRT-WITNESS-QUORUM-1.0: second independent witness slot + quorum (slot 1 stays required).
         const { witnessQuorum } = await import("./witness-quorum.js");

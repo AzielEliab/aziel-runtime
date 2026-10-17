@@ -32,7 +32,7 @@ Three attacks needed write access to session storage only, not the ChainLock sto
 ## Honest limits
 - Without CHAINLOCK, a forged refusal row with the exact allowed shape (at most 16, 2 KB each, no exec content) is accepted; it cannot carry an action.
 - Without a CHAINLOCK binding, the freeze truth is the chain itself, so someone with session storage only can still delete the freeze row together with everything after it and `session.freeze`; that session then looks never frozen. With CHAINLOCK bound that is caught by the session-keyed index.
-- Before the next witness run (cron about every 15 minutes), resume is `not_checked`. The local checks (freeze head versus the ChainLock row versus the chain) still apply.
+- Before the next witness run (cron `*/15`, but GitHub delivers it best-effort, observed every 2–3 hours; `scripts/trigger-witness.mjs` runs it on demand), resume is `not_checked`. The local checks (freeze head versus the ChainLock row versus the chain) still apply.
 - Someone who controls both the session DO storage and the ChainLock store before the witness runs can rewrite both consistently. Only a `witnessed` level rules that out.
 - Offline export/import resume and reopening a closed session are not built: closed sessions stay sealed. Cold-isolate checking is per DO instance and runs once per isolate.
 - Receipts are hash-linked and sealed, not signed. Witness statements are signed by the witness, not by the runtime.
