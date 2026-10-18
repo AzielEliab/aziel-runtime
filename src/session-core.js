@@ -704,6 +704,17 @@ export async function commitExec(session, { intent, status, latencyMs, requestDi
 }
 
 /**
+ * A paused session takes no stale or revoke stamp: resume (src/resume-anchor.js) requires the chain to be
+ * exactly the frozen head, so any row appended while paused would make every resume refuse
+ * RESUME-ANCHOR-MISMATCH forever. Refuse before anything is appended; the session is left unchanged.
+ */
+function refuseWhilePaused(session, stamp) {
+  if (session && session.paused) {
+    throw sessionError(409, "SESSION-PAUSED", `session is paused; POST /resume before appending a ${stamp} stamp`, { session_id: session.id, stamp, written: false });
+  }
+}
+
+/**
  * RIB-014: append a stale stamp against the sealed spec (never edits stamp #1). Event-driven only.
  * Writer authority (issuer-only) is RIB-015.
  */
@@ -713,6 +724,7 @@ export async function applyStale(session, nowIso, raw, { issuerKey = null } = {}
   // RIB-015: only the issuer recorded at genesis may append a stale stamp.
   const { assertIssuer } = await import("./issuer-append.js");
   const written_by = await assertIssuer(session, issuerKey);
+  refuseWhilePaused(session, "stale");
   const { staleRequestOf, specWorldVersion, specStaleness, SPEC_STALE } = await import("./spec-stale.js");
   const req = staleRequestOf(raw);
   if (!req.ok) throw sessionError(400, req.code, req.message);
@@ -740,6 +752,7 @@ export async function applyRevoke(session, nowIso, raw, { issuerKey = null } = {
   if (session.closed) throw sessionError(409, "session_closed", "session is sealed; no further stamps", { session_id: session.id });
   const { assertIssuer, specState, ISSUER_SPEC } = await import("./issuer-append.js");
   const written_by = await assertIssuer(session, issuerKey);
+  refuseWhilePaused(session, "revoke");
   const reason = raw && raw.reason != null ? String(raw.reason).trim() : "";
   if (!reason || reason.length > 512) throw sessionError(400, "REVOKE-INVALID", "revoke needs { reason } (1-512 chars).");
   const st = specState(session.receipts);
