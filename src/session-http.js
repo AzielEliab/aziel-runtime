@@ -68,7 +68,7 @@ async function copyJson(res, json, { consent = false, issuerKey = null } = {}) {
   // RIB-015: the issuer key is returned once, on a fresh open only; only its hash is sealed.
   if (issuerKey && res.status === 200 && body && body.ok === true && !body.already) {
     body.issuer_key = issuerKey;
-    body.issuer_key_note = "Shown once and never stored. Send it as X-Azrt-Issuer-Key to append stale or revoke stamps; anyone else gets CL-NOT-ISSUER.";
+    body.issuer_key_note = "Shown once and never stored. Send it as X-Azrt-Issuer-Key to append stale or revoke stamps or to pause or resume; anyone else gets CL-NOT-ISSUER.";
   }
   return json(body, res.status);
 }
@@ -276,6 +276,7 @@ export async function handleSessionRequest(request, env, deps) {
   }
   if ((action === "pause" || action === "resume") && request.method === "POST") {
     // RIB-044 / AZRT-RESUME-ANCHOR-1.0: freeze head queued for the witness; resume is anchor-gated.
+    // Token-gated (isSessionMutatePath) and issuer-only (X-Azrt-Issuer-Key, else 403 CL-NOT-ISSUER).
     let b = {};
     try {
       const text = await request.text();
@@ -284,7 +285,7 @@ export async function handleSessionRequest(request, env, deps) {
       return json({ error: "invalid JSON", code: "bad_json" }, 400);
     }
     return copyJson(
-      await stubFetch(env, id, action, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(action === "resume" ? { strict: b.strict === true } : {}) }),
+      await stubFetch(env, id, action, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...(action === "resume" ? { strict: b.strict === true } : {}), issuer_key: request.headers.get("x-azrt-issuer-key") || null }) }),
       json,
       { consent: true },
     );
