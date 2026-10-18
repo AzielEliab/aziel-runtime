@@ -39,9 +39,44 @@ async function chain(signer, k = 2) {
   assert.doesNotMatch(src, /subtle\s*\[/, "no computed subtle[...] access");
   // No other runtime source touches the private key secret.
   const { readdir } = await import("node:fs/promises");
+  // Follow-up (#289 review): a split name such as env["RECEIPT_" + "SIGNING_KEY"] or env[`RECEIPT_${x}`] slipped past
+  // the plain /RECEIPT_SIGNING/ check. Now: (a) no fragment of the secret name in any other file; (b) every computed
+  // env[...] index and every whole-env enumeration/spread is on a reviewed allowlist, so a new one fails here.
+  const ALLOWED_COMPUTED_ENV = {
+    "workspace.js": ["env[ENV_WORKSPACE_KEY]"],
+    "index.js": ["env[bindingName(product)]"],
+    "engines/vibelock/engine.js": ["env[i]", "env[i]", "env[i]", "env[i - 1]"], // local numeric array named env
+  };
+  const ALLOWED_ENV_ENUM = {
+    "azpipe.js": ["Object.assign(env", "...env", "Object.assign(env", "...env"], // azpipe's local `env` is its pipe envelope, not the Worker env
+    "engines/shadowlock/engine.js": [],
+  };
+  const fragment = /["'`][^"'`\n]*(?:SIGNING_KEY|RECEIPT_SIG|RECEIPT_KEY)[^"'`\n]*["'`]|["'`](?:RECEIPT_?|RECEIPT_SIGNING_?|SIGNING_?KEY|_?SIGNING_?)["'`]/;
   for (const f of (await readdir(new URL("../src/", import.meta.url), { recursive: true })).filter((x) => (x.endsWith(".js") || x.endsWith(".mjs")) && x !== "receipt-signing.js")) {
-    const t = await readFile(new URL("../src/" + f, import.meta.url), "utf8");
-    assert.doesNotMatch(t, /RECEIPT_SIGNING/, f);
+    const raw = await readFile(new URL("../src/" + f, import.meta.url), "utf8");
+    const t = raw.replace(/^\s*\/\*[\s\S]*?\*\//gm, "").replace(/^\s*\/\/.*$/gm, ""); // whole-line comments only (URLs keep "//")
+    assert.doesNotMatch(raw, /RECEIPT_SIGNING/, f);
+    assert.ok(!fragment.test(t), "secret-name fragment in " + f + ": " + (t.match(fragment) || [""])[0]);
+    const computed = t.match(/\benv\s*\[[^\]\n]*\]/g) || [];
+    assert.deepEqual(computed, ALLOWED_COMPUTED_ENV[f] || [], "computed env[...] index in " + f + " (review and allowlist)");
+    const enumerating = t.match(/Object\.(?:keys|values|entries|getOwnPropertyNames|getOwnPropertyDescriptors|assign)\(\s*(?:\{\}\s*,\s*)?env\b|for\s*\(\s*(?:const|let|var)\s+\w+\s+in\s+env\b|Reflect\.(?:get|ownKeys|has)\(\s*env\b|JSON\.stringify\(\s*env\b|structuredClone\(\s*env\b|\.\.\.env\b(?!\.)/g) || [];
+    const shadowlockSpread = f === "engines/shadowlock/engine.js" ? [] : null;
+    assert.deepEqual(enumerating, shadowlockSpread || ALLOWED_ENV_ENUM[f] || [], "whole-env enumeration/spread in " + f + " (review and allowlist)");
+  }
+  // The scanner itself catches the reported bypass shapes.
+  const probe = (code) => fragment.test(code) || /\benv\s*\[[^\]\n]*\]/.test(code);
+  for (const bad of ['env["RECEIPT_" + "SIGNING_KEY"]', "env['RECEIPT_'+'SIGNING_KEY']", "env[`RECEIPT_${k}`]", "const k = 'SIGNING_KEY'", "env[name]"]) assert.ok(probe(bad), bad);
+  n++;
+}
+// Dynamic check: with a provisioned key, no HTTP surface ever echoes the private key.
+{
+  const handler = (await import("../src/index.js")).default.fetch;
+  const env = { ...envA, SESSION: memorySessionNamespace(envA) };
+  const needle = A.priv.slice(8, 40);
+  for (const [method, path, body] of [["GET", "/"], ["GET", "/health"], ["GET", "/v1/software"], ["GET", "/v1/receipt-key"], ["GET", "/v1/anchor/heads"], ["POST", "/v1/session/open", "{}"], ["POST", "/mcp", JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" })]]) {
+    const res = await handler(new Request("https://rt.example" + path, { method, headers: { "content-type": "application/json" }, ...(body ? { body } : {}) }), env);
+    const text = await res.text();
+    assert.ok(!text.includes(needle), "private key leaked on " + path);
   }
   n++;
 }

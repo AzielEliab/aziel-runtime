@@ -43,6 +43,17 @@ function fail(err) {
   );
 }
 
+/** Issuer-only gate for pause/resume. Refuses before any row is written, so the chain is unchanged. */
+async function assertIssuerFor(session, key, stamp) {
+  const { assertIssuer } = await import("./issuer-append.js");
+  try {
+    return await assertIssuer(session, typeof key === "string" ? key : null);
+  } catch (err) {
+    if (err && err.code === "CL-NOT-ISSUER") err.extra = { ...(err.extra || {}), stamp };
+    throw err;
+  }
+}
+
 async function readJson(request) {
   const text = await request.text();
   if (!text || !text.trim()) return {};
@@ -350,8 +361,10 @@ export class RuntimeSession {
     return json({ ok: true, session_id: session.id, state: specState(session.receipts), spec_stale: specStaleness(session.receipts) });
   }
 
-  async pause() {
+  async pause(body = {}) {
     const session = await this.expireIfNeeded(await this.load());
+    // Pause/resume are issuer-only (CL-NOT-ISSUER, 403, chain unchanged), like stale and revoke.
+    if (session) await assertIssuerFor(session, body && body.issuer_key, "pause");
     const now = new Date().toISOString();
     const out = await applyPause(session, now);
     out.session.freeze.queue = await queueFreeze(this.env, out.session.freeze.freeze_head, { append: chainlockAppend, storeFor: chainlockStoreFor, reason: "pause" });
@@ -362,6 +375,7 @@ export class RuntimeSession {
 
   async resume(body = {}) {
     const session = await this.load();
+    if (session) await assertIssuerFor(session, body && body.issuer_key, "resume");
     const now = new Date().toISOString();
     try {
       const out = await applyResume(session, this.env, { strict: body && body.strict === true, storeFor: chainlockStoreFor, nowIso: now });
