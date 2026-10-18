@@ -1042,6 +1042,11 @@ export function attemptOpenApiSchemas() {
   };
 }
 
+const SESSION_ID_PARAM = { name: "id", in: "path", required: true, schema: { type: "string", pattern: "^sess_[a-f0-9]{32}$" } };
+const ISSUER_KEY_PARAM = { name: "X-Azrt-Issuer-Key", in: "header", required: true, description: "Issuer key returned once by POST /v1/session/open (only its hash is sealed). Header only; a key in the body is ignored.", schema: { type: "string" } };
+const ISSUER_403 = "CL-NOT-ISSUER: X-Azrt-Issuer-Key missing (reason missing_key), wrong (wrong_key), or the session recorded no issuer at genesis (no_issuer). written:false; the chain is unchanged.";
+const TOKEN_401 = "token_required or token_mismatch (REQUIRE_TOKEN=1). Send Authorization: Bearer <RUNTIME_TOKEN> or X-Aziel-Runtime-Token.";
+
 export function runtimeStaticPaths() {
   return {
     "/v1/session/open": {
@@ -1203,6 +1208,109 @@ export function runtimeStaticPaths() {
         tags: ["session"],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
         responses: { "200": { description: "Final receipt" }, "409": { description: "Already closed" } },
+      },
+    },
+    "/v1/session/{id}": {
+      get: {
+        operationId: "runtime_session_status",
+        summary: "Session status (public, read-only). Same as GET /v1/session/{id}/status.",
+        tags: ["session"],
+        parameters: [SESSION_ID_PARAM],
+        responses: { "200": { description: "Public session view" }, "404": { description: "session_not_found" } },
+      },
+    },
+    "/v1/session/{id}/stale": {
+      post: {
+        operationId: "runtime_session_stale",
+        security: [{ IssuerKey: [] }],
+        summary:
+          "RIB-014: append a stale stamp against the sealed spec (append-only; never edits stamp #1). Issuer-only: send the key returned once at open as X-Azrt-Issuer-Key. Not behind the runtime token gate.",
+        tags: ["session"],
+        parameters: [SESSION_ID_PARAM, ISSUER_KEY_PARAM],
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { type: "object", required: ["new_world_version", "reason"], properties: { new_world_version: { type: "string" }, reason: { type: "string" } } } } },
+        },
+        responses: {
+          "200": { description: "Stale receipt appended + spec_stale + verified" },
+          "400": { description: "bad_json or SPEC-STALE-INVALID" },
+          "403": { description: ISSUER_403 },
+          "404": { description: "session_not_found" },
+          "409": { description: "session_closed, SPEC-STALE-NO-SPEC (no spec sealed at genesis) or SPEC-STALE-SAME-VERSION" },
+        },
+      },
+    },
+    "/v1/session/{id}/revoke": {
+      post: {
+        operationId: "runtime_session_revoke",
+        security: [{ IssuerKey: [] }],
+        summary:
+          "RIB-015: issuer-only revocation (append-only). After it, exec refuses SPEC-REVOKED and a verdict close refuses. Send X-Azrt-Issuer-Key. Not behind the runtime token gate.",
+        tags: ["session"],
+        parameters: [SESSION_ID_PARAM, ISSUER_KEY_PARAM],
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { type: "object", required: ["reason"], properties: { reason: { type: "string", minLength: 1, maxLength: 512 } } } } },
+        },
+        responses: {
+          "200": { description: "Revoke receipt appended + verified" },
+          "400": { description: "bad_json or REVOKE-INVALID (reason must be 1-512 chars)" },
+          "403": { description: ISSUER_403 },
+          "404": { description: "session_not_found" },
+          "409": { description: "session_closed or REVOKE-DUPLICATE" },
+        },
+      },
+    },
+    "/v1/session/{id}/spec": {
+      get: {
+        operationId: "runtime_session_spec",
+        summary: "RIB-015: read-only spec state ({revoked, stale, exec_allowed, issuer_recorded, ...}) and spec_stale. Public; no write path.",
+        tags: ["session"],
+        parameters: [SESSION_ID_PARAM],
+        responses: { "200": { description: "state + spec_stale" }, "404": { description: "session_not_found" } },
+      },
+    },
+    "/v1/session/{id}/pause": {
+      post: {
+        operationId: "runtime_session_pause",
+        security: [{ RuntimeToken: [], IssuerKey: [] }],
+        summary:
+          "RIB-044: append a freeze receipt; the freeze head is queued on ChainLock \"session\" for the outside witness. Exec refuses SESSION-PAUSED until resumed. Token-gated (REQUIRE_TOKEN=1) and issuer-only (X-Azrt-Issuer-Key). Refusals write no row.",
+        tags: ["session"],
+        parameters: [SESSION_ID_PARAM, ISSUER_KEY_PARAM],
+        requestBody: { required: false, content: { "application/json": { schema: { type: "object" } } } },
+        responses: {
+          "200": { description: "Freeze receipt + freeze { freeze_head, queue }" },
+          "400": { description: "bad_json, or TOKEN-QUERY-REFUSED (token in the query string)" },
+          "401": { description: TOKEN_401 },
+          "403": { description: ISSUER_403 },
+          "404": { description: "session_not_found" },
+          "409": { description: "session_closed or SESSION-PAUSED (already paused)" },
+          "503": { description: "token_not_configured (REQUIRE_TOKEN=1 without RUNTIME_TOKEN)" },
+        },
+      },
+    },
+    "/v1/session/{id}/resume": {
+      post: {
+        operationId: "runtime_session_resume",
+        security: [{ RuntimeToken: [], IssuerKey: [] }],
+        summary:
+          "RIB-044: anchor-gated resume. Recomputes the chain against the frozen head; a clean resume appends a resume receipt recording the anchor level (witnessed or not_checked, never a pass). Token-gated (REQUIRE_TOKEN=1) and issuer-only (X-Azrt-Issuer-Key); auth refusals write no row.",
+        tags: ["session"],
+        parameters: [SESSION_ID_PARAM, ISSUER_KEY_PARAM],
+        requestBody: {
+          required: false,
+          content: { "application/json": { schema: { type: "object", properties: { strict: { type: "boolean", description: "Refuse RESUME-ANCHOR-NOT-CHECKED unless a witness statement covers the freeze head." } } } } },
+        },
+        responses: {
+          "200": { description: "Resume receipt + resume { anchor: { level } }" },
+          "400": { description: "bad_json, or TOKEN-QUERY-REFUSED (token in the query string)" },
+          "401": { description: TOKEN_401 },
+          "403": { description: ISSUER_403 },
+          "404": { description: "session_not_found" },
+          "409": { description: "session_closed, RESUME-ANCHOR-MISMATCH (chain no longer matches the frozen head; a refusal receipt is sealed) or RESUME-ANCHOR-NOT-CHECKED (strict, not witnessed; a refusal receipt is sealed)" },
+          "503": { description: "token_not_configured (REQUIRE_TOKEN=1 without RUNTIME_TOKEN)" },
+        },
       },
     },
     "/v1/ui/detach": {
