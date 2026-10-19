@@ -68,6 +68,8 @@ export function meshHttpOp(pathname) {
     .toLowerCase();
   if (!path.startsWith("/v1/mesh/")) return "";
   const rest = path.slice("/v1/mesh/".length);
+  // AGENT-SUBNET-1.0: /v1/mesh/agents/<verb> is the mesh op agent-<verb> (enters FragGate like any mesh post).
+  if (/^agents\/[a-z]+$/.test(rest)) return "agent-" + rest.slice("agents/".length);
   if (!rest || rest.includes("/")) return "";
   if (rest === "site-heartbeat") return "site-presence";
   return rest;

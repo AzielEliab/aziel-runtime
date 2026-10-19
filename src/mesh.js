@@ -312,6 +312,17 @@ export const MESH_LIMITATION =
   " Author: Aziel Eliab only.";
 
 export const MESH_CANONICAL_OPS = Object.freeze([
+  // AGENT-SUBNET-1.0 (src/agent-subnet.js): additive agent-* ops on the same mesh door.
+  "agent-status",
+  "agent-register",
+  "agent-grant",
+  "agent-revoke",
+  "agent-send",
+  "agent-pull",
+  "agent-ack",
+  "agent-challenge",
+  "agent-receipts",
+  "agent-directory",
   "status",
   "enable",
   "disable",
@@ -2765,6 +2776,15 @@ export async function runMeshOp(op, payload, env) {
     const state = await loadState(env);
     return baseResult({ ...(await statusFields(state, env)), ...fed, op: resolved });
   }
+  if (resolved && resolved.startsWith("agent-")) {
+    // AGENT-SUBNET-1.0: mutate ops need the mesh enabled (never enabled from here; MESH-OFF otherwise).
+    const agents = await import("./agent-subnet.js");
+    if (agents.AGENT_MUTATE_OPS.includes(resolved)) {
+      const state = await loadState(env);
+      if (!state.enabled) return offRefuse(resolved, state, env);
+    }
+    return agents.runAgentOp(resolved, src, env);
+  }
   return refuse("MESH-UNKNOWN-OP", `Unknown mesh op ${JSON.stringify(op || "")}.`, {
     op: resolved || op || null,
     ops: MESH_CANONICAL_OPS.slice(),
@@ -2885,6 +2905,16 @@ async function dispatchMeshHttpCore(method, pathname, payload, env, origin, sear
   if (isNatPath(path)) {
     return { status: 403, body: meshNatRefuse(path, natRefuse()) };
   }
+  if (path === "/v1/mesh/agents" || path.startsWith("/v1/mesh/agents/")) {
+    // AGENT-SUBNET-1.0. POSTs already entered FragGate (enterMeshPost, op agent-<verb>).
+    const agents = await import("./agent-subnet.js");
+    const verbOp = path === "/v1/mesh/agents" ? "agent-status" : "agent-" + path.slice("/v1/mesh/agents/".length);
+    if (m === "POST" && agents.AGENT_MUTATE_OPS.includes(verbOp)) {
+      const state = await loadState(env);
+      if (!state.enabled) return { status: 409, body: await offRefuse(verbOp, state, env) };
+    }
+    return agents.dispatchAgentHttp(m, path, payload, env, searchParams);
+  }
   if (path === "/v1/mesh/relay" || path.startsWith("/v1/mesh/relay/")) {
     if (
       (path === "/v1/mesh/relay" ||
@@ -2968,6 +2998,9 @@ export function memoryMeshKv(seed = {}) {
     },
     async put(key, value) {
       store.set(key, String(value));
+    },
+    async delete(key) {
+      store.delete(key);
     },
     async list({ prefix = "", limit = 1000, cursor } = {}) {
       const names = [...store.keys()].filter((k) => k.startsWith(prefix)).sort();

@@ -27,7 +27,7 @@ console.log("verify-mesh-onboard: ok");
   const r = await worker.fetch(new Request(o + "/workspace"), {}, { waitUntil() {} });
   const html = await r.text();
   assert.match(html, /id="azrt-hints"/); assert.match(html, /azrt\.hints\.v1/); assert.match(html, /Got it/);
-  { const { newUserHintsHtml } = await import("../src/mesh-onboard.js"); const h = newUserHintsHtml(); assert.ok(!/fetch\(|XMLHttpRequest|sendBeacon/.test(h)); assert.equal((h.match(/"id":/g) || []).length, 4); }
+  { const { newUserHintsHtml } = await import("../src/mesh-onboard.js"); const h = newUserHintsHtml(); assert.ok(!/fetch\(|XMLHttpRequest|sendBeacon/.test(h)); assert.equal((h.match(/"id":/g) || []).length, 5); } // AGENT-SUBNET-1.0 adds the first-run "agents" hint (additive)
   console.log("verify-mesh-onboard: hints popup ok");
 }
 function newUserHintsHtml_() { return ""; }

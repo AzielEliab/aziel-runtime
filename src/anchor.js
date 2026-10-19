@@ -51,7 +51,7 @@ export const INTEGRITY_LEVELS = Object.freeze(["none", "hash_present", "chain_co
 
 /** Anchored roots: ChainLock chains + FragGate ask/refuse ledger (DO writers) + checkpointed stores. */
 export const ANCHOR_CHAINS = Object.freeze([
-  "genesis", "identity", "ssh", "session", "acts", "evidence", "recall", "mesh", "library", "learn", "refusals", "fraggate",
+  "genesis", "identity", "ssh", "session", "acts", "evidence", "recall", "mesh", "library", "learn", "refusals", "agentcomms", "fraggate",
 ]);
 
 export const ANCHOR_CODES = Object.freeze({

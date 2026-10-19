@@ -183,3 +183,31 @@ Every refusal above and every existing refuse code on `tools/call` / `POST /v1/f
 | Code | Spec | When |
 |------|------|------|
 | `MESH-PEER-NOT-ALLOWED` | AZRT-MESH-PEER-DENY-1.0 | Local Track 2 node: peer session offer/accept with a handle the operator has not allowed (deny-by-default). The public Worker `peer_session_open` stays `FG-STUB`. |
+
+## 5c. Agent subnet (additive, 2.0.x)
+
+AGENT-SUBNET-1.0 (`src/agent-subnet.js`, docs/designs/AGENT-SUBNET-1.0.md). Every one is sealed on the internal `refusals` chain through `sealRefusal` with a fixed reason and `reason_sha256`; caller text is never stored. Default deny.
+
+| Code | HTTP | When |
+|---|---|---|
+| `AGENT-BAD-INPUT` | 400 | Not a well-formed AGENT-SUBNET-1.0 statement. |
+| `AGENT-PLAINTEXT-FIELD` | 400 | A send carries a field outside the signed statement and the sealed box. |
+| `AGENT-PLAINTEXT-SUSPECT` | 400 | The box bytes are at least 90% printable ASCII (not ciphertext). |
+| `AGENT-PRIVATE-KEY` | 400 | A private-key-shaped field was sent. |
+| `AGENT-SKEW` | 400 | Statement time not within 5 minutes. |
+| `AGENT-REPLAY` | 409 | That exact signed statement was already used. |
+| `AGENT-ID-MISMATCH` | 400 | Agent/owner id is not the handle of its public key. |
+| `AGENT-SIG-INVALID` | 403 | Agent signature did not verify. |
+| `AGENT-OWNER-SIG` | 403 | Owner signature missing or bad (cross-owner links need both owners). |
+| `AGENT-UNKNOWN` | 404 | Agent not registered. |
+| `AGENT-EXISTS` | 409 | Agent id already registered. |
+| `AGENT-OWNER-CAP` | 409 | Owner has the maximum agents. |
+| `AGENT-NO-GRANT` / `AGENT-GRANT-EXPIRED` / `AGENT-GRANT-REVOKED` / `AGENT-GRANT-SCOPE` | 403 | No usable grant. |
+| `AGENT-BOX-HASH` | 400 | `box_sha256` does not match the box. |
+| `AGENT-CARRIER-ABSENT` | 503 | A named radio carrier (LAN, Wi-Fi, Bluetooth, RF, Photon) is not at this relay; `absent_code: QNM-RADIO-ABSENT`. |
+| `AGENT-RATE` | 429 | Per-agent or subnet rate limit (sealed, unlike door 429s). |
+| `AGENT-MAILBOX-FULL` | 409 | Receiver mailbox at cap. |
+| `AGENT-RECEIPT-UNAVAILABLE` / `AGENT-RECEIPT-CAP` | 503 | No receipt could be sealed, so nothing was done. |
+| `AGENT-STORE-UNBOUND` | 503 | Durable store not bound. |
+| `AGENT-CHALLENGE` | 403 | View challenge missing, expired, or forged. |
+| `AGENT-NOT-FOUND` / `AGENT-METHOD` | 404 / 405 | Unknown path / wrong method. |

@@ -39,8 +39,9 @@ export const ROSTER = Object.freeze([
 /**
  * Runtime-internal chains (not on the public ROSTER, so chainlock_append cannot forge into them).
  * AZRT-REFUSAL-RECEIPT-1.0: sealed policy refusals and the next action after one (append-only).
+ * AGENT-SUBNET-1.0: `agentcomms` holds hash-only agent communication receipts (src/agent-subnet.js).
  */
-export const INTERNAL_CHAINS = Object.freeze(["refusals"]);
+export const INTERNAL_CHAINS = Object.freeze(["refusals", "agentcomms"]);
 
 /**
  * LATTICE-DOC-UNIQUE-1.0: document chains. A document (stampDocumentHash: chain, kind,
@@ -209,7 +210,7 @@ const DOUBLE_MESSAGE = {
  * every stamp written before them hashes exactly as before.
  * AZRT-ANCHOR-1.0 anchor, AZRT-REFUSAL-RECEIPT-1.0 refusal, AZRT-GOAL-LINK-1.0 follows/goal_key,
  * AZRT-SCHEMA-PIN-1.0 schema_hash, AZRT-CONTEXT-HASH-1.0 context_hash/node_ids,
- * AZRT-EXPECT-SPEC-1.0 spec_ref/expect_hash.
+ * AZRT-EXPECT-SPEC-1.0 spec_ref/expect_hash, AGENT-SUBNET-1.0 agentcomm (hash-only receipt body).
  */
 export const ADDITIVE_STAMP_FIELDS = Object.freeze([
   "anchor",
@@ -221,6 +222,7 @@ export const ADDITIVE_STAMP_FIELDS = Object.freeze([
   "node_ids",
   "spec_ref",
   "expect_hash",
+  "agentcomm",
 ]);
 const ADDITIVE_FIELD_BYTES = 1024;
 

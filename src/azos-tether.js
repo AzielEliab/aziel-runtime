@@ -29,7 +29,9 @@ export const TETHER_ROW_CAP = 64;
 /** Internal refusal chain (RIB-018, receipt-guard REFUSAL_CHAIN). Tethered too: TETHER-REFUSALS-1.0. */
 export const TETHER_REFUSAL_CHAIN = "refusals";
 /** Every chain pushAll sends: the public roster plus the internal refusals chain. */
-export const TETHER_CHAINS = Object.freeze([...ROSTER, TETHER_REFUSAL_CHAIN]);
+/** AGENT-SUBNET-1.0: hash-only agent communication receipts, tethered like refusals. */
+export const TETHER_AGENT_CHAIN = "agentcomms";
+export const TETHER_CHAINS = Object.freeze([...ROSTER, TETHER_REFUSAL_CHAIN, TETHER_AGENT_CHAIN]);
 /** Own cron (odd minutes) so the tether does not share a subrequest budget with the mesh fan-out. */
 export const TETHER_CRON = "1-59/2 * * * *";
 

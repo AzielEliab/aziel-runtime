@@ -20,8 +20,9 @@ const list = await get("/v1/fraggate/list");
 assert.equal(list.kernel, false);
 assert.equal(list.kernel_repo_url, "https://github.com/AzielEliab/fraggate");
 // registry_digest moves with ENGINE_DIGESTS (engine wording changed in DOCS-WORDING-1.0)
-// and with the memory op list (LATTICE-LEARN-1.0 added lattice-learn, additive).
-assert.equal(list.registry_digest, "c1fcc9d22f1790613cdc7b4b4a6d9920d1a445cc26c5a524994061508dfb16da");
+// and with the memory op list (LATTICE-LEARN-1.0 added lattice-learn, additive)
+// and with the mesh op list (AGENT-SUBNET-1.0 added agent-* mesh ops, additive; live_count stays 42).
+assert.equal(list.registry_digest, "7758cc219d317e56c897000dd6bc87da16590bc09ac97a128759b56d3caeceb5");
 assert.equal(list.stub_op_count, 363);
 assert.equal(list.live_count, 42);
 n += 5;
