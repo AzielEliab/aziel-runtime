@@ -92,6 +92,26 @@ export class RuntimeKv {
     }
     return { entries, more };
   }
+  /**
+   * AZRT-AUTH-ROLLUP-1.0 (additive op): atomic counter. One handler with no outside I/O between the
+   * storage get and put, so the object's input gate makes it atomic. Capped; optional TTL; when the value
+   * goes from 0 to >0 the optional `mark` key is set too (same TTL), so a reader can find live counters.
+   */
+  async kvIncr(key, by, cap, ttlSeconds, mark) {
+    const k = "k:" + String(key);
+    const now = nowMs();
+    const row = liveRow(await this.ctx.storage.get(k), now);
+    const prev = row ? Math.max(0, Math.floor(Number(row.v)) || 0) : 0;
+    const step = Math.max(1, Math.min(1_000_000, Math.floor(Number(by)) || 1));
+    const limit = Number.isFinite(Number(cap)) && Number(cap) > 0 ? Math.floor(Number(cap)) : Number.MAX_SAFE_INTEGER;
+    const next = Math.min(limit, prev + step);
+    const ttl = Number(ttlSeconds);
+    const exp = row && Number.isFinite(row.exp) ? row.exp : Number.isFinite(ttl) && ttl > 0 ? now + ttl * 1000 : undefined;
+    await this.ctx.storage.put(k, exp ? { v: String(next), exp } : { v: String(next) });
+    if (prev === 0 && mark) await this.ctx.storage.put("k:" + String(mark), exp ? { v: "1", exp } : { v: "1" });
+    return { value: next, previous: prev, capped: prev + step > limit };
+  }
+
   /** Fetch door (the runtime's Durable Objects are plain classes, so no RPC): POST {op, ...}. */
   async fetch(request) {
     let body = {};
@@ -107,6 +127,7 @@ export class RuntimeKv {
     else if (op === "delete") out = { ok: await this.kvDelete(body.key) };
     else if (op === "list") out = await this.kvList(body.prefix, body.limit, body.after);
     else if (op === "scan") out = await this.kvScan(body.prefix, body.limit, body.after);
+    else if (op === "incr") out = await this.kvIncr(body.key, body.by, body.cap, body.ttl, body.mark);
     else return new Response(JSON.stringify({ ok: false, error: "unknown op" }), { status: 400 });
     return new Response(JSON.stringify(out), { headers: { "content-type": "application/json" } });
   }
@@ -176,6 +197,10 @@ export function hybridKv(ns, legacy) {
     /** Durable Object entries (name, value) under a prefix, one request per page of up to 1000. */
     async scan(prefix, after = "", limit = RUNTIME_KV_LIST_CAP) {
       return call({ op: "scan", prefix, after, limit });
+    },
+    /** AZRT-AUTH-ROLLUP-1.0: atomic capped counter in the Durable Object (no legacy KV involved). */
+    async incr(key, by = 1, { cap = 0, ttl = 0, mark = null } = {}) {
+      return call({ op: "incr", key: String(key), by, cap, ttl, mark: mark ? String(mark) : null });
     },
     async get(key, opts) {
       const raw = await stub.kvGet(String(key));
