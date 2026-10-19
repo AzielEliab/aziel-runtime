@@ -72,6 +72,7 @@ assert.equal(doors.doorOf("/v1/mesh/install.sh"), "mesh"); assert.equal(doors.do
 b = await (await get("/v1/receipts/refusals")).json();
 assert.equal(b.ok, true); assert.equal(b.chain, "refusals"); assert.ok(b.total >= 2); assert.equal(b.receipts[0].seq, b.total);
 assert.equal(b.receipts.find((x) => x.seq === rr.seq).refusal.kind, "refusal");
+assert.equal(b.receipts.find((x) => x.seq === rr.seq).code, "ONBOARD-BAD-SLUG");
 b = await (await get("/v1/receipts/refusals?seq=" + rr.seq)).json();
 assert.equal(b.receipt.h, rr.h); assert.equal(b.receipt.refusal.code, "ONBOARD-BAD-SLUG"); assert.equal(b.receipt.refusal.reason.length > 0, true);
 assert.equal((await get("/v1/receipts/refusals?seq=99999")).status, 404);
