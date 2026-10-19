@@ -46,6 +46,13 @@ to record them as **one rollup receipt per minute per door + code, a count only*
      `AUTH-ROLLUP-OVERFLOW` row with `combos`. That is at most 9 rows a minute, whatever the attack rate.
    - The minute is marked done (and its counters deleted) only when every row sealed. Otherwise the
      next tick retries.
+   - **Own share in the writer cap (AZBot B307-1).** Rollup rows spend a reserved `rollup` share of
+     **9 rows/min** in the ChainLock writer's refusal cap (`REFUSAL_CAP.classes.rollup`), outside the REST
+     240, so a flood that fills the REST share can't starve the flush. The writer total becomes 609
+     (240 + 240 + 120 + 9). Only rows the runtime itself builds (`surface:"runtime"`, `kind:"auth_rollup"`,
+     `tool:"auth-rollup"`) use this share; a REST door row or a peer report can't claim it.
+   - When the share is spent in a wall-clock minute (backlog after an outage), the tick stops; the
+     oldest pending minute goes first on the next tick. Replays of rows already sealed are free.
 4. **Response.** The status and body are unchanged. One header is added:
    `X-Azrt-Auth-Rollup: counted|pending|unavailable|rate_limited; ...`. Counting waits at most 300 ms;
    after that it finishes in `waitUntil` and the header says `pending`.
@@ -61,9 +68,18 @@ chain.
 - The count covers what reached this Worker's fetch handler. Requests that Cloudflare rejected earlier,
   and 429s from the auth rate limiter, are not counted. (A 429 is its own refusal and stays plain, as before.)
 - If RUNTIME_KV is unbound, nothing is counted and the header says `unavailable`. If counters expire
-  before a seal succeeds (more than 6 h of store outage), that count is lost. The cron log shows it.
+  (6 h) before a seal succeeds, that count is lost. The cron log shows it. Ways that can happen:
+  - a store or writer outage of more than 6 h;
+  - a backlog: the 9/min rollup share seals at most one full minute (9 rows) per wall-clock minute, so
+    after an outage it catches up only in minutes that need fewer than 9 rows. Under a sustained flood
+    that fills 9 rows every minute, a backlog does not shrink, and minutes older than 6 h are lost.
+  The REST share being full is no longer a way to lose counts (own share, test group 11).
 - `pending` counts are added after the response. If the isolate dies before the counter call, that count
-  is lost. The row is a lower bound and never an overcount.
+  is lost. A `pending` increment that lands after its minute was already sealed (later than the 2 min
+  grace) is not sealed either. The row is a lower bound and never an overcount.
+- The body code is read from at most 64 KB, also while streaming a body with no content-length; past
+  that the code comes from the status alone (`HTTP-401-AUTH`). The client still gets the whole body.
+- OpenAPI: `#/components/headers/X-Azrt-Auth-Rollup`.
 - `SESSION-PAUSED` on `/exec` still also writes its own `refused` receipt on the session chain (RIB-018).
   The rollup is a separate count.
 - `/v1/receipts/refusals` lists rollup rows like other refusal rows. Its `not_recorded` text, which says

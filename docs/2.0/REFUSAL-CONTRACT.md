@@ -193,3 +193,5 @@ other `*token*` codes, any other 401) gain one additive header,
 They are still never sealed one by one. The cron seals one count-only row per minute per door + code on the
 internal `refusals` chain (`refusal.kind: "auth_rollup"`). New row code: `AUTH-ROLLUP-OVERFLOW` (pairs past
 the per-minute row cap, summed). Cron log codes: `AUTH-ROLLUP-UNBOUND`, `AUTH-ROLLUP-STORE-UNBOUND`.
+Rollup rows spend their own reserved `rollup` share (9/min) of the writer's refusal cap, outside the REST
+240 (writer total 609). The header is documented at `#/components/headers/X-Azrt-Auth-Rollup`.

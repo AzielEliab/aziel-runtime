@@ -98,9 +98,11 @@ const pairs = [];
 for (const d of ["mcp", "fraggate", "mesh", "chainlock"]) for (const c of ["token_required", "token_mismatch", "TOKEN-QUERY-REFUSED"]) pairs.push([d, c]);
 let k = 0;
 for (const [door, code] of pairs) { k++; for (let i = 0; i < k; i++) assert.equal((await AR.countAuthRefusal(env, { door, code, now: T })).status, "counted"); }
-const r2 = (await rowsOf()).length;
-f = await AR.flushAuthRollups(env, store, { now: T + 3 * 60000 });
-const capped = (await rowsOf()).slice(r2);
+// Own store: the writer's rollup share (9/min of wall-clock time) already spent 2 rows above.
+const s6 = storeFor(withDurableKv({ ...base, CHAINLOCK: memoryChainWriterNamespace({}) }));
+(await import("../src/receipt-guard.js"))._resetMcpSealCap();
+f = await AR.flushAuthRollups(env, s6, { now: T + 3 * 60000 });
+const capped = await loadChain(s6, "refusals");
 assert.equal(capped.length, AR.AUTH_ROLLUP_ROWS_PER_MIN + 1);
 const ov = capped.find((r) => r.refusal.code === "AUTH-ROLLUP-OVERFLOW");
 assert.equal(ov.refusal.combos, 4); assert.equal(ov.refusal.count, 1 + 2 + 3 + 4);
@@ -110,13 +112,13 @@ assert.equal(Math.max(...capped.filter((r) => r !== ov).map((r) => r.refusal.cou
 const T2 = T + 10 * 60000;
 for (let i = 0; i < 4; i++) await AR.countAuthRefusal(env, { door: "session-revoke", code: "CL-NOT-ISSUER", now: T2 });
 const broken = new Proxy({}, { get: (_t, p) => (p === "then" ? undefined : async () => { throw new Error("store down"); }) });
-const r3 = (await rowsOf()).length;
+const s7 = storeFor(withDurableKv({ ...base, CHAINLOCK: memoryChainWriterNamespace({}) }));
 f = await AR.flushAuthRollups(env, broken, { now: T2 + 3 * 60000 });
-assert.equal(f.minutes[0].status, "retry_next_tick"); assert.equal((await rowsOf()).length, r3);
-f = await AR.flushAuthRollups(env, store, { now: T2 + 4 * 60000 });
+assert.equal(f.minutes[0].status, "retry_next_tick"); assert.equal((await loadChain(s7, "refusals")).length, 0);
+f = await AR.flushAuthRollups(env, s7, { now: T2 + 4 * 60000 });
 assert.equal(f.minutes[0].status, "sealed");
-f = await AR.flushAuthRollups(env, store, { now: T2 + 5 * 60000 });
-const after7 = (await rowsOf()).slice(r3);
+f = await AR.flushAuthRollups(env, s7, { now: T2 + 5 * 60000 });
+const after7 = await loadChain(s7, "refusals");
 assert.equal(after7.length, 1); assert.equal(after7[0].refusal.count, 4); assert.equal(after7[0].refusal.door, "session-revoke"); n++;
 
 // 8) unbound: no store -> code; no durable counter -> header unavailable, refusal unchanged.
@@ -141,5 +143,83 @@ assert.equal(capOut.value, 7); assert.equal(capOut.capped, true); n++;
 // 10) chain verifies (dual lattice live).
 const v = await verify(store, { c: "refusals" });
 assert.equal(v.ok, true); assert.equal(v.chains[0].dual_lattice.ok, true); n++;
+
+// 11) B307-1: the rollup has its own 9/min share in the writer cap, outside REST 240. A minute whose REST
+//     share is spent (and memoed full in this isolate) still flushes the rollup rows.
+{
+  const { REFUSAL_CAP } = await import("../src/chainlock/writer-do.js");
+  const { append } = await import("../src/chainlock/ops.js");
+  const rg = await import("../src/receipt-guard.js");
+  rg._resetMcpSealCap();
+  assert.equal(REFUSAL_CAP.classes.rollup, AR.AUTH_ROLLUP_ROWS_PER_MIN + 1, "share = row cap + overflow row");
+  const e2 = withDurableKv({ ...base, CHAINLOCK: memoryChainWriterNamespace({}), RUNTIME_KV: memoryRuntimeKvNamespace(), USES: legacyKv() });
+  const s2 = storeFor(e2);
+  for (let i = 0; i < REFUSAL_CAP.classes.rest; i++) {
+    const o = await append(s2, { c: "refusals", k: "refusal", s: "R" + i, f: "refusal R" + i, refusal: { code: "R" + i, surface: "runtime", kind: "refusal", tool: "http" }, idempotency_key: "rest:" + i }, { internal: true });
+    assert.equal(o.ok, true);
+  }
+  const over = await rg.sealRefusal(s2, { code: "REST-OVER", tool: "http", slug: "mesh", op: "GET", args: { door: "mesh" }, trustedNames: true, extra: { kind: "refusal", surface: "runtime", door: "mesh", reason: null } });
+  assert.equal(over.status, "rate_limited", "REST share is full"); assert.equal(over.cap_class, "rest");
+  const T4 = Date.now();
+  for (const [door, code] of [["mcp", "token_required"], ["session-open", "token_mismatch"]]) await AR.countAuthRefusal(e2, { door, code, now: T4 });
+  const before = (await loadChain(s2, "refusals")).length;
+  const f4 = await AR.flushAuthRollups(e2, s2, { now: T4 + 3 * 60000 });
+  assert.equal(f4.minutes.length, 1); assert.equal(f4.minutes[0].status, "sealed", "a full REST share does not stall the flush");
+  const got = (await loadChain(s2, "refusals")).slice(before);
+  assert.equal(got.length, 2); for (const r of got) assert.equal(r.refusal.kind, "auth_rollup");
+  rg._resetMcpSealCap();
+  // Backlog: two closed minutes of 9 rows each in one tick. The 9/min share seals the older minute; the
+  // newer one is retry_next_tick (nothing lost, nothing duplicated) and seals in the next wall-clock minute.
+  const e3 = withDurableKv({ ...base, CHAINLOCK: memoryChainWriterNamespace({}), RUNTIME_KV: memoryRuntimeKvNamespace(), USES: legacyKv() });
+  const s3 = storeFor(e3);
+  const TB = Date.UTC(2026, 9, 19, 13, 0, 5);
+  for (const m of [0, 1]) for (const d of ["mcp", "fraggate", "mesh"]) for (const c of ["token_required", "token_mismatch", "TOKEN-QUERY-REFUSED"]) await AR.countAuthRefusal(e3, { door: d, code: c, now: TB + m * 60000 });
+  const realNow = Date.now;
+  try {
+    Date.now = () => TB + 5 * 60000;
+    const b1 = await AR.flushAuthRollups(e3, s3, { now: TB + 5 * 60000 });
+    assert.equal(b1.minutes[0].status, "sealed"); assert.equal(b1.minutes[1].status, "retry_next_tick");
+    assert.match(b1.minutes[1].reason, /rollup share 9\/min/);
+    assert.equal((await loadChain(s3, "refusals")).length, 9);
+    Date.now = () => TB + 6 * 60000;
+    const b2 = await AR.flushAuthRollups(e3, s3, { now: TB + 6 * 60000 });
+    assert.equal(b2.minutes.length, 1); assert.equal(b2.minutes[0].status, "sealed");
+    assert.equal((await loadChain(s3, "refusals")).length, 18, "both minutes, no duplicate");
+  } finally { Date.now = realNow; rg._resetMcpSealCap(); }
+}
+n++;
+
+// 12) OpenAPI documents the header in components.headers (additive).
+{
+  const r = await call("/openapi.json");
+  assert.equal(r.status, 200);
+  const doc = await r.json();
+  const h = doc.components.headers["X-Azrt-Auth-Rollup"];
+  assert.ok(h && h.schema && h.schema.type === "string");
+  assert.ok(new RegExp(h.schema.pattern).test("counted; spec=AZRT-AUTH-ROLLUP-1.0; minute=1; door=session-open; code=token_required"));
+  assert.ok(doc.components.headers["X-Azrt-Refusal-Receipt"], "existing header doc kept");
+}
+n++;
+
+// 13) 64 KB limit while streaming: a body with no content-length is read at most 64 KB (code from status
+//     only past that), the client still gets the whole body, and a small streamed body is parsed.
+{
+  const streamOf = (text, chunk = 4096) => {
+    const bytes = new TextEncoder().encode(text); let off = 0;
+    return new ReadableStream({ pull(c) { if (off >= bytes.length) { c.close(); return; } c.enqueue(bytes.slice(off, off + chunk)); off += chunk; } });
+  };
+  const big = JSON.stringify({ code: "token_mismatch", pad: "x".repeat(70000) });
+  const rBig = new Response(streamOf(big), { status: 401, headers: { "content-type": "application/json" } });
+  assert.equal(rBig.headers.get("content-length"), null);
+  const wBig = await AR.withAuthRollup(new Request("https://aziel-runtime.example/v1/session/open", { method: "POST" }), rBig, { env, now: T + 40 * 60000 });
+  assert.match(wBig.headers.get("x-azrt-auth-rollup"), /code=HTTP-401-AUTH$/, "body past 64 KB is not parsed");
+  assert.equal((await wBig.text()).length, big.length, "client body intact");
+  assert.equal(await AR.readCappedText(new Response(streamOf(big)), 65536), null);
+  const small = JSON.stringify({ code: "token_mismatch" });
+  const wSmall = await AR.withAuthRollup(new Request("https://aziel-runtime.example/v1/session/open", { method: "POST" }), new Response(streamOf(small, 3), { status: 401, headers: { "content-type": "application/json" } }), { env, now: T + 40 * 60000 });
+  assert.match(wSmall.headers.get("x-azrt-auth-rollup"), /code=token_mismatch$/);
+  assert.equal(await wSmall.text(), small);
+}
+n++;
 
 console.log(`ok auth rollup: ${n} checks`);

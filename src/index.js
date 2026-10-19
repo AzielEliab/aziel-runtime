@@ -3232,7 +3232,7 @@ async function combinedOpenApi(request, env) {
       },
       schemas: { ...attemptOpenApiSchemas(), RefusalReceipt: refusalDocs.refusalReceiptSchema() },
       // AZRT-REFUSAL-RECEIPT-1.0 (additive): header on sealed-door refusals.
-      headers: { "X-Azrt-Refusal-Receipt": refusalDocs.REFUSAL_RECEIPT_HEADER_DOC },
+      headers: { "X-Azrt-Refusal-Receipt": refusalDocs.REFUSAL_RECEIPT_HEADER_DOC, "X-Azrt-Auth-Rollup": (await import("./auth-rollup.js")).AUTH_ROLLUP_HEADER_DOC },
     },
     "x-refusal-receipt": "Sealed-door refusals add `refusal_receipt` (#/components/schemas/RefusalReceipt) to the body and the X-Azrt-Refusal-Receipt header (#/components/headers/X-Azrt-Refusal-Receipt). Doors: MCP and POST /v1/fraggate/call (incl. op refusals inside FG-OK), /v1/fraggate*, /v1/mesh* (incl. install/install.sh), /v1/tether*, /v1/memory*, /v1/qns*, /v1/interface, /v1/pull/*, /p/* (4xx only; 5xx are upstream errors, X-Azrt-Upstream-Error), plus AZ-OS and azinterface reports. Find: GET /v1/receipts/refusals.",
     paths,

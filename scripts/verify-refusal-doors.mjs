@@ -340,13 +340,18 @@ assert.equal(innerOpRefusal({ result: { ok: true, code: "OK" } }), null);
 }
 { const vv = await verify(store, { c: "refusals" }); if (!vv.ok) console.log(JSON.stringify(vv.breaks)); assert.equal(vv.ok, true); } n++;
 
-// 19) writer cap (true global bound): per-class shares rest 240 / mcp 240 / peer 120 (sum 600),
+// 19) writer cap (true global bound): per-class shares rest 240 / mcp 240 / peer 120 / rollup 9 (sum 609),
 //     goal-variant sub-cap 30/min, replays uncapped, failed writes spend nothing; doors report rate_limited.
 {
   const rgc = await import("../src/receipt-guard.js");
   const { REFUSAL_CAP, refusalCapClass } = await import("../src/chainlock/writer-do.js");
   const { append } = await import("../src/chainlock/ops.js");
-  assert.equal(REFUSAL_CAP.classes.rest + REFUSAL_CAP.classes.mcp + REFUSAL_CAP.classes.peer, REFUSAL_CAP.total);
+  assert.equal(REFUSAL_CAP.classes.rest + REFUSAL_CAP.classes.mcp + REFUSAL_CAP.classes.peer + REFUSAL_CAP.classes.rollup, REFUSAL_CAP.total);
+  assert.equal(Object.values(REFUSAL_CAP.classes).reduce((a, b) => a + b, 0), REFUSAL_CAP.total, "shares sum to the total (honest)");
+  assert.equal(REFUSAL_CAP.classes.rollup, 9);
+  assert.equal(refusalCapClass({ refusal: { surface: "runtime", kind: "auth_rollup", tool: "auth-rollup" } }), "rollup");
+  assert.equal(refusalCapClass({ refusal: { surface: "runtime", kind: "auth_rollup", tool: "http" } }), "rest", "a REST door row can't claim the rollup share");
+  assert.equal(refusalCapClass({ refusal: { surface: "azos", kind: "auth_rollup", tool: "auth-rollup" } }), "peer", "a peer report can't claim the rollup share");
   assert.equal(refusalCapClass({ refusal: { surface: "azos" } }), "peer");
   assert.equal(refusalCapClass({ refusal: { surface: "runtime" } }), "rest");
   assert.equal(refusalCapClass({ refusal: { tool: "fraggate_call" } }), "mcp");
@@ -364,7 +369,11 @@ assert.equal(innerOpRefusal({ result: { ok: true, code: "OK" } }), null);
   assert.equal((await fill(gst, "P", "azos", REFUSAL_CAP.classes.peer)).ok, true, "MCP+REST do not starve peers");
   o = await append(gst, row("P-over", "azinterface"), { internal: true });
   assert.equal(o.ok, false); assert.equal(o.cap_class, "peer");
-  assert.equal((await loadChain(gst, "refusals")).length, REFUSAL_CAP.total, "exactly 600 new rows, no more");
+  const rollRow = (code) => ({ c: "refusals", k: "refusal", s: code, f: "refusal " + code, refusal: { code, surface: "runtime", kind: "auth_rollup", tool: "auth-rollup" }, idempotency_key: "k:roll:" + code });
+  for (let i = 0; i < REFUSAL_CAP.classes.rollup; i++) assert.equal((await append(gst, rollRow("U" + i), { internal: true })).ok, true, "MCP+REST+peer do not starve the auth rollup");
+  o = await append(gst, rollRow("U-over"), { internal: true });
+  assert.equal(o.ok, false); assert.equal(o.cap_class, "rollup");
+  assert.equal((await loadChain(gst, "refusals")).length, REFUSAL_CAP.total, "exactly 609 new rows, no more");
   // (b) replays are never capped and write no row.
   const rep = await append(gst, row("R0", "runtime"), { internal: true });
   assert.equal(rep.ok, true); assert.equal(rep.replayed, true);

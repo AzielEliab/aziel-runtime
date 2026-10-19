@@ -142,6 +142,41 @@ export async function countAuthRefusal(env, { door, code, now = Date.now(), ctx 
   return got === "ok" ? { ...base, status: "counted" } : { ...base, status: "unavailable", reason: "counter write failed; the refusal still stands" };
 }
 
+/** OpenAPI components.headers entry for X-Azrt-Auth-Rollup (additive). */
+export const AUTH_ROLLUP_HEADER_DOC = Object.freeze({
+  description:
+    "Added to a login/token refusal (401, token_*, TOKEN-QUERY-REFUSED, TOKEN-BODY-REFUSED, CL-NOT-ISSUER, SESSION-PAUSED): `<counted|pending|unavailable|rate_limited>; spec=AZRT-AUTH-ROLLUP-1.0; minute=<unix minute>; door=<fixed door>; code=<fixed code>`. The refusal is counted, not sealed one by one: the cron seals one count-only row per minute per door + code on the refusals chain (no caller identity, token or text). Find: GET /v1/receipts/refusals. Never on 429, OPTIONS or responses carrying X-Azrt-Refusal-Receipt.",
+  schema: { type: "string", pattern: "^(counted|pending|unavailable|rate_limited); spec=AZRT-AUTH-ROLLUP-1\\.0; minute=\\d+; door=[a-z-]+; code=[A-Za-z0-9_-]+$" },
+});
+
+/** Body bytes read to find the refusal code; larger bodies are not parsed (code from status only). */
+export const AUTH_ROLLUP_BODY_MAX = 65536;
+
+/** Read a response body as text, at most `max` bytes, streaming. Returns null past the limit (reader cancelled). */
+export async function readCappedText(response, max = AUTH_ROLLUP_BODY_MAX) {
+  if (!response || !response.body) return "";
+  const reader = response.body.getReader();
+  const parts = [];
+  let total = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value ? value.byteLength : 0;
+      // Not awaited: cancelling one branch of a tee (response.clone()) settles only when both branches
+      // are cancelled, and the client's branch must stay open.
+      if (total > max) { reader.cancel().catch(() => {}); return null; }
+      if (value) parts.push(value);
+    }
+  } finally {
+    try { reader.releaseLock(); } catch { /* ignore */ }
+  }
+  const buf = new Uint8Array(total);
+  let off = 0;
+  for (const p of parts) { buf.set(p, off); off += p.byteLength; }
+  return new TextDecoder().decode(buf);
+}
+
 /** Wrap a finished response (additive header only). Never changes status or body. */
 export async function withAuthRollup(request, response, { env, ctx, now = Date.now(), budgetMs = AUTH_ROLLUP_COUNT_BUDGET_MS } = {}) {
   try {
@@ -154,9 +189,11 @@ export async function withAuthRollup(request, response, { env, ctx, now = Date.n
     let bodyCode = null;
     const ct = response.headers.get("content-type") || "";
     const len = Number(response.headers.get("content-length") || 0);
-    if (/json/i.test(ct) && len <= 65536) {
-      const text = await response.clone().text();
-      if (text.length <= 65536) {
+    if (/json/i.test(ct) && len <= AUTH_ROLLUP_BODY_MAX) {
+      // The 64 KB limit holds while streaming too (bodies with no content-length): stop and skip the
+      // body code past the limit, so a large body is never read whole (AZBot #307 follow-up).
+      const text = await readCappedText(response.clone(), AUTH_ROLLUP_BODY_MAX);
+      if (text != null) {
         try { const b = JSON.parse(text); if (b && typeof b === "object" && typeof b.code === "string") bodyCode = b.code; } catch { /* not JSON */ }
       }
     }
@@ -202,6 +239,7 @@ export async function flushAuthRollups(env, store, { now = Date.now(), maxMinute
   const marks = await kv.scan(`${P}m|`, "", 1000);
   const minutes = ((marks && marks.entries) || []).map(([k]) => Number(String(k).slice(`${P}m|`.length))).filter((m) => Number.isInteger(m) && m <= cutoff).sort((a, b) => a - b).slice(0, maxMinutes);
   const report = [];
+  let shareFull = false;
   for (const minute of minutes) {
     if (await kv.get(doneKey(minute))) { await kv.delete(markKey(minute)); report.push({ minute, status: "already_done" }); continue; }
     const page = await kv.scan(`${P}c|${minute}|`, "", 1000);
@@ -219,21 +257,25 @@ export async function flushAuthRollups(env, store, { now = Date.now(), maxMinute
     let allSealed = true;
     for (const r of top) {
       const v = await sealOne(store, { minute, door: r.door, code: r.code, count: r.count, capped: r.capped });
-      views.push({ door: r.door, code: r.code, count: r.count, sealed: Boolean(v && v.sealed), seq: v && v.seq, replayed: Boolean(v && v.replayed) });
+      views.push({ door: r.door, code: r.code, count: r.count, sealed: Boolean(v && v.sealed), seq: v && v.seq, replayed: Boolean(v && v.replayed), ...(v && v.status === "rate_limited" ? { status: "rate_limited" } : {}) });
       if (!v || !v.sealed) allSealed = false;
+      if (v && v.status === "rate_limited") { shareFull = true; break; }
     }
-    if (rest.length) {
+    if (rest.length && !shareFull) {
       const sum = Math.min(AUTH_ROLLUP_COUNT_CAP, rest.reduce((a, r) => a + r.count, 0));
       const v = await sealOne(store, { minute, door: "other", code: "AUTH-ROLLUP-OVERFLOW", count: sum, capped: sum >= AUTH_ROLLUP_COUNT_CAP || rest.some((r) => r.capped), combos: rest.length });
       views.push({ door: "other", code: "AUTH-ROLLUP-OVERFLOW", count: sum, combos: rest.length, sealed: Boolean(v && v.sealed), seq: v && v.seq });
       if (!v || !v.sealed) allSealed = false;
+      if (v && v.status === "rate_limited") shareFull = true;
     }
     if (allSealed) {
       await kv.put(doneKey(minute), "1", { expirationTtl: 86400 });
       for (const r of rows) await kv.delete(r.key);
       await kv.delete(markKey(minute));
     }
-    report.push({ minute, status: allSealed ? "sealed" : "retry_next_tick", rows: views });
+    report.push({ minute, status: allSealed ? "sealed" : "retry_next_tick", rows: views, ...(shareFull ? { reason: "rollup share 9/min in the writer is spent this minute; later minutes wait for the next tick" } : {}) });
+    // The writer's rollup share (9/min) is spent: stop this tick; older minutes go first next tick.
+    if (shareFull) break;
   }
   return { ok: true, spec: AUTH_ROLLUP_SPEC, minutes: report };
 }
