@@ -100,24 +100,23 @@ export function uncodedCode(status) {
   return `HTTP-${Number(status) || 0}-UNCODED`;
 }
 
-/** Drop a reason that echoes caller input (path segments or query values of 3+ chars); keep a hash instead. */
-export async function safeReason(reason, url) {
-  const r = String(reason || "").slice(0, 160);
-  if (!r) return { reason: "" };
-  const bits = [];
-  try {
-    const u = typeof url === "string" ? new URL(url, "https://x.invalid") : url;
-    for (const seg of u.pathname.split("/")) { try { const d = decodeURIComponent(seg); if (d.length >= 3) bits.push(d.toLowerCase()); } catch { if (seg.length >= 3) bits.push(seg.toLowerCase()); } }
-    for (const [, v] of u.searchParams) { if (String(v).length >= 3) bits.push(String(v).toLowerCase()); }
-  } catch { /* no url: keep the server-authored reason */ }
-  const low = r.toLowerCase();
-  const fixed = new Set(["v1", "mesh", "fraggate", "tether", "memory", "pull", "qns", "interface", "install", "install.sh", "call", "skill", "runtime", "sync", "refusals", "newsmap", "health"]);
-  if (bits.some((b) => !fixed.has(b) && low.includes(b))) {
-    const { sha256Hex } = await import("./session-core.js");
-    return { reason: null, reason_sha256: (await sha256Hex(r)).slice(0, 16), reason_note: "reason echoed caller input; hash kept" };
-  }
-  return { reason: r };
+/**
+ * RIB-018 follow-up (AZBot review, 2026-10-19): REST and peer refusal rows never store free reason text.
+ * A server message can echo caller input from the path, the query or the request BODY, and a cut message
+ * hides the echo from any substring check. So the row keeps only `reason: null` plus `reason_sha256`
+ * (sha256 hex of the full, uncut reason). `url` is accepted for call-site compatibility and ignored.
+ */
+export async function reasonHash(reason) {
+  const r = reason == null ? "" : String(reason);
+  if (!r) return null;
+  const { sha256Hex } = await import("./session-core.js");
+  return sha256Hex(r);
 }
+export async function safeReason(reason, _url) {
+  const h = await reasonHash(reason);
+  return h ? { reason: null, reason_sha256: h } : { reason: null };
+}
+const REASON_HASH_RE = /^(?:[a-f0-9]{16}|[a-f0-9]{64})$/;
 
 export function refusalFromBody(status, contentType, text) {
   const ct = String(contentType || "");
@@ -137,7 +136,7 @@ export function refusalFromBody(status, contentType, text) {
       uncoded = true;
     }
     if (!CODE_RE.test(code)) return null;
-    return { code, reason: reason.slice(0, 160), body, uncoded };
+    return { code, reason, body, uncoded };
   }
   // MESH-ONBOARD install.sh refusal: `echo 'CODE' >&2; exit 1`
   const m = /^#!\/bin\/sh\s*\necho '([A-Za-z][A-Za-z0-9_-]{1,63})' >&2/.exec(String(text || ""));
@@ -165,7 +164,12 @@ export async function sealDoorRefusal(store, { surface = "runtime", door, code, 
   const m = memoFor(minute);
   // Dedupe key leaves the route out (it is caller-shaped); codes and doors are a finite set.
   const key = [surface, door, code, method, status].join("|");
-  const extra = { kind: "refusal", surface, door, reason: reason == null ? null : String(reason).slice(0, 160), ...(reasonExtra || {}), status: Number(status) || null, route, ...(routeHash ? { route_sha256: routeHash } : {}) };
+  // Never free text on the row: reason is always null; reason_sha256 is the hash of the full reason text
+  // (computed here when text is given, else a well-formed hash passed in by the caller).
+  const textHash = await reasonHash(reason);
+  const givenHash = reasonExtra && typeof reasonExtra.reason_sha256 === "string" && REASON_HASH_RE.test(reasonExtra.reason_sha256) ? reasonExtra.reason_sha256 : null;
+  const rh = textHash || givenHash;
+  const extra = { kind: "refusal", surface, door, reason: null, ...(rh ? { reason_sha256: rh } : {}), status: Number(status) || null, route, ...(routeHash ? { route_sha256: routeHash } : {}) };
   const bucket = capBucketOf(surface, door);
   if (m.views.has(key)) return { ...m.views.get(key), replayed: true, memo: true };
   if (!store) return { spec: REFUSAL_SPEC, kind: "refusal", sealed: false, status: "unavailable", reason: "no durable store in this isolate" };
@@ -226,8 +230,7 @@ export async function withDoorRefusalReceipt(request, response, { store, ctx, bu
     if (!ref || ref.already) return response;
     if (isAuthRefusal(response.status, ref.code)) return response;
     const rt = await routeTemplate(url.pathname);
-    const sr = await safeReason(ref.reason, url);
-    const view = await sealDoorRefusal(store, { surface: "runtime", door, code: ref.code, reason: sr.reason, reasonExtra: sr.reason_sha256 ? { reason_sha256: sr.reason_sha256 } : null, method, route: rt.route, routeHash: rt.route_sha256 || null, status: response.status }, { ctx, budgetMs: Math.min(REFUSAL_SEAL_BUDGET_MS, Math.max(0, budgetMs)) });
+    const view = await sealDoorRefusal(store, { surface: "runtime", door, code: ref.code, reason: ref.reason, method, route: rt.route, routeHash: rt.route_sha256 || null, status: response.status }, { ctx, budgetMs: Math.min(REFUSAL_SEAL_BUDGET_MS, Math.max(0, budgetMs)) });
     const headers = new Headers(response.headers);
     const hv = headerValue(view);
     if (hv) headers.set("X-Azrt-Refusal-Receipt", hv);
@@ -258,10 +261,10 @@ export async function handlePeerRefusal(request, { store, ctx } = {}) {
   if (isAuthRefusal(b.status, code)) return json({ ok: false, code: "REFUSAL-PEER-AUTH-UNRECORDED", message: "Auth refusals stay unrecorded." }, 400);
   const method = /^[A-Z]{3,7}$/.test(String(b.method || "")) ? String(b.method) : "OTHER";
   const rt = await routeTemplate(String(b.route || "/"), { wildcard: "/*" });
-  // The peer already drops caller-echoing reasons; check again against the route it reports.
-  const sr = b.reason == null ? { reason: null } : await safeReason(String(b.reason), "https://peer.invalid" + String(b.route || "/"));
-  const reasonExtra = b.reason_sha256 && /^[a-f0-9]{16}$/.test(String(b.reason_sha256)) ? { reason_sha256: String(b.reason_sha256) } : (sr.reason_sha256 ? { reason_sha256: sr.reason_sha256 } : null);
-  const view = await sealDoorRefusal(store, { surface, door: surface, code, reason: sr.reason, reasonExtra, method, route: rt.route, routeHash: rt.route_sha256 || null, status: Number(b.status) || 400 }, { ctx });
+  // The runtime is the authority: any reason text a peer sends is hashed here and never stored as text.
+  const peerText = typeof b.reason === "string" && b.reason ? b.reason : null;
+  const peerHash = !peerText && typeof b.reason_sha256 === "string" && REASON_HASH_RE.test(b.reason_sha256) ? b.reason_sha256 : null;
+  const view = await sealDoorRefusal(store, { surface, door: surface, code, reason: peerText, reasonExtra: peerHash ? { reason_sha256: peerHash } : null, method, route: rt.route, routeHash: rt.route_sha256 || null, status: Number(b.status) || 400 }, { ctx });
   return json({ ok: Boolean(view.sealed), refusal_receipt: view }, 200);
 }
 
@@ -310,7 +313,7 @@ export function refusalReceiptSchema() {
       surface: { type: "string", enum: ["runtime", "azos", "azinterface"] },
       door: { type: "string" },
       verify: { type: "string" },
-      reason: { type: ["string", "null"] },
+      reason: { type: ["string", "null"], description: "Only on sealed:false: why no receipt was written (server text). Stored rows never carry reason text; they carry reason_sha256." },
     },
     required: ["spec", "sealed"],
   };
@@ -321,7 +324,7 @@ export function refusalOpenApiPaths() {
       get: {
         operationId: "refusal_receipts",
         summary:
-          "Refusal receipts on the internal `refusals` chain, newest first (limit <= 50), or one by ?seq=N. Rows carry code, kind, surface, door, status, a fixed route template (other paths: wildcard + route_sha256), and both lattice hashes. Verify the chain with chainlock_verify {\"c\":\"refusals\"}; a row with /v1/anchor/row?c=refusals&seq=N. Not signed. Auth refusals and 429s are not recorded.",
+          "Refusal receipts on the internal `refusals` chain, newest first (limit <= 50), or one by ?seq=N. Rows carry code, kind, surface, door, status, a fixed route template (other paths: wildcard + route_sha256), reason:null + reason_sha256 (sha256 of the full server reason; never reason text), and both lattice hashes. Verify the chain with chainlock_verify {\"c\":\"refusals\"}; a row with /v1/anchor/row?c=refusals&seq=N. Not signed. Auth refusals and 429s are not recorded.",
         tags: ["runtime"],
         parameters: [
           { name: "seq", in: "query", required: false, schema: { type: "integer", minimum: 1 } },

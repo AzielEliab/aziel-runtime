@@ -102,7 +102,9 @@ export function callMetaLedgerFields() {
 
 export async function goalKeyOf(args, request) {
   const raw = args && typeof args.goal_id === "string" ? args.goal_id.trim() : "";
-  if (raw && GOAL_RE.test(raw)) return { key: "goal:" + raw, source: "caller" };
+  // RIB-018 follow-up: the caller's goal_id never lands on the permanent chain as text. The key is
+  // goal:<sha256(goal_id) hex[:16]>; the same goal_id always gives the same key, so links still resolve.
+  if (raw && GOAL_RE.test(raw)) return { key: "goal:" + (await sha256Hex(raw)).slice(0, 16), source: "caller" };
   const sid = request && request.headers ? String(request.headers.get("mcp-session-id") || "").trim() : "";
   if (sid) return { key: "mcp:" + (await sha256Hex("mcp-session:" + sid)).slice(0, 32), source: "mcp-session" };
   return null;
@@ -226,6 +228,14 @@ async function appendInternal(store, input) {
   return append(store, input, { internal: true });
 }
 
+/** RIB-018 follow-up: caller node ids are stored hashed on refusal-chain stamps (SELF_NODE stays literal). */
+export async function boundedNodeIds(ids) {
+  if (!Array.isArray(ids)) return ids;
+  const out = [];
+  for (const n of ids) out.push(n === SELF_NODE ? n : "n:" + (await sha256Hex(String(n))).slice(0, 16));
+  return out;
+}
+
 /** RIB-018 follow-up: per-isolate cap on MCP/FragGate-door refusal seals (the REST doors cap per door). */
 export const MCP_SEAL_CAP_PER_MIN = 60;
 const mcpCap = { minute: -1, n: 0 };
@@ -275,7 +285,7 @@ export async function sealRefusal(store, { code, tool, slug, op, args, goal, pri
     refusal,
     ...(goal ? { goal_key: goal.key } : {}),
     ...(prior ? { follows: { spec: GOAL_SPEC, h: prior.h, seq: prior.seq, k: prior.k } } : {}),
-    ...(context ? { context_hash: context.context_hash, node_ids: context.node_ids } : {}),
+    ...(context ? { context_hash: context.context_hash, node_ids: await boundedNodeIds(context.node_ids) } : {}),
     ...(schemaHash ? { schema_hash: schemaHash } : {}),
     // Same refusal shape within a minute replays the same receipt (no flood).
     idempotency_key: "refusal:" + (await sha256Hex(canonicalize(keyParts))).slice(0, 40),
@@ -315,14 +325,17 @@ export async function sealRefusal(store, { code, tool, slug, op, args, goal, pri
 /** @asmirkn: seal the agent's next action after a refusal on the same goal (any tool). */
 export async function sealFollow(store, { prior, goal, tool, slug, op, outcome, code, args, context, schemaHash }) {
   if (!store || !prior || !goal) return null;
+  // RIB-018 follow-up: caller-typed slug/op are bounded to the registry (else "?"), the code to a stable shape.
+  const b = await boundedSlugOp(slug, op);
+  const fcode = typeof code === "string" && /^[A-Za-z0-9][A-Za-z0-9_-]{1,63}$/.test(code) ? code : null;
   const input = {
     c: REFUSAL_CHAIN,
     k: "follow",
     s: clipText(`after ${prior.k} #${prior.seq}`, 80),
-    f: clipText(`${tool || "?"}${slug ? " " + slug : ""}${op ? " " + op : ""} -> ${outcome}${code ? " " + code : ""}`, 160),
+    f: clipText(`${tool || "?"}${b.slug ? " " + b.slug : (slug ? " ?" : "")}${b.op ? " " + b.op : (op ? " ?" : "")} -> ${outcome}${fcode ? " " + fcode : ""}`, 160),
     goal_key: goal.key,
     follows: { spec: GOAL_SPEC, h: prior.h, seq: prior.seq, k: prior.k, args_digest: await argsDigest(args) },
-    ...(context ? { context_hash: context.context_hash, node_ids: context.node_ids } : {}),
+    ...(context ? { context_hash: context.context_hash, node_ids: await boundedNodeIds(context.node_ids) } : {}),
     ...(schemaHash ? { schema_hash: schemaHash } : {}),
     idempotency_key: "follow:" + (await sha256Hex(prior.h + ":" + goal.key)).slice(0, 40),
   };
@@ -353,19 +366,17 @@ export function attachToResult(out, key, value) {
   return out;
 }
 
-/** Inner op refusal under an accepted envelope: result.ok false + stable code + fail_closed or written:false. */
-/** Drop an op reason that echoes a caller argument value (3+ chars); keep a short hash instead. */
-export async function boundedReason(reason, args) {
-  const r = String(reason || "").slice(0, 160);
-  if (!r) return { reason: "" };
-  const vals = [];
-  const walk = (v, d) => { if (d > 3 || v == null) return; if (typeof v === "string") { if (v.length >= 3) vals.push(v.toLowerCase()); } else if (typeof v === "object") for (const x of Object.values(v)) walk(x, d + 1); };
-  walk(args, 0);
-  const low = r.toLowerCase();
-  if (vals.some((v) => low.includes(v))) return { reason: null, reason_sha256: (await sha256Hex(r)).slice(0, 16) };
-  return { reason: r };
+/**
+ * RIB-018 follow-up: an op refusal's reason is never stored as text (it can echo caller input, and a cut
+ * message hides the echo). The row keeps reason:null + reason_sha256 (sha256 hex of the full reason).
+ */
+export async function boundedReason(reason, _args) {
+  const r = reason == null ? "" : String(reason);
+  if (!r) return { reason: null };
+  return { reason: null, reason_sha256: await sha256Hex(r) };
 }
 
+/** Inner op refusal under an accepted envelope: result.ok false + stable code + fail_closed or written:false. */
 export function innerOpRefusal(env) {
   let r = env && env.result;
   // MCP fraggate_call nests the FragGate envelope one level deeper (result.result is the op's answer).
@@ -374,7 +385,7 @@ export function innerOpRefusal(env) {
   if (!(r.fail_closed === true || r.written === false)) return null;
   const code = typeof r.code === "string" ? r.code : null;
   if (!code || !/^[A-Z0-9][A-Z0-9-]{1,63}$/.test(code) || /TOKEN/.test(code)) return null;
-  return { code, reason: String(r.message || r.reason || "").slice(0, 160) };
+  return { code, reason: String(r.message || r.reason || "") };
 }
 
 /**

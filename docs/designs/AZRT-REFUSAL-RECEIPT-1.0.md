@@ -61,8 +61,8 @@ Lattice and other op refusals that come back inside an accepted FragGate envelop
 src/receipt-guard.js; stamp `refusal.door: "op"`), on MCP and on POST /v1/fraggate/call.
 A body that already carries `refusal_receipt` or `refused_receipt` (MCP door, POST
 /v1/fraggate/call, session exec) is left alone, so nothing is sealed twice. The stamp's `refusal`
-object gains additive `kind, surface, door, reason (<=160 chars, our own message), status, route
-(template)`. The body keeps every field and gains `refusal_receipt`; every refusal (JSON or text)
+object gains additive `kind, surface, door, reason, status, route
+(template)` (since the follow-up below, `reason` is always null on stored rows and `reason_sha256` carries the hash). The body keeps every field and gains `refusal_receipt`; every refusal (JSON or text)
 gains the header `X-Azrt-Refusal-Receipt`.
 
 **(c) AZ-OS and azinterface.** Neither keeps its own refusal chain. Each reports its coded non-auth
@@ -114,11 +114,22 @@ templates rows per minute (roughly 5 x 10 = 50/min, ~72k rows/day), against toda
 
 - **No caller text on the chain.** `route` is only ever a fixed template from code (`KNOWN_ROUTES`, or
   `/v1/pull/{slug}`, `/p/{product}/{op}`, ...); any other path is stored as its door wildcard (e.g.
-  `/v1/mesh/*`) plus `route_sha256` (16 hex). A `reason` that echoes a path segment or query value
-  (3+ chars) is stored as `reason: null` + `reason_sha256`. On the MCP door, a slug that is not in the
-  FragGate registry (or an op that is not one of its ops) is stored as null + `slug_sha256`/`op_sha256`,
-  and op-refusal reasons that echo an argument value are hashed the same way. Existing rows are not
-  rewritten. Still caller-shaped and pre-existing: `goal_key` (`goal:<goal_id>`) for RIB-018 goal links.
+  `/v1/mesh/*`) plus `route_sha256` (16 hex). On the MCP door, a slug that is not in the FragGate
+  registry (or an op that is not one of its ops) is stored as null + `slug_sha256`/`op_sha256`.
+- **No reason text on any refusal row (AZBot pre-merge review).** A server message can repeat caller input
+  from the path, the query or the request body (e.g. `POST /v1/fraggate/verify {"name": ...}`), and a cut
+  message hides the repeat from any substring check. So REST-door, peer (AZ-OS / azinterface) and MCP
+  op-refusal rows store `reason: null` plus `reason_sha256` = sha256 hex of the full, uncut server reason.
+  The runtime applies this to peer reports whatever the peer sends: reason text is hashed here; a peer may
+  send only a well-formed hash (16 or 64 hex) instead. The refusal response itself is unchanged.
+- **Goal id hashed.** `goal_key` is `goal:` + sha256(goal_id) hex[:16], never the id as typed. The same
+  `goal_id` always derives the same key, so goal links, `follows` and retry hints still resolve.
+  Caller `node_ids` on refusal-chain stamps are stored as `n:<sha256[:16]>` (the runtime's own
+  `aziel-runtime` stays literal). Follow stamps bound slug/op to the registry like refusals.
+- **Session refused receipts.** A slug that is not a registry name, or an op that is not one of its ops,
+  is stored as null + `slug_sha256`/`op_sha256` on the session chain too.
+- Existing rows are not rewritten; they still verify. Goal pointers written before this change used the
+  old key, so a goal_id refused just before deploy will not link across it (one-hour window).
 - **Uncoded refusals.** A 4xx JSON refusal on a sealed door without `code`/`refuse` (ok:false or an
   `error` string), e.g. `/v1/pull/{unknown}` 404, is sealed with the fixed code `HTTP-<status>-UNCODED`.
   The body is unchanged (no code is added to it). Uncoded 5xx are not refusals and are not sealed.

@@ -74,7 +74,7 @@ assert.equal(b.ok, true); assert.equal(b.chain, "refusals"); assert.ok(b.total >
 assert.equal(b.receipts.find((x) => x.seq === rr.seq).refusal.kind, "refusal");
 assert.equal(b.receipts.find((x) => x.seq === rr.seq).code, "ONBOARD-BAD-SLUG");
 b = await (await get("/v1/receipts/refusals?seq=" + rr.seq)).json();
-assert.equal(b.receipt.h, rr.h); assert.equal(b.receipt.refusal.code, "ONBOARD-BAD-SLUG"); assert.equal(b.receipt.refusal.reason.length > 0, true);
+assert.equal(b.receipt.h, rr.h); assert.equal(b.receipt.refusal.code, "ONBOARD-BAD-SLUG"); assert.equal(b.receipt.refusal.reason, null); assert.match(b.receipt.refusal.reason_sha256, /^[a-f0-9]{64}$/);
 assert.equal((await get("/v1/receipts/refusals?seq=99999")).status, 404);
 b = await (await get("/v1/receipts")).json();
 assert.equal(b.refusal_receipts, "/v1/receipts/refusals"); n++;
@@ -112,6 +112,66 @@ r = await peer({ surface: "azinterface", code: "IFACE-BAD", method: "POST", rout
 assert.equal((await r.json()).refusal_receipt.surface, "azinterface");
 assert.equal((await peer({ surface: "evil", code: "X-Y" })).status, 400);
 assert.equal((await (await peer({ surface: "azos", code: "token_required", status: 401 })).json()).code, "REFUSAL-PEER-AUTH-UNRECORDED");
+
+// 19) RIB-018 follow-up (AZBot pre-merge review): no caller text on any refusal row.
+{
+  const CALLER = "hello-this-is-public-caller-text";
+  const rowsAfter = async (h) => (await loadChain(store, "refusals")).find((x) => x.stamp_sha256 === h);
+  const noText = (row, t, why) => assert.equal(JSON.stringify(row).toLowerCase().includes(t.toLowerCase()), false, why);
+  // (a) body text: POST /v1/fraggate/verify echoes the name in its message; the URL does not carry it.
+  doors._resetRefusalMemo();
+  r = await get("/v1/fraggate/verify", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: CALLER }) });
+  b = await r.json();
+  assert.equal(r.status, 400); assert.match(String(b.message), new RegExp(CALLER), "the response itself is unchanged");
+  assert.equal(b.refusal_receipt.sealed, true, JSON.stringify(b.refusal_receipt));
+  let row = await rowsAfter(b.refusal_receipt.h);
+  assert.equal(row.refusal.reason, null); assert.equal(row.refusal.reason_sha256, await sha256Hex(b.message));
+  noText(row, CALLER, "body text never stored"); n++;
+  // (b) long ?name= on GET /v1/fraggate/describe: the message is longer than any cut; still no caller text.
+  doors._resetRefusalMemo();
+  const LONG = CALLER + "-" + "x".repeat(300);
+  r = await get("/v1/fraggate/describe?name=" + encodeURIComponent(LONG), { headers: { accept: "application/json" } });
+  b = await r.json();
+  assert.equal(r.status, 400); assert.equal(b.refusal_receipt.sealed, true, JSON.stringify(b.refusal_receipt));
+  row = await rowsAfter(b.refusal_receipt.h);
+  assert.equal(row.refusal.reason, null); assert.match(row.refusal.reason_sha256, /^[a-f0-9]{64}$/);
+  noText(row, CALLER, "long query text never stored"); noText(row, "xxxxxxxxxxxxxxxx", "no cut piece of it either"); n++;
+  // (c) peer report carrying caller text: the runtime hashes it, whatever the peer sends.
+  doors._resetRefusalMemo();
+  const peerReason = `unknown thing "${CALLER}"`;
+  r = await peer({ surface: "azos", code: "TRACKER-ECHO", method: "POST", route: "/v1/" + CALLER, status: 400, reason: peerReason, reason_sha256: "f".repeat(16) });
+  b = await r.json();
+  assert.equal(b.refusal_receipt.sealed, true, JSON.stringify(b));
+  row = await rowsAfter(b.refusal_receipt.h);
+  assert.equal(row.refusal.reason, null); assert.equal(row.refusal.reason_sha256, await sha256Hex(peerReason), "text wins over a claimed hash");
+  noText(row, CALLER, "peer caller text never stored");
+  doors._resetRefusalMemo();
+  r = await peer({ surface: "azinterface", code: "TRACKER-HASHED", method: "GET", route: "/v1/x", status: 400, reason: null, reason_sha256: "not-a-hash " + CALLER });
+  b = await r.json(); row = await rowsAfter(b.refusal_receipt.h);
+  assert.equal(row.refusal.reason, null); assert.equal(row.refusal.reason_sha256, undefined, "a malformed hash is dropped"); noText(row, CALLER, "malformed hash text dropped"); n++;
+  // (d) goal id is hashed; the next call with the same goal_id still links (pointer resolves).
+  const rg2 = await import("../src/receipt-guard.js");
+  const gk = await rg2.goalKeyOf({ goal_id: "Aziel-Eliab-123-Main-St" }, null);
+  assert.equal(gk.key, "goal:" + (await sha256Hex("Aziel-Eliab-123-Main-St")).slice(0, 16));
+  const mc = (args) => handler(new Request("https://aziel-runtime.example/mcp", { method: "POST", headers: { "content-type": "application/json", accept: "application/json, text/event-stream" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "fraggate_call", arguments: args } }) }), env, ctx).then((x) => x.json());
+  rg2._resetMcpSealCap();
+  const g1 = (await mc({ slug: "foldlock", op: "fold-append", goal_id: "Aziel-Eliab-123-Main-St" })).result.structuredContent;
+  assert.equal(g1.refusal_receipt.goal_key, gk.key);
+  const g2 = (await mc({ slug: "foldlock", op: "no-such-op-" + CALLER, goal_id: "Aziel-Eliab-123-Main-St", node_ids: [CALLER], context_refs: ["r1"], confirm: true })).result.structuredContent;
+  assert.equal(g2.refusal_receipt.follows.h, g1.refusal_receipt.h, "same goal_id links to the refusal before");
+  const all = JSON.stringify(await loadChain(store, "refusals"));
+  assert.equal(all.includes("Aziel-Eliab-123-Main-St"), false, "goal id never stored as typed");
+  assert.equal(all.includes(CALLER), false, "no caller op / node id text anywhere on the chain");
+  n++;
+  // (e) session refusals: an unknown slug / typed op are stored as null + hash.
+  const sc = await import("../src/session-core.js");
+  const s0 = sc.openSession({ id: sc.newSessionId(), now: "2026-10-19T14:00:00.000Z", version: "test" });
+  await assert.rejects(sc.recordIntent(s0, { slug: CALLER, op: CALLER, payload: {}, payloadText: "{}", knownSlugs: new Set(["foldlock"]) }, "2026-10-19T14:00:01.000Z"), (e) => e.code === "unknown_slug");
+  const sr0 = s0.receipts.at(-1);
+  assert.equal(sr0.event, "refused"); assert.equal(sr0.payload.refusal.slug, null); assert.match(sr0.payload.refusal.slug_sha256, /^[a-f0-9]{16}$/);
+  assert.equal(JSON.stringify(sr0).includes(CALLER), false, "session refusal stores no caller slug/op text");
+  assert.equal((await sc.verifyChainStrict(s0.receipts)).ok, true); n++;
+}
 { const vv = await verify(store, { c: "refusals" }); if (!vv.ok) console.log(JSON.stringify(vv.breaks)); assert.equal(vv.ok, true); } n++;
 
 // 10) fail closed: no store -> refusal unchanged, receipt honestly unavailable.
@@ -168,8 +228,9 @@ assert.equal(b.refusal_receipt.sealed, true); assert.equal(b.refusal_receipt.cod
 const urow = (await loadChain(store, "refusals")).find((x) => x.stamp_sha256 === b.refusal_receipt.h);
 assert.equal(urow.refusal.route, "/v1/pull/{slug}"); assert.equal(JSON.stringify(urow).includes("zz-not-a-product"), false);
 const sr = await doors.safeReason("unknown product: zz-x1", new URL("https://x/v1/pull/zz-x1"));
-assert.equal(sr.reason, null); assert.match(sr.reason_sha256, /^[a-f0-9]{16}$/);
-assert.equal((await doors.safeReason("That slug is not in the catalog", new URL("https://x/v1/mesh/install?slug=abcde"))).reason, "That slug is not in the catalog");
+assert.equal(sr.reason, null); assert.equal(sr.reason_sha256, await sha256Hex("unknown product: zz-x1"));
+// No free reason text on these rows at all, even when it does not visibly echo the URL.
+assert.equal((await doors.safeReason("That slug is not in the catalog", new URL("https://x/v1/mesh/install?slug=abcde"))).reason, null);
 assert.equal(doors.refusalFromBody(500, "application/json", JSON.stringify({ error: "boom" })), null, "uncoded 5xx is not a refusal"); n++;
 
 // 16) /p/* upstream 5xx: an upstream error, not a refusal (no row, X-Azrt-Upstream-Error).
@@ -217,6 +278,66 @@ assert.equal(msc.refusal_receipt.sealed, true); assert.equal(msc.refusal_receipt
 const { innerOpRefusal } = await import("../src/receipt-guard.js");
 assert.equal(innerOpRefusal({ result: { ok: false, code: "X-NOT-FOUND" } }), null); // no fail_closed / written:false
 assert.equal(innerOpRefusal({ result: { ok: true, code: "OK" } }), null);
+
+// 19) RIB-018 follow-up (AZBot pre-merge review): no caller text on any refusal row.
+{
+  const CALLER = "hello-this-is-public-caller-text";
+  const rowsAfter = async (h) => (await loadChain(store, "refusals")).find((x) => x.stamp_sha256 === h);
+  const noText = (row, t, why) => assert.equal(JSON.stringify(row).toLowerCase().includes(t.toLowerCase()), false, why);
+  // (a) body text: POST /v1/fraggate/verify echoes the name in its message; the URL does not carry it.
+  doors._resetRefusalMemo();
+  r = await get("/v1/fraggate/verify", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: CALLER }) });
+  b = await r.json();
+  assert.equal(r.status, 400); assert.match(String(b.message), new RegExp(CALLER), "the response itself is unchanged");
+  assert.equal(b.refusal_receipt.sealed, true, JSON.stringify(b.refusal_receipt));
+  let row = await rowsAfter(b.refusal_receipt.h);
+  assert.equal(row.refusal.reason, null); assert.equal(row.refusal.reason_sha256, await sha256Hex(b.message));
+  noText(row, CALLER, "body text never stored"); n++;
+  // (b) long ?name= on GET /v1/fraggate/describe: the message is longer than any cut; still no caller text.
+  doors._resetRefusalMemo();
+  const LONG = CALLER + "-" + "x".repeat(300);
+  r = await get("/v1/fraggate/describe?name=" + encodeURIComponent(LONG), { headers: { accept: "application/json" } });
+  b = await r.json();
+  assert.equal(r.status, 400); assert.equal(b.refusal_receipt.sealed, true, JSON.stringify(b.refusal_receipt));
+  row = await rowsAfter(b.refusal_receipt.h);
+  assert.equal(row.refusal.reason, null); assert.match(row.refusal.reason_sha256, /^[a-f0-9]{64}$/);
+  noText(row, CALLER, "long query text never stored"); noText(row, "xxxxxxxxxxxxxxxx", "no cut piece of it either"); n++;
+  // (c) peer report carrying caller text: the runtime hashes it, whatever the peer sends.
+  doors._resetRefusalMemo();
+  const peerReason = `unknown thing "${CALLER}"`;
+  r = await peer({ surface: "azos", code: "TRACKER-ECHO", method: "POST", route: "/v1/" + CALLER, status: 400, reason: peerReason, reason_sha256: "f".repeat(16) });
+  b = await r.json();
+  assert.equal(b.refusal_receipt.sealed, true, JSON.stringify(b));
+  row = await rowsAfter(b.refusal_receipt.h);
+  assert.equal(row.refusal.reason, null); assert.equal(row.refusal.reason_sha256, await sha256Hex(peerReason), "text wins over a claimed hash");
+  noText(row, CALLER, "peer caller text never stored");
+  doors._resetRefusalMemo();
+  r = await peer({ surface: "azinterface", code: "TRACKER-HASHED", method: "GET", route: "/v1/x", status: 400, reason: null, reason_sha256: "not-a-hash " + CALLER });
+  b = await r.json(); row = await rowsAfter(b.refusal_receipt.h);
+  assert.equal(row.refusal.reason, null); assert.equal(row.refusal.reason_sha256, undefined, "a malformed hash is dropped"); noText(row, CALLER, "malformed hash text dropped"); n++;
+  // (d) goal id is hashed; the next call with the same goal_id still links (pointer resolves).
+  const rg2 = await import("../src/receipt-guard.js");
+  const gk = await rg2.goalKeyOf({ goal_id: "Aziel-Eliab-123-Main-St" }, null);
+  assert.equal(gk.key, "goal:" + (await sha256Hex("Aziel-Eliab-123-Main-St")).slice(0, 16));
+  const mc = (args) => handler(new Request("https://aziel-runtime.example/mcp", { method: "POST", headers: { "content-type": "application/json", accept: "application/json, text/event-stream" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "fraggate_call", arguments: args } }) }), env, ctx).then((x) => x.json());
+  rg2._resetMcpSealCap();
+  const g1 = (await mc({ slug: "foldlock", op: "fold-append", goal_id: "Aziel-Eliab-123-Main-St" })).result.structuredContent;
+  assert.equal(g1.refusal_receipt.goal_key, gk.key);
+  const g2 = (await mc({ slug: "foldlock", op: "no-such-op-" + CALLER, goal_id: "Aziel-Eliab-123-Main-St", node_ids: [CALLER], context_refs: ["r1"], confirm: true })).result.structuredContent;
+  assert.equal(g2.refusal_receipt.follows.h, g1.refusal_receipt.h, "same goal_id links to the refusal before");
+  const all = JSON.stringify(await loadChain(store, "refusals"));
+  assert.equal(all.includes("Aziel-Eliab-123-Main-St"), false, "goal id never stored as typed");
+  assert.equal(all.includes(CALLER), false, "no caller op / node id text anywhere on the chain");
+  n++;
+  // (e) session refusals: an unknown slug / typed op are stored as null + hash.
+  const sc = await import("../src/session-core.js");
+  const s0 = sc.openSession({ id: sc.newSessionId(), now: "2026-10-19T14:00:00.000Z", version: "test" });
+  await assert.rejects(sc.recordIntent(s0, { slug: CALLER, op: CALLER, payload: {}, payloadText: "{}", knownSlugs: new Set(["foldlock"]) }, "2026-10-19T14:00:01.000Z"), (e) => e.code === "unknown_slug");
+  const sr0 = s0.receipts.at(-1);
+  assert.equal(sr0.event, "refused"); assert.equal(sr0.payload.refusal.slug, null); assert.match(sr0.payload.refusal.slug_sha256, /^[a-f0-9]{16}$/);
+  assert.equal(JSON.stringify(sr0).includes(CALLER), false, "session refusal stores no caller slug/op text");
+  assert.equal((await sc.verifyChainStrict(s0.receipts)).ok, true); n++;
+}
 { const vv = await verify(store, { c: "refusals" }); if (!vv.ok) console.log(JSON.stringify(vv.breaks)); assert.equal(vv.ok, true); } n++;
 
 console.log(`verify-refusal-doors: ok (${n} groups)`);
