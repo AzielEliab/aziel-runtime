@@ -116,6 +116,8 @@
  * CORS *. Apache-2.0. Forks welcome.
  * Author: Aziel Eliab. Identity is Aziel Eliab only. Do not invent DOIs.
  */
+import { tokensCss } from "./lockstep/tokens-css.js";
+import { DESIGN_TOKENS } from "./lockstep/design-tokens.js";
 import {
   VERSIONS,
   DOI_BY_SLUG,
@@ -2248,7 +2250,7 @@ function headMeta(origin, title, description, canonicalPath, env = {}) {
 ${platformHeadLinks(base)}`;
 }
 
-const PAGE_CSS = `
+const PAGE_CSS = tokensCss(DESIGN_TOKENS) + `
   :root { color-scheme: dark; }
   html { box-sizing: border-box; }
   *, *::before, *::after { box-sizing: inherit; }
@@ -2738,8 +2740,15 @@ function aznewsOpenApiPaths() {
     "/v1/aznews/ledger": op("aznews_ledger", "AZRT-STORE-SHARD-1.0 / AZRT-STORE-CHECKPOINT-1.0: total ledger rows, head rows, sealed segments, signed checkpoint tip, walk."),
     "/v1/aznews/checkpoints": op("aznews_checkpoints", "Signed, chained checkpoints (every 1000 rows) after ?after=n.", [q("after", "Last checkpoint n you hold.", { type: "integer" })]),
     "/v1/4dmap/ledger": op("fourdmap_ledger", "Same ledger report for the 4dmap-v1 store."),
+    "/v1/aznews/rows": op("aznews_rows", "OFFLINE-RECORDS-1.0: raw AZNews ledger rows, ?from=<seq>&limit=<1..500> (default 200). Read-only, mints nothing; for the offline records export (aziel-records pull)."),
+    "/v1/4dmap/rows": op("fourdmap_rows", "OFFLINE-RECORDS-1.0: raw 4DMap ledger rows, same paging as /v1/aznews/rows."),
+    "/.well-known/azrt-keys.json": { get: { operationId: "azrt_keys", summary: "AZRT-KEYS-1.0: every public key the records are checked against (receipt key current/pinned/retired epochs, witness and auditor keys with epochs, slot-2 witness key). Public keys only.", tags: ["runtime"], responses: { "200": { description: "JSON" } } } },
+    "/v1/keys": { get: { operationId: "azrt_keys_alias", summary: "Same as GET /.well-known/azrt-keys.json.", tags: ["runtime"], responses: { "200": { description: "JSON" } } } },
     "/v1/4dmap/checkpoints": op("fourdmap_checkpoints", "Signed checkpoints for the 4dmap-v1 store after ?after=n.", [q("after", "Last checkpoint n you hold.", { type: "integer" })]),
     "/v1/4dmap/pins": { get: { operationId: "fourdmap_store_pins", summary: "Standalone 4DMap pins (4DMAP-STORE-1.0, own SQLite object 4dmap-v1, dual lattice): corpus layer (Aziel Corpus /api/events) and reference layer (GeoNames capitals and cities >= 1M). No AZNews needed.", tags: ["4dmap"], parameters: [{ name: "layers", in: "query", required: false, description: "corpus,reference", schema: { type: "string" } }, { name: "limit", in: "query", required: false, schema: { type: "integer" } }, { name: "include_retracted", in: "query", required: false, description: "1 = also list retracted pins (geoparser_junk, duplicate_in_document) with their reason; they stay on the lattice", schema: { type: "string" } }, { name: "links", in: "query", required: false, description: "1 = include the newest 4DMAP-LINK-1.0 links (news x corpus correspondence black/white, news x reference place)", schema: { type: "string" } }], responses: { "200": { description: "pins, last10, colors, layers, retracted, links, lattice_live" } } } },
+    "/v1/lockstep": { get: { operationId: "lockstep_contract", summary: "AZ-LOCKSTEP-1.0 contract: locks, flags, doors, chains, mesh, feature union and design-token hashes that AZInterface and AZ-OS pin and verify (states agree / drift / absent; flags show only on agree + contract + leg proof).", tags: ["runtime"], responses: { "200": { description: "lockstep contract JSON with contract_sha256" } } } },
+    "/design/tokens.json": { get: { operationId: "design_tokens_json", summary: "Shared design tokens (single source for all three legs).", tags: ["runtime"], responses: { "200": { description: "tokens JSON" } } } },
+    "/design/tokens.css": { get: { operationId: "design_tokens_css", summary: "Shared design tokens as CSS custom properties.", tags: ["runtime"], responses: { "200": { description: "text/css" } } } },
     "/aznews": { get: { operationId: "aznews_page", summary: "AZNews + 4DMap globe page (HTML).", tags: ["aznews"], responses: { "200": { description: "text/html" } } } },
   };
 }
@@ -3231,7 +3240,7 @@ async function combinedOpenApi(request, env) {
       },
       schemas: { ...attemptOpenApiSchemas(), RefusalReceipt: refusalDocs.refusalReceiptSchema() },
       // AZRT-REFUSAL-RECEIPT-1.0 (additive): header on sealed-door refusals.
-      headers: { "X-Azrt-Refusal-Receipt": refusalDocs.REFUSAL_RECEIPT_HEADER_DOC },
+      headers: { "X-Azrt-Refusal-Receipt": refusalDocs.REFUSAL_RECEIPT_HEADER_DOC, "X-Azrt-Auth-Rollup": (await import("./auth-rollup.js")).AUTH_ROLLUP_HEADER_DOC },
     },
     "x-refusal-receipt": "Sealed-door refusals add `refusal_receipt` (#/components/schemas/RefusalReceipt) to the body and the X-Azrt-Refusal-Receipt header (#/components/headers/X-Azrt-Refusal-Receipt). Doors: MCP and POST /v1/fraggate/call (incl. op refusals inside FG-OK), /v1/fraggate*, /v1/mesh* (incl. install/install.sh), /v1/tether*, /v1/memory*, /v1/qns*, /v1/interface, /v1/pull/*, /p/* (4xx only; 5xx are upstream errors, X-Azrt-Upstream-Error), plus AZ-OS and azinterface reports. Find: GET /v1/receipts/refusals.",
     paths,
@@ -4239,6 +4248,23 @@ async function handleRequest(request, env, ctx) {
       return asHead(request, text(whoIsTxt(origin, resolveCallingName(env)), extra(url.pathname)));
     }
 
+    // AZ-LOCKSTEP-1.0: one contract + one design source for runtime, AZInterface, AZ-OS (read-only).
+    if (
+      (url.pathname === "/v1/lockstep" || url.pathname === "/design/tokens.json" || url.pathname === "/design/tokens.css") &&
+      (request.method === "GET" || request.method === "HEAD")
+    ) {
+      const { lockstepDocument, designCss } = await import("./lockstep/contract.js");
+      if (url.pathname === "/design/tokens.css") {
+        return asHead(request, new Response(designCss(), { status: 200, headers: { ...extra(url.pathname), "Content-Type": "text/css; charset=utf-8", "Cache-Control": "public, max-age=300" } }));
+      }
+      if (url.pathname === "/design/tokens.json") {
+        const { DESIGN_TOKENS } = await import("./lockstep/design-tokens.js");
+        return asHead(request, json(DESIGN_TOKENS, 200, extra(url.pathname)));
+      }
+      const doc = await lockstepDocument(PRODUCTS);
+      return asHead(request, json({ ok: true, ...doc, git_sha: (env && env.GIT_SHA) || null, writes: false }, 200, extra(url.pathname)));
+    }
+
     if (url.pathname === "/cite.json" && (request.method === "GET" || request.method === "HEAD")) {
       const injected = doiInjectionRefuse(url.searchParams.get("doi"));
       if (injected) {
@@ -4655,6 +4681,11 @@ async function handleRequest(request, env, ctx) {
       });
       return json(out, out.ok ? 200 : out.code === "DOC-BACKFILL-BAD-QUERY" ? 400 : 503);
     }
+    if ((url.pathname === "/.well-known/azrt-keys.json" || url.pathname === "/v1/keys") && (request.method === "GET" || request.method === "HEAD")) {
+      // AZRT-KEYS-1.0: every public key the records are checked against, with epochs. Public keys only.
+      const { keysManifest } = await import("./keys-manifest.js");
+      return asHead(request, json(await keysManifest(env), 200, { "cache-control": "no-store" }));
+    }
     if (url.pathname === "/v1/receipt-key" && (request.method === "GET" || request.method === "HEAD")) {
       // RIB-042 AZRT-HELD-KEY-1.0: publish the provisioned receipt public key (never the private key).
       const rs = await import("./receipt-signing.js");
@@ -4676,6 +4707,8 @@ async function handleRequest(request, env, ctx) {
         const { softwareMeta } = await import("./software-catalog.js");
         const meta = softwareMeta(env);
         const heads = await anchor.collectHeads(env, { ...deps, version: RUNTIME_VERSION, gitSha: meta.git_sha || (env && env.GIT_SHA) || null, versionId: meta.version_id || null });
+        // AZRT-KEYS-1.0 (additive): the held receipt key's public parts, so the witness records each key epoch.
+        heads.receipt_key = await (await import("./keys-manifest.js")).receiptKeyHead(env);
         return asHead(request, json(heads, 200, hdrs));
       }
       if (url.pathname === "/v1/anchor/row") {
@@ -4743,6 +4776,12 @@ async function handleRequest(request, env, ctx) {
       return json({ ok: false, error: "not found", hint: "GET /v1/anchor, /v1/anchor/heads, /v1/anchor/row?c=&seq=, /v1/anchor/rows?c=&from=&limit=" }, 404, hdrs);
     }
 
+    if (url.pathname === "/v1/4dmap/rows" && (request.method === "GET" || request.method === "HEAD")) {
+      // OFFLINE-RECORDS-1.0 (stores addendum): raw 4DMap ledger rows, one bounded page, read-only.
+      const { mapCall } = await import("./aznews-do.js");
+      const out = await mapCall(env, "rows", { from: url.searchParams.get("from") || 1, limit: url.searchParams.get("limit") || 200 });
+      return asHead(request, json(out, out && out.ok === false ? 503 : 200, { "access-control-allow-origin": "*", "cache-control": "no-store" }));
+    }
     if ((url.pathname === "/v1/4dmap/ledger" || url.pathname === "/v1/4dmap/checkpoints") && (request.method === "GET" || request.method === "HEAD")) {
       // AZRT-STORE-CHECKPOINT-1.0 / AZRT-STORE-SHARD-1.0: total rows, head rows, segments, checkpoint tip.
       const { mapCall } = await import("./aznews-do.js");
@@ -4763,11 +4802,11 @@ async function handleRequest(request, env, ctx) {
       if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
       const { aznewsCall } = await import("./aznews-do.js");
       const parts = url.pathname.split("/").filter(Boolean).slice(2);
-      const ops = { "": "status", status: "status", feed: "feed", weather: "weather", sky: "sky", pins: "pins", pin: "pin", item: "item", receipts: "receipts", verify: "verify", sources: "sources", globe: "globe", link: "news_pin", open: "news_open", ledger: "ledger", checkpoints: "checkpoints" };
+      const ops = { "": "status", status: "status", feed: "feed", weather: "weather", sky: "sky", pins: "pins", pin: "pin", item: "item", receipts: "receipts", verify: "verify", sources: "sources", globe: "globe", link: "news_pin", open: "news_open", ledger: "ledger", checkpoints: "checkpoints", rows: "rows" };
       const op = ops[parts[0] || ""];
       if (!op) return json({ ok: false, error: "not found", hint: "GET /v1/aznews/{status,feed,weather,sky,pins,pin/<id>,item/<id>,link?item_id=|url=,open/<pin_id>,receipts,verify,sources,globe}" }, 404, cors);
       const payload = {};
-      for (const k of ["limit", "outlet", "type", "era", "offline", "username", "dry_run", "steps", "item_id", "url", "pin_id", "after"]) if (url.searchParams.has(k)) payload[k] = url.searchParams.get(k);
+      for (const k of ["limit", "outlet", "type", "era", "offline", "username", "dry_run", "steps", "item_id", "url", "pin_id", "after", "from"]) if (url.searchParams.has(k)) payload[k] = url.searchParams.get(k);
       if (parts[1]) payload[op === "pin" || op === "news_open" ? "pin_id" : "item_id"] = decodeURIComponent(parts[1]);
       payload.via = String(url.searchParams.get("via") || "http:" + url.pathname).slice(0, 40);
       // Offline view receipts are token-only; anonymous callers never write a chosen name.
@@ -5017,6 +5056,12 @@ export default {
       const left = budget - (Date.now() - startedAt) - 50;
       result = await withDoorRefusalReceipt(request, result, { store: env && env.CHAINLOCK ? storeFor(env) : null, ctx, budgetMs: Number.isFinite(left) ? left : undefined });
     }
+    // AZRT-AUTH-ROLLUP-1.0: login/token refusals are never sealed one by one; each adds 1 to a count-only
+    // (minute, door, code) counter that the cron seals as one rollup row. Additive header only.
+    if (result && Number(result.status) >= 400) {
+      const { withAuthRollup } = await import("./auth-rollup.js");
+      result = await withAuthRollup(request, result, { env, ctx });
+    }
     if (ctx && typeof ctx.waitUntil === "function") {
       // AZRT-ANCHOR-1.0: refresh the verified witness view after the response (never blocks a mint;
       // registered last so it never reorders other waitUntil work).
@@ -5071,6 +5116,15 @@ export default {
         .catch((err) => console.log(JSON.stringify({ aznews_tether: "NEWS-TETHER-ERROR", error: String((err && err.message) || err).slice(0, 200) })));
       if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(news);
       else await news;
+    }
+    // AZRT-AUTH-ROLLUP-1.0: seal closed minutes of login/token refusal counts (one row per door + code).
+    if (env && env.CHAINLOCK && ctx && typeof ctx.waitUntil === "function") {
+      ctx.waitUntil(
+        import("./auth-rollup.js")
+          .then(({ flushAuthRollups }) => flushAuthRollups(env, storeFor(env)))
+          .then((out) => console.log(JSON.stringify({ auth_rollup: out && { ok: out.ok, code: out.code, minutes: (out.minutes || []).map((m) => `${m.minute}:${m.status}`) } })))
+          .catch((err) => console.log(JSON.stringify({ auth_rollup: "AUTH-ROLLUP-CRON-ERROR", error: String((err && err.message) || err).slice(0, 200) }))),
+      );
     }
     // LATTICE-LEARN-1.0 (scheduled): each tick learns one page on three chains, rotating. Forward-only,
     // append-only, fails closed; errors are logged and never block the tether or mesh work.

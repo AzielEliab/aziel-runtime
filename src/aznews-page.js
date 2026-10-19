@@ -1,3 +1,5 @@
+import { tokensCss } from "./lockstep/tokens-css.js";
+import { DESIGN_TOKENS } from "./lockstep/design-tokens.js";
 /**
  * GET /aznews — AZNews + 4DMap globe (AZNEWS-LIVE-1.0).
  * Data comes through the runtime FragGate door (POST /v1/fraggate/call, slug 4dmap,
@@ -21,18 +23,18 @@ export function aznewsPageHtml() {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>AZNews + 4DMap globe · Aziel Runtime</title>
 <meta name="description" content="Real news from top global outlets, global weather, and computed sky (zodiac, constellations, seasons), pinned on the 4DMap globe with dual-lattice receipts. Author: Aziel Eliab.">
-<style>
-body{margin:0;background:#0d0f14;color:#e8e6e1;font:15px/1.45 system-ui,sans-serif}
+<style>${tokensCss(DESIGN_TOKENS)}
+body{margin:0;background:var(--az-bg);color:var(--az-ink);font:var(--az-type-body)}
 header,main,footer{max-width:1200px;margin:0 auto;padding:12px 16px}
 h1{font-size:22px;margin:6px 0}h2{font-size:17px;margin:10px 0 6px}
-a{color:#8ab4ff}.muted{color:#9aa0a6}.grid{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:14px}
+a{color:var(--az-link)}.muted{color:var(--az-muted)}.grid{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:14px}
 @media(max-width:860px){.grid{grid-template-columns:1fr}}
-.card{background:#151922;border:1px solid #262c38;border-radius:10px;padding:12px;margin-bottom:12px}
+.card{background:var(--az-card);border:1px solid var(--az-line);border-radius:10px;padding:12px;margin-bottom:12px}
 canvas{width:100%;max-width:640px;aspect-ratio:1;display:block;margin:0 auto;cursor:grab;touch-action:none}
 .sw{display:inline-block;width:12px;height:12px;border-radius:50%;border:1px solid #888;vertical-align:middle;margin-right:4px}
 ul{padding-left:18px;margin:4px 0}li{margin:3px 0}
-table{border-collapse:collapse;width:100%;font-size:13px}td,th{border-bottom:1px solid #262c38;padding:3px 5px;text-align:left}
-.flags code{background:#222838;padding:1px 5px;border-radius:4px;margin-right:4px}
+table{border-collapse:collapse;width:100%;font-size:13px}td,th{border-bottom:1px solid var(--az-line);padding:3px 5px;text-align:left}
+.flags code{background:var(--az-line);padding:1px 5px;border-radius:4px;margin-right:4px}
 #detail{white-space:pre-wrap;font-size:13px;max-height:340px;overflow:auto}
 .key li{list-style:none}
 </style></head><body>
