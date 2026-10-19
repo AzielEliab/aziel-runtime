@@ -92,6 +92,15 @@ export function githubRepoOf(u) {
   return null;
 }
 
+/**
+ * AZRT-WITNESS-QUORUM-1.0 addendum: a slot-2 log on Cloudflare (Workers, Pages, R2) shares the runtime's own
+ * provider, so it is not independent. GitHub-hosted logs stay allowed only outside the slot-1 repo.
+ */
+export function cloudflareHosted(hostname) {
+  const h = String(hostname || "").toLowerCase().replace(/\.$/, "");
+  return ["workers.dev", "pages.dev", "r2.dev", "r2.cloudflarestorage.com", "cloudflare.com", "cloudflareworkers.com"].some((d) => h === d || h.endsWith("." + d));
+}
+
 /** Slot-2 config from its own env vars. Never defaults to anything. */
 export function witness2Config(env) {
   const url = env && typeof env.WITNESS2_LOG_URL === "string" ? env.WITNESS2_LOG_URL.trim() : "";
@@ -103,6 +112,7 @@ export function witness2Config(env) {
   if (!u || u.protocol !== "https:" || !ck) return { configured: false, code: WITNESS2_CODES.badConfig, reason: "WITNESS2_LOG_URL must be https and WITNESS2_PUBLIC_KEY a canonical 32-byte base64url Ed25519 key; both are required" };
   if (u.username || u.password || hostRefused(u.hostname)) return { configured: false, code: WITNESS2_CODES.badConfig, reason: "WITNESS2_LOG_URL host must be a public DNS name (no IP address, localhost or credentials)" };
   if (slot1KeyBytes().has(ck)) return { configured: false, code: WITNESS2_CODES.notIndependent, reason: "second witness key equals the first witness's current or retired key" };
+  if (cloudflareHosted(u.hostname)) return { configured: false, code: WITNESS2_CODES.notIndependent, reason: "second witness log is hosted on Cloudflare, the runtime's own provider; it is not independent" };
   const primary = new URL(WITNESS_LOG_URL);
   const repo = githubRepoOf(u);
   if (u.href === primary.href || repo === WITNESS_REPO.toLowerCase()) {
