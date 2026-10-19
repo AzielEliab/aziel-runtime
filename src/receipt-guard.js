@@ -300,6 +300,8 @@ export async function sealRefusal(store, { code, tool, slug, op, args, goal, pri
   if (!store) return { spec: REFUSAL_SPEC, sealed: false, reason: "no durable store in this isolate" };
   try {
     const out = await appendInternal(store, input);
+    // RIB-018 follow-up: the writer's global cap answers refusal-cap; report it honestly as rate_limited.
+    if (out && out.refuse === "refusal-cap") return { spec: REFUSAL_SPEC, kind: "refusal", code, sealed: false, status: "rate_limited", reason: out.message || "global refusal seal cap reached; the refusal still stands" };
     if (!out || !out.ok) return { spec: REFUSAL_SPEC, sealed: false, reason: (out && (out.refuse || out.code)) || "append-failed" };
     return {
       spec: REFUSAL_SPEC,

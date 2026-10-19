@@ -340,4 +340,27 @@ assert.equal(innerOpRefusal({ result: { ok: true, code: "OK" } }), null);
 }
 { const vv = await verify(store, { c: "refusals" }); if (!vv.ok) console.log(JSON.stringify(vv.breaks)); assert.equal(vv.ok, true); } n++;
 
+// 19) global per-minute cap in the ChainLock writer (true global bound) with a peer sub-cap.
+{
+  const rgc = await import("../src/receipt-guard.js");
+  const { REFUSAL_CAP } = await import("../src/chainlock/writer-do.js");
+  const { append } = await import("../src/chainlock/ops.js");
+  const gst = storeFor({ CHAINLOCK: memoryChainWriterNamespace({}) });
+  let peerOut;
+  for (let i = 0; i <= REFUSAL_CAP.peer; i++) peerOut = await append(gst, { c: "refusals", k: "refusal", s: "P" + i, f: "peer refusal " + i, refusal: { code: "P" + i, surface: "azos" }, idempotency_key: "p" + i }, { internal: true });
+  assert.equal(peerOut.ok, false); assert.equal(peerOut.refuse, "refusal-cap");
+  const rtOut = await append(gst, { c: "refusals", k: "refusal", s: "R", f: "runtime refusal", refusal: { code: "R", surface: "runtime" }, idempotency_key: "r0" }, { internal: true });
+  assert.equal(rtOut.ok, true, "peer sub-cap does not block runtime rows");
+  let last2;
+  for (let j = 1; j <= REFUSAL_CAP.total; j++) { last2 = await append(gst, { c: "refusals", k: "refusal", s: "T" + j, f: "refusal " + j, refusal: { code: "T" + j }, idempotency_key: "t" + j }, { internal: true }); if (!last2.ok) break; }
+  assert.equal(last2.refuse, "refusal-cap");
+  const rep = await append(gst, { c: "refusals", k: "refusal", s: "R", f: "runtime refusal", refusal: { code: "R", surface: "runtime" }, idempotency_key: "r0" }, { internal: true });
+  assert.equal(rep.ok, true); assert.equal(rep.replayed, true, "replays are never capped");
+  rgc._resetMcpSealCap();
+  const sealed = await rgc.sealRefusal(gst, { code: "FG-HALLUC-TOOL", tool: "fraggate_call", slug: "foldlock", op: "zz", args: {}, minuteBucket: 7 });
+  assert.equal(sealed.sealed, false); assert.equal(sealed.status, "rate_limited", "over the global cap: honest rate_limited, no row");
+  assert.equal((await verify(gst, { c: "refusals" })).ok, true);
+  n++;
+}
+
 console.log(`verify-refusal-doors: ok (${n} groups)`);

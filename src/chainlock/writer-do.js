@@ -38,6 +38,10 @@ async function readJson(request) {
   }
 }
 
+
+/** RIB-018 follow-up: global per-minute cap on new `refusals` rows; peers (azos/azinterface) get a sub-cap. */
+export const REFUSAL_CAP = Object.freeze({ chain: "refusals", total: 600, peer: 120 });
+
 export class ChainWriter {
   constructor(ctx, env) {
     this.ctx = ctx;
@@ -88,6 +92,21 @@ export class ChainWriter {
     if (idempKey) {
       const hit = await this._get("idemp:" + idempKey);
       if (hit && hit.ok && hit.record) return { ...hit, replayed: true, ok: true };
+    }
+    // RIB-018 follow-up: global per-minute cap on NEW refusal rows (this writer is the only one for the
+    // chain, so it is a true global bound), with a separate sub-cap for AZ-OS / azinterface reports.
+    if (String(src.chain || "") === REFUSAL_CAP.chain && src.input && src.input.k === "refusal") {
+      const minute = Math.floor(Date.now() / 60000);
+      const prevCap = await this._get("refcap");
+      const cap = prevCap && prevCap.m === minute ? prevCap : { m: minute, total: 0, peer: 0 };
+      const surface = src.input.refusal && src.input.refusal.surface;
+      const peer = surface === "azos" || surface === "azinterface";
+      if (cap.total >= REFUSAL_CAP.total || (peer && cap.peer >= REFUSAL_CAP.peer)) {
+        return { ok: false, refuse: "refusal-cap", code: "REFUSAL-GLOBAL-CAP", written: false, message: peer ? `peer refusal sub-cap ${REFUSAL_CAP.peer}/min reached; the refusal still stands` : `global refusal seal cap ${REFUSAL_CAP.total}/min reached; the refusal still stands`, v: CL_VERSION };
+      }
+      cap.total++;
+      if (peer) cap.peer++;
+      await this._put("refcap", cap);
     }
     const genesis = src.genesis == null ? (kind === "ledger" ? "0".repeat(64) : GENESIS) : String(src.genesis);
     const meta = await this._meta();

@@ -139,3 +139,17 @@ templates rows per minute (roughly 5 x 10 = 50/min, ~72k rows/day), against toda
   `#/components/schemas/RefusalReceipt` (the `refusal_receipt` field) and
   `#/components/headers/X-Azrt-Refusal-Receipt`.
 
+
+### Follow-up 2 (2026-10-19): one global cap in the writer
+
+The per-door caps above (30/min) and the MCP cap live in each isolate, so many isolates could each spend
+their own cap. The ChainLock writer Durable Object is the only writer for the `refusals` chain, so it now
+keeps the one true global bound: at most **600 new refusal rows per minute** in total, and at most
+**120 per minute** from AZ-OS and azinterface reports together (the peer sub-cap, so peers can't crowd
+out the runtime's own refusals). Over the cap the writer answers `refuse: "refusal-cap"`
+(`REFUSAL-GLOBAL-CAP`), nothing is written, and `sealRefusal` returns `status: "rate_limited"`,
+`sealed: false`; the refusal itself still stands (fail closed). Replays (same idempotency key) are never
+capped and never write a row. Worst case growth is therefore 600 rows/min, about 864,000 rows/day, under a
+sustained flood. Additive only: no row is changed, no schema field removed.
+Law: AZRT-REFUSAL-RECEIPT-1.0 (this doc), FragGate single door, append-only history.
+Test: `scripts/verify-refusal-doors.mjs` group 19.
