@@ -166,9 +166,9 @@ async function readJson(res) {
 }
 
 /** AZ-OS stored tips per chain (GET /v1/tether on the tracker). */
-export async function azosTetherState(env, fetcher = azosFetcher(env)) {
+export async function azosTetherState(env, fetcher = azosFetcher(env), origin = TETHER_AZOS_ORIGIN) {
   if (!fetcher) return { ok: false, code: "TETHER-AZOS-UNBOUND", chains: {} };
-  const res = await fetcher(TETHER_AZOS_ORIGIN + TETHER_STATUS_ROUTE, { headers: { accept: "application/json" } });
+  const res = await fetcher(origin + TETHER_STATUS_ROUTE, { headers: { accept: "application/json" } });
   const body = await readJson(res);
   if (!res.ok || !body || typeof body !== "object") return { ok: false, code: "TETHER-AZOS-STATUS", status: res.status, chains: {} };
   const chains = {};
@@ -192,7 +192,8 @@ export async function pushChain(env, chain, opts = {}) {
   const fetcher = opts.fetcher || azosFetcher(env);
   if (!fetcher) return { ...base, ok: false, code: "TETHER-AZOS-UNBOUND", azos_updated: false, sent: false };
   const store = opts.store || storeFor(env);
-  const acked = opts.acked !== undefined ? opts.acked : ((await azosTetherState(env, fetcher)).chains[chain] || null);
+  const origin = opts.origin || TETHER_AZOS_ORIGIN;
+  const acked = opts.acked !== undefined ? opts.acked : ((await azosTetherState(env, fetcher, origin)).chains[chain] || null);
   const ackedTip = acked && acked.tips ? acked.tips : null;
   let localTip;
   let pending;
@@ -227,7 +228,7 @@ export async function pushChain(env, chain, opts = {}) {
   for (let i = 0; i < pending.length; i += TETHER_ROW_CAP) {
     const batch = pending.slice(i, i + TETHER_ROW_CAP);
     const packet = await buildTetherPacket({ key, chain, rows: batch, gitSha: env && env.GIT_SHA, t: opts.t });
-    const res = await fetcher(TETHER_AZOS_ORIGIN + TETHER_ROUTE, {
+    const res = await fetcher(origin + TETHER_ROUTE, {
       method: "POST",
       headers: { "content-type": "application/json", accept: "application/json" },
       body: JSON.stringify(packet),
@@ -259,7 +260,7 @@ export async function pushAll(env, opts = {}) {
     return { ok: false, code: "TETHER-KEY-ABSENT", azos_updated: false, sent: false, chains: [], ...TETHER_FACTS };
   }
   const fetcher = opts.fetcher || azosFetcher(env);
-  const state = await azosTetherState(env, fetcher);
+  const state = await azosTetherState(env, fetcher, opts.origin || TETHER_AZOS_ORIGIN);
   if (!state.ok) return { ok: false, code: state.code, azos_updated: false, sent: false, chains: [], ...TETHER_FACTS };
   const store = opts.store || storeFor(env);
   const out = [];
@@ -276,6 +277,36 @@ export async function pushAll(env, opts = {}) {
     chains: out.map((row) => ({ chain: row.chain, code: row.code, azos_updated: row.azos_updated, rows_sent: row.rows_sent || 0, tip: row.tip || null })),
     ...TETHER_FACTS,
   };
+}
+
+export const TETHER_AZINTERFACE_ORIGIN = "https://azinterface-download-tracker.vibelock.workers.dev";
+
+function azinterfaceFetcher(env) {
+  if (env && env.AZINTERFACE && typeof env.AZINTERFACE.fetch === "function") return (url, init) => env.AZINTERFACE.fetch(url, init);
+  return null;
+}
+
+/**
+ * AZ-LOCKSTEP-1.0: push the same signed tips to every leg that receives them (AZ-OS and AZInterface),
+ * each over its own service binding. The AZ-OS result keeps pushAll's shape at the top level. A leg
+ * whose binding is absent is reported unbound and nothing is sent to it (fail closed). One leg failing
+ * never blocks the other: the legs are independent.
+ */
+export async function pushAllLegs(env, opts = {}) {
+  const azos = await pushAll(env, opts);
+  const ifFetch = opts.azinterfaceFetcher !== undefined ? opts.azinterfaceFetcher : azinterfaceFetcher(env);
+  let azinterface;
+  if (!ifFetch) {
+    azinterface = { ok: false, code: "TETHER-AZINTERFACE-UNBOUND", sent: false, updated: false };
+  } else {
+    try {
+      const r = await pushAll(env, { ...opts, fetcher: ifFetch, origin: TETHER_AZINTERFACE_ORIGIN });
+      azinterface = { ok: r.ok, code: r.code, sent: (r.chains || []).some((c) => (c.rows_sent || 0) > 0), updated: r.azos_updated === true, chains: r.chains || [] };
+    } catch (err) {
+      azinterface = { ok: false, code: "TETHER-AZINTERFACE-ERROR", sent: false, updated: false, error: String((err && err.message) || err).slice(0, 200) };
+    }
+  }
+  return { ...azos, legs: { azos: { ok: azos.ok, code: azos.code, updated: azos.azos_updated === true }, azinterface } };
 }
 
 /** Public read: spec, signing public key (no secret), and AZ-OS stored tips. */

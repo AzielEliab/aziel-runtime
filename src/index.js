@@ -217,6 +217,7 @@ import {
   rateLimitFailHeaders,
   sessionMutateAuth,
   tokenPresentedInQuery,
+  stripLegClientIpOnPublicIngress,
 } from "./production.js";
 import { applySecurityHeaders, securityHeaders } from "./security-headers.js";
 import { durabilityLabels, productionBindCite } from "./durability-labels.js";
@@ -4836,8 +4837,8 @@ async function handleRequest(request, env, ctx) {
     if (url.pathname === "/v1/tether/push" && request.method === "POST") {
       const auth = sessionMutateAuth(request, env);
       if (!auth.ok) return json(auth.body, auth.status || 401, authorityLinkHeaders(origin, url.pathname));
-      const { pushAll } = await import("./azos-tether.js");
-      return json(await pushAll(env), 200, authorityLinkHeaders(origin, url.pathname));
+      const { pushAllLegs } = await import("./azos-tether.js");
+      return json(await pushAllLegs(env), 200, authorityLinkHeaders(origin, url.pathname));
     }
 
     if (url.pathname === "/v1/receipts/refusals" && (request.method === "GET" || request.method === "HEAD")) {
@@ -5022,7 +5023,9 @@ async function handleRequest(request, env, ctx) {
 }
 
 export default {
-  async fetch(request, rawEnv, ctx) {
+  async fetch(rawRequest, rawEnv, ctx) {
+    // LEG-CLIENT-IP-1.0: X-Azrt-Client-IP is honored only over the service binding; stripped on public ingress.
+    const request = stripLegClientIpOnPublicIngress(rawRequest);
     // Hot USES writes go to the RUNTIME_KV Durable Object (KV daily put quota made /mcp throw 1101).
     const env = withDurableKv(rawEnv);
     const budget = requestDeadlineMs(env);
@@ -5069,7 +5072,7 @@ export default {
   async scheduled(controller, rawEnv, ctx) {
     const env = withDurableKv(rawEnv);
     const source = controller && controller.cron ? `cron:${controller.cron}` : "cron";
-    const { TETHER_CRON, pushAll } = await import("./azos-tether.js");
+    const { TETHER_CRON, pushAllLegs } = await import("./azos-tether.js");
     // USES-SNAPSHOT-1.0: rebuild the /v1/stats maps off the request path (resumable across ticks).
     if (ctx && typeof ctx.waitUntil === "function" && (await import("./uses.js")).snapshotDue(controller && controller.cron, controller && controller.scheduledTime, TETHER_CRON)) {
       ctx.waitUntil(
@@ -5135,10 +5138,10 @@ export default {
     }
     if (controller && controller.cron === TETHER_CRON) {
       // AZ-OS cross-tether on its own cron: send signed dual-lattice tips only when the signing secret is set.
-      if (!(env && env.TETHER_SIGNING_SEED && env.AZOS)) return;
-      const work = pushAll(env)
+      if (!(env && env.TETHER_SIGNING_SEED && (env.AZOS || env.AZINTERFACE))) return;
+      const work = pushAllLegs(env)
         .then((out) => {
-          console.log(JSON.stringify({ tether: out.code, azos_updated: out.azos_updated, chains: (out.chains || []).map((c) => ({ chain: c.chain, code: c.code, rows_sent: c.rows_sent })) }));
+          console.log(JSON.stringify({ tether: out.code, azos_updated: out.azos_updated, azinterface: out.legs && out.legs.azinterface ? out.legs.azinterface.code : null, chains: (out.chains || []).map((c) => ({ chain: c.chain, code: c.code, rows_sent: c.rows_sent })) }));
           return out;
         })
         .catch((err) => {
