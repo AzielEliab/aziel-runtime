@@ -75,11 +75,13 @@ azinterface reads the tip through `/v1/runtime/sync`. Tips agree after the next 
 roster walk is unchanged) and each row with `/v1/anchor/row?c=refusals&seq=N` (new rows show
 ANCHOR-MISSING until the next witness run).
 
-**Flood guard.** (1) sealRefusal's idempotency key covers code + door/tool + route template + method +
-status + minute, with no caller identity, so one refusal shape writes at most one row per minute;
+**Flood guard.** (1) sealRefusal's idempotency key covers code + door (or peer surface) + method +
+status + minute, with no caller identity and no route (routes are caller-shaped; the first route in
+that minute is the one recorded), so one refusal shape writes at most one row per minute and the
+worst case is bounded by the finite set of codes x doors;
 (2) an in-isolate memo answers repeats in that minute with no Durable Object call; (3) an in-isolate
 cap of 60 new seals per minute (over it: `status: "rate_limited"`, sealed:false, the refusal still
-stands); (4) route templates collapse ids and keep at most 4 segments, so keys stay bounded.
+stands); (4) the recorded route is a template (ids collapsed, at most 4 segments).
 
 **Fail closed.** The refusal status, code and body never change. No store: `status: "unavailable"`.
 Write slower than 2.5 s: `status: "receipt_pending"` (the write continues in the background; look it

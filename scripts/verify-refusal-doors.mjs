@@ -33,10 +33,14 @@ assert.equal(rr.chain, "refusals"); assert.equal(rr.surface, "runtime"); assert.
 assert.match(rr.h, /^[a-f0-9]{64}$/); assert.match(rr.lattice.primary, /^[a-f0-9]{64}$/); assert.match(rr.lattice.secondary, /^[a-f0-9]{64}$/);
 assert.match(r.headers.get("x-azrt-refusal-receipt"), /^sealed; chain=refusals; seq=\d+; h=[a-f0-9]{64}$/); n++;
 
-// 2) same refusal in the same minute: replay, no new row (flood guard).
+// 2) same refusal in the same minute: replay, no new row (flood guard); a different route with the same code too.
 const rows1 = (await loadChain(store, "refusals")).length;
 b = await (await get("/v1/mesh/install")).json();
 assert.equal(b.refusal_receipt.seq, rr.seq); assert.equal(b.refusal_receipt.replayed, true);
+assert.equal((await loadChain(store, "refusals")).length, rows1);
+doors._resetRefusalMemo();
+const flood = await doors.sealDoorRefusal(store, { door: "mesh", code: "ONBOARD-BAD-SLUG", reason: "x", method: "GET", route: "/v1/mesh/other-route", status: 400 });
+assert.equal(flood.seq, rr.seq); assert.equal(flood.replayed, true);
 assert.equal((await loadChain(store, "refusals")).length, rows1); n++;
 
 // 3) install.sh text refusal: body unchanged, receipt in the header.
@@ -99,7 +103,7 @@ r = await peer({ surface: "azos", code: "TRACKER-BAD", method: "GET", route: "/v
 assert.equal(r.status, 403); assert.equal((await r.json()).code, "REFUSAL-PEER-NOT-BOUND");
 r = await peer({ surface: "azos", code: "TRACKER-BAD-QUERY", method: "GET", route: "/v1/downloads/abc", status: 400, reason: "bad query" });
 b = await r.json();
-assert.equal(b.ok, true); assert.equal(b.refusal_receipt.surface, "azos"); assert.equal(b.refusal_receipt.sealed, true);
+assert.equal(b.ok, true); assert.equal(b.refusal_receipt.surface, "azos"); assert.equal(b.refusal_receipt.sealed, true); assert.equal(b.refusal_receipt.door, "azos");
 r = await peer({ surface: "azinterface", code: "IFACE-BAD", method: "POST", route: "/v1/x", status: 400 });
 assert.equal((await r.json()).refusal_receipt.surface, "azinterface");
 assert.equal((await peer({ surface: "evil", code: "X-Y" })).status, 400);

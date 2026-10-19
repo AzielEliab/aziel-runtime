@@ -14,7 +14,8 @@
  * Not recorded (by design, the user decides): auth-gate refusals (401, token_* codes,
  * TOKEN-QUERY-REFUSED, CL-NOT-ISSUER) and rate-limit 429s. They stay plain refusals.
  *
- * Flood guard: sealRefusal's minute idempotency key (code + door + route template + method), an
+ * Flood guard: sealRefusal's minute idempotency key (code + door + method + status; the caller-shaped
+ * route is recorded but left out of the key, so the first route in that minute is the one kept), an
  * in-isolate memo so a replay inside the minute costs no Durable Object call, and an in-isolate cap
  * of REFUSAL_HTTP_CAP_PER_MIN new seals per minute (over the cap: receipt status rate_limited).
  * Fail closed: the refusal response is never changed into success; a failed or slow write is
@@ -105,7 +106,8 @@ export async function sealDoorRefusal(store, { surface = "runtime", door, code, 
   const { sealRefusal, REFUSAL_SPEC, REFUSAL_CHAIN } = await import("./receipt-guard.js");
   const minute = Math.floor(now / 60000);
   const m = memoFor(minute);
-  const key = [surface, door, code, method, route, status].join("|");
+  // Dedupe key leaves the route out (it is caller-shaped); codes and doors are a finite set.
+  const key = [surface, door, code, method, status].join("|");
   const extra = { kind: "refusal", surface, door, reason: String(reason || "").slice(0, 160), status: Number(status) || null, route };
   if (m.views.has(key)) return { ...m.views.get(key), replayed: true, memo: true };
   if (!store) return { spec: REFUSAL_SPEC, kind: "refusal", sealed: false, status: "unavailable", reason: "no durable store in this isolate" };
@@ -114,7 +116,7 @@ export async function sealDoorRefusal(store, { surface = "runtime", door, code, 
   }
   m.sealed++;
   const work = sealRefusal(store, {
-    code, tool: surface === "runtime" ? "http" : surface, slug: route, op: method,
+    code, tool: surface === "runtime" ? "http" : surface, slug: door, op: method,
     args: { door, status: Number(status) || null }, minuteBucket: minute, extra,
   });
   let timer;
@@ -185,7 +187,7 @@ export async function handlePeerRefusal(request, { store, ctx } = {}) {
   if (isAuthRefusal(b.status, code)) return json({ ok: false, code: "REFUSAL-PEER-AUTH-UNRECORDED", message: "Auth refusals stay unrecorded." }, 400);
   const method = String(b.method || "GET").toUpperCase().slice(0, 8);
   const route = routeTemplate(String(b.route || "/"));
-  const view = await sealDoorRefusal(store, { surface, door: surface + ":" + (route.split("/")[2] || route.split("/")[1] || "root"), code, reason: String(b.reason || ""), method, route, status: Number(b.status) || 400 }, { ctx });
+  const view = await sealDoorRefusal(store, { surface, door: surface, code, reason: String(b.reason || ""), method, route, status: Number(b.status) || 400 }, { ctx });
   return json({ ok: Boolean(view.sealed), refusal_receipt: view }, 200);
 }
 
