@@ -2737,6 +2737,8 @@ function aznewsOpenApiPaths() {
     "/v1/aznews/ledger": op("aznews_ledger", "AZRT-STORE-SHARD-1.0 / AZRT-STORE-CHECKPOINT-1.0: total ledger rows, head rows, sealed segments, signed checkpoint tip, walk."),
     "/v1/aznews/checkpoints": op("aznews_checkpoints", "Signed, chained checkpoints (every 1000 rows) after ?after=n.", [q("after", "Last checkpoint n you hold.", { type: "integer" })]),
     "/v1/4dmap/ledger": op("fourdmap_ledger", "Same ledger report for the 4dmap-v1 store."),
+    "/v1/aznews/rows": op("aznews_rows", "OFFLINE-RECORDS-1.0: raw AZNews ledger rows, ?from=<seq>&limit=<1..500> (default 200). Read-only, mints nothing; for the offline records export (aziel-records pull)."),
+    "/v1/4dmap/rows": op("fourdmap_rows", "OFFLINE-RECORDS-1.0: raw 4DMap ledger rows, same paging as /v1/aznews/rows."),
     "/v1/4dmap/checkpoints": op("fourdmap_checkpoints", "Signed checkpoints for the 4dmap-v1 store after ?after=n.", [q("after", "Last checkpoint n you hold.", { type: "integer" })]),
     "/v1/4dmap/pins": { get: { operationId: "fourdmap_store_pins", summary: "Standalone 4DMap pins (4DMAP-STORE-1.0, own SQLite object 4dmap-v1, dual lattice): corpus layer (Aziel Corpus /api/events) and reference layer (GeoNames capitals and cities >= 1M). No AZNews needed.", tags: ["4dmap"], parameters: [{ name: "layers", in: "query", required: false, description: "corpus,reference", schema: { type: "string" } }, { name: "limit", in: "query", required: false, schema: { type: "integer" } }, { name: "include_retracted", in: "query", required: false, description: "1 = also list retracted pins (geoparser_junk, duplicate_in_document) with their reason; they stay on the lattice", schema: { type: "string" } }, { name: "links", in: "query", required: false, description: "1 = include the newest 4DMAP-LINK-1.0 links (news x corpus correspondence black/white, news x reference place)", schema: { type: "string" } }], responses: { "200": { description: "pins, last10, colors, layers, retracted, links, lattice_live" } } } },
     "/aznews": { get: { operationId: "aznews_page", summary: "AZNews + 4DMap globe page (HTML).", tags: ["aznews"], responses: { "200": { description: "text/html" } } } },
@@ -4742,6 +4744,12 @@ async function handleRequest(request, env, ctx) {
       return json({ ok: false, error: "not found", hint: "GET /v1/anchor, /v1/anchor/heads, /v1/anchor/row?c=&seq=, /v1/anchor/rows?c=&from=&limit=" }, 404, hdrs);
     }
 
+    if (url.pathname === "/v1/4dmap/rows" && (request.method === "GET" || request.method === "HEAD")) {
+      // OFFLINE-RECORDS-1.0 (stores addendum): raw 4DMap ledger rows, one bounded page, read-only.
+      const { mapCall } = await import("./aznews-do.js");
+      const out = await mapCall(env, "rows", { from: url.searchParams.get("from") || 1, limit: url.searchParams.get("limit") || 200 });
+      return asHead(request, json(out, out && out.ok === false ? 503 : 200, { "access-control-allow-origin": "*", "cache-control": "no-store" }));
+    }
     if ((url.pathname === "/v1/4dmap/ledger" || url.pathname === "/v1/4dmap/checkpoints") && (request.method === "GET" || request.method === "HEAD")) {
       // AZRT-STORE-CHECKPOINT-1.0 / AZRT-STORE-SHARD-1.0: total rows, head rows, segments, checkpoint tip.
       const { mapCall } = await import("./aznews-do.js");
@@ -4762,11 +4770,11 @@ async function handleRequest(request, env, ctx) {
       if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
       const { aznewsCall } = await import("./aznews-do.js");
       const parts = url.pathname.split("/").filter(Boolean).slice(2);
-      const ops = { "": "status", status: "status", feed: "feed", weather: "weather", sky: "sky", pins: "pins", pin: "pin", item: "item", receipts: "receipts", verify: "verify", sources: "sources", globe: "globe", link: "news_pin", open: "news_open", ledger: "ledger", checkpoints: "checkpoints" };
+      const ops = { "": "status", status: "status", feed: "feed", weather: "weather", sky: "sky", pins: "pins", pin: "pin", item: "item", receipts: "receipts", verify: "verify", sources: "sources", globe: "globe", link: "news_pin", open: "news_open", ledger: "ledger", checkpoints: "checkpoints", rows: "rows" };
       const op = ops[parts[0] || ""];
       if (!op) return json({ ok: false, error: "not found", hint: "GET /v1/aznews/{status,feed,weather,sky,pins,pin/<id>,item/<id>,link?item_id=|url=,open/<pin_id>,receipts,verify,sources,globe}" }, 404, cors);
       const payload = {};
-      for (const k of ["limit", "outlet", "type", "era", "offline", "username", "dry_run", "steps", "item_id", "url", "pin_id", "after"]) if (url.searchParams.has(k)) payload[k] = url.searchParams.get(k);
+      for (const k of ["limit", "outlet", "type", "era", "offline", "username", "dry_run", "steps", "item_id", "url", "pin_id", "after", "from"]) if (url.searchParams.has(k)) payload[k] = url.searchParams.get(k);
       if (parts[1]) payload[op === "pin" || op === "news_open" ? "pin_id" : "item_id"] = decodeURIComponent(parts[1]);
       payload.via = String(url.searchParams.get("via") || "http:" + url.pathname).slice(0, 40);
       // Offline view receipts are token-only; anonymous callers never write a chosen name.
