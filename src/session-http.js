@@ -174,7 +174,7 @@ export async function handleSessionRequest(request, env, deps) {
     return json(
       {
         error: "not a session route",
-        hint: "POST /v1/session/open  POST /v1/session/{id}/policy  POST /v1/session/{id}/exec  GET /v1/session/{id}/receipt  GET /v1/session/{id}/receipts  POST /v1/session/{id}/stale  POST /v1/session/{id}/revoke  GET /v1/session/{id}/spec  POST /v1/session/{id}/close",
+        hint: "POST /v1/session/open  POST /v1/session/{id}/policy  POST /v1/session/{id}/exec  GET /v1/session/{id}/receipt  GET /v1/session/{id}/receipts  POST /v1/session/{id}/stale  POST /v1/session/{id}/revoke  GET /v1/session/{id}/spec  POST /v1/session/{id}/pause  POST /v1/session/{id}/resume  POST /v1/session/{id}/close",
       },
       404,
       extra ? extra(path) : {},
