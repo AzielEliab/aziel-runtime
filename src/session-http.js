@@ -230,7 +230,8 @@ export async function handleSessionRequest(request, env, deps) {
     );
   }
   if (action === "stale" && request.method === "POST") {
-    // RIB-014: append-only stale stamp against the sealed spec. Issuer-only writing is RIB-015.
+    // RIB-014: append-only stale stamp against the sealed spec. Token-gated (isSessionMutatePath) AND
+    // issuer-only (RIB-015, X-Azrt-Issuer-Key); refused SESSION-PAUSED while paused (session-core.js).
     let staleBody = {};
     try {
       const text = await request.text();
@@ -252,7 +253,8 @@ export async function handleSessionRequest(request, env, deps) {
     );
   }
   if (action === "revoke" && request.method === "POST") {
-    // RIB-015: issuer-only revocation (X-Azrt-Issuer-Key). Append-only.
+    // RIB-015: revocation. Token-gated (isSessionMutatePath) AND issuer-only (X-Azrt-Issuer-Key). Append-only and
+    // permanent; refused SESSION-PAUSED while paused so a paused session can always resume.
     let rb = {};
     try {
       const text = await request.text();

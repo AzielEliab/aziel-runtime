@@ -3217,7 +3217,7 @@ async function combinedOpenApi(request, env) {
           scheme: "bearer",
           bearerFormat: "RUNTIME_TOKEN",
           description:
-            "Operator bearer for session mutate (open/policy/exec/close/pause/resume) and MCP session tools when REQUIRE_TOKEN=1. Public FragGate call stays open. " +
+            "Operator bearer for session mutate (open/policy/exec/close/pause/resume/stale/revoke) and MCP session tools when REQUIRE_TOKEN=1. Public FragGate call stays open. " +
             tokenAuthSentence(),
         },
         IssuerKey: {
@@ -3225,7 +3225,7 @@ async function combinedOpenApi(request, env) {
           in: "header",
           name: "X-Azrt-Issuer-Key",
           description:
-            "Session issuer key, returned once by POST /v1/session/open; only its hash is sealed at genesis. Required for stale, revoke, pause and resume; anything else is 403 CL-NOT-ISSUER with the chain unchanged.",
+            "Session issuer key, returned once by POST /v1/session/open; only its hash is sealed at genesis. Required for stale, revoke, pause and resume, in addition to RuntimeToken (both, never either); anything else is 403 CL-NOT-ISSUER with the chain unchanged.",
         },
       },
       schemas: { ...attemptOpenApiSchemas(), RefusalReceipt: refusalDocs.refusalReceiptSchema() },
