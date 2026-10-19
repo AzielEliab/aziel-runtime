@@ -1,0 +1,36 @@
+# AZRT-WITNESS-QUORUM-1.0 slot 2 on Codeberg (Forgejo Actions). Not GitHub, not Cloudflare.
+name: witness2
+on:
+  schedule:
+    - cron: "7,22,37,52 * * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Anchor even if heads are unchanged"
+        default: "0"
+concurrency:
+  group: witness2-log
+  cancel-in-progress: false
+jobs:
+  anchor:
+    runs-on: codeberg-tiny
+    steps:
+      # Pinned to commit SHAs (tags can move): checkout v4.4.0, setup-node v4.4.0 on code.forgejo.org.
+      - uses: https://code.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: https://code.forgejo.org/actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+      - name: Re-verify own log, then sign and anchor runtime heads (key lives only in this repo's Actions secret)
+        env:
+          WITNESS2_ED25519_PKCS8: ${{ secrets.WITNESS2_ED25519_PKCS8 }}
+          WITNESS2_REPO: ${{ github.repository }}
+          FORCE: ${{ inputs.force }}
+        run: node scripts/witness2.mjs
+      - name: Commit anchor log (append-only)
+        run: |
+          git config user.name "aziel-witness2"
+          git config user.email "aziel-witness2@noreply.codeberg.org"
+          git add anchors
+          git diff --cached --quiet && exit 0
+          git commit -m "witness2: $(tail -1 anchors/log.jsonl | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);console.log("n="+r.statement.n+" "+r.statement_hash.slice(0,16))})')"
+          git pull --rebase origin main && git push origin HEAD:main
