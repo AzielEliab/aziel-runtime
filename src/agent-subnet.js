@@ -43,7 +43,9 @@ export const AGENT_REGISTER_PER_IP_PER_MIN = 5;
 export const AGENT_REGISTER_PER_MIN = 20;
 export const AGENT_READ_PER_MIN = 60;
 /** Per-isolate receipt seal caps per class (backstop; the writer DO holds the true caps, AGENTCOMM_CAP). */
-export const AGENT_SEAL_CAP_PER_MIN = Object.freeze({ msg: 120, ctl: 60, refuse: 60 });
+export const AGENT_SEAL_CAP_PER_MIN = Object.freeze({ msg: 300, rider: 600, ctl: 60, refuse: 60 });
+/** Per-isolate caches: the salt never changes once made; directory and public counts are cached 60 s. */
+export const AGENT_CACHE_MS = 60 * 1000;
 export const AGENT_CHALLENGE_TTL_MS = 120 * 1000;
 export const AGENT_VIEW_LIMIT = 50;
 /** Public counts: refreshed once an hour, bucketed to tens, anything under 10 shown as "<10". */
@@ -139,11 +141,29 @@ const nowMs = () => Date.now();
 let clock = null;
 export function _setAgentClock(fn) { clock = typeof fn === "function" ? fn : null; }
 const now = () => (clock ? clock() : nowMs());
-const sealMemo = { minute: -1, used: { msg: 0, ctl: 0, refuse: 0 }, full: new Set(), refusals: new Map() };
-export function _resetAgentMemo() { sealMemo.minute = -1; sealMemo.used = { msg: 0, ctl: 0, refuse: 0 }; sealMemo.full = new Set(); sealMemo.refusals = new Map(); }
+const sealMemo = { minute: -1, used: { msg: 0, rider: 0, ctl: 0, refuse: 0 }, full: new Set(), refusals: new Map() };
+export function _resetAgentMemo() { sealMemo.minute = -1; sealMemo.used = { msg: 0, rider: 0, ctl: 0, refuse: 0 }; sealMemo.full = new Set(); sealMemo.refusals = new Map(); }
+/** Per-isolate caches keyed by the CHAINLOCK binding (one entry per deployment; tests get fresh envs). */
+const saltCache = new WeakMap();
+const viewCache = new WeakMap();
+function cacheBag(env) {
+  const k = env && env.CHAINLOCK;
+  if (!k || typeof k !== "object") return null;
+  if (!viewCache.has(k)) viewCache.set(k, {});
+  return viewCache.get(k);
+}
+async function cached(env, name, fn) {
+  const bag = cacheBag(env);
+  const hit = bag && bag[name];
+  if (hit && now() - hit.at < AGENT_CACHE_MS && now() >= hit.at) return hit.value;
+  const value = await fn();
+  if (bag && value) bag[name] = { at: now(), value };
+  return value;
+}
+export function _resetAgentCaches(env) { const k = env && env.CHAINLOCK; if (k && typeof k === "object") { saltCache.delete(k); viewCache.delete(k); } }
 function memoMinute() {
   const m = Math.floor(now() / 60000);
-  if (sealMemo.minute !== m) { sealMemo.minute = m; sealMemo.used = { msg: 0, ctl: 0, refuse: 0 }; sealMemo.full = new Set(); sealMemo.refusals = new Map(); }
+  if (sealMemo.minute !== m) { sealMemo.minute = m; sealMemo.used = { msg: 0, rider: 0, ctl: 0, refuse: 0 }; sealMemo.full = new Set(); sealMemo.refusals = new Map(); }
   return m;
 }
 
@@ -169,6 +189,26 @@ async function kvGetJson(kv, key) {
 }
 async function kvPutJson(kv, key, value, ttlS) {
   await kv.put(key, JSON.stringify(value), ttlS ? { expirationTtl: Math.max(60, Math.floor(ttlS)) } : undefined);
+}
+
+/**
+ * The limiter key of a visitor IP: IPv4 as is, IPv6 cut to its /64 (one subscriber usually holds a whole
+ * /64, so the full address would let one caller rotate buckets). Peers use the same rule.
+ */
+export function agentIpKey(ip) {
+  const raw = String(ip || "").trim().toLowerCase().replace(/^\[|\]$/g, "").split("%")[0];
+  if (!raw.includes(":")) return raw;
+  let [head, tail] = raw.includes("::") ? raw.split("::") : [raw, null];
+  const h = head ? head.split(":") : [];
+  const t = tail ? tail.split(":") : [];
+  if (t.length && t[t.length - 1].includes(".")) t.splice(t.length - 1, 1, "0", "0"); // embedded IPv4 (low 32 bits)
+  const fill = tail === null ? [] : Array(Math.max(0, 8 - h.length - t.length)).fill("0");
+  const full = [...h, ...fill, ...t].slice(0, 8).map((x) => (parseInt(x || "0", 16) || 0).toString(16));
+  return full.slice(0, 4).join(":") + "::/64";
+}
+/** sha256("agent-ip|" + agentIpKey(ip))[:32]: the hashed visitor key for the agent limits. */
+export async function agentIpHash(ip) {
+  return (await sha256Hex("agent-ip|" + agentIpKey(ip))).slice(0, 32);
 }
 
 export async function handleOf(publicKeyB64) {
@@ -198,6 +238,14 @@ export function printableRatio(bytes) {
  * public, not against the operator.
  */
 async function subnetSalt(env) {
+  const key = env && env.CHAINLOCK && typeof env.CHAINLOCK === "object" ? env.CHAINLOCK : null;
+  const hit = key ? saltCache.get(key) : null;
+  if (hit) return { salt: hit };
+  const out = await subnetSaltFromState(env);
+  if (out.salt && key) saltCache.set(key, out.salt);
+  return out;
+}
+async function subnetSaltFromState(env) {
   const got = await state(env, "salt");
   if (got.salt && HEX64.test(got.salt)) return { salt: got.salt };
   const rows = await chainRows(env);
@@ -239,12 +287,12 @@ async function sigOk(publicKey, statement, sig) {
 
 // ---------- receipts ----------
 /**
- * Seal one agentcomms receipt. Classes (msg: send/deliver/read, ctl: register/grant/revoke/retire,
+ * Seal one agentcomms receipt. Classes (msg: send, rider: deliver/read, ctl: register/grant/revoke/retire,
  * refuse) each have their own share, so refusal spam can't starve real messages. The writer DO holds the
  * true caps (AGENTCOMM_CAP, incl. a per-agent cap on refuse rows); this isolate keeps a backstop per class
  * and a "class full until the end of this minute" memo. Only real write failures give a slot back.
  */
-async function sealComm(env, rec, idem) {
+async function sealComm(env, rec, idem, capKeys = null) {
   const store = await chainStoreOf(env);
   if (!store) return { sealed: false, status: "unavailable", code: "AGENT-RECEIPT-UNAVAILABLE" };
   memoMinute();
@@ -263,6 +311,8 @@ async function sealComm(env, rec, idem) {
       s: "agentcomm",
       f: `agent receipt r=${rh.slice(0, 16)}. Hashes only.`,
       agentcomm: body,
+      // Fair-share keys for the writer's caps (salted hashes); not part of the stamped row.
+      ...(capKeys ? { agentcap: capKeys } : {}),
       idempotency_key: "agentcomm:" + (await sha256Hex(idem)).slice(0, 40),
     }, { internal: true });
     if (out && out.refuse === "agentcomm-cap") {
@@ -285,18 +335,20 @@ async function sealComm(env, rec, idem) {
   }
 }
 
-async function sealAgentRefusal(env, code, verb) {
+async function sealAgentRefusal(env, code, verb, via = "mcp") {
   const [status, reason] = AGENT_CODES[code] || AGENT_CODES["AGENT-BAD-INPUT"];
   const minute = memoMinute();
-  const key = `${code}|${verb}`;
+  // via: "rest" (HTTP /v1/mesh/agents/*) spends the #302 rest share; FragGate/MCP spends the mcp share.
+  const door = via === "rest" ? "rest" : "mcp";
+  const key = `${code}|${verb}|${door}`;
   if (sealMemo.refusals.has(key)) return { ...sealMemo.refusals.get(key), replayed: true, memo: true };
   const store = await chainStoreOf(env);
   if (!store) return { kind: "refusal", sealed: false, status: "unavailable", reason: "no durable store in this isolate" };
   const { sealRefusal } = await import("./receipt-guard.js");
   // Same as refusal-doors: reason:null on the row, only the hash of the fixed reason text.
   const view = await sealRefusal(store, {
-    code, tool: "mesh", slug: "agent-subnet", op: verb, args: { door: "mesh-agents", code, verb }, minuteBucket: minute,
-    extra: { kind: "refusal", surface: "agent-subnet", door: "mesh-agents", reason: null, reason_sha256: await sha256Hex(reason), status, route: `/v1/mesh/agents/${verb.replace(/^agent-/, "")}` },
+    code, tool: "mesh", slug: "agent-subnet", op: verb, args: { door: "mesh-agents", code, verb, via: door }, minuteBucket: minute,
+    extra: { kind: "refusal", surface: "agent-subnet", via: door, door: "mesh-agents", reason: null, reason_sha256: await sha256Hex(reason), status, route: `/v1/mesh/agents/${verb.replace(/^agent-/, "")}` },
   });
   const out = { ...view, kind: "refusal", code, surface: "agent-subnet", status: view && view.sealed ? "sealed" : (view && view.status) || "unavailable" };
   if (out.sealed) sealMemo.refusals.set(key, out);
@@ -304,9 +356,9 @@ async function sealAgentRefusal(env, code, verb) {
 }
 
 /** A refusal: sealed on `refusals`; when the caller proved its signature, also a `refuse` row on agentcomms. */
-async function refuseAgent(env, code, verb, { salt = null, agentId = null, extra = {} } = {}) {
+async function refuseAgent(env, code, verb, { salt = null, agentId = null, extra = {}, via = "mcp" } = {}) {
   const [status, message] = AGENT_CODES[code] || AGENT_CODES["AGENT-BAD-INPUT"];
-  const refusal_receipt = await sealAgentRefusal(env, code, verb);
+  const refusal_receipt = await sealAgentRefusal(env, code, verb, via);
   const out = { ok: false, code, message, spec: AGENT_SPEC, http_status: status, op: verb, refusal_receipt, ...extra };
   if (salt && agentId && refusal_receipt.sealed) {
     const from_h = await hid(salt, agentId);
@@ -390,20 +442,20 @@ async function sweepMailbox(env, kv, salt, agentId, pred) {
 async function opRegister(env, src, meta = {}) {
   const verb = "agent-register";
   const p = await prepare(env, verb, src);
-  if (p.refuse) return refuseAgent(env, p.refuse, verb);
+  if (p.refuse) return refuseAgent(env, p.refuse, verb, { via: meta.via });
   const { body, salt, statement, statement_hash } = p;
   const agentId = canonicalHandle(body.agent_id);
-  if (!agentId || typeof body.public_key !== "string" || typeof body.enc_public_key !== "string" || typeof body.owner_public_key !== "string") return refuseAgent(env, "AGENT-BAD-INPUT", verb);
+  if (!agentId || typeof body.public_key !== "string" || typeof body.enc_public_key !== "string" || typeof body.owner_public_key !== "string") return refuseAgent(env, "AGENT-BAD-INPUT", verb, { via: meta.via });
   const enc = b64urlToBytes(body.enc_public_key);
-  if (!enc || enc.length !== 32) return refuseAgent(env, "AGENT-BAD-INPUT", verb);
-  if (body.discoverable !== undefined && typeof body.discoverable !== "boolean") return refuseAgent(env, "AGENT-BAD-INPUT", verb);
+  if (!enc || enc.length !== 32) return refuseAgent(env, "AGENT-BAD-INPUT", verb, { via: meta.via });
+  if (body.discoverable !== undefined && typeof body.discoverable !== "boolean") return refuseAgent(env, "AGENT-BAD-INPUT", verb, { via: meta.via });
   const caps = body.caps === undefined ? [] : body.caps;
-  if (!Array.isArray(caps) || caps.length > AGENT_CAPS.length || caps.some((c) => !AGENT_CAPS.includes(c))) return refuseAgent(env, "AGENT-BAD-INPUT", verb);
-  if ((await handleOf(body.public_key)) !== agentId) return refuseAgent(env, "AGENT-ID-MISMATCH", verb);
+  if (!Array.isArray(caps) || caps.length > AGENT_CAPS.length || caps.some((c) => !AGENT_CAPS.includes(c))) return refuseAgent(env, "AGENT-BAD-INPUT", verb, { via: meta.via });
+  if ((await handleOf(body.public_key)) !== agentId) return refuseAgent(env, "AGENT-ID-MISMATCH", verb, { via: meta.via });
   const ownerId = await handleOf(body.owner_public_key);
-  if (!ownerId) return refuseAgent(env, "AGENT-ID-MISMATCH", verb);
-  if (!(await sigOk(body.public_key, statement, body.sig))) return refuseAgent(env, "AGENT-SIG-INVALID", verb);
-  if (!(await sigOk(body.owner_public_key, statement, body.owner_sig))) return refuseAgent(env, "AGENT-OWNER-SIG", verb);
+  if (!ownerId) return refuseAgent(env, "AGENT-ID-MISMATCH", verb, { via: meta.via });
+  if (!(await sigOk(body.public_key, statement, body.sig))) return refuseAgent(env, "AGENT-SIG-INVALID", verb, { via: meta.via });
+  if (!(await sigOk(body.owner_public_key, statement, body.owner_sig))) return refuseAgent(env, "AGENT-OWNER-SIG", verb, { via: meta.via });
   // Per owner key, per visitor IP hash (owner keys are free, so the IP bucket is what bounds one caller),
   // and for the whole subnet; all three in the state DO, charged together or not at all.
   const ipKey = meta && IPH_RE.test(String(meta.ip_h || "")) ? String(meta.ip_h) : "none";
@@ -412,43 +464,43 @@ async function opRegister(env, src, meta = {}) {
     { key: "reg_ip:" + ipKey, limit: AGENT_REGISTER_PER_IP_PER_MIN },
     { key: "reg_all", limit: AGENT_REGISTER_PER_MIN },
   ];
-  if ((await state(env, "rate", { slots })).ok !== true) return refuseAgent(env, "AGENT-RATE", verb);
-  if (!(await markSeen(env, statement_hash))) return refuseAgent(env, "AGENT-REPLAY", verb);
+  if ((await state(env, "rate", { slots })).ok !== true) return refuseAgent(env, "AGENT-RATE", verb, { via: meta.via });
+  if (!(await markSeen(env, statement_hash))) return refuseAgent(env, "AGENT-REPLAY", verb, { via: meta.via });
   const row = { agent_id: agentId, public_key: body.public_key, enc_public_key: body.enc_public_key, owner_id: ownerId, owner_public_key: body.owner_public_key, discoverable: body.discoverable === true, caps, registered_at: new Date(now()).toISOString() };
   const reg = await state(env, "register", { row, owner_cap: AGENT_OWNER_CAP });
-  if (!reg.ok) return refuseAgent(env, reg.code || "AGENT-STORE-UNBOUND", verb);
+  if (!reg.ok) return refuseAgent(env, reg.code || "AGENT-STORE-UNBOUND", verb, { via: meta.via });
   const agent_h = await hid(salt, agentId);
   const receipt = await sealComm(env, { kind: "register", agent_h, owner_h: await hid(salt, ownerId), sig_verdict: "verified", discoverable: body.discoverable === true }, `register|${agentId}`);
   if (!receipt.sealed) {
     await state(env, "unregister", { id: agentId }).catch(() => null); // no receipt, no agent
-    return refuseAgent(env, receipt.code || "AGENT-RECEIPT-UNAVAILABLE", verb);
+    return refuseAgent(env, receipt.code || "AGENT-RECEIPT-UNAVAILABLE", verb, { via: meta.via });
   }
   return { ok: true, code: "AGENT-OK", spec: AGENT_SPEC, op: verb, agent_id: agentId, discoverable: row.discoverable, caps, receipt, ...AGENT_HONEST };
 }
 
-async function opGrant(env, src) {
+async function opGrant(env, src, meta = {}) {
   const verb = "agent-grant";
   const p = await prepare(env, verb, src);
-  if (p.refuse) return refuseAgent(env, p.refuse, verb);
+  if (p.refuse) return refuseAgent(env, p.refuse, verb, { via: meta.via });
   const { body, salt, statement, statement_hash } = p;
   const fs = await loadAgentState(env, body.from);
   const ts = await loadAgentState(env, body.to);
   const from = fs.agent;
   const to = ts.agent;
-  if (!from || !to) return refuseAgent(env, "AGENT-UNKNOWN", verb);
-  if (fs.retired || ts.retired) return refuseAgent(env, "AGENT-RETIRED", verb);
-  if (from.agent_id === to.agent_id) return refuseAgent(env, "AGENT-BAD-INPUT", verb);
-  if (!Array.isArray(body.scopes) || body.scopes.length !== 1 || body.scopes[0] !== "send") return refuseAgent(env, "AGENT-GRANT-SCOPE", verb);
+  if (!from || !to) return refuseAgent(env, "AGENT-UNKNOWN", verb, { via: meta.via });
+  if (fs.retired || ts.retired) return refuseAgent(env, "AGENT-RETIRED", verb, { via: meta.via });
+  if (from.agent_id === to.agent_id) return refuseAgent(env, "AGENT-BAD-INPUT", verb, { via: meta.via });
+  if (!Array.isArray(body.scopes) || body.scopes.length !== 1 || body.scopes[0] !== "send") return refuseAgent(env, "AGENT-GRANT-SCOPE", verb, { via: meta.via });
   const exp = Date.parse(String(body.expires_at || ""));
-  if (!Number.isFinite(exp) || exp <= now() || exp - now() > AGENT_GRANT_MAX_MS) return refuseAgent(env, "AGENT-BAD-INPUT", verb);
-  if (!(await sigOk(to.owner_public_key, statement, body.owner_sig_to))) return refuseAgent(env, "AGENT-OWNER-SIG", verb);
+  if (!Number.isFinite(exp) || exp <= now() || exp - now() > AGENT_GRANT_MAX_MS) return refuseAgent(env, "AGENT-BAD-INPUT", verb, { via: meta.via });
+  if (!(await sigOk(to.owner_public_key, statement, body.owner_sig_to))) return refuseAgent(env, "AGENT-OWNER-SIG", verb, { via: meta.via });
   const cross = from.owner_id !== to.owner_id;
-  if (cross && !(await sigOk(from.owner_public_key, statement, body.owner_sig_from))) return refuseAgent(env, "AGENT-OWNER-SIG", verb);
-  if (!(await markSeen(env, statement_hash))) return refuseAgent(env, "AGENT-REPLAY", verb);
+  if (cross && !(await sigOk(from.owner_public_key, statement, body.owner_sig_from))) return refuseAgent(env, "AGENT-OWNER-SIG", verb, { via: meta.via });
+  if (!(await markSeen(env, statement_hash))) return refuseAgent(env, "AGENT-REPLAY", verb, { via: meta.via });
   const grant_id = statement_hash;
   // Never overwrite: an existing grant (or a revocation tombstone) for this id refuses.
   const added = await state(env, "grant_add", { grant: { grant_id, from: from.agent_id, to: to.agent_id, scopes: ["send"], expires_at: new Date(exp).toISOString(), cross_owner: cross } });
-  if (!added.ok) return refuseAgent(env, added.code || "AGENT-STORE-UNBOUND", verb);
+  if (!added.ok) return refuseAgent(env, added.code || "AGENT-STORE-UNBOUND", verb, { via: meta.via });
   const grant_h = await hid(salt, grant_id);
   const receipt = await sealComm(env, {
     kind: "grant", grant_h, from_h: await hid(salt, from.agent_id), to_h: await hid(salt, to.agent_id),
@@ -457,57 +509,67 @@ async function opGrant(env, src) {
   }, `grant|${grant_id}`);
   if (!receipt.sealed) {
     await state(env, "grant_undo", { grant_id }).catch(() => null); // no receipt, no grant
-    return refuseAgent(env, receipt.code || "AGENT-RECEIPT-UNAVAILABLE", verb);
+    return refuseAgent(env, receipt.code || "AGENT-RECEIPT-UNAVAILABLE", verb, { via: meta.via });
   }
   return { ok: true, code: "AGENT-OK", spec: AGENT_SPEC, op: verb, grant_id, cross_owner: cross, owners_signed: cross ? 2 : 1, expires_at: new Date(exp).toISOString(), receipt, ...AGENT_HONEST };
 }
 
-async function opRevoke(env, src) {
+async function opRevoke(env, src, meta = {}) {
   const verb = "agent-revoke";
   const p = await prepare(env, verb, src);
-  if (p.refuse) return refuseAgent(env, p.refuse, verb);
+  if (p.refuse) return refuseAgent(env, p.refuse, verb, { via: meta.via });
   const { body, kv, salt, statement, statement_hash } = p;
-  if (!HEX64.test(String(body.grant_id || ""))) return refuseAgent(env, "AGENT-BAD-INPUT", verb);
+  if (!HEX64.test(String(body.grant_id || ""))) return refuseAgent(env, "AGENT-BAD-INPUT", verb, { via: meta.via });
+  // The signing key is in the statement: check the signature before any state lookup.
+  const by = await handleOf(body.by_owner_public_key);
+  if (!by || !(await sigOk(body.by_owner_public_key, statement, body.owner_sig))) return refuseAgent(env, "AGENT-OWNER-SIG", verb, { via: meta.via });
   const v = await state(env, "grant_get", { grant_id: body.grant_id });
   const grant = v.grant;
-  if (!grant) return refuseAgent(env, "AGENT-NO-GRANT", verb);
+  if (!grant) return refuseAgent(env, "AGENT-NO-GRANT", verb, { via: meta.via });
   const from = await loadAgent(env, grant.from);
   const to = await loadAgent(env, grant.to);
-  const by = await handleOf(body.by_owner_public_key);
-  if (!by || !from || !to || (by !== from.owner_id && by !== to.owner_id)) return refuseAgent(env, "AGENT-OWNER-SIG", verb);
-  if (!(await sigOk(body.by_owner_public_key, statement, body.owner_sig))) return refuseAgent(env, "AGENT-OWNER-SIG", verb);
-  if (!(await markSeen(env, statement_hash))) return refuseAgent(env, "AGENT-REPLAY", verb);
-  if (v.revoked || grant.revoked_at) return refuseAgent(env, "AGENT-GRANT-REVOKED", verb);
-  // Revocation only ever goes one way: seal first, then set the permanent tombstone.
-  const receipt = await sealComm(env, { kind: "revoke", grant_h: await hid(salt, grant.grant_id), from_h: await hid(salt, grant.from), to_h: await hid(salt, grant.to), by_h: await hid(salt, by), sig_verdict: "verified" }, `revoke|${grant.grant_id}`);
-  if (!receipt.sealed) return refuseAgent(env, receipt.code || "AGENT-RECEIPT-UNAVAILABLE", verb);
+  if (!from || !to || (by !== from.owner_id && by !== to.owner_id)) return refuseAgent(env, "AGENT-OWNER-SIG", verb, { via: meta.via });
+  if (!(await markSeen(env, statement_hash))) return refuseAgent(env, "AGENT-REPLAY", verb, { via: meta.via });
+  const rec = { kind: "revoke", grant_h: await hid(salt, grant.grant_id), from_h: await hid(salt, grant.from), to_h: await hid(salt, grant.to), by_h: await hid(salt, by), sig_verdict: "verified" };
+  if (v.revoked || grant.revoked_at) {
+    // Already dead. Re-seal the (idempotent) revoke receipt in case the first seal did not land.
+    const again = await sealComm(env, rec, `revoke|${grant.grant_id}`);
+    return refuseAgent(env, "AGENT-GRANT-REVOKED", verb, { via: meta.via, extra: { receipt: again } });
+  }
+  // Fail safe (AZBot N3): set the permanent tombstone FIRST, then sweep the queue, then seal the receipt.
+  // A pull that races this sees the tombstone and drops; a failed seal never leaves a live grant.
   const done = await state(env, "revoke", { grant_id: grant.grant_id, by: await hid(salt, by), why: "owner" });
-  if (!done.ok) return refuseAgent(env, done.code || "AGENT-STORE-UNBOUND", verb);
-  // Queued messages sent under this grant are dropped now (and rechecked at pull).
+  if (!done.ok) return refuseAgent(env, done.code || "AGENT-STORE-UNBOUND", verb, { via: meta.via });
   const dropped = await sweepMailbox(env, kv, salt, grant.to, (row) => row.statement && row.statement.grant_id === grant.grant_id);
-  return { ok: true, code: "AGENT-OK", spec: AGENT_SPEC, op: verb, grant_id: grant.grant_id, revoked: true, queued_dropped: dropped, receipt, ...AGENT_HONEST };
+  const receipt = await sealComm(env, rec, `revoke|${grant.grant_id}`);
+  return { ok: true, code: "AGENT-OK", spec: AGENT_SPEC, op: verb, grant_id: grant.grant_id, revoked: true, queued_dropped: dropped, receipt, receipt_pending: !receipt.sealed, ...AGENT_HONEST };
 }
 
 /** Owner-signed retire: the agent is dead for good, and every grant it had is revoked at once. */
-async function opRetire(env, src) {
+async function opRetire(env, src, meta = {}) {
   const verb = "agent-retire";
   const p = await prepare(env, verb, src);
-  if (p.refuse) return refuseAgent(env, p.refuse, verb);
+  if (p.refuse) return refuseAgent(env, p.refuse, verb, { via: meta.via });
   const { body, kv, salt, statement, statement_hash } = p;
+  // The owner key is in the statement: check the signature before any state lookup.
+  const by = await handleOf(body.owner_public_key);
+  if (!by || !(await sigOk(body.owner_public_key, statement, body.owner_sig))) return refuseAgent(env, "AGENT-OWNER-SIG", verb, { via: meta.via });
   const s = await loadAgentState(env, body.agent_id);
   const agent = s.agent;
-  if (!agent) return refuseAgent(env, "AGENT-UNKNOWN", verb);
-  const by = await handleOf(body.owner_public_key);
-  if (!by || by !== agent.owner_id || body.owner_public_key !== agent.owner_public_key) return refuseAgent(env, "AGENT-OWNER-SIG", verb);
-  if (!(await sigOk(body.owner_public_key, statement, body.owner_sig))) return refuseAgent(env, "AGENT-OWNER-SIG", verb);
-  if (!(await markSeen(env, statement_hash))) return refuseAgent(env, "AGENT-REPLAY", verb);
-  if (s.retired) return refuseAgent(env, "AGENT-RETIRED", verb);
-  const receipt = await sealComm(env, { kind: "retire", agent_h: await hid(salt, agent.agent_id), owner_h: await hid(salt, agent.owner_id), sig_verdict: "verified" }, `retire|${agent.agent_id}`);
-  if (!receipt.sealed) return refuseAgent(env, receipt.code || "AGENT-RECEIPT-UNAVAILABLE", verb);
+  if (!agent) return refuseAgent(env, "AGENT-UNKNOWN", verb, { via: meta.via });
+  if (by !== agent.owner_id || body.owner_public_key !== agent.owner_public_key) return refuseAgent(env, "AGENT-OWNER-SIG", verb, { via: meta.via });
+  if (!(await markSeen(env, statement_hash))) return refuseAgent(env, "AGENT-REPLAY", verb, { via: meta.via });
+  const rec = { kind: "retire", agent_h: await hid(salt, agent.agent_id), owner_h: await hid(salt, agent.owner_id), sig_verdict: "verified" };
+  if (s.retired) {
+    const again = await sealComm(env, rec, `retire|${agent.agent_id}`);
+    return refuseAgent(env, "AGENT-RETIRED", verb, { via: meta.via, extra: { receipt: again } });
+  }
+  // Fail safe: retired + every grant tombstoned FIRST, then the queue swept, then the receipt sealed.
   const done = await state(env, "retire", { agent_id: agent.agent_id });
-  if (!done.ok) return refuseAgent(env, done.code || "AGENT-STORE-UNBOUND", verb);
+  if (!done.ok) return refuseAgent(env, done.code || "AGENT-STORE-UNBOUND", verb, { via: meta.via });
   const dropped = await sweepMailbox(env, kv, salt, agent.agent_id, () => true);
-  return { ok: true, code: "AGENT-OK", spec: AGENT_SPEC, op: verb, agent_id: agent.agent_id, retired: true, grants_revoked: done.grants_revoked, queued_dropped: dropped, receipt, ...AGENT_HONEST };
+  const receipt = await sealComm(env, rec, `retire|${agent.agent_id}`);
+  return { ok: true, code: "AGENT-OK", spec: AGENT_SPEC, op: verb, agent_id: agent.agent_id, retired: true, grants_revoked: done.grants_revoked, queued_dropped: dropped, receipt, receipt_pending: !receipt.sealed, ...AGENT_HONEST };
 }
 
 export function pickCarrier(raw) {
@@ -518,71 +580,76 @@ export function pickCarrier(raw) {
   return { ok: false, bad: true };
 }
 
-async function opSend(env, src) {
+async function opSend(env, src, meta = {}) {
   const verb = "agent-send";
   const p = await prepare(env, verb, src);
-  if (p.refuse) return refuseAgent(env, p.refuse, verb);
+  if (p.refuse) return refuseAgent(env, p.refuse, verb, { via: meta.via });
   const { body, kv, salt, statement, statement_hash } = p;
   const box = body.box;
-  if (!box || typeof box !== "object" || Array.isArray(box)) return refuseAgent(env, "AGENT-BAD-INPUT", verb);
-  for (const k of Object.keys(box)) if (!BOX_KEYS.includes(k)) return refuseAgent(env, "AGENT-PLAINTEXT-FIELD", verb);
-  if (!AGENT_ALGS.includes(box.alg) || box.alg !== body.alg) return refuseAgent(env, "AGENT-BAD-INPUT", verb);
+  if (!box || typeof box !== "object" || Array.isArray(box)) return refuseAgent(env, "AGENT-BAD-INPUT", verb, { via: meta.via });
+  for (const k of Object.keys(box)) if (!BOX_KEYS.includes(k)) return refuseAgent(env, "AGENT-PLAINTEXT-FIELD", verb, { via: meta.via });
+  if (!AGENT_ALGS.includes(box.alg) || box.alg !== body.alg) return refuseAgent(env, "AGENT-BAD-INPUT", verb, { via: meta.via });
   const fs = await loadAgentState(env, body.from);
   const from = fs.agent;
-  if (!from) return refuseAgent(env, "AGENT-UNKNOWN", verb);
-  if (!(await sigOk(from.public_key, statement, body.sig))) return refuseAgent(env, "AGENT-SIG-INVALID", verb);
+  if (!from) return refuseAgent(env, "AGENT-UNKNOWN", verb, { via: meta.via });
+  if (!(await sigOk(from.public_key, statement, body.sig))) return refuseAgent(env, "AGENT-SIG-INVALID", verb, { via: meta.via });
   // From here the sender proved its key: refusals also get a hashed `refuse` row it can see.
   const who = { salt, agentId: from.agent_id };
-  if (fs.retired) return refuseAgent(env, "AGENT-RETIRED", verb, who);
-  if ((await sha256Hex(canonicalize(box))) !== body.box_sha256) return refuseAgent(env, "AGENT-BOX-HASH", verb, who);
+  if (fs.retired) return refuseAgent(env, "AGENT-RETIRED", verb, { ...who, via: meta.via });
+  if ((await sha256Hex(canonicalize(box))) !== body.box_sha256) return refuseAgent(env, "AGENT-BOX-HASH", verb, { ...who, via: meta.via });
   const ct = b64urlToBytes(box.ciphertext);
-  if (!ct || ct.length < AGENT_CT_MIN || ct.length > AGENT_CT_MAX) return refuseAgent(env, "AGENT-BAD-INPUT", verb, who);
-  if (typeof box.eph_public_key !== "string" || typeof box.nonce !== "string") return refuseAgent(env, "AGENT-BAD-INPUT", verb, who);
-  if (printableRatio(ct) >= 0.9) return refuseAgent(env, "AGENT-PLAINTEXT-SUSPECT", verb, who);
+  if (!ct || ct.length < AGENT_CT_MIN || ct.length > AGENT_CT_MAX) return refuseAgent(env, "AGENT-BAD-INPUT", verb, { ...who, via: meta.via });
+  if (typeof box.eph_public_key !== "string" || typeof box.nonce !== "string") return refuseAgent(env, "AGENT-BAD-INPUT", verb, { ...who, via: meta.via });
+  if (printableRatio(ct) >= 0.9) return refuseAgent(env, "AGENT-PLAINTEXT-SUSPECT", verb, { ...who, via: meta.via });
   const to = await loadAgent(env, body.to);
-  if (!to) return refuseAgent(env, "AGENT-UNKNOWN", verb, who);
+  if (!to) return refuseAgent(env, "AGENT-UNKNOWN", verb, { ...who, via: meta.via });
   const gu = await grantUsable(env, body.grant_id, from.agent_id, to.agent_id);
-  if (!gu.ok) return refuseAgent(env, gu.code, verb, who);
+  if (!gu.ok) return refuseAgent(env, gu.code, verb, { ...who, via: meta.via });
   const grant = gu.grant;
   const carrier = pickCarrier(body.carrier);
-  if (carrier.bad) return refuseAgent(env, "AGENT-BAD-INPUT", verb, who);
-  if (!carrier.ok) return refuseAgent(env, "AGENT-CARRIER-ABSENT", verb, { ...who, extra: { carrier: carrier.carrier, absent_code: carrier.absent_code, order: D2D_ORDER_ARROW, fallback: AGENT_INTERNET_CARRIER } });
-  if (!(await rate(env, "agent_send", from.agent_id, AGENT_SEND_PER_MIN)) || !(await rate(env, "agent_global", "all", AGENT_GLOBAL_PER_MIN))) return refuseAgent(env, "AGENT-RATE", verb, who);
-  if (!(await markSeen(env, statement_hash))) return refuseAgent(env, "AGENT-REPLAY", verb, who);
+  if (carrier.bad) return refuseAgent(env, "AGENT-BAD-INPUT", verb, { ...who, via: meta.via });
+  if (!carrier.ok) return refuseAgent(env, "AGENT-CARRIER-ABSENT", verb, { ...who, via: meta.via, extra: { carrier: carrier.carrier, absent_code: carrier.absent_code, order: D2D_ORDER_ARROW, fallback: AGENT_INTERNET_CARRIER } });
+  if (!(await rate(env, "agent_send", from.agent_id, AGENT_SEND_PER_MIN)) || !(await rate(env, "agent_global", "all", AGENT_GLOBAL_PER_MIN))) return refuseAgent(env, "AGENT-RATE", verb, { ...who, via: meta.via });
+  if (!(await markSeen(env, statement_hash))) return refuseAgent(env, "AGENT-REPLAY", verb, { ...who, via: meta.via });
   const prefix = await mailboxPrefix(salt, to.agent_id);
   const listed = await kv.list({ prefix, limit: AGENT_MAILBOX_CAP + 1 });
-  if (((listed && listed.keys) || []).length >= AGENT_MAILBOX_CAP) return refuseAgent(env, "AGENT-MAILBOX-FULL", verb, who);
+  if (((listed && listed.keys) || []).length >= AGENT_MAILBOX_CAP) return refuseAgent(env, "AGENT-MAILBOX-FULL", verb, { ...who, via: meta.via });
   const msg_id = statement_hash;
   const boxKey = prefix + msg_id;
   // Stored: the signed statement without `to` (the mailbox key is a salted hash of the recipient; the
   // recipient knows itself), the sender id (needed to verify the signature and open the box), the box.
   const { to: _to, ...stored } = statement;
   await kvPutJson(kv, boxKey, { msg_id, statement: { ...stored, sig: body.sig }, box, stored_at: now() }, AGENT_BOX_TTL_MS / 1000);
+  const owner_pair_h = await hid(salt, [from.owner_id, to.owner_id].sort().join("|"));
+  // Fair share (AZBot N1): the writer caps sends per sending visitor and per owner pair. The visitor key is a
+  // salted hash of the (already hashed, IPv6 /64) visitor IP; it rides beside the row, never in it.
+  const ipKey = meta && IPH_RE.test(String(meta.ip_h || "")) ? String(meta.ip_h) : "none";
+  const capKeys = { ip: await hid(salt, "ip|" + ipKey), pair: owner_pair_h };
   const receipt = await sealComm(env, {
     kind: "send", msg_id, ct_sha256: await sha256Hex(ct), from_h: await hid(salt, from.agent_id), to_h: await hid(salt, to.agent_id),
-    owner_pair_h: await hid(salt, [from.owner_id, to.owner_id].sort().join("|")), cross_owner: from.owner_id !== to.owner_id,
+    owner_pair_h, cross_owner: from.owner_id !== to.owner_id,
     size_bucket: sizeBucket(ct.length), sig_verdict: "verified", carrier: carrier.carrier, fallback: carrier.fallback, grant_h: await hid(salt, grant.grant_id),
-  }, `send|${msg_id}`);
+  }, `send|${msg_id}`, capKeys);
   if (!receipt.sealed) {
     try { await kv.delete(boxKey); } catch { /* the box expires on its own TTL */ }
-    return refuseAgent(env, receipt.code || "AGENT-RECEIPT-UNAVAILABLE", verb);
+    return refuseAgent(env, receipt.code || "AGENT-RECEIPT-UNAVAILABLE", verb, { via: meta.via, extra: receipt.cap_limit ? { cap_class: receipt.cap_class, cap_limit: receipt.cap_limit } : {} });
   }
   return { ok: true, code: "AGENT-OK", spec: AGENT_SPEC, op: verb, msg_id, carrier: carrier.carrier, fallback: carrier.fallback, carrier_order: D2D_ORDER_ARROW, stored: true, expires_in_s: AGENT_BOX_TTL_MS / 1000, receipt, ...AGENT_HONEST };
 }
 
-async function opPull(env, src) {
+async function opPull(env, src, meta = {}) {
   const verb = "agent-pull";
   const p = await prepare(env, verb, src);
-  if (p.refuse) return refuseAgent(env, p.refuse, verb);
+  if (p.refuse) return refuseAgent(env, p.refuse, verb, { via: meta.via });
   const { body, kv, salt, statement, statement_hash } = p;
   const ms = await loadAgentState(env, body.agent_id);
   const me = ms.agent;
-  if (!me) return refuseAgent(env, "AGENT-UNKNOWN", verb);
-  if (!(await sigOk(me.public_key, statement, body.sig))) return refuseAgent(env, "AGENT-SIG-INVALID", verb);
+  if (!me) return refuseAgent(env, "AGENT-UNKNOWN", verb, { via: meta.via });
+  if (!(await sigOk(me.public_key, statement, body.sig))) return refuseAgent(env, "AGENT-SIG-INVALID", verb, { via: meta.via });
   const who = { salt, agentId: me.agent_id };
-  if (ms.retired) return refuseAgent(env, "AGENT-RETIRED", verb, who);
-  if (!(await rate(env, "agent_read", me.agent_id, AGENT_READ_PER_MIN))) return refuseAgent(env, "AGENT-RATE", verb, who);
-  if (!(await markSeen(env, statement_hash))) return refuseAgent(env, "AGENT-REPLAY", verb, who);
+  if (ms.retired) return refuseAgent(env, "AGENT-RETIRED", verb, { ...who, via: meta.via });
+  if (!(await rate(env, "agent_read", me.agent_id, AGENT_READ_PER_MIN))) return refuseAgent(env, "AGENT-RATE", verb, { ...who, via: meta.via });
+  if (!(await markSeen(env, statement_hash))) return refuseAgent(env, "AGENT-REPLAY", verb, { ...who, via: meta.via });
   const listed = await kv.list({ prefix: await mailboxPrefix(salt, me.agent_id), limit: AGENT_MAILBOX_CAP });
   const messages = [];
   let withheld = 0;
@@ -611,21 +678,21 @@ async function opPull(env, src) {
   return { ok: true, code: "AGENT-OK", spec: AGENT_SPEC, op: verb, agent_id: me.agent_id, count: messages.length, withheld_no_receipt: withheld, dropped_not_granted: dropped, messages, verify_note: "Verify each statement.sig against sender_public_key yourself, check box_sha256, then open the box with your own key. The relay never opens it.", ...AGENT_HONEST };
 }
 
-async function opAck(env, src) {
+async function opAck(env, src, meta = {}) {
   const verb = "agent-ack";
   const p = await prepare(env, verb, src);
-  if (p.refuse) return refuseAgent(env, p.refuse, verb);
+  if (p.refuse) return refuseAgent(env, p.refuse, verb, { via: meta.via });
   const { body, kv, salt, statement, statement_hash } = p;
   const ms = await loadAgentState(env, body.agent_id);
   const me = ms.agent;
-  if (!me) return refuseAgent(env, "AGENT-UNKNOWN", verb);
-  if (!(await sigOk(me.public_key, statement, body.sig))) return refuseAgent(env, "AGENT-SIG-INVALID", verb);
+  if (!me) return refuseAgent(env, "AGENT-UNKNOWN", verb, { via: meta.via });
+  if (!(await sigOk(me.public_key, statement, body.sig))) return refuseAgent(env, "AGENT-SIG-INVALID", verb, { via: meta.via });
   const who = { salt, agentId: me.agent_id };
-  if (ms.retired) return refuseAgent(env, "AGENT-RETIRED", verb, who);
+  if (ms.retired) return refuseAgent(env, "AGENT-RETIRED", verb, { ...who, via: meta.via });
   const acks = body.acks;
-  if (!Array.isArray(acks) || acks.length < 1 || acks.length > AGENT_PULL_MAX || acks.some((a) => !a || !HEX64.test(String(a.msg_id || "")) || !["verified", "failed"].includes(a.verdict) || Object.keys(a).some((k) => k !== "msg_id" && k !== "verdict"))) return refuseAgent(env, "AGENT-BAD-INPUT", verb, who);
-  if (!(await rate(env, "agent_read", me.agent_id, AGENT_READ_PER_MIN))) return refuseAgent(env, "AGENT-RATE", verb, who);
-  if (!(await markSeen(env, statement_hash))) return refuseAgent(env, "AGENT-REPLAY", verb, who);
+  if (!Array.isArray(acks) || acks.length < 1 || acks.length > AGENT_PULL_MAX || acks.some((a) => !a || !HEX64.test(String(a.msg_id || "")) || !["verified", "failed"].includes(a.verdict) || Object.keys(a).some((k) => k !== "msg_id" && k !== "verdict"))) return refuseAgent(env, "AGENT-BAD-INPUT", verb, { ...who, via: meta.via });
+  if (!(await rate(env, "agent_read", me.agent_id, AGENT_READ_PER_MIN))) return refuseAgent(env, "AGENT-RATE", verb, { ...who, via: meta.via });
+  if (!(await markSeen(env, statement_hash))) return refuseAgent(env, "AGENT-REPLAY", verb, { ...who, via: meta.via });
   const prefix = await mailboxPrefix(salt, me.agent_id);
   const done = [];
   for (const a of acks) {
@@ -715,6 +782,14 @@ export function bucketedAggregate(rows) {
  */
 async function publicSnapshot(env) {
   const hour = Math.floor(now() / AGENT_PUBLIC_REFRESH_MS);
+  const bag = cacheBag(env);
+  const hit = bag && bag.pub;
+  if (hit && Number(hit.value.hour) === hour && now() - hit.at < AGENT_CACHE_MS && now() >= hit.at) return hit.value;
+  const snap = await publicSnapshotFromState(env, hour);
+  if (bag && snap) bag.pub = { at: now(), value: snap };
+  return snap;
+}
+async function publicSnapshotFromState(env, hour) {
   const got = await state(env, "pub_get");
   if (got.snapshot && Number(got.snapshot.hour) === hour) return got.snapshot;
   const rows = await chainRows(env);
@@ -723,46 +798,62 @@ async function publicSnapshot(env) {
   const put = await state(env, "pub_put", { snapshot: snap });
   return put.snapshot || snap;
 }
-const PUBLIC_NOTE = "Counts are refreshed once an hour and bucketed to tens; anything under 10 shows as \"<10\". The tip is the tip at that hour.";
+const PUBLIC_NOTE = "Counts are refreshed once an hour and bucketed to tens; anything under 10 shows as \"<10\". The tip is that hour's tip hash (no row number).";
+/** The public form of a snapshot: no hour key, and the tip without its exact row number (AZBot N5). */
+function publicOfSnapshot(snap) {
+  const { hour, tip, ...rest } = snap;
+  return { ...rest, tip: tip ? { h: tip.h, lattice: tip.lattice, seq: bucket(tip.seq) } : null };
+}
+/**
+ * The hourly tip WITH its exact row number, for the witness heads (/v1/anchor/heads), the public row pages
+ * (/v1/anchor/rows and /row stop at it) and the AZ-OS tether (sent up to it). Null when unbound.
+ */
+export async function agentHourlyTip(env) {
+  try {
+    const snap = await publicSnapshot(env);
+    return snap ? { seq: snap.tip ? snap.tip.seq : 0, h: snap.tip ? snap.tip.h : null, lattice: snap.tip ? snap.tip.lattice : null, as_of: snap.as_of, hourly: true } : null;
+  } catch { return null; }
+}
 
 /** Public: hourly, bucketed counts + the hourly tip only. No rows, no hashed ids. */
 export async function publicReceipts(env) {
   let snap = null;
   try { snap = await publicSnapshot(env); } catch { snap = null; }
   if (!snap) return { status: 503, body: { ok: false, code: "AGENT-STORE-UNBOUND", spec: AGENT_SPEC, chain: AGENT_CHAIN } };
-  const { hour, ...pub } = snap;
+  const pub = publicOfSnapshot(snap);
   return { status: 200, body: { ok: true, code: "AGENT-OK", spec: AGENT_SPEC, chain: AGENT_CHAIN, scope: "public", ...pub, refresh: "hourly", k_min: AGENT_PUBLIC_K, note: PUBLIC_NOTE, rows_shown: 0, verify_chain: `chainlock_verify {"c":"${AGENT_CHAIN}"}`, owner_view: "GET /v1/mesh/agents/challenge?scope=agent|owner&subject_public_key=..., sign an agent-view statement with that key, POST /v1/mesh/agents/receipts", ...AGENT_HONEST } };
 }
 
-async function opView(env, src) {
+async function opView(env, src, meta = {}) {
   const verb = "agent-receipts";
   const p = await prepare(env, verb, src);
-  if (p.refuse) return refuseAgent(env, p.refuse, verb);
+  if (p.refuse) return refuseAgent(env, p.refuse, verb, { via: meta.via });
   const { body, salt, statement, statement_hash } = p;
-  if (!SCOPES.includes(body.scope)) return refuseAgent(env, "AGENT-BAD-INPUT", verb);
+  if (!SCOPES.includes(body.scope)) return refuseAgent(env, "AGENT-BAD-INPUT", verb, { via: meta.via });
   const subject = await handleOf(body.subject_public_key);
-  if (!subject) return refuseAgent(env, "AGENT-ID-MISMATCH", verb);
-  if (!(await challengeOk(salt, body.challenge, body.scope, subject))) return refuseAgent(env, "AGENT-CHALLENGE", verb);
+  if (!subject) return refuseAgent(env, "AGENT-ID-MISMATCH", verb, { via: meta.via });
+  if (!(await challengeOk(salt, body.challenge, body.scope, subject))) return refuseAgent(env, "AGENT-CHALLENGE", verb, { via: meta.via });
+  // Signature first (AZBot N8): before it, every caller gets the same answer whether or not the key has agents.
+  if (!(await sigOk(body.subject_public_key, statement, body.sig))) return refuseAgent(env, "AGENT-SIG-INVALID", verb, { via: meta.via });
   let ids = [];
   if (body.scope === "agent") {
     const a = await loadAgent(env, subject);
-    if (!a || a.public_key !== body.subject_public_key) return refuseAgent(env, "AGENT-UNKNOWN", verb);
+    if (!a || a.public_key !== body.subject_public_key) return refuseAgent(env, "AGENT-UNKNOWN", verb, { via: meta.via });
     ids = [a.agent_id];
   } else {
     ids = (await state(env, "owner_agents", { owner_id: subject })).ids || [];
-    if (!ids.length) return refuseAgent(env, "AGENT-UNKNOWN", verb);
+    if (!ids.length) return refuseAgent(env, "AGENT-UNKNOWN", verb, { via: meta.via });
   }
-  if (!(await sigOk(body.subject_public_key, statement, body.sig))) return refuseAgent(env, "AGENT-SIG-INVALID", verb);
-  if (!(await rate(env, "agent_read", subject, AGENT_READ_PER_MIN))) return refuseAgent(env, "AGENT-RATE", verb);
-  if (!(await markSeen(env, statement_hash))) return refuseAgent(env, "AGENT-REPLAY", verb);
+  if (!(await rate(env, "agent_read", subject, AGENT_READ_PER_MIN))) return refuseAgent(env, "AGENT-RATE", verb, { via: meta.via });
+  if (!(await markSeen(env, statement_hash))) return refuseAgent(env, "AGENT-REPLAY", verb, { via: meta.via });
   // Single use: the challenge itself is consumed too (a second statement over it is refused).
   const used = await state(env, "seen", { key: "ch:" + String(body.challenge).split(".")[2], ttl_ms: AGENT_CHALLENGE_TTL_MS * 2 });
-  if (!(used.ok === true && used.fresh === true)) return refuseAgent(env, "AGENT-CHALLENGE", verb);
+  if (!(used.ok === true && used.fresh === true)) return refuseAgent(env, "AGENT-CHALLENGE", verb, { via: meta.via });
   const mine = new Set();
   for (const id of ids) mine.add(await hid(salt, id));
   if (body.scope === "owner") mine.add(await hid(salt, subject));
   const rows = await chainRows(env);
-  if (!rows) return refuseAgent(env, "AGENT-STORE-UNBOUND", verb);
+  if (!rows) return refuseAgent(env, "AGENT-STORE-UNBOUND", verb, { via: meta.via });
   const hit = [];
   for (let i = rows.length - 1; i >= 0; i--) {
     const a = rows[i] && rows[i].agentcomm;
@@ -782,7 +873,9 @@ export async function directory(env, searchParams) {
       if (!s.agent || s.retired) return { status: 404, body: { ok: false, code: s.retired ? "AGENT-RETIRED" : "AGENT-UNKNOWN", spec: AGENT_SPEC, message: AGENT_CODES[s.retired ? "AGENT-RETIRED" : "AGENT-UNKNOWN"][1] } };
       return { status: 200, body: { ok: true, code: "AGENT-OK", spec: AGENT_SPEC, agent: pub(s.agent), owner_listed: false } };
     }
-    const agents = ((await state(env, "directory")).agents || []).map(pub);
+    // Cached 60 s per isolate (AZBot N2). A retired agent can linger here up to 60 s; send and pull
+    // recheck the state DO, so a listing never grants anything.
+    const agents = await cached(env, "directory", async () => ((await state(env, "directory")).agents || []).map(pub));
     return { status: 200, body: { ok: true, code: "AGENT-OK", spec: AGENT_SPEC, count: agents.length, agents, owner_listed: false, note: "Only agents registered with discoverable:true (and not retired) are listed. Discovery is not consent: a grant is still required." } };
   } catch {
     return { status: 503, body: { ok: false, code: "AGENT-STORE-UNBOUND", spec: AGENT_SPEC } };
@@ -792,7 +885,7 @@ export async function directory(env, searchParams) {
 export async function agentStatus(env) {
   let snap = null;
   try { snap = await publicSnapshot(env); } catch { snap = null; }
-  const pub = snap ? (({ hour, ...rest }) => rest)(snap) : {};
+  const pub = snap ? publicOfSnapshot(snap) : {};
   return {
     ok: true, code: "AGENT-OK", spec: AGENT_SPEC, paper: AGENT_PAPER,
     agent_subnet: { live: false, ...pub, refresh: "hourly", k_min: AGENT_PUBLIC_K, store: snap ? "bound" : "unbound" },
@@ -806,7 +899,7 @@ export async function agentStatus(env) {
       send: "POST /v1/mesh/agents/send", pull: "POST /v1/mesh/agents/pull", ack: "POST /v1/mesh/agents/ack", viewer: "/agents",
     },
     carriers: { order: AGENT_RADIO_CARRIERS.concat([AGENT_INTERNET_CARRIER]), order_arrow: D2D_ORDER_ARROW, present_at_worker: [AGENT_INTERNET_CARRIER], radio_absent_code: "QNM-RADIO-ABSENT", fallback: AGENT_INTERNET_CARRIER },
-    limits: { send_per_agent_per_min: AGENT_SEND_PER_MIN, global_per_min: AGENT_GLOBAL_PER_MIN, register_per_owner_per_min: AGENT_REGISTER_PER_OWNER_PER_MIN, register_per_ip_per_min: AGENT_REGISTER_PER_IP_PER_MIN, register_per_min: AGENT_REGISTER_PER_MIN, mailbox_cap: AGENT_MAILBOX_CAP, box_ttl_s: AGENT_BOX_TTL_MS / 1000, ciphertext_bytes: [AGENT_CT_MIN, AGENT_CT_MAX], receipt_caps_per_min: { ...AGENTCOMM_CAP.classes, total: AGENTCOMM_CAP.total, refuse_per_agent: AGENTCOMM_CAP.refuse_per_agent }, grant_max_days: 30 },
+    limits: { send_per_agent_per_min: AGENT_SEND_PER_MIN, global_per_min: AGENT_GLOBAL_PER_MIN, register_per_owner_per_min: AGENT_REGISTER_PER_OWNER_PER_MIN, register_per_ip_per_min: AGENT_REGISTER_PER_IP_PER_MIN, register_per_min: AGENT_REGISTER_PER_MIN, mailbox_cap: AGENT_MAILBOX_CAP, box_ttl_s: AGENT_BOX_TTL_MS / 1000, ciphertext_bytes: [AGENT_CT_MIN, AGENT_CT_MAX], receipt_caps_per_min: { ...AGENTCOMM_CAP.classes, total: AGENTCOMM_CAP.total, rider_deliver_read: AGENTCOMM_CAP.rider, send_per_visitor: AGENTCOMM_CAP.per_ip, send_per_owner_pair: AGENTCOMM_CAP.per_pair, refuse_per_agent: AGENTCOMM_CAP.refuse_per_agent }, edge: { post_kind: "mesh_mutate", get_kind: "agent_read", note: "per client IP (or the peer-forwarded visitor hash), 429 RATE_LIMIT" }, grant_max_days: 30 },
     crypto: { scheme: "X25519 ECDH (ephemeral sender key, static recipient key) + HKDF-SHA256 + AES-256-GCM", algs: AGENT_ALGS.slice(), forward_secrecy: AGENT_FORWARD_SECRECY, signatures: "Ed25519" },
     algs: AGENT_ALGS.slice(), caps: AGENT_CAPS.slice(), kinds: AGENT_KINDS.slice(), codes: Object.keys(AGENT_CODES),
     verify_chain: `chainlock_verify {"c":"${AGENT_CHAIN}"}`,
@@ -820,55 +913,58 @@ export async function runAgentOp(op, src, env, meta = {}) {
   try {
     if (op === "agent-status") return agentStatus(env);
     if (op === "agent-register") return await opRegister(env, src, meta);
-    if (op === "agent-grant") return await opGrant(env, src);
-    if (op === "agent-revoke") return await opRevoke(env, src);
-    if (op === "agent-retire") return await opRetire(env, src);
-    if (op === "agent-send") return await opSend(env, src);
-    if (op === "agent-pull") return await opPull(env, src);
-    if (op === "agent-ack") return await opAck(env, src);
+    if (op === "agent-grant") return await opGrant(env, src, meta);
+    if (op === "agent-revoke") return await opRevoke(env, src, meta);
+    if (op === "agent-retire") return await opRetire(env, src, meta);
+    if (op === "agent-send") return await opSend(env, src, meta);
+    if (op === "agent-pull") return await opPull(env, src, meta);
+    if (op === "agent-ack") return await opAck(env, src, meta);
     if (op === "agent-challenge") {
       const c = await makeChallenge(env, { scope: src && src.scope, subject_public_key: src && src.subject_public_key });
-      return c.ok ? c : refuseAgent(env, c.code || "AGENT-BAD-INPUT", "agent-challenge");
+      return c.ok ? c : refuseAgent(env, c.code || "AGENT-BAD-INPUT", "agent-challenge", { via: meta.via });
     }
     if (op === "agent-receipts") {
-      if (src && src.kind === "agent-view") return await opView(env, src);
+      if (src && src.kind === "agent-view") return await opView(env, src, meta);
       return (await publicReceipts(env)).body;
     }
     if (op === "agent-directory") return (await directory(env, { get: (k) => (k === "agent_id" && src && src.agent_id ? String(src.agent_id) : null) })).body;
-    return refuseAgent(env, "AGENT-NOT-FOUND", "agent-status");
+    return refuseAgent(env, "AGENT-NOT-FOUND", "agent-status", { via: meta.via });
   } catch {
     // Fail closed: a crash (including the state DO being unreachable) is a refusal, never a success.
-    return refuseAgent(env, "AGENT-STORE-UNBOUND", AGENT_OPS.includes(op) ? op : "agent-status");
+    return refuseAgent(env, "AGENT-STORE-UNBOUND", AGENT_OPS.includes(op) ? op : "agent-status", { via: meta.via });
   }
 }
 
 /** HTTP: /v1/mesh/agents[/verb]. Returns {status, body}. meta: { ip_h }. */
-export async function dispatchAgentHttp(method, path, payload, env, searchParams, meta = {}) {
+export async function dispatchAgentHttp(method, path, payload, env, searchParams, metaIn = {}) {
   const m = String(method || "GET").toUpperCase();
+  // Over HTTP every refusal spends the #302 rest share, not the MCP one (AZBot N6).
+  const meta = { ...(metaIn || {}), via: "rest" };
+  const R = (code, verb2) => refuseAgent(env, code, verb2, { via: "rest" });
   const verb = path === "/v1/mesh/agents" ? "status" : path.slice("/v1/mesh/agents/".length);
   const asOut = (body) => ({ status: body && body.ok === false ? body.http_status || 400 : 200, body });
   const read = m === "GET" || m === "HEAD";
-  if (verb === "status") return read ? asOut(await agentStatus(env)) : asOut(await refuseAgent(env, "AGENT-METHOD", "agent-status"));
-  if (verb === "directory") return read ? directory(env, searchParams) : asOut(await refuseAgent(env, "AGENT-METHOD", "agent-directory"));
+  if (verb === "status") return read ? asOut(await agentStatus(env)) : asOut(await R("AGENT-METHOD", "agent-status"));
+  if (verb === "directory") return read ? directory(env, searchParams) : asOut(await R("AGENT-METHOD", "agent-directory"));
   if (verb === "challenge") {
-    if (!read) return asOut(await refuseAgent(env, "AGENT-METHOD", "agent-challenge"));
+    if (!read) return asOut(await R("AGENT-METHOD", "agent-challenge"));
     const q = (k) => (searchParams && searchParams.get ? searchParams.get(k) : null);
     const c = await makeChallenge(env, { scope: q("scope"), subject_public_key: q("subject_public_key") });
-    return c.ok ? { status: 200, body: c } : asOut(await refuseAgent(env, c.code || "AGENT-BAD-INPUT", "agent-challenge"));
+    return c.ok ? { status: 200, body: c } : asOut(await R(c.code || "AGENT-BAD-INPUT", "agent-challenge"));
   }
   if (verb === "receipts") {
     if (read) return publicReceipts(env);
     if (m === "POST") {
-      try { return asOut(await opView(env, payload)); } catch { return asOut(await refuseAgent(env, "AGENT-STORE-UNBOUND", "agent-receipts")); }
+      try { return asOut(await opView(env, payload, meta)); } catch { return asOut(await R("AGENT-STORE-UNBOUND", "agent-receipts")); }
     }
-    return asOut(await refuseAgent(env, "AGENT-METHOD", "agent-receipts"));
+    return asOut(await R("AGENT-METHOD", "agent-receipts"));
   }
   const op = "agent-" + verb;
   if (AGENT_MUTATE_OPS.includes(op)) {
-    if (m !== "POST") return asOut(await refuseAgent(env, "AGENT-METHOD", op));
+    if (m !== "POST") return asOut(await R("AGENT-METHOD", op));
     return asOut(await runAgentOp(op, payload, env, meta));
   }
-  return asOut(await refuseAgent(env, "AGENT-NOT-FOUND", "agent-status"));
+  return asOut(await R("AGENT-NOT-FOUND", "agent-status"));
 }
 
 /** Public /v1/anchor/rows view of an agentcomms row: links and lattice, no receipt body. */

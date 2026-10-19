@@ -30,8 +30,8 @@ proven between two real, independent agents yet. It is built zero-trust first an
 | docs/2.0/RECEIPT-SCHEMA.md | Receipts are ChainLock stamps. The `agentcomm` field is optional and additive (ADDITIVE_STAMP_FIELDS); every older stamp hashes as before. |
 | docs/2.0/REFUSAL-CONTRACT.md, AZRT-REFUSAL-RECEIPT-1.0 (RIB-018) | New stable codes `AGENT-*` (listed below). Every refusal is sealed with the existing `sealRefusal` path onto the internal `refusals` chain. The row stores `reason: null` plus `reason_sha256` of the fixed, code-chosen sentence (same as refusal-doors); caller text is never echoed or stored (AZBot's #301 rule). The response still carries the fixed message. |
 | AZRT-DUAL-LATTICE-1.0 (src/dual-lattice.js) | Every `agentcomms` row is a ChainLock stamp, so it carries both lattice hashes (primary + secondary). Offline secondary = H(primary document hash + username), refusing LATTICE-DOUBLE, exactly as today. The stamp fact embeds the receipt hash, so the lattice document binds the receipt body. |
-| AZRT-AZOS-TETHER-1.0 / TETHER-REFUSALS-1.0 | `agentcomms` joins `TETHER_CHAINS`, so its signed tips go to AZ-OS on the odd-minute cron and AZ-OS recomputes them. azinterface reads the tip through `/v1/runtime/sync`. One shared lattice. |
-| RECEIPTS-LATTICE-TIP-1.0, AZRT-ANCHOR-1.0 | `agentcomms` joins `ANCHOR_CHAINS`, so it is on `/v1/receipts` `lattice_tip` and on the witness heads feed. |
+| AZRT-AZOS-TETHER-1.0 / TETHER-REFUSALS-1.0 | `agentcomms` joins `TETHER_CHAINS`, so its signed tips (up to the hourly tip) go to AZ-OS on the odd-minute cron and AZ-OS recomputes them. azinterface reads the tip through `/v1/runtime/sync`. One shared lattice. |
+| RECEIPTS-LATTICE-TIP-1.0, AZRT-ANCHOR-1.0 | `agentcomms` joins `ANCHOR_CHAINS`, so it is on `/v1/receipts` `lattice_tip` and on the witness heads feed (as its hourly tip). |
 | AZRT-MESH-PEER-DENY-1.0 | Same rule, applied to agents: discovery is not consent. No grant, no message. |
 | FED-MESH-1.0 | Reuses the FED-MESH self-certifying Ed25519 handle (`#` + 11 Crockford chars of SHA-256(public key)) and its X25519 + HKDF-SHA-256 + AES-256-GCM reference seal (src/fed-mesh/e2e.js). That is the **only** scheme (`AGENT_ALGS = ["x25519-hkdf-sha256-aes256gcm"]`). The sender uses a fresh ephemeral X25519 key per message, the recipient a static one, so there is **no forward secrecy**: a leaked recipient encryption key opens every past box it can still get. The relay never opens a box. |
 | D2D-CARRIERS-1.0 / PLANE-P-D2D-1.0 | Carriers in Plane P order: LAN, Wi-Fi, Bluetooth, RF, Photon. The Worker has none of those radios, so a named radio carrier refuses `AGENT-CARRIER-ABSENT` (absent code `QNM-RADIO-ABSENT`). `auto` walks the order, finds none, and falls back to the internet relay, recorded as `fallback:true`. `alt_internet_live`, `packet_path_live`, `second_device` stay false. |
@@ -111,35 +111,64 @@ CHAINLOCK Durable Object writer. Each row:
 - Kinds: `register`, `grant`, `revoke`, `retire`, `send`, `deliver`, `read`, `refuse`.
 - **Dedupe:** every receipt has an idempotency key (kind + msg/grant/agent id), so a retry
   replays the same row.
-- **Caps (AZBot #304 item 3, the #302 pattern):** the CHAINLOCK writer for `agentcomms` holds the
-  true caps per minute, split by class so one class can't starve another: **msg** (send, deliver,
-  read) 360, **ctl** (register, grant, revoke, retire) 120, **refuse** 120; total 600. On top, at
-  most **10 `refuse` rows per agent per minute** (keyed by its hashed id), so a few agents spamming
-  signed refusals can't fill the refuse share alone. Rows are counted only after the row is
-  stored (a failed write spends nothing). Replays are never capped. Over a cap the writer answers
-  `agentcomm-cap` with `cap_class` / `cap_limit` / `cap_minute`, and the action that needs the
-  receipt refuses `AGENT-RECEIPT-CAP` (nothing happens without its receipt; a refusal still
-  stands, its `agentcomm_receipt` just says `rate_limited`). Each isolate also keeps a backstop
-  per class (msg 120, ctl 60, refuse 60) and a "class full until the end of this minute" memo,
-  so once the writer says a share is full that isolate stops calling the writer for that class.
-  Only real write failures give an isolate slot back.
+- **Caps (AZBot #304 item 3 and re-review N1, the #302 pattern):** the CHAINLOCK writer for
+  `agentcomms` holds the true caps per minute, split by class so one class can't starve another:
+  **msg** = the `send` row only, 300; **ctl** (register, grant, revoke, retire) 120; **refuse** 120;
+  total 540. `deliver` and `read` are **riders**: each is idempotent per `msg_id` and is only sealed
+  for a box that a sealed `send` put in the mailbox, so one message spends at most one deliver and
+  one read. Riders never spend msg, ctl, refuse or the total; they have their own backstop (1200/min)
+  that only a bug could reach. **Fair share inside msg:** at most **60 sends per minute per sending
+  visitor** (salted hash of the IPv6-/64-cut visitor IP hash) and **60 per owner pair**, so one IP
+  or one owner can't fill the msg share and starve another owner on another IP (AZBot repro R7).
+  These keys ride next to the row (`agentcap` on the append input) and are never stamped. MCP
+  callers have no IP, so they share one `none` visitor bucket (60/min). At most **10 `refuse` rows
+  per agent per minute**. Rows are counted only after the row is stored (a failed write spends
+  nothing). Replays are never capped. Over a cap the writer answers `agentcomm-cap` with
+  `cap_class` / `cap_limit` (`total`, `class`, `agent`, `ip`, `pair`) / `cap_minute`, and the action
+  that needs the receipt refuses `AGENT-RECEIPT-CAP` (nothing happens without its receipt; a refusal
+  still stands, its `agentcomm_receipt` just says `rate_limited`). Each isolate also keeps a
+  backstop per class (msg 300, rider 600, ctl 60, refuse 60) and a "class full until the end of
+  this minute" memo (set only for `class` / `total`, never for one visitor's or pair's share). Only
+  real write failures give an isolate slot back.
+- **Edge limits (AZBot re-review N2):** every `POST /v1/mesh/agents/*` is F03 `mesh_mutate` (30/min
+  per client IP, 429 `RATE_LIMIT`), and `GET /v1/mesh/agents`, `/directory` and `/challenge` are
+  `agent_read` (60/min per IP), both through the RATE Durable Object before any agent code runs.
+  `GET /v1/mesh/agents/receipts` is not limited (it is the hourly snapshot, cached 60 s per isolate,
+  and the peer panels read it over one binding). Per isolate the salt is read once (it never changes),
+  and the directory listing and the public snapshot are cached 60 s, so a retired agent can stay in
+  the cached listing up to 60 s (send and pull recheck the state DO, so a listing grants nothing).
+  Signatures whose key is in the statement (register, revoke, retire, the receipts view) are checked
+  before any state lookup; send / pull / ack name an agent id, so its key has to be read first.
+  The edge limiter keys the full client address (F03, unchanged); only the agent limits cut IPv6 to /64.
 
 Refusals: the canonical receipt is on the `refusals` chain through `sealRefusal` with
-`surface: "agent-subnet"`, a fixed `reason`, `reason_sha256`, and a fixed route template. That row
+`surface: "agent-subnet"`, `reason: null`, `reason_sha256`, a fixed route template, and `via`
+(`rest` over HTTP `/v1/mesh/agents/*`, which spends the #302 **rest** share; `mcp` through FragGate,
+which spends the mcp share; AZBot N6). One code + verb per minute is one deduped row, whichever door
+sealed it first. That row
 carries no agent identity (its idempotency key is code + door + minute, so an attacker with
 unlimited fresh keys still writes at most one row per code per minute). When the refused caller
 had already proved its signature, a `refuse` row is also put on `agentcomms` with its hashed id and
 `refusal_h`, so the owner's viewer shows it.
 
 Verify: `chainlock_verify {"c":"agentcomms"}` (internal chains verify when named; the walk checks
-prev links, stamp hashes, fact hashes and both lattices). Each row: `/v1/anchor/row?c=agentcomms&seq=N`.
+prev links, stamp hashes, fact hashes and both lattices). Each published row: `/v1/anchor/row?c=agentcomms&seq=N`.
+`chainlock_tip {"c":"agentcomms"}` refuses `AGENT-TIP-HOURLY`: the live tip would show the newest
+receipt's body and time.
 
 ## Viewer
 
 - `GET /v1/mesh/agents` public status: honest flags, bucketed counts, carriers, crypto scheme, hourly tip.
 - `GET /v1/mesh/agents/receipts` public view: an **hourly snapshot**, counts **bucketed to tens**
-  (`"40+"`), anything **under 10 shown as `"<10"`**, and the tip as of that hour. No rows, no
-  hashes of ids. Polling more often shows nothing new, so single events can't be timed here.
+  (`"40+"`), anything **under 10 shown as `"<10"`**, and that hour's tip **hash** with its row number
+  bucketed the same way (AZBot N5). No rows, no hashes of ids. Polling more often shows nothing new.
+- **One hourly tip everywhere public (AZBot N4):** `/v1/anchor/heads` and `/v1/receipts` `lattice_tip`
+  carry the agentcomms tip of that hour (`hourly: true`, `as_of`), not the live head;
+  `/v1/anchor/rows?c=agentcomms` pages stop at it (`head_seq` is the hourly tip) and
+  `/v1/anchor/row?c=agentcomms&seq=N` past it answers 404 `AGENT-ROW-NOT-PUBLISHED`; the AZ-OS tether
+  sends agentcomms up to that tip only (`TETHER-HOURLY-WAIT` until the next hour), because AZ-OS shows
+  its stored tips publicly. The witness still anchors a real `(seq, h)`. The snapshot is taken the
+  first time it is read in an hour, so it holds the state at that read.
 - `/v1/anchor/rows?c=agentcomms` shows links and both lattice hashes only: no receipt body, no `t`,
   no subject/fact (which would name the kind).
 - `GET /v1/mesh/agents/challenge?scope=agent|owner&subject_public_key=...` a relay challenge:
@@ -178,10 +207,14 @@ view challenges; the hourly public snapshot. Rules:
 - Register is atomic: exists / retired / owner-cap checked and written together, so two racing
   registers give exactly one `AGENT-OK` and one `AGENT-EXISTS`. Register and grant are written
   first and undone if their receipt can't be sealed (no receipt, no agent / grant).
-- Revoke and retire go one way only: the receipt is sealed first, then the tombstone is set.
+- Revoke and retire go one way only, **fail safe** (AZBot N3): the tombstone is set **first**, then
+  the queued boxes are swept, then the receipt is sealed. A pull that races a revoke sees the
+  tombstone and drops; a seal that fails still leaves the grant dead (`receipt_pending: true`), and
+  the next revoke statement re-seals the idempotent receipt (`AGENT-GRANT-REVOKED` with `receipt`).
 - Registration limits are keyed per **owner key** (3/min), per **visitor IP hash** (5/min), and
   **globally** (20/min), charged together or not at all. Owner keys are free, so the IP bucket is
-  what bounds one caller. The IP is hashed at the edge (`sha256("agent-ip|" + ip)`), never stored
+  what bounds one caller. The IP is hashed at the edge (`sha256("agent-ip|" + agentIpKey(ip))`; `agentIpKey` keeps IPv4 as is
+  and cuts IPv6 to its **/64**, since one subscriber usually holds a whole /64), never stored
   beyond the current minute's counter, and never put on a chain. AZ-OS and azinterface forward their
   own visitor's hash in `x-azrt-visitor-ip-h` over the service binding (honored only when the
   request has no `cf-connecting-ip`, i.e. not from the public internet). MCP calls have no IP and
@@ -189,6 +222,10 @@ view challenges; the hourly public snapshot. Rules:
   The same forwarded hash also feeds the runtime's general limiter key (`clientIp` in
   `src/production.js` returns `vh:<hash>` for a binding request), so peer traffic is keyed per
   visitor instead of one shared `local` bucket; a real `cf-connecting-ip` always wins over the header.
+  **Trust boundary (AZBot N7):** Cloudflare sets `cf-connecting-ip` on every public request, so a
+  request without it is taken to be a Worker service binding. Any Worker on this account that is
+  bound to the runtime could rotate `x-azrt-visitor-ip-h` and so rotate its own buckets; only AZ-OS and
+  azinterface are bound today, and both build the header fresh from their own visitor's IP.
   Peer calls to the runtime time out (4 s default) and answer `AGENTS-RUNTIME-TIMEOUT`, fail closed.
 
 ## What the operator can see (honest)
@@ -202,8 +239,12 @@ view challenges; the hourly public snapshot. Rules:
   can also recompute. "No raw ids" is true for **receipts**, not for the mailbox.
 - **The state DO** holds agents with their public keys and owner ids, grants (from/to ids), and
   tombstones. That is the graph of who may talk to whom; it is not public, but the operator has it.
-- **Counts and timing.** `/v1/anchor/heads` still shows the exact `agentcomms` seq (anchoring needs
-  it), so the total row count is public there; kinds and times are not.
+- **Counts and timing.** The public surfaces show the agentcomms tip once an hour. `/v1/anchor/heads`
+  and `/v1/receipts` carry that hour's exact row number (the witness needs it to check the row), so
+  the exact count per hour is public; single events can't be timed from them. `chainlock_verify
+  {"c":"agentcomms"}` walks the whole chain and so reports the **live** row count (`n`) to anyone who
+  calls it: that is subnet-wide activity counting, with no kinds, ids or times. Kinds and times are
+  not public. The viewer for one owner shows that owner's rows with times.
 
 ## Not done here (says so)
 
@@ -222,7 +263,8 @@ view challenges; the hourly public snapshot. Rules:
 `AGENT-UNKNOWN`, `AGENT-EXISTS`, `AGENT-RETIRED`, `AGENT-NO-GRANT`, `AGENT-GRANT-EXPIRED`, `AGENT-GRANT-REVOKED`,
 `AGENT-GRANT-SCOPE`, `AGENT-BOX-HASH`, `AGENT-CARRIER-ABSENT`, `AGENT-RATE`, `AGENT-MAILBOX-FULL`,
 `AGENT-RECEIPT-UNAVAILABLE`, `AGENT-RECEIPT-CAP`, `AGENT-STORE-UNBOUND`, `AGENT-SALT-LOST`, `AGENT-CHALLENGE`,
-`AGENT-NOT-FOUND`, `AGENT-METHOD`.
+`AGENT-NOT-FOUND`, `AGENT-METHOD`. Read-path answers (not refusal receipts): `AGENT-ROW-NOT-PUBLISHED`
+(404, a row past the hourly tip), `AGENT-TIP-HOURLY` (chainlock_tip on agentcomms). Edge: `RATE_LIMIT` (429).
 
 ## Review log
 
@@ -237,3 +279,12 @@ view challenges; the hourly public snapshot. Rules:
   keys, no raw `to` in stored boxes; the rest documented above), LOW 11 (one scheme, no forward
   secrecy stated), LOW 12 (refusal rows `reason: null` + `reason_sha256`), LOW 13 (atomic register
   and owner list). Tests: `scripts/verify-agent-subnet.mjs` groups 10, 13, 13b, 15, 23 to 28.
+- 2026-10-19, AZBot re-review at f617097 (same log, repros in logs/repro-304v2/): N1 MED (msg counts
+  `send` only; deliver/read riders; 60/min fair share per sending visitor and per owner pair; R7
+  victim sends), N2 MED (agent POSTs in `mesh_mutate`, status/directory/challenge GETs `agent_read`,
+  429 per IP; signature before state where the key is in the statement; salt cached per isolate;
+  directory and snapshot cached 60 s; the DoS repro gets 429s), N3 (tombstone before seal for revoke
+  and retire), N4/N5 (one hourly tip on heads, `/v1/receipts`, row pages, `/row`, the tether; bucketed
+  `tip.seq` in the snapshot and peer panels; `chainlock_tip` refuses agentcomms, which also showed the
+  newest body), N6 (`via: rest` spends the rest share), N7 (trust boundary documented), N8 (view
+  checks the signature first), IPv6 /64 for the agent limits. Tests: groups 30 to 37.

@@ -12,6 +12,13 @@ export async function runtimeLatticeTip(env, store, { timeoutMs = 2500 } = {}) {
   const { ANCHOR_CHAINS } = await import("./anchor.js");
   const read = Promise.all(ANCHOR_CHAINS.map(async (c) => {
     try {
+      if (c === "agentcomms") {
+        // AGENT-SUBNET-1.0 (AZBot N4): the hourly tip only, like /v1/anchor/heads (no real-time agent timing).
+        const { agentHourlyTip } = await import("./agent-subnet.js");
+        const ht = await agentHourlyTip(env);
+        if (!ht || !(ht.seq > 0) || !ht.h) return null;
+        return { c, seq: ht.seq, h: ht.h, primary: (ht.lattice && ht.lattice.primary) || null, secondary: (ht.lattice && ht.lattice.secondary) || null, hourly: true, as_of: ht.as_of };
+      }
       const m = await store.chainMeta(c);
       if (!m || !m.ok || !(m.seq > 0)) return null;
       return { c, seq: m.seq, h: m.tip, primary: (m.lt && m.lt.primary) || null, secondary: (m.lt && m.lt.secondary) || null };

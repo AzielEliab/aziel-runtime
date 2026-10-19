@@ -4510,7 +4510,8 @@ async function handleRequest(request, env, ctx) {
       if (url.pathname.startsWith("/v1/mesh/agents")) {
         const ip = request.headers.get("cf-connecting-ip");
         const fwd = String(request.headers.get("x-azrt-visitor-ip-h") || "");
-        if (ip) meshMeta = { ip_h: (await (await import("./session-core.js")).sha256Hex("agent-ip|" + ip)).slice(0, 32) };
+        // IPv6 is cut to its /64 first (agentIpKey). No cf-connecting-ip means a Worker service binding.
+        if (ip) meshMeta = { ip_h: await (await import("./agent-subnet.js")).agentIpHash(ip) };
         else if (/^[a-f0-9]{16,64}$/.test(fwd)) meshMeta = { ip_h: fwd.slice(0, 32) };
       }
       const out = await dispatchMeshHttp(request.method, url.pathname, payload, env, origin, url.searchParams, meshMeta);
@@ -4697,7 +4698,10 @@ async function handleRequest(request, env, ctx) {
       if (url.pathname === "/v1/anchor/heads") {
         const { softwareMeta } = await import("./software-catalog.js");
         const meta = softwareMeta(env);
-        const heads = await anchor.collectHeads(env, { ...deps, version: RUNTIME_VERSION, gitSha: meta.git_sha || (env && env.GIT_SHA) || null, versionId: meta.version_id || null });
+        // AGENT-SUBNET-1.0 (AZBot N4): agentcomms rides the heads as its HOURLY tip, so polling heads
+        // can't time single agent events; the witness still anchors a real (seq, h).
+        const { agentHourlyTip } = await import("./agent-subnet.js");
+        const heads = await anchor.collectHeads(env, { ...deps, agentHourlyTip, version: RUNTIME_VERSION, gitSha: meta.git_sha || (env && env.GIT_SHA) || null, versionId: meta.version_id || null });
         return asHead(request, json(heads, 200, hdrs));
       }
       if (url.pathname === "/v1/anchor/row") {
@@ -4705,6 +4709,12 @@ async function handleRequest(request, env, ctx) {
         const seq = Number(url.searchParams.get("seq"));
         if (!anchor.ANCHOR_CHAINS.includes(c) || !Number.isInteger(seq) || seq < 1) {
           return json({ ok: false, code: "ANCHOR-BAD-QUERY", message: "GET /v1/anchor/row?c=<chain>&seq=<1-based row>.", chains: anchor.ANCHOR_CHAINS }, 400, hdrs);
+        }
+        if (c === "agentcomms") {
+          // Rows after the hourly tip are not public yet (else polling /row times each event).
+          const { agentHourlyTip } = await import("./agent-subnet.js");
+          const ht = await agentHourlyTip(env);
+          if (!ht || seq > ht.seq) return asHead(request, json({ spec: anchor.ANCHOR_SPEC, ok: false, code: "AGENT-ROW-NOT-PUBLISHED", chain: c, message: "agentcomms rows are published up to the hourly tip only.", as_of: ht ? ht.as_of : null }, 404, hdrs));
         }
         const out = await anchor.rowIntegrity(env, c, seq, deps);
         return asHead(request, json({ spec: anchor.ANCHOR_SPEC, fail_closed: true, ...out }, out.ok ? 200 : 409, hdrs));
@@ -4716,7 +4726,23 @@ async function handleRequest(request, env, ctx) {
         if (!anchor.ANCHOR_CHAINS.includes(c) || !Number.isInteger(from) || from < 1) {
           return json({ ok: false, code: "LEDGER-BAD-QUERY", message: "GET /v1/anchor/rows?c=<chain>&from=<1-based>&limit=<1..100>.", chains: anchor.ANCHOR_CHAINS }, 400, hdrs);
         }
-        const out = await anchor.pageRows(env, c, from, limit, deps);
+        let pageLimit = limit;
+        let agentTip = null;
+        if (c === "agentcomms") {
+          // Pages stop at the hourly tip (AZBot N4/N5): no real-time row count from paging.
+          const { agentHourlyTip } = await import("./agent-subnet.js");
+          agentTip = await agentHourlyTip(env);
+          const room = agentTip ? agentTip.seq - from + 1 : 0;
+          if (room < 1) return asHead(request, json({ ok: true, chain: c, from, rows: [], published_through: "hourly tip", as_of: agentTip ? agentTip.as_of : null }, 200, hdrs));
+          pageLimit = Math.max(1, Math.min(Number.isFinite(limit) ? limit : 50, room));
+        }
+        const out = await anchor.pageRows(env, c, from, pageLimit, deps);
+        if (c === "agentcomms" && agentTip) {
+          out.published_through = "hourly tip";
+          out.as_of = agentTip.as_of;
+          out.head_seq = agentTip.seq; // the hourly tip, not the live head
+          if (out.next && out.next.from > agentTip.seq) out.next = null;
+        }
         if (c === "agentcomms" && Array.isArray(out.rows)) {
           // AGENT-SUBNET-1.0: the public sees links and lattice, never the hashed-id receipt body.
           const { redactAgentRow } = await import("./agent-subnet.js");

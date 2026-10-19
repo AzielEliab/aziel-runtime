@@ -8,7 +8,8 @@
  * snapshot. Mailbox boxes stay in KV with a TTL (ciphertext only, hashed recipient key).
  *
  * The writer-side receipt caps for the `agentcomms` chain also live here (agentCommCap*), used by
- * ChainWriter.append: per-class shares (msg / ctl / refuse) plus a per-agent cap on `refuse` rows, counted
+ * ChainWriter.append: per-class shares (msg = send / ctl / refuse, riders = deliver+read) plus fair-share
+ * sub-caps per sending visitor and owner pair and a per-agent cap on `refuse` rows, counted
  * only after a successful write (the #302 pattern). Paper: docs/designs/AGENT-SUBNET-1.0.md
  * Author: Aziel Eliab. SPDX-License-Identifier: Apache-2.0
  */
@@ -16,44 +17,68 @@ export const AGENT_STATE_OBJECT = "__agentnet__";
 export const AGENT_STATE_PATH = "/agentnet";
 const SEEN_BUCKET_MS = 60 * 1000;
 
-/** agentcomms writer caps per minute (sum of shares = total). */
+/**
+ * agentcomms writer caps per minute (AZBot re-review N1).
+ * - msg counts the `send` row only. deliver/read are riders: each is idempotent per msg_id
+ *   (`deliver|<msg_id>`, `read|<msg_id>`) and only sealed for a box that a sealed send put there, so a
+ *   message spends at most one deliver and one read. Riders have their own backstop share and never
+ *   spend msg, ctl, refuse, or the total.
+ * - Fair share inside msg: at most per_ip sends per sending visitor (hashed IP, never on the chain) and
+ *   per_pair sends per owner pair, so one IP or one owner can't fill the msg share.
+ * - refuse rows: at most refuse_per_agent per agent.
+ * Counted only after a successful write (the #302 pattern).
+ */
 export const AGENTCOMM_CAP = Object.freeze({
   chain: "agentcomms",
-  total: 600,
-  classes: Object.freeze({ msg: 360, ctl: 120, refuse: 120 }),
+  total: 540,
+  classes: Object.freeze({ msg: 300, ctl: 120, refuse: 120 }),
+  rider: 1200,
+  per_ip: 60,
+  per_pair: 60,
   refuse_per_agent: 10,
 });
 export function agentCommClass(kind) {
-  if (kind === "send" || kind === "deliver" || kind === "read") return "msg";
+  if (kind === "send") return "msg";
+  if (kind === "deliver" || kind === "read") return "rider";
   if (kind === "refuse") return "refuse";
   return "ctl";
 }
 
 /**
  * Check the agentcomms caps for one new row. Returns { refuse } when over a cap, else { commit } to call
- * after the row is stored (a failed write spends nothing).
+ * after the row is stored (a failed write spends nothing). input.agentcap = { ip, pair } carries the
+ * fair-share keys out of band (salted hashes; not part of the stamped row).
  */
 export async function agentCommCapCheck(store, input, nowMs = Date.now()) {
   const a = (input && input.agentcomm) || {};
+  const keys = (input && input.agentcap) || {};
   const minute = Math.floor(nowMs / 60000);
-  const fresh = () => ({ m: minute, total: 0, cls: { msg: 0, ctl: 0, refuse: 0 }, agents: {} });
+  const fresh = () => ({ m: minute, total: 0, cls: { msg: 0, ctl: 0, refuse: 0, rider: 0 }, agents: {}, ip: {}, pair: {} });
   const prev = await store.get("agentcap");
-  const cap = prev && prev.m === minute && prev.cls ? prev : fresh();
+  const cap = prev && prev.m === minute && prev.cls ? { ip: {}, pair: {}, ...prev, cls: { rider: 0, ...prev.cls } } : fresh();
   const cls = agentCommClass(a.kind);
   const who = cls === "refuse" ? String(a.from_h || "anon") : null;
+  const ipKey = cls === "msg" ? String(keys.ip || "none").slice(0, 64) : null;
+  const pairKey = cls === "msg" ? String(keys.pair || a.owner_pair_h || "none").slice(0, 64) : null;
   let limit = null;
   let why = null;
-  if (cap.total >= AGENTCOMM_CAP.total) { limit = "total"; why = `agentcomms receipt cap ${AGENTCOMM_CAP.total}/min reached`; }
+  if (cls === "rider") {
+    if ((cap.cls.rider || 0) >= AGENTCOMM_CAP.rider) { limit = "class"; why = `deliver/read rider backstop ${AGENTCOMM_CAP.rider}/min reached`; }
+  } else if (cap.total >= AGENTCOMM_CAP.total) { limit = "total"; why = `agentcomms receipt cap ${AGENTCOMM_CAP.total}/min reached`; }
   else if ((cap.cls[cls] || 0) >= AGENTCOMM_CAP.classes[cls]) { limit = "class"; why = `${cls} receipt share ${AGENTCOMM_CAP.classes[cls]}/min reached`; }
   else if (who && (cap.agents[who] || 0) >= AGENTCOMM_CAP.refuse_per_agent) { limit = "agent"; why = `refuse rows for this agent capped at ${AGENTCOMM_CAP.refuse_per_agent}/min`; }
+  else if (ipKey && (cap.ip[ipKey] || 0) >= AGENTCOMM_CAP.per_ip) { limit = "ip"; why = `sends from one visitor capped at ${AGENTCOMM_CAP.per_ip}/min (fair share)`; }
+  else if (pairKey && (cap.pair[pairKey] || 0) >= AGENTCOMM_CAP.per_pair) { limit = "pair"; why = `sends between one owner pair capped at ${AGENTCOMM_CAP.per_pair}/min (fair share)`; }
   if (why) return { refuse: { ok: false, refuse: "agentcomm-cap", code: "AGENT-RECEIPT-CAP", cap_class: cls, cap_limit: limit, cap_minute: minute, written: false, message: `${why}; nothing was done` } };
   return {
     commit: async () => {
       const cur = await store.get("agentcap");
-      const c = cur && cur.m === minute && cur.cls ? cur : fresh();
-      c.total++;
+      const c = cur && cur.m === minute && cur.cls ? { ip: {}, pair: {}, ...cur, cls: { rider: 0, ...cur.cls } } : fresh();
+      if (cls !== "rider") c.total++;
       c.cls[cls] = (c.cls[cls] || 0) + 1;
       if (who) c.agents[who] = (c.agents[who] || 0) + 1;
+      if (ipKey) c.ip[ipKey] = (c.ip[ipKey] || 0) + 1;
+      if (pairKey) c.pair[pairKey] = (c.pair[pairKey] || 0) + 1;
       await store.put("agentcap", c);
     },
   };

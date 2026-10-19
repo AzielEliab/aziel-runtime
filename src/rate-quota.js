@@ -175,6 +175,7 @@ const DOOR_SCOPES = {
   mcp: "mcp",
   mesh_mutate: "mesh_mutate",
   memory_mutate: "memory_mutate",
+  agent_read: "agent_read",
 };
 
 /** FragGate HTTP + MCP: Durable Object when RATE is bound, else isolate. */

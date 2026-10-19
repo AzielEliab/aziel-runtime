@@ -24,7 +24,14 @@ const uses = memoryMeshKv();
 const env = { SESSION: memorySessionNamespace({}), CHAINLOCK: memoryChainWriterNamespace({}), USES: uses, RATE: memoryRateQuotaNamespace({}) };
 const store = storeFor(env);
 const ctx = { waitUntil() {} };
-const call = (path, init = {}, e = env) => handler(new Request("https://aziel-runtime.example" + path, init), e, ctx);
+// The F03 edge limits (mesh_mutate / agent_read, 30-60/min per IP) are raised for the functional groups
+// below, which all run from one "local" client; group 30 checks the real edge limits on a fresh env.
+const EDGE_OFF = Object.freeze({ mesh_mutate: 1e6, agent_read: 1e6 });
+// Public agentcomms reads (snapshot, heads, row pages, tether) move once an hour; this runs fn as if
+// the next hour had started (statements are signed outside it, so the skew check is untouched).
+let hourShift = 0;
+const nextHour = async (fn) => { hourShift += 3600e3; S._setAgentClock(() => Date.now() + hourShift); try { return await fn(); } finally { S._setAgentClock(null); } };
+const call = (path, init = {}, e = env) => { if (e && !e.__aziel_rate_limits && !e.__edge_real) e.__aziel_rate_limits = EDGE_OFF; return handler(new Request("https://aziel-runtime.example" + path, init), e, ctx); };
 const post = async (verb, body, e = env) => { const r = await call("/v1/mesh/agents/" + verb, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }, e); return { status: r.status, body: await r.json() }; };
 let n = 0;
 const ok = (x, m) => { assert.ok(x, m); };
@@ -273,8 +280,8 @@ const v2 = await C.viewStatement({ who: a2, challenge: ch.challenge });
 x = await post("receipts", { ...v2, subject_public_key: b1.public_key });
 assert.equal(x.body.code, "AGENT-SIG-INVALID");
 // public /v1/anchor/rows redacts agentcomm bodies.
-b = await (await call("/v1/anchor/rows?c=agentcomms&from=1&limit=50")).json();
-ok(Array.isArray(b.rows) && b.rows.length > 0); ok(!JSON.stringify(b).includes(hB1)); ok(b.rows.every((row) => !row.row.agentcomm || row.row.agentcomm.redacted === true));
+b = await nextHour(async () => (await call("/v1/anchor/rows?c=agentcomms&from=1&limit=50")).json());
+ok(Array.isArray(b.rows) && b.rows.length > 0, JSON.stringify(b).slice(0, 200)); ok(!JSON.stringify(b).includes(hB1)); ok(b.rows.every((row) => !row.row.agentcomm || row.row.agentcomm.redacted === true));
 // (MED 7) no time and no kind on the redacted rows either.
 for (const row of b.rows) { ok(!("t" in row.row) && !("s" in row.row) && !("f" in row.row) && !("fact" in row.row), "time/kind on a redacted row: " + Object.keys(row.row)); ok(!row.row.agentcomm || !("kind" in row.row.agentcomm)); }
 const blobRows = JSON.stringify(b.rows);
@@ -296,7 +303,7 @@ ok(!all.chains.some((c) => c.c === "agentcomms")); n++;
 // 17) tether: agentcomms rides the signed AZ-OS tether like refusals; AZ-OS recomputes both lattices.
 {
   const tether = await import("../src/azos-tether.js");
-  const tenv = { TETHER_SIGNING_SEED: "33".repeat(32) /* test-only seed */, GIT_SHA: "c".repeat(40) };
+  const tenv = { TETHER_SIGNING_SEED: "33".repeat(32) /* test-only seed */, GIT_SHA: "c".repeat(40), CHAINLOCK: env.CHAINLOCK, USES: env.USES };
   const key = await tether.tetherKey(tenv);
   const state = new Map();
   const packets = [];
@@ -316,9 +323,13 @@ ok(!all.chains.some((c) => c.c === "agentcomms")); n++;
     }
     return new Response("nf", { status: 404 });
   };
-  const out = await tether.pushAll(tenv, { store, fetcher, chains: ["agentcomms"] });
+  // Same hour as the last snapshot: the tether waits for the hourly tip (no 2-minute timing on AZ-OS).
+  const early = await tether.pushChain(tenv, "agentcomms", { store, fetcher, key, acked: null, agentTip: { seq: 1, h: allRows[0].stamp_sha256, lattice: { primary: "f".repeat(64), secondary: "f".repeat(64) } } });
+  assert.equal(early.code, "TETHER-HOURLY-WAIT"); assert.equal(early.sent, false);
+  const out = await nextHour(() => tether.pushAll(tenv, { store, fetcher, chains: ["agentcomms"] }));
   assert.equal(out.ok, true, JSON.stringify(out).slice(0, 400));
   const row = out.chains.find((c) => c.chain === "agentcomms");
+  assert.ok(row, JSON.stringify(out).slice(0, 300) + JSON.stringify(await nextHour(() => S.agentHourlyTip(tenv))));
   assert.equal(row.azos_updated, true);
   const last = allRows[allRows.length - 1];
   assert.equal(state.get("agentcomms").tips.primary, last.lattice.primary);
@@ -534,7 +545,11 @@ n++;
   const salt1 = await S._saltForTest(e);
   ok(/^[a-f0-9]{64}$/.test(salt1));
   assert.equal(await S._saltForTest(e), salt1, "one salt");
+  // The salt is cached per isolate (AZBot N2): this isolate keeps working with the salt it already read.
   shared.get("__agentnet__").delete("salt"); // simulate loss
+  const warm = await post("register", await C.registerStatement(await C.identityOf(await C.newKeys()), await C.identityOf(await C.newKeys())), e);
+  assert.equal(warm.body.code, "AGENT-OK", "a warm isolate keeps its cached salt");
+  S._resetAgentCaches(e); // a fresh isolate: no cached salt, the DO has none, rows exist
   const lost = await post("register", await C.registerStatement(await C.identityOf(await C.newKeys()), await C.identityOf(await C.newKeys())), e);
   assert.equal(lost.body.code, "AGENT-SALT-LOST"); assert.equal(lost.status, 503);
   assert.equal(await S._saltForTest(e), null, "no new salt was minted");
@@ -557,8 +572,18 @@ n++;
   const page = await (await call("/agents")).text();
   ok(/designed to/.test(page) && /hashed, not encrypted/.test(page));
   // the public snapshot is hourly: more events in the same hour don't move it.
+  // (The earlier groups already moved the agent clock forward; read at that same hour, before and after a new event.)
+  S._setAgentClock(() => Date.now() + hourShift);
+  const before = await (await call("/v1/mesh/agents/receipts")).json();
+  S._setAgentClock(null);
+  const ox = await C.identityOf(await C.newKeys());
+  assert.equal((await post("register", await C.registerStatement(await C.identityOf(await C.newKeys()), ox))).body.code, "AGENT-OK");
+  S._resetAgentCaches(env); // even with the 60 s cache gone, the hourly snapshot holds
+  S._setAgentClock(() => Date.now() + hourShift);
   const b2 = await (await call("/v1/mesh/agents/receipts")).json();
-  assert.equal(JSON.stringify(b2.tip), snapTip, "public tip moved inside the hour");
+  S._setAgentClock(null);
+  assert.equal(JSON.stringify(b2.tip), JSON.stringify(before.tip), "public tip moved inside the hour");
+  ok(before.tip && typeof before.tip.seq === "string" && !/^\d+$/.test(before.tip.seq), "public tip seq is bucketed: " + JSON.stringify(before.tip));
 }
 n++;
 
@@ -580,6 +605,235 @@ n++;
   assert.equal(clientIp(new Request("https://x.example/", { headers: { "x-azrt-visitor-ip-h": "ab".repeat(16) } })), "vh:" + "ab".repeat(16));
   assert.equal(clientIp(new Request("https://x.example/", { headers: { "cf-connecting-ip": "192.0.2.1", "x-azrt-visitor-ip-h": "ab".repeat(16) } })), "192.0.2.1");
   assert.equal(clientIp(new Request("https://x.example/", { headers: { "x-azrt-visitor-ip-h": "not-hex" } })), "local");
+}
+n++;
+
+// ---- AZBot re-review of f617097 (N1..N8) ----
+const mkEnv = () => ({ SESSION: memorySessionNamespace({}), CHAINLOCK: memoryChainWriterNamespace({}), USES: memoryMeshKv(), RATE: memoryRateQuotaNamespace({}) });
+const postIp = async (e, verb, body, ip) => { const r = await call("/v1/mesh/agents/" + verb, { method: "POST", headers: { "content-type": "application/json", "cf-connecting-ip": ip }, body: JSON.stringify(body) }, e); return { status: r.status, body: await r.json() }; };
+const newId = async () => C.identityOf(await C.newKeys());
+/** Count the ops the agent state DO receives (wraps each stub's fetch in place). */
+function countAgentOps(e) {
+  const ops = [];
+  const ns = e.CHAINLOCK;
+  const wrap = (st, name) => {
+    if (String(name) === "__agentnet__" && !st.__counted) {
+      const f = st.fetch.bind(st);
+      st.fetch = async (req, ...rest) => { try { ops.push(JSON.parse(await req.clone().text()).op); } catch { ops.push("?"); } return f(req, ...rest); };
+      st.__counted = true;
+    }
+    return st;
+  };
+  const get = ns.get.bind(ns);
+  const byName = ns.getByName.bind(ns);
+  ns.get = (id) => wrap(get(id), id);
+  ns.getByName = (name) => wrap(byName(name), name);
+  return ops;
+}
+
+// 30) (N2) edge limits: every POST /v1/mesh/agents/* is mesh_mutate; status/directory/challenge GETs are
+//     agent_read; both 429 per IP. GET receipts (the cached hourly snapshot the peer panels read) is not.
+{
+  const { requestLimitKind } = await import("../src/request-limits.js");
+  for (const v of ["register", "grant", "revoke", "retire", "send", "pull", "ack", "receipts", "nope"]) assert.equal(requestLimitKind("/v1/mesh/agents/" + v, "POST"), "mesh_mutate", v);
+  assert.equal(requestLimitKind("/v1/mesh/agents", "POST"), "mesh_mutate");
+  for (const p of ["/v1/mesh/agents", "/v1/mesh/agents/directory", "/v1/mesh/agents/challenge"]) assert.equal(requestLimitKind(p, "GET"), "agent_read", p);
+  assert.equal(requestLimitKind("/v1/mesh/agents/receipts", "GET"), null);
+  const e = { ...mkEnv(), __edge_real: true };
+  const a = await newId();
+  const codes = {};
+  for (let i = 0; i < 100; i++) {
+    const st = { v: "AGENT-SUBNET-1.0", kind: "agent-pull", agent_id: a.handle, t: new Date().toISOString(), nonce: C.nonce(), sig: "AAAA" };
+    const r = await postIp(e, "pull", st, "203.0.113.99");
+    codes[r.status] = (codes[r.status] || 0) + 1;
+  }
+  ok(codes[429] >= 60, "unsigned POST flood gets 429s: " + JSON.stringify(codes));
+  const g = {};
+  for (let i = 0; i < 100; i++) { const r = await call("/v1/mesh/agents/directory", { headers: { "cf-connecting-ip": "203.0.113.99" } }, e); g[r.status] = (g[r.status] || 0) + 1; }
+  ok(g[429] >= 30, "directory GET flood gets 429s: " + JSON.stringify(g));
+  const other = await call("/v1/mesh/agents/directory", { headers: { "cf-connecting-ip": "198.51.100.200" } }, e);
+  assert.equal(other.status, 200, "another IP is not limited");
+}
+n++;
+
+// 31) (N2) per-isolate caches: the salt is read once; directory and the public snapshot are cached 60 s.
+{
+  const e = mkEnv();
+  const ops = countAgentOps(e);
+  const o = await newId();
+  assert.equal((await postIp(e, "register", await C.registerStatement(await newId(), o, { discoverable: true }), "198.51.100.31")).body.code, "AGENT-OK");
+  ops.length = 0;
+  for (let i = 0; i < 3; i++) await postIp(e, "register", await C.registerStatement(await newId(), await newId()), "198.51.100." + (40 + i));
+  ok(!ops.includes("salt"), "salt re-read: " + ops.join(","));
+  ops.length = 0;
+  for (let i = 0; i < 5; i++) await call("/v1/mesh/agents/directory", {}, e);
+  assert.equal(ops.filter((x) => x === "directory").length, 1, "directory cached: " + ops.join(","));
+  ops.length = 0;
+  for (let i = 0; i < 5; i++) await call("/v1/mesh/agents/receipts", {}, e);
+  ok(ops.filter((x) => x === "pub_get").length <= 1, "public snapshot cached: " + ops.join(","));
+}
+n++;
+
+// 32) (N1) msg fair share in the writer: send rows only; one visitor or one owner pair <= 60/min;
+//     deliver/read are riders that never spend msg; another owner on another IP still sends.
+{
+  const e = mkEnv();
+  const t0 = Math.floor(Date.now() / 60000) * 60000 + 1000;
+  S._setAgentClock(() => t0);
+  const T = new Date(t0).toISOString();
+  let ipn = 0;
+  const regIp = () => "192.0.2." + (100 + (ipn++ % 100));
+  const ro = await newId(); const recv = await newId();
+  await postIp(e, "register", await C.registerStatement(recv, ro, { t: T }), regIp());
+  const so = await newId();
+  const senders = [];
+  for (let i = 0; i < 3; i++) { const sx = await newId(); assert.equal((await postIp(e, "register", await C.registerStatement(sx, so, { t: T }), regIp())).body.code, "AGENT-OK"); senders.push(sx); }
+  const grants = [];
+  for (const sx of senders) { const g = await C.grantStatement({ from: sx.handle, to: recv.handle, ownerTo: ro, ownerFrom: so, t: T }); assert.equal((await postIp(e, "grant", g.statement, regIp())).body.code, "AGENT-OK"); grants.push(g); }
+  const IP = "203.0.113.60";
+  const sendOne = async (i, ip) => postIp(e, "send", await C.sendStatement({ agent: senders[i], to: recv.handle, toEncPublicKey: recv.enc_public_key, grantId: grants[i].grant_id, plaintext: "fair" + "-".repeat(40), t: T }), ip);
+  let sent = 0;
+  let fail = null;
+  for (let i = 0; i < 3 && !fail; i++) for (let k = 0; k < 30; k++) { const x = await sendOne(i, IP); if (x.body.ok) sent++; else { fail = x.body; break; } }
+  assert.equal(sent, 60, "one visitor gets its fair share: " + sent);
+  assert.equal(fail.code, "AGENT-RECEIPT-CAP"); assert.equal(fail.cap_limit, "ip", JSON.stringify(fail).slice(0, 200));
+  // the same owner pair from a second IP is capped by the pair share.
+  const pairFail = await sendOne(2, "203.0.113.61");
+  assert.equal(pairFail.body.code, "AGENT-RECEIPT-CAP"); assert.equal(pairFail.body.cap_limit, "pair");
+  // riders: the receiver still gets deliver + read rows (they don't spend msg).
+  const pl = await postIp(e, "pull", await C.simpleStatement("agent-pull", recv, {}, T), "198.51.100.77");
+  ok(pl.body.count > 0 && pl.body.withheld_no_receipt === 0, JSON.stringify(pl.body).slice(0, 200));
+  const ack = await postIp(e, "ack", await C.simpleStatement("agent-ack", recv, { acks: pl.body.messages.map((m) => ({ msg_id: m.msg_id, verdict: "verified" })) }, T), "198.51.100.77");
+  ok(ack.body.acks.every((a) => a.read === true));
+  // another owner on another IP still sends (the R7 victim).
+  const vo = await newId(); const va = await newId(); const vb = await newId();
+  for (const z of [va, vb]) await postIp(e, "register", await C.registerStatement(z, vo, { t: T }), "192.0.2.77");
+  const vg = await C.grantStatement({ from: va.handle, to: vb.handle, ownerTo: vo, t: T });
+  assert.equal((await postIp(e, "grant", vg.statement, "192.0.2.77")).body.code, "AGENT-OK");
+  const vs = await postIp(e, "send", await C.sendStatement({ agent: va, to: vb.handle, toEncPublicKey: vb.enc_public_key, grantId: vg.grant_id, plaintext: "victim" + "-".repeat(40), t: T }), "192.0.2.77");
+  assert.equal(vs.body.code, "AGENT-OK", JSON.stringify(vs.body).slice(0, 200));
+  S._setAgentClock(null);
+  // the fair-share keys ride beside the row, never in it.
+  const rowsF = await loadChain(storeFor(e), "agentcomms");
+  ok(!JSON.stringify(rowsF).includes("agentcap") && !JSON.stringify(rowsF).includes("203.0.113"), "fair-share keys on the chain");
+  const { agentCommClass, AGENTCOMM_CAP } = await import("../src/agent-state.js");
+  assert.equal(agentCommClass("send"), "msg"); assert.equal(agentCommClass("deliver"), "rider"); assert.equal(agentCommClass("read"), "rider");
+  assert.equal(AGENTCOMM_CAP.per_ip, 60); assert.equal(AGENTCOMM_CAP.per_pair, 60);
+  assert.equal(AGENTCOMM_CAP.total, AGENTCOMM_CAP.classes.msg + AGENTCOMM_CAP.classes.ctl + AGENTCOMM_CAP.classes.refuse);
+}
+n++;
+
+// 33) (N3) revoke and retire set the tombstone BEFORE sealing: a failed seal still leaves the grant dead,
+//     and a later statement re-seals the (idempotent) receipt.
+{
+  const e = mkEnv();
+  const o = await newId(); const a = await newId(); const bb = await newId();
+  for (const z of [a, bb]) await postIp(e, "register", await C.registerStatement(z, o), "198.51.100.133");
+  const g = await C.grantStatement({ from: a.handle, to: bb.handle, ownerTo: o });
+  await postIp(e, "grant", g.statement, "198.51.100.133");
+  S._resetAgentMemo();
+  for (let i = 0; i < S.AGENT_SEAL_CAP_PER_MIN.ctl; i++) await S._burnSealForTest("ctl");
+  const rv = await postIp(e, "revoke", await C.revokeStatement({ grantId: g.grant_id, owner: o }), "198.51.100.133");
+  assert.equal(rv.body.code, "AGENT-OK"); assert.equal(rv.body.revoked, true); assert.equal(rv.body.receipt_pending, true);
+  const s1 = await postIp(e, "send", await C.sendStatement({ agent: a, to: bb.handle, toEncPublicKey: bb.enc_public_key, grantId: g.grant_id, plaintext: "late" + "-".repeat(40) }), "198.51.100.133");
+  assert.equal(s1.body.code, "AGENT-GRANT-REVOKED", "the grant is dead even though the receipt did not seal");
+  S._resetAgentMemo();
+  const rv2 = await postIp(e, "revoke", await C.revokeStatement({ grantId: g.grant_id, owner: o }), "198.51.100.133");
+  assert.equal(rv2.body.code, "AGENT-GRANT-REVOKED"); assert.equal(rv2.body.receipt.sealed, true, "re-sealed");
+  for (let i = 0; i < S.AGENT_SEAL_CAP_PER_MIN.ctl; i++) await S._burnSealForTest("ctl");
+  const rt = await postIp(e, "retire", await C.retireStatement({ agentId: a.handle, owner: o }), "198.51.100.133");
+  assert.equal(rt.body.code, "AGENT-OK"); assert.equal(rt.body.receipt_pending, true);
+  const reg2 = await postIp(e, "register", await C.registerStatement(a, o), "198.51.100.134");
+  ok(["AGENT-RETIRED", "AGENT-REPLAY", "AGENT-EXISTS"].includes(reg2.body.code));
+  const pull = await postIp(e, "pull", await C.simpleStatement("agent-pull", a), "198.51.100.134");
+  assert.equal(pull.body.code, "AGENT-RETIRED");
+  S._resetAgentMemo();
+  // chain order from the race repro: no deliver after a revoke of the same grant.
+  const rows = await loadChain(storeFor(e), "agentcomms");
+  const kinds = rows.map((r) => r.agentcomm.kind);
+  ok(kinds.lastIndexOf("deliver") < kinds.indexOf("revoke") || !kinds.includes("deliver"), kinds.join(","));
+}
+n++;
+
+// 34) (N6) agent refusals over HTTP spend the #302 rest share; through FragGate/MCP the mcp share.
+{
+  const e = mkEnv();
+  const { refusalCapClass } = await import("../src/chainlock/writer-do.js");
+  const x = await postIp(e, "register", { v: "AGENT-SUBNET-1.0", kind: "agent-register" }, "198.51.100.140");
+  assert.equal(x.body.refusal_receipt.sealed, true);
+  let rows = await loadChain(storeFor(e), "refusals");
+  let last = rows[rows.length - 1];
+  assert.equal(last.refusal.via, "rest"); assert.equal(refusalCapClass({ refusal: last.refusal }), "rest");
+  S._resetAgentMemo();
+  // (A different code: one code+verb per minute shares one deduped row, whichever door sealed it first.)
+  const y = await S.runAgentOp("agent-nope", {}, e);
+  assert.equal(y.refusal_receipt.sealed, true);
+  rows = await loadChain(storeFor(e), "refusals");
+  last = rows[rows.length - 1];
+  assert.equal(last.refusal.via, "mcp"); assert.equal(refusalCapClass({ refusal: last.refusal }), "mcp");
+}
+n++;
+
+// 35) (N8) the receipts view checks the signature before any lookup: a bad signature gets the same
+//     answer whether or not the key owns agents.
+{
+  const e = mkEnv();
+  const o = await newId(); await postIp(e, "register", await C.registerStatement(await newId(), o), "198.51.100.150");
+  const stranger = await newId(); const forger = await newId();
+  const out = [];
+  for (const who of [o, stranger]) {
+    const ch = await (await call(C.challengePath(who, "owner"), {}, e)).json();
+    const st = await C.viewStatement({ who: forger, scope: "owner", challenge: ch.challenge });
+    const r = await postIp(e, "receipts", { ...st, subject_public_key: who.public_key }, "198.51.100.150");
+    out.push([r.status, r.body.code]);
+  }
+  assert.deepEqual(out[0], out[1], JSON.stringify(out)); assert.equal(out[0][1], "AGENT-SIG-INVALID");
+}
+n++;
+
+// 36) IPv6 is cut to its /64 before hashing for the agent limits.
+{
+  assert.equal(S.agentIpKey("2001:db8:1:2:aaaa::1"), S.agentIpKey("2001:0db8:0001:0002:bbbb:cccc:dddd:9"));
+  ok(S.agentIpKey("2001:db8:1:2::1") !== S.agentIpKey("2001:db8:1:3::1"));
+  assert.equal(S.agentIpKey("2001:db8:1:2::1"), "2001:db8:1:2::/64");
+  assert.equal(S.agentIpKey("::ffff:192.0.2.1"), "0:0:0:0::/64");
+  assert.equal(S.agentIpKey("192.0.2.1"), "192.0.2.1");
+  const e = mkEnv();
+  const codes = [];
+  for (let i = 0; i < 6; i++) codes.push((await postIp(e, "register", await C.registerStatement(await newId(), await newId()), `2001:db8:77:1:${(i + 1).toString(16)}::${i + 2}`)).body.code);
+  assert.deepEqual(codes, ["AGENT-OK", "AGENT-OK", "AGENT-OK", "AGENT-OK", "AGENT-OK", "AGENT-RATE"], codes.join(","));
+}
+n++;
+
+// 37) (N4/N5) no real-time agentcomms count in public: heads carry the hourly tip, row pages and /row stop
+//     at it, the MCP chainlock_tip refuses agentcomms, and the public snapshot buckets the tip seq.
+{
+  const e = mkEnv();
+  const o = await newId();
+  for (let i = 0; i < 2; i++) await postIp(e, "register", await C.registerStatement(await newId(), o), "198.51.100.160");
+  const h1 = await (await call("/v1/anchor/heads", {}, e)).json();
+  const ac1 = h1.chains.find((c) => c.c === "agentcomms");
+  assert.equal(ac1.hourly, true); assert.equal(ac1.seq, 2);
+  await postIp(e, "register", await C.registerStatement(await newId(), o), "198.51.100.161");
+  S._resetAgentCaches(e);
+  const h2 = await (await call("/v1/anchor/heads", {}, e)).json();
+  assert.equal(h2.chains.find((c) => c.c === "agentcomms").seq, 2, "heads moved inside the hour");
+  const page = await (await call("/v1/anchor/rows?c=agentcomms&from=1&limit=50", {}, e)).json();
+  assert.equal(page.rows.length, 2); assert.equal(page.head_seq, 2); assert.equal(page.next, null);
+  const after = await (await call("/v1/anchor/rows?c=agentcomms&from=3&limit=50", {}, e)).json();
+  assert.equal(after.rows.length, 0);
+  const one = await call("/v1/anchor/row?c=agentcomms&seq=3", {}, e);
+  assert.equal(one.status, 404); assert.equal((await one.json()).code, "AGENT-ROW-NOT-PUBLISHED");
+  const pub = await (await call("/v1/mesh/agents/receipts", {}, e)).json();
+  assert.equal(pub.tip.seq, "<10"); ok(/^[a-f0-9]{64}$/.test(pub.tip.h));
+  const { tip } = await import("../src/chainlock/ops.js");
+  const t = await tip(storeFor(e), "agentcomms");
+  assert.equal(t.ok, false); assert.equal(t.code, "AGENT-TIP-HOURLY"); ok(!("stamp" in t));
+  const rt = await (await call("/v1/receipts/tip", {}, e)).json();
+  const rac = (rt.lattice_tip.chains || []).find((c) => c.c === "agentcomms");
+  assert.equal(rac.seq, 2); assert.equal(rac.hourly, true);
+  const h3 = await nextHour(() => call("/v1/anchor/heads", {}, e).then((r) => r.json()));
+  assert.equal(h3.chains.find((c) => c.c === "agentcomms").seq, 3, "the next hour's tip");
 }
 n++;
 

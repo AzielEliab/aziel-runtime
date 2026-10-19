@@ -56,6 +56,8 @@ export function refusalCapClass(input) {
   const r = (input && input.refusal) || {};
   if (r.surface === "azos" || r.surface === "azinterface") return "peer";
   if (r.surface === "runtime") return "rest";
+  // AGENT-SUBNET-1.0 (additive): agent refusals over HTTP /v1/mesh/agents/* spend the rest share.
+  if (r.surface === "agent-subnet" && r.via === "rest") return "rest";
   return "mcp";
 }
 

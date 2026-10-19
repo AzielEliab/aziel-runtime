@@ -481,6 +481,11 @@ export async function tip(storeOrEnv, chain = "session", caller = "") {
   const store = storeFor(storeOrEnv);
   const name = String(chain || "session").trim() || "session";
   const space = String(caller || "").trim();
+  if (name === "agentcomms") {
+    // AGENT-SUBNET-1.0: the live tip would show the receipt body and time of the newest agent event.
+    // The public reads agentcomms through the hourly snapshot and /v1/anchor/heads instead.
+    return { ok: false, chain: name, refuse: "internal-chain", code: "AGENT-TIP-HOURLY", message: "agentcomms has no live public tip: read GET /v1/mesh/agents/receipts (hourly) or /v1/anchor/heads; owners use POST /v1/mesh/agents/receipts.", v: CL_VERSION };
+  }
   const rows = await loadChain(store, name, space);
   if (!rows.length) {
     return { ok: true, chain: name, tip: null, empty: true };

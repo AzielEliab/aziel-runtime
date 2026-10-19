@@ -21,6 +21,8 @@ export const RATE_MCP_PER_MIN = 240;
 export const RATE_MESH_MUTATE_PER_MIN = 30;
 /** Direct AKM HTTP. FragGate-wrapped memory still uses fraggate_call. */
 export const RATE_MEMORY_MUTATE_PER_MIN = 60;
+/** AGENT-SUBNET-1.0: GET /v1/mesh/agents (status), /directory, /challenge per client IP. */
+export const RATE_AGENT_READ_PER_MIN = 60;
 
 export const TOKEN_HEADER = "X-Aziel-Runtime-Token";
 export const VERSION_HEADER = "X-Aziel-Runtime-Version";
@@ -274,6 +276,9 @@ export function clientIp(request) {
   if (cf && cf.trim()) return cf.trim();
   // AGENT-SUBNET-1.0 (additive): a peer (AZ-OS / azinterface) over the service binding has no
   // cf-connecting-ip and forwards its own visitor's hashed IP, so limiters key per visitor, not "local".
+  // Trust boundary (AZBot N7): Cloudflare sets cf-connecting-ip on every public request, so its absence
+  // means a Worker service binding. Any Worker on this account bound to the runtime could rotate this
+  // header and so rotate its own buckets; only AZ-OS and azinterface are bound today.
   const vh = String(request.headers.get("x-azrt-visitor-ip-h") || "");
   if (/^[a-f0-9]{16,64}$/.test(vh)) return "vh:" + vh.slice(0, 32);
   const xff = request.headers.get("X-Forwarded-For") || request.headers.get("x-forwarded-for");
@@ -295,6 +300,7 @@ function rateStore(env) {
       mcp: new Map(),
       mesh_mutate: new Map(),
       memory_mutate: new Map(),
+      agent_read: new Map(),
     };
   }
   return env.__aziel_rate;
@@ -314,6 +320,7 @@ export function rateLimitForKind(env, kind) {
   if (kind === "mcp") return pick("mcp", RATE_MCP_PER_MIN);
   if (kind === "mesh_mutate") return pick("mesh_mutate", RATE_MESH_MUTATE_PER_MIN);
   if (kind === "memory_mutate") return pick("memory_mutate", RATE_MEMORY_MUTATE_PER_MIN);
+  if (kind === "agent_read") return pick("agent_read", RATE_AGENT_READ_PER_MIN);
   return 0;
 }
 
@@ -358,6 +365,7 @@ const RATE_SCOPES = {
   mcp: "mcp",
   mesh_mutate: "mesh_mutate",
   memory_mutate: "memory_mutate",
+  agent_read: "agent_read",
 };
 
 export function rateLimitDecision(env, request, kind, now = Date.now()) {
