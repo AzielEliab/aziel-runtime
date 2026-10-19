@@ -161,7 +161,7 @@ export const VERSIONS = {
   aznet: "0.1.0",
   azhub: "0.1.0",
   azinterface: "0.1.0",
-  "aziel-corpus": "2.6.2",
+  "aziel-corpus": "2.7.0",
   "4dmap": "0.3.0",
   azcoherence: "0.1.0",
   embryolock: "1.2.0",
@@ -282,6 +282,9 @@ export function softwareDepositNeeded(_slug, _doi) {
   return true;
 }
 
+/** Real tracker asset basename when it differs from the catalog slug. */
+export const TARBALL_BASENAME = Object.freeze({ zsolver: "zion-pattern-solver" });
+
 export function softwareTarball(slug, version, downloadUrl) {
   if (!downloadUrl) return null;
   if (slug === "aziel-corpus") {
@@ -294,7 +297,7 @@ export function softwareTarball(slug, version, downloadUrl) {
   }
   return {
     url: downloadUrl,
-    filename: version ? `${slug}-${version}.tar.gz` : `${slug}.tar.gz`,
+    filename: version ? `${TARBALL_BASENAME[slug] || slug}-${version}.tar.gz` : `${TARBALL_BASENAME[slug] || slug}.tar.gz`,
     content_type: "application/gzip",
     note: "Counted Worker /download asset (gzip 200). Upload this file as the Zenodo software package.",
   };
