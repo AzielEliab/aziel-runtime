@@ -1,0 +1,25 @@
+diff --git a/scripts/witness.mjs b/scripts/witness.mjs
+index aa64763..fb14ea2 100644
+--- a/scripts/witness.mjs
++++ b/scripts/witness.mjs
+@@ -28,7 +28,9 @@ for (const name of ["aznews", "4dmap"]) {
+ // EXTERNAL-HEADS-1.0: godlock.uk ledger head and corpus receipt tip, read from their own endpoints.
+ const external = await readExternalHeads();
+ const sameHeads = last && canonicalize(last.statement.heads.chains) === canonicalize(heads.chains) && canonicalize(last.statement.heads.stores) === canonicalize(heads.stores) &&
+-  canonicalize(headsOnly(last.statement.external)) === canonicalize(headsOnly(external));
++  canonicalize(headsOnly(last.statement.external)) === canonicalize(headsOnly(external)) &&
++  // AZRT-KEYS-1.0: a receipt key change (new epoch) is anchored even when no head moved.
++  canonicalize(last.statement.receipt_key ?? null) === canonicalize(heads.receipt_key ?? null);
+ // RIB-041: a redeploy (new git_sha / version_id) is anchored even when no head moved.
+ const build = buildOf(heads);
+ const src = buildSource(heads);
+@@ -55,6 +57,9 @@ const statement = {
+   // Additive (RIB-041 AZRT-BUILD-WITNESS-1.0): deploy version_id + git_sha, signed with the heads.
+   build,
+   heads: { chains: heads.chains, stores: heads.stores, version: heads.version, git_sha: heads.git_sha, at: heads.at },
++  // Additive (AZRT-KEYS-1.0): the runtime's held receipt key (public parts) or null, so each receipt key
++  // epoch is recorded in this signed log. Statements before this field verify unchanged.
++  receipt_key: heads.receipt_key ?? null,
+   independent,
+   external,
+   witness: { repo: "AzielEliab/aziel-anchors", run_id: process.env.GITHUB_RUN_ID || null, key: "keys/witness.pub" },
