@@ -227,9 +227,10 @@ async function appendInternal(store, input) {
 }
 
 /** RIB-018: seal one refusal. Returns the receipt view put on the refuse envelope. */
-export async function sealRefusal(store, { code, tool, slug, op, args, goal, prior, context, schemaHash, minuteBucket = Math.floor(Date.now() / 60000) }) {
+export async function sealRefusal(store, { code, tool, slug, op, args, goal, prior, context, schemaHash, minuteBucket = Math.floor(Date.now() / 60000), extra = null }) {
   const digest = await argsDigest(args);
-  const refusal = { spec: REFUSAL_SPEC, code, tool: tool || null, slug: slug || null, op: op || null, args_digest: digest };
+  // Addendum (RIB-018 gaps, src/refusal-doors.js): additive kind/surface/door/reason/status/route.
+  const refusal = { spec: REFUSAL_SPEC, code, tool: tool || null, slug: slug || null, op: op || null, args_digest: digest, ...(extra && typeof extra === "object" ? extra : {}) };
   const input = {
     c: REFUSAL_CHAIN,
     k: "refusal",
@@ -249,6 +250,8 @@ export async function sealRefusal(store, { code, tool, slug, op, args, goal, pri
     if (!out || !out.ok) return { spec: REFUSAL_SPEC, sealed: false, reason: (out && (out.refuse || out.code)) || "append-failed" };
     return {
       spec: REFUSAL_SPEC,
+      kind: "refusal",
+      code,
       sealed: true,
       chain: REFUSAL_CHAIN,
       seq: out.seq + 1,
