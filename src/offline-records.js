@@ -248,7 +248,11 @@ export async function writeStoreRows(path, pages) {
   return { count, rows_sha256: h.digest("hex"), tip: last ? { seq: last.seq, primary: last.lattice && last.lattice.primary, secondary: last.lattice && last.lattice.secondary } : null };
 }
 
-/** Read a store sidecar file: { rows, rows_sha256 } (hash over the exact bytes, line by line). */
+/**
+ * Read a store sidecar file: { rows, rows_sha256 }. The hash is over the canonical lines (each non-blank line
+ * plus "\n"; blank lines are skipped and CRLF reads as LF), not over the raw file bytes. A file written by
+ * writeStoreRows hashes the same either way.
+ */
 export async function readStoreRows(path) {
   const h = createHash("sha256");
   const rows = [];
@@ -285,12 +289,29 @@ export async function checkStore(name, meta, rows, { trustKey = null } = {}) {
     const cc = await checkCheckpoints(cps.filter((c) => c.to_seq <= rows.length), { publicKey: key, rowAt: async (seq) => rows[seq - 1] || null });
     if (!cc.ok) return { ok: false, code: "OFFLINE-STORE-CHECKPOINT", store: name, n: cc.n, why: cc.reason };
   }
-  return { ok: true, code: "OFFLINE-STORE-OK", store: name, rows: rows.length, checkpoints: cps.length, checkpoint_key: key, checkpoint_key_pinned: Boolean(trustKey) };
+  const out = { ok: true, code: "OFFLINE-STORE-OK", store: name, rows: rows.length, checkpoints: cps.length, checkpoint_key: key, checkpoint_key_pinned: Boolean(trustKey) };
+  if (name === "4dmap") {
+    // Raw rows keep retracted pins (append-only). Report them so a reader can apply the same rule as
+    // /v1/4dmap/pins (hidden unless include_retracted): a pin superseded by a later retraction row.
+    const { hiddenPinsOffline } = await import("./store-rows-http.js");
+    const hidden = hiddenPinsOffline(rows);
+    out.retracted_pins = { hidden: hidden.size, retraction_rows: rows.filter((r) => r && r.kind === "map_pin" && r.doc && r.doc.retracted).length, rule: "hidden = a map_pin row whose source_id has a later retraction row; both stay in the rows (append-only)" };
+  }
+  return out;
 }
 
-async function* pagedRows(fetchImpl, origin, name, limit) {
+/** Pages that answer 429 (the origin's light rows limit) are retried after Retry-After, at most this many times each. */
+export const STORE_PAGE_RETRIES = 12;
+const sleepMs = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function* pagedRows(fetchImpl, origin, name, limit, { sleep = sleepMs } = {}) {
   for (let from = 1; ; from += limit) {
-    const r = await fetchImpl(`${origin}/v1/${name}/rows?from=${from}&limit=${limit}`);
+    let r = await fetchImpl(`${origin}/v1/${name}/rows?from=${from}&limit=${limit}`);
+    for (let tries = 0; r && r.status === 429 && tries < STORE_PAGE_RETRIES; tries++) {
+      const wait = Math.min(60, Math.max(1, Number(r.headers && r.headers.get && r.headers.get("retry-after")) || 1));
+      await sleep(wait * 1000);
+      r = await fetchImpl(`${origin}/v1/${name}/rows?from=${from}&limit=${limit}`);
+    }
     const j = await r.json().catch(() => null);
     if (!j || !j.ok || !Array.isArray(j.rows)) throw Object.assign(new Error("store rows page refused"), { code: (j && j.code) || "OFFLINE-STORE-PULL-REFUSED", from });
     if (!j.rows.length) return;
@@ -313,13 +334,13 @@ async function pullCheckpoints(fetchImpl, origin, name) {
 }
 
 /** Pull the stores of a live origin into storesDir. Returns { stores, skipped }. */
-export async function pullStores(origin, storesDir, { fetchImpl = fetch, limit = STORE_PAGE, names = STORE_NAMES } = {}) {
+export async function pullStores(origin, storesDir, { fetchImpl = fetch, limit = STORE_PAGE, names = STORE_NAMES, sleep = sleepMs } = {}) {
   const stores = {};
   const skipped = {};
   for (const name of names) {
     try {
       const checkpoints = await pullCheckpoints(fetchImpl, origin, name);
-      const w = await writeStoreRows(join(storesDir, storeFile(name)), pagedRows(fetchImpl, origin, name, limit));
+      const w = await writeStoreRows(join(storesDir, storeFile(name)), pagedRows(fetchImpl, origin, name, limit, { sleep }));
       if (!w.count) { skipped[name] = "OFFLINE-STORE-EMPTY"; continue; }
       stores[name] = { spec: STORES_SPEC, file: storeFile(name), count: w.count, rows_sha256: w.rows_sha256, tip: w.tip, checkpoints: checkpoints.filter((c) => c.to_seq <= w.count) };
     } catch (err) {

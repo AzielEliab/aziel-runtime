@@ -116,7 +116,15 @@ export class AzNewsStore {
           const limit = Math.max(1, Math.min(STORE_ROWS_PAGE_MAX, Math.floor(Number(p.limit)) || 200));
           const to = Math.min(total, from + limit - 1);
           const rows = from <= total ? await repo.rowRange(from, to) : [];
-          return { ok: true, spec: "OFFLINE-RECORDS-1.0", store: this.baseName(), total, from, to: from <= total ? to : from - 1, count: rows.length, rows };
+          // Follow-up (AZBot review of #310): the signed checkpoint tip, so the edge can cache pages below it.
+          const cpTip = await repo.metaGet("cp_tip");
+          const out = { ok: true, spec: "OFFLINE-RECORDS-1.0", store: this.baseName(), total, from, to: from <= total ? to : from - 1, count: rows.length, checkpoint_tip_seq: (cpTip && Number(cpTip.to_seq)) || 0, rows };
+          if (p.marks === true && this.baseName() === "4dmap-v1") {
+            const { pinMarks } = await import("./store-rows-http.js");
+            out.marks = await pinMarks(rows, (k) => repo.seenGet(k));
+            out.marks_rule = "View marks only (never part of the rows or their hashes): retraction = a row that retracts an earlier pin (hides_seq); hidden = a pin whose source id is now retracted (retracted_by_seq). /v1/4dmap/pins hides both unless ?include_retracted=1.";
+          }
+          return out;
         }
         if (op === "ledger") return this.ledger();
         if (op === "checkpoints") return { ok: true, checkpoints: await checkpointsAfter(repo, Number((body.payload || {}).after) || 0, { max: 50 }) };
