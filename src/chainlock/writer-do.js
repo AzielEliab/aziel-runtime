@@ -38,6 +38,41 @@ async function readJson(request) {
   }
 }
 
+
+/** RIB-018 follow-up: global per-minute cap on new `refusals` rows; peers (azos/azinterface) get a sub-cap. */
+export const REFUSAL_CAP = Object.freeze({
+  chain: "refusals",
+  total: 600,
+  // Per-class shares (sum 600), so one class can't starve another (AZBot review of #302).
+  classes: Object.freeze({ rest: 240, mcp: 240, peer: 120 }),
+  peer: 120,
+  // Rows that differ only by goal_id (or the prior refusal they follow): at most this many per minute
+  // for one door + code + route shape across all goal variants.
+  variant: 30,
+});
+
+/** Which share a new refusal row spends: peer (azos/azinterface reports), rest (runtime REST doors), mcp (FragGate/MCP door). */
+export function refusalCapClass(input) {
+  const r = (input && input.refusal) || {};
+  if (r.surface === "azos" || r.surface === "azinterface") return "peer";
+  if (r.surface === "runtime") return "rest";
+  return "mcp";
+}
+
+/**
+ * The row's shape with goal_key / follows left out: rows sharing it differ only by goal (or prior).
+ * Built from the same bounded names the dedupe key uses (slug || "other", op || "other") plus
+ * code / tool / door / route template / status (tool is checked against the listed tools before here). Caller-shaped hashes (slug_sha256, op_sha256, route_sha256)
+ * are left out, so varying a junk op or path together with goal_id can't mint a fresh shape.
+ */
+async function refusalVariantKey(input) {
+  const r = (input && input.refusal) || {};
+  const shape = [r.code, r.tool, r.slug || "other", r.op || "other", r.door, r.route, r.status].map((x) => (x == null ? "" : String(x))).join("|");
+  const bytes = new TextEncoder().encode(shape);
+  const d = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+  return Array.from(d.slice(0, 8), (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 export class ChainWriter {
   constructor(ctx, env) {
     this.ctx = ctx;
@@ -88,6 +123,35 @@ export class ChainWriter {
     if (idempKey) {
       const hit = await this._get("idemp:" + idempKey);
       if (hit && hit.ok && hit.record) return { ...hit, replayed: true, ok: true };
+    }
+    // RIB-018 follow-up: global per-minute cap on NEW refusal rows (this writer is the only one for the
+    // chain, so it is a true global bound), split into per-class shares (rest / mcp / peer) plus a
+    // goal-variant sub-cap. Checked here; counted only after the row is written (failed writes spend nothing).
+    let capCommit = null;
+    if (String(src.chain || "") === REFUSAL_CAP.chain && src.input && src.input.k === "refusal") {
+      const minute = Math.floor(Date.now() / 60000);
+      const prevCap = await this._get("refcap");
+      const cap = prevCap && prevCap.m === minute && prevCap.cls ? prevCap : { m: minute, total: 0, cls: { rest: 0, mcp: 0, peer: 0 }, v: {} };
+      const cls = refusalCapClass(src.input);
+      const vk = await refusalVariantKey(src.input);
+      const share = REFUSAL_CAP.classes[cls];
+      let why = null;
+      let limit = null;
+      if (cap.total >= REFUSAL_CAP.total) { limit = "total"; why = `global refusal seal cap ${REFUSAL_CAP.total}/min reached`; }
+      else if ((cap.cls[cls] || 0) >= share) { limit = "class"; why = `${cls} refusal share ${share}/min reached`; }
+      else if ((cap.v[vk] || 0) >= REFUSAL_CAP.variant) { limit = "variant"; why = `goal-variant sub-cap ${REFUSAL_CAP.variant}/min for this door+code+route reached`; }
+      if (why) {
+        // cap_limit / cap_minute (additive) let isolates memo "class full until the end of this minute".
+        return { ok: false, refuse: "refusal-cap", code: "REFUSAL-GLOBAL-CAP", cap_class: cls, cap_limit: limit, cap_minute: minute, written: false, message: `${why}; the refusal still stands`, v: CL_VERSION };
+      }
+      capCommit = async () => {
+        const cur = await this._get("refcap");
+        const c = cur && cur.m === minute && cur.cls ? cur : { m: minute, total: 0, cls: { rest: 0, mcp: 0, peer: 0 }, v: {} };
+        c.total++;
+        c.cls[cls] = (c.cls[cls] || 0) + 1;
+        c.v[vk] = (c.v[vk] || 0) + 1;
+        await this._put("refcap", c);
+      };
     }
     // AGENT-SUBNET-1.0: agentcomms receipt caps (per-class shares + per-agent refuse cap), counted after the write.
     let agentCapCommit = null;
@@ -158,6 +222,7 @@ export class ChainWriter {
       nextMeta.lt = meta.lt;
     }
     await this._put("meta", nextMeta);
+    if (capCommit) await capCommit();
     if (agentCapCommit) await agentCapCommit();
     // AZRT-GOAL-LINK-1.0: a refusal (or follow) stamp that names a goal key leaves a pointer
     // so the agent's next action on the same goal, through any tool, can link back to it.
