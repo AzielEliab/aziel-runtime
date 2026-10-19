@@ -4797,13 +4797,20 @@ async function handleRequest(request, env, ctx) {
       return json(await pushAll(env), 200, authorityLinkHeaders(origin, url.pathname));
     }
 
+    if (url.pathname === "/v1/receipts/refusals" && (request.method === "GET" || request.method === "HEAD")) {
+      // AZRT-REFUSAL-RECEIPT-1.0 addendum: find refusal receipts (newest first, or ?seq=N).
+      const { listRefusalReceipts } = await import("./refusal-doors.js");
+      const got = await listRefusalReceipts(env && env.CHAINLOCK ? storeFor(env) : null, url);
+      return asHead(request, json(got.body, got.status, authorityLinkHeaders(origin, url.pathname)));
+    }
+
     if (url.pathname === "/v1/receipts" || url.pathname.startsWith("/v1/receipts/")) {
       const out = await dispatchActReceiptHttp(request.method, url.pathname, env);
       // RECEIPTS-LATTICE-TIP-1.0 (additive): the runtime's own ChainLock lattice tips ride beside the
       // corpus act-receipt tip. The corpus tip field is untouched; an empty corpus tip stays not-success.
       if ((url.pathname === "/v1/receipts" || url.pathname === "/v1/receipts/tip") && (request.method === "GET" || request.method === "HEAD") && out && out.body && typeof out.body === "object") {
         const { runtimeLatticeTip } = await import("./receipts-lattice-tip.js");
-        out.body = { ...out.body, lattice_tip: await runtimeLatticeTip(env, env && env.CHAINLOCK ? storeFor(env) : null) };
+        out.body = { ...out.body, lattice_tip: await runtimeLatticeTip(env, env && env.CHAINLOCK ? storeFor(env) : null), refusal_receipts: "/v1/receipts/refusals" };
       }
       return asHead(
         request,
@@ -4977,6 +4984,11 @@ export default {
     const env = withDurableKv(rawEnv);
     const budget = requestDeadlineMs(env);
     const run = async () => {
+      // AZRT-REFUSAL-RECEIPT-1.0 addendum: AZ-OS / azinterface refusals arrive only over the service binding.
+      if (new URL(request.url).hostname === "peer.aziel.internal") {
+        const { handlePeerRefusal } = await import("./refusal-doors.js");
+        return handlePeerRefusal(request, { store: env && env.CHAINLOCK ? storeFor(env) : null, ctx });
+      }
       const peek = String(request.method || "GET").toUpperCase() === "POST" ? request.clone() : request;
       const inbound = await gateInbound(request, env, json);
       if (inbound.response) return inbound.response;
@@ -4986,7 +4998,14 @@ export default {
       return finishWithActReceipt(peek, env, ctx, used);
     };
     const execute = () => (env && env.CHAINLOCK ? runWithLedgerStore(storeFor(env), run) : run());
-    const result = await withDeadline(execute(), budget, () => json(deadlineRefuse(budget), 408));
+    let result = await withDeadline(execute(), budget, () => json(deadlineRefuse(budget), 408));
+    // AZRT-REFUSAL-RECEIPT-1.0 addendum (RIB-018 gaps): non-auth refusals on the REST doors (fraggate,
+    // mesh/onboarding, tether, memory/lattice, qns, interface, pull, proxy) get the same sealRefusal
+    // receipt on the internal refusals chain. Additive field + header; the refusal itself is unchanged.
+    if (result && Number(result.status) >= 400) {
+      const { withDoorRefusalReceipt } = await import("./refusal-doors.js");
+      result = await withDoorRefusalReceipt(request, result, { store: env && env.CHAINLOCK ? storeFor(env) : null, ctx });
+    }
     if (ctx && typeof ctx.waitUntil === "function") {
       // AZRT-ANCHOR-1.0: refresh the verified witness view after the response (never blocks a mint;
       // registered last so it never reorders other waitUntil work).

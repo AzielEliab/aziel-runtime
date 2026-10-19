@@ -227,9 +227,10 @@ async function appendInternal(store, input) {
 }
 
 /** RIB-018: seal one refusal. Returns the receipt view put on the refuse envelope. */
-export async function sealRefusal(store, { code, tool, slug, op, args, goal, prior, context, schemaHash, minuteBucket = Math.floor(Date.now() / 60000) }) {
+export async function sealRefusal(store, { code, tool, slug, op, args, goal, prior, context, schemaHash, minuteBucket = Math.floor(Date.now() / 60000), extra = null }) {
   const digest = await argsDigest(args);
-  const refusal = { spec: REFUSAL_SPEC, code, tool: tool || null, slug: slug || null, op: op || null, args_digest: digest };
+  // Addendum (RIB-018 gaps, src/refusal-doors.js): additive kind/surface/door/reason/status/route.
+  const refusal = { spec: REFUSAL_SPEC, code, tool: tool || null, slug: slug || null, op: op || null, args_digest: digest, ...(extra && typeof extra === "object" ? extra : {}) };
   const input = {
     c: REFUSAL_CHAIN,
     k: "refusal",
@@ -249,6 +250,8 @@ export async function sealRefusal(store, { code, tool, slug, op, args, goal, pri
     if (!out || !out.ok) return { spec: REFUSAL_SPEC, sealed: false, reason: (out && (out.refuse || out.code)) || "append-failed" };
     return {
       spec: REFUSAL_SPEC,
+      kind: "refusal",
+      code,
       sealed: true,
       chain: REFUSAL_CHAIN,
       seq: out.seq + 1,
@@ -307,6 +310,18 @@ export function attachToResult(out, key, value) {
   return out;
 }
 
+/** Inner op refusal under an accepted envelope: result.ok false + stable code + fail_closed or written:false. */
+export function innerOpRefusal(env) {
+  let r = env && env.result;
+  // MCP fraggate_call nests the FragGate envelope one level deeper (result.result is the op's answer).
+  if (r && typeof r === "object" && r.ok !== false && r.door && r.result && typeof r.result === "object") r = r.result;
+  if (!r || typeof r !== "object" || Array.isArray(r) || r.ok !== false) return null;
+  if (!(r.fail_closed === true || r.written === false)) return null;
+  const code = typeof r.code === "string" ? r.code : null;
+  if (!code || !/^[A-Z0-9][A-Z0-9-]{1,63}$/.test(code) || /TOKEN/.test(code)) return null;
+  return { code, reason: String(r.message || r.reason || "").slice(0, 160) };
+}
+
 /**
  * Wrap one MCP tools/call. call() runs the existing door unchanged.
  */
@@ -331,11 +346,15 @@ export async function guardToolCall({ store, request, name, args, schemaHash, ca
     out = await runWithCallMeta(meta, () => call());
   }
   const env = envelopeOf(out);
-  const code = refusalCodeOf(env, out);
+  let code = refusalCodeOf(env, out);
+  // RIB-018 addendum: an op that refuses inside an accepted door envelope (e.g. memory lattice-learn
+  // LATTICE-LEARN-BAD-CHAIN: envelope FG-OK, result ok:false, fail_closed / written:false) is a refusal too.
+  const inner = !code ? innerOpRefusal(env) : null;
+  if (inner) code = inner.code;
   const slug = String(src.slug || src.name || src.product || "") || null;
   const op = src.op ? String(src.op) : null;
   if (code) {
-    const receipt = await sealRefusal(store, { code, tool: name, slug, op, args: src, goal, prior, context, schemaHash });
+    const receipt = await sealRefusal(store, { code, tool: name, slug, op, args: src, goal, prior, context, schemaHash, extra: inner ? { kind: "refusal", door: "op", reason: inner.reason } : null });
     attachToResult(out, "refusal_receipt", receipt);
   } else if (prior && prior.open) {
     const follow = await sealFollow(store, { prior, goal, tool: name, slug, op, outcome: env && (env.ok === false || Number(out && out.status) >= 400) ? "error" : "accepted", code: env && env.code, args: src, context, schemaHash });
