@@ -3122,7 +3122,8 @@ function catalogProxyPaths() {
 
 async function combinedOpenApi(request, env) {
   const origin = originOf(request);
-  const paths = { ...staticPaths(origin, env), ...catalogProxyPaths() };
+  const refusalDocs = await import("./refusal-doors.js");
+  const paths = { ...staticPaths(origin, env), ...catalogProxyPaths(), ...refusalDocs.refusalOpenApiPaths() };
   return {
     openapi: "3.1.0",
     info: {
@@ -3223,7 +3224,7 @@ async function combinedOpenApi(request, env) {
           scheme: "bearer",
           bearerFormat: "RUNTIME_TOKEN",
           description:
-            "Operator bearer for session mutate (open/policy/exec/close/pause/resume) and MCP session tools when REQUIRE_TOKEN=1. Public FragGate call stays open. " +
+            "Operator bearer for session mutate (open/policy/exec/close/pause/resume/stale/revoke) and MCP session tools when REQUIRE_TOKEN=1. Public FragGate call stays open. " +
             tokenAuthSentence(),
         },
         IssuerKey: {
@@ -3231,11 +3232,14 @@ async function combinedOpenApi(request, env) {
           in: "header",
           name: "X-Azrt-Issuer-Key",
           description:
-            "Session issuer key, returned once by POST /v1/session/open; only its hash is sealed at genesis. Required for stale, revoke, pause and resume; anything else is 403 CL-NOT-ISSUER with the chain unchanged.",
+            "Session issuer key, returned once by POST /v1/session/open; only its hash is sealed at genesis. Required for stale, revoke, pause and resume, in addition to RuntimeToken (both, never either); anything else is 403 CL-NOT-ISSUER with the chain unchanged.",
         },
       },
-      schemas: attemptOpenApiSchemas(),
+      schemas: { ...attemptOpenApiSchemas(), RefusalReceipt: refusalDocs.refusalReceiptSchema() },
+      // AZRT-REFUSAL-RECEIPT-1.0 (additive): header on sealed-door refusals.
+      headers: { "X-Azrt-Refusal-Receipt": refusalDocs.REFUSAL_RECEIPT_HEADER_DOC },
     },
+    "x-refusal-receipt": "Sealed-door refusals add `refusal_receipt` (#/components/schemas/RefusalReceipt) to the body and the X-Azrt-Refusal-Receipt header (#/components/headers/X-Azrt-Refusal-Receipt). Doors: MCP and POST /v1/fraggate/call (incl. op refusals inside FG-OK), /v1/fraggate*, /v1/mesh* (incl. install/install.sh), /v1/tether*, /v1/memory*, /v1/qns*, /v1/interface, /v1/pull/*, /p/* (4xx only; 5xx are upstream errors, X-Azrt-Upstream-Error), plus AZ-OS and azinterface reports. Find: GET /v1/receipts/refusals.",
     paths,
   };
 }
@@ -5002,6 +5006,7 @@ export default {
     // Hot USES writes go to the RUNTIME_KV Durable Object (KV daily put quota made /mcp throw 1101).
     const env = withDurableKv(rawEnv);
     const budget = requestDeadlineMs(env);
+    const startedAt = Date.now();
     const run = async () => {
       // AZRT-REFUSAL-RECEIPT-1.0 addendum: AZ-OS / azinterface refusals arrive only over the service binding.
       if (new URL(request.url).hostname === "peer.aziel.internal") {
@@ -5023,7 +5028,10 @@ export default {
     // receipt on the internal refusals chain. Additive field + header; the refusal itself is unchanged.
     if (result && Number(result.status) >= 400) {
       const { withDoorRefusalReceipt } = await import("./refusal-doors.js");
-      result = await withDoorRefusalReceipt(request, result, { store: env && env.CHAINLOCK ? storeFor(env) : null, ctx });
+      // The seal never runs past the request deadline: what is left of it (minus 50 ms) is the seal budget;
+      // nothing left means the write goes to the background and the receipt says receipt_pending.
+      const left = budget - (Date.now() - startedAt) - 50;
+      result = await withDoorRefusalReceipt(request, result, { store: env && env.CHAINLOCK ? storeFor(env) : null, ctx, budgetMs: Number.isFinite(left) ? left : undefined });
     }
     if (ctx && typeof ctx.waitUntil === "function") {
       // AZRT-ANCHOR-1.0: refresh the verified witness view after the response (never blocks a mint;

@@ -1046,9 +1046,29 @@ const SESSION_ID_PARAM = { name: "id", in: "path", required: true, schema: { typ
 const ISSUER_KEY_PARAM = { name: "X-Azrt-Issuer-Key", in: "header", required: true, description: "Issuer key returned once by POST /v1/session/open (only its hash is sealed). Header only; a key in the body is ignored.", schema: { type: "string" } };
 const ISSUER_403 = "CL-NOT-ISSUER: X-Azrt-Issuer-Key missing (reason missing_key), wrong (wrong_key), or the session recorded no issuer at genesis (no_issuer). written:false; the chain is unchanged.";
 const TOKEN_401 = "token_required or token_mismatch (REQUIRE_TOKEN=1). Send Authorization: Bearer <RUNTIME_TOKEN> or X-Aziel-Runtime-Token.";
+const TOKEN_400 = "TOKEN-QUERY-REFUSED (token in the query string; the token is header-only)";
+const TOKEN_429 = "rate limit exceeded (anon_mutate scope): repeated token_required attempts. Retry-After and X-RateLimit-* headers set.";
+const TOKEN_503 = "token_not_configured (REQUIRE_TOKEN=1 without RUNTIME_TOKEN) or session_binding_missing (no SESSION Durable Object binding)";
+const SESSION_500 = "session_error: unexpected failure inside the session object (no receipt is claimed)";
+const SESSION_503 = "session_binding_missing (no SESSION Durable Object binding)";
+const PAUSED_409 = "SESSION-PAUSED (session is paused; POST /resume first). Refused before any row is appended, so a later resume still matches the frozen head (written:false).";
+
+/** Every session route goes through the SESSION Durable Object: document its binding and internal failures. */
+function withSessionErrors(paths) {
+  for (const [p, ops] of Object.entries(paths)) {
+    if (!p.startsWith("/v1/session/")) continue;
+    for (const op of Object.values(ops)) {
+      op.responses = op.responses || {};
+      if (!op.responses["500"]) op.responses["500"] = { description: SESSION_500 };
+      if (!op.responses["503"]) op.responses["503"] = { description: SESSION_503 };
+      else if (!/session_binding_missing/.test(op.responses["503"].description)) op.responses["503"].description += "; or " + SESSION_503;
+    }
+  }
+  return paths;
+}
 
 export function runtimeStaticPaths() {
-  return {
+  return withSessionErrors({
     "/v1/session/open": {
       post: {
         operationId: "runtime_session_open",
@@ -1219,12 +1239,21 @@ export function runtimeStaticPaths() {
         responses: { "200": { description: "Public session view" }, "404": { description: "session_not_found" } },
       },
     },
+    "/v1/session/{id}/status": {
+      get: {
+        operationId: "runtime_session_status_alias",
+        summary: "Alias of GET /v1/session/{id} (public, read-only session status).",
+        tags: ["session"],
+        parameters: [SESSION_ID_PARAM],
+        responses: { "200": { description: "Public session view" }, "404": { description: "session_not_found" } },
+      },
+    },
     "/v1/session/{id}/stale": {
       post: {
         operationId: "runtime_session_stale",
-        security: [{ IssuerKey: [] }],
+        security: [{ RuntimeToken: [], IssuerKey: [] }],
         summary:
-          "RIB-014: append a stale stamp against the sealed spec (append-only; never edits stamp #1). Issuer-only: send the key returned once at open as X-Azrt-Issuer-Key. Not behind the runtime token gate.",
+          "RIB-014: append a stale stamp against the sealed spec (append-only; never edits stamp #1). Token-gated (REQUIRE_TOKEN=1) AND issuer-only: send the key returned once at open as X-Azrt-Issuer-Key. Refused SESSION-PAUSED while paused. Refusals write no row.",
         tags: ["session"],
         parameters: [SESSION_ID_PARAM, ISSUER_KEY_PARAM],
         requestBody: {
@@ -1233,19 +1262,22 @@ export function runtimeStaticPaths() {
         },
         responses: {
           "200": { description: "Stale receipt appended + spec_stale + verified" },
-          "400": { description: "bad_json or SPEC-STALE-INVALID" },
+          "400": { description: "bad_json, SPEC-STALE-INVALID, or " + TOKEN_400 },
+          "401": { description: TOKEN_401 },
           "403": { description: ISSUER_403 },
           "404": { description: "session_not_found" },
-          "409": { description: "session_closed, SPEC-STALE-NO-SPEC (no spec sealed at genesis) or SPEC-STALE-SAME-VERSION" },
+          "409": { description: "session_closed, SPEC-STALE-NO-SPEC (no spec sealed at genesis), SPEC-STALE-SAME-VERSION, or " + PAUSED_409 },
+          "429": { description: TOKEN_429 },
+          "503": { description: TOKEN_503 },
         },
       },
     },
     "/v1/session/{id}/revoke": {
       post: {
         operationId: "runtime_session_revoke",
-        security: [{ IssuerKey: [] }],
+        security: [{ RuntimeToken: [], IssuerKey: [] }],
         summary:
-          "RIB-015: issuer-only revocation (append-only). After it, exec refuses SPEC-REVOKED and a verdict close refuses. Send X-Azrt-Issuer-Key. Not behind the runtime token gate.",
+          "RIB-015: issuer-only revocation (append-only, permanent). After it, exec refuses SPEC-REVOKED and a verdict close refuses. Token-gated (REQUIRE_TOKEN=1) AND issuer-only (X-Azrt-Issuer-Key). Refused SESSION-PAUSED while paused. Refusals write no row.",
         tags: ["session"],
         parameters: [SESSION_ID_PARAM, ISSUER_KEY_PARAM],
         requestBody: {
@@ -1254,10 +1286,13 @@ export function runtimeStaticPaths() {
         },
         responses: {
           "200": { description: "Revoke receipt appended + verified" },
-          "400": { description: "bad_json or REVOKE-INVALID (reason must be 1-512 chars)" },
+          "400": { description: "bad_json, REVOKE-INVALID (reason must be 1-512 chars), or " + TOKEN_400 },
+          "401": { description: TOKEN_401 },
           "403": { description: ISSUER_403 },
           "404": { description: "session_not_found" },
-          "409": { description: "session_closed or REVOKE-DUPLICATE" },
+          "409": { description: "session_closed, REVOKE-DUPLICATE, or " + PAUSED_409 },
+          "429": { description: TOKEN_429 },
+          "503": { description: TOKEN_503 },
         },
       },
     },
@@ -1281,12 +1316,13 @@ export function runtimeStaticPaths() {
         requestBody: { required: false, content: { "application/json": { schema: { type: "object" } } } },
         responses: {
           "200": { description: "Freeze receipt + freeze { freeze_head, queue }" },
-          "400": { description: "bad_json, or TOKEN-QUERY-REFUSED (token in the query string)" },
+          "400": { description: "bad_json, or " + TOKEN_400 },
           "401": { description: TOKEN_401 },
           "403": { description: ISSUER_403 },
           "404": { description: "session_not_found" },
           "409": { description: "session_closed or SESSION-PAUSED (already paused)" },
-          "503": { description: "token_not_configured (REQUIRE_TOKEN=1 without RUNTIME_TOKEN)" },
+          "429": { description: TOKEN_429 },
+          "503": { description: TOKEN_503 },
         },
       },
     },
@@ -1304,12 +1340,13 @@ export function runtimeStaticPaths() {
         },
         responses: {
           "200": { description: "Resume receipt + resume { anchor: { level } }" },
-          "400": { description: "bad_json, or TOKEN-QUERY-REFUSED (token in the query string)" },
+          "400": { description: "bad_json, or " + TOKEN_400 },
           "401": { description: TOKEN_401 },
           "403": { description: ISSUER_403 },
           "404": { description: "session_not_found" },
           "409": { description: "session_closed, RESUME-ANCHOR-MISMATCH (chain no longer matches the frozen head; a refusal receipt is sealed) or RESUME-ANCHOR-NOT-CHECKED (strict, not witnessed; a refusal receipt is sealed)" },
-          "503": { description: "token_not_configured (REQUIRE_TOKEN=1 without RUNTIME_TOKEN)" },
+          "429": { description: TOKEN_429 },
+          "503": { description: TOKEN_503 },
         },
       },
     },
@@ -2507,5 +2544,5 @@ export function runtimeStaticPaths() {
         },
       },
     },
-  };
+  });
 }

@@ -40,7 +40,9 @@ const r1 = sc(refused);
 assert.equal(r1.code, "MCP-CONFIRM-REQUIRED");
 assert.equal(r1.refusal_receipt.sealed, true, JSON.stringify(r1.refusal_receipt));
 assert.equal(r1.refusal_receipt.chain, "refusals");
-assert.equal(r1.refusal_receipt.goal_key, "goal:g-fold-1");
+// RIB-018 follow-up: the goal id is stored hashed (goal:<sha256(goal_id)[:16]>), never as typed.
+assert.equal(r1.refusal_receipt.goal_key, "goal:83576ac0c5891821");
+assert.equal(JSON.stringify(r1.refusal_receipt).includes("g-fold-1"), false);
 assert.ok(r1.refusal_receipt.lattice.primary && r1.refusal_receipt.lattice.secondary, "dual lattice");
 
 // FragGate door refusal (unknown op) also sealed; same goal -> chains to the previous refusal.
