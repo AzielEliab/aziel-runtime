@@ -223,6 +223,40 @@ n++;
 }
 n++;
 
+// 14) B311-1: cached bodies leave out total / checkpoint_tip_seq (they move forward), the cache key carries a
+//     format version, and the puller keeps paging while pages come back full: a page cached when the store
+//     had 1000 rows does not cut a later pull of 3000 short. HEAD never spends a GET slot.
+{
+  const mem = new Map();
+  const cache = { match: async (k) => (mem.has(k.url) ? new Response(mem.get(k.url).body, { headers: mem.get(k.url).headers }) : undefined), put: async (k, r) => { mem.set(k.url, { body: await r.text(), headers: Object.fromEntries(r.headers) }); } };
+  let total = 1000, tip = 1000;
+  const row = (sq) => ({ seq: sq, kind: "map_pin", at: "x", doc: { sq }, lattice: { primary: "p" + sq, secondary: "s" + sq } });
+  const call = async (op, pl) => { const to = Math.min(total, pl.from + pl.limit - 1); const rows = []; for (let q = pl.from; q <= to; q++) rows.push(row(q)); return { ok: true, total, from: pl.from, to: pl.from <= total ? to : pl.from - 1, count: rows.length, checkpoint_tip_seq: tip, rows }; };
+  const serve = (u, init) => SH.serveStoreRows(new Request(u, init), {}, { name: "4dmap", call, cache, rate: async () => ({ ok: true }) });
+  let r = await serve("https://o/v1/4dmap/rows?from=501&limit=500");
+  let j = await r.json();
+  assert.equal(r.headers.get("x-azrt-rows-cache"), "miss"); assert.equal(j.total, 1000, "live answer keeps total"); assert.equal(j.checkpoint_tip_seq, 1000);
+  assert.ok([...mem.keys()].every((k) => k.includes("/" + SH.STORE_ROWS_CACHE_FORMAT + "/")), "format version in the cache key");
+  total = 3000; tip = 3000;
+  r = await serve("https://o/v1/4dmap/rows?from=501&limit=500");
+  j = await r.json();
+  assert.equal(r.headers.get("x-azrt-rows-cache"), "hit"); assert.equal(j.total, undefined); assert.equal(j.checkpoint_tip_seq, undefined); assert.equal(j.cached, true); assert.equal(j.format, SH.STORE_ROWS_CACHE_FORMAT);
+  assert.equal(j.rows.length, 500); assert.equal(j.to, 1000);
+  const ds = await mkdtemp(join(tmpdir(), "azst-"));
+  const fi = async (u) => (u.includes("/rows?") ? serve(u) : new Response(JSON.stringify({ checkpoints: [] }), { status: 200 }));
+  const ps = await R.pullStores("https://o", ds, { fetchImpl: fi, names: ["4dmap"], limit: 500 });
+  assert.equal(ps.stores["4dmap"].count, 3000, "puller got all 3000 rows");
+  // HEAD has its own bucket: HEADs never spend the GET slots.
+  const used = [];
+  const rate = async (k) => { used.push(k); return { ok: true }; };
+  await SH.serveStoreRows(new Request("https://o/v1/4dmap/rows?from=2999&limit=5", { method: "HEAD", headers: { "cf-connecting-ip": "203.0.113.77" } }), {}, { name: "4dmap", call, cache: null, rate });
+  await SH.serveStoreRows(new Request("https://o/v1/4dmap/rows?from=2999&limit=5", { headers: { "cf-connecting-ip": "203.0.113.77" } }), {}, { name: "4dmap", call, cache: null, rate });
+  assert.deepEqual(used, ["head:203.0.113.77", "203.0.113.77"]);
+  const hb = await SH.serveStoreRows(new Request("https://o/v1/4dmap/rows?from=1&limit=1", { method: "HEAD" }), {}, { name: "4dmap", call, cache: null, rate: async () => ({ ok: true }) });
+  assert.equal(hb.status, 200); assert.equal(await hb.text(), "");
+}
+n++;
+
 // 13) OpenAPI: from/limit (and marks on 4dmap) are real query parameters.
 {
   const spec = await (await fetchImpl(origin + "/openapi.json")).json();

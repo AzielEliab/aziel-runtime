@@ -316,7 +316,9 @@ async function* pagedRows(fetchImpl, origin, name, limit, { sleep = sleepMs } = 
     if (!j || !j.ok || !Array.isArray(j.rows)) throw Object.assign(new Error("store rows page refused"), { code: (j && j.code) || "OFFLINE-STORE-PULL-REFUSED", from });
     if (!j.rows.length) return;
     yield j.rows;
-    if (j.rows.length < limit || j.to >= j.total) return;
+    // B311-1: keep paging while a page comes back full. `total` is not trusted to stop (a cached page leaves it
+    // out, and an old one could be stale); an empty or short page ends the run.
+    if (j.rows.length < limit) return;
   }
 }
 

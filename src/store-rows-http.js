@@ -4,8 +4,11 @@
  *   - Pages wholly below the signed checkpoint tip never change (rows are append-only and sealed by a
  *     signed checkpoint), so a full page there is cached at the edge (Cache API) and served with
  *     `cache-control: public, max-age=86400, s-maxage=31536000, immutable`. Other pages stay no-store.
+ *     Cached bodies leave out `total` and `checkpoint_tip_seq` (they move forward; AZBot B311-1), and the
+ *     cache key carries a format version (STORE_ROWS_CACHE_FORMAT).
  *   - A light per-isolate rate limit (STORE_ROWS_PAGES_PER_MIN per client) applies only to pages that go to
- *     the Durable Object (cache misses); cache hits are free. Over the limit: 429 with Retry-After.
+ *     the Durable Object (cache misses); cache hits are free. HEAD has its own bucket and never spends a GET
+ *     slot. Over the limit: 429 with Retry-After.
  *   - `?marks=1` (4dmap only) adds per-row view marks for retracted ("hidden") pins, computed live;
  *     such pages are never cached. The rows themselves are never changed or filtered.
  * Read-only, mints nothing, no FragGate op, no MCP tool. Author: Aziel Eliab.
@@ -16,6 +19,8 @@ export const STORE_ROWS_DEFAULT_LIMIT = 200;
 export const STORE_ROWS_MAX_LIMIT = 500;
 export const STORE_ROWS_IMMUTABLE = "public, max-age=86400, s-maxage=31536000, immutable";
 const CACHE_ORIGIN = "https://store-rows.cache.aziel.internal";
+/** Format version of cached page bodies; part of the cache key, so a future row/body shape never serves old bodies. */
+export const STORE_ROWS_CACHE_FORMAT = "rows-v1";
 
 /** Normalized paging (same rule as the DO "rows" op). */
 export function normalizePaging(params) {
@@ -34,7 +39,7 @@ export function pageIsImmutable(out, limit) {
 }
 
 function cacheKeyFor(name, from, limit) {
-  return new Request(`${CACHE_ORIGIN}/v1/${name}/rows?from=${from}&limit=${limit}`, { method: "GET" });
+  return new Request(`${CACHE_ORIGIN}/${STORE_ROWS_CACHE_FORMAT}/v1/${name}/rows?from=${from}&limit=${limit}`, { method: "GET" });
 }
 
 /**
@@ -62,7 +67,9 @@ export async function serveStoreRows(request, env, { name, call, cache = default
     return takeRateSlot(env, "store_rows", k, STORE_ROWS_PAGES_PER_MIN);
   });
   const who = clientKey || request.headers.get("cf-connecting-ip") || "anon";
-  const slot = await limiter(who);
+  // HEAD never spends a GET slot: it has its own bucket (same size), so HEAD can't drain a client's GET pages
+  // and is still not an unlimited path to the store object.
+  const slot = await limiter(request.method === "HEAD" ? "head:" + who : who);
   if (slot && slot.ok === false) {
     const retry = String(Math.max(1, Number(slot.retry_after) || 1));
     const body = { ok: false, code: "STORE-ROWS-RATE-LIMIT", error: "rate limit exceeded", scope: "store_rows", limit: slot.limit || STORE_ROWS_PAGES_PER_MIN, window_seconds: 60, retry_after: Number(retry), enforcement: "isolate", note: "Pages below the checkpoint tip are edge-cached and not limited; retry after Retry-After seconds." };
@@ -75,10 +82,18 @@ export async function serveStoreRows(request, env, { name, call, cache = default
   const text = JSON.stringify(out);
   const res = new Response(text, { status: ok ? 200 : 503, headers });
   if (immutable && cache && key) {
-    const put = cache.put(key, new Response(text, { status: 200, headers })).catch(() => null);
+    // B311-1: a cached body lives up to a year, so it carries only what never changes (the rows and their
+    // range). `total` and `checkpoint_tip_seq` move forward and are served only on live (uncached) answers.
+    const put = cache.put(key, new Response(JSON.stringify(cachedBody(out)), { status: 200, headers: { ...headers, "x-azrt-rows-format": STORE_ROWS_CACHE_FORMAT } })).catch(() => null);
     if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(put); else await put;
   }
   return request.method === "HEAD" ? new Response(null, { status: res.status, headers }) : res;
+}
+
+/** The immutable part of a page answer: no `total`, no `checkpoint_tip_seq` (both move forward). */
+export function cachedBody(out) {
+  const { total: _t, checkpoint_tip_seq: _c, ...rest } = out || {};
+  return { ...rest, cached: true, format: STORE_ROWS_CACHE_FORMAT, note: "Cached page: total and checkpoint_tip_seq are left out (they move forward); keep paging while a page comes back full." };
 }
 
 function defaultCache() {

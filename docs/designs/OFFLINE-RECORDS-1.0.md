@@ -98,6 +98,12 @@ the bundle's checkpoints (`match`, `MISMATCH`, `bundle-short`, `not-in-bundle`).
   per minute per client per isolate (429 `STORE-ROWS-RATE-LIMIT`, `Retry-After`); cache hits are not limited.
   `aziel-records pull` waits out `Retry-After` (at most 12 times per page). The limit is per isolate, so it is
   light, not a global bound.
+- **Cached bodies hold only what never changes (AZBot B311-1).** A cached page leaves out `total` and
+  `checkpoint_tip_seq` (they move forward; a year-old copy would be stale) and says `cached: true`,
+  `format: "rows-v1"`. Live (uncached) answers still carry both. The cache key includes the format version, so
+  a future body shape never serves old bodies. `aziel-records pull` keeps paging while a page comes back full
+  and stops only on a short or empty page; it never stops on `total`. HEAD has its own rate bucket and never
+  spends a GET slot.
 - **OpenAPI.** `from`, `limit` (and `marks` on 4dmap) are query parameters on both routes.
-- Test: `scripts/verify-offline-stores.mjs` groups 10-13.
+- Test: `scripts/verify-offline-stores.mjs` groups 10-14.
 
