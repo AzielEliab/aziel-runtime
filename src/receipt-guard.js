@@ -312,7 +312,9 @@ export function attachToResult(out, key, value) {
 
 /** Inner op refusal under an accepted envelope: result.ok false + stable code + fail_closed or written:false. */
 export function innerOpRefusal(env) {
-  const r = env && env.result;
+  let r = env && env.result;
+  // MCP fraggate_call nests the FragGate envelope one level deeper (result.result is the op's answer).
+  if (r && typeof r === "object" && r.ok !== false && r.door && r.result && typeof r.result === "object") r = r.result;
   if (!r || typeof r !== "object" || Array.isArray(r) || r.ok !== false) return null;
   if (!(r.fail_closed === true || r.written === false)) return null;
   const code = typeof r.code === "string" ? r.code : null;
