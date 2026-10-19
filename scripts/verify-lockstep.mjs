@@ -26,7 +26,16 @@ ok(canonicalize(tokensFile) === canonicalize(DESIGN_TOKENS), "src/lockstep/desig
 ok(readFileSync(root + "design/tokens.css", "utf8") === tokensCss(tokensFile), "design/tokens.css is stale: npm run lockstep:build");
 const snap = JSON.parse(readFileSync(root + "contract/lockstep.json", "utf8"));
 const doc = await lockstepDocument(PRODUCTS);
-ok(canonicalize(snap) === canonicalize(doc), "contract/lockstep.json drifted from code: npm run lockstep:build, then re-vendor AZInterface and AZ-OS");
+if (canonicalize(snap) !== canonicalize(doc)) {
+  const keys = (a, b, pre) => Object.keys({ ...a, ...b }).filter((k) => canonicalize(a[k]) !== canonicalize(b[k])).map((k) => pre + k);
+  const where = [...keys(snap, doc, ""), ...keys(snap.contract || {}, doc.contract, "contract.")];
+  for (const k of where.filter((x) => x.startsWith("contract."))) {
+    const kk = k.slice(9);
+    console.error(`drift ${k}: snapshot=${canonicalize(snap.contract[kk]).slice(0, 600)}\n        code=${canonicalize(doc.contract[kk]).slice(0, 600)}`);
+  }
+  assert.fail(`contract/lockstep.json drifted from code (${where.join(", ")}): npm run lockstep:build, then re-vendor AZInterface and AZ-OS`);
+}
+n++;
 ok((await hashOf(snap.contract)) === snap.contract_sha256, "snapshot contract hash");
 
 // 2. locks unchanged, every live flag false
