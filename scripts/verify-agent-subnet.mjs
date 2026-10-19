@@ -573,4 +573,14 @@ n++;
 }
 n++;
 
+// 29) limiters see the forwarded visitor hash (peers over the binding), never "local" for everyone;
+//     a public request's real cf-connecting-ip always wins over the header.
+{
+  const { clientIp } = await import("../src/production.js");
+  assert.equal(clientIp(new Request("https://x.example/", { headers: { "x-azrt-visitor-ip-h": "ab".repeat(16) } })), "vh:" + "ab".repeat(16));
+  assert.equal(clientIp(new Request("https://x.example/", { headers: { "cf-connecting-ip": "192.0.2.1", "x-azrt-visitor-ip-h": "ab".repeat(16) } })), "192.0.2.1");
+  assert.equal(clientIp(new Request("https://x.example/", { headers: { "x-azrt-visitor-ip-h": "not-hex" } })), "local");
+}
+n++;
+
 console.log(`verify-agent-subnet: ${n} groups OK`);

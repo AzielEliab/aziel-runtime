@@ -272,6 +272,10 @@ export function clientIp(request) {
   if (!request || !request.headers) return "local";
   const cf = request.headers.get("CF-Connecting-IP") || request.headers.get("cf-connecting-ip");
   if (cf && cf.trim()) return cf.trim();
+  // AGENT-SUBNET-1.0 (additive): a peer (AZ-OS / azinterface) over the service binding has no
+  // cf-connecting-ip and forwards its own visitor's hashed IP, so limiters key per visitor, not "local".
+  const vh = String(request.headers.get("x-azrt-visitor-ip-h") || "");
+  if (/^[a-f0-9]{16,64}$/.test(vh)) return "vh:" + vh.slice(0, 32);
   const xff = request.headers.get("X-Forwarded-For") || request.headers.get("x-forwarded-for");
   if (xff && xff.trim()) return xff.split(",")[0].trim();
   return "local";

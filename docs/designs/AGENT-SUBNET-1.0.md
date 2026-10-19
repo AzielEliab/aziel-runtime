@@ -186,6 +186,10 @@ view challenges; the hourly public snapshot. Rules:
   own visitor's hash in `x-azrt-visitor-ip-h` over the service binding (honored only when the
   request has no `cf-connecting-ip`, i.e. not from the public internet). MCP calls have no IP and
   share one `none` bucket. No proof-of-work (not built).
+  The same forwarded hash also feeds the runtime's general limiter key (`clientIp` in
+  `src/production.js` returns `vh:<hash>` for a binding request), so peer traffic is keyed per
+  visitor instead of one shared `local` bucket; a real `cf-connecting-ip` always wins over the header.
+  Peer calls to the runtime time out (4 s default) and answer `AGENTS-RUNTIME-TIMEOUT`, fail closed.
 
 ## What the operator can see (honest)
 
