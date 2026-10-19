@@ -18,5 +18,12 @@ writeFileSync(root + "design/tokens.css", tokensCss(tokens));
 const { PRODUCTS } = await import(root + "src/index.js");
 const { lockstepDocument } = await import(root + "src/lockstep/contract.js");
 const doc = await lockstepDocument(PRODUCTS);
-writeFileSync(root + "contract/lockstep.json", JSON.stringify(doc, null, 2) + "\n");
+const { hostDataFinding } = await import(root + "scripts/lockstep-hostscan.mjs");
+const body = JSON.stringify(doc, null, 2) + "\n";
+const leak = hostDataFinding(body) || hostDataFinding(readFileSync(root + "design/tokens.css", "utf8"));
+if (leak) {
+  console.error(`lockstep build refused: host-specific data in the generated contract (${leak}). Remove it from the source; nothing written.`);
+  process.exit(1);
+}
+writeFileSync(root + "contract/lockstep.json", body);
 console.log(`lockstep built: contract ${doc.contract_sha256} tokens ${doc.tokens_sha256} css ${doc.css_sha256}`);
