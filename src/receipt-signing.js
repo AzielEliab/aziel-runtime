@@ -25,6 +25,14 @@ export const HELD_KEY_SPEC = "AZRT-HELD-KEY-1.0";
 export const SIG_DOMAIN = "azrt-receipt-sig-1:";
 /** Pinned trusted receipt public keys (raw Ed25519, base64url). None pinned yet. */
 export const PINNED_RECEIPT_KEYS = Object.freeze([]);
+/**
+ * AZRT-KEYS-1.0: retired receipt keys, append-only epochs { public_key, from, until } (ISO times).
+ * When the deploy side replaces the held key, the old PUBLIC key is added here (in a reviewed PR) so
+ * receipts it signed keep verifying. A retired key verifies only receipts whose `ts` falls inside its
+ * epoch, never anything newer, and the runtime never signs with it. No private key is kept for this.
+ * Empty until the first key change.
+ */
+export const RECEIPT_KEY_EPOCHS = Object.freeze([]);
 const HEX64 = /^[a-f0-9]{64}$/;
 
 function b64urlToBytes(text) {
@@ -115,10 +123,15 @@ export async function signatureFor(hash, signer = active) {
   return { spec: HELD_KEY_SPEC, alg: "Ed25519", sig: await signer.sign(SIG_DOMAIN + hash), ...signer.provenance };
 }
 
-/** Trusted keys: pinned in code + the published key of this deploy (labelled by source). */
-export async function trustedReceiptKeys(env) {
+/** Trusted keys: pinned in code + retired epochs (time-bounded) + the published key of this deploy (labelled by source). */
+export async function trustedReceiptKeys(env, { epochs = RECEIPT_KEY_EPOCHS } = {}) {
   const out = [];
   for (const k of PINNED_RECEIPT_KEYS) out.push({ public_key: k, key_id: await keyIdOf(k), source: "pinned" });
+  for (const e of epochs || []) {
+    if (!e || !e.public_key || !e.until) continue;
+    const id = await keyIdOf(e.public_key);
+    if (!out.some((x) => x.key_id === id)) out.push({ public_key: e.public_key, key_id: id, source: "retired", from: e.from || null, until: e.until });
+  }
   if (env && env.RECEIPT_SIGNING_PUBLIC_KEY) {
     const k = String(env.RECEIPT_SIGNING_PUBLIC_KEY).trim();
     const id = await keyIdOf(k);
@@ -164,6 +177,12 @@ export async function verifyReceiptSignatures(receipts, { trusted = [] } = {}) {
     if (!id || id !== s.key_id || id !== c.key_id) { fail("RECEIPT-KEY-ID-MISMATCH"); continue; }
     const t = trusted.find((k) => k.key_id === id);
     if (!t) { fail("RECEIPT-KEY-UNTRUSTED", { key_id: id }); continue; }
+    if (t.source === "retired") {
+      // AZRT-KEYS-1.0: a retired key covers only receipts minted inside its epoch.
+      const at = Date.parse(r.ts || "");
+      const inside = Number.isFinite(at) && at <= Date.parse(t.until) && (!t.from || at >= Date.parse(t.from));
+      if (!inside) { fail("RECEIPT-KEY-RETIRED", { key_id: id, until: t.until }); continue; }
+    }
     if (!(await verifyRaw(t.public_key, SIG_DOMAIN + r.hash, s.sig))) { fail("RECEIPT-SIG-BAD"); continue; }
     signed++;
     if (firstSigned == null) firstSigned = seq;
