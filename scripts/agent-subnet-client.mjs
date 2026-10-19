@@ -8,7 +8,8 @@
  *   node scripts/agent-subnet-client.mjs grant <fromAgent> <toAgentId> <ownerTo> [ownerFrom] [--days 7]
  *   node scripts/agent-subnet-client.mjs send <fromAgent> <toAgentId> <grantId> <text...>
  *   node scripts/agent-subnet-client.mjs pull <agent>             # pulls, verifies, opens, acks
- *   node scripts/agent-subnet-client.mjs view <agent|owner> [--owner]   # scoped receipts
+ *   node scripts/agent-subnet-client.mjs retire <agent> <owner>   # owner-signed: the agent and all its grants end
+ *   node scripts/agent-subnet-client.mjs view <agent|owner> [--owner]   # scoped receipts (single-use, key-bound challenge)
  * RELAY=<origin> (default https://aziel-runtime.vibelock.workers.dev). Never paste key files anywhere.
  * Author: Aziel Eliab. SPDX-License-Identifier: Apache-2.0
  */
@@ -43,6 +44,14 @@ export async function grantStatement({ from, to, ownerTo, ownerFrom = null, days
 export async function revokeStatement({ grantId, owner, t = iso() }) {
   const st = { v: V, kind: "agent-revoke", grant_id: grantId, by_owner_public_key: owner.public_key, t, nonce: nonce() };
   return { ...st, owner_sig: await signObject(owner.privateKey, st) };
+}
+export async function retireStatement({ agentId, owner, t = iso() }) {
+  const st = { v: V, kind: "agent-retire", agent_id: agentId, owner_public_key: owner.public_key, t, nonce: nonce() };
+  return { ...st, owner_sig: await signObject(owner.privateKey, st) };
+}
+/** The challenge URL for a view: bound to this scope and this signing key. */
+export function challengePath(who, scope = "agent") {
+  return `/v1/mesh/agents/challenge?scope=${encodeURIComponent(scope)}&subject_public_key=${encodeURIComponent(who.public_key)}`;
 }
 export async function sealBox({ from, to, toEncPublicKey, plaintext, n }) {
   const sealed = await sealPlaintext({ fromHandle: from, toHandle: to, seq: n, recipientEncPublicKey: toEncPublicKey, plaintext });
@@ -113,9 +122,16 @@ async function cli(argv) {
     if (acks.length) out(await post("ack", await simpleStatement("agent-ack", me, { acks })));
     return;
   }
+  if (cmd === "retire") {
+    const ag = await load(a);
+    return out(await post("retire", await retireStatement({ agentId: ag.handle, owner: await load(b) })));
+  }
   if (cmd === "view") {
-    const ch = await get("/v1/mesh/agents/challenge");
-    const st = await viewStatement({ who: await load(a), scope: flag("--owner") ? "owner" : "agent", challenge: ch.challenge });
+    const who = await load(a);
+    const scope = flag("--owner") ? "owner" : "agent";
+    const ch = await get(challengePath(who, scope));
+    if (!ch.ok) return out(ch);
+    const st = await viewStatement({ who, scope, challenge: ch.challenge });
     if (flag("--print")) return out(st); // paste into a viewer page; it carries no private key
     return out(await post("receipts", st));
   }

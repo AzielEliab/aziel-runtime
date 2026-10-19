@@ -2744,9 +2744,9 @@ function aznewsOpenApiPaths() {
     "/agents": { get: { operationId: "agents_page", summary: "Agent subnet receipts viewer (HTML). Public counts; signed-statement scoped rows.", tags: ["mesh"], responses: { "200": { description: "text/html" } } } },
     "/v1/mesh/agents": op("mesh_agents_status", "AGENT-SUBNET-1.0 status: honest flags (live false), counts, carriers, limits, chain tip."),
     "/v1/mesh/agents/directory": op("mesh_agents_directory", "Discoverable agents only (id, public keys, caps). Owners never listed.", [q("agent_id", "Exact agent handle lookup.", { type: "string" })]),
-    "/v1/mesh/agents/challenge": op("mesh_agents_challenge", "Relay challenge (2-minute expiry) for a signed agent-view statement."),
-    "/v1/mesh/agents/receipts": { get: { operationId: "mesh_agents_receipts_public", summary: "Public agentcomms view: totals by kind and the chain tip. No rows.", tags: ["mesh"], responses: { "200": { description: "JSON" } } }, post: { operationId: "mesh_agents_receipts_scoped", summary: "Signed agent-view statement: only rows that involve the proved agent or owner.", tags: ["mesh"], requestBody: { content: { "application/json": { schema: { type: "object" } } } }, responses: { "200": { description: "JSON" }, "403": { description: "AGENT-CHALLENGE / AGENT-SIG-INVALID" } } } },
-    ...Object.fromEntries(["register", "grant", "revoke", "send", "pull", "ack"].map((v) => ["/v1/mesh/agents/" + v, { post: { operationId: "mesh_agents_" + v, summary: "AGENT-SUBNET-1.0 signed agent-" + v + " statement (mesh op agent-" + v + "; FragGate admission). Refusals are sealed (AGENT-*).", tags: ["mesh"], requestBody: { content: { "application/json": { schema: { type: "object" } } } }, responses: { "200": { description: "JSON with receipt" }, "4XX": { description: "AGENT-* refusal with refusal_receipt" } } } }])),
+    "/v1/mesh/agents/challenge": op("mesh_agents_challenge", "Single-use relay challenge (2-minute expiry, HMAC-bound to one scope and one subject key) for a signed agent-view statement.", [q("scope", "agent or owner.", { type: "string" }), q("subject_public_key", "The Ed25519 public key that will sign the view.", { type: "string" })]),
+    "/v1/mesh/agents/receipts": { get: { operationId: "mesh_agents_receipts_public", summary: "Public agentcomms view: hourly snapshot, counts bucketed to tens (under 10 shows <10), and that hour's tip. No rows.", tags: ["mesh"], responses: { "200": { description: "JSON" } } }, post: { operationId: "mesh_agents_receipts_scoped", summary: "Signed agent-view statement: only rows that involve the proved agent or owner.", tags: ["mesh"], requestBody: { content: { "application/json": { schema: { type: "object" } } } }, responses: { "200": { description: "JSON" }, "403": { description: "AGENT-CHALLENGE / AGENT-SIG-INVALID" } } } },
+    ...Object.fromEntries(["register", "grant", "revoke", "retire", "send", "pull", "ack"].map((v) => ["/v1/mesh/agents/" + v, { post: { operationId: "mesh_agents_" + v, summary: "AGENT-SUBNET-1.0 signed agent-" + v + " statement (mesh op agent-" + v + "; FragGate admission). Refusals are sealed (AGENT-*).", tags: ["mesh"], requestBody: { content: { "application/json": { schema: { type: "object" } } } }, responses: { "200": { description: "JSON with receipt" }, "4XX": { description: "AGENT-* refusal with refusal_receipt" } } } }])),
   };
 }
 
@@ -4503,7 +4503,17 @@ async function handleRequest(request, env, ctx) {
           );
         }
       }
-      const out = await dispatchMeshHttp(request.method, url.pathname, payload, env, origin, url.searchParams);
+      // AGENT-SUBNET-1.0: a hashed visitor IP for the registration limiter (never stored past the minute).
+      // Public requests carry cf-connecting-ip; a peer (AZ-OS / azinterface) over the service binding has
+      // none and may forward its own visitor's hash in x-azrt-visitor-ip-h.
+      let meshMeta = {};
+      if (url.pathname.startsWith("/v1/mesh/agents")) {
+        const ip = request.headers.get("cf-connecting-ip");
+        const fwd = String(request.headers.get("x-azrt-visitor-ip-h") || "");
+        if (ip) meshMeta = { ip_h: (await (await import("./session-core.js")).sha256Hex("agent-ip|" + ip)).slice(0, 32) };
+        else if (/^[a-f0-9]{16,64}$/.test(fwd)) meshMeta = { ip_h: fwd.slice(0, 32) };
+      }
+      const out = await dispatchMeshHttp(request.method, url.pathname, payload, env, origin, url.searchParams, meshMeta);
       // MESH-ONBOARD-1.0: the one-click installer is served as a shell script.
       if (out && typeof out.text === "string") {
         return new Response(request.method === "HEAD" ? null : out.text, { status: out.status, headers: { "content-type": "text/x-shellscript; charset=utf-8", "cache-control": "no-store", "access-control-allow-origin": "*" } });

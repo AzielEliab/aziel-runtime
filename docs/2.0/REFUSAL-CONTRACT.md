@@ -186,7 +186,7 @@ Every refusal above and every existing refuse code on `tools/call` / `POST /v1/f
 
 ## 5c. Agent subnet (additive, 2.0.x)
 
-AGENT-SUBNET-1.0 (`src/agent-subnet.js`, docs/designs/AGENT-SUBNET-1.0.md). Every one is sealed on the internal `refusals` chain through `sealRefusal` with a fixed reason and `reason_sha256`; caller text is never stored. Default deny.
+AGENT-SUBNET-1.0 (`src/agent-subnet.js`, docs/designs/AGENT-SUBNET-1.0.md). Every one is sealed on the internal `refusals` chain through `sealRefusal` with `reason: null` and `reason_sha256` of the fixed reason; caller text is never stored. Default deny.
 
 | Code | HTTP | When |
 |---|---|---|
@@ -201,6 +201,7 @@ AGENT-SUBNET-1.0 (`src/agent-subnet.js`, docs/designs/AGENT-SUBNET-1.0.md). Ever
 | `AGENT-OWNER-SIG` | 403 | Owner signature missing or bad (cross-owner links need both owners). |
 | `AGENT-UNKNOWN` | 404 | Agent not registered. |
 | `AGENT-EXISTS` | 409 | Agent id already registered. |
+| `AGENT-RETIRED` | 403 | The agent was retired by its owner; every grant it had is dead. |
 | `AGENT-OWNER-CAP` | 409 | Owner has the maximum agents. |
 | `AGENT-NO-GRANT` / `AGENT-GRANT-EXPIRED` / `AGENT-GRANT-REVOKED` / `AGENT-GRANT-SCOPE` | 403 | No usable grant. |
 | `AGENT-BOX-HASH` | 400 | `box_sha256` does not match the box. |
@@ -208,6 +209,7 @@ AGENT-SUBNET-1.0 (`src/agent-subnet.js`, docs/designs/AGENT-SUBNET-1.0.md). Ever
 | `AGENT-RATE` | 429 | Per-agent or subnet rate limit (sealed, unlike door 429s). |
 | `AGENT-MAILBOX-FULL` | 409 | Receiver mailbox at cap. |
 | `AGENT-RECEIPT-UNAVAILABLE` / `AGENT-RECEIPT-CAP` | 503 | No receipt could be sealed, so nothing was done. |
-| `AGENT-STORE-UNBOUND` | 503 | Durable store not bound. |
-| `AGENT-CHALLENGE` | 403 | View challenge missing, expired, or forged. |
+| `AGENT-STORE-UNBOUND` | 503 | Durable store (or the agent state object) not bound or not reachable. |
+| `AGENT-SALT-LOST` | 503 | The subnet salt is missing while receipts exist; refused rather than re-minted. |
+| `AGENT-CHALLENGE` | 403 | View challenge missing, expired, forged, already used, or for another scope or key. |
 | `AGENT-NOT-FOUND` / `AGENT-METHOD` | 404 / 405 | Unknown path / wrong method. |

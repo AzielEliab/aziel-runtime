@@ -138,7 +138,16 @@ ok(!/\b\d{1,3}(\.\d{1,3}){3}\b/.test(dumpChains), "ip on chain");
 // refusals carry the fixed reason + reason_sha256, never caller text.
 const agentRefusals = refRows.filter((row) => row.refusal && row.refusal.surface === "agent-subnet");
 ok(agentRefusals.length > 0);
-for (const row of agentRefusals) { ok(/^[a-f0-9]{64}$/.test(row.refusal.reason_sha256)); assert.equal(row.refusal.reason, S.AGENT_CODES[row.refusal.code][1]); }
+for (const row of agentRefusals) { ok(/^[a-f0-9]{64}$/.test(row.refusal.reason_sha256)); assert.equal(row.refusal.reason, null, "reason:null on the row (like refusal-doors)"); }
+// mailbox keys are salted hashes; a stored box holds no raw recipient id (the sender id stays: it is
+// needed to verify the signature and open the box; see the paper).
+for (const [k, v] of uses._store.entries()) {
+  if (!k.includes("|box|")) continue;
+  ok(!k.includes(b1.handle) && !k.includes(a1.handle), "raw id in a mailbox key");
+  ok(!String(v).includes(b1.handle), "raw recipient id in a stored box");
+}
+// no agent state in KV at all (it lives in the state Durable Object).
+ok(![...uses._store.keys()].some((k) => /agentnet\|(agent|owner|grant|seen|salt)\|?/.test(k)), "agent state in eventually consistent KV");
 n++;
 
 // 11) pull: deliver receipt, receiver verifies end to end and opens; ack: read receipt, box deleted.
@@ -159,7 +168,7 @@ assert.equal(x.body.code, "AGENT-SIG-INVALID"); n++;
 
 // 12) still live:false; e2e observed is a count, not a flag.
 b = await (await call("/v1/mesh/agents")).json();
-assert.equal(b.live, false); assert.equal(b.agent_subnet.live, false); assert.equal(b.agent_subnet.e2e_verified_observed, 1); n++;
+assert.equal(b.live, false); assert.equal(b.agent_subnet.live, false); assert.equal(b.agent_subnet.e2e_verified_observed, "<10", "public counts are bucketed"); n++;
 
 // 13) revoke: owner-signed, recorded, and the grant stops working.
 x = await post("revoke", await C.revokeStatement({ grantId: g.grant_id, owner: ownerB }));
@@ -168,7 +177,40 @@ const after = await C.sendStatement({ agent: a1, to: b1.handle, toEncPublicKey: 
 x = await post("send", after);
 assert.equal(x.body.code, "AGENT-GRANT-REVOKED");
 x = await post("revoke", await C.revokeStatement({ grantId: gSame.grant_id, owner: ownerB }));
-assert.equal(x.body.code, "AGENT-OWNER-SIG"); n++;
+assert.equal(x.body.code, "AGENT-OWNER-SIG");
+// (HIGH 1) a revoked grant can't be resurrected: replaying the grant statement refuses, and even past
+// the replay keys the state DO never overwrites a grant and keeps the revocation tombstone.
+x = await post("grant", g.statement);
+ok(["AGENT-REPLAY", "AGENT-GRANT-REVOKED"].includes(x.body.code), x.body.code);
+const stateOp = (op, args = {}) => store._json("__agentnet__", "/agentnet", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ op, ...args }) });
+let so = await stateOp("grant_add", { grant: { grant_id: g.grant_id, from: a1.handle, to: b1.handle, scopes: ["send"], expires_at: new Date(Date.now() + 86400000).toISOString(), cross_owner: true } });
+assert.equal(so.ok, false); assert.equal(so.code, "AGENT-GRANT-REVOKED");
+so = await stateOp("grant_get", { grant_id: g.grant_id });
+assert.equal(so.revoked, true); ok(so.grant.revoked_at);
+so = await stateOp("grant_add", { grant: { grant_id: gSame.grant_id, from: a2.handle, to: a1.handle, scopes: ["send"], expires_at: new Date(Date.now() + 86400000).toISOString(), cross_owner: false } });
+assert.equal(so.code, "AGENT-REPLAY", "an existing grant is never overwritten"); n++;
+
+// 13b) (MED 2) revocation reaches in-flight messages: queued boxes under a revoked grant are dropped at
+// revoke (sweep) and rechecked at pull (never delivered).
+{
+  const gq = await C.grantStatement({ from: a2.handle, to: a1.handle, ownerTo: ownerA });
+  assert.equal((await post("grant", gq.statement)).status, 200);
+  const q1 = await post("send", await C.sendStatement({ agent: a2, to: a1.handle, toEncPublicKey: a1.enc_public_key, grantId: gq.grant_id, plaintext: "queued one" }));
+  assert.equal(q1.status, 200, JSON.stringify(q1.body));
+  // revoke straight in the state DO (no mailbox sweep), so only the pull-time recheck can stop it.
+  assert.equal((await stateOp("revoke", { grant_id: gq.grant_id })).ok, true);
+  const pq = await post("pull", await C.simpleStatement("agent-pull", a1));
+  assert.equal(pq.status, 200); assert.equal(pq.body.count, 0, "revoked grant: not delivered");
+  assert.equal(pq.body.dropped_not_granted["AGENT-GRANT-REVOKED"], 1);
+  // the owner path: send under a live grant, revoke with the signed statement, the box is swept at once.
+  const gq2 = await C.grantStatement({ from: a2.handle, to: a1.handle, ownerTo: ownerA });
+  assert.equal((await post("grant", gq2.statement)).status, 200);
+  assert.equal((await post("send", await C.sendStatement({ agent: a2, to: a1.handle, toEncPublicKey: a1.enc_public_key, grantId: gq2.grant_id, plaintext: "queued two" }))).status, 200);
+  const rv = await post("revoke", await C.revokeStatement({ grantId: gq2.grant_id, owner: ownerA }));
+  assert.equal(rv.status, 200); assert.equal(rv.body.queued_dropped, 1);
+  assert.equal((await post("pull", await C.simpleStatement("agent-pull", a1))).body.count, 0);
+}
+n++;
 
 // 14) expired grant refuses.
 const t0 = Date.now();
@@ -182,13 +224,22 @@ S._setAgentClock(null); n++;
 
 // 15) viewer scoping: public aggregates only; agent sees only its rows; owner sees its agents; replayed view refused.
 b = await (await call("/v1/mesh/agents/receipts")).json();
-assert.equal(b.scope, "public"); assert.equal(b.rows_shown, 0); ok(!("receipts" in b)); ok(b.by_kind.send >= 1 && b.by_kind.read >= 1);
+assert.equal(b.scope, "public"); assert.equal(b.rows_shown, 0); ok(!("receipts" in b));
+// (MED 7) bucketed, hourly: small counts show "<10", larger ones are rounded down to tens; no exact totals.
+assert.equal(b.refresh, "hourly"); assert.equal(b.k_min, 10); ok(/^\d{4}-\d\d-\d\dT\d\d:00:00\.000Z$/.test(b.as_of));
+ok(Object.values(b.by_kind).every((v) => v === "<10" || /^\d+0\+$/.test(v)), JSON.stringify(b.by_kind));
+ok(typeof b.total === "string" && (b.total === "<10" || /^\d+0\+$/.test(b.total)));
+assert.equal(S.bucket(0), "<10"); assert.equal(S.bucket(9), "<10"); assert.equal(S.bucket(10), "10+"); assert.equal(S.bucket(47), "40+");
+// the snapshot holds for the hour: a new event does not change it.
+const snapTip = JSON.stringify(b.tip);
 ok(!JSON.stringify(b).includes("from_h"));
 const allRows = await loadChain(store, "agentcomms");
-const salt = await uses.get("agentnet|salt");
+const salt = await S._saltForTest(env);
+ok(/^[a-f0-9]{64}$/.test(salt));
 const H = async (id) => (await (await import("../src/session-core.js")).sha256Hex(`AGENT-SUBNET-1.0|${salt}|${id}`)).slice(0, 32);
 const [hA1, hA2, hB1] = [await H(a1.handle), await H(a2.handle), await H(b1.handle)];
-let ch = await (await call("/v1/mesh/agents/challenge")).json();
+let ch = await (await call(C.challengePath(b1, "agent"))).json();
+assert.equal(ch.single_use, true);
 let view = await C.viewStatement({ who: b1, challenge: ch.challenge });
 x = await post("receipts", view);
 assert.equal(x.status, 200, JSON.stringify(x.body)); ok(x.body.matched > 0);
@@ -197,7 +248,19 @@ const foreign = allRows.filter((row) => { const a = row.agentcomm || {}; return 
 ok(foreign > 0 && x.body.matched < allRows.length);
 x = await post("receipts", view);
 assert.equal(x.body.code, "AGENT-REPLAY");
-ch = await (await call("/v1/mesh/agents/challenge")).json();
+// (LOW 9) single use: a fresh statement over the same challenge is refused.
+x = await post("receipts", await C.viewStatement({ who: b1, challenge: ch.challenge }));
+assert.equal(x.body.code, "AGENT-CHALLENGE", "challenge reused");
+// bound to scope and subject: an agent-scope challenge doesn't work for owner scope or another key.
+ch = await (await call(C.challengePath(ownerA, "agent"))).json();
+x = await post("receipts", await C.viewStatement({ who: ownerA, scope: "owner", challenge: ch.challenge }));
+assert.equal(x.body.code, "AGENT-CHALLENGE", "scope not bound");
+ch = await (await call(C.challengePath(a2, "agent"))).json();
+x = await post("receipts", await C.viewStatement({ who: b1, challenge: ch.challenge }));
+assert.equal(x.body.code, "AGENT-CHALLENGE", "subject not bound");
+x = await call("/v1/mesh/agents/challenge");
+assert.equal(x.status, 400, "a challenge needs a scope and a subject key");
+ch = await (await call(C.challengePath(ownerA, "owner"))).json();
 x = await post("receipts", await C.viewStatement({ who: ownerA, scope: "owner", challenge: ch.challenge }));
 assert.equal(x.status, 200); assert.equal(x.body.agents, 2);
 for (const row of x.body.receipts) { const a = row.agentcomm; ok([a.from_h, a.to_h, a.agent_h, a.owner_h, a.by_h].some((h) => h === hA1 || h === hA2 || h === undefined) ); }
@@ -205,13 +268,18 @@ ok(!x.body.receipts.some((row) => row.agentcomm.kind === "register" && row.agent
 // a forged challenge or a signature by someone else is refused.
 x = await post("receipts", await C.viewStatement({ who: b1, challenge: "1" + "0".repeat(12) + "." + "a".repeat(24) + "." + "b".repeat(32) }));
 assert.equal(x.body.code, "AGENT-CHALLENGE");
-ch = await (await call("/v1/mesh/agents/challenge")).json();
+ch = await (await call(C.challengePath(b1, "agent"))).json();
 const v2 = await C.viewStatement({ who: a2, challenge: ch.challenge });
 x = await post("receipts", { ...v2, subject_public_key: b1.public_key });
 assert.equal(x.body.code, "AGENT-SIG-INVALID");
 // public /v1/anchor/rows redacts agentcomm bodies.
 b = await (await call("/v1/anchor/rows?c=agentcomms&from=1&limit=50")).json();
-ok(Array.isArray(b.rows) && b.rows.length > 0); ok(!JSON.stringify(b).includes(hB1)); ok(b.rows.every((row) => !row.row.agentcomm || row.row.agentcomm.redacted === true)); n++;
+ok(Array.isArray(b.rows) && b.rows.length > 0); ok(!JSON.stringify(b).includes(hB1)); ok(b.rows.every((row) => !row.row.agentcomm || row.row.agentcomm.redacted === true));
+// (MED 7) no time and no kind on the redacted rows either.
+for (const row of b.rows) { ok(!("t" in row.row) && !("s" in row.row) && !("f" in row.row) && !("fact" in row.row), "time/kind on a redacted row: " + Object.keys(row.row)); ok(!row.row.agentcomm || !("kind" in row.row.agentcomm)); }
+const blobRows = JSON.stringify(b.rows);
+for (const k of ["register", "grant", "deliver", "revoke"]) ok(!blobRows.includes('"' + k + '"'), "kind leaked: " + k);
+n++;
 
 // 16) lattice: both hashes on every row; chainlock_verify on the named internal chain holds.
 const v = await verify(store, { c: "agentcomms" });
@@ -284,10 +352,10 @@ ok(tipChains.some((c) => c.c === "agentcomms"), "lattice_tip agentcomms: " + JSO
   const st = await C.sendStatement({ agent: s1, to: r1.handle, toEncPublicKey: r1.enc_public_key, grantId: gg.grant_id, plaintext: "late" });
   const rl = await post("send", st, e2);
   assert.equal(rl.status, 429); assert.equal(rl.body.refusal_receipt.sealed, true);
-  // receipt cap: force the in-isolate counter, the send refuses and leaves no box.
+  // receipt cap: force the in-isolate msg-class counter, the send refuses and leaves no box.
   S._resetAgentMemo();
   const boxesBefore = [...e2.USES._store.keys()].filter((k) => k.includes("|box|")).length;
-  for (let i = 0; i < S.AGENT_SEAL_CAP_PER_MIN; i++) await S._burnSealForTest();
+  for (let i = 0; i < S.AGENT_SEAL_CAP_PER_MIN.msg; i++) await S._burnSealForTest("msg");
   const e3 = { ...e2, RATE: memoryRateQuotaNamespace({}) };
   const capped = await post("send", await C.sendStatement({ agent: s1, to: r1.handle, toEncPublicKey: r1.enc_public_key, grantId: gg.grant_id, plaintext: "cap" }), e3);
   assert.equal(capped.body.code, "AGENT-RECEIPT-CAP");
@@ -323,6 +391,185 @@ n++;
   assert.equal(st.live, false);
   const mesh = await (await call("/v1/mesh", {}, off)).json();
   assert.notEqual(mesh.enabled, true);
+}
+n++;
+
+// 23) (MED 4 / LOW 13) registration: strongly consistent (no double register under a race), limited per
+//     owner key, per visitor IP hash (also when a peer forwards it over the binding), and globally.
+{
+  const mk = () => ({ SESSION: memorySessionNamespace({}), CHAINLOCK: memoryChainWriterNamespace({}), USES: memoryMeshKv(), RATE: memoryRateQuotaNamespace({}) });
+  const e = mk();
+  const o = await C.identityOf(await C.newKeys());
+  const ag = await C.identityOf(await C.newKeys());
+  const [r1, r2] = await Promise.all([post("register", await C.registerStatement(ag, o), e), post("register", await C.registerStatement(ag, o), e)]);
+  const codes = [r1.body.code, r2.body.code].sort();
+  assert.deepEqual(codes, ["AGENT-EXISTS", "AGENT-OK"], "race: exactly one register wins " + codes);
+  // per owner key: 3/min (the race above spent 2).
+  const more = [];
+  for (let i = 0; i < 3; i++) more.push((await post("register", await C.registerStatement(await C.identityOf(await C.newKeys()), o), e)).body.code);
+  assert.deepEqual(more, ["AGENT-OK", "AGENT-RATE", "AGENT-RATE"], "owner cap " + more);
+  // per IP hash: fresh free owner keys from one visitor stop at 5/min; another visitor still gets in.
+  const e2 = mk();
+  const regAs = async (ip) => {
+    const r = await call("/v1/mesh/agents/register", { method: "POST", headers: { "content-type": "application/json", "cf-connecting-ip": ip }, body: JSON.stringify(await C.registerStatement(await C.identityOf(await C.newKeys()), await C.identityOf(await C.newKeys()))) }, e2);
+    return (await r.json()).code;
+  };
+  const fromOne = [];
+  for (let i = 0; i < S.AGENT_REGISTER_PER_IP_PER_MIN + 2; i++) fromOne.push(await regAs("198.51.100.7"));
+  assert.equal(fromOne.filter((c) => c === "AGENT-OK").length, S.AGENT_REGISTER_PER_IP_PER_MIN, fromOne.join(","));
+  assert.equal(fromOne.at(-1), "AGENT-RATE");
+  assert.equal(await regAs("203.0.113.9"), "AGENT-OK", "one visitor does not lock out the rest");
+  // a peer over the binding (no cf-connecting-ip) forwards its visitor's hash; that hash is the bucket.
+  const viaPeer = async (iph) => (await (await call("/v1/mesh/agents/register", { method: "POST", headers: { "content-type": "application/json", "x-azrt-visitor-ip-h": iph }, body: JSON.stringify(await C.registerStatement(await C.identityOf(await C.newKeys()), await C.identityOf(await C.newKeys()))) }, e2)).json()).code;
+  const peerCodes = [];
+  for (let i = 0; i < S.AGENT_REGISTER_PER_IP_PER_MIN + 1; i++) peerCodes.push(await viaPeer("ab".repeat(16)));
+  assert.equal(peerCodes.at(-1), "AGENT-RATE"); assert.equal(await viaPeer("cd".repeat(16)), "AGENT-OK");
+  // global cap: 20/min for the whole subnet, whatever the visitor.
+  let last = "";
+  for (let i = 0; i < S.AGENT_REGISTER_PER_MIN + 2; i++) last = await regAs("192.0.2." + (10 + i));
+  assert.equal(last, "AGENT-RATE", "global registration cap");
+  // no raw IP anywhere (chains, KV, state).
+  const dumpAll = JSON.stringify([[...e2.USES._store.entries()], await loadChain(storeFor(e2), "agentcomms"), await loadChain(storeFor(e2), "refusals"), [...e2.CHAINLOCK._shared.entries()].map(([k, m]) => [k, [...m.entries()]])]);
+  ok(!dumpAll.includes("198.51.100.7") && !dumpAll.includes("203.0.113.9"), "raw IP stored");
+}
+n++;
+
+// 24) (MED 6) owner-signed retire: the agent and every grant it had end at once; queued boxes dropped.
+{
+  const e = { SESSION: memorySessionNamespace({}), CHAINLOCK: memoryChainWriterNamespace({}), USES: memoryMeshKv(), RATE: memoryRateQuotaNamespace({}) };
+  const o = await C.identityOf(await C.newKeys()); const o2 = await C.identityOf(await C.newKeys());
+  const s1 = await C.identityOf(await C.newKeys()); const r1 = await C.identityOf(await C.newKeys()); const r2 = await C.identityOf(await C.newKeys());
+  for (const [a, w] of [[s1, o], [r1, o], [r2, o2]]) assert.equal((await post("register", await C.registerStatement(a, w, { discoverable: true }), e)).status, 200);
+  const g1 = await C.grantStatement({ from: s1.handle, to: r1.handle, ownerTo: o });
+  const g2 = await C.grantStatement({ from: s1.handle, to: r2.handle, ownerTo: o2, ownerFrom: o });
+  const g3 = await C.grantStatement({ from: r1.handle, to: s1.handle, ownerTo: o });
+  for (const g of [g1, g2, g3]) assert.equal((await post("grant", g.statement, e)).status, 200);
+  assert.equal((await post("send", await C.sendStatement({ agent: r1, to: s1.handle, toEncPublicKey: s1.enc_public_key, grantId: g3.grant_id, plaintext: "to the soon-retired" }), e)).status, 200);
+  assert.equal((await post("send", await C.sendStatement({ agent: s1, to: r2.handle, toEncPublicKey: r2.enc_public_key, grantId: g2.grant_id, plaintext: "from the soon-retired" }), e)).status, 200);
+  // only the agent's own owner can retire it.
+  let x = await post("retire", await C.retireStatement({ agentId: s1.handle, owner: o2 }), e);
+  assert.equal(x.body.code, "AGENT-OWNER-SIG");
+  x = await post("retire", await C.retireStatement({ agentId: s1.handle, owner: o }), e);
+  assert.equal(x.status, 200, JSON.stringify(x.body)); assert.equal(x.body.grants_revoked, 3); assert.equal(x.body.receipt.kind, "retire"); assert.equal(x.body.queued_dropped, 1);
+  // every grant is dead at once; the retired agent can't send, pull, re-register, or be found.
+  assert.equal((await post("send", await C.sendStatement({ agent: s1, to: r1.handle, toEncPublicKey: r1.enc_public_key, grantId: g1.grant_id, plaintext: "x" }), e)).body.code, "AGENT-RETIRED");
+  assert.equal((await post("send", await C.sendStatement({ agent: r1, to: s1.handle, toEncPublicKey: s1.enc_public_key, grantId: g3.grant_id, plaintext: "x" }), e)).body.code, "AGENT-GRANT-REVOKED");
+  assert.equal((await post("pull", await C.simpleStatement("agent-pull", s1), e)).body.code, "AGENT-RETIRED");
+  const pr2 = await post("pull", await C.simpleStatement("agent-pull", r2), e);
+  assert.equal(pr2.body.count, 0, "message from a retired agent is not delivered"); ok(pr2.body.dropped_not_granted["AGENT-GRANT-REVOKED"] === 1);
+  assert.equal((await post("register", await C.registerStatement(s1, o), e)).body.code, "AGENT-RETIRED");
+  assert.equal((await (await call("/v1/mesh/agents/directory?agent_id=" + encodeURIComponent(s1.handle), {}, e)).json()).code, "AGENT-RETIRED");
+  ok(!(await (await call("/v1/mesh/agents/directory", {}, e)).json()).agents.some((a) => a.agent_id === s1.handle));
+  assert.equal((await post("retire", await C.retireStatement({ agentId: s1.handle, owner: o }), e)).body.code, "AGENT-RETIRED");
+  assert.equal((await verify(storeFor(e), { c: "agentcomms" })).ok, true);
+}
+n++;
+
+// 25) (MED 3) receipt caps per class in the writer (msg / ctl / refuse) plus a per-agent refuse cap,
+//     a class-full memo (no writer round trip), and refunds only on real write failures.
+{
+  const { AGENTCOMM_CAP } = await import("../src/agent-state.js");
+  assert.equal(AGENTCOMM_CAP.classes.msg + AGENTCOMM_CAP.classes.ctl + AGENTCOMM_CAP.classes.refuse, AGENTCOMM_CAP.total);
+  const gst = storeFor({ CHAINLOCK: memoryChainWriterNamespace({}) });
+  const row = (kind, i, extra = {}) => ({ c: "agentcomms", k: "agentcomm", s: "agentcomm", f: "agent receipt r=" + i, agentcomm: { spec: "AGENT-SUBNET-1.0", kind, ...extra }, idempotency_key: "t:" + kind + ":" + i + ":" + JSON.stringify(extra) });
+  // refuse rows: 10/min per agent; a different agent still gets its own 10; the refuse share is 120.
+  let lastA;
+  for (let i = 0; i <= AGENTCOMM_CAP.refuse_per_agent; i++) lastA = await append(gst, row("refuse", i, { from_h: "a".repeat(32) }), { internal: true });
+  assert.equal(lastA.ok, false); assert.equal(lastA.refuse, "agentcomm-cap"); assert.equal(lastA.cap_limit, "agent");
+  assert.equal((await append(gst, row("refuse", 0, { from_h: "b".repeat(32) }), { internal: true })).ok, true);
+  // fill the refuse share with many agents (each under its own cap); messages still seal.
+  let filled = AGENTCOMM_CAP.refuse_per_agent + 1, k = 0, rr;
+  while (filled < AGENTCOMM_CAP.classes.refuse) { rr = await append(gst, row("refuse", k, { from_h: ("c" + String(k).padStart(31, "0")) }), { internal: true }); if (rr.ok) filled++; k++; }
+  rr = await append(gst, row("refuse", 9999, { from_h: "d".repeat(32) }), { internal: true });
+  assert.equal(rr.ok, false); assert.equal(rr.cap_class, "refuse"); assert.equal(rr.cap_limit, "class");
+  assert.equal((await append(gst, row("send", 1), { internal: true })).ok, true, "refusal spam does not starve sends");
+  assert.equal((await append(gst, row("register", 1), { internal: true })).ok, true);
+  // replays are never capped.
+  const rep = await append(gst, row("refuse", 0, { from_h: "b".repeat(32) }), { internal: true });
+  assert.equal(rep.ok, true); assert.equal(rep.replayed, true);
+  assert.equal((await verify(gst, { c: "agentcomms" })).ok, true);
+
+  // isolate side: once the writer says the refuse share is full, refuse rows stop calling the writer,
+  // and real sends still go through. Count the writer calls with a stub.
+  let calls = 0;
+  const realNs = memoryChainWriterNamespace({});
+  const wrap = (st) => ({ fetch: (req) => { if (new URL(req.url).pathname === "/append") calls++; return st.fetch(req); } });
+  const counted = { idFromName: realNs.idFromName, get: (id) => wrap(realNs.get(id)), getByName: (nm) => wrap(realNs.getByName(nm)), _shared: realNs._shared };
+  const e = { SESSION: memorySessionNamespace({}), CHAINLOCK: counted, USES: memoryMeshKv(), RATE: memoryRateQuotaNamespace({}) };
+  S._resetAgentMemo();
+  const o = await C.identityOf(await C.newKeys()); const s1 = await C.identityOf(await C.newKeys()); const r1 = await C.identityOf(await C.newKeys());
+  for (const a of [s1, r1]) assert.equal((await post("register", await C.registerStatement(a, o), e)).status, 200);
+  const gg = await C.grantStatement({ from: s1.handle, to: r1.handle, ownerTo: o });
+  assert.equal((await post("grant", gg.statement, e)).status, 200);
+  // fill the writer's refuse share directly (other agents), so the next refuse row from s1 hits the cap.
+  const est = storeFor(e);
+  for (let i = 0; i < AGENTCOMM_CAP.classes.refuse; i++) await append(est, row("refuse", i, { from_h: "e" + String(i).padStart(31, "0") }), { internal: true });
+  const noGrant = async () => post("send", await C.sendStatement({ agent: s1, to: r1.handle, toEncPublicKey: r1.enc_public_key, grantId: "f".repeat(64), plaintext: "spam" }), e);
+  let sp = await noGrant();
+  assert.equal(sp.body.code, "AGENT-NO-GRANT", "the refusal itself still stands"); assert.equal(sp.body.agentcomm_receipt.status, "rate_limited");
+  ok(S._sealMemoForTest().full.includes("refuse"), "refuse class marked full in this isolate");
+  calls = 0;
+  for (let i = 0; i < 5; i++) { sp = await noGrant(); assert.equal(sp.body.agentcomm_receipt.memo, true); }
+  assert.equal(calls, 0, "class full: no agentcomms writer calls for further refuse rows");
+  const real = await post("send", await C.sendStatement({ agent: s1, to: r1.handle, toEncPublicKey: r1.enc_public_key, grantId: gg.grant_id, plaintext: "real" }), e);
+  assert.equal(real.status, 200, "real sends still seal: " + real.body.code);
+  // a real write failure gives the isolate slot back; a cap answer does not.
+  S._resetAgentMemo();
+  const before = S._sealMemoForTest().used.msg;
+  const broken = { SESSION: e.SESSION, USES: e.USES, RATE: e.RATE, CHAINLOCK: { idFromName: realNs.idFromName, getByName: (nm) => (nm === "agentcomms" ? { fetch: async () => { throw new Error("disk full (test)"); } } : realNs.getByName(nm)), get: (id) => realNs.get(id), _shared: realNs._shared } };
+  const bf = await post("send", await C.sendStatement({ agent: s1, to: r1.handle, toEncPublicKey: r1.enc_public_key, grantId: gg.grant_id, plaintext: "broken" }), broken);
+  assert.equal(bf.body.code, "AGENT-RECEIPT-UNAVAILABLE");
+  assert.equal(S._sealMemoForTest().used.msg, before, "real failure: slot refunded");
+  S._resetAgentMemo();
+}
+n++;
+
+// 26) (LOW/MED 8) salt: created once in the state DO; if it is lost while receipts exist, fail closed.
+{
+  const shared = new Map();
+  const e = { SESSION: memorySessionNamespace({}), CHAINLOCK: memoryChainWriterNamespace({}, shared), USES: memoryMeshKv(), RATE: memoryRateQuotaNamespace({}) };
+  const o = await C.identityOf(await C.newKeys());
+  const [ra, rb] = await Promise.all([post("register", await C.registerStatement(await C.identityOf(await C.newKeys()), o), e), post("register", await C.registerStatement(await C.identityOf(await C.newKeys()), o), e)]);
+  assert.equal(ra.status, 200); assert.equal(rb.status, 200);
+  const salt1 = await S._saltForTest(e);
+  ok(/^[a-f0-9]{64}$/.test(salt1));
+  assert.equal(await S._saltForTest(e), salt1, "one salt");
+  shared.get("__agentnet__").delete("salt"); // simulate loss
+  const lost = await post("register", await C.registerStatement(await C.identityOf(await C.newKeys()), await C.identityOf(await C.newKeys())), e);
+  assert.equal(lost.body.code, "AGENT-SALT-LOST"); assert.equal(lost.status, 503);
+  assert.equal(await S._saltForTest(e), null, "no new salt was minted");
+  const st = await (await call("/v1/mesh/agents", {}, e)).json();
+  assert.equal(st.operator_can_read_salt, true);
+}
+n++;
+
+// 27) (LOW 11 / MED 5) honest crypto and wording: one scheme, no forward secrecy, "designed to".
+{
+  assert.deepEqual([...S.AGENT_ALGS], ["x25519-hkdf-sha256-aes256gcm"]);
+  const st = await (await call("/v1/mesh/agents")).json();
+  assert.equal(st.crypto.forward_secrecy, false); assert.equal(st.forward_secrecy, false); assert.match(st.crypto.scheme, /X25519.*HKDF-SHA256.*AES-256-GCM/);
+  const ws = await (await call("/workspace")).text();
+  ok(!/agents talk to other agents with signed, end-to-end sealed messages/.test(ws), "live-tense claim on /workspace");
+  ok(/designed to let your AI agents/.test(ws));
+  const { NEW_USER_HINTS } = await import("../src/mesh-onboard.js");
+  const hint = NEW_USER_HINTS.find((h) => h.id === "agents").text;
+  ok(!/only you can open/.test(hint) && /designed to/.test(hint) && /hashed, not encrypted/.test(hint), hint);
+  const page = await (await call("/agents")).text();
+  ok(/designed to/.test(page) && /hashed, not encrypted/.test(page));
+  // the public snapshot is hourly: more events in the same hour don't move it.
+  const b2 = await (await call("/v1/mesh/agents/receipts")).json();
+  assert.equal(JSON.stringify(b2.tip), snapTip, "public tip moved inside the hour");
+}
+n++;
+
+// 28) the state DO unreachable: every mutate op fails closed.
+{
+  const realNs = memoryChainWriterNamespace({});
+  const dead = { SESSION: memorySessionNamespace({}), USES: memoryMeshKv(), RATE: memoryRateQuotaNamespace({}), CHAINLOCK: { idFromName: realNs.idFromName, getByName: (nm) => (nm === "__agentnet__" ? { fetch: async () => { throw new Error("down (test)"); } } : realNs.getByName(nm)), get: (id) => realNs.get(id) } };
+  const res = await post("register", await C.registerStatement(await C.identityOf(await C.newKeys()), await C.identityOf(await C.newKeys())), dead);
+  assert.equal(res.body.ok, false); assert.equal(res.body.code, "AGENT-STORE-UNBOUND"); assert.equal(res.status, 503);
+  const ch = await call(C.challengePath(await C.identityOf(await C.newKeys()), "agent"), {}, dead);
+  assert.equal(ch.status, 503);
 }
 n++;
 

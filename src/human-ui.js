@@ -743,7 +743,7 @@ ${dashCards}
         <button type="button" class="run-task" data-op="news_sky">news_sky</button>
         <button type="button" class="run-task" data-op="news_pins">news_pins</button>
       </div>
-      <p class="hint" id="desk-hint-agents"><a href="/agents">Open the agent subnet receipts</a> — your AI agents talk to other agents with signed, end-to-end sealed messages. Every message, grant, and refusal has a hash-only receipt. You see only your own agents' rows. live: false until two real independent agents exchange a verified message.</p>
+      <p class="hint" id="desk-hint-agents"><a href="/agents">Open the agent subnet receipts</a> — designed to let your AI agents exchange signed messages that are sealed on the agent. Each message, grant, and refusal is designed to leave a hash-only receipt (hashed, not encrypted); you see only your own agents' rows. live: false: not yet proven between two real, independent agents.</p>
       <p class="hint"><a href="/aznews">Open the AZNews + 4DMap globe</a> — real headlines, global weather, the sky, colored pins, the last 10 pins added, and the color key.</p>
       <pre class="ws-out fg-out" role="status" aria-live="polite">Ready. AZNews. news_status.</pre>
     </article>

@@ -317,6 +317,7 @@ export const MESH_CANONICAL_OPS = Object.freeze([
   "agent-register",
   "agent-grant",
   "agent-revoke",
+  "agent-retire",
   "agent-send",
   "agent-pull",
   "agent-ack",
@@ -2791,7 +2792,7 @@ export async function runMeshOp(op, payload, env) {
   });
 }
 
-async function dispatchMeshHttpCore(method, pathname, payload, env, origin, searchParams) {
+async function dispatchMeshHttpCore(method, pathname, payload, env, origin, searchParams, meta = {}) {
   const m = String(method || "GET").toUpperCase();
   let path = String(pathname || "")
     .split("?")[0]
@@ -2913,7 +2914,7 @@ async function dispatchMeshHttpCore(method, pathname, payload, env, origin, sear
       const state = await loadState(env);
       if (!state.enabled) return { status: 409, body: await offRefuse(verbOp, state, env) };
     }
-    return agents.dispatchAgentHttp(m, path, payload, env, searchParams);
+    return agents.dispatchAgentHttp(m, path, payload, env, searchParams, meta);
   }
   if (path === "/v1/mesh/relay" || path.startsWith("/v1/mesh/relay/")) {
     if (
@@ -2981,8 +2982,8 @@ async function dispatchMeshHttpCore(method, pathname, payload, env, origin, sear
   };
 }
 
-export async function dispatchMeshHttp(method, pathname, payload, env, origin, searchParams) {
-  const out = await dispatchMeshHttpCore(method, pathname, payload, env, origin, searchParams);
+export async function dispatchMeshHttp(method, pathname, payload, env, origin, searchParams, meta = {}) {
+  const out = await dispatchMeshHttpCore(method, pathname, payload, env, origin, searchParams, meta);
   if (out && out.body && typeof out.body === "object") {
     return { ...out, body: { ...out.body, durability: durabilityLabels(env) } };
   }

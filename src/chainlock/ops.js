@@ -456,7 +456,9 @@ export async function append(storeOrEnv, input = {}, options = {}) {
     const out = { ok: false, refuse: (ack && ack.refuse) || "append-failed", cap: ack && ack.cap };
     if (ack && ack.code) out.code = ack.code;
     if (ack && ack.message) out.message = ack.message;
-    if (ack && String(ack.refuse || "").startsWith("lattice-")) out.written = false;
+    // AGENT-SUBNET-1.0 (additive): agentcomms cap answers carry which share was full.
+    if (ack && ack.cap_class) { out.cap_class = ack.cap_class; out.cap_limit = ack.cap_limit; out.cap_minute = ack.cap_minute; }
+    if (ack && (String(ack.refuse || "").startsWith("lattice-") || ack.refuse === "agentcomm-cap")) out.written = false;
     return out;
   }
   const unsigned = ack.record;

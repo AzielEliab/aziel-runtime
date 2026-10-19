@@ -89,6 +89,14 @@ export class ChainWriter {
       const hit = await this._get("idemp:" + idempKey);
       if (hit && hit.ok && hit.record) return { ...hit, replayed: true, ok: true };
     }
+    // AGENT-SUBNET-1.0: agentcomms receipt caps (per-class shares + per-agent refuse cap), counted after the write.
+    let agentCapCommit = null;
+    if (String(src.chain || "") === "agentcomms" && src.input && src.input.agentcomm) {
+      const { agentCommCapCheck } = await import("../agent-state.js");
+      const chk = await agentCommCapCheck({ get: (k) => this._get(k), put: (k, v) => this._put(k, v) }, src.input, Date.now());
+      if (chk.refuse) return { ...chk.refuse, v: CL_VERSION };
+      agentCapCommit = chk.commit;
+    }
     const genesis = src.genesis == null ? (kind === "ledger" ? "0".repeat(64) : GENESIS) : String(src.genesis);
     const meta = await this._meta();
     const seq = Number(meta.seq) || 0;
@@ -150,6 +158,7 @@ export class ChainWriter {
       nextMeta.lt = meta.lt;
     }
     await this._put("meta", nextMeta);
+    if (agentCapCommit) await agentCapCommit();
     // AZRT-GOAL-LINK-1.0: a refusal (or follow) stamp that names a goal key leaves a pointer
     // so the agent's next action on the same goal, through any tool, can link back to it.
     const goalKey = src.input && typeof src.input.goal_key === "string" ? src.input.goal_key : "";
@@ -392,6 +401,15 @@ export class ChainWriter {
       if (action === "kv" && request.method === "POST") {
         const body = await readJson(request);
         return json(await this.kvPut(body.key, body.value));
+      }
+      if (action === "agentnet" && request.method === "POST") {
+        // AGENT-SUBNET-1.0 state (only on the "__agentnet__" object): one op at a time, strongly consistent.
+        const body = await readJson(request);
+        const { agentStateOp } = await import("../agent-state.js");
+        const st = { get: (k) => this._get(k), put: (k, v) => this._put(k, v), delete: (k) => this.ctx.storage.delete(k) };
+        const run = (this._agentQueue || Promise.resolve()).then(() => agentStateOp(st, body, Date.now()));
+        this._agentQueue = run.catch(() => {});
+        return json(await run);
       }
       if (action === "keys" && request.method === "GET") {
         return json(await this.kvKeys(url.searchParams.get("prefix") || ""));

@@ -21,8 +21,8 @@ assert.equal(list.kernel, false);
 assert.equal(list.kernel_repo_url, "https://github.com/AzielEliab/fraggate");
 // registry_digest moves with ENGINE_DIGESTS (engine wording changed in DOCS-WORDING-1.0)
 // and with the memory op list (LATTICE-LEARN-1.0 added lattice-learn, additive)
-// and with the mesh op list (AGENT-SUBNET-1.0 added agent-* mesh ops, additive; live_count stays 42).
-assert.equal(list.registry_digest, "7758cc219d317e56c897000dd6bc87da16590bc09ac97a128759b56d3caeceb5");
+// and with the mesh op list (AGENT-SUBNET-1.0 added agent-* mesh ops incl. agent-retire, additive; live_count stays 42).
+assert.equal(list.registry_digest, "89e1bb2d8fca3e732863079348ee23ebc633df73ff5bf0e1e72d9a8cb50de9c8");
 assert.equal(list.stub_op_count, 363);
 assert.equal(list.live_count, 42);
 n += 5;
