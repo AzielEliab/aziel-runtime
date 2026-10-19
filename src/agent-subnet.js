@@ -204,6 +204,10 @@ export async function agentMetaOf(request) {
   if (!request || !request.headers || typeof request.headers.get !== "function") return {};
   const ip = request.headers.get("cf-connecting-ip");
   if (ip && ip.trim()) return { ip_h: await agentIpHash(ip.trim()) };
+  // LEG-CLIENT-IP-1.0 (#305): over the service binding a leg may name its caller's IP literal.
+  const { LEG_CLIENT_IP_HEADER, isIpLiteral } = await import("./production.js");
+  const leg = request.headers.get(LEG_CLIENT_IP_HEADER);
+  if (leg && isIpLiteral(leg)) return { ip_h: await agentIpHash(leg.trim()) };
   const fwd = String(request.headers.get("x-azrt-visitor-ip-h") || "");
   return /^[a-f0-9]{16,64}$/.test(fwd) ? { ip_h: fwd.slice(0, 32) } : {};
 }
