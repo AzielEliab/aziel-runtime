@@ -61,17 +61,19 @@ Lattice and other op refusals that come back inside an accepted FragGate envelop
 src/receipt-guard.js; stamp `refusal.door: "op"`), on MCP and on POST /v1/fraggate/call.
 A body that already carries `refusal_receipt` or `refused_receipt` (MCP door, POST
 /v1/fraggate/call, session exec) is left alone, so nothing is sealed twice. The stamp's `refusal`
-object gains additive `kind, surface, door, reason (<=160 chars, our own message), status, route
-(template)`. The body keeps every field and gains `refusal_receipt`; every refusal (JSON or text)
+object gains additive `kind, surface, door, reason, status, route
+(template)` (since the follow-up below, `reason` is always null on stored rows and `reason_sha256` carries the hash). The body keeps every field and gains `refusal_receipt`; every refusal (JSON or text)
 gains the header `X-Azrt-Refusal-Receipt`.
 
-**(c) AZ-OS and azinterface.** Each worker reports its own non-auth refusals over its
-`AZIEL_RUNTIME` service binding to `POST https://peer.aziel.internal/v1/refusals/peer`
-(surface `azos` or `azinterface`). That hostname is not routable to this Worker from the public
-internet, and a request carrying `CF-Connecting-IP` is refused `REFUSAL-PEER-NOT-BOUND`, so only a
-bound Worker can write. The row lands on the same `refusals` chain, so there is one lattice; AZ-OS
-gets it back through the existing signed tether (TETHER-REFUSALS-1.0, every 2 minutes) and
-azinterface reads the tip through `/v1/runtime/sync`. Tips agree after the next tether tick.
+**(c) AZ-OS and azinterface.** Neither keeps its own refusal chain. Each reports its coded non-auth
+refusals over its `AZIEL_RUNTIME` service binding to `POST https://peer.aziel.internal/v1/refusals/peer`
+(surface `azos` or `azinterface`), and the runtime seals them on its single `refusals` chain. That
+hostname is not routable to this Worker from the public internet, and a request carrying
+`CF-Connecting-IP` is refused `REFUSAL-PEER-NOT-BOUND`, so only a bound Worker can write.
+AZ-OS holds a verified copy of the chain tip from the existing signed tether (TETHER-REFUSALS-1.0, every
+2 minutes) and compares it with the runtime tip at `/v1/refusals` (`tip_state: agree | lagging`).
+azinterface has no local copy: it reads the runtime's tip over the binding (`tip_state: no-local-copy`).
+So the accurate claim is one shared chain, with AZ-OS holding a tethered copy that agrees.
 
 **Finding receipts.** `GET /v1/receipts/refusals` (newest first, `?limit<=50`) and
 `GET /v1/receipts/refusals?seq=N`; `GET /v1/receipts` gains `refusal_receipts`. Verify the chain with
@@ -79,17 +81,25 @@ azinterface reads the tip through `/v1/runtime/sync`. Tips agree after the next 
 roster walk is unchanged) and each row with `/v1/anchor/row?c=refusals&seq=N` (new rows show
 ANCHOR-MISSING until the next witness run).
 
-**Flood guard.** (1) sealRefusal's idempotency key covers code + door (or peer surface) + method +
-status + minute, with no caller identity and no route (routes are caller-shaped; the first route in
-that minute is the one recorded), so one refusal shape writes at most one row per minute and the
-worst case is bounded by the finite set of codes x doors;
-(2) an in-isolate memo answers repeats in that minute with no Durable Object call; (3) an in-isolate
-cap of 60 new seals per minute (over it: `status: "rate_limited"`, sealed:false, the refusal still
-stands); (4) the recorded route is a template (ids collapsed, at most 4 segments).
+**Flood guard.** Rows per minute are bounded by the number of distinct dedupe keys, and anyone can
+trigger refusals without auth. (1) REST/peer doors: sealRefusal's idempotency key is code + door (or peer
+surface) + method + status + minute, with no caller identity and no route, and it is shared across
+isolates. The bound is **codes x doors x methods (x status) rows per minute**, every minute, for as long
+as someone keeps sending; there is no retention, so the chain keeps growing at that rate (the edge only
+passes standard methods, so methods multiply the bound by about 5-7). (2) MCP door and POST
+/v1/fraggate/call: the key is code + tool + registry slug/op (or "other") + goal + the prior refusal +
+minute; the args digest is no longer in it. The goal stays because RIB-018 goal links need one row per
+goal, so the hard bound there is the cap. (3) Caps per isolate per minute: 30 per REST door and 30 per peer
+surface (separate counters, so one door or one peer cannot crowd out another), and 60 for the MCP door.
+Over a cap the receipt says `rate_limited`, sealed:false, and the refusal still stands. Caps limit the
+Durable Object writes an isolate makes; adding isolates does not add rows past the key bound in (1), but
+can add rows in (2) up to 60 per isolate per minute. (4) An in-isolate memo answers repeats in the
+minute with no Durable Object call.
 
 **Fail closed.** The refusal status, code and body never change. No store: `status: "unavailable"`.
-Write slower than 2.5 s: `status: "receipt_pending"` (the write continues in the background; look it
-up in `/v1/receipts/refusals`). Neither carries a hash. Not signed (no receipt signing key is set);
+The seal waits at most 2.5 s and never past the request deadline (what is left of it, minus 50 ms);
+past either, `status: "receipt_pending"` and the write continues in the background (look it up in
+`/v1/receipts/refusals`). Neither carries a hash. Not signed (no receipt signing key is set);
 hash-linked and sealed, as the rest of this note says.
 
 **(d) Not recorded, by design (user decision pending).** Auth-gate refusals: any 401, the codes
@@ -99,3 +109,33 @@ hash-linked and sealed, as the rest of this note says.
 6 gate call sites. Flood risk if they were recorded: anyone can trigger them without credentials at
 the per-door rate limit; with the same minute dedupe the worst case is about codes x gated route
 templates rows per minute (roughly 5 x 10 = 50/min, ~72k rows/day), against today's few dozen rows.
+
+### Follow-up (2026-10-19, after AZBot's post-merge review)
+
+- **No caller text on the chain.** `route` is only ever a fixed template from code (`KNOWN_ROUTES`, or
+  `/v1/pull/{slug}`, `/p/{product}/{op}`, ...); any other path is stored as its door wildcard (e.g.
+  `/v1/mesh/*`) plus `route_sha256` (16 hex). On the MCP door, a slug that is not in the FragGate
+  registry (or an op that is not one of its ops) is stored as null + `slug_sha256`/`op_sha256`.
+- **No reason text on any refusal row (AZBot pre-merge review).** A server message can repeat caller input
+  from the path, the query or the request body (e.g. `POST /v1/fraggate/verify {"name": ...}`), and a cut
+  message hides the repeat from any substring check. So REST-door, peer (AZ-OS / azinterface) and MCP
+  op-refusal rows store `reason: null` plus `reason_sha256` = sha256 hex of the full, uncut server reason.
+  The runtime applies this to peer reports whatever the peer sends: reason text is hashed here; a peer may
+  send only a well-formed hash (16 or 64 hex) instead. The refusal response itself is unchanged.
+- **Goal id hashed.** `goal_key` is `goal:` + sha256(goal_id) hex[:16], never the id as typed. The same
+  `goal_id` always derives the same key, so goal links, `follows` and retry hints still resolve.
+  Caller `node_ids` on refusal-chain stamps are stored as `n:<sha256[:16]>` (the runtime's own
+  `aziel-runtime` stays literal). Follow stamps bound slug/op to the registry like refusals.
+- **Session refused receipts.** A slug that is not a registry name, or an op that is not one of its ops,
+  is stored as null + `slug_sha256`/`op_sha256` on the session chain too.
+- Existing rows are not rewritten; they still verify. Goal pointers written before this change used the
+  old key, so a goal_id refused just before deploy will not link across it (one-hour window).
+- **Uncoded refusals.** A 4xx JSON refusal on a sealed door without `code`/`refuse` (ok:false or an
+  `error` string), e.g. `/v1/pull/{unknown}` 404, is sealed with the fixed code `HTTP-<status>-UNCODED`.
+  The body is unchanged (no code is added to it). Uncoded 5xx are not refusals and are not sealed.
+- **Upstream errors.** `/p/*` 5xx are upstream errors, not refusals: logged as `upstream_error` and
+  marked `X-Azrt-Upstream-Error: <status>`; no row.
+- **OpenAPI (additive).** `/openapi.json` documents `GET /v1/receipts/refusals`,
+  `#/components/schemas/RefusalReceipt` (the `refusal_receipt` field) and
+  `#/components/headers/X-Azrt-Refusal-Receipt`.
+

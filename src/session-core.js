@@ -556,13 +556,19 @@ export const SESSION_REFUSAL_SPEC = "AZRT-REFUSAL-RECEIPT-1.0";
 
 async function sealSessionRefusal(session, err, { slug, op, payloadText }, nowIso) {
   const digest = await digestText(payloadText == null ? "" : String(payloadText));
+  // RIB-018 follow-up: a slug that is not a FragGate registry name, or an op that is not one of its ops
+  // (unknown_slug, op_not_allowed with a typed op, ...), is stored as null + a short sha256, never as text.
+  const { boundedSlugOp } = await import("./receipt-guard.js");
+  const b = await boundedSlugOp(String(slug || "").trim().toLowerCase() || null, String(op || "").trim() || null);
   const receipt = await appendReceipt(session, "refused", {
     refusal: {
       spec: SESSION_REFUSAL_SPEC,
       code: err.code || "session_error",
       status: err.status || 500,
-      slug: String(slug || "").trim().toLowerCase() || null,
-      op: String(op || "").trim() || null,
+      slug: b.slug,
+      op: b.op,
+      ...(b.slug_sha256 ? { slug_sha256: b.slug_sha256 } : {}),
+      ...(b.op_sha256 ? { op_sha256: b.op_sha256 } : {}),
       payload_digest: digest.sha256,
       payload_bytes: digest.bytes,
       executed: false,
