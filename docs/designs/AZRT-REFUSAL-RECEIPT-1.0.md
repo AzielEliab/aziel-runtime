@@ -176,7 +176,7 @@ The in-isolate door and MCP counters are given back only on a real write failure
 writer. A seal still in flight at the request deadline (`receipt_pending`) keeps its slot too.
 
 **Class full memo.** When the writer says a share is spent (`cap_limit: "class"`) or the 609 total is
-(`cap_limit: "total"`, which marks all three classes), the isolate remembers that class as full until the
+(`cap_limit: "total"`, which marks all four classes), the isolate remembers that class as full until the
 end of that minute (`cap_minute`). Refusals of a full class answer `rate_limited` (`memo: true`) at once,
 without calling the writer DO. A goal-variant cap answer (`cap_limit: "variant"`) does not mark the class.
 
