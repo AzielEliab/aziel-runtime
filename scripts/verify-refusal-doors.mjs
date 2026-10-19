@@ -145,6 +145,12 @@ assert.equal(b.code, "FG-OK"); assert.equal(b.result.ok, false); assert.equal(b.
 assert.equal(b.refusal_receipt.sealed, true); assert.equal(b.refusal_receipt.code, "LATTICE-LEARN-BAD-CHAIN"); assert.equal(b.refusal_receipt.kind, "refusal");
 const lr = (await loadChain(store, "refusals")).at(-1);
 assert.equal(lr.refusal.door, "op"); assert.equal(lr.refusal.code, "LATTICE-LEARN-BAD-CHAIN");
+// Same refusal over MCP fraggate_call (envelope nested one level deeper).
+const mres = await get("/mcp", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 9, method: "tools/call", params: { name: "fraggate_call", arguments: { slug: "memory", op: "lattice-learn", payload: { chain: "nope-mcp", dry_run: true }, confirm: true } } }) });
+const mj = await mres.json();
+const msc = mj.result.structuredContent || JSON.parse(mj.result.content[0].text);
+assert.equal(msc.result.result.code, "LATTICE-LEARN-BAD-CHAIN");
+assert.equal(msc.refusal_receipt.sealed, true); assert.equal(msc.refusal_receipt.code, "LATTICE-LEARN-BAD-CHAIN");
 const { innerOpRefusal } = await import("../src/receipt-guard.js");
 assert.equal(innerOpRefusal({ result: { ok: false, code: "X-NOT-FOUND" } }), null); // no fail_closed / written:false
 assert.equal(innerOpRefusal({ result: { ok: true, code: "OK" } }), null);
