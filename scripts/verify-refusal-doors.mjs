@@ -340,26 +340,84 @@ assert.equal(innerOpRefusal({ result: { ok: true, code: "OK" } }), null);
 }
 { const vv = await verify(store, { c: "refusals" }); if (!vv.ok) console.log(JSON.stringify(vv.breaks)); assert.equal(vv.ok, true); } n++;
 
-// 19) global per-minute cap in the ChainLock writer (true global bound) with a peer sub-cap.
+// 19) writer cap (true global bound): per-class shares rest 240 / mcp 240 / peer 120 (sum 600),
+//     goal-variant sub-cap 30/min, replays uncapped, failed writes spend nothing; doors report rate_limited.
 {
   const rgc = await import("../src/receipt-guard.js");
-  const { REFUSAL_CAP } = await import("../src/chainlock/writer-do.js");
+  const { REFUSAL_CAP, refusalCapClass } = await import("../src/chainlock/writer-do.js");
   const { append } = await import("../src/chainlock/ops.js");
+  assert.equal(REFUSAL_CAP.classes.rest + REFUSAL_CAP.classes.mcp + REFUSAL_CAP.classes.peer, REFUSAL_CAP.total);
+  assert.equal(refusalCapClass({ refusal: { surface: "azos" } }), "peer");
+  assert.equal(refusalCapClass({ refusal: { surface: "runtime" } }), "rest");
+  assert.equal(refusalCapClass({ refusal: { tool: "fraggate_call" } }), "mcp");
+  const row = (code, surface, extra = {}) => ({ c: "refusals", k: "refusal", s: code, f: "refusal " + code, refusal: { code, ...(surface ? { surface } : {}) }, idempotency_key: "k:" + code + ":" + (extra.goal_key || "") + (surface || ""), ...extra });
+  const fill = async (st, prefix, surface, count) => { let last; for (let i = 0; i < count; i++) last = await append(st, row(prefix + i, surface), { internal: true }); return last; };
+
+  // (a) shares: each class stops at its own share and can't starve the others.
   const gst = storeFor({ CHAINLOCK: memoryChainWriterNamespace({}) });
-  let peerOut;
-  for (let i = 0; i <= REFUSAL_CAP.peer; i++) peerOut = await append(gst, { c: "refusals", k: "refusal", s: "P" + i, f: "peer refusal " + i, refusal: { code: "P" + i, surface: "azos" }, idempotency_key: "p" + i }, { internal: true });
-  assert.equal(peerOut.ok, false); assert.equal(peerOut.refuse, "refusal-cap");
-  const rtOut = await append(gst, { c: "refusals", k: "refusal", s: "R", f: "runtime refusal", refusal: { code: "R", surface: "runtime" }, idempotency_key: "r0" }, { internal: true });
-  assert.equal(rtOut.ok, true, "peer sub-cap does not block runtime rows");
-  let last2;
-  for (let j = 1; j <= REFUSAL_CAP.total; j++) { last2 = await append(gst, { c: "refusals", k: "refusal", s: "T" + j, f: "refusal " + j, refusal: { code: "T" + j }, idempotency_key: "t" + j }, { internal: true }); if (!last2.ok) break; }
-  assert.equal(last2.refuse, "refusal-cap");
-  const rep = await append(gst, { c: "refusals", k: "refusal", s: "R", f: "runtime refusal", refusal: { code: "R", surface: "runtime" }, idempotency_key: "r0" }, { internal: true });
-  assert.equal(rep.ok, true); assert.equal(rep.replayed, true, "replays are never capped");
+  assert.equal((await fill(gst, "M", null, REFUSAL_CAP.classes.mcp)).ok, true);
+  let o = await append(gst, row("M-over", null), { internal: true });
+  assert.equal(o.ok, false); assert.equal(o.refuse, "refusal-cap"); assert.equal(o.cap_class, "mcp");
+  assert.equal((await fill(gst, "R", "runtime", REFUSAL_CAP.classes.rest)).ok, true, "MCP junk does not starve REST");
+  o = await append(gst, row("R-over", "runtime"), { internal: true });
+  assert.equal(o.ok, false); assert.equal(o.cap_class, "rest");
+  assert.equal((await fill(gst, "P", "azos", REFUSAL_CAP.classes.peer)).ok, true, "MCP+REST do not starve peers");
+  o = await append(gst, row("P-over", "azinterface"), { internal: true });
+  assert.equal(o.ok, false); assert.equal(o.cap_class, "peer");
+  assert.equal((await loadChain(gst, "refusals")).length, REFUSAL_CAP.total, "exactly 600 new rows, no more");
+  // (b) replays are never capped and write no row.
+  const rep = await append(gst, row("R0", "runtime"), { internal: true });
+  assert.equal(rep.ok, true); assert.equal(rep.replayed, true);
+  assert.equal((await loadChain(gst, "refusals")).length, REFUSAL_CAP.total);
+  // (c) sealRefusal maps the writer cap to an honest rate_limited.
   rgc._resetMcpSealCap();
   const sealed = await rgc.sealRefusal(gst, { code: "FG-HALLUC-TOOL", tool: "fraggate_call", slug: "foldlock", op: "zz", args: {}, minuteBucket: 7 });
-  assert.equal(sealed.sealed, false); assert.equal(sealed.status, "rate_limited", "over the global cap: honest rate_limited, no row");
+  assert.equal(sealed.sealed, false); assert.equal(sealed.status, "rate_limited");
   assert.equal((await verify(gst, { c: "refusals" })).ok, true);
+
+  // (d) goal-variant sub-cap: rows that differ only by goal_key stop at 30; another code still writes.
+  const vst = storeFor({ CHAINLOCK: memoryChainWriterNamespace({}) });
+  let vlast;
+  for (let i = 0; i < REFUSAL_CAP.variant; i++) vlast = await append(vst, row("SAME-CODE", null, { goal_key: "goal:" + String(i).padStart(16, "0") }), { internal: true });
+  assert.equal(vlast.ok, true);
+  o = await append(vst, row("SAME-CODE", null, { goal_key: "goal:ffffffffffffffff" }), { internal: true });
+  assert.equal(o.ok, false); assert.match(o.message, /goal-variant sub-cap 30/);
+  assert.equal((await append(vst, row("OTHER-CODE", null, { goal_key: "goal:ffffffffffffffff" }), { internal: true })).ok, true);
+  assert.equal((await loadChain(vst, "refusals")).length, REFUSAL_CAP.variant + 1);
+
+  // (e) failed writes don't spend a slot: the first peer write fails at the storage put, then 120 still fit.
+  class Flaky extends Map { set(k, v) { if (this.failNext && String(k).startsWith("e:")) { this.failNext = false; throw new Error("disk full (test)"); } return super.set(k, v); } }
+  const flaky = [];
+  class Shared extends Map { get(k) { if (!super.has(k)) { const f = new Flaky(); flaky.push(f); super.set(k, f); } return super.get(k); } }
+  const fst = storeFor({ CHAINLOCK: memoryChainWriterNamespace({}, new Shared()) });
+  await append(fst, row("WARM", "runtime"), { internal: true }); // creates the writer's map
+  for (const f of flaky) f.failNext = true;
+  let failed; try { failed = await append(fst, row("FAILS", "azos"), { internal: true }); } catch (e) { failed = { ok: false, threw: true }; }
+  assert.equal(failed.ok, false, "the failed write is not ok");
+  for (const f of flaky) f.failNext = false;
+  assert.equal((await fill(fst, "FP", "azos", REFUSAL_CAP.classes.peer)).ok, true, "failed write did not spend a peer slot");
+  assert.equal((await append(fst, row("FP-over", "azos"), { internal: true })).ok, false);
+  assert.equal((await verify(fst, { c: "refusals" })).ok, true);
+
+  // (f) door level: REST and peer doors over the writer cap answer rate_limited; the refusal still stands.
+  const cenv = { SESSION: memorySessionNamespace({}), CHAINLOCK: memoryChainWriterNamespace({}) };
+  const cst = storeFor(cenv);
+  await fill(cst, "CR", "runtime", REFUSAL_CAP.classes.rest);
+  await fill(cst, "CP", "azos", REFUSAL_CAP.classes.peer);
+  const rowsBefore = (await loadChain(cst, "refusals")).length;
+  doors._resetRefusalMemo();
+  const restRes = await get("/v1/mesh/install", {}, cenv);
+  assert.equal(restRes.status, 400, "REST refusal still stands");
+  const restBody = await restRes.json();
+  assert.equal(restBody.code, "ONBOARD-BAD-SLUG");
+  assert.equal(restBody.refusal_receipt.sealed, false); assert.equal(restBody.refusal_receipt.status, "rate_limited");
+  assert.equal(restRes.headers.get("x-azrt-refusal-receipt"), "rate_limited; sealed=false");
+  const peerRes = await handler(new Request("https://peer.aziel.internal/v1/refusals/peer", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ surface: "azos", code: "TRACKER-BAD-QUERY", method: "GET", route: "/v1/downloads/abc", status: 400 }) }), cenv, ctx);
+  const peerBody = await peerRes.json();
+  assert.equal(peerBody.ok, false); assert.equal(peerBody.refusal_receipt.sealed, false); assert.equal(peerBody.refusal_receipt.status, "rate_limited");
+  assert.equal((await loadChain(cst, "refusals")).length, rowsBefore, "over cap: nothing written");
+  // the isolate slot was given back (nothing was written), so the door memo is not spent either.
+  doors._resetRefusalMemo();
   n++;
 }
 

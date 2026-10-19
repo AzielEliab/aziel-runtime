@@ -298,8 +298,11 @@ export async function sealRefusal(store, { code, tool, slug, op, args, goal, pri
     mcpCap.n++;
   }
   if (!store) return { spec: REFUSAL_SPEC, sealed: false, reason: "no durable store in this isolate" };
+  // Nothing written: give the MCP isolate slot back (failed writes don't spend a slot).
+  const refund = () => { if (!trustedNames && mcpCap.minute === minuteBucket && mcpCap.n > 0) mcpCap.n--; };
   try {
     const out = await appendInternal(store, input);
+    if (!out || !out.ok) refund();
     // RIB-018 follow-up: the writer's global cap answers refusal-cap; report it honestly as rate_limited.
     if (out && out.refuse === "refusal-cap") return { spec: REFUSAL_SPEC, kind: "refusal", code, sealed: false, status: "rate_limited", reason: out.message || "global refusal seal cap reached; the refusal still stands" };
     if (!out || !out.ok) return { spec: REFUSAL_SPEC, sealed: false, reason: (out && (out.refuse || out.code)) || "append-failed" };
@@ -320,6 +323,7 @@ export async function sealRefusal(store, { code, tool, slug, op, args, goal, pri
       retry_hint: goal ? `Your next call with the same goal${goal.source === "caller" ? "_id" : " (same MCP session)"} is sealed as the action after this refusal.` : "Pass goal_id on your next call to link it to this refusal.",
     };
   } catch (err) {
+    refund();
     return { spec: REFUSAL_SPEC, sealed: false, reason: clipText(err && err.message, 120) };
   }
 }

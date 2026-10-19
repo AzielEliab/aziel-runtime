@@ -454,7 +454,8 @@ export async function append(storeOrEnv, input = {}, options = {}) {
     const out = { ok: false, refuse: (ack && ack.refuse) || "append-failed", cap: ack && ack.cap };
     if (ack && ack.code) out.code = ack.code;
     if (ack && ack.message) out.message = ack.message;
-    if (ack && String(ack.refuse || "").startsWith("lattice-")) out.written = false;
+    if (ack && ack.cap_class) out.cap_class = ack.cap_class; // RIB-018 follow-up 2 (additive)
+    if (ack && (String(ack.refuse || "").startsWith("lattice-") || ack.refuse === "refusal-cap")) out.written = false;
     return out;
   }
   const unsigned = ack.record;

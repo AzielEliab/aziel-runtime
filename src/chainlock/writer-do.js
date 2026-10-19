@@ -40,7 +40,33 @@ async function readJson(request) {
 
 
 /** RIB-018 follow-up: global per-minute cap on new `refusals` rows; peers (azos/azinterface) get a sub-cap. */
-export const REFUSAL_CAP = Object.freeze({ chain: "refusals", total: 600, peer: 120 });
+export const REFUSAL_CAP = Object.freeze({
+  chain: "refusals",
+  total: 600,
+  // Per-class shares (sum 600), so one class can't starve another (AZBot review of #302).
+  classes: Object.freeze({ rest: 240, mcp: 240, peer: 120 }),
+  peer: 120,
+  // Rows that differ only by goal_id (or the prior refusal they follow): at most this many per minute
+  // for one door + code + route shape across all goal variants.
+  variant: 30,
+});
+
+/** Which share a new refusal row spends: peer (azos/azinterface reports), rest (runtime REST doors), mcp (FragGate/MCP door). */
+export function refusalCapClass(input) {
+  const r = (input && input.refusal) || {};
+  if (r.surface === "azos" || r.surface === "azinterface") return "peer";
+  if (r.surface === "runtime") return "rest";
+  return "mcp";
+}
+
+/** The row's shape with goal_key / follows left out: rows sharing it differ only by goal (or prior). */
+async function refusalVariantKey(input) {
+  const r = (input && input.refusal) || {};
+  const shape = [r.code, r.tool, r.slug, r.op, r.slug_sha256, r.op_sha256, r.surface, r.door, r.route, r.route_sha256, r.status].map((x) => (x == null ? "" : String(x))).join("|");
+  const bytes = new TextEncoder().encode(shape);
+  const d = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+  return Array.from(d.slice(0, 8), (b) => b.toString(16).padStart(2, "0")).join("");
+}
 
 export class ChainWriter {
   constructor(ctx, env) {
@@ -94,19 +120,31 @@ export class ChainWriter {
       if (hit && hit.ok && hit.record) return { ...hit, replayed: true, ok: true };
     }
     // RIB-018 follow-up: global per-minute cap on NEW refusal rows (this writer is the only one for the
-    // chain, so it is a true global bound), with a separate sub-cap for AZ-OS / azinterface reports.
+    // chain, so it is a true global bound), split into per-class shares (rest / mcp / peer) plus a
+    // goal-variant sub-cap. Checked here; counted only after the row is written (failed writes spend nothing).
+    let capCommit = null;
     if (String(src.chain || "") === REFUSAL_CAP.chain && src.input && src.input.k === "refusal") {
       const minute = Math.floor(Date.now() / 60000);
       const prevCap = await this._get("refcap");
-      const cap = prevCap && prevCap.m === minute ? prevCap : { m: minute, total: 0, peer: 0 };
-      const surface = src.input.refusal && src.input.refusal.surface;
-      const peer = surface === "azos" || surface === "azinterface";
-      if (cap.total >= REFUSAL_CAP.total || (peer && cap.peer >= REFUSAL_CAP.peer)) {
-        return { ok: false, refuse: "refusal-cap", code: "REFUSAL-GLOBAL-CAP", written: false, message: peer ? `peer refusal sub-cap ${REFUSAL_CAP.peer}/min reached; the refusal still stands` : `global refusal seal cap ${REFUSAL_CAP.total}/min reached; the refusal still stands`, v: CL_VERSION };
+      const cap = prevCap && prevCap.m === minute && prevCap.cls ? prevCap : { m: minute, total: 0, cls: { rest: 0, mcp: 0, peer: 0 }, v: {} };
+      const cls = refusalCapClass(src.input);
+      const vk = await refusalVariantKey(src.input);
+      const share = REFUSAL_CAP.classes[cls];
+      let why = null;
+      if (cap.total >= REFUSAL_CAP.total) why = `global refusal seal cap ${REFUSAL_CAP.total}/min reached`;
+      else if ((cap.cls[cls] || 0) >= share) why = `${cls} refusal share ${share}/min reached`;
+      else if ((cap.v[vk] || 0) >= REFUSAL_CAP.variant) why = `goal-variant sub-cap ${REFUSAL_CAP.variant}/min for this door+code+route reached`;
+      if (why) {
+        return { ok: false, refuse: "refusal-cap", code: "REFUSAL-GLOBAL-CAP", cap_class: cls, written: false, message: `${why}; the refusal still stands`, v: CL_VERSION };
       }
-      cap.total++;
-      if (peer) cap.peer++;
-      await this._put("refcap", cap);
+      capCommit = async () => {
+        const cur = await this._get("refcap");
+        const c = cur && cur.m === minute && cur.cls ? cur : { m: minute, total: 0, cls: { rest: 0, mcp: 0, peer: 0 }, v: {} };
+        c.total++;
+        c.cls[cls] = (c.cls[cls] || 0) + 1;
+        c.v[vk] = (c.v[vk] || 0) + 1;
+        await this._put("refcap", c);
+      };
     }
     const genesis = src.genesis == null ? (kind === "ledger" ? "0".repeat(64) : GENESIS) : String(src.genesis);
     const meta = await this._meta();
@@ -169,6 +207,7 @@ export class ChainWriter {
       nextMeta.lt = meta.lt;
     }
     await this._put("meta", nextMeta);
+    if (capCommit) await capCommit();
     // AZRT-GOAL-LINK-1.0: a refusal (or follow) stamp that names a goal key leaves a pointer
     // so the agent's next action on the same goal, through any tool, can link back to it.
     const goalKey = src.input && typeof src.input.goal_key === "string" ? src.input.goal_key : "";

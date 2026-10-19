@@ -140,16 +140,41 @@ templates rows per minute (roughly 5 x 10 = 50/min, ~72k rows/day), against toda
   `#/components/headers/X-Azrt-Refusal-Receipt`.
 
 
-### Follow-up 2 (2026-10-19): one global cap in the writer
+### Follow-up 2 (2026-10-19): one global cap in the writer, split per class
 
 The per-door caps above (30/min) and the MCP cap live in each isolate, so many isolates could each spend
-their own cap. The ChainLock writer Durable Object is the only writer for the `refusals` chain, so it now
-keeps the one true global bound: at most **600 new refusal rows per minute** in total, and at most
-**120 per minute** from AZ-OS and azinterface reports together (the peer sub-cap, so peers can't crowd
-out the runtime's own refusals). Over the cap the writer answers `refuse: "refusal-cap"`
-(`REFUSAL-GLOBAL-CAP`), nothing is written, and `sealRefusal` returns `status: "rate_limited"`,
-`sealed: false`; the refusal itself still stands (fail closed). Replays (same idempotency key) are never
-capped and never write a row. Worst case growth is therefore 600 rows/min, about 864,000 rows/day, under a
-sustained flood. Additive only: no row is changed, no schema field removed.
-Law: AZRT-REFUSAL-RECEIPT-1.0 (this doc), FragGate single door, append-only history.
-Test: `scripts/verify-refusal-doors.mjs` group 19.
+their own cap. The ChainLock writer Durable Object is the only writer for the `refusals` chain, so it keeps
+the one true global bound: at most **600 new refusal rows per minute**, split into per-class shares so one
+class can't starve another (AZBot review of #302):
+
+| class | who | share / min |
+|---|---|---|
+| `rest` | runtime REST/HTTP doors (`surface: "runtime"`) | 240 |
+| `mcp` | FragGate / MCP door (incl. `POST /v1/fraggate/call`, no `surface`) | 240 |
+| `peer` | AZ-OS + azinterface reports (`surface: "azos"` / `"azinterface"`) | 120 |
+
+So ~10 isolates spending their MCP goal-id variants can fill at most the `mcp` share; REST and peer
+refusals still seal.
+
+**Goal-variant sub-cap.** Rows that differ only by `goal_key` (or by the prior refusal they follow) share
+one shape: code + tool + slug/op (or their hashes) + surface + door + route (or `route_sha256`) + status.
+At most **30 new rows per minute per shape**, across all goal variants. A different code or door still writes.
+
+**Over a cap** the writer answers `refuse: "refusal-cap"`, `code: "REFUSAL-GLOBAL-CAP"`, `cap_class`,
+`written: false`; nothing is written. `sealRefusal` returns `status: "rate_limited"`, `sealed: false`, and
+the REST and peer doors keep that status (they used to overwrite it with `unavailable`); the header reads
+`rate_limited; sealed=false`. The refusal itself still stands (fail closed).
+
+**Counted only on success.** The writer checks the caps before the write and counts the row only after
+the row and meta are stored, so a failed write (lattice refusal, card cap, storage error) spends no slot.
+The in-isolate door and MCP counters are given back when nothing was written. A seal still in flight at
+the request deadline (`receipt_pending`) keeps its slot.
+
+**Replays** (same idempotency key) are never capped and never write a row.
+
+Worst case under a sustained flood: 600 rows/min (~864,000 rows/day), at most 120/min from peers.
+Not capped here: `k: "follow"` rows (one per prior refusal + goal, bounded by the refusals they follow).
+Additive only: no row changed, no field removed; `cap_class` is a new field on the writer's refusal answer.
+Law: AZRT-REFUSAL-RECEIPT-1.0 (this doc), AZRT-GOAL-LINK-1.0, FragGate single door, append-only history.
+Test: `scripts/verify-refusal-doors.mjs` group 19 (shares, no starvation, exactly 600, replays, goal-variant
+sub-cap, failed write spends nothing, REST and peer doors answer `rate_limited` while the refusal stands).
