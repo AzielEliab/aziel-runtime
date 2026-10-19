@@ -195,8 +195,8 @@ export async function sealDoorRefusal(store, { surface = "runtime", door, code, 
   else {
     // Keep an honest status from sealRefusal (e.g. rate_limited from the writer's cap); else unavailable.
     out.status = view.status || "unavailable";
-    // Nothing was written: give the isolate slot back.
-    m.sealed.set(bucket, Math.max(0, (m.sealed.get(bucket) || 1) - 1));
+    // A real write failure gives the isolate slot back; a cap answer (rate_limited) keeps it spent.
+    if (out.status !== "rate_limited") m.sealed.set(bucket, Math.max(0, (m.sealed.get(bucket) || 1) - 1));
   }
   return out;
 }

@@ -384,6 +384,18 @@ assert.equal(innerOpRefusal({ result: { ok: true, code: "OK" } }), null);
   assert.equal(o.ok, false); assert.match(o.message, /goal-variant sub-cap 30/);
   assert.equal((await append(vst, row("OTHER-CODE", null, { goal_key: "goal:ffffffffffffffff" }), { internal: true })).ok, true);
   assert.equal((await loadChain(vst, "refusals")).length, REFUSAL_CAP.variant + 1);
+  // (d2) AZBot bypass repro: a junk op AND the goal both vary. The op is bounded to "other" (its hash is
+  //      not in the shape), so the sub-cap still stops it at 30.
+  const jst = storeFor({ CHAINLOCK: memoryChainWriterNamespace({}) });
+  let jok = 0, jcap = 0;
+  for (let i = 0; i < 100; i++) {
+    rgc._resetMcpSealCap();
+    const jr = await rgc.sealRefusal(jst, { code: "FG-HALLUC-TOOL", tool: "fraggate_call", slug: "foldlock", op: "junk" + i, args: {}, goal: { key: "goal:" + String(i).padStart(16, "0"), source: "caller" } });
+    if (jr.sealed) jok++; else if (jr.status === "rate_limited") jcap++;
+  }
+  assert.equal(jok, REFUSAL_CAP.variant, "junk op + goal varied: stops at 30"); assert.equal(jcap, 100 - REFUSAL_CAP.variant);
+  assert.equal((await loadChain(jst, "refusals")).length, REFUSAL_CAP.variant);
+  rgc._resetMcpSealCap();
 
   // (e) failed writes don't spend a slot: the first peer write fails at the storage put, then 120 still fit.
   class Flaky extends Map { set(k, v) { if (this.failNext && String(k).startsWith("e:")) { this.failNext = false; throw new Error("disk full (test)"); } return super.set(k, v); } }
@@ -416,8 +428,48 @@ assert.equal(innerOpRefusal({ result: { ok: true, code: "OK" } }), null);
   const peerBody = await peerRes.json();
   assert.equal(peerBody.ok, false); assert.equal(peerBody.refusal_receipt.sealed, false); assert.equal(peerBody.refusal_receipt.status, "rate_limited");
   assert.equal((await loadChain(cst, "refusals")).length, rowsBefore, "over cap: nothing written");
-  // the isolate slot was given back (nothing was written), so the door memo is not spent either.
+  doors._resetRefusalMemo(); rgc._resetMcpSealCap();
+
+  // (g) class-full memo: once the writer says a class is full, further refusals of that class answer
+  //     rate_limited in the isolate without calling the writer DO; other classes still reach it.
+  //     Cap answers are not refunded, so the isolate door cap fills too.
+  let calls = 0;
+  const realNs = memoryChainWriterNamespace({});
+  const counted = { idFromName: realNs.idFromName, get: (id) => { const st = realNs.get(id); return { fetch: (req) => { calls++; return st.fetch(req); } }; }, getByName: (nm) => { const st = realNs.getByName(nm); return { fetch: (req) => { calls++; return st.fetch(req); } }; } };
+  const kst = storeFor({ CHAINLOCK: counted });
+  await fill(kst, "KM", null, REFUSAL_CAP.classes.mcp);
+  await fill(kst, "KR", "runtime", REFUSAL_CAP.classes.rest);
+  calls = 0;
+  const first = await rgc.sealRefusal(kst, { code: "FG-HALLUC-TOOL", tool: "fraggate_call", slug: "foldlock", op: "zz", args: {} });
+  assert.equal(first.status, "rate_limited"); assert.equal(first.cap_class, "mcp"); assert.ok(calls > 0, "first over-cap refusal asks the writer");
+  calls = 0;
+  for (let i = 0; i < 20; i++) {
+    const again = await rgc.sealRefusal(kst, { code: "FG-UNKNOWN-OP-" + i, tool: "fraggate_call", slug: "foldlock", op: "zz" + i, args: {} });
+    assert.equal(again.status, "rate_limited"); assert.equal(again.memo, true);
+  }
+  assert.equal(calls, 0, "class full: no writer DO calls for further mcp refusals");
+  // REST share is full too: the first door refusal asks the writer, then the memo answers;
+  // cap answers keep their isolate slot, so the per-door isolate cap (30) fills.
   doors._resetRefusalMemo();
+  calls = 0;
+  const d1 = await doors.sealDoorRefusal(kst, { door: "mesh", code: "ONBOARD-X0", reason: "x", method: "GET", route: "/v1/mesh/install", status: 400 });
+  assert.equal(d1.status, "rate_limited"); assert.ok(calls > 0);
+  calls = 0;
+  let dl;
+  for (let i = 1; i <= doors.REFUSAL_HTTP_CAP_PER_MIN; i++) dl = await doors.sealDoorRefusal(kst, { door: "mesh", code: "ONBOARD-X" + i, reason: "x", method: "GET", route: "/v1/mesh/install", status: 400 });
+  assert.equal(calls, 0, "rest class full: no writer DO calls");
+  assert.equal(dl.status, "rate_limited"); assert.equal(dl.cap_bucket, "door:mesh", "cap answers were not refunded: isolate door cap filled");
+  // The peer class still has room and still reaches the writer.
+  calls = 0;
+  const pv = await doors.sealDoorRefusal(kst, { surface: "azos", door: "azos", code: "TRACKER-OK-ROOM", method: "GET", route: "/v1/x", status: 400 });
+  assert.equal(pv.sealed, true); assert.ok(calls > 0, "peer class not full: writes");
+  // (h) a real write failure IS refunded (MCP isolate slot given back).
+  rgc._resetMcpSealCap();
+  const before = rgc._mcpSealCapUsed();
+  const bad = await rgc.sealRefusal({ appendAtomic: async () => { throw new Error("disk full (test)"); }, load: async () => [] , kind: "x" }, { code: "FG-HALLUC-TOOL", tool: "fraggate_call", slug: "foldlock", op: "zz", args: {} });
+  assert.equal(bad.sealed, false); assert.notEqual(bad.status, "rate_limited");
+  assert.equal(rgc._mcpSealCapUsed(), before, "real failure: slot refunded");
+  doors._resetRefusalMemo(); rgc._resetMcpSealCap();
   n++;
 }
 

@@ -59,10 +59,15 @@ export function refusalCapClass(input) {
   return "mcp";
 }
 
-/** The row's shape with goal_key / follows left out: rows sharing it differ only by goal (or prior). */
+/**
+ * The row's shape with goal_key / follows left out: rows sharing it differ only by goal (or prior).
+ * Built from the same bounded names the dedupe key uses (slug || "other", op || "other") plus
+ * code / door / route template / status. Caller-shaped hashes (slug_sha256, op_sha256, route_sha256)
+ * are left out, so varying a junk op or path together with goal_id can't mint a fresh shape.
+ */
 async function refusalVariantKey(input) {
   const r = (input && input.refusal) || {};
-  const shape = [r.code, r.tool, r.slug, r.op, r.slug_sha256, r.op_sha256, r.surface, r.door, r.route, r.route_sha256, r.status].map((x) => (x == null ? "" : String(x))).join("|");
+  const shape = [r.code, r.slug || "other", r.op || "other", r.door, r.route, r.status].map((x) => (x == null ? "" : String(x))).join("|");
   const bytes = new TextEncoder().encode(shape);
   const d = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
   return Array.from(d.slice(0, 8), (b) => b.toString(16).padStart(2, "0")).join("");
@@ -131,11 +136,13 @@ export class ChainWriter {
       const vk = await refusalVariantKey(src.input);
       const share = REFUSAL_CAP.classes[cls];
       let why = null;
-      if (cap.total >= REFUSAL_CAP.total) why = `global refusal seal cap ${REFUSAL_CAP.total}/min reached`;
-      else if ((cap.cls[cls] || 0) >= share) why = `${cls} refusal share ${share}/min reached`;
-      else if ((cap.v[vk] || 0) >= REFUSAL_CAP.variant) why = `goal-variant sub-cap ${REFUSAL_CAP.variant}/min for this door+code+route reached`;
+      let limit = null;
+      if (cap.total >= REFUSAL_CAP.total) { limit = "total"; why = `global refusal seal cap ${REFUSAL_CAP.total}/min reached`; }
+      else if ((cap.cls[cls] || 0) >= share) { limit = "class"; why = `${cls} refusal share ${share}/min reached`; }
+      else if ((cap.v[vk] || 0) >= REFUSAL_CAP.variant) { limit = "variant"; why = `goal-variant sub-cap ${REFUSAL_CAP.variant}/min for this door+code+route reached`; }
       if (why) {
-        return { ok: false, refuse: "refusal-cap", code: "REFUSAL-GLOBAL-CAP", cap_class: cls, written: false, message: `${why}; the refusal still stands`, v: CL_VERSION };
+        // cap_limit / cap_minute (additive) let isolates memo "class full until the end of this minute".
+        return { ok: false, refuse: "refusal-cap", code: "REFUSAL-GLOBAL-CAP", cap_class: cls, cap_limit: limit, cap_minute: minute, written: false, message: `${why}; the refusal still stands`, v: CL_VERSION };
       }
       capCommit = async () => {
         const cur = await this._get("refcap");

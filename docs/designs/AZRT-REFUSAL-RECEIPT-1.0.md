@@ -150,14 +150,17 @@ class can't starve another (AZBot review of #302):
 | class | who | share / min |
 |---|---|---|
 | `rest` | runtime REST/HTTP doors (`surface: "runtime"`) | 240 |
-| `mcp` | FragGate / MCP door (incl. `POST /v1/fraggate/call`, no `surface`) | 240 |
+| `mcp` | FragGate envelope share: the MCP door plus `POST /v1/fraggate/call` (rows with no `surface`) | 240 |
 | `peer` | AZ-OS + azinterface reports (`surface: "azos"` / `"azinterface"`) | 120 |
 
-So ~10 isolates spending their MCP goal-id variants can fill at most the `mcp` share; REST and peer
-refusals still seal.
+So ~10 isolates spending FragGate-envelope goal-id variants can fill at most the FragGate envelope share;
+REST and peer refusals still seal.
 
 **Goal-variant sub-cap.** Rows that differ only by `goal_key` (or by the prior refusal they follow) share
-one shape: code + tool + slug/op (or their hashes) + surface + door + route (or `route_sha256`) + status.
+one shape, built from the same bounded names the dedupe key uses: code + (slug || "other") +
+(op || "other") + door + route template + status. Caller-shaped hashes (`slug_sha256`, `op_sha256`,
+`route_sha256`) are left out of the shape, so varying a junk op or path together with the goal_id can't
+mint a fresh shape (AZBot recheck of #302).
 At most **30 new rows per minute per shape**, across all goal variants. A different code or door still writes.
 
 **Over a cap** the writer answers `refuse: "refusal-cap"`, `code: "REFUSAL-GLOBAL-CAP"`, `cap_class`,
@@ -167,14 +170,23 @@ the REST and peer doors keep that status (they used to overwrite it with `unavai
 
 **Counted only on success.** The writer checks the caps before the write and counts the row only after
 the row and meta are stored, so a failed write (lattice refusal, card cap, storage error) spends no slot.
-The in-isolate door and MCP counters are given back when nothing was written. A seal still in flight at
-the request deadline (`receipt_pending`) keeps its slot.
+The in-isolate door and MCP counters are given back only on a real write failure. A cap answer
+(`rate_limited`) keeps its isolate slot, so the isolate caps fill and stop sending round trips to the
+writer. A seal still in flight at the request deadline (`receipt_pending`) keeps its slot too.
+
+**Class full memo.** When the writer says a share is spent (`cap_limit: "class"`) or the 600 total is
+(`cap_limit: "total"`, which marks all three classes), the isolate remembers that class as full until the
+end of that minute (`cap_minute`). Refusals of a full class answer `rate_limited` (`memo: true`) at once,
+without calling the writer DO. A goal-variant cap answer (`cap_limit: "variant"`) does not mark the class.
 
 **Replays** (same idempotency key) are never capped and never write a row.
 
 Worst case under a sustained flood: 600 rows/min (~864,000 rows/day), at most 120/min from peers.
 Not capped here: `k: "follow"` rows (one per prior refusal + goal, bounded by the refusals they follow).
-Additive only: no row changed, no field removed; `cap_class` is a new field on the writer's refusal answer.
+Additive only: no row changed, no field removed; `cap_class`, `cap_limit` and `cap_minute` are new fields
+on the writer's refusal answer.
 Law: AZRT-REFUSAL-RECEIPT-1.0 (this doc), AZRT-GOAL-LINK-1.0, FragGate single door, append-only history.
 Test: `scripts/verify-refusal-doors.mjs` group 19 (shares, no starvation, exactly 600, replays, goal-variant
-sub-cap, failed write spends nothing, REST and peer doors answer `rate_limited` while the refusal stands).
+sub-cap including junk op + goal both varying, failed write spends nothing, REST and peer doors answer
+`rate_limited` while the refusal stands, class-full memo makes no writer calls, cap answers not refunded,
+real failures refunded).
