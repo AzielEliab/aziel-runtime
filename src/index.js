@@ -2739,6 +2739,8 @@ function aznewsOpenApiPaths() {
     "/v1/4dmap/ledger": op("fourdmap_ledger", "Same ledger report for the 4dmap-v1 store."),
     "/v1/aznews/rows": op("aznews_rows", "OFFLINE-RECORDS-1.0: raw AZNews ledger rows, ?from=<seq>&limit=<1..500> (default 200). Read-only, mints nothing; for the offline records export (aziel-records pull)."),
     "/v1/4dmap/rows": op("fourdmap_rows", "OFFLINE-RECORDS-1.0: raw 4DMap ledger rows, same paging as /v1/aznews/rows."),
+    "/.well-known/azrt-keys.json": { get: { operationId: "azrt_keys", summary: "AZRT-KEYS-1.0: every public key the records are checked against (receipt key current/pinned/retired epochs, witness and auditor keys with epochs, slot-2 witness key). Public keys only.", tags: ["runtime"], responses: { "200": { description: "JSON" } } } },
+    "/v1/keys": { get: { operationId: "azrt_keys_alias", summary: "Same as GET /.well-known/azrt-keys.json.", tags: ["runtime"], responses: { "200": { description: "JSON" } } } },
     "/v1/4dmap/checkpoints": op("fourdmap_checkpoints", "Signed checkpoints for the 4dmap-v1 store after ?after=n.", [q("after", "Last checkpoint n you hold.", { type: "integer" })]),
     "/v1/4dmap/pins": { get: { operationId: "fourdmap_store_pins", summary: "Standalone 4DMap pins (4DMAP-STORE-1.0, own SQLite object 4dmap-v1, dual lattice): corpus layer (Aziel Corpus /api/events) and reference layer (GeoNames capitals and cities >= 1M). No AZNews needed.", tags: ["4dmap"], parameters: [{ name: "layers", in: "query", required: false, description: "corpus,reference", schema: { type: "string" } }, { name: "limit", in: "query", required: false, schema: { type: "integer" } }, { name: "include_retracted", in: "query", required: false, description: "1 = also list retracted pins (geoparser_junk, duplicate_in_document) with their reason; they stay on the lattice", schema: { type: "string" } }, { name: "links", in: "query", required: false, description: "1 = include the newest 4DMAP-LINK-1.0 links (news x corpus correspondence black/white, news x reference place)", schema: { type: "string" } }], responses: { "200": { description: "pins, last10, colors, layers, retracted, links, lattice_live" } } } },
     "/aznews": { get: { operationId: "aznews_page", summary: "AZNews + 4DMap globe page (HTML).", tags: ["aznews"], responses: { "200": { description: "text/html" } } } },
@@ -4656,6 +4658,11 @@ async function handleRequest(request, env, ctx) {
       });
       return json(out, out.ok ? 200 : out.code === "DOC-BACKFILL-BAD-QUERY" ? 400 : 503);
     }
+    if ((url.pathname === "/.well-known/azrt-keys.json" || url.pathname === "/v1/keys") && (request.method === "GET" || request.method === "HEAD")) {
+      // AZRT-KEYS-1.0: every public key the records are checked against, with epochs. Public keys only.
+      const { keysManifest } = await import("./keys-manifest.js");
+      return asHead(request, json(await keysManifest(env), 200, { "cache-control": "no-store" }));
+    }
     if (url.pathname === "/v1/receipt-key" && (request.method === "GET" || request.method === "HEAD")) {
       // RIB-042 AZRT-HELD-KEY-1.0: publish the provisioned receipt public key (never the private key).
       const rs = await import("./receipt-signing.js");
@@ -4677,6 +4684,8 @@ async function handleRequest(request, env, ctx) {
         const { softwareMeta } = await import("./software-catalog.js");
         const meta = softwareMeta(env);
         const heads = await anchor.collectHeads(env, { ...deps, version: RUNTIME_VERSION, gitSha: meta.git_sha || (env && env.GIT_SHA) || null, versionId: meta.version_id || null });
+        // AZRT-KEYS-1.0 (additive): the held receipt key's public parts, so the witness records each key epoch.
+        heads.receipt_key = await (await import("./keys-manifest.js")).receiptKeyHead(env);
         return asHead(request, json(heads, 200, hdrs));
       }
       if (url.pathname === "/v1/anchor/row") {
