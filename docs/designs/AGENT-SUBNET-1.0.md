@@ -117,29 +117,51 @@ CHAINLOCK Durable Object writer. Each row:
   total 540. `deliver` and `read` are **riders**: each is idempotent per `msg_id` and is only sealed
   for a box that a sealed `send` put in the mailbox, so one message spends at most one deliver and
   one read. Riders never spend msg, ctl, refuse or the total; they have their own backstop (1200/min)
-  that only a bug could reach. **Fair share inside msg:** at most **60 sends per minute per sending
-  visitor** (salted hash of the IPv6-/64-cut visitor IP hash) and **60 per owner pair**, so one IP
-  or one owner can't fill the msg share and starve another owner on another IP (AZBot repro R7).
-  These keys ride next to the row (`agentcap` on the append input) and are never stamped. MCP
-  callers have no IP, so they share one `none` visitor bucket (60/min). At most **10 `refuse` rows
+  that only a bug could reach (each message has at most one deliver and one read, so the steady state
+  is at most 600/min; only a queued backlog pulled in one burst could go past that). **Fair share in
+  every counted class (AZBot R7 and round 3 B1):** at most **60 rows per minute per visitor in each of
+  msg, ctl and refuse** (salted hash of the visitor IP hash; IPv6 cut to its /64, IPv4-mapped IPv6 is
+  its IPv4), and inside msg also **60 sends per owner pair**. So one IP or /64 can't fill the msg, ctl
+  or refuse share: 130 grants from one /64 can't block another visitor's register, and revoke and
+  retire still work (fail safe, below). These keys ride next to the row (`agentcap` on the append
+  input) and are never stamped. `/mcp` calls carry the caller's hashed IP too (FragGate passes it to
+  the mesh op); only a call with no request at all (local stdio) uses the `none` bucket. At most **10 `refuse` rows
   per agent per minute**. Rows are counted only after the row is stored (a failed write spends
   nothing). Replays are never capped. Over a cap the writer answers `agentcomm-cap` with
   `cap_class` / `cap_limit` (`total`, `class`, `agent`, `ip`, `pair`) / `cap_minute`, and the action
   that needs the receipt refuses `AGENT-RECEIPT-CAP` (nothing happens without its receipt; a refusal
   still stands, its `agentcomm_receipt` just says `rate_limited`). Each isolate also keeps a
-  backstop per class (msg 300, rider 600, ctl 60, refuse 60) and a "class full until the end of
-  this minute" memo (set only for `class` / `total`, never for one visitor's or pair's share). Only
-  real write failures give an isolate slot back.
+  backstop per class (msg 300, rider 600, ctl 120, refuse 120: ctl and refuse equal their writer
+  shares, so one visitor can't use up an isolate's backstop for everyone), a "class full until the end
+  of this minute" memo (set only for `class` / `total`), and a "this visitor is full this minute" memo
+  per class (no writer call for its next tries). Real write failures and per-visitor / per-pair /
+  per-agent refusals give the isolate slot back; class and total refusals do not.
+- **What filling a share costs (honest, no proof-of-work):** filling the send (msg) share of 300/min
+  takes about **10 IPv4 addresses or 5 IPv6 /64s** (AZBot round 3). An IPv4 is held to 30 agent POSTs
+  a minute by the edge, so 10 fill it; a /64 got the writer's 60 because the edge used to key the full
+  IPv6 address, so 5 fill it. The edge now keys the /64 too, so a /64 is held to 30 like an IPv4 and
+  it takes about 10 of either; the 5 /64s figure is the bound if the edge limit is ever raised or
+  bypassed. Filling ctl or refuse (120 each) takes about 4. The owner-pair cap adds nothing against
+  one attacker who controls many owners. There is no proof-of-work: this is an accepted residual,
+  bounded by the addresses an attacker holds.
 - **Edge limits (AZBot re-review N2):** every `POST /v1/mesh/agents/*` is F03 `mesh_mutate` (30/min
   per client IP, 429 `RATE_LIMIT`), and `GET /v1/mesh/agents`, `/directory` and `/challenge` are
-  `agent_read` (60/min per IP), both through the RATE Durable Object before any agent code runs.
+  `agent_read` (60/min per IP), both through the RATE Durable Object before any agent code runs. Both
+  key the visitor by `edgeIpKey` (`src/agent-ip.js`): IPv4 as is, IPv6 cut to its /64, IPv4-mapped
+  IPv6 as its IPv4, a peer's forwarded hash as `vh:<hash>` (AZBot round 3).
   `GET /v1/mesh/agents/receipts` is not limited (it is the hourly snapshot, cached 60 s per isolate,
   and the peer panels read it over one binding). Per isolate the salt is read once (it never changes),
   and the directory listing and the public snapshot are cached 60 s, so a retired agent can stay in
   the cached listing up to 60 s (send and pull recheck the state DO, so a listing grants nothing).
-  Signatures whose key is in the statement (register, revoke, retire, the receipts view) are checked
-  before any state lookup; send / pull / ack name an agent id, so its key has to be read first.
-  The edge limiter keys the full client address (F03, unchanged); only the agent limits cut IPv6 to /64.
+  **DO calls (corrected after AZBot round 3):** signatures whose key is in the statement (register,
+  revoke, retire, the receipts view) are checked before any state lookup. Send, pull, ack and grant
+  name an agent id, so the first request for an agent reads its key from the state DO; after that the
+  key (with the owner key and owner id) is cached per isolate, since an agent id is the handle of its
+  key and the row is never rewritten. A bad signature for a known agent then costs **no DO call**
+  (AZBot's repro: 100 bad-signature sends gave 100 DO calls before, 1 now; 100 unsigned pulls gave 30
+  before, 0 now). An unknown agent id still costs one DO call per request, bounded by `mesh_mutate`
+  (30/min per IP or /64). Retired and grant state are never cached; they are re-read every time.
+  Other F03 kinds still key the full client address; only `mesh_mutate` and `agent_read` use the /64.
 
 Refusals: the canonical receipt is on the `refusals` chain through `sealRefusal` with
 `surface: "agent-subnet"`, `reason: null`, `reason_sha256`, a fixed route template, and `via`
@@ -152,7 +174,10 @@ had already proved its signature, a `refuse` row is also put on `agentcomms` wit
 `refusal_h`, so the owner's viewer shows it.
 
 Verify: `chainlock_verify {"c":"agentcomms"}` (internal chains verify when named; the walk checks
-prev links, stamp hashes, fact hashes and both lattices). Each published row: `/v1/anchor/row?c=agentcomms&seq=N`.
+prev links, stamp hashes, fact hashes and both lattices) verifies **through the hourly tip only**: `n`
+and the lattice tips are that hour's (`hourly: true`, `as_of`), the same tip as `/v1/anchor/heads`;
+rows after it are verified the next hour (AZBot round 3, B2). The bound comes from the server, never
+from the caller's arguments. Each published row: `/v1/anchor/row?c=agentcomms&seq=N`.
 `chainlock_tip {"c":"agentcomms"}` refuses `AGENT-TIP-HOURLY`: the live tip would show the newest
 receipt's body and time.
 
@@ -217,8 +242,10 @@ view challenges; the hourly public snapshot. Rules:
   and cuts IPv6 to its **/64**, since one subscriber usually holds a whole /64), never stored
   beyond the current minute's counter, and never put on a chain. AZ-OS and azinterface forward their
   own visitor's hash in `x-azrt-visitor-ip-h` over the service binding (honored only when the
-  request has no `cf-connecting-ip`, i.e. not from the public internet). MCP calls have no IP and
-  share one `none` bucket. No proof-of-work (not built).
+  request has no `cf-connecting-ip`, i.e. not from the public internet). `/mcp` calls use the same
+  hash of the caller's IP (FragGate passes it through); only a local stdio call has none and uses the
+  `none` bucket. IPv4-mapped IPv6 (`::ffff:a.b.c.d`) counts as that IPv4, so mapped visitors never
+  share one bucket. No proof-of-work (not built); see "What filling a share costs".
   The same forwarded hash also feeds the runtime's general limiter key (`clientIp` in
   `src/production.js` returns `vh:<hash>` for a binding request), so peer traffic is keyed per
   visitor instead of one shared `local` bucket; a real `cf-connecting-ip` always wins over the header.
@@ -242,9 +269,8 @@ view challenges; the hourly public snapshot. Rules:
 - **Counts and timing.** The public surfaces show the agentcomms tip once an hour. `/v1/anchor/heads`
   and `/v1/receipts` carry that hour's exact row number (the witness needs it to check the row), so
   the exact count per hour is public; single events can't be timed from them. `chainlock_verify
-  {"c":"agentcomms"}` walks the whole chain and so reports the **live** row count (`n`) to anyone who
-  calls it: that is subnet-wide activity counting, with no kinds, ids or times. Kinds and times are
-  not public. The viewer for one owner shows that owner's rows with times.
+  {"c":"agentcomms"}` stops at the same hourly tip (no live count, no live tip hashes), and
+  `chainlock_tip` refuses. Kinds and times are not public. The viewer for one owner shows that owner's rows with times.
 
 ## Not done here (says so)
 
@@ -288,3 +314,12 @@ view challenges; the hourly public snapshot. Rules:
   `tip.seq` in the snapshot and peer panels; `chainlock_tip` refuses agentcomms, which also showed the
   newest body), N6 (`via: rest` spends the rest share), N7 (trust boundary documented), N8 (view
   checks the signature first), IPv6 /64 for the agent limits. Tests: groups 30 to 37.
+- 2026-10-19, AZBot round 3 at ef5d4ded (same log, repros in logs/repro-304v3/): B1 MED (60/min per
+  visitor in the ctl and refuse shares too; the isolate backstop equals the writer shares and refunds
+  per-visitor refusals; the edge `mesh_mutate` / `agent_read` limiter keys the /64; as3-ctl: the victim
+  registers), B2 LOW/MED (`chainlock_verify` on agentcomms stops at the hourly tip; the `tip` refusal
+  text and this paper match; as3-mcp: `n` 1 with the hourly tips while live is 2), B3 (stray `oom`
+  removed; main d9d895c #307 merged, both sides kept). Also: agent keys cached per isolate (as3-dos:
+  bad-signature sends 100 to 1 DO call, unsigned pulls 30 to 0), the `/mcp` caller's hash reaches the
+  agent limits, IPv4-mapped IPv6 is its IPv4 (runtime and both peers), the cost of filling a share
+  written down, and the DO-call claim corrected. Tests: groups 38 to 40.

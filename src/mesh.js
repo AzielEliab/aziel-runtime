@@ -2651,7 +2651,8 @@ export async function fedMeshNameDoor(op, payload, env) {
   );
 }
 
-export async function runMeshOp(op, payload, env) {
+/** meta: { ip_h } of the calling request (REST or /mcp), for the agent-subnet visitor limits; {} when local. */
+export async function runMeshOp(op, payload, env, meta = {}) {
   const resolved = resolveMeshOp(op);
   const src = payload && typeof payload === "object" && !Array.isArray(payload) ? payload : {};
   const poisoned = poisonKeys(src);
@@ -2784,7 +2785,7 @@ export async function runMeshOp(op, payload, env) {
       const state = await loadState(env);
       if (!state.enabled) return offRefuse(resolved, state, env);
     }
-    return agents.runAgentOp(resolved, src, env);
+    return agents.runAgentOp(resolved, src, env, meta || {});
   }
   return refuse("MESH-UNKNOWN-OP", `Unknown mesh op ${JSON.stringify(op || "")}.`, {
     op: resolved || op || null,

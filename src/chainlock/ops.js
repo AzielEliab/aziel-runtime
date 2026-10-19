@@ -484,7 +484,7 @@ export async function tip(storeOrEnv, chain = "session", caller = "") {
   if (name === "agentcomms") {
     // AGENT-SUBNET-1.0: the live tip would show the receipt body and time of the newest agent event.
     // The public reads agentcomms through the hourly snapshot and /v1/anchor/heads instead.
-    return { ok: false, chain: name, refuse: "internal-chain", code: "AGENT-TIP-HOURLY", message: "agentcomms has no live public tip: read GET /v1/mesh/agents/receipts (hourly) or /v1/anchor/heads; owners use POST /v1/mesh/agents/receipts.", v: CL_VERSION };
+    return { ok: false, chain: name, refuse: "internal-chain", code: "AGENT-TIP-HOURLY", message: "agentcomms has no live public tip: read GET /v1/mesh/agents/receipts (hourly) or /v1/anchor/heads; chainlock_verify {c:'agentcomms'} verifies through the same hourly tip; owners use POST /v1/mesh/agents/receipts.", v: CL_VERSION };
   }
   const rows = await loadChain(store, name, space);
   if (!rows.length) {
@@ -557,7 +557,7 @@ export async function recall(storeOrEnv, input = {}) {
   return { ok: true, v: CL_VERSION, depth, count: facts.length, facts };
 }
 
-export async function verify(storeOrEnv, input = {}) {
+export async function verify(storeOrEnv, input = {}, opts = {}) {
   const store = storeFor(storeOrEnv);
   const src = input && typeof input === "object" ? input : {};
   const names = src.c || src.chain ? [String(src.c || src.chain)] : ROSTER.slice();
@@ -567,7 +567,11 @@ export async function verify(storeOrEnv, input = {}) {
   for (const name of names) {
     // Addendum (RIB-018): an internal chain (refusals) is verifiable when named explicitly; read-only.
     if (!ROSTER.includes(name) && !(INTERNAL_CHAINS.includes(name) && (src.c || src.chain))) continue;
-    const rows = await loadChain(store, name, caller);
+    const allRows = await loadChain(store, name, caller);
+    // agentcomms through a public door: only the rows up to the hourly tip (rows after it are verified the
+    // next hour). opts comes from the server (chainlock.js), never from the caller's input.
+    const hourly = name === "agentcomms" && opts && Number.isFinite(opts.agentThrough);
+    const rows = hourly ? allRows.slice(0, Math.max(0, opts.agentThrough)) : allRows;
     let prev = GENESIS;
     let ok = true;
     for (let i = 0; i < rows.length; i++) {
@@ -622,6 +626,7 @@ export async function verify(storeOrEnv, input = {}) {
       integrity,
       expect_spec: { status: expect_spec.status, spec_hash: expect_spec.spec_hash, errors: expect_spec.errors.length },
       isolated: !ok,
+      ...(hourly ? { hourly: true, through: "hourly tip", as_of: opts.agentAsOf || null, note: "agentcomms is verified through the hourly tip only (no live count, no live tip); later rows are verified the next hour." } : {}),
       dual_lattice: {
         ok: dual.ok,
         lattice_rows: dual.lattice_rows,

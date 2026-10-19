@@ -4510,11 +4510,8 @@ async function handleRequest(request, env, ctx) {
       // none and may forward its own visitor's hash in x-azrt-visitor-ip-h.
       let meshMeta = {};
       if (url.pathname.startsWith("/v1/mesh/agents")) {
-        const ip = request.headers.get("cf-connecting-ip");
-        const fwd = String(request.headers.get("x-azrt-visitor-ip-h") || "");
         // IPv6 is cut to its /64 first (agentIpKey). No cf-connecting-ip means a Worker service binding.
-        if (ip) meshMeta = { ip_h: await (await import("./agent-subnet.js")).agentIpHash(ip) };
-        else if (/^[a-f0-9]{16,64}$/.test(fwd)) meshMeta = { ip_h: fwd.slice(0, 32) };
+        meshMeta = await (await import("./agent-subnet.js")).agentMetaOf(request);
       }
       const out = await dispatchMeshHttp(request.method, url.pathname, payload, env, origin, url.searchParams, meshMeta);
       // MESH-ONBOARD-1.0: the one-click installer is served as a shell script.

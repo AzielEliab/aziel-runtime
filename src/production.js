@@ -7,6 +7,7 @@
  */
 
 import { CODE_RATE_LIMIT } from "./request-limits.js";
+import { edgeIpKey } from "./agent-ip.js";
 
 export const RECEIPT_CAP = 64;
 export const SESSION_TTL_MS = 6 * 60 * 60 * 1000;
@@ -368,8 +369,15 @@ const RATE_SCOPES = {
   agent_read: "agent_read",
 };
 
-export function rateLimitDecision(env, request, kind, now = Date.now()) {
+/** Agent-subnet kinds key the visitor's IPv6 /64 (and the IPv4 inside ::ffff:), AZBot round 3. */
+const IP64_KINDS = new Set(["mesh_mutate", "agent_read"]);
+export function limiterIp(request, kind) {
   const ip = clientIp(request);
+  return IP64_KINDS.has(kind) ? edgeIpKey(ip) : ip;
+}
+
+export function rateLimitDecision(env, request, kind, now = Date.now()) {
+  const ip = limiterIp(request, kind);
   const limit = rateLimitForKind(env, kind);
   if (limit >= 1 && RATE_SCOPES[kind]) {
     const slot = takeRateSlot(env, kind, ip, limit, now);

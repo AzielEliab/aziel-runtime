@@ -486,7 +486,8 @@ n++;
   const { AGENTCOMM_CAP } = await import("../src/agent-state.js");
   assert.equal(AGENTCOMM_CAP.classes.msg + AGENTCOMM_CAP.classes.ctl + AGENTCOMM_CAP.classes.refuse, AGENTCOMM_CAP.total);
   const gst = storeFor({ CHAINLOCK: memoryChainWriterNamespace({}) });
-  const row = (kind, i, extra = {}) => ({ c: "agentcomms", k: "agentcomm", s: "agentcomm", f: "agent receipt r=" + i, agentcomm: { spec: "AGENT-SUBNET-1.0", kind, ...extra }, idempotency_key: "t:" + kind + ":" + i + ":" + JSON.stringify(extra) });
+  // Each raw row comes from its own visitor here (the per-visitor share is tested in group 38).
+  const row = (kind, i, extra = {}) => ({ c: "agentcomms", k: "agentcomm", s: "agentcomm", f: "agent receipt r=" + i, agentcomm: { spec: "AGENT-SUBNET-1.0", kind, ...extra }, agentcap: { ip: "v:" + kind + ":" + i + ":" + JSON.stringify(extra) }, idempotency_key: "t:" + kind + ":" + i + ":" + JSON.stringify(extra) });
   // refuse rows: 10/min per agent; a different agent still gets its own 10; the refuse share is 120.
   let lastA;
   for (let i = 0; i <= AGENTCOMM_CAP.refuse_per_agent; i++) lastA = await append(gst, row("refuse", i, { from_h: "a".repeat(32) }), { internal: true });
@@ -802,7 +803,13 @@ n++;
   assert.equal(S.agentIpKey("2001:db8:1:2:aaaa::1"), S.agentIpKey("2001:0db8:0001:0002:bbbb:cccc:dddd:9"));
   ok(S.agentIpKey("2001:db8:1:2::1") !== S.agentIpKey("2001:db8:1:3::1"));
   assert.equal(S.agentIpKey("2001:db8:1:2::1"), "2001:db8:1:2::/64");
-  assert.equal(S.agentIpKey("::ffff:192.0.2.1"), "0:0:0:0::/64");
+  // IPv4-mapped IPv6 is the IPv4 it carries: two mapped visitors never share one bucket (AZBot round 3).
+  assert.equal(S.agentIpKey("::ffff:192.0.2.1"), "192.0.2.1");
+  assert.equal(S.agentIpKey("::ffff:c000:201"), "192.0.2.1");
+  assert.equal(S.agentIpKey("0:0:0:0:0:ffff:192.0.2.9"), "192.0.2.9");
+  ok(S.agentIpKey("::ffff:192.0.2.1") !== S.agentIpKey("::ffff:192.0.2.2"));
+  const { edgeIpKey } = await import("../src/agent-ip.js");
+  assert.equal(edgeIpKey("2001:db8:1:2::7"), "2001:db8:1:2::/64"); assert.equal(edgeIpKey("vh:" + "a".repeat(32)), "vh:" + "a".repeat(32)); assert.equal(edgeIpKey("local"), "local");
   assert.equal(S.agentIpKey("192.0.2.1"), "192.0.2.1");
   const e = mkEnv();
   const codes = [];
@@ -842,6 +849,113 @@ n++;
   assert.equal(rac.seq, 2); assert.equal(rac.hourly, true);
   const h3 = await nextHour(() => call("/v1/anchor/heads", {}, e).then((r) => r.json()));
   assert.equal(h3.chains.find((c) => c.c === "agentcomms").seq, 3, "the next hour's tip");
+}
+n++;
+
+// 38) (AZBot round 3, B1) the per-visitor share covers ctl and refuse too: 130 grants from rotating
+//     addresses in ONE /64 cannot block another visitor's register; revoke and retire still work.
+{
+  await freshMinute();
+  const { AGENTCOMM_CAP } = await import("../src/agent-state.js");
+  const e = mkEnv();
+  S._resetAgentMemo();
+  const t0 = Math.floor(Date.now() / 60000) * 60000 + 1000;
+  S._setAgentClock(() => t0);
+  const T = new Date(t0).toISOString();
+  let k = 0; const ip6 = () => "2001:db8:aa:bb::" + (++k).toString(16);
+  const o = await newId(), a = await newId(), b = await newId();
+  for (const x of [a, b]) assert.equal((await postIp(e, "register", await C.registerStatement(x, o, { t: T }), ip6())).body.code, "AGENT-OK");
+  const codes = {}; let lastG = null;
+  for (let i = 0; i < 130; i++) {
+    const g = await C.grantStatement({ from: a.handle, to: b.handle, ownerTo: o, t: T });
+    const r = await postIp(e, "grant", g.statement, ip6());
+    codes[r.body.code] = (codes[r.body.code] || 0) + 1;
+    if (r.body.code === "AGENT-OK") lastG = g;
+  }
+  assert.equal(codes["AGENT-OK"], AGENTCOMM_CAP.per_ip - 2, JSON.stringify(codes)); // 2 registers + 58 grants = 60 ctl rows
+  assert.equal(codes["AGENT-RECEIPT-CAP"], 130 - (AGENTCOMM_CAP.per_ip - 2), JSON.stringify(codes));
+  ok(S._sealMemoForTest().used.ctl <= AGENTCOMM_CAP.per_ip, "per-visitor refusals give the isolate slot back");
+  const vo = await newId(), va = await newId(), vb = await newId();
+  const vr = await postIp(e, "register", await C.registerStatement(va, vo, { t: T }), "192.0.2.50");
+  assert.equal(vr.body.code, "AGENT-OK", "a victim on another IP still registers: " + vr.body.code);
+  assert.equal((await postIp(e, "register", await C.registerStatement(vb, vo, { t: T }), "192.0.2.50")).body.code, "AGENT-OK");
+  const vg = await C.grantStatement({ from: va.handle, to: vb.handle, ownerTo: vo, t: T });
+  assert.equal((await postIp(e, "grant", vg.statement, "192.0.2.50")).body.code, "AGENT-OK", "and grants");
+  // the noisy /64 can still revoke and retire (fail safe: tombstone first, receipt pending at worst).
+  const rv = await postIp(e, "revoke", await C.revokeStatement({ grantId: lastG.grant_id, owner: o, t: T }), ip6());
+  assert.equal(rv.body.code, "AGENT-OK"); assert.equal(rv.body.revoked, true);
+  const rt = await postIp(e, "retire", await C.retireStatement({ agentId: a.handle, owner: o, t: T }), ip6());
+  assert.equal(rt.body.code, "AGENT-OK"); assert.equal(rt.body.retired, true);
+  // the writer keys refuse rows per visitor as well (raw writer check).
+  const gst = storeFor({ CHAINLOCK: memoryChainWriterNamespace({}) });
+  let last;
+  for (let i = 0; i <= AGENTCOMM_CAP.per_ip; i++) last = await append(gst, { c: "agentcomms", k: "agentcomm", s: "agentcomm", f: "r" + i, agentcomm: { spec: "AGENT-SUBNET-1.0", kind: "refuse", from_h: "f" + String(i).padStart(31, "0") }, agentcap: { ip: "one-visitor" }, idempotency_key: "rv:" + i }, { internal: true });
+  assert.equal(last.ok, false); assert.equal(last.cap_class, "refuse"); assert.equal(last.cap_limit, "ip");
+  S._setAgentClock(null); S._resetAgentMemo();
+}
+n++;
+
+// 39) (AZBot round 3, B2) chainlock_verify {c:"agentcomms"} through the public doors stops at the hourly
+//     tip: no live count and no live tip hashes. An internal store-level verify still walks every row.
+{
+  const e = mkEnv();
+  const o = await newId();
+  await postIp(e, "register", await C.registerStatement(await newId(), o), "198.51.100.201");
+  assert.equal((await call("/v1/mesh/agents/receipts", {}, e)).status, 200); // the hour's snapshot: seq 1
+  await postIp(e, "register", await C.registerStatement(await newId(), o), "198.51.100.202"); // live seq 2
+  const tipNow = await S.agentHourlyTip(e);
+  assert.equal(tipNow.seq, 1);
+  const mcpVerify = async (args) => {
+    const r = await call("/mcp", { method: "POST", headers: { "content-type": "application/json", accept: "application/json, text/event-stream" }, body: JSON.stringify({ jsonrpc: "2.0", id: 7, method: "tools/call", params: { name: "chainlock_verify", arguments: args } }) }, e);
+    return JSON.parse(await r.text()).result.structuredContent.result;
+  };
+  for (const args of [{ c: "agentcomms" }, { chain: "agentcomms" }, { c: "agentcomms", agentThrough: 99, opts: { agentThrough: 99 } }]) {
+    const v = await mcpVerify(args);
+    const ch = v.chains.find((x) => x.c === "agentcomms");
+    assert.equal(ch.n, 1, "hourly count only: " + JSON.stringify(args)); assert.equal(ch.hourly, true);
+    assert.equal(ch.dual_lattice.tips.primary, tipNow.lattice.primary); assert.equal(ch.dual_lattice.tips.secondary, tipNow.lattice.secondary);
+    ok(!JSON.stringify(v).includes(String((await loadChain(storeFor(e), "agentcomms"))[1].stamp_sha256)), "the live row hash never shows");
+  }
+  const full = await verify(storeFor(e), { c: "agentcomms" });
+  assert.equal(full.chains[0].n, 2); assert.equal(full.ok, true);
+}
+n++;
+
+// 40) (AZBot round 3) agent keys are cached per isolate: bad-signature sends and pulls for a known agent
+//     cost no DO call; the /mcp caller's hashed IP reaches the agent limits (no shared "none" bucket).
+{
+  const e = mkEnv();
+  const o = await newId(), a = await newId(), b = await newId();
+  for (const x of [a, b]) await postIp(e, "register", await C.registerStatement(x, o), "198.51.100.210");
+  const ops = countAgentOps(e);
+  ops.length = 0;
+  for (let i = 0; i < 20; i++) {
+    const st = await C.sendStatement({ agent: a, to: b.handle, toEncPublicKey: b.enc_public_key, grantId: "0".repeat(64), plaintext: "x".repeat(40) });
+    st.sig = st.sig.slice(0, -4) + "AAAA";
+    assert.equal((await postIp(e, "send", st, "198.51.100." + (20 + i))).body.code, "AGENT-SIG-INVALID");
+    const pl = await C.simpleStatement("agent-pull", a); pl.sig = pl.sig.slice(0, -4) + "AAAA";
+    assert.equal((await postIp(e, "pull", pl, "198.51.100." + (60 + i))).body.code, "AGENT-SIG-INVALID");
+  }
+  assert.equal(ops.filter((x) => x === "agent").length, 0, "cached keys: no agent lookups for bad signatures: " + ops.join(","));
+  // a good send still works (the cache never answers yes on its own).
+  const g = await C.grantStatement({ from: a.handle, to: b.handle, ownerTo: o });
+  await postIp(e, "grant", g.statement, "198.51.100.210");
+  assert.equal((await postIp(e, "send", await C.sendStatement({ agent: a, to: b.handle, toEncPublicKey: b.enc_public_key, grantId: g.grant_id, plaintext: "ok" + "-".repeat(40) }), "198.51.100.210")).body.code, "AGENT-OK");
+  // MCP meta: the same hash as REST for the same visitor; a peer's forwarded hash; nothing when local.
+  const req = (h) => new Request("https://x.example/mcp", { method: "POST", headers: h });
+  assert.deepEqual(await S.agentMetaOf(req({ "cf-connecting-ip": "2001:db8:5:6::9" })), { ip_h: await S.agentIpHash("2001:db8:5:6::1") });
+  assert.deepEqual(await S.agentMetaOf(req({ "x-azrt-visitor-ip-h": "b".repeat(32) })), { ip_h: "b".repeat(32) });
+  assert.deepEqual(await S.agentMetaOf(req({})), {}); assert.deepEqual(await S.agentMetaOf(null), {});
+  const { readFile } = await import("node:fs/promises");
+  const door = await readFile(new URL("../src/fraggate/door.js", import.meta.url), "utf8");
+  const mesh = await readFile(new URL("../src/mesh.js", import.meta.url), "utf8");
+  ok(/agentMetaOf\(request\)[\s\S]{0,200}runMeshOp\(resolved\.op, payload, env, meshMeta\)/.test(door), "FragGate passes the /mcp caller's meta");
+  ok(mesh.includes("agents.runAgentOp(resolved, src, env, meta || {})"), "runMeshOp forwards meta to the agent ops");
+  // the edge limiter keys the /64: two addresses in one /64 share one mesh_mutate bucket.
+  const { limiterIp } = await import("../src/production.js");
+  const rq = (ip) => new Request("https://x.example/v1/mesh/agents/send", { method: "POST", headers: { "cf-connecting-ip": ip } });
+  assert.equal(limiterIp(rq("2001:db8:9:9::1"), "mesh_mutate"), limiterIp(rq("2001:db8:9:9:ffff::2"), "agent_read"));
+  assert.equal(limiterIp(rq("2001:db8:9:9::1"), "mcp"), "2001:db8:9:9::1", "other kinds unchanged");
 }
 n++;
 

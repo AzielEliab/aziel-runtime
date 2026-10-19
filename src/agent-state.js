@@ -23,8 +23,9 @@ const SEEN_BUCKET_MS = 60 * 1000;
  *   (`deliver|<msg_id>`, `read|<msg_id>`) and only sealed for a box that a sealed send put there, so a
  *   message spends at most one deliver and one read. Riders have their own backstop share and never
  *   spend msg, ctl, refuse, or the total.
- * - Fair share inside msg: at most per_ip sends per sending visitor (hashed IP, never on the chain) and
- *   per_pair sends per owner pair, so one IP or one owner can't fill the msg share.
+ * - Fair share in every counted class (msg, ctl, refuse): at most per_ip rows per visitor (hashed IP with
+ *   IPv6 cut to its /64, never on the chain) per class, so one IP or /64 can't fill any share (AZBot B1).
+ *   Inside msg also at most per_pair sends per owner pair.
  * - refuse rows: at most refuse_per_agent per agent.
  * Counted only after a successful write (the #302 pattern).
  */
@@ -58,7 +59,8 @@ export async function agentCommCapCheck(store, input, nowMs = Date.now()) {
   const cap = prev && prev.m === minute && prev.cls ? { ip: {}, pair: {}, ...prev, cls: { rider: 0, ...prev.cls } } : fresh();
   const cls = agentCommClass(a.kind);
   const who = cls === "refuse" ? String(a.from_h || "anon") : null;
-  const ipKey = cls === "msg" ? String(keys.ip || "none").slice(0, 64) : null;
+  // Per-visitor key per class (msg/ctl/refuse); riders have their own backstop and no visitor share.
+  const ipKey = cls !== "rider" ? cls + ":" + String(keys.ip || "none").slice(0, 64) : null;
   const pairKey = cls === "msg" ? String(keys.pair || a.owner_pair_h || "none").slice(0, 64) : null;
   let limit = null;
   let why = null;
@@ -67,7 +69,7 @@ export async function agentCommCapCheck(store, input, nowMs = Date.now()) {
   } else if (cap.total >= AGENTCOMM_CAP.total) { limit = "total"; why = `agentcomms receipt cap ${AGENTCOMM_CAP.total}/min reached`; }
   else if ((cap.cls[cls] || 0) >= AGENTCOMM_CAP.classes[cls]) { limit = "class"; why = `${cls} receipt share ${AGENTCOMM_CAP.classes[cls]}/min reached`; }
   else if (who && (cap.agents[who] || 0) >= AGENTCOMM_CAP.refuse_per_agent) { limit = "agent"; why = `refuse rows for this agent capped at ${AGENTCOMM_CAP.refuse_per_agent}/min`; }
-  else if (ipKey && (cap.ip[ipKey] || 0) >= AGENTCOMM_CAP.per_ip) { limit = "ip"; why = `sends from one visitor capped at ${AGENTCOMM_CAP.per_ip}/min (fair share)`; }
+  else if (ipKey && (cap.ip[ipKey] || 0) >= AGENTCOMM_CAP.per_ip) { limit = "ip"; why = `${cls} rows from one visitor capped at ${AGENTCOMM_CAP.per_ip}/min (fair share)`; }
   else if (pairKey && (cap.pair[pairKey] || 0) >= AGENTCOMM_CAP.per_pair) { limit = "pair"; why = `sends between one owner pair capped at ${AGENTCOMM_CAP.per_pair}/min (fair share)`; }
   if (why) return { refuse: { ok: false, refuse: "agentcomm-cap", code: "AGENT-RECEIPT-CAP", cap_class: cls, cap_limit: limit, cap_minute: minute, written: false, message: `${why}; nothing was done` } };
   return {

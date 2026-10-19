@@ -5,7 +5,7 @@
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
 
-import { RATE_WINDOW_MS, clientIp, rateLimitDecision, rateLimitForKind, takeRateSlot } from "./production.js";
+import { RATE_WINDOW_MS, clientIp, limiterIp, rateLimitDecision, rateLimitForKind, takeRateSlot } from "./production.js";
 
 export class RateQuota {
   constructor(ctx, env) {
@@ -181,7 +181,7 @@ const DOOR_SCOPES = {
 /** FragGate HTTP + MCP: Durable Object when RATE is bound, else isolate. */
 export async function doorRateLimitDecision(env, request, kind, now = Date.now()) {
   if (!DOOR_SCOPES[kind]) return rateLimitDecision(env, request, kind, now);
-  const ip = clientIp(request);
+  const ip = limiterIp(request, kind);
   const limit = rateLimitForKind(env, kind);
   if (limit < 1) {
     return { ok: true, scope: DOOR_SCOPES[kind], ip, limit: 0, remaining: 0, count: 0, retry_after: 0, window_seconds: 60, enforcement: "isolate" };
