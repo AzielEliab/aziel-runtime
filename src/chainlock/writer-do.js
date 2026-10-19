@@ -42,19 +42,26 @@ async function readJson(request) {
 /** RIB-018 follow-up: global per-minute cap on new `refusals` rows; peers (azos/azinterface) get a sub-cap. */
 export const REFUSAL_CAP = Object.freeze({
   chain: "refusals",
-  total: 600,
-  // Per-class shares (sum 600), so one class can't starve another (AZBot review of #302).
-  classes: Object.freeze({ rest: 240, mcp: 240, peer: 120 }),
+  total: 609,
+  // Per-class shares (sum 609), so one class can't starve another (AZBot review of #302).
+  // rollup: 9/min reserved for AZRT-AUTH-ROLLUP-1.0 count rows (8 + 1 overflow, self-capped), outside
+  // the REST 240 so a flood of REST door refusals can't starve the auth rollup flush (AZBot B307-1).
+  classes: Object.freeze({ rest: 240, mcp: 240, peer: 120, rollup: 9 }),
   peer: 120,
   // Rows that differ only by goal_id (or the prior refusal they follow): at most this many per minute
   // for one door + code + route shape across all goal variants.
   variant: 30,
 });
 
-/** Which share a new refusal row spends: peer (azos/azinterface reports), rest (runtime REST doors), mcp (FragGate/MCP door). */
+/**
+ * Which share a new refusal row spends: peer (azos/azinterface reports), rollup (the runtime's own
+ * AZRT-AUTH-ROLLUP-1.0 count rows: surface runtime + kind auth_rollup + tool auth-rollup, all set by
+ * server code only), rest (runtime REST doors), mcp (FragGate/MCP door).
+ */
 export function refusalCapClass(input) {
   const r = (input && input.refusal) || {};
   if (r.surface === "azos" || r.surface === "azinterface") return "peer";
+  if (r.surface === "runtime" && r.kind === "auth_rollup" && r.tool === "auth-rollup") return "rollup";
   if (r.surface === "runtime") return "rest";
   // AGENT-SUBNET-1.0 (additive): agent refusals over HTTP /v1/mesh/agents/* spend the rest share.
   if (r.surface === "agent-subnet" && r.via === "rest") return "rest";
@@ -133,7 +140,7 @@ export class ChainWriter {
     if (String(src.chain || "") === REFUSAL_CAP.chain && src.input && src.input.k === "refusal") {
       const minute = Math.floor(Date.now() / 60000);
       const prevCap = await this._get("refcap");
-      const cap = prevCap && prevCap.m === minute && prevCap.cls ? prevCap : { m: minute, total: 0, cls: { rest: 0, mcp: 0, peer: 0 }, v: {} };
+      const cap = prevCap && prevCap.m === minute && prevCap.cls ? prevCap : { m: minute, total: 0, cls: { rest: 0, mcp: 0, peer: 0, rollup: 0 }, v: {} };
       const cls = refusalCapClass(src.input);
       const vk = await refusalVariantKey(src.input);
       const share = REFUSAL_CAP.classes[cls];
@@ -148,7 +155,7 @@ export class ChainWriter {
       }
       capCommit = async () => {
         const cur = await this._get("refcap");
-        const c = cur && cur.m === minute && cur.cls ? cur : { m: minute, total: 0, cls: { rest: 0, mcp: 0, peer: 0 }, v: {} };
+        const c = cur && cur.m === minute && cur.cls ? cur : { m: minute, total: 0, cls: { rest: 0, mcp: 0, peer: 0, rollup: 0 }, v: {} };
         c.total++;
         c.cls[cls] = (c.cls[cls] || 0) + 1;
         c.v[vk] = (c.v[vk] || 0) + 1;

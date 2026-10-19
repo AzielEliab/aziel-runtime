@@ -3239,7 +3239,7 @@ async function combinedOpenApi(request, env) {
       },
       schemas: { ...attemptOpenApiSchemas(), RefusalReceipt: refusalDocs.refusalReceiptSchema() },
       // AZRT-REFUSAL-RECEIPT-1.0 (additive): header on sealed-door refusals.
-      headers: { "X-Azrt-Refusal-Receipt": refusalDocs.REFUSAL_RECEIPT_HEADER_DOC },
+      headers: { "X-Azrt-Refusal-Receipt": refusalDocs.REFUSAL_RECEIPT_HEADER_DOC, "X-Azrt-Auth-Rollup": (await import("./auth-rollup.js")).AUTH_ROLLUP_HEADER_DOC },
     },
     "x-refusal-receipt": "Sealed-door refusals add `refusal_receipt` (#/components/schemas/RefusalReceipt) to the body and the X-Azrt-Refusal-Receipt header (#/components/headers/X-Azrt-Refusal-Receipt). Doors: MCP and POST /v1/fraggate/call (incl. op refusals inside FG-OK), /v1/fraggate*, /v1/mesh* (incl. install/install.sh), /v1/tether*, /v1/memory*, /v1/qns*, /v1/interface, /v1/pull/*, /p/* (4xx only; 5xx are upstream errors, X-Azrt-Upstream-Error), plus AZ-OS and azinterface reports. Find: GET /v1/receipts/refusals.",
     paths,
@@ -5079,6 +5079,12 @@ export default {
       const left = budget - (Date.now() - startedAt) - 50;
       result = await withDoorRefusalReceipt(request, result, { store: env && env.CHAINLOCK ? storeFor(env) : null, ctx, budgetMs: Number.isFinite(left) ? left : undefined });
     }
+    // AZRT-AUTH-ROLLUP-1.0: login/token refusals are never sealed one by one; each adds 1 to a count-only
+    // (minute, door, code) counter that the cron seals as one rollup row. Additive header only.
+    if (result && Number(result.status) >= 400) {
+      const { withAuthRollup } = await import("./auth-rollup.js");
+      result = await withAuthRollup(request, result, { env, ctx });
+    }
     if (ctx && typeof ctx.waitUntil === "function") {
       // AZRT-ANCHOR-1.0: refresh the verified witness view after the response (never blocks a mint;
       // registered last so it never reorders other waitUntil work).
@@ -5133,6 +5139,15 @@ export default {
         .catch((err) => console.log(JSON.stringify({ aznews_tether: "NEWS-TETHER-ERROR", error: String((err && err.message) || err).slice(0, 200) })));
       if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(news);
       else await news;
+    }
+    // AZRT-AUTH-ROLLUP-1.0: seal closed minutes of login/token refusal counts (one row per door + code).
+    if (env && env.CHAINLOCK && ctx && typeof ctx.waitUntil === "function") {
+      ctx.waitUntil(
+        import("./auth-rollup.js")
+          .then(({ flushAuthRollups }) => flushAuthRollups(env, storeFor(env)))
+          .then((out) => console.log(JSON.stringify({ auth_rollup: out && { ok: out.ok, code: out.code, minutes: (out.minutes || []).map((m) => `${m.minute}:${m.status}`) } })))
+          .catch((err) => console.log(JSON.stringify({ auth_rollup: "AUTH-ROLLUP-CRON-ERROR", error: String((err && err.message) || err).slice(0, 200) }))),
+      );
     }
     // LATTICE-LEARN-1.0 (scheduled): each tick learns one page on three chains, rotating. Forward-only,
     // append-only, fails closed; errors are logged and never block the tether or mesh work.

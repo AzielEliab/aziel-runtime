@@ -213,3 +213,15 @@ AGENT-SUBNET-1.0 (`src/agent-subnet.js`, docs/designs/AGENT-SUBNET-1.0.md). Ever
 | `AGENT-SALT-LOST` | 503 | The subnet salt is missing while receipts exist; refused rather than re-minted. |
 | `AGENT-CHALLENGE` | 403 | View challenge missing, expired, forged, already used, or for another scope or key. |
 | `AGENT-NOT-FOUND` / `AGENT-METHOD` | 404 / 405 | Unknown path / wrong method. |
+
+## 5d. Auth refusal rollup (additive, 2.0.x, AZRT-AUTH-ROLLUP-1.0)
+
+No auth refuse code, status or body changes. Auth refusals (`token_required`, `token_mismatch`,
+`token_not_configured`, `TOKEN-QUERY-REFUSED`, `TOKEN-BODY-REFUSED`, `CL-NOT-ISSUER`, `SESSION-PAUSED`,
+other `*token*` codes, any other 401) gain one additive header,
+`X-Azrt-Auth-Rollup: <counted|pending|unavailable|rate_limited>; spec=AZRT-AUTH-ROLLUP-1.0; minute=<n>; door=<fixed>; code=<fixed>`.
+They are still never sealed one by one. The cron seals one count-only row per minute per door + code on the
+internal `refusals` chain (`refusal.kind: "auth_rollup"`). New row code: `AUTH-ROLLUP-OVERFLOW` (pairs past
+the per-minute row cap, summed). Cron log codes: `AUTH-ROLLUP-UNBOUND`, `AUTH-ROLLUP-STORE-UNBOUND`.
+Rollup rows spend their own reserved `rollup` share (9/min) of the writer's refusal cap, outside the REST
+240 (writer total 609). The header is documented at `#/components/headers/X-Azrt-Auth-Rollup`.

@@ -152,6 +152,7 @@ class can't starve another (AZBot review of #302):
 | `rest` | runtime REST/HTTP doors (`surface: "runtime"`) | 240 |
 | `mcp` | FragGate envelope share: the MCP door plus `POST /v1/fraggate/call` (rows with no `surface`) | 240 |
 | `peer` | AZ-OS + azinterface reports (`surface: "azos"` / `"azinterface"`) | 120 |
+| `rollup` | AZRT-AUTH-ROLLUP-1.0 count rows built by the runtime (`surface: "runtime"`, `kind: "auth_rollup"`, `tool: "auth-rollup"`); added by the auth rollup PR, see below | 9 |
 
 So ~10 isolates spending FragGate-envelope goal-id variants can fill at most the FragGate envelope share;
 REST and peer refusals still seal.
@@ -190,3 +191,16 @@ Test: `scripts/verify-refusal-doors.mjs` group 19 (shares, no starvation, exactl
 sub-cap including junk op + goal both varying, failed write spends nothing, REST and peer doors answer
 `rate_limited` while the refusal stands, class-full memo makes no writer calls, cap answers not refunded,
 real failures refunded).
+
+### Follow-up 3 (2026-10-19): reserved `rollup` share (AZRT-AUTH-ROLLUP-1.0, AZBot B307-1)
+
+The auth rollup seals at most 9 count rows a minute (8 + 1 overflow). Those rows used to be `surface:
+"runtime"` and so spent the REST 240; a flood that filled the REST share also stalled the rollup flush.
+They now spend their own **9/min** `rollup` share, and the writer total is **609** (240 + 240 + 120 + 9),
+so the shares still add up to the total. The worst case under a sustained flood becomes 609 rows/min
+(~877,000 rows/day). The class-full memo knows `rollup` too (`cap_limit: "total"` marks all four).
+Only rows with all three of `surface: "runtime"`, `kind: "auth_rollup"` and `tool: "auth-rollup"` use the
+share; peers stay `peer`, REST doors (`tool: "http"`, `kind: "refusal"`) stay `rest`. Where the text above
+says 600, read 609 once this lands. Test: `scripts/verify-refusal-doors.mjs` group 19 (shares sum to the
+total, exactly 609 rows, the rollup share can't be claimed by REST or peer rows) and
+`scripts/verify-auth-rollup.mjs` group 11 (a full REST share doesn't stall the flush; backlog order).
