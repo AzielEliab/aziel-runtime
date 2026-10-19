@@ -1077,7 +1077,7 @@ const PRODUCTS_RAW = [
       { op: "doctor", method: "GET", summary: "Richer liveness: native-vs-proxy labels, binding-gated Whisper/OCR. Does not increment download KV." },
     ],
     example: { q: "Florence" },
-    banner: "Aziel Digital Library v2.6.2. Public MASTER. Anonymous GET is read-only. Signed-in accounts may ingest. Not a 26-card software index. Author Aziel Eliab only.",
+    banner: `Aziel Digital Library v${VERSIONS["aziel-corpus"]}. Public MASTER. Anonymous GET is read-only. Signed-in accounts may ingest. Not a 26-card software index. Author Aziel Eliab only.`,
   },
   {
     slug: "4dmap",

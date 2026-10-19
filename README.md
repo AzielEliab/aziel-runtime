@@ -480,6 +480,8 @@ Pull via `GET /v1/bundle` / `GET /v1/pull/{slug}`. Session exec is
 | aziel-corpus | aziel-corpus-download-tracker (www.azielcorpuslibrary.net) | health, search, example, skill | **in-process** (sample MASTER; live D1/Whisper/OCR per-op proxy) |
 | 4dmap | 4dmap-download-tracker | health, skill, pin, span, stack, gap, fork, walk, lens, class, cohort, absence, cap, join, list, example, card_new, card_pin, card_span, card_join, card_walk, card_list, verify_hash, frame_status, axis_describe, walk_trace, card_export, card_import, verify_chain, neighbor_cite, memory_cite, memory_observe, library_pin, plot, possibility, pattern_recall, lattice_tip, poison_refuse, news_status, news_pin, news_open, news_ingest, news_sources, news_weather, news_black_swan | **in-process** (4DM-WP-1.0 / 0.3.0; inspection frame after AZPIPE; not an extra door; not a sequential gate; AZNews is standalone via news_ingest and joined via news_pin / news_open; an empty pin refuses AZNEWS-SOURCE-ABSENT; the global live flag stays false) |
 
+Catalog product versions live in `VERSIONS` (`src/catalog-meta.js`); engine `VERSION`/`SPEC`, zsolver `SCHEMA_VERSION` and the cold-shelf commit pins are separate ids and do not track the catalog version.
+
 Catalog aliases (also accepted on `/v1/pull/{slug}`): `az-clce` → azclce,
 `zion-pattern-solver` → zsolver, `postking-chess` → postking,
 `aziel-digital-library` → aziel-corpus, `mia-lock` → mialock,
