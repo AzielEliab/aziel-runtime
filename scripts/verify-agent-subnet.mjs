@@ -30,6 +30,8 @@ const EDGE_OFF = Object.freeze({ mesh_mutate: 1e6, agent_read: 1e6 });
 // Public agentcomms reads (snapshot, heads, row pages, tether) move once an hour; this runs fn as if
 // the next hour had started (statements are signed outside it, so the skew check is untouched).
 let hourShift = 0;
+// The writer DO's per-minute caps read the real clock: start minute-window groups well clear of a boundary.
+const freshMinute = async () => { const left = 60000 - (Date.now() % 60000); if (left < 20000) await new Promise((r) => setTimeout(r, left + 250)); };
 const nextHour = async (fn) => { hourShift += 3600e3; S._setAgentClock(() => Date.now() + hourShift); try { return await fn(); } finally { S._setAgentClock(null); } };
 const call = (path, init = {}, e = env) => { if (e && !e.__aziel_rate_limits && !e.__edge_real) e.__aziel_rate_limits = EDGE_OFF; return handler(new Request("https://aziel-runtime.example" + path, init), e, ctx); };
 const post = async (verb, body, e = env) => { const r = await call("/v1/mesh/agents/" + verb, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }, e); return { status: r.status, body: await r.json() }; };
@@ -346,6 +348,7 @@ ok(tipChains.some((c) => c.c === "agentcomms"), "lattice_tip agentcomms: " + JSO
 
 // 19) caps: per-agent send rate, mailbox cap, receipt seal cap (no receipt, no message).
 {
+  await freshMinute();
   const e2 = { SESSION: memorySessionNamespace({}), CHAINLOCK: memoryChainWriterNamespace({}), USES: memoryMeshKv(), RATE: memoryRateQuotaNamespace({}) };
   const o = await C.identityOf(await C.newKeys()); const s1 = await C.identityOf(await C.newKeys()); const r1 = await C.identityOf(await C.newKeys());
   assert.equal((await post("register", await C.registerStatement(s1, o), e2)).status, 200);
@@ -479,6 +482,7 @@ n++;
 // 25) (MED 3) receipt caps per class in the writer (msg / ctl / refuse) plus a per-agent refuse cap,
 //     a class-full memo (no writer round trip), and refunds only on real write failures.
 {
+  await freshMinute();
   const { AGENTCOMM_CAP } = await import("../src/agent-state.js");
   assert.equal(AGENTCOMM_CAP.classes.msg + AGENTCOMM_CAP.classes.ctl + AGENTCOMM_CAP.classes.refuse, AGENTCOMM_CAP.total);
   const gst = storeFor({ CHAINLOCK: memoryChainWriterNamespace({}) });
@@ -677,6 +681,7 @@ n++;
 // 32) (N1) msg fair share in the writer: send rows only; one visitor or one owner pair <= 60/min;
 //     deliver/read are riders that never spend msg; another owner on another IP still sends.
 {
+  await freshMinute();
   const e = mkEnv();
   const t0 = Math.floor(Date.now() / 60000) * 60000 + 1000;
   S._setAgentClock(() => t0);
@@ -757,6 +762,7 @@ n++;
 
 // 34) (N6) agent refusals over HTTP spend the #302 rest share; through FragGate/MCP the mcp share.
 {
+  await freshMinute();
   const e = mkEnv();
   const { refusalCapClass } = await import("../src/chainlock/writer-do.js");
   const x = await postIp(e, "register", { v: "AGENT-SUBNET-1.0", kind: "agent-register" }, "198.51.100.140");
@@ -821,7 +827,9 @@ n++;
   const page = await (await call("/v1/anchor/rows?c=agentcomms&from=1&limit=50", {}, e)).json();
   assert.equal(page.rows.length, 2); assert.equal(page.head_seq, 2); assert.equal(page.next, null);
   const after = await (await call("/v1/anchor/rows?c=agentcomms&from=3&limit=50", {}, e)).json();
-  assert.equal(after.rows.length, 0);
+  assert.equal(after.rows.length, 0); assert.equal(after.count, 0); assert.equal(after.next, null, "walkers (offline pullBundle) must stop on the empty page");
+  const unbound = await call("/v1/anchor/rows?c=agentcomms&from=1", {}, { USES: memoryMeshKv() });
+  assert.equal((await unbound.json()).code, "LEDGER-STORE-UNBOUND");
   const one = await call("/v1/anchor/row?c=agentcomms&seq=3", {}, e);
   assert.equal(one.status, 404); assert.equal((await one.json()).code, "AGENT-ROW-NOT-PUBLISHED");
   const pub = await (await call("/v1/mesh/agents/receipts", {}, e)).json();

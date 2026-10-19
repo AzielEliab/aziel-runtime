@@ -4734,8 +4734,10 @@ async function handleRequest(request, env, ctx) {
           // Pages stop at the hourly tip (AZBot N4/N5): no real-time row count from paging.
           const { agentHourlyTip } = await import("./agent-subnet.js");
           agentTip = await agentHourlyTip(env);
-          const room = agentTip ? agentTip.seq - from + 1 : 0;
-          if (room < 1) return asHead(request, json({ ok: true, chain: c, from, rows: [], published_through: "hourly tip", as_of: agentTip ? agentTip.as_of : null }, 200, hdrs));
+          if (!agentTip) return asHead(request, json({ ok: false, code: "LEDGER-STORE-UNBOUND", chain: c }, 409, hdrs));
+          const room = agentTip.seq - from + 1;
+          // Same page shape as pageRows (count, head_seq, next), so walkers stop on an empty page.
+          if (room < 1) return asHead(request, json({ ok: true, code: "LEDGER-PAGE-OK", chain: c, from, count: 0, head_seq: agentTip.seq, rows: [], breaks: [], next: null, published_through: "hourly tip", as_of: agentTip.as_of }, 200, hdrs));
           pageLimit = Math.max(1, Math.min(Number.isFinite(limit) ? limit : 50, room));
         }
         const out = await anchor.pageRows(env, c, from, pageLimit, deps);
