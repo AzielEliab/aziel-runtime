@@ -92,7 +92,7 @@ for (const slug of slugs) {
 
   const tarball = softwareTarball(slug, version, download);
   if (slug === "aziel-corpus") {
-    assert.equal(tarball.filename, "aziel-digital-library-2.6.2.zip");
+    assert.equal(tarball.filename, "aziel-digital-library-2.7.0.zip");
     assert.equal(tarball.content_type, "application/zip");
   } else {
     assert.equal(tarball.filename, `${slug}-${version}.tar.gz`);
