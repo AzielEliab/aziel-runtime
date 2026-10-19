@@ -183,3 +183,15 @@ Every refusal above and every existing refuse code on `tools/call` / `POST /v1/f
 | Code | Spec | When |
 |------|------|------|
 | `MESH-PEER-NOT-ALLOWED` | AZRT-MESH-PEER-DENY-1.0 | Local Track 2 node: peer session offer/accept with a handle the operator has not allowed (deny-by-default). The public Worker `peer_session_open` stays `FG-STUB`. |
+
+## 5d. Auth refusal rollup (additive, 2.0.x, AZRT-AUTH-ROLLUP-1.0)
+
+No auth refuse code, status or body changes. Auth refusals (`token_required`, `token_mismatch`,
+`token_not_configured`, `TOKEN-QUERY-REFUSED`, `TOKEN-BODY-REFUSED`, `CL-NOT-ISSUER`, `SESSION-PAUSED`,
+other `*token*` codes, any other 401) gain one additive header,
+`X-Azrt-Auth-Rollup: <counted|pending|unavailable|rate_limited>; spec=AZRT-AUTH-ROLLUP-1.0; minute=<n>; door=<fixed>; code=<fixed>`.
+They are still never sealed one by one. The cron seals one count-only row per minute per door + code on the
+internal `refusals` chain (`refusal.kind: "auth_rollup"`). New row code: `AUTH-ROLLUP-OVERFLOW` (pairs past
+the per-minute row cap, summed). Cron log codes: `AUTH-ROLLUP-UNBOUND`, `AUTH-ROLLUP-STORE-UNBOUND`.
+Rollup rows spend their own reserved `rollup` share (9/min) of the writer's refusal cap, outside the REST
+240 (writer total 609). The header is documented at `#/components/headers/X-Azrt-Auth-Rollup`.
