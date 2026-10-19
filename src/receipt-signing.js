@@ -236,3 +236,37 @@ export async function verifyReceiptSignatures(receipts, { trusted = [] } = {}) {
     rows,
   };
 }
+
+/**
+ * AZRT-SIGNING-SCOPE-1.0: the one derived answer to "what is signed, by which key". Both GET /v1/receipt-key
+ * and GET /v1/lockstep read this, so they cannot disagree. Fails closed: any error reports session receipts
+ * as not signed. Only session receipts (runtime_session_* chain, appendReceipt) can carry a receipt-key
+ * signature; chainlock rows (refusals, acts, mesh, ...) are hash-linked + dual-lattice sealed and never signed.
+ * Anchors / build witness / checkpoints / the AZOS-AZInterface tether use their own keys (RIB-001), not this one.
+ */
+export const SIGNING_SCOPE_SPEC = "AZRT-SIGNING-SCOPE-1.0";
+export async function signingScope(env) {
+  let held = NO_KEY;
+  let pinnedIds = [];
+  try {
+    held = await heldSignerFromEnv(env || {});
+    pinnedIds = (await trustedReceiptKeys(null)).map((k) => k.key_id);
+  } catch {
+    held = { ok: false, reason: "receipt key check failed; failing closed (not signing)" };
+  }
+  const on = Boolean(held && held.ok === true);
+  const keyId = on ? held.provenance.key_id : null;
+  return {
+    spec: SIGNING_SCOPE_SPEC,
+    session_receipts: {
+      signed: on,
+      key: "held receipt key (AZRT-HELD-KEY-1.0, published at /v1/receipt-key)",
+      key_id: keyId,
+      key_trusted: on ? pinnedIds.includes(keyId) : false,
+      ...(on ? {} : { reason: held.reason || "not signing" }),
+      covers: "session receipts minted from now on while this key is held (runtime_session_* chain); older receipts may be unsigned",
+    },
+    chainlock_rows: { signed: false, covers: "chainlock rows (refusals, acts, mesh, library, ...)", how: "hash-linked and dual-lattice sealed, not signed" },
+    other_keys: "anchors, build witness, checkpoints and the tether are signed with their own keys (see /.well-known/azrt-keys.json), not the receipt key",
+  };
+}
