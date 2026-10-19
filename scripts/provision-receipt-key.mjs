@@ -5,12 +5,13 @@
  *   node scripts/provision-receipt-key.mjs                    # dry run: checks only, generates nothing
  *   node scripts/provision-receipt-key.mjs --apply            # first key (live origin must have AZRT-KEYS-1.0 and signing:false)
  *   node scripts/provision-receipt-key.mjs --apply --next-epoch   # a later key: the live RECEIPT_KEY_EPOCHS must
- *                                                                 # already list the current key (merged + deployed)
+ *                                                                 # already list the held key (merged + deployed),
+ *                                                                 # so the runtime has stopped signing with it
  *
  * Format (src/receipt-signing.js): RECEIPT_SIGNING_KEY = Ed25519 private key, PKCS#8 DER, base64url;
  * RECEIPT_SIGNING_PUBLIC_KEY = the raw 32-byte public key, base64url. The key pair is generated in this
  * process's memory, each half is piped on stdin straight into
- *   env -u CLOUDFLARE_API_TOKEN npx wrangler secret put <NAME>
+ *   env -u CLOUDFLARE_API_TOKEN npx --no-install wrangler secret put <NAME>
  * (public first, so a half-done run never signs: the runtime refuses to sign without a matching published
  * key), and nothing is written to disk, printed or kept. Only the public key and key_id are printed.
  * No backup is kept: a key change makes a new pair and appends the old PUBLIC key to RECEIPT_KEY_EPOCHS.
@@ -25,7 +26,8 @@ const apply = args.includes("--apply");
 const nextEpoch = args.includes("--next-epoch");
 export const SECRET_PRIVATE = "RECEIPT_SIGNING_KEY";
 export const SECRET_PUBLIC = "RECEIPT_SIGNING_PUBLIC_KEY";
-export const WRANGLER = ["env", "-u", "CLOUDFLARE_API_TOKEN", "npx", "wrangler", "secret", "put"];
+// --no-install: use the repo's pinned wrangler (node_modules), never fetch one from the registry.
+export const WRANGLER = ["env", "-u", "CLOUDFLARE_API_TOKEN", "npx", "--no-install", "wrangler", "secret", "put"];
 
 /** Same key_id rule as src/receipt-signing.js keyIdOf: sha256 over the lowercase hex text of the raw key. */
 export function keyIdOfRaw(raw) {
@@ -41,9 +43,14 @@ export async function preflight({ fetchImpl = fetch, origin = ORIGIN, next = fal
   if (!cur) return { ok: false, code: "PROVISION-ORIGIN-UNREADABLE" };
   if (!next && cur.signing) return { ok: false, code: "PROVISION-KEY-ALREADY-HELD", key_id: cur.key_id, message: "A key is already held. A new key needs --next-epoch after its epoch is merged and deployed." };
   if (next) {
-    if (!cur.signing) return { ok: false, code: "PROVISION-NO-CURRENT-KEY", message: "--next-epoch is for replacing a held key; none is held." };
-    const listed = (keys.receipt && keys.receipt.retired || []).some((e) => e.key_id === cur.key_id);
-    if (!listed) return { ok: false, code: "PROVISION-EPOCH-NOT-DEPLOYED", key_id: cur.key_id, message: "Add the current public key to RECEIPT_KEY_EPOCHS (until = now) in a PR, merge and deploy it, then rerun." };
+    const r = keys.receipt || {};
+    // The runtime refuses to sign with a key listed in RECEIPT_KEY_EPOCHS (RECEIPT-KEY-IS-RETIRED), so once
+    // the epoch is deployed the held key shows up as refused_key_id, not as signing.
+    if (cur.signing) return { ok: false, code: "PROVISION-EPOCH-NOT-DEPLOYED", key_id: cur.key_id, message: "Add the current public key to RECEIPT_KEY_EPOCHS (until = the switch time) in a PR, merge and deploy it, then rerun." };
+    if (r.code !== "RECEIPT-KEY-IS-RETIRED" || !r.refused_key_id) return { ok: false, code: "PROVISION-NO-CURRENT-KEY", message: "--next-epoch is for replacing a held key that is now listed as retired; none is." };
+    const listed = (r.retired || []).some((e) => e.key_id === r.refused_key_id);
+    if (!listed) return { ok: false, code: "PROVISION-EPOCH-NOT-DEPLOYED", key_id: r.refused_key_id };
+    return { ok: true, code: "PROVISION-PREFLIGHT-OK", current_key_id: null, retired_key_id: r.refused_key_id };
   }
   return { ok: true, code: "PROVISION-PREFLIGHT-OK", current_key_id: cur.signing ? cur.key_id : null };
 }

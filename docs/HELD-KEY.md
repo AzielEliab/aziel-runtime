@@ -59,7 +59,8 @@ in `src/receipt-signing.js`, two routes and `heads.receipt_key` in `src/index.js
 
 Laws: this spec, AZRT-ANCHOR-1.0 (the witness signs heads; this adds one additive field to heads),
 AZRT-WITNESS-QUORUM-1.0, docs/2.0/PUBLIC-CONTRACT.md and COMPATIBILITY-POLICY.md (additive routes and fields
-only; 36 / 42 / 2.0.0-rc1), NO-LIE-NO-REWRITE (epochs are append-only).
+only; 36 / 42 / 2.0.0-rc1), NO-LIE-NO-REWRITE (epochs are append-only: by review plus a fingerprint test of every
+reviewed entry; there is no outside record of the list until the aziel-anchors patch lands).
 
 **Pre-check (asked before setting the secret).**
 - The code reads `RECEIPT_SIGNING_KEY` as an Ed25519 **PKCS#8 DER, base64url** private key, imported
@@ -77,21 +78,32 @@ only; 36 / 42 / 2.0.0-rc1), NO-LIE-NO-REWRITE (epochs are append-only).
   - the slot-2 witness key when one is configured.
 - `GET /v1/anchor/heads` gains `receipt_key {spec, key_id, public_key, retired[]}`, or `null`. With a small
   companion change in the witness repo (statement field `receipt_key`; ready as
-  `docs/patches/aziel-anchors-witness-receipt-key.patch`, not applied: that repo is outside this PR), each receipt key epoch lands in the
-  outside, signed log.
+  `docs/patches/aziel-anchors-witness-receipt-key.patch`, not applied: that repo is outside this PR), the witness
+  log **will** record each receipt key epoch once that patch lands. Until then nothing outside records it.
 - `RECEIPT_KEY_EPOCHS` is append-only `{public_key, from, until}`. A retired key verifies only receipts whose
   `ts` falls inside its epoch. Otherwise the result is the new code `RECEIPT-KEY-RETIRED`. The runtime never
-  signs with a retired key. It still cannot generate, export or replace a key (the source scan is unchanged).
+  signs with a retired key: if the held key's public key is listed, loading refuses with
+  `RECEIPT-KEY-IS-RETIRED` (shown as `receipt.code` + `refused_key_id` in the manifest) and receipts stay
+  unsigned with that reason. Retired wins over pinned: a key in both lists is trusted only inside its epoch.
+  The runtime still cannot generate, export or replace a key (the source scan is unchanged).
+- Append-only is enforced by review and by a test that keeps the sha256 of every reviewed entry of
+  `RECEIPT_KEY_EPOCHS` and `PINNED_RECEIPT_KEYS` in order (a changed or removed entry fails the test).
 - `scripts/provision-receipt-key.mjs` does a dry run by default.
   - **Preflight:** the live origin must serve AZRT-KEYS-1.0, and no key may be held yet. `--next-epoch` instead
     requires the current key to already be listed in the deployed epochs.
   - **Generate:** with `--apply` it generates the pair in memory and pipes each half on stdin into
-    `env -u CLOUDFLARE_API_TOKEN npx wrangler secret put <NAME>`, public key first.
+    `env -u CLOUDFLARE_API_TOKEN npx --no-install wrangler secret put <NAME>` (the repo's wrangler, never a
+    registry fetch), public key first.
   - **Confirm:** it polls `/v1/receipt-key` for the new key_id and prints only the public key and key_id.
 
 **Rotation path and backup.** Changing the key means a new pair plus one PR that appends the old **public** key
 to `RECEIPT_KEY_EPOCHS`. The old private key is never needed again, so **no copy or backup of the private key is
 kept**, encrypted or otherwise.
+- Gap: once that epoch PR is deployed the runtime stops signing with the old key, and until
+  `--apply --next-epoch` sets the new one, new receipts are unsigned (`mode:"none"` with the reason). A session
+  whose earlier receipts carry a signature then fails `RECEIPT-SIG-DOWNGRADE` for those rows. Keep the gap short, or
+  close it by uploading the epoch code and both new secrets as one Worker version (`wrangler versions upload`,
+  `wrangler versions secret put`, `wrangler versions deploy`); the script does not do that yet.
 
 **Order.** Merge and deploy this PR. Then run `node scripts/provision-receipt-key.mjs --apply` from the repo root,
 which needs wrangler logged in on the box without `CLOUDFLARE_API_TOKEN`. Then, optionally, pin the key in

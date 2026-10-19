@@ -5,7 +5,7 @@
  */
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { webcrypto } from "node:crypto";
+import { webcrypto, createHash } from "node:crypto";
 import { memorySessionNamespace } from "../src/session-do.js";
 import { memoryChainWriterNamespace } from "../src/chainlock/writer-do.js";
 
@@ -75,7 +75,7 @@ assert.deepEqual(rs.RECEIPT_KEY_EPOCHS, []); n++;
 
 // 4) provisioning: the code's format, wrangler without the API token, public first, preflight fails closed.
 const src = fs.readFileSync(new URL("./provision-receipt-key.mjs", import.meta.url), "utf8");
-assert.deepEqual(prov.WRANGLER, ["env", "-u", "CLOUDFLARE_API_TOKEN", "npx", "wrangler", "secret", "put"]);
+assert.deepEqual(prov.WRANGLER, ["env", "-u", "CLOUDFLARE_API_TOKEN", "npx", "--no-install", "wrangler", "secret", "put"]);
 assert.match(src, /privateKey\.export\(\{ format: "der", type: "pkcs8" \}\)/);
 assert.ok(src.indexOf("await put(SECRET_PUBLIC") < src.indexOf("await put(SECRET_PRIVATE"), "public key first");
 assert.ok(!/writeFile|appendFile|createWriteStream/.test(src), "never writes the key to disk");
@@ -93,6 +93,43 @@ assert.equal((await prov.preflight({ fetchImpl: fake({}) })).code, "PROVISION-CO
 assert.equal((await prov.preflight({ fetchImpl: fake({ "/.well-known/azrt-keys.json": { spec: "AZRT-KEYS-1.0", receipt: { retired: [] } }, "/v1/receipt-key": { signing: false } }) })).code, "PROVISION-PREFLIGHT-OK");
 assert.equal((await prov.preflight({ fetchImpl: fake({ "/.well-known/azrt-keys.json": { spec: "AZRT-KEYS-1.0", receipt: { retired: [] } }, "/v1/receipt-key": { signing: true, key_id: "ed25519:x" } }) })).code, "PROVISION-KEY-ALREADY-HELD");
 assert.equal((await prov.preflight({ next: true, fetchImpl: fake({ "/.well-known/azrt-keys.json": { spec: "AZRT-KEYS-1.0", receipt: { retired: [] } }, "/v1/receipt-key": { signing: true, key_id: "ed25519:x" } }) })).code, "PROVISION-EPOCH-NOT-DEPLOYED");
-assert.equal((await prov.preflight({ next: true, fetchImpl: fake({ "/.well-known/azrt-keys.json": { spec: "AZRT-KEYS-1.0", receipt: { retired: [{ key_id: "ed25519:x" }] } }, "/v1/receipt-key": { signing: true, key_id: "ed25519:x" } }) })).code, "PROVISION-PREFLIGHT-OK");
+assert.equal((await prov.preflight({ next: true, fetchImpl: fake({ "/.well-known/azrt-keys.json": { spec: "AZRT-KEYS-1.0", receipt: { retired: [] } }, "/v1/receipt-key": { signing: false } }) })).code, "PROVISION-NO-CURRENT-KEY");
+// once the epoch is deployed the runtime refuses the held key (RECEIPT-KEY-IS-RETIRED); only then may a new key go in.
+assert.equal((await prov.preflight({ next: true, fetchImpl: fake({ "/.well-known/azrt-keys.json": { spec: "AZRT-KEYS-1.0", receipt: { signing: false, code: "RECEIPT-KEY-IS-RETIRED", refused_key_id: "ed25519:x", retired: [{ key_id: "ed25519:x" }] } }, "/v1/receipt-key": { signing: false } }) })).code, "PROVISION-PREFLIGHT-OK");
+n++;
+
+// 5) AZBot review of #308: the runtime never signs with a retired key; retired wins over pinned;
+//    the pinned / epoch lists are append-only (fingerprint of every entry that existed at review time).
+{
+  const C = await pair();
+  const envC = { ...base, RECEIPT_SIGNING_KEY: C.priv, RECEIPT_SIGNING_PUBLIC_KEY: C.pub };
+  const epC = [{ public_key: C.pub, from: "2026-01-01T00:00:00Z", until: "2026-10-01T00:00:00Z" }];
+  const refused = await rs.heldSignerFromEnv(envC, { epochs: epC });
+  assert.equal(refused.ok, false); assert.equal(refused.code, "RECEIPT-KEY-IS-RETIRED"); assert.equal(refused.key_id, await rs.keyIdOf(C.pub));
+  assert.equal(refused.sign, undefined, "no signer handed out");
+  const sig = await rs.signatureFor("a".repeat(64), refused);
+  assert.equal(sig.sig, null); assert.match(sig.reason, /retired/);
+  assert.equal(rs.sigCommitFor(refused).mode, "none");
+  assert.equal((await rs.heldSignerFromEnv({ ...envC }, { epochs: [] })).ok, true, "same key, not listed: signs");
+  // retired wins over pinned (and over published): only inside the epoch.
+  const both = await rs.trustedReceiptKeys(envC, { epochs: epC, pinned: [C.pub] });
+  assert.equal(both.length, 1); assert.equal(both[0].source, "retired"); assert.equal(both[0].until, epC[0].until);
+  const sC = await rs.heldSignerFromEnv({ RECEIPT_SIGNING_KEY: C.priv, RECEIPT_SIGNING_PUBLIC_KEY: C.pub }, { epochs: [] });
+  const mkC = async (ts) => { const hash = "c".repeat(64); return { seq: 1, ts, hash, sig_commit: rs.sigCommitFor(sC), signature: await rs.signatureFor(hash, sC) }; };
+  assert.equal((await rs.verifyReceiptSignatures([await mkC("2026-09-01T00:00:00Z")], { trusted: both })).ok, true);
+  assert.equal((await rs.verifyReceiptSignatures([await mkC("2026-10-02T00:00:00Z")], { trusted: both })).errors[0].code, "RECEIPT-KEY-RETIRED", "pinning can't un-retire");
+  // append-only: entries that existed at review time keep their place and bytes; new ones only append.
+  const fp = (e) => createHash("sha256").update(JSON.stringify(e)).digest("hex");
+  const REVIEWED_EPOCHS = []; // sha256(JSON) of each RECEIPT_KEY_EPOCHS entry, in order; append when adding one
+  const REVIEWED_PINNED = []; // same for PINNED_RECEIPT_KEYS
+  assert.ok(rs.RECEIPT_KEY_EPOCHS.length >= REVIEWED_EPOCHS.length && REVIEWED_EPOCHS.every((h, i) => fp(rs.RECEIPT_KEY_EPOCHS[i]) === h), "RECEIPT_KEY_EPOCHS is append-only");
+  assert.ok(rs.PINNED_RECEIPT_KEYS.length >= REVIEWED_PINNED.length && REVIEWED_PINNED.every((h, i) => fp(rs.PINNED_RECEIPT_KEYS[i]) === h), "PINNED_RECEIPT_KEYS is append-only");
+  assert.ok(Object.isFrozen(rs.RECEIPT_KEY_EPOCHS) && Object.isFrozen(rs.PINNED_RECEIPT_KEYS));
+  // the manifest names the refused key, and the wording is future tense until the witness patch lands.
+  const { keysManifest } = await import("../src/keys-manifest.js");
+  const ksrc = fs.readFileSync(new URL("../src/keys-manifest.js", import.meta.url), "utf8");
+  assert.ok(!/witness log signs/.test(ksrc), "no present-tense claim that the witness signs receipt_key");
+  assert.match((await keysManifest(base)).note, /will record heads\.receipt_key once the aziel-anchors patch lands/);
+}
 n++;
 console.log(`ok receipt key epochs: ${n} checks`);

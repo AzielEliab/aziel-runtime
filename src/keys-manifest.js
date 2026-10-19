@@ -6,8 +6,9 @@
  *             pinned keys, and retired epochs (RECEIPT_KEY_EPOCHS)
  *   witness   slot-1 witness key + retired epochs (AZRT-ANCHOR-1.0), auditor key + retired epochs
  *   witness2  slot-2 key when configured (AZRT-WITNESS-QUORUM-1.0), else not_configured
- * The witness signs `heads.receipt_key` (AZRT-ANCHOR-1.0 additive field, /v1/anchor/heads), so each
- * receipt key epoch is also recorded in the outside log once the witness reads it.
+ * `heads.receipt_key` (AZRT-ANCHOR-1.0 additive field, /v1/anchor/heads) is served now; the witness log
+ * will record it, and so each receipt key epoch, once the aziel-anchors patch lands
+ * (docs/patches/aziel-anchors-witness-receipt-key.patch). Until then nothing outside records it.
  * Author: Aziel Eliab.
  */
 export const KEYS_SPEC = "AZRT-KEYS-1.0";
@@ -41,13 +42,13 @@ export async function keysManifest(env) {
     receipt: {
       spec: rs.HELD_KEY_SPEC,
       signing: Boolean(held.ok),
-      ...(held.ok ? {} : { reason: held.reason }),
+      ...(held.ok ? {} : { reason: held.reason, ...(held.code ? { code: held.code, refused_key_id: held.key_id } : {}) }),
       sig_domain: rs.SIG_DOMAIN,
       current,
       key_source: current ? (current.pinned ? "pinned" : "published (self, unpinned)") : null,
       pinned,
       retired,
-      rule: "A retired key verifies only receipts whose ts is inside its epoch (RECEIPT-KEY-RETIRED otherwise). The runtime never generates or exports a receipt key.",
+      rule: "A retired key verifies only receipts whose ts is inside its epoch (RECEIPT-KEY-RETIRED otherwise); retired wins over pinned. The runtime refuses to sign with a retired key (RECEIPT-KEY-IS-RETIRED) and never generates or exports a receipt key.",
     },
     witness: {
       spec: "AZRT-ANCHOR-1.0",
@@ -58,6 +59,6 @@ export async function keysManifest(env) {
       auditor: { log: an.AUDIT_LOG_URL, current: an.AUDITOR_PUBLIC_KEY, retired: an.AUDITOR_RETIRED_KEYS },
     },
     witness2: w2.configured ? { spec: "AZRT-WITNESS-QUORUM-1.0", configured: true, name: w2.name, log: w2.url, current: w2.public_key } : { configured: false, code: w2.code },
-    note: "Public keys only. Compare this list with an outside record (the witness log signs heads.receipt_key) before trusting an unpinned key.",
+    note: "Public keys only. Compare this list with an outside record before trusting an unpinned key. The witness log will record heads.receipt_key once the aziel-anchors patch lands; until then there is no outside record of the receipt key.",
   };
 }
