@@ -241,7 +241,7 @@ export const MCP_SEAL_CAP_PER_MIN = 60;
 const mcpCap = { minute: -1, n: 0 };
 /**
  * RIB-018 follow-up 2: per-isolate "class full until the end of this minute" memo, keyed by the writer's
- * cap_class (rest / mcp / peer). Set only when the writer says a share (or the 600 total) is spent; while
+ * cap_class (rest / mcp / peer / rollup). Set only when the writer says a share (or the 609 total) is spent; while
  * set, refusals of that class short-circuit to rate_limited without a round trip to the writer DO.
  */
 const classFull = { minute: -1, set: new Set() };
@@ -252,7 +252,7 @@ function markClassFull(out) {
   const minute = Number(out.cap_minute);
   if (!Number.isFinite(minute)) return;
   if (classFull.minute !== minute) { classFull.minute = minute; classFull.set = new Set(); }
-  if (out.cap_limit === "total") for (const c of ["rest", "mcp", "peer"]) classFull.set.add(c);
+  if (out.cap_limit === "total") for (const c of ["rest", "mcp", "peer", "rollup"]) classFull.set.add(c);
   else if (out.cap_class) classFull.set.add(out.cap_class);
 }
 export function _mcpSealCapUsed() { return mcpCap.minute === Math.floor(Date.now() / 60000) ? mcpCap.n : 0; }
