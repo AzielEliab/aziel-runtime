@@ -11,10 +11,18 @@
  * - pullBundle: walks the public GET /v1/anchor/rows pages of a live origin into a bundle (while it exists).
  * - verifyAnchorsOffline: checks a local copy of the aziel-anchors witness log (Ed25519, pinned key and
  *   retired keys, hash order) and checks each anchored head against the bundle rows, without the origin.
+ * - Stores addendum: the AZNews ("aznews-v1") and 4DMap ("4dmap-v1") Durable Object stores ride in the
+ *   bundle as sidecar files (<bundle>.stores/<name>.rows.jsonl, one canonical row per line). The signed
+ *   body carries each file's sha256, row count, tip and the store's signed checkpoints, so the rows are
+ *   bound by the holder signature without putting ~10^5 rows into one JSON string. Checked offline:
+ *   file hash, contiguous seq from 1, both lattice links and every document hash (verifyRowRun), the
+ *   checkpoint chain and signatures, and the signed tips at each checkpoint row. Imported forward-only.
  * Author: Aziel Eliab. SPDX-License-Identifier: Apache-2.0
  */
-import { readFile, writeFile, rename, mkdir } from "node:fs/promises";
-import { dirname } from "node:path";
+import { readFile, writeFile, rename, mkdir, open as fsOpen, copyFile } from "node:fs/promises";
+import { createReadStream } from "node:fs";
+import { createInterface } from "node:readline";
+import { dirname, join } from "node:path";
 import { createHash, generateKeyPairSync, sign, verify as edVerify, createPublicKey, createPrivateKey } from "node:crypto";
 
 export const OFFLINE_RECORDS_SPEC = "OFFLINE-RECORDS-1.0";
@@ -88,26 +96,31 @@ export async function linkCheck(rows) {
   return { ok: true, count: rows.length };
 }
 
-export async function exportBundle(store, dir, { source = "local", now = new Date() } = {}) {
+export async function exportBundle(store, dir, { source = "local", now = new Date(), storesDir = null } = {}) {
   const { loadChain } = await import("./chainlock/ops.js");
   const chains = {};
   for (const c of await chainNames()) {
     const rows = await loadChain(store, c, "");
     if (rows.length) chains[c] = rows;
   }
-  return signBundle(chains, dir, { source, now });
+  // Stores addendum: stores this holder imported earlier are carried on (sidecar files in storesDir).
+  const stores = storesDir ? await localStores(dir, storesDir) : null;
+  return signBundle(chains, dir, { source, now, stores });
 }
 
-export async function signBundle(chains, dir, { source, now = new Date() }) {
+export async function signBundle(chains, dir, { source, now = new Date(), stores = null, storesSkipped = null }) {
   const key = await holderKey(dir);
   const body = { kind: BUNDLE_KIND, spec: OFFLINE_RECORDS_SPEC, source, at: now.toISOString(), signer: "local-holder", signer_is_origin: false, chains };
+  // Additive: present only when a store is carried (or was tried), so chain-only bundles hash as before.
+  if (stores && Object.keys(stores).length) body.stores = stores;
+  if (storesSkipped && Object.keys(storesSkipped).length) body.stores_skipped = storesSkipped;
   const text = canon(body);
   const body_sha256 = sha(text);
   const sig = sign(null, Buffer.from(body_sha256), key.priv).toString("base64url");
   return { ...body, body_sha256, public_key: key.pub, sig, counts: Object.fromEntries(Object.entries(chains).map(([c, r]) => [c, r.length])) };
 }
 
-export async function checkBundle(bundle) {
+export async function checkBundle(bundle, { storesDir = null, trustStoreKey = null } = {}) {
   if (!bundle || bundle.kind !== BUNDLE_KIND) return { ok: false, code: "OFFLINE-BAD-BUNDLE" };
   const { body_sha256, public_key, sig, counts: _c, ...body } = bundle;
   if (sha(canon(body)) !== body_sha256) return { ok: false, code: "OFFLINE-HASH-MISMATCH" };
@@ -118,11 +131,16 @@ export async function checkBundle(bundle) {
     const lk = await linkCheck(rows);
     if (!lk.ok) return { ok: false, code: "OFFLINE-CHAIN-BROKEN", chain: c, seq: lk.seq, why: lk.why };
   }
+  if (body.stores) {
+    const st = await checkBundleStores(bundle, storesDir, { trustStoreKey });
+    if (!st.ok) return st;
+    return { ok: true, code: "OFFLINE-BUNDLE-OK", body_sha256, signer: body.signer, signer_is_origin: false, stores: st.stores, _loaded: st.loaded };
+  }
   return { ok: true, code: "OFFLINE-BUNDLE-OK", body_sha256, signer: body.signer, signer_is_origin: false };
 }
 
-export async function importBundle(store, bundle, { trustKeys = null } = {}) {
-  const chk = await checkBundle(bundle);
+export async function importBundle(store, bundle, { trustKeys = null, storesDir = null, dir = null, trustStoreKey = null } = {}) {
+  const { _loaded: loaded, ...chk } = await checkBundle(bundle, { storesDir, trustStoreKey });
   if (!chk.ok) return { ...chk, written: false };
   if (Array.isArray(trustKeys) && trustKeys.length && !trustKeys.includes(bundle.public_key)) return { ok: false, code: "OFFLINE-UNTRUSTED-SIGNER", written: false };
   const { loadChain } = await import("./chainlock/ops.js");
@@ -133,6 +151,15 @@ export async function importBundle(store, bundle, { trustKeys = null } = {}) {
     if (!prefixOk) return { ok: false, code: "OFFLINE-FORK", chain: c, local: local.length, bundle: rows.length, written: false };
     if (rows.length > local.length) plan.push([c, rows]);
   }
+  // Stores addendum: forward-only too; a store fork refuses before any chain is written.
+  let storesOut = null;
+  if (bundle.stores) {
+    if (!dir) storesOut = { written: [], note: "stores verified but not imported: no local records dir given" };
+    else {
+      storesOut = await importStores(dir, bundle, storesDir, loaded);
+      if (!storesOut.ok) return storesOut;
+    }
+  }
   const kv = store && store.kv && typeof store.kv.begin === "function" ? store.kv : null;
   if (kv) kv.begin();
   try {
@@ -140,10 +167,10 @@ export async function importBundle(store, bundle, { trustKeys = null } = {}) {
   } finally {
     if (kv) await kv.commit();
   }
-  return { ok: true, code: "OFFLINE-IMPORTED", written: plan.length > 0, chains: plan.map(([c, r]) => ({ chain: c, rows: r.length })) };
+  return { ok: true, code: "OFFLINE-IMPORTED", written: plan.length > 0 || Boolean(storesOut && storesOut.written && storesOut.written.length), chains: plan.map(([c, r]) => ({ chain: c, rows: r.length })), ...(storesOut ? { stores: storesOut.written, ...(storesOut.note ? { stores_note: storesOut.note } : {}) } : {}) };
 }
 
-export async function pullBundle(origin, dir, { fetchImpl = fetch, limit = 100 } = {}) {
+export async function pullBundle(origin, dir, { fetchImpl = fetch, limit = 100, storesDir = null } = {}) {
   const chains = {};
   for (const c of await chainNames()) {
     const rows = [];
@@ -160,7 +187,9 @@ export async function pullBundle(origin, dir, { fetchImpl = fetch, limit = 100 }
     }
     if (rows.length) chains[c] = rows;
   }
-  return { ok: true, bundle: await signBundle(chains, dir, { source: origin }) };
+  // Stores addendum: AZNews + 4DMap rows go to sidecar files; a store the origin cannot serve is named in stores_skipped.
+  const st = storesDir ? await pullStores(origin, storesDir, { fetchImpl }) : null;
+  return { ok: true, bundle: await signBundle(chains, dir, { source: origin, stores: st && st.stores, storesSkipped: st && st.skipped }) };
 }
 
 export async function verifyAnchorsOffline(logText, bundle) {
@@ -179,6 +208,198 @@ export async function verifyAnchorsOffline(logText, bundle) {
     const got = await anchor.recomputeRowHash(row);
     checks.push({ c: h.c, seq: h.seq, state: got === h.h && anchor.rowHash(row) === h.h ? "match" : "MISMATCH" });
   }
+  for (const x of storeAnchorChecks(last && last.statement && last.statement.heads, bundle)) checks.push({ c: x.store, cp_n: x.cp_n, state: x.state });
   const bad = checks.some((x) => x.state === "MISMATCH");
   return { ok: !bad, code: bad ? "OFFLINE-ANCHOR-MISMATCH" : "OFFLINE-ANCHOR-OK", entries: entries.length, latest_n: last && last.statement && last.statement.n, observed_at: last && last.statement && last.statement.observed_at, checks, tsa_rekor_checked_here: false };
+}
+
+/* ------------------------------------------------------------------ stores addendum (OFFLINE-RECORDS-1.0) */
+
+export const STORES_SPEC = "OFFLINE-RECORDS-1.0+stores";
+/** The checkpointed Durable Object stores carried by a bundle (public read routes /v1/<name>/rows). */
+export const STORE_NAMES = Object.freeze(["aznews", "4dmap"]);
+export const STORE_PAGE = 500;
+const STORE_VERIFY_CHUNK = 2000;
+const storeFile = (name) => `${name}.rows.jsonl`;
+
+/** Stream rows (async iterable of pages) into a canonical JSONL file. Returns { count, rows_sha256, tip }. */
+export async function writeStoreRows(path, pages) {
+  await mkdir(dirname(path), { recursive: true });
+  const tmp = path + ".tmp";
+  const fh = await fsOpen(tmp, "w");
+  const h = createHash("sha256");
+  let count = 0;
+  let last = null;
+  try {
+    for await (const page of pages) {
+      let chunk = "";
+      for (const row of page) {
+        if (!row || row.seq !== count + 1) throw Object.assign(new Error("store rows out of order"), { code: "OFFLINE-STORE-GAP", seq: count + 1 });
+        chunk += canon(row) + "\n";
+        count += 1;
+        last = row;
+      }
+      if (chunk) { h.update(chunk); await fh.write(chunk); }
+    }
+  } finally {
+    await fh.close();
+  }
+  await rename(tmp, path);
+  return { count, rows_sha256: h.digest("hex"), tip: last ? { seq: last.seq, primary: last.lattice && last.lattice.primary, secondary: last.lattice && last.lattice.secondary } : null };
+}
+
+/** Read a store sidecar file: { rows, rows_sha256 } (hash over the exact bytes, line by line). */
+export async function readStoreRows(path) {
+  const h = createHash("sha256");
+  const rows = [];
+  const rl = createInterface({ input: createReadStream(path, { encoding: "utf8" }), crlfDelay: Infinity });
+  for await (const line of rl) {
+    if (!line) continue;
+    h.update(line + "\n");
+    rows.push(JSON.parse(line));
+  }
+  return { rows, rows_sha256: h.digest("hex") };
+}
+
+/** Verify one store's rows + checkpoints offline. */
+export async function checkStore(name, meta, rows, { trustKey = null } = {}) {
+  const { verifyRowRun } = await import("./engines/4dmap/aznews-live.js");
+  const { checkCheckpoints } = await import("./store-durability.js");
+  if (!meta || meta.spec !== STORES_SPEC) return { ok: false, code: "OFFLINE-STORE-BAD-META", store: name };
+  if (rows.length !== meta.count) return { ok: false, code: "OFFLINE-STORE-COUNT", store: name, rows: rows.length, count: meta.count };
+  let anchor = null;
+  for (let i = 0; i < rows.length; i += STORE_VERIFY_CHUNK) {
+    const run = rows.slice(i, i + STORE_VERIFY_CHUNK);
+    if (run[0].seq !== i + 1) return { ok: false, code: "OFFLINE-STORE-BROKEN", store: name, seq: i + 1, why: "sequence-gap" };
+    const v = await verifyRowRun(run, anchor);
+    if (!v.ok) return { ok: false, code: "OFFLINE-STORE-BROKEN", store: name, seq: v.seq, why: v.reason };
+    anchor = { primary: v.tips.primary, secondary: v.tips.secondary };
+  }
+  const last = rows[rows.length - 1] || null;
+  const tip = last ? { seq: last.seq, primary: last.lattice.primary, secondary: last.lattice.secondary } : null;
+  if (canon(tip) !== canon(meta.tip || null)) return { ok: false, code: "OFFLINE-STORE-TIP", store: name };
+  const cps = Array.isArray(meta.checkpoints) ? meta.checkpoints : [];
+  const key = trustKey || (cps[0] && cps[0].public_key) || null;
+  if (cps.length) {
+    if (trustKey && cps.some((c) => c.public_key !== trustKey)) return { ok: false, code: "OFFLINE-STORE-UNTRUSTED-CHECKPOINT-KEY", store: name };
+    const cc = await checkCheckpoints(cps.filter((c) => c.to_seq <= rows.length), { publicKey: key, rowAt: async (seq) => rows[seq - 1] || null });
+    if (!cc.ok) return { ok: false, code: "OFFLINE-STORE-CHECKPOINT", store: name, n: cc.n, why: cc.reason };
+  }
+  return { ok: true, code: "OFFLINE-STORE-OK", store: name, rows: rows.length, checkpoints: cps.length, checkpoint_key: key, checkpoint_key_pinned: Boolean(trustKey) };
+}
+
+async function* pagedRows(fetchImpl, origin, name, limit) {
+  for (let from = 1; ; from += limit) {
+    const r = await fetchImpl(`${origin}/v1/${name}/rows?from=${from}&limit=${limit}`);
+    const j = await r.json().catch(() => null);
+    if (!j || !j.ok || !Array.isArray(j.rows)) throw Object.assign(new Error("store rows page refused"), { code: (j && j.code) || "OFFLINE-STORE-PULL-REFUSED", from });
+    if (!j.rows.length) return;
+    yield j.rows;
+    if (j.rows.length < limit || j.to >= j.total) return;
+  }
+}
+
+async function pullCheckpoints(fetchImpl, origin, name) {
+  const out = [];
+  for (let guard = 0; guard < 10000; guard++) {
+    const r = await fetchImpl(`${origin}/v1/${name}/checkpoints?after=${out.length}`);
+    const j = await r.json().catch(() => null);
+    const cps = j && Array.isArray(j.checkpoints) ? j.checkpoints : null;
+    if (!cps) throw Object.assign(new Error("checkpoints refused"), { code: "OFFLINE-STORE-CP-REFUSED" });
+    if (!cps.length) break;
+    out.push(...cps);
+  }
+  return out;
+}
+
+/** Pull the stores of a live origin into storesDir. Returns { stores, skipped }. */
+export async function pullStores(origin, storesDir, { fetchImpl = fetch, limit = STORE_PAGE, names = STORE_NAMES } = {}) {
+  const stores = {};
+  const skipped = {};
+  for (const name of names) {
+    try {
+      const checkpoints = await pullCheckpoints(fetchImpl, origin, name);
+      const w = await writeStoreRows(join(storesDir, storeFile(name)), pagedRows(fetchImpl, origin, name, limit));
+      if (!w.count) { skipped[name] = "OFFLINE-STORE-EMPTY"; continue; }
+      stores[name] = { spec: STORES_SPEC, file: storeFile(name), count: w.count, rows_sha256: w.rows_sha256, tip: w.tip, checkpoints: checkpoints.filter((c) => c.to_seq <= w.count) };
+    } catch (err) {
+      skipped[name] = String((err && err.code) || "OFFLINE-STORE-PULL-FAILED");
+    }
+  }
+  return { stores, skipped };
+}
+
+/** Stores held locally after an import ($dir/stores), copied into storesDir for a re-export. */
+export async function localStores(dir, storesDir) {
+  const stores = {};
+  for (const name of STORE_NAMES) {
+    let meta = null;
+    try { meta = JSON.parse(await readFile(join(dir, "stores", `${name}.meta.json`), "utf8")); } catch { meta = null; }
+    if (!meta) continue;
+    if (storesDir) { await mkdir(storesDir, { recursive: true }); await copyFile(join(dir, "stores", storeFile(name)), join(storesDir, storeFile(name))); }
+    stores[name] = meta;
+  }
+  return stores;
+}
+
+/** Check every store a bundle names against its sidecar files. */
+export async function checkBundleStores(bundle, storesDir, { trustStoreKey = null } = {}) {
+  const names = Object.keys((bundle && bundle.stores) || {});
+  if (!names.length) return { ok: true, stores: [] };
+  if (!storesDir) return { ok: false, code: "OFFLINE-STORE-FILE-MISSING", stores: names };
+  const results = [];
+  const loaded = {};
+  for (const name of names) {
+    if (!STORE_NAMES.includes(name)) return { ok: false, code: "OFFLINE-STORE-UNKNOWN", store: name };
+    const meta = bundle.stores[name];
+    if (!meta || meta.file !== storeFile(name)) return { ok: false, code: "OFFLINE-STORE-BAD-META", store: name };
+    let got;
+    try { got = await readStoreRows(join(storesDir, meta.file)); } catch { return { ok: false, code: "OFFLINE-STORE-FILE-MISSING", store: name }; }
+    if (got.rows_sha256 !== meta.rows_sha256) return { ok: false, code: "OFFLINE-STORE-HASH-MISMATCH", store: name };
+    const r = await checkStore(name, meta, got.rows, { trustKey: trustStoreKey });
+    if (!r.ok) return r;
+    results.push(r);
+    loaded[name] = got.rows;
+  }
+  return { ok: true, stores: results, loaded };
+}
+
+/** Import stores forward-only into $dir/stores. A local copy must be a prefix (same tip at its seq). */
+export async function importStores(dir, bundle, storesDir, loaded) {
+  const plan = [];
+  for (const name of Object.keys((bundle && bundle.stores) || {})) {
+    const meta = bundle.stores[name];
+    let local = null;
+    try { local = JSON.parse(await readFile(join(dir, "stores", `${name}.meta.json`), "utf8")); } catch { local = null; }
+    if (local) {
+      const at = loaded[name][local.count - 1];
+      const same = local.count <= meta.count && at && local.tip && at.lattice.primary === local.tip.primary && at.lattice.secondary === local.tip.secondary;
+      if (!same) return { ok: false, code: "OFFLINE-FORK", store: name, local: local.count, bundle: meta.count, written: false };
+      if (local.count === meta.count) continue;
+    }
+    plan.push(name);
+  }
+  await mkdir(join(dir, "stores"), { recursive: true });
+  for (const name of plan) {
+    const meta = bundle.stores[name];
+    const dst = join(dir, "stores", storeFile(name));
+    await copyFile(join(storesDir, meta.file), dst + ".tmp");
+    await rename(dst + ".tmp", dst);
+    await writeFile(join(dir, "stores", `${name}.meta.json`), JSON.stringify(meta));
+  }
+  return { ok: true, written: plan };
+}
+
+/** Store checkpoint heads in a witness statement vs the bundle's checkpoints. */
+export function storeAnchorChecks(heads, bundle) {
+  const out = [];
+  for (const [name, a] of Object.entries((heads && heads.stores) || {})) {
+    if (!a || !a.n || !a.cp_hash) continue;
+    const meta = bundle && bundle.stores ? bundle.stores[name] : null;
+    if (!meta) { out.push({ store: name, cp_n: a.n, state: "not-in-bundle" }); continue; }
+    const cp = (meta.checkpoints || []).find((c) => c.n === a.n);
+    if (!cp) { out.push({ store: name, cp_n: a.n, state: "bundle-short" }); continue; }
+    out.push({ store: name, cp_n: a.n, state: cp.cp_hash === a.cp_hash ? "match" : "MISMATCH" });
+  }
+  return out;
 }
