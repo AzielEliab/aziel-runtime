@@ -116,6 +116,8 @@
  * CORS *. Apache-2.0. Forks welcome.
  * Author: Aziel Eliab. Identity is Aziel Eliab only. Do not invent DOIs.
  */
+import { tokensCss } from "./lockstep/tokens-css.js";
+import { DESIGN_TOKENS } from "./lockstep/design-tokens.js";
 import {
   VERSIONS,
   DOI_BY_SLUG,
@@ -2247,7 +2249,7 @@ function headMeta(origin, title, description, canonicalPath, env = {}) {
 ${platformHeadLinks(base)}`;
 }
 
-const PAGE_CSS = `
+const PAGE_CSS = tokensCss(DESIGN_TOKENS) + `
   :root { color-scheme: dark; }
   html { box-sizing: border-box; }
   *, *::before, *::after { box-sizing: inherit; }
@@ -4236,6 +4238,23 @@ async function handleRequest(request, env, ctx) {
       (request.method === "GET" || request.method === "HEAD")
     ) {
       return asHead(request, text(whoIsTxt(origin, resolveCallingName(env)), extra(url.pathname)));
+    }
+
+    // AZ-LOCKSTEP-1.0: one contract + one design source for runtime, AZInterface, AZ-OS (read-only).
+    if (
+      (url.pathname === "/v1/lockstep" || url.pathname === "/design/tokens.json" || url.pathname === "/design/tokens.css") &&
+      (request.method === "GET" || request.method === "HEAD")
+    ) {
+      const { lockstepDocument, designCss } = await import("./lockstep/contract.js");
+      if (url.pathname === "/design/tokens.css") {
+        return asHead(request, new Response(designCss(), { status: 200, headers: { ...extra(url.pathname), "Content-Type": "text/css; charset=utf-8", "Cache-Control": "public, max-age=300" } }));
+      }
+      if (url.pathname === "/design/tokens.json") {
+        const { DESIGN_TOKENS } = await import("./lockstep/design-tokens.js");
+        return asHead(request, json(DESIGN_TOKENS, 200, extra(url.pathname)));
+      }
+      const doc = await lockstepDocument(PRODUCTS);
+      return asHead(request, json({ ok: true, ...doc, git_sha: (env && env.GIT_SHA) || null, writes: false }, 200, extra(url.pathname)));
     }
 
     if (url.pathname === "/cite.json" && (request.method === "GET" || request.method === "HEAD")) {

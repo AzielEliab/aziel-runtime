@@ -1,3 +1,4 @@
+import { HINTS_STYLE } from "./lockstep/tokens-css.js";
 /**
  * MESH-ONBOARD-1.0 (one-click install, every app version a mesh node, new-user hints) and
  * MESH-BOOTSTRAP-1.0 (Phase E public bootstrap list).
@@ -123,7 +124,7 @@ export function bootstrapList({ origin, nodes = [] }) {
 export function newUserHintsHtml({ when = "first_run" } = {}) {
   const hints = NEW_USER_HINTS.filter((h) => h.when === when).map((h) => ({ id: h.id, title: h.title, text: h.text }));
   const data = JSON.stringify(hints).replace(/</g, "\\u003c");
-  return `<div id="azrt-hints" role="dialog" aria-modal="false" aria-labelledby="azrt-hints-title" hidden style="position:fixed;right:1rem;bottom:1rem;max-width:22rem;z-index:50;background:#fff;color:#111;border:1px solid #888;border-radius:10px;padding:.9rem 1rem;box-shadow:0 4px 18px rgba(0,0,0,.25);font:14px/1.4 system-ui,sans-serif">
+  return `<div id="azrt-hints" role="dialog" aria-modal="false" aria-labelledby="azrt-hints-title" hidden style="${HINTS_STYLE}">
 <strong id="azrt-hints-title"></strong><p id="azrt-hints-text" style="margin:.4rem 0 .7rem"></p>
 <button type="button" id="azrt-hints-next">Next</button> <button type="button" id="azrt-hints-close">Got it</button>
 <small id="azrt-hints-n" style="float:right;opacity:.7"></small></div>
