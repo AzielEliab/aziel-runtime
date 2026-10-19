@@ -217,6 +217,7 @@ import {
   rateLimitFailHeaders,
   sessionMutateAuth,
   tokenPresentedInQuery,
+  stripLegClientIpOnPublicIngress,
 } from "./production.js";
 import { applySecurityHeaders, securityHeaders } from "./security-headers.js";
 import { durabilityLabels, productionBindCite } from "./durability-labels.js";
@@ -2739,12 +2740,15 @@ function aznewsOpenApiPaths() {
     "/v1/aznews/ledger": op("aznews_ledger", "AZRT-STORE-SHARD-1.0 / AZRT-STORE-CHECKPOINT-1.0: total ledger rows, head rows, sealed segments, signed checkpoint tip, walk."),
     "/v1/aznews/checkpoints": op("aznews_checkpoints", "Signed, chained checkpoints (every 1000 rows) after ?after=n.", [q("after", "Last checkpoint n you hold.", { type: "integer" })]),
     "/v1/4dmap/ledger": op("fourdmap_ledger", "Same ledger report for the 4dmap-v1 store."),
-    "/v1/aznews/rows": op("aznews_rows", "OFFLINE-RECORDS-1.0: raw AZNews ledger rows, ?from=<seq>&limit=<1..500> (default 200). Read-only, mints nothing; for the offline records export (aziel-records pull)."),
-    "/v1/4dmap/rows": op("fourdmap_rows", "OFFLINE-RECORDS-1.0: raw 4DMap ledger rows, same paging as /v1/aznews/rows."),
+    "/v1/aznews/rows": op("aznews_rows", "OFFLINE-RECORDS-1.0: raw AZNews ledger rows, one page. Read-only, mints nothing; for the offline records export (aziel-records pull). Full pages wholly below checkpoint_tip_seq are edge-cached (immutable); other pages no-store. Light per-client limit on uncached pages (429 STORE-ROWS-RATE-LIMIT with Retry-After).", [q("from", "First seq, >= 1 (default 1).", { type: "integer", minimum: 1, default: 1 }), q("limit", "Rows per page, 1-500 (default 200).", { type: "integer", minimum: 1, maximum: 500, default: 200 })]),
+    "/v1/4dmap/rows": op("fourdmap_rows", "OFFLINE-RECORDS-1.0: raw 4DMap ledger rows, same paging and caching as /v1/aznews/rows. Raw rows include retracted pins and their retraction rows (hidden by default on /v1/4dmap/pins); ?marks=1 adds per-row view marks (never cached).", [q("from", "First seq, >= 1 (default 1).", { type: "integer", minimum: 1, default: 1 }), q("limit", "Rows per page, 1-500 (default 200).", { type: "integer", minimum: 1, maximum: 500, default: 200 }), q("marks", "1 = add marks[] for retracted (hidden) pins and retraction rows.", { type: "string", enum: ["0", "1"] })]),
     "/.well-known/azrt-keys.json": { get: { operationId: "azrt_keys", summary: "AZRT-KEYS-1.0: every public key the records are checked against (receipt key current/pinned/retired epochs, witness and auditor keys with epochs, slot-2 witness key). Public keys only.", tags: ["runtime"], responses: { "200": { description: "JSON" } } } },
     "/v1/keys": { get: { operationId: "azrt_keys_alias", summary: "Same as GET /.well-known/azrt-keys.json.", tags: ["runtime"], responses: { "200": { description: "JSON" } } } },
     "/v1/4dmap/checkpoints": op("fourdmap_checkpoints", "Signed checkpoints for the 4dmap-v1 store after ?after=n.", [q("after", "Last checkpoint n you hold.", { type: "integer" })]),
     "/v1/4dmap/pins": { get: { operationId: "fourdmap_store_pins", summary: "Standalone 4DMap pins (4DMAP-STORE-1.0, own SQLite object 4dmap-v1, dual lattice): corpus layer (Aziel Corpus /api/events) and reference layer (GeoNames capitals and cities >= 1M). No AZNews needed.", tags: ["4dmap"], parameters: [{ name: "layers", in: "query", required: false, description: "corpus,reference", schema: { type: "string" } }, { name: "limit", in: "query", required: false, schema: { type: "integer" } }, { name: "include_retracted", in: "query", required: false, description: "1 = also list retracted pins (geoparser_junk, duplicate_in_document) with their reason; they stay on the lattice", schema: { type: "string" } }, { name: "links", in: "query", required: false, description: "1 = include the newest 4DMAP-LINK-1.0 links (news x corpus correspondence black/white, news x reference place)", schema: { type: "string" } }], responses: { "200": { description: "pins, last10, colors, layers, retracted, links, lattice_live" } } } },
+    "/v1/lockstep": { get: { operationId: "lockstep_contract", summary: "AZ-LOCKSTEP-1.0 contract: locks, flags, doors, chains, mesh, feature union and design-token hashes that AZInterface and AZ-OS pin and verify (states agree / drift / absent; flags show only on agree + contract + leg proof).", tags: ["runtime"], responses: { "200": { description: "lockstep contract JSON with contract_sha256" } } } },
+    "/design/tokens.json": { get: { operationId: "design_tokens_json", summary: "Shared design tokens (single source for all three legs).", tags: ["runtime"], responses: { "200": { description: "tokens JSON" } } } },
+    "/design/tokens.css": { get: { operationId: "design_tokens_css", summary: "Shared design tokens as CSS custom properties.", tags: ["runtime"], responses: { "200": { description: "text/css" } } } },
     "/aznews": { get: { operationId: "aznews_page", summary: "AZNews + 4DMap globe page (HTML).", tags: ["aznews"], responses: { "200": { description: "text/html" } } } },
   };
 }
@@ -4772,11 +4776,14 @@ async function handleRequest(request, env, ctx) {
       return json({ ok: false, error: "not found", hint: "GET /v1/anchor, /v1/anchor/heads, /v1/anchor/row?c=&seq=, /v1/anchor/rows?c=&from=&limit=" }, 404, hdrs);
     }
 
-    if (url.pathname === "/v1/4dmap/rows" && (request.method === "GET" || request.method === "HEAD")) {
-      // OFFLINE-RECORDS-1.0 (stores addendum): raw 4DMap ledger rows, one bounded page, read-only.
-      const { mapCall } = await import("./aznews-do.js");
-      const out = await mapCall(env, "rows", { from: url.searchParams.get("from") || 1, limit: url.searchParams.get("limit") || 200 });
-      return asHead(request, json(out, out && out.ok === false ? 503 : 200, { "access-control-allow-origin": "*", "cache-control": "no-store" }));
+    if ((url.pathname === "/v1/4dmap/rows" || url.pathname === "/v1/aznews/rows") && (request.method === "GET" || request.method === "HEAD")) {
+      // OFFLINE-RECORDS-1.0 (stores addendum): raw ledger rows, one bounded page, read-only. Pages below the
+      // signed checkpoint tip are edge-cached; DO reads have a light per-isolate limit (src/store-rows-http.js).
+      const { mapCall, aznewsCall } = await import("./aznews-do.js");
+      const { serveStoreRows } = await import("./store-rows-http.js");
+      const name = url.pathname === "/v1/4dmap/rows" ? "4dmap" : "aznews";
+      const call = (op, payload) => (name === "4dmap" ? mapCall(env, op, payload) : aznewsCall(env, op, payload));
+      return serveStoreRows(request, env, { name, call, ctx });
     }
     if ((url.pathname === "/v1/4dmap/ledger" || url.pathname === "/v1/4dmap/checkpoints") && (request.method === "GET" || request.method === "HEAD")) {
       // AZRT-STORE-CHECKPOINT-1.0 / AZRT-STORE-SHARD-1.0: total rows, head rows, segments, checkpoint tip.
@@ -4833,8 +4840,8 @@ async function handleRequest(request, env, ctx) {
     if (url.pathname === "/v1/tether/push" && request.method === "POST") {
       const auth = sessionMutateAuth(request, env);
       if (!auth.ok) return json(auth.body, auth.status || 401, authorityLinkHeaders(origin, url.pathname));
-      const { pushAll } = await import("./azos-tether.js");
-      return json(await pushAll(env), 200, authorityLinkHeaders(origin, url.pathname));
+      const { pushAllLegs } = await import("./azos-tether.js");
+      return json(await pushAllLegs(env), 200, authorityLinkHeaders(origin, url.pathname));
     }
 
     if (url.pathname === "/v1/receipts/refusals" && (request.method === "GET" || request.method === "HEAD")) {
@@ -5019,7 +5026,9 @@ async function handleRequest(request, env, ctx) {
 }
 
 export default {
-  async fetch(request, rawEnv, ctx) {
+  async fetch(rawRequest, rawEnv, ctx) {
+    // LEG-CLIENT-IP-1.0: X-Azrt-Client-IP is honored only over the service binding; stripped on public ingress.
+    const request = stripLegClientIpOnPublicIngress(rawRequest);
     // Hot USES writes go to the RUNTIME_KV Durable Object (KV daily put quota made /mcp throw 1101).
     const env = withDurableKv(rawEnv);
     const budget = requestDeadlineMs(env);
@@ -5066,7 +5075,7 @@ export default {
   async scheduled(controller, rawEnv, ctx) {
     const env = withDurableKv(rawEnv);
     const source = controller && controller.cron ? `cron:${controller.cron}` : "cron";
-    const { TETHER_CRON, pushAll } = await import("./azos-tether.js");
+    const { TETHER_CRON, pushAllLegs } = await import("./azos-tether.js");
     // USES-SNAPSHOT-1.0: rebuild the /v1/stats maps off the request path (resumable across ticks).
     if (ctx && typeof ctx.waitUntil === "function" && (await import("./uses.js")).snapshotDue(controller && controller.cron, controller && controller.scheduledTime, TETHER_CRON)) {
       ctx.waitUntil(
@@ -5132,10 +5141,10 @@ export default {
     }
     if (controller && controller.cron === TETHER_CRON) {
       // AZ-OS cross-tether on its own cron: send signed dual-lattice tips only when the signing secret is set.
-      if (!(env && env.TETHER_SIGNING_SEED && env.AZOS)) return;
-      const work = pushAll(env)
+      if (!(env && env.TETHER_SIGNING_SEED && (env.AZOS || env.AZINTERFACE))) return;
+      const work = pushAllLegs(env)
         .then((out) => {
-          console.log(JSON.stringify({ tether: out.code, azos_updated: out.azos_updated, chains: (out.chains || []).map((c) => ({ chain: c.chain, code: c.code, rows_sent: c.rows_sent })) }));
+          console.log(JSON.stringify({ tether: out.code, azos_updated: out.azos_updated, azinterface: out.legs && out.legs.azinterface ? out.legs.azinterface.code : null, chains: (out.chains || []).map((c) => ({ chain: c.chain, code: c.code, rows_sent: c.rows_sent })) }));
           return out;
         })
         .catch((err) => {

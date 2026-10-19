@@ -268,10 +268,44 @@ export function sessionMutateAuth(request, env) {
   return { ok: true };
 }
 
+/**
+ * LEG-CLIENT-IP-1.0. AZ-OS and AZInterface proxy callers to this runtime over a service binding. A binding
+ * request carries no CF-Connecting-IP (Cloudflare sets that header only on public ingress, and the legs
+ * never forward it), so a leg names its caller in X-Azrt-Client-IP. That header is trusted only when the
+ * request came over the binding (no CF-Connecting-IP). On public ingress it is stripped at the edge of
+ * the fetch handler (stripLegClientIpOnPublicIngress) and ignored here, so a public caller cannot pick
+ * its own rate-limit bucket.
+ */
+export const LEG_CLIENT_IP_HEADER = "X-Azrt-Client-IP";
+
+export function isIpLiteral(value) {
+  const v = String(value || "").trim();
+  if (!v || v.length > 45) return false;
+  if (/^(25[0-5]|2[0-4]\d|1?\d?\d)(\.(25[0-5]|2[0-4]\d|1?\d?\d)){3}$/.test(v)) return true;
+  return /^[0-9a-fA-F:.]+$/.test(v) && v.includes(":") && (v.match(/::/g) || []).length <= 1;
+}
+
+export function viaServiceBinding(request) {
+  const cf = request && request.headers ? request.headers.get("CF-Connecting-IP") : null;
+  return !(cf && cf.trim());
+}
+
+/** Public ingress (CF-Connecting-IP present): drop X-Azrt-Client-IP so nothing downstream can see it. */
+export function stripLegClientIpOnPublicIngress(request) {
+  if (!request || !request.headers || !request.headers.has(LEG_CLIENT_IP_HEADER)) return request;
+  if (viaServiceBinding(request)) return request;
+  const headers = new Headers(request.headers);
+  headers.delete(LEG_CLIENT_IP_HEADER);
+  return new Request(request, { headers });
+}
+
 export function clientIp(request) {
   if (!request || !request.headers) return "local";
   const cf = request.headers.get("CF-Connecting-IP") || request.headers.get("cf-connecting-ip");
   if (cf && cf.trim()) return cf.trim();
+  // Over the service binding only (no CF-Connecting-IP): the leg's caller, when it is an IP literal.
+  const leg = request.headers.get(LEG_CLIENT_IP_HEADER);
+  if (leg && isIpLiteral(leg)) return leg.trim();
   const xff = request.headers.get("X-Forwarded-For") || request.headers.get("x-forwarded-for");
   if (xff && xff.trim()) return xff.split(",")[0].trim();
   return "local";

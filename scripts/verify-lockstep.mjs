@@ -107,4 +107,18 @@ if (process.env.LOCKSTEP_REMOTE === "1") {
     n += 2;
   }
 }
+// openapi lists the lockstep surface
+{
+  const oa = await (await handler(new Request("https://runtime.test/openapi.json"), {}, { waitUntil() {} })).json();
+  for (const p of ["/v1/lockstep", "/design/tokens.json", "/design/tokens.css"]) ok(oa.paths && oa.paths[p] && oa.paths[p].get, `openapi missing ${p}`);
+}
+// host-data scan: contract and design files carry nothing specific to the build host
+{
+  const { hostDataFinding } = await import(root + "scripts/lockstep-hostscan.mjs");
+  ok(hostDataFinding("LAN interface enp0s3 at 172.30.0.2") && hostDataFinding("eth0") && hostDataFinding("fe80::1") && !hostDataFinding("203.0.113.9 via the binding"), "host-data scan catches what it should");
+  for (const f of ["contract/lockstep.json", "design/tokens.json", "design/tokens.css", "src/lockstep/design-tokens.js"]) {
+    const leak = hostDataFinding(readFileSync(root + f, "utf8"));
+    ok(!leak, `${f} carries host-specific data: ${leak}`);
+  }
+}
 console.log(`ok lockstep contract + design source: ${n} checks (contract ${snap.contract_sha256.slice(0, 12)}, gaps ${featureGaps().length})`);
