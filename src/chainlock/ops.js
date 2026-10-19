@@ -556,7 +556,8 @@ export async function verify(storeOrEnv, input = {}) {
   const breaks = [];
   const chains = [];
   for (const name of names) {
-    if (!ROSTER.includes(name)) continue;
+    // Addendum (RIB-018): an internal chain (refusals) is verifiable when named explicitly; read-only.
+    if (!ROSTER.includes(name) && !(INTERNAL_CHAINS.includes(name) && (src.c || src.chain))) continue;
     const rows = await loadChain(store, name, caller);
     let prev = GENESIS;
     let ok = true;

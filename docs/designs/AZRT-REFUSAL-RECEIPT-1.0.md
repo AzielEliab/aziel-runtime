@@ -32,3 +32,64 @@ Closed or expired sessions and receipt-cap refusals stay as they were. They cann
 so with `refused_receipt { sealed:false, reason }`. Malformed JSON and operator-token-in-body refusals
 are rejected before the session is touched and are not sealed (no secret material reaches a receipt).
 Receipts are hash-linked and sealed, not signed.
+
+## Addendum (2026-10-19): the remaining doors, AZ-OS and azinterface
+
+Not a new RIB and not a new spec: the same AZRT-REFUSAL-RECEIPT-1.0 receipt, written by the same
+`sealRefusal` path onto the same internal `refusals` chain. Code: `src/refusal-doors.js`. Tests:
+`scripts/verify-refusal-doors.mjs`. Review baseline: `/tmp/diagrepos/logs/refusals-baseline.md` (b6771ed).
+
+Laws cited: docs/2.0/REFUSAL-CONTRACT.md (refuse codes and envelopes untouched; additive fields only),
+docs/2.0/RECEIPT-SCHEMA.md (receipt fields additive), docs/2.0/COMPATIBILITY-POLICY.md and
+BREAKING-CHANGE-POLICY.md (no removals, rc1 frozen, tools/list 36, Softwares 42), AZRT-DUAL-LATTICE-1.0
+(src/dual-lattice.js: both lattice hashes on every row; offline secondary = H(primary document hash +
+username)), AZRT-AZOS-TETHER-1.0 / TETHER-REFUSALS-1.0 (the refusals chain is already sent to AZ-OS),
+FragGate stays the single exec door (nothing here executes anything).
+
+**(a) Both lattice hashes.** Confirmed already present: every `refusals` row is a ChainLock stamp with
+`lattice {document_hash, primary, secondary}` and `refusal_receipt.lattice {primary, secondary}`.
+The verify script recomputes the primary and online secondary of every stored row and checks the
+offline rule. Additive on the receipt view: `kind: "refusal"` and `code`.
+
+**(b) Doors sealed here.** Any response with status >= 400 whose JSON body has a stable `code` (or the
+MESH-ONBOARD `install.sh` text refusal) on these REST doors: `/v1/fraggate*` (REST forms not already
+sealed inside), `/v1/mesh*` (mesh and onboarding/install), `/v1/tether*`, `/v1/memory*`
+(lattice-learn and other memory ops over REST), `/v1/qns*`, `/v1/interface`, `/v1/pull/*`, `/p/*`.
+A body that already carries `refusal_receipt` or `refused_receipt` (MCP door, POST
+/v1/fraggate/call, session exec) is left alone, so nothing is sealed twice. The stamp's `refusal`
+object gains additive `kind, surface, door, reason (<=160 chars, our own message), status, route
+(template)`. The body keeps every field and gains `refusal_receipt`; every refusal (JSON or text)
+gains the header `X-Azrt-Refusal-Receipt`.
+
+**(c) AZ-OS and azinterface.** Each worker reports its own non-auth refusals over its
+`AZIEL_RUNTIME` service binding to `POST https://peer.aziel.internal/v1/refusals/peer`
+(surface `azos` or `azinterface`). That hostname is not routable to this Worker from the public
+internet, and a request carrying `CF-Connecting-IP` is refused `REFUSAL-PEER-NOT-BOUND`, so only a
+bound Worker can write. The row lands on the same `refusals` chain, so there is one lattice; AZ-OS
+gets it back through the existing signed tether (TETHER-REFUSALS-1.0, every 2 minutes) and
+azinterface reads the tip through `/v1/runtime/sync`. Tips agree after the next tether tick.
+
+**Finding receipts.** `GET /v1/receipts/refusals` (newest first, `?limit<=50`) and
+`GET /v1/receipts/refusals?seq=N`; `GET /v1/receipts` gains `refusal_receipts`. Verify the chain with
+`chainlock_verify {"c":"refusals"}` (an internal chain is now verifiable when named; the default
+roster walk is unchanged) and each row with `/v1/anchor/row?c=refusals&seq=N` (new rows show
+ANCHOR-MISSING until the next witness run).
+
+**Flood guard.** (1) sealRefusal's idempotency key covers code + door/tool + route template + method +
+status + minute, with no caller identity, so one refusal shape writes at most one row per minute;
+(2) an in-isolate memo answers repeats in that minute with no Durable Object call; (3) an in-isolate
+cap of 60 new seals per minute (over it: `status: "rate_limited"`, sealed:false, the refusal still
+stands); (4) route templates collapse ids and keep at most 4 segments, so keys stay bounded.
+
+**Fail closed.** The refusal status, code and body never change. No store: `status: "unavailable"`.
+Write slower than 2.5 s: `status: "receipt_pending"` (the write continues in the background; look it
+up in `/v1/receipts/refusals`). Neither carries a hash. Not signed (no receipt signing key is set);
+hash-linked and sealed, as the rest of this note says.
+
+**(d) Not recorded, by design (user decision pending).** Auth-gate refusals: any 401, the codes
+`token_required`, `token_mismatch`, `token_not_configured`, `TOKEN-QUERY-REFUSED`, `CL-NOT-ISSUER`
+(and any code containing "token"), plus 429 rate limits. About 13 emit sites in 6 modules
+(production.js, session-http.js, session-do.js, issuer-append.js, redline.js, workspace.js) behind
+6 gate call sites. Flood risk if they were recorded: anyone can trigger them without credentials at
+the per-door rate limit; with the same minute dedupe the worst case is about codes x gated route
+templates rows per minute (roughly 5 x 10 = 50/min, ~72k rows/day), against today's few dozen rows.
