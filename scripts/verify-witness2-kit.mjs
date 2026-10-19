@@ -1,7 +1,7 @@
 /**
  * AZRT-WITNESS-QUORUM-1.0 slot-2 kit (witness2/kit, Codeberg Forgejo Actions): the kit's statements verify
  * as slot 2 in the runtime (same format as slot 1), reach quorum level "dual", the Codeberg log URL is
- * accepted, and Cloudflare-hosted slot-2 logs are refused as not independent. Author: Aziel Eliab.
+ * accepted, and Cloudflare-hosted slot-2 logs are refused (WITNESS2-NOT-INDEPENDENT: not a different provider). Author: Aziel Eliab.
  */
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -11,8 +11,8 @@ import { memoryChainWriterNamespace } from "../src/chainlock/writer-do.js";
 import { storeFor } from "../src/chainlock/store.js";
 import { append } from "../src/chainlock/ops.js";
 import { verifySignedLog } from "../src/anchor.js";
-import { witness2Config, witnessQuorum, resetWitness2Memo, cloudflareHosted, WITNESS2_CODES } from "../src/witness-quorum.js";
-import { anchorOnce } from "../witness2/kit/scripts/witness2.mjs";
+import { witness2Config, witnessQuorum, resetWitness2Memo, cloudflareHosted, cloudflareServed, loadWitness2, WITNESS2_CODES } from "../src/witness-quorum.js";
+import { anchorOnce, verifyOwnLog } from "../witness2/kit/scripts/witness2.mjs";
 import * as lib from "../witness2/kit/scripts/lib.mjs";
 
 let n = 0;
@@ -41,7 +41,7 @@ assert.equal(a.row.statement.prev_statement_hash, log[0].statement_hash);
 const v = await verifySignedLog(log, { publicKey: pub });
 assert.equal(v.ok, true); assert.equal(v.n, 2); n++;
 
-// 3) config: the Codeberg log is accepted; Cloudflare-hosted logs are not independent; slot 1 repo still refused.
+// 3) config: the Codeberg log is accepted; Cloudflare-hosted logs are refused; slot 1 repo still refused.
 const W2 = "https://codeberg.org/AzielEliab/aziel-witness2/raw/branch/main/anchors/log.jsonl";
 const cfg = witness2Config({ WITNESS2_LOG_URL: W2, WITNESS2_PUBLIC_KEY: pub, WITNESS2_NAME: "codeberg" });
 assert.equal(cfg.configured, true); assert.equal(cfg.name, "codeberg");
@@ -77,5 +77,69 @@ assert.ok(!/uses: actions\//.test(wf), "no GitHub-hosted action refs");
 const setup = fs.readFileSync(new URL("../witness2/setup-witness2.mjs", import.meta.url), "utf8");
 assert.ok(!/console\.log\([^)]*token/i.test(setup), "setup never prints the token");
 assert.ok(!/writeFileSync\([^)]*(der|privateKey)/.test(setup), "private key never written to disk"); n++;
+
+// 6) AZBot review of #309: Cloudflare is also detected from the response (cf-ray / server: cloudflare), so a
+//    custom domain proxied by Cloudflare is refused; Codeberg's own headers pass.
+{
+  assert.equal(cloudflareServed(new Headers({ "cf-ray": "8abc-IAD" })), "cf-ray");
+  assert.equal(cloudflareServed(new Headers({ server: "cloudflare" })), "server: cloudflare");
+  assert.equal(cloudflareServed(new Headers({ server: "forgejo" })), null);
+  const CUSTOM = "https://witness.example.org/anchors/log.jsonl";
+  assert.equal(cloudflareHosted("witness.example.org"), false, "hostname list alone misses a custom domain");
+  const envC = { ...clEnv, WITNESS2_LOG_URL: CUSTOM, WITNESS2_PUBLIC_KEY: pub };
+  for (const h of [{ "cf-ray": "8abc-IAD" }, { server: "cloudflare" }]) {
+    resetWitness2Memo();
+    const got = await loadWitness2(envC, async () => new Response(text, { status: 200, headers: h }), { force: true });
+    assert.equal(got.ok, false); assert.equal(got.code, WITNESS2_CODES.notIndependent); assert.match(got.detail, /through Cloudflare/);
+    resetWitness2Memo();
+    const q = await witnessQuorum(envC, { primary, primaryCheck: { ok: true }, fetchImpl: async () => new Response(text, { status: 200, headers: h }), deps: { storeFor }, force: true });
+    assert.equal(q.witnesses[1].status, "not_independent"); assert.equal(q.quorum.level, "single");
+  }
+  resetWitness2Memo();
+  const fine = await loadWitness2(envC, async () => new Response(text, { status: 200, headers: { server: "forgejo" } }), { force: true });
+  assert.equal(fine.ok, true);
+  assert.match(witness2Config({ WITNESS2_LOG_URL: "https://x.pages.dev/l.jsonl", WITNESS2_PUBLIC_KEY: pub }).reason, /known Cloudflare hostname/);
+  resetWitness2Memo();
+}
+n++;
+
+// 7) the kit re-verifies its own log before appending and refuses a broken one (nothing appended).
+{
+  assert.equal(verifyOwnLog(log, pub).ok, true);
+  assert.equal(verifyOwnLog([], pub).ok, true);
+  const tampered = structuredClone(log); tampered[0].statement.git_sha = "evil";
+  assert.equal(verifyOwnLog(tampered, pub).code, "W2-LOG-HASH");
+  const reordered = [log[1], log[0]];
+  assert.equal(verifyOwnLog(reordered, pub).code, "W2-LOG-ORDER");
+  const relinked = structuredClone(log); relinked[1].statement.prev_statement_hash = "f".repeat(64);
+  relinked[1].statement_hash = lib.sha256(lib.canonicalize(relinked[1].statement));
+  assert.equal(verifyOwnLog(relinked, pub).code, "W2-LOG-LINK");
+  const other = generateKeyPairSync("ed25519");
+  const foreign = structuredClone(log); foreign[1].sig = lib.sign(other.privateKey, lib.canonicalize(foreign[1].statement));
+  assert.equal(verifyOwnLog(foreign, pub).code, "W2-LOG-SIG");
+  assert.equal(verifyOwnLog(log, other.publicKey.export({ format: "jwk" }).x).code, "W2-LOG-KEY");
+  const more = { ...heads, chains: [{ c: "session", seq: 99, h: "a".repeat(64) }] };
+  const refused = await anchorOnce({ heads: more, key: privateKey, pub, log: tampered });
+  assert.equal(refused.anchored, false); assert.equal(refused.refused, true); assert.match(refused.reason, /nothing appended/);
+  const okRow = await anchorOnce({ heads: more, key: privateKey, pub, log });
+  assert.equal(okRow.anchored, true); assert.equal(verifyOwnLog([...log, okRow.row], pub).ok, true);
+}
+n++;
+
+// 8) actions pinned to full commit SHAs; no "independent" or present-tense signing claim in the kit or setup.
+{
+  const uses = [...wf.matchAll(/uses:\s*(\S+)/g)].map((m) => m[1]);
+  assert.ok(uses.length >= 2);
+  for (const u of uses) assert.match(u, /@[0-9a-f]{40}$/, "pinned to a commit SHA: " + u);
+  const readme = fs.readFileSync(new URL("../witness2/kit/README.md", import.meta.url), "utf8");
+  const kitjs = fs.readFileSync(new URL("../witness2/kit/scripts/witness2.mjs", import.meta.url), "utf8");
+  for (const t of [readme, kitjs, setup]) {
+    assert.ok(!/\bindependent\b/i.test(t.replace(/NOT-INDEPENDENT/g, "")), "no 'independent' claim");
+    assert.ok(!/This repo signs/.test(t), "no present-tense signing claim");
+  }
+  assert.match(readme, /different key, host and provider; same account holder/);
+  assert.match(setup, /different key, host and provider; same account holder\)\. .*designed to sign every 15 minutes once set up/);
+}
+n++;
 
 console.log(`ok witness2 kit: ${n} checks`);

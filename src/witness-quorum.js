@@ -1,8 +1,9 @@
 /**
- * RIB-047 / AZRT-WITNESS-QUORUM-1.0 (idea from @RohanBhanotAI): a second, independent witness slot.
+ * RIB-047 / AZRT-WITNESS-QUORUM-1.0 (idea from @RohanBhanotAI): a second witness slot (different key, host
+ * and provider; same account holder).
  *
  * Slot 1 is the existing witness (AzielEliab/aziel-anchors, pinned key). It stays REQUIRED: if slot 1
- * fails, verify fails, whatever slot 2 says. Slot 2 is an independent provider configured only by its
+ * fails, verify fails, whatever slot 2 says. Slot 2 is a second provider configured only by its
  * own config (env WITNESS2_LOG_URL + WITNESS2_PUBLIC_KEY, optional WITNESS2_NAME). With no config the
  * slot reports WITNESS2-NOT-CONFIGURED. There is no mock or fallback witness: nothing is invented.
  *
@@ -94,11 +95,20 @@ export function githubRepoOf(u) {
 
 /**
  * AZRT-WITNESS-QUORUM-1.0 addendum: a slot-2 log on Cloudflare (Workers, Pages, R2) shares the runtime's own
- * provider, so it is not independent. GitHub-hosted logs stay allowed only outside the slot-1 repo.
+ * provider, so it is refused (WITNESS2-NOT-INDEPENDENT: not a different provider). GitHub-hosted logs stay allowed
+ * only outside the slot-1 repo. Checked by hostname list here and by response headers when the log is read.
  */
 export function cloudflareHosted(hostname) {
   const h = String(hostname || "").toLowerCase().replace(/\.$/, "");
   return ["workers.dev", "pages.dev", "r2.dev", "r2.cloudflarestorage.com", "cloudflare.com", "cloudflareworkers.com"].some((d) => h === d || h.endsWith("." + d));
+}
+
+/** Which response header shows the slot-2 log was served through Cloudflare ("cf-ray" / "server: cloudflare"), or null. */
+export function cloudflareServed(headers) {
+  const get = (n) => (headers && typeof headers.get === "function" ? headers.get(n) : null);
+  if (get("cf-ray")) return "cf-ray";
+  if (/^cloudflare/i.test(String(get("server") || "").trim())) return "server: cloudflare";
+  return null;
 }
 
 /** Slot-2 config from its own env vars. Never defaults to anything. */
@@ -112,11 +122,11 @@ export function witness2Config(env) {
   if (!u || u.protocol !== "https:" || !ck) return { configured: false, code: WITNESS2_CODES.badConfig, reason: "WITNESS2_LOG_URL must be https and WITNESS2_PUBLIC_KEY a canonical 32-byte base64url Ed25519 key; both are required" };
   if (u.username || u.password || hostRefused(u.hostname)) return { configured: false, code: WITNESS2_CODES.badConfig, reason: "WITNESS2_LOG_URL host must be a public DNS name (no IP address, localhost or credentials)" };
   if (slot1KeyBytes().has(ck)) return { configured: false, code: WITNESS2_CODES.notIndependent, reason: "second witness key equals the first witness's current or retired key" };
-  if (cloudflareHosted(u.hostname)) return { configured: false, code: WITNESS2_CODES.notIndependent, reason: "second witness log is hosted on Cloudflare, the runtime's own provider; it is not independent" };
+  if (cloudflareHosted(u.hostname)) return { configured: false, code: WITNESS2_CODES.notIndependent, reason: "second witness log host is a known Cloudflare hostname (workers.dev, pages.dev, r2.dev, r2.cloudflarestorage.com, cloudflare.com, cloudflareworkers.com), the runtime's own provider; a second witness must use a different provider" };
   const primary = new URL(WITNESS_LOG_URL);
   const repo = githubRepoOf(u);
   if (u.href === primary.href || repo === WITNESS_REPO.toLowerCase()) {
-    return { configured: false, code: WITNESS2_CODES.notIndependent, reason: "second witness log lives in the first witness's repo; it is not independent" };
+    return { configured: false, code: WITNESS2_CODES.notIndependent, reason: "second witness log lives in the first witness's repo; a second witness must use a different host" };
   }
   return { configured: true, url: u.href, public_key: key, name: env.WITNESS2_NAME ? String(env.WITNESS2_NAME).slice(0, 64) : u.host };
 }
@@ -131,6 +141,11 @@ async function fetchText(fetchImpl, url) {
     const res = await fetchImpl(url, { redirect: "manual", signal: ctl ? ctl.signal : undefined, headers: { "user-agent": "aziel-runtime-anchor-reader" }, cf: { cacheTtl: 0 } });
     // Workers reject redirect:"error"; redirect:"manual" returns 3xx (or opaqueredirect / status 0).
     if (res.type === "opaqueredirect" || res.status === 0 || (res.status >= 300 && res.status < 400)) return { ok: false, status: res.status || 302, error: "redirect refused" };
+    // Addendum (AZBot review of #309): a custom domain proxied by Cloudflare passes the hostname list, so
+    // the response itself is checked too. cf-ray or server: cloudflare means the log is served through
+    // Cloudflare, the runtime's own provider. Checked before the status, so a 404 through Cloudflare counts.
+    const via = cloudflareServed(res.headers);
+    if (via) { try { await res.body?.cancel(); } catch {} return { ok: false, cloudflare: true, via }; }
     if (!res.ok) return { ok: false, status: res.status };
     const len = Number(res.headers && res.headers.get && res.headers.get("content-length"));
     if (len > WITNESS2_MAX_BYTES) { try { await res.body?.cancel(); } catch {} return { ok: false, tooLarge: true }; }
@@ -164,7 +179,9 @@ export async function loadWitness2(env, fetchImpl, { force = false, now = Date.n
   if (!force && memo.state && memo.key === k && now - memo.at < ANCHOR_CACHE_MS) return memo.state;
   const got = await fetchText(fetchImpl || fetch, cfg.url);
   let state;
-  if (!got.ok) {
+  if (!got.ok && got.cloudflare) {
+    state = { ok: false, configured: true, name: cfg.name, url: cfg.url, public_key: cfg.public_key, code: WITNESS2_CODES.notIndependent, detail: `the log response came through Cloudflare (${got.via}), the runtime's own provider; a second witness must use a different provider. Only the hostname list and these two headers are checked.` };
+  } else if (!got.ok) {
     state = { ok: false, configured: true, name: cfg.name, url: cfg.url, public_key: cfg.public_key, code: got.tooLarge ? WITNESS2_CODES.tooLarge : (got.status === 404 ? WITNESS2_CODES.missing : WITNESS2_CODES.unreachable), detail: got.tooLarge ? `log larger than ${WITNESS2_MAX_BYTES} bytes` : (got.status || got.error) };
   } else {
     const entries = parseJsonlLines(got.text);
@@ -229,7 +246,7 @@ export async function witnessQuorum(env, { primary, primaryCheck, fetchImpl, dep
   const s2 = await loadWitness2(env, fetchImpl, { force });
   let w2;
   if (!s2.configured) w2 = { slot: 2, required: policy.required >= 2, status: "not_configured", code: s2.code, reason: s2.reason };
-  else if (!s2.ok) w2 = { slot: 2, name: s2.name, url: s2.url, public_key: s2.public_key, required: policy.required >= 2, status: s2.code === WITNESS2_CODES.missing ? "missing" : (s2.code === WITNESS2_CODES.unreachable ? "unreachable" : (s2.code === WITNESS2_CODES.tooLarge ? "too_large" : "invalid")), code: s2.code, ...(s2.log_code ? { log_code: s2.log_code, at: s2.at, reason: s2.reason } : { detail: s2.detail }) };
+  else if (!s2.ok) w2 = { slot: 2, name: s2.name, url: s2.url, public_key: s2.public_key, required: policy.required >= 2, status: s2.code === WITNESS2_CODES.notIndependent ? "not_independent" : s2.code === WITNESS2_CODES.missing ? "missing" : (s2.code === WITNESS2_CODES.unreachable ? "unreachable" : (s2.code === WITNESS2_CODES.tooLarge ? "too_large" : "invalid")), code: s2.code, ...(s2.log_code ? { log_code: s2.log_code, at: s2.at, reason: s2.reason } : { detail: s2.detail }) };
   else {
     const rt = await checkStatementAgainstRuntime(env, s2.latest.statement, deps);
     const cross = primary && primary.ok ? crossCheckWitnesses(primary.entries, s2.entries) : { ok: true, shared_heads: 0, conflicts: [], note: "first witness not verified; no cross-check" };

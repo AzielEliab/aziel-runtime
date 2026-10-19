@@ -1,8 +1,8 @@
-# AZRT-WITNESS-QUORUM-1.0 — second independent witness + quorum (RIB-047)
+# AZRT-WITNESS-QUORUM-1.0 — second witness (different key, host and provider; same account holder) + quorum (RIB-047)
 
 Idea: @RohanBhanotAI (https://x.com/RohanBhanotAI/status/2110363663999672582). Author: Aziel Eliab.
 
-Goal: the anchor should survive the first outside log going down at the same time as the runtime. Each ChainLock head can be mirrored to a second, independent witness provider, and verify can accept or require a quorum.
+Goal: the anchor should survive the first outside log going down at the same time as the runtime. Each ChainLock head can be mirrored to a second witness (different key, host and provider; same account holder), and verify can accept or require a quorum.
 
 ## Slots
 - **Slot 1** is the existing witness, AzielEliab/aziel-anchors, with its pinned key. It is **always required**: if slot 1 fails, verify fails no matter what slot 2 says.
@@ -20,9 +20,9 @@ Goal: the anchor should survive the first outside log going down at the same tim
 - A configured slot 2 that **disagrees** fails verify even at quorum 1. A slot 2 that is merely down does not, unless quorum 2 is required.
 
 ## Honest limits
-- **No second witness provider is configured yet.** `wrangler.toml` sets no `WITNESS2_*`, so live verify reports slot 2 `not_configured` and level `single`. Nothing here is live until a real independent provider (a separate signer and host) publishes a log and its key is set.
+- **No second witness provider is configured yet.** `wrangler.toml` sets no `WITNESS2_*`, so live verify reports slot 2 `not_configured` and level `single`. Nothing here is live until a real second provider (a separate signer, host and provider) publishes a log and its key is set.
 - The runtime has no write path to either log and does not push heads to slot 2; the provider's own job must read `/v1/anchor/heads` and sign them.
-- "Independent" is checked only as a different key and a different log location. The runtime cannot prove that two providers do not share an operator or infrastructure.
+- The code name `WITNESS2-NOT-INDEPENDENT` is kept (frozen), but what is checked is only a different key, a different log location and (addendum) not Cloudflare. The runtime cannot prove that two providers do not share an operator or infrastructure; they share an account holder.
 - Quorum applies to `/v1/anchor/verify`. Row integrity levels (`/v1/anchor/row`) and RIB-044 resume still use slot 1 only.
 - Receipts are hash-linked and sealed, not signed.
 
@@ -39,18 +39,24 @@ The account holder already has a public Codeberg account (`codeberg.org/AzielEli
 
 **What is built.**
 - `witness2/kit/` is a ready-to-push repo:
-  - a Forgejo Actions workflow (`codeberg-tiny` runner, every 15 min plus manual runs) that runs
-    `scripts/witness2.mjs`. The script reads `/v1/anchor/heads`, signs a chained AZRT-ANCHOR-1.0
-    statement with the repo secret `WITNESS2_ED25519_PKCS8`, checks it against the pinned
-    `keys/witness2.pub`, and appends `anchors/log.jsonl`;
+  - a Forgejo Actions workflow (`codeberg-tiny` runner), designed to sign every 15 minutes once set up
+    (plus manual runs), with its actions pinned to commit SHAs. It runs `scripts/witness2.mjs`. When run,
+    the script first re-verifies its own log (order, `prev_statement_hash` links, statement hashes, pinned
+    key, signatures) and refuses to append to a log that does not verify; then it reads `/v1/anchor/heads`,
+    signs a chained AZRT-ANCHOR-1.0 statement with the repo secret `WITNESS2_ED25519_PKCS8`, checks it
+    against the pinned `keys/witness2.pub`, and appends `anchors/log.jsonl`;
   - an append-only commit step;
   - no RFC 3161 token and no Rekor entry.
 - `witness2/setup-witness2.mjs` is a dry run by default. With `--apply` and `CODEBERG_TOKEN` it creates
   `codeberg.org/AzielEliab/aziel-witness2`, turns on Actions, generates the key in memory, stores the private
   half only as the Actions secret, pushes the kit with the public key, and prints the three public vars.
   The token goes only into headers and git's environment and is never printed.
-- `witness2Config` now also refuses a Cloudflare-hosted slot-2 log (`*.workers.dev`, `*.pages.dev`, `*.r2.dev`,
-  `*.r2.cloudflarestorage.com`) as `WITNESS2-NOT-INDEPENDENT`.
+- `witness2Config` now also refuses a slot-2 log on a known Cloudflare hostname (`*.workers.dev`, `*.pages.dev`,
+  `*.r2.dev`, `*.r2.cloudflarestorage.com`, `cloudflare.com`, `cloudflareworkers.com`) as
+  `WITNESS2-NOT-INDEPENDENT`. When the log is read, a response carrying `cf-ray` or `server: cloudflare`
+  (for example a custom domain proxied by Cloudflare) is refused the same way (slot status
+  `not_independent`). Only that list and those two headers are checked: a custom domain on Cloudflare
+  DNS-only, or a provider that strips both headers, is not detected.
 - `scripts/verify-witness2-kit.mjs` runs the kit's statements through the runtime's slot-2 reader. It checks
   `verified`, quorum level `dual`, and that require-quorum 2 passes.
 
@@ -67,4 +73,4 @@ deliberately not set before a signed log exists.
 **Honest limits.**
 - If the key is made with the setup script on the shared box, it is in memory only for the run. (Slot 1's
   key was generated inside Actions.)
-- "Independent" still means a different key, host and provider. One account holder runs both witnesses.
+- "Second witness" means a different key, host and provider. One account holder runs both witnesses, so it is not independent of that account holder.

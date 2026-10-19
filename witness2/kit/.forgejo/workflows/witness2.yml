@@ -15,11 +15,12 @@ jobs:
   anchor:
     runs-on: codeberg-tiny
     steps:
-      - uses: https://code.forgejo.org/actions/checkout@v4
-      - uses: https://code.forgejo.org/actions/setup-node@v4
+      # Pinned to commit SHAs (tags can move): checkout v4.4.0, setup-node v4.4.0 on code.forgejo.org.
+      - uses: https://code.forgejo.org/actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: https://code.forgejo.org/actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 22
-      - name: Sign and anchor runtime heads (key lives only in this repo's Actions secret)
+      - name: Re-verify own log, then sign and anchor runtime heads (key lives only in this repo's Actions secret)
         env:
           WITNESS2_ED25519_PKCS8: ${{ secrets.WITNESS2_ED25519_PKCS8 }}
           WITNESS2_REPO: ${{ github.repository }}

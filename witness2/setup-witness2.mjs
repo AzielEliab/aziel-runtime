@@ -42,7 +42,7 @@ const api = async (method, path, body) => {
 
 let r = await api("GET", `/repos/${owner}/${repo}`);
 if (r.status === 404) {
-  r = await api("POST", "/user/repos", { name: repo, private: false, auto_init: false, default_branch: "main", description: "Second independent witness for aziel-runtime (AZRT-WITNESS-QUORUM-1.0 slot 2)" });
+  r = await api("POST", "/user/repos", { name: repo, private: false, auto_init: false, default_branch: "main", description: "Second witness for aziel-runtime (different key, host and provider; same account holder). AZRT-WITNESS-QUORUM-1.0 slot 2, designed to sign every 15 minutes once set up" });
   if (r.status !== 201) throw new Error(`repo create refused: HTTP ${r.status}`);
 }
 r = await api("PATCH", `/repos/${owner}/${repo}`, { has_actions: true });
