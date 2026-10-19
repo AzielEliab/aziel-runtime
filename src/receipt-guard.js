@@ -239,7 +239,24 @@ export async function boundedNodeIds(ids) {
 /** RIB-018 follow-up: per-isolate cap on MCP/FragGate-door refusal seals (the REST doors cap per door). */
 export const MCP_SEAL_CAP_PER_MIN = 60;
 const mcpCap = { minute: -1, n: 0 };
-export function _resetMcpSealCap() { mcpCap.minute = -1; mcpCap.n = 0; }
+/**
+ * RIB-018 follow-up 2: per-isolate "class full until the end of this minute" memo, keyed by the writer's
+ * cap_class (rest / mcp / peer). Set only when the writer says a share (or the 600 total) is spent; while
+ * set, refusals of that class short-circuit to rate_limited without a round trip to the writer DO.
+ */
+const classFull = { minute: -1, set: new Set() };
+export function _resetRefusalClassFull() { classFull.minute = -1; classFull.set = new Set(); }
+function classIsFull(cls, minute) { return classFull.minute === minute && classFull.set.has(cls); }
+function markClassFull(out) {
+  if (!out || out.refuse !== "refusal-cap" || (out.cap_limit !== "class" && out.cap_limit !== "total")) return;
+  const minute = Number(out.cap_minute);
+  if (!Number.isFinite(minute)) return;
+  if (classFull.minute !== minute) { classFull.minute = minute; classFull.set = new Set(); }
+  if (out.cap_limit === "total") for (const c of ["rest", "mcp", "peer"]) classFull.set.add(c);
+  else if (out.cap_class) classFull.set.add(out.cap_class);
+}
+export function _mcpSealCapUsed() { return mcpCap.minute === Math.floor(Date.now() / 60000) ? mcpCap.n : 0; }
+export function _resetMcpSealCap() { mcpCap.minute = -1; mcpCap.n = 0; _resetRefusalClassFull(); }
 
 /**
  * RIB-018 follow-up: caller-typed slug/op never land on the permanent chain as text. A slug that is not in
@@ -298,8 +315,22 @@ export async function sealRefusal(store, { code, tool, slug, op, args, goal, pri
     mcpCap.n++;
   }
   if (!store) return { spec: REFUSAL_SPEC, sealed: false, reason: "no durable store in this isolate" };
+  // A real write failure gives the MCP isolate slot back; a cap answer does not (the slot stays spent,
+  // so the isolate cap fills and stops round trips to the writer).
+  const refund = () => { if (!trustedNames && mcpCap.minute === minuteBucket && mcpCap.n > 0) mcpCap.n--; };
+  const { refusalCapClass } = await import("./chainlock/writer-do.js");
+  const cls = refusalCapClass(input);
+  if (classIsFull(cls, Math.floor(Date.now() / 60000))) {
+    return { spec: REFUSAL_SPEC, kind: "refusal", code, sealed: false, status: "rate_limited", cap_class: cls, memo: true, reason: `${cls} refusal share is full for this minute (isolate memo); the refusal still stands` };
+  }
   try {
     const out = await appendInternal(store, input);
+    // RIB-018 follow-up: the writer's global cap answers refusal-cap; report it honestly as rate_limited.
+    if (out && out.refuse === "refusal-cap") {
+      markClassFull(out);
+      return { spec: REFUSAL_SPEC, kind: "refusal", code, sealed: false, status: "rate_limited", cap_class: out.cap_class || cls, reason: out.message || "global refusal seal cap reached; the refusal still stands" };
+    }
+    if (!out || !out.ok) refund();
     if (!out || !out.ok) return { spec: REFUSAL_SPEC, sealed: false, reason: (out && (out.refuse || out.code)) || "append-failed" };
     return {
       spec: REFUSAL_SPEC,
@@ -318,6 +349,7 @@ export async function sealRefusal(store, { code, tool, slug, op, args, goal, pri
       retry_hint: goal ? `Your next call with the same goal${goal.source === "caller" ? "_id" : " (same MCP session)"} is sealed as the action after this refusal.` : "Pass goal_id on your next call to link it to this refusal.",
     };
   } catch (err) {
+    refund();
     return { spec: REFUSAL_SPEC, sealed: false, reason: clipText(err && err.message, 120) };
   }
 }
