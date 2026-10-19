@@ -55,6 +55,10 @@ offline rule. Additive on the receipt view: `kind: "refusal"` and `code`.
 MESH-ONBOARD `install.sh` text refusal) on these REST doors: `/v1/fraggate*` (REST forms not already
 sealed inside), `/v1/mesh*` (mesh and onboarding/install), `/v1/tether*`, `/v1/memory*`
 (lattice-learn and other memory ops over REST), `/v1/qns*`, `/v1/interface`, `/v1/pull/*`, `/p/*`.
+Lattice and other op refusals that come back inside an accepted FragGate envelope (envelope `FG-OK`,
+`result.ok:false` with a stable code and `fail_closed:true` or `written:false`, e.g. memory
+`lattice-learn` `LATTICE-LEARN-BAD-CHAIN`) are sealed by the same door guard (`innerOpRefusal` in
+src/receipt-guard.js; stamp `refusal.door: "op"`), on MCP and on POST /v1/fraggate/call.
 A body that already carries `refusal_receipt` or `refused_receipt` (MCP door, POST
 /v1/fraggate/call, session exec) is left alone, so nothing is sealed twice. The stamp's `refusal`
 object gains additive `kind, surface, door, reason (<=160 chars, our own message), status, route

@@ -11,7 +11,10 @@ import { verify, loadChain } from "../src/chainlock/ops.js";
 import { latticePrimary, latticeOnlineSecondary, latticeOfflineSecondary, LATTICE_GENESIS } from "../src/dual-lattice.js";
 import { canonicalize, sha256Hex } from "../src/session-core.js";
 
+// Hermetic: no live witness log (a real anchors view would not match this in-memory chain).
+globalThis.fetch = async () => { throw new Error("verify-refusal-doors: offline"); };
 const handler = (await import("../src/index.js")).default.fetch;
+(await import("../src/anchor.js")).resetAnchorMemo();
 const doors = await import("../src/refusal-doors.js");
 const env = { SESSION: memorySessionNamespace({}), CHAINLOCK: memoryChainWriterNamespace({}) };
 const store = storeFor(env);
@@ -108,7 +111,7 @@ r = await peer({ surface: "azinterface", code: "IFACE-BAD", method: "POST", rout
 assert.equal((await r.json()).refusal_receipt.surface, "azinterface");
 assert.equal((await peer({ surface: "evil", code: "X-Y" })).status, 400);
 assert.equal((await (await peer({ surface: "azos", code: "token_required", status: 401 })).json()).code, "REFUSAL-PEER-AUTH-UNRECORDED");
-assert.equal((await verify(store, { c: "refusals" })).ok, true); n++;
+{ const vv = await verify(store, { c: "refusals" }); if (!vv.ok) console.log(JSON.stringify(vv.breaks)); assert.equal(vv.ok, true); } n++;
 
 // 10) fail closed: no store -> refusal unchanged, receipt honestly unavailable.
 doors._resetRefusalMemo();
@@ -132,5 +135,18 @@ assert.equal(last.sealed, false); assert.equal(last.status, "rate_limited"); n++
 // 12) route templates collapse ids (bounded keys).
 assert.equal(doors.routeTemplate("/v1/session/sess_" + "b".repeat(32) + "/exec"), "/v1/session/:id/exec");
 assert.equal(doors.routeTemplate("/v1/mesh/a/b/c/d/e"), "/v1/mesh/a/b"); n++;
+
+// 13) lattice door: an op refusal inside an accepted FragGate envelope is sealed too (same sealRefusal).
+doors._resetRefusalMemo();
+r = await get("/v1/fraggate/call", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ slug: "memory", op: "lattice-learn", payload: { chain: "nope" }, dry_run: true }) });
+b = await r.json();
+assert.equal(b.code, "FG-OK"); assert.equal(b.result.ok, false); assert.equal(b.result.code, "LATTICE-LEARN-BAD-CHAIN");
+assert.equal(b.refusal_receipt.sealed, true); assert.equal(b.refusal_receipt.code, "LATTICE-LEARN-BAD-CHAIN"); assert.equal(b.refusal_receipt.kind, "refusal");
+const lr = (await loadChain(store, "refusals")).at(-1);
+assert.equal(lr.refusal.door, "op"); assert.equal(lr.refusal.code, "LATTICE-LEARN-BAD-CHAIN");
+const { innerOpRefusal } = await import("../src/receipt-guard.js");
+assert.equal(innerOpRefusal({ result: { ok: false, code: "X-NOT-FOUND" } }), null); // no fail_closed / written:false
+assert.equal(innerOpRefusal({ result: { ok: true, code: "OK" } }), null);
+{ const vv = await verify(store, { c: "refusals" }); if (!vv.ok) console.log(JSON.stringify(vv.breaks)); assert.equal(vv.ok, true); } n++;
 
 console.log(`verify-refusal-doors: ok (${n} groups)`);
