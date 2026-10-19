@@ -310,6 +310,16 @@ export function attachToResult(out, key, value) {
   return out;
 }
 
+/** Inner op refusal under an accepted envelope: result.ok false + stable code + fail_closed or written:false. */
+export function innerOpRefusal(env) {
+  const r = env && env.result;
+  if (!r || typeof r !== "object" || Array.isArray(r) || r.ok !== false) return null;
+  if (!(r.fail_closed === true || r.written === false)) return null;
+  const code = typeof r.code === "string" ? r.code : null;
+  if (!code || !/^[A-Z0-9][A-Z0-9-]{1,63}$/.test(code) || /TOKEN/.test(code)) return null;
+  return { code, reason: String(r.message || r.reason || "").slice(0, 160) };
+}
+
 /**
  * Wrap one MCP tools/call. call() runs the existing door unchanged.
  */
@@ -334,11 +344,15 @@ export async function guardToolCall({ store, request, name, args, schemaHash, ca
     out = await runWithCallMeta(meta, () => call());
   }
   const env = envelopeOf(out);
-  const code = refusalCodeOf(env, out);
+  let code = refusalCodeOf(env, out);
+  // RIB-018 addendum: an op that refuses inside an accepted door envelope (e.g. memory lattice-learn
+  // LATTICE-LEARN-BAD-CHAIN: envelope FG-OK, result ok:false, fail_closed / written:false) is a refusal too.
+  const inner = !code ? innerOpRefusal(env) : null;
+  if (inner) code = inner.code;
   const slug = String(src.slug || src.name || src.product || "") || null;
   const op = src.op ? String(src.op) : null;
   if (code) {
-    const receipt = await sealRefusal(store, { code, tool: name, slug, op, args: src, goal, prior, context, schemaHash });
+    const receipt = await sealRefusal(store, { code, tool: name, slug, op, args: src, goal, prior, context, schemaHash, extra: inner ? { kind: "refusal", door: "op", reason: inner.reason } : null });
     attachToResult(out, "refusal_receipt", receipt);
   } else if (prior && prior.open) {
     const follow = await sealFollow(store, { prior, goal, tool: name, slug, op, outcome: env && (env.ok === false || Number(out && out.status) >= 400) ? "error" : "accepted", code: env && env.code, args: src, context, schemaHash });

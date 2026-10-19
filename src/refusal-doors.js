@@ -198,7 +198,7 @@ export async function listRefusalReceipts(store, url) {
   const { loadChain } = await import("./chainlock/ops.js");
   const rows = await loadChain(store, REFUSAL_CHAIN);
   const total = rows.length;
-  const view = (r, i) => ({ seq: i + 1, k: r.k, kind: (r.refusal && r.refusal.kind) || (r.k === "refusal" ? "refusal" : r.k), code: r.s, fact: r.fact, refusal: r.refusal || null, h: r.stamp_sha256, prev: r.prev || null, lattice: r.lattice ? { primary: r.lattice.primary, secondary: r.lattice.secondary } : null, t: r.t || null, verify: `/v1/anchor/row?c=${REFUSAL_CHAIN}&seq=${i + 1}` });
+  const view = (r, i) => ({ seq: i + 1, k: r.k, kind: (r.refusal && r.refusal.kind) || (r.k === "refusal" ? "refusal" : r.k), code: (r.refusal && r.refusal.code) || r.subject || r.s || null, fact: r.fact, refusal: r.refusal || null, h: r.stamp_sha256, prev: r.prev || null, lattice: r.lattice ? { primary: r.lattice.primary, secondary: r.lattice.secondary } : null, t: r.t || null, verify: `/v1/anchor/row?c=${REFUSAL_CHAIN}&seq=${i + 1}` });
   const seq = Number(url.searchParams.get("seq") || 0);
   if (seq) {
     if (!(seq >= 1 && seq <= total)) return { status: 404, body: { ok: false, code: "REFUSAL-RECEIPT-NOT-FOUND", chain: REFUSAL_CHAIN, total } };
