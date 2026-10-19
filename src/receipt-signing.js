@@ -85,6 +85,10 @@ async function load(env, epochs = RECEIPT_KEY_EPOCHS) {
   if (!pub) return { ok: false, reason: "RECEIPT_SIGNING_PUBLIC_KEY not provisioned; refusing to sign without a published key" };
   // AZRT-KEYS-1.0: never sign with a key listed in RECEIPT_KEY_EPOCHS (its receipts would fail RECEIPT-KEY-RETIRED).
   const pubId = await keyIdOf(String(pub).trim());
+  // An epoch entry needs a public key and a valid `until`; a malformed list fails closed (nothing is signed).
+  if ((epochs || []).some((e) => !epochEntryValid(e))) {
+    return { ok: false, code: "RECEIPT-KEY-EPOCH-BAD", reason: "RECEIPT_KEY_EPOCHS has an entry without public_key or a valid until; not signing until the list is fixed" };
+  }
   for (const e of epochs || []) {
     if (e && e.public_key && (await keyIdOf(e.public_key)) === pubId) {
       return { ok: false, code: "RECEIPT-KEY-IS-RETIRED", key_id: pubId, reason: "the held receipt key is listed in RECEIPT_KEY_EPOCHS (retired); not signing until a new key is provisioned" };
@@ -141,21 +145,34 @@ export async function signatureFor(hash, signer = active) {
  */
 export async function trustedReceiptKeys(env, { epochs = RECEIPT_KEY_EPOCHS, pinned = PINNED_RECEIPT_KEYS } = {}) {
   const out = [];
+  // A key named by a malformed epoch entry (no valid `until`) is rejected: it is trusted nowhere, so a pinned
+  // or published copy can't make it trusted without a time bound (AZBot low on #308).
+  const rejected = new Set();
   for (const e of epochs || []) {
-    if (!e || !e.public_key || !e.until) continue;
+    if (!e || !e.public_key) continue;
     const id = await keyIdOf(e.public_key);
+    if (!epochEntryValid(e)) { rejected.add(id); continue; }
     if (!out.some((x) => x.key_id === id)) out.push({ public_key: e.public_key, key_id: id, source: "retired", from: e.from || null, until: e.until });
   }
+  for (const id of rejected) { const i = out.findIndex((x) => x.key_id === id); if (i >= 0) out.splice(i, 1); }
   for (const k of pinned || []) {
     const id = await keyIdOf(k);
-    if (!out.some((x) => x.key_id === id)) out.push({ public_key: k, key_id: id, source: "pinned" });
+    if (!rejected.has(id) && !out.some((x) => x.key_id === id)) out.push({ public_key: k, key_id: id, source: "pinned" });
   }
   if (env && env.RECEIPT_SIGNING_PUBLIC_KEY) {
     const k = String(env.RECEIPT_SIGNING_PUBLIC_KEY).trim();
     const id = await keyIdOf(k);
-    if (!out.some((x) => x.key_id === id)) out.push({ public_key: k, key_id: id, source: "published" });
+    if (!rejected.has(id) && !out.some((x) => x.key_id === id)) out.push({ public_key: k, key_id: id, source: "published" });
   }
   return out;
+}
+
+/** An epoch entry is { public_key, until (ISO time), from? (ISO time) }; anything else is malformed. */
+export function epochEntryValid(e) {
+  if (!e || typeof e !== "object" || typeof e.public_key !== "string" || !e.public_key) return false;
+  if (typeof e.until !== "string" || !Number.isFinite(Date.parse(e.until))) return false;
+  if (e.from != null && (typeof e.from !== "string" || !Number.isFinite(Date.parse(e.from)))) return false;
+  return true;
 }
 
 /**

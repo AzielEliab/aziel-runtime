@@ -57,6 +57,10 @@ The account holder already has a public Codeberg account (`codeberg.org/AzielEli
   (for example a custom domain proxied by Cloudflare) is refused the same way (slot status
   `not_independent`). Only that list and those two headers are checked: a custom domain on Cloudflare
   DNS-only, or a provider that strips both headers, is not detected.
+- Open item, once slot 2 is configured: confirm against the live log that Worker subrequests to `codeberg.org`
+  arrive with neither `cf-ray` nor `server: cloudflare`. If either header shows up, the header check
+  would wrongly mark the second slot (different key, host and provider; same account holder) `not_independent`. Until that live check is done, this is an
+  assumption, not a verified fact.
 - `scripts/verify-witness2-kit.mjs` runs the kit's statements through the runtime's slot-2 reader. It checks
   `verified`, quorum level `dual`, and that require-quorum 2 passes.
 

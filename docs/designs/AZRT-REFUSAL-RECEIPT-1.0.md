@@ -144,7 +144,7 @@ templates rows per minute (roughly 5 x 10 = 50/min, ~72k rows/day), against toda
 
 The per-door caps above (30/min) and the MCP cap live in each isolate, so many isolates could each spend
 their own cap. The ChainLock writer Durable Object is the only writer for the `refusals` chain, so it keeps
-the one true global bound: at most **600 new refusal rows per minute**, split into per-class shares so one
+the one true global bound: at most **609 new refusal rows per minute** (600 for REST + FragGate + peers, plus the 9 reserved for the auth rollup), split into per-class shares so one
 class can't starve another (AZBot review of #302):
 
 | class | who | share / min |
@@ -175,19 +175,19 @@ The in-isolate door and MCP counters are given back only on a real write failure
 (`rate_limited`) keeps its isolate slot, so the isolate caps fill and stop sending round trips to the
 writer. A seal still in flight at the request deadline (`receipt_pending`) keeps its slot too.
 
-**Class full memo.** When the writer says a share is spent (`cap_limit: "class"`) or the 600 total is
-(`cap_limit: "total"`, which marks all three classes), the isolate remembers that class as full until the
+**Class full memo.** When the writer says a share is spent (`cap_limit: "class"`) or the 609 total is
+(`cap_limit: "total"`, which marks all four classes), the isolate remembers that class as full until the
 end of that minute (`cap_minute`). Refusals of a full class answer `rate_limited` (`memo: true`) at once,
 without calling the writer DO. A goal-variant cap answer (`cap_limit: "variant"`) does not mark the class.
 
 **Replays** (same idempotency key) are never capped and never write a row.
 
-Worst case under a sustained flood: 600 rows/min (~864,000 rows/day), at most 120/min from peers.
+Worst case under a sustained flood: 609 rows/min (~877,000 rows/day), of which 9 are the auth rollup and at most 120/min come from peers.
 Not capped here: `k: "follow"` rows (one per prior refusal + goal, bounded by the refusals they follow).
 Additive only: no row changed, no field removed; `cap_class`, `cap_limit` and `cap_minute` are new fields
 on the writer's refusal answer.
 Law: AZRT-REFUSAL-RECEIPT-1.0 (this doc), AZRT-GOAL-LINK-1.0, FragGate single door, append-only history.
-Test: `scripts/verify-refusal-doors.mjs` group 19 (shares, no starvation, exactly 600, replays, goal-variant
+Test: `scripts/verify-refusal-doors.mjs` group 19 (shares, no starvation, exactly 609, replays, goal-variant
 sub-cap including junk op + goal both varying, failed write spends nothing, REST and peer doors answer
 `rate_limited` while the refusal stands, class-full memo makes no writer calls, cap answers not refunded,
 real failures refunded).
@@ -200,7 +200,7 @@ They now spend their own **9/min** `rollup` share, and the writer total is **609
 so the shares still add up to the total. The worst case under a sustained flood becomes 609 rows/min
 (~877,000 rows/day). The class-full memo knows `rollup` too (`cap_limit: "total"` marks all four).
 Only rows with all three of `surface: "runtime"`, `kind: "auth_rollup"` and `tool: "auth-rollup"` use the
-share; peers stay `peer`, REST doors (`tool: "http"`, `kind: "refusal"`) stay `rest`. Where the text above
-says 600, read 609 once this lands. Test: `scripts/verify-refusal-doors.mjs` group 19 (shares sum to the
+share; peers stay `peer`, REST doors (`tool: "http"`, `kind: "refusal"`) stay `rest`. The text above now says 609
+in place. Test: `scripts/verify-refusal-doors.mjs` group 19 (shares sum to the
 total, exactly 609 rows, the rollup share can't be claimed by REST or peer rows) and
 `scripts/verify-auth-rollup.mjs` group 11 (a full REST share doesn't stall the flush; backlog order).

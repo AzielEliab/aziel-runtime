@@ -132,4 +132,26 @@ n++;
   assert.match((await keysManifest(base)).note, /will record heads\.receipt_key once the aziel-anchors patch lands/);
 }
 n++;
+// 6) AZBot low on #308: an epoch entry without `until` (or with a bad one) is rejected by both load() and the
+//    trusted-key builder: nothing is signed, and the key it names is trusted nowhere (not even pinned or published).
+{
+  const D = await pair();
+  const envD = { ...base, RECEIPT_SIGNING_KEY: D.priv, RECEIPT_SIGNING_PUBLIC_KEY: D.pub };
+  const X = await pair();
+  for (const bad of [{ public_key: X.pub }, { public_key: X.pub, until: "not a date" }, { public_key: X.pub, until: "2026-10-01T00:00:00Z", from: "nope" }, { until: "2026-10-01T00:00:00Z" }]) {
+    assert.equal(rs.epochEntryValid(bad), false);
+    const l = await rs.heldSignerFromEnv(envD, { epochs: [bad] });
+    assert.equal(l.ok, false, JSON.stringify(bad)); assert.equal(l.code, "RECEIPT-KEY-EPOCH-BAD");
+  }
+  assert.equal(rs.epochEntryValid({ public_key: X.pub, until: "2026-10-01T00:00:00Z" }), true);
+  const noUntil = [{ public_key: D.pub, from: "2026-01-01T00:00:00Z" }];
+  const t = await rs.trustedReceiptKeys(envD, { epochs: noUntil, pinned: [D.pub] });
+  assert.ok(!t.some((k) => k.public_key === D.pub), "a key named by an entry without until is trusted nowhere");
+  const sD = await rs.heldSignerFromEnv({ RECEIPT_SIGNING_KEY: D.priv, RECEIPT_SIGNING_PUBLIC_KEY: D.pub }, { epochs: [] });
+  const hash = "d".repeat(64);
+  const rec = { seq: 1, ts: "2026-09-01T00:00:00Z", hash, sig_commit: rs.sigCommitFor(sD), signature: await rs.signatureFor(hash, sD) };
+  assert.equal((await rs.verifyReceiptSignatures([rec], { trusted: t })).errors[0].code, "RECEIPT-KEY-UNTRUSTED");
+  assert.equal((await rs.heldSignerFromEnv({ ...envD })).ok, true, "default (empty) epochs: signs");
+}
+n++;
 console.log(`ok receipt key epochs: ${n} checks`);
