@@ -226,24 +226,67 @@ async function appendInternal(store, input) {
   return append(store, input, { internal: true });
 }
 
-/** RIB-018: seal one refusal. Returns the receipt view put on the refuse envelope. */
-export async function sealRefusal(store, { code, tool, slug, op, args, goal, prior, context, schemaHash, minuteBucket = Math.floor(Date.now() / 60000), extra = null }) {
+/** RIB-018 follow-up: per-isolate cap on MCP/FragGate-door refusal seals (the REST doors cap per door). */
+export const MCP_SEAL_CAP_PER_MIN = 60;
+const mcpCap = { minute: -1, n: 0 };
+export function _resetMcpSealCap() { mcpCap.minute = -1; mcpCap.n = 0; }
+
+/**
+ * RIB-018 follow-up: caller-typed slug/op never land on the permanent chain as text. A slug that is not in
+ * the FragGate registry, or an op that is not one of its ops, is stored as null plus a short sha256.
+ */
+export async function boundedSlugOp(slug, op) {
+  const { LIVE_OPS, STUB_OPS } = await import("./fraggate/registry.js");
+  const s = slug ? String(slug) : null;
+  const o = op ? String(op) : null;
+  const known = s && (Object.prototype.hasOwnProperty.call(LIVE_OPS, s) || Object.prototype.hasOwnProperty.call(STUB_OPS, s));
+  const ops = known ? [...(LIVE_OPS[s] || []), ...(STUB_OPS[s] || [])] : [];
+  const opKnown = Boolean(known && o && ops.includes(o));
+  return {
+    slug: known ? s : null,
+    op: opKnown ? o : null,
+    ...(s && !known ? { slug_sha256: (await sha256Hex(s)).slice(0, 16) } : {}),
+    ...(o && !opKnown ? { op_sha256: (await sha256Hex(o)).slice(0, 16) } : {}),
+  };
+}
+
+/**
+ * RIB-018: seal one refusal. Returns the receipt view put on the refuse envelope.
+ * `trustedNames` (REST doors and peers, src/refusal-doors.js): slug/op are server-chosen door/method names,
+ * capped per door there. Otherwise (MCP / POST /v1/fraggate/call): slug/op are bounded to the registry,
+ * the dedupe key leaves the args digest out, and MCP_SEAL_CAP_PER_MIN applies per isolate.
+ */
+export async function sealRefusal(store, { code, tool, slug, op, args, goal, prior, context, schemaHash, minuteBucket = Math.floor(Date.now() / 60000), extra = null, trustedNames = false }) {
   const digest = await argsDigest(args);
+  const b = trustedNames ? { slug: slug || null, op: op || null } : await boundedSlugOp(slug, op);
   // Addendum (RIB-018 gaps, src/refusal-doors.js): additive kind/surface/door/reason/status/route.
-  const refusal = { spec: REFUSAL_SPEC, code, tool: tool || null, slug: slug || null, op: op || null, args_digest: digest, ...(extra && typeof extra === "object" ? extra : {}) };
+  const refusal = { spec: REFUSAL_SPEC, code, tool: tool || null, slug: b.slug, op: b.op, args_digest: digest, ...(b.slug_sha256 ? { slug_sha256: b.slug_sha256 } : {}), ...(b.op_sha256 ? { op_sha256: b.op_sha256 } : {}), ...(extra && typeof extra === "object" ? extra : {}) };
+  // Bounded key: REST/peer doors keep their finite key; the MCP door keys on code + tool + registry slug/op
+  // (or "other") + goal + the prior refusal it follows + minute. The args digest is left out. The goal stays
+  // (RIB-018 goal links need one row per goal), so MCP_SEAL_CAP_PER_MIN is the hard per-isolate bound.
+  const keyParts = trustedNames
+    ? { code, tool, slug, op, digest, goal: goal ? goal.key : null, prior: prior ? prior.h : null, m: minuteBucket }
+    : { code, tool, slug: b.slug || "other", op: b.op || "other", goal: goal ? goal.key : null, prior: prior ? prior.h : null, m: minuteBucket, v: 2 };
   const input = {
     c: REFUSAL_CHAIN,
     k: "refusal",
     s: clipText(code, 80),
-    f: clipText(`${tool || "?"}${slug ? " " + slug : ""}${op ? " " + op : ""} refused ${code}. Nothing ran.`, 160),
+    f: clipText(`${tool || "?"}${b.slug ? " " + b.slug : (slug ? " ?" : "")}${b.op ? " " + b.op : (op ? " ?" : "")} refused ${code}. Nothing ran.`, 160),
     refusal,
     ...(goal ? { goal_key: goal.key } : {}),
     ...(prior ? { follows: { spec: GOAL_SPEC, h: prior.h, seq: prior.seq, k: prior.k } } : {}),
     ...(context ? { context_hash: context.context_hash, node_ids: context.node_ids } : {}),
     ...(schemaHash ? { schema_hash: schemaHash } : {}),
-    // Same refusal, same goal, same args within a minute replays the same receipt (no flood).
-    idempotency_key: "refusal:" + (await sha256Hex(canonicalize({ code, tool, slug, op, digest, goal: goal ? goal.key : null, prior: prior ? prior.h : null, m: minuteBucket }))).slice(0, 40),
+    // Same refusal shape within a minute replays the same receipt (no flood).
+    idempotency_key: "refusal:" + (await sha256Hex(canonicalize(keyParts))).slice(0, 40),
   };
+  if (!trustedNames && store) {
+    if (mcpCap.minute !== minuteBucket) { mcpCap.minute = minuteBucket; mcpCap.n = 0; }
+    if (mcpCap.n >= MCP_SEAL_CAP_PER_MIN) {
+      return { spec: REFUSAL_SPEC, kind: "refusal", code, sealed: false, status: "rate_limited", reason: `door refusal seal cap ${MCP_SEAL_CAP_PER_MIN}/min reached in this isolate; the refusal still stands` };
+    }
+    mcpCap.n++;
+  }
   if (!store) return { spec: REFUSAL_SPEC, sealed: false, reason: "no durable store in this isolate" };
   try {
     const out = await appendInternal(store, input);
@@ -311,6 +354,18 @@ export function attachToResult(out, key, value) {
 }
 
 /** Inner op refusal under an accepted envelope: result.ok false + stable code + fail_closed or written:false. */
+/** Drop an op reason that echoes a caller argument value (3+ chars); keep a short hash instead. */
+export async function boundedReason(reason, args) {
+  const r = String(reason || "").slice(0, 160);
+  if (!r) return { reason: "" };
+  const vals = [];
+  const walk = (v, d) => { if (d > 3 || v == null) return; if (typeof v === "string") { if (v.length >= 3) vals.push(v.toLowerCase()); } else if (typeof v === "object") for (const x of Object.values(v)) walk(x, d + 1); };
+  walk(args, 0);
+  const low = r.toLowerCase();
+  if (vals.some((v) => low.includes(v))) return { reason: null, reason_sha256: (await sha256Hex(r)).slice(0, 16) };
+  return { reason: r };
+}
+
 export function innerOpRefusal(env) {
   let r = env && env.result;
   // MCP fraggate_call nests the FragGate envelope one level deeper (result.result is the op's answer).
@@ -354,7 +409,7 @@ export async function guardToolCall({ store, request, name, args, schemaHash, ca
   const slug = String(src.slug || src.name || src.product || "") || null;
   const op = src.op ? String(src.op) : null;
   if (code) {
-    const receipt = await sealRefusal(store, { code, tool: name, slug, op, args: src, goal, prior, context, schemaHash, extra: inner ? { kind: "refusal", door: "op", reason: inner.reason } : null });
+    const receipt = await sealRefusal(store, { code, tool: name, slug, op, args: src, goal, prior, context, schemaHash, extra: inner ? { kind: "refusal", door: "op", ...(await boundedReason(inner.reason, src)) } : null });
     attachToResult(out, "refusal_receipt", receipt);
   } else if (prior && prior.open) {
     const follow = await sealFollow(store, { prior, goal, tool: name, slug, op, outcome: env && (env.ok === false || Number(out && out.status) >= 400) ? "error" : "accepted", code: env && env.code, args: src, context, schemaHash });

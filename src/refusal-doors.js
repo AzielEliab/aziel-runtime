@@ -14,10 +14,10 @@
  * Not recorded (by design, the user decides): auth-gate refusals (401, token_* codes,
  * TOKEN-QUERY-REFUSED, CL-NOT-ISSUER) and rate-limit 429s. They stay plain refusals.
  *
- * Flood guard: sealRefusal's minute idempotency key (code + door + method + status; the caller-shaped
- * route is recorded but left out of the key, so the first route in that minute is the one kept), an
- * in-isolate memo so a replay inside the minute costs no Durable Object call, and an in-isolate cap
- * of REFUSAL_HTTP_CAP_PER_MIN new seals per minute (over the cap: receipt status rate_limited).
+ * Flood guard: sealRefusal's minute idempotency key (code + door + method + status; no caller identity, no
+ * route), shared across isolates, so rows/minute <= codes x doors x methods; an in-isolate memo; and a cap
+ * of REFUSAL_HTTP_CAP_PER_MIN new seals per minute PER DOOR and PER PEER SURFACE (no crowd-out). Over the
+ * cap: status rate_limited. Only fixed route templates (or wildcard + route_sha256) are stored.
  * Fail closed: the refusal response is never changed into success; a failed or slow write is
  * reported as sealed:false with status unavailable or receipt_pending, never an invented receipt.
  * Additive only: the refusal body keeps every field; `refusal_receipt` is added (JSON bodies) and
@@ -26,7 +26,8 @@
  */
 
 export const REFUSAL_DOORS_SPEC = "AZRT-REFUSAL-RECEIPT-1.0+doors";
-export const REFUSAL_HTTP_CAP_PER_MIN = 60;
+/** Per door (and per peer surface) per isolate per minute. Doors do not share one counter (no crowd-out). */
+export const REFUSAL_HTTP_CAP_PER_MIN = 30;
 export const REFUSAL_SEAL_BUDGET_MS = 2500;
 export const PEER_HOST = "peer.aziel.internal";
 export const PEER_PATH = "/v1/refusals/peer";
@@ -60,16 +61,62 @@ export function doorOf(pathname) {
   return null; // includes /mcp: the MCP door seals inside (RIB-018)
 }
 
-/** Collapse ids so one door cannot mint unbounded distinct keys. At most 4 segments. */
-export function routeTemplate(pathname) {
-  const segs = String(pathname || "/").split("/").filter(Boolean).slice(0, 4);
-  const out = segs.map((s, i) => {
-    if (i < 2 && /^[a-z][a-z0-9._-]{0,31}$/.test(s)) return s;
-    if (/^(sess_[a-f0-9]+|[a-f0-9]{16,}|[0-9a-f-]{32,36}|\d+)$/i.test(s)) return ":id";
-    if (i >= 2 && !/^[a-z][a-z0-9._-]{0,31}$/.test(s)) return ":x";
-    return s;
-  });
-  return "/" + out.join("/");
+/**
+ * Fixed route templates. Only these literal strings are ever stored as `route`; any other path is stored
+ * as its door wildcard plus `route_sha256` (16 hex of sha256(path)), so a caller cannot write text into
+ * the permanent chain (RIB-018 follow-up, AZBot review 2026-10-19).
+ */
+export const KNOWN_ROUTES = Object.freeze([
+  "/v1/fraggate", "/v1/fraggate/call", "/v1/fraggate/list", "/v1/fraggate/describe", "/v1/fraggate/software", "/v1/fraggate/verify",
+  "/v1/mesh", "/v1/mesh/install", "/v1/mesh/install.sh", "/v1/mesh/bootstrap", "/v1/mesh/join", "/v1/mesh/leave", "/v1/mesh/enable",
+  "/v1/mesh/disable", "/v1/mesh/heartbeat", "/v1/mesh/status", "/v1/mesh/nodes", "/v1/mesh/broadcast",
+  "/v1/tether", "/v1/tether/push", "/v1/tether/tip", "/v1/tether/aznews", "/v1/tether/4dmap",
+  "/v1/memory", "/v1/memory/observe", "/v1/memory/resolve", "/v1/memory/calibrate", "/v1/memory/recall", "/v1/memory/rebuild-index",
+  "/v1/qns", "/v1/interface", "/v1/pull",
+  // peer trackers (AZ-OS / azinterface)
+  "/", "/v1/runtime/sync", "/v1/refusals", "/v1/health", "/v1/newsmap", "/v1/newsmap/globe", "/openapi.json",
+]);
+const ROUTE_PATTERNS = [
+  [/^\/v1\/pull\/[^/]+$/, "/v1/pull/{slug}"],
+  [/^\/v1\/pull\/[^/]+\/skill$/, "/v1/pull/{slug}/skill"],
+  [/^\/p\/[^/]+\/[^/]+$/, "/p/{product}/{op}"],
+  [/^\/v1\/session\/sess_[a-f0-9]{32}(\/[a-z]+)?$/, "/v1/session/{id}/*"],
+];
+
+/** Returns { route, route_sha256? }. route is always a fixed string from code, never caller text. */
+export async function routeTemplate(pathname, { wildcard = null } = {}) {
+  const p = String(pathname || "/").replace(/\/+$/, "") || "/";
+  if (KNOWN_ROUTES.includes(p)) return { route: p };
+  const { sha256Hex } = await import("./session-core.js");
+  const h = (await sha256Hex(p)).slice(0, 16);
+  for (const [re, t] of ROUTE_PATTERNS) if (re.test(p)) return { route: t, route_sha256: h };
+  const door = doorOf(p);
+  const base = wildcard || (door ? SEALED_DOOR_PREFIXES.find((x) => x.replace(/\/$/, "").replace(/^\/(v1\/)?/, "") === door).replace(/\/$/, "") + "/*" : "/*");
+  return { route: base, route_sha256: h };
+}
+
+/** Uncoded 4xx get this fixed code (RIB-018 follow-up). */
+export function uncodedCode(status) {
+  return `HTTP-${Number(status) || 0}-UNCODED`;
+}
+
+/** Drop a reason that echoes caller input (path segments or query values of 3+ chars); keep a hash instead. */
+export async function safeReason(reason, url) {
+  const r = String(reason || "").slice(0, 160);
+  if (!r) return { reason: "" };
+  const bits = [];
+  try {
+    const u = typeof url === "string" ? new URL(url, "https://x.invalid") : url;
+    for (const seg of u.pathname.split("/")) { try { const d = decodeURIComponent(seg); if (d.length >= 3) bits.push(d.toLowerCase()); } catch { if (seg.length >= 3) bits.push(seg.toLowerCase()); } }
+    for (const [, v] of u.searchParams) { if (String(v).length >= 3) bits.push(String(v).toLowerCase()); }
+  } catch { /* no url: keep the server-authored reason */ }
+  const low = r.toLowerCase();
+  const fixed = new Set(["v1", "mesh", "fraggate", "tether", "memory", "pull", "qns", "interface", "install", "install.sh", "call", "skill", "runtime", "sync", "refusals", "newsmap", "health"]);
+  if (bits.some((b) => !fixed.has(b) && low.includes(b))) {
+    const { sha256Hex } = await import("./session-core.js");
+    return { reason: null, reason_sha256: (await sha256Hex(r)).slice(0, 16), reason_note: "reason echoed caller input; hash kept" };
+  }
+  return { reason: r };
 }
 
 export function refusalFromBody(status, contentType, text) {
@@ -79,10 +126,18 @@ export function refusalFromBody(status, contentType, text) {
     try { body = JSON.parse(text); } catch { return null; }
     if (!body || typeof body !== "object" || Array.isArray(body)) return null;
     if (body.refusal_receipt != null || body.refused_receipt != null) return { already: true, body };
-    const code = typeof body.code === "string" ? body.code : (typeof body.refuse === "string" ? body.refuse : null);
-    if (!code || !CODE_RE.test(code)) return null;
+    let code = typeof body.code === "string" ? body.code : (typeof body.refuse === "string" ? body.refuse : null);
     const reason = typeof body.message === "string" ? body.message : (typeof body.error === "string" ? body.error : (typeof body.reason === "string" ? body.reason : ""));
-    return { code, reason: reason.slice(0, 160), body };
+    let uncoded = false;
+    if (!code) {
+      // RIB-018 follow-up: an uncoded 4xx refusal (ok:false or an error string) gets a fixed code.
+      const st = Number(status);
+      if (!(st >= 400 && st < 500) || !(body.ok === false || typeof body.error === "string")) return null;
+      code = uncodedCode(st);
+      uncoded = true;
+    }
+    if (!CODE_RE.test(code)) return null;
+    return { code, reason: reason.slice(0, 160), body, uncoded };
   }
   // MESH-ONBOARD install.sh refusal: `echo 'CODE' >&2; exit 1`
   const m = /^#!\/bin\/sh\s*\necho '([A-Za-z][A-Za-z0-9_-]{1,63})' >&2/.exec(String(text || ""));
@@ -91,37 +146,41 @@ export function refusalFromBody(status, contentType, text) {
 }
 
 // In-isolate memo + cap (flood guard). Keyed by minute.
-const memo = { minute: -1, sealed: 0, views: new Map() };
+// Counters are per door (runtime doors) and per peer surface, so one door cannot spend another's budget.
+const memo = { minute: -1, sealed: new Map(), views: new Map() };
 function memoFor(minute) {
-  if (memo.minute !== minute) { memo.minute = minute; memo.sealed = 0; memo.views = new Map(); }
+  if (memo.minute !== minute) { memo.minute = minute; memo.sealed = new Map(); memo.views = new Map(); }
   return memo;
 }
-export function _resetRefusalMemo() { memo.minute = -1; memo.sealed = 0; memo.views = new Map(); }
+export function _resetRefusalMemo() { memo.minute = -1; memo.sealed = new Map(); memo.views = new Map(); }
+export function capBucketOf(surface, door) { return surface === "runtime" ? "door:" + door : "peer:" + surface; }
 
 /**
  * Seal one door refusal through receipt-guard sealRefusal. Returns the receipt view.
  * `surface` is "runtime" for this Worker's own doors, or a PEER_SURFACES name.
  */
-export async function sealDoorRefusal(store, { surface = "runtime", door, code, reason, method, route, status }, { ctx, now = Date.now(), budgetMs = REFUSAL_SEAL_BUDGET_MS } = {}) {
+export async function sealDoorRefusal(store, { surface = "runtime", door, code, reason, method, route, status, routeHash = null, reasonExtra = null }, { ctx, now = Date.now(), budgetMs = REFUSAL_SEAL_BUDGET_MS } = {}) {
   const { sealRefusal, REFUSAL_SPEC, REFUSAL_CHAIN } = await import("./receipt-guard.js");
   const minute = Math.floor(now / 60000);
   const m = memoFor(minute);
   // Dedupe key leaves the route out (it is caller-shaped); codes and doors are a finite set.
   const key = [surface, door, code, method, status].join("|");
-  const extra = { kind: "refusal", surface, door, reason: String(reason || "").slice(0, 160), status: Number(status) || null, route };
+  const extra = { kind: "refusal", surface, door, reason: reason == null ? null : String(reason).slice(0, 160), ...(reasonExtra || {}), status: Number(status) || null, route, ...(routeHash ? { route_sha256: routeHash } : {}) };
+  const bucket = capBucketOf(surface, door);
   if (m.views.has(key)) return { ...m.views.get(key), replayed: true, memo: true };
   if (!store) return { spec: REFUSAL_SPEC, kind: "refusal", sealed: false, status: "unavailable", reason: "no durable store in this isolate" };
-  if (m.sealed >= REFUSAL_HTTP_CAP_PER_MIN) {
-    return { spec: REFUSAL_SPEC, kind: "refusal", sealed: false, status: "rate_limited", reason: `refusal seal cap ${REFUSAL_HTTP_CAP_PER_MIN}/min reached in this isolate; the refusal still stands` };
+  const used = m.sealed.get(bucket) || 0;
+  if (used >= REFUSAL_HTTP_CAP_PER_MIN) {
+    return { spec: REFUSAL_SPEC, kind: "refusal", sealed: false, status: "rate_limited", cap_bucket: bucket, reason: `refusal seal cap ${REFUSAL_HTTP_CAP_PER_MIN}/min for ${bucket} reached in this isolate; the refusal still stands` };
   }
-  m.sealed++;
+  m.sealed.set(bucket, used + 1);
   const work = sealRefusal(store, {
     code, tool: surface === "runtime" ? "http" : surface, slug: door, op: method,
-    args: { door, status: Number(status) || null }, minuteBucket: minute, extra,
+    args: { door, status: Number(status) || null }, minuteBucket: minute, extra, trustedNames: true,
   });
   let timer;
-  const timeout = new Promise((r) => { timer = setTimeout(() => r(null), budgetMs); });
-  const view = await Promise.race([work, timeout]);
+  const timeout = new Promise((r) => { timer = setTimeout(() => r(null), Math.max(0, budgetMs)); });
+  const view = budgetMs > 0 ? await Promise.race([work, timeout]) : null;
   clearTimeout(timer);
   if (!view) {
     if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(work.catch(() => null));
@@ -139,8 +198,12 @@ function headerValue(view) {
   return `${view.status || "unavailable"}; sealed=false`;
 }
 
-/** Wrap a finished runtime response: seal non-auth refusals on the listed doors (additive). */
-export async function withDoorRefusalReceipt(request, response, { store, ctx } = {}) {
+/**
+ * Wrap a finished runtime response: seal non-auth refusals on the listed doors (additive).
+ * budgetMs is what is left of the request deadline (index.js); 0 means seal in the background (pending).
+ * /p/* 5xx are upstream errors, not refusals: logged and marked X-Azrt-Upstream-Error, never sealed.
+ */
+export async function withDoorRefusalReceipt(request, response, { store, ctx, budgetMs = REFUSAL_SEAL_BUDGET_MS } = {}) {
   try {
     if (!response || Number(response.status) < 400 || Number(response.status) === 429) return response;
     const method = String((request && request.method) || "GET").toUpperCase();
@@ -148,6 +211,12 @@ export async function withDoorRefusalReceipt(request, response, { store, ctx } =
     const url = new URL(request.url);
     const door = doorOf(url.pathname);
     if (!door) return response;
+    if (door === "p" && Number(response.status) >= 500) {
+      console.log(JSON.stringify({ upstream_error: true, door: "p", status: response.status, route: "/p/{product}/{op}" }));
+      const h = new Headers(response.headers);
+      h.set("X-Azrt-Upstream-Error", String(response.status));
+      return new Response(response.body, { status: response.status, statusText: response.statusText, headers: h });
+    }
     const ct = response.headers.get("content-type") || "";
     const len = Number(response.headers.get("content-length") || 0);
     if (len > 65536) return response;
@@ -156,7 +225,9 @@ export async function withDoorRefusalReceipt(request, response, { store, ctx } =
     const ref = refusalFromBody(response.status, ct, text);
     if (!ref || ref.already) return response;
     if (isAuthRefusal(response.status, ref.code)) return response;
-    const view = await sealDoorRefusal(store, { surface: "runtime", door, code: ref.code, reason: ref.reason, method, route: routeTemplate(url.pathname), status: response.status }, { ctx });
+    const rt = await routeTemplate(url.pathname);
+    const sr = await safeReason(ref.reason, url);
+    const view = await sealDoorRefusal(store, { surface: "runtime", door, code: ref.code, reason: sr.reason, reasonExtra: sr.reason_sha256 ? { reason_sha256: sr.reason_sha256 } : null, method, route: rt.route, routeHash: rt.route_sha256 || null, status: response.status }, { ctx, budgetMs: Math.min(REFUSAL_SEAL_BUDGET_MS, Math.max(0, budgetMs)) });
     const headers = new Headers(response.headers);
     const hv = headerValue(view);
     if (hv) headers.set("X-Azrt-Refusal-Receipt", hv);
@@ -185,9 +256,12 @@ export async function handlePeerRefusal(request, { store, ctx } = {}) {
   const code = String((b && b.code) || "");
   if (!PEER_SURFACES.includes(surface) || !CODE_RE.test(code)) return json({ ok: false, code: "REFUSAL-PEER-BAD-INPUT", surfaces: PEER_SURFACES }, 400);
   if (isAuthRefusal(b.status, code)) return json({ ok: false, code: "REFUSAL-PEER-AUTH-UNRECORDED", message: "Auth refusals stay unrecorded." }, 400);
-  const method = String(b.method || "GET").toUpperCase().slice(0, 8);
-  const route = routeTemplate(String(b.route || "/"));
-  const view = await sealDoorRefusal(store, { surface, door: surface, code, reason: String(b.reason || ""), method, route, status: Number(b.status) || 400 }, { ctx });
+  const method = /^[A-Z]{3,7}$/.test(String(b.method || "")) ? String(b.method) : "OTHER";
+  const rt = await routeTemplate(String(b.route || "/"), { wildcard: "/*" });
+  // The peer already drops caller-echoing reasons; check again against the route it reports.
+  const sr = b.reason == null ? { reason: null } : await safeReason(String(b.reason), "https://peer.invalid" + String(b.route || "/"));
+  const reasonExtra = b.reason_sha256 && /^[a-f0-9]{16}$/.test(String(b.reason_sha256)) ? { reason_sha256: String(b.reason_sha256) } : (sr.reason_sha256 ? { reason_sha256: sr.reason_sha256 } : null);
+  const view = await sealDoorRefusal(store, { surface, door: surface, code, reason: sr.reason, reasonExtra, method, route: rt.route, routeHash: rt.route_sha256 || null, status: Number(b.status) || 400 }, { ctx });
   return json({ ok: Boolean(view.sealed), refusal_receipt: view }, 200);
 }
 
@@ -209,4 +283,56 @@ export async function listRefusalReceipts(store, url) {
   for (let i = total - 1; i >= 0 && out.length < limit; i--) out.push(view(rows[i], i));
   const tip = total ? { seq: total, h: rows[total - 1].stamp_sha256, lattice: rows[total - 1].lattice ? { primary: rows[total - 1].lattice.primary, secondary: rows[total - 1].lattice.secondary } : null } : null;
   return { status: 200, body: { ok: true, spec: REFUSAL_DOORS_SPEC, chain: REFUSAL_CHAIN, total, tip, receipts: out, verify_chain: "chainlock_verify {\"c\":\"refusals\"}", not_recorded: "auth-gate refusals (401, token_*, TOKEN-QUERY-REFUSED, CL-NOT-ISSUER) and 429 rate limits" } };
+}
+
+/** OpenAPI (additive): GET /v1/receipts/refusals, the refusal_receipt field and the X-Azrt-Refusal-Receipt header. */
+export const REFUSAL_RECEIPT_HEADER_DOC = Object.freeze({
+  description:
+    "Added to a sealed-door refusal (status >= 400): `sealed; chain=refusals; seq=<n>; h=<64 hex>` or `<receipt_pending|unavailable|rate_limited>; sealed=false`. Never present on auth refusals (401, token_*, TOKEN-QUERY-REFUSED, CL-NOT-ISSUER) or 429.",
+  schema: { type: "string" },
+});
+export function refusalReceiptSchema() {
+  return {
+    type: "object",
+    description:
+      "AZRT-REFUSAL-RECEIPT-1.0 receipt added to a refusal body (additive; the refusal's own fields are unchanged). Hash-linked and sealed on the internal `refusals` ChainLock chain with both lattice hashes; not signed. sealed:false never carries a hash.",
+    properties: {
+      spec: { type: "string", const: "AZRT-REFUSAL-RECEIPT-1.0" },
+      kind: { type: "string", const: "refusal" },
+      code: { type: "string" },
+      sealed: { type: "boolean" },
+      status: { type: "string", enum: ["sealed", "receipt_pending", "unavailable", "rate_limited"] },
+      chain: { type: "string", const: "refusals" },
+      seq: { type: "integer" },
+      h: { type: "string", pattern: "^[a-f0-9]{64}$" },
+      lattice: { type: "object", properties: { primary: { type: "string" }, secondary: { type: "string" } } },
+      replayed: { type: "boolean" },
+      surface: { type: "string", enum: ["runtime", "azos", "azinterface"] },
+      door: { type: "string" },
+      verify: { type: "string" },
+      reason: { type: ["string", "null"] },
+    },
+    required: ["spec", "sealed"],
+  };
+}
+export function refusalOpenApiPaths() {
+  return {
+    "/v1/receipts/refusals": {
+      get: {
+        operationId: "refusal_receipts",
+        summary:
+          "Refusal receipts on the internal `refusals` chain, newest first (limit <= 50), or one by ?seq=N. Rows carry code, kind, surface, door, status, a fixed route template (other paths: wildcard + route_sha256), and both lattice hashes. Verify the chain with chainlock_verify {\"c\":\"refusals\"}; a row with /v1/anchor/row?c=refusals&seq=N. Not signed. Auth refusals and 429s are not recorded.",
+        tags: ["runtime"],
+        parameters: [
+          { name: "seq", in: "query", required: false, schema: { type: "integer", minimum: 1 } },
+          { name: "limit", in: "query", required: false, schema: { type: "integer", minimum: 1, maximum: 50 } },
+        ],
+        responses: {
+          "200": { description: "{ok, chain, total, tip, receipts[]} or {ok, receipt}" },
+          "404": { description: "REFUSAL-RECEIPT-NOT-FOUND" },
+          "503": { description: "REFUSALS-STORE-UNBOUND" },
+        },
+      },
+    },
+  };
 }

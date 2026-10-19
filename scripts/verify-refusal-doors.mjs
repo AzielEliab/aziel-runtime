@@ -122,20 +122,83 @@ assert.equal(r.status, 400); assert.equal(b.code, "ONBOARD-BAD-SLUG");
 assert.equal(b.refusal_receipt.sealed, false); assert.equal(b.refusal_receipt.status, "unavailable");
 assert.match(r.headers.get("x-azrt-refusal-receipt"), /^unavailable; sealed=false/); n++;
 
-// 11) slow write -> receipt_pending (never a fake receipt); cap -> rate_limited.
+// 11) slow write -> receipt_pending (never a fake receipt); budget 0 (deadline used up) -> pending at once.
 doors._resetRefusalMemo();
 const slow = { appendAtomic: () => new Promise(() => {}), get: async () => null };
 let pend = await doors.sealDoorRefusal(slow, { door: "mesh", code: "MESH-X", method: "GET", route: "/v1/mesh", status: 400 }, { budgetMs: 30 });
 assert.equal(pend.sealed, false); assert.equal(pend.status, "receipt_pending"); assert.equal(pend.h, undefined);
 doors._resetRefusalMemo();
+let bg = 0;
+const t0 = Date.now();
+pend = await doors.sealDoorRefusal(slow, { door: "mesh", code: "MESH-Y", method: "GET", route: "/v1/mesh", status: 400 }, { budgetMs: 0, ctx: { waitUntil: () => { bg++; } } });
+assert.equal(pend.status, "receipt_pending"); assert.equal(bg, 1); assert.ok(Date.now() - t0 < 25, "no wait past the deadline");
+r = await handler(new Request("https://aziel-runtime.example/v1/mesh/install"), { ...env, REQUEST_DEADLINE_MS: "1" }, ctx);
+assert.equal(r.status === 400 || r.status === 408, true); n++;
+
+// 12) caps are per door and per peer surface: spending the mesh budget does not crowd out tether or azos.
+doors._resetRefusalMemo();
 const ms = new MemoryStore();
 let last;
 for (let i = 0; i <= doors.REFUSAL_HTTP_CAP_PER_MIN; i++) last = await doors.sealDoorRefusal(ms, { door: "mesh", code: "MESH-C" + i, method: "GET", route: "/v1/mesh", status: 400 }, { now: 5 * 60000 });
-assert.equal(last.sealed, false); assert.equal(last.status, "rate_limited"); n++;
+assert.equal(last.sealed, false); assert.equal(last.status, "rate_limited"); assert.equal(last.cap_bucket, "door:mesh");
+const other = await doors.sealDoorRefusal(ms, { door: "tether", code: "TETHER-X", method: "GET", route: "/v1/tether", status: 400 }, { now: 5 * 60000 });
+assert.equal(other.sealed, true);
+const peerOk = await doors.sealDoorRefusal(ms, { surface: "azos", door: "azos", code: "AZOS-X", method: "GET", route: "/*", status: 400 }, { now: 5 * 60000 });
+assert.equal(peerOk.sealed, true); n++;
 
-// 12) route templates collapse ids (bounded keys).
-assert.equal(doors.routeTemplate("/v1/session/sess_" + "b".repeat(32) + "/exec"), "/v1/session/:id/exec");
-assert.equal(doors.routeTemplate("/v1/mesh/a/b/c/d/e"), "/v1/mesh/a/b"); n++;
+// 14) routes: only fixed templates are stored; caller paths become wildcard + route_sha256 (no caller text).
+assert.deepEqual(await doors.routeTemplate("/v1/mesh/install"), { route: "/v1/mesh/install" });
+const wild = await doors.routeTemplate("/v1/mesh/azbot-probe");
+assert.equal(wild.route, "/v1/mesh/*"); assert.match(wild.route_sha256, /^[a-f0-9]{16}$/);
+assert.equal((await doors.routeTemplate("/v1/pull/some-text")).route, "/v1/pull/{slug}");
+assert.equal((await doors.routeTemplate("/p/x/y")).route, "/p/{product}/{op}");
+doors._resetRefusalMemo();
+r = await get("/v1/mesh/hello-caller-text");
+b = await r.json();
+const wrow = (await loadChain(store, "refusals")).find((x) => x.stamp_sha256 === b.refusal_receipt.h);
+assert.equal(wrow.refusal.route, "/v1/mesh/*"); assert.match(wrow.refusal.route_sha256, /^[a-f0-9]{16}$/);
+assert.equal(JSON.stringify(wrow).includes("hello-caller-text"), false, "caller text never stored"); n++;
+
+// 15) uncoded 4xx refusals get a fixed code and are sealed; caller-echoing reasons become a hash.
+doors._resetRefusalMemo();
+r = await get("/v1/pull/zz-not-a-product");
+b = await r.json();
+assert.equal(r.status, 404); assert.equal(b.error, "unknown product"); assert.equal(b.code, undefined, "body unchanged: no code added");
+assert.equal(b.refusal_receipt.sealed, true); assert.equal(b.refusal_receipt.code, "HTTP-404-UNCODED");
+const urow = (await loadChain(store, "refusals")).find((x) => x.stamp_sha256 === b.refusal_receipt.h);
+assert.equal(urow.refusal.route, "/v1/pull/{slug}"); assert.equal(JSON.stringify(urow).includes("zz-not-a-product"), false);
+const sr = await doors.safeReason("unknown product: zz-x1", new URL("https://x/v1/pull/zz-x1"));
+assert.equal(sr.reason, null); assert.match(sr.reason_sha256, /^[a-f0-9]{16}$/);
+assert.equal((await doors.safeReason("That slug is not in the catalog", new URL("https://x/v1/mesh/install?slug=abcde"))).reason, "That slug is not in the catalog");
+assert.equal(doors.refusalFromBody(500, "application/json", JSON.stringify({ error: "boom" })), null, "uncoded 5xx is not a refusal"); n++;
+
+// 16) /p/* upstream 5xx: an upstream error, not a refusal (no row, X-Azrt-Upstream-Error).
+const up = await doors.withDoorRefusalReceipt(new Request("https://x.example/p/foo/bar"), new Response(JSON.stringify({ ok: false, code: "UPSTREAM-DOWN" }), { status: 502, headers: { "content-type": "application/json" } }), { store: ms });
+assert.equal(up.status, 502); assert.equal(up.headers.get("x-azrt-upstream-error"), "502"); assert.equal(up.headers.get("x-azrt-refusal-receipt"), null);
+assert.equal((await up.json()).refusal_receipt, undefined);
+const up4 = await doors.withDoorRefusalReceipt(new Request("https://x.example/p/foo/bar"), new Response(JSON.stringify({ ok: false, code: "P-BAD-OP" }), { status: 400, headers: { "content-type": "application/json" } }), { store: ms });
+assert.match(up4.headers.get("x-azrt-refusal-receipt"), /^sealed/); n++;
+
+// 17) openapi documents the endpoint, the field and the header (additive).
+const doc = await (await get("/openapi.json")).json();
+assert.ok(doc.paths["/v1/receipts/refusals"].get); assert.ok(doc.components.schemas.RefusalReceipt);
+assert.ok(doc.components.headers["X-Azrt-Refusal-Receipt"]); assert.ok(doc.paths["/v1/session/open"], "existing paths kept"); n++;
+
+// 18) MCP door: bounded slug/op (unknown -> null + hash), args digest out of the key, per-isolate cap.
+const rg = await import("../src/receipt-guard.js");
+const bso = await rg.boundedSlugOp("caller-made-up", "x-op");
+assert.equal(bso.slug, null); assert.equal(bso.op, null); assert.match(bso.slug_sha256, /^[a-f0-9]{16}$/);
+assert.deepEqual(await rg.boundedSlugOp("foldlock", "health"), { slug: "foldlock", op: "health" });
+const ms2 = new MemoryStore();
+rg._resetMcpSealCap();
+const a1 = await rg.sealRefusal(ms2, { code: "FG-X", tool: "fraggate_call", slug: "foldlock", op: "health", args: { a: 1 }, minuteBucket: 7 });
+const a2 = await rg.sealRefusal(ms2, { code: "FG-X", tool: "fraggate_call", slug: "foldlock", op: "health", args: { a: 2 }, minuteBucket: 7 });
+assert.equal(a2.seq, a1.seq, "different args, same shape, same minute: one row"); assert.equal(a2.replayed, true);
+rg._resetMcpSealCap();
+let capped;
+for (let i = 0; i <= rg.MCP_SEAL_CAP_PER_MIN; i++) capped = await rg.sealRefusal(ms2, { code: "FG-C" + i, tool: "fraggate_call", slug: "foldlock", op: "health", args: {}, minuteBucket: 8 });
+assert.equal(capped.sealed, false); assert.equal(capped.status, "rate_limited");
+assert.equal(JSON.stringify(await rg.sealRefusal(new MemoryStore(), { code: "FG-HALLUC-TOOL", tool: "fraggate_call", slug: "my-secret-text", op: "zz", args: {}, minuteBucket: 9 })).includes("my-secret-text"), false); n++;
 
 // 13) lattice door: an op refusal inside an accepted FragGate envelope is sealed too (same sealRefusal).
 doors._resetRefusalMemo();
