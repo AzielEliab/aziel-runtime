@@ -4267,7 +4267,7 @@ async function handleRequest(request, env, ctx) {
       // signing"); the live answer is signing_scope, the same object /v1/receipt-key serves.
       const { signingScope } = await import("./receipt-signing.js");
       const signing_scope = await signingScope(env);
-      return asHead(request, json({ ok: true, ...doc, signing_scope, contract_flag_note: "contract.flags.receipts_signed and contract.states.signing are a static contract floor, not this deploy's status; see signing_scope (same source as /v1/receipt-key)", git_sha: (env && env.GIT_SHA) || null, writes: false }, 200, extra(url.pathname)));
+      return asHead(request, json({ ok: true, ...doc, signing_scope, contract_flag_note: "contract.flags.receipts_signed and contract.states.signing are fixed because they are pinned in the shared contract hash (contract_sha256); changing them needs a pin bump and both peers (AZInterface, AZ-OS) re-vendoring. They are not this deploy's status; see signing_scope (same source as /v1/receipt-key)", git_sha: (env && env.GIT_SHA) || null, writes: false }, 200, extra(url.pathname)));
     }
 
     if (url.pathname === "/cite.json" && (request.method === "GET" || request.method === "HEAD")) {

@@ -35,12 +35,20 @@ for (const [name, env, want] of cases) {
   assert.equal(ls.signing_scope.chainlock_rows.signed, false, name + ": chainlock rows are never signed");
   assert.equal(ls.contract_sha256, PIN, name + ": pinned contract changed");
   assert.equal(ls.contract.flags.receipts_signed, false, name + ": contract floor");
-  if (!want) assert.equal(rk.signing_scope.session_receipts.key_id, null, name + ": no key id when not signing");
+  const sr = rk.signing_scope.session_receipts;
+  assert.equal(sr.independently_verified, false, name + ": never independently verified");
+  if (!want) { assert.equal(sr.key_id, null, name + ": no key id when not signing"); assert.equal(sr.key_source, null, name + ": no key_source"); }
+  else { assert.equal(sr.key_source, "published (self, unpinned)", name + ": key_source"); assert.equal(sr.key_trusted, false); assert.equal(sr.note, "signature proves possession of the self-published key only; not pinned, not independently verified", name + ": note"); }
+  assert.match(rk.signing_scope.chainlock_rows.covers, /FragGate ask\/refuse ledger/, name + ": fraggate ledger named");
+  assert.doesNotMatch(JSON.stringify(rk.signing_scope.other_keys.checkpoints), /azrt-keys/, name + ": checkpoint key not claimed in azrt-keys.json");
+  assert.match(rk.signing_scope.other_keys.tether, /\/v1\/tether/, name + ": tether key location");
+  assert.match(ls.contract_flag_note, /pinned in the shared contract hash.*pin bump.*re-vendoring/, name + ": flag note");
+  n += 7;
   for (const t of [JSON.stringify(rk), JSON.stringify(ls.signing_scope)]) { assert.ok(!/RECEIPT_SIGNING/.test(t) || !want, name + ": secret name in public body"); if (env.RECEIPT_SIGNING_KEY) assert.ok(!t.includes(env.RECEIPT_SIGNING_KEY), name + ": private key leaked"); }
   n += 11;
 }
 // Fail closed: an env whose getter throws reports not signed.
 const evil = new Proxy({}, { get() { throw new Error("boom"); } });
 const s = await signingScope(evil);
-assert.equal(s.session_receipts.signed, false, "throwing env fails closed"); n++;
+assert.equal(s.session_receipts.signed, false, "throwing env fails closed"); assert.equal(s.session_receipts.key_id, null); assert.equal(s.session_receipts.key_source, null); n += 3;
 console.log("verify-signing-scope ok (" + n + " checks)");
