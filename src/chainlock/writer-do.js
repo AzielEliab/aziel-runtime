@@ -62,12 +62,12 @@ export function refusalCapClass(input) {
 /**
  * The row's shape with goal_key / follows left out: rows sharing it differ only by goal (or prior).
  * Built from the same bounded names the dedupe key uses (slug || "other", op || "other") plus
- * code / door / route template / status. Caller-shaped hashes (slug_sha256, op_sha256, route_sha256)
+ * code / tool / door / route template / status (tool is checked against the listed tools before here). Caller-shaped hashes (slug_sha256, op_sha256, route_sha256)
  * are left out, so varying a junk op or path together with goal_id can't mint a fresh shape.
  */
 async function refusalVariantKey(input) {
   const r = (input && input.refusal) || {};
-  const shape = [r.code, r.slug || "other", r.op || "other", r.door, r.route, r.status].map((x) => (x == null ? "" : String(x))).join("|");
+  const shape = [r.code, r.tool, r.slug || "other", r.op || "other", r.door, r.route, r.status].map((x) => (x == null ? "" : String(x))).join("|");
   const bytes = new TextEncoder().encode(shape);
   const d = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
   return Array.from(d.slice(0, 8), (b) => b.toString(16).padStart(2, "0")).join("");

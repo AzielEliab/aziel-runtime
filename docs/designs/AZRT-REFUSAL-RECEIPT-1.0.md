@@ -157,7 +157,7 @@ So ~10 isolates spending FragGate-envelope goal-id variants can fill at most the
 REST and peer refusals still seal.
 
 **Goal-variant sub-cap.** Rows that differ only by `goal_key` (or by the prior refusal they follow) share
-one shape, built from the same bounded names the dedupe key uses: code + (slug || "other") +
+one shape, built from the same bounded names the dedupe key uses: code + tool (MCP-checked against the listed tools; "fraggate_call", "http", or the peer surface) + (slug || "other") +
 (op || "other") + door + route template + status. Caller-shaped hashes (`slug_sha256`, `op_sha256`,
 `route_sha256`) are left out of the shape, so varying a junk op or path together with the goal_id can't
 mint a fresh shape (AZBot recheck of #302).

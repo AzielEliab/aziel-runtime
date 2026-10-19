@@ -396,6 +396,20 @@ assert.equal(innerOpRefusal({ result: { ok: true, code: "OK" } }), null);
   assert.equal(jok, REFUSAL_CAP.variant, "junk op + goal varied: stops at 30"); assert.equal(jcap, 100 - REFUSAL_CAP.variant);
   assert.equal((await loadChain(jst, "refusals")).length, REFUSAL_CAP.variant);
   rgc._resetMcpSealCap();
+  // (d3) AZBot collide repro: two MCP tools sharing one code have separate variant buckets (tool is in the shape).
+  const tst = storeFor({ CHAINLOCK: memoryChainWriterNamespace({}) });
+  for (let i = 0; i < REFUSAL_CAP.variant; i++) {
+    rgc._resetMcpSealCap();
+    const tr = await rgc.sealRefusal(tst, { code: "SCHEMA-DRIFT", tool: "memory_get", args: {}, goal: { key: "goal:" + String(i).padStart(16, "0"), source: "caller" } });
+    assert.equal(tr.sealed, true, "memory_get variant " + i + " seals");
+  }
+  rgc._resetMcpSealCap();
+  const tover = await rgc.sealRefusal(tst, { code: "SCHEMA-DRIFT", tool: "memory_get", args: {}, goal: { key: "goal:ffffffffffffffff", source: "caller" } });
+  assert.equal(tover.status, "rate_limited", "memory_get variant 31 is capped");
+  rgc._resetMcpSealCap();
+  const tother = await rgc.sealRefusal(tst, { code: "SCHEMA-DRIFT", tool: "mesh_join", args: {} });
+  assert.equal(tother.sealed, true, "same code on another tool is not in memory_get's bucket");
+  rgc._resetMcpSealCap();
 
   // (e) failed writes don't spend a slot: the first peer write fails at the storage put, then 120 still fit.
   class Flaky extends Map { set(k, v) { if (this.failNext && String(k).startsWith("e:")) { this.failNext = false; throw new Error("disk full (test)"); } return super.set(k, v); } }
