@@ -67,7 +67,8 @@ export function buildLockstepContract(products) {
       witness: "single",
       signing: "hash-linked-sealed-not-signed",
     },
-    sentences: { ...HONESTY_SENTENCES, not_live: fact.not_live_sentence },
+    // Fixed sentences only. fact.not_live_sentence names this machine's own interfaces, so it is not part of a cross-leg contract.
+    sentences: { ...HONESTY_SENTENCES },
     doors: {
       door: FG.FRAGGATE_DOOR,
       kernel_version: FG.FRAGGATE_KERNEL_VERSION,
