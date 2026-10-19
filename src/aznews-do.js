@@ -9,6 +9,8 @@ import { makeCheckpoints, relocateStep, routedRepo, segPut, segName, checkpoints
 import { tetherKey } from "./azos-tether.js";
 
 export const AZNEWS_DO_NAME = "aznews-v1";
+/** OFFLINE-RECORDS-1.0: largest public raw-row page (GET /v1/aznews/rows, /v1/4dmap/rows). */
+export const STORE_ROWS_PAGE_MAX = 500;
 
 export class AzNewsStore {
   constructor(ctx, env) {
@@ -105,6 +107,17 @@ export class AzNewsStore {
           const to = Math.min(Number(p.to) || from, from + 1999);
           return { ok: true, rows: await this.rawRepo().rowRange(from, to) };
         }
+        if (op === "rows") {
+          // OFFLINE-RECORDS-1.0 (stores addendum): public, read-only page of raw ledger rows for the offline
+          // export. Bounded; mints nothing; relocated segments are read through the head (routed repo).
+          const p = body.payload || {};
+          const total = await repo.count();
+          const from = Math.max(1, Math.floor(Number(p.from)) || 1);
+          const limit = Math.max(1, Math.min(STORE_ROWS_PAGE_MAX, Math.floor(Number(p.limit)) || 200));
+          const to = Math.min(total, from + limit - 1);
+          const rows = from <= total ? await repo.rowRange(from, to) : [];
+          return { ok: true, spec: "OFFLINE-RECORDS-1.0", store: this.baseName(), total, from, to: from <= total ? to : from - 1, count: rows.length, rows };
+        }
         if (op === "ledger") return this.ledger();
         if (op === "checkpoints") return { ok: true, checkpoints: await checkpointsAfter(repo, Number((body.payload || {}).after) || 0, { max: 50 }) };
         if (op === "tick") return tick(repo, { force: body.force || {} });
@@ -164,7 +177,7 @@ function mapStubOf(ns) {
 
 /** Call the 4DMap store. Only map_tick, map_read and tether_push {chain:"4dmap"} are sent to it. Never throws. */
 export async function mapCall(env, op, payload = {}, extra = {}) {
-  if (!["map_tick", "map_read", "map_link", "map_plot", "tether_push", "ledger", "checkpoints"].includes(op)) return { ok: false, code: "4DMAP-STORE-OP", message: "Unknown 4DMap store op." };
+  if (!["map_tick", "map_read", "map_link", "map_plot", "tether_push", "ledger", "checkpoints", "rows"].includes(op)) return { ok: false, code: "4DMAP-STORE-OP", message: "Unknown 4DMap store op." };
   if (op === "tether_push") payload = { chain: "4dmap" };
   const stub = mapStubOf(env && env.AZNEWS);
   if (!stub) return { ok: false, code: "4DMAP-STORE-UNBOUND", message: "The store Durable Object is not bound in this isolate." };
