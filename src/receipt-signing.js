@@ -281,7 +281,7 @@ export async function signingScope(env) {
     chainlock_rows: { signed: false, covers: "chainlock rows (refusals, acts, mesh, library, ...) and the FragGate ask/refuse ledger", how: "hash-linked and dual-lattice sealed, not signed" },
     other_keys: {
       note: "these are signed with their own keys, never the receipt key",
-      anchors_and_build_witness: "witness + auditor public keys at /.well-known/azrt-keys.json (witness, witness2)",
+      anchors_and_build_witness: "witness public key at /.well-known/azrt-keys.json (witness; auditor key under witness.auditor); witness2: not configured",
       tether: "tether public key at /v1/tether (public_key) and /v1/lockstep contract.chains.tether_pubkey",
       checkpoints: "each checkpoint carries its own signer_set (public keys + threshold) hashed into the checkpoint; no single published checkpoint key",
     },
