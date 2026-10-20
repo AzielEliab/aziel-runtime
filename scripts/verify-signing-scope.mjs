@@ -43,7 +43,11 @@ for (const [name, env, want] of cases) {
   assert.doesNotMatch(JSON.stringify(rk.signing_scope.other_keys.checkpoints), /azrt-keys/, name + ": checkpoint key not claimed in azrt-keys.json");
   assert.match(rk.signing_scope.other_keys.tether, /\/v1\/tether/, name + ": tether key location");
   assert.match(ls.contract_flag_note, /pinned in the shared contract hash.*pin bump.*re-vendoring/, name + ": flag note");
-  n += 7;
+  const abw = rk.signing_scope.other_keys.anchors_and_build_witness;
+  assert.match(abw, /witness2: not configured/, name + ": witness2 stated as not configured");
+  assert.match(abw, /auditor key under witness\.auditor/, name + ": auditor location");
+  assert.doesNotMatch(abw, /\(witness, witness2\)/, name + ": no implied slot-2 key");
+  n += 10;
   for (const t of [JSON.stringify(rk), JSON.stringify(ls.signing_scope)]) { assert.ok(!/RECEIPT_SIGNING/.test(t) || !want, name + ": secret name in public body"); if (env.RECEIPT_SIGNING_KEY) assert.ok(!t.includes(env.RECEIPT_SIGNING_KEY), name + ": private key leaked"); }
   n += 11;
 }

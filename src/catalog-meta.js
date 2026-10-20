@@ -137,7 +137,7 @@ export const VERSIONS = {
   temporallock: "0.2.0",
   forgereceipts: "0.3.0",
   decisiongate: "0.1.0",
-  zsolver: "0.2.0",
+  zsolver: "0.3.0",
   azos: "0.3.0",
   glossafilter: "0.1.0",
   miragegrid: "0.3.0",
