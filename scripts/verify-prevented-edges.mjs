@@ -129,4 +129,20 @@ ok(!mm.ok && mm.errors[0].code === "PREVENTED-RECEIPT-MISMATCH", "code mismatch 
 const refv = await verify(env, { c: "refusals" });
 ok(refv.ok, "refusals chain verifies unchanged");
 
+// R2: word-boundary + NFKC + zero-width match for prevented-shaped stamps.
+{
+  const { isPreventedShaped } = await import("../src/chainlock/ops.js");
+  for (const k of ["memory_prevented", "Memory_Prevented_Retire", "prevented", "memory-prevented", "memory_pre\u200Bvented", "memory_\uFF50revented", "memory_preven\u00ADted", "x.PREVENTED"]) ok(isPreventedShaped({ k }), "caught: " + JSON.stringify(k));
+  for (const k of ["unprevented", "memory_unprevented", "preventedness", "memory_observation", "prevent", ""]) ok(!isPreventedShaped({ k }), "not caught: " + JSON.stringify(k));
+  ok(isPreventedShaped({ k: "x", memory: { kind: "memory_pre\u200Dvented" } }), "memory.kind normalized");
+  ok(!isPreventedShaped({ k: "x", memory: { kind: "unprevented_note" } }), "memory.kind unprevented ok");
+  // AZBot #319: Mn combining marks are stripped after NFKD
+  for (const k of ["p\u0301revented", "memory_p\u0301revented", "memory_pre\u0300\u0323vented", "memory_pr\u00E9vented", "x.P\u0301REVENTED", "memory_p\u200B\u0301revented"]) ok(isPreventedShaped({ k }), "combining mark caught: " + JSON.stringify(k));
+  ok(isPreventedShaped({ k: "x", memory: { kind: "p\u0301revented" } }), "memory.kind combining mark caught");
+  ok(!isPreventedShaped({ k: "memory_unp\u0301revented" }), "unprevented with a mark still not caught");
+  const am = await append(env, { c: "learn", k: "memory_p\u0301revented", subject: "s", fact: "spoofed prevented edge" });
+  ok(!am.ok, "p\u0301revented stamp refused on append");
+  const a = await append(env, { c: "learn", k: "memory_unprevented_note", subject: "s", fact: "an unprevented note is a normal stamp" });
+  ok(a.ok, "unprevented kind appends normally");
+}
 console.log(`verify-prevented-edges: ${n} checks ok (RIB-053 / AKM-PREVENTED-EDGE-1.0; hash-linked and sealed, not signed; authorizes_action false)`);
