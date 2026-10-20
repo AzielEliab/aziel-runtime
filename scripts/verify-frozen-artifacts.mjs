@@ -14,7 +14,8 @@ let n = 0;
 const ok = (c, m) => { assert.ok(c, m); n++; };
 const handler = (await import("../src/index.js")).default.fetch;
 const sha = (t) => createHash("sha256").update(t).digest("hex");
-const env = { SESSION: memorySessionNamespace({}) };
+const doEnv = {};
+const env = { SESSION: memorySessionNamespace(doEnv) };
 const req = async (m, p, body) => {
   const r = await handler(new Request("https://rt.example" + p, { method: m, headers: { "content-type": "application/json" }, ...(body ? { body: JSON.stringify(body) } : {}) }), env);
   return { status: r.status, body: await r.json() };
@@ -47,6 +48,15 @@ for (const bad of [[], [{ path: "a" }], [{ id: "a", path: "b", sha256: sha("x") 
   ok(dc.artifacts[0].status === "changed" && dc.artifacts[0].declared === false && dc.artifacts[1].status === "unchanged", "per-artifact status");
   ok(c.body.receipt.event === "close" && c.body.receipt.verdict == null, "verdict refused (not sealed on close)");
   ok(c.body.session.closed === true, "session closed");
+  // RIB-018: the refusal is also sealed on the internal refusals chain (no caller text).
+  ok(c.body.refusal_receipt && c.body.refusal_receipt.sealed === true && c.body.refusal_receipt.chain === "refusals" && /^[a-f0-9]{64}$/.test(c.body.refusal_receipt.h), "SILENT-EDIT sealed on refusals chain");
+  {
+    const { loadChain } = await import("../src/chainlock/ops.js");
+    const { storeFor } = await import("../src/chainlock/store.js");
+    const rows = await loadChain(storeFor(doEnv), "refusals", "");
+    const row = rows.find((r) => r.stamp_sha256 === c.body.refusal_receipt.h);
+    ok(row && row.refusal.code === "FROZEN-ARTIFACT-SILENT-EDIT" && row.refusal.door === "session-close" && !JSON.stringify(row).includes("silently edited"), "refusals row: code + door, no delivered content");
+  }
   const all = await receipts(id);
   ok(all.verified.ok === false && all.verified.errors.some((e) => e.error === "FROZEN-ARTIFACT-SILENT-EDIT"), "verify fails closed on undeclared change");
   ok(all.verified.frozen_artifacts.status === "failed", "frozen status failed");
@@ -91,6 +101,7 @@ for (const bad of [[], [{ path: "a" }], [{ id: "a", path: "b", sha256: sha("x") 
   const c = await req("POST", `/v1/session/${id}/close`, { verdict: { pass: true } });
   ok(c.status === 409 && c.body.code === "FROZEN-ARTIFACT-MISSING", "missing refuses verdict");
   ok(c.body.delivery_check.delivery_check.counts.missing === 2, "both missing");
+  ok(c.body.refusal_receipt && c.body.refusal_receipt.code === "FROZEN-ARTIFACT-MISSING" && c.body.refusal_receipt.sealed === true, "MISSING sealed on refusals chain");
   ok(c.body.receipt.verdict == null && c.body.verified.ok === true && c.body.verified.frozen_artifacts.status === "refused", "refusal sealed, chain consistent");
   // Dropping the delivery_check receipt from a closed chain fails closed.
   const all = (await receipts(id)).receipts;

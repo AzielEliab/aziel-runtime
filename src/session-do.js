@@ -414,7 +414,15 @@ export class RuntimeSession {
     // RIB-052: a refused delivery check seals the refusal and closes the session, but the verdict is refused.
     const refused = out.delivery_check && out.delivery_check.delivery_check.refused;
     if (refused) {
-      return json({ ok: false, code: refused.code, error: "frozen-artifact delivery check refused the verdict; the refusal is sealed.", session: publicSession(out.session), receipt: out.receipt, delivery_check: out.delivery_check, verified }, 409);
+      // RIB-018: the refusal is also sealed on the internal `refusals` chain (fail-soft; never turns into success).
+      let refusal_receipt;
+      try {
+        const { sealDoorRefusal } = await import("./refusal-doors.js");
+        refusal_receipt = await sealDoorRefusal(chainlockStoreFor(this.env), { surface: "runtime", door: "session-close", code: refused.code, reason: null, method: "POST", route: "/v1/session/{id}/close", status: 409 }, { budgetMs: 2000 });
+      } catch {
+        refusal_receipt = { sealed: false, status: "unavailable" };
+      }
+      return json({ ok: false, code: refused.code, error: "frozen-artifact delivery check refused the verdict; the refusal is sealed.", session: publicSession(out.session), receipt: out.receipt, delivery_check: out.delivery_check, refusal_receipt, verified }, 409);
     }
     return json({ ok: true, session: publicSession(out.session), receipt: out.receipt, ...(out.delivery_check ? { delivery_check: out.delivery_check } : {}), verified });
   }
