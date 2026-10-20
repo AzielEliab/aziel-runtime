@@ -38,8 +38,9 @@ export async function recallGoalHash(src) {
   return null;
 }
 
-export function edgeMemoryId(receiptHash) {
-  return "mem_prev_" + String(receiptHash).slice(0, 32);
+/** memory_id bound to receipt hash + goal_hash + code (AZBot B317-1: no squatting by receipt hash alone). */
+export async function edgeMemoryId(receiptHash, goalHash, code) {
+  return "mem_prev_" + (await sha256Hex(canonicalize({ spec: PREVENTED_SPEC, refusal_receipt_hash: String(receiptHash), goal_hash: String(goalHash), refusal_code: String(code) }))).slice(0, 32);
 }
 
 export function findRefusal(refusalRows, receiptHash) {
@@ -54,17 +55,18 @@ export async function preventedEdgeFrom(refusalRows, raw) {
   if (!row) return { ok: false, code: "AKM-PREVENTED-NO-RECEIPT", message: "No sealed refusal row with that hash on the refusals chain. Nothing written." };
   if (!row.goal_key) return { ok: false, code: "AKM-PREVENTED-NO-GOAL", message: "That refusal row names no goal; a prevented edge needs a goal to be recalled by. Nothing written." };
   const goal_hash = await goalHashOfKey(row.goal_key);
+  const refusal_code = String(row.refusal.code || "").slice(0, 80);
   if (raw.goal_hash != null && String(raw.goal_hash).toLowerCase() !== goal_hash) {
     return { ok: false, code: "AKM-PREVENTED-GOAL-MISMATCH", message: "goal_hash does not match the refusal row's goal. Nothing written." };
   }
   return {
     ok: true,
     edge: {
-      memory_id: edgeMemoryId(hash),
+      memory_id: await edgeMemoryId(hash, goal_hash, refusal_code),
       kind: PREVENTED_KIND,
       edge_spec: PREVENTED_SPEC,
       goal_hash,
-      refusal_code: String(row.refusal.code || "").slice(0, 80),
+      refusal_code,
       refusal_receipt_hash: hash,
       refusal_chain: "refusals",
       authorizes_action: false,
@@ -73,12 +75,13 @@ export async function preventedEdgeFrom(refusalRows, raw) {
 }
 
 /** Walk learn rows: every prevented edge with valid_from / valid_to (from the first retire stamp). */
-export function preventedEdges(learnRows) {
+export async function preventedEdges(learnRows) {
   const edges = new Map();
   for (const r of learnRows || []) {
     if (!r || r._broken) continue;
     const m = r.memory || {};
-    if (r.k === PREVENTED_KIND && m.edge_spec === PREVENTED_SPEC && !edges.has(m.memory_id)) {
+    // A row whose memory_id is not bound to its own (hash, goal, code) is never an edge (and fails verify).
+    if (r.k === PREVENTED_KIND && m.edge_spec === PREVENTED_SPEC && !edges.has(m.memory_id) && m.memory_id === (await edgeMemoryId(m.refusal_receipt_hash, m.goal_hash, m.refusal_code))) {
       edges.set(m.memory_id, {
         memory_id: m.memory_id,
         prevented: true,
@@ -104,8 +107,8 @@ export function preventedEdges(learnRows) {
   return [...edges.values()];
 }
 
-export function preventedFor(learnRows, goalHash, { history = false } = {}) {
-  return preventedEdges(learnRows).filter((e) => e.goal_hash === goalHash && (history || e.active));
+export async function preventedFor(learnRows, goalHash, { history = false } = {}) {
+  return (await preventedEdges(learnRows)).filter((e) => e.goal_hash === goalHash && (history || e.active));
 }
 
 /** Fail closed: each edge must cite a refusal row on the refusals chain with the same code and goal. */
@@ -124,7 +127,7 @@ export async function verifyPreventedEdges(learnRows, refusalRows) {
       continue;
     }
     const want = row.goal_key ? await goalHashOfKey(row.goal_key) : null;
-    if (m.goal_hash !== want || m.refusal_code !== String(row.refusal.code || "").slice(0, 80) || m.memory_id !== edgeMemoryId(m.refusal_receipt_hash) || m.authorizes_action !== false) {
+    if (m.goal_hash !== want || m.refusal_code !== String(row.refusal.code || "").slice(0, 80) || m.memory_id !== (await edgeMemoryId(m.refusal_receipt_hash, m.goal_hash, m.refusal_code)) || m.authorizes_action !== false) {
       errors.push({ seq: i, code: "PREVENTED-RECEIPT-MISMATCH" });
     }
   }

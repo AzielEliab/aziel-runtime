@@ -245,6 +245,8 @@ function hasCap(caps, name) {
 
 async function stampLearn(env, input) {
   const memory = boundMemoryMeta(input.memory);
+  // RIB-053: only the prevented-edge kind gets the reserved writer option (forwardLearn is internal-only).
+  const opts = input.k === "memory_prevented" ? { preventedWriter: true } : {};
   return chainAppend(env, {
     c: "learn",
     k: input.k,
@@ -254,7 +256,7 @@ async function stampLearn(env, input) {
     rose_transition_hash: input.rose_transition_hash,
     temporal_hash: input.temporal_hash,
     provenance_hash: input.provenance_hash,
-  });
+  }, opts);
 }
 
 async function forwardLearn(env, input) {
@@ -366,7 +368,8 @@ async function observePrevented(env, packet) {
   const built = await preventedEdgeFrom(await loadChain(store, "refusals", ""), packet);
   if (!built.ok) return refuse(built.code, built.message, { spec_edge: PREVENTED_SPEC, written: false });
   const edge = built.edge;
-  const existing = preventedEdges(await loadChain(store, "learn", "")).find((e) => e.memory_id === edge.memory_id);
+  // Only an exact verified edge (same receipt hash, goal_hash and code, id bound to all three) counts.
+  const existing = (await preventedEdges(await loadChain(store, "learn", ""))).find((e) => e.memory_id === edge.memory_id && e.refusal_receipt_hash === edge.refusal_receipt_hash && e.goal_hash === edge.goal_hash && e.refusal_code === edge.refusal_code);
   if (existing && existing.active) return refuse("AKM-PREVENTED-DUPLICATE", "An active prevented edge already cites this refusal receipt.", { edge: existing, written: false });
   if (existing) return refuse("AKM-PREVENTED-RETIRED", "This refusal's edge was retired (valid_to set); retired edges are not re-opened.", { edge: existing, written: false });
   const out = await forwardLearn(env, {
@@ -616,7 +619,7 @@ export async function adaptiveRecall(storeOrEnv, input = {}) {
     const pv = await import("./memory/prevented.js");
     const gh = await pv.recallGoalHash(src);
     if (!gh) return refuse("AKM-PREVENTED-INVALID", "goal_hash must be 64 hex (or goal_id 1-80 chars of [A-Za-z0-9._:-]).");
-    const edges = pv.preventedFor(await loadChain(storeFor(storeOrEnv), "learn", ""), gh, { history: Boolean(src.history) });
+    const edges = await pv.preventedFor(await loadChain(storeFor(storeOrEnv), "learn", ""), gh, { history: Boolean(src.history) });
     prevented = { spec: pv.PREVENTED_SPEC, goal_hash: gh, count: edges.length, edges, authorizes_action: false, note: "A prevented edge informs recall; it does not grant or block anything. DecisionGATE / FragGate still decide." };
   }
   if (!raw.ok) return prevented ? { ...raw, prevented } : raw;
