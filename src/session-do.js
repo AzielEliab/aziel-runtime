@@ -101,7 +101,22 @@ export class RuntimeSession {
     throw err;
   }
 
+  /**
+   * R6: one mutation at a time per session object. Every POST (open/policy/intent/commit/change/stale/revoke/
+   * pause/resume/close) and the TTL alarm run through this queue, so a load -> append -> save can never
+   * interleave with another (a concurrent change/policy + close cannot lose an acknowledged row).
+   */
+  serialize(fn) {
+    const run = (this._tail || Promise.resolve()).then(fn, fn);
+    this._tail = run.then(() => undefined, () => undefined);
+    return run;
+  }
+
   async alarm() {
+    return this.serialize(() => this.alarmInner());
+  }
+
+  async alarmInner() {
     const session = await this.load();
     if (!session || session.closed) return;
     const now = new Date().toISOString();
@@ -110,6 +125,11 @@ export class RuntimeSession {
   }
 
   async fetch(request) {
+    if (request.method === "POST") return this.serialize(() => this.fetchInner(request));
+    return this.fetchInner(request);
+  }
+
+  async fetchInner(request) {
     try {
       // RIB-042: use the provisioned receipt key if one is held (never generated here).
       const { heldSignerFromEnv, setActiveReceiptSigner } = await import("./receipt-signing.js");
