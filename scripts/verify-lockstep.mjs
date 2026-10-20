@@ -116,6 +116,8 @@ if (process.env.LOCKSTEP_REMOTE === "1") {
 {
   const { hostDataFinding } = await import(root + "scripts/lockstep-hostscan.mjs");
   ok(hostDataFinding("LAN interface enp0s3 at 172.30.0.2") && hostDataFinding("eth0") && hostDataFinding("fe80::1") && !hostDataFinding("203.0.113.9 via the binding"), "host-data scan catches what it should");
+  for (const bad of ["100.64.0.1", "100.127.255.254", "::1", "[::1]:8787", "fe80::1", "febf::2", "fe9a::3", "fea0::4"]) ok(hostDataFinding(`x ${bad} y`), `host-data scan misses ${bad}`);
+  for (const fine of ["100.63.255.255", "100.128.0.1", "203.0.113.9", "2001:db8::1", "a::1b", "std::10"]) ok(!hostDataFinding(`x ${fine} y`), `host-data scan false positive on ${fine}`);
   for (const f of ["contract/lockstep.json", "design/tokens.json", "design/tokens.css", "src/lockstep/design-tokens.js"]) {
     const leak = hostDataFinding(readFileSync(root + f, "utf8"));
     ok(!leak, `${f} carries host-specific data: ${leak}`);

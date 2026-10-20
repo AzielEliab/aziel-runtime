@@ -66,7 +66,7 @@ export async function serveStoreRows(request, env, { name, call, cache = default
     const { takeRateSlot } = await import("./production.js");
     return takeRateSlot(env, "store_rows", k, STORE_ROWS_PAGES_PER_MIN);
   });
-  const who = clientKey || request.headers.get("cf-connecting-ip") || "anon";
+  const who = clientKey || (request.headers.get("cf-connecting-ip") ? (await import("./production.js")).rateKeyOf(request.headers.get("cf-connecting-ip")) : "anon"); // R5: IPv6 by /64
   // HEAD never spends a GET slot: it has its own bucket (same size), so HEAD can't drain a client's GET pages
   // and is still not an unlimited path to the store object.
   const slot = await limiter(request.method === "HEAD" ? "head:" + who : who);
