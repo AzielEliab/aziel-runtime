@@ -597,6 +597,16 @@ export async function verify(storeOrEnv, input = {}) {
       ok = false;
       for (const e of expect_spec.errors) breaks.push({ chain: name, seq: (e.seq ?? 1) - 1, reason: e.code });
     }
+    // RIB-053: a prevented edge must cite a refusal row on the refusals chain (fail closed).
+    let prevented = null;
+    if (name === "learn" && rows.some((r) => r && r.k === "memory_prevented")) {
+      const { verifyPreventedEdges } = await import("../memory/prevented.js");
+      prevented = await verifyPreventedEdges(rows, await loadChain(store, "refusals", ""));
+      if (!prevented.ok) {
+        ok = false;
+        for (const e of prevented.errors) breaks.push({ chain: name, seq: e.seq, reason: e.code });
+      }
+    }
     const dual = await verifyLattice(rows.filter((row) => row && !row._broken));
     if (!dual.ok) {
       ok = false;
@@ -614,6 +624,7 @@ export async function verify(storeOrEnv, input = {}) {
       n: rows.length,
       integrity,
       expect_spec: { status: expect_spec.status, spec_hash: expect_spec.spec_hash, errors: expect_spec.errors.length },
+      ...(prevented ? { prevented: { spec: prevented.spec, edges: prevented.edges, errors: prevented.errors.length } } : {}),
       isolated: !ok,
       dual_lattice: {
         ok: dual.ok,
