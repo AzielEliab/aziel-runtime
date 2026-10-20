@@ -4262,7 +4262,12 @@ async function handleRequest(request, env, ctx) {
         return asHead(request, json(DESIGN_TOKENS, 200, extra(url.pathname)));
       }
       const doc = await lockstepDocument(PRODUCTS);
-      return asHead(request, json({ ok: true, ...doc, git_sha: (env && env.GIT_SHA) || null, writes: false }, 200, extra(url.pathname)));
+      // Live, deploy-dependent signing facts sit OUTSIDE the pinned contract (contract_sha256 is unchanged).
+      // contract.flags.receipts_signed is the static cross-leg floor ("the shared contract claims no receipt
+      // signing"); the live answer is signing_scope, the same object /v1/receipt-key serves.
+      const { signingScope } = await import("./receipt-signing.js");
+      const signing_scope = await signingScope(env);
+      return asHead(request, json({ ok: true, ...doc, signing_scope, contract_flag_note: "contract.flags.receipts_signed and contract.states.signing are fixed because they are pinned in the shared contract hash (contract_sha256); changing them needs a pin bump and both peers (AZInterface, AZ-OS) re-vendoring. They are not this deploy's status; see signing_scope (same source as /v1/receipt-key)", git_sha: (env && env.GIT_SHA) || null, writes: false }, 200, extra(url.pathname)));
     }
 
     if (url.pathname === "/cite.json" && (request.method === "GET" || request.method === "HEAD")) {
@@ -4690,11 +4695,13 @@ async function handleRequest(request, env, ctx) {
       // RIB-042 AZRT-HELD-KEY-1.0: publish the provisioned receipt public key (never the private key).
       const rs = await import("./receipt-signing.js");
       const held = await rs.heldSignerFromEnv(env);
-      const body = held.ok
+      const scope = await rs.signingScope(env);
+      // `signing` (kept for compatibility) means session receipts only and is taken from the shared scope.
+      const body = held.ok && scope.session_receipts.signed
         ? { spec: rs.HELD_KEY_SPEC, signing: true, alg: "Ed25519", ...held.provenance, sig_domain: rs.SIG_DOMAIN, pinned: (await rs.trustedReceiptKeys(null)).map((k) => k.key_id),
             ...(await (async () => { const pinnedIds = (await rs.trustedReceiptKeys(null)).map((k) => k.key_id); const isPinned = pinnedIds.includes(held.provenance.key_id); return { trusted: isPinned, key_source: isPinned ? "pinned" : "published (self, unpinned)" }; })()),
-            note: "Receipts minted while this key is held carry an Ed25519 signature over sig_domain + hash. The key was provisioned by the deploy side; the runtime cannot generate, rotate or export it." }
-        : { spec: rs.HELD_KEY_SPEC, signing: false, reason: held.reason, note: "Receipts are hash-linked and sealed, not signed (signature.sig null with this reason)." };
+            note: "Session receipts minted while this key is held carry an Ed25519 signature over sig_domain + hash. Chainlock rows (refusals etc.) are not signed. The key was provisioned by the deploy side; the runtime cannot generate, rotate or export it.", signing_scope: scope }
+        : { spec: rs.HELD_KEY_SPEC, signing: false, reason: scope.session_receipts.reason || held.reason, note: "Receipts are hash-linked and sealed, not signed (signature.sig null with this reason).", signing_scope: scope };
       return asHead(request, json(body, 200, { "access-control-allow-origin": "*", "cache-control": "no-store" }));
     }
     if ((url.pathname === "/v1/anchor" || url.pathname.startsWith("/v1/anchor/")) && (request.method === "GET" || request.method === "HEAD")) {

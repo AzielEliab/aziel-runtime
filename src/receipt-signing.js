@@ -236,3 +236,54 @@ export async function verifyReceiptSignatures(receipts, { trusted = [] } = {}) {
     rows,
   };
 }
+
+/**
+ * AZRT-SIGNING-SCOPE-1.0: the one derived answer to "what is signed, by which key". Both GET /v1/receipt-key
+ * and GET /v1/lockstep read this, so they cannot disagree. Fails closed: any error reports session receipts
+ * as not signed. Only session receipts (runtime_session_* chain, appendReceipt) can carry a receipt-key
+ * signature; chainlock rows (refusals, acts, mesh, ...) are hash-linked + dual-lattice sealed and never signed.
+ * Anchors / build witness / checkpoints / the AZOS-AZInterface tether use their own keys (RIB-001), not this one.
+ */
+export const SIGNING_SCOPE_SPEC = "AZRT-SIGNING-SCOPE-1.0";
+export async function signingScope(env) {
+  let on = false;
+  let keyId = null;
+  let trusted = false;
+  let reason = null;
+  try {
+    const held = await heldSignerFromEnv(env || {});
+    on = Boolean(held && held.ok === true);
+    if (on) {
+      keyId = held.provenance.key_id;
+      if (typeof keyId !== "string" || !keyId) throw new Error("no key_id");
+      trusted = (await trustedReceiptKeys(null)).some((k) => k.key_id === keyId);
+    } else {
+      reason = (held && held.reason) || "not signing";
+    }
+  } catch {
+    on = false; keyId = null; trusted = false;
+    reason = "receipt key check failed; failing closed (not signing)";
+  }
+  return {
+    spec: SIGNING_SCOPE_SPEC,
+    session_receipts: {
+      signed: on,
+      key: "held receipt key (AZRT-HELD-KEY-1.0, published at /v1/receipt-key)",
+      key_id: keyId,
+      key_trusted: trusted,
+      key_source: on ? (trusted ? "pinned" : "published (self, unpinned)") : null,
+      independently_verified: false,
+      ...(on && !trusted ? { note: "signature proves possession of the self-published key only; not pinned, not independently verified" } : {}),
+      ...(on && trusted ? { note: "key is pinned in code; no outside witness records it yet, so not independently verified" } : {}),
+      ...(on ? {} : { reason }),
+      covers: "session receipts minted from now on while this key is held (runtime_session_* chain); older receipts may be unsigned",
+    },
+    chainlock_rows: { signed: false, covers: "chainlock rows (refusals, acts, mesh, library, ...) and the FragGate ask/refuse ledger", how: "hash-linked and dual-lattice sealed, not signed" },
+    other_keys: {
+      note: "these are signed with their own keys, never the receipt key",
+      anchors_and_build_witness: "witness + auditor public keys at /.well-known/azrt-keys.json (witness, witness2)",
+      tether: "tether public key at /v1/tether (public_key) and /v1/lockstep contract.chains.tether_pubkey",
+      checkpoints: "each checkpoint carries its own signer_set (public keys + threshold) hashed into the checkpoint; no single published checkpoint key",
+    },
+  };
+}
