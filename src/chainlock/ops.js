@@ -378,7 +378,9 @@ export function cardBytes(card) {
 /** RIB-053: any stamp shaped like a prevented edge (by k, memory.kind or the edge spec). */
 /** NFKC + strip zero-width / soft-hyphen / bidi marks, lowercase. */
 export function normalizeKindText(v) {
-  return String(v == null ? "" : v).normalize("NFKC").replace(/[\u00AD\u180E\u200B-\u200F\u202A-\u202E\u2060-\u2064\uFEFF]/g, "").toLowerCase();
+  // NFKC folds compatibility forms; NFKD then splits base + combining marks so the Mn marks can be dropped
+  // (AZBot #319: "p\u0301revented" must read as "prevented").
+  return String(v == null ? "" : v).normalize("NFKC").normalize("NFKD").replace(/\p{Mn}/gu, "").replace(/[\u00AD\u180E\u200B-\u200F\u202A-\u202E\u2060-\u2064\uFEFF]/g, "").normalize("NFC").toLowerCase();
 }
 
 /** True when "prevented" is a whole word token (split on anything that is not a-z/0-9), so "unprevented" is not caught. */
