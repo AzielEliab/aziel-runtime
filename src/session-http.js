@@ -150,6 +150,10 @@ export async function handleSessionRequest(request, env, deps) {
     if (bodyHasOperatorToken(body)) return bodyTokenRefuse(json);
     const expect = await expectSpecOf(body.expect);
     if (expect && expect.ok === false) return json(expect, 400);
+    // RIB-052: frozen artifacts are validated here and re-normalized in applyOpen (stamp #1 only).
+    const { frozenArtifactsOf } = await import("./frozen-artifacts.js");
+    const frozen = await frozenArtifactsOf(body.frozen_artifacts);
+    if (frozen && frozen.ok === false) return json(frozen, 400);
     const id = SESSION_ID_RE.test(String(body.id || "")) ? body.id : newSessionId();
     const { newIssuerKey } = await import("./issuer-append.js");
     const issuer = await newIssuerKey();
@@ -163,6 +167,7 @@ export async function handleSessionRequest(request, env, deps) {
         now: new Date().toISOString(),
         ...additiveForSession(body),
         ...(expect ? { expect: expect.expect, expect_hash: expect.expect_hash } : {}),
+        ...(frozen ? { frozen_artifacts: frozen.frozen_artifacts } : {}),
         issuer_key_hash: issuer.key_hash,
       }),
     });
@@ -174,7 +179,7 @@ export async function handleSessionRequest(request, env, deps) {
     return json(
       {
         error: "not a session route",
-        hint: "POST /v1/session/open  POST /v1/session/{id}/policy  POST /v1/session/{id}/exec  GET /v1/session/{id}/receipt  GET /v1/session/{id}/receipts  POST /v1/session/{id}/stale  POST /v1/session/{id}/revoke  GET /v1/session/{id}/spec  POST /v1/session/{id}/pause  POST /v1/session/{id}/resume  POST /v1/session/{id}/close",
+        hint: "POST /v1/session/open  POST /v1/session/{id}/policy  POST /v1/session/{id}/exec  GET /v1/session/{id}/receipt  GET /v1/session/{id}/receipts  POST /v1/session/{id}/change  POST /v1/session/{id}/stale  POST /v1/session/{id}/revoke  GET /v1/session/{id}/spec  POST /v1/session/{id}/pause  POST /v1/session/{id}/resume  POST /v1/session/{id}/close",
       },
       404,
       extra ? extra(path) : {},
@@ -223,7 +228,27 @@ export async function handleSessionRequest(request, env, deps) {
       await stubFetch(env, id, "close", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(verdict ? { verdict: verdict.verdict } : {}),
+        body: JSON.stringify({ ...(verdict ? { verdict: verdict.verdict } : {}), ...(closeBody.delivered_artifacts != null ? { delivered_artifacts: closeBody.delivered_artifacts } : {}) }),
+      }),
+      json,
+      { consent: true },
+    );
+  }
+  if (action === "change" && request.method === "POST") {
+    // RIB-052: declared change to a frozen artifact. Token-gated (isSessionMutatePath); append-only.
+    let cb = {};
+    try {
+      const text = await request.text();
+      cb = text && text.trim() ? JSON.parse(text) : {};
+    } catch {
+      return json({ error: "invalid JSON", code: "bad_json" }, 400);
+    }
+    if (bodyHasOperatorToken(cb)) return bodyTokenRefuse(json);
+    return copyJson(
+      await stubFetch(env, id, "change", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ artifact: cb && cb.artifact, new_sha256: cb && cb.new_sha256, reason: cb && cb.reason }),
       }),
       json,
       { consent: true },
