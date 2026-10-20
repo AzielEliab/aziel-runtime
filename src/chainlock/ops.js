@@ -375,6 +375,16 @@ export function cardBytes(card) {
   return new TextEncoder().encode(JSON.stringify(card)).length;
 }
 
+/** RIB-053: any stamp shaped like a prevented edge (by k, memory.kind or the edge spec). */
+export function isPreventedShaped(src) {
+  if (!src || typeof src !== "object") return false;
+  const k = String(src.k || src.kind || "").toLowerCase();
+  if (k.includes("prevented")) return true;
+  const m = src.memory && typeof src.memory === "object" ? src.memory : null;
+  if (m && (String(m.kind || "").toLowerCase().includes("prevented") || m.edge_spec != null || m.refusal_receipt_hash != null)) return true;
+  return false;
+}
+
 export async function append(storeOrEnv, input = {}, options = {}) {
   const store = storeFor(storeOrEnv);
   const src = input && typeof input === "object" ? { ...input } : {};
@@ -384,6 +394,11 @@ export async function append(storeOrEnv, input = {}, options = {}) {
     if (anchor) src.anchor = anchor;
   }
   const chain = String(src.c || src.chain || "session").trim() || "session";
+  // RIB-053 (AZBot B317-1): prevented edges are written only by memory_observe kind=prevented (observePrevented),
+  // which builds them from the sealed refusal row. Any other caller (public chainlock_append included) is refused.
+  if (isPreventedShaped(src) && !(options && options.preventedWriter === true)) {
+    return { ok: false, refuse: "prevented-reserved", code: "CL-PREVENTED-RESERVED", message: "memory_prevented edges are written only by memory_observe kind=prevented from a sealed refusal receipt.", written: false };
+  }
   const internal = options && options.internal === true && INTERNAL_CHAINS.includes(chain);
   if (!ROSTER.includes(chain) && !internal) {
     return { ok: false, refuse: "unknown-chain", chain, roster: ROSTER.slice() };
@@ -597,6 +612,16 @@ export async function verify(storeOrEnv, input = {}) {
       ok = false;
       for (const e of expect_spec.errors) breaks.push({ chain: name, seq: (e.seq ?? 1) - 1, reason: e.code });
     }
+    // RIB-053: a prevented edge must cite a refusal row on the refusals chain (fail closed).
+    let prevented = null;
+    if (name === "learn" && rows.some((r) => r && r.k === "memory_prevented")) {
+      const { verifyPreventedEdges } = await import("../memory/prevented.js");
+      prevented = await verifyPreventedEdges(rows, await loadChain(store, "refusals", ""));
+      if (!prevented.ok) {
+        ok = false;
+        for (const e of prevented.errors) breaks.push({ chain: name, seq: e.seq, reason: e.code });
+      }
+    }
     const dual = await verifyLattice(rows.filter((row) => row && !row._broken));
     if (!dual.ok) {
       ok = false;
@@ -614,6 +639,7 @@ export async function verify(storeOrEnv, input = {}) {
       n: rows.length,
       integrity,
       expect_spec: { status: expect_spec.status, spec_hash: expect_spec.spec_hash, errors: expect_spec.errors.length },
+      ...(prevented ? { prevented: { spec: prevented.spec, edges: prevented.edges, errors: prevented.errors.length } } : {}),
       isolated: !ok,
       dual_lattice: {
         ok: dual.ok,
