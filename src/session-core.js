@@ -281,6 +281,10 @@ export async function verifyChainStrict(receipts, { trustedKeys = null } = {}) {
   }
   const receipt_signatures = await rs.verifyReceiptSignatures((receipts || []).filter(Boolean), { trusted });
   for (const e of receipt_signatures.errors) errors.push({ seq: e.seq, error: e.code });
+  // RIB-052: frozen-artifact delivery check recomputed from the chain; undeclared changes fail closed.
+  const { verifyFrozenArtifacts } = await import("./frozen-artifacts.js");
+  const frozen_artifacts = await verifyFrozenArtifacts(receipts);
+  for (const e of frozen_artifacts.errors) errors.push({ seq: e.seq, error: e.code });
   // RIB-043: approver bound into gated exec rows; missing/altered fails closed.
   const { verifyApprover } = await import("./approver.js");
   const approver = await verifyApprover(receipts);
@@ -306,6 +310,7 @@ export async function verifyChainStrict(receipts, { trustedKeys = null } = {}) {
     evidence,
     receipt_signatures,
     approver,
+    frozen_artifacts,
     dual_lattice: {
       ok: dual.ok,
       lattice_rows: dual.lattice_rows,
@@ -527,10 +532,18 @@ export async function applyOpen(session, nowIso, extra = {}) {
   // RIB-015: genesis records the issuer (hash of a Worker-minted key; the key itself is never sealed).
   const { issuerField } = await import("./issuer-append.js");
   const issuer = issuerField(extra && extra.issuer_key_hash);
+  // RIB-052: frozen artifacts are sealed on stamp #1 only (re-normalized here; never via additive fields).
+  let frozen = null;
+  if (extra && extra.frozen_artifacts != null) {
+    const { frozenArtifactsOf } = await import("./frozen-artifacts.js");
+    const f = await frozenArtifactsOf(extra.frozen_artifacts);
+    if (!f.ok) throw sessionError(400, f.code, f.message);
+    frozen = { frozen_artifacts: f.frozen_artifacts, frozen_hash: f.frozen_hash };
+  }
   await appendReceipt(session, "open", {
     policy: session.policy,
     source: session.source,
-  }, nowIso, { ...additiveReceiptFields(extra), ...(issuer ? { issuer } : {}) });
+  }, nowIso, { ...additiveReceiptFields(extra), ...(issuer ? { issuer } : {}), ...(frozen || {}) });
   return session;
 }
 
@@ -770,8 +783,27 @@ export async function applyRevoke(session, nowIso, raw, { issuerKey = null } = {
   });
 }
 
-export async function applyClose(session, nowIso, { force = false, additive = null } = {}) {
+/** RIB-052: declare (in-session, before close) that a frozen artifact changes: { artifact, new_sha256, reason }. */
+export async function applyArtifactChange(session, nowIso, raw) {
   if (!session) throw sessionError(404, "session_not_found", "session not found");
+  if (session.closed) throw sessionError(409, "session_closed", "session is sealed; no further stamps", { session_id: session.id });
+  refuseWhilePaused(session, "artifact_change");
+  requireReceiptRoom(session);
+  const { changeRequestOf } = await import("./frozen-artifacts.js");
+  const req = changeRequestOf(raw, session.receipts);
+  if (!req.ok) throw sessionError(req.code === "FROZEN-ARTIFACT-NONE" ? 409 : 400, req.code, req.message);
+  return appendReceipt(session, "artifact_change", {}, nowIso, { artifact_change: req.change });
+}
+
+export async function applyClose(session, nowIso, { force = false, additive = null, delivered = null } = {}) {
+  if (!session) throw sessionError(404, "session_not_found", "session not found");
+  // RIB-052: when stamp #1 froze artifacts, the harness check runs first (bad delivery input refuses, nothing written).
+  let delivery = null;
+  if (!session.closed) {
+    const { deliveryCheckFor } = await import("./frozen-artifacts.js");
+    delivery = await deliveryCheckFor(session.receipts, delivered);
+    if (delivery && !delivery.ok) throw sessionError(400, delivery.code, delivery.message);
+  }
   if (additive && additive.verdict != null) {
     const { specStaleness } = await import("./spec-stale.js");
     const st = specStaleness(session.receipts);
@@ -795,6 +827,16 @@ export async function applyClose(session, nowIso, { force = false, additive = nu
   session.pending_intent = null;
   const wipe = session.policy && session.policy.wipe_on_close === true;
   if (wipe) session.wiped = true;
+  let closeAdditive = additiveReceiptFields(additive);
+  let deliveryReceipt = null;
+  if (delivery) {
+    // Harness-written; the caller has no field that reaches this receipt and cannot skip it.
+    deliveryReceipt = await appendReceipt(session, "delivery_check", {}, nowIso, { delivery_check: delivery.check });
+    if (!delivery.check.verdict_allowed && closeAdditive.verdict != null) {
+      const { verdict: _refused, ...rest } = closeAdditive;
+      closeAdditive = rest;
+    }
+  }
   const receipt = await appendReceipt(session, "close", {
     sealed: true,
     receipt_count: session.receipts.length + 1,
@@ -803,8 +845,8 @@ export async function applyClose(session, nowIso, { force = false, additive = nu
     sandbox_kind: SANDBOX_KIND,
     isolate_class: ISOLATE_CLASS,
     guest_vm: false,
-  }, nowIso, additiveReceiptFields(additive));
-  return { session, receipt };
+  }, nowIso, closeAdditive);
+  return { session, receipt, ...(delivery ? { delivery_check: deliveryReceipt } : {}) };
 }
 
 export function publicSession(session) {

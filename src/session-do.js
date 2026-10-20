@@ -6,6 +6,7 @@
  */
 
 import {
+  applyArtifactChange,
   applyClose,
   applyStale,
   applyRevoke,
@@ -135,6 +136,9 @@ export class RuntimeSession {
       }
       if (action === "close" && request.method === "POST") {
         return await this.close(await readJson(request));
+      }
+      if (action === "change" && request.method === "POST") {
+        return await this.change(await readJson(request));
       }
       if (action === "stale" && request.method === "POST") {
         return await this.stale(await readJson(request));
@@ -344,6 +348,14 @@ export class RuntimeSession {
     return json({ ok: true, session: publicSession(session), receipt, spec_stale: verified.spec_stale, verified });
   }
 
+  /** RIB-052: declared change to a frozen artifact (append-only, in-session). */
+  async change(body = {}) {
+    const session = await this.expireIfNeeded(await this.load());
+    const receipt = await applyArtifactChange(session, new Date().toISOString(), body || {});
+    await this.save(session);
+    return json({ ok: true, session: publicSession(session), receipt });
+  }
+
   async revoke(body = {}) {
     const session = await this.expireIfNeeded(await this.load());
     const { issuer_key: issuerKey, ...rest } = body || {};
@@ -392,13 +404,19 @@ export class RuntimeSession {
     const session = await this.expireIfNeeded(await this.load());
     const now = new Date().toISOString();
     if (session && session.paused) session.paused = false;
-    const out = await applyClose(session, now, { additive: body });
+    const { delivered_artifacts: delivered, ...closeRest } = body || {};
+    const out = await applyClose(session, now, { additive: closeRest, delivered });
     // RIB-044: the close receipt is the freeze row; its head is queued for the witness.
     const fh = freezeHeadOf(out.session);
     out.session.freeze = { spec: RESUME_SPEC, reason: "close", freeze_head: fh, frozen_at: now, queue: await queueFreeze(this.env, fh, { append: chainlockAppend, storeFor: chainlockStoreFor, reason: "close" }) };
     await this.save(out.session);
     const verified = await verifyChainStrict(out.session.receipts);
-    return json({ ok: true, session: publicSession(out.session), receipt: out.receipt, verified });
+    // RIB-052: a refused delivery check seals the refusal and closes the session, but the verdict is refused.
+    const refused = out.delivery_check && out.delivery_check.delivery_check.refused;
+    if (refused) {
+      return json({ ok: false, code: refused.code, error: "frozen-artifact delivery check refused the verdict; the refusal is sealed.", session: publicSession(out.session), receipt: out.receipt, delivery_check: out.delivery_check, verified }, 409);
+    }
+    return json({ ok: true, session: publicSession(out.session), receipt: out.receipt, ...(out.delivery_check ? { delivery_check: out.delivery_check } : {}), verified });
   }
 
   async status() {
