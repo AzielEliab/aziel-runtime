@@ -55,4 +55,23 @@ for (const [name, env, want] of cases) {
 const evil = new Proxy({}, { get() { throw new Error("boom"); } });
 const s = await signingScope(evil);
 assert.equal(s.session_receipts.signed, false, "throwing env fails closed"); assert.equal(s.session_receipts.key_id, null); assert.equal(s.session_receipts.key_source, null); n += 3;
+// R3: witness2 wording is derived from witness2Config(env), tied to WITNESS2-NOT-CONFIGURED.
+{
+  const { WITNESS2_CODES } = await import("../src/witness-quorum.js");
+  const none = await signingScope({});
+  assert.equal(none.other_keys.witness2_code, WITNESS2_CODES.notConfigured, "unconfigured code");
+  assert.ok(none.other_keys.anchors_and_build_witness.endsWith("witness2: not configured (" + WITNESS2_CODES.notConfigured + ")"), "unconfigured text from config");
+  const bad = await signingScope({ WITNESS2_LOG_URL: "http://10.0.0.1/log", WITNESS2_PUBLIC_KEY: "x" });
+  assert.equal(bad.other_keys.witness2_code, WITNESS2_CODES.badConfig, "bad config code");
+  assert.match(bad.other_keys.anchors_and_build_witness, /witness2: not configured \(WITNESS2-BAD-CONFIG\)/, "bad config text");
+  const key = Buffer.from(Array.from({ length: 32 }, (_, i) => (i * 37 + 11) & 255)).toString("base64url");
+  const good = await signingScope({ WITNESS2_LOG_URL: "https://witness.example.org/log.jsonl", WITNESS2_PUBLIC_KEY: key, WITNESS2_NAME: "example-witness" });
+  assert.equal(good.other_keys.witness2_code, "WITNESS2-CONFIGURED", "configured code");
+  assert.match(good.other_keys.anchors_and_build_witness, /witness2: configured \(example-witness/, "configured text");
+  assert.match(good.other_keys.anchors_and_build_witness, /dual is not claimed/, "never claims dual");
+  assert.doesNotMatch(good.other_keys.anchors_and_build_witness, /not configured/, "configured is not reported as not configured");
+  const ev = await signingScope(new Proxy({}, { get() { throw new Error("boom"); } }));
+  assert.equal(ev.other_keys.witness2_code, WITNESS2_CODES.notConfigured, "throwing env: not configured");
+  n += 10;
+}
 console.log("verify-signing-scope ok (" + n + " checks)");
