@@ -245,7 +245,22 @@ export async function verifyReceiptSignatures(receipts, { trusted = [] } = {}) {
  * Anchors / build witness / checkpoints / the AZOS-AZInterface tether use their own keys (RIB-001), not this one.
  */
 export const SIGNING_SCOPE_SPEC = "AZRT-SIGNING-SCOPE-1.0";
+/** R3: the witness2 wording comes from witness2Config(env), never a hard-coded string. Never claims dual. */
+export async function witness2Line(env) {
+  let cfg;
+  try {
+    const { witness2Config } = await import("./witness-quorum.js");
+    cfg = witness2Config(env || {});
+  } catch {
+    cfg = { configured: false, code: "WITNESS2-NOT-CONFIGURED" };
+  }
+  if (cfg && cfg.configured) return { code: "WITNESS2-CONFIGURED", text: "witness2: configured (" + cfg.name + "; public key from WITNESS2_PUBLIC_KEY, not in azrt-keys.json); configured is not a passed quorum, dual is not claimed here" };
+  const code = (cfg && cfg.code) || "WITNESS2-NOT-CONFIGURED";
+  return { code, text: "witness2: not configured (" + code + ")" };
+}
+
 export async function signingScope(env) {
+  const w2 = await witness2Line(env);
   let on = false;
   let keyId = null;
   let trusted = false;
@@ -281,7 +296,8 @@ export async function signingScope(env) {
     chainlock_rows: { signed: false, covers: "chainlock rows (refusals, acts, mesh, library, ...) and the FragGate ask/refuse ledger", how: "hash-linked and dual-lattice sealed, not signed" },
     other_keys: {
       note: "these are signed with their own keys, never the receipt key",
-      anchors_and_build_witness: "witness public key at /.well-known/azrt-keys.json (witness; auditor key under witness.auditor); witness2: not configured",
+      anchors_and_build_witness: "witness public key at /.well-known/azrt-keys.json (witness; auditor key under witness.auditor); " + w2.text,
+      witness2_code: w2.code,
       tether: "tether public key at /v1/tether (public_key) and /v1/lockstep contract.chains.tether_pubkey",
       checkpoints: "each checkpoint carries its own signer_set (public keys + threshold) hashed into the checkpoint; no single published checkpoint key",
     },

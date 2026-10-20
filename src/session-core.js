@@ -172,6 +172,11 @@ export async function appendReceipt(session, event, payload, nowIso, extra = {})
   ]) {
     delete rest[key];
   }
+  // R4 backstop: no non-close row may eat the close reserve (stale/revoke/pause/resume/refused included).
+  if (!CLOSE_EVENTS.includes(event) && roomLeft(session) <= 0) {
+    throw sessionError(409, "receipt_cap", `session receipt cap ${RECEIPT_CAP} reached (the last ${CLOSE_RESERVE} slots are reserved for close)`, { receipt_count: (session.receipts || []).length, receipt_cap: RECEIPT_CAP, close_reserve: CLOSE_RESERVE, written: false });
+  }
+  // Close rows are never refused (a session must always be closable; legacy chains past the reserve still close).
   const prev = lastReceipt(session);
   // AZRT-EXPECT-SPEC-1.0: once stamp #1 sealed an expected-state spec, every later receipt names it.
   const first = (session.receipts || [])[0];
@@ -482,11 +487,20 @@ function requireOpen(session, nowIso) {
   }
 }
 
+/** R4: the last 2 slots under RECEIPT_CAP are reserved for close (delivery_check + close), so close always fits. */
+export const CLOSE_RESERVE = 2;
+export const CLOSE_EVENTS = Object.freeze(["delivery_check", "close"]);
+
+function roomLeft(session) {
+  return RECEIPT_CAP - CLOSE_RESERVE - ((session && session.receipts) || []).length;
+}
+
 function requireReceiptRoom(session) {
-  if (receiptCapReached(session)) {
-    throw sessionError(409, "receipt_cap", `session receipt cap ${RECEIPT_CAP} reached`, {
+  if (receiptCapReached(session) || roomLeft(session) <= 0) {
+    throw sessionError(409, "receipt_cap", `session receipt cap ${RECEIPT_CAP} reached (the last ${CLOSE_RESERVE} slots are reserved for close)`, {
       receipt_count: (session.receipts || []).length,
       receipt_cap: RECEIPT_CAP,
+      close_reserve: CLOSE_RESERVE,
     });
   }
 }
@@ -864,6 +878,7 @@ export function publicSession(session) {
     policy: session.policy,
     receipt_count: (session.receipts || []).length,
     receipt_cap: RECEIPT_CAP,
+    close_reserve: CLOSE_RESERVE,
     exec_count: Number(session.exec_count) || 0,
     wiped: session.wiped === true,
     expires_at: sessionExpiresAt(session),
