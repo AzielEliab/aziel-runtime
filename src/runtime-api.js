@@ -1277,7 +1277,7 @@ export function runtimeStaticPaths() {
         operationId: "runtime_session_artifact_change",
         security: [{ RuntimeToken: [] }],
         summary:
-          "RIB-052 / AZRT-FROZEN-ARTIFACT-1.0: declare (in-session, append-only) that an artifact frozen at open changes: { artifact, new_sha256, reason }. At close the harness hashes delivered_artifacts itself and seals one delivery_check receipt (unchanged / changed / missing); a changed artifact with no matching declaration refuses the verdict FROZEN-ARTIFACT-SILENT-EDIT. Token-gated (REQUIRE_TOKEN=1). Refused SESSION-PAUSED while paused. Refusals write no row.",
+          "RIB-052 / AZRT-FROZEN-ARTIFACT-1.0: declare (in-session, append-only) that an artifact frozen at open changes: { artifact, new_sha256, reason }. At close the harness hashes delivered_artifacts itself and seals one delivery_check receipt (unchanged / changed / missing); a changed artifact with no matching declaration refuses the verdict FROZEN-ARTIFACT-SILENT-EDIT (missing: FROZEN-ARTIFACT-MISSING). Token-gated (REQUIRE_TOKEN=1). Refused SESSION-PAUSED while paused. A refused /change request (bad input, unknown artifact, nothing frozen, paused, closed) appends no row. The close-time SILENT-EDIT / MISSING refusal IS sealed: in the delivery_check receipt and, per RIB-018, on the internal refusals chain (door session-close).",
         tags: ["session"],
         parameters: [SESSION_ID_PARAM],
         requestBody: {

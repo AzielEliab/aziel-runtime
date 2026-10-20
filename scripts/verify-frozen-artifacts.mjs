@@ -139,4 +139,10 @@ for (const bad of [[], [{ path: "a" }], [{ id: "a", path: "b", sha256: sha("x") 
   ok(all.length === 2 && all.every((r) => r.event !== "delivery_check"), "no extra rows");
 }
 
+// R1: the /change OpenAPI summary matches behaviour (close-time refusals are sealed; /change refusals write nothing).
+{
+  const doc = await (await handler(new Request("https://rt.example/openapi.json"), {})).json();
+  const sum = doc.paths["/v1/session/{id}/change"].post.summary;
+  ok(/refusals chain/.test(sum) && /IS sealed/.test(sum) && !/Refusals write no row\./.test(sum), "openapi /change summary: close refusals sealed");
+}
 console.log(`verify-frozen-artifacts: ${n} checks ok (RIB-052 / AZRT-FROZEN-ARTIFACT-1.0; hash-linked and sealed, not signed)`);
