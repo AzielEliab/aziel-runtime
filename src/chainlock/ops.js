@@ -376,12 +376,22 @@ export function cardBytes(card) {
 }
 
 /** RIB-053: any stamp shaped like a prevented edge (by k, memory.kind or the edge spec). */
+/** NFKC + strip zero-width / soft-hyphen / bidi marks, lowercase. */
+export function normalizeKindText(v) {
+  return String(v == null ? "" : v).normalize("NFKC").replace(/[\u00AD\u180E\u200B-\u200F\u202A-\u202E\u2060-\u2064\uFEFF]/g, "").toLowerCase();
+}
+
+/** True when "prevented" is a whole word token (split on anything that is not a-z/0-9), so "unprevented" is not caught. */
+export function hasPreventedWord(v) {
+  return normalizeKindText(v).split(/[^a-z0-9]+/).includes("prevented");
+}
+
+/** RIB-053: any stamp shaped like a prevented edge (by k, memory.kind or the edge spec). */
 export function isPreventedShaped(src) {
   if (!src || typeof src !== "object") return false;
-  const k = String(src.k || src.kind || "").toLowerCase();
-  if (k.includes("prevented")) return true;
+  if (hasPreventedWord(src.k) || hasPreventedWord(src.kind)) return true;
   const m = src.memory && typeof src.memory === "object" ? src.memory : null;
-  if (m && (String(m.kind || "").toLowerCase().includes("prevented") || m.edge_spec != null || m.refusal_receipt_hash != null)) return true;
+  if (m && (hasPreventedWord(m.kind) || m.edge_spec != null || m.refusal_receipt_hash != null)) return true;
   return false;
 }
 

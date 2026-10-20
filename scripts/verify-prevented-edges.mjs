@@ -129,4 +129,14 @@ ok(!mm.ok && mm.errors[0].code === "PREVENTED-RECEIPT-MISMATCH", "code mismatch 
 const refv = await verify(env, { c: "refusals" });
 ok(refv.ok, "refusals chain verifies unchanged");
 
+// R2: word-boundary + NFKC + zero-width match for prevented-shaped stamps.
+{
+  const { isPreventedShaped } = await import("../src/chainlock/ops.js");
+  for (const k of ["memory_prevented", "Memory_Prevented_Retire", "prevented", "memory-prevented", "memory_pre\u200Bvented", "memory_\uFF50revented", "memory_preven\u00ADted", "x.PREVENTED"]) ok(isPreventedShaped({ k }), "caught: " + JSON.stringify(k));
+  for (const k of ["unprevented", "memory_unprevented", "preventedness", "memory_observation", "prevent", ""]) ok(!isPreventedShaped({ k }), "not caught: " + JSON.stringify(k));
+  ok(isPreventedShaped({ k: "x", memory: { kind: "memory_pre\u200Dvented" } }), "memory.kind normalized");
+  ok(!isPreventedShaped({ k: "x", memory: { kind: "unprevented_note" } }), "memory.kind unprevented ok");
+  const a = await append(env, { c: "learn", k: "memory_unprevented_note", subject: "s", fact: "an unprevented note is a normal stamp" });
+  ok(a.ok, "unprevented kind appends normally");
+}
 console.log(`verify-prevented-edges: ${n} checks ok (RIB-053 / AKM-PREVENTED-EDGE-1.0; hash-linked and sealed, not signed; authorizes_action false)`);
