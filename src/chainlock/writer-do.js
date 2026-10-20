@@ -123,7 +123,18 @@ export class ChainWriter {
     return rows;
   }
 
-  async append(body) {
+  /**
+   * TRI-LATTICE-CONCURRENCY-1.0: one append at a time per writer. A Durable Object's input gate
+   * only holds during storage calls, so the crypto awaits between reading meta and writing it
+   * could let a second append read the same tip (same seq, lost ack). This queue closes that.
+   */
+  append(body) {
+    const run = (this._appendQueue || Promise.resolve()).then(() => this._appendOne(body));
+    this._appendQueue = run.catch(() => {});
+    return run;
+  }
+
+  async _appendOne(body) {
     const src = body && typeof body === "object" ? body : {};
     const kind = String(src.kind || "chainlock");
     const idempKey = src.idempotencyKey ? String(src.idempotencyKey) : "";
