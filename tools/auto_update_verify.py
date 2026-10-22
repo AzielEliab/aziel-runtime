@@ -10,6 +10,12 @@ RELEASE_KEY_FINGERPRINT = "822b409723b81a0dc3fe3f132a2cb95b72b1ec2b2b16c055c526b
 RELEASE_KEY_PRODUCTS = ("aziel-runtime",)  # any other build with the pinned key, or a null key, refuses
 ACCEPTED_CHANNELS = ("stable",)  # stable only; rc etc. -> UPDATE-CHANNEL-REFUSED
 ARTIFACT_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
+WIN_RESERVED = re.compile(r"^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\..*)?$", re.I)
+
+
+def artifact_name_ok(n):
+    return (isinstance(n, str) and ARTIFACT_NAME.fullmatch(n) is not None and ".." not in n
+            and not n.endswith(".") and WIN_RESERVED.fullmatch(n) is None)
 HEX64, HEX40 = re.compile(r"^[a-f0-9]{64}$"), re.compile(r"^[a-f0-9]{40}$")
 KEYS = sorted(["artifact", "channel", "git_sha", "issued_at", "prev_manifest_hash", "product", "spec", "version", "version_seq"])
 MAXI = 2 ** 53 - 1
@@ -41,7 +47,7 @@ def shape_ok(m):
             and isinstance(m["issued_at"], str)
             and (m["prev_manifest_hash"] is None or (isinstance(m["prev_manifest_hash"], str) and HEX64.match(m["prev_manifest_hash"]) is not None))
             and isinstance(a, dict) and sorted(a) == ["name", "sha256", "size"] and isinstance(a["name"], str)
-            and ARTIFACT_NAME.fullmatch(a["name"]) is not None and ".." not in a["name"]
+            and artifact_name_ok(a["name"])
             and sint(a["size"]) and a["size"] >= 0 and isinstance(a["sha256"], str) and HEX64.match(a["sha256"]) is not None)
 
 
@@ -69,13 +75,14 @@ def verify_manifest(m, sig, state, public_key=RELEASE_PUBLIC_KEY):
     if not isinstance(sig, str) or not sig_ok(public_key, m, sig): return {"ok": False, "code": "UPDATE-SIG"}
     def seq_ok(x): return x is None or (sint(x) and x >= 0)
     if not seq_ok(state.get("installed_seq")) or not seq_ok(state.get("floor_seq")): return {"ok": False, "code": "UPDATE-STATE"}
+    if state.get("installed_seq") is None and state.get("floor_seq") is None: return {"ok": False, "code": "UPDATE-STATE"}
     if m["version_seq"] <= max(state.get("installed_seq") or 0, state.get("floor_seq") or 0):
         return {"ok": False, "code": "UPDATE-DOWNGRADE"}
-    if isinstance(state.get("last_manifest_hash"), str) and m["prev_manifest_hash"] != state["last_manifest_hash"]:
-        return {"ok": False, "code": "UPDATE-CHAIN"}
     return {"ok": True, "code": "UPDATE-OK", "manifest_hash": manifest_hash(m)}
 
 
 if __name__ == "__main__":
     c = json.load(open(sys.argv[1]))
+    if "raw" in c:  # raw manifest JSON text: parsed by Python's json (5.0 -> float -> refused by shape)
+        c["manifest"] = json.loads(c["raw"])
     print(json.dumps(verify_manifest(c["manifest"], c.get("signature"), c.get("state"), c["public_key"] if "public_key" in c else RELEASE_PUBLIC_KEY)))
