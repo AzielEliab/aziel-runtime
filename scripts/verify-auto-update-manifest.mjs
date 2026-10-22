@@ -43,7 +43,11 @@ const cases = [
   ["name-dotdot", { ...m, artifact: { ...m.artifact, name: "a..tgz" } }, sig, st, pub, C.shape],
   ["name-leading-dot", { ...m, artifact: { ...m.artifact, name: ".bashrc" } }, sig, st, pub, C.shape],
   ["name-backslash", { ...m, artifact: { ...m.artifact, name: "a\\b" } }, sig, st, pub, C.shape],
-  ["chain-mismatch", m, sig, { ...st, last_manifest_hash: "d".repeat(64) }, pub, C.chain],
+  ["name-trailing-dot", { ...m, artifact: { ...m.artifact, name: "a.tgz." } }, sig, st, pub, C.shape],
+  ...["CON", "prn.tgz", "Aux", "NUL.img", "com1", "COM9.tar.gz", "lpt1", "LPT9.x"].map((nm) => ["win-" + nm, { ...m, artifact: { ...m.artifact, name: nm } }, sig, st, pub, C.shape]),
+  ["com0-ok-name-but-sig", { ...m, artifact: { ...m.artifact, name: "com0.tgz" } }, sig, st, pub, C.sig],
+  ["seqs-missing", m, sig, { product: "aziel-runtime" }, pub, C.state],
+  ["seqs-null", m, sig, { product: "aziel-runtime", installed_seq: null, floor_seq: null }, pub, C.state],
   ["rc", { ...m, channel: "rc" }, await sign({ ...m, channel: "rc" }), st, pub, C.channel],
   ["pinned-forged", m, sig, st, PINNED, C.sig],
   ["pinned-other-build", { ...m, product: "azos" }, await sign({ ...m, product: "azos" }), { ...st, product: "azos" }, PINNED, C.noKey],
@@ -62,6 +66,18 @@ for (const [name, man, s, state, key, want] of cases) {
   }
 }
 ok((await verifyManifest(m, sig, st)).code === C.sig, "default = pinned key; test-key sig refused");
+// raw JSON parity: 5.0-style numbers refused in JS (strict parse) and Python (float fails shape)
+const { parseManifestJson } = await import("../src/auto-update/manifest.js");
+const rawOk = JSON.stringify(m), rawF = rawOk.replace('"version_seq":7', '"version_seq":7.0'), rawE = rawOk.replace('"version_seq":7', '"version_seq":7e0');
+ok(rawF.includes("7.0") && rawE.includes("7e0"), "raw vectors built");
+ok(parseManifestJson(rawOk) !== null && parseManifestJson('{"s":"1.5 inside a string"}') !== null, "strict parse keeps ints/strings");
+for (const [nm, raw, want] of [["raw-ok", rawOk, C.ok], ["raw-5.0", rawF, C.shape], ["raw-7e0", rawE, C.shape]]) {
+  const pm = parseManifestJson(raw);
+  const jr = pm === null ? { code: C.shape } : await verifyManifest(pm, sig, st, { publicKey: pub });
+  ok(jr.code === want, `${nm}: js ${jr.code}`);
+  if (py) { const f = `${dir}/${nm}.json`; writeFileSync(f, JSON.stringify({ raw, signature: sig, state: st, public_key: pub }));
+    const p = JSON.parse(execFileSync("python3", ["tools/auto_update_verify.py", f]).toString()); ok(p.code === want, `${nm}: python ${p.code}`); }
+}
 ok((await verifyArtifact(m, bytes)).ok, "artifact ok");
 ok((await verifyArtifact(m, new Uint8Array([...bytes].reverse()))).code === C.hash, "artifact tamper");
 ok((await verifyArtifact(m, bytes.slice(1))).code === C.hash, "artifact size");
