@@ -40,7 +40,7 @@ Consequences:
 ## 4. Two sign-in modes, one key schedule
 
 **On-device (preferred):** AZ-OS (Python) and AZInterface derive keys locally. Only `pub`, signatures and ciphertext leave the device.
-**Hosted (for LLM clients — Grok, GPT, Claude, Venice … over MCP/OpenAPI):** the client passes `username`+`password` to `fraggate_call` `{slug:"ark", op:"account_*"}`. The **credential firewall** runs first at every door (MCP `tools/call` before the refusal guard, `POST /v1/fraggate/call`, and `fraggateCall` itself): it derives keys in memory, **deletes** `username`/`password` from the args (top level and `payload`), and attaches keys to a WeakMap handle that is never serialized. Ledger rows, attempt links, refusal `args_digest`, background jobs, telemetry and receipts therefore never see the secret or any hash of it. Residual (disclosed): in hosted mode the LLM provider and its transcript see the password; prefer on-device.
+**Hosted — SUPERSEDED by §12.2; plaintext is now refused (for LLM clients — Grok, GPT, Claude, Venice … over MCP/OpenAPI):** the client passes `username`+`password` to `fraggate_call` `{slug:"ark", op:"account_*"}`. The **credential firewall** runs first at every door (MCP `tools/call` before the refusal guard, `POST /v1/fraggate/call`, and `fraggateCall` itself): it derives keys in memory, **deletes** `username`/`password` from the args (top level and `payload`), and attaches keys to a WeakMap handle that is never serialized. Ledger rows, attempt links, refusal `args_digest`, background jobs, telemetry and receipts therefore never see the secret or any hash of it. Residual (disclosed): in hosted mode the LLM provider and its transcript see the password; prefer on-device.
 
 Both modes produce identical keys (parity vectors pinned in runtime JS, AZ-OS Python, AZInterface Python).
 
@@ -90,10 +90,25 @@ runtime: (1) this note · (2) `src/account/ark-kdf.js` key schedule + vectors ·
 azos: (1) re-vendor contract · (2) on-device `azos/ark_account.py` + parity vectors + offline rows.
 azinterface: (1) re-vendor contract · (2) on-device `azinterface/ark_account.py` + parity vectors, calls proxy through union.js/FragGate.
 
-## 12. Still for Aziel
+## 12. Aziel's decisions (2026-10-22 08:13 EDT)
+
+1. **KDF: PBKDF2-SHA256 100k is accepted for now.** Raising it later is a v2 key schedule (new vault addresses); not in this batch.
+2. **The LLM app never sees the plaintext username or password.** This supersedes the hosted mode of §4.
+   - Key derivation runs on the user's side: the static helper page `GET /ark/signin` (PBKDF2/HKDF/Ed25519 in the browser via WebCrypto; CSP `connect-src 'none'`, no network calls) or the CLI `scripts/ark-signin.mjs` (password on stdin). AZ-OS and AZInterface use their on-device `ark_account.py`.
+   - The LLM/MCP client only receives and forwards the hashed/encrypted login: `vault_pub` (vault id = SHA-256 of it) plus a challenge signed with the user's Ed25519 key.
+   - Ops: `account_challenge {vault_pub}` → single-use nonce (120 s, consumed before verify, bound to its vault); `account_session {vault_pub, nonce, user_sig over "ARK-ACCOUNT:v1:session|vault_id|nonce"}` → the runtime checks the signature and the vault's receipt chain (tip row must be signed by that key) and only then returns a 15-minute session token (stored only as a hash). `account_open` / `account_recall` accept `{session}`. Appends stay per-row user-signed.
+   - A wrong password derives a different key that signs validly for its own empty vault: same response shape, no oracle. A malformed or foreign signature is `ARK-SIG-BAD`, which says nothing about the password.
+   - **Plaintext door refused.** `username`/`password` sent to any door are still scrubbed by the credential firewall (kept), then refused `ARK-PLAINTEXT-REFUSED`; nothing derived or stored. Deprecated re-open only via `ARK_PLAINTEXT_DOOR=deprecated-on`, which is not configured.
+3. **AZInterface and AZOS Workers get sign-in routes** (`POST /v1/ark/account`) that forward only the hashed/signed login to the runtime over the `AZIEL_RUNTIME` binding and refuse plaintext locally. The lockstep row `ark_account` moves from `gap` to `proxied` on both legs (contract `e4e7dcecb01b`, gaps 0).
+4. **Accepted known residual, to address later (no code change now):** public `vault_id`s allow offline guessing of weak passwords, because the server holds no secret by design. Mitigation today is a long password.
+
+PRs: runtime #343 (challenge/session), #344 (plaintext refused), #345 (helper page + CLI), #346 (lockstep routes + leg alias); azinterface #52, azos #47 (Worker routes).
+
+## 12a. AZBot #333 review fixes
+
+Firewall detects every shape `parseTarget` routes and matches credential keys case-insensitively; the MCP confirm retry hint is scrubbed. PBKDF2 runs only after `ARK_ACCOUNTS`, store and both rate checks. Rate subject is a window-salted, 24-bit-truncated hash (not `sha256(username)`); per-subject limit eased 30 → 100 per 15 min. `verifyArkRows` / `verify_rows` recheck `ct_sha256` and bind to the stored tip. Offline `LATTICE-DOUBLE` is keyed on an HMAC of the plaintext under the vault's enc key, so it fires despite the random IV.
+
+## 13. Still for Aziel
 
 - Flip `ARK_ACCOUNTS=on` (deploy) only after AZBot review + his OK.
-- KDF is PBKDF2-SHA256 100k (Workers max) so hosted and device keys match; this is below OWASP's 600k. Raising it later = new vault addresses (v2), so pick now if he wants device-only Argon2id instead.
-- Public `vault_id`s allow offline password guessing against weak passwords (no server secret by his rule). Mitigation is a long password; a server pepper would violate "server holds nothing".
 - New password = new empty vault (no in-place change).
-- Hosted mode exposes the password to the LLM provider.
