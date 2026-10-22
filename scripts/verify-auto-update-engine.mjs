@@ -47,6 +47,14 @@ const rcH = mkHost({ rel: await release(8, "build-8", "rc") });
 r = await checkOnline(rcH, o);
 ok(r.code === C.channel && r.code === "UPDATE-CHANNEL-REFUSED" && rcH.active === "build-1" && rcH.staged === null, "rc channel refused online, nothing staged");
 ok(rcH.receipts.length === 1 && rcH.receipts[0].code === C.channel && rcH.receipts[0].outcome === "refused", "channel refusal receipted");
+{ // pause pressed mid-apply: before stage, and after health but before commit
+  const p1 = mkHost({ rel: await release(4) }); const f1 = p1.fetchArtifact; p1.fetchArtifact = async (m) => { await pause(p1); return f1(m); };
+  r = await checkOnline(p1, o); ok(r.code === C.paused && p1.staged === null && p1.state.installed_seq === 1, "pause during fetch stops before stage");
+  const p2 = mkHost({ rel: await release(4) }); p2.healthCheck = async () => { await pause(p2); return true; };
+  r = await checkOnline(p2, o); ok(r.code === C.paused && p2.active === "build-1" && p2.state.installed_seq === 1 && p2.state.floor_seq === 1 && p2.state.paused, "pause before commit rolls back, floor unchanged");
+  const p3 = mkHost({ rel: { ...(await release(4)) } }); p3.rel.manifest = { ...p3.rel.manifest, artifact: { ...p3.rel.manifest.artifact, name: "../../etc/x" } };
+  r = await checkOnline(p3, o); ok(r.code === C.shape && p3.staged === null, "traversal name never reaches stage");
+}
 // receipts: every attempt receipted, primary chain links
 const rows = h.receipts; ok(rows.length === 5, "one receipt per attempt");
 for (let i = 1; i < rows.length; i++) ok(rows[i].lattice.primary_prev === rows[i - 1].lattice.primary, "primary links");

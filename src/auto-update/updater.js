@@ -57,10 +57,13 @@ export async function applyOffer(host, offer, source, fetchBytes, { publicKey = 
   let bytes; try { bytes = await fetchBytes(offer.manifest); } catch { bytes = null; }
   const a = await verifyArtifact(offer.manifest, bytes);
   if (!a.ok) return done(a.code, { manifest_hash: v.manifest_hash });
+  const pausedNow = async () => { try { const cur = await host.load(); return !cur || cur.paused === true; } catch { return true; } };
+  if (await pausedNow()) { s.paused = true; return done(C.paused, { manifest_hash: v.manifest_hash }); } // pause re-checked before stage
   try {
     await host.stage(bytes, offer.manifest);
     await host.swap();
     if (!(await host.healthCheck())) throw new Error("health");
+    if (await pausedNow()) { try { await host.rollback(); } catch { /* reported below */ } s.paused = true; return done(C.paused, { manifest_hash: v.manifest_hash, outcome: "rolled_back" }); }
   } catch {
     try { await host.rollback(); } catch { /* rollback failure is reported by the same code */ }
     return done(C.health, { manifest_hash: v.manifest_hash, outcome: "rolled_back" });
