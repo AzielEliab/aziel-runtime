@@ -187,7 +187,7 @@ export function installScript(plan) {
     // "Joined" only when the mesh accepted the join: HTTP 2xx (curl -f) and the reply's TOP-LEVEL
     // code is exactly "MESH-OK" (JOIN_TOP_CODE_AWK: a strict top-level JSON scan, no node needed).
     // A nested MESH-OK inside a refusal, a duplicate code key, or a malformed reply is not a join.
-    `JOIN_OUT=$(curl -fsS --max-filesize 65536 -X POST ${shq(join.url)} -H 'content-type: application/json' -d "{\\"product\\":\\"${plan.slug}\\",\\"node_id\\":\\"$NODE\\",\\"presence\\":\\"live\\",\\"heartbeat_mode\\":\\"idle\\"}" 2>/dev/null || true)`,
+    `JOIN_OUT=$(curl -fsS --max-filesize 1048576 -X POST ${shq(join.url)} -H 'content-type: application/json' -d "{\\"product\\":\\"${plan.slug}\\",\\"node_id\\":\\"$NODE\\",\\"presence\\":\\"live\\",\\"heartbeat_mode\\":\\"idle\\"}" 2>/dev/null || true)`,
     `if [ "$(printf '%s' "$JOIN_OUT" | awk ${shq(JOIN_TOP_CODE_AWK)} 2>/dev/null)" = MESH-OK ]; then echo "Joined the mesh as $NODE."; else echo "The mesh did not accept the join, so $NODE has not joined the mesh. Continuing."; fi`,
     // Step 5: a real local node (own key, own data dir, signed register + signed heartbeats on the relay).
     // B352-1: owner-only files for the node's key material while the node is set up and started.
