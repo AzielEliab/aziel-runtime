@@ -84,7 +84,16 @@ export async function runChainlockOp(name, args, env) {
   if (op === "tip") return tip(store, src.c || src.chain, src.caller || src.space);
   if (op === "recall") return recall(store, src);
   if (op === "verify") {
-    const chains = await verify(store, src);
+    // AGENT-SUBNET-1.0 (AZBot round 3, B2): agentcomms verifies through the hourly tip only, so this door
+    // never shows a live count or live tip hashes. The bound comes from the server, never from the caller.
+    const named = String(src.c || src.chain || "");
+    let opts = {};
+    if (named === "agentcomms") {
+      const { agentHourlyTip } = await import("./agent-subnet.js");
+      const t = await agentHourlyTip(env);
+      opts = { agentThrough: t ? Number(t.seq) || 0 : 0, agentAsOf: t ? t.as_of : null };
+    }
+    const chains = await verify(store, src, opts);
     const lattice = await verifyLockset(store, src);
     // RIB-039: per-tool server drift over the FragGate call ledger (fail closed).
     const { currentLedger } = await import("./fraggate/ledger.js");

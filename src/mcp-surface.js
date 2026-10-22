@@ -1017,7 +1017,7 @@ export async function callFraggateTool(name, args, products, bySlug, env, reques
     return wrapFraggateEnvelope(name, body, product, "check");
   }
   if (isMeshMcpTool(name)) {
-    const body = await runMeshOp(name, args, env);
+    const body = await runMeshOp(name, args, env, await (await import("./agent-subnet.js")).agentMetaOf(request));
     return wrapFraggateEnvelope(name, body, { name: "Quantum Node Mesh", slug: "mesh" }, name);
   }
   if (isChainlockTool(name)) {
