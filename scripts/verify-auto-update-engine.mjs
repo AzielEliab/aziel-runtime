@@ -8,9 +8,9 @@ let n = 0; const ok = (c, m) => { assert.ok(c, m); n++; };
 const b64u = (b) => Buffer.from(b).toString("base64url");
 const kp = await crypto.subtle.generateKey({ name: "Ed25519" }, true, ["sign", "verify"]);
 const pub = b64u(await crypto.subtle.exportKey("raw", kp.publicKey));
-async function release(seq, body = "build-" + seq) {
+async function release(seq, body = "build-" + seq, channel = "stable") {
   const bytes = new TextEncoder().encode(body);
-  const manifest = { spec: "AZ-UPDATE-MANIFEST-1.0", product: "azos", version: "2.0." + seq, version_seq: seq, git_sha: "c".repeat(40), channel: "stable",
+  const manifest = { spec: "AZ-UPDATE-MANIFEST-1.0", product: "azos", version: "2.0." + seq, version_seq: seq, git_sha: "c".repeat(40), channel,
     artifact: { name: "azos.img", size: bytes.length, sha256: await sha256Hex(bytes) }, issued_at: "t", prev_manifest_hash: null };
   const signature = b64u(await crypto.subtle.sign({ name: "Ed25519" }, kp.privateKey, new TextEncoder().encode(canonicalize(manifest))));
   return { manifest, signature, bytes };
@@ -29,7 +29,7 @@ function mkHost({ enabled = true, rel, healthy = true } = {}) {
 }
 const o = { publicKey: pub };
 const r5 = await release(5);
-ok((await checkOnline(mkHost({ rel: r5 }), {})).code === C.noKey, "pinned null key refuses");
+ok((await checkOnline(mkHost({ rel: r5 }), {})).code === C.noKey, "pinned key does not vouch for azos (scoped) -> refuses");
 ok((await checkOnline(mkHost({ enabled: false, rel: r5 }), o)).code === C.off, "flag off refuses");
 let h = mkHost({ rel: r5 }); await pause(h);
 ok((await checkOnline(h, o)).code === C.paused && h.active === "build-1", "paused refuses");
@@ -43,6 +43,10 @@ h.rel = bad; ok((await checkOnline(h, o)).code === C.hash && h.active === "build
 const sick = mkHost({ rel: await release(6), healthy: false });
 r = await checkOnline(sick, o);
 ok(r.code === C.health && r.row.outcome === "rolled_back" && sick.active === "build-1" && sick.state.floor_seq === 1, "rollback, floor unchanged");
+const rcH = mkHost({ rel: await release(8, "build-8", "rc") });
+r = await checkOnline(rcH, o);
+ok(r.code === C.channel && r.code === "UPDATE-CHANNEL-REFUSED" && rcH.active === "build-1" && rcH.staged === null, "rc channel refused online, nothing staged");
+ok(rcH.receipts.length === 1 && rcH.receipts[0].code === C.channel && rcH.receipts[0].outcome === "refused", "channel refusal receipted");
 // receipts: every attempt receipted, primary chain links
 const rows = h.receipts; ok(rows.length === 5, "one receipt per attempt");
 for (let i = 1; i < rows.length; i++) ok(rows[i].lattice.primary_prev === rows[i - 1].lattice.primary, "primary links");
