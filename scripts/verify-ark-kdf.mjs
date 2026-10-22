@@ -18,7 +18,8 @@ assert.equal(wrong.rl_subject, base.rl_subject, "rate subject is username-only, 
 const a = await deriveArkAccount("aziel", "correct horse battery");
 const json = JSON.stringify(a);
 assert.ok(!json.includes("correct horse"), "no plaintext"); n++;
-assert.deepEqual(Object.keys(JSON.parse(json)).sort(), ["encKey", "pub", "rl_subject", "signKey", "spec", "vault_id"]); n++;
+// AZMAIL-USER-1.0 adds mailKey (CryptoKey, serializes to {}) and mail_pub (public). No secret in JSON.
+assert.deepEqual(Object.keys(JSON.parse(json)).sort(), ["encKey", "mailKey", "mail_pub", "pub", "rl_subject", "signKey", "spec", "vault_id"]); n++;
 assert.equal(JSON.stringify(a.signKey), "{}"); assert.equal(JSON.stringify(a.encKey), "{}"); n += 2;
 assert.equal(a.signKey.extractable, true); // pkcs8-imported; never exported by the module (grep-checked below)
 const src = readFileSync(new URL("../src/account/ark-kdf.js", import.meta.url), "utf8");
