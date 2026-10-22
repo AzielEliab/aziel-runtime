@@ -1,0 +1,46 @@
+# AUTO-UPDATE-1.0: sign a stable release manifest and attach it to the GitHub release.
+# Prereleases are skipped (devices follow stable only). Fails closed if the secret is missing or does not match the pinned key.
+name: auto-update-release
+on:
+  release:
+    types: [published]
+permissions:
+  contents: write
+concurrency: { group: auto-update-release-${{ github.event.release.tag_name }}, cancel-in-progress: false }
+jobs:
+  sign:
+    if: ${{ github.event.release.prerelease == false && github.event.release.draft == false }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ github.event.release.tag_name }}", fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Fail closed if secret missing
+        env: { K: "${{ secrets.AUTO_UPDATE_SIGNING_KEY }}" }
+        run: '[ -n "$K" ] || { echo "AUTO_UPDATE_SIGNING_KEY missing: refusing to sign"; exit 1; }'
+      - name: Verify suite
+        run: node scripts/verify-auto-update-manifest.mjs && node scripts/verify-auto-update-release-sign.mjs
+      - name: Build artifact
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          mkdir -p dist && git archive --format=tar.gz --prefix="aziel-runtime-${TAG#v}/" -o "dist/aziel-runtime-${TAG#v}.tgz" HEAD
+      - name: Previous stable manifest hash
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          PREV=$(gh release list --exclude-pre-releases --exclude-drafts --json tagName -q '.[].tagName' | grep -vx "${{ github.event.release.tag_name }}" | head -1 || true)
+          H=""; if [ -n "$PREV" ] && gh release download "$PREV" -p 'auto-update-manifest.json' -O /tmp/prev.json 2>/dev/null; then H=$(node -e 'console.log(JSON.parse(require("fs").readFileSync("/tmp/prev.json")).manifest_hash||"")'); fi
+          echo "PREV_MANIFEST_HASH=$H" >> "$GITHUB_ENV"
+      - name: Sign manifest
+        env:
+          AUTO_UPDATE_SIGNING_KEY: "${{ secrets.AUTO_UPDATE_SIGNING_KEY }}"
+          TAG: "${{ github.event.release.tag_name }}"
+          PRERELEASE: "${{ github.event.release.prerelease }}"
+          GIT_SHA: "${{ github.sha }}"
+          RELEASE_URL_BASE: "https://github.com/${{ github.repository }}/releases/download/${{ github.event.release.tag_name }}"
+        run: |
+          export VERSION_SEQ=$(git rev-list --count HEAD)
+          A=$(ls dist/*.tgz) && node scripts/auto-update-sign-release.mjs "$A" dist/auto-update-manifest.json
+      - name: Attach to release
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: gh release upload "${{ github.event.release.tag_name }}" dist/*.tgz dist/auto-update-manifest.json --clobber
