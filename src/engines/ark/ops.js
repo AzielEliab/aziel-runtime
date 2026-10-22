@@ -6,8 +6,10 @@ import { capabilityDoctor, capabilityHealth, capabilitySkill, ensureThisIs } fro
 import { LIMITATION, levels, sweep } from "./engine.js";
 
 const LIVE = ["health", "skill", "sweep", "levels", "doctor"];
+// USER-SIGNIN-ARK-1.0: account_* run only inside the FragGate door (src/account/ops.js), after the credential firewall.
+const DOOR_ONLY = ["account_open", "account_append", "account_recall"];
 const STUB = ["scorch", "wipe", "unlock", "encrypt"];
-export const ARK_OPS = LIVE.slice();
+export const ARK_OPS = [...LIVE, ...DOOR_ONLY];
 
 function envelope() {
   return {
@@ -54,6 +56,9 @@ export async function runArk(op, payload, scratch) {
   if (op === "sweep") {
     const out = sweep(payload && typeof payload === "object" ? payload : {});
     return { ...out, true_engine_runtime: true, stored: false };
+  }
+  if (DOOR_ONLY.includes(op)) {
+    return { ok: false, code: "ARK-DOOR-ONLY", message: "ARK account ops run only through FragGate (fraggate_call / POST /v1/fraggate/call).", written: false };
   }
   return { unsupported: true };
 }
