@@ -1,4 +1,4 @@
-/** GET /v1/version: fixed shape, honest (enabled:false, key_pinned:false), HEAD ok, existing /v1/health unchanged. */
+/** GET /v1/version: fixed shape, honest (enabled:false, key_pinned:true, stable), HEAD ok, existing /v1/health unchanged. */
 import assert from "node:assert/strict";
 const handler = (await import("../src/index.js")).default.fetch;
 let n = 0; const ok = (c, m) => { assert.ok(c, m); n++; };
@@ -9,7 +9,11 @@ const b = await res.json();
 ok(Object.keys(b.auto_update).sort().join() === "enabled,key_pinned,last_applied,last_check,last_code,paused", "auto_update keys");
 for (const k of ["ok", "product", "version", "git_sha", "manifest_hash", "update_channel", "auto_update", "live"]) ok(k in b, "has " + k);
 ok(b.version === "2.0.0-rc1" && b.product === "aziel-runtime", "version lock");
-ok(b.auto_update.enabled === false && b.auto_update.key_pinned === false && b.auto_update.last_code === "UPDATE-NO-KEY" && b.live === false, "honest off");
+ok(b.auto_update.enabled === false && b.auto_update.key_pinned === true && b.auto_update.last_code === null && b.live === false, "honest off, key pinned");
+ok(b.update_channel === "stable", "stable only");
+const b2 = await (await handler(new Request("https://aziel-runtime.example/v1/version"), { ...env, UPDATE_CHANNEL: "rc" })).json();
+ok(b2.update_channel === "stable", "env cannot switch to rc");
+ok(b.release_key_fingerprint === "822b409723b81a0dc3fe3f132a2cb95b72b1ec2b2b16c055c526b627132a4ce8", "fingerprint");
 ok(b.manifest_hash === null, "no manifest yet");
 const head = await handler(new Request("https://aziel-runtime.example/v1/version", { method: "HEAD" }), env);
 ok(head.status === 200 && (await head.text()) === "", "HEAD");
