@@ -335,7 +335,7 @@ export const LIVE_OPS = {
   mesh: MESH_LIVE_OPS.slice(),
   memory: MEMORY_CANONICAL_OPS.slice(),
   vibelock: ["analyze", "detect", "health", "skill", "doctor"],
-  ark: ["sweep", "levels", "health", "skill", "doctor", "account_open", "account_append", "account_recall"],
+  ark: ["sweep", "levels", "health", "skill", "doctor", "account_open", "account_append", "account_recall", "account_challenge", "account_session"],
   miragegrid: ["assign", "verify-receipt", "nodes", "bridge", "shuffle", "health", "skill", "doctor", "geo-target", "session-stick", "egress-rotate"],
   mialock: ["map", "search-options", "queries", "doe-match", "coverage", "example", "health", "skill", "doctor"],
   "4dmap": [
