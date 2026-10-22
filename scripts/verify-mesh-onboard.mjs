@@ -570,7 +570,7 @@ function newUserHintsHtml_() { return ""; }
     };
     const parsesOk = (input) => { try { const o = JSON.parse(input); return !!o && typeof o === "object" && !Array.isArray(o) && o.code === "MESH-OK"; } catch { return false; } };
 
-    // AZBot's 62 fuzz cases for #357 (f357/fuzz.mjs). want = Joined or not.
+    // AZBot's fuzz cases for #357 (all 64 entries of f357/fuzz.mjs). want = Joined or not.
     const realReply = JSON.stringify({ ok: true, code: "MESH-OK", node: { id: "n-1", peers: Array.from({ length: 900 }, (_, i) => ({ id: "p" + i, code: i % 2 ? "MESH-OK" : "MESH-NO", note: '{"code":"MESH-OK"} [ ] \\" ' })) } }, null, 2);
     const fuzz = {
       plain: '{"code":"MESH-OK"}', ws: ' \n\t{ "code" \r\n :\n "MESH-OK" \n}\n ', refusal: '{"code":"MESH-REFUSED"}',
@@ -600,7 +600,7 @@ function newUserHintsHtml_() { return ""; }
       real_105k: realReply, real_nested_only: realReply.replace('"code": "MESH-OK"', '"code": "MESH-NO"'),
       oversize_ok: '{"pad":"' + "x".repeat(1100000) + '","code":"MESH-OK"}',
     };
-    assert.equal(Object.keys(fuzz).length, 62, "all 62 AZBot cases");
+    assert.equal(Object.keys(fuzz).length, 64, "every case of AZBot's f357/fuzz.mjs table (64 entries; the review notes say 62)");
     // Valid JSON that we refuse on purpose (fail closed): duplicate code keys, and any escape in a
     // top-level key or in the code value. Everything else must agree with JSON.parse.
     const failClosed = new Set(["dup_ok_ok", "dup_no_ok", "dup_obj_ok", "uni_val", "uni_key", "uni_key_dup_before"]);
@@ -770,5 +770,5 @@ function newUserHintsHtml_() { return ""; }
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
-  console.log(`verify-mesh-onboard: #357 LOWs ok (62 AZBot fuzz cases + 18 more on ${tested.join(", ") || "no awk"}; linear time; 256 KB reply cap; node dies with wrapper; no symlink follow)`);
+  console.log(`verify-mesh-onboard: #357 LOWs ok (64 AZBot fuzz cases + 18 more on ${tested.join(", ") || "no awk"}; linear time; 256 KB reply cap; node dies with wrapper; no symlink follow)`);
 }
