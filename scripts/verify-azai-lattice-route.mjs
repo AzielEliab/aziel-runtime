@@ -1,0 +1,33 @@
+// AZAI-LATTICE-ROUTE-1.0 (lattice plan step 6): GET /v1/azai/lattice, read-only, no new MCP tool.
+import assert from "node:assert/strict";
+import { memoryChainWriterNamespace } from "../src/chainlock/writer-do.js";
+import { append, loadChain, ROSTER } from "../src/chainlock/ops.js";
+import { storeFor } from "../src/chainlock/store.js";
+import { PUBLIC_MCP_TOOLS } from "../src/fraggate/codes.js";
+
+let checks = 0;
+const ok = (c, m) => { assert.ok(c, m); checks++; };
+const { default: worker } = await import("../src/index.js");
+const env = { CHAINLOCK: memoryChainWriterNamespace({}), RUNTIME_TOKEN: "t".repeat(40) };
+for (let i = 0; i < 4; i++) ok((await append(env, { c: "learn", subject: "azai", fact: `route fact ${i}` })).ok, "seed append");
+const snap = async () => JSON.stringify(await Promise.all(ROSTER.map((c) => loadChain(storeFor(env), c))));
+const before = await snap();
+const u = "https://rt.example/v1/azai/lattice";
+const anon = await worker.fetch(new Request(u), env, {});
+ok(anon.status === 200, "public GET 200 (auth parity with chainlock_verify: no token)");
+const body = await anon.json();
+ok(body.read_only === true && body.writes === 0 && body.authorizes_action === false && body.signed === false, "read-only flags");
+ok(body.ok === true && body.chains.find((c) => c.chain === "learn").rows === 4, "review sees seeded rows");
+const authed = await worker.fetch(new Request(u, { headers: { authorization: "Bearer " + "t".repeat(40) } }), env, {});
+const ab = await authed.json();
+ok(authed.status === 200 && JSON.stringify(ab.chains) === JSON.stringify(body.chains), "token gives the same view (no hidden scope)");
+const head = await worker.fetch(new Request(u, { method: "HEAD" }), env, {});
+ok(head.status === 200 && (await head.text()) === "", "HEAD ok");
+const post = await worker.fetch(new Request(u, { method: "POST", body: "{}" }), env, {});
+ok(post.status !== 200, "POST is not a write path");
+for (let i = 0; i < 5; i++) await worker.fetch(new Request(u), env, {});
+ok((await snap()) === before, "0 writes across 8 calls");
+const oa = await (await worker.fetch(new Request("https://rt.example/openapi.json"), env, {})).json();
+ok(oa.paths["/v1/azai/lattice"] && oa.paths["/v1/azai/lattice"].get.operationId === "azai_lattice_review" && !oa.paths["/v1/azai/lattice"].post, "openapi entry, GET only");
+ok(PUBLIC_MCP_TOOLS.length === 36, "MCP tools stay 36");
+console.log(`verify-azai-lattice-route: ${checks} checks pass`);
