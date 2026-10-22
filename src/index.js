@@ -2768,6 +2768,14 @@ function staticPaths(origin, env = {}) {
   const paths = {
     ...runtimeStaticPaths(),
     ...aznewsOpenApiPaths(),
+    "/v1/azai/lattice": {
+      get: {
+        operationId: "azai_lattice_review",
+        summary: "AZAI read-only review of the whole ChainLock lattice: per-chain tips, verify breaks, duplicate stamp/primary/secondary/fork counts, and a cross-chain duplicate check. ?legs=1 adds cross_leg: AZ-OS and AZInterface stored tether tips compared per chain (match/behind/fork/absent). 0 writes; sealed not signed; does not authorize any action. Not an MCP tool.",
+        tags: ["runtime"],
+        responses: { "200": { description: "review" }, "503": { description: "AZAI-LATTICE-UNAVAILABLE (fail closed)" } },
+      },
+    },
     "/v1/health": {
       get: {
         operationId: "catalog_health",
@@ -4330,6 +4338,23 @@ async function handleRequest(request, env, ctx) {
       const out = dispatchPlatformsHttp(request.method, url.pathname, origin, env);
       if (out) {
         return respondHumanOrJson(request, url.pathname, out, extra(url.pathname));
+      }
+    }
+
+    // AZAI-LATTICE-ROUTE-1.0 (lattice plan step 6): read-only whole-lattice review. Public like chainlock_verify; 0 writes; not an MCP tool.
+    if (url.pathname === "/v1/azai/lattice" && (request.method === "GET" || request.method === "HEAD")) {
+      const { reviewLattice } = await import("./azai-lattice-monitor.js");
+      const { storeFor } = await import("./chainlock/store.js");
+      try {
+        const body = await reviewLattice(storeFor(env));
+        if (url.searchParams.get("legs") === "1") {
+          const { compareLegTips } = await import("./azai-leg-tips.js");
+          body.cross_leg = await compareLegTips(env);
+          if (!body.cross_leg.ok) body.ok = false;
+        }
+        return asHead(request, json(body, 200, { "Cache-Control": "no-store" }));
+      } catch (err) {
+        return asHead(request, json({ ok: false, code: "AZAI-LATTICE-UNAVAILABLE", read_only: true, writes: 0, message: "The lattice could not be read, so no review was produced (fail closed)." }, 503, { "Cache-Control": "no-store" }));
       }
     }
 
