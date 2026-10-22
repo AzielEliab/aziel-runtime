@@ -212,8 +212,9 @@ export const DOI_BY_SLUG = {
 export const SHARED_METHOD_PAPER_DOI = "10.5281/zenodo.22257762";
 
 /**
- * Working paper link for each historical DOI. doi.org answers HTTP 410 for every
- * wired DOI (Zenodo records removed 2026-09-02; no live replacement record exists),
+ * Working paper link for each historical DOI. Zenodo record removed (2026-09-02)
+ * for every wired DOI (doi.org still redirects to the removed Zenodo record; no live
+ * replacement record exists),
  * so HTML shows the DOI as text and links the paper copy kept in the product's own
  * GitHub repo (each URL checked HTTP 200 on 2026-10-22). Repo copy, not the deposit.
  */
@@ -235,12 +236,12 @@ export const PAPER_URL_BY_SLUG = Object.freeze({
   trajectorylock: "https://github.com/AzielEliab/trajectorylock/blob/main/docs/TrajectoryLock_v0.1.pdf",
 });
 
-/** HTML for a historical DOI: the DOI as text (doi.org is 410) + the repo paper link. */
+/** HTML for a historical DOI: the DOI as text (Zenodo record removed (2026-09-02)) + the repo paper link. */
 export function historicalDoiHtml(slug, doi, status) {
   const esc = (v) => String(v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   const paper = PAPER_URL_BY_SLUG[slug];
   const label = slug === "zsolver" ? "methodology (repo copy)" : "paper (repo copy)";
-  return `DOI <span class="doi">${esc(doi)}</span> <span class="slug">(${esc(status)}; doi.org 410)</span>${paper ? ` · <a href="${esc(paper)}">${label}</a>` : ""}`;
+  return `DOI <span class="doi">${esc(doi)}</span> <span class="slug">(${esc(status)}) Zenodo record removed (2026-09-02)</span>${paper ? ` · <a href="${esc(paper)}">${label}</a>` : ""}`;
 }
 
 export const DOI_KIND_BY_SLUG = {

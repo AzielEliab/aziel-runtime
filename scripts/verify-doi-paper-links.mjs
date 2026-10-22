@@ -1,5 +1,5 @@
-// Every wired DOI is a Zenodo 410 tombstone (records removed 2026-09-02, no live
-// replacement). HTML keeps each DOI as text and links the product's repo paper;
+// Every wired DOI: Zenodo record removed (2026-09-02), no live replacement
+// (doi.org answers 302 to the removed Zenodo record). HTML keeps each DOI as text and links the product's repo paper;
 // it must never link https://doi.org/ (dead). Data fields (cite.json doi/doi_url,
 // JSON-LD identifier) are unchanged.
 import worker, { PRODUCTS } from "../src/index.js";
@@ -31,12 +31,14 @@ const pages = { "/": await (await get("/")).text() };
 for (const slug of slugs) pages[`/p/${slug}`] = await (await get(`/p/${slug}`)).text();
 for (const [path, page] of Object.entries(pages)) {
   ok(!/href="https?:\/\/(dx\.)?doi\.org\//.test(page), `${path}: no dead doi.org href`);
+  ok(!page.includes("doi.org 410"), `${path}: no unverified 'doi.org 410' wording`);
 }
 for (const slug of slugs) {
   ok(pages["/"].includes(`<span class="doi">${DOI_BY_SLUG[slug]}</span>`), `/ keeps DOI text for ${slug}`);
   ok(pages["/"].includes(`href="${PAPER_URL_BY_SLUG[slug]}"`), `/ links ${slug} paper`);
   ok(pages[`/p/${slug}`].includes(`<span class="doi">${DOI_BY_SLUG[slug]}</span>`), `/p/${slug} keeps DOI text`);
   ok(pages[`/p/${slug}`].includes(`href="${PAPER_URL_BY_SLUG[slug]}"`), `/p/${slug} links its paper`);
+  ok(pages[`/p/${slug}`].includes("Zenodo record removed (2026-09-02)"), `/p/${slug} says Zenodo record removed (2026-09-02)`);
 }
 
 if (failed) {
