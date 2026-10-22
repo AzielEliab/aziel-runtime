@@ -1,13 +1,14 @@
 // USER-SIGNIN-ARK-1.0 §3: ARK-ACCOUNT-1.0 key schedule vectors and invariants.
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { deriveArkAccount, normalizeUsername, signBytes, verifySig, sealData, openData, vaultIdOf, ArkInputError } from "../src/account/ark-kdf.js";
+import { docHashOf, deriveArkAccount, normalizeUsername, signBytes, verifySig, sealData, openData, vaultIdOf, ArkInputError } from "../src/account/ark-kdf.js";
 let n = 0;
 const fx = JSON.parse(readFileSync(new URL("../fixtures/ark-account-vectors.json", import.meta.url)));
 for (const v of fx.vectors) {
   const a = await deriveArkAccount(v.username, v.password);
   assert.equal(a.pub, v.pub); assert.equal(a.vault_id, v.vault_id); assert.equal(a.rl_subject, v.rl_subject); n += 3;
   assert.equal(await vaultIdOf(a.pub), a.vault_id); n++;
+  assert.equal(await docHashOf(a.docKey, v.doc_plaintext), v.doc_hash, "doc_hash parity"); n++;
 }
 const [base, caseV, wrong, , accent] = fx.vectors;
 assert.equal(caseV.vault_id, base.vault_id, "username is case-folded"); n++;
@@ -18,7 +19,7 @@ assert.equal(wrong.rl_subject, base.rl_subject, "rate subject is username-only, 
 const a = await deriveArkAccount("aziel", "correct horse battery");
 const json = JSON.stringify(a);
 assert.ok(!json.includes("correct horse"), "no plaintext"); n++;
-assert.deepEqual(Object.keys(JSON.parse(json)).sort(), ["encKey", "pub", "rl_subject", "signKey", "spec", "vault_id"]); n++;
+assert.deepEqual(Object.keys(JSON.parse(json)).sort(), ["docKey", "encKey", "pub", "rl_subject", "signKey", "spec", "vault_id"]); n++;
 assert.equal(JSON.stringify(a.signKey), "{}"); assert.equal(JSON.stringify(a.encKey), "{}"); n += 2;
 assert.equal(a.signKey.extractable, true); // pkcs8-imported; never exported by the module (grep-checked below)
 const src = readFileSync(new URL("../src/account/ark-kdf.js", import.meta.url), "utf8");
