@@ -116,6 +116,8 @@
  * CORS *. Apache-2.0. Forks welcome.
  * Author: Aziel Eliab. Identity is Aziel Eliab only. Do not invent DOIs.
  */
+import { arkFirewall } from "./account/firewall.js";
+import { signinHelperHtml, SIGNIN_HELPER_HEADERS } from "./account/signin-helper.js";
 import { tokensCss } from "./lockstep/tokens-css.js";
 import { DESIGN_TOKENS } from "./lockstep/design-tokens.js";
 import {
@@ -721,9 +723,14 @@ const PRODUCTS_RAW = [
       { op: "sweep", method: "POST", summary: "Mode E heuristics only (PE/ELF/Mach-O, powershell -enc, curl|sh). No clamscan. Payload is not stored." },
       { op: "levels", method: "GET", summary: "Auto-lock seconds and decoy counts. Behavior, not cryptography." },
       { op: "doctor", method: "GET", summary: "UI alias of health. Same FragGate backend as the Worker UI button." },
+      { op: "account_open", method: "POST", summary: "ARK account mode (USER-SIGNIN-ARK-1.0), default OFF. Username+password or vault_pub opens a vault. A wrong password opens a different, empty vault. No yes/no." },
+      { op: "account_append", method: "POST", summary: "ARK account mode, default OFF. Append one user-signed, encrypted, sealed row. Append-only. No password, hash of it, or private key is stored." },
+      { op: "account_recall", method: "POST", summary: "ARK account mode, default OFF. Recall that vault's rows; only the user's key decrypts them. A lost password means the history stays unreadable." },
+      { op: "account_challenge", method: "POST", summary: "ARK account mode, default OFF. Get a single-use nonce for a vault_pub. The client signs it with its locally derived key; no username or password is sent." },
+      { op: "account_session", method: "POST", summary: "ARK account mode, default OFF. Send vault_pub + nonce + user_sig; the runtime verifies against the vault's receipt chain and returns a 15-minute session. A wrong password simply opens a different, empty vault." },
     ],
     example: { text: "hello world" },
-    banner: "The ARK is not a kernel. Hosted API never unlocks or encrypts with a passphrase and never stores vaults. Sweep is Mode E heuristics only.",
+    banner: "The ARK is not a kernel. Hosted API never stores vaults, passphrases, password hashes or private keys. ARK account mode (account_*) is default OFF; when on, keys are derived in memory per call and only ciphertext is stored. Sweep is Mode E heuristics only.",
   },
   {
     slug: "azai",
@@ -2764,6 +2771,14 @@ function staticPaths(origin, env = {}) {
   const paths = {
     ...runtimeStaticPaths(),
     ...aznewsOpenApiPaths(),
+    "/v1/azai/lattice": {
+      get: {
+        operationId: "azai_lattice_review",
+        summary: "AZAI read-only review of the whole ChainLock lattice: per-chain tips, verify breaks, duplicate stamp/primary/secondary/fork counts, and a cross-chain duplicate check. ?legs=1 adds cross_leg: AZ-OS and AZInterface stored tether tips compared per chain (match/behind/fork/absent). 0 writes; sealed not signed; does not authorize any action. Not an MCP tool.",
+        tags: ["runtime"],
+        responses: { "200": { description: "review" }, "503": { description: "AZAI-LATTICE-UNAVAILABLE (fail closed)" } },
+      },
+    },
     "/v1/health": {
       get: {
         operationId: "catalog_health",
@@ -3828,7 +3843,10 @@ async function handleMcp(request, env, origin, ctx) {
   }
   if (method === "tools/call") {
     const name = params.name;
-    const args = params.arguments || params.input || {};
+    // USER-SIGNIN-ARK-1.0 §4: scrub ark account credentials before the guard, telemetry or jobs see args.
+    const args = await arkFirewall(params.arguments || params.input || {});
+    if (params.arguments !== undefined) params.arguments = args;
+    if (params.input !== undefined) params.input = args;
     if (!isListedMcpTool(name)) {
       const shown = typeof name === "string" ? name : "";
       return rpcError(id, -32602, `Unknown tool: ${shown}`, wire, hallucRefuse(shown));
@@ -3938,13 +3956,21 @@ async function handleFraggateHttp(request, url, origin, env, ctx) {
     const status = view.code === "job_not_found" ? 404 : view.status === "refused" ? 400 : 200;
     return asHead(request, json({ ...view, ...confirmConsentHonesty() }, status, extra));
   }
-  if (url.pathname === "/v1/fraggate/call" && request.method === "POST") {
+  if ((url.pathname === "/v1/fraggate/call" || url.pathname === "/v1/ark/account") && request.method === "POST") {
     let args = {};
     try {
       args = await request.json();
     } catch {
       args = {};
     }
+    if (url.pathname === "/v1/ark/account") {
+      // USER-SIGNIN-ARK-1.0 §12.3: leg-facing alias; always the ark slug, account_* ops only.
+      const a = args && typeof args === "object" && !Array.isArray(args) ? args : {};
+      const op = String(a.op || "");
+      if (!/^account_(open|append|recall|challenge|session)$/.test(op)) return json({ ok: false, code: "ARK-INPUT", spec: "ARK-ACCOUNT-1.0", written: false }, 400, extra);
+      args = { ...a, slug: "ark", op, name: undefined, product: undefined, tool: undefined };
+    }
+    args = await arkFirewall(args);
     if (isAzGeneratorHallucSlug(args.slug || args.name || args.product)) {
       return json({ ...azGeneratorCallRefuse(), door: "fraggate" }, 400, extra);
     }
@@ -4185,6 +4211,10 @@ async function handleRequest(request, env, ctx) {
       );
     }
 
+    if (url.pathname === "/ark/signin" && (request.method === "GET" || request.method === "HEAD")) {
+      // USER-SIGNIN-ARK-1.0 §12.2: static, no-network key helper (credentials never leave the page).
+      return new Response(request.method === "HEAD" ? null : signinHelperHtml(), { status: 200, headers: SIGNIN_HELPER_HEADERS });
+    }
     if ((url.pathname === "/about" || url.pathname === "/v1/about") && (request.method === "GET" || request.method === "HEAD")) {
       return asHead(
         request,
@@ -4325,6 +4355,23 @@ async function handleRequest(request, env, ctx) {
       }
     }
 
+    // AZAI-LATTICE-ROUTE-1.0 (lattice plan step 6): read-only whole-lattice review. Public like chainlock_verify; 0 writes; not an MCP tool.
+    if (url.pathname === "/v1/azai/lattice" && (request.method === "GET" || request.method === "HEAD")) {
+      const { reviewLattice } = await import("./azai-lattice-monitor.js");
+      const { storeFor } = await import("./chainlock/store.js");
+      try {
+        const body = await reviewLattice(storeFor(env));
+        if (url.searchParams.get("legs") === "1") {
+          const { compareLegTips } = await import("./azai-leg-tips.js");
+          body.cross_leg = await compareLegTips(env);
+          if (!body.cross_leg.ok) body.ok = false;
+        }
+        return asHead(request, json(body, 200, { "Cache-Control": "no-store" }));
+      } catch (err) {
+        return asHead(request, json({ ok: false, code: "AZAI-LATTICE-UNAVAILABLE", read_only: true, writes: 0, message: "The lattice could not be read, so no review was produced (fail closed)." }, 503, { "Cache-Control": "no-store" }));
+      }
+    }
+
     if (url.pathname === "/v1/skill" && (request.method === "GET" || request.method === "HEAD")) {
       return asHead(
         request,
@@ -4351,7 +4398,7 @@ async function handleRequest(request, env, ctx) {
       );
     }
 
-    if (url.pathname === "/v1/fraggate" || url.pathname.startsWith("/v1/fraggate/")) {
+    if (url.pathname === "/v1/fraggate" || url.pathname.startsWith("/v1/fraggate/") || url.pathname === "/v1/ark/account") {
       return handleFraggateHttp(request, url, origin, env, ctx);
     }
 
@@ -5037,6 +5084,10 @@ async function handleRequest(request, env, ctx) {
       const product = BY_SLUG[m[1].toLowerCase()];
       if (!product) {
         return json({ error: "unknown product", slug: m[1], known: PRODUCTS.map((p) => p.slug) }, 404);
+      }
+      // USER-SIGNIN-ARK-1.0: never proxy ARK account credentials to a product Worker. FragGate only.
+      if (product.slug === "ark" && /^account[_-]/i.test(m[2])) {
+        return json({ ok: false, code: "ARK-DOOR-ONLY", door: "fraggate", hint: "POST /v1/fraggate/call {slug:\"ark\",op:\"account_open\"}", written: false }, 400);
       }
       return proxy(product, m[2], request, env);
     }
