@@ -6,9 +6,9 @@
  */
 
 import { composeLedgerEntry } from "../fraggate/ledger.js";
-import { CARD_CAP, CL_VERSION, GENESIS, cardBytes, composeChainlockStamp, toCard } from "./ops.js";
+import { CARD_CAP, CL_VERSION, GENESIS, cardBytes, composeChainlockStamp, latticeRefuse, toCard } from "./ops.js";
 import { tipOf } from "./store.js";
-import { LatticeError, latticeTips } from "../dual-lattice.js";
+import { LatticeError, latticeTips, tiebreakTip } from "../dual-lattice.js";
 
 function offlineSecondaries(rows) {
   const out = [];
@@ -212,12 +212,14 @@ export class ChainWriter {
           rows: legacyRows,
           latticeTips: tips,
           hasOffline: async (secondary) => Boolean(await this._get("off:" + secondary)),
+          // LATTICE-TIEBREAK-1.0: tiebreak tip in meta.tb.
+          tiebreakPrev: meta.tb || (legacyRows ? tiebreakTip(legacyRows) : null),
         });
       } catch (err) {
         if (err instanceof LatticeError) {
           return {
             ok: false,
-            refuse: err.code === "LATTICE-DOUBLE" ? "lattice-double" : "lattice-username",
+            refuse: latticeRefuse(err.code),
             code: err.code,
             message: err.message,
             written: false,
@@ -240,6 +242,12 @@ export class ChainWriter {
       if (record.lattice.offline === true) await this._put("off:" + record.lattice.secondary, nextSeq);
     } else if (meta.lt) {
       nextMeta.lt = meta.lt;
+    }
+    const tb = record && record.lattice && record.lattice.tiebreak;
+    if (tb && tb.status === "synced") {
+      nextMeta.tb = tb.hash;
+    } else if (meta.tb) {
+      nextMeta.tb = meta.tb;
     }
     await this._put("meta", nextMeta);
     if (capCommit) await capCommit();
@@ -402,6 +410,8 @@ export class ChainWriter {
     const meta = { seq: rows.length, tip: tipOf(last, "") };
     if (lt.count) meta.lt = { primary: lt.primary, secondary: lt.secondary };
     for (const secondary of offlineSecondaries(rows)) await this._put("off:" + secondary, 1);
+    const tbTip = tiebreakTip(rows);
+    if (tbTip !== "0".repeat(64)) meta.tb = tbTip;
     await this._put("meta", meta);
     return { ok: true, n: rows.length };
   }

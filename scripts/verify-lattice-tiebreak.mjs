@@ -1,6 +1,6 @@
 // LATTICE-TIEBREAK-1.0 (DRAFT): vectors, refusals, concurrency, legacy rows still verify.
 import assert from "node:assert/strict";
-import { planLattice, verifyLattice, latticeTiebreak, latticeOfflineSecondary, latticePrimary, latticeOnlineSecondary, LATTICE_GENESIS as Z } from "../src/dual-lattice.js";
+import { planLattice, verifyLattice, latticeTiebreak, latticeOfflineSecondary, latticePrimary, latticeOnlineSecondary, tiebreakIndexKey, LATTICE_GENESIS as Z } from "../src/dual-lattice.js";
 import { canonicalize, sha256Hex } from "../src/session-core.js";
 
 let checks = 0;
@@ -70,4 +70,34 @@ ok(new Set(hashes).size === 48, "0 duplicate tiebreak hashes");
 ok(new Set(chain.map((r) => r.lattice.primary)).size === chain.length, "0 duplicate primary");
 const cv = await verifyLattice(chain);
 ok(cv.ok && cv.tiebreak.synced_rows === 48, "concurrent chain verifies");
+// Writer path: sync flag through composeChainlockStamp with the writer's tb index (hasSynced) and meta tip.
+{
+  const { composeChainlockStamp } = await import("../src/chainlock/ops.js");
+  const idx = new Set(); const offs = new Set(); let tip = null; let lt = null;
+  const put = async (src) => {
+    const st = await composeChainlockStamp(src, { prev: Z, latticeTips: lt, hasOffline: async (x) => offs.has(x), tiebreakPrev: tip, hasSynced: async (k) => idx.has(k) });
+    lt = { primary: st.lattice.primary, secondary: st.lattice.secondary };
+    if (st.lattice.offline) offs.add(st.lattice.secondary);
+    if (st.lattice.tiebreak) { idx.add(tiebreakIndexKey(src.username, st.lattice.document_hash)); tip = st.lattice.tiebreak.hash; }
+    return st;
+  };
+  await put({ fact: "doc1", offline: true, username: "zz" });
+  const sy = await put({ fact: "doc1", sync: "true", username: "zz" });
+  ok(sy.lattice.tiebreak.status === "synced" && sy.lattice.tiebreak.prev === Z, "writer-path sync writes synced block");
+  await assert.rejects(put({ fact: "doc2", sync: true, username: "zz" }), (e) => e.code === "LATTICE-SYNC-NO-OFFLINE"); checks++;
+  const plain = await put({ fact: "doc3" });
+  ok(!("tiebreak" in plain.lattice), "plain online row has no tiebreak block");
+}
+// Real chainlock_append path (ops.append -> Durable ChainWriter): sync flag reaches the writer.
+{
+  const { append } = await import("../src/chainlock/ops.js");
+  const { DurableStore } = await import("../src/chainlock/store.js");
+  const { memoryChainWriterNamespace } = await import("../src/chainlock/writer-do.js");
+  const ns = memoryChainWriterNamespace({});
+  const o = await append(new DurableStore(ns), { c: "session", fact: "e2e doc", offline: true, username: "e2e" });
+  ok(o.ok !== false && !(o.stamp && o.stamp.lattice && o.stamp.lattice.tiebreak), "e2e offline append: no tiebreak block");
+  const y = await append(new DurableStore(ns), { c: "session", fact: "e2e doc", sync: true, username: "e2e" });
+  ok(y.ok !== false && y.stamp && y.stamp.lattice.tiebreak && y.stamp.lattice.tiebreak.status === "synced", "e2e sync append writes synced block");
+  globalThis.__tbNs = ns;
+}
 console.log(`verify-lattice-tiebreak: ${checks} checks pass`);
