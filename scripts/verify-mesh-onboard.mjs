@@ -31,3 +31,83 @@ console.log("verify-mesh-onboard: ok");
   console.log("verify-mesh-onboard: hints popup ok");
 }
 function newUserHintsHtml_() { return ""; }
+
+// MESH-ONBOARD-1.0 real node: the one-click script starts a local FED-MESH node with its own key,
+// registers it on the relay with a signed statement, and only then says the app is a mesh node.
+{
+  const { spawn } = await import("node:child_process");
+  const runSh = (file, env) =>
+    new Promise((resolve) => {
+      const child = spawn("sh", [file], { env, stdio: ["ignore", "pipe", "pipe"] });
+      let stdout = "";
+      let stderr = "";
+      const timer = setTimeout(() => child.kill("SIGKILL"), 60000);
+      child.stdout.on("data", (c) => (stdout += c));
+      child.stderr.on("data", (c) => (stderr += c));
+      child.on("close", (status) => {
+        clearTimeout(timer);
+        resolve({ status, stdout, stderr });
+      });
+    });
+  const { mkdirSync: mkd, mkdtempSync, rmSync, readFileSync: rfs, writeFileSync: wfs, readdirSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const { fileURLToPath } = await import("node:url");
+  const { startRelayServer } = await import("../src/fed-mesh/local-http.js");
+  const { startInstance } = await import("../src/fed-mesh/instance.js");
+  const repo = fileURLToPath(new URL("..", import.meta.url));
+  const relay = await startRelayServer();
+  const origin = relay.url.replace(/\/v1\/mesh\/relay$/, "");
+  const root = mkdtempSync(join(tmpdir(), "onboard-"));
+  try {
+    // Signed heartbeat on the relay chain.
+    const probe = await startInstance({ dataDir: join(root, "probe"), relays: [relay.url] });
+    assert.equal((await probe.register(relay.url)).ok, true);
+    const hb = await probe.heartbeat(relay.url);
+    assert.equal(hb.ok, true, hb.message);
+    assert.equal(hb.op, "heartbeat");
+    await probe.stop();
+
+    const plan = installPlan({ origin, slug: "aziel-runtime", version: "9.9.9", products: [{ slug: "aziel-runtime" }], sourceRef: "0123456789abcdef0123456789abcdef01234567" });
+    const node = plan.steps.find((s) => s.id === "node");
+    assert.ok(node, "plan has a real node step");
+    assert.equal(node.relay, `${origin}/v1/mesh/relay`);
+    assert.match(node.source, /codeload\.github\.com\/AzielEliab\/aziel-runtime\/tar\.gz\/0123456789abcdef0123456789abcdef01234567$/);
+    assert.equal(installPlan({ origin, slug: "aziel-runtime", products: [{ slug: "aziel-runtime" }], sourceRef: "not-a-sha" }).steps.find((s) => s.id === "node").source_ref, "main");
+    const script = installScript(plan);
+    const scriptPath = join(root, "install.sh");
+    wfs(scriptPath, script);
+    const welcome = NEW_USER_HINTS.find((h) => h.id === "welcome").text;
+
+    // Real run: the node starts and registers before the welcome hint prints.
+    const home = join(root, "home");
+    const run = await runSh(scriptPath, { ...process.env, HOME: home, AZIEL_MESH_HOME: join(home, "mesh"), AZIEL_MESH_SRC_DIR: repo });
+    assert.equal(run.status, 0, run.stderr);
+    assert.match(run.stdout, /Mesh node #[A-Z0-9]+ is running/);
+    assert.ok(run.stdout.includes(welcome), "welcome hint after registration");
+    const nodeDir = join(home, "mesh", readdirSync(join(home, "mesh")).find((n) => n.startsWith("aziel-runtime-9.9.9-")));
+    const pid = Number(rfs(join(nodeDir, "node.pid"), "utf8").trim());
+    const handle = (run.stdout.match(/Mesh node (#[A-Z0-9]+)/) || [])[1];
+    try {
+      const dir = await (await fetch(`${relay.url}/directory?handle=${encodeURIComponent(handle)}`)).json();
+      assert.equal(dir.ok, true, "relay has the new node's signed register");
+      assert.ok(dir.seq >= 1);
+      process.kill(pid, 0);
+    } finally {
+      try { process.kill(pid, "SIGTERM"); } catch { /* gone */ }
+    }
+
+    // No node source: no node, and the script does not claim one.
+    const empty = join(root, "empty");
+    mkd(empty, { recursive: true });
+    const home2 = join(root, "home2");
+    const fail = await runSh(scriptPath, { ...process.env, HOME: home2, AZIEL_MESH_HOME: join(home2, "mesh"), AZIEL_MESH_SRC_DIR: empty });
+    assert.equal(fail.status, 0, fail.stderr);
+    assert.equal(fail.stdout.includes(welcome), false, "no welcome hint without a registered node");
+    assert.match(fail.stdout, /not a mesh node yet/);
+  } finally {
+    await relay.stop();
+    rmSync(root, { recursive: true, force: true });
+  }
+  console.log("verify-mesh-onboard: real node ok");
+}

@@ -12,6 +12,7 @@
  * present-not-demonstrated. That page is not an app-store release.
  *   node qnm-node/fed-instance.mjs --data ./data/a --port 8781 --relay http://127.0.0.1:8780/v1/mesh/relay
  *   node qnm-node/fed-instance.mjs --data ./data/b --port 8782 --relays http://127.0.0.1:8780/v1/mesh/relay,http://127.0.0.1:8783/v1/mesh/relay
+ *   node qnm-node/fed-instance.mjs --data ./data/a --relay https://<origin>/v1/mesh/relay --product <slug> --heartbeat-sec 180
  *   node qnm-node/fed-instance.mjs --data ./data/a --port 8781 --host 0.0.0.0 --advertise 192.168.1.10 --relay http://127.0.0.1:8780/v1/mesh/relay
  */
 
@@ -37,6 +38,8 @@ const relays = relaysArg
 const passphrase = arg("--passphrase", "");
 const armArg = arg("--arm", "");
 const fixture = process.argv.includes("--fixture");
+const product = arg("--product", "mesh");
+const heartbeatSec = Math.max(0, Number(arg("--heartbeat-sec", "0")) || 0);
 const node = await startInstance({ dataDir: data, port, host, advertise, relays, passphrase, fixture });
 console.log(JSON.stringify({
   handle: node.handle,
@@ -72,6 +75,16 @@ if (relays.length > 1) {
     results: registered.results.map((row) => ({ url: row.url, ok: row.ok === true, code: row.code, bearer: row.bearer || null })),
   }));
 } else if (relays.length === 1) {
-  const registered = await node.register(relays[0]);
-  console.log(JSON.stringify({ registered: registered.ok === true, code: registered.code, seq: registered.seq, bearer: registered.bearer || null, hole_punch: false }));
+  const registered = await node.register(relays[0], { product });
+  console.log(JSON.stringify({ registered: registered.ok === true, handle: node.handle, product, code: registered.code, seq: registered.seq, bearer: registered.bearer || null, hole_punch: false }));
+  if (registered.ok === true && heartbeatSec > 0) {
+    // MESH-ONBOARD-1.0 node: keep a signed heartbeat on the relay chain while this process runs.
+    const beat = async () => {
+      const out = await node.heartbeat(relays[0], "live");
+      console.log(JSON.stringify({ heartbeat: out.ok === true, handle: node.handle, code: out.code, seq: out.seq || null, at: new Date().toISOString() }));
+    };
+    setInterval(() => {
+      beat().catch((err) => console.log(JSON.stringify({ heartbeat: false, error: String(err && err.message ? err.message : err) })));
+    }, Math.max(15, heartbeatSec) * 1000);
+  }
 }

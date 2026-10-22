@@ -46,7 +46,16 @@ export function productHost(product) {
   return `https://${w}.vibelock.workers.dev`;
 }
 
-export function installPlan({ origin, slug, version, products = [] }) {
+export const NODE_SOURCE_REPO = "https://github.com/AzielEliab/aziel-runtime";
+const SHA_RE = /^[0-9a-f]{40}$/;
+
+/** Pinned source for the local FED-MESH node: the deployed commit when known, else main. */
+export function nodeSourceRef(sourceRef) {
+  const ref = String(sourceRef || "").trim().toLowerCase();
+  return SHA_RE.test(ref) ? ref : "main";
+}
+
+export function installPlan({ origin, slug, version, products = [], sourceRef = "" }) {
   const s = String(slug || "").toLowerCase();
   if (!SLUG_RE.test(s)) return { ok: false, spec: ONBOARD_SPEC, code: "ONBOARD-BAD-SLUG", message: "GET /v1/mesh/install?slug=<slug>&version=<v>.", fail_closed: true };
   const product = products.find((p) => p && p.slug === s) || null;
@@ -65,6 +74,16 @@ export function installPlan({ origin, slug, version, products = [] }) {
       { n: 2, id: "install", url: host ? `${host}/install.sh` : null, note: host ? null : "Runtime-hosted product: no separate installer." },
       { n: 3, id: "join", method: "POST", url: `${base}/v1/mesh/join`, body: { product: s, node_id: `${s}-${v.toLowerCase().replace(/[^a-z0-9.-]/g, "-")}-<random>`, presence: "live", heartbeat_mode: "idle" }, note: "Every app version is its own node: a new random suffix per install." },
       { n: 4, id: "heartbeat", method: "POST", url: `${base}/v1/mesh/heartbeat`, note: "idle every 2-5 min; miss 3 beats and the node is stale, not deleted." },
+      {
+        n: 5,
+        id: "node",
+        source: `${NODE_SOURCE_REPO.replace("https://github.com/", "https://codeload.github.com/")}/tar.gz/${nodeSourceRef(sourceRef)}`,
+        source_ref: nodeSourceRef(sourceRef),
+        relay: `${base}/v1/mesh/relay`,
+        run: "node qnm-node/fed-instance.mjs --data <dir> --relay <relay> --product <slug> --heartbeat-sec 180",
+        requires: "node >= 20, curl, tar",
+        note: "Starts a local FED-MESH node with its own Ed25519 key and data directory, registers it on the relay with a signed statement, and keeps a signed heartbeat. Without node 20 the install stops at presence and does not call itself a mesh node.",
+      },
     ],
     node_per_version: true,
     hints: NEW_USER_HINTS,
@@ -81,15 +100,46 @@ export function installScript(plan) {
   if (!plan || !plan.ok) return `#!/bin/sh\necho ${shq((plan && plan.code) || "ONBOARD-REFUSED")} >&2\nexit 1\n`;
   const join = plan.steps[2];
   const install = plan.steps[1];
+  const nodeStep = plan.steps.find((s) => s.id === "node");
+  const welcome = plan.hints.find((h) => h.id === "welcome");
   const lines = [
     "#!/bin/sh",
-    `# ${ONBOARD_SPEC}: install ${plan.slug} ${plan.version}, then join the mesh as its own node. Author: Aziel Eliab.`,
+    `# ${ONBOARD_SPEC}: install ${plan.slug} ${plan.version}, then start a local FED-MESH node for it. Author: Aziel Eliab.`,
     "set -eu",
     install.url ? `curl -fsSL ${shq(install.url)} | sh` : `echo ${shq("No separate installer for " + plan.slug + ".")}`,
     'RND=$(od -An -N4 -tx1 /dev/urandom | tr -d " \\n")',
     `NODE=${shq(join.body.node_id.replace("-<random>", ""))}-$RND`,
-    `curl -fsS -X POST ${shq(join.url)} -H 'content-type: application/json' -d "{\\"product\\":\\"${plan.slug}\\",\\"node_id\\":\\"$NODE\\",\\"presence\\":\\"live\\",\\"heartbeat_mode\\":\\"idle\\"}" >/dev/null && echo "Joined the mesh as $NODE."`,
-    ...plan.hints.filter((h) => h.when === "first_run").map((h) => `echo ${shq("Tip: " + h.text)}`),
+    `curl -fsS -X POST ${shq(join.url)} -H 'content-type: application/json' -d "{\\"product\\":\\"${plan.slug}\\",\\"node_id\\":\\"$NODE\\",\\"presence\\":\\"live\\",\\"heartbeat_mode\\":\\"idle\\"}" >/dev/null && echo "Presence posted as $NODE." || echo "Presence post failed; continuing."`,
+    // Step 5: a real local node (own key, own data dir, signed register + signed heartbeats on the relay).
+    'MESH_HOME="${AZIEL_MESH_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/aziel-mesh}"',
+    'DIR="$MESH_HOME/$NODE"',
+    'NODE_OK=0',
+    'if command -v node >/dev/null 2>&1 && [ "$(node -p "process.versions.node.split(\'.\')[0]" 2>/dev/null || echo 0)" -ge 20 ]; then',
+    '  mkdir -p "$DIR"',
+    '  if [ -n "${AZIEL_MESH_SRC_DIR:-}" ]; then SRC="$AZIEL_MESH_SRC_DIR"; else',
+    `    SRC="$MESH_HOME/src-${nodeStep.source_ref}"`,
+    `    if [ ! -f "$SRC/qnm-node/fed-instance.mjs" ]; then mkdir -p "$SRC" && curl -fsSL ${shq(nodeStep.source)} | tar -xz -C "$SRC" --strip-components=1; fi`,
+    '  fi',
+    `  nohup node "$SRC/qnm-node/fed-instance.mjs" --data "$DIR/data" --relay ${shq(nodeStep.relay)} --product ${shq(plan.slug)} --heartbeat-sec 180 > "$DIR/node.log" 2>&1 &`,
+    '  echo $! > "$DIR/node.pid"',
+    '  i=0',
+    '  while [ $i -lt 30 ]; do',
+    '    if grep -q \'"registered":true\' "$DIR/node.log" 2>/dev/null; then NODE_OK=1; break; fi',
+    '    if ! kill -0 "$(cat "$DIR/node.pid")" 2>/dev/null; then break; fi',
+    '    i=$((i+1)); sleep 1',
+    '  done',
+    'else',
+    "  echo 'Node 20 or newer is not installed, so no local mesh node was started. Presence only.'",
+    'fi',
+    'if [ "$NODE_OK" = 1 ]; then',
+    `  HANDLE=$(grep -o '"handle":"[^"]*"' "$DIR/node.log" | tail -1 | cut -d'"' -f4)`,
+    '  echo "Mesh node $HANDLE is running (pid $(cat "$DIR/node.pid"), data $DIR). Stop: kill $(cat "$DIR/node.pid")"',
+    `  echo ${shq("Tip: " + welcome.text)}`,
+    'else',
+    '  [ -f "$DIR/node.pid" ] && kill "$(cat "$DIR/node.pid")" 2>/dev/null || true',
+    "  echo 'The local mesh node did not register, so this app is not a mesh node yet.'",
+    'fi',
+    ...plan.hints.filter((h) => h.when === "first_run" && h.id !== "welcome").map((h) => `echo ${shq("Tip: " + h.text)}`),
     "echo 'The alternate internet is not live yet. This node is ready for it.'",
     "",
   ];

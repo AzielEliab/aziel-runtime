@@ -333,6 +333,22 @@ export async function openInstance({ dataDir, relays = [], passphrase = "", iter
       }
       return { ...out, bearer: classified.mode, hole_punch: false, get_never_enables: true, url: classified.url };
     },
+    /** Signed FED-MESH heartbeat on this relay's chain (same seq / prev chain as register). */
+    async heartbeat(relayUrl, presence = "live") {
+      const classified = classifyPeerUrl(relayUrl, { role: "relay" });
+      if (!classified.ok) return classified;
+      const bucket = chainFor(node, classified.url);
+      const seq = bucket.seq + 1;
+      const body = await signAct(node.identity, "heartbeat", { presence, seq, prev: bucket.prev });
+      const out = await node.post(`${classified.url}/heartbeat`, body);
+      if (out.ok) {
+        bucket.seq = seq;
+        bucket.prev = out.statement_hash;
+        node.chain = { seq, prev: out.statement_hash };
+        await node.persist();
+      }
+      return { ...out, url: classified.url };
+    },
     async registerAll(extra = {}) {
       const relays = (extra.relays || node.relays).slice();
       const results = [];
