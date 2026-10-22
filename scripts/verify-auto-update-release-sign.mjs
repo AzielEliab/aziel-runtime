@@ -1,0 +1,53 @@
+/** AUTO-UPDATE-1.0 release signer: fail-closed paths + workflow guards. Uses a throwaway key; the real key never leaves the Actions secret. */
+import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, writeFileSync, readFileSync, existsSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { generateKeyPairSync } from "node:crypto";
+let n = 0; const ok = (c, m) => { assert.ok(c, m); n++; };
+const d = mkdtempSync(tmpdir() + "/aurs-"); const art = d + "/aziel-runtime-2.0.0.tgz"; writeFileSync(art, "bytes");
+const pem = generateKeyPairSync("ed25519").privateKey.export({ type: "pkcs8", format: "pem" });
+const base = { TAG: "v2.0.0", VERSION_SEQ: "900", GIT_SHA: "e".repeat(40), RELEASE_URL_BASE: "https://x/rel", PRERELEASE: "false" };
+const run = (env) => { try { execFileSync("node", ["scripts/auto-update-sign-release.mjs", art, d + "/o.json"], { env: { PATH: process.env.PATH, ...env }, stdio: "pipe" }); return { code: 0 }; } catch (e) { return { code: e.status, err: String(e.stderr) }; } };
+let r = run(base); ok(r.code === 1 && /secret missing/.test(r.err), "missing secret refuses");
+r = run({ ...base, AUTO_UPDATE_SIGNING_KEY: pem, PRERELEASE: "true" }); ok(r.code === 1 && /stable only/.test(r.err), "prerelease refused");
+r = run({ ...base, AUTO_UPDATE_SIGNING_KEY: pem, PRERELEASE: "" }); ok(r.code === 1, "unknown release type refused");
+r = run({ ...base, AUTO_UPDATE_SIGNING_KEY: pem, VERSION_SEQ: "4294967301.5" }); ok(r.code === 1 && /VERSION_SEQ/.test(r.err), "bad seq refused");
+r = run({ ...base, AUTO_UPDATE_SIGNING_KEY: "-----BEGIN PRIVATE KEY-----\nzz\n-----END PRIVATE KEY-----" }); ok(r.code === 1, "garbage key refused");
+r = run({ ...base, AUTO_UPDATE_SIGNING_KEY: pem }); ok(r.code === 1 && /pinned key/.test(r.err) && !r.err.includes("PRIVATE"), "non-pinned key refused, key not echoed");
+ok(!existsSync(d + "/o.json"), "no envelope written on refusal");
+const wf = readFileSync(existsSync(".github/workflows/auto-update-release.yml") ? ".github/workflows/auto-update-release.yml" : "ci/auto-update-release.yml", "utf8");
+ok(/prerelease == false/.test(wf) && /draft == false/.test(wf), "workflow skips prereleases/drafts");
+ok(/AUTO_UPDATE_SIGNING_KEY missing: refusing/.test(wf), "workflow fails closed on missing secret");
+ok(/types: \[published\]/.test(wf) && !/push:/.test(wf) && !/pull_request/.test(wf), "release-only trigger, secret never exposed to PRs");
+ok(!/echo .*secrets\./.test(wf), "secret never echoed");
+ok(!/--clobber/.test(wf) && /already has auto-update-manifest\.json/.test(wf), "no clobber; refuses existing manifest");
+ok(!/--is-ancestor/.test(wf) && (wf.match(/auto-update-release-gate\.sh/g) || []).length === 2, "gate script in both jobs; no --is-ancestor");
+ok(/bash signer\/scripts\/auto-update-release-gate\.sh signer/.test(wf), "sign job re-gates with main's script");
+ok(/artifact sha256 mismatch vs rebuild/.test(wf) && /rebuilt\/\*\.tgz dist\/auto-update-manifest\.json/.test(wf), "rebuild compare; upload the rebuilt bytes");
+ok(/tag \$TAG now points at/.test(wf) && /GIT_SHA: "\$\{\{ env\.VERIFIED_T \}\}"/.test(wf), "upload pinned to verified commit");
+ok(/environment: release/.test(wf), "signing job in release environment");
+ok(/ref: main, path: signer/.test(wf) && /node signer\/scripts\/auto-update-sign-release\.mjs/.test(wf), "signer runs from main checkout");
+const [buildJob, signJob] = wf.split(/^  sign:$/m);
+ok(!/secrets\./.test(buildJob) && /ref: "\$\{\{ github\.event\.release\.tag_name \}\}"/.test(buildJob), "tag checkout job has no secret");
+ok(!/github\.event\.release\.tag_name \}\}", fetch/.test(signJob), "sign job never checks out the tag");
+const uses = [...wf.matchAll(/uses:\s*(\S+)/g)].map((x) => x[1]);
+ok(uses.length >= 4 && uses.every((u) => /@[0-9a-f]{40}$/.test(u)), "every action pinned by full SHA");
+// gate script against a real repo: first-parent only
+{
+  const g = (args, cwd) => execFileSync("git", args, { cwd, stdio: "pipe", env: { ...process.env, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t", GIT_AUTHOR_DATE: "2026-01-01T00:00:00Z", GIT_COMMITTER_DATE: "2026-01-01T00:00:00Z" } }).toString().trim();
+  const R = mkdtempSync(tmpdir() + "/aurg-");
+  g(["init", "-q", "-b", "main"], R); writeFileSync(R + "/a", "1"); g(["add", "a"], R); g(["commit", "-qm", "c1"], R);
+  g(["checkout", "-qb", "pr"], R); writeFileSync(R + "/b", "2"); g(["add", "b"], R); g(["commit", "-qm", "pr1"], R); const prSha = g(["rev-parse", "HEAD"], R);
+  g(["checkout", "-q", "main"], R); g(["merge", "-q", "--no-ff", "-m", "merge pr", "pr"], R); const mSha = g(["rev-parse", "HEAD"], R);
+  g(["tag", "v1.0.0", mSha], R); g(["tag", "v0.9.0", prSha], R); g(["tag", "-a", "-m", "x", "v1.0.1", mSha], R);
+  const gate = (tag, out) => { try { return { code: 0, out: execFileSync("bash", ["scripts/auto-update-release-gate.sh", R, tag, "main", ...(out ? [out] : [])], { stdio: "pipe" }).toString() }; } catch (e) { return { code: e.status, err: String(e.stderr) }; } };
+  let x = gate("v1.0.0"); ok(x.code === 0 && x.out === `tag_sha=${mSha}\nseq=2\n`, "merge commit on first-parent line accepted, seq 2");
+  x = gate("v0.9.0"); ok(x.code === 1 && /not on the first-parent line/.test(x.err), "commit reachable only via merged PR branch refused");
+  ok(g(["merge-base", "--is-ancestor", prSha, "main"], R) === "", "(is-ancestor would have accepted it)");
+  x = gate("v1.0.1"); ok(x.code === 0 && x.out.startsWith(`tag_sha=${mSha}`), "annotated tag derefs to commit");
+  x = gate("nope"); ok(x.code === 1 && /missing/.test(x.err), "missing tag refused");
+  const o1 = R + "/../o1.tgz", o2 = R + "/../o2.tgz"; gate("v1.0.0", o1); gate("v1.0.1", o2.replace("o2", "o3")); gate("v1.0.0", o2);
+  ok(readFileSync(o1).equals(readFileSync(o2)) && readFileSync(o1).length > 0, "export is byte-reproducible (rebuild compare works)");
+}
+console.log(`verify-auto-update-release-sign: ${n} checks ok`);
