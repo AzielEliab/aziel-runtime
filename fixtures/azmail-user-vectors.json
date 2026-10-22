@@ -1,0 +1,51 @@
+{
+  "spec": "AZMAIL-USER-1.0",
+  "note": "Test-only passwords. Parity vectors for azos and azinterface mail clients.",
+  "vectors": [
+    {
+      "username": "aziel",
+      "password": "correct horse battery",
+      "mail_pub": "ca944bbd8ba3239f9b548c82e0212a12e14c6d229138c8c0b7c60d169188bc02",
+      "address": "azm1.ca944bbd8ba3239f9b548c82e0212a12e14c6d229138c8c0b7c60d169188bc02",
+      "inbox_id": "2db54926762e97154b646a4d1488b6b27345a9dee4eb03608c661c074fd7a58a",
+      "outbox_id": "eda6db44e1384642f83f26bbeea7094d89389e84e24ad1d7db29bd6c1d22a4e1",
+      "name_key": "2971f7d30e457957de904677b6cabb974a31baa9320bb26a17f0537c2009ab42"
+    },
+    {
+      "username": "Aziel",
+      "password": "correct horse battery",
+      "mail_pub": "ca944bbd8ba3239f9b548c82e0212a12e14c6d229138c8c0b7c60d169188bc02",
+      "address": "azm1.ca944bbd8ba3239f9b548c82e0212a12e14c6d229138c8c0b7c60d169188bc02",
+      "inbox_id": "2db54926762e97154b646a4d1488b6b27345a9dee4eb03608c661c074fd7a58a",
+      "outbox_id": "eda6db44e1384642f83f26bbeea7094d89389e84e24ad1d7db29bd6c1d22a4e1",
+      "name_key": "2971f7d30e457957de904677b6cabb974a31baa9320bb26a17f0537c2009ab42"
+    },
+    {
+      "username": "aziel",
+      "password": "correct horse batterz",
+      "mail_pub": "bb5a398d919f584af11e41907e0dde0f91fd251655885370412bd77ac6c8cc28",
+      "address": "azm1.bb5a398d919f584af11e41907e0dde0f91fd251655885370412bd77ac6c8cc28",
+      "inbox_id": "f1f2a6a5a85a16b836e6a3a8ccaa5d013d2a6e69efe9901604c0ee1736c7f8b6",
+      "outbox_id": "89af7fb5fc5c8cbabe61ad9cece3279ce773d12e4726366ecea7c74f55bd57e2",
+      "name_key": "2971f7d30e457957de904677b6cabb974a31baa9320bb26a17f0537c2009ab42"
+    },
+    {
+      "username": "zion.user",
+      "password": "pässwörd-ünïcode",
+      "mail_pub": "6022f130cdc325511e7bea5150ba1796f89c02b7d4b4bf27b5709e7afb0e4766",
+      "address": "azm1.6022f130cdc325511e7bea5150ba1796f89c02b7d4b4bf27b5709e7afb0e4766",
+      "inbox_id": "7ec5ad620da13e2b57bf8174e5fe70fc51d35b15d2596d2b66741fa78209117d",
+      "outbox_id": "7f501b1fedbc88117867bed8c54f562dcfef1264440111c9bd58376bbf860a18",
+      "name_key": "ec3c9b3c48079348cdaa9a699816debe680709cfc0182b44b7bb791586f22ea2"
+    },
+    {
+      "username": "áziel",
+      "password": "correct horse battery",
+      "mail_pub": "ca944bbd8ba3239f9b548c82e0212a12e14c6d229138c8c0b7c60d169188bc02",
+      "address": "azm1.ca944bbd8ba3239f9b548c82e0212a12e14c6d229138c8c0b7c60d169188bc02",
+      "inbox_id": "2db54926762e97154b646a4d1488b6b27345a9dee4eb03608c661c074fd7a58a",
+      "outbox_id": "eda6db44e1384642f83f26bbeea7094d89389e84e24ad1d7db29bd6c1d22a4e1",
+      "name_key": "2971f7d30e457957de904677b6cabb974a31baa9320bb26a17f0537c2009ab42"
+    }
+  ]
+}

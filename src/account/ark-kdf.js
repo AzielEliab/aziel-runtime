@@ -72,12 +72,17 @@ export async function deriveArkAccount(username, password, { iterations = ARK_KD
   const master = new Uint8Array(await subtle().deriveBits({ name: "PBKDF2", hash: "SHA-256", salt, iterations }, base, 256));
   const seed = await hkdf(master, salt, "ARK:SIGN");
   const encRaw = await hkdf(master, salt, "ARK:ENC");
+  // AZMAIL-USER-1.0 §2: additive X25519 mail subkey; existing pub/vault_id/vectors unchanged.
+  const mailSeed = await hkdf(master, salt, "ARK:MAIL");
   master.fill(0);
   const { priv, pub } = await ed25519FromSeed(seed);
   seed.fill(0);
   const encKey = await subtle().importKey("raw", encRaw, { name: "AES-GCM" }, false, ["encrypt", "decrypt"]);
   encRaw.fill(0);
   const pubHex = hex(pub);
+  const { x25519FromSeed } = await import("../mail/user-crypto.js");
+  const mail = await x25519FromSeed(mailSeed);
+  mailSeed.fill(0);
   return {
     spec: ARK_ACCOUNT_SPEC,
     pub: pubHex,
@@ -85,6 +90,8 @@ export async function deriveArkAccount(username, password, { iterations = ARK_KD
     rl_subject: hex(await sha256("ARK-ACCOUNT:v1:rl|" + u)),
     signKey: priv,
     encKey,
+    mailKey: mail.priv,
+    mail_pub: mail.pub,
   };
 }
 
