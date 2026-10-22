@@ -16,6 +16,7 @@ export const LEGS = Object.freeze(["aziel-runtime", "azinterface", "azos"]);
 
 export const FEATURE_UNION = Object.freeze([
   f("health", "Health and build stamp", { "aziel-runtime": r("native", "/v1/health"), azinterface: r("native", "/v1/health"), azos: r("native", "/v1/health") }),
+  f("version", "Version + auto-update adoption field (AUTO-UPDATE-1.0, live:false)", { "aziel-runtime": r("source", "/v1/version"), azinterface: r("gap", "/v1/version"), azos: r("gap", "/v1/version") }),
   f("skill", "Skill card", { "aziel-runtime": r("native", "/v1/skill"), azinterface: r("native", "/v1/skill"), azos: r("native", "/v1/skill") }),
   f("cite", "cite.json", { "aziel-runtime": r("native", "/cite.json"), azinterface: r("native", "/cite.json"), azos: r("native", "/cite.json") }),
   f("llms", "llms.txt / ai.txt / robots / sitemap", { "aziel-runtime": r("native", "/llms.txt"), azinterface: r("native", "/llms.txt"), azos: r("native", "/llms.txt") }),
