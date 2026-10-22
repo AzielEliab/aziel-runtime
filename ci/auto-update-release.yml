@@ -20,19 +20,14 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { ref: "${{ github.event.release.tag_name }}", fetch-depth: 0, persist-credentials: false }
-      - name: Refuse unless tag is an ancestor of origin/main; seq = first-parent count
+      - name: Gate (first-parent of origin/main) + build artifact (no secret in this job)
         id: anc
         env: { TAG: "${{ github.event.release.tag_name }}" }
         run: |
           set -eu
           git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
-          T=$(git rev-parse "refs/tags/$TAG^{commit}")
-          git merge-base --is-ancestor "$T" origin/main || { echo "AUTO-UPDATE-SIGN refused: $TAG ($T) is not on main"; exit 1; }
-          S=$(git rev-list --count --first-parent "$T")
-          echo "tag_sha=$T" >> "$GITHUB_OUTPUT"; echo "seq=$S" >> "$GITHUB_OUTPUT"
-      - name: Build artifact (no secret in this job)
-        env: { TAG: "${{ github.event.release.tag_name }}" }
-        run: mkdir -p dist && git archive --format=tar.gz --prefix="aziel-runtime-${TAG#v}/" -o "dist/aziel-runtime-${TAG#v}.tgz" "${{ steps.anc.outputs.tag_sha }}"
+          mkdir -p dist
+          bash scripts/auto-update-release-gate.sh . "$TAG" origin/main "dist/aziel-runtime-${TAG#v}.tgz" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with: { name: release-artifact, path: dist/, if-no-files-found: error }
   sign:
@@ -51,11 +46,26 @@ jobs:
           if gh release view "$TAG" -R "${{ github.repository }}" --json assets -q '.assets[].name' | grep -qx auto-update-manifest.json; then
             echo "AUTO-UPDATE-SIGN refused: $TAG already has auto-update-manifest.json"; exit 1; fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with: { ref: main, path: signer, persist-credentials: false }
+        with: { ref: main, path: signer, fetch-depth: 0, persist-credentials: false }
+      - name: Re-gate from main's script and rebuild artifact from a clean export of T (tag code never executed)
+        env: { TAG: "${{ github.event.release.tag_name }}", WANT_T: "${{ needs.build.outputs.tag_sha }}", WANT_S: "${{ needs.build.outputs.seq }}" }
+        run: |
+          set -eu
+          git -C signer fetch --no-tags --force origin "+refs/tags/$TAG:refs/tags/$TAG" +refs/heads/main:refs/remotes/origin/main
+          mkdir -p rebuilt
+          OUT=$(bash signer/scripts/auto-update-release-gate.sh signer "$TAG" origin/main "rebuilt/aziel-runtime-${TAG#v}.tgz")
+          [ "$OUT" = "$(printf 'tag_sha=%s\nseq=%s' "$WANT_T" "$WANT_S")" ] || { echo "AUTO-UPDATE-SIGN refused: build job gate output differs"; exit 1; }
+          echo "VERIFIED_T=$WANT_T" >> "$GITHUB_ENV"
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with: { node-version: 22 }
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with: { name: release-artifact, path: dist }
+      - name: Refuse unless uploaded artifact sha256 equals the rebuild
+        run: |
+          set -eu
+          A=$(ls dist/*.tgz); B="rebuilt/$(basename "$A")"
+          [ -f "$B" ] && [ "$(ls dist/*.tgz | wc -l)" = 1 ] || { echo "AUTO-UPDATE-SIGN refused: artifact set"; exit 1; }
+          [ "$(sha256sum < "$A")" = "$(sha256sum < "$B")" ] || { echo "AUTO-UPDATE-SIGN refused: artifact sha256 mismatch vs rebuild"; exit 1; }
       - name: Verify suite (main's code)
         working-directory: signer
         run: node scripts/verify-auto-update-manifest.mjs && node scripts/verify-auto-update-release-sign.mjs
@@ -70,10 +80,15 @@ jobs:
           AUTO_UPDATE_SIGNING_KEY: "${{ secrets.AUTO_UPDATE_SIGNING_KEY }}"
           TAG: "${{ github.event.release.tag_name }}"
           PRERELEASE: "${{ github.event.release.prerelease }}"
-          GIT_SHA: "${{ needs.build.outputs.tag_sha }}"
+          GIT_SHA: "${{ env.VERIFIED_T }}"
           VERSION_SEQ: "${{ needs.build.outputs.seq }}"
           RELEASE_URL_BASE: "https://github.com/${{ github.repository }}/releases/download/${{ github.event.release.tag_name }}"
-        run: A=$(ls "$GITHUB_WORKSPACE"/dist/*.tgz) && node signer/scripts/auto-update-sign-release.mjs "$A" "$GITHUB_WORKSPACE/dist/auto-update-manifest.json"
-      - name: Attach to release (refuses existing assets)
+        run: A=$(ls "$GITHUB_WORKSPACE"/rebuilt/*.tgz) && node signer/scripts/auto-update-sign-release.mjs "$A" "$GITHUB_WORKSPACE/dist/auto-update-manifest.json"
+      - name: Attach to release, pinned to the verified commit (refuses if the tag moved; refuses existing assets)
         env: { GH_TOKEN: "${{ github.token }}", TAG: "${{ github.event.release.tag_name }}" }
-        run: gh release upload "$TAG" -R "${{ github.repository }}" dist/*.tgz dist/auto-update-manifest.json
+        run: |
+          set -eu
+          NOW=$(git -C signer ls-remote origin "refs/tags/$TAG^{}" "refs/tags/$TAG" | awk '{print $1}' | tail -1)
+          [ "$NOW" = "$VERIFIED_T" ] || { echo "AUTO-UPDATE-SIGN refused: tag $TAG now points at $NOW, verified $VERIFIED_T"; exit 1; }
+          node -e 'const m=JSON.parse(require("fs").readFileSync("dist/auto-update-manifest.json")).manifest; if(m.git_sha!==process.env.VERIFIED_T){console.error("AUTO-UPDATE-SIGN refused: manifest git_sha");process.exit(1)}'
+          gh release upload "$TAG" -R "${{ github.repository }}" rebuilt/*.tgz dist/auto-update-manifest.json
