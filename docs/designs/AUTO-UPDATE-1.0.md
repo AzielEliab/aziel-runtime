@@ -67,12 +67,16 @@ rollback itself fails, the receipt says `rollback_failed` and the node stays pau
 - **Pinned public key:** `_3mc9CfQWexUWcyqDadNoQLjb6fFFPRv_XfWirwuH9s` (raw Ed25519, base64url),
   fingerprint `sha256(raw) = 822b409723b81a0dc3fe3f132a2cb95b72b1ec2b2b16c055c526b627132a4ce8`.
 - **Signing:** `ci/auto-update-release.yml` (inert until moved to `.github/workflows/`) runs on
-  `release: published`, skips prereleases/drafts, refuses unless the tagged commit is an ancestor of
-  `origin/main`, builds the artifact from the tag in a job **without** the secret, then signs in a job
+  `release: published`, skips prereleases/drafts, refuses unless the tagged commit T is on `origin/main`'s **first-parent** line (a commit reachable only
+  through a merged PR branch is refused), builds the artifact from the tag in a job **without** the secret, then signs in a job
   bound to `environment: release` using the signer from a separate checkout of **main**. VERSION_SEQ =
-  `git rev-list --count --first-parent <tag sha>` after the ancestor check. Refuses if the release
+  `git rev-list --count --first-parent <tag sha>` after that gate. The sign job re-runs the gate with
+  main's script, rebuilds the tarball from a clean `git archive` of T and refuses on sha256 mismatch, and
+  refuses the upload if the tag no longer points at T. Refuses if the release
   already has `auto-update-manifest.json` (no clobber). All actions pinned by commit SHA.
 - **Setup Aziel does (agents do not change repo settings):**
+  0. Required before moving the workflow: the repo has 0 environments today; `release` must exist with
+     reviewers first, or the sign job has no secret and fails closed.
   1. Settings → Environments → New environment `release`.
   2. Required reviewers: add `AzielEliab`; Deployment branches and tags: "Selected" → tag rule `v*`.
   3. Environment secrets → add `AUTO_UPDATE_SIGNING_KEY`. The key's only copy is the current repo
