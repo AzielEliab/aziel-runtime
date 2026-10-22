@@ -321,6 +321,46 @@ export function clientIp(request) {
   return "local";
 }
 
+/**
+ * R5 (LOCKSTEP hardening): rate-limit key for a client IP. IPv6 callers are keyed by their /64 (one customer
+ * site usually holds a whole /64, so per-address keys let one caller rotate through 2^64 buckets).
+ * IPv4 (and IPv4-mapped IPv6) keep the full address. Anything else is returned unchanged.
+ */
+export function expandIpv6(v) {
+  let s = String(v || "").trim().toLowerCase();
+  if (!s.includes(":")) return null;
+  s = s.replace(/^\[|\]$/g, "").split("%")[0];
+  let tail = [];
+  const m4 = s.match(/^(.*:)(\d{1,3}(?:\.\d{1,3}){3})$/);
+  if (m4) {
+    const o = m4[2].split(".").map(Number);
+    if (o.some((x) => x > 255)) return null;
+    tail = [((o[0] << 8) | o[1]).toString(16), ((o[2] << 8) | o[3]).toString(16)];
+    s = m4[1].endsWith("::") ? m4[1] : m4[1].slice(0, -1);
+  }
+  const parts = s.split("::");
+  if (parts.length > 2) return null;
+  const head = parts[0] ? parts[0].split(":") : [];
+  const rest = parts.length === 2 && parts[1] ? parts[1].split(":") : [];
+  const fill = 8 - head.length - rest.length - tail.length;
+  if (parts.length === 1 && fill !== 0) return null;
+  if (fill < 0) return null;
+  const groups = [...head, ...Array(parts.length === 2 ? fill : 0).fill("0"), ...rest, ...tail];
+  if (groups.length !== 8 || groups.some((g) => !/^[0-9a-f]{1,4}$/.test(g))) return null;
+  return groups.map((g) => g.padStart(4, "0"));
+}
+
+export function rateKeyOf(ip) {
+  const g = expandIpv6(ip);
+  if (!g) return String(ip == null ? "local" : ip);
+  // IPv4-mapped (::ffff:a.b.c.d): key on the IPv4 address.
+  if (g.slice(0, 5).every((x) => x === "0000") && g[5] === "ffff") {
+    const a = parseInt(g[6], 16), b = parseInt(g[7], 16);
+    return [a >> 8, a & 255, b >> 8, b & 255].join(".");
+  }
+  return g.slice(0, 4).join(":") + "::/64";
+}
+
 function rateStore(env) {
   if (!env || typeof env !== "object") {
     throw new Error("rate limiter requires env object");
@@ -414,8 +454,8 @@ export function rateLimitDecision(env, request, kind, now = Date.now()) {
   const ip = limiterIp(request, kind);
   const limit = rateLimitForKind(env, kind);
   if (limit >= 1 && RATE_SCOPES[kind]) {
-    const slot = takeRateSlot(env, kind, ip, limit, now);
-    return { ...slot, scope: RATE_SCOPES[kind], ip, enforcement: slot.enforcement || "isolate" };
+    const slot = takeRateSlot(env, kind, rateKeyOf(ip), limit, now);
+    return { ...slot, scope: RATE_SCOPES[kind], ip, rate_key: rateKeyOf(ip), enforcement: slot.enforcement || "isolate" };
   }
   return { ok: true, scope: kind, ip, limit: 0, remaining: 0, count: 0, retry_after: 0, window_seconds: 60, enforcement: "isolate" };
 }
@@ -445,7 +485,7 @@ export function isSessionMutatePath(pathname, method) {
   const path = String(pathname || "");
   const m = String(method || "").toUpperCase();
   if (path === "/v1/session/open" && m === "POST") return true;
-  const hit = path.match(/^\/v1\/session\/sess_[a-f0-9]{32}\/(policy|exec|close|pause|resume|stale|revoke)$/i);
+  const hit = path.match(/^\/v1\/session\/sess_[a-f0-9]{32}\/(policy|exec|close|pause|resume|stale|revoke|change)$/i);
   return Boolean(hit && m === "POST");
 }
 

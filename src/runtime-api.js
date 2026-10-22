@@ -1227,7 +1227,7 @@ export function runtimeStaticPaths() {
         summary: "Seal the session. Further exec is rejected.",
         tags: ["session"],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
-        responses: { "200": { description: "Final receipt" }, "409": { description: "Already closed" } },
+        responses: { "200": { description: "Final receipt (+ delivery_check when artifacts were frozen at open)" }, "400": { description: "FROZEN-DELIVERY-INVALID (delivered_artifacts must be bytes: content or content_b64)" }, "409": { description: "Already closed, or FROZEN-ARTIFACT-SILENT-EDIT / FROZEN-ARTIFACT-MISSING (RIB-052: session sealed, refusal sealed in delivery_check, verdict refused)" } },
       },
     },
     "/v1/session/{id}": {
@@ -1267,6 +1267,29 @@ export function runtimeStaticPaths() {
           "403": { description: ISSUER_403 },
           "404": { description: "session_not_found" },
           "409": { description: "session_closed, SPEC-STALE-NO-SPEC (no spec sealed at genesis), SPEC-STALE-SAME-VERSION, or " + PAUSED_409 },
+          "429": { description: TOKEN_429 },
+          "503": { description: TOKEN_503 },
+        },
+      },
+    },
+    "/v1/session/{id}/change": {
+      post: {
+        operationId: "runtime_session_artifact_change",
+        security: [{ RuntimeToken: [] }],
+        summary:
+          "RIB-052 / AZRT-FROZEN-ARTIFACT-1.0: declare (in-session, append-only) that an artifact frozen at open changes: { artifact, new_sha256, reason }. At close the harness hashes delivered_artifacts itself and seals one delivery_check receipt (unchanged / changed / missing); a changed artifact with no matching declaration refuses the verdict FROZEN-ARTIFACT-SILENT-EDIT (missing: FROZEN-ARTIFACT-MISSING). Token-gated (REQUIRE_TOKEN=1). Refused SESSION-PAUSED while paused. A refused /change request (bad input, unknown artifact, nothing frozen, paused, closed) appends no row. The close-time SILENT-EDIT / MISSING refusal IS sealed: in the delivery_check receipt and, per RIB-018, on the internal refusals chain (door session-close).",
+        tags: ["session"],
+        parameters: [SESSION_ID_PARAM],
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { type: "object", required: ["artifact", "new_sha256", "reason"], properties: { artifact: { type: "string" }, new_sha256: { type: "string", pattern: "^[a-f0-9]{64}$" }, reason: { type: "string", minLength: 1, maxLength: 512 } } } } },
+        },
+        responses: {
+          "200": { description: "artifact_change receipt appended" },
+          "400": { description: "bad_json, FROZEN-CHANGE-INVALID, FROZEN-CHANGE-UNKNOWN, or " + TOKEN_400 },
+          "401": { description: TOKEN_401 },
+          "404": { description: "session_not_found" },
+          "409": { description: "session_closed, FROZEN-ARTIFACT-NONE (nothing frozen at open), or " + PAUSED_409 },
           "429": { description: TOKEN_429 },
           "503": { description: TOKEN_503 },
         },

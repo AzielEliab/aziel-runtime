@@ -78,7 +78,8 @@ export function isOperator(request, env) {
 }
 
 export async function visitorId(request) {
-  const ip = clientIp(request);
+  const { rateKeyOf } = await import("./production.js");
+  const ip = rateKeyOf(clientIp(request)); // R5: IPv6 visitors keyed by /64
   const cookie = request && request.headers && request.headers.get("Cookie");
   const material = `${ip}|${cookie ? "c" : "n"}`;
   return sha256Hex(material);

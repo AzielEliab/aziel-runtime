@@ -85,6 +85,10 @@ async function load(env, epochs = RECEIPT_KEY_EPOCHS) {
   if (!pub) return { ok: false, reason: "RECEIPT_SIGNING_PUBLIC_KEY not provisioned; refusing to sign without a published key" };
   // AZRT-KEYS-1.0: never sign with a key listed in RECEIPT_KEY_EPOCHS (its receipts would fail RECEIPT-KEY-RETIRED).
   const pubId = await keyIdOf(String(pub).trim());
+  // An epoch entry needs a public key and a valid `until`; a malformed list fails closed (nothing is signed).
+  if ((epochs || []).some((e) => !epochEntryValid(e))) {
+    return { ok: false, code: "RECEIPT-KEY-EPOCH-BAD", reason: "RECEIPT_KEY_EPOCHS has an entry without public_key or a valid until; not signing until the list is fixed" };
+  }
   for (const e of epochs || []) {
     if (e && e.public_key && (await keyIdOf(e.public_key)) === pubId) {
       return { ok: false, code: "RECEIPT-KEY-IS-RETIRED", key_id: pubId, reason: "the held receipt key is listed in RECEIPT_KEY_EPOCHS (retired); not signing until a new key is provisioned" };
@@ -141,21 +145,34 @@ export async function signatureFor(hash, signer = active) {
  */
 export async function trustedReceiptKeys(env, { epochs = RECEIPT_KEY_EPOCHS, pinned = PINNED_RECEIPT_KEYS } = {}) {
   const out = [];
+  // A key named by a malformed epoch entry (no valid `until`) is rejected: it is trusted nowhere, so a pinned
+  // or published copy can't make it trusted without a time bound (AZBot low on #308).
+  const rejected = new Set();
   for (const e of epochs || []) {
-    if (!e || !e.public_key || !e.until) continue;
+    if (!e || !e.public_key) continue;
     const id = await keyIdOf(e.public_key);
+    if (!epochEntryValid(e)) { rejected.add(id); continue; }
     if (!out.some((x) => x.key_id === id)) out.push({ public_key: e.public_key, key_id: id, source: "retired", from: e.from || null, until: e.until });
   }
+  for (const id of rejected) { const i = out.findIndex((x) => x.key_id === id); if (i >= 0) out.splice(i, 1); }
   for (const k of pinned || []) {
     const id = await keyIdOf(k);
-    if (!out.some((x) => x.key_id === id)) out.push({ public_key: k, key_id: id, source: "pinned" });
+    if (!rejected.has(id) && !out.some((x) => x.key_id === id)) out.push({ public_key: k, key_id: id, source: "pinned" });
   }
   if (env && env.RECEIPT_SIGNING_PUBLIC_KEY) {
     const k = String(env.RECEIPT_SIGNING_PUBLIC_KEY).trim();
     const id = await keyIdOf(k);
-    if (!out.some((x) => x.key_id === id)) out.push({ public_key: k, key_id: id, source: "published" });
+    if (!rejected.has(id) && !out.some((x) => x.key_id === id)) out.push({ public_key: k, key_id: id, source: "published" });
   }
   return out;
+}
+
+/** An epoch entry is { public_key, until (ISO time), from? (ISO time) }; anything else is malformed. */
+export function epochEntryValid(e) {
+  if (!e || typeof e !== "object" || typeof e.public_key !== "string" || !e.public_key) return false;
+  if (typeof e.until !== "string" || !Number.isFinite(Date.parse(e.until))) return false;
+  if (e.from != null && (typeof e.from !== "string" || !Number.isFinite(Date.parse(e.from)))) return false;
+  return true;
 }
 
 /**
@@ -217,5 +234,72 @@ export async function verifyReceiptSignatures(receipts, { trusted = [] } = {}) {
     trusted: trusted.map((k) => ({ key_id: k.key_id, source: k.source })),
     errors,
     rows,
+  };
+}
+
+/**
+ * AZRT-SIGNING-SCOPE-1.0: the one derived answer to "what is signed, by which key". Both GET /v1/receipt-key
+ * and GET /v1/lockstep read this, so they cannot disagree. Fails closed: any error reports session receipts
+ * as not signed. Only session receipts (runtime_session_* chain, appendReceipt) can carry a receipt-key
+ * signature; chainlock rows (refusals, acts, mesh, ...) are hash-linked + dual-lattice sealed and never signed.
+ * Anchors / build witness / checkpoints / the AZOS-AZInterface tether use their own keys (RIB-001), not this one.
+ */
+export const SIGNING_SCOPE_SPEC = "AZRT-SIGNING-SCOPE-1.0";
+/** R3: the witness2 wording comes from witness2Config(env), never a hard-coded string. Never claims dual. */
+export async function witness2Line(env) {
+  let cfg;
+  try {
+    const { witness2Config } = await import("./witness-quorum.js");
+    cfg = witness2Config(env || {});
+  } catch {
+    cfg = { configured: false, code: "WITNESS2-NOT-CONFIGURED" };
+  }
+  if (cfg && cfg.configured) return { code: "WITNESS2-CONFIGURED", text: "witness2: configured (" + cfg.name + "; public key from WITNESS2_PUBLIC_KEY, not in azrt-keys.json); configured is not a passed quorum, dual is not claimed here" };
+  const code = (cfg && cfg.code) || "WITNESS2-NOT-CONFIGURED";
+  return { code, text: "witness2: not configured (" + code + ")" };
+}
+
+export async function signingScope(env) {
+  const w2 = await witness2Line(env);
+  let on = false;
+  let keyId = null;
+  let trusted = false;
+  let reason = null;
+  try {
+    const held = await heldSignerFromEnv(env || {});
+    on = Boolean(held && held.ok === true);
+    if (on) {
+      keyId = held.provenance.key_id;
+      if (typeof keyId !== "string" || !keyId) throw new Error("no key_id");
+      trusted = (await trustedReceiptKeys(null)).some((k) => k.key_id === keyId);
+    } else {
+      reason = (held && held.reason) || "not signing";
+    }
+  } catch {
+    on = false; keyId = null; trusted = false;
+    reason = "receipt key check failed; failing closed (not signing)";
+  }
+  return {
+    spec: SIGNING_SCOPE_SPEC,
+    session_receipts: {
+      signed: on,
+      key: "held receipt key (AZRT-HELD-KEY-1.0, published at /v1/receipt-key)",
+      key_id: keyId,
+      key_trusted: trusted,
+      key_source: on ? (trusted ? "pinned" : "published (self, unpinned)") : null,
+      independently_verified: false,
+      ...(on && !trusted ? { note: "signature proves possession of the self-published key only; not pinned, not independently verified" } : {}),
+      ...(on && trusted ? { note: "key is pinned in code; no outside witness records it yet, so not independently verified" } : {}),
+      ...(on ? {} : { reason }),
+      covers: "session receipts minted from now on while this key is held (runtime_session_* chain); older receipts may be unsigned",
+    },
+    chainlock_rows: { signed: false, covers: "chainlock rows (refusals, acts, mesh, library, ...) and the FragGate ask/refuse ledger", how: "hash-linked and dual-lattice sealed, not signed" },
+    other_keys: {
+      note: "these are signed with their own keys, never the receipt key",
+      anchors_and_build_witness: "witness public key at /.well-known/azrt-keys.json (witness; auditor key under witness.auditor); " + w2.text,
+      witness2_code: w2.code,
+      tether: "tether public key at /v1/tether (public_key) and /v1/lockstep contract.chains.tether_pubkey",
+      checkpoints: "each checkpoint carries its own signer_set (public keys + threshold) hashed into the checkpoint; no single published checkpoint key",
+    },
   };
 }

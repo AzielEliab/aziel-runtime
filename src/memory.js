@@ -18,7 +18,7 @@ import {
   rebuildPosterior,
   retrievalScore,
 } from "./chainlock/adaptive.js";
-import { append as chainAppend, recall as chainRecall, verify as chainVerify } from "./chainlock/ops.js";
+import { append as chainAppend, loadChain, recall as chainRecall, verify as chainVerify } from "./chainlock/ops.js";
 import { storeFor } from "./chainlock/store.js";
 import { wrapToolOutput } from "./display.js";
 import { CONFIRM_CONSENT_NOTE, confirmConsentHonesty } from "./mcp-safeguard.js";
@@ -245,6 +245,8 @@ function hasCap(caps, name) {
 
 async function stampLearn(env, input) {
   const memory = boundMemoryMeta(input.memory);
+  // RIB-053: only the prevented-edge kind gets the reserved writer option (forwardLearn is internal-only).
+  const opts = input.k === "memory_prevented" ? { preventedWriter: true } : {};
   return chainAppend(env, {
     c: "learn",
     k: input.k,
@@ -254,7 +256,7 @@ async function stampLearn(env, input) {
     rose_transition_hash: input.rose_transition_hash,
     temporal_hash: input.temporal_hash,
     provenance_hash: input.provenance_hash,
-  });
+  }, opts);
 }
 
 async function forwardLearn(env, input) {
@@ -359,8 +361,32 @@ export async function providersFor(useCase, packet) {
   return { invoked, scores, refs };
 }
 
+/** RIB-053: observe a sealed refusal receipt as a kind=prevented edge (no caller text is stamped). */
+async function observePrevented(env, packet) {
+  const { preventedEdgeFrom, preventedEdges, PREVENTED_KIND, PREVENTED_SPEC } = await import("./memory/prevented.js");
+  const store = storeFor(env);
+  const built = await preventedEdgeFrom(await loadChain(store, "refusals", ""), packet);
+  if (!built.ok) return refuse(built.code, built.message, { spec_edge: PREVENTED_SPEC, written: false });
+  const edge = built.edge;
+  // Only an exact verified edge (same receipt hash, goal_hash and code, id bound to all three) counts.
+  const existing = (await preventedEdges(await loadChain(store, "learn", ""))).find((e) => e.memory_id === edge.memory_id && e.refusal_receipt_hash === edge.refusal_receipt_hash && e.goal_hash === edge.goal_hash && e.refusal_code === edge.refusal_code);
+  if (existing && existing.active) return refuse("AKM-PREVENTED-DUPLICATE", "An active prevented edge already cites this refusal receipt.", { edge: existing, written: false });
+  if (existing) return refuse("AKM-PREVENTED-RETIRED", "This refusal's edge was retired (valid_to set); retired edges are not re-opened.", { edge: existing, written: false });
+  const out = await forwardLearn(env, {
+    k: PREVENTED_KIND,
+    subject: "prevented:" + edge.goal_hash.slice(0, 16),
+    fact: `prevented ${edge.refusal_code}`,
+    provenance_hash: edge.refusal_receipt_hash,
+    capabilities: packet.capabilities,
+    expected_rose_tip: packet.expected_rose_tip,
+    memory: edge,
+  });
+  return out.ok ? { ...out, prevented: true, edge: { ...edge, valid_to: null, active: true } } : out;
+}
+
 export async function observe(env, src = {}) {
   const packet = src && typeof src === "object" ? src : {};
+  if (packet.kind === "prevented") return observePrevented(env, packet);
   const subject = clip(packet.subject || packet.s || "observation", 80);
   const fact = clip(packet.fact || packet.f || packet.claim || subject, 160);
   if (!fact) return refuse("AKM-NO-FACT", "Observation requires a fact. Hash-only cards are non-compliant.");
@@ -587,7 +613,16 @@ export async function adaptiveRecall(storeOrEnv, input = {}) {
     depth: src.depth != null ? src.depth : 5,
     c: src.c || src.chain,
   });
-  if (!raw.ok) return raw;
+  // RIB-053: prevented edges for a goal (active only; history:true includes retired rows with valid_to).
+  let prevented = null;
+  if (src.goal_hash != null || src.goal_id != null) {
+    const pv = await import("./memory/prevented.js");
+    const gh = await pv.recallGoalHash(src);
+    if (!gh) return refuse("AKM-PREVENTED-INVALID", "goal_hash must be 64 hex (or goal_id 1-80 chars of [A-Za-z0-9._:-]).");
+    const edges = await pv.preventedFor(await loadChain(storeFor(storeOrEnv), "learn", ""), gh, { history: Boolean(src.history) });
+    prevented = { spec: pv.PREVENTED_SPEC, goal_hash: gh, count: edges.length, edges, authorizes_action: false, note: "A prevented edge informs recall; it does not grant or block anything. DecisionGATE / FragGate still decide." };
+  }
+  if (!raw.ok) return prevented ? { ...raw, prevented } : raw;
   const useCase = classifyUseCase(src, src.operation || "recall");
   const history = Boolean(src.history);
   const ranked = [];
@@ -636,6 +671,7 @@ export async function adaptiveRecall(storeOrEnv, input = {}) {
     use_case: useCase.id,
     count: Math.min(ranked.length, cap),
     facts: ranked.slice(0, cap),
+    ...(prevented ? { prevented } : {}),
     ...memoryLedgerHonesty({ rebuilt: true }),
   };
 }

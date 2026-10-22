@@ -322,10 +322,12 @@ assert.equal(rateLimitDecision(helperEnv, new Request(origin, { headers: { "CF-C
 const capNow = "2026-09-05T00:00:00.000Z";
 const capSession = openSession({ id: newSessionId(), now: capNow, version: RUNTIME_VERSION, source: "cap" });
 await applyOpen(capSession, capNow);
-while (!receiptCapReached(capSession)) {
+// R4: the last 2 slots are reserved for close (delivery_check + close), so policy stops at RECEIPT_CAP - 2.
+while (capSession.receipts.length < RECEIPT_CAP - 2) {
   await applyPolicy(capSession, { note: `n${capSession.receipts.length}` }, capNow);
 }
-assert.equal(capSession.receipts.length, RECEIPT_CAP);
+assert.equal(capSession.receipts.length, RECEIPT_CAP - 2);
+assert.equal(receiptCapReached(capSession), false);
 let capHit = false;
 try {
   await applyPolicy(capSession, { note: "overflow" }, capNow);
@@ -336,7 +338,7 @@ try {
 assert.equal(capHit, true);
 const sealed = await applyClose(capSession, capNow);
 assert.equal(sealed.receipt.event, "close");
-assert.ok(sealed.session.receipts.length > RECEIPT_CAP);
+assert.ok(sealed.session.receipts.length <= RECEIPT_CAP, "R4: close fits within the cap");
 
 // --- TTL expire (core) ---
 const expired = openSession({

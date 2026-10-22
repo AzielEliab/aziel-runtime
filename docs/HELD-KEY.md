@@ -86,6 +86,9 @@ reviewed entry; there is no outside record of the list until the aziel-anchors p
   `RECEIPT-KEY-IS-RETIRED` (shown as `receipt.code` + `refused_key_id` in the manifest) and receipts stay
   unsigned with that reason. Retired wins over pinned: a key in both lists is trusted only inside its epoch.
   The runtime still cannot generate, export or replace a key (the source scan is unchanged).
+- An epoch entry must have `public_key` and a valid ISO `until` (`from` optional, valid if present). A malformed
+  entry fails closed in both places: loading refuses to sign (`RECEIPT-KEY-EPOCH-BAD`), and the trusted-key builder
+  trusts the key it names nowhere, so a pinned or published copy can't make it trusted without a time bound.
 - Append-only is enforced by review and by a test that keeps the sha256 of every reviewed entry of
   `RECEIPT_KEY_EPOCHS` and `PINNED_RECEIPT_KEYS` in order (a changed or removed entry fails the test).
 - `scripts/provision-receipt-key.mjs` does a dry run by default.

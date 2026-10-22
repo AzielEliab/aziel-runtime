@@ -55,7 +55,8 @@ signed copies (AZ-OS tether). Viewers on offline view receipts are already store
 **Bundle, additive.** A bundle may carry `stores: { aznews, 4dmap }` inside the signed body:
 `{ spec: "OFFLINE-RECORDS-1.0+stores", file, count, rows_sha256, tip {seq, primary, secondary}, checkpoints[] }`.
 The rows themselves sit in sidecar files `<bundle>.stores/<name>.rows.jsonl` (one canonical JSON row per line;
-`rows_sha256` is over the exact bytes), so ~10^5 rows never become one JSON string. A bundle with no stores has no
+`rows_sha256` is over the canonical lines: each non-blank line plus `\n`, so blank lines and CRLF do not change
+it; a file written by the exporter hashes the same as its raw bytes), so ~10^5 rows never become one JSON string. A bundle with no stores has no
 `stores` field and hashes exactly as before. A store the origin could not serve is named in `stores_skipped`.
 
 **Offline check (fails closed).** File present and hash equal; row count equal; seq contiguous from 1; both lattice
@@ -80,3 +81,29 @@ the bundle's checkpoints (`match`, `MISMATCH`, `bundle-short`, `not-in-bundle`).
 - Until this is deployed, the live origin has no `/rows` routes. A pull then still succeeds, with
   `stores_skipped` naming both stores.
 - D1 data is still not exported.
+
+### Follow-up (2026-10-19, AZBot review of #310)
+
+- **Retracted pins in the raw rows.** The 4DMap rows include every retracted pin (live: 60, 54 geoparser junk + 6
+  duplicates) and the retraction rows that hide them. Leaving them out would break the lattice, so they stay.
+  `/v1/4dmap/pins` hides them unless `?include_retracted=1` (already public there); the raw export does not hide
+  them. Readers apply the same rule: a `map_pin` row is hidden when a later `map_pin` row for the same `source_id`
+  carries `retracted`. `GET /v1/4dmap/rows?marks=1` adds `marks[]` per row (`retraction` with `hides_seq`,
+  `hidden` with `retracted_by_seq`), computed live and never part of the rows or their hashes. The offline check
+  reports `retracted_pins {hidden, retraction_rows}` for the 4dmap store.
+- **Caching and a light limit.** The page answer now carries `checkpoint_tip_seq`. A full page wholly at or below
+  it never changes, so it is kept in the edge cache (Cache API) and served
+  `public, max-age=86400, s-maxage=31536000, immutable` (`X-Azrt-Rows-Cache: hit|miss`). Other pages, `?marks=1`
+  pages and errors stay `no-store` (`bypass`). Pages that reach the store object (cache misses) are limited to 60
+  per minute per client per isolate (429 `STORE-ROWS-RATE-LIMIT`, `Retry-After`); cache hits are not limited.
+  `aziel-records pull` waits out `Retry-After` (at most 12 times per page). The limit is per isolate, so it is
+  light, not a global bound.
+- **Cached bodies hold only what never changes (AZBot B311-1).** A cached page leaves out `total` and
+  `checkpoint_tip_seq` (they move forward; a year-old copy would be stale) and says `cached: true`,
+  `format: "rows-v1"`. Live (uncached) answers still carry both. The cache key includes the format version, so
+  a future body shape never serves old bodies. `aziel-records pull` keeps paging while a page comes back full
+  and stops only on a short or empty page; it never stops on `total`. HEAD has its own rate bucket and never
+  spends a GET slot.
+- **OpenAPI.** `from`, `limit` (and `marks` on 4dmap) are query parameters on both routes.
+- Test: `scripts/verify-offline-stores.mjs` groups 10-14.
+

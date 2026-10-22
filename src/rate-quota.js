@@ -186,6 +186,7 @@ export async function doorRateLimitDecision(env, request, kind, now = Date.now()
   if (limit < 1) {
     return { ok: true, scope: DOOR_SCOPES[kind], ip, limit: 0, remaining: 0, count: 0, retry_after: 0, window_seconds: 60, enforcement: "isolate" };
   }
-  const slot = await takeDistributedRateSlot(env, kind, ip, limit, now);
-  return { ...slot, scope: DOOR_SCOPES[kind], ip };
+  const { rateKeyOf } = await import("./production.js");
+  const slot = await takeDistributedRateSlot(env, kind, rateKeyOf(ip), limit, now);
+  return { ...slot, scope: DOOR_SCOPES[kind], ip, rate_key: rateKeyOf(ip) };
 }

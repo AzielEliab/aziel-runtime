@@ -377,6 +377,28 @@ export function cardBytes(card) {
   return new TextEncoder().encode(JSON.stringify(card)).length;
 }
 
+/** RIB-053: any stamp shaped like a prevented edge (by k, memory.kind or the edge spec). */
+/** NFKC + strip zero-width / soft-hyphen / bidi marks, lowercase. */
+export function normalizeKindText(v) {
+  // NFKC folds compatibility forms; NFKD then splits base + combining marks so the Mn marks can be dropped
+  // (AZBot #319: "p\u0301revented" must read as "prevented").
+  return String(v == null ? "" : v).normalize("NFKC").normalize("NFKD").replace(/\p{Mn}/gu, "").replace(/[\u00AD\u180E\u200B-\u200F\u202A-\u202E\u2060-\u2064\uFEFF]/g, "").normalize("NFC").toLowerCase();
+}
+
+/** True when "prevented" is a whole word token (split on anything that is not a-z/0-9), so "unprevented" is not caught. */
+export function hasPreventedWord(v) {
+  return normalizeKindText(v).split(/[^a-z0-9]+/).includes("prevented");
+}
+
+/** RIB-053: any stamp shaped like a prevented edge (by k, memory.kind or the edge spec). */
+export function isPreventedShaped(src) {
+  if (!src || typeof src !== "object") return false;
+  if (hasPreventedWord(src.k) || hasPreventedWord(src.kind)) return true;
+  const m = src.memory && typeof src.memory === "object" ? src.memory : null;
+  if (m && (hasPreventedWord(m.kind) || m.edge_spec != null || m.refusal_receipt_hash != null)) return true;
+  return false;
+}
+
 export async function append(storeOrEnv, input = {}, options = {}) {
   const store = storeFor(storeOrEnv);
   const src = input && typeof input === "object" ? { ...input } : {};
@@ -386,6 +408,11 @@ export async function append(storeOrEnv, input = {}, options = {}) {
     if (anchor) src.anchor = anchor;
   }
   const chain = String(src.c || src.chain || "session").trim() || "session";
+  // RIB-053 (AZBot B317-1): prevented edges are written only by memory_observe kind=prevented (observePrevented),
+  // which builds them from the sealed refusal row. Any other caller (public chainlock_append included) is refused.
+  if (isPreventedShaped(src) && !(options && options.preventedWriter === true)) {
+    return { ok: false, refuse: "prevented-reserved", code: "CL-PREVENTED-RESERVED", message: "memory_prevented edges are written only by memory_observe kind=prevented from a sealed refusal receipt.", written: false };
+  }
   const internal = options && options.internal === true && INTERNAL_CHAINS.includes(chain);
   if (!ROSTER.includes(chain) && !internal) {
     return { ok: false, refuse: "unknown-chain", chain, roster: ROSTER.slice() };
@@ -608,6 +635,16 @@ export async function verify(storeOrEnv, input = {}, opts = {}) {
       ok = false;
       for (const e of expect_spec.errors) breaks.push({ chain: name, seq: (e.seq ?? 1) - 1, reason: e.code });
     }
+    // RIB-053: a prevented edge must cite a refusal row on the refusals chain (fail closed).
+    let prevented = null;
+    if (name === "learn" && rows.some((r) => r && r.k === "memory_prevented")) {
+      const { verifyPreventedEdges } = await import("../memory/prevented.js");
+      prevented = await verifyPreventedEdges(rows, await loadChain(store, "refusals", ""));
+      if (!prevented.ok) {
+        ok = false;
+        for (const e of prevented.errors) breaks.push({ chain: name, seq: e.seq, reason: e.code });
+      }
+    }
     const dual = await verifyLattice(rows.filter((row) => row && !row._broken));
     if (!dual.ok) {
       ok = false;
@@ -625,6 +662,7 @@ export async function verify(storeOrEnv, input = {}, opts = {}) {
       n: rows.length,
       integrity,
       expect_spec: { status: expect_spec.status, spec_hash: expect_spec.spec_hash, errors: expect_spec.errors.length },
+      ...(prevented ? { prevented: { spec: prevented.spec, edges: prevented.edges, errors: prevented.errors.length } } : {}),
       isolated: !ok,
       ...(hourly ? { hourly: true, through: "hourly tip", as_of: opts.agentAsOf || null, note: "agentcomms is verified through the hourly tip only (no live count, no live tip); later rows are verified the next hour." } : {}),
       dual_lattice: {
