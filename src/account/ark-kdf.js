@@ -72,11 +72,14 @@ export async function deriveArkAccount(username, password, { iterations = ARK_KD
   const master = new Uint8Array(await subtle().deriveBits({ name: "PBKDF2", hash: "SHA-256", salt, iterations }, base, 256));
   const seed = await hkdf(master, salt, "ARK:SIGN");
   const encRaw = await hkdf(master, salt, "ARK:ENC");
+  const docRaw = await hkdf(master, salt, "ARK:DOC"); // separate key for keyed plaintext document hashes
   master.fill(0);
   const { priv, pub } = await ed25519FromSeed(seed);
   seed.fill(0);
   const encKey = await subtle().importKey("raw", encRaw, { name: "AES-GCM" }, false, ["encrypt", "decrypt"]);
   encRaw.fill(0);
+  const docKey = await subtle().importKey("raw", docRaw, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  docRaw.fill(0);
   const pubHex = hex(pub);
   return {
     spec: ARK_ACCOUNT_SPEC,
@@ -85,6 +88,7 @@ export async function deriveArkAccount(username, password, { iterations = ARK_KD
     rl_subject: hex(await sha256("ARK-ACCOUNT:v1:rl|" + u)),
     signKey: priv,
     encKey,
+    docKey,
   };
 }
 
@@ -108,4 +112,10 @@ export async function openData(encKey, vaultId, seq, b64) {
   const all = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
   const pt = await subtle().decrypt({ name: "AES-GCM", iv: all.slice(0, 12), additionalData: aad(vaultId, seq) }, encKey, all.slice(12));
   return new TextDecoder().decode(pt);
+}
+
+/** Keyed plaintext document hash: HMAC-SHA256(HKDF(master, "ARK:DOC"), "ARK:DOC|" + plaintext). Stable across the
+ *  random AES-GCM IV (so LATTICE-DOUBLE can fire) but unguessable without the user's key. Parity: ark_account.py doc_hash. */
+export async function docHashOf(docKey, plaintext) {
+  return hex(await subtle().sign("HMAC", docKey, enc.encode("ARK:DOC|" + String(plaintext))));
 }
