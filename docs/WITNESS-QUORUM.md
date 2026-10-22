@@ -20,7 +20,7 @@ Goal: the anchor should survive the first outside log going down at the same tim
 - A configured slot 2 that **disagrees** fails verify even at quorum 1. A slot 2 that is merely down does not, unless quorum 2 is required.
 
 ## Honest limits
-- **No second witness provider is configured yet.** `wrangler.toml` sets no `WITNESS2_*`, so live verify reports slot 2 `not_configured` and level `single`. Nothing here is live until a real second provider (a separate signer, host and provider) publishes a log and its key is set.
+- **Slot 2 config is set in `wrangler.toml` (addendum 2026-10-22), but configured is not live.** Until a deploy carries it, live verify keeps reporting slot 2 `not_configured` and level `single`. After a deploy, slot 2's status comes only from what its signed log verifies on each read; nothing is marked live by the config itself, and `WITNESS_QUORUM` stays unset (required = 1).
 - The runtime has no write path to either log and does not push heads to slot 2; the provider's own job must read `/v1/anchor/heads` and sign them.
 - The code name `WITNESS2-NOT-INDEPENDENT` is kept (frozen), but what is checked is only a different key, a different log location and (addendum) not Cloudflare. The runtime cannot prove that two providers do not share an operator or infrastructure; they share an account holder.
 - Quorum applies to `/v1/anchor/verify`. Row integrity levels (`/v1/anchor/row`) and RIB-044 resume still use slot 1 only.
@@ -78,3 +78,23 @@ deliberately not set before a signed log exists.
 - If the key is made with the setup script on the shared box, it is in memory only for the run. (Slot 1's
   key was generated inside Actions.)
 - "Second witness" means a different key, host and provider. One account holder runs both witnesses, so it is not independent of that account holder.
+
+## Addendum (2026-10-22): slot 2 config set (read-only; not live until deployed and verified)
+
+Laws: this spec, AZRT-ANCHOR-1.0, REMAIN-OFF (no flag enabled), docs/2.0/COMPATIBILITY-POLICY.md
+(additive: three public `[vars]`; 36 / 42 / 2.0.0-rc1 unchanged).
+
+- The Codeberg witness exists: `codeberg.org/azielelroieliab/aziel-witness2`, pinned key
+  `keys/witness2.pub` = `p0zeCq4N62q70Utncoavj0UOWrTX_0mX8hwT0y0RK0o` (raw base64url Ed25519). Its workflow
+  signs at `:07/:22/:37/:52` each hour (cron `7,22,37,52 * * * *`). First entry: commit `d8dafb1`, `n=1`.
+- Raw URL (checked from the box, 2026-10-22): `https://codeberg.org/azielelroieliab/aziel-witness2/raw/branch/main/anchors/log.jsonl`
+  returns 200 `text/plain` with neither `cf-ray` nor `server: cloudflare`. The owner path is lowercase; the
+  earlier kit text assumed `AzielEliab`, which 404s. Not yet re-checked from a Worker subrequest; that open
+  item from the 2026-10-19 addendum still stands until the first post-deploy verify.
+- `wrangler.toml [vars]` sets `WITNESS2_LOG_URL`, `WITNESS2_PUBLIC_KEY`, `WITNESS2_NAME = "codeberg"`
+  (step 3 of "Still needed" above). No private material, no `WITNESS_QUORUM`.
+- `scripts/verify-witness2-config.mjs` checks: the three vars pass `witness2Config`; a committed snapshot of
+  the real log (`fixtures/witness2/log-2026-10-22.jsonl`, n=1..12) verifies under the pinned key through the
+  runtime's own reader; a wrong key, a tampered row and a gap are refused; missing / partial vars report
+  `WITNESS2-NOT-CONFIGURED` / `WITNESS2-BAD-CONFIG`, never verified.
+- Configured is not live. Nothing in this addendum claims slot 2 is verified in production.
