@@ -198,3 +198,30 @@ console.log(`verify-ark-account: ${n} checks ok`);
   k(r.result.code === "ARK-OK", "owner not locked out by forged-signature flood");
   console.log(`verify-ark-account: azbot-r2 ${c} checks ok`);
 }
+
+// Flake root cause (verify-ark-account:81): SweepGate's "MZ" mark matched random ciphertext. Opaque base64 now
+// passes; the same marks in any other field (or non-base64 ct_b64) are still isolated.
+{
+  let c = 0; const k = (x, m) => { assert.ok(x, m); c++; };
+  const e6 = { ARK_ACCOUNTS: "on", USES: mkKv() };
+  const d6 = await deriveArkAccount("sweepuser", "sweep-pass-123");
+  const mk = async (ct, extra = {}) => {
+    const sha = hex(await sha256(ct)); const t = Date.now();
+    const tipRaw = e6.USES.m.get(`chainlock|ark:acct:${d6.vault_id}:tip`);
+    const tp = tipRaw ? JSON.parse(tipRaw) : { seq: 0, row_hash: "0".repeat(64) };
+    const b = { spec: "ARK-ACCOUNT-1.0", vault_id: d6.vault_id, seq: tp.seq + 1, prev: tp.row_hash, kind: "note", ct_sha256: sha, ts: t };
+    return call({ op: "account_append", payload: { vault_pub: d6.pub, seq: b.seq, prev: b.prev, kind: "note", ct_b64: ct, ct_sha256: sha, ts: t, user_sig: await signBytes(d6.signKey, appendMessage(b)), ...extra } }, e6);
+  };
+  let r = await mk("AAAAMZAAAATVpAAAAAAAAAAA");
+  k(r.result && r.result.written, "base64 ciphertext containing MZ / TVp marks is admitted");
+  r = await mk("<script>eval(1)</script>");
+  k(r.code === "FG-SWEEP-ISOLATE", "non-base64 ct_b64 is still swept");
+  r = await mk("AAAA", { note: "MZ meterpreter" });
+  k(r.code === "FG-SWEEP-ISOLATE", "other fields still swept");
+  for (let i = 0; i < 40; i++) { const ct = await sealData(d6.encKey, d6.vault_id, 99, "n" + i); r = await mk(ct); if (!r.result || !r.result.written) break; }
+  k(r.result && r.result.written, "40 random-ciphertext appends all admitted");
+  const rt = Date.now();
+  r = await call({ op: "account_recall", payload: { vault_pub: d6.pub, ts: rt, limit: 50, user_sig: await signBytes(d6.signKey, recallMessage(d6.vault_id, rt)) } }, e6);
+  k(r.result && r.result.rows.length > 1 && r.result.rows.some((x) => x.ct_b64.includes("MZ")), "recall returns real ciphertext incl. an MZ-marked row (outbound sweep stand-in)");
+  console.log(`verify-ark-account: sweep-opaque ${c} checks ok`);
+}
