@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a security vulnerability (private)
+    url: https://github.com/AzielEliab/aziel-runtime/security/advisories/new
+    about: Please report vulnerabilities privately through a GitHub security advisory, not a public issue.
