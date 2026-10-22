@@ -1,3 +1,4 @@
+# STAGED: move to .github/workflows/ (needs a token with `workflow` scope). Inert here.
 # AUTO-UPDATE-1.0: sign a stable release manifest and attach it to the GitHub release.
 # Prereleases are skipped (devices follow stable only). Fails closed if the secret is missing or does not match the pinned key.
 name: auto-update-release

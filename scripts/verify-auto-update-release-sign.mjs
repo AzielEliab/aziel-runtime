@@ -16,7 +16,7 @@ r = run({ ...base, AUTO_UPDATE_SIGNING_KEY: pem, VERSION_SEQ: "4294967301.5" });
 r = run({ ...base, AUTO_UPDATE_SIGNING_KEY: "-----BEGIN PRIVATE KEY-----\nzz\n-----END PRIVATE KEY-----" }); ok(r.code === 1, "garbage key refused");
 r = run({ ...base, AUTO_UPDATE_SIGNING_KEY: pem }); ok(r.code === 1 && /pinned key/.test(r.err) && !r.err.includes("PRIVATE"), "non-pinned key refused, key not echoed");
 ok(!existsSync(d + "/o.json"), "no envelope written on refusal");
-const wf = readFileSync(".github/workflows/auto-update-release.yml", "utf8");
+const wf = readFileSync(existsSync(".github/workflows/auto-update-release.yml") ? ".github/workflows/auto-update-release.yml" : "ci/auto-update-release.yml", "utf8");
 ok(/prerelease == false/.test(wf) && /draft == false/.test(wf), "workflow skips prereleases/drafts");
 ok(/AUTO_UPDATE_SIGNING_KEY missing: refusing/.test(wf), "workflow fails closed on missing secret");
 ok(/types: \[published\]/.test(wf) && !/push:/.test(wf) && !/pull_request/.test(wf), "release-only trigger, secret never exposed to PRs");
