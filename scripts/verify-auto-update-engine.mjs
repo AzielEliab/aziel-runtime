@@ -55,6 +55,13 @@ ok(rcH.receipts.length === 1 && rcH.receipts[0].code === C.channel && rcH.receip
   const p3 = mkHost({ rel: { ...(await release(4)) } }); p3.rel.manifest = { ...p3.rel.manifest, artifact: { ...p3.rel.manifest.artifact, name: "../../etc/x" } };
   r = await checkOnline(p3, o); ok(r.code === C.shape && p3.staged === null, "traversal name never reaches stage");
 }
+{ // rollback itself fails: receipt says rollback_failed, node stays paused, floor unchanged
+  const rf = mkHost({ rel: await release(4), healthy: false }); rf.rollback = async () => { throw new Error("disk"); };
+  r = await checkOnline(rf, o); ok(r.code === C.health && r.row.outcome === "rollback_failed" && rf.state.paused === true && rf.state.floor_seq === 1, "rollback_failed receipted, paused");
+  ok((await checkOnline(rf, o)).code === C.paused, "stays paused after rollback_failed");
+  const rp = mkHost({ rel: await release(4) }); rp.healthCheck = async () => { await pause(rp); return true; }; rp.rollback = async () => { throw new Error("x"); };
+  r = await checkOnline(rp, o); ok(r.code === C.paused && r.row.outcome === "rollback_failed" && rp.state.paused, "late pause + failed rollback");
+}
 // receipts: every attempt receipted, primary chain links
 const rows = h.receipts; ok(rows.length === 5, "one receipt per attempt");
 for (let i = 1; i < rows.length; i++) ok(rows[i].lattice.primary_prev === rows[i - 1].lattice.primary, "primary links");

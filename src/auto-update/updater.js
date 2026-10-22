@@ -59,14 +59,15 @@ export async function applyOffer(host, offer, source, fetchBytes, { publicKey = 
   if (!a.ok) return done(a.code, { manifest_hash: v.manifest_hash });
   const pausedNow = async () => { try { const cur = await host.load(); return !cur || cur.paused === true; } catch { return true; } };
   if (await pausedNow()) { s.paused = true; return done(C.paused, { manifest_hash: v.manifest_hash }); } // pause re-checked before stage
+  // A failed rollback is never reported as rolled_back: receipt says rollback_failed and the node stays paused.
+  const rollBack = async () => { try { await host.rollback(); return "rolled_back"; } catch { s.paused = true; return "rollback_failed"; } };
   try {
     await host.stage(bytes, offer.manifest);
     await host.swap();
     if (!(await host.healthCheck())) throw new Error("health");
-    if (await pausedNow()) { try { await host.rollback(); } catch { /* reported below */ } s.paused = true; return done(C.paused, { manifest_hash: v.manifest_hash, outcome: "rolled_back" }); }
+    if (await pausedNow()) { s.paused = true; return done(C.paused, { manifest_hash: v.manifest_hash, outcome: await rollBack() }); }
   } catch {
-    try { await host.rollback(); } catch { /* rollback failure is reported by the same code */ }
-    return done(C.health, { manifest_hash: v.manifest_hash, outcome: "rolled_back" });
+    return done(C.health, { manifest_hash: v.manifest_hash, outcome: await rollBack() });
   }
   s.installed_seq = offer.manifest.version_seq;
   s.floor_seq = Math.max(s.floor_seq, s.installed_seq); // floor only rises, after health passes
