@@ -51,6 +51,7 @@ export const FEATURE_UNION = Object.freeze([
   f("about", "About page", { "aziel-runtime": r("source", "/about"), azinterface: r("proxied", "/about"), azos: r("proxied", "/about") }),
   f("globe", "4DMap globe page", { "aziel-runtime": r("source", "/4dmap/globe"), azinterface: r("proxied", "/4dmap/globe"), azos: r("proxied", "/4dmap/globe") }),
   f("install_clients", "MCP client install cards", { "aziel-runtime": r("source", "/install/cursor.json"), azinterface: r("proxied", "/install/cursor.json"), azos: r("proxied", "/install/cursor.json") }),
+  f("ark_account", "ARK account sign-in (USER-SIGNIN-ARK-1.0, default OFF; FragGate ark account_*)", { "aziel-runtime": r("source", "/v1/fraggate/call", "POST"), azinterface: r("gap", null), azos: r("gap", null) }),
 ]);
 
 export function featureGaps() {
