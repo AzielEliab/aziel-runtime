@@ -7,7 +7,7 @@
  * Author: Aziel Eliab only.
  */
 
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
 import http from "node:http";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -87,6 +87,16 @@ function refuseIdentity(result) {
  * existing nodes and tests keep their handles. That file is not AZKS-1.
  * A passphrase writes keystore.json and a public identity.json with no seeds.
  */
+// MESH-ONBOARD-1.0 B352-1: identity.json / keystore.json hold the node's Ed25519 + X25519 seeds
+// (or their sealed form). Owner-only: file 0600, data dir 0700, set explicitly (not left to umask),
+// and re-tightened on every write so an older 0644 file is fixed in place.
+export const SECRET_FILE_MODE = 0o600;
+export const DATA_DIR_MODE = 0o700;
+async function writeSecretFile(path, text) {
+  await writeFile(path, text, { mode: SECRET_FILE_MODE });
+  await chmod(path, SECRET_FILE_MODE);
+}
+
 async function loadNodeIdentity(dataDir, passphrase, iterations) {
   const idPath = join(dataDir, "identity.json");
   const ksPath = join(dataDir, "keystore.json");
@@ -122,10 +132,10 @@ async function loadNodeIdentity(dataDir, passphrase, iterations) {
     if (signingSeed) signingSeed.fill(0);
     if (encryptionSeed) encryptionSeed.fill(0);
     if (!created.ok) throw refuseIdentity(created);
-    await writeFile(ksPath, `${JSON.stringify(created.document, null, 2)}\n`);
+    await writeSecretFile(ksPath, `${JSON.stringify(created.document, null, 2)}\n`);
     const pub = exportPublicIdentity(created);
     if (!pub.ok) throw refuseIdentity(pub);
-    await writeFile(
+    await writeSecretFile(
       idPath,
       `${JSON.stringify(
         {
@@ -158,7 +168,7 @@ async function loadNodeIdentity(dataDir, passphrase, iterations) {
   const seed = crypto.getRandomValues(new Uint8Array(32));
   const encSeed = crypto.getRandomValues(new Uint8Array(32));
   const identity = await createIdentity({ seed, encSeed });
-  await writeFile(
+  await writeSecretFile(
     idPath,
     `${JSON.stringify(
       {
@@ -177,8 +187,15 @@ async function loadNodeIdentity(dataDir, passphrase, iterations) {
 }
 
 export async function openInstance({ dataDir, relays = [], passphrase = "", iterations } = {}) {
-  await mkdir(dataDir, { recursive: true });
+  await mkdir(dataDir, { recursive: true, mode: DATA_DIR_MODE });
+  await chmod(dataDir, DATA_DIR_MODE);
   const identity = await loadNodeIdentity(dataDir, passphrase, iterations);
+  // An identity written by an older build may still be 0644: tighten it on open too.
+  for (const name of ["identity.json", "keystore.json"]) {
+    await chmod(join(dataDir, name), SECRET_FILE_MODE).catch((err) => {
+      if (!err || err.code !== "ENOENT") throw err;
+    });
+  }
   const chainPath = join(dataDir, "chain.json");
   const loaded = readChainFile(await loadJson(chainPath, { seq: 0, prev: ZERO_HASH }));
   const directPath = join(dataDir, "direct-inbox.json");

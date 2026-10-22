@@ -13,9 +13,11 @@
  *   node qnm-node/fed-instance.mjs --data ./data/a --port 8781 --relay http://127.0.0.1:8780/v1/mesh/relay
  *   node qnm-node/fed-instance.mjs --data ./data/b --port 8782 --relays http://127.0.0.1:8780/v1/mesh/relay,http://127.0.0.1:8783/v1/mesh/relay
  *   node qnm-node/fed-instance.mjs --data ./data/a --relay https://<origin>/v1/mesh/relay --product <slug> --heartbeat-sec 180
+ *   node qnm-node/fed-instance.mjs ... --log-file ./data/a/node.log --log-max-bytes 1048576   (capped, rotates to .1)
  *   node qnm-node/fed-instance.mjs --data ./data/a --port 8781 --host 0.0.0.0 --advertise 192.168.1.10 --relay http://127.0.0.1:8780/v1/mesh/relay
  */
 
+import { cappedLogger } from "../src/fed-mesh/capped-log.js";
 import { startInstance } from "../src/fed-mesh/instance.js";
 
 function arg(name, fallback = "") {
@@ -40,6 +42,11 @@ const armArg = arg("--arm", "");
 const fixture = process.argv.includes("--fixture");
 const product = arg("--product", "mesh");
 const heartbeatSec = Math.max(0, Number(arg("--heartbeat-sec", "0")) || 0);
+// MESH-ONBOARD-1.0 log cap: with --log-file, JSON lines go to that file (0600) and it rotates to
+// <file>.1 once it would pass --log-max-bytes (default 1 MiB, floor 4 KiB), so at most two
+// capped files exist (src/fed-mesh/capped-log.js). Without --log-file, lines go to stdout as before.
+const logFile = arg("--log-file", "");
+if (logFile) console.log = cappedLogger(logFile, Number(arg("--log-max-bytes", "1048576")));
 const node = await startInstance({ dataDir: data, port, host, advertise, relays, passphrase, fixture });
 console.log(JSON.stringify({
   handle: node.handle,
