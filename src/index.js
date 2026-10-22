@@ -123,6 +123,7 @@ import { DESIGN_TOKENS } from "./lockstep/design-tokens.js";
 import {
   VERSIONS,
   DOI_BY_SLUG,
+  historicalDoiHtml,
   citationFields,
   productHowToCite,
   citeZenodoBlock,
@@ -2384,7 +2385,7 @@ GET or POST ${origin}/p/${escapeHtml(p.slug)}/${escapeHtml(firstPost.op)} is pro
       : "";
   const cite = citationFields(p, u);
   const doi = u.doi_url
-    ? ` · <a href="${u.doi_url}">DOI ${escapeHtml(u.doi)}</a> <span class="slug">(${escapeHtml(cite.zenodo_status)})</span>`
+    ? ` · ${historicalDoiHtml(p.slug, u.doi, cite.zenodo_status)}`
     : ` · <span class="slug">Zenodo deposit needed</span>`;
   const ver = p.version ? ` <span class="slug">v${escapeHtml(p.version)}</span>` : "";
   const tarball = cite.software_tarball
@@ -2432,7 +2433,7 @@ function catalogHtml(origin, statsMap, env = {}) {
     const u = productUrls(p, origin);
     const cite = citationFields(p, u);
     const doi = p.doi
-      ? ` — DOI <a href="https://doi.org/${p.doi}">${p.doi}</a> (${escapeHtml(cite.zenodo_status)})`
+      ? ` — ${historicalDoiHtml(p.slug, p.doi, cite.zenodo_status)}`
       : " — Zenodo software deposit needed (no DOI invented)";
     const ver = p.version ? ` ${escapeHtml(p.version)}` : "";
     return `<li><a href="${p.github}">${escapeHtml(p.name)}</a>${ver}${doi} · <a href="${u.download}">counted tarball</a></li>`;
