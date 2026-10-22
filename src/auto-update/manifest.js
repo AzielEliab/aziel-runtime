@@ -1,0 +1,60 @@
+/**
+ * AZ-UPDATE-MANIFEST-1.0: signed release manifest verify (AUTO-UPDATE-1.0). Fail closed.
+ * Python twin: tools/auto_update_verify.py (same hash, same codes). live:false.
+ * Author: Aziel Eliab. SPDX-License-Identifier: Apache-2.0
+ */
+import { canonicalize, sha256Hex } from "../session-core.js";
+
+export const MANIFEST_SPEC = "AZ-UPDATE-MANIFEST-1.0";
+/** Pinned release public key (raw Ed25519, base64url). PLACEHOLDER: null until Aziel holds the key. null = refuse. */
+export const RELEASE_PUBLIC_KEY = null;
+export const UPDATE_CODES = Object.freeze({
+  off: "UPDATE-OFF", paused: "UPDATE-PAUSED", noKey: "UPDATE-NO-KEY", shape: "UPDATE-MANIFEST-SHAPE",
+  product: "UPDATE-PRODUCT", sig: "UPDATE-SIG", downgrade: "UPDATE-DOWNGRADE", hash: "UPDATE-HASH",
+  carrier: "UPDATE-CARRIER-ABSENT", health: "UPDATE-HEALTH", ok: "UPDATE-OK",
+});
+const HEX64 = /^[a-f0-9]{64}$/, HEX40 = /^[a-f0-9]{40}$/;
+const KEYS = ["artifact", "channel", "git_sha", "issued_at", "prev_manifest_hash", "product", "spec", "version", "version_seq"];
+
+const b64u = (s) => { const b = atob(String(s).replace(/-/g, "+").replace(/_/g, "/") + "===".slice((String(s).length + 3) % 4)); return Uint8Array.from(b, (c) => c.charCodeAt(0)); };
+
+export function manifestShapeOk(m) {
+  if (!m || typeof m !== "object" || Array.isArray(m)) return false;
+  if (Object.keys(m).sort().join() !== KEYS.join()) return false;
+  const a = m.artifact;
+  return m.spec === MANIFEST_SPEC && typeof m.product === "string" && /^[a-z0-9-]{1,64}$/.test(m.product)
+    && typeof m.version === "string" && m.version.length <= 40 && Number.isSafeInteger(m.version_seq) && m.version_seq > 0
+    && HEX40.test(m.git_sha || "") && (m.channel === "stable" || m.channel === "rc") && typeof m.issued_at === "string"
+    && (m.prev_manifest_hash === null || HEX64.test(m.prev_manifest_hash))
+    && a && typeof a === "object" && Object.keys(a).sort().join() === "name,sha256,size"
+    && typeof a.name === "string" && Number.isSafeInteger(a.size) && a.size >= 0 && HEX64.test(a.sha256 || "");
+}
+
+export const manifestHash = (m) => sha256Hex(canonicalize(m));
+
+async function sigOk(pub, m, sig) {
+  try {
+    const key = await crypto.subtle.importKey("raw", b64u(pub), { name: "Ed25519" }, false, ["verify"]);
+    return await crypto.subtle.verify({ name: "Ed25519" }, key, b64u(sig), new TextEncoder().encode(canonicalize(m)));
+  } catch { return false; }
+}
+
+/**
+ * Decide whether a manifest may be applied. Pure except for crypto. Returns {ok, code, manifest_hash?}.
+ * state: { product, installed_seq, floor_seq }. publicKey defaults to the pinned key (null -> refuse).
+ */
+export async function verifyManifest(manifest, signature, state, { publicKey = RELEASE_PUBLIC_KEY } = {}) {
+  if (!publicKey) return { ok: false, code: UPDATE_CODES.noKey };
+  if (!manifestShapeOk(manifest)) return { ok: false, code: UPDATE_CODES.shape };
+  if (!state || manifest.product !== state.product) return { ok: false, code: UPDATE_CODES.product };
+  if (typeof signature !== "string" || !(await sigOk(publicKey, manifest, signature))) return { ok: false, code: UPDATE_CODES.sig };
+  const floor = Math.max(state.installed_seq | 0, state.floor_seq | 0);
+  if (manifest.version_seq <= floor) return { ok: false, code: UPDATE_CODES.downgrade };
+  return { ok: true, code: UPDATE_CODES.ok, manifest_hash: await manifestHash(manifest) };
+}
+
+/** Artifact bytes must match size and sha256 exactly. */
+export async function verifyArtifact(manifest, bytes) {
+  if (!(bytes instanceof Uint8Array) || bytes.length !== manifest.artifact.size) return { ok: false, code: UPDATE_CODES.hash };
+  return (await sha256Hex(bytes)) === manifest.artifact.sha256 ? { ok: true, code: UPDATE_CODES.ok } : { ok: false, code: UPDATE_CODES.hash };
+}
