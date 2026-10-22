@@ -107,7 +107,10 @@ export async function runArkAccountOp(op, payload, env, request, keys = null, me
     }
     const prefix = hex(await sha256("ARK-ACCOUNT:v1:ip|" + rateKeyOf(clientIp(request))));
     if (!(await rateHit(kv, "p:" + prefix, RL_PER_PREFIX, now))) return refuse("ARK-RATE");
-    if (!(await rateHit(kv, "s:" + subject, RL_PER_SUBJECT, now))) return refuse("ARK-RATE");
+    // Device mode: the vault_id counter moves only after a signature verifies (AZBot r2), so an
+    // unsigned flood cannot lock a vault out. Hosted mode has no signature: counted here.
+    const subjectHit = async () => rateHit(kv, "s:" + subject, RL_PER_SUBJECT, now);
+    if (hosted && !(await subjectHit())) return refuse("ARK-RATE");
     if (hosted && !keys) {
       // MED-2: PBKDF2 runs only after the flag, store and both rate checks pass.
       try { keys = await arkDeriveFor(meta.handle); } catch { return refuse("ARK-INPUT"); }
@@ -125,6 +128,7 @@ export async function runArkAccountOp(op, payload, env, request, keys = null, me
         const ts = p.ts;
         if (!okTs(ts, now)) return refuse("ARK-STALE");
         if (!(await verifySig(pub, String(p.user_sig || ""), recallMessage(vaultId, ts)))) return refuse("ARK-SIG-BAD");
+        if (!(await subjectHit())) return refuse("ARK-RATE");
       }
       const limit = Math.min(RECALL_MAX, Math.max(1, Number.isInteger(p.limit) ? p.limit : 20));
       const rows = [];
@@ -159,6 +163,7 @@ export async function runArkAccountOp(op, payload, env, request, keys = null, me
       if (ct_sha256 !== hex(await sha256(ct_b64))) return refuse("ARK-INPUT");
       if (!okTs(ts, now)) return refuse("ARK-STALE");
       if (!(await verifySig(pub, String(user_sig || ""), appendMessage({ spec: ARK_ACCOUNT_SPEC, vault_id: vaultId, seq, prev: tip.row_hash, kind, ct_sha256, ts })))) return refuse("ARK-SIG-BAD");
+      if (!(await subjectHit())) return refuse("ARK-RATE");
     }
     if ((await kv.get(rowKey(vaultId, seq))) != null) return refuse("ARK-STALE"); // append-only: never overwrite
     const row = await sealRow({ spec: ARK_ACCOUNT_SPEC, vault_id: vaultId, seq, prev: tip.row_hash, ts, kind, ct_b64, ct_sha256, user_pub: pub, user_sig, signed_by: "user", _prev_primary: tip.primary, _prev_secondary: tip.secondary });
@@ -174,7 +179,9 @@ export async function runArkAccountOp(op, payload, env, request, keys = null, me
 }
 
 /** Verify one vault's rows: seq/prev/row_hash/lattice links and user_sig. Read-only. */
-export async function verifyArkRows(rows, tip = null) {
+/** tip is REQUIRED (stored-history paths must bind to the stored tip); pass { seq: 0, row_hash: GENESIS } for an empty vault. */
+export async function verifyArkRows(rows, tip) {
+  if (!tip || !Number.isInteger(tip.seq) || typeof tip.row_hash !== "string") return { ok: false, at: 0, why: "tip-required" };
   let prev = LATTICE_GENESIS, pp = LATTICE_GENESIS, ps = LATTICE_GENESIS;
   for (const [i, r] of rows.entries()) {
     if (r.seq !== i + 1 || r.prev !== prev) return { ok: false, at: i + 1, why: "link" };
@@ -188,6 +195,6 @@ export async function verifyArkRows(rows, tip = null) {
     prev = row_hash; pp = r.lattice.primary; ps = r.lattice.secondary;
   }
   // Bind to the stored tip: catches a last-row swap or a truncated history.
-  if (tip && (tip.seq !== rows.length || tip.row_hash !== prev)) return { ok: false, at: rows.length, why: "tip" };
+  if (tip.seq !== rows.length || tip.row_hash !== prev) return { ok: false, at: rows.length, why: "tip" };
   return { ok: true, n: rows.length };
 }
