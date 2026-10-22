@@ -22,8 +22,9 @@ assert.equal(list.kernel_repo_url, "https://github.com/AzielEliab/fraggate");
 // registry_digest moves with ENGINE_DIGESTS (engine wording changed in DOCS-WORDING-1.0)
 // and with the memory op list (LATTICE-LEARN-1.0 added lattice-learn, additive)
 // and with the mesh op list (AGENT-SUBNET-1.0 added agent-* mesh ops incl. agent-retire, additive; live_count stays 42)
-// and with the ark op list (USER-SIGNIN-ARK-1.0 added account_open/append/recall/challenge/session, additive, default OFF; stubs stay 363).
-assert.equal(list.registry_digest, "b74a02be9798b2b0cf2fb7ad189c5bb7010616efc60449f47d94a1f9a7ddd0f5");
+// and with the ark op list (USER-SIGNIN-ARK-1.0 added account_open/append/recall/challenge/session, additive, default OFF; stubs stay 363)
+// and with the 4dmap digest (CORPUS-INTAKE-SAFETY-1.0 media floor: news images hashed and dropped; counts unchanged).
+assert.equal(list.registry_digest, "e9bf97c37384f1407b370595aa6329903c46c613b0199463000181e73b0bc36d");
 assert.equal(list.stub_op_count, 363);
 assert.equal(list.live_count, 42);
 n += 5;
