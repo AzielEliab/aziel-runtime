@@ -21,4 +21,14 @@ ok(/prerelease == false/.test(wf) && /draft == false/.test(wf), "workflow skips 
 ok(/AUTO_UPDATE_SIGNING_KEY missing: refusing/.test(wf), "workflow fails closed on missing secret");
 ok(/types: \[published\]/.test(wf) && !/push:/.test(wf) && !/pull_request/.test(wf), "release-only trigger, secret never exposed to PRs");
 ok(!/echo .*secrets\./.test(wf), "secret never echoed");
+ok(!/--clobber/.test(wf) && /already has auto-update-manifest\.json/.test(wf), "no clobber; refuses existing manifest");
+ok(/merge-base --is-ancestor "\$T" origin\/main/.test(wf), "tag must be an ancestor of origin/main");
+ok(/rev-list --count --first-parent "\$T"/.test(wf) && wf.indexOf("--is-ancestor") < wf.indexOf("--first-parent"), "seq = first-parent count, after ancestor check");
+ok(/environment: release/.test(wf), "signing job in release environment");
+ok(/ref: main, path: signer/.test(wf) && /node signer\/scripts\/auto-update-sign-release\.mjs/.test(wf), "signer runs from main checkout");
+const [buildJob, signJob] = wf.split(/^  sign:$/m);
+ok(!/secrets\./.test(buildJob) && /ref: "\$\{\{ github\.event\.release\.tag_name \}\}"/.test(buildJob), "tag checkout job has no secret");
+ok(!/github\.event\.release\.tag_name \}\}", fetch/.test(signJob), "sign job never checks out the tag");
+const uses = [...wf.matchAll(/uses:\s*(\S+)/g)].map((x) => x[1]);
+ok(uses.length >= 4 && uses.every((u) => /@[0-9a-f]{40}$/.test(u)), "every action pinned by full SHA");
 console.log(`verify-auto-update-release-sign: ${n} checks ok`);
