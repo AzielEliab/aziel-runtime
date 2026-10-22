@@ -292,9 +292,10 @@ export async function saveChain(store, name, rows, caller) {
  * level is one of runtime | ui | interface; software is a lowercase slug. Both are absent on
  * old rows and on rows that omit them, so every old stamp_sha256 and lattice document hash is
  * unchanged. Invalid values are dropped (never guessed). Format check only: this does not read
- * or change the Softwares registry. Reserved (not built): a third, user-derived duplicate
- * tie-break chain ("3 chains in 2 lattices") would ride in a separate optional block; no field
- * here and no existing hash rule is changed for it.
+ * or change the Softwares registry. The third, user-derived tie-break
+ * chain ("3 chains in 2 lattices", LATTICE-TIEBREAK-1.0, PR #327) rides in its own optional
+ * lattice.tiebreak block, written only on a real sync row (online, sync:true, username); plain
+ * online and offline rows carry no block. No field here and no existing hash rule changes for it.
  */
 export const RECEIPT_LEVELS = Object.freeze(["runtime", "ui", "interface"]);
 export const RECEIPT_SOFTWARE_RE = /^[a-z0-9][a-z0-9-]{0,63}$/;
