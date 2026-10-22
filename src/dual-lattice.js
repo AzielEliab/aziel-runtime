@@ -12,7 +12,10 @@
  * LATTICE-DOUBLE. A document can never be doubled while the user is offline.
  *
  * Used by ChainLock stamps, session receipts, AZNews receipts, and the AZ-OS
- * tether packet. AZ-OS recomputes these exact rules on its own tracker.
+ * tether packet. AZ-OS and AZInterface recompute these exact rules only in their parity modules
+ * (azos/runtime_lattice.py, azos #42; azinterface/runtime_lattice.py, azinterface #47), with pinned
+ * vectors. azos/chains.py is a different, older news-chain formula (newline-joined, chained
+ * secondary) and does NOT match these rules; it is left unchanged so existing AZ-OS hashes hold.
  * The username is a short handle. A legal name is not stored.
  * Not a public ledger. Not courtroom proof. Not a Softwares card. Not an MCP tool.
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
