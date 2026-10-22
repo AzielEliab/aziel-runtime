@@ -1,7 +1,7 @@
 // USER-SIGNIN-ARK-1.0 §4-§9: credential firewall + ark account_* ops through FragGate.
 import assert from "node:assert/strict";
 const handler = (await import("../src/index.js")).default.fetch;
-const { arkFirewall, arkKeysFor } = await import("../src/account/firewall.js");
+const { arkFirewall, arkKeysFor, arkCredsFor, arkDeriveFor, isArkAccountCall, scrubCredentialKeys } = await import("../src/account/firewall.js");
 const { runArkAccountOp, verifyArkRows, appendMessage, recallMessage, RL_PER_SUBJECT } = await import("../src/account/ops.js");
 const { deriveArkAccount, sealData, signBytes, sha256, hex } = await import("../src/account/ark-kdf.js");
 const { LIVE_OPS, STUB_OPS } = await import("../src/fraggate/registry.js");
@@ -26,12 +26,13 @@ ok(STUB_OPS.ark.join() === "scorch,wipe,unlock,encrypt", "ark stubs unchanged");
 // Firewall: scrubs top-level and payload creds, keeps keys off JSON, idempotent, ignores other slugs.
 const fw = await arkFirewall({ slug: "ark", op: "account_open", username: U, payload: { password: P, x: 1 } });
 ok(!leaks(JSON.stringify(fw)) && fw.payload.x === 1 && fw.credential_mode === "hosted", "creds scrubbed");
-ok(arkKeysFor(fw) && arkKeysFor(fw).vault_id.length === 64, "keys held off-JSON");
+ok(!arkKeysFor(fw) && arkCredsFor(fw), "creds held off-JSON; no PBKDF2 in the firewall (MED-2)");
 ok((await arkFirewall(fw)) === fw, "idempotent");
 const other = { slug: "memory", op: "recall", password: "x" };
 ok((await arkFirewall(other)) === other, "non-ark args untouched");
 const bad = await arkFirewall({ slug: "ark", op: "account_open", username: "a", password: P });
-ok(bad.credential_error === "ARK-INPUT" && !arkKeysFor(bad) && !leaks(JSON.stringify(bad)), "bad input fails closed");
+ok(!arkKeysFor(bad) && !leaks(JSON.stringify(bad)), "bad input holds no keys");
+await assert.rejects(arkDeriveFor(bad)); n++;
 
 // Default OFF and durable-store-only.
 let r = await call({ op: "account_open", username: U, password: P }, { USES: mkKv() });
@@ -67,6 +68,7 @@ ok(!(await verifyArkRows(tampered)).ok, "tamper detected");
 ok(!leaks(JSON.stringify([...kv.m.entries()])), "no username/password anywhere in storage (ledger, session, refusals, rows)");
 
 // Device mode: client derives + signs locally; server sees pub, sig, ciphertext only.
+ip = 77; // own rate bucket so earlier sections can never push this one over (flake fix)
 const dev = await deriveArkAccount("devuser1", "device-only-pass");
 r = await call({ op: "account_open", payload: { vault_pub: dev.pub } });
 ok(r.result.vault_id === dev.vault_id && r.result.count === 0, "device open");
@@ -106,7 +108,7 @@ ok(!leaks(JSON.stringify([...rlKv.m.entries()])) && ![...rlKv.m.values()].join()
 // Fail closed on store errors.
 const boom = { ARK_ACCOUNTS: "on", USES: { get: async () => { throw new Error("x"); }, put: async () => { throw new Error("x"); } } };
 const fk = await arkFirewall({ slug: "ark", op: "account_open", username: U, password: P });
-r = await runArkAccountOp("account_open", {}, boom, null, arkKeysFor(fk), {});
+r = await runArkAccountOp("account_open", {}, boom, null, null, { handle: fk, credential_mode: "hosted" });
 ok(r.ok === false && r.code === "ARK-FAIL-CLOSED", "store error fails closed");
 console.log(`verify-ark-account: ${n} checks ok`);
 // /p/ark/account_* must never proxy credentials to the ARK product Worker.
@@ -117,4 +119,40 @@ console.log(`verify-ark-account: ${n} checks ok`);
   const { run: runArkEngine } = await import("../src/engines/ark.js");
   assert.equal((await runArkEngine("account_open", { username: U, password: P })).code, "ARK-DOOR-ONLY");
   console.log("verify-ark-account: /p and engine paths are door-only (2 checks)");
+}
+
+// AZBot #333 MED-1/MED-2/LOW regressions.
+{
+  let c = 0; const k = (x, m) => { assert.ok(x, m); c++; };
+  for (const shape of [{ name: "ark/account_open" }, { name: "ark_account_open" }, { slug: "zz", name: "ark", op: "account_open" }, { slug: "ark", verb: "account_open" }, { tool: "ark", op: "account_open" }]) {
+    k(isArkAccountCall(shape), "detect " + JSON.stringify(shape));
+    const f = await arkFirewall({ ...shape, Password: P, USERNAME: U, payload: { PassWord: P } });
+    k(!leaks(JSON.stringify(f)), "scrub (case-insensitive) " + JSON.stringify(shape));
+  }
+  k(!leaks(JSON.stringify(scrubCredentialKeys({ a: { Password: P, b: [{ user: U }] } }))), "deep scrub");
+  const e3 = { ARK_ACCOUNTS: "on", USES: mkKv() };
+  ip = 90;
+  const m = await (await post("/mcp", { jsonrpc: "2.0", id: 9, method: "tools/call", params: { name: "fraggate_call", arguments: { name: "ark_account_append", Password: P, username: U, payload: { data: "x" } } } }, e3)).text();
+  k(!leaks(m), "MCP confirm retry hint carries no password");
+  // Flag OFF: no PBKDF2 at all (timed: derive ≈ 100k iters; off path must be fast).
+  const t0 = Date.now();
+  for (let i = 0; i < 5; i++) await call({ op: "account_open", username: U, password: P }, { USES: mkKv() });
+  k(Date.now() - t0 < 400, "flag off refuses before key derivation");
+  // Rate limit before derive: exhausted subject refuses without deriving.
+  const { RL_PER_SUBJECT: L } = await import("../src/account/ops.js");
+  k(L === 100, "lockout eased to 100/15min");
+  // Rate subject is a truncated, window-salted hash, never sha256(username).
+  const keysSeen = [...kv.m.keys()].filter((x) => x.includes("ark:rl:s:"));
+  const plain = hex(await sha256("ARK-ACCOUNT:v1:rl|" + U));
+  k(keysSeen.length > 0 && keysSeen.every((x) => !x.includes(plain) && /ark:rl:s:([0-9a-f]{6}|[0-9a-f]{64}):/.test(x)), "rate subject salted+truncated");
+  // verifyArkRows binds to the tip and rechecks ct_sha256.
+  const vid2 = [...kv.m.keys()].find((x) => /ark:acct:[0-9a-f]{64}:tip$/.test(x));
+  const tip = JSON.parse(kv.m.get(vid2));
+  const v = vid2.split(":")[2];
+  const rs = []; for (let s2 = 1; s2 <= tip.seq; s2++) rs.push(JSON.parse(kv.m.get(`chainlock|ark:acct:${v}:${s2}`)));
+  k((await verifyArkRows(rs, tip)).ok, "rows verify against tip");
+  k(tip.seq < 2 || (await verifyArkRows(rs.slice(0, -1), tip)).why === "tip", "truncation detected");
+  const bad2 = rs.map((x) => ({ ...x })); bad2[0].ct_b64 = "AAAA";
+  k(!(await verifyArkRows(bad2, tip)).ok, "ct_sha256 rechecked");
+  console.log(`verify-ark-account: azbot-333 ${c} checks ok`);
 }
