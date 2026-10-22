@@ -18,11 +18,12 @@ async function loadParse() {
 const CREDS = new WeakMap(); // args → { u, p } raw; derived lazily by ops AFTER flag + rate checks (MED-2)
 const KEYS = new WeakMap();
 const SCRUBBED = new WeakSet();
-const USER_KEYS = new Set(["username", "user", "user_name", "login", "uname"]);
-const PASS_KEYS = new Set(["password", "pass", "passphrase", "passwd", "pwd", "pw", "secret"]);
+// Keys are normalized by dropping case and every non-letter: pass_word, pass-word, passWord, "pass word" → password.
+const USER_KEYS = new Set(["username", "user", "login", "uname", "userid", "loginname"]);
+const PASS_KEYS = new Set(["password", "pass", "passphrase", "passwd", "pwd", "pw", "secret", "passcode"]);
 const ARK_MINI = { bySlug: { ark: { slug: "ark" } }, byName: { "the ark": { slug: "ark" }, ark: { slug: "ark" } } };
 
-const norm = (k) => String(k).toLowerCase().replace(/[^a-z_]/g, "");
+const norm = (k) => String(k).toLowerCase().replace(/[^a-z]/g, "");
 
 /** Detect ark account calls in every shape parseTarget routes (name "ark/account_x", "ark_account_x", tool, verb …). */
 export function isArkAccountCall(args) {

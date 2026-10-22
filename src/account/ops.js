@@ -41,7 +41,6 @@ export function sessionMessage(vaultId, nonce) {
   return enc.encode(`ARK-ACCOUNT:v1:session|${vaultId}|${nonce}`);
 }
 const randHex = (n) => hex(crypto.getRandomValues(new Uint8Array(n)));
-const chalKey = (nonce) => `ark:chal:${nonce}`;
 const sessKey = (h) => `ark:sess:${h}`;
 async function sessionVault(kv, token, now) {
   if (typeof token !== "string" || !/^[0-9a-f]{64}$/.test(token)) return null;
@@ -131,9 +130,20 @@ export async function runArkAccountOp(op, payload, env, request, keys = null, me
       vaultId = await vaultIdOf(pub);
       subject = vaultId;
     }
+    if (op === "account_challenge") {
+      if (hosted) return refuse("ARK-INPUT"); // challenges are for user-side keys only
+      // Zero KV writes: the nonce is self-describing (issue time + 24 random bytes). Single use is
+      // enforced when it is spent, by an atomic claim in the ChainWriter Durable Object.
+      const nonce = Math.floor(now).toString(16).padStart(16, "0") + randHex(24);
+      return { ok: true, code: "ARK-OK", spec: ARK_ACCOUNT_SPEC, vault_id: vaultId, nonce, expires_ms: CHALLENGE_TTL_MS, sign: "ARK-ACCOUNT:v1:session|<vault_id>|<nonce>", written: false };
+    }
+
     const prefix = hex(await sha256("ARK-ACCOUNT:v1:ip|" + rateKeyOf(clientIp(request))));
     if (!(await rateHit(kv, "p:" + prefix, RL_PER_PREFIX, now))) return refuse("ARK-RATE");
-    if (!(await rateHit(kv, "s:" + subject, RL_PER_SUBJECT, now))) return refuse("ARK-RATE");
+    // Device mode: the vault_id counter moves only after a signature verifies (AZBot r2), so an
+    // unsigned flood cannot lock a vault out. Hosted mode has no signature: counted here.
+    const subjectHit = async () => rateHit(kv, "s:" + subject, RL_PER_SUBJECT, now);
+    if (hosted && !(await subjectHit())) return refuse("ARK-RATE");
     if (hosted && !keys) {
       // MED-2: PBKDF2 runs only after the flag, store and both rate checks pass.
       try { keys = await arkDeriveFor(meta.handle); } catch { return refuse("ARK-INPUT"); }
@@ -142,23 +152,18 @@ export async function runArkAccountOp(op, payload, env, request, keys = null, me
     if (hosted) { pub = keys.pub; vaultId = keys.vault_id; }
     const tip = await readTip(kv, vaultId);
 
-    if (op === "account_challenge") {
-      // Stateless toward the password: any vault_pub gets a nonce (no oracle).
-      const nonce = randHex(32);
-      await kv.put(chalKey(nonce), JSON.stringify({ vault_id: vaultId, exp: now + CHALLENGE_TTL_MS }));
-      return { ok: true, code: "ARK-OK", spec: ARK_ACCOUNT_SPEC, vault_id: vaultId, nonce, expires_ms: CHALLENGE_TTL_MS, sign: "ARK-ACCOUNT:v1:session|<vault_id>|<nonce>", written: false };
-    }
-
     if (op === "account_session") {
       const nonce = String(p.nonce || "");
       if (!/^[0-9a-f]{64}$/.test(nonce)) return refuse("ARK-INPUT");
-      const raw = await kv.get(chalKey(nonce));
-      if (raw == null) return refuse("ARK-STALE");
-      const c = JSON.parse(raw);
-      if (c.used) return refuse("ARK-STALE");
-      await kv.put(chalKey(nonce), JSON.stringify({ ...c, used: true })); // single use, consumed before verify
-      if (c.vault_id !== vaultId || !(c.exp > now)) return refuse("ARK-STALE");
+      const issued = parseInt(nonce.slice(0, 16), 16);
+      if (!Number.isFinite(issued) || issued > now + TS_SKEW_MS || now - issued > CHALLENGE_TTL_MS) return refuse("ARK-STALE");
       if (!(await verifySig(pub, String(p.user_sig || ""), sessionMessage(vaultId, nonce)))) return refuse("ARK-SIG-BAD");
+      if (!(await subjectHit())) return refuse("ARK-RATE"); // vault counter only after a valid signature
+      // Single use across data centers: one atomic claim per (vault, nonce) in the ChainWriter DO.
+      // Strict: without a DO claim primitive (KV-only store) sessions refuse rather than risk a replay.
+      if (typeof kv.docClaim !== "function") return refuse("ARK-STORE-OFF");
+      const claim = await kv.docClaim(hex(await sha256(`ARK-ACCOUNT:v1:nonce|${vaultId}|${nonce}`)), "ark-session", "");
+      if (!claim || claim.ok !== true || claim.fresh !== true) return refuse("ARK-STALE");
       // Verify against the receipt chain: the vault's tip row (if any) must be signed by this key.
       if (tip.seq > 0) {
         const last = JSON.parse((await kv.get(rowKey(vaultId, tip.seq))) || "null");
@@ -178,6 +183,7 @@ export async function runArkAccountOp(op, payload, env, request, keys = null, me
         const ts = p.ts;
         if (!okTs(ts, now)) return refuse("ARK-STALE");
         if (!(await verifySig(pub, String(p.user_sig || ""), recallMessage(vaultId, ts)))) return refuse("ARK-SIG-BAD");
+        if (!(await subjectHit())) return refuse("ARK-RATE");
       }
       const limit = Math.min(RECALL_MAX, Math.max(1, Number.isInteger(p.limit) ? p.limit : 20));
       const rows = [];
@@ -212,6 +218,7 @@ export async function runArkAccountOp(op, payload, env, request, keys = null, me
       if (ct_sha256 !== hex(await sha256(ct_b64))) return refuse("ARK-INPUT");
       if (!okTs(ts, now)) return refuse("ARK-STALE");
       if (!(await verifySig(pub, String(user_sig || ""), appendMessage({ spec: ARK_ACCOUNT_SPEC, vault_id: vaultId, seq, prev: tip.row_hash, kind, ct_sha256, ts })))) return refuse("ARK-SIG-BAD");
+      if (!(await subjectHit())) return refuse("ARK-RATE");
     }
     if ((await kv.get(rowKey(vaultId, seq))) != null) return refuse("ARK-STALE"); // append-only: never overwrite
     const row = await sealRow({ spec: ARK_ACCOUNT_SPEC, vault_id: vaultId, seq, prev: tip.row_hash, ts, kind, ct_b64, ct_sha256, user_pub: pub, user_sig, signed_by: "user", _prev_primary: tip.primary, _prev_secondary: tip.secondary });
@@ -227,7 +234,9 @@ export async function runArkAccountOp(op, payload, env, request, keys = null, me
 }
 
 /** Verify one vault's rows: seq/prev/row_hash/lattice links and user_sig. Read-only. */
-export async function verifyArkRows(rows, tip = null) {
+/** tip is REQUIRED (stored-history paths must bind to the stored tip); pass { seq: 0, row_hash: GENESIS } for an empty vault. */
+export async function verifyArkRows(rows, tip) {
+  if (!tip || !Number.isInteger(tip.seq) || typeof tip.row_hash !== "string") return { ok: false, at: 0, why: "tip-required" };
   let prev = LATTICE_GENESIS, pp = LATTICE_GENESIS, ps = LATTICE_GENESIS;
   for (const [i, r] of rows.entries()) {
     if (r.seq !== i + 1 || r.prev !== prev) return { ok: false, at: i + 1, why: "link" };
@@ -241,6 +250,6 @@ export async function verifyArkRows(rows, tip = null) {
     prev = row_hash; pp = r.lattice.primary; ps = r.lattice.secondary;
   }
   // Bind to the stored tip: catches a last-row swap or a truncated history.
-  if (tip && (tip.seq !== rows.length || tip.row_hash !== prev)) return { ok: false, at: rows.length, why: "tip" };
+  if (tip.seq !== rows.length || tip.row_hash !== prev) return { ok: false, at: rows.length, why: "tip" };
   return { ok: true, n: rows.length };
 }
