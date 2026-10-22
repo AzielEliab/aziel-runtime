@@ -51,7 +51,7 @@ export const INTEGRITY_LEVELS = Object.freeze(["none", "hash_present", "chain_co
 
 /** Anchored roots: ChainLock chains + FragGate ask/refuse ledger (DO writers) + checkpointed stores. */
 export const ANCHOR_CHAINS = Object.freeze([
-  "genesis", "identity", "ssh", "session", "acts", "evidence", "recall", "mesh", "library", "learn", "refusals", "fraggate",
+  "genesis", "identity", "ssh", "session", "acts", "evidence", "recall", "mesh", "library", "learn", "refusals", "agentcomms", "fraggate",
 ]);
 
 export const ANCHOR_CODES = Object.freeze({
@@ -247,12 +247,18 @@ function storeOf(env, storeFor) {
 }
 
 /** GET /v1/anchor/heads — what the witness pulls. Read-only; mints nothing. */
-export async function collectHeads(env, { storeFor, aznewsCall, mapCall, version, gitSha, versionId = null, now = new Date() } = {}) {
+export async function collectHeads(env, { storeFor, aznewsCall, mapCall, agentHourlyTip = null, version, gitSha, versionId = null, now = new Date() } = {}) {
   const store = storeOf(env, storeFor);
   const chains = [];
   if (store && typeof store.chainMeta === "function") {
     for (const c of ANCHOR_CHAINS) {
       try {
+        if (c === "agentcomms" && typeof agentHourlyTip === "function") {
+          // AGENT-SUBNET-1.0: the hourly tip only (exact seq and h at that hour, so the witness can check it).
+          const ht = await agentHourlyTip(env);
+          if (ht && ht.seq > 0 && ht.h) chains.push({ c, seq: ht.seq, h: ht.h, lattice: ht.lattice || null, hourly: true, as_of: ht.as_of });
+          continue;
+        }
         const m = await store.chainMeta(c);
         if (m && m.ok && m.seq > 0) chains.push({ c, seq: m.seq, h: m.tip, lattice: m.lt || null });
       } catch {

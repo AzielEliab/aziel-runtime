@@ -39,8 +39,9 @@ export const ROSTER = Object.freeze([
 /**
  * Runtime-internal chains (not on the public ROSTER, so chainlock_append cannot forge into them).
  * AZRT-REFUSAL-RECEIPT-1.0: sealed policy refusals and the next action after one (append-only).
+ * AGENT-SUBNET-1.0: `agentcomms` holds hash-only agent communication receipts (src/agent-subnet.js).
  */
-export const INTERNAL_CHAINS = Object.freeze(["refusals"]);
+export const INTERNAL_CHAINS = Object.freeze(["refusals", "agentcomms"]);
 
 /**
  * LATTICE-DOC-UNIQUE-1.0: document chains. A document (stampDocumentHash: chain, kind,
@@ -209,7 +210,7 @@ const DOUBLE_MESSAGE = {
  * every stamp written before them hashes exactly as before.
  * AZRT-ANCHOR-1.0 anchor, AZRT-REFUSAL-RECEIPT-1.0 refusal, AZRT-GOAL-LINK-1.0 follows/goal_key,
  * AZRT-SCHEMA-PIN-1.0 schema_hash, AZRT-CONTEXT-HASH-1.0 context_hash/node_ids,
- * AZRT-EXPECT-SPEC-1.0 spec_ref/expect_hash.
+ * AZRT-EXPECT-SPEC-1.0 spec_ref/expect_hash, AGENT-SUBNET-1.0 agentcomm (hash-only receipt body).
  */
 export const ADDITIVE_STAMP_FIELDS = Object.freeze([
   "anchor",
@@ -221,6 +222,7 @@ export const ADDITIVE_STAMP_FIELDS = Object.freeze([
   "node_ids",
   "spec_ref",
   "expect_hash",
+  "agentcomm",
 ]);
 const ADDITIVE_FIELD_BYTES = 1024;
 
@@ -481,9 +483,9 @@ export async function append(storeOrEnv, input = {}, options = {}) {
     const out = { ok: false, refuse: (ack && ack.refuse) || "append-failed", cap: ack && ack.cap };
     if (ack && ack.code) out.code = ack.code;
     if (ack && ack.message) out.message = ack.message;
-    if (ack && ack.cap_class) out.cap_class = ack.cap_class; // RIB-018 follow-up 2 (additive)
+    if (ack && ack.cap_class) out.cap_class = ack.cap_class; // RIB-018 follow-up 2 + AGENT-SUBNET-1.0 (additive)
     if (ack && ack.cap_limit) { out.cap_limit = ack.cap_limit; out.cap_minute = ack.cap_minute; }
-    if (ack && (String(ack.refuse || "").startsWith("lattice-") || ack.refuse === "refusal-cap")) out.written = false;
+    if (ack && (String(ack.refuse || "").startsWith("lattice-") || ack.refuse === "refusal-cap" || ack.refuse === "agentcomm-cap")) out.written = false;
     return out;
   }
   const unsigned = ack.record;
@@ -506,6 +508,11 @@ export async function tip(storeOrEnv, chain = "session", caller = "") {
   const store = storeFor(storeOrEnv);
   const name = String(chain || "session").trim() || "session";
   const space = String(caller || "").trim();
+  if (name === "agentcomms") {
+    // AGENT-SUBNET-1.0: the live tip would show the receipt body and time of the newest agent event.
+    // The public reads agentcomms through the hourly snapshot and /v1/anchor/heads instead.
+    return { ok: false, chain: name, refuse: "internal-chain", code: "AGENT-TIP-HOURLY", message: "agentcomms has no live public tip: read GET /v1/mesh/agents/receipts (hourly) or /v1/anchor/heads; chainlock_verify {c:'agentcomms'} verifies through the same hourly tip; owners use POST /v1/mesh/agents/receipts.", v: CL_VERSION };
+  }
   const rows = await loadChain(store, name, space);
   if (!rows.length) {
     return { ok: true, chain: name, tip: null, empty: true };
@@ -577,7 +584,7 @@ export async function recall(storeOrEnv, input = {}) {
   return { ok: true, v: CL_VERSION, depth, count: facts.length, facts };
 }
 
-export async function verify(storeOrEnv, input = {}) {
+export async function verify(storeOrEnv, input = {}, opts = {}) {
   const store = storeFor(storeOrEnv);
   const src = input && typeof input === "object" ? input : {};
   const names = src.c || src.chain ? [String(src.c || src.chain)] : ROSTER.slice();
@@ -587,7 +594,11 @@ export async function verify(storeOrEnv, input = {}) {
   for (const name of names) {
     // Addendum (RIB-018): an internal chain (refusals) is verifiable when named explicitly; read-only.
     if (!ROSTER.includes(name) && !(INTERNAL_CHAINS.includes(name) && (src.c || src.chain))) continue;
-    const rows = await loadChain(store, name, caller);
+    const allRows = await loadChain(store, name, caller);
+    // agentcomms through a public door: only the rows up to the hourly tip (rows after it are verified the
+    // next hour). opts comes from the server (chainlock.js), never from the caller's input.
+    const hourly = name === "agentcomms" && opts && Number.isFinite(opts.agentThrough);
+    const rows = hourly ? allRows.slice(0, Math.max(0, opts.agentThrough)) : allRows;
     let prev = GENESIS;
     let ok = true;
     for (let i = 0; i < rows.length; i++) {
@@ -653,6 +664,7 @@ export async function verify(storeOrEnv, input = {}) {
       expect_spec: { status: expect_spec.status, spec_hash: expect_spec.spec_hash, errors: expect_spec.errors.length },
       ...(prevented ? { prevented: { spec: prevented.spec, edges: prevented.edges, errors: prevented.errors.length } } : {}),
       isolated: !ok,
+      ...(hourly ? { hourly: true, through: "hourly tip", as_of: opts.agentAsOf || null, note: "agentcomms is verified through the hourly tip only (no live count, no live tip); later rows are verified the next hour." } : {}),
       dual_lattice: {
         ok: dual.ok,
         lattice_rows: dual.lattice_rows,

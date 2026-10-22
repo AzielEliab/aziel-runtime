@@ -312,6 +312,18 @@ export const MESH_LIMITATION =
   " Author: Aziel Eliab only.";
 
 export const MESH_CANONICAL_OPS = Object.freeze([
+  // AGENT-SUBNET-1.0 (src/agent-subnet.js): additive agent-* ops on the same mesh door.
+  "agent-status",
+  "agent-register",
+  "agent-grant",
+  "agent-revoke",
+  "agent-retire",
+  "agent-send",
+  "agent-pull",
+  "agent-ack",
+  "agent-challenge",
+  "agent-receipts",
+  "agent-directory",
   "status",
   "enable",
   "disable",
@@ -2639,7 +2651,8 @@ export async function fedMeshNameDoor(op, payload, env) {
   );
 }
 
-export async function runMeshOp(op, payload, env) {
+/** meta: { ip_h } of the calling request (REST or /mcp), for the agent-subnet visitor limits; {} when local. */
+export async function runMeshOp(op, payload, env, meta = {}) {
   const resolved = resolveMeshOp(op);
   const src = payload && typeof payload === "object" && !Array.isArray(payload) ? payload : {};
   const poisoned = poisonKeys(src);
@@ -2765,13 +2778,22 @@ export async function runMeshOp(op, payload, env) {
     const state = await loadState(env);
     return baseResult({ ...(await statusFields(state, env)), ...fed, op: resolved });
   }
+  if (resolved && resolved.startsWith("agent-")) {
+    // AGENT-SUBNET-1.0: mutate ops need the mesh enabled (never enabled from here; MESH-OFF otherwise).
+    const agents = await import("./agent-subnet.js");
+    if (agents.AGENT_MUTATE_OPS.includes(resolved)) {
+      const state = await loadState(env);
+      if (!state.enabled) return offRefuse(resolved, state, env);
+    }
+    return agents.runAgentOp(resolved, src, env, meta || {});
+  }
   return refuse("MESH-UNKNOWN-OP", `Unknown mesh op ${JSON.stringify(op || "")}.`, {
     op: resolved || op || null,
     ops: MESH_CANONICAL_OPS.slice(),
   });
 }
 
-async function dispatchMeshHttpCore(method, pathname, payload, env, origin, searchParams) {
+async function dispatchMeshHttpCore(method, pathname, payload, env, origin, searchParams, meta = {}) {
   const m = String(method || "GET").toUpperCase();
   let path = String(pathname || "")
     .split("?")[0]
@@ -2885,6 +2907,16 @@ async function dispatchMeshHttpCore(method, pathname, payload, env, origin, sear
   if (isNatPath(path)) {
     return { status: 403, body: meshNatRefuse(path, natRefuse()) };
   }
+  if (path === "/v1/mesh/agents" || path.startsWith("/v1/mesh/agents/")) {
+    // AGENT-SUBNET-1.0. POSTs already entered FragGate (enterMeshPost, op agent-<verb>).
+    const agents = await import("./agent-subnet.js");
+    const verbOp = path === "/v1/mesh/agents" ? "agent-status" : "agent-" + path.slice("/v1/mesh/agents/".length);
+    if (m === "POST" && agents.AGENT_MUTATE_OPS.includes(verbOp)) {
+      const state = await loadState(env);
+      if (!state.enabled) return { status: 409, body: await offRefuse(verbOp, state, env) };
+    }
+    return agents.dispatchAgentHttp(m, path, payload, env, searchParams, meta);
+  }
   if (path === "/v1/mesh/relay" || path.startsWith("/v1/mesh/relay/")) {
     if (
       (path === "/v1/mesh/relay" ||
@@ -2951,8 +2983,8 @@ async function dispatchMeshHttpCore(method, pathname, payload, env, origin, sear
   };
 }
 
-export async function dispatchMeshHttp(method, pathname, payload, env, origin, searchParams) {
-  const out = await dispatchMeshHttpCore(method, pathname, payload, env, origin, searchParams);
+export async function dispatchMeshHttp(method, pathname, payload, env, origin, searchParams, meta = {}) {
+  const out = await dispatchMeshHttpCore(method, pathname, payload, env, origin, searchParams, meta);
   if (out && out.body && typeof out.body === "object") {
     return { ...out, body: { ...out.body, durability: durabilityLabels(env) } };
   }
@@ -2968,6 +3000,9 @@ export function memoryMeshKv(seed = {}) {
     },
     async put(key, value) {
       store.set(key, String(value));
+    },
+    async delete(key) {
+      store.delete(key);
     },
     async list({ prefix = "", limit = 1000, cursor } = {}) {
       const names = [...store.keys()].filter((k) => k.startsWith(prefix)).sort();

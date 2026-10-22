@@ -184,6 +184,36 @@ Every refusal above and every existing refuse code on `tools/call` / `POST /v1/f
 |------|------|------|
 | `MESH-PEER-NOT-ALLOWED` | AZRT-MESH-PEER-DENY-1.0 | Local Track 2 node: peer session offer/accept with a handle the operator has not allowed (deny-by-default). The public Worker `peer_session_open` stays `FG-STUB`. |
 
+## 5c. Agent subnet (additive, 2.0.x)
+
+AGENT-SUBNET-1.0 (`src/agent-subnet.js`, docs/designs/AGENT-SUBNET-1.0.md). Every one is sealed on the internal `refusals` chain through `sealRefusal` with `reason: null` and `reason_sha256` of the fixed reason; caller text is never stored. Default deny.
+
+| Code | HTTP | When |
+|---|---|---|
+| `AGENT-BAD-INPUT` | 400 | Not a well-formed AGENT-SUBNET-1.0 statement. |
+| `AGENT-PLAINTEXT-FIELD` | 400 | A send carries a field outside the signed statement and the sealed box. |
+| `AGENT-PLAINTEXT-SUSPECT` | 400 | The box bytes are at least 90% printable ASCII (not ciphertext). |
+| `AGENT-PRIVATE-KEY` | 400 | A private-key-shaped field was sent. |
+| `AGENT-SKEW` | 400 | Statement time not within 5 minutes. |
+| `AGENT-REPLAY` | 409 | That exact signed statement was already used. |
+| `AGENT-ID-MISMATCH` | 400 | Agent/owner id is not the handle of its public key. |
+| `AGENT-SIG-INVALID` | 403 | Agent signature did not verify. |
+| `AGENT-OWNER-SIG` | 403 | Owner signature missing or bad (cross-owner links need both owners). |
+| `AGENT-UNKNOWN` | 404 | Agent not registered. |
+| `AGENT-EXISTS` | 409 | Agent id already registered. |
+| `AGENT-RETIRED` | 403 | The agent was retired by its owner; every grant it had is dead. |
+| `AGENT-OWNER-CAP` | 409 | Owner has the maximum agents. |
+| `AGENT-NO-GRANT` / `AGENT-GRANT-EXPIRED` / `AGENT-GRANT-REVOKED` / `AGENT-GRANT-SCOPE` | 403 | No usable grant. |
+| `AGENT-BOX-HASH` | 400 | `box_sha256` does not match the box. |
+| `AGENT-CARRIER-ABSENT` | 503 | A named radio carrier (LAN, Wi-Fi, Bluetooth, RF, Photon) is not at this relay; `absent_code: QNM-RADIO-ABSENT`. |
+| `AGENT-RATE` | 429 | Per-agent or subnet rate limit (sealed, unlike door 429s). |
+| `AGENT-MAILBOX-FULL` | 409 | Receiver mailbox at cap. |
+| `AGENT-RECEIPT-UNAVAILABLE` / `AGENT-RECEIPT-CAP` | 503 | No receipt could be sealed, so nothing was done. |
+| `AGENT-STORE-UNBOUND` | 503 | Durable store (or the agent state object) not bound or not reachable. |
+| `AGENT-SALT-LOST` | 503 | The subnet salt is missing while receipts exist; refused rather than re-minted. |
+| `AGENT-CHALLENGE` | 403 | View challenge missing, expired, forged, already used, or for another scope or key. |
+| `AGENT-NOT-FOUND` / `AGENT-METHOD` | 404 / 405 | Unknown path / wrong method. |
+
 ## 5d. Auth refusal rollup (additive, 2.0.x, AZRT-AUTH-ROLLUP-1.0)
 
 No auth refuse code, status or body changes. Auth refusals (`token_required`, `token_mismatch`,
