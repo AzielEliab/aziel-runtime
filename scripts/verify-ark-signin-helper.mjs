@@ -1,0 +1,45 @@
+// USER-SIGNIN-ARK-1.0 §12.2: helper page + CLI produce the same signature the runtime accepts.
+import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
+const handler = (await import("../src/index.js")).default.fetch;
+const { HELPER_JS } = await import("../src/account/signin-helper.js");
+const { deriveArkAccount } = await import("../src/account/ark-kdf.js");
+let n = 0; const ok = (c, m) => { assert.ok(c, m); n++; };
+const m = new Map();
+const uses = { get: async (k) => m.get(k) ?? null, put: async (k, v) => { m.set(k, v); } };
+// A store with the ChainWriter DO's atomic first-claim-wins docClaim (what CHAINLOCK provides in deploy); sessions need it.
+const { KvStore } = await import("../src/chainlock/store.js");
+const st = new KvStore(uses); const claims = new Set();
+st.docClaim = async (doc) => { await null; if (claims.has(doc)) return { ok: false, code: "LATTICE-DOUBLE" }; claims.add(doc); return { ok: true, fresh: true }; };
+const env = { ARK_ACCOUNTS: "on", USES: uses, __aziel_kvstore: st };
+const post = async (body) => (await (await handler(new Request("https://x/v1/fraggate/call", { method: "POST", headers: { "content-type": "application/json", "cf-connecting-ip": "203.0.113.9" }, body: JSON.stringify(body) }), env, { waitUntil() {} })).json()).result;
+const res = await handler(new Request("https://x/ark/signin"), env, { waitUntil() {} });
+const html = await res.text();
+ok(res.status === 200 && /connect-src 'none'/.test(res.headers.get("content-security-policy")), "page served with no-network CSP");
+ok(!/fetch\(|XMLHttpRequest|sendBeacon|WebSocket|<form[^>]*action=/i.test(html), "page has no network calls");
+const arkSignChallenge = new Function(HELPER_JS + "; return arkSignChallenge;")();
+const U = "helperuser", P = "helper-pass-123";
+const dev = await deriveArkAccount(U, P);
+let c = await post({ slug: "ark", op: "account_challenge", payload: { vault_pub: dev.pub } });
+const r = await arkSignChallenge(U, P, c.nonce);
+ok(r.vault_pub === dev.pub && r.vault_id === dev.vault_id, "page key = runtime key (parity)");
+let s = await post({ slug: "ark", op: "account_session", payload: { vault_pub: r.vault_pub, nonce: r.nonce, user_sig: r.user_sig } });
+ok(s.code === "ARK-OK" && s.session, "page signature opens a session");
+c = await post({ slug: "ark", op: "account_challenge", payload: { vault_pub: dev.pub } });
+const out = JSON.parse(execFileSync(process.execPath, [new URL("./ark-signin.mjs", import.meta.url).pathname, U, c.nonce], { input: P + "\n" }).toString());
+ok(!JSON.stringify(out).includes(P) && !JSON.stringify(out).includes(U), "CLI output carries no username/password");
+s = await post(out);
+ok(s.code === "ARK-OK" && s.vault_id === dev.vault_id, "CLI signature opens a session");
+await assert.rejects(arkSignChallenge(U, "short", c.nonce)); n++;
+console.log(`verify-ark-signin-helper: ${n} checks ok`);
+// §12.3 leg alias: POST /v1/ark/account = FragGate ark account_* only; plaintext still refused.
+{
+  const call2 = async (b) => { const r = await handler(new Request("https://x/v1/ark/account", { method: "POST", headers: { "content-type": "application/json", "cf-connecting-ip": "203.0.113.10" }, body: JSON.stringify(b) }), env, { waitUntil() {} }); return [r.status, await r.json()]; };
+  let [st, b] = await call2({ op: "account_challenge", payload: { vault_pub: dev.pub } });
+  assert.ok(st === 200 && b.result.code === "ARK-OK", st + JSON.stringify(b).slice(0, 300)); n++;
+  [st, b] = await call2({ op: "scorch" });
+  assert.ok(st === 400 && b.code === "ARK-INPUT"); n++;
+  [st, b] = await call2({ op: "account_open", username: U, password: P });
+  assert.ok(b.result.code === "ARK-PLAINTEXT-REFUSED" && !JSON.stringify(b).includes(P)); n++;
+  console.log(`verify-ark-signin-helper: alias ok (${n} total)`);
+}
