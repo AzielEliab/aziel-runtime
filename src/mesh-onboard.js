@@ -119,50 +119,92 @@ export function installPlan({ origin, slug, version, products = [], sourceRef = 
  * nothing (fail closed). Nested objects and arrays are skipped, so {"code":"X","d":{"code":"MESH-OK"}}
  * prints X, not MESH-OK.
  */
-export const JOIN_TOP_CODE_AWK = [
-  '{ s = s $0 "\\n" }',
-  "END {",
-  '  n = length(s); d = 0; ins = 0; esc = 0; buf = ""; key = ""; ph = 0; got = ""; cnt = 0; bad = 0; opened = 0; closed = 0',
-  "  for (i = 1; i <= n && !bad; i++) {",
-  "    c = substr(s, i, 1)",
-  "    if (ins) {",
-  '      if (esc) { buf = buf "\\\\" c; esc = 0; continue }',
-  '      if (c == "\\\\") { esc = 1; continue }',
-  "      if (c == \"\\\"\") {",
-  "        ins = 0",
-  "        if (d == 1) {",
-  "          if (ph == 0) { key = buf; ph = 1 }",
-  '          else if (ph == 2) { if (key == "code") { got = buf; cnt++ } ph = 3 }',
-  "          else bad = 1",
-  "        }",
-  "        continue",
-  "      }",
-  "      buf = buf c; continue",
-  "    }",
-  '    if (c == " " || c == "\\t" || c == "\\n" || c == "\\r") continue',
-  "    if (closed) { bad = 1; continue }",
-  "    if (d == 0) { if (c == \"{\" && !opened) { opened = 1; d = 1; ph = 0 } else bad = 1; continue }",
-  "    if (c == \"\\\"\") { ins = 1; buf = \"\"; continue }",
-  "    if (c == \"{\" || c == \"[\") {",
-  '      if (d == 1) { if (ph != 2) { bad = 1; continue } if (key == "code") { got = ""; cnt++ } ph = 3 }',
-  "      d++; continue",
-  "    }",
-  "    if (c == \"}\" || c == \"]\") {",
-  "      d--",
-  "      if (d == 0) { if (c != \"}\") bad = 1; closed = 1 }",
-  "      continue",
-  "    }",
-  "    if (d == 1) {",
-  '      if (c == ":") { if (ph == 1) ph = 2; else bad = 1; continue }',
-  '      if (c == ",") { if (ph == 3) ph = 0; else bad = 1; continue }',
-  '      if (ph == 2) { if (key == "code") { got = ""; cnt++ } ph = 3; continue }',
-  "      if (ph == 3) continue",
-  "      bad = 1",
-  "    }",
-  "  }",
-  '  if (!bad && closed && !ins && cnt == 1 && got != "") print got',
-  "}",
-].join("\n");
+// Follow-up to #357 (AZBot LOWs): a strict, linear JSON check, fail closed.
+// RS is the double quote, so records alternate between text outside strings and string pieces
+// (an odd run of trailing backslashes means the quote was escaped). No string is built up char by
+// char, so a 256 KB reply stays well under a few seconds on busybox awk.
+// - The whole reply must be one JSON object: matched {} and [], no trailing comma, no bareword,
+//   literals must be true/false/null or a JSON number, nothing but whitespace after the object.
+// - A raw control character (< 0x20) inside a string, or an invalid escape, refuses the reply.
+// - A TOP-LEVEL key with any backslash escape refuses the reply ("co\u0064e" could be "code").
+// - Exactly one top-level "code", a string, byte-for-byte MESH-OK (no escapes, no extra chars);
+//   awk compares itself and prints MESH-OK only then.
+// The join reply is capped at 256 KB (curl --max-filesize); the live MESH-OK reply is ~105 KB.
+export const JOIN_MAX_BYTES = 262144;
+export const JOIN_TOP_CODE_AWK = String.raw`BEGIN {
+  RS = "\""; d = 0; ex = "T"; ins = 0; esc = 0; bad = 0; cnt = 0; got = ""; key = ""; lit = ""
+  sv = ""; sl = 0; hb = 0; isk = 0; sd = 0
+  WS = " \t\n\r"; LC = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+-."
+  CC = "[" sprintf("%c", 1) "-" sprintf("%c", 31) "]"
+}
+function litend() {
+  if (lit !~ /^(true|false|null|-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?)$/) { bad = 1; return }
+  if (d == 1 && key == "code") { cnt++; got = "" }
+  lit = ""; ex = "A"
+}
+function quote() {
+  if (ins) {
+    if (esc) { esc = 0; sl++; if (sl <= 64) sv = sv "\""; return }
+    ins = 0
+    if (isk) { if (d == 1) { if (hb) { bad = 1; return } key = (sl <= 64) ? sv : "" } ex = ":" }
+    else { if (sd == 1 && key == "code") { cnt++; got = (hb || sl > 64) ? "" : sv } ex = "A" }
+    return
+  }
+  if (lit != "") { bad = 1; return }
+  if (ex == "K" || ex == "KE") isk = 1
+  else if (ex == "V" || ex == "VE") isk = 0
+  else { bad = 1; return }
+  ins = 1; esc = 0; sv = ""; sl = 0; hb = 0; sd = d
+}
+function instr(p,   n, t) {
+  if (p ~ CC) { bad = 1; return }
+  n = 0; if (match(p, /\\+$/)) n = RLENGTH
+  t = p; if (n % 2) { esc = 1; t = substr(p, 1, length(p) - 1) }
+  if (index(t, "\\")) {
+    hb = 1
+    gsub(/\\(["\\\/bfnrt]|u[0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f])/, "", t)
+    if (index(t, "\\")) { bad = 1; return }
+  }
+  if (sl <= 64) sv = sv substr(p, 1, 65)
+  sl += length(p)
+}
+function outside(p,   i, n, c) {
+  n = length(p)
+  for (i = 1; i <= n; i++) {
+    c = substr(p, i, 1)
+    if (index(WS, c)) { if (lit != "") { litend(); if (bad) return } continue }
+    if (index(LC, c)) {
+      if (lit == "" && ex != "V" && ex != "VE") { bad = 1; return }
+      lit = lit c; if (length(lit) > 64) { bad = 1; return }
+      continue
+    }
+    if (lit != "") { litend(); if (bad) return }
+    if (c == "{" || c == "[") {
+      if (c == "{" && ex == "T") { d = 1; st[1] = "{"; ex = "KE"; continue }
+      if (ex != "V" && ex != "VE") { bad = 1; return }
+      if (d == 1 && key == "code") { cnt++; got = "" }
+      d++; st[d] = c; ex = (c == "{") ? "KE" : "VE"; continue
+    }
+    if (c == "}" || c == "]") {
+      if (d < 1 || st[d] != ((c == "}") ? "{" : "[")) { bad = 1; return }
+      if (ex != "A" && ex != ((c == "}") ? "KE" : "VE")) { bad = 1; return }
+      d--; ex = (d == 0) ? "E" : "A"; continue
+    }
+    if (c == ":") { if (ex != ":") { bad = 1; return } ex = "V"; continue }
+    if (c == ",") { if (ex != "A" || d < 1) { bad = 1; return } ex = (st[d] == "{") ? "K" : "V"; continue }
+    bad = 1; return
+  }
+}
+bad { next }
+{
+  if (NR > 1) { quote(); if (bad) next }
+  if (ins) instr($0); else outside($0)
+}
+END {
+  if (!bad && !ins && lit != "") litend()
+  if (!bad && !ins && ex == "E" && cnt == 1 && got == "MESH-OK") print "MESH-OK"
+}
+`;
 
 function shq(v) {
   return "'" + String(v).replace(/'/g, "'\\''") + "'";
@@ -187,7 +229,7 @@ export function installScript(plan) {
     // "Joined" only when the mesh accepted the join: HTTP 2xx (curl -f) and the reply's TOP-LEVEL
     // code is exactly "MESH-OK" (JOIN_TOP_CODE_AWK: a strict top-level JSON scan, no node needed).
     // A nested MESH-OK inside a refusal, a duplicate code key, or a malformed reply is not a join.
-    `JOIN_OUT=$(curl -fsS --max-filesize 1048576 -X POST ${shq(join.url)} -H 'content-type: application/json' -d "{\\"product\\":\\"${plan.slug}\\",\\"node_id\\":\\"$NODE\\",\\"presence\\":\\"live\\",\\"heartbeat_mode\\":\\"idle\\"}" 2>/dev/null || true)`,
+    `JOIN_OUT=$(curl -fsS --max-filesize ${JOIN_MAX_BYTES} -X POST ${shq(join.url)} -H 'content-type: application/json' -d "{\\"product\\":\\"${plan.slug}\\",\\"node_id\\":\\"$NODE\\",\\"presence\\":\\"live\\",\\"heartbeat_mode\\":\\"idle\\"}" 2>/dev/null || true)`,
     `if [ "$(printf '%s' "$JOIN_OUT" | awk ${shq(JOIN_TOP_CODE_AWK)} 2>/dev/null)" = MESH-OK ]; then echo "Joined the mesh as $NODE."; else echo "The mesh did not accept the join, so $NODE has not joined the mesh. Continuing."; fi`,
     // Step 5: a real local node (own key, own data dir, signed register + signed heartbeats on the relay).
     // B352-1: owner-only files for the node's key material while the node is set up and started.

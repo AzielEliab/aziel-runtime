@@ -352,17 +352,18 @@ function newUserHintsHtml_() { return ""; }
     assert.equal(typeof onboard.JOIN_TOP_CODE_AWK, "string", "JOIN_TOP_CODE_AWK exported");
     const top = (body) => execFileSync("sh", ["-c", 'printf "%s" "$1" | awk "$2"', "x", body, onboard.JOIN_TOP_CODE_AWK]).toString().replace(/\n$/, "");
     const table = [
+      // Since #357 the program prints only MESH-OK (it compares itself), never another code.
       ['{"ok":true,"code":"MESH-OK","node_id":"n"}', "MESH-OK"],
       ['{\n  "ok": true,\n  "code" : "MESH-OK"\n}', "MESH-OK"],
       ['{"a":1,"b":true,"c":null,"code":"MESH-OK"}', "MESH-OK"],
-      ['{"ok":false,"code":"MESH-OFF","detail":{"code":"MESH-OK"}}', "MESH-OFF"],
+      ['{"ok":false,"code":"MESH-OFF","detail":{"code":"MESH-OK"}}', ""],
       ['{"ok":false,"detail":{"code":"MESH-OK"}}', ""],
-      ['{"ok":false,"list":[{"code":"MESH-OK"}],"code":"MESH-BAD"}', "MESH-BAD"],
+      ['{"ok":false,"list":[{"code":"MESH-OK"}],"code":"MESH-BAD"}', ""],
       ['{"code":{"code":"MESH-OK"}}', ""],
       ['{"code":"MESH-OK","code":"MESH-OFF"}', ""],
-      ['{"msg":"\\"code\\":\\"MESH-OK\\"","code":"NO"}', "NO"],
-      ['{"note":"MESH-OK","code":"MESH-OFF"}', "MESH-OFF"],
-      ['{"code":"MESH\\u002dOK"}', "MESH\\u002dOK"],
+      ['{"msg":"\\"code\\":\\"MESH-OK\\"","code":"NO"}', ""],
+      ['{"note":"MESH-OK","code":"MESH-OFF"}', ""],
+      ['{"code":"MESH\\u002dOK"}', ""],
       ['{"code":"MESH-OK"} trailing', ""],
       ['[{"code":"MESH-OK"}]', ""],
       ['{"code":"MESH-OK"', ""],
@@ -505,4 +506,269 @@ function newUserHintsHtml_() { return ""; }
     fs.rmSync(root, { recursive: true, force: true });
   }
   console.log("verify-mesh-onboard: #352 LOWs ok (top-level join code, log modes, long lines, capped node.err, not-yet wording)");
+}
+
+// Follow-up to #357 (AZBot LOWs + INFO): the join check fails closed on escapes, control characters
+// and non-JSON structure, runs in linear time, the reply is capped at 256 KB, the node dies with
+// its wrapper, and the capped log never follows a symlink. Every case below fails on 616a3d68.
+{
+  const { spawn, spawnSync, execFileSync } = await import("node:child_process");
+  const fs = await import("node:fs");
+  const http = await import("node:http");
+  const { tmpdir } = await import("node:os");
+  const { join, delimiter } = await import("node:path");
+  const { fileURLToPath } = await import("node:url");
+  const onboard = await import("../src/mesh-onboard.js");
+  const capped = await import("../src/fed-mesh/capped-log.js");
+  const repo = fileURLToPath(new URL("..", import.meta.url));
+  const posix = process.platform !== "win32";
+  const sleep = (ms) => new Promise((x) => setTimeout(x, ms));
+  const alive = (pid) => { try { process.kill(pid, 0); return true; } catch { return false; } };
+  const root = fs.mkdtempSync(join(tmpdir(), "onboard-357-"));
+  const tested = [];
+  try {
+    // Every awk on this machine (awk, gawk, mawk, nawk, original-awk, busybox awk), plus any extra
+    // awk executables listed in MESH_ONBOARD_AWKS (path-separated). Each gets its own PATH dir.
+    const awks = [];
+    if (posix) {
+      const seen = new Set();
+      const which = (name) => { try { return execFileSync("sh", ["-c", 'command -v "$1"', "x", name]).toString().trim(); } catch { return ""; } };
+      const add = (label, body, key) => {
+        if (seen.has(key)) return;
+        seen.add(key);
+        const dir = join(root, `awk-${awks.length}`);
+        fs.mkdirSync(dir);
+        fs.writeFileSync(join(dir, "awk"), `#!/bin/sh\n${body}\n`, { mode: 0o755 });
+        awks.push({ label, dir, slow: label === "busybox" });
+      };
+      const extra = (process.env.MESH_ONBOARD_AWKS || "").split(delimiter).filter(Boolean);
+      for (const name of ["awk", "gawk", "mawk", "nawk", "original-awk"]) {
+        const p = which(name);
+        if (!p) continue;
+        const real = fs.realpathSync(p);
+        const label = /busybox/.test(real) ? "busybox" : real.split("/").pop();
+        add(label, `exec '${real}' "$@"`, real);
+      }
+      const bb = which("busybox");
+      if (bb && spawnSync(bb, ["awk", "BEGIN{print 1}"]).status === 0) add("busybox", `exec '${fs.realpathSync(bb)}' awk "$@"`, "busybox");
+      for (const p of extra) add(`extra:${p}`, `exec '${p}' "$@"`, "extra:" + p);
+      assert.ok(awks.length >= 1, "at least one awk");
+    }
+
+    // The exact join test line from the generated install.sh, run with JOIN_OUT set and one awk on PATH.
+    const script = onboard.installScript(onboard.installPlan({ origin: "http://127.0.0.1:9", slug: "aziel-runtime", version: "1.0.0", products: [{ slug: "aziel-runtime" }] }));
+    const line = script.split("\n").find((l) => l.startsWith(`if [ "$(printf '%s' "$JOIN_OUT" | awk `));
+    assert.ok(line, "join test line present");
+    const joinedVia = (awk, input) => {
+      if (Buffer.byteLength(input) > 100000) {
+        // Too big for one env var: feed the same program on stdin, as printf would.
+        const r = spawnSync(join(awk.dir, "awk"), [onboard.JOIN_TOP_CODE_AWK], { input, encoding: "utf8", maxBuffer: 1 << 26 });
+        return r.stdout === "MESH-OK\n";
+      }
+      const r = spawnSync("sh", ["-c", line], { env: { ...process.env, PATH: awk.dir + delimiter + process.env.PATH, JOIN_OUT: input, NODE: "n-1" }, encoding: "utf8" });
+      return /^Joined the mesh as n-1\.$/m.test(r.stdout);
+    };
+    const parsesOk = (input) => { try { const o = JSON.parse(input); return !!o && typeof o === "object" && !Array.isArray(o) && o.code === "MESH-OK"; } catch { return false; } };
+
+    // AZBot's 62 fuzz cases for #357 (f357/fuzz.mjs). want = Joined or not.
+    const realReply = JSON.stringify({ ok: true, code: "MESH-OK", node: { id: "n-1", peers: Array.from({ length: 900 }, (_, i) => ({ id: "p" + i, code: i % 2 ? "MESH-OK" : "MESH-NO", note: '{"code":"MESH-OK"} [ ] \\" ' })) } }, null, 2);
+    const fuzz = {
+      plain: '{"code":"MESH-OK"}', ws: ' \n\t{ "code" \r\n :\n "MESH-OK" \n}\n ', refusal: '{"code":"MESH-REFUSED"}',
+      nested_under_refusal: '{"code":"MESH-REFUSED","d":{"code":"MESH-OK"}}', nested_only: '{"d":{"code":"MESH-OK"}}',
+      nested_arr: '{"d":[{"code":"MESH-OK"}],"x":1}', nested_first: '{"d":{"code":"MESH-OK"},"code":"NO"}',
+      dup_ok_ok: '{"code":"MESH-OK","code":"MESH-OK"}', dup_ok_no: '{"code":"MESH-OK","code":"NO"}', dup_no_ok: '{"code":"NO","code":"MESH-OK"}',
+      dup_obj_ok: '{"code":{},"code":"MESH-OK"}', nonstr_num: '{"code":1}', nonstr_true_then_ok: '{"code":true}', nonstr_obj: '{"code":{"x":"MESH-OK"}}',
+      nonstr_arr: '{"code":["MESH-OK"]}', nonstr_null: '{"code":null}',
+      split_lines: '{"code":"MESH-\nOK"}', split_key: '{"co\nde":"MESH-OK"}', split_ws: '{"code"\n:\n"MESH-OK"\n}',
+      uni_val: '{"code":"MESH\\u002dOK"}', uni_key: '{"co\\u0064e":"MESH-OK"}',
+      uni_key_dup_after: '{"code":"MESH-OK","co\\u0064e":"MESH-REFUSED"}', uni_key_dup_before: '{"co\\u0064e":"MESH-REFUSED","code":"MESH-OK"}',
+      str_contains: '{"code":"NO","msg":"\\"code\\":\\"MESH-OK\\""}', str_contains2: '{"msg":"{\\"code\\":\\"MESH-OK\\"}"}',
+      braces_in_str: '{"a":"}}}{{[[","code":"MESH-OK","b":"]]"}', braces_in_str_close: '{"a":"}","code":"NO"} {"code":"MESH-OK"}',
+      esc_backslash_end: '{"a":"\\\\","code":"MESH-OK"}', esc_quote: '{"a":"\\"","code":"MESH-OK"}',
+      trailing_junk: '{"code":"MESH-OK"}x', trailing_obj: '{"code":"MESH-OK"}{}', two_objs: '{"code":"NO"}{"code":"MESH-OK"}',
+      top_array: '[{"code":"MESH-OK"}]', top_str: '"MESH-OK"', bare: "MESH-OK", empty: "",
+      trunc1: '{"code":"MESH-OK"', trunc2: '{"code":"MESH-OK",', trunc3: '{"code":"MESH-OK","a":"', trunc_mid: '{"code":"MESH-OK","d":{',
+      raw_nl_in_val: '{"code":"MESH-OK\n"}', raw_nl2: '{"code":"MESH-OK\n\n\n"}', raw_tab_val: '{"code":"MESH-OK\t"}',
+      raw_cr_val: '{"code":"MESH-OK\r"}',
+      missing_colon: '{"code" "MESH-OK"}', missing_comma: '{"a":1 "code":"MESH-OK"}', extra_comma: '{"code":"MESH-OK",}', lead_comma: '{,"code":"MESH-OK"}',
+      bareword_val: '{"x":garbage,"code":"MESH-OK"}', bareword_key: '{x:1,"code":"MESH-OK"}', unbalanced_close: '{"d":]],"code":"MESH-OK"}',
+      mismatched: '{"d":{],"code":"MESH-OK"}', key_only: '{"code"}', colon_code_key_twice: '{"code":"MESH-OK":"x"}',
+      single_quotes: "{'code':'MESH-OK'}", bom: '\ufeff{"code":"MESH-OK"}', nbsp: '{\u00a0"code":"MESH-OK"}',
+      unicode_other: '{"msg":"h\u00e9llo \u2603 \ud834\udd1e","code":"MESH-OK"}',
+      shell_inj: `{"code":"$(touch ${root}/PWNED)\`touch ${root}/PWNED2\`"}`,
+      shell_inj2: `{"code":"MESH-OK'; touch ${root}/PWNED3; '"}`, awk_inj: `{"code":"\\"); system(\\"touch ${root}/PWNED4\\")#"}`,
+      real_105k: realReply, real_nested_only: realReply.replace('"code": "MESH-OK"', '"code": "MESH-NO"'),
+      oversize_ok: '{"pad":"' + "x".repeat(1100000) + '","code":"MESH-OK"}',
+    };
+    assert.equal(Object.keys(fuzz).length, 62, "all 62 AZBot cases");
+    // Valid JSON that we refuse on purpose (fail closed): duplicate code keys, and any escape in a
+    // top-level key or in the code value. Everything else must agree with JSON.parse.
+    const failClosed = new Set(["dup_ok_ok", "dup_no_ok", "dup_obj_ok", "uni_val", "uni_key", "uni_key_dup_before"]);
+    // The false positives AZBot found on 616a3d68: each must now be refused.
+    const wasJoined = ["uni_key_dup_after", "raw_nl_in_val", "raw_nl2", "extra_comma", "bareword_val", "mismatched"];
+    for (const n of wasJoined) assert.equal(parsesOk(fuzz[n]), false, n);
+    // More of the same kinds (escaped / control / structure), also Joined on 616a3d68.
+    const more = {
+      uni_key_dup_mixed: '{"code":"MESH-OK","\\u0063ode":"NO"}',
+      esc_key_short: '{"code":"MESH-OK","c\\/ode":1}',
+      bad_escape_val: '{"code":"MESH-OK","a":"\\q"}',
+      bad_u_escape: '{"code":"MESH-OK","a":"\\u12"}',
+      raw_nl_other: '{"code":"MESH-OK","a":"x\ny"}',
+      raw_ctl_key: '{"code":"MESH-OK","a\u0001":1}',
+      raw_lf_code_only: '{"code":"MESH-OK\n\n"}',
+      trailing_comma_arr: '{"code":"MESH-OK","a":[1,]}',
+      trailing_comma_nested: '{"code":"MESH-OK","a":{"b":1,}}',
+      bareword_nested: '{"code":"MESH-OK","a":[nope]}',
+      bad_number: '{"code":"MESH-OK","a":01}',
+      bad_number2: '{"code":"MESH-OK","a":1.}',
+      mismatched2: '{"code":"MESH-OK","a":[}]}',
+      close_extra: '{"code":"MESH-OK","a":[]]}',
+      double_colon: '{"code"::"MESH-OK"}',
+      comma_colon: '{"code","MESH-OK"}',
+      value_no_comma: '{"a":"x""code":"MESH-OK"}',
+      lit_then_str: '{"a":true"code":"MESH-OK"}',
+    };
+    for (const [n, v] of Object.entries(more)) assert.equal(parsesOk(v), false, n);
+    for (const awk of awks) {
+      for (const [name, input] of Object.entries(fuzz)) {
+        const want = failClosed.has(name) ? false : parsesOk(input);
+        assert.equal(joinedVia(awk, input), want, `${awk.label}: fuzz ${name}`);
+      }
+      for (const [name, input] of Object.entries(more)) assert.equal(joinedVia(awk, input), false, `${awk.label}: ${name}`);
+      for (let i = 1; i <= 4; i++) assert.ok(!fs.existsSync(join(root, i === 1 ? "PWNED" : "PWNED" + i)), `${awk.label}: no injection`);
+      tested.push(awk.label);
+    }
+
+    // Speed: no quadratic string building. Worst-case shapes: busybox at the 256 KB cap within 5 s,
+    // other awks at 1 MiB within 4 s (616a3d68: busybox 15-29 s, mawk 1 MiB 15 s).
+    const shape = (n) => {
+      const fill = (pre, unit, post) => pre + unit.repeat(Math.floor((n - pre.length - post.length) / unit.length)) + post;
+      return {
+        one_string: fill('{"code":"MESH-OK","p":"', "x", '"}'),
+        newlines: fill('{"code":"MESH-OK","p":', "\n", "1}"),
+        esc_quotes: fill('{"code":"MESH-OK","p":"', '\\"', '"}'),
+        many_strings: fill('{"code":"MESH-OK","p":["', 'x","', 'x"]}'),
+        deep: '{"code":"MESH-OK","p":' + "[".repeat(Math.floor(n / 2) - 20) + "]".repeat(Math.floor(n / 2) - 20) + "}",
+        many_lits: fill('{"code":"MESH-OK","p":[', "1,", "1]}"),
+      };
+    };
+    for (const awk of awks) {
+      const n = awk.slow ? onboard.JOIN_MAX_BYTES : 1048576;
+      const budget = awk.slow ? 5000 : 4000;
+      for (const [name, input] of Object.entries(shape(n))) {
+        const t = Date.now();
+        const r = spawnSync(join(awk.dir, "awk"), [onboard.JOIN_TOP_CODE_AWK], { input, encoding: "utf8", timeout: 60000, maxBuffer: 1 << 26 });
+        const ms = Date.now() - t;
+        assert.equal(r.stdout, "MESH-OK\n", `${awk.label}: ${name} accepted`);
+        assert.ok(ms < budget, `${awk.label}: ${name} ${n} bytes took ${ms} ms (budget ${budget})`);
+      }
+    }
+
+    // Reply cap: curl --max-filesize 262144. A valid MESH-OK reply over 256 KB is not a join.
+    assert.equal(onboard.JOIN_MAX_BYTES, 262144);
+    assert.ok(script.includes("curl -fsS --max-filesize 262144 "), "join reply capped at 256 KB");
+    {
+      const big = '{"code":"MESH-OK","pad":"' + "x".repeat(300000) + '"}';
+      const ok = '{"code":"MESH-OK","pad":"' + "x".repeat(200000) + '"}';
+      for (const [body, joined] of [[big, false], [ok, true]]) {
+        const srv = await new Promise((resolve) => { const s = http.createServer((req, res) => { req.resume(); res.writeHead(200, { "content-type": "application/json" }); res.end(body); }); s.listen(0, "127.0.0.1", () => resolve(s)); });
+        try {
+          const sh = join(root, `cap-${joined}.sh`);
+          const empty = join(root, `cap-src-${joined}`); fs.mkdirSync(empty);
+          fs.writeFileSync(sh, onboard.installScript(onboard.installPlan({ origin: `http://127.0.0.1:${srv.address().port}`, slug: "aziel-runtime", version: "1.0.0", products: [{ slug: "aziel-runtime" }], sourceRef: "0123456789abcdef0123456789abcdef01234567" })));
+          const home = join(root, `cap-h-${joined}`);
+          const r = await new Promise((resolve) => {
+            const c = spawn("sh", [sh], { env: { ...process.env, HOME: home, AZIEL_MESH_HOME: join(home, "mesh"), AZIEL_MESH_SRC_DIR: empty }, stdio: ["ignore", "pipe", "pipe"] });
+            let out = ""; c.stdout.on("data", (d) => (out += d)); c.stderr.resume();
+            c.on("close", (status) => resolve({ status, out }));
+          });
+          assert.equal(r.status, 0);
+          assert.equal(/Joined the mesh as /.test(r.out), joined, `reply of ${body.length} bytes: ${r.out}`);
+        } finally {
+          await new Promise((r) => srv.close(r));
+        }
+      }
+    }
+
+    // Orphan node: SIGKILL the capped-run wrapper (what node.pid holds); the quiet node must stop too.
+    if (posix) {
+      const run = join(repo, "qnm-node", "capped-run.mjs");
+      const d = join(root, "orphan"); fs.mkdirSync(d);
+      for (const [label, body] of [
+        ["quiet", "require('node:fs').writeFileSync(process.argv[2], String(process.pid)); setInterval(() => {}, 1000);\n"],
+        ["ignores TERM", "process.on('SIGTERM', () => {}); require('node:fs').writeFileSync(process.argv[2], String(process.pid)); setInterval(() => {}, 1000);\n"],
+      ]) {
+        const child = join(d, `${label.replace(/ /g, "-")}.cjs`);
+        const pidFile = join(d, `${label.replace(/ /g, "-")}.pid`);
+        fs.writeFileSync(child, body);
+        const w = spawn(process.execPath, [run, "--err-file", join(d, "o.err"), "--", child, pidFile], { stdio: "ignore" });
+        for (let i = 0; i < 100 && !fs.existsSync(pidFile); i++) await sleep(50);
+        const pid = Number(fs.readFileSync(pidFile, "utf8"));
+        assert.ok(pid > 1 && alive(pid), label + ": node up");
+        const gone = new Promise((resolve) => w.on("close", resolve));
+        w.kill("SIGKILL");
+        await gone;
+        let i = 0;
+        for (; i < 120 && alive(pid); i++) await sleep(50);
+        const still = alive(pid);
+        if (still) process.kill(pid, "SIGKILL");
+        assert.equal(still, false, `${label}: node still running ${i * 50} ms after its wrapper was SIGKILLed`);
+      }
+    }
+
+    // INFO: the capped log never follows a symlink (O_NOFOLLOW + fchmod on the open fd).
+    if (posix) {
+      const d = join(root, "links"); fs.mkdirSync(d);
+      const victim = join(d, "victim.txt");
+      const fresh = () => { fs.rmSync(victim, { force: true }); fs.writeFileSync(victim, "keep\n"); fs.chmodSync(victim, 0o644); };
+      const untouched = (what) => {
+        assert.equal(fs.readFileSync(victim, "utf8"), "keep\n", what + ": victim content unchanged");
+        assert.equal(fs.statSync(victim).mode & 0o777, 0o644, what + ": victim mode unchanged");
+      };
+      // Symlink at the log path when it opens.
+      for (const make of [capped.cappedLogger, capped.cappedWriter]) {
+        fresh();
+        const f = join(d, `a-${make.name}.log`);
+        fs.symlinkSync(victim, f);
+        const log = make(f, 4096);
+        log("hello\n");
+        assert.equal(log.refused, "LOG-MODE-REFUSED", make.name + ": symlink log refused");
+        untouched(make.name + " symlink log");
+      }
+      // Symlink at <file>.1.
+      fresh();
+      {
+        const f = join(d, "b.log");
+        fs.symlinkSync(victim, f + ".1");
+        const log = capped.cappedLogger(f, 4096);
+        for (let i = 0; i < 200; i++) log("z".repeat(60));
+        assert.equal(log.refused, "LOG-MODE-REFUSED", "symlink .1 refused");
+        untouched("symlink .1");
+      }
+      // Swapped for a symlink after open.
+      fresh();
+      {
+        const f = join(d, "c.log");
+        const log = capped.cappedLogger(f, 4096);
+        log("first");
+        assert.equal(log.refused, null);
+        fs.rmSync(f); fs.symlinkSync(victim, f);
+        log("second");
+        assert.equal(log.refused, "LOG-MODE-REFUSED", "swapped-in symlink refused");
+        untouched("swapped-in symlink");
+      }
+      // A plain log still works and stays 0600.
+      {
+        const f = join(d, "ok.log");
+        const log = capped.cappedLogger(f, 4096);
+        for (let i = 0; i < 200; i++) log("ok " + i);
+        assert.equal(log.refused, null);
+        assert.equal(fs.statSync(f).mode & 0o777, 0o600);
+        assert.equal(fs.statSync(f + ".1").mode & 0o777, 0o600);
+      }
+    }
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+  console.log(`verify-mesh-onboard: #357 LOWs ok (62 AZBot fuzz cases + 18 more on ${tested.join(", ") || "no awk"}; linear time; 256 KB reply cap; node dies with wrapper; no symlink follow)`);
 }
