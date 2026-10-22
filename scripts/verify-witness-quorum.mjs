@@ -127,13 +127,14 @@ assert.equal(r.ok, false); assert.equal(r.quorum.level, "none"); assert.equal(r.
 r = await q({ ...clEnv, WITNESS_QUORUM: "three" }, spy);
 assert.equal(r.ok, false); assert.equal(r.code, WITNESS2_CODES.quorumBadPolicy); n++;
 
-// 10) Route wired; docs honest; no second provider configured in wrangler config.
+// 10) Route wired; docs honest; wrangler config sets slot 2 read config only (no quorum policy, no mock).
 const idx = fs.readFileSync(new URL("../src/index.js", import.meta.url), "utf8");
 assert.match(idx, /witness_quorum/);
 const wr = fs.readFileSync(new URL("../wrangler.toml", import.meta.url), "utf8");
-assert.doesNotMatch(wr, /WITNESS2_/);
+assert.doesNotMatch(wr, /^\s*WITNESS_QUORUM\s*=/m, "wrangler.toml must not raise the quorum policy");
+assert.doesNotMatch(wr, /WITNESS2_ED25519|PKCS8\s*=/, "no slot-2 private material in wrangler.toml");
 const doc = fs.readFileSync(new URL("../docs/WITNESS-QUORUM.md", import.meta.url), "utf8");
-assert.match(doc, /no second witness provider is configured/i);
+assert.match(doc, /configured is not live/i);
 assert.match(doc, /no mock/i); n++;
 
 // ---- AZBot BLOCKER regressions (#292 @ 62da2cc3) ----
