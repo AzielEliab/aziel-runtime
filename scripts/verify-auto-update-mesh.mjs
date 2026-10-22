@@ -49,7 +49,13 @@ ok(r.code === C.hash && E.active === "azos-1" && meshAdvert(E.state).manifest ==
 // forged manifest from peer: sig fails
 const F = node("F", ["wifi"]); F.peer = { load: async () => ({ ...A.state, served_manifest: { manifest: { ...manifest, version_seq: 99 }, signature } }), blob: bytes };
 ok((await meshContact(F, o)).code === C.sig && F.active === "azos-1", "forged seq refused");
-// pinned key placeholder null -> refuse even over mesh
+// validly signed rc build from a peer: refused (stable only), receipted, never re-advertised
+const rcm = { ...manifest, channel: "rc", version_seq: 50 };
+const rcs = b64u(await crypto.subtle.sign({ name: "Ed25519" }, kp.privateKey, new TextEncoder().encode(canonicalize(rcm))));
+const H = node("H", ["lan"]); H.peer = { load: async () => ({ ...A.state, installed_seq: 50, served_manifest: { manifest: rcm, signature: rcs } }), blob: bytes };
+r = await meshContact(H, o);
+ok(r.code === "UPDATE-CHANNEL-REFUSED" && H.active === "azos-1" && H.blob === null && H.receipts.at(-1).code === "UPDATE-CHANNEL-REFUSED" && meshAdvert(H.state).manifest === undefined, "rc from mesh peer refused + receipted");
+// pinned key does not vouch for azos -> refuse even over mesh
 const G = node("G", ["lan"]); G.peer = A;
 ok((await meshContact(G)).code === C.noKey, "no key refuses over mesh");
 console.log(`verify-auto-update-mesh: ${n} checks ok`);
