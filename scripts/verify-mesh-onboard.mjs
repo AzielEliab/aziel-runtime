@@ -762,7 +762,7 @@ function newUserHintsHtml_() { return ""; }
       {
         const f = join(d, "ok.log");
         const log = capped.cappedLogger(f, 4096);
-        for (let i = 0; i < 200; i++) log("ok " + i);
+        for (let i = 0; i < 200; i++) log("ok " + i + " " + "o".repeat(60));
         assert.equal(log.refused, null);
         assert.equal(fs.statSync(f).mode & 0o777, 0o600);
         assert.equal(fs.statSync(f + ".1").mode & 0o777, 0o600);
