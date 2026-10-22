@@ -318,3 +318,191 @@ function newUserHintsHtml_() { return ""; }
   }
   console.log("verify-mesh-onboard: audit fixes ok (modes, pinned source, failed download, sha256 pin, log cap, join wording)");
 }
+
+// Follow-up to #352 (AZBot LOWs): top-level join code, log modes on open/rotate, long lines,
+// capped node.err, and an accurate not-yet line when no node was started. Each fails on c1edb383.
+{
+  const { spawn, execFileSync } = await import("node:child_process");
+  const fs = await import("node:fs");
+  const http = await import("node:http");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const { fileURLToPath } = await import("node:url");
+  const onboard = await import("../src/mesh-onboard.js");
+  const capped = await import("../src/fed-mesh/capped-log.js");
+  const repo = fileURLToPath(new URL("..", import.meta.url));
+  const posix = process.platform !== "win32";
+  const mode = (f) => fs.statSync(f).mode & 0o777;
+  const runSh = (file, env) =>
+    new Promise((resolve) => {
+      const child = spawn("sh", [file], { env, stdio: ["ignore", "pipe", "pipe"] });
+      let stdout = "";
+      let stderr = "";
+      const timer = setTimeout(() => child.kill("SIGKILL"), 90000);
+      child.stdout.on("data", (c) => (stdout += c));
+      child.stderr.on("data", (c) => (stderr += c));
+      child.on("close", (status) => { clearTimeout(timer); resolve({ status, stdout, stderr }); });
+    });
+  const listen = (handler) => new Promise((resolve) => { const srv = http.createServer(handler); srv.listen(0, "127.0.0.1", () => resolve(srv)); });
+  const SHA = "0123456789abcdef0123456789abcdef01234567";
+  const products = [{ slug: "aziel-runtime" }];
+  const root = fs.mkdtempSync(join(tmpdir(), "onboard-lows-"));
+  try {
+    // LOW 1a: the awk top-level scan itself (the same program the script runs).
+    assert.equal(typeof onboard.JOIN_TOP_CODE_AWK, "string", "JOIN_TOP_CODE_AWK exported");
+    const top = (body) => execFileSync("sh", ["-c", 'printf "%s" "$1" | awk "$2"', "x", body, onboard.JOIN_TOP_CODE_AWK]).toString().replace(/\n$/, "");
+    const table = [
+      ['{"ok":true,"code":"MESH-OK","node_id":"n"}', "MESH-OK"],
+      ['{\n  "ok": true,\n  "code" : "MESH-OK"\n}', "MESH-OK"],
+      ['{"a":1,"b":true,"c":null,"code":"MESH-OK"}', "MESH-OK"],
+      ['{"ok":false,"code":"MESH-OFF","detail":{"code":"MESH-OK"}}', "MESH-OFF"],
+      ['{"ok":false,"detail":{"code":"MESH-OK"}}', ""],
+      ['{"ok":false,"list":[{"code":"MESH-OK"}],"code":"MESH-BAD"}', "MESH-BAD"],
+      ['{"code":{"code":"MESH-OK"}}', ""],
+      ['{"code":"MESH-OK","code":"MESH-OFF"}', ""],
+      ['{"msg":"\\"code\\":\\"MESH-OK\\"","code":"NO"}', "NO"],
+      ['{"note":"MESH-OK","code":"MESH-OFF"}', "MESH-OFF"],
+      ['{"code":"MESH\\u002dOK"}', "MESH\\u002dOK"],
+      ['{"code":"MESH-OK"} trailing', ""],
+      ['[{"code":"MESH-OK"}]', ""],
+      ['{"code":"MESH-OK"', ""],
+      ["", ""],
+    ];
+    for (const [body, want] of table) assert.equal(top(body), want, "top-level code of " + body);
+
+    // LOW 1b: end to end. A 200 refusal with a nested MESH-OK must not print Joined.
+    const nested = await listen((req, res) => { res.writeHead(200, { "content-type": "application/json" }); res.end('{"ok":false,"code":"MESH-OFF","detail":{"code":"MESH-OK","ok":true}}'); });
+    const real = await listen((req, res) => { res.writeHead(200, { "content-type": "application/json" }); res.end('{"ok":true,"code":"MESH-OK","note":{"code":"MESH-OFF"}}'); });
+    const empty = join(root, "emptysrc"); fs.mkdirSync(empty);
+    try {
+      for (const [srv, joined] of [[nested, false], [real, true]]) {
+        const sh = join(root, `join-${srv.address().port}.sh`);
+        fs.writeFileSync(sh, onboard.installScript(onboard.installPlan({ origin: `http://127.0.0.1:${srv.address().port}`, slug: "aziel-runtime", version: "1.0.0", products, sourceRef: SHA })));
+        const home = join(root, `h-${srv.address().port}`);
+        const r = await runSh(sh, { ...process.env, HOME: home, AZIEL_MESH_HOME: join(home, "mesh"), AZIEL_MESH_SRC_DIR: empty });
+        assert.equal(r.status, 0, r.stderr);
+        assert.equal(/Joined the mesh as /.test(r.stdout), joined, r.stdout);
+        if (!joined) assert.match(r.stdout, /has not joined the mesh/);
+      }
+    } finally {
+      for (const srv of [nested, real]) await new Promise((r) => srv.close(r));
+    }
+
+    // LOW 2: an existing 0644 log and its .1 are tightened on open, and .1 is 0600 after a rotate.
+    if (posix) {
+      const d = join(root, "modes"); fs.mkdirSync(d);
+      const f = join(d, "node.log");
+      fs.writeFileSync(f, "old\n", { mode: 0o644 }); fs.chmodSync(f, 0o644);
+      fs.writeFileSync(f + ".1", "older\n", { mode: 0o644 }); fs.chmodSync(f + ".1", 0o644);
+      const log = capped.cappedLogger(f, 4096);
+      assert.equal(mode(f), 0o600, "existing log tightened on open");
+      assert.equal(mode(f + ".1"), 0o600, "existing .1 tightened on open");
+      assert.equal(log.refused, null);
+      fs.chmodSync(f, 0o644); // loosened behind the logger's back: the rotate must still leave .1 at 0600
+      for (let i = 0; i < 200; i++) log("y".repeat(60));
+      assert.ok(fs.existsSync(f + ".1"));
+      assert.equal(mode(f + ".1"), 0o600, ".1 is 0600 after rotate");
+      assert.equal(mode(f), 0o600, "fresh log after rotate is 0600");
+    }
+
+    // LOW 3: one line longer than the cap never makes the file pass the cap (UTF-8 safe).
+    {
+      const d = join(root, "long"); fs.mkdirSync(d);
+      const f = join(d, "node.log");
+      const log = capped.cappedLogger(f, 4096);
+      log("start");
+      log("\u00e9".repeat(10000)); // 20000 bytes of 2-byte characters
+      assert.ok(fs.statSync(f).size <= 4096, "size " + fs.statSync(f).size);
+      assert.ok(!fs.existsSync(f + ".1") || fs.statSync(f + ".1").size <= 4096);
+      const text = fs.readFileSync(f, "utf8");
+      assert.ok(text.endsWith(capped.LOG_TRUNC_MARK), "truncation marker");
+      assert.ok(!text.includes("\ufffd"), "no split UTF-8 character");
+      log("x".repeat(4095)); // exactly cap with the newline
+      assert.ok(fs.statSync(f).size <= 4096);
+      // Raw writer: a 3x-cap chunk is split, both files stay under the cap.
+      const w = capped.cappedWriter(join(d, "node.err"), 4096);
+      w(Buffer.alloc(3 * 4096 + 7, 0x61));
+      assert.ok(fs.statSync(join(d, "node.err")).size <= 4096 && fs.statSync(join(d, "node.err.1")).size <= 4096);
+      assert.ok(!fs.existsSync(join(d, "node.err.2")));
+    }
+
+    // LOW 4: node.err goes through qnm-node/capped-run.mjs (cap, rotate to .1, 0600), not a raw redirect.
+    {
+      const script = onboard.installScript(onboard.installPlan({ origin: "http://127.0.0.1:1", slug: "aziel-runtime", version: "1.0.0", products, sourceRef: SHA }));
+      assert.ok(!/> "\$DIR\/node\.err"/.test(script), "no uncapped node.err redirect");
+      assert.match(script, /capped-run\.mjs" --err-file "\$DIR\/node\.err" --err-max-bytes 1048576 -- /);
+      const run = join(repo, "qnm-node", "capped-run.mjs");
+      const d = join(root, "err"); fs.mkdirSync(d);
+      const noisy = join(d, "noisy.mjs");
+      fs.writeFileSync(noisy, "for (let i = 0; i < 300; i++) process.stderr.write('e'.repeat(100) + '\\n'); process.stdout.write('out\\n'); process.exitCode = 3;\n");
+      const errFile = join(d, "node.err");
+      const r = await new Promise((resolve) => {
+        const c = spawn(process.execPath, [run, "--err-file", errFile, "--err-max-bytes", "4096", "--", noisy], { stdio: "ignore" });
+        c.on("close", (code) => resolve(code));
+      });
+      assert.equal(r, 3, "child exit code passed through");
+      assert.ok(fs.statSync(errFile).size <= 4096 && fs.statSync(errFile + ".1").size <= 4096, "node.err capped");
+      assert.ok(!fs.existsSync(errFile + ".2"));
+      if (posix) { assert.equal(mode(errFile), 0o600); assert.equal(mode(errFile + ".1"), 0o600); }
+      const bad = await new Promise((resolve) => { const c = spawn(process.execPath, [run, "--", noisy], { stdio: "ignore" }); c.on("close", resolve); });
+      assert.equal(bad, 2, "no --err-file: fails closed, starts nothing");
+      // SIGTERM to the wrapper (what the pid file holds) stops the node.
+      const sleeper = join(d, "sleep.mjs");
+      fs.writeFileSync(sleeper, "console.error('up'); setInterval(() => {}, 1000);\n");
+      const w = spawn(process.execPath, [run, "--err-file", join(d, "s.err"), "--", sleeper], { stdio: "ignore" });
+      for (let i = 0; i < 50 && !(fs.existsSync(join(d, "s.err")) && fs.readFileSync(join(d, "s.err"), "utf8").includes("up")); i++) await new Promise((x) => setTimeout(x, 100));
+      const gone = new Promise((resolve) => w.on("close", resolve));
+      w.kill("SIGTERM");
+      const t = setTimeout(() => w.kill("SIGKILL"), 10000);
+      await gone; clearTimeout(t);
+    }
+
+    // LOW 4 end to end + INFO: a real node run leaves a 0600 node.err; no node -> no "did not register".
+    {
+      const relayMod = await import("../src/fed-mesh/local-http.js");
+      const relay = await relayMod.startRelayServer();
+      const origin = relay.url.replace(/\/v1\/mesh\/relay$/, "");
+      try {
+        const sh = join(root, "real.sh");
+        fs.writeFileSync(sh, onboard.installScript(onboard.installPlan({ origin, slug: "aziel-runtime", version: "2.0.0", products, sourceRef: SHA })));
+        const home = join(root, "h-real");
+        const meshHome = join(home, "mesh");
+        const r = await runSh(sh, { ...process.env, HOME: home, AZIEL_MESH_HOME: meshHome, AZIEL_MESH_SRC_DIR: repo });
+        const nd = join(meshHome, fs.readdirSync(meshHome).find((n) => n.startsWith("aziel-runtime-2.0.0-")));
+        try {
+          assert.equal(r.status, 0, r.stderr);
+          assert.match(r.stdout, /Mesh node #[A-Z0-9]+ is running/, r.stdout);
+          assert.ok(!/did not register|No local mesh node was started/.test(r.stdout));
+          if (posix && fs.existsSync(join(nd, "node.err"))) assert.equal(mode(join(nd, "node.err")), 0o600, "node.err 0600");
+        } finally {
+          try { process.kill(Number(fs.readFileSync(join(nd, "node.pid"), "utf8").trim()), "SIGTERM"); } catch { /* gone */ }
+        }
+        // Node started but never registers (relay gone): "did not register" is accurate here.
+        await relay.stop();
+        const home2 = join(root, "h-noreg");
+        const r2 = await runSh(sh, { ...process.env, HOME: home2, AZIEL_MESH_HOME: join(home2, "mesh"), AZIEL_MESH_SRC_DIR: repo });
+        for (const n of fs.readdirSync(join(home2, "mesh"))) { try { process.kill(Number(fs.readFileSync(join(home2, "mesh", n, "node.pid"), "utf8").trim()), "SIGTERM"); } catch { /* gone */ } }
+        assert.equal(r2.status, 0, r2.stderr);
+        assert.match(r2.stdout, /The local mesh node did not register, so this app is not a mesh node yet\./, r2.stdout);
+      } finally {
+        await relay.stop().catch(() => {});
+      }
+      // No node started (unpinned, empty source, no node 20 paths): the accurate not-yet line.
+      for (const [label, plan, env] of [
+        ["unpinned", onboard.installPlan({ origin: "http://127.0.0.1:9", slug: "aziel-runtime", version: "1.0.0", products }), {}],
+        ["empty source", onboard.installPlan({ origin: "http://127.0.0.1:9", slug: "aziel-runtime", version: "1.0.0", products, sourceRef: SHA }), { AZIEL_MESH_SRC_DIR: empty }],
+      ]) {
+        const sh = join(root, `nostart-${label.replace(/ /g, "-")}.sh`);
+        fs.writeFileSync(sh, onboard.installScript(plan));
+        const home = join(root, `h-nostart-${label.replace(/ /g, "-")}`);
+        const r = await runSh(sh, { ...process.env, HOME: home, AZIEL_MESH_HOME: join(home, "mesh"), ...env });
+        assert.equal(r.status, 0, r.stderr);
+        assert.ok(!/did not register/.test(r.stdout), label + ": no 'did not register' when no node started: " + r.stdout);
+        assert.match(r.stdout, /No local mesh node was started, so this app is not a mesh node yet\./, label);
+      }
+    }
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+  console.log("verify-mesh-onboard: #352 LOWs ok (top-level join code, log modes, long lines, capped node.err, not-yet wording)");
+}

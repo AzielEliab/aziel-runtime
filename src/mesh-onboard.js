@@ -99,6 +99,7 @@ export function installPlan({ origin, slug, version, products = [], sourceRef = 
         run: `node qnm-node/fed-instance.mjs --data <dir> --relay <relay> --product <slug> --heartbeat-sec 180 --log-file <dir>/node.log --log-max-bytes ${NODE_LOG_MAX_BYTES}`,
         requires: tarSha ? "node >= 20, curl, tar, sha256sum or shasum" : "node >= 20, curl, tar",
         key_files: "identity.json 0600 in a 0700 data dir",
+        err_file: `<dir>/node.err via qnm-node/capped-run.mjs: 0600, capped at ${NODE_LOG_MAX_BYTES} bytes, rotates to node.err.1`,
         note: ref
           ? "Starts a local FED-MESH node with its own Ed25519 key and data directory, registers it on the relay with a signed statement, and keeps a signed heartbeat. The source is the deployed commit only" + (tarSha ? ", and its tarball sha256 is checked before extraction." : " (commit-pinned over TLS; no tarball sha256 is pinned on this server yet).") + " Without node 20, or if the download fails, the install says this app is not a mesh node yet."
           : "This server has no pinned deployed commit, so the install starts no local node and says this app is not a mesh node yet. It never falls back to main.",
@@ -111,6 +112,58 @@ export function installPlan({ origin, slug, version, products = [], sourceRef = 
   };
 }
 
+/**
+ * POSIX awk program: reads one JSON reply on stdin and prints its TOP-LEVEL "code" string only when
+ * the reply is a single well-formed-enough object with exactly one top-level "code" whose value is a
+ * plain string (escaped strings are not decoded and so never equal MESH-OK). Anything else prints
+ * nothing (fail closed). Nested objects and arrays are skipped, so {"code":"X","d":{"code":"MESH-OK"}}
+ * prints X, not MESH-OK.
+ */
+export const JOIN_TOP_CODE_AWK = [
+  '{ s = s $0 "\\n" }',
+  "END {",
+  '  n = length(s); d = 0; ins = 0; esc = 0; buf = ""; key = ""; ph = 0; got = ""; cnt = 0; bad = 0; opened = 0; closed = 0',
+  "  for (i = 1; i <= n && !bad; i++) {",
+  "    c = substr(s, i, 1)",
+  "    if (ins) {",
+  '      if (esc) { buf = buf "\\\\" c; esc = 0; continue }',
+  '      if (c == "\\\\") { esc = 1; continue }',
+  "      if (c == \"\\\"\") {",
+  "        ins = 0",
+  "        if (d == 1) {",
+  "          if (ph == 0) { key = buf; ph = 1 }",
+  '          else if (ph == 2) { if (key == "code") { got = buf; cnt++ } ph = 3 }',
+  "          else bad = 1",
+  "        }",
+  "        continue",
+  "      }",
+  "      buf = buf c; continue",
+  "    }",
+  '    if (c == " " || c == "\\t" || c == "\\n" || c == "\\r") continue',
+  "    if (closed) { bad = 1; continue }",
+  "    if (d == 0) { if (c == \"{\" && !opened) { opened = 1; d = 1; ph = 0 } else bad = 1; continue }",
+  "    if (c == \"\\\"\") { ins = 1; buf = \"\"; continue }",
+  "    if (c == \"{\" || c == \"[\") {",
+  '      if (d == 1) { if (ph != 2) { bad = 1; continue } if (key == "code") { got = ""; cnt++ } ph = 3 }',
+  "      d++; continue",
+  "    }",
+  "    if (c == \"}\" || c == \"]\") {",
+  "      d--",
+  "      if (d == 0) { if (c != \"}\") bad = 1; closed = 1 }",
+  "      continue",
+  "    }",
+  "    if (d == 1) {",
+  '      if (c == ":") { if (ph == 1) ph = 2; else bad = 1; continue }',
+  '      if (c == ",") { if (ph == 3) ph = 0; else bad = 1; continue }',
+  '      if (ph == 2) { if (key == "code") { got = ""; cnt++ } ph = 3; continue }',
+  "      if (ph == 3) continue",
+  "      bad = 1",
+  "    }",
+  "  }",
+  '  if (!bad && closed && !ins && cnt == 1 && got != "") print got',
+  "}",
+].join("\n");
+
 function shq(v) {
   return "'" + String(v).replace(/'/g, "'\\''") + "'";
 }
@@ -121,7 +174,8 @@ export function installScript(plan) {
   const install = plan.steps[1];
   const nodeStep = plan.steps.find((s) => s.id === "node");
   const welcome = plan.hints.find((h) => h.id === "welcome");
-  const NOT_YET = "echo 'The local mesh node did not register, so this app is not a mesh node yet.'";
+  // INFO :124 on #352: say "did not register" only when a node was actually started.
+  const NOT_YET = `if [ "$NODE_STARTED" = 1 ]; then echo 'The local mesh node did not register, so this app is not a mesh node yet.'; else echo 'No local mesh node was started, so this app is not a mesh node yet.'; fi`;
   const pin = nodeStep.source_sha256 || "";
   const lines = [
     "#!/bin/sh",
@@ -130,9 +184,11 @@ export function installScript(plan) {
     install.url ? `curl -fsSL ${shq(install.url)} | sh` : `echo ${shq("No separate installer for " + plan.slug + ".")}`,
     'RND=$(od -An -N4 -tx1 /dev/urandom | tr -d " \\n")',
     `NODE=${shq(join.body.node_id.replace("-<random>", ""))}-$RND`,
-    // "Joined" only when the mesh accepted the join: HTTP 2xx (curl -f) and code MESH-OK in the reply.
-    `JOIN_OUT=$(curl -fsS -X POST ${shq(join.url)} -H 'content-type: application/json' -d "{\\"product\\":\\"${plan.slug}\\",\\"node_id\\":\\"$NODE\\",\\"presence\\":\\"live\\",\\"heartbeat_mode\\":\\"idle\\"}" 2>/dev/null || true)`,
-    `if printf '%s' "$JOIN_OUT" | grep -q '"code": *"MESH-OK"'; then echo "Joined the mesh as $NODE."; else echo "The mesh did not accept the join, so $NODE has not joined the mesh. Continuing."; fi`,
+    // "Joined" only when the mesh accepted the join: HTTP 2xx (curl -f) and the reply's TOP-LEVEL
+    // code is exactly "MESH-OK" (JOIN_TOP_CODE_AWK: a strict top-level JSON scan, no node needed).
+    // A nested MESH-OK inside a refusal, a duplicate code key, or a malformed reply is not a join.
+    `JOIN_OUT=$(curl -fsS --max-filesize 65536 -X POST ${shq(join.url)} -H 'content-type: application/json' -d "{\\"product\\":\\"${plan.slug}\\",\\"node_id\\":\\"$NODE\\",\\"presence\\":\\"live\\",\\"heartbeat_mode\\":\\"idle\\"}" 2>/dev/null || true)`,
+    `if [ "$(printf '%s' "$JOIN_OUT" | awk ${shq(JOIN_TOP_CODE_AWK)} 2>/dev/null)" = MESH-OK ]; then echo "Joined the mesh as $NODE."; else echo "The mesh did not accept the join, so $NODE has not joined the mesh. Continuing."; fi`,
     // Step 5: a real local node (own key, own data dir, signed register + signed heartbeats on the relay).
     // B352-1: owner-only files for the node's key material while the node is set up and started.
     'OLD_UMASK=$(umask)',
@@ -142,6 +198,7 @@ export function installScript(plan) {
     'MESH_HOME="${AZIEL_MESH_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/aziel-mesh}"',
     'DIR="$MESH_HOME/$NODE"',
     "NODE_OK=0",
+    "NODE_STARTED=0",
     'SRC=""',
     'if command -v node >/dev/null 2>&1 && [ "$(node -p "process.versions.node.split(\'.\')[0]" 2>/dev/null || echo 0)" -ge 20 ]; then',
     '  if [ -n "${AZIEL_MESH_SRC_DIR:-}" ]; then SRC="$AZIEL_MESH_SRC_DIR"; else',
@@ -176,8 +233,11 @@ export function installScript(plan) {
     '  if [ -n "$SRC" ] && [ -f "$SRC/qnm-node/fed-instance.mjs" ]; then',
     '    mkdir -p "$DIR"',
     // Log cap: the node writes its own JSON log, rotating at the cap to node.log.1 (two files max).
-    `    nohup node "$SRC/qnm-node/fed-instance.mjs" --data "$DIR/data" --relay ${shq(nodeStep.relay)} --product ${shq(plan.slug)} --heartbeat-sec 180 --log-file "$DIR/node.log" --log-max-bytes ${NODE_LOG_MAX_BYTES} > "$DIR/node.err" 2>&1 &`,
+    // node.err cap: the node's stdout/stderr go through qnm-node/capped-run.mjs (0600, 1 MiB, rotates
+    // to node.err.1), never a raw shell redirect. The pid file holds the wrapper, which forwards SIGTERM.
+    `    nohup node "$SRC/qnm-node/capped-run.mjs" --err-file "$DIR/node.err" --err-max-bytes ${NODE_LOG_MAX_BYTES} -- "$SRC/qnm-node/fed-instance.mjs" --data "$DIR/data" --relay ${shq(nodeStep.relay)} --product ${shq(plan.slug)} --heartbeat-sec 180 --log-file "$DIR/node.log" --log-max-bytes ${NODE_LOG_MAX_BYTES} > /dev/null 2>&1 &`,
     '    echo $! > "$DIR/node.pid"',
+    "    NODE_STARTED=1",
     "    i=0",
     "    while [ $i -lt 30 ]; do",
     '      if grep -q \'"registered":true\' "$DIR/node.log" 2>/dev/null; then NODE_OK=1; break; fi',
