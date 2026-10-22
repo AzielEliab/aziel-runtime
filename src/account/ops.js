@@ -11,7 +11,9 @@ import { LATTICE_GENESIS, latticePrimary, latticeOnlineSecondary } from "../dual
 import { clientIp, rateKeyOf } from "../production.js";
 import { storeFor } from "../chainlock/store.js";
 
-export const ARK_ACCOUNT_OPS = Object.freeze(["account_open", "account_append", "account_recall"]);
+export const ARK_ACCOUNT_OPS = Object.freeze(["account_open", "account_append", "account_recall", "account_challenge", "account_session"]);
+export const CHALLENGE_TTL_MS = 120 * 1000;
+export const SESSION_TTL_MS = 15 * 60 * 1000;
 export const RL_WINDOW_S = 900;
 export const RL_PER_PREFIX = 60;
 export const RL_PER_SUBJECT = 30;
@@ -31,6 +33,20 @@ export function canonical(v) {
 export function appendMessage(row) {
   const { spec, vault_id, seq, prev, kind, ct_sha256, ts } = row;
   return enc.encode(canonical({ spec, vault_id, seq, prev, kind, ct_sha256, ts }));
+}
+/** USER-SIGNIN-ARK-1.0 §10: the client signs this with its locally derived Ed25519 key. */
+export function sessionMessage(vaultId, nonce) {
+  return enc.encode(`ARK-ACCOUNT:v1:session|${vaultId}|${nonce}`);
+}
+const randHex = (n) => hex(crypto.getRandomValues(new Uint8Array(n)));
+const chalKey = (nonce) => `ark:chal:${nonce}`;
+const sessKey = (h) => `ark:sess:${h}`;
+async function sessionVault(kv, token, now) {
+  if (typeof token !== "string" || !/^[0-9a-f]{64}$/.test(token)) return null;
+  const raw = await kv.get(sessKey(hex(await sha256("ARK-ACCOUNT:v1:sess|" + token))));
+  if (raw == null) return null;
+  const s = JSON.parse(raw);
+  return Number.isInteger(s.exp) && s.exp > now && /^[0-9a-f]{64}$/.test(s.vault_id) ? s : null;
 }
 export function recallMessage(vaultId, ts) {
   return enc.encode(`ARK-ACCOUNT:v1:recall|${vaultId}|${ts}`);
@@ -80,6 +96,7 @@ function okTs(ts, now) {
  * @param meta { credential_error?, credential_mode? } from the scrubbed args
  */
 export async function runArkAccountOp(op, payload, env, request, keys = null, meta = {}, now = Date.now()) {
+  meta = meta || {};
   try {
     if (!env || env.ARK_ACCOUNTS !== "on") return refuse("ARK-ACCOUNTS-OFF");
     // Durable storage only (ChainLock DO or USES KV); the per-isolate memory store would lose history.
@@ -94,6 +111,11 @@ export async function runArkAccountOp(op, payload, env, request, keys = null, me
     let pub, vaultId;
     if (hosted) {
       pub = keys.pub; vaultId = keys.vault_id;
+    } else if (p.session !== undefined) {
+      const sv = await sessionVault(kv, p.session, now);
+      if (!sv) return refuse("ARK-SESSION");
+      pub = sv.vault_pub; vaultId = sv.vault_id;
+      meta = { ...meta, session_ok: true };
     } else {
       pub = String(p.vault_pub || "");
       vaultId = await vaultIdOf(pub);
@@ -104,12 +126,39 @@ export async function runArkAccountOp(op, payload, env, request, keys = null, me
     if (!(await rateHit(kv, "s:" + subject, RL_PER_SUBJECT, now))) return refuse("ARK-RATE");
     const tip = await readTip(kv, vaultId);
 
+    if (op === "account_challenge") {
+      // Stateless toward the password: any vault_pub gets a nonce (no oracle).
+      const nonce = randHex(32);
+      await kv.put(chalKey(nonce), JSON.stringify({ vault_id: vaultId, exp: now + CHALLENGE_TTL_MS }));
+      return { ok: true, code: "ARK-OK", spec: ARK_ACCOUNT_SPEC, vault_id: vaultId, nonce, expires_ms: CHALLENGE_TTL_MS, sign: "ARK-ACCOUNT:v1:session|<vault_id>|<nonce>", written: false };
+    }
+
+    if (op === "account_session") {
+      const nonce = String(p.nonce || "");
+      if (!/^[0-9a-f]{64}$/.test(nonce)) return refuse("ARK-INPUT");
+      const raw = await kv.get(chalKey(nonce));
+      if (raw == null) return refuse("ARK-STALE");
+      const c = JSON.parse(raw);
+      if (c.used) return refuse("ARK-STALE");
+      await kv.put(chalKey(nonce), JSON.stringify({ ...c, used: true })); // single use, consumed before verify
+      if (c.vault_id !== vaultId || !(c.exp > now)) return refuse("ARK-STALE");
+      if (!(await verifySig(pub, String(p.user_sig || ""), sessionMessage(vaultId, nonce)))) return refuse("ARK-SIG-BAD");
+      // Verify against the receipt chain: the vault's tip row (if any) must be signed by this key.
+      if (tip.seq > 0) {
+        const last = JSON.parse((await kv.get(rowKey(vaultId, tip.seq))) || "null");
+        if (!last || last.row_hash !== tip.row_hash || last.user_pub !== pub) return refuse("ARK-FAIL-CLOSED");
+      }
+      const token = randHex(32);
+      await kv.put(sessKey(hex(await sha256("ARK-ACCOUNT:v1:sess|" + token))), JSON.stringify({ vault_id: vaultId, vault_pub: pub, exp: now + SESSION_TTL_MS }));
+      return { ok: true, code: "ARK-OK", spec: ARK_ACCOUNT_SPEC, vault_id: vaultId, session: token, expires_ms: SESSION_TTL_MS, count: tip.seq, tip: tip.row_hash, written: false, deniable: true };
+    }
+
     if (op === "account_open") {
       return { ok: true, code: "ARK-OK", spec: ARK_ACCOUNT_SPEC, vault_id: vaultId, vault_pub: pub, count: tip.seq, tip: tip.row_hash, written: false, deniable: true };
     }
 
     if (op === "account_recall") {
-      if (!hosted) {
+      if (!hosted && !meta.session_ok) {
         const ts = p.ts;
         if (!okTs(ts, now)) return refuse("ARK-STALE");
         if (!(await verifySig(pub, String(p.user_sig || ""), recallMessage(vaultId, ts)))) return refuse("ARK-SIG-BAD");

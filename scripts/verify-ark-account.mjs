@@ -118,3 +118,38 @@ console.log(`verify-ark-account: ${n} checks ok`);
   assert.equal((await runArkEngine("account_open", { username: U, password: P })).code, "ARK-DOOR-ONLY");
   console.log("verify-ark-account: /p and engine paths are door-only (2 checks)");
 }
+// USER-SIGNIN-ARK-1.0 §10: challenge → signed session. The LLM/MCP client sees only vault_pub, nonce, sig, session.
+{
+  const { sessionMessage } = await import("../src/account/ops.js");
+  let c = 0; const k = (x, m) => { assert.ok(x, m); c++; };
+  const e2 = { ARK_ACCOUNTS: "on", USES: mkKv() };
+  const me = await deriveArkAccount("sessuser1", "sess-pass-1234");
+  let r = await call({ op: "account_challenge", payload: { vault_pub: me.pub } }, e2);
+  k(r.result.code === "ARK-OK" && /^[0-9a-f]{64}$/.test(r.result.nonce), "challenge issued");
+  const nonce = r.result.nonce;
+  r = await call({ op: "account_session", payload: { vault_pub: me.pub, nonce, user_sig: "00".repeat(64) } }, e2);
+  k(r.result.code === "ARK-SIG-BAD", "bad sig refused " + JSON.stringify(r).slice(0,300));
+  r = await call({ op: "account_session", payload: { vault_pub: me.pub, nonce, user_sig: await signBytes(me.signKey, sessionMessage(me.vault_id, nonce)) } }, e2);
+  k(r.result.code === "ARK-STALE", "nonce single-use even after a failed try");
+  const n2 = (await call({ op: "account_challenge", payload: { vault_pub: me.pub } }, e2)).result.nonce;
+  const other = await deriveArkAccount("sessuser2", "sess-pass-1234");
+  r = await call({ op: "account_session", payload: { vault_pub: other.pub, nonce: n2, user_sig: await signBytes(other.signKey, sessionMessage(other.vault_id, n2)) } }, e2);
+  k(r.result.code === "ARK-STALE", "nonce bound to its vault");
+  const n3 = (await call({ op: "account_challenge", payload: { vault_pub: me.pub } }, e2)).result.nonce;
+  r = await call({ op: "account_session", payload: { vault_pub: me.pub, nonce: n3, user_sig: await signBytes(me.signKey, sessionMessage(me.vault_id, n3)) } }, e2);
+  k(r.result.code === "ARK-OK" && /^[0-9a-f]{64}$/.test(r.result.session) && r.result.count === 0, "session opens");
+  const tok = r.result.session;
+  r = await call({ op: "account_recall", payload: { session: tok } }, e2);
+  k(r.result.code === "ARK-OK" && r.result.rows.length === 0, "session recall");
+  r = await call({ op: "account_recall", payload: { session: "ab".repeat(32) } }, e2);
+  k(r.result.code === "ARK-SESSION", "unknown session refused");
+  k(![...e2.USES.m.keys()].some((x) => x.includes(tok)), "session token not stored in clear");
+  // Wrong password: a different key, its own valid signature, same response shape, empty vault.
+  const wrong = await deriveArkAccount("sessuser1", "sess-pass-WRONG");
+  const n4 = (await call({ op: "account_challenge", payload: { vault_pub: wrong.pub } }, e2)).result.nonce;
+  const w = await call({ op: "account_session", payload: { vault_pub: wrong.pub, nonce: n4, user_sig: await signBytes(wrong.signKey, sessionMessage(wrong.vault_id, n4)) } }, e2);
+  k(w.result.code === "ARK-OK" && w.result.count === 0 && w.result.vault_id !== me.vault_id, "wrong password → empty vault, no oracle");
+  r = await call({ op: "account_challenge", payload: { vault_pub: me.pub } }, { USES: mkKv() });
+  k(r.result.code === "ARK-ACCOUNTS-OFF", "challenge default OFF");
+  console.log(`verify-ark-account: session ${c} checks ok`);
+}

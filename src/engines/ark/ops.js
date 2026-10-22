@@ -7,7 +7,7 @@ import { LIMITATION, levels, sweep } from "./engine.js";
 
 const LIVE = ["health", "skill", "sweep", "levels", "doctor"];
 // USER-SIGNIN-ARK-1.0: account_* run only inside the FragGate door (src/account/ops.js), after the credential firewall.
-const DOOR_ONLY = ["account_open", "account_append", "account_recall"];
+const DOOR_ONLY = ["account_open", "account_append", "account_recall", "account_challenge", "account_session"];
 const STUB = ["scorch", "wipe", "unlock", "encrypt"];
 export const ARK_OPS = [...LIVE, ...DOOR_ONLY];
 

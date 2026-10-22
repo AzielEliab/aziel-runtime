@@ -725,6 +725,8 @@ const PRODUCTS_RAW = [
       { op: "account_open", method: "POST", summary: "ARK account mode (USER-SIGNIN-ARK-1.0), default OFF. Username+password or vault_pub opens a vault. A wrong password opens a different, empty vault. No yes/no." },
       { op: "account_append", method: "POST", summary: "ARK account mode, default OFF. Append one user-signed, encrypted, sealed row. Append-only. No password, hash of it, or private key is stored." },
       { op: "account_recall", method: "POST", summary: "ARK account mode, default OFF. Recall that vault's rows; only the user's key decrypts them. A lost password means the history stays unreadable." },
+      { op: "account_challenge", method: "POST", summary: "ARK account mode, default OFF. Get a single-use nonce for a vault_pub. The client signs it with its locally derived key; no username or password is sent." },
+      { op: "account_session", method: "POST", summary: "ARK account mode, default OFF. Send vault_pub + nonce + user_sig; the runtime verifies against the vault's receipt chain and returns a 15-minute session. A wrong password simply opens a different, empty vault." },
     ],
     example: { text: "hello world" },
     banner: "The ARK is not a kernel. Hosted API never stores vaults, passphrases, password hashes or private keys. ARK account mode (account_*) is default OFF; when on, keys are derived in memory per call and only ciphertext is stored. Sweep is Mode E heuristics only.",
