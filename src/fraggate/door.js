@@ -604,6 +604,7 @@ async function fraggateCallBody(args, registry, bySlug, env, request, attempt) {
   }
   if (target.entry.slug === "ark" && ARK_ACCOUNT_OPS.includes(String(resolved.op))) {
     const result = await runArkAccountOp(resolved.op, payload, env, request, arkKeysFor(args), {
+      handle: args,
       credential_error: src.credential_error,
       credential_mode: src.credential_mode,
     });

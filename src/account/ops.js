@@ -6,7 +6,8 @@
  * runtime never signs and never stores a secret. Author: Aziel Eliab.
  * SPDX-License-Identifier: Apache-2.0
  */
-import { ARK_ACCOUNT_SPEC, hex, sha256, signBytes, verifySig, sealData, openData, vaultIdOf } from "./ark-kdf.js";
+import { ARK_ACCOUNT_SPEC, hex, sha256, signBytes, verifySig, sealData, openData, vaultIdOf, normalizeUsername } from "./ark-kdf.js";
+import { arkCredsFor, arkDeriveFor } from "./firewall.js";
 import { LATTICE_GENESIS, latticePrimary, latticeOnlineSecondary } from "../dual-lattice.js";
 import { clientIp, rateKeyOf } from "../production.js";
 import { storeFor } from "../chainlock/store.js";
@@ -16,7 +17,8 @@ export const CHALLENGE_TTL_MS = 120 * 1000;
 export const SESSION_TTL_MS = 15 * 60 * 1000;
 export const RL_WINDOW_S = 900;
 export const RL_PER_PREFIX = 60;
-export const RL_PER_SUBJECT = 30;
+export const RL_PER_SUBJECT = 100; // eased from 30 (targeted-lockout LOW)
+export const RL_SUBJECT_HEX = 6; // hosted subject is a truncated, window-salted hash: buckets, not identities
 export const TS_SKEW_MS = 5 * 60 * 1000;
 export const DATA_MAX = 16384;
 export const RECALL_MAX = 50;
@@ -106,24 +108,34 @@ export async function runArkAccountOp(op, payload, env, request, keys = null, me
     if (!ARK_ACCOUNT_OPS.includes(op)) return refuse("ARK-INPUT");
     if (meta.credential_error) return refuse("ARK-INPUT");
     const p = payload && typeof payload === "object" && !Array.isArray(payload) ? payload : {};
-    const hosted = !!keys;
+    const creds = !keys && meta.handle ? arkCredsFor(meta.handle) : null;
+    const hosted = !!keys || !!creds || (meta.handle && meta.credential_mode === "hosted");
     if (meta.credential_mode === "hosted" && !hosted) return refuse("ARK-INPUT");
-    let pub, vaultId;
+    const win = Math.floor(now / 1000 / RL_WINDOW_S);
+    let subject, pub, vaultId;
     if (hosted) {
-      pub = keys.pub; vaultId = keys.vault_id;
+      let u;
+      try { u = keys ? null : normalizeUsername(creds ? creds.u : undefined); } catch { return refuse("ARK-INPUT"); }
+      subject = keys ? keys.rl_subject.slice(0, RL_SUBJECT_HEX) : hex(await sha256(`ARK-ACCOUNT:v1:rl|${win}|${u}`)).slice(0, RL_SUBJECT_HEX);
     } else if (p.session !== undefined) {
       const sv = await sessionVault(kv, p.session, now);
       if (!sv) return refuse("ARK-SESSION");
-      pub = sv.vault_pub; vaultId = sv.vault_id;
+      pub = sv.vault_pub; vaultId = sv.vault_id; subject = vaultId;
       meta = { ...meta, session_ok: true };
     } else {
       pub = String(p.vault_pub || "");
       vaultId = await vaultIdOf(pub);
+      subject = vaultId;
     }
     const prefix = hex(await sha256("ARK-ACCOUNT:v1:ip|" + rateKeyOf(clientIp(request))));
-    const subject = hosted ? keys.rl_subject : vaultId;
     if (!(await rateHit(kv, "p:" + prefix, RL_PER_PREFIX, now))) return refuse("ARK-RATE");
     if (!(await rateHit(kv, "s:" + subject, RL_PER_SUBJECT, now))) return refuse("ARK-RATE");
+    if (hosted && !keys) {
+      // MED-2: PBKDF2 runs only after the flag, store and both rate checks pass.
+      try { keys = await arkDeriveFor(meta.handle); } catch { return refuse("ARK-INPUT"); }
+      if (!keys) return refuse("ARK-INPUT");
+    }
+    if (hosted) { pub = keys.pub; vaultId = keys.vault_id; }
     const tip = await readTip(kv, vaultId);
 
     if (op === "account_challenge") {
@@ -211,10 +223,11 @@ export async function runArkAccountOp(op, payload, env, request, keys = null, me
 }
 
 /** Verify one vault's rows: seq/prev/row_hash/lattice links and user_sig. Read-only. */
-export async function verifyArkRows(rows) {
+export async function verifyArkRows(rows, tip = null) {
   let prev = LATTICE_GENESIS, pp = LATTICE_GENESIS, ps = LATTICE_GENESIS;
   for (const [i, r] of rows.entries()) {
     if (r.seq !== i + 1 || r.prev !== prev) return { ok: false, at: i + 1, why: "link" };
+    if (typeof r.ct_b64 === "string" && hex(await sha256(r.ct_b64)) !== r.ct_sha256) return { ok: false, at: i + 1, why: "ct_sha256" };
     const { row_hash, ...rest } = r;
     if (hex(await sha256(canonical(rest))) !== row_hash) return { ok: false, at: i + 1, why: "row_hash" };
     if (r.lattice.primary !== (await latticePrimary(r.ct_sha256, pp))) return { ok: false, at: i + 1, why: "primary" };
@@ -223,5 +236,7 @@ export async function verifyArkRows(rows) {
     if ((await vaultIdOf(r.user_pub)) !== r.vault_id) return { ok: false, at: i + 1, why: "vault_id" };
     prev = row_hash; pp = r.lattice.primary; ps = r.lattice.secondary;
   }
+  // Bind to the stored tip: catches a last-row swap or a truncated history.
+  if (tip && (tip.seq !== rows.length || tip.row_hash !== prev)) return { ok: false, at: rows.length, why: "tip" };
   return { ok: true, n: rows.length };
 }
