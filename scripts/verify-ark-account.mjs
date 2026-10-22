@@ -13,7 +13,7 @@ function mkKv() {
   return { m, get: async (k) => (m.has(k) ? m.get(k) : null), put: async (k, v) => { m.set(k, v); }, delete: async (k) => m.delete(k), list: async ({ prefix = "" } = {}) => ({ keys: [...m.keys()].filter((k) => k.startsWith(prefix)).map((name) => ({ name })), list_complete: true }) };
 }
 const kv = mkKv();
-const env = { ARK_ACCOUNTS: "on", USES: kv };
+const env = { ARK_ACCOUNTS: "on", ARK_PLAINTEXT_DOOR: "deprecated-on", USES: kv }; // legacy hosted sections exercise the deprecated door
 let ip = 1;
 const post = (path, body, e = env) => handler(new Request("https://x" + path, { method: "POST", headers: { "content-type": "application/json", accept: "application/json, text/event-stream", "cf-connecting-ip": `198.51.100.${ip}` }, body: JSON.stringify(body) }), e, { waitUntil() {} });
 const call = async (body, e) => (await (await post("/v1/fraggate/call", { slug: "ark", ...body }, e)).json());
@@ -99,14 +99,14 @@ ok(mcp2.includes("ARK-OK") && mcp2.includes("second") && !leaks(mcp2), "MCP host
 ok(!leaks(JSON.stringify([...kv.m.entries()])), "still no secret in storage after MCP calls");
 
 // Rate limit per subject: identical for any password, so lockout reveals nothing.
-const rlKv = mkKv(); const rlEnv = { ARK_ACCOUNTS: "on", USES: rlKv };
+const rlKv = mkKv(); const rlEnv = { ARK_ACCOUNTS: "on", ARK_PLAINTEXT_DOOR: "deprecated-on", USES: rlKv };
 let last;
 for (let i = 0; i <= RL_PER_SUBJECT; i++) { ip = 10 + (i % 5); last = await call({ op: "account_open", username: "rluser", password: i % 2 ? "rl-pass-aaaa" : "rl-pass-bbbb" }, rlEnv); }
 ok(last.result.code === "ARK-RATE", "subject rate limit");
 ok(!leaks(JSON.stringify([...rlKv.m.entries()])) && ![...rlKv.m.values()].join().includes("rl-pass"), "rate store has no secret");
 
 // Fail closed on store errors.
-const boom = { ARK_ACCOUNTS: "on", USES: { get: async () => { throw new Error("x"); }, put: async () => { throw new Error("x"); } } };
+const boom = { ARK_ACCOUNTS: "on", ARK_PLAINTEXT_DOOR: "deprecated-on", USES: { get: async () => { throw new Error("x"); }, put: async () => { throw new Error("x"); } } };
 const fk = await arkFirewall({ slug: "ark", op: "account_open", username: U, password: P });
 r = await runArkAccountOp("account_open", {}, boom, null, null, { handle: fk, credential_mode: "hosted" });
 ok(r.ok === false && r.code === "ARK-FAIL-CLOSED", "store error fails closed");
@@ -190,4 +190,22 @@ console.log(`verify-ark-account: ${n} checks ok`);
   const bad2 = rs.map((x) => ({ ...x })); bad2[0].ct_b64 = "AAAA";
   k(!(await verifyArkRows(bad2, tip)).ok, "ct_sha256 rechecked");
   console.log(`verify-ark-account: azbot-333 ${c} checks ok`);
+}
+
+// §12.2: plaintext door refused by default; firewall still scrubs; nothing derived or stored.
+{
+  let c = 0; const k = (x, m) => { assert.ok(x, m); c++; };
+  const e4 = { ARK_ACCOUNTS: "on", USES: mkKv() };
+  ip = 120;
+  for (const op of ["account_open", "account_append", "account_recall", "account_session"]) {
+    const t0 = Date.now();
+    const r = await call({ op, username: U, password: P, payload: { data: "x" } }, e4);
+    k(r.result.code === "ARK-PLAINTEXT-REFUSED" && r.result.written === false && Date.now() - t0 < 300, "plaintext refused fast: " + op);
+  }
+  k(![...e4.USES.m.keys()].some((x) => x.includes("ark:acct:")) && !leaks(JSON.stringify([...e4.USES.m.entries()])), "nothing stored, no secret");
+  const m = await (await post("/mcp", { jsonrpc: "2.0", id: 5, method: "tools/call", params: { name: "fraggate_call", arguments: { slug: "ark", op: "account_open", Password: P, username: U, confirm: true } } }, e4)).text();
+  k(m.includes("ARK-PLAINTEXT-REFUSED") && !leaks(m), "MCP plaintext refused, no echo");
+  const wt = (await import("node:fs")).readFileSync(new URL("../wrangler.toml", import.meta.url), "utf8");
+  k(!wt.includes("ARK_PLAINTEXT_DOOR"), "deprecated door not configured in wrangler.toml");
+  console.log(`verify-ark-account: plaintext-refused ${c} checks ok`);
 }

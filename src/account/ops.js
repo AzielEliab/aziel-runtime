@@ -107,6 +107,10 @@ export async function runArkAccountOp(op, payload, env, request, keys = null, me
     if (!kv || typeof kv.get !== "function" || typeof kv.put !== "function") return refuse("ARK-STORE-OFF");
     if (!ARK_ACCOUNT_OPS.includes(op)) return refuse("ARK-INPUT");
     if (meta.credential_error) return refuse("ARK-INPUT");
+    // USER-SIGNIN-ARK-1.0 §12.2: the LLM app must never see the plaintext login. A username/password
+    // reaching any door is already scrubbed by the firewall; here it is refused, nothing derived or stored.
+    // Deprecated door: only ARK_PLAINTEXT_DOOR="deprecated-on" (never set in wrangler.toml) re-opens it.
+    if ((meta.credential_mode === "hosted" || keys) && env.ARK_PLAINTEXT_DOOR !== "deprecated-on") return refuse("ARK-PLAINTEXT-REFUSED");
     const p = payload && typeof payload === "object" && !Array.isArray(payload) ? payload : {};
     const creds = !keys && meta.handle ? arkCredsFor(meta.handle) : null;
     const hosted = !!keys || !!creds || (meta.handle && meta.credential_mode === "hosted");
