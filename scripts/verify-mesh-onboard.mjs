@@ -628,7 +628,8 @@ function newUserHintsHtml_() { return ""; }
       value_no_comma: '{"a":"x""code":"MESH-OK"}',
       lit_then_str: '{"a":true"code":"MESH-OK"}',
     };
-    for (const [n, v] of Object.entries(more)) assert.equal(parsesOk(v), false, n);
+    // esc_key_short is valid JSON (key "c/ode") refused on purpose: an escaped top-level key.
+    for (const [n, v] of Object.entries(more)) assert.equal(parsesOk(v), n === "esc_key_short", n);
     for (const awk of awks) {
       for (const [name, input] of Object.entries(fuzz)) {
         const want = failClosed.has(name) ? false : parsesOk(input);
