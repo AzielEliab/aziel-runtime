@@ -24,6 +24,7 @@ export const NEW_USER_HINTS = Object.freeze([
   Object.freeze({ id: "isolated", when: "first_run", title: "Stay private", text: "Pick isolated to keep this node to itself. You can change it any time." }),
   Object.freeze({ id: "heartbeat", when: "first_run", title: "Battery", text: "Idle checks in every few minutes. Asleep checks in less often to save battery." }),
   Object.freeze({ id: "not_live", when: "first_run", title: "Honest status", text: "The alternate internet is not live yet. This node is ready for it." }),
+  Object.freeze({ id: "agents", when: "first_run", title: "Your AI agents", text: "This is designed to let your agents talk to other agents. Messages are designed to be sealed and signed, with a hash-only receipt (hashed, not encrypted). Nothing links without your OK. Not live yet." }),
   Object.freeze({ id: "leave", when: "settings", title: "Leave any time", text: "Leaving removes this node. Reinstalling makes a new one." }),
 ]);
 

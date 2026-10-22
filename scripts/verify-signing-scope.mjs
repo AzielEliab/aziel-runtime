@@ -16,7 +16,8 @@ async function kp() {
   return { priv: b64u(await webcrypto.subtle.exportKey("pkcs8", k.privateKey)), pub: b64u(await webcrypto.subtle.exportKey("raw", k.publicKey)) };
 }
 const A = await kp(), B = await kp();
-const PIN = "0ec8eaf51724feb1c1c362dac0200272c84667838cbca9a2e862fb02021122e6";
+// The key env must never move the contract: pin to the committed snapshot (not a literal that goes stale on a contract rebuild).
+const PIN = JSON.parse((await import("node:fs")).readFileSync(new URL("../contract/lockstep.json", import.meta.url), "utf8")).contract_sha256;
 let n = 0;
 const cases = [
   ["no key", {}, false],

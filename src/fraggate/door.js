@@ -599,7 +599,9 @@ async function fraggateCallBody(args, registry, bySlug, env, request, attempt) {
     return decoratePipe(accepted, inbound, result, env, claim, attempt);
   }
   if (target.entry.slug === MESH_SLUG) {
-    const result = await runMeshOp(resolved.op, payload, env);
+    // AZBot round 3: the /mcp caller's hashed IP reaches the agent limits (not one shared "none" bucket).
+    const meshMeta = String(resolved.op || "").startsWith("agent-") ? await (await import("../agent-subnet.js")).agentMetaOf(request) : {};
+    const result = await runMeshOp(resolved.op, payload, env, meshMeta);
     const accepted = await accept({
       name: target.entry.name,
       slug: target.entry.slug,

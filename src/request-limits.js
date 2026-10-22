@@ -94,6 +94,13 @@ export function requestLimitKind(pathname, method) {
   ) {
     return "mesh_mutate";
   }
+  // AGENT-SUBNET-1.0 (AZBot N2): every POST /v1/mesh/agents/* shares mesh_mutate; the status, directory
+  // and challenge GETs get their own per-IP agent_read limit. GET receipts is the cached hourly snapshot.
+  if (path === "/v1/mesh/agents" || path.startsWith("/v1/mesh/agents/")) {
+    if (m === "POST") return "mesh_mutate";
+    if ((m === "GET" || m === "HEAD") && (path === "/v1/mesh/agents" || path === "/v1/mesh/agents/directory" || path === "/v1/mesh/agents/challenge")) return "agent_read";
+    return null;
+  }
   if (m === "POST" && path.startsWith("/v1/memory/")) {
     return "memory_mutate";
   }

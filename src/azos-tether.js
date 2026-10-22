@@ -29,7 +29,9 @@ export const TETHER_ROW_CAP = 64;
 /** Internal refusal chain (RIB-018, receipt-guard REFUSAL_CHAIN). Tethered too: TETHER-REFUSALS-1.0. */
 export const TETHER_REFUSAL_CHAIN = "refusals";
 /** Every chain pushAll sends: the public roster plus the internal refusals chain. */
-export const TETHER_CHAINS = Object.freeze([...ROSTER, TETHER_REFUSAL_CHAIN]);
+/** AGENT-SUBNET-1.0: hash-only agent communication receipts, tethered like refusals. */
+export const TETHER_AGENT_CHAIN = "agentcomms";
+export const TETHER_CHAINS = Object.freeze([...ROSTER, TETHER_REFUSAL_CHAIN, TETHER_AGENT_CHAIN]);
 /** Own cron (odd minutes) so the tether does not share a subrequest budget with the mesh fan-out. */
 export const TETHER_CRON = "1-59/2 * * * *";
 
@@ -217,6 +219,22 @@ export async function pushChain(env, chain, opts = {}) {
     localTip = { primary: local.tips.primary, secondary: local.tips.secondary };
     pending = rowsSince(latticeRows, ackedTip);
   }
+  if (chain === TETHER_AGENT_CHAIN && pending != null) {
+    // AGENT-SUBNET-1.0 (AZBot N4/N5): AZ-OS shows its stored tips publicly, so agentcomms is tethered up to
+    // the HOURLY tip only; a 2-minute cron must not time single agent events.
+    const ht = opts.agentTip !== undefined ? opts.agentTip : await (await import("./agent-subnet.js")).agentHourlyTip(env);
+    const until = ht && ht.lattice && ht.lattice.primary;
+    if (!until) return { ...base, ok: true, code: "TETHER-NOTHING", azos_updated: false, sent: false, lattice_rows: 0, hourly: true };
+    if (ackedTip && ackedTip.primary === until) {
+      pending = [];
+      localTip = { primary: ackedTip.primary, secondary: ackedTip.secondary };
+    } else {
+      const at = pending.findIndex((row) => row.primary === until);
+      if (at < 0) return { ...base, ok: true, code: "TETHER-HOURLY-WAIT", azos_updated: false, sent: false, hourly: true };
+      pending = pending.slice(0, at + 1);
+      localTip = { primary: pending[at].primary, secondary: pending[at].secondary };
+    }
+  }
   if (ackedTip && ackedTip.primary === localTip.primary && ackedTip.secondary === localTip.secondary && acked.verified === true) {
     return { ...base, ok: true, code: "TETHER-CURRENT", azos_updated: true, sent: false, tip: localTip, azos: acked };
   }
@@ -266,7 +284,7 @@ export async function pushAll(env, opts = {}) {
   const out = [];
   for (const chain of opts.chains || TETHER_CHAINS) {
     const res = await pushChain(env, chain, { ...opts, key, fetcher, store, acked: state.chains[chain] || null });
-    if (res.code === "TETHER-NOTHING") continue;
+    if (res.code === "TETHER-NOTHING" || res.code === "TETHER-HOURLY-WAIT") continue;
     out.push(res);
   }
   const updated = out.length > 0 && out.every((row) => row.azos_updated === true);

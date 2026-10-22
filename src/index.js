@@ -2750,6 +2750,13 @@ function aznewsOpenApiPaths() {
     "/design/tokens.json": { get: { operationId: "design_tokens_json", summary: "Shared design tokens (single source for all three legs).", tags: ["runtime"], responses: { "200": { description: "tokens JSON" } } } },
     "/design/tokens.css": { get: { operationId: "design_tokens_css", summary: "Shared design tokens as CSS custom properties.", tags: ["runtime"], responses: { "200": { description: "text/css" } } } },
     "/aznews": { get: { operationId: "aznews_page", summary: "AZNews + 4DMap globe page (HTML).", tags: ["aznews"], responses: { "200": { description: "text/html" } } } },
+    // AGENT-SUBNET-1.0 (additive): agent subnet on the mesh door. Writes are signed statements; see docs/designs/AGENT-SUBNET-1.0.md.
+    "/agents": { get: { operationId: "agents_page", summary: "Agent subnet receipts viewer (HTML). Public counts; signed-statement scoped rows.", tags: ["mesh"], responses: { "200": { description: "text/html" } } } },
+    "/v1/mesh/agents": op("mesh_agents_status", "AGENT-SUBNET-1.0 status: honest flags (live false), counts, carriers, limits, chain tip."),
+    "/v1/mesh/agents/directory": op("mesh_agents_directory", "Discoverable agents only (id, public keys, caps). Owners never listed.", [q("agent_id", "Exact agent handle lookup.", { type: "string" })]),
+    "/v1/mesh/agents/challenge": op("mesh_agents_challenge", "Single-use relay challenge (2-minute expiry, HMAC-bound to one scope and one subject key) for a signed agent-view statement.", [q("scope", "agent or owner.", { type: "string" }), q("subject_public_key", "The Ed25519 public key that will sign the view.", { type: "string" })]),
+    "/v1/mesh/agents/receipts": { get: { operationId: "mesh_agents_receipts_public", summary: "Public agentcomms view: hourly snapshot, counts bucketed to tens (under 10 shows <10), and that hour's tip. No rows.", tags: ["mesh"], responses: { "200": { description: "JSON" } } }, post: { operationId: "mesh_agents_receipts_scoped", summary: "Signed agent-view statement: only rows that involve the proved agent or owner.", tags: ["mesh"], requestBody: { content: { "application/json": { schema: { type: "object" } } } }, responses: { "200": { description: "JSON" }, "403": { description: "AGENT-CHALLENGE / AGENT-SIG-INVALID" } } } },
+    ...Object.fromEntries(["register", "grant", "revoke", "retire", "send", "pull", "ack"].map((v) => ["/v1/mesh/agents/" + v, { post: { operationId: "mesh_agents_" + v, summary: "AGENT-SUBNET-1.0 signed agent-" + v + " statement (mesh op agent-" + v + "; FragGate admission). Refusals are sealed (AGENT-*).", tags: ["mesh"], requestBody: { content: { "application/json": { schema: { type: "object" } } } }, responses: { "200": { description: "JSON with receipt" }, "4XX": { description: "AGENT-* refusal with refusal_receipt" } } } }])),
   };
 }
 
@@ -4126,6 +4133,12 @@ async function handleRequest(request, env, ctx) {
       );
     }
 
+    if ((url.pathname === "/agents" || url.pathname === "/agents/") && (request.method === "GET" || request.method === "HEAD")) {
+      // AGENT-SUBNET-1.0 human viewer (public counts; signed-statement scoped rows).
+      const { agentsPageHtml } = await import("./agent-subnet.js");
+      return asHead(request, html(agentsPageHtml(origin), { ...extra("/agents") }));
+    }
+
     if ((url.pathname === "/workspace" || url.pathname === "/workspace/") && (request.method === "GET" || request.method === "HEAD")) {
       return asHead(
         request,
@@ -4522,7 +4535,15 @@ async function handleRequest(request, env, ctx) {
           );
         }
       }
-      const out = await dispatchMeshHttp(request.method, url.pathname, payload, env, origin, url.searchParams);
+      // AGENT-SUBNET-1.0: a hashed visitor IP for the registration limiter (never stored past the minute).
+      // Public requests carry cf-connecting-ip; a peer (AZ-OS / azinterface) over the service binding has
+      // none and may forward its own visitor's hash in x-azrt-visitor-ip-h.
+      let meshMeta = {};
+      if (url.pathname.startsWith("/v1/mesh/agents")) {
+        // IPv6 is cut to its /64 first (agentIpKey). No cf-connecting-ip means a Worker service binding.
+        meshMeta = await (await import("./agent-subnet.js")).agentMetaOf(request);
+      }
+      const out = await dispatchMeshHttp(request.method, url.pathname, payload, env, origin, url.searchParams, meshMeta);
       // MESH-ONBOARD-1.0: the one-click installer is served as a shell script.
       if (out && typeof out.text === "string") {
         return new Response(request.method === "HEAD" ? null : out.text, { status: out.status, headers: { "content-type": "text/x-shellscript; charset=utf-8", "cache-control": "no-store", "access-control-allow-origin": "*" } });
@@ -4713,7 +4734,10 @@ async function handleRequest(request, env, ctx) {
       if (url.pathname === "/v1/anchor/heads") {
         const { softwareMeta } = await import("./software-catalog.js");
         const meta = softwareMeta(env);
-        const heads = await anchor.collectHeads(env, { ...deps, version: RUNTIME_VERSION, gitSha: meta.git_sha || (env && env.GIT_SHA) || null, versionId: meta.version_id || null });
+        // AGENT-SUBNET-1.0 (AZBot N4): agentcomms rides the heads as its HOURLY tip, so polling heads
+        // can't time single agent events; the witness still anchors a real (seq, h).
+        const { agentHourlyTip } = await import("./agent-subnet.js");
+        const heads = await anchor.collectHeads(env, { ...deps, agentHourlyTip, version: RUNTIME_VERSION, gitSha: meta.git_sha || (env && env.GIT_SHA) || null, versionId: meta.version_id || null });
         // AZRT-KEYS-1.0 (additive): the held receipt key's public parts, so the witness records each key epoch.
         heads.receipt_key = await (await import("./keys-manifest.js")).receiptKeyHead(env);
         return asHead(request, json(heads, 200, hdrs));
@@ -4723,6 +4747,12 @@ async function handleRequest(request, env, ctx) {
         const seq = Number(url.searchParams.get("seq"));
         if (!anchor.ANCHOR_CHAINS.includes(c) || !Number.isInteger(seq) || seq < 1) {
           return json({ ok: false, code: "ANCHOR-BAD-QUERY", message: "GET /v1/anchor/row?c=<chain>&seq=<1-based row>.", chains: anchor.ANCHOR_CHAINS }, 400, hdrs);
+        }
+        if (c === "agentcomms") {
+          // Rows after the hourly tip are not public yet (else polling /row times each event).
+          const { agentHourlyTip } = await import("./agent-subnet.js");
+          const ht = await agentHourlyTip(env);
+          if (!ht || seq > ht.seq) return asHead(request, json({ spec: anchor.ANCHOR_SPEC, ok: false, code: "AGENT-ROW-NOT-PUBLISHED", chain: c, message: "agentcomms rows are published up to the hourly tip only.", as_of: ht ? ht.as_of : null }, 404, hdrs));
         }
         const out = await anchor.rowIntegrity(env, c, seq, deps);
         return asHead(request, json({ spec: anchor.ANCHOR_SPEC, fail_closed: true, ...out }, out.ok ? 200 : 409, hdrs));
@@ -4734,7 +4764,31 @@ async function handleRequest(request, env, ctx) {
         if (!anchor.ANCHOR_CHAINS.includes(c) || !Number.isInteger(from) || from < 1) {
           return json({ ok: false, code: "LEDGER-BAD-QUERY", message: "GET /v1/anchor/rows?c=<chain>&from=<1-based>&limit=<1..100>.", chains: anchor.ANCHOR_CHAINS }, 400, hdrs);
         }
-        const out = await anchor.pageRows(env, c, from, limit, deps);
+        let pageLimit = limit;
+        let agentTip = null;
+        if (c === "agentcomms") {
+          // Pages stop at the hourly tip (AZBot N4/N5): no real-time row count from paging.
+          const { agentHourlyTip } = await import("./agent-subnet.js");
+          agentTip = await agentHourlyTip(env);
+          if (!agentTip) return asHead(request, json({ ok: false, code: "LEDGER-STORE-UNBOUND", chain: c }, 409, hdrs));
+          const room = agentTip.seq - from + 1;
+          // Same page shape as pageRows (count, head_seq, next), so walkers stop on an empty page.
+          if (room < 1) return asHead(request, json({ ok: true, code: "LEDGER-PAGE-OK", chain: c, from, count: 0, head_seq: agentTip.seq, rows: [], breaks: [], next: null, published_through: "hourly tip", as_of: agentTip.as_of }, 200, hdrs));
+          pageLimit = Math.max(1, Math.min(Number.isFinite(limit) ? limit : 50, room));
+        }
+        const out = await anchor.pageRows(env, c, from, pageLimit, deps);
+        if (c === "agentcomms" && agentTip) {
+          out.published_through = "hourly tip";
+          out.as_of = agentTip.as_of;
+          out.head_seq = agentTip.seq; // the hourly tip, not the live head
+          if (out.next && out.next.from > agentTip.seq) out.next = null;
+        }
+        if (c === "agentcomms" && Array.isArray(out.rows)) {
+          // AGENT-SUBNET-1.0: the public sees links and lattice, never the hashed-id receipt body.
+          const { redactAgentRow } = await import("./agent-subnet.js");
+          out.rows = out.rows.map(redactAgentRow);
+          out.redacted = "agentcomm bodies are shown only to the proved agent or owner (POST /v1/mesh/agents/receipts). h and prev links were recomputed here.";
+        }
         return asHead(request, json(out, out.ok ? 200 : 409, hdrs));
       }
       if (url.pathname === "/v1/anchor" || url.pathname === "/v1/anchor/status" || url.pathname === "/v1/anchor/verify") {
