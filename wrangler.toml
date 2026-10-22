@@ -193,6 +193,14 @@ REQUIRE_TOKEN = "1"
 # GIT_SHA is injected at deploy (`wrangler deploy --keep-vars --var GIT_SHA:$(git rev-parse HEAD)`).
 # Actions already passes github.sha. That var is the only stamp that tracks the deployed tip.
 # A fallback to src/build-meta.js, CF_VERSION_METADATA, or a catalog extra is deploy lag, not git HEAD.
+# AZRT-WITNESS-QUORUM-1.0 slot 2 (Codeberg). Public values only: a log URL and an Ed25519 public key.
+# Setting these only lets /v1/anchor/verify READ and verify slot 2. It enables no flag and changes no
+# quorum policy (WITNESS_QUORUM stays unset, so required = 1). Slot 2 reports verified/partial/etc. only
+# from what its signed log actually says on each read; missing or malformed values report not_configured /
+# bad_config (fail closed). Log: append-only, signed at :07/:22/:37/:52 each hour; first entry n=1 (d8dafb1).
+WITNESS2_LOG_URL = "https://codeberg.org/azielelroieliab/aziel-witness2/raw/branch/main/anchors/log.jsonl"
+WITNESS2_PUBLIC_KEY = "p0zeCq4N62q70Utncoavj0UOWrTX_0mX8hwT0y0RK0o"
+WITNESS2_NAME = "codeberg"
 # version_id is NOT a [vars] constant. Serve time reads CF_VERSION_METADATA.id
 # (the binding below). Optional --var VERSION_ID:<uuid> is only for an operator
 # who already has that Worker version id. Do not invent one. The binding wins
