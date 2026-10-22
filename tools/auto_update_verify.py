@@ -4,7 +4,11 @@ Author: Aziel Eliab. SPDX-License-Identifier: Apache-2.0"""
 import base64, hashlib, json, re, sys
 
 SPEC = "AZ-UPDATE-MANIFEST-1.0"
-RELEASE_PUBLIC_KEY = None  # placeholder: refuse until Aziel holds the key
+# Pinned release key; private half only in GH Actions secret AUTO_UPDATE_SIGNING_KEY (aziel-runtime). fp = sha256(raw key)
+RELEASE_PUBLIC_KEY = "_3mc9CfQWexUWcyqDadNoQLjb6fFFPRv_XfWirwuH9s"
+RELEASE_KEY_FINGERPRINT = "822b409723b81a0dc3fe3f132a2cb95b72b1ec2b2b16c055c526b627132a4ce8"
+RELEASE_KEY_PRODUCTS = ("aziel-runtime",)  # any other build with the pinned key, or a null key, refuses
+ACCEPTED_CHANNELS = ("stable",)  # stable only; rc etc. -> UPDATE-CHANNEL-REFUSED
 HEX64, HEX40 = re.compile(r"^[a-f0-9]{64}$"), re.compile(r"^[a-f0-9]{40}$")
 KEYS = sorted(["artifact", "channel", "git_sha", "issued_at", "prev_manifest_hash", "product", "spec", "version", "version_seq"])
 MAXI = 2 ** 53 - 1
@@ -58,6 +62,8 @@ def verify_manifest(m, sig, state, public_key=RELEASE_PUBLIC_KEY):
     if not public_key: return {"ok": False, "code": "UPDATE-NO-KEY"}
     if not shape_ok(m): return {"ok": False, "code": "UPDATE-MANIFEST-SHAPE"}
     if not state or m["product"] != state.get("product"): return {"ok": False, "code": "UPDATE-PRODUCT"}
+    if public_key == RELEASE_PUBLIC_KEY and m["product"] not in RELEASE_KEY_PRODUCTS: return {"ok": False, "code": "UPDATE-NO-KEY"}
+    if m["channel"] not in ACCEPTED_CHANNELS: return {"ok": False, "code": "UPDATE-CHANNEL-REFUSED"}
     if not isinstance(sig, str) or not sig_ok(public_key, m, sig): return {"ok": False, "code": "UPDATE-SIG"}
     if m["version_seq"] <= max(int(state.get("installed_seq") or 0), int(state.get("floor_seq") or 0)):
         return {"ok": False, "code": "UPDATE-DOWNGRADE"}
@@ -66,4 +72,4 @@ def verify_manifest(m, sig, state, public_key=RELEASE_PUBLIC_KEY):
 
 if __name__ == "__main__":
     c = json.load(open(sys.argv[1]))
-    print(json.dumps(verify_manifest(c["manifest"], c.get("signature"), c.get("state"), c.get("public_key"))))
+    print(json.dumps(verify_manifest(c["manifest"], c.get("signature"), c.get("state"), c["public_key"] if "public_key" in c else RELEASE_PUBLIC_KEY)))
