@@ -29,6 +29,8 @@ import { arch, LOCKED_STRIP, pipeInbound, pipeOutbound, thinPipe } from "../azpi
 import { attachAttemptEnvelope, normalizeAttemptLink } from "../receipt-attempt.js";
 import { MEMORY_SLUG, runMemoryOp } from "../memory.js";
 import { MESH_SLUG, runMeshOp } from "../mesh.js";
+import { arkFirewall, arkKeysFor } from "../account/firewall.js";
+import { ARK_ACCOUNT_OPS, runArkAccountOp } from "../account/ops.js";
 import { azGeneratorCallRefuse, isAzGeneratorHallucSlug } from "../redline.js";
 import {
   FG_GATE_REFUSE,
@@ -460,6 +462,8 @@ export async function refuseRuntimeGate(name, gate) {
 }
 
 export async function fraggateCall(args, registry, bySlug, env, request = null) {
+  // USER-SIGNIN-ARK-1.0 §4: the credential firewall runs before anything reads args.
+  args = await arkFirewall(args);
   const attempt = normalizeAttemptLink(args && typeof args === "object" ? args : {}, { generate: true });
   if (!attempt.ok) {
     return refuse({
@@ -598,6 +602,29 @@ async function fraggateCallBody(args, registry, bySlug, env, request, attempt) {
     }
     return decoratePipe(accepted, inbound, result, env, claim, attempt);
   }
+  if (target.entry.slug === "ark" && ARK_ACCOUNT_OPS.includes(String(resolved.op))) {
+    const result = await runArkAccountOp(resolved.op, payload, env, request, arkKeysFor(args), {
+      credential_error: src.credential_error,
+      credential_mode: src.credential_mode,
+    });
+    const accepted = await accept({
+      name: target.entry.name,
+      slug: target.entry.slug,
+      op: target.op,
+      result,
+      gate: inbound.gate_check || gate,
+      env,
+      registry,
+      engine: {
+        engine_digest: null,
+        ran_in: "aziel-runtime",
+        true_engine_runtime: false,
+        mode: "ark-account",
+        status: result && result.ok === false ? 400 : 200,
+      },
+    });
+    return decoratePipe(accepted, inbound, result, env, claim, attempt);
+  }
   if (target.entry.slug === MESH_SLUG) {
     // AZBot round 3: the /mcp caller's hashed IP reaches the agent limits (not one shared "none" bucket).
     const meshMeta = String(resolved.op || "").startsWith("agent-") ? await (await import("../agent-subnet.js")).agentMetaOf(request) : {};
@@ -723,6 +750,8 @@ function payloadWithoutMeta(src) {
     "id",
     "confirm",
     "dry_run",
+    "credential_mode",
+    "credential_error",
     "background",
     "job_id",
     "request_id",

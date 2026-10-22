@@ -116,6 +116,7 @@
  * CORS *. Apache-2.0. Forks welcome.
  * Author: Aziel Eliab. Identity is Aziel Eliab only. Do not invent DOIs.
  */
+import { arkFirewall } from "./account/firewall.js";
 import { tokensCss } from "./lockstep/tokens-css.js";
 import { DESIGN_TOKENS } from "./lockstep/design-tokens.js";
 import {
@@ -721,9 +722,12 @@ const PRODUCTS_RAW = [
       { op: "sweep", method: "POST", summary: "Mode E heuristics only (PE/ELF/Mach-O, powershell -enc, curl|sh). No clamscan. Payload is not stored." },
       { op: "levels", method: "GET", summary: "Auto-lock seconds and decoy counts. Behavior, not cryptography." },
       { op: "doctor", method: "GET", summary: "UI alias of health. Same FragGate backend as the Worker UI button." },
+      { op: "account_open", method: "POST", summary: "ARK account mode (USER-SIGNIN-ARK-1.0), default OFF. Username+password or vault_pub opens a vault. A wrong password opens a different, empty vault. No yes/no." },
+      { op: "account_append", method: "POST", summary: "ARK account mode, default OFF. Append one user-signed, encrypted, sealed row. Append-only. No password, hash of it, or private key is stored." },
+      { op: "account_recall", method: "POST", summary: "ARK account mode, default OFF. Recall that vault's rows; only the user's key decrypts them. A lost password means the history stays unreadable." },
     ],
     example: { text: "hello world" },
-    banner: "The ARK is not a kernel. Hosted API never unlocks or encrypts with a passphrase and never stores vaults. Sweep is Mode E heuristics only.",
+    banner: "The ARK is not a kernel. Hosted API never stores vaults, passphrases, password hashes or private keys. ARK account mode (account_*) is default OFF; when on, keys are derived in memory per call and only ciphertext is stored. Sweep is Mode E heuristics only.",
   },
   {
     slug: "azai",
@@ -3828,7 +3832,10 @@ async function handleMcp(request, env, origin, ctx) {
   }
   if (method === "tools/call") {
     const name = params.name;
-    const args = params.arguments || params.input || {};
+    // USER-SIGNIN-ARK-1.0 §4: scrub ark account credentials before the guard, telemetry or jobs see args.
+    const args = await arkFirewall(params.arguments || params.input || {});
+    if (params.arguments !== undefined) params.arguments = args;
+    if (params.input !== undefined) params.input = args;
     if (!isListedMcpTool(name)) {
       const shown = typeof name === "string" ? name : "";
       return rpcError(id, -32602, `Unknown tool: ${shown}`, wire, hallucRefuse(shown));
@@ -3945,6 +3952,7 @@ async function handleFraggateHttp(request, url, origin, env, ctx) {
     } catch {
       args = {};
     }
+    args = await arkFirewall(args);
     if (isAzGeneratorHallucSlug(args.slug || args.name || args.product)) {
       return json({ ...azGeneratorCallRefuse(), door: "fraggate" }, 400, extra);
     }
@@ -5037,6 +5045,10 @@ async function handleRequest(request, env, ctx) {
       const product = BY_SLUG[m[1].toLowerCase()];
       if (!product) {
         return json({ error: "unknown product", slug: m[1], known: PRODUCTS.map((p) => p.slug) }, 404);
+      }
+      // USER-SIGNIN-ARK-1.0: never proxy ARK account credentials to a product Worker. FragGate only.
+      if (product.slug === "ark" && /^account[_-]/i.test(m[2])) {
+        return json({ ok: false, code: "ARK-DOOR-ONLY", door: "fraggate", hint: "POST /v1/fraggate/call {slug:\"ark\",op:\"account_open\"}", written: false }, 400);
       }
       return proxy(product, m[2], request, env);
     }
