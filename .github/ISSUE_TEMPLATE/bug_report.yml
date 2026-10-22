@@ -1,0 +1,37 @@
+name: Bug report
+description: Something in aziel-runtime behaves wrongly (not a security issue; see SECURITY.md).
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Security vulnerabilities: do **not** file here. Use Security → Advisories → Report a vulnerability (see SECURITY.md).
+        Please don't include tokens, real names, emails or other personal data.
+  - type: input
+    id: where
+    attributes:
+      label: Route, tool or command
+      placeholder: e.g. POST /mcp tools/call fraggate_call, GET /v1/anchor/verify, npx aziel-runtime
+    validations:
+      required: true
+  - type: input
+    id: build
+    attributes:
+      label: Build
+      description: The git_sha / version from GET /v1/health (or the commit you ran locally).
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Minimal request or commands. Redact anything private.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected vs actual
+      description: Include the refusal or error code if one came back.
+    validations:
+      required: true
