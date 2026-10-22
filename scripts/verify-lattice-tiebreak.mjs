@@ -17,10 +17,18 @@ ok(v1 === raw, "tiebreak = H(canon{chain,prev,primary,secondary,username})");
 ok(canonicalize({ chain: "tiebreak", prev: Z, primary: "p", secondary: "s", username: "u" }) === '{"chain":"tiebreak","prev":"' + Z + '","primary":"p","secondary":"s","username":"u"}', "key order chain,prev,primary,secondary,username");
 console.log("vector tiebreak(prev=0, primary=b*64, secondary=off(a*64,aziel), aziel) =", v1);
 
-// Offline write -> pending; sync -> synced; primary/secondary rules unchanged
+// AZBot #327 MED: a plain offline write carries NO tiebreak block, so its stamp hash is unchanged.
 const rows = [];
 const a = await planLattice({ document_hash: D, offline: true, username: "aziel", rows });
-ok(a.tiebreak.status === "pending" && a.tiebreak.offline_secondary === a.secondary && a.secondary === off, "pending block");
+ok(!("tiebreak" in a) && a.secondary === off, "plain offline row has no tiebreak block");
+ok((await sha256Hex(canonicalize(a))) === "da4699ae6601623f928c1f41063e11812b5ca4fb7eb6f5bc33c13de8ef931f63", "offline lattice block hash pinned (pre-tiebreak value)");
+{
+  const { composeChainlockStamp } = await import("../src/chainlock/ops.js");
+  const st = await composeChainlockStamp({ id: "cl_x", t: "2026-01-01T00:00:00.000Z", fact: "f", offline: true, username: "aziel" }, { prev: Z, rows: [] });
+  ok(!("tiebreak" in st.lattice) && st.stamp_sha256 === "fb313787f0ee2edef54fb1748210d5132b52f4acc23df3160c365e8ea4621431", "offline stamp hash pinned (= main a4f8a17; draft ff7712f gave 215bf0b3)");
+  const st2 = await composeChainlockStamp({ id: "cl_x", t: "2026-01-01T00:00:00.000Z", fact: "f", offline: true, username: "aziel", sync: true }, { prev: Z, rows: [] });
+  ok(st2.stamp_sha256 === st.stamp_sha256, "sync flag on an offline row is ignored");
+}
 rows.push(row(a));
 const s = await planLattice({ document_hash: D, sync: true, username: "aziel", rows });
 ok(s.primary === (await latticePrimary(D, a.primary)) && s.secondary === (await latticeOnlineSecondary(s.primary, a.secondary)), "sync row primary/secondary rules unchanged");

@@ -64,8 +64,9 @@ export async function latticeOnlineSecondary(primary, secondaryPrev) {
  *   primary   = the online (sync) row's primary
  *   secondary = the user's offline row's secondary, H({primary: document_hash, username})
  *   prev      = previous tiebreak hash (all zeros at genesis)
- * An offline write records tiebreak {status:"pending", hash:null, prev:null, offline_secondary}.
- * A sync (online, sync:true, username) records {status:"synced", hash, prev, offline_secondary}.
+ * A plain offline write carries NO tiebreak block, so its stamp hashes exactly as before
+ * (AZBot #327 MED: the offline stamp must not move). Only a real sync (online, sync:true,
+ * username) records {status:"synced", hash, prev, offline_secondary}.
  * Unique index key: (username, document_hash). Repeat sync -> LATTICE-DOUBLE;
  * sync with no offline write -> LATTICE-SYNC-NO-OFFLINE.
  */
@@ -153,9 +154,7 @@ export async function planLattice({ document_hash, offline = false, username = n
     }
   }
   let tiebreak;
-  if (off) {
-    tiebreak = { status: "pending", hash: null, prev: null, offline_secondary: secondary };
-  } else if (sync === true) {
+  if (!off && sync === true) {
     const name = latticeUsername(true, username);
     const offSecondary = await latticeOfflineSecondary(document_hash, name);
     let found = false;
