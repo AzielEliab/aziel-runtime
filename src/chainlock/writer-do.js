@@ -507,10 +507,16 @@ export class ChainWriter {
   }
 }
 
-function memoryStorage(store) {
+/** TRI_STRICT (default on): yield on every storage call, like a real DO between input-gate turns. */
+const tick = () => Promise.resolve();
+function memoryStorage(store, strict = false) {
   return {
-    get: async (k) => (store.has(k) ? store.get(k) : undefined),
+    get: async (k) => {
+      if (strict) await tick();
+      return store.has(k) ? store.get(k) : undefined;
+    },
     put: async (k, v) => {
+      if (strict) await tick();
       store.set(k, v);
     },
     delete: async (k) => {
@@ -538,8 +544,19 @@ function serializeObject(obj) {
   };
 }
 
-/** In-memory Durable Object namespace for tests (same contract as CHAINLOCK). */
+/**
+ * In-memory Durable Object namespace for tests (same contract as CHAINLOCK).
+ * TRI-STRICT-1.0 (lattice plan step 10): by default fetch is NOT serialized and storage yields per
+ * call, so a missing per-writer queue shows up as a race (it was hidden before). Set
+ * TRI_STRICT=0 (env or process.env) to get the old serialized namespace.
+ */
+export function triStrict(env = {}) {
+  const v = env && env.TRI_STRICT != null ? env.TRI_STRICT : typeof process !== "undefined" && process.env ? process.env.TRI_STRICT : undefined;
+  return !(v === "0" || v === 0 || v === false || v === "false");
+}
+
 export function memoryChainWriterNamespace(env = {}, shared = new Map()) {
+  const strict = triStrict(env);
   const objects = new Map();
   function idFromName(name) {
     const key = String(name);
@@ -558,7 +575,8 @@ export function memoryChainWriterNamespace(env = {}, shared = new Map()) {
         store = new Map();
         shared.set(key, store);
       }
-      objects.set(key, serializeObject(new ChainWriter({ storage: memoryStorage(store) }, env)));
+      const obj = new ChainWriter({ storage: memoryStorage(store, strict) }, env);
+      objects.set(key, strict ? obj : serializeObject(obj));
     }
     return objects.get(key);
   }
