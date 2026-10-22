@@ -3,6 +3,7 @@
  * Does not replace Lamb Lens or DecisionGATE. FragGate stays the exec door.
  * Author: Aziel Eliab only.
  */
+import { scrubCredentialKeys } from "./account/firewall.js";
 
 export const MCP_CONFIRM_REQUIRED = "MCP-CONFIRM-REQUIRED";
 export const MCP_DRY_RUN = "MCP-DRY-RUN";
@@ -150,10 +151,10 @@ export function evaluateMutateSafeguard(name, args, opts = {}) {
         ? `fraggate_call op "${access.op || "(none)"}" is mutating: ${access.reason}. Retry with confirm=true to execute, or dry_run=true for a preview that does not write. Read-only ops (health, status, describe, verify, *preview, *feed, *list) need no confirm. ${CONFIRM_CONSENT_NOTE}`
         : `${name} is mutating. Set confirm=true to execute, or dry_run=true for a preview that does not write. ${CONFIRM_CONSENT_NOTE}`,
       hint: access
-        ? `Retry: fraggate_call ${JSON.stringify({ ...(args && typeof args === "object" ? args : {}), confirm: true })}`
+        ? `Retry: fraggate_call ${JSON.stringify({ ...scrubCredentialKeys(args && typeof args === "object" ? args : {}), confirm: true })}`
         : "confirm=true | dry_run=true",
       ...(access ? { op: access.op, op_mutating: true } : {}),
-      retry: { name, arguments: { ...(args && typeof args === "object" ? args : {}), confirm: true } },
+      retry: { name, arguments: { ...scrubCredentialKeys(args && typeof args === "object" ? args : {}), confirm: true } },
       ...confirmConsentHonesty(),
     },
   };
