@@ -6,7 +6,12 @@ const { HELPER_JS } = await import("../src/account/signin-helper.js");
 const { deriveArkAccount } = await import("../src/account/ark-kdf.js");
 let n = 0; const ok = (c, m) => { assert.ok(c, m); n++; };
 const m = new Map();
-const env = { ARK_ACCOUNTS: "on", USES: { get: async (k) => m.get(k) ?? null, put: async (k, v) => { m.set(k, v); } } };
+const uses = { get: async (k) => m.get(k) ?? null, put: async (k, v) => { m.set(k, v); } };
+// A store with the ChainWriter DO's atomic first-claim-wins docClaim (what CHAINLOCK provides in deploy); sessions need it.
+const { KvStore } = await import("../src/chainlock/store.js");
+const st = new KvStore(uses); const claims = new Set();
+st.docClaim = async (doc) => { await null; if (claims.has(doc)) return { ok: false, code: "LATTICE-DOUBLE" }; claims.add(doc); return { ok: true, fresh: true }; };
+const env = { ARK_ACCOUNTS: "on", USES: uses, __aziel_kvstore: st };
 const post = async (body) => (await (await handler(new Request("https://x/v1/fraggate/call", { method: "POST", headers: { "content-type": "application/json", "cf-connecting-ip": "203.0.113.9" }, body: JSON.stringify(body) }), env, { waitUntil() {} })).json()).result;
 const res = await handler(new Request("https://x/ark/signin"), env, { waitUntil() {} });
 const html = await res.text();

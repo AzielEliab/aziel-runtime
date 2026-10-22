@@ -14,8 +14,9 @@ function mkKv() {
 }
 const kv = mkKv();
 const env = { ARK_ACCOUNTS: "on", ARK_PLAINTEXT_DOOR: "deprecated-on", USES: kv }; // legacy hosted sections exercise the deprecated door
-let ip = 1;
-const post = (path, body, e = env) => handler(new Request("https://x" + path, { method: "POST", headers: { "content-type": "application/json", accept: "application/json, text/event-stream", "cf-connecting-ip": `198.51.100.${ip}` }, body: JSON.stringify(body) }), e, { waitUntil() {} });
+let ip = 1; // kept for sections that name a bucket; every request also gets a fresh address (flake fix:
+let ipc = 0; //  runtime-wide per-IP limiters on /v1/fraggate/call and /mcp can no longer trip mid-test)
+const post = (path, body, e = env) => { ipc++; return handler(new Request("https://x" + path, { method: "POST", headers: { "content-type": "application/json", accept: "application/json, text/event-stream", "cf-connecting-ip": `10.${ip % 250}.${Math.floor(ipc / 250) % 250}.${ipc % 250}` }, body: JSON.stringify(body) }), e, { waitUntil() {} }); };
 const call = async (body, e) => (await (await post("/v1/fraggate/call", { slug: "ark", ...body }, e)).json());
 const leaks = (s) => s.includes(U) || s.includes(P) || s.includes(P2);
 
@@ -62,9 +63,11 @@ ok(wr.result.ok && wr.result.rows.length === 0, "wrong password recalls nothing"
 // Stored rows verify (seq/prev/row_hash/dual lattice/user_sig) and carry no secret or username.
 const rows = [];
 for (let s = 1; s <= 2; s++) rows.push(JSON.parse(kv.m.get(`chainlock|ark:acct:${vid}:${s}`)));
-ok((await verifyArkRows(rows)).ok, "rows verify");
+const tip0 = JSON.parse(kv.m.get(`chainlock|ark:acct:${vid}:tip`));
+ok((await verifyArkRows(rows, tip0)).ok, "rows verify");
+ok((await verifyArkRows(rows)).why === "tip-required", "tip argument is required");
 const tampered = rows.map((x) => ({ ...x })); tampered[0].kind = "evil";
-ok(!(await verifyArkRows(tampered)).ok, "tamper detected");
+ok(!(await verifyArkRows(tampered, tip0)).ok, "tamper detected");
 ok(!leaks(JSON.stringify([...kv.m.entries()])), "no username/password anywhere in storage (ledger, session, refusals, rows)");
 
 // Device mode: client derives + signs locally; server sees pub, sig, ciphertext only.
@@ -80,7 +83,7 @@ const sig = await signBytes(dev.signKey, appendMessage(body));
 r = await call({ op: "account_append", payload: { vault_pub: dev.pub, seq: 1, prev: body.prev, kind: "note", ct_b64: ct, ct_sha256, ts, user_sig: sig } });
 ok(r.result.written && r.result.row.user_sig === sig, "device append");
 r = await call({ op: "account_append", payload: { vault_pub: dev.pub, seq: 1, prev: body.prev, kind: "note", ct_b64: ct, ct_sha256, ts, user_sig: sig } });
-ok(r.result.code === "ARK-STALE" && r.result.written === false, "replay/append-only refused");
+ok(r.result.code === "ARK-STALE" && r.result.written === false, "replay/append-only refused " + JSON.stringify(r.result));
 const other2 = await deriveArkAccount("devuser2", "device-only-pass");
 const forged = await signBytes(other2.signKey, appendMessage({ ...body, seq: 2, prev: "f".repeat(64) }));
 r = await call({ op: "account_append", payload: { vault_pub: dev.pub, seq: 2, prev: JSON.parse(kv.m.get(`chainlock|ark:acct:${dev.vault_id}:tip`)).row_hash, kind: "note", ct_b64: ct, ct_sha256, ts, user_sig: forged } });
@@ -101,7 +104,13 @@ ok(!leaks(JSON.stringify([...kv.m.entries()])), "still no secret in storage afte
 // Rate limit per subject: identical for any password, so lockout reveals nothing.
 const rlKv = mkKv(); const rlEnv = { ARK_ACCOUNTS: "on", ARK_PLAINTEXT_DOOR: "deprecated-on", USES: rlKv };
 let last;
-for (let i = 0; i <= RL_PER_SUBJECT; i++) { ip = 10 + (i % 5); last = await call({ op: "account_open", username: "rluser", password: i % 2 ? "rl-pass-aaaa" : "rl-pass-bbbb" }, rlEnv); }
+// Fixed clock: the hosted subject is window-salted, so a real clock crossing a window mid-loop was a flake.
+const T0 = 1_800_000_000_000;
+for (let i = 0; i <= RL_PER_SUBJECT; i++) {
+  const h = await arkFirewall({ slug: "ark", op: "account_open", username: "rluser", password: i % 2 ? "rl-pass-aaaa" : "rl-pass-bbbb" });
+  const rq = new Request("https://x/", { headers: { "cf-connecting-ip": `10.9.${i % 250}.${i % 7}` } });
+  last = { result: await runArkAccountOp("account_open", {}, rlEnv, rq, null, { handle: h, credential_mode: "hosted" }, T0) };
+}
 ok(last.result.code === "ARK-RATE", "subject rate limit");
 ok(!leaks(JSON.stringify([...rlKv.m.entries()])) && ![...rlKv.m.values()].join().includes("rl-pass"), "rate store has no secret");
 
@@ -122,25 +131,49 @@ console.log(`verify-ark-account: ${n} checks ok`);
 }
 // USER-SIGNIN-ARK-1.0 §10: challenge → signed session. The LLM/MCP client sees only vault_pub, nonce, sig, session.
 {
-  const { sessionMessage } = await import("../src/account/ops.js");
+  const { sessionMessage, CHALLENGE_TTL_MS } = await import("../src/account/ops.js");
+  const { KvStore } = await import("../src/chainlock/store.js");
   let c = 0; const k = (x, m) => { assert.ok(x, m); c++; };
-  const e2 = { ARK_ACCOUNTS: "on", USES: mkKv() };
+  // A store with the ChainWriter DO's atomic first-claim-wins docClaim (what CHAINLOCK provides in deploy).
+  const withClaim = (uses) => {
+    const st = new KvStore(uses); const claims = new Map();
+    st.docClaim = async (doc) => { await null; if (claims.has(doc)) return { ok: false, code: "LATTICE-DOUBLE" }; claims.set(doc, 1); return { ok: true, fresh: true }; };
+    return { ARK_ACCOUNTS: "on", USES: uses, __aziel_kvstore: st };
+  };
+  const e2 = withClaim(mkKv());
   const me = await deriveArkAccount("sessuser1", "sess-pass-1234");
+  const sign = async (who, n) => signBytes(who.signKey, sessionMessage(who.vault_id, n));
+  const arkKeys = (e) => [...e.USES.m.keys()].filter((x) => x.includes("ark:")).length;
+  const puts0 = arkKeys(e2);
   let r = await call({ op: "account_challenge", payload: { vault_pub: me.pub } }, e2);
   k(r.result.code === "ARK-OK" && /^[0-9a-f]{64}$/.test(r.result.nonce), "challenge issued");
+  k(arkKeys(e2) === puts0, "challenge writes no ark KV keys (no nonce row, no rate counter)");
   const nonce = r.result.nonce;
   r = await call({ op: "account_session", payload: { vault_pub: me.pub, nonce, user_sig: "00".repeat(64) } }, e2);
-  k(r.result.code === "ARK-SIG-BAD", "bad sig refused " + JSON.stringify(r).slice(0,300));
-  r = await call({ op: "account_session", payload: { vault_pub: me.pub, nonce, user_sig: await signBytes(me.signKey, sessionMessage(me.vault_id, nonce)) } }, e2);
-  k(r.result.code === "ARK-STALE", "nonce single-use even after a failed try");
-  const n2 = (await call({ op: "account_challenge", payload: { vault_pub: me.pub } }, e2)).result.nonce;
-  const other = await deriveArkAccount("sessuser2", "sess-pass-1234");
-  r = await call({ op: "account_session", payload: { vault_pub: other.pub, nonce: n2, user_sig: await signBytes(other.signKey, sessionMessage(other.vault_id, n2)) } }, e2);
-  k(r.result.code === "ARK-STALE", "nonce bound to its vault");
-  const n3 = (await call({ op: "account_challenge", payload: { vault_pub: me.pub } }, e2)).result.nonce;
-  r = await call({ op: "account_session", payload: { vault_pub: me.pub, nonce: n3, user_sig: await signBytes(me.signKey, sessionMessage(me.vault_id, n3)) } }, e2);
+  k(r.result.code === "ARK-SIG-BAD", "bad sig refused");
+  k(![...e2.USES.m.keys()].some((x) => x.includes("ark:rl:s:")), "forged signature never touches the vault counter");
+  r = await call({ op: "account_session", payload: { vault_pub: me.pub, nonce, user_sig: await sign(me, nonce) } }, e2);
   k(r.result.code === "ARK-OK" && /^[0-9a-f]{64}$/.test(r.result.session) && r.result.count === 0, "session opens");
   const tok = r.result.session;
+  r = await call({ op: "account_session", payload: { vault_pub: me.pub, nonce, user_sig: await sign(me, nonce) } }, e2);
+  k(r.result.code === "ARK-STALE", "nonce is single use");
+  // Concurrent spends of one nonce (as if from several data centers): exactly one wins.
+  const nc = (await call({ op: "account_challenge", payload: { vault_pub: me.pub } }, e2)).result.nonce;
+  const sigc = await sign(me, nc);
+  const many = await Promise.all([...Array(6)].map(() => call({ op: "account_session", payload: { vault_pub: me.pub, nonce: nc, user_sig: sigc } }, e2)));
+  k(many.filter((x) => x.result.code === "ARK-OK").length === 1, "concurrent spends: exactly one session");
+  // Expired and future nonces.
+  const old = (Date.now() - CHALLENGE_TTL_MS - 1000).toString(16).padStart(16, "0") + "ab".repeat(24);
+  r = await call({ op: "account_session", payload: { vault_pub: me.pub, nonce: old, user_sig: await sign(me, old) } }, e2);
+  k(r.result.code === "ARK-STALE", "expired nonce refused");
+  const fut = (Date.now() + 60 * 60 * 1000).toString(16).padStart(16, "0") + "cd".repeat(24);
+  r = await call({ op: "account_session", payload: { vault_pub: me.pub, nonce: fut, user_sig: await sign(me, fut) } }, e2);
+  k(r.result.code === "ARK-STALE", "future nonce refused");
+  // Strict: KV-only store has no atomic claim, so sessions refuse instead of risking a cross-DC replay.
+  const kvOnly = { ARK_ACCOUNTS: "on", USES: mkKv() };
+  const nk = (await call({ op: "account_challenge", payload: { vault_pub: me.pub } }, kvOnly)).result.nonce;
+  r = await call({ op: "account_session", payload: { vault_pub: me.pub, nonce: nk, user_sig: await sign(me, nk) } }, kvOnly);
+  k(r.result.code === "ARK-STORE-OFF", "KV-only store refuses sessions (no cross-DC single use)");
   r = await call({ op: "account_recall", payload: { session: tok } }, e2);
   k(r.result.code === "ARK-OK" && r.result.rows.length === 0, "session recall");
   r = await call({ op: "account_recall", payload: { session: "ab".repeat(32) } }, e2);
@@ -149,7 +182,7 @@ console.log(`verify-ark-account: ${n} checks ok`);
   // Wrong password: a different key, its own valid signature, same response shape, empty vault.
   const wrong = await deriveArkAccount("sessuser1", "sess-pass-WRONG");
   const n4 = (await call({ op: "account_challenge", payload: { vault_pub: wrong.pub } }, e2)).result.nonce;
-  const w = await call({ op: "account_session", payload: { vault_pub: wrong.pub, nonce: n4, user_sig: await signBytes(wrong.signKey, sessionMessage(wrong.vault_id, n4)) } }, e2);
+  const w = await call({ op: "account_session", payload: { vault_pub: wrong.pub, nonce: n4, user_sig: await sign(wrong, n4) } }, e2);
   k(w.result.code === "ARK-OK" && w.result.count === 0 && w.result.vault_id !== me.vault_id, "wrong password → empty vault, no oracle");
   r = await call({ op: "account_challenge", payload: { vault_pub: me.pub } }, { USES: mkKv() });
   k(r.result.code === "ARK-ACCOUNTS-OFF", "challenge default OFF");
@@ -169,10 +202,21 @@ console.log(`verify-ark-account: ${n} checks ok`);
   ip = 90;
   const m = await (await post("/mcp", { jsonrpc: "2.0", id: 9, method: "tools/call", params: { name: "fraggate_call", arguments: { name: "ark_account_append", Password: P, username: U, payload: { data: "x" } } } }, e3)).text();
   k(!leaks(m), "MCP confirm retry hint carries no password");
-  // Flag OFF: no PBKDF2 at all (timed: derive ≈ 100k iters; off path must be fast).
-  const t0 = Date.now();
-  for (let i = 0; i < 5; i++) await call({ op: "account_open", username: U, password: P }, { USES: mkKv() });
-  k(Date.now() - t0 < 400, "flag off refuses before key derivation");
+  // Flag OFF / rate-limited: no PBKDF2 at all. Deterministic (no wall-clock timing): the handle's raw
+  // credentials are still pending and no keys were ever derived.
+  {
+    const h = await arkFirewall({ slug: "ark", op: "account_open", username: U, password: P });
+    const off = await runArkAccountOp("account_open", {}, { USES: mkKv() }, null, null, { handle: h, credential_mode: "hosted" });
+    k(off.code === "ARK-ACCOUNTS-OFF" && arkCredsFor(h) && !arkKeysFor(h), "flag off refuses before key derivation");
+    const full = mkKv(); const fenv = { ARK_ACCOUNTS: "on", ARK_PLAINTEXT_DOOR: "deprecated-on", USES: full };
+    const h2 = await arkFirewall({ slug: "ark", op: "account_open", username: U, password: P });
+    const T = 1_800_000_000_000, w = Math.floor(T / 1000 / 900);
+    const { RL_PER_PREFIX } = await import("../src/account/ops.js");
+    const pre = hex(await sha256("ARK-ACCOUNT:v1:ip|local"));
+    full.m.set(`chainlock|ark:rl:p:${pre}:${w}`, String(RL_PER_PREFIX));
+    const rl = await runArkAccountOp("account_open", {}, fenv, null, null, { handle: h2, credential_mode: "hosted" }, T);
+    k(rl.code === "ARK-RATE" && arkCredsFor(h2) && !arkKeysFor(h2), "rate limit refuses before key derivation");
+  }
   // Rate limit before derive: exhausted subject refuses without deriving.
   const { RL_PER_SUBJECT: L } = await import("../src/account/ops.js");
   k(L === 100, "lockout eased to 100/15min");
@@ -192,15 +236,37 @@ console.log(`verify-ark-account: ${n} checks ok`);
   console.log(`verify-ark-account: azbot-333 ${c} checks ok`);
 }
 
+// AZBot round 2: separator variants; vault counter only after a valid signature.
+{
+  let c = 0; const k = (x, m) => { assert.ok(x, m); c++; };
+  for (const key of ["pass_word", "pass-word", "passWord", "PASS WORD", "user-name", "userName", "Pass_Phrase"]) {
+    const f = await arkFirewall({ slug: "ark", op: "account_open", [key]: "SECRET-r2-" + key });
+    k(!JSON.stringify(f).includes("SECRET-r2"), "variant scrubbed: " + key);
+  }
+  const e5 = { ARK_ACCOUNTS: "on", ARK_PLAINTEXT_DOOR: "deprecated-on", USES: mkKv() };
+  const v = await deriveArkAccount("r2vaultuser", "r2-vault-pass");
+  const { RL_PER_SUBJECT: L } = await import("../src/account/ops.js");
+  let r;
+  for (let i = 0; i < L + 5; i++) {
+    const ts2 = Date.now();
+    r = await call({ op: "account_recall", payload: { vault_pub: v.pub, ts: ts2, user_sig: "00".repeat(64) } }, e5);
+  }
+  k(r.result.code === "ARK-SIG-BAD", "unsigned flood never reaches the vault counter");
+  const ts3 = Date.now();
+  r = await call({ op: "account_recall", payload: { vault_pub: v.pub, ts: ts3, user_sig: await signBytes(v.signKey, recallMessage(v.vault_id, ts3)) } }, e5);
+  k(r.result.code === "ARK-OK", "owner not locked out by forged-signature flood");
+  console.log(`verify-ark-account: azbot-r2 ${c} checks ok`);
+}
+
 // §12.2: plaintext door refused by default; firewall still scrubs; nothing derived or stored.
 {
   let c = 0; const k = (x, m) => { assert.ok(x, m); c++; };
   const e4 = { ARK_ACCOUNTS: "on", USES: mkKv() };
-  ip = 120;
   for (const op of ["account_open", "account_append", "account_recall", "account_session"]) {
-    const t0 = Date.now();
+    const before = [...e4.USES.m.keys()].filter((x) => x.includes("ark:")).length;
     const r = await call({ op, username: U, password: P, payload: { data: "x" } }, e4);
-    k(r.result.code === "ARK-PLAINTEXT-REFUSED" && r.result.written === false && Date.now() - t0 < 300, "plaintext refused fast: " + op);
+    k(r.result.code === "ARK-PLAINTEXT-REFUSED" && r.result.written === false, "plaintext refused: " + op);
+    k([...e4.USES.m.keys()].filter((x) => x.includes("ark:")).length === before, "refused plaintext writes no ark KV key (no rate counter): " + op);
   }
   k(![...e4.USES.m.keys()].some((x) => x.includes("ark:acct:")) && !leaks(JSON.stringify([...e4.USES.m.entries()])), "nothing stored, no secret");
   const m = await (await post("/mcp", { jsonrpc: "2.0", id: 5, method: "tools/call", params: { name: "fraggate_call", arguments: { slug: "ark", op: "account_open", Password: P, username: U, confirm: true } } }, e4)).text();
@@ -208,4 +274,31 @@ console.log(`verify-ark-account: ${n} checks ok`);
   const wt = (await import("node:fs")).readFileSync(new URL("../wrangler.toml", import.meta.url), "utf8");
   k(!wt.includes("ARK_PLAINTEXT_DOOR"), "deprecated door not configured in wrangler.toml");
   console.log(`verify-ark-account: plaintext-refused ${c} checks ok`);
+}
+
+// Flake root cause (verify-ark-account:81): SweepGate's "MZ" mark matched random ciphertext. Opaque base64 now
+// passes; the same marks in any other field (or non-base64 ct_b64) are still isolated.
+{
+  let c = 0; const k = (x, m) => { assert.ok(x, m); c++; };
+  const e6 = { ARK_ACCOUNTS: "on", ARK_PLAINTEXT_DOOR: "deprecated-on", USES: mkKv() };
+  const d6 = await deriveArkAccount("sweepuser", "sweep-pass-123");
+  const mk = async (ct, extra = {}) => {
+    const sha = hex(await sha256(ct)); const t = Date.now();
+    const tipRaw = e6.USES.m.get(`chainlock|ark:acct:${d6.vault_id}:tip`);
+    const tp = tipRaw ? JSON.parse(tipRaw) : { seq: 0, row_hash: "0".repeat(64) };
+    const b = { spec: "ARK-ACCOUNT-1.0", vault_id: d6.vault_id, seq: tp.seq + 1, prev: tp.row_hash, kind: "note", ct_sha256: sha, ts: t };
+    return call({ op: "account_append", payload: { vault_pub: d6.pub, seq: b.seq, prev: b.prev, kind: "note", ct_b64: ct, ct_sha256: sha, ts: t, user_sig: await signBytes(d6.signKey, appendMessage(b)), ...extra } }, e6);
+  };
+  let r = await mk("AAAAMZAAAATVpAAAAAAAAAAA");
+  k(r.result && r.result.written, "base64 ciphertext containing MZ / TVp marks is admitted");
+  r = await mk("<script>eval(1)</script>");
+  k(r.code === "FG-SWEEP-ISOLATE", "non-base64 ct_b64 is still swept");
+  r = await mk("AAAA", { note: "MZ meterpreter" });
+  k(r.code === "FG-SWEEP-ISOLATE", "other fields still swept");
+  for (let i = 0; i < 40; i++) { const ct = await sealData(d6.encKey, d6.vault_id, 99, "n" + i); r = await mk(ct); if (!r.result || !r.result.written) break; }
+  k(r.result && r.result.written, "40 random-ciphertext appends all admitted");
+  const rt = Date.now();
+  r = await call({ op: "account_recall", payload: { vault_pub: d6.pub, ts: rt, limit: 50, user_sig: await signBytes(d6.signKey, recallMessage(d6.vault_id, rt)) } }, e6);
+  k(r.result && r.result.rows.length > 1 && r.result.rows.some((x) => x.ct_b64.includes("MZ")), "recall returns real ciphertext incl. an MZ-marked row (outbound sweep stand-in)");
+  console.log(`verify-ark-account: sweep-opaque ${c} checks ok`);
 }
