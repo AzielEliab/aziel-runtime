@@ -84,6 +84,7 @@ ok(cv.ok && cv.tiebreak.synced_rows === 48, "concurrent chain verifies");
   await put({ fact: "doc1", offline: true, username: "zz" });
   const sy = await put({ fact: "doc1", sync: "true", username: "zz" });
   ok(sy.lattice.tiebreak.status === "synced" && sy.lattice.tiebreak.prev === Z, "writer-path sync writes synced block");
+  await assert.rejects(put({ fact: "doc1", sync: true, username: "zz" }), (e) => e.code === "LATTICE-DOUBLE"); checks++;
   await assert.rejects(put({ fact: "doc2", sync: true, username: "zz" }), (e) => e.code === "LATTICE-SYNC-NO-OFFLINE"); checks++;
   const plain = await put({ fact: "doc3" });
   ok(!("tiebreak" in plain.lattice), "plain online row has no tiebreak block");
@@ -98,6 +99,10 @@ ok(cv.ok && cv.tiebreak.synced_rows === 48, "concurrent chain verifies");
   ok(o.ok !== false && !(o.stamp && o.stamp.lattice && o.stamp.lattice.tiebreak), "e2e offline append: no tiebreak block");
   const y = await append(new DurableStore(ns), { c: "session", fact: "e2e doc", sync: true, username: "e2e" });
   ok(y.ok !== false && y.stamp && y.stamp.lattice.tiebreak && y.stamp.lattice.tiebreak.status === "synced", "e2e sync append writes synced block");
-  globalThis.__tbNs = ns;
+  // Step C: the writer's stored (username, document_hash) index refuses a repeat sync, across a fresh handle.
+  const y2 = await append(new DurableStore(ns), { c: "session", fact: "e2e doc", sync: true, username: "e2e" });
+  ok(y2.ok === false && y2.code === "LATTICE-DOUBLE", "e2e repeat sync -> LATTICE-DOUBLE from writer index");
+  const n = await append(new DurableStore(ns), { c: "session", fact: "e2e other", sync: true, username: "e2e" });
+  ok(n.ok === false && n.code === "LATTICE-SYNC-NO-OFFLINE", "e2e sync with no offline write refused");
 }
 console.log(`verify-lattice-tiebreak: ${checks} checks pass`);

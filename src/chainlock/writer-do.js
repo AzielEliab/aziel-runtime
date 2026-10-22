@@ -8,7 +8,16 @@
 import { composeLedgerEntry } from "../fraggate/ledger.js";
 import { CARD_CAP, CL_VERSION, GENESIS, cardBytes, composeChainlockStamp, latticeRefuse, toCard } from "./ops.js";
 import { tipOf } from "./store.js";
-import { LatticeError, latticeTips, tiebreakTip } from "../dual-lattice.js";
+import { LatticeError, latticeTips, tiebreakIndexKey, tiebreakTip } from "../dual-lattice.js";
+
+/** Username behind a synced row: the input username (kept on the stamp input) or the matching offline row. */
+function tbUser(lat, rows = null) {
+  for (const row of rows || []) {
+    const o = row && row.lattice;
+    if (o && o.offline === true && o.secondary === lat.tiebreak.offline_secondary) return o.username;
+  }
+  return "";
+}
 
 function offlineSecondaries(rows) {
   const out = [];
@@ -212,8 +221,9 @@ export class ChainWriter {
           rows: legacyRows,
           latticeTips: tips,
           hasOffline: async (secondary) => Boolean(await this._get("off:" + secondary)),
-          // LATTICE-TIEBREAK-1.0: tiebreak tip in meta.tb.
+          // LATTICE-TIEBREAK-1.0: tiebreak tip in meta.tb, unique (username, document_hash) index in tb:<key>.
           tiebreakPrev: meta.tb || (legacyRows ? tiebreakTip(legacyRows) : null),
+          hasSynced: async (key) => Boolean(await this._get("tb:" + key)),
         });
       } catch (err) {
         if (err instanceof LatticeError) {
@@ -245,6 +255,7 @@ export class ChainWriter {
     }
     const tb = record && record.lattice && record.lattice.tiebreak;
     if (tb && tb.status === "synced") {
+      await this._put("tb:" + tiebreakIndexKey(String((src.input && (src.input.username || src.input.user)) || "").trim(), record.lattice.document_hash), nextSeq);
       nextMeta.tb = tb.hash;
     } else if (meta.tb) {
       nextMeta.tb = meta.tb;
@@ -412,6 +423,10 @@ export class ChainWriter {
     for (const secondary of offlineSecondaries(rows)) await this._put("off:" + secondary, 1);
     const tbTip = tiebreakTip(rows);
     if (tbTip !== "0".repeat(64)) meta.tb = tbTip;
+    for (const row of rows) {
+      const lat = row && row.lattice;
+      if (lat && lat.tiebreak && lat.tiebreak.status === "synced") await this._put("tb:" + tiebreakIndexKey(tbUser(lat, rows), lat.document_hash), 1);
+    }
     await this._put("meta", meta);
     return { ok: true, n: rows.length };
   }
