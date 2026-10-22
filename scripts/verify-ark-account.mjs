@@ -131,25 +131,49 @@ console.log(`verify-ark-account: ${n} checks ok`);
 }
 // USER-SIGNIN-ARK-1.0 §10: challenge → signed session. The LLM/MCP client sees only vault_pub, nonce, sig, session.
 {
-  const { sessionMessage } = await import("../src/account/ops.js");
+  const { sessionMessage, CHALLENGE_TTL_MS } = await import("../src/account/ops.js");
+  const { KvStore } = await import("../src/chainlock/store.js");
   let c = 0; const k = (x, m) => { assert.ok(x, m); c++; };
-  const e2 = { ARK_ACCOUNTS: "on", USES: mkKv() };
+  // A store with the ChainWriter DO's atomic first-claim-wins docClaim (what CHAINLOCK provides in deploy).
+  const withClaim = (uses) => {
+    const st = new KvStore(uses); const claims = new Map();
+    st.docClaim = async (doc) => { await null; if (claims.has(doc)) return { ok: false, code: "LATTICE-DOUBLE" }; claims.set(doc, 1); return { ok: true, fresh: true }; };
+    return { ARK_ACCOUNTS: "on", USES: uses, __aziel_kvstore: st };
+  };
+  const e2 = withClaim(mkKv());
   const me = await deriveArkAccount("sessuser1", "sess-pass-1234");
+  const sign = async (who, n) => signBytes(who.signKey, sessionMessage(who.vault_id, n));
+  const arkKeys = (e) => [...e.USES.m.keys()].filter((x) => x.includes("ark:")).length;
+  const puts0 = arkKeys(e2);
   let r = await call({ op: "account_challenge", payload: { vault_pub: me.pub } }, e2);
   k(r.result.code === "ARK-OK" && /^[0-9a-f]{64}$/.test(r.result.nonce), "challenge issued");
+  k(arkKeys(e2) === puts0, "challenge writes no ark KV keys (no nonce row, no rate counter)");
   const nonce = r.result.nonce;
   r = await call({ op: "account_session", payload: { vault_pub: me.pub, nonce, user_sig: "00".repeat(64) } }, e2);
-  k(r.result.code === "ARK-SIG-BAD", "bad sig refused " + JSON.stringify(r).slice(0,300));
-  r = await call({ op: "account_session", payload: { vault_pub: me.pub, nonce, user_sig: await signBytes(me.signKey, sessionMessage(me.vault_id, nonce)) } }, e2);
-  k(r.result.code === "ARK-STALE", "nonce single-use even after a failed try");
-  const n2 = (await call({ op: "account_challenge", payload: { vault_pub: me.pub } }, e2)).result.nonce;
-  const other = await deriveArkAccount("sessuser2", "sess-pass-1234");
-  r = await call({ op: "account_session", payload: { vault_pub: other.pub, nonce: n2, user_sig: await signBytes(other.signKey, sessionMessage(other.vault_id, n2)) } }, e2);
-  k(r.result.code === "ARK-STALE", "nonce bound to its vault");
-  const n3 = (await call({ op: "account_challenge", payload: { vault_pub: me.pub } }, e2)).result.nonce;
-  r = await call({ op: "account_session", payload: { vault_pub: me.pub, nonce: n3, user_sig: await signBytes(me.signKey, sessionMessage(me.vault_id, n3)) } }, e2);
+  k(r.result.code === "ARK-SIG-BAD", "bad sig refused");
+  k(![...e2.USES.m.keys()].some((x) => x.includes("ark:rl:s:")), "forged signature never touches the vault counter");
+  r = await call({ op: "account_session", payload: { vault_pub: me.pub, nonce, user_sig: await sign(me, nonce) } }, e2);
   k(r.result.code === "ARK-OK" && /^[0-9a-f]{64}$/.test(r.result.session) && r.result.count === 0, "session opens");
   const tok = r.result.session;
+  r = await call({ op: "account_session", payload: { vault_pub: me.pub, nonce, user_sig: await sign(me, nonce) } }, e2);
+  k(r.result.code === "ARK-STALE", "nonce is single use");
+  // Concurrent spends of one nonce (as if from several data centers): exactly one wins.
+  const nc = (await call({ op: "account_challenge", payload: { vault_pub: me.pub } }, e2)).result.nonce;
+  const sigc = await sign(me, nc);
+  const many = await Promise.all([...Array(6)].map(() => call({ op: "account_session", payload: { vault_pub: me.pub, nonce: nc, user_sig: sigc } }, e2)));
+  k(many.filter((x) => x.result.code === "ARK-OK").length === 1, "concurrent spends: exactly one session");
+  // Expired and future nonces.
+  const old = (Date.now() - CHALLENGE_TTL_MS - 1000).toString(16).padStart(16, "0") + "ab".repeat(24);
+  r = await call({ op: "account_session", payload: { vault_pub: me.pub, nonce: old, user_sig: await sign(me, old) } }, e2);
+  k(r.result.code === "ARK-STALE", "expired nonce refused");
+  const fut = (Date.now() + 60 * 60 * 1000).toString(16).padStart(16, "0") + "cd".repeat(24);
+  r = await call({ op: "account_session", payload: { vault_pub: me.pub, nonce: fut, user_sig: await sign(me, fut) } }, e2);
+  k(r.result.code === "ARK-STALE", "future nonce refused");
+  // Strict: KV-only store has no atomic claim, so sessions refuse instead of risking a cross-DC replay.
+  const kvOnly = { ARK_ACCOUNTS: "on", USES: mkKv() };
+  const nk = (await call({ op: "account_challenge", payload: { vault_pub: me.pub } }, kvOnly)).result.nonce;
+  r = await call({ op: "account_session", payload: { vault_pub: me.pub, nonce: nk, user_sig: await sign(me, nk) } }, kvOnly);
+  k(r.result.code === "ARK-STORE-OFF", "KV-only store refuses sessions (no cross-DC single use)");
   r = await call({ op: "account_recall", payload: { session: tok } }, e2);
   k(r.result.code === "ARK-OK" && r.result.rows.length === 0, "session recall");
   r = await call({ op: "account_recall", payload: { session: "ab".repeat(32) } }, e2);
@@ -158,7 +182,7 @@ console.log(`verify-ark-account: ${n} checks ok`);
   // Wrong password: a different key, its own valid signature, same response shape, empty vault.
   const wrong = await deriveArkAccount("sessuser1", "sess-pass-WRONG");
   const n4 = (await call({ op: "account_challenge", payload: { vault_pub: wrong.pub } }, e2)).result.nonce;
-  const w = await call({ op: "account_session", payload: { vault_pub: wrong.pub, nonce: n4, user_sig: await signBytes(wrong.signKey, sessionMessage(wrong.vault_id, n4)) } }, e2);
+  const w = await call({ op: "account_session", payload: { vault_pub: wrong.pub, nonce: n4, user_sig: await sign(wrong, n4) } }, e2);
   k(w.result.code === "ARK-OK" && w.result.count === 0 && w.result.vault_id !== me.vault_id, "wrong password → empty vault, no oracle");
   r = await call({ op: "account_challenge", payload: { vault_pub: me.pub } }, { USES: mkKv() });
   k(r.result.code === "ARK-ACCOUNTS-OFF", "challenge default OFF");
