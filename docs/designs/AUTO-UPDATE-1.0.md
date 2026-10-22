@@ -53,8 +53,12 @@ workflow signs only non-prerelease, non-draft releases, always as `stable`; prer
 
 Other hardening: node state `installed_seq`/`floor_seq` must be safe non-negative integers (else
 `UPDATE-STATE`; no 32-bit wrap); `artifact.name` must match `^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$` with no
-`..`; when a node records `last_manifest_hash`, `prev_manifest_hash` must equal it (`UPDATE-CHAIN`).
-Pause is re-checked before stage and before commit (a late pause rolls back; floor unchanged).
+`..`, no trailing dot, and no Windows reserved device name (CON, PRN, AUX, NUL, COM1-9, LPT1-9, with or
+without extension); both seqs missing is `UPDATE-STATE` (no implicit floor 0); raw manifest JSON with
+non-integer numbers (`5.0`, `1e0`) is refused in JS and Python alike. `prev_manifest_hash` is
+informational only (no chain check: a node that skipped releases must still be able to catch up).
+Pause is re-checked before stage and before commit (a late pause rolls back; floor unchanged). If a
+rollback itself fails, the receipt says `rollback_failed` and the node stays paused.
 
 ## Key custody (Aziel, 2026-10-22)
 - **Holder:** the GitHub Actions secret `AUTO_UPDATE_SIGNING_KEY` on `AzielEliab/aziel-runtime` only.
@@ -62,9 +66,21 @@ Pause is re-checked before stage and before commit (a late pause rolls back; flo
   shredded; never printed, logged or committed. No copy exists outside the secret.
 - **Pinned public key:** `_3mc9CfQWexUWcyqDadNoQLjb6fFFPRv_XfWirwuH9s` (raw Ed25519, base64url),
   fingerprint `sha256(raw) = 822b409723b81a0dc3fe3f132a2cb95b72b1ec2b2b16c055c526b627132a4ce8`.
-- **Signing:** `.github/workflows/auto-update-release.yml` runs on `release: published`, fails closed
-  if the secret is missing, refuses prereleases, self-verifies the signature against the pinned key
-  before attaching `auto-update-manifest.json` + the artifact to the release.
+- **Signing:** `ci/auto-update-release.yml` (inert until moved to `.github/workflows/`) runs on
+  `release: published`, skips prereleases/drafts, refuses unless the tagged commit is an ancestor of
+  `origin/main`, builds the artifact from the tag in a job **without** the secret, then signs in a job
+  bound to `environment: release` using the signer from a separate checkout of **main**. VERSION_SEQ =
+  `git rev-list --count --first-parent <tag sha>` after the ancestor check. Refuses if the release
+  already has `auto-update-manifest.json` (no clobber). All actions pinned by commit SHA.
+- **Setup Aziel does (agents do not change repo settings):**
+  1. Settings → Environments → New environment `release`.
+  2. Required reviewers: add `AzielEliab`; Deployment branches and tags: "Selected" → tag rule `v*`.
+  3. Environment secrets → add `AUTO_UPDATE_SIGNING_KEY`. The key's only copy is the current repo
+     secret and cannot be read back, so "moving" it means: generate a new key in the environment,
+     pin it via a key-rotation update, or (simplest now, before any release) have an agent regenerate,
+     re-pin #338, set it as the environment secret (`gh secret set AUTO_UPDATE_SIGNING_KEY --env release`),
+     then delete the repo-level secret (`gh secret delete AUTO_UPDATE_SIGNING_KEY`).
+  4. Move `ci/auto-update-release.yml` to `.github/workflows/` with a `workflow`-scoped token.
 - **Rotation:** ship a new pinned key inside an update signed by the **old** key; nodes accept the new
   key only via that verified update. Then replace the secret and retire the old key.
 - **Compromise residual:** anyone who can run a workflow with repo write access (or who steals the
