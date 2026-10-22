@@ -557,7 +557,7 @@ function newUserHintsHtml_() { return ""; }
 
     // The exact join test line from the generated install.sh, run with JOIN_OUT set and one awk on PATH.
     const script = onboard.installScript(onboard.installPlan({ origin: "http://127.0.0.1:9", slug: "aziel-runtime", version: "1.0.0", products: [{ slug: "aziel-runtime" }] }));
-    const line = script.split("\n").find((l) => l.startsWith(`if [ "$(printf '%s' "$JOIN_OUT" | awk `));
+    const line = (script.match(/^if \[ "\$\(printf '%s' "\$JOIN_OUT" \| awk '[^']*' 2>\/dev\/null\)" = MESH-OK \]; then .*; fi$/m) || [])[0];
     assert.ok(line, "join test line present");
     const joinedVia = (awk, input) => {
       if (Buffer.byteLength(input) > 100000) {
