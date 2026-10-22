@@ -29,6 +29,8 @@ import { arch, LOCKED_STRIP, pipeInbound, pipeOutbound, thinPipe } from "../azpi
 import { attachAttemptEnvelope, normalizeAttemptLink } from "../receipt-attempt.js";
 import { MEMORY_SLUG, runMemoryOp } from "../memory.js";
 import { MESH_SLUG, runMeshOp } from "../mesh.js";
+import { arkFirewall, arkKeysFor } from "../account/firewall.js";
+import { ARK_ACCOUNT_OPS, runArkAccountOp } from "../account/ops.js";
 import { azGeneratorCallRefuse, isAzGeneratorHallucSlug } from "../redline.js";
 import {
   FG_GATE_REFUSE,
@@ -460,6 +462,8 @@ export async function refuseRuntimeGate(name, gate) {
 }
 
 export async function fraggateCall(args, registry, bySlug, env, request = null) {
+  // USER-SIGNIN-ARK-1.0 §4: the credential firewall runs before anything reads args.
+  args = await arkFirewall(args);
   const attempt = normalizeAttemptLink(args && typeof args === "object" ? args : {}, { generate: true });
   if (!attempt.ok) {
     return refuse({
@@ -498,8 +502,16 @@ async function fraggateCallBody(args, registry, bySlug, env, request, attempt) {
   }
   env = attachWorkspace(env && typeof env === "object" ? env : {}, resolvedWorkspace.workspace);
   const rawPayload = src.payload !== undefined ? src.payload : payloadWithoutMeta(src);
+  // USER-SIGNIN-ARK-1.0: account ciphertext is opaque, strictly base64 and sha256-bound in ops.js. SweepGate
+  // pattern checks (e.g. the "MZ" mark) hit random ciphertext ~1 in 30 appends, so the sweep sees a stand-in
+  // for that one field; every other field is still swept. Non-base64 ct_b64 is swept as-is.
+  const arkOpaque =
+    target.entry.slug === "ark" &&
+    ARK_ACCOUNT_OPS.includes(String(target.op)) &&
+    rawPayload && typeof rawPayload === "object" && !Array.isArray(rawPayload) &&
+    typeof rawPayload.ct_b64 === "string" && /^[A-Za-z0-9+/]{1,65536}={0,2}$/.test(rawPayload.ct_b64);
   const inbound = await pipeInbound({
-    payload: rawPayload,
+    payload: arkOpaque ? { ...rawPayload, ct_b64: "[ark-ciphertext]" } : rawPayload,
     claim,
     env,
     slug: target.entry.slug,
@@ -548,6 +560,7 @@ async function fraggateCallBody(args, registry, bySlug, env, request, attempt) {
     });
   }
   let payload = inbound.admitted !== undefined ? inbound.admitted : rawPayload;
+  if (arkOpaque && payload && typeof payload === "object") payload = { ...payload, ct_b64: rawPayload.ct_b64 };
   if (target.entry.slug === "forgereceipts" && payload && typeof payload === "object" && !Array.isArray(payload)) {
     payload = {
       ...payload,
@@ -597,6 +610,35 @@ async function fraggateCallBody(args, registry, bySlug, env, request, attempt) {
       accepted.aliased = true;
     }
     return decoratePipe(accepted, inbound, result, env, claim, attempt);
+  }
+  if (target.entry.slug === "ark" && ARK_ACCOUNT_OPS.includes(String(resolved.op))) {
+    const result = await runArkAccountOp(resolved.op, payload, env, request, arkKeysFor(args), {
+      handle: args,
+      credential_error: src.credential_error,
+      credential_mode: src.credential_mode,
+    });
+    const accepted = await accept({
+      name: target.entry.name,
+      slug: target.entry.slug,
+      op: target.op,
+      result,
+      gate: inbound.gate_check || gate,
+      env,
+      registry,
+      engine: {
+        engine_digest: null,
+        ran_in: "aziel-runtime",
+        true_engine_runtime: false,
+        mode: "ark-account",
+        status: result && result.ok === false ? 400 : 200,
+      },
+    });
+    // Outbound sweep sees opaque base64 ciphertext rows as stand-ins (same rule as inbound).
+    const B64 = /^[A-Za-z0-9+/]{1,65536}={0,2}$/;
+    const sweepResult = result && Array.isArray(result.rows)
+      ? { ...result, rows: result.rows.map((row) => (row && typeof row.ct_b64 === "string" && B64.test(row.ct_b64) ? { ...row, ct_b64: "[ark-ciphertext]" } : row)) }
+      : result;
+    return decoratePipe(accepted, inbound, sweepResult, env, claim, attempt);
   }
   if (target.entry.slug === MESH_SLUG) {
     // AZBot round 3: the /mcp caller's hashed IP reaches the agent limits (not one shared "none" bucket).
@@ -723,6 +765,8 @@ function payloadWithoutMeta(src) {
     "id",
     "confirm",
     "dry_run",
+    "credential_mode",
+    "credential_error",
     "background",
     "job_id",
     "request_id",
