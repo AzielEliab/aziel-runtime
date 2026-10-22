@@ -117,6 +117,7 @@
  * Author: Aziel Eliab. Identity is Aziel Eliab only. Do not invent DOIs.
  */
 import { arkFirewall } from "./account/firewall.js";
+import { signinHelperHtml, SIGNIN_HELPER_HEADERS } from "./account/signin-helper.js";
 import { tokensCss } from "./lockstep/tokens-css.js";
 import { DESIGN_TOKENS } from "./lockstep/design-tokens.js";
 import {
@@ -4195,6 +4196,10 @@ async function handleRequest(request, env, ctx) {
       );
     }
 
+    if (url.pathname === "/ark/signin" && (request.method === "GET" || request.method === "HEAD")) {
+      // USER-SIGNIN-ARK-1.0 §12.2: static, no-network key helper (credentials never leave the page).
+      return new Response(request.method === "HEAD" ? null : signinHelperHtml(), { status: 200, headers: SIGNIN_HELPER_HEADERS });
+    }
     if ((url.pathname === "/about" || url.pathname === "/v1/about") && (request.method === "GET" || request.method === "HEAD")) {
       return asHead(
         request,
