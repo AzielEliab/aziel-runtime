@@ -32,3 +32,14 @@ s = await post(out);
 ok(s.code === "ARK-OK" && s.vault_id === dev.vault_id, "CLI signature opens a session");
 await assert.rejects(arkSignChallenge(U, "short", c.nonce)); n++;
 console.log(`verify-ark-signin-helper: ${n} checks ok`);
+// §12.3 leg alias: POST /v1/ark/account = FragGate ark account_* only; plaintext still refused.
+{
+  const call2 = async (b) => { const r = await handler(new Request("https://x/v1/ark/account", { method: "POST", headers: { "content-type": "application/json", "cf-connecting-ip": "203.0.113.10" }, body: JSON.stringify(b) }), env, { waitUntil() {} }); return [r.status, await r.json()]; };
+  let [st, b] = await call2({ op: "account_challenge", payload: { vault_pub: dev.pub } });
+  assert.ok(st === 200 && b.result.code === "ARK-OK", st + JSON.stringify(b).slice(0, 300)); n++;
+  [st, b] = await call2({ op: "scorch" });
+  assert.ok(st === 400 && b.code === "ARK-INPUT"); n++;
+  [st, b] = await call2({ op: "account_open", username: U, password: P });
+  assert.ok(b.result.code === "ARK-PLAINTEXT-REFUSED" && !JSON.stringify(b).includes(P)); n++;
+  console.log(`verify-ark-signin-helper: alias ok (${n} total)`);
+}

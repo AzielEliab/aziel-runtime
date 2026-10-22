@@ -3956,12 +3956,19 @@ async function handleFraggateHttp(request, url, origin, env, ctx) {
     const status = view.code === "job_not_found" ? 404 : view.status === "refused" ? 400 : 200;
     return asHead(request, json({ ...view, ...confirmConsentHonesty() }, status, extra));
   }
-  if (url.pathname === "/v1/fraggate/call" && request.method === "POST") {
+  if ((url.pathname === "/v1/fraggate/call" || url.pathname === "/v1/ark/account") && request.method === "POST") {
     let args = {};
     try {
       args = await request.json();
     } catch {
       args = {};
+    }
+    if (url.pathname === "/v1/ark/account") {
+      // USER-SIGNIN-ARK-1.0 §12.3: leg-facing alias; always the ark slug, account_* ops only.
+      const a = args && typeof args === "object" && !Array.isArray(args) ? args : {};
+      const op = String(a.op || "");
+      if (!/^account_(open|append|recall|challenge|session)$/.test(op)) return json({ ok: false, code: "ARK-INPUT", spec: "ARK-ACCOUNT-1.0", written: false }, 400, extra);
+      args = { ...a, slug: "ark", op, name: undefined, product: undefined, tool: undefined };
     }
     args = await arkFirewall(args);
     if (isAzGeneratorHallucSlug(args.slug || args.name || args.product)) {
@@ -4391,7 +4398,7 @@ async function handleRequest(request, env, ctx) {
       );
     }
 
-    if (url.pathname === "/v1/fraggate" || url.pathname.startsWith("/v1/fraggate/")) {
+    if (url.pathname === "/v1/fraggate" || url.pathname.startsWith("/v1/fraggate/") || url.pathname === "/v1/ark/account") {
       return handleFraggateHttp(request, url, origin, env, ctx);
     }
 
