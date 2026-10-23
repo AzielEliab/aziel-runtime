@@ -46,7 +46,27 @@ export function productHost(product) {
   return `https://${w}.vibelock.workers.dev`;
 }
 
-export function installPlan({ origin, slug, version, products = [] }) {
+export const NODE_SOURCE_REPO = "https://github.com/AzielEliab/aziel-runtime";
+const SHA_RE = /^[0-9a-f]{40}$/;
+const SHA256_RE = /^[0-9a-f]{64}$/;
+export const NODE_LOG_MAX_BYTES = 1048576;
+
+/**
+ * Pinned source for the local FED-MESH node: the deployed commit (40-hex GIT_SHA) or null.
+ * B352-2: there is no fallback to main. Without a pinned commit the install starts no node.
+ */
+export function nodeSourceRef(sourceRef) {
+  const ref = String(sourceRef || "").trim().toLowerCase();
+  return SHA_RE.test(ref) ? ref : null;
+}
+
+/** Optional sha256 of the pinned commit's tarball (64-hex), checked before extraction. */
+export function nodeSourceSha256(value) {
+  const v = String(value || "").trim().toLowerCase();
+  return SHA256_RE.test(v) ? v : null;
+}
+
+export function installPlan({ origin, slug, version, products = [], sourceRef = "", sourceSha256 = "" }) {
   const s = String(slug || "").toLowerCase();
   if (!SLUG_RE.test(s)) return { ok: false, spec: ONBOARD_SPEC, code: "ONBOARD-BAD-SLUG", message: "GET /v1/mesh/install?slug=<slug>&version=<v>.", fail_closed: true };
   const product = products.find((p) => p && p.slug === s) || null;
@@ -54,6 +74,8 @@ export function installPlan({ origin, slug, version, products = [] }) {
   const v = VER_RE.test(String(version || "")) ? String(version) : "latest";
   const base = String(origin || "").replace(/\/$/, "");
   const host = productHost(product);
+  const ref = nodeSourceRef(sourceRef);
+  const tarSha = ref ? nodeSourceSha256(sourceSha256) : null;
   return {
     ok: true,
     spec: ONBOARD_SPEC,
@@ -65,6 +87,22 @@ export function installPlan({ origin, slug, version, products = [] }) {
       { n: 2, id: "install", url: host ? `${host}/install.sh` : null, note: host ? null : "Runtime-hosted product: no separate installer." },
       { n: 3, id: "join", method: "POST", url: `${base}/v1/mesh/join`, body: { product: s, node_id: `${s}-${v.toLowerCase().replace(/[^a-z0-9.-]/g, "-")}-<random>`, presence: "live", heartbeat_mode: "idle" }, note: "Every app version is its own node: a new random suffix per install." },
       { n: 4, id: "heartbeat", method: "POST", url: `${base}/v1/mesh/heartbeat`, note: "idle every 2-5 min; miss 3 beats and the node is stale, not deleted." },
+      {
+        n: 5,
+        id: "node",
+        source: ref ? `${NODE_SOURCE_REPO.replace("https://github.com/", "https://codeload.github.com/")}/tar.gz/${ref}` : null,
+        source_ref: ref,
+        source_pinned: Boolean(ref),
+        source_sha256: tarSha,
+        ...(ref ? {} : { refused: "ONBOARD-NODE-UNPINNED" }),
+        relay: `${base}/v1/mesh/relay`,
+        run: `node qnm-node/fed-instance.mjs --data <dir> --relay <relay> --product <slug> --heartbeat-sec 180 --log-file <dir>/node.log --log-max-bytes ${NODE_LOG_MAX_BYTES}`,
+        requires: tarSha ? "node >= 20, curl, tar, sha256sum or shasum" : "node >= 20, curl, tar",
+        key_files: "identity.json 0600 in a 0700 data dir",
+        note: ref
+          ? "Starts a local FED-MESH node with its own Ed25519 key and data directory, registers it on the relay with a signed statement, and keeps a signed heartbeat. The source is the deployed commit only" + (tarSha ? ", and its tarball sha256 is checked before extraction." : " (commit-pinned over TLS; no tarball sha256 is pinned on this server yet).") + " Without node 20, or if the download fails, the install says this app is not a mesh node yet."
+          : "This server has no pinned deployed commit, so the install starts no local node and says this app is not a mesh node yet. It never falls back to main.",
+      },
     ],
     node_per_version: true,
     hints: NEW_USER_HINTS,
@@ -81,15 +119,86 @@ export function installScript(plan) {
   if (!plan || !plan.ok) return `#!/bin/sh\necho ${shq((plan && plan.code) || "ONBOARD-REFUSED")} >&2\nexit 1\n`;
   const join = plan.steps[2];
   const install = plan.steps[1];
+  const nodeStep = plan.steps.find((s) => s.id === "node");
+  const welcome = plan.hints.find((h) => h.id === "welcome");
+  const NOT_YET = "echo 'The local mesh node did not register, so this app is not a mesh node yet.'";
+  const pin = nodeStep.source_sha256 || "";
   const lines = [
     "#!/bin/sh",
-    `# ${ONBOARD_SPEC}: install ${plan.slug} ${plan.version}, then join the mesh as its own node. Author: Aziel Eliab.`,
+    `# ${ONBOARD_SPEC}: install ${plan.slug} ${plan.version}, then start a local FED-MESH node for it. Author: Aziel Eliab.`,
     "set -eu",
     install.url ? `curl -fsSL ${shq(install.url)} | sh` : `echo ${shq("No separate installer for " + plan.slug + ".")}`,
     'RND=$(od -An -N4 -tx1 /dev/urandom | tr -d " \\n")',
     `NODE=${shq(join.body.node_id.replace("-<random>", ""))}-$RND`,
-    `curl -fsS -X POST ${shq(join.url)} -H 'content-type: application/json' -d "{\\"product\\":\\"${plan.slug}\\",\\"node_id\\":\\"$NODE\\",\\"presence\\":\\"live\\",\\"heartbeat_mode\\":\\"idle\\"}" >/dev/null && echo "Joined the mesh as $NODE."`,
-    ...plan.hints.filter((h) => h.when === "first_run").map((h) => `echo ${shq("Tip: " + h.text)}`),
+    // "Joined" only when the mesh accepted the join: HTTP 2xx (curl -f) and code MESH-OK in the reply.
+    `JOIN_OUT=$(curl -fsS -X POST ${shq(join.url)} -H 'content-type: application/json' -d "{\\"product\\":\\"${plan.slug}\\",\\"node_id\\":\\"$NODE\\",\\"presence\\":\\"live\\",\\"heartbeat_mode\\":\\"idle\\"}" 2>/dev/null || true)`,
+    `if printf '%s' "$JOIN_OUT" | grep -q '"code": *"MESH-OK"'; then echo "Joined the mesh as $NODE."; else echo "The mesh did not accept the join, so $NODE has not joined the mesh. Continuing."; fi`,
+    // Step 5: a real local node (own key, own data dir, signed register + signed heartbeats on the relay).
+    // B352-1: owner-only files for the node's key material while the node is set up and started.
+    'OLD_UMASK=$(umask)',
+    "umask 077",
+    // Every failure below must reach the honest not-yet line and exit 0, so no set -e here.
+    "set +e",
+    'MESH_HOME="${AZIEL_MESH_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/aziel-mesh}"',
+    'DIR="$MESH_HOME/$NODE"',
+    "NODE_OK=0",
+    'SRC=""',
+    'if command -v node >/dev/null 2>&1 && [ "$(node -p "process.versions.node.split(\'.\')[0]" 2>/dev/null || echo 0)" -ge 20 ]; then',
+    '  if [ -n "${AZIEL_MESH_SRC_DIR:-}" ]; then SRC="$AZIEL_MESH_SRC_DIR"; else',
+    ...(nodeStep.source_ref
+      ? [
+          // B352-2: the deployed commit only (cache keyed by commit, and by tarball sha256 when pinned).
+          `    SRC="$MESH_HOME/src-${nodeStep.source_ref}${pin ? "-" + pin.slice(0, 16) : ""}"`,
+          '    if [ ! -f "$SRC/qnm-node/fed-instance.mjs" ]; then',
+          '      mkdir -p "$MESH_HOME"',
+          '      TMP="$MESH_HOME/.src-tmp-$RND"',
+          '      rm -rf "$TMP"; mkdir -p "$TMP/x"',
+          '      GOT=""',
+          `      if curl -fsSL -o "$TMP/src.tgz" ${shq(nodeStep.source)} 2>/dev/null; then`,
+          ...(pin
+            ? [
+                '        if command -v sha256sum >/dev/null 2>&1; then GOT=$(sha256sum "$TMP/src.tgz" | cut -d" " -f1);',
+                '        elif command -v shasum >/dev/null 2>&1; then GOT=$(shasum -a 256 "$TMP/src.tgz" | cut -d" " -f1); fi',
+                `        if [ "$GOT" != ${shq(pin)} ]; then echo 'The node source did not match its pinned sha256 (or no sha256 tool), so it was not used.'; rm -f "$TMP/src.tgz"; fi`,
+              ]
+            : []),
+          '        if [ -f "$TMP/src.tgz" ] && tar -xzf "$TMP/src.tgz" -C "$TMP/x" --strip-components=1 2>/dev/null && [ -f "$TMP/x/qnm-node/fed-instance.mjs" ]; then',
+          '          rm -rf "$SRC" && mv "$TMP/x" "$SRC"',
+          "        fi",
+          "      else",
+          "        echo 'The node source could not be downloaded.'",
+          "      fi",
+          '      rm -rf "$TMP"',
+          "    fi",
+        ]
+      : ["    echo 'This server has no pinned deployed commit for the node source, so no local mesh node was started.'"]),
+    "  fi",
+    '  if [ -n "$SRC" ] && [ -f "$SRC/qnm-node/fed-instance.mjs" ]; then',
+    '    mkdir -p "$DIR"',
+    // Log cap: the node writes its own JSON log, rotating at the cap to node.log.1 (two files max).
+    `    nohup node "$SRC/qnm-node/fed-instance.mjs" --data "$DIR/data" --relay ${shq(nodeStep.relay)} --product ${shq(plan.slug)} --heartbeat-sec 180 --log-file "$DIR/node.log" --log-max-bytes ${NODE_LOG_MAX_BYTES} > "$DIR/node.err" 2>&1 &`,
+    '    echo $! > "$DIR/node.pid"',
+    "    i=0",
+    "    while [ $i -lt 30 ]; do",
+    '      if grep -q \'"registered":true\' "$DIR/node.log" 2>/dev/null; then NODE_OK=1; break; fi',
+    '      if ! kill -0 "$(cat "$DIR/node.pid")" 2>/dev/null; then break; fi',
+    "      i=$((i+1)); sleep 1",
+    "    done",
+    "  fi",
+    "else",
+    "  echo 'Node 20 or newer is not installed, so no local mesh node was started. Presence only.'",
+    "fi",
+    'umask "$OLD_UMASK"',
+    "set -e",
+    'if [ "$NODE_OK" = 1 ]; then',
+    `  HANDLE=$(grep -o '"handle":"[^"]*"' "$DIR/node.log" | tail -1 | cut -d'"' -f4)`,
+    '  echo "Mesh node $HANDLE is running (pid $(cat "$DIR/node.pid"), data $DIR). Stop: kill $(cat "$DIR/node.pid")"',
+    `  echo ${shq("Tip: " + welcome.text)}`,
+    "else",
+    '  if [ -f "$DIR/node.pid" ]; then kill "$(cat "$DIR/node.pid")" 2>/dev/null || true; fi',
+    `  ${NOT_YET}`,
+    "fi",
+    ...plan.hints.filter((h) => h.when === "first_run" && h.id !== "welcome").map((h) => `echo ${shq("Tip: " + h.text)}`),
     "echo 'The alternate internet is not live yet. This node is ready for it.'",
     "",
   ];
