@@ -10,6 +10,7 @@ import { sha256Hex } from "./session-core.js";
 import { inspectBeforeAirgap, probeScannerSync, scanMessageParts } from "./engines/azmail/guard.js";
 import { bootHandoff, carryOnFirstCarrier, kernelBase, mailSendBase, probeCarrierOrder } from "./bases.js";
 import { applyNamedLive, arrivalFlags, surfaceArrival, currentAltInternetFact } from "./alt-internet-fact.js";
+import { cap7Honesty } from "./qnm-honesty.js";
 import { PUBLIC_DEMO_ID, workspaceFromEnv } from "./workspace.js";
 import { HONESTY_SENTENCES, SURFACE_HONESTY, sharedFactBlock } from "./surface-honesty.js";
 
@@ -710,9 +711,8 @@ export async function internetBase(payload, env) {
     packet_path_earned: flags.watch_qualifies === true,
     second_device: flags.second_device,
     watch_qualifies: flags.watch_qualifies,
-    public_icann: false,
     bgp: false,
-    cap7_name_only: true,
+    ...cap7Honesty(),
     public_door: "FG-STUB",
     d2d_status: SURFACE_HONESTY.d2d_status,
     warn5: SURFACE_HONESTY.warn5,
@@ -1208,6 +1208,7 @@ export function cap7Lookup(payload) {
     names_only: true,
     icann: false,
     public_egress: false,
+    ...cap7Honesty(),
     site_up: src.site_checked === true ? src.site_up === true : "unknown",
     name_found_is_site_up: false,
     ...honesty(),

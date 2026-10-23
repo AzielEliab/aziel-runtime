@@ -96,7 +96,16 @@ QNM separates those three from radio PHY. `radio_phy`, `worker_hardware`, `worke
 
 `second_device` stays measured. It is true only when a packet leaves this machine and arrives on a different machine id. A same-machine frame does not set it.
 
-Cap-7 / `.aziel` stay names. `cap7_public_icann`, `cap7_public_egress`, `public_icann`, and `registrar_live` stay **false**.
+Cap-7 mesh name-plane / factory active use is **ON** for mesh DNS factory coordination. Softwares cards stamp `cap7_live`, `cap7_factory_live`, `cap7_active_use`, and `cap7_name_plane_live` **true**. `cap7_is_name_plane` stays true: this is the name plane, not a packet carrier. `cap7_name_only` stays true only as "not an ICANN registration and not BGP." That flag is not a stay-off of factory active use.
+
+These stay **false**. Cap-7 is not public ICANN. No spend, no buy, no register. Cap-7 / `.aziel` is not a public ICANN registrar:
+
+- `cap7_registrar_live`, `paid_registrar`, `public_icann`, `cap7_public_icann`, `public_icann_registrar`
+- `dns_publish`, `icann_dns_publish`
+- `cap7_public_egress`, `public_egress_ip`, `packet_forwarding`, `ip_exit`, `hosted_vpn`
+- `registrar_live`
+
+`GET /v1/mesh` `get_never_enables` stays true. This override does not cancel Remain-OFF. Softwares stay 42. `tools/list` stays 36.
 
 AZMail stamps suite membership on. The anonymous mail ring stays default **off** (`mail_ring_packet_live` false). That ring is not the QNM packet path. Embryolock `public_mesh_destructive` stays false. Whitestone is a Softwares card and is not a `{slug}-worker` `software_nodes` row. Do not equate Softwares tab 42 with `software_nodes` 41.
 
@@ -283,7 +292,7 @@ FragGate name ops `name_claim`, `name_read`, `name_resolve`, `slot_read`, `witne
 
 Cap-7 factory exec is LIVE on the Cap-7 plane. That plane is not a public egress IP and not an ICANN registrar. Cap-7 is not the public Internet. Track 1 is the Cap-7 and `.aziel` mesh name plane as it ships today. AZBrowser #17 resolves `.aziel` from the local ledger plus the relay. Runtime #201 name-reads a posted ledger or relay snapshot. A miss or a hash mismatch is `FG-GATE-REFUSE`. That path does not query ICANN DNS. `negotiateBearer` refuses `icann` and `cap7-egress`. Track 2 is a separate node-mesh internet with its own addressing and routing. WARN-5 is STANDS-until-demonstrated. BY-DESIGN that internet stays separate from ICANN. It is not BGP. It is not demonstrated here. Paper: [MESH-INTERNET-WARNS-1.0](designs/MESH-INTERNET-WARNS-1.0.md).
 
-Track 1 is Plane N (names only). Track 2 is Plane P (packet path). The device-to-device sketch, including carrier prefer order and hardware-absent codes, is [PLANE-P-D2D-1.0](designs/PLANE-P-D2D-1.0.md). That paper does not paint Plane P as a LIVE public egress and does not add a Softwares card. The carrier scaffold is [D2D-CARRIERS-1.0](designs/D2D-CARRIERS-1.0.md). The public door stays NOT-READY / FG-STUB. Local LAN discovery is LIVE-when-armed. `alt_internet_live` is false. It is not a LIVE public egress.
+Track 1 is Plane N, the Cap-7 and `.aziel` name plane. Factory active use on that plane is LIVE. It is not a packet carrier, not public ICANN, and not a public egress IP. Track 2 is Plane P (packet path). The device-to-device sketch, including carrier prefer order and hardware-absent codes, is [PLANE-P-D2D-1.0](designs/PLANE-P-D2D-1.0.md). That paper does not paint Plane P as a LIVE public egress and does not add a Softwares card. The carrier scaffold is [D2D-CARRIERS-1.0](designs/D2D-CARRIERS-1.0.md). The public door stays NOT-READY / FG-STUB. Local LAN discovery is LIVE-when-armed. `alt_internet_live` and `packet_path_live` are true on the QNM fact. Radio PHY stays false. Plane P is not a LIVE public egress.
 
 ## SOT-SYNC-1.0
 

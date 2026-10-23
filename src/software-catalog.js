@@ -22,7 +22,7 @@ import { embeddedDigest } from "./engines/digest.js";
 import { JEEVES_SUITE_HELP } from "./engines/aziel-corpus/jeeves.js";
 import { LIVE_OPS, NAMED_STUBS, STUB_OPS, buildRegistry } from "./fraggate/registry.js";
 import { meshHint } from "./mesh.js";
-import { QNM_MEMBERSHIP, QNM_NAMED_LIVE, QNM_SEPARATED } from "./qnm-honesty.js";
+import { cap7Honesty, QNM_MEMBERSHIP, QNM_NAMED_LIVE, QNM_SEPARATED } from "./qnm-honesty.js";
 import { qnsHint } from "./qns.js";
 import { actReceiptHint } from "./library-receipts.js";
 import { survivalHint } from "./cross-network-survival.js";
@@ -116,8 +116,9 @@ export function sortSoftwareEntries(entries) {
 
 /**
  * Softwares-card mesh stamp. Membership, default enable, and MESH_RADIOS
- * are on for every card. The three QNM named flags are on. Radio PHY and
- * Cap-7 public ICANN stay false. Whitestone is not a software_nodes row.
+ * are on for every card. The three QNM named flags are on. Cap-7 factory
+ * name-plane active use is on. Radio PHY and Cap-7 public ICANN stay false.
+ * Whitestone is not a software_nodes row.
  */
 export function softwareMeshStamp(slug, { fanout = false } = {}) {
   const stamp = {
@@ -131,11 +132,7 @@ export function softwareMeshStamp(slug, { fanout = false } = {}) {
     radio_phy: QNM_SEPARATED.radio_phy,
     worker_hardware: QNM_SEPARATED.worker_hardware,
     worker_radios_live: QNM_SEPARATED.worker_radios_live,
-    cap7_is_name_plane: QNM_SEPARATED.cap7_is_name_plane,
-    cap7_public_icann: QNM_SEPARATED.cap7_public_icann,
-    cap7_public_egress: QNM_SEPARATED.cap7_public_egress,
-    public_icann: QNM_SEPARATED.public_icann,
-    registrar_live: QNM_SEPARATED.registrar_live,
+    ...cap7Honesty(),
     software_nodes_row: fanout === true,
   };
   if (slug === "azmail") {
