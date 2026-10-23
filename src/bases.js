@@ -6,6 +6,7 @@
  */
 
 import { applyNamedLive, arrivalFlags, surfaceArrival } from "./alt-internet-fact.js";
+import { CAP7_ACTIVE_USE } from "./qnm-honesty.js";
 import { PUBLIC_DEMO_ID, workspaceFromEnv } from "./workspace.js";
 
 const UNQUALIFIED_ARRIVAL = applyNamedLive(arrivalFlags(null));
@@ -527,7 +528,7 @@ export async function carryOnFirstCarrier(carriers) {
         note: "A node-mesh frame moved on this machine. second_device stays false. packet_live on this carrier stays false. Radio PHY is not live. mesh_node_live, alt_internet_live, and packet_path_live stay true.",
         public_icann: false,
         bgp: false,
-        cap7_name_only: true,
+        ...CAP7_ACTIVE_USE,
       };
       continue;
     }
@@ -540,7 +541,7 @@ export async function carryOnFirstCarrier(carriers) {
         mock: false,
         public_icann: false,
         bgp: false,
-        cap7_name_only: true,
+        ...CAP7_ACTIVE_USE,
         ...surfaceArrival(hardware),
         refused,
       };
@@ -563,7 +564,7 @@ export async function carryOnFirstCarrier(carriers) {
     ...UNQUALIFIED_ARRIVAL,
     public_icann: false,
     bgp: false,
-    cap7_name_only: true,
+    ...CAP7_ACTIVE_USE,
     refused,
   };
 }

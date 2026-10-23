@@ -754,7 +754,7 @@ const PRODUCTS_RAW = [
       { op: "attach", method: "POST", summary: "Accept images, video, documents, archives, links, and other files. Scan and airgap before use." },
       { op: "crawl", method: "POST", summary: "Crawl or index only when the person asks. Records what was fetched. Does not rewrite published papers." },
       { op: "human_check", method: "POST", summary: "Stop at a captcha or are-you-a-robot check and leave it to the person." },
-      { op: "cap7_lookup", method: "POST", summary: "Cap-7 and .aziel names only. A found name is not the public site being up." },
+      { op: "cap7_lookup", method: "POST", summary: "Cap-7 active use is ON. Still not ICANN. A found name is not the public site being up." },
       { op: "score_gate", method: "POST", summary: "Triad, physics, math, and geometry scores can block a claim. A score is not a source." },
       { op: "corpus_note", method: "POST", summary: "Keep a note beside a published paper. The published text is not rewritten." },
       { op: "receipt_learn", method: "POST", summary: "Score and rank sealed receipts and keep their original usage order." },
@@ -1795,7 +1795,7 @@ function llmsTxt(origin, env = {}) {
     `Locked MASTER-33 pipeline: ${LOCKED_STRIP}. FragGate is THE single door. Lamb Lens is fabric after FragGate. Domains are isolation labels. FoldLock fld3-wire is internal to AZPIPE. Illegal reorder is refused. No rollback. Cite: GET ${base}/v1/azpipe/arch (same payload as GET /v1/fraggate pipeline).`,
     `True-engine slugs: ${honestyFields(PRODUCTS.map((p) => p.slug)).true_engine_slugs.join(", ")}`,
     `Proxy /p/{slug}/{op} stays proxy. Hosted AZAI is protocol mirror + Lamb check. Public VPN auto-binds AZVPN (HTTPS/WS REAL; WireGuard/OpenVPN SLOT). GodLock / MirageGrid hop stay stub.`,
-    `MirageGrid: FragGate only. POST /v1/fraggate/call { slug: "miragegrid", op }. Assigns a short-lived session node and cites Cap-7 mesh-name metadata. The Cap-7 factory is a mesh-name factory and is not a public ICANN registrar (four hub mirrors azgrid, azcloak, azvault, azshift plus three decoys azbooth, azflag, azstandby; not per-node .aziel slots). public_door_ops include assign, verify-receipt, nodes, bridge, shuffle, health, skill, doctor, geo-target, session-stick, egress-rotate. Those three are LIVE on the Cap-7 plane (region label, sticky mesh node and factory land, land rotate among 7 sites). ${CAP7_PLANE_BOUNDARY} ${CAP7_PUBLIC_WORKER_LIVE} vpn-hop, hop, tunnel, and mesh stay FG-STUB. The MirageGrid mesh op is not the QNM suite mesh. MirageGrid is not a VPN, not an anonymity network, and not a packet mesh. AZVPN stays the suite VPN concentrator.`,
+    `MirageGrid: FragGate only. POST /v1/fraggate/call { slug: "miragegrid", op }. Assigns a short-lived session node and cites Cap-7 mesh-name metadata. Cap-7 active use is ON. Still not ICANN. The Cap-7 factory is a mesh-name factory and is not a public ICANN registrar (four hub mirrors azgrid, azcloak, azvault, azshift plus three decoys azbooth, azflag, azstandby; not per-node .aziel slots). public_door_ops include assign, verify-receipt, nodes, bridge, shuffle, health, skill, doctor, geo-target, session-stick, egress-rotate. Those three are LIVE on the Cap-7 plane (region label, sticky mesh node and factory land, land rotate among 7 sites). ${CAP7_PLANE_BOUNDARY} ${CAP7_PUBLIC_WORKER_LIVE} vpn-hop, hop, tunnel, and mesh stay FG-STUB. The MirageGrid mesh op is not the QNM suite mesh. MirageGrid is not a VPN, not an anonymity network, and not a packet mesh. AZVPN stays the suite VPN concentrator.`,
     `Local blends: azai serve · forgereceipts ui · azos ui`,
     `Counted tarball: none (Worker session + in-repo CLI)`,
     `Host: ${base}/`,
@@ -2596,7 +2596,7 @@ ${distributionDoorsHtml(origin)}
     </ul>
     <strong>Product honesty banners</strong>
     <ul>
-      <li>GodLock and MirageGrid are <em>not</em> VPNs and not anonymity networks. MirageGrid Cap-7 is a mesh-name factory and is not a public ICANN registrar. Cap-7 geo, sticky session, and land rotation are LIVE on the Cap-7 plane, not a public egress IP, not a residential IP, and not AZVPN. ${CAP7_PUBLIC_WORKER_LIVE}</li>
+      <li>GodLock and MirageGrid are <em>not</em> VPNs and not anonymity networks. Cap-7 active use is ON. Still not ICANN. MirageGrid Cap-7 is a mesh-name factory and is not a public ICANN registrar. Cap-7 geo, sticky session, and land rotation are LIVE on the Cap-7 plane, not a public egress IP, not a residential IP, and not AZVPN. ${CAP7_PUBLIC_WORKER_LIVE}</li>
       <li>ForgeReceipts is <em>not</em> legal advice and does not contact courts.</li>
       <li>ZionPattern Solver never claims more than 75% confidence. It does not solve cases.</li>
       <li>VeilLock does <em>not</em> inject into FaceTime or any calling app.</li>

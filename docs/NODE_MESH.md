@@ -96,7 +96,7 @@ QNM separates those three from radio PHY. `radio_phy`, `worker_hardware`, `worke
 
 `second_device` stays measured. It is true only when a packet leaves this machine and arrives on a different machine id. A same-machine frame does not set it.
 
-Cap-7 / `.aziel` stay names. `cap7_public_icann`, `cap7_public_egress`, `public_icann`, and `registrar_live` stay **false**.
+Cap-7 active use is ON. The mesh-name factory is live for active use. Cap-7 / `.aziel` are still not ICANN. `cap7_live` and `cap7_active_use` are **true**. `cap7_operator_hold`, `cap7_name_only`, and `cap7_names_only` are **false**. `cap7_public_icann`, `cap7_public_egress`, `public_icann`, `paid_registrar`, `icann_dns_publish`, `dns_publish`, `packet_forwarding`, `azvpn_as_cap7`, `public_egress_ip`, and `registrar_live` stay **false**. No domain buy or register. No ICANN DNS publish. MG-NO-IP-EXIT stays. `GET /v1/mesh` never enables radios.
 
 AZMail stamps suite membership on. The anonymous mail ring stays default **off** (`mail_ring_packet_live` false). That ring is not the QNM packet path. Embryolock `public_mesh_destructive` stays false. Whitestone is a Softwares card and is not a `{slug}-worker` `software_nodes` row. Do not equate Softwares tab 42 with `software_nodes` 41.
 

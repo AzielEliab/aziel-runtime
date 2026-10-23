@@ -7,12 +7,13 @@
  * is the session dual lattice plus a ChainLock stamp and a TemporalLock
  * receipt of the same tip hash. Mesh presence stays operator-gated
  * (MESH-NEED-BEARER). Live hardware is local qnm-node. GET /v1/mesh never
- * enables. Cap-7 and .aziel stay names, not ICANN.
+ * enables. Cap-7 active use is ON. Cap-7 and .aziel are still not ICANN.
  *
  * Author: Aziel Eliab. License: Apache-2.0.
  */
 import { sha256Hex } from "./session-core.js";
 import { currentAltInternetFact } from "./alt-internet-fact.js";
+import { CAP7_ACTIVE_USE } from "./qnm-honesty.js";
 import { TETHER_SPEC } from "./azos-tether.js";
 
 export const FORENSIC_SPEC = "AZBOT-NODE-COLLAB-FORENSIC-1.0";
@@ -91,10 +92,9 @@ export function meshCite() {
     radios_enabled_by_get: false,
     operator_gate: "MESH-NEED-BEARER",
     local_node: LOCAL_QNM_NODE,
-    cap7_names_only: true,
-    public_icann: false,
+    ...CAP7_ACTIVE_USE,
     ...earnedMeshFlags(),
-    note: "GET /v1/mesh never enables. mesh_node_live, alt_internet_live, and packet_path_live earn LIVE together when a packet leaves this machine and arrives on a different machine id. Cap-7 and .aziel are names, not ICANN. Live hardware is local qnm-node.",
+    note: "GET /v1/mesh never enables. mesh_node_live, alt_internet_live, and packet_path_live earn LIVE together when a packet leaves this machine and arrives on a different machine id. Cap-7 active use is ON. Cap-7 and .aziel are still not ICANN. Live hardware is local qnm-node.",
   };
 }
 
@@ -299,10 +299,9 @@ export async function operatorMeshPresence(payload, env) {
     operator_gate: "MESH-NEED-BEARER",
     code: gate && gate.code ? gate.code : accepted ? "MESH-ENABLE" : null,
     local_node: LOCAL_QNM_NODE,
-    cap7_names_only: true,
-    public_icann: false,
+    ...CAP7_ACTIVE_USE,
     ...earnedMeshFlags(),
-    note: "Presence uses MESH-NEED-BEARER and local qnm-node. GET /v1/mesh never enables. The three live flags earn LIVE per the QNM definition. Cap-7 and .aziel are names, not ICANN.",
+    note: "Presence uses MESH-NEED-BEARER and local qnm-node. GET /v1/mesh never enables. The three live flags earn LIVE per the QNM definition. Cap-7 active use is ON. Cap-7 and .aziel are still not ICANN.",
   };
 }
 

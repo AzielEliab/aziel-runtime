@@ -688,10 +688,23 @@ for (const card of body.software) {
   assert.equal(card.worker_hardware, false, card.slug);
   assert.equal(card.worker_radios_live, false, card.slug);
   assert.equal(card.cap7_is_name_plane, true, card.slug);
+  assert.equal(card.cap7_live, true, card.slug);
+  assert.equal(card.cap7_active_use, true, card.slug);
+  assert.equal(card.cap7_operator_hold, false, card.slug);
+  assert.equal(card.cap7_name_only, false, card.slug);
+  assert.equal(card.cap7_names_only, false, card.slug);
   assert.equal(card.cap7_public_icann, false, card.slug);
   assert.equal(card.cap7_public_egress, false, card.slug);
   assert.equal(card.public_icann, false, card.slug);
+  assert.equal(card.paid_registrar, false, card.slug);
+  assert.equal(card.icann_dns_publish, false, card.slug);
+  assert.equal(card.dns_publish, false, card.slug);
+  assert.equal(card.packet_forwarding, false, card.slug);
+  assert.equal(card.azvpn_as_cap7, false, card.slug);
+  assert.equal(card.public_egress_ip, false, card.slug);
   assert.equal(card.registrar_live, false, card.slug);
+  assert.match(card.cap7_honesty, /Cap-7 active use is ON/, card.slug);
+  assert.match(card.cap7_honesty, /still not ICANN/, card.slug);
   assert.equal(card.suite_mesh_is_separate, undefined, card.slug);
   if (card.software_nodes_row === true) softwareNodesRows += 1;
 }

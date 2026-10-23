@@ -10,6 +10,7 @@ import { sha256Hex } from "./session-core.js";
 import { inspectBeforeAirgap, probeScannerSync, scanMessageParts } from "./engines/azmail/guard.js";
 import { bootHandoff, carryOnFirstCarrier, kernelBase, mailSendBase, probeCarrierOrder } from "./bases.js";
 import { applyNamedLive, arrivalFlags, surfaceArrival, currentAltInternetFact } from "./alt-internet-fact.js";
+import { CAP7_ACTIVE_SENTENCE, CAP7_ACTIVE_USE } from "./qnm-honesty.js";
 import { PUBLIC_DEMO_ID, workspaceFromEnv } from "./workspace.js";
 import { HONESTY_SENTENCES, SURFACE_HONESTY, sharedFactBlock } from "./surface-honesty.js";
 
@@ -712,7 +713,8 @@ export async function internetBase(payload, env) {
     watch_qualifies: flags.watch_qualifies,
     public_icann: false,
     bgp: false,
-    cap7_name_only: true,
+    ...CAP7_ACTIVE_USE,
+    cap7_honesty: CAP7_ACTIVE_SENTENCE,
     public_door: "FG-STUB",
     d2d_status: SURFACE_HONESTY.d2d_status,
     warn5: SURFACE_HONESTY.warn5,
@@ -1205,11 +1207,13 @@ export function cap7Lookup(payload) {
     ok: true,
     op: "cap7_lookup",
     name,
-    names_only: true,
+    names_only: false,
     icann: false,
     public_egress: false,
     site_up: src.site_checked === true ? src.site_up === true : "unknown",
     name_found_is_site_up: false,
+    ...CAP7_ACTIVE_USE,
+    cap7_honesty: CAP7_ACTIVE_SENTENCE,
     ...honesty(),
   };
 }

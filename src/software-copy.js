@@ -111,9 +111,9 @@ export const SOFTWARE_COPY = Object.freeze({
   },
   miragegrid: {
     one_line:
-      "Assign a short-lived session node and cite Cap-7 mesh-name metadata from a factory that is not a public ICANN registrar. Cap-7 geo, sticky session, and land rotation are LIVE on the Cap-7 plane, not a public egress IP, not a residential IP, and not AZVPN.",
+      "Cap-7 active use is ON. Assign a short-lived session node and cite Cap-7 mesh-name metadata from a factory that is still not a public ICANN registrar. Cap-7 geo, sticky session, and land rotation are LIVE on the Cap-7 plane, not a public egress IP, not a residential IP, and not AZVPN.",
     description:
-      `Use MirageGrid to assign a short-lived session node and cite Cap-7 mesh-name metadata. The Cap-7 factory is not a public ICANN registrar. It exists for Cap-7 control-plane assignment. geo-target, session-stick, and egress-rotate are LIVE on the Cap-7 plane (region label, sticky mesh node and factory land, land rotate among 7 sites). ${CAP7_PLANE_BOUNDARY} ${CAP7_PUBLIC_WORKER_LIVE} vpn-hop, hop, tunnel, and mesh stay stub. AZVPN remains the suite VPN. Track 2 carriers (${D2D_ORDER_ARROW}) stay NOT-READY and FG-STUB on this public door. Local LAN discovery is a separate node path.`,
+      `Cap-7 active use is ON. Still not ICANN. Use MirageGrid to assign a short-lived session node and cite Cap-7 mesh-name metadata. The Cap-7 factory is not a public ICANN registrar. It exists for Cap-7 control-plane assignment. geo-target, session-stick, and egress-rotate are LIVE on the Cap-7 plane (region label, sticky mesh node and factory land, land rotate among 7 sites). ${CAP7_PLANE_BOUNDARY} ${CAP7_PUBLIC_WORKER_LIVE} vpn-hop, hop, tunnel, and mesh stay stub. AZVPN remains the suite VPN. Track 2 carriers (${D2D_ORDER_ARROW}) stay NOT-READY and FG-STUB on this public door. Local LAN discovery is a separate node path.`,
   },
   mmconsensus: {
     one_line: "Tally consensus from opinions you already posted.",
