@@ -23,6 +23,7 @@ QNM-WP-1.0                                                                      
    • Not a VPN, mixnet, or anonymity network.
    • Not AZMail’s ring, not AZNet, not anon-broadcast.
    • Not a Softwares-tab engine. Not enabled by GET /v1/mesh.
+   • Cap-7 factory name-plane active use is LIVE for mesh DNS coordination. Cap-7 is not public ICANN and is not a public egress IP. GET /v1/mesh still never enables.
 
  2. Two planes
   Plane                                Default                                Law

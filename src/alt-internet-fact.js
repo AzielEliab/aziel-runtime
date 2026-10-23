@@ -9,7 +9,7 @@
  */
 
 import { hostHardwareVisible, readMachineId, track2CarrierProbe } from "../qnm-node/bearers/radio.js";
-import { QNM_NAMED_LIVE } from "./qnm-honesty.js";
+import { cap7Honesty, QNM_NAMED_LIVE } from "./qnm-honesty.js";
 
 const RADIO_ABSENT = "QNM-RADIO-ABSENT";
 const ORDER = ["lan", "wifi", "bluetooth", "rf", "photon"];
@@ -21,7 +21,7 @@ const TAIL = [
   "Radio PHY is not live (radio_phy is false). Absent radios refuse QNM-RADIO-ABSENT. No mock radio.",
   "Still missing: a packet that leaves this machine and arrives on a different machine id.",
   "A same-machine mesh frame does not count.",
-  "Cap-7 and .aziel stay names, not a public registrar and not ICANN or BGP.",
+  "Cap-7 factory name-plane is LIVE for active use. cap7_live, cap7_factory_live, and cap7_active_use are true. Cap-7 is not a public registrar and not ICANN or BGP.",
   "WireGuard, OpenVPN, an L3 exit pool, kernel UDP, and TUN/TAP stay SLOT.",
   "Public mail send, the kernel, and boot stay not live.",
   "The public door stays FG-STUB.",
@@ -168,8 +168,7 @@ function pack(sentence, extra) {
     public_mail_send_live: false,
     kernel_live: false,
     boot_live: false,
-    cap7_name_only: true,
-    public_icann: false,
+    ...cap7Honesty(),
     bgp: false,
     worker_hardware: false,
     host_hardware_visible: extra.visible === true,

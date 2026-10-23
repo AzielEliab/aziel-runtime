@@ -58,7 +58,7 @@ This design adds node participation and multi-party receipt sharing. It does not
 
 `GET /v1/mesh` never enables. That Remain-OFF item is not cancelled by QNM OVERRIDE 2026-10-23.
 
-`mesh_node_live`, `alt_internet_live`, and `packet_path_live` earn LIVE together per the QNM definition: a packet leaves this machine and arrives on a different machine id (`src/alt-internet-fact.js`). Unqualified is not a permanent paint of false. Cap-7 and `.aziel` stay names. They are not ICANN.
+`mesh_node_live`, `alt_internet_live`, and `packet_path_live` earn LIVE together per the QNM definition: a packet leaves this machine and arrives on a different machine id (`src/alt-internet-fact.js`). Unqualified is not a permanent paint of false. Cap-7 factory name-plane active use is LIVE. Cap-7 and `.aziel` are not ICANN. `cap7_names_only` is not a stay-off of that factory.
 
 ## 5. Minimal Additions (No Feature Loss)
 

@@ -1,6 +1,6 @@
 /**
  * Phase A device-to-device packet plane.
- * Cap-7 stays the name plane. Packet carriers stay NOT-READY / FG-STUB.
+ * Cap-7 factory name-plane active use is LIVE and is not ICANN. Packet carriers stay NOT-READY / FG-STUB.
  * Author: Aziel Eliab.
  */
 import assert from "node:assert/strict";
@@ -163,6 +163,13 @@ assert.equal(live.d2d_carriers.code, "FG-STUB");
 assert.equal(live.d2d_carriers.alt_internet_live, true);
 assert.equal(live.d2d_carriers.packet_path_live, true);
 assert.equal(live.d2d_carriers.cap7_is_name_plane, true);
+assert.equal(live.d2d_carriers.cap7_live, true);
+assert.equal(live.d2d_carriers.cap7_factory_live, true);
+assert.equal(live.d2d_carriers.cap7_active_use, true);
+assert.equal(live.d2d_carriers.cap7_public_icann, false);
+assert.equal(live.d2d_carriers.dns_publish, false);
+assert.equal(live.d2d_carriers.paid_registrar, false);
+assert.equal(live.d2d_carriers.public_egress_ip, false);
 assert.equal(live.d2d_carriers.lan_discovery, "LIVE-when-armed");
 assert.equal(live.d2d_carriers.peer_tunnel, "LIVE-when-session");
 assert.equal(live.d2d_carriers.rf_discovery, "REFUSE-without-HW");

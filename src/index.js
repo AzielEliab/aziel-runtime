@@ -754,7 +754,7 @@ const PRODUCTS_RAW = [
       { op: "attach", method: "POST", summary: "Accept images, video, documents, archives, links, and other files. Scan and airgap before use." },
       { op: "crawl", method: "POST", summary: "Crawl or index only when the person asks. Records what was fetched. Does not rewrite published papers." },
       { op: "human_check", method: "POST", summary: "Stop at a captcha or are-you-a-robot check and leave it to the person." },
-      { op: "cap7_lookup", method: "POST", summary: "Cap-7 and .aziel names only. A found name is not the public site being up." },
+      { op: "cap7_lookup", method: "POST", summary: "Cap-7 name-plane lookup. Factory active use is LIVE. A found name is not the public site being up and is not an ICANN registration." },
       { op: "score_gate", method: "POST", summary: "Triad, physics, math, and geometry scores can block a claim. A score is not a source." },
       { op: "corpus_note", method: "POST", summary: "Keep a note beside a published paper. The published text is not rewritten." },
       { op: "receipt_learn", method: "POST", summary: "Score and rank sealed receipts and keep their original usage order." },

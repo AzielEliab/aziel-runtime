@@ -21,6 +21,7 @@ import { newUserHintsHtml } from "../mesh-onboard.js";
 import { DESIGN_TOKENS } from "./design-tokens.js";
 import { tokensCss } from "./tokens-css.js";
 import { LOCKSTEP_SPEC, LOCKSTEP_PATH, LOCKSTEP_CODES, hashOf, sha256Hex } from "./consumer.js";
+import { CAP7_ACTIVE, CAP7_LOCKS } from "../qnm-honesty.js";
 
 /** Public Ed25519 key of the runtime tether signer. Public, not a secret; both legs pin the same value. */
 export const TETHER_PUBKEY = "C9Psex_Bf8uG_nCwIeiskejJaBYUSYn7lHkPm4qV6Ik";
@@ -41,6 +42,8 @@ export function buildLockstepContract(products) {
     installed: SURFACE_HONESTY.installed === true,
     os_yet: SURFACE_HONESTY.os_yet === true,
     mesh_node_live: true,
+    ...CAP7_ACTIVE,
+    ...CAP7_LOCKS,
     one_click_install_live: false,
     witness_dual: false,
     receipts_signed: false,
