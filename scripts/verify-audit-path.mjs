@@ -6,7 +6,7 @@
  */
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { memorySessionNamespace } from "../src/session-do.js";
+import { memorySessionNamespace, RuntimeSession } from "../src/session-do.js";
 import { isSessionMutatePath, RECEIPT_CAP } from "../src/production.js";
 import { RUNTIME_VERSION } from "../src/runtime-api.js";
 import { PUBLIC_MCP_TOOLS } from "../src/fraggate/codes.js";
@@ -240,6 +240,131 @@ function recordFor(exec) {
   const out = await applyClose(s, now(), { observerRecords: [] });
   ok(out.receipt.event === "close" && out.reconcile && out.reconcile.event === "reconcile" && s.receipts.length === RECEIPT_CAP - 2, "reconcile + close fit in the reserve");
   ok((await verifyChainStrict(s.receipts)).ok === true, "full recorder chain with no execs verifies");
+}
+
+// Commit re-gate: a path that drops between intent and commit must not seal a high-impact exec.
+{
+  function storage() {
+    const m = new Map();
+    return { get: async (k) => structuredClone(m.get(k)), put: async (k, v) => { m.set(k, structuredClone(v)); }, setAlarm: async () => {}, deleteAlarm: async () => {} };
+  }
+  async function call(obj, action, body, method = "POST") {
+    const res = await obj.fetch(new Request("https://do/" + action, method === "GET" ? { method } : { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body || {}) }));
+    return { status: res.status, body: await res.json() };
+  }
+  const dig = "ab".repeat(32);
+  const commitBody = (intent, extra = {}) => ({
+    intent,
+    status: 200,
+    latency_ms: 1,
+    request_digest: dig,
+    response_digest: dig,
+    response_bytes: 2,
+    content_type: "application/json",
+    engine: { mode: "local", true_engine_runtime: true, engine_digest: dig, engine_slug: intent.slug, engine_op: intent.op, ran_in: "aziel-runtime" },
+    ...extra,
+  });
+
+  const down = new RuntimeSession({ storage: storage() }, {});
+  const id = newSessionId();
+  ok((await call(down, "open", { id, version: "2.0.0-rc1", recorder: REC })).status === 200, "race session opens");
+  const intent = await call(down, "intent", { slug: "decisiongate", op: "check", payload: {}, payload_text: "{}" });
+  ok(intent.status === 200 && intent.body.intent && intent.body.intent.op === "check", "high-impact intent accepted while healthy");
+  ok((await call(down, "audit", { status: "down", reason: "between intent and commit" })).status === 200, "audit marks the path down before commit");
+  const refused = await call(down, "commit", commitBody(intent.body.intent));
+  ok(refused.status === 409 && refused.body.code === "AUDIT-PATH-DOWN" && refused.body.executed === false && refused.body.mutated === false, "commit refuses AUDIT-PATH-DOWN");
+  ok(refused.body.refused_receipt && refused.body.refused_receipt.sealed === true && refused.body.refused_receipt.code === "AUDIT-PATH-DOWN", "commit refusal sealed on the session");
+  ok(refused.body.refusal_receipt && refused.body.refusal_receipt.sealed === true && refused.body.refusal_receipt.code === "AUDIT-PATH-DOWN", "commit refusal sealed on the refusals chain");
+  const chain = await call(down, "receipts", null, "GET");
+  ok(!chain.body.receipts.some((r) => r.event === "exec"), "high-impact did not commit");
+  const row = chain.body.receipts[chain.body.receipts.length - 1];
+  ok(row.event === "refused" && row.payload.refusal.code === "AUDIT-PATH-DOWN" && row.payload.refusal.executed === false && row.audit_status === "unaudited" && row.audit_path.status === "down", "refused row is the only commit");
+  ok(chain.body.session.pending_intent == null, "pending intent dropped so the result cannot be sealed later");
+  ok(!chain.body.verified.errors.some((e) => e.error === "AUDIT-HIGH-IMPACT-UNAUDITED"), "no unaudited high-impact exec on the chain");
+  const replay = await call(down, "commit", commitBody(intent.body.intent));
+  ok(replay.status === 409 && replay.body.code === "intent_mismatch" && (await call(down, "receipts", null, "GET")).body.receipts.filter((r) => r.event === "exec").length === 0, "replaying the commit after the refusal still does not seal an exec");
+  const beat = "cd".repeat(32);
+  ok((await call(down, "audit", { status: "healthy", beat_hash: beat })).status === 200, "beat restores healthy");
+  const again = await call(down, "intent", { slug: "decisiongate", op: "check", payload: {}, payload_text: "{}" });
+  const sealed = await call(down, "commit", commitBody(again.body.intent));
+  ok(sealed.status === 200 && sealed.body.receipt.event === "exec" && sealed.body.receipt.audit_status === "audited" && sealed.body.receipt.audit_path.status === "healthy", "a new high-impact exec can commit once the path is healthy");
+
+  const degraded = new RuntimeSession({ storage: storage() }, {});
+  const id2 = newSessionId();
+  await call(degraded, "open", { id: id2, version: "2.0.0-rc1", recorder: REC });
+  const di = await call(degraded, "intent", { slug: "decisiongate", op: "evaluate", payload: {}, payload_text: "{}" });
+  await call(degraded, "audit", { status: "degraded", reason: "between intent and commit" });
+  const dd = await call(degraded, "commit", commitBody(di.body.intent));
+  ok(dd.status === 409 && dd.body.code === "AUDIT-PATH-DOWN" && !(await call(degraded, "receipts", null, "GET")).body.receipts.some((r) => r.event === "exec"), "degraded between intent and commit does not commit");
+
+  const read = new RuntimeSession({ storage: storage() }, {});
+  const id3 = newSessionId();
+  await call(read, "open", { id: id3, version: "2.0.0-rc1", recorder: REC });
+  const ri = await call(read, "intent", { slug: "decisiongate", op: "health", payload: {}, payload_text: "{}" });
+  await call(read, "audit", { status: "down", reason: "between intent and commit" });
+  const rc = await call(read, "commit", commitBody(ri.body.intent));
+  ok(rc.status === 200 && rc.body.receipt.event === "exec" && rc.body.receipt.audit_status === "unaudited" && rc.body.receipt.audit_path.status === "down", "a read that spans the outage still commits unaudited");
+
+  const plain = new RuntimeSession({ storage: storage() }, {});
+  const id4 = newSessionId();
+  await call(plain, "open", { id: id4, version: "2.0.0-rc1" });
+  const pi = await call(plain, "intent", { slug: "decisiongate", op: "check", payload: {}, payload_text: "{}" });
+  const pc = await call(plain, "commit", commitBody(pi.body.intent));
+  ok(pc.status === 200 && pc.body.receipt.event === "exec" && pc.body.receipt.audit_status == null && pc.body.receipt.audit_path == null, "no recorder: high-impact commit behaves as today");
+
+  const held = new RuntimeSession({ storage: storage() }, {});
+  const id5 = newSessionId();
+  await call(held, "open", { id: id5, version: "2.0.0-rc1", recorder: REC });
+  const hi = await call(held, "intent", { slug: "decisiongate", op: "check", payload: {}, payload_text: "{}" });
+  const hold = await call(held, "commit", commitBody(hi.body.intent, { engine_withheld: true }));
+  ok(hold.status === 409 && hold.body.code === "AUDIT-PATH-DOWN" && hold.body.refused_receipt && hold.body.refused_receipt.sealed === false, "withheld engine on a healthy path is not sealed as a down refusal");
+  const heldChain = await call(held, "receipts", null, "GET");
+  ok(!heldChain.body.receipts.some((r) => r.event === "exec" || r.event === "refused") && heldChain.body.session.pending_intent == null, "withheld engine wrote no exec and no refusal row");
+}
+
+// HTTP exec: audit lands after intent returns and before the engine. The result must not come back and must not be sealed.
+{
+  const base = memorySessionNamespace({});
+  const wrapped = new Map();
+  const sessionNs = {
+    idFromName: base.idFromName.bind(base),
+    getByName(name) { return this.get(base.idFromName(name)); },
+    get(id) {
+      const key = String(id);
+      if (wrapped.has(key)) return wrapped.get(key);
+      const obj = base.get(id);
+      const orig = obj.fetch.bind(obj);
+      const stub = {
+        async fetch(request) {
+          const action = new URL(request.url).pathname.replace(/^\//, "");
+          if (action === "intent" && request.method === "POST") {
+            const text = await request.clone().text();
+            const body = text ? JSON.parse(text) : {};
+            const res = await orig(request);
+            if (res.ok && body.slug === "decisiongate" && body.op === "check") {
+              await orig(new Request("https://session/audit", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ status: "down", reason: "between intent and commit" }) }));
+            }
+            return res;
+          }
+          return orig(request);
+        },
+      };
+      wrapped.set(key, stub);
+      return stub;
+    },
+  };
+  const raceEnv = { SESSION: sessionNs };
+  const o = await handler(new Request("https://rt.example/v1/session/open", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ recorder: REC }) }), raceEnv);
+  const opened = await o.json();
+  ok(o.status === 200 && opened.receipt.audit_path.status === "healthy", "http race session opens healthy");
+  const id = opened.session.id;
+  const res = await handler(new Request("https://rt.example/v1/session/" + id + "/exec", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ slug: "decisiongate", op: "check", payload: { statement: "write the file" } }) }), raceEnv);
+  const body = await res.json();
+  ok(res.status === 409 && body.code === "AUDIT-PATH-DOWN" && body.executed === false, "http exec refuses when the path drops before commit");
+  ok(body.result == null && body.exec == null, "engine result is not returned");
+  const listed = await handler(new Request("https://rt.example/v1/session/" + id + "/receipts"), raceEnv);
+  const rows = (await listed.json()).receipts;
+  ok(!rows.some((r) => r.event === "exec") && rows.some((r) => r.event === "refused" && r.payload.refusal.code === "AUDIT-PATH-DOWN"), "http exec did not commit the high-impact op");
 }
 
 console.log(`verify-audit-path: ${n} checks ok (RIB-055 / AZRT-AUDIT-PATH-1.0; hash-linked and sealed, not signed)`);

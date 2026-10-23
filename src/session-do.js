@@ -45,6 +45,20 @@ function fail(err) {
   );
 }
 
+/** RIB-018: AUDIT-PATH-DOWN on the internal refusals chain. Only when the session row itself was sealed. */
+async function attachAuditDoorRefusal(env, err) {
+  if (!err || err.code !== "AUDIT-PATH-DOWN") return;
+  if (!err.extra || !err.extra.refused_receipt || err.extra.refused_receipt.sealed !== true) return;
+  let refusal_receipt;
+  try {
+    const { sealDoorRefusal } = await import("./refusal-doors.js");
+    refusal_receipt = await sealDoorRefusal(chainlockStoreFor(env), { surface: "runtime", door: "session-exec", code: "AUDIT-PATH-DOWN", reason: null, method: "POST", route: "/v1/session/{id}/exec", status: 409 }, { budgetMs: 2000 });
+  } catch {
+    refusal_receipt = { sealed: false, status: "unavailable" };
+  }
+  err.extra = { ...(err.extra || {}), refusal_receipt };
+}
+
 /** Issuer-only gate for pause/resume. Refuses before any row is written, so the chain is unchanged. */
 async function assertIssuerFor(session, key, stamp) {
   const { assertIssuer } = await import("./issuer-append.js");
@@ -104,7 +118,7 @@ export class RuntimeSession {
 
   /**
    * R6: one mutation at a time per session object. Every POST (open/policy/intent/commit/change/stale/revoke/
-   * pause/resume/close) and the TTL alarm run through this queue, so a load -> append -> save can never
+   * pause/resume/audit-gate/close) and the TTL alarm run through this queue, so a load -> append -> save can never
    * interleave with another (a concurrent change/policy + close cannot lose an acknowledged row).
    */
   serialize(fn) {
@@ -148,6 +162,9 @@ export class RuntimeSession {
       }
       if (action === "commit" && request.method === "POST") {
         return await this.commit(await readJson(request));
+      }
+      if (action === "audit-gate" && request.method === "POST") {
+        return await this.auditGate(await readJson(request));
       }
       if (action === "receipt" && request.method === "GET") {
         return await this.receipt();
@@ -313,16 +330,7 @@ export class RuntimeSession {
     } catch (err) {
       // RIB-018: a refusal that appended a `refused` receipt is persisted before the error returns.
       if (err && err.sessionDirty) await this.save(session);
-      if (err && err.code === "AUDIT-PATH-DOWN") {
-        let refusal_receipt;
-        try {
-          const { sealDoorRefusal } = await import("./refusal-doors.js");
-          refusal_receipt = await sealDoorRefusal(chainlockStoreFor(this.env), { surface: "runtime", door: "session-exec", code: "AUDIT-PATH-DOWN", reason: null, method: "POST", route: "/v1/session/{id}/exec", status: 409 }, { budgetMs: 2000 });
-        } catch {
-          refusal_receipt = { sealed: false, status: "unavailable" };
-        }
-        err.extra = { ...(err.extra || {}), refusal_receipt };
-      }
+      await attachAuditDoorRefusal(this.env, err);
       throw err;
     }
     await this.save(session);
@@ -332,30 +340,47 @@ export class RuntimeSession {
   async commit(body) {
     const session = await this.expireIfNeeded(await this.load());
     const now = new Date().toISOString();
-    const receipt = await commitExec(
-      session,
-      {
-        intent: body.intent,
-        status: body.status,
-        latencyMs: body.latency_ms,
-        requestDigest: body.request_digest,
-        responseDigest: body.response_digest,
-        error: body.error || null,
-        upstream: body.upstream || null,
-        responseBytes: body.response_bytes,
-        contentType: body.content_type,
-        engine: body.engine || null,
-        request_id: body.request_id,
-        attempt_n: body.attempt_n,
-        parent_receipt_id: body.parent_receipt_id,
-        correlation_id: body.correlation_id,
-        outcome: body.outcome,
-        additive: body,
-      },
-      now,
-    );
-    await this.save(session);
-    return json({ ok: true, session: publicSession(session), receipt });
+    try {
+      const receipt = await commitExec(
+        session,
+        {
+          intent: body.intent,
+          status: body.status,
+          latencyMs: body.latency_ms,
+          requestDigest: body.request_digest,
+          responseDigest: body.response_digest,
+          error: body.error || null,
+          upstream: body.upstream || null,
+          responseBytes: body.response_bytes,
+          contentType: body.content_type,
+          engine: body.engine || null,
+          request_id: body.request_id,
+          attempt_n: body.attempt_n,
+          parent_receipt_id: body.parent_receipt_id,
+          correlation_id: body.correlation_id,
+          outcome: body.outcome,
+          additive: body,
+        },
+        now,
+      );
+      await this.save(session);
+      return json({ ok: true, session: publicSession(session), receipt });
+    } catch (err) {
+      if (err && err.sessionDirty) await this.save(session);
+      await attachAuditDoorRefusal(this.env, err);
+      throw err;
+    }
+  }
+
+  /** Read-only, serialized with audit. High-impact work does not start when the path is already not healthy. */
+  async auditGate(body = {}) {
+    const session = await this.load();
+    const { isHighImpactOp, currentHealth, recorderFrom } = await import("./audit-path.js");
+    const recorder = recorderFrom(session && session.receipts);
+    const status = currentHealth(session && session.receipts);
+    const high = isHighImpactOp(body && body.slug, body && body.op);
+    const block = Boolean(recorder) && high && status !== "healthy";
+    return json({ ok: true, block, status: status || null, high_impact: high, written: false, executed: false });
   }
 
   async receipt() {

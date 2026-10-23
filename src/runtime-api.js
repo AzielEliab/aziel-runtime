@@ -1278,7 +1278,7 @@ export function runtimeStaticPaths() {
         operationId: "runtime_session_audit",
         security: [{ RuntimeToken: [] }],
         summary:
-          "RIB-055 / AZRT-AUDIT-PATH-1.0: seal recorder health { status: healthy | degraded | down, reason? }. Down and degraded need no beat. Returning to healthy requires beat_hash (sha256 of the recorder beat); the outage stays on the chain. Token-gated (REQUIRE_TOKEN=1). Refused SESSION-PAUSED while paused. A refused request appends no row. High-impact exec while the path is not healthy refuses AUDIT-PATH-DOWN before anything runs. Not an MCP tool. Cap-7 and .aziel locations stay names and are not resolved.",
+          "RIB-055 / AZRT-AUDIT-PATH-1.0: seal recorder health { status: healthy | degraded | down, reason? }. Down and degraded need no beat. Returning to healthy requires beat_hash (sha256 of the recorder beat); the outage stays on the chain. Token-gated (REQUIRE_TOKEN=1). Refused SESSION-PAUSED while paused. A refused request appends no row. High-impact exec while the path is not healthy refuses AUDIT-PATH-DOWN before anything runs, and again at commit if the path drops after intent: the exec receipt is not written. Not an MCP tool. Cap-7 and .aziel locations stay names and are not resolved.",
         tags: ["session"],
         parameters: [SESSION_ID_PARAM],
         requestBody: {
