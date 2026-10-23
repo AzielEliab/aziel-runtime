@@ -190,6 +190,12 @@ export class RuntimeSession {
       if (action === "spec" && request.method === "GET") {
         return await this.specState();
       }
+      if (action === "tip" && request.method === "GET") {
+        return await this.tip();
+      }
+      if (action === "party" && request.method === "POST") {
+        return await this.party(await readJson(request));
+      }
       if (action === "pause" && request.method === "POST") {
         return await this.pause(await readJson(request));
       }
@@ -363,6 +369,15 @@ export class RuntimeSession {
         },
         now,
       );
+      if (session.collab) {
+        try {
+          const { stampHandoff } = await import("./forensic-collab.js");
+          await stampHandoff(this.env, session, receipt);
+        } catch {
+          session.collab.stamp_ok = false;
+          session.collab.rewrite = false;
+        }
+      }
       await this.save(session);
       return json({ ok: true, session: publicSession(session), receipt });
     } catch (err) {
@@ -381,6 +396,21 @@ export class RuntimeSession {
     const high = isHighImpactOp(body && body.slug, body && body.op);
     const block = Boolean(recorder) && high && status !== "healthy";
     return json({ ok: true, block, status: status || null, high_impact: high, written: false, executed: false });
+  }
+
+  async tip() {
+    const session = await this.load();
+    if (!session) return json({ error: "session not found", code: "session_not_found" }, 404);
+    const { readTip } = await import("./forensic-collab.js");
+    return json(readTip(session));
+  }
+
+  async party(body = {}) {
+    const session = await this.expireIfNeeded(await this.load());
+    const { joinParty } = await import("./forensic-collab.js");
+    const out = await joinParty(this.env, session, body || {});
+    if (out.dirty) await this.save(session);
+    return json(out.body, out.status || 200);
   }
 
   async receipt() {

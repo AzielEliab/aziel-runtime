@@ -344,6 +344,8 @@ export function inferProductOp(pathname) {
   if (path === "/v1/session/{id}/close") return { op: "session.close" };
   if (path === "/v1/session/{id}/receipt") return { op: "session.receipt" };
   if (path === "/v1/session/{id}/receipts") return { op: "session.receipts" };
+  if (path === "/v1/session/{id}/tip") return { op: "session.tip" };
+  if (path === "/v1/session/{id}/party") return { op: "session.party" };
   if (path === "/v1/bundle" || path === "/v1/pull") return { op: "runtime.bundle" };
   if (path === "/v1/skill") return { op: "runtime.skill" };
   if (path === "/v1/runtime.json" || path === "/v1/runtime") return { op: "runtime.manifest" };
