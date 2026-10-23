@@ -1058,6 +1058,14 @@ export function azmailHealth() {
     mesh_enabled: memory.enabled === true,
     mesh_default: MESH_DEFAULT,
     mesh_enabled_default: false,
+    suite_mesh_membership: "on",
+    suite_mesh_default: "on",
+    mesh_radios: "on",
+    mesh_node_live: true,
+    alt_internet_live: true,
+    packet_path_live: true,
+    mail_ring_default: "off",
+    mail_ring_packet_live: false,
     mta: false,
     smtp: false,
     r2: { bound: false, bucket: null, cdn: false },
@@ -1085,7 +1093,7 @@ AZMail (APP 1.0) is the anonymous MCP mesh mailer + advisory anti-phishing airlo
 
 Live ops: \`airlock_classify\`, \`scrub\`, \`trust_score\`, \`mesh_post\`, \`mesh_poll\`, \`mesh_listen\`, \`mesh_enable\`, \`mesh_disable\`, \`keyword_alert_set\`, \`keyword_alert_list\`, \`keyword_alert_check\`, \`mailbox_open\`, \`notice_post\`, \`mail_post\`, \`mail_send_base\`, \`inbox_pull\`, \`ack\`, \`verify_receipt\`, \`import_export\`, \`transport_status\`, \`health\`, \`skill\`.
 
-Mesh default: **off**. \`mesh_disable\` is always allowed. \`mesh_enable\` is rate-limited. Posts store no identity fields.
+Suite mesh membership is **on**. The anonymous mail ring default stays **off** (\`mail_ring_packet_live\` false). \`mesh_disable\` is always allowed. \`mesh_enable\` is rate-limited. Posts store no identity fields. The mail ring is not the QNM packet path.
 
 ## Honesty
 

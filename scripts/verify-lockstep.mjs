@@ -38,11 +38,12 @@ if (canonicalize(snap) !== canonicalize(doc)) {
 n++;
 ok((await hashOf(snap.contract)) === snap.contract_sha256, "snapshot contract hash");
 
-// 2. locks unchanged, every live flag false
+// 2. locks unchanged. The three QNM named flags are true. Every other flag stays false.
 const c = buildLockstepContract(PRODUCTS);
 assert.deepEqual(c.locks, { softwares: 42, mcp_tools: 36, stub_op_count: 363, software_count: 33, health_count: 41 }); n++;
 ok(c.runtime.version === "2.0.0-rc1", "version");
-for (const [k, v] of Object.entries(c.flags)) ok(v === false, `flag ${k} must stay false until the code does it`);
+const namedLive = new Set(["mesh_node_live", "alt_internet_live", "packet_path_live"]);
+for (const [k, v] of Object.entries(c.flags)) ok(v === namedLive.has(k), namedLive.has(k) ? `flag ${k} is ON` : `flag ${k} stays false`);
 ok(c.doors.mcp_tools.length === 36 && c.doors.door === "fraggate", "doors");
 ok(c.chains.lattice_names.join() === "primary,secondary" && /^0{64}$/.test(c.chains.lattice_genesis), "lattice names + genesis");
 ok(c.chains.tether_chains.includes("refusals") && c.chains.anchor_chains.includes("session"), "chains");
@@ -64,7 +65,7 @@ const pinned = { contract: snap.contract, contract_sha256: snap.contract_sha256,
 const local = { tether_pubkey: c.chains.tether_pubkey, lattice_names: ["primary", "secondary"], mesh_path: "/v1/mesh", mesh_spec: c.mesh.spec };
 let v = await verifyLockstep({ leg: "t", pinned, fetchDoc: async () => served, local });
 ok(v.state === "agree" && v.code === LOCKSTEP_CODES.agree, "agree");
-ok(Object.values(v.flags).every((x) => x === false), "agree still shows false flags (contract says false)");
+ok(Object.values(v.flags).every((x) => x === false), "agree without leg proof still displays false");
 v = await verifyLockstep({ leg: "t", pinned, fetchDoc: async () => { throw new Error("down"); }, local });
 ok(v.state === "absent" && v.ok === false && v.standalone === true, "absent: throw");
 v = await verifyLockstep({ leg: "t", pinned, fetchDoc: async () => null, local });
@@ -74,7 +75,7 @@ ok(v.state === "absent", "absent: timeout");
 const moved = structuredClone(served); moved.contract.locks.softwares = 43; moved.contract_sha256 = await hashOf(moved.contract);
 v = await verifyLockstep({ leg: "t", pinned, fetchDoc: async () => moved, local });
 ok(v.state === "drift" && v.code === LOCKSTEP_CODES.drift, "drift: runtime contract moved");
-const forged = structuredClone(served); forged.contract.flags.alt_internet_live = true;
+const forged = structuredClone(served); forged.contract.flags.alt_internet_live = false;
 v = await verifyLockstep({ leg: "t", pinned, fetchDoc: async () => forged, local });
 ok(v.state === "drift" && v.code === LOCKSTEP_CODES.bad && v.flags.alt_internet_live === false, "forged flag with stale hash refused");
 v = await verifyLockstep({ leg: "t", pinned, fetchDoc: async () => ({ ...served, tokens_sha256: "0".repeat(64) }), local });

@@ -11,8 +11,9 @@ import { HINTS_STYLE } from "./lockstep/tokens-css.js";
  * classes). Each install gets its own node id <slug>-<version>-<random>, so every app version is
  * its own node. Security model: single-node isolation plus the phoenix reboot loop. A node can
  * join as isolated, and a node that is wiped rejoins with a new id; nothing is shared between nodes.
- * Honest flags: live:false, alt_internet_live:false, needs_starting_address:true,
- * live_multi_provider:false (one provider until nodes B-D exist).
+ * Honest flags: the three QNM named flags are true. live stays false
+ * (one provider until nodes B-D exist). second_device stays false.
+ * needs_starting_address:true. live_multi_provider:false. Radio PHY is not live.
  * Author: Aziel Eliab. SPDX-License-Identifier: Apache-2.0
  */
 
@@ -23,7 +24,7 @@ export const NEW_USER_HINTS = Object.freeze([
   Object.freeze({ id: "welcome", when: "first_run", title: "Welcome", text: "This app is now a mesh node. It shares presence only, not your files." }),
   Object.freeze({ id: "isolated", when: "first_run", title: "Stay private", text: "Pick isolated to keep this node to itself. You can change it any time." }),
   Object.freeze({ id: "heartbeat", when: "first_run", title: "Battery", text: "Idle checks in every few minutes. Asleep checks in less often to save battery." }),
-  Object.freeze({ id: "not_live", when: "first_run", title: "Honest status", text: "The alternate internet is not live yet. This node is ready for it." }),
+  Object.freeze({ id: "not_live", when: "first_run", title: "Honest status", text: "The alternative internet is live (alt_internet_live is true). The packet path is live (packet_path_live is true). A mesh node is live (mesh_node_live is true). Radio PHY is not live. A second device stays false until a packet leaves this machine." }),
   Object.freeze({ id: "agents", when: "first_run", title: "Your AI agents", text: "This is designed to let your agents talk to other agents. Messages are designed to be sealed and signed, with a hash-only receipt (hashed, not encrypted). Nothing links without your OK. Not live yet." }),
   Object.freeze({ id: "leave", when: "settings", title: "Leave any time", text: "Leaving removes this node. Reinstalling makes a new one." }),
 ]);
@@ -32,7 +33,15 @@ const SLUG_RE = /^[a-z0-9][a-z0-9-]{0,40}$/;
 const VER_RE = /^[0-9A-Za-z.+-]{1,24}$/;
 
 function honest() {
-  return { live: false, alt_internet_live: false, packet_path_live: false, second_device: false, live_multi_provider: false };
+  return {
+    live: false,
+    mesh_node_live: true,
+    alt_internet_live: true,
+    packet_path_live: true,
+    second_device: false,
+    live_multi_provider: false,
+    radio_phy: false,
+  };
 }
 
 /** Same host rule as the catalog (index.js workerHost). */
@@ -374,7 +383,7 @@ export function installScript(plan) {
     `  ${NOT_YET}`,
     "fi",
     ...plan.hints.filter((h) => h.when === "first_run" && h.id !== "welcome").map((h) => `echo ${shq("Tip: " + h.text)}`),
-    "echo 'The alternate internet is not live yet. This node is ready for it.'",
+    "echo 'The alternative internet is live (alt_internet_live is true). The packet path is live (packet_path_live is true). A mesh node is live (mesh_node_live is true). Radio PHY is not live.'",
     "",
   ];
   return lines.join("\n");

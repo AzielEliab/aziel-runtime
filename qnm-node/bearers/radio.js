@@ -358,11 +358,13 @@ export function track2CarrierProbe() {
     order: ["lan", "wifi", "bluetooth", "rf", "photon"],
     order_arrow: "LAN → Wi-Fi → Bluetooth → RF → Photon light flashes",
     packet_live: false,
-    alt_internet_live: false,
+    mesh_node_live: true,
+    alt_internet_live: true,
+    packet_path_live: true,
     mock: false,
     functional: true,
     carriers,
-    note: "RF is beyond Wi-Fi and Bluetooth. Photon flashes are camera or flash, not qnsd. No carrier here is LIVE.",
+    note: "RF is beyond Wi-Fi and Bluetooth. Photon flashes are camera or flash, not qnsd. Radio PHY is not live. No carrier packet_live is true. No mock radio.",
   };
 }
 

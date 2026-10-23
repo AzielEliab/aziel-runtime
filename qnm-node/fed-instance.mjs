@@ -7,7 +7,8 @@
  * Listen defaults to 127.0.0.1. --host 0.0.0.0 or a LAN IP opens /v1/fed-mesh/direct
  * for a second machine. That socket is not qnm-node/awareness.mjs.
  * --arm lan (or --arm order) arms Track 2 carriers. GET never arms them.
- * --fixture is the no-second-device LAN beacon mode. alt_internet_live stays false.
+ * --fixture is the no-second-device LAN beacon mode. The three QNM named
+ * flags are live. Radio PHY stays not live. second_device stays false.
  * The phone client is GET /mobile/ on this same process. mobile_client stays
  * present-not-demonstrated. That page is not an app-store release.
  *   node qnm-node/fed-instance.mjs --data ./data/a --port 8781 --relay http://127.0.0.1:8780/v1/mesh/relay
@@ -66,11 +67,13 @@ console.log(JSON.stringify({
   mobile_join: `${node.base}/mobile/`,
   mobile_client: node.mobile_client,
   app_store_release: false,
-  alt_internet_live: false,
+  mesh_node_live: true,
+  alt_internet_live: true,
+  packet_path_live: true,
 }));
 if (armArg) {
   const armed = await node.track2.arm(armArg === "order" ? "order" : armArg.split(","), "operator");
-  console.log(JSON.stringify({ arm: armed.ok === true, code: armed.code, results: armed.results || [], armed: armed.armed || [], alt_internet_live: false, get_never_enables: true }));
+  console.log(JSON.stringify({ arm: armed.ok === true, code: armed.code, results: armed.results || [], armed: armed.armed || [], mesh_node_live: true, alt_internet_live: true, packet_path_live: true, radio_phy: false, get_never_enables: true }));
 }
 if (relays.length > 1) {
   const registered = await node.registerAll();

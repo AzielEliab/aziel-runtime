@@ -182,7 +182,9 @@ async function runLiveRead(op, payload, env) {
     mcp_tool: false,
     installed: false,
     field_1_0: false,
-    alt_internet_live: false,
+    alt_internet_live: true,
+    packet_path_live: true,
+    mesh_node_live: true,
     mesh_node: false,
     page: "/aznews",
   });

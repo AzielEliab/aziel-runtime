@@ -545,7 +545,7 @@ function dashCardHtml(p, origin) {
         : p.slug === "embryolock"
           ? `<p class="hint">Public door is health, policy, and hash cite. wipe, scorch, and unlock stay disabled on this mesh.</p>`
             : p.slug === "azchat"
-            ? `<p class="hint">LIVE+bound. Product mesh hop starts off. Suite mesh is a separate surface.</p>`
+            ? `<p class="hint">LIVE+bound. Suite mesh membership is on. mesh_join stays stub.</p>`
             : p.slug === "azvpn"
               ? `<p class="hint" id="azvpn-always-on" data-azvpn-desk="always-on">VPN on at boot. This desk has no off switch.</p>`
               : "";
@@ -885,7 +885,7 @@ ${dashCards}
     <h3>Mesh status</h3>
     <p class="hint" id="desk-hint-mesh">What is this desk: who is on the mesh. Refresh reads status. Join needs a product slug. GET does not turn radios on. Ask Jeeves can point here. This panel stays.</p>
     ${meshHonestyHtml()}
-    <p>The packet path is not live. The alternative internet is not live. Device-to-device packet carriers stay NOT-READY. WARN-5 stands. WireGuard, OpenVPN, L3, kernel UDP, and TUN-TAP stay SLOT. VeilLock stays local_only. Whitestone is worker-only and has no public door. Public smtp_send stays refused. Internet base is present. Not live. Public send stays refused. Not an OS yet. The kernel base is present. It has not booted a machine.</p>
+    <p>The packet path is live. The alternative internet is live. A mesh node is live. Radio PHY is not live. Device-to-device packet carriers stay NOT-READY. WARN-5 stands. WireGuard, OpenVPN, L3, kernel UDP, and TUN-TAP stay SLOT. VeilLock stays local_only. Whitestone is worker-only and has no public door. Public smtp_send stays refused. Internet base is present. The alternative internet is live. The packet path is live. A mesh node is live. Radio PHY is not live. Public send stays refused. Not an OS yet. The kernel base is present. It has not booted a machine.</p>
     <details>
       <summary>Counts behind those sentences</summary>
       <p class="blurb"><strong>Nodes</strong> from <code>nodes</code> / <code>rollup.nodes</code> count human mesh users plus cited human uses (<code>human_uses</code> / USES). <code>nodes_are_not_unique_humans</code>. Do not paint nodes or <code>human_uses</code> as people. Unique humans are <code>human_mesh_users</code> and <code>human_nodes</code>. <strong>Live Nodes</strong> from <code>live_nodes</code> / <code>rollup.mesh</code> count human mesh users plus concurrent website viewers (<code>site_live_viewers</code>) on godlock.uk + azieleliab.com + azielcorpuslibrary.net. Paint <code>live_nodes</code> / <code>rollup.mesh</code> only — do not add a local <code>/count</code>. <code>live_nodes_tip</code> is the seal. <code>rollup.live</code> is not published. Never paint <code>software_nodes</code>, <code>rollup.live</code>, <code>rollup.all.live</code>, or <code>rollup.software.live</code> as Live Nodes. <code>software_nodes</code> is the <code>{slug}-worker</code> roster. hedidntjump.com, bots, Softwares, and downloads are excluded. GET never pulls hub /count and never enables radios. Incomplete uses stay honest (no invented users). Channel plane cites wifi / bluetooth / rf / photon as cite/operator-armed (local qnm-node; <code>worker_hardware:false</code> — not live Worker RF). Nine QNM laws stay machine-true on that JSON. Join needs a catalog product. VPN on at boot. This desk has no off switch. WireGuard, OpenVPN, L3, kernel UDP, and TUN-TAP stay SLOT.</p>
@@ -1189,7 +1189,7 @@ export function fragGateDoorHtml(p, origin) {
     : "";
   const boundNote =
     p.slug === "azchat"
-      ? `<p class="hint">LIVE+bound. Product mesh hop starts off. Suite mesh is a separate surface.</p>`
+      ? `<p class="hint">LIVE+bound. Suite mesh membership is on. mesh_join stays stub.</p>`
         : p.slug === "embryolock"
         ? `<p class="hint">wipe, scorch, and unlock stay on the device. The disabled verbs do not run on this public mesh.</p>`
         : p.slug === "azvpn"

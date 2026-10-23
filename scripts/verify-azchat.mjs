@@ -1,5 +1,5 @@
 /**
- * AZChat 0.1.0 — T-CHAT-01..04. Mesh default off. Not AZMail.
+ * AZChat 0.1.0 — T-CHAT-01..04. Suite mesh membership on. Not AZMail.
  * Author: Aziel Eliab.
  */
 import assert from "node:assert/strict";
@@ -20,7 +20,7 @@ assert.ok(product, "azchat is a catalog product");
 assert.equal(product.name, "AZChat");
 assert.equal(product.worker, "azchat-download-tracker");
 assert.equal(product.version, VERSION);
-assert.equal(MESH_ENABLED_DEFAULT, false);
+assert.equal(MESH_ENABLED_DEFAULT, true);
 assert.match(product.oneLine, /all-rooms list/);
 assert.match(product.oneLine, /passphrase/);
 assert.match(product.banner, /AZChat product contract/);
@@ -63,7 +63,7 @@ assert.equal(classifyCall(registry.bySlug.azchat, "bridge_azmail").kind, "stub")
 const health = await executeLocal({ slug: "azchat", op: "health", payload: {}, ranIn: "aziel-runtime" });
 const healthBody = JSON.parse(health.responseText);
 assert.equal(healthBody.ok, true);
-assert.equal(healthBody.mesh_enabled_default, false);
+assert.equal(healthBody.mesh_enabled_default, true);
 assert.equal(healthBody.azmail_bridge, false);
 assert.equal(healthBody.r2.bound, false);
 

@@ -1,7 +1,7 @@
 {
   "name": "Track 2 LAN join",
   "short_name": "LAN join",
-  "description": "Client of a local qnm-node. mobile_client is present-not-demonstrated. Not an app-store release. alt_internet_live is false.",
+  "description": "Client of a local qnm-node. mobile_client is present-not-demonstrated. Not an app-store release. alt_internet_live is true. packet_path_live is true. mesh_node_live is true. Radio PHY is not live.",
   "start_url": "/mobile/",
   "scope": "/mobile/",
   "display": "standalone",

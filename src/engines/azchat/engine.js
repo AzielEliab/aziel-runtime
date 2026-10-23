@@ -1,7 +1,7 @@
 /**
  * AZChat in-process engine (1.8.4 / 1.9.0).
  * Bitmesh-class spendable handles, ephemeral rooms, agent bus.
- * Mesh hop default OFF. Not SMTP. Not AZMail. Do not bridge.
+ * Suite mesh membership is on. mesh_join stays stub. Not SMTP. Not AZMail. Do not bridge.
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
 
@@ -15,10 +15,10 @@ export const VERSION = "0.1.0";
 export const SPEC = "AZC-CHAT-0.1";
 export const AUTHOR = "Aziel Eliab";
 export const ROLE = "spendable-handle rooms + agent bus";
-export const MOTTO = "Handles spend. Rooms seal. Mesh stays off.";
+export const MOTTO = "Handles spend. Rooms seal. Suite mesh membership is on.";
 export const AXES = Object.freeze(["handle", "room", "bus", "receipt"]);
 export const NEIGHBORS = Object.freeze(["azmail (not bridged)", "aznet", "peacelock"]);
-export const MESH_ENABLED_DEFAULT = false;
+export const MESH_ENABLED_DEFAULT = true;
 export const ROOM_TTL_DEFAULT_MS = 15 * 60 * 1000;
 export const ROOM_TTL_MAX_MS = 60 * 60 * 1000;
 export const TEXT_CAP = 2000;
@@ -57,8 +57,8 @@ export const STUB_REFUSE = Object.freeze([
 
 export const LIMITATION =
   "THIS IS: AZChat spendable handles, ephemeral rooms (TTL/sealed), and an agent bus. " +
-  "Reached only through FragGate. mesh_enabled_default is false. " +
-  "THIS IS NOT: SMTP, a public MTA, AZMail, a mesh hop, deanonymize, or a Chromium chat runner. " +
+  "Reached only through FragGate. mesh_enabled_default is true (suite membership). " +
+  "THIS IS NOT: SMTP, a public MTA, AZMail, a radio packet hop, deanonymize, or a Chromium chat runner. " +
   "Do not bridge AZChat ↔ AZMail. Stranger room_pull is 404. Author: Aziel Eliab only.";
 
 const store = {
@@ -129,14 +129,14 @@ export function azchatSkill() {
   return capabilitySkill({
     ...envelope(),
     lead:
-      "AZChat: spendable handles, ephemeral rooms, agent bus. Mesh hop default off. Not SMTP. Not AZMail. Do not bridge. Stranger room_pull is 404.",
+      "AZChat: spendable handles, ephemeral rooms, agent bus. Suite mesh membership is on. mesh_join stays stub. Not SMTP. Not AZMail. Do not bridge. Stranger room_pull is 404.",
   });
 }
 
 export function azchatDoctor() {
   return capabilityDoctor({
     ...envelope(),
-    doctor_note: "AZChat doctor: handles/rooms/bus only. Mesh stays off. Not a mailer.",
+    doctor_note: "AZChat doctor: handles/rooms/bus only. Suite mesh membership is on. mesh_join stays stub. Not a mailer.",
   });
 }
 

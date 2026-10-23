@@ -529,7 +529,7 @@ const htmlSurvival = await handler(new Request(origin + "/survival", { headers: 
 assert.match(htmlSurvival.headers.get("content-type") || "", /text\/html/);
 const htmlSurvivalText = await htmlSurvival.text();
 assert.match(htmlSurvivalText, /second_door is false/);
-assert.match(htmlSurvivalText, /alt_internet_live is false/);
+assert.match(htmlSurvivalText, /alt_internet_live is true/);
 assert.match(htmlSurvivalText, /FG-STUB/);
 assert.doesNotMatch(htmlSurvivalText.trim(), /^\{/);
 const v1Html = await handler(new Request(origin + "/v1/survival", { headers: { accept: "text/html" } }), {});

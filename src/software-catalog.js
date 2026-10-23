@@ -22,6 +22,7 @@ import { embeddedDigest } from "./engines/digest.js";
 import { JEEVES_SUITE_HELP } from "./engines/aziel-corpus/jeeves.js";
 import { LIVE_OPS, NAMED_STUBS, STUB_OPS, buildRegistry } from "./fraggate/registry.js";
 import { meshHint } from "./mesh.js";
+import { QNM_MEMBERSHIP, QNM_NAMED_LIVE, QNM_SEPARATED } from "./qnm-honesty.js";
 import { qnsHint } from "./qns.js";
 import { actReceiptHint } from "./library-receipts.js";
 import { survivalHint } from "./cross-network-survival.js";
@@ -111,6 +112,44 @@ export function compareSoftwareEntries(a, b) {
 
 export function sortSoftwareEntries(entries) {
   return (entries || []).slice().sort(compareSoftwareEntries);
+}
+
+/**
+ * Softwares-card mesh stamp. Membership, default enable, and MESH_RADIOS
+ * are on for every card. The three QNM named flags are on. Radio PHY and
+ * Cap-7 public ICANN stay false. Whitestone is not a software_nodes row.
+ */
+export function softwareMeshStamp(slug, { fanout = false } = {}) {
+  const stamp = {
+    mesh_default: QNM_MEMBERSHIP.mesh_default,
+    product_mesh: QNM_MEMBERSHIP.product_mesh,
+    mesh_membership: QNM_MEMBERSHIP.mesh_membership,
+    mesh_radios: QNM_MEMBERSHIP.mesh_radios,
+    radios: QNM_MEMBERSHIP.radios,
+    get_never_enables: QNM_MEMBERSHIP.get_never_enables,
+    ...QNM_NAMED_LIVE,
+    radio_phy: QNM_SEPARATED.radio_phy,
+    worker_hardware: QNM_SEPARATED.worker_hardware,
+    worker_radios_live: QNM_SEPARATED.worker_radios_live,
+    cap7_is_name_plane: QNM_SEPARATED.cap7_is_name_plane,
+    cap7_public_icann: QNM_SEPARATED.cap7_public_icann,
+    cap7_public_egress: QNM_SEPARATED.cap7_public_egress,
+    public_icann: QNM_SEPARATED.public_icann,
+    registrar_live: QNM_SEPARATED.registrar_live,
+    software_nodes_row: fanout === true,
+  };
+  if (slug === "azmail") {
+    stamp.mail_ring_default = "off";
+    stamp.mail_ring_packet_live = false;
+    stamp.mail_ring_note =
+      "Suite membership and the three QNM named flags are on. The anonymous mail ring stays default off and is not a packet path.";
+  }
+  if (slug === "whitestone") {
+    stamp.software_nodes_row = false;
+    stamp.fanout_note =
+      "worker_only. Not a {slug}-worker software_nodes row. Softwares tab 42 is not software_nodes.";
+  }
+  return stamp;
 }
 
 export function workerHostOf(product) {
@@ -400,13 +439,7 @@ export function liveSoftwareCard(product, origin, meta = {}) {
       : {}),
     ...(product.slug === "aziel-corpus" ? websiteDesignsOnCorpusCard(base) : {}),
     ...(product.slug === "aziel-corpus" ? { suite_help: JEEVES_SUITE_HELP } : {}),
-    ...(product.slug === "azchat"
-      ? {
-          mesh_default: "off",
-          product_mesh: "default_off",
-          suite_mesh_is_separate: true,
-        }
-      : {}),
+    ...softwareMeshStamp(product.slug, { fanout: true }),
   };
 }
 
@@ -464,6 +497,7 @@ export function workerOnlySoftwareCard(spec, origin, meta = {}) {
     mesh: meshHint("/v1/mesh"),
     qns_cd: qnsHint(),
     ...crossMapFields(spec.slug),
+    ...softwareMeshStamp(spec.slug, { fanout: false }),
   };
 }
 
@@ -503,6 +537,7 @@ export function stubSoftwareCard(spec, origin, meta = {}) {
     mesh: meshHint("/v1/mesh"),
     qns_cd: qnsHint(),
     ...crossMapFields(spec.slug),
+    ...softwareMeshStamp(spec.slug, { fanout: false }),
   };
 }
 

@@ -50,7 +50,7 @@ let r = await call("/v1/mesh/agents");
 let b = await r.json();
 assert.equal(r.status, 200); assert.equal(b.spec, "AGENT-SUBNET-1.0");
 assert.equal(b.live, false); assert.equal(b.agent_subnet.live, false); assert.equal(b.relay_sees_plaintext, false);
-assert.equal(b.alt_internet_live, false); assert.equal(b.second_device, false); assert.equal(b.new_mcp_tool, false); n++;
+assert.equal(b.live, false); assert.equal(b.mesh_node_live, true); assert.equal(b.alt_internet_live, true); assert.equal(b.packet_path_live, true); assert.equal(b.radio_carriers_live, false); assert.equal(b.second_device, false); assert.equal(b.new_mcp_tool, false); n++;
 
 // identities: two owners (independent users), three agents.
 const ownerA = await C.identityOf(await C.newKeys());

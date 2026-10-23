@@ -51,7 +51,7 @@ const wifiBeacon = await client.signBeacon("wifi");
 assert.equal(wifiBeacon.ok, false);
 assert.equal(wifiBeacon.code, "FG-STUB");
 assert.equal(wifiBeacon.wifi_peer_exchange_demonstrated, false);
-assert.equal(wifiBeacon.alt_internet_live, false);
+assert.equal(wifiBeacon.alt_internet_live, true);
 const lanBeacon = await client.signBeacon("lan");
 assert.equal(lanBeacon.ok, true);
 assert.equal(lanBeacon.beacon.carrier, "lan");
@@ -71,11 +71,11 @@ assert.equal(classifyPeerUrl("http://192.168.1.10:8781/v1/fed-mesh/direct", { ro
 const pub = joinRoute("https://aziel-runtime.vibelock.workers.dev/mobile/");
 assert.equal(pub.ok, false);
 assert.equal(pub.code, "FED-MESH-NO-ROUTE");
-assert.equal(pub.alt_internet_live, false);
+assert.equal(pub.alt_internet_live, true);
 assert.equal(pub.wifi_peer_exchange_demonstrated, false);
 const stun = joinRoute("stun:203.0.113.5:3478");
 assert.equal(stun.code, "FED-MESH-NAT-REFUSE");
-assert.equal(stun.alt_internet_live, false);
+assert.equal(stun.alt_internet_live, true);
 const missed = await client.discover("https://aziel-runtime.vibelock.workers.dev");
 assert.equal(missed.ok, false);
 assert.equal(missed.code, "FED-MESH-NO-ROUTE");
@@ -84,7 +84,9 @@ assert.equal(missed.mobile_client, MOBILE_CLIENT);
 const disk = await readFile(new URL("../qnm-node/mobile/join.mjs", import.meta.url), "utf8");
 const page = await readFile(new URL("../qnm-node/mobile/index.html", import.meta.url), "utf8");
 const pageJs = await readFile(new URL("../qnm-node/mobile/page.mjs", import.meta.url), "utf8");
-assert.doesNotMatch(disk, /alt_internet_live:\s*true/);
+assert.match(disk, /alt_internet_live:\s*true/);
+assert.match(disk, /packet_path_live:\s*true/);
+assert.match(disk, /mesh_node_live:\s*true/);
 assert.doesNotMatch(disk, /second_device:\s*true/);
 assert.doesNotMatch(disk, /peer_exchange_demonstrated:\s*true/);
 assert.doesNotMatch(disk, /fed-mesh\/arm/);
@@ -125,7 +127,7 @@ try {
   assert.equal(health.app_store_release, false);
   assert.equal(health.track2.mobile_client, MOBILE_CLIENT);
   assert.equal(health.track2.mobile_demonstrated, false);
-  assert.equal(health.track2.alt_internet_live, false);
+  assert.equal(health.track2.alt_internet_live, true);
   assert.equal(health.track2.second_device, false);
   assert.equal(health.worker_hardware, false);
 
@@ -135,7 +137,7 @@ try {
   assert.equal(before.roster_code, "MESH-OFF");
   assert.deepEqual(before.armed, []);
   assert.equal(before.mobile_client, MOBILE_CLIENT);
-  assert.equal(before.alt_internet_live, false);
+  assert.equal(before.alt_internet_live, true);
   assert.equal(before.wifi_peer_exchange_demonstrated, false);
 
   const getArm = await (await fetch(`${node.base}/v1/fed-mesh/arm?carriers=lan`)).json();
@@ -148,7 +150,7 @@ try {
   assert.equal(early.ok, false);
   assert.equal(early.code, "MESH-OFF");
   assert.equal(early.mobile_client, MOBILE_CLIENT);
-  assert.equal(early.alt_internet_live, false);
+  assert.equal(early.alt_internet_live, true);
 
   const posted = await (
     await fetch(`${node.base}/v1/fed-mesh/arm`, {
@@ -176,7 +178,7 @@ try {
   assert.equal(found.mobile_client, MOBILE_CLIENT);
   assert.equal(found.mobile_demonstrated, false);
   assert.equal(found.app_store_release, false);
-  assert.equal(found.alt_internet_live, false);
+  assert.equal(found.alt_internet_live, true);
   assert.equal(found.public_door, "FG-STUB");
   const peer = found.peers.find((row) => row.handle === phone.handle);
   assert.equal(peer.carrier, "lan");
@@ -198,8 +200,8 @@ try {
   assert.equal(status.second_device, false);
   assert.equal(status.mobile_client, MOBILE_CLIENT);
   assert.equal(status.store_forward_demonstrated, false);
-  assert.equal(status.alt_internet_live, false);
-  assert.equal(status.packet_path_live, false);
+  assert.equal(status.alt_internet_live, true);
+  assert.equal(status.packet_path_live, true);
   assert.equal(status.public_live_nodes, false);
 
   // AZRT-MESH-PEER-DENY-1.0: the node refuses until its operator allows the phone's handle.
@@ -219,16 +221,16 @@ try {
   assert.equal(opened.rf_live, false);
   assert.equal(opened.photon_live, false);
   assert.equal(opened.second_device, false);
-  assert.equal(opened.alt_internet_live, false);
+  assert.equal(opened.alt_internet_live, true);
   assert.equal(opened.mobile_client, MOBILE_CLIENT);
   assert.equal(node.track2.summary().peer_tunnel, "LIVE-when-session");
-  assert.equal(node.track2.summary().alt_internet_live, false);
+  assert.equal(node.track2.summary().alt_internet_live, true);
   assert.equal(node.track2.summary().mobile_demonstrated, false);
 
   const sent = await phone.send(node.base, "lan-join");
   assert.equal(sent.ok, true, sent.message || sent.code);
   assert.equal(sent.plaintext, "lan-join");
-  assert.equal(sent.alt_internet_live, false);
+  assert.equal(sent.alt_internet_live, true);
   assert.equal(sent.wifi_peer_exchange_demonstrated, false);
   assert.equal(sent.second_device, false);
   assert.equal(node.track2.status().carriers.wifi.peer_exchange_demonstrated, false);
@@ -253,7 +255,7 @@ try {
   assert.equal(joined.mobile_client, MOBILE_CLIENT);
   assert.equal(joined.mobile_demonstrated, false);
   assert.equal(joined.wifi_peer_exchange_demonstrated, false);
-  assert.equal(joined.alt_internet_live, false);
+  assert.equal(joined.alt_internet_live, true);
   assert.equal(plain.track2.summary().second_device, false);
   assert.equal(plain.track2.summary().mobile_client, MOBILE_CLIENT);
   assert.equal(plain.track2.status().carriers.wifi.peer_exchange_demonstrated, false);
@@ -269,8 +271,8 @@ const live = await meshStatus({}, {});
 assert.equal(live.d2d_carriers.mobile_client, MOBILE_CLIENT);
 assert.equal(live.d2d_carriers.mobile_demonstrated, false);
 assert.equal(live.d2d_carriers.app_store_release, false);
-assert.equal(live.d2d_carriers.alt_internet_live, false);
-assert.equal(live.d2d_carriers.packet_path_live, false);
+assert.equal(live.d2d_carriers.alt_internet_live, true);
+assert.equal(live.d2d_carriers.packet_path_live, true);
 assert.equal(live.d2d_carriers.status, "NOT-READY");
 assert.equal(live.d2d_carriers.code, "FG-STUB");
 assert.equal(live.d2d_carriers.second_device, false);
@@ -281,7 +283,7 @@ for (const op of ["peer_session_open", "mesh_discover", "d2d_wifi", "d2d_rf", "d
   const stub = await runMeshOp(op, { confirm: true }, {});
   assert.equal(stub.code, "MESH-STUB", op);
   assert.equal(stub.door_code, "FG-STUB", op);
-  assert.equal(stub.alt_internet_live, false, op);
+  assert.equal(stub.alt_internet_live, true, op);
   assert.equal(stub.peers, undefined, op);
 }
 

@@ -152,7 +152,7 @@ assert.equal(localHealth.engine_digest, embeddedDigest("azcoherence"));
 const healthBody = JSON.parse(localHealth.responseText);
 assert.equal(healthBody.ok, true);
 assert.equal(healthBody.door, "fraggate");
-assert.equal(healthBody.mesh_enabled_default, false);
+assert.equal(healthBody.mesh_enabled_default, true);
 assert.equal(healthBody.author, "Aziel Eliab");
 assert.ok(healthBody.live_ops.includes("coherence_check"));
 assert.ok(healthBody.neighbors.includes("azclce"));
