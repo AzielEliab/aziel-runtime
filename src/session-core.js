@@ -174,7 +174,8 @@ export async function appendReceipt(session, event, payload, nowIso, extra = {})
   }
   // R4 backstop: no non-close row may eat the close reserve (stale/revoke/pause/resume/refused included).
   if (!CLOSE_EVENTS.includes(event) && roomLeft(session) <= 0) {
-    throw sessionError(409, "receipt_cap", `session receipt cap ${RECEIPT_CAP} reached (the last ${CLOSE_RESERVE} slots are reserved for close)`, { receipt_count: (session.receipts || []).length, receipt_cap: RECEIPT_CAP, close_reserve: CLOSE_RESERVE, written: false });
+    const reserve = closeReserveFor(session);
+    throw sessionError(409, "receipt_cap", `session receipt cap ${RECEIPT_CAP} reached (the last ${reserve} slots are reserved for close)`, { receipt_count: (session.receipts || []).length, receipt_cap: RECEIPT_CAP, close_reserve: reserve, written: false });
   }
   // Close rows are never refused (a session must always be closable; legacy chains past the reserve still close).
   const prev = lastReceipt(session);
@@ -290,6 +291,10 @@ export async function verifyChainStrict(receipts, { trustedKeys = null } = {}) {
   const { verifyFrozenArtifacts } = await import("./frozen-artifacts.js");
   const frozen_artifacts = await verifyFrozenArtifacts(receipts);
   for (const e of frozen_artifacts.errors) errors.push({ seq: e.seq, error: e.code });
+  // RIB-055: recorder health, unaudited gaps, and harness reconcile. No recorder → no new errors.
+  const { verifyAuditPath } = await import("./audit-path.js");
+  const audit_path = await verifyAuditPath(receipts);
+  for (const e of audit_path.errors) errors.push({ seq: e.seq, error: e.code });
   // RIB-043: approver bound into gated exec rows; missing/altered fails closed.
   const { verifyApprover } = await import("./approver.js");
   const approver = await verifyApprover(receipts);
@@ -316,6 +321,7 @@ export async function verifyChainStrict(receipts, { trustedKeys = null } = {}) {
     receipt_signatures,
     approver,
     frozen_artifacts,
+    audit_path,
     dual_lattice: {
       ok: dual.ok,
       lattice_rows: dual.lattice_rows,
@@ -489,18 +495,47 @@ function requireOpen(session, nowIso) {
 
 /** R4: the last 2 slots under RECEIPT_CAP are reserved for close (delivery_check + close), so close always fits. */
 export const CLOSE_RESERVE = 2;
-export const CLOSE_EVENTS = Object.freeze(["delivery_check", "close"]);
+/** Harness rows that may use the close reserve. RIB-055 adds unaudited_gap + reconcile when a recorder was named. */
+export const CLOSE_EVENTS = Object.freeze(["delivery_check", "unaudited_gap", "reconcile", "close"]);
+
+function namedRecorder(session) {
+  const first = session && session.receipts && session.receipts[0];
+  return Boolean(first && first.recorder && first.recorder_hash);
+}
+
+/** Base reserve stays 2. A named recorder also seals unaudited_gap + reconcile, so close still fits. */
+export function closeReserveFor(session) {
+  return CLOSE_RESERVE + (namedRecorder(session) ? 2 : 0);
+}
+
+function auditPublic(session) {
+  const first = session && session.receipts && session.receipts[0];
+  if (!first || !first.recorder) return null;
+  let status = (first.audit_path && first.audit_path.status) || "down";
+  for (const r of session.receipts || []) {
+    if (r && r.event === "audit_path" && r.audit_path && r.audit_path.status) status = r.audit_path.status;
+  }
+  return {
+    spec: "AZRT-AUDIT-PATH-1.0",
+    observer_id: first.recorder.observer_id,
+    records_ref: first.recorder.records_ref,
+    status,
+    resolved: false,
+    names_only: first.recorder.names_only === true,
+  };
+}
 
 function roomLeft(session) {
-  return RECEIPT_CAP - CLOSE_RESERVE - ((session && session.receipts) || []).length;
+  return RECEIPT_CAP - closeReserveFor(session) - ((session && session.receipts) || []).length;
 }
 
 function requireReceiptRoom(session) {
+  const reserve = closeReserveFor(session);
   if (receiptCapReached(session) || roomLeft(session) <= 0) {
-    throw sessionError(409, "receipt_cap", `session receipt cap ${RECEIPT_CAP} reached (the last ${CLOSE_RESERVE} slots are reserved for close)`, {
+    throw sessionError(409, "receipt_cap", `session receipt cap ${RECEIPT_CAP} reached (the last ${reserve} slots are reserved for close)`, {
       receipt_count: (session.receipts || []).length,
       receipt_cap: RECEIPT_CAP,
-      close_reserve: CLOSE_RESERVE,
+      close_reserve: reserve,
     });
   }
 }
@@ -554,10 +589,18 @@ export async function applyOpen(session, nowIso, extra = {}) {
     if (!f.ok) throw sessionError(400, f.code, f.message);
     frozen = { frozen_artifacts: f.frozen_artifacts, frozen_hash: f.frozen_hash };
   }
+  // RIB-055: an external recorder is sealed on stamp #1 only (re-normalized here; never via additive fields).
+  let recorder = null;
+  if (extra && (extra.recorder != null || extra.audit_health != null)) {
+    const { recorderOf } = await import("./audit-path.js");
+    const rec = await recorderOf(extra.recorder, extra.audit_health, { sessionId: session.id });
+    if (!rec || rec.ok === false) throw sessionError(rec && rec.status ? rec.status : 400, rec && rec.code ? rec.code : "AUDIT-RECORDER-INVALID", rec && rec.message ? rec.message : "recorder invalid");
+    recorder = { recorder: rec.recorder, recorder_hash: rec.recorder_hash, audit_path: rec.audit_path };
+  }
   await appendReceipt(session, "open", {
     policy: session.policy,
     source: session.source,
-  }, nowIso, { ...additiveReceiptFields(extra), ...(issuer ? { issuer } : {}), ...(frozen || {}) });
+  }, nowIso, { ...additiveReceiptFields(extra), ...(issuer ? { issuer } : {}), ...(frozen || {}), ...(recorder || {}) });
   return session;
 }
 
@@ -583,6 +626,8 @@ export const SESSION_REFUSAL_SPEC = "AZRT-REFUSAL-RECEIPT-1.0";
 
 async function sealSessionRefusal(session, err, { slug, op, payloadText }, nowIso) {
   const digest = await digestText(payloadText == null ? "" : String(payloadText));
+  const { execAuditFields } = await import("./audit-path.js");
+  const audit = execAuditFields(session.receipts, { slug, op });
   // RIB-018 follow-up: a slug that is not a FragGate registry name, or an op that is not one of its ops
   // (unknown_slug, op_not_allowed with a typed op, ...), is stored as null + a short sha256, never as text.
   const { boundedSlugOp } = await import("./receipt-guard.js");
@@ -600,7 +645,10 @@ async function sealSessionRefusal(session, err, { slug, op, payloadText }, nowIs
       payload_bytes: digest.bytes,
       executed: false,
     },
-  }, nowIso, { attempt_link: { outcome: "failed" } });
+  }, nowIso, {
+    attempt_link: { outcome: "failed" },
+    ...(audit ? { audit_status: audit.audit_status, ...(audit.audit_path ? { audit_path: audit.audit_path } : {}) } : {}),
+  });
   session.updated_at = nowIso;
   return receipt;
 }
@@ -619,7 +667,7 @@ export async function recordIntent(session, args, nowIso) {
   } catch (err) {
     if (!err || !err.status || err.status >= 500) throw err;
     const receipt = await sealSessionRefusal(session, err, args || {}, nowIso);
-    err.extra = { ...(err.extra || {}), refused_receipt: { sealed: true, seq: receipt.seq, hash: receipt.hash } };
+    err.extra = { ...(err.extra || {}), refused_receipt: { sealed: true, seq: receipt.seq, hash: receipt.hash, code: err.code } };
     err.sessionDirty = true; // caller must persist the appended refused receipt
     throw err;
   }
@@ -649,6 +697,18 @@ async function recordIntentInner(session, { slug, op, payload, payloadText, know
   const bytes = new TextEncoder().encode(payloadText).length;
   const allowed = assertExecAllowed(session, { slug, op, payloadBytes: bytes, knownSlugs, nowIso });
   const digest = await digestText(payloadText);
+  // RIB-055: a named recorder must be healthy before a high-impact op runs. Nothing is executed on refusal.
+  const { execAuditFields, AUDIT_PATH_DOWN, AUDIT_SPEC } = await import("./audit-path.js");
+  const audit = execAuditFields(session.receipts, { slug: allowed.slug, op: allowed.op });
+  if (audit && audit.high_impact && audit.audit_status !== "audited") {
+    throw sessionError(409, AUDIT_PATH_DOWN, `audit path is ${audit.audit_path.status}; high-impact op refused. Nothing ran.`, {
+      spec: AUDIT_SPEC,
+      executed: false,
+      mutated: false,
+      audit_status: "unaudited",
+      audit_path: audit.audit_path,
+    });
+  }
   // RIB-043: a DecisionGATE-gated exec binds its approver into this intent (same row hash as the action).
   const { isGated, approverFor } = await import("./approver.js");
   const intentId = `${session.id}:${(session.receipts || []).length + 1}`;
@@ -695,6 +755,10 @@ export async function commitExec(session, { intent, status, latencyMs, requestDi
     policy_receipt_ref: policyRef ? policyRef.hash : null,
   };
   const evidence = evidenceOf(additive && additive.evidence);
+  const { execAuditFields } = await import("./audit-path.js");
+  const audit = session.pending_intent
+    ? execAuditFields(session.receipts, { slug: session.pending_intent.slug, op: session.pending_intent.op })
+    : null;
   // RIB-043: approved_at is the exec receipt's own ts; restamp the record and its hash at seal time.
   let sealedIntent = session.pending_intent;
   if (sealedIntent && sealedIntent.approver) {
@@ -724,6 +788,7 @@ export async function commitExec(session, { intent, status, latencyMs, requestDi
     ...additiveReceiptFields(additive),
     ...binding,
     ...(evidence ? { evidence } : {}),
+    ...(audit ? { audit_status: audit.audit_status, ...(audit.audit_path ? { audit_path: audit.audit_path } : {}) } : {}),
     attempt_link: {
       request_id,
       attempt_n,
@@ -809,14 +874,31 @@ export async function applyArtifactChange(session, nowIso, raw) {
   return appendReceipt(session, "artifact_change", {}, nowIso, { artifact_change: req.change });
 }
 
-export async function applyClose(session, nowIso, { force = false, additive = null, delivered = null } = {}) {
+/** RIB-055: seal a recorder health transition (healthy / degraded / down). Does not exec. */
+export async function applyAuditHealth(session, nowIso, raw) {
+  if (!session) throw sessionError(404, "session_not_found", "session not found");
+  if (session.closed) throw sessionError(409, "session_closed", "session is sealed; no further stamps", { session_id: session.id });
+  refuseWhilePaused(session, "audit_path");
+  requireReceiptRoom(session);
+  const { healthTransitionOf } = await import("./audit-path.js");
+  const req = healthTransitionOf(session.receipts, raw);
+  if (!req.ok) throw sessionError(req.status || 400, req.code, req.message, { written: false, executed: false, spec: req.spec });
+  return appendReceipt(session, "audit_path", {}, nowIso, { audit_path: req.audit_path });
+}
+
+export async function applyClose(session, nowIso, { force = false, additive = null, delivered = null, observerRecords = null } = {}) {
   if (!session) throw sessionError(404, "session_not_found", "session not found");
   // RIB-052: when stamp #1 froze artifacts, the harness check runs first (bad delivery input refuses, nothing written).
   let delivery = null;
+  let audit = null;
   if (!session.closed) {
     const { deliveryCheckFor } = await import("./frozen-artifacts.js");
     delivery = await deliveryCheckFor(session.receipts, delivered);
     if (delivery && !delivery.ok) throw sessionError(400, delivery.code, delivery.message);
+    // RIB-055: bad observer records refuse before any close row is written. Omitted records are a finding, not a skip.
+    const { auditCloseFor } = await import("./audit-path.js");
+    audit = await auditCloseFor(session.receipts, observerRecords);
+    if (audit && !audit.ok) throw sessionError(audit.status || 400, audit.code, audit.message, { written: false, executed: false });
   }
   if (additive && additive.verdict != null) {
     const { specStaleness } = await import("./spec-stale.js");
@@ -843,13 +925,21 @@ export async function applyClose(session, nowIso, { force = false, additive = nu
   if (wipe) session.wiped = true;
   let closeAdditive = additiveReceiptFields(additive);
   let deliveryReceipt = null;
+  let gapReceipt = null;
+  let reconcileReceipt = null;
+  const verdictRefused = (delivery && !delivery.check.verdict_allowed) || (audit && audit.clean === false);
+  if (verdictRefused && closeAdditive.verdict != null) {
+    const { verdict: _refused, ...rest } = closeAdditive;
+    closeAdditive = rest;
+  }
   if (delivery) {
     // Harness-written; the caller has no field that reaches this receipt and cannot skip it.
     deliveryReceipt = await appendReceipt(session, "delivery_check", {}, nowIso, { delivery_check: delivery.check });
-    if (!delivery.check.verdict_allowed && closeAdditive.verdict != null) {
-      const { verdict: _refused, ...rest } = closeAdditive;
-      closeAdditive = rest;
-    }
+  }
+  if (audit) {
+    // Harness-written. The caller cannot supply findings, and verify fails closed if either row is missing.
+    if (audit.gap) gapReceipt = await appendReceipt(session, "unaudited_gap", {}, nowIso, { unaudited_gap: audit.gap });
+    reconcileReceipt = await appendReceipt(session, "reconcile", {}, nowIso, { reconcile: audit.reconcile });
   }
   const receipt = await appendReceipt(session, "close", {
     sealed: true,
@@ -860,7 +950,14 @@ export async function applyClose(session, nowIso, { force = false, additive = nu
     isolate_class: ISOLATE_CLASS,
     guest_vm: false,
   }, nowIso, closeAdditive);
-  return { session, receipt, ...(delivery ? { delivery_check: deliveryReceipt } : {}) };
+  return {
+    session,
+    receipt,
+    ...(delivery ? { delivery_check: deliveryReceipt } : {}),
+    ...(gapReceipt ? { unaudited_gap: gapReceipt } : {}),
+    ...(reconcileReceipt ? { reconcile: reconcileReceipt } : {}),
+    ...(audit ? { audit_refused: audit.refused } : {}),
+  };
 }
 
 export function publicSession(session) {
@@ -878,13 +975,14 @@ export function publicSession(session) {
     policy: session.policy,
     receipt_count: (session.receipts || []).length,
     receipt_cap: RECEIPT_CAP,
-    close_reserve: CLOSE_RESERVE,
     exec_count: Number(session.exec_count) || 0,
     wiped: session.wiped === true,
     expires_at: sessionExpiresAt(session),
     head_hash: session.head_hash,
     pending_intent: session.pending_intent,
+    close_reserve: closeReserveFor(session),
     honesty: session.honesty,
+    ...(auditPublic(session) ? { audit_path: auditPublic(session) } : {}),
     ...(session.vpn_auto ? { vpn_auto: session.vpn_auto } : {}),
   };
 }

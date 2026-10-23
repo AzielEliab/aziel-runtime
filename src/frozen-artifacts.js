@@ -180,7 +180,8 @@ export async function deliveryCheckFor(receipts, deliveredRaw) {
  *   FROZEN-ARTIFACT-LATE        frozen_artifacts / frozen_hash on any stamp but #1
  *   FROZEN-ARTIFACT-TAMPERED    stamp #1 frozen_hash != recomputed hash
  *   FROZEN-CHANGE-UNSEALED      artifact_change on a chain that froze nothing, or naming an unknown artifact
- *   FROZEN-CHECK-MISSING        a closed chain that froze artifacts has no delivery_check right before close
+ *   FROZEN-CHECK-MISSING        a closed chain that froze artifacts has no delivery_check in the close tail
+ *                                 (RIB-055 unaudited_gap / reconcile may sit between it and close)
  *   FROZEN-CHECK-DUPLICATE      more than one delivery_check
  *   FROZEN-CHECK-FORGED         delivery_check not written by the harness, or its rows/verdict differ from recompute
  *   FROZEN-ARTIFACT-SILENT-EDIT a changed artifact has no matching declared change
@@ -212,7 +213,10 @@ export async function verifyFrozenArtifacts(receipts) {
   if (frozen && close) {
     const c = checks[0];
     const closeIdx = list.indexOf(close);
-    if (!c || c.i !== closeIdx - 1) {
+    // RIB-055 harness rows (unaudited_gap, reconcile) may sit between delivery_check and close.
+    let expectAt = closeIdx - 1;
+    while (expectAt >= 0 && (list[expectAt].event === "unaudited_gap" || list[expectAt].event === "reconcile")) expectAt -= 1;
+    if (!c || c.i !== expectAt) {
       errors.push({ seq: close.seq, code: "FROZEN-CHECK-MISSING" });
     } else {
       const got = c.r.delivery_check || {};

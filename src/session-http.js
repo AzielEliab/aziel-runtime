@@ -148,6 +148,8 @@ export async function handleSessionRequest(request, env, deps) {
       return json({ error: "invalid JSON", code: "bad_json" }, 400);
     }
     if (bodyHasOperatorToken(body)) return bodyTokenRefuse(json);
+    const { recorderOf } = await import("./audit-path.js");
+    const namedRecorder = body.recorder != null || body.audit_health != null;
     const expect = await expectSpecOf(body.expect);
     if (expect && expect.ok === false) return json(expect, 400);
     // RIB-052: frozen artifacts are validated here and re-normalized in applyOpen (stamp #1 only).
@@ -155,6 +157,10 @@ export async function handleSessionRequest(request, env, deps) {
     const frozen = await frozenArtifactsOf(body.frozen_artifacts);
     if (frozen && frozen.ok === false) return json(frozen, 400);
     const id = SESSION_ID_RE.test(String(body.id || "")) ? body.id : newSessionId();
+    if (namedRecorder) {
+      const rec = await recorderOf(body.recorder, body.audit_health, { sessionId: id });
+      if (!rec || rec.ok === false) return json(rec, rec && rec.status ? rec.status : 400);
+    }
     const { newIssuerKey } = await import("./issuer-append.js");
     const issuer = await newIssuerKey();
     const res = await stubFetch(env, id, "open", {
@@ -168,6 +174,7 @@ export async function handleSessionRequest(request, env, deps) {
         ...additiveForSession(body),
         ...(expect ? { expect: expect.expect, expect_hash: expect.expect_hash } : {}),
         ...(frozen ? { frozen_artifacts: frozen.frozen_artifacts } : {}),
+        ...(namedRecorder ? { recorder: body.recorder, audit_health: body.audit_health } : {}),
         issuer_key_hash: issuer.key_hash,
       }),
     });
@@ -179,7 +186,7 @@ export async function handleSessionRequest(request, env, deps) {
     return json(
       {
         error: "not a session route",
-        hint: "POST /v1/session/open  POST /v1/session/{id}/policy  POST /v1/session/{id}/exec  GET /v1/session/{id}/receipt  GET /v1/session/{id}/receipts  POST /v1/session/{id}/change  POST /v1/session/{id}/stale  POST /v1/session/{id}/revoke  GET /v1/session/{id}/spec  POST /v1/session/{id}/pause  POST /v1/session/{id}/resume  POST /v1/session/{id}/close",
+        hint: "POST /v1/session/open  POST /v1/session/{id}/policy  POST /v1/session/{id}/exec  GET /v1/session/{id}/receipt  GET /v1/session/{id}/receipts  POST /v1/session/{id}/change  POST /v1/session/{id}/audit  POST /v1/session/{id}/stale  POST /v1/session/{id}/revoke  GET /v1/session/{id}/spec  POST /v1/session/{id}/pause  POST /v1/session/{id}/resume  POST /v1/session/{id}/close",
       },
       404,
       extra ? extra(path) : {},
@@ -228,7 +235,31 @@ export async function handleSessionRequest(request, env, deps) {
       await stubFetch(env, id, "close", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ...(verdict ? { verdict: verdict.verdict } : {}), ...(closeBody.delivered_artifacts != null ? { delivered_artifacts: closeBody.delivered_artifacts } : {}) }),
+        body: JSON.stringify({
+          ...(verdict ? { verdict: verdict.verdict } : {}),
+          ...(closeBody.delivered_artifacts != null ? { delivered_artifacts: closeBody.delivered_artifacts } : {}),
+          ...(closeBody.observer_records != null ? { observer_records: closeBody.observer_records } : {}),
+        }),
+      }),
+      json,
+      { consent: true },
+    );
+  }
+  if (action === "audit" && request.method === "POST") {
+    // RIB-055: seal recorder health. Token-gated. A down stamp needs no beat; healthy again needs beat_hash.
+    let ab = {};
+    try {
+      const text = await request.text();
+      ab = text && text.trim() ? JSON.parse(text) : {};
+    } catch {
+      return json({ error: "invalid JSON", code: "bad_json" }, 400);
+    }
+    if (bodyHasOperatorToken(ab)) return bodyTokenRefuse(json);
+    return copyJson(
+      await stubFetch(env, id, "audit", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ status: ab && ab.status, ...(ab && ab.reason != null ? { reason: ab.reason } : {}), ...(ab && ab.beat_hash != null ? { beat_hash: ab.beat_hash } : {}) }),
       }),
       json,
       { consent: true },
