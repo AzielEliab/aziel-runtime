@@ -113,3 +113,90 @@ console.log(
     2,
   ),
 );
+
+// QNM-PHOTON-CARRIER-1.0: photon is light. A local qnsd socket is not light hardware.
+{
+  const { createServer } = await import("node:net");
+  const { mkdtempSync, mkdirSync, writeFileSync: wfs, readFileSync: rfs, rmSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const photonMod = await import("../qnm-node/bearers/photon.js");
+  const { probeLightHardware, photonChips, decodeChips, samplesToChips, photonSend, photonReceive, crc32, PHOTON_ABSENT } = photonMod;
+
+  // 1) qnsd on loopback alone must not make photon LIVE (old code said LIVE kind qnsd-loopback).
+  const dir = mkdtempSync(join(tmpdir(), "qnsd-"));
+  const sock = join(dir, "qnsd.sock");
+  const server = createServer(() => {});
+  await new Promise((resolve) => server.listen(sock, resolve));
+  const prev = process.env.QNSD_SOCK;
+  process.env.QNSD_SOCK = sock;
+  try {
+    const realLight = probeLightHardware();
+    const p = probePhoton();
+    assert.notEqual(p.kind, "qnsd-loopback", "qnsd loopback is not photon hardware");
+    if (!realLight.present) {
+      assert.equal(p.present, false, "photon absent without light hardware even with qnsd up");
+      const st = radioStatus();
+      assert.equal(st.channels.photon.state, "REFUSE");
+      assert.equal(st.channels.photon.code, RADIO_ABSENT);
+      assert.equal(st.channels.photon.mock, false);
+    }
+  } finally {
+    if (prev === undefined) delete process.env.QNSD_SOCK;
+    else process.env.QNSD_SOCK = prev;
+    server.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+
+  // 2) Probe needs a real emitter AND a real receiver. A sysfs tree stands in for /sys here.
+  const root = mkdtempSync(join(tmpdir(), "photon-sys-"));
+  try {
+    assert.equal(probeLightHardware({ root }).present, false);
+    assert.equal(probePhoton({ root }).present, false);
+    mkdirSync(join(root, "sys/class/leds/input3::capslock"), { recursive: true });
+    wfs(join(root, "sys/class/leds/input3::capslock/brightness"), "0");
+    assert.equal(probeLightHardware({ root }).tx, false, "a keyboard LED is not a flash / torch emitter");
+    mkdirSync(join(root, "sys/class/leds/white:flash"), { recursive: true });
+    wfs(join(root, "sys/class/leds/white:flash/brightness"), "0");
+    wfs(join(root, "sys/class/leds/white:flash/max_brightness"), "255");
+    const txOnly = probeLightHardware({ root });
+    assert.equal(txOnly.tx, true);
+    assert.equal(txOnly.present, false, "emitter without a receiver is not a light carrier");
+    assert.equal((await photonReceive({ root })).code, PHOTON_ABSENT);
+    mkdirSync(join(root, "sys/bus/iio/devices/iio:device0"), { recursive: true });
+    wfs(join(root, "sys/bus/iio/devices/iio:device0/in_illuminance_raw"), "12\n");
+    const both = probeLightHardware({ root });
+    assert.equal(both.present, true);
+    assert.equal(probePhoton({ root }).present, true);
+    assert.match(probePhoton({ root }).kind, /^led:white:flash\+iio:iio:device0$/);
+
+    // 3) Codec: Manchester OOK frame round-trips, and a flipped chip fails the CRC.
+    assert.equal(crc32(new TextEncoder().encode("123456789")), 0xcbf43926);
+    const chips = photonChips("AZ hello light");
+    assert.equal(new TextDecoder().decode(decodeChips([0, 0, 1, ...chips, 0, 1])), "AZ hello light");
+    const bad = chips.slice();
+    const at = bad.length - 40;
+    bad[at] ^= 1;
+    bad[at + 1] ^= 1;
+    assert.equal(decodeChips(bad), null, "corrupted frame refuses");
+    assert.equal(new TextDecoder().decode(decodeChips(samplesToChips(chips.map((c) => (c ? 480 : 30) + (Math.random() * 10))))), "AZ hello light");
+
+    // 4) Send drives the LED brightness file chip by chip, then leaves it off.
+    const writes = [];
+    const sent = await photonSend("hi", { root, write: (p, v) => { writes.push(v); wfs(p, v); }, sleep: async () => {} });
+    assert.equal(sent.ok, true);
+    assert.equal(sent.chips, photonChips("hi").length);
+    assert.deepEqual(writes.slice(0, -1), photonChips("hi").map((c) => (c ? "255" : "0")));
+    assert.equal(rfs(join(root, "sys/class/leds/white:flash/brightness"), "utf8"), "0");
+
+    // 5) Receive samples the sensor at chip rate and decodes what the emitter sent.
+    const replay = photonChips("lit").map((c) => (c ? "900" : "40"));
+    let i = 0;
+    const got = await photonReceive({ root, read: () => (i < replay.length ? replay[i++] : "40"), sleep: async () => {}, maxChips: replay.length + 64 });
+    assert.equal(got.ok, true);
+    assert.equal(new TextDecoder().decode(got.payload), "lit");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+  console.log("verify-qnm-radio: photon carrier ok");
+}

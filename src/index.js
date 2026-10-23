@@ -5015,6 +5015,14 @@ async function handleRequest(request, env, ctx) {
       );
     }
 
+    if (url.pathname === "/v1/version" && (request.method === "GET" || request.method === "HEAD")) {
+      // AUTO-UPDATE-1.0: public read-only version/adoption field. A Worker cannot self-replace, so
+      // auto_update.enabled is false here; it reports the deployed build honestly. live:false.
+      const { softwareMeta } = await import("./software-catalog.js");
+      const { versionBody } = await import("./auto-update/version.js");
+      return asHead(request, json(await versionBody(env, softwareMeta(env), RUNTIME_VERSION), 200, { "cache-control": "no-store" }));
+    }
+
     if (url.pathname === "/v1/health" && (request.method === "GET" || request.method === "HEAD")) {
       const body = healthBody(origin, env);
       // HEALTH-BUILD-STAMP-1.0: same git_sha / version_id as GET /v1/software (read at serve time, never guessed).

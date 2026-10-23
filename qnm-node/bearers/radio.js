@@ -13,6 +13,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { networkInterfaces } from "node:os";
 import { join } from "node:path";
+import { probeLightHardware } from "./photon.js";
 
 export const RADIO_HOOK_SPEC = "QNM-RADIO-HOOKS-1.0";
 export const RADIO_HOOK_AUTHOR = "Aziel Eliab";
@@ -105,12 +106,20 @@ export function probeRf() {
   return { present: false, kind: null };
 }
 
-/** Local qnsd binds 127.0.0.1. That bind is not a mesh-wide loopback fence and is not open-world awareness. Open-world awareness binds 0.0.0.0. Never fetch 127.0.0.1 from the Worker. */
-export function probePhoton() {
-  if (qnsdLoopbackPresent()) {
-    return { present: true, kind: "qnsd-loopback" };
-  }
+/**
+ * Photon is light. LIVE only with real light hardware on this host: a flash / torch LED
+ * to send and an IIO light sensor to receive (see ./photon.js, QNM-PHOTON-CARRIER-1.0).
+ * A local qnsd process on 127.0.0.1 is not light hardware and does not make photon LIVE.
+ */
+export function probePhoton(opts = {}) {
+  const light = probeLightHardware(opts);
+  if (light.present) return { present: true, kind: light.kind };
   return { present: false, kind: null };
+}
+
+/** Local qnsd binds 127.0.0.1. Reported as process presence only; it is not a radio channel. */
+export function probeQnsd() {
+  return { present: qnsdLoopbackPresent(), kind: "qnsd-loopback" };
 }
 
 function liveOrRefuse(channel, probe) {
