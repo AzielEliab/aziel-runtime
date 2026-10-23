@@ -23,3 +23,12 @@ mesh plans; the join itself uses the existing join route). No new MCP tool is ad
 
 ## Honest flags
 `live`, `alt_internet_live`, `packet_path_live`, `second_device` and `live_multi_provider` stay false.
+
+## Login keep-alive (opt-in)
+The install does not install a login service unless the operator asks. With the variable unset, the node runs until it is stopped or the machine reboots.
+
+Set `AZIEL_MESH_KEEPALIVE=1` before `install.sh` to opt in. The plan field `keepalive.default` is `off`. The server does not turn it on.
+
+- Linux writes a systemd user unit at `$XDG_CONFIG_HOME/systemd/user/aziel-mesh-<node>.service` and runs `systemctl --user enable` so the next login starts it. It does not pass `--now`, so the nohup process from this run is not started twice. It does not run `loginctl enable-linger`.
+- macOS writes `~/Library/LaunchAgents/net.aziel.mesh.<node>.plist` and does not `launchctl bootstrap`, so launchd does not start a second node. The next login loads the plist.
+- If `systemctl` or `launchctl` is missing, or enable fails, the unit file is removed and the script says keep-alive was not installed. The node from this run still stays up until it is stopped.
