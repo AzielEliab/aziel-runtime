@@ -123,6 +123,7 @@ import { DESIGN_TOKENS } from "./lockstep/design-tokens.js";
 import {
   VERSIONS,
   DOI_BY_SLUG,
+  historicalDoiHtml,
   citationFields,
   productHowToCite,
   citeZenodoBlock,
@@ -1924,7 +1925,7 @@ function llmsTxt(origin, env = {}) {
     const cite = citationFields(p, u);
     if (u.doi_url) lines.push(`DOI: ${u.doi}  ${u.doi_url}  (${cite.zenodo_status})`);
     else lines.push("DOI: none — Zenodo software deposit needed (do not invent a DOI)");
-    lines.push(`Related: GitHub ${u.github} · counted tarball ${u.download}`);
+    lines.push(u.download ? `Related: GitHub ${u.github} · counted tarball ${u.download}` : `Related: GitHub ${u.github} · in-runtime (no counted Worker tarball)`);
     if (cite.software_tarball && cite.software_tarball.filename) {
       lines.push(`Software package: ${cite.software_tarball.filename}`);
     }
@@ -2384,7 +2385,7 @@ GET or POST ${origin}/p/${escapeHtml(p.slug)}/${escapeHtml(firstPost.op)} is pro
       : "";
   const cite = citationFields(p, u);
   const doi = u.doi_url
-    ? ` · <a href="${u.doi_url}">DOI ${escapeHtml(u.doi)}</a> <span class="slug">(${escapeHtml(cite.zenodo_status)})</span>`
+    ? ` · ${historicalDoiHtml(p.slug, u.doi, cite.zenodo_status)}`
     : ` · <span class="slug">Zenodo deposit needed</span>`;
   const ver = p.version ? ` <span class="slug">v${escapeHtml(p.version)}</span>` : "";
   const tarball = cite.software_tarball
@@ -2432,10 +2433,14 @@ function catalogHtml(origin, statsMap, env = {}) {
     const u = productUrls(p, origin);
     const cite = citationFields(p, u);
     const doi = p.doi
-      ? ` — DOI <a href="https://doi.org/${p.doi}">${p.doi}</a> (${escapeHtml(cite.zenodo_status)})`
+      ? ` — ${historicalDoiHtml(p.slug, p.doi, cite.zenodo_status)}`
       : " — Zenodo software deposit needed (no DOI invented)";
     const ver = p.version ? ` ${escapeHtml(p.version)}` : "";
-    return `<li><a href="${p.github}">${escapeHtml(p.name)}</a>${ver}${doi} · <a href="${u.download}">counted tarball</a></li>`;
+    // In-runtime products have no product Worker, so no counted tarball (was href="null").
+    const dl = u.download
+      ? `<a href="${u.download}">counted tarball</a>`
+      : `<a href="${u.catalog_card}">in-runtime</a> (no counted Worker tarball)`;
+    return `<li><a href="${p.github}">${escapeHtml(p.name)}</a>${ver}${doi} · ${dl}</li>`;
   })
     .concat(
       WORKER_ONLY_PRODUCTS.map((spec) => {
@@ -2672,6 +2677,60 @@ ${productHumanUseHtml(p, origin)}
   ${productCardHtml(p, origin, stats)}
   ${workerLaunchHtml(origin, p)}
 ${humanDoorScript()}
+${ecosystemBlockHtml()}
+${donateFooterHtml()}
+</body>
+</html>`;
+}
+
+function workerOnlyProductPageHtml(spec, origin) {
+  const rec = workerOnlyCiteRecord(spec, origin);
+  const title = `${rec.name} — ${CATALOG_TITLE}`;
+  const description = `${rec.name}: ${rec.one_line} Author Aziel Eliab. Apache-2.0.`;
+  const ld = JSON.stringify({
+    "@context": "https://schema.org",
+    "@graph": [
+      personJsonLd(),
+      {
+        "@type": "SoftwareApplication",
+        name: rec.name,
+        description: rec.one_line,
+        url: `${origin}/p/${rec.slug}`,
+        codeRepository: rec.github,
+        downloadUrl: rec.download || undefined,
+        author: { "@id": AUTHOR_ID },
+        license: "https://www.apache.org/licenses/LICENSE-2.0",
+        sameAs: [rec.web_app, rec.worker_home].filter(Boolean),
+      },
+    ],
+  });
+  const link = (href, text) => (href ? `<a href="${escapeHtml(href)}">${escapeHtml(text)}</a>` : "");
+  const links = [
+    link(rec.web_app, "Live app"),
+    link(rec.worker_home, "Worker home"),
+    link(rec.download, "optional zip"),
+    link(rec.github, "GitHub"),
+    link(rec.product_catalog, "Worker /v1/software"),
+  ].filter(Boolean).join(" · ");
+  return `<!doctype html>
+<html lang="en">
+<head>
+${headMeta(origin, title, description, `/p/${rec.slug}`)}
+<script type="application/ld+json">${ld}</script>
+<style>${PAGE_CSS}${HUMAN_UI_CSS}</style>
+</head>
+<body>
+${brandRow()}
+  <p><a href="${origin}/">← ${escapeHtml(PRODUCT_NAME)}</a> · <a href="${origin}/workspace#workspace">Workspace</a></p>
+  <article class="card" id="${escapeHtml(rec.slug)}">
+    <h2>${escapeHtml(rec.name)} <span class="slug">${escapeHtml(rec.slug)}</span>${rec.version ? ` <span class="slug">${escapeHtml(rec.version)}</span>` : ""}</h2>
+    <p class="blurb">${escapeHtml(rec.one_line)}</p>
+    ${rec.description && rec.description !== rec.one_line ? `<p>${escapeHtml(rec.description)}</p>` : ""}
+    <p class="slug">worker only — FragGate status none</p>
+    <p>${links}</p>
+    <p class="hint">${escapeHtml(rec.note)}</p>
+    <p class="hint">Cite: ${escapeHtml(rec.how_to_cite)}</p>
+  </article>
 ${ecosystemBlockHtml()}
 ${donateFooterHtml()}
 </body>
@@ -3269,8 +3328,13 @@ async function combinedOpenApi(request, env) {
   };
 }
 
-function bindingName(product) {
+// A binding name must be a JS identifier, so a slug that starts with a digit
+// gets a spelled-out name. Must match [[services]] binding in wrangler.toml.
+export const BINDING_NAME_OVERRIDES = Object.freeze({ "4dmap": "FOURDMAP" });
+
+export function bindingName(product) {
   const slug = String(product.slug || "");
+  if (Object.prototype.hasOwnProperty.call(BINDING_NAME_OVERRIDES, slug)) return BINDING_NAME_OVERRIDES[slug];
   return slug.toUpperCase().replace(/-/g, "_");
 }
 
@@ -5080,6 +5144,12 @@ async function handleRequest(request, env, ctx) {
     const card = url.pathname.match(/^\/p\/([a-z0-9-]+)\/?$/i);
     if (card && request.method === "GET") {
       const product = BY_SLUG[card[1].toLowerCase()];
+      // Worker-only products (Whitestone) are linked as "Product card" from the
+      // Softwares tab but are not in PRODUCTS. Serve their card instead of 404.
+      const workerOnly = !product && WORKER_ONLY_PRODUCTS.find((s) => s.slug === card[1].toLowerCase());
+      if (workerOnly) {
+        return html(workerOnlyProductPageHtml(workerOnly, origin), extra(`/p/${workerOnly.slug}`));
+      }
       if (!product) {
         return json({ error: "unknown product", slug: card[1], known: PRODUCTS.map((p) => p.slug) }, 404);
       }

@@ -1,7 +1,7 @@
 /**
  * BASES-SELFTEST-1.0: local self-test proofs for the mail-send and kernel bases.
  * Mail: mail_send_base (confirm) -> real SMTP client -> a loopback sink on 127.0.0.1. Nothing leaves the machine.
- * Kernel: bootHandoff assembles the boot sector + cpio userspace and boots it in QEMU (emulated).
+ * Kernel: bootHandoff boots a real Linux kernel image with the AZOS initramfs in QEMU (emulated); /init must run as pid 1.
  * Neither proves live: no external receiver accepted mail, and an emulator is not real hardware.
  * Appends one line to docs/proofs/BASES-SELFTEST.jsonl (append-only). Author: Aziel Eliab.
  */

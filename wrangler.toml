@@ -162,6 +162,21 @@ service = "aziel-corpus-download-tracker"
 binding = "AZCHAT"
 service = "azchat-download-tracker"
 
+# /p/{4dmap,azcoherence,embryolock}/* proxy. Without these, the public
+# workers.dev fallback is same-account Worker-to-Worker and Cloudflare returns
+# error 1042. Targets verified to exist on the account (2026-10-22).
+[[services]]
+binding = "FOURDMAP"
+service = "4dmap-download-tracker"
+
+[[services]]
+binding = "AZCOHERENCE"
+service = "azcoherence-download-tracker"
+
+[[services]]
+binding = "EMBRYOLOCK"
+service = "embryolock-download-tracker"
+
 # Optional production gate (1.4.1+). When REQUIRE_TOKEN=1, GET /v1/ready is 503
 # unless secret RUNTIME_TOKEN is set (`npx wrangler secret put RUNTIME_TOKEN`).
 # Catalog / health / runtime / skill / pull / OpenAPI / MCP tools/list stay public.
