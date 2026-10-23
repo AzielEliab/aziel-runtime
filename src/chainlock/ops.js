@@ -301,6 +301,10 @@ export async function stampDocumentHash(src) {
   });
 }
 
+function syncOf(src) {
+  return Boolean(src && (src.sync === true || src.sync === "true"));
+}
+
 function offlineOf(src) {
   return Boolean(src && (src.offline === true || src.offline === "true"));
 }
@@ -311,7 +315,13 @@ function offlineOf(src) {
  * `hasOffline` from a writer that keeps lattice tips in its metadata.
  * Throws LatticeError LATTICE-DOUBLE / LATTICE-USERNAME-ABSENT before any write.
  */
-export async function composeChainlockStamp(src, { prev, rows = null, latticeTips: tips = null, hasOffline = null } = {}) {
+export function latticeRefuse(code) {
+  if (code === "LATTICE-DOUBLE") return "lattice-double";
+  if (code === "LATTICE-SYNC-NO-OFFLINE") return "lattice-sync-no-offline";
+  return "lattice-username";
+}
+
+export async function composeChainlockStamp(src, { prev, rows = null, latticeTips: tips = null, hasOffline = null, tiebreakPrev = null, hasSynced = null } = {}) {
   const chain = String((src && (src.c || src.chain)) || "session").trim() || "session";
   const subject = clip(src && (src.s || src.subject), SUBJECT_CAP);
   const fact = clip(src && (src.f || src.fact), FACT_CAP);
@@ -322,6 +332,10 @@ export async function composeChainlockStamp(src, { prev, rows = null, latticeTip
     rows: rows || [],
     tips,
     hasOffline,
+    // LATTICE-TIEBREAK-1.0: sync:true (online, with username) writes the tiebreak block; plain rows never do.
+    sync: !offlineOf(src) && syncOf(src),
+    tiebreakPrev,
+    hasSynced,
   });
   const unsigned = {
     v: CL_VERSION,
@@ -439,7 +453,7 @@ export async function append(storeOrEnv, input = {}, options = {}) {
     try {
       unsigned = await composeChainlockStamp(src, { prev: prev || GENESIS, rows: rows || [] });
     } catch (err) {
-      if (err instanceof LatticeError) return { refuse: err.code === "LATTICE-DOUBLE" ? "lattice-double" : "lattice-username", code: err.code, message: err.message };
+      if (err instanceof LatticeError) return { refuse: latticeRefuse(err.code), code: err.code, message: err.message };
       throw err;
     }
     const card = toCard(unsigned, { pipe: src.pipe });
