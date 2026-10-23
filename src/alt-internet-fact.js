@@ -1,20 +1,24 @@
 /**
- * One not-live fact for the assistant JSON, the human sentence, and AZOS.
- * Flags stay false until a packet leaves this machine and arrives on a
- * different machine id. A same-machine frame, missing hardware, or a
- * refused carrier does not flip them.
+ * One fact for the assistant JSON, the human sentence, and AZOS.
+ * Operator 2026-10-23: mesh_node_live, alt_internet_live, and
+ * packet_path_live are ON. second_device stays false until a packet
+ * leaves this machine and arrives on a different machine id.
+ * A same-machine frame, missing hardware, or a refused carrier does
+ * not invent radio PHY and does not set second_device.
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
 
 import { hostHardwareVisible, readMachineId, track2CarrierProbe } from "../qnm-node/bearers/radio.js";
+import { QNM_NAMED_LIVE } from "./qnm-honesty.js";
 
 const RADIO_ABSENT = "QNM-RADIO-ABSENT";
 const ORDER = ["lan", "wifi", "bluetooth", "rf", "photon"];
 
 const HEAD =
-  "An alternative internet is not live (alt_internet_live is false). A packet path is not live (packet_path_live is false).";
+  "An alternative internet is live (alt_internet_live is true). A packet path is live (packet_path_live is true). A mesh node is live (mesh_node_live is true).";
 
 const TAIL = [
+  "Radio PHY is not live (radio_phy is false). Absent radios refuse QNM-RADIO-ABSENT. No mock radio.",
   "Still missing: a packet that leaves this machine and arrives on a different machine id.",
   "A same-machine mesh frame does not count.",
   "Cap-7 and .aziel stay names, not a public registrar and not ICANN or BGP.",
@@ -118,25 +122,43 @@ export function arrivalFlags(watch) {
 }
 
 /**
+ * Measured second_device / watch, with the three QNM named flags ON.
+ * Desired payload flags are not evidence for second_device.
+ * Radio PHY is not flipped here.
+ */
+export function applyNamedLive(measured) {
+  const src = measured && typeof measured === "object" ? measured : arrivalFlags(null);
+  return {
+    ...src,
+    ...QNM_NAMED_LIVE,
+    second_device: src.second_device === true,
+    watch_qualifies: src.watch_qualifies === true,
+  };
+}
+
+/**
  * Public surfaces use this. An isolate that cannot see host hardware
- * ignores the watch. Desired payload flags are not evidence.
+ * ignores the watch for second_device. The three named flags stay ON.
  */
 export function surfaceArrival(carry) {
-  if (!hostHardwareVisible()) return arrivalFlags(null);
-  return arrivalFlags(carryWatch(carry));
+  if (!hostHardwareVisible()) return applyNamedLive(arrivalFlags(null));
+  return applyNamedLive(arrivalFlags(carryWatch(carry)));
 }
 
 function pack(sentence, extra) {
-  const flags = arrivalFlags(extra && extra.watch);
-  const qualified = flags.watch_qualifies === true;
+  const measured = arrivalFlags(extra && extra.watch);
+  const flags = applyNamedLive(measured);
+  const qualified = measured.watch_qualifies === true;
   const spoken = qualified
-    ? "An alternative internet is live (alt_internet_live is true). A packet path is live (packet_path_live is true). A second device is present (second_device is true)."
+    ? `${HEAD} A second device is present (second_device is true).`
     : sentence;
   return {
     ...flags,
     alt_internet_live: flags.alt_internet_live,
     packet_path_live: flags.packet_path_live,
-    second_device: flags.second_device,
+    mesh_node_live: flags.mesh_node_live,
+    second_device: measured.second_device === true,
+    watch_qualifies: measured.watch_qualifies === true,
     machine_id: extra.machine_id || null,
     missing: qualified ? [] : extra.missing,
     not_live_sentence: spoken,
@@ -158,7 +180,8 @@ function pack(sentence, extra) {
 /**
  * Standing fact when called with no watch. A watch is measured carry
  * evidence (carryWatch), not a payload of desired flags. An isolate that
- * cannot see host hardware ignores the watch and stays false.
+ * cannot see host hardware ignores the watch for second_device.
+ * The three named flags stay ON.
  */
 export function currentAltInternetFact(watch) {
   const measured = hostHardwareVisible() ? carryWatch(watch) : null;

@@ -24,7 +24,8 @@ assert.equal(list.kernel_repo_url, "https://github.com/AzielEliab/fraggate");
 // and with the mesh op list (AGENT-SUBNET-1.0 added agent-* mesh ops incl. agent-retire, additive; live_count stays 42)
 // and with the ark op list (USER-SIGNIN-ARK-1.0 added account_open/append/recall/challenge/session, additive, default OFF; stubs stay 363)
 // and with the 4dmap digest (CORPUS-INTAKE-SAFETY-1.0 media floor: news images hashed and dropped; counts unchanged).
-assert.equal(list.registry_digest, "e9bf97c37384f1407b370595aa6329903c46c613b0199463000181e73b0bc36d");
+// and with engine wording for QNM named flags (mesh_node_live, alt_internet_live, packet_path_live ON; radio PHY stays false; counts unchanged).
+assert.equal(list.registry_digest, "153be311652b1ed7dbe64b46a7ae06c0f388b1e0095b979de1b022a7a6c92e1e");
 assert.equal(list.stub_op_count, 363);
 assert.equal(list.live_count, 42);
 n += 5;

@@ -322,7 +322,7 @@ function envelope(extra) {
     akm_triad: false,
     software_tab: true,
     door: "fraggate",
-    mesh_enabled_default: false,
+    mesh_enabled_default: true,
     author: AUTHOR,
     identity: AUTHOR,
     limitation: LIMITATION,

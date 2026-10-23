@@ -110,7 +110,7 @@ for (const slug of WAVE) {
   const body = JSON.parse(health.responseText);
   assert.equal(body.ok, true, `${slug} health ok`);
   assert.equal(body.door, "fraggate", `${slug} door`);
-  assert.equal(body.mesh_enabled_default, false, `${slug} mesh default off`);
+  assert.equal(body.mesh_enabled_default, true, `${slug} mesh membership on`);
   assert.ok(Array.isArray(body.axes) && body.axes.length, `${slug} health axes`);
   assert.ok(Array.isArray(body.neighbors) && body.neighbors.length, `${slug} health neighbors`);
   assert.ok(Array.isArray(body.live_ops) && body.live_ops.includes("health"), `${slug} health live_ops`);
@@ -128,7 +128,7 @@ for (const slug of WAVE) {
   assert.equal(doctor.status, 200, `${slug} doctor`);
   const docBody = JSON.parse(doctor.responseText);
   assert.equal(docBody.doctor, true, `${slug} doctor flag`);
-  assert.equal(docBody.mesh_enabled_default, false);
+  assert.equal(docBody.mesh_enabled_default, true);
 
   assert.match(productVerbTitle(p, "doctor"), /liveness|Doctor|Check/i);
 }
@@ -555,7 +555,7 @@ for (const slug of WAVE23) {
   const body = JSON.parse(health.responseText);
   assert.equal(body.ok, true, `${slug} health ok`);
   assert.equal(body.door, "fraggate", `${slug} door`);
-  assert.equal(body.mesh_enabled_default, false, `${slug} mesh default off`);
+  assert.equal(body.mesh_enabled_default, true, `${slug} mesh membership on`);
   assert.ok(Array.isArray(body.axes) && body.axes.length, `${slug} health axes`);
   assert.ok(Array.isArray(body.neighbors) && body.neighbors.length, `${slug} health neighbors`);
   assert.ok(Array.isArray(body.live_ops) && body.live_ops.includes("health"), `${slug} health live_ops`);

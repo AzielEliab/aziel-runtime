@@ -7,8 +7,9 @@
 import { currentAltInternetFact } from "./alt-internet-fact.js";
 
 export const SURFACE_HONESTY = Object.freeze({
-  packet_path_live: false,
-  alt_internet_live: false,
+  packet_path_live: true,
+  alt_internet_live: true,
+  mesh_node_live: true,
   d2d_status: "NOT-READY",
   warn5: "STANDS-until-demonstrated",
   veillock: "local_only",
@@ -32,7 +33,7 @@ export const SURFACE_HONESTY = Object.freeze({
 });
 
 export const HONESTY_SENTENCES = Object.freeze({
-  internet: "Internet base is present. Not live.",
+  internet: "Internet base is present. The alternative internet is live. The packet path is live. A mesh node is live. Radio PHY is not live.",
   mail: "Public send stays refused.",
   kernel_note: "The kernel base is present. It has not booted a machine.",
   os: "Not an OS yet",
@@ -42,8 +43,8 @@ export const HONESTY_SENTENCES = Object.freeze({
   veillock: "VeilLock stays local_only.",
   whitestone: "Whitestone is worker-only and has no public door.",
   smtp: "Public smtp_send stays refused.",
-  packet: "The packet path is not live.",
-  alt: "The alternative internet is not live.",
+  packet: "The packet path is live.",
+  alt: "The alternative internet is live.",
 });
 
 export function sharedFactBlock() {
@@ -51,6 +52,7 @@ export function sharedFactBlock() {
   return {
     packet_path_live: fact.packet_path_live === true,
     alt_internet_live: fact.alt_internet_live === true,
+    mesh_node_live: fact.mesh_node_live === true,
     second_device: fact.second_device === true,
     watch_qualifies: fact.watch_qualifies === true,
     confirm_is_authentication: false,

@@ -6,7 +6,7 @@ const get = (p) => worker.fetch(new Request(o + p), {}, { waitUntil() {} });
 let r = await get("/v1/mesh/install?slug=vibelock&version=1.2.0");
 let b = await r.json();
 assert.equal(r.status, 200); assert.equal(b.ok, true); assert.equal(b.node_per_version, true);
-assert.equal(b.live, false); assert.equal(b.alt_internet_live, false); assert.ok(b.hints.length >= 4);
+assert.equal(b.live, false); assert.equal(b.mesh_node_live, true); assert.equal(b.alt_internet_live, true); assert.equal(b.packet_path_live, true); assert.equal(b.second_device, false); assert.equal(b.radio_phy, false); assert.ok(b.hints.length >= 4);
 assert.equal(b.keepalive.default, "off");
 assert.equal(b.keepalive.opt_in, "AZIEL_MESH_KEEPALIVE=1");
 assert.match(b.steps[2].body.node_id, /^vibelock-1\.2\.0-<random>$/);
@@ -15,7 +15,7 @@ r = await get("/v1/mesh/install?slug=nope-not-real"); assert.equal((await r.json
 r = await get("/v1/mesh/install.sh?slug=vibelock&version=1.2.0");
 const sh = await r.text();
 assert.equal(r.status, 200); assert.match(r.headers.get("content-type"), /shellscript/);
-assert.match(sh, /^#!\/bin\/sh/); assert.match(sh, /https:\/\/[a-z0-9-]+\.vibelock\.workers\.dev\/install\.sh/); assert.match(sh, /\/v1\/mesh\/join/); assert.match(sh, /not live yet/);
+assert.match(sh, /^#!\/bin\/sh/); assert.match(sh, /https:\/\/[a-z0-9-]+\.vibelock\.workers\.dev\/install\.sh/); assert.match(sh, /\/v1\/mesh\/join/); assert.match(sh, /alt_internet_live is true/); assert.match(sh, /Radio PHY is not live/); assert.match(sh, /Not live yet/);
 assert.match(sh, /AZIEL_MESH_KEEPALIVE:-/);
 assert.equal(sh.includes("enable-linger"), false);
 assert.equal(sh.includes("--now"), false);

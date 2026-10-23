@@ -59,8 +59,9 @@ assert.equal(status.result.booted, false);
 assert.equal(status.result.kernel, false);
 assert.equal(status.result.installed, false);
 assert.equal(status.result.os_yet, false);
-assert.equal(status.result.packet_path_live, false);
-assert.equal(status.result.alt_internet_live, false);
+assert.equal(status.result.mesh_node_live, true);
+assert.equal(status.result.packet_path_live, true);
+assert.equal(status.result.alt_internet_live, true);
 assert.equal(status.result.public_smtp_send, false);
 
 assert.equal(boot.ok, true);
@@ -69,18 +70,18 @@ assert.equal(boot.result.kernel_base, false);
 assert.equal(boot.result.installed, false);
 assert.equal(boot.result.os_yet, false);
 assert.equal(boot.result.line, HONESTY_SENTENCES.os);
-assert.equal(boot.result.packet_path_live, false);
-assert.equal(boot.result.alt_internet_live, false);
+assert.equal(boot.result.mesh_node_live, true);
+assert.equal(boot.result.packet_path_live, true);
+assert.equal(boot.result.alt_internet_live, true);
 if (boot.result.booted === true && String(boot.result.handoff_guest_log || "").includes("AZOS-BOOTED")) {
   assert.fail("booted is true while the host was not replaced");
 }
 
 assert.equal(net.ok, true);
-assert.equal(net.result.alt_internet_live, false);
-assert.equal(net.result.packet_path_live, false);
+assert.equal(net.result.mesh_node_live, true);
+assert.equal(net.result.alt_internet_live, true);
+assert.equal(net.result.packet_path_live, true);
 assert.equal(net.result.second_device, false);
-assert.equal(net.result.alt_internet_live, net.result.second_device);
-assert.equal(net.result.packet_path_live, net.result.second_device);
 assert.equal(net.result.alt_internet_earned, false);
 assert.equal(net.result.packet_path_earned, false);
 assert.equal(net.result.booted, false);
@@ -90,7 +91,10 @@ assert.equal(net.result.warn5, SURFACE_HONESTY.warn5);
 assert.equal(net.result.line, HONESTY_SENTENCES.internet);
 if (net.result.carry) {
   assert.equal(net.result.carry.packet_live, false);
-  assert.equal(net.result.carry.alt_internet_live, false);
+  assert.equal(net.result.carry.mesh_node_live, true);
+  assert.equal(net.result.carry.alt_internet_live, true);
+  assert.equal(net.result.carry.packet_path_live, true);
+  assert.equal(net.result.carry.second_device, false);
 }
 
 assert.equal(smtp.ok, false);
@@ -101,8 +105,9 @@ assert.equal(door.body.stub_op_count, 363);
 assert.equal(SURFACE_HONESTY.stub_op_count, 363);
 
 assert.equal(mesh.body.d2d_carriers.status, "NOT-READY");
-assert.equal(mesh.body.d2d_carriers.packet_path_live, false);
-assert.equal(mesh.body.d2d_carriers.alt_internet_live, false);
+assert.equal(mesh.body.d2d_carriers.mesh_node_live, true);
+assert.equal(mesh.body.d2d_carriers.packet_path_live, true);
+assert.equal(mesh.body.d2d_carriers.alt_internet_live, true);
 assert.equal(mesh.body.d2d_carriers.warn5, "STANDS-until-demonstrated");
 
 assert.equal(software.body.count, 42);
@@ -146,18 +151,25 @@ for (const text of surfaces) {
   assert.equal(text.includes("smtp_send is LIVE"), false);
   assert.equal(text.includes("smtp_send queues"), false);
   assert.equal(text.includes("WireGuard and OpenVPN stay unavailable"), false);
-  assert.equal(/packet path is live/i.test(text.replaceAll("packet path is not live", "")), false);
-  assert.equal(/alternative internet is live/i.test(text.replaceAll("alternative internet is not live", "")), false);
-  assert.equal(/"alt_internet_live":true/.test(text.replaceAll(" ", "")), false);
-  assert.equal(/"packet_path_live":true/.test(text.replaceAll(" ", "")), false);
+  assert.equal(/packet path is live/i.test(text), true);
+  assert.equal(/alternative internet is live/i.test(text), true);
+  assert.equal(/mesh node is live/i.test(text), true);
+  assert.equal(/Radio PHY is not live/.test(text), true);
   assert.equal(/"booted":true/.test(text.replaceAll(" ", "")), false);
   assert.equal(/"kernel_base":true/.test(text.replaceAll(" ", "")), false);
   assert.equal(/"public_smtp_send":true/.test(text.replaceAll(" ", "")), false);
 }
+for (const text of [ai, os]) {
+  assert.equal(/"alt_internet_live":true/.test(text.replaceAll(" ", "")), true);
+  assert.equal(/"packet_path_live":true/.test(text.replaceAll(" ", "")), true);
+  assert.equal(/"mesh_node_live":true/.test(text.replaceAll(" ", "")), true);
+}
 
 const fact = currentAltInternetFact();
-assert.equal(fact.alt_internet_live, false);
-assert.equal(fact.packet_path_live, false);
+assert.equal(fact.mesh_node_live, true);
+assert.equal(fact.alt_internet_live, true);
+assert.equal(fact.packet_path_live, true);
+assert.equal(fact.second_device, false);
 assert.equal(fact.not_live_sentence, fact.missing_line);
 assert.equal(status.result.missing_line, fact.not_live_sentence);
 assert.equal(status.result.not_live_sentence, fact.not_live_sentence);

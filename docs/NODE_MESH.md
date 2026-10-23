@@ -82,6 +82,24 @@ These five were **hard-false**. Operator **2026-09-17** flipped them **ON** on t
 
 Die-with-pull / no godlock.uk resurrection / Cap-7 `resolves_to_hub: false` / FragGate sole door / `confirm` / `dry_run` stay as-is. No MCP tool added or removed. Identity **Aziel Eliab** only.
 
+### OPERATOR 2026-10-23 — Softwares / QNM named flags
+
+Softwares cards (all 42, including azchat) stamp suite membership **on**, `mesh_default` **on**, `product_mesh` **default_on**, and `mesh_radios` / `radios` **on**. `GET /v1/mesh` still never enables (`get_never_enables`). A missing `MESH_RADIOS` env follows declared bearers. Do not bake `[vars] MESH_RADIOS=on` into wrangler; `MESH_RADIOS=off` stays the kill switch.
+
+These three flags are **true / ON / LIVE** on Softwares cards and on the public QNM fact:
+
+- `mesh_node_live`
+- `alt_internet_live`
+- `packet_path_live`
+
+QNM separates those three from radio PHY. `radio_phy`, `worker_hardware`, `worker_radios_live`, and carrier `packet_live` stay **false**. Absent RF and photon refuse `QNM-RADIO-ABSENT`. No mock radio. The public carrier door stays `FG-STUB`. WARN-5 stays STANDS-until-demonstrated.
+
+`second_device` stays measured. It is true only when a packet leaves this machine and arrives on a different machine id. A same-machine frame does not set it.
+
+Cap-7 / `.aziel` stay names. `cap7_public_icann`, `cap7_public_egress`, `public_icann`, and `registrar_live` stay **false**.
+
+AZMail stamps suite membership on. The anonymous mail ring stays default **off** (`mail_ring_packet_live` false). That ring is not the QNM packet path. Embryolock `public_mesh_destructive` stays false. Whitestone is a Softwares card and is not a `{slug}-worker` `software_nodes` row. Do not equate Softwares tab 42 with `software_nodes` 41.
+
 No new MCP tool. FragGate stays the only public exec door.
 
 ## Channel plane ≠ kernel VPN · pairing ≠ tunnel · public VPN AZVPN

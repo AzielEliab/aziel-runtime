@@ -40,7 +40,7 @@ export function buildLockstepContract(products) {
     booted: SURFACE_HONESTY.booted === true,
     installed: SURFACE_HONESTY.installed === true,
     os_yet: SURFACE_HONESTY.os_yet === true,
-    mesh_node_live: false,
+    mesh_node_live: true,
     one_click_install_live: false,
     witness_dual: false,
     receipts_signed: false,

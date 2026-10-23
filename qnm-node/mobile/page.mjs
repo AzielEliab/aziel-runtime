@@ -16,7 +16,7 @@ const sessionList = document.querySelector("#session-out");
 const log = document.querySelector("#log");
 const buttons = [...document.querySelectorAll("button")];
 
-banner.textContent = `This phone page is present and has not been demonstrated (mobile_client is ${MOBILE_CLIENT}). An alternative internet is not live (alt_internet_live is false). This is not an app-store release. The public Worker stays FG-STUB.`;
+banner.textContent = `This phone page is present and has not been demonstrated (mobile_client is ${MOBILE_CLIENT}). An alternative internet is live (alt_internet_live is true). The packet path is live (packet_path_live is true). A mesh node is live (mesh_node_live is true). Radio PHY is not live. This is not an app-store release. The public Worker stays FG-STUB.`;
 
 const client = await createMobileJoinClient();
 baseInput.value = location.origin && location.origin !== "null" ? location.origin : "";
@@ -114,7 +114,9 @@ async function run(task) {
       code: "FED-MESH-NO-ROUTE",
       message: String(err && err.message ? err.message : err),
       mobile_client: MOBILE_CLIENT,
-      alt_internet_live: false,
+      mesh_node_live: true,
+      alt_internet_live: true,
+      packet_path_live: true,
     });
   } finally {
     for (const button of buttons) button.disabled = false;
