@@ -679,7 +679,7 @@ function runProcess(cmd, args, cwd) {
   );
 }
 
-function runQemu(args) {
+function runQemu(args, timeoutMs = 3000) {
   return import("node:child_process").then(
     ({ spawn }) =>
       new Promise((resolve) => {
@@ -691,7 +691,7 @@ function runQemu(args) {
           } catch {
             /* already gone */
           }
-        }, 3000);
+        }, timeoutMs);
         child.stderr.on("data", (chunk) => {
           stderr += chunk;
         });
@@ -707,12 +707,112 @@ function runQemu(args) {
   );
 }
 
+function newcEntry(name, data, mode, ino) {
+  const enc = new TextEncoder();
+  const nameBytes = enc.encode(`${name}\0`);
+  const body = typeof data === "string" ? enc.encode(data) : data;
+  const fields = [ino, mode, 0, 0, 1, 0, body.byteLength, 0, 0, 0, 0, nameBytes.byteLength, 0];
+  const header = enc.encode(`070701${fields.map((n) => n.toString(16).padStart(8, "0")).join("")}`);
+  const headPad = (4 - ((header.length + nameBytes.length) % 4)) % 4;
+  const bodyPad = (4 - (body.length % 4)) % 4;
+  const out = new Uint8Array(header.length + nameBytes.length + headPad + body.length + bodyPad);
+  out.set(header, 0);
+  out.set(nameBytes, header.length);
+  out.set(body, header.length + nameBytes.length + headPad);
+  return out;
+}
+
 /**
- * Assemble the real-mode sector in src/boot/azos-boot.S, mark it installed,
- * place the Linux boot magic at 0x202, append the cpio userspace, and hand
- * that disk to qemu. Flags stay false unless the guest debug log shows the boot.
+ * Read a Linux x86 bzImage header from the file bytes (boot protocol: "HdrS" at 0x202,
+ * kernel_version pointer at 0x20e). Returns null when the file is not a Linux kernel image.
  */
-export async function bootHandoff() {
+export function readBzImage(bytes) {
+  if (!(bytes instanceof Uint8Array) || bytes.byteLength < 0x1000) return null;
+  if (bytes[0x1fe] !== 0x55 || bytes[0x1ff] !== 0xaa) return null;
+  if (!(bytes[0x202] === 0x48 && bytes[0x203] === 0x64 && bytes[0x204] === 0x72 && bytes[0x205] === 0x53)) return null;
+  const protocol = bytes[0x206] | (bytes[0x207] << 8);
+  const setupSects = bytes[0x1f1] || 4;
+  const loadflags = bytes[0x211];
+  if (protocol < 0x0200 || (loadflags & 0x01) !== 0x01) return null;
+  const ptr = bytes[0x20e] | (bytes[0x20f] << 8);
+  let version = null;
+  if (ptr) {
+    const at = ptr + 0x200;
+    let endAt = at;
+    while (endAt < bytes.byteLength && endAt - at < 256 && bytes[endAt] !== 0) endAt += 1;
+    version = new TextDecoder().decode(bytes.subarray(at, endAt)).trim() || null;
+  }
+  if (!version || (setupSects + 1) * 512 >= bytes.byteLength) return null;
+  return { protocol: `${protocol >> 8}.${String(protocol & 0xff).padStart(2, "0")}`, version, release: version.split(/\s+/)[0] };
+}
+
+/** True when the ELF has no PT_INTERP (a static binary that can be /init's interpreter). */
+export function isStaticElf(bytes) {
+  if (!(bytes instanceof Uint8Array) || bytes.byteLength < 64) return false;
+  if (!(bytes[0] === 0x7f && bytes[1] === 0x45 && bytes[2] === 0x4c && bytes[3] === 0x46)) return false;
+  if (bytes[4] !== 2 || bytes[5] !== 1) return false;
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const phoff = Number(view.getBigUint64(0x20, true));
+  const phentsize = view.getUint16(0x36, true);
+  const phnum = view.getUint16(0x38, true);
+  for (let i = 0; i < phnum; i += 1) {
+    const at = phoff + i * phentsize;
+    if (at + 4 > bytes.byteLength) return false;
+    if (view.getUint32(at, true) === 3) return false;
+  }
+  return true;
+}
+
+async function findKernelImage(fs, path, explicit) {
+  const candidates = [];
+  if (explicit) candidates.push(explicit);
+  else {
+    try {
+      const names = (await fs.readdir("/boot")).filter((n) => /^vmlinuz-/.test(n));
+      names.sort((a, b) => b.localeCompare(a, undefined, { numeric: true }));
+      for (const n of names) candidates.push(path.join("/boot", n));
+    } catch {
+      /* no /boot */
+    }
+  }
+  for (const file of candidates) {
+    try {
+      const bytes = new Uint8Array(await fs.readFile(file));
+      const header = readBzImage(bytes);
+      if (header) return { file, bytes, header };
+    } catch {
+      /* unreadable */
+    }
+  }
+  return null;
+}
+
+async function findStaticBusybox(fs, explicit) {
+  const candidates = explicit ? [explicit] : ["/usr/bin/busybox", "/bin/busybox", "/usr/local/bin/busybox", "/usr/lib/initramfs-tools/bin/busybox"];
+  for (const file of candidates) {
+    try {
+      const bytes = new Uint8Array(await fs.readFile(file));
+      if (isStaticElf(bytes)) return { file, bytes };
+    } catch {
+      /* absent */
+    }
+  }
+  return null;
+}
+
+/**
+ * AZOS-REAL-KERNEL-HANDOFF-1.0. Boot a real Linux kernel image (a bzImage: AZOS_KERNEL or the
+ * newest readable /boot/vmlinuz-*) under qemu-system-x86_64 with an AZOS initramfs: the cpio
+ * userspace from kernelBase() plus a static busybox and an /init that prints a per-run nonce,
+ * the running kernel release, and its own pid. Flags come only from the guest serial console:
+ *   kernel_base: the console shows "Linux version <v>" for the same version read from the image.
+ *   booted:      kernel_base, and /init ran as pid 1 under that kernel release with this run's nonce.
+ *   installed:   stays false. Nothing is written to a disk and booted from it here.
+ * A boot sector, a hand-written header, or a harness flag never sets these.
+ * The host system is never replaced. An emulator is not real hardware.
+ */
+export async function bootHandoff(opts = {}) {
+  const src = opts && typeof opts === "object" ? opts : {};
   let fs;
   let path;
   let os;
@@ -720,98 +820,125 @@ export async function bootHandoff() {
     fs = await import("node:fs/promises");
     path = await import("node:path");
     os = await import("node:os");
-    const { fileURLToPath } = await import("node:url");
-    const source = fileURLToPath(new URL("./boot/azos-boot.S", import.meta.url));
-    await fs.access(source);
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "azos-boot-"));
-    const logPath = path.join(dir, "debug.txt");
-    const imagePath = path.join(dir, "disk.img");
+  } catch {
+    return bootAbsent("BOOT-HANDOFF-ABSENT", "The boot handoff tools are absent. Nothing booted.");
+  }
+  const env = typeof process !== "undefined" && process.env ? process.env : {};
+  const kernel = await findKernelImage(fs, path, src.kernel || env.AZOS_KERNEL || "");
+  if (!kernel) return bootAbsent("BOOT-KERNEL-ABSENT", "No readable Linux kernel image was found. Nothing booted.");
+  const busybox = await findStaticBusybox(fs, src.busybox || env.AZOS_BUSYBOX || "");
+  if (!busybox) return { ...bootAbsent("BOOT-USERSPACE-ABSENT", "No static busybox for /init. Nothing booted."), hdrs: true, kernel_version: kernel.header.version };
+  const nonce = [...crypto.getRandomValues(new Uint8Array(12))].map((b) => b.toString(16).padStart(2, "0")).join("");
+  const built = await kernelBase();
+  const init = [
+    "#!/bin/busybox sh",
+    "/bin/busybox mkdir -p /proc /sys /dev",
+    "/bin/busybox mount -t proc proc /proc",
+    "/bin/busybox mount -t devtmpfs dev /dev 2>/dev/null",
+    `echo "AZOS-BOOTED nonce=${nonce} kernel=$(/bin/busybox uname -r) pid=$$ principles=$(/bin/busybox wc -l < /usr/azos/principles.txt)" > /dev/console`,
+    "/bin/busybox poweroff -f",
+    "",
+  ].join("\n");
+  let ino = 1;
+  const entries = [
+    newcEntry("bin", new Uint8Array(0), 0o040755, ino++),
+    newcEntry("dev", new Uint8Array(0), 0o040755, ino++),
+    newcEntry("proc", new Uint8Array(0), 0o040755, ino++),
+    newcEntry("sys", new Uint8Array(0), 0o040755, ino++),
+    newcEntry("usr", new Uint8Array(0), 0o040755, ino++),
+    newcEntry("usr/azos", new Uint8Array(0), 0o040755, ino++),
+    newcEntry("bin/busybox", busybox.bytes, 0o100755, ino++),
+    newcEntry("init", init, 0o100755, ino++),
+  ];
+  const userspace = built.files && typeof built.files === "object" ? built.files : {};
+  for (const [name, text] of Object.entries(userspace)) {
+    if (name.startsWith("usr/azos/") && typeof text === "string") entries.push(newcEntry(name, text, 0o100644, ino++));
+  }
+  entries.push(newcEntry("TRAILER!!!", new Uint8Array(0), 0, 0));
+  const initramfs = concatBytes(entries);
+  let dir;
+  try {
+    dir = await fs.mkdtemp(path.join(os.tmpdir(), "azos-kboot-"));
+    const rdPath = path.join(dir, "initramfs.cpio");
+    const logPath = path.join(dir, "serial.log");
+    await fs.writeFile(rdPath, initramfs);
+    const qemuArgs = [
+      "-m",
+      "256",
+      "-kernel",
+      kernel.file,
+      "-initrd",
+      rdPath,
+      "-append",
+      "console=ttyS0 panic=-1 rdinit=/init",
+      "-serial",
+      `file:${logPath}`,
+      "-display",
+      "none",
+      "-monitor",
+      "none",
+      "-no-reboot",
+      "-net",
+      "none",
+    ];
+    let accel = ["-accel", "tcg"];
     try {
-      const assembled = await runProcess("as", ["--32", "-o", "boot.o", source], dir);
-      if (assembled.missing) return bootAbsent("BOOT-HANDOFF-ABSENT", "The boot handoff tools are absent. Nothing booted.");
-      if (assembled.code !== 0) return bootAbsent("BOOT-IMAGE-ABSENT", "The boot sector did not assemble. Nothing booted.");
-      const linked = await runProcess("ld", ["-m", "elf_i386", "-Ttext=0x7c00", "--oformat", "binary", "-o", "boot.bin", "boot.o"], dir);
-      if (linked.missing || linked.code !== 0) return bootAbsent("BOOT-IMAGE-ABSENT", "The boot sector did not link. Nothing booted.");
-      const sector = new Uint8Array(await fs.readFile(path.join(dir, "boot.bin")));
-      const signature = sector.byteLength >= 512 && sector[510] === 0x55 && sector[511] === 0xaa;
-      if (!signature) return bootAbsent("BOOT-IMAGE-ABSENT", "The boot sector has no boot signature. Nothing booted.");
-      sector[0x1f0] = 1;
-      const built = await kernelBase();
-      const archive = built.archive instanceof Uint8Array ? built.archive : new Uint8Array(0);
-      const image = new Uint8Array(0x206 + archive.byteLength);
-      image.set(sector.subarray(0, 512), 0);
-      image[0x202] = 0x48;
-      image[0x203] = 0x64;
-      image[0x204] = 0x72;
-      image[0x205] = 0x53;
-      image.set(archive, 0x206);
-      const hdrs = image[0x202] === 0x48 && image[0x203] === 0x64 && image[0x204] === 0x72 && image[0x205] === 0x53;
-      await fs.writeFile(imagePath, image);
-      const qemuArgs = [
-        "-drive",
-        `file=${imagePath},format=raw,if=ide`,
-        "-device",
-        "isa-debugcon,iobase=0xe9,chardev=dbg",
-        "-chardev",
-        `file,id=dbg,path=${logPath}`,
-        "-display",
-        "none",
-        "-no-reboot",
-        "-serial",
-        "none",
-        "-net",
-        "none",
-      ];
-      let guest = await runQemu(qemuArgs);
-      if (guest.missing) return bootAbsent("BOOT-HANDOFF-ABSENT", "The boot handoff tools are absent. Nothing booted.");
-      let guestLog = "";
-      try {
-        guestLog = await fs.readFile(logPath, "utf8");
-      } catch {
-        guestLog = "";
-      }
-      if (!guestLog.includes("AZOS-BOOTED") && /kvm|accel/i.test(guest.stderr || "")) {
-        try {
-          await fs.rm(logPath, { force: true });
-        } catch {
-          /* fresh log */
-        }
-        guest = await runQemu(["-accel", "tcg", ...qemuArgs]);
-        try {
-          guestLog = await fs.readFile(logPath, "utf8");
-        } catch {
-          guestLog = "";
-        }
-      }
-      const booted = guestLog.includes("AZOS-BOOTED");
-      const installed = booted && guestLog.includes("AZOS-INSTALLED") && sector[0x1f0] === 1;
-      const kernel = booted && hdrs && signature;
-      return {
-        ok: kernel,
-        kernel_base: kernel,
-        booted,
-        installed,
-        host_replaced: false,
-        boot_signature: signature,
-        hdrs,
-        install_flag: sector[0x1f0],
-        image_bytes: image.byteLength,
-        image_sha256: await sha256Hex(image),
-        guest_log: guestLog.slice(0, 400),
-        code: kernel ? "BOOT-HANDOFF" : "BOOT-HANDOFF-ABSENT",
-        line: kernel
-          ? "The installed image booted in the handoff. The host system was not replaced."
-          : "The boot handoff did not report a boot. Nothing on the host was replaced.",
-      };
-    } finally {
+      await fs.access("/dev/kvm", (await import("node:fs")).constants.W_OK);
+      accel = ["-accel", "kvm"];
+    } catch {
+      /* no kvm: emulate */
+    }
+    const guest = await runQemu([...accel, ...qemuArgs], src.timeoutMs || Number(env.AZOS_BOOT_TIMEOUT_MS) || 120000);
+    if (guest.missing) return { ...bootAbsent("BOOT-HANDOFF-ABSENT", "qemu-system-x86_64 is absent. Nothing booted."), hdrs: true, kernel_version: kernel.header.version };
+    let serial = "";
+    try {
+      serial = await fs.readFile(logPath, "utf8");
+    } catch {
+      serial = "";
+    }
+    const verLine = (serial.match(/Linux version ([^\r\n]+)/) || [])[1] || "";
+    const kernelBase_ = verLine.length > 0 && verLine.startsWith(kernel.header.release) && kernel.header.version.startsWith(kernel.header.release);
+    const initLine = (serial.match(new RegExp(`AZOS-BOOTED nonce=${nonce} kernel=(\\S+) pid=(\\d+) principles=(\\d+)`)) || []);
+    const booted = kernelBase_ && initLine.length > 0 && initLine[1] === kernel.header.release && initLine[2] === "1" && Number(initLine[3]) === PRINCIPLES.length;
+    const guestLog = serial
+      .split(/\r?\n/)
+      .filter((l) => /Linux version|AZOS-BOOTED|Kernel panic|Run \/init|Freeing unused kernel/.test(l))
+      .join("\n")
+      .slice(0, 800);
+    return {
+      ok: booted,
+      kernel_base: kernelBase_,
+      booted,
+      installed: false,
+      host_replaced: false,
+      boot_signature: true,
+      hdrs: true,
+      install_flag: 0,
+      emulator: "qemu-system-x86_64",
+      real_hardware: false,
+      kernel_file: kernel.file,
+      kernel_version: kernel.header.version,
+      kernel_release: kernel.header.release,
+      kernel_sha256: await sha256Hex(kernel.bytes),
+      nonce,
+      image_bytes: initramfs.byteLength,
+      image_sha256: await sha256Hex(initramfs),
+      guest_log: guestLog,
+      code: booted ? "BOOT-HANDOFF" : kernelBase_ ? "BOOT-INIT-ABSENT" : "BOOT-HANDOFF-ABSENT",
+      line: booted
+        ? "A real Linux kernel booted the AZOS initramfs in QEMU and /init ran as pid 1. Nothing was installed. The host system was not replaced."
+        : "The kernel handoff did not report a boot. Nothing on the host was replaced.",
+    };
+  } catch {
+    return bootAbsent("BOOT-HANDOFF-ABSENT", "The boot handoff did not run. Nothing booted.");
+  } finally {
+    if (dir) {
       try {
         await fs.rm(dir, { recursive: true, force: true });
       } catch {
         /* temp dir already gone */
       }
     }
-  } catch {
-    return bootAbsent("BOOT-HANDOFF-ABSENT", "The boot handoff tools are absent. Nothing booted.");
   }
 }
 
