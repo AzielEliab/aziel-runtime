@@ -1265,6 +1265,14 @@ export const SUITE_DESIGNS = Object.freeze([
     status: "live",
     kind: "law",
   },
+  {
+    id: "AZBOT-NODE-COLLAB-FORENSIC-1.0",
+    file: "AZBOT-NODE-COLLAB-FORENSIC-1.0.md",
+    one_line:
+      "AZBot Node Collaborative Forensic Design 1.0 — FragGate handoff, tip-only multi-party sessions, MESH-NEED-BEARER plus local qnm-node; GET /v1/mesh never enables",
+    status: "live",
+    kind: "law",
+  },
 ]);
 
 export function designGithubUrl(file) {

@@ -1343,6 +1343,44 @@ export function runtimeStaticPaths() {
         },
       },
     },
+    "/v1/session/{id}/tip": {
+      get: {
+        operationId: "runtime_session_tip",
+        summary:
+          "AZBOT-NODE-COLLAB-FORENSIC-1.0: read the session receipt tip only. Other parties can read this tip. They cannot rewrite it. GET /v1/mesh never enables.",
+        tags: ["session"],
+        parameters: [SESSION_ID_PARAM],
+        responses: {
+          "200": { description: "Tip hash, lattice tips, party ids. No receipt bodies." },
+          "404": { description: "session_not_found" },
+        },
+      },
+      post: {
+        operationId: "runtime_session_tip_rewrite_refused",
+        summary: "Refuses FORENSIC-NO-REWRITE. A tip post does not rewrite the lattice. It writes nothing, so it is not a session mutate.",
+        tags: ["session"],
+        parameters: [SESSION_ID_PARAM],
+        responses: { "409": { description: "FORENSIC-NO-REWRITE" } },
+      },
+    },
+    "/v1/session/{id}/party": {
+      post: {
+        operationId: "runtime_session_party",
+        security: [{ RuntimeToken: [] }],
+        summary:
+          "AZBOT-NODE-COLLAB-FORENSIC-1.0: join a multi-party session. Shares the receipt tip only. AzielTether tip read requires a bearer (MESH-NEED-BEARER). vpn, arm, and mesh-join stay FG-STUB. Does not enable GET /v1/mesh.",
+        tags: ["session"],
+        parameters: [SESSION_ID_PARAM],
+        requestBody: { required: false, content: { "application/json": { schema: { type: "object" } } } },
+        responses: {
+          "200": { description: "Party id recorded. Tip unchanged." },
+          "400": { description: "FORENSIC-NEED-PARTY, MESH-NEED-BEARER, or MESH-BAD-BEARER" },
+          "401": { description: TOKEN_401 },
+          "404": { description: "session_not_found" },
+          "409": { description: "FORENSIC-NO-REWRITE, FG-STUB, session_closed, or FORENSIC-PARTY-CAP" },
+        },
+      },
+    },
     "/v1/session/{id}/spec": {
       get: {
         operationId: "runtime_session_spec",
