@@ -10,6 +10,10 @@
  * high-impact exec. High-impact is the existing FragGate mutate class (fraggateOpAccess: write-shaped
  * and unknown ops) plus the DecisionGATE mutate ops check and evaluate. While the path is not
  * healthy those ops refuse AUDIT-PATH-DOWN before anything runs, and the refusal is sealed.
+ * The same gate runs again at commit, before the exec receipt is sealed. A path that is down or
+ * degraded then does not commit: the refusal is sealed, the pending intent is dropped, and the
+ * result is not returned. A serialized read before the engine skips the start when the path is
+ * already not healthy.
  * While the recorder is down or degraded, every exec and refusal in that span is sealed
  * audit_status=unaudited.
  *

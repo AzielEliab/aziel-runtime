@@ -415,6 +415,40 @@ async function handleExec(request, env, id, { json, PRODUCTS, BY_SLUG, upstreamF
   const method = spec && spec.method === "GET" ? "GET" : "POST";
   const reqDig = await digestText(payloadText);
 
+  // RIB-055: intent already passed. This serialized read sees an audit that landed after intent.
+  // When it blocks, the engine does not start. Commit still re-checks and is what refuses.
+  const { isHighImpactOp } = await import("./audit-path.js");
+  let engineWithheld = false;
+  if (isHighImpactOp(slug, op)) {
+    const gateRes = await stubFetch(env, id, "audit-gate", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ slug, op }),
+    });
+    if (gateRes.ok) {
+      const gate = await gateRes.json();
+      if (gate && gate.block === true) engineWithheld = true;
+    }
+  }
+  if (engineWithheld) {
+    const commitRes = await stubFetch(env, id, "commit", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        intent,
+        status: 409,
+        latency_ms: 0,
+        request_digest: reqDig.sha256,
+        response_digest: reqDig.sha256,
+        response_bytes: 0,
+        error: "AUDIT-PATH-DOWN",
+        engine_withheld: true,
+      }),
+    });
+    const commitBody = await commitRes.json();
+    return json({ ...commitBody, ...confirmConsentHonesty() }, commitRes.status);
+  }
+
   let status = 502;
   let responseText = "";
   let upstream = null;
@@ -508,6 +542,9 @@ async function handleExec(request, env, id, { json, PRODUCTS, BY_SLUG, upstreamF
     }),
   });
   const commitBody = await commitRes.json();
+  if (commitBody && commitBody.code === "AUDIT-PATH-DOWN") {
+    return json({ ...commitBody, ...confirmConsentHonesty() }, commitRes.status);
+  }
   const localNote =
     engine && engine.mode === "local"
       ? "Ran inside this Worker isolate. Receipt includes engine_digest of the loaded artifact."

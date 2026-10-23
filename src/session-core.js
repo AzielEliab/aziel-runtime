@@ -624,8 +624,10 @@ export async function applyPolicy(session, incoming, nowIso) {
  */
 export const SESSION_REFUSAL_SPEC = "AZRT-REFUSAL-RECEIPT-1.0";
 
-async function sealSessionRefusal(session, err, { slug, op, payloadText }, nowIso) {
-  const digest = await digestText(payloadText == null ? "" : String(payloadText));
+async function sealSessionRefusal(session, err, { slug, op, payloadText, payloadDigest = null }, nowIso) {
+  const digest = payloadDigest && typeof payloadDigest.sha256 === "string"
+    ? { sha256: payloadDigest.sha256, bytes: Number(payloadDigest.bytes) || 0 }
+    : await digestText(payloadText == null ? "" : String(payloadText));
   const { execAuditFields } = await import("./audit-path.js");
   const audit = execAuditFields(session.receipts, { slug, op });
   // RIB-018 follow-up: a slug that is not a FragGate registry name, or an op that is not one of its ops
@@ -697,7 +699,8 @@ async function recordIntentInner(session, { slug, op, payload, payloadText, know
   const bytes = new TextEncoder().encode(payloadText).length;
   const allowed = assertExecAllowed(session, { slug, op, payloadBytes: bytes, knownSlugs, nowIso });
   const digest = await digestText(payloadText);
-  // RIB-055: a named recorder must be healthy before a high-impact op runs. Nothing is executed on refusal.
+  // RIB-055: a named recorder must be healthy before a high-impact intent is accepted.
+  // Commit checks again before the exec receipt is sealed.
   const { execAuditFields, AUDIT_PATH_DOWN, AUDIT_SPEC } = await import("./audit-path.js");
   const audit = execAuditFields(session.receipts, { slug: allowed.slug, op: allowed.op });
   if (audit && audit.high_impact && audit.audit_status !== "audited") {
@@ -744,6 +747,45 @@ export async function commitExec(session, { intent, status, latencyMs, requestDi
   if (!session.pending_intent || session.pending_intent.intent_id !== intent.intent_id) {
     throw sessionError(409, "intent_mismatch", "pending intent does not match commit");
   }
+  // RIB-055: re-gate before any exec receipt. A path that is not healthy now cannot commit,
+  // and the pending intent is dropped so a later beat cannot seal this result.
+  const { execAuditFields, AUDIT_PATH_DOWN, AUDIT_SPEC } = await import("./audit-path.js");
+  const audit = execAuditFields(session.receipts, {
+    slug: session.pending_intent.slug,
+    op: session.pending_intent.op,
+  });
+  const withheld = additive && additive.engine_withheld === true;
+  if (audit && audit.high_impact && (audit.audit_status !== "audited" || withheld)) {
+    if (audit.audit_status !== "audited") {
+      const err = sessionError(409, AUDIT_PATH_DOWN, `audit path is ${audit.audit_path.status}; high-impact op refused at commit. The result was not sealed.`, {
+        spec: AUDIT_SPEC,
+        executed: false,
+        mutated: false,
+        audit_status: "unaudited",
+        audit_path: audit.audit_path,
+      });
+      const receipt = await sealSessionRefusal(session, err, {
+        slug: session.pending_intent.slug,
+        op: session.pending_intent.op,
+        payloadDigest: { sha256: session.pending_intent.payload_digest, bytes: session.pending_intent.payload_bytes },
+      }, nowIso);
+      session.pending_intent = null;
+      session.updated_at = nowIso;
+      err.extra = { ...(err.extra || {}), refused_receipt: { sealed: true, seq: receipt.seq, hash: receipt.hash, code: AUDIT_PATH_DOWN } };
+      err.sessionDirty = true;
+      throw err;
+    }
+    session.pending_intent = null;
+    session.updated_at = nowIso;
+    const err = sessionError(409, AUDIT_PATH_DOWN, "audit path was not healthy before this high-impact op. The exec was not run and was not sealed.", {
+      spec: AUDIT_SPEC,
+      executed: false,
+      mutated: false,
+      refused_receipt: { sealed: false, reason: "path is healthy at commit; a down refusal would not match the chain. Nothing was sealed." },
+    });
+    err.sessionDirty = true;
+    throw err;
+  }
   const eng = engine && typeof engine === "object" ? engine : {};
   const mode = eng.mode || (upstream ? "proxy_fallback" : "local");
   const isLocal = mode === "local" && eng.true_engine_runtime === true && Boolean(eng.engine_digest);
@@ -755,10 +797,6 @@ export async function commitExec(session, { intent, status, latencyMs, requestDi
     policy_receipt_ref: policyRef ? policyRef.hash : null,
   };
   const evidence = evidenceOf(additive && additive.evidence);
-  const { execAuditFields } = await import("./audit-path.js");
-  const audit = session.pending_intent
-    ? execAuditFields(session.receipts, { slug: session.pending_intent.slug, op: session.pending_intent.op })
-    : null;
   // RIB-043: approved_at is the exec receipt's own ts; restamp the record and its hash at seal time.
   let sealedIntent = session.pending_intent;
   if (sealedIntent && sealedIntent.approver) {

@@ -24,6 +24,8 @@ Sessions that omit `recorder` are unchanged.
 
 High-impact ops are the FragGate mutate class (`fraggateOpAccess`: write-shaped ops, and unknown ops, which stay mutating) plus DecisionGATE `check` and `evaluate`. While the path is not `healthy`, those ops refuse `AUDIT-PATH-DOWN` before anything runs. The refusal is a sealed `refused` receipt with `audit_status=unaudited`, and a row on the internal `refusals` chain.
 
+The gate runs again at commit, before the exec receipt is sealed. If a concurrent `POST …/audit` marks the path `down` or `degraded` after intent, the high-impact result is not sealed. The refusal is the same `AUDIT-PATH-DOWN` row, the pending intent is dropped (a later beat cannot seal that result), and the HTTP response does not return it. A serialized read just before the engine skips the start when the path is already not healthy. A path that drops while the engine is already running still cannot commit.
+
 Every exec and refusal while the path is `down` or `degraded` is sealed `audit_status=unaudited`. A high-impact exec also carries the health stamp when the path is healthy.
 
 ## Close
