@@ -619,6 +619,7 @@ export function runtimeManifest(origin, products, extra = {}) {
       session_receipt: base + "/v1/session/{id}/receipt",
       session_receipts: base + "/v1/session/{id}/receipts",
       session_close: base + "/v1/session/{id}/close",
+      session_audit: base + "/v1/session/{id}/audit",
       skill: base + "/v1/skill",
       runtime: base + "/v1/runtime.json",
       runtime_alias: base + "/v1/runtime",
@@ -1227,7 +1228,7 @@ export function runtimeStaticPaths() {
         summary: "Seal the session. Further exec is rejected.",
         tags: ["session"],
         parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
-        responses: { "200": { description: "Final receipt (+ delivery_check when artifacts were frozen at open)" }, "400": { description: "FROZEN-DELIVERY-INVALID (delivered_artifacts must be bytes: content or content_b64)" }, "409": { description: "Already closed, or FROZEN-ARTIFACT-SILENT-EDIT / FROZEN-ARTIFACT-MISSING (RIB-052: session sealed, refusal sealed in delivery_check, verdict refused)" } },
+        responses: { "200": { description: "Final receipt (+ delivery_check when artifacts were frozen at open; + reconcile when a recorder was named at open)" }, "400": { description: "FROZEN-DELIVERY-INVALID (delivered_artifacts must be bytes: content or content_b64) or AUDIT-RECORD-INVALID / AUDIT-RECORD-HASH-MISMATCH (observer_records). Nothing is written." }, "409": { description: "Already closed, or FROZEN-ARTIFACT-SILENT-EDIT / FROZEN-ARTIFACT-MISSING (RIB-052), or AUDIT-UNAUDITED-GAP / AUDIT-RECONCILE-FINDING (RIB-055: session sealed, harness refusal sealed, verdict refused)" } },
       },
     },
     "/v1/session/{id}": {
@@ -1267,6 +1268,29 @@ export function runtimeStaticPaths() {
           "403": { description: ISSUER_403 },
           "404": { description: "session_not_found" },
           "409": { description: "session_closed, SPEC-STALE-NO-SPEC (no spec sealed at genesis), SPEC-STALE-SAME-VERSION, or " + PAUSED_409 },
+          "429": { description: TOKEN_429 },
+          "503": { description: TOKEN_503 },
+        },
+      },
+    },
+    "/v1/session/{id}/audit": {
+      post: {
+        operationId: "runtime_session_audit",
+        security: [{ RuntimeToken: [] }],
+        summary:
+          "RIB-055 / AZRT-AUDIT-PATH-1.0: seal recorder health { status: healthy | degraded | down, reason? }. Down and degraded need no beat. Returning to healthy requires beat_hash (sha256 of the recorder beat); the outage stays on the chain. Token-gated (REQUIRE_TOKEN=1). Refused SESSION-PAUSED while paused. A refused request appends no row. High-impact exec while the path is not healthy refuses AUDIT-PATH-DOWN before anything runs. Not an MCP tool. Cap-7 and .aziel locations stay names and are not resolved.",
+        tags: ["session"],
+        parameters: [SESSION_ID_PARAM],
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { type: "object", required: ["status"], properties: { status: { type: "string", enum: ["healthy", "degraded", "down"] }, reason: { type: "string" }, beat_hash: { type: "string", pattern: "^[a-f0-9]{64}$" } } } } },
+        },
+        responses: {
+          "200": { description: "audit_path receipt appended + verified" },
+          "400": { description: "bad_json, AUDIT-PATH-INVALID, AUDIT-BEAT-REQUIRED, or " + TOKEN_400 },
+          "401": { description: TOKEN_401 },
+          "404": { description: "session_not_found" },
+          "409": { description: "session_closed, AUDIT-RECORDER-NONE, AUDIT-PATH-UNCHANGED, or " + PAUSED_409 },
           "429": { description: TOKEN_429 },
           "503": { description: TOKEN_503 },
         },

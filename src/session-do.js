@@ -7,6 +7,7 @@
 
 import {
   applyArtifactChange,
+  applyAuditHealth,
   applyClose,
   applyStale,
   applyRevoke,
@@ -160,6 +161,9 @@ export class RuntimeSession {
       if (action === "change" && request.method === "POST") {
         return await this.change(await readJson(request));
       }
+      if (action === "audit" && request.method === "POST") {
+        return await this.audit(await readJson(request));
+      }
       if (action === "stale" && request.method === "POST") {
         return await this.stale(await readJson(request));
       }
@@ -309,6 +313,16 @@ export class RuntimeSession {
     } catch (err) {
       // RIB-018: a refusal that appended a `refused` receipt is persisted before the error returns.
       if (err && err.sessionDirty) await this.save(session);
+      if (err && err.code === "AUDIT-PATH-DOWN") {
+        let refusal_receipt;
+        try {
+          const { sealDoorRefusal } = await import("./refusal-doors.js");
+          refusal_receipt = await sealDoorRefusal(chainlockStoreFor(this.env), { surface: "runtime", door: "session-exec", code: "AUDIT-PATH-DOWN", reason: null, method: "POST", route: "/v1/session/{id}/exec", status: 409 }, { budgetMs: 2000 });
+        } catch {
+          refusal_receipt = { sealed: false, status: "unavailable" };
+        }
+        err.extra = { ...(err.extra || {}), refusal_receipt };
+      }
       throw err;
     }
     await this.save(session);
@@ -368,6 +382,15 @@ export class RuntimeSession {
     return json({ ok: true, session: publicSession(session), receipt, spec_stale: verified.spec_stale, verified });
   }
 
+  /** RIB-055: seal recorder health (healthy / degraded / down). Does not exec. */
+  async audit(body = {}) {
+    const session = await this.expireIfNeeded(await this.load());
+    const receipt = await applyAuditHealth(session, new Date().toISOString(), body || {});
+    await this.save(session);
+    const verified = await verifyChainStrict(session.receipts);
+    return json({ ok: true, session: publicSession(session), receipt, verified });
+  }
+
   /** RIB-052: declared change to a frozen artifact (append-only, in-session). */
   async change(body = {}) {
     const session = await this.expireIfNeeded(await this.load());
@@ -424,27 +447,48 @@ export class RuntimeSession {
     const session = await this.expireIfNeeded(await this.load());
     const now = new Date().toISOString();
     if (session && session.paused) session.paused = false;
-    const { delivered_artifacts: delivered, ...closeRest } = body || {};
-    const out = await applyClose(session, now, { additive: closeRest, delivered });
+    const {
+      delivered_artifacts: delivered,
+      observer_records: observerRecords,
+      reconcile: _dropReconcile,
+      unaudited_gap: _dropGap,
+      audit_path: _dropAudit,
+      audit_status: _dropStatus,
+      ...closeRest
+    } = body || {};
+    const out = await applyClose(session, now, { additive: closeRest, delivered, observerRecords });
     // RIB-044: the close receipt is the freeze row; its head is queued for the witness.
     const fh = freezeHeadOf(out.session);
     out.session.freeze = { spec: RESUME_SPEC, reason: "close", freeze_head: fh, frozen_at: now, queue: await queueFreeze(this.env, fh, { append: chainlockAppend, storeFor: chainlockStoreFor, reason: "close" }) };
     await this.save(out.session);
     const verified = await verifyChainStrict(out.session.receipts);
-    // RIB-052: a refused delivery check seals the refusal and closes the session, but the verdict is refused.
-    const refused = out.delivery_check && out.delivery_check.delivery_check.refused;
+    const harness = {
+      ...(out.delivery_check ? { delivery_check: out.delivery_check } : {}),
+      ...(out.unaudited_gap ? { unaudited_gap: out.unaudited_gap } : {}),
+      ...(out.reconcile ? { reconcile: out.reconcile } : {}),
+    };
+    // RIB-052 / RIB-055: a refused harness check seals the refusal and closes the session, but the verdict is refused.
+    const frozenRefused = out.delivery_check && out.delivery_check.delivery_check && out.delivery_check.delivery_check.refused;
+    const auditRefused = out.audit_refused || null;
+    const refused = auditRefused || frozenRefused;
     if (refused) {
+      const code = (auditRefused && auditRefused.code) || frozenRefused.code;
       // RIB-018: the refusal is also sealed on the internal `refusals` chain (fail-soft; never turns into success).
       let refusal_receipt;
       try {
         const { sealDoorRefusal } = await import("./refusal-doors.js");
-        refusal_receipt = await sealDoorRefusal(chainlockStoreFor(this.env), { surface: "runtime", door: "session-close", code: refused.code, reason: null, method: "POST", route: "/v1/session/{id}/close", status: 409 }, { budgetMs: 2000 });
+        refusal_receipt = await sealDoorRefusal(chainlockStoreFor(this.env), { surface: "runtime", door: "session-close", code, reason: null, method: "POST", route: "/v1/session/{id}/close", status: 409 }, { budgetMs: 2000 });
       } catch {
         refusal_receipt = { sealed: false, status: "unavailable" };
       }
-      return json({ ok: false, code: refused.code, error: "frozen-artifact delivery check refused the verdict; the refusal is sealed.", session: publicSession(out.session), receipt: out.receipt, delivery_check: out.delivery_check, refusal_receipt, verified }, 409);
+      const error = auditRefused && frozenRefused
+        ? "audit path and frozen-artifact checks refused the verdict; the refusals are sealed."
+        : auditRefused
+          ? "audit path is not clean; the refusal is sealed."
+          : "frozen-artifact delivery check refused the verdict; the refusal is sealed.";
+      return json({ ok: false, code, error, session: publicSession(out.session), receipt: out.receipt, ...harness, refusal_receipt, verified }, 409);
     }
-    return json({ ok: true, session: publicSession(out.session), receipt: out.receipt, ...(out.delivery_check ? { delivery_check: out.delivery_check } : {}), verified });
+    return json({ ok: true, session: publicSession(out.session), receipt: out.receipt, ...harness, verified });
   }
 
   async status() {
