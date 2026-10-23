@@ -3327,8 +3327,13 @@ async function combinedOpenApi(request, env) {
   };
 }
 
-function bindingName(product) {
+// A binding name must be a JS identifier, so a slug that starts with a digit
+// gets a spelled-out name. Must match [[services]] binding in wrangler.toml.
+export const BINDING_NAME_OVERRIDES = Object.freeze({ "4dmap": "FOURDMAP" });
+
+export function bindingName(product) {
   const slug = String(product.slug || "");
+  if (Object.prototype.hasOwnProperty.call(BINDING_NAME_OVERRIDES, slug)) return BINDING_NAME_OVERRIDES[slug];
   return slug.toUpperCase().replace(/-/g, "_");
 }
 
