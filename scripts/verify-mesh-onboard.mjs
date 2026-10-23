@@ -7,6 +7,8 @@ let r = await get("/v1/mesh/install?slug=vibelock&version=1.2.0");
 let b = await r.json();
 assert.equal(r.status, 200); assert.equal(b.ok, true); assert.equal(b.node_per_version, true);
 assert.equal(b.live, false); assert.equal(b.alt_internet_live, false); assert.ok(b.hints.length >= 4);
+assert.equal(b.keepalive.default, "off");
+assert.equal(b.keepalive.opt_in, "AZIEL_MESH_KEEPALIVE=1");
 assert.match(b.steps[2].body.node_id, /^vibelock-1\.2\.0-<random>$/);
 r = await get("/v1/mesh/install?slug=Not%20A%20Slug"); assert.equal(r.status, 400); assert.equal((await r.json()).code, "ONBOARD-BAD-SLUG");
 r = await get("/v1/mesh/install?slug=nope-not-real"); assert.equal((await r.json()).code, "ONBOARD-UNKNOWN-SLUG");
@@ -14,6 +16,11 @@ r = await get("/v1/mesh/install.sh?slug=vibelock&version=1.2.0");
 const sh = await r.text();
 assert.equal(r.status, 200); assert.match(r.headers.get("content-type"), /shellscript/);
 assert.match(sh, /^#!\/bin\/sh/); assert.match(sh, /https:\/\/[a-z0-9-]+\.vibelock\.workers\.dev\/install\.sh/); assert.match(sh, /\/v1\/mesh\/join/); assert.match(sh, /not live yet/);
+assert.match(sh, /AZIEL_MESH_KEEPALIVE:-/);
+assert.equal(sh.includes("enable-linger"), false);
+assert.equal(sh.includes("--now"), false);
+assert.equal(sh.includes("systemctl --user start"), false);
+assert.equal(sh.includes("launchctl bootstrap"), false);
 r = await get("/v1/mesh/install.sh?slug=bad%27slug"); assert.equal(r.status, 400); assert.match(await r.text(), /exit 1/);
 r = await get("/v1/mesh/bootstrap");
 b = await r.json();
@@ -772,4 +779,91 @@ function newUserHintsHtml_() { return ""; }
     fs.rmSync(root, { recursive: true, force: true });
   }
   console.log(`verify-mesh-onboard: #357 LOWs ok (64 AZBot fuzz cases + 18 more on ${tested.join(", ") || "no awk"}; linear time; 256 KB reply cap; node dies with wrapper; no symlink follow)`);
+}
+
+// Login keep-alive is opt-in. Unset writes no unit. AZIEL_MESH_KEEPALIVE=1 enables a user unit
+// for the next login, or says it was not installed when systemctl enable fails.
+{
+  const { spawn } = await import("node:child_process");
+  const fs = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join, delimiter } = await import("node:path");
+  const { fileURLToPath } = await import("node:url");
+  const onboard = await import("../src/mesh-onboard.js");
+  const { startRelayServer } = await import("../src/fed-mesh/local-http.js");
+  const repo = fileURLToPath(new URL("..", import.meta.url));
+  const SHA = "0123456789abcdef0123456789abcdef01234567";
+  const products = [{ slug: "aziel-runtime" }];
+  const runSh = (file, env) =>
+    new Promise((resolve) => {
+      const child = spawn("sh", [file], { env, stdio: ["ignore", "pipe", "pipe"] });
+      let stdout = "";
+      let stderr = "";
+      const timer = setTimeout(() => child.kill("SIGKILL"), 60000);
+      child.stdout.on("data", (c) => (stdout += c));
+      child.stderr.on("data", (c) => (stderr += c));
+      child.on("close", (status) => {
+        clearTimeout(timer);
+        resolve({ status, stdout, stderr });
+      });
+    });
+  const killNodes = (meshHome) => {
+    if (!fs.existsSync(meshHome)) return;
+    for (const name of fs.readdirSync(meshHome)) {
+      try {
+        process.kill(Number(fs.readFileSync(join(meshHome, name, "node.pid"), "utf8").trim()), "SIGTERM");
+      } catch {
+        /* already stopped */
+      }
+    }
+  };
+  const relay = await startRelayServer();
+  const origin = relay.url.replace(/\/v1\/mesh\/relay$/, "");
+  const root = fs.mkdtempSync(join(tmpdir(), "keepalive-"));
+  try {
+    const sh = join(root, "install.sh");
+    fs.writeFileSync(sh, onboard.installScript(onboard.installPlan({ origin, slug: "aziel-runtime", version: "1.0.0", products, sourceRef: SHA })));
+    const bin = join(root, "bin");
+    fs.mkdirSync(bin);
+    const argsFile = join(root, "systemctl.args");
+    fs.writeFileSync(join(bin, "systemctl"), `#!/bin/sh\nprintf '%s\\n' "$*" >> ${JSON.stringify(argsFile)}\nif [ "\${AZIEL_SYSTEMCTL_FAIL:-}" = 1 ]; then exit 1; fi\nexit 0\n`, { mode: 0o755 });
+    const baseEnv = { ...process.env, PATH: `${bin}${delimiter}${process.env.PATH}`, AZIEL_MESH_SRC_DIR: repo };
+    delete baseEnv.AZIEL_MESH_KEEPALIVE;
+    const homeOff = join(root, "off");
+    const off = await runSh(sh, { ...baseEnv, HOME: homeOff, AZIEL_MESH_HOME: join(homeOff, "mesh") });
+    killNodes(join(homeOff, "mesh"));
+    assert.equal(off.status, 0, off.stderr);
+    assert.match(off.stdout, /Mesh node #[A-Z0-9]+ is running/);
+    assert.equal(off.stdout.includes("Keep-alive is installed"), false);
+    assert.equal(fs.existsSync(join(homeOff, ".config/systemd/user")), false);
+    const homeOn = join(root, "on");
+    const on = await runSh(sh, { ...baseEnv, HOME: homeOn, AZIEL_MESH_HOME: join(homeOn, "mesh"), AZIEL_MESH_KEEPALIVE: "1" });
+    killNodes(join(homeOn, "mesh"));
+    assert.equal(on.status, 0, on.stderr);
+    assert.match(on.stdout, /Keep-alive is installed for the next login/);
+    const unitDir = join(homeOn, ".config/systemd/user");
+    const units = fs.readdirSync(unitDir).filter((name) => name.startsWith("aziel-mesh-"));
+    assert.equal(units.length, 1);
+    const unit = fs.readFileSync(join(unitDir, units[0]), "utf8");
+    assert.match(unit, /ExecStart=.*fed-instance\.mjs/);
+    assert.match(unit, /WantedBy=default\.target/);
+    assert.equal(unit.includes("enable-linger"), false);
+    const calls = fs.readFileSync(argsFile, "utf8");
+    assert.match(calls, /daemon-reload/);
+    assert.match(calls, /enable /);
+    assert.equal(calls.includes("--now"), false);
+    assert.equal(calls.includes(" start"), false);
+    fs.writeFileSync(argsFile, "");
+    const homeFail = join(root, "fail");
+    const failed = await runSh(sh, { ...baseEnv, HOME: homeFail, AZIEL_MESH_HOME: join(homeFail, "mesh"), AZIEL_MESH_KEEPALIVE: "1", AZIEL_SYSTEMCTL_FAIL: "1" });
+    killNodes(join(homeFail, "mesh"));
+    assert.equal(failed.status, 0, failed.stderr);
+    assert.match(failed.stdout, /Mesh node #[A-Z0-9]+ is running/);
+    assert.match(failed.stdout, /Keep-alive was requested and was not installed/);
+    assert.equal(fs.existsSync(join(homeFail, ".config/systemd/user")) && fs.readdirSync(join(homeFail, ".config/systemd/user")).some((name) => name.endsWith(".service")), false);
+  } finally {
+    await relay.stop().catch(() => {});
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+  console.log("verify-mesh-onboard: keep-alive opt-in ok");
 }
