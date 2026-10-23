@@ -664,6 +664,34 @@ function bootAbsent(code, line) {
   };
 }
 
+function runCapture(cmd, args, extraEnv) {
+  return import("node:child_process").then(
+    ({ spawn }) =>
+      new Promise((resolve) => {
+        const env = { ...process.env };
+        if (extraEnv) Object.assign(env, extraEnv);
+        const child = spawn(cmd, args, { env, stdio: ["ignore", "pipe", "pipe"] });
+        let stdout = "";
+        let stderr = "";
+        child.stdout.on("data", (chunk) => {
+          stdout += chunk;
+        });
+        child.stderr.on("data", (chunk) => {
+          stderr += chunk;
+        });
+        child.on("error", (err) => resolve({ code: 127, stdout, stderr, missing: err && err.code === "ENOENT" }));
+        child.on("close", (code) => resolve({ code: code ?? 1, stdout, stderr, missing: false }));
+      }),
+  );
+}
+
+async function commandPath(name, toolPath) {
+  const env = toolPath ? { PATH: String(toolPath) } : null;
+  const found = await runCapture("/bin/sh", ["-c", 'command -v "$1"', "sh", name], env || undefined);
+  if (found.code !== 0) return null;
+  return found.stdout.trim() || null;
+}
+
 function runProcess(cmd, args, cwd) {
   return import("node:child_process").then(
     ({ spawn }) =>
@@ -808,6 +836,7 @@ async function findStaticBusybox(fs, explicit) {
  *   kernel_base: the console shows "Linux version <v>" for the same version read from the image.
  *   booted:      kernel_base, and /init ran as pid 1 under that kernel release with this run's nonce.
  *   installed:   stays false. Nothing is written to a disk and booted from it here.
+ *                bootInstalled() is the disk measurement (extlinux or GRUB).
  * A boot sector, a hand-written header, or a harness flag never sets these.
  * The host system is never replaced. An emulator is not real hardware.
  */
@@ -932,6 +961,312 @@ export async function bootHandoff(opts = {}) {
   } catch {
     return bootAbsent("BOOT-HANDOFF-ABSENT", "The boot handoff did not run. Nothing booted.");
   } finally {
+    if (dir) {
+      try {
+        await fs.rm(dir, { recursive: true, force: true });
+      } catch {
+        /* temp dir already gone */
+      }
+    }
+  }
+}
+
+function installRefuse(code, line) {
+  return {
+    ...bootAbsent(code, line),
+    fail_closed: true,
+    mock: false,
+    real_hardware: false,
+    booted_from_disk: false,
+    bootloader: null,
+    qemu_kernel: false,
+  };
+}
+
+const MBR_CANDIDATES = Object.freeze([
+  "/usr/lib/syslinux/mbr/mbr.bin",
+  "/usr/lib/EXTLINUX/mbr.bin",
+  "/usr/share/syslinux/mbr.bin",
+]);
+
+/**
+ * AZOS disk install. `installed` is true only when a bootloader (extlinux, or GRUB when
+ * extlinux is absent) was written to a disk image and QEMU booted that disk with no
+ * `-kernel` and no `-append`, and the guest serial console shows this run's nonce from
+ * the bootloader command line, pid 1, and the kernel release read from the image.
+ * Missing qemu, mkfs, a bootloader, or a mount refuses BOOT-INSTALL-TOOLING-ABSENT.
+ * Nothing on the host is replaced. An emulator is not real hardware.
+ */
+export async function bootInstalled(opts = {}) {
+  const src = opts && typeof opts === "object" ? opts : {};
+  let fs;
+  let path;
+  let os;
+  try {
+    fs = await import("node:fs/promises");
+    path = await import("node:path");
+    os = await import("node:os");
+  } catch {
+    return installRefuse("BOOT-INSTALL-TOOLING-ABSENT", "The disk install tools are absent. Nothing was installed.");
+  }
+  const env = typeof process !== "undefined" && process.env ? process.env : {};
+  const toolPath = src.toolPath ? String(src.toolPath) : "";
+  const want = src.bootloader === "grub" || src.bootloader === "extlinux" ? src.bootloader : "";
+  const extlinux = await commandPath("extlinux", toolPath);
+  const grub = await commandPath("grub-install", toolPath);
+  const qemu = await commandPath("qemu-system-x86_64", toolPath);
+  const mkfs = await commandPath("mkfs.ext2", toolPath);
+  const losetup = await commandPath("losetup", toolPath);
+  const mountBin = await commandPath("mount", toolPath);
+  let mbr = null;
+  for (const candidate of MBR_CANDIDATES) {
+    try {
+      await fs.access(candidate);
+      mbr = candidate;
+      break;
+    } catch {
+      /* next */
+    }
+  }
+  let bootloader = null;
+  if (want === "grub") bootloader = grub ? { kind: "grub", bin: grub } : null;
+  else if (want === "extlinux") bootloader = extlinux && mbr ? { kind: "extlinux", bin: extlinux, mbr } : null;
+  else if (extlinux && mbr) bootloader = { kind: "extlinux", bin: extlinux, mbr };
+  else if (grub) bootloader = { kind: "grub", bin: grub };
+  if (!bootloader || !qemu || !mkfs || !losetup || !mountBin) {
+    return installRefuse("BOOT-INSTALL-TOOLING-ABSENT", "extlinux or GRUB, qemu, or mkfs is absent. Nothing was installed.");
+  }
+  const kernel = await findKernelImage(fs, path, src.kernel || env.AZOS_KERNEL || "");
+  if (!kernel) return installRefuse("BOOT-KERNEL-ABSENT", "No readable Linux kernel image was found. Nothing was installed.");
+  const busybox = await findStaticBusybox(fs, src.busybox || env.AZOS_BUSYBOX || "");
+  if (!busybox) return installRefuse("BOOT-USERSPACE-ABSENT", "No static busybox for /init. Nothing was installed.");
+  const nonce = [...crypto.getRandomValues(new Uint8Array(12))].map((b) => b.toString(16).padStart(2, "0")).join("");
+  const built = await kernelBase();
+  const init = [
+    "#!/bin/busybox sh",
+    "/bin/busybox mkdir -p /proc /sys /dev",
+    "/bin/busybox mount -t proc proc /proc",
+    "/bin/busybox mount -t devtmpfs dev /dev 2>/dev/null",
+    "DISK=$(/bin/busybox sed -n 's/.*azos-disk=\\([^ ]*\\).*/\\1/p' /proc/cmdline)",
+    `echo "AZOS-BOOTED nonce=${nonce} kernel=$(/bin/busybox uname -r) pid=$$ principles=$(/bin/busybox wc -l < /usr/azos/principles.txt) disk=$DISK" > /dev/console`,
+    "/bin/busybox poweroff -f",
+    "",
+  ].join("\n");
+  let ino = 1;
+  const entries = [
+    newcEntry("bin", new Uint8Array(0), 0o040755, ino++),
+    newcEntry("dev", new Uint8Array(0), 0o040755, ino++),
+    newcEntry("proc", new Uint8Array(0), 0o040755, ino++),
+    newcEntry("sys", new Uint8Array(0), 0o040755, ino++),
+    newcEntry("usr", new Uint8Array(0), 0o040755, ino++),
+    newcEntry("usr/azos", new Uint8Array(0), 0o040755, ino++),
+    newcEntry("bin/busybox", busybox.bytes, 0o100755, ino++),
+    newcEntry("init", init, 0o100755, ino++),
+  ];
+  const userspace = built.files && typeof built.files === "object" ? built.files : {};
+  for (const [name, text] of Object.entries(userspace)) {
+    if (name.startsWith("usr/azos/") && typeof text === "string") entries.push(newcEntry(name, text, 0o100644, ino++));
+  }
+  entries.push(newcEntry("TRAILER!!!", new Uint8Array(0), 0, 0));
+  const initramfs = concatBytes(entries);
+  const uid = typeof process.getuid === "function" ? process.getuid() : 0;
+  const priv = (args) => (uid === 0 ? runCapture(args[0], args.slice(1)) : runCapture("sudo", ["-n", ...args]));
+  let dir;
+  let loop = "";
+  let mounted = "";
+  try {
+    dir = await fs.mkdtemp(path.join(os.tmpdir(), "azos-disk-"));
+    const img = path.join(dir, "disk.img");
+    const rdPath = path.join(dir, "initrd.img");
+    const logPath = path.join(dir, "serial.log");
+    const mnt = path.join(dir, "mnt");
+    const imageBytes = 256 * 1024 * 1024;
+    const startLba = 2048;
+    const totalSectors = imageBytes / 512;
+    await fs.writeFile(img, new Uint8Array(0));
+    await fs.truncate(img, imageBytes);
+    const mbrBytes = Buffer.alloc(512);
+    mbrBytes[446] = 0x80;
+    mbrBytes[450] = 0x83;
+    mbrBytes.writeUInt32LE(startLba, 454);
+    mbrBytes.writeUInt32LE(totalSectors - startLba, 458);
+    mbrBytes[510] = 0x55;
+    mbrBytes[511] = 0xaa;
+    const handle = await fs.open(img, "r+");
+    try {
+      await handle.write(mbrBytes, 0, 512, 0);
+    } finally {
+      await handle.close();
+    }
+    await fs.writeFile(rdPath, initramfs);
+    await fs.mkdir(mnt);
+    const attached = await priv([losetup, "-f", "--show", "-o", String(startLba * 512), "--sizelimit", String((totalSectors - startLba) * 512), img]);
+    loop = attached.stdout.trim();
+    if (attached.code !== 0 || !loop) {
+      return installRefuse(attached.missing ? "BOOT-INSTALL-TOOLING-ABSENT" : "BOOT-INSTALL-FAILED", "The disk image could not be attached. Nothing was installed.");
+    }
+    const made = await priv([mkfs, "-F", "-L", "azos", loop]);
+    if (made.code !== 0) return installRefuse("BOOT-INSTALL-FAILED", "The disk filesystem was not created. Nothing was installed.");
+    const mountedRun = await priv([mountBin, loop, mnt]);
+    if (mountedRun.code !== 0) return installRefuse("BOOT-INSTALL-FAILED", "The disk image could not be mounted. Nothing was installed.");
+    mounted = mnt;
+    const append = `console=ttyS0 panic=-1 rdinit=/init azos-disk=${nonce}`;
+    if (bootloader.kind === "extlinux") {
+      const conf = ["DEFAULT azos", "PROMPT 0", "TIMEOUT 1", "LABEL azos", "  KERNEL /boot/vmlinuz", "  INITRD /boot/initrd.img", `  APPEND ${append}`, ""].join("\n");
+      const confPath = path.join(dir, "extlinux.conf");
+      await fs.writeFile(confPath, conf);
+      const laid = await priv(["mkdir", "-p", path.join(mnt, "boot/extlinux")]);
+      if (laid.code !== 0) return installRefuse("BOOT-INSTALL-FAILED", "The bootloader directory was not created. Nothing was installed.");
+      for (const [from, to] of [
+        [kernel.file, path.join(mnt, "boot/vmlinuz")],
+        [rdPath, path.join(mnt, "boot/initrd.img")],
+        [confPath, path.join(mnt, "boot/extlinux/extlinux.conf")],
+      ]) {
+        const copied = await priv(["cp", from, to]);
+        if (copied.code !== 0) return installRefuse("BOOT-INSTALL-FAILED", "The kernel was not copied to the disk. Nothing was installed.");
+      }
+      const installedBoot = await priv([bootloader.bin, "--install", path.join(mnt, "boot/extlinux")]);
+      if (installedBoot.code !== 0) return installRefuse("BOOT-INSTALL-FAILED", "extlinux did not install. Nothing was installed.");
+    } else {
+      const conf = ["set timeout=0", "set default=0", "menuentry 'azos' {", `  linux /boot/vmlinuz ${append}`, "  initrd /boot/initrd.img", "}", ""].join("\n");
+      const confPath = path.join(dir, "grub.cfg");
+      await fs.writeFile(confPath, conf);
+      const whole = await priv([losetup, "-f", "--show", img]);
+      if (whole.code !== 0 || !whole.stdout.trim()) return installRefuse("BOOT-INSTALL-FAILED", "GRUB had no whole-disk device. Nothing was installed.");
+      const diskDev = whole.stdout.trim();
+      const partx = await commandPath("partx", toolPath);
+      const parted = partx ? await priv([partx, "-a", diskDev]) : { code: 1 };
+      const part = `${diskDev}p1`;
+      let partOk = false;
+      try {
+        await fs.access(part);
+        partOk = true;
+      } catch {
+        partOk = false;
+      }
+      if (!partOk || parted.code !== 0) {
+        await priv([losetup, "-d", diskDev]);
+        return installRefuse("BOOT-INSTALL-FAILED", "GRUB had no partition device. Nothing was installed.");
+      }
+      const laid = await priv(["mkdir", "-p", path.join(mnt, "boot/grub")]);
+      if (laid.code !== 0) {
+        await priv([losetup, "-d", diskDev]);
+        return installRefuse("BOOT-INSTALL-FAILED", "The GRUB directory was not created. Nothing was installed.");
+      }
+      for (const [from, to] of [
+        [kernel.file, path.join(mnt, "boot/vmlinuz")],
+        [rdPath, path.join(mnt, "boot/initrd.img")],
+        [confPath, path.join(mnt, "boot/grub/grub.cfg")],
+      ]) {
+        const copied = await priv(["cp", from, to]);
+        if (copied.code !== 0) {
+          await priv([losetup, "-d", diskDev]);
+          return installRefuse("BOOT-INSTALL-FAILED", "The kernel was not copied to the disk. Nothing was installed.");
+        }
+      }
+      const installedBoot = await priv([bootloader.bin, "--target=i386-pc", `--boot-directory=${path.join(mnt, "boot")}`, "--no-floppy", "--modules=biosdisk part_msdos ext2", "--force", diskDev]);
+      await priv([losetup, "-d", diskDev]);
+      if (installedBoot.code !== 0) return installRefuse("BOOT-INSTALL-FAILED", "GRUB did not install. Nothing was installed.");
+    }
+    const unmounted = await priv(["umount", mnt]);
+    mounted = "";
+    if (unmounted.code !== 0) return installRefuse("BOOT-INSTALL-FAILED", "The disk image could not be unmounted. Nothing was installed.");
+    const detached = await priv([losetup, "-d", loop]);
+    loop = "";
+    if (detached.code !== 0) return installRefuse("BOOT-INSTALL-FAILED", "The disk image could not be detached. Nothing was installed.");
+    if (bootloader.kind === "extlinux") {
+      const wrote = await priv(["dd", `if=${bootloader.mbr}`, `of=${img}`, "bs=440", "count=1", "conv=notrunc", "status=none"]);
+      if (wrote.code !== 0) return installRefuse("BOOT-INSTALL-FAILED", "The bootloader MBR was not written. Nothing was installed.");
+    }
+    let accel = ["-accel", "tcg"];
+    try {
+      await fs.access("/dev/kvm", (await import("node:fs")).constants.W_OK);
+      accel = ["-accel", "kvm"];
+    } catch {
+      /* no kvm: emulate */
+    }
+    const qemuArgs = [
+      ...accel,
+      "-m",
+      "256",
+      "-drive",
+      `file=${img},format=raw,if=ide`,
+      "-boot",
+      "order=c",
+      "-serial",
+      `file:${logPath}`,
+      "-display",
+      "none",
+      "-monitor",
+      "none",
+      "-no-reboot",
+      "-net",
+      "none",
+    ];
+    if (qemuArgs.includes("-kernel") || qemuArgs.includes("-append") || qemuArgs.includes("-initrd")) {
+      return installRefuse("BOOT-INSTALL-FAILED", "The disk boot was asked to load a kernel directly. Nothing was installed.");
+    }
+    const guest = await runQemu(qemuArgs, src.timeoutMs || Number(env.AZOS_BOOT_TIMEOUT_MS) || 120000);
+    if (guest.missing) return installRefuse("BOOT-INSTALL-TOOLING-ABSENT", "qemu-system-x86_64 is absent. Nothing was installed.");
+    let serial = "";
+    try {
+      serial = await fs.readFile(logPath, "utf8");
+    } catch {
+      serial = "";
+    }
+    const verLine = (serial.match(/Linux version ([^\r\n]+)/) || [])[1] || "";
+    const kernelBase_ = verLine.length > 0 && verLine.startsWith(kernel.header.release) && kernel.header.version.startsWith(kernel.header.release);
+    const initLine = serial.match(new RegExp(`AZOS-BOOTED nonce=${nonce} kernel=(\\S+) pid=(\\d+) principles=(\\d+) disk=(\\S+)`)) || [];
+    const booted = kernelBase_ && initLine.length > 0 && initLine[1] === kernel.header.release && initLine[2] === "1" && Number(initLine[3]) === PRINCIPLES.length;
+    const installed = booted && initLine[4] === nonce;
+    const kept = serial
+      .split(/\r?\n/)
+      .filter((l) => /Linux version|AZOS-BOOTED|Kernel panic|Run \/init|azos-disk=/.test(l));
+    const guestLog = [kept.find((l) => l.includes("Linux version")) || "", kept.find((l) => l.includes("AZOS-BOOTED")) || ""].filter(Boolean).join("\n").slice(0, 2000);
+    return {
+      ok: installed,
+      kernel_base: kernelBase_,
+      booted,
+      installed,
+      host_replaced: false,
+      boot_signature: false,
+      hdrs: true,
+      install_flag: 0,
+      fail_closed: installed !== true,
+      mock: false,
+      real_hardware: false,
+      booted_from_disk: true,
+      bootloader: bootloader.kind,
+      qemu_kernel: false,
+      emulator: "qemu-system-x86_64",
+      kernel_file: kernel.file,
+      kernel_version: kernel.header.version,
+      kernel_release: kernel.header.release,
+      nonce,
+      image_bytes: imageBytes,
+      guest_log: guestLog,
+      code: installed ? "BOOT-INSTALLED" : "BOOT-INSTALL-ABSENT",
+      line: installed
+        ? `The ${bootloader.kind} disk image booted the kernel. installed is that console measurement. The host was not replaced.`
+        : "The disk image did not report an install. Nothing on the host was replaced.",
+    };
+  } catch {
+    return installRefuse("BOOT-INSTALL-FAILED", "The disk install did not run. Nothing was installed.");
+  } finally {
+    if (mounted) {
+      try {
+        await priv(["umount", mounted]);
+      } catch {
+        /* already unmounted */
+      }
+    }
+    if (loop) {
+      try {
+        await priv([losetup, "-d", loop]);
+      } catch {
+        /* already detached */
+      }
+    }
     if (dir) {
       try {
         await fs.rm(dir, { recursive: true, force: true });

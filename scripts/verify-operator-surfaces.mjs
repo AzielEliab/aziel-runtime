@@ -977,3 +977,50 @@ console.log("ok operator-surfaces");
     console.log(`kernel handoff not booted here: ${real.code}`);
   }
 }
+
+// Disk install: installed is true only when extlinux or GRUB boots the image with no -kernel.
+{
+  const { bootInstalled } = await import("../src/bases.js");
+  const { mkdtempSync, rmSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const empty = mkdtempSync(join(tmpdir(), "no-bootloader-"));
+  try {
+    const closed = await bootInstalled({ toolPath: empty });
+    assert.equal(closed.installed, false);
+    assert.equal(closed.booted, false);
+    assert.equal(closed.kernel_base, false);
+    assert.equal(closed.fail_closed, true);
+    assert.equal(closed.mock, false);
+    assert.equal(closed.booted_from_disk, false);
+    assert.equal(closed.qemu_kernel, false);
+    assert.equal(closed.code, "BOOT-INSTALL-TOOLING-ABSENT");
+    assert.equal(closed.host_replaced, false);
+    assert.equal(closed.real_hardware, false);
+  } finally {
+    rmSync(empty, { recursive: true, force: true });
+  }
+  const disk = await bootInstalled();
+  assert.equal(disk.mock, false);
+  assert.equal(disk.host_replaced, false);
+  assert.equal(disk.real_hardware, false);
+  assert.equal(disk.qemu_kernel, false);
+  assert.equal(disk.install_flag, 0);
+  if (disk.installed === true) {
+    assert.equal(disk.booted, true);
+    assert.equal(disk.kernel_base, true);
+    assert.equal(disk.booted_from_disk, true);
+    assert.equal(disk.fail_closed, false);
+    assert.equal(disk.code, "BOOT-INSTALLED");
+    assert.ok(disk.bootloader === "extlinux" || disk.bootloader === "grub");
+    assert.match(disk.guest_log, /Linux version /);
+    assert.match(disk.guest_log, new RegExp(`AZOS-BOOTED nonce=${disk.nonce} kernel=\\S+ pid=1 `));
+    assert.match(disk.guest_log, new RegExp(`disk=${disk.nonce}`));
+    console.log(`disk install ${disk.bootloader} booted ${disk.kernel_release}`);
+  } else {
+    assert.equal(disk.installed, false);
+    assert.equal(disk.fail_closed, true);
+    assert.notEqual(disk.code, "BOOT-INSTALLED");
+    console.log(`disk install not measured here: ${disk.code}`);
+  }
+}
