@@ -211,6 +211,39 @@ export const DOI_BY_SLUG = {
 
 export const SHARED_METHOD_PAPER_DOI = "10.5281/zenodo.22257762";
 
+/**
+ * Working paper link for each historical DOI. Zenodo record removed (2026-09-02)
+ * for every wired DOI (doi.org still redirects to the removed Zenodo record; no live
+ * replacement record exists),
+ * so HTML shows the DOI as text and links the paper copy kept in the product's own
+ * GitHub repo (each URL checked HTTP 200 on 2026-10-22). Repo copy, not the deposit.
+ */
+export const PAPER_URL_BY_SLUG = Object.freeze({
+  vibelock: "https://github.com/AzielEliab/vibelock/blob/main/docs/whitepaper.md",
+  veillock: "https://github.com/AzielEliab/veillock/blob/main/docs/whitepaper.md",
+  codelock: "https://github.com/AzielEliab/codelock/blob/main/docs/whitepaper.md",
+  shadowlock: "https://github.com/AzielEliab/shadowlock/blob/main/docs/whitepaper.md",
+  temporallock: "https://github.com/AzielEliab/temporallock/blob/main/docs/whitepaper.md",
+  forgereceipts: "https://github.com/AzielEliab/forgereceipts/blob/main/docs/whitepaper.md",
+  decisiongate: "https://github.com/AzielEliab/decisiongate/blob/main/docs/whitepaper.md",
+  zsolver: "https://github.com/AzielEliab/zion-pattern-solver/blob/main/docs/methodology.md",
+  azos: "https://github.com/AzielEliab/azos/blob/main/docs/whitepaper.md",
+  postking: "https://github.com/AzielEliab/postking-chess/blob/main/docs/whitepaper.md",
+  ark: "https://github.com/AzielEliab/ark/blob/main/docs/whitepaper.md",
+  employeelock: "https://github.com/AzielEliab/employeelock/blob/main/docs/whitepaper.md",
+  foldlock: "https://github.com/AzielEliab/foldlock/blob/main/docs/whitepaper.md",
+  whistlelock: "https://github.com/AzielEliab/whistlelock/blob/main/docs/whitepaper.md",
+  trajectorylock: "https://github.com/AzielEliab/trajectorylock/blob/main/docs/TrajectoryLock_v0.1.pdf",
+});
+
+/** HTML for a historical DOI: the DOI as text (Zenodo record removed (2026-09-02)) + the repo paper link. */
+export function historicalDoiHtml(slug, doi, status) {
+  const esc = (v) => String(v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const paper = PAPER_URL_BY_SLUG[slug];
+  const label = slug === "zsolver" ? "methodology (repo copy)" : "paper (repo copy)";
+  return `DOI <span class="doi">${esc(doi)}</span> <span class="slug">(${esc(status)}) Zenodo record removed (2026-09-02)</span>${paper ? ` · <a href="${esc(paper)}">${label}</a>` : ""}`;
+}
+
 export const DOI_KIND_BY_SLUG = {
   foldlock: "shared_method_paper",
   whistlelock: "shared_method_paper",
