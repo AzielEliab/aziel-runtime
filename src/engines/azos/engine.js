@@ -6,6 +6,7 @@
  */
 
 import { arrivalFlags } from "../../alt-internet-fact.js";
+import { QNM_NAMED_LIVE } from "../../qnm-honesty.js";
 
 const UNQUALIFIED_ARRIVAL = arrivalFlags(null);
 
@@ -85,6 +86,9 @@ export function scopeMeta(obj) {
     os_yet: false,
     is_os: false,
     ...UNQUALIFIED_ARRIVAL,
+    ...QNM_NAMED_LIVE,
+    second_device: UNQUALIFIED_ARRIVAL.second_device,
+    watch_qualifies: UNQUALIFIED_ARRIVAL.watch_qualifies,
     public_smtp_send: false,
     public_mta: false,
     confirm_is_authentication: false,
@@ -140,7 +144,7 @@ export function statusPayload() {
     builtins: SAFE_ACTIONS,
     shell_verbs: SHELL_VERBS,
     tokens: { active: 0, revoked: 0, issued: 0 },
-    note: "Read-only status / principles. No remote exec on this route. session_open / session_status / session_close are isolate-native ethics VFS. exec / shell / lattice stay refuse. Not an OS yet. The kernel base is present. It has not booted a machine. Internet base is present. Not live. The packet path is not live. The alternative internet is not live. Device-to-device packet carriers stay NOT-READY. WARN-5 stands. Public send stays refused. Public smtp_send stays refused. WireGuard, OpenVPN, L3, kernel UDP, and TUN-TAP stay SLOT. VeilLock stays local_only. Whitestone is worker-only and has no public door.",
+    note: "Read-only status / principles. No remote exec on this route. session_open / session_status / session_close are isolate-native ethics VFS. exec / shell / lattice stay refuse. Not an OS yet. The kernel base is present. It has not booted a machine. Internet base is present. The alternative internet is live. The packet path is live. A mesh node is live. Radio PHY is not live. Device-to-device packet carriers stay NOT-READY. WARN-5 stands. Public send stays refused. Public smtp_send stays refused. WireGuard, OpenVPN, L3, kernel UDP, and TUN-TAP stay SLOT. VeilLock stays local_only. Whitestone is worker-only and has no public door.",
   });
 }
 

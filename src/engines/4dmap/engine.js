@@ -294,7 +294,7 @@ function baseResult(extra = {}) {
     axes: AXES.slice(),
     neighbors: NEIGHBORS.slice(),
     join_types: JOIN_TYPES.slice(),
-    mesh_enabled_default: false,
+    mesh_enabled_default: true,
     limitation: LIMITATION,
     author: AUTHOR,
     ...extra,

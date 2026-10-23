@@ -14,7 +14,7 @@ Hashes are SHA-256 over canonical JSON (sorted keys), the same rule as ChainLock
 
 ## Rules
 
-- `npm test` runs `scripts/verify-lockstep.mjs`. It fails if `contract/lockstep.json` no longer equals what the code builds, if a lock moves (Softwares 42, tools 36, stub ops 363, software_count 33, 2.0.0-rc1), or if any live flag is true.
+- `npm test` runs `scripts/verify-lockstep.mjs`. It fails if `contract/lockstep.json` no longer equals what the code builds, or if a lock moves (Softwares 42, tools 36, stub ops 363, software_count 33, 2.0.0-rc1). `mesh_node_live`, `alt_internet_live`, and `packet_path_live` are true in the contract. The other contract flags stay false. A displayed flag is still true only when the leg agrees and proves it.
 - After an intended change: `npm run lockstep:build`, then `node scripts/lockstep-vendor.mjs ../azinterface` and `../azos`. Each leg's `npm test` re-hashes its vendored copy against `LOCKSTEP.pin.json` and, with `LOCKSTEP_REMOTE=1`, against runtime `main`.
 - A leg's `GET /v1/lockstep` compares its pin with the runtime over the `AZIEL_RUNTIME` binding: `agree`, `drift`, or `absent` (the runtime is unreachable; the leg keeps running standalone). A displayed flag is true only on `agree` and when the contract says true and the leg itself proves it. Otherwise it shows false.
 - The feature union (`src/lockstep/features.js`) lists every feature any leg has: `native`, `proxied`, `source`, or `gap`. A gap is listed so it can't be forgotten, and it is never painted as present. Each leg's test checks that every route it doesn't mark as a gap answers.

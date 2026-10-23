@@ -9,7 +9,7 @@ import { append, tip } from "./chainlock/ops.js";
 import { sha256Hex } from "./session-core.js";
 import { inspectBeforeAirgap, probeScannerSync, scanMessageParts } from "./engines/azmail/guard.js";
 import { bootHandoff, carryOnFirstCarrier, kernelBase, mailSendBase, probeCarrierOrder } from "./bases.js";
-import { arrivalFlags, surfaceArrival, currentAltInternetFact } from "./alt-internet-fact.js";
+import { applyNamedLive, arrivalFlags, surfaceArrival, currentAltInternetFact } from "./alt-internet-fact.js";
 import { PUBLIC_DEMO_ID, workspaceFromEnv } from "./workspace.js";
 import { HONESTY_SENTENCES, SURFACE_HONESTY, sharedFactBlock } from "./surface-honesty.js";
 
@@ -70,7 +70,7 @@ function honesty() {
   return {
     author: OPERATOR_AUTHOR,
     field_1_0: false,
-    ...arrivalFlags(null),
+    ...applyNamedLive(arrivalFlags(null)),
     confirm_is_authentication: false,
   };
 }
@@ -703,10 +703,11 @@ export async function internetBase(payload, env) {
     booted: false,
     kernel_base: false,
     os_yet: false,
+    mesh_node_live: fact.mesh_node_live === true,
     alt_internet_live: flags.alt_internet_live,
     packet_path_live: flags.packet_path_live,
-    alt_internet_earned: flags.alt_internet_live,
-    packet_path_earned: flags.packet_path_live,
+    alt_internet_earned: flags.watch_qualifies === true,
+    packet_path_earned: flags.watch_qualifies === true,
     second_device: flags.second_device,
     watch_qualifies: flags.watch_qualifies,
     public_icann: false,

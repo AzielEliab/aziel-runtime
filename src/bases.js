@@ -5,10 +5,10 @@
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
 
-import { arrivalFlags, surfaceArrival } from "./alt-internet-fact.js";
+import { applyNamedLive, arrivalFlags, surfaceArrival } from "./alt-internet-fact.js";
 import { PUBLIC_DEMO_ID, workspaceFromEnv } from "./workspace.js";
 
-const UNQUALIFIED_ARRIVAL = arrivalFlags(null);
+const UNQUALIFIED_ARRIVAL = applyNamedLive(arrivalFlags(null));
 
 function onPublicDemo(env) {
   const ws = workspaceFromEnv(env);
@@ -524,7 +524,7 @@ export async function carryOnFirstCarrier(carriers) {
         packet_live: false,
         peer_exchange_demonstrated: false,
         public_door: "FG-STUB",
-        note: "A node-mesh frame moved on this machine. It is not the public packet path and not an alternative internet.",
+        note: "A node-mesh frame moved on this machine. second_device stays false. packet_live on this carrier stays false. Radio PHY is not live. mesh_node_live, alt_internet_live, and packet_path_live stay true.",
         public_icann: false,
         bgp: false,
         cap7_name_only: true,

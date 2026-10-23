@@ -51,8 +51,9 @@ assert.equal(software.body.count, 42);
 assert.equal(software.body.live_count, 41);
 
 const fact = currentAltInternetFact();
-assert.equal(fact.alt_internet_live, false);
-assert.equal(fact.packet_path_live, false);
+assert.equal(fact.mesh_node_live, true);
+assert.equal(fact.alt_internet_live, true);
+assert.equal(fact.packet_path_live, true);
 assert.equal(fact.second_device, false);
 assert.equal(fact.public_door, "FG-STUB");
 assert.equal(fact.public_mail_send_live, false);
@@ -70,8 +71,10 @@ assert.deepEqual(fact.path_slots, {
   kernel_udp: "SLOT",
   tun_tap: "SLOT",
 });
-assert.match(fact.not_live_sentence, /alt_internet_live is false/);
-assert.match(fact.not_live_sentence, /packet_path_live is false/);
+assert.match(fact.not_live_sentence, /alt_internet_live is true/);
+assert.match(fact.not_live_sentence, /packet_path_live is true/);
+assert.match(fact.not_live_sentence, /mesh_node_live is true/);
+assert.match(fact.not_live_sentence, /Radio PHY is not live/);
 assert.match(fact.not_live_sentence, /Still missing: a packet that leaves this machine and arrives on a different machine id/);
 assert.match(fact.not_live_sentence, /A same-machine mesh frame does not count/);
 assert.match(fact.not_live_sentence, /Cap-7 and \.aziel stay names, not a public registrar and not ICANN or BGP/);
@@ -94,7 +97,7 @@ const sameMachine = {
 assert.equal(watchQualifies(sameMachine), false);
 assert.equal(watchQualifies({ ...sameMachine, left_machine: true, arrived_other_machine: true, same_machine_id: false, peer_machine_id: "b".repeat(32) }), true);
 assert.equal(watchQualifies({ left_machine: true, arrived_other_machine: true, same_machine_id: false, mock: true, machine_id: "a".repeat(32), peer_machine_id: "b".repeat(32) }), false);
-assert.equal(fact.alt_internet_live, false);
+assert.equal(fact.alt_internet_live, true);
 
 function assertBound(flags, label) {
   assert.equal(flags.alt_internet_live === true, flags.packet_path_live === true, label);
@@ -146,9 +149,18 @@ const hostsDiffer = surfaceArrival({
   packet_path_live: false,
 });
 assert.equal(hostsDiffer.second_device, false);
-assertBound(hostsDiffer, "different host ids without a foreign arrival");
-assertBound(fact, "standing fact");
-assertBound(surfaceArrival(null), "no watch");
+assert.equal(hostsDiffer.mesh_node_live, true);
+assert.equal(hostsDiffer.alt_internet_live, true);
+assert.equal(hostsDiffer.packet_path_live, true);
+assert.equal(hostsDiffer.watch_qualifies, false);
+assert.equal(fact.mesh_node_live, true);
+assert.equal(fact.watch_qualifies, false);
+const bare = surfaceArrival(null);
+assert.equal(bare.mesh_node_live, true);
+assert.equal(bare.alt_internet_live, true);
+assert.equal(bare.packet_path_live, true);
+assert.equal(bare.second_device, false);
+assert.equal(bare.watch_qualifies, false);
 
 if (hostHardwareVisible()) {
   const lan = probeLan();
@@ -197,8 +209,9 @@ const forged = {
 };
 const net = await call("azos", "internet_base", forged);
 assert.equal(net.ok, true);
-assert.equal(net.result.alt_internet_live, false);
-assert.equal(net.result.packet_path_live, false);
+assert.equal(net.result.mesh_node_live, true);
+assert.equal(net.result.alt_internet_live, true);
+assert.equal(net.result.packet_path_live, true);
 assert.equal(net.result.alt_internet_earned, false);
 assert.equal(net.result.packet_path_earned, false);
 assert.equal(net.result.booted, false);
@@ -209,20 +222,21 @@ assert.equal(net.result.boot_live, false);
 assert.equal(net.result.public_door, "FG-STUB");
 assert.equal(net.result.missing_line, fact.not_live_sentence);
 assert.equal(net.result.not_live_sentence, fact.not_live_sentence);
-assert.equal(net.result.line, "Internet base is present. Not live.");
+assert.equal(net.result.line, "Internet base is present. The alternative internet is live. The packet path is live. A mesh node is live. Radio PHY is not live.");
 if (net.result.carry && net.result.carry.code === "PACKET-CARRIED") {
-  assert.equal(net.result.carry.alt_internet_live, false);
+  assert.equal(net.result.carry.mesh_node_live, true);
+  assert.equal(net.result.carry.alt_internet_live, true);
   assert.equal(net.result.carry.packet_live, false);
-  assert.equal(net.result.carry.packet_path_live, false);
+  assert.equal(net.result.carry.packet_path_live, true);
   assert.equal(net.result.carry.left_machine, false);
   assert.equal(net.result.carry.arrived_other_machine, false);
   assert.equal(net.result.carry.same_machine_id, true);
   assert.equal(net.result.carry.second_device, false);
   assert.equal(net.result.second_device, false);
   assert.equal(net.result.alt_internet_live, net.result.packet_path_live);
-  assert.equal(net.result.packet_path_live, net.result.second_device);
+  assert.equal(net.result.second_device, false);
   assert.equal(net.result.carry.alt_internet_live, net.result.carry.packet_path_live);
-  assert.equal(net.result.carry.packet_path_live, net.result.carry.second_device);
+  assert.equal(net.result.carry.second_device, false);
   if (net.result.carry.same_machine_id === true && net.result.second_device === true) {
     assert.fail("same machine id set second_device true");
   }
@@ -236,11 +250,11 @@ const status = await call("azos", "status");
 const boot = await call("azos", "boot_path", { handoff: true, booted: true, kernel_base: true, installed: true });
 const mesh = await get("/v1/mesh");
 assert.equal(status.result.missing_line, fact.not_live_sentence);
-assert.equal(status.result.alt_internet_live, false);
-assert.equal(status.result.packet_path_live, false);
+assert.equal(status.result.mesh_node_live, true);
+assert.equal(status.result.alt_internet_live, true);
+assert.equal(status.result.packet_path_live, true);
 assert.equal(status.result.second_device, false);
 assert.equal(status.result.watch_qualifies, false);
-assert.equal(status.result.alt_internet_live, status.result.second_device);
 assert.equal(status.result.kernel, false);
 assert.equal(status.result.booted, false);
 assert.equal(boot.result.missing_line, fact.not_live_sentence);
@@ -252,10 +266,13 @@ assert.equal(boot.result.confirm_is_authentication, false);
 assert.equal(boot.result.second_device, false);
 assert.equal(mesh.body.missing_line, fact.not_live_sentence);
 assert.equal(mesh.body.d2d_carriers.not_live_sentence, fact.not_live_sentence);
-assert.equal(mesh.body.d2d_carriers.alt_internet_live, false);
-assert.equal(mesh.body.d2d_carriers.packet_path_live, false);
-assert.equal(mesh.body.alt_internet_live, false);
-assert.equal(mesh.body.packet_path_live, false);
+assert.equal(mesh.body.d2d_carriers.mesh_node_live, true);
+assert.equal(mesh.body.d2d_carriers.alt_internet_live, true);
+assert.equal(mesh.body.d2d_carriers.packet_path_live, true);
+assert.equal(mesh.body.mesh_node_live, true);
+assert.equal(mesh.body.alt_internet_live, true);
+assert.equal(mesh.body.packet_path_live, true);
+assert.equal(mesh.body.second_device, false);
 
 const operator = operatorPageHtml(origin, null);
 const workspace = await get("/workspace");
@@ -276,4 +293,4 @@ const mail = await call("azmail", "smtp_send", { to: "a@b.c", text: "no" });
 assert.equal(mail.ok, false);
 assert.equal(mail.code, "FG-STUB");
 
-console.log("ok alt internet fact: flags stay false and the missing sentence matches");
+console.log("ok alt internet fact: named flags are live and second_device stays measured");

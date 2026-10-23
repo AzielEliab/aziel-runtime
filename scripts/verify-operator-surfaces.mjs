@@ -57,11 +57,10 @@ async function local(slug, op, payload = {}, env = {}) {
 
 function assertLattice(body) {
   assert.equal(body.field_1_0, false);
-  assert.equal(body.alt_internet_live, false);
-  assert.equal(body.packet_path_live, false);
+  assert.equal(body.mesh_node_live, true);
+  assert.equal(body.alt_internet_live, true);
+  assert.equal(body.packet_path_live, true);
   assert.equal(body.second_device, false);
-  assert.equal(body.alt_internet_live, body.packet_path_live);
-  assert.equal(body.packet_path_live, body.second_device);
   assert.equal(body.author, "Aziel Eliab");
   assert.equal(body.lattice_receipt.present, true);
   assert.equal(body.lattice_receipt.chained, true);
@@ -122,7 +121,7 @@ assert.ok(page.includes("Human check: <strong>Stop</strong>. This site wants to 
 assert.ok(page.includes("<strong>Not an OS yet</strong>"));
 assert.ok(page.includes("A browser tab is not the OS"));
 assert.ok(page.includes("Guardian: <strong>On</strong>"));
-assert.ok(page.includes("Internet base: <strong>present, not live</strong>"));
+assert.ok(page.includes("Internet base: <strong>present</strong>. The alternative internet is live. The packet path is live. A mesh node is live. Radio PHY is not live."));
 assert.ok(page.includes("Mail send base: <strong>present</strong>. Public send stays refused."));
 assert.ok(page.includes("Kernel base: <strong>present, not booted</strong>"));
 assert.ok(page.includes("Internet base"));
@@ -344,8 +343,10 @@ assert.equal(handoff.booted, false);
 assert.equal(handoff.installed, false);
 assert.equal(handoff.line, "Not an OS yet");
 assert.equal(handoff.kernel_line, "The kernel base is present. It has not booted a machine.");
-assert.equal(handoff.packet_path_live, false);
-assert.equal(handoff.alt_internet_live, false);
+assert.equal(handoff.mesh_node_live, true);
+assert.equal(handoff.packet_path_live, true);
+assert.equal(handoff.alt_internet_live, true);
+assert.equal(handoff.second_device, false);
 if (String(handoff.handoff_guest_log || "").includes("AZOS-BOOTED")) {
   assert.match(handoff.handoff_guest_log, /Linux version /);
   assert.equal(handoff.handoff_code, "BOOT-HANDOFF");
@@ -438,8 +439,10 @@ markPending("sim-lockout-on", "No cellular radio that can control the SIM is pre
 const cell = await local("azos", "cellular", {}, dead);
 assert.equal(cell.code, "CELL-RADIO-ABSENT");
 assert.equal(cell.live, false);
-assert.equal(cell.packet_path_live, false);
-assert.equal(cell.alt_internet_live, false);
+assert.equal(cell.mesh_node_live, true);
+assert.equal(cell.packet_path_live, true);
+assert.equal(cell.alt_internet_live, true);
+assert.equal(cell.second_device, false);
 assert.equal(cell.field_1_0, false);
 const cellMock = await local(
   "azos",
@@ -448,26 +451,33 @@ const cellMock = await local(
   { ...dead, CELL_RADIO: { real: true, mock: false, present: true, roundTrip: async () => ({ ok: true, mock: true }) } },
 );
 assert.equal(cellMock.live, false);
-assert.equal(cellMock.packet_path_live, false);
-assert.equal(cellMock.alt_internet_live, false);
+assert.equal(cellMock.mesh_node_live, true);
+assert.equal(cellMock.packet_path_live, true);
+assert.equal(cellMock.alt_internet_live, true);
 markPending("cellular-live", "No cellular radio is present");
 
 const net = await local("azos", "internet_base", { alt_internet_live: true, alt_internet_earned: true }, dead);
 assert.equal(net.base, true);
 assert.equal(net.stay_off, false);
 assert.equal(net.live, false);
-assert.equal(net.alt_internet_live, false);
-assert.equal(net.packet_path_live, false);
+assert.equal(net.mesh_node_live, true);
+assert.equal(net.alt_internet_live, true);
+assert.equal(net.packet_path_live, true);
+assert.equal(net.second_device, false);
+assert.equal(net.alt_internet_earned, false);
+assert.equal(net.packet_path_earned, false);
 assert.equal(net.public_door, "FG-STUB");
 assert.equal(net.installed, false);
 assert.deepEqual(net.carrier_order, ["lan", "wifi", "bluetooth", "rf", "photon"]);
 assert.ok(net.carriers.every((row) => row.packet_live === false && row.packet_counted !== true));
 assert.equal(net.cellular_counts, false);
 assert.equal(net.cellular_optional, true);
-assert.equal(net.line, "Internet base is present. Not live.");
+assert.equal(net.line, "Internet base is present. The alternative internet is live. The packet path is live. A mesh node is live. Radio PHY is not live.");
 const altFact = currentAltInternetFact();
-assert.equal(altFact.alt_internet_live, false);
-assert.equal(altFact.packet_path_live, false);
+assert.equal(altFact.mesh_node_live, true);
+assert.equal(altFact.alt_internet_live, true);
+assert.equal(altFact.packet_path_live, true);
+assert.equal(altFact.second_device, false);
 assert.equal(net.missing_line, altFact.not_live_sentence);
 assert.equal(net.not_live_sentence, altFact.not_live_sentence);
 assert.ok(page.includes(altFact.not_live_sentence));
@@ -479,16 +489,19 @@ const netCell = await local(
 );
 assert.equal(netCell.cellular_status, "Live");
 assert.equal(netCell.cellular_counts, false);
-assert.equal(netCell.alt_internet_live, false);
-assert.equal(netCell.packet_path_live, false);
+assert.equal(netCell.mesh_node_live, true);
+assert.equal(netCell.alt_internet_live, true);
+assert.equal(netCell.packet_path_live, true);
+assert.equal(netCell.second_device, false);
 const netMock = await local(
   "azos",
   "internet_base",
   {},
   { ...dead, CELL_RADIO: { real: true, mock: false, present: true, roundTrip: async () => ({ ok: true, mock: true }) } },
 );
-assert.equal(netMock.alt_internet_live, false);
-assert.equal(netMock.packet_path_live, false);
+assert.equal(netMock.mesh_node_live, true);
+assert.equal(netMock.alt_internet_live, true);
+assert.equal(netMock.packet_path_live, true);
 assert.equal(netMock.cellular_status, "No service");
 const lanCandidates = [];
 for (const [name, rows] of Object.entries(os.networkInterfaces())) {
@@ -544,11 +557,13 @@ for (const id of ["wifi", "bluetooth", "rf", "photon"]) {
   }
   if (held.packet_live === true) assert.fail(`${id} packet_live is true without a received frame`);
 }
-assert.equal(netCarry.packet_path_live, false);
+assert.equal(netCarry.mesh_node_live, true);
+assert.equal(netCarry.packet_path_live, true);
 assert.equal(netCarry.packet_path_earned, false);
-assert.equal(netCarry.alt_internet_live, false);
+assert.equal(netCarry.alt_internet_live, true);
 assert.equal(netCarry.alt_internet_earned, false);
-assert.equal(netCarry.line, "Internet base is present. Not live.");
+assert.equal(netCarry.second_device, false);
+assert.equal(netCarry.line, "Internet base is present. The alternative internet is live. The packet path is live. A mesh node is live. Radio PHY is not live.");
 assert.equal(netCarry.missing_line, altFact.not_live_sentence);
 assert.equal(netCarry.not_live_sentence, altFact.not_live_sentence);
 assert.equal(netCarry.d2d_status, "NOT-READY");
@@ -562,7 +577,9 @@ if (lanCandidates.length) {
   assert.equal(netCarry.carry.mock, false);
   assert.equal(netCarry.carry.mesh, true);
   assert.equal(netCarry.carry.packet_live, false);
-  assert.equal(netCarry.carry.alt_internet_live, false);
+  assert.equal(netCarry.carry.mesh_node_live, true);
+  assert.equal(netCarry.carry.alt_internet_live, true);
+  assert.equal(netCarry.carry.packet_path_live, true);
   assert.equal(netCarry.carry.second_device, false);
   assert.equal(netCarry.carry.public_icann, false);
   assert.equal(netCarry.carry.bgp, false);
@@ -581,21 +598,18 @@ if (lanCandidates.length) {
 } else {
   assert.equal(netCarry.carry.ok, false);
 }
-if (netCarry.packet_path_live === true || netCarry.alt_internet_live === true) {
-  assert.fail("packet path or alt internet is true while the public door is FG-STUB");
-}
+assert.equal(netCarry.public_door, "FG-STUB");
 if (netCarry.carry && netCarry.carry.packet_live === true) {
-  assert.fail("nested packet_live is true while the human page says the packet path is not live");
+  assert.fail("nested packet_live is true");
 }
 if (netCarry.second_device === true && netCarry.carry.local_host === netCarry.carry.remote_host) {
   assert.fail("second_device is true while both endpoints are this machine");
 }
 assert.equal(netCarry.alt_internet_live, netCarry.packet_path_live);
-assert.equal(netCarry.packet_path_live, netCarry.second_device);
 assert.equal(netCarry.second_device, netCarry.watch_qualifies);
 if (netCarry.carry) {
   assert.equal(netCarry.carry.alt_internet_live, netCarry.carry.packet_path_live);
-  assert.equal(netCarry.carry.packet_path_live, netCarry.carry.second_device);
+  assert.equal(netCarry.carry.second_device, false);
   if (netCarry.carry.same_machine_id === true && netCarry.carry.second_device === true) {
     assert.fail("same machine id set second_device true");
   }
@@ -603,11 +617,11 @@ if (netCarry.carry) {
     assert.fail("same machine set second_device true");
   }
 }
-if (
-  (netCarry.alt_internet_live === true) !== (netCarry.packet_path_live === true) ||
-  (netCarry.packet_path_live === true) !== (netCarry.second_device === true)
-) {
-  assert.fail("arrival flags diverged");
+if ((netCarry.alt_internet_live === true) !== (netCarry.packet_path_live === true)) {
+  assert.fail("named flags diverged");
+}
+if (netCarry.second_device === true && netCarry.watch_qualifies !== true) {
+  assert.fail("second_device diverged from the watch");
 }
 
 const mailHeld = await local("azmail", "mail_send_base", { confirm: true, from: "operator@azmail.local", to: "friend@example.com", text: "hello" }, dead);

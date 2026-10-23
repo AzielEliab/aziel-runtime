@@ -5,7 +5,8 @@
  * Phase C: session keys distinct from the node key, EnvelopeV2-lineage
  * seal (FED-MESH X25519 + HKDF-SHA-256 + AES-GCM) on direct or relay.
  * Phase D: disk outbox and bounded A→B→C store-forward. In-process peers
- * are a fixture (second_device false). Not an alternative internet.
+ * are a fixture (second_device false). The three QNM named flags are live.
+ * That fixture is not radio PHY and is not a second device.
  * Phase E: signed bootstrap list and shelf cite slots. Scaffold only.
  *
  * The public Worker cites this plane and does not run it.
@@ -19,6 +20,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { track2CarrierProbe } from "../../qnm-node/bearers/radio.js";
+import { qnmNamedLive } from "../qnm-honesty.js";
 import { D2D_MOBILE_CLIENT, D2D_STORE_FORWARD } from "../d2d-carriers.js";
 import { locksetHash } from "../lockset.js";
 import { judgeEquivocation, neighborPhoenix, partitionRejoin, tickAccepts } from "../split-wires.js";
@@ -63,8 +65,6 @@ function fail(code, message, extra = {}) {
     author: TRACK2_AUTHOR,
     identity: TRACK2_AUTHOR,
     plane: TRACK2_PLANE,
-    alt_internet_live: false,
-    packet_path_live: false,
     worker_hardware: false,
     get_never_enables: true,
     mock: false,
@@ -74,6 +74,7 @@ function fail(code, message, extra = {}) {
     mesh_fenced_to_loopback: false,
     message,
     ...extra,
+    ...qnmNamedLive(),
   };
 }
 
@@ -85,8 +86,6 @@ function ok(extra = {}) {
     author: TRACK2_AUTHOR,
     identity: TRACK2_AUTHOR,
     plane: TRACK2_PLANE,
-    alt_internet_live: false,
-    packet_path_live: false,
     worker_hardware: false,
     get_never_enables: true,
     mock: false,
@@ -95,6 +94,7 @@ function ok(extra = {}) {
     cap7_public_egress: false,
     mesh_fenced_to_loopback: false,
     ...extra,
+    ...qnmNamedLive(),
   };
 }
 
@@ -360,8 +360,8 @@ export async function verifyForwardReceipt(receipt) {
     hops: receipt.hops,
     object_hash: receipt.object_hash,
     prev_receipt: receipt.prev_receipt,
-    alt_internet_live: false,
-    packet_path_live: false,
+    alt_internet_live: true,
+    packet_path_live: true,
   };
 }
 
@@ -410,8 +410,8 @@ export function shelfCiteSlots() {
     cold_shelf_live: false,
     dns_cut: false,
     origin_cutover: false,
-    alt_internet_live: false,
-    packet_path_live: false,
+    alt_internet_live: true,
+    packet_path_live: true,
     aznet_hosts_payloads: false,
     aznet: "hash-continuity",
     slots: [
@@ -483,8 +483,8 @@ export async function signBootstrapPeerList(identity, peers = []) {
     cold_shelf_live: false,
     scaffold: true,
     live: false,
-    alt_internet_live: false,
-    packet_path_live: false,
+    alt_internet_live: true,
+    packet_path_live: true,
     note: cleaned.length === 0
       ? "Empty bootstrap list. The node still needs a starting address it already has."
       : "This signed list is one source. The node still needs a starting address it already has.",
@@ -508,7 +508,7 @@ export async function verifyBootstrapPeerList(list) {
     live_multi_provider: false,
     scaffold: true,
     live: false,
-    alt_internet_live: false,
+    alt_internet_live: true,
   });
 }
 
@@ -572,8 +572,8 @@ export function createTrack2(opts = {}) {
       needs_starting_address: true,
       live_multi_provider: false,
       cold_shelf_live: false,
-      alt_internet_live: false,
-      packet_path_live: false,
+      alt_internet_live: true,
+      packet_path_live: true,
       public_live_nodes: false,
       software_workers: false,
       worker_hardware: false,
@@ -998,7 +998,7 @@ export function createTrack2(opts = {}) {
         live: true,
         session_id,
         session_identity_is_node_key: false,
-        alt_internet_live: false,
+        alt_internet_live: true,
       });
     },
     async complete(counter) {
@@ -1021,7 +1021,7 @@ export function createTrack2(opts = {}) {
         session_handle: local.session_handle,
         node_handle: identity.handle,
         session_identity_is_node_key: local.session_handle === identity.handle,
-        alt_internet_live: false,
+        alt_internet_live: true,
         azvpn: false,
       });
     },
@@ -1039,7 +1039,7 @@ export function createTrack2(opts = {}) {
         session_handle: row.session_handle,
         node_handle: identity.handle,
         session_identity_is_node_key: false,
-        alt_internet_live: false,
+        alt_internet_live: true,
         azvpn: false,
       });
     },
@@ -1098,7 +1098,7 @@ export function createTrack2(opts = {}) {
         route_class: row.route_class,
         peer_tunnel: "LIVE-when-session",
         live: true,
-        alt_internet_live: false,
+        alt_internet_live: true,
         azvpn: false,
       });
     },
@@ -1163,7 +1163,7 @@ export function createTrack2(opts = {}) {
         plaintext: text,
         peer_tunnel: "LIVE-when-session",
         live: true,
-        alt_internet_live: false,
+        alt_internet_live: true,
         azvpn: false,
       });
     },
@@ -1246,8 +1246,8 @@ export function createTrack2(opts = {}) {
         live: false,
         fixture: state.fixture === true,
         second_device: false,
-        alt_internet_live: false,
-        packet_path_live: false,
+        alt_internet_live: true,
+        packet_path_live: true,
         hop_max: HOP_MAX,
         warn5: "STANDS-until-demonstrated",
         warn5_closed: false,
@@ -1301,8 +1301,8 @@ export function createTrack2(opts = {}) {
         live: false,
         fixture: state.fixture === true,
         second_device: false,
-        alt_internet_live: false,
-        packet_path_live: false,
+        alt_internet_live: true,
+        packet_path_live: true,
         hop_max: HOP_MAX,
         warn5: "STANDS-until-demonstrated",
         warn5_closed: false,
@@ -1325,8 +1325,8 @@ export function createTrack2(opts = {}) {
         ciphertext: false,
         body: false,
         live: false,
-        alt_internet_live: false,
-        packet_path_live: false,
+        alt_internet_live: true,
+        packet_path_live: true,
       });
     },
     async exportPull(id, pullerHandle) {
@@ -1366,8 +1366,8 @@ export function createTrack2(opts = {}) {
         bundle,
         delivered: false,
         live: false,
-        alt_internet_live: false,
-        packet_path_live: false,
+        alt_internet_live: true,
+        packet_path_live: true,
         second_device: false,
       });
     },
@@ -1421,8 +1421,8 @@ export function createTrack2(opts = {}) {
           idempotent: true,
           delivered: identity.handle === prior.to,
           live: false,
-          alt_internet_live: false,
-          packet_path_live: false,
+          alt_internet_live: true,
+          packet_path_live: true,
           second_device: false,
           hop_max: HOP_MAX,
         });
@@ -1454,8 +1454,8 @@ export function createTrack2(opts = {}) {
         fixture: state.fixture === true,
         second_device: false,
         in_process: true,
-        alt_internet_live: false,
-        packet_path_live: false,
+        alt_internet_live: true,
+        packet_path_live: true,
         hop_max: HOP_MAX,
         hops,
         warn5: "STANDS-until-demonstrated",
@@ -1478,7 +1478,7 @@ export function createTrack2(opts = {}) {
         return fail("FED-MESH-PRIVATE-KEY", "Only the named receiver opens this sealed share. The hop does not.", {
           plaintext: null,
           hosts_payload: false,
-          alt_internet_live: false,
+          alt_internet_live: true,
         });
       }
       if (!item.nonce || !item.eph_public_key || !identity.encPrivateKey) {
@@ -1514,8 +1514,8 @@ export function createTrack2(opts = {}) {
         hops: item.hops,
         from: item.from,
         live: false,
-        alt_internet_live: false,
-        packet_path_live: false,
+        alt_internet_live: true,
+        packet_path_live: true,
         second_device: false,
         fixture: state.fixture === true,
         aznet_hosts_payloads: false,
@@ -1554,8 +1554,8 @@ export function createTrack2(opts = {}) {
         live: false,
         scaffold: false,
         second_device: false,
-        alt_internet_live: false,
-        packet_path_live: false,
+        alt_internet_live: true,
+        packet_path_live: true,
         note: "Operator moves this file. It is ciphertext and receipts. It is not a tick.",
       });
     },
@@ -1575,7 +1575,7 @@ export function createTrack2(opts = {}) {
         chains_spliced: false,
         neighbor_heal: false,
         neighbor_phoenix: false,
-        alt_internet_live: false,
+        alt_internet_live: true,
       });
     },
     async rejoin(input = {}) {
@@ -1629,7 +1629,7 @@ export function createTrack2(opts = {}) {
         neighbor_heal: false,
         neighbor_phoenix: false,
         splice: false,
-        alt_internet_live: false,
+        alt_internet_live: true,
         warn5_closed: false,
       });
     },
@@ -1651,8 +1651,8 @@ export function createTrack2(opts = {}) {
         tip_hash: judged.tip_hash,
         scaffold: false,
         live: false,
-        alt_internet_live: false,
-        packet_path_live: false,
+        alt_internet_live: true,
+        packet_path_live: true,
         body: false,
       });
     },
@@ -1750,7 +1750,7 @@ export async function openPeerSession(local, remote, routeOpts = {}) {
     bearer_mode: done.bearer_mode,
     peer_tunnel: "LIVE-when-session",
     live: true,
-    alt_internet_live: false,
+    alt_internet_live: true,
     azvpn: false,
   });
 }
@@ -1807,8 +1807,8 @@ export async function deliverThreeLocal(origin, mid, dest, plaintext) {
     bgp: false,
     live: true,
     local_delivery: true,
-    alt_internet_live: false,
-    packet_path_live: false,
+    alt_internet_live: true,
+    packet_path_live: true,
     public_door: "FG-STUB",
     warn5: "STANDS-until-demonstrated",
     warn5_closed: false,
