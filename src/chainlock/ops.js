@@ -288,6 +288,28 @@ export async function saveChain(store, name, rows, caller) {
 }
 
 /**
+ * RECEIPT-LEVEL-1.0 (lattice plan step 5): optional, additive `level` and `software` tags.
+ * level is one of runtime | ui | interface; software is a lowercase slug. Both are absent on
+ * old rows and on rows that omit them, so every old stamp_sha256 and lattice document hash is
+ * unchanged. Invalid values are dropped (never guessed). Format check only: this does not read
+ * or change the Softwares registry. The third, user-derived tie-break
+ * chain ("3 chains in 2 lattices", LATTICE-TIEBREAK-1.0, PR #327) rides in its own optional
+ * lattice.tiebreak block, written only on a real sync row (online, sync:true, username); plain
+ * online and offline rows carry no block. No field here and no existing hash rule changes for it.
+ */
+export const RECEIPT_LEVELS = Object.freeze(["runtime", "ui", "interface"]);
+export const RECEIPT_SOFTWARE_RE = /^[a-z0-9][a-z0-9-]{0,63}$/;
+export const RECEIPT_RESERVED_FIELDS = Object.freeze(["tiebreak"]);
+export function receiptTags(src) {
+  const out = {};
+  const level = src && src.level != null ? String(src.level).trim().toLowerCase() : "";
+  if (RECEIPT_LEVELS.includes(level)) out.level = level;
+  const sw = src && src.software != null ? String(src.software).trim().toLowerCase() : "";
+  if (RECEIPT_SOFTWARE_RE.test(sw)) out.software = sw;
+  return out;
+}
+
+/**
  * Document content for the dual hash lattice. Ids and timestamps are left out,
  * so the same stamp content hashes the same way twice (offline double refuse).
  */
@@ -298,6 +320,7 @@ export async function stampDocumentHash(src) {
     k: (src && (src.k || src.kind)) || "stamp",
     subject: clip(src && (src.s || src.subject), SUBJECT_CAP),
     fact: clip(src && (src.f || src.fact), FACT_CAP),
+    ...receiptTags(src),
   });
 }
 
@@ -362,6 +385,7 @@ export async function composeChainlockStamp(src, { prev, rows = null, latticeTip
     const value = additiveValue(src && src[key]);
     if (value !== undefined) unsigned[key] = value;
   }
+  Object.assign(unsigned, receiptTags(src));
   unsigned.fh = await factHash(fact);
   unsigned.stamp_sha256 = await stampSha256(unsigned);
   return unsigned;
