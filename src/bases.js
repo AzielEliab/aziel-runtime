@@ -668,9 +668,11 @@ function runCapture(cmd, args, extraEnv) {
   return import("node:child_process").then(
     ({ spawn }) =>
       new Promise((resolve) => {
-        const env = { ...process.env };
-        if (extraEnv) Object.assign(env, extraEnv);
-        const child = spawn(cmd, args, { env, stdio: ["ignore", "pipe", "pipe"] });
+        // No env object: the child inherits the process environment. A toolPath
+        // lookup passes only PATH, not a copy of every variable.
+        const options = { stdio: ["ignore", "pipe", "pipe"] };
+        if (extraEnv) options.env = extraEnv;
+        const child = spawn(cmd, args, options);
         let stdout = "";
         let stderr = "";
         child.stdout.on("data", (chunk) => {
