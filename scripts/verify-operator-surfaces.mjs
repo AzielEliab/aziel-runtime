@@ -347,7 +347,7 @@ assert.equal(handoff.kernel_line, "The kernel base is present. It has not booted
 assert.equal(handoff.packet_path_live, false);
 assert.equal(handoff.alt_internet_live, false);
 if (String(handoff.handoff_guest_log || "").includes("AZOS-BOOTED")) {
-  assert.match(handoff.handoff_guest_log, /AZOS-INSTALLED/);
+  assert.match(handoff.handoff_guest_log, /Linux version /);
   assert.equal(handoff.handoff_code, "BOOT-HANDOFF");
   assert.equal(handoff.booted, false);
   assert.equal(handoff.kernel_base, false);
@@ -933,3 +933,47 @@ for (const row of pending) {
 }
 console.log(JSON.stringify({ pending }, null, 2));
 console.log("ok operator-surfaces");
+
+// AZOS-REAL-KERNEL-HANDOFF-1.0: kernel_base / booted come only from a real Linux kernel boot.
+{
+  const { bootHandoff, readBzImage, isStaticElf } = await import("../src/bases.js");
+  const { mkdtempSync, writeFileSync: wfs, rmSync, existsSync: ex, readFileSync: rfs } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const dir = mkdtempSync(join(tmpdir(), "fake-kernel-"));
+  try {
+    // A 512-byte hello boot sector with a hand-pasted HdrS and an install flag is not a kernel.
+    const fake = new Uint8Array(0x206 + 4096);
+    fake[0x1f0] = 1;
+    fake[0x1fe] = 0x55;
+    fake[0x1ff] = 0xaa;
+    fake.set([0x48, 0x64, 0x72, 0x53], 0x202);
+    const fakePath = join(dir, "vmlinuz-fake");
+    wfs(fakePath, fake);
+    assert.equal(readBzImage(fake), null, "hand-pasted HdrS is not a bzImage");
+    const hand = await bootHandoff({ kernel: fakePath });
+    assert.equal(hand.kernel_base, false, "fake sector must not set kernel_base");
+    assert.equal(hand.booted, false, "fake sector must not set booted");
+    assert.equal(hand.installed, false, "fake sector must not set installed");
+    assert.equal(hand.code, "BOOT-KERNEL-ABSENT");
+    assert.equal(isStaticElf(new TextEncoder().encode("#!/bin/sh\n".padEnd(128, " "))), false);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+  const { spawnSync } = await import("node:child_process");
+  const qemu = spawnSync("qemu-system-x86_64", ["--version"]).status === 0;
+  const real = await bootHandoff();
+  assert.equal(real.installed, false, "nothing is installed to a disk by the handoff");
+  assert.equal(real.host_replaced, false);
+  if (real.booted === true) {
+    assert.equal(real.kernel_base, true);
+    assert.match(real.guest_log, /Linux version /);
+    assert.match(real.guest_log, new RegExp(`AZOS-BOOTED nonce=${real.nonce} kernel=\\S+ pid=1 `));
+    assert.equal(real.real_hardware, false);
+    console.log(`kernel handoff booted ${real.kernel_release} in QEMU`);
+  } else {
+    assert.equal(real.kernel_base === true && real.code === "BOOT-HANDOFF", false);
+    if (!qemu) assert.notEqual(real.code, "BOOT-HANDOFF");
+    console.log(`kernel handoff not booted here: ${real.code}`);
+  }
+}

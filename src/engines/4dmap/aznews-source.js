@@ -448,7 +448,8 @@ export async function hashBytes(bytes) {
 }
 
 /**
- * Keep image bytes, or the content hash plus a fetch URL.
+ * Keep the content hash plus a fetch URL. Image bytes are hashed and never stored
+ * (CORPUS-INTAKE-SAFETY-1.0 media floor), so no image enters the primary or secondary chain.
  * A missing image is an empty list with a gap flag. The URL is not discarded.
  */
 export async function captureImage(raw, fetchImpl) {
@@ -488,19 +489,23 @@ async function oneImage(entry, fetchImpl) {
   }
   if (bytes) {
     const sha256 = await hashBytes(bytes);
+    const byteLength = bytes.length;
     const claimed = String(entry.sha256 || entry.hash || "").trim().toLowerCase();
     if (claimed && claimed !== sha256) {
       const err = new Error("The supplied image hash does not match the image bytes.");
       err.code = "AZNEWS-IMAGE-MISMATCH";
       throw err;
     }
-    const keep = bytes.length <= 4096;
+    // CORPUS-INTAKE-SAFETY-1.0 media floor: image bytes never reach a chain.
+    // They are hashed here and dropped; the receipt keeps the content hash plus the fetch URL.
+    bytes = null;
     return {
       sha256,
       fetch_url: url || null,
-      byte_length: bytes.length,
-      b64: keep ? bytesToB64(bytes) : null,
-      bytes_stored: keep,
+      byte_length: byteLength,
+      b64: null,
+      bytes_stored: false,
+      media_floor: true,
       fetched,
       verified: true,
       dropped: false,
