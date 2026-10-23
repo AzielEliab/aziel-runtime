@@ -121,7 +121,7 @@ console.log(
   const { tmpdir } = await import("node:os");
   const { join } = await import("node:path");
   const photonMod = await import("../qnm-node/bearers/photon.js");
-  const { probeLightHardware, photonChips, decodeChips, samplesToChips, photonSend, photonReceive, crc32, PHOTON_ABSENT } = photonMod;
+  const { probeLightHardware, photonChips, decodeChips, samplesToChips, photonSend, photonReceive, photonReceiveCamera, frameLuminance, framesToLuminance, readCameraFrames, crc32, PHOTON_ABSENT, PHOTON_CAMERA_FRAME } = photonMod;
 
   // 1) qnsd on loopback alone must not make photon LIVE (old code said LIVE kind qnsd-loopback).
   const dir = mkdtempSync(join(tmpdir(), "qnsd-"));
@@ -162,6 +162,11 @@ console.log(
     const txOnly = probeLightHardware({ root });
     assert.equal(txOnly.tx, true);
     assert.equal(txOnly.present, false, "emitter without a receiver is not a light carrier");
+    assert.equal(txOnly.camera, null, "a sysfs root is not a camera");
+    mkdirSync(join(root, "dev"), { recursive: true });
+    wfs(join(root, "dev/video0"), "");
+    assert.equal(probeLightHardware({ root }).present, false, "a video node file is not a light receiver");
+    assert.equal(probeLightHardware({ root }).rx, false);
     assert.equal((await photonReceive({ root })).code, PHOTON_ABSENT);
     mkdirSync(join(root, "sys/bus/iio/devices/iio:device0"), { recursive: true });
     wfs(join(root, "sys/bus/iio/devices/iio:device0/in_illuminance_raw"), "12\n");
@@ -195,6 +200,51 @@ console.log(
     const got = await photonReceive({ root, read: () => (i < replay.length ? replay[i++] : "40"), sleep: async () => {}, maxChips: replay.length + 64 });
     assert.equal(got.ok, true);
     assert.equal(new TextDecoder().decode(got.payload), "lit");
+
+    // 6) V4L2 frame luminance is a second receiver beside IIO. No camera refuses. No invented frame.
+    const dark = new Uint8Array(PHOTON_CAMERA_FRAME);
+    dark.fill(20);
+    const bright = new Uint8Array(PHOTON_CAMERA_FRAME);
+    bright.fill(220);
+    assert.equal(frameLuminance(dark), 20);
+    assert.equal(frameLuminance(new Uint8Array(0)), null);
+    assert.equal(framesToLuminance(dark.subarray(0, 10)), null, "a short frame is not padded into a luminance");
+    const chipsCam = photonChips("lit");
+    const frames = new Uint8Array(chipsCam.length * PHOTON_CAMERA_FRAME);
+    chipsCam.forEach((chip, n) => frames.set(chip ? bright : dark, n * PHOTON_CAMERA_FRAME));
+    const cam = await photonReceiveCamera({
+      maxChips: chipsCam.length,
+      spawnCapture: async () => frames,
+    });
+    assert.equal(cam.ok, true);
+    assert.equal(cam.rx, "v4l2");
+    assert.equal(cam.live, false, "a decoded camera buffer is not the photon channel LIVE");
+    assert.equal(cam.mock, false);
+    assert.equal(new TextDecoder().decode(cam.payload), "lit");
+    const uneven = frames.subarray(0, frames.byteLength - 1);
+    const badCam = await photonReceive({ rx: "v4l2", spawnCapture: async () => uneven });
+    assert.equal(badCam.code, PHOTON_ABSENT);
+    assert.equal(badCam.state, "REFUSE");
+    assert.equal(badCam.mock, false);
+    assert.equal(badCam.live, false);
+    const emptyCam = await photonReceiveCamera({ spawnCapture: async () => null });
+    assert.equal(emptyCam.code, PHOTON_ABSENT);
+    assert.equal(emptyCam.mock, false);
+    const numberCam = await readCameraFrames({ spawnCapture: async () => 255 });
+    assert.equal(numberCam, null, "a bare luminance number is not a frame");
+    const noDev = await photonReceive({ rx: "v4l2" });
+    assert.equal(noDev.ok, false);
+    assert.equal(noDev.state, "REFUSE");
+    assert.equal(noDev.code, PHOTON_ABSENT);
+    assert.equal(noDev.mock, false);
+    assert.equal(noDev.live, false);
+    const hostCam = await photonReceive({ rx: "v4l2", device: "/dev/null" });
+    assert.equal(hostCam.ok, false);
+    assert.equal(hostCam.state, "REFUSE");
+    assert.equal(hostCam.code, PHOTON_ABSENT);
+    assert.equal(hostCam.mock, false);
+    assert.equal(hostCam.live, false);
+    assert.equal(hostCam.payload, undefined);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

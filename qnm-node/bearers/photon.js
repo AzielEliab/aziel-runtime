@@ -7,6 +7,12 @@
  * A local qnsd process, a loopback socket, or a camera node alone is not light hardware.
  * Absent hardware refuses QNM-RADIO-ABSENT. No mock LIVE.
  *
+ * A second receive path (`photonReceive({ rx: "v4l2" })`) sits beside the IIO receiver.
+ * It reads real V4L2 frames (ffmpeg `-f v4l2`, gray, 16×16) and uses each frame's mean
+ * luminance as one sample for the same Manchester decoder. No camera, no frame, or no
+ * ffmpeg refuses QNM-RADIO-ABSENT. A device node is not a luminance reading and does not
+ * mark the channel LIVE.
+ *
  * Carrier: on-off keying, Manchester chips (1 -> on,off; 0 -> off,on), framed as
  *   preamble 0xAA 0xAA 0xAA 0xAA, sync 0x7E, length (u16 BE), payload, CRC-32 (u32 BE).
  * The sender drives the LED brightness file chip by chip. The receiver samples the light
@@ -17,6 +23,7 @@
  */
 
 import { existsSync, readdirSync, readFileSync, writeFileSync, accessSync, constants } from "node:fs";
+import { spawn } from "node:child_process";
 import { join } from "node:path";
 
 export const PHOTON_SPEC = "QNM-PHOTON-CARRIER-1.0";
@@ -25,6 +32,9 @@ export const PHOTON_PREAMBLE = Object.freeze([0xaa, 0xaa, 0xaa, 0xaa]);
 export const PHOTON_SYNC = 0x7e;
 export const PHOTON_MAX_PAYLOAD = 1024;
 export const PHOTON_DEFAULT_CHIP_MS = 20;
+export const PHOTON_CAMERA_EDGE = 16;
+export const PHOTON_CAMERA_FRAME = PHOTON_CAMERA_EDGE * PHOTON_CAMERA_EDGE;
+export const PHOTON_CAMERA_MAX_FRAMES = 2048;
 
 const EMITTER_RE = /flash|torch/i;
 const SENSOR_FILES = Object.freeze(["in_illuminance_input", "in_illuminance_raw", "in_intensity_both_raw", "in_intensity_clear_raw"]);
@@ -94,9 +104,120 @@ export function probeLightHardware({ root } = {}) {
     kind: present ? `led:${emitter.name}+iio:${sensor.device}` : null,
     emitter: emitter ? emitter.name : null,
     sensor: sensor ? sensor.device : null,
+    // A V4L2 node name is not a light reading. rx stays the IIO sensor.
+    camera: root ? null : listCameraNodes()[0] || null,
     tx: Boolean(emitter),
     rx: Boolean(sensor),
   };
+}
+
+/** V4L2 device nodes on this host. The name is not a frame and not a luminance. */
+export function listCameraNodes() {
+  try {
+    return readdirSync("/dev")
+      .filter((name) => /^video\d+$/.test(name))
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+      .map((name) => join("/dev", name));
+  } catch {
+    return [];
+  }
+}
+
+/** Mean byte value of one gray frame. Empty or non-bytes is not a luminance. */
+export function frameLuminance(bytes) {
+  if (!(bytes instanceof Uint8Array) || bytes.byteLength < 1) return null;
+  let sum = 0;
+  for (let i = 0; i < bytes.byteLength; i += 1) sum += bytes[i];
+  const mean = sum / bytes.byteLength;
+  return Number.isFinite(mean) ? mean : null;
+}
+
+/**
+ * One luminance per gray frame. `frameBytes` is the scaled frame size (16×16).
+ * A short or uneven buffer is refused (null). It is not padded and the tail is not dropped.
+ */
+export function framesToLuminance(bytes, frameBytes = PHOTON_CAMERA_FRAME) {
+  if (!(bytes instanceof Uint8Array) || frameBytes < 1) return null;
+  if (bytes.byteLength < frameBytes || bytes.byteLength % frameBytes !== 0) return null;
+  const out = [];
+  for (let i = 0; i < bytes.byteLength; i += frameBytes) {
+    const luma = frameLuminance(bytes.subarray(i, i + frameBytes));
+    if (luma === null) return null;
+    out.push(luma);
+  }
+  return out;
+}
+
+function ffmpegFrames(device, frames) {
+  return new Promise((resolve) => {
+    const args = [
+      "-hide_banner",
+      "-loglevel",
+      "error",
+      "-f",
+      "v4l2",
+      "-i",
+      device,
+      "-frames:v",
+      String(frames),
+      "-vf",
+      `scale=${PHOTON_CAMERA_EDGE}:${PHOTON_CAMERA_EDGE}`,
+      "-f",
+      "rawvideo",
+      "-pix_fmt",
+      "gray",
+      "pipe:1",
+    ];
+    let child;
+    try {
+      child = spawn("ffmpeg", args, { stdio: ["ignore", "pipe", "pipe"] });
+    } catch {
+      resolve(null);
+      return;
+    }
+    const chunks = [];
+    const timer = setTimeout(() => {
+      try {
+        child.kill("SIGKILL");
+      } catch {
+        /* already gone */
+      }
+    }, 20000);
+    child.stdout.on("data", (chunk) => chunks.push(chunk));
+    child.on("error", () => {
+      clearTimeout(timer);
+      resolve(null);
+    });
+    child.on("close", (code) => {
+      clearTimeout(timer);
+      if (code !== 0 || !chunks.length) {
+        resolve(null);
+        return;
+      }
+      resolve(Buffer.concat(chunks));
+    });
+  });
+}
+
+/**
+ * Read `frames` gray V4L2 frames from a real camera. Returns bytes or null.
+ * `spawnCapture` is the test seam (it must return real frame bytes, not a made-up luminance).
+ * No device and no capture is null. Null is a refusal, not a dark frame.
+ */
+export async function readCameraFrames({ device, frames = 64, spawnCapture } = {}) {
+  const n = Math.max(1, Math.floor(Number(frames) || 1));
+  if (typeof spawnCapture === "function") {
+    const got = await spawnCapture({ device, frames: n });
+    if (got == null) return null;
+    return got instanceof Uint8Array ? got : null;
+  }
+  const nodes = device ? [String(device)] : listCameraNodes();
+  if (!nodes.length) return null;
+  for (const node of nodes) {
+    const bytes = await ffmpegFrames(node, n);
+    if (bytes && bytes.byteLength) return new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  }
+  return null;
 }
 
 const CRC_TABLE = (() => {
@@ -239,6 +360,20 @@ function absent(op, probe) {
   };
 }
 
+function cameraAbsent(note) {
+  return {
+    ok: false,
+    spec: PHOTON_SPEC,
+    op: "receive",
+    rx: "v4l2",
+    state: "REFUSE",
+    code: PHOTON_ABSENT,
+    mock: false,
+    live: false,
+    note,
+  };
+}
+
 const sleepMs = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
@@ -266,7 +401,79 @@ export async function photonSend(payload, { root, chipMs = PHOTON_DEFAULT_CHIP_M
  * Receive one framed payload by sampling the real light sensor at the chip rate.
  * Refuses when no sensor is present. Returns ok:false PHOTON-NO-FRAME when nothing decodes.
  */
-export async function photonReceive({ root, chipMs = PHOTON_DEFAULT_CHIP_MS, maxChips = 2 * 8 * (PHOTON_MAX_PAYLOAD + 11), read, sleep } = {}) {
+/**
+ * Receive one framed payload from a V4L2 camera. Each captured frame's mean luminance
+ * is one sample. Refuses when no camera yields a frame. Does not invent a frame and
+ * does not mark the photon channel LIVE.
+ */
+function cameraReceived(camera, payload, samples) {
+  return {
+    ok: true,
+    spec: PHOTON_SPEC,
+    op: "receive",
+    rx: "v4l2",
+    state: "RECEIVED",
+    live: false,
+    sensor: camera,
+    payload,
+    samples,
+    mock: false,
+  };
+}
+
+function cameraNoFrame(camera, samples) {
+  return {
+    ok: false,
+    spec: PHOTON_SPEC,
+    op: "receive",
+    rx: "v4l2",
+    state: "NO-FRAME",
+    code: "PHOTON-NO-FRAME",
+    live: false,
+    sensor: camera,
+    samples,
+    mock: false,
+  };
+}
+
+export async function photonReceiveCamera({ device, maxChips = PHOTON_CAMERA_MAX_FRAMES, spawnCapture } = {}) {
+  const cap = Math.max(1, Math.floor(Number(maxChips) || PHOTON_CAMERA_MAX_FRAMES));
+  const camera = device ? String(device) : listCameraNodes()[0] || null;
+  if (!camera && typeof spawnCapture !== "function") {
+    return cameraAbsent("No V4L2 camera on this host. Refuse. No mock LIVE.");
+  }
+  // A test capture is one buffer of gray frames, not a second call that could repeat them.
+  if (typeof spawnCapture === "function") {
+    const bytes = await readCameraFrames({ device: camera, frames: cap, spawnCapture });
+    if (!(bytes instanceof Uint8Array) || bytes.byteLength < 1) return cameraAbsent("The camera did not yield a V4L2 frame. Refuse. No mock LIVE.");
+    const lumas = framesToLuminance(bytes);
+    if (!lumas) return cameraAbsent("The V4L2 frame was not a whole gray frame. Refuse. No mock LIVE.");
+    const got = decodeChips(samplesToChips(lumas));
+    if (got) return cameraReceived(camera, got, lumas.length);
+    return cameraNoFrame(camera, lumas.length);
+  }
+  const samples = [];
+  while (samples.length < cap) {
+    const n = Math.min(64, cap - samples.length);
+    const bytes = await readCameraFrames({ device: camera, frames: n });
+    if (!(bytes instanceof Uint8Array) || bytes.byteLength < 1) {
+      if (!samples.length) return cameraAbsent("The camera did not yield a V4L2 frame. Refuse. No mock LIVE.");
+      break;
+    }
+    const lumas = framesToLuminance(bytes);
+    if (!lumas) {
+      if (!samples.length) return cameraAbsent("The V4L2 frame was not a whole gray frame. Refuse. No mock LIVE.");
+      break;
+    }
+    samples.push(...lumas);
+    const got = decodeChips(samplesToChips(samples));
+    if (got) return cameraReceived(camera, got, samples.length);
+  }
+  return cameraNoFrame(camera, samples.length);
+}
+
+export async function photonReceive({ root, chipMs = PHOTON_DEFAULT_CHIP_MS, maxChips = 2 * 8 * (PHOTON_MAX_PAYLOAD + 11), read, sleep, rx, device, spawnCapture } = {}) {
+  if (rx === "v4l2") return photonReceiveCamera({ device, maxChips, spawnCapture });
   const sensor = findSensor({ root });
   if (!sensor) return absent("receive", probeLightHardware({ root }));
   const get = read || ((path) => readFileSync(path, "utf8"));
