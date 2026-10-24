@@ -16,6 +16,7 @@
  */
 
 import { currentAltInternetFact } from "./alt-internet-fact.js";
+import { SATELLITE_RELAY_SWITCH } from "./mesh-channel-plane.js";
 import { cap7Honesty } from "./qnm-honesty.js";
 
 export const D2D_SPEC = "D2D-CARRIERS-1.0";
@@ -113,7 +114,47 @@ export const D2D_CARRIERS = Object.freeze([
     discovery: "REFUSE-without-HW",
     note: "Last resort. Optical / LiFi-style light-flash encoding on camera and flash or LED. Refuse QNM-RADIO-ABSENT when that hardware is absent. Local qnsd is not this flash path. No mock LIVE.",
   }),
+  Object.freeze({
+    ...SATELLITE_RELAY_SWITCH,
+    order: 6,
+    id: "satellite_relay",
+    name: "Satellite relay",
+    op: "store_forward",
+    public_op: false,
+    status: D2D_STATUS,
+    code: D2D_CODE,
+    packet_live: false,
+    mock: false,
+    functional: false,
+    peer_exchange_demonstrated: false,
+    absent_code: "QNM-RADIO-ABSENT",
+    enabled: false,
+    live: false,
+    transmit: false,
+    purchased: false,
+    paid_ok: false,
+    encryption_allowed: false,
+    hw: "amateur-or-commercial-terminal",
+    discovery: "REFUSE-without-HW",
+    envelope: Object.freeze({
+      spec: "FED-MESH-1.0",
+      kind: "store-and-forward",
+      cipher: "X25519+HKDF-SHA-256+AES-GCM",
+      salt: "FED-MESH-1.0",
+      info: "FED-MESH-1.0|<from>|<to>|<seq>",
+      fields: Object.freeze(["v", "from", "to", "seq", "nonce", "eph_public_key", "ciphertext"]),
+      plaintext_on_relay: false,
+      transmit: false,
+    }),
+    note: "Stub after photon. Not part of the failover preference. Transmit is off. enabled false. live false. Reuses the FED-MESH-1.0 store-and-forward envelope and the existing store_forward stub. No new FragGate op. Amateur uplink needs a license and cannot carry that encrypted body. A Starlink or Iridium terminal is a paid path and needs Aziel's explicit OK. Nothing is purchased. Without a terminal the relay refuses QNM-RADIO-ABSENT.",
+  }),
 ]);
+
+/**
+ * Catalog order, including the off satellite relay after photon.
+ * The failover preference string stays the five carriers. The relay is not walked for transmit.
+ */
+export const CARRIER_ORDER = Object.freeze(D2D_CARRIERS.map((row) => row.id));
 
 const D2D_EXTRA_OPS = Object.freeze([
   "d2d_discover",
@@ -167,6 +208,7 @@ export function isD2dRouteOp(op) {
 }
 
 function carrierOpNames(row) {
+  if (row.public_op === false) return [];
   return [row.op, row.id, row.op.split("_").join("-")];
 }
 
@@ -243,7 +285,10 @@ export function d2dCarrierCite() {
     warn5: "STANDS-until-demonstrated",
     warn5_permanent_stay_off: false,
     preference: "failover",
-    order: D2D_CARRIERS.map((row) => row.id),
+    order: CARRIER_ORDER.slice(),
+    satellite_relay_enabled: false,
+    satellite_relay_live: false,
+    satellite_relay_transmit: false,
     order_label: D2D_ORDER_LABEL,
     order_arrow: D2D_ORDER_ARROW,
     status: D2D_STATUS,

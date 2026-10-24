@@ -505,6 +505,16 @@ const FORBIDDEN_BEARER_TOKENS = Object.freeze([
   "photon",
   "lan",
   "radio",
+  "am",
+  "fm",
+  "xm",
+  "xm-sdars",
+  "sdars",
+  "siriusxm",
+  "sat",
+  "sat-rx",
+  "satellite",
+  "satellite-relay",
 ]);
 const FORBIDDEN_BROADCAST_KEYS = Object.freeze([
   "video",
@@ -1952,7 +1962,7 @@ export async function meshEnable(payload, env) {
     fanout_refreshed: fanout.refreshed || 0,
     confirm_is_authentication: false,
     public_demo_arms_radios: false,
-    note: "Operator declared a bearer. Radios LIVE for suite rollup only. confirm is not authentication. Radio names (wifi, bluetooth, rf, photon, lan) are not bearers. Live Softwares product Workers are joined as software_nodes (TTL 5 min, no user heartbeat). Nodes count recent human mesh users plus cited human uses. Live Nodes count recent human beats plus site_live_viewers. Registered is the durable count and is not Live Nodes. Read-only suite-presence stays ON by default. GET never enables radios and never pulls hub /count. Not a login mesh.",
+    note: "Operator declared a bearer. Radios LIVE for suite rollup only. confirm is not authentication. Radio names (wifi, bluetooth, rf, photon, lan, am, fm, xm, satellite receive, satellite relay) are not bearers. Live Softwares product Workers are joined as software_nodes (TTL 5 min, no user heartbeat). Nodes count recent human mesh users plus cited human uses. Live Nodes count recent human beats plus site_live_viewers. Registered is the durable count and is not Live Nodes. Read-only suite-presence stays ON by default. GET never enables radios and never pulls hub /count. Not a login mesh.",
   });
 }
 

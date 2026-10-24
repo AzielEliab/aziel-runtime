@@ -9,6 +9,7 @@
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { workerClaimsRadioHardware } from "../src/mesh-channel-plane.js";
 import { PRODUCTS } from "../src/index.js";
 import { PUBLIC_MCP_TOOLS, PUBLIC_FABRIC_TOOLS } from "../src/fraggate/codes.js";
 import { buildMcpToolList } from "../src/mcp-surface.js";
@@ -228,6 +229,19 @@ assert.equal(ping.data.enabled, true);
 assert.equal(ping.data.get_never_enables, true);
 assert.equal(ping.data.ephemeral_nodes, 0);
 gate("GET-NEVER-ENABLES", "GET /v1/mesh reports default-on and does not add join-radios");
+assert.equal(workerClaimsRadioHardware(firstGet.data), false);
+for (const id of ["am", "fm", "xm_sdars", "sat_rx"]) {
+  const band = firstGet.data.channel_plane.rows.rf.bands[id];
+  assert.equal(band.live, false, id);
+  assert.equal(band.enabled, false, id);
+  assert.equal(band.transmit, false, id);
+}
+assert.equal(firstGet.data.channel_plane.satellite_relay.live, false);
+assert.equal(firstGet.data.channel_plane.satellite_relay.transmit, false);
+assert.equal(firstGet.data.mesh_node_live, true);
+assert.equal(firstGet.data.alt_internet_live, true);
+assert.equal(firstGet.data.packet_path_live, true);
+assert.equal(firstGet.data.get_never_enables, true);
 
 const enableViaGet = await jsonReq(env, "/v1/mesh?enable=true");
 assert.equal(enableViaGet.data.ok, false);
@@ -236,7 +250,7 @@ assert.equal(enableViaGet.data.get_never_enables, true);
 assert.equal(enableViaGet.data.enabled_by_get, false);
 const afterEnableGet = await jsonReq(env, "/v1/mesh");
 assert.deepEqual(afterEnableGet.data.bearers, ["suite-presence"]);
-for (const q of ["wifi=on", "bluetooth=live", "rf=true", "photon=1", "lan=enable", "radio=yes"]) {
+for (const q of ["wifi=on", "bluetooth=live", "rf=true", "photon=1", "lan=enable", "radio=yes", "am=on", "fm=live", "xm_sdars=true", "sat_rx=1", "satellite_relay=enable", "satellite-relay=yes"]) {
   const radioGet = await jsonReq(env, `/v1/mesh?${q}`);
   assert.equal(radioGet.data.code, "MESH-GET-NEVER-ENABLES", q);
   assert.equal(radioGet.data.enabled_by_get, false, q);
@@ -321,7 +335,7 @@ const recoverBearer = await postJson(env, "/v1/mesh/enable", { bearer: "account-
 assert.equal(recoverBearer.data.code, "MESH-BAD-BEARER");
 const gateBearer = await postJson(env, "/v1/mesh/enable", { bearer: "node-gate" });
 assert.equal(gateBearer.data.code, "MESH-BAD-BEARER");
-for (const bearer of ["wifi", "bluetooth", "rf", "photon", "lan", "radio"]) {
+for (const bearer of ["wifi", "bluetooth", "rf", "photon", "lan", "radio", "am", "fm", "xm-sdars", "sat-rx", "satellite-relay"]) {
   const radioBearer = await postJson(env, "/v1/mesh/enable", { bearer, confirm: true });
   assert.equal(radioBearer.data.code, "MESH-BAD-BEARER", bearer);
   assert.equal(radioBearer.data.confirm_is_authentication, false, bearer);

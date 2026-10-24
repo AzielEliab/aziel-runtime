@@ -1544,7 +1544,13 @@ export function humanDoorScript() {
         return value === true || value === "on" || value === "live" || value === "LIVE" || value === "1";
       }
       let hardwareFalse = b.worker_hardware === false || (b.channel_plane && b.channel_plane.worker_hardware === false);
-      let claimed = channelLive(ch.wifi) || channelLive(b.wifi) || channelLive(ch.bluetooth) || channelLive(b.bluetooth) || channelLive(ch.rf) || channelLive(b.rf) || channelLive(ch.photon) || channelLive(b.photon);
+      function rowLive(row) {
+        if (!row) return false;
+        return channelLive(row.live) || channelLive(row.enabled) || channelLive(row.state) || row.transmit === true;
+      }
+      let rfBands = (ch.rows && ch.rows.rf && ch.rows.rf.bands) || b.rf_bands || {};
+      let relay = b.satellite_relay || ch.satellite_relay || null;
+      let claimed = channelLive(ch.wifi) || channelLive(b.wifi) || channelLive(ch.bluetooth) || channelLive(b.bluetooth) || channelLive(ch.rf) || channelLive(b.rf) || channelLive(ch.photon) || channelLive(b.photon) || rowLive(rfBands.am) || rowLive(rfBands.fm) || rowLive(rfBands.xm_sdars) || rowLive(rfBands.sat_rx) || rowLive(relay);
       let channelsCite = (ch.wifi || b.wifi) === "cite" && (ch.bluetooth || b.bluetooth) === "cite" && (ch.rf || b.rf) === "cite" && (ch.photon || b.photon) === "cite";
       let registered = b.registered_nodes != null ? b.registered_nodes : null;
       let stale = b.stale_nodes != null ? b.stale_nodes : null;

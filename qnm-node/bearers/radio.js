@@ -13,19 +13,18 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { networkInterfaces } from "node:os";
 import { join } from "node:path";
+import { RF_BAND_IDS, RF_BANDS } from "../../src/mesh-channel-plane.js";
 import { probeLightHardware } from "./photon.js";
 
 export const RADIO_HOOK_SPEC = "QNM-RADIO-HOOKS-1.0";
 export const RADIO_HOOK_AUTHOR = "Aziel Eliab";
 export const RADIO_ABSENT = "QNM-RADIO-ABSENT";
 export const RADIO_CHANNELS = Object.freeze(["wifi", "bluetooth", "rf", "photon"]);
+export { RF_BAND_IDS, RF_BANDS };
 
 const IEEE80211 = "/sys/class/ieee80211";
 const NET = "/sys/class/net";
 const BLUETOOTH = "/sys/class/bluetooth";
-const SDR_CLASS = "/sys/class/sdr";
-const USB_RTL = "/sys/bus/usb/drivers/dvb_usb_rtl28xxu";
-const SWRADIO0 = "/dev/swradio0";
 const QNSD_SOCK = "/tmp/qnsd.sock";
 
 function dirHasEntries(path) {
@@ -98,12 +97,159 @@ export function probeBluetooth() {
   return { present: false, kind: null };
 }
 
-/** SDR / dedicated RF — not Wi-Fi. */
-export function probeRf() {
-  if (existsSync(SWRADIO0) || dirHasEntries(SDR_CLASS) || dirHasEntries(USB_RTL)) {
+function rooted(root, rel) {
+  return root ? join(root, rel) : `/${rel}`;
+}
+
+/** SDR / dedicated RF — not Wi-Fi. `root` is a temp sysfs stand-in for tests. */
+export function probeSdr(opts = {}) {
+  const root = opts.root || "";
+  if (existsSync(rooted(root, "dev/swradio0")) || dirHasEntries(rooted(root, "sys/class/sdr")) || dirHasEntries(rooted(root, "sys/bus/usb/drivers/dvb_usb_rtl28xxu"))) {
     return { present: true, kind: "sdr" };
   }
   return { present: false, kind: null };
+}
+
+/** SDR / dedicated RF — not Wi-Fi. */
+export function probeRf(opts = {}) {
+  return probeSdr(opts);
+}
+
+/** Licensed SiriusXM tuner. An SDR is not this device. */
+export function probeSiriusXm(opts = {}) {
+  const root = opts.root || "";
+  if (existsSync(rooted(root, "dev/siriusxm0")) || dirHasEntries(rooted(root, "sys/class/siriusxm"))) {
+    return { present: true, kind: "siriusxm-tuner" };
+  }
+  return { present: false, kind: null };
+}
+
+/**
+ * Amateur or commercial satellite terminal. A normal network interface is not a terminal.
+ * Presence is not a purchase and does not arm transmit.
+ */
+export function probeSatelliteTerminal(opts = {}) {
+  const root = opts.root || "";
+  const candidates = [
+    ["dev/starlink0", "starlink", "file"],
+    ["dev/iridium0", "iridium", "file"],
+    ["sys/class/starlink", "starlink", "dir"],
+    ["sys/class/iridium", "iridium", "dir"],
+  ];
+  for (const [rel, kind, mode] of candidates) {
+    const path = rooted(root, rel);
+    if (mode === "file" ? existsSync(path) : dirHasEntries(path)) return { present: true, kind };
+  }
+  return { present: false, kind: null };
+}
+
+function bandDevice(id) {
+  return RF_BANDS[id] && RF_BANDS[id].device === "siriusxm-tuner" ? "siriusxm-tuner" : "sdr";
+}
+
+/**
+ * Read one receive-only band. The switch stays off.
+ * Without the device the result is QNM-RADIO-ABSENT and live false.
+ * A caller asking for live true does not flip the switch.
+ */
+export function readRfBand(id, opts = {}) {
+  const key = String(id || "");
+  const spec = RF_BANDS[key];
+  if (!spec) {
+    return {
+      ok: false,
+      id: key,
+      parent: "rf",
+      receive_only: true,
+      transmit: false,
+      enabled: false,
+      live: false,
+      hardware: false,
+      state: "REFUSE",
+      code: RADIO_ABSENT,
+      mock: false,
+      purchased: false,
+    };
+  }
+  const device = bandDevice(key);
+  const probe = device === "siriusxm-tuner" ? probeSiriusXm(opts) : probeSdr(opts);
+  const base = {
+    ok: false,
+    id: key,
+    parent: "rf",
+    spec: spec.spec,
+    band: spec.band,
+    receive_only: true,
+    transmit: false,
+    enabled: false,
+    live: false,
+    device,
+    mock: false,
+    purchased: false,
+    paid_ok: false,
+    worker_hardware: false,
+    mesh_traffic: spec.mesh_traffic === true,
+  };
+  if (!probe.present) {
+    return {
+      ...base,
+      hardware: false,
+      state: "REFUSE",
+      code: RADIO_ABSENT,
+      note: spec.absent_note,
+    };
+  }
+  return {
+    ...base,
+    hardware: probe.kind,
+    state: "OFF",
+    code: null,
+    note: `${key} device ${probe.kind} is present. The switch stays off. live stays false. Nothing is purchased.`,
+  };
+}
+
+/**
+ * Satellite relay read. Transmit stays off. Nothing is purchased.
+ * Without a terminal the result is QNM-RADIO-ABSENT and live false.
+ */
+export function readSatelliteRelay(opts = {}) {
+  const probe = probeSatelliteTerminal(opts);
+  const base = {
+    ok: false,
+    id: "satellite_relay",
+    transmit: false,
+    enabled: false,
+    live: false,
+    mock: false,
+    purchased: false,
+    paid_ok: false,
+    encryption_allowed: false,
+    envelope_spec: "FED-MESH-1.0",
+    envelope_kind: "store-and-forward",
+    worker_hardware: false,
+  };
+  if (!probe.present) {
+    return {
+      ...base,
+      hardware: false,
+      state: "REFUSE",
+      code: RADIO_ABSENT,
+      note: "Satellite uplink/relay needs an amateur terminal or a commercial terminal. Without that device the relay refuses QNM-RADIO-ABSENT. Nothing is purchased.",
+    };
+  }
+  return {
+    ...base,
+    hardware: probe.kind,
+    state: "OFF",
+    code: null,
+    note: `Terminal ${probe.kind} is present. Transmit stays off. The switch stays off. A paid path needs Aziel's explicit OK. Nothing is purchased.`,
+  };
+}
+
+export function rfBandStatus(opts = {}) {
+  const bands = {};
+  for (const id of RF_BAND_IDS) bands[id] = readRfBand(id, opts);
+  return bands;
 }
 
 /**
@@ -145,8 +291,9 @@ function liveOrRefuse(channel, probe) {
 export function radioStatus() {
   const wifi = liveOrRefuse("wifi", probeWifi());
   const bluetooth = liveOrRefuse("bluetooth", probeBluetooth());
-  const rf = liveOrRefuse("rf", probeRf());
+  const rf = { ...liveOrRefuse("rf", probeRf()), bands: rfBandStatus() };
   const photon = liveOrRefuse("photon", probePhoton());
+  const satellite_relay = readSatelliteRelay();
   const anyLive = [wifi, bluetooth, rf, photon].some((row) => row.state === "LIVE");
   return {
     spec: RADIO_HOOK_SPEC,
@@ -161,6 +308,8 @@ export function radioStatus() {
     d2d_packet_status: "NOT-READY",
     law: "LIVE-when-HW-present / refuse-when-absent",
     channels: { wifi, bluetooth, rf, photon },
+    rf_bands: rf.bands,
+    satellite_relay,
     spore: {
       spec: "SPORE-1.0",
       mode: anyLive ? "live" : "dormant",
@@ -171,7 +320,7 @@ export function radioStatus() {
         : "No local radio hardware. SPORE-1.0 dormant — pause, preserve DNA, wait. Do not invent LIVE radios.",
     },
     note:
-      "Local qnm-node radio hooks. Worker GET /v1/mesh channel_plane stays cite-only (worker_hardware:false). A channel state of LIVE means host hardware or local qnsd is present. It is not a device-to-device packet hop (packet_hop false, d2d_packet_status NOT-READY). Photon here is local qnsd on loopback — not a camera/flash LiFi hop and not the open-world awareness bind (0.0.0.0). Dedicated RF packet hops and photon flashes stay on the D2D carrier plane. forced_loopback and loopback_isolation are not the mesh fence. SPORE-1.0: hardware absent is dormant, not a mock LIVE beat.",
+      "Local qnm-node radio hooks. Worker GET /v1/mesh channel_plane stays cite-only (worker_hardware:false). A channel state of LIVE means host hardware or local qnsd is present. It is not a device-to-device packet hop (packet_hop false, d2d_packet_status NOT-READY). Photon here is local qnsd on loopback — not a camera/flash LiFi hop and not the open-world awareness bind (0.0.0.0). Dedicated RF packet hops and photon flashes stay on the D2D carrier plane. Receive-only AM, FM, XM SDARS, and satellite receive stay enabled false and live false, and refuse QNM-RADIO-ABSENT without an SDR or a licensed SiriusXM tuner. The satellite relay stays transmit false. forced_loopback and loopback_isolation are not the mesh fence. SPORE-1.0: hardware absent is dormant, not a mock LIVE beat.",
   };
 }
 
@@ -307,6 +456,7 @@ export function track2CarrierProbe() {
     ["rf", rf],
     ["photon", probeFlashCamera()],
   ];
+  const relayRead = readSatelliteRelay();
   const carriers = {};
   for (const [id, probe] of rows) {
     const down = probe.present === true && probe.up === false;
@@ -351,11 +501,28 @@ export function track2CarrierProbe() {
       };
     }
   }
+  carriers.satellite_relay = {
+    id: "satellite_relay",
+    state: relayRead.hardware ? "HW-PRESENT" : "REFUSE",
+    hardware: relayRead.hardware,
+    address: null,
+    up: false,
+    code: relayRead.hardware ? null : RADIO_ABSENT,
+    packet_live: false,
+    mock: false,
+    peer_exchange_demonstrated: false,
+    enabled: false,
+    live: false,
+    transmit: false,
+    purchased: false,
+    paid_ok: false,
+    note: relayRead.note,
+  };
   return {
     spec: "D2D-CARRIERS-1.0",
     plane: "track2-reachability",
     author: RADIO_HOOK_AUTHOR,
-    order: ["lan", "wifi", "bluetooth", "rf", "photon"],
+    order: ["lan", "wifi", "bluetooth", "rf", "photon", "satellite_relay"],
     order_arrow: "LAN → Wi-Fi → Bluetooth → RF → Photon light flashes",
     packet_live: false,
     mesh_node_live: true,
@@ -364,7 +531,7 @@ export function track2CarrierProbe() {
     mock: false,
     functional: true,
     carriers,
-    note: "RF is beyond Wi-Fi and Bluetooth. Photon flashes are camera or flash, not qnsd. Radio PHY is not live. No carrier packet_live is true. No mock radio.",
+    note: "RF is beyond Wi-Fi and Bluetooth. Photon flashes are camera or flash, not qnsd. satellite_relay is listed after photon and stays enabled false, live false, and transmit false. It is not a failover hop. Radio PHY is not live. No carrier packet_live is true. No mock radio.",
   };
 }
 

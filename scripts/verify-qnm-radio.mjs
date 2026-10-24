@@ -13,11 +13,17 @@ import {
   probeBluetooth,
   probePhoton,
   probeRf,
+  probeSdr,
+  probeSiriusXm,
+  probeSatelliteTerminal,
   probeWifi,
   radioRefuseAbsent,
   radioStatus,
+  readRfBand,
+  readSatelliteRelay,
 } from "../qnm-node/bearers/radio.js";
-import { CHANNEL_PLANE, channelPlaneCite } from "../src/mesh-channel-plane.js";
+import { CHANNEL_ORDER, CHANNEL_PLANE, RF_BAND_IDS, channelPlaneCite, workerClaimsRadioHardware } from "../src/mesh-channel-plane.js";
+import { CARRIER_ORDER } from "../src/d2d-carriers.js";
 
 const handler = (await import("../src/index.js")).default.fetch;
 const origin = "https://aziel-runtime.example";
@@ -113,6 +119,130 @@ console.log(
     2,
   ),
 );
+
+assert.deepEqual(CHANNEL_ORDER, ["lan", "wifi", "bluetooth", "rf", "photon", "satellite_relay"]);
+assert.deepEqual(CARRIER_ORDER, CHANNEL_ORDER);
+assert.equal(workerClaimsRadioHardware(mesh), false);
+assert.equal(workerClaimsRadioHardware(status), false);
+assert.equal(mesh.mesh_node_live, true);
+assert.equal(mesh.alt_internet_live, true);
+assert.equal(mesh.packet_path_live, true);
+assert.equal(mesh.get_never_enables, true);
+assert.equal(mesh.d2d_carriers.cap7_name_only, true);
+assert.equal(mesh.d2d_carriers.public_icann, false);
+assert.equal(mesh.d2d_carriers.paid_registrar, false);
+assert.equal(mesh.d2d_carriers.cap7_registrar_live, false);
+assert.equal(mesh.d2d_carriers.registrar_live, false);
+assert.equal(mesh.d2d_carriers.dns_publish, false);
+assert.equal(mesh.d2d_carriers.cap7_public_egress, false);
+assert.equal(mesh.d2d_carriers.public_egress_ip, false);
+for (const id of RF_BAND_IDS) {
+  const cited = mesh.channel_plane.rows.rf.bands[id];
+  const probed = status.rf_bands[id];
+  assert.equal(cited.enabled, false, id);
+  assert.equal(cited.live, false, id);
+  assert.equal(cited.transmit, false, id);
+  assert.equal(cited.receive_only, true, id);
+  assert.equal(cited.purchased, false, id);
+  assert.equal(cited.code, RADIO_ABSENT, id);
+  assert.equal(probed.enabled, false, id);
+  assert.equal(probed.live, false, id);
+  assert.equal(probed.transmit, false, id);
+  assert.equal(probed.purchased, false, id);
+}
+assert.equal(mesh.channel_plane.satellite_relay.enabled, false);
+assert.equal(mesh.channel_plane.satellite_relay.live, false);
+assert.equal(mesh.channel_plane.satellite_relay.transmit, false);
+assert.equal(mesh.channel_plane.satellite_relay.purchased, false);
+assert.equal(status.satellite_relay.enabled, false);
+assert.equal(status.satellite_relay.live, false);
+assert.equal(status.satellite_relay.transmit, false);
+assert.equal(status.satellite_relay.purchased, false);
+if (!probeSdr().present) {
+  for (const id of ["am", "fm", "sat_rx"]) assert.equal(status.rf_bands[id].code, RADIO_ABSENT, id);
+}
+if (!probeSiriusXm().present) assert.equal(status.rf_bands.xm_sdars.code, RADIO_ABSENT);
+if (!probeSatelliteTerminal().present) assert.equal(status.satellite_relay.code, RADIO_ABSENT);
+assert.equal(workerClaimsRadioHardware({
+  worker_hardware: false,
+  channel_plane: { worker_hardware: false, rows: { rf: { bands: { am: { live: true, hardware: false } } } } },
+}), true);
+assert.equal(workerClaimsRadioHardware({
+  worker_hardware: false,
+  satellite_relay: { transmit: true, live: false, hardware: false },
+}), true);
+assert.equal(workerClaimsRadioHardware({
+  rf_bands: { fm: { enabled: true, hardware: false, code: RADIO_ABSENT } },
+}), true);
+assert.equal(workerClaimsRadioHardware({
+  worker_hardware: false,
+  d2d_carriers: { carriers: [{ id: "satellite_relay", live: true, hardware: false }] },
+}), true);
+
+{
+  const { mkdtempSync, mkdirSync, writeFileSync, rmSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const root = mkdtempSync(join(tmpdir(), "rf-bands-"));
+  try {
+    for (const id of ["am", "fm", "sat_rx"]) {
+      const row = readRfBand(id, { root, live: true, enabled: true });
+      assert.equal(row.code, RADIO_ABSENT, id);
+      assert.equal(row.state, "REFUSE", id);
+      assert.equal(row.live, false, id);
+      assert.equal(row.enabled, false, id);
+      assert.equal(row.transmit, false, id);
+    }
+    const xmAbsent = readRfBand("xm_sdars", { root, live: true, enabled: true });
+    assert.equal(xmAbsent.code, RADIO_ABSENT);
+    assert.equal(xmAbsent.live, false);
+    assert.equal(xmAbsent.device, "siriusxm-tuner");
+    const relayAbsent = readSatelliteRelay({ root, live: true, transmit: true, enabled: true });
+    assert.equal(relayAbsent.code, RADIO_ABSENT);
+    assert.equal(relayAbsent.live, false);
+    assert.equal(relayAbsent.transmit, false);
+    assert.equal(relayAbsent.purchased, false);
+    assert.equal(relayAbsent.paid_ok, false);
+    mkdirSync(join(root, "dev"), { recursive: true });
+    writeFileSync(join(root, "dev/swradio0"), "");
+    for (const id of ["am", "fm", "sat_rx"]) {
+      const row = readRfBand(id, { root, live: true, enabled: true });
+      assert.equal(row.hardware, "sdr", id);
+      assert.equal(row.state, "OFF", id);
+      assert.equal(row.code, null, id);
+      assert.equal(row.live, false, id);
+      assert.equal(row.enabled, false, id);
+      assert.equal(row.transmit, false, id);
+    }
+    const xmStill = readRfBand("xm_sdars", { root, live: true });
+    assert.equal(xmStill.code, RADIO_ABSENT, "an SDR is not a SiriusXM tuner");
+    assert.equal(xmStill.live, false);
+    writeFileSync(join(root, "dev/siriusxm0"), "");
+    const xm = readRfBand("xm_sdars", { root, live: true, enabled: true });
+    assert.equal(xm.hardware, "siriusxm-tuner");
+    assert.equal(xm.live, false);
+    assert.equal(xm.enabled, false);
+    assert.equal(xm.transmit, false);
+    assert.equal(xm.mesh_traffic, false);
+    const relayStill = readSatelliteRelay({ root, live: true, transmit: true });
+    assert.equal(relayStill.code, RADIO_ABSENT, "an SDR is not a satellite terminal");
+    assert.equal(relayStill.transmit, false);
+    writeFileSync(join(root, "dev/starlink0"), "");
+    const relay = readSatelliteRelay({ root, live: true, transmit: true, enabled: true });
+    assert.equal(relay.hardware, "starlink");
+    assert.equal(relay.state, "OFF");
+    assert.equal(relay.live, false);
+    assert.equal(relay.enabled, false);
+    assert.equal(relay.transmit, false);
+    assert.equal(relay.purchased, false);
+    assert.equal(relay.paid_ok, false);
+    assert.equal(relay.encryption_allowed, false);
+    assert.equal(relay.envelope_spec, "FED-MESH-1.0");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+  console.log("verify-qnm-radio: rf bands and satellite relay stay off");
+}
 
 // QNM-PHOTON-CARRIER-1.0: photon is light. A local qnsd socket is not light hardware.
 {

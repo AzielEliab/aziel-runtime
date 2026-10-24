@@ -567,13 +567,21 @@ export async function carryOnFirstCarrier(carriers) {
 }
 
 export function carrierBase() {
-  return D2D_CARRIERS.map((row) => ({
-    order: row.order,
-    id: row.id,
-    name: row.name,
-    packet_live: false,
-    public_door: "FG-STUB",
-  }));
+  return D2D_CARRIERS.map((row) => {
+    const base = {
+      order: row.order,
+      id: row.id,
+      name: row.name,
+      packet_live: false,
+      public_door: "FG-STUB",
+    };
+    if (row.enabled === false) {
+      base.enabled = false;
+      base.live = false;
+      base.transmit = false;
+    }
+    return base;
+  });
 }
 
 function packetCounted(row) {

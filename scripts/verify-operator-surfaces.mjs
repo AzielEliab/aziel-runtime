@@ -468,7 +468,12 @@ assert.equal(net.alt_internet_earned, false);
 assert.equal(net.packet_path_earned, false);
 assert.equal(net.public_door, "FG-STUB");
 assert.equal(net.installed, false);
-assert.deepEqual(net.carrier_order, ["lan", "wifi", "bluetooth", "rf", "photon"]);
+assert.deepEqual(net.carrier_order, ["lan", "wifi", "bluetooth", "rf", "photon", "satellite_relay"]);
+const netRelay = net.carriers.find((row) => row.id === "satellite_relay");
+assert.equal(netRelay.packet_live, false);
+assert.equal(netRelay.enabled, false);
+assert.equal(netRelay.live, false);
+assert.equal(netRelay.transmit, false);
 assert.ok(net.carriers.every((row) => row.packet_live === false && row.packet_counted !== true));
 assert.equal(net.cellular_counts, false);
 assert.equal(net.cellular_optional, true);
@@ -532,7 +537,12 @@ assert.equal(netCarry.paid_registrar, false);
 assert.equal(netCarry.dns_publish, false);
 assert.equal(netCarry.hosted_vpn, false);
 assert.equal(netCarry.public_door, "FG-STUB");
-assert.deepEqual(netCarry.carrier_order, ["lan", "wifi", "bluetooth", "rf", "photon"]);
+assert.deepEqual(netCarry.carrier_order, ["lan", "wifi", "bluetooth", "rf", "photon", "satellite_relay"]);
+const carryRelay = netCarry.carriers.find((row) => row.id === "satellite_relay");
+assert.equal(carryRelay.packet_live, false);
+assert.equal(carryRelay.enabled, false);
+assert.equal(carryRelay.live, false);
+assert.equal(carryRelay.transmit, false);
 const payloadBytes = new Uint8Array([1, 2, 3, 4]);
 for (const [encode, parse] of [
   [encodeWifiFrame, parseWifiFrame],
