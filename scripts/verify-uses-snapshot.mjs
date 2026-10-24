@@ -47,7 +47,7 @@ assert.equal(r.maps_complete, true); assert.equal(r.by_host.h5, 2); assert.equal
 // Stale snapshot (> 3 h) is labelled, not presented as current.
 kv.m.set(USES_SNAPSHOT_KEY, JSON.stringify({ ...snap, snapshot_at: new Date(Date.now() - (3 * 60 + 1) * 60_000).toISOString() }));
 r = await readUses(env, { maps: "snapshot" });
-assert.equal(r.maps_complete, false); assert.match(r.maps_note, /stale/); n++;
+assert.equal(r.maps_complete, false); assert.match(r.maps_note, /stale/); assert.equal(r.maps_refresh, "due"); assert.equal(r.ring_ts, null); n++;
 // Through the Worker: /v1/stats well under 1s and cacheable (uses_complete true).
 clearStatsMemo();
 const { default: worker } = await import("../src/index.js");
@@ -78,6 +78,15 @@ assert.equal(due, 48, "48 runs/day"); n++;
   await worker.scheduled({ cron: "1-59/2 * * * *", scheduledTime: at(31) }, { USES: sk }, { waitUntil: (p) => w2.push(p) });
   await Promise.all(w2);
   assert.equal(sk.m.has(USES_SNAPSHOT_KEY), true, "due -> built"); n++;
+  const staleKv = slowKv(1);
+  const when = at(3);
+  staleKv.m.set(USES_SNAPSHOT_KEY, JSON.stringify({ spec: "USES-SNAPSHOT-1.0", complete: true, snapshot_at: new Date(when - 40 * 60 * 60 * 1000).toISOString(), by_host: { old: 1 }, by_path: {}, by_day: {}, by_method: {}, by_op: {} }));
+  const w3 = [];
+  await worker.scheduled({ cron: "1-59/2 * * * *", scheduledTime: when }, { USES: staleKv }, { waitUntil: (p) => w3.push(p) });
+  await Promise.all(w3);
+  const rebuilt = JSON.parse(staleKv.m.get(USES_SNAPSHOT_KEY));
+  assert.equal(rebuilt.snapshot_at, new Date(when).toISOString(), "stale maps refresh off the :01/:31 mark");
+  assert.equal(rebuilt.by_host.h0, 2); n++;
 }
 // USES-SNAPSHOT-1.1: RUNTIME_KV Durable Object path. Legacy KV read once; DO scans; no-change skip.
 {

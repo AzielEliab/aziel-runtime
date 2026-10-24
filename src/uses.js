@@ -891,6 +891,48 @@ async function buildSnapshotFromDurable(kv, { now }) {
   return { ok: true, published: !skipped, skipped_unchanged: skipped, do_scans: scans, snapshot_at: snap.snapshot_at };
 }
 
+function ringFields(recent) {
+  const row = Array.isArray(recent) ? recent.find((r) => r && typeof r.at === "string" && r.at) : null;
+  const ring_ts = row ? row.at : null;
+  return {
+    ring_ts,
+    ring_note: ring_ts
+      ? "Newest recent-log at. The ring is the USES log, not the per-host map clock."
+      : "ring_ts is null. The recent log is empty or has no at. Nothing was invented.",
+  };
+}
+
+/** True when a snapshot exists and is older than 3 hours, or a resumable build is in progress. A missing snapshot stays on the 30-minute schedule. */
+export async function usesSnapshotNeedsRefresh(env, now = Date.now()) {
+  const kv = usesKv(env);
+  if (!kv || typeof kv.get !== "function") return false;
+  let prog = null;
+  try {
+    prog = JSON.parse((await kv.get(USES_SNAPSHOT_PROGRESS_KEY)) || "null");
+  } catch {
+    prog = null;
+  }
+  if (prog && typeof prog === "object" && prog.maps) return true;
+  let snap = null;
+  try {
+    snap = JSON.parse((await kv.get(USES_SNAPSHOT_KEY)) || "null");
+  } catch {
+    snap = null;
+  }
+  if (!snap || !snap.snapshot_at) return false;
+  const ageS = Math.max(0, Math.round((now - Date.parse(snap.snapshot_at)) / 1000));
+  return ageS > USES_SNAPSHOT_STALE_S;
+}
+
+/** Due minute, or a stale/in-progress snapshot. Does not publish a snapshot that has never been built unless the 30-minute mark is due. */
+export async function maybeBuildUsesSnapshot(env, cron, scheduledTime, tetherCron) {
+  const now = Number(scheduledTime) || Date.now();
+  const due = snapshotDue(cron, scheduledTime, tetherCron);
+  const refresh = await usesSnapshotNeedsRefresh(env, now);
+  if (!due && !refresh) return { ok: true, skipped: true, reason: "not-due" };
+  return buildUsesSnapshot(env, { budget_ms: 20_000, now });
+}
+
 /** One cron, every USES_SNAPSHOT_EVERY_MIN minutes (minute 1 and 31 of the odd-minute cron). */
 export function snapshotDue(cron, scheduledTime, tetherCron) {
   if (cron !== tetherCron) return false;
@@ -910,6 +952,7 @@ async function readUsesSnapshot(kv, base, uses, recent, startedAt, budgetMs) {
   }
   const ageS = snap && snap.snapshot_at ? Math.max(0, Math.round((Date.now() - Date.parse(snap.snapshot_at)) / 1000)) : null;
   const mapsOk = Boolean(snap && snap.complete === true && ageS != null && ageS <= USES_SNAPSHOT_STALE_S);
+  const ring = ringFields(recent);
   return {
     ...base,
     uses,
@@ -919,6 +962,7 @@ async function readUsesSnapshot(kv, base, uses, recent, startedAt, budgetMs) {
     by_method: (snap && snap.by_method) || {},
     by_op: (snap && snap.by_op) || {},
     recent,
+    ...ring,
     uses_kv: true,
     // uses (the total) is a complete live read; the maps are labelled separately.
     uses_complete: true,
@@ -926,9 +970,12 @@ async function readUsesSnapshot(kv, base, uses, recent, startedAt, budgetMs) {
     maps_snapshot_at: (snap && snap.snapshot_at) || null,
     maps_age_s: ageS,
     maps_complete: mapsOk,
+    maps_refresh: mapsOk ? "idle" : snap && snap.snapshot_at ? "due" : "idle",
     maps_note: mapsOk
       ? "Per-host/path/day/method/op maps are the cron snapshot at maps_snapshot_at (checked every 30 minutes; re-stored only on change or every 2 hours); uses is live."
-      : "Per-host/path/day/method/op maps are not available yet or are stale (no complete snapshot within 3 hours); uses is live.",
+      : snap && snap.snapshot_at
+        ? "Per-host/path/day/method/op maps are stale (no complete snapshot within 3 hours). maps_refresh is due. uses is live. The stale maps are still the last snapshot, not a zero fill."
+        : "Per-host/path/day/method/op maps are not available yet or are stale (no complete snapshot within 3 hours); uses is live.",
     uses_read_ms: Date.now() - startedAt,
     uses_read_budget_ms: budgetMs,
   };
