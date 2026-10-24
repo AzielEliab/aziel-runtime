@@ -721,16 +721,20 @@ export function bundleJson(origin, products) {
 }
 
 function workerHostOf(product) {
+  if (!product) return null;
   if (product.slug === "aziel-corpus") return "https://www.azielcorpuslibrary.net";
+  if (!product.worker) return null;
   return `https://${product.worker}.vibelock.workers.dev`;
 }
 
 function downloadUrl(product) {
-  return workerHostOf(product) + "/download";
+  const host = workerHostOf(product);
+  return host ? host + "/download" : null;
 }
 
 function installUrl(product) {
-  return workerHostOf(product) + "/install.sh";
+  const host = workerHostOf(product);
+  return host ? host + "/install.sh" : null;
 }
 
 /** Download-then-inspect. Never advertise curl|bash as the reviewed path. */
@@ -755,7 +759,8 @@ export function auditableInstallRecipe(installHref) {
 }
 
 function productUrlsSkill(product) {
-  return workerHostOf(product) + "/v1/skill";
+  const host = workerHostOf(product);
+  return host ? host + "/v1/skill" : null;
 }
 
 export function pullRecord(product, origin, skillText, extra = {}) {

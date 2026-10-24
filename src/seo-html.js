@@ -396,10 +396,12 @@ export function softwareCatalogHtml(origin, catalog, css, calling = null) {
       const download = s.download_url
         ? ` · <a class="secondary" href="${escapeHtml(s.download_url)}">${s.worker_only ? "optional zip" : "Download desktop"}</a>`
         : "";
+      const meter =
+        s.front_door_meter === false ? ` · <span class="slug">no front-door meter</span>` : "";
       const hay = `${s.name} ${s.slug} ${s.bucket} ${s.status} ${s.door_label || ""} ${s.one_line || ""}`.toLowerCase();
       const describeLink = s.worker_only ? "" : ` · <a href="${escapeHtml(describe)}">describe</a>`;
       const badge = s.door_label || s.status;
-      return `    <li data-software-row data-slug="${escapeHtml(s.slug)}" data-bucket="${escapeHtml(s.bucket || "")}" data-public-door="${s.public_door === true ? "true" : "false"}" data-search="${escapeHtml(hay)}"><a href="${escapeHtml(card)}">${escapeHtml(s.name)}</a> <span class="slug">${escapeHtml(s.bucket)} · ${escapeHtml(badge)}</span> — ${escapeHtml(s.one_line || "")}${launchHashtagChipsHtml({ slug: s.slug, name: s.name, oneLine: s.one_line })}${use}${download} · <a href="${escapeHtml(base)}/mcp">Connect AI</a>${describeLink}${home}${gh}</li>`;
+      return `    <li data-software-row data-slug="${escapeHtml(s.slug)}" data-bucket="${escapeHtml(s.bucket || "")}" data-public-door="${s.public_door === true ? "true" : "false"}" data-search="${escapeHtml(hay)}"><a href="${escapeHtml(card)}">${escapeHtml(s.name)}</a> <span class="slug">${escapeHtml(s.bucket)} · ${escapeHtml(badge)}</span> — ${escapeHtml(s.one_line || "")}${launchHashtagChipsHtml({ slug: s.slug, name: s.name, oneLine: s.one_line })}${use}${download}${meter} · <a href="${escapeHtml(base)}/mcp">Connect AI</a>${describeLink}${home}${gh}</li>`;
     })
     .join("\n");
   const product = calling && calling.rotated ? calling.calling_name : PRODUCT_NAME;
