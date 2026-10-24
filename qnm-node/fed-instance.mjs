@@ -48,7 +48,7 @@ const heartbeatSec = Math.max(0, Number(arg("--heartbeat-sec", "0")) || 0);
 // capped files exist (src/fed-mesh/capped-log.js). Without --log-file, lines go to stdout as before.
 const logFile = arg("--log-file", "");
 if (logFile) console.log = cappedLogger(logFile, Number(arg("--log-max-bytes", "1048576")));
-const node = await startInstance({ dataDir: data, port, host, advertise, relays, passphrase, fixture });
+const node = await startInstance({ dataDir: data, port, host, advertise, relays, passphrase, fixture, product });
 console.log(JSON.stringify({
   handle: node.handle,
   listen_host: node.listenHost,

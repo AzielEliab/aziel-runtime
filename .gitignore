@@ -10,3 +10,5 @@ node_modules
 *.log
 .aziel-runtime/
 .aziel-runtime-demo/
+__pycache__/
+*.pyc

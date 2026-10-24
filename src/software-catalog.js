@@ -40,6 +40,7 @@ import { socialStatusField } from "./social-status.js";
 import { websiteDesignsField, websiteDesignsOnCorpusCard } from "./website-designs.js";
 import { softwareDescription, softwareOneLine } from "./software-copy.js";
 import { platformsCite } from "./platforms.js";
+import { softwaresDecision } from "./auto-update/adopt.js";
 
 /**
  * Live Worker products that are Softwares-tab cards but not FragGate engines.
@@ -569,6 +570,26 @@ export function catalogSetsFor(products, softwareEntries) {
   return catalogSetsFromParts(products, buildRegistry(products).entries, Object.keys(LIVE_OPS), WORKER_ONLY_TAB_SLUGS);
 }
 
+/** Null when the off decision matches the catalog. A mismatch is reported and does not throw. */
+export function catalogAutoUpdateReport(software, decision) {
+  const list = Array.isArray(software) ? software : [];
+  const bad = !decision
+    || decision.count !== list.length
+    || decision.enabled !== false
+    || decision.live !== false
+    || decision.code !== "UPDATE-OFF";
+  if (!bad) return null;
+  return {
+    ok: false,
+    code: decision && typeof decision.code === "string" ? decision.code : "UPDATE-STATE",
+    enabled: !!(decision && decision.enabled === true),
+    live: false,
+    decision_count: decision && Number.isFinite(decision.count) ? decision.count : null,
+    catalog_count: list.length,
+    message: "Softwares auto-update decision does not match the catalog. The catalog count is unchanged.",
+  };
+}
+
 export function softwareCatalog(origin, products, extra = {}) {
   const base = String(origin || "").replace(/\/$/, "");
   const git = catalogGitCite(extra);
@@ -579,6 +600,13 @@ export function softwareCatalog(origin, products, extra = {}) {
   };
   const versionMeta = softwareMeta(extra.env || {}, { version_id: extra.version_id || null });
   const software = listSoftwareEntries(products, base, meta);
+  let autoDecision = null;
+  try {
+    autoDecision = softwaresDecision(software.map((s) => s.slug));
+  } catch (err) {
+    autoDecision = { count: null, enabled: false, live: false, code: "UPDATE-STATE", message: String(err && err.message ? err.message : err) };
+  }
+  const autoUpdateReport = catalogAutoUpdateReport(software, autoDecision);
   return {
     ok: true,
     author: "Aziel Eliab",
@@ -603,6 +631,7 @@ export function softwareCatalog(origin, products, extra = {}) {
     version_id: versionMeta.version_id,
     version_id_source: versionMeta.version_id_source,
     version_id_note: versionMeta.version_id_note,
+    ...(autoUpdateReport ? { auto_update_report: autoUpdateReport } : {}),
     count: software.length,
     live_count: software.filter((s) => s.status === "live").length,
     local_only_count: software.filter((s) => s.status === "local_only").length,

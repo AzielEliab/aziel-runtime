@@ -5,6 +5,7 @@ import { capabilityDoctor, capabilityHealth, capabilitySkill } from "../capabili
 import { LIMITATION, MOTTO, VERSION, statusPayload, invitePayload, principlesPayload } from "./engine.js";
 import { sessionClose, sessionOpen, sessionStatus } from "./session.js";
 import { currentAltInternetFact } from "../../alt-internet-fact.js";
+import { adoptProduct } from "../../auto-update/adopt.js";
 import { runFeature } from "../../operator-surfaces.js";
 
 const LIVE = [
@@ -71,6 +72,7 @@ export function azosDoctor() {
 }
 
 export async function runAzos(op, payload, scratch, env) {
+  await adoptProduct("azos");
   const feature = await runFeature("azos", op, payload, env);
   if (feature) return feature;
   if (op === "health") return azosHealth();

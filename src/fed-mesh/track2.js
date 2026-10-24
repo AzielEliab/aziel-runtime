@@ -21,6 +21,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { track2CarrierProbe } from "../../qnm-node/bearers/radio.js";
 import { qnmNamedLive } from "../qnm-honesty.js";
+import { notifyCarrierContact, notifyPeerContact } from "../auto-update/adopt.js";
 import { D2D_MOBILE_CLIENT, D2D_STORE_FORWARD } from "../d2d-carriers.js";
 import { locksetHash } from "../lockset.js";
 import { judgeEquivocation, neighborPhoenix, partitionRejoin, tickAccepts } from "../split-wires.js";
@@ -825,6 +826,7 @@ export function createTrack2(opts = {}) {
       };
       state.roster.set(beacon.handle, row);
       const reply = await signBeacon(state, "lan");
+      await notifyCarrierContact(state, carrier);
       return ok({
         op: "mesh_discover",
         ingested: beacon.handle,
@@ -990,6 +992,7 @@ export function createTrack2(opts = {}) {
         open: true,
         route: { route_class: offer.route_class, mode: offer.bearer_mode },
       });
+      await notifyPeerContact(state);
       return ok({
         op: "peer_session_open",
         offer: { ...statement, sig },
@@ -1011,6 +1014,7 @@ export function createTrack2(opts = {}) {
       local.peer_session_enc_public_key = counter.session_enc_public_key;
       local.peer_session_id = counter.session_id;
       local.open = true;
+      await notifyPeerContact(state);
       return ok({
         op: "peer_session_status",
         session_id: local.session_id,

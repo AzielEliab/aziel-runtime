@@ -30,19 +30,36 @@ export async function pickCarrier(host) {
   return null;
 }
 
+function peerCode(value, fallback) {
+  return typeof value === "string" && value.startsWith("UPDATE-") ? value : fallback;
+}
+
 export async function meshContact(host, opts = {}) {
   const carrier = await pickCarrier(host);
-  if (!carrier) {
-    const s = await host.load(); s.last_code = C.carrier;
-    await updateReceipt(host, s, { product: s.product, from_seq: s.installed_seq, to_seq: null, manifest_hash: null, source: "mesh:none", outcome: "refused", code: C.carrier, at: host.now() });
+  const key = opts.publicKey === undefined ? RELEASE_PUBLIC_KEY : opts.publicKey;
+  const refuse = async (code, source) => {
+    const s = await host.load();
+    s.last_code = code;
+    await updateReceipt(host, s, { product: s.product, from_seq: s.installed_seq, to_seq: null, manifest_hash: null, source, outcome: "refused", code, at: host.now() });
     await host.save(s);
-    return { ok: false, code: C.carrier };
-  }
-  let hello = null; try { hello = await host.peerHello(carrier); } catch { hello = null; }
+    return { ok: false, code, carrier: carrier || null, applied: false };
+  };
+  if (!carrier) return refuse(C.carrier, "mesh:none");
+  let hello = null;
+  let helloErr = null;
+  try { hello = await host.peerHello(carrier); } catch (err) { helloErr = err; }
+  if (hello && hello.refused === true) return refuse(peerCode(hello.code, "UPDATE-PEER-NO-ROUTE"), "mesh:" + carrier);
+  if (!hello) return refuse(peerCode(helloErr && helloErr.code, "UPDATE-PEER-NO-ROUTE"), "mesh:" + carrier);
   const s = await host.load();
-  if (!hello || hello.product !== s.product || !Number.isSafeInteger(hello.version_seq) || hello.version_seq <= s.installed_seq) {
-    return { ok: true, code: "UPDATE-PEER-NOT-NEWER", carrier, applied: false }; // nothing to pull; no receipt spam
+  if (hello.product !== s.product || !Number.isSafeInteger(hello.version_seq) || hello.version_seq <= s.installed_seq) {
+    return { ok: true, code: "UPDATE-PEER-NOT-NEWER", carrier, applied: false };
   }
-  const r = await applyOffer(host, { manifest: hello.manifest, signature: hello.signature }, "mesh:" + carrier, (m) => host.peerFetch(carrier, m), { publicKey: opts.publicKey === undefined ? RELEASE_PUBLIC_KEY : opts.publicKey });
+  let fetched;
+  try { fetched = await host.peerFetch(carrier, hello.manifest); }
+  catch (err) { fetched = { refused: true, code: peerCode(err && err.code, "UPDATE-PEER-NO-ARTIFACT") }; }
+  if (fetched && typeof fetched === "object" && !(fetched instanceof Uint8Array) && fetched.refused === true) {
+    return refuse(peerCode(fetched.code, "UPDATE-PEER-NO-ARTIFACT"), "mesh:" + carrier);
+  }
+  const r = await applyOffer(host, { manifest: hello.manifest, signature: hello.signature }, "mesh:" + carrier, async () => fetched, { publicKey: key });
   return { ...r, carrier };
 }

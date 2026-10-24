@@ -575,7 +575,7 @@ function bracketHost(host) {
   return text;
 }
 
-export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", advertise = "", relays = [], passphrase = "", fixture = false, sessionAllow = null }) {
+export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", advertise = "", relays = [], passphrase = "", fixture = false, sessionAllow = null, product = "aziel-runtime" }) {
   const node = await openInstance({ dataDir, relays, passphrase });
   const track2 = createTrack2({
     identity: node.identity,
@@ -659,6 +659,14 @@ export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", adv
       out = body && body.kind === "peer-session" ? await node.track2.accept(body) : await node.track2.offer(body.peer_handle || body.peer, body);
     } else if (req.method === "POST" && url.pathname === "/v1/fed-mesh/peer") {
       out = await node.track2.recv(body);
+      const updateHost = node.track2.state && node.track2.state.autoUpdateHost;
+      if (out && out.ok === true && updateHost && typeof updateHost.answerUpdate === "function" && typeof out.plaintext === "string" && out.session_id) {
+        const answer = await updateHost.answerUpdate(out.plaintext);
+        if (answer) {
+          const reply = await node.track2.send(out.session_id, JSON.stringify(answer));
+          if (reply && reply.ok === true && reply.envelope) out = { ...out, update_reply: reply.envelope };
+        }
+      }
     } else if (req.method === "GET" && (url.pathname === "/v1/fed-mesh/outbox" || url.pathname === "/local/outbox")) {
       out = node.track2.tickets();
     } else if (req.method === "POST" && (url.pathname === "/v1/fed-mesh/outbox" || url.pathname === "/local/outbox")) {
@@ -709,6 +717,70 @@ export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", adv
       "Listen bind is all interfaces. Pass --advertise with the LAN IP. 0.0.0.0 is not a peer URL. No STUN and no TURN. This socket is not open-world awareness.";
   }
   track2.state.direct_url = share.directUrl || "";
+  const updateEnabled = typeof process !== "undefined" && process.env && process.env.AUTO_UPDATE === "on";
+  let auto_update = { ok: false, code: "UPDATE-OFF", enabled: false, live: false, applied: false, trigger: "install", product };
+  let reconnect = null;
+  try {
+    const { adoptNodeInstall, adoptSoftwares, updateFailureCode } = await import("../auto-update/adopt.js");
+    let updateHost = null;
+    if (updateEnabled === true) {
+      const { createNodeUpdateHost } = await import("../auto-update/node-host.js");
+      updateHost = await createNodeUpdateHost({ dataDir, product, nodeId: node.identity.handle, track2 });
+      track2.state.autoUpdateEnabled = true;
+      track2.state.autoUpdateHost = updateHost;
+      const { attachInternetReconnect } = await import("../auto-update/reconnect.js");
+      reconnect = attachInternetReconnect(updateHost);
+    }
+    let installed = null;
+    try {
+      installed = await adoptNodeInstall({ enabled: updateEnabled === true, product, host: updateHost });
+    } catch (err) {
+      installed = updateEnabled === true
+        ? { ok: false, code: updateFailureCode(err), enabled: true, live: false, applied: false, trigger: "install", product, message: String(err && err.message ? err.message : err) }
+        : { ok: false, code: "UPDATE-OFF", enabled: false, live: false, applied: false, trigger: "install", product };
+    }
+    let softwares = null;
+    let softError = null;
+    try {
+      softwares = await adoptSoftwares([product], updateHost || { enabled: false });
+    } catch (err) {
+      softError = err;
+    }
+    if (updateEnabled === true) {
+      const kept = installed && installed.code && installed.code !== "UPDATE-OFF" ? installed.code : null;
+      auto_update = {
+        ...(installed || {}),
+        ok: installed ? installed.ok === true : false,
+        code: kept || (softError ? updateFailureCode(softError) : "UPDATE-STATE"),
+        enabled: true,
+        live: false,
+        applied: installed ? installed.applied === true : false,
+        trigger: "install",
+        product,
+        softwares,
+        reconnect: reconnect
+          ? { ok: reconnect.ok === true, code: reconnect.code, method: reconnect.method || null, live: false }
+          : { ok: false, code: "UPDATE-NO-RECONNECT-WATCH", method: null, live: false },
+      };
+      if (softError) auto_update.host_error = String(softError.message || softError);
+    } else {
+      auto_update = installed || auto_update;
+    }
+  } catch (err) {
+    if (updateEnabled === true) {
+      const { updateFailureCode } = await import("../auto-update/adopt.js");
+      auto_update = {
+        ok: false,
+        code: updateFailureCode(err),
+        enabled: true,
+        live: false,
+        applied: false,
+        trigger: "install",
+        product,
+        message: String(err && err.message ? err.message : err),
+      };
+    }
+  }
   return {
     ...node,
     handle: node.identity.handle,
@@ -723,7 +795,9 @@ export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", adv
     mobileJoin: `${base}/mobile/`,
     mobile_client: D2D_MOBILE_CLIENT,
     track2,
+    auto_update,
     stop() {
+      if (reconnect && typeof reconnect.stop === "function") reconnect.stop();
       return new Promise((done) => server.close(() => done()));
     },
   };
