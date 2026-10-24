@@ -2836,6 +2836,11 @@ async function dispatchMeshHttpCore(method, pathname, payload, env, origin, sear
     }
     const q = searchParams;
     const plan = onboard.installPlan({ origin, slug: q && q.get ? q.get("slug") : null, version: q && q.get ? q.get("version") : null, products: getSuitePresenceCatalog() || [], sourceRef: env && env.GIT_SHA, sourceSha256: env && env.MESH_NODE_SRC_SHA256 });
+    if (plan.ok) {
+      // GET never enables and never applies. The node process is what can run the updater.
+      const { adoptNodeInstall } = await import("./auto-update/adopt.js");
+      plan.auto_update = { ...(await adoptNodeInstall({ enabled: false, product: plan.slug })), softwares: plan.auto_update && plan.auto_update.softwares };
+    }
     if (path === "/v1/mesh/install.sh") return { status: plan.ok ? 200 : 400, text: onboard.installScript(plan), body: plan };
     return { status: plan.ok ? 200 : 400, body: plan };
   }

@@ -575,7 +575,7 @@ function bracketHost(host) {
   return text;
 }
 
-export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", advertise = "", relays = [], passphrase = "", fixture = false, sessionAllow = null }) {
+export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", advertise = "", relays = [], passphrase = "", fixture = false, sessionAllow = null, product = "aziel-runtime" }) {
   const node = await openInstance({ dataDir, relays, passphrase });
   const track2 = createTrack2({
     identity: node.identity,
@@ -709,6 +709,22 @@ export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", adv
       "Listen bind is all interfaces. Pass --advertise with the LAN IP. 0.0.0.0 is not a peer URL. No STUN and no TURN. This socket is not open-world awareness.";
   }
   track2.state.direct_url = share.directUrl || "";
+  const updateEnabled = typeof process !== "undefined" && process.env && process.env.AUTO_UPDATE === "on";
+  let auto_update = { ok: false, code: "UPDATE-OFF", enabled: false, live: false, applied: false, trigger: "install", product };
+  try {
+    const { adoptNodeInstall, adoptSoftwares } = await import("../auto-update/adopt.js");
+    let updateHost = null;
+    if (updateEnabled === true) {
+      const { createNodeUpdateHost } = await import("../auto-update/node-host.js");
+      updateHost = await createNodeUpdateHost({ dataDir, product, nodeId: node.identity.handle });
+      track2.state.autoUpdateEnabled = true;
+      track2.state.autoUpdateHost = updateHost;
+    }
+    auto_update = await adoptNodeInstall({ enabled: updateEnabled === true, product, host: updateHost });
+    await adoptSoftwares([product], updateHost || { enabled: false });
+  } catch {
+    auto_update = { ok: false, code: "UPDATE-OFF", enabled: false, live: false, applied: false, trigger: "install", product };
+  }
   return {
     ...node,
     handle: node.identity.handle,
@@ -723,6 +739,7 @@ export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", adv
     mobileJoin: `${base}/mobile/`,
     mobile_client: D2D_MOBILE_CLIENT,
     track2,
+    auto_update,
     stop() {
       return new Promise((done) => server.close(() => done()));
     },

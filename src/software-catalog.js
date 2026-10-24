@@ -40,6 +40,7 @@ import { socialStatusField } from "./social-status.js";
 import { websiteDesignsField, websiteDesignsOnCorpusCard } from "./website-designs.js";
 import { softwareDescription, softwareOneLine } from "./software-copy.js";
 import { platformsCite } from "./platforms.js";
+import { softwaresDecision } from "./auto-update/adopt.js";
 
 /**
  * Live Worker products that are Softwares-tab cards but not FragGate engines.
@@ -579,6 +580,10 @@ export function softwareCatalog(origin, products, extra = {}) {
   };
   const versionMeta = softwareMeta(extra.env || {}, { version_id: extra.version_id || null });
   const software = listSoftwareEntries(products, base, meta);
+  const autoUpdate = softwaresDecision(software.map((s) => s.slug));
+  if (autoUpdate.count !== software.length || autoUpdate.enabled !== false || autoUpdate.live !== false || autoUpdate.code !== "UPDATE-OFF") {
+    throw new Error("Softwares auto-update stays off and does not change the catalog count");
+  }
   return {
     ok: true,
     author: "Aziel Eliab",

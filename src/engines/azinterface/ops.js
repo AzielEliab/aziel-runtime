@@ -1,6 +1,7 @@
 /**
  * azinterface in-process ops. Author: Aziel Eliab.
  */
+import { adoptProduct } from "../../auto-update/adopt.js";
 import { meshEnable, meshSecurityCite, meshStatus, meshStayOffHit, readMeshRadioEnv } from "../../mesh.js";
 import {
   LIMITATION,
@@ -136,6 +137,7 @@ export function azinterfaceSkillOp(env) {
 }
 
 export async function runAzinterface(op, payload, _scratch, env) {
+  await adoptProduct("azinterface");
   if (op === "health") return azinterfaceHealth(env);
   if (op === "skill") return azinterfaceSkill(env);
   if (op === "genesis_status") return genesisStatus(payload, env);

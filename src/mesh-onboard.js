@@ -1,3 +1,4 @@
+import { adoptionOff, softwaresDecision } from "./auto-update/adopt.js";
 import { HINTS_STYLE } from "./lockstep/tokens-css.js";
 /**
  * MESH-ONBOARD-1.0 (one-click install, every app version a mesh node, new-user hints) and
@@ -115,6 +116,7 @@ export function installPlan({ origin, slug, version, products = [], sourceRef = 
       },
     ],
     node_per_version: true,
+    auto_update: { ...adoptionOff("install", s), softwares: softwaresDecision([s]) },
     hints: NEW_USER_HINTS,
     security_model: "single-node isolation + phoenix reboot loop",
     keepalive: {

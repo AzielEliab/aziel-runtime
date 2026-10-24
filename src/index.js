@@ -1371,6 +1371,8 @@ function catalogLinkHeaders(origin, path) {
 }
 
 async function servePackedSoftware(request, env, origin, extra = {}) {
+  const { adoptSoftwares } = await import("./auto-update/adopt.js");
+  await adoptSoftwares(PRODUCTS.map((p) => p.slug), { enabled: false });
   const packed = await readPackedCatalog(env, origin, PRODUCTS, softwareExtra(env));
   const stamped = applyCatalogGitHonesty(packed.catalog, softwareMeta(env, { updated_at: LASTMOD }));
   const body = { ...stamped, rl: packed.rl, donation: donationStatic(), ...extra };

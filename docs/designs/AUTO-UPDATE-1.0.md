@@ -122,3 +122,14 @@ signed builds, only between consenting nodes, and refuse otherwise.
 1. this note · 2. manifest + verify lib (JS/Python parity) · 3. online updater + rollback + pause + receipts ·
 4. mesh peer updater · 5. `/v1/version` + lockstep row (pin bump → AZInterface/AZ-OS re-vendor PRs) ·
 6. per-repo adoption PRs (AZ-OS, AZInterface, trades-runtime, Softwares apps) vendoring the lib.
+
+## Adoption wired in this repo (still live:false)
+`auto_update.enabled` stays false unless a node process is started with `AUTO_UPDATE=on`. `live` stays false.
+`onInternetReach` uses a real HTTPS HEAD probe. Mesh peer sessions (`accept` / `complete`) and carrier beacon
+ingest call `onPeerContact`. The local node install path (`startInstance`) and the Softwares catalog call the
+shared updater. GET `/v1/mesh/install` records the off stamp and does not apply. The pinned release key is the
+one already in `manifest.js`; an empty slot refuses `UPDATE-NO-KEY` and does not apply. There is no binary swap
+in the node process: a verified offer fails the health check and rolls back, so the floor does not rise.
+
+Honest gaps: [AzielEliab/azos](https://github.com/AzielEliab/azos) and [AzielEliab/azinterface](https://github.com/AzielEliab/azinterface)
+do not vendor this updater. This repo only calls `adoptProduct` from the in-repo engines. Those legs are not claimed.
