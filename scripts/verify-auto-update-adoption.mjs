@@ -2,7 +2,7 @@
  * Default off, live:false. Test keys only inside this file. The pinned release key is the one already in the repo. */
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { canonicalize, sha256Hex } from "../src/session-core.js";
@@ -12,7 +12,11 @@ import { onInternetReach, onPeerContact, onNetworkEvent } from "../src/auto-upda
 import { probeInternetReach, REACH_PROBE_URL } from "../src/auto-update/reach.js";
 import { fetchStableRelease, RELEASE_MANIFEST_NAME } from "../src/auto-update/release-fetch.js";
 import { softwaresCheckOnline, softwaresPause } from "../src/auto-update/softwares.js";
-import { ADOPTION_GAPS, AUTO_UPDATE_ENABLED_DEFAULT, AUTO_UPDATE_LIVE, notifyCarrierContact, notifyPeerContact } from "../src/auto-update/adopt.js";
+import { ADOPTION_GAPS, AUTO_UPDATE_ENABLED_DEFAULT, AUTO_UPDATE_LIVE, adoptSoftwares, notifyCarrierContact, notifyPeerContact } from "../src/auto-update/adopt.js";
+import { attachInternetReconnect } from "../src/auto-update/reconnect.js";
+import { createNodeUpdateHost } from "../src/auto-update/node-host.js";
+import { catalogAutoUpdateReport } from "../src/software-catalog.js";
+import { openPeerSession } from "../src/fed-mesh/track2.js";
 import { cap7Honesty, QNM_MEMBERSHIP, QNM_NAMED_LIVE } from "../src/qnm-honesty.js";
 
 let n = 0;
@@ -162,6 +166,10 @@ ok(plan.auto_update.softwares.count === 1 && plan.auto_update.softwares.enabled 
 const { softwareCatalog } = await import("../src/software-catalog.js");
 const catalog = softwareCatalog("https://aziel-runtime.example", []);
 ok(catalog.count === catalog.software.length && catalog.count > 0, "catalog adoption guard holds the count");
+ok(!("auto_update_report" in catalog), "matching catalog decision adds no report");
+ok(catalogAutoUpdateReport([{ slug: "a" }], { count: 1, enabled: false, live: false, code: "UPDATE-OFF" }) === null, "matching decision is silent");
+const mismatch = catalogAutoUpdateReport([{ slug: "a" }, { slug: "b" }], { count: 1, enabled: false, live: false, code: "UPDATE-OFF" });
+ok(mismatch && mismatch.live === false && mismatch.decision_count === 1 && mismatch.catalog_count === 2, "catalog mismatch is reported");
 
 const { startInstance } = await import("../src/fed-mesh/instance.js");
 const nodeDir = mkdtempSync(join(tmpdir(), "au-node-"));
@@ -169,6 +177,101 @@ const node = await startInstance({ dataDir: nodeDir, port: 0, product: "aziel-ru
 ok(node.auto_update.enabled === false && node.auto_update.live === false && node.auto_update.code === "UPDATE-OFF", "running node calls updater off");
 ok(!existsSync(join(nodeDir, "auto-update-state.json")), "disabled node does not write update state");
 await node.stop();
+
+let reaches = 0;
+let ping = null;
+const watch = attachInternetReconnect({ enabled: true }, {
+  debounceMs: 40,
+  onReach: async () => { reaches += 1; },
+  watchImpl(fire) { ping = fire; return { close() { ping = null; } }; },
+});
+ok(watch.ok === true && watch.code === "UPDATE-RECONNECT-WATCH" && watch.live === false, "reconnect watch");
+ping();
+ping();
+await new Promise((resolve) => setTimeout(resolve, 90));
+ok(reaches === 1, "reconnect is debounced");
+watch.stop();
+if (ping) ping();
+await new Promise((resolve) => setTimeout(resolve, 60));
+ok(reaches === 1, "stopped reconnect does not fire");
+const noWatch = attachInternetReconnect({ enabled: true }, { paths: ["/no/such/reconnect-watch"] });
+ok(noWatch.ok === false && noWatch.code === "UPDATE-NO-RECONNECT-WATCH" && noWatch.live === false, "missing watch is a refusal");
+noWatch.stop();
+
+const hostDir = mkdtempSync(join(tmpdir(), "au-host-"));
+const bare = await createNodeUpdateHost({ dataDir: hostDir, product: "aziel-runtime", nodeId: "n" });
+ok(typeof bare.loadAll === "function" && typeof bare.saveAll === "function" && typeof bare.fetchRelease === "function" && typeof bare.fetchArtifact === "function", "node host store and slug fetch");
+bare.fetchImpl = async () => { throw new Error("no release"); };
+const softBare = await adoptSoftwares(["aziel-runtime"], bare);
+ok(softBare.enabled === true && softBare.live === false && softBare.results["aziel-runtime"] && softBare.results["aziel-runtime"] !== "UPDATE-OFF", "node host softwares returns a real code");
+
+const prevUpdate = process.env.AUTO_UPDATE;
+process.env.AUTO_UPDATE = "on";
+const onDir = mkdtempSync(join(tmpdir(), "au-on-"));
+let onNode = null;
+let peerA = null;
+let peerB = null;
+try {
+  onNode = await startInstance({ dataDir: onDir, port: 0, product: "aziel-runtime" });
+  ok(onNode.auto_update.enabled === true && onNode.auto_update.live === false, "AUTO_UPDATE=on stays enabled");
+  ok(typeof onNode.auto_update.code === "string" && onNode.auto_update.code.startsWith("UPDATE-") && onNode.auto_update.code !== "UPDATE-OFF", "boot code " + onNode.auto_update.code);
+  ok(onNode.auto_update.applied !== true, "boot does not apply");
+  ok(onNode.auto_update.reconnect && onNode.auto_update.reconnect.live === false && (onNode.auto_update.reconnect.code === "UPDATE-RECONNECT-WATCH" || onNode.auto_update.reconnect.code === "UPDATE-NO-RECONNECT-WATCH"), "reconnect reported");
+  const lonely = await notifyPeerContact(onNode.track2.state);
+  ok(lonely.enabled === true && lonely.live === false && lonely.code === "UPDATE-CARRIER-ABSENT", "no carrier refuses");
+  await onNode.stop();
+  onNode = null;
+
+  peerA = await startInstance({ dataDir: mkdtempSync(join(tmpdir(), "au-a-")), port: 0, host: "127.0.0.1", advertise: "127.0.0.1", fixture: true, product: "aziel-runtime" });
+  peerB = await startInstance({ dataDir: mkdtempSync(join(tmpdir(), "au-b-")), port: 0, host: "127.0.0.1", advertise: "127.0.0.1", fixture: true, product: "aziel-runtime" });
+  ok(!!peerA.directUrl && !!peerB.directUrl, "loopback direct urls");
+  ok((await peerA.track2.arm("lan", "operator")).ok === true && (await peerB.track2.arm("lan", "operator")).ok === true, "lan armed by the operator");
+  peerA.track2.allowSession(peerB.handle);
+  peerB.track2.allowSession(peerA.handle);
+  const exchanged = await peerA.track2.exchange(peerB.track2);
+  ok(exchanged.ok === true, "beacon exchange");
+  const aHost = peerA.track2.state.autoUpdateHost;
+  const bHost = peerB.track2.state.autoUpdateHost;
+  ok((await aHost.carrierPresent("wifi")) === false && (await aHost.carrierPresent("bluetooth")) === false && (await aHost.carrierPresent("rf")) === false && (await aHost.carrierPresent("photon")) === false, "radio carriers stay absent");
+  const noSession = await onPeerContact(aHost);
+  ok(noSession.ok === false && noSession.enabled === true && noSession.code === "UPDATE-PEER-NO-ROUTE", "peer without a session is no route");
+  const opened = await openPeerSession(peerA.track2, peerB.track2);
+  ok(opened.ok === true, "track2 session open");
+  const same = await onPeerContact(aHost);
+  ok(same.enabled === true && same.applied === false && same.carrier === "lan" && same.code === "UPDATE-PEER-NOT-NEWER", "hello over the session is not an apply");
+
+  const rel = await release("aziel-runtime", 2);
+  bHost.publicKey = pub;
+  bHost.healthCheck = async () => true;
+  bHost.internetReachable = async () => true;
+  bHost.fetchImpl = async (url) => {
+    const u = String(url);
+    if (u.includes("/releases/latest")) return { ok: true, json: async () => ({ prerelease: false, draft: false, assets: [{ name: RELEASE_MANIFEST_NAME, browser_download_url: "https://example.test/manifest" }] }) };
+    if (u.includes("/manifest")) return { ok: true, json: async () => ({ manifest: rel.manifest, signature: rel.signature, url: "https://example.test/artifact" }) };
+    if (u.includes("/artifact")) return { ok: true, arrayBuffer: async () => new TextEncoder().encode(rel.bytes).buffer };
+    throw new Error(u);
+  };
+  const seeded = await onInternetReach(bHost);
+  ok(seeded.code === C.ok && bHost._servedBytes instanceof Uint8Array, "peer stores a verified build");
+  const forged = await onPeerContact(aHost);
+  ok(forged.code === C.sig && forged.applied !== true && forged.row && forged.row.lattice && forged.row.lattice.primary, "pinned key checks the peer signature");
+  aHost.publicKey = pub;
+  bHost._servedBytes = new TextEncoder().encode("tampered");
+  const hashed = await onPeerContact(aHost);
+  ok(hashed.code === C.hash && hashed.applied !== true, "peer hash is checked");
+  bHost._servedBytes = new TextEncoder().encode(rel.bytes);
+  const rolledPeer = await onPeerContact(aHost);
+  ok(rolledPeer.code === C.health && rolledPeer.row && rolledPeer.row.outcome === "rolled_back" && rolledPeer.row.source === "mesh:lan", "verified peer bytes roll back");
+  const aState = await aHost.load();
+  ok(aState.installed_seq === 0 && aState.floor_seq === 0, "peer rollback does not raise the floor");
+} finally {
+  if (prevUpdate === undefined) delete process.env.AUTO_UPDATE;
+  else process.env.AUTO_UPDATE = prevUpdate;
+  if (onNode) await onNode.stop();
+  if (peerA) await peerA.stop();
+  if (peerB) await peerB.stop();
+  rmSync(hostDir, { recursive: true, force: true });
+}
 
 const { runAzos } = await import("../src/engines/azos/ops.js");
 const { runAzinterface } = await import("../src/engines/azinterface/ops.js");

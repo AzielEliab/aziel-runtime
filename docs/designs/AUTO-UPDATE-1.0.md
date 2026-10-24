@@ -133,3 +133,23 @@ in the node process: a verified offer fails the health check and rolls back, so 
 
 Honest gaps: [AzielEliab/azos](https://github.com/AzielEliab/azos) and [AzielEliab/azinterface](https://github.com/AzielEliab/azinterface)
 do not vendor this updater. This repo only calls `adoptProduct` from the in-repo engines. Those legs are not claimed.
+
+## Node host, reconnect, and peer path (still live:false)
+`startInstance` with `AUTO_UPDATE=on` builds a node host that has `loadAll` / `saveAll` and slug-aware
+`fetchRelease(slug)` / `fetchArtifact(slug, manifest)`. Only the `aziel-runtime` release repo is fetched.
+Other slugs get no offer. A throw after that check is reported with `enabled: true` and the updater's code
+(`UPDATE-STATE` when the throw has no `UPDATE-*` code). It is not rewritten to `UPDATE-OFF`.
+
+`onInternetReach` runs at start, and again when the route table changes. On Linux that watch is
+`/proc/net/route`, debounced (2s), then the same HTTPS HEAD probe. A route event is not treated as
+reachability. If the watch cannot be opened the node reports `UPDATE-NO-RECONNECT-WATCH` and does not
+invent a reconnect. The start probe still runs.
+
+Peer contact uses an open Track 2 session whose bearer is `direct-lan` or `loopback`. The hello and the
+artifact are sealed peer-share envelopes (`POST /v1/fed-mesh/peer` when the roster peer has a `direct_url`).
+The updater checks the signature and the artifact hash and writes the same lattice receipt. Wi-Fi, Bluetooth,
+RF, and photon are not this path: Track 2 does not demonstrate those hops, `carrierPresent` stays false, and
+the code is `UPDATE-CARRIER-ABSENT`. No open session, or no `direct_url` to deliver the envelope, is
+`UPDATE-PEER-NO-ROUTE`. A peer that has not health-passed a build has nothing to seed and returns
+`UPDATE-PEER-NO-ARTIFACT`. This process still has no binary swap, so a verified offer fails health, rolls
+back, and does not raise the floor. None of those refusals is an applied update.

@@ -75,8 +75,12 @@ export async function adoptProduct(leg) {
   }
 }
 
+export function updateFailureCode(err) {
+  const code = err && typeof err.code === "string" ? err.code : "";
+  return code.startsWith("UPDATE-") ? code : "UPDATE-STATE";
+}
+
 function hostFromTrack2(state) {
-  const armed = state && state.armed instanceof Set ? state.armed : new Set();
   return {
     enabled: true,
     nodeId: state && state.identity ? state.identity.handle : "node",
@@ -85,9 +89,9 @@ function hostFromTrack2(state) {
     load: async () => ({ product: "aziel-runtime", installed_seq: 0, floor_seq: 0, paused: false, manifest_hash: null, last_check: null, last_applied: null, last_code: null, tips: null, served_manifest: null }),
     save: async () => {},
     writeReceipt: async () => {},
-    carrierPresent: async (id) => armed.has(id),
-    peerHello: async () => null,
-    peerFetch: async () => null,
+    carrierPresent: async () => false,
+    peerHello: async () => ({ refused: true, code: "UPDATE-PEER-NO-ROUTE" }),
+    peerFetch: async () => ({ refused: true, code: "UPDATE-PEER-NO-ARTIFACT" }),
     stage: async () => {},
     swap: async () => {},
     healthCheck: async () => false,
@@ -96,15 +100,24 @@ function hostFromTrack2(state) {
 }
 
 async function notify(state, path) {
+  if (!state || state.autoUpdateEnabled !== true) {
+    return { ok: false, code: "UPDATE-OFF", trigger: "mesh", path, enabled: false, live: false, applied: false };
+  }
   try {
-    if (!state || state.autoUpdateEnabled !== true) {
-      return { ok: false, code: "UPDATE-OFF", trigger: "mesh", path, enabled: false, live: false, applied: false };
-    }
     const host = state.autoUpdateHost || hostFromTrack2(state);
     const result = await onPeerContact({ ...host, enabled: true });
-    return { ...result, path, live: false };
-  } catch {
-    return { ok: false, code: "UPDATE-OFF", trigger: "mesh", path, enabled: false, live: false, applied: false };
+    return { ...result, path, live: false, enabled: true };
+  } catch (err) {
+    return {
+      ok: false,
+      code: updateFailureCode(err),
+      trigger: "mesh",
+      path,
+      enabled: true,
+      live: false,
+      applied: false,
+      message: String(err && err.message ? err.message : err),
+    };
   }
 }
 

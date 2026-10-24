@@ -19,9 +19,15 @@ function off(trigger) {
   return { ok: false, code: C.off, trigger, enabled: false, live: false, applied: false };
 }
 
+function releaseKey(host, opts) {
+  if (opts && Object.prototype.hasOwnProperty.call(opts, "publicKey")) return opts.publicKey;
+  if (host && Object.prototype.hasOwnProperty.call(host, "publicKey")) return host.publicKey;
+  return RELEASE_PUBLIC_KEY;
+}
+
 export async function onInternetReach(host, opts = {}) {
   if (!host || host.enabled !== true) return off("internet");
-  const key = opts.publicKey === undefined ? RELEASE_PUBLIC_KEY : opts.publicKey;
+  const key = releaseKey(host, opts);
   if (!key) return { ok: false, code: C.noKey, trigger: "internet", live: false, applied: false, enabled: true };
   let up = false;
   let code = TRIGGER_CODES.offline;
@@ -33,16 +39,16 @@ export async function onInternetReach(host, opts = {}) {
     code = probed.code || TRIGGER_CODES.offline;
   }
   if (!up) return { ok: false, code, trigger: "internet", live: false, applied: false, enabled: true };
-  const applied = await checkOnline(host, opts);
-  return { ...applied, trigger: "internet", live: false };
+  const applied = await checkOnline(host, { ...opts, publicKey: key });
+  return { ...applied, trigger: "internet", live: false, enabled: true };
 }
 
 export async function onPeerContact(host, opts = {}) {
   if (!host || host.enabled !== true) return off("mesh");
-  const key = opts.publicKey === undefined ? RELEASE_PUBLIC_KEY : opts.publicKey;
+  const key = releaseKey(host, opts);
   if (!key) return { ok: false, code: C.noKey, trigger: "mesh", live: false, applied: false, enabled: true };
-  const applied = await meshContact(host, opts);
-  return { ...applied, trigger: "mesh", live: false };
+  const applied = await meshContact(host, { ...opts, publicKey: key });
+  return { ...applied, trigger: "mesh", live: false, enabled: true };
 }
 
 /** Route one event. Unknown events refuse. Disabled hosts do not probe or fetch. */

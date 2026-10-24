@@ -217,24 +217,36 @@ def on_peer_contact(host, public_key=V.RELEASE_PUBLIC_KEY):
                 break
         except Exception:
             pass
-    if not carrier:
+    def refuse(code, source):
         s = host.load()
-        s["last_code"] = C["carrier"]
+        s["last_code"] = code
         update_receipt(host, s, {
             "product": s["product"], "from_seq": s["installed_seq"], "to_seq": None, "manifest_hash": None,
-            "source": "mesh:none", "outcome": "refused", "code": C["carrier"], "at": host.now(),
+            "source": source, "outcome": "refused", "code": code, "at": host.now(),
         })
         host.save(s)
-        return {"ok": False, "code": C["carrier"], "trigger": "mesh", "live": False}
+        return {"ok": False, "code": code, "carrier": carrier, "trigger": "mesh", "live": False, "applied": False, "enabled": True}
+
+    if not carrier:
+        return refuse(C["carrier"], "mesh:none")
     try:
         hello = host.peer_hello(carrier)
     except Exception:
         hello = None
+    if isinstance(hello, dict) and hello.get("refused") is True:
+        code = hello.get("code") if isinstance(hello.get("code"), str) and hello.get("code", "").startswith("UPDATE-") else "UPDATE-PEER-NO-ROUTE"
+        return refuse(code, "mesh:" + carrier)
+    if not isinstance(hello, dict):
+        return refuse("UPDATE-PEER-NO-ROUTE", "mesh:" + carrier)
     s = host.load()
-    if not isinstance(hello, dict) or hello.get("product") != s["product"] or not V.sint(hello.get("version_seq")) or hello["version_seq"] <= s["installed_seq"]:
-        return {"ok": True, "code": "UPDATE-PEER-NOT-NEWER", "carrier": carrier, "applied": False, "trigger": "mesh", "live": False}
-    r = apply_offer(host, {"manifest": hello.get("manifest"), "signature": hello.get("signature")}, "mesh:" + carrier, lambda m: host.peer_fetch(carrier, m), public_key)
-    return dict(r, carrier=carrier, trigger="mesh", live=False)
+    if hello.get("product") != s["product"] or not V.sint(hello.get("version_seq")) or hello["version_seq"] <= s["installed_seq"]:
+        return {"ok": True, "code": "UPDATE-PEER-NOT-NEWER", "carrier": carrier, "applied": False, "trigger": "mesh", "live": False, "enabled": True}
+    fetched = host.peer_fetch(carrier, hello.get("manifest"))
+    if isinstance(fetched, dict) and fetched.get("refused") is True:
+        code = fetched.get("code") if isinstance(fetched.get("code"), str) and fetched.get("code", "").startswith("UPDATE-") else "UPDATE-PEER-NO-ARTIFACT"
+        return refuse(code, "mesh:" + carrier)
+    r = apply_offer(host, {"manifest": hello.get("manifest"), "signature": hello.get("signature")}, "mesh:" + carrier, lambda m: fetched, public_key)
+    return dict(r, carrier=carrier, trigger="mesh", live=False, enabled=True)
 
 
 class FileStateHost:
