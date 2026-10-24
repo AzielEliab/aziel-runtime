@@ -758,7 +758,9 @@ export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", adv
         trigger: "install",
         product,
         softwares,
-        reconnect: reconnect ? { ok: reconnect.ok === true, code: reconnect.code, live: false } : { ok: false, code: "UPDATE-NO-RECONNECT-WATCH", live: false },
+        reconnect: reconnect
+          ? { ok: reconnect.ok === true, code: reconnect.code, method: reconnect.method || null, live: false }
+          : { ok: false, code: "UPDATE-NO-RECONNECT-WATCH", method: null, live: false },
       };
       if (softError) auto_update.host_error = String(softError.message || softError);
     } else {

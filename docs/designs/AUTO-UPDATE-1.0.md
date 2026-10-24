@@ -111,6 +111,8 @@ version queries but never apply or seed.
 { ok, product, version, git_sha, manifest_hash, update_channel,
   auto_update: { enabled, paused, key_pinned, last_check, last_applied, last_code }, live:false }
 ```
+`manifest_hash` on `GET /v1/version` is `null` because no signed release manifest has been published.
+It is not a hash of the running build.
 On Workers the runtime cannot self-replace, so `auto_update.enabled` is false there and the field reports the
 deployed build honestly; the updater applies on device/node installs (AZ-OS, qnm-node, desktop/CLI).
 
@@ -137,13 +139,16 @@ do not vendor this updater. This repo only calls `adoptProduct` from the in-repo
 ## Node host, reconnect, and peer path (still live:false)
 `startInstance` with `AUTO_UPDATE=on` builds a node host that has `loadAll` / `saveAll` and slug-aware
 `fetchRelease(slug)` / `fetchArtifact(slug, manifest)`. Only the `aziel-runtime` release repo is fetched.
-Other slugs get no offer. A throw after that check is reported with `enabled: true` and the updater's code
-(`UPDATE-STATE` when the throw has no `UPDATE-*` code). It is not rewritten to `UPDATE-OFF`.
+Any other slug is refused `UPDATE-NO-RELEASE` (additive; a missing or malformed aziel-runtime envelope
+is still `UPDATE-MANIFEST-SHAPE`). A throw after that check is reported with `enabled: true` and the
+updater's code (`UPDATE-STATE` when the throw has no `UPDATE-*` code). It is not rewritten to `UPDATE-OFF`.
 
-`onInternetReach` runs at start, and again when the route table changes. On Linux that watch is
-`/proc/net/route`, debounced (2s), then the same HTTPS HEAD probe. A route event is not treated as
-reachability. If the watch cannot be opened the node reports `UPDATE-NO-RECONNECT-WATCH` and does not
-invent a reconnect. The start probe still runs.
+`onInternetReach` runs once at start. While the node is up it re-reads `/proc/net/route` on a 1s interval
+and compares a sha256 of the text. A content change starts a 2s debounce, then the same HTTPS HEAD probe
+runs. The route text is not treated as reachability. `fs.watch` is not used: procfs does not emit inotify
+events, so a watch on that file stays silent while the contents change. If the route file cannot be read,
+`ip monitor route` (netlink) is the fallback. If that cannot be started either, the node reports
+`UPDATE-NO-RECONNECT-WATCH` and does not invent a reconnect. The start probe still runs.
 
 Peer contact uses an open Track 2 session whose bearer is `direct-lan` or `loopback`. The hello and the
 artifact are sealed peer-share envelopes (`POST /v1/fed-mesh/peer` when the roster peer has a `direct_url`).

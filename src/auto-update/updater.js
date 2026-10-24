@@ -52,6 +52,8 @@ export async function applyOffer(host, offer, source, fetchBytes, { publicKey = 
   };
   if (host.enabled !== true) return done(C.off);
   if (s.paused) return done(C.paused);
+  if (!publicKey) return done(C.noKey);
+  if (offer && offer.refused === true && offer.code === C.noRelease) return done(C.noRelease);
   const v = await verifyManifest(offer && offer.manifest, offer && offer.signature, s, { publicKey });
   if (!v.ok) return done(v.code);
   let bytes; try { bytes = await fetchBytes(offer.manifest); } catch { bytes = null; }

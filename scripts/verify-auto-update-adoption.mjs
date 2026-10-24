@@ -1,8 +1,9 @@
 /** AUTO-UPDATE-1.0 adoption: real reach probe, wired hooks, shared Softwares updater, JS/Python parity.
  * Default off, live:false. Test keys only inside this file. The pinned release key is the one already in the repo. */
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { canonicalize, sha256Hex } from "../src/session-core.js";
@@ -178,25 +179,64 @@ ok(node.auto_update.enabled === false && node.auto_update.live === false && node
 ok(!existsSync(join(nodeDir, "auto-update-state.json")), "disabled node does not write update state");
 await node.stop();
 
+const reconnectSrc = readFileSync("src/auto-update/reconnect.js", "utf8");
+ok(!reconnectSrc.includes("watch("), "reconnect does not use inotify");
+const routeFile = join(mkdtempSync(join(tmpdir(), "au-route-")), "route");
+writeFileSync(routeFile, "Iface\tDestination\neth0\t00000000\n");
 let reaches = 0;
-let ping = null;
-const watch = attachInternetReconnect({ enabled: true }, {
-  debounceMs: 40,
+const polled = attachInternetReconnect({ enabled: true }, {
+  routePath: routeFile,
+  pollMs: 40,
+  debounceMs: 80,
+  ipMonitor: false,
   onReach: async () => { reaches += 1; },
-  watchImpl(fire) { ping = fire; return { close() { ping = null; } }; },
 });
-ok(watch.ok === true && watch.code === "UPDATE-RECONNECT-WATCH" && watch.live === false, "reconnect watch");
-ping();
-ping();
-await new Promise((resolve) => setTimeout(resolve, 90));
-ok(reaches === 1, "reconnect is debounced");
-watch.stop();
-if (ping) ping();
-await new Promise((resolve) => setTimeout(resolve, 60));
-ok(reaches === 1, "stopped reconnect does not fire");
-const noWatch = attachInternetReconnect({ enabled: true }, { paths: ["/no/such/reconnect-watch"] });
-ok(noWatch.ok === false && noWatch.code === "UPDATE-NO-RECONNECT-WATCH" && noWatch.live === false, "missing watch is a refusal");
+ok(polled.ok === true && polled.code === "UPDATE-RECONNECT-WATCH" && polled.method === "poll" && polled.live === false, "route poll is the detector");
+await new Promise((resolve) => setTimeout(resolve, 100));
+ok(reaches === 0, "unchanged route file does not fire");
+writeFileSync(routeFile, "Iface\tDestination\neth0\t00000000\neth0\t0000A8C0\n");
+await new Promise((resolve) => setTimeout(resolve, 30));
+writeFileSync(routeFile, "Iface\tDestination\neth0\t00000000\neth0\t0000A8C0\neth0\t0002A8C0\n");
+await new Promise((resolve) => setTimeout(resolve, 280));
+ok(reaches === 1, "route file content change is debounced");
+polled.stop();
+writeFileSync(routeFile, "Iface\tDestination\n");
+await new Promise((resolve) => setTimeout(resolve, 200));
+ok(reaches === 1, "stopped poller does not fire");
+const noWatch = attachInternetReconnect({ enabled: true }, { routePath: join(routeFile, "missing"), ipMonitor: false });
+ok(noWatch.ok === false && noWatch.code === "UPDATE-NO-RECONNECT-WATCH" && noWatch.method === null && noWatch.live === false, "no route file and no ip monitor refuses");
 noWatch.stop();
+const ipProbe = spawnSync("ip", ["-V"], { encoding: "utf8", timeout: 2000 });
+const unshareProbe = spawnSync("unshare", ["--net", "--user", "--map-root-user", "ip", "link", "set", "lo", "up"], { encoding: "utf8", timeout: 4000 });
+if (ipProbe.status !== 0 || unshareProbe.status !== 0) {
+  const reason = ipProbe.status !== 0
+    ? "ip is not installed"
+    : ("unshare --net failed: " + String(unshareProbe.stderr || unshareProbe.error || unshareProbe.status).trim());
+  ok(reason.length > 0, "netns route test skipped: " + reason);
+} else {
+  const helper = join(mkdtempSync(join(tmpdir(), "au-netns-")), "probe.mjs");
+  const mod = fileURLToPath(new URL("../src/auto-update/reconnect.js", import.meta.url));
+  writeFileSync(helper, [
+    "import { spawnSync } from 'node:child_process';",
+    "import { attachInternetReconnect } from " + JSON.stringify(mod) + ";",
+    "let n = 0;",
+    "const w = attachInternetReconnect({ enabled: true }, { pollMs: 40, debounceMs: 80, onReach() { n += 1; } });",
+    "if (!w.ok || w.method !== 'poll') { console.log(JSON.stringify({ fail: 'attach', code: w.code, method: w.method })); process.exit(2); }",
+    "await new Promise((r) => setTimeout(r, 120));",
+    "if (n !== 0) { console.log(JSON.stringify({ fail: 'baseline', n })); process.exit(3); }",
+    "const up = spawnSync('ip', ['link', 'set', 'lo', 'up'], { encoding: 'utf8' });",
+    "const add = spawnSync('ip', ['route', 'add', '192.0.2.0/24', 'dev', 'lo'], { encoding: 'utf8' });",
+    "await new Promise((r) => setTimeout(r, 400));",
+    "w.stop();",
+    "const ok = n >= 1 && up.status === 0 && add.status === 0;",
+    "console.log(JSON.stringify({ ok, n, up: up.status, add: add.status, upErr: up.stderr, addErr: add.stderr }));",
+    "process.exit(ok ? 0 : 4);",
+  ].join("\n"));
+  const ran = spawnSync("unshare", ["--net", "--user", "--map-root-user", process.execPath, helper], { encoding: "utf8", timeout: 8000 });
+  let body = {};
+  try { body = JSON.parse(String(ran.stdout || "").trim().split("\n").pop()); } catch { body = { raw: ran.stdout, err: ran.stderr }; }
+  ok(ran.status === 0 && body.ok === true && body.n >= 1, "netns route change fired the poller " + JSON.stringify(body));
+}
 
 const hostDir = mkdtempSync(join(tmpdir(), "au-host-"));
 const bare = await createNodeUpdateHost({ dataDir: hostDir, product: "aziel-runtime", nodeId: "n" });
@@ -204,6 +244,10 @@ ok(typeof bare.loadAll === "function" && typeof bare.saveAll === "function" && t
 bare.fetchImpl = async () => { throw new Error("no release"); };
 const softBare = await adoptSoftwares(["aziel-runtime"], bare);
 ok(softBare.enabled === true && softBare.live === false && softBare.results["aziel-runtime"] && softBare.results["aziel-runtime"] !== "UPDATE-OFF", "node host softwares returns a real code");
+let otherFetches = 0;
+bare.fetchImpl = async () => { otherFetches += 1; throw new Error("other slug must not fetch"); };
+const otherSlug = await adoptSoftwares(["peacelock"], bare);
+ok(otherSlug.results.peacelock === C.noRelease && otherFetches === 0 && otherSlug.live === false, "slug with no release repo");
 
 const prevUpdate = process.env.AUTO_UPDATE;
 process.env.AUTO_UPDATE = "on";
@@ -216,7 +260,10 @@ try {
   ok(onNode.auto_update.enabled === true && onNode.auto_update.live === false, "AUTO_UPDATE=on stays enabled");
   ok(typeof onNode.auto_update.code === "string" && onNode.auto_update.code.startsWith("UPDATE-") && onNode.auto_update.code !== "UPDATE-OFF", "boot code " + onNode.auto_update.code);
   ok(onNode.auto_update.applied !== true, "boot does not apply");
-  ok(onNode.auto_update.reconnect && onNode.auto_update.reconnect.live === false && (onNode.auto_update.reconnect.code === "UPDATE-RECONNECT-WATCH" || onNode.auto_update.reconnect.code === "UPDATE-NO-RECONNECT-WATCH"), "reconnect reported");
+  const bootReconnect = onNode.auto_update.reconnect;
+  ok(bootReconnect && bootReconnect.live === false, "reconnect live false");
+  if (bootReconnect && bootReconnect.code === "UPDATE-RECONNECT-WATCH") ok(bootReconnect.method === "poll" || bootReconnect.method === "ip-monitor", "reconnect method " + bootReconnect.method);
+  else ok(bootReconnect && bootReconnect.code === "UPDATE-NO-RECONNECT-WATCH", "reconnect refused when no detector");
   const lonely = await notifyPeerContact(onNode.track2.state);
   ok(lonely.enabled === true && lonely.live === false && lonely.code === "UPDATE-CARRIER-ABSENT", "no carrier refuses");
   await onNode.stop();

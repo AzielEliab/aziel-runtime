@@ -22,6 +22,7 @@ C = {
     "carrier": "UPDATE-CARRIER-ABSENT",
     "ok": "UPDATE-OK",
     "noKey": "UPDATE-NO-KEY",
+    "noRelease": "UPDATE-NO-RELEASE",
 }
 
 
@@ -119,6 +120,8 @@ def apply_offer(host, offer, source, fetch_bytes, public_key=V.RELEASE_PUBLIC_KE
         return done(C["paused"])
     if not public_key:
         return done(C["noKey"])
+    if isinstance(offer, dict) and offer.get("refused") is True and offer.get("code") == C["noRelease"]:
+        return done(C["noRelease"])
     try:
         v = V.verify_manifest(m, offer.get("signature") if isinstance(offer, dict) else None, s, public_key)
     except Exception:

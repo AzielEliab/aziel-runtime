@@ -20,6 +20,7 @@ export const UPDATE_CODES = Object.freeze({
   off: "UPDATE-OFF", paused: "UPDATE-PAUSED", noKey: "UPDATE-NO-KEY", shape: "UPDATE-MANIFEST-SHAPE",
   product: "UPDATE-PRODUCT", channel: "UPDATE-CHANNEL-REFUSED", sig: "UPDATE-SIG", downgrade: "UPDATE-DOWNGRADE", hash: "UPDATE-HASH",
   carrier: "UPDATE-CARRIER-ABSENT", state: "UPDATE-STATE", health: "UPDATE-HEALTH", ok: "UPDATE-OK",
+  noRelease: "UPDATE-NO-RELEASE",
 });
 /** Safe artifact filename: no slashes, no "..", no leading or trailing dot, no Windows reserved device name. */
 export const ARTIFACT_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;

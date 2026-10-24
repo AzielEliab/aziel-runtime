@@ -11,6 +11,7 @@
  */
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { UPDATE_CODES as C } from "./manifest.js";
 import { fetchStableRelease } from "./release-fetch.js";
 import { initialState } from "./updater.js";
 import {
@@ -92,7 +93,7 @@ export async function createNodeUpdateHost({ dataDir, product = "aziel-runtime",
     },
     async fetchRelease(slug) {
       const name = typeof slug === "string" && slug ? slug : host.product;
-      if (name !== "aziel-runtime") return null;
+      if (name !== "aziel-runtime") return { refused: true, code: C.noRelease };
       const fetchImpl = typeof host.fetchImpl === "function" ? host.fetchImpl : undefined;
       const offer = await fetchStableRelease(fetchImpl ? { fetchImpl } : {});
       if (offer && offer.artifactUrl) urls[name] = offer.artifactUrl;
