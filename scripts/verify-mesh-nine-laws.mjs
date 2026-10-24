@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { workerClaimsRadioHardware } from "../src/mesh-channel-plane.js";
 import { PRODUCTS } from "../src/index.js";
 import { RUNTIME_VERSION } from "../src/runtime-api.js";
 import {
@@ -158,6 +159,25 @@ function channel_plane_cites(live) {
       assert.fail(`${name} claims radio hardware the worker cannot see`);
     }
   }
+  const bands = live.channel_plane.rows.rf.bands;
+  for (const id of ["am", "fm", "xm_sdars", "sat_rx"]) {
+    assert.equal(bands[id].enabled, false, id);
+    assert.equal(bands[id].live, false, id);
+    assert.equal(bands[id].transmit, false, id);
+    assert.equal(bands[id].receive_only, true, id);
+    assert.equal(bands[id].code, "QNM-RADIO-ABSENT", id);
+    assert.equal(bands[id].purchased, false, id);
+  }
+  assert.equal(live.channel_plane.satellite_relay.enabled, false);
+  assert.equal(live.channel_plane.satellite_relay.live, false);
+  assert.equal(live.channel_plane.satellite_relay.transmit, false);
+  assert.equal(live.channel_plane.satellite_relay.purchased, false);
+  const relay = live.d2d_carriers.carriers.find((row) => row.id === "satellite_relay");
+  assert.equal(relay.enabled, false);
+  assert.equal(relay.live, false);
+  assert.equal(relay.transmit, false);
+  assert.equal(relay.packet_live, false);
+  assert.equal(workerClaimsRadioHardware(live), false);
   assert.equal(live.channel_plane.vpn, true);
   assert.equal(live.channel_plane.concentrator_slug, "azvpn");
   assert.equal(live.channel_plane.public_proxy, false);

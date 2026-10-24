@@ -189,3 +189,19 @@ assert.equal(mcpBody.result.structuredContent.display.action, "Run aziel runtime
 assert.equal(mcpBody.result.content.some((part) => part.type === "image"), false);
 
 console.log("ok mesh router: foldlock/health, reviewed copy, Softwares 42, Ask Jeeves not a card");
+{
+  const { workerClaimsRadioHardware, channelPlaneCite } = await import("../src/mesh-channel-plane.js");
+  const plane = channelPlaneCite();
+  assert.equal(workerClaimsRadioHardware({ worker_hardware: false, channel_plane: plane }), false);
+  for (const id of ["am", "fm", "xm_sdars", "sat_rx"]) {
+    assert.equal(plane.rows.rf.bands[id].live, false, id);
+    assert.equal(plane.rows.rf.bands[id].enabled, false, id);
+    assert.equal(plane.rows.rf.bands[id].transmit, false, id);
+  }
+  assert.equal(plane.satellite_relay.live, false);
+  assert.equal(plane.satellite_relay.transmit, false);
+  assert.equal(workerClaimsRadioHardware({
+    worker_hardware: false,
+    channel_plane: { worker_hardware: false, rows: { rf: { bands: { sat_rx: { live: true } } } } },
+  }), true);
+}

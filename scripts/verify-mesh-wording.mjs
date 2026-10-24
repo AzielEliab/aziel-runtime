@@ -3,10 +3,19 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { meshStatus } from "../src/mesh.js";
+import { workerClaimsRadioHardware } from "../src/mesh-channel-plane.js";
 let n = 0;
 const out = await meshStatus({}, {});
 const text = JSON.stringify(out);
 assert.ok(!/rollup is LIVE/i.test(text), "mesh_status claims rollup LIVE");
+assert.equal(workerClaimsRadioHardware(out), false);
+for (const id of ["am", "fm", "xm_sdars", "sat_rx"]) {
+  assert.equal(out.channel_plane.rows.rf.bands[id].live, false, id);
+  assert.equal(out.channel_plane.rows.rf.bands[id].enabled, false, id);
+}
+assert.equal(out.channel_plane.satellite_relay.live, false);
+assert.equal(out.channel_plane.satellite_relay.transmit, false);
+assert.equal(out.d2d_carriers.carriers.find((row) => row.id === "satellite_relay").transmit, false);
 const note = (out && (out.note || (out.result && out.result.note))) || "";
 if (/QNM suite rollup/.test(note)) assert.match(note, /read-only presence counts served by this Worker\. Not a live end-to-end QNM mesh\./);
 n++;

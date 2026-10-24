@@ -171,7 +171,7 @@ export function meshGetLooksLikeEnable(searchParams, payload) {
     return true;
   }
   if (!searchParams || typeof searchParams.get !== "function") return false;
-  const keys = ["enable", "enabled", "op", "radios", "mesh", "wifi", "bluetooth", "rf", "photon", "lan", "radio"];
+  const keys = ["enable", "enabled", "op", "radios", "mesh", "wifi", "bluetooth", "rf", "photon", "lan", "radio", "am", "fm", "xm_sdars", "xm-sdars", "sat_rx", "sat-rx", "satellite_relay", "satellite-relay"];
   for (const key of keys) {
     const raw = searchParams.get(key);
     if (raw == null || raw === "") continue;

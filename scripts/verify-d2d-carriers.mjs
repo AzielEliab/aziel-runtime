@@ -14,6 +14,7 @@ import { resetLedger } from "../src/fraggate/ledger.js";
 import { aznetSkill } from "../src/engines/aznet/engine.js";
 import { meshStatus, resetMeshStore, runMeshOp } from "../src/mesh.js";
 import {
+  CARRIER_ORDER,
   D2D_CARRIERS,
   D2D_CODE,
   D2D_ORDER_ARROW,
@@ -25,6 +26,7 @@ import {
   isD2dStubOp,
 } from "../src/d2d-carriers.js";
 import { track2CarrierProbe } from "../qnm-node/bearers/radio.js";
+import { CHANNEL_ORDER } from "../src/mesh-channel-plane.js";
 
 resetLedger();
 resetMeshStore();
@@ -35,8 +37,10 @@ assert.equal(PRODUCTS.some((p) => p.slug === "d2d" || p.slug === "nodemesh"), fa
 assert.equal(PUBLIC_MCP_TOOLS.length, 36);
 assert.deepEqual(
   D2D_CARRIERS.map((row) => row.id),
-  ["lan", "wifi", "bluetooth", "rf", "photon"],
+  ["lan", "wifi", "bluetooth", "rf", "photon", "satellite_relay"],
 );
+assert.deepEqual(CARRIER_ORDER, ["lan", "wifi", "bluetooth", "rf", "photon", "satellite_relay"]);
+assert.deepEqual(CHANNEL_ORDER, CARRIER_ORDER);
 assert.equal(D2D_ORDER_LABEL, "LAN, Wi-Fi, Bluetooth, RF, photon light flashes");
 assert.equal(D2D_ORDER_ARROW, "LAN → Wi-Fi → Bluetooth → RF → Photon light flashes");
 assert.equal(D2D_PLANE, "track2-reachability");
@@ -51,6 +55,23 @@ assert.match(D2D_CARRIERS[3].note, /ModemManager/);
 assert.match(D2D_CARRIERS[3].note, /beyond Wi-Fi and Bluetooth/);
 assert.match(D2D_CARRIERS[4].note, /camera and flash/);
 assert.match(D2D_CARRIERS[4].note, /No mock LIVE/);
+const relayCarrier = D2D_CARRIERS[5];
+assert.equal(relayCarrier.id, "satellite_relay");
+assert.equal(relayCarrier.order, 6);
+assert.equal(relayCarrier.enabled, false);
+assert.equal(relayCarrier.live, false);
+assert.equal(relayCarrier.transmit, false);
+assert.equal(relayCarrier.purchased, false);
+assert.equal(relayCarrier.paid_ok, false);
+assert.equal(relayCarrier.public_op, false);
+assert.equal(relayCarrier.functional, false);
+assert.equal(relayCarrier.op, "store_forward");
+assert.equal(relayCarrier.envelope.spec, "FED-MESH-1.0");
+assert.equal(relayCarrier.envelope.kind, "store-and-forward");
+assert.equal(relayCarrier.envelope.transmit, false);
+assert.equal(relayCarrier.encryption_allowed, false);
+assert.equal(isD2dStubOp("d2d_satellite_relay"), false);
+assert.equal(isD2dStubOp("satellite_relay"), false);
 
 const copy = `${SOFTWARE_COPY.aznet.one_line} ${SOFTWARE_COPY.aznet.description}`;
 assert.match(copy, /Check hash continuity/);
@@ -66,6 +87,7 @@ assert.doesNotMatch(copy, /\b(?:SLOT|REAL)\b/);
 assert.doesNotMatch(copy, /alternative internet is live|alt-internet LIVE|LIVE alt-internet/i);
 
 const registry = buildRegistry(PRODUCTS);
+assert.equal(registry.stub_op_count, 363);
 assert.equal(registry.bySlug.aznet.status, "live");
 assert.equal(registry.bySlug.mesh.status, "live");
 const packetOps = [
@@ -153,7 +175,10 @@ assert.equal(kernel.d2d_carriers.field_1_0, false);
 assert.equal(kernel.d2d_carriers.warn5, "STANDS-until-demonstrated");
 assert.equal(kernel.d2d_carriers.warn5_permanent_stay_off, false);
 assert.equal(kernel.d2d_carriers.security.mesh_fenced_to_loopback, false);
-assert.deepEqual(kernel.d2d_carriers.order, ["lan", "wifi", "bluetooth", "rf", "photon"]);
+assert.deepEqual(kernel.d2d_carriers.order, ["lan", "wifi", "bluetooth", "rf", "photon", "satellite_relay"]);
+assert.equal(kernel.d2d_carriers.satellite_relay_enabled, false);
+assert.equal(kernel.d2d_carriers.satellite_relay_live, false);
+assert.equal(kernel.d2d_carriers.satellite_relay_transmit, false);
 
 const live = await meshStatus({}, {});
 assert.equal(live.wifi, "cite");
@@ -224,7 +249,12 @@ assert.equal(probe.packet_live, false);
 assert.equal(probe.mesh_node_live, true);
 assert.equal(probe.alt_internet_live, true);
 assert.equal(probe.packet_path_live, true);
-assert.deepEqual(probe.order, ["lan", "wifi", "bluetooth", "rf", "photon"]);
+assert.deepEqual(probe.order, ["lan", "wifi", "bluetooth", "rf", "photon", "satellite_relay"]);
+assert.equal(probe.carriers.satellite_relay.enabled, false);
+assert.equal(probe.carriers.satellite_relay.live, false);
+assert.equal(probe.carriers.satellite_relay.transmit, false);
+assert.equal(probe.carriers.satellite_relay.purchased, false);
+assert.notEqual(probe.carriers.satellite_relay.state, "LIVE");
 for (const id of probe.order) {
   const row = probe.carriers[id];
   assert.notEqual(row.state, "LIVE", id);

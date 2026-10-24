@@ -175,7 +175,11 @@ assert.equal(bare.watch_qualifies, false);
 if (hostHardwareVisible()) {
   const lan = probeLan();
   const probe = track2CarrierProbe();
-  assert.deepEqual(probe.order, ["lan", "wifi", "bluetooth", "rf", "photon"]);
+  assert.deepEqual(probe.order, ["lan", "wifi", "bluetooth", "rf", "photon", "satellite_relay"]);
+  assert.equal(probe.carriers.satellite_relay.live, false);
+  assert.equal(probe.carriers.satellite_relay.enabled, false);
+  assert.equal(probe.carriers.satellite_relay.transmit, false);
+  assert.notEqual(probe.carriers.satellite_relay.state, "LIVE");
   assert.equal(fact.host_hardware_visible, true);
   assert.equal(fact.machine_id, readMachineId());
   if (fact.machine_id) assert.match(fact.not_live_sentence, new RegExp(fact.machine_id));

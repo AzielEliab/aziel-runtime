@@ -10,7 +10,13 @@ import { D2D_CARRIERS } from "../d2d-carriers.js";
 import { applyOffer, updateReceipt } from "./updater.js";
 import { UPDATE_CODES as C, RELEASE_PUBLIC_KEY } from "./manifest.js";
 
-export const MESH_CARRIER_ORDER = Object.freeze(D2D_CARRIERS.slice().sort((a, b) => a.order - b.order).map((c) => c.id));
+/** Walk only carriers whose switch is not off. satellite_relay stays out of this hop. */
+export const MESH_CARRIER_ORDER = Object.freeze(
+  D2D_CARRIERS.slice()
+    .sort((a, b) => a.order - b.order)
+    .filter((row) => row.enabled !== false && row.transmit !== false)
+    .map((row) => row.id),
+);
 
 /** What this node advertises: only a build it verified and applied itself. */
 export function meshAdvert(state) {

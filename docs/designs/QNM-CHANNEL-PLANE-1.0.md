@@ -15,6 +15,8 @@ Operator-armed **communication channel cites** on `GET /v1/mesh` (+ status):
 | RF | `rf: "cite"` (`cite/operator-armed`) |
 | Photon flashes | `photon: "cite"` (`cite/operator-armed`) |
 
+Receive-only sub-rows under `rf` (AM, FM, XM SDARS, satellite receive) and the satellite relay after photon are [`QNM-RF-BANDS-1.0`](QNM-RF-BANDS-1.0.md). Each switch is `enabled: false` and `live: false`. The relay does not transmit. Absent hardware refuses `QNM-RADIO-ABSENT`. Nothing is purchased.
+
 They sit on a **channel plane**. Data persist across devices is a local `qnm-node` / `qnsd` process law. The Worker **cites** that plane. `public_proxy` is **false**.
 
 The Worker rollup bearer stays **`suite-presence`**. Do not invent a second Worker bearer or live RF/BT hardware on Cloudflare.

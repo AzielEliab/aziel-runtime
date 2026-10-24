@@ -6,6 +6,7 @@
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { workerClaimsRadioHardware } from "../src/mesh-channel-plane.js";
 import { PRODUCTS } from "../src/index.js";
 import { RUNTIME_VERSION } from "../src/runtime-api.js";
 import { LIVE_OPS, STUB_OPS, buildRegistry, classifyCall, parseTarget } from "../src/fraggate/registry.js";
@@ -167,6 +168,11 @@ assert.equal(sanitizeBearer("suite-presence"), "suite-presence");
 assert.equal(sanitizeBearer("login"), "");
 assert.equal(sanitizeBearer("account-recover"), "");
 assert.equal(sanitizeBearer("node-gate"), "");
+assert.equal(sanitizeBearer("am"), "");
+assert.equal(sanitizeBearer("fm"), "");
+assert.equal(sanitizeBearer("xm-sdars"), "");
+assert.equal(sanitizeBearer("sat-rx"), "");
+assert.equal(sanitizeBearer("satellite-relay"), "");
 assert.equal(isSha256Hex("a".repeat(64)), true);
 assert.equal(isSha256Hex("not-a-hash"), false);
 
@@ -658,6 +664,17 @@ for (const name of ["wifi", "bluetooth", "rf", "photon"]) {
     assert.fail(`${name} claims radio hardware the worker cannot see`);
   }
 }
+for (const id of ["am", "fm", "xm_sdars", "sat_rx"]) {
+  const band = citeMesh.channel_plane.rows.rf.bands[id];
+  assert.equal(band.enabled, false, id);
+  assert.equal(band.live, false, id);
+  assert.equal(band.transmit, false, id);
+  assert.equal(band.purchased, false, id);
+}
+assert.equal(citeMesh.channel_plane.satellite_relay.live, false);
+assert.equal(citeMesh.channel_plane.satellite_relay.enabled, false);
+assert.equal(citeMesh.channel_plane.satellite_relay.transmit, false);
+assert.equal(workerClaimsRadioHardware(citeMesh), false);
 assert.equal(citeMesh.no_lie, true);
 assert.equal(citeMesh.no_rewrite, true);
 assert.equal(citeMesh.rewrite_key, false);
