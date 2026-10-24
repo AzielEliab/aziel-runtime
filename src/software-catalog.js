@@ -17,7 +17,8 @@ import { BUILD_GIT_SHA } from "./build-meta.js";
 import { CATALOG_ALIASES, VERSIONS } from "./catalog-meta.js";
 import { SOFTWARE_HUBS as CROSS_MAP_HUBS, crossMapFields } from "./cross-map.js";
 import { catalogSetsFromParts } from "./catalog-sets.js";
-import { CATALOG_COUNT_NOTE, MASTER_33_SLUGS, TAB_PLACEMENT_SLUGS, WORKER_ONLY_TAB_SLUGS, domainFields, domainMapView } from "./domain-map.js";
+import { MASTER_33_SLUGS, TAB_PLACEMENT_SLUGS, WORKER_ONLY_TAB_SLUGS, domainFields, domainMapView } from "./domain-map.js";
+import { softwareCountFacts, softwareCountNote } from "./software-counts.js";
 import { embeddedDigest } from "./engines/digest.js";
 import { JEEVES_SUITE_HELP } from "./engines/aziel-corpus/jeeves.js";
 import { LIVE_OPS, NAMED_STUBS, STUB_OPS, buildRegistry } from "./fraggate/registry.js";
@@ -607,6 +608,12 @@ export function softwareCatalog(origin, products, extra = {}) {
     autoDecision = { count: null, enabled: false, live: false, code: "UPDATE-STATE", message: String(err && err.message ? err.message : err) };
   }
   const autoUpdateReport = catalogAutoUpdateReport(software, autoDecision);
+  const count_definitions = softwareCountFacts(products);
+  const observed_live_count = software.filter((s) => s.status === "live").length;
+  count_definitions.observed_tab = software.length;
+  count_definitions.observed_live_count = observed_live_count;
+  count_definitions.label_matches_tab =
+    count_definitions.softwares_tab_placements === software.length && count_definitions.live_count === observed_live_count;
   return {
     ok: true,
     author: "Aziel Eliab",
@@ -633,7 +640,8 @@ export function softwareCatalog(origin, products, extra = {}) {
     version_id_note: versionMeta.version_id_note,
     ...(autoUpdateReport ? { auto_update_report: autoUpdateReport } : {}),
     count: software.length,
-    live_count: software.filter((s) => s.status === "live").length,
+    count_definitions,
+    live_count: observed_live_count,
     local_only_count: software.filter((s) => s.status === "local_only").length,
     stub_count: software.filter((s) => s.status === "stub").length,
     worker_only_count: software.filter((s) => s.worker_only).length,
@@ -646,7 +654,7 @@ export function softwareCatalog(origin, products, extra = {}) {
     platforms: platformsCite(extra.env),
     isolation_software_count: MASTER_33_SLUGS.length,
     tab_placement_slugs: TAB_PLACEMENT_SLUGS.slice(),
-    count_note: CATALOG_COUNT_NOTE,
+    count_note: softwareCountNote(products),
     catalog_sets: catalogSetsFor(products, software),
     ...discoveryHostFields(base),
     software,

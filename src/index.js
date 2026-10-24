@@ -443,6 +443,7 @@ import {
   workerHostOf,
 } from "./software-catalog.js";
 import { softwareDescription, softwareOneLine } from "./software-copy.js";
+import { softwareCountFacts } from "./software-counts.js";
 import { crossMapFields } from "./cross-map.js";
 
 export { RuntimeSession, ChainWriter, RateQuota, TunnelHub, RuntimeKv, AzNewsStore };
@@ -1766,6 +1767,14 @@ function llmsTxt(origin, env = {}) {
     `deploy_lag: ${catalog.deploy_lag || ""}`,
     catalog.deploy_lag_note || "",
     `softwares_count: ${catalog.count}`,
+    `softwares_count_label: ${(catalog.count_definitions && catalog.count_definitions.softwares_tab_placements_label) || ""}`,
+    `health_count: ${catalog.count_definitions ? catalog.count_definitions.health_count : ""}`,
+    `health_count_label: ${(catalog.count_definitions && catalog.count_definitions.health_count_label) || ""}`,
+    `live_count: ${catalog.count_definitions ? catalog.count_definitions.live_count : ""}`,
+    `live_count_label: ${(catalog.count_definitions && catalog.count_definitions.live_count_label) || ""}`,
+    `live_engines: ${catalog.count_definitions ? catalog.count_definitions.live_engines : ""}`,
+    `live_engines_label: ${(catalog.count_definitions && catalog.count_definitions.live_engines_label) || ""}`,
+    "Do not add these counts. 41 live advisory engines is not a label on this runtime.",
     "catalog_sets.equate: false",
     "Do not equate Softwares slugs, the FragGate allowlist, FragGate product_count, or mesh software_nodes.",
     `version_id: ${catalog.version_id || "null"}`,
@@ -3510,6 +3519,22 @@ async function callRuntimeTool(env, name, args, origin, request) {
   return null;
 }
 
+function healthCountFields(products) {
+  const facts = softwareCountFacts(products);
+  return {
+    count_label: facts.health_count_label,
+    count_is_softwares_count: false,
+    count_is_live_count: false,
+    softwares_count: facts.softwares_tab_placements,
+    softwares_count_label: facts.softwares_tab_placements_label,
+    live_count: facts.live_count,
+    live_count_label: facts.live_count_label,
+    live_engines: facts.live_engines,
+    live_engines_label: facts.live_engines_label,
+    count_definitions: facts,
+  };
+}
+
 function healthBody(origin, env = {}) {
   const calling = resolveCallingName(env);
   return {
@@ -3523,6 +3548,7 @@ function healthBody(origin, env = {}) {
     identity: "Aziel Eliab",
     products: PRODUCTS.map((p) => p.slug),
     count: PRODUCTS.length,
+    ...healthCountFields(PRODUCTS),
     skill: "/v1/skill",
     runtime: "/v1/runtime.json",
     door: "fraggate",
@@ -4603,6 +4629,7 @@ async function handleRequest(request, env, ctx) {
           shelves: shelvesCiteField(origin),
           cold_multi_shelf: COLD_MULTI_SHELF,
           count: PRODUCTS.length,
+          ...healthCountFields(PRODUCTS),
           products: PRODUCTS.map((p) => catalogRecord(p, origin)),
         },
         200,

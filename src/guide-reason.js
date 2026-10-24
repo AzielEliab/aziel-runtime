@@ -19,6 +19,7 @@ import { SOFTWARE_COPY } from "./software-copy.js";
 import { UI_DOMAINS } from "./ui-domains.js";
 import { RUNTIME_VERSION } from "./runtime-api.js";
 import { softwareMeta } from "./software-catalog.js";
+import { softwareCountSentence } from "./software-counts.js";
 import {
   commandPromptAnswer,
   commandPromptViews,
@@ -232,7 +233,7 @@ function flowAnswer(intent, cards, versionMeta) {
   if (intent === "software_count") {
     return {
       topic: "software_count",
-      answer: `Softwares count on this build is ${cards.length}. Ask Jeeves stays suite help with software_tab false and is not one of those cards.`,
+      answer: `${softwareCountSentence(cards)} Ask Jeeves stays suite help with software_tab false and is not one of those cards.`,
       actions: [{ label: "Open the Library tab", href: "#domain-tab-library" }],
     };
   }

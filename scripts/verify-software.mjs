@@ -167,6 +167,25 @@ assert.ok(!catalog.software.some((s) => s.slug === "trades-runtime"), "trades-ru
 assert.ok(catalog.sister_products.products.some((p) => p.slug === "trades-runtime" && p.engine === false && p.fraggate_call === false));
 assert.match(catalog.count_note, /trades-runtime/);
 assert.equal(catalog.count, 42);
+assert.equal(catalog.count_definitions.canonical, "softwares_tab_placements");
+assert.equal(catalog.count_definitions.equate, false);
+assert.equal(catalog.count_definitions.do_not_add, true);
+assert.equal(catalog.count_definitions.softwares_tab_placements, 42);
+assert.equal(catalog.count_definitions.isolation_software_count, 33);
+assert.equal(catalog.count_definitions.tab_placement_count, 9);
+assert.equal(catalog.count_definitions.live_count, 41);
+assert.equal(catalog.count_definitions.health_count, 41);
+assert.equal(catalog.count_definitions.live_engines, 40);
+assert.equal(catalog.count_definitions.health_count_is_softwares_count, false);
+assert.equal(catalog.count_definitions.health_count_is_live_count, false);
+assert.deepEqual(catalog.count_definitions.local_only_slugs, ["veillock"]);
+assert.deepEqual(catalog.count_definitions.worker_only_placements, ["whitestone"]);
+assert.equal(catalog.count_definitions.label_matches_tab, true);
+assert.equal(catalog.live_count, catalog.count_definitions.live_count);
+assert.match(catalog.count_note, /softwares_tab_placements 42/);
+assert.match(catalog.count_note, /live_engines 40/);
+assert.match(catalog.count_note, /41 live advisory engines/);
+assert.match(catalog.count_definitions.summary, /Do not add them/);
 assert.equal(catalog.catalog_sets.equate, false);
 assert.equal(catalog.catalog_sets.intentional_split, true);
 assert.equal(catalog.catalog_sets.same_count_not_same_set, true);
@@ -363,6 +382,17 @@ assert.deepEqual(body.tab_placement_slugs, [
 ]);
 assert.match(body.count_note, /placements/);
 assert.match(body.count_note, /software_count is 33/);
+assert.equal(body.count_definitions.label_matches_tab, true);
+assert.equal(body.count_definitions.live_engines, 40);
+const softwareHtml = await handler(
+  new Request(origin + "/v1/software", { headers: { Accept: "text/html" } }),
+  {},
+);
+assert.equal(softwareHtml.headers.get("content-type").includes("text/html"), true);
+const softwareHtmlText = await softwareHtml.text();
+assert.match(softwareHtmlText, /id="software-count-definitions"/);
+assert.match(softwareHtmlText, /softwares_tab_placements 42/);
+assert.match(softwareHtmlText, /live_engines 40/);
 assert.equal(body.domains.software_count, 33);
 assert.equal(body.domains.domains_are_doors, false);
 assert.ok(body.website_designs);
@@ -926,6 +956,14 @@ assert.match(goneBody.hint, /\/v1\/software/);
 
 const health = await (await get("/v1/health")).json();
 assert.match(health.update_check, /slug=\{slug\}/);
+assert.equal(health.count, 41);
+assert.equal(health.count_label, "in_process_catalog_products");
+assert.equal(health.count_is_softwares_count, false);
+assert.equal(health.count_is_live_count, false);
+assert.equal(health.softwares_count, 42);
+assert.equal(health.live_count, 41);
+assert.equal(health.live_engines, 40);
+assert.equal(health.count_definitions.canonical, "softwares_tab_placements");
 const mcpCard = await (await get("/mcp")).json();
 assert.match(mcpCard.update_check, /slug=\{slug\}/);
 

@@ -407,6 +407,7 @@ export function softwareCatalogHtml(origin, catalog, css, calling = null) {
   <p><a href="${base}/">← ${escapeHtml(product)}</a> · <a href="${base}/workspace">Use in browser</a></p>
   <h1>Softwares</h1>
   <p>Pick a Software and open it in the browser. A stub is not a live door. Programs still receive JSON from /v1/software.</p>
+  <p class="hint" id="software-count-definitions">${escapeHtml((catalog && catalog.count_definitions && catalog.count_definitions.summary) || "")}</p>
   ${aboutAzielStripHtml({ id: "about-aziel-strip-software" })}
   <p class="lead">${escapeHtml(SOFTWARE_PAGE_DESCRIPTION)}</p>
   ${catalog && catalog.git_sha_tracks_deployed_tip === true
