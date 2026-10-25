@@ -19,6 +19,12 @@ export const SOCIAL_STATUS_FAST_TIMEOUT_MS = 1000;
 export const SOCIAL_STATUS_CORPUS_REFRESH_MS = 22_000;
 export const ROLLUP_SNAPSHOT_KEY = "rollup|snapshot";
 export const ROLLUP_LAST_GOOD_PREFIX = "rollup|last-good|";
+/** Cross-isolate single-flight for the 60s rollup refresh. Not a USES map scan. */
+export const ROLLUP_REFRESH_LEASE_KEY = "rollup|refresh-lease";
+/** Longer than the 22s corpus refresh budget so a live refresh is not started twice. A dead holder frees the next request after this. */
+export const ROLLUP_REFRESH_LEASE_MS = 45_000;
+/** Cloudflare KV expirationTtl minimum is 60 seconds. The JSON `until` is the lease. */
+export const ROLLUP_REFRESH_LEASE_KV_TTL_S = 60;
 export const SOCIAL_STATUS_MAX_BODY = 64 * 1024;
 export const SOCIAL_STATUS_UA = "Mozilla/5.0";
 
@@ -99,9 +105,17 @@ const FORBIDDEN_KEYS = new Set(["uploads"]);
 let rollupCache = { at: 0, body: null };
 const memoryHubGood = new Map();
 
+/** Isolate single-flight slot. Not request data. One in-flight rollup refresh per isolate. */
+export function createStatsRollupIsolate() {
+  return { refresh: null };
+}
+
+const defaultIsolate = createStatsRollupIsolate();
+
 export function resetSocialStatusCache() {
   rollupCache = { at: 0, body: null };
   memoryHubGood.clear();
+  defaultIsolate.refresh = null;
 }
 
 function usesStore(env) {
@@ -522,13 +536,123 @@ export async function writeSharedRollup(env, body, now) {
   }
 }
 
+function parseRefreshLease(raw) {
+  if (!raw || typeof raw !== "string") return null;
+  try {
+    const rec = JSON.parse(raw);
+    if (!rec || typeof rec.token !== "string" || !Number.isFinite(rec.until)) return null;
+    return rec;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Short USES KV lease. Same-colo read-after-write keeps one winner.
+ * A missing read-back still allows this caller through so a lagging KV does not drop the only refresh.
+ * Another token already stored means this caller lost.
+ */
+async function acquireRollupRefreshLease(env, now) {
+  const kv = usesStore(env);
+  const token = crypto.randomUUID();
+  if (!kv) return { ok: true, token, held: false };
+  const until = now + ROLLUP_REFRESH_LEASE_MS;
+  let raw = null;
+  try {
+    raw = await kv.get(ROLLUP_REFRESH_LEASE_KEY);
+  } catch {
+    raw = null;
+  }
+  const cur = parseRefreshLease(raw);
+  if (cur && cur.until > now) return { ok: false, reason: "lease" };
+  const body = JSON.stringify({ token, until });
+  try {
+    await kv.put(ROLLUP_REFRESH_LEASE_KEY, body, { expirationTtl: ROLLUP_REFRESH_LEASE_KV_TTL_S });
+  } catch {
+    return { ok: false, reason: "lease-put" };
+  }
+  let after = null;
+  try {
+    after = await kv.get(ROLLUP_REFRESH_LEASE_KEY);
+  } catch {
+    after = null;
+  }
+  if (after == null) return { ok: true, token, held: true };
+  if (after !== body) return { ok: false, reason: "lease" };
+  return { ok: true, token, held: true };
+}
+
+async function releaseRollupRefreshLease(env, lease) {
+  if (!lease || !lease.held) return;
+  const kv = usesStore(env);
+  if (!kv) return;
+  let raw = null;
+  try {
+    raw = await kv.get(ROLLUP_REFRESH_LEASE_KEY);
+  } catch {
+    return;
+  }
+  const cur = parseRefreshLease(raw);
+  if (!cur || cur.token !== lease.token) return;
+  try {
+    if (typeof kv.delete === "function") await kv.delete(ROLLUP_REFRESH_LEASE_KEY);
+    else await kv.put(ROLLUP_REFRESH_LEASE_KEY, "");
+  } catch {
+    /* `until` expires the lease */
+  }
+}
+
+function refreshSnapshotOptions(options, now) {
+  const rest = { ...options };
+  delete rest.isolate;
+  return {
+    ...rest,
+    skipCache: true,
+    skipShared: false,
+    timeoutMs: SOCIAL_STATUS_CORPUS_REFRESH_MS,
+    now,
+  };
+}
+
+async function runRollupRefresh(env, snapshotOptions) {
+  const now = typeof snapshotOptions.now === "number" ? snapshotOptions.now : Date.now();
+  let lease = null;
+  try {
+    lease = await acquireRollupRefreshLease(env, now);
+    if (!lease.ok) return { ok: true, built: false, reason: "lease" };
+    await statsRollupSnapshot(env, snapshotOptions);
+    return { ok: true, built: true };
+  } catch {
+    return { ok: false, built: false, reason: "error" };
+  } finally {
+    if (lease && lease.ok) await releaseRollupRefreshLease(env, lease);
+  }
+}
+
+/**
+ * One rollup refresh per isolate, and one across isolates while the KV lease is held.
+ * The flag is set before the first await so N calls in one turn start one build.
+ */
+function scheduleRollupRefresh(isolate, env, snapshotOptions) {
+  const slot = isolate || defaultIsolate;
+  if (slot.refresh) return Promise.resolve({ ok: true, built: false, reason: "in-flight" });
+  slot.refresh = slot;
+  const job = runRollupRefresh(env, snapshotOptions).finally(() => {
+    if (slot.refresh === job) slot.refresh = null;
+  });
+  slot.refresh = job;
+  return job;
+}
+
 export async function statsRollupResponse(env = {}, options = {}) {
   const now = typeof options.now === "number" ? options.now : Date.now();
+  const isolate = options.isolate || defaultIsolate;
   const shared = await readSharedRollup(env);
   const savedAt = shared && shared.saved_at ? Date.parse(shared.saved_at) : NaN;
   const ageS = Number.isFinite(savedAt) ? Math.max(0, Math.round((now - savedAt) / 1000)) : null;
   const hasCorpus = Boolean(shared && shared.combined && shared.combined.corpus_views_included === true);
   const fresh = hasCorpus && shared.combined.partial !== true && ageS != null && ageS * 1000 < SOCIAL_STATUS_CACHE_TTL_MS;
+  const refresh = () => scheduleRollupRefresh(isolate, env, refreshSnapshotOptions(options, now));
   if (hasCorpus) {
     return {
       body: {
@@ -539,7 +663,7 @@ export async function statsRollupResponse(env = {}, options = {}) {
         stale: fresh ? shared.combined.stale === true : true,
         ...(fresh ? {} : { stale_age_s: ageS }),
       },
-      refresh: fresh ? null : () => statsRollupSnapshot(env, { ...options, skipCache: true, skipShared: false, timeoutMs: SOCIAL_STATUS_CORPUS_REFRESH_MS, now }),
+      refresh: fresh ? null : refresh,
     };
   }
   const body = await statsRollupSnapshot(env, {
@@ -550,9 +674,7 @@ export async function statsRollupResponse(env = {}, options = {}) {
   });
   return {
     body,
-    refresh: body.combined && body.combined.partial === true
-      ? () => statsRollupSnapshot(env, { ...options, skipCache: true, timeoutMs: SOCIAL_STATUS_CORPUS_REFRESH_MS })
-      : null,
+    refresh: body.combined && body.combined.partial === true ? refresh : null,
   };
 }
 

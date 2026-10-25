@@ -5,17 +5,22 @@
  */
 import assert from "node:assert/strict";
 import { PUBLIC_MCP_TOOLS } from "../src/fraggate/codes.js";
+import { seedAnchorMemo } from "../src/anchor.js";
 import { memorySessionNamespace } from "../src/session-do.js";
 import {
+  ROLLUP_REFRESH_LEASE_KEY,
   SOCIAL_STATUS_AUTHOR,
   SOCIAL_STATUS_HUBS,
   SOCIAL_STATUS_LIVE_URLS,
   SOCIAL_STATUS_PERSON_ID,
+  createStatsRollupIsolate,
   fetchHubSnapshot,
   llmsStatsAwarenessBlock,
   resetSocialStatusCache,
   socialStatusField,
+  statsRollupResponse,
   statsRollupSnapshot,
+  writeSharedRollup,
 } from "../src/social-status.js";
 import { memoryUsesKv, shouldIncrementUse } from "../src/uses.js";
 
@@ -370,5 +375,129 @@ const names = (toolsBody.result && toolsBody.result.tools ? toolsBody.result.too
 assert.ok(!names.includes("stats_rollups"));
 assert.ok(!names.includes("runtime_stats_rollups"));
 assert.ok(names.includes("fraggate_list"));
+
+function yieldingUsesKv() {
+  const inner = memoryUsesKv({ total: "7" });
+  const kv = {
+    leasePuts: 0,
+    async get(key) {
+      await Promise.resolve();
+      return inner.get(key);
+    },
+    async put(key, value, opts) {
+      await Promise.resolve();
+      if (key === ROLLUP_REFRESH_LEASE_KEY) kv.leasePuts += 1;
+      return inner.put(key, value, opts);
+    },
+    async delete(key) {
+      await Promise.resolve();
+      return inner.delete(key);
+    },
+  };
+  return kv;
+}
+
+function corpusCountingFetch() {
+  const state = { corpus: 0 };
+  const fetchImpl = async (url) => {
+    if (String(url) === "https://www.azielcorpuslibrary.net/stats") state.corpus += 1;
+    await new Promise((r) => setTimeout(r, 20));
+    return liveRoutes(url);
+  };
+  return { state, fetchImpl };
+}
+
+async function seedStaleCorpusRollup(env, now) {
+  const saved = now - 120_000;
+  const wrote = await writeSharedRollup(env, {
+    ok: true,
+    combined: {
+      views: 29,
+      downloads: 5,
+      complete: true,
+      partial: false,
+      corpus_views_included: true,
+      stale: false,
+      source_urls: ["https://www.azielcorpuslibrary.net/stats"],
+    },
+    sources: [{ id: "corpus", ok: true, views: 20, downloads: 3, url: "https://www.azielcorpuslibrary.net/stats" }],
+    fetched_at: new Date(saved).toISOString(),
+  }, saved);
+  assert.equal(wrote, true);
+}
+
+const CONCURRENT = 8;
+
+resetSocialStatusCache();
+{
+  const now = 1_700_000_120_000;
+  const kv = yieldingUsesKv();
+  const env = envWith({ USES: kv });
+  const { state, fetchImpl } = corpusCountingFetch();
+  await seedStaleCorpusRollup(env, now);
+  kv.leasePuts = 0;
+  const served = await Promise.all(Array.from({ length: CONCURRENT }, () => statsRollupResponse(env, { fetch: fetchImpl, origin, now })));
+  for (const s of served) {
+    assert.equal(s.body.cache_source, "shared");
+    assert.equal(s.body.stale, true);
+    assert.equal(s.body.stale_age_s, 120);
+    assert.equal(s.body.combined.views, 29);
+    assert.equal(s.body.combined.corpus_views_included, true);
+    assert.equal(typeof s.refresh, "function");
+  }
+  const jobs = [];
+  for (const s of served) jobs.push(s.refresh());
+  const results = await Promise.all(jobs);
+  assert.equal(results.filter((r) => r && r.built === true).length, 1);
+  assert.equal(state.corpus, 1, "same isolate: N concurrent rollup refreshes fetch corpus once");
+  assert.equal(kv.leasePuts, 1, "same isolate in-flight flag takes one lease");
+  const again = await statsRollupResponse(env, { fetch: fetchImpl, origin, now });
+  assert.equal(again.refresh, null, "a fresh shared rollup does not schedule another refresh");
+  assert.equal(state.corpus, 1);
+}
+
+resetSocialStatusCache();
+{
+  const now = 1_700_000_240_000;
+  const kv = yieldingUsesKv();
+  const env = envWith({ USES: kv });
+  const { state, fetchImpl } = corpusCountingFetch();
+  await seedStaleCorpusRollup(env, now);
+  kv.leasePuts = 0;
+  const isolates = Array.from({ length: CONCURRENT }, () => createStatsRollupIsolate());
+  const served = await Promise.all(isolates.map((isolate) => statsRollupResponse(env, { isolate, fetch: fetchImpl, origin, now })));
+  assert.ok(served.every((s) => s.body.combined.views === 29 && s.body.stale === true && typeof s.refresh === "function"));
+  const jobs = [];
+  for (const s of served) jobs.push(s.refresh());
+  const results = await Promise.all(jobs);
+  assert.equal(results.filter((r) => r && r.built === true).length, 1);
+  assert.equal(state.corpus, 1, "N isolates: one KV lease, one corpus fetch");
+  assert.equal(kv.leasePuts, CONCURRENT, "each isolate tries the lease");
+}
+
+resetSocialStatusCache();
+seedAnchorMemo("anchors", { ok: false }, Date.now());
+{
+  const kv = yieldingUsesKv();
+  const { state, fetchImpl } = corpusCountingFetch();
+  const env = envWith({ USES: kv, STATS_FETCH: fetchImpl });
+  await seedStaleCorpusRollup(env, Date.now() - 90_000);
+  kv.leasePuts = 0;
+  const pending = [];
+  const ctx = { waitUntil(p) { pending.push(Promise.resolve(p).catch(() => null)); } };
+  const responses = await Promise.all(Array.from({ length: CONCURRENT }, () => handler(new Request(origin + "/v1/stats-rollups"), env, ctx)));
+  await Promise.all(pending);
+  assert.equal(state.corpus, 1, "GET /v1/stats-rollups waitUntil refreshes once");
+  assert.equal(kv.leasePuts, 1);
+  for (const res of responses) {
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.cache_source, "shared");
+    assert.equal(body.stale, true);
+    assert.equal(body.combined.corpus_views_included, true);
+    assert.equal(body.combined.views, 29);
+    assert.ok(body.stale_age_s >= 60);
+  }
+}
 
 console.log("ok social-status: cite/catalog fields, rollup omit/timeout, no MCP tool, HDJ /api/stats only");

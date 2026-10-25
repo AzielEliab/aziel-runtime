@@ -47,7 +47,7 @@ assert.equal(r.maps_complete, true); assert.equal(r.by_host.h5, 2); assert.equal
 // Stale snapshot (> 3 h) is labelled, not presented as current.
 kv.m.set(USES_SNAPSHOT_KEY, JSON.stringify({ ...snap, snapshot_at: new Date(Date.now() - (3 * 60 + 1) * 60_000).toISOString() }));
 r = await readUses(env, { maps: "snapshot" });
-assert.equal(r.maps_complete, false); assert.match(r.maps_note, /stale/); assert.equal(r.maps_refresh, "due"); assert.equal(r.ring_ts, null); n++;
+assert.equal(r.maps_complete, false); assert.match(r.maps_note, /stale/); assert.match(r.maps_note, /does not scan/); assert.equal(r.maps_refresh, "due"); assert.equal(r.ring_ts, null); n++;
 // Through the Worker: /v1/stats well under 1s and cacheable (uses_complete true).
 clearStatsMemo();
 const { default: worker } = await import("../src/index.js");
@@ -57,6 +57,29 @@ const res = await worker.fetch(new Request("https://x.example/v1/stats"), wenv, 
 const ms = Date.now() - t;
 const body = await res.json();
 assert.equal(res.status, 200); assert.ok(ms < 1000, "/v1/stats took " + ms + "ms"); assert.equal(body.uses_complete, true); assert.equal(body.maps_source, "USES-SNAPSHOT-1.0"); n++;
+// Option A: N concurrent /v1/stats while maps_refresh is due do not start a USES scan.
+{
+  const { seedAnchorMemo } = await import("../src/anchor.js");
+  seedAnchorMemo("anchors", { ok: false }, Date.now());
+  clearStatsMemo();
+  const listsBefore = kv.lists;
+  const pending = [];
+  const N = 12;
+  const responses = await Promise.all(Array.from({ length: N }, () => worker.fetch(
+    new Request("https://x.example/v1/stats"),
+    wenv,
+    { waitUntil: (p) => pending.push(Promise.resolve(p).catch(() => null)) },
+  )));
+  await Promise.all(pending);
+  assert.equal(kv.lists, listsBefore, "N concurrent /v1/stats started " + (kv.lists - listsBefore) + " list scans");
+  for (const one of responses) {
+    assert.equal(one.status, 200);
+    const b = await one.json();
+    assert.equal(b.maps_refresh, "due");
+    assert.equal(b.by_host.h5, 2, "stale maps stay the last snapshot");
+  }
+  n++;
+}
 // The cron schedules the snapshot build.
 // One cron, every 30 min: due at :01 and :31 of the odd-minute cron only.
 const { snapshotDue, buildUsesSnapshot: build } = await import("../src/uses.js");

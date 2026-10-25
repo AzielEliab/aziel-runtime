@@ -742,6 +742,9 @@ export function memoryUsesKv(seed = {}) {
     async put(key, value) {
       store.set(key, String(value));
     },
+    async delete(key) {
+      store.delete(key);
+    },
     async list({ prefix = "", limit = 1000, cursor } = {}) {
       const names = [...store.keys()].filter((k) => k.startsWith(prefix)).sort();
       const start = cursor ? Number(cursor) || 0 : 0;
@@ -972,9 +975,9 @@ async function readUsesSnapshot(kv, base, uses, recent, startedAt, budgetMs) {
     maps_complete: mapsOk,
     maps_refresh: mapsOk ? "idle" : snap && snap.snapshot_at ? "due" : "idle",
     maps_note: mapsOk
-      ? "Per-host/path/day/method/op maps are the cron snapshot at maps_snapshot_at (checked every 30 minutes; re-stored only on change or every 2 hours); uses is live."
+      ? "Per-host/path/day/method/op maps are the cron snapshot at maps_snapshot_at (published at :01 and :31, or on the next odd-minute tick when older than 3 hours; re-stored only on change or every 2 hours). This request does not scan. uses is live."
       : snap && snap.snapshot_at
-        ? "Per-host/path/day/method/op maps are stale (no complete snapshot within 3 hours). maps_refresh is due. uses is live. The stale maps are still the last snapshot, not a zero fill."
+        ? "Per-host/path/day/method/op maps are stale (no complete snapshot within 3 hours). maps_refresh is due. The tether cron rebuilds them. This request does not scan. uses is live. The stale maps are still the last snapshot, not a zero fill."
         : "Per-host/path/day/method/op maps are not available yet or are stale (no complete snapshot within 3 hours); uses is live.",
     uses_read_ms: Date.now() - startedAt,
     uses_read_budget_ms: budgetMs,
