@@ -454,6 +454,57 @@ resetSocialStatusCache();
   const again = await statsRollupResponse(env, { fetch: fetchImpl, origin, now });
   assert.equal(again.refresh, null, "a fresh shared rollup does not schedule another refresh");
   assert.equal(state.corpus, 1);
+  assert.equal(await kv.get(ROLLUP_REFRESH_LEASE_KEY), null, "a finished refresh drops its lease");
+}
+
+resetSocialStatusCache();
+{
+  const now = 1_700_000_500_000;
+  const kv = yieldingUsesKv();
+  const env = envWith({ USES: kv });
+  const { state, fetchImpl } = corpusCountingFetch();
+  await seedStaleCorpusRollup(env, now);
+  await kv.put(ROLLUP_REFRESH_LEASE_KEY, JSON.stringify({ token: "other-isolate", until: now + 60_000 }));
+  const served = await statsRollupResponse(env, { isolate: createStatsRollupIsolate(), fetch: fetchImpl, origin, now });
+  const blocked = await served.refresh();
+  assert.equal(blocked.built, false);
+  assert.equal(blocked.reason, "lease");
+  assert.equal(state.corpus, 0, "a live KV lease blocks another isolate");
+  assert.equal(JSON.parse(await kv.get(ROLLUP_REFRESH_LEASE_KEY)).token, "other-isolate");
+}
+
+resetSocialStatusCache();
+{
+  const now = 1_700_000_600_000;
+  const kv = yieldingUsesKv();
+  const env = envWith({ USES: kv });
+  await seedStaleCorpusRollup(env, now);
+  let hits = 0;
+  let releaseHold;
+  const hold = new Promise((resolve) => { releaseHold = resolve; });
+  let opened;
+  const openedGate = new Promise((resolve) => { opened = resolve; });
+  const pausing = async (url) => {
+    if (String(url) === "https://www.azielcorpuslibrary.net/stats") {
+      hits += 1;
+      opened();
+      await hold;
+    }
+    return liveRoutes(url);
+  };
+  const first = await statsRollupResponse(env, { isolate: createStatsRollupIsolate(), fetch: pausing, origin, now });
+  const run = first.refresh();
+  await openedGate;
+  const second = await statsRollupResponse(env, { isolate: createStatsRollupIsolate(), fetch: pausing, origin, now });
+  const blocked = await second.refresh();
+  assert.equal(blocked.built, false);
+  assert.equal(blocked.reason, "lease");
+  assert.equal(hits, 1);
+  releaseHold();
+  const finished = await run;
+  assert.equal(finished.built, true);
+  assert.equal(hits, 1, "the lease holds for the whole in-flight build");
+  assert.equal(await kv.get(ROLLUP_REFRESH_LEASE_KEY), null);
 }
 
 resetSocialStatusCache();
