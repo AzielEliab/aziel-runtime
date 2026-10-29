@@ -63,11 +63,13 @@ This is not a government ID.
 This is not Sign in with Google or Apple.
 This is not an OAuth network.
 This is not an ICANN registrar.
-This is not Cap-7 public DNS.
-The alternative mesh internet is not live.
+Cap-7 names-only is not ICANN.
+This handle is not a mesh-internet door.
+Softwares membership is on: mesh_node_live, alt_internet_live, and packet_path_live are true. That is Softwares membership, not the QNS cite plane.
+GET /v1/mesh never enables.
 ```
 
-`alt_internet_live` stays false. `public_icann_registrar` stays false. This command is a local check, not a Cap-7 public DNS door. Softwares stay 42. `tools/list` stays 36.
+`mesh_node_live`, `alt_internet_live`, and `packet_path_live` are true. That trio is Softwares membership, not the QNS cite plane. `GET /v1/mesh` never enables. `cap7_name_only` stays true: Cap-7 names-only is not ICANN. `public_icann` and `public_icann_registrar` stay false. This handle is not a mesh-internet door. Radio PHY stays false. This command does not enable auto-update, RF transmit, or satellite relay, and it does not spend. Softwares stay 42. `tools/list` stays 36.
 
 ## 3. One sequence per handle
 

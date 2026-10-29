@@ -21,7 +21,7 @@ node cli/aziel-runtime.mjs handle generate
 node scripts/verify-local-handle.mjs
 ```
 
-The command signs and verifies a short statement on this machine. The private seed stays here. Every run prints that this is not a government ID, not Sign in with Google or Apple, not an OAuth network, not an ICANN registrar, not Cap-7 public DNS, and that the alternative mesh internet is not live. The mark is [`public/sigil.png`](../../public/sigil.png), the same file as <https://godlock.uk/sigil.png> and <https://www.azieleliab.com/sigil.png>.
+The command signs and verifies a short statement on this machine. The private seed stays here. Every run prints that this is not a government ID, not Sign in with Google or Apple, not an OAuth network, not an ICANN registrar, that Cap-7 names-only is not ICANN, and that this handle is not a mesh-internet door. `mesh_node_live`, `alt_internet_live`, and `packet_path_live` are true as Softwares membership, not the QNS cite plane. `GET /v1/mesh` never enables. The mark is [`public/sigil.png`](../../public/sigil.png), the same file as <https://godlock.uk/sigil.png> and <https://www.azieleliab.com/sigil.png>.
 
 Clean-room wrapper (clone → test → MCP → receipt): `bash scripts/clean-room-2.0.sh` — see [CLEAN-ROOM.md](CLEAN-ROOM.md).
 

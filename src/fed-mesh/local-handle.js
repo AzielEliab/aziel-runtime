@@ -7,17 +7,26 @@
  * Author: Aziel Eliab only.
  */
 
+import { cap7Honesty, QNM_MEMBERSHIP, QNM_NAMED_LIVE, QNM_SEPARATED } from "../qnm-honesty.js";
 import { b64urlToBytes, canonicalHandle, handleFromRawPublicKey, publicKeyMatchesHandle } from "./codec.js";
 import { generateEd25519, importEd25519Seed, signObject, verifyObject } from "./identity.js";
 import { FED_SPEC, HANDLE_RE } from "./spec.js";
 
+/**
+ * Printed on every run. The three named flags are Softwares membership
+ * (QNM_NAMED_LIVE). They are not the QNS cite plane. This command does
+ * not enable GET /v1/mesh, radio PHY, auto-update, RF transmit, or
+ * satellite relay, and it is not a mesh-internet door.
+ */
 export const HANDLE_HONESTY_LINES = Object.freeze([
   "This is not a government ID.",
   "This is not Sign in with Google or Apple.",
   "This is not an OAuth network.",
   "This is not an ICANN registrar.",
-  "This is not Cap-7 public DNS.",
-  "The alternative mesh internet is not live.",
+  "Cap-7 names-only is not ICANN.",
+  "This handle is not a mesh-internet door.",
+  "Softwares membership is on: mesh_node_live, alt_internet_live, and packet_path_live are true. That is Softwares membership, not the QNS cite plane.",
+  "GET /v1/mesh never enables.",
 ]);
 
 export const STATEMENT_TEXT_MAX = 512;
@@ -26,20 +35,32 @@ export const STATEMENT_TEXT_MAX = 512;
 export const HANDLE_SIGIL_PATH = "public/sigil.png";
 export const HANDLE_SIGIL_SHA256 = "af095e8b0916a7262860a53619c7110f25539988806775b1c7bff8df7b0ee848";
 
-function honestyFields() {
+/** Same fields on every JSON result. Values come from the membership contract. */
+export function handleHonestyFields() {
+  const cap7 = cap7Honesty();
   return {
     honesty: [...HANDLE_HONESTY_LINES],
     sigil: HANDLE_SIGIL_PATH,
     stored: false,
     uploaded: false,
     registered: false,
-    alt_internet_live: false,
-    public_icann_registrar: false,
+    mesh_membership: QNM_MEMBERSHIP.mesh_membership,
+    mesh_node_live: QNM_NAMED_LIVE.mesh_node_live,
+    alt_internet_live: QNM_NAMED_LIVE.alt_internet_live,
+    packet_path_live: QNM_NAMED_LIVE.packet_path_live,
+    qns_cite_plane: false,
+    get_never_enables: QNM_MEMBERSHIP.get_never_enables,
+    cap7_name_only: cap7.cap7_name_only === true,
+    public_icann: cap7.public_icann === true,
+    public_icann_registrar: cap7.public_icann_registrar === true,
+    mesh_internet_door: false,
+    radio_phy: QNM_SEPARATED.radio_phy === true,
+    worker_hardware: QNM_SEPARATED.worker_hardware === true,
   };
 }
 
 function fail(command, message) {
-  return { ok: false, command, message, spec: FED_SPEC, scheme: "Ed25519", ...honestyFields() };
+  return { ok: false, command, message, spec: FED_SPEC, scheme: "Ed25519", ...handleHonestyFields() };
 }
 
 export function parseSeed(text) {
@@ -99,7 +120,7 @@ export async function generateHandle() {
       handle: signing.handle,
       public_key: signing.public_key,
       seed,
-      ...honestyFields(),
+      ...handleHonestyFields(),
     };
   } finally {
     seedBytes.fill(0);
@@ -129,7 +150,7 @@ export async function signHandleStatement(seedText, text) {
       sig,
       text: parsed.text,
       statement,
-      ...honestyFields(),
+      ...handleHonestyFields(),
     };
   } finally {
     seed.fill(0);
@@ -171,6 +192,6 @@ export async function verifyHandleStatement({ handle, public_key, sig, text }) {
     message: good
       ? "Signature verified for this handle."
       : "Verification failed. The signature does not match this statement.",
-    ...honestyFields(),
+    ...handleHonestyFields(),
   };
 }

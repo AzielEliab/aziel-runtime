@@ -55,6 +55,7 @@ import {
   HANDLE_HONESTY_LINES,
   HANDLE_SIGIL_PATH,
   generateHandle,
+  handleHonestyFields,
   signHandleStatement,
   verifyHandleStatement,
 } from "../src/fed-mesh/local-handle.js";
@@ -225,7 +226,7 @@ async function cmdHandle(flags, sub) {
   if (sub === "sign") {
     const seed = await seedTextFromFlags(flags);
     if (!seed.ok) {
-      emitHandle(flags, { ok: false, command: "sign", message: seed.message, honesty: [...HANDLE_HONESTY_LINES] });
+      emitHandle(flags, { ok: false, command: "sign", message: seed.message, ...handleHonestyFields() });
       return;
     }
     const text = flags.text != null ? String(flags.text) : "";
@@ -249,7 +250,7 @@ async function cmdHandle(flags, sub) {
     ok: false,
     command: "handle",
     message: `Unknown handle command "${sub}".`,
-    honesty: [...HANDLE_HONESTY_LINES],
+    ...handleHonestyFields(),
   });
 }
 
@@ -1046,7 +1047,7 @@ async function main() {
         ok: false,
         command: sub || "handle",
         message: err && err.message ? err.message : String(err),
-        honesty: [...HANDLE_HONESTY_LINES],
+        ...handleHonestyFields(),
       });
     }
     return;

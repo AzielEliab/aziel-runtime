@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PUBLIC_MCP_TOOLS } from "../src/fraggate/codes.js";
+import { QNM_MEMBERSHIP, QNM_NAMED_LIVE } from "../src/qnm-honesty.js";
 import {
   HANDLE_HONESTY_LINES,
   HANDLE_SIGIL_PATH,
@@ -33,9 +34,18 @@ assert.match(guide, /SUITE_SOFTWARE_COUNT = 42/);
 const localSrc = await readFile(new URL("../src/fed-mesh/local-handle.js", import.meta.url), "utf8");
 const cliSrc = await readFile(new URL("../cli/aziel-runtime.mjs", import.meta.url), "utf8");
 for (const src of [localSrc, cliSrc]) {
-  assert.equal(src.includes("alt_internet_live: true"), false);
+  assert.equal(src.includes("The alternative mesh internet is not live"), false);
+  assert.equal(src.includes("alt_internet_live: false"), false);
+  assert.equal(src.includes("alt_internet_live:false"), false);
   assert.equal(src.includes("public_icann_registrar: true"), false);
+  assert.equal(src.includes("public_icann: true"), false);
+  assert.equal(src.includes("radio_phy: true"), false);
+  assert.equal(src.includes("worker_hardware: true"), false);
+  assert.equal(src.includes("auto_update: true"), false);
+  assert.equal(src.includes("satellite_relay"), false);
+  assert.equal(src.includes("meshEnable("), false);
 }
+assert.equal(localSrc.includes("QNM_NAMED_LIVE"), true);
 
 const paper = await readFile(new URL("../docs/designs/FED-MESH-1.0.md", import.meta.url), "utf8");
 assert.match(paper, /aziel-runtime handle/);
@@ -55,8 +65,10 @@ assert.deepEqual(
     "This is not Sign in with Google or Apple.",
     "This is not an OAuth network.",
     "This is not an ICANN registrar.",
-    "This is not Cap-7 public DNS.",
-    "The alternative mesh internet is not live.",
+    "Cap-7 names-only is not ICANN.",
+    "This handle is not a mesh-internet door.",
+    "Softwares membership is on: mesh_node_live, alt_internet_live, and packet_path_live are true. That is Softwares membership, not the QNS cite plane.",
+    "GET /v1/mesh never enables.",
   ],
 );
 
@@ -67,8 +79,7 @@ assert.equal(vector.public_key, VECTOR_PUBLIC);
 assert.equal(vector.uploaded, false);
 assert.equal(vector.registered, false);
 assert.equal(vector.stored, false);
-assert.equal(vector.alt_internet_live, false);
-assert.equal(vector.public_icann_registrar, false);
+assertMembership(vector);
 const vectorOk = await verifyHandleStatement({
   handle: vector.handle,
   public_key: vector.public_key,
@@ -120,6 +131,31 @@ function runCli(args) {
 function assertHonesty(text) {
   const block = `${HANDLE_HONESTY_LINES.join("\n")}\n\n`;
   assert.equal(text.startsWith(block), true);
+  assert.equal(text.includes("The alternative mesh internet is not live"), false);
+  assert.equal(text.includes('"alt_internet_live": false'), false);
+  assert.equal(text.includes("This handle is not a mesh-internet door."), true);
+}
+
+function assertMembership(body) {
+  assert.equal(body.mesh_membership, QNM_MEMBERSHIP.mesh_membership);
+  assert.equal(body.mesh_membership, "on");
+  assert.equal(body.mesh_node_live, QNM_NAMED_LIVE.mesh_node_live);
+  assert.equal(body.alt_internet_live, QNM_NAMED_LIVE.alt_internet_live);
+  assert.equal(body.packet_path_live, QNM_NAMED_LIVE.packet_path_live);
+  assert.equal(body.mesh_node_live, true);
+  assert.equal(body.alt_internet_live, true);
+  assert.equal(body.packet_path_live, true);
+  assert.equal(body.qns_cite_plane, false);
+  assert.equal(body.get_never_enables, QNM_MEMBERSHIP.get_never_enables);
+  assert.equal(body.get_never_enables, true);
+  assert.equal(body.cap7_name_only, true);
+  assert.equal(body.public_icann, false);
+  assert.equal(body.public_icann_registrar, false);
+  assert.equal(body.mesh_internet_door, false);
+  assert.equal(body.radio_phy, false);
+  assert.equal(body.worker_hardware, false);
+  assert.equal(body.honesty.includes("The alternative mesh internet is not live."), false);
+  assert.equal(body.honesty.includes("This handle is not a mesh-internet door."), true);
 }
 
 function parseResult(text) {
@@ -165,8 +201,7 @@ try {
   assert.equal(minted.stored, false);
   assert.equal(minted.uploaded, false);
   assert.equal(minted.registered, false);
-  assert.equal(minted.alt_internet_live, false);
-  assert.equal(minted.public_icann_registrar, false);
+  assertMembership(minted);
   assert.equal(minted.sigil, "public/sigil.png");
   assert.deepEqual(minted.honesty, [...HANDLE_HONESTY_LINES]);
   assert.equal(typeof minted.seed, "string");
@@ -191,6 +226,7 @@ try {
   assert.equal(signed.uploaded, false);
   assert.equal(signed.registered, false);
   assert.equal(Object.hasOwn(signed, "seed"), false);
+  assertMembership(signed);
 
   const verifiedRun = await runCli([
     "--json",
@@ -228,6 +264,7 @@ try {
   const mismatchBody = parseResult(mismatch.out);
   assert.equal(mismatchBody.ok, false);
   assert.match(mismatchBody.message, /Verification failed/);
+  assertMembership(mismatchBody);
 
   const other = await generateHandle();
   assert.equal(other.ok, true);
