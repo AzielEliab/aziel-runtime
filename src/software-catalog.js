@@ -19,6 +19,7 @@ import { SOFTWARE_HUBS as CROSS_MAP_HUBS, crossMapFields } from "./cross-map.js"
 import { catalogSetsFromParts } from "./catalog-sets.js";
 import { MASTER_33_SLUGS, TAB_PLACEMENT_SLUGS, WORKER_ONLY_TAB_SLUGS, domainFields, domainMapView } from "./domain-map.js";
 import { softwareCountFacts, softwareCountNote } from "./software-counts.js";
+import { meterFieldsFor, softwareMeterRoster } from "./software-meters.js";
 import { embeddedDigest } from "./engines/digest.js";
 import { JEEVES_SUITE_HELP } from "./engines/aziel-corpus/jeeves.js";
 import { LIVE_OPS, NAMED_STUBS, STUB_OPS, buildRegistry } from "./fraggate/registry.js";
@@ -417,6 +418,7 @@ export function liveSoftwareCard(product, origin, meta = {}) {
     git_sha: meta.git_sha || null,
     git_sha_tracks_deployed_tip: meta.git_sha_tracks_deployed_tip === true,
     ...(product.slug === "azvpn" ? { plain_status: "VPN on at boot", opt_out: false } : {}),
+    ...meterFieldsFor(product),
     door: doorLive ? "fraggate" : "none",
     kind: "software",
     mesh: meshHint("/v1/mesh"),
@@ -491,6 +493,7 @@ export function workerOnlySoftwareCard(spec, origin, meta = {}) {
     engine: false,
     fraggate_engine: false,
     worker_only: true,
+    ...meterFieldsFor(spec),
     note:
       "Live Worker. FragGate status is none. Hub tab reads worker_home / download_url / web_app. Case Mode is a product feature. Session-only. Author: Aziel Eliab only. Do not invent fraggate_call ops.",
     mesh: meshHint("/v1/mesh"),
@@ -601,6 +604,11 @@ export function softwareCatalog(origin, products, extra = {}) {
   };
   const versionMeta = softwareMeta(extra.env || {}, { version_id: extra.version_id || null });
   const software = listSoftwareEntries(products, base, meta);
+  const awareness = {
+    ...socialStatusField(base),
+    product_stats_template_is_probe_license: false,
+  };
+  const softwares_meters = softwareMeterRoster(products, WORKER_ONLY_PRODUCTS);
   let autoDecision = null;
   try {
     autoDecision = softwaresDecision(software.map((s) => s.slug));
@@ -655,6 +663,7 @@ export function softwareCatalog(origin, products, extra = {}) {
     isolation_software_count: MASTER_33_SLUGS.length,
     tab_placement_slugs: TAB_PLACEMENT_SLUGS.slice(),
     count_note: softwareCountNote(products),
+    softwares_meters,
     catalog_sets: catalogSetsFor(products, software),
     ...discoveryHostFields(base),
     software,
@@ -663,8 +672,8 @@ export function softwareCatalog(origin, products, extra = {}) {
     fraggate: `${base}/v1/fraggate`,
     fraggate_software: `${base}/v1/fraggate/software`,
     catalog: `${base}/v1/catalog.json`,
-    stats: socialStatusField(base),
-    social_status: socialStatusField(base),
+    stats: awareness,
+    social_status: awareness,
     update_check: updateCheckUrl(base),
     update_manifest: `${base}/v1/update/manifest`,
     hubs: SOFTWARE_HUBS.slice(),

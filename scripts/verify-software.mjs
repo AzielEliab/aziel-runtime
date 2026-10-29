@@ -150,6 +150,8 @@ assert.equal(fold.bucket, "lock");
 assert.equal(fold.status, "live");
 assert.ok(fold.download_url.endsWith("/download"));
 assert.ok(fold.worker_home.includes("foldlock-download-tracker"));
+assert.equal(fold.front_door_meter, true);
+assert.equal(fold.meter_label, "vibelock download-tracker");
 assert.ok(fold.agent.pipeline.includes("fraggate_list"));
 const fourd = catalog.software.find((s) => s.slug === "4dmap");
 assert.ok(fourd);
@@ -186,6 +188,32 @@ assert.match(catalog.count_note, /softwares_tab_placements 42/);
 assert.match(catalog.count_note, /live_engines 40/);
 assert.match(catalog.count_note, /41 live advisory engines/);
 assert.match(catalog.count_definitions.summary, /Do not add them/);
+const droppedMeterKeys = ["donation", "memory", "semantic_bridge", "social_status", "stats"];
+const noMeterSlugs = ["azvpn", "mmconsensus", "toolbench", "zkattest"];
+assert.equal(catalog.softwares_meters.spec, "SOFTWARES-METER-1.0");
+assert.equal(catalog.softwares_meters.product_stats_template_is_probe_license, false);
+assert.equal(catalog.stats.product_stats_template_is_probe_license, false);
+assert.deepEqual(catalog.softwares_meters.dropped.map((row) => row.key), droppedMeterKeys);
+assert.deepEqual(catalog.softwares_meters.no_front_door_meter.map((row) => row.slug).sort(), noMeterSlugs.slice().sort());
+assert.equal(catalog.softwares_meters.count, catalog.softwares_meters.meters.length);
+assert.equal(catalog.softwares_meters.count + catalog.softwares_meters.no_front_door_meter.length, catalog.count);
+assert.ok(catalog.softwares_meters.meters.every((row) => String(row.worker).endsWith("-download-tracker")));
+assert.ok(catalog.softwares_meters.meters.every((row) => row.meter_stats.includes(".vibelock.workers.dev/stats")));
+for (const key of droppedMeterKeys) {
+  assert.ok(!catalog.software.some((s) => s.slug === key), `${key} is not a Softwares meter product`);
+  assert.ok(!catalog.softwares_meters.meters.some((row) => row.slug === key));
+}
+for (const slug of noMeterSlugs) {
+  const card = catalog.software.find((s) => s.slug === slug);
+  assert.equal(card.front_door_meter, false, slug);
+  assert.equal(card.meter_label, "no front-door meter", slug);
+  assert.equal(card.meter_stats, null, slug);
+  assert.equal(card.worker_home, null, slug);
+  assert.match(card.usage_alias, new RegExp(`fraggate\\.call\\.${slug}`));
+  assert.match(card.worker_home_note, /Do not invent a download-tracker/);
+}
+assert.match(catalog.softwares_meters.probed_mix_note, /counted 49/);
+assert.match(catalog.softwares_meters.rule, /Vibelock download-trackers only/);
 assert.equal(catalog.catalog_sets.equate, false);
 assert.equal(catalog.catalog_sets.intentional_split, true);
 assert.equal(catalog.catalog_sets.same_count_not_same_set, true);
@@ -314,6 +342,18 @@ assert.equal(body.updated_at, "2026-09-30");
 assert.ok(body.software.every((s) => s.updated_at === "2026-09-30"));
 assert.match(body.update_check, /\/v1\/update\/check\?slug=\{slug\}&version=\{installed\}$/);
 assert.equal(body.count, 42);
+assert.equal(body.softwares_meters.count + body.softwares_meters.no_front_door_meter.length, 42);
+const softwareHtml = await handler(
+  new Request(origin + "/v1/software", { headers: { Accept: "text/html" } }),
+  {},
+);
+const softwareHtmlText = await softwareHtml.text();
+assert.match(softwareHtml.headers.get("content-type") || "", /text\/html/);
+assert.match(softwareHtmlText, /no front-door meter/);
+assert.doesNotMatch(softwareHtmlText, /azvpn-download-tracker/);
+assert.doesNotMatch(softwareHtmlText, /mmconsensus-download-tracker/);
+assert.doesNotMatch(softwareHtmlText, /toolbench-download-tracker/);
+assert.doesNotMatch(softwareHtmlText, /zkattest-download-tracker/);
 assert.equal(body.software.some((card) => card.slug === "jeeves" || card.slug === "ask-jeeves"), false);
 assert.equal(body.version_id, null);
 assert.equal(body.version_id_source, null);
@@ -384,15 +424,17 @@ assert.match(body.count_note, /placements/);
 assert.match(body.count_note, /software_count is 33/);
 assert.equal(body.count_definitions.label_matches_tab, true);
 assert.equal(body.count_definitions.live_engines, 40);
-const softwareHtml = await handler(
-  new Request(origin + "/v1/software", { headers: { Accept: "text/html" } }),
-  {},
-);
-assert.equal(softwareHtml.headers.get("content-type").includes("text/html"), true);
-const softwareHtmlText = await softwareHtml.text();
-assert.match(softwareHtmlText, /id="software-count-definitions"/);
-assert.match(softwareHtmlText, /softwares_tab_placements 42/);
-assert.match(softwareHtmlText, /live_engines 40/);
+{
+  const softwareHtml = await handler(
+    new Request(origin + "/v1/software", { headers: { Accept: "text/html" } }),
+    {},
+  );
+  assert.equal(softwareHtml.headers.get("content-type").includes("text/html"), true);
+  const softwareHtmlText = await softwareHtml.text();
+  assert.match(softwareHtmlText, /id="software-count-definitions"/);
+  assert.match(softwareHtmlText, /softwares_tab_placements 42/);
+  assert.match(softwareHtmlText, /live_engines 40/);
+}
 assert.equal(body.domains.software_count, 33);
 assert.equal(body.domains.domains_are_doors, false);
 assert.ok(body.website_designs);
