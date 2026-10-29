@@ -6,7 +6,9 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { planLattice } from "../src/dual-lattice.js";
 import { memoryRuntimeKvNamespace } from "../src/durable-kv.js";
-import { AGGREGATE_PLANES, CHAIN_KEY, PRIMARY_TARGET, SECONDARY_TARGET } from "../src/lattice-remote.js";
+import { AGGREGATE_PLANES, CHAIN_KEY, PRIMARY_TARGET, SECONDARY_TARGET, accessPointsPlane } from "../src/lattice-remote.js";
+import { CHANNEL_ORDER, RF_BANDS, RF_BAND_IDS, SATELLITE_RELAY_SWITCH } from "../src/mesh-channel-plane.js";
+import { TRAFFIC_PATHS } from "../src/qnm-honesty.js";
 
 const handler = (await import("../src/index.js")).default.fetch;
 const origin = "https://aziel-runtime.example";
@@ -228,6 +230,35 @@ check(agg.body.aggregate && agg.body.aggregate.uses && agg.body.aggregate.uses.u
 check(agg.body.aggregate.uses.ok === true && agg.body.live === false && agg.body.policy.cap7_is_icann === false, "complete uses are ok and still not live");
 check(agg.status === 200 && agg.body.ok === true && agg.body.code === "LATTICE-AGGREGATE", "aggregate read");
 check(agg.body.aggregate.nodes.human_uses === 4 && agg.body.aggregate.nodes.membership_changed === false, "nodes count uses without a join");
+check(agg.body.aggregate.cap7_is_icann === false && agg.body.aggregate.host_sites.cap7_is_icann === false && agg.body.aggregate.host_sites.cap7_public_icann === false, "aggregate cap7 is not icann");
+check(agg.body.aggregate.access_points.ok === true && agg.body.aggregate.access_points.complete === true && agg.body.aggregate.access_points.live === false, "traffic-on access points stay a complete read");
+check(agg.body.aggregate.access_points.rf === false && agg.body.aggregate.access_points.sat === false && agg.body.aggregate.access_points.spend === false && agg.body.aggregate.access_points.paid_satellite_held === true, "aggregate radios stay off and paid sat stays held");
+check(agg.body.aggregate.access_points.traffic_paths_enabled === true && agg.body.aggregate.access_points.traffic_paths_live === false && agg.body.aggregate.access_points.radio_phy === false, "traffic switch is on, live false, PHY absent");
+check(agg.body.aggregate.access_points.points.every((point) => point.enabled === false && point.live === false && point.hardware === false), "worker access points stay off");
+
+const cite = { order: CHANNEL_ORDER, bands: RF_BANDS, bandIds: RF_BAND_IDS, relay: SATELLITE_RELAY_SWITCH, traffic: TRAFFIC_PATHS };
+check(TRAFFIC_PATHS.enabled === true && TRAFFIC_PATHS.live === false && TRAFFIC_PATHS.paths.am.enabled === true && TRAFFIC_PATHS.paths.xm_sdars.enabled === false && TRAFFIC_PATHS.paths.satellite_relay.held === true, "open RF is armed and paid sat is held");
+const radiosOff = accessPointsPlane({
+  ...cite,
+  bands: {
+    ...RF_BANDS,
+    am: { ...RF_BANDS.am, enabled: false },
+    fm: { ...RF_BANDS.fm, enabled: false },
+    sat_rx: { ...RF_BANDS.sat_rx, enabled: false },
+  },
+  traffic: { ...TRAFFIC_PATHS, enabled: false },
+});
+check(radiosOff.ok === true && radiosOff.complete === true && radiosOff.live === false && radiosOff.traffic_paths_enabled === false, "radios off are a complete read");
+const liveRf = accessPointsPlane({ ...cite, bands: { ...RF_BANDS, am: { ...RF_BANDS.am, live: true } } });
+check(liveRf.ok === false && liveRf.complete === false && liveRf.rf === true && liveRf.live === false, "a live RF claim fails closed");
+const xmOn = accessPointsPlane({ ...cite, bands: { ...RF_BANDS, xm_sdars: { ...RF_BANDS.xm_sdars, enabled: true } } });
+check(xmOn.ok === false && xmOn.paid_satellite_held === false && xmOn.rf === false && xmOn.sat === false && xmOn.spend === false, "xm leaving HELD fails closed");
+const relayOn = accessPointsPlane({ ...cite, relay: { ...SATELLITE_RELAY_SWITCH, enabled: true } });
+check(relayOn.ok === false && relayOn.sat === true && relayOn.paid_satellite_held === false && relayOn.spend === false, "satellite relay leaving HELD fails closed");
+const spent = accessPointsPlane({ ...cite, traffic: { ...TRAFFIC_PATHS, purchased: true, paid_satellite: { ...TRAFFIC_PATHS.paid_satellite, spend: true, checkout: true, skus: true } } });
+check(spent.ok === false && spent.spend === true && spent.purchased === true, "spend fails closed");
+const unreadCite = accessPointsPlane({});
+check(unreadCite.ok === false && unreadCite.complete === false, "missing access-point cite is incomplete");
 
 const bare = await call("/v1/lattice/pull", { LATTICE_REMOTE: "1" });
 check(bare.status === 503 && bare.body.ok === false && bare.body.code === "token_not_configured", "aggregate without a configured token fails closed");

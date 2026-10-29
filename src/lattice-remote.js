@@ -12,6 +12,8 @@
  * An entry_hash pull without the operator header strips offline usernames. The operator header may include them.
  * The primary chain is one blob capped at 1024 rows.
  * live stays false. auto_update, RF, and sat stay off. Mesh membership is not changed.
+ * An enabled traffic-path switch with live false and no PHY is a complete access-point read.
+ * A live radio, spend, or a paid satellite path that leaves HELD is not.
  * Cap-7 is not ICANN. No spend. Not a Softwares card. Not an MCP tool.
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
@@ -348,6 +350,90 @@ function numberOrNull(value) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
+const HELD_RF_IDS = Object.freeze(["xm_sdars"]);
+
+/** A live radio, a PHY, or a purchase. The traffic-path `enabled` switch is not a claim. */
+function radioClaim(row) {
+  if (!row || typeof row !== "object") return true;
+  return row.live === true
+    || row.transmit === true
+    || row.hardware === true
+    || row.worker_hardware === true
+    || row.packet_live === true
+    || row.purchased === true
+    || row.spend === true
+    || row.checkout === true
+    || row.paid_ok === true
+    || row.paid_terminal === true
+    || row.skus === true
+    || row.plans === true;
+}
+
+function paidStaysHeld(row) {
+  return Boolean(row) && row.held === true && row.enabled !== true && radioClaim(row) === false;
+}
+
+/**
+ * Worker access-point cite. Points stay off: this door has no PHY.
+ * Open traffic paths may be enabled with live false. That is a complete read.
+ * XM SDARS and the satellite relay must stay HELD. A live claim, spend, or a
+ * paid path that leaves HELD makes the plane incomplete (fail closed).
+ */
+export function accessPointsPlane(cite) {
+  const src = cite && typeof cite === "object" ? cite : {};
+  const order = Array.isArray(src.order) ? src.order : [];
+  const bands = src.bands && typeof src.bands === "object" ? src.bands : {};
+  const bandIds = Array.isArray(src.bandIds) ? src.bandIds : [];
+  const relay = src.relay && typeof src.relay === "object" ? src.relay : null;
+  const traffic = src.traffic && typeof src.traffic === "object" ? src.traffic : {};
+  const paid = traffic.paid_satellite && typeof traffic.paid_satellite === "object" ? traffic.paid_satellite : {};
+  const points = order.map((id) => ({
+    id,
+    live: false,
+    enabled: false,
+    hardware: false,
+    worker_hardware: false,
+    transmit: false,
+  }));
+  const bandsRead = bandIds.length > 0 && bandIds.every((id) => bands[id] && typeof bands[id] === "object");
+  const bandsQuiet = bandIds.every((id) => {
+    const band = bands[id];
+    if (!band || typeof band !== "object") return false;
+    if (radioClaim(band)) return false;
+    if (band.held === true && band.enabled === true) return false;
+    return true;
+  });
+  const heldHonest = HELD_RF_IDS.every((id) => paidStaysHeld(bands[id])) && paidStaysHeld(relay);
+  const pointsQuiet = order.length > 0
+    && points.length === order.length
+    && points.every((point) => point.enabled === false && point.live === false && point.hardware === false && point.worker_hardware === false && point.transmit === false);
+  const rf = bandIds.some((id) => {
+    const band = bands[id];
+    return Boolean(band) && (band.live === true || band.transmit === true || band.hardware === true);
+  });
+  const sat = Boolean(relay) && (relay.live === true || relay.enabled === true || relay.transmit === true);
+  const spend = traffic.purchased === true || traffic.paid_ok === true || paid.spend === true || paid.checkout === true || paid.skus === true || paid.plans === true || (relay && relay.spend === true);
+  const trafficLive = traffic.live === true || traffic.worker_radios_live === true || traffic.radio_phy === true;
+  const complete = bandsRead && bandsQuiet && heldHonest && pointsQuiet && rf === false && sat === false && spend === false && trafficLive === false;
+  return {
+    ok: complete,
+    complete,
+    live: false,
+    hardware: false,
+    worker_hardware: false,
+    spend: spend === true,
+    purchased: traffic.purchased === true || paid.purchased === true || (relay ? relay.purchased === true : false),
+    rf,
+    sat,
+    radio_phy: traffic.radio_phy === true,
+    traffic_paths_enabled: traffic.enabled === true,
+    traffic_paths_live: traffic.live === true,
+    paid_satellite_held: heldHonest,
+    points,
+    note: "Worker access-point cite. Radios and PHY stay absent, so points stay off. An open traffic-path switch may be enabled with live false; that read is complete. XM SDARS and the satellite relay stay HELD. No spend.",
+  };
+}
+
 async function aggregatePlanes(env, rows, wanted) {
   const mesh = wanted.some((name) => name === "users" || name === "sites" || name === "nodes" || name === "node_mesh")
     ? await readMesh(env)
@@ -418,30 +504,15 @@ async function aggregatePlanes(env, rows, wanted) {
   }
 
   if (wanted.includes("access_points")) {
-    const { CHANNEL_ORDER, RF_BANDS, SATELLITE_RELAY_SWITCH } = await import("./mesh-channel-plane.js");
-    const points = CHANNEL_ORDER.map((id) => ({
-      id,
-      live: false,
-      enabled: false,
-      hardware: false,
-      worker_hardware: false,
-      transmit: false,
-    }));
-    const rfOn = Object.values(RF_BANDS).some((band) => band && band.enabled === true);
-    const satOn = SATELLITE_RELAY_SWITCH.enabled === true || SATELLITE_RELAY_SWITCH.live === true;
-    planes.access_points = {
-      ok: points.length > 0 && rfOn === false && satOn === false,
-      complete: points.length > 0 && rfOn === false && satOn === false,
-      live: false,
-      hardware: false,
-      worker_hardware: false,
-      spend: false,
-      purchased: false,
-      rf: false,
-      sat: false,
-      points,
-      note: "Worker access-point cite. Radios stay off. RF and satellite stay off. Nothing is purchased.",
-    };
+    const { CHANNEL_ORDER, RF_BANDS, RF_BAND_IDS, SATELLITE_RELAY_SWITCH } = await import("./mesh-channel-plane.js");
+    const { TRAFFIC_PATHS } = await import("./qnm-honesty.js");
+    planes.access_points = accessPointsPlane({
+      order: CHANNEL_ORDER,
+      bands: RF_BANDS,
+      bandIds: RF_BAND_IDS,
+      relay: SATELLITE_RELAY_SWITCH,
+      traffic: TRAFFIC_PATHS,
+    });
   }
 
   if (wanted.includes("nodes")) {
@@ -828,7 +899,9 @@ export function latticeRemoteOpenApiPaths() {
           "), aggregate=1, or a pull with no entry_hash is an aggregate across users, sites, uses, host sites, access points, nodes, and the node mesh. " +
           "Aggregate requires Authorization: Bearer or X-Aziel-Runtime-Token, the same operator header REQUIRE_TOKEN=1 uses. " +
           "Unauthenticated aggregate fails closed and returns no username listing. A missing entry_hash row is 404 LATTICE-PULL-MISS. " +
-          "An authenticated aggregate is 503 LATTICE-AGGREGATE-INCOMPLETE when a plane was not actually read.",
+          "An authenticated aggregate is 503 LATTICE-AGGREGATE-INCOMPLETE when a plane was not actually read. " +
+          "Access points are unread when the cite is missing, or when a point claims a live radio, spend, or a paid satellite path that left HELD. " +
+          "An enabled traffic-path switch with live false and no PHY is a complete read. Cap-7 is not ICANN.",
         tags: ["lattice"],
         parameters: [
           {
@@ -868,7 +941,8 @@ export function latticeRemoteOpenApiPaths() {
         description:
           shared +
           " Body: { entry_hash?, planes?: string[], aggregate?: true }. Query entry_hash must match the body when both are set. " +
-          "entry_hash alone is one row and lists no usernames. planes or a body with no entry_hash is an aggregate and requires the operator header. Unauthenticated aggregate fails closed.",
+          "entry_hash alone is one row and lists no usernames. planes or a body with no entry_hash is an aggregate and requires the operator header. Unauthenticated aggregate fails closed. " +
+          "An enabled traffic-path switch with live false and no PHY does not make access points unread. A live radio, spend, or a paid satellite path that left HELD does.",
         tags: ["lattice"],
         requestBody: {
           required: false,
