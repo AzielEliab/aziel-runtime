@@ -112,6 +112,16 @@ export class RuntimeKv {
     return { value: next, previous: prev, capped: prev + step > limit };
   }
 
+  /** Compare-and-swap one string. Fail closed when the stored bytes moved. */
+  async kvCas(key, prev, value) {
+    const k = "k:" + String(key);
+    const row = liveRow(await this.ctx.storage.get(k));
+    const current = row && row.v != null ? String(row.v) : "";
+    if (current !== String(prev == null ? "" : prev)) return { ok: false, conflict: true };
+    await this.ctx.storage.put(k, { v: String(value) });
+    return { ok: true };
+  }
+
   /** Fetch door (the runtime's Durable Objects are plain classes, so no RPC): POST {op, ...}. */
   async fetch(request) {
     let body = {};
@@ -128,6 +138,7 @@ export class RuntimeKv {
     else if (op === "list") out = await this.kvList(body.prefix, body.limit, body.after);
     else if (op === "scan") out = await this.kvScan(body.prefix, body.limit, body.after);
     else if (op === "incr") out = await this.kvIncr(body.key, body.by, body.cap, body.ttl, body.mark);
+    else if (op === "cas") out = await this.kvCas(body.key, body.prev, body.value);
     else return new Response(JSON.stringify({ ok: false, error: "unknown op" }), { status: 400 });
     return new Response(JSON.stringify(out), { headers: { "content-type": "application/json" } });
   }
@@ -201,6 +212,10 @@ export function hybridKv(ns, legacy) {
     /** AZRT-AUTH-ROLLUP-1.0: atomic capped counter in the Durable Object (no legacy KV involved). */
     async incr(key, by = 1, { cap = 0, ttl = 0, mark = null } = {}) {
       return call({ op: "incr", key: String(key), by, cap, ttl, mark: mark ? String(mark) : null });
+    },
+    /** Write only when the stored string is still `prev`. Conflict writes nothing. */
+    async cas(key, prev, value) {
+      return call({ op: "cas", key: String(key), prev: prev == null ? "" : String(prev), value: String(value) });
     },
     async get(key, opts) {
       const raw = await stub.kvGet(String(key));
