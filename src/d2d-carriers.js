@@ -17,7 +17,7 @@
 
 import { currentAltInternetFact } from "./alt-internet-fact.js";
 import { SATELLITE_RELAY_SWITCH } from "./mesh-channel-plane.js";
-import { cap7Honesty } from "./qnm-honesty.js";
+import { cap7Honesty, TRAFFIC_PATHS } from "./qnm-honesty.js";
 
 export const D2D_SPEC = "D2D-CARRIERS-1.0";
 export const D2D_AUTHOR = "Aziel Eliab";
@@ -45,6 +45,8 @@ export const D2D_CARRIERS = Object.freeze([
     mock: false,
     functional: true,
     peer_exchange_demonstrated: false,
+    enabled: TRAFFIC_PATHS.paths.lan.enabled === true,
+    live: false,
     absent_code: "QNM-RADIO-ABSENT",
     hw: "lan-interface",
     discovery: "LIVE-when-armed",
@@ -61,6 +63,8 @@ export const D2D_CARRIERS = Object.freeze([
     mock: false,
     functional: true,
     peer_exchange_demonstrated: false,
+    enabled: TRAFFIC_PATHS.paths.wifi.enabled === true,
+    live: false,
     absent_code: "QNM-RADIO-ABSENT",
     hw: "wifi-nm",
     discovery: "ARMED-when-HW",
@@ -77,6 +81,8 @@ export const D2D_CARRIERS = Object.freeze([
     mock: false,
     functional: true,
     peer_exchange_demonstrated: false,
+    enabled: TRAFFIC_PATHS.paths.bluetooth.enabled === true,
+    live: false,
     absent_code: "QNM-RADIO-ABSENT",
     hw: "bluez",
     discovery: "ARMED-when-HW",
@@ -93,6 +99,8 @@ export const D2D_CARRIERS = Object.freeze([
     mock: false,
     functional: true,
     peer_exchange_demonstrated: false,
+    enabled: TRAFFIC_PATHS.paths.rf.enabled === true,
+    live: false,
     absent_code: "QNM-RADIO-ABSENT",
     hw: "rf-beyond-wifi-bt",
     discovery: "REFUSE-without-HW",
@@ -109,6 +117,8 @@ export const D2D_CARRIERS = Object.freeze([
     mock: false,
     functional: true,
     peer_exchange_demonstrated: false,
+    enabled: TRAFFIC_PATHS.paths.photon.enabled === true,
+    live: false,
     absent_code: "QNM-RADIO-ABSENT",
     hw: "camera-flash",
     discovery: "REFUSE-without-HW",
@@ -130,9 +140,15 @@ export const D2D_CARRIERS = Object.freeze([
     absent_code: "QNM-RADIO-ABSENT",
     enabled: false,
     live: false,
+    held: true,
     transmit: false,
     purchased: false,
     paid_ok: false,
+    paid_terminal: false,
+    checkout: false,
+    skus: false,
+    plans: false,
+    spend: false,
     encryption_allowed: false,
     hw: "amateur-or-commercial-terminal",
     discovery: "REFUSE-without-HW",
@@ -146,7 +162,7 @@ export const D2D_CARRIERS = Object.freeze([
       plaintext_on_relay: false,
       transmit: false,
     }),
-    note: "Stub after photon. Not part of the failover preference. Transmit is off. enabled false. live false. Reuses the FED-MESH-1.0 store-and-forward envelope and the existing store_forward stub. No new FragGate op. Amateur uplink needs a license and cannot carry that encrypted body. A Starlink or Iridium terminal is a paid path and needs Aziel's explicit OK. Nothing is purchased. Without a terminal the relay refuses QNM-RADIO-ABSENT.",
+    note: "Stub after photon. Not part of the failover preference. Paid satellite stays HELD. Transmit is off. enabled false. live false. No spend, no SKU, no plan, no checkout. Reuses the FED-MESH-1.0 store-and-forward envelope and the existing store_forward stub. No new FragGate op. Nothing is purchased. Without a terminal the relay refuses QNM-RADIO-ABSENT.",
   }),
 ]);
 
@@ -289,6 +305,12 @@ export function d2dCarrierCite() {
     satellite_relay_enabled: false,
     satellite_relay_live: false,
     satellite_relay_transmit: false,
+    satellite_relay_held: true,
+    paid_satellite_held: true,
+    paid_satellite_checkout: false,
+    paid_satellite_skus: false,
+    paid_satellite_plans: false,
+    paid_satellite_spend: false,
     order_label: D2D_ORDER_LABEL,
     order_arrow: D2D_ORDER_ARROW,
     status: D2D_STATUS,
@@ -315,7 +337,7 @@ export function d2dCarrierCite() {
       loopback_isolation: false,
     },
     paper: D2D_PAPER,
-    note: `Track 2 node-mesh packet reachability stays ${D2D_STATUS} on the public Worker (${D2D_CODE}). Local LAN discovery is LIVE-when-armed. The peer tunnel is LIVE-when-session. Local store-forward is ${D2D_STORE_FORWARD}: three in-process nodes can deliver a sealed object, second_device is false, and that fixture does not close WARN-5. Wi-Fi and Bluetooth arm when that hardware is present and do not inherit a LAN beacon. The mobile join client speaks the local LAN beacon and sealed peer session. mobile_client stays present-not-demonstrated. A phone on Wi-Fi is that LAN path, not a Wi-Fi carrier exchange, and not an app-store release. RF and photon light flashes refuse QNM-RADIO-ABSENT without hardware, and there is no mock LIVE. peer_exchange_demonstrated stays false on those carriers. Phase E bootstrap lists and shelf cites stay scaffold. live_multi_provider stays false. Cold shelves stay SLOT. Failover is ${D2D_ORDER_ARROW}. Cap-7 factory name-plane active use is LIVE on Track 1. It is not ICANN and not a public egress IP. MirageGrid is not AZVPN. AZNet is the hash-continuity side-net and does not host payloads. Isolation is single-node security-awareness. Phoenix is local wait / re-seal. WARN-5 stays STANDS-until-demonstrated. mesh_node_live is true. alt_internet_live is true. packet_path_live is true. Radio PHY is not live.`,
+    note: `Track 2 node-mesh packet reachability stays ${D2D_STATUS} on the public Worker (${D2D_CODE}). Local LAN discovery is LIVE-when-armed. The peer tunnel is LIVE-when-session. Local store-forward is ${D2D_STORE_FORWARD}: three in-process nodes can deliver a sealed object, second_device is false, and that fixture does not close WARN-5. Wi-Fi and Bluetooth arm when that hardware is present and do not inherit a LAN beacon. The mobile join client speaks the local LAN beacon and sealed peer session. mobile_client stays present-not-demonstrated. A phone on Wi-Fi is that LAN path, not a Wi-Fi carrier exchange, and not an app-store release. RF and photon light flashes refuse QNM-RADIO-ABSENT without hardware, and there is no mock LIVE. peer_exchange_demonstrated stays false on those carriers. Phase E bootstrap lists and shelf cites stay scaffold. live_multi_provider stays false. Cold shelves stay SLOT. Failover is ${D2D_ORDER_ARROW}. Cap-7 factory name-plane active use is LIVE on Track 1. It is not ICANN and not a public egress IP. MirageGrid is not AZVPN. AZNet is the hash-continuity side-net and does not host payloads. Isolation is single-node security-awareness. Phoenix is local wait / re-seal. WARN-5 stays STANDS-until-demonstrated. mesh_node_live is true. alt_internet_live is true. packet_path_live is true. Radio PHY is not live. Traffic-path switches for LAN, Wi-Fi, Bluetooth, RF, and photon are enabled and live false. Paid satellite relay stays HELD: no spend, no SKU, no plan, no checkout.`,
   };
 }
 

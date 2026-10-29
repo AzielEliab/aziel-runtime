@@ -666,14 +666,20 @@ for (const name of ["wifi", "bluetooth", "rf", "photon"]) {
 }
 for (const id of ["am", "fm", "xm_sdars", "sat_rx"]) {
   const band = citeMesh.channel_plane.rows.rf.bands[id];
-  assert.equal(band.enabled, false, id);
+  assert.equal(band.enabled, id !== "xm_sdars", id);
   assert.equal(band.live, false, id);
   assert.equal(band.transmit, false, id);
   assert.equal(band.purchased, false, id);
+  assert.equal(band.checkout, false, id);
 }
 assert.equal(citeMesh.channel_plane.satellite_relay.live, false);
 assert.equal(citeMesh.channel_plane.satellite_relay.enabled, false);
+assert.equal(citeMesh.channel_plane.satellite_relay.held, true);
+assert.equal(citeMesh.channel_plane.satellite_relay.checkout, false);
 assert.equal(citeMesh.channel_plane.satellite_relay.transmit, false);
+assert.equal(citeMesh.traffic_paths_live, false);
+assert.equal(citeMesh.paid_satellite_held, true);
+assert.equal(citeMesh.paid_satellite_checkout, false);
 assert.equal(workerClaimsRadioHardware(citeMesh), false);
 assert.equal(citeMesh.no_lie, true);
 assert.equal(citeMesh.no_rewrite, true);

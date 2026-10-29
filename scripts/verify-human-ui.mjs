@@ -388,10 +388,14 @@ for (const name of ["wifi", "bluetooth", "rf", "photon"]) {
 for (const id of ["am", "fm", "xm_sdars", "sat_rx"]) {
   const band = mesh.channel_plane.rows.rf.bands[id];
   assert.equal(band.live, false, id);
-  assert.equal(band.enabled, false, id);
+  assert.equal(band.enabled, id !== "xm_sdars", id);
   assert.equal(band.transmit, false, id);
+  assert.equal(band.checkout, false, id);
 }
 assert.equal(mesh.channel_plane.satellite_relay.live, false);
+assert.equal(mesh.channel_plane.satellite_relay.enabled, false);
+assert.equal(mesh.channel_plane.satellite_relay.held, true);
+assert.equal(mesh.channel_plane.satellite_relay.checkout, false);
 assert.equal(mesh.channel_plane.satellite_relay.transmit, false);
 assert.equal(mesh.d2d_carriers.carriers.find((row) => row.id === "satellite_relay").live, false);
 assert.equal(mesh.channel_plane && mesh.channel_plane.spec, "QNM-CHANNEL-PLANE-1.0");

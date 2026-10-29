@@ -13,7 +13,8 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { networkInterfaces } from "node:os";
 import { join } from "node:path";
-import { RF_BAND_IDS, RF_BANDS } from "../../src/mesh-channel-plane.js";
+import { RF_BAND_IDS, RF_BANDS, SATELLITE_RELAY_SWITCH } from "../../src/mesh-channel-plane.js";
+import { TRAFFIC_PATHS } from "../../src/qnm-honesty.js";
 import { probeLightHardware } from "./photon.js";
 
 export const RADIO_HOOK_SPEC = "QNM-RADIO-HOOKS-1.0";
@@ -148,9 +149,10 @@ function bandDevice(id) {
 }
 
 /**
- * Read one receive-only band. The switch stays off.
- * Without the device the result is QNM-RADIO-ABSENT and live false.
- * A caller asking for live true does not flip the switch.
+ * Read one receive-only band.
+ * AM, FM, and SDR satellite receive follow the traffic-path switch and stay live false.
+ * XM stays HELD (paid plan). A caller asking for live or enabled does not flip either.
+ * Without the device the result is QNM-RADIO-ABSENT.
  */
 export function readRfBand(id, opts = {}) {
   const key = String(id || "");
@@ -164,6 +166,8 @@ export function readRfBand(id, opts = {}) {
       transmit: false,
       enabled: false,
       live: false,
+      held: false,
+      checkout: false,
       hardware: false,
       state: "REFUSE",
       code: RADIO_ABSENT,
@@ -173,6 +177,8 @@ export function readRfBand(id, opts = {}) {
   }
   const device = bandDevice(key);
   const probe = device === "siriusxm-tuner" ? probeSiriusXm(opts) : probeSdr(opts);
+  const enabled = spec.enabled === true;
+  const held = spec.held === true;
   const base = {
     ok: false,
     id: key,
@@ -181,12 +187,19 @@ export function readRfBand(id, opts = {}) {
     band: spec.band,
     receive_only: true,
     transmit: false,
-    enabled: false,
+    enabled,
     live: false,
+    held,
+    checkout: false,
+    skus: false,
+    plans: false,
+    spend: false,
     device,
     mock: false,
     purchased: false,
     paid_ok: false,
+    paid_terminal: false,
+    subscription_held: spec.subscription_held === true,
     worker_hardware: false,
     mesh_traffic: spec.mesh_traffic === true,
   };
@@ -202,14 +215,17 @@ export function readRfBand(id, opts = {}) {
   return {
     ...base,
     hardware: probe.kind,
-    state: "OFF",
+    state: held || !enabled ? "HELD" : "ARMED",
     code: null,
-    note: `${key} device ${probe.kind} is present. The switch stays off. live stays false. Nothing is purchased.`,
+    note: held || !enabled
+      ? `${key} device ${probe.kind} is present. The switch stays HELD. live stays false. No spend, no SKU, no plan, no checkout.`
+      : `${key} device ${probe.kind} is present. The switch is on. live stays false. This code does not demodulate. Nothing is purchased.`,
   };
 }
 
 /**
- * Satellite relay read. Transmit stays off. Nothing is purchased.
+ * Satellite relay read. Paid terminals and plans stay HELD.
+ * A caller cannot enable, transmit, check out, or mark this live.
  * Without a terminal the result is QNM-RADIO-ABSENT and live false.
  */
 export function readSatelliteRelay(opts = {}) {
@@ -218,11 +234,18 @@ export function readSatelliteRelay(opts = {}) {
     ok: false,
     id: "satellite_relay",
     transmit: false,
-    enabled: false,
+    enabled: SATELLITE_RELAY_SWITCH.enabled === true,
     live: false,
+    held: SATELLITE_RELAY_SWITCH.held === true,
+    checkout: false,
+    skus: false,
+    plans: false,
+    spend: false,
     mock: false,
     purchased: false,
     paid_ok: false,
+    paid_terminal: false,
+    software_path: false,
     encryption_allowed: false,
     envelope_spec: "FED-MESH-1.0",
     envelope_kind: "store-and-forward",
@@ -232,17 +255,17 @@ export function readSatelliteRelay(opts = {}) {
     return {
       ...base,
       hardware: false,
-      state: "REFUSE",
+      state: "HELD",
       code: RADIO_ABSENT,
-      note: "Satellite uplink/relay needs an amateur terminal or a commercial terminal. Without that device the relay refuses QNM-RADIO-ABSENT. Nothing is purchased.",
+      note: "Paid satellite terminals and plans stay HELD. Without a terminal the relay refuses QNM-RADIO-ABSENT. No spend, no SKU, no plan, no checkout.",
     };
   }
   return {
     ...base,
     hardware: probe.kind,
-    state: "OFF",
+    state: "HELD",
     code: null,
-    note: `Terminal ${probe.kind} is present. Transmit stays off. The switch stays off. A paid path needs Aziel's explicit OK. Nothing is purchased.`,
+    note: `Terminal ${probe.kind} is present. Paid satellite stays HELD. Transmit stays off. live stays false. Presence is not a purchase and not a checkout.`,
   };
 }
 
@@ -269,10 +292,12 @@ export function probeQnsd() {
 }
 
 function liveOrRefuse(channel, probe) {
+  const enabled = TRAFFIC_PATHS.paths[channel] && TRAFFIC_PATHS.paths[channel].enabled === true;
   if (probe.present) {
     return {
       channel,
       state: "LIVE",
+      enabled,
       hardware: probe.kind,
       code: null,
       mock: false,
@@ -281,10 +306,11 @@ function liveOrRefuse(channel, probe) {
   return {
     channel,
     state: "REFUSE",
+    enabled,
     hardware: false,
     code: RADIO_ABSENT,
     mock: false,
-    note: `${channel} hardware / local process absent — refuse. No mock LIVE.`,
+    note: `${channel} hardware / local process absent — refuse. The traffic-path switch is ${enabled ? "on" : "off"}. live stays false on that switch. No mock LIVE.`,
   };
 }
 
@@ -320,7 +346,7 @@ export function radioStatus() {
         : "No local radio hardware. SPORE-1.0 dormant — pause, preserve DNA, wait. Do not invent LIVE radios.",
     },
     note:
-      "Local qnm-node radio hooks. Worker GET /v1/mesh channel_plane stays cite-only (worker_hardware:false). A channel state of LIVE means host hardware or local qnsd is present. It is not a device-to-device packet hop (packet_hop false, d2d_packet_status NOT-READY). Photon here is local qnsd on loopback — not a camera/flash LiFi hop and not the open-world awareness bind (0.0.0.0). Dedicated RF packet hops and photon flashes stay on the D2D carrier plane. Receive-only AM, FM, XM SDARS, and satellite receive stay enabled false and live false, and refuse QNM-RADIO-ABSENT without an SDR or a licensed SiriusXM tuner. The satellite relay stays transmit false. forced_loopback and loopback_isolation are not the mesh fence. SPORE-1.0: hardware absent is dormant, not a mock LIVE beat.",
+      "Local qnm-node radio hooks. Worker GET /v1/mesh channel_plane stays cite-only (worker_hardware:false). A channel state of LIVE means host hardware or local qnsd is present. It is not a device-to-device packet hop (packet_hop false, d2d_packet_status NOT-READY). Photon here is local qnsd on loopback — not a camera/flash LiFi hop and not the open-world awareness bind (0.0.0.0). Dedicated RF packet hops and photon flashes stay on the D2D carrier plane. AM, FM, and SDR satellite receive switches are enabled and live false, and refuse QNM-RADIO-ABSENT without an SDR. XM SDARS stays HELD (paid plan). The satellite relay stays HELD, transmit false, with no spend, no SKU, no plan, and no checkout. forced_loopback and loopback_isolation are not the mesh fence. SPORE-1.0: hardware absent is dormant, not a mock LIVE beat.",
   };
 }
 
@@ -460,6 +486,7 @@ export function track2CarrierProbe() {
   const carriers = {};
   for (const [id, probe] of rows) {
     const down = probe.present === true && probe.up === false;
+    const enabled = TRAFFIC_PATHS.paths[id] && TRAFFIC_PATHS.paths[id].enabled === true;
     if (probe.present && !down) {
       carriers[id] = {
         id,
@@ -468,10 +495,12 @@ export function track2CarrierProbe() {
         address: probe.address || null,
         up: true,
         code: null,
+        enabled,
+        live: false,
         packet_live: false,
         mock: false,
         peer_exchange_demonstrated: false,
-        note: "Hardware seen. Peer exchange is not demonstrated. Not a LIVE packet hop.",
+        note: "Hardware seen. The traffic-path switch is on. live stays false. Peer exchange is not demonstrated. Not a LIVE packet hop.",
       };
     } else if (down) {
       carriers[id] = {
@@ -481,10 +510,12 @@ export function track2CarrierProbe() {
         address: probe.address || null,
         up: false,
         code: RADIO_ABSENT,
+        enabled,
+        live: false,
         packet_live: false,
         mock: false,
         peer_exchange_demonstrated: false,
-        note: `${id} interface ${probe.kind} is not up. Refuse ${RADIO_ABSENT}. No mock LIVE.`,
+        note: `${id} interface ${probe.kind} is not up. Refuse ${RADIO_ABSENT}. The switch is on. live stays false. No mock LIVE.`,
       };
     } else {
       carriers[id] = {
@@ -494,16 +525,18 @@ export function track2CarrierProbe() {
         address: null,
         up: false,
         code: RADIO_ABSENT,
+        enabled,
+        live: false,
         packet_live: false,
         mock: false,
         peer_exchange_demonstrated: false,
-        note: `${id} hardware absent. Refuse ${RADIO_ABSENT}. No mock LIVE.`,
+        note: `${id} hardware absent. Refuse ${RADIO_ABSENT}. The switch is on. live stays false. No mock LIVE.`,
       };
     }
   }
   carriers.satellite_relay = {
     id: "satellite_relay",
-    state: relayRead.hardware ? "HW-PRESENT" : "REFUSE",
+    state: "HELD",
     hardware: relayRead.hardware,
     address: null,
     up: false,
@@ -513,9 +546,15 @@ export function track2CarrierProbe() {
     peer_exchange_demonstrated: false,
     enabled: false,
     live: false,
+    held: true,
     transmit: false,
     purchased: false,
     paid_ok: false,
+    paid_terminal: false,
+    checkout: false,
+    skus: false,
+    plans: false,
+    spend: false,
     note: relayRead.note,
   };
   return {
@@ -531,7 +570,7 @@ export function track2CarrierProbe() {
     mock: false,
     functional: true,
     carriers,
-    note: "RF is beyond Wi-Fi and Bluetooth. Photon flashes are camera or flash, not qnsd. satellite_relay is listed after photon and stays enabled false, live false, and transmit false. It is not a failover hop. Radio PHY is not live. No carrier packet_live is true. No mock radio.",
+    note: "RF is beyond Wi-Fi and Bluetooth. Photon flashes are camera or flash, not qnsd. LAN, Wi-Fi, Bluetooth, RF, and photon switches are enabled and live false. satellite_relay stays HELD: enabled false, live false, transmit false, no spend, no SKU, no plan, no checkout. It is not a failover hop. Radio PHY is not live. No carrier packet_live is true. No mock radio.",
   };
 }
 

@@ -5,9 +5,10 @@
  * Live OS/hardware bearers run on local qnm-node / qnsd.
  * This Worker cites only. It does not invent RF/BT/Wi-Fi/photon
  * hardware. A cite is not a live Worker radio.
- * Receive-only RF bands (AM, FM, XM SDARS, satellite receive) and the
- * satellite relay are switches. Each one ships enabled false and live
- * false. The relay does not transmit. Nothing is purchased.
+ * Receive-only RF bands and the satellite relay are switches.
+ * AM, FM, and SDR satellite receive ship enabled and live false.
+ * XM SDARS and the satellite relay stay HELD: paid plans and paid
+ * terminals are not switched on. Nothing is purchased. No checkout.
  * Public VPN auto-binds
  * AZVPN (HTTPS/WS REAL). This plane is not a WireGuard/OpenVPN kernel
  * concentrator. Not Tor / SOCKS / origin-hiding.
@@ -18,6 +19,8 @@
  * Identity: Aziel Eliab only. Not a Softwares-tab product.
  * Not a FragGate slug. Not a new MCP tool.
  */
+
+import { TRAFFIC_PATHS } from "./qnm-honesty.js";
 
 export const CHANNEL_PLANE_SPEC = "QNM-CHANNEL-PLANE-1.0";
 export const CHANNEL_PLANE_AUTHOR = "Aziel Eliab";
@@ -34,7 +37,7 @@ export const RF_BAND_IDS = Object.freeze(["am", "fm", "xm_sdars", "sat_rx"]);
 export const SATELLITE_RELAY_ID = "satellite_relay";
 
 export const CHANNEL_PLANE_NOTE =
-  "Operator-armed communication channel cites (wifi / bluetooth / rf / photon) are cite/operator-armed. They are not live Worker radios. Live OS/hardware bearers run on local qnm-node / qnsd and refuse QNM-RADIO-ABSENT when that hardware is absent. Order is LAN, then Wi-Fi, then Bluetooth, then RF, then photon. Receive-only RF bands AM, FM, XM SDARS, and satellite receive, and the satellite relay after photon, stay enabled false and live false. The relay does not transmit. Absent devices refuse QNM-RADIO-ABSENT. Nothing is purchased. Public VPN auto-binds AZVPN (HTTPS/WS REAL; WireGuard/OpenVPN SLOT; GET cites only). This plane is not a kernel UDP concentrator. public_proxy false. suite-presence remains the Worker rollup bearer. Pairing ≠ tunnel.";
+  "Operator-armed communication channel cites (wifi / bluetooth / rf / photon) are cite/operator-armed. They are not live Worker radios. Live OS/hardware bearers run on local qnm-node / qnsd and refuse QNM-RADIO-ABSENT when that hardware is absent. Order is LAN, then Wi-Fi, then Bluetooth, then RF, then photon. Those traffic-path switches are enabled and live false until code on that path carries traffic. AM, FM, and SDR satellite receive are enabled and live false. XM SDARS and the satellite relay stay HELD (paid plan and paid terminal). No spend, no SKU, no plan, no checkout. The relay does not transmit. Absent devices refuse QNM-RADIO-ABSENT. Nothing is purchased. Public VPN auto-binds AZVPN (HTTPS/WS REAL; WireGuard/OpenVPN SLOT; GET cites only). This plane is not a kernel UDP concentrator. public_proxy false. suite-presence remains the Worker rollup bearer. Pairing ≠ tunnel.";
 
 const CHANNEL_NAMES = Object.freeze(["wifi", "bluetooth", "rf", "photon"]);
 
@@ -45,6 +48,10 @@ export const CHANNEL_CITES = Object.freeze({
   photon: CHANNEL_CITE,
 });
 
+function pathRow(id) {
+  return TRAFFIC_PATHS.paths[id] || {};
+}
+
 function channelRow(id) {
   return {
     id,
@@ -52,6 +59,7 @@ function channelRow(id) {
     display: CHANNEL_DISPLAY,
     hardware: false,
     live: false,
+    enabled: pathRow(id).enabled === true,
     worker_hardware: false,
     operator_armed: true,
     refuse_when_absent: true,
@@ -60,27 +68,33 @@ function channelRow(id) {
 }
 
 function rfBand(id, extra) {
+  const path = pathRow(id);
+  const enabled = path.enabled === true;
+  const held = path.held === true;
   return Object.freeze({
     id,
     parent: "rf",
     spec: RF_BAND_SPEC,
     receive_only: true,
-    transmit: false,
-    enabled: false,
-    live: false,
     hardware: false,
     worker_hardware: false,
-    state: "OFF",
     refuse_when_absent: true,
     code: CHANNEL_ABSENT,
-    purchased: false,
-    paid_ok: false,
     mock: false,
     ...extra,
+    enabled,
+    live: false,
+    held,
+    transmit: false,
+    purchased: false,
+    paid_ok: false,
+    paid_terminal: false,
+    checkout: false,
+    state: held || !enabled ? "HELD" : "ARMED",
   });
 }
 
-/** Receive-only sub-rows under rf. Switches ship off. */
+/** Receive-only sub-rows under rf. AM, FM, and sat_rx are armed and not live. XM stays HELD. */
 export const RF_BANDS = Object.freeze({
   am: rfBand("am", {
     band: "530-1700 kHz",
@@ -99,9 +113,13 @@ export const RF_BANDS = Object.freeze({
     device: "siriusxm-tuner",
     encrypted: true,
     subscription: true,
+    subscription_held: false,
     one_way: true,
     mesh_traffic: false,
-    absent_note: "XM SDARS needs a licensed SiriusXM tuner. Without that device the band refuses QNM-RADIO-ABSENT. It is encrypted, one-way, and cannot carry mesh traffic.",
+    skus: false,
+    plans: false,
+    spend: false,
+    absent_note: "XM SDARS needs a licensed SiriusXM tuner and a paid plan. That plan stays HELD. No SKU, no checkout, no spend. Without the tuner the band refuses QNM-RADIO-ABSENT. It is encrypted, one-way, and cannot carry mesh traffic.",
   }),
   sat_rx: rfBand("sat_rx", {
     band: "satellite-downlink",
@@ -111,23 +129,30 @@ export const RF_BANDS = Object.freeze({
   }),
 });
 
-/** Listed after photon. Transmit stays off. Not a purchase. */
+/** Listed after photon. Paid terminals and plans stay HELD. Not a purchase. */
 export const SATELLITE_RELAY_SWITCH = Object.freeze({
   id: SATELLITE_RELAY_ID,
+  held: true,
   enabled: false,
   live: false,
   transmit: false,
   purchased: false,
   paid_ok: false,
+  paid_terminal: false,
+  checkout: false,
+  skus: false,
+  plans: false,
+  spend: false,
+  software_path: false,
   encryption_allowed: false,
   hardware: false,
   worker_hardware: false,
-  state: "OFF",
+  state: "HELD",
   code: CHANNEL_ABSENT,
   envelope_spec: "FED-MESH-1.0",
   envelope_kind: "store-and-forward",
   mock: false,
-  note: "Satellite relay switch is off. Transmit is off. Nothing is purchased. A paid terminal needs Aziel's explicit OK. Without a terminal the relay refuses QNM-RADIO-ABSENT.",
+  note: "Paid satellite terminals and plans stay HELD. Transmit is off. live is false. No spend, no SKU, no plan, no checkout. Nothing is purchased. Without a terminal the relay refuses QNM-RADIO-ABSENT.",
 });
 
 export const CHANNEL_ROWS = Object.freeze({
@@ -161,6 +186,17 @@ function citeBody() {
       xm_sdars: { ...RF_BANDS.xm_sdars },
       sat_rx: { ...RF_BANDS.sat_rx },
     },
+    traffic_paths_spec: TRAFFIC_PATHS.spec,
+    traffic_paths_enabled: TRAFFIC_PATHS.enabled === true,
+    traffic_paths_live: false,
+    traffic_paths_open: TRAFFIC_PATHS.open_paths.slice(),
+    traffic_paths_held: TRAFFIC_PATHS.held_paths.slice(),
+    traffic_paths: { ...TRAFFIC_PATHS.paths },
+    paid_satellite_held: TRAFFIC_PATHS.paid_satellite.held === true,
+    paid_satellite_checkout: false,
+    paid_satellite_skus: false,
+    paid_satellite_plans: false,
+    paid_satellite_spend: false,
     satellite_relay: { ...SATELLITE_RELAY_SWITCH },
     rows: {
       wifi: { ...CHANNEL_ROWS.wifi },
@@ -221,6 +257,16 @@ export function channelPlaneFrame() {
     bluetooth: CHANNEL_CITE,
     rf: CHANNEL_CITE,
     photon: CHANNEL_CITE,
+    traffic_paths_enabled: TRAFFIC_PATHS.enabled === true,
+    traffic_paths_live: false,
+    traffic_paths_open: TRAFFIC_PATHS.open_paths.slice(),
+    traffic_paths_held: TRAFFIC_PATHS.held_paths.slice(),
+    traffic_paths: { ...TRAFFIC_PATHS.paths },
+    paid_satellite_held: TRAFFIC_PATHS.paid_satellite.held === true,
+    paid_satellite_checkout: false,
+    paid_satellite_skus: false,
+    paid_satellite_plans: false,
+    paid_satellite_spend: false,
     channel_plane_note: CHANNEL_PLANE_NOTE,
     channel_display: CHANNEL_DISPLAY,
     worker_hardware: false,
@@ -259,8 +305,9 @@ function claimsLiveValue(value) {
 
 function rowClaimsLive(row) {
   if (!row || typeof row !== "object") return false;
-  if (row.live === true || row.enabled === true || row.hardware === true || row.transmit === true || row.packet_live === true) return true;
-  if (claimsLiveValue(row.state) || claimsLiveValue(row.live) || claimsLiveValue(row.enabled)) return true;
+  // enabled is the traffic-path switch. It is not a PHY and not a live hop.
+  if (row.live === true || row.hardware === true || row.transmit === true || row.packet_live === true) return true;
+  if (claimsLiveValue(row.state) || claimsLiveValue(row.live)) return true;
   return false;
 }
 
@@ -276,6 +323,8 @@ function bandBags(src, plane) {
   pushBag(bags, src.bands);
   pushBag(bags, src.channels && src.channels.rf && src.channels.rf.bands);
   pushBag(bags, plane.channels && plane.channels.rf && plane.channels.rf.bands);
+  pushBag(bags, src.traffic_paths);
+  pushBag(bags, plane.traffic_paths);
   return bags;
 }
 
@@ -283,6 +332,8 @@ function relayRows(src, plane) {
   const out = [];
   if (src.satellite_relay && typeof src.satellite_relay === "object") out.push(src.satellite_relay);
   if (plane.satellite_relay && typeof plane.satellite_relay === "object") out.push(plane.satellite_relay);
+  if (src.traffic_paths && src.traffic_paths.satellite_relay) out.push(src.traffic_paths.satellite_relay);
+  if (plane.traffic_paths && plane.traffic_paths.satellite_relay) out.push(plane.traffic_paths.satellite_relay);
   if (plane.rows && plane.rows.satellite_relay) out.push(plane.rows.satellite_relay);
   const lists = [src.d2d_carriers && src.d2d_carriers.carriers, plane.carriers, src.carriers];
   for (const list of lists) {
@@ -302,8 +353,10 @@ function deviceNamed(row) {
 
 /**
  * True when a Worker body claims a radio it cannot see.
- * A receive-only band or the satellite relay that reads live, enabled,
- * or transmit without a device is that claim. The worker never has the device.
+ * A receive-only band or the satellite relay that reads live, transmit,
+ * packet_live, or hardware true without a device is that claim.
+ * enabled true is the traffic-path switch and is not that claim.
+ * The worker never has the device.
  */
 export function workerClaimsRadioHardware(body) {
   const src = body && typeof body === "object" ? body : {};

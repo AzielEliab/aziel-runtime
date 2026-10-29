@@ -24,7 +24,7 @@ import { embeddedDigest } from "./engines/digest.js";
 import { JEEVES_SUITE_HELP } from "./engines/aziel-corpus/jeeves.js";
 import { LIVE_OPS, NAMED_STUBS, STUB_OPS, buildRegistry } from "./fraggate/registry.js";
 import { meshHint } from "./mesh.js";
-import { cap7Honesty, QNM_MEMBERSHIP, QNM_NAMED_LIVE, QNM_SEPARATED } from "./qnm-honesty.js";
+import { cap7Honesty, PAID_SATELLITE_HELD, QNM_MEMBERSHIP, QNM_NAMED_LIVE, QNM_SEPARATED, TRAFFIC_PATHS } from "./qnm-honesty.js";
 import { qnsHint } from "./qns.js";
 import { actReceiptHint } from "./library-receipts.js";
 import { survivalHint } from "./cross-network-survival.js";
@@ -120,8 +120,10 @@ export function sortSoftwareEntries(entries) {
 /**
  * Softwares-card mesh stamp. Membership, default enable, and MESH_RADIOS
  * are on for every card. The three QNM named flags are on. Cap-7 factory
- * name-plane active use is on. Radio PHY and Cap-7 public ICANN stay false.
- * Whitestone is not a software_nodes row.
+ * name-plane active use is on. Designed traffic paths (LAN, Wi-Fi,
+ * Bluetooth, RF, photon, AM, FM, SDR satellite receive) are switched on
+ * and live false. Paid satellite stays HELD. Radio PHY and Cap-7 public
+ * ICANN stay false. Whitestone is not a software_nodes row.
  */
 export function softwareMeshStamp(slug, { fanout = false } = {}) {
   const stamp = {
@@ -136,6 +138,16 @@ export function softwareMeshStamp(slug, { fanout = false } = {}) {
     worker_hardware: QNM_SEPARATED.worker_hardware,
     worker_radios_live: QNM_SEPARATED.worker_radios_live,
     ...cap7Honesty(),
+    traffic_paths_enabled: TRAFFIC_PATHS.enabled === true,
+    traffic_paths_live: false,
+    traffic_paths_open: TRAFFIC_PATHS.open_paths,
+    traffic_paths_held: TRAFFIC_PATHS.held_paths,
+    traffic_paths: TRAFFIC_PATHS.paths,
+    paid_satellite_held: PAID_SATELLITE_HELD.held === true,
+    paid_satellite_checkout: false,
+    paid_satellite_skus: false,
+    paid_satellite_plans: false,
+    paid_satellite_spend: false,
     software_nodes_row: fanout === true,
   };
   if (slug === "azmail") {

@@ -178,8 +178,16 @@ if (hostHardwareVisible()) {
   assert.deepEqual(probe.order, ["lan", "wifi", "bluetooth", "rf", "photon", "satellite_relay"]);
   assert.equal(probe.carriers.satellite_relay.live, false);
   assert.equal(probe.carriers.satellite_relay.enabled, false);
+  assert.equal(probe.carriers.satellite_relay.held, true);
+  assert.equal(probe.carriers.satellite_relay.checkout, false);
   assert.equal(probe.carriers.satellite_relay.transmit, false);
+  assert.equal(probe.carriers.satellite_relay.state, "HELD");
   assert.notEqual(probe.carriers.satellite_relay.state, "LIVE");
+  for (const id of ["lan", "wifi", "bluetooth", "rf", "photon"]) {
+    assert.equal(probe.carriers[id].enabled, true, id);
+    assert.equal(probe.carriers[id].live, false, id);
+    assert.notEqual(probe.carriers[id].state, "LIVE", id);
+  }
   assert.equal(fact.host_hardware_visible, true);
   assert.equal(fact.machine_id, readMachineId());
   if (fact.machine_id) assert.match(fact.not_live_sentence, new RegExp(fact.machine_id));

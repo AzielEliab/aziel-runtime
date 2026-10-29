@@ -759,6 +759,29 @@ for (const card of body.software) {
   assert.equal(card.radio_phy, false, card.slug);
   assert.equal(card.worker_hardware, false, card.slug);
   assert.equal(card.worker_radios_live, false, card.slug);
+  assert.equal(card.traffic_paths_enabled, true, card.slug);
+  assert.equal(card.traffic_paths_live, false, card.slug);
+  assert.deepEqual(card.traffic_paths_open, ["lan", "wifi", "bluetooth", "rf", "photon", "am", "fm", "sat_rx"], card.slug);
+  assert.deepEqual(card.traffic_paths_held, ["xm_sdars", "satellite_relay"], card.slug);
+  assert.equal(card.paid_satellite_held, true, card.slug);
+  assert.equal(card.paid_satellite_checkout, false, card.slug);
+  assert.equal(card.paid_satellite_skus, false, card.slug);
+  assert.equal(card.paid_satellite_plans, false, card.slug);
+  assert.equal(card.paid_satellite_spend, false, card.slug);
+  for (const pathId of ["lan", "wifi", "bluetooth", "rf", "photon", "am", "fm", "sat_rx"]) {
+    assert.equal(card.traffic_paths[pathId].enabled, true, `${card.slug} ${pathId}`);
+    assert.equal(card.traffic_paths[pathId].live, false, `${card.slug} ${pathId}`);
+  }
+  assert.equal(card.traffic_paths.xm_sdars.enabled, false, card.slug);
+  assert.equal(card.traffic_paths.xm_sdars.live, false, card.slug);
+  assert.equal(card.traffic_paths.xm_sdars.held, true, card.slug);
+  assert.equal(card.traffic_paths.xm_sdars.checkout, false, card.slug);
+  assert.equal(card.traffic_paths.satellite_relay.enabled, false, card.slug);
+  assert.equal(card.traffic_paths.satellite_relay.live, false, card.slug);
+  assert.equal(card.traffic_paths.satellite_relay.held, true, card.slug);
+  assert.equal(card.traffic_paths.satellite_relay.checkout, false, card.slug);
+  assert.equal(card.traffic_paths.satellite_relay.paid_terminal, false, card.slug);
+  assert.equal(card.traffic_paths.satellite_relay.transmit, false, card.slug);
   assert.equal(card.cap7_live, true, card.slug);
   assert.equal(card.cap7_factory_live, true, card.slug);
   assert.equal(card.cap7_active_use, true, card.slug);

@@ -10,7 +10,7 @@ import { D2D_CARRIERS } from "../d2d-carriers.js";
 import { applyOffer, updateReceipt } from "./updater.js";
 import { UPDATE_CODES as C, RELEASE_PUBLIC_KEY } from "./manifest.js";
 
-/** Walk only carriers whose switch is not off. satellite_relay stays out of this hop. */
+/** Walk only carriers whose switch is not off. Paid satellite_relay stays HELD and out of this hop. */
 export const MESH_CARRIER_ORDER = Object.freeze(
   D2D_CARRIERS.slice()
     .sort((a, b) => a.order - b.order)

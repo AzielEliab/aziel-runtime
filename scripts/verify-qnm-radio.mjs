@@ -136,28 +136,59 @@ assert.equal(mesh.d2d_carriers.registrar_live, false);
 assert.equal(mesh.d2d_carriers.dns_publish, false);
 assert.equal(mesh.d2d_carriers.cap7_public_egress, false);
 assert.equal(mesh.d2d_carriers.public_egress_ip, false);
+for (const name of ["wifi", "bluetooth", "rf", "photon"]) {
+  assert.equal(mesh.channel_plane.rows[name].enabled, true, name);
+  assert.equal(mesh.channel_plane.rows[name].live, false, name);
+}
+assert.equal(mesh.traffic_paths_enabled, true);
+assert.equal(mesh.traffic_paths_live, false);
+assert.deepEqual(mesh.traffic_paths_open, ["lan", "wifi", "bluetooth", "rf", "photon", "am", "fm", "sat_rx"]);
+assert.deepEqual(mesh.traffic_paths_held, ["xm_sdars", "satellite_relay"]);
+assert.equal(mesh.paid_satellite_held, true);
+assert.equal(mesh.paid_satellite_checkout, false);
+assert.equal(mesh.paid_satellite_skus, false);
+assert.equal(mesh.paid_satellite_plans, false);
+assert.equal(mesh.paid_satellite_spend, false);
+assert.equal(mesh.traffic_paths.lan.enabled, true);
+assert.equal(mesh.traffic_paths.lan.live, false);
+assert.equal(mesh.traffic_paths.wifi.enabled, true);
+assert.equal(mesh.traffic_paths.bluetooth.enabled, true);
+assert.equal(mesh.traffic_paths.photon.enabled, true);
+assert.equal(mesh.traffic_paths.photon.live, false);
 for (const id of RF_BAND_IDS) {
   const cited = mesh.channel_plane.rows.rf.bands[id];
   const probed = status.rf_bands[id];
-  assert.equal(cited.enabled, false, id);
+  const on = id !== "xm_sdars";
+  assert.equal(cited.enabled, on, id);
   assert.equal(cited.live, false, id);
   assert.equal(cited.transmit, false, id);
   assert.equal(cited.receive_only, true, id);
   assert.equal(cited.purchased, false, id);
+  assert.equal(cited.checkout, false, id);
   assert.equal(cited.code, RADIO_ABSENT, id);
-  assert.equal(probed.enabled, false, id);
+  assert.equal(probed.enabled, on, id);
   assert.equal(probed.live, false, id);
   assert.equal(probed.transmit, false, id);
   assert.equal(probed.purchased, false, id);
+  assert.equal(probed.checkout, false, id);
+  if (!on) assert.equal(cited.held, true, id);
 }
 assert.equal(mesh.channel_plane.satellite_relay.enabled, false);
 assert.equal(mesh.channel_plane.satellite_relay.live, false);
+assert.equal(mesh.channel_plane.satellite_relay.held, true);
 assert.equal(mesh.channel_plane.satellite_relay.transmit, false);
 assert.equal(mesh.channel_plane.satellite_relay.purchased, false);
+assert.equal(mesh.channel_plane.satellite_relay.checkout, false);
+assert.equal(mesh.channel_plane.satellite_relay.skus, false);
+assert.equal(mesh.channel_plane.satellite_relay.plans, false);
+assert.equal(mesh.channel_plane.satellite_relay.spend, false);
+assert.equal(mesh.channel_plane.satellite_relay.paid_terminal, false);
 assert.equal(status.satellite_relay.enabled, false);
 assert.equal(status.satellite_relay.live, false);
+assert.equal(status.satellite_relay.held, true);
 assert.equal(status.satellite_relay.transmit, false);
 assert.equal(status.satellite_relay.purchased, false);
+assert.equal(status.satellite_relay.checkout, false);
 if (!probeSdr().present) {
   for (const id of ["am", "fm", "sat_rx"]) assert.equal(status.rf_bands[id].code, RADIO_ABSENT, id);
 }
@@ -172,7 +203,10 @@ assert.equal(workerClaimsRadioHardware({
   satellite_relay: { transmit: true, live: false, hardware: false },
 }), true);
 assert.equal(workerClaimsRadioHardware({
-  rf_bands: { fm: { enabled: true, hardware: false, code: RADIO_ABSENT } },
+  rf_bands: { fm: { enabled: true, live: false, hardware: false, code: RADIO_ABSENT } },
+}), false);
+assert.equal(workerClaimsRadioHardware({
+  rf_bands: { fm: { live: true, hardware: false, code: RADIO_ABSENT } },
 }), true);
 assert.equal(workerClaimsRadioHardware({
   worker_hardware: false,
@@ -190,58 +224,86 @@ assert.equal(workerClaimsRadioHardware({
       assert.equal(row.code, RADIO_ABSENT, id);
       assert.equal(row.state, "REFUSE", id);
       assert.equal(row.live, false, id);
-      assert.equal(row.enabled, false, id);
+      assert.equal(row.enabled, true, id);
       assert.equal(row.transmit, false, id);
+      assert.equal(row.checkout, false, id);
     }
     const xmAbsent = readRfBand("xm_sdars", { root, live: true, enabled: true });
     assert.equal(xmAbsent.code, RADIO_ABSENT);
     assert.equal(xmAbsent.live, false);
+    assert.equal(xmAbsent.enabled, false);
+    assert.equal(xmAbsent.held, true);
+    assert.equal(xmAbsent.checkout, false);
     assert.equal(xmAbsent.device, "siriusxm-tuner");
     const relayAbsent = readSatelliteRelay({ root, live: true, transmit: true, enabled: true });
     assert.equal(relayAbsent.code, RADIO_ABSENT);
+    assert.equal(relayAbsent.state, "HELD");
     assert.equal(relayAbsent.live, false);
+    assert.equal(relayAbsent.enabled, false);
+    assert.equal(relayAbsent.held, true);
     assert.equal(relayAbsent.transmit, false);
     assert.equal(relayAbsent.purchased, false);
     assert.equal(relayAbsent.paid_ok, false);
+    assert.equal(relayAbsent.checkout, false);
+    assert.equal(relayAbsent.skus, false);
+    assert.equal(relayAbsent.plans, false);
+    assert.equal(relayAbsent.spend, false);
+    assert.equal(relayAbsent.paid_terminal, false);
     mkdirSync(join(root, "dev"), { recursive: true });
     writeFileSync(join(root, "dev/swradio0"), "");
     for (const id of ["am", "fm", "sat_rx"]) {
       const row = readRfBand(id, { root, live: true, enabled: true });
       assert.equal(row.hardware, "sdr", id);
-      assert.equal(row.state, "OFF", id);
+      assert.equal(row.state, "ARMED", id);
+      assert.notEqual(row.state, "LIVE", id);
       assert.equal(row.code, null, id);
       assert.equal(row.live, false, id);
-      assert.equal(row.enabled, false, id);
+      assert.equal(row.enabled, true, id);
       assert.equal(row.transmit, false, id);
     }
     const xmStill = readRfBand("xm_sdars", { root, live: true });
     assert.equal(xmStill.code, RADIO_ABSENT, "an SDR is not a SiriusXM tuner");
     assert.equal(xmStill.live, false);
+    assert.equal(xmStill.enabled, false);
+    assert.equal(xmStill.held, true);
     writeFileSync(join(root, "dev/siriusxm0"), "");
     const xm = readRfBand("xm_sdars", { root, live: true, enabled: true });
     assert.equal(xm.hardware, "siriusxm-tuner");
     assert.equal(xm.live, false);
     assert.equal(xm.enabled, false);
+    assert.equal(xm.held, true);
+    assert.equal(xm.state, "HELD");
     assert.equal(xm.transmit, false);
     assert.equal(xm.mesh_traffic, false);
+    assert.equal(xm.checkout, false);
+    assert.equal(xm.subscription_held, false);
     const relayStill = readSatelliteRelay({ root, live: true, transmit: true });
     assert.equal(relayStill.code, RADIO_ABSENT, "an SDR is not a satellite terminal");
     assert.equal(relayStill.transmit, false);
+    assert.equal(relayStill.enabled, false);
+    assert.equal(relayStill.held, true);
     writeFileSync(join(root, "dev/starlink0"), "");
     const relay = readSatelliteRelay({ root, live: true, transmit: true, enabled: true });
     assert.equal(relay.hardware, "starlink");
-    assert.equal(relay.state, "OFF");
+    assert.equal(relay.state, "HELD");
+    assert.notEqual(relay.state, "LIVE");
     assert.equal(relay.live, false);
     assert.equal(relay.enabled, false);
+    assert.equal(relay.held, true);
     assert.equal(relay.transmit, false);
     assert.equal(relay.purchased, false);
     assert.equal(relay.paid_ok, false);
+    assert.equal(relay.paid_terminal, false);
+    assert.equal(relay.checkout, false);
+    assert.equal(relay.skus, false);
+    assert.equal(relay.plans, false);
+    assert.equal(relay.spend, false);
     assert.equal(relay.encryption_allowed, false);
     assert.equal(relay.envelope_spec, "FED-MESH-1.0");
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
-  console.log("verify-qnm-radio: rf bands and satellite relay stay off");
+  console.log("verify-qnm-radio: traffic switches on, live false, paid satellite held");
 }
 
 // QNM-PHOTON-CARRIER-1.0: photon is light. A local qnsd socket is not light hardware.

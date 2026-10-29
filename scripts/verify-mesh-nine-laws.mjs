@@ -161,22 +161,34 @@ function channel_plane_cites(live) {
   }
   const bands = live.channel_plane.rows.rf.bands;
   for (const id of ["am", "fm", "xm_sdars", "sat_rx"]) {
-    assert.equal(bands[id].enabled, false, id);
+    assert.equal(bands[id].enabled, id !== "xm_sdars", id);
     assert.equal(bands[id].live, false, id);
     assert.equal(bands[id].transmit, false, id);
     assert.equal(bands[id].receive_only, true, id);
     assert.equal(bands[id].code, "QNM-RADIO-ABSENT", id);
     assert.equal(bands[id].purchased, false, id);
+    assert.equal(bands[id].checkout, false, id);
   }
+  assert.equal(bands.xm_sdars.held, true);
   assert.equal(live.channel_plane.satellite_relay.enabled, false);
   assert.equal(live.channel_plane.satellite_relay.live, false);
+  assert.equal(live.channel_plane.satellite_relay.held, true);
   assert.equal(live.channel_plane.satellite_relay.transmit, false);
   assert.equal(live.channel_plane.satellite_relay.purchased, false);
+  assert.equal(live.channel_plane.satellite_relay.checkout, false);
   const relay = live.d2d_carriers.carriers.find((row) => row.id === "satellite_relay");
   assert.equal(relay.enabled, false);
   assert.equal(relay.live, false);
+  assert.equal(relay.held, true);
+  assert.equal(relay.checkout, false);
   assert.equal(relay.transmit, false);
   assert.equal(relay.packet_live, false);
+  for (const id of ["lan", "wifi", "bluetooth", "rf", "photon"]) {
+    const row = live.d2d_carriers.carriers.find((carrier) => carrier.id === id);
+    assert.equal(row.enabled, true, id);
+    assert.equal(row.live, false, id);
+    assert.equal(row.packet_live, false, id);
+  }
   assert.equal(workerClaimsRadioHardware(live), false);
   assert.equal(live.channel_plane.vpn, true);
   assert.equal(live.channel_plane.concentrator_slug, "azvpn");
