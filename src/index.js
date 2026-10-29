@@ -89,6 +89,8 @@
  * GET  /v1/mesh/sot           SOT-SYNC-1.0 suite tip (GET /v1/software authority; version_id from CF_VERSION_METADATA or null)
  * GET  /v1/mesh/outlets       outlet registry (aligned / drifted / unreachable / unexposed)
  * POST /v1/mesh/sot-sync      dry_run plan, or confirm apply (ACT-RECEIPT-1.0; pull plane)
+ * POST /v1/lattice/wrap       primary lattice append (LATTICE_REMOTE default off; operator token; live false)
+ * GET|POST /v1/lattice/pull   pull by entry_hash; aggregate requires the operator header; unauthenticated pull strips offline usernames (Cap-7 is not ICANN)
  * GET  /v1/bundle             compact bootstrap (skill URL + invoke prefix per product)
  * GET  /v1/pull?all=1         alias of /v1/bundle
  * GET  /v1/pull/{slug}        pull record (skill, download, install, ops, aliases)
@@ -206,6 +208,7 @@ import { RuntimeSession } from "./session-do.js";
 import { ChainWriter } from "./chainlock/writer-do.js";
 import { TunnelHub } from "./tunnel-hub-do.js";
 import { RuntimeKv, withDurableKv } from "./durable-kv.js";
+import { latticeRemoteOpenApiPaths } from "./lattice-remote.js";
 import { AzNewsStore } from "./aznews-do.js";
 import { storeFor } from "./chainlock/store.js";
 import { runWithLedgerStore } from "./fraggate/ledger.js";
@@ -2841,6 +2844,7 @@ function staticPaths(origin, env = {}) {
   const paths = {
     ...runtimeStaticPaths(),
     ...aznewsOpenApiPaths(),
+    ...latticeRemoteOpenApiPaths(),
     "/v1/azai/lattice": {
       get: {
         operationId: "azai_lattice_review",
@@ -5031,6 +5035,12 @@ async function handleRequest(request, env, ctx) {
       }
       const out = await aznewsCall(env, op, payload, authed ? { auth: true } : {});
       return asHead(request, json({ ...out, door: "runtime", fraggate_ops: "slug 4dmap: news_status news_feed news_item news_weather news_sky news_pins news_pin news_open news_pin_open news_receipts news_verify news_sources news_globe", page: "/aznews" }, out && out.ok === false && out.code === "AZNEWS-STORE-UNBOUND" ? 503 : 200, cors));
+    }
+
+    if (url.pathname === "/v1/lattice/wrap" || url.pathname === "/v1/lattice/pull") {
+      const { handleLatticeRemote } = await import("./lattice-remote.js");
+      const out = await handleLatticeRemote(request, env);
+      return asHead(request, json(out.body, out.status, authorityLinkHeaders(origin, url.pathname)));
     }
 
     if (url.pathname === "/v1/tether" && (request.method === "GET" || request.method === "HEAD")) {

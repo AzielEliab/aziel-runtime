@@ -190,6 +190,11 @@ service = "embryolock-download-tracker"
 # Softwares-tab product. Do not put the token in [vars].
 [vars]
 REQUIRE_TOKEN = "1"
+# LATTICE_REMOTE is unset on purpose. POST /v1/lattice/wrap and GET|POST /v1/lattice/pull
+# stay fail-closed until an operator sets LATTICE_REMOTE=1. Do not set it here.
+# This Worker is the primary lattice. Secondary is aziel-corpus (not this route).
+# auto_update, RF, and sat stay off. Mesh membership flags are unchanged.
+# Cap-7 is not ICANN. live stays false. No spend.
 # GIT_SHA is injected at deploy (`wrangler deploy --keep-vars --var GIT_SHA:$(git rev-parse HEAD)`).
 # Actions already passes github.sha. That var is the only stamp that tracks the deployed tip.
 # A fallback to src/build-meta.js, CF_VERSION_METADATA, or a catalog extra is deploy lag, not git HEAD.
