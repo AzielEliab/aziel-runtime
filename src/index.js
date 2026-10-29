@@ -158,7 +158,7 @@ import {
   llmsStatsAwarenessBlock,
   socialStatusCacheHeaders,
   socialStatusField,
-  statsRollupSnapshot,
+  statsRollupResponse,
 } from "./social-status.js";
 import { dispatchMemoryHttp, memoryDryRunPreview } from "./memory.js";
 import {
@@ -5080,6 +5080,9 @@ async function handleRequest(request, env, ctx) {
     ) {
       const light = url.searchParams.get("light") === "1" || url.searchParams.get("light") === "true";
       const uses = await cachedUses(light ? "light" : "full", () => readUses(env, { light, budget_ms: 8_000, maps: "snapshot" }), { floor: statsFloorFor(env) });
+      // Option A: do not start buildUsesSnapshot here. A stale map (maps_refresh "due")
+      // stays the last snapshot. The odd-minute tether cron rebuilds it. N concurrent
+      // hub hits must not each scan USES.
       if (uses && (uses.code === STATS_FLOOR_UNAVAILABLE || uses.code === STATS_CAP_CODE)) {
         return asHead(request, json(uses, 503, { ...authorityLinkHeaders(origin, url.pathname), "retry-after": String(uses.retry_after_s) }));
       }
@@ -5097,7 +5100,9 @@ async function handleRequest(request, env, ctx) {
     }
 
     if (url.pathname === "/v1/stats-rollups" && (request.method === "GET" || request.method === "HEAD")) {
-      const body = await statsRollupSnapshot(env, { origin });
+      const served = await statsRollupResponse(env, { origin });
+      if (served.refresh && ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(served.refresh());
+      const body = served.body;
       return asHead(
         request,
         json(body, 200, {
@@ -5296,10 +5301,10 @@ export default {
     const source = controller && controller.cron ? `cron:${controller.cron}` : "cron";
     const { TETHER_CRON, pushAllLegs } = await import("./azos-tether.js");
     // USES-SNAPSHOT-1.0: rebuild the /v1/stats maps off the request path (resumable across ticks).
-    if (ctx && typeof ctx.waitUntil === "function" && (await import("./uses.js")).snapshotDue(controller && controller.cron, controller && controller.scheduledTime, TETHER_CRON)) {
+    if (ctx && typeof ctx.waitUntil === "function" && controller && controller.cron === TETHER_CRON) {
       ctx.waitUntil(
         import("./uses.js")
-          .then(({ buildUsesSnapshot }) => buildUsesSnapshot(env, { budget_ms: 20_000 }))
+          .then(({ maybeBuildUsesSnapshot }) => maybeBuildUsesSnapshot(env, controller.cron, controller.scheduledTime, TETHER_CRON))
           .then((out) => console.log(JSON.stringify({ uses_snapshot: out })))
           .catch((err) => console.log(JSON.stringify({ uses_snapshot: "USES-SNAPSHOT-ERROR", error: String((err && err.message) || err).slice(0, 200) }))),
       );
