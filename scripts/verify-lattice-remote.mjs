@@ -147,13 +147,42 @@ check(offWrap.status === 409 && offWrap.body.code === "LATTICE-PRIMARY-ONLINE" &
 const stillMiss = await call("/v1/lattice/pull?entry_hash=" + C, env);
 check(stillMiss.status === 404 && stillMiss.body.ok === false, "refused wrap is a miss");
 
-const tie = { ...second, document_hash: C, tiebreak: { status: "synced" } };
+const brokenTie = { ...second, document_hash: C, tiebreak: { status: "synced" } };
+const brokenWrap = await call("/v1/lattice/wrap", env, {
+  method: "POST",
+  headers,
+  body: JSON.stringify({ entry_hash: C, lattice: brokenTie, submitting_user: "submitter", target: PRIMARY_TARGET }),
+});
+check(brokenWrap.status === 409 && brokenWrap.body.ok === false && brokenWrap.body.code !== "LATTICE-TIEBREAK-CORPUS", "a broken tie-break is not a corpus refusal");
+check(!source.includes("LATTICE-TIEBREAK-CORPUS"), "runtime does not refuse tie-break as corpus");
+
+const SUBMITTER = "submitter";
+const offDoc = await planLattice({ document_hash: C, offline: true, username: SUBMITTER, rows: [] });
+const synced = await planLattice({
+  document_hash: C,
+  offline: false,
+  username: SUBMITTER,
+  sync: true,
+  rows: [{ lattice: first }, { lattice: second }],
+  hasOffline: async (secondary) => secondary === offDoc.secondary,
+});
 const tieWrap = await call("/v1/lattice/wrap", env, {
   method: "POST",
   headers,
-  body: JSON.stringify({ entry_hash: C, lattice: tie, target: PRIMARY_TARGET }),
+  body: JSON.stringify({ entry_hash: C, lattice: synced, position: 3, submitting_user: SUBMITTER, target: PRIMARY_TARGET }),
 });
-check(tieWrap.status === 409 && tieWrap.body.code === "LATTICE-TIEBREAK-CORPUS", "tie-break stays on corpus");
+check(tieWrap.status === 201 && tieWrap.body.ok === true && tieWrap.body.live === false && tieWrap.body.lattice.tiebreak.status === "synced", "submitting-user tie-break is accepted");
+check(tieWrap.body.lattice.offline === false && tieWrap.body.lattice.username == null && tieWrap.body.code !== "LATTICE-TIEBREAK-CORPUS", "tie-break stays online on primary");
+const tiePublic = await call("/v1/lattice/pull?entry_hash=" + C, env);
+check(tiePublic.status === 200 && tiePublic.body.submitting_user === undefined && !JSON.stringify(tiePublic.body).includes(SUBMITTER), "unauthenticated pull strips the offline username");
+const tieOperator = await call("/v1/lattice/pull?entry_hash=" + C, env, { headers: { Authorization: "Bearer operator-secret" } });
+check(tieOperator.status === 200 && tieOperator.body.submitting_user === SUBMITTER && tieOperator.body.live === false, "operator pull may include the submitting user");
+const tieAgain = await call("/v1/lattice/wrap", env, {
+  method: "POST",
+  headers,
+  body: JSON.stringify({ entry_hash: C, lattice: synced, position: 3, submitting_user: SUBMITTER, target: PRIMARY_TARGET }),
+});
+check(tieAgain.status === 200 && tieAgain.body.code === "LATTICE-ALREADY" && tieAgain.body.written === false, "tie-break replay does not append");
 
 const elsewhere = await call("/v1/lattice/wrap", env, {
   method: "POST",
@@ -295,6 +324,10 @@ check(!JSON.stringify(hidden.body).includes(HANDLE) && !JSON.stringify(hidden.bo
 const one = await call("/v1/lattice/pull?entry_hash=" + A, plantEnv);
 check(one.status === 200 && one.body.entry_hash === A && one.body.lattice.username === undefined, "single-row pull stays open and omits the handle");
 check(!JSON.stringify(one.body).includes(HANDLE) && !JSON.stringify(one.body).includes("lattice_handles"), "single row is not a username list");
+const oneOperator = await call("/v1/lattice/pull?entry_hash=" + A, plantEnv, { headers: { Authorization: "Bearer operator-secret" } });
+check(oneOperator.status === 200 && oneOperator.body.lattice.username === HANDLE, "operator entry pull may include the offline username");
+const oneWrong = await call("/v1/lattice/pull?entry_hash=" + A, plantEnv, { headers: { Authorization: "Bearer wrong-secret" } });
+check(oneWrong.status === 401 && !JSON.stringify(oneWrong.body).includes(HANDLE), "wrong token on entry pull strips the username");
 const named = await call("/v1/lattice/pull?planes=users", plantEnv, { headers: { "X-Aziel-Runtime-Token": "operator-secret" } });
 check(named.status === 200 && named.body.aggregate.users.lattice_handles.includes(HANDLE), "operator header can read handles");
 const wrong = await call("/v1/lattice/pull?aggregate=1", plantEnv, { headers: { Authorization: "Bearer wrong-secret" } });
@@ -305,6 +338,8 @@ check(Boolean(openapi.body.paths["/v1/lattice/wrap"] && openapi.body.paths["/v1/
 check(Boolean(openapi.body.paths["/v1/lattice/pull"] && openapi.body.paths["/v1/lattice/pull"].get && openapi.body.paths["/v1/lattice/pull"].post), "openapi pull");
 check(Array.isArray(openapi.body.paths["/v1/lattice/wrap"].post.security) && Object.prototype.hasOwnProperty.call(openapi.body.paths["/v1/lattice/wrap"].post.security[0], "RuntimeToken"), "wrap keeps operator auth");
 check(openapi.body.paths["/v1/lattice/pull"].get.responses["401"] != null && /operator header/.test(openapi.body.paths["/v1/lattice/pull"].get.description), "pull aggregate documents operator auth");
+check(/1024/.test(openapi.body.paths["/v1/lattice/wrap"].post.description) && /submitting-user/.test(openapi.body.paths["/v1/lattice/wrap"].post.description), "openapi accepts tie-break and documents the cap");
+check(/strips offline usernames/.test(openapi.body.paths["/v1/lattice/pull"].get.description), "openapi documents username strip");
 
 const toml = readFileSync(new URL("../wrangler.toml", import.meta.url), "utf8");
 check(!/^LATTICE_REMOTE\s*=/m.test(toml), "flag stays unset in wrangler");

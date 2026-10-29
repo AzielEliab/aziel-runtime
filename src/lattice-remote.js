@@ -8,6 +8,9 @@
  * LATTICE_REMOTE defaults off. A miss is not ok. Operator token stays header-only.
  * Aggregate (planes, aggregate=1, or a pull with no entry_hash) requires that header.
  * Unauthenticated aggregate fails closed and lists no usernames.
+ * This Worker accepts a submitting-user LATTICE-TIEBREAK-1.0 wrap. Offline secondary rows stay on corpus.
+ * An entry_hash pull without the operator header strips offline usernames. The operator header may include them.
+ * The primary chain is one blob capped at 1024 rows.
  * live stays false. auto_update, RF, and sat stay off. Mesh membership is not changed.
  * Cap-7 is not ICANN. No spend. Not a Softwares card. Not an MCP tool.
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
@@ -19,7 +22,10 @@ import {
   LATTICE_USER_RE,
   checkLatticeRow,
   isHex64,
+  latticeOfflineSecondary,
+  latticeTiebreak,
   latticeTips,
+  tiebreakTip,
   verifyLattice,
 } from "./dual-lattice.js";
 import {
@@ -207,10 +213,53 @@ function secretKey(value, depth = 0) {
   return null;
 }
 
-function sameBlock(stored, block) {
+function sameBlock(stored, block, submittingUser) {
   const lat = stored && stored.lattice;
   if (!lat || !block) return false;
-  return lat.document_hash === block.document_hash && lat.primary === block.primary && lat.secondary === block.secondary;
+  if (lat.document_hash !== block.document_hash || lat.primary !== block.primary || lat.secondary !== block.secondary) return false;
+  const prevTb = lat.tiebreak;
+  const nextTb = block.tiebreak;
+  if (prevTb == null && nextTb == null) return true;
+  if (!prevTb || !nextTb) return false;
+  return prevTb.hash === nextTb.hash && prevTb.offline_secondary === nextTb.offline_secondary && (stored.submitting_user || null) === (submittingUser || null);
+}
+
+function latticeForChainWalk(row) {
+  const lat = row && row.lattice;
+  if (!lat || lat.tiebreak == null) return lat;
+  const copy = { ...lat };
+  delete copy.tiebreak;
+  return copy;
+}
+
+function submittingUserName(body, block) {
+  const tb = block && block.tiebreak;
+  const fromBody = body && body.submitting_user != null ? body.submitting_user : body && body.username;
+  const fromTie = tb && typeof tb === "object" ? tb.username : null;
+  if (fromBody != null && fromTie != null && String(fromBody).trim() !== String(fromTie).trim()) return "";
+  return String((fromBody != null ? fromBody : fromTie) ?? "").trim();
+}
+
+/** Online tie-break on this primary. Username is the submitting user. Offline secondary stays on corpus. */
+async function checkSubmittingTiebreak(block, body, rows, { replay = null } = {}) {
+  const tb = block.tiebreak;
+  if (tb == null) return { ok: true, username: null };
+  if (typeof tb !== "object" || Array.isArray(tb) || tb.status !== "synced") return { ok: false, code: "LATTICE-TIEBREAK" };
+  if (!isHex64(tb.hash) || !isHex64(tb.prev) || !isHex64(tb.offline_secondary)) return { ok: false, code: "LATTICE-TIEBREAK" };
+  const username = submittingUserName(body, block);
+  if (!username || !LATTICE_USER_RE.test(username)) return { ok: false, code: "LATTICE-USERNAME-ABSENT" };
+  const offSecondary = await latticeOfflineSecondary(block.document_hash, username);
+  if (tb.offline_secondary !== offSecondary) return { ok: false, code: "LATTICE-TIEBREAK-MISS" };
+  const want = await latticeTiebreak({ prev: tb.prev, primary: block.primary, secondary: offSecondary, username });
+  if (want !== tb.hash) return { ok: false, code: "LATTICE-TIEBREAK-MISS" };
+  if (replay && sameBlock(replay, block, username)) return { ok: true, username };
+  if (tb.prev !== tiebreakTip(rows)) return { ok: false, code: "LATTICE-TIEBREAK-PREV" };
+  for (const row of rows || []) {
+    const lat = row && row.lattice;
+    if (!lat || lat.document_hash !== block.document_hash || !lat.tiebreak || lat.tiebreak.status !== "synced") continue;
+    if (row.submitting_user === username) return { ok: false, code: "LATTICE-DOUBLE" };
+  }
+  return { ok: true, username };
 }
 
 function rowBody(row, durable, code) {
@@ -253,8 +302,10 @@ function parsePlanes(value) {
 function handlesFrom(rows) {
   const seen = [];
   for (const row of rows || []) {
-    const name = row && row.lattice && row.lattice.username;
-    if (typeof name === "string" && LATTICE_USER_RE.test(name) && !seen.includes(name)) seen.push(name);
+    const names = [row && row.lattice && row.lattice.username, row && row.submitting_user];
+    for (const name of names) {
+      if (typeof name === "string" && LATTICE_USER_RE.test(name) && !seen.includes(name)) seen.push(name);
+    }
   }
   return seen;
 }
@@ -497,7 +548,6 @@ async function appendWrap(env, body) {
     return fail(409, "LATTICE-SECONDARY-ELSEWHERE", { enabled: true, entry_hash, target: PRIMARY_TARGET });
   }
   if (block.offline === true) return fail(409, "LATTICE-PRIMARY-ONLINE", { enabled: true, entry_hash });
-  if (block.tiebreak != null) return fail(409, "LATTICE-TIEBREAK-CORPUS", { enabled: true, entry_hash });
   if (block.spec != null && block.spec !== LATTICE_SPEC) return fail(400, "LATTICE-SPEC", { enabled: true, entry_hash });
 
   return withLock(env, async () => {
@@ -505,8 +555,10 @@ async function appendWrap(env, body) {
     if (!loaded.ok) return fail(503, loaded.code, { enabled: true, entry_hash });
     const rows = loaded.rows;
     const prior = findRow(rows, entry_hash);
+    const tied = await checkSubmittingTiebreak(block, body, rows, { replay: prior });
+    if (!tied.ok) return fail(409, tied.code, { enabled: true, entry_hash, written: false });
     if (prior) {
-      if (!sameBlock(prior, block)) return fail(409, "LATTICE-DOUBLE", { enabled: true, entry_hash, written: false });
+      if (!sameBlock(prior, block, tied.username)) return fail(409, "LATTICE-DOUBLE", { enabled: true, entry_hash, written: false });
       return { status: 200, body: rowBody(prior, loaded.durable, "LATTICE-ALREADY") };
     }
     if (rows.length >= CHAIN_CAP) return fail(409, "LATTICE-CAP", { enabled: true, entry_hash });
@@ -525,8 +577,9 @@ async function appendWrap(env, body) {
       position,
       spec: LATTICE_SPEC,
       lattice: block,
+      ...(tied.username ? { submitting_user: tied.username } : {}),
     };
-    const verified = await verifyLattice(rows.concat([stored]));
+    const verified = await verifyLattice(rows.concat([stored]), { pick: latticeForChainWalk });
     if (!verified.ok) {
       const br = verified.breaks && verified.breaks[0] ? verified.breaks[0].reason : "verify";
       return fail(409, "LATTICE-VERIFY", { enabled: true, entry_hash, reason: br });
@@ -544,10 +597,32 @@ async function appendWrap(env, body) {
 
 function publicLattice(block) {
   if (!block || typeof block !== "object") return block;
-  if (block.username == null) return block;
   const copy = { ...block };
-  delete copy.username;
-  return copy;
+  let changed = false;
+  if (copy.username != null) {
+    delete copy.username;
+    changed = true;
+  }
+  if (copy.tiebreak && typeof copy.tiebreak === "object" && copy.tiebreak.username != null) {
+    copy.tiebreak = { ...copy.tiebreak };
+    delete copy.tiebreak.username;
+    changed = true;
+  }
+  return changed ? copy : block;
+}
+
+function operatorGate(request, env) {
+  const presented = extractRuntimeToken(request);
+  if (!presented) return { ok: false, presented: false };
+  if (requireTokenFlag(env) && !tokenConfigured(env)) {
+    return { ok: false, presented: true, status: 503, code: "token_not_configured", error: "REQUIRE_TOKEN=1 but RUNTIME_TOKEN secret is missing" };
+  }
+  const secret = tokenSecret(env);
+  if (!secret) return { ok: false, presented: true, status: 503, code: "token_not_configured", error: "RUNTIME_TOKEN secret is missing" };
+  if (!timingSafeEqualString(presented, secret)) {
+    return { ok: false, presented: true, status: 401, code: "token_mismatch", error: "runtime token mismatch" };
+  }
+  return { ok: true, presented: true };
 }
 
 function aggregateAuthRefuse(status, code, error) {
@@ -589,7 +664,7 @@ function aggregateRequested(source, url, entryHash) {
   return agg === true || agg === 1 || agg === "1" || agg === "true" || agg === "all";
 }
 
-async function pullEntry(env, entryHash, planes) {
+async function pullEntry(env, entryHash, planes, revealUser) {
   if (!isHex64(entryHash)) return fail(400, "LATTICE-DOCUMENT", { enabled: true });
   const snap = await withLock(env, () => loadRows(env));
   if (!snap.ok) return fail(503, snap.code, { enabled: true, entry_hash: entryHash });
@@ -602,11 +677,9 @@ async function pullEntry(env, entryHash, planes) {
     });
   }
   const body = rowBody(row, snap.durable, "LATTICE-PULL-OK");
-  if (!planes) {
-    body.lattice = publicLattice(body.lattice);
-    return { status: 200, body };
-  }
-  body.aggregate = await aggregatePlanes(env, snap.rows, planes);
+  if (revealUser && row.submitting_user) body.submitting_user = row.submitting_user;
+  if (!revealUser) body.lattice = publicLattice(body.lattice);
+  if (planes) body.aggregate = await aggregatePlanes(env, snap.rows, planes);
   return { status: 200, body };
 }
 
@@ -654,6 +727,12 @@ export async function handleLatticeRemote(request, env) {
     const auth = aggregateOperatorAuth(request, env);
     if (!auth.ok) return { status: auth.status, body: auth.body };
   }
+  let revealUser = wantsAggregate;
+  if (!wantsAggregate) {
+    const gate = operatorGate(request, env);
+    if (gate.presented && !gate.ok) return aggregateAuthRefuse(gate.status, gate.code, gate.error);
+    revealUser = gate.ok === true;
+  }
   const planeRaw = source.planes != null ? source.planes : url.searchParams.has("planes") ? url.searchParams.get("planes") : null;
   const planes = wantsAggregate ? parsePlanes(planeRaw) : { ok: true, planes: null };
   if (!planes.ok) return fail(400, planes.code, { enabled: true, plane: planes.plane });
@@ -680,7 +759,7 @@ export async function handleLatticeRemote(request, env) {
       },
     };
   }
-  return pullEntry(env, entryHash, wantsAggregate ? planes.planes : null);
+  return pullEntry(env, entryHash, wantsAggregate ? planes.planes : null, revealUser);
 }
 
 export function latticeRemoteOpenApiPaths() {
@@ -689,7 +768,10 @@ export function latticeRemoteOpenApiPaths() {
     "Primary lattice on this Worker (aziel-runtime). Secondary is aziel-corpus and is not written here. " +
     "LATTICE_REMOTE defaults off (403 LATTICE-REMOTE-OFF). A missing entry_hash is 404 LATTICE-PULL-MISS and ok false. " +
     "live stays false. auto_update, RF, and sat stay off. Mesh membership is not changed. Cap-7 is not ICANN. No spend. " +
-    "Not a Softwares card. Not an MCP tool. Operator token is header-only.";
+    "Not a Softwares card. Not an MCP tool. Operator token is header-only. " +
+    "The primary chain is one JSON blob capped at " + CHAIN_CAP + " rows (LATTICE-CAP). Pull walks that blob by entry_hash and does not rebuild a ledger from zero. " +
+    "This Worker accepts a submitting-user LATTICE-TIEBREAK-1.0 wrap. Offline secondary rows stay on aziel-corpus. " +
+    "An entry_hash pull without the operator header strips offline usernames. The operator header may include them.";
   return {
     [LATTICE_WRAP_PATH]: {
       post: {
@@ -699,7 +781,8 @@ export function latticeRemoteOpenApiPaths() {
         description:
           shared +
           " Body: { entry_hash, lattice, position, target: \"aziel-runtime\", spec: \"AZRT-DUAL-LATTICE-1.0\" }. " +
-          "lattice.position is refused. Offline blocks and tie-break blocks are refused on this primary (tie-break offline half is corpus). " +
+          "lattice.position is refused. Offline secondary rows stay on aziel-corpus (LATTICE-PRIMARY-ONLINE). " +
+          "This primary accepts a submitting-user tie-break: send submitting_user or username with lattice.tiebreak. The tie-break username is that submitting user. " +
           "201 LATTICE-WRAP-OK. Replay of the same block is 200 LATTICE-ALREADY.",
         tags: ["lattice"],
         requestBody: {
@@ -715,6 +798,8 @@ export function latticeRemoteOpenApiPaths() {
                   position: { type: "integer", minimum: 1 },
                   target: { type: "string", enum: [PRIMARY_TARGET] },
                   spec: { type: "string", enum: [LATTICE_SPEC] },
+                  submitting_user: { type: "string", description: "Submitting user for a LATTICE-TIEBREAK-1.0 wrap. Alias: username." },
+                  username: { type: "string", description: "Alias of submitting_user. Required with lattice.tiebreak." },
                 },
               },
             },
@@ -726,7 +811,7 @@ export function latticeRemoteOpenApiPaths() {
           "400": { description: "Bad hash, body, or token in query/body." },
           "401": { description: "Operator token required." },
           "403": { description: "LATTICE-REMOTE off." },
-          "409": { description: "Chain, position, double, offline, or tie-break refuse. Nothing written." },
+          "409": { description: "Chain, position, double, offline secondary, cap " + CHAIN_CAP + ", or a tie-break that does not match the submitting user. A valid submitting-user tie-break is accepted. Nothing is written on refuse." },
           "503": { description: "Store unread or read-back miss. ok false." },
         },
       },
@@ -737,7 +822,7 @@ export function latticeRemoteOpenApiPaths() {
         summary: "Pull one primary row by entry_hash. Aggregate planes require the operator header. Flag LATTICE_REMOTE must be on.",
         description:
           shared +
-          " Query entry_hash alone returns that one row and does not list usernames. " +
+          " Query entry_hash alone returns that one row. Without the operator header, offline usernames are stripped. With Authorization: Bearer or X-Aziel-Runtime-Token, the row may include the submitting user. " +
           "planes (" +
           planeList +
           "), aggregate=1, or a pull with no entry_hash is an aggregate across users, sites, uses, host sites, access points, nodes, and the node mesh. " +
