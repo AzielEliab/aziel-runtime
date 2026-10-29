@@ -1546,7 +1546,7 @@ export function humanDoorScript() {
       let hardwareFalse = b.worker_hardware === false || (b.channel_plane && b.channel_plane.worker_hardware === false);
       function rowLive(row) {
         if (!row) return false;
-        return channelLive(row.live) || channelLive(row.enabled) || channelLive(row.state) || row.transmit === true;
+        return channelLive(row.live) || channelLive(row.state) || row.transmit === true;
       }
       let rfBands = (ch.rows && ch.rows.rf && ch.rows.rf.bands) || b.rf_bands || {};
       let relay = b.satellite_relay || ch.satellite_relay || null;

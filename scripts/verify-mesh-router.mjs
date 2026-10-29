@@ -195,10 +195,14 @@ console.log("ok mesh router: foldlock/health, reviewed copy, Softwares 42, Ask J
   assert.equal(workerClaimsRadioHardware({ worker_hardware: false, channel_plane: plane }), false);
   for (const id of ["am", "fm", "xm_sdars", "sat_rx"]) {
     assert.equal(plane.rows.rf.bands[id].live, false, id);
-    assert.equal(plane.rows.rf.bands[id].enabled, false, id);
+    assert.equal(plane.rows.rf.bands[id].enabled, id !== "xm_sdars", id);
     assert.equal(plane.rows.rf.bands[id].transmit, false, id);
+    assert.equal(plane.rows.rf.bands[id].checkout, false, id);
   }
   assert.equal(plane.satellite_relay.live, false);
+  assert.equal(plane.satellite_relay.enabled, false);
+  assert.equal(plane.satellite_relay.held, true);
+  assert.equal(plane.satellite_relay.checkout, false);
   assert.equal(plane.satellite_relay.transmit, false);
   assert.equal(workerClaimsRadioHardware({
     worker_hardware: false,

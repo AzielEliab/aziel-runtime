@@ -884,15 +884,23 @@ function newUserHintsHtml_() { return ""; }
   assert.equal(workerClaimsRadioHardware(mesh), false);
   for (const id of RF_BAND_IDS) {
     assert.equal(mesh.channel_plane.rows.rf.bands[id].live, false, id);
-    assert.equal(mesh.channel_plane.rows.rf.bands[id].enabled, false, id);
+    assert.equal(mesh.channel_plane.rows.rf.bands[id].enabled, id !== "xm_sdars", id);
   }
+  assert.equal(mesh.channel_plane.rows.rf.bands.xm_sdars.held, true);
   assert.equal(mesh.channel_plane.satellite_relay.transmit, false);
+  assert.equal(mesh.channel_plane.satellite_relay.enabled, false);
+  assert.equal(mesh.channel_plane.satellite_relay.held, true);
+  assert.equal(mesh.paid_satellite_checkout, false);
   const absent = readRfBand("am", { root: "/tmp/qnm-rf-bands-missing", live: true });
   assert.equal(absent.live, false);
+  assert.equal(absent.enabled, true);
   assert.equal(absent.code, RADIO_ABSENT);
   const relay = readSatelliteRelay({ root: "/tmp/qnm-rf-bands-missing", transmit: true });
   assert.equal(relay.live, false);
+  assert.equal(relay.enabled, false);
+  assert.equal(relay.held, true);
+  assert.equal(relay.checkout, false);
   assert.equal(relay.transmit, false);
   assert.equal(relay.code, RADIO_ABSENT);
-  console.log("verify-mesh-onboard: rf bands stay off");
+  console.log("verify-mesh-onboard: traffic switches on, paid satellite held");
 }

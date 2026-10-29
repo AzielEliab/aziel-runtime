@@ -575,10 +575,18 @@ export function carrierBase() {
       packet_live: false,
       public_door: "FG-STUB",
     };
-    if (row.enabled === false) {
-      base.enabled = false;
-      base.live = false;
-      base.transmit = false;
+    if (row.enabled === true || row.enabled === false) base.enabled = row.enabled === true;
+    if (row.live === false) base.live = false;
+    if (row.transmit === false) base.transmit = false;
+    if (row.held === true) {
+      base.held = true;
+      base.checkout = false;
+      base.skus = false;
+      base.plans = false;
+      base.spend = false;
+      base.purchased = false;
+      base.paid_ok = false;
+      base.paid_terminal = false;
     }
     return base;
   });

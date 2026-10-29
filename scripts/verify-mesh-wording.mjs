@@ -11,9 +11,11 @@ assert.ok(!/rollup is LIVE/i.test(text), "mesh_status claims rollup LIVE");
 assert.equal(workerClaimsRadioHardware(out), false);
 for (const id of ["am", "fm", "xm_sdars", "sat_rx"]) {
   assert.equal(out.channel_plane.rows.rf.bands[id].live, false, id);
-  assert.equal(out.channel_plane.rows.rf.bands[id].enabled, false, id);
+  assert.equal(out.channel_plane.rows.rf.bands[id].enabled, id !== "xm_sdars", id);
 }
 assert.equal(out.channel_plane.satellite_relay.live, false);
+assert.equal(out.channel_plane.satellite_relay.enabled, false);
+assert.equal(out.channel_plane.satellite_relay.held, true);
 assert.equal(out.channel_plane.satellite_relay.transmit, false);
 assert.equal(out.d2d_carriers.carriers.find((row) => row.id === "satellite_relay").transmit, false);
 const note = (out && (out.note || (out.result && out.result.note))) || "";

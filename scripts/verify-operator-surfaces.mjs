@@ -473,7 +473,19 @@ const netRelay = net.carriers.find((row) => row.id === "satellite_relay");
 assert.equal(netRelay.packet_live, false);
 assert.equal(netRelay.enabled, false);
 assert.equal(netRelay.live, false);
+assert.equal(netRelay.held, true);
+assert.equal(netRelay.checkout, false);
+assert.equal(netRelay.skus, false);
+assert.equal(netRelay.plans, false);
+assert.equal(netRelay.spend, false);
+assert.equal(netRelay.paid_terminal, false);
 assert.equal(netRelay.transmit, false);
+for (const id of ["lan", "wifi", "bluetooth", "rf", "photon"]) {
+  const row = net.carriers.find((carrier) => carrier.id === id);
+  assert.equal(row.enabled, true, id);
+  assert.equal(row.live, false, id);
+  assert.equal(row.packet_live, false, id);
+}
 assert.ok(net.carriers.every((row) => row.packet_live === false && row.packet_counted !== true));
 assert.equal(net.cellular_counts, false);
 assert.equal(net.cellular_optional, true);
@@ -542,6 +554,8 @@ const carryRelay = netCarry.carriers.find((row) => row.id === "satellite_relay")
 assert.equal(carryRelay.packet_live, false);
 assert.equal(carryRelay.enabled, false);
 assert.equal(carryRelay.live, false);
+assert.equal(carryRelay.held, true);
+assert.equal(carryRelay.checkout, false);
 assert.equal(carryRelay.transmit, false);
 const payloadBytes = new Uint8Array([1, 2, 3, 4]);
 for (const [encode, parse] of [

@@ -48,8 +48,17 @@ for (const row of D2D_CARRIERS) {
   assert.equal(row.status, D2D_STATUS);
   assert.equal(row.code, D2D_CODE);
   assert.equal(row.packet_live, false);
+  assert.equal(row.live, false);
   assert.equal(row.mock, false);
   assert.equal(isD2dStubOp(row.op), true);
+  if (row.id === "satellite_relay") {
+    assert.equal(row.enabled, false);
+    assert.equal(row.held, true);
+    assert.equal(row.checkout, false);
+    assert.equal(row.transmit, false);
+  } else {
+    assert.equal(row.enabled, true, row.id);
+  }
 }
 assert.match(D2D_CARRIERS[3].note, /ModemManager/);
 assert.match(D2D_CARRIERS[3].note, /beyond Wi-Fi and Bluetooth/);
@@ -60,9 +69,15 @@ assert.equal(relayCarrier.id, "satellite_relay");
 assert.equal(relayCarrier.order, 6);
 assert.equal(relayCarrier.enabled, false);
 assert.equal(relayCarrier.live, false);
+assert.equal(relayCarrier.held, true);
 assert.equal(relayCarrier.transmit, false);
 assert.equal(relayCarrier.purchased, false);
 assert.equal(relayCarrier.paid_ok, false);
+assert.equal(relayCarrier.checkout, false);
+assert.equal(relayCarrier.skus, false);
+assert.equal(relayCarrier.plans, false);
+assert.equal(relayCarrier.spend, false);
+assert.equal(relayCarrier.paid_terminal, false);
 assert.equal(relayCarrier.public_op, false);
 assert.equal(relayCarrier.functional, false);
 assert.equal(relayCarrier.op, "store_forward");
@@ -179,6 +194,12 @@ assert.deepEqual(kernel.d2d_carriers.order, ["lan", "wifi", "bluetooth", "rf", "
 assert.equal(kernel.d2d_carriers.satellite_relay_enabled, false);
 assert.equal(kernel.d2d_carriers.satellite_relay_live, false);
 assert.equal(kernel.d2d_carriers.satellite_relay_transmit, false);
+assert.equal(kernel.d2d_carriers.satellite_relay_held, true);
+assert.equal(kernel.d2d_carriers.paid_satellite_held, true);
+assert.equal(kernel.d2d_carriers.paid_satellite_checkout, false);
+assert.equal(kernel.d2d_carriers.paid_satellite_skus, false);
+assert.equal(kernel.d2d_carriers.paid_satellite_plans, false);
+assert.equal(kernel.d2d_carriers.paid_satellite_spend, false);
 
 const live = await meshStatus({}, {});
 assert.equal(live.wifi, "cite");
@@ -252,9 +273,16 @@ assert.equal(probe.packet_path_live, true);
 assert.deepEqual(probe.order, ["lan", "wifi", "bluetooth", "rf", "photon", "satellite_relay"]);
 assert.equal(probe.carriers.satellite_relay.enabled, false);
 assert.equal(probe.carriers.satellite_relay.live, false);
+assert.equal(probe.carriers.satellite_relay.held, true);
+assert.equal(probe.carriers.satellite_relay.checkout, false);
 assert.equal(probe.carriers.satellite_relay.transmit, false);
 assert.equal(probe.carriers.satellite_relay.purchased, false);
+assert.equal(probe.carriers.satellite_relay.state, "HELD");
 assert.notEqual(probe.carriers.satellite_relay.state, "LIVE");
+for (const id of ["lan", "wifi", "bluetooth", "rf", "photon"]) {
+  assert.equal(probe.carriers[id].enabled, true, id);
+  assert.equal(probe.carriers[id].live, false, id);
+}
 for (const id of probe.order) {
   const row = probe.carriers[id];
   assert.notEqual(row.state, "LIVE", id);

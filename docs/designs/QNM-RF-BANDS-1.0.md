@@ -1,7 +1,7 @@
 # QNM-RF-BANDS-1.0 — receive-only RF bands and a satellite relay switch
 
 **Author:** Aziel Eliab only.
-**Status:** Design note plus switches. Every new switch is **off**. Nothing is purchased. Nothing transmits. Version stays `2.0.0-rc1`. Softwares stay 42. `tools/list` stays 36. FragGate stub ops stay 363. FragGate stays the single door.
+**Status:** Design note plus switches. Operator 2026-10-29: AM, FM, and SDR satellite receive (`sat_rx`) are **enabled** and `live: false`. XM SDARS and `satellite_relay` stay **HELD** because they are a paid plan and a paid terminal. No spend, no SKU, no plan, no checkout. Nothing transmits. Version stays `2.0.0-rc1`. Softwares stay 42. `tools/list` stays 36. FragGate stub ops stay 363. FragGate stays the single door.
 
 This paper names the bands under the one generic RF channel, and the satellite relay that would sit after photon. The switches are in the tree. The radios are not.
 
@@ -33,15 +33,15 @@ Satellite uplink and relay need a license or a paid terminal.
 
 ## Switches in this tree
 
-All of these are `enabled: false` and `live: false`.
+AM, FM, and `sat_rx` are `enabled: true` and `live: false`. XM SDARS and `satellite_relay` are `held: true`, `enabled: false`, and `live: false`. None of them are LIVE. None of them check out a plan.
 
 | Switch | Where | Device it would need | Without that device |
 |---|---|---|---|
 | `am` | receive-only sub-row under `rf` | SDR | `QNM-RADIO-ABSENT` |
 | `fm` | receive-only sub-row under `rf` | SDR | `QNM-RADIO-ABSENT` |
-| `xm_sdars` | receive-only sub-row under `rf` | licensed SiriusXM tuner | `QNM-RADIO-ABSENT` |
+| `xm_sdars` | receive-only sub-row under `rf` | licensed SiriusXM tuner and a paid plan | `QNM-RADIO-ABSENT`. The plan stays HELD. |
 | `sat_rx` | receive-only sub-row under `rf` | SDR | `QNM-RADIO-ABSENT` |
-| `satellite_relay` | carrier after photon | amateur terminal or commercial terminal | `QNM-RADIO-ABSENT` |
+| `satellite_relay` | carrier after photon | amateur terminal or commercial terminal | `QNM-RADIO-ABSENT`. Paid terminals stay HELD. |
 
 `satellite_relay` also has `transmit: false`. It is not in the failover preference string (LAN, Wi-Fi, Bluetooth, RF, photon light flashes). It reuses the existing FED-MESH-1.0 store-and-forward envelope (`v`, `from`, `to`, `seq`, `nonce`, `eph_public_key`, `ciphertext`; X25519 + HKDF-SHA-256 + AES-GCM; salt `FED-MESH-1.0`). It does not add a FragGate op. `store_forward` was already `FG-STUB`.
 
@@ -57,7 +57,7 @@ Built before this note:
 
 Built in this cut:
 
-- The four receive-only sub-rows and the relay switch, all off, in `src/mesh-channel-plane.js`, `src/d2d-carriers.js`, and `qnm-node/bearers/radio.js`.
+- The four receive-only sub-rows and the relay switch, in `src/mesh-channel-plane.js`, `src/d2d-carriers.js`, and `qnm-node/bearers/radio.js`. AM, FM, and `sat_rx` are enabled and not live. XM and the relay stay HELD.
 - `workerClaimsRadioHardware()` treats a band or the relay that reads live, enabled, or transmit while the worker has no device as a refused radio claim.
 - Tests that fail if any of those rows read live without the device.
 
@@ -92,8 +92,8 @@ Until those mirrors land, those trees do not show these rows. This runtime does 
 ## Honest gaps
 
 - RF is still one generic presence check plus four off sub-rows. There is no tuner, no demodulator, and no decoder.
-- XM cannot carry mesh traffic even if a licensed tuner appears. The switch stays off anyway.
-- A present SDR does not make AM, FM, or satellite receive live. The switch stays off.
+- XM cannot carry mesh traffic even if a licensed tuner appears. The switch stays HELD. There is no SKU, plan, or checkout.
+- A present SDR does not make AM, FM, or satellite receive live. Those switches may be enabled. `live` stays false. There is no demodulator.
 - The FED-MESH store-and-forward envelope is encrypted. An amateur satellite uplink cannot carry it. A commercial terminal might, and nothing here buys one or records Aziel's OK.
 - `satellite_relay` is listed after photon and is not a working hop. `peer_exchange_demonstrated` stays false. WARN-5 stays STANDS-until-demonstrated.
 - AZ-OS and AZInterface do not carry these rows yet.

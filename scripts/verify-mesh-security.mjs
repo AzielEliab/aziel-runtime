@@ -233,10 +233,14 @@ assert.equal(workerClaimsRadioHardware(firstGet.data), false);
 for (const id of ["am", "fm", "xm_sdars", "sat_rx"]) {
   const band = firstGet.data.channel_plane.rows.rf.bands[id];
   assert.equal(band.live, false, id);
-  assert.equal(band.enabled, false, id);
+  assert.equal(band.enabled, id !== "xm_sdars", id);
   assert.equal(band.transmit, false, id);
+  assert.equal(band.checkout, false, id);
 }
 assert.equal(firstGet.data.channel_plane.satellite_relay.live, false);
+assert.equal(firstGet.data.channel_plane.satellite_relay.enabled, false);
+assert.equal(firstGet.data.channel_plane.satellite_relay.held, true);
+assert.equal(firstGet.data.channel_plane.satellite_relay.checkout, false);
 assert.equal(firstGet.data.channel_plane.satellite_relay.transmit, false);
 assert.equal(firstGet.data.mesh_node_live, true);
 assert.equal(firstGet.data.alt_internet_live, true);

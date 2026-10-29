@@ -83,3 +83,103 @@ export const QNM_SEPARATED = Object.freeze({
 export function qnmNamedLive() {
   return { ...QNM_NAMED_LIVE };
 }
+
+/**
+ * Operator 2026-10-29 (Aziel via AuditBot), locked the same day.
+ * Paid satellite terminals and plans stay HELD. No spend, no SKU, no plan,
+ * no checkout. This object is not a catalog of things to buy.
+ */
+export const PAID_SATELLITE_HELD = Object.freeze({
+  held: true,
+  enabled: false,
+  live: false,
+  transmit: false,
+  purchased: false,
+  paid_ok: false,
+  paid_terminal: false,
+  checkout: false,
+  skus: false,
+  plans: false,
+  spend: false,
+});
+
+/**
+ * Traffic-path switches. ON where the path is already designed and is not a
+ * paid satellite terminal or plan. live stays false until code on that path
+ * actually carries traffic. A switch is not a PHY and not a live hop.
+ * XM SDARS stays HELD: it needs a paid SiriusXM plan. The satellite relay
+ * stays HELD: a commercial terminal is a paid path. SDR satellite receive
+ * (sat_rx) is not a terminal and not a plan.
+ */
+export const TRAFFIC_PATHS = Object.freeze({
+  spec: "QNM-TRAFFIC-PATHS-1.0",
+  operator: "2026-10-29",
+  enabled: true,
+  live: false,
+  radio_phy: false,
+  worker_hardware: false,
+  worker_radios_live: false,
+  public_icann: false,
+  purchased: false,
+  paid_ok: false,
+  mock: false,
+  paid_satellite: PAID_SATELLITE_HELD,
+  open_paths: Object.freeze(["lan", "wifi", "bluetooth", "rf", "photon", "am", "fm", "sat_rx"]),
+  held_paths: Object.freeze(["xm_sdars", "satellite_relay"]),
+  paths: Object.freeze({
+    lan: Object.freeze({ id: "lan", enabled: true, live: false, packet_live: false, phy: "absent-until-interface" }),
+    wifi: Object.freeze({ id: "wifi", enabled: true, live: false, packet_live: false, phy: "absent-until-hardware" }),
+    bluetooth: Object.freeze({ id: "bluetooth", enabled: true, live: false, packet_live: false, phy: "absent-until-hardware" }),
+    rf: Object.freeze({ id: "rf", enabled: true, live: false, packet_live: false, phy: "absent-until-sdr" }),
+    photon: Object.freeze({ id: "photon", enabled: true, live: false, packet_live: false, phy: "absent-until-light" }),
+    am: Object.freeze({ id: "am", parent: "rf", enabled: true, live: false, receive_only: true, transmit: false, purchased: false, checkout: false, phy: "absent-until-sdr" }),
+    fm: Object.freeze({ id: "fm", parent: "rf", enabled: true, live: false, receive_only: true, transmit: false, purchased: false, checkout: false, phy: "absent-until-sdr" }),
+    xm_sdars: Object.freeze({
+      id: "xm_sdars",
+      parent: "rf",
+      enabled: false,
+      live: false,
+      held: true,
+      receive_only: true,
+      transmit: false,
+      mesh_traffic: false,
+      purchased: false,
+      paid_ok: false,
+      subscription_held: false,
+      checkout: false,
+      skus: false,
+      plans: false,
+      spend: false,
+      phy: "absent-until-siriusxm-tuner",
+    }),
+    sat_rx: Object.freeze({
+      id: "sat_rx",
+      parent: "rf",
+      enabled: true,
+      live: false,
+      receive_only: true,
+      transmit: false,
+      purchased: false,
+      paid_terminal: false,
+      checkout: false,
+      phy: "absent-until-sdr",
+    }),
+    satellite_relay: Object.freeze({
+      id: "satellite_relay",
+      held: true,
+      enabled: false,
+      live: false,
+      transmit: false,
+      purchased: false,
+      paid_ok: false,
+      paid_terminal: false,
+      checkout: false,
+      skus: false,
+      plans: false,
+      spend: false,
+      software_path: false,
+      packet_live: false,
+      phy: "absent",
+    }),
+  }),
+});
