@@ -2,10 +2,12 @@
  * Primary lattice door for godlock bidirectional wrap/pull (godlock #111).
  *
  * POST /v1/lattice/wrap  append one verified block onto this Worker's primary chain.
- * GET|POST /v1/lattice/pull  read that row by entry_hash and aggregate the public planes.
+ * GET|POST /v1/lattice/pull  read one row by entry_hash. Aggregate planes require the operator header.
  *
  * This Worker is primary (aziel-runtime). Secondary is aziel-corpus and is not written here.
  * LATTICE_REMOTE defaults off. A miss is not ok. Operator token stays header-only.
+ * Aggregate (planes, aggregate=1, or a pull with no entry_hash) requires that header.
+ * Unauthenticated aggregate fails closed and lists no usernames.
  * live stays false. auto_update, RF, and sat stay off. Mesh membership is not changed.
  * Cap-7 is not ICANN. No spend. Not a Softwares card. Not an MCP tool.
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
@@ -20,7 +22,15 @@ import {
   latticeTips,
   verifyLattice,
 } from "./dual-lattice.js";
-import { sessionMutateAuth, tokenPresentedInQuery } from "./production.js";
+import {
+  extractRuntimeToken,
+  requireTokenFlag,
+  sessionMutateAuth,
+  timingSafeEqualString,
+  tokenConfigured,
+  tokenPresentedInQuery,
+  tokenSecret,
+} from "./production.js";
 import { TOKEN_BODY_KEYS, tokenBodyRefuse, tokenQueryRefuse } from "./redline.js";
 import { bodyTooDeepRefuse, jsonStructureStats, parseJsonBytes, readCappedBytes } from "./request-limits.js";
 
@@ -532,27 +542,72 @@ async function appendWrap(env, body) {
   });
 }
 
+function publicLattice(block) {
+  if (!block || typeof block !== "object") return block;
+  if (block.username == null) return block;
+  const copy = { ...block };
+  delete copy.username;
+  return copy;
+}
+
+function aggregateAuthRefuse(status, code, error) {
+  return {
+    ok: false,
+    status,
+    body: {
+      ok: false,
+      live: false,
+      code,
+      error,
+      hint: "Authorization: Bearer … or X-Aziel-Runtime-Token",
+      written: false,
+      rebuilt_from_zero: false,
+      username_listing: false,
+      policy: latticePolicy(true),
+    },
+  };
+}
+
+/** Same operator header as REQUIRE_TOKEN=1. Aggregate never proceeds without it. */
+function aggregateOperatorAuth(request, env) {
+  if (requireTokenFlag(env) && !tokenConfigured(env)) {
+    return aggregateAuthRefuse(503, "token_not_configured", "REQUIRE_TOKEN=1 but RUNTIME_TOKEN secret is missing");
+  }
+  const secret = tokenSecret(env);
+  if (!secret) return aggregateAuthRefuse(503, "token_not_configured", "RUNTIME_TOKEN secret is missing");
+  const presented = extractRuntimeToken(request);
+  if (!presented) return aggregateAuthRefuse(401, "token_required", "runtime token required");
+  if (!timingSafeEqualString(presented, secret)) return aggregateAuthRefuse(401, "token_mismatch", "runtime token mismatch");
+  return { ok: true };
+}
+
+function aggregateRequested(source, url, entryHash) {
+  if (!entryHash) return true;
+  if (source && Object.prototype.hasOwnProperty.call(source, "planes")) return true;
+  if (url.searchParams.has("planes")) return true;
+  const agg = source && source.aggregate != null ? source.aggregate : url.searchParams.get("aggregate");
+  return agg === true || agg === 1 || agg === "1" || agg === "true" || agg === "all";
+}
+
 async function pullEntry(env, entryHash, planes) {
   if (!isHex64(entryHash)) return fail(400, "LATTICE-DOCUMENT", { enabled: true });
   const snap = await withLock(env, () => loadRows(env));
   if (!snap.ok) return fail(503, snap.code, { enabled: true, entry_hash: entryHash });
   const row = findRow(snap.rows, entryHash);
-  const aggregate = await aggregatePlanes(env, snap.rows, planes);
   if (!row) {
     return fail(404, "LATTICE-PULL-MISS", {
       enabled: true,
       entry_hash: entryHash,
       rebuilt_from_zero: false,
-      aggregate,
     });
   }
-  return {
-    status: 200,
-    body: {
-      ...rowBody(row, snap.durable, "LATTICE-PULL-OK"),
-      aggregate,
-    },
-  };
+  const body = rowBody(row, snap.durable, "LATTICE-PULL-OK");
+  if (!planes) {
+    body.lattice = publicLattice(body.lattice);
+    return { status: 200, body };
+  }
+  body.aggregate = await aggregatePlanes(env, snap.rows, planes);
+  return { status: 200, body };
 }
 
 export async function handleLatticeRemote(request, env) {
@@ -593,9 +648,15 @@ export async function handleLatticeRemote(request, env) {
   if (fromQuery && fromBody && fromQuery !== fromBody) {
     return fail(400, "LATTICE-ENTRY-MISMATCH", { enabled: true });
   }
-  const planes = parsePlanes(source.planes != null ? source.planes : url.searchParams.get("planes"));
-  if (!planes.ok) return fail(400, planes.code, { enabled: true, plane: planes.plane });
   const entryHash = fromQuery || fromBody;
+  const wantsAggregate = aggregateRequested(source, url, entryHash);
+  if (wantsAggregate) {
+    const auth = aggregateOperatorAuth(request, env);
+    if (!auth.ok) return { status: auth.status, body: auth.body };
+  }
+  const planeRaw = source.planes != null ? source.planes : url.searchParams.has("planes") ? url.searchParams.get("planes") : null;
+  const planes = wantsAggregate ? parsePlanes(planeRaw) : { ok: true, planes: null };
+  if (!planes.ok) return fail(400, planes.code, { enabled: true, plane: planes.plane });
   if (!entryHash) {
     const snap = await withLock(env, () => loadRows(env));
     if (!snap.ok) return fail(503, snap.code, { enabled: true });
@@ -619,7 +680,7 @@ export async function handleLatticeRemote(request, env) {
       },
     };
   }
-  return pullEntry(env, entryHash, planes.planes);
+  return pullEntry(env, entryHash, wantsAggregate ? planes.planes : null);
 }
 
 export function latticeRemoteOpenApiPaths() {
@@ -673,13 +734,16 @@ export function latticeRemoteOpenApiPaths() {
     [LATTICE_PULL_PATH]: {
       get: {
         operationId: "lattice_pull",
-        summary: "Pull one primary row by entry_hash and aggregate public planes. Flag LATTICE_REMOTE must be on.",
+        summary: "Pull one primary row by entry_hash. Aggregate planes require the operator header. Flag LATTICE_REMOTE must be on.",
         description:
           shared +
-          " Query: entry_hash (64 hex). Omit it for an aggregate-only read (503 LATTICE-AGGREGATE-INCOMPLETE when a plane is not actually readable). " +
-          "planes=" +
+          " Query entry_hash alone returns that one row and does not list usernames. " +
+          "planes (" +
           planeList +
-          " (default all). Aggregate covers users, sites, uses, host sites, access points, nodes, and the node mesh. Counts stay null when a read did not complete.",
+          "), aggregate=1, or a pull with no entry_hash is an aggregate across users, sites, uses, host sites, access points, nodes, and the node mesh. " +
+          "Aggregate requires Authorization: Bearer or X-Aziel-Runtime-Token, the same operator header REQUIRE_TOKEN=1 uses. " +
+          "Unauthenticated aggregate fails closed and returns no username listing. A missing entry_hash row is 404 LATTICE-PULL-MISS. " +
+          "An authenticated aggregate is 503 LATTICE-AGGREGATE-INCOMPLETE when a plane was not actually read.",
         tags: ["lattice"],
         parameters: [
           {
@@ -694,23 +758,32 @@ export function latticeRemoteOpenApiPaths() {
             in: "query",
             required: false,
             schema: { type: "string" },
-            description: planeList,
+            description: planeList + ". Present only with the operator header. Lists no usernames when the header is missing.",
+          },
+          {
+            name: "aggregate",
+            in: "query",
+            required: false,
+            schema: { type: "string", enum: ["1", "true", "all"] },
+            description: "Ask for every plane. Requires the operator header.",
           },
         ],
         responses: {
-          "200": { description: "Row plus aggregate, or aggregate only. live false." },
+          "200": { description: "One row, or an authenticated aggregate. live false. No public username list." },
           "400": { description: "Bad hash or unknown plane." },
+          "401": { description: "Aggregate without the operator header. No username listing." },
           "403": { description: "LATTICE-REMOTE off." },
           "404": { description: "LATTICE-PULL-MISS. ok false." },
-          "503": { description: "Store or aggregate plane unread. ok false." },
+          "503": { description: "Token not configured, store unread, or aggregate plane unread. ok false. No username listing." },
         },
       },
       post: {
         operationId: "lattice_pull_post",
-        summary: "Same pull as GET. Body may carry entry_hash and planes.",
+        summary: "Same pull as GET. Body may carry entry_hash and planes. Aggregate requires the operator header.",
         description:
           shared +
-          " Body: { entry_hash?, planes?: string[] }. Query entry_hash must match the body when both are set. Same miss and aggregate rules as GET.",
+          " Body: { entry_hash?, planes?: string[], aggregate?: true }. Query entry_hash must match the body when both are set. " +
+          "entry_hash alone is one row and lists no usernames. planes or a body with no entry_hash is an aggregate and requires the operator header. Unauthenticated aggregate fails closed.",
         tags: ["lattice"],
         requestBody: {
           required: false,
@@ -721,17 +794,19 @@ export function latticeRemoteOpenApiPaths() {
                 properties: {
                   entry_hash: { type: "string" },
                   planes: { type: "array", items: { type: "string", enum: AGGREGATE_PLANES.slice() } },
+                  aggregate: { type: "boolean" },
                 },
               },
             },
           },
         },
         responses: {
-          "200": { description: "Row plus aggregate, or aggregate only. live false." },
+          "200": { description: "One row, or an authenticated aggregate. live false. No public username list." },
           "400": { description: "Bad hash, body, or token in body." },
+          "401": { description: "Aggregate without the operator header. No username listing." },
           "403": { description: "LATTICE-REMOTE off." },
           "404": { description: "LATTICE-PULL-MISS. ok false." },
-          "503": { description: "Store or aggregate plane unread. ok false." },
+          "503": { description: "Token not configured, store unread, or aggregate plane unread. ok false. No username listing." },
         },
       },
     },

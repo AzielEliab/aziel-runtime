@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { planLattice } from "../src/dual-lattice.js";
 import { memoryRuntimeKvNamespace } from "../src/durable-kv.js";
-import { AGGREGATE_PLANES, PRIMARY_TARGET, SECONDARY_TARGET } from "../src/lattice-remote.js";
+import { AGGREGATE_PLANES, CHAIN_KEY, PRIMARY_TARGET, SECONDARY_TARGET } from "../src/lattice-remote.js";
 
 const handler = (await import("../src/index.js")).default.fetch;
 const origin = "https://aziel-runtime.example";
@@ -77,23 +77,39 @@ check(wrapped.body.policy.membership_changed === false && wrapped.body.policy.so
 const pulled = await call("/v1/lattice/pull?entry_hash=" + A, env);
 check(pulled.status === 200 && pulled.body.ok === true && pulled.body.entry_hash === A && pulled.body.code === "LATTICE-PULL-OK", "pull hit");
 check(pulled.body.rebuilt_from_zero === false && pulled.body.lattice.primary === first.primary && pulled.body.live === false, "pull returns the block");
-check(Array.isArray(pulled.body.aggregate.planes) && pulled.body.aggregate.planes.length === AGGREGATE_PLANES.length, "aggregate planes");
-for (const name of AGGREGATE_PLANES) check(pulled.body.aggregate[name] && pulled.body.aggregate[name].live === false, "plane " + name);
-check(pulled.body.aggregate.host_sites.cap7_is_icann === false, "cap7 is not icann");
-check(pulled.body.aggregate.host_sites.hosts.every((host) => !String(host).includes("azbooth")), "cap7 name is not a host site");
-check(pulled.body.aggregate.host_sites.cap7_names_excluded.includes("azbooth"), "cap7 names excluded");
-check(pulled.body.aggregate.access_points.rf === false && pulled.body.aggregate.access_points.sat === false && pulled.body.aggregate.access_points.spend === false, "rf sat spend off");
-check(pulled.body.aggregate.access_points.points.every((point) => point.enabled === false && point.live === false), "access points off");
-check(pulled.body.aggregate.node_mesh.membership_changed === false && pulled.body.aggregate.node_mesh.mesh_enable_called === false && pulled.body.aggregate.node_mesh.mesh_join_called === false, "mesh flags unchanged");
-check(pulled.body.aggregate.users.ark_vaults_opened === false && pulled.body.aggregate.users.legal_names === false, "users stay sealed");
-check(pulled.body.aggregate.auto_update === false, "aggregate auto_update off");
+check(pulled.body.aggregate === undefined && !JSON.stringify(pulled.body).includes("lattice_handles"), "single row lists no usernames");
+
+const anonAggregate = await call("/v1/lattice/pull?entry_hash=" + A + "&planes=" + AGGREGATE_PLANES.join(","), env);
+check(anonAggregate.status === 401 && anonAggregate.body.ok === false && anonAggregate.body.code === "token_required", "aggregate requires operator header");
+check(anonAggregate.body.username_listing === false && !JSON.stringify(anonAggregate.body).includes("lattice_handles"), "refused aggregate lists no usernames");
+
+const authed = await call("/v1/lattice/pull?entry_hash=" + A + "&planes=" + AGGREGATE_PLANES.join(","), env, {
+  headers: { Authorization: "Bearer operator-secret" },
+});
+check(authed.status === 200 && Array.isArray(authed.body.aggregate.planes) && authed.body.aggregate.planes.length === AGGREGATE_PLANES.length, "aggregate planes");
+for (const name of AGGREGATE_PLANES) check(authed.body.aggregate[name] && authed.body.aggregate[name].live === false, "plane " + name);
+check(authed.body.aggregate.host_sites.cap7_is_icann === false, "cap7 is not icann");
+check(authed.body.aggregate.host_sites.hosts.every((host) => !String(host).includes("azbooth")), "cap7 name is not a host site");
+check(authed.body.aggregate.host_sites.cap7_names_excluded.includes("azbooth"), "cap7 names excluded");
+check(authed.body.aggregate.access_points.rf === false && authed.body.aggregate.access_points.sat === false && authed.body.aggregate.access_points.spend === false, "rf sat spend off");
+check(authed.body.aggregate.access_points.points.every((point) => point.enabled === false && point.live === false), "access points off");
+check(authed.body.aggregate.node_mesh.membership_changed === false && authed.body.aggregate.node_mesh.mesh_enable_called === false && authed.body.aggregate.node_mesh.mesh_join_called === false, "mesh flags unchanged");
+check(authed.body.aggregate.users.ark_vaults_opened === false && authed.body.aggregate.users.legal_names === false, "users stay sealed");
+check(authed.body.aggregate.auto_update === false, "aggregate auto_update off");
+check(authed.body.live === false && authed.body.policy.cap7_is_icann === false, "authed aggregate stays not live");
 
 const miss = await call("/v1/lattice/pull?entry_hash=" + C, env);
 check(miss.status === 404 && miss.body.ok === false && miss.body.code === "LATTICE-PULL-MISS" && miss.body.live === false, "miss is not ok");
 
-const posted = await call("/v1/lattice/pull", env, {
+const postedAnon = await call("/v1/lattice/pull", env, {
   method: "POST",
   headers: { "content-type": "application/json" },
+  body: JSON.stringify({ entry_hash: A, planes: ["host_sites", "access_points"] }),
+});
+check(postedAnon.status === 401 && postedAnon.body.ok === false && !JSON.stringify(postedAnon.body).includes("lattice_handles"), "post aggregate without header fails closed");
+const posted = await call("/v1/lattice/pull", env, {
+  method: "POST",
+  headers,
   body: JSON.stringify({ entry_hash: A, planes: ["host_sites", "access_points"] }),
 });
 check(posted.status === 200 && posted.body.entry_hash === A && posted.body.aggregate.planes.length === 2, "post pull");
@@ -160,15 +176,23 @@ check(bad.status === 400 && bad.body.ok === false && bad.body.code === "LATTICE-
 const uses = new Map();
 const kvEnv = {
   LATTICE_REMOTE: "on",
+  RUNTIME_TOKEN: "operator-secret",
   USES: {
     async get(key) { return uses.has(key) ? uses.get(key) : null; },
     async put(key, value) { uses.set(key, String(value)); },
   },
 };
 uses.set("total", "4");
-const agg = await call("/v1/lattice/pull", kvEnv, {
+const aggAnon = await call("/v1/lattice/pull", kvEnv, {
   method: "POST",
   headers: { "content-type": "application/json" },
+  body: JSON.stringify({ planes: AGGREGATE_PLANES.slice() }),
+});
+check(aggAnon.status === 401 && aggAnon.body.ok === false && aggAnon.body.username_listing === false, "uses aggregate without header fails closed");
+uses.set("total", "4");
+const agg = await call("/v1/lattice/pull", kvEnv, {
+  method: "POST",
+  headers: { "content-type": "application/json", Authorization: "Bearer operator-secret" },
   body: JSON.stringify({ planes: AGGREGATE_PLANES.slice() }),
 });
 check(agg.body.aggregate && agg.body.aggregate.uses && agg.body.aggregate.uses.uses === 4 && agg.body.aggregate.uses.complete === true, "uses aggregate reads the counter");
@@ -177,7 +201,12 @@ check(agg.status === 200 && agg.body.ok === true && agg.body.code === "LATTICE-A
 check(agg.body.aggregate.nodes.human_uses === 4 && agg.body.aggregate.nodes.membership_changed === false, "nodes count uses without a join");
 
 const bare = await call("/v1/lattice/pull", { LATTICE_REMOTE: "1" });
-check(bare.status === 503 && bare.body.ok === false && bare.body.code === "LATTICE-AGGREGATE-INCOMPLETE", "incomplete aggregate is not ok");
+check(bare.status === 503 && bare.body.ok === false && bare.body.code === "token_not_configured", "aggregate without a configured token fails closed");
+check(!JSON.stringify(bare.body).includes("lattice_handles") && bare.body.username_listing === false, "unconfigured aggregate lists no usernames");
+const incomplete = await call("/v1/lattice/pull?planes=uses", { LATTICE_REMOTE: "1", RUNTIME_TOKEN: "operator-secret" }, {
+  headers: { Authorization: "Bearer operator-secret" },
+});
+check(incomplete.status === 503 && incomplete.body.ok === false && incomplete.body.code === "LATTICE-AGGREGATE-INCOMPLETE", "incomplete aggregate is not ok");
 
 const map = new Map();
 const durableEnv = {
@@ -201,7 +230,7 @@ const other = {
     async put(key, value) { map.set(key, String(value)); },
   },
 };
-const durablePull = await call("/v1/lattice/pull?entry_hash=" + A + "&planes=host_sites", other);
+const durablePull = await call("/v1/lattice/pull?entry_hash=" + A, other);
 check(durablePull.status === 200 && durablePull.body.entry_hash === A && durablePull.body.durable === true, "durable pull");
 
 let raced = "";
@@ -224,11 +253,11 @@ const race = await call("/v1/lattice/wrap", raceEnv, {
   body: JSON.stringify({ entry_hash: A, lattice: raceBlock, position: 1, target: PRIMARY_TARGET }),
 });
 check(race.status === 503 && race.body.ok === false && race.body.code === "LATTICE-CONFLICT" && race.body.written === false, "cas conflict writes nothing");
-const racePull = await call("/v1/lattice/pull?entry_hash=" + A + "&planes=host_sites", raceEnv);
+const racePull = await call("/v1/lattice/pull?entry_hash=" + A, raceEnv);
 check(racePull.status === 404 && racePull.body.ok === false, "conflict is not a silent hit");
 
 const ns = memoryRuntimeKvNamespace();
-const doEnv = { LATTICE_REMOTE: "1", RUNTIME_KV: ns };
+const doEnv = { LATTICE_REMOTE: "1", RUNTIME_KV: ns, RUNTIME_TOKEN: "operator-secret" };
 const doBlock = await blockFor(B, []);
 const doWrap = await call("/v1/lattice/wrap", doEnv, {
   method: "POST",
@@ -236,13 +265,46 @@ const doWrap = await call("/v1/lattice/wrap", doEnv, {
   body: JSON.stringify({ entry_hash: B, lattice: doBlock, position: 1, target: PRIMARY_TARGET }),
 });
 check(doWrap.status === 201 && doWrap.body.durable === true && doWrap.body.live === false, "runtime kv append");
-const doPull = await call("/v1/lattice/pull?entry_hash=" + B + "&planes=access_points", { LATTICE_REMOTE: "1", RUNTIME_KV: ns });
+const doPull = await call("/v1/lattice/pull?entry_hash=" + B + "&planes=access_points", doEnv, {
+  headers: { Authorization: "Bearer operator-secret" },
+});
 check(doPull.status === 200 && doPull.body.entry_hash === B && doPull.body.aggregate.access_points.rf === false, "runtime kv pull");
+
+const HANDLE = "session.handle";
+const planted = new Map();
+planted.set(CHAIN_KEY, JSON.stringify({
+  rows: [{
+    entry_hash: A,
+    position: 1,
+    target: PRIMARY_TARGET,
+    lattice: { username: HANDLE, document_hash: A, spec: "AZRT-DUAL-LATTICE-1.0" },
+  }],
+}));
+const plantEnv = {
+  LATTICE_REMOTE: "1",
+  REQUIRE_TOKEN: "1",
+  RUNTIME_TOKEN: "operator-secret",
+  LATTICE: {
+    async get(key) { return planted.has(key) ? planted.get(key) : null; },
+    async put() { throw new Error("public aggregate must not write"); },
+  },
+};
+const hidden = await call("/v1/lattice/pull?planes=users", plantEnv);
+check(hidden.status === 401 && hidden.body.ok === false && hidden.body.code === "token_required", "planes require the operator header");
+check(!JSON.stringify(hidden.body).includes(HANDLE) && !JSON.stringify(hidden.body).includes("lattice_handles"), "refused planes omit the handle");
+const one = await call("/v1/lattice/pull?entry_hash=" + A, plantEnv);
+check(one.status === 200 && one.body.entry_hash === A && one.body.lattice.username === undefined, "single-row pull stays open and omits the handle");
+check(!JSON.stringify(one.body).includes(HANDLE) && !JSON.stringify(one.body).includes("lattice_handles"), "single row is not a username list");
+const named = await call("/v1/lattice/pull?planes=users", plantEnv, { headers: { "X-Aziel-Runtime-Token": "operator-secret" } });
+check(named.status === 200 && named.body.aggregate.users.lattice_handles.includes(HANDLE), "operator header can read handles");
+const wrong = await call("/v1/lattice/pull?aggregate=1", plantEnv, { headers: { Authorization: "Bearer wrong-secret" } });
+check(wrong.status === 401 && wrong.body.code === "token_mismatch" && !JSON.stringify(wrong.body).includes(HANDLE), "wrong token lists nothing");
 
 const openapi = await call("/openapi.json", {});
 check(Boolean(openapi.body.paths["/v1/lattice/wrap"] && openapi.body.paths["/v1/lattice/wrap"].post), "openapi wrap");
 check(Boolean(openapi.body.paths["/v1/lattice/pull"] && openapi.body.paths["/v1/lattice/pull"].get && openapi.body.paths["/v1/lattice/pull"].post), "openapi pull");
 check(Array.isArray(openapi.body.paths["/v1/lattice/wrap"].post.security) && Object.prototype.hasOwnProperty.call(openapi.body.paths["/v1/lattice/wrap"].post.security[0], "RuntimeToken"), "wrap keeps operator auth");
+check(openapi.body.paths["/v1/lattice/pull"].get.responses["401"] != null && /operator header/.test(openapi.body.paths["/v1/lattice/pull"].get.description), "pull aggregate documents operator auth");
 
 const toml = readFileSync(new URL("../wrangler.toml", import.meta.url), "utf8");
 check(!/^LATTICE_REMOTE\s*=/m.test(toml), "flag stays unset in wrangler");

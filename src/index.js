@@ -90,7 +90,7 @@
  * GET  /v1/mesh/outlets       outlet registry (aligned / drifted / unreachable / unexposed)
  * POST /v1/mesh/sot-sync      dry_run plan, or confirm apply (ACT-RECEIPT-1.0; pull plane)
  * POST /v1/lattice/wrap       primary lattice append (LATTICE_REMOTE default off; operator token; live false)
- * GET|POST /v1/lattice/pull   pull by entry_hash plus aggregate planes (miss is not ok; Cap-7 is not ICANN)
+ * GET|POST /v1/lattice/pull   pull by entry_hash; aggregate planes require the operator header (miss is not ok; no public username list; Cap-7 is not ICANN)
  * GET  /v1/bundle             compact bootstrap (skill URL + invoke prefix per product)
  * GET  /v1/pull?all=1         alias of /v1/bundle
  * GET  /v1/pull/{slug}        pull record (skill, download, install, ops, aliases)
