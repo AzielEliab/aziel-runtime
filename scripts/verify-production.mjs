@@ -29,6 +29,7 @@ import {
   isSessionExpired,
   rateLimitDecision,
   receiptCapReached,
+  authorityTokenLabel,
   sessionMutateAuth,
   timingSafeEqualString,
   tokenGateState,
@@ -131,6 +132,22 @@ assert.equal(tokenGateState({ REQUIRE_TOKEN: "1", RUNTIME_TOKEN: "x" }).ready_bl
 assert.equal(tokenGateState({ RUNTIME_TOKEN: "x" }).mutate_requires_token, false);
 assert.equal(tokenGateState({ REQUIRE_TOKEN: "1", RUNTIME_TOKEN: "x" }).mutate_requires_token, true);
 
+assert.equal(authorityTokenLabel({}), "optional-on-session-mutate");
+assert.equal(authoritySnapshot().token, "optional-on-session-mutate");
+assert.equal(authorityTokenLabel({ RUNTIME_TOKEN: "x" }), "optional-on-session-mutate");
+assert.equal(authorityTokenLabel({ REQUIRE_TOKEN: "0" }), "optional-on-session-mutate");
+assert.equal(authorityTokenLabel({ REQUIRE_TOKEN: "false" }), "optional-on-session-mutate");
+assert.equal(authorityTokenLabel({ REQUIRE_TOKEN: "no" }), "optional-on-session-mutate");
+for (const flag of ["1", "true", "yes", 1, true]) {
+  assert.equal(authorityTokenLabel({ REQUIRE_TOKEN: flag }), "required-on-session-mutate", String(flag));
+  assert.equal(
+    authoritySnapshot([], { REQUIRE_TOKEN: flag, RUNTIME_TOKEN: "x" }).token,
+    "required-on-session-mutate",
+    String(flag),
+  );
+}
+assert.equal(authoritySnapshot([], { REQUIRE_TOKEN: "1" }).token, "required-on-session-mutate");
+
 const noBind = evaluateReady({});
 assert.equal(noBind.status, 503);
 assert.equal(noBind.code, "session_binding_missing");
@@ -191,6 +208,10 @@ assert.equal(readyTok.status, 503);
 assert.equal(readyTok.data.code, "token_not_configured");
 assert.equal(readyTok.data.require_token, true);
 assert.equal(readyTok.data.token_configured, false);
+assert.equal(readyTok.data.authoritySnapshot.token, "required-on-session-mutate");
+const healthRequire = await jsonReq(envRequire, "/v1/health", "GET");
+assert.equal(healthRequire.status, 200);
+assert.equal(healthRequire.data.authoritySnapshot.token, "required-on-session-mutate");
 
 const envRequireSet = baseEnv({ REQUIRE_TOKEN: "1", RUNTIME_TOKEN: "prod-token" });
 const readyTokOk = await jsonReq(envRequireSet, "/v1/ready", "GET");
@@ -198,7 +219,29 @@ assert.equal(readyTokOk.status, 200);
 assert.equal(readyTokOk.data.token_configured, true);
 assert.equal(readyTokOk.data.fraggate_call_public, true);
 assert.equal(readyTokOk.data.mutate_requires_token, true);
+assert.equal(readyTokOk.data.authoritySnapshot.token, "required-on-session-mutate");
 assert.match(readyTokOk.data.token_note, /Public FragGate call stays open/);
+
+const healthGated = await jsonReq(envRequireSet, "/v1/health", "GET");
+assert.equal(healthGated.status, 200);
+assert.equal(healthGated.data.authoritySnapshot.token, "required-on-session-mutate");
+assert.equal(healthGated.data.version, "2.0.0-rc1");
+const runtimeGated = await jsonReq(envRequireSet, "/v1/runtime.json", "GET");
+assert.equal(runtimeGated.status, 200);
+assert.equal(runtimeGated.data.token, "required-on-session-mutate");
+assert.equal(runtimeGated.data.authoritySnapshot.token, "required-on-session-mutate");
+const catalogGated = await jsonReq(envRequireSet, "/v1/catalog.json", "GET");
+assert.equal(catalogGated.data.authoritySnapshot.token, "required-on-session-mutate");
+const mcpManifest = await jsonReq(envRequireSet, "/mcp", "POST", {
+  jsonrpc: "2.0",
+  id: 7,
+  method: "tools/call",
+  params: { name: "runtime_manifest", arguments: {} },
+});
+assert.equal(mcpManifest.status, 200);
+const mcpBody = mcpManifest.data.result.structuredContent.result;
+assert.equal(mcpBody.token, "required-on-session-mutate");
+assert.equal(mcpBody.authoritySnapshot.token, "required-on-session-mutate");
 
 // public surfaces stay open (secret alone does NOT lock session mutate)
 const publicEnv = baseEnv({ RUNTIME_TOKEN: "prod-token" });
@@ -208,6 +251,11 @@ for (const path of ["/v1/health", "/v1/runtime.json", "/v1/catalog.json", "/v1/s
 }
 const openWhileFlagOff = await jsonReq(publicEnv, "/v1/session/open", "POST", {});
 assert.equal(openWhileFlagOff.status, 200, "REQUIRE_TOKEN=0 keeps session open even with secret set");
+const healthFlagOff = await jsonReq(publicEnv, "/v1/health", "GET");
+assert.equal(healthFlagOff.data.authoritySnapshot.token, "optional-on-session-mutate");
+const runtimeFlagOff = await jsonReq(publicEnv, "/v1/runtime.json", "GET");
+assert.equal(runtimeFlagOff.data.token, "optional-on-session-mutate");
+assert.equal(runtimeFlagOff.data.authoritySnapshot.token, "optional-on-session-mutate");
 
 // --- token on mutate only when REQUIRE_TOKEN=1 ---
 const gatedEnv = baseEnv({ REQUIRE_TOKEN: "1", RUNTIME_TOKEN: "prod-token" });

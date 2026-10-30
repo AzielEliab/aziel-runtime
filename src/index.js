@@ -3489,7 +3489,7 @@ async function callRuntimeTool(env, name, args, origin, request) {
     return {
       status: 200,
       text: JSON.stringify(
-        runtimeManifest(base, PRODUCTS, { registry_digest: digest, fraggate: registrySummary(registry, digest) }),
+        runtimeManifest(base, PRODUCTS, { registry_digest: digest, fraggate: registrySummary(registry, digest), env }),
         null,
         2,
       ),

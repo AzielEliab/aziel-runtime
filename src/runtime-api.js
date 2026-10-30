@@ -32,6 +32,7 @@ import {
   RATE_OPEN_PER_MIN,
   RECEIPT_CAP,
   SESSION_TTL_MS,
+  authorityTokenLabel,
 } from "./production.js";
 import { citeCompatibleFields, skillCompatibleSection } from "./ai-clients.js";
 import { auditsSkillMarkdown, designsSkillMarkdown, discoveryHostFields, sisterProductCiteField } from "./seo.js";
@@ -115,7 +116,7 @@ export function authoritySnapshot(productSlugs, env = {}) {
     session_ttl_ms: SESSION_TTL_MS,
     rate_open_per_minute: RATE_OPEN_PER_MIN,
     rate_exec_per_minute: RATE_EXEC_PER_MIN,
-    token: "optional-on-session-mutate",
+    token: authorityTokenLabel(env),
     door: "fraggate",
     authority: {
       health: "GET /v1/health",
