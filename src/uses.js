@@ -443,10 +443,23 @@ function usesKv(env) {
   return kv;
 }
 
+function usesCount(raw) {
+  return Number(raw) || 0;
+}
+
 async function bumpKey(kv, key) {
   let cur = 0;
   try {
-    cur = Number(await kv.get(key)) || 0;
+    // The total key's Durable Object value is the post-migration delta. Seeding it
+    // from hybrid get would copy the frozen legacy total into the object, and
+    // readUses would add that base a second time. Other keys still seed from the
+    // hybrid read so a bumped host/day/path keeps its legacy value (snapshot overlay).
+    if (key === USES_TOTAL_KEY && kv && kv.durable === true && kv.legacy && typeof kv.durableGet === "function") {
+      const raw = await kv.durableGet(key);
+      cur = raw == null || raw === "" ? 0 : usesCount(raw);
+    } else {
+      cur = Number(await kv.get(key)) || 0;
+    }
   } catch {
     cur = 0;
   }
@@ -520,6 +533,56 @@ export function stampGithubIdentity(env, entry) {
   return id;
 }
 
+/**
+ * USES total. On the hybrid facade this is the frozen legacy `total` plus the
+ * Durable Object `total` (old base plus the post-migration delta). hybrid get
+ * prefers the object, so the legacy base is hidden once the DO key exists.
+ * Per-key maps stay an overlay in buildSnapshotFromDurable: a bumped host/day
+ * key already includes its legacy value. The sum is not written back. Writing
+ * it into the object as well would double-count.
+ * A plain USES namespace (no Durable Object) is still one key read.
+ */
+async function readUsesTotal(kv) {
+  const plain = async () => {
+    try {
+      return { uses: usesCount(await kv.get(USES_TOTAL_KEY)), cite: null };
+    } catch {
+      return { uses: 0, cite: null };
+    }
+  };
+  const hybrid =
+    kv &&
+    kv.durable === true &&
+    kv.legacy &&
+    typeof kv.legacy.get === "function" &&
+    typeof kv.durableGet === "function";
+  if (!hybrid) return plain();
+  let legacyRaw;
+  let doRaw;
+  try {
+    legacyRaw = await kv.legacy.get(USES_TOTAL_KEY);
+  } catch {
+    return plain();
+  }
+  try {
+    doRaw = await kv.durableGet(USES_TOTAL_KEY);
+  } catch {
+    return plain();
+  }
+  const uses_legacy = usesCount(legacyRaw);
+  const uses_durable = doRaw == null || doRaw === "" ? 0 : usesCount(doRaw);
+  return {
+    uses: uses_legacy + uses_durable,
+    cite: {
+      uses_legacy,
+      uses_durable,
+      uses_total_source: "legacy-frozen+durable",
+      uses_total_note:
+        "uses is the frozen legacy USES total plus the Durable Object total. The sum is computed on read and is not written back.",
+    },
+  };
+}
+
 export async function readUses(env, options = {}) {
   const light = options.light === true;
   const budgetMs =
@@ -545,12 +608,9 @@ export async function readUses(env, options = {}) {
   };
   const kv = usesKv(env);
   if (!kv) return { ...base, uses_kv: false, uses_complete: false };
-  let uses = 0;
-  try {
-    uses = Number(await kv.get(USES_TOTAL_KEY)) || 0;
-  } catch {
-    uses = 0;
-  }
+  const total = await readUsesTotal(kv);
+  const uses = total.uses;
+  if (total.cite) Object.assign(base, total.cite);
   let recent = [];
   try {
     const raw = await kv.get(USES_LOG_KEY);
