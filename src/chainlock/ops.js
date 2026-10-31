@@ -344,7 +344,7 @@ export function latticeRefuse(code) {
   return "lattice-username";
 }
 
-export async function composeChainlockStamp(src, { prev, rows = null, latticeTips: tips = null, hasOffline = null, tiebreakPrev = null, hasSynced = null } = {}) {
+export async function composeChainlockStamp(src, { prev, rows = null, latticeTips: tips = null, hasOffline = null, tiebreakPrev = null, hasSynced = null, harnessIssuer = null, writerFence = null } = {}) {
   const chain = String((src && (src.c || src.chain)) || "session").trim() || "session";
   const subject = clip(src && (src.s || src.subject), SUBJECT_CAP);
   const fact = clip(src && (src.f || src.fact), FACT_CAP);
@@ -386,6 +386,15 @@ export async function composeChainlockStamp(src, { prev, rows = null, latticeTip
     if (value !== undefined) unsigned[key] = value;
   }
   Object.assign(unsigned, receiptTags(src));
+  // RIB-051 / RIB-050: only the runtime gate sets these. Caller fields of the same name are not copied.
+  if (harnessIssuer && harnessIssuer.issuer_kind === "untrusted") {
+    unsigned.issuer_kind = "untrusted";
+    unsigned.issuer_path = "chainlock_append";
+  }
+  if (writerFence && Number.isInteger(writerFence.epoch)) {
+    unsigned.writer_epoch = writerFence.epoch;
+    unsigned.writer_fence = writerFence;
+  }
   unsigned.fh = await factHash(fact);
   unsigned.stamp_sha256 = await stampSha256(unsigned);
   return unsigned;
@@ -473,9 +482,22 @@ export async function append(storeOrEnv, input = {}, options = {}) {
     docClaim = got.fresh ? { doc, owner } : null;
   }
   const builder = async ({ prev, rows }) => {
+    const { gateChainAppend } = await import("../harness-seal.js");
+    const { chainFenceFromRows } = await import("../writer-fence.js");
+    const gate = await gateChainAppend(src, chainFenceFromRows(rows || []), {
+      authority: Boolean(options && options.fenceAuthority),
+      harnessRefusal: Boolean(options && options.harnessRefusal),
+      tip: prev || null,
+    });
+    if (!gate.ok) return gate;
     let unsigned;
     try {
-      unsigned = await composeChainlockStamp(src, { prev: prev || GENESIS, rows: rows || [] });
+      unsigned = await composeChainlockStamp(src, {
+        prev: prev || GENESIS,
+        rows: rows || [],
+        harnessIssuer: gate.harnessIssuer,
+        writerFence: gate.writerFence,
+      });
     } catch (err) {
       if (err instanceof LatticeError) return { refuse: latticeRefuse(err.code), code: err.code, message: err.message };
       throw err;
@@ -497,6 +519,8 @@ export async function append(storeOrEnv, input = {}, options = {}) {
         idempotencyKey: idempotencyKey || null,
         genesis: GENESIS,
         input: src,
+        fenceAuthority: Boolean(options && options.fenceAuthority),
+        harnessRefusal: Boolean(options && options.harnessRefusal),
       },
       builder,
     );
@@ -521,6 +545,8 @@ export async function append(storeOrEnv, input = {}, options = {}) {
     const out = { ok: false, refuse: (ack && ack.refuse) || "append-failed", cap: ack && ack.cap };
     if (ack && ack.code) out.code = ack.code;
     if (ack && ack.message) out.message = ack.message;
+    if (ack && ack.refusal_receipt) out.refusal_receipt = ack.refusal_receipt;
+    if (ack && ack.written === false) out.written = false;
     if (ack && ack.cap_class) out.cap_class = ack.cap_class; // RIB-018 follow-up 2 + AGENT-SUBNET-1.0 (additive)
     if (ack && ack.cap_limit) { out.cap_limit = ack.cap_limit; out.cap_minute = ack.cap_minute; }
     if (ack && (String(ack.refuse || "").startsWith("lattice-") || ack.refuse === "refusal-cap" || ack.refuse === "agentcomm-cap")) out.written = false;
@@ -683,6 +709,18 @@ export async function verify(storeOrEnv, input = {}, opts = {}) {
         for (const e of prevented.errors) breaks.push({ chain: name, seq: e.seq, reason: e.code });
       }
     }
+    const { chainlockHarnessSummary } = await import("../harness-seal.js");
+    const harness = chainlockHarnessSummary(rows);
+    if (harness && harness.forged) {
+      ok = false;
+      breaks.push({ chain: name, seq: 0, reason: "self-audit-forged", code: "HARNESS-ISSUER-FORGED" });
+    }
+    const { verifyWriterFence } = await import("../writer-fence.js");
+    const writer_fence = verifyWriterFence(rows);
+    if (!writer_fence.ok) {
+      ok = false;
+      for (const e of writer_fence.errors) breaks.push({ chain: name, seq: Math.max(0, (e.seq ?? 1) - 1), reason: e.code, code: e.code });
+    }
     const dual = await verifyLattice(rows.filter((row) => row && !row._broken));
     if (!dual.ok) {
       ok = false;
@@ -701,6 +739,7 @@ export async function verify(storeOrEnv, input = {}, opts = {}) {
       integrity,
       expect_spec: { status: expect_spec.status, spec_hash: expect_spec.spec_hash, errors: expect_spec.errors.length },
       ...(prevented ? { prevented: { spec: prevented.spec, edges: prevented.edges, errors: prevented.errors.length } } : {}),
+      ...(harness ? { harness } : {}),
       isolated: !ok,
       ...(hourly ? { hourly: true, through: "hourly tip", as_of: opts.agentAsOf || null, note: "agentcomms is verified through the hourly tip only (no live count, no live tip); later rows are verified the next hour." } : {}),
       dual_lattice: {

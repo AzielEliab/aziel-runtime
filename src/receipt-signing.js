@@ -71,11 +71,16 @@ const NO_KEY = Object.freeze({ ok: false, reason: "no receipt signing key provis
 /** Load the provisioned key. Never generates one. Cached per env object (default epochs only). */
 export async function heldSignerFromEnv(env, { epochs } = {}) {
   if (!env || typeof env !== "object") return NO_KEY;
-  if (epochs !== undefined) return load(env, epochs);
-  if (cache.has(env)) return cache.get(env);
-  const out = await load(env);
-  cache.set(env, out);
-  return out;
+  let loaded;
+  if (epochs !== undefined) loaded = await load(env, epochs);
+  else if (cache.has(env)) loaded = cache.get(env);
+  else {
+    loaded = await load(env);
+    cache.set(env, loaded);
+  }
+  // RIB-049: a loaded key that is not the witnessed key is a second mint. No key is generated here.
+  const { gateSecondMint } = await import("./second-mint.js");
+  return gateSecondMint(loaded);
 }
 
 async function load(env, epochs = RECEIPT_KEY_EPOCHS) {

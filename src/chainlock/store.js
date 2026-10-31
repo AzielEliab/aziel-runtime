@@ -521,6 +521,8 @@ export class DurableStore {
         idempotencyKey: opts && opts.idempotencyKey,
         genesis: opts && opts.genesis,
         input: opts && opts.input,
+        fenceAuthority: Boolean(opts && opts.fenceAuthority),
+        harnessRefusal: Boolean(opts && opts.harnessRefusal),
       }),
     });
   }
