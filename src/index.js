@@ -168,6 +168,7 @@ import {
   isMeshReadPath,
   meshCiteField,
   meshFanoutSuitePresence,
+  readSiteLiveViewers,
   scheduleSuitePresenceFanout,
   setSuitePresenceCatalog,
   SUITE_PRESENCE,
@@ -433,6 +434,8 @@ import {
   tokenAuthSentence,
 } from "./ai-clients.js";
 import { finishWithUse, peekUsesTotal, readUses, requestForUseCount } from "./uses.js";
+import { rectifyUsesBody } from "./uses-rectify.js";
+import { softwareMeterRoster } from "./software-meters.js";
 import {
   SOFTWARE_FRAMING,
   WORKER_ONLY_PRODUCTS,
@@ -5089,7 +5092,12 @@ async function handleRequest(request, env, ctx) {
       (request.method === "GET" || request.method === "HEAD")
     ) {
       const light = url.searchParams.get("light") === "1" || url.searchParams.get("light") === "true";
-      const uses = await cachedUses(light ? "light" : "full", () => readUses(env, { light, budget_ms: 8_000, maps: "snapshot" }), { floor: statsFloorFor(env) });
+      const siteLive = await readSiteLiveViewers(env);
+      const meters = softwareMeterRoster(PRODUCTS, WORKER_ONLY_PRODUCTS).meters;
+      const uses = await cachedUses(light ? "light" : "full", async () => {
+        const raw = await readUses(env, { light, budget_ms: 8_000, maps: "snapshot" });
+        return rectifyUsesBody(raw, { meters, siteLive, fetchImpl: env && env.USES_VIEWS_FETCH, now: Date.now() });
+      }, { floor: statsFloorFor(env) });
       // Option A: do not start buildUsesSnapshot here. A stale map (maps_refresh "due")
       // stays the last snapshot. The odd-minute tether cron rebuilds it. N concurrent
       // hub hits must not each scan USES.
