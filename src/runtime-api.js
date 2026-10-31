@@ -1371,6 +1371,50 @@ export function runtimeStaticPaths() {
         },
       },
     },
+    "/v1/session/{id}/stop": {
+      post: {
+        operationId: "runtime_session_stop",
+        security: [{ RuntimeToken: [], IssuerKey: [] }],
+        summary:
+          "RIB-050: runtime-enforced stop. Issuer-only (same key as revoke, not a second authority). Bumps the writer epoch and seals a stop receipt. A later exec refuses SESSION-STOPPED. An older writer_epoch refuses STALE-WRITER-FENCED. In-flight external effects are recorded completed or unknown with an explicit not-undone note. Nothing is rolled back. Not an MCP tool. Not live. Cap-7 is not ICANN. Paid satellite stays HELD.",
+        tags: ["session"],
+        parameters: [SESSION_ID_PARAM, ISSUER_KEY_PARAM],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["reason"],
+                properties: {
+                  reason: { type: "string", minLength: 1, maxLength: 512 },
+                  side_effects: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        id: { type: "string" },
+                        side_effect_status: { type: "string", enum: ["completed", "unknown"] },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "200": { description: "Stop receipt appended. External effects are not undone." },
+          "400": { description: "bad_json, STOP-INVALID, or " + TOKEN_400 },
+          "401": { description: TOKEN_401 },
+          "403": { description: ISSUER_403 },
+          "404": { description: "session_not_found" },
+          "409": { description: "session_closed, STOP-DUPLICATE, or " + PAUSED_409 },
+          "429": { description: TOKEN_429 },
+          "503": { description: TOKEN_503 },
+        },
+      },
+    },
     "/v1/session/{id}/tip": {
       get: {
         operationId: "runtime_session_tip",

@@ -3323,7 +3323,7 @@ async function combinedOpenApi(request, env) {
           scheme: "bearer",
           bearerFormat: "RUNTIME_TOKEN",
           description:
-            "Operator bearer for session mutate (open/policy/exec/close/pause/resume/stale/revoke) and MCP session tools when REQUIRE_TOKEN=1. Public FragGate call stays open. " +
+            "Operator bearer for session mutate (open/policy/exec/close/pause/resume/stale/revoke/stop) and MCP session tools when REQUIRE_TOKEN=1. Public FragGate call stays open. " +
             tokenAuthSentence(),
         },
         IssuerKey: {
@@ -3331,7 +3331,7 @@ async function combinedOpenApi(request, env) {
           in: "header",
           name: "X-Azrt-Issuer-Key",
           description:
-            "Session issuer key, returned once by POST /v1/session/open; only its hash is sealed at genesis. Required for stale, revoke, pause and resume, in addition to RuntimeToken (both, never either); anything else is 403 CL-NOT-ISSUER with the chain unchanged.",
+            "Session issuer key, returned once by POST /v1/session/open; only its hash is sealed at genesis. Required for stale, revoke, stop, pause and resume, in addition to RuntimeToken (both, never either); anything else is 403 CL-NOT-ISSUER with the chain unchanged.",
         },
       },
       schemas: { ...attemptOpenApiSchemas(), RefusalReceipt: refusalDocs.refusalReceiptSchema() },
@@ -4884,6 +4884,11 @@ async function handleRequest(request, env, ctx) {
         const heads = await anchor.collectHeads(env, { ...deps, agentHourlyTip, version: RUNTIME_VERSION, gitSha: meta.git_sha || (env && env.GIT_SHA) || null, versionId: meta.version_id || null });
         // AZRT-KEYS-1.0 (additive): the held receipt key's public parts, so the witness records each key epoch.
         heads.receipt_key = await (await import("./keys-manifest.js")).receiptKeyHead(env);
+        // RIB-048 / RIB-049: additive fields the witness can copy. Not a signature. Not live.
+        const { buildAttestHead } = await import("./build-attest.js");
+        const { secondMintWitnessFragment } = await import("./second-mint.js");
+        heads.build_attest = buildAttestHead(meta);
+        heads.second_mint = secondMintWitnessFragment();
         return asHead(request, json(heads, 200, hdrs));
       }
       if (url.pathname === "/v1/anchor/row") {
@@ -4948,6 +4953,10 @@ async function handleRequest(request, env, ctx) {
         const { softwareMeta } = await import("./software-catalog.js");
         const pmax = pendingMaxMsOf(env);
         const build_witness = checkBuildWitness(anchors, liveBuildOf(softwareMeta(env), { versionTimestamp: env && env.CF_VERSION_METADATA && env.CF_VERSION_METADATA.timestamp }), { pendingMaxMs: pmax.ms, pendingMaxSource: pmax.source });
+        if (anchors.ok && anchors.latest && anchors.latest.statement) {
+          const { noteWitnessedStatement } = await import("./witness-note.js");
+          noteWitnessedStatement(anchors.latest.statement);
+        }
         const buildBlocks = build_witness.status === "failed" || build_witness.status === "pending";
         // RIB-047 / AZRT-WITNESS-QUORUM-1.0: second independent witness slot + quorum (slot 1 stays required).
         const { witnessQuorum } = await import("./witness-quorum.js");

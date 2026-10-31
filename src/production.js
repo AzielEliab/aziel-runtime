@@ -495,7 +495,7 @@ export function isSessionMutatePath(pathname, method) {
   const path = String(pathname || "");
   const m = String(method || "").toUpperCase();
   if (path === "/v1/session/open" && m === "POST") return true;
-  const hit = path.match(/^\/v1\/session\/sess_[a-f0-9]{32}\/(policy|exec|close|pause|resume|stale|revoke|change|audit|party)$/i);
+  const hit = path.match(/^\/v1\/session\/sess_[a-f0-9]{32}\/(policy|exec|close|pause|resume|stale|revoke|stop|change|audit|party)$/i);
   return Boolean(hit && m === "POST");
 }
 

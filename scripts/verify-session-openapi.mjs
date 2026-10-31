@@ -65,7 +65,7 @@ const SID = "sess_" + "a".repeat(32);
 
 // Derive token-gated and issuer-only routes from behavior (REQUIRE_TOKEN=1, fresh session per route).
 const TOKEN = "rt_" + "d".repeat(40);
-const env = { SESSION: memorySessionNamespace({}), REQUIRE_TOKEN: "1", RUNTIME_TOKEN: TOKEN };
+const env = { SESSION: memorySessionNamespace({}), REQUIRE_TOKEN: "1", RUNTIME_TOKEN: TOKEN, __aziel_rate_limits: { anon_mutate: 100 } };
 const call = (m, p, body, token) => handler(new Request("https://rt.example" + p, { method: m, headers: { "content-type": "application/json", ...(token ? { authorization: "Bearer " + token } : {}) }, ...(m === "POST" ? { body: JSON.stringify(body || {}) } : {}) }), env);
 const VALID = { stale: { new_world_version: "w-2", reason: "r" }, revoke: { reason: "r" }, exec: { slug: "foldlock", op: "health", payload: {} } };
 const ISSUER = new Set();

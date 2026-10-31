@@ -11,6 +11,7 @@ import {
   applyClose,
   applyStale,
   applyRevoke,
+  applyStop,
   applyOpen,
   applyPolicy,
   commitExec,
@@ -187,6 +188,9 @@ export class RuntimeSession {
       if (action === "revoke" && request.method === "POST") {
         return await this.revoke(await readJson(request));
       }
+      if (action === "stop" && request.method === "POST") {
+        return await this.stop(await readJson(request));
+      }
       if (action === "spec" && request.method === "GET") {
         return await this.specState();
       }
@@ -330,6 +334,7 @@ export class RuntimeSession {
         schemaHash: body.schema_hash || null,
         decision: body.decision || null,
         goal: body.goal || null,
+        writerEpoch: body.writer_epoch,
       },
       now,
     );
@@ -461,6 +466,16 @@ export class RuntimeSession {
     await this.save(session);
     const verified = await verifyChainStrict(session.receipts);
     return json({ ok: true, session: publicSession(session), receipt, verified });
+  }
+
+  /** RIB-050: runtime stop. Issuer-only. Bumps the writer epoch. Does not undo an external effect. */
+  async stop(body = {}) {
+    const session = await this.expireIfNeeded(await this.load());
+    const { issuer_key: issuerKey, ...rest } = body || {};
+    const receipt = await applyStop(session, new Date().toISOString(), rest, { issuerKey });
+    await this.save(session);
+    const verified = await verifyChainStrict(session.receipts);
+    return json({ ok: true, session: publicSession(session), receipt, verified, not_undone: true });
   }
 
   async specState() {

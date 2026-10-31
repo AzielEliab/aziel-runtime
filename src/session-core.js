@@ -174,8 +174,28 @@ export async function appendReceipt(session, event, payload, nowIso, extra = {})
     "outcome",
     "attempt_link",
     "context",
+    "issuer_kind",
+    "issuer_path",
+    "issuerKind",
+    "issuerPath",
+    "writer_epoch",
+    "writer_fence",
+    "build_attest",
   ]) {
     delete rest[key];
+  }
+  // RIB-051: the harness mints issuer_kind. A caller field cannot.
+  const { harnessFieldsFor } = await import("./harness-seal.js");
+  const harness = harnessFieldsFor(event);
+  // RIB-048: an exec row records the attestation check. Mismatch refuses before the row exists.
+  let buildAttest = null;
+  if (event === "exec") {
+    const { assertBuildAttestForExec } = await import("./build-attest.js");
+    const attest = await assertBuildAttestForExec(session);
+    if (!attest.allowed) {
+      throw sessionError(409, attest.code, attest.message, { executed: false, build_attest: attest.view, written: false });
+    }
+    buildAttest = attest.view;
   }
   // R4 backstop: no non-close row may eat the close reserve (stale/revoke/pause/resume/refused included).
   if (!CLOSE_EVENTS.includes(event) && roomLeft(session) <= 0) {
@@ -183,6 +203,12 @@ export async function appendReceipt(session, event, payload, nowIso, extra = {})
     throw sessionError(409, "receipt_cap", `session receipt cap ${RECEIPT_CAP} reached (the last ${reserve} slots are reserved for close)`, { receipt_count: (session.receipts || []).length, receipt_cap: RECEIPT_CAP, close_reserve: reserve, written: false });
   }
   // Close rows are never refused (a session must always be closable; legacy chains past the reserve still close).
+  // RIB-050: epoch sealed by the runtime. A bump stamp is consumed only once the row will be written.
+  const { takeFenceStamp } = await import("./writer-fence.js");
+  const fenceStamp = takeFenceStamp(session);
+  const epochFields = Number.isInteger(session && session.writer_epoch)
+    ? { writer_epoch: session.writer_epoch, ...(fenceStamp ? { writer_fence: fenceStamp } : {}) }
+    : {};
   const prev = lastReceipt(session);
   // AZRT-EXPECT-SPEC-1.0: once stamp #1 sealed an expected-state spec, every later receipt names it.
   const first = (session.receipts || [])[0];
@@ -209,6 +235,9 @@ export async function appendReceipt(session, event, payload, nowIso, extra = {})
     outcome: link.outcome,
     ledger_prev_is_retry_parent: false,
     ...rest,
+    ...harness,
+    ...epochFields,
+    ...(buildAttest ? { build_attest: buildAttest } : {}),
   };
   // Dual hash lattice: primary + secondary chain over every session receipt.
   // Session receipts are written by the online runtime, so the secondary is the online chain.
@@ -308,6 +337,14 @@ export async function verifyChainStrict(receipts, { trustedKeys = null } = {}) {
   const { verifyApprover } = await import("./approver.js");
   const approver = await verifyApprover(receipts);
   for (const e of approver.errors) errors.push({ seq: e.seq, error: e.code });
+  // RIB-050: a row whose writer epoch is older than an earlier revocation stamp fails closed.
+  const { verifyWriterFence } = await import("./writer-fence.js");
+  const writer_fence = verifyWriterFence(receipts);
+  for (const e of writer_fence.errors) errors.push({ seq: e.seq, error: e.code });
+  // RIB-051: harness-sealed rows verify. A self-logged exec claim is not exec evidence.
+  const { verifyHarnessSeals } = await import("./harness-seal.js");
+  const harness_seal = verifyHarnessSeals(receipts);
+  for (const e of harness_seal.errors) errors.push({ seq: e.seq, error: e.code });
   const hashPresent = (receipts || []).length > 0 && (receipts || []).every((r) => r && typeof r.hash === "string");
   return {
     ok: errors.length === 0,
@@ -332,6 +369,8 @@ export async function verifyChainStrict(receipts, { trustedKeys = null } = {}) {
     approver,
     frozen_artifacts,
     audit_path,
+    writer_fence,
+    harness_seal,
     dual_lattice: {
       ok: dual.ok,
       lattice_rows: dual.lattice_rows,
@@ -607,6 +646,8 @@ export async function applyOpen(session, nowIso, extra = {}) {
     if (!rec || rec.ok === false) throw sessionError(rec && rec.status ? rec.status : 400, rec && rec.code ? rec.code : "AUDIT-RECORDER-INVALID", rec && rec.message ? rec.message : "recorder invalid");
     recorder = { recorder: rec.recorder, recorder_hash: rec.recorder_hash, audit_path: rec.audit_path };
   }
+  const { beginSessionFence } = await import("./writer-fence.js");
+  beginSessionFence(session);
   await appendReceipt(session, "open", {
     policy: session.policy,
     source: session.source,
@@ -685,7 +726,7 @@ export async function recordIntent(session, args, nowIso) {
   }
 }
 
-async function recordIntentInner(session, { slug, op, payload, payloadText, knownSlugs, banner, schemaHash, decision = null, goal = null }, nowIso) {
+async function recordIntentInner(session, { slug, op, payload, payloadText, knownSlugs, banner, schemaHash, decision = null, goal = null, writerEpoch = null }, nowIso) {
   // AZRT-SCHEMA-PIN-1.0: the open receipt pinned the tools/list schema; drift stops the session.
   const pinned = (session.receipts || [])[0] && session.receipts[0].schema_hash;
   if (pinned && schemaHash && pinned !== schemaHash) {
@@ -697,6 +738,13 @@ async function recordIntentInner(session, { slug, op, payload, payloadText, know
       executed: false,
     });
   }
+  // RIB-050: epoch and stop are enforced here, in runtime code, before anything runs.
+  const { presentSessionEpoch } = await import("./writer-fence.js");
+  const presented = presentSessionEpoch(session, writerEpoch);
+  if (presented) throw sessionError(presented.status, presented.code, presented.message, { executed: false, written: false });
+  if (session.writer_stopped) {
+    throw sessionError(409, "SESSION-STOPPED", "The runtime stopped this session. Stopping a run does not undo an external effect. Nothing ran.", { executed: false, written: false });
+  }
   // RIB-015: the run path only READS spec state; a revoked or stale spec stops it before anything runs.
   const { specState } = await import("./issuer-append.js");
   const state = specState(session.receipts);
@@ -706,6 +754,11 @@ async function recordIntentInner(session, { slug, op, payload, payloadText, know
   if (state.stale) {
     throw sessionError(409, "SPEC-STALE", "The issuer marked this run's spec stale. Nothing ran.", { executed: false, stale_at_seq: state.stale_at_seq });
   }
+  // RIB-048: bindings are checked before exec. No attestation is not_checked, never a pass.
+  const { assertBuildAttestForExec } = await import("./build-attest.js");
+  const attest = await assertBuildAttestForExec(session);
+  if (!attest.allowed) throw sessionError(409, attest.code, attest.message, { executed: false, build_attest: attest.view, written: false });
+  session._build_attest = attest.view;
   const bytes = new TextEncoder().encode(payloadText).length;
   const allowed = assertExecAllowed(session, { slug, op, payloadBytes: bytes, knownSlugs, nowIso });
   const digest = await digestText(payloadText);
@@ -753,6 +806,13 @@ async function recordIntentInner(session, { slug, op, payload, payloadText, know
 
 export async function commitExec(session, { intent, status, latencyMs, requestDigest, responseDigest, error, upstream, responseBytes, contentType, engine, request_id, attempt_n, parent_receipt_id, correlation_id, outcome, additive }, nowIso) {
   requireOpen(session, nowIso);
+  if (session && session.writer_stopped) {
+    const err = sessionError(409, "SESSION-STOPPED", "The runtime stopped this session. Stopping a run does not undo an external effect. Nothing was sealed.", { executed: false });
+    const receipt = await sealSessionRefusal(session, err, { slug: intent && intent.slug, op: intent && intent.op, payloadText: "" }, nowIso);
+    err.extra = { executed: false, refused_receipt: { sealed: true, seq: receipt.seq, hash: receipt.hash, code: "SESSION-STOPPED" } };
+    err.sessionDirty = true;
+    throw err;
+  }
   requireReceiptRoom(session);
   if (!session.pending_intent || session.pending_intent.intent_id !== intent.intent_id) {
     throw sessionError(409, "intent_mismatch", "pending intent does not match commit");
@@ -912,9 +972,34 @@ export async function applyRevoke(session, nowIso, raw, { issuerKey = null } = {
   if (!reason || reason.length > 512) throw sessionError(400, "REVOKE-INVALID", "revoke needs { reason } (1-512 chars).");
   const st = specState(session.receipts);
   if (st.revoked) throw sessionError(409, "REVOKE-DUPLICATE", "already revoked", { revoked_at_seq: st.revoked_at_seq });
+  if (Number.isInteger(session.writer_epoch)) {
+    const { bumpSessionFence } = await import("./writer-fence.js");
+    bumpSessionFence(session, { stopped: false, side_effects: [] });
+  }
   const first = session.receipts[0];
   return appendReceipt(session, "revoke", {}, nowIso, {
     revoke: { spec: ISSUER_SPEC, genesis_hash: first.hash, ...(first.expect_hash ? { expect_hash: first.expect_hash } : {}), reason },
+    written_by,
+  });
+}
+
+/** RIB-050: issuer-gated stop. Reuses the RIB-015 issuer key. Bumps the writer epoch. Does not undo external effects. */
+export async function applyStop(session, nowIso, raw, { issuerKey = null } = {}) {
+  if (!session) throw sessionError(404, "session_not_found", "session not found");
+  if (session.closed) throw sessionError(409, "session_closed", "session is sealed; no further stamps", { session_id: session.id });
+  const { assertIssuer } = await import("./issuer-append.js");
+  const written_by = await assertIssuer(session, issuerKey);
+  refuseWhilePaused(session, "stop");
+  if (session.writer_stopped) throw sessionError(409, "STOP-DUPLICATE", "already stopped", { written: false });
+  const reason = raw && raw.reason != null ? String(raw.reason).trim() : "";
+  if (!reason || reason.length > 512) throw sessionError(400, "STOP-INVALID", "stop needs { reason } (1-512 chars).");
+  requireReceiptRoom(session);
+  const { bumpSessionFence, sideEffectsOf, NOT_UNDONE, FENCE_SPEC } = await import("./writer-fence.js");
+  const side_effects = sideEffectsOf(raw, session.pending_intent);
+  bumpSessionFence(session, { stopped: true, side_effects });
+  session.pending_intent = null;
+  return appendReceipt(session, "stop", {}, nowIso, {
+    stop: { spec: FENCE_SPEC, reason, side_effects, not_undone: NOT_UNDONE },
     written_by,
   });
 }
@@ -1041,5 +1126,6 @@ export function publicSession(session) {
     honesty: session.honesty,
     ...(auditPublic(session) ? { audit_path: auditPublic(session) } : {}),
     ...(session.vpn_auto ? { vpn_auto: session.vpn_auto } : {}),
+    ...(Number.isInteger(session.writer_epoch) ? { writer_epoch: session.writer_epoch, writer_stopped: session.writer_stopped === true } : {}),
   };
 }
