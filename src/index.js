@@ -3222,7 +3222,8 @@ function catalogProxyPaths() {
 async function combinedOpenApi(request, env) {
   const origin = originOf(request);
   const refusalDocs = await import("./refusal-doors.js");
-  const paths = { ...staticPaths(origin, env), ...catalogProxyPaths(), ...refusalDocs.refusalOpenApiPaths() };
+  const coverageDocs = await import("./anchor-coverage.js");
+  const paths = { ...staticPaths(origin, env), ...catalogProxyPaths(), ...refusalDocs.refusalOpenApiPaths(), ...coverageDocs.coverageOpenApiPaths() };
   return {
     openapi: "3.1.0",
     info: {
@@ -4875,6 +4876,11 @@ async function handleRequest(request, env, ctx) {
       const { aznewsCall, mapCall } = await import("./aznews-do.js");
       const deps = { storeFor, aznewsCall, mapCall };
       const hdrs = { "access-control-allow-origin": "*", "cache-control": "no-store" };
+      if (url.pathname === "/v1/anchor/coverage") {
+        const { coverageView } = await import("./anchor-coverage.js");
+        const body = await coverageView(env && env.CHAINLOCK ? storeFor(env) : null);
+        return asHead(request, json(body, 200, hdrs));
+      }
       if (url.pathname === "/v1/anchor/heads") {
         const { softwareMeta } = await import("./software-catalog.js");
         const meta = softwareMeta(env);
@@ -4978,7 +4984,7 @@ async function handleRequest(request, env, ctx) {
         }
         return asHead(request, json(body, ok ? 200 : 409, hdrs));
       }
-      return json({ ok: false, error: "not found", hint: "GET /v1/anchor, /v1/anchor/heads, /v1/anchor/row?c=&seq=, /v1/anchor/rows?c=&from=&limit=" }, 404, hdrs);
+      return json({ ok: false, error: "not found", hint: "GET /v1/anchor, /v1/anchor/heads, /v1/anchor/coverage, /v1/anchor/row?c=&seq=, /v1/anchor/rows?c=&from=&limit=" }, 404, hdrs);
     }
 
     if ((url.pathname === "/v1/4dmap/rows" || url.pathname === "/v1/aznews/rows") && (request.method === "GET" || request.method === "HEAD")) {
@@ -5353,6 +5359,17 @@ export default {
         .catch((err) => console.log(JSON.stringify({ aznews_tether: "NEWS-TETHER-ERROR", error: String((err && err.message) || err).slice(0, 200) })));
       if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(news);
       else await news;
+    }
+    // AZRT-ANCHOR-COVERAGE-1.0: cron verifier + deadline watchdog. Does not write the witness log
+    // and does not write the out-of-band heartbeat (RIB-060 same-chain heartbeat is not implemented).
+    if (env && env.CHAINLOCK && ctx && typeof ctx.waitUntil === "function") {
+      const tickAt = controller && controller.scheduledTime != null ? new Date(controller.scheduledTime).getTime() : Date.now();
+      ctx.waitUntil(
+        import("./anchor-coverage.js")
+          .then(({ runCoverageTick }) => runCoverageTick({ store: storeFor(env), now: Number.isFinite(tickAt) ? tickAt : Date.now() }))
+          .then((out) => console.log(JSON.stringify({ anchor_coverage: out && { live: false, verifier: out.verifier && out.verifier.code, pages: out.watchdog && (out.watchdog.pages || []).length } })))
+          .catch((err) => console.log(JSON.stringify({ anchor_coverage: "COVERAGE-CRON-ERROR", error: String((err && err.message) || err).slice(0, 200) }))),
+      );
     }
     // AZRT-AUTH-ROLLUP-1.0: seal closed minutes of login/token refusal counts (one row per door + code).
     if (env && env.CHAINLOCK && ctx && typeof ctx.waitUntil === "function") {

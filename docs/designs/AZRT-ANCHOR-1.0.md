@@ -4,7 +4,7 @@ Author: Aziel Eliab only. Status: LIVE (2.0.0-rc1, additive). Not a Softwares ca
 
 Sources: RIB-001 (@TheNabeelKhan: publish the head somewhere the runtime cannot reach, record the anchor in each receipt, verify fails closed), RIB-002 (@TheNabeelKhan: the key must sit outside the audited runtime), RIB-003 (@DTXNaidu: witness the sealed head outside the stamper's process), RIB-004 (@HederaIntern: independent ordering and timestamps).
 
-Companion: [AZRT-INTEGRITY-LEVEL-1.0](AZRT-INTEGRITY-LEVEL-1.0.md), [AZRT-AUDITOR-1.0](AZRT-AUDITOR-1.0.md). Code: `src/anchor.js`. Tests: `scripts/verify-anchor.mjs`.
+Companion: [AZRT-INTEGRITY-LEVEL-1.0](AZRT-INTEGRITY-LEVEL-1.0.md), [AZRT-AUDITOR-1.0](AZRT-AUDITOR-1.0.md), [AZRT-ANCHOR-COVERAGE-1.0](AZRT-ANCHOR-COVERAGE-1.0.md) (per-refusal publish, verifier, watchdog, out-of-band dead-man; not LIVE). Code: `src/anchor.js`. Tests: `scripts/verify-anchor.mjs`.
 
 ## 1. Shape
 

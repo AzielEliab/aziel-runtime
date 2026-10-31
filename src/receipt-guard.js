@@ -332,6 +332,19 @@ export async function sealRefusal(store, { code, tool, slug, op, args, goal, pri
     }
     if (!out || !out.ok) refund();
     if (!out || !out.ok) return { spec: REFUSAL_SPEC, sealed: false, reason: (out && (out.refuse || out.code)) || "append-failed" };
+    // RIB-057: a real refusal waits until its head is in the outside anchor log, or seals ANCHOR-PENDING.
+    // Auth-rollup count rows stay on the batch witness (routine). The refusal stamp itself is unchanged.
+    let per_refusal_anchor = null;
+    const routine = extra && extra.kind === "auth_rollup";
+    if (!routine && out.stamp && out.stamp.k === "refusal") {
+      // A coverage failure must not hide the refusal row that already committed.
+      try {
+        const { finishRefusalAnchor } = await import("./anchor-coverage.js");
+        per_refusal_anchor = await finishRefusalAnchor(store, { seq: out.seq + 1, h: out.stamp.stamp_sha256 });
+      } catch {
+        per_refusal_anchor = { spec: "AZRT-ANCHOR-COVERAGE-1.0", code: "ANCHOR-PENDING", status: "ANCHOR-PENDING", in_log: false, pending_sealed: false, signed: false, live: false, seq: out.seq + 1, h: out.stamp.stamp_sha256 };
+      }
+    }
     return {
       spec: REFUSAL_SPEC,
       kind: "refusal",
@@ -347,6 +360,7 @@ export async function sealRefusal(store, { code, tool, slug, op, args, goal, pri
       follows: prior ? { h: prior.h, seq: prior.seq, k: prior.k } : null,
       verify: `/v1/anchor/row?c=${REFUSAL_CHAIN}&seq=${out.seq + 1}`,
       retry_hint: goal ? `Your next call with the same goal${goal.source === "caller" ? "_id" : " (same MCP session)"} is sealed as the action after this refusal.` : "Pass goal_id on your next call to link it to this refusal.",
+      ...(per_refusal_anchor ? { per_refusal_anchor } : {}),
     };
   } catch (err) {
     refund();
