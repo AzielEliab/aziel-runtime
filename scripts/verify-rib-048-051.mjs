@@ -84,13 +84,20 @@ n++;
   const strict = checkBuildAttest({ runningDigest: digest, witnessed: null, strict: true });
   assert.equal(strict.allowed, false);
   assert.equal(strict.code, "BUILD-ATTEST-NOT-CHECKED");
-  const repro = execSync("node scripts/build-attest.mjs", { encoding: "utf8" });
-  const again = execSync("node scripts/build-attest.mjs", { encoding: "utf8" });
+  // This block checks the absent-identity path. CI sets GITHUB_WORKFLOW and GITHUB_RUN_ID,
+  // and the script correctly emits those. Strip them here so the child is not a CI job.
+  const attestEnv = { ...process.env };
+  delete attestEnv.GITHUB_WORKFLOW;
+  delete attestEnv.GITHUB_RUN_ID;
+  const repro = execSync("node scripts/build-attest.mjs", { encoding: "utf8", env: attestEnv });
+  const again = execSync("node scripts/build-attest.mjs", { encoding: "utf8", env: attestEnv });
   assert.equal(JSON.parse(repro).artifact_digest, JSON.parse(again).artifact_digest);
   assert.equal(JSON.parse(repro).signed, false);
   assert.equal(JSON.parse(repro).live, false);
   assert.equal(JSON.parse(repro).builder_identity, null);
-  const flippedOut = JSON.parse(execSync("node scripts/build-attest.mjs --mismatch", { encoding: "utf8" }));
+  assert.equal(JSON.parse(repro).cap7_is_icann, false);
+  assert.equal(JSON.parse(repro).paid_sat, "HELD");
+  const flippedOut = JSON.parse(execSync("node scripts/build-attest.mjs --mismatch", { encoding: "utf8", env: attestEnv }));
   assert.equal(flippedOut.code, "BUILD-ATTEST-MISMATCH");
   n++;
 }
