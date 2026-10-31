@@ -366,7 +366,7 @@ async function sealAgentRefusal(env, code, verb, via = "mcp") {
   const { sealRefusal } = await import("./receipt-guard.js");
   // Same as refusal-doors: reason:null on the row, only the hash of the fixed reason text.
   const view = await sealRefusal(store, {
-    code, tool: "mesh", slug: "agent-subnet", op: verb, args: { door: "mesh-agents", code, verb, via: door }, minuteBucket: minute,
+    code, tool: "mesh", slug: "agent-subnet", op: verb, args: { door: "mesh-agents", code, verb, via: door }, minuteBucket: minute, env,
     extra: { kind: "refusal", surface: "agent-subnet", via: door, door: "mesh-agents", reason: null, reason_sha256: await sha256Hex(reason), status, route: `/v1/mesh/agents/${verb.replace(/^agent-/, "")}` },
   });
   const out = { ...view, kind: "refusal", code, surface: "agent-subnet", status: view && view.sealed ? "sealed" : (view && view.status) || "unavailable" };

@@ -283,7 +283,7 @@ export async function boundedSlugOp(slug, op) {
  * capped per door there. Otherwise (MCP / POST /v1/fraggate/call): slug/op are bounded to the registry,
  * the dedupe key leaves the args digest out, and MCP_SEAL_CAP_PER_MIN applies per isolate.
  */
-export async function sealRefusal(store, { code, tool, slug, op, args, goal, prior, context, schemaHash, minuteBucket = Math.floor(Date.now() / 60000), extra = null, trustedNames = false }) {
+export async function sealRefusal(store, { code, tool, slug, op, args, goal, prior, context, schemaHash, minuteBucket = Math.floor(Date.now() / 60000), extra = null, trustedNames = false, env = null }) {
   const digest = await argsDigest(args);
   const b = trustedNames ? { slug: slug || null, op: op || null } : await boundedSlugOp(slug, op);
   // Addendum (RIB-018 gaps, src/refusal-doors.js): additive kind/surface/door/reason/status/route.
@@ -332,7 +332,8 @@ export async function sealRefusal(store, { code, tool, slug, op, args, goal, pri
     }
     if (!out || !out.ok) refund();
     if (!out || !out.ok) return { spec: REFUSAL_SPEC, sealed: false, reason: (out && (out.refuse || out.code)) || "append-failed" };
-    // RIB-057: a real refusal waits until its head is in the outside anchor log, or seals ANCHOR-PENDING.
+    // RIB-057: when COVERAGE_LIVE is explicitly on, a real refusal waits until its head is in the
+    // outside anchor log, or seals ANCHOR-PENDING. Flag off: no coverage row and no outside-log append.
     // Auth-rollup count rows stay on the batch witness (routine). The refusal stamp itself is unchanged.
     let per_refusal_anchor = null;
     const routine = extra && extra.kind === "auth_rollup";
@@ -340,7 +341,7 @@ export async function sealRefusal(store, { code, tool, slug, op, args, goal, pri
       // A coverage failure must not hide the refusal row that already committed.
       try {
         const { finishRefusalAnchor } = await import("./anchor-coverage.js");
-        per_refusal_anchor = await finishRefusalAnchor(store, { seq: out.seq + 1, h: out.stamp.stamp_sha256 });
+        per_refusal_anchor = await finishRefusalAnchor(store, { seq: out.seq + 1, h: out.stamp.stamp_sha256, env });
       } catch {
         per_refusal_anchor = { spec: "AZRT-ANCHOR-COVERAGE-1.0", code: "ANCHOR-PENDING", status: "ANCHOR-PENDING", in_log: false, pending_sealed: false, signed: false, live: false, seq: out.seq + 1, h: out.stamp.stamp_sha256 };
       }
@@ -437,7 +438,7 @@ export function innerOpRefusal(env) {
 /**
  * Wrap one MCP tools/call. call() runs the existing door unchanged.
  */
-export async function guardToolCall({ store, request, name, args, schemaHash, call }) {
+export async function guardToolCall({ store, request, name, args, schemaHash, call, runtimeEnv = null }) {
   const src = args && typeof args === "object" ? args : {};
   const goal = badGoalId(src) ? null : await goalKeyOf(src, request);
   const context = await contextOf(src);
@@ -466,7 +467,7 @@ export async function guardToolCall({ store, request, name, args, schemaHash, ca
   const slug = String(src.slug || src.name || src.product || "") || null;
   const op = src.op ? String(src.op) : null;
   if (code) {
-    const receipt = await sealRefusal(store, { code, tool: name, slug, op, args: src, goal, prior, context, schemaHash, extra: inner ? { kind: "refusal", door: "op", ...(await boundedReason(inner.reason, src)) } : null });
+    const receipt = await sealRefusal(store, { code, tool: name, slug, op, args: src, goal, prior, context, schemaHash, env: runtimeEnv, extra: inner ? { kind: "refusal", door: "op", ...(await boundedReason(inner.reason, src)) } : null });
     attachToResult(out, "refusal_receipt", receipt);
   } else if (prior && prior.open) {
     const follow = await sealFollow(store, { prior, goal, tool: name, slug, op, outcome: env && (env.ok === false || Number(out && out.status) >= 400) ? "error" : "accepted", code: env && env.code, args: src, context, schemaHash });

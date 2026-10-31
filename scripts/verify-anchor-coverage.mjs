@@ -71,7 +71,7 @@ ok((await C.verifyOutsideLog(tampered)).code === "ANCHOR-MISMATCH");
     append: async (row) => { entered = true; await gate; return log.append(row); },
   });
   let settled = false;
-  const pending = sealRefusal(store, { code: "FG-X", tool: "fraggate_call", slug: "foldlock", op: "health", args: { n: 1 }, minuteBucket: 11 }).then((r) => {
+  const pending = sealRefusal(store, { code: "FG-X", tool: "fraggate_call", slug: "foldlock", op: "health", args: { n: 1 }, minuteBucket: 11, env: { COVERAGE_LIVE: "on" } }).then((r) => {
     settled = true;
     return r;
   });
@@ -109,7 +109,7 @@ ok((await C.verifyOutsideLog(tampered)).code === "ANCHOR-MISMATCH");
     },
   };
   C.setOutsideAnchorLog(null);
-  const rec = await sealRefusal(store, { code: "FG-SINK", tool: "fraggate_call", slug: "foldlock", op: "health", args: { n: 9 }, minuteBucket: 19 });
+  const rec = await sealRefusal(store, { code: "FG-SINK", tool: "fraggate_call", slug: "foldlock", op: "health", args: { n: 9 }, minuteBucket: 19, env: { COVERAGE_LIVE: "on" } });
   ok(rec.sealed === true && rec.h && rec.per_refusal_anchor.code === "ANCHOR-PENDING" && rec.per_refusal_anchor.pending_sealed === false);
   ok((await loadChain(inner, "refusals")).length === 1);
   C.setOutsideAnchorLog(null);
@@ -120,7 +120,7 @@ ok((await C.verifyOutsideLog(tampered)).code === "ANCHOR-MISMATCH");
   const store = new MemoryStore();
   const log = C.createOutsideAnchorLog();
   C.setOutsideAnchorLog(log);
-  const rec = await sealRefusal(store, { code: "FG-Y", tool: "fraggate_call", slug: "foldlock", op: "health", args: { n: 2 }, minuteBucket: 12 });
+  const rec = await sealRefusal(store, { code: "FG-Y", tool: "fraggate_call", slug: "foldlock", op: "health", args: { n: 2 }, minuteBucket: 12, env: { COVERAGE_LIVE: "on" } });
   await append(store, { c: "refusals", k: "follow", s: "after", f: "routine follow stays batched" }, { internal: true });
   const rows = await loadChain(store, "refusals");
   ok(C.verifyRefusalsSinceBatch(rows, { batchThroughSeq: 0, logEntries: log.list() }).ok === true);
@@ -134,11 +134,27 @@ ok((await C.verifyOutsideLog(tampered)).code === "ANCHOR-MISMATCH");
   C.setOutsideAnchorLog(null);
 }
 
+// COVERAGE_LIVE off: the refusal still seals, and no coverage row is written.
+{
+  const log = C.createOutsideAnchorLog();
+  C.setOutsideAnchorLog(log);
+  const store = new MemoryStore();
+  const rec = await sealRefusal(store, { code: "FG-OFF", tool: "fraggate_call", slug: "foldlock", op: "health", args: { n: 8 }, minuteBucket: 18 });
+  ok(rec.sealed === true && rec.h);
+  ok(rec.per_refusal_anchor.code === "COVERAGE-LIVE-OFF" && rec.per_refusal_anchor.written === false && rec.per_refusal_anchor.pending_sealed === false && rec.per_refusal_anchor.in_log === false);
+  ok((await loadChain(store, "coverage")).length === 0, "flag off seals no coverage row");
+  ok((await loadChain(store, "refusals")).length === 1);
+  ok(log.list().length === 0, "flag off does not append the outside anchor log");
+  const also = await sealRefusal(new MemoryStore(), { code: "FG-OFF2", tool: "fraggate_call", slug: "foldlock", op: "health", args: { n: 8 }, minuteBucket: 28, env: { COVERAGE_LIVE: "off" } });
+  ok(also.per_refusal_anchor.code === "COVERAGE-LIVE-OFF" && also.per_refusal_anchor.written === false);
+  C.setOutsideAnchorLog(null);
+}
+
 // No outside log: seal ANCHOR-PENDING and verify flags it. Witness exact head counts as in-log.
 {
   C.setOutsideAnchorLog(null);
   const store = new MemoryStore();
-  const rec = await sealRefusal(store, { code: "FG-Z", tool: "fraggate_call", slug: "foldlock", op: "health", args: { n: 3 }, minuteBucket: 13 });
+  const rec = await sealRefusal(store, { code: "FG-Z", tool: "fraggate_call", slug: "foldlock", op: "health", args: { n: 3 }, minuteBucket: 13, env: { COVERAGE_LIVE: "on" } });
   ok(rec.per_refusal_anchor.code === "ANCHOR-PENDING" && rec.per_refusal_anchor.pending_sealed === true);
   const cov = await loadChain(store, "coverage");
   const pending = cov.find((r) => r.k === "anchor_pending");
@@ -168,7 +184,7 @@ ok((await C.verifyOutsideLog(tampered)).code === "ANCHOR-MISMATCH");
   ok(first.verifier.result === "pass" && first.verifier.code === "ANCHOR-OK" && first.verifier.sealed === true && first.live === false);
   const replay = await C.runVerifierSlot({ store, now: t0 + 10, log });
   ok(replay.replayed === true && replay.result === "pass");
-  await sealRefusal(store, { code: "FG-Q", tool: "fraggate_call", slug: "foldlock", op: "health", args: { n: 4 }, minuteBucket: 14 });
+  await sealRefusal(store, { code: "FG-Q", tool: "fraggate_call", slug: "foldlock", op: "health", args: { n: 4 }, minuteBucket: 14, env: { COVERAGE_LIVE: "on" } });
   const rows = await loadChain(store, "refusals");
   rows[0].stamp_sha256 = H("55");
   await store.replaceRecords("refusals", rows);
@@ -307,6 +323,16 @@ ok((await C.verifyOutsideLog(tampered)).code === "ANCHOR-MISMATCH");
   await Promise.all(pendingOff);
   const offRows = await loadChain(storeFor(off), "coverage");
   ok(offRows.length === 0, "default cron seals no verifier or watchdog row");
+  const refused = await worker.fetch(new Request("https://aziel-runtime.example/mcp", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "fraggate_call", arguments: { slug: "foldlock", op: "fold-append" } } }),
+  }), off);
+  const refusedBody = await refused.json();
+  const sc = refusedBody.result && (refusedBody.result.structuredContent || JSON.parse(refusedBody.result.content[0].text));
+  ok(sc && sc.refusal_receipt && sc.refusal_receipt.sealed === true && sc.refusal_receipt.per_refusal_anchor.code === "COVERAGE-LIVE-OFF");
+  ok((await loadChain(storeFor(off), "coverage")).length === 0, "a refusal with the flag off seals no coverage row");
+  ok((await loadChain(storeFor(off), "refusals")).length === 1);
   const offRes = await worker.fetch(new Request("https://aziel-runtime.example/v1/anchor/coverage"), off);
   const offBody = await offRes.json();
   ok(offRes.status === 200 && offBody.read === true && offBody.mints === false && offBody.live === false && offBody.coverage_live === false);

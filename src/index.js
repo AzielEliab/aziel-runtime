@@ -3958,6 +3958,7 @@ async function handleMcp(request, env, origin, ctx) {
         name,
         args,
         schemaHash: await toolsSchemaHash(),
+        runtimeEnv: env,
         call: () => callTool(env, name, args, origin, request, ctx),
       });
       const { slug, op } = splitProductToolName(resolvePublicToolName(name));
@@ -4100,6 +4101,7 @@ async function handleFraggateHttp(request, url, origin, env, ctx) {
       name: "fraggate_call",
       args,
       schemaHash: await toolsSchemaHash(),
+      runtimeEnv: env,
       call: async () => {
         const b = await fraggateCall(args, registry, BY_SLUG, env, request);
         return { envelope: b };
@@ -5277,7 +5279,7 @@ export default {
       // AZRT-REFUSAL-RECEIPT-1.0 addendum: AZ-OS / azinterface refusals arrive only over the service binding.
       if (new URL(request.url).hostname === "peer.aziel.internal") {
         const { handlePeerRefusal } = await import("./refusal-doors.js");
-        return handlePeerRefusal(request, { store: env && env.CHAINLOCK ? storeFor(env) : null, ctx });
+        return handlePeerRefusal(request, { store: env && env.CHAINLOCK ? storeFor(env) : null, ctx, env });
       }
       const peek = String(request.method || "GET").toUpperCase() === "POST" ? request.clone() : request;
       const inbound = await gateInbound(request, env, json);
@@ -5297,7 +5299,7 @@ export default {
       // The seal never runs past the request deadline: what is left of it (minus 50 ms) is the seal budget;
       // nothing left means the write goes to the background and the receipt says receipt_pending.
       const left = budget - (Date.now() - startedAt) - 50;
-      result = await withDoorRefusalReceipt(request, result, { store: env && env.CHAINLOCK ? storeFor(env) : null, ctx, budgetMs: Number.isFinite(left) ? left : undefined });
+      result = await withDoorRefusalReceipt(request, result, { store: env && env.CHAINLOCK ? storeFor(env) : null, ctx, env, budgetMs: Number.isFinite(left) ? left : undefined });
     }
     // AZRT-AUTH-ROLLUP-1.0: login/token refusals are never sealed one by one; each adds 1 to a count-only
     // (minute, door, code) counter that the cron seals as one rollup row. Additive header only.

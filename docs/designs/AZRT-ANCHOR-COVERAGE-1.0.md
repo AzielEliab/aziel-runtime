@@ -14,7 +14,7 @@ Cap-7 and `.aziel` stay names only. Cap-7 is not ICANN and is not the public Int
 
 ## RIB-057 — per refusal, not per batch
 
-After a `k: "refusal"` row is sealed (not an auth-rollup count), the refusal does not return until `publishRefusalHead` finishes:
+After a `k: "refusal"` row is sealed (not an auth-rollup count), and only when `COVERAGE_LIVE` is explicitly on, the refusal does not return until `publishRefusalHead` finishes:
 
 - the outside anchor log accepts `(chain: refusals, seq, h)`, first hash wins, or
 - the already-verified witness log's refusals head is exactly that seq and hash, or
@@ -22,11 +22,13 @@ After a `k: "refusal"` row is sealed (not an auth-rollup count), the refusal doe
 
 `verifyRefusalsSinceBatch` flags a refusal newer than the last batch head that has no outside-log entry (`ANCHOR-PENDING`). A different hash than the log is `ANCHOR-MISMATCH`. Follow rows and auth-rollup rows stay on the batch witness.
 
-The outside log is not the ChainLock writer and is not a signed witness statement. Production leaves the log unset until an outside acceptor is bound, so a refusal seals `ANCHOR-PENDING` rather than inventing a witness line.
+The outside log is not the ChainLock writer and is not a signed witness statement. Production leaves the log unset until an outside acceptor is bound, so a refusal with the flag on seals `ANCHOR-PENDING` rather than inventing a witness line.
+
+`COVERAGE_LIVE` off skips this whole step: no outside-log append and no `coverage` row. The refusal row on `refusals` still seals. Cos must not turn the flag on without Aziel OK.
 
 ## RIB-058 — scheduled verifier
 
-`runCoverageTick` is what a Worker cron tick calls, and only when `COVERAGE_LIVE` is explicitly on (`true`, `1`, `"1"`, `"true"`, `"yes"`, `"on"`). The var is unset in `wrangler.toml`. Missing, `"off"`, `"0"`, `"false"`, and `"live"` do not arm it. While it is off, `scheduled()` logs `COVERAGE-LIVE-OFF` and seals no verifier or watchdog row. Cos must not turn `COVERAGE_LIVE` on without Aziel OK. Not LIVE until this code and that flag are both on.
+`runCoverageTick` is what a Worker cron tick calls, and only when `COVERAGE_LIVE` is explicitly on (`true`, `1`, `"1"`, `"true"`, `"yes"`, `"on"`). The same flag gates refusal-path coverage writes. The var is unset in `wrangler.toml`. Missing, `"off"`, `"0"`, `"false"`, and `"live"` do not arm it. While it is off, `scheduled()` logs `COVERAGE-LIVE-OFF` and seals no verifier or watchdog row, and a refusal seals no coverage row. Cos must not turn `COVERAGE_LIVE` on without Aziel OK. Not LIVE until this code and that flag are both on.
 
 When the flag is on, each slot of `anchor-verify` (15 minutes) seals one `k: "verifier"` row on the internal `coverage` chain, `result: pass` or `result: fail`. The same slot replays. A slot that never ran stays missing. A miss row does not fill that hole.
 

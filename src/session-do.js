@@ -52,7 +52,7 @@ async function attachAuditDoorRefusal(env, err) {
   let refusal_receipt;
   try {
     const { sealDoorRefusal } = await import("./refusal-doors.js");
-    refusal_receipt = await sealDoorRefusal(chainlockStoreFor(env), { surface: "runtime", door: "session-exec", code: "AUDIT-PATH-DOWN", reason: null, method: "POST", route: "/v1/session/{id}/exec", status: 409 }, { budgetMs: 2000 });
+    refusal_receipt = await sealDoorRefusal(chainlockStoreFor(env), { surface: "runtime", door: "session-exec", code: "AUDIT-PATH-DOWN", reason: null, method: "POST", route: "/v1/session/{id}/exec", status: 409 }, { budgetMs: 2000, env });
   } catch {
     refusal_receipt = { sealed: false, status: "unavailable" };
   }
@@ -532,7 +532,7 @@ export class RuntimeSession {
       let refusal_receipt;
       try {
         const { sealDoorRefusal } = await import("./refusal-doors.js");
-        refusal_receipt = await sealDoorRefusal(chainlockStoreFor(this.env), { surface: "runtime", door: "session-close", code, reason: null, method: "POST", route: "/v1/session/{id}/close", status: 409 }, { budgetMs: 2000 });
+        refusal_receipt = await sealDoorRefusal(chainlockStoreFor(this.env), { surface: "runtime", door: "session-close", code, reason: null, method: "POST", route: "/v1/session/{id}/close", status: 409 }, { budgetMs: 2000, env: this.env });
       } catch {
         refusal_receipt = { sealed: false, status: "unavailable" };
       }

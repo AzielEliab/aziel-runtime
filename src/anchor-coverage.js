@@ -36,7 +36,7 @@ export const SAME_CHAIN_HEARTBEAT = false;
 /** Default. Live only when `coverageLive(env)` is true (code is present and COVERAGE_LIVE is explicitly on). */
 export const LIVE = false;
 /** Cos must not set COVERAGE_LIVE without Aziel OK. Missing, off, and any other string stay off. */
-export const COVERAGE_LIVE_NOTE = "Cos must not turn COVERAGE_LIVE on without Aziel OK. Coverage ticks stay off until that flag is explicitly on. Not LIVE until the code and the flag are both on. Cap-7 is not ICANN. Paid satellite stays HELD.";
+export const COVERAGE_LIVE_NOTE = "Cos must not turn COVERAGE_LIVE on without Aziel OK. Coverage ticks and refusal-path coverage rows stay off until that flag is explicitly on. Not LIVE until the code and the flag are both on. Cap-7 is not ICANN. Paid satellite stays HELD.";
 
 export const HONESTY = Object.freeze({
   spec: COVERAGE_SPEC,
@@ -215,8 +215,27 @@ export async function sealCoverage(store, { k, fact, coverage, idempotency_key }
   }, { internal: true });
 }
 
-/** After a refusal row is sealed: wait for the outside log, or seal ANCHOR-PENDING. */
-export async function finishRefusalAnchor(store, { seq, h, at = new Date().toISOString(), log = currentOutsideAnchorLog() } = {}) {
+/**
+ * After a refusal row is sealed: wait for the outside log, or seal ANCHOR-PENDING.
+ * COVERAGE_LIVE off: no outside-log append and no coverage-chain row. The refusal row
+ * on `refusals` is already committed and is left alone.
+ */
+export async function finishRefusalAnchor(store, { seq, h, at = new Date().toISOString(), log = currentOutsideAnchorLog(), env = null } = {}) {
+  if (!coverageLive(env)) {
+    return {
+      spec: COVERAGE_SPEC,
+      seq,
+      h,
+      status: "COVERAGE-LIVE-OFF",
+      code: "COVERAGE-LIVE-OFF",
+      in_log: false,
+      pending_sealed: false,
+      written: false,
+      coverage_live: false,
+      signed: false,
+      live: false,
+    };
+  }
   const pub = await publishRefusalHead({ seq, h, at, log });
   if (pub.status !== ANCHOR_PENDING) return { ...pub, pending_sealed: false };
   let pending = null;
