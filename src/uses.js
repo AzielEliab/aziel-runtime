@@ -14,6 +14,8 @@ export const USES_AUTHOR = "Aziel Eliab";
 export const USES_LOG_KEY = "log";
 export const USES_LOG_CAP = 100;
 export const USES_TOTAL_KEY = "total";
+/** Published total once RUNTIME_KV is bound: frozen legacy `total` plus the Durable Object delta. */
+export const USES_TOTAL_SOURCE = "legacy-frozen+durable";
 
 const SKIP_SEO = new Set([
   "/",
@@ -576,9 +578,9 @@ async function readUsesTotal(kv) {
     cite: {
       uses_legacy,
       uses_durable,
-      uses_total_source: "legacy-frozen+durable",
+      uses_total_source: USES_TOTAL_SOURCE,
       uses_total_note:
-        "uses is the frozen legacy USES total plus the Durable Object total. The sum is computed on read and is not written back.",
+        "uses is the frozen legacy USES total plus the Durable Object total. The sum is computed on read and is not written back. The shared stats floor for this sum is its own series, so a floor raised before this sum is not applied.",
     },
   };
 }

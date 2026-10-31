@@ -1,7 +1,8 @@
 /** STATS-FLOOR-1.0: one shared floor per key in a Durable Object; counts never drop across colos or cold starts. */
 import assert from "node:assert/strict";
-import { cachedUses, clearStatsMemo, statsFloorFor, STATS_TTL_S, STATS_DO_CAP_PER_MIN } from "../src/stats-cache.js";
+import { cachedUses, clearStatsMemo, statsFloorFor, statsFloorStorageKey, STATS_TTL_S, STATS_DO_CAP_PER_MIN } from "../src/stats-cache.js";
 import { memoryChainWriterNamespace } from "../src/chainlock/writer-do.js";
+import { USES_TOTAL_SOURCE } from "../src/uses.js";
 let n = 0;
 const T = STATS_TTL_S * 1000;
 const body = (uses, complete = true) => ({ ok: true, uses, uses_complete: complete });
@@ -153,5 +154,68 @@ assert.equal(STATS_DO_CAP_PER_MIN, 6); n++;
   const c2 = { calls: 0, raise: async (k, u) => { c2.calls++; return fr.raise(k, u); } };
   for (let i = 0; i < 50; i++) assert.equal((await cachedUses("q", async () => body(7), { now: t0 + i * 100, cache: null, floor: c2 })).ok, true);
   assert.equal(c2.calls, 1); n++;
+}
+
+// Reconciled legacy+durable total is not pinned by an inflated pre-reconciliation floor.
+// Live shape: uses_legacy 62051 + uses_durable 5888 = 67939, old floor 112111.
+{
+  clearStatsMemo();
+  const envU = { CHAINLOCK: memoryChainWriterNamespace({}) };
+  const fu = statsFloorFor(envU);
+  await fu.raise("full", 112111);
+  await fu.raise("light", 112111);
+  const c = { calls: 0, raise: async (k, u) => { c.calls++; return fu.raise(k, u); } };
+  const reconciled = (uses) => ({
+    ok: true,
+    uses,
+    uses_complete: true,
+    uses_legacy: 62051,
+    uses_durable: uses - 62051,
+    uses_total_source: USES_TOTAL_SOURCE,
+  });
+  const base = reconciled(67939);
+  const series = statsFloorStorageKey("full", base);
+  assert.equal(series, "full:" + USES_TOTAL_SOURCE);
+  assert.notEqual(series, "full");
+  const t0 = 90_000_000;
+  const unmasked = await cachedUses("full", async () => base, { now: t0, cache: null, floor: c });
+  assert.equal(unmasked.uses, 67939);
+  assert.equal(unmasked.cache.uses_floor_applied, false);
+  assert.equal(unmasked.uses_read, undefined);
+  assert.equal(unmasked.cache.floor_epoch, USES_TOTAL_SOURCE);
+  assert.equal(c.calls, 1);
+  assert.equal((await fu.raise("full", 0)).floor, 112111, "old floor key is left in place and not applied");
+  assert.equal((await fu.raise(series, 0)).floor, 67939);
+  const reused = await cachedUses("full", async () => base, { now: t0 + 1_000, cache: null, floor: c });
+  assert.equal(c.calls, 1, "reuse stays on the reconciled series");
+  assert.equal(reused.uses, 67939);
+  assert.equal(reused.cache.floor_reused, true);
+  assert.equal(reused.cache.floor_epoch, USES_TOTAL_SOURCE);
+  clearStatsMemo();
+  const climbed = await cachedUses("full", async () => reconciled(67940), { now: t0 + 70_000, cache: null, floor: c });
+  assert.equal(climbed.uses, 67940);
+  assert.equal(climbed.cache.uses_floor_applied, false);
+  assert.equal((await fu.raise(series, 0)).floor, 67940);
+  const reusedClimb = await cachedUses("full", async () => reconciled(67940), { now: t0 + 71_000, cache: null, floor: c });
+  assert.equal(reusedClimb.uses, 67940);
+  assert.equal(reusedClimb.cache.floor_reused, true);
+  clearStatsMemo();
+  const lag = await cachedUses("full", async () => reconciled(67930), { now: t0 + 140_000, cache: null, floor: c });
+  assert.equal(lag.uses, 67940, "colo lag holds the reconciled baseline, not 112111");
+  assert.equal(lag.uses_read, 67930);
+  assert.equal(lag.cache.uses_floor_applied, true);
+  assert.equal(lag.cache.floor_epoch, USES_TOTAL_SOURCE);
+  clearStatsMemo();
+  const plain = await cachedUses("full", async () => body(90), { now: t0 + 150_000, cache: null, floor: c });
+  assert.equal(plain.uses, 112111, "a non-reconciled read still uses the old floor");
+  assert.equal(plain.uses_read, 90);
+  assert.equal(plain.cache.uses_floor_applied, true);
+  assert.equal(plain.cache.floor_epoch, undefined);
+  clearStatsMemo();
+  const light = await cachedUses("light", async () => base, { now: t0 + 160_000, cache: null, floor: c });
+  assert.equal(light.uses, 67939);
+  assert.equal((await fu.raise("light", 0)).floor, 112111);
+  assert.equal((await fu.raise(statsFloorStorageKey("light", base), 0)).floor, 67939);
+  n++;
 }
 console.log(`ok stats floor: ${n} checks`);
