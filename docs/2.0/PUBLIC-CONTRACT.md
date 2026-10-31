@@ -146,7 +146,7 @@ Other public HTTP surfaces that stay in the contract:
 | `rate_fraggate_call_per_minute` | `240` |
 | `rate_fraggate_read_per_minute` | `360` |
 | `rate_mcp_per_minute` | `240` |
-| `token` | `optional-on-session-mutate` |
+| `token` | Read at serve time from `REQUIRE_TOKEN` (same reader as the session-mutate gate). Off, including a secret with the flag off: `optional-on-session-mutate`. On (`1` / `true` / `yes`): `required-on-session-mutate`. A missing `RUNTIME_TOKEN` still fail-closes `GET /v1/ready` (503). Public FragGate call stays open. |
 | `true_engine_slugs` / `engine_slugs` | catalog true-engine slugs |
 | `proxy_fallback_ops` | per-op only (see §6) |
 

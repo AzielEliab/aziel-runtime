@@ -105,6 +105,16 @@ export function tokenGateState(env) {
   };
 }
 
+/**
+ * authoritySnapshot.token. Same REQUIRE_TOKEN reader as the mutate gate.
+ * Flag off stays optional, including when a secret is set and the flag is not.
+ * Flag on is required-on-session-mutate. A missing RUNTIME_TOKEN still
+ * fail-closes ready (503 token_not_configured); that is not an optional stamp.
+ */
+export function authorityTokenLabel(env) {
+  return requireTokenFlag(env) ? "required-on-session-mutate" : "optional-on-session-mutate";
+}
+
 export function sessionBindingUp(env) {
   return Boolean(
     env &&
