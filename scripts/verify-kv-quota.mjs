@@ -16,6 +16,7 @@ import { readFileSync } from "node:fs";
 import { MCP_SESSION_HEADER } from "../src/mcp-transport.js";
 import { hybridKv, memoryRuntimeKvNamespace, withDurableKv } from "../src/durable-kv.js";
 import { memoryUsesKv, incrementUse, readUses } from "../src/uses.js";
+import { cachedUses, clearStatsMemo, statsFloorFor } from "../src/stats-cache.js";
 import { append } from "../src/chainlock/ops.js";
 import { DurableStore } from "../src/chainlock/store.js";
 import { memoryChainWriterNamespace } from "../src/chainlock/writer-do.js";
@@ -110,9 +111,68 @@ async function initAndList(env, label) {
   const env = { USES: legacy, RUNTIME_KV };
   const wrapped = withDurableKv(env);
   const before = await readUses(wrapped, { light: true });
+  // The put above stored 42 on the object while legacy stayed 41. readUses adds them.
+  assert.equal(before.uses_legacy, 41);
+  assert.equal(before.uses_durable, 42);
+  assert.equal(before.uses, 83);
   await incrementUse(wrapped, { host: "c.example", method: "POST", path: "/mcp" });
   const after = await readUses(wrapped);
-  assert.equal(after.uses, (before.uses || 0) + 1, "use counter continues from the legacy total");
+  assert.equal(after.uses, before.uses + 1, "one new use adds one to the published total");
+  assert.equal(after.uses_legacy, 41);
+  assert.equal(after.uses_durable, 43);
+  assert.equal(await legacy.get("total"), "41", "legacy total stays frozen");
+  assert.equal(await wrapped.USES.durableGet("total"), "43", "the sum is not written back");
+}
+
+// --- 3a. Empty DO total does not absorb the frozen legacy base on the next bump --
+{
+  const legacy = memoryUsesKv({ total: "41" });
+  const kv = hybridKv(memoryRuntimeKvNamespace(), legacy);
+  const before = await readUses({ USES: kv }, { light: true });
+  assert.equal(before.uses, 41);
+  assert.equal(before.uses_durable, 0);
+  await incrementUse({ USES: kv }, { host: "c.example", method: "POST", path: "/mcp" });
+  const after = await readUses({ USES: kv }, { light: true });
+  assert.equal(after.uses, 42);
+  assert.equal(after.uses_legacy, 41);
+  assert.equal(after.uses_durable, 1);
+  assert.equal(await legacy.get("total"), "41");
+  assert.equal(await kv.durableGet("total"), "1");
+}
+
+// --- 3b. Fresh DO total does not hide the frozen legacy total -------------------
+{
+  const legacy = memoryUsesKv({ total: "112111", "host|a.example": "7" });
+  const RUNTIME_KV = memoryRuntimeKvNamespace();
+  const kv = hybridKv(RUNTIME_KV, legacy);
+  await kv.put("total", "5332");
+  assert.equal(await kv.get("total"), "5332", "hybrid get still prefers the Durable Object");
+  const before = await readUses({ USES: kv }, { light: true });
+  assert.equal(before.uses, 112111 + 5332);
+  assert.equal(before.uses_legacy, 112111);
+  assert.equal(before.uses_durable, 5332);
+  await incrementUse({ USES: kv }, { host: "c.example", method: "GET", path: "/v1/skill" });
+  const after = await readUses({ USES: kv }, { light: true });
+  assert.equal(after.uses, 112111 + 5333);
+  assert.equal(after.uses_durable, 5333);
+  const snap = await readUses({ USES: kv }, { maps: "snapshot" });
+  assert.equal(snap.uses, after.uses, "snapshot read uses the same legacy+DO total");
+  assert.equal(await legacy.get("total"), "112111");
+  assert.equal(await kv.durableGet("total"), "5333", "DO total stays the delta");
+  assert.notEqual(await kv.durableGet("total"), String(after.uses));
+  clearStatsMemo();
+  const floorEnv = { CHAINLOCK: memoryChainWriterNamespace({}) };
+  const floor = statsFloorFor(floorEnv);
+  await floor.raise("full", 112111);
+  const served = await cachedUses("full", () => readUses({ USES: kv }, { light: true }), {
+    now: 1_000_000,
+    cache: null,
+    floor,
+  });
+  assert.equal(served.uses, 112111 + 5333);
+  assert.equal(served.cache.uses_floor_applied, false, "sum is above the floor, so the floor no longer masks");
+  assert.equal(served.uses_read, undefined);
+  assert.equal(served.uses_durable, 5333);
 }
 
 // --- 4. MCP still answers after N lattice rows ----------------------------------
