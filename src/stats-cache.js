@@ -5,6 +5,8 @@
  * whether it is cached, when it was read, and the max age. Counts are never edited.
  * No KV or D1 writes. Author: Aziel Eliab only.
  */
+import { USES_TOTAL_SOURCE } from "./uses.js";
+
 export const STATS_CACHE_SPEC = "STATS-CACHE-1.0";
 export const STATS_TTL_S = 60;
 const memo = new Map();
@@ -99,7 +101,12 @@ async function cachedUsesLocal(key, read, { now = Date.now(), cache = defaultCac
 
 /**
  * STATS-FLOOR-1.0: one shared floor per key in a Durable Object (no KV). The floor is the highest
- * `uses` ever served by any isolate in any colo.
+ * `uses` ever served for that series by any isolate in any colo.
+ * A read whose uses_total_source is the reconciled legacy+durable total uses its own series
+ * (`<key>:legacy-frozen+durable`). A floor stored on the pre-reconciliation key is not applied,
+ * so an inflated high water cannot pin published uses above uses_legacy + uses_durable. Later
+ * climbs of that total still raise the reconciled series. The sum is not written back into the
+ * USES Durable Object.
  * Every request makes exactly one DO call, raise(key, candidate), which atomically sets the floor
  * to max(floor, candidate) and returns it (a write only when the count rises). The served count is
  * that returned max. Floor: across colos the count may lag by up to 10s; within an isolate it never drops. Cost: one DO
@@ -108,6 +115,32 @@ async function cachedUsesLocal(key, read, { now = Date.now(), cache = defaultCac
  * Fail closed: no CHAINLOCK binding, or the DO call fails -> no count is served (HTTP 503).
  * by_host/by_path/by_day/by_method/by_op are the raw read and are labelled as such.
  */
+
+/** Floor DO key. Reconciled totals do not share the pre-reconciliation high water. */
+export function statsFloorStorageKey(key, body) {
+  if (body && body.uses_total_source === USES_TOTAL_SOURCE) return `${key}:${USES_TOTAL_SOURCE}`;
+  return key;
+}
+
+function floorCache(body, served, extra) {
+  return {
+    ...body.cache,
+    floor_spec: "STATS-FLOOR-1.0",
+    floor_note: FLOOR_NOTE,
+    floor_shared: true,
+    ...extra,
+    uses_floor_applied: served > countOf(body),
+    ...(body && body.uses_total_source === USES_TOTAL_SOURCE ? { floor_epoch: USES_TOTAL_SOURCE } : {}),
+  };
+}
+
+function finishFloor(body, served, extra) {
+  const out = { ...body, breakdown: BREAKDOWN_NOTE, cache: floorCache(body, served, extra) };
+  if (served > countOf(body)) out.uses_read = body.uses;
+  out.uses = served;
+  return out;
+}
+
 export const FLOOR_NOTE = "across colos the count may lag by up to 10s; within an isolate it never drops.";
 export const STATS_FLOOR_UNAVAILABLE = "STATS-FLOOR-UNAVAILABLE";
 export const STATS_FLOOR_RETRY_S = 5;
@@ -155,20 +188,18 @@ export async function cachedUses(key, read, { now = Date.now(), cache = defaultC
   if (!floor || typeof floor.raise !== "function") return refuse("unbound");
   const body = await cachedUsesLocal(key, read, { now, cache });
   const candidate = Math.max(0, countOf(body), countOf((highWater.get(key) || {}).body));
+  const floorKey = statsFloorStorageKey(key, body);
   // STATS-FLOOR-REUSE-1.0: same KV candidate as this isolate's last floor read, and that read is
   // under 10s old -> serve that floor without a DO call (bounded staleness: 10s).
-  const prev = lastFloor.get(key);
+  const prev = lastFloor.get(floorKey);
   if (prev && prev.candidate === candidate && now - prev.at >= 0 && now - prev.at < STATS_FLOOR_REUSE_MS) {
     const servedR = Math.max(prev.floor, candidate);
-    const outR = { ...body, breakdown: BREAKDOWN_NOTE, cache: { ...body.cache, floor_spec: "STATS-FLOOR-1.0", floor_note: FLOOR_NOTE, floor_shared: true, floor_reused: true, floor_read_at: new Date(prev.at).toISOString(), uses_floor_applied: servedR > countOf(body) } };
-    if (servedR > countOf(body)) outR.uses_read = body.uses;
-    outR.uses = servedR;
-    return outR;
+    return finishFloor(body, servedR, { floor_reused: true, floor_read_at: new Date(prev.at).toISOString() });
   }
   let f;
   let batchSize = 1;
   try {
-    const r = await raiseBatched(floor, key, candidate, now);
+    const r = await raiseBatched(floor, floorKey, candidate, now);
     if (r && r.capped) {
       return { ok: false, code: STATS_CAP_CODE, retry_after_s: r.retry_after_s, message: `Stats floor calls are capped at ${STATS_DO_CAP_PER_MIN} per minute per isolate. No count was served. Retry after ${r.retry_after_s}s.`, spec: "STATS-FLOOR-CAP-1.0" };
     }
@@ -180,11 +211,8 @@ export async function cachedUses(key, read, { now = Date.now(), cache = defaultC
     return refuse("unreachable");
   }
   const served = Math.max(f, candidate);
-  lastFloor.set(key, { at: now, candidate, floor: served });
-  const out = { ...body, breakdown: BREAKDOWN_NOTE, cache: { ...body.cache, floor_spec: "STATS-FLOOR-1.0", floor_note: FLOOR_NOTE, floor_shared: true, floor_reused: false, floor_batch: batchSize, uses_floor_applied: served > countOf(body) } };
-  if (served > countOf(body)) out.uses_read = body.uses;
-  out.uses = served;
-  return out;
+  lastFloor.set(floorKey, { at: now, candidate, floor: served });
+  return finishFloor(body, served, { floor_reused: false, floor_batch: batchSize });
 }
 
 export function clearStatsMemo() {

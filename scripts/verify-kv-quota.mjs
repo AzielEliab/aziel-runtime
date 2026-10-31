@@ -15,8 +15,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { MCP_SESSION_HEADER } from "../src/mcp-transport.js";
 import { hybridKv, memoryRuntimeKvNamespace, withDurableKv } from "../src/durable-kv.js";
-import { memoryUsesKv, incrementUse, readUses } from "../src/uses.js";
-import { cachedUses, clearStatsMemo, statsFloorFor } from "../src/stats-cache.js";
+import { memoryUsesKv, incrementUse, readUses, USES_TOTAL_SOURCE } from "../src/uses.js";
+import { cachedUses, clearStatsMemo, statsFloorFor, statsFloorStorageKey } from "../src/stats-cache.js";
 import { append } from "../src/chainlock/ops.js";
 import { DurableStore } from "../src/chainlock/store.js";
 import { memoryChainWriterNamespace } from "../src/chainlock/writer-do.js";
@@ -173,6 +173,59 @@ async function initAndList(env, label) {
   assert.equal(served.cache.uses_floor_applied, false, "sum is above the floor, so the floor no longer masks");
   assert.equal(served.uses_read, undefined);
   assert.equal(served.uses_durable, 5333);
+  assert.equal(served.cache.floor_epoch, USES_TOTAL_SOURCE);
+}
+
+// --- 3c. Inflated pre-reconciliation floor does not pin the reconciled total ----
+{
+  const legacy = memoryUsesKv({ total: "62051" });
+  const RUNTIME_KV = memoryRuntimeKvNamespace();
+  const kv = hybridKv(RUNTIME_KV, legacy);
+  await kv.put("total", "5888");
+  const read = await readUses({ USES: kv }, { light: true });
+  assert.equal(read.uses_legacy, 62051);
+  assert.equal(read.uses_durable, 5888);
+  assert.equal(read.uses, 67939);
+  assert.equal(read.uses_total_source, USES_TOTAL_SOURCE);
+  const CHAINLOCK = memoryChainWriterNamespace({});
+  const floor = statsFloorFor({ CHAINLOCK });
+  await floor.raise("full", 112111);
+  await floor.raise("light", 112111);
+  clearStatsMemo();
+  const res = await handler(new Request("https://x.example/v1/uses"), { USES: legacy, RUNTIME_KV, CHAINLOCK }, { waitUntil() {} });
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.equal(body.uses, 67939);
+  assert.equal(body.uses_legacy, 62051);
+  assert.equal(body.uses_durable, 5888);
+  assert.equal(body.uses_total_source, USES_TOTAL_SOURCE);
+  assert.equal(body.cache.uses_floor_applied, false);
+  assert.equal(body.uses_read, undefined);
+  assert.equal(body.cache.floor_epoch, USES_TOTAL_SOURCE);
+  assert.equal(await kv.durableGet("total"), "5888", "published sum is not written back");
+  assert.equal(await legacy.get("total"), "62051");
+  assert.equal((await floor.raise("full", 0)).floor, 112111);
+  assert.equal((await floor.raise(statsFloorStorageKey("full", body), 0)).floor, 67939);
+  await incrementUse({ USES: kv }, { host: "c.example", method: "POST", path: "/mcp" });
+  assert.equal(await kv.durableGet("total"), "5889");
+  clearStatsMemo();
+  const res2 = await handler(new Request("https://x.example/v1/uses"), { USES: legacy, RUNTIME_KV, CHAINLOCK }, { waitUntil() {} });
+  const climbed = await res2.json();
+  assert.equal(res2.status, 200);
+  assert.equal(climbed.uses, 67940);
+  assert.equal(climbed.uses_legacy, 62051);
+  assert.equal(climbed.uses_durable, 5889);
+  assert.equal(climbed.cache.uses_floor_applied, false);
+  assert.equal(await kv.durableGet("total"), "5889", "the climb is not copied into the DO total");
+  assert.notEqual(await kv.durableGet("total"), String(climbed.uses));
+  clearStatsMemo();
+  const statsRes = await handler(new Request("https://x.example/v1/stats"), { USES: legacy, RUNTIME_KV, CHAINLOCK }, { waitUntil() {} });
+  const stats = await statsRes.json();
+  assert.equal(statsRes.status, 200);
+  assert.equal(stats.uses, 67940);
+  assert.equal(stats.alias_of, "/v1/uses");
+  assert.equal(stats.cache.uses_floor_applied, false);
+  assert.equal(await kv.durableGet("total"), "5889");
 }
 
 // --- 4. MCP still answers after N lattice rows ----------------------------------
