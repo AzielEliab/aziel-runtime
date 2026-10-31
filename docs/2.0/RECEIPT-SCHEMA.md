@@ -67,6 +67,11 @@ Hash is SHA-256 of `canonicalize(unsigned)` where `unsigned` is the receipt **wi
 - `prev_hash_mismatch`
 - `seq_mismatch`
 - `hash_mismatch` (strict recomputes SHA-256)
+- `MODEL-VERSION-SWAP` (RIB-068: provider `model_version` changed under the same `requested_alias`)
+- `MODEL-FINDING-TAMPER` (a sealed model finding on the receipt does not match the recomputed finding)
+- `MODEL-PROVENANCE-PARTIAL` (some model fields are present and the triple is not valid)
+
+Model fields are additive and only on model-backed receipts. A receipt with none of `requested_alias`, `model_id`, and `model_version` is unchanged. The spec is not LIVE until AZBot CLEAR. Findings are hash-linked and not signed. Cap-7 and `.aziel` strings in those fields are names only. Cap-7 is not ICANN. Paid satellite stays HELD.
 
 A prior receipt is **not** a skip ticket. Passing a receipt into `fraggate_call` still runs FragGate.
 

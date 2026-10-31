@@ -137,6 +137,11 @@ export const ADDITIVE_RECEIPT_FIELDS = Object.freeze([
   "server_reason",
   "server_basis",
   "server_tool",
+  "requested_alias", // AZRT-MODEL-PROVENANCE-1.0 (RIB-068, model-backed exec receipts only)
+  "model_id",
+  "model_version",
+  "model_basis",
+  "model_finding",
 ]);
 
 export function additiveReceiptFields(src) {
@@ -261,6 +266,10 @@ export async function verifyChainStrict(receipts, { trustedKeys = null } = {}) {
   const { checkServerDrift } = await import("./server-provenance.js");
   const server_drift = checkServerDrift((receipts || []).filter(Boolean));
   for (const d of server_drift.drifts) errors.push({ seq: d.seq, error: d.code, tool: d.tool });
+  // RIB-068: version change under one requested alias. Non-model receipts add no errors.
+  const { checkModelVersion } = await import("./model-provenance.js");
+  const model_provenance = await checkModelVersion((receipts || []).filter(Boolean));
+  for (const e of model_provenance.errors) errors.push({ seq: e.seq, error: e.error, requested_alias: e.requested_alias });
   // RIB-013: the sealed expected-state spec (stamp #1) and every later spec_ref, fail closed.
   const { verifyExpectSpec } = await import("./expect-spec-verify.js");
   const expect_spec = await verifyExpectSpec((receipts || []).filter(Boolean), { hashOf: (r) => r.hash, requireRef: true });
@@ -314,6 +323,7 @@ export async function verifyChainStrict(receipts, { trustedKeys = null } = {}) {
       note: "Session receipts may carry an anchor ref (the newest witness statement at mint time). That proves order after it, not external anchoring of this session.",
     },
     server_drift,
+    model_provenance,
     expect_spec,
     spec_stale,
     issuer_append,
@@ -803,6 +813,14 @@ export async function commitExec(session, { intent, status, latencyMs, requestDi
     const { restampApprover } = await import("./approver.js");
     sealedIntent = { ...sealedIntent, approver: await restampApprover(sealedIntent.approver, nowIso) };
   }
+  // RIB-068: recompute the model stamp from the provider fields. A caller-supplied finding is dropped.
+  const { MODEL_RECEIPT_FIELDS, modelStampOf, withSwapFinding } = await import("./model-provenance.js");
+  const additiveInput = additive && typeof additive === "object" ? { ...additive } : additive;
+  if (additiveInput && typeof additiveInput === "object") {
+    for (const key of MODEL_RECEIPT_FIELDS) delete additiveInput[key];
+  }
+  const modelStamp = modelStampOf(additive);
+  const modelFields = modelStamp ? await withSwapFinding(session.receipts, modelStamp) : {};
   const receipt = await appendReceipt(session, "exec", {
     // Seal the intent the session recorded (incl. any RIB-043 approver), not the caller's echo of it.
     intent: sealedIntent,
@@ -823,7 +841,8 @@ export async function commitExec(session, { intent, status, latencyMs, requestDi
       ran_in: isLocal ? (eng.ran_in || "aziel-runtime") : null,
     },
   }, nowIso, {
-    ...additiveReceiptFields(additive),
+    ...additiveReceiptFields(additiveInput),
+    ...modelFields,
     ...binding,
     ...(evidence ? { evidence } : {}),
     ...(audit ? { audit_status: audit.audit_status, ...(audit.audit_path ? { audit_path: audit.audit_path } : {}) } : {}),

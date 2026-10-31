@@ -98,11 +98,25 @@ export async function runChainlockOp(name, args, env) {
     // RIB-039: per-tool server drift over the FragGate call ledger (fail closed).
     const { currentLedger } = await import("./fraggate/ledger.js");
     const { checkServerDrift } = await import("./server-provenance.js");
+    const { checkModelVersion } = await import("./model-provenance.js");
     const led = currentLedger();
-    const server_drift = checkServerDrift(led && Array.isArray(led.entries) ? led.entries : []);
+    const rows = led && Array.isArray(led.entries) ? led.entries : [];
+    const server_drift = checkServerDrift(rows);
+    const model_provenance = await checkModelVersion(rows);
     // Summary leads with the provenance status so ok:true is never read as "provenance verified".
-    const out = { server_drift_status: server_drift.status, server_drift_note: server_drift.note, ...lattice, chains: chains.chains, chain_ok: chains.ok, server_drift };
+    const out = {
+      server_drift_status: server_drift.status,
+      server_drift_note: server_drift.note,
+      ...lattice,
+      chains: chains.chains,
+      chain_ok: chains.ok,
+      server_drift,
+      model_provenance_status: model_provenance.status,
+      model_provenance_note: model_provenance.note,
+      model_provenance,
+    };
     if (server_drift.ok === false) out.ok = false;
+    if (model_provenance.ok === false) out.ok = false;
     return out;
   }
   if (op === "seal") return seal(store, src);

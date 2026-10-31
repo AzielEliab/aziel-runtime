@@ -143,7 +143,23 @@ async function serverProvenance(o) {
   return m.serverProvenance(o);
 }
 
-async function accept({ name, slug, op, result, gate, engine, env = null, registry = null }) {
+function modelRequest(src, payload) {
+  const top = src && typeof src === "object" ? src : {};
+  return {
+    payload: payload && typeof payload === "object" && !Array.isArray(payload) ? payload : null,
+    requested_alias: top.requested_alias,
+    model_alias: top.model_alias,
+    alias: top.alias,
+    model: top.model,
+  };
+}
+
+async function modelFields(request, response) {
+  const { modelCallFields } = await import("../model-provenance.js");
+  return modelCallFields({ request, response, prior: currentLedger().entries });
+}
+
+async function accept({ name, slug, op, result, gate, engine, env = null, registry = null, request = null }) {
   // RIB-039: which server answered (deployed code + tool digest), null with a reason when unresolved.
   const server = await serverProvenance({
     env,
@@ -152,6 +168,7 @@ async function accept({ name, slug, op, result, gate, engine, env = null, regist
     engine_digest: engine && engine.engine_digest ? engine.engine_digest : null,
     registry_digest: registry ? await cachedRegistryDigest(registry) : null,
   });
+  const model = await modelFields(request, result);
   const { tip } = await appendLedger({
     asked: true,
     refused: false,
@@ -160,6 +177,7 @@ async function accept({ name, slug, op, result, gate, engine, env = null, regist
     op,
     gate: gate && gate.final_state,
     ...server,
+    ...model,
   });
   return {
     ok: true,
@@ -180,6 +198,7 @@ async function accept({ name, slug, op, result, gate, engine, env = null, regist
     server_reason: server.server_reason ?? null,
     server_basis: server.server_basis ?? null,
     server_tool: server.server_tool ?? null,
+    ...model,
   };
 }
 
@@ -604,6 +623,7 @@ async function fraggateCallBody(args, registry, bySlug, env, request, attempt) {
         mode: "akm-triad",
         status: result && result.ok === false ? 400 : 200,
       },
+      request: modelRequest(src, payload),
     });
     if (resolved.aliased) {
       accepted.canonical_op = resolved.op;
@@ -632,6 +652,7 @@ async function fraggateCallBody(args, registry, bySlug, env, request, attempt) {
         mode: "ark-account",
         status: result && result.ok === false ? 400 : 200,
       },
+      request: modelRequest(src, payload),
     });
     // Outbound sweep sees opaque base64 ciphertext rows as stand-ins (same rule as inbound).
     const B64 = /^[A-Za-z0-9+/]{1,65536}={0,2}$/;
@@ -659,6 +680,7 @@ async function fraggateCallBody(args, registry, bySlug, env, request, attempt) {
         mode: "qnm-rollup",
         status: result && result.ok === false ? 400 : 200,
       },
+      request: modelRequest(src, payload),
     });
     if (resolved.aliased) {
       accepted.canonical_op = resolved.op;
@@ -708,6 +730,7 @@ async function fraggateCallBody(args, registry, bySlug, env, request, attempt) {
       mode: local.mode,
       status: local.status,
     },
+    request: modelRequest(src, payload),
   });
   if (resolved.aliased) {
     accepted.canonical_op = resolved.op;
@@ -807,6 +830,7 @@ export async function namedDecisiongateCheck(args, env) {
   }
   const state = parsed && parsed.final_state;
   const refused = state && state !== "PASS";
+  const model = await modelFields(payload, parsed);
   const { tip } = await appendLedger({
     asked: true,
     refused: Boolean(refused),
@@ -815,6 +839,7 @@ export async function namedDecisiongateCheck(args, env) {
     op: "check",
     gate: state || null,
     ...(await serverProvenance({ env, tool: "DecisionGATE", slug: "decisiongate", engine_digest: local && local.engine_digest ? local.engine_digest : null })),
+    ...model,
   });
   return {
     ok: true,
@@ -827,6 +852,7 @@ export async function namedDecisiongateCheck(args, env) {
     gate: gateView(parsed),
     ledger_tip: tip,
     named_module: true,
+    ...model,
   };
 }
 
@@ -857,6 +883,7 @@ export async function libraryLookup(args, env) {
   } catch {
     parsed = { text: local && local.responseText };
   }
+  const model = await modelFields(payload, parsed);
   const { tip } = await appendLedger({
     asked: true,
     refused: false,
@@ -865,6 +892,7 @@ export async function libraryLookup(args, env) {
     op,
     gate: "read-only",
     ...(await serverProvenance({ env, tool: "Aziel Digital Library", slug: "aziel-corpus", engine_digest: local && local.engine_digest ? local.engine_digest : null })),
+    ...model,
   });
   return {
     ok: true,
@@ -876,6 +904,7 @@ export async function libraryLookup(args, env) {
     result: parsed,
     ledger_tip: tip,
     read_only: true,
+    ...model,
   };
 }
 
