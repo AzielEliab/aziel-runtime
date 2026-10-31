@@ -215,8 +215,24 @@ export class ChainWriter {
         tips = { primary: lt.primary, secondary: lt.secondary };
       }
       let stamp;
+      let harnessIssuer = null;
+      let writerFence = null;
       try {
-        stamp = await composeChainlockStamp(src.input || {}, {
+        const input = src.input || {};
+        const wf = meta.wf && Number.isInteger(meta.wf.epoch) ? { epoch: meta.wf.epoch, stopped: meta.wf.stopped === true } : { epoch: 0, stopped: false };
+        const { claimsHarnessIssuer, isExecClaim, gateChainAppend } = await import("../harness-seal.js");
+        const needsGate = wf.epoch || claimsHarnessIssuer(input) || isExecClaim(input) || input.writer_epoch != null || input.k === "stop" || input.kind === "stop";
+        if (needsGate) {
+          const gate = await gateChainAppend(input, wf, {
+            authority: src.fenceAuthority === true,
+            harnessRefusal: src.harnessRefusal === true,
+            tip: prev || null,
+          });
+          if (!gate.ok) return { ok: false, ...gate, v: CL_VERSION };
+          harnessIssuer = gate.harnessIssuer;
+          writerFence = gate.writerFence;
+        }
+        stamp = await composeChainlockStamp(input, {
           prev: prev || genesis,
           rows: legacyRows,
           latticeTips: tips,
@@ -224,6 +240,8 @@ export class ChainWriter {
           // LATTICE-TIEBREAK-1.0: tiebreak tip in meta.tb, unique (username, document_hash) index in tb:<key>.
           tiebreakPrev: meta.tb || (legacyRows ? tiebreakTip(legacyRows) : null),
           hasSynced: async (key) => Boolean(await this._get("tb:" + key)),
+          harnessIssuer,
+          writerFence,
         });
       } catch (err) {
         if (err instanceof LatticeError) {
@@ -259,6 +277,11 @@ export class ChainWriter {
       nextMeta.tb = tb.hash;
     } else if (meta.tb) {
       nextMeta.tb = meta.tb;
+    }
+    if (record && record.writer_fence && Number.isInteger(record.writer_fence.epoch)) {
+      nextMeta.wf = { epoch: record.writer_fence.epoch, stopped: record.writer_fence.stopped === true };
+    } else if (meta.wf) {
+      nextMeta.wf = meta.wf;
     }
     await this._put("meta", nextMeta);
     if (capCommit) await capCommit();

@@ -98,7 +98,7 @@ export function verifyIssuerAppend(receipts) {
   for (let i = 1; i < list.length; i++) {
     const r = list[i];
     const seq = r.seq ?? i + 1;
-    const control = r.revoke ? "revoke" : r.stale ? "stale" : null;
+    const control = r.revoke ? "revoke" : r.stale ? "stale" : r.event === "stop" || r.stop ? "stop" : null;
     if (control) {
       const by = r.written_by && r.written_by.issuer_key_hash;
       if (!issuer || by !== issuer.key_hash) errors.push({ seq, code: "CL-NOT-ISSUER", stamp: control });
