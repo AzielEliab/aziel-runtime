@@ -275,3 +275,25 @@ Absent on every receipt minted before them, so old hashes and `verifyChainStrict
 | `goal_key`, `context_hash`, `node_ids`, `schema_hash` | FragGate ledger rows | AZRT-GOAL-LINK-1.0, [AZRT-CONTEXT-HASH-1.0](../designs/AZRT-CONTEXT-HASH-1.0.md), [AZRT-SCHEMA-PIN-1.0](../designs/AZRT-SCHEMA-PIN-1.0.md) |
 | `schema_hash`, `expect`, `expect_hash` (open), `spec_ref` (later), `verdict` (close), `context_hash`, `context_n`, `node_ids` (exec) | session receipts | [AZRT-EXPECT-SPEC-1.0](../designs/AZRT-EXPECT-SPEC-1.0.md), AZRT-SCHEMA-PIN-1.0, AZRT-CONTEXT-HASH-1.0 |
 | `refusal_receipt`, `follows_refusal`, `context` (envelope, not hashed) | tools/call results | AZRT-REFUSAL-RECEIPT-1.0 |
+
+Ack and resolution clocks are not fields on these rows. They are a separate kind, `aziel-runtime.ack-clock`, and they are not live. See section 10.
+
+---
+
+## 10. Ack and resolution clocks (AZRT-ACK-CLOCK-1.0, not live)
+
+Kind: `aziel-runtime.ack-clock`. Spec: `AZRT-ACK-CLOCK-1.0`. Code: `src/ack-clock.js`. Tests: `scripts/verify-ack-clocks.mjs`. Paper: [AZRT-ACK-CLOCK-1.0](../designs/AZRT-ACK-CLOCK-1.0.md).
+
+This is its own hash-linked log. It is not a session receipt, not a ForgeReceipts body, not a ChainLock stamp, and not a FragGate ledger row. Hash is SHA-256 of `canonicalize(receipt without hash)`, the same canonicalizer as session receipts. There is no signature field. `live` is false. `spec_status` is `not-live`.
+
+A row that was sealed before this kind exists is unchanged: session fixtures, pre-anchor ChainLock stamps, FragGate ledger rows, and a ForgeReceipts body without attempt fields still verify. This kind does not add keys to those canonical bytes.
+
+Events: `page_delivered`, `human_ack`, `ack_miss`, `read_receipt`, `auto_reply`, `reassign`, `resolved`, `reopen`, `intake_linked`.
+
+RIB-066: delivery and a named human ack are different rows. Delivery arms `budget_ms`. A miss seals `ack_miss` and, when a next person is on the ladder, a new `page_delivered`. Read receipts and auto-replies seal a row with `stops_clock: false`. `ack_latency_ms` and `resolution_ms` are separate. Weekly ack latency is the mean of `human_ack` rows in a time window, recomputed from the chain.
+
+RIB-064: `reassign` restarts ack for a new owner and does not move `resolution_started_ms`. Reassign back to the original owner uses that owner's first ack start. If that first ack already stopped the clock, it stays stopped. Every reassign increments `handoff_count`. Past two (`handoff_count > 2`) sets `handoff_flagged`.
+
+RIB-065 and RIB-067: `total_age_ms` is from the original open. `reopen` increments `reopen_count` (the second sets `reopen_flagged`) and sets `re_resolve_started_ms` on a row whose `original_receipt_hash` is the first seal. The same requester and issue key, while the item is unresolved or within 30 days of `resolved_ms`, is `intake_linked` instead of a new item.
+
+Cap-7 and `.aziel` strings on a row stay names (`name_resolved: false`). The sealed `boundary` says Cap-7 is not ICANN and not a public egress IP. `paid_sat` is `HELD`. Not a Softwares card. Not an MCP tool. Not a public door.
