@@ -84,6 +84,7 @@
  * POST /v1/mesh/join|heartbeat|leave|site-presence
  * GET  /v1/mesh/nodes         rollup roster (no scores)
  * GET  /v1/mesh/site-presence cite hub site-viewer contract (GET never writes / never pulls /count)
+ * GET  /v1/mesh/paint        shared Nodes / Live Nodes pair (same numbers as /v1/mesh; do not recompute)
  * GET  /v1/mesh/az-generator  Cap-7 semantic-bridge cite (MirageGrid; not ICANN; never enables)
  * POST /v1/mesh/broadcast     SHA-256 hash receipt only (never a publish path)
  * GET  /v1/mesh/sot           SOT-SYNC-1.0 suite tip (GET /v1/software authority; version_id from CF_VERSION_METADATA or null)

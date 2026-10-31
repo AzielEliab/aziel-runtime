@@ -123,6 +123,14 @@ function assertMeshPills(data, extra = {}) {
   assert.equal(data.site_live_viewers_read, "single-key");
   assert.equal(data.live_nodes_tip, liveNodesTip(data.live_nodes_generation, data.human_mesh_users, parts));
   assert.equal(data.live_nodes, data.human_mesh_users + viewers, extra.liveMsg || "live_nodes === human_mesh_users + site_live_viewers");
+  assert.equal(data.collective_live_users, data.live_nodes);
+  assert.equal(data.runtime_users, data.human_mesh_users);
+  assert.equal(data.local_recompute, false);
+  assert.equal(data.fold_nodes_into_uses, false);
+  assert.equal(data.includes_site_viewers, true);
+  assert.equal(data.node_paint.live_nodes, data.live_nodes);
+  assert.equal(data.node_paint.fold_nodes_into_uses, false);
+  assert.equal(data.node_paint.local_recompute, false);
   assert.equal(data.live_nodes, data.rollup.mesh, extra.rollupMeshMsg || "rollup.mesh === live_nodes");
   assert.equal(Object.prototype.hasOwnProperty.call(data.rollup, "live"), false, "rollup.live is not published");
   assert.equal(data.rollup.public_live_nodes, "mesh");
@@ -131,6 +139,7 @@ function assertMeshPills(data, extra = {}) {
   if (!roster) {
     assert.equal(typeof data.nodes, "number", extra.nodesTypeMsg || "status nodes is a count");
     assert.equal(data.nodes, data.human_mesh_users + data.human_uses, extra.nodesMsg || "nodes === human_mesh_users + human_uses");
+    assert.equal(data.node_paint.nodes, data.nodes);
     assert.equal(data.nodes, data.rollup.nodes);
     assert.equal(data.nodes_are_not_unique_humans, true);
     assert.equal(data.paint_nodes_as_people, false);
@@ -922,13 +931,15 @@ resetMeshStore();
 }
 
 {
-  assert.deepEqual(SITE_LIVE_HOSTS.slice(), ["godlock.uk", "azieleliab.com", "azielcorpuslibrary.net"]);
-  assert.deepEqual(SITE_LIVE_EXCLUDED_HOSTS.slice(), ["hedidntjump.com"]);
+  assert.deepEqual(SITE_LIVE_HOSTS.slice(), ["godlock.uk", "azieleliab.com", "azielcorpuslibrary.net", "hedidntjump.com"]);
+  assert.deepEqual(SITE_LIVE_EXCLUDED_HOSTS.slice(), []);
   assert.equal(SITE_LIVE_KIND, "human-page");
   assert.equal(SITE_LIVE_TTL_MS, staleAfterMs("idle"));
   assert.notEqual(SITE_LIVE_TTL_MS, PRESENCE_TTL_MS);
   assert.equal(sanitizeSiteHost("https://www.godlock.uk/count").host, "godlock.uk");
-  assert.equal(sanitizeSiteHost("hedidntjump.com").code, "MESH-SITE-HOST-EXCLUDED");
+  assert.equal(sanitizeSiteHost("hedidntjump.com").ok, true);
+  assert.equal(sanitizeSiteHost("hedidntjump.com").host, "hedidntjump.com");
+  assert.equal(sanitizeSiteHost("unseal.example").code, "MESH-SITE-HOST");
   assert.equal(sanitizeSiteKind("bot").code, "MESH-SITE-KIND-REFUSED");
   assert.equal(sanitizeSiteKind("software").code, "MESH-SITE-KIND-REFUSED");
   assert.equal(sanitizeSiteKind("download").code, "MESH-SITE-KIND-REFUSED");
@@ -951,13 +962,13 @@ resetMeshStore();
   assert.equal(cite.data.site_live_viewers, 0);
   assert.equal(cite.data.site_presence_contract.fail_closed, true);
 
-  const hdj = await postJson(siteEnv, "/v1/mesh/site-presence", {
-    host: "hedidntjump.com",
+  const unknownHost = await postJson(siteEnv, "/v1/mesh/site-presence", {
+    host: "unseal.example",
     viewers: 9,
     kind: "human-page",
   });
-  assert.equal(hdj.status, 400);
-  assert.equal(hdj.data.code, "MESH-SITE-HOST-EXCLUDED");
+  assert.equal(unknownHost.status, 400);
+  assert.equal(unknownHost.data.code, "MESH-SITE-HOST");
   assert.equal((await jsonReq(siteEnv, "/v1/mesh")).data.site_live_viewers, 0);
 
   const bot = await postJson(siteEnv, "/v1/mesh/site-presence", {
@@ -1063,7 +1074,7 @@ resetMeshStore();
   assert.equal(merged["godlock.uk"].viewers, 4, "older sibling write does not drop a newer count");
   assert.equal(merged["azieleliab.com"].viewers, 3);
   assert.equal(merged["azielcorpuslibrary.net"].viewers, 2);
-  assert.equal(siteViewerTuple(siteViewerFleet(merged).components), "godlock.uk=4,azieleliab.com=3,azielcorpuslibrary.net=2");
+  assert.equal(siteViewerTuple(siteViewerFleet(merged).components), "godlock.uk=4,azieleliab.com=3,azielcorpuslibrary.net=2,hedidntjump.com=0");
 
   function meshKvWithTrap() {
     const store = new Map();

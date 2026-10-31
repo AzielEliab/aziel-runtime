@@ -78,6 +78,8 @@ assert.equal(shouldIncrementUse("POST", "/v1/mesh/join"), true);
 assert.equal(shouldIncrementUse("POST", "/v1/mesh/site-presence"), false);
 assert.equal(shouldIncrementUse("POST", "/v1/mesh/site-heartbeat"), false);
 assert.equal(shouldIncrementUse("GET", "/v1/mesh/site-presence"), false);
+assert.equal(shouldIncrementUse("GET", "/v1/mesh/paint"), false);
+assert.equal(shouldIncrementUse("POST", "/v1/mesh/paint"), false);
 assert.equal(shouldIncrementUse("POST", "/v1/uses"), false);
 assert.equal(shouldIncrementUse("GET", "/v1/stats"), false);
 assert.equal(shouldIncrementUse("POST", "/v1/stats"), false);

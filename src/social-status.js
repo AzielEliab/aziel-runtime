@@ -449,6 +449,27 @@ function combineSnapshots(sources) {
  * Runtime uses local USES KV (this Worker). He Didn't Jump hits /api/stats only.
  * Does not fetch the HDJ Worker SoT (no dual-write). Does not fan-out product /stats.
  */
+/** Same Nodes / Live Nodes pair as GET /v1/mesh. Never added to combined views or uses. */
+async function meshNodePaint(env) {
+  try {
+    const { meshStatus } = await import("./mesh.js");
+    const status = await meshStatus({}, env);
+    if (status && status.node_paint && typeof status.node_paint === "object") {
+      return status.node_paint;
+    }
+  } catch {
+    /* the rollup still returns views. A missed mesh read does not invent a count. */
+  }
+  return {
+    ok: false,
+    invent: false,
+    fold_nodes_into_uses: false,
+    uses_meter_unchanged: true,
+    local_recompute: false,
+    note: "Mesh paint was not read. No node count was invented, and nothing was added to the uses meter.",
+  };
+}
+
 export async function statsRollupSnapshot(env = {}, options = {}) {
   const now = typeof options.now === "number" ? options.now : Date.now();
   const ttl = options.ttlMs == null ? SOCIAL_STATUS_CACHE_TTL_MS : options.ttlMs;
@@ -499,8 +520,9 @@ export async function statsRollupSnapshot(env = {}, options = {}) {
     maps_complete: runtimeRow ? runtimeRow.maps_complete === true : false,
     maps_refresh: runtimeRow && runtimeRow.maps_refresh ? runtimeRow.maps_refresh : "idle",
     ring_ts: runtimeRow ? runtimeRow.ring_ts ?? null : null,
-    note: "Read-only AZindex awareness. Combined views/downloads sum fresh siblings and last-good snapshots. A last-good row sets combined.partial and stale_age_s. A sibling with no last-good stays in omitted and combined.missing. Runtime uses are agent/MCP usage and are not added to views. Never invent numbers. Never silently omit corpus views.",
+    note: "Read-only AZindex awareness. Combined views/downloads sum fresh siblings and last-good snapshots. A last-good row sets combined.partial and stale_age_s. A sibling with no last-good stays in omitted and combined.missing. Runtime uses are agent/MCP usage and are not added to views. node_paint is the shared Nodes / Live Nodes pair from GET /v1/mesh. It is not added to combined views, downloads, or the uses meter. Never invent numbers. Never silently omit corpus views.",
   };
+  body.node_paint = await meshNodePaint(env);
 
   const cacheable = combined.complete === true && combined.corpus_views_included === true;
   if (!options.skipCache && cacheable) {

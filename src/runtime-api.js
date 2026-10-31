@@ -409,7 +409,7 @@ ${survivalSkillMarkdown(base)}
 | GET | \`/v1/health\` | Liveness. Optional \`uses_total\` when USES KV is bound. Does not increment. |
 | GET | \`/v1/uses\` | API use counters + recent ring log. Does not increment. No PII. The ring records repo version 2.0.0-rc1 (prerelease kept) and git_sha when GIT_SHA or GITHUB_SHA is set. by_op also records mcp.<tool> and fraggate.call.<slug> / fraggate.describe.<slug> when those tokens are safe. Softwares has no slug. |
 | GET | \`/v1/stats\` | Alias of \`/v1/uses\`. |
-| GET | \`/v1/stats-rollups\` | Read-only sibling views/downloads snapshot (best-effort; never invents; omit on error). |
+| GET | \`/v1/stats-rollups\` | Read-only sibling views/downloads snapshot (best-effort; never invents; omit on error). \`node_paint\` is the same Nodes / Live Nodes pair as \`GET /v1/mesh/paint\`. It is not added to combined views or the uses meter. |
 | GET | \`/v1/mesh\` | QNM rollup: enabled?, bearers, nodes (human mesh users + cited human uses), live_nodes (human mesh users + site_live_viewers), software_nodes ({slug}-worker roster). Suite-presence ON by default. Never enables extra radios. Never pulls hub /count. \`survival_methods\`: L0 Worker edge LIVE; L1 multi-relay and direct/LAN live only when configured; Cap-7 factory exec LIVE on the Cap-7 plane (not ICANN, not a public egress IP); home-origin and cold shelves SLOT (doi null); Phoenix is local wait / re-seal. \`aznet_layers\`: L2 Cap-7 factory exec (no DNS publish), L3 SLOT registry, L4 offline stub that uses L0 when a relay is set. None replace L0. |
 | GET | \`/v1/mesh/status\` | Alias of \`/v1/mesh\`. |
 | POST | \`/v1/mesh/enable\` | Optional extra bearer. Body \`{bearer}\` required (rate-limited). |
@@ -418,8 +418,9 @@ ${survivalSkillMarkdown(base)}
 | POST | \`/v1/mesh/heartbeat\` | One beat. Restores live from stale. Body \`{node_id, presence?, heartbeat_mode?}\`. Does not delete a stale row. Grace expiry is \`MESH-UNKNOWN-NODE\`. F03 \`mesh_mutate\`. \`MESH-OFF\` when radios off. |
 | POST | \`/v1/mesh/leave\` | Drop presence. Body \`{node_id}\`. No implicit heal. |
 | GET | \`/v1/mesh/nodes\` | Rollup roster (no scores / leaderboard). |
+| GET | \`/v1/mesh/paint\` | Shared Nodes / Live Nodes pair. \`nodes\` is human mesh users plus cited human uses. \`live_nodes\` is runtime users plus live users on godlock.uk, azieleliab.com, azielcorpuslibrary.net, and hedidntjump.com. Same numbers as \`GET /v1/mesh\`. Do not add a local count. Do not add this pair to the uses meter. Cap-7 is not ICANN. Paid satellite stays HELD. |
 | GET | \`/v1/mesh/site-presence\` | Cite hub site-viewer contract + current \`site_live_viewers\`. Never writes. Never pulls hub /count. |
-| POST | \`/v1/mesh/site-presence\` | Hub fleet heartbeat. Body \`{host, viewers, kind: "human-page", heartbeat_mode?}\`. Allowed: godlock.uk, azieleliab.com, azielcorpuslibrary.net. Alias \`/v1/mesh/site-heartbeat\`. Fresh beat counts as site_live_viewers. Miss 3 adaptive beats and the host is stale: Live Nodes drop it to 0; site_registered_viewers keeps the last count until viewers 0 or 14 days. Fail-closed. F03 \`mesh_mutate\`. |
+| POST | \`/v1/mesh/site-presence\` | Hub fleet heartbeat. Body \`{host, viewers, kind: "human-page", heartbeat_mode?}\`. Allowed: godlock.uk, azieleliab.com, azielcorpuslibrary.net, hedidntjump.com. Alias \`/v1/mesh/site-heartbeat\`. Fresh beat counts as site_live_viewers. Miss 3 adaptive beats and the host is stale: Live Nodes drop it to 0; site_registered_viewers keeps the last count until viewers 0 or 14 days. Fail-closed. Bots, Softwares, downloads, and unknown hosts refuse. F03 \`mesh_mutate\`. |
 | GET | \`/v1/mesh/az-generator\` | Cap-7 semantic-bridge cite (MirageGrid factory; inherit designs only including azcorpus + azlibrary; \`design_of: hub_designs\`; \`resolves_to_hub: false\`; \`name_may_change\`; not ICANN). Never enables radios. |
 | POST | \`/v1/mesh/broadcast\` | SHA-256 hash receipt only. Never a publish path. |
 | GET | \`/v1/mesh/sot\` | SOT-SYNC-1.0 suite tip. Authority is GET /v1/software (suite version, git sha, Softwares count, card versions). version_id is the Cloudflare Worker version id when bound, otherwise null. Does not change Nodes or Live Nodes. |
@@ -2210,6 +2211,14 @@ export function runtimeStaticPaths() {
         responses: { "200": { description: "Presence refreshed" }, "400": { description: "Unknown node or radios off" } },
       },
     },
+    "/v1/mesh/paint": {
+      get: {
+        operationId: "mesh_paint",
+        summary: "Shared Nodes / Live Nodes pair. nodes is human mesh users plus cited human uses. live_nodes is runtime users plus live users on godlock.uk, azieleliab.com, azielcorpuslibrary.net, and hedidntjump.com. Same numbers as GET /v1/mesh. Do not recompute. Do not add this pair to the uses meter. Cap-7 is not ICANN. Paid satellite stays HELD.",
+        tags: ["mesh"],
+        responses: { "200": { description: "nodes + live_nodes paint (fail-closed, no local add)" } },
+      },
+    },
     "/v1/mesh/site-presence": {
       get: {
         operationId: "mesh_site_presence_cite",
@@ -2219,7 +2228,7 @@ export function runtimeStaticPaths() {
       },
       post: {
         operationId: "mesh_site_presence",
-        summary: "Hub fleet heartbeat of concurrent human page viewers. Body { host, viewers, kind: human-page, heartbeat_mode? }. Allowed hosts godlock.uk / azieleliab.com / azielcorpuslibrary.net. hedidntjump.com, bots, Softwares, downloads refuse. Fresh beat is live. Miss 3 beats and the host is stale (registered count kept, Live Nodes 0). Fail-closed.",
+        summary: "Hub fleet heartbeat of concurrent human page viewers. Body { host, viewers, kind: human-page, heartbeat_mode? }. Allowed hosts godlock.uk / azieleliab.com / azielcorpuslibrary.net / hedidntjump.com. Bots, Softwares, downloads, and unknown hosts refuse. Fresh beat is live. Miss 3 beats and the host is stale (registered count kept, Live Nodes 0). Fail-closed. Do not add the count to the uses meter.",
         tags: ["mesh"],
         requestBody: {
           required: true,
@@ -2229,7 +2238,7 @@ export function runtimeStaticPaths() {
                 type: "object",
                 required: ["host", "viewers", "kind"],
                 properties: {
-                  host: { type: "string", description: "godlock.uk | azieleliab.com | azielcorpuslibrary.net" },
+                  host: { type: "string", description: "godlock.uk | azieleliab.com | azielcorpuslibrary.net | hedidntjump.com" },
                   viewers: { type: "integer", minimum: 0, maximum: 10000, description: "Concurrent human page sessions. Do not invent." },
                   kind: { type: "string", enum: ["human-page"] },
                   heartbeat_mode: { type: "string", enum: ["active", "idle", "asleep"], description: "Optional. Default idle." },

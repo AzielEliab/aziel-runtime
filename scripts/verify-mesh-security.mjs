@@ -674,27 +674,46 @@ gate("PROXY-ALLOWLIST", " /p never forwards factory /mcp; documented tracker ops
   assert.equal(none.data.live_nodes, 0);
   assert.equal(none.data.site_live_viewers_pull, false);
   const excluded = await postJson(siteEnv, "/v1/mesh/site-presence", {
-    host: "hedidntjump.com",
+    host: "unseal.example",
     viewers: 12,
     kind: "human-page",
   });
   assert.equal(excluded.data.ok, false);
-  assert.equal(excluded.data.code, "MESH-SITE-HOST-EXCLUDED");
+  assert.equal(excluded.data.code, "MESH-SITE-HOST");
   const afterRefuse = await jsonReq(siteEnv, "/v1/mesh");
-  assert.equal(afterRefuse.data.site_live_viewers, 0, "excluded host must not invent viewers");
+  assert.equal(afterRefuse.data.site_live_viewers, 0, "unknown host must not invent viewers");
+  const hdj = await postJson(siteEnv, "/v1/mesh/site-presence", {
+    host: "www.hedidntjump.com",
+    viewers: 4,
+    kind: "human-page",
+  });
+  assert.equal(hdj.status, 200, JSON.stringify(hdj.data));
+  assert.equal(hdj.data.site_live_viewers_components["hedidntjump.com"], 4);
   const ok = await postJson(siteEnv, "/v1/mesh/site-presence", {
     host: "godlock.uk",
     viewers: 3,
     kind: "human-page",
   });
   assert.equal(ok.status, 200, JSON.stringify(ok.data));
-  assert.equal(ok.data.site_live_viewers, 3);
-  assert.equal(ok.data.live_nodes, 3);
+  assert.equal(ok.data.site_live_viewers, 7);
+  assert.equal(ok.data.live_nodes, 7);
+  assert.equal(ok.data.collective_live_users, ok.data.live_nodes);
+  assert.equal(ok.data.runtime_users, ok.data.human_mesh_users);
   assert.equal(ok.data.nodes, ok.data.human_mesh_users + ok.data.human_uses);
+  assert.equal(ok.data.fold_nodes_into_uses, false);
+  assert.equal(ok.data.human_uses, hdj.data.human_uses);
   assertMeshPills(ok.data);
+  const paint = await jsonReq(siteEnv, "/v1/mesh/paint");
+  assert.equal(paint.status, 200);
+  assert.equal(paint.data.nodes, ok.data.nodes);
+  assert.equal(paint.data.live_nodes, ok.data.live_nodes);
+  assert.equal(paint.data.live_nodes_tip, ok.data.live_nodes_tip);
+  assert.equal(paint.data.local_recompute, false);
+  assert.equal(paint.data.fold_nodes_into_uses, false);
+  assert.equal(paint.data.collective_live_users, paint.data.runtime_users + paint.data.site_live_users);
   resetMeshStore();
 }
-gate("SITE-LIVE-VIEWERS", "Live Nodes add hub site viewers when present; stay 0 when none; HDJ excluded");
+gate("SITE-LIVE-VIEWERS", "Live Nodes are one fleet sum including HDJ; unknown hosts stay 0; paint matches mesh; uses stay put");
 
 const warnDoc = readFileSync(new URL("../docs/designs/MESH-INTERNET-WARNS-1.0.md", import.meta.url), "utf8");
 assert.match(warnDoc, /\| WARN-1 \|[^\n]*\| STANDS \|/);

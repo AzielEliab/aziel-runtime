@@ -8,8 +8,10 @@
  * Explicit viewers:0 clears the count. The row itself stays until leave
  * is not a separate route — grace deletes a host that never beats again.
  *
- * Allowed: godlock.uk + azieleliab.com + azielcorpuslibrary.net.
- * Excluded: hedidntjump.com. Bots, Softwares, downloads are refused.
+ * Allowed: godlock.uk + azieleliab.com + azielcorpuslibrary.net + hedidntjump.com.
+ * Those four fronts are one fleet. Runtime users stay human_mesh_users.
+ * Live Nodes is that sum. Bots, Softwares, and downloads are refused.
+ * Unknown hosts are refused. Unseal has no published host here.
  * NO-LIE: do not invent viewers. Zero is honest.
  *
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
@@ -29,8 +31,16 @@ export const SITE_LIVE_TTL_MS = staleAfterMs(DEFAULT_HEARTBEAT_MODE);
 export const SITE_VIEWER_CAP = 10_000;
 export const SITE_LIVE_KIND = "human-page";
 export const SITE_LIVE_VIEWERS_PLANE = "hub-human-page-presence";
-export const SITE_LIVE_HOSTS = Object.freeze(["godlock.uk", "azieleliab.com", "azielcorpuslibrary.net"]);
-export const SITE_LIVE_EXCLUDED_HOSTS = Object.freeze(["hedidntjump.com"]);
+export const SITE_LIVE_HOSTS = Object.freeze([
+  "godlock.uk",
+  "azieleliab.com",
+  "azielcorpuslibrary.net",
+  "hedidntjump.com",
+]);
+/** Unknown hosts refuse MESH-SITE-HOST. This list is no longer a second fleet. */
+export const SITE_LIVE_EXCLUDED_HOSTS = Object.freeze([]);
+export const SITE_LIVE_HOST_PHRASE =
+  "godlock.uk + azieleliab.com + azielcorpuslibrary.net + hedidntjump.com";
 export const SITE_LIVE_REFUSED_KINDS = Object.freeze([
   "bot",
   "bots",
@@ -55,7 +65,7 @@ const HOST_ALIASES = Object.freeze({
 });
 
 export const SITE_LIVE_VIEWERS_NOTE =
-  "site_live_viewers is concurrent human page presence across godlock.uk + azieleliab.com + azielcorpuslibrary.net, reported by hub heartbeats (POST /v1/mesh/site-presence). A fresh beat counts. Miss 3 adaptive beats (default idle: 15 minutes) and that host is stale: site_live_viewers drops it to 0, and site_registered_viewers keeps the last reported count until explicit viewers 0 or 14 days after the last beat. GET /v1/mesh reads one sealed aggregate (live_nodes_generation / live_nodes_tip) and never pulls hub /count. Hubs paint live_nodes / rollup.mesh from that JSON — do not add a local /count. Never paint software_nodes, site_registered_viewers, or rollup.live as Live Nodes. hedidntjump.com, bots, Softwares, and downloads are excluded. Missing reports are 0. Do not invent viewers.";
+  "site_live_viewers is concurrent human page presence across godlock.uk + azieleliab.com + azielcorpuslibrary.net + hedidntjump.com, reported by hub heartbeats (POST /v1/mesh/site-presence). Runtime users are human_mesh_users and are not a fifth host. Live Nodes is that one sum. A fresh beat counts. Miss 3 adaptive beats (default idle: 15 minutes) and that host is stale: site_live_viewers drops it to 0, and site_registered_viewers keeps the last reported count until explicit viewers 0 or 14 days after the last beat. GET /v1/mesh and GET /v1/mesh/paint read one sealed aggregate (live_nodes_generation / live_nodes_tip) and never pulls hub /count. Every front paints nodes and live_nodes from that JSON — do not add a local /count. Never paint software_nodes, site_registered_viewers, or rollup.live as Live Nodes. Do not paint human_uses as Live Nodes. Do not add Live Nodes into the Softwares uses meter. Bots, Softwares, and downloads are refused. Unknown hosts are refused. Unseal has no published host in this fleet. Missing reports are 0. Do not invent viewers.";
 
 export const SITE_PRESENCE_CONTRACT = Object.freeze({
   method: "POST",
@@ -63,7 +73,7 @@ export const SITE_PRESENCE_CONTRACT = Object.freeze({
   alias: "/v1/mesh/site-heartbeat",
   fraggate: { slug: "mesh", op: "site-presence" },
   body: Object.freeze({
-    host: "godlock.uk | azieleliab.com | azielcorpuslibrary.net",
+    host: "godlock.uk | azieleliab.com | azielcorpuslibrary.net | hedidntjump.com",
     viewers: "non-negative integer concurrent human page sessions (0.." + SITE_VIEWER_CAP + ")",
     kind: SITE_LIVE_KIND,
   }),
@@ -284,8 +294,8 @@ export function acceptSitePresence(payload, nowMs = Date.now()) {
       ok: false,
       code: host.code,
       message: host.excluded
-        ? "hedidntjump.com (and other excluded hosts) do not enter site_live_viewers."
-        : "Pass { host } as godlock.uk, azieleliab.com, or azielcorpuslibrary.net.",
+        ? "That host does not enter site_live_viewers."
+        : "Pass { host } as godlock.uk, azieleliab.com, azielcorpuslibrary.net, or hedidntjump.com. Unknown hosts are refused. Unseal has no published host in this fleet.",
       host: host.host || "",
     };
   }

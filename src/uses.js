@@ -53,6 +53,7 @@ const SKIP_GET_READS = new Set([
   "/v1/mesh/nodes",
   "/v1/mesh/site-presence",
   "/v1/mesh/site-heartbeat",
+  "/v1/mesh/paint",
   "/v1/mesh/az-generator",
   "/v1/qns",
   "/v1/receipts",
@@ -386,6 +387,7 @@ export function shouldIncrementUse(method, pathname) {
   if (path === "/v1/uses" || path === "/v1/stats" || path === "/v1/stats-rollups") return false;
   if (path === "/v1/receipts" || path.startsWith("/v1/receipts/")) return false;
   if (path === "/v1/mesh/site-presence" || path === "/v1/mesh/site-heartbeat") return false;
+  if (path === "/v1/mesh/paint") return false;
   if (m === "GET" && SKIP_GET_READS.has(path)) return false;
   if (m === "GET" && SKIP_CATALOG_GETS.has(path)) return false;
   if (m === "GET" && path === "/mcp") return false;

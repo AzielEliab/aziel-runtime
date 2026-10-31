@@ -59,8 +59,11 @@
  *   or request-path. That roster is software_nodes. Public nodes
  *   (Nodes) = human_mesh_users + human_uses (today’s interaction-
  *   inclusive clock). Public live_nodes (Live Nodes) = human_mesh_users
- *   + site_live_viewers (hub human-page presence). Isolated humans stay
- *   on isolated_nodes. GET never pulls hub /count. Zero is honest.
+ *   (runtime users) + site_live_viewers (godlock.uk + azieleliab.com +
+ *   azielcorpuslibrary.net + hedidntjump.com). That sum is one number.
+ *   GET /v1/mesh/paint is the same number. Do not add it to the uses
+ *   meter. Isolated humans stay on isolated_nodes. GET never pulls
+ *   hub /count. Zero is honest.
  *   Incomplete uses stay honest (do not invent users). Product Workers
  *   proxy /v1/mesh/* via AZIEL_RUNTIME — do not invent a second mesh.
  * - NO-LIE / NO-REWRITE (NO-LIE-NO-REWRITE-1.0): receipts that still
@@ -139,6 +142,7 @@ import { SPORE, dormantRefuse, isSporeDormant, sporeCite } from "./spore.js";
 import {
   SITE_LIVE_EXCLUDED_HOSTS,
   SITE_LIVE_HOSTS,
+  emptySiteViewerComponents,
   SITE_LIVE_KIND,
   SITE_LIVE_TTL_MS,
   SITE_LIVE_VIEWERS_NOTE,
@@ -213,7 +217,7 @@ export const FANOUT_NODE_SUFFIX = "-worker";
 /** Public Live Nodes = human mesh users + concurrent hub site viewers. */
 export const LIVE_NODES_PLANE = "human-mesh-users-site-viewers";
 export const LIVE_NODES_NOTE =
-  "Public Live Nodes (live_nodes / rollup.mesh) count human mesh users with a recent beat (presence class live or locked, not stale, not isolated) plus concurrent website viewers (site_live_viewers) on godlock.uk + azieleliab.com + azielcorpuslibrary.net. registered_humans and site_registered_viewers are the durable counts and are not Live Nodes. Isolated humans stay on isolated_nodes. Stale humans stay registered and do not count. hedidntjump.com, bots, Softwares, and downloads are excluded. GET /v1/mesh never pulls hub /count. Hubs paint live_nodes / rollup.mesh from this JSON (live_nodes_tip / live_nodes_generation). Do not add a local /count. rollup.live is not published. Never paint software_nodes, registered_nodes, or rollup.live as Live Nodes. Roster presence=live, including {slug}-worker, is rollup.all.live and rollup.software.live — not the Live Nodes pill. A stale hub report is 0 on Live Nodes. Live Nodes does not invent users. Zero is honest when no human is present.";
+  "Public Live Nodes (live_nodes / rollup.mesh / GET /v1/mesh/paint) count runtime users (human mesh users with a recent beat: presence class live or locked, not stale, not isolated) plus concurrent website viewers (site_live_viewers) on godlock.uk + azieleliab.com + azielcorpuslibrary.net + hedidntjump.com. That sum is one shared number. registered_humans and site_registered_viewers are the durable counts and are not Live Nodes. Isolated humans stay on isolated_nodes. Stale humans stay registered and do not count. Bots, Softwares, and downloads are refused. Unknown hosts are refused. Unseal has no published host in this fleet. GET /v1/mesh never pulls hub /count. Every front paints nodes and live_nodes from GET /v1/mesh or GET /v1/mesh/paint (live_nodes_tip / live_nodes_generation). Do not add a local /count. Do not paint human_uses as Live Nodes. Do not add Live Nodes into the Softwares uses meter. rollup.live is not published. Never paint software_nodes, registered_nodes, or rollup.live as Live Nodes. Roster presence=live, including {slug}-worker, is rollup.all.live and rollup.software.live — not the Live Nodes pill. A stale hub report is 0 on Live Nodes. Live Nodes does not invent users. Zero is honest when no human is present.";
 
 /** Public Nodes = human mesh users + cited human uses (today’s interaction-inclusive clock). */
 export const NODES_PLANE = "human-mesh-users-uses";
@@ -1510,6 +1514,52 @@ function nodesFromHumanSignal(humanPresence, usesSignal) {
   return meshSizeFromPresence(humanPresence) + countedHumanUses(usesSignal);
 }
 
+/**
+ * The two pills every front door paints. Same fields as GET /v1/mesh.
+ * live_nodes is runtime users + every fleet site's live users.
+ * nodes stays users + uses and is not the uses meter.
+ */
+export function meshPaintFromFields(src) {
+  const s = src && typeof src === "object" ? src : {};
+  const runtimeUsers = Number.isFinite(Number(s.human_mesh_users)) ? Math.max(0, Math.floor(Number(s.human_mesh_users))) : 0;
+  const siteLive = Number.isFinite(Number(s.site_live_viewers)) ? Math.max(0, Math.floor(Number(s.site_live_viewers))) : 0;
+  const live = Number.isFinite(Number(s.live_nodes)) ? Math.max(0, Math.floor(Number(s.live_nodes))) : runtimeUsers + siteLive;
+  const nodes = Number.isFinite(Number(s.nodes)) ? Math.max(0, Math.floor(Number(s.nodes))) : runtimeUsers;
+  const uses = Number.isFinite(Number(s.human_uses)) ? Math.max(0, Math.floor(Number(s.human_uses))) : 0;
+  return {
+    ok: true,
+    author: MESH_AUTHOR,
+    identity: "Aziel Eliab",
+    source: "GET /v1/mesh",
+    paint_url: "/v1/mesh/paint",
+    local_recompute: false,
+    includes_site_viewers: true,
+    live_nodes_align: "mesh",
+    nodes,
+    live_nodes: live,
+    runtime_users: runtimeUsers,
+    site_live_users: siteLive,
+    collective_live_users: live,
+    human_mesh_users: runtimeUsers,
+    human_uses: uses,
+    site_live_viewers: siteLive,
+    site_live_viewers_components: s.site_live_viewers_components && typeof s.site_live_viewers_components === "object"
+      ? s.site_live_viewers_components
+      : emptySiteViewerComponents(),
+    site_live_viewers_hosts: Array.isArray(s.site_live_viewers_hosts) ? s.site_live_viewers_hosts.slice() : SITE_LIVE_HOSTS.slice(),
+    live_nodes_generation: Number(s.live_nodes_generation) || 0,
+    live_nodes_tip: typeof s.live_nodes_tip === "string" ? s.live_nodes_tip : "",
+    nodes_formula: "human_mesh_users+human_uses",
+    live_nodes_formula: "runtime_users+site_live_users",
+    nodes_are_not_unique_humans: true,
+    uses_meter_unchanged: true,
+    fold_nodes_into_uses: false,
+    cap7_is_icann: false,
+    paid_satellite_held: true,
+    note: "Paint nodes and live_nodes from this object. live_nodes is runtime users (human_mesh_users) plus live users on godlock.uk, azieleliab.com, azielcorpuslibrary.net, and hedidntjump.com. nodes is human_mesh_users plus cited human uses and is not a count of people. Do not add a local /count. Do not paint human_uses as Live Nodes. Do not add nodes or live_nodes into the Softwares uses meter. Unseal has no published host. Cap-7 is not ICANN. Paid satellite stays HELD. Missing reports are 0.",
+  };
+}
+
 function statusFieldsSync(state, usesSignal = null, env) {
   const nodes = pruneNodes(state.nodes);
   const list = liveList(nodes);
@@ -1587,7 +1637,8 @@ function statusFieldsSync(state, usesSignal = null, env) {
       instance_nodes_excluded: true,
       bots_excluded: true,
       downloads_excluded: true,
-      hedidntjump_excluded: true,
+      hedidntjump_excluded: false,
+      includes_site_viewers: true,
       stale_excluded: true,
       registered_excluded: true,
       invent_users: false,
@@ -1595,6 +1646,15 @@ function statusFieldsSync(state, usesSignal = null, env) {
     nodes_are_not_unique_humans: true,
     paint_nodes_as_people: false,
     nodes_formula: "human_mesh_users+human_uses",
+    live_nodes_formula: "runtime_users+site_live_users",
+    runtime_users: human_mesh_users,
+    site_live_users: site_live_viewers,
+    collective_live_users: live_nodes,
+    includes_site_viewers: true,
+    live_nodes_align: "mesh",
+    local_recompute: false,
+    uses_meter_unchanged: true,
+    fold_nodes_into_uses: false,
     nodes_complete: uses.complete === true && uses.uses_kv === true && Number.isSafeInteger(uses.uses) && uses.uses >= 0,
     nodes_components: {
       human_mesh_users,
@@ -1613,6 +1673,17 @@ function statusFieldsSync(state, usesSignal = null, env) {
     isolated_nodes: rollup.isolated,
     live_nodes_note: LIVE_NODES_NOTE,
     nodes_note: NODES_NOTE,
+    node_paint: meshPaintFromFields({
+      human_mesh_users,
+      site_live_viewers,
+      live_nodes,
+      nodes: nodes_count,
+      human_uses,
+      site_live_viewers_components: fleet.components,
+      site_live_viewers_hosts: fleet.hosts,
+      live_nodes_generation,
+      live_nodes_tip,
+    }),
     software_nodes_note: SOFTWARE_NODES_NOTE,
     human_nodes_note: HUMAN_NODES_NOTE,
     ephemeral_nodes: registeredTotal(rollup.ephemeral),
@@ -1838,7 +1909,7 @@ Read-only **suite-presence is ON by default**. A site ping of \`GET /v1/mesh\` n
 
 \`mesh_join\` / \`POST /v1/mesh/join\` requires \`product\` (catalog slug). Optional \`node_id\` must be exactly 8–80 chars matching \`[a-z0-9._-]\` (full string). \`presence\` must be \`live\` (default), \`locked\`, or \`isolated\`. Optional \`heartbeat_mode\` is \`active\` (15–30s), \`idle\` (2–5 min, default), or \`asleep\` (15–30 min). A non-worker join is a durable hash-sealed session. It stays registered until explicit \`mesh_leave\` or 14 days after the last beat. Miss 3 beats and \`presence_class\` is **stale**, not deleted. One beat restores the declared presence. Stale does not count as Live Nodes. \`{slug}-worker\` suite-presence still drops after a **strict 5-minute TTL** and does not take a user heartbeat. Direct HTTP join/heartbeat/leave/broadcast share F03 kind \`mesh_mutate\` (default 30/min; \`RATE_LIMIT\` 429). Not a login mesh. Roster does not publish exec URLs. Roster cap \`NODE_CAP\` prefers \`{slug}-worker\` rows; extra anonymous joins refuse \`MESH-ROSTER-FULL\`. When transmission radios are powered down or suite radios are not enabled, join/heartbeat/broadcast refuse **\`MESH-OFF\`**. A seal mismatch refuses **\`MESH-SESSION-SEAL\`** and does not count as live. Read paths stay honest. Do not invent a second refuse spelling.
 
-While radios are LIVE, this Worker fans out join/heartbeat for every live Softwares product Worker (\`node_id\` \`{slug}-worker\`, no \`|\`) on cron (\`*/2 * * * *\`) or request-path. That roster is **software_nodes**. Public **nodes** (Nodes) counts **human mesh users** plus cited **human uses** (\`USES\` / \`human_uses\`). Public **live_nodes** (Live Nodes) counts **human mesh users** plus concurrent website viewers (\`site_live_viewers\`) reported by hub \`POST /v1/mesh/site-presence\` (\`kind: "human-page"\`) for godlock.uk + azieleliab.com + azielcorpuslibrary.net. Downloaded Softwares instances stay \`instance_nodes\`. Isolated humans stay on \`isolated_nodes\`. hedidntjump.com, bots, Softwares, and downloads are excluded. GET never pulls hub \`/count\`. GET reads the site-viewer aggregate as one key (\`live_nodes_generation\` / \`live_nodes_tip\`). Hubs paint \`live_nodes\` / \`rollup.mesh\` only and do not add a local \`/count\`. Never paint \`software_nodes\` or \`rollup.live\` as Live Nodes. \`rollup.live\` is not published. Fan-out does not rewrite that aggregate. Missing or expired hub heartbeats are 0. Uses are interaction counters, not unique people. Incomplete uses stay honest — do not invent users. Zero is honest. Product Workers proxy \`/v1/mesh/*\` via \`AZIEL_RUNTIME\`. Not a second mesh. Fan-out does not restore godlock.uk or reattach a pulled public hostname.
+While radios are LIVE, this Worker fans out join/heartbeat for every live Softwares product Worker (\`node_id\` \`{slug}-worker\`, no \`|\`) on cron (\`*/2 * * * *\`) or request-path. That roster is **software_nodes**. Public **nodes** (Nodes) counts **human mesh users** plus cited **human uses** (\`USES\` / \`human_uses\`). Public **live_nodes** (Live Nodes) counts **runtime users** (\`human_mesh_users\`) plus concurrent website viewers (\`site_live_viewers\`) reported by hub \`POST /v1/mesh/site-presence\` (\`kind: "human-page"\`) for godlock.uk + azieleliab.com + azielcorpuslibrary.net + hedidntjump.com. That sum is one number. \`GET /v1/mesh/paint\` is the same number. Downloaded Softwares instances stay \`instance_nodes\`. Isolated humans stay on \`isolated_nodes\`. Bots, Softwares, and downloads are refused. Unknown hosts are refused. Unseal has no published host. Do not add Live Nodes to the uses meter. GET never pulls hub \`/count\`. GET reads the site-viewer aggregate as one key (\`live_nodes_generation\` / \`live_nodes_tip\`). Every front paints \`nodes\` and \`live_nodes\` from that JSON and does not add a local \`/count\`. Never paint \`software_nodes\` or \`rollup.live\` as Live Nodes. \`rollup.live\` is not published. Fan-out does not rewrite that aggregate. Missing or expired hub heartbeats are 0. Uses are interaction counters, not unique people. Incomplete uses stay honest — do not invent users. Zero is honest. Product Workers proxy \`/v1/mesh/*\` via \`AZIEL_RUNTIME\`. Not a second mesh. Fan-out does not restore godlock.uk or reattach a pulled public hostname.
 
 Phoenix is wait / re-seal after tamper or isolation. It is not “bring the .uk node back.” Sites pulled (token revoked, Worker dropped, DNS killed) die with the pull: public rollup on that hostname is down; a local node may keep verifying and appending. Mesh does not climb back onto the public hostname by itself. A process supervisor restarting cloudflared is operator kit, not this contract.
 
@@ -2815,6 +2886,22 @@ async function dispatchMeshHttpCore(method, pathname, payload, env, origin, sear
   }
   if (path === "/v1/mesh/az-generator") {
     return dispatchAzGeneratorHttp(m, path, origin, payload, searchParams);
+  }
+  if (path === "/v1/mesh/paint") {
+    if (m === "GET" || m === "HEAD") {
+      if (meshGetLooksLikeEnable(searchParams, payload)) {
+        return { status: 405, body: meshGetEnableRefuse({ path, method: m }) };
+      }
+      const body = await meshStatus(payload, env);
+      const paint = body && body.node_paint ? body.node_paint : meshPaintFromFields(body);
+      return { status: 200, body: paint };
+    }
+    return {
+      status: 405,
+      body: refuse("MESH-METHOD", "GET /v1/mesh/paint. GET never enables radios.", {
+        hint: "GET /v1/mesh/paint",
+      }),
+    };
   }
   if (path === "/v1/mesh" || path === "/v1/mesh/status") {
     if (m === "GET" || m === "HEAD") {
