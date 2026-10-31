@@ -12,6 +12,7 @@ import { canonicalize, sha256Hex, ZERO_HASH } from "../session-core.js";
 import { anchorRefNow } from "../anchor.js";
 import { callMetaLedgerFields } from "../receipt-guard.js";
 import { checkServerDrift } from "../server-provenance.js";
+import { checkModelVersion } from "../model-provenance.js";
 import { latticeDocumentHash, latticeTips, planLattice } from "../dual-lattice.js";
 
 export const LEDGER_KIND = "aziel-runtime.fraggate.ledger";
@@ -95,6 +96,15 @@ export function ledgerTipView(ledger = isolateLedger) {
     server_reason: last && last.server_reason != null ? last.server_reason : null,
     server_basis: last && last.server_basis != null ? last.server_basis : null,
     server_tool: last && last.server_tool != null ? last.server_tool : null,
+    ...(last && last.requested_alias != null
+      ? {
+          requested_alias: last.requested_alias,
+          model_id: last.model_id ?? null,
+          model_version: last.model_version ?? null,
+          ...(last.model_basis ? { model_basis: last.model_basis } : {}),
+          ...(last.model_finding ? { model_finding: last.model_finding } : {}),
+        }
+      : {}),
     window_cap: LEDGER_CAP,
     ephemeral_window: true,
     memory_store_is_durable: false,
@@ -145,7 +155,7 @@ export async function composeLedgerEntry(record, { seq, prev, latticeTips = null
     at: (record && record.at) || new Date().toISOString(),
   };
   // Additive optional fields (2.0 additive-only): absent on old rows, so old hashes are unchanged.
-  for (const key of ["anchor", "goal_key", "context_hash", "node_ids", "schema_hash", "server_path", "server_hash", "server_reason", "server_basis", "server_tool"]) {
+  for (const key of ["anchor", "goal_key", "context_hash", "node_ids", "schema_hash", "server_path", "server_hash", "server_reason", "server_basis", "server_tool", "requested_alias", "model_id", "model_version", "model_basis", "model_finding"]) {
     if (record && record[key] != null) body[key] = record[key];
   }
   if (latticeTips) {
@@ -308,5 +318,17 @@ export async function verifyLedger(ledger = isolateLedger) {
   }
   // RIB-039: per-tool server path/hash drift over call rows (fail closed on missing after present).
   const server_drift = checkServerDrift(rows);
-  return { ok: breaks.length === 0 && server_drift.ok !== false, server_drift_status: server_drift.status, server_drift_note: server_drift.note, breaks, n: rows.length, server_drift };
+  // RIB-068: version change under one requested alias. Rows with no model fields are skipped.
+  const model_provenance = await checkModelVersion(rows);
+  return {
+    ok: breaks.length === 0 && server_drift.ok !== false && model_provenance.ok !== false,
+    server_drift_status: server_drift.status,
+    server_drift_note: server_drift.note,
+    breaks,
+    n: rows.length,
+    server_drift,
+    model_provenance_status: model_provenance.status,
+    model_provenance_note: model_provenance.note,
+    model_provenance,
+  };
 }

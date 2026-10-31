@@ -1003,6 +1003,28 @@ export function attemptOpenApiSchemas() {
           type: "boolean",
           description: "false. FragGate ledger_tip.prev is call-order only and is not this parent_receipt_id.",
         },
+        requested_alias: {
+          type: "string",
+          description:
+            "RIB-068. The model name the caller asked for. Omitted when the call did not use a model. Not LIVE until AZBot CLEAR.",
+        },
+        model_id: {
+          type: "string",
+          description: "Provider-reported model id. Not copied from requested_alias. Omitted on non-model calls.",
+        },
+        model_version: {
+          type: "string",
+          description: "Provider-reported model version. A change under the same requested_alias seals a finding.",
+        },
+        model_basis: {
+          type: "object",
+          description: "Names only. resolved is false. Cap-7 is not ICANN. Paid satellite stays HELD.",
+        },
+        model_finding: {
+          type: "object",
+          description:
+            "Hash-linked MODEL-VERSION-SWAP finding. Not signed. Present when model_version changed under the same requested_alias.",
+        },
       },
     },
     ResultEnvelope: {

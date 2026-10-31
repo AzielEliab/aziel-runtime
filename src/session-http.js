@@ -531,6 +531,18 @@ async function handleExec(request, env, id, { json, PRODUCTS, BY_SLUG, upstreamF
   const resDig = await digestText(responseText);
   // RIB-039: server path + sha256 of server_basis (deploy identity + tool digest); null with a reason, never a guess.
   const { serverProvenance } = await import("./server-provenance.js");
+  // RIB-068: provider model id/version only. A non-model response leaves this empty.
+  const { modelProvenance } = await import("./model-provenance.js");
+  const model = modelProvenance({
+    request: {
+      payload,
+      requested_alias: body.requested_alias,
+      model_alias: body.model_alias,
+      alias: body.alias,
+      model: body.model,
+    },
+    response: parsedBody,
+  }) || {};
   const server = await serverProvenance({
     env,
     tool: slug + "." + op,
@@ -560,6 +572,7 @@ async function handleExec(request, env, id, { json, PRODUCTS, BY_SLUG, upstreamF
         body.parent_receipt_id !== undefined ? body.parent_receipt_id : payload && payload.parent_receipt_id,
       correlation_id: body.correlation_id != null ? body.correlation_id : payload && payload.correlation_id,
       outcome: body.outcome != null ? body.outcome : payload && payload.outcome,
+      ...model,
       ...additiveForSession(body),
       ...contextFields(await contextOf(body)),
       ...server,
