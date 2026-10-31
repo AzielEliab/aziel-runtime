@@ -4878,7 +4878,7 @@ async function handleRequest(request, env, ctx) {
       const hdrs = { "access-control-allow-origin": "*", "cache-control": "no-store" };
       if (url.pathname === "/v1/anchor/coverage") {
         const { coverageView } = await import("./anchor-coverage.js");
-        const body = await coverageView(env && env.CHAINLOCK ? storeFor(env) : null);
+        const body = await coverageView(env && env.CHAINLOCK ? storeFor(env) : null, { env });
         return asHead(request, json(body, 200, hdrs));
       }
       if (url.pathname === "/v1/anchor/heads") {
@@ -5360,14 +5360,23 @@ export default {
       if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(news);
       else await news;
     }
-    // AZRT-ANCHOR-COVERAGE-1.0: cron verifier + deadline watchdog. Does not write the witness log
+    // AZRT-ANCHOR-COVERAGE-1.0: cron verifier + deadline watchdog. Off unless COVERAGE_LIVE is
+    // explicitly on. Cos must not set that flag without Aziel OK. Does not write the witness log
     // and does not write the out-of-band heartbeat (RIB-060 same-chain heartbeat is not implemented).
     if (env && env.CHAINLOCK && ctx && typeof ctx.waitUntil === "function") {
       const tickAt = controller && controller.scheduledTime != null ? new Date(controller.scheduledTime).getTime() : Date.now();
       ctx.waitUntil(
         import("./anchor-coverage.js")
-          .then(({ runCoverageTick }) => runCoverageTick({ store: storeFor(env), now: Number.isFinite(tickAt) ? tickAt : Date.now() }))
-          .then((out) => console.log(JSON.stringify({ anchor_coverage: out && { live: false, verifier: out.verifier && out.verifier.code, pages: out.watchdog && (out.watchdog.pages || []).length } })))
+          .then(async (cov) => {
+            if (!cov.coverageLive(env)) {
+              const skipped = { ran: false, code: "COVERAGE-LIVE-OFF", coverage_live: false, live: false, written: false };
+              console.log(JSON.stringify({ anchor_coverage: skipped }));
+              return skipped;
+            }
+            const out = await cov.runCoverageTick({ store: storeFor(env), now: Number.isFinite(tickAt) ? tickAt : Date.now() });
+            console.log(JSON.stringify({ anchor_coverage: out && { ran: true, coverage_live: true, live: true, verifier: out.verifier && out.verifier.code, pages: out.watchdog && (out.watchdog.pages || []).length } }));
+            return out;
+          })
           .catch((err) => console.log(JSON.stringify({ anchor_coverage: "COVERAGE-CRON-ERROR", error: String((err && err.message) || err).slice(0, 200) }))),
       );
     }

@@ -33,7 +33,10 @@ export const KILL_TO_PAGE_BUDGET_MS = 15 * 60 * 1000;
 export const LOOKBACK_SLOTS = 96;
 /** RIB-060 is superseded. There is no same-chain heartbeat. */
 export const SAME_CHAIN_HEARTBEAT = false;
+/** Default. Live only when `coverageLive(env)` is true (code is present and COVERAGE_LIVE is explicitly on). */
 export const LIVE = false;
+/** Cos must not set COVERAGE_LIVE without Aziel OK. Missing, off, and any other string stay off. */
+export const COVERAGE_LIVE_NOTE = "Cos must not turn COVERAGE_LIVE on without Aziel OK. Coverage ticks stay off until that flag is explicitly on. Not LIVE until the code and the flag are both on. Cap-7 is not ICANN. Paid satellite stays HELD.";
 
 export const HONESTY = Object.freeze({
   spec: COVERAGE_SPEC,
@@ -56,6 +59,17 @@ export const COVERAGE_SCHEDULE = Object.freeze([
 ]);
 
 const NAME_RE = /^[a-z0-9._-]{1,40}$/;
+
+/**
+ * Coverage cron gate. Default OFF. True only for an explicit on: true, 1, "1", "true", "yes", "on".
+ * "live", "false", "off", "0", and a missing var do not arm the tick.
+ */
+export function coverageLive(env) {
+  const v = env && (env.COVERAGE_LIVE != null ? env.COVERAGE_LIVE : env.coverage_live);
+  if (v === true || v === 1) return true;
+  const s = String(v == null ? "" : v).trim().toLowerCase();
+  return s === "1" || s === "true" || s === "yes" || s === "on";
+}
 
 let outsideLog = null;
 
@@ -586,17 +600,22 @@ export async function runKillToPageDrill({ store, shelf, deathAt = Date.now(), a
   return { spec: COVERAGE_SPEC, live: false, signed: false, beat, killed, writerBeat, runtimeBeat, page, verifier_after_kill: after, ack, metric };
 }
 
-export async function coverageView(store, { now = Date.now(), log = currentOutsideAnchorLog(), schedule = COVERAGE_SCHEDULE } = {}) {
+export async function coverageView(store, { env = null, now = Date.now(), log = currentOutsideAnchorLog(), schedule = COVERAGE_SCHEDULE } = {}) {
+  const on = coverageLive(env);
   const body = {
     spec: COVERAGE_SPEC,
     read: true,
     mints: false,
-    live: false,
+    live: on,
+    coverage_live: on,
     signed: false,
-    honesty: HONESTY,
+    honesty: { ...HONESTY, live: on, coverage_live: on },
     schedule,
     same_chain_heartbeat: SAME_CHAIN_HEARTBEAT,
-    note: "Not LIVE. Receipts are hash-linked and sealed, not signed. The Worker does not write the aziel-anchors witness log and does not hold the witness key. Cap-7 and .aziel are names only. Cap-7 is not ICANN. Paid satellite stays HELD. RIB-060 same-chain heartbeat is not implemented.",
+    cos_may_enable: false,
+    note: on
+      ? "COVERAGE_LIVE is on, so coverage ticks may seal. Receipts stay hash-linked and sealed, not signed. The Worker does not write the aziel-anchors witness log. Cap-7 and .aziel are names only. Cap-7 is not ICANN. Paid satellite stays HELD. " + COVERAGE_LIVE_NOTE
+      : "Not LIVE. COVERAGE_LIVE is off, so coverage ticks do not run. " + COVERAGE_LIVE_NOTE + " Receipts stay hash-linked and sealed, not signed. The Worker does not write the aziel-anchors witness log and does not hold the witness key. Cap-7 and .aziel are names only. RIB-060 same-chain heartbeat is not implemented.",
   };
   if (!store) return { ...body, code: "COVERAGE-STORE-UNBOUND", refusal_check: null, pages: [] };
   const { loadChain } = await import("./chainlock/ops.js");
@@ -628,8 +647,8 @@ export function coverageOpenApiPaths() {
     "/v1/anchor/coverage": {
       get: {
         operationId: "anchor_coverage_status",
-        summary: "AZRT-ANCHOR-COVERAGE-1.0 status. Read-only. Mints nothing. Not LIVE. Not signed.",
-        description: "Per-refusal anchor flags, verifier gaps, and deadline pages. Does not write aziel-anchors. Cap-7 and .aziel stay names only. Cap-7 is not ICANN. Paid satellite stays HELD.",
+        summary: "AZRT-ANCHOR-COVERAGE-1.0 status. Read-only. Mints nothing. Coverage ticks stay off until COVERAGE_LIVE is explicitly on.",
+        description: "Per-refusal anchor flags, verifier gaps, and deadline pages. Cron ticks do not run while COVERAGE_LIVE is off. Cos must not turn that flag on without Aziel OK. Does not write aziel-anchors. Cap-7 and .aziel stay names only. Cap-7 is not ICANN. Paid satellite stays HELD.",
         tags: ["runtime"],
         responses: {
           "200": { description: "Status. refusal_check.ok is false when a post-batch refusal is pending or mismatched." },

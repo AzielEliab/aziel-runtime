@@ -26,7 +26,9 @@ The outside log is not the ChainLock writer and is not a signed witness statemen
 
 ## RIB-058 — scheduled verifier
 
-`runCoverageTick` runs from the Worker cron. Each slot of `anchor-verify` (15 minutes) seals one `k: "verifier"` row on the internal `coverage` chain, `result: pass` or `result: fail`. The same slot replays. A slot that never ran stays missing. A miss row does not fill that hole.
+`runCoverageTick` is what a Worker cron tick calls, and only when `COVERAGE_LIVE` is explicitly on (`true`, `1`, `"1"`, `"true"`, `"yes"`, `"on"`). The var is unset in `wrangler.toml`. Missing, `"off"`, `"0"`, `"false"`, and `"live"` do not arm it. While it is off, `scheduled()` logs `COVERAGE-LIVE-OFF` and seals no verifier or watchdog row. Cos must not turn `COVERAGE_LIVE` on without Aziel OK. Not LIVE until this code and that flag are both on.
+
+When the flag is on, each slot of `anchor-verify` (15 minutes) seals one `k: "verifier"` row on the internal `coverage` chain, `result: pass` or `result: fail`. The same slot replays. A slot that never ran stays missing. A miss row does not fill that hole.
 
 ## RIB-059 — deadline watchdog
 
@@ -42,4 +44,4 @@ Each check carries its own `every_ms` and `deadline_ms`. After the first verifie
 
 ## Honesty
 
-`live: false` on the status, the rows, and this paper. `GET /v1/anchor/coverage` mints nothing. Calling this LIVE waits on end-to-end outside acceptor plus AZBot CLEAR.
+`COVERAGE_LIVE` defaults off. `GET /v1/anchor/coverage` reports `live` and `coverage_live` from that flag and mints nothing. Sealed library rows stay `live: false` on the stamp. Calling the cron path LIVE requires the flag to be explicitly on. Cos must not turn it on without Aziel OK. Cap-7 is not ICANN. Paid satellite stays HELD. This is not a Remain-OFF inventory item (the constitutional list stays 33). It is a default-off gate in the same sense: unset does not arm the tick.

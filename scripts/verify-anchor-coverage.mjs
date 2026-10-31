@@ -25,8 +25,15 @@ const ok = (cond, msg) => {
   n++;
 };
 
-// Honesty and the superseded same-chain heartbeat.
+// Honesty and the superseded same-chain heartbeat. Coverage ticks default off.
 ok(C.LIVE === false && C.SAME_CHAIN_HEARTBEAT === false && C.HONESTY.live === false);
+ok(C.coverageLive({}) === false && C.coverageLive(null) === false && C.coverageLive({ COVERAGE_LIVE: "" }) === false);
+ok(C.coverageLive({ COVERAGE_LIVE: "0" }) === false && C.coverageLive({ COVERAGE_LIVE: "false" }) === false);
+ok(C.coverageLive({ COVERAGE_LIVE: "off" }) === false && C.coverageLive({ COVERAGE_LIVE: "live" }) === false && C.coverageLive({ COVERAGE_LIVE: "LIVE" }) === false);
+ok(C.coverageLive({ COVERAGE_LIVE: "on" }) === true && C.coverageLive({ COVERAGE_LIVE: "1" }) === true && C.coverageLive({ COVERAGE_LIVE: true }) === true);
+ok(C.COVERAGE_LIVE_NOTE.includes("Cos must not turn COVERAGE_LIVE on without Aziel OK"));
+ok(fs.readFileSync(new URL("../wrangler.toml", import.meta.url), "utf8").includes("COVERAGE_LIVE is unset on purpose"));
+ok(!/^COVERAGE_LIVE\s*=/m.test(fs.readFileSync(new URL("../wrangler.toml", import.meta.url), "utf8")));
 ok(C.HONESTY.signed === false && C.HONESTY.runtime_writes_witness_log === false);
 ok(C.HONESTY.cap7 === "names-only" && C.HONESTY.cap7_is_icann === false && C.HONESTY.paid_sat === "HELD");
 ok(INTERNAL_CHAINS.includes("coverage") && !ROSTER.includes("coverage"));
@@ -289,25 +296,35 @@ ok((await C.verifyOutsideLog(tampered)).code === "ANCHOR-MISMATCH");
   ok(cov.every((r) => r.coverage && r.coverage.signed === false));
 }
 
-// Cron wires the tick. Unbound log seals a fail row; it does not write a heartbeat.
+// Cron stays off until COVERAGE_LIVE is explicitly on. Then an unbound log seals a fail row.
 {
   C.setOutsideAnchorLog(null);
-  const env = { CHAINLOCK: memoryChainWriterNamespace({}) };
   const worker = (await import("../src/index.js")).default;
-  const pending = [];
   const t0 = C.VERIFIER_EVERY_MS * 20;
-  await worker.scheduled({ cron: TETHER_CRON, scheduledTime: t0 }, env, { waitUntil: (p) => pending.push(p) });
-  await Promise.all(pending);
-  const cov = await loadChain(storeFor(env), "coverage");
+  const off = { CHAINLOCK: memoryChainWriterNamespace({}) };
+  const pendingOff = [];
+  await worker.scheduled({ cron: TETHER_CRON, scheduledTime: t0 }, off, { waitUntil: (p) => pendingOff.push(p) });
+  await Promise.all(pendingOff);
+  const offRows = await loadChain(storeFor(off), "coverage");
+  ok(offRows.length === 0, "default cron seals no verifier or watchdog row");
+  const offRes = await worker.fetch(new Request("https://aziel-runtime.example/v1/anchor/coverage"), off);
+  const offBody = await offRes.json();
+  ok(offRes.status === 200 && offBody.read === true && offBody.mints === false && offBody.live === false && offBody.coverage_live === false);
+  ok(offBody.cos_may_enable === false && offBody.note.includes("Cos must not turn COVERAGE_LIVE on without Aziel OK"));
+  ok(offBody.honesty.cap7_is_icann === false && offBody.honesty.paid_sat === "HELD" && offBody.same_chain_heartbeat === false);
+  ok(offBody.note.includes("Not LIVE"));
+  const on = { CHAINLOCK: memoryChainWriterNamespace({}), COVERAGE_LIVE: "on" };
+  const pendingOn = [];
+  await worker.scheduled({ cron: TETHER_CRON, scheduledTime: t0 }, on, { waitUntil: (p) => pendingOn.push(p) });
+  await Promise.all(pendingOn);
+  const cov = await loadChain(storeFor(on), "coverage");
   const row = cov.find((r) => r.k === "verifier" && r.coverage && r.coverage.slot === 20);
   ok(row && row.coverage.result === "fail" && row.coverage.code === "COVERAGE-LOG-UNBOUND" && row.coverage.live === false);
   ok(!cov.some((r) => r.k === "heartbeat"));
-  const res = await worker.fetch(new Request("https://aziel-runtime.example/v1/anchor/coverage"), env);
-  const body = await res.json();
-  ok(res.status === 200 && body.read === true && body.mints === false && body.live === false);
-  ok(body.honesty.cap7_is_icann === false && body.honesty.paid_sat === "HELD" && body.same_chain_heartbeat === false);
-  ok(body.refusal_check && body.note.includes("Not LIVE"));
-  const api = await worker.fetch(new Request("https://aziel-runtime.example/openapi.json"), env);
+  const onRes = await worker.fetch(new Request("https://aziel-runtime.example/v1/anchor/coverage"), on);
+  const onBody = await onRes.json();
+  ok(onBody.coverage_live === true && onBody.live === true && onBody.mints === false);
+  const api = await worker.fetch(new Request("https://aziel-runtime.example/openapi.json"), on);
   const spec = await api.json();
   ok(spec.paths["/v1/anchor/coverage"] && spec.paths["/v1/anchor/coverage"].get);
   C.setOutsideAnchorLog(null);
